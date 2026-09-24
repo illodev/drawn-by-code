@@ -730,8 +730,9 @@ const WL = (() => {
         }, 1.4).draw(g);
     }
     // a detailed paper hand: size r ≈ palm radius (as the old round hands), rot in radians
-    function hand(g, x, y, r, rot = 0, pose = 'pinch', mirror = false) {
-        D.hand(g, x, y, r * 1.9, rot, pose, { skin: COL.skin, mirror });
+    // o: extra PaperDetail.hand options (part: 'back' | 'front' to put a held note between)
+    function hand(g, x, y, r, rot = 0, pose = 'pinch', mirror = false, o = {}) {
+        D.hand(g, x, y, r * 1.9, rot, pose, { skin: COL.skin, mirror, ...o });
     }
 
     // The writing hand of the notepad shots, traced from the reference close-up (3.4 s): a fist
