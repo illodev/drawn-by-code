@@ -34,6 +34,13 @@ scale, draw)`, `shotAt`, `pulse(t, bpm)`, `beatIndex`, `onBeat`, `cam(g, env, cx
 zoom, rot)`, `shake`, `keys([[t, v], …], t)`; and `Ease.seg/inOut/out/in/back/elastic/bump/
 pop/lerp/lerpPt`. `Motion.layer(env, name, fn)` paints a shot on a separate canvas
 (at output size) and `Motion.drawLayer` pastes it: for transitions and mirrors. The local-time pattern is `const u = Ease.out(Ease.seg(t, 2.0, 2.6))`.
+`Motion.quad(g, src, [tl, tr, br, bl], n, box, { bend })` maps an image onto any
+quadrilateral (triangle-subdivided affine), with an optional bend: paper in perspective,
+a page turning, a note flipping over.
+
+**Animating on twos:** hand animation changes drawing every 1/12 s. Index per-drawing
+tables with `const d = Math.floor((t - t0) * 12 + 1e-6)` and hold the drawing between;
+smooth curves look wrong next to a reference animated on twos.
 
 ## Determinism (golden rule)
 
@@ -70,6 +77,11 @@ node engine/render.mjs sandbox/x/scene.js --at 1.5,3.2    # stills at 1920 → o
 node engine/render.mjs sandbox/x/scene.js --size 1920     # MP4 → out/x.mp4
 node engine/render.mjs sandbox/x/scene.js --size 1080 --from 4 --to 8   # a segment
 node engine/mix.mjs sandbox/x/audio.json                  # mix.wav
+# working against a reference video (replicas, style studies)
+node engine/reference.mjs sheets ref.mp4 --every 0.25      # labelled contact sheets
+node engine/reference.mjs compare sandbox/x/scene.js ref.mp4 --times 2,3.5 --crop 0.3,0.2,0.4,0.4
+node engine/reference.mjs colors ref.mp4 3.5 skin=0.42,0.31 # sampled palette
+node engine/reference.mjs track ref.mp4 --color '#d2745e' --from 10 --to 12   # per-frame box
 ```
 
 Preview: space = pause, ←/→ one frame, shift+←/→ one second, `&t=3.5` in the URL.
@@ -88,3 +100,4 @@ Chrome: looked up in `CHROME_PATH`, `/opt/pw-browsers`, and the usual Linux/macO
 <!-- Added from the review loop: date · experiment · one-line lesson. -->
 - 2026-09-24 · coffee-first · Everything that bleeds off the frame (backgrounds, floors, tables) must cover the camera's full travel: `paperBg(…, { bleed })` and pieces wider than the pan. `review.mjs` warns about «Transparent holes».
 - 2026-09-24 · coffee-first · To cache a moving piece, draw the sprite at its origin and move it with `translate/rotate/scale`; the sprite key must not depend on t.
+- 2026-09-24 · what-do-you-love · A text drawn with `strokeText` on top of `fillText` only gets bolder; a felt-tip look needs the glyph thinned: fill, then `destination-out` stroke on an offscreen canvas (cache it per scale from `getTransform()`).

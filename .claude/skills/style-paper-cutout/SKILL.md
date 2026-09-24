@@ -59,6 +59,41 @@ before starting).
   top; if white shows, it reads «looking down», not «asleep».
 - **Forbidden:** soft gradients and pure black.
 
+## Detail (the bar)
+
+The difference between a finished film and an animatic is detail. Every element is worked
+until a full-resolution crop of it could pass for the reference (or for a finished film):
+
+- **Every part is its own piece of paper**, cut once, layered in a deliberate order: a dog
+  is tail, body, near leg, back spot, haunch, chest patch, three paws, head, collar, tag,
+  ear, muzzle, nose, tongue, eye with a catch-light. Decide the layering from whose white
+  border is on top, never from where a shape seems to end.
+- **Organic shapes are splines** (`PaperDetail.spline`, centripetal where a long segment
+  meets a short one), never ellipses or polygons standing in for them. Straight-edged paper
+  (cones, bands, tags, pages) stays a torn polygon: a spline makes it bulge.
+- **Textures say what the paper is:** knit on sweaters, rib on cuffs, newsprint (columns of
+  word bars, headlines, photo blocks), handwriting (`PaperDetail.cursive`: arches, loops,
+  dips), sheet music, maps (contour rings, a river, a red dashed route), wood grain.
+  Collage props are cut from printed paper.
+- **Hands are never circles:** fists with separate fingers and a thumb across them holding
+  the pencil; mittens with a separate thumb; a ribbed cuff and the sleeve behind.
+- **Paper that moves bends and turns in perspective** (`Motion.quad`); tears follow the
+  perforation (square tabs, scraps flying); folds happen step by step with creases.
+- **Replacement animation, not deformation:** what the reference redraws (waves, tentacles,
+  steam, petals opening) is 2–4 cached drawings swapped on twos, never one outline bent per
+  frame. Only scale and move a torn piece; never re-tear it.
+- **Bands and rings are two strips** (the back half before the body, the front half after).
+  Holes are punched (`destination-out`) inside a torn rim.
+- **Marker lines are chains of short overlapping strokes** with lighter edges; reveal them
+  by arc length with all the random numbers drawn up front, so nothing boils.
+- **Lettering is felt-tip:** a thin darker core inside a lighter rim (see `WL.write` with
+  `halo` in the what-do-you-love replica), not a bold fill.
+- **Miniatures are redrawn chunkier** (bigger cells, thicker lines, fewer pieces), not just
+  scaled down; give drawers a miniature variant.
+- `styles/paper-cutout/showcase/` renders the detail kit; `sandbox/2026-09-24-what-do-you-love/segments/things/`
+  has one fully detailed object per file to copy from (dog, tree, bread, rain, words,
+  music, sea, math, stars, octopus, tea, flowers, cat).
+
 ## Style checklist
 
 - [ ] Does any outline or texture change between two consecutive frames without the piece moving?
@@ -69,6 +104,8 @@ before starting).
 - [ ] Are QR codes, stamps and documents complete and well made, not half-done?
 - [ ] Is the grain visible across the whole image, text included?
 - [ ] Is anything that changes shape (steam, smoke) made of fixed pieces and not by deforming a torn outline?
+- [ ] Crop every element at full resolution: is each part its own piece, with its texture, its highlight and its layering?
+- [ ] Any hand drawn as a circle, any shape that is a plain ellipse or polygon where it should be organic?
 
 ## Lessons
 
@@ -83,3 +120,5 @@ before starting).
 - 2026-09-24 · coffee-first · The user saw «tentacles» where I saw steam: constant-width, opaque, vertical strips. The good recipe is in Rules (`kit.wisp`).
 - 2026-09-24 · exquisite-corpse · `markerStroke` sets its own `globalAlpha`: to fade it out, pass the alpha as a parameter, don't set it beforehand.
 - 2026-09-24 · what-do-you-love · The old ban on stars and sparkles came from a client brief, not from the style; a paper-cutout reference uses both. Brand rules live in the brief, not here.
+- 2026-09-24 · what-do-you-love · The user: «every element has to go to detail». A dog of five ellipses, a ring drawn as one stroke, round hands and polygon shapes read as low effort next to a reference built piece by piece. The bar is now in «Detail».
+- 2026-09-24 · what-do-you-love · `PaperDetail.shade` returned hsla and `Paper.marker` only parses hex: every shaded piece became a brown blob. Colour helpers return hex.

@@ -59,6 +59,28 @@ hesitate between "it reads" and "it doesn't read", **it doesn't read**.
 - **Accuracy:** nothing promises more than the source (website, brief). Third-party
   brands only as generic icons.
 - **Ending:** the last frame holds up as a poster and the final message reads in full.
+- **Detail:** crop each element at full resolution (`render.mjs --at` and zoom, or
+  `reference.mjs compare --crop`) and hold it to the style's detail bar: separate pieces,
+  organic shapes, textures that say what the material is, real hands. «It reads» is not
+  enough; «it could be a frame of a finished film» is.
+
+### Replicas and studies of a reference (`engine/reference.mjs`)
+
+Work from measurements, never from eyeballing:
+
+1. `sheets` for the shot list; exact cut frames from a per-frame colour probe (cuts land on
+   frames, not seconds; seek at `frame/24 − 0.004` or `-ss` may land a frame late).
+2. `colors` for every palette; `track --color` for anything that moves (centre, box, area
+   per frame): the reference animates on twos, so author **one row per drawing** (1/12 s)
+   with position, size, squash and expression, not a smooth curve.
+3. Build, then **measure your own render the same way** (render the stretch small, run the
+   same probe) to calibrate sizes before comparing by eye.
+4. `compare --times … --crop x,y,w,h` per element at full resolution until the side-by-side
+   shows the same pieces, shapes, colours, textures and layering. The diff number helps; the
+   eyes decide.
+5. Big replicas parallelise well: one file per object and one agent per group of objects,
+   each with a written brief (why, contract, tools, rules, report). Keep shared files
+   (choreography, common kit) with the lead and merge by file.
 
 ## B · User feedback
 
@@ -105,3 +127,4 @@ commit, so it shows which test produced which change.
 - 2026-09-24 · exquisite-corpse · The image-difference «jumps» warning gave false positives on dense patterns and didn't measure what matters: `review.mjs` now counts flashes frame by frame and separates jumps from cuts (tested with a strobing scene).
 - 2026-09-24 · exquisite-corpse · In a long piece, first review with `--times` the instants you changed; the full sheet only when closing the round.
 - 2026-09-24 · exquisite-corpse · I approved a jellyfish that was only a look: my critique checked style and legibility but not "what happens?". It is now in the checklist (Clarity and Density).
+- 2026-09-24 · what-do-you-love · I «compared» a replica at whole-frame size and called it close; the user saw at once that the dog, the girl and the ring had no craft. Crop every element at full resolution, and measure (track/colors/segmentation) instead of guessing positions and sizes.

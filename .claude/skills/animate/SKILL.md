@@ -75,6 +75,16 @@ rhythm and comprehension. Iterate versions (v1, v2…) with **review**; record i
 Polish, audio (skill **sound**), format versions if needed (vertical 9:16 recomposed, not
 cropped). Render: `node engine/render.mjs <scene.js> --size 1920`.
 
+**The level of detail is the job.** An animatic look (merged body parts, round hands,
+plain ellipses, flat paper) is not a final, however good the timing. Before calling a
+piece final, crop every element at full resolution and hold it to the style's detail bar
+(paper-cutout: «Detail» in its skill). Budget for it: in a replica the detail pass took
+several times longer than the animatic, and it is what the user judges first.
+
+For big pieces, split the detail work: one file per object/prop with a small drawer
+contract (`(g, x, y, s, t, part?)`), and give groups of objects to parallel agents with a
+written brief; keep choreography and shared kits with the lead.
+
 ## How to organize a large scene
 
 For more than one shot, the scene declares `shots: [[start, end, 'Name'], …]` and `draw`
