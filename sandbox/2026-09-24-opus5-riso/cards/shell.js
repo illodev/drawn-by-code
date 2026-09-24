@@ -9,7 +9,7 @@
 // is the same print 3 px to the right) with colour-run scans along and across the shell's
 // axis, grid crops and lattice fits of the four screens. Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
-CARDS.shell = (press, t) => {
+CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
     const U = G5, T = Riso.tone, d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
     // the screens (lattice fits, px at 1080): sand pink 8.64 px at 72°, sea blue 9.72 px at
@@ -18,7 +18,10 @@ CARDS.shell = (press, t) => {
     const LB = { o: [679.0, 42.48], a: [-2.0072, 9.5118], b: [9.509, 2.0057] };
     const LSP = { o: [315.88, 402.94], a: [-7.3326, 2.3611], b: [2.3287, 7.1881] };
     const LSY = { o: [314.38, 401.84], a: [-5.097, 5.558], b: [5.5731, 5.0754] };
+    // the film weaves: the cut's first frame is the same print moved (−3, 0)
+    const [dx, dy] = [[-3, 0], [0, 0], [0, 0]][Math.min(2, lf)];
     U.px(press, () => {
+        press.save(); press.each((g) => g.translate(dx, dy));
         // ------------------------------------------------------------ sand
         Y.fillStyle = T(0.92); Y.fillRect(0, 0, 1080, 1080);
         U.screen(P, 'pink', LP, (m) => { m.fillStyle = T(0.12); m.fillRect(0, 0, 1080, 1080); });
@@ -109,5 +112,6 @@ CARDS.shell = (press, t) => {
             const y0 = 610 + k * 34, x0 = 320 + k * 18;
             teal([[x0, y0 + 20], [x0 + 110, y0 - 10], [x0 + 230, y0 - 50 + k * 3]], 2, 'sg' + k, false);
         }
+        press.restore();
     });
 };

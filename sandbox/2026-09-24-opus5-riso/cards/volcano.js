@@ -6,14 +6,15 @@
 // colour-run scans, grid crops and lattice fits of the two screens; the second drawing is
 // the same print moved (−5, −1) px, as measured. Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
-CARDS.volcano = (press, t) => {
+CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
     const U = G5, T = Riso.tone, d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
     // the reference's screens (lattice fits, px at 1080): pink 10.8 px at 18°, navy 10.8 px at 78°
     const LP = { o: [946.27, 132.06], a: [-3.3149, 10.2786], b: [10.2808, 3.3142] };
     const LN = { o: [40.8, 48.69], a: [2.2397, 10.5645], b: [-10.5649, 2.2419] };
     const CX = 660, CY = 550;
-    const [dx, dy] = d >= 1 ? [-5, -1] : [0, 0];
+    // the film weaves: each frame of the cut is the same print moved (measured per frame)
+    const [dx, dy] = [[0, 0], [0, 0], [-5, -1]][Math.min(2, lf)];
     U.px(press, () => {
         press.save(); press.each((g) => g.translate(dx, dy));
         // ------------------------------------------------------------ the glow

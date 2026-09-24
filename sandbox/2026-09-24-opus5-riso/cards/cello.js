@@ -13,12 +13,15 @@
 //   overlays   a thin navy circle round the dot and the white ring from the cut
 // Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
-CARDS.cello = (press, t) => {
+CARDS.cello = (press, t, lf = Math.round(t * 24)) => {
     const U = G5, T = Riso.tone, d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
     const YS = press.plate('yellow', 'screen'), PS = press.plate('pink', 'screen'), BS = press.plate('blue', 'screen'), NS = press.plate('navy', 'screen');
     const DARK = [[Y, 1], [N, 0.95], [B, 0.55], [P, 0.18]];
+    // the film weaves: the cut's first frame is the same print moved (+3, −5)
+    const [dx, dy] = [[3, -5], [0, 0], [0, 0]][Math.min(2, lf)];
     U.px(press, () => {
+        press.save(); press.each((g) => g.translate(dx, dy));
         // ---------------------------------------------------------------- the ground
         for (const [g, v] of DARK) { g.fillStyle = T(v); g.fillRect(0, 0, 1080, 1080); }
         // blotchy: greener patches (more blue, less navy), brown ones (pink)
@@ -144,8 +147,9 @@ CARDS.cello = (press, t) => {
         // ---------------------------------------------------------------- overlays
         for (const [g, v] of [[N, 0.9]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 3.5; g.beginPath(); g.arc(540, 540, 405, 0, 7); g.stroke(); g.beginPath(); g.arc(540, 540, 594, 0, 7); g.stroke(); g.restore(); }
         // the white ring from the cut grows 30 px a frame (measured: 685, 717, 745)
-        const rr = [717, 745][Math.min(1, d)];
+        const rr = [685, 717, 745][Math.min(2, lf)];
         press.knockout((g) => { g.lineWidth = 14; g.beginPath(); g.arc(540, 540, rr, 0, 7); g.stroke(); });
         B.save(); B.strokeStyle = T(0.6); B.lineWidth = 2.5; B.beginPath(); B.arc(540, 540, rr - 8, 0, 7); B.stroke(); B.restore();
+        press.restore();
     });
 };

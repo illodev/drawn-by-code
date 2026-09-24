@@ -8,7 +8,7 @@
 // print moved (+1, −2)) with an ellipse fit of the dish, grid crops, colour scans and
 // lattice fits of the screens. Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
-CARDS.dish = (press, t) => {
+CARDS.dish = (press, t, lf = Math.round(t * 24)) => {
     const U = G5, T = Riso.tone, d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
     // screens (lattice fits, px at 1080): sky pink 10.8 px at 18°, ground blue 8.6 px at 78°,
@@ -16,7 +16,8 @@ CARDS.dish = (press, t) => {
     const LP = { o: [45.09, 495.4], a: [-3.3207, 10.2763], b: [10.2765, 3.3137] };
     const LG = { o: [703.81, 927.93], a: [1.82, 8.418], b: [-8.436, 1.793] };
     const LF = { o: [350.25, 635.99], a: [-8.325, -2.726], b: [1.853, 8.583] };
-    const [dx, dy] = d >= 1 ? [1, -2] : [0, 0];
+    // the film weaves: each frame of the cut is the same print moved (measured per frame)
+    const [dx, dy] = [[0, 0], [0, 0], [1, -2]][Math.min(2, lf)];
     U.px(press, () => {
         press.save(); press.each((g) => g.translate(dx, dy));
         // ------------------------------------------------------------ night
@@ -68,7 +69,7 @@ CARDS.dish = (press, t) => {
         // the mount's shadow under the dish: navy over the ground
         const mount = [[180, 800], [300, 830], [420, 860], [400, 960], [230, 960], [170, 880]];
         U.cut([B], (g) => U.soft(g, 20, (c) => { c.fillStyle = T(0.5); c.beginPath(); U.smooth(c, mount); c.fill(); }));
-        U.soft(N, 20, (g) => { g.fillStyle = T(0.6); g.beginPath(); U.smooth(g, mount); g.fill(); });
+        N.fillStyle = T(0.6); N.beginPath(); U.smooth(N, mount); N.fill();
         // legs behind the dish: pale sticks and a pink cross
         for (const pts of [[[272, 760], [196, 1000]], [[440, 815], [478, 1000]]]) { press.knockout((g) => U.brush(g, pts, 7, '#000', 'dl' + pts[0][0], { taper: 0 })); U.brush(B, pts, 3, T(0.6), 'dlb' + pts[0][0], { taper: 0 }); }
         for (const pts of [[[250, 820], [440, 970]], [[420, 810], [240, 955]]]) { U.cut([N, B], (g) => U.brush(g, pts, 5, '#000', 'dx' + pts[0][0], { taper: 0.1 })); U.brush(P, pts, 5, T(1), 'dx' + pts[0][0], { taper: 0.1 }); }
