@@ -27,20 +27,28 @@ CARDS.mountains = (press, t) => {
 
     // sky: pink screen dense at the top, thinning to nothing round the sun; yellow rising
     // from a pale top to a flat glow round the sun
-    pinkS.fillStyle = vramp(pinkS, 0, 560, [[0, 0.7], [0.35, 0.5], [0.7, 0.25], [1, 0.1]]);
-    pinkS.fillRect(0, 0, 1000, 560);
-    yellowS.fillStyle = vramp(yellowS, 0, 560, [[0, 0.08], [0.35, 0.3], [1, 0.7]]);
-    yellowS.fillRect(0, 0, 1000, 560);
-    // the glow round the sun lifts the pink and floods yellow
-    pinkS.save(); pinkS.globalCompositeOperation = 'destination-out';
-    pinkS.fillStyle = R.radial(pinkS, SUN[0], SUN[1], 60, 330, 0.95, 0); pinkS.beginPath(); pinkS.arc(SUN[0], SUN[1], 330, 0, 7); pinkS.fill(); pinkS.restore();
-    yellowS.fillStyle = R.radial(yellowS, SUN[0], SUN[1], 70, 380, 1, 0); yellowS.beginPath(); yellowS.arc(SUN[0], SUN[1], 380, 0, 7); yellowS.fill();
+    // (the sky's screens are the reference's own: pink 9.72 px at 78°, yellow 9.72 px at 48°,
+    // phases measured per drawing)
+    const k = Math.min(1, d), pinkL = press.plate('pink');
+    const LPk = [{ o: [4.43, -4.15], a: [-9.5102, 2.0127], b: [2.0108, 9.5100] }, { o: [-2.57, -4.14], a: [-9.5090, 2.0126], b: [2.0147, 9.5096] }][k];
+    const LYk = [{ o: [1.37, -5.35], a: [6.4871, 7.2418], b: [-7.2360, 6.4914] }, { o: [-0.54, -5.12], a: [6.4881, 7.2430], b: [-7.2386, 6.4927] }][k];
+    U.lattice(pinkL, LPk, (m) => {
+        // (coverages fitted on 90 px blocks: 0.62 at the top, 0.5, 0.37, 0.2 every 90 px down)
+        m.fillStyle = vramp(m, 0, 400, [[0, 0.72], [0.31, 0.55], [0.52, 0.39], [0.73, 0.21], [1, 0.1]]); m.fillRect(-20, -20, 1040, 580);
+        m.globalCompositeOperation = 'destination-out';
+        m.fillStyle = R.radial(m, SUN[0], SUN[1], 60, 190, 0.9, 0); m.beginPath(); m.arc(SUN[0], SUN[1], 190, 0, 7); m.fill();
+    });
+    U.lattice(yellow, LYk, (m) => {
+        // (0.22 everywhere, plus a glow round the sun: 0.78 at 100 px, 0.4 at 360 px)
+        m.fillStyle = T(0.27); m.fillRect(-20, -20, 1040, 580);
+        m.fillStyle = R.radial(m, SUN[0], SUN[1], 40, 390, 0.85, 0); m.beginPath(); m.arc(SUN[0], SUN[1], 380, 0, 7); m.fill();
+    });
     yellow.fillStyle = R.radial(yellow, SUN[0], SUN[1], 70, 200, 0.9, 0); yellow.beginPath(); yellow.arc(SUN[0], SUN[1], 200, 0, 7); yellow.fill();
     // the sun rings: thin yellow lines, a little wobbly, the upper part only
     for (const [rr, w] of [[100, 3], [160, 3], [230, 2.8], [322, 2.6]]) {
-        pinkS.save(); pinkS.globalCompositeOperation = 'destination-out';
-        R.ring(pinkS, SUN[0], SUN[1], rr, w * 1.8, 'sr' + rr, { a0: Math.PI * 1.02, p: 0.5, wobble: 0.006 });
-        pinkS.restore();
+        pinkL.save(); pinkL.globalCompositeOperation = 'destination-out';
+        R.ring(pinkL, SUN[0], SUN[1], rr, w * 1.8, 'sr' + rr, { a0: Math.PI * 1.02, p: 0.5, wobble: 0.006 });
+        pinkL.restore();
         R.ring(yellow, SUN[0], SUN[1], rr, w, 'sr' + rr, { color: T(0.85), a0: Math.PI * 1.02, p: 0.5, wobble: 0.006 });
     }
     // birds (navy, flapping on twos)
@@ -99,8 +107,12 @@ CARDS.mountains = (press, t) => {
     U.clipped(blueS, r4b, (g) => { g.fillStyle = vramp(g, 700, 840, [[0, 0.6], [0.6, 0.4], [1, 0.04]]); g.fillRect(0, 0, 1000, 1000); });
     U.clipped(pinkS, r4b, (g) => { g.fillStyle = vramp(g, 700, 840, [[0, 0.3], [1, 0.02]]); g.fillRect(0, 0, 1000, 1000); });
     // the front forest: navy solid with pine tips, blue under it
-    const front = [...row(0, 1000, 14, (x) => 862 + Math.sin(x / 80) * 14, 30, 100, 'f')];
-    const frontBase = u([[0, 900], [200, 880], [420, 905], [600, 935], [800, 905], [1080, 890]]).concat([[1000, 1000], [0, 1000]]);
+    // (the front's dark base, read off a 60 px grid of the 13.5 s frame: a dip of mist at
+    // 500–640 px, lower on the right)
+    const FB = [[-10, 905], [200, 910], [300, 915], [420, 900], [480, 905], [500, 930], [540, 965], [600, 985], [640, 960], [700, 955], [800, 950], [900, 955], [960, 965], [1020, 990], [1090, 1000]];
+    const fbY = (X) => { for (let i = 0; i < FB.length - 1; i++) if (X <= FB[i + 1][0]) { const f = (X - FB[i][0]) / (FB[i + 1][0] - FB[i][0]); return FB[i][1] + (FB[i + 1][1] - FB[i][1]) * f; } return FB[FB.length - 1][1]; };
+    const front = [...row(0, 1000, 14, (x) => fbY(x * 1.08) / 1.08 + 8, 30, 90, 'f')];
+    const frontBase = u(FB).concat([[1000, 1000], [0, 1000]]);
     U.poly(navy, frontBase, T(0.8));
     U.clipped(press.plate('pink', 'screen'), frontBase, (g) => { g.fillStyle = vramp(g, 820, 1000, [[0, 0.15], [1, 0.45]]); g.fillRect(0, 0, 1000, 1000); });
     U.poly(blue, frontBase, T(0.5));
