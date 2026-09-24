@@ -15,6 +15,8 @@ const CARD_NAMES = [
 // (the card opens in a circle over the previous frame), 'full' (the card full frame).
 // the pink colourway of 23–24 s: only pink and navy (purple where they meet)
 const PINKSET = { yellow: 'pink', blue: 'navy' };
+// the pink run's colourway measured by G4 on whale and planet (pink and blue swap, yellow → pink)
+const PINK4 = { yellow: 'pink', blue: 'pink', pink: 'blue' };
 // circles measured frame by frame (24 fps) on the reference: [cx, cy, rx, ry] per frame
 // from the shot's start (the bounding box of everything that is not paper, rim included)
 const OPEN = {
@@ -36,8 +38,8 @@ const EDIT = [
     [8.25, 'full', 'wave'], [8.5, 'full', 'cat'], [8.75, 'full', 'sunflower'], [9.0, 'full', 'radio'], [9.25, 'full', 'fireworks'],
     [9.5, 'full', 'hummingbird'], [9.75, 'full', 'kettle'], [10.0, 'sonar', null, { sonar: 'short' }],
     [10.25, 'full', 'ferris'], [10.5, 'full', 'waterfall'], [10.75, 'full', 'bicycle'], [11.0, 'full', 'whale'], [11.25, 'full', 'piano'],
-    [11.5, 'full', 'rocket'], [11.75, 'full', 'city'], [12.0, 'full', 'planet'], [12.125, 'full', 'lightning', { ring: true }],
-    [12.25, 'full', 'balloons', { ring: true }], [12.375, 'full', 'cello'], [12.5, 'full', 'volcano'], [12.625, 'full', 'shell'],
+    [11.5, 'full', 'rocket'], [11.75, 'full', 'city'], [12.0, 'full', 'planet', { pulse: true }], [12.125, 'full', 'lightning', { pulse: true }],
+    [12.25, 'full', 'balloons', { pulse: true }], [12.375, 'full', 'cello'], [12.5, 'full', 'volcano'], [12.625, 'full', 'shell'],
     [12.75, 'full', 'dish'], [12.875, 'full', 'train'], [13.0, 'full', 'campfire'], [13.125, 'full', 'chimes'], [13.25, 'full', 'field'],
     [13.375, 'full', 'snowflake'], [13.5, 'full', 'mountains'], [13.625, 'full', 'aurora'], [13.75, 'full', 'savanna'],
     [13.875, 'full', 'dunes'], [14.0, 'full', 'ice', { ring: true, ringFrom: 1 }],
@@ -64,9 +66,9 @@ const EDIT = [
     [15.75, 'full', 'hummingbird', { ring: true, inks: SWAP_PB, zoom: [1.08, -40.0, -40.0] }],
     [15.833, 'full', 'kettle', { ring: true, inks: SWAP_PB, zoom: [1.06, -30.0, -30.0] }],
     [15.917, 'full', 'ferris', { ring: true, inks: { pink: 'blue', yellow: 'blue' }, zoom: [1.15, -75.0, -75.0] }],
-    [16.0, 'mosaic'], [18.0, 'orbits'], [23.0, 'full', 'waterfall', { inks: { yellow: 'pink', pink: 'navy', blue: 'pink' } }], [23.125, 'full', 'bicycle', { inks: { yellow: 'pink', pink: 'blue', blue: 'pink' } }], [23.25, 'full', 'whale', { inks: PINKSET }],
-    [23.375, 'full', 'piano', { inks: PINKSET }], [23.5, 'full', 'rocket', { inks: PINKSET, flip: true }], [23.625, 'full', 'city', { inks: PINKSET }],
-    [23.75, 'full', 'planet', { inks: PINKSET }], [23.875, 'full', 'lightning', { inks: PINKSET }], [24.0, 'night'], [26.0, 'title'], [28.1, 'end'],
+    [16.0, 'mosaic'], [18.0, 'orbits'], [23.0, 'full', 'waterfall', { inks: { yellow: 'pink', pink: 'navy', blue: 'pink' } }], [23.125, 'full', 'bicycle', { inks: { yellow: 'pink', pink: 'blue', blue: 'pink' } }], [23.25, 'full', 'whale', { inks: PINK4, flip: true }],
+    [23.375, 'full', 'piano', { inks: PINK4 }], [23.5, 'full', 'rocket', { inks: PINK4, flip: true }], [23.625, 'full', 'city', { inks: PINK4 }],
+    [23.75, 'full', 'planet', { inks: PINK4, flip: true }], [23.875, 'full', 'lightning', { inks: PINK4 }], [24.0, 'night'], [26.0, 'title'], [28.1, 'end'],
 ];
 Motion.scene({
     fps: 24,
@@ -100,7 +102,8 @@ Motion.scene({
             drawCard(press, card, lt, lf);
             if (o.zoom) press.restore();
             if (o.flip) press.restore();
-            if (o.ring && lf >= (o.ringFrom ?? 0)) whiteRing(press, ld); // the ice gets the ring from its 2nd frame (337)
+            if (o.ring && lf >= (o.ringFrom ?? 0)) whiteRing(press, ld);
+            if (o.pulse) G4.pulse(press, f); // the sonar pulse over planet → lightning → balloons (frames 289–296) // the ice gets the ring from its 2nd frame (337)
         }
         else if (kind === 'mosaic') mosaic(press, lt);
         ORBIT_DOT = null;
