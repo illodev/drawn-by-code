@@ -131,10 +131,67 @@ const Motion = (() => {
     }
     const drawLayer = (g, env, c) => g.drawImage(c, 0, 0, env.W, env.H);
 
+    // --- image onto any quadrilateral (fake perspective, bending, flipping) ----------
+    // Canvas 2D only has affine transforms, so the quad is split into an n×n grid of
+    // triangles, each drawn with its own affine map. quad: [tl, tr, br, bl] in the current
+    // coordinates; src: a canvas/image; box: the source rect (defaults to the whole image).
+    // o.bend(u, v) → [dx, dy] optional displacement to curl the surface (u, v in 0..1).
+    function quad(g, src, q, n = 8, box = null, o = {}) {
+        const sw = box ? box.w : src.width, sh = box ? box.h : src.height, sx0 = box ? box.x : 0, sy0 = box ? box.y : 0;
+        const at = (u, v) => {
+            const top = [q[0][0] + (q[1][0] - q[0][0]) * u, q[0][1] + (q[1][1] - q[0][1]) * u];
+            const bot = [q[3][0] + (q[2][0] - q[3][0]) * u, q[3][1] + (q[2][1] - q[3][1]) * u];
+            const p = [top[0] + (bot[0] - top[0]) * v, top[1] + (bot[1] - top[1]) * v];
+            if (o.bend) {
+                const [dx, dy] = o.bend(u, v);
+                p[0] += dx;
+                p[1] += dy;
+            }
+            return p;
+        };
+        const tri = (s0, s1, s2, d0, d1, d2) => {
+            // affine map from source triangle to destination triangle
+            const [x0, y0] = s0, [x1, y1] = s1, [x2, y2] = s2;
+            const det = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+            if (Math.abs(det) < 1e-9) return;
+            const a = ((d1[0] - d0[0]) * (y2 - y0) - (d2[0] - d0[0]) * (y1 - y0)) / det;
+            const b = ((d1[1] - d0[1]) * (y2 - y0) - (d2[1] - d0[1]) * (y1 - y0)) / det;
+            const c = ((d2[0] - d0[0]) * (x1 - x0) - (d1[0] - d0[0]) * (x2 - x0)) / det;
+            const d = ((d2[1] - d0[1]) * (x1 - x0) - (d1[1] - d0[1]) * (x2 - x0)) / det;
+            const e = d0[0] - a * x0 - c * y0, f = d0[1] - b * x0 - d * y0;
+            // clip to the destination triangle, grown by ~1 unit so neighbours overlap (no seams)
+            const cx = (d0[0] + d1[0] + d2[0]) / 3, cy = (d0[1] + d1[1] + d2[1]) / 3;
+            const grow = (p) => {
+                const dx = p[0] - cx, dy = p[1] - cy, l = Math.hypot(dx, dy) || 1;
+                return [p[0] + (dx / l) * 1.1, p[1] + (dy / l) * 1.1];
+            };
+            const [g0, g1, g2] = [grow(d0), grow(d1), grow(d2)];
+            g.save();
+            g.beginPath();
+            g.moveTo(g0[0], g0[1]);
+            g.lineTo(g1[0], g1[1]);
+            g.lineTo(g2[0], g2[1]);
+            g.closePath();
+            g.clip();
+            g.transform(a, b, c, d, e, f);
+            g.drawImage(src, 0, 0);
+            g.restore();
+        };
+        for (let j = 0; j < n; j++) {
+            for (let i = 0; i < n; i++) {
+                const u0 = i / n, u1 = (i + 1) / n, v0 = j / n, v1 = (j + 1) / n;
+                const s = (u, v) => [sx0 + u * sw, sy0 + v * sh];
+                const p00 = at(u0, v0), p10 = at(u1, v0), p11 = at(u1, v1), p01 = at(u0, v1);
+                tri(s(u0, v0), s(u1, v0), s(u1, v1), p00, p10, p11);
+                tri(s(u0, v0), s(u1, v1), s(u0, v1), p00, p11, p01);
+            }
+        }
+    }
+
     return {
         scene: (d) => { def = d; },
         get def() { return def; },
-        hashStr, rng, noise1, sprite, cache, shotAt, beatLen, pulse, beatIndex, onBeat, cam, shake, keys, layer, drawLayer,
+        hashStr, rng, noise1, sprite, cache, shotAt, beatLen, pulse, beatIndex, onBeat, cam, shake, keys, layer, drawLayer, quad,
     };
 })();
 

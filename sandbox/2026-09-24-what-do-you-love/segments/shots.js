@@ -59,7 +59,7 @@ const Shots = {};
     Shots['Interior · idea'] = (g, t, env) => {
         const idea = t < 1.72;
         Sets.interior(g, t, env, {
-            girl: idea ? { pose: 'pencil', eyes: 'open', mouth: 'o', look: [0.3, -0.6] } : { pose: 'desk', eyes: 'closed', mouth: 'smile' },
+            girl: idea ? { pose: 'pencil', eyes: 'open', mouth: 'o', look: [0.3, -0.6] } : { pose: 'desk', eyes: 'closed', mouth: 'grin' },
             extra: (gg) => {
                 if (idea) WL.ticks(gg, 510, 540, 150, 190, 7, bump(t, 1.5, 0.3) + 0.4, C.star, -Math.PI * 0.95);
                 // notebook on the desk
@@ -148,7 +148,7 @@ const Shots = {};
     Shots['Interior · throw'] = (g, t, env) => {
         const released = t >= 5.42;
         Sets.interior(g, t, env, {
-            girl: { pose: released ? 'release' : 'throw', eyes: 'open', look: [0.6, -0.8], mouth: released ? 'o' : 'smile' },
+            girl: { pose: released ? 'release' : 'throw', eyes: 'up', look: [0.6, -0.8], mouth: released ? 'o' : 'smile' },
             extra: (gg) => {
                 const hand = WL.girlHand(released ? 'release' : 'throw', 1);
                 if (!released) WL.plane(gg, hand[0] + 8, hand[1] - 22, 1.1, -0.9);
@@ -217,9 +217,10 @@ const Shots = {};
             WL.plane(g, E.lerp(150, 380, u), E.lerp(820, 600, u), 2.2, -0.75);
         } else {
             const holdPlane = t < 7.32;
-            WL.flower(g, FL[0], FL[1], FL[2], { t, pose: 'holding', mouth: 'o', wiggle: E.bump(t, 7.12, 0.2), arms: [[-0.3, 0.75], [0.3, 0.75]] });
-            if (holdPlane) WL.plane(g, FL[0], FL[1] + 280, 2.4, -Math.PI / 2);
-            else WL.note(g, FL[0], FL[1] + 280, 330 * E.out(E.seg(t, 7.32, 7.5)) + 40, 260, 0, 'flower-note', { torn: 1 });
+            WL.flower(g, FL[0], FL[1], FL[2], {
+                t, pose: 'holding', mouth: 'o', wiggle: E.bump(t, 7.12, 0.2), arms: [[-0.3, 0.75], [0.3, 0.75]], excite: 1.1,
+                note: (gg) => (holdPlane ? WL.plane(gg, FL[0], FL[1] + 280, 2.4, -Math.PI / 2) : WL.note(gg, FL[0], FL[1] + 280, 330 * E.out(E.seg(t, 7.32, 7.5)) + 40, 260, 0, 'flower-note', { torn: 1 })),
+            });
         }
     };
 
@@ -229,15 +230,16 @@ const Shots = {};
         // camera eases back and the flower bounces at the end
         const back = E.inOut(E.seg(t, 9.1, 9.6));
         const R = E.lerp(FL[2], 300, back), cy = E.lerp(FL[1], 400, back) - Math.abs(Math.sin((t - 9.1) * 10)) * 20 * back + Math.sin(t * 3) * 10;
-        const thinking = t >= 7.95 && t < 9.0, eureka = t >= 9.0;
+        const thinking = t >= 7.95 && t < 9.0, eureka = t >= 9.0, surprised = t >= 9.0 && t < 9.2;
         // the note finishes unfolding: narrow and tall at 7.5, full width by 7.8
         const unfold = E.out(E.seg(t, 7.5, 7.8));
-        const noteY = cy + R * 0.85, noteW = R * E.lerp(0.62, 1.3, unfold), noteH = R * 0.95;
+        const noteY = cy + R * 0.9, noteW = R * E.lerp(0.62, 1.34, unfold), noteH = R * 1.0;
         WL.flower(g, FL[0], cy, R, {
-            t, pose: 'holding', arms: [[-0.62, 0.78], [0.62, 0.78]], legs: 1.4, tilt: Math.sin(t * 2.5) * 0.03,
-            eyes: thinking ? 'closed' : eureka ? 'happy' : 'open', mouth: thinking ? 'think' : eureka ? 'grin' : 'o', wiggle: eureka ? E.bump(t, 9.0, 0.3) : 0,
+            t, pose: 'holding', arms: [[-0.64, 0.42], [0.64, 0.42]], tilt: Math.sin(t * 2.5) * 0.03,
+            excite: 1 + 0.2 * E.bump(t, 8.95, 0.35) - 0.2 * E.seg(t, 9.3, 9.6),
+            eyes: thinking ? 'closed' : surprised ? 'open' : eureka ? 'happy' : 'open', mouth: thinking ? 'think' : surprised ? 'o' : eureka ? 'smile' : 'o', wiggle: eureka ? E.bump(t, 9.0, 0.3) : 0,
+            note: (gg) => WL.note(gg, FL[0], noteY, noteW, noteH, 0.01, 'flower-note2', { torn: 1, text: ['what do', 'you love?'], p: E.seg(t, 7.72, 7.8), lineY: [0.42, 0.74] }),
         });
-        WL.note(g, FL[0], noteY, noteW, noteH, 0.01, 'flower-note2', { torn: 1, text: ['what do', 'you love?'], p: E.seg(t, 7.72, 7.8), lineY: [0.42, 0.74] });
         // thought bubbles, then «!»
         for (let k = 0; k < 3; k++) {
             const u = E.out(E.seg(t, 8.2 + k * 0.15, 8.4 + k * 0.15)) * (1 - E.seg(t, 8.95, 9.0));
@@ -247,7 +249,7 @@ const Shots = {};
             g.arc(FL[0] + R * (0.75 + k * 0.22), cy - R * (0.55 + k * 0.28), (10 + k * 7) * u, 0, Math.PI * 2);
             g.fill();
         }
-        if (eureka && t < 9.6) {
+        if (eureka && t < 9.22) {
             const u = E.back(E.seg(t, 9.0, 9.15));
             g.save();
             g.translate(FL[0] + R * 1.05, cy - R * 0.6);
@@ -270,15 +272,16 @@ const Shots = {};
         const flip = E.inOut(E.seg(t, 18.35, 18.7)); // 0 front … 1 back
         const folded = t >= 18.95, thrown = t >= 19.4;
         if (!thrown) {
-            WL.flower(g, fx, fy, R, { t, pose: 'holding', arms: [[-0.5, 0.75], [0.5, 0.75]], eyes: t < 18.3 ? 'open' : 'happy', mouth: 'smile', wiggle: E.bump(t, 18.3, 0.3) });
-            if (!folded) {
-                const sx = Math.cos(flip * Math.PI);
-                g.save();
-                g.translate(fx, fy + R * 0.95);
-                g.scale(Math.max(0.04, Math.abs(sx)), 1);
-                WL.note(g, 0, 0, 290, 220, 0, 'answer-note', { torn: 1, flip: sx < 0, text: ['what do', 'you love?'], p: 1, size: 52, lineX: [-95, -125], lineY: [0.42, 0.74], circle: sx < 0 ? 1 : E.seg(t, 18.05, 18.3), doodle: sx < 0 ? 1 : E.seg(t, 18.15, 18.3) });
-                g.restore();
-            } else WL.plane(g, fx, fy + R * 0.95, 2.4, -Math.PI / 2);
+            // the answer: circle «you», sign it with a little flower, turn the note over (in
+            // perspective), fold it into a plane
+            const circleP = E.seg(t, 18.05, 18.3), doodleP = E.seg(t, 18.15, 18.3);
+            const heldNote = (gg) => {
+                if (folded) return WL.plane(gg, fx, fy + R * 0.95, 2.4, -Math.PI / 2);
+                const o = { torn: 1, text: ['what do', 'you love?'], p: 1, size: 52, lineX: [-95, -125], lineY: [0.42, 0.74], circle: flip > 0 ? 1 : Math.round(circleP * 8) / 8, doodle: flip > 0 ? 1 : Math.round(doodleP * 8) / 8 };
+                if (flip <= 0) WL.note(gg, fx, fy + R * 0.95, 290, 220, 0, 'answer-note', o);
+                else WL.noteFlip(gg, fx, fy + R * 0.95, 290, 220, flip, 'answer-note', o);
+            };
+            WL.flower(g, fx, fy, R, { t, pose: 'holding', arms: [[-0.6, 0.5], [0.6, 0.5]], eyes: t < 18.3 ? 'open' : 'happy', mouth: 'smile', wiggle: E.bump(t, 18.3, 0.3), note: heldNote });
         } else {
             WL.flower(g, fx, fy, R, { t, rot: 0.15, mouth: 'o', wiggle: E.bump(t, 19.4, 0.3) });
             const u = E.in(E.seg(t, 19.4, 19.95));
@@ -329,7 +332,7 @@ const Shots = {};
         WL.ticks(g, 728, 668, 40, 70, 10, 0.5 + 0.4 * Math.sin(t * 16), '#d9473b');
         for (const s of [-1, 1]) {
             WL.tube(g, [[500 + s * 620, 1150], [500 + s * 520, 990], [500 + s * 400, 840]], 110, C.sweater, 'closeArm' + s);
-            WL.hand(g, 500 + s * 390, 815, 55);
+            WL.hand(g, 500 + s * 388, 830, 55, -s * 0.6, 'pinch', s < 0);
         }
     };
 

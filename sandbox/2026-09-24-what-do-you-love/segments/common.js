@@ -9,7 +9,7 @@ const WL = (() => {
         flower: '#d87c65', flowerDark: '#c56a55', flowerCheek: '#e98b87', eye: '#231a1f',
         house: '#3f3470', houseText: '#5b4f8a', roof: '#2a2455', town: '#1a1c46', town2: '#23255a', window: '#f0c95a',
         wall: '#f0cc51', curtain: '#df848d', frame: '#ece3c9', desk: '#c6a175', skirting: '#3c2a64',
-        skin: '#e9b996', cheek: '#ec8e8e', hair: '#2b211f', clip: '#f2cf3b', sweater: '#389486', sweaterDark: '#2d7f72', collar: '#faf8f1',
+        skin: '#e3ad8b', cheek: '#ec8e8e', hair: '#302222', clip: '#f2cf3b', sweater: '#389486', sweaterDark: '#2d7f72', collar: '#faf8f1',
         wood: '#b8895b', light: '#d3aa6a', cover: '#5b3a86', paper: '#f7f3e7', rule: '#b7c3de', margin: '#e59a8c', ink: '#3862b1',
         pot: '#c9774e', leaf: '#5aa34f', red: '#d9473b',
     };
@@ -56,11 +56,28 @@ const WL = (() => {
         g.rotate(rot);
         if (o.flip) g.scale(-1, 1);
         sprite('note:' + seed + w + 'x' + h + (o.torn ?? 1), { x: -w / 2 - 10, y: -h / 2 - 12, w: w + 20, h: h + 24 }, (c) => {
-            const top = [];
-            // top edge torn off the spiral binding (irregular teeth)
+            // top edge torn off the spiral binding: irregular tabs, the odd deep notch where a
+            // ring hole tore; the other edges hand-cut (corners slightly off, sides not straight)
             const r = P.rng(seed + 'teeth');
-            for (let i = 0; i <= 24; i++) top.push([-w / 2 + (w * i) / 24, -h / 2 + (o.torn === 0 ? 0 : (i % 2 ? 7 : 0) + r() * 4)]);
-            P.cutout(c, [...top, [w / 2, h / 2], [-w / 2, h / 2]], COL.paper, seed, {
+            const top = [];
+            if (o.torn === 0) top.push([-w / 2, -h / 2], [w / 2, -h / 2]);
+            else {
+                let x = -w / 2;
+                top.push([x, -h / 2 + 4]);
+                while (x < w / 2) {
+                    const step = Math.min(w / 2 - x, (0.018 + r() * 0.03) * w);
+                    const deep = r() < 0.18;
+                    const hgt = deep ? 0.05 * h + r() * 0.03 * h : r() * 0.03 * h;
+                    top.push([x + step * 0.2, -h / 2 + hgt], [x + step * 0.8, -h / 2 + hgt]);
+                    x += step;
+                    top.push([x, -h / 2 + r() * 0.012 * h]);
+                }
+            }
+            const off = () => (r() - 0.5) * Math.min(w, h) * 0.012;
+            const side = (a, b, n) => Array.from({ length: n }, (_, i) => [a[0] + (b[0] - a[0]) * ((i + 1) / (n + 1)) + off(), a[1] + (b[1] - a[1]) * ((i + 1) / (n + 1)) + off()]);
+            const tr = [w / 2 + off(), -h / 2 + 2], br = [w / 2 + off(), h / 2 + off()], bl = [-w / 2 + off(), h / 2 + off()];
+            const outline = [...top, tr, ...side(tr, br, 3), br, ...side(br, bl, 4), bl, ...side(bl, top[0], 3)];
+            P.cutout(c, outline, COL.paper, seed, {
                 border: 2.2, paper: '#fffdf6', shadow: 0.22, jag: 0.6, tex: { lVar: 1.2, sVar: 1.5, alpha: [0.15, 0.35] },
                 inner: (cc) => {
                     cc.strokeStyle = COL.rule;
@@ -110,6 +127,21 @@ const WL = (() => {
             g.restore();
         }
         g.restore();
+    }
+
+    // the note as an image (cached), to put it in perspective with Motion.quad
+    function noteImage(key, w, h, o = {}) {
+        return sprite('noteimg:' + key + w + 'x' + h + (o.flip ? 'b' : 'f') + (o.circle ?? 0) + (o.doodle ?? 0), { x: -w / 2 - 14, y: -h / 2 - 16, w: w + 28, h: h + 32 }, (c) => note(c, 0, 0, w, h, 0, key, o), 2);
+    }
+    // a note turning over around its vertical axis, in perspective. u: 0 front → 1 back
+    function noteFlip(g, x, y, w, h, u, key, o = {}) {
+        const th = u * Math.PI, cs = Math.cos(th), sn = Math.sin(th);
+        const img = noteImage(key, w, h, { ...o, flip: cs < 0 });
+        const hw = (w / 2 + 14) * Math.abs(cs), hl = (h / 2 + 16) * (1 + 0.14 * sn), hr = (h / 2 + 16) * (1 - 0.14 * sn);
+        const L = cs >= 0 ? [[x - hw, y - hl], [x - hw, y + hl]] : [[x - hw, y - hr], [x - hw, y + hr]];
+        const Rr = cs >= 0 ? [[x + hw, y - hr], [x + hw, y + hr]] : [[x + hw, y - hl], [x + hw, y + hl]];
+        if (hw < 1) return;
+        Motion.quad(g, img.canvas, [L[0], Rr[0], Rr[1], L[1]], 6);
     }
 
     // little marker-drawn flower (the flower's signature on the note)
@@ -214,59 +246,107 @@ const WL = (() => {
     }
 
     // =====================================================================================
-    // THE FLOWER: a 12-ray sun with a face. (x, y) = centre; R = ray length.
-    // o.pose: 'free' | 'holding' (arms towards a note, plus legs) ; o.mouth: 'smile' |
-    // 'o' | 'grin' | 'think' ; o.eyes: 'open' | 'closed' | 'happy' ; o.rot: ray rotation;
-    // o.wiggle: 0–1 happy shake ; o.arms: [[x,y],[x,y]] hands (relative, in R units)
+    // THE FLOWER (Claude): an irregular spark of rays that are alive — every ray has its own
+    // length, width and angle, and lengths change on twos (every 1/12 s) like hand animation.
+    // Each ray is cut ONCE (fixed torn edge) and only scaled to its length, in small steps
+    // on twos, so the paper edge never re-tears (nothing boils).
+    // (x, y) = centre of the face; R = typical ray length.
+    // o.pose: 'free' (rays all round) | 'holding' (upper fan, arms to the note, legs)
+    // o.note(g): draws the held note between the body and the hands (holding pose)
+    // o.excite: >1 rays stretch (surprise), <1 they shrink (content) ; o.mouth: 'smile' | 'o'
+    // | 'grin' | 'think' ; o.eyes: 'open' | 'closed' | 'happy' ; o.rot ; o.wiggle 0–1
+    // o.arms: [[x, y], [x, y]] hand positions in R units (holding pose)
     // =====================================================================================
-    function ray(g, x0, y0, x1, y1, w) {
-        const len = Math.hypot(x1 - x0, y1 - y0);
-        const s = sprite('ray', { x: -14, y: -16, w: 128, h: 32 }, (c) => {
-            P.cutout(c, P.roundRect(-10, -11, 120, 22, 11), COL.flower, 'ray', { border: 2.6, shadow: 0.12, jag: 0.8, tex: { angle: 0, alpha: [0.25, 0.5] } });
-        }, 3);
+    function raySprite(k) {
+        // a rounded ray, slightly narrower at the base and bulbous at the tip
+        return sprite('ray2-' + (k % 5), { x: -8, y: -20, w: 136, h: 40 }, (c) => {
+            const r = P.rng('ray2' + (k % 5));
+            const pts = [];
+            const len = 120, w0 = 9 + r() * 2, w1 = 12 + r() * 3;
+            for (let i = 0; i <= 12; i++) pts.push([(i / 12) * (len - w1), -(w0 + (w1 - w0) * (i / 12)) + (r() - 0.5) * 1.2]);
+            for (let i = 0; i <= 10; i++) {
+                const a = -Math.PI / 2 + (i / 10) * Math.PI;
+                pts.push([len - w1 + Math.cos(a) * w1, Math.sin(a) * w1]);
+            }
+            for (let i = 12; i >= 0; i--) pts.push([(i / 12) * (len - w1), w0 + (w1 - w0) * (i / 12) + (r() - 0.5) * 1.2]);
+            P.cutout(c, pts, COL.flower, 'ray2' + (k % 5), { border: 2.4, shadow: 0.1, jag: 0.8, tex: { angle: 0, alpha: [0.25, 0.5], len: [14, 36] } });
+        }, 3.2);
+    }
+    // one ray from the centre along angle a, reaching length L (R units → logical via R)
+    function drawRay(g, k, a, L, w, R) {
+        const sp = raySprite(k), k2 = R / 100;
         g.save();
-        g.translate(x0, y0);
-        g.rotate(Math.atan2(y1 - y0, x1 - x0));
-        g.scale(len / 110, w / 22);
-        s.draw(g);
+        g.rotate(a);
+        // the sprite is 120 long: scale it to exactly L (small, stepped changes → no boiling)
+        g.scale((L * R) / 120, (w / 0.21) * k2 * 0.95);
+        sp.draw(g);
         g.restore();
     }
+    // stepped time: rays change on twos
+    const twos = (t) => Math.floor(t * 12) / 12;
     function flower(g, x, y, R, o = {}) {
-        const t = o.t ?? 0;
-        const wig = o.wiggle ?? 0;
+        const t = o.t ?? 0, tt = twos(t), wig = o.wiggle ?? 0, ex = o.excite ?? 1;
+        const r = P.rng('flower-rays');
         g.save();
         g.translate(x, y);
-        g.rotate((o.tilt ?? 0) + Math.sin(t * 30) * 0.05 * wig);
-        const w = R * 0.21;
+        g.rotate((o.tilt ?? 0) + Math.sin(t * 30) * 0.04 * wig);
+        const life = (k) => 1 + 0.07 * Math.sin(tt * 5.3 + k * 2.1) + 0.04 * Math.sin(tt * 8.9 + k * 0.7);
+        const holding = o.pose === 'holding';
         const rays = [];
-        if (o.pose === 'holding') {
-            // 8 rays fanned out on top, 2 arms and 2 legs
-            for (let k = 0; k < 8; k++) {
-                const a = Math.PI + 0.05 + (k / 7) * (Math.PI - 0.1);
-                rays.push([Math.cos(a) * R * 0.25, Math.sin(a) * R * 0.25, Math.cos(a) * R, Math.sin(a) * R]);
+        if (holding) {
+            // upper fan of 9 rays, irregular
+            // a wide fan: the side rays point slightly down; thin rays with gaps between them
+            for (let k = 0; k < 9; k++) {
+                const a = -Math.PI - 0.32 + (k / 8) * (Math.PI + 0.64) + (r() - 0.5) * 0.1;
+                const L = (0.85 + r() * 0.28 + (k === 4 ? 0.15 : 0)) * ex * life(k);
+                rays.push([k, a, L, 0.13 + r() * 0.03]);
             }
-            const arms = o.arms ?? [[-0.5, 0.55], [0.5, 0.55]];
-            for (const [hx, hy] of arms) {
-                const ex = hx * R * 1.05, ey = hy * R * 0.3;
-                rays.push([hx * R * 0.2, 0, ex, ey], [ex, ey, hx * R, hy * R]);
-            }
-            for (const s of [-1, 1]) rays.push([s * R * 0.12, R * 0.2, s * R * 0.26, (o.legs ?? 1.05) * R]);
+            // legs: two short thick rays down, behind the note
+            for (const sd of [-1, 1]) rays.push([10 + sd, Math.PI / 2 - sd * 0.3, (o.legs ?? 1.62) * life(sd + 20), 0.2]);
         } else {
-            const n = 12, rot = o.rot ?? 0;
-            for (let k = 0; k < n; k++) {
-                const a = rot + (k / n) * Math.PI * 2 + Math.sin(t * 8 + k) * 0.03 * wig;
-                const L = R * (1 + ((k % 2) ? -0.04 : 0.03));
-                rays.push([Math.cos(a) * R * 0.2, Math.sin(a) * R * 0.2, Math.cos(a) * L, Math.sin(a) * L]);
+            for (let k = 0; k < 12; k++) {
+                const a = (o.rot ?? 0) + (k / 12) * Math.PI * 2 + (r() - 0.5) * 0.14 + Math.sin(t * 8 + k) * 0.03 * wig;
+                rays.push([k, a, (0.85 + r() * 0.25) * ex * life(k), 0.14 + r() * 0.03]);
             }
         }
-        for (const [x0, y0, x1, y1] of rays) ray(g, x0, y0, x1, y1, w);
-        // central disc
-        sprite('flower-disc', { x: -40, y: -40, w: 80, h: 80 }, (c) => {
-            P.cutout(c, P.ellipse(0, 0, 33, 33), COL.flower, 'disc', { border: 0, shadow: 0, jag: 0.5, tex: { alpha: [0.25, 0.5] } });
-        }, 3).draw((g.save(), g.scale(R / 110, R / 110), g));
+        for (const [k, a, L, w] of rays) drawRay(g, k, a, L, w, R);
+        // arms (upper part) behind the note
+        const arms = holding ? (o.arms ?? [[-0.5, 0.62], [0.5, 0.62]]) : [];
+        const elbows = arms.map(([hx, hy]) => [hx * 0.5, hy * 0.5]);
+        arms.forEach(([hx, hy], i) => {
+            const [ex_, ey_] = elbows[i];
+            drawRay(g, 30 + i, Math.atan2(ey_, ex_), Math.hypot(ex_, ey_) + 0.1, 0.18, R);
+        });
+        // body: a soft salmon blob under the face, without a paper edge
+        sprite('flower-body2', { x: -44, y: -44, w: 88, h: 88 }, (c) => {
+            P.cutout(c, PaperDetail.spline([[-30, -8], [-18, -30], [8, -32], [30, -14], [32, 12], [14, 30], [-12, 30], [-30, 14]], 6), COL.flower, 'fbody', { border: 0, shadow: 0, jag: 0.6, tex: { alpha: [0.25, 0.5] } });
+        }, 3).draw((g.save(), g.scale(R / 100, R / 100), g));
         g.restore();
         face(g, R, o);
         g.restore();
+        // the note, then forearms and round hands in front of it
+        if (o.note) o.note(g);
+        if (holding) {
+            g.save();
+            g.translate(x, y);
+            g.rotate((o.tilt ?? 0) + Math.sin(t * 30) * 0.04 * wig);
+            arms.forEach(([hx, hy], i) => {
+                const [ex_, ey_] = elbows[i];
+                const a = Math.atan2(hy - ey_, hx - ex_), L = Math.hypot(hx - ex_, hy - ey_);
+                g.save();
+                g.translate(ex_ * R, ey_ * R);
+                drawRay(g, 32 + i, a, L, 0.2, R);
+                g.restore();
+                // the hand: a round mitt of its own, gripping the corner
+                const mitt = sprite('flower-mitt' + i, { x: -30, y: -30, w: 60, h: 60 }, (c) => P.cutout(c, PaperDetail.spline([[-20, -8], [-10, -20], [8, -21], [21, -8], [20, 10], [6, 20], [-10, 19], [-21, 7]], 5), COL.flower, 'mitt' + i, { border: 2.4, shadow: 0.2, tex: { alpha: [0.25, 0.5] } }), 3);
+                g.save();
+                g.translate(hx * R, hy * R);
+                g.scale(R / 150, R / 150);
+                mitt.draw(g);
+                g.restore();
+            });
+            g.restore();
+        }
     }
     function face(g, R, o) {
         const k = R / 110;
@@ -282,20 +362,20 @@ const WL = (() => {
         for (const s of [-1, 1]) {
             if (eyes === 'open') {
                 g.beginPath();
-                g.arc(s * 13, -4, 5, 0, Math.PI * 2);
+                g.arc(s * 12, -4, 5, 0, Math.PI * 2);
                 g.fill();
                 g.fillStyle = '#fff';
                 g.beginPath();
-                g.arc(s * 13 + 1.6, -5.8, 1.6, 0, Math.PI * 2);
+                g.arc(s * 12 + 1.6, -5.8, 1.6, 0, Math.PI * 2);
                 g.fill();
                 g.fillStyle = COL.eye;
             } else if (eyes === 'happy') {
                 g.beginPath();
-                g.arc(s * 13, -2, 4.5, Math.PI * 1.1, Math.PI * 1.9);
+                g.arc(s * 12, -1, 4.5, Math.PI * 1.1, Math.PI * 1.9);
                 g.stroke();
             } else {
                 g.beginPath();
-                g.arc(s * 13, -6, 4.5, Math.PI * 0.15, Math.PI * 0.85);
+                g.arc(s * 12, -6, 4.5, Math.PI * 0.15, Math.PI * 0.85);
                 g.stroke();
             }
         }
@@ -303,141 +383,207 @@ const WL = (() => {
         g.lineWidth = 2.4;
         if (m === 'o') {
             g.beginPath();
-            g.ellipse(0, 9, 3.6, 4.4, 0, 0, Math.PI * 2);
+            g.ellipse(0, 9, 3.2, 4, 0, 0, Math.PI * 2);
             g.stroke();
         } else if (m === 'grin') {
             g.fillStyle = COL.eye;
             g.beginPath();
-            g.arc(0, 6, 6, 0, Math.PI);
+            g.arc(0, 5, 5.5, 0, Math.PI);
             g.fill();
         } else if (m === 'think') {
             g.beginPath();
             g.moveTo(-3, 9);
-            g.lineTo(4, 7);
+            g.lineTo(4, 7.5);
             g.stroke();
         } else {
             g.beginPath();
-            g.arc(0, 5, 5, Math.PI * 0.15, Math.PI * 0.85);
+            g.arc(0, 4, 4.8, Math.PI * 0.15, Math.PI * 0.85);
             g.stroke();
         }
         g.restore();
     }
 
     // =====================================================================================
-    // THE GIRL (bust behind the desk). (x, y) = centre of the desk edge; s = scale (1 =
-    // the interior medium shot). o.pose: 'desk' | 'pencil' | 'throw' | 'wave' | 'note' |
-    // 'hug' | 'pin' ; o.eyes: 'open' | 'closed' | 'up' | 'happy' ; o.mouth: 'smile' |
-    // 'o' | 'grin' ; o.look: [dx, dy]
+    // THE GIRL (bust behind the desk), built like the reference: every part is its own piece
+    // of paper (hair back, face, fringe, clip, neck, collar, torso, upper arms, forearms,
+    // hands), with knit on the sweater and brushed strands on the hair.
+    // (x, y) = centre of the desk edge; s = scale (1 = the interior medium shot at 0.9).
+    // o.pose: 'desk' | 'pencil' | 'throw' | 'release' | 'wave' | 'note' | 'hug' | 'pin'
+    // o.eyes: 'open' | 'up' | 'closed' | 'happy' | 'surprised' ; o.mouth: 'smile' | 'o' | 'grin'
+    // o.look: [dx, dy] ; o.tilt: head tilt
     // =====================================================================================
-    function tube(g, pts, w, color, seed) {
-        // arm: a strip with a paper edge, cached per pose (key = rounded points)
-        const key = 'tube:' + seed + pts.map(([a, b]) => Math.round(a) + ',' + Math.round(b)).join(';') + w;
-        const bb = P.bbox(pts, w + 10);
-        sprite(key, bb, (c) => {
-            P.cutout(c, P.noodle(P.bezier(pts[0], pts[1], pts[1], pts[2], 16), w, w * 0.9), color, seed, { border: 2.6, shadow: 0.15, jag: 0.7 });
-        }, 1.4).draw(g);
-    }
-    function hand(g, x, y, r) {
-        sprite('hand', { x: -30, y: -30, w: 60, h: 60 }, (c) => P.cutout(c, P.ellipse(0, 0, 25, 25), COL.skin, 'hand', { border: 2.4, shadow: 0.12, tex: { alpha: [0.15, 0.3] } }), 2)
-            .draw((g.save(), g.translate(x, y), g.scale(r / 25, r / 25), g));
-        g.restore();
-    }
+    const D = PaperDetail;
+    // [shoulder, elbow, hand] per arm (left, right), desk at y = 0
     const ARMS = {
-        desk: [[[-185, -205], [-250, -70], [-110, -18]], [[185, -205], [250, -70], [110, -18]]],
-        pencil: [[[-185, -205], [-250, -70], [-110, -18]], [[185, -205], [285, -170], [225, -400]]],
-        throw: [[[-185, -205], [-250, -70], [-110, -18]], [[185, -205], [300, -250], [265, -460]]],
-        release: [[[-185, -205], [-250, -70], [-110, -18]], [[185, -205], [330, -260], [390, -420]]],
-        wave: [[[-185, -205], [-250, -70], [-110, -18]], [[185, -205], [290, -200], [270, -420]]],
-        note: [[[-185, -205], [-240, -90], [-150, -100]], [[185, -205], [240, -90], [150, -100]]],
-        hug: [[[-185, -205], [-190, -60], [60, -120]], [[185, -205], [190, -60], [-60, -120]]],
-        pin: [[[-185, -205], [-250, -70], [-110, -18]], [[185, -205], [330, -240], [360, -420]]],
+        desk: [[[-104, -236], [-178, -72], [-62, -22]], [[104, -236], [178, -72], [62, -22]]],
+        pencil: [[[-104, -236], [-178, -72], [-62, -22]], [[104, -236], [212, -150], [192, -365]]],
+        throw: [[[-104, -236], [-178, -72], [-62, -22]], [[104, -236], [218, -285], [292, -430]]],
+        release: [[[-104, -236], [-178, -72], [-62, -22]], [[104, -236], [238, -300], [340, -415]]],
+        wave: [[[-104, -236], [-178, -72], [-62, -22]], [[104, -236], [228, -232], [228, -412]]],
+        note: [[[-104, -236], [-188, -88], [-132, -135]], [[104, -236], [188, -88], [132, -135]]],
+        hug: [[[-104, -236], [-168, -72], [8, -150]], [[104, -236], [168, -72], [-8, -150]]],
+        pin: [[[-104, -236], [-178, -72], [-62, -22]], [[104, -236], [248, -252], [305, -420]]],
     };
+    const HANDS = { desk: [null, null], pencil: [null, 'fist'], throw: [null, 'fist'], release: [null, 'open'], wave: [null, 'wave'], note: ['pinch', 'pinch'], hug: ['fist', 'fist'], pin: [null, 'open'] };
+
+    const sweaterPiece = (c, pts, seed, w = 3) => P.cutout(c, pts, COL.sweater, seed, { border: w, shadow: 0.16, tex: { alpha: [0.2, 0.4] }, inner: (cc, box) => D.knit(cc, box, COL.sweater, { seed, alpha: 0.22 }) });
+    // one straight arm segment as its own cutout (cached per rounded geometry)
+    function segment(g, a, b, w, seed) {
+        const key = 'seg:' + seed + [a, b].map(([x, y]) => Math.round(x / 2) + ',' + Math.round(y / 2)).join(';') + w;
+        const bb = P.bbox([a, b], w + 12);
+        sprite(key, bb, (c) => sweaterPiece(c, P.noodle([a, b], w), seed, 2.6), 1.4).draw(g);
+    }
     function girl(g, x, y, s, o = {}) {
         const t = o.t ?? 0;
+        const pose = o.pose ?? 'desk';
+        const arms = o.arms ?? ARMS[pose];
         g.save();
         g.translate(x, y + Math.sin(t * 2.2) * 2);
         g.scale(s, s);
-        const pose = o.pose ?? 'desk';
-        const arms = o.arms ?? ARMS[pose];
-        // body (sweater) and white collar
-        sprite('girl-body', { x: -230, y: -290, w: 460, h: 300 }, (c) => {
-            P.cutout(c, [[-150, -262], [150, -262], [205, -200], [215, 0], [-215, 0], [-205, -200]], COL.sweater, 'sweater', { border: 3, shadow: 0.15 });
-            P.cutout(c, [[-70, -262], [0, -225], [70, -262], [55, -278], [-55, -278]], COL.collar, 'collar', { border: 2, shadow: 0.1 });
+        // torso with knit, then the neck, the little bow and the pointed collar
+        sprite('girl-torso3', { x: -170, y: -300, w: 340, h: 310 }, (c) => {
+            sweaterPiece(c, D.spline([[-104, -262], [-40, -284], [40, -284], [104, -262], [130, -190], [146, 0], [-146, 0], [-130, -190]], 6), 'torso');
         }, 1.4).draw(g);
-        // neck
-        sprite('girl-neck', { x: -40, y: -305, w: 80, h: 60 }, (c) => P.cutout(c, P.roundRect(-26, -300, 52, 45, 10), COL.skin, 'neckskin', { border: 0, shadow: 0 }), 1.4).draw(g);
-        // head
-        head(g, o);
-        // arms
+        sprite('girl-neck2', { x: -50, y: -345, w: 100, h: 90 }, (c) => {
+            P.cutout(c, P.roundRect(-22, -338, 44, 70, 12), COL.skin, 'neck', { border: 0, shadow: 0, tex: { alpha: [0.12, 0.25] } });
+        }, 1.6).draw(g);
+        sprite('girl-collar', { x: -110, y: -300, w: 220, h: 80 }, (c) => {
+            P.cutout(c, [[-4, -276], [-86, -286], [-66, -238]], COL.collar, 'collarL', { border: 1.8, shadow: 0.18 });
+            P.cutout(c, [[4, -276], [86, -286], [66, -238]], COL.collar, 'collarR', { border: 1.8, shadow: 0.18 });
+            P.cutout(c, D.spline([[-12, -284], [0, -278], [12, -284], [10, -270], [0, -274], [-10, -270]], 4), '#f2a7ae', 'bow', { border: 1.2, shadow: 0.15 });
+        }, 1.6).draw(g);
+        // arms: upper arm, forearm (each its own piece), hand
         for (let i = 0; i < 2; i++) {
-            const a = arms[i];
-            tube(g, a, 62, COL.sweater, 'arm' + i);
-            hand(g, a[2][0], a[2][1], 27);
+            const [sh, el, hd] = arms[i];
+            segment(g, sh, el, 54, 'upper' + i);
+            segment(g, el, hd, 50, 'fore' + i);
+            const hp = (o.hands ?? HANDS[pose] ?? [null, null])[i];
+            if (hp) {
+                const rot = Math.atan2(hd[1] - el[1], hd[0] - el[0]) + Math.PI / 2;
+                D.hand(g, hd[0], hd[1], 58, rot, hp, { skin: COL.skin, mirror: i === 0 });
+            }
         }
         if (pose === 'pencil') {
             const [hx, hy] = arms[1][2];
-            P.markerStroke(g, [[hx - 5, hy + 10], [hx - 10, hy - 55]], '#3862b1', 10, 'pencil', 1);
+            P.markerStroke(g, [[hx - 4, hy - 20], [hx - 16, hy - 92]], '#3862b1', 11, 'pencil', 1);
         }
+        head(g, o);
         g.restore();
     }
     function head(g, o) {
-        const tilt = o.tilt ?? 0;
         g.save();
-        g.translate(0, -365);
-        g.rotate(tilt);
-        // back hair (bob)
-        sprite('girl-hair', { x: -165, y: -170, w: 330, h: 290 }, (c) => {
-            P.cutout(c, [...P.ellipse(0, -30, 140, 130, 48, Math.PI, Math.PI * 2), [140, -30], [148, 100], [95, 108], [-95, 108], [-148, 100], [-140, -30]], COL.hair, 'hair', { border: 3, shadow: 0.15, tex: { alpha: [0.3, 0.6] } });
-        }, 1.4).draw(g);
-        // face
-        sprite('girl-face', { x: -120, y: -125, w: 240, h: 250 }, (c) => {
-            P.cutout(c, P.roundRect(-105, -105, 210, 212, 70), COL.skin, 'face', { border: 2.4, shadow: 0.1, tex: { alpha: [0.15, 0.3] } });
-        }, 1.4).draw(g);
-        // fringe and hair clip
-        sprite('girl-fringe', { x: -150, y: -170, w: 300, h: 140 }, (c) => {
-            P.cutout(c, [...P.ellipse(0, -30, 138, 125, 40, Math.PI, Math.PI * 2), [138, -30], [120, -40], [40, -60], [-60, -45], [-120, -20], [-138, -30]], COL.hair, 'fringe', { border: 0, shadow: 0, tex: { alpha: [0.3, 0.6] } });
-            P.cutout(c, P.roundRect(-30, -9, 60, 18, 6).map(([px, py]) => [px * Math.cos(-0.45) - py * Math.sin(-0.45) + 70, px * Math.sin(-0.45) + py * Math.cos(-0.45) - 95]), COL.clip, 'clip', { border: 1.8, shadow: 0.1 });
-        }, 1.4).draw(g);
-        // cheeks
+        g.translate(0, -425);
+        g.rotate(o.tilt ?? 0);
+        g.scale(1.16, 1.16);
+        // hair: the back piece (a bob that reaches the jaw and turns in) with brushed strands
+        sprite('girl-hair', { x: -140, y: -145, w: 280, h: 250 }, (c) => {
+            P.cutout(c, D.spline([[-118, 80], [-128, 0], [-116, -84], [-76, -124], [0, -134], [76, -124], [116, -84], [128, 0], [118, 80], [94, 94], [72, 72], [-72, 72], [-94, 94]], 8), COL.hair, 'hairback', { border: 3, shadow: 0.18, tex: false, inner: (cc, box) => D.strands(cc, box, COL.hair, { seed: 'hairback', angle: Math.PI / 2 }) });
+        }, 1.6).draw(g);
+        // face: wide cheeks, round chin
+        sprite('girl-face', { x: -110, y: -115, w: 220, h: 230 }, (c) => {
+            P.cutout(c, D.spline([[-86, -62], [-56, -96], [0, -104], [56, -96], [86, -62], [96, 0], [86, 56], [50, 92], [0, 104], [-50, 92], [-86, 56], [-96, 0]], 8), COL.skin, 'face', { border: 2.6, shadow: 0.12, tex: { alpha: [0.12, 0.25] } });
+        }, 1.6).draw(g);
+        // fringe: its own piece, asymmetric edge across the forehead
+        sprite('girl-fringe', { x: -125, y: -150, w: 250, h: 140 }, (c) => {
+            P.cutout(c, D.spline([[-108, -24], [-104, -80], [-62, -122], [0, -132], [62, -122], [104, -82], [110, -26], [84, -36], [52, -50], [14, -46], [-24, -56], [-64, -44]], 8), COL.hair, 'fringe', { border: 2.4, shadow: 0.2, tex: false, inner: (cc, box) => D.strands(cc, box, COL.hair, { seed: 'fringe', angle: Math.PI * 0.42 }) });
+            P.cutout(c, P.roundRect(-30, -10, 60, 20, 6).map(([px, py]) => [px * Math.cos(-0.42) - py * Math.sin(-0.42) + 50, px * Math.sin(-0.42) + py * Math.cos(-0.42) - 86]), COL.clip, 'clip', { border: 1.8, shadow: 0.15 });
+        }, 1.6).draw(g);
+        // cheeks and a tiny nose
         g.fillStyle = COL.cheek;
-        for (const s of [-1, 1]) (g.beginPath(), g.ellipse(s * 62, 30, 20, 17, 0, 0, Math.PI * 2), g.fill());
-        // eyes
+        for (const sd of [-1, 1]) (g.beginPath(), g.ellipse(sd * 56, 30, 21, 19, 0, 0, Math.PI * 2), g.fill());
+        g.strokeStyle = PaperDetail.shade(COL.skin, -18);
+        g.lineWidth = 3;
+        g.lineCap = 'round';
+        g.beginPath();
+        g.arc(0, 20, 5, Math.PI * 0.2, Math.PI * 0.8);
+        g.stroke();
+        // eyes and brows
         const eyes = o.eyes ?? 'open', look = o.look ?? [0, 0];
         g.strokeStyle = COL.eye;
         g.fillStyle = COL.eye;
-        g.lineCap = 'round';
-        g.lineWidth = 5;
-        for (const s of [-1, 1]) {
-            const ex = s * 42, ey = -8;
-            if (eyes === 'closed') (g.beginPath(), g.moveTo(ex - 16, ey), g.lineTo(ex + 16, ey), g.stroke());
-            else if (eyes === 'happy') (g.beginPath(), g.arc(ex, ey + 6, 14, Math.PI * 1.15, Math.PI * 1.85), g.stroke());
-            else {
+        g.lineWidth = 4.5;
+        for (const sd of [-1, 1]) {
+            const ex = sd * 36, ey = -4;
+            if (eyes === 'closed') {
+                g.beginPath();
+                g.arc(ex, ey - 10, 14, Math.PI * 0.3, Math.PI * 0.7);
+                g.stroke();
+            } else if (eyes === 'happy') {
+                g.beginPath();
+                g.arc(ex, ey + 6, 12, Math.PI * 1.15, Math.PI * 1.85);
+                g.stroke();
+            } else if (eyes === 'up') {
                 g.fillStyle = '#fbf6ec';
                 g.beginPath();
-                g.ellipse(ex, ey, 15, 14, 0, 0, Math.PI * 2);
+                g.arc(ex, ey, 13, 0, Math.PI * 2);
+                g.fill();
+                g.lineWidth = 2.5;
+                g.stroke();
+                g.fillStyle = COL.eye;
+                g.beginPath();
+                g.arc(ex + look[0] * 4, ey - 5, 6.5, 0, Math.PI * 2);
+                g.fill();
+            } else {
+                g.beginPath();
+                g.arc(ex + look[0] * 4, ey + look[1] * 4, 8, 0, Math.PI * 2);
+                g.fill();
+                g.fillStyle = '#fff';
+                g.beginPath();
+                g.arc(ex + look[0] * 4 + 2.5, ey + look[1] * 4 - 3, 2.6, 0, Math.PI * 2);
                 g.fill();
                 g.fillStyle = COL.eye;
-                const ly = eyes === 'up' ? -6 : look[1] * 6;
-                g.beginPath();
-                g.arc(ex + look[0] * 6, ey + ly, 8, 0, Math.PI * 2);
-                g.fill();
             }
+            // brows: short strokes, raised when surprised
+            g.lineWidth = 3.5;
+            const by = eyes === 'surprised' ? -34 : -26;
+            g.beginPath();
+            g.moveTo(ex - 12, by + (eyes === 'surprised' ? 4 : 1) * 1);
+            g.quadraticCurveTo(ex, by - (eyes === 'surprised' ? 6 : 3), ex + 12, by + 2);
+            g.stroke();
+            g.lineWidth = 4.5;
         }
         // mouth
         const m = o.mouth ?? 'smile';
-        g.lineWidth = 5;
-        if (m === 'o') (g.beginPath(), g.ellipse(0, 52, 9, 11, 0, 0, Math.PI * 2), g.stroke());
-        else if (m === 'grin') {
-            g.fillStyle = '#7a2a2a';
+        g.lineWidth = 4.5;
+        if (m === 'o') {
+            g.fillStyle = COL.eye;
             g.beginPath();
-            g.arc(0, 44, 20, 0.1, Math.PI - 0.1);
+            g.ellipse(0, 50, 8, 10, 0, 0, Math.PI * 2);
             g.fill();
-        } else (g.beginPath(), g.arc(0, 36, 17, Math.PI * 0.2, Math.PI * 0.8), g.stroke());
+        } else if (m === 'grin') {
+            g.fillStyle = '#3a1a1a';
+            g.beginPath();
+            g.moveTo(-20, 40);
+            g.quadraticCurveTo(0, 70, 20, 40);
+            g.closePath();
+            g.fill();
+            g.fillStyle = '#e46f78';
+            g.beginPath();
+            g.ellipse(2, 54, 8, 5, 0, 0, Math.PI * 2);
+            g.fill();
+        } else {
+            g.beginPath();
+            g.arc(0, 30, 18, Math.PI * 0.22, Math.PI * 0.78);
+            g.stroke();
+        }
         g.restore();
+    }
+
+    // a sleeve (arm strip with knit) from a 3-point path, cached per rounded geometry
+    function tube(g, pts, w, color, seed) {
+        const key = 'tube:' + seed + pts.map(([a, b]) => Math.round(a / 2) + ',' + Math.round(b / 2)).join(';') + w;
+        const bb = P.bbox(pts, w + 12);
+        sprite(key, bb, (c) => {
+            P.cutout(c, P.noodle(P.bezier(pts[0], pts[1], pts[1], pts[2], 16), w, w * 0.9), color, seed, { border: 2.6, shadow: 0.15, jag: 0.7, tex: { alpha: [0.2, 0.4] }, inner: (cc, box) => D.knit(cc, box, color, { seed, size: 9 * w / 70 }) });
+        }, 1.4).draw(g);
+    }
+    // a detailed paper hand: size r ≈ palm radius (as the old round hands), rot in radians
+    function hand(g, x, y, r, rot = 0, pose = 'pinch', mirror = false) {
+        D.hand(g, x, y, r * 1.9, rot, pose, { skin: COL.skin, mirror });
     }
 
     // where a girl's hand ends up on screen (i: 0 left, 1 right), for props held in it
     const girlHand = (pose, i, x = 510, y = 868, s = 0.9) => [x + ARMS[pose][i][2][0] * s, y + ARMS[pose][i][2][1] * s];
 
-    return { COL, init, girlHand, get kit() { return kit; }, sprite, write, textW, note, flowerDoodle, plane, trail, star, plus, ticks, scribbleFill, flat, flower, girl, ARMS, hand, tube };
+    return { COL, init, girlHand, noteImage, noteFlip, get kit() { return kit; }, sprite, write, textW, note, flowerDoodle, plane, trail, star, plus, ticks, scribbleFill, flat, flower, girl, ARMS, hand, tube };
 })();

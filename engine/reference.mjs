@@ -8,6 +8,14 @@
 //       difference of each pair (0 = identical, ~30 = similar, >60 = something else).
 //       Default → <scene>/review/compare.jpg and compare.md
 //
+//   node engine/reference.mjs colors <video> <second> name=x,y …
+//       Mean color at each point (x, y as fractions): copy palettes instead of guessing.
+//
+//   node engine/reference.mjs track <video> --color '#d9735e' [--tol 40] [--from 0] [--to end] [--crop x,y,w,h]
+//       Follows everything of one color frame by frame: centre, box (2–98 % of the pixels,
+//       so stray specks do not count) and area, in thousandths of the frame. For copying the
+//       motion of a character 1:1 (bounces, squash, arcs) instead of eyeballing it.
+//
 // No ffmpeg drawtext: the labels are painted in Chromium.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -183,7 +191,41 @@ if (cmd === 'sheets') {
     }, { img, pts });
     console.log(res.join('\n'));
     await close();
+} else if (cmd === 'track') {
+    const video = pos[0];
+    const hex = String(opt.color ?? '#d9735e').replace('#', '');
+    const target = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const tol = Number(opt.tol ?? 40), W = 400;
+    const from = Number(opt.from ?? 0), to = Number(opt.to ?? duration(video));
+    const crop = opt.crop ? String(opt.crop).split(',').map(Number) : [0, 0, 1, 1];
+    const vf = `crop=iw*${crop[2]}:ih*${crop[3]}:iw*${crop[0]}:ih*${crop[1]},scale=${W}:${W}`;
+    const r = spawnSync(ffmpeg, ['-v', 'error', '-ss', String(from), '-t', String(to - from), '-i', video, '-vf', vf, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { maxBuffer: 1 << 30 });
+    const fr = W * W * 3, n = Math.floor(r.stdout.length / fr), fps = 24;
+    const q = (arr, f) => arr[Math.min(arr.length - 1, Math.floor(arr.length * f))];
+    const k = (v, a) => Math.round((crop[a] + (v / W) * crop[a + 2]) * 1000);
+    console.log('   t      cx   cy    x0   x1   y0   y1    w    h   area');
+    for (let i = 0; i < n; i++) {
+        const xs = [], ys = [];
+        for (let y = 0; y < W; y++) {
+            for (let x = 0; x < W; x++) {
+                const o = i * fr + (y * W + x) * 3;
+                const d = Math.abs(r.stdout[o] - target[0]) + Math.abs(r.stdout[o + 1] - target[1]) + Math.abs(r.stdout[o + 2] - target[2]);
+                if (d < tol) (xs.push(x), ys.push(y));
+            }
+        }
+        const t = (from + i / fps).toFixed(3);
+        if (xs.length < 20) {
+            console.log(`${t}   —`);
+            continue;
+        }
+        xs.sort((a, b) => a - b);
+        ys.sort((a, b) => a - b);
+        const [x0, x1, y0, y1] = [k(q(xs, 0.02), 0), k(q(xs, 0.98), 0), k(q(ys, 0.02), 1), k(q(ys, 0.98), 1)];
+        const cx = k(xs.reduce((a, b) => a + b) / xs.length, 0), cy = k(ys.reduce((a, b) => a + b) / ys.length, 1);
+        const pad = (v, w = 4) => String(v).padStart(w);
+        console.log(`${t} ${pad(cx, 5)}${pad(cy, 5)} ${pad(x0, 5)}${pad(x1, 5)}${pad(y0, 5)}${pad(y1, 5)} ${pad(x1 - x0, 5)}${pad(y1 - y0, 5)} ${pad(Math.round((xs.length / (W * W)) * 1000 * crop[2] * crop[3]), 6)}`);
+    }
 } else {
-    console.error('Usage: node engine/reference.mjs sheets <video> … | compare <scene.js> <video> … | colors <video> <s> name=x,y …');
+    console.error('Usage: node engine/reference.mjs sheets <video> … | compare <scene.js> <video> … | colors <video> <s> name=x,y … | track <video> --color #hex …');
     process.exit(1);
 }

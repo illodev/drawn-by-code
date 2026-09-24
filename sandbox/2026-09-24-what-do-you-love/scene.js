@@ -7,8 +7,10 @@ Motion.scene({
     logical: [1000, 1000],
     previewSize: 900,
     uses: [
-        'styles/paper-cutout/paper.js', 'styles/paper-cutout/kit.js',
-        DIR + 'segments/common.js', DIR + 'segments/sets.js', DIR + 'segments/shots.js', DIR + 'segments/montage.js',
+        'styles/paper-cutout/paper.js', 'styles/paper-cutout/kit.js', 'styles/paper-cutout/detail.js',
+        DIR + 'segments/common.js', DIR + 'segments/sets.js', DIR + 'segments/shots.js', DIR + 'segments/things.js',
+        ...['words', 'music', 'sea', 'tree', 'dog', 'bread', 'rain', 'math', 'stars', 'octopus', 'tea', 'flowers', 'cat'].map((n) => DIR + 'segments/things/' + n + '.js'),
+        DIR + 'segments/montage.js',
     ],
     fonts: [{ family: 'Stack', src: 'fonts/ShortStack-latin.woff2' }],
     // cut list measured on the reference (cuts land on quarter seconds)
