@@ -48,6 +48,13 @@ backdrop, pieces pressed on):
 - **Characters:** a big egg head, a slab torso, sausage arms with cuffs, four-finger hands
   (open for a wave: palm to camera, thumb on the inner side; a fist with the thumb up).
 - **Stop motion on twos**, boil per drawing (`uA[95]`), blinks and winks as a black line.
+- **Pressed pieces sit ON the surface, not at it.** Work out where the surface is (the
+  front of the jaw ellipsoid at the mouth's height) and put the piece a hair in front,
+  following the surface's curve to the sides (`z += k·x²`). At surface level the lumps
+  bury it: the resting smile vanished and only the open grin showed.
+- **Clothes follow the limb, not the hand.** A cuff is a cylinder along elbow → wrist
+  (`sdCappedCylinder`) at the end of a sleeve that stops short of the wrist; built in the
+  hand's frame it becomes a disc the hand sits on whenever the wrist bends.
 - A table-top room (the first version) is possible too, but it drifts towards CG: keep the
   pressed-piece rules there as well.
 
@@ -77,5 +84,7 @@ backdrop, pieces pressed on):
 - [ ] The brand's logo from its SVG?
 
 ## Lessons
+
+- 2026-09-24 · clay3d-test · Round 3 (user): «el doblez de la camisa siempre muestra la misma posición» (the cuff was in the hand's frame) and no mouth at rest (buried under the face's surface). Both rules above.
 
 - 2026-09-24 · clay3d-test · Round 1 (a photographed table-top room, perfect SDF forms, glossy eyes) read as «más 3D que plastilina». Round 2 with lumps, flat pressed-on features, matte clay and a studio backdrop is the style.

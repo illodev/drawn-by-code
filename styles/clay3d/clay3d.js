@@ -21,7 +21,7 @@
 //   vec4  material(float m)                (specular, shininess, translucency, bump)
 //   vec3  background(vec3 rd)              colour where nothing is hit
 // The prelude gives: sdSphere, sdEllipsoid, sdCapsule, sdRoundCone, sdRoundBox, sdTorus,
-// sdCylinder, smin, smax, opU (union with material), opSU (smooth union keeping the nearer
+// sdCylinder, sdCappedCylinder, smin, smax, opU (union with material), opSU (smooth union keeping the nearer
 // material), rot (2D rotation), hash/noise/fbm, lumps (hand-made unevenness to add to a
 // distance), speckle (pigment dots for albedo), and the uniforms uT, uA[96].
 const Clay3D = (() => {
@@ -48,6 +48,14 @@ float sdRoundCone(vec3 p, vec3 a, vec3 b, float r1, float r2) {
 }
 float sdRoundBox(vec3 p, vec3 b, float r) { vec3 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - r; }
 float sdTorus(vec3 p, vec2 t) { vec2 q = vec2(length(p.xz) - t.x, p.y); return length(q) - t.y; }
+// a cylinder between two points (a cuff round a forearm, a wheel on an axle)
+float sdCappedCylinder(vec3 p, vec3 a, vec3 b, float r) {
+    vec3 ba = b - a, pa = p - a; float baba = dot(ba, ba), paba = dot(pa, ba);
+    float x = length(pa * baba - ba * paba) - r * baba, y = abs(paba - baba * 0.5) - baba * 0.5;
+    float x2 = x * x, y2 = y * y * baba;
+    float d = (max(x, y) < 0.0) ? -min(x2, y2) : (((x > 0.0) ? x2 : 0.0) + ((y > 0.0) ? y2 : 0.0));
+    return sign(d) * sqrt(abs(d)) / baba;
+}
 float sdCylinder(vec3 p, float h, float r) { vec2 d = abs(vec2(length(p.xz), p.y)) - vec2(r, h); return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)); }
 float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
 float smax(float a, float b, float k) { return -smin(-a, -b, k); }

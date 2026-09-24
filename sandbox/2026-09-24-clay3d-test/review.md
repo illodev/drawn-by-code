@@ -45,3 +45,13 @@ Lessons that apply to other videos go up to the matching skill (see review/SKILL
   primary ray or 8-bit banding (a dither was added anyway): the torso was a rounded box,
   and the joins between its flat faces and rounded edges showed in the penumbra. Now a
   pear of ellipsoids: a smooth shadow, and a lump of clay rather than a box.
+
+## Round 4 (user)
+
+> «El doblez de la camisa siempre muestra la misma posición y al principio sale sin boca.»
+
+- The cuff was built in the hand's frame: with the wrist bent (thumbs up) it became a disc
+  under the fist. Now a cylinder along elbow → wrist at the end of a sleeve that stops
+  short of the wrist (`sdCappedCylinder`, new in the kit).
+- The resting smile sat at z 0.29 while the face's front is at ≈ 0.307 there: buried.
+  Now at 0.31, following the face's curve to the sides.

@@ -89,8 +89,12 @@ vec2 head(vec3 p) {
     // nose: a ball pressed on
     r = opU(r, vec2(sdEllipsoid(q - vec3(0.0, -0.02, 0.325), vec3(0.068, 0.058, 0.06)) + lumps(q, 0.004), M_NOSE));
     // mouth: a flat piece pressed on: a curved sausage (smile) or a D (grin) with a teeth strip
-    vec3 qm = q - vec3(0.0, -0.175, 0.29);
+    // pressed ON the face: the face's front is at z ≈ 0.307 here (the jaw ellipsoid) and curves
+    // back to the sides, so the piece sits at 0.31 and follows that curve (a mouth at the
+    // head's surface level is buried by its lumps and disappears)
+    vec3 qm = q - vec3(0.0, -0.175, 0.31);
     qm.y -= 3.2 * qm.x * qm.x;
+    qm.z += 1.7 * qm.x * qm.x;
     if (GRIN < 0.5) r = opU(r, vec2(sdCapsule(qm, vec3(-0.075, 0.0, 0.0), vec3(0.075, 0.0, 0.0), 0.014), M_MOUTH));
     else {
         float m = smax(sdEllipsoid(qm - vec3(0.0, -0.01, 0.0), vec3(0.085, 0.06, 0.03)), qm.y - 0.012, 0.01);
@@ -153,13 +157,19 @@ float handSDF(vec3 q, float pose) {
 // the sleeve: upper arm and forearm, thick sausages
 float sleeve(vec3 p, float s, vec3 el, vec3 wr) {
     vec3 sh = vec3(0.34 * s, 1.14 + BREATH, -0.02);
-    return min(sdCapsule(p, sh, el, 0.1), sdRoundCone(p, el, wr, 0.095, 0.082)) + lumps(p * 1.5, 0.006);
+    // the sleeve stops short of the wrist: the cuff covers the last stretch
+    vec3 we = wr - normalize(wr - el) * 0.06;
+    return min(sdCapsule(p, sh, el, 0.1), sdRoundCone(p, el, we, 0.095, 0.08)) + lumps(p * 1.5, 0.006);
 }
 // the cuff and the hand, in the hand's frame (s = -1: her right hand, image left)
-vec2 handPart(vec3 p, float s, vec3 wr, vec3 rt, float pose) {
+vec2 handPart(vec3 p, float s, vec3 el, vec3 wr, vec3 rt, float pose) {
+    // the cuff wraps the end of the forearm (along elbow → wrist), not the hand: a bent
+    // wrist leaves it on the arm, where it belongs
+    vec3 fd = normalize(wr - el);
+    float cuff = sdCappedCylinder(p, wr - fd * 0.085, wr + fd * 0.005, 0.068) - 0.018 + lumps(p * 3.0, 0.003);
     vec3 q = transpose(eul(rt)) * (p - wr);
     if (s > 0.0) q.x = -q.x;
-    vec2 r = vec2(sdCylinder(q - vec3(0.0, -0.012, 0.0), 0.03, 0.074) - 0.014 + lumps(q * 3.0, 0.003), M_CREAM);
+    vec2 r = vec2(cuff, M_CREAM);
     return opU(r, vec2(handSDF(q, pose), M_SKIN));
 }
 
@@ -216,8 +226,8 @@ vec2 map(vec3 p) {
     vec2 body = torso(p);
     body = opSU(body, vec2(min(sleeve(p, -1.0, ELR, WRR), sleeve(p, 1.0, ELL, WRL)), M_NAVY), 0.04);
     r = opU(r, body);
-    r = opU(r, handPart(p, -1.0, WRR, ROTR, POSER));
-    r = opU(r, handPart(p, 1.0, WRL, ROTL, POSEL));
+    r = opU(r, handPart(p, -1.0, ELR, WRR, ROTR, POSER));
+    r = opU(r, handPart(p, 1.0, ELL, WRL, ROTL, POSEL));
     return r;
 }
 
