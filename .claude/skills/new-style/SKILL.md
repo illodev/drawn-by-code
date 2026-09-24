@@ -33,7 +33,8 @@ styles/<style>/
 6. **Style test** in `sandbox/` with `engine/new.mjs … --style <style>`, the **review**
    loop and the user's approval. Until then, the style is *in testing* (say so in the
    skill's description).
-7. Add the style to the table in `README.md`.
+7. Add the style to the table in `README.md`, and give its folder a `README.md` and a
+   `strip.jpg` (`engine/strip.mjs` on the style test's render; copy another style's README).
 
 ## Skill template
 
