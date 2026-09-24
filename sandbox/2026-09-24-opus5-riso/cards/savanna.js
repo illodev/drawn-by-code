@@ -18,10 +18,17 @@ CARDS.savanna = (press, t) => {
     // yellow flat over everything
     yellow.fillStyle = T(1); yellow.fillRect(0, 0, 1000, 1000);
     // the sky's pink screen: dense at the top, bare over the bright glow low on the right
-    pinkS.fillStyle = vramp(pinkS, 0, 780, [[0, 0.85], [0.35, 0.62], [0.65, 0.4], [0.85, 0.22], [1, 0.12]]);
-    pinkS.fillRect(0, 0, 1000, 800);
-    pinkS.save(); pinkS.globalCompositeOperation = 'destination-out';
-    pinkS.fillStyle = R.radial(pinkS, px(760), px(700), 20, 330, 0.85, 0); pinkS.fillRect(0, 0, 1000, 800); pinkS.restore();
+    // (the reference's pink screen: 12.96 px at 78°/168°, measured per drawing; coverage
+    // read off the green channel in 90 × 54 px blocks)
+    const LP = [{ o: [0.52, -6.15], a: [2.6984, 12.6783], b: [-12.6751, 2.6956] }, { o: [-3.49, -4.90], a: [2.6995, 12.6787], b: [-12.6751, 2.6958] }][Math.min(d, 1)];
+    U.lattice(pink, LP, (m) => {
+        m.fillStyle = vramp(m, 0, px(860), [[0, 0.95], [0.12, 0.88], [0.27, 0.72], [0.38, 0.62], [0.5, 0.47], [0.7, 0.44], [0.88, 0.42], [1, 0.42]]);
+        m.fillRect(0, 0, 1000, px(860));
+        m.globalCompositeOperation = 'destination-out';
+        const gl = m.createRadialGradient(px(745), px(690), 0, px(745), px(690), px(330));
+        gl.addColorStop(0, T(1)); gl.addColorStop(0.3, T(0.9)); gl.addColorStop(0.65, T(0.45)); gl.addColorStop(1, T(0));
+        m.fillStyle = gl; m.save(); m.scale(1, 0.75); m.translate(0, px(690) / 0.75 - px(690)); m.fillRect(0, 0, 1000, 1400); m.restore();
+    });
     // a hint of blue at the top corners (the red goes brownish)
     blueS.fillStyle = vramp(blueS, 0, 200, [[0, 0.12], [1, 0]]); blueS.fillRect(0, 0, 1000, 200);
 

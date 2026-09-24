@@ -98,5 +98,47 @@ var G6 = (() => {
         }
         g.fill();
     };
-    return { T, path, poly, smooth, blob, clipped, stroke, ridge, under, speckle, pine, masked, dots };
+    // the reference's own screen: a halftone on a measured lattice. Each card's screens were
+    // printed at their own pitch and angle (9.7–13 px, not the press's 9.5), and they hold
+    // still across a drawing, so a screen is measured once per ink per drawing (pitch, angle
+    // and phase from a lattice fit on the reference frame, in reference px at 1080):
+    // L = { o: [x, y], a: [x, y], b: [x, y] }: dot centres at o + i·a + j·b.
+    // tonesFn(m) paints the tones on a scratch canvas in card units (alpha = ink amount, any
+    // shapes, gradients, clips); then every lattice cell gets one soft round dot of area =
+    // tone × cell at its centre, drawn on plate g (a solid plate: the dots are the print).
+    // o.gain scales the tones, o.min drops dots below it, o.jit wobbles dot size per cell.
+    let tscr = null;
+    const lattice = (g, L, tonesFn, o = {}) => {
+        const W = g.canvas.width, H = g.canvas.height, k = W / 1000, s = W / 1080;
+        if (!tscr || tscr.width !== W || tscr.height !== H) { tscr = document.createElement('canvas'); tscr.width = W; tscr.height = H; }
+        const m = tscr.getContext('2d', { willReadFrequently: true });
+        m.setTransform(1, 0, 0, 1, 0, 0); m.globalCompositeOperation = 'source-over'; m.globalAlpha = 1; m.clearRect(0, 0, W, H);
+        m.setTransform(k, 0, 0, k, 0, 0);
+        m.fillStyle = T(1); m.strokeStyle = T(1);
+        tonesFn(m);
+        const D = m.getImageData(0, 0, W, H).data;
+        const [ox, oy] = L.o, [ax, ay] = L.a, [bx, by] = L.b;
+        const cell = Math.abs(ax * by - ay * bx), det = ax * by - ay * bx, gain = o.gain ?? 1, mn = o.min ?? 0.02, jit = o.jit ?? 0.08;
+        // lattice index range covering the frame (invert the corners)
+        const idx = (x, y) => [((x - ox) * by - (y - oy) * bx) / det, (ax * (y - oy) - ay * (x - ox)) / det];
+        const cs = [idx(-20, -20), idx(1100, -20), idx(-20, 1100), idx(1100, 1100)];
+        const i0 = Math.floor(Math.min(...cs.map((c) => c[0]))), i1 = Math.ceil(Math.max(...cs.map((c) => c[0])));
+        const j0 = Math.floor(Math.min(...cs.map((c) => c[1]))), j1 = Math.ceil(Math.max(...cs.map((c) => c[1])));
+        g.save();
+        g.fillStyle = T(1);
+        g.beginPath();
+        for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+            const x = ox + i * ax + j * bx, y = oy + i * ay + j * by; // px at 1080
+            if (x < -15 || y < -15 || x > 1095 || y > 1095) continue;
+            const qx = Math.min(W - 1, Math.max(0, Math.round(x * s))), qy = Math.min(H - 1, Math.max(0, Math.round(y * s)));
+            let tv = (D[(qy * W + qx) * 4 + 3] / 255) * gain;
+            if (tv < mn) continue;
+            const h = Math.sin(i * 12.9898 + j * 78.233) * 43758.5453, hj = h - Math.floor(h);
+            const r = Math.sqrt(Math.min(1.3, tv) * cell / Math.PI) * (1 + jit * (hj - 0.5) * 2);
+            g.moveTo((x + r) / 1.08, y / 1.08); g.arc(x / 1.08, y / 1.08, r / 1.08, 0, 6.2832);
+        }
+        g.fill();
+        g.restore();
+    };
+    return { T, path, poly, smooth, blob, clipped, stroke, ridge, under, speckle, pine, masked, dots, lattice };
 })();
