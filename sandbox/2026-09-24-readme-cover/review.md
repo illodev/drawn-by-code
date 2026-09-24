@@ -28,3 +28,15 @@
 - The tile is now held with PaperDetail 'wrap': the thumb behind it (part back), the back
   of the hand and the four fingers over the top of its face (part front), the forearm up to
   the top right; small enough and high enough to leave the letter clear.
+
+## Round 4 (user)
+
+> «La parte de la mano no debería diferenciarse como un polígono del resto.» «Las imágenes de
+> abajo haría un carrusel que se moviera en bucle, y por cada estilo añadirlo.»
+
+- 'wrap' drew the back of the hand as a separate oval over the fingers: now the back of the
+  hand comes first (narrow at the wrist, widening to the knuckles) and the fingers over its
+  edge, one hand (detail.js; the saas-promo mugs checked).
+- The polaroids are a carousel that slides left in a loop (6 s, on twos), one per style:
+  each style's own template is loaded (capture.js collects its Motion.scene) and painted at
+  a chosen second into its polaroid. A new style adds one line to STYLES.

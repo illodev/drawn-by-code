@@ -653,12 +653,14 @@ const PaperDetail = (() => {
             // curve), the thumb behind the mug (part 'back', its tip peeking over the index)
             thumb({ b: [-22, -18], a: -0.2, L: [12, 13, 11], bend: [0.1, 0.12, 0.1], nail: true, shade: -4 }, 'b');
             const fs = fingerSet([-0.06, -0.01, 0.03, 0.08], [[0.02, 0.04, 0.05], [0, 0.03, 0.04], [-0.01, 0.01, 0.02], [-0.03, -0.02, -0.01]], {
-                all: { nail: true, part: 'f', back: 6 },
+                all: { nail: true, part: 'f', back: 3 },
                 0: { b: [-19, -26], L: [16, 12, 8] }, 1: { b: [-5, -28], L: [17, 13, 8.5] },
                 2: { b: [9, -27], L: [16, 12, 8] }, 3: { b: [22, -23], L: [13, 10, 7] },
             });
+            // the back of the hand first, narrow at the wrist and widening to the knuckles, then
+            // the fingers over its top edge: one continuous hand, not a patch pasted on top
+            palm([[0, 6], [-17, 4], [-23, -6], [-27, -18], [-26, -26], [-19, -30], [-12, -31], [-5, -32], [2, -31], [9, -31], [16, -29], [22, -26], [28, -20], [27, -9], [20, 2], [10, 6]], { part: 'f', knuckles: [] });
             fingers(fs, 'f');
-            palm([[0, 5], [-20, 3], [-26, -8], [-26, -22], [-19, -30], [-5, -32], [9, -31], [21, -27], [28, -18], [28, -6], [15, 3]], { part: 'f', knuckles: [[-19, -25], [-5, -27], [9, -26], [21, -22]] });
         } else if (pose === 'edge') {
             // fingers hooked over an edge from behind, seen from the front: only the curled
             // fingers, knuckles on the edge (y = -50), short and foreshortened, nails at the tips

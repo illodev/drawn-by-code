@@ -2,7 +2,7 @@
 
 ![drawn by code](sandbox/2026-09-24-readme-cover/render/cover.gif)
 
-<sub>This cover is itself drawn by the repo: the paper kit tears the tiles and the hand, and each polaroid is painted live by its own style's kit ([readme-cover](sandbox/2026-09-24-readme-cover/)).</sub>
+<sub>This cover is itself drawn by the repo: the paper kit tears the tiles and the hand, and the carousel shows one polaroid per style, each painted by that style's own template ([readme-cover](sandbox/2026-09-24-readme-cover/)).</sub>
 
 Animations and videos made **with code** by Claude. JavaScript paints every frame on a
 `<canvas>` (2D, or 3D through WebGL2), deterministically. Chromium and ffmpeg render the

@@ -1,9 +1,8 @@
 // 2026-09-24-readme-cover · the README's cover, drawn by the repo's own kits. A ransom-note
 // title («drawn by code»: every letter on its own torn-paper tile) is being assembled: the
 // tiles drop in on twos, a hand (PaperDetail, pose 'hold', her right hand) brings the last
-// one, a marker underlines it. Below, six polaroids pinned on the desk, each painted live by
-// one style's kit: paper cutout, 70s poster, liquid light, kaleidoscope, line, clay 3D.
-// The last frame is the still cover (render/cover.png); the whole is a short loop.
+// one, a marker underlines it. Below, a carousel of polaroids that loops, one per style,
+// each painted by that style's own template (STYLES: a new style adds one line there).
 const W = 1800, H = 680;
 const COVER_TILES = (() => {
     const words = [['d', 'r', 'a', 'w', 'n'], ['c', 'o', 'd', 'e']];
@@ -24,16 +23,31 @@ const COVER_TILES = (() => {
     });
     return { tiles, TW, TH: 148, byX: (W - total) / 2 + 5 * TW + 4 * GAP + BY / 2 };
 })();
-const CARDS = ['paper cutout', '70s poster', 'liquid light', 'kaleidoscope', 'line', 'clay 3D'];
+// The carousel: one polaroid per style. [label, style folder, second of its template to
+// show, the template's kits]; 'paint' instead of a folder draws a custom picture.
+const STYLES = [
+    ['paper cutout', 'paint:paper', 0, []],
+    ['70s poster', '70s-poster', 2.2, ['styles/70s-poster/kit.js']],
+    ['liquid light', 'liquid-light', 1.6, ['styles/liquid-light/kit.js']],
+    ['kaleidoscope', 'kaleidoscope', 1.2, ['styles/kaleidoscope/kit.js']],
+    ['line', 'line', 1.0, ['styles/line/kit.js']],
+    ['clay', 'clay', 3.0, ['styles/clay/clay.js']],
+    ['clay 3D', 'paint:clay3d', 0, ['styles/clay3d/clay3d.js', 'sandbox/2026-09-24-clay3d-test/set.js']],
+    ['risograph', 'risograph', 2.5, ['styles/risograph/riso.js']],
+    ['pixel art', 'pixel-art', 3.2, ['styles/pixel-art/pixel.js']],
+];
+const TEMPLATE_DIRS = STYLES.filter(([, d]) => !d.startsWith('paint:')).map(([, d]) => d);
+const CAROUSEL = { gap: 300, speed: 160 }; // units between polaroids; units per second (on twos)
 
 Motion.scene({
     fps: 24,
-    duration: 3,
+    duration: 6,
     logical: [W, H],
     uses: [
         'styles/paper-cutout/paper.js', 'styles/paper-cutout/kit.js', 'styles/paper-cutout/detail.js',
-        'styles/70s-poster/kit.js', 'styles/liquid-light/kit.js', 'styles/kaleidoscope/kit.js', 'styles/line/kit.js',
-        'styles/clay3d/clay3d.js', 'sandbox/2026-09-24-clay3d-test/set.js',
+        ...[...new Set(STYLES.flatMap(([, , , u]) => u))],
+        'sandbox/2026-09-24-readme-cover/capture.js',
+        ...TEMPLATE_DIRS.map((d) => `styles/${d}/template.js`),
     ],
     fonts: [
         { family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' },
@@ -41,7 +55,7 @@ Motion.scene({
         { family: 'Stack', src: 'fonts/ShortStack-latin.woff2' },
     ],
     bpm: 120,
-    shots: [[0, 3, 'Cover']],
+    shots: [[0, 6, 'Cover']],
 
     setup(env) {
         return { kit: PaperKit.make(env, { font: 'Hand' }), cards: null };
@@ -49,14 +63,18 @@ Motion.scene({
     draw(g, t, env) {
         const { kit } = env.state, P = Paper, E = Ease, tq = Math.floor(t * 12 + 1e-6) / 12;
         kit.paperBg(g, 'cover-desk', '#efe3cc', { bleed: 60 });
-        if (!env.state.cards) env.state.cards = CARDS.map((name, i) => cardImage(i, env));
-        // the polaroids, pinned on the desk (dropped in on twos, 0.0–0.5)
-        CARDS.forEach((name, i) => {
+        if (!env.state.cards) env.state.cards = STYLES.map((st, i) => cardImage(st, env));
+        // the carousel: the polaroids drop in on twos (0.0–0.5), then slide left in a loop
+        const L = STYLES.length * CAROUSEL.gap;
+        STYLES.forEach(([name], i) => {
             const at = i / 12;
             if (tq < at) return;
-            const r = Motion.rng('card' + i), x = 150 + i * 300, y = 562, rot = (r() - 0.5) * 0.12;
+            const x = ((((i * CAROUSEL.gap - CAROUSEL.speed * tq) % L) + L) % L) + 150;
+            const xx = x > W + 150 ? x - L : x;
+            if (xx < -160 || xx > W + 160) return;
+            const r = Motion.rng('card' + i), y = 562, rot = (r() - 0.5) * 0.12;
             const s = tq - at < 1 / 12 ? 1.06 : 1;
-            polaroid(g, env, i, name, x, y, rot, s);
+            polaroid(g, env, i, name, xx, y, rot, s);
         });
         // the title's tiles drop in one per drawing (0.5–1.2); the last one comes in a hand
         const { tiles, TW, TH } = COVER_TILES;
@@ -148,17 +166,42 @@ function polaroid(g, env, i, name, x, y, rot, s) {
     g.restore();
 }
 
-// each card is the style's own kit painting a frame on its own canvas (a 1600 × 900 scene)
-function cardImage(i, env) {
+// each polaroid's picture: the style's template painted at its chosen second on its own
+// canvas (its setup, draw and post, with a small env), cropped to 16:9 at the centre; or a
+// custom painting ('paint:…')
+function cardImage([label, dir, at], env) {
     const c = document.createElement('canvas');
     c.width = Math.round(236 * env.k * 2);
     c.height = Math.round(133 * env.k * 2);
-    const x = c.getContext('2d'), s = c.width / 1600;
-    const fenv = { W: 1600, H: 900, k: s, px: [c.width, c.height], fps: 24, duration: 4, state: {} };
-    x.scale(s, s);
-    const E = Ease;
-    if (i === 0) {
-        // a lined sheet with a handwritten title, a paper sun, a waving hand
+    const x = c.getContext('2d');
+    if (dir.startsWith('paint:')) {
+        const s = c.width / 1600;
+        const fenv = { W: 1600, H: 900, k: s, px: [c.width, c.height], fps: 24, duration: 4, state: {} };
+        x.scale(s, s);
+        PAINT[dir.slice(6)](x, fenv);
+        return c;
+    }
+    const d = TEMPLATES[TEMPLATE_DIRS.indexOf(dir)];
+    const [TW, TH] = d.logical ?? [1600, 900];
+    // the template's own frame, then its centre crop into the polaroid
+    const cw = c.width, chgt = Math.round((cw * TH) / TW) >= c.height ? Math.round((cw * TH) / TW) : c.height;
+    const fw = Math.round((chgt * TW) / TH), fh = chgt;
+    const f = document.createElement('canvas');
+    f.width = fw;
+    f.height = fh;
+    const fx = f.getContext('2d'), k = fw / TW;
+    const fenv = { W: TW, H: TH, k, px: [fw, fh], fps: d.fps ?? 24, duration: d.duration ?? 4, state: {} };
+    fenv.state = d.setup ? d.setup(fenv) ?? {} : {};
+    fx.setTransform(k, 0, 0, k, 0, 0);
+    d.draw(fx, at, fenv);
+    fx.setTransform(1, 0, 0, 1, 0, 0);
+    if (d.post) d.post(fx, at, fenv);
+    x.drawImage(f, (fw - cw) / 2, (fh - c.height) / 2, cw, c.height, 0, 0, cw, c.height);
+    return c;
+}
+const PAINT = {
+    // a lined sheet with a handwritten title, a paper sun, a waving hand
+    paper(x, fenv) {
         const pk = PaperKit.make(fenv, { font: 'Hand' }), C = pk.COL;
         pk.paperBg(x, 'cardpaper', '#f0c64e');
         x.save();
@@ -176,54 +219,13 @@ function cardImage(i, env) {
         Paper.markerStroke(x, [[-300, 0], [180, 8]], C.orange, 12, 'cardul', 0.9);
         x.restore();
         PaperDetail.hand(x, 1250, 860, 190, -0.25, 'wave', { side: 'right', cuff: '#389486', sleeve: '#2d7a6e' });
-    } else if (i === 1) {
-        const P = Groovy.PAL.acid, t = 2.2;
-        Groovy.sunburst(x, fenv, 800, 470, 24, t * 0.25, [P.c[0], P.c[4]]);
-        Groovy.rings(x, 800, 470, 6, 55, t, [P.c[1], P.c[5], P.c[2], P.c[3]]);
-        Groovy.shape(x, Groovy.wavy(Groovy.ellipse(800, 470, 170, 150, 96), 12, 6, t * 3), P.c[2], { ink: P.ink, width: 7, echoes: [P.c[1], P.c[3]], echoStep: 9 });
-        Groovy.melt(x, fenv, 'GROOVY', 800, 200, 150, { t, melt: 0.3, wave: 8, fill: P.c[4], echo: P.c[1], ink: P.ink });
-    } else if (i === 2) {
-        Liquid.field(x, fenv, Liquid.drift('plantilla', 9, 1.6, fenv, { rMin: 70, rMax: 150, speed: 0.35 }), { hueShift: 40 });
-    } else if (i === 3) {
-        const t = 1.2, cols = ['#ff2e88', '#ffd23f', '#18d6c4', '#7a2cff', '#c6ff2e'];
-        x.fillStyle = '#12051f';
-        x.fillRect(0, 0, 1600, 900);
-        Kaleido.draw(x, fenv, {
-            n: 8, rot: t * 0.5, hue: t * 40, scale: 1,
-            source: (sc) => {
-                const r = Motion.rng('piezas');
-                for (let j = 0; j < 26; j++) {
-                    const a = r() * 0.8, d = ((r() * 600 + t * 120) % 650) + 20;
-                    sc.fillStyle = cols[j % cols.length];
-                    sc.beginPath();
-                    sc.ellipse(800 + Math.cos(a) * d, 450 + Math.sin(a) * d, 18 + r() * 40, 10 + r() * 20, a + t, 0, Math.PI * 2);
-                    sc.fill();
-                }
-            },
-        });
-        Kaleido.beads(x, 800, 450, 90, 16, 8, t, cols);
-    } else if (i === 4) {
-        const L = LineArt, t = 0.5, hop = Math.abs(Math.sin(t * Math.PI)) * 120, px = 500 + t * 150 + 250, py = 720 - hop;
-        L.paper(x, fenv);
-        L.stroke(x, [[200, 720], [1400, 720]], { t, seed: 'suelo', width: 5 });
-        L.stroke(x, L.circle(px, py - 230, 60), { t, seed: 'cabeza', width: 7, closed: true });
-        L.stroke(x, [[px, py - 170], [px, py - 70]], { t, seed: 'cuerpo', width: 7 });
-        L.stroke(x, [[px, py - 70], [px - 30, py]], { t, seed: 'piernaI', width: 7 });
-        L.stroke(x, [[px, py - 70], [px + 30, py]], { t, seed: 'piernaD', width: 7 });
-        L.stroke(x, [[px - 60, py - 150], [px, py - 140], [px + 60, py - 170]], { t, seed: 'brazos', width: 7 });
-        L.stroke(x, L.circle(1250, 200, 70), { t, seed: 'sol', width: 6, closed: true });
-        for (let j = 0; j < 8; j++) { const an = (j / 8) * Math.PI * 2; L.stroke(x, [[1250 + Math.cos(an) * 95, 200 + Math.sin(an) * 95], [1250 + Math.cos(an) * 135, 200 + Math.sin(an) * 135]], { t, seed: 'ray' + j, width: 5 }); }
-        L.stroke(x, [[200, 250], [260, 215], [330, 225], [370, 190], [440, 205], [470, 250], [200, 250]], { t, seed: 'nube', width: 5 });
-        for (const hx of [260, 420, 1100, 1300]) L.stroke(x, [[hx, 720], [hx - 12, 690], [hx, 700], [hx + 12, 688], [hx + 4, 720]], { t, seed: 'hierba' + hx, width: 4 });
-        L.stroke(x, [[px + 60, py - 170], [px + 130, py - 330]], { t, seed: 'cuerda', width: 3 });
-        L.stroke(x, L.circle(px + 150, py - 400, 70), { t, seed: 'globo', width: 6, closed: true });
-    } else {
-        // Laura as a clay puppet, waving (the clay3d-test pose at 1.75 s)
+    },
+    // Laura as a clay puppet, waving (the clay3d-test pose at 1.75 s)
+    clay3d(x, fenv) {
         const R = Clay3D.renderer(fenv, { scene: SET_GLSL, scale: 1 });
-        const up = 1, wave = Math.sin(0.5 * Math.PI * 4) * 0.35;
+        const wave = Math.sin(0.5 * Math.PI * 4) * 0.35;
         const a = [0, 0, 0, 1, 0.06, 1, -0.48, 1.06, 0.1, -0.6, 1.3, 0.2, 0, 0, wave, 0, 0.5, 0.78, 0.05, 0.55, 0.5, 0.12, 0, 0, Math.PI, 0, 0, 0];
         a[95] = 0;
         R.render(x, 0, { a, cam: [0, 1.3, 5.4], target: [0, 1.3, 0], fov: 0.36, focus: 5.4, aperture: 0.06, light: [-0.6, 0.7, 0.75], soft: 8, fill: 0.55, key: 1.9 });
-    }
-    return c;
-}
+    },
+};
