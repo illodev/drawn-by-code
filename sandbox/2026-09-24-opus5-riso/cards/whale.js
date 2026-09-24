@@ -21,8 +21,8 @@ CARDS.whale = (press, t) => {
     // [top-left, top-right, a left point, a right point, yellow tone stops (by y / y1), y1];
     // tones solved from 30 px means along each shaft (yellow + blue, the blue thinned inside)
     const SHAFTS = [
-        [[0, 0], [90, 0], [118, 450], [205, 450], [[0, 0.5], [0.5, 0.52], [0.68, 0.31], [0.87, 0.24], [1, 0]], 620],
-        [[126, 0], [216, 0], [300, 600], [372, 600], [[0, 0.8], [0.43, 0.65], [0.6, 0.63], [0.77, 0.48], [1, 0]], 700],
+        [[0, 0], [90, 0], [118, 450], [205, 450], [[0, 0.36], [0.5, 0.48], [0.68, 0.31], [0.87, 0.24], [1, 0]], 620],
+        [[126, 0], [216, 0], [300, 600], [372, 600], [[0, 0.62], [0.37, 0.6], [0.52, 0.63], [0.67, 0.48], [0.85, 0.3], [1, 0]], 820],
         [[643, 0], [740, 0], [790, 450], [865, 450], [[0, 0.42], [0.48, 0.38], [0.68, 0.33], [0.87, 0.25], [1, 0]], 620],
         [[830, 0], [912, 0], [990, 560], [1075, 560], [[0, 0.48], [0.47, 0.39], [0.66, 0.34], [0.84, 0.45], [1, 0]], 640],
     ];
@@ -32,16 +32,17 @@ CARDS.whale = (press, t) => {
         g.closePath();
     };
     U.screen(press, 'blue', LB, (g) => {
-        ramp(g, [[0, 0.39], [0.11, 0.44], [0.22, 0.5], [0.28, 0.54], [0.33, 0.58], [0.39, 0.62], [0.44, 0.67], [0.5, 0.74], [0.56, 0.8], [0.61, 0.85], [0.7, 0.92], [0.8, 1]]);
+        ramp(g, [[0, 0.38], [0.11, 0.43], [0.22, 0.49], [0.28, 0.55], [0.33, 0.61], [0.39, 0.67], [0.44, 0.73], [0.5, 0.8], [0.56, 0.87], [0.61, 0.92], [0.7, 0.97], [0.8, 1]]);
         // the light thins the blue inside the shafts
         g.globalCompositeOperation = 'destination-out';
-        for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], [[0, 0.48], [0.65, 0.35], [0.85, 0.12], [1, 0]]); shaftPath(g, sh); g.fill(); }
+        for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], [[0, 0.04], [1, 0]]); shaftPath(g, sh); g.fill(); }
         g.globalCompositeOperation = 'source-over';
-    }, { mode: 'holes', jit: 0.2, pj: 0.03, edge: 0.7, also: [{ ink: 'navy', mask: (g) => ramp(g, [[0.3, 0], [0.54, 0.1], [0.65, 0.13], [1, 0.12]]) }] });
+    }, { mode: 'holes', jit: 0.2, pj: 0.03, edge: 0.7, also: [{ ink: 'navy', mask: (g) => ramp(g, [[0.3, 0], [0.54, 0.1], [0.65, 0.15], [1, 0.15]]) }] });
     // the ink's grain: stray pink specks and paper pinholes in the water (seen at 4×)
     U.specks(pink, 'wh-w', 1400, [0, 300, 1080, 1080], 0.7, 1.6, 0.9);
     U.speckle(press, 'wh-w', 700, [0, 0, 1080, 1080], 0.6, 1.3);
-    U.screen(press, 'navy', LN, (g) => ramp(g, [[0.57, 0], [0.65, 0.2], [1, 0.27]]), { box: [0, 600, 1080, 1080], jit: 0.3, pj: 0.08, edge: 0.7 });
+    // the navy dots come in lower on the left (the water is lit under the left shafts)
+    U.screen(press, 'navy', LN, (g) => { g.fillStyle = U.lin(g, 620, 560, 400, 1160, [[0, 0], [0.12, 0.2], [0.5, 0.27], [1, 0.3]]); g.fillRect(-20, 500, 1120, 600); }, { box: [0, 540, 1080, 1080], jit: 0.3, pj: 0.08, edge: 0.7 });
     pink.fillStyle = U.lin(pink, 0, 850, 0, 1080, [[0, 0], [1, 0.1]]); pink.fillRect(0, 850, 1080, 230);
 
     // ── shafts of light: yellow dots on their own screen, fading downwards; fine paper
@@ -105,7 +106,7 @@ CARDS.whale = (press, t) => {
     navy.fillStyle = T(0.97); shape(navy); navy.fill();
     U.clip(navy, (g) => shape(g), (g) => {
         off(g, (h) => { h.fillStyle = U.rad(h, 60, 990, 0, 140, [[0, 0.95], [1, 0]]); h.fillRect(-20, 820, 240, 280); });
-        off(g, (h) => { h.fillStyle = U.rad(h, 930, 630, 0, 120, [[0, 0.22], [1, 0]]); h.fillRect(800, 500, 260, 280); });
+        off(g, (h) => { h.fillStyle = U.rad(h, 930, 630, 0, 120, [[0, 0.08], [1, 0]]); h.fillRect(800, 500, 260, 280); });
     });
     pink.fillStyle = T(0.26); shape(pink); pink.fill();
     U.clip(pink, (g) => shape(g), (g) => {
