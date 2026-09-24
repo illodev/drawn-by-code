@@ -49,14 +49,15 @@ const EDIT = [
     [15.625, 'full', 'radio', { ring: true, inks: { pink: 'blue' } }],
     [15.75, 'full', 'hummingbird', { ring: true, inks: { blue: 'pink', pink: 'yellow' } }],
     [15.875, 'full', 'kettle', { ring: true, inks: { pink: 'blue', blue: 'pink' } }],
-    [16.0, 'mosaic'], [18.0, 'orbits'], [23.0, 'full', 'waterfall', { inks: PINKSET }], [23.167, 'full', 'bicycle', { inks: PINKSET }], [23.333, 'full', 'piano', { inks: PINKSET }],
-    [23.5, 'full', 'rocket', { inks: PINKSET }], [23.667, 'full', 'city', { inks: PINKSET }], [23.833, 'full', 'lightning', { inks: PINKSET }], [24.0, 'night'], [26.0, 'title'], [28.1, 'end'],
+    [16.0, 'mosaic'], [18.0, 'orbits'], [22.958, 'full', 'waterfall', { inks: PINKSET }], [23.083, 'full', 'bicycle', { inks: PINKSET }], [23.208, 'full', 'whale', { inks: PINKSET }],
+    [23.333, 'full', 'piano', { inks: PINKSET }], [23.458, 'full', 'rocket', { inks: PINKSET, flip: true }], [23.583, 'full', 'city', { inks: PINKSET }],
+    [23.708, 'full', 'planet', { inks: PINKSET }], [23.833, 'full', 'lightning', { inks: PINKSET }], [24.0, 'night'], [26.0, 'title'], [28.1, 'end'],
 ];
 Motion.scene({
     fps: 24,
     duration: 28,
     logical: [1000, 1000],
-    uses: ['styles/risograph/riso.js', ...CARD_NAMES.map((n) => ({ src: DIR + 'cards/' + n + '.js', optional: true }))],
+    uses: ['styles/risograph/riso.js', ...['g1', 'g2', 'g3', 'g4', 'g5', 'g6'].map((u) => ({ src: DIR + 'cards/_' + u + '-util.js', optional: true })), ...CARD_NAMES.map((n) => ({ src: DIR + 'cards/' + n + '.js', optional: true }))],
     fonts: [{ family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' }],
     audio: { mix: 'out/reference-audio.wav' }, // the reference's track, local only (never committed)
     shots: EDIT.slice(0, -1).map(([a, k, c], i) => [a, EDIT[i + 1][0], c ?? k]),
@@ -71,7 +72,13 @@ Motion.scene({
         press.begin(d);
         if (kind === 'sonar') sonar(press, lt, o);
         else if (kind === 'circle') circleCard(press, card, lt, ld, o);
-        else if (kind === 'full') { drawCard(press, card, lt); if (o.ring) whiteRing(press, ld); }
+        else if (kind === 'full') {
+            // o.flip: the reference re-uses some drawings mirrored left–right
+            if (o.flip) { press.save(); press.each((g) => g.transform(-1, 0, 0, 1, 1000, 0)); }
+            drawCard(press, card, lt);
+            if (o.flip) press.restore();
+            if (o.ring) whiteRing(press, ld);
+        }
         else if (kind === 'mosaic') mosaic(press, lt);
         ORBIT_DOT = null;
         if (kind === 'orbits') orbits(press, lt);
