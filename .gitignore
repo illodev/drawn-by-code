@@ -10,3 +10,6 @@ styles/*/review/
 # brand material of client experiments (copy, logos, fonts): never committed
 sandbox/*/private/
 sandbox/2026-09-24-saas-promo/review/*.jpg
+
+# third-party reference videos: listed in references/README.md, never committed
+references/*.mp4

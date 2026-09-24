@@ -13,3 +13,5 @@
 | 2026-09-24 | [readme-cover](2026-09-24-readme-cover/) | [gif](2026-09-24-readme-cover/render/cover.gif) | all styles | done | Kits paint into an offscreen canvas with a small env, so one scene can show every style side by side |
 | 2026-09-24 | [clay3d-test](2026-09-24-clay3d-test/) | clay | in progress | |
 | 2026-09-24 | [readme-cover](2026-09-24-readme-cover/) | paper-cutout | in progress | |
+| 2026-09-24 | [opus5-riso](2026-09-24-opus5-riso/) | paper-cutout | in progress | |
+| 2026-09-24 | [pixel-building](2026-09-24-pixel-building/) | paper-cutout | in progress | |
