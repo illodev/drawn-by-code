@@ -96,6 +96,13 @@ until a full-resolution crop of it could pass for the reference (or for a finish
   by arc length with all the random numbers drawn up front, so nothing boils.
 - **Lettering is felt-tip:** a thin darker core inside a lighter rim (see `WL.write` with
   `halo` in the what-do-you-love replica), not a bold fill.
+- **Sets are full, in depth:** a back layer (textured wall, window with a view, shelves
+  full of objects, pinboard), a mid layer (the working surface crowded with the tools of
+  the trade, each in pieces) and a front layer (something big at the frame edge). A few
+  props spread over a flat colour reads as «five things in an empty space».
+- **Original pieces need a reference too:** with no film to copy, build against the best
+  traced piece in the repo (the replica's fist, its interior) or a real photo, and crop
+  both side by side before calling it done.
 - **Miniatures are redrawn chunkier** (bigger cells, thicker lines, fewer pieces), not just
   scaled down; give drawers a miniature variant.
 - Collage towns and printed-paper planes: `sandbox/2026-09-24-what-do-you-love/segments/town.js`
@@ -133,3 +140,4 @@ until a full-resolution crop of it could pass for the reference (or for a finish
 - 2026-09-24 · what-do-you-love · The old ban on stars and sparkles came from a client brief, not from the style; a paper-cutout reference uses both. Brand rules live in the brief, not here.
 - 2026-09-24 · what-do-you-love · The user: «every element has to go to detail». A dog of five ellipses, a ring drawn as one stroke, round hands and polygon shapes read as low effort next to a reference built piece by piece. The bar is now in «Detail».
 - 2026-09-24 · what-do-you-love · `PaperDetail.shade` returned hsla and `Paper.marker` only parses hex: every shaded piece became a brown blob. Colour helpers return hex.
+- 2026-09-24 · saas-promo · Style test rejected on detail: «las manos parecen muñones» and «5 cosas repartidas en un espacio hueco». Without a reference I stopped at «it reads»; original work is held to the same bar (see «Detail»: full sets, real hands).
