@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>illomotion</title>
@@ -19,30 +19,30 @@
 <div id="err"></div>
 <script src="core.js"></script>
 <script>
-// Anfitrión de escenas. Parámetros:
-//   ?scene=sandbox/x/scene.js   ruta desde la raíz del repo (obligatorio)
-//   &size=1920                  ancho de salida en píxeles
-//   &render=1                   sin vista previa (lo usan render.mjs y review.mjs)
-//   &t=3.5                      empieza en ese segundo
-// Contrato para los scripts: window.READY, TOTAL_FRAMES, SCENE_INFO, renderFrame(i),
-// contactSheet(opts) y thumb(i).
+// Scene host. Parameters:
+//   ?scene=sandbox/x/scene.js   path from the repo root (required)
+//   &size=1920                  output width in pixels
+//   &render=1                   no preview (used by render.mjs and review.mjs)
+//   &t=3.5                      start at that second
+// Contract for the scripts: window.READY, TOTAL_FRAMES, SCENE_INFO, renderFrame(i),
+// contactSheet(opts) and thumb(i).
 const showErr = (m) => { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent += m + '\n'; };
 addEventListener('error', (e) => showErr(e.message));
 const loadScript = (src) => new Promise((ok, ko) => {
     const s = document.createElement('script');
     s.src = src;
     s.onload = ok;
-    s.onerror = () => ko(new Error('No se pudo cargar ' + src));
+    s.onerror = () => ko(new Error('Could not load ' + src));
     document.head.appendChild(s);
 });
 (async () => {
     const q = new URLSearchParams(location.search);
     const root = '../';
     const scenePath = q.get('scene');
-    if (!scenePath) return showErr('Falta ?scene=ruta/a/scene.js');
+    if (!scenePath) return showErr('Missing ?scene=path/to/scene.js');
     await loadScript(root + scenePath);
     const def = Motion.def;
-    if (!def) return showErr('La escena no llamó a Motion.scene({...})');
+    if (!def) return showErr('The scene did not call Motion.scene({...})');
     for (const u of def.uses ?? []) await loadScript(root + u);
     for (const f of def.fonts ?? []) {
         const ff = new FontFace(f.family, `url(${root + f.src})`, f.descriptors ?? {});
@@ -79,7 +79,7 @@ const loadScript = (src) => new Promise((ok, ko) => {
     }
     const shotName = (t) => (def.shots ? Motion.shotAt(def.shots, t).name : '');
 
-    // Hoja de contacto: pinta varios instantes en una rejilla con su rótulo.
+    // Contact sheet: paints several instants in a grid, each with its label.
     window.contactSheet = ({ times, cols = 4, cellW = 480, quality = 0.85 }) => {
         const cellH = Math.round(cellW * c.height / c.width), lab = 26;
         const rows = Math.ceil(times.length / cols);
@@ -102,7 +102,7 @@ const loadScript = (src) => new Promise((ok, ko) => {
         });
         return s.toDataURL('image/jpeg', quality).split(',')[1];
     };
-    // Miniatura en escala de grises + fracción de píxeles transparentes (review.mjs).
+    // Grayscale thumbnail + fraction of transparent pixels (review.mjs).
     const tc = document.createElement('canvas');
     tc.width = 96; tc.height = Math.round(96 * c.height / c.width);
     const tg = tc.getContext('2d', { willReadFrequently: true });
@@ -126,8 +126,8 @@ const loadScript = (src) => new Promise((ok, ko) => {
     document.title = `${scenePath} · illomotion`;
     if (q.get('render')) return;
 
-    // --- vista previa --------------------------------------------------------------
-    // espacio: pausa · ←/→: fotograma · mayús+←/→: 1 s · inicio: al principio
+    // --- preview -------------------------------------------------------------------
+    // space = pause, arrows = frame · shift+←/→: 1 s · home: back to start
     const scrub = document.getElementById('scrub'), hud = document.getElementById('hud'), btn = document.getElementById('play');
     scrub.max = total - 1;
     let i = Math.min(total - 1, Math.round(Number(q.get('t') || 0) * fps)), playing = true, last = 0;
@@ -146,7 +146,7 @@ const loadScript = (src) => new Promise((ok, ko) => {
         renderFrame(i);
         scrub.value = i;
         const t = i / fps;
-        const beat = def.bpm ? ` · golpe ${Motion.beatIndex(t, def.bpm, def.beatOffset ?? 0)}` : '';
+        const beat = def.bpm ? ` · beat ${Motion.beatIndex(t, def.bpm, def.beatOffset ?? 0)}` : '';
         hud.textContent = `${t.toFixed(2)} s · f${i}/${total}${beat} · ${shotName(t)}`;
         requestAnimationFrame(tick);
     };

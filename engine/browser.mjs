@@ -1,5 +1,5 @@
-// Servidor estático + Chromium sin cabeza para abrir una escena en engine/player.html.
-// Lo usan render.mjs, review.mjs y serve.mjs.
+// Static server + headless Chromium to open a scene in engine/player.html.
+// Used by render.mjs, review.mjs and serve.mjs.
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -22,7 +22,7 @@ export function serve(port = 0, extra = null) {
         const file = path.join(ROOT, decodeURIComponent(url.pathname));
         if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
             res.writeHead(404);
-            return res.end('no encontrado');
+            return res.end('not found');
         }
         res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] ?? 'application/octet-stream', 'Cache-Control': 'no-store' });
         fs.createReadStream(file).pipe(res);
@@ -53,7 +53,7 @@ export function findFfmpeg() {
     return r.status === 0 ? 'ffmpeg' : null;
 }
 
-// Relativa a la raíz del repo, con barras normales.
+// Relative to the repo root, with forward slashes.
 export const rel = (p) => path.relative(ROOT, path.resolve(p)).split(path.sep).join('/');
 
 export async function openScene(scenePath, { size } = {}) {
@@ -61,21 +61,21 @@ export async function openScene(scenePath, { size } = {}) {
     try {
         ({ chromium } = await import('playwright-core'));
     } catch {
-        throw new Error('Falta playwright-core: ejecuta `npm install` en la raíz del repo.');
+        throw new Error('Missing playwright-core: run `npm install` at the repo root.');
     }
     const executablePath = findChrome();
-    if (!executablePath) throw new Error('No encuentro Chrome/Chromium: indica la ruta con CHROME_PATH=/ruta/a/chrome');
+    if (!executablePath) throw new Error('Chrome/Chromium not found: set its path with CHROME_PATH=/path/to/chrome');
     const { server, port } = await serve();
     const browser = await chromium.launch({ executablePath, args: ['--disable-gpu', '--font-render-hinting=none'] });
     const page = await browser.newPage({ viewport: { width: 800, height: 800 } });
     const errors = [];
     page.on('console', (m) => {
         if (m.type() === 'error') errors.push(m.text());
-        console.log('[página]', m.text());
+        console.log('[page]', m.text());
     });
     page.on('pageerror', (e) => {
         errors.push(e.message);
-        console.error('[error en la página]', e.message);
+        console.error('[page error]', e.message);
     });
     const q = new URLSearchParams({ scene: rel(scenePath), render: '1' });
     if (size) q.set('size', String(size));
@@ -86,7 +86,7 @@ export async function openScene(scenePath, { size } = {}) {
         const msg = await page.evaluate(() => document.getElementById('err')?.textContent).catch(() => '');
         await browser.close();
         server.close();
-        throw new Error('La escena no llegó a READY.\n' + (msg || errors.join('\n') || e.message));
+        throw new Error('The scene never reached READY.\n' + (msg || errors.join('\n') || e.message));
     }
     const info = await page.evaluate(() => window.SCENE_INFO);
     return {
@@ -98,7 +98,7 @@ export async function openScene(scenePath, { size } = {}) {
     };
 }
 
-// Argumentos --clave valor y --bandera.
+// Arguments: --key value and --flag.
 export function parseArgs(argv, flags = []) {
     const pos = [], opt = {};
     for (let i = 0; i < argv.length; i++) {

@@ -1,16 +1,16 @@
-// Núcleo de illomotion: utilidades comunes a todos los estilos.
-// Se carga como <script> clásico en engine/player.html y deja dos globales: Motion y Ease.
+// illomotion core: utilities shared by every style.
+// Loaded as a classic <script> in engine/player.html; it defines two globals: Motion and Ease.
 //
-// Una escena se declara así (ver .claude/skills/motor/SKILL.md):
+// A scene is declared like this (see .claude/skills/engine/SKILL.md):
 //
 //   Motion.scene({
 //       fps: 24, duration: 6.5, logical: [1600, 900],
-//       uses: ['styles/papel-recortado/paper.js'],        // rutas desde la raíz del repo
+//       uses: ['styles/paper-cutout/paper.js'],           // paths from the repo root
 //       fonts: [{ family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' }],
-//       bpm: 120, beatOffset: 0,                          // opcional: rejilla musical
-//       shots: [[0, 3, 'Entrada'], [3, 6.5, 'Cierre']],   // opcional: montaje
-//       setup(env) { ... },                               // una vez, tras cargar fuentes
-//       draw(g, t, env) { ... },                          // pinta el segundo t
+//       bpm: 120, beatOffset: 0,                          // optional: musical grid
+//       shots: [[0, 3, 'Intro'], [3, 6.5, 'Outro']],      // optional: edit
+//       setup(env) { ... },                               // once, after fonts load
+//       draw(g, t, env) { ... },                          // paints second t
 //   });
 const Motion = (() => {
     let def = null;
@@ -24,7 +24,7 @@ const Motion = (() => {
         return h >>> 0;
     }
 
-    // mulberry32: la misma semilla da siempre la misma secuencia
+    // mulberry32: the same seed always gives the same sequence
     function rng(seed) {
         let a = typeof seed === 'number' ? seed >>> 0 : hashStr(seed);
         return () => {
@@ -36,7 +36,7 @@ const Motion = (() => {
         };
     }
 
-    // Ruido 1D suave y determinista: valor en [-1, 1] para cualquier x real.
+    // Smooth, deterministic 1D noise: value in [-1, 1] for any real x.
     function noise1(seed, x) {
         const i = Math.floor(x), f = x - i;
         const v = (n) => rng(hashStr(seed) ^ Math.imul(n, 2654435761))() * 2 - 1;
@@ -44,7 +44,7 @@ const Motion = (() => {
         return v(i) + (v(i + 1) - v(i)) * s;
     }
 
-    // --- caché de sprites: lo caro se pinta una vez a resolución de salida ---------
+    // --- sprite cache: expensive things are painted once at output resolution -----
     const cache = new Map();
     function sprite(key, box, scale, drawFn) {
         const k = key + '@' + scale.toFixed(4);
@@ -62,17 +62,17 @@ const Motion = (() => {
         return { canvas: c, box, draw: (ctx) => ctx.drawImage(c, box.x, box.y, box.w, box.h) };
     }
 
-    // --- montaje -------------------------------------------------------------------
-    // shots: [[inicio, fin, nombre, fn?], ...] en segundos. Devuelve el plano activo
-    // y el tiempo local dentro de él.
+    // --- edit ----------------------------------------------------------------------
+    // shots: [[start, end, name, fn?], ...] in seconds. Returns the active shot
+    // and the local time inside it.
     function shotAt(shots, t) {
         const s = shots.find(([a, b]) => t >= a && t < b) ?? shots[shots.length - 1];
         return { shot: s, name: s[2], t0: s[0], t1: s[1], local: t - s[0], u: Ease.seg(t, s[0], s[1]) };
     }
 
-    // --- ritmo ---------------------------------------------------------------------
+    // --- rhythm --------------------------------------------------------------------
     const beatLen = (bpm) => 60 / bpm;
-    // 1 justo en el golpe y cae rápido: para rebotes y destellos al compás
+    // 1 right on the beat, then falls fast: for bounces and flashes in time
     const pulse = (t, bpm = 120, offset = 0, decay = 9) => {
         const L = beatLen(bpm);
         return Math.exp(-((((t - offset) % L) + L) % L) * decay);
@@ -80,18 +80,18 @@ const Motion = (() => {
     const beatIndex = (t, bpm = 120, offset = 0) => Math.floor((t - offset) / beatLen(bpm));
     const onBeat = (t, bpm = 120, offset = 0) => Math.round((t - offset) / beatLen(bpm)) * beatLen(bpm) + offset;
 
-    // --- cámara --------------------------------------------------------------------
+    // --- camera --------------------------------------------------------------------
     function cam(g, env, cx, cy, zoom = 1, rot = 0) {
         g.translate(env.W / 2, env.H / 2);
         g.rotate(rot);
         g.scale(zoom, zoom);
         g.translate(-cx, -cy);
     }
-    // temblor determinista (depende solo de t)
+    // deterministic shake (depends only on t)
     function shake(g, amt, t) {
         if (amt > 0) g.translate(Math.sin(t * 97) * amt, Math.cos(t * 83) * amt);
     }
-    // Interpola por fotogramas clave [[t, valor], ...] con inOut entre cada par.
+    // Interpolates keyframes [[t, value], ...] with inOut between each pair.
     function keys(frames, t, ease = Ease.inOut) {
         if (t <= frames[0][0]) return frames[0][1];
         for (let i = 1; i < frames.length; i++) {
@@ -104,10 +104,10 @@ const Motion = (() => {
         return frames[frames.length - 1][1];
     }
 
-    // --- capas: lienzos fuera de pantalla del tamaño de salida -----------------------
-    // Para transiciones y efectos que necesitan el plano ya pintado como imagen.
-    // layer(env, 'a', (g) => pintarPlanoA(g)) devuelve el lienzo con el plano pintado
-    // en coordenadas lógicas; se pinta encima con drawLayer(g, env, lienzo).
+    // --- layers: offscreen canvases at output size ----------------------------------
+    // For transitions and effects that need the shot already painted as an image.
+    // layer(env, 'a', (g) => paintShotA(g)) returns the canvas with the shot painted
+    // in logical coordinates; draw it on top with drawLayer(g, env, canvas).
     const layers = new Map();
     function layer(env, name, drawFn) {
         let c = layers.get(name);
@@ -138,7 +138,7 @@ const Motion = (() => {
     };
 })();
 
-// Curvas de tiempo. x en [0, 1].
+// Timing curves. x in [0, 1].
 const Ease = {
     clamp: (x, a = 0, b = 1) => Math.max(a, Math.min(b, x)),
     seg: (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a))),
@@ -151,9 +151,9 @@ const Ease = {
         return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
     },
     elastic: (x) => (x === 0 || x === 1 ? x : Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1),
-    // 0→1→0 en [a, a+dur]
+    // 0→1→0 over [a, a+dur]
     bump: (t, a, dur) => Math.sin(Ease.seg(t, a, a + dur) * Math.PI),
-    // aparece con rebote en `at`
+    // appears with a bounce at `at`
     pop: (t, at, dur = 0.35) => (t < at ? 0 : Ease.back(Ease.seg(t, at, at + dur))),
     lerp: (a, b, t) => a + (b - a) * t,
     lerpPt: (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t],

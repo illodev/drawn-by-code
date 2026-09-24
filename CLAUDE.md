@@ -1,52 +1,53 @@
 # illomotion
 
-Sandbox para generar animaciones y vídeos **con código** y Claude, y para que cada prueba
-mejore las skills que las generan. Todo en español.
+Sandbox for generating animations and videos **with code** and Claude, so that every test
+improves the skills that generate them. The repo (code, comments, docs, skills, commit
+messages) is in English; conversation with the user may be in Spanish. On-screen text
+inside videos is creative content and stays in whatever language the video needs.
 
-## Mapa
+## Map
 
-| Ruta | Qué es |
+| Path | What it is |
 |---|---|
-| `.claude/skills/animar/` | **Empieza aquí** para cualquier vídeo: el proceso del brief al MP4 |
-| `.claude/skills/motor/` | Contrato de escena, determinismo, comandos |
-| `.claude/skills/revisar/` | Bucle de crítica automática + feedback, y cómo se destilan las lecciones |
-| `.claude/skills/sonido/` | Música, efectos, mezcla |
-| `.claude/skills/estilo-*/` | Una skill por estilo visual |
-| `.claude/skills/nuevo-estilo/` | Cómo añadir un estilo |
-| `.claude/skills/transiciones/` | Transiciones entre planos y entre estilos (`engine/transitions.js`) |
-| `engine/` | Motor: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `new.mjs`, `mix.mjs`, `serve.mjs` |
-| `styles/<estilo>/` | Kit de dibujo y `template.js` de cada estilo |
-| `sandbox/` | Un experimento por carpeta (`AAAA-MM-DD-nombre/`), con índice en `INDEX.md` |
-| `referencias/` | Proyectos terminados que sirven de modelo (Fube · «La caja y el torno») |
-| `assets/sfx/`, `fonts/` | Efectos de sonido y fuentes con licencia libre |
+| `.claude/skills/animate/` | **Start here** for any video: the process from brief to MP4 |
+| `.claude/skills/engine/` | Scene contract, determinism, commands |
+| `.claude/skills/review/` | Automatic critique + feedback loop, and how lessons are distilled |
+| `.claude/skills/sound/` | Music, sound effects, mixing |
+| `.claude/skills/style-*/` | One skill per visual style |
+| `.claude/skills/new-style/` | How to add a style |
+| `.claude/skills/transitions/` | Transitions between shots and between styles (`engine/transitions.js`) |
+| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `new.mjs`, `mix.mjs`, `serve.mjs` |
+| `styles/<style>/` | Drawing kit and `template.js` for each style |
+| `sandbox/` | One experiment per folder (`YYYY-MM-DD-name/`), indexed in `INDEX.md` |
+| `assets/sfx/`, `fonts/` | Freely licensed sound effects and fonts |
 
-## Comandos
+## Commands
 
 ```bash
-sh engine/setup.sh                                  # dependencias + ffmpeg (lo hace el hook)
-node engine/new.mjs <nombre> --style papel-recortado --aspect 16:9 --duration 6
+sh engine/setup.sh                                  # dependencies + ffmpeg (the hook does it)
+node engine/new.mjs <name> --style paper-cutout --aspect 16:9 --duration 6
 npm run preview                                     # http://127.0.0.1:5173
-node engine/review.mjs sandbox/<exp>/scene.js       # revisión automática + hoja de contacto
-node engine/render.mjs sandbox/<exp>/scene.js --at 1,2.5   # fotos fijas
+node engine/review.mjs sandbox/<exp>/scene.js       # automatic review + contact sheet
+node engine/render.mjs sandbox/<exp>/scene.js --at 1,2.5   # stills
 node engine/render.mjs sandbox/<exp>/scene.js --size 1920  # MP4
 ```
 
-## El bucle (obligatorio)
+## The loop (mandatory)
 
-1. Nunca des por buena una animación sin renderizarla y **mirar** fotogramas (Read sobre
-   `review/hoja.jpg` y `out/stills/*.png`).
-2. Tras cada render: skill **revisar** (crítica automática, hasta 3 rondas) antes de
-   enseñárselo al usuario.
-3. Con el feedback del usuario: corregir y **destilar** lo generalizable a la skill que
-   toque (estilo, animar, motor, sonido) o arreglar el motor.
-4. Commit por ronda: `revisar(<experimento>): ronda N · <lección>`, experimento y skills
-   juntos.
+1. Never sign off on an animation without rendering it and **looking** at frames (Read on
+   `review/sheet.jpg` and `out/stills/*.png`).
+2. After every render: skill **review** (automatic critique, up to 3 rounds) before
+   showing it to the user.
+3. With the user's feedback: fix and **distill** whatever generalizes into the relevant
+   skill (style, animate, engine, sound) or fix the engine.
+4. One commit per round: `review(<experiment>): round N · <lesson>`, experiment and skills
+   together.
 
-## Convenciones
+## Conventions
 
-- Escenas deterministas: nada de `Math.random`, `Date` ni estado entre fotogramas.
-- Se suben: código, `brief.md`, `review.md`, `review/hoja.jpg`, `review/auto.md`, `audio.json`.
-  No se suben: `out/` (MP4, fotogramas), `.wav`, música de terceros, claves.
-- Comentarios y textos en español, como el resto del repo.
-- Si cambias `engine/`, pasa `review.mjs` a `styles/*/template.js` y al último experimento
-  para comprobar que nada se ha roto.
+- Deterministic scenes: no `Math.random`, `Date` or state carried between frames.
+- Committed: code, `brief.md`, `review.md`, `review/sheet.jpg`, `review/auto.md`, `audio.json`.
+  Not committed: `out/` (MP4s, frames), `.wav`, third-party music, keys.
+- Code, comments and docs in English, like the rest of the repo.
+- If you change `engine/`, run `review.mjs` on `styles/*/template.js` and on the latest
+  experiment to check nothing broke.

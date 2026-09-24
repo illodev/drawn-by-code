@@ -1,13 +1,13 @@
-// Renderiza una escena a MP4, a fotogramas sueltos o a fotos fijas.
+// Renders a scene to MP4, to individual frames or to stills.
 //
-//   node engine/render.mjs <scene.js>                      → <escena>/out/<nombre>.mp4
-//   node engine/render.mjs <scene.js> --size 1920 --audio mezcla.wav
-//   node engine/render.mjs <scene.js> --at 1.5,3,4.25      → <escena>/out/stills/*.png
-//   node engine/render.mjs <scene.js> --frames --jpg       → <escena>/out/frames/f_0000.jpg…
+//   node engine/render.mjs <scene.js>                      → <scene>/out/<name>.mp4
+//   node engine/render.mjs <scene.js> --size 1920 --audio mix.wav
+//   node engine/render.mjs <scene.js> --at 1.5,3,4.25      → <scene>/out/stills/*.png
+//   node engine/render.mjs <scene.js> --frames --jpg       → <scene>/out/frames/f_0000.jpg…
 //
-// Opciones: --size <ancho px>  --from <s>  --to <s>  --step <fotogramas>  --out <ruta>
-//           --audio <fichero>  --crf <n, 18 por defecto>  --jpg (con --frames)
-// Los tiempos van en SEGUNDOS. Cada fotograma es determinista: el mismo t da la misma imagen.
+// Options: --size <width px>  --from <s>  --to <s>  --step <frames>  --out <path>
+//          --audio <file>  --crf <n, default 18>  --jpg (with --frames)
+// Times are in SECONDS. Every frame is deterministic: the same t gives the same image.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -16,7 +16,7 @@ import { openScene, findFfmpeg, parseArgs } from './browser.mjs';
 const { pos, opt } = parseArgs(process.argv.slice(2), ['frames', 'jpg']);
 const scene = pos[0];
 if (!scene || !fs.existsSync(scene)) {
-    console.error('Uso: node engine/render.mjs <scene.js> [--size 1920] [--at 1,2.5] [--frames] [--from s] [--to s] [--audio f] [--out ruta]');
+    console.error('Usage: node engine/render.mjs <scene.js> [--size 1920] [--at 1,2.5] [--frames] [--from s] [--to s] [--audio f] [--out path]');
     process.exit(1);
 }
 const dir = path.dirname(path.resolve(scene));
@@ -52,10 +52,10 @@ try {
             for (let i = from; i <= to; i += step) {
                 fs.writeFileSync(path.join(out, `f_${String(i).padStart(4, '0')}.${ext}`), Buffer.from(await grab(i, opt.jpg ? 'image/jpeg' : 'image/png'), 'base64'));
             }
-            console.log(`fotogramas ${from}..${to} → ${out}`);
+            console.log(`frames ${from}..${to} → ${out}`);
         } else {
             const ffmpeg = findFfmpeg();
-            if (!ffmpeg) throw new Error('Falta ffmpeg (o FFMPEG_PATH). Usa --frames para sacar solo los fotogramas.');
+            if (!ffmpeg) throw new Error('Missing ffmpeg (or FFMPEG_PATH). Use --frames to export just the frames.');
             fs.mkdirSync(outBase, { recursive: true });
             const out = opt.out ?? path.join(outBase, `${name}.mp4`);
             const audio = opt.audio ?? (info.audio?.mix ? path.join(dir, info.audio.mix) : null);
@@ -63,7 +63,7 @@ try {
             if (audio && fs.existsSync(audio)) args.push('-ss', String(from / fps), '-i', audio, '-c:a', 'aac', '-b:a', '256k', '-shortest');
             args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', String(opt.crf ?? 18), '-preset', 'medium', '-movflags', '+faststart', out);
             const ff = spawn(ffmpeg, args, { stdio: ['pipe', 'inherit', 'inherit'] });
-            const done = new Promise((ok, ko) => ff.on('close', (c) => (c === 0 ? ok() : ko(new Error('ffmpeg salió con ' + c)))));
+            const done = new Promise((ok, ko) => ff.on('close', (c) => (c === 0 ? ok() : ko(new Error('ffmpeg exited with ' + c)))));
             for (let i = from; i <= to; i += step) {
                 const buf = Buffer.from(await grab(i, 'image/jpeg'), 'base64');
                 if (!ff.stdin.write(buf)) await new Promise((ok) => ff.stdin.once('drain', ok));
@@ -71,14 +71,14 @@ try {
             }
             ff.stdin.end();
             await done;
-            console.log(`\r${out}${audio && fs.existsSync(audio) ? ' (con audio)' : ''}`);
+            console.log(`\r${out}${audio && fs.existsSync(audio) ? ' (with audio)' : ''}`);
         }
     }
-    console.log(`listo en ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+    console.log(`done in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 } finally {
     await close();
 }
 if (errors.length) {
-    console.error(`\n${errors.length} error(es) en la página: revisa arriba.`);
+    console.error(`\n${errors.length} error(s) in the page: see above.`);
     process.exitCode = 1;
 }

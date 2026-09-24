@@ -1,16 +1,16 @@
-// Transiciones entre planos o entre estilos: global Trans. Cárgalo desde `uses`.
-// Todas tienen la forma Trans.x(g, env, u, opciones), con u ∈ [0, 1] el avance de la
-// transición (normalmente Ease.seg(t, inicio, fin)). `a` y `b` son funciones (g) => void
-// que pintan el plano de salida y el de llegada en coordenadas lógicas; cada una puede
-// llamarse con otra transformación puesta, así que deben pintar a sangre.
-// Catálogo y cuándo usar cada una: .claude/skills/transiciones/SKILL.md
+// Transitions between shots or between styles: global Trans. Load it from `uses`.
+// They all take the form Trans.x(g, env, u, options), with u ∈ [0, 1] the transition's
+// progress (usually Ease.seg(t, start, end)). `a` and `b` are functions (g) => void that
+// paint the outgoing and incoming shot in logical coordinates; either may be called
+// with another transform applied, so they must paint full-bleed.
+// Catalog and when to use each one: .claude/skills/transitions/SKILL.md
 const Trans = (() => {
     const E = Ease;
     const diag = (env) => Math.hypot(env.W, env.H);
-    // zoom logarítmico: se nota igual de rápido al principio que al final
+    // logarithmic zoom: feels equally fast at the start and at the end
     const logLerp = (a, b, u) => Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * u);
 
-    // Coloca el punto `from` del plano en la posición `to` de la pantalla, escalado ×s.
+    // Places the shot's point `from` at screen position `to`, scaled ×s.
     function zoomAt(g, s, from, to, rot = 0) {
         g.translate(to[0], to[1]);
         g.rotate(rot);
@@ -24,13 +24,13 @@ const Trans = (() => {
     }
 
     /**
-     * ENTRAR POR UN PUNTO (ojo, boca, cerradura, pantalla): la cámara empuja hacia (cx, cy)
-     * de `a`, ese punto viaja al centro y dentro se abre `b`, que llega girando y creciendo.
-     * r0: radio del «agujero» en `a` antes del zoom. zoom: cuánto se acerca `a`.
-     * edge(g, x, y, r): opcional, pinta el borde del agujero (el párpado, los labios).
+     * ENTER THROUGH A POINT (eye, mouth, keyhole, screen): the camera pushes toward (cx, cy)
+     * of `a`, that point travels to the center and `b` opens inside it, arriving spinning and growing.
+     * r0: radius of the "hole" in `a` before the zoom. zoom: how far `a` pushes in.
+     * edge(g, x, y, r): optional, paints the rim of the hole (the eyelid, the lips).
      */
-    // fadeIn: [u0, u1] en que `b` aparece dentro del agujero; antes se ve el propio punto
-    // de `a` (la pupila, la espiral) ampliándose, que es lo que vende el «entrar».
+    // fadeIn: [u0, u1] during which `b` appears inside the hole; before that you see `a`'s
+    // own point (the pupil, the spiral) growing, which is what sells the "entering".
     function enter(g, env, u, { a, b, cx, cy, r0 = 40, zoom = 40, spin = 0.8, edge = null, fadeIn = [0.12, 0.45] }) {
         const z = logLerp(1, zoom, E.in(u));
         const pos = E.lerpPt([cx, cy], [env.W / 2, env.H / 2], E.inOut(Math.min(1, u * 1.4)));
@@ -53,8 +53,8 @@ const Trans = (() => {
     }
 
     /**
-     * IRIS: `b` aparece dentro de un círculo que crece desde (cx, cy) sobre `a`, que
-     * sigue quieto. Es `enter` sin cámara: sirve para «desplegar» un mundo desde un objeto.
+     * IRIS: `b` appears inside a circle that grows from (cx, cy) over `a`, which
+     * stays still. It is `enter` without the camera: good for "unfolding" a world from an object.
      */
     function iris(g, env, u, { a, b, cx, cy, edge = null }) {
         a(g);
@@ -68,9 +68,9 @@ const Trans = (() => {
     }
 
     /**
-     * ENGULLIR: nubes (esporas, humo, tinta, espuma) que salen de `origin` y crecen hasta
-     * tapar `a`. Dentro de las nubes ya está `b`. puff(g, x, y, r, i) opcional pinta el
-     * borde de cada nube en el estilo de `a`, así el cambio se lee como algo de `a`.
+     * ENGULF: clouds (spores, smoke, ink, foam) that come out of `origin` and grow until
+     * they cover `a`. Inside the clouds `b` is already there. Optional puff(g, x, y, r, i) paints
+     * each cloud's rim in `a`'s style, so the change reads as something from `a`.
      */
     function engulf(g, env, u, { a, b, origin, seed = 'engulf', count = 22, spread = 1, puff = null }) {
         a(g);
@@ -84,8 +84,8 @@ const Trans = (() => {
             const x = origin[0] + Math.cos(ang) * dist * p, y = origin[1] + Math.sin(ang) * dist * p;
             blobs.push([x, y, (0.08 + r() * 0.1) * D * p + E.in(u) * D * 0.6, i]);
         }
-        // los bordes van ANTES que `b`: `b` tapa la parte de cada borde que cae dentro de
-        // otra nube y solo queda el contorno exterior (si no, sale una maraña de aros)
+        // the rims go BEFORE `b`: `b` covers the part of each rim that falls inside
+        // another cloud and only the outer outline remains (otherwise you get a tangle of rings)
         if (puff) for (const [x, y, R, i] of blobs) puff(g, x, y, R, i);
         g.save();
         g.beginPath();
@@ -99,9 +99,9 @@ const Trans = (() => {
     }
 
     /**
-     * VÓRTICE: `a` se retuerce en espiral alrededor de (cx, cy) y se encoge hasta un
-     * punto. Detrás queda `b` (a menudo solo un fondo oscuro del que nacerá lo siguiente).
-     * Se pinta por anillos: cada anillo gira más cuanto más cerca del centro.
+     * VORTEX: `a` twists in a spiral around (cx, cy) and shrinks to a point.
+     * Behind it is `b` (often just a dark background from which the next thing is born).
+     * Painted in rings: each ring turns more the closer it is to the center.
      */
     function vortex(g, env, u, { a, b = null, cx, cy, turns = 2.5, rings = 48 }) {
         if (b) b(g);
@@ -128,22 +128,22 @@ const Trans = (() => {
     }
 
     /**
-     * CUADRO DENTRO DEL CUADRO: la cámara se aleja y `inner`, que llenaba la pantalla,
-     * acaba dentro de un círculo o rectángulo de `outer` (un cuadro, una pantalla, un
-     * dibujo). Con u de 1 a 0 hace el camino contrario: entrar en el cuadro.
-     * at: { x, y, r } (círculo) o { x, y, w, h } (rectángulo), en coordenadas de `outer`.
-     * rim(g, alcance) opcional: el marco, en coordenadas de `outer`.
+     * PICTURE IN PICTURE: the camera pulls back and `inner`, which filled the screen,
+     * ends up inside a circle or rectangle of `outer` (a painting, a screen, a
+     * drawing). With u going from 1 to 0 it does the reverse: entering the picture.
+     * at: { x, y, r } (circle) or { x, y, w, h } (rectangle), in `outer` coordinates.
+     * rim(g, at) optional: the frame, in `outer` coordinates.
      */
     function frame(g, env, u, { inner, outer, at, rim = null }) {
         const e = E.inOut(u);
         const fitS = at.r ? (2 * at.r) / env.H : Math.max(at.w / env.W, at.h / env.H);
-        // `outer` empieza muy cerca (el hueco llena la pantalla) y se aleja hasta s = 1
+        // `outer` starts very close (the hole fills the screen) and pulls back to s = 1
         const so = logLerp(1 / fitS, 1, e);
-        // el hueco empieza en el centro de la pantalla y acaba en su sitio
+        // the hole starts at the center of the screen and ends in its place
         const pos = E.lerpPt([env.W / 2, env.H / 2], [at.x, at.y], e);
         g.save();
         zoomAt(g, so, [at.x, at.y], pos);
-        // dentro de `outer`, pintamos su contenido y encima el hueco con `inner`
+        // inside `outer`, paint its content and on top the hole with `inner`
         outer(g);
         g.save();
         if (at.r) circle(g, at.x, at.y, at.r);
@@ -154,8 +154,8 @@ const Trans = (() => {
         g.restore();
         if (rim) rim(g, at);
         g.restore();
-        // un hueco redondo no cubre las esquinas al principio: fuera del círculo seguimos
-        // pintando `inner` (con la misma escala) y lo desvanecemos mientras se aleja
+        // a round hole doesn't cover the corners at first: outside the circle we keep
+        // painting `inner` (at the same scale) and fade it out as it pulls back
         if (at.r && u < 0.35) {
             g.save();
             g.globalAlpha = Math.pow(1 - E.seg(u, 0, 0.35), 2);

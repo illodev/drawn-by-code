@@ -1,0 +1,107 @@
+---
+name: review
+description: Review and self-improvement loop for illomotion. Use it after EVERY render or visible change to a scene, whenever the user gives feedback on a video ("this doesn't read", "faster", "I like X"), and when closing an experiment. Runs the automatic critique on real frames, fixes the scene and turns what was learned into permanent changes to the skills and the engine.
+---
+
+# Review: critique, fix and learn
+
+Every test has to leave the repo better than it found it. The loop has two halves: the
+**automatic critique** (without the user, before showing them anything) and the **user's
+feedback**. Both end the same way: in changes to the scene and, if the lesson
+generalizes, in changes to the skills or the engine.
+
+## A · Automatic critique (before showing the user anything)
+
+1. `node engine/review.mjs <scene.js>` → read `review/auto.md` and look at
+   `review/sheet.jpg` with the Read tool. Objective warnings (errors, Non-deterministic,
+   Cuts off the beat, still stretches) **are always fixed**, or you justify in `review.md`
+   why they are intentional.
+2. Full-size stills of the key moments:
+   `node engine/render.mjs <scene.js> --at 1.2,3.5,5.8` and look at them (out/stills/).
+   Look especially at the moments when text is read, the contacts (hands grabbing,
+   things colliding) and the last frame.
+3. Go through the **general checklist** (below) and the **style checklist** (in its
+   skill). Write each flaw as *what you see · at which second · why it fails*.
+4. Fix, go back to 1. **At most 3 automatic rounds**; if something doesn't improve in 3,
+   raise it with the user as an open question instead of going round in circles.
+5. Log the round in `review.md`: `### Round N (auto)`, what you saw, what you changed.
+
+Be harsh: the most common failure of self-critique is approving out of fatigue. If you
+hesitate between "it reads" and "it doesn't read", **it doesn't read**.
+
+### General checklist
+
+- **Legibility:** every text stays on screen at least ~0.4 s per short word + 1 s, with
+  enough contrast and without covering anything. Nothing important in the outer 5 % (in
+  vertical, keep the bottom 250 px and the top 150 free, where social apps put their
+  buttons).
+- **Clarity:** every shot is understood without sound and without explanation, and what
+  happens can be told in one sentence with a verb (if you can only describe the look, the
+  action is missing). A single focus of attention at a time; if two things move, one
+  leads.
+- **Density:** are there at least three layers (moving background, secondary elements,
+  protagonist)? Any moment with a single thing moving on an empty background?
+- **Motion:** anticipation and settle (nothing starts or stops dead unless on purpose),
+  ease curves, nothing still for more than 1 s except the ending, nothing jittering
+  unintentionally.
+- **Photosensitivity:** no more than 3 flashes per second (abrupt changes in overall
+  brightness). `review.mjs` measures them; in psychedelic videos it is mandatory.
+- **Rhythm:** cuts on the beat; visual hits (impacts, stamps, appearances) land on the
+  beat too.
+- **Origin and physics:** everything that emanates (steam, smoke, sparks, liquid, papers
+  coming out of a box) is visibly born at its source and not behind or above it. Things
+  rest where they should and fall downward. Check it in a still of the instant it
+  appears.
+- **Continuity:** characters and objects identical across shots and to the approved style
+  test; gaze and movement direction consistent across cuts.
+- **Composition:** rule of thirds or deliberate symmetry, level horizon unless
+  intentional, consistent margins, clear size hierarchy.
+- **Accuracy:** nothing promises more than the source (website, brief). Third-party
+  brands only as generic icons.
+- **Ending:** the last frame holds up as a poster and the final message reads in full.
+
+## B · User feedback
+
+1. Show them the result: MP4 (`render.mjs`) and the contact sheet. Tell them in one line
+   what you fixed on your own and what doubts remain.
+2. Record their feedback **verbatim** in `review.md` (`### Round N (user)`), and below
+   it your translation into concrete changes.
+3. Apply, go back to A.
+
+## C · Distill: from the experiment to the skills
+
+When closing each round with user feedback, and when closing the experiment, ask of each
+lesson: **would it help in another video?**
+
+| The lesson is about… | It goes to… |
+|---|---|
+| this particular video (this text, this brand) | only `review.md` |
+| the style (how the paper looks, the palette, the characters) | the `style-*` skill: *Rules*, *Checklist* or *Lessons* |
+| a client's or brand's rule (their typeface, banned motifs, claims) | the experiment's `brief.md` only, never a style skill: a style skill must hold for any client |
+| narrative, rhythm, script, legibility | `animate/SKILL.md` or the general checklist here |
+| a technical bug, something slow, a missing utility | fix it in `engine/` or in the kit and note it in `engine/SKILL.md` |
+| something the automatic review could have caught and didn't | extend `engine/review.mjs` |
+| sound | `sound/SKILL.md` |
+
+Lesson format: `- YYYY-MM-DD · <experiment> · <rule in the imperative, one line>`.
+Write rules, not anecdotes: "Stamps are seen from above, never sideways against a wall",
+not "the stamp in round 2 looked weird".
+
+**Skill maintenance:** when a *Lessons* section goes past ~15 entries, consolidate: move
+the recurring ones up to *Rules* or the *Checklist*, delete the obsolete ones. A long,
+contradictory skill is worse than a short one. If a lesson contradicts a rule, the most
+recent one confirmed by the user wins: fix the rule.
+
+Update the experiment's row in `sandbox/INDEX.md` and commit:
+`review(<experiment>): round N · <main lesson>`, with the skills touched in the same
+commit, so it shows which test produced which change.
+
+## Lessons
+
+<!-- Lessons about the review process itself. -->
+- 2026-09-24 · coffee-first · The sheet at 480 px doesn't show facial details (closed eyes that seemed to look down): always look at full-size stills of close-ups.
+- 2026-09-24 · coffee-first · When you spot by eye a flaw that `review.mjs` could have measured (a hole at the edge), extend `review.mjs` and test it with a deliberately broken scene before trusting it.
+- 2026-09-24 · coffee-first · I judged the steam by its shape and not by its origin, and the user saw it came out from behind the cup. For every element that appears, ask where it comes from (now in the checklist).
+- 2026-09-24 · exquisite-corpse · The image-difference «jumps» warning gave false positives on dense patterns and didn't measure what matters: `review.mjs` now counts flashes frame by frame and separates jumps from cuts (tested with a strobing scene).
+- 2026-09-24 · exquisite-corpse · In a long piece, first review with `--times` the instants you changed; the full sheet only when closing the round.
+- 2026-09-24 · exquisite-corpse · I approved a jellyfish that was only a look: my critique checked style and legibility but not "what happens?". It is now in the checklist (Clarity and Density).

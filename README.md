@@ -1,58 +1,57 @@
 # illomotion
 
-Animaciones y vídeos hechos **con código** por Claude: cada fotograma lo pinta JavaScript
-en un `<canvas>`, de forma determinista, y se renderiza a MP4 con Chromium y ffmpeg. Sin
-After Effects ni vídeo generado por IA.
+Animations and videos made **with code** by Claude: JavaScript paints every frame on a
+`<canvas>`, deterministically, and it is rendered to MP4 with Chromium and ffmpeg. No
+After Effects and no AI-generated video.
 
-El repo es a la vez **caja de herramientas** (motor + estilos + skills de Claude) y
-**banco de pruebas**: cada experimento de `sandbox/` pasa por una revisión automática
-(fotogramas reales, comprobaciones de determinismo, ritmo y movimiento) y por el feedback
-humano. Lo aprendido vuelve a las skills, así que cada prueba mejora las siguientes.
+The repo is both a **toolbox** (engine + styles + Claude skills) and a **test bench**:
+every experiment in `sandbox/` goes through an automatic review (real frames, checks for
+determinism, rhythm and motion) and through human feedback. What is learned goes back
+into the skills, so every test improves the next ones.
 
-## Empezar
+## Getting started
 
-Requisitos: Node 20 o superior, Chrome o Chromium y ffmpeg.
+Requirements: Node 20 or later, Chrome or Chromium, and ffmpeg.
 
 ```bash
 npm install
-node engine/new.mjs mi-prueba --style papel-recortado --duration 5
+node engine/new.mjs my-test --style paper-cutout --duration 5
 npm run preview          # http://127.0.0.1:5173
 ```
 
-Con Claude Code basta con pedirlo: *«hazme un vídeo de 10 s en papel recortado para…»*.
-La skill `animar` guía el proceso: brief → guion → prueba de estilo → animática → final.
+With Claude Code, just ask: *"make me a 10 s paper-cutout video for…"*.
+The `animate` skill guides the process: brief → script → style test → animatic → final.
 
-## Estilos
+## Styles
 
-| Estilo | Estado | Referencia |
+| Style | Status | Reference |
 |---|---|---|
-| `papel-recortado`: papel rasgado, rotulador, grano, letra a mano | aprobado | [La caja y el torno](referencias/fube-la-caja-y-el-torno/) |
-| `cartel-70s`: colores ácidos planos, ecos, rayos, letras que se derriten | aprobado | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
-| `luz-liquida`: manchas de aceite que se funden, proyección de los 60 | aprobado | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
-| `caleidoscopio`: simetría de espejos, rotación, ciclos de color | aprobado | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
-| `linea`: trazo negro que tiembla sobre papel blanco | aprobado | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
+| `paper-cutout`: torn paper, marker, grain, handwriting | approved | [coffee-first](sandbox/2026-09-24-coffee-first/) |
+| `70s-poster`: flat acid colors, echoes, sunrays, melting letters | approved | [exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/) |
+| `liquid-light`: merging oil blobs, 60s light show projection | approved | [exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/) |
+| `kaleidoscope`: mirror symmetry, rotation, color cycling | approved | [exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/) |
+| `line`: wobbling black line on white paper | approved | [exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/) |
 
-Transiciones entre estilos (entrar por un punto, iris, engullir, vórtice, cuadro dentro del
-cuadro): `engine/transitions.js` y la skill `transiciones`.
+Transitions between styles (entering through a point, iris, engulf, vortex, frame within
+a frame): `engine/transitions.js` and the `transitions` skill.
 
-Para añadir uno: skill `nuevo-estilo`.
+To add one: the `new-style` skill.
 
-## Cómo aprende
+## How it learns
 
 ```
-brief ─▶ scene.js ─▶ review.mjs ─▶ crítica de Claude ─▶ corrección  (≤3 rondas)
+brief ─▶ scene.js ─▶ review.mjs ─▶ Claude's critique ─▶ fix  (≤3 rounds)
                                                      │
-                                  feedback del usuario ◀┘
+                                       user feedback ◀┘
                                                      │
-          ¿generaliza? ─▶ skill del estilo / animar / motor / sonido / review.mjs
+      does it generalize? ─▶ style skill / animate / engine / sound / review.mjs
                                                      │
-                                            commit por ronda
+                                             commit per round
 ```
 
-Historial de experimentos y lecciones: [`sandbox/INDEX.md`](sandbox/INDEX.md).
+Experiment and lesson history: [`sandbox/INDEX.md`](sandbox/INDEX.md).
 
-## Licencias
+## Licenses
 
-Fuentes Patrick Hand y Geist con licencia SIL OFL 1.1 (`fonts/`). Los efectos de
-`assets/sfx/` se generaron con ElevenLabs con la cuenta de Fube: el uso comercial exige
-plan de pago. Personajes y logo del Fubiverso, propiedad de Fube.
+Patrick Hand, Shrikhand and Short Stack fonts under the SIL OFL 1.1 (`fonts/`). The effects in
+`assets/sfx/` were generated with ElevenLabs: commercial use requires a paid plan.
