@@ -34,4 +34,27 @@ aquí: engullir (0:15), cuadro dentro del cuadro (1:04), vórtice (2:31) y entra
 
 ## Ronda 3 (usuario)
 
+> «No está mal para ser el primero. Pero me falta densidad y dinamismo. Sobre todo en esa
+> escena [la medusa, 0:15] se entiende que sea psicodélico, pero no entiendo la escena en sí.»
+
+- **Diagnóstico:** la medusa era un look sin acción. Si se describe el plano en una frase,
+  sale «una mancha brillante flota»: no pasa nada, no tiene contexto (el vacío) ni una
+  silueta clara (los tentáculos se fundían en una masa). En el resto, fondos vacíos y
+  momentos con una sola cosa moviéndose.
+- **Medusa, rehecha con una acción:** *la canica da color al mar*. Partículas que se
+  juntan en una medusa (campana festoneada, brazos, 4 tentáculos finos y separados) que
+  nada a brazadas en cada compás (se contrae, sube, planea), y en cada golpe la canica
+  emite una onda de luz que la atraviesa y tiñe el mar. El mar de fondo es una segunda
+  capa tenue de plancton que sube, con burbujas.
+- **Kit de luz líquida:** capas transparentes (`transparent`), brillo por capa (`gain`) y
+  ondas de luz (`pulses`).
+- **Densidad en el resto:**
+  - Rana: ondas en el agua, el reflejo de la canica, un pez que salta en el tiempo muerto
+    (1–1,9 s) y un segundo nenúfar con flor.
+  - Seta: coro de setas pequeñas al contratiempo y margaritas girando.
+  - Garabato: la hoja llena de garabatos que tiemblan, y la canica deja un rastro de
+    color al rodar (el color contagia el mundo de línea).
+
+## Ronda 4 (usuario)
+
 _Pendiente de feedback._

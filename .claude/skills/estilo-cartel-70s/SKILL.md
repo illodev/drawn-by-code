@@ -38,3 +38,4 @@ derrite en gotas) y `path`. Tipografía: Shrikhand (`fonts/Shrikhand-latin.woff2
 ## Lecciones
 
 - 2026-09-24 · cadaver-exquisito · Un perfil de goteo aleatorio columna a columna se lee como pinchos: gotas = pocas campanas sobre una caída suave (ya en `melt`).
+- 2026-09-24 · cadaver-exquisito · Un coro de figuras pequeñas al contratiempo (`Motion.pulse(t, bpm, 0.25)`) y adornos girando en las esquinas dan densidad sin quitar protagonismo.

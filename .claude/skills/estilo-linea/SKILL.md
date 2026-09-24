@@ -19,6 +19,10 @@ de dibujo), `INK` y `PAPER`.
   y el número de dibujo, nunca con `Math.random`. Cada trazo tiene su semilla.
 - **Blanco y negro;** el color se reserva para lo que importa (el hilo conductor). Si algo
   tiene color en este estilo, es porque es especial.
+- **La hoja es un cuaderno, no un lienzo vacío:** garabatos alrededor (sol, espiral, nube,
+  notas ilegibles) que tiemblan como todo lo demás.
+- **El color puede contagiar:** lo que tiene color deja rastro sobre el blanco y negro, y
+  eso cuenta una historia por sí solo.
 - **Personajes de pocas líneas** (cabeza redonda, ojos de punto, cuerpo de palo), con
   poses claras: la silueta tiene que leerse.
 - **Grosor 4–6** en unidades de 1600; más fino desaparece al reducir.

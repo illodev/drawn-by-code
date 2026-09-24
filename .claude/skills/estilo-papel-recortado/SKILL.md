@@ -84,3 +84,4 @@ Referencia aprobada: `referencias/fube-la-caja-y-el-torno/` (mira
 - 2026-09-24 · primero-cafe · El vapor como tira deformada sin filo quedaba plano y fuera de estilo; como recortes fijos que suben y se desvanecen, funciona (ya en Reglas).
 - 2026-09-24 · primero-cafe · Un personaje-objeto (la taza) se lee como personaje solo con ojos de párpado grueso y una boca de rotulador: no hacen falta brazos para un plano corto.
 - 2026-09-24 · primero-cafe · El usuario vio «tentáculos» donde yo veía vapor: tiras de ancho constante, opacas y verticales. La receta buena está en Reglas (`kit.wisp`).
+- 2026-09-24 · cadaver-exquisito · `markerStroke` fija su propia `globalAlpha`: para desvanecerlo, pásale el alfa como parámetro, no lo pongas antes.

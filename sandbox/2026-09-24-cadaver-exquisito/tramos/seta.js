@@ -25,10 +25,53 @@
     }
     Tramo.setaCanica = marble;
 
+    // seta pequeña del coro: baila al contratiempo (desfase de medio golpe)
+    function mini(g, x, y, s, t, cap, dot, phase) {
+        const off = Motion.pulse(t, 120, 0.25 + phase);
+        g.save();
+        g.translate(x, y);
+        g.rotate(Math.sin(t * Math.PI * 2 + phase * 6) * 0.12);
+        g.scale(s / Math.sqrt(1 - off * 0.12), s * (1 - off * 0.12));
+        G.shape(g, G.wavy([...G.ellipse(0, -60, 38, 62, 30, 0, Math.PI), ...G.ellipse(0, -110, 30, 16, 16, Math.PI, Math.PI * 2)], 3, 4, t * 4), '#fff1c1', { ink: INK, width: 5 });
+        G.shape(g, [...G.ellipse(0, -130, 95, 70, 40, Math.PI, Math.PI * 2), ...G.ellipse(0, -130, 95, 18, 16, 0, Math.PI)], cap, { ink: INK, width: 6, echoes: [C[4]], echoStep: 6 });
+        g.fillStyle = dot;
+        for (const [dx, dy, r] of [[-40, -160, 13], [18, -178, 11], [50, -148, 9]]) (g.beginPath(), g.arc(dx, dy, r, 0, Math.PI * 2), g.fill());
+        g.fillStyle = INK;
+        for (const dx of [-12, 12]) (g.beginPath(), g.ellipse(dx, -80, 5, 7, 0, 0, Math.PI * 2), g.fill());
+        G.line(g, [[-10, -60], [0, -54], [10, -60]], INK, 4);
+        g.restore();
+    }
+
+    // margarita de los 70: pétalos redondos que giran
+    function daisy(g, x, y, r, t, petal, center, rot) {
+        g.save();
+        g.translate(x, y);
+        g.rotate(rot);
+        for (let k = 0; k < 8; k++) {
+            const a = (k / 8) * Math.PI * 2;
+            G.shape(g, G.ellipse(Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.62, r * 0.42, r * 0.26, 20).map(([px, py]) => {
+                const dx = px - Math.cos(a) * r * 0.62, dy = py - Math.sin(a) * r * 0.62;
+                return [Math.cos(a) * r * 0.62 + dx * Math.cos(a) - dy * Math.sin(a), Math.sin(a) * r * 0.62 + dx * Math.sin(a) + dy * Math.cos(a)];
+            }), petal, { ink: INK, width: 4 });
+        }
+        G.shape(g, G.ellipse(0, 0, r * 0.3, r * 0.3, 24), center, { ink: INK, width: 4 });
+        g.restore();
+    }
+
     Tramo.seta = (g, t, env) => {
         const beat = Motion.pulse(t, 120);
         G.sunburst(g, env, 800, 560, 22, t * 0.35, [C[0], C[4]]);
         G.rings(g, 800, 560, 5, 80 + beat * 6, t, [C[1], C[5], C[3], C[2], C[1]], 0.06);
+        // margaritas en las esquinas, girando en sentidos opuestos
+        daisy(g, 130, 130, 95, t, C[5], C[4], t * 0.8);
+        daisy(g, 1480, 150, 80, t, C[2], C[1], -t * 0.9);
+        daisy(g, 110, 800, 70, t, C[3], C[4], -t * 0.7);
+        daisy(g, 1500, 790, 100, t, C[1], C[2], t * 0.6);
+        // el coro: setas pequeñas a los lados, al contratiempo
+        mini(g, 330, 860, 1.0, t, C[5], C[4], 0);
+        mini(g, 1270, 860, 1.05, t, C[3], C[2], 0.5);
+        mini(g, 480, 890, 0.7, t, C[2], C[1], 0.25);
+        mini(g, 1120, 895, 0.72, t, C[0], C[5], 0.75);
 
         // --- la seta: se balancea al compás y se aplasta en cada golpe ------------------
         const sneezeIn = E.seg(t, 10.0, 10.45), sneeze = E.bump(t, 10.45, 0.4);

@@ -34,8 +34,11 @@ Sé duro: el fallo más común de la auto-crítica es aprobar por cansancio. Si 
 - **Lectura:** cada texto está en pantalla al menos ~0,4 s por palabra corta + 1 s, con
   contraste suficiente y sin tapar nada. Nada importante en el 5 % del borde (en vertical
   deja libres los 250 px de abajo y los 150 de arriba, donde caen los botones de las redes).
-- **Claridad:** cada plano se entiende sin sonido y sin explicación. Un solo foco de
+- **Claridad:** cada plano se entiende sin sonido y sin explicación, y lo que pasa se puede
+  contar en una frase con verbo (si solo se puede describir el look, falta acción). Un solo foco de
   atención por momento; si hay dos cosas moviéndose, una manda.
+- **Densidad:** ¿hay al menos tres capas (fondo en movimiento, secundarios, protagonista)?
+  ¿Algún momento con una sola cosa moviéndose en un fondo vacío?
 - **Movimiento:** anticipación y asentamiento (nada arranca ni para en seco salvo a
   propósito), curvas de ease, nada quieto más de 1 s salvo el cierre, nada que tiemble
   sin querer.
@@ -98,3 +101,4 @@ mismo commit, para que se vea qué prueba produjo qué cambio.
 - 2026-09-24 · primero-cafe · Juzgué el vapor por su forma y no por su origen, y el usuario vio que salía de detrás de la taza. Por cada elemento que aparece, pregúntate de dónde sale (ya en el checklist).
 - 2026-09-24 · cadaver-exquisito · El aviso de «saltos» por diferencia de imagen da falsos positivos en patrones densos y no mide lo que importa: ahora `review.mjs` cuenta destellos fotograma a fotograma y separa los saltos de los cortes (probado con una escena estroboscópica).
 - 2026-09-24 · cadaver-exquisito · En una pieza larga, revisa primero con `--times` los instantes que has cambiado; la hoja entera solo al cerrar la ronda.
+- 2026-09-24 · cadaver-exquisito · Aprobé una medusa que solo era un look: mi crítica miraba estilo y legibilidad pero no «¿qué pasa?». Ya está en el checklist (Claridad y Densidad).

@@ -98,9 +98,61 @@
         L.stroke(g, L.circle(x, y, 80, 32), { t, seed: 'centro', width: 4, closed: true });
     }
 
+    // garabatos de la hoja: la página de un cuaderno, no un lienzo vacío
+    function doodles(g, t) {
+        const s = { t, width: 3.5, jitter: 1.6 };
+        // sol arriba a la derecha, que gira despacio
+        L.stroke(g, L.circle(1390, 140, 48, 28), { ...s, seed: 'sol', closed: true });
+        for (let k = 0; k < 10; k++) {
+            const a = (k / 10) * Math.PI * 2 + t * 0.4;
+            L.stroke(g, [[1390 + Math.cos(a) * 64, 140 + Math.sin(a) * 64], [1390 + Math.cos(a) * 92, 140 + Math.sin(a) * 92]], { ...s, seed: 'rayo' + k });
+        }
+        // espiral arriba a la izquierda
+        L.stroke(g, Array.from({ length: 50 }, (_, i) => {
+            const a = i * 0.35 + t * 0.8, r = 4 + i * 1.3;
+            return [150 + Math.cos(a) * r, 130 + Math.sin(a) * r];
+        }), { ...s, seed: 'espiral' });
+        // nube y flecha que señala el dibujo
+        L.stroke(g, [[900, 170], [880, 140], [905, 110], [945, 115], [965, 90], [1010, 100], [1025, 135], [1060, 145], [1050, 175], [900, 170]], { ...s, seed: 'nube' });
+        L.stroke(g, [[860, 330], [820, 360], [800, 395]], { ...s, seed: 'flecha' });
+        L.stroke(g, [[782, 372], [800, 395], [826, 385]], { ...s, seed: 'punta' });
+        // florecillas en el suelo
+        [180, 300, 1460].forEach((x, i) => {
+            L.stroke(g, [[x, FLOOR], [x + 4, FLOOR - 50]], { ...s, seed: 'tallo' + i });
+            L.stroke(g, L.circle(x + 4, FLOOR - 62, 12, 14), { ...s, seed: 'flor' + i, closed: true });
+        });
+        // renglones de letra ilegible, como notas al margen
+        for (let k = 0; k < 4; k++) {
+            L.stroke(g, Array.from({ length: 18 }, (_, i) => [90 + i * 16, 560 + k * 34 + Math.sin(i * 1.7 + k) * 7 - (i % 3 === 0 ? 8 : 0)]), { ...s, width: 2.5, seed: 'nota' + k });
+        }
+    }
+
+    // rastro de color: por donde rueda la canica, el blanco y negro se mancha de color
+    function trail(g, t) {
+        if (t < 24.9) return;
+        const pts = [];
+        // solo mientras toca el papel: cuando salta a la mano (26,2) ya no mancha
+        for (let tt = 24.85; tt <= Math.min(t, 26.2); tt += 1 / 48) pts.push(marble(tt));
+        g.save();
+        g.lineCap = 'round';
+        g.lineJoin = 'round';
+        for (let i = 1; i < pts.length; i++) {
+            g.strokeStyle = Canica.ARMS[Math.floor(i / 4) % 3];
+            g.globalAlpha = 0.55;
+            g.lineWidth = 26;
+            g.beginPath();
+            g.moveTo(pts[i - 1][0], pts[i - 1][1] + 10);
+            g.lineTo(pts[i][0], pts[i][1] + 10);
+            g.stroke();
+        }
+        g.restore();
+    }
+
     // opts.inner = false: no pintar el contenido del círculo (lo pinta la transición)
     Tramo.garabato = (g, t, env, opts = {}) => {
         L.paper(g, env);
+        doodles(g, t);
+        trail(g, t);
         L.stroke(g, [[80, FLOOR + 4], [1520, FLOOR]], { t, seed: 'suelo', width: 4 });
         if (opts.inner !== false) {
             const drained = E.seg(t, 23.6, 24.4);

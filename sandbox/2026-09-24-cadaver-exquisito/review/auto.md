@@ -11,7 +11,7 @@
 Energía por segundo (cuánto cambia la imagen):
 
 ```
-▁▂▂▂▁▄▆▄▅▄▅▅▄▄▃▄▃▄▇▆▇█▅▃▂▂▂▅▅▃
+▂▂▂▂▂▄▆▅▅▅▆▄▃▄▄▄▄▃▇▆▇█▅▃▃▂▂▅▅▃
 0    5    10   15   20   25   
 ```
 
@@ -21,7 +21,7 @@ Saltos grandes fuera de los cortes (en patrones densos pueden ser normales; mira
 
 ## Velocidad
 
-Pintado: 48 ms/fotograma en frío, 11 ms en caliente → render completo ≈ 8 s a este tamaño.
+Pintado: 45 ms/fotograma en frío, 11 ms en caliente → render completo ≈ 8 s a este tamaño.
 
 ## Hoja de contacto
 

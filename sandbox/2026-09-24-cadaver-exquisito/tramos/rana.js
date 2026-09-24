@@ -92,6 +92,76 @@
             reed.draw(g);
             g.restore();
         }
+        // --- vida en el estanque (densidad sin quitar protagonismo a la rana) ----------
+        // ondas: anillos de papel que se abren alrededor del nenúfar, uno por compás
+        g.save();
+        for (let n = -2; n < 4; n++) {
+            const age = (((t - n * 1.0) % 3) + 3) % 3;
+            const u = age / 3;
+            // (markerStroke fija su propia globalAlpha: el fundido va en su parámetro)
+            P.markerStroke(g, P.ellipse(FROG.x, FROG.y + 8, 220 + u * 420, 50 + u * 95, 64).concat([[FROG.x + 220 + u * 420, FROG.y + 8]]), '#5d8fb5', 5 * (1 - u) + 1.5, 'onda', 0.6 * (1 - u));
+        }
+        g.restore();
+        // reflejo de la canica en el agua: invertido, aplastado y ondulante
+        const mr = marblePos(t);
+        if (t < 3.5) {
+            const ry = 2 * 640 - mr[1] + 40;
+            g.save();
+            g.beginPath();
+            g.rect(-500, 648, 2600, 900);
+            g.clip();
+            g.globalAlpha = 0.35;
+            g.translate(mr[0] + Math.sin(t * 5) * 6, ry);
+            g.scale(1, 0.55);
+            Canica.core(g, 0, 0, 30, -t);
+            g.restore();
+        }
+        // un pez de papel salta en el tiempo muerto (1,0–1,9) y salpica
+        const jump = E.seg(t, 1.0, 1.9);
+        if (jump > 0 && jump < 1) {
+            const fx = E.lerp(170, 420, jump), fy = 660 - Math.sin(jump * Math.PI) * 230;
+            const fish = kit.sprite('pez2', { x: -90, y: -40, w: 170, h: 80 }, (c) => {
+                P.cutout(c, [[-40, 0], [-78, -28], [-70, 0], [-78, 28]], '#dc5230', 'pez-cola', { border: 2.6 });
+                P.cutout(c, P.ellipse(0, 0, 52, 25), '#f2643c', 'pez', { border: 2.8 });
+                c.fillStyle = '#fbf6ec';
+                c.beginPath();
+                c.arc(28, -6, 8, 0, Math.PI * 2);
+                c.fill();
+                c.fillStyle = '#2a1826';
+                c.beginPath();
+                c.arc(30, -6, 4, 0, Math.PI * 2);
+                c.fill();
+            }, 2);
+            g.save();
+            g.translate(fx, fy);
+            g.rotate((jump - 0.5) * 2.2);
+            fish.draw(g);
+            g.restore();
+        }
+        for (const [at, x] of [[1.0, 170], [1.9, 420]]) {
+            const u = E.seg(t, at, at + 0.6);
+            if (u <= 0 || u >= 1) continue;
+            g.save();
+            g.globalAlpha = 1 - u;
+            const drop = kit.sprite('gota', { x: -8, y: -8, w: 16, h: 16 }, (c) => P.cutout(c, P.ellipse(0, 0, 6, 6), '#9fc9e8', 'gota', { border: 1.6, shadow: 0 }), 2);
+            for (let k = 0; k < 5; k++) {
+                const a = -Math.PI * (0.15 + k * 0.175);
+                g.save();
+                g.translate(x + Math.cos(a) * 70 * u, 650 + Math.sin(a) * 90 * u + 120 * u * u);
+                drop.draw(g);
+                g.restore();
+            }
+            g.restore();
+        }
+        // segundo nenúfar con flor, al fondo a la derecha
+        kit.sprite('nenufar2', { x: 1020, y: 690, w: 300, h: 150 }, (c) => {
+            P.cutout(c, P.ellipse(1170, 760, 120, 30, 64), '#357f50', 'nenufar2', { border: 2.6 });
+            for (let k = 0; k < 6; k++) {
+                const a = -Math.PI / 2 + (k - 2.5) * 0.45;
+                P.cutout(c, P.ellipse(1170 + Math.cos(a) * 26, 735 + Math.sin(a) * 30, 14, 30).map(([x, y]) => [x, y]), '#f7b7c8', 'petalo' + k, { border: 2 });
+            }
+            P.cutout(c, P.ellipse(1170, 738, 12, 10), '#e9b949', 'flor', { border: 1.6 });
+        }, 1.5).draw(g);
         // nenúfar
         kit.sprite('nenufar', { x: FROG.x - 230, y: FROG.y - 70, w: 460, h: 140 }, (c) => {
             const pad = P.ellipse(FROG.x, FROG.y, 200, 48, 90).filter((_, i) => i < 84 || i > 88);

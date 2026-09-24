@@ -30,6 +30,12 @@ hay producto o marca, **nada promete más que su web**: anota las fuentes de cad
 
 Tabla `Tiempo | Plano | Qué pasa` en el brief. Reglas que ya nos han costado caras:
 
+- **Cada plano, una acción que se cuenta en una frase con verbo** («la canica tiñe el mar
+  en cada golpe»), no un look («una medusa psicodélica»). Si la frase es «X flota» o «X
+  brilla», falta la acción: el estilo no la sustituye.
+- **Densidad por capas:** fondo que se mueve, secundarios con su propio ritmo (al
+  contratiempo, más pequeños y menos saturados) y protagonista. Un fondo vacío o una sola
+  cosa en movimiento se lee pobre, sobre todo en estilos psicodélicos.
 - **Una idea visual que evoluciona** (la caja que se vacía y el jarrón que crece) vale más
   que una lista de escenas. Busca el objeto que cambia a lo largo del vídeo.
 - **Varía la estructura** de cada bloque: la misma fórmula repetida aburre al tercer uso.
