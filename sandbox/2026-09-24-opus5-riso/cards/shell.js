@@ -23,8 +23,12 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
     U.px(press, () => {
         press.save(); press.each((g) => g.translate(dx, dy));
         // ------------------------------------------------------------ sand
-        Y.fillStyle = T(0.92); Y.fillRect(0, 0, 1080, 1080);
-        U.screen(P, 'pink', LP, (m) => { m.fillStyle = T(0.12); m.fillRect(0, 0, 1080, 1080); });
+        Y.fillStyle = T(1); Y.fillRect(0, 0, 1080, 1080);
+        U.screen(P, 'pink', LP, (m) => { m.fillStyle = T(0.2); m.fillRect(0, 0, 1080, 1080); });
+        // sand grain: pinholes in the yellow, pink and navy specks
+        U.grit(Y, [0, 0, 1080, 1080], { out: true, p: 0.12, a: 0.6, seed: 31 });
+        U.grit(P, [0, 0, 1080, 1080], { p: 0.1, a: 0.6, seed: 32 });
+        U.grit(N, [0, 0, 1080, 1080], { p: 0.03, a: 0.6, seed: 33 });
         // pink hairs in the sand
         const rs = Motion.rng('shell-hair');
         for (let k = 0; k < 30; k++) {
@@ -65,8 +69,19 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
         // ------------------------------------------------------------ the shell
         const shell = [[172, 155], [207, 176], [244, 198], [282, 219], [320, 244], [360, 259], [400, 278], [424, 302], [482, 315], [524, 333], [551, 360], [600, 366], [650, 385], [686, 408], [717, 434], [747, 462], [772, 492], [796, 525], [820, 560], [840, 610], [852, 660], [855, 700], [840, 740], [816, 766], [798, 782], [786, 828], [778, 881], [772, 918], [740, 912], [671, 901], [586, 897], [494, 889], [417, 866], [355, 812], [322, 751], [301, 717], [287, 676], [284, 633], [283, 592], [270, 550], [262, 505], [260, 460], [263, 424], [249, 392], [236, 350], [223, 318], [210, 277], [195, 237], [183, 197]];
         // its shadow: navy hatching along the lower-left side
-        U.clipped(N, [[140, 150], [260, 420], [300, 760], [440, 900], [760, 950], [780, 990], [400, 960], [220, 800], [150, 450], [120, 180]], false, (g) => U.hatch(g, 'ssd', [120, 150, 800, 1000], [0.75, 1], 5, 2.4, T(0.8), { bend: 3, len: 0.2 }));
-        U.soft(N, 6, (g) => U.brush(g, shell.slice(28).concat([shell[0]]).map(([x, y]) => [x - 10, y + 12]), 18, T(0.5), 'ssh', { taper: 0.1 }));
+        // its shadow along the lower-left side: short dark olive strokes (navy + yellow) across
+        // the outline, a band ~26 px wide outside it (measured on scans across the axis)
+        {
+            const side = shell.slice(35).concat([shell[0]]).reverse(), rs = Motion.rng('shell-shd');
+            for (let i = 0; i < side.length - 1; i++) {
+                const [x0, y0] = side[i], [x1, y1] = side[i + 1], l = Math.hypot(x1 - x0, y1 - y0), nx = (y1 - y0) / l, ny = -(x1 - x0) / l;
+                for (let s = 0; s < l; s += 5) {
+                    const x = x0 + (x1 - x0) * s / l, y = y0 + (y1 - y0) * s / l, len = 14 + rs() * 22, w = 3 + rs() * 3;
+                    U.brush(N, [[x + nx * 4, y + ny * 4], [x + nx * (4 + len), y + ny * (4 + len) + 6]], w, T(0.85), 'shd' + i + ':' + s, { n: 6, taper: 0.3 });
+                }
+            }
+        }
+
         press.knockout((g) => { g.beginPath(); U.smooth(g, shell); g.fill(); });
         // the pale body: the shell's own fine screens
         U.screen(P, 'pink', LSP, (m) => U.clipped(m, shell, true, (c) => { c.fillStyle = T(0.2); c.fillRect(0, 0, 1080, 1080); }));
@@ -86,14 +101,15 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
             [[[250, 225], [300, 290], [328, 336], [353, 367], [370, 405], [404, 429], [419, 468], [440, 502], [476, 577], [505, 605], [522, 642], [537, 681], [587, 743], [609, 777], [647, 798], [690, 830]], 30],
             [[[400, 300], [439, 350], [520, 372], [577, 393], [604, 422], [641, 444], [672, 470], [702, 497], [727, 528], [751, 560], [783, 588], [800, 625], [818, 665], [822, 709]], 30],
         ];
-        U.clipped(P, shell, true, (g) => bands.forEach(([pts, w], i) => U.brush(g, zig(pts, w, 9, 'sz' + i), w, T(1), 'szb' + i, { taper: 0.1, wob: 0.25 })));
-        U.clipped(Y, shell, true, (g) => bands.forEach(([pts, w], i) => U.brush(g, zig(pts, w, 9, 'sz' + i), w, T(1), 'szb' + i, { taper: 0.1, wob: 0.25 })));
+        U.clipped(P, shell, true, (g) => bands.forEach(([pts, w], i) => U.brush(g, zig(pts, w, 14, 'sz' + i), w * 1.5, T(1), 'szb' + i, { taper: 0.1, wob: 0.25 })));
+        U.clipped(Y, shell, true, (g) => bands.forEach(([pts, w], i) => U.brush(g, zig(pts, w, 14, 'sz' + i), w * 1.5, T(1), 'szb' + i, { taper: 0.1, wob: 0.25 })));
         // fine light hatching across the bands
         U.clipped(P, shell, true, (g) => { g.globalCompositeOperation = 'destination-out'; U.hatch(g, 'shb', [150, 150, 860, 920], [0.62, 0.78], 7, 1.6, T(0.5), { bend: 1, len: 0.15 }); });
         // ------------------------------------------------------------ the aperture
         const ap = [[537, 373], [580, 380], [623, 394], [670, 422], [716, 459], [755, 510], [787, 566], [812, 616], [830, 666], [838, 705], [837, 730], [830, 752], [816, 766], [790, 768], [751, 751], [705, 712], [659, 666], [620, 625], [587, 587], [560, 550], [537, 509], [518, 470], [509, 437], [506, 405], [515, 385]];
         U.cut([P, Y, N, B], (g) => { g.beginPath(); U.smooth(g, ap); g.fill(); });
         U.fill(P, ap, T(1), true);
+        U.fill(Y, ap, T(0.22), true);
         // red on the outer side: yellow from the highlight to the right edge
         U.clipped(Y, ap, true, (g) => U.soft(g, 14, (c) => { c.fillStyle = T(0.9); c.beginPath(); U.trace(c, [[600, 380], [700, 440], [830, 620], [850, 770], [760, 700], [690, 560], [630, 470]]); c.fill(); }));
         // navy dots on the inner side, densest centre-left
@@ -110,7 +126,7 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
         for (const pts of [[[205, 182], [196, 200], [185, 214]], [[248, 205], [238, 228], [205, 245]], [[322, 246], [300, 290], [260, 320], [236, 330]], [[424, 302], [405, 360], [360, 400], [300, 420], [262, 424]], [[540, 380], [520, 450], [470, 520], [400, 565], [330, 585], [284, 592]]]) teal(pts, 3.2, 'sw' + pts[0][0], false);
         for (let k = 0; k < 9; k++) {
             const y0 = 610 + k * 34, x0 = 320 + k * 18;
-            teal([[x0, y0 + 20], [x0 + 110, y0 - 10], [x0 + 230, y0 - 50 + k * 3]], 2, 'sg' + k, false);
+            teal([[x0, y0 + 20], [x0 + 110, y0 - 10], [x0 + 230, y0 - 50 + k * 3]], 1.4, 'sg' + k, false);
         }
         press.restore();
     });
