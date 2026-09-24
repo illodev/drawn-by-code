@@ -8,9 +8,12 @@
 //   const g = press.plate('pink')                  a flat (solid) plate, logical units
 //   const s = press.plate('blue', 'screen')        a halftone plate (tones become dots)
 //   g.fillStyle = Riso.tone(0.6) …                 draw density: 0 no ink, 1 full ink
-//   press.print(g, { register })                   prints onto g (full frame); register:
-//                                                  per-ink offsets in output px (default
-//                                                  measured-looking values), key = memo
+//   press.print(g, { key, register, inks })        prints onto g (full frame); key = memo
+//                                                  (the drawing index); register: per-ink
+//                                                  offsets in output px; inks: re-ink the
+//                                                  plates ({ pink: 'blue' } → a colourway)
+//   press.save() / restore() / clip(fn) / each(fn) the same transform or clip on every plate
+//                                                  (a card inside a circle, in a mosaic cell)
 //
 // Inks (measured on a riso reference): pink (fluorescent), yellow, blue (aqua), navy.
 // Overprints make the rest: pink + yellow = orange/red, yellow + blue = green, navy +
@@ -66,6 +69,13 @@ const Riso = (() => {
                 if (!g) throw new Error('Riso: no plate ' + ink + ' ' + kind);
                 return g;
             },
+            // run fn(g, ink, kind) on every plate: shared transforms and clips (save/restore
+            // pairs) so one card can be drawn inside another, scaled into a mosaic cell, etc.
+            each(fn) { for (const ink of ORDER) for (const kind of ['solid', 'screen']) fn(ctxs[ink + kind], ink, kind); },
+            save() { this.each((g) => g.save()); },
+            restore() { this.each((g) => g.restore()); },
+            // clip every plate to a path: fn(g) builds it (no beginPath needed)
+            clip(fn) { this.each((g) => { g.beginPath(); fn(g); g.clip(); }); },
             // knock a shape out of every plate (paper white): fn(g) draws the shape
             knockout(fn) {
                 for (const g of Object.values(ctxs)) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.strokeStyle = '#000'; fn(g); g.restore(); }
@@ -79,10 +89,13 @@ const Riso = (() => {
                         D[i * 4] = PAPER[0] * p; D[i * 4 + 1] = PAPER[1] * p; D[i * 4 + 2] = PAPER[2] * p; D[i * 4 + 3] = 255;
                     }
                     const reg = po.register ?? { yellow: [2, -1], pink: [-1, 1], blue: [1, 2], navy: [0, 0] };
+                    // po.inks re-inks the plates: { pink: 'blue', … } prints the pink plate in
+                    // blue ink (the same drawing, a new colourway)
+                    const inkOf = (plate) => (po.inks ?? {})[plate] ?? plate;
                     for (const ink of ORDER) {
                         const S = ctxs[ink + 'solid'].getImageData(0, 0, W, H).data;
                         const T = ctxs[ink + 'screen'].getImageData(0, 0, W, H).data;
-                        const I = INKS[ink], [ir, ig, ib] = I.rgb, ca = Math.cos(I.angle), sa = Math.sin(I.angle);
+                        const I = INKS[inkOf(ink)], [ir, ig, ib] = I.rgb, ca = Math.cos(INKS[ink].angle), sa = Math.sin(INKS[ink].angle);
                         const [ox, oy] = (reg[ink] ?? [0, 0]).map((v) => Math.round(v * (W / 1080)));
                         const ip = I.pitch * pitch;
                         for (let y = 0; y < H; y++) {
