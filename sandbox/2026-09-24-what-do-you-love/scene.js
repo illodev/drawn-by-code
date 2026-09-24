@@ -24,7 +24,19 @@ Motion.scene({
         [6, 7, 'Sky · flight'],
         [7, 7.5, 'Flower · catch'],
         [7.5, 10, 'Flower · reads'],
-        [10, 16, 'Montage'],
+        [10, 10.5, 'Montage · words'],
+        [10.5, 11, 'Montage · music'],
+        [11, 11.5, 'Montage · the sea'],
+        [11.5, 12, 'Montage · trees'],
+        [12, 12.5, 'Montage · dogs'],
+        [12.5, 13, 'Montage · bread'],
+        [13, 13.5, 'Montage · rain'],
+        [13.5, 14, 'Montage · math'],
+        [14, 15, 'Montage · the stars'],
+        [15, 15.25, 'Montage · octopus'],
+        [15.25, 15.5, 'Montage · tea'],
+        [15.5, 15.75, 'Montage · flowers'],
+        [15.75, 16, 'Montage · cats'],
         [16, 18, 'Heart'],
         [18, 20, 'Flower · answers'],
         [20, 21, 'Exterior · arrival'],
@@ -44,7 +56,8 @@ Motion.scene({
 
     draw(g, t, env) {
         const shot = Motion.shotAt(this.shots, t);
-        Shots[shot.name](g, t, env, shot);
+        // montage cards share one drawer: 'Montage · words' → Shots['Montage']
+        (Shots[shot.name] ?? Shots[shot.name.split(' · ')[0]])(g, t, env, shot);
     },
 
     post(ctx, t, env) {

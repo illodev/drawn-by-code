@@ -76,22 +76,23 @@ const WL = (() => {
         }, 1.5).draw(g);
         if (o.flip) g.scale(-1, 1);
         const lines = o.text ?? [];
-        const size = o.size ?? h * 0.25;
+        // text size: given, or the largest that fits the longest line in 84 % of the width
+        const longest = lines.reduce((a, l) => (l.length > a.length ? l : a), '');
+        const size = o.size ?? Math.min(h * 0.3, (w * 0.84 * 100) / Math.max(1, textW(g, longest, 100)));
         if (lines.length) {
             const p = o.p ?? 1, total = lines.join('').length;
             let done = 0;
             g.save();
-            if (o.flip) {
-                // back side: the text shows through, mirrored and faded
-                g.scale(-1, 1);
-                g.globalAlpha = 0.28;
-            }
+            // back side: the text shows through, mirrored and faded (write() and
+            // markerStroke() set their own alpha, so it is passed to them explicitly)
+            const ink = o.flip ? 0.26 : 0.95;
+            if (o.flip) g.scale(-1, 1);
             lines.forEach((ln, i) => {
                 const lp = Math.max(0, Math.min(1, (p * total - done) / ln.length));
                 done += ln.length;
-                const lx = o.lineX?.[i] ?? -w / 2 + w * 0.14;
+                const lx = o.lineX?.[i] ?? -w / 2 + w * (i === 0 ? 0.16 : 0.08);
                 const ly = -h / 2 + h * (o.lineY?.[i] ?? (0.42 + i * 0.3));
-                write(g, ln, lx, ly, size, COL.ink, { p: lp });
+                write(g, ln, lx, ly, size, COL.ink, { p: lp, alpha: ink });
                 if (o.circle && i === 1 && ln.startsWith('you')) {
                     const cw = textW(g, 'you', size);
                     const u = o.circle;
@@ -101,22 +102,22 @@ const WL = (() => {
                             const a = Math.PI * 0.9 + (k / 40) * Math.PI * 2.15;
                             pts.push([lx + cw / 2 + Math.cos(a) * cw * 0.62, ly - size * 0.3 + Math.sin(a) * size * 0.46]);
                         }
-                        if (pts.length > 1) P.markerStroke(g, pts, '#d9533f', size * 0.09, 'circle' + seed, 0.9);
+                        if (pts.length > 1) P.markerStroke(g, pts, '#d9533f', size * 0.09, 'circle' + seed, ink);
                     }
                 }
             });
-            if (o.doodle) flowerDoodle(g, w * 0.3, h * 0.3, h * 0.1, o.doodle);
+            if (o.doodle) flowerDoodle(g, w * 0.3, h * 0.3, h * 0.1, o.doodle, ink);
             g.restore();
         }
         g.restore();
     }
 
     // little marker-drawn flower (the flower's signature on the note)
-    function flowerDoodle(g, x, y, r, p = 1) {
+    function flowerDoodle(g, x, y, r, p = 1, alpha = 0.9) {
         for (let k = 0; k < 10; k++) {
             if (k / 10 > p) break;
             const a = (k / 10) * Math.PI * 2;
-            P.markerStroke(g, [[x + Math.cos(a) * r * 0.3, y + Math.sin(a) * r * 0.3], [x + Math.cos(a) * r, y + Math.sin(a) * r]], '#d9533f', r * 0.14, 'doodle' + k, 0.9);
+            P.markerStroke(g, [[x + Math.cos(a) * r * 0.3, y + Math.sin(a) * r * 0.3], [x + Math.cos(a) * r, y + Math.sin(a) * r]], '#d9533f', r * 0.14, 'doodle' + k, alpha);
         }
     }
 
@@ -436,7 +437,7 @@ const WL = (() => {
     }
 
     // where a girl's hand ends up on screen (i: 0 left, 1 right), for props held in it
-    const girlHand = (pose, i, x = 530, y = 868, s = 0.74) => [x + ARMS[pose][i][2][0] * s, y + ARMS[pose][i][2][1] * s];
+    const girlHand = (pose, i, x = 510, y = 868, s = 0.9) => [x + ARMS[pose][i][2][0] * s, y + ARMS[pose][i][2][1] * s];
 
     return { COL, init, girlHand, get kit() { return kit; }, sprite, write, textW, note, flowerDoodle, plane, trail, star, plus, ticks, scribbleFill, flat, flower, girl, ARMS, hand, tube };
 })();

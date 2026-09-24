@@ -3,7 +3,7 @@
 //   node engine/reference.mjs sheets <video> [--every 0.25] [--from 0] [--to end] [--cols 7] [--cell 360] [--out dir]
 //       Contact sheets labelled with each frame's second → <out>/sheet-N.jpg
 //
-//   node engine/reference.mjs compare <scene.js> <video> [--times 1,2.5 | --every 1] [--cell 480] [--out f.jpg]
+//   node engine/reference.mjs compare <scene.js> <video> [--times 1,2.5 | --every 1] [--cell 480] [--crop x,y,w,h] [--out f.jpg]
 //       Reference (left) and scene (right) at the same instants, with the mean color
 //       difference of each pair (0 = identical, ~30 = similar, >60 = something else).
 //       Default → <scene>/review/compare.jpg and compare.md
@@ -26,8 +26,10 @@ function duration(video) {
     return m ? +m[1] * 3600 + +m[2] * 60 + +m[3] : 0;
 }
 // One frame of the reference at `t`, as a JPEG data URL `w` px wide.
-function refFrame(video, t, w) {
-    const r = spawnSync(ffmpeg, ['-v', 'error', '-ss', String(t), '-i', video, '-frames:v', '1', '-vf', `scale=${w}:-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '3', '-'], { maxBuffer: 1 << 26 });
+// crop: [x, y, w, h] as fractions of the frame, to look at details at full resolution.
+function refFrame(video, t, w, crop = null) {
+    const vf = (crop ? `crop=iw*${crop[2]}:ih*${crop[3]}:iw*${crop[0]}:ih*${crop[1]},` : '') + `scale=${w}:-2`;
+    const r = spawnSync(ffmpeg, ['-v', 'error', '-ss', String(t), '-i', video, '-frames:v', '1', '-vf', vf, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '3', '-'], { maxBuffer: 1 << 26 });
     if (r.status !== 0 || !r.stdout.length) return null;
     return 'data:image/jpeg;base64,' + r.stdout.toString('base64');
 }
@@ -126,15 +128,23 @@ if (cmd === 'sheets') {
     }
     const dir = path.dirname(path.resolve(scene));
     const out = opt.out ?? path.join(dir, 'review', 'compare.jpg');
-    const { page, info, close } = await openScene(scene, { size: cell * 2 });
+    // --crop x,y,w,h (fractions): compare a region (hands, faces) at full detail
+    const crop = opt.crop ? String(opt.crop).split(',').map(Number) : null;
+    const { page, info, close } = await openScene(scene, { size: crop ? Math.min(4320, Math.round(cell / crop[2])) : cell * 2 });
     const cells = [], rows = [];
     for (const t of times) {
         const i = Math.min(info.total - 1, Math.round(t * info.fps));
-        const ours = 'data:image/jpeg;base64,' + (await page.evaluate((i) => {
+        const ours = 'data:image/jpeg;base64,' + (await page.evaluate(([i, crop]) => {
             window.renderFrame(i);
-            return document.getElementById('c').toDataURL('image/jpeg', 0.9).split(',')[1];
-        }, i));
-        const ref = refFrame(video, t, cell);
+            const c = document.getElementById('c');
+            if (!crop) return c.toDataURL('image/jpeg', 0.9).split(',')[1];
+            const o = document.createElement('canvas');
+            o.width = Math.round(c.width * crop[2]);
+            o.height = Math.round(c.height * crop[3]);
+            o.getContext('2d').drawImage(c, -c.width * crop[0], -c.height * crop[1]);
+            return o.toDataURL('image/jpeg', 0.9).split(',')[1];
+        }, [i, crop]));
+        const ref = refFrame(video, t, cell, crop);
         const d = ref ? await diff(page, ref, ours) : NaN;
         rows.push([t, d]);
         const col = d < 30 ? '#8fe3b0' : d < 60 ? '#ffd23f' : '#ff7a7a';
@@ -142,7 +152,9 @@ if (cmd === 'sheets') {
     }
     await compose(page, cells, 4, cell, out);
     await close();
-    const mean = rows.reduce((s, [, d]) => s + d, 0) / rows.length;
+    // instants the reference doesn't have (past its end) are left out of the mean
+    const valid = rows.filter(([, d]) => Number.isFinite(d));
+    const mean = valid.reduce((s, [, d]) => s + d, 0) / Math.max(1, valid.length);
     const md = [`# Comparison with the reference · ${rel(scene)}`, '', `Reference: \`${path.basename(video)}\` · mean difference **${mean.toFixed(1)}** (0 = identical, <30 similar, >60 something else)`, '', '| Second | Difference |', '|---|---|', ...rows.map(([t, d]) => `| ${t.toFixed(2)} | ${d.toFixed(1)}${d >= 60 ? ' ⚠' : ''} |`), '', `![compare](${path.basename(out)})`, ''];
     fs.writeFileSync(out.replace(/\.jpg$/, '.md'), md.join('\n'));
     console.log(md.slice(0, 3).join('\n'));

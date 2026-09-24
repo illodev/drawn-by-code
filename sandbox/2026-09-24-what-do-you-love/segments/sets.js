@@ -48,7 +48,7 @@
         }, 1.2).draw(g);
         if (o.pinned) o.pinned(g);
         if (o.behind) o.behind(g);
-        WL.girl(g, o.girl?.x ?? 530, 868, o.girl?.s ?? 0.74, { t, ...o.girl });
+        WL.girl(g, o.girl?.x ?? 510, 868, o.girl?.s ?? 0.9, { t, ...o.girl });
         if (o.extra) o.extra(g);
         g.restore();
     };
@@ -169,7 +169,7 @@
         g.rect(98, 562, 360, 368);
         g.clip();
         g.translate(278 - 500, 746 - 500);
-        Sets.interior(g, t, env, { zoom: 0.38, cx: 500, cy: 560, ...o.window, girl: { pose: 'desk', eyes: 'up', ...o.girl } });
+        Sets.interior(g, t, env, { zoom: 0.52, cx: 500, cy: 640, ...o.window, girl: { pose: 'desk', eyes: 'up', ...o.girl } });
         g.restore();
         // windowsill
         WL.sprite('sill', { x: 40, y: 915, w: 480, h: 60 }, (c) => P.cutout(c, [[50, 925], [505, 925], [505, 958], [50, 958]], C.desk, 'sill', { border: 2, shadow: 0.3 }), 1.2).draw(g);
@@ -200,7 +200,7 @@
         WL.sprite('notepad', { x: -360, y: -250, w: 720, h: 500 }, (c) => {
             P.cutout(c, P.roundRect(-340, -225, 680, 470, 6), C.cover, 'cover', { border: 2.4, shadow: 0.3 });
         }, 1.2).draw(g);
-        if (o.sheet !== false) WL.note(g, 0, 10, 600, 400, 0, 'notepad-sheet', { torn: 0, text: ['what do', 'you love?'], p: o.p ?? 0, size: 118, lineX: [-190, -250], lineY: [0.36, 0.72] });
+        if (o.sheet !== false) WL.note(g, 0, 10, 600, 400, 0, 'notepad-sheet', { torn: 0, text: ['what do', 'you love?'], p: o.p ?? 0, size: 100, lineX: [-200, -262], lineY: [0.36, 0.7] });
         // spiral
         g.strokeStyle = '#8f95a6';
         g.lineWidth = 5;
@@ -217,7 +217,9 @@
     Sets.writingArm = (g, hx, hy, o = {}) => {
         const base = o.base ?? [1100, 1100];
         WL.tube(g, [base, [(base[0] + hx) / 2 + 40, (base[1] + hy) / 2 + 40], [hx + 30, hy + 30]], 95, C.sweater, 'writeArm');
-        WL.hand(g, hx + 18, hy + 18, 42);
+        // sleeve cuff and a fist around the pencil
+        Paper.markerStroke(g, [[hx + 55, hy + 70], [hx + 95, hy + 30]], C.sweaterDark, 34, 'cuff', 1);
+        WL.hand(g, hx + 22, hy + 16, 56);
         if (o.pencil !== false) Paper.markerStroke(g, [[hx - 6, hy + 4], [hx + 40, hy - 40]], '#3862b1', 14, 'writePencil', 1);
     };
 })();
