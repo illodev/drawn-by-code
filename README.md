@@ -54,34 +54,34 @@ how you made it too.
 ## Gallery
 
 **[saas-promo](sandbox/2026-09-24-saas-promo/)** · paper cutout · 50 s · [mp4](sandbox/2026-09-24-saas-promo/render/saas-promo.mp4)
-![saas-promo](sandbox/2026-09-24-saas-promo/render/strip.jpg)
+![saas-promo](sandbox/2026-09-24-saas-promo/render/saas-promo.gif)
 A marketing video for an invoicing product. A desk buried in paperwork is cleared block by
 block: invoices, expenses, collections, taxes, business, compliance. Built by parallel
 agents on one brief, with music and sound effects.
 
 **[what-do-you-love](sandbox/2026-09-24-what-do-you-love/)** · paper cutout · 28 s · [mp4](sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.mp4)
-![what-do-you-love](sandbox/2026-09-24-what-do-you-love/render/strip.jpg)
+![what-do-you-love](sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.gif)
 A 1:1 replica, made as a study, of [a paper-cutout video by Kevin Ngo](https://x.com/kevin_t_ngo/status/2102437977435893771)
 ([@kevin_t_ngo](https://x.com/kevin_t_ngo)). The original design and animation are his. It
 was measured drawing by drawing until the differences only show when zooming in (skill
 `replicate`). His video also inspired the first version of the saas-promo.
 
 **[exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/)** · five styles · 30 s · [mp4](sandbox/2026-09-24-exquisite-corpse/render/exquisite-corpse.mp4)
-![exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/render/strip.jpg)
+![exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/render/exquisite-corpse.gif)
 One object travels through five styles joined by transitions: paper, a 70s poster, liquid
 light, a kaleidoscope and line.
 
 **[clay3d-test](sandbox/2026-09-24-clay3d-test/)** · clay 3D · 4 s · [mp4](sandbox/2026-09-24-clay3d-test/render/clay3d-test.mp4)
-![clay3d-test](sandbox/2026-09-24-clay3d-test/render/strip.jpg)
+![clay3d-test](sandbox/2026-09-24-clay3d-test/render/clay3d-test.gif)
 A plasticine puppet raymarched in the browser: lumpy pressed-on pieces, matte clay and a
 studio sweep.
 
 **[fube-clay](sandbox/2026-09-24-fube-clay/)** · clay 2D · 6 s · [mp4](sandbox/2026-09-24-fube-clay/render/fube-clay.mp4)
-![fube-clay](sandbox/2026-09-24-fube-clay/render/strip.jpg)
+![fube-clay](sandbox/2026-09-24-fube-clay/render/fube-clay.gif)
 The saas-promo invoice block redone in 2D clay, as a style comparison.
 
 **[coffee-first](sandbox/2026-09-24-coffee-first/)** · paper cutout · 6 s · [mp4](sandbox/2026-09-24-coffee-first/render/coffee-first.mp4)
-![coffee-first](sandbox/2026-09-24-coffee-first/render/strip.jpg)
+![coffee-first](sandbox/2026-09-24-coffee-first/render/coffee-first.gif)
 The first style test: a sleepy mug wakes up.
 
 Every experiment, with its status and main lesson, is in [`sandbox/INDEX.md`](sandbox/INDEX.md).
@@ -140,7 +140,7 @@ skill guides the process: brief → script → style test → animatic → final
   - `tempo.mjs`: reads BPM and loudness;
   - `mix.mjs`: music plus effects, each aligned on the frame where you hear it;
   - `transitions.js`: transitions between styles;
-  - `strip.mjs`: the strips on this page.
+  - `strip.mjs` and `gif.mjs`: the strips and GIFs on this page.
 - **Skills** (`.claude/skills/`) hold the process and the taste:
   - `animate` (brief to MP4) and `review` (the critique loop);
   - `engine` and `sound`;

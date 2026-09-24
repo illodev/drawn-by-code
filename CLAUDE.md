@@ -17,7 +17,7 @@ inside videos is creative content and stays in whatever language the video needs
 | `.claude/skills/new-style/` | How to add a style |
 | `.claude/skills/transitions/` | Transitions between shots and between styles (`engine/transitions.js`) |
 | `.claude/skills/replicate/` | Copying a reference video 1:1: measure, per-drawing tables, element by element, parallel agents |
-| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `serve.mjs` |
+| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `gif.mjs`, `serve.mjs` |
 | `styles/<style>/` | Drawing kit, `template.js`, `README.md` and `strip.jpg` for each style |
 | `sandbox/` | One experiment per folder (`YYYY-MM-DD-name/`), indexed in `INDEX.md` |
 | `assets/sfx/`, `fonts/` | Freely licensed sound effects and fonts |
@@ -57,8 +57,8 @@ from measurements (`engine/reference.mjs`, skill **replicate**), never from gues
 - Deterministic scenes: no `Math.random`, `Date` or state carried between frames.
 - Committed: code, `brief.md`, `review.md`, `review/sheet.jpg`, `review/auto.md`, `audio.json`,
   and the latest render in `render/<name>.mp4` (re-encoded `-crf 26`, one file per
-  experiment, overwritten each round) with its `render/strip.jpg` (`engine/strip.mjs`), which
-  the README's gallery shows. Not committed: `out/` (full-quality MP4s, frames),
+  experiment, overwritten each round) with its `render/strip.jpg` (`engine/strip.mjs`) and
+  `render/<name>.gif` (`engine/gif.mjs`), which the README's gallery shows. Not committed: `out/` (full-quality MP4s, frames),
   `.wav`, keys, and third-party footage or audio (a reference video, a comparison with its
   frames, a render carrying the reference's soundtrack: commit it with `-an`).
 - Code, comments and docs in English, like the rest of the repo.

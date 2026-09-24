@@ -82,6 +82,7 @@ node engine/render.mjs sandbox/x/scene.js --size 1920     # MP4 → out/x.mp4
 node engine/render.mjs sandbox/x/scene.js --size 1080 --from 4 --to 8   # a segment
 node engine/mix.mjs sandbox/x/audio.json                  # mix.wav
 node engine/strip.mjs sandbox/x/render/x.mp4 sandbox/x/render/strip.jpg --at 1,3,5   # a film strip for READMEs
+node engine/gif.mjs sandbox/x/render/x.mp4 sandbox/x/render/x.gif --clips 2-6,10-14   # a looping GIF (< ~5 MB)
 # working against a reference video (replicas, style studies)
 node engine/reference.mjs sheets ref.mp4 --every 0.25      # labelled contact sheets
 node engine/reference.mjs compare sandbox/x/scene.js ref.mp4 --times 2,3.5 --crop 0.3,0.2,0.4,0.4

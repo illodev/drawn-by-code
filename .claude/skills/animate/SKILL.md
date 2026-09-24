@@ -122,6 +122,7 @@ loaded from `uses`.
    the previous round's; no third-party footage or audio in it (`-an` when the soundtrack
    is the reference's). Then its strip: `node engine/strip.mjs render/<name>.mp4
    render/strip.jpg --at <the moments that tell it>`; a new experiment gets a paragraph and
-   its strip in the README's gallery, a new style a `styles/<style>/README.md` and
+   its GIF in the README's gallery (`node engine/gif.mjs render/<name>.mp4 render/<name>.gif
+   --clips a-b,c-d`, under ~5 MB), a new style a `styles/<style>/README.md` and
    `strip.jpg` (see any style folder). Full-quality MP4s and frames (`out/`) are not
    committed; the contact sheet (`review/sheet.jpg`) is, it is the visual history.
