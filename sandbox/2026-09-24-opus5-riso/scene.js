@@ -57,7 +57,7 @@ Motion.scene({
     fps: 24,
     duration: 28,
     logical: [1000, 1000],
-    uses: ['styles/risograph/riso.js', ...['g1', 'g2', 'g3', 'g4', 'g5', 'g6'].map((u) => ({ src: DIR + 'cards/_' + u + '-util.js', optional: true })), ...CARD_NAMES.map((n) => ({ src: DIR + 'cards/' + n + '.js', optional: true }))],
+    uses: ['styles/risograph/riso.js', ...['g1', 'group2', 'g3', 'g4', 'g5', 'g6'].map((u) => ({ src: DIR + 'cards/_' + u + '-util.js', optional: true })), ...CARD_NAMES.map((n) => ({ src: DIR + 'cards/' + n + '.js', optional: true }))],
     fonts: [{ family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' }],
     audio: { mix: 'out/reference-audio.wav' }, // the reference's track, local only (never committed)
     shots: EDIT.slice(0, -1).map(([a, k, c], i) => [a, EDIT[i + 1][0], c ?? k]),
@@ -65,10 +65,13 @@ Motion.scene({
         return { press: Riso.press(env) };
     },
     draw(g, t, env) {
-        const { press } = env.state, d = Math.floor(t * 12 + 1e-6), tq = d / 12;
-        let i = EDIT.findIndex(([a]) => a > tq + 1e-6) - 1;
+        // cuts land on the frame (24 fps: the film cuts every 1/8 s, which is not on twos);
+        // motion inside a shot holds on twos, counted from the cut
+        const { press } = env.state, f = Math.floor(t * 24 + 1e-6), tf = f / 24;
+        let i = EDIT.findIndex(([a]) => a > tf + 1e-6) - 1;
         if (i < 0) i = EDIT.length - 2;
-        const [t0, kind, card, o = {}] = EDIT[i], lt = tq - t0, ld = Math.round(lt * 12);
+        const [t0, kind, card, o = {}] = EDIT[i];
+        const ld = Math.floor((tf - t0) * 12 + 1e-6), lt = ld / 12, d = i * 1000 + ld;
         press.begin(d);
         if (kind === 'sonar') sonar(press, lt, o);
         else if (kind === 'circle') circleCard(press, card, lt, ld, o);
@@ -277,10 +280,7 @@ function orbits(press, lt) {
     // 22.17–22.84: the flower grows at the centre, rings round it
     if (tq >= 4.17) {
         const s = Math.min(1, (tq - 4.17) / 0.25);
-        press.save();
-        press.each((g) => { g.translate(500, 500); g.scale(0.4 + 0.6 * s, 0.4 + 0.6 * s); g.translate(-500, -500); });
-        drawCard(press, 'flower', tq - 4.17);
-        press.restore();
+        drawCard(press, 'flower', tq - 4.12); // the card grows on its own (measured 22.12 → 22.45)
         Riso.ring(bp, 500, 500, 250 + (tq - 4.17) * 60, 5, 'fl1', { color: T(0.9) });
         Riso.ring(pp, 480, 520, 330 + (tq - 4.17) * 80, 4, 'fl2', { color: T(0.9) });
     }

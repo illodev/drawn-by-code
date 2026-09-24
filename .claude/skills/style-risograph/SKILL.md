@@ -5,8 +5,8 @@ description: Risograph style, in testing: scenes printed like a riso print, in f
 
 # Style · Risograph
 
-Status: **in testing**. Studied on `references/opus5-risograph.mp4` (a 1:1 study in
-`sandbox/2026-09-24-opus5-riso/`, the lighthouse card first).
+Status: **in testing**. Studied on `references/opus5-risograph.mp4`: a 1:1 study of the whole
+28 s film in `sandbox/2026-09-24-opus5-riso/` (43 cards, circles, mosaic, orbits, title).
 
 ## Code
 
@@ -39,6 +39,31 @@ Status: **in testing**. Studied on `references/opus5-risograph.mp4` (a 1:1 study
 - **White is paper:** highlights, arcs, waves are knockouts, not white ink.
 - **Motion on twos**, small: beams sweep, dots pop, circles draw on. The print texture is
   fixed; only the drawing changes.
+
+## Separations: what the study taught (six card agents, 42 cards)
+
+- **Inks only darken (multiply).** Anything light over something dark (yellow rays on a
+  blue sky, a pink line on navy, lava in a dark cone) needs the dark plates knocked out
+  under it first; adding more light ink does nothing.
+- **Dots on a dark ground:** pure pink dots on navy = clear the navy under each dot; a pink
+  screen over navy prints maroon.
+- **Riso black is navy + yellow** (olive-black); add blue for black-green; pink turns it
+  brown, keep it out unless the reference is brown.
+- **Nearer layers knock out what is behind them** before their tones (ranges, dunes,
+  flowers over leaves), or the screens pile up into mud.
+- **Coarse dots** (out-of-focus ghosts, big petal dots) are hand-set dots through a mask,
+  not a denser tone; features coarser than the screen can't come from the screen.
+- **Knockout lines ≥ 3 px**, wider than the misregistration, or they break into dashes.
+- **Randomness inside `press.knockout`**: create the rng inside the callback (it runs per
+  plate), or every plate gets different shapes.
+- **Measure colours on areas** (a 30 px mean, and a 2× crop to see which inks make it:
+  flat ground with clean dots, or dots over dots); a 5 px probe lands on a dot or a gap.
+- **Author in reference pixels** behind one scale (1000/1080 on every plate): every number
+  read off a 2× grid crop goes straight in. Fit ellipses/rings from colour-run scans.
+- **Re-inked repeats are a plate swap** (`print({ inks })`), mirrored ones a transform on
+  every plate (`press.each(g => g.transform(-1, 0, 0, 1, W, 0))`).
+- **Cuts land on frames, motion on twos:** the film cuts every 1/8 s (3 frames), which is
+  not on twos; pick the shot from the 24 fps frame and hold drawings from the cut.
 
 ## Style checklist
 
