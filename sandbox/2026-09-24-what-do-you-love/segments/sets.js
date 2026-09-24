@@ -77,9 +77,10 @@
         }, 1.1).draw(g);
         const r = Motion.rng('stars' + (o.key ?? ''));
         for (let i = 0; i < (o.stars ?? 16); i++) {
-            const x = r() * 1000, y = r() * 1000, tw = 0.8 + 0.2 * Math.sin(t * 5 + i * 2);
-            if (r() < 0.6) WL.star(g, x, y, 9 * tw, r() * 0.6);
-            else WL.plus(g, x, y, 7 * tw);
+            // stars twinkle on twos; 'o.starSize' for close shots
+            const x = r() * 1000, y = r() * 1000, tw = 0.85 + 0.15 * Math.sin(Math.floor(t * 12) * 1.7 + i * 2);
+            if (r() < 0.7) WL.star(g, x, y, (o.starSize ?? 9) * tw, r() * 0.6);
+            else WL.plus(g, x, y, (o.starSize ?? 9) * 0.7 * tw);
         }
     };
 

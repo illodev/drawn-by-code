@@ -44,19 +44,12 @@ const WL = (() => {
         g.lineWidth = size * (o.stroke ?? 0.05);
         g.globalAlpha = o.alpha ?? 0.95;
         if (o.halo) {
-            // felt-tip marker: a lighter, translucent rim round a solid core
-            // (o.marker: core stroke width in em, for thin fonts written with a fat marker)
-            g.strokeStyle = o.halo;
-            g.globalAlpha = (o.alpha ?? 1) * 0.85;
-            if (o.marker !== undefined) g.lineWidth = size * (o.marker + 0.035);
-            g.strokeText(text, x0, y);
-            g.globalAlpha = o.alpha ?? 0.95;
-            g.fillText(text, x0, y);
-            if (o.marker > 0) {
-                g.strokeStyle = color;
-                g.lineWidth = size * o.marker;
-                g.strokeText(text, x0, y);
-            }
+            // felt-tip marker: the glyph in the lighter rim colour, and inside it the glyph
+            // thinned (eroded by o.core em per side) in the ink colour
+            const m = g.getTransform(), k = Math.max(0.5, Math.min(6, Math.hypot(m.a, m.b)));
+            const img = markerGlyphs(text, size, o.font ?? 'Stack', o.spacing ?? 0, color, o.halo, o.core ?? 0.02, o.rim ?? 0.004, Math.ceil(k * 4) / 4);
+            g.globalAlpha = o.alpha ?? 1;
+            g.drawImage(img.c, x0 + img.ox, y + img.oy, img.w, img.h);
         } else {
             g.fillText(text, x0, y);
             if (g.lineWidth > 0) g.strokeText(text, x0, y);
@@ -65,6 +58,44 @@ const WL = (() => {
         }
         g.restore();
         return total;
+    }
+    // cached felt-tip lettering (see write): rendered at the drawing scale k
+    const glyphCache = new Map();
+    function markerGlyphs(text, size, font, spacing, color, halo, core, rim, k) {
+        const key = [text, size.toFixed(2), font, spacing, color, halo, core, rim, k].join('|');
+        if (glyphCache.has(key)) return glyphCache.get(key);
+        const pad = size * 0.6, mk = () => document.createElement('canvas');
+        const c = mk(), probe = c.getContext('2d');
+        probe.font = `${size}px "${font}"`;
+        probe.letterSpacing = `${spacing * size}px`;
+        const w = probe.measureText(text).width + pad * 2, h = size * 1.7;
+        const setup = (cv) => {
+            cv.width = Math.ceil(w * k);
+            cv.height = Math.ceil(h * k);
+            const q = cv.getContext('2d');
+            q.scale(k, k);
+            q.font = `${size}px "${font}"`;
+            q.letterSpacing = `${spacing * size}px`;
+            q.lineJoin = 'round';
+            q.lineCap = 'round';
+            return q;
+        };
+        const q = setup(c), bx = pad, by = size * 1.2;
+        q.fillStyle = q.strokeStyle = halo;
+        q.lineWidth = size * rim * 2;
+        q.fillText(text, bx, by);
+        if (rim > 0) q.strokeText(text, bx, by);
+        const cc = mk(), qc = setup(cc);
+        qc.fillStyle = color;
+        qc.fillText(text, bx, by);
+        qc.globalCompositeOperation = 'destination-out';
+        qc.lineWidth = size * core * 2;
+        qc.strokeText(text, bx, by);
+        q.setTransform(1, 0, 0, 1, 0, 0);
+        q.drawImage(cc, 0, 0);
+        const out = { c, ox: -bx, oy: -by, w: c.width / k, h: c.height / k };
+        glyphCache.set(key, out);
+        return out;
     }
     const textW = (g, text, size, font = 'Stack', spacing = 0) => ((g.font = `${size}px "${font}"`), (g.letterSpacing = `${spacing * size}px`), g.measureText(text).width);
 
@@ -144,7 +175,7 @@ const WL = (() => {
                 done += ln.length;
                 const lx = o.lineX?.[i] ?? -w / 2 + w * (i === 0 ? 0.16 : 0.08);
                 const ly = -h / 2 + h * (o.lineY?.[i] ?? (0.42 + i * 0.3));
-                write(g, ln, lx, ly, size, COL.ink, { p: lp, alpha: ink, halo: '#6389cb', font, spacing, marker: 0, sy: o.sy ?? 0.92 });
+                write(g, ln, lx, ly, size, COL.ink, { p: lp, alpha: ink, halo: '#6389cb', font, spacing, core: 0.012, rim: 0.003, sy: o.sy ?? 0.92 });
                 if (o.circle && i === 1 && ln.startsWith('you')) {
                     const cw = textW(g, 'you', size, font, spacing);
                     const u = o.circle;
@@ -154,7 +185,7 @@ const WL = (() => {
                             const a = Math.PI * 0.9 + (k / 40) * Math.PI * 2.15;
                             pts.push([lx + cw / 2 + Math.cos(a) * cw * 0.62, ly - size * 0.3 + Math.sin(a) * size * 0.46]);
                         }
-                        if (pts.length > 1) P.markerStroke(g, pts, '#d9533f', size * 0.09, 'circle' + seed, ink);
+                        if (pts.length > 1) P.markerStroke(g, pts, '#d65a45', size * 0.065, 'circle' + seed, ink);
                     }
                 }
             });
@@ -180,11 +211,21 @@ const WL = (() => {
     }
 
     // little marker-drawn flower (the flower's signature on the note)
+    // (a little spark of fat marker petals round a dot, drawn petal by petal with p)
     function flowerDoodle(g, x, y, r, p = 1, alpha = 0.9) {
-        for (let k = 0; k < 10; k++) {
-            if (k / 10 > p) break;
-            const a = (k / 10) * Math.PI * 2;
-            P.markerStroke(g, [[x + Math.cos(a) * r * 0.3, y + Math.sin(a) * r * 0.3], [x + Math.cos(a) * r, y + Math.sin(a) * r]], '#d9533f', r * 0.14, 'doodle' + k, alpha);
+        for (let k = 0; k < 9; k++) {
+            if (k / 9 > p) break;
+            const a = -Math.PI / 2 + (k / 9) * Math.PI * 2;
+            P.markerStroke(g, [[x + Math.cos(a) * r * 0.25, y + Math.sin(a) * r * 0.25], [x + Math.cos(a) * r * 0.95, y + Math.sin(a) * r * 0.95]], '#d9533f', r * 0.26, 'doodle' + k, alpha);
+        }
+        if (p >= 1) {
+            g.save();
+            g.globalAlpha = alpha;
+            g.fillStyle = '#c9412f';
+            g.beginPath();
+            g.arc(x, y, r * 0.28, 0, Math.PI * 2);
+            g.fill();
+            g.restore();
         }
     }
 
@@ -316,7 +357,8 @@ const WL = (() => {
         g.save();
         g.rotate(a);
         // the sprite is 120 long: scale it to exactly L (small, stepped changes → no boiling)
-        g.scale((L * R) / 120, (w / 0.21) * k2 * 0.95);
+        // short rays get a little slimmer too, or they read as blobs
+        g.scale((L * R) / 120, (w / 0.21) * k2 * 0.95 * Math.min(1, 0.45 + 0.7 * L));
         sp.draw(g);
         g.restore();
     }
@@ -336,11 +378,11 @@ const WL = (() => {
             // a wide fan: the side rays point slightly down; thin rays with gaps between them
             for (let k = 0; k < 9; k++) {
                 const a = -Math.PI - 0.32 + (k / 8) * (Math.PI + 0.64) + (r() - 0.5) * 0.1;
-                const L = (0.85 + r() * 0.28 + (k === 4 ? 0.15 : 0)) * ex * life(k);
-                rays.push([k, a, L, 0.13 + r() * 0.03]);
+                const L = (0.85 + r() * 0.28 + (k === 4 ? (o.crown ?? 0.15) : 0)) * ex * life(k);
+                rays.push([k, a, L, (0.13 + r() * 0.03) * (o.rayW ?? 1)]);
             }
             // legs: two short thick rays down, behind the note
-            for (const sd of [-1, 1]) rays.push([10 + sd, Math.PI / 2 - sd * 0.3, (o.legs ?? 1.62) * life(sd + 20), 0.2]);
+            for (const sd of [-1, 1]) rays.push([10 + sd, Math.PI / 2 - sd * (o.legSpread ?? 0.3), (o.legs ?? 1.62) * life(sd + 20), 0.2 * (o.rayW ?? 1)]);
         } else {
             for (let k = 0; k < 12; k++) {
                 const a = (o.rot ?? 0) + (k / 12) * Math.PI * 2 + (r() - 0.5) * 0.14 + Math.sin(t * 8 + k) * 0.03 * wig;
@@ -350,26 +392,46 @@ const WL = (() => {
                 rays.push([k, a, L * st, (0.14 + r() * 0.03) * (o.rayW ?? 1)]);
             }
         }
-        for (const [k, a, L, w] of rays) drawRay(g, k, a, L, w, R);
+        // o.frontArc: [from, to] angles (free pose) whose rays are drawn over o.note (a plane
+        // caught between two rays)
+        const inFront = ([, a]) => {
+            if (!o.frontArc || holding) return false;
+            const m = (x) => ((x % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+            const [f0, f1] = o.frontArc.map(m), am = m(a);
+            return f0 <= f1 ? am >= f0 && am <= f1 : am >= f0 || am <= f1;
+        };
+        for (const ray of rays) if (!inFront(ray)) drawRay(g, ray[0], ray[1], ray[2], ray[3], R);
         // arms (upper part) behind the note
         const arms = holding ? (o.arms ?? [[-0.5, 0.62], [0.5, 0.62]]) : [];
-        const elbows = arms.map(([hx, hy]) => [hx * 0.5, hy * 0.5]);
+        const elbows = o.elbows ?? arms.map(([hx, hy]) => [hx * 0.5, hy * 0.5]);
         arms.forEach(([hx, hy], i) => {
             const [ex_, ey_] = elbows[i];
-            drawRay(g, 30 + i, Math.atan2(ey_, ex_), Math.hypot(ex_, ey_) + 0.1, 0.18, R);
+            drawRay(g, 30 + i, Math.atan2(ey_, ex_), Math.hypot(ex_, ey_) + 0.1, 0.18 * (o.rayW ?? 1), R);
         });
         // body: a soft salmon blob under the face, without a paper edge
-        sprite('flower-body2', { x: -44, y: -44, w: 88, h: 88 }, (c) => {
-            P.cutout(c, PaperDetail.spline([[-30, -8], [-18, -30], [8, -32], [30, -14], [32, 12], [14, 30], [-12, 30], [-30, 14]], 6), COL.flower, 'fbody', { border: 0, shadow: 0, jag: 0.6, tex: { alpha: [0.25, 0.5] } });
-        }, 3).draw((g.save(), g.scale(R / 100, R / 100), g));
-        g.restore();
-        g.save();
-        g.rotate(o.faceTilt ?? 0);
-        face(g, R * (o.face ?? 1), o);
-        g.restore();
+        const bodyAndFace = () => {
+            sprite('flower-body2', { x: -44, y: -44, w: 88, h: 88 }, (c) => {
+                P.cutout(c, PaperDetail.spline([[-30, -8], [-18, -30], [8, -32], [30, -14], [32, 12], [14, 30], [-12, 30], [-30, 14]], 6), COL.flower, 'fbody', { border: 0, shadow: 0, jag: 0.6, tex: { alpha: [0.25, 0.5] } });
+            }, 3).draw((g.save(), g.scale(R / 100, R / 100), g));
+            g.restore();
+            g.save();
+            g.rotate(o.faceTilt ?? 0);
+            face(g, R * (o.face ?? 1), o);
+            g.restore();
+        };
+        bodyAndFace();
         g.restore();
         // the note, then forearms and round hands in front of it
         if (o.note) o.note(g);
+        if (o.frontArc && !holding) {
+            g.save();
+            g.translate(x, y);
+            g.rotate((o.tilt ?? 0) + Math.sin(t * 30) * 0.04 * wig);
+            for (const ray of rays) if (inFront(ray)) drawRay(g, ray[0], ray[1], ray[2], ray[3], R);
+            // the face stays on top of everything
+            bodyAndFace();
+            g.restore();
+        }
         if (holding) {
             g.save();
             g.translate(x, y);
@@ -379,13 +441,13 @@ const WL = (() => {
                 const a = Math.atan2(hy - ey_, hx - ex_), L = Math.hypot(hx - ex_, hy - ey_);
                 g.save();
                 g.translate(ex_ * R, ey_ * R);
-                drawRay(g, 32 + i, a, L, 0.2, R);
+                drawRay(g, 32 + i, a, L, 0.2 * (o.rayW ?? 1), R);
                 g.restore();
                 // the hand: a round mitt of its own, gripping the corner
                 const mitt = sprite('flower-mitt' + i, { x: -30, y: -30, w: 60, h: 60 }, (c) => P.cutout(c, PaperDetail.spline([[-20, -8], [-10, -20], [8, -21], [21, -8], [20, 10], [6, 20], [-10, 19], [-21, 7]], 5), COL.flower, 'mitt' + i, { border: 2.4, shadow: 0.2, tex: { alpha: [0.25, 0.5] } }), 3);
                 g.save();
                 g.translate(hx * R, hy * R);
-                g.scale(R / 150, R / 150);
+                g.scale((R / 150) * (o.mitt ?? 1), (R / 150) * (o.mitt ?? 1));
                 mitt.draw(g);
                 g.restore();
             });
@@ -453,6 +515,13 @@ const WL = (() => {
             g.ellipse(0.4, 13.2, 4.2, 3.2, 0, 0, Math.PI * 2);
             g.fill();
             g.restore();
+        } else if (m === 'wavy') {
+            // unsure: a little zigzag
+            g.beginPath();
+            g.moveTo(-5.5, 8.5);
+            g.quadraticCurveTo(-2.75, 5.5, 0, 8.5);
+            g.quadraticCurveTo(2.75, 11.5, 5.5, 8.5);
+            g.stroke();
         } else if (m === 'think') {
             g.beginPath();
             g.moveTo(-3, 9);

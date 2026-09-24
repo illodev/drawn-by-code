@@ -273,88 +273,176 @@ const Shots = {};
     };
 
     // ------------------------------------------------------------------ 7–7.5
-    const FL = [470, 420, 330]; // the flower in the close sky shots: x, y, R
-    const skyClose = (g, t, env) => Sets.sky(g, t, env, { key: 'close', bands: [[250, 150, C.band], [520, 160, C.band2]], stars: 12 });
+    // Close sky (7–10 s, 18–20 s), measured: three bands with torn white tops.
+    const skyClose = (g, t, env, key = 'close') => Sets.sky(g, t, env, { key, bands: [[270, 290, '#272b64'], [560, 520, '#323a7e']], stars: 24, starSize: 13 });
+    // The flower's close-up look: bigger face, fatter rays than the wide shots
+    const CLOSE = { face: 1, rayW: 1.35, spread: 0.3, crown: 0 };
+    const FACES = { oo: ['open', 'o'], os: ['open', 'smile'], cs: ['closed', 'smile'], ct: ['closed', 'think'], cw: ['closed', 'wavy'], hs: ['happy', 'smile'], hg: ['happy', 'grin'] };
+    // 7–7.5: the plane hits her lower-left rays and she catches it between them.
+    // One row per drawing: [face x, face y, R, expression, plane x, y, rotation, impact ticks]
+    const CATCH = [
+        [452, 421, 355, 'oo', 262, 600, -0.62, 1],
+        [461, 420, 335, 'oo', 282, 603, -0.75, 1],
+        [473, 422, 320, 'oo', 305, 612, -1.0, 0],
+        [471, 424, 318, 'os', 350, 700, 1.9, 0],
+        [469, 425, 330, 'os', 408, 712, 1.72, 0],
+        [471, 427, 330, 'os', 420, 712, 1.62, 0],
+    ];
     Shots['Flower · catch'] = (g, t, env) => {
         skyClose(g, t, env);
-        const hit = t >= 7.12;
-        if (!hit) {
-            const u = E.in(E.seg(t, 7.0, 7.12));
-            WL.flower(g, FL[0], FL[1], FL[2], { t, rot: 0.1, mouth: 'o' });
-            WL.plane(g, E.lerp(150, 380, u), E.lerp(820, 600, u), 2.2, -0.75);
-        } else {
-            const holdPlane = t < 7.32;
-            WL.flower(g, FL[0], FL[1], FL[2], {
-                t, pose: 'holding', mouth: 'o', wiggle: E.bump(t, 7.12, 0.2), arms: [[-0.3, 0.75], [0.3, 0.75]], excite: 1.1,
-                note: (gg) => (holdPlane ? WL.plane(gg, FL[0], FL[1] + 280, 2.4, -Math.PI / 2) : WL.note(gg, FL[0], FL[1] + 280, 330 * E.out(E.seg(t, 7.32, 7.5)) + 40, 260, 0, 'flower-note', { torn: 1 })),
-            });
-        }
+        const d = Math.min(5, Math.floor((t - 7) * 12 + 1e-6));
+        const [fx, fy, R, ex, px, py, prot, ticks] = CATCH[d];
+        const [eyes, mouth] = FACES[ex];
+        if (ticks) WL.ticks(g, px - 10, py + 40, 95, 135, 9, 0.9, '#f0dc8a', 0.4);
+        WL.flower(g, fx, fy, R, {
+            t: 7 + d / 12, ...CLOSE, eyes, mouth, rot: 0.08,
+            frontArc: [1.9, 2.5], note: (gg) => WL.plane(gg, px, py, 3.6, prot),
+        });
     };
 
-    // ------------------------------------------------------------------ 7.5–10
+    // 7.5–10: she unfolds the note, reads it, thinks, gets it («!»), and hugs it contentedly
+    // (her rays shrink). One row per drawing: [face x, face y, expression, ray excite, note
+    // bottom, note width]. Between events she bobs in a 3-drawing cycle (squash, up, up).
+    const READS = [];
+    {
+        const expr = (t) => (t < 7.83 ? 'oo' : t < 7.99 ? 'os' : t < 8.49 ? 'cs' : t < 8.74 ? 'ct' : t < 8.99 ? 'cw' : t < 9.24 ? 'oo' : t < 9.49 ? 'hg' : 'hs');
+        for (let d = 0; d < 30; d++) {
+            const t = 7.5 + d / 12, cyc = d % 3;
+            let fy = cyc === 0 ? 421 : 408, ex = cyc === 0 ? 0.88 : 1, bottom = 905, fx = 471;
+            if (t >= 8.74 && t < 8.99) (fx = 490, (fy = 392));
+            if (t >= 8.99 && t < 9.24) ((fy = 396), (ex = 1.12), (bottom = 893));
+            if (t >= 9.24) {
+                const k = Math.floor((t - 9.25) * 4 + 1e-6); // three steps of 0.25 s: each shrinks
+                fy = [431, 443, 456][k];
+                bottom = [812, 824, 835][k];
+                ex = [[0.8, 0.9, 0.9], [0.62, 0.7, 0.7], [0.46, 0.54, 0.54]][k][cyc];
+            }
+            READS.push([fx, fy, expr(t), ex, bottom, t < 7.66 ? 275 : 425]);
+        }
+    }
+    const NOTE_H = 345;
     Shots['Flower · reads'] = (g, t, env) => {
         skyClose(g, t, env);
-        // camera eases back and the flower bounces at the end
-        const back = E.inOut(E.seg(t, 9.1, 9.6));
-        const R = E.lerp(FL[2], 300, back), cy = E.lerp(FL[1], 400, back) - Math.abs(Math.sin((t - 9.1) * 10)) * 20 * back + Math.sin(t * 3) * 10;
-        const thinking = t >= 7.95 && t < 9.0, eureka = t >= 9.0, surprised = t >= 9.0 && t < 9.2;
-        // the note finishes unfolding: narrow and tall at 7.5, full width by 7.8
-        const unfold = E.out(E.seg(t, 7.5, 7.8));
-        const noteY = cy + R * 0.9, noteW = R * E.lerp(0.62, 1.34, unfold), noteH = R * 1.0;
-        WL.flower(g, FL[0], cy, R, {
-            t, pose: 'holding', arms: [[-0.64, 0.42], [0.64, 0.42]], tilt: Math.sin(t * 2.5) * 0.03,
-            excite: 1 + 0.2 * E.bump(t, 8.95, 0.35) - 0.2 * E.seg(t, 9.3, 9.6),
-            eyes: thinking ? 'closed' : surprised ? 'open' : eureka ? 'happy' : 'open', mouth: thinking ? 'think' : surprised ? 'o' : eureka ? 'smile' : 'o', wiggle: eureka ? E.bump(t, 9.0, 0.3) : 0,
-            note: (gg) => WL.note(gg, FL[0], noteY, noteW, noteH, 0.01, 'flower-note2', { torn: 1, text: ['what do', 'you love?'], p: E.seg(t, 7.72, 7.8), lineY: [0.42, 0.74] }),
+        const d = Math.min(READS.length - 1, Math.floor((t - 7.5) * 12 + 1e-6));
+        const [fx, fy, ex, excite, bottom, nw] = READS[d];
+        const [eyes, mouth] = FACES[ex];
+        const R = 305, top = bottom - NOTE_H, nx = 468;
+        // arms reach the note's top corners; legs end just below the note
+        const arms = [[(nx - nw / 2 + 22 - fx) / R, (top + 12 - fy) / R], [(nx + nw / 2 - 22 - fx) / R, (top + 12 - fy) / R]];
+        const opened = nw > 300;
+        const size = (334 * 100) / WL.textW(g, 'what do', 100, 'Hand', 0.05);
+        WL.flower(g, fx, fy, R, {
+            t: 7.5 + d / 12, ...CLOSE, pose: 'holding', eyes, mouth, excite, arms, mitt: 0.72,
+            legs: (bottom + 40 - fy) / R, legSpread: 0.36,
+            note: (gg) => WL.note(gg, nx, bottom - NOTE_H / 2, nw, NOTE_H, 0.005, opened ? 'flower-note3' : 'flower-note-folded', opened
+                ? { torn: 1, text: ['what do', 'you love?'], p: 1, size, lineX: [-163, -196], lineY: [0.44, 0.76] }
+                : { torn: 1 }),
         });
-        // thought bubbles, then «!»
-        for (let k = 0; k < 3; k++) {
-            const u = E.out(E.seg(t, 8.2 + k * 0.15, 8.4 + k * 0.15)) * (1 - E.seg(t, 8.95, 9.0));
-            if (u <= 0) continue;
-            g.fillStyle = C.flower;
-            g.beginPath();
-            g.arc(FL[0] + R * (0.75 + k * 0.22), cy - R * (0.55 + k * 0.28), (10 + k * 7) * u, 0, Math.PI * 2);
-            g.fill();
+        // the pen stroke seen through the folded note, and flashes as it opens
+        if (!opened) P.markerStroke(g, [[510, 862], [532, 858], [546, 866]], '#3f66b8', 6, 'fold-mark', 0.9);
+        if (t < 7.75) for (const s of [-1, 1]) for (let k = 0; k < 3; k++) {
+            const x0 = nx + s * (nw / 2 + 22), y0 = 690 + k * 70;
+            P.markerStroke(g, [[x0, y0 + (k - 1) * 8 * s * 0], [x0 + s * 38, y0 + (k - 1) * 14]], '#f3e7c4', 5, 'nflash' + s + k, 0.9);
         }
-        if (eureka && t < 9.22) {
-            const u = E.back(E.seg(t, 9.0, 9.15));
-            g.save();
-            g.translate(FL[0] + R * 1.05, cy - R * 0.6);
-            g.scale(u, u);
-            P.markerStroke(g, [[0, -60], [0, 10]], '#d9473b', 22, 'excl', 1);
-            g.fillStyle = '#d9473b';
-            g.beginPath();
-            g.arc(0, 45, 12, 0, Math.PI * 2);
-            g.fill();
+        // thought bubbles: three salmon dots, smallest first, while she thinks
+        const DOTS = [[686, 194, 12, 7.99], [748, 132, 18, 8.16], [817, 58, 30, 8.33]];
+        if (t >= 7.99 && t < 8.99) for (const [x, y, r, at] of DOTS) {
+            if (t < at) continue;
+            const grow = t - at < 0.09 ? 0.7 : 1;
+            WL.sprite('tdot' + r, { x: -r - 6, y: -r - 6, w: 2 * r + 12, h: 2 * r + 12 }, (c) => P.cutout(c, P.ellipse(0, 0, r, r), C.flower, 'tdot' + r, { border: 0, shadow: 0.1, jag: 0.5, tex: { alpha: [0.25, 0.5] } }), 2)
+                .draw((g.save(), g.translate(x, y), g.scale(grow, grow), g));
             g.restore();
-            WL.ticks(g, FL[0], cy, R * 1.15, R * 1.45, 12, E.bump(t, 9.0, 0.4), C.star, 0.1);
         }
+        // «!» and a burst of ticks and sparkles when she gets it
+        if (t >= 8.99 && t < 9.24) {
+            P.markerStroke(g, [[903, 104], [899, 246]], '#d9473b', 27, 'excl2', 1);
+            WL.sprite('excl-dot', { x: -20, y: -20, w: 40, h: 40 }, (c) => P.cutout(c, P.ellipse(0, 0, 14, 14), '#d9473b', 'excldot', { border: 0, shadow: 0, jag: 0.5 }), 2).draw((g.save(), g.translate(895, 290), g));
+            g.restore();
+            WL.ticks(g, fx, fy, 400, 445, 14, 0.9, '#f0dc8a', 0.2);
+            WL.plus(g, 217, 240, 14, '#f0dc8a');
+            WL.plus(g, 118, 760, 10, '#f0dc8a');
+        }
+        if (t >= 9.24 && t < 9.74) (WL.plus(g, 861, 181, 22, '#f0dc8a'), WL.plus(g, 153, 593, 12, '#f0dc8a'));
     };
 
     // ------------------------------------------------------------------ 18–20
+    // Her answer, drawing by drawing: she holds the note up, hugs it and turns it round (in
+    // perspective), shows the back (the question shows through, «you» circled, signed with a
+    // little flower), folds it into a plane and throws it down to the town.
+    // [face x, y, excite, expression, note]
+    //   note: ['front'] | ['flip', u] | ['back', circle, doodle] | ['fold', shape] | ['throw', x, y, rot] | ['gone']
+    const ANSWER = [
+        [505, 462, 1, 'os', ['front']], [507, 462, 1, 'os', ['front']], [508, 461, 1, 'os', ['front']], [506, 473, 0.95, 'os', ['front']],
+        [502, 465, 1.12, 'hs', ['front']], [507, 459, 1.12, 'hs', ['front']],
+        [494, 476, 1, 'hs', ['flip', 0.14]], [502, 462, 1, 'hs', ['flip', 0.27]], [506, 472, 1, 'os', ['flip', 0.38]],
+        [510, 470, 1, 'os', ['back', 1, 0]], [512, 469, 1, 'os', ['back', 1, 0.5]], [508, 460, 1, 'os', ['back', 1, 1]],
+        [513, 486, 0.95, 'cs', ['fold', 'sheet']], [509, 470, 1, 'cs', ['fold', 'flaps']], [515, 481, 0.95, 'cs', ['fold', 'house']],
+        [515, 486, 0.95, 'os', ['fold', 'plane']], [507, 470, 1, 'os', ['fold', 'plane']],
+        [510, 437, 1.1, 'hg', ['throw', 720, 222, -0.8]], [476, 506, 1, 'oo', ['throw', 400, 740, 2.3]], [482, 496, 1, 'oo', ['throw', 320, 805, 2.2]],
+        [477, 498, 1, 'os', ['throw', 240, 900, 2.15]], [493, 514, 1, 'os', ['throw', 200, 985, 2.1]], [506, 485, 1, 'hs', ['gone']], [503, 488, 1, 'hs', ['gone']],
+    ];
     Shots['Flower · answers'] = (g, t, env) => {
-        Sets.sky(g, t, env, { key: 'answer', bands: [[240, 140, C.band], [470, 140, C.band2]], stars: 12 });
-        moon(g, 150, 110, 0.9);
-        const R = 230, fx = 480, fy = 420;
-        const flip = E.inOut(E.seg(t, 18.35, 18.7)); // 0 front … 1 back
-        const folded = t >= 18.95, thrown = t >= 19.4;
-        if (!thrown) {
-            // the answer: circle «you», sign it with a little flower, turn the note over (in
-            // perspective), fold it into a plane
-            const circleP = E.seg(t, 18.05, 18.3), doodleP = E.seg(t, 18.15, 18.3);
-            const heldNote = (gg) => {
-                if (folded) return WL.plane(gg, fx, fy + R * 0.95, 2.4, -Math.PI / 2);
-                const o = { torn: 1, text: ['what do', 'you love?'], p: 1, size: 52, lineX: [-95, -125], lineY: [0.42, 0.74], circle: flip > 0 ? 1 : Math.round(circleP * 8) / 8, doodle: flip > 0 ? 1 : Math.round(doodleP * 8) / 8 };
-                if (flip <= 0) WL.note(gg, fx, fy + R * 0.95, 290, 220, 0, 'answer-note', o);
-                else WL.noteFlip(gg, fx, fy + R * 0.95, 290, 220, flip, 'answer-note', o);
-            };
-            WL.flower(g, fx, fy, R, { t, pose: 'holding', arms: [[-0.6, 0.5], [0.6, 0.5]], eyes: t < 18.3 ? 'open' : 'happy', mouth: 'smile', wiggle: E.bump(t, 18.3, 0.3), note: heldNote });
+        skyClose(g, t, env, 'answer');
+        moon(g, 150, 162, 0.7);
+        const d = Math.min(ANSWER.length - 1, Math.floor((t - 18) * 12 + 1e-6));
+        const [fx, fy, excite, ex, note] = ANSWER[d];
+        const [eyes, mouth] = FACES[ex];
+        const R = 228, kind = note[0], tt = 18 + d / 12;
+        const NW = 325, NH = 256;
+        const text = { torn: 1, text: ['what do', 'you love?'], p: 1, size: (250 * 100) / WL.textW(g, 'what do', 100, 'Hand', 0.05), lineX: [-125, -144], lineY: [0.42, 0.74] };
+        if (kind === 'front' || kind === 'flip' || kind === 'back') {
+            const back = kind === 'back', flip = kind === 'flip';
+            const cx = 500, top = back ? 659 : 534, nw = back ? 300 : NW;
+            // arms to the note's top corners (hanging lower and wider once it is turned round)
+            const arms = back ? [[(cx - 170 - fx) / R, (top + 20 - fy) / R], [(cx + 180 - fx) / R, (top + 30 - fy) / R]]
+                : flip ? [[(337 - fx) / R, (547 - fy) / R], [(625 - fx) / R, (578 - fy) / R]]
+                    : [[(cx - nw / 2 + 20 - fx) / R, (top + 18 - fy) / R], [(cx + nw / 2 - 20 - fx) / R, (top + 18 - fy) / R]];
+            WL.flower(g, fx, fy, R, {
+                t: tt, ...CLOSE, pose: 'holding', eyes, mouth, excite, arms, mitt: flip ? 0.9 : 0.72,
+                legs: flip ? 1.1 : back ? 1.45 : (top + NH - 30 - fy) / R, legSpread: flip ? 0.75 : back ? 0.22 : 0.26,
+                note: (gg) => {
+                    if (flip) {
+                        gg.save();
+                        // (the answer is on the back: the front turns without the circle)
+                        gg.translate(495, 640 + (note[1] > 0.3 ? 90 : 0));
+                        gg.rotate(-0.08);
+                        WL.noteFlip(gg, 0, 0, NW, NH, note[1], 'answer-note2', text);
+                        gg.restore();
+                    } else if (back) WL.note(gg, cx, top + NH / 2, nw, NH, 0.01, 'answer-back', { ...text, flip: true, circle: note[1], doodle: note[2] });
+                    else WL.note(gg, cx, top + NH / 2, NW, NH, 0, 'answer-front', text);
+                },
+            });
+            if (flip) {
+                // the legs grip the note's bottom corners as she turns it
+                for (const [x, y] of [[350, 678], [612, 715]]) WL.sprite('flower-mitt0', { x: -30, y: -30, w: 60, h: 60 }, () => {}, 3).draw((g.save(), g.translate(x, y), g.scale(R / 150 * 1.1, R / 150 * 1.1), g));
+                for (let i = 0; i < 2; i++) g.restore();
+            }
+        } else if (kind === 'fold') {
+            // the folded paper, small and upright, mittens at its bottom corners
+            const kx = 0.62, k = 0.43, cx = 497, top = 590, shape = note[1];
+            WL.flower(g, fx, fy, R, {
+                t: tt, ...CLOSE, pose: 'holding', eyes, mouth, excite, mitt: 0.72,
+                arms: [[(cx - 105 - fx) / R, (top + 205 - fy) / R], [(cx + 105 - fx) / R, (top + 205 - fy) / R]], legs: 1.3,
+                elbows: [[(cx - 150 - fx) / R, (top + 20 - fy) / R], [(cx + 150 - fx) / R, (top + 20 - fy) / R]],
+                note: (gg) => {
+                    gg.save();
+                    gg.translate(cx, top + 0.5 * 576 * k);
+                    gg.scale(kx, k);
+                    gg.translate(-500, -500);
+                    WL.sprite('folded-' + shape, { x: 290, y: 190, w: 420, h: 620 }, (c) => foldedPaper(c, shape), 1.4).draw(gg);
+                    gg.restore();
+                },
+            });
+            if (shape === 'house' || shape === 'plane') for (const sd of [-1, 1]) for (let j = 0; j < 2; j++) P.markerStroke(g, [[cx + sd * 110, 640 + j * 90], [cx + sd * 140, 628 + j * 90]], '#f3e7c4', 4, 'foldtick' + sd + j, 0.85);
         } else {
-            WL.flower(g, fx, fy, R, { t, rot: 0.15, mouth: 'o', wiggle: E.bump(t, 19.4, 0.3) });
-            const u = E.in(E.seg(t, 19.4, 19.95));
-            const x = E.lerp(fx - 100, 120, u), y = E.lerp(fy + 250, 1050, u);
-            WL.trail(g, [[fx - 100, fy + 250], [x, y]]);
-            WL.plane(g, x, y, 2 - u, 2.2);
+            WL.flower(g, fx, fy, R * 1.05, { t: tt, ...CLOSE, eyes, mouth, excite, rot: 0.15 });
+            // the thrown plane and its dashed trail back to her hands
+            if (kind === 'throw') {
+                const [, x, y, rot] = note;
+                if (d > 17) WL.trail(g, [[430, 640], [x + 20, y - 30]]);
+                WL.plane(g, x, y, 3, rot);
+                if (d === 17) WL.ticks(g, x, y, 60, 90, 6, 0.9, '#f3e7c4', -1.2);
+            } else WL.trail(g, [[430, 640], [180, 1020]]);
         }
     };
 
@@ -380,13 +468,31 @@ const Shots = {};
 
     // ------------------------------------------------------------------ 21–22
     Shots['Interior · reads'] = (g, t, env) => {
-        const open = E.out(E.seg(t, 21.1, 21.45));
+        // she unfolds the plane in two steps (measured: 125 wide, then 166, open at 21.5 s)
+        const d = Math.floor((t - 21) * 12 + 1e-6), stage = d < 3 ? 0 : d < 6 ? 1 : 2;
         Sets.interior(g, t, env, {
-            girl: { pose: 'note', eyes: 'open', look: [0, 0.6], mouth: t > 21.65 ? 'o' : 'smile' },
+            girl: { pose: 'note', eyes: 'open', look: [0, 0.6], mouth: t > 21.66 ? 'o' : 'smile' },
             extra: (gg) => {
                 const [lx, ly] = WL.girlHand('note', 0), [rx] = WL.girlHand('note', 1);
-                const w = E.lerp(80, rx - lx + 60, open);
-                WL.note(gg, (lx + rx) / 2, ly - 60, w, 210, 0, 'girl-note', { torn: 1, flip: true, text: ['what do', 'you love?'], p: open > 0.6 ? 1 : 0, size: 50, lineX: [-100, -130], lineY: [0.42, 0.74], circle: 1, doodle: 1 });
+                const cx = (lx + rx) / 2;
+                if (stage < 2) {
+                    const w = stage ? 166 : 125, h = 236, key = stage ? 'unfold-half' : 'unfold-plane';
+                    WL.sprite(key, { x: -w / 2 - 10, y: -h / 2 - 10, w: w + 20, h: h + 20 }, (c) => {
+                        const pts = stage ? [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]] : [[0, -h / 2], [w / 2, -h / 2 + 40], [w / 2, h / 2], [-w / 2, h / 2], [-w / 2, -h / 2 + 40]];
+                        P.cutout(c, pts, C.paper, key, { border: 1.8, paper: '#fffdf6', shadow: 0.2, jag: 0.5, tex: { alpha: [0.12, 0.3] }, inner: (cc) => {
+                            cc.strokeStyle = C.rule;
+                            cc.lineWidth = 1.6;
+                            for (let y = -h / 2 + 30; y < h / 2; y += 32) (cc.beginPath(), cc.moveTo(-w / 2, y), cc.lineTo(w / 2, y), cc.stroke());
+                        } });
+                        P.markerStroke(c, [[0, -h / 2 + 6], [0, h / 2 - 6]], '#8f8a92', 2, key + 'crease', 0.8);
+                        P.markerStroke(c, [[-14, 62], [14, 58]], '#3f66b8', 4, key + 'mark', 0.9);
+                    }, 2).draw((gg.save(), gg.translate(cx, ly - 55), gg));
+                    gg.restore();
+                } else {
+                    WL.note(gg, cx, ly - 60, rx - lx + 60, 250, 0, 'girl-note3', { torn: 1, flip: true, text: ['what do', 'you love?'], p: 1, size: 70, lineX: [-122, -150], lineY: [0.4, 0.72], circle: 1, doodle: 1 });
+                }
+                // her hands on the paper's sides
+                for (const [hx, sd] of [[cx - (stage === 0 ? 70 : stage === 1 ? 90 : (rx - lx) / 2 + 30), -1], [cx + (stage === 0 ? 70 : stage === 1 ? 90 : (rx - lx) / 2 + 30), 1]]) WL.hand(gg, hx, ly - 30, 22, sd * 0.3, 'fist', sd < 0);
             },
         });
     };
@@ -395,8 +501,11 @@ const Shots = {};
     Shots['Note · close'] = (g, t, env) => {
         WL.flat(g, env, 'note-wall', C.wall);
         const shake = Math.sin(t * 30) * 0.004;
-        WL.note(g, 500, 470, 760, 560, -0.015 + shake, 'close-note', { torn: 1, text: ['what do', 'you love?'], p: 1, size: 132, lineX: [-250, -325], lineY: [0.4, 0.72], circle: 1, doodle: 1 });
-        WL.ticks(g, 728, 668, 40, 70, 10, 0.5 + 0.4 * Math.sin(t * 16), '#d9473b');
+        // measured: 'what do' spans 561 units; the signature flower sparkles on twos
+        const size = (561 * 100) / WL.textW(g, 'what do', 100, 'Hand', 0.05);
+        WL.note(g, 493, 496, 736, 569, -0.025 + shake, 'close-note2', { torn: 1, text: ['what do', 'you love?'], p: 1, size, lineX: [-271, -340], lineY: [0.415, 0.733], circle: 1, doodle: 1 });
+        const tw = Math.floor(t * 12) % 2;
+        WL.ticks(g, 752, 683, 62, 88, 8, tw ? 0.9 : 0.6, '#d9533f', tw * 0.4);
         for (const s of [-1, 1]) {
             WL.tube(g, [[500 + s * 620, 1150], [500 + s * 520, 990], [500 + s * 400, 840]], 110, C.sweater, 'closeArm' + s);
             WL.hand(g, 500 + s * 388, 830, 55, -s * 0.6, 'pinch', s < 0);

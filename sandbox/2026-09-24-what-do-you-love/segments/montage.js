@@ -119,7 +119,7 @@
         g.save();
         g.translate(500, base);
         g.rotate(tilt);
-        WL.write(g, word, 0, 0, size, col, { p, align: 'center', font: 'Hand', spacing: 0.05, sy: 0.92, marker: -0.012, halo: PaperDetail.shade(col, col === '#2b2530' ? 14 : col === '#74314c' ? 10 : -10) });
+        WL.write(g, word, 0, 0, size, col, { p, align: 'center', font: 'Hand', spacing: 0.05, sy: 0.92, core: 0.02, rim: 0, halo: PaperDetail.shade(col, col === '#2b2530' ? 14 : col === '#74314c' ? 10 : -10) });
         g.restore();
     };
 
