@@ -21,22 +21,31 @@ CARDS.campfire = (press, t) => {
         // blue + less pink + yellow dots on the reference's 9.7 px screen at 48°
         const LY = { o: [535.52, 138.25], a: [6.447, 7.273], b: [-7.231, 6.482] };
         blue.fillStyle = T(1); blue.fillRect(0, 0, 1080, 800);
-        pink.fillStyle = T(0.62); pink.fillRect(0, 0, 1080, 800);
-        navy.fillStyle = T(0.12); navy.fillRect(0, 0, 1080, 800);
+        pink.fillStyle = T(0.55); pink.fillRect(0, 0, 1080, 800);
         U.screen(yel, 'yellow', LY, (m) => { m.fillStyle = T(0.32); m.fillRect(0, 0, 1080, 800); });
-        const trunks = [[-10, 102], [126, 142], [188, 258], [280, 322], [398, 428], [624, 652], [710, 756], [878, 950], [1000, 1090]];
+        // dark dots between the yellow ones in the lit gaps (navy on the same screen, offset half a cell)
+        const LYn = { o: [535.52 + 0.5 * (6.447 - 7.231), 138.25 + 0.5 * (7.273 + 6.482)], a: LY.a, b: LY.b };
+        U.screen(navy, 'navy', LYn, (m) => { m.fillStyle = T(0.3); m.fillRect(0, 0, 1080, 800); });
+        // trunks from column means (y 0–500): 'n' navy (navy solid, a little blue), 'p' purple
+        // (pink + blue solids)
+        const trunks = [[-10, 100, 'n'], [125, 145, 'n'], [190, 245, 'p'], [280, 325, 'n'], [395, 430, 'n'], [630, 650, 'n'], [705, 755, 'p'], [880, 950, 'n'], [1000, 1090, 'n']];
         const rt = Motion.rng('cf-tr');
-        for (const [a, b] of trunks) {
+        for (const [a, b, kind] of trunks) {
             const ph = rt() * 6, L = [], Rr = [], foot = 740 + rt() * 40;
             for (let y = -10; y <= foot; y += 40) { const u = (y + 10) / (foot + 10), wob = Math.sin(y / 85 + ph) * 3; L.push([a - u * u * 10 + wob, y]); Rr.push([b + u * u * 10 + wob * 0.6, y]); }
             const tr = [...L, ...Rr.reverse()];
-            U.cut([yel], (g) => { g.beginPath(); U.trace(g, tr); g.fill(); });
-            U.fill(pink, tr, T(0.3));
-            U.fill(navy, tr, T(0.2));
-            U.clipped(navy, tr, false, (g) => U.blotch(g, 'cf-bl' + a, [a, 0, b, foot], 4, 30, 70, 0.1, 0.3));
-            // a red glow at the foot of the trunks near the fire (pink dots + yellow)
+            U.cut([yel, navy, pink, blue], (g) => { g.beginPath(); U.trace(g, tr); g.fill(); });
+            if (kind === 'n') { U.fill(navy, tr, T(1)); U.fill(blue, tr, T(0.45)); }
+            else { U.fill(pink, tr, T(0.97)); U.fill(blue, tr, T(1)); }
+            U.clipped(kind === 'n' ? blue : navy, tr, false, (g) => U.blotch(g, 'cf-bl' + a, [a, 0, b, foot], 4, 30, 70, 0.2, 0.5));
+            // a red glow at the foot of the trunks near the fire (yellow)
             U.clipped(yel, tr, false, (g) => { g.fillStyle = R.ramp(g, 0, foot - 200, 0, foot, 0, 0.5); g.fillRect(0, 0, 1080, 1080); });
         }
+        // the print's grit over the forest: voids in the navy and pink (blue specks), specks
+        U.grit(navy, [0, 0, 1080, 800], { out: true, p: 0.15, a: 0.6, seed: 1 });
+        U.grit(pink, [0, 0, 1080, 800], { out: true, p: 0.22, a: 0.6, seed: 2 });
+        U.grit(blue, [0, 0, 1080, 800], { out: true, p: 0.08, a: 0.8, seed: 3, cell: 1.8 });
+        U.grit(navy, [0, 0, 1080, 800], { p: 0.15, a: 0.7, seed: 4 });
         // the clearing: yellow round the fire, green dots (blue on yellow) outward, navy dots at the rim
         const gl = [];
         for (let x = -10; x <= 1090; x += 30) gl.push([x, 735 + 25 * (x / 1080) + 6 * Math.sin(x / 60)]);
@@ -122,5 +131,10 @@ CARDS.campfire = (press, t) => {
             U.stroke(yel, pts, 3.2, T(1));
             if (rs() < 0.5) U.stroke(pink, pts, 2.2, T(0.7));
         }
+        // grit over the whole print: pinholes in every ink and a few stray specks
+        U.grit(pink, [0, 500, 1080, 1080], { out: true, p: 0.18, a: 0.7, seed: 11 });
+        U.grit(yel, [0, 500, 1080, 1080], { out: true, p: 0.12, a: 0.6, seed: 12 });
+        U.grit(navy, [0, 780, 1080, 1080], { out: true, p: 0.2, a: 0.7, seed: 13 });
+        U.grit(pink, [0, 0, 1080, 1080], { p: 0.04, a: 0.8, seed: 14 });
     });
 };

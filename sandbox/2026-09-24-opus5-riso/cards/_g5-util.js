@@ -168,5 +168,36 @@ var G5 = G5 || (() => {
         g.fill();
         g.restore();
     };
-    return { trace, smooth, fill, stroke, clipped, glow, speckle, blob, px, band, erase, brush, soft, hatch, blotch, cut, inks, screen };
+    // Grit: the print's fine noise. Measured at 3× the reference's flat inks are never flat:
+    // they mottle at 2–4 px with pinholes and specks (the gate reads «too clean» at a texture
+    // ratio of 0.3–0.5 without it). grit(g, box, o) paints a fixed noise of specks (cells of
+    // o.cell px, a fraction o.p of them, alpha o.a) over the box in the current transform:
+    // o.out = true punches voids (destination-out) instead of adding ink. Clip beforehand.
+    const gritCache = {};
+    const gritPat = (g, cell, p, seed) => {
+        const key = cell + ':' + p + ':' + seed;
+        if (!gritCache[key]) {
+            const n = 96, c = document.createElement('canvas'); c.width = n * cell; c.height = n * cell;
+            const x = c.getContext('2d'), r = Motion.rng('grit' + key);
+            for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+                if (r() > p) continue;
+                x.fillStyle = `rgba(0,0,0,${0.35 + 0.65 * r()})`;
+                const w = cell * (0.6 + r() * 0.9), h = cell * (0.6 + r() * 0.9);
+                x.fillRect(i * cell + r() * cell * 0.5, j * cell + r() * cell * 0.5, w, h);
+            }
+            gritCache[key] = c;
+        }
+        return g.createPattern(gritCache[key], 'repeat');
+    };
+    const grit = (g, box, o = {}) => {
+        const [x0, y0, x1, y1] = box ?? [0, 0, 1080, 1080];
+        g.save();
+        if (o.out) g.globalCompositeOperation = 'destination-out';
+        g.globalAlpha = o.a ?? 0.5;
+        g.fillStyle = gritPat(g, o.cell ?? 2.2, o.p ?? 0.25, o.seed ?? 0);
+        g.translate((o.seed ?? 0) * 37 % 211, (o.seed ?? 0) * 53 % 197);
+        g.fillRect(x0 - 250, y0 - 250, x1 - x0 + 250, y1 - y0 + 250);
+        g.restore();
+    };
+    return { trace, smooth, fill, stroke, clipped, glow, speckle, blob, px, band, erase, brush, soft, hatch, blotch, cut, inks, screen, grit };
 })();
