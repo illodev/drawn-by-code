@@ -24,3 +24,32 @@
 - `compare --every 0.5`: 17.1 over the whole film. review.mjs flags flashes (> 3/s at
   12–16 and 23–24 s): that is the original's rhythm, kept in the study.
 - Not committed: the reference, its audio, the side-by-side (out/).
+
+## Round 3 · the detail pass (in progress)
+
+User: «falta ir al detalle … su imagen tiene como un filtro de ruido que el nuestro no se nota
+… nuestra medusa no sale … Los animales les falta detalles. A los círculos les faltan las
+ondas … Debería ser regla general.»
+
+Done (on main):
+- `engine/detail.mjs`, the detail gate, mandatory before showing anything (CLAUDE.md). Colour
+  at a 12 px blur (over a halftone pitch), limits median ≤ 8, p90 ≤ 27, calibrated on the
+  approved what-do-you-love replica; texture at 4 px, clean ≤ 6 %, busy ≤ 12 %.
+- Press: paper fibres and cloud, no confetti, voids per ink, inks re-measured on the film
+  (pink [240,76,183], yellow [255,250,55], blue [58,146,197], navy [32,56,146]).
+- Sonar, orbits (call and answer), the orbits' finale with the flower, and the night:
+  rebuilt from per-frame measurements. Sonar passes the gate; the orbits pass on colour.
+- Edit: shots cut on frame numbers; the re-inked run from 15.0 cuts every 2 frames; the
+  repeats have measured ink maps and push-ins (`o.zoom`); the pink run starts at 23.0.
+- Cards get `lf` (frame inside the shot) for per-frame camera pushes.
+- G2, G3 and G6 first passes merged (hand-set screens on measured lattices, many pieces added).
+
+Still to do (no card passes yet, first-showing medians ≈ 11–25):
+- Second passes per group, driven by an element audit (ref | ours at full size, list every
+  element, gradient and line missing or flattened, draw each). Notes sent: savanna (glow,
+  birds, ragged trees, murmuration haze), hummingbird (lemon glow, speck ghost wings),
+  turntable (bigger platter, streaked wedges), sunflower (spiral seeds), wave (curl lines).
+- G1 (owl, bell, lighthouse, wolf, koi, grasshopper, jellyfish), G4 (whale … balloons) and
+  G5 (cello … chimes) first passes: in their worktree branches, to merge.
+- Ink maps of the pink run for whale…lightning (G4) and the frogs/wave/cat repeat zooms.
+- Then: gate on the whole film (`--every 1`), render, GIF, strip, INDEX, commit, show.
