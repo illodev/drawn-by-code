@@ -10,8 +10,9 @@ var BRAND = {
     },
     copy: {
         date: 'Date', dateValue: '2026-06-04', item: 'Item', price: 'Amount',
+        base: 'Subtotal', baseValue: '2,890.00', tax: 'VAT 21%', taxValue: '606.90', notes: 'Notes', payNote: 'Payment by bank transfer · due 07/04/2026',
         newInvoice: 'New invoice', client: 'Client', clientName: 'Acme Ltd', total: 'Total',
-        amount: '2,890.00', issue: 'Issue', invoice: 'INVOICE', number: 'F-0118',
+        amount: '3,496.90', issue: 'Issue', invoice: 'INVOICE', number: 'F-0118',
         office: 'TAX', issued: 'Issued in 30 seconds', compliance: 'Compliance built in',
         lines: [['Design', '1,450.00'], ['Printing', '980.00'], ['Delivery', '460.00']],
     },

@@ -36,13 +36,38 @@ const Shots = {};
     // printed invoice peels off the screen towards the camera.
     Shots.issue = (g, lt, env) => {
         const d = drawing(lt);
-        kitOf().paperBg(g, 'issue-bg', '#2a2833');
+        // the room behind the laptop, big and a touch dimmed (we are leaning in)
+        g.save();
+        g.translate(800, 300);
+        g.scale(1.7, 1.7);
+        g.translate(-900, -330);
+        Office.back(g, lt);
+        g.restore();
+        g.fillStyle = 'rgba(40,30,45,0.28)';
+        g.fillRect(-50, -50, 1700, 1000);
         const push = 1 + 0.02 * E.inOut(E.seg(lt, 0, 2));
         g.save();
         g.translate(800, 470);
         g.scale(push, push);
         g.translate(-800, -470);
+        g.save();
+        g.translate(800, 450);
+        g.scale(0.9, 0.9);
+        g.translate(-800, -450);
         Props.screen(g);
+        // life on the laptop: sticky notes on the bezel, a sticker, the keyboard below
+        kitOf().sprite('bezel-life', { x: 60, y: 0, w: 1480, h: 1000 }, (c) => {
+            const note = (x, y, w, h, col, rot, seed, lines) => {
+                const pts = [[0, 0], [w, 2], [w - 2, h], [2, h - 2]].map(([px, py]) => [x + px * Math.cos(rot) - py * Math.sin(rot), y + px * Math.sin(rot) + py * Math.cos(rot)]);
+                P.cutout(c, pts, col, seed, { border: 2, shadow: 0.25, inner: (cc, box) => D.cursive(cc, { x: box.x + 10, y: box.y + 6, w: box.w - 20, h: lines * 22 }, '#5a4a52', { seed, lineH: 22, xh: 6, hw: 4, width: 1.3, alpha: 0.7 }) });
+            };
+            note(92, 150, 110, 104, '#f3d56b', -0.12, 'bz1', 3);
+            note(1400, 520, 104, 98, '#9ad0b8', 0.1, 'bz2', 3);
+            note(1398, 110, 96, 90, '#f0a28e', 0.06, 'bz3', 2);
+            P.cutout(c, P.ellipse(1450, 830, 30, 30, 32), BRAND.col.brand, 'bzsticker', { border: 2.4, shadow: 0.2 });
+            Props.mark(c, 1450, 832, 0.36, 'bz');
+        }, 1.2).draw(g);
+        g.restore();
         const press = lt >= 1.0 && lt < 1.25 ? 1 : 0;
         Props.button(g, press);
         if (lt >= 1.0 && lt < 1.34) kitOf().sprite('press-ticks', { x: -200, y: -120, w: 400, h: 240 }, (c) => {
@@ -54,7 +79,7 @@ const Shots = {};
         }, 1.4).draw((g.save(), g.translate(Props.BUTTON.x, Props.BUTTON.y), g));
         if (lt >= 1.0 && lt < 1.34) g.restore();
         // the pointing hand: in from the bottom right on twos, pressing on the beat
-        const HAND = [[1500, 1120], [1450, 1040], [1400, 980], [1362, 940], [1340, 918], [1330, 906], [1326, 900], [1324, 902], [1322, 910], [1322, 910], [1326, 904], [1340, 918]];
+        const HAND = [[1500, 1160], [1450, 1080], [1400, 1020], [1362, 980], [1340, 958], [1330, 946], [1326, 940], [1324, 942], [1322, 950], [1322, 950], [1326, 944], [1340, 958]];
         const [hx, hy] = HAND[Math.min(HAND.length - 1, d)];
         if (lt < 1.9) {
             const sleeve = [[hx + 40, hy + 60]];

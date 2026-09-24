@@ -652,7 +652,7 @@ const Office = (() => {
                     const cw = (x1 - x0 - 24) / 7, first = (page * 3 + 1) % 7, days = [30, 31, 31, 30][page % 4];
                     cc.textAlign = 'center';
                     cc.font = '9px "Hand"';
-                    'MTWTFSS'.split('').forEach((d, i) => ((cc.fillStyle = i === 6 ? COL.coral : COL.grey), cc.fillText(d, x0 + 12 + cw * (i + 0.5), y0 + 148)));
+                    (BRAND.copy.weekdays ?? 'MTWTFSS').split('').forEach((d, i) => ((cc.fillStyle = i === 6 ? COL.coral : COL.grey), cc.fillText(d, x0 + 12 + cw * (i + 0.5), y0 + 148)));
                     cc.font = '11px "Hand"';
                     const circled = [4, 15, 20, 30][page % 4];
                     for (let d = 1; d <= days; d++) {

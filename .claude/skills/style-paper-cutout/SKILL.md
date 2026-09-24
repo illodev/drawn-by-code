@@ -110,6 +110,14 @@ until a full-resolution crop of it could pass for the reference (or for a finish
   full of objects, pinboard), a mid layer (the working surface crowded with the tools of
   the trade, each in pieces) and a front layer (something big at the frame edge). A few
   props spread over a flat colour reads as «five things in an empty space».
+- **Every flat surface wears a printed or textured paper** (wallpaper motif, wood grain,
+  cork speckle, handwriting): a plain marker field is what reads as «empty». Zones kept free
+  for the action stay calm (wallpaper + one quiet object), not bare.
+- **Close-ups keep the world around them:** a screen or a document filling the frame
+  still shows the room behind (big, a touch dimmed) and life on its edges (sticky notes,
+  a sticker); a flat dark field around it reads as a slide.
+- **No `destination-out` inside a cached set sprite:** it cuts through everything painted
+  before it in that sprite. Paint holes as a dark fill with a torn rim.
 - **Original pieces need a reference too:** with no film to copy, build against the best
   traced piece in the repo (the replica's fist, its interior) or a real photo, and crop
   both side by side before calling it done.

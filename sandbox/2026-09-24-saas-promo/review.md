@@ -26,3 +26,16 @@ neck. `review.mjs`: no warnings.
 Diagnosis: with no reference to measure against I stopped at «it reads». The detail bar
 applies to original pieces too: build them against a reference (the replica's traced fist,
 real photos of desks) and fill the frame in depth.
+
+## Style test · round 3 (auto, after the detail pass)
+
+- Hands rebuilt in `PaperDetail.hand` (separate fingers, nails, knuckles, thumb with web,
+  8 poses, held objects between `part: 'back'` and `'front'`); Laura rests hers on the desk.
+- The office rebuilt as a full set in three depths (`segments/office.js`): wallpaper,
+  window with a collage town, curtains, a full shelf, cork board, clock, calendar with real
+  pages, bookcase, chair; lamp, papers, notebook, laptop, pen cup, phone, letter tray on the
+  desk; mug with steam, big leaves and a paper stack in front.
+- The screen close-up keeps the room behind it, sticky notes on the bezel, base/VAT/total
+  and a payment note on the form (both on the client's site).
+- Plane darker against the cream wall; calendar months and weekdays from the brand copy.
+- `review.mjs`: no warnings.

@@ -78,13 +78,17 @@ const Props = (() => {
             c.fillStyle = 'rgba(40,30,40,0.08)';
             c.fillRect(34, y + 12, W - 68, 1.5);
         });
+        print(c, cp.base, W - 200, 350, 13, col.grey);
+        print(c, cp.baseValue, W - 34, 350, 13, col.ink, { mono: true, align: 'right' });
+        print(c, cp.tax, W - 200, 368, 13, col.grey);
+        print(c, cp.taxValue, W - 34, 368, 13, col.ink, { mono: true, align: 'right' });
         // total on a coral band
         c.fillStyle = col.brand;
         c.globalAlpha = 0.14;
-        c.fillRect(30, 364, W - 60, 46);
+        c.fillRect(30, 376, W - 60, 42);
         c.globalAlpha = 1;
-        print(c, cp.total, 44, 395, 18, col.ink, { weight: 700 });
-        print(c, cp.amount, W - 44, 395, 20, col.brand, { weight: 700, mono: true, align: 'right' });
+        print(c, cp.total, 44, 404, 18, col.ink, { weight: 700 });
+        print(c, cp.amount, W - 44, 404, 20, col.brand, { weight: 700, mono: true, align: 'right' });
         // the QR slot: dashed box until the stamp lands
         if (o.qr) qr(c, 34, 440, 96, 'invoice');
         else {
@@ -169,13 +173,30 @@ const Props = (() => {
                         cc.fillStyle = 'rgba(40,30,40,0.1)';
                         cc.fillRect(x + 310, yy + 20, 940, 2);
                     });
-                    print(cc, cp.total, x + 900, y + 600, 24, cl.ink, { weight: 700 });
-                    print(cc, cp.amount, x + 1230, y + 600, 30, cl.brand, { weight: 700, mono: true, align: 'right' });
+                    // base and tax, then the total
+                    print(cc, cp.base, x + 900, y + 572, 18, cl.grey);
+                    print(cc, cp.baseValue, x + 1230, y + 572, 18, cl.ink, { mono: true, align: 'right' });
+                    print(cc, cp.tax, x + 900, y + 604, 18, cl.grey);
+                    print(cc, cp.taxValue, x + 1230, y + 604, 18, cl.ink, { mono: true, align: 'right' });
+                    cc.fillStyle = 'rgba(40,30,40,0.18)';
+                    cc.fillRect(x + 900, y + 620, 330, 2);
+                    print(cc, cp.total, x + 900, y + 656, 24, cl.ink, { weight: 700 });
+                    print(cc, cp.amount, x + 1230, y + 656, 30, cl.brand, { weight: 700, mono: true, align: 'right' });
+                    // notes field with the payment details
+                    print(cc, cp.notes, x + 310, y + 548, 16, cl.grey);
+                    cc.fillStyle = '#ffffff';
+                    cc.fillRect(x + 310, y + 560, 520, 110);
+                    cc.strokeStyle = 'rgba(40,30,40,0.22)';
+                    cc.lineWidth = 2;
+                    cc.strokeRect(x + 310, y + 560, 520, 110);
+                    print(cc, cp.payNote, x + 326, y + 596, 17, cl.ink);
+                    cc.fillStyle = 'rgba(40,30,40,0.12)';
+                    for (let k = 0; k < 2; k++) cc.fillRect(x + 326, y + 616 + k * 22, 300 - k * 90, 7);
                 },
             });
         }, 1.1).draw(g);
     }
-    const BUTTON = { x: 1180, y: 740, w: 210, h: 74 };
+    const BUTTON = { x: 1180, y: 784, w: 210, h: 74 };
     function button(g, press = 0) {
         const { x, y, w, h } = BUTTON, cl = col();
         const b = sprite('issue-button', { x: -w / 2 - 12, y: -h / 2 - 12, w: w + 24, h: h + 24 }, (c) => {
@@ -239,10 +260,10 @@ const Props = (() => {
     function plane(g, x, y, s, rot) {
         const cl = col();
         const sp = sprite('invoice-plane', { x: -110, y: -60, w: 220, h: 120 }, (c) => {
-            cut(c, [[100, 0], [-96, -46], [-70, -4]], D.shade(cl.paper, -6), 'plane-far', { border: 1.6, shadow: 0.12 });
-            cut(c, [[100, 0], [-70, -4], [-96, 12], [-60, 10]], D.shade(cl.paper, -14), 'plane-body', { border: 1.4, shadow: 0.1 });
+            cut(c, [[100, 0], [-96, -46], [-70, -4]], D.shade(cl.paper, -16), 'plane-far', { border: 1.6, shadow: 0.3 });
+            cut(c, [[100, 0], [-70, -4], [-96, 12], [-60, 10]], D.shade(cl.paper, -26), 'plane-body', { border: 1.4, shadow: 0.3 });
             cut(c, [[100, 0], [-60, 10], [-100, 50]], cl.paper, 'plane-near', {
-                border: 1.8, shadow: 0.2,
+                border: 1.8, shadow: 0.35,
                 inner: (cc) => {
                     cc.fillStyle = 'rgba(40,30,40,0.25)';
                     for (let k = 0; k < 4; k++) cc.fillRect(-60 + k * 8, 18 + k * 7, 70 - k * 12, 2);
