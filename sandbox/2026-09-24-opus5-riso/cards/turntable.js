@@ -10,7 +10,7 @@ CARDS.turntable = (press, t, lf) => {
     const yellow = P('yellow'), yellowS = P('yellow', 'screen'), pink = P('pink'), pinkS = P('pink', 'screen');
     const blue = P('blue'), blueS = P('blue', 'screen'), navy = P('navy'), navyS = P('navy', 'screen');
     const d = Math.floor(t * 12 + 1e-6), spin = d * 0.09; // the record turns a little per drawing
-    const CX = 462, CY = 588, RP = 466, RR = 442; // platter centre, platter and record radii
+    const CX = 450, CY = 588, RP = 468, RR = 444; // rim fitted on frame 176 (outer circle (449, 588) r 472 after the 0.8 % push) // platter centre, platter and record radii
     const LX = 450, LY = 590; // the label (the spindle sits a little left of the platter centre)
     // the camera pushes in ≈ 0.4 % a frame about (560, 560) px (frames 174 → 179: × 1.02)
     const f = lf ?? 2 * d + 0.5, zs = 1 + 0.004 * f;
