@@ -41,9 +41,9 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
         press.knockout((g) => { g.beginPath(); U.smooth(g, cloud); g.fill(); });
         // purple-navy: pink and blue overprinted, a little navy
         // (the right half of the cloud is plain navy: measured n 1, p 0 at (900, 80))
-        const lr = (g, v0, v1) => { const gr = g.createLinearGradient(640, 0, 820, 0); gr.addColorStop(0, T(v0)); gr.addColorStop(1, T(v1)); return gr; };
-        U.fill(P, cloud, lr(P, 0.88, 0.4), true);
-        U.fill(B, cloud, lr(B, 0.95, 0.2), true);
+        const lr = (g, v0, v1) => { const gr = g.createLinearGradient(560, 0, 700, 0); gr.addColorStop(0, T(v0)); gr.addColorStop(1, T(v1)); return gr; };
+        U.fill(P, cloud, lr(P, 0.88, 0.45), true);
+        U.fill(B, cloud, lr(B, 0.95, 0.3), true);
         U.fill(N, cloud, lr(N, 0.3, 1), true);
         // lighter purple lobes (more pink, less navy) and pink specks
         U.clipped(P, cloud, true, (g) => { for (const [x, y, rx, ry, v] of [[300, 90, 150, 80, 0.55], [720, 110, 190, 100, 0.12], [620, 370, 140, 55, 0.35], [470, 300, 70, 70, 0.3], [880, 60, 90, 60, 0.3]]) { g.save(); g.translate(x, y); g.scale(1, ry / rx); U.glow(g, 0, 0, rx, v, 0); g.restore(); } });
@@ -51,12 +51,14 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
         // the cloud's lower lobe over the crater is dotted: pink dots through the blue and navy
         const lobe = [[430, 300], [520, 290], [640, 300], [760, 300], [800, 340], [770, 385], [720, 420], [680, 440], [630, 470], [575, 468], [520, 440], [470, 408], [438, 360]];
         U.cut([P, B, N], (g) => { g.beginPath(); U.smooth(g, lobe); g.fill(); });
-        U.clipped(N, lobe, true, (g) => { const gr = g.createLinearGradient(0, 330, 0, 470); gr.addColorStop(0, T(0.95)); gr.addColorStop(1, T(0)); g.fillStyle = gr; g.fillRect(400, 280, 420, 200); });
-        U.cut([N], (g) => U.screen(g, 'navy', LP, (m) => U.clipped(m, lobe, true, (c) => { c.fillStyle = T(0.5); c.fillRect(400, 280, 420, 200); })));
+        // measured: purple (pink 0.7–0.9, blue 0.4, navy 0.5) turning orange at its foot
+        const vg = (g, stops) => { const gr = g.createLinearGradient(0, 300, 0, 470); for (const [s, v] of stops) gr.addColorStop(s, T(v)); g.fillStyle = gr; g.fillRect(400, 280, 420, 200); };
+        U.clipped(N, lobe, true, (g) => vg(g, [[0, 0.9], [0.6, 0.55], [1, 0.25]]));
+        U.cut([N], (g) => U.screen(g, 'navy', LP, (m) => U.clipped(m, lobe, true, (c) => { c.fillStyle = T(0.4); c.fillRect(400, 280, 420, 200); })));
+        U.clipped(P, lobe, true, (g) => vg(g, [[0, 0.45], [1, 0.6]]));
         U.screen(P, 'pink', LP, (m) => U.clipped(m, lobe, true, (c) => { c.fillStyle = T(0.45); c.fillRect(400, 280, 420, 200); }));
-        U.clipped(B, lobe, true, (g) => { const gr = g.createLinearGradient(0, 330, 0, 470); gr.addColorStop(0, T(0.4)); gr.addColorStop(1, T(0)); g.fillStyle = gr; g.fillRect(400, 280, 420, 200); });
-        // under the lobe's thinning ground the glow shows through
-        for (const g of [Y, P]) U.clipped(g, lobe, true, (c) => { const gr = c.createLinearGradient(0, 360, 0, 470); gr.addColorStop(0, T(0)); gr.addColorStop(1, T(0.95)); c.fillStyle = gr; c.fillRect(400, 280, 420, 200); });
+        U.clipped(B, lobe, true, (g) => vg(g, [[0, 0.45], [0.7, 0.35], [1, 0.1]]));
+        U.clipped(Y, lobe, true, (g) => vg(g, [[0, 0], [0.55, 0.05], [1, 0.5]]));
         // an orange plume rising from the crater into the lobe
         press.knockout((g) => U.brush(g, [[676, 470], [680, 420], [684, 370], [686, 330]], (s) => 16 * (1 - s * 0.7), '#000', 'vpl', { taper: 0.1 }));
         for (const g of [P, Y]) U.brush(g, [[676, 470], [680, 420], [684, 370], [686, 330]], (s) => 16 * (1 - s * 0.7), T(1), 'vpl', { taper: 0.1 });
@@ -67,7 +69,7 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
         press.knockout((g) => { g.beginPath(); U.trace(g, cone); g.fill(); });
         U.fill(P, cone, T(0.88));
         U.fill(B, cone, T(0.95));
-        U.fill(N, cone, T(0.2));
+        U.fill(N, cone, T(0.36));
         U.clipped(B, cone, false, (g) => U.blotch(g, 'vcb', [0, 700, 1080, 1080], 14, 40, 110, 0.15, 0.4));
         U.clipped(P, cone, false, (g) => U.speckle(g, 'vco', 200, 0, 620, 1080, 1080, 0.8, 1.8, T(1)));
         // a magenta light along the left slope
@@ -145,6 +147,13 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
             const g = rs() < 0.5 ? Y : P;
             U.brush(g, [[x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], 3, T(1), 'vsp' + k, { taper: 0.3 });
         }
+        // the print's grit: pinholes and specks in every ink (the reference's flats mottle at 2–4 px)
+        // (balanced: voids and as many specks, so the mean tone stays as measured)
+        U.grit(N, [0, 0, 1080, 1080], { out: true, p: 0.1, a: 0.7, seed: 21 });
+        U.grit(N, [0, 0, 1080, 1080], { p: 0.1, a: 0.7, seed: 26 });
+        U.grit(B, [0, 0, 1080, 1080], { out: true, p: 0.08, a: 0.7, seed: 22 });
+        U.grit(P, [0, 0, 1080, 1080], { out: true, p: 0.08, a: 0.6, seed: 23 });
+        U.grit(P, [0, 0, 1080, 1080], { p: 0.06, a: 0.8, seed: 25 });
         press.restore();
     });
 };
