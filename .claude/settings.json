@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "sh \"$CLAUDE_PROJECT_DIR/engine/setup.sh\"", "timeout": 180 }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+node_modules/
+out/
+*.wav
+.DS_Store
+.env
+*.key
+styles/*/review/

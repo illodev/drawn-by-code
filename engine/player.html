@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>illomotion</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #100817; color: #d9cde0; font: 12px ui-monospace, monospace; }
+  body { display: grid; grid-template-rows: 1fr auto; }
+  #stage { display: grid; place-items: center; min-height: 0; }
+  canvas { max-width: 96vw; max-height: calc(100vh - 70px); display: block; }
+  #bar { display: flex; gap: 12px; align-items: center; padding: 8px 12px; }
+  #scrub { flex: 1; }
+  #err { position: fixed; inset: 12px 12px auto 12px; background: #5a1020; color: #fff; padding: 10px; white-space: pre-wrap; display: none; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c"></canvas></div>
+<div id="bar"><button id="play">⏸</button><input id="scrub" type="range" min="0" value="0"><span id="hud"></span></div>
+<div id="err"></div>
+<script src="core.js"></script>
+<script>
+// Anfitrión de escenas. Parámetros:
+//   ?scene=sandbox/x/scene.js   ruta desde la raíz del repo (obligatorio)
+//   &size=1920                  ancho de salida en píxeles
+//   &render=1                   sin vista previa (lo usan render.mjs y review.mjs)
+//   &t=3.5                      empieza en ese segundo
+// Contrato para los scripts: window.READY, TOTAL_FRAMES, SCENE_INFO, renderFrame(i),
+// contactSheet(opts) y thumb(i).
+const showErr = (m) => { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent += m + '\n'; };
+addEventListener('error', (e) => showErr(e.message));
+const loadScript = (src) => new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = ok;
+    s.onerror = () => ko(new Error('No se pudo cargar ' + src));
+    document.head.appendChild(s);
+});
+(async () => {
+    const q = new URLSearchParams(location.search);
+    const root = '../';
+    const scenePath = q.get('scene');
+    if (!scenePath) return showErr('Falta ?scene=ruta/a/scene.js');
+    await loadScript(root + scenePath);
+    const def = Motion.def;
+    if (!def) return showErr('La escena no llamó a Motion.scene({...})');
+    for (const u of def.uses ?? []) await loadScript(root + u);
+    for (const f of def.fonts ?? []) {
+        const ff = new FontFace(f.family, `url(${root + f.src})`, f.descriptors ?? {});
+        await ff.load();
+        document.fonts.add(ff);
+    }
+    const fps = def.fps ?? 24;
+    const [W, H] = def.logical ?? [1600, 900];
+    const size = Number(q.get('size') || def.previewSize || 1280);
+    const k = size / W;
+    const c = document.getElementById('c');
+    c.width = size;
+    c.height = Math.round(H * k);
+    const ctx = c.getContext('2d');
+    const total = Math.round(def.duration * fps);
+    const env = { W, H, k, fps, duration: def.duration, total, px: [c.width, c.height], sceneDir: scenePath.replace(/[^/]*$/, ''), state: {} };
+    if (def.setup) env.state = (await def.setup(env)) ?? env.state;
+
+    function renderFrame(i) {
+        const t = i / fps;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.filter = 'none';
+        ctx.clearRect(0, 0, c.width, c.height);
+        ctx.setTransform(k, 0, 0, k, 0, 0);
+        ctx.save();
+        def.draw(ctx, t, env);
+        ctx.restore();
+        if (def.post) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            def.post(ctx, t, env);
+        }
+    }
+    const shotName = (t) => (def.shots ? Motion.shotAt(def.shots, t).name : '');
+
+    // Hoja de contacto: pinta varios instantes en una rejilla con su rótulo.
+    window.contactSheet = ({ times, cols = 4, cellW = 480, quality = 0.85 }) => {
+        const cellH = Math.round(cellW * c.height / c.width), lab = 26;
+        const rows = Math.ceil(times.length / cols);
+        const s = document.createElement('canvas');
+        s.width = cols * cellW;
+        s.height = rows * (cellH + lab);
+        const g = s.getContext('2d');
+        g.fillStyle = '#100817';
+        g.fillRect(0, 0, s.width, s.height);
+        times.forEach((t, n) => {
+            const i = Math.min(total - 1, Math.round(t * fps));
+            renderFrame(i);
+            const x = (n % cols) * cellW, y = Math.floor(n / cols) * (cellH + lab);
+            g.drawImage(c, x, y + lab, cellW, cellH);
+            g.fillStyle = '#e8dcef';
+            g.font = '15px ui-monospace, monospace';
+            g.fillText(`${(i / fps).toFixed(2)}s · f${i} ${shotName(i / fps)}`, x + 6, y + 18);
+            g.strokeStyle = '#100817';
+            g.strokeRect(x + 0.5, y + 0.5, cellW - 1, cellH + lab - 1);
+        });
+        return s.toDataURL('image/jpeg', quality).split(',')[1];
+    };
+    // Miniatura en escala de grises + fracción de píxeles transparentes (review.mjs).
+    const tc = document.createElement('canvas');
+    tc.width = 96; tc.height = Math.round(96 * c.height / c.width);
+    const tg = tc.getContext('2d', { willReadFrequently: true });
+    window.thumb = (i) => {
+        renderFrame(i);
+        tg.clearRect(0, 0, tc.width, tc.height);
+        tg.drawImage(c, 0, 0, tc.width, tc.height);
+        const d = tg.getImageData(0, 0, tc.width, tc.height).data;
+        const lum = new Array(tc.width * tc.height);
+        let holes = 0;
+        for (let p = 0; p < lum.length; p++) {
+            lum[p] = Math.round(d[p * 4] * 0.3 + d[p * 4 + 1] * 0.59 + d[p * 4 + 2] * 0.11);
+            if (d[p * 4 + 3] < 250) holes++;
+        }
+        return { lum, holes: holes / lum.length };
+    };
+    window.TOTAL_FRAMES = total;
+    window.SCENE_INFO = { fps, duration: def.duration, total, logical: [W, H], px: [c.width, c.height], shots: (def.shots ?? []).map(([a, b, n]) => [a, b, n]), bpm: def.bpm ?? null, beatOffset: def.beatOffset ?? 0, audio: def.audio ?? null };
+    window.renderFrame = renderFrame;
+    window.READY = true;
+    document.title = `${scenePath} · illomotion`;
+    if (q.get('render')) return;
+
+    // --- vista previa --------------------------------------------------------------
+    // espacio: pausa · ←/→: fotograma · mayús+←/→: 1 s · inicio: al principio
+    const scrub = document.getElementById('scrub'), hud = document.getElementById('hud'), btn = document.getElementById('play');
+    scrub.max = total - 1;
+    let i = Math.min(total - 1, Math.round(Number(q.get('t') || 0) * fps)), playing = true, last = 0;
+    const setPlaying = (p) => { playing = p; btn.textContent = p ? '⏸' : '▶'; };
+    btn.onclick = () => setPlaying(!playing);
+    scrub.oninput = () => { setPlaying(false); i = Number(scrub.value); };
+    addEventListener('keydown', (e) => {
+        const step = e.shiftKey ? fps : 1;
+        if (e.key === ' ') { e.preventDefault(); setPlaying(!playing); }
+        if (e.key === 'ArrowRight') { setPlaying(false); i = (i + step) % total; }
+        if (e.key === 'ArrowLeft') { setPlaying(false); i = (i - step + total) % total; }
+        if (e.key === 'Home') i = 0;
+    });
+    const tick = (now) => {
+        if (playing && now - last >= 1000 / fps) { i = (i + 1) % total; last = now; }
+        renderFrame(i);
+        scrub.value = i;
+        const t = i / fps;
+        const beat = def.bpm ? ` · golpe ${Motion.beatIndex(t, def.bpm, def.beatOffset ?? 0)}` : '';
+        hud.textContent = `${t.toFixed(2)} s · f${i}/${total}${beat} · ${shotName(t)}`;
+        requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+})().catch((e) => showErr(e.stack || String(e)));
+</script>
+</body>
+</html>

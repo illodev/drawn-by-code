@@ -1,0 +1,63 @@
+// Genera los efectos de sonido con ElevenLabs (endpoint /v1/sound-generation).
+//
+//   ELEVENLABS_API_KEY=... node generar-sfx.mjs            # los que falten
+//   ELEVENLABS_API_KEY=... node generar-sfx.mjs stamp pop  # rehace esos
+//
+import fs from 'node:fs';
+const KEY = (process.env.ELEVENLABS_API_KEY || '').trim();
+if (!KEY) {
+    console.error('Falta ELEVENLABS_API_KEY');
+    process.exit(1);
+}
+const SFX = {
+    ticket: ['a single small paper receipt flicked through a door mail slot, quick crisp paper swish, dry, close', 0.6],
+    box_rumble: ['a cardboard box stuffed with papers rattling and shaking on a wooden shelf, building tension', 2],
+    box_burst: ['cardboard box bursting open, lid popping off, dozens of paper sheets exploding into the air, cartoon', 1.6],
+    accordion: ['long paper sheets unfolding fast like an accordion, crisp paper whoosh', 0.7],
+    calc_glitch: ['broken pocket calculator making glitchy wrong beeps, cartoon', 0.7],
+    stamp: ['heavy rubber stamp slammed down hard on paper on a wooden desk, punchy thump', 0.4],
+    paper_swirl: ['whirlwind of paper sheets fluttering and swirling around a room', 2.5],
+    glitch: ['short digital glitch stutter, quick', 0.3],
+    vortex: ['cartoon whoosh sucking everything into a vortex, fast rising', 0.8],
+    catch: ['quick cartoon whoosh ending in a paper snap as a hand catches a flying paper', 0.5],
+    box_unfold: ['cardboard box flaps unfolding one after another, soft cardboard creaks and flaps', 1.4],
+    reveal: ['warm soft reveal, a paper card popping up with a gentle marimba note, cartoon', 0.9],
+    typing: ['fast typing on a smartphone touch screen, soft taps', 0.8],
+    tap: ['single finger tap on a phone screen, soft click', 0.25],
+    pop: ['cartoon pop as a small character appears, cute and quick', 0.35],
+    padlock: ['small metal padlock snapping shut, satisfying click', 0.35],
+    boing: ['cartoon rubber bounce boing as something rebounds off metal', 0.6],
+    van: ['small delivery van driving past quickly on a street, short', 1.1],
+    stapler: ['office stapler stapling paper, crisp click', 0.3],
+    shutter: ['smartphone camera shutter sound', 0.3],
+    swoosh_in: ['several paper receipts swooshing into a folder, quick', 0.6],
+    page_flips: ['calendar pages being torn off and flipping rapidly', 1],
+    tick: ['mechanical wall clock ticking, steady and clear', 2.5],
+    scribble: ['felt-tip marker writing quickly on paper, squeaky strokes', 1],
+    zip: ['a zipper pulled closed quickly', 0.4],
+    coins: ['a few coins jingling onto a table, pleasant', 0.7],
+    drawer_thud: ['muffled thud from inside a closed wooden drawer, something bumping inside', 0.4],
+    wheel: ['pottery wheel spinning, soft whirring hum with wet clay', 1.5],
+    scan: ['friendly scanner sweep, soft rising digital beeps as a document is read', 0.9],
+    inflate: ['cartoon inflate, quick soft puff as something gets a bit bigger', 0.5],
+    flyby: ['cartoon superhero flying past quickly, airy whoosh left to right', 1.4],
+    whoosh_close: ['whoosh approaching the camera fast and getting louder, ending in a soft whump', 1.6],
+    spin_rise: ['psychedelic swirling whoosh that spins faster and rises, then settles', 6],
+};
+const only = process.argv.slice(2);
+for (const [name, [text, dur]] of Object.entries(SFX)) {
+    if (only.length && !only.includes(name)) continue;
+    const out = `${name}.mp3`;
+    if (fs.existsSync(out) && !only.length) continue;
+    const res = await fetch('https://api.elevenlabs.io/v1/sound-generation?output_format=mp3_44100_128', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'xi-api-key': KEY },
+        body: JSON.stringify({ text, duration_seconds: Math.max(0.5, dur), prompt_influence: 0.45 }),
+    });
+    if (!res.ok) {
+        console.log(`FALLO ${name}: ${res.status} ${(await res.text()).slice(0, 200)}`);
+        continue;
+    }
+    fs.writeFileSync(out, Buffer.from(await res.arrayBuffer()));
+    console.log(`ok ${name}`);
+}

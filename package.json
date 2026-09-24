@@ -1,0 +1,16 @@
+{
+  "name": "illomotion",
+  "private": true,
+  "type": "module",
+  "description": "Sandbox de animación generada con código y Claude: motor, estilos, skills y experimentos",
+  "scripts": {
+    "preview": "node engine/serve.mjs",
+    "new": "node engine/new.mjs",
+    "render": "node engine/render.mjs",
+    "review": "node engine/review.mjs",
+    "mix": "node engine/mix.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}
