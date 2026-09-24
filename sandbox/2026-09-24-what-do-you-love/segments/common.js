@@ -6,7 +6,7 @@ const WL = (() => {
     const P = Paper, E = Ease;
     const COL = {
         sky: '#1e2051', band: '#2b2e65', band2: '#343b81', moon: '#efe8cd', star: '#e8cf6e',
-        flower: '#d87c65', flowerDark: '#c56a55', flowerCheek: '#e98b87', eye: '#231a1f',
+        flower: '#d8765f', flowerDark: '#c56a55', flowerCheek: '#e98b87', eye: '#231a1f',
         house: '#3f3470', houseText: '#5b4f8a', roof: '#2a2455', town: '#1a1c46', town2: '#23255a', window: '#f0c95a',
         wall: '#f0cc51', curtain: '#df848d', frame: '#ece3c9', desk: '#c6a175', skirting: '#3c2a64',
         skin: '#e3ad8b', cheek: '#ec8e8e', hair: '#302222', clip: '#f2cf3b', sweater: '#389486', sweaterDark: '#2d7f72', collar: '#faf8f1',
@@ -23,13 +23,17 @@ const WL = (() => {
         const p = o.p ?? 1;
         if (p <= 0) return 0;
         g.save();
-        g.font = `${size}px "Stack"`;
+        g.font = `${size}px "${o.font ?? 'Stack'}"`;
         g.textBaseline = 'alphabetic';
-        const key = g.font + text;
+        // o.spacing: extra letter spacing in em (hand lettering leaves gaps between letters)
+        g.letterSpacing = `${(o.spacing ?? 0) * size}px`;
+        const key = g.font + text + g.letterSpacing;
         if (!widths.has(key)) widths.set(key, Array.from({ length: text.length + 1 }, (_, i) => g.measureText(text.slice(0, i)).width));
         const xs = widths.get(key), total = xs[xs.length - 1];
         const x0 = o.align === 'center' ? x - total / 2 : o.align === 'right' ? x - total : x;
         const shown = p * text.length;
+        // o.sy: squash or stretch the lettering vertically about the baseline
+        if (o.sy) (g.translate(0, y), g.scale(1, o.sy), g.translate(0, -y));
         g.beginPath();
         g.rect(x0 - size, y - size * 1.3, xs[Math.floor(shown)] + (xs[Math.min(text.length, Math.floor(shown) + 1)] - xs[Math.floor(shown)]) * (shown % 1) + size, size * 2);
         g.clip();
@@ -37,16 +41,32 @@ const WL = (() => {
         g.lineCap = 'round';
         g.fillStyle = color;
         g.strokeStyle = color;
-        g.lineWidth = size * 0.05;
+        g.lineWidth = size * (o.stroke ?? 0.05);
         g.globalAlpha = o.alpha ?? 0.95;
-        g.fillText(text, x0, y);
-        g.strokeText(text, x0, y);
-        g.globalAlpha = (o.alpha ?? 1) * 0.3;
-        g.fillText(text, x0 + size * 0.015, y + size * 0.012);
+        if (o.halo) {
+            // felt-tip marker: a lighter, translucent rim round a solid core
+            // (o.marker: core stroke width in em, for thin fonts written with a fat marker)
+            g.strokeStyle = o.halo;
+            g.globalAlpha = (o.alpha ?? 1) * 0.85;
+            if (o.marker !== undefined) g.lineWidth = size * (o.marker + 0.035);
+            g.strokeText(text, x0, y);
+            g.globalAlpha = o.alpha ?? 0.95;
+            g.fillText(text, x0, y);
+            if (o.marker > 0) {
+                g.strokeStyle = color;
+                g.lineWidth = size * o.marker;
+                g.strokeText(text, x0, y);
+            }
+        } else {
+            g.fillText(text, x0, y);
+            if (g.lineWidth > 0) g.strokeText(text, x0, y);
+            g.globalAlpha = (o.alpha ?? 1) * 0.3;
+            g.fillText(text, x0 + size * 0.015, y + size * 0.012);
+        }
         g.restore();
         return total;
     }
-    const textW = (g, text, size) => ((g.font = `${size}px "Stack"`), g.measureText(text).width);
+    const textW = (g, text, size, font = 'Stack', spacing = 0) => ((g.font = `${size}px "${font}"`), (g.letterSpacing = `${spacing * size}px`), g.measureText(text).width);
 
     // --- lined paper (the note) -----------------------------------------------------------
     // (x, y) centre; w, h size; o.text: [line1, line2] revealed by o.p (0–1); o.circle: «you» circled
@@ -55,13 +75,26 @@ const WL = (() => {
         g.translate(x, y);
         g.rotate(rot);
         if (o.flip) g.scale(-1, 1);
-        sprite('note:' + seed + w + 'x' + h + (o.torn ?? 1), { x: -w / 2 - 10, y: -h / 2 - 12, w: w + 20, h: h + 24 }, (c) => {
+        sprite('note:' + seed + w + 'x' + h + (o.torn ?? 1) + (o.rules ?? ''), { x: -w / 2 - 10, y: -h / 2 - 12, w: w + 20, h: h + 24 }, (c) => {
             // top edge torn off the spiral binding: irregular tabs, the odd deep notch where a
             // ring hole tore; the other edges hand-cut (corners slightly off, sides not straight)
             const r = P.rng(seed + 'teeth');
             const top = [];
             if (o.torn === 0) top.push([-w / 2, -h / 2], [w / 2, -h / 2]);
-            else {
+            else if (o.torn === 2) {
+                // torn along the perforation: square tabs with notches between them
+                let x = -w / 2;
+                top.push([x, -h / 2 + 0.05 * h]);
+                while (x < w / 2) {
+                    const tab = Math.min(w / 2 - x, (0.03 + r() * 0.012) * w), gap = (0.018 + r() * 0.01) * w, up = r() * 0.008 * h;
+                    top.push([x, -h / 2 + up], [x + tab, -h / 2 + up + (r() - 0.5) * 0.006 * h]);
+                    x += tab;
+                    if (x >= w / 2) break;
+                    const deep = 0.04 * h + r() * 0.018 * h;
+                    top.push([x, -h / 2 + deep], [Math.min(w / 2, x + gap), -h / 2 + deep + (r() - 0.5) * 0.008 * h]);
+                    x += gap;
+                }
+            } else {
                 let x = -w / 2;
                 top.push([x, -h / 2 + 4]);
                 while (x < w / 2) {
@@ -82,11 +115,13 @@ const WL = (() => {
                 inner: (cc) => {
                     cc.strokeStyle = COL.rule;
                     cc.lineWidth = Math.max(1, h * 0.006);
-                    for (let yy = -h / 2 + h * 0.22; yy < h / 2; yy += h * 0.155) (cc.beginPath(), cc.moveTo(-w / 2, yy), cc.lineTo(w / 2, yy), cc.stroke());
+                    // o.rules: [first rule, spacing] as fractions of h ; o.margin: fraction of w
+                    const [r0, dr] = o.rules ?? [0.22, 0.155], mx = -w / 2 + w * (o.margin ?? 0.07);
+                    for (let yy = -h / 2 + h * r0; yy < h / 2; yy += h * dr) (cc.beginPath(), cc.moveTo(-w / 2, yy), cc.lineTo(w / 2, yy), cc.stroke());
                     cc.strokeStyle = COL.margin;
                     cc.beginPath();
-                    cc.moveTo(-w / 2 + w * 0.07, -h / 2);
-                    cc.lineTo(-w / 2 + w * 0.07, h / 2);
+                    cc.moveTo(mx, -h / 2);
+                    cc.lineTo(mx, h / 2);
                     cc.stroke();
                 },
             });
@@ -95,7 +130,7 @@ const WL = (() => {
         const lines = o.text ?? [];
         // text size: given, or the largest that fits the longest line in 84 % of the width
         const longest = lines.reduce((a, l) => (l.length > a.length ? l : a), '');
-        const size = o.size ?? Math.min(h * 0.3, (w * 0.84 * 100) / Math.max(1, textW(g, longest, 100)));
+        const font = o.font ?? 'Hand', spacing = o.spacing ?? 0.05, size = o.size ?? Math.min(h * 0.3, (w * 0.84 * 100) / Math.max(1, textW(g, longest, 100, font, spacing)));
         if (lines.length) {
             const p = o.p ?? 1, total = lines.join('').length;
             let done = 0;
@@ -109,9 +144,9 @@ const WL = (() => {
                 done += ln.length;
                 const lx = o.lineX?.[i] ?? -w / 2 + w * (i === 0 ? 0.16 : 0.08);
                 const ly = -h / 2 + h * (o.lineY?.[i] ?? (0.42 + i * 0.3));
-                write(g, ln, lx, ly, size, COL.ink, { p: lp, alpha: ink });
+                write(g, ln, lx, ly, size, COL.ink, { p: lp, alpha: ink, halo: '#6389cb', font, spacing, marker: 0, sy: o.sy ?? 0.92 });
                 if (o.circle && i === 1 && ln.startsWith('you')) {
-                    const cw = textW(g, 'you', size);
+                    const cw = textW(g, 'you', size, font, spacing);
                     const u = o.circle;
                     if (u > 0) {
                         const pts = [];
@@ -254,8 +289,11 @@ const WL = (() => {
     // o.pose: 'free' (rays all round) | 'holding' (upper fan, arms to the note, legs)
     // o.note(g): draws the held note between the body and the hands (holding pose)
     // o.excite: >1 rays stretch (surprise), <1 they shrink (content) ; o.mouth: 'smile' | 'o'
-    // | 'grin' | 'think' ; o.eyes: 'open' | 'closed' | 'happy' ; o.rot ; o.wiggle 0–1
+    // | 'grin' | 'think' ; o.eyes: 'open' | 'closed' | 'happy' | 'squint' ; o.rot ; o.wiggle 0–1
     // o.arms: [[x, y], [x, y]] hand positions in R units (holding pose)
+    // o.sx, o.sy: squash & stretch of the RAYS only (screen axes), the face never deforms
+    // o.rayW: ray width factor ; o.spread: how unequal the ray lengths are (free pose)
+    // o.face: face size factor ; o.faceTilt: the face turns on its own (sneezes, spins)
     // =====================================================================================
     function raySprite(k) {
         // a rounded ray, slightly narrower at the base and bulbous at the tip
@@ -306,7 +344,10 @@ const WL = (() => {
         } else {
             for (let k = 0; k < 12; k++) {
                 const a = (o.rot ?? 0) + (k / 12) * Math.PI * 2 + (r() - 0.5) * 0.14 + Math.sin(t * 8 + k) * 0.03 * wig;
-                rays.push([k, a, (0.85 + r() * 0.25) * ex * life(k), 0.14 + r() * 0.03]);
+                const sp = o.spread ?? 0.25, L = (0.97 - sp / 2 + r() * sp) * ex * life(k);
+                // squash & stretch: the ray reaches the ellipse (sx, sy) in screen axes
+                const as = a + (o.tilt ?? 0), st = Math.hypot((o.sx ?? 1) * Math.cos(as), (o.sy ?? 1) * Math.sin(as));
+                rays.push([k, a, L * st, (0.14 + r() * 0.03) * (o.rayW ?? 1)]);
             }
         }
         for (const [k, a, L, w] of rays) drawRay(g, k, a, L, w, R);
@@ -322,7 +363,10 @@ const WL = (() => {
             P.cutout(c, PaperDetail.spline([[-30, -8], [-18, -30], [8, -32], [30, -14], [32, 12], [14, 30], [-12, 30], [-30, 14]], 6), COL.flower, 'fbody', { border: 0, shadow: 0, jag: 0.6, tex: { alpha: [0.25, 0.5] } });
         }, 3).draw((g.save(), g.scale(R / 100, R / 100), g));
         g.restore();
-        face(g, R, o);
+        g.save();
+        g.rotate(o.faceTilt ?? 0);
+        face(g, R * (o.face ?? 1), o);
+        g.restore();
         g.restore();
         // the note, then forearms and round hands in front of it
         if (o.note) o.note(g);
@@ -373,6 +417,13 @@ const WL = (() => {
                 g.beginPath();
                 g.arc(s * 12, -1, 4.5, Math.PI * 1.1, Math.PI * 1.9);
                 g.stroke();
+            } else if (eyes === 'squint') {
+                // > <  (screwed shut: a sneeze, a big laugh)
+                g.beginPath();
+                g.moveTo(s * 15.5, -8.5);
+                g.lineTo(s * 9, -4.5);
+                g.lineTo(s * 15.5, -0.5);
+                g.stroke();
             } else {
                 g.beginPath();
                 g.arc(s * 12, -6, 4.5, Math.PI * 0.15, Math.PI * 0.85);
@@ -383,13 +434,25 @@ const WL = (() => {
         g.lineWidth = 2.4;
         if (m === 'o') {
             g.beginPath();
-            g.ellipse(0, 9, 3.2, 4, 0, 0, Math.PI * 2);
+            g.ellipse(0, 9, 3.2, 3.6, 0, 0, Math.PI * 2);
             g.stroke();
         } else if (m === 'grin') {
-            g.fillStyle = COL.eye;
+            // open laugh: a dark D with the tongue showing at the bottom
+            g.save();
             g.beginPath();
-            g.arc(0, 5, 5.5, 0, Math.PI);
+            g.moveTo(-6, 5);
+            g.quadraticCurveTo(0, 4, 6, 5);
+            g.quadraticCurveTo(6, 13.5, 0, 13.5);
+            g.quadraticCurveTo(-6, 13.5, -6, 5);
+            g.closePath();
+            g.fillStyle = '#3b1d2c';
             g.fill();
+            g.clip();
+            g.fillStyle = '#e98b9a';
+            g.beginPath();
+            g.ellipse(0.4, 13.2, 4.2, 3.2, 0, 0, Math.PI * 2);
+            g.fill();
+            g.restore();
         } else if (m === 'think') {
             g.beginPath();
             g.moveTo(-3, 9);
@@ -422,7 +485,7 @@ const WL = (() => {
         wave: [[[-104, -236], [-178, -72], [-62, -22]], [[104, -236], [228, -232], [228, -412]]],
         note: [[[-104, -236], [-188, -88], [-132, -135]], [[104, -236], [188, -88], [132, -135]]],
         hug: [[[-104, -236], [-168, -72], [8, -150]], [[104, -236], [168, -72], [-8, -150]]],
-        pin: [[[-104, -236], [-178, -72], [-62, -22]], [[104, -236], [248, -252], [305, -420]]],
+        pin: [[[-104, -236], [-178, -72], [-62, -22]], [[104, -236], [236, -200], [267, -367]]],
     };
     const HANDS = { desk: [null, null], pencil: [null, 'fist'], throw: [null, 'fist'], release: [null, 'open'], wave: [null, 'wave'], note: ['pinch', 'pinch'], hug: ['fist', 'fist'], pin: [null, 'open'] };
 
@@ -433,13 +496,17 @@ const WL = (() => {
         const bb = P.bbox([a, b], w + 12);
         sprite(key, bb, (c) => sweaterPiece(c, P.noodle([a, b], w), seed, 2.6), 1.4).draw(g);
     }
+    // o.layer: 'body' (torso and head) or 'arms' (arms, hands, pencil), so a desk can go
+    // between them: the torso sinks behind the desk edge, the forearms rest on top of it
     function girl(g, x, y, s, o = {}) {
         const t = o.t ?? 0;
         const pose = o.pose ?? 'desk';
         const arms = o.arms ?? ARMS[pose];
+        const body = o.layer !== 'arms', limbs = o.layer !== 'body';
         g.save();
         g.translate(x, y + Math.sin(t * 2.2) * 2);
         g.scale(s, s);
+        if (body) {
         // torso with knit, then the neck, the little bow and the pointed collar
         sprite('girl-torso3', { x: -170, y: -300, w: 340, h: 310 }, (c) => {
             sweaterPiece(c, D.spline([[-104, -262], [-40, -284], [40, -284], [104, -262], [130, -190], [146, 0], [-146, 0], [-130, -190]], 6), 'torso');
@@ -452,8 +519,10 @@ const WL = (() => {
             P.cutout(c, [[4, -276], [86, -286], [66, -238]], COL.collar, 'collarR', { border: 1.8, shadow: 0.18 });
             P.cutout(c, D.spline([[-12, -284], [0, -278], [12, -284], [10, -270], [0, -274], [-10, -270]], 4), '#f2a7ae', 'bow', { border: 1.2, shadow: 0.15 });
         }, 1.6).draw(g);
+        if (o.layer === 'body') head(g, o);
+        }
         // arms: upper arm, forearm (each its own piece), hand
-        for (let i = 0; i < 2; i++) {
+        if (limbs) for (let i = 0; i < 2; i++) {
             const [sh, el, hd] = arms[i];
             segment(g, sh, el, 54, 'upper' + i);
             segment(g, el, hd, 50, 'fore' + i);
@@ -463,11 +532,11 @@ const WL = (() => {
                 D.hand(g, hd[0], hd[1], 58, rot, hp, { skin: COL.skin, mirror: i === 0 });
             }
         }
-        if (pose === 'pencil') {
+        if (limbs && pose === 'pencil') {
             const [hx, hy] = arms[1][2];
             P.markerStroke(g, [[hx - 4, hy - 20], [hx - 16, hy - 92]], '#3862b1', 11, 'pencil', 1);
         }
-        head(g, o);
+        if (!o.layer) head(g, o);
         g.restore();
     }
     function head(g, o) {
@@ -582,8 +651,110 @@ const WL = (() => {
         D.hand(g, x, y, r * 1.9, rot, pose, { skin: COL.skin, mirror });
     }
 
-    // where a girl's hand ends up on screen (i: 0 left, 1 right), for props held in it
-    const girlHand = (pose, i, x = 510, y = 868, s = 0.9) => [x + ARMS[pose][i][2][0] * s, y + ARMS[pose][i][2][1] * s];
+    // The writing hand of the notepad shots, traced from the reference close-up (3.4 s): a fist
+    // seen from the back holding a blue marker. Back of the hand, four curled fingers (each its
+    // own piece, each overlapping the next), the thumb lying across them, the marker through
+    // the fist (tip and labelled cap showing), a ribbed cuff and the knitted sleeve.
+    // Authored in the reference crop's pixels with the marker tip at GRIP.tip and the forearm
+    // along GRIP.axis; drawn at GRIP.k logical units per crop pixel (the wide shot's scale).
+    const GRIP = { tip: [25, 545], wrist: [640, 500], axis: Math.atan2(-0.87, -0.48), k: 0.2067 };
+    const capsule = (a, b, r) => P.noodle([a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], b], 2 * r, 2 * r);
+    function writingHand(g, tip, base, o = {}) {
+        const ang = Math.atan2(tip[1] - base[1], tip[0] - base[0]) - GRIP.axis, k = GRIP.k * (o.scale ?? 1);
+        // the sleeve: one fixed strip from the wrist back to the elbow (never re-cut)
+        const sleeve = sprite('grip-sleeve2', { x: -30, y: -300, w: 4860, h: 600 }, (c) => {
+            P.cutout(c, P.roundRect(0, -272, 4800, 544, 60), '#389082', 'gripsleeve', { border: 4, shadow: 0.15, jag: 1, step: 3, tex: { alpha: [0.2, 0.4], len: [60, 160], h: [20, 36] }, inner: (cc, box) => D.knit(cc, box, '#389082', { seed: 'gripknit', size: 36, alpha: 0.16 }) });
+        }, 0.3);
+        const hand = sprite('grip-hand2', { x: -40, y: -60, w: 1040, h: 900 }, (c) => {
+            const cut = (pts, col, seed, oo = {}) => P.cutout(c, pts, col, seed, { border: 4, shadow: 0.14, jag: 1.1, step: 3, tex: { alpha: [0.15, 0.3] }, ...oo });
+            // marker: body from the tip to the cap, white label bands
+            const T = [25, 545], d = [0.785, -0.62], n = [0.62, 0.785];
+            const at = (s, w) => [T[0] + d[0] * s + n[0] * w, T[1] + d[1] * s + n[1] * w];
+            cut(capsule(at(40, 0), at(820, 0), 50), '#375eaf', 'gripmarker', { border: 3 });
+            const band = (s0, s1) => [at(s0, -50), at(s1, -50), at(s1, 50), at(s0, 50)];
+            cut(band(150, 215), '#dde6f3', 'griplabel1', { border: 0, shadow: 0 });
+            cut(band(655, 790), '#dde6f3', 'griplabel2', { border: 0, shadow: 0, inner: (cc) => {
+                cc.strokeStyle = '#2f4f9a';
+                cc.lineWidth = 9;
+                cc.lineCap = 'round';
+                cc.beginPath();
+                const [ax, ay] = at(690, -18), [bx, by] = at(716, 18), [ex, ey] = at(760, -30);
+                cc.moveTo(ax, ay);
+                cc.lineTo(bx, by);
+                cc.lineTo(ex, ey);
+                cc.stroke();
+            } });
+            // back of the hand
+            cut(D.spline([[240, 470], [300, 410], [420, 300], [560, 170], [650, 100], [760, 185], [822, 268], [836, 340], [800, 386], [620, 480], [410, 612], [335, 592], [252, 522]], 8), '#d5a484', 'gripback');
+            // fingers, top one first: each overlaps the next
+            [[[400, 72], [522, 208], 56], [[300, 142], [430, 290], 58], [[210, 222], [330, 350], 56], [[160, 330], [236, 420], 52]]
+                .forEach(([a, b, r], i) => cut(capsule(a, b, r), '#e4b291', 'gripfinger' + i));
+            // thumb across the fingers
+            cut(capsule([482, 356], [742, 258], 56), '#e6b595', 'gripthumb');
+            // ribbed cuff
+            cut(D.spline([[398, 612], [630, 484], [862, 356], [908, 438], [951, 518], [719, 646], [487, 774], [442, 694]], 5), '#328274', 'gripcuff', {
+                border: 3, inner: (cc, box) => {
+                    cc.strokeStyle = D.shade('#328274', -8);
+                    cc.globalAlpha = 0.6;
+                    cc.lineWidth = 9;
+                    for (let s = -800; s < 1200; s += 36) {
+                        cc.beginPath();
+                        cc.moveTo(s, 200);
+                        cc.lineTo(s + 0.48 * 900, 200 + 0.87 * 900);
+                        cc.stroke();
+                    }
+                    cc.globalAlpha = 1;
+                },
+            });
+        }, 0.3);
+        g.save();
+        g.translate(tip[0], tip[1]);
+        g.rotate(ang);
+        g.scale(k, k);
+        g.translate(-GRIP.tip[0], -GRIP.tip[1]);
+        // sleeve from the cuff down along the forearm axis (pointing away from the fist)
+        g.save();
+        g.translate(700, 620);
+        g.rotate(GRIP.axis + Math.PI);
+        sleeve.draw(g);
+        g.restore();
+        hand.draw(g);
+        g.restore();
+    }
 
-    return { COL, init, girlHand, noteImage, noteFlip, get kit() { return kit; }, sprite, write, textW, note, flowerDoodle, plane, trail, star, plus, ticks, scribbleFill, flat, flower, girl, ARMS, hand, tube };
+    // Mitten hand seen from the back, as in the tear shot: a domed mitten, the thumb its own
+    // piece on the inner side, a ribbed cuff and a knitted sleeve running off towards `toward`.
+    // (x, y) = centre of the mitten; size ≈ its width; mirror for the right hand.
+    function mitten(g, x, y, size, toward, mirror = false) {
+        const k = size / 110, ang = Math.atan2(toward[1] - y, toward[0] - x) - Math.PI / 2;
+        const m = sprite('mitten2', { x: -80, y: -80, w: 170, h: 190 }, (c) => {
+            P.cutout(c, D.spline([[42, 2], [66, -10], [80, 6], [72, 30], [48, 40]], 6), D.shade(COL.skin, -3), 'mitthumb', { border: 2.4, shadow: 0.12, tex: { alpha: [0.12, 0.25] } });
+            P.cutout(c, D.spline([[-50, 44], [-58, -6], [-46, -52], [-4, -66], [36, -54], [52, -12], [48, 44]], 7), COL.skin, 'mitpalm', { border: 2.6, shadow: 0.15, tex: { alpha: [0.12, 0.25], angle: -1.2 } });
+            P.cutout(c, D.spline([[42, 4], [66, -8], [78, 8], [70, 28], [50, 36]], 6), D.shade(COL.skin, -2), 'mitthumb2', { border: 2, shadow: 0.08, tex: { alpha: [0.12, 0.25] } });
+        }, 2.2);
+        const cuff = sprite('mitcuff', { x: -80, y: 20, w: 160, h: 90 }, (c) => {
+            P.cutout(c, P.roundRect(-62, 34, 124, 50, 8), COL.sweaterDark, 'mitcuff', { border: 2.4, shadow: 0.18, inner: (cc, box) => D.rib(cc, box, COL.sweaterDark, { step: 11, width: 4 }) });
+        }, 2.2);
+        const sleeve = sprite('mitsleeve', { x: -90, y: 60, w: 180, h: 760 }, (c) => {
+            P.cutout(c, P.roundRect(-78, 70, 156, 720, 30), '#389082', 'mitsleeve', { border: 2.6, shadow: 0.15, tex: { alpha: [0.2, 0.4] }, inner: (cc, box) => D.knit(cc, box, '#389082', { seed: 'mitknit', size: 14, alpha: 0.18 }) });
+        }, 1.6);
+        g.save();
+        g.translate(x, y);
+        g.rotate(ang);
+        g.scale(mirror ? -k : k, k);
+        sleeve.draw(g);
+        cuff.draw(g);
+        g.restore();
+        g.save();
+        g.translate(x, y);
+        g.rotate(ang * 0.35);
+        g.scale(mirror ? -k : k, k);
+        m.draw(g);
+        g.restore();
+    }
+
+    // where a girl's hand ends up on screen (i: 0 left, 1 right), for props held in it
+    const girlHand = (pose, i, x = 510, y = 915, s = 0.9) => [x + ARMS[pose][i][2][0] * s, y + ARMS[pose][i][2][1] * s];
+
+    return { COL, init, writingHand, mitten, girlHand, noteImage, noteFlip, get kit() { return kit; }, sprite, write, textW, note, flowerDoodle, plane, trail, star, plus, ticks, scribbleFill, flat, flower, girl, ARMS, hand, tube };
 })();

@@ -65,9 +65,9 @@
             c.arc(291 - 560, 287 - 600, 5.5, 0, Math.PI * 2);
             c.fill();
         }, x, y, s, 0, 0.8);
-        // wag: speed lines by the tail flicker on twos in the middle of the card
-        const lt = t - 12;
-        if (lt > 0.2 && lt < 0.4 && Math.floor(t * 12) % 2 === 0) {
+        // wag: speed lines by the tail on the 4th and 5th drawings of the card (12.25–12.42 s)
+        const step = Math.floor((t - 12) * 12 + 1e-6);
+        if (step === 3 || step === 4) {
             for (const [a, b] of [[[890, 600], [940, 572]], [[878, 650], [928, 625]], [[866, 700], [916, 677]]]) {
                 P.markerStroke(g, [a, b].map(([px, py]) => [x + (px - 560) * s, y + (py - 600) * s]), '#2d2440', 7 * s, 'dogwag' + a[1], 0.95);
             }

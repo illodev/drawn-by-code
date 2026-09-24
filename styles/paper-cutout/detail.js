@@ -10,9 +10,13 @@ const PaperDetail = (() => {
     const P = Paper;
 
     // --- colour helpers -------------------------------------------------------------------
+    // Returns hex (not hsla) so the result can be a cutout colour: Paper.marker parses hex.
     function shade(hex, dl, ds = 0) {
-        const [h, s, l] = P.hexToHsl(hex);
-        return P.hsla(h, s + ds, l + dl, 1);
+        const [h, s0, l0] = P.hexToHsl(hex);
+        const s = Math.max(0, Math.min(100, s0 + ds)) / 100, l = Math.max(0, Math.min(100, l0 + dl)) / 100;
+        const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+        const f = (n) => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1))));
+        return '#' + [f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, '0')).join('');
     }
 
     // --- organic shapes ---------------------------------------------------------------------
@@ -105,6 +109,38 @@ const PaperDetail = (() => {
                     c.fillRect(x0, y, w * (r() < 0.15 ? 0.3 + r() * 0.5 : 0.92 + r() * 0.08), lh * 0.45);
                     y += lh;
                 }
+            }
+        }
+        c.restore();
+    }
+    // Handwriting that reads as writing at a glance: rows of cursive "words" made of arches
+    // (m, n), taller loops (h, l), cups (u, v) and the odd descender. For letters, notebooks,
+    // book pages, wrapping paper and the backgrounds of collage cards.
+    // o: seed, lineH (row spacing), xh (x-height), hw (arch width), width, alpha, gap
+    function cursive(c, box, color, o = {}) {
+        const r = Motion.rng(o.seed ?? 'cursive'), lh = o.lineH ?? 30, xh = o.xh ?? 11, hw = o.hw ?? 5.5;
+        c.save();
+        c.strokeStyle = color;
+        c.lineWidth = o.width ?? 1.4;
+        c.lineCap = 'round';
+        c.lineJoin = 'round';
+        c.globalAlpha = o.alpha ?? 0.8;
+        for (let y = box.y + lh * 0.8; y < box.y + box.h + xh; y += lh) {
+            let x = box.x - r() * lh;
+            while (x < box.x + box.w) {
+                const n = 2 + Math.floor(r() * 6), by = y + (r() - 0.5) * 2;
+                c.beginPath();
+                c.moveTo(x, by);
+                for (let k = 0; k < n; k++) {
+                    const roll = r();
+                    // arch, tall loop, cup or descender
+                    const h = roll < 0.12 ? xh * (1.5 + r() * 0.35) : roll < 0.2 ? -xh * 0.8 : roll < 0.22 ? -xh * 1.3 : xh * (0.85 + r() * 0.25);
+                    const w = hw * (0.8 + r() * 0.5);
+                    c.bezierCurveTo(x, by - h * 1.33, x + w, by - h * 1.33, x + w, by);
+                    x += w;
+                }
+                c.stroke();
+                x += (o.gap ?? 10) + r() * 14;
             }
         }
         c.restore();
@@ -230,5 +266,5 @@ const PaperDetail = (() => {
         g.restore();
     }
 
-    return { shade, spline, knit, rib, newsprint, woodGrain, strands, crease, hand, handShape };
+    return { shade, spline, knit, rib, newsprint, woodGrain, cursive, strands, crease, hand, handShape };
 })();

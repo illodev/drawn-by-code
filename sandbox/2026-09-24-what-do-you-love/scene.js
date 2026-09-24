@@ -12,7 +12,7 @@ Motion.scene({
         ...['words', 'music', 'sea', 'tree', 'dog', 'bread', 'rain', 'math', 'stars', 'octopus', 'tea', 'flowers', 'cat'].map((n) => DIR + 'segments/things/' + n + '.js'),
         DIR + 'segments/montage.js',
     ],
-    fonts: [{ family: 'Stack', src: 'fonts/ShortStack-latin.woff2' }],
+    fonts: [{ family: 'Stack', src: 'fonts/ShortStack-latin.woff2' }, { family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' }],
     // cut list measured on the reference (cuts land on quarter seconds)
     shots: [
         [0, 1.5, 'Exterior · planes'],

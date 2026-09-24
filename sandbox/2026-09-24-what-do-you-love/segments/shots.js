@@ -17,30 +17,19 @@ const Shots = {};
             WL.plane(g, x, y, 0.55 + 0.25 * (1 - u), Math.atan2(y2 - y, x2 - x));
         }
     }
-    // the point of the notepad text being written, in notepad-local coordinates
     const NOTE_LINES = ['what do', 'you love?'];
-    function penAt(g, p) {
-        const total = NOTE_LINES.join('').length, chars = p * total;
-        const line = chars <= NOTE_LINES[0].length ? 0 : 1;
-        const inLine = line === 0 ? chars : chars - NOTE_LINES[0].length;
-        const lx = [-200, -262][line], ly = -200 + 400 * [0.36, 0.7][line] + 10;
-        const w = WL.textW(g, NOTE_LINES[line].slice(0, Math.ceil(inLine)), 100);
-        return [lx + w, ly - 40];
-    }
     // notepad + writing arm, with a camera (cx, cy, zoom)
-    function writing(g, t, env, p, cam, withArm = true) {
+    function writing(g, t, env, p, cam, withArm = true, hand = 1) {
         Sets.desk(g, t, env, {
             inner: (gg) => {
                 gg.save();
                 Motion.cam(gg, env, cam[0], cam[1], cam[2]);
-                const NX = 470, NY = 480, NS = 1.18, NR = -0.02;
-                Sets.notepad(gg, t, NX, NY, NS, NR, { p });
-                if (withArm) {
-                    const [px, py] = penAt(gg, p);
-                    const wob = Math.sin(t * 40) * 3;
-                    const hx = NX + (px * Math.cos(NR) - py * Math.sin(NR)) * NS, hy = NY + (px * Math.sin(NR) + py * Math.cos(NR)) * NS + wob;
-                    Sets.writingArm(gg, hx, hy, { base: [1150, 1150] });
-                }
+                Sets.notepad(gg, t, { p });
+                if (withArm && p < 1) {
+                    const [px, py] = Sets.penAt(gg, p);
+                    const wob = Math.sin(t * 40) * 2;
+                    Sets.writingArm(gg, [px, py + wob], p * 16 <= 7 ? 0 : 1, { scale: hand });
+                } else if (withArm) Sets.writingArm(gg, [905, 640], 1, { scale: hand });
                 gg.restore();
             },
         });
@@ -61,7 +50,7 @@ const Shots = {};
         Sets.interior(g, t, env, {
             girl: idea ? { pose: 'pencil', eyes: 'open', mouth: 'o', look: [0.3, -0.6] } : { pose: 'desk', eyes: 'closed', mouth: 'grin' },
             extra: (gg) => {
-                if (idea) WL.ticks(gg, 510, 540, 150, 190, 7, bump(t, 1.5, 0.3) + 0.4, C.star, -Math.PI * 0.95);
+                if (idea) WL.ticks(gg, 505, 505, 180, 222, 7, bump(t, 1.5, 0.3) + 0.4, '#fbf1d6', -Math.PI * 0.95);
                 // notebook on the desk
                 WL.sprite('desk-book', { x: 290, y: 845, w: 380, h: 40 }, (c) => P.cutout(c, [[300, 852], [650, 852], [656, 876], [296, 876]], C.cover, 'deskbook', { border: 1.8, shadow: 0.2 }), 1.4).draw(gg);
             },
@@ -69,77 +58,155 @@ const Shots = {};
     };
 
     // ------------------------------------------------------------------ 2–4
-    Shots['Notepad · writing'] = (g, t, env) => writing(g, t, env, E.lerp(0, 7 / 16, E.seg(t, 2.05, 2.95)), [500, 500, 1]);
-    Shots['Notepad · close'] = (g, t, env) => writing(g, t, env, E.lerp(7 / 16, 15.5 / 16, E.seg(t, 3.0, 3.72)), [540, 590, 1.35]);
+    // writing speed measured on the reference: ~8 letters/s, then ~9 in the close-up (16 letters)
+    Shots['Notepad · writing'] = (g, t, env) => writing(g, t, env, Motion.keys([[2, 0.8], [2.25, 4], [2.5, 5.5], [2.75, 7]], t, E.linear) / 16, [500, 500, 1]);
+    Shots['Notepad · close'] = (g, t, env) => writing(g, t, env, Math.min(15.6, 7.2 + (t - 3) * 9.3) / 16, [533, 651, 1.235], true, 1.45);
     Shots['Notepad · done'] = (g, t, env) => writing(g, t, env, 1, [500, 500, 1]);
 
     // ------------------------------------------------------------------ 4–4.5
+    // Measured on the reference, one row per drawing (1/12 s): where line 1 of the page starts
+    // on screen (x, y of 'what'), its turn and scale; then both mittens. The page is yanked off
+    // the spiral (white snap lines, scraps flying), lifts towards the camera (the whole pad
+    // grows 15 %), then slides down, uncovering the next blank page under the rings.
+    const TEAR = [
+        [[217, 513, -0.12, 0.96], [126, 329], [802, 235]],
+        [[209, 533, -0.13, 0.96], [104, 354], [792, 222]],
+        [[169, 561, -0.15, 1.094], [63, 336], [833, 229]],
+        [[171, 593, -0.1, 1.094], [83, 312], [854, 250]],
+        [[180, 638, -0.07, 1.094], [94, 385], [875, 333]],
+        [[185, 686, -0.05, 1.094], [94, 469], [896, 417]],
+    ];
     Shots['Tear'] = (g, t, env) => {
-        const u = E.out(E.seg(t, 4.0, 4.35));
+        const d = Math.min(5, Math.floor((t - 4) * 12 + 1e-6));
+        const [[lx, ly, rot, S], hl, hr] = TEAR[d];
+        const SH = Sets.SHEET;
+        // page centre on screen from the start of line 1
+        const ox = -SH.lineX[0], oy = SH.h / 2 - SH.h * SH.lineY[0];
+        const cx = lx + (ox * Math.cos(rot) - oy * Math.sin(rot)) * S, cy = ly + (ox * Math.sin(rot) + oy * Math.cos(rot)) * S;
         Sets.desk(g, t, env, {
             inner: (gg) => {
                 gg.save();
-                Motion.cam(gg, env, 500, 500, 1);
-                Sets.notepad(gg, t, 470, 600, 1.15, 0.02, { sheet: false });
-                // the sheet comes off, up and a little to the right
-                const K = 1.3, sx = 460 + u * 20, sy = 540 - u * 40, rot = -0.13 * u;
-                WL.note(gg, sx, sy, 600 * K, 400 * K, rot, 'notepad-sheet', { torn: 1, text: NOTE_LINES, p: 1, size: 118 * K * 0.9, lineX: [-200 * K, -265 * K], lineY: [0.36, 0.72] });
-                // hands on the top corners
-                for (const s of [-1, 1]) {
-                    const hx = sx + s * 330 * Math.cos(rot) - (-215) * Math.sin(rot), hy = sy + s * 330 * Math.sin(rot) + (-215) * Math.cos(rot);
-                    WL.tube(gg, [[hx + s * 260, hy + 500], [hx + s * 120, hy + 250], [hx, hy + 20]], 90, C.sweater, 'tearArm' + s);
-                    WL.hand(gg, hx, hy, 40);
-                }
-                // paper bits jumping off the torn edge
-                const r = Motion.rng('bits');
-                for (let i = 0; i < 12; i++) {
-                    const a = -Math.PI * (0.15 + r() * 0.7), v = 120 + r() * 160, b = E.seg(t, 4.12 + r() * 0.1, 4.5);
-                    if (b <= 0 || b >= 1) continue;
+                if (d >= 2) (gg.translate(450, 479), gg.scale(1.15, 1.15), gg.translate(-450, -479));
+                Sets.notepad(gg, t, { sheet: d >= 3 ? 'blank' : false });
+                gg.restore();
+                // the page's shadow on the pad while it is lifted
+                const P2 = Sets.PAD;
+                gg.save();
+                if (d >= 2) (gg.translate(450, 479), gg.scale(1.15, 1.15), gg.translate(-450, -479));
+                gg.beginPath();
+                gg.rect(P2.x - P2.w / 2, P2.y - P2.h / 2, P2.w, P2.h);
+                gg.restore();
+                gg.save();
+                gg.clip();
+                gg.translate(cx + 14, cy + 24);
+                gg.rotate(rot);
+                gg.scale(S, S);
+                gg.fillStyle = '#3b2442';
+                gg.fillRect(-SH.w / 2, -SH.h / 2 + 20, SH.w, SH.h - 10);
+                gg.restore();
+                // the page itself, torn along the perforation
+                gg.save();
+                gg.translate(cx, cy);
+                gg.rotate(rot);
+                gg.scale(S, S);
+                WL.note(gg, 0, 0, SH.w, SH.h, 0, 'torn-page', { torn: 2, rules: SH.rules, margin: SH.margin, text: NOTE_LINES, p: 1, size: Sets.noteSize(gg), lineX: SH.lineX, lineY: SH.lineY });
+                // snap lines at the torn edge on the first drawing
+                if (d === 0) for (const [a, b] of [[[-300, -330], [-330, -372]], [[-150, -335], [-168, -385]], [[210, -340], [228, -386]], [[330, -330], [362, -370]]]) P.markerStroke(gg, [a, b], '#fbf7ee', 7, 'snap' + a[0], 0.95);
+                gg.restore();
+                // the rings stay with the pad (over the page while it is still caught in them)
+                if (d < 3) {
                     gg.save();
-                    gg.globalAlpha = 1 - b;
-                    gg.fillStyle = '#fffdf6';
-                    gg.beginPath();
-                    gg.ellipse(sx - 330 + r() * 660 + Math.cos(a) * v * b, sy - 140 + Math.sin(a) * v * b + 200 * b * b, 6 + r() * 6, 4 + r() * 4, r() * 3, 0, Math.PI * 2);
-                    gg.fill();
+                    if (d >= 2) (gg.translate(450, 479), gg.scale(1.15, 1.15), gg.translate(-450, -479));
+                    gg.translate(SH.x, SH.y);
+                    gg.rotate(SH.rot);
+                    WL.sprite('spiral2', { x: -400, y: -330, w: 800, h: 90 }, () => {}, 1.3).draw(gg);
                     gg.restore();
                 }
-                gg.restore();
+                // scraps of paper from the ring holes, flying up and out (on twos)
+                if (d >= 1) {
+                    const r = Motion.rng('scraps'), u = (d - 1 + 0.5) / 5;
+                    for (let i = 0; i < 14; i++) {
+                        const x0 = 150 + r() * 700, vx = (x0 - 500) * (0.25 + r() * 0.3), vy = -(90 + r() * 120), sz = 9 + r() * 9, spin = (r() - 0.5) * 6, late = r() * 0.3;
+                        const v = Math.max(0, u - late);
+                        if (v <= 0) continue;
+                        const x = x0 + vx * v, y = 262 + vy * v + 160 * v * v;
+                        const bit = WL.sprite('scrap' + (i % 5), { x: -16, y: -16, w: 32, h: 32 }, (c) => {
+                            const rr = P.rng('scrap' + (i % 5));
+                            P.cutout(c, PaperDetail.spline(Array.from({ length: 7 }, (_, k) => [Math.cos((k / 7) * 6.283) * (8 + rr() * 5), Math.sin((k / 7) * 6.283) * (7 + rr() * 5)]), 5), '#f7f3e7', 'scrap' + (i % 5), { border: 1.4, shadow: 0.15 });
+                            if (i % 5 < 3) (c.strokeStyle = C.rule, c.lineWidth = 2, c.beginPath(), c.moveTo(-10, (i % 3) * 3 - 2), c.lineTo(10, (i % 3) * 3 - 1), c.stroke());
+                        }, 2);
+                        gg.save();
+                        gg.translate(x, y);
+                        gg.rotate(spin * v);
+                        gg.scale(sz / 12, sz / 12);
+                        bit.draw(gg);
+                        gg.restore();
+                    }
+                }
+                // mittens on the page, arms coming in from both sides
+                WL.mitten(gg, hl[0], hl[1], 112, [hl[0] - 330, hl[1] + 700], false);
+                WL.mitten(gg, hr[0], hr[1], 112, [hr[0] + 330, hr[1] + 700], true);
             },
         });
     };
 
     // ------------------------------------------------------------------ 4.5–5.25
-    // folding over a circle of light: flat sheet → «house» (top corners folded) → plane
+    // Folding the plane under the lamp, traced drawing by drawing (1/12 s each) on the
+    // reference: the page seen from the back (the pen stroke shows through), top corners folded
+    // in, the «house», the nose folded narrower (side flaps shaded), the finished dart. Each
+    // row: [shape, mittens L/R, sparkles?]. Shapes are paper polygons with creases.
+    const PAGE = '#f7f3e7', FLAP = '#e5dec9', CREASE = '#5d5862';
+    const FOLD_SHAPES = {
+        sheet: { out: [[312, 212], [688, 212], [688, 788], [312, 788]], creases: [[[322, 400], [322, 775]]], mark: [[537, 670], [600, 645], [655, 680]] },
+        flaps: { out: [[312, 212], [688, 212], [688, 788], [312, 788]], flaps: [[[312, 212], [500, 212], [312, 375]], [[688, 212], [500, 212], [688, 375]]], creases: [[[500, 212], [500, 788]]], mark: [[575, 622], [630, 612]] },
+        house: { out: [[506, 217], [689, 403], [681, 796], [311, 796], [311, 403]], creases: [[[506, 225], [496, 786]], [[430, 404], [543, 404]]], mark: [[450, 646], [540, 629]] },
+        dart: { out: [[500, 207], [643, 379], [639, 786], [369, 786], [354, 379]], flaps: [[[500, 207], [354, 379], [369, 786], [423, 786], [410, 471]], [[500, 207], [643, 379], [639, 786], [579, 786], [590, 471]]], creases: [[[500, 214], [500, 780]], [[314, 390], [686, 390]]], mark: [[455, 632], [545, 618]] },
+        plane: { out: [[500, 212], [587, 475], [587, 787], [412, 787], [412, 475]], creases: [[[500, 220], [500, 780]], [[312, 400], [688, 400]]], mark: [[475, 650], [537, 637]] },
+    };
+    const FOLD = [
+        ['sheet', [312, 637], [587, 762], 1],
+        ['sheet', [312, 712], [587, 750], 0],
+        ['flaps', [175, 512], [812, 562], 0],
+        ['house', [407, 407], [600, 414], 2],
+        ['house', [375, 412], [600, 412], 0],
+        ['dart', [243, 700], [771, 700], 0],
+        ['plane', [437, 725], [575, 725], 3],
+        ['plane', [425, 737], [587, 725], 0],
+        ['plane', [475, 762], [600, 750], 0, -0.13],
+    ];
+    const SPARKLES = {
+        1: [[[262, 100], [285, 118]], [[738, 100], [715, 118]], [[160, 310], [185, 318]], [[840, 310], [815, 318]]],
+        2: [[[429, 64], [436, 100]], [[569, 64], [562, 100]], [[303, 164], [326, 190]], [[697, 164], [674, 190]], [[224, 337], [257, 349]], [[776, 337], [743, 349]]],
+        3: [[[440, 170], [447, 205]], [[560, 170], [553, 205]], [[330, 250], [362, 268]], [[670, 250], [638, 268]]],
+    };
+    function foldedPaper(c, key) {
+        const f = FOLD_SHAPES[key];
+        const rules = (cc, box) => {
+            cc.strokeStyle = C.rule;
+            cc.lineWidth = 2.2;
+            for (let y = 296; y < 800; y += 71) (cc.beginPath(), cc.moveTo(box.x, y), cc.lineTo(box.x + box.w, y), cc.stroke());
+        };
+        P.cutout(c, f.out, PAGE, 'fold-' + key, { border: 2.2, paper: '#fffdf6', shadow: 0.22, jag: 0.5, tex: { lVar: 1.2, sVar: 1.5, alpha: [0.12, 0.3] }, inner: rules });
+        for (const [i, fl] of (f.flaps ?? []).entries()) P.cutout(c, fl, FLAP, 'flap-' + key + i, { border: 0, shadow: 0.08, jag: 0.4, tex: { alpha: [0.1, 0.25] }, inner: rules });
+        for (const [a, b] of f.creases) P.markerStroke(c, [a, b], CREASE, 3, 'crease' + key + a[0], 0.85);
+        // the pen stroke showing through from the front
+        P.markerStroke(c, f.mark, '#6f8fd0', 9, 'mark' + key, 0.9);
+        P.markerStroke(c, f.mark, '#3f66b8', 5, 'mark2' + key, 0.95);
+    }
     Shots['Fold'] = (g, t, env) => {
-        const f = t < 4.7 ? 0 : t < 4.95 ? 1 : 2;
+        const d = Math.min(FOLD.length - 1, Math.floor((t - 4.5) * 12 + 1e-6));
+        const [key, hl, hr, spark, rot = 0] = FOLD[d];
         Sets.desk(g, t, env, {
+            light: [496, 436, 420],
             inner: (gg) => {
-                WL.sprite('fold-light', { x: 150, y: 130, w: 700, h: 700 }, (c) => P.cutout(c, P.ellipse(500, 480, 330, 330), '#dcb679', 'foldlight', { border: 0, shadow: 0, jag: 1.3, tex: { alpha: [0.2, 0.4] } }), 1.2).draw(gg);
-                WL.ticks(gg, 500, 480, 350, 400, 16, 0.6 + 0.2 * Math.sin(t * 20), '#f3dc9e');
-                const shapes = [
-                    [[380, 250], [620, 250], [620, 720], [380, 720]],
-                    [[500, 250], [620, 400], [620, 720], [380, 720], [380, 400]],
-                    [[500, 230], [560, 470], [540, 720], [460, 720], [440, 470]],
-                ];
-                const key = 'fold' + f;
-                WL.sprite(key, { x: 340, y: 200, w: 320, h: 560 }, (c) => {
-                    P.cutout(c, shapes[f], '#fbf8f0', key, { border: 0, shadow: 0.25, jag: 0.4, tex: { alpha: [0.1, 0.2] } });
-                    c.strokeStyle = '#c9c2b2';
-                    c.lineWidth = 2;
-                    c.beginPath();
-                    c.moveTo(500, shapes[f][0][1]);
-                    c.lineTo(500, 720);
-                    if (f === 1) (c.moveTo(380, 400), c.lineTo(620, 400));
-                    c.stroke();
-                    if (f === 0) for (let y = 300; y < 720; y += 55) (c.strokeStyle = C.rule, c.beginPath(), c.moveTo(380, y), c.lineTo(620, y), c.stroke());
-                }, 1.4).draw(gg);
-                // hands holding the bottom corners
-                const hy = f === 2 ? 700 : 690;
-                for (const s of [-1, 1]) {
-                    const hx = 500 + s * (f === 2 ? 55 : 125);
-                    WL.tube(gg, [[500 + s * 520, 1150], [500 + s * 330, 900], [hx + s * 10, hy + 20]], 90, C.sweater, 'foldArm' + s);
-                    WL.hand(gg, hx, hy, 40);
-                }
+                if (spark) for (const [a, b] of SPARKLES[spark]) P.markerStroke(gg, [a, b], '#f3dc93', 6, 'spark' + a[0] + a[1], 0.95);
+                gg.save();
+                if (rot) (gg.translate(500, 500), gg.rotate(rot), gg.translate(-500, -500));
+                WL.sprite('folded-' + key, { x: 290, y: 190, w: 420, h: 620 }, (c) => foldedPaper(c, key), 1.4).draw(gg);
+                gg.restore();
+                // mittens, the arms reaching in from the bottom corners
+                WL.mitten(gg, hl[0], hl[1], 100, [-250, 1150], false);
+                WL.mitten(gg, hr[0], hr[1], 100, [1250, 1150], true);
             },
         });
     };
@@ -339,29 +406,27 @@ const Shots = {};
     // ------------------------------------------------------------------ 22.75–24
     Shots['Interior · joy'] = (g, t, env) => {
         const stage = t < 22.95 ? 0 : t < 23.4 ? 1 : 2;
+        // she leans in towards the camera: 20 % bigger than in the other interior shots
+        const GS = 1.08, hand = (pose, i) => WL.girlHand(pose, i, 510, 915, GS);
         Sets.interior(g, t, env, {
-            girl: stage === 0 ? { pose: 'note', eyes: 'open', mouth: 'o' } : stage === 1 ? { pose: 'note', eyes: 'happy', mouth: 'grin' } : { pose: 'hug', eyes: 'closed', mouth: 'smile', tilt: -0.08 },
+            girl: { s: GS, ...(stage === 0 ? { pose: 'note', eyes: 'open', mouth: 'o' } : stage === 1 ? { pose: 'note', eyes: 'happy', mouth: 'grin' } : { pose: 'hug', eyes: 'closed', mouth: 'smile', tilt: -0.08 }) },
             extra: (gg) => {
                 if (stage < 2) {
-                    const [lx, ly] = WL.girlHand('note', 0), [rx] = WL.girlHand('note', 1);
-                    WL.note(gg, (lx + rx) / 2, ly - 60, rx - lx + 60, 210, 0, 'girl-note', { torn: 1, flip: true, text: ['what do', 'you love?'], p: 1, size: 50, lineX: [-100, -130], lineY: [0.42, 0.74], circle: 1, doodle: 1 });
+                    const [lx, ly] = hand('note', 0), [rx] = hand('note', 1);
+                    WL.note(gg, (lx + rx) / 2, ly - 72, rx - lx + 72, 252, 0, 'girl-note-j', { torn: 1, flip: true, text: ['what do', 'you love?'], p: 1, size: 60, lineX: [-120, -156], lineY: [0.42, 0.74], circle: 1, doodle: 1 });
                 } else {
-                    WL.note(gg, 510, 790, 330, 190, 0.05, 'girl-note-hug', { torn: 1, flip: true, text: ['what do', 'you love?'], p: 1, size: 44, lineX: [-90, -115], lineY: [0.42, 0.74], circle: 1, doodle: 1 });
-                    const [hx, hy] = WL.girlHand('hug', 0);
-                    WL.hand(gg, hx, hy, 24);
-                    // little hearts float up
-                    [[730, 470, '#d9473b', 23.5], [300, 430, '#ef9fb5', 23.62]].forEach(([x, y, col, at], i) => {
+                    WL.note(gg, 510, 765, 396, 228, 0.05, 'girl-note-hug2', { torn: 1, flip: true, text: ['what do', 'you love?'], p: 1, size: 53, lineX: [-108, -138], lineY: [0.42, 0.74], circle: 1, doodle: 1 });
+                    const [hx, hy] = hand('hug', 0);
+                    WL.hand(gg, hx, hy, 29);
+                    // paper hearts pop out and drift up (measured: red at 23.5 s, pink at 23.75 s)
+                    [[733, 392, '#d9473b', 23.5, 1], [283, 362, '#ef9fb5', 23.75, 0.7]].forEach(([x, y, col, at, k], i) => {
                         const u = E.seg(t, at, at + 0.5);
                         if (u <= 0) return;
+                        const heart = WL.sprite('joy-heart' + i, { x: -30, y: -30, w: 60, h: 60 }, (c) => P.cutout(c, PaperDetail.spline([[0, 20], [-20, 2], [-22, -12], [-12, -20], [0, -12], [12, -20], [22, -12], [20, 2]], 6), col, 'joyheart' + i, { border: 2.4, shadow: 0.15 }), 2.4);
                         gg.save();
-                        gg.translate(x + Math.sin(t * 6 + i) * 6, y - u * 40);
-                        gg.scale(E.back(Math.min(1, u * 3)) * 1.4, E.back(Math.min(1, u * 3)) * 1.4);
-                        gg.fillStyle = col;
-                        gg.beginPath();
-                        gg.moveTo(0, 12);
-                        gg.bezierCurveTo(-26, -6, -12, -26, 0, -12);
-                        gg.bezierCurveTo(12, -26, 26, -6, 0, 12);
-                        gg.fill();
+                        gg.translate(x, y - u * 22);
+                        gg.scale(E.back(Math.min(1, u * 3)) * k, E.back(Math.min(1, u * 3)) * k);
+                        heart.draw(gg);
                         gg.restore();
                     });
                 }
@@ -395,14 +460,14 @@ const Shots = {};
     Shots['Interior · pins'] = (g, t, env) => {
         const pinned = t >= 26.2, hug = t >= 26.45;
         Sets.interior(g, t, env, {
-            girl: { x: 380, pose: hug ? 'hug' : 'pin', eyes: hug ? 'closed' : 'happy', mouth: hug ? 'smile' : 'grin' },
+            girl: { x: 410, pose: hug ? 'hug' : 'pin', eyes: hug ? 'closed' : 'happy', mouth: hug ? 'smile' : 'grin' },
             pinned: (gg) => {
-                WL.note(gg, 690, 470, 250, 170, 0.04, 'pinned-note', { torn: 1, text: ['what do', 'you love?'], p: 1, size: 44, lineX: [-80, -105], lineY: [0.42, 0.74], circle: 1, doodle: 1 });
-                if (pinned) WL.ticks(gg, 690, 470, 150, 185, 12, E.bump(t, 26.2, 0.35), C.star);
+                WL.note(gg, 750, 517, 267, 217, 0.03, 'pinned-note2', { torn: 1, text: ['what do', 'you love?'], p: 1, size: 50, lineX: [-92, -118], lineY: [0.4, 0.72], circle: 1, doodle: 1 });
+                if (pinned) WL.ticks(gg, 750, 517, 160, 195, 12, E.bump(t, 26.2, 0.35), C.star);
             },
             extra: (gg) => {
                 if (!hug) {
-                    const [hx, hy] = WL.girlHand('pin', 1, 380);
+                    const [hx, hy] = WL.girlHand('pin', 1, 410);
                     WL.hand(gg, hx, hy, 24);
                 }
             },
