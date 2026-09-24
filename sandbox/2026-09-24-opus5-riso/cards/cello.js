@@ -23,7 +23,6 @@ CARDS.cello = (press, t) => {
         for (const [g, v] of DARK) { g.fillStyle = T(v); g.fillRect(0, 0, 1080, 1080); }
         // blotchy: greener patches (more blue, less navy), brown ones (pink)
         U.blotch(B, 'cg-b', [0, 250, 330, 1080], 14, 60, 150, 0.1, 0.35);
-        U.cut([N], (g) => U.blotch(g, 'cg-n', [0, 300, 330, 1080], 10, 60, 140, 0.1, 0.3));
         U.blotch(P, 'cg-p', [0, 300, 330, 1080], 8, 40, 110, 0.1, 0.3);
         // the purfling: the left edge of the body, a red brush line on the dark
         const edge = [[-6, 138], [20, 200], [45, 245], [75, 283], [110, 303], [150, 318], [190, 335], [222, 357], [246, 386], [266, 425], [284, 475], [300, 530], [316, 575], [326, 620], [319, 655], [302, 686], [282, 708], [260, 726], [242, 747], [233, 775], [229, 810], [231, 860], [237, 910], [245, 960], [253, 995], [263, 1040], [272, 1090]];
@@ -31,32 +30,44 @@ CARDS.cello = (press, t) => {
         const body = inner.concat([[1090, 1090], [1090, -10], [-10, -10]]);
         const bodyPath = (g) => { g.beginPath(); U.smooth(g, body); };
         // ---------------------------------------------------------------- the body
+        // the reference's screens on this card (lattice fits, px at 1080): navy 8.65 px at
+        // 12°, pink 8.64 px at 72°; the purple bout's dots 10.8 px at 12°
+        const LN = { o: [42.53, 45.84], a: [8.4539, 1.7841], b: [-1.7826, 8.4545] };
+        const LP = { o: [132.64, 41.42], a: [-8.2445, 2.6433], b: [2.6447, 8.2261] };
+        const LNP = { o: [760.84, 40.48], a: [-2.2284, 10.5657], b: [10.5678, 2.2283] };
         U.cut([N, B, P], (g) => { bodyPath(g); g.fill(); });
-        // pink: a nearly full screen, thinning to dots in the highlight band along the strings
-        U.clipped(PS, body, true, (g) => {
-            g.fillStyle = T(0.95); g.fillRect(0, 0, 1080, 1080);
+        // the highlight band along the strings, measured as [y, left, right] on colour-run
+        // scans (yellow + half the orange): pink thins to dots there
+        const B8 = [[-30, 118, 420], [5, 130, 410], [100, 185, 410], [200, 245, 452], [300, 342, 494], [400, 392, 534], [450, 408, 512], [600, 442, 532], [700, 412, 508], [780, 410, 542], [870, 432, 568], [930, 468, 602], [990, 480, 614], [1050, 474, 668], [1110, 480, 690]];
+        const bandP = B8.map(([y, l]) => [l, y]).concat(B8.slice().reverse().map(([y, , r]) => [r, y]));
+        const coreP = B8.map(([y, l, r]) => [l + (r - l) * 0.22, y]).concat(B8.slice().reverse().map(([y, l, r]) => [r - (r - l) * 0.22, y]));
+        U.clipped(P, body, true, (g) => {
+            g.fillStyle = T(1); g.fillRect(0, 0, 1080, 1080);
             g.globalCompositeOperation = 'destination-out';
-            const band = [[272, -30], [298, 100], [350, 200], [412, 300], [455, 400], [468, 480], [478, 600], [470, 700], [480, 800], [515, 900], [548, 990], [578, 1100]];
-            const bw = (s) => 250 - 330 * Math.min(1, s * 2.2) * (s < 0.45 ? 1 : 0.9) + (s > 0.6 ? (s - 0.6) * 180 : 0);
-            U.soft(g, 16, (c) => U.brush(c, band, (s) => Math.max(70, bw(s)), T(0.62), 'cband', { taper: 0, wob: 0.08 }));
-            U.soft(g, 8, (c) => U.brush(c, band.map(([x, y]) => [x + 4, y]), (s) => Math.max(34, bw(s) * 0.45), T(0.35), 'cband2', { taper: 0, wob: 0.1 }));
+            U.soft(g, 10, (c) => { c.fillStyle = T(1); c.beginPath(); U.smooth(c, bandP); c.fill(); });
         });
-        // navy: sparse dots over the red, a dark rim inside the purfling, grain
-        U.clipped(NS, body, true, (g) => {
-            g.fillStyle = T(0.13); g.fillRect(0, 0, 1080, 1080);
-            U.soft(g, 12, (c) => U.brush(c, inner.slice(0, 16).map(([x, y]) => [x + 22, y + 6]), 62, T(0.55), 'crim', { taper: 0 }));
-            U.soft(g, 10, (c) => U.brush(c, inner.slice(14).map(([x, y]) => [x + 20, y]), 44, T(0.6), 'crim2', { taper: 0 }));
-            // under the purple bout, a shadow
-            U.soft(g, 14, (c) => { c.fillStyle = T(0.75); c.beginPath(); U.smooth(c, [[870, 470], [950, 462], [1090, 470], [1090, 650], [1040, 610], [995, 548], [950, 575], [915, 505]]); c.fill(); });
-        });
+        U.screen(P, 'pink', LP, (m) => U.clipped(m, body, true, (c) => {
+            U.soft(c, 10, (c2) => { c2.fillStyle = T(0.5); c2.beginPath(); U.smooth(c2, bandP); c2.fill(); });
+            c.globalCompositeOperation = 'destination-out';
+            U.soft(c, 10, (c2) => { c2.fillStyle = T(0.7); c2.beginPath(); U.smooth(c2, coreP); c2.fill(); });
+        }));
+        // navy: sparse dots over the red, a dark rim inside the purfling, a shadow under the bout
+        U.screen(N, 'navy', LN, (m) => U.clipped(m, body, true, (g) => {
+            g.fillStyle = T(0.1); g.fillRect(0, 0, 1080, 1080);
+            U.soft(g, 12, (c) => U.brush(c, inner.slice(0, 16).map(([x, y]) => [x + 22, y + 6]), 62, T(0.6), 'crim', { taper: 0 }));
+            U.soft(g, 10, (c) => U.brush(c, inner.slice(14).map(([x, y]) => [x + 20, y]), 44, T(0.65), 'crim2', { taper: 0 }));
+            U.soft(g, 14, (c) => { c.fillStyle = T(0.8); c.beginPath(); U.smooth(c, [[870, 470], [950, 462], [1090, 470], [1090, 650], [1040, 610], [995, 548], [950, 575], [915, 505]]); c.fill(); });
+        }));
         U.clipped(N, body, true, (g) => U.hatch(g, 'cgrain', [0, 0, 1080, 1080], [0.44, 1], 34, 2.2, T(0.7), { bend: 8 }));
         // ---------------------------------------------------------------- the purple bout
         const purple = [[708, -20], [690, 50], [676, 110], [672, 160], [678, 215], [694, 265], [718, 310], [748, 352], [782, 392], [822, 425], [862, 446], [905, 450], [950, 452], [1000, 470], [1050, 468], [1100, 470], [1100, -20]];
         press.knockout((g) => { g.beginPath(); U.smooth(g, purple); g.fill(); });
-        U.fill(P, purple, T(0.97), true);
-        U.clipped(YS, purple, true, (g) => { g.fillStyle = T(0.3); g.fillRect(600, 0, 480, 520); });
-        U.clipped(NS, purple, true, (g) => { g.fillStyle = U.lin ? T(0.3) : T(0.3); g.fillRect(600, 0, 480, 520); g.globalCompositeOperation = 'destination-out'; U.glow(g, 1060, 30, 220, 0.8, 0); });
-        U.clipped(BS, purple, true, (g) => { g.fillStyle = T(0.18); g.fillRect(600, 0, 480, 520); });
+        U.fill(P, purple, T(1), true);
+        // a yellow tint and blue-navy dots, fading out to plain pink in the top right corner
+        const purpleTone = (v) => (m) => U.clipped(m, purple, true, (c) => { c.fillStyle = T(v); c.fillRect(600, 0, 480, 520); c.globalCompositeOperation = 'destination-out'; U.glow(c, 1080, 0, 260, 1, 0); });
+        U.clipped(Y, purple, true, (g) => purpleTone(0.3)(g));
+        U.screen(N, 'navy', LNP, purpleTone(0.3));
+        U.screen(B, 'blue', LNP, purpleTone(0.2));
         // its outline: a navy brush line, then a pink rim inside
         const rim = purple.slice(0, 16);
         U.brush(N, rim, 11, T(0.95), 'cpo', { taper: 0 });
@@ -90,8 +101,8 @@ CARDS.cello = (press, t) => {
         fhole([[553, 188], [566, 222], [582, 268], [604, 320], [634, 378], [672, 432], [720, 495], [765, 560], [800, 620], [818, 660], [830, 695]], 22, 27, 'cfr');
         // ---------------------------------------------------------------- bridge
         const sh = [[468, 612], [560, 578], [650, 548], [716, 526], [724, 548], [700, 570], [610, 598], [520, 628], [478, 642]];
-        for (const [g, v] of [[N, 0.95], [B, 0.45]]) U.fill(g, sh, T(v), true);
         U.cut([P, PS, NS, N], (g) => { g.beginPath(); U.smooth(g, sh); g.fill(); });
+        for (const [g, v] of [[N, 0.95], [B, 0.45], [P, 0.2]]) U.fill(g, sh, T(v), true);
         const bridge = [[446, 594], [470, 568], [505, 540], [545, 522], [590, 504], [635, 488], [672, 478], [694, 485], [700, 505], [688, 520], [650, 535], [600, 552], [548, 570], [505, 590], [478, 612], [456, 614]];
         press.knockout((g) => { g.beginPath(); U.smooth(g, bridge); g.fill(); });
         U.fill(Y, bridge, T(1), true);
@@ -101,7 +112,7 @@ CARDS.cello = (press, t) => {
         // ---------------------------------------------------------------- tailpiece
         const tail = [[600, 824], [720, 772], [790, 758], [812, 830], [834, 900], [852, 960], [870, 1030], [884, 1090], [742, 1090], [712, 1020], [678, 950], [640, 882]];
         U.cut([P, PS, NS], (g) => { g.beginPath(); U.trace(g, tail); g.fill(); });
-        for (const [g, v] of [[N, 0.95], [B, 0.6], [P, 0.2]]) U.fill(g, tail, T(v));
+        for (const [g, v] of [[N, 0.9], [B, 0.8]]) U.fill(g, tail, T(v));
         U.blotch(B, 'ctb', [640, 780, 880, 1080], 5, 40, 90, 0.1, 0.3);
         // the fret line and the tail gut: yellow
         press.knockout((g) => U.brush(g, [[612, 830], [700, 795], [770, 768]], 5, '#000', 'cfr1', { taper: 0.1 }));
@@ -131,8 +142,10 @@ CARDS.cello = (press, t) => {
         U.speckle(P, 'cspk', 40, 0, 250, 330, 1080, 1.5, 3, T(0.9));
         U.speckle(B, 'cspk2', 25, 0, 250, 330, 1080, 1.5, 2.5, T(0.9));
         // ---------------------------------------------------------------- overlays
-        for (const [g, v] of [[N, 0.9]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 2.5; g.beginPath(); g.arc(540, 540, 402, 0, 7); g.stroke(); g.beginPath(); g.arc(540, 540, 560, 0, 7); g.stroke(); g.restore(); }
-        press.knockout((g) => { g.lineWidth = 13; g.beginPath(); g.arc(540, 540, 721, 0, 7); g.stroke(); });
-        B.save(); B.strokeStyle = T(0.6); B.lineWidth = 2; B.beginPath(); B.arc(540, 540, 728, 0, 7); B.stroke(); B.restore();
+        for (const [g, v] of [[N, 0.9]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 3.5; g.beginPath(); g.arc(540, 540, 405, 0, 7); g.stroke(); g.beginPath(); g.arc(540, 540, 594, 0, 7); g.stroke(); g.restore(); }
+        // the white ring from the cut grows 30 px a frame (measured: 685, 717, 745)
+        const rr = [717, 745][Math.min(1, d)];
+        press.knockout((g) => { g.lineWidth = 14; g.beginPath(); g.arc(540, 540, rr, 0, 7); g.stroke(); });
+        B.save(); B.strokeStyle = T(0.6); B.lineWidth = 2.5; B.beginPath(); B.arc(540, 540, rr - 8, 0, 7); B.stroke(); B.restore();
     });
 };

@@ -109,5 +109,64 @@ var G5 = G5 || (() => {
     const cut = (plates, fn) => { for (const g of plates) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.strokeStyle = '#000'; fn(g); g.restore(); } };
     // paint fn(g) on several plates, each with its own tone: [[plate, tone], …]
     const inks = (list, fn) => { for (const [g, v] of list) { g.save(); g.fillStyle = Riso.tone(v); g.strokeStyle = Riso.tone(v); fn(g, v); g.restore(); } };
-    return { trace, smooth, fill, stroke, clipped, glow, speckle, blob, px, band, erase, brush, soft, hatch, blotch, cut, inks };
+    // The reference's own screen. Each card was printed through screens at its own pitch and
+    // angle (8.6–11 px here, not the press's 9.5), fixed for the card; a dot a few px off the
+    // reference's costs as much as a wrong colour (a 3 px shift of the same print = 12 on the
+    // gate). A screen is measured per ink per card with a lattice fit (FFT peaks, then the
+    // phase per block): one regular lattice fits the whole frame to < 0.6 px, so
+    // L = { o: [x, y], a: [x, y], b: [x, y] } in reference px at 1080 (dot centres at
+    // o + i·a + j·b); a per-block form { a, b, s, o: rows of [x, y] | null } also works.
+    // screen(g, ink, L, tonesFn): tonesFn(m) paints tones (alpha = ink) in reference px on a
+    // scratch canvas; every lattice cell gets one soft round dot of area = tone × cell, drawn
+    // on the solid plate g (inside G5.px). The press's register offset for the ink is taken
+    // out, so the dots land where they were measured.
+    const REG = { yellow: [2, -1], pink: [-1, 1], blue: [1, 2], navy: [0, 0] };
+    let scr = null;
+    const screen = (g, ink, L, tonesFn, o = {}) => {
+        const W = g.canvas.width, H = g.canvas.height, q = 0.5, sw = Math.round(W * q), sh = Math.round(H * q), k = sw / 1080;
+        if (!scr || scr.width !== sw) { scr = document.createElement('canvas'); scr.width = sw; scr.height = sh; }
+        const m = scr.getContext('2d', { willReadFrequently: true });
+        m.setTransform(1, 0, 0, 1, 0, 0); m.globalCompositeOperation = 'source-over'; m.globalAlpha = 1; m.filter = 'none'; m.clearRect(0, 0, sw, sh);
+        m.setTransform(k, 0, 0, k, 0, 0);
+        m.fillStyle = Riso.tone(1); m.strokeStyle = Riso.tone(1);
+        tonesFn(m);
+        const D = m.getImageData(0, 0, sw, sh).data;
+        // one regular lattice (o: [x, y]) is one block over the whole frame
+        if (typeof L.o[0] === 'number') L = { a: L.a, b: L.b, s: 1080, o: [[L.o]] };
+        const [ax, ay] = L.a, [bx, by] = L.b, det = ax * by - ay * bx, cell = Math.abs(det), S = L.s, n = L.o.length;
+        const gain = o.gain ?? 1, jit = o.jit ?? 0.1, [rx, ry] = REG[ink] ?? [0, 0]; // press offsets, in px at 1080
+        // fill the blocks without dots from the nearest measured one
+        const O = L.o.map((row, j) => row.map((v, i) => {
+            if (v) return v;
+            let best = null, bd = 1e9;
+            L.o.forEach((r2, j2) => r2.forEach((v2, i2) => { if (v2) { const dd = (i - i2) ** 2 + (j - j2) ** 2; if (dd < bd) { bd = dd; best = v2; } } }));
+            return best;
+        }));
+        g.save();
+        g.fillStyle = Riso.tone(1);
+        g.beginPath();
+        for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+            const oo = O[j][i]; if (!oo) continue;
+            const x0 = i * S, y0 = j * S, x1 = x0 + S + (i === n - 1 ? 40 : 0), y1 = y0 + S + (j === n - 1 ? 40 : 0), xa = i ? x0 : -40, ya = j ? y0 : -40;
+            // lattice indices covering the block
+            const idx = (x, y) => [((x - oo[0]) * by - (y - oo[1]) * bx) / det, (ax * (y - oo[1]) - ay * (x - oo[0])) / det];
+            const cs = [idx(xa, ya), idx(x1, ya), idx(xa, y1), idx(x1, y1)];
+            const i0 = Math.floor(Math.min(...cs.map((c) => c[0]))), i1 = Math.ceil(Math.max(...cs.map((c) => c[0])));
+            const j0 = Math.floor(Math.min(...cs.map((c) => c[1]))), j1 = Math.ceil(Math.max(...cs.map((c) => c[1])));
+            for (let u = i0; u <= i1; u++) for (let v = j0; v <= j1; v++) {
+                const x = oo[0] + u * ax + v * bx, y = oo[1] + u * ay + v * by;
+                if (x < xa || x >= x1 || y < ya || y >= y1) continue;
+                const qx = Math.min(sw - 1, Math.max(0, Math.round(x * k))), qy = Math.min(sh - 1, Math.max(0, Math.round(y * k)));
+                const tv = (D[(qy * sw + qx) * 4 + 3] / 255) * gain;
+                if (tv < 0.02) continue;
+                const hh = Math.sin(u * 12.9898 + v * 78.233) * 43758.5453, hj = hh - Math.floor(hh);
+                const r = Math.sqrt(Math.min(1.35, tv) * cell / Math.PI) * (1 + jit * (hj - 0.5) * 2);
+                const px = x - rx, py = y - ry;
+                g.moveTo(px + r, py); g.arc(px, py, r, 0, 6.2832);
+            }
+        }
+        g.fill();
+        g.restore();
+    };
+    return { trace, smooth, fill, stroke, clipped, glow, speckle, blob, px, band, erase, brush, soft, hatch, blotch, cut, inks, screen };
 })();

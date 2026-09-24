@@ -1,136 +1,149 @@
-// Card «volcano» (reference ≈ 12.46–12.58 s, full frame). An erupting volcano: a navy cone
-// with yellow lava rivers edged in orange, a yellow fountain from the crater, a red-orange
-// glow (yellow + pink solids, navy dots growing outwards) between the ash cloud and the
-// cone, a navy ash cloud with a pink lightning bolt (white core), blue-dotted night round it.
-// Authored in reference pixels (1080 frame) through G5.px. CARDS.volcano(press, t).
+// Card «volcano» (reference 12.5–12.625 s, full frame). An erupting volcano: a navy cone
+// with yellow lava rivers edged in orange and haloed in pink dots, a yellow fountain from
+// the crater, a red-orange glow (yellow + pink solids) that breaks into pink dots on navy
+// and then into navy dots on blue towards the edges, a navy ash cloud with a pink lightning
+// bolt (white core). Measured in reference pixels (1080 frame, the 12.5 s frame) with
+// colour-run scans, grid crops and lattice fits of the two screens; the second drawing is
+// the same print moved (−5, −1) px, as measured. Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
 CARDS.volcano = (press, t) => {
-    const R = Riso, T = R.tone, U = G5;
-    const d = Math.floor(t * 12 + 1e-6);
-    const P = (ink, k) => press.plate(ink, k);
-    const pink = P('pink'), pinkS = P('pink', 'screen'), yel = P('yellow'), yelS = P('yellow', 'screen');
-    const blueS = P('blue', 'screen'), navy = P('navy'), navyS = P('navy', 'screen');
-    const eraseIn = (plates, pts, sm, fn) => { for (const g of plates) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.beginPath(); (sm ? U.smooth : U.trace)(g, pts); g.fill(); g.restore(); } };
+    const U = G5, T = Riso.tone, d = Math.floor(t * 12 + 1e-6);
+    const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
+    // the reference's screens (lattice fits, px at 1080): pink 10.8 px at 18°, navy 10.8 px at 78°
+    const LP = { o: [946.27, 132.06], a: [-3.3149, 10.2786], b: [10.2808, 3.3142] };
+    const LN = { o: [40.8, 48.69], a: [2.2397, 10.5645], b: [-10.5649, 2.2419] };
+    const CX = 660, CY = 550;
+    const [dx, dy] = d >= 1 ? [-5, -1] : [0, 0];
     U.px(press, () => {
-        const CX = 655, CY = 600; // the glow's centre, just above the crater
-        // night: navy flat with coarse blue dots, a few pink dots
-        navy.fillStyle = T(0.8); navy.fillRect(0, 0, 1080, 1080);
-        blueS.fillStyle = T(0.55); blueS.fillRect(0, 0, 1080, 1080);
-        pinkS.fillStyle = T(0.06); pinkS.fillRect(0, 0, 1080, 1080);
-        // the glow: an ellipse where the night is wiped and orange printed; navy dots come
-        // back towards its rim
-        const glowE = (g, a0, a1, r0 = 0.25) => {
-            g.save(); g.translate(CX, CY); g.scale(1, 0.62);
-            const gr = g.createRadialGradient(0, 0, 0, 0, 0, 720);
-            gr.addColorStop(0, T(a0)); gr.addColorStop(r0, T(a0)); gr.addColorStop(0.72, T(a0 * 0.85 + a1 * 0.15)); gr.addColorStop(1, T(a1));
-            g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 720, 0, 7); g.fill(); g.restore();
+        press.save(); press.each((g) => g.translate(dx, dy));
+        // ------------------------------------------------------------ the glow
+        // tones as a function of u, the distance from the glow's heart in units of the orange
+        // zone's half width (225 px right, 250 left; 2.3× taller), measured on colour-run
+        // scans: orange to u 1, pink dots on navy from 1.6, navy dots on blue from 2.4
+        const field = (m, stops) => {
+            for (const [side, rx] of [[-1, 250], [1, 235]]) {
+                m.save(); m.beginPath(); m.rect(side < 0 ? -40 : CX, -40, side < 0 ? CX + 40 : 1200, 1200); m.clip();
+                m.translate(CX, CY); m.scale(rx, rx * 1.05);
+                const gr = m.createRadialGradient(0, 0, 0, 0, 0, 3.2);
+                for (const [u, v] of stops) gr.addColorStop(Math.min(1, u / 3.2), T(v));
+                m.fillStyle = gr; m.fillRect(-10, -10, 20, 20); m.restore();
+            }
         };
-        for (const g of [navy, blueS, pinkS]) { g.save(); g.globalCompositeOperation = 'destination-out'; glowE(g, 1, 0, 0.62); g.restore(); }
-        glowE(yel, 0.97, 0, 0.6);
-        glowE(pink, 0.85, 0, 0.72);
-        // navy dots: none at the heart, dense towards the rim
-        navyS.save(); navyS.translate(CX, CY); navyS.scale(1, 0.62);
-        { const gr = navyS.createRadialGradient(0, 0, 0, 0, 0, 720); gr.addColorStop(0, T(0)); gr.addColorStop(0.3, T(0.04)); gr.addColorStop(0.62, T(0.12)); gr.addColorStop(0.85, T(0.5)); gr.addColorStop(1, T(0)); navyS.fillStyle = gr; navyS.beginPath(); navyS.arc(0, 0, 720, 0, 7); navyS.fill(); }
-        navyS.restore();
-        // the heart of the glow a touch lighter (less pink)
-        pink.save(); pink.globalCompositeOperation = 'destination-out'; U.glow(pink, 600, 560, 120, 0.3, 0); pink.restore();
-
-        // the ash cloud: a lumpy navy mass hanging from the top, a lower lobe over the crater
-        const cloud = [[150, -20], [960, -20], [945, 90], [900, 170], [880, 230], [830, 260], [800, 330], [770, 380], [720, 410], [660, 430], [590, 440], [520, 430], [460, 400], [425, 350], [420, 300], [400, 260], [330, 220], [260, 180], [200, 130], [165, 60]];
-        eraseIn([pink, yel, navyS, blueS, pinkS], cloud, true);
-        U.fill(navy, cloud, T(0.86), true);
-        U.fill(pink, cloud, T(0.1), true);
-        // lighter lobes inside the cloud: flat purple (a little more pink, a little less navy)
-        for (const [x, y, rx, ry] of [[330, 110, 170, 90], [720, 120, 200, 110], [620, 360, 150, 60], [480, 300, 80, 70], [560, 200, 110, 90]]) {
-            pink.save(); pink.translate(x, y); pink.scale(1, ry / rx); U.glow(pink, 0, 0, rx, 0.22, 0); pink.restore();
-            navy.save(); navy.globalCompositeOperation = 'destination-out'; navy.translate(x, y); navy.scale(1, ry / rx); U.glow(navy, 0, 0, rx, 0.12, 0); navy.restore();
-        }
-        U.clipped(pink, cloud, true, (g) => U.speckle(g, 'volc-cl', 160, 150, 0, 960, 440, 0.8, 1.8, T(1)));
-        U.clipped(blueS, cloud, true, (g) => { g.fillStyle = T(0.12); g.fillRect(0, 0, 1080, 200); });
-        // the cloud's lower edge: a thin darker line
-        U.stroke(navy, [[420, 300], [440, 370], [500, 420], [590, 440], [680, 428], [760, 385], [800, 330]], 3, T(1), true);
-        // a smoke plume rising from the crater into the cloud (navy dots)
-        
-
-        // the cone
-        const cone = [[-20, 880], [120, 790], [260, 735], [390, 690], [520, 655], [598, 628], [625, 622], [690, 628], [712, 636], [790, 700], [870, 745], [980, 800], [1100, 870], [1100, 1100], [-20, 1100]];
-        eraseIn([pink, yel, navyS, blueS, pinkS], cone, false);
-        U.fill(navy, cone, T(0.95));
-        // a lighter purple slope on the left and pink rim light along the left ridge
-        U.clipped(pink, cone, false, (g) => { g.fillStyle = R.ramp(g, 0, 720, 0, 1000, 0.3, 0.05); g.fillRect(0, 650, 520, 450); });
-        U.clipped(pink, cone, false, (g) => U.speckle(g, 'volc-co', 140, 0, 640, 1080, 1080, 0.8, 1.8, T(1)));
-        U.stroke(pink, [[330, 705], [420, 678], [520, 652], [598, 628]], 5, T(0.9), true);
-        U.stroke(pinkS, [[80, 812], [200, 755], [330, 705]], 10, T(0.6), true);
-        // the crater: a dark lip, a yellow mouth
-        U.fill(navy, [[596, 630], [620, 618], [660, 614], [700, 620], [714, 634], [680, 640], [630, 640]], T(1), true);
-        U.fill(yel, [[612, 628], [640, 622], [680, 622], [702, 630], [670, 634], [630, 634]], T(1), true);
-
-        // lava rivers: pink halo dots, an orange band (pink + yellow), a yellow core
+        // stops from the reference's colour by u (a fit over ~1000 probes), solved into inks
+        field(Y, [[0, 1], [0.8, 1], [1.0, 0.9], [1.2, 0.76], [1.4, 0.64], [1.6, 0.49], [1.8, 0.38], [2.0, 0.25], [2.2, 0.2], [2.4, 0.09], [2.6, 0]]);
+        field(P, [[0, 1], [1.05, 1], [1.15, 0]]);
+        U.screen(P, 'pink', LP, (m) => field(m, [[0, 1], [1.05, 1], [1.4, 1], [1.6, 0.93], [1.8, 0.83], [2.0, 0.56], [2.2, 0.5], [2.4, 0.4], [2.6, 0.25], [3.2, 0.2]]));
+        U.screen(N, 'navy', LN, (m) => field(m, [[0, 0], [0.9, 0], [1.0, 0.05], [1.2, 0.25], [1.4, 0.26], [1.6, 0.47], [1.8, 0.5], [2.0, 0.6], [2.2, 0.25], [2.4, 0.38], [2.6, 0.6], [3.2, 0.62]]));
+        field(B, [[0, 0], [0.9, 0], [1.0, 0.1], [1.2, 0], [1.4, 0.2], [1.6, 0.15], [1.8, 0.42], [2.0, 0.48], [2.2, 0.95], [2.4, 1], [3.2, 1]]);
+        // ------------------------------------------------------------ the ash cloud
+        const cloud = [[130, -20], [138, 0], [152, 40], [172, 80], [195, 140], [230, 185], [280, 200], [330, 206], [382, 236], [418, 272], [430, 310], [426, 346], [446, 386], [492, 416], [552, 437], [620, 441], [680, 428], [738, 398], [788, 352], [828, 302], [855, 255], [876, 207], [902, 170], [940, 140], [982, 102], [1000, 50], [992, -20]];
+        press.knockout((g) => { g.beginPath(); U.smooth(g, cloud); g.fill(); });
+        // purple-navy: pink and blue overprinted, a little navy
+        // (the right half of the cloud is plain navy: measured n 1, p 0 at (900, 80))
+        const lr = (g, v0, v1) => { const gr = g.createLinearGradient(640, 0, 820, 0); gr.addColorStop(0, T(v0)); gr.addColorStop(1, T(v1)); return gr; };
+        U.fill(P, cloud, lr(P, 0.88, 0.4), true);
+        U.fill(B, cloud, lr(B, 0.95, 0.2), true);
+        U.fill(N, cloud, lr(N, 0.3, 1), true);
+        // lighter purple lobes (more pink, less navy) and pink specks
+        U.clipped(P, cloud, true, (g) => { for (const [x, y, rx, ry, v] of [[300, 90, 150, 80, 0.55], [720, 110, 190, 100, 0.12], [620, 370, 140, 55, 0.35], [470, 300, 70, 70, 0.3], [880, 60, 90, 60, 0.3]]) { g.save(); g.translate(x, y); g.scale(1, ry / rx); U.glow(g, 0, 0, rx, v, 0); g.restore(); } });
+        U.cut([N], (g) => { for (const [x, y, rx, ry, v] of [[300, 90, 150, 80, 0.3], [720, 110, 190, 100, 0.12]]) { g.save(); g.translate(x, y); g.scale(1, ry / rx); U.glow(g, 0, 0, rx, v, 0); g.restore(); } });
+        // the cloud's lower lobe over the crater is dotted: pink dots through the blue and navy
+        const lobe = [[430, 300], [520, 290], [640, 300], [760, 300], [800, 340], [770, 385], [720, 420], [680, 440], [630, 470], [575, 468], [520, 440], [470, 408], [438, 360]];
+        U.cut([P, B, N], (g) => { g.beginPath(); U.smooth(g, lobe); g.fill(); });
+        U.clipped(N, lobe, true, (g) => { const gr = g.createLinearGradient(0, 330, 0, 470); gr.addColorStop(0, T(0.95)); gr.addColorStop(1, T(0)); g.fillStyle = gr; g.fillRect(400, 280, 420, 200); });
+        U.cut([N], (g) => U.screen(g, 'navy', LP, (m) => U.clipped(m, lobe, true, (c) => { c.fillStyle = T(0.5); c.fillRect(400, 280, 420, 200); })));
+        U.screen(P, 'pink', LP, (m) => U.clipped(m, lobe, true, (c) => { c.fillStyle = T(0.45); c.fillRect(400, 280, 420, 200); }));
+        U.clipped(B, lobe, true, (g) => { const gr = g.createLinearGradient(0, 330, 0, 470); gr.addColorStop(0, T(0.4)); gr.addColorStop(1, T(0)); g.fillStyle = gr; g.fillRect(400, 280, 420, 200); });
+        // under the lobe's thinning ground the glow shows through
+        for (const g of [Y, P]) U.clipped(g, lobe, true, (c) => { const gr = c.createLinearGradient(0, 360, 0, 470); gr.addColorStop(0, T(0)); gr.addColorStop(1, T(0.95)); c.fillStyle = gr; c.fillRect(400, 280, 420, 200); });
+        // an orange plume rising from the crater into the lobe
+        press.knockout((g) => U.brush(g, [[676, 470], [680, 420], [684, 370], [686, 330]], (s) => 16 * (1 - s * 0.7), '#000', 'vpl', { taper: 0.1 }));
+        for (const g of [P, Y]) U.brush(g, [[676, 470], [680, 420], [684, 370], [686, 330]], (s) => 16 * (1 - s * 0.7), T(1), 'vpl', { taper: 0.1 });
+        U.clipped(P, cloud, true, (g) => U.speckle(g, 'vcl', 220, 130, 0, 1000, 440, 0.8, 1.8, T(1)));
+        U.clipped(B, cloud, true, (g) => U.speckle(g, 'vcl2', 120, 130, 0, 1000, 440, 0.8, 1.6, T(1)));
+        // ------------------------------------------------------------ the cone
+        const cone = [[-20, 872], [0, 860], [50, 830], [100, 802], [150, 782], [200, 762], [300, 736], [395, 712], [432, 695], [482, 670], [540, 646], [596, 627], [650, 616], [706, 630], [760, 668], [810, 710], [850, 745], [900, 790], [950, 828], [1000, 855], [1050, 875], [1100, 890], [1100, 1100], [-20, 1100]];
+        press.knockout((g) => { g.beginPath(); U.trace(g, cone); g.fill(); });
+        U.fill(P, cone, T(0.88));
+        U.fill(B, cone, T(0.95));
+        U.fill(N, cone, T(0.2));
+        U.clipped(B, cone, false, (g) => U.blotch(g, 'vcb', [0, 700, 1080, 1080], 14, 40, 110, 0.15, 0.4));
+        U.clipped(P, cone, false, (g) => U.speckle(g, 'vco', 200, 0, 620, 1080, 1080, 0.8, 1.8, T(1)));
+        // a magenta light along the left slope
+        U.brush(P, [[596, 628], [540, 647], [482, 671], [432, 696], [395, 713], [330, 724]], 6, T(1), 'vsl', { taper: 0.15 });
+        U.cut([N], (g) => U.brush(g, [[596, 628], [540, 647], [482, 671], [432, 696], [395, 713], [330, 724]], 6, '#000', 'vsl', { taper: 0.15 }));
+        // ------------------------------------------------------------ lava rivers
+        // centrelines from colour-run scans of the yellow cores every 20 px
         const rivers = [
-            [[602, 640], [585, 700], [560, 780], [520, 860], [470, 910], [410, 960], [330, 1005], [250, 1030], [190, 1045]],
-            [[470, 910], [420, 980], [380, 1030], [350, 1090]],
-            [[665, 642], [655, 720], [640, 800], [630, 880], [636, 950], [650, 1010], [660, 1090]],
-            [[636, 950], [680, 1000], [720, 1040], [760, 1090]],
-            [[712, 642], [760, 690], [810, 750], [845, 820], [860, 900], [866, 980], [880, 1040], [900, 1090]],
-            [[860, 900], [845, 960], [830, 1020], [818, 1090]],
-            [[866, 980], [910, 1020], [950, 1050], [990, 1090]],
-            [[250, 1030], [230, 1060], [215, 1090]],
+            [[598, 640], [596, 670], [587, 690], [576, 710], [563, 730], [549, 750], [534, 770], [524, 790], [518, 810], [511, 830], [507, 850], [502, 870], [493, 890], [478, 910], [461, 930], [443, 950], [424, 970], [390, 990], [332, 1010], [277, 1030], [213, 1050], [165, 1054]],
+            [[424, 970], [410, 990], [401, 1010], [380, 1030], [360, 1050], [345, 1070], [338, 1090]],
+            [[672, 638], [668, 670], [666, 690], [664, 710], [659, 730], [654, 750], [650, 770], [643, 790], [639, 810], [638, 830], [636, 850], [633, 870], [632, 890], [632, 910], [636, 930], [642, 950], [651, 970], [658, 990], [665, 1010], [660, 1030], [654, 1050], [644, 1070], [638, 1090]],
+            [[665, 1010], [678, 1012], [702, 1030], [726, 1050], [741, 1070], [750, 1090]],
+            [[712, 638], [726, 650], [747, 670], [765, 690], [787, 710], [807, 730], [826, 750], [835, 770], [842, 790], [847, 810], [851, 830], [855, 850], [859, 870], [866, 895], [869, 915], [875, 935], [882, 950], [890, 970], [896, 990], [906, 1010], [915, 1030], [930, 1050], [934, 1070], [938, 1090]],
+            [[869, 925], [853, 950], [848, 970], [847, 990], [848, 1010], [850, 1040], [852, 1070], [853, 1090]],
         ];
+        const trunk = (i) => (i % 2 === 0 ? 1 : 0.8);
+        // halo of pink dots on the cone round each river
+        U.screen(P, 'pink', LP, (m) => U.clipped(m, cone, false, (c) => rivers.forEach((pts, i) => U.soft(c, 10, (c2) => U.brush(c2, pts, 70 * trunk(i), T(0.4), 'vh' + i, { taper: 0.05 })))));
+        // the halo's dots clear the blue and navy under them (pink dots on the purple)
+        for (const [g, ink] of [[B, 'blue'], [N, 'navy']]) {
+            g.save(); g.globalCompositeOperation = 'destination-out';
+            U.screen(g, ink, LP, (m) => U.clipped(m, cone, false, (c) => rivers.forEach((pts, i) => U.soft(c, 10, (c2) => U.brush(c2, pts, 70 * trunk(i), T(0.35), 'vh' + i, { taper: 0.05 })))));
+            g.restore();
+        }
         rivers.forEach((pts, i) => {
-            const w = i % 2 === 0 ? 1 : 0.8;
-            U.stroke(pinkS, pts, 46 * w, T(0.7), true);
-            U.erase([navy], pts, 22 * w);
-            U.stroke(navy, pts, 22 * w, T(0.25), true);
-            U.erase([pinkS], pts, 18 * w);
-            U.band(pts, [[pink, 18 * w, 1], [yel, 18 * w, 1]]);
-            U.erase([pink, navy], pts, 12 * w);
+            const w = trunk(i);
+            // widening downhill: core 8 → 22 px, the orange band 10 px more each side
+            const cw = (s) => w * (8 + 16 * s);
+            press.knockout((g) => U.brush(g, pts, (s) => cw(s) + 12, '#000', 'vr' + i, { taper: 0.04 }));
+            U.brush(P, pts, (s) => cw(s) + 12, T(1), 'vr' + i, { taper: 0.04 });
+            U.brush(Y, pts, (s) => cw(s) + 12, T(1), 'vr' + i, { taper: 0.04 });
+            U.cut([P], (g) => U.brush(g, pts, cw, '#000', 'vc' + i, { taper: 0.04 }));
         });
         // cooled clots on the lava
         const rr = Motion.rng('volc-clot');
         rivers.forEach((pts) => {
-            for (let k = 1; k < pts.length - 1; k++) if (rr() < 0.5) {
-                const [x, y] = pts[k]; navy.fillStyle = T(0.9); navy.beginPath(); navy.ellipse(x + rr() * 6 - 3, y, 5 + rr() * 3, 4, rr() * 3, 0, 7); navy.fill();
+            for (let k = 2; k < pts.length - 1; k++) if (rr() < 0.55) {
+                const [x, y] = pts[k];
+                for (const [g, v] of [[N, 0.9], [B, 0.6]]) { g.fillStyle = T(v); g.beginPath(); g.ellipse(x + rr() * 8 - 4, y + rr() * 8 - 4, 4 + rr() * 4, 3 + rr() * 3, rr() * 3, 0, 7); g.fill(); }
             }
         });
-
-        // the fountain: yellow tongues fanning up out of the crater (on twos they flicker)
-        const rf = Motion.rng('volc-f' + (d % 4));
+        // ------------------------------------------------------------ crater and fountain
+        // the crater: a thin dark dome of a rim over the cone
+        for (const [g, v] of [[N, 1], [B, 0.6]]) U.brush(g, [[598, 632], [620, 622], [655, 617], [690, 620], [712, 632]], 11, T(v), 'vcr', { taper: 0.2 });
+        const rf = Motion.rng('volc-f' + (d % 2));
         const tongue = (a, len, w) => {
-            const bx = 655 + Math.cos(a) * 20, by = 624, tx = 655 + Math.cos(a) * len, ty = 624 + Math.sin(a) * len;
-            const nx = -Math.sin(a) * w, ny = Math.cos(a) * w;
-            const shape = [[bx + nx, by + ny], [(bx + tx) / 2 + nx * 0.6, (by + ty) / 2 + ny * 0.6], [tx, ty], [(bx + tx) / 2 - nx * 0.6, (by + ty) / 2 - ny * 0.6], [bx - nx, by - ny]];
-            eraseIn([pink, navyS, pinkS, blueS], shape, false);
-            U.fill(yel, shape, T(1));
+            const bx = 652 + Math.cos(a) * 14, by = 610, tx = 652 + Math.cos(a) * len, ty = 610 + Math.sin(a) * len;
+            U.cut([P, N, B], (g) => U.brush(g, [[bx, by], [(bx + tx) / 2, (by + ty) / 2], [tx, ty]], (s) => w * (1 - s), '#000', 'vt' + a, { taper: 0 }));
+            U.brush(Y, [[bx, by], [(bx + tx) / 2, (by + ty) / 2], [tx, ty]], (s) => w * (1 - s), T(1), 'vt' + a, { taper: 0 });
         };
-        for (let k = 0; k < 29; k++) {
-            const u = k / 28 - 0.5;
-            const a = -Math.PI / 2 + u * 2.8 + (rf() - 0.5) * 0.1;
-            const len = (215 - Math.abs(u) * 280) * (0.7 + rf() * 0.45);
-            tongue(a, len, 4 + rf() * 3);
+        // yellow spikes fanning up from the crater (measured: the tallest to y 430, ±100 px wide at y 550)
+        for (let k = 0; k < 25; k++) {
+            const u = k / 24 - 0.5;
+            const a = -Math.PI / 2 + u * 2.4 + (rf() - 0.5) * 0.12;
+            const len = (185 - Math.abs(u) * 230) * (0.7 + rf() * 0.45);
+            tongue(a, len, 13 + rf() * 7);
         }
-        U.glow(yel, 655, 610, 40, 1, 1);
-        eraseIn([pink], U.blob(655, 605, 45, 28, 'vf'), true);
-        // the spire of smoke/ash above the fountain
-        U.stroke(navyS, [[680, 440], [684, 390], [688, 345]], 5, T(0.6));
-
-        // lightning in the cloud: a pink bolt with a white core, two thin branches
-        const bolt = [[488, 28], [500, 90], [492, 150], [480, 200], [500, 262], [518, 300], [538, 332]];
-        const br1 = [[487, 158], [440, 190], [385, 228]], br2 = [[505, 258], [548, 284], [582, 306]];
-        const on = d % 3 !== 2;
-        U.stroke(pinkS, bolt, 44, T(on ? 0.2 : 0.1), false);
-        for (const [pts, w, c] of [[bolt, 16, 3.5], [br1, 5, 2], [br2, 5, 2]]) {
-            U.erase([navy, blueS, pinkS], pts, w + 4, false);
-            U.stroke(pink, pts, w, T(on ? 1 : 0.8), false);
-            U.erase([pink], pts.map(([x, y]) => [x + 2, y]), c * 1.5, false);
+        tongue(-Math.PI / 2 + 0.15, 190, 10);
+        // the fountain's solid base
+        const base = U.blob(652, 590, 52, 30, 'vfb', 0.1);
+        U.cut([P, N, B], (g) => { g.beginPath(); U.smooth(g, base); g.fill(); });
+        U.fill(Y, base, T(1), true);
+        // ------------------------------------------------------------ lightning
+        const bolt = [[488, 26], [495, 70], [500, 110], [489, 150], [494, 190], [497, 232], [506, 270], [521, 302], [540, 332]];
+        const br1 = [[491, 142], [462, 168], [422, 208], [383, 233]], br2 = [[507, 268], [540, 290], [576, 303]];
+        for (const [pts, w, c, s] of [[bolt, 16, 5, 'vb'], [br1, 5, 2, 'vb1'], [br2, 5, 2, 'vb2']]) {
+            press.knockout((g) => U.brush(g, pts, w + 3, '#000', s, { taper: 0.15 }));
+            U.brush(P, pts, w, T(1), s, { taper: 0.15 });
+            U.cut([P], (g) => U.brush(g, pts.map(([x, y]) => [x + 1.5, y]), c, '#000', s + 'c', { taper: 0.2 }));
         }
-
-        // sparks and embers flying in the glow
+        // sparks in the glow
         const rs = Motion.rng('volc-sp');
-        for (let k = 0; k < 70; k++) {
-            const x = 150 + rs() * 900, y = 200 + rs() * 650, a = rs() * 6.28, l = 3 + rs() * 7;
-            const g = rs() < 0.6 ? yel : pink;
-            U.stroke(g, [[x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], 2.4, T(1));
+        for (let k = 0; k < 60; k++) {
+            const x = 150 + rs() * 900, y = 200 + rs() * 650, a = rs() * 6.28, l = 4 + rs() * 8;
+            const g = rs() < 0.5 ? Y : P;
+            U.brush(g, [[x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], 3, T(1), 'vsp' + k, { taper: 0.3 });
         }
-        U.speckle(pinkS, 'volc-st', 60, 0, 0, 1080, 1080, 1.5, 2.5, T(1));
+        press.restore();
     });
 };
