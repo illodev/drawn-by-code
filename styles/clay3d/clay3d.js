@@ -70,13 +70,15 @@ float speckle(vec3 p) { return step(0.93, hash(floor(p * 260.0))) * 0.6 + step(0
 // fingerprints and tool marks: a fine noise plus sparse ridged whorls
 float clayRelief(vec3 p) {
     p += uA[95] * vec3(0.31, 0.17, 0.23); // the boil: a new drawing, a new surface
-    // a soft uneven surface, fine pits, and a few fingerprints (whorls ~3 cm across)
-    float n = fbm(p * 22.0) * 0.5 + noise(p * 70.0) * 0.12;
-    vec3 c = floor(p * 14.0);
-    vec3 f = fract(p * 14.0) - 0.5 + (vec3(hash(c), hash(c + 7.1), hash(c + 3.3)) - 0.5) * 0.3;
-    float r = length(f);
-    float whorl = smoothstep(0.45, 0.15, r) * (0.5 + 0.5 * sin(r * 70.0 + hash(c) * 6.0));
-    return n + whorl * 0.08 * step(0.7, hash(c + 1.7));
+    // what hands leave on clay: broad thumb smears (stretched noise), fine pits, and
+    // fingerprints (concentric ridges ~2 cm across) on about half the cells
+    float smear = fbm(vec3(p.x * 9.0, p.y * 3.5, p.z * 9.0)) * 0.9;
+    float n = smear + fbm(p * 26.0) * 0.35 + noise(p * 80.0) * 0.12;
+    vec3 c = floor(p * 11.0);
+    vec3 f = fract(p * 11.0) - 0.5 + (vec3(hash(c), hash(c + 7.1), hash(c + 3.3)) - 0.5) * 0.35;
+    float r = length(f.xy * vec2(1.0, 1.35));
+    float whorl = smoothstep(0.42, 0.1, r) * (0.5 + 0.5 * sin(r * 95.0 + hash(c) * 6.0));
+    return n + whorl * 0.28 * step(0.5, hash(c + 1.7));
 }
 vec3 calcNormal(vec3 p) {
     const vec2 e = vec2(1.0, -1.0) * 0.0007;
@@ -91,7 +93,7 @@ float softShadow(vec3 ro, vec3 rd) {
     // high key puts faces in the hair's wide penumbra, where any stepping shows.
     float res = 1.0, ph = 1e10;
     float t = 0.03;
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < 128; i++) {
         vec2 hm = map(ro + rd * t);
         float h = hm.x;
         // material 0 = a bounding volume: step over it, it casts nothing
@@ -101,7 +103,7 @@ float softShadow(vec3 ro, vec3 rd) {
             res = min(res, uSoft * d / max(0.001, t - y));
             ph = h;
         } else ph = 1e10; // the next real sample starts a fresh estimate (a stale one reads as full shadow)
-        t += clamp(h, 0.004, 0.2);
+        t += clamp(h, 0.004, 0.1); // fine steps: coarse ones band the penumbra into stripes
         if (res < 0.003 || t > 6.0) break;
     }
     res = clamp(res, 0.0, 1.0);
@@ -133,7 +135,7 @@ void main() {
         if (mat.w > 0.0) {
             const float e = 0.003;
             vec3 gr = vec3(clayRelief(p + vec3(e, 0, 0)) - clayRelief(p - vec3(e, 0, 0)), clayRelief(p + vec3(0, e, 0)) - clayRelief(p - vec3(0, e, 0)), clayRelief(p + vec3(0, 0, e)) - clayRelief(p - vec3(0, 0, e))) / (2.0 * e);
-            n = normalize(n - mat.w * 0.002 * (gr - n * dot(gr, n)));
+            n = normalize(n - mat.w * 0.0032 * (gr - n * dot(gr, n)));
         }
         vec3 alb = pow(albedo(m, p, n), vec3(2.2));
         vec3 L = normalize(uLight);
@@ -160,7 +162,8 @@ void main() {
     // the blur this pixel needs (signed: < 0 in front of the focus), stored in alpha: storing
     // the depth in 8 bits made the blur jump in steps and drew contour lines on round faces
     float cs = clamp(uAperture * (1.0 / uFocus - 1.0 / max(t, 0.05)) * uRes.y, -14.0, 14.0);
-    fragColor = vec4(col, 0.5 + cs / 28.0);
+    float dn = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+    fragColor = vec4(col + dn * 1.5 / 255.0, 0.5 + cs / 28.0);
     if (uFov < 0.0) fragColor.a = 1.0; // noDof: straight to the canvas
 }
 `;
@@ -186,7 +189,9 @@ void main() {
         float k = smoothstep(r - 1.0, r + 1.0, ss < s0 ? rs : min(rs, r0));
         acc += s.rgb * k; w += k;
     }
-    fragColor = vec4(acc / w, 1.0);
+    // dither: soft wide gradients (a penumbra on the backdrop) band into steps in 8 bits
+    float dn = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+    fragColor = vec4(acc / w + dn * 1.5 / 255.0, 1.0);
 }
 `;
     const VS = `#version 300 es

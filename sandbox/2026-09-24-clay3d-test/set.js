@@ -125,43 +125,52 @@ mat3 eul(vec3 a) {
     mat3 rx = mat3(1, 0, 0, 0, cx, sx, 0, -sx, cx), ry = mat3(cy, 0, -sy, 0, 1, 0, sy, 0, cy), rz = mat3(cz, sz, 0, -sz, cz, 0, 0, 0, 1);
     return rz * ry * rx;
 }
+// chunky clay hands, like the references: a thick palm, short fat fingers (sausages rolled
+// between the palms), a fat thumb; built at HS× and scaled back, so the proportions stay
+const float HS = 1.3;
 float handSDF(vec3 q, float pose) {
+    q /= HS;
     float d;
     if (pose < 0.5) {
-        d = sdEllipsoid(q - vec3(0.0, 0.07, 0.0), vec3(0.058, 0.068, 0.028));
+        d = sdEllipsoid(q - vec3(0.0, 0.065, 0.0), vec3(0.06, 0.066, 0.036));
         for (int i = 0; i < 4; i++) {
-            float fi = float(i), x = -0.042 + fi * 0.028, a = (fi - 1.5) * 0.12;
-            float L = fi == 1.0 ? 0.085 : fi == 3.0 ? 0.06 : 0.075;
-            vec3 b = vec3(x, 0.12, 0.0);
-            d = smin(d, sdCapsule(q, b, b + vec3(sin(a), cos(a), 0.0) * L, 0.016 - fi * 0.001), 0.012);
+            float fi = float(i), x = -0.042 + fi * 0.028, a = (fi - 1.5) * 0.16;
+            float L = fi == 1.0 ? 0.064 : fi == 3.0 ? 0.044 : 0.056;
+            vec3 b = vec3(x, 0.11, 0.0);
+            d = smin(d, sdCapsule(q, b, b + vec3(sin(a), cos(a), 0.0) * L, 0.0165 - fi * 0.0012), 0.014);
         }
-        d = smin(d, sdCapsule(q, vec3(0.045, 0.05, 0.0), vec3(0.1, 0.1, 0.01), 0.018), 0.012);
+        d = smin(d, sdCapsule(q, vec3(0.045, 0.045, 0.0), vec3(0.092, 0.092, 0.012), 0.02), 0.014);
     } else {
-        d = sdEllipsoid(q - vec3(0.0, 0.06, 0.0), vec3(0.058, 0.058, 0.045));
+        d = sdEllipsoid(q - vec3(0.0, 0.06, 0.0), vec3(0.062, 0.062, 0.05));
         for (int i = 0; i < 4; i++) {
-            float y = 0.095 - float(i) * 0.03;
-            d = smin(d, sdCapsule(q, vec3(-0.045, y, 0.035), vec3(0.03, y, 0.045), 0.016), 0.008);
+            float y = 0.098 - float(i) * 0.031;
+            d = smin(d, sdCapsule(q, vec3(-0.046, y, 0.036), vec3(0.028, y, 0.05), 0.019), 0.01);
         }
-        d = smin(d, sdCapsule(q, vec3(0.04, 0.1, 0.01), vec3(0.045, 0.19, 0.0), 0.02), 0.01);
+        d = smin(d, sdCapsule(q, vec3(0.04, 0.1, 0.012), vec3(0.046, 0.175, 0.004), 0.022), 0.012);
     }
-    return d + lumps(q * 2.0, 0.003);
+    return (d + lumps(q * 2.0, 0.003)) * HS;
 }
-vec2 arm(vec3 p, float s, vec3 el, vec3 wr, vec3 rt, float pose) {
-    vec3 sh = vec3(0.36 * s, 1.16 + BREATH, -0.02);
-    float a = min(sdCapsule(p, sh, el, 0.085), sdRoundCone(p, el, wr, 0.078, 0.064)) + lumps(p * 1.5, 0.005);
-    vec2 r = vec2(a, M_NAVY);
+// the sleeve: upper arm and forearm, thick sausages
+float sleeve(vec3 p, float s, vec3 el, vec3 wr) {
+    vec3 sh = vec3(0.34 * s, 1.14 + BREATH, -0.02);
+    return min(sdCapsule(p, sh, el, 0.1), sdRoundCone(p, el, wr, 0.095, 0.082)) + lumps(p * 1.5, 0.006);
+}
+// the cuff and the hand, in the hand's frame (s = -1: her right hand, image left)
+vec2 handPart(vec3 p, float s, vec3 wr, vec3 rt, float pose) {
     vec3 q = transpose(eul(rt)) * (p - wr);
-    if (s > 0.0) q.x = -q.x; // s = -1: her right hand (image left); +1 her left, mirrored
-    r = opU(r, vec2(sdCylinder(q - vec3(0.0, -0.01, 0.0), 0.025, 0.062) - 0.01, M_CREAM)); // cuff
-    r = opU(r, vec2(handSDF(q, pose), M_SKIN));
-    return r;
+    if (s > 0.0) q.x = -q.x;
+    vec2 r = vec2(sdCylinder(q - vec3(0.0, -0.012, 0.0), 0.03, 0.074) - 0.014 + lumps(q * 3.0, 0.003), M_CREAM);
+    return opU(r, vec2(handSDF(q, pose), M_SKIN));
 }
 
 // ---- the torso: a cardigan slab with pressed-on pieces
 vec2 torso(vec3 p) {
     vec3 q = p - vec3(0.0, BREATH, 0.0);
-    float d = sdRoundBox(q - vec3(0.0, 0.7, -0.02), vec3(0.34, 0.46, 0.2), 0.16);
-    d = smin(d, sdEllipsoid(q - vec3(0.0, 1.12, -0.02), vec3(0.42, 0.14, 0.2)), 0.1);
+    // a lump of clay, not a box: a pear of ellipsoids pressed together (flat faces on a box
+    // leave lines in the soft shadow where they meet the rounded edges)
+    float d = sdEllipsoid(q - vec3(0.0, 0.62, -0.02), vec3(0.37, 0.5, 0.23));
+    d = smin(d, sdEllipsoid(q - vec3(0.0, 0.98, -0.02), vec3(0.36, 0.24, 0.21)), 0.12);
+    d = smin(d, sdEllipsoid(q - vec3(0.0, 1.12, -0.02), vec3(0.42, 0.13, 0.2)), 0.1);
     d += lumps(q, 0.01);
     vec2 r = vec2(d, M_NAVY);
     r = opU(r, vec2(sdCapsule(q, vec3(0.0, 1.14, -0.02), vec3(0.0, 1.32, -0.02), 0.1) + lumps(q, 0.004), M_SKIN)); // neck
@@ -203,9 +212,12 @@ vec2 map(vec3 p) {
     if (bb > BOUND) return opU(r, vec2(bb, 0.0));
     float bh = length(p - HC) - 0.62;
     r = opU(r, bh > BOUND ? vec2(bh, 0.0) : head(p));
-    r = opU(r, torso(p));
-    r = opU(r, arm(p, -1.0, ELR, WRR, ROTR, POSER));
-    r = opU(r, arm(p, 1.0, ELL, WRL, ROTL, POSEL));
+    // the sleeves pressed onto the torso: a smooth clay join, same material
+    vec2 body = torso(p);
+    body = opSU(body, vec2(min(sleeve(p, -1.0, ELR, WRR), sleeve(p, 1.0, ELL, WRL)), M_NAVY), 0.04);
+    r = opU(r, body);
+    r = opU(r, handPart(p, -1.0, WRR, ROTR, POSER));
+    r = opU(r, handPart(p, 1.0, WRL, ROTL, POSEL));
     return r;
 }
 
@@ -218,7 +230,15 @@ vec3 albedo(float m, vec3 p, vec3 n) {
     else if (m == M_WHITE) c = vec3(0.97, 0.95, 0.9);
     else if (m == M_BLACK) c = vec3(0.1, 0.09, 0.1);
     else if (m == M_HAIR) c = vec3(0.36, 0.2, 0.12);
-    else if (m == M_NAVY) c = vec3(0.16, 0.26, 0.55);
+    else if (m == M_NAVY) {
+        // the knit pressed in with a tool: rows of short vertical dashes, as in the references
+        c = vec3(0.16, 0.26, 0.55);
+        vec2 g = vec2(p.x * 34.0, p.y * 17.0);
+        g.x += 0.5 * mod(floor(g.y), 2.0);
+        vec2 f = fract(g) - 0.5;
+        float dash = smoothstep(0.09, 0.05, abs(f.x)) * smoothstep(0.32, 0.26, abs(f.y));
+        c *= 1.0 - 0.28 * dash;
+    }
     else if (m == M_CREAM) c = vec3(0.95, 0.9, 0.8);
     else if (m == M_CORAL) c = vec3(0.84, 0.34, 0.24);
     else if (m == M_MOUTH) c = vec3(0.62, 0.2, 0.17);

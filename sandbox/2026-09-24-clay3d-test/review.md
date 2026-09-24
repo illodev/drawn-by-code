@@ -34,3 +34,14 @@ Lessons that apply to other videos go up to the matching skill (see review/SKILL
 - Ghost shadows again with the softer light: bounds now return material 0 and the soft
   shadow skips them; a stale estimate after a skip painted streaks (reset it); the bound
   must hold the penumbra (radius 1.6).
+
+## Round 3 (in progress: stills only, the full render is pending)
+
+- Hands chunky like the references (thick palm, fat short fingers, fat thumb, built at
+  1.3×); thicker sleeves joined to the torso with a smooth clay seam (no dot at the
+  shoulder); cuffs thicker; the cardigan's knit pressed in as rows of short dashes.
+- Clay relief: broad thumb smears, fine pits and fingerprints on half the cells, stronger bump.
+- Stripes in the soft shadow on the backdrop: not the lumps, the depth of field, the
+  primary ray or 8-bit banding (a dither was added anyway): the torso was a rounded box,
+  and the joins between its flat faces and rounded edges showed in the penumbra. Now a
+  pear of ellipsoids: a smooth shadow, and a lump of clay rather than a box.
