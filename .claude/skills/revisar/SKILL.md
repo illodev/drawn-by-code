@@ -41,6 +41,10 @@ Sé duro: el fallo más común de la auto-crítica es aprobar por cansancio. Si 
   sin querer.
 - **Ritmo:** cortes en golpe; los golpes visuales (impactos, sellos, apariciones) caen
   en golpe también.
+- **Origen y física:** todo lo que emana (vapor, humo, chispas, líquido, papeles que
+  salen de una caja) nace visiblemente en su fuente y no por detrás o por encima de
+  ella. Las cosas se apoyan donde deben y caen hacia abajo. Míralo en una foto fija
+  del instante en que aparece.
 - **Continuidad:** personajes y objetos iguales entre planos y respecto a la prueba de
   estilo aprobada; la dirección de mirada y de movimiento es coherente entre cortes.
 - **Composición:** regla de tercios o simetría deliberada, horizonte recto salvo
@@ -89,3 +93,4 @@ mismo commit, para que se vea qué prueba produjo qué cambio.
 <!-- Lecciones sobre el propio proceso de revisión. -->
 - 2026-09-24 · primero-cafe · La hoja a 480 px no enseña los detalles de las caras (unos ojos cerrados que parecían mirar abajo): mira siempre fotos fijas a tamaño real de los primeros planos.
 - 2026-09-24 · primero-cafe · Cuando veas a ojo un fallo que `review.mjs` pudo medir (hueco en el borde), amplía `review.mjs` y pruébalo con una escena rota a propósito antes de fiarte.
+- 2026-09-24 · primero-cafe · Juzgué el vapor por su forma y no por su origen, y el usuario vio que salía de detrás de la taza. Por cada elemento que aparece, pregúntate de dónde sale (ya en el checklist).

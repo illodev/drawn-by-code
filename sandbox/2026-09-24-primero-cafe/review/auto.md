@@ -21,7 +21,7 @@ Saltos bruscos (cortes o fogonazos; comprobar que son cortes de plano): 4.33 s.
 
 ## Velocidad
 
-Pintado: 42 ms/fotograma en frío, 7 ms en caliente → render completo ≈ 1 s a este tamaño.
+Pintado: 60 ms/fotograma en frío, 10 ms en caliente → render completo ≈ 1 s a este tamaño.
 
 ## Hoja de contacto
 

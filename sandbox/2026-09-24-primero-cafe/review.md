@@ -38,4 +38,13 @@ tap del guiño.
 
 ## Ronda 4 (usuario)
 
-_Pendiente de feedback._
+> «El vídeo de la taza está bien, pero el humo sale fuera de la taza, no del café.»
+
+- Causa: el vapor se pintaba **detrás** de la taza, con la base escondida tras el cuerpo,
+  así que asomaba por detrás del borde. La revisión automática no lo cazó porque el
+  checklist no preguntaba **de dónde sale** cada cosa.
+- **Cambios:** el vapor se pinta delante, en unidades de la taza, recortado a «encima de
+  la línea del café» ∪ «dentro de la elipse del café». Cada tira empieza entera bajo la
+  superficie y asoma al subir. Ahora sigue a la taza en el aplastamiento y el balanceo.
+- **Lecciones:** checklist general de `revisar` (origen de lo que emana) y regla del
+  estilo (cómo recortarlo).

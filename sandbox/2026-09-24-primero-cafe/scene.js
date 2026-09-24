@@ -41,15 +41,23 @@ Motion.scene({
         const S = 1.5; // escala de la taza
         const sway = t < 3 ? Math.sin(t * 1.2) * 0.03 * E.seg(t, 0.8, 1.2) : 0;
 
-        // vapor, detrás de la taza: sale por detrás del borde
-        for (let i = 0; i < 3; i++) steam(g, t, i, 800 + (i - 1) * 62 * S, y - MUG.h * S + 20);
-
         g.save();
         g.translate(800, y);
         g.rotate(sway);
         g.scale(sx * S, sy * S);
         mug(g, MUG);
         face(g, t);
+        // vapor: nace en la superficie del café. Se pinta DELANTE de la taza, recortado a
+        // «encima de la línea del café» ∪ «dentro del café», así la base de cada tira
+        // queda escondida bajo la superficie y parece salir de ella.
+        const COFFEE = { y: -MUG.h + 4, rx: MUG.w / 2 - 22, ry: 17 };
+        g.save();
+        g.beginPath();
+        g.rect(-600, -1600, 1200, 1600 + COFFEE.y);
+        g.ellipse(0, COFFEE.y, COFFEE.rx, COFFEE.ry, 0, 0, Math.PI * 2);
+        g.clip();
+        for (let i = 0; i < 3; i++) steam(g, t, i, (i - 1) * 55, COFFEE.y);
+        g.restore();
         g.restore();
 
         // «z» que suben mientras duerme
@@ -152,10 +160,12 @@ Motion.scene({
                 if (rise < 0) continue;
                 const f = rise % 1;
                 g.save();
-                g.globalAlpha = 0.9 * (1 - E.seg(f, 0.5, 1)) * E.seg(f, 0, 0.1) * (1 - E.seg(t, 4.3, 5.3) * 0.5);
-                g.translate(x0, y0 + 200 - f * 320);
+                g.globalAlpha = 0.9 * (1 - E.seg(f, 0.55, 1)) * (1 - E.seg(t, 4.3, 5.3) * 0.5);
+                // en unidades de la taza (escalada ×S): la tira empieza entera bajo el café
+                const s = (1 + f * 0.25) / S;
+                g.translate(x0, y0 + 270 * s - f * 230);
                 g.rotate(Math.sin(t * 2 + i + k) * 0.08);
-                g.scale(1 + f * 0.25, 1 + f * 0.25);
+                g.scale(s, s);
                 strip.draw(g);
                 g.restore();
             }

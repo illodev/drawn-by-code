@@ -48,6 +48,10 @@ Referencia aprobada: `referencias/fube-la-caja-y-el-torno/` (mira
   recortes fijos (sprite con su semilla) que se desplazan, giran, escalan y se
   desvanecen, varios escalonados. Nunca regeneres cada fotograma un contorno con filo
   rasgado que se deforma: el rasgado se recalcula y hierve.
+  Lo que sale de un recipiente se pinta **delante**, en las coordenadas del recipiente,
+  y recortado (`clip`) a «encima de la superficie» ∪ «la elipse de la superficie»; la
+  pieza empieza escondida bajo la superficie y asoma al subir. Pintarlo detrás del
+  recipiente hace que salga de detrás del borde.
 - **Ojos:** abiertos, blanco + pupila + párpado grueso (un tono más oscuro que la cara)
   que nunca sube del todo. Cerrados, el párpado tapa **todo** el blanco y encima va la
   pestaña curva; si asoma blanco se lee «mira abajo», no «duerme».
