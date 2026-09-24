@@ -1,63 +1,87 @@
-// Card «planet» (reference 12.0–12.125 s, full frame): a striped ringed planet close up, red
-// (pink + yellow) and pink bands curving round the sphere, a navy shadow to the lower left,
-// yellow rings with paper grooves passing behind and in front, a blue sky with big navy dots.
-// Measured on the 12.0 s frame in 1000 × 1000 units (ring ellipses fitted to scans). Needs
-// cards/_g4-util.js.
+// Card «planet» (reference 12.0–12.125 s, frames 288–290; re-inked and mirrored in the pink
+// run): a ringed planet close up, pink with red (pink + yellow) bands curving round it, a
+// navy shadow to the lower left, yellow rings with paper grooves passing behind and in front,
+// a blue sky with coarse navy dots. Authored in reference px on frame 288: the disc fitted to
+// row scans (centre 406.8, 696.9, r 483.6), the rings as two ellipses fitted with that centre
+// (inner 623 × 191, outer 1127 × 329, tilted −15.6°), the bands from column scans, screens
+// fitted with a DFT (14.4 px: sky navy 33.1°, planet yellow 48.3°, shadow navy 17.85°).
+// Needs _g4-util.js (G4).
 var CARDS = CARDS || {};
-CARDS.planet = (press, t) => {
+CARDS.planet = (press, t, lf = 0) => {
     const U = G4, T = U.T;
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
-    const YS = press.plate('yellow', 'screen'), PS = press.plate('pink', 'screen'), BS = press.plate('blue', 'screen'), NS = press.plate('navy', 'screen');
-    const PX = 395, PY = 622, PR = 428;
+    // the pink run re-uses the drawing mirrored (the scene flips the plates), framed a little
+    // smaller and pushing in 1 % a frame: disc fitted on 570 (659.0, 695.2, r 457.4) =
+    // the mirrored disc scaled 0.9458 about (411, 666); push about (536, 548) (570 → 572).
+    // In the drawing's own (unmirrored) space those centres mirror to x' = 1080 − x.
+    const mirrored = press.plate('pink').getTransform().a < 0;
+    U.refpx(press);
+    const PX = 406.8, PY = 696.9, PR = 483.6;
+    if (mirrored) {
+        const zf = Math.pow(1.01, lf);
+        press.each((g) => { g.translate(544, 548); g.scale(zf, zf); g.translate(-544, -548); g.translate(669, 666); g.scale(0.9458, 0.9458); g.translate(-669, -666); });
+    }
 
-    // sky: blue flat, a coarse navy dot screen, pink specks, white stars
-    B.fillStyle = T(1); B.fillRect(0, 0, 1000, 1000);
-    U.dots(N, [0, 0, 1000, 1000], 17, 0.45, (x, y) => 0.26 + 0.08 * Math.sin(x * 0.01 + y * 0.013), 1);
-    U.specks(P, 'planetsky', 160, [0, 0, 1000, 1000], 1.4, 2.8);
-    U.speckle(press, 'planetsky', 160, [0, 0, 1000, 1000], 0.8, 1.8);
+    // ── sky: blue, coarse navy dots (heavier to the left), white stars, pink specks
+    B.fillStyle = T(1); B.fillRect(-60, -60, 1200, 1200);
+    U.screen(press, 'navy', { p: 14.5, a: 33.1, x: 203, y: 85.1 }, (g) => { g.fillStyle = U.lin(g, 0, 0, 1080, 0, [[0, 0.32], [1, 0.26]]); g.fillRect(-60, -60, 1200, 1200); }, { jit: 0.25, pj: 0.04, edge: 1 });
+    U.specks(P, 'pl-sky', 220, [0, 0, 1080, 1080], 1, 2.4, 0.9);
+    U.speckle(press, 'pl-sky', 160, [0, 0, 1080, 1080], 0.9, 2);
 
-    // the rings: bands between the inner and outer fitted ellipses (f = 0 inner … 1 outer)
-    const IN = [380, 650, 608, 162, -0.28], OUT = [380, 650, 1098, 298, -0.28];
-    const E = (f) => IN.map((v, i) => v + (OUT[i] - v) * f);
-    const annulus = (g, f0, f1) => { const a = E(f0), b = E(f1); g.beginPath(); g.ellipse(b[0], b[1], b[2], b[3], b[4], 0, 7); g.ellipse(a[0], a[1], a[2], a[3], a[4], 7, 0, true); };
-    const BANDS = [[0, 0.055], [0.12, 0.2], [0.25, 0.48], [0.53, 0.56], [0.59, 0.63], [0.77, 0.83], [0.86, 1]];
+    // ── the rings: bands between the fitted inner (f = 0) and outer (f = 1) ellipses
+    const ROT = -15.6 * Math.PI / 180, IN = [623, 191], OUT = [1127, 329];
+    const E = (f) => [IN[0] + (OUT[0] - IN[0]) * f, IN[1] + (OUT[1] - IN[1]) * f];
+    const ell = (g, f) => { const [a, b] = E(f); g.moveTo(PX + Math.cos(ROT) * a, PY + Math.sin(ROT) * a); g.ellipse(PX, PY, a, b, ROT, 0, Math.PI * 2); };
+    const annulus = (g, f0, f1) => { g.beginPath(); ell(g, f1); ell(g, f0); };
+    // colour profiles across the front ring (columns 300, 580, 850): from the inner edge,
+    // yellow bands and paper stripes, a dark gap (what is behind, with navy and pink
+    // hairlines) at 0.575–0.655, then the wide outer band
+    const BANDS = [[0, 0.03], [0.075, 0.12], [0.13, 0.16], [0.2, 0.44], [0.47, 0.5], [0.54, 0.575], [0.71, 1]];
     const ring = () => {
-        press.knockout((g) => { annulus(g, 0, 1); g.fill(); });
-        for (const [f0, f1] of BANDS) { Y.fillStyle = T(1); annulus(Y, f0, f1); Y.fill(); }
-        // fine lines in the grooves: navy and pink hairlines, a blue shadow at the inner edge
-        for (const [f, g, w] of [[0.09, N, 1.4], [0.69, P, 3], [0.72, B, 1.4]]) {
-            const e = E(f); g.lineWidth = w; g.strokeStyle = T(1); g.beginPath(); g.ellipse(e[0], e[1], e[2], e[3], e[4], 0, 7); g.stroke();
-        }
-        // grooves inside the bands (paper hairlines)
-        press.knockout((g) => { for (const f of [0.34, 0.93]) { const e = E(f); g.lineWidth = 1.8; g.beginPath(); g.ellipse(e[0], e[1], e[2], e[3], e[4], 0, 7); g.stroke(); } });
+        press.knockout((g) => { annulus(g, 0, 0.575); g.fill('evenodd'); annulus(g, 0.655, 1); g.fill('evenodd'); });
+        Y.fillStyle = T(1);
+        for (const [f0, f1] of BANDS) { annulus(Y, f0, f1); Y.fill('evenodd'); }
+        // paper grooves inside the wide bands
+        press.knockout((g) => { for (const [f0, f1] of [[0.29, 0.297], [0.36, 0.366], [0.81, 0.817], [0.9, 0.908]]) { annulus(g, f0, f1); g.fill('evenodd'); } });
+        for (const [f0, f1, g] of [[0.59, 0.605, N], [0.63, 0.645, P], [0.605, 0.62, B]]) { g.fillStyle = T(1); annulus(g, f0, f1); g.fill('evenodd'); }
     };
     ring();
 
-    // the planet: knock the ring out behind it, pink all over, yellow bands (red) with soft
-    // screened edges, a navy shadow to the lower left
-    const disc = (g) => g.arc(PX, PY, PR, 0, 7);
-    press.knockout((g) => { g.beginPath(); disc(g); g.fill(); });
-    U.clip(P, disc, (c) => { c.fillStyle = T(1); c.fillRect(0, 0, 1000, 1000); });
-    const lat = (x, y0) => y0 - 0.3 * (x - 400) - 0.0004 * (x - 400) * (x - 400);
-    const band = (g, y0, y1) => { g.beginPath(); for (let x = -40; x <= 840; x += 40) g.lineTo(x, lat(x, y0)); for (let x = 840; x >= -40; x -= 40) g.lineTo(x, lat(x, y1)); g.closePath(); };
-    U.clip(YS, disc, (c) => {
-        c.filter = 'blur(9px)';
-        c.fillStyle = T(1);
-        for (const [y0, y1] of [[0, 335], [565, 680], [770, 1300]]) { band(c, y0, y1); c.fill(); }
-        c.filter = 'none';
-    });
-    U.clip(NS, disc, (c) => { c.fillStyle = U.lin(c, 620, 280, 60, 900, [[0, 0], [0.5, 0], [0.75, 0.45], [1, 0.85]]); c.fillRect(0, 0, 1000, 1000); });
-    U.clip(BS, disc, (c) => { c.fillStyle = U.lin(c, 620, 280, 60, 900, [[0, 0], [0.7, 0], [1, 0.6]]); c.fillRect(0, 0, 1000, 1000); });
-    // dust on the planet
-    press.save(); press.clip((g) => disc(g));
-    U.speckle(press, 'planetdisc', 90, [0, 190, 830, 1000], 0.7, 1.6);
+    // ── the planet: pink all over, red bands (yellow screen with soft edges), a navy shadow
+    const disc = (g) => { g.beginPath(); g.arc(PX, PY, PR, 0, 7); };
+    press.knockout((g) => { disc(g); g.fill(); });
+    P.fillStyle = T(1); disc(P); P.fill();
+    // the bands, measured by column scans (upper / lower edges, x every 50 px)
+    const R1 = [[-20, 470], [60, 460], [110, 458], [160, 442], [210, 433], [260, 430], [310, 420], [360, 395], [410, 377], [460, 364], [510, 349], [560, 330], [610, 298], [650, 250], [690, 180]];
+    const R2 = [[[-20, 652], [60, 656], [110, 662], [160, 668], [210, 661], [260, 651], [310, 650], [360, 639], [410, 622], [460, 608], [510, 592], [560, 579], [610, 553], [660, 530], [710, 498], [760, 456], [810, 441], [860, 380]], [[860, 520], [810, 560], [760, 598], [710, 629], [660, 656], [610, 677], [560, 697], [510, 712], [460, 723], [410, 734], [360, 745], [310, 758], [260, 764], [210, 770], [160, 778], [110, 784], [60, 790], [-20, 795]]];
+    const R3 = [[[-20, 848], [100, 850], [200, 850], [300, 848], [360, 846], [410, 839], [460, 824], [510, 813], [560, 798], [610, 783], [660, 765], [710, 738], [760, 711], [810, 679], [860, 630], [900, 580]], [[900, 650], [860, 692], [810, 723], [760, 749], [710, 772], [660, 794], [610, 811], [560, 829], [510, 846], [460, 861], [410, 876], [360, 889], [300, 902], [200, 915], [100, 925], [-20, 930]]];
+    U.screen(press, 'yellow', { p: 14.33, a: 48.3, x: 267.6, y: 479.3 }, (g) => {
+        g.save(); disc(g); g.clip();
+        g.filter = 'blur(9px)';
+        g.fillStyle = T(1);
+        g.beginPath(); g.moveTo(-40, 150); R1.forEach(([x, y]) => g.lineTo(x, y)); g.lineTo(900, 150); g.closePath(); g.fill();
+        for (const [a, b] of [R2, R3]) { g.beginPath(); a.concat(b).forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.fill(); }
+        // the lower rim below the front ring reads red too
+        g.fillStyle = U.lin(g, 0, 880, 0, 980, [[0, 0], [1, 1]]); g.fillRect(-40, 880, 1000, 400);
+        g.restore();
+    }, { box: [-80, 200, 900, 1100], jit: 0.2, edge: 1 });
+    // the shadow: navy dots growing to the lower left
+    U.screen(press, 'navy', { p: 14.39, a: 17.85, x: 136.9, y: 752 }, (g) => {
+        g.save(); disc(g); g.clip();
+        g.fillStyle = U.lin(g, 420, 540, 90, 900, [[0, 0], [0.3, 0.12], [0.6, 0.45], [0.8, 0.75], [1, 0.9]]); g.fillRect(-80, 200, 1000, 1000);
+        g.restore();
+    }, { box: [-80, 200, 900, 1100], jit: 0.2, edge: 1 });
+    // dust and highlights on the planet
+    press.save(); press.clip((g) => g.arc(PX, PY, PR, 0, 7));
+    U.speckle(press, 'pl-disc', 260, [-80, 210, 900, 1080], 0.8, 1.8);
     press.restore();
-    U.specks(Y, 'planetdisc', 25, [150, 250, 750, 700], 1.5, 3);
+    U.specks(Y, 'pl-disc', 30, [150, 260, 800, 700], 1.6, 3.2, 1);
 
-    // the front of the rings, over the planet: clipped below the rings' long axis
-    const th = -0.28, cx = 380, cy = 650, ca = Math.cos(th), sa = Math.sin(th);
+    // ── the front of the rings, over the planet: below the rings' long axis
+    const ca = Math.cos(ROT), sa = Math.sin(ROT);
     press.save();
-    press.clip((g) => { g.moveTo(cx - ca * 2000, cy - sa * 2000); g.lineTo(cx + ca * 2000, cy + sa * 2000); g.lineTo(cx + ca * 2000 - sa * 2000, cy + sa * 2000 + ca * 2000); g.lineTo(cx - ca * 2000 - sa * 2000, cy - sa * 2000 + ca * 2000); g.closePath(); });
+    press.clip((g) => { g.moveTo(PX - ca * 3000, PY - sa * 3000); g.lineTo(PX + ca * 3000, PY + sa * 3000); g.lineTo(PX + ca * 3000 - sa * 3000, PY + sa * 3000 + ca * 3000); g.lineTo(PX - ca * 3000 - sa * 3000, PY - sa * 3000 + ca * 3000); g.closePath(); });
     ring();
+    press.restore();
     press.restore();
 };

@@ -1,88 +1,174 @@
-// Card «whale» (reference ≈ 11.0–11.25 s, full frame at 11.1): a whale gliding through blue
-// water, shafts of light from above, rings of light round its head. 1000 × 1000 units,
-// measured on the 11.1 s frame. Needs _g3-util.js (G3).
+// Card «whale» (reference 11.0–11.25 s, frames 264–269; re-shown mirrored in the pink run):
+// a whale gliding through blue water, shafts of light from above, arcs of light round its
+// head. Authored in reference px (the 1080 frame), measured on frame 266: outlines from
+// colour-run scans, inks solved from 30 px means, screens fitted with a DFT (pitch 12.05 px:
+// blue 14.9°, navy 75.05°, yellow 45.1°). Needs _g4-util.js (G4).
 var CARDS = CARDS || {};
 CARDS.whale = (press, t) => {
-    const R = Riso, T = R.tone, U = G3;
+    const U = G4, T = U.T;
     const d = Math.floor(t * 12 + 1e-6);
-    const pink = press.plate('pink'), pinkS = press.plate('pink', 'screen');
-    const blue = press.plate('blue'), blueS = press.plate('blue', 'screen');
-    const navy = press.plate('navy'), navyS = press.plate('navy', 'screen');
-    const yellow = press.plate('yellow'), yellowS = press.plate('yellow', 'screen');
+    const pink = press.plate('pink'), blue = press.plate('blue'), navy = press.plate('navy'), yellow = press.plate('yellow');
     const off = (g, fn) => { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.strokeStyle = '#000'; fn(g); g.restore(); };
-    const dx = d * 3, dy = -d * 1.2; // the whale glides up-right a little each drawing
+    U.refpx(press);
+    // the print drifts a little per drawing (whole-frame shift measured on 264/266/268)
+    const PAN = [[0, 0], [1.5, 0.5], [2.5, 2]][Math.min(2, d)];
+    press.each((g) => g.translate(PAN[0], PAN[1]));
 
-    // ── water: a dense blue screen (paper shows as white dots), deeper to the bottom
-    blueS.fillStyle = R.ramp(blueS, 0, 0, 0, 1000, 0.32, 0.85); blueS.fillRect(0, 0, 1000, 1000);
-    navyS.fillStyle = R.ramp(navyS, 0, 500, 0, 1000, 0, 0.36); navyS.fillRect(0, 450, 1000, 550);
-    pinkS.fillStyle = R.ramp(pinkS, 0, 700, 0, 1000, 0, 0.12); pinkS.fillRect(0, 700, 1000, 300);
-
-    // ── shafts of light: yellow screen bands, the blue thinned inside them, fading downwards
-    const shaft = (x0, x1, y0, x2, x3, y1, v) => {
-        const pts = [[x0, y0], [x1, y0], [x3, y1], [x2, y1]];
-        yellowS.fillStyle = R.ramp(yellowS, 0, y0, 0, y1, v, 0); U.path(yellowS, pts); yellowS.fill();
-        off(blueS, (g) => { g.fillStyle = R.ramp(g, 0, y0, 0, y1, 0.3, 0); U.path(g, pts); g.fill(); });
-        // streaks along the shaft: thin paper lines
-        const r = Motion.rng('wh-sh' + x0);
-        press.knockout((g) => { g.lineWidth = 1.4; for (let i = 0; i < 9; i++) { const u = r(), v2 = 0.3 + r() * 0.6; g.globalAlpha = 0.5; g.beginPath(); g.moveTo(x0 + (x1 - x0) * u + (x2 - x0) * v2 * 0.6, y0 + (y1 - y0) * v2 * 0.6); g.lineTo(x0 + (x1 - x0) * u + (x2 - x0) * v2, y0 + (y1 - y0) * v2); g.stroke(); } });
+    // ── water: blue ink with paper holes (white dots on blue), deeper to the bottom; navy
+    // dots from 620 px down. Tones from row means (blue 0.38 at the top → solid by 660)
+    const LB = { p: 12.05, a: 14.9, x: 542.2, y: 229.5 }, LN = { p: 12.05, a: 75.05, x: 860.2, y: 996.8 }, LY = { p: 12.05, a: 45.15, x: 79.7, y: 238.6 };
+    const ramp = (g, stops) => { g.fillStyle = U.lin(g, 0, 0, 0, 1080, stops); g.fillRect(-20, -20, 1120, 1120); };
+    // [top-left, top-right, a left point, a right point, yellow tone stops (by y / y1), y1];
+    // tones solved from 30 px means along each shaft (yellow + blue, the blue thinned inside)
+    const SHAFTS = [
+        [[0, 0], [90, 0], [118, 450], [205, 450], [[0, 0.5], [0.45, 0.5], [0.6, 0.33], [0.78, 0.25], [1, 0]], 720],
+        [[126, 0], [216, 0], [300, 600], [372, 600], [[0, 0.75], [0.35, 0.62], [0.5, 0.63], [0.63, 0.48], [0.8, 0.32], [1, 0]], 880],
+        [[643, 0], [740, 0], [790, 450], [865, 450], [[0, 0.42], [0.48, 0.38], [0.68, 0.33], [0.87, 0.25], [1, 0]], 620],
+        [[830, 0], [912, 0], [990, 560], [1075, 560], [[0, 0.48], [0.47, 0.39], [0.66, 0.34], [0.84, 0.45], [1, 0]], 640],
+    ];
+    const shaftPath = (g, [a, b, c, e, , y1]) => {
+        g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
+        g.lineTo(e[0] + (e[0] - b[0]) * ((y1 - e[1]) / e[1]), y1); g.lineTo(c[0] + (c[0] - a[0]) * ((y1 - c[1]) / c[1]), y1);
+        g.closePath();
     };
-    shaft(20, 110, 0, 150, 300, 560, 0.8);
-    shaft(130, 230, 0, 260, 420, 700, 0.85);
-    shaft(600, 700, 0, 700, 860, 520, 0.75);
-    shaft(770, 860, 0, 840, 960, 320, 0.65);
-    // sparkles: yellow flecks in the left shafts
+    U.screen(press, 'blue', LB, (g) => {
+        ramp(g, [[0, 0.38], [0.11, 0.43], [0.22, 0.49], [0.28, 0.55], [0.33, 0.61], [0.39, 0.67], [0.44, 0.73], [0.5, 0.8], [0.56, 0.87], [0.61, 0.92], [0.7, 0.97], [0.8, 1]]);
+        // the light thins the blue inside the shafts
+        g.globalCompositeOperation = 'destination-out';
+        for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], [[0, 0.22], [0.3, 0.1], [0.5, 0]]); shaftPath(g, sh); g.fill(); }
+        g.globalCompositeOperation = 'source-over';
+    }, { mode: 'holes', jit: 0.2, pj: 0.03, edge: 0.7, also: [{ ink: 'navy', mask: (g) => { ramp(g, [[0.3, 0], [0.54, 0.1], [0.65, 0.15], [1, 0.15]]); g.globalCompositeOperation = 'destination-out'; g.fillStyle = U.lin(g, 0, 0, 540, 0, [[0, 0.7], [1, 0]]); g.fillRect(-20, 500, 560, 420); g.globalCompositeOperation = 'source-over'; } }] });
+    // the ink's grain: stray pink specks and paper pinholes in the water (seen at 4×)
+    U.specks(pink, 'wh-w', 1400, [0, 300, 1080, 1080], 0.7, 1.6, 0.9);
+    U.speckle(press, 'wh-w', 700, [0, 0, 1080, 1080], 0.6, 1.3);
+    // the navy dots come in lower on the left (the water is lit under the left shafts)
+    U.screen(press, 'navy', LN, (g) => {
+        // start line y0(x) = 620 right of x = 540, dropping to 860 at the left edge
+        g.save(); g.beginPath(); g.moveTo(-20, 870); g.lineTo(540, 620); g.lineTo(1100, 620); g.lineTo(1100, 1100); g.lineTo(-20, 1100); g.closePath(); g.clip();
+        g.transform(1, Math.min(0, 0), 0, 1, 0, 0);
+        g.fillStyle = U.lin(g, 0, 620, 0, 1080, [[0, 0.12], [0.15, 0.22], [1, 0.27]]); g.fillRect(-20, 540, 1120, 560);
+        g.fillStyle = U.lin(g, 0, 0, 540, 0, [[0, 0.6], [1, 0]]); g.globalCompositeOperation = 'destination-out'; g.fillRect(-20, 540, 560, 380); g.fillStyle = U.lin(g, 0, 920, 0, 1000, [[0, 1], [1, 0]]); g.globalAlpha = 0.2; g.fillRect(-20, 920, 280, 80);
+        g.restore();
+    }, { box: [0, 540, 1080, 1080], jit: 0.3, pj: 0.08, edge: 0.7 });
+    pink.fillStyle = U.lin(pink, 0, 850, 0, 1080, [[0, 0], [1, 0.1]]); pink.fillRect(0, 850, 1080, 230);
+
+    // ── shafts of light: yellow dots on their own screen, fading downwards; fine paper
+    // streaks along them. Edges from row scans: [top-left, top-right, bottom-left, bottom-right]
+    // soft-edged beams (the light spills 10–20 px past the measured edges)
+    U.screen(press, 'yellow', LY, (g) => {
+        g.filter = 'blur(9px)';
+        for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], sh[4]); shaftPath(g, sh); g.fill(); }
+        g.filter = 'none';
+    });
+    const rs = Motion.rng('wh-streak');
+    press.knockout((g) => {
+        g.lineCap = 'round';
+        for (const [a, b, c, e, , y1] of SHAFTS) for (let i = 0; i < 16; i++) {
+            const u = rs(), v0 = 0.35 + rs() * 0.5, len = 0.05 + rs() * 0.12;
+            const L = (v) => [a[0] + (b[0] - a[0]) * u + ((c[0] + (e[0] - c[0]) * u) - (a[0] + (b[0] - a[0]) * u)) * v * (y1 / c[1]), v * y1];
+            const [x0, y0] = L(v0), [x2, y2] = L(v0 + len);
+            g.lineWidth = 1.3 + rs() * 0.8; g.globalAlpha = 0.7;
+            g.beginPath(); g.moveTo(x0, y0); g.lineTo(x2, y2); g.stroke();
+        }
+    });
+    // sparkles: short yellow dashes left of the dot (measured on 266)
+    const FLECKS = [[355, 212, 11], [392, 258, 12], [372, 291, 8], [399, 320, 12], [318, 337, 7], [366, 372, 8], [375, 390, 7], [95, 296, 22], [128, 322, 9], [300, 262, 6], [330, 300, 6], [268, 382, 8]];
     const rf = Motion.rng('wh-fleck');
-    for (let i = 0; i < 24; i++) {
-        const x = 200 + rf() * 180, y = 180 + rf() * 220, w = 6 + rf() * 12;
-        off(blueS, (g) => { g.beginPath(); g.ellipse(x, y, w, 4, -0.3, 0, 7); g.fill(); });
-        U.ell(yellow, x, y, w, 3.6, -0.3, 1);
+    for (const sh of SHAFTS) for (let i = 0; i < 26; i++) {
+        const v = 0.15 + rf() * 0.75, y = v * sh[5], xl = sh[0][0] + (sh[2][0] - sh[0][0]) * (y / sh[2][1]), xr = sh[1][0] + (sh[3][0] - sh[1][0]) * (y / sh[3][1]);
+        FLECKS.push([xl + rf() * (xr - xl), y, 3 + rf() * 7]);
+    }
+    for (const [x, y, w] of FLECKS) {
+        off(blue, (g) => { g.beginPath(); g.ellipse(x, y, w + 2, 5, -0.3, 0, 7); g.fill(); });
+        U.ell(yellow, x, y, w, 4, -0.3, 1);
     }
 
-    // ── rings of light round the head: yellow arcs, each with a paper line inside
-    const HC = [1030 + dx, 560 + dy];
-    for (let i = 0; i < 9; i++) {
-        const r = 75 + i * 50 + (d % 2) * 5, a0 = Math.PI * (1.0 + i * 0.012), a1 = Math.PI * (1.3 + i * 0.012);
-        const w = i === 0 ? 14 : 6 - i * 0.35;
-        press.knockout((g) => { g.lineWidth = w + 4; g.lineCap = 'round'; g.beginPath(); g.arc(HC[0], HC[1], r, a0, a1); g.stroke(); });
-        yellow.save(); yellow.strokeStyle = T(1); yellow.lineWidth = w; yellow.lineCap = 'round';
-        yellow.beginPath(); yellow.arc(HC[0], HC[1], r + 2, a0, a1); yellow.stroke(); yellow.restore();
+    // ── arcs of light round the head: yellow brush arcs (thicker near the head), each with
+    // a paper line just outside it. [left end, right edge y at x = 1080, width]
+    // polar brush arcs round (1130, 700): each from its measured left end to past the right
+    // edge (its crossing of x = 1080 measured), radius eased between the two; a paper line
+    // just outside each. [left end x, y, right-edge y, width]
+    const AC = [1130, 700];
+    const ARCS = [[807, 213, 152, 4.5], [820, 263, 207, 4.5], [843, 320, 267, 5], [873, 378, 330, 5.5], [900, 418, 392, 6], [920, 470, 446, 6.5], [950, 515, 503, 7.5], [977, 563, 557, 10], [1003, 600, 610, 15]];
+    for (const [x0, y0, y1, w] of ARCS) {
+        const a0 = Math.atan2(y0 - AC[1], x0 - AC[0]) + Math.PI * 2, a1 = Math.atan2(y1 - AC[1], 1080 - AC[0]) + Math.PI * 2;
+        const r0 = Math.hypot(x0 - AC[0], y0 - AC[1]), r1 = Math.hypot(1080 - AC[0], y1 - AC[1]), a2 = a1 + 0.2;
+        const band = (g, o0, o1) => {
+            const N = 40, pt = (k, o) => { const s = k / N, a = a0 + (a2 - a0) * s, u = Math.min(1, (a - a0) / (a1 - a0)), r = r0 + (r1 - r0) * u, hw = Math.pow(Math.sin((Math.PI / 2) * Math.min(1, s / 0.25)), 0.6); return [AC[0] + Math.cos(a) * (r + o * hw), AC[1] + Math.sin(a) * (r + o * hw)]; };
+            g.beginPath();
+            for (let k = 0; k <= N; k++) { const [x, y] = pt(k, o1); k ? g.lineTo(x, y) : g.moveTo(x, y); }
+            for (let k = N; k >= 0; k--) { const [x, y] = pt(k, o0); g.lineTo(x, y); }
+            g.fill();
+        };
+        press.knockout((g) => band(g, -w / 2 - 0.5, w / 2 + 5));
+        yellow.fillStyle = T(1);
+        band(yellow, -w / 2, w / 2);
+        blue.fillStyle = T(0.55); band(blue, w / 2 + 0.5, w / 2 + 2);
     }
 
-    // ── the whale: navy + pink (deep purple) with a blue screen, a blue stripe, grooves
-    press.save();
-    press.each((g) => g.translate(dx, dy));
-    const body = [[95, 870], [200, 830], [320, 760], [460, 680], [600, 600], [720, 548], [830, 526], [900, 532], [938, 575], [940, 640], [915, 700], [840, 745], [720, 788], [600, 812], [460, 842], [300, 876], [150, 896]];
-    const fluke = [[0, 790], [40, 810], [80, 850], [110, 880], [100, 900], [60, 940], [40, 1000], [0, 1000]];
-    const fin = [[600, 805], [578, 850], [540, 900], [480, 950], [436, 972], [450, 940], [494, 880], [520, 836], [540, 808]];
-    const all = (g) => { U.smooth(g, body, true, true); U.smooth(g, fluke, true, false); U.smooth(g, fin, true, false); };
-    press.knockout((g) => { all(g); g.fill(); });
-    for (const [g, v] of [[navy, 0.95], [pink, 0.3]]) { g.fillStyle = T(v); all(g); g.fill(); }
-    // a faint blue sheen along the back (blue screen)
-    blueS.save(); all(blueS); blueS.clip(); blueS.fillStyle = R.ramp(blueS, 0, 560, 0, 760, 0.5, 0); blueS.fillRect(0, 500, 1000, 300); blueS.restore();
-    // the belly a touch lighter: less navy
-    // the stripe along the flank: navy and pink knocked, blue shows
-    const stripe = (g, w) => { g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(215, 846); g.bezierCurveTo(420, 740, 560, 620, 810, 568); g.stroke(); };
-    off(navy, (g) => stripe(g, 8)); off(pink, (g) => stripe(g, 8));
-    blue.save(); blue.strokeStyle = T(0.8); stripe(blue, 8); blue.restore();
-    // speckles: pink and blue spots (barnacles)
-    const rp = Motion.rng('wh-spots');
-    for (let i = 0; i < 26; i++) {
-        const x = 420 + rp() * 330, y = 620 + rp() * 140 - (x - 420) * 0.25, r = 2.5 + rp() * 3;
-        if (rp() < 0.55) { off(navy, (g) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }); U.disc(pink, x, y, r, 1); }
-        else { off(navy, (g) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }); off(pink, (g) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }); U.disc(blue, x, y, r, 0.8); }
-    }
-    // throat grooves: paper lines with a pink tint, fanning to the jaw
+    // ── the whale (outlines measured by colour-run scans on frame 266, ref px)
+    const BODY = [[125, 946], [180, 925], [240, 906], [300, 886], [330, 871], [360, 853], [390, 831], [420, 800], [450, 766], [480, 741], [510, 719], [540, 698], [570, 679], [600, 661], [630, 645], [660, 630], [690, 618], [720, 605], [750, 594], [780, 587], [810, 581], [840, 577], [870, 575], [900, 576], [930, 583], [960, 595], [985, 613], [1001, 636], [1008, 662], [1007, 686], [999, 705], [986, 725], [972, 745], [955, 762], [934, 780], [900, 797], [870, 809], [840, 821], [810, 833], [780, 843], [750, 850], [720, 858], [690, 866], [660, 872], [620, 880], [580, 886], [540, 893], [480, 898], [420, 907], [360, 914], [300, 924], [240, 935], [180, 948], [125, 961]];
+    const FLUKE = [[-4, 853], [24, 869], [45, 886], [65, 902], [84, 924], [102, 940], [128, 944], [130, 962], [112, 968], [106, 985], [105, 1010], [102, 1035], [96, 1055], [94, 1090], [54, 1090], [53, 1050], [56, 1020], [57, 990], [51, 966], [41, 947], [27, 929], [13, 912], [2, 900], [-4, 896]];
+    const FIN = [[690, 862], [650, 866], [612, 866], [600, 872], [593, 885], [589, 901], [581, 916], [566, 931], [553, 946], [543, 961], [530, 976], [510, 991], [495, 1006], [479, 1021], [462, 1036], [453, 1047], [465, 1045], [484, 1035], [505, 1019], [530, 1004], [547, 989], [568, 974], [590, 959], [598, 944], [608, 929], [631, 914], [644, 899], [652, 884], [676, 872]];
+    const shape = (g) => { U.smooth(g, BODY, true, true); U.smooth(g, FLUKE, true, false); U.smooth(g, FIN, true, false); };
+    press.knockout((g) => { shape(g); g.fill(); });
+    // navy + pink (deep purple), a little blue; the head and the fluke more pink
+    navy.fillStyle = T(1); shape(navy); navy.fill();
+    U.clip(navy, (g) => shape(g), (g) => {
+        off(g, (h) => { h.fillStyle = U.rad(h, 60, 990, 0, 140, [[0, 0.95], [1, 0]]); h.fillRect(-20, 820, 240, 280); });
+        off(g, (h) => { h.fillStyle = U.rad(h, 930, 630, 0, 120, [[0, 0.08], [1, 0]]); h.fillRect(800, 500, 260, 280); });
+    });
+    pink.fillStyle = T(0.34); shape(pink); pink.fill();
+    U.clip(pink, (g) => shape(g), (g) => {
+        g.fillStyle = U.rad(g, 930, 630, 0, 140, [[0, 0.45], [1, 0]]); g.fillRect(780, 480, 300, 320);
+        g.fillStyle = U.rad(g, 60, 990, 0, 140, [[0, 0.5], [1, 0]]); g.fillRect(-20, 820, 240, 280);
+    });
+    blue.fillStyle = T(0.15); shape(blue); blue.fill();
+    // the shafts light the body too (a green-teal glaze where they cross it)
+    U.screen(press, 'yellow', LY, (g) => { g.save(); shape(g); g.clip(); for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], sh[4].map(([o, v]) => [o, v * 0.7])); shaftPath(g, sh); g.fill(); } g.restore(); }, { box: [0, 560, 1080, 1080] });
+    U.clip(navy, (g) => shape(g), (g) => off(g, (h) => { for (const sh of SHAFTS) { h.fillStyle = U.lin(h, 0, 0, 0, sh[5], sh[4].map(([o, v]) => [o, v * 0.75])); shaftPath(h, sh); h.fill(); } }));
+    U.clip(blue, (g) => shape(g), (g) => { g.fillStyle = U.rad(g, 60, 990, 0, 140, [[0, 0.85], [1, 0]]); g.fillRect(-20, 820, 240, 280); });
+    // mottle: darker navy dots in the body (its own navy screen shows through)
+    U.screen(press, 'navy', LN, (g) => { shape(g); g.fillStyle = T(0.2); g.fill(); }, { box: [0, 560, 1080, 1080], op: 'source-over', jit: 0.3 });
+
+    // the body's grain: dense pink specks, navy thinned in small blotches (mottled print)
+    U.clip(pink, (g) => shape(g), (g) => U.specks(g, 'wh-b', 2600, [0, 560, 1010, 1080], 0.8, 1.9, 0.85));
+    U.clip(navy, (g) => shape(g), (g) => off(g, (h) => U.specks(h, 'wh-nb', 700, [0, 560, 1010, 1080], 0.8, 1.8, 0.35)));
+    U.clip(blue, (g) => shape(g), (g) => U.specks(g, 'wh-bb', 900, [0, 560, 1010, 1080], 0.8, 2, 0.8));
+
+    // the stripe along the flank: navy thinned, blue shows (tapered brush)
+    const STRIPE = [[236, 895], [300, 868], [360, 842], [420, 810], [450, 792], [480, 774], [510, 757], [540, 740], [570, 724], [600, 708], [630, 692], [660, 677], [690, 662], [720, 650], [750, 640], [780, 631], [810, 623], [840, 617], [870, 612], [888, 611]];
+    const stripe = (g, w) => {
+        const n = STRIPE.length;
+        g.beginPath();
+        const side = (k, sgn) => { const [x, y] = STRIPE[k], [xa, ya] = STRIPE[Math.max(0, k - 1)], [xb, yb] = STRIPE[Math.min(n - 1, k + 1)]; const L = Math.hypot(xb - xa, yb - ya), s = k / (n - 1), hw = (w / 2) * Math.pow(Math.sin(Math.PI * (0.06 + 0.9 * s)), 0.7) * (1 - 0.35 * s); return [x - ((yb - ya) / L) * hw * sgn, y + ((xb - xa) / L) * hw * sgn]; };
+        for (let k = 0; k < n; k++) { const [x, y] = side(k, 1); k ? g.lineTo(x, y) : g.moveTo(x, y); }
+        for (let k = n - 1; k >= 0; k--) { const [x, y] = side(k, -1); g.lineTo(x, y); }
+        g.fill();
+    };
+    off(navy, (g) => stripe(g, 17)); off(pink, (g) => stripe(g, 17));
+    blue.fillStyle = T(1); stripe(blue, 17);
+    navy.fillStyle = T(0.38); stripe(navy, 17);
+
+    // spots: pink and blue (barnacles), measured on 266
+    const PINKS = [[757, 702, 4.5], [770, 714, 4], [747, 720, 4], [802, 702, 4.5], [822, 679, 3.5], [649, 729, 4], [607, 739, 4.5], [659, 747, 3.5], [625, 769, 4], [857, 787, 3.5], [560, 780, 4], [517, 797, 3.5], [467, 812, 4], [440, 775, 3], [585, 800, 3]];
+    const BLUES = [[720, 704, 4], [790, 699, 4], [714, 727, 3.5], [772, 674, 3.5], [672, 700, 3.5], [647, 757, 3.5], [545, 760, 3], [595, 775, 3], [500, 790, 3]];
+    for (const [x, y, r] of PINKS) { off(navy, (g) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }); U.disc(pink, x, y, r, 1); }
+    for (const [x, y, r] of BLUES) { off(navy, (g) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }); off(pink, (g) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }); U.disc(blue, x, y, r, 0.9); U.disc(navy, x, y, r, 0.25); }
+
+    // throat grooves: seven paper lines with a pink tint, fanning from the flipper to the jaw
     for (let i = 0; i < 7; i++) {
-        const ln = (g) => { g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(575 - i * 2, 800 - i * 10); g.quadraticCurveTo(760, 735 - i * 10, 912, 690 - i * 11); g.stroke(); };
-        press.knockout(ln);
-        pink.save(); pink.strokeStyle = T(0.35); pink.lineWidth = 1; pink.beginPath(); pink.moveTo(575 - i * 2, 801 - i * 10); pink.quadraticCurveTo(760, 736 - i * 10, 912, 691 - i * 11); pink.stroke(); pink.restore();
+        const x0 = 632 - 4.5 * i, y0 = 785 + 11 * i, x2 = 985, y2 = 665 + 2 * i, cx = 800 + 10, cy = 722 + 9.7 * i + 6;
+        const ln = (g, w) => { g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(2 * cx - (x0 + x2) / 2, 2 * cy - (y0 + y2) / 2, x2, y2); g.stroke(); };
+        press.knockout((g) => ln(g, 3.4));
+        pink.save(); pink.strokeStyle = T(0.3); ln(pink, 3.4); pink.restore();
     }
-    // the eye and the blowhole
-    press.knockout((g) => { g.beginPath(); g.arc(866, 594, 7, 0, 7); g.fill(); });
-    U.disc(navy, 868, 595, 3.5); U.disc(blue, 868, 595, 5, 0.6);
-    press.knockout((g) => { g.lineWidth = 3; g.beginPath(); g.arc(872, 545, 9, 0, 7); g.stroke(); });
-    pink.save(); pink.strokeStyle = T(1); pink.lineWidth = 2.6; pink.beginPath(); pink.arc(872, 545, 9, 0, 7); pink.stroke(); pink.restore();
-    // the far flipper's edge: a paper line down the fin
-    press.knockout((g) => { g.lineWidth = 2; g.beginPath(); g.moveTo(552, 806); g.quadraticCurveTo(500, 870, 440, 950); g.stroke(); });
+    // the eye (paper ring, dark pupil) and the blowhole (a pink ring)
+    press.knockout((g) => { g.beginPath(); g.arc(937, 642, 9, 0, 7); g.fill(); });
+    U.disc(navy, 938, 642, 4.2, 1); U.disc(blue, 936, 642, 6, 0.35);
+    off(navy, (g) => { g.lineWidth = 4; g.beginPath(); g.arc(943, 585, 11, 0, 7); g.stroke(); });
+    pink.save(); pink.strokeStyle = T(1); pink.lineWidth = 3; pink.beginPath(); pink.arc(943, 585, 11, 0, 7); pink.stroke(); pink.restore();
+    // the flipper's leading edge: a paper line
+    press.knockout((g) => { g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); g.moveTo(605, 870); g.quadraticCurveTo(560, 950, 468, 1040); g.stroke(); });
     press.restore();
 };

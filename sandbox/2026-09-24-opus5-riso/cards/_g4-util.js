@@ -90,5 +90,125 @@ var G4 = (() => {
         }
         return out;
     }
-    return { T, path, smooth, poly, blob, sline, seg, disc, ell, clip, on, erase, speckle, specks, dots, lin, rad, jag };
+    // A halftone on a measured screen. This film's screens are not the press's: each card
+    // has its own pitch, angle and phase (very regular lattices, measured on the reference
+    // with a DFT fit), and a dot off by half a cell costs ~10 colour on the detail gate.
+    //   screen(press, ink, lat, tones, o)
+    //   lat: { p: pitch, a: angle (deg), x, y: an ink dot centre } in the plate's current
+    //   units (cards author in reference px: G4.refpx(press) scales 1080 px → 1000 units)
+    //   tones(g): draws the tone field (alpha = ink), same units, on an offscreen canvas
+    //   o.jit: per-dot size jitter (0.12), o.pj: per-dot position jitter in cells (0.05),
+    //   o.edge: dot edge softness (1.1 units),
+    //   o.box: [x0, y0, x1, y1] to limit the work, o.mode: 'auto' (ink dots to 50 %, paper
+    //   holes above), 'holes' (paper holes down to touching: white dots on ink, 21–100 %)
+    // The dots are round ink dots up to 50 % and round paper holes above (a Euclidean-ish
+    // screen), set in the artwork's space: a mirrored card mirrors its dots too. The result
+    // goes on the ink's solid plate (the press adds spread, mottle, voids).
+    let tcan = null, ccan = null;
+    function screen(press, ink, lat, tones, o = {}) {
+        const plate = press.plate(ink), W = plate.canvas.width, H = plate.canvas.height;
+        if (!tcan || tcan.width !== W || tcan.height !== H) {
+            tcan = document.createElement('canvas'); tcan.width = W; tcan.height = H;
+            ccan = document.createElement('canvas'); ccan.width = W; ccan.height = H;
+        }
+        const tg = tcan.getContext('2d', { willReadFrequently: true });
+        const M = plate.getTransform();
+        tg.setTransform(1, 0, 0, 1, 0, 0);
+        tg.clearRect(0, 0, W, H);
+        tg.setTransform(M);
+        tg.globalCompositeOperation = 'source-over';
+        tones(tg);
+        // work box in output px
+        let bx0 = 0, by0 = 0, bx1 = W, by1 = H;
+        if (o.box) {
+            const cs = [[o.box[0], o.box[1]], [o.box[2], o.box[1]], [o.box[0], o.box[3]], [o.box[2], o.box[3]]].map(([x, y]) => [M.a * x + M.c * y + M.e, M.b * x + M.d * y + M.f]);
+            bx0 = Math.max(0, Math.floor(Math.min(...cs.map((c) => c[0])))); bx1 = Math.min(W, Math.ceil(Math.max(...cs.map((c) => c[0]))));
+            by0 = Math.max(0, Math.floor(Math.min(...cs.map((c) => c[1])))); by1 = Math.min(H, Math.ceil(Math.max(...cs.map((c) => c[1]))));
+        }
+        if (bx1 <= bx0 || by1 <= by0) return;
+        const bw = bx1 - bx0, bh = by1 - by0;
+        const T0 = tg.getImageData(bx0, by0, bw, bh).data;
+        const cg = ccan.getContext('2d');
+        const out = cg.createImageData(bw, bh), O = out.data;
+        // output px → card units (inverse of M) → reference px (× 1.08)
+        const I = M.inverse(), holes = o.mode === 'holes';
+        const a = (lat.a * Math.PI) / 180, ca = Math.cos(a), sa = Math.sin(a), p = lat.p;
+        const jit = o.jit ?? 0.12, pj = o.pj ?? 0.05, e = (o.edge ?? 1.1) / p, PI = Math.PI;
+        for (let y = 0; y < bh; y++) {
+            const Y = by0 + y + 0.5;
+            for (let x = 0; x < bw; x++) {
+                const q = (y * bw + x) * 4, t = T0[q + 3] / 255;
+                if (t < 0.004) continue;
+                const X = bx0 + x + 0.5;
+                const lx = (I.a * X + I.c * Y + I.e) - lat.x, ly = (I.b * X + I.d * Y + I.f) - lat.y;
+                const u = (lx * ca + ly * sa) / p, v = (-lx * sa + ly * ca) / p;
+                let cov;
+                if (t >= 0.985) cov = 1;
+                else if (holes ? t < 0.215 : t <= 0.5) {
+                    const cu = Math.round(u), cv = Math.round(v);
+                    const h = Math.sin(cu * 127.1 + cv * 311.7) * 43758.5453, hj = h - Math.floor(h), hk = (hj * 7.31) % 1, hl = (hj * 13.7) % 1;
+                    const du = u - cu - pj * (hk - 0.5) * 2, dv = v - cv - pj * (hl - 0.5) * 2;
+                    const r = Math.sqrt(t / PI) * (1 + jit * (hj - 0.5) * 2);
+                    cov = Math.min(1, Math.max(0, (r - Math.sqrt(du * du + dv * dv)) / e + 0.5));
+                } else {
+                    const cu = Math.floor(u), cv = Math.floor(v);
+                    const h = Math.sin(cu * 269.5 + cv * 183.3) * 43758.5453, hj = h - Math.floor(h), hk = (hj * 7.31) % 1, hl = (hj * 13.7) % 1;
+                    const du = u - cu - 0.5 - pj * (hk - 0.5) * 2, dv = v - cv - 0.5 - pj * (hl - 0.5) * 2;
+                    const r = Math.sqrt((1 - t) / PI) * (1 + jit * (hj - 0.5) * 2);
+                    cov = 1 - Math.min(1, Math.max(0, (r - Math.sqrt(du * du + dv * dv)) / e + 0.5));
+                }
+                O[q + 3] = cov * 255;
+            }
+        }
+        cg.putImageData(out, 0, 0);
+        plate.save();
+        plate.setTransform(1, 0, 0, 1, 0, 0);
+        plate.globalCompositeOperation = o.op ?? 'source-over';
+        plate.drawImage(ccan, 0, 0, bw, bh, bx0, by0, bw, bh);
+        plate.restore();
+        // o.also: [{ ink, mask(g) }] the same dots printed in another ink too, scaled by a
+        // mask (alpha) drawn in plate units: a darker ink that keeps the holes' geometry
+        for (const { ink: ink2, mask } of o.also ?? []) {
+            tg.setTransform(1, 0, 0, 1, 0, 0);
+            tg.clearRect(0, 0, W, H);
+            tg.globalCompositeOperation = 'source-over';
+            tg.drawImage(ccan, 0, 0, bw, bh, bx0, by0, bw, bh);
+            tg.setTransform(M);
+            tg.globalCompositeOperation = 'destination-in';
+            mask(tg);
+            tg.globalCompositeOperation = 'source-over';
+            const p2 = press.plate(ink2);
+            p2.save(); p2.setTransform(1, 0, 0, 1, 0, 0); p2.drawImage(tcan, 0, 0); p2.restore();
+        }
+    }
+    // The sonar pulse that runs over planet → lightning → balloons (frames 289–296 of the
+    // film, one drawing per frame), measured with radial scans round the dot (ref px):
+    // a blue ring (≈ 14 px) with paper on both sides (≈ 3–6 px), and thin blue circles
+    // (≈ 5 px) born behind it. Returns true when it drew something.
+    const PULSE = {
+        // frame: [ring radius, [thin circle radii]]
+        289: [134, []], 290: [234, []], 291: [327, []], 292: [412, [132]], 293: [484, [225]],
+        294: [533, [331]], 295: [590, [416, 135]], 296: [650, [480, 234]],
+    };
+    function pulse(press, f) {
+        const row = PULSE[f];
+        if (!row) return false;
+        const [R, thin] = row;
+        refpx(press);
+        const ann = (g, r0, r1) => { const TAU = Math.PI * 2; g.beginPath(); g.arc(540, 540, r1, 0, TAU); g.moveTo(540 + Math.max(0, r0), 540); g.arc(540, 540, Math.max(0, r0), TAU, 0, true); g.fill(); };
+        press.knockout((g) => ann(g, R - 11, R + 12));
+        const b = press.plate('blue');
+        b.fillStyle = T(1);
+        ann(b, R - 7, R + 7);
+        for (const r of thin) {
+            press.knockout((g) => ann(g, r - 2.5, r + 2.5));
+            b.fillStyle = T(1);
+            ann(b, r - 2.5, r + 2.5);
+        }
+        press.restore();
+        return true;
+    }
+    // author a card in reference px (the 1080 frame): scale every plate by 1000/1080
+    function refpx(press) { press.save(); press.each((g) => g.scale(1000 / 1080, 1000 / 1080)); }
+    return { pulse, refpx, T, path, smooth, poly, blob, sline, seg, disc, ell, clip, on, erase, speckle, specks, dots, lin, rad, jag, screen };
 })();

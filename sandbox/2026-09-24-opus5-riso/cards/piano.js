@@ -1,149 +1,165 @@
-// Card «piano» (reference 11.25–11.5 s, full frame): the inside of a grand piano seen from
-// above, the curved rim and lid on the right over a blue ground, bass strings crossing the
-// treble ones, dampers, the red bar, pins, keys at the bottom, and white sound arcs round the
-// hammer. Measured on the 11.3 s frame in 1000 × 1000 units. Needs cards/_g4-util.js.
+// Card «piano» (reference 11.25–11.5 s, frames 270–275; re-inked in the pink run): the
+// inside of a grand piano from above: the dark rim curving down the right over a blue ground,
+// the yellow board with ribs, copper bass strings over thin treble strings, dampers, the red
+// bar, bridge pins, the key slip and the keys, white sound arcs round the hammer. Authored in
+// reference px on frame 270 (colour-run scans, arc fits, 30 px means solved for inks,
+// screens fitted with a DFT: board pink 8.1 px at 75°, blue ground navy 10.1 px at 75°).
+// The camera pushes in 1.22 % a frame about (550, 545) (fitted on 270 → 272/274/275).
+// Needs _g4-util.js (G4).
 var CARDS = CARDS || {};
-CARDS.piano = (press, t) => {
+CARDS.piano = (press, t, lf = 0) => {
     const U = G4, T = U.T;
+    const d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
-    const PS = press.plate('pink', 'screen'), BS = press.plate('blue', 'screen'), NS = press.plate('navy', 'screen');
-    const dark = [N, Y]; // navy + yellow = the print's olive black
+    const dark = [N, Y];
+    const off = (g, fn) => { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.strokeStyle = '#000'; fn(g); g.restore(); };
+    U.refpx(press);
+    // the push-in, every frame
+    const z = 1 + 0.0122 * lf;
+    press.each((g) => { g.translate(550, 545); g.scale(z, z); g.translate(-550, -545); });
 
-    // the rim: inner edge (where the yellow board ends) and outer edge (where the blue begins)
-    const inner = [[290, -60], [347, 5], [406, 50], [456, 100], [509, 150], [559, 200], [605, 250], [648, 300], [686, 350], [721, 400], [753, 450], [781, 500], [807, 550], [828, 600], [849, 650], [866, 700], [881, 750], [894, 800], [902, 860]];
-    const outer = [[415, -60], [472, 5], [524, 50], [576, 100], [622, 150], [668, 200], [712, 250], [750, 300], [785, 350], [818, 400], [846, 450], [870, 500], [893, 550], [915, 600], [934, 650], [951, 700], [965, 750], [977, 800], [986, 860]];
-    const lerpPath = (f) => inner.map(([x, y], i) => [x + (outer[i][0] - x) * f, y + (outer[i][1] - y) * f]);
-    const board = (g) => { U.smooth(g, inner, false, false); g.lineTo(42, 860); g.lineTo(42, -10); g.closePath(); };
-    const beyond = (g) => { U.smooth(g, outer, false, false); g.lineTo(1010, 860); g.lineTo(1010, -10); g.closePath(); };
+    // ── the rim, measured every 40 px: [y, inner edge, inner band end, outer band start, blue]
+    const RIM = [[-40, 313, 376, 400, 470], [0, 359, 422, 441, 494], [40, 405, 468, 482, 520], [80, 449, 510, 527, 590], [120, 494, 552, 572, 623], [160, 537, 595, 611, 664], [200, 578, 632, 647, 697], [240, 615, 669, 684, 733], [280, 651, 704, 720, 768], [320, 687, 736, 752, 798], [360, 720, 768, 783, 827], [400, 749, 797, 814, 854], [440, 775, 824, 838, 879], [480, 799, 847, 861, 901], [520, 823, 869, 882, 924], [560, 843, 890, 901, 945], [600, 865, 907, 921, 960], [640, 882, 925, 937, 976], [680, 900, 942, 952, 992], [720, 915, 957, 966, 1008], [760, 927, 969, 979, 1018], [800, 940, 981, 993, 1029], [840, 950, 990, 1002, 1038], [880, 960, 998, 1010, 1047], [920, 968, 1006, 1018, 1056], [980, 978, 1016, 1028, 1066]];
+    const col = (k) => RIM.map((r) => [r[k], r[0]]);
+    const band = (g, k0, k1) => { const a = col(k0), b = col(k1).reverse(); U.smooth(g, a, false, true); b.forEach(([x, y]) => g.lineTo(x, y)); g.closePath(); };
+    const boardShape = (g) => { g.beginPath(); g.moveTo(57, -60); col(1).forEach(([x, y]) => g.lineTo(x, y)); g.lineTo(57, 980); g.closePath(); };
+    const beyond = (g) => { g.beginPath(); col(4).forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.lineTo(1200, 980); g.lineTo(1200, -60); g.closePath(); };
 
-    // blue ground beyond the rim: light blue flat, navy dots, green (yellow) diagonal lines
-    for (const [g, v] of [[B, 0.85], [NS, 0.44], [PS, 0.07]]) U.clip(g, beyond, (c) => { c.fillStyle = T(v); c.fillRect(0, 0, 1000, 1000); });
-    U.clip(Y, beyond, (c) => {
-        for (let y0 = 100; y0 < 1400; y0 += 70) U.seg(c, [[450, y0], [1000, y0 - 0.65 * 550]], 2, 1);
-    });
-    U.clip(P, beyond, (c) => U.specks(c, 'pianoblue', 70, [480, 0, 1000, 860], 0.8, 1.8));
+    // ── blue ground beyond the rim: solid blue, navy dots (10.1 px, 75°), green lines, pink specks
+    const LNb = { p: 10.11, a: 74.95, x: 966.8, y: 221 };
+    U.clip(B, beyond, (g) => { g.fillStyle = T(0.97); g.fillRect(0, -60, 1200, 1100); });
+    U.screen(press, 'navy', LNb, (g) => { beyond(g); g.fillStyle = T(0.42); g.fill(); }, { box: [350, -60, 1200, 1050], jit: 0.2, edge: 0.8 });
+    U.clip(P, beyond, (g) => { g.fillStyle = T(0.12); g.fillRect(0, -60, 1200, 1100); U.specks(g, 'pno-b', 260, [450, -60, 1200, 1000], 0.8, 1.8, 1); });
+    U.clip(Y, beyond, (g) => { for (let k = -8; k < 12; k++) { const y0 = 108 + 115 * k; U.seg(g, [[400, y0 + 0.55 * 600], [1200, y0 - 0.55 * 200]], 2.2, 0.9); } });
 
-    // the board: yellow flat, a light pink screen; the ribs (arched panels) denser
-    U.clip(Y, board, (c) => { c.fillStyle = T(1); c.fillRect(0, 0, 1000, 1000); });
-    U.clip(PS, board, (c) => { c.fillStyle = T(0.12); c.fillRect(0, 0, 1000, 1000); });
-    const ribs = [
-        [[134, 65], [134, -20], [225, -20], [225, 65]],
-        [[100, 610], [100, 205], [110, 165], [150, 146], [215, 146], [290, 180], [340, 610]],
-        [[518, 628], [518, 395], [533, 342], [588, 316], [642, 340], [656, 395], [656, 628]],
-        [[700, 640], [700, 560], [712, 528], [740, 518], [768, 528], [780, 560], [780, 640]],
+    // ── the board: yellow, a sparse pink dot screen (red dots), 8.1 px at 75°
+    const LP = { p: 8.1, a: 74.9, x: 450.6, y: 619.2 };
+    U.clip(Y, boardShape, (g) => { g.fillStyle = T(1); g.fillRect(0, -60, 1100, 1100); });
+    // the ribs: denser pink (and a touch of blue) in rounded panels
+    const RIBS = [
+        [[151, -40], [151, 55], [168, 76], [200, 78], [267, 78], [267, -40]],
+        [[123, 690], [120, 420], [118, 230], [128, 188], [150, 168], [216, 162], [300, 420], [365, 657], [250, 660]],
+        [[568, 620], [568, 400], [580, 368], [616, 352], [660, 354], [700, 378], [716, 420], [720, 620]],
+        [[744, 700], [744, 604], [754, 578], [784, 564], [814, 568], [830, 592], [832, 700]],
     ];
-    for (const r of ribs) { U.blob(PS, r, T(0.5)); press.knockout((g) => U.blob(g, r, 1)); U.blob(PS, r, T(0.36)); U.blob(Y, r, T(0.6)); U.blob(press.plate('yellow', 'screen'), r, T(0.7)); }
-    // their outlines: a navy line on the yellow (olive green), on the left and top
-    for (const r of ribs.slice(1)) { const o = r === ribs[1] ? r.slice(0, 5) : r.slice(0, -1); U.sline(B, o, 7, 1); U.sline(N, o, 7, 0.55); }
-    U.sline(B, [[134, -20], [134, 50], [150, 66], [225, 66]], 7, 1); U.sline(N, [[134, -20], [134, 50], [150, 66], [225, 66]], 7, 0.55);
+    const ribPath = (g) => { g.beginPath(); for (const r of RIBS) U.smooth(g, r, true, false); };
+    U.screen(press, 'pink', LP, (g) => {
+        boardShape(g); g.fillStyle = T(0.1); g.fill();
+        ribPath(g); g.fillStyle = T(0.26); g.fill();
+    }, { box: [57, -60, 1000, 980], jit: 0.15, edge: 0.8 });
+    U.clip(B, (g) => ribPath(g), (g) => { g.fillStyle = T(0.12); g.fillRect(0, -60, 1100, 1100); });
+    // their outlines: dark green brush (navy + yellow + blue) on the left and top
+    const OUT = [
+        [[151, -40], [151, 55], [168, 76], [200, 80], [267, 80]],
+        [[130, 690], [124, 420], [121, 230], [131, 190], [152, 168], [218, 163]],
+        [[568, 620], [568, 400], [580, 368], [616, 352], [660, 354], [700, 378], [716, 420], [720, 520]],
+        [[744, 700], [744, 604], [754, 578], [784, 564], [814, 568], [830, 592], [832, 690]],
+    ];
+    for (const o of OUT) { U.sline(B, o, 7, 1); U.sline(N, o, 7, 0.55); }
 
-    // treble strings: thin, nearly upright, in pairs, from the pins by the rim down to the bar
-    const trebleTop = lerpPath(-0.42);
-    const topAt = (x) => { // y of the pin curve at x (the curve inset from the rim)
-        for (let i = 1; i < trebleTop.length; i++) { const [ax, ay] = trebleTop[i - 1], [bx, by] = trebleTop[i]; if (x >= ax && x <= bx) return ay + ((x - ax) / (bx - ax)) * (by - ay); }
-        return 900;
+    // ── treble strings: thin green lines in pairs from the pin curve down to the dampers,
+    // slanting like the bass strings on the left, nearly upright by the rim
+    const pinY = (x) => { // the pin curve: the rim's inner edge moved 70 px in
+        for (let i = 1; i < RIM.length; i++) { const xa = RIM[i - 1][1] - 70, xb = RIM[i][1] - 70; if (x >= xa && x <= xb) return RIM[i - 1][0] + ((x - xa) / (xb - xa)) * (RIM[i][0] - RIM[i - 1][0]); }
+        return x < RIM[0][1] ? -60 : 980;
     };
-    const tr = Motion.rng('pianotreble');
-    for (let x = 330; x < 880; x += 9.5) {
-        const y0 = Math.max(topAt(x), 150), slope = -0.1;
-        for (const [dx, g, w] of [[0, B, 1.2], [3.2, N, 0.8], [5.4, B, 1.0]]) {
-            U.seg(g, [[x + dx, y0], [x + dx + slope * (742 - y0), 742]], w, 0.85 + 0.15 * tr());
-            U.seg(g, [[x + dx + slope * (770 - y0), 770], [x + dx + slope * (835 - y0), 835]], w, 0.9);
+    for (let x = 250; x < 900; x += 9.6) {
+        const y0 = Math.max(-40, pinY(x) + 8), slope = -0.28 + (x - 250) * 0.00027;
+        // a pale string (paper) with a green shadow line beside it, in pairs
+        const L = (dx, y0b, y1b) => [[x + dx + slope * (y0b - y0), y0b], [x + dx + slope * (y1b - y0), y1b]];
+        for (const dx of [0, 4.6]) {
+            press.knockout((g) => { U.seg(g, L(dx, y0, 714), 2, 0.85); U.seg(g, L(dx, 785, 895), 2, 0.85); });
+            U.seg(B, L(dx + 1.9, y0, 714), 1.3, 0.9); U.seg(B, L(dx + 1.9, 785, 895), 1.3, 0.9);
+            U.seg(Y, L(dx + 1.9, y0, 714), 1.3, 1); U.seg(Y, L(dx + 1.9, 785, 895), 1.3, 1);
         }
-        
+        if (x > 470) { U.disc(B, x, y0, 2.6, 1); U.disc(N, x, y0, 2.6, 0.4); }
     }
-    // the hitch pins along the rim: green (yellow + blue) studs
-    for (let i = 0; i < 12; i++) {
-        const f = i / 11, idx = f * (inner.length - 2), k = Math.floor(idx), u = idx - k;
-        const pa = lerpPath(-0.3);
-        const x = pa[k][0] + (pa[k + 1][0] - pa[k][0]) * u, y = pa[k][1] + (pa[k + 1][1] - pa[k][1]) * u;
-        U.disc(B, x, y, 8, 1); U.disc(N, x, y, 8, 0.3); press.knockout((g) => { g.beginPath(); g.arc(x - 2.5, y - 2.5, 2.2, 0, 7); g.fill(); });
+    // the hitch pins along the rim: green studs (measured on 270)
+    const STUDS = [[392, 57], [475, 132], [556, 212], [636, 293], [707, 381], [770, 472], [822, 566], [865, 660], [898, 752], [922, 845]];
+    for (const [x, y] of STUDS) { U.disc(B, x, y, 7.5, 1); U.disc(N, x, y, 7.5, 0.3); press.knockout((g) => { g.beginPath(); g.arc(x - 2.4, y - 2.4, 2, 0, 7); g.fill(); }); }
+
+    // ── bass strings: thirteen copper strings (pink + yellow = red) with a dark left edge
+    // and a thin light core; dark edge x = 266 − 0.2 y + 23.3 k (row scans at 100/300/500)
+    for (let k = 0; k < 13; k++) {
+        const at = (y) => 266 - 0.2 * y + 23.3 * k, y0 = Math.max(-40, -10 + 17.5 * k - 60), y1 = 896;
+        U.seg(N, [[at(y0) + 2, y0], [at(y1) + 2, y1]], 4, 1);
+        U.seg(Y, [[at(y0) + 2, y0], [at(y1) + 2, y1]], 4, 1);
+        U.seg(P, [[at(y0) + 7, y0], [at(y1) + 7, y1]], 6.5, 1);
+        press.knockout((g) => U.seg(g, [[at(y0) + 8, y0], [at(y1) + 8, y1]], 1.3, 0.8));
+        U.disc(B, at(y0) + 6, y0, 5.5, 1); U.disc(N, at(y0) + 6, y0, 5.5, 0.35);
     }
 
-    // bass strings: thick copper (pink on yellow = red) with a dark edge and a green one
-    for (let i = 0; i < 12; i++) {
-        const x0 = 222 + 21.5 * i, slope = -0.166;
-        const yTop = Math.max(-10, ((x0 - 230) * 0.667) / (1 + 0.166 * 0.667));
-        const at = (y) => x0 + slope * y;
-        U.seg(N, [[at(yTop) - 3.2, yTop], [at(838) - 3.2, 838]], 3.4, 1);
-        U.seg(P, [[at(yTop) + 0.5, yTop], [at(838) + 0.5, 838]], 4.2, 1);
-        U.seg(B, [[at(yTop) + 3.6, yTop], [at(838) + 3.6, 838]], 1.3, 1);
-        U.disc(N, at(yTop) + 0.5, yTop, 3.5, 1);
+    // ── dampers: a dark top rail, dark felts with a pink core, a gap for the hammer
+    for (const g of dark) U.poly(g, [[86, 714], [596, 714], [596, 724], [86, 724]], 1);
+    for (const g of dark) U.poly(g, [[626, 714], [862, 714], [862, 724], [626, 724]], 1);
+    for (let k = 0; k < 34; k++) {
+        const x = 88 + 23.3 * k;
+        if (x > 590 && x < 624) continue;
+        if (x > 850) break;
+        for (const g of dark) U.poly(g, [[x, 718], [x + 18, 718], [x + 18, 782], [x, 782]], 1);
+        press.knockout((g) => g.fillRect(x + 7.5, 728, 2, 46));
+        U.seg(P, [[x + 8.5, 728], [x + 8.5, 774]], 1.4, 1, 'butt');
+    }
+    // the hammer: a dark shank, a lilac felt
+    for (const g of dark) U.poly(g, [[602, 655], [617, 655], [617, 725], [602, 725]], 1);
+    press.knockout((g) => { g.beginPath(); g.ellipse(609, 740, 8, 17, 0, 0, 7); g.fill(); });
+    U.ell(P, 609, 740, 8, 17, 0, 0.75); U.ell(B, 609, 740, 8, 17, 0, 0.3);
+
+    // ── the red bar (pink + yellow), a dark rule under it, three rows of green bridge pins
+    U.poly(P, [[59, 802], [929, 802], [929, 816], [59, 816]], 1);
+    U.poly(Y, [[59, 802], [929, 802], [929, 816], [59, 816]], 1);
+    U.poly(N, [[59, 817], [929, 817], [929, 821], [59, 821]], 0.8);
+    for (const [row, y] of [[0, 840], [1, 860], [2, 880]]) {
+        for (let x = 75 + (row % 2) * 8.3; x < 925; x += 16.7) { U.disc(B, x, y, 3.6, 1); U.disc(N, x, y, 3.6, 0.35); }
     }
 
-    // dampers: a yellow shelf, a red rule, then the dark felts with a light core
-    press.knockout((g) => g.fillRect(60, 650, 750, 14));
-    U.poly(Y, [[60, 650], [810, 650], [810, 664], [60, 664]], 1);
-    U.poly(P, [[70, 662], [805, 662], [805, 667], [70, 667]], 1);
-    for (let i = 0; i < 33; i++) {
-        const x = 72 + i * 22.2;
-        if (x > 545 && x < 585) continue;
-        for (const g of dark) U.poly(g, [[x, 667], [x + 19, 667], [x + 19, 731], [x, 731]], 1);
-        press.knockout((g) => g.fillRect(x + 7, 674, 2.4, 50));
-        U.seg(P, [[x + 8, 674], [x + 8, 724]], 2.2, 1, 'butt');
-    }
-    // the hammer: a dark shank and a lilac (pink + blue screens) felt
-    for (const g of dark) U.poly(g, [[553, 600], [571, 600], [571, 690], [553, 690]], 1);
-    press.knockout((g) => { g.beginPath(); g.ellipse(562, 704, 10, 18, 0, 0, 7); g.fill(); });
-    U.ell(PS, 562, 704, 10, 18, 0, 0.8); U.ell(BS, 562, 704, 10, 18, 0, 0.35);
+    // ── the rim: two dark bands (navy + yellow), the white lid line between them, a green
+    // line in the outer band
+    for (const g of dark) { g.fillStyle = T(1); band(g, 1, 2); g.fill(); band(g, 3, 4); g.fill(); }
+    B.fillStyle = T(0.12); band(B, 1, 2); B.fill();
+    const mid = (a, b, f) => RIM.map((r) => [r[a] + (r[b] - r[a]) * f, r[0]]);
+    press.knockout((g) => { g.lineWidth = 6; g.lineCap = 'round'; U.smooth(g, mid(2, 3, 0.5), false); g.stroke(); });
+    off(N, (g) => { g.lineWidth = 2.4; U.smooth(g, mid(3, 4, 0.35), false); g.stroke(); });
+    U.sline(B, mid(3, 4, 0.35), 2.4, 1);
+    // the left cheek: dark, a white line
+    for (const g of dark) U.poly(g, [[-60, -60], [57, -60], [57, 980], [-60, 980]], 1);
+    press.knockout((g) => g.fillRect(18, -60, 7, 1040));
 
-    // the red bar (pink + yellow) with a bright top edge and a dark rule under it
-    U.poly(P, [[45, 745], [870, 745], [870, 763], [45, 763]], 1);
-    press.knockout((g) => g.fillRect(45, 745, 825, 2.5));
-    U.poly(N, [[45, 764], [870, 764], [870, 768], [45, 768]], 1);
-    // bridge pins below: three staggered rows of green studs
-    for (const [row, y] of [[0, 779], [1, 800], [2, 819]]) {
-        for (let x = 70 + (row % 2) * 9.7; x < 860; x += 19.4) { U.disc(B, x, y, 3.8, 1); U.disc(N, x - 0.8, y - 0.8, 1.6, 0.4); }
-    }
-    // the rim itself: near black, two light lid lines inside it, a green line outside
-    const rimShape = (g) => { U.smooth(g, inner, false, false); outer.slice().reverse().forEach(([x, y]) => g.lineTo(x, y)); g.closePath(); };
-    for (const g of dark) U.clip(g, rimShape, (c) => { c.fillStyle = T(1); c.fillRect(0, 0, 1000, 1000); });
+    // ── white sound arcs round the hammer: centre (604, 689), radii fitted on 270 (and
+    // widths from a column scan through the hammer); they stop at the damper rail
     press.knockout((g) => {
-        g.lineWidth = 5; g.lineCap = 'round';
-        U.smooth(g, lerpPath(0.42), false); g.stroke();
-    });
-    press.knockout((g) => { g.lineWidth = 2.4; U.smooth(g, lerpPath(0.72), false); g.stroke(); });
-    U.sline(B, lerpPath(0.72), 2.4, 1); U.sline(Y, lerpPath(0.72), 2.4, 1);
-    U.sline(B, lerpPath(1.1), 2, 1);
-    U.sline(Y, lerpPath(1.1), 2, 1);
-    // the left cheek: dark with a white line
-    for (const g of dark) { U.poly(g, [[0, -10], [42, -10], [42, 890], [0, 890]], 1); }
-    press.knockout((g) => g.fillRect(7, -10, 4, 900));
-
-    // white sound arcs round the hammer (knocked out of every plate)
-    press.knockout((g) => {
+        g.save(); g.beginPath(); g.rect(-100, -100, 1300, 814); g.clip();
         g.lineCap = 'round';
-        for (const [r, w, a0, a1] of [[69, 7, -2.75, -0.42], [144, 7, -2.98, -0.33], [234, 7.5, -3.05, -0.3], [342, 7.5, -3.08, -0.3], [471, 8, -3.1, -0.3], [621, 8, -3.1, -0.3]]) {
+        for (const [r, w] of [[67, 14], [149, 6], [247, 10], [360, 10], [524, 7], [650, 5], [840, 5]]) {
             g.lineWidth = w;
-            g.beginPath(); g.arc(560, 650, r, a0, a1); g.stroke();
+            g.beginPath(); g.arc(604, 689, r, Math.PI - 0.2, 0.2); g.stroke();
         }
+        g.restore();
     });
-    press.knockout((g) => { g.fillStyle = '#000'; g.fillRect(549, 590, 26, 14); });
-    for (const g of dark) U.poly(g, [[553, 588], [571, 588], [571, 604], [553, 604]], 1);
+    for (const g of dark) U.poly(g, [[602, 650], [617, 650], [617, 668], [602, 668]], 1);
 
-    // the key slip and the keys
-    for (const g of dark) U.poly(g, [[0, 838], [1000, 838], [1000, 886], [0, 886]], 1);
-    press.knockout((g) => g.fillRect(0, 845, 1000, 3.5));
-    U.poly(Y, [[0, 845], [1000, 845], [1000, 848.5], [0, 848.5]], 1);
-    press.knockout((g) => g.fillRect(0, 886, 1000, 120));
-    const w = 47.9, C0 = 156 - 2 * 335;
-    // blue shade under the slip and a reflection down two keys
-    BS.fillStyle = U.lin(BS, 0, 886, 0, 935, [[0, 0.45], [1, 0]]);
-    BS.fillRect(0, 886, 1000, 50);
-    BS.fillStyle = U.lin(BS, 0, 886, 0, 1000, [[0, 0.4], [1, 0.22]]);
-    BS.fillRect(C0 + 670 + 8 * w + 2, 886, w - 4, 114);
-    for (let k = 0; k < 30; k++) { const x = C0 + k * w; if (x > -5 && x < 1005) U.seg(B, [[x, 886], [x, 1000]], 2.2, 1, 'butt'); }
-    for (let o = 0; o < 5; o++) {
-        const c = C0 + o * 335;
-        for (const f of [0.6, 1.7, 3.55, 4.65, 5.75]) {
-            const x = c + f * w;
-            if (x < -30 || x > 1030) continue;
-            for (const g of dark) U.poly(g, [[x, 884], [x + 27, 884], [x + 27, 976], [x, 976]], 1);
-            press.knockout((g) => g.fillRect(x + 7, 890, 2.4, 78));
-            U.seg(P, [[x + 8, 890], [x + 8, 968]], 2.2, 1, 'butt');
-        }
+    // ── the key slip: navy rule, yellow line, the dark slip; the keys
+    U.poly(N, [[-60, 896], [1200, 896], [1200, 900], [-60, 900]], 0.9);
+    press.knockout((g) => g.fillRect(-60, 900, 1300, 7));
+    U.poly(Y, [[-60, 900], [1200, 900], [1200, 907], [-60, 907]], 1);
+    for (const g of dark) U.poly(g, [[-60, 907], [1200, 907], [1200, 950], [-60, 950]], 1);
+    press.knockout((g) => g.fillRect(-60, 950, 1300, 200));
+    // a blue dot shade under the slip, and the white keys' blue boundary lines (47.5 px)
+    const LK = { p: 10.11, a: 74.95, x: 966.8, y: 221 };
+    U.screen(press, 'blue', LK, (g) => { g.fillStyle = U.lin(g, 0, 950, 0, 990, [[0, 0.5], [1, 0]]); g.fillRect(-60, 950, 1300, 40); }, { box: [-60, 950, 1200, 1000], edge: 0.8 });
+    for (let k = -2; k < 23; k++) { const x = 75 + 47.5 * k; U.seg(B, [[x, 950], [x, 1140]], 2, 1, 'butt'); }
+    // black keys on the boundaries, groups of three and two (missing at k = 2, 5, 9, 12, 16, 19)
+    const MISS = [-3, 2, 5, 9, 12, 16, 19, 23];
+    for (let k = -2; k < 23; k++) {
+        if (MISS.includes(k)) continue;
+        const x = 75 + 47.5 * k + 1;
+        for (const g of dark) U.poly(g, [[x - 13.5, 946], [x + 13.5, 946], [x + 13.5, 1043], [x - 13.5, 1043]], 1);
+        press.knockout((g) => g.fillRect(x - 7, 956, 2.4, 78));
+        U.seg(P, [[x - 5.8, 956], [x - 5.8, 1034]], 2.2, 1, 'butt');
+        U.seg(Y, [[x - 13, 950], [x - 13, 1040]], 1.6, 0.9, 'butt');
     }
-    // dust on the dark and the print's specks
-    U.speckle(press, 'piano', 90, [0, 0, 1000, 890], 0.6, 1.4);
-    U.specks(P, 'pianodark', 40, [0, 830, 1000, 890], 0.8, 1.8);
+    // the print's specks on the dark
+    U.speckle(press, 'piano', 160, [0, -40, 1100, 1040], 0.6, 1.4);
+    U.specks(P, 'pianodark', 90, [0, 900, 1100, 950], 0.8, 1.8);
+    press.restore();
 };
