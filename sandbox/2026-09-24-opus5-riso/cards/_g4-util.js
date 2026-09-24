@@ -195,7 +195,7 @@ var G4 = (() => {
         if (!row) return false;
         const [R, thin] = row;
         refpx(press);
-        const ann = (g, r0, r1) => { g.beginPath(); g.arc(540, 540, r1, 0, 7); g.arc(540, 540, Math.max(0, r0), 0, 7, true); g.fill(); };
+        const ann = (g, r0, r1) => { const TAU = Math.PI * 2; g.beginPath(); g.arc(540, 540, r1, 0, TAU); g.moveTo(540 + Math.max(0, r0), 540); g.arc(540, 540, Math.max(0, r0), TAU, 0, true); g.fill(); };
         press.knockout((g) => ann(g, R - 11, R + 12));
         const b = press.plate('blue');
         b.fillStyle = T(1);
