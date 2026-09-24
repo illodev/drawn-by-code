@@ -59,6 +59,18 @@ const WL = (() => {
         g.restore();
         return total;
     }
+    // The reference's hand lettering keeps «you love?» 1.21× as wide as «what do»; Patrick Hand
+    // makes it 1.27×, which pushed the '?' off the page. Later lines get their letter spacing
+    // adjusted to keep that ratio to the first line (ratio: null keeps the font's own).
+    const LINE_RATIO = 1.21;
+    function lineSpacings(g, lines, size, font, spacing, ratio = LINE_RATIO) {
+        if (!ratio || lines.length < 2) return lines.map(() => spacing);
+        const w0 = textW(g, lines[0], size, font, spacing);
+        return lines.map((ln, i) => {
+            if (i === 0) return spacing;
+            return spacing + (w0 * ratio - textW(g, ln, size, font, spacing)) / (ln.length * size);
+        });
+    }
     // cached felt-tip lettering (see write): rendered at the drawing scale k
     const glyphCache = new Map();
     function markerGlyphs(text, size, font, spacing, color, halo, core, rim, k) {
@@ -115,13 +127,13 @@ const WL = (() => {
             else if (o.torn === 2) {
                 // torn along the perforation: square tabs with notches between them
                 let x = -w / 2;
-                top.push([x, -h / 2 + 0.05 * h]);
+                top.push([x, -h / 2 + 0.018 * h]);
                 while (x < w / 2) {
                     const tab = Math.min(w / 2 - x, (0.03 + r() * 0.012) * w), gap = (0.018 + r() * 0.01) * w, up = r() * 0.008 * h;
                     top.push([x, -h / 2 + up], [x + tab, -h / 2 + up + (r() - 0.5) * 0.006 * h]);
                     x += tab;
                     if (x >= w / 2) break;
-                    const deep = 0.04 * h + r() * 0.018 * h;
+                    const deep = 0.014 * h + r() * 0.008 * h;
                     top.push([x, -h / 2 + deep], [Math.min(w / 2, x + gap), -h / 2 + deep + (r() - 0.5) * 0.008 * h]);
                     x += gap;
                 }
@@ -162,6 +174,8 @@ const WL = (() => {
         // text size: given, or the largest that fits the longest line in 84 % of the width
         const longest = lines.reduce((a, l) => (l.length > a.length ? l : a), '');
         const font = o.font ?? 'Hand', spacing = o.spacing ?? 0.05, size = o.size ?? Math.min(h * 0.3, (w * 0.84 * 100) / Math.max(1, textW(g, longest, 100, font, spacing)));
+        // per-line letter spacing so each line keeps the reference's proportions
+        const spacings = lineSpacings(g, lines, size, font, spacing, o.lineRatio);
         if (lines.length) {
             const p = o.p ?? 1, total = lines.join('').length;
             let done = 0;
@@ -175,9 +189,9 @@ const WL = (() => {
                 done += ln.length;
                 const lx = o.lineX?.[i] ?? -w / 2 + w * (i === 0 ? 0.16 : 0.08);
                 const ly = -h / 2 + h * (o.lineY?.[i] ?? (0.42 + i * 0.3));
-                write(g, ln, lx, ly, size, COL.ink, { p: lp, alpha: ink, halo: '#6389cb', font, spacing, core: 0.012, rim: 0.003, sy: o.sy ?? 0.92 });
+                write(g, ln, lx, ly, size, COL.ink, { p: lp, alpha: ink, halo: '#6389cb', font, spacing: spacings[i], core: 0.012, rim: 0.003, sy: o.sy ?? 0.92 });
                 if (o.circle && i === 1 && ln.startsWith('you')) {
-                    const cw = textW(g, 'you', size, font, spacing);
+                    const cw = textW(g, 'you', size, font, spacings[i]);
                     const u = o.circle;
                     if (u > 0) {
                         const pts = [];
@@ -558,7 +572,7 @@ const WL = (() => {
     };
     const HANDS = { desk: [null, null], pencil: [null, 'fist'], throw: [null, 'fist'], release: [null, 'open'], wave: [null, 'wave'], note: ['pinch', 'pinch'], hug: ['fist', 'fist'], pin: [null, 'open'] };
 
-    const sweaterPiece = (c, pts, seed, w = 3) => P.cutout(c, pts, COL.sweater, seed, { border: w, shadow: 0.16, tex: { alpha: [0.2, 0.4] }, inner: (cc, box) => D.knit(cc, box, COL.sweater, { seed, alpha: 0.22 }) });
+    const sweaterPiece = (c, pts, seed, w = 3) => P.cutout(c, pts, COL.sweater, seed, { border: w, shadow: 0.16, tex: { alpha: [0.2, 0.4] }, inner: (cc, box) => D.knit(cc, box, COL.sweater, { seed, alpha: 0.1 }) });
     // one straight arm segment as its own cutout (cached per rounded geometry)
     function segment(g, a, b, w, seed) {
         const key = 'seg:' + seed + [a, b].map(([x, y]) => Math.round(x / 2) + ',' + Math.round(y / 2)).join(';') + w;
@@ -610,25 +624,25 @@ const WL = (() => {
     }
     function head(g, o) {
         g.save();
-        g.translate(0, -425);
+        g.translate(0, -415);
         g.rotate(o.tilt ?? 0);
         g.scale(1.16, 1.16);
         // hair: the back piece (a bob that reaches the jaw and turns in) with brushed strands
         sprite('girl-hair', { x: -140, y: -145, w: 280, h: 250 }, (c) => {
             P.cutout(c, D.spline([[-118, 80], [-128, 0], [-116, -84], [-76, -124], [0, -134], [76, -124], [116, -84], [128, 0], [118, 80], [94, 94], [72, 72], [-72, 72], [-94, 94]], 8), COL.hair, 'hairback', { border: 3, shadow: 0.18, tex: false, inner: (cc, box) => D.strands(cc, box, COL.hair, { seed: 'hairback', angle: Math.PI / 2 }) });
         }, 1.6).draw(g);
-        // face: wide cheeks, round chin
-        sprite('girl-face', { x: -110, y: -115, w: 220, h: 230 }, (c) => {
-            P.cutout(c, D.spline([[-86, -62], [-56, -96], [0, -104], [56, -96], [86, -62], [96, 0], [86, 56], [50, 92], [0, 104], [-50, 92], [-86, 56], [-96, 0]], 8), COL.skin, 'face', { border: 2.6, shadow: 0.12, tex: { alpha: [0.12, 0.25] } });
+        // face: an egg, narrower than the bob (measured 195 against 285), round full chin
+        sprite('girl-face2', { x: -100, y: -115, w: 200, h: 235 }, (c) => {
+            P.cutout(c, D.spline([[-74, -66], [-48, -98], [0, -106], [48, -98], [74, -66], [84, -8], [78, 48], [48, 92], [0, 108], [-48, 92], [-78, 48], [-84, -8]], 8), COL.skin, 'face2', { border: 2.6, shadow: 0.12, tex: { alpha: [0.12, 0.25] } });
         }, 1.6).draw(g);
         // fringe: its own piece, asymmetric edge across the forehead
-        sprite('girl-fringe', { x: -125, y: -150, w: 250, h: 140 }, (c) => {
-            P.cutout(c, D.spline([[-108, -24], [-104, -80], [-62, -122], [0, -132], [62, -122], [104, -82], [110, -26], [84, -36], [52, -50], [14, -46], [-24, -56], [-64, -44]], 8), COL.hair, 'fringe', { border: 2.4, shadow: 0.2, tex: false, inner: (cc, box) => D.strands(cc, box, COL.hair, { seed: 'fringe', angle: Math.PI * 0.42 }) });
+        sprite('girl-fringe2', { x: -125, y: -150, w: 250, h: 150 }, (c) => {
+            P.cutout(c, D.spline([[-106, -8], [-108, -78], [-64, -122], [0, -132], [62, -122], [104, -84], [108, -40], [88, -44], [58, -58], [26, -64], [0, -58], [-28, -44], [-58, -26], [-84, -12]], 8), COL.hair, 'fringe2', { border: 2.4, shadow: 0.2, tex: false, inner: (cc, box) => D.strands(cc, box, COL.hair, { seed: 'fringe', angle: Math.PI * 0.42 }) });
             P.cutout(c, P.roundRect(-30, -10, 60, 20, 6).map(([px, py]) => [px * Math.cos(-0.42) - py * Math.sin(-0.42) + 50, px * Math.sin(-0.42) + py * Math.cos(-0.42) - 86]), COL.clip, 'clip', { border: 1.8, shadow: 0.15 });
         }, 1.6).draw(g);
         // cheeks and a tiny nose
         g.fillStyle = COL.cheek;
-        for (const sd of [-1, 1]) (g.beginPath(), g.ellipse(sd * 56, 30, 21, 19, 0, 0, Math.PI * 2), g.fill());
+        for (const sd of [-1, 1]) (g.beginPath(), g.ellipse(sd * 52, 30, 20, 19, 0, 0, Math.PI * 2), g.fill());
         g.strokeStyle = PaperDetail.shade(COL.skin, -18);
         g.lineWidth = 3;
         g.lineCap = 'round';
@@ -641,10 +655,12 @@ const WL = (() => {
         g.fillStyle = COL.eye;
         g.lineWidth = 4.5;
         for (const sd of [-1, 1]) {
-            const ex = sd * 36, ey = -4;
+            const ex = sd * 34, ey = -4;
             if (eyes === 'closed') {
+                g.lineWidth = 5;
                 g.beginPath();
-                g.arc(ex, ey - 10, 14, Math.PI * 0.3, Math.PI * 0.7);
+                g.moveTo(ex - sd * 11, ey - 2);
+                g.lineTo(ex + sd * 12, ey + 1);
                 g.stroke();
             } else if (eyes === 'happy') {
                 g.beginPath();
@@ -672,8 +688,8 @@ const WL = (() => {
                 g.fillStyle = COL.eye;
             }
             // brows: short strokes, raised when surprised
-            g.lineWidth = 3.5;
-            const by = eyes === 'surprised' ? -34 : -26;
+            g.lineWidth = 4.2;
+            const by = eyes === 'surprised' ? -36 : -30;
             g.beginPath();
             g.moveTo(ex - 12, by + (eyes === 'surprised' ? 4 : 1) * 1);
             g.quadraticCurveTo(ex, by - (eyes === 'surprised' ? 6 : 3), ex + 12, by + 2);
@@ -689,15 +705,13 @@ const WL = (() => {
             g.ellipse(0, 50, 8, 10, 0, 0, Math.PI * 2);
             g.fill();
         } else if (m === 'grin') {
-            g.fillStyle = '#3a1a1a';
+            g.fillStyle = '#2a1a1e';
             g.beginPath();
-            g.moveTo(-20, 40);
-            g.quadraticCurveTo(0, 70, 20, 40);
+            g.moveTo(-21, 40);
+            g.quadraticCurveTo(0, 46, 21, 40);
+            g.quadraticCurveTo(10, 64, 0, 64);
+            g.quadraticCurveTo(-10, 64, -21, 40);
             g.closePath();
-            g.fill();
-            g.fillStyle = '#e46f78';
-            g.beginPath();
-            g.ellipse(2, 54, 8, 5, 0, 0, Math.PI * 2);
             g.fill();
         } else {
             g.beginPath();
@@ -825,5 +839,5 @@ const WL = (() => {
     // where a girl's hand ends up on screen (i: 0 left, 1 right), for props held in it
     const girlHand = (pose, i, x = 510, y = 915, s = 0.9) => [x + ARMS[pose][i][2][0] * s, y + ARMS[pose][i][2][1] * s];
 
-    return { COL, init, writingHand, mitten, girlHand, noteImage, noteFlip, get kit() { return kit; }, sprite, write, textW, note, flowerDoodle, plane, trail, star, plus, ticks, scribbleFill, flat, flower, girl, ARMS, hand, tube };
+    return { COL, init, lineSpacings, writingHand, mitten, girlHand, noteImage, noteFlip, get kit() { return kit; }, sprite, write, textW, note, flowerDoodle, plane, trail, star, plus, ticks, scribbleFill, flat, flower, girl, ARMS, hand, tube };
 })();

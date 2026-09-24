@@ -242,7 +242,8 @@
     Sets.penAt = (g, p) => {
         const L = Sets.NOTE_LINES, total = L.join('').length, chars = p * total;
         const line = chars <= L[0].length ? 0 : 1, inLine = line === 0 ? chars : chars - L[0].length;
-        const size = Sets.noteSize(g), w = WL.textW(g, L[line].slice(0, Math.floor(inLine)), size, 'Hand', 0.05) + (inLine % 1) * size * 0.4;
+        const size = Sets.noteSize(g), sp = WL.lineSpacings(g, L, size, 'Hand', 0.05)[line];
+        const w = WL.textW(g, L[line].slice(0, Math.floor(inLine)), size, 'Hand', sp) + (inLine % 1) * size * 0.4;
         const lx = SHEET.lineX[line] + w, ly = -SHEET.h / 2 + SHEET.h * SHEET.lineY[line] - size * 0.28;
         return [SHEET.x + lx * Math.cos(SHEET.rot) - ly * Math.sin(SHEET.rot), SHEET.y + lx * Math.sin(SHEET.rot) + ly * Math.cos(SHEET.rot)];
     };

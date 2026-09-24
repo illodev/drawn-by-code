@@ -109,7 +109,9 @@ const Shots = {};
                 gg.translate(cx, cy);
                 gg.rotate(rot);
                 gg.scale(S, S);
-                WL.note(gg, 0, 0, SH.w, SH.h, 0, 'torn-page', { torn: 2, rules: SH.rules, margin: SH.margin, text: NOTE_LINES, p: 1, size: Sets.noteSize(gg), lineX: SH.lineX, lineY: SH.lineY });
+                // the torn page is drawn a little wider than the sheet on the pad (measured:
+                // 754 against 722 at the same text size), the extra mostly on the right
+                WL.note(gg, 15, 0, SH.w + 34, SH.h, 0, 'torn-page2', { torn: 2, rules: SH.rules, margin: SH.margin * 0.96, text: NOTE_LINES, p: 1, size: Sets.noteSize(gg), lineX: SH.lineX.map((x) => x - 15), lineY: SH.lineY });
                 // snap lines at the torn edge on the first drawing
                 if (d === 0) for (const [a, b] of [[[-300, -330], [-330, -372]], [[-150, -335], [-168, -385]], [[210, -340], [228, -386]], [[330, -330], [362, -370]]]) P.markerStroke(gg, [a, b], '#fbf7ee', 7, 'snap' + a[0], 0.95);
                 gg.restore();
