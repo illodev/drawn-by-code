@@ -25,49 +25,7 @@ const Shots = {};
     }
     Shots.title = title;
 
-    // --------------------------------------------------------------- the office set
-    // A cream wall with a shelf of binders, a plant, the wall calendar; the desk in front.
-    function office(g, env) {
-        const cl = col(), kit = kitOf();
-        kit.paperBg(g, 'office-wall', '#efe4cf', { tex: { alpha: [0.25, 0.5] } });
-        kit.sprite('office-back', { x: -40, y: -40, w: 1680, h: 980 }, (c) => {
-            // shelf with binders of different printed papers
-            const binders = [[180, '#1c7048'], [236, '#d2563f'], [288, '#1f3a8a'], [346, '#e2b04a'], [398, '#8d8a92'], [456, '#1c7048']];
-            for (const [i, [bx, bc]] of binders.entries()) {
-                const h = 150 + ((i * 29) % 40), w = 50 + ((i * 13) % 12), lean = i === 5 ? -0.12 : 0;
-                const pts = [[bx, 300], [bx + w, 300], [bx + w, 300 - h], [bx, 300 - h]].map(([px, py]) => [bx + (px - bx) * Math.cos(lean) - (py - 300) * Math.sin(lean), 300 + (px - bx) * Math.sin(lean) + (py - 300) * Math.cos(lean)]);
-                P.cutout(c, pts, bc, 'binder' + i, { border: 2.2, shadow: 0.2, tex: { angle: Math.PI / 2, alpha: [0.25, 0.5] } });
-                P.cutout(c, P.roundRect(bx + w * 0.2, 300 - h * 0.7, w * 0.6, h * 0.22, 4).map(([px, py]) => [bx + (px - bx) * Math.cos(lean) - (py - 300) * Math.sin(lean), 300 + (px - bx) * Math.sin(lean) + (py - 300) * Math.cos(lean)]), '#fbf7ee', 'binderlabel' + i, { border: 0, shadow: 0 });
-            }
-            P.cutout(c, [[150, 300], [560, 300], [560, 322], [150, 322]], '#b8814f', 'shelf', { inner: (cc, box) => D.woodGrain(cc, box, '#b8814f', { seed: 'shelf' }) });
-            // plant in a pot
-            P.cutout(c, D.spline([[130, 610], [120, 520], [200, 520], [192, 610]], 4), '#c9774e', 'pot', { border: 2.4 });
-            for (let k = 0; k < 7; k++) {
-                const a = -Math.PI / 2 + (k - 3) * 0.32, L = 110 + ((k * 37) % 50);
-                P.cutout(c, D.taper([[160, 522], [160 + Math.cos(a) * L * 0.5, 522 + Math.sin(a) * L * 0.55], [160 + Math.cos(a) * L, 522 + Math.sin(a) * L]], [10, 30, 6]), k % 2 ? '#3f8a4a' : '#5aa35a', 'leaf' + k, { border: 2 });
-            }
-            // wall calendar (the taxes block will turn its pages)
-            P.cutout(c, [[1140, 90], [1330, 96], [1326, 330], [1136, 326]], '#fbf7ee', 'calendar', {
-                border: 2.4, inner: (cc) => {
-                    cc.fillStyle = cl.brand;
-                    cc.fillRect(1136, 90, 200, 52);
-                    cc.fillStyle = 'rgba(40,30,40,0.35)';
-                    for (let r = 0; r < 4; r++) for (let q = 0; q < 6; q++) cc.fillRect(1156 + q * 28, 170 + r * 36, 16, 14);
-                },
-            });
-            for (const hx of [1180, 1290]) P.markerStroke(c, [[hx, 78], [hx, 104]], '#5b5760', 5, 'ring' + hx, 0.95);
-        }, 1.1).draw(g);
-    }
-    function desk(g) {
-        kitOf().sprite('desk', { x: -60, y: 600, w: 1720, h: 360 }, (c) => {
-            P.cutout(c, [[-60, 640], [1660, 628], [1660, 960], [-60, 960]], '#c79a66', 'desktop', { border: 2.4, shadow: 0.25, inner: (cc, box) => D.woodGrain(cc, box, '#c79a66', { seed: 'desk', angle: -0.01 }) });
-            P.cutout(c, [[-60, 628], [1660, 616], [1660, 648], [-60, 660]], '#b3875a', 'deskedge', { border: 2, shadow: 0.2, inner: (cc, box) => D.woodGrain(cc, box, '#b3875a', { seed: 'deskedge' }) });
-            // the back of the laptop lid, the mug
-            P.cutout(c, [[380, 648], [700, 648], [690, 470], [390, 470]], '#9aa0ad', 'lid', { border: 2.6, shadow: 0.3, tex: { alpha: [0.2, 0.4] } });
-            P.cutout(c, D.spline([[860, 650], [856, 560], [930, 560], [926, 650]], 4), '#fbf7ee', 'mug', { border: 2.4, inner: (cc) => (cc.fillStyle = '#d2563f', cc.fillRect(850, 590, 90, 14)) });
-            P.cutout(c, P.noodle(D.spline([[926, 580], [958, 588], [956, 624], [924, 628]], 6, false), 14), '#fbf7ee', 'mugh', { border: 2 });
-        }, 1.2).draw(g);
-    }
+    // the office set lives in office.js (Office.back / desk / front / calendar)
     function mark(g, x, y, s) {
         kitOf().sprite('brand-mark', { x: -70, y: -60, w: 140, h: 120 }, (c) => Props.mark(c, 0, 0, 1, 'set'), 2).draw((g.save(), g.translate(x, y), g.scale(s, s), g));
         g.restore();
@@ -136,7 +94,7 @@ const Shots = {};
         g.translate(800, 450);
         g.scale(push, push);
         g.translate(-800, -450);
-        office(g, env);
+        Office.back(g, lt);
         // Laura: follows the sheet, blinks at the stamp, turns to the mailbox, winks
         const look = lt < 1.5 ? [0.9, -0.3] : lt < 2.5 ? [1, 0] : [1, 0.2];
         const eyes = lt >= 0.5 && lt < 0.6 ? 'closed' : lt >= 3.2 && lt < 3.45 ? 'wink' : lt >= 2.6 ? 'happy' : 'open';
@@ -144,7 +102,7 @@ const Shots = {};
         const pose = lt >= 2.6 && lt < 3.6 ? 'cheer' : 'desk';
         const LX = 470, LY = 660, LS = 0.92;
         Laura.draw(g, LX, LY, LS, { t: lt, eyes, look, mouth, pose, tilt: lt >= 1.5 ? 0.05 : -0.03, layer: 'body' });
-        desk(g);
+        Office.desk(g, lt);
         Laura.draw(g, LX, LY, LS, { t: lt, pose, layer: 'arms' });
         // the mailbox on the right
         const flag = E.back(E.seg(lt, 2.5, 2.75)), shake = E.seg(lt, 2.5, 2.9) > 0 && lt < 2.9 ? 1 - E.seg(lt, 2.5, 2.9) : 0;
@@ -213,6 +171,7 @@ const Shots = {};
             }, 1.4).draw((g.save(), g.translate(IX - 110 * IS, IY + 180 * IS), g));
             if (lt >= 0.5 && lt < 0.67) g.restore();
         }
+        Office.front(g, lt);
         g.restore();
         // titles, bottom left, on the beats
         if (lt < 2.5) title(g, lt, 0.5, BRAND.copy.issued, 90, 820, 58);
