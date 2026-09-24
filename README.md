@@ -53,36 +53,44 @@ how you made it too.
 
 ## Gallery
 
-**[saas-promo](sandbox/2026-09-24-saas-promo/)** · paper cutout · 50 s · [mp4](sandbox/2026-09-24-saas-promo/render/saas-promo.mp4)
-![saas-promo](sandbox/2026-09-24-saas-promo/render/saas-promo.gif)
-A marketing video for an invoicing product. A desk buried in paperwork is cleared block by
-block: invoices, expenses, collections, taxes, business, compliance. Built by parallel
-agents on one brief, with music and sound effects.
-
-**[what-do-you-love](sandbox/2026-09-24-what-do-you-love/)** · paper cutout · 28 s · [mp4](sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.mp4)
-![what-do-you-love](sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.gif)
-A 1:1 replica, made as a study, of [a paper-cutout video by Kevin Ngo](https://x.com/kevin_t_ngo/status/2102437977435893771)
-([@kevin_t_ngo](https://x.com/kevin_t_ngo)). The original design and animation are his. It
-was measured drawing by drawing until the differences only show when zooming in (skill
-`replicate`). His video also inspired the first version of the saas-promo.
-
-**[exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/)** · five styles · 30 s · [mp4](sandbox/2026-09-24-exquisite-corpse/render/exquisite-corpse.mp4)
-![exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/render/exquisite-corpse.gif)
-One object travels through five styles joined by transitions: paper, a 70s poster, liquid
-light, a kaleidoscope and line.
-
-**[clay3d-test](sandbox/2026-09-24-clay3d-test/)** · clay 3D · 4 s · [mp4](sandbox/2026-09-24-clay3d-test/render/clay3d-test.mp4)
-![clay3d-test](sandbox/2026-09-24-clay3d-test/render/clay3d-test.gif)
-A plasticine puppet raymarched in the browser: lumpy pressed-on pieces, matte clay and a
-studio sweep.
-
-**[fube-clay](sandbox/2026-09-24-fube-clay/)** · clay 2D · 6 s · [mp4](sandbox/2026-09-24-fube-clay/render/fube-clay.mp4)
-![fube-clay](sandbox/2026-09-24-fube-clay/render/fube-clay.gif)
-The saas-promo invoice block redone in 2D clay, as a style comparison.
-
-**[coffee-first](sandbox/2026-09-24-coffee-first/)** · paper cutout · 6 s · [mp4](sandbox/2026-09-24-coffee-first/render/coffee-first.mp4)
-![coffee-first](sandbox/2026-09-24-coffee-first/render/coffee-first.gif)
-The first style test: a sleepy mug wakes up.
+<table>
+<tr>
+<td width="50%" valign="top">
+<a href="sandbox/2026-09-24-saas-promo/"><img src="sandbox/2026-09-24-saas-promo/render/saas-promo.gif" alt="saas-promo"></a><br>
+<b><a href="sandbox/2026-09-24-saas-promo/">saas-promo</a></b> · paper cutout · 50 s · <a href="sandbox/2026-09-24-saas-promo/render/saas-promo.mp4">mp4</a><br>
+<sub>A marketing video for an invoicing product: a desk buried in paperwork is cleared block by block. Built by parallel agents on one brief, with music and sound effects.</sub>
+</td>
+<td width="50%" valign="top">
+<a href="sandbox/2026-09-24-what-do-you-love/"><img src="sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.gif" alt="what-do-you-love"></a><br>
+<b><a href="sandbox/2026-09-24-what-do-you-love/">what-do-you-love</a></b> · paper cutout · 28 s · <a href="sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.mp4">mp4</a><br>
+<sub>A 1:1 replica, made as a study, of <a href="https://x.com/kevin_t_ngo/status/2102437977435893771">a paper-cutout video by Kevin Ngo</a> (<a href="https://x.com/kevin_t_ngo">@kevin_t_ngo</a>). The original design and animation are his. Measured drawing by drawing until the differences only show when zooming in (skill <code>replicate</code>). His video also inspired the first saas-promo.</sub>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="sandbox/2026-09-24-exquisite-corpse/"><img src="sandbox/2026-09-24-exquisite-corpse/render/exquisite-corpse.gif" alt="exquisite-corpse"></a><br>
+<b><a href="sandbox/2026-09-24-exquisite-corpse/">exquisite-corpse</a></b> · five styles · 30 s · <a href="sandbox/2026-09-24-exquisite-corpse/render/exquisite-corpse.mp4">mp4</a><br>
+<sub>One object travels through five styles joined by transitions: paper, a 70s poster, liquid light, a kaleidoscope and line.</sub>
+</td>
+<td width="50%" valign="top">
+<a href="sandbox/2026-09-24-clay3d-test/"><img src="sandbox/2026-09-24-clay3d-test/render/clay3d-test.gif" alt="clay3d-test"></a><br>
+<b><a href="sandbox/2026-09-24-clay3d-test/">clay3d-test</a></b> · clay 3D · 4 s · <a href="sandbox/2026-09-24-clay3d-test/render/clay3d-test.mp4">mp4</a><br>
+<sub>A plasticine puppet raymarched in the browser: lumpy pressed-on pieces, matte clay and a studio sweep.</sub>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="sandbox/2026-09-24-fube-clay/"><img src="sandbox/2026-09-24-fube-clay/render/fube-clay.gif" alt="fube-clay"></a><br>
+<b><a href="sandbox/2026-09-24-fube-clay/">fube-clay</a></b> · clay 2D · 6 s · <a href="sandbox/2026-09-24-fube-clay/render/fube-clay.mp4">mp4</a><br>
+<sub>The saas-promo invoice block redone in 2D clay, as a style comparison.</sub>
+</td>
+<td width="50%" valign="top">
+<a href="sandbox/2026-09-24-coffee-first/"><img src="sandbox/2026-09-24-coffee-first/render/coffee-first.gif" alt="coffee-first"></a><br>
+<b><a href="sandbox/2026-09-24-coffee-first/">coffee-first</a></b> · paper cutout · 6 s · <a href="sandbox/2026-09-24-coffee-first/render/coffee-first.mp4">mp4</a><br>
+<sub>The first style test: a sleepy mug wakes up.</sub>
+</td>
+</tr>
+</table>
 
 Every experiment, with its status and main lesson, is in [`sandbox/INDEX.md`](sandbox/INDEX.md).
 
