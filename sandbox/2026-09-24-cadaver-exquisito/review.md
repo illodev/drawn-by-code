@@ -57,4 +57,11 @@ aquí: engullir (0:15), cuadro dentro del cuadro (1:04), vórtice (2:31) y entra
 
 ## Ronda 4 (usuario)
 
-_Pendiente de feedback._
+> «Está muy bien.»
+
+Aprobado. Los cuatro estilos nuevos pasan de «en pruebas» a aprobados, con este vídeo como
+referencia.
+
+**Pendiente para una próxima versión:** el caleidoscopio (18–22 s) es ahora el tramo
+con menos acción. Es un patrón que gira, pero no pasa nada; se podría resolver aplicándole
+la regla de «una acción que se cuente en una frase».

@@ -1,11 +1,11 @@
 ---
 name: estilo-linea
-description: (En pruebas) Estilo línea: trazo negro sobre papel blanco que tiembla a propósito (line boil), como animación dibujada a mano a 12 dibujos por segundo. Úsala para garabatos, bocetos, explicativos a mano, momentos de «era un dibujo» o al trabajar con styles/linea/.
+description: Estilo línea: trazo negro sobre papel blanco que tiembla a propósito (line boil), como animación dibujada a mano a 12 dibujos por segundo. Úsala para garabatos, bocetos, explicativos a mano, momentos de «era un dibujo» o al trabajar con styles/linea/.
 ---
 
 # Estilo · Línea
 
-En pruebas. Primer uso: `sandbox/2026-09-24-cadaver-exquisito/` (el garabato, 23,5–27,5 s).
+Aprobado. Referencia: `sandbox/2026-09-24-cadaver-exquisito/` (el garabato, 23,5–27,5 s).
 
 ## Código
 

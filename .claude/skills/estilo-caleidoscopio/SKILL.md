@@ -1,11 +1,11 @@
 ---
 name: estilo-caleidoscopio
-description: (En pruebas) Estilo caleidoscopio: simetría radial con espejos, piezas que salen del centro, rotación y ciclos de color. Úsala para clímax psicodélicos, mandalas, visuales de música en bucle o al trabajar con styles/caleidoscopio/.
+description: Estilo caleidoscopio: simetría radial con espejos, piezas que salen del centro, rotación y ciclos de color. Úsala para clímax psicodélicos, mandalas, visuales de música en bucle o al trabajar con styles/caleidoscopio/.
 ---
 
 # Estilo · Caleidoscopio
 
-En pruebas. Primer uso: `sandbox/2026-09-24-cadaver-exquisito/` (clímax, 18–22 s).
+Aprobado. Referencia: `sandbox/2026-09-24-cadaver-exquisito/` (clímax, 18–22 s).
 
 ## Código
 

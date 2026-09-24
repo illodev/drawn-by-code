@@ -27,10 +27,10 @@ La skill `animar` guía el proceso: brief → guion → prueba de estilo → ani
 | Estilo | Estado | Referencia |
 |---|---|---|
 | `papel-recortado`: papel rasgado, rotulador, grano, letra a mano | aprobado | [La caja y el torno](referencias/fube-la-caja-y-el-torno/) |
-| `cartel-70s`: colores ácidos planos, ecos, rayos, letras que se derriten | en pruebas | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
-| `luz-liquida`: manchas de aceite que se funden, proyección de los 60 | en pruebas | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
-| `caleidoscopio`: simetría de espejos, rotación, ciclos de color | en pruebas | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
-| `linea`: trazo negro que tiembla sobre papel blanco | en pruebas | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
+| `cartel-70s`: colores ácidos planos, ecos, rayos, letras que se derriten | aprobado | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
+| `luz-liquida`: manchas de aceite que se funden, proyección de los 60 | aprobado | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
+| `caleidoscopio`: simetría de espejos, rotación, ciclos de color | aprobado | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
+| `linea`: trazo negro que tiembla sobre papel blanco | aprobado | [cadaver-exquisito](sandbox/2026-09-24-cadaver-exquisito/) |
 
 Transiciones entre estilos (entrar por un punto, iris, engullir, vórtice, cuadro dentro del
 cuadro): `engine/transitions.js` y la skill `transiciones`.

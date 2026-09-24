@@ -1,11 +1,11 @@
 ---
 name: estilo-luz-liquida
-description: (En pruebas) Estilo luz líquida: las proyecciones de aceite y tinta de los conciertos de los 60, con manchas que fluyen, se funden (metaballs), cambian de color y tienen anillos como el aceite sobre agua. Úsala para vídeos psicodélicos, hipnóticos, líquidos u orgánicos, o al trabajar con styles/luz-liquida/.
+description: Estilo luz líquida: las proyecciones de aceite y tinta de los conciertos de los 60, con manchas que fluyen, se funden (metaballs), cambian de color y tienen anillos como el aceite sobre agua. Úsala para vídeos psicodélicos, hipnóticos, líquidos u orgánicos, o al trabajar con styles/luz-liquida/.
 ---
 
 # Estilo · Luz líquida
 
-En pruebas. Primer uso: `sandbox/2026-09-24-cadaver-exquisito/` (tramo de la medusa, 12–16,5 s).
+Aprobado. Referencia: `sandbox/2026-09-24-cadaver-exquisito/` (tramo de la medusa, 12–16,5 s).
 
 ## Código
 

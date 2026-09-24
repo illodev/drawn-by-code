@@ -1,11 +1,11 @@
 ---
 name: estilo-cartel-70s
-description: (En pruebas) Estilo cartel psicodélico de los 70 (Fillmore, Yellow Submarine) dibujado con código. Colores planos y ácidos, contornos gruesos, ecos concéntricos, rayos de sol, formas que ondulan y letras que se derriten. Úsala para vídeos psicodélicos, retro, groovy o de conciertos, o al trabajar con styles/cartel-70s/.
+description: Estilo cartel psicodélico de los 70 (Fillmore, Yellow Submarine) dibujado con código. Colores planos y ácidos, contornos gruesos, ecos concéntricos, rayos de sol, formas que ondulan y letras que se derriten. Úsala para vídeos psicodélicos, retro, groovy o de conciertos, o al trabajar con styles/cartel-70s/.
 ---
 
 # Estilo · Cartel de los 70
 
-En pruebas. Primer uso: `sandbox/2026-09-24-cadaver-exquisito/` (tramo de la seta, 6,5–10,5 s).
+Aprobado. Referencia: `sandbox/2026-09-24-cadaver-exquisito/` (tramo de la seta, 6,5–10,5 s).
 
 ## Código
 
