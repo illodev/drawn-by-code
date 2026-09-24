@@ -22,6 +22,7 @@ const OPEN = {
     grasshopper: [[487, 448, 162, 163], [481, 417, 234, 235], [478, 400, 274, 274], [476, 394, 287, 287], [477, 396, 290, 289], [477, 396, 290, 289], [477, 396, 290, 289], [477, 396, 290, 289], [477, 396, 290, 289], [477, 400, 286, 272], [477, 417, 272, 228], [480, 446, 258, 143]],
     jellyfish: [[552, 496, 163, 163], [583, 493, 236, 237], [600, 493, 277, 274], [606, 494, 290, 289], ...Array(11).fill([606, 494, 290, 291]), [606, 493, 288, 289], [600, 493, 272, 274], [581, 493, 230, 230], [550, 494, 143, 143]],
 };
+const SWAP_PB = { pink: 'blue', blue: 'pink' };
 const EDIT = [
     [0, 'sonar', null, { sonar: 'first' }], [1.5, 'circle', 'koi', { open: OPEN.koi }],
     [2.0, 'sonar', null, { sonar: 'second' }], [2.75, 'circle', 'grasshopper', { open: OPEN.grasshopper, coin: true }],
@@ -48,20 +49,22 @@ const EDIT = [
     [14.625, 'full', 'bell', { ring: true, inks: { pink: 'blue' } }],
     [14.75, 'full', 'lighthouse', { ring: true, inks: { blue: 'pink', pink: 'blue' } }],
     [14.875, 'full', 'wolf', { ring: true, inks: { blue: 'pink' } }],
-    // from 15.0 the re-inked run cuts every 2 frames (measured by frame index, 360–383)
-    [15.0, 'full', 'phone', { ring: true, inks: { blue: 'pink', pink: 'blue' } }],
-    [15.083, 'full', 'turntable', { ring: true, inks: { blue: 'pink', pink: 'yellow' } }],
-    [15.167, 'full', 'frogs', { ring: true }],
-    [15.25, 'full', 'bats', { ring: true, inks: { pink: 'blue', blue: 'yellow' } }],
-    [15.333, 'full', 'wave', { ring: true, inks: { blue: 'pink', pink: 'blue' } }],
-    [15.417, 'full', 'cat', { ring: true }],
-    [15.5, 'full', 'sunflower', { ring: true, inks: { blue: 'pink' } }],
-    [15.583, 'full', 'radio', { ring: true, inks: { pink: 'blue' } }],
-    [15.667, 'full', 'fireworks', { ring: true }],
-    [15.75, 'full', 'hummingbird', { ring: true, inks: { blue: 'pink', pink: 'yellow' } }],
-    [15.833, 'full', 'kettle', { ring: true, inks: { pink: 'blue', blue: 'pink' } }],
-    [15.917, 'full', 'ferris', { ring: true, inks: { pink: 'blue', yellow: 'blue', navy: 'blue' } }],
-    [16.0, 'mosaic'], [18.0, 'orbits'], [23.0, 'full', 'waterfall', { inks: PINKSET }], [23.125, 'full', 'bicycle', { inks: PINKSET }], [23.25, 'full', 'whale', { inks: PINKSET }],
+    // from 15.0 the re-inked run cuts every 2 frames; 15.0–15.5 swap pink and blue and
+    // push in (zoom [s, tx, ty] in units: x' = s·x + t, registered on edge maps by G2)
+    // (measured by frame index, 360–383) (measured by frame index, 360–383)
+    [15.0, 'full', 'phone', { ring: true, inks: SWAP_PB, zoom: [1.07, -29.6, -29.6] }],
+    [15.083, 'full', 'turntable', { ring: true, inks: SWAP_PB, zoom: [1.08, -37.0, -40.7] }],
+    [15.167, 'full', 'frogs', { ring: true, inks: SWAP_PB, zoom: [1.1, -50.0, -50.0] }],
+    [15.25, 'full', 'bats', { ring: true, inks: SWAP_PB, zoom: [1.1, -63.0, -74.1] }],
+    [15.333, 'full', 'wave', { ring: true, inks: SWAP_PB, zoom: [1.1, -50.0, -50.0] }],
+    [15.417, 'full', 'cat', { ring: true, inks: SWAP_PB, zoom: [1.1, -50.0, -50.0] }],
+    [15.5, 'full', 'sunflower', { ring: true, inks: SWAP_PB, zoom: [1.13, -68.5, -77.8] }],
+    [15.583, 'full', 'radio', { ring: true, inks: SWAP_PB, zoom: [1.16, -80.0, -80.0] }],
+    [15.667, 'full', 'fireworks', { ring: true, inks: SWAP_PB, zoom: [1.19, -95.0, -95.0] }],
+    [15.75, 'full', 'hummingbird', { ring: true, inks: SWAP_PB, zoom: [1.08, -40.0, -40.0] }],
+    [15.833, 'full', 'kettle', { ring: true, inks: SWAP_PB, zoom: [1.06, -30.0, -30.0] }],
+    [15.917, 'full', 'ferris', { ring: true, inks: { pink: 'blue', yellow: 'blue' }, zoom: [1.15, -75.0, -75.0] }],
+    [16.0, 'mosaic'], [18.0, 'orbits'], [23.0, 'full', 'waterfall', { inks: { yellow: 'pink', pink: 'navy', blue: 'pink' } }], [23.125, 'full', 'bicycle', { inks: { yellow: 'pink', pink: 'blue', blue: 'pink' } }], [23.25, 'full', 'whale', { inks: PINKSET }],
     [23.375, 'full', 'piano', { inks: PINKSET }], [23.5, 'full', 'rocket', { inks: PINKSET, flip: true }], [23.625, 'full', 'city', { inks: PINKSET }],
     [23.75, 'full', 'planet', { inks: PINKSET }], [23.875, 'full', 'lightning', { inks: PINKSET }], [24.0, 'night'], [26.0, 'title'], [28.1, 'end'],
 ];
@@ -92,7 +95,9 @@ Motion.scene({
         else if (kind === 'full') {
             // o.flip: the reference re-uses some drawings mirrored left–right
             if (o.flip) { press.save(); press.each((g) => g.transform(-1, 0, 0, 1, 1000, 0)); }
+            if (o.zoom) { const [zs, zx, zy] = o.zoom; press.save(); press.each((g) => g.transform(zs, 0, 0, zs, zx, zy)); }
             drawCard(press, card, lt, lf);
+            if (o.zoom) press.restore();
             if (o.flip) press.restore();
             if (o.ring) whiteRing(press, ld);
         }
@@ -124,6 +129,8 @@ var CARDS = CARDS || {};
 // the blue dot at the centre: navy over blue and pink discs, each a little off (measured at
 // 3×: blue peeks out lower left, pink upper right)
 function dot(press, [x, y]) {
+    // printed in a paper halo (over a card the dot is knocked out first, a thin white rim)
+    press.knockout((g) => { g.beginPath(); g.arc(x - 1, y + 1, 22, 0, 7); g.fill(); });
     for (const [ink, v, dx, dy] of [['blue', 0.95, -4, 3], ['pink', 0.9, 4, -2], ['navy', 1, 0, 0]]) {
         const g = press.plate(ink);
         g.fillStyle = T(v);
@@ -240,7 +247,10 @@ function circleCard(press, name, lt, ld, o, lf) {
 // the white ring over re-inked cards (knocked out of every plate), breathing on twos
 function whiteRing(press, ld) {
     const r = 300 + (ld % 3) * 12;
-    press.knockout((g) => { g.lineWidth = 9; g.beginPath(); g.arc(500, 500, r, 0, 7); g.stroke(); });
+    // a white band with a thin blue rim each side (measured on the repeats)
+    const b = press.plate('blue');
+    b.save(); b.strokeStyle = T(0.9); b.lineWidth = 15; b.beginPath(); b.arc(500, 500, r, 0, 7); b.stroke(); b.restore();
+    press.knockout((g) => { g.lineWidth = 10; g.beginPath(); g.arc(500, 500, r, 0, 7); g.stroke(); });
 }
 // ------------------------------------------------------------------ the mosaic (16–17.67)
 // every card in a circle, measured on the 16.5 s frame (800 px grid → units × 1.25):
