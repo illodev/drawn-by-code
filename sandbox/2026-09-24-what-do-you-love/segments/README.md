@@ -8,7 +8,7 @@ rounds and the user's feedback in `../review.md`.
 | File | Global | What it holds |
 |---|---|---|
 | `common.js` | `WL` | palette `COL`, lettering (`write` with felt-tip `halo`, `lineSpacings`, `textW`), the lined note (`note`, `noteImage`, `noteFlip` in perspective), the Claude **flower**, the **girl** puppet, the writing hand (`writingHand`), mittens, plane, trail, stars |
-| `sets.js` | `Sets` | backgrounds: interior (girl between wall and desk layers), sky with torn bands, exterior (house + window + town), desk, notepad (measured `PAD`/`SHEET`), `penAt` |
+| `sets.js` | `Sets` | backgrounds: interior (girl between wall and desk layers), sky with torn bands, desk, notepad (measured `PAD`/`SHEET`), `penAt` |
 | `shots.js` | `Shots` | one function per named shot in `scene.js` (`'Notepad · writing'`, `'Tear'`, `'Fold'`, `'Flower · reads'`…) |
 | `things.js` | `Things.kit` | the object contract and helpers `place` (cached sprite at x, y, s) and `cut` |
 | `things/*.js` | `Things.<name>` | one montage object per file, drawn 1:1 at scale 1 on its card |
