@@ -19,9 +19,25 @@ CARDS.hummingbird = (press, t) => {
     yellow.fillStyle = T(1); yellow.fillRect(0, 0, 1000, 1000);
     U.ref(press, 1, () => {
         const sm = (a, b, v) => { const k = Math.max(0, Math.min(1, (v - a) / (b - a))); return k * k * (3 - 2 * k); };
+        // blue-dot coverage of the ground, unmixed on a 120 px grid of f230 (cell centres 60 +
+        // 120 k; cells under the bird or a leaf filled from their neighbours): a lemon glow
+        // behind the bird, denser toward the leaves and the bottom
+        const GBK = 1.0;
+        const GB = [
+            [.65, .45, .40, .25, .20, .20, .30, .40, .30],
+            [.45, .30, .40, .30, .30, .25, .25, .30, .45],
+            [.45, .20, .20, .25, .20, .25, .10, .35, .25],
+            [.40, .25, .20, .20, .25, .15, .15, .30, .40],
+            [.45, .30, .30, .25, .20, .15, .15, .25, .35],
+            [.45, .35, .30, .20, .25, .20, .25, .30, .50],
+            [.50, .55, .40, .35, .35, .35, .35, .40, .50],
+            [.55, .60, .55, .50, .50, .45, .50, .50, .50],
+            [.65, .55, .70, .60, .65, .45, .50, .30, .55],
+        ];
         const gb = (x, y) => {
-            const r = Math.hypot((x - 600) / 1.2, (y - 540) / (y > 540 ? 0.8 : 1.05));
-            return 0.13 + (y > 540 ? 0.62 : 0.52) * Math.pow(Math.max(0, Math.min(1, (r - 140) / 560)), 1.25);
+            const fx = Math.max(0, Math.min(7.999, (x - 60) / 120)), fy = Math.max(0, Math.min(7.999, (y - 60) / 120));
+            const i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j;
+            return GBK * ((GB[j][i] * (1 - u) + GB[j][i + 1] * u) * (1 - v) + (GB[j + 1][i] * (1 - u) + GB[j + 1][i + 1] * u) * v);
         };
         U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], gb, -20, -20, 1100, 1100, { jit: 0.15 });
     });
@@ -30,9 +46,9 @@ CARDS.hummingbird = (press, t) => {
     const darkLeaf = (pts, veins) => {
         press.knockout((g) => { U.smooth(g, pts); g.fill(); });
         fillS(yellow, pts, 1);
-        fillS(blueS, pts, 0.55);
-        fillS(pinkS, pts, 0.08);
-        fillS(navyS, pts, 0.38);
+        fillS(blueS, pts, 0.64);
+        fillS(pinkS, pts, 0.2);
+        fillS(navyS, pts, 0.14);
         // veins: red-orange lines (pink + yellow, the blue knocked)
         for (const v of veins) {
             blueS.save(); blueS.globalCompositeOperation = 'destination-out'; U.stroke(blueS, v, 3.2, 1, true); blueS.restore();
@@ -56,7 +72,7 @@ CARDS.hummingbird = (press, t) => {
     // dark leaves
     darkLeaf([[0, 70], [60, 100], [130, 120], [110, 175], [50, 205], [0, 200]], [[[0, 140], [60, 140], [120, 125]], [[40, 140], [70, 180]]]);
     darkLeaf([[850, 330], [870, 270], [930, 225], [1000, 205], [1000, 370], [930, 380], [870, 372]], [[[860, 360], [930, 300], [1000, 250]], [[920, 305], [950, 370]]]);
-    darkLeaf([[0, 710], [60, 740], [150, 790], [230, 850], [180, 880], [150, 960], [170, 1000], [0, 1000]], [[[0, 880], [80, 840], [200, 830]], [[60, 860], [40, 960]], [[120, 840], [160, 780]]]);
+    darkLeaf([[0, 718], [56, 708], [102, 715], [167, 755], [233, 819], [185, 847], [120, 870], [97, 926], [93, 1000], [0, 1000]], [[[0, 880], [80, 820], [200, 815]], [[60, 860], [40, 960]], [[120, 820], [150, 770]]]);
     darkLeaf([[690, 870], [740, 830], [820, 800], [900, 790], [1000, 780], [1000, 1000], [700, 1000], [680, 940]], [[[700, 1000], [780, 900], [880, 830]], [[780, 900], [900, 930]], [[830, 860], [760, 820]]]);
 
     // ── flowers: trumpets in pink (a dense pink screen on paper), navy lines, a yellow-red heart
@@ -80,12 +96,12 @@ CARDS.hummingbird = (press, t) => {
         pink.save(); pink.globalCompositeOperation = 'destination-out'; U.ell(pink, hx, hy, hr, hr * 0.45, -0.1); pinkS.save(); pinkS.globalCompositeOperation = 'destination-out'; U.ell(pinkS, hx, hy, hr, hr * 0.45, -0.1); pinkS.restore(); pink.restore();
         // a yellow star with a red-orange (pink + yellow) core and navy stamens
         U.ell(yellow, hx, hy, hr, hr * 0.45, -0.1, 1);
-        pink.fillStyle = T(0.8); pink.beginPath(); pink.ellipse(hx, hy, hr * 0.55, hr * 0.22, -0.1, 0, 7); pink.fill();
+        pink.fillStyle = T(0.9); pink.beginPath(); pink.ellipse(hx, hy, hr * 0.8, hr * 0.28, -0.2, 0, 7); pink.fill();
         for (let i = 0; i < 5; i++) { const a = i * 1.26; U.stroke(navy, [[hx, hy], [hx + Math.cos(a) * hr * 2.2, hy + Math.sin(a) * hr * 0.8]], 1.6, 0.75); }
         navy.save(); navy.lineWidth = 3; navy.strokeStyle = T(0.9); U.smooth(navy, mouth); navy.stroke(); navy.restore();
         for (const l of lines) U.stroke(navy, l, 2.2, 0.85, true);
     };
-    trumpet(lobed(905, 797, 92, 30, -0.06, 5, 1),
+    trumpet(lobed(905, 795, 92, 30, -0.2, 5, 1),
         [[850, 822], [945, 812], [990, 1000], [945, 1000]], [900, 796, 34], [[[868, 824], [940, 1000]]]);
     trumpet(lobed(908, 465, 64, 26, 1.12, 5, 2),
         [[925, 445], [1000, 400], [1000, 520], [930, 505]], [905, 462, 20], [[[925, 470], [1000, 450]], [[912, 420], [960, 440]]]);
@@ -94,13 +110,22 @@ CARDS.hummingbird = (press, t) => {
     trumpet([[0, 666], [25, 660], [45, 690], [50, 740], [35, 780], [10, 785], [0, 760]],
         [[0, 700], [10, 700], [10, 760], [0, 760]], [24, 726, 20], [[[28, 670], [36, 775]]]);
 
+    // a big shadowed leaf across the bottom middle: denser green dots with sparse red ones
+    U.ref(press, 1, () => {
+        const pts = [[240, 1085], [262, 990], [330, 928], [430, 902], [540, 912], [622, 948], [602, 1020], [560, 1085]];
+        blue.save(); U.smooth(blue, pts); blue.clip();
+        blue.globalCompositeOperation = 'destination-out'; blue.fillStyle = '#000'; blue.fillRect(200, 880, 460, 220); blue.globalCompositeOperation = 'source-over';
+        U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], () => 0.78, 200, 880, 660, 1090, { jit: 0.2 }); blue.restore();
+        pink.save(); U.smooth(pink, pts); pink.clip(); U.lat(pink, [9.2, 2.5, -2.5, 9.2, 400, 1000], (x, y) => ((x * 7 + y * 13) % 5 < 1.4 ? 0.3 : 0), 200, 880, 660, 1090, { jit: 0.3 }); pink.restore();
+    });
+
     // lighter leaves lying over the dark ones at the bottom corners (lemon-green: the dark
     // screens cleared, a medium blue screen, a green edge), ref px
     U.ref(press, 1, () => {
         for (const pts of [[[640, 1085], [655, 1010], [690, 950], [740, 925], [790, 935], [772, 990], [735, 1045], [700, 1085]],
-            [[128, 1085], [140, 1000], [175, 915], [215, 880], [258, 905], [250, 980], [215, 1050], [190, 1085]]]) {
+            [[100, 1085], [112, 990], [135, 935], [200, 905], [252, 890], [250, 960], [225, 1030], [200, 1085]]]) {
             for (const g of [blueS, pinkS, navyS, pink, navy, blue]) { g.save(); g.globalCompositeOperation = 'destination-out'; U.smooth(g, pts); g.fill(); g.restore(); }
-            blue.save(); U.smooth(blue, pts); blue.clip(); U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], () => 0.42, 100, 850, 820, 1090, { jit: 0.15 }); blue.restore();
+            blue.save(); U.smooth(blue, pts); blue.clip(); U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], () => 0.22, 90, 850, 820, 1090, { jit: 0.15 }); blue.restore();
             blue.save(); blue.lineWidth = 4; blue.strokeStyle = T(0.9); U.smooth(blue, pts); blue.stroke(); blue.restore();
         }
     });
@@ -127,10 +152,10 @@ CARDS.hummingbird = (press, t) => {
                 // thin the ground under each wisp (soft round strokes, never a filled shape)
                 for (const [g, v] of [[blue, 0.6], [yellow, 0.2]]) {
                     g.save(); g.globalCompositeOperation = 'destination-out'; g.lineCap = 'round';
-                    for (const a of rays) {
-                        g.strokeStyle = T(v); g.lineWidth = 26 + rs() * 16;
-                        g.beginPath(); g.moveTo(SX + Math.cos(a) * 60, SY + Math.sin(a) * 60); g.lineTo(SX + Math.cos(a) * L * (0.8 + rs() * 0.2), SY + Math.sin(a) * L * (0.8 + rs() * 0.2)); g.stroke();
-                    }
+                    // one path, stroked once: overlapping wisps must not clear twice
+                    g.strokeStyle = T(v); g.lineWidth = 30; g.beginPath();
+                    for (const a of rays) { g.moveTo(SX + Math.cos(a) * 60, SY + Math.sin(a) * 60); g.lineTo(SX + Math.cos(a) * L * (0.8 + rs() * 0.2), SY + Math.sin(a) * L * (0.8 + rs() * 0.2)); }
+                    g.stroke();
                     g.restore();
                 }
                 // the specks: denser mid-wisp, spread wider toward the tip
