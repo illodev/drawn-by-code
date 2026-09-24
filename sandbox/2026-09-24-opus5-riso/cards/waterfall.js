@@ -2,7 +2,7 @@
 // at 23 s): a waterfall pouring out of a notch between jungle cliffs into a pool, fronds on
 // the rocks. 1000 × 1000 units, measured on the 10.6 s frame. Needs _g3-util.js (G3).
 var CARDS = CARDS || {};
-CARDS.waterfall = (press, t) => {
+const DRAW_WATERFALL = (press, t) => {
     const R = Riso, T = R.tone, U = G3;
     const d = Math.floor(t * 12 + 1e-6);
     const pink = press.plate('pink'), pinkS = press.plate('pink', 'screen');
@@ -136,7 +136,7 @@ CARDS.waterfall = (press, t) => {
     for (let i = 0; i < 70; i++) U.disc(blue, 420 + rd() * 178, 196 + Math.pow(rd(), 2) * 70, 1.2 + rd() * 1.4, 0.9);
 
     // ── the pool: blue screen, a band of yellow + blue (green) at the far edge, white ripples
-    blueS.fillStyle = R.ramp(blueS, 0, POOL, 0, 1000, 0.42, 0.58); blueS.fillRect(0, POOL, 1000, 260);
+    blueS.fillStyle = R.ramp(blueS, 0, POOL, 0, 1000, 0.62, 0.8); blueS.fillRect(0, POOL, 1000, 260);
     yellowS.fillStyle = R.ramp(yellowS, 0, POOL, 0, POOL + 120, 0.45, 0); yellowS.fillRect(0, POOL, 1000, 120);
     // ripples: long straight white strokes fanning out, crossed
     press.knockout((g) => {
@@ -162,4 +162,14 @@ CARDS.waterfall = (press, t) => {
     blue.restore();
     // the soft hem: a ring of paper round the foam onto the water (the screen fades)
     off(blueS, (g) => { g.globalAlpha = 0.5; g.lineWidth = 26; U.smooth(g, foam); g.stroke(); });
+};
+// the film pushes in on this card: 1.05 % a frame about the centre (four corner
+// patches correlated frame to frame against f254 (10.583 s), the frame it was measured on); one scale
+// per drawing
+CARDS.waterfall = (press, t) => {
+    const z = G3.push(0.0105, Math.floor(t * 12 + 1e-6), 1.5);
+    press.save();
+    press.each((g) => { g.translate(500, 500); g.scale(z, z); g.translate(-500, -500); });
+    DRAW_WATERFALL(press, t);
+    press.restore();
 };

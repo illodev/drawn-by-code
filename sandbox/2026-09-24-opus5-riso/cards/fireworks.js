@@ -2,7 +2,7 @@
 // night, reflections in the water, a sailing boat, a crane. Drawn on the riso plates in the
 // reference's 1000 × 1000 units, measured on the 9.3 s frame. Needs _g3-util.js (G3).
 var CARDS = CARDS || {};
-CARDS.fireworks = (press, t) => {
+const DRAW_FIREWORKS = (press, t) => {
     const R = Riso, T = R.tone, U = G3;
     const d = Math.floor(t * 12 + 1e-6), grow = 1 + 0.025 * d; // bursts open a little on twos
     const pink = press.plate('pink'), pinkS = press.plate('pink', 'screen');
@@ -12,9 +12,9 @@ CARDS.fireworks = (press, t) => {
     const HOR = 655; // the waterline
 
     // ── sky: navy + blue dots at the top, pink rising to a purple haze at the horizon
-    navyS.fillStyle = R.ramp(navyS, 0, 0, 0, HOR, 0.18, 0.62);
+    navyS.fillStyle = R.ramp(navyS, 0, 0, 0, HOR, 0.5, 0.72);
     navyS.fillRect(0, 0, 1000, HOR);
-    blueS.fillStyle = R.ramp(blueS, 0, 0, 0, HOR, 0.95, 0.5);
+    blueS.fillStyle = R.ramp(blueS, 0, 0, 0, HOR, 0.6, 0.3);
     blueS.fillRect(0, 0, 1000, HOR);
     pinkS.fillStyle = R.ramp(pinkS, 0, 100, 0, HOR, 0.08, 0.6);
     pinkS.fillRect(0, 0, 1000, HOR);
@@ -52,7 +52,7 @@ CARDS.fireworks = (press, t) => {
         g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(xm, ym, x1, y1); g.stroke();
     };
     // a big yellow chrysanthemum: thick tapering rays with round tips, the sky knocked out under them
-    const bigYellow = (g, knock) => rays('y', 272, 258, 38, 238, 84, (x0, y0, xm, ym, x1, y1, r, i) => {
+    const bigYellow = (g, knock) => rays('y', 276, 297, 38, 238, 84, (x0, y0, xm, ym, x1, y1, r, i) => {
         const w = (i % 3 === 0 ? 5.2 : 3.8) + r() * 1.4, pad = knock ? 1.5 : 0;
         g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(xm, ym, x1, y1);
         g.lineCap = 'round';
@@ -70,7 +70,7 @@ CARDS.fireworks = (press, t) => {
         const r = Motion.rng('fw-heart');
         for (let i = 0; i < 70; i++) {
             const a = r() * 7, rr = Math.sqrt(r()) * 44;
-            g.beginPath(); g.arc(272 + Math.cos(a) * rr, 258 + Math.sin(a) * rr, 2.6, 0, 7); g.fill();
+            g.beginPath(); g.arc(276 + Math.cos(a) * rr, 297 + Math.sin(a) * rr, 2.6, 0, 7); g.fill();
         }
     });
 
@@ -152,9 +152,9 @@ CARDS.fireworks = (press, t) => {
     }
 
     // ── the water: purple (navy + pink) with pale blue streaks
-    navy.fillStyle = T(0.85); navy.fillRect(0, HOR, 1000, 345);
+    navy.fillStyle = T(1); navy.fillRect(0, HOR, 1000, 345);
     pink.fillStyle = T(0.2); pink.fillRect(0, HOR, 1000, 345);
-    blue.fillStyle = T(0.35); blue.fillRect(0, HOR, 1000, 345);
+    blue.fillStyle = T(0.12); blue.fillRect(0, HOR, 1000, 345);
     // mottled: darker navy clouds in the water
     for (const [x, y, rr] of [[150, 760, 180], [520, 930, 220], [860, 820, 170], [380, 700, 120]]) { navy.fillStyle = R.radial(navy, x, y, 0, rr, 0.18, 0); navy.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
     const rw = Motion.rng('fw-water');
@@ -220,4 +220,14 @@ CARDS.fireworks = (press, t) => {
     for (const x of [781, 798]) { press.knockout((g) => { g.beginPath(); g.arc(x, 719, 4.5, 0, 7); g.fill(); }); U.disc(yellow, x, 719, 4.6); }
     // a dinghy on the left
     dark((g) => { g.beginPath(); g.moveTo(112, 712); g.lineTo(195, 713); g.lineTo(185, 722); g.lineTo(120, 722); g.fill(); });
+};
+// the film pushes in on this card: 0.76 % a frame about the centre (four corner
+// patches correlated frame to frame against f223 (9.292 s), the frame it was measured on); one scale
+// per drawing
+CARDS.fireworks = (press, t) => {
+    const z = G3.push(0.0076, Math.floor(t * 12 + 1e-6), 0.5);
+    press.save();
+    press.each((g) => { g.translate(500, 500); g.scale(z, z); g.translate(-500, -500); });
+    DRAW_FIREWORKS(press, t);
+    press.restore();
 };

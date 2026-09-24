@@ -2,7 +2,7 @@
 // leaning on a yellow wall covered in pink bougainvillea, its shadow on the wall and the
 // pavement. 1000 × 1000 units, measured on the 10.8 s frame. Needs _g3-util.js (G3).
 var CARDS = CARDS || {};
-CARDS.bicycle = (press, t) => {
+const DRAW_BICYCLE = (press, t) => {
     const R = Riso, T = R.tone, U = G3;
     const d = Math.floor(t * 12 + 1e-6);
     const pink = press.plate('pink'), pinkS = press.plate('pink', 'screen');
@@ -18,16 +18,24 @@ CARDS.bicycle = (press, t) => {
     pink.fillStyle = T(0.9); pink.beginPath();
     for (let i = 0; i < 700; i++) { const x = rs() * 1000, y = rs() * WALL, r = 0.9 + rs() * 1.2; pink.moveTo(x + r, y); pink.arc(x, y, r, 0, 7); }
     pink.fill();
+    // (measured at 4×: the wall is thick with small brown-red specks, ~25 per 120 px square,
+    // pink with a touch of navy, and the yellow is mottled lighter in soft patches)
+    {
+        const specks = [];
+        for (let i = 0; i < 1700; i++) specks.push([rs() * 1000, rs() * WALL, 0.9 + rs() * 1.1]);
+        for (const [g, v] of [[pink, 0.95], [navy, 0.45]]) { g.fillStyle = T(v); g.beginPath(); for (const [x, y, r] of specks) { g.moveTo(x + r, y); g.arc(x, y, r, 0, 7); } g.fill(); }
+        off(yellow, (g) => { g.globalAlpha = 0.1; for (let i = 0; i < 160; i++) { const x = rs() * 1000, y = rs() * WALL, r = 6 + rs() * 16; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } });
+    }
     off(yellow, (g) => { g.beginPath(); for (let i = 0; i < 120; i++) { const x = rs() * 1000, y = rs() * WALL, r = 0.8 + rs(); g.moveTo(x + r, y); g.arc(x, y, r, 0, 7); } g.fill(); });
     pinkS.fillStyle = T(0.62); pinkS.fillRect(0, 842, 1000, WALL - 842);
     U.stroke(blue, [[0, WALL - 1], [1000, WALL - 1]], 3, 0.8);
     // the pavement: paper with a light yellow screen, blue joints
-    yellowS.fillStyle = T(0.3); yellowS.fillRect(0, WALL, 1000, 132);
+    yellowS.fillStyle = T(0.2); yellowS.fillRect(0, WALL, 1000, 132);
     for (const l of [[[0, 945], [1000, 942]], [[85, 1000], [100, WALL]], [[440, 1000], [445, WALL]], [[815, 1000], [812, WALL]]]) U.stroke(blue, l, 2.2, 0.85);
     for (const l of [[[160, 900], [210, 945], [300, 1000]], [[150, 930], [230, 985]]]) U.stroke(blue, l, 2, 0.85, true);
 
     // ── the bike's geometry (reference units)
-    const RW = [262, 720], FW = [755, 718], WR = 158, BB = [497, 765];
+    const RW = [271, 720], FW = [747, 718], WR = 158, BB = [497, 765];
     const SEAT = [432, 424], ST = [440, 478], HT = [700, 470], HB = [722, 560], BAR = [690, 392];
     const tubes = [[ST, BB], [ST, HT], [HT, BB], [ST, RW], [BB, RW], [HB, FW], [BAR, HB], [SEAT, ST]];
 
@@ -40,7 +48,7 @@ CARDS.bicycle = (press, t) => {
     blueS.restore();
     // the shadow on the ground: purple dots (navy + pink screens) in a long band
     const gsh = [[190, 900], [300, 888], [600, 886], [880, 890], [985, 902], [960, 928], [700, 932], [400, 930], [200, 925]];
-    for (const [g, v] of [[navyS, 0.55], [pinkS, 0.35]]) { g.fillStyle = T(v); U.smooth(g, gsh); g.fill(); }
+    for (const [g, v] of [[navyS, 0.42], [pinkS, 0.25]]) { g.fillStyle = T(v); U.smooth(g, gsh); g.fill(); }
 
     // ── bougainvillea: leaves (flat green or screened green) and clusters of bracts
     const leafAt = (x, y, a, L, W, screen) => {
@@ -61,11 +69,12 @@ CARDS.bicycle = (press, t) => {
         off(pink, (g) => { g.beginPath(); g.arc(x, y, s * 0.16, 0, 7); g.fill(); });
         U.disc(yellow, x, y, s * 0.12);
     };
+    // cluster centres and radii from where the ref's pink and red sit (40 px blocks, f260)
     const clusters = [
-        [40, 60, 60, 26], [110, 170, 50, 18], [60, 260, 70, 22], [20, 360, 60, 18], [180, 300, 70, 22], [140, 500, 60, 20], [20, 650, 50, 10],
-        [330, 120, 50, 14], [470, 110, 70, 22], [530, 30, 80, 26], [640, 60, 70, 24], [760, 40, 70, 24], [700, 190, 80, 28], [820, 140, 70, 22], [620, 230, 60, 18],
-        [900, 400, 60, 18], [960, 300, 40, 10], [420, 30, 40, 10], [880, 40, 50, 14], [980, 440, 30, 8], [90, 450, 40, 12], [0, 480, 40, 12],
-    ];
+        [37, 56, 55], [56, 167, 55], [120, 241, 55], [93, 306, 74], [37, 389, 46], [93, 463, 37], [167, 509, 37],
+        [426, 130, 55], [519, 56, 74], [630, 56, 74], [741, 56, 55], [574, 167, 55], [704, 185, 65], [815, 167, 46], [741, 259, 37],
+        [926, 407, 46], [852, 481, 46],
+    ].map(([x, y, r]) => [x, y, r, r * 0.3]);
     const rb = Motion.rng('bc-bracts');
     for (const [cx, cy, R0, n0] of clusters) for (let i = 0, n = Math.round(n0 * 1.4); i < n; i++) {
         const a = rb() * 6.28, r = Math.sqrt(rb()) * R0;
@@ -85,8 +94,11 @@ CARDS.bicycle = (press, t) => {
         for (const [g, v] of [[navy, 0.8], [blue, 0.7], [pink, 0.3]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 14; g.beginPath(); g.arc(cx, cy, WR, 0, 7); g.stroke(); g.restore(); }
         press.knockout((g) => { g.lineWidth = 2.6; g.beginPath(); g.arc(cx, cy, WR - 10, 0, 7); g.stroke(); });
         for (const [g, v] of [[blue, 0.9]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 3; g.beginPath(); g.arc(cx, cy, WR - 13, 0, 7); g.stroke(); g.restore(); }
-        blue.save(); blue.strokeStyle = T(0.9); blue.lineWidth = 1.8;
-        for (let i = 0; i < 32; i++) { const a = (i / 32) * Math.PI * 2 + (i % 2) * 0.08; const h = (i % 2 ? 1 : -1) * 0.18; blue.beginPath(); blue.moveTo(cx + Math.cos(a + h) * 12, cy + Math.sin(a + h) * 12); blue.lineTo(cx + Math.cos(a) * (WR - 12), cy + Math.sin(a) * (WR - 12)); blue.stroke(); }
+        // spokes (measured at 2×): 36 light-blue wires, each with a paper edge
+        const spoke = (g, i) => { const a = (i / 36) * Math.PI * 2 + (i % 2) * 0.06; const h = (i % 2 ? 1 : -1) * 0.2; g.beginPath(); g.moveTo(cx + Math.cos(a + h) * 12, cy + Math.sin(a + h) * 12); g.lineTo(cx + Math.cos(a) * (WR - 12), cy + Math.sin(a) * (WR - 12)); g.stroke(); };
+        press.knockout((g) => { g.lineWidth = 4.2; for (let i = 0; i < 36; i++) spoke(g, i); });
+        blue.save(); blue.strokeStyle = T(0.85); blue.lineWidth = 2.2;
+        for (let i = 0; i < 36; i++) spoke(blue, i);
         blue.restore();
         U.disc(blue, cx, cy, 13); press.knockout((g) => { g.beginPath(); g.arc(cx, cy, 4, 0, 7); g.fill(); });
         // spoke glints: a few paper lines
@@ -136,4 +148,14 @@ CARDS.bicycle = (press, t) => {
     // flowers in the basket: pink bracts on paper
     const rf = Motion.rng('bc-basket');
     for (let i = 0; i < 12; i++) bract(785 + rf() * 120, 492 + rf() * 28, 18 + rf() * 6, rf() * 6.28, true);
+};
+// the film pushes in on this card: 1.13 % a frame about the centre (four corner
+// patches correlated frame to frame against f259 (10.792 s), the frame it was measured on); one scale
+// per drawing
+CARDS.bicycle = (press, t) => {
+    const z = G3.push(0.0113, Math.floor(t * 12 + 1e-6), 0.5);
+    press.save();
+    press.each((g) => { g.translate(500, 500); g.scale(z, z); g.translate(-500, -500); });
+    DRAW_BICYCLE(press, t);
+    press.restore();
 };

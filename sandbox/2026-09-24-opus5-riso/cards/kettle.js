@@ -18,7 +18,7 @@ CARDS.kettle = (press, t) => {
     const rt = Motion.rng('kt-tiles');
     for (let i = 0; i < VX.length - 1; i++) for (let j = 0; j < HY.length - 1; j++) {
         const x0 = VX[i] + 4, x1 = VX[i + 1] - 4, y0 = HY[j] + 4, y1 = HY[j + 1] - 4;
-        const v = 0.3 + rt() * 0.07;
+        const v = 0.36 + rt() * 0.07;
         // a soft diagonal sheen across the tile: the screen lighter along a band
         const gr = blueS.createLinearGradient(x0, y1, x1, y0);
         const s = 0.3 + rt() * 0.4;
@@ -58,11 +58,11 @@ CARDS.kettle = (press, t) => {
     for (const g of [navy, pink]) knockP(g, (k) => { k.lineWidth = 5; k.lineCap = 'round'; k.beginPath(); k.moveTo(522, 630); k.bezierCurveTo(525, 470, 590, 360, 720, 318); k.stroke(); });
 
     // ── the kettle body: red (pink + yellow), texture, navy shading at the left
-    const body = [[378, 1000], [384, 900], [406, 800], [458, 710], [532, 648], [606, 624], [1000, 612], [1000, 1000]];
-    const spout = [[410, 905], [335, 850], [272, 780], [222, 700], [190, 628], [242, 622], [300, 668], [362, 730], [430, 790], [440, 860]];
+    const body = [[403, 977], [405, 900], [418, 840], [444, 750], [495, 650], [532, 632], [606, 624], [1000, 612], [1000, 977]];
+    const spout = [[417, 950], [380, 910], [296, 835], [231, 752], [196, 660], [194, 630], [232, 630], [260, 672], [296, 712], [361, 768], [420, 806], [440, 860]];
     const lid = [[590, 612], [600, 580], [640, 545], [720, 527], [820, 522], [905, 535], [945, 560], [950, 598], [940, 612]];
     press.knockout((g) => { U.smooth(g, spout); g.fill(); U.path(g, body); g.fill(); U.smooth(g, lid); g.fill(); });
-    for (const [g, v] of [[pink, 0.95], [yellowS, 0.62], [yellow, 0.05]]) { fillS(g, spout, v); fillP(g, body, v); fillS(g, lid, v); }
+    for (const [g, v] of [[pink, 1], [yellowS, 0.8], [yellow, 0.3]]) { fillS(g, spout, v); fillP(g, body, v); fillS(g, lid, v); }
     // enamel grain: the yellow is stippled (pink shows through in fine specks), not screened
     const rg = Motion.rng('kt-grain');
     for (const [g, n, r0] of [[yellowS, 2600, 1.1], [pink, 700, 0.8]]) {
@@ -79,10 +79,10 @@ CARDS.kettle = (press, t) => {
     }
     // shading: navy dots down the left of the body and the underside of the spout
     navyS.save(); U.path(navyS, body); navyS.clip();
-    navyS.fillStyle = R.ramp(navyS, 380, 0, 500, 0, 0.75, 0); navyS.fillRect(370, 780, 200, 220);
+    navyS.fillStyle = R.ramp(navyS, 380, 0, 470, 0, 0.4, 0); navyS.fillRect(370, 780, 200, 220);
     navyS.restore();
     navyS.save(); U.smooth(navyS, spout); navyS.clip();
-    navyS.fillStyle = R.ramp(navyS, 300, 700, 250, 800, 0, 0.6); navyS.fillRect(180, 640, 280, 280);
+    navyS.fillStyle = R.ramp(navyS, 300, 700, 250, 800, 0, 0.22); navyS.fillRect(180, 640, 280, 280);
     navyS.restore();
     // the lid: navy dots on its right shoulder, a white rim highlight, the dark seam
     navyS.save(); U.smooth(navyS, lid); navyS.clip();
@@ -103,9 +103,12 @@ CARDS.kettle = (press, t) => {
     for (const [g, v] of [[pink, 0.85]]) { U.stroke(g, [[480, 780], [620, 710]], 3, v); U.stroke(g, [[548, 700], [553, 790]], 3, v); }
     for (const [g, v] of [[navy, 0.95], [yellow, 0.8]]) fillP(g, [[505, 715], [520, 660], [540, 640], [545, 700]], v);
     // the rim highlight down the left edge
-    press.knockout((g) => { g.lineWidth = 4.5; g.lineCap = 'round'; g.beginPath(); g.moveTo(560, 650); g.quadraticCurveTo(450, 740, 418, 960); g.stroke(); });
+    press.knockout((g) => { g.lineWidth = 4.5; g.lineCap = 'round'; g.beginPath(); g.moveTo(560, 650); g.quadraticCurveTo(462, 740, 432, 960); g.stroke(); });
     // the dark outline on the body's left edge
-    for (const [g, v] of [[navy, 0.9], [yellow, 0.6]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 5; g.beginPath(); g.moveTo(378, 1000); g.lineTo(384, 900); g.quadraticCurveTo(396, 820, 428, 770); g.stroke(); g.restore(); }
+    for (const [g, v] of [[navy, 0.9], [yellow, 0.6]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 5; g.beginPath(); g.moveTo(403, 977); g.lineTo(405, 900); g.quadraticCurveTo(418, 820, 444, 750); g.stroke(); g.restore(); }
+
+    // the base: the body ends above the frame's edge on a thin green-yellow line
+    for (const [g, v] of [[yellow, 1], [blue, 0.7]]) U.stroke(g, [[405, 979], [1000, 979]], 4, v);
 
     // ── the spout's whistle: a dark cap, a wire clip with a ball
     const cap = [[172, 548], [190, 532], [212, 545], [245, 612], [230, 632], [205, 638], [182, 600]];
