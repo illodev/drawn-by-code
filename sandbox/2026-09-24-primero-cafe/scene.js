@@ -56,7 +56,7 @@ Motion.scene({
         g.rect(-600, -1600, 1200, 1600 + COFFEE.y);
         g.ellipse(0, COFFEE.y, COFFEE.rx, COFFEE.ry, 0, 0, Math.PI * 2);
         g.clip();
-        for (let i = 0; i < 3; i++) steam(g, t, i, (i - 1) * 55, COFFEE.y);
+        for (let i = 0; i < 3; i++) steam(g, t, i, (i - 1) * 45 - 15, COFFEE.y + 6);
         g.restore();
         g.restore();
 
@@ -146,27 +146,22 @@ Motion.scene({
         }
 
         function steam(g, t, i, x0, y0) {
-            // Cada columna suelta una tira de papel cada 1,2 s. La tira es un recorte fijo
-            // (sprite) que sube, se inclina y se desvanece: si se deformara, el filo
-            // rasgado se recalcularía en cada fotograma y hervería.
-            const start = 1.9 + i * 0.3;
-            const strip = kit.sprite('vapor' + i, { x: -40, y: -260, w: 80, h: 270 }, (c) => {
-                const pts = [];
-                for (let s = 0; s <= 240; s += 8) pts.push([Math.sin(s / 240 * Math.PI * 2 + i * 1.7) * 14, -s]);
-                P.cutout(c, P.noodle(pts, 24, 7), C.cream, 'vapor' + i, { border: 2.2, shadow: 0, tex: { alpha: [0.15, 0.35] } });
-            }, 2);
+            // Volutas de papel de seda (kit.wisp): nacen finas en el café, suben, derivan
+            // a la derecha como en una corriente suave, se ensanchan y se desvanecen.
+            // Cada voluta es un recorte fijo que solo se mueve: no hierve.
+            const start = 1.9 + i * 0.35, life = 2.6;
             for (let k = 0; k < 2; k++) {
-                const rise = (t - start) / 2.4 - k * 0.5;
-                if (rise < 0) continue;
-                const f = rise % 1;
+                const age = t - start - k * (life / 2);
+                if (age < 0) continue;
+                const cycle = Math.floor(age / life), f = (age % life) / life;
+                const w = kit.wisp(`c${i}-${k}-${cycle % 3}`, { len: 260, width: 16, drift: 1 });
+                const s = 1 / S;
                 g.save();
-                g.globalAlpha = 0.9 * (1 - E.seg(f, 0.55, 1)) * (1 - E.seg(t, 4.3, 5.3) * 0.5);
-                // en unidades de la taza (escalada ×S): la tira empieza entera bajo el café
-                const s = (1 + f * 0.25) / S;
-                g.translate(x0, y0 + 270 * s - f * 230);
-                g.rotate(Math.sin(t * 2 + i + k) * 0.08);
-                g.scale(s, s);
-                strip.draw(g);
+                g.globalAlpha = E.seg(f, 0, 0.15) * (1 - E.seg(f, 0.45, 1)) * (1 - E.seg(t, 4.3, 5.3) * 0.4);
+                g.translate(x0 + f * 40, y0 + 70 - E.out(f) * 110);
+                g.rotate(0.06 + f * 0.12);
+                g.scale(s * (1 + f * 0.6), s * (1 + f * 0.3));
+                w.draw(g);
                 g.restore();
             }
         }

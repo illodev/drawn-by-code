@@ -48,3 +48,20 @@ tap del guiño.
   superficie y asoma al subir. Ahora sigue a la taza en el aplastamiento y el balanceo.
 - **Lecciones:** checklist general de `revisar` (origen de lo que emana) y regla del
   estilo (cómo recortarlo).
+
+## Ronda 5 (usuario)
+
+> «Mira una taza con humo real. El tuyo parecen un poco tentáculos quizás.» (con una foto
+> de referencia)
+
+- Lo que tiene el vapor real de la foto y no tenía el mío: nace **finísimo** y casi
+  invisible, se **ensancha y se difumina** al subir, **deriva hacia un lado**, se
+  **riza** y acaba en punta, y es **translúcido** con capas superpuestas. Mis tiras eran
+  cilindros del mismo grosor, opacos, verticales y con punta redonda: tentáculos.
+- **Cambios:** `kit.wisp()` nuevo en el estilo, una cinta de papel de seda (halo ancho y
+  tenue + núcleo más denso, sin filo blanco) con perfil fino-ancho-fino, ondulación que
+  crece, deriva y rizo final. Dos volutas por foco en vez de tres, que suben, derivan a la
+  derecha, se ensanchan y se desvanecen. Siguen siendo recortes fijos: no hierven.
+- **Lecciones:** en `animar`, estilizar un fenómeno real partiendo de una referencia real;
+  en el estilo, la receta del vapor y del humo.
+

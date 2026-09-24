@@ -38,6 +38,10 @@ Tabla `Tiempo | Plano | Qué pasa` en el brief. Reglas que ya nos han costado ca
 - **Nada quieto más de 1 s** salvo el cierre: un silencio visual parece un fallo.
 - **Cada chiste se tiene que leer** a velocidad normal y sin explicación.
 - **Clímax corto** (2–3 s). Seis segundos de clímax cansan.
+- **Estiliza desde lo real:** antes de dibujar un fenómeno o un gesto (vapor, humo, agua,
+  fuego, tela, un salto, un andar), mira una referencia real (foto o vídeo) y apunta sus
+  3–4 rasgos que lo hacen reconocible. El estilo simplifica esos rasgos, no se los
+  inventa: si no, sale el cliché (el vapor de tres tentáculos).
 - Para piezas largas, cruza 2–3 propuestas de guion distintas y quédate con lo mejor de
   cada una antes de animar.
 

@@ -17,7 +17,7 @@ Referencia aprobada: `referencias/fube-la-caja-y-el-torno/` (mira
   ilegible), `marker` (textura). `grainTile` para el grano.
 - `styles/papel-recortado/kit.js` → `PaperKit.make(env, { font })`: `hand` (texto que se
   escribe), `title` (texto + subrayado), `sfxWord` («¡zas!»), `paperBg`, `glow`, `sheet`,
-  `ticket`, `grainPost` y la paleta `COL`.
+  `ticket`, `wisp` (voluta de vapor o humo), `grainPost` y la paleta `COL`.
 - Personajes como **marionetas**: una función por personaje que recibe `{ t, armL, armR,
   legL, legR, look, blink, … }` y se dibuja con el origen **entre los pies** (arriba es
   negativo). Brazos y piernas son `noodle` por hombro-codo-mano. Ejemplo completo en
@@ -52,6 +52,10 @@ Referencia aprobada: `referencias/fube-la-caja-y-el-torno/` (mira
   y recortado (`clip`) a «encima de la superficie» ∪ «la elipse de la superficie»; la
   pieza empieza escondida bajo la superficie y asoma al subir. Pintarlo detrás del
   recipiente hace que salga de detrás del borde.
+- **Vapor y humo = `kit.wisp`**, papel de seda translúcido y no tiras de papel opaco:
+  nace finísimo, se ensancha al subir, deriva hacia un lado (todas las volutas al mismo),
+  se riza y acaba en punta. Pocas volutas (2–3 focos). Las tiras de ancho constante,
+  opacas y verticales se leen como tentáculos.
 - **Ojos:** abiertos, blanco + pupila + párpado grueso (un tono más oscuro que la cara)
   que nunca sube del todo. Cerrados, el párpado tapa **todo** el blanco y encima va la
   pestaña curva; si asoma blanco se lee «mira abajo», no «duerme».
@@ -79,3 +83,4 @@ Referencia aprobada: `referencias/fube-la-caja-y-el-torno/` (mira
 - 2026-09-23 · la-caja-y-el-torno · Personajes siempre vivos: respiran, se balancean y parpadean con `t` aunque no actúen.
 - 2026-09-24 · primero-cafe · El vapor como tira deformada sin filo quedaba plano y fuera de estilo; como recortes fijos que suben y se desvanecen, funciona (ya en Reglas).
 - 2026-09-24 · primero-cafe · Un personaje-objeto (la taza) se lee como personaje solo con ojos de párpado grueso y una boca de rotulador: no hacen falta brazos para un plano corto.
+- 2026-09-24 · primero-cafe · El usuario vio «tentáculos» donde yo veía vapor: tiras de ancho constante, opacas y verticales. La receta buena está en Reglas (`kit.wisp`).

@@ -155,6 +155,53 @@ const PaperKit = (() => {
             g.restore();
         }
 
+        // Voluta de vapor/humo en papel de seda: una cinta que nace finísima, se ensancha,
+        // deriva hacia `drift` (−1 izquierda, 1 derecha), ondula y acaba en un rizo con punta.
+        // Dos capas: halo ancho y tenue + núcleo más denso, translúcidas, sin filo blanco.
+        // Devuelve un sprite fijo con el origen en la base: anímalo moviéndolo, nunca
+        // deformándolo (ver estilo-papel-recortado/SKILL.md).
+        function wisp(seed, { len = 380, width = 16, drift = 1, color = COL.cream } = {}) {
+            return sprite('wisp:' + seed + len + width + drift, { x: -len * 0.6, y: -len * 1.15, w: len * 1.2, h: len * 1.2 }, (c) => {
+                const r = P.rng('wisp' + seed);
+                const ph = r() * 6.28, waves = 1.4 + r() * 0.8, lean = (0.25 + r() * 0.25) * drift;
+                const pts = [];
+                for (let u = 0; u <= 1.0001; u += 0.02) {
+                    const amp = len * (0.012 + 0.07 * u);
+                    pts.push([lean * len * Math.pow(u, 1.6) + Math.sin(u * Math.PI * 2 * waves + ph) * amp, -u * len * 0.92]);
+                }
+                // rizo final: sigue girando hacia el lado de la deriva, con radio menguante
+                let [x, y] = pts[pts.length - 1];
+                const [px, py] = pts[pts.length - 2];
+                let a = Math.atan2(y - py, x - px), step = len * 0.028;
+                const curl = 0.28 * drift * (r() < 0.5 ? 1 : 0.8);
+                for (let j = 0; j < 16; j++) {
+                    a += curl;
+                    step *= 0.9;
+                    x += Math.cos(a) * step;
+                    y += Math.sin(a) * step;
+                    pts.push([x, y]);
+                }
+                const n = pts.length;
+                const ribbon = (wMax) => {
+                    const L = [], R = [];
+                    for (let i = 0; i < n; i++) {
+                        const u = i / (n - 1);
+                        const w = (wMax * Math.pow(Math.sin(Math.PI * Math.pow(u, 0.7)), 0.8) + 0.4) / 2;
+                        const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+                        const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1;
+                        L.push([pts[i][0] - (dy / d) * w, pts[i][1] + (dx / d) * w]);
+                        R.push([pts[i][0] + (dy / d) * w, pts[i][1] - (dx / d) * w]);
+                    }
+                    return [...L, ...R.reverse()];
+                };
+                c.globalAlpha = 0.35;
+                P.cutout(c, ribbon(width * 2.2), color, seed + 'halo', { border: 0, shadow: 0, jag: 0.8, tex: { alpha: [0.1, 0.25] } });
+                c.globalAlpha = 0.6;
+                P.cutout(c, ribbon(width * 0.9), color, seed + 'nucleo', { border: 0, shadow: 0, jag: 0.5, tex: { alpha: [0.15, 0.3] } });
+                c.globalAlpha = 1;
+            }, 1.6);
+        }
+
         // Grano de papel por encima de todo: úsalo en post(ctx) (coordenadas en píxeles).
         const grain = P.grainTile(Math.round(256 * Math.max(1, k)), 'grain', 24);
         function grainPost(ctx, alpha = 0.5) {
@@ -166,7 +213,7 @@ const PaperKit = (() => {
             ctx.globalCompositeOperation = 'source-over';
         }
 
-        return { COL, sprite, hand, textW, title, sfxWord, paperBg, glow, sheet, ticket, grainPost };
+        return { COL, sprite, hand, textW, title, sfxWord, paperBg, glow, sheet, ticket, wisp, grainPost };
     }
 
     return { COL, make };
