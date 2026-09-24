@@ -92,7 +92,7 @@ const Riso = (() => {
         }
         for (const ink of ORDER) { mottle[ink] = fine('mottle' + ink + W, 3.2 * sc); speck[ink] = fine('speck' + ink + W, 1.6 * sc); }
         let memoKey = null;
-        const EDGE = globalThis.RISO_EDGE ?? 1.4, SPREAD = globalThis.RISO_SPREAD ?? 1.0;
+        const EDGE = globalThis.RISO_EDGE ?? 1.1, SPREAD = globalThis.RISO_SPREAD ?? 0.8;
 
         return {
             W, H,
