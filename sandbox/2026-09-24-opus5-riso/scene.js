@@ -124,6 +124,8 @@ var CARDS = CARDS || {};
 // the blue dot at the centre: navy over blue and pink discs, each a little off (measured at
 // 3×: blue peeks out lower left, pink upper right)
 function dot(press, [x, y]) {
+    // printed in a paper halo (over a card the dot is knocked out first, a thin white rim)
+    press.knockout((g) => { g.beginPath(); g.arc(x - 1, y + 1, 22, 0, 7); g.fill(); });
     for (const [ink, v, dx, dy] of [['blue', 0.95, -4, 3], ['pink', 0.9, 4, -2], ['navy', 1, 0, 0]]) {
         const g = press.plate(ink);
         g.fillStyle = T(v);
