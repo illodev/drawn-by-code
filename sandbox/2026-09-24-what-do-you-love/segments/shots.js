@@ -411,10 +411,15 @@ const Shots = {};
         // she unfolds the plane in two steps (measured: 125 wide, then 166, open at 21.5 s)
         const d = Math.floor((t - 21) * 12 + 1e-6), stage = d < 3 ? 0 : d < 6 ? 1 : 2;
         Sets.interior(g, t, env, {
-            girl: { pose: 'note', eyes: 'open', look: [0, 0.6], mouth: t > 21.66 ? 'o' : 'smile' },
+            // her hands are the fists drawn on the paper's sides below, not the arms' own hands
+            girl: { pose: 'note', hands: [null, null], eyes: 'open', look: [0, 0.6], mouth: t > 21.66 ? 'o' : 'smile' },
             extra: (gg) => {
                 const [lx, ly] = WL.girlHand('note', 0), [rx] = WL.girlHand('note', 1);
-                const cx = (lx + rx) / 2;
+                const cx = (lx + rx) / 2, off = stage === 0 ? 70 : stage === 1 ? 90 : (rx - lx) / 2 + 30;
+                const sides = [[cx - off, -1], [cx + off, 1]];
+                // the forearms bend in to the paper's sides (behind it): a sweater tube from the
+                // arm's end to the wrist of each fist
+                for (const [hx, sd] of sides) WL.tube(gg, [[(sd < 0 ? lx : rx) - sd * 6, ly + 14], [((sd < 0 ? lx : rx) + hx) / 2, ly - 4], [hx - sd * 2, ly - 22]], 44, WL.COL.sweater, 'readsWrist' + sd + stage);
                 if (stage < 2) {
                     const w = stage ? 166 : 125, h = 236, key = stage ? 'unfold-half' : 'unfold-plane';
                     WL.sprite(key, { x: -w / 2 - 10, y: -h / 2 - 10, w: w + 20, h: h + 20 }, (c) => {
@@ -432,7 +437,7 @@ const Shots = {};
                     WL.note(gg, cx, ly - 60, rx - lx + 60, 250, 0, 'girl-note3', { torn: 1, flip: true, text: ['what do', 'you love?'], p: 1, size: 70, lineX: [-122, -150], lineY: [0.4, 0.72], circle: 1, doodle: 1 });
                 }
                 // her hands on the paper's sides
-                for (const [hx, sd] of [[cx - (stage === 0 ? 70 : stage === 1 ? 90 : (rx - lx) / 2 + 30), -1], [cx + (stage === 0 ? 70 : stage === 1 ? 90 : (rx - lx) / 2 + 30), 1]]) WL.hand(gg, hx, ly - 30, 22, sd * 0.3, 'fist', sd < 0);
+                for (const [hx, sd] of sides) WL.hand(gg, hx, ly - 30, 22, sd * 0.3, 'fist', sd < 0, { cuff: WL.COL.sweaterDark });
             },
         });
     };
@@ -443,13 +448,15 @@ const Shots = {};
         const shake = Math.sin(t * 30) * 0.004;
         // measured: 'what do' spans 561 units; the signature flower sparkles on twos
         const size = (561 * 100) / WL.textW(g, 'what do', 100, 'Hand', 0.05);
+        // the hands hold the note between their parts: palm and fingers behind, thumbs in front
+        for (const s of [-1, 1]) {
+            WL.tube(g, [[500 + s * 620, 1150], [500 + s * 520, 990], [500 + s * 400, 840]], 110, C.sweater, 'closeArm' + s);
+            WL.hand(g, 500 + s * 388, 830, 55, -s * 0.6, 'pinch', s < 0, { part: 'back' });
+        }
         WL.note(g, 493, 496, 736, 569, -0.025 + shake, 'close-note2', { torn: 1, text: ['what do', 'you love?'], p: 1, size, lineX: [-271, -340], lineY: [0.415, 0.733], circle: 1, doodle: 1 });
         const tw = Math.floor(t * 12) % 2;
         WL.ticks(g, 752, 683, 62, 88, 8, tw ? 0.9 : 0.6, '#d9533f', tw * 0.4);
-        for (const s of [-1, 1]) {
-            WL.tube(g, [[500 + s * 620, 1150], [500 + s * 520, 990], [500 + s * 400, 840]], 110, C.sweater, 'closeArm' + s);
-            WL.hand(g, 500 + s * 388, 830, 55, -s * 0.6, 'pinch', s < 0);
-        }
+        for (const s of [-1, 1]) WL.hand(g, 500 + s * 388, 830, 55, -s * 0.6, 'pinch', s < 0, { part: 'front' });
     };
 
     // ------------------------------------------------------------------ 22.75–24
@@ -466,7 +473,7 @@ const Shots = {};
                 } else {
                     WL.note(gg, 510, 765, 396, 228, 0.05, 'girl-note-hug2', { torn: 1, flip: true, text: ['what do', 'you love?'], p: 1, size: 53, lineX: [-108, -138], lineY: [0.42, 0.74], circle: 1, doodle: 1 });
                     const [hx, hy] = hand('hug', 0);
-                    WL.hand(gg, hx, hy, 29);
+                    WL.hand(gg, hx, hy, 29, 0, 'fist');
                     // paper hearts pop out and drift up (measured: red at 23.5 s, pink at 23.75 s)
                     [[733, 392, '#d9473b', 23.5, 1], [283, 362, '#ef9fb5', 23.75, 0.7]].forEach(([x, y, col, at, k], i) => {
                         const u = E.seg(t, at, at + 0.5);

@@ -1,6 +1,6 @@
 // Detail pieces for the paper-cutout style: the things that separate a finished film from an
 // animatic. Textures that carry information (knit, rib, newsprint, wood grain, hair strands),
-// creases, organic shapes, and hands with thumbs. Global: PaperDetail.
+// creases, organic shapes, and hands with real fingers. Global: PaperDetail.
 // Depends on engine/core.js and paper.js. Everything is deterministic (seeded).
 //
 // Shapes: spline (Catmull-Rom), cspline (centripetal: no overshoot at corners), taper (a
@@ -483,71 +483,197 @@ const PaperDetail = (() => {
     }
 
     // --- hands --------------------------------------------------------------------------------
-    // Mitten-style paper hands with a separate thumb (a piece of its own, like a real cutout).
-    // Local coordinates: wrist at (0, 0), fingers pointing up (-y), size ≈ 1 palm = 60 units.
-    // pose: 'open' (flat, thumb out), 'fist' (closed, thumb over the knuckles; holds a pencil),
-// 'point' (fist with the index finger out: pressing buttons),
-    // 'pinch' (thumb pressed to the fingers; holds a paper edge), 'wave' (open, fingers apart).
-    // o.skin, o.cuff (sleeve colour; draws a ribbed cuff at the wrist), o.mirror (left hand).
-    function handShape(pose) {
-        if (pose === 'fist') {
-            return {
-                palm: spline([[-24, 2], [-30, -26], [-26, -52], [-4, -62], [20, -58], [30, -34], [26, -4], [4, 6]], 8),
-                thumb: spline([[-28, -26], [-12, -40], [10, -44], [16, -36], [0, -30], [-18, -18]], 6),
-                knuckles: [[[-18, -54], [-14, -60]], [[-4, -58], [0, -63]], [[10, -56], [14, -60]]],
-            };
+    // Paper hands with real fingers: every finger, the thumb and the back of the hand (or the
+    // palm) is its own piece with its own torn white border, layered on purpose (the fingers
+    // under others a touch darker), with knuckle creases, subtle fingernails, and a ribbed cuff.
+    // Traced from the what-do-you-love reference fist (WL.writingHand): separate curled fingers
+    // each overlapping the next, the thumb across them.
+    //
+    // PaperDetail.hand(g, x, y, size, rot, pose, o)
+    //   local frame: wrist at (x, y), fingers pointing up (-y) before `rot`; size ≈ palm width
+    //   (60 = canonical). The thumb is on the -x side (o.mirror puts it on +x: the other hand).
+    // poses: 'open' (back of the hand, fingers together, slightly spread), 'wave' (spread),
+    //   'point' (index out of a fist, palm side), 'fist' (four curled fingers from the front,
+    //   thumb across), 'pinch' / 'hold' (holding a paper edge: thumb in front, fingers behind),
+    //   'rest' (lying on a desk, fingers curled towards the camera), 'grip' (curled fingers
+    //   round a mug handle or a pen, thumb up).
+    // o.skin, o.cuff (colour: a ribbed cuff at the wrist), o.sleeve (colour: a knitted sleeve end
+    //   under the cuff), o.mirror, o.res (sprite resolution; default: picked from the current
+    //   transform so the hand is crisp and never re-cut per frame), o.part: 'back' | 'front' to
+    //   draw only the pieces behind / in front of a held object (paper, pen, mug handle).
+    // PaperDetail.handAnchor(pose) → [x, y] in the same frame: where the held object goes.
+    //
+    // Authoring units: coordinates below are in "palm = 60" units; pieces are cut at HU× that
+    // scale, so the paper edge, grain and fibres keep the proportions of the reference cutouts.
+    const HU = 10 / 3;
+    // A finger's centreline: base b (the knuckle), angle a (0 = up, + = clockwise), phalanges
+    // L = [proximal, middle, distal], bends at each joint, width w. Starts `back` units inside
+    // the hand so the base hides under the palm. Returns control points [start, knuckle, PIP, DIP, tip].
+    function fingerLine(b, a, L, w, bend = [0, 0, 0], back = 10) {
+        const dir = (t) => [Math.sin(t), -Math.cos(t)];
+        const d0 = dir(a), pts = [[b[0] - d0[0] * back, b[1] - d0[1] * back], b];
+        let p = b, ang = a;
+        for (let i = 0; i < 3; i++) {
+            ang += bend[i];
+            const d = dir(ang), l = i === 2 ? Math.max(1, L[2] - w * 0.43) : L[i];
+            p = [p[0] + d[0] * l, p[1] + d[1] * l];
+            pts.push(p);
         }
-        if (pose === 'point') {
-            // a fist with the index finger out (its own piece, drawn over the palm)
-            return {
-                palm: spline([[-24, 2], [-30, -26], [-26, -52], [-4, -62], [20, -58], [30, -34], [26, -4], [4, 6]], 8),
-                thumb: spline([[-28, -26], [-12, -40], [10, -44], [16, -36], [0, -30], [-18, -18]], 6),
-                knuckles: [[[4, -56], [8, -61]], [[16, -52], [20, -57]]],
-                index: spline([[-18, -50], [-20, -86], [-16, -112], [-8, -118], [0, -112], [2, -86], [0, -52]], 6),
-            };
-        }
-        if (pose === 'pinch') {
-            return {
-                palm: spline([[-24, 2], [-28, -30], [-22, -64], [0, -76], [20, -68], [28, -38], [24, -4], [2, 6]], 8),
-                thumb: spline([[-24, -26], [-34, -44], [-30, -62], [-20, -64], [-14, -46], [-14, -28]], 6),
-                knuckles: [],
-            };
-        }
-        if (pose === 'wave') {
-            return {
-                palm: spline([[-24, 2], [-30, -36], [-26, -72], [-10, -84], [8, -84], [24, -74], [30, -38], [24, -4], [2, 6]], 8),
-                thumb: spline([[-24, -20], [-48, -38], [-56, -54], [-44, -58], [-28, -44], [-16, -30]], 6),
-                knuckles: [[[-6, -80], [-6, -64]], [[10, -80], [10, -64]]],
-            };
-        }
-        return {
-            palm: spline([[-24, 2], [-30, -36], [-24, -72], [0, -82], [22, -72], [30, -36], [24, -4], [2, 6]], 8),
-            thumb: spline([[-24, -18], [-44, -36], [-50, -52], [-38, -56], [-24, -42], [-14, -28]], 6),
-            knuckles: [],
-        };
+        return pts;
     }
+    // A finger piece (spec) → outline, nail and creases, all in 60-units.
+    // f: { b, a, L, w, bend, nail, crease, shade, part, back }
+    function fingerPiece(f) {
+        const ctrl = fingerLine(f.b, f.a, f.L, f.w, f.bend, f.back);
+        const w = f.w, ws = f.ws ?? [w, w, w * 0.97, w * 0.92, w * 0.86];
+        const outline = taper(ctrl, ws, 6);
+        const tip = ctrl[4], dip = ctrl[3], pip = ctrl[2];
+        const along = (p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1], l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
+        const td = along(dip, tip), tn = [-td[1], td[0]];
+        const at = (o, u, v) => [o[0] + td[0] * u + tn[0] * v, o[1] + td[1] * u + tn[1] * v];
+        let nail = null;
+        if (f.nail) {
+            const r = ws[4] / 2, nl = Math.min(f.L[2] * 0.62, r * 1.7);
+            nail = spline([at(tip, -nl + r * 0.35, 0), at(tip, -nl + r * 0.55, r * 0.6), at(tip, r * 0.45, r * 0.62), at(tip, r * 0.82, 0), at(tip, r * 0.45, -r * 0.62), at(tip, -nl + r * 0.55, -r * 0.6)], 6);
+        }
+        // creases: two short arcs across the PIP joint, one across the DIP joint
+        const creases = [];
+        if (f.crease !== false) {
+            const arc = (o, d, half, bow, du) => {
+                const n = [-d[1], d[0]], c = [o[0] + d[0] * du, o[1] + d[1] * du];
+                return [[c[0] - n[0] * half, c[1] - n[1] * half], [c[0] + d[0] * bow, c[1] + d[1] * bow], [c[0] + n[0] * half, c[1] + n[1] * half]];
+            };
+            const pd = along(ctrl[1], pip), dd = along(pip, dip);
+            creases.push(arc(pip, pd, w * 0.24, -1.2, -1.2), arc(pip, pd, w * 0.17, -1, 1.6), arc(dip, dd, w * 0.18, -0.8, 0));
+        }
+        return { outline, nail, creases, ctrl };
+    }
+
+    // The fingers of each view, in 60-units. Base knuckles, lengths and widths are shared:
+    // index, middle, ring, pinky (the middle longest, the pinky shortest and thinnest).
+    const FINGERS = [
+        { b: [-19, -60], L: [24, 16.5, 13.5], w: 14.5 },
+        { b: [-5, -64], L: [26.5, 18.5, 14.5], w: 15.2 },
+        { b: [9, -62], L: [25, 17.5, 13.5], w: 14.2 },
+        { b: [22, -55], L: [19, 13, 11.5], w: 12.2 },
+    ];
+    const fingerSet = (angles, bends, extra = {}) => FINGERS.map((f, i) => ({ ...f, a: angles[i], bend: bends[i], shade: [-1.5, -3, -4.5, -6][i], ...(extra[i] ?? {}), ...(extra.all ?? {}) }));
+    // Curled fingers of a fist seen from the front: each a vertical bar (the middle phalanx),
+    // side by side, each overlapping the next; x, top, bottom, width.
+    const bars = (spec, part = 'b') => spec.map(([x, y0, y1, w, tilt], i) => ({
+        kind: 'bar', part, shade: [0, -1.5, -3, -4.5][i] ?? -4,
+        ctrl: [[x + (tilt ?? 0), y0], [x + (tilt ?? 0) * 0.4, (y0 + y1) / 2], [x, y1]], w,
+    }));
+
+    function handPieces(pose) {
+        if (pose === 'hold') pose = 'pinch';
+        const P60 = [];
+        const palm = (pts, o = {}) => P60.push({ kind: 'palm', pts: spline(pts, 7), shade: o.shade ?? -4, part: o.part ?? 'b', knuckles: o.knuckles ?? [] });
+        const fingers = (list, part = 'b', order = [3, 2, 1, 0]) => order.forEach((i) => P60.push({ kind: 'finger', part, ...list[i] }));
+        const thumb = (f, part = 'b') => P60.push({ kind: 'finger', part, w: 16.5, shade: f.shade ?? 1, ...f });
+        if (pose === 'open' || pose === 'wave') {
+            // the back of the hand: fingers and thumb under the back piece, which hides their
+            // bases and draws the knuckle line; nails and knuckle wrinkles on the backs
+            const wave = pose === 'wave';
+            const fs = fingerSet(wave ? [-0.36, -0.11, 0.13, 0.4] : [-0.1, -0.03, 0.05, 0.15], wave ? [[0.02, 0.04, 0.02], [0, 0.02, 0.01], [0, -0.02, -0.02], [-0.02, -0.05, -0.04]] : [[0.02, 0.04, 0.03], [0, 0.01, 0.01], [-0.01, -0.02, -0.02], [-0.03, -0.05, -0.04]], { all: { nail: true } });
+            thumb({ b: [-23, -24], a: wave ? -1.1 : -0.78, L: [15, 17, 14], bend: wave ? [0.1, 0.12, 0.08] : [0.12, 0.16, 0.1], nail: true, shade: -2 });
+            fingers(fs);
+            const web = wave ? [[-31, -30], [-35, -36], [-29, -46]] : [[-31, -30], [-34, -40], [-28, -50]];
+            palm([[0, 5], [-19, 3], [-25, -12], ...web, [-25, -59], [-19, -63], [-12, -63.5], [-5, -67], [2, -65.5], [9, -65.5], [16, -62], [22, -58.5], [27, -53], [30, -34], [26, -8], [15, 3]], { knuckles: [[-19, -58], [-5, -62], [9, -60], [21, -53]] });
+        } else if (pose === 'fist' || pose === 'point' || pose === 'grip') {
+            // seen from the front: the back piece, four (or three) curled fingers as bars side
+            // by side, the thumb across (fist, point) or up the side (grip)
+            const grip = pose === 'grip', point = pose === 'point';
+            palm([[0, 6], [-22, 2], [-29, -22], [-31, -50], [-28, -70], [-12, -78], [6, -79], [23, -73], [32, -56], [33, -30], [27, -6], [14, 4]], { shade: -7 });
+            if (point) P60.push({ kind: 'finger', part: 'f', b: [-18, -70], a: -0.05, L: [24, 16, 12.5], w: 14.8, bend: [0, 0.02, 0.03], back: 18, nail: false, shade: 0.5 });
+            // short, stubby bars (about 2.6 widths long, like the reference), stepping down
+            // from the index to the pinky
+            const y1 = grip ? -62 : -58;
+            const spec = [[-18.5, -77, y1, 17, -1.5], [-3.5, -80, y1 - 2, 17.4, 0], [11.5, -78, y1, 16.6, 1.5], [25, -70, y1 + 4, 14.4, 3]];
+            bars(point ? spec.slice(1) : spec, grip ? 'f' : 'f').forEach((b) => P60.push(b));
+            if (grip) thumb({ b: [-24, -34], a: 0.3, L: [13, 16, 13], bend: [0.1, 0.15, 0.1], nail: true, part: 'f', back: 12 }, 'f');
+            else thumb({ b: [-29, -40], a: 1.35, L: [13, 18, 15], bend: [-0.06, 0.06, 0.1], nail: true, back: 8, w: 18 }, 'f');
+        } else if (pose === 'pinch') {
+            // holding a paper edge, seen from the front: palm and fingers behind the paper
+            // (part 'back'), the thumb over it (part 'front'), lying towards the -x side
+            const fs = fingerSet([-0.12, -0.03, 0.06, 0.17], [[0.02, 0.06, 0.06], [0, 0.04, 0.04], [-0.02, 0.0, -0.02], [-0.04, -0.05, -0.04]], { all: { nail: false }, 0: { L: [20, 13, 11] }, 1: { L: [22, 15, 12] }, 2: { L: [21, 14, 11] }, 3: { L: [16, 11, 9.5] } });
+            fingers(fs);
+            palm([[0, 5], [-21, 2], [-27, -16], [-29, -40], [-25, -60], [-12, -66], [2, -68], [16, -65], [27, -56], [31, -34], [27, -8], [15, 3]], { shade: -3 });
+            thumb({ b: [-4, -40], a: -1.25, L: [12, 17, 14], bend: [0.04, 0.1, 0.08], nail: true, back: 8, w: 17 }, 'f');
+        } else if (pose === 'rest') {
+            // lying on a desk, seen from the front: a short (foreshortened) back of the hand,
+            // fingers relaxed and curled towards the camera, nails at the tips
+            const fs = fingerSet([-0.12, -0.03, 0.07, 0.22], [[0.05, 0.1, 0.1], [0, 0.03, 0.03], [-0.04, -0.06, -0.06], [-0.06, -0.1, -0.1]], {
+                all: { nail: true, back: 8 },
+                0: { b: [-19, -38], L: [13, 8, 7.5], ws: [14.5, 14.5, 14.8, 14.8, 14] },
+                1: { b: [-5, -41], L: [14, 9, 8], ws: [15.2, 15.2, 15.6, 15.6, 14.6] },
+                2: { b: [9, -40], L: [13, 8, 7.5], ws: [14.2, 14.2, 14.6, 14.4, 13.6] },
+                3: { b: [22, -35], L: [10, 6.5, 6.5], ws: [12.2, 12.2, 12.6, 12.4, 11.8] },
+            });
+            thumb({ b: [-24, -14], a: -0.5, L: [12, 11, 10], bend: [0.1, 0.12, 0.1], nail: true, shade: -2 });
+            fingers(fs);
+            palm([[0, 5], [-22, 2], [-28, -10], [-31, -22], [-26, -34], [-12, -42], [2, -44], [16, -42], [27, -35], [31, -20], [28, -6], [15, 3]], { knuckles: [[-19, -36], [-5, -39], [9, -38], [21, -33]] });
+        } else throw new Error('PaperDetail.hand: unknown pose ' + pose);
+        return P60;
+    }
+    const ANCHORS = { pinch: [-10, -52], hold: [-10, -52], grip: [-2, -54], fist: [-2, -60], point: [-19, -128], open: [0, -60], wave: [0, -60], rest: [0, -30] };
+    const handAnchor = (pose) => ANCHORS[pose] ?? [0, -60];
+
+    const mix = (a, b, k) => {
+        const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+        const A = p(a), B = p(b);
+        return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join('');
+    };
+    const RES = [0.2, 0.28, 0.4, 0.55, 0.75, 1, 1.4, 2];
     function hand(g, x, y, size, rot, pose = 'open', o = {}) {
-        const skin = o.skin ?? '#edc4a7', key = 'dhand:' + pose + skin + (o.cuff ?? '');
-        const sp = Motion.sprite(key, { x: -70, y: -130, w: 140, h: 190 }, (o.res ?? 3), (c) => {
-            const sh = handShape(pose);
-            if (o.cuff) {
-                P.cutout(c, P.roundRect(-30, -4, 60, 48, 10), o.cuff, key + 'cuff', { border: 2, shadow: 0.15, inner: (cc, box) => rib(cc, box, o.cuff, { step: 5 }) });
-            }
-            const thumbFront = pose === 'fist' || pose === 'point';
-            if (!thumbFront) P.cutout(c, sh.thumb, skin, key + 'thumb', { border: 2, shadow: 0.12, tex: { alpha: [0.12, 0.25] } });
-            P.cutout(c, sh.palm, skin, key + 'palm', { border: 2.2, shadow: 0.15, tex: { alpha: [0.12, 0.25] } });
-            if (sh.index) P.cutout(c, sh.index, skin, key + 'index', { border: 1.8, shadow: 0.14, tex: { alpha: [0.12, 0.25] } });
-            if (thumbFront) P.cutout(c, sh.thumb, shade(skin, -4), key + 'thumb', { border: 1.4, shadow: 0.1, tex: { alpha: [0.12, 0.25] } });
-            for (const [a, b] of sh.knuckles) P.markerStroke(c, [a, b], shade(skin, -12), 1.8, key + a[0], 0.55);
+        const skin = o.skin ?? '#edc4a7', part = o.part ?? 'all';
+        const m = g.getTransform(), px = (Math.hypot(m.a, m.b) * size) / 60 / HU; // output px per sprite unit
+        const res = o.res ?? RES.find((r) => r >= px) ?? RES[RES.length - 1];
+        // chunkier cut for miniatures: the white border never thinner than ~1.3 output px
+        const edge = Math.max(2.3, 1.3 / res), chunky = res < 0.3;
+        const key = ['dhand2', pose, skin, o.cuff ?? '', o.sleeve ?? '', part, edge.toFixed(2)].join(':');
+        const sp = Motion.sprite(key, { x: -95 * HU, y: -150 * HU, w: 190 * HU, h: 260 * HU }, res, (c) => {
+            const S = (pts) => pts.map(([a, b]) => [a * HU, b * HU]);
+            const cut = (pts, col, seed, oo = {}) => P.cutout(c, S(pts), col, key + seed, { border: edge, borderVar: 0.4, jag: 0.8, step: 2, shadow: 0.14, tex: { alpha: [0.12, 0.26], len: [20, 60], h: [6, 12], angle: -Math.PI / 2 }, ...oo });
+            const want = (pp) => part === 'all' || (part === 'back' ? pp === 'b' : pp === 'f');
+            const crease = (pts, col, wdt, seed, alpha) => P.markerStroke(c, S(spline(pts, 4, false)), col, Math.max(wdt * HU, 1.4 / res), key + seed, alpha);
+            // sleeve end and ribbed cuff behind the hand (part 'back')
+            if (want('b') && o.sleeve) cut([[-34, 14], [34, 14], [36, 90], [-36, 90]], o.sleeve, 'sleeve', { inner: (cc, box) => knit(cc, box, o.sleeve, { seed: key + 'knit', size: 30, alpha: 0.18 }) });
+            if (want('b') && o.cuff) cut(P.roundRect(-30, -6, 60, 34, 6), o.cuff, 'cuff', { shadow: 0.18, tex: { alpha: [0.15, 0.3] }, inner: (cc, box) => rib(cc, box, o.cuff, { step: 15, width: 5.5, angle: 0 }) });
+            handPieces(pose).forEach((pc, i) => {
+                if (!want(pc.part)) return;
+                const col = shade(skin, pc.shade ?? 0);
+                if (pc.kind === 'palm') {
+                    cut(pc.pts, col, 'palm' + i, { shadow: 0.16 });
+                    // knuckle dimples on the back of the hand
+                    if (!chunky) pc.knuckles.forEach(([kx, ky], j) => crease([[kx - 3.2, ky + 4], [kx, ky + 5.2], [kx + 3.2, ky + 4]], shade(skin, -14), 0.55, 'kn' + i + j, 0.45));
+                } else if (pc.kind === 'bar') {
+                    const out = taper(pc.ctrl, [pc.w * 0.97, pc.w, pc.w * 0.96], 6);
+                    cut(out, col, 'bar' + i);
+                    // the joint of the curled finger: a short crease across the bar, low down
+                    // the bent knuckle near the top: two short wrinkles across the bar
+                    const [bx, by] = pc.ctrl[2], [tx, top] = pc.ctrl[0];
+                    for (const [k, a] of [[0.3, 0.5], [0.42, 0.35]]) {
+                        const jy = top + (by - top) * k, jx = tx + (bx - tx) * k;
+                        crease([[jx - pc.w * 0.22, jy + 0.7], [jx, jy - 0.5], [jx + pc.w * 0.22, jy + 0.7]], shade(skin, -15), 0.55, 'bj' + i + k, a);
+                    }
+                } else {
+                    const f = fingerPiece(pc);
+                    cut(f.outline, col, 'f' + i);
+                    if (f.nail && !chunky) cut(f.nail, mix(shade(skin, 3), '#f4d3cf', 0.32), 'nail' + i, { border: 0, shadow: 0, jag: 0.3, tex: { alpha: [0.1, 0.2] } });
+                    if (!chunky) f.creases.forEach((cr, j) => crease(cr, shade(skin, -15), j < 2 ? 0.55 : 0.45, 'cr' + i + j, j < 2 ? 0.5 : 0.35));
+                    else crease(f.creases[0], shade(skin, -15), 0.8, 'cr' + i, 0.5);
+                }
+            });
         });
         g.save();
         g.translate(x, y);
         g.rotate(rot);
-        const k = size / 60;
+        const k = size / 60 / HU;
         g.scale(o.mirror ? -k : k, k);
         sp.draw(g);
         g.restore();
     }
 
-    return { shade, spline, cspline, centre, taper, curl, knit, rib, newsprint, wordBars, sheetMusic, mapPaper, rings, wobblyLine, woodGrain, cursive, strands, crease, markerPath, punch, hand, handShape };
+    return { shade, spline, cspline, centre, taper, curl, knit, rib, newsprint, wordBars, sheetMusic, mapPaper, rings, wobblyLine, woodGrain, cursive, strands, crease, markerPath, punch, hand, handPieces, handAnchor };
 })();

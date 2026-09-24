@@ -83,8 +83,18 @@ until a full-resolution crop of it could pass for the reference (or for a finish
   word bars, headlines, photo blocks), handwriting (`PaperDetail.cursive`: arches, loops,
   dips), sheet music, maps (contour rings, a river, a red dashed route), wood grain.
   Collage props are cut from printed paper.
-- **Hands are never circles:** fists with separate fingers and a thumb across them holding
-  the pencil; mittens with a separate thumb; a ribbed cuff and the sleeve behind.
+- **Hands are never circles (or mittens):** every finger is its own tapered piece with a
+  round tip, lengths index < middle > ring > pinky, the fingers under others a shade darker,
+  knuckle creases, a subtle nail on the backs; the thumb its own piece with the web to the
+  index; a ribbed cuff (ribs along the arm) and the sleeve behind. A fist seen from the front
+  is four short bars (≈2.5 widths long) side by side, each overlapping the next, the thumb
+  across. `PaperDetail.hand(g, x, y, size, rot, pose, o)` does all this: poses open, wave,
+  point, fist, pinch/hold, rest, grip; `o.part: 'back' | 'front'` puts a held note, pen or
+  mug handle between the fingers and the thumb (`PaperDetail.handAnchor(pose)` says where).
+- **Cut small pieces at a big authoring scale** (a hand at palm = 200 units, then scaled):
+  `Paper.cutout`'s border, jag, fibres and grain are in absolute units, so cut at a 60-unit
+  palm they swamp the fingers. Pick the sprite resolution from `g.getTransform()` and keep
+  the white border ≥ ~1.3 output px, so miniatures still show where one finger ends.
 - **Paper that moves bends and turns in perspective** (`Motion.quad`); tears follow the
   perforation (square tabs, scraps flying); folds happen step by step with creases.
 - **Replacement animation, not deformation:** what the reference redraws (waves, tentacles,

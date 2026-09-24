@@ -2,13 +2,68 @@
 // pose, fabric/paper/wood textures, printed papers, marker lines, tapered strips, punched
 // holes, creases and paper in perspective. A visual test: run
 // `node engine/review.mjs styles/paper-cutout/showcase/scene.js` after touching detail.js.
+const POSES = ['open', 'wave', 'point', 'fist', 'pinch', 'hold', 'rest', 'grip'];
+// A point in a hand's local frame (PaperDetail.hand: wrist at x, y, fingers up) → world.
+function handPoint(x, y, size, rot, mirror, [lx, ly]) {
+    const k = size / 60, u = (mirror ? -lx : lx) * k, v = ly * k;
+    return [x + u * Math.cos(rot) - v * Math.sin(rot), y + u * Math.sin(rot) + v * Math.cos(rot)];
+}
+// Second shot: every pose large, a paper held between the parts, a pen in a grip, a hand
+// resting on a desk, a mirrored hand and other skin tones.
+function drawHands(g, t, kit) {
+    const P = Paper, D = PaperDetail, S = 96;
+    kit.paperBg(g, 'showcase-hands', '#3a2146');
+    const label = (s, x, y) => kit.hand(g, s, x, y, 26, '#f4ecda', { align: 'center' });
+    const row1 = [['open', {}], ['wave', { skin: '#c98e6a' }], ['point', {}], ['fist', { skin: '#8d5a3b' }], ['pinch', {}]];
+    row1.forEach(([pose, o], i) => {
+        const x = 170 + i * 315, y = 370;
+        D.hand(g, x, y, S, Math.sin(t * 2 + i) * 0.06, pose, { cuff: '#389486', ...o });
+        label(pose + (o.skin ? ' · ' + o.skin : ''), x, y + 90);
+    });
+    // hold: back part, the paper, front part
+    {
+        const x = 350, y = 830, rot = -0.3;
+        D.hand(g, x, y, S, rot, 'hold', { cuff: '#d9473b', sleeve: '#b83a30', part: 'back' });
+        const [ax, ay] = handPoint(x, y, S, rot, false, D.handAnchor('hold'));
+        kit.sprite('show-held-paper', { x: -10, y: -10, w: 240, h: 190 }, (c) => P.cutout(c, [[0, 0], [220, 6], [214, 170], [4, 166]], '#f7f3e7', 'heldpaper', { border: 2, shadow: 0.2, inner: (cc) => { cc.strokeStyle = '#b7c3de'; for (let yy = 30; yy < 170; yy += 26) (cc.beginPath(), cc.moveTo(0, yy), cc.lineTo(220, yy), cc.stroke()); } }), 1.4)
+            .draw((g.save(), g.translate(ax - 200, ay - 150), g.rotate(-0.04), g));
+        g.restore();
+        D.hand(g, x, y, S, rot, 'hold', { cuff: '#d9473b', part: 'front' });
+        label('hold (paper between parts)', 200, 870);
+    }
+    // rest: on a desk
+    {
+        kit.sprite('show-desk', { x: 450, y: 700, w: 380, h: 140 }, (c) => P.cutout(c, P.roundRect(460, 710, 360, 120, 6), '#b8895b', 'showdesk', { border: 2.4, inner: (cc, b) => D.woodGrain(cc, b, '#b8895b') }), 1.2).draw(g);
+        D.hand(g, 640, 700, S, Math.PI, 'rest', { cuff: '#389486', sleeve: '#2d7a6e' });
+        label('rest (on a desk)', 640, 870);
+    }
+    // grip: a pen through the fist
+    {
+        const x = 960, y = 800, rot = 0;
+        D.hand(g, x, y, S, rot, 'grip', { cuff: '#389486', part: 'back' });
+        const [ax, ay] = handPoint(x, y, S, rot, false, D.handAnchor('grip'));
+        kit.sprite('show-pen', { x: -120, y: -20, w: 240, h: 40 }, (c) => {
+            P.cutout(c, P.noodle([[-105, 0], [0, 0], [100, 0]], 20, 20), '#375eaf', 'showpen', { border: 2 });
+            P.cutout(c, [[-118, 0], [-104, -8], [-104, 8]], '#2b2b33', 'showpentip', { border: 1.4 });
+        }, 1.6).draw((g.save(), g.translate(ax, ay), g.rotate(-0.35), g));
+        g.restore();
+        D.hand(g, x, y, S, rot, 'grip', { cuff: '#389486', part: 'front' });
+        label('grip (pen between parts)', x, y + 70);
+    }
+    // mirrored: the other hand, other skin tone
+    D.hand(g, 1300, 800, S, 0.15, 'open', { cuff: '#f0cc51', mirror: true, skin: '#a86f4c' });
+    label('open · mirror', 1300, 870);
+    D.hand(g, 1480, 800, S * 0.6, -0.2, 'point', { mirror: true, skin: '#f1d0b5' });
+    label('point 60 %', 1480, 870);
+}
+
 Motion.scene({
     fps: 24,
-    duration: 3,
+    duration: 6,
     logical: [1600, 900],
     uses: ['styles/paper-cutout/paper.js', 'styles/paper-cutout/kit.js', 'styles/paper-cutout/detail.js'],
     fonts: [{ family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' }],
-    shots: [[0, 3, 'Showcase']],
+    shots: [[0, 3, 'Showcase'], [3, 6, 'Hands']],
 
     setup(env) {
         return { kit: PaperKit.make(env, { font: 'Hand' }) };
@@ -17,12 +72,12 @@ Motion.scene({
     draw(g, t, env) {
         const { kit } = env.state, P = Paper, D = PaperDetail;
         kit.paperBg(g, 'showcase', '#3a2146');
-        // hands: open, wave, pinch, fist (with sweater cuffs), and a mirrored one
-        ['open', 'wave', 'pinch', 'fist'].forEach((pose, i) => {
-            D.hand(g, 140 + i * 170, 360, 110, Math.sin(t * 2 + i) * 0.1, pose, { cuff: '#389486' });
-            kit.hand(g, pose, 140 + i * 170, 425, 30, '#f4ecda', { align: 'center' });
+        if (t >= 3) return drawHands(g, t, kit);
+        // hands at miniature size (the fingers must still read): every pose, one with a cuff
+        POSES.forEach((pose, i) => {
+            D.hand(g, 110 + i * 125, 400, 40, Math.sin(t * 2 + i) * 0.06, pose, { cuff: i % 2 ? '#389486' : undefined });
+            kit.hand(g, pose, 110 + i * 125, 450, 24, '#f4ecda', { align: 'center' });
         });
-        D.hand(g, 820, 360, 110, -0.2, 'open', { cuff: '#d9473b', mirror: true, skin: '#c98e6a' });
         // textures on cut pieces
         const swatch = (x, y, color, seed, inner, label) => {
             kit.sprite('sw' + seed, { x: x - 10, y: y - 10, w: 250, h: 190 }, (c) => P.cutout(c, P.roundRect(x, y, 230, 170, 10), color, seed, { border: 3, inner }), 1.2).draw(g);
