@@ -35,7 +35,7 @@ Lessons that apply to other videos go up to the matching skill (see review/SKILL
   shadow skips them; a stale estimate after a skip painted streaks (reset it); the bound
   must hold the penumbra (radius 1.6).
 
-## Round 3 (in progress: stills only, the full render is pending)
+## Round 3 (auto)
 
 - Hands chunky like the references (thick palm, fat short fingers, fat thumb, built at
   1.3×); thicker sleeves joined to the torso with a smooth clay seam (no dot at the
