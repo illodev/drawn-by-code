@@ -82,7 +82,12 @@ node engine/reference.mjs sheets ref.mp4 --every 0.25      # labelled contact sh
 node engine/reference.mjs compare sandbox/x/scene.js ref.mp4 --times 2,3.5 --crop 0.3,0.2,0.4,0.4
 node engine/reference.mjs colors ref.mp4 3.5 skin=0.42,0.31 # sampled palette
 node engine/reference.mjs track ref.mp4 --color '#d2745e' --from 10 --to 12   # per-frame box
+node engine/reference.mjs cuts ref.mp4                                         # exact cut frames
+node engine/reference.mjs box ref.mp4 1.75 --color '#302222' --region 150,100,850,800
+node engine/reference.mjs runs out/stills/t_3.79s.png 0 --row 0.6               # edges along a row
+node engine/reference.mjs face ref.mp4 --body '#d2745e' --from 12 --to 12.5    # face per drawing
 ```
+The whole method for replicas is in the **replicate** skill.
 
 Preview: space = pause, ←/→ one frame, shift+←/→ one second, `&t=3.5` in the URL.
 Chrome: looked up in `CHROME_PATH`, `/opt/pw-browsers`, and the usual Linux/macOS paths.

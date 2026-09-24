@@ -68,3 +68,26 @@ Open:
   now the worst seconds (0–1.5, 6, 24–25).
 - `review.mjs` flags 4 flashes at 15–16 s: the reference's own 0.25 s cards (teal → purple
   → pink → blue → cream). Kept for the 1:1 study; a real piece would soften those cuts.
+
+## Round 4 (user)
+
+> «Sabes que está perfecto cuando ya tengo que hacer zoom para ver diferencias jajaja.
+> Brutal. Lo único que he visto a simple vista es que nuestra interrogación se sale de la
+> hoja.» (You know it's perfect when I have to zoom in to see differences. The only thing I
+> saw at a glance is that our question mark runs off the page.)
+
+- Cause: Patrick Hand makes «you love?» 1.27× as wide as «what do»; the reference's hand
+  lettering 1.21×. The first line was measured and matched, the second never was.
+- Fix: notes set a per-line letter spacing that keeps the reference's line ratio
+  (`WL.lineSpacings`); the torn page is measured 34 units wider than the sheet on the pad
+  and its perforation tabs are shallower. The '?' now sits inside the page in every note.
+- Lesson (in the `replicate` skill): measure text like any other element, line by line.
+
+> «Dejaría todo tu conocimiento persistido…» (Persist everything you know so another agent
+> can use it.)
+
+- New skill `replicate` (workflow, measuring tools, recipes, pitfalls with fixes, splitting
+  the work across agents, `agent-brief.md` template); `engine/reference.mjs` gained `cuts`,
+  `box`, `runs` and `face`; the agents' best helpers moved into `PaperDetail` (`cspline`,
+  `taper`, `curl`, `rings`, `wobblyLine`, `markerPath`, `punch`, `wordBars`, `sheetMusic`,
+  `mapPaper`), with pixel-identical output; `segments/README.md` maps the replica.

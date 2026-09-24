@@ -122,17 +122,7 @@
 
     // --- the letters -------------------------------------------------------------------------
     // A torn ring: the piece, then its hole punched out with a white torn rim.
-    function punch(c, pts, seed, rim = 2.6) {
-        const res = P.resample(pts, 2);
-        c.save();
-        c.fillStyle = P.PAPER;
-        P.tracePath(c, P.torn(res, seed + ':rim', rim, 0.5, 0.8));
-        c.fill();
-        c.globalCompositeOperation = 'destination-out';
-        P.tracePath(c, P.torn(res, seed + ':hole', 0, 0, 0.6));
-        c.fill();
-        c.restore();
-    }
+    const punch = PaperDetail.punch;
     const blob = (cx, cy, rx, ry, seed, j = 0.05, n = 10) => {
         const r = P.rng(seed);
         return D.spline(Array.from({ length: n }, (_, i) => {

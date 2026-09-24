@@ -32,6 +32,10 @@ The `animate` skill guides the process: brief → script → style test → anim
 | `kaleidoscope`: mirror symmetry, rotation, color cycling | approved | [exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/) |
 | `line`: wobbling black line on white paper | approved | [exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/) |
 
+Replicating a reference video 1:1 (measuring tools, per-drawing choreography, element by
+element, parallel agents): the `replicate` skill and `engine/reference.mjs`; worked example
+[what-do-you-love](sandbox/2026-09-24-what-do-you-love/).
+
 Transitions between styles (entering through a point, iris, engulf, vortex, frame within
 a frame): `engine/transitions.js` and the `transitions` skill.
 

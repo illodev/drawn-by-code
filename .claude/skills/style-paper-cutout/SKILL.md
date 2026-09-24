@@ -18,6 +18,14 @@ before starting).
 - `styles/paper-cutout/kit.js` → `PaperKit.make(env, { font })`: `hand` (text that writes
   itself), `title` (text + underline), `sfxWord` («zap!»), `paperBg`, `glow`, `sheet`,
   `ticket`, `wisp` (a wisp of steam or smoke), `grainPost` and the `COL` palette.
+- `styles/paper-cutout/detail.js` → `PaperDetail` (see `styles/paper-cutout/showcase/`):
+  shapes `spline`, `cspline` (centripetal: no bulge at corners), `taper` (strip with a
+  width per control point: tentacles, stems, tails), `curl` (pose variation of a
+  centreline); printed papers `knit`, `rib`, `newsprint`, `wordBars`, `cursive`,
+  `sheetMusic`, `mapPaper` (`rings` + `wobblyLine`), `woodGrain`, `strands`; marks
+  `markerPath` (a marker line as a chain of strokes, revealable by arc length), `crease`,
+  `punch` (a hole with a torn rim); `hand` (open, wave, pinch, fist with thumb and cuff);
+  `shade` (returns hex).
 - Characters as **puppets**: one function per character that takes `{ t, armL, armR,
   legL, legR, look, blink, … }` and is drawn with the origin **between the feet** (up is
   negative). Arms and legs are `noodle`s through shoulder-elbow-hand.

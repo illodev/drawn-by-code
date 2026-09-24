@@ -16,6 +16,22 @@
 //       so stray specks do not count) and area, in thousandths of the frame. For copying the
 //       motion of a character 1:1 (bounces, squash, arcs) instead of eyeballing it.
 //
+//   node engine/reference.mjs cuts <video> [--from 0] [--to end]
+//       Exact cut frames (the frame edges change colour at once): cuts land on frames.
+//
+//   node engine/reference.mjs box <video|image> <second> --color '#302222' [--tol 40] [--region x0,y0,x1,y1]
+//       Box (2–98 %) of one colour inside a region, in logical units (0–1000). Run it on the
+//       reference and on your own still (`render.mjs --at`, same size) to compare positions
+//       and sizes of one element: hair, ink of a text, a prop.
+//
+//   node engine/reference.mjs runs <video|image> <second> --row 0.6 | --col 0.3 [--tol 18]
+//       Colour runs along one row or column (start–end:#colour): measures edges of paper,
+//       bands of sky, ruled lines, margins, in logical units.
+//
+//   node engine/reference.mjs face <video> --body '#d2745e' [--from] [--to]
+//       Per drawing (every 2 frames), the centroid of dark marks (eyes, mouth) surrounded by
+//       the body colour: where a character's face is, even when its limbs change.
+//
 // No ffmpeg drawtext: the labels are painted in Chromium.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -225,7 +241,67 @@ if (cmd === 'sheets') {
         const pad = (v, w = 4) => String(v).padStart(w);
         console.log(`${t} ${pad(cx, 5)}${pad(cy, 5)} ${pad(x0, 5)}${pad(x1, 5)}${pad(y0, 5)}${pad(y1, 5)} ${pad(x1 - x0, 5)}${pad(y1 - y0, 5)} ${pad(Math.round((xs.length / (W * W)) * 1000 * crop[2] * crop[3]), 6)}`);
     }
+} else if (cmd === 'cuts' || cmd === 'box' || cmd === 'runs' || cmd === 'face') {
+    const src = pos[0], isImage = /\.(png|jpe?g|webp)$/i.test(src);
+    const hex2rgb = (h) => [0, 2, 4].map((i) => parseInt(String(h).replace('#', '').slice(i, i + 2), 16));
+    const dist = (buf, o, c) => Math.abs(buf[o] - c[0]) + Math.abs(buf[o + 1] - c[1]) + Math.abs(buf[o + 2] - c[2]);
+    // raw RGB frames of `src` at W×W (one frame at t, or every frame in [from, to))
+    const frames = (W, t, from, to) => {
+        const args = ['-v', 'error'];
+        if (!isImage) args.push('-ss', String(t ?? from), ...(to !== undefined ? ['-t', String(to - from)] : []));
+        args.push('-i', src, ...(t !== undefined || isImage ? ['-frames:v', '1'] : []), '-vf', `scale=${W}:${W}`, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-');
+        const r = spawnSync(ffmpeg, args, { maxBuffer: 1 << 30 });
+        return { buf: r.stdout, n: Math.floor(r.stdout.length / (W * W * 3)) };
+    };
+    if (cmd === 'cuts') {
+        const W = 64, from = Number(opt.from ?? 0), to = Number(opt.to ?? duration(src));
+        const { buf, n } = frames(W, undefined, from, to);
+        let prev = null;
+        for (let i = 0; i < n; i++) {
+            const c = [0, 0, 0];
+            for (const [x, y] of [[2, 2], [61, 2], [2, 61], [61, 61], [3, 30], [60, 30]]) for (let k = 0; k < 3; k++) c[k] += buf[i * W * W * 3 + (y * W + x) * 3 + k] / 6;
+            if (prev && Math.abs(c[0] - prev[0]) + Math.abs(c[1] - prev[1]) + Math.abs(c[2] - prev[2]) > 30) console.log(`cut at frame ${Math.round(from * 24) + i} (${(from + i / 24).toFixed(3)} s)`);
+            prev = c;
+        }
+    } else if (cmd === 'box') {
+        const W = 1000, { buf } = frames(W, Number(pos[1] ?? 0)), col = hex2rgb(opt.color ?? '#000000'), tol = Number(opt.tol ?? 40);
+        const [x0, y0, x1, y1] = String(opt.region ?? '0,0,1000,1000').split(',').map(Number);
+        const xs = [], ys = [];
+        for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (dist(buf, (y * W + x) * 3, col) < tol) (xs.push(x), ys.push(y));
+        xs.sort((a, b) => a - b);
+        ys.sort((a, b) => a - b);
+        const q = (a, f) => a[Math.floor(a.length * f)];
+        console.log(xs.length > 30 ? `x ${q(xs, 0.02)}–${q(xs, 0.98)}  y ${q(ys, 0.02)}–${q(ys, 0.98)}  pixels ${xs.length}` : 'not found');
+    } else if (cmd === 'runs') {
+        const W = 1000, { buf } = frames(W, Number(pos[1] ?? 0)), tol = Number(opt.tol ?? 18);
+        const row = opt.row !== undefined, at = Math.round(Number(opt.row ?? opt.col) * W);
+        const px = (i) => [0, 1, 2].map((k) => buf[((row ? at : i) * W + (row ? i : at)) * 3 + k]);
+        const runs = [];
+        let cur = null;
+        for (let i = 0; i < W; i++) {
+            const p = px(i);
+            if (cur && Math.abs(p[0] - cur.c[0]) + Math.abs(p[1] - cur.c[1]) + Math.abs(p[2] - cur.c[2]) < tol) (cur.n++, (cur.c = cur.c.map((v, k) => v + (p[k] - v) / cur.n)));
+            else runs.push((cur = { i, n: 1, c: p }));
+        }
+        console.log(runs.filter((q) => q.n >= 4).map((q) => `${q.i}–${q.i + q.n - 1}:#${q.c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`).join('  '));
+    } else {
+        const W = 500, from = Number(opt.from ?? 0), to = Number(opt.to ?? duration(src)), body = hex2rgb(opt.body ?? '#d2745e');
+        const { buf, n } = frames(W, undefined, from, to), fr = W * W * 3, R = 7;
+        for (let i = 0; i < n; i += 2) {
+            const on = new Uint8Array(W * W);
+            for (let j = 0; j < W * W; j++) on[j] = dist(buf, i * fr + j * 3, body) < 40 ? 1 : 0;
+            let sx = 0, sy = 0, c = 0;
+            for (let y = R; y < W - R; y++) for (let x = R; x < W - R; x++) {
+                const o = i * fr + (y * W + x) * 3;
+                if (buf[o] + buf[o + 1] + buf[o + 2] > 170) continue;
+                let s = 0, tot = 0;
+                for (let dy = -R; dy <= R; dy += 2) for (let dx = -R; dx <= R; dx += 2) (s += on[(y + dy) * W + x + dx]), tot++;
+                if (s / tot > 0.45) (sx += x, sy += y, c++);
+            }
+            console.log((from + i / 24).toFixed(3), c > 15 ? `face ${Math.round((sx / c / W) * 1000)} ${Math.round((sy / c / W) * 1000)}` : '—');
+        }
+    }
 } else {
-    console.error('Usage: node engine/reference.mjs sheets <video> … | compare <scene.js> <video> … | colors <video> <s> name=x,y … | track <video> --color #hex …');
+    console.error('Usage: node engine/reference.mjs sheets <video> … | compare <scene.js> <video> … | colors <video> <s> name=x,y … | track <video> --color #hex … | cuts <video> | box <src> <s> --color #hex | runs <src> <s> --row y | face <video> --body #hex');
     process.exit(1);
 }

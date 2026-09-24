@@ -16,7 +16,8 @@ inside videos is creative content and stays in whatever language the video needs
 | `.claude/skills/style-*/` | One skill per visual style |
 | `.claude/skills/new-style/` | How to add a style |
 | `.claude/skills/transitions/` | Transitions between shots and between styles (`engine/transitions.js`) |
-| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `new.mjs`, `mix.mjs`, `serve.mjs` |
+| `.claude/skills/replicate/` | Copying a reference video 1:1: measure, per-drawing tables, element by element, parallel agents |
+| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `new.mjs`, `mix.mjs`, `serve.mjs` |
 | `styles/<style>/` | Drawing kit and `template.js` for each style |
 | `sandbox/` | One experiment per folder (`YYYY-MM-DD-name/`), indexed in `INDEX.md` |
 | `assets/sfx/`, `fonts/` | Freely licensed sound effects and fonts |
@@ -30,6 +31,7 @@ npm run preview                                     # http://127.0.0.1:5173
 node engine/review.mjs sandbox/<exp>/scene.js       # automatic review + contact sheet
 node engine/render.mjs sandbox/<exp>/scene.js --at 1,2.5   # stills
 node engine/render.mjs sandbox/<exp>/scene.js --size 1920  # MP4
+node engine/reference.mjs compare sandbox/<exp>/scene.js ref.mp4 --times 2,4 --crop 0.3,0.2,0.4,0.4
 ```
 
 ## The loop (mandatory)
@@ -42,6 +44,13 @@ node engine/render.mjs sandbox/<exp>/scene.js --size 1920  # MP4
    skill (style, animate, engine, sound) or fix the engine.
 4. One commit per round: `review(<experiment>): round N · <lesson>`, experiment and skills
    together.
+
+## The detail bar
+
+Detail is the job, not a polish step. Every element is its own set of pieces with organic
+shapes, textures that say what it is made of and real hands; crop it at full resolution
+before calling it done (style skill → «Detail»). Positions, sizes, colours and timing come
+from measurements (`engine/reference.mjs`, skill **replicate**), never from guesses.
 
 ## Conventions
 
