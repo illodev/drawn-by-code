@@ -7,8 +7,12 @@
 //     "music": "music.mp3", "musicDb": -2, "musicFrom": 0,    // optional
 //     "duration": 6.5,                                         // optional: trims/pads
 //     "sfxDir": "../../assets/sfx",
-//     "cues": [["pop", 1.0, -10], ["stamp", 2.5, -4]]          // [effect, second, dB]
+//     "cues": [["pop", 1.0, -10], ["stamp", 2.5, -4]],         // [effect, second, dB]
+//     "align": "onset"                                         // optional, see below
 //   }
+// With "align": "onset" a cue's second is when its hit is heard, not when the file starts:
+// each effect is moved earlier by its onset (first sample above 10 % of its peak), so a
+// page turn that starts 0.16 s into its file still lands on the drawing of the contact.
 // A soft limiter keeps everything below -1 dBFS. The default output is mix.wav next to
 // the json; render.mjs picks it up on its own if the scene declares audio: { mix: 'mix.wav' }.
 import fs from 'node:fs';
@@ -35,11 +39,20 @@ if (cfg.music) {
     labels.push('[m]');
     n++;
 }
+// seconds from the start of the file to the first sample above 10 % of the peak
+function onset(f) {
+    const r = spawnSync(ffmpeg, ['-v', 'error', '-i', f, '-ac', '1', '-ar', '8000', '-f', 's16le', '-'], { maxBuffer: 1e8 });
+    const s = new Int16Array(r.stdout.buffer, r.stdout.byteOffset, r.stdout.length >> 1);
+    let pk = 0;
+    for (const v of s) pk = Math.max(pk, Math.abs(v));
+    const i = s.findIndex((v) => Math.abs(v) > pk * 0.1);
+    return Math.max(0, i) / 8000;
+}
 for (const [name, at, db] of cfg.cues ?? []) {
     const f = path.join(sfxDir, `${name}.mp3`);
     if (!fs.existsSync(f)) throw new Error(`Effect not found: ${f}`);
     inputs.push('-i', f);
-    const ms = Math.max(0, Math.round(at * 1000));
+    const ms = Math.max(0, Math.round((at - (cfg.align === 'onset' ? onset(f) : 0)) * 1000));
     chains.push(`[${n}:a]aresample=44100,aformat=channel_layouts=stereo,volume=${db}dB,adelay=${ms}|${ms}[s${n}]`);
     labels.push(`[s${n}]`);
     n++;

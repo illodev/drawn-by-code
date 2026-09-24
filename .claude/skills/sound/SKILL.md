@@ -63,6 +63,16 @@ commercial use = paid plan; the track is third-party audio: keep it in the exper
 `node engine/mix.mjs sandbox/x/audio.json` → `mix.wav`; with `audio: { mix: 'mix.wav' }`
 in the scene, `render.mjs` adds it automatically. If you move a shot, move its cues.
 
+- **`"align": "onset"`** (recommended): a cue's second is when its hit is *heard*. Many
+  effects start with a breath of air (page_turn 0.16 s, tick 0.8 s into the file); without
+  it they land a drawing or more late. Then write the contact second from the block's code
+  (its landing/beat constants) as is.
+- **A track that stops dead** before the end card holds: throw its last half second through
+  a delay in time (`aecho` at eighth notes, decaying) and fade by the end; it rings out in
+  its own key without you having to listen (see `sandbox/2026-09-24-saas-promo/cut-music.sh`).
+- **Private music**: point `audio.mix` at a file in `private/`; `render.mjs` skips a missing
+  mix, so the scene still renders without the private folder.
+
 ## Lessons
 
 - 2026-09-23 · paper-short · A silence mid-video looks like a technical fault: if the music stops, make it on a clear, brief hit.

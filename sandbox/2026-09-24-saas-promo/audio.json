@@ -1,0 +1,34 @@
+{
+  "music": "private/audio/music-cut.wav",
+  "musicDb": -3,
+  "duration": 50,
+  "sfxDir": "../../assets/sfx",
+  "align": "onset",
+  "cues": [
+    ["paper_rain", 0.2, -22],
+    ["drawer_thud", 0.5, -9], ["paper_land", 1.0, -13], ["paper_land", 1.25, -16], ["paper_land", 1.5, -13],
+    ["paper_land", 2.0, -12], ["drawer_thud", 2.5, -10], ["phone_buzz", 3.0, -14], ["paper_land", 3.0, -13],
+    ["paper_land", 3.5, -12], ["phone_buzz", 3.75, -15], ["drawer_thud", 4.0, -8], ["paper_land", 4.25, -17],
+    ["paper_land", 4.5, -13], ["phone_buzz", 4.5, -15], ["paper_land", 4.75, -16], ["paper_land", 5.0, -12],
+    ["phone_buzz", 5.25, -14], ["paper_land", 5.25, -17], ["paper_land", 5.5, -12], ["tap", 5.75, -10],
+
+    ["whoosh_close", 6.1, -14], ["pop", 6.5, -8], ["suck_up", 7.0, -10], ["pop", 8.5, -13],
+    ["plane_whoosh", 8.9, -12], ["pop", 9.5, -9],
+
+    ["button_click", 11.0, -6], ["page_turn", 11.3, -10],
+    ["stamp", 12.5, -5], ["paper_fold", 13.0, -9], ["plane_whoosh", 13.5, -9], ["mail_clank", 14.5, -7], ["bell_ding", 14.55, -16],
+
+    ["paper_land", 27.5, -17], ["paper_land", 28.0, -16], ["page_turn", 28.25, -13], ["paper_land", 28.5, -17],
+    ["paper_land", 29.0, -16], ["page_turn", 29.25, -13], ["paper_land", 29.5, -17], ["paper_land", 30.0, -16],
+    ["page_turn", 30.25, -13], ["paper_land", 30.5, -17], ["stamp", 31.0, -7], ["stamp", 31.5, -8], ["scribble", 32.0, -14],
+
+    ["typing", 33.05, -12], ["swoosh_in", 34.0, -13], ["pop", 34.5, -10], ["paper_fold", 34.5, -12],
+    ["tap", 35.0, -11], ["tap", 35.5, -11], ["tap", 36.0, -11], ["tap", 36.5, -11], ["scribble", 37.0, -12],
+
+    ["pop", 38.5, -15], ["pop", 39.0, -15], ["swoosh_in", 39.0, -14], ["stamp", 39.5, -5],
+    ["stapler", 40.5, -11], ["zip", 41.0, -15], ["mail_clank", 42.0, -8], ["chime_ok", 42.05, -14],
+
+    ["swoosh_in", 46.0, -11], ["paper_fold", 46.25, -10], ["pop", 46.5, -8], ["scribble", 47.0, -15],
+    ["button_click", 47.5, -8], ["chime_ok", 48.0, -11]
+  ]
+}

@@ -31,6 +31,7 @@ Motion.scene({
         { family: 'Geist Mono', src: DIR + 'private/fonts/geist-mono-latin-500-normal.woff2', optional: true },
     ],
     bpm: 120,
+    audio: { mix: 'private/audio/mix.wav' }, // private (brand music); render.mjs skips it if absent
     shots: EDIT.map(([a, b, name]) => [a, b, name]),
 
     setup(env) {
