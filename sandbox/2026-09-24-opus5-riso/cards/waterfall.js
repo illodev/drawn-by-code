@@ -165,9 +165,9 @@ const DRAW_WATERFALL = (press, t) => {
 };
 // the film pushes in on this card: 1.05 % a frame about the centre (four corner
 // patches correlated frame to frame against f254 (10.583 s), the frame it was measured on); one scale
-// per drawing
-CARDS.waterfall = (press, t) => {
-    const z = G3.push(0.0105, Math.floor(t * 12 + 1e-6), 1.5);
+// per frame
+CARDS.waterfall = (press, t, lf) => {
+    const z = G3.push(0.0105, t, lf, 2);
     press.save();
     press.each((g) => { g.translate(500, 500); g.scale(z, z); g.translate(-500, -500); });
     DRAW_WATERFALL(press, t);

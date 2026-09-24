@@ -176,9 +176,9 @@ const DRAW_FERRIS = (press, t) => {
 };
 // the film pushes in on this card: 1.01 % a frame about the centre (four corner
 // patches correlated frame to frame against f247 (10.292 s), the frame it was measured on); one scale
-// per drawing
-CARDS.ferris = (press, t) => {
-    const z = G3.push(0.0101, Math.floor(t * 12 + 1e-6), 0.5);
+// per frame
+CARDS.ferris = (press, t, lf) => {
+    const z = G3.push(0.0101, t, lf, 1);
     press.save();
     press.each((g) => { g.translate(500, 500); g.scale(z, z); g.translate(-500, -500); });
     DRAW_FERRIS(press, t);

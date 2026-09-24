@@ -68,17 +68,19 @@ const DRAW_BICYCLE = (press, t) => {
         pink.fillStyle = T(0.95); pink.beginPath(); shape(pink); pink.fill();
         off(pink, (g) => { g.beginPath(); g.arc(x, y, s * 0.16, 0, 7); g.fill(); });
         U.disc(yellow, x, y, s * 0.12);
+        // (at 3×: every bract is pocked with paper pinholes, one or two per lobe)
+        press.knockout((g) => { g.beginPath(); for (let k = 0; k < 3; k++) { const b = a + k * 2.094 + 0.4; const px = x + Math.cos(b) * s * 0.62, py = y + Math.sin(b) * s * 0.62; g.moveTo(px + 1.6, py); g.arc(px, py, 1.6, 0, 7); } g.fill(); });
     };
     // cluster centres and radii from where the ref's pink and red sit (40 px blocks, f260)
     const clusters = [
         [37, 56, 55], [56, 167, 55], [120, 241, 55], [93, 306, 74], [37, 389, 46], [93, 463, 37], [167, 509, 37],
         [426, 130, 55], [519, 56, 74], [630, 56, 74], [741, 56, 55], [574, 167, 55], [704, 185, 65], [815, 167, 46], [741, 259, 37],
         [926, 407, 46], [852, 481, 46],
-    ].map(([x, y, r]) => [x, y, r, r * 0.3]);
+    ].map(([x, y, r]) => [x, y, r, r * 0.6]);
     const rb = Motion.rng('bc-bracts');
     for (const [cx, cy, R0, n0] of clusters) for (let i = 0, n = Math.round(n0 * 1.4); i < n; i++) {
         const a = rb() * 6.28, r = Math.sqrt(rb()) * R0;
-        bract(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8, 13 + rb() * 7, rb() * 6.28, rb() < 0.55);
+        bract(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8, 9 + rb() * 5, rb() * 6.28, rb() < 0.55);
     }
     // the bell's ring: blue swooshes to the upper right of the bars
     for (let i = 0; i < 4; i++) {
@@ -151,9 +153,9 @@ const DRAW_BICYCLE = (press, t) => {
 };
 // the film pushes in on this card: 1.13 % a frame about the centre (four corner
 // patches correlated frame to frame against f259 (10.792 s), the frame it was measured on); one scale
-// per drawing
-CARDS.bicycle = (press, t) => {
-    const z = G3.push(0.0113, Math.floor(t * 12 + 1e-6), 0.5);
+// per frame
+CARDS.bicycle = (press, t, lf) => {
+    const z = G3.push(0.0113, t, lf, 1);
     press.save();
     press.each((g) => { g.translate(500, 500); g.scale(z, z); g.translate(-500, -500); });
     DRAW_BICYCLE(press, t);

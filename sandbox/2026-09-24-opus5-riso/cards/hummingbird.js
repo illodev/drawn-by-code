@@ -20,7 +20,7 @@ CARDS.hummingbird = (press, t) => {
     U.ref(press, 1, () => {
         const sm = (a, b, v) => { const k = Math.max(0, Math.min(1, (v - a) / (b - a))); return k * k * (3 - 2 * k); };
         const gb = (x, y) => 0.24 + 0.42 * sm(560, 1080, y) + 0.4 * Math.max(0, 1 - Math.hypot(x, y) / 260) + 0.15 * sm(850, 1080, x) - 0.08 * Math.max(0, 1 - Math.hypot(x - 420, y - 280) / 260);
-        U.lat(blue, [11.222, 3.006, -3.171, 11.417, 865.9, 508.7], gb, -20, -20, 1100, 1100, { jit: 0.15 });
+        U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], gb, -20, -20, 1100, 1100, { jit: 0.15 });
     });
 
     // ── leaves: dark ones (dense blue + red dots over yellow), pale ones (outlined, fewer dots)
@@ -101,9 +101,9 @@ CARDS.hummingbird = (press, t) => {
 
         // the far wing, a motion blur: a paper wedge (yellow and the ground dots thinned)
         // speckled with blue and pink, fanning left from the shoulder; a second beat upward
-        const ghost = [[492, 318], [470, 288 + wob], [410, 258 + wob], [330, 244 + wob], [262, 240 + wob], [222, 252], [226, 300], [262, 338], [330, 362], [410, 368], [470, 350]];
-        const ghost2 = [[520, 268], [498, 170], [482, 90], [470, 20], [468, -5], [525, -5], [530, 60], [534, 150], [540, 250]];
-        for (const [gh, k] of [[ghost, 0.4], [ghost2, 0.3]]) {
+        const ghost = [[495, 330], [460, 300 + wob], [400, 260 + wob], [320, 225 + wob], [230, 205 + wob], [150, 200], [120, 260], [140, 360], [150, 470], [250, 440], [350, 400], [430, 370]];
+        const ghost2 = [[520, 262], [470, 200], [440, 120], [425, 40], [420, -5], [515, -5], [520, 60], [528, 150], [540, 240]];
+        for (const [gh, k] of [[ghost, 0.62], [ghost2, 0.45]]) {
             for (const g of [yellow, blue, blueS]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(g === yellow ? k : 0.6); U.smooth(g, gh); g.fill(); g.restore(); }
             const rs = Motion.rng('hbg' + k + (d % 3));
             inside(blue, sm(gh), (g) => U.lat(g, LF, () => 0.22 * (0.5 + rs()), 200, -10, 560, 380, { jit: 0.9 }));
@@ -151,19 +151,19 @@ CARDS.hummingbird = (press, t) => {
 
         // the near wing: a long blade, blue flat with a navy screen, a dark top edge, pink
         // feather lines and two paper streaks along it; paler to the tip
-        const WING = [[220, 62], [250, 78], [295, 96], [350, 120], [415, 150], [455, 190], [500, 234], [542, 262], [486, 318], [435, 281], [385, 236], [335, 190], [285, 135], [240, 84]];
+        const WING = [[150, 28], [200, 60], [250, 75], [300, 84], [350, 97], [400, 118], [450, 152], [495, 200], [532, 246], [536, 262], [480, 316], [430, 280], [350, 206], [300, 165], [250, 122], [200, 84], [165, 52]];
         press.knockout((g) => { U.smooth(g, WING); g.fill(); });
         fillS(blue, WING, 0.92);
         inside(navy, sm(WING), (g) => U.lat(g, L8, (x) => Math.max(0, 0.08 + (x - 230) * 0.0011), 210, 50, 550, 330, { jit: 0.25 }));
         inside(pink, sm(WING), (g) => U.lat(g, [6.3, 1.7, -1.7, 6.3, 300, 100], (x) => 0.12 + 0.1 * Math.max(0, (330 - x) / 110), 210, 50, 550, 330, { jit: 0.4 }));
         // feather lines: fanning from the base toward the tip
         inside(pink, sm(WING), (g) => {
-            for (let i = 0; i < 6; i++) { const k = i / 5; U.stroke(g, [[228 + k * 10, 66 + k * 12], [340 + k * 18, 128 + k * 40], [470 + k * 10, 236 + k * 40]], 1.5, 0.75, true); }
+            for (let i = 0; i < 7; i++) { const k = i / 6; U.stroke(g, [[160 + k * 20, 36 + k * 20], [330 + k * 10, 110 + k * 70], [500 - k * 10, 230 + k * 70]], 1.5, 0.75, true); }
         });
         press.save(); press.clip(sm(WING));
-        press.knockout((g) => { g.lineWidth = 2.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(232, 72); g.quadraticCurveTo(350, 140, 490, 262); g.stroke(); g.lineWidth = 1.6; g.beginPath(); g.moveTo(250, 88); g.quadraticCurveTo(330, 150, 420, 212); g.stroke(); });
+        press.knockout((g) => { g.lineWidth = 2.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(165, 40); g.quadraticCurveTo(340, 130, 500, 262); g.stroke(); g.lineWidth = 1.6; g.beginPath(); g.moveTo(190, 62); g.quadraticCurveTo(320, 160, 440, 262); g.stroke(); });
         press.restore();
-        U.stroke(navy, [[222, 62], [295, 94], [350, 118], [415, 148], [456, 188], [500, 232], [540, 260]], 3.2, 0.9, true);
+        U.stroke(navy, [[152, 30], [250, 76], [350, 97], [450, 152], [495, 200], [532, 246]], 3.2, 0.9, true);
 
         // the head: a green ball, solid on the crown, a fine screen (yellow showing) on the
         // cheek lower right

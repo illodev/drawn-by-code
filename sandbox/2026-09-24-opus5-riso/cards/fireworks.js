@@ -223,9 +223,9 @@ const DRAW_FIREWORKS = (press, t) => {
 };
 // the film pushes in on this card: 0.76 % a frame about the centre (four corner
 // patches correlated frame to frame against f223 (9.292 s), the frame it was measured on); one scale
-// per drawing
-CARDS.fireworks = (press, t) => {
-    const z = G3.push(0.0076, Math.floor(t * 12 + 1e-6), 0.5);
+// per frame
+CARDS.fireworks = (press, t, lf) => {
+    const z = G3.push(0.0076, t, lf, 1);
     press.save();
     press.each((g) => { g.translate(500, 500); g.scale(z, z); g.translate(-500, -500); });
     DRAW_FIREWORKS(press, t);

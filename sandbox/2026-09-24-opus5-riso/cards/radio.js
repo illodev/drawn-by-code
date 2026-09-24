@@ -16,7 +16,7 @@
 //   darks  black-green: navy + yellow + blue, every other plate cleared under them
 // Needs cards/_g3-util.js.
 var CARDS = CARDS || {};
-CARDS.radio = (press, t) => {
+CARDS.radio = (press, t, lf) => {
     const { T, lat, ribbon, path, smooth } = G3;
     const P = (ink) => press.plate(ink);
     const Y = P('yellow'), K = P('pink'), B = P('blue'), N = P('navy');
@@ -30,7 +30,7 @@ CARDS.radio = (press, t) => {
     const L_CABN = [7.942, 2.064, -2.051, 7.731, 392.0, 932.8];
     const L_CABP = [7.021, -1.742, 1.742, 7.021, 326.5 + 4.38, 749.6 + 2.64];
     const cl = (v) => Math.max(0, Math.min(1, v));
-    G3.ref(press, G3.push(0.0077, d), () => {
+    G3.ref(press, G3.push(0.0077, t, lf, 2), () => {
         // ------------------------------------------------------------ the wall
         const WALL_B = 988;
         N.fillStyle = T(1); N.fillRect(-60, -60, 1200, WALL_B + 60);
@@ -103,8 +103,9 @@ CARDS.radio = (press, t) => {
         Y.save(); Y.beginPath(); sil(Y); Y.clip(); Y.fillStyle = T(1); Y.fillRect(0, 0, 1080, 1080); Y.restore();
         // tone maps from the unmix: pink ~0.8 on the crown and the base, ~0.4 in the grille,
         // ~0.1 in the lit centre; navy ~0.15–0.4 on the front, 0.7 on the side and edges
+        const inGr = (x, y) => y > 385 && y < 700 && Math.abs(x - 473) < 130 && (y > 536 || Math.hypot(x - 473, y - 536) < 130);
         const lit = (x, y) => Math.exp(-Math.pow(Math.hypot((x - 482) / 175, (y - 785) / 95), 2.2));
-        const pkT = (x, y) => cl((y < 460 ? 0.88 : y < 700 ? 0.3 + 0.25 * Math.max(0, (600 - y) / 140) : y < 860 ? 0.55 : 0.9) * (1 - 0.9 * lit(x, y)) + (x < 300 ? 0.05 : 0));
+        const pkT = (x, y) => cl((inGr(x, y) ? 0.06 + 0.3 * Math.max(0, (470 - y) / 80) : y < 460 ? 0.88 : y < 700 ? 0.55 : y < 860 ? 0.55 : 0.9) * (1 - 0.9 * lit(x, y)) + (x < 300 ? 0.05 : 0));
         const nvT = (x, y) => {
             let v = 0.18 + 0.25 * Math.max(0, (x - 600) / 90) + 0.25 * Math.max(0, (330 - x) / 60) + (y < 360 ? 0.1 : 0);
             if (y > 860) v = 0.25 + 0.3 * Math.max(0, (x - 620) / 70);
@@ -135,11 +136,13 @@ CARDS.radio = (press, t) => {
         // ------------------------------------------------------------ the grille
         const GC = 473, GS = 536, GRX = 150, GRY = 151, GB = 700;
         const gout = (g, k = 0) => { g.moveTo(GC - GRX + k, GB); g.lineTo(GC - GRX + k, GS); g.ellipse(GC, GS, GRX - k, GRY - k, 0, Math.PI, 0); g.lineTo(GC + GRX - k, GB); g.closePath(); };
-        dark((g) => { g.beginPath(); gout(g); gout(g, 21); g.fill('evenodd'); });
+        dark((g) => { g.beginPath(); gout(g); gout(g, 17); g.fill('evenodd'); });
         // the mesh inside: a pink crosshatch (two families of fine lines) over the screen
-        K.save(); K.beginPath(); gout(K, 21); K.clip();
-        K.strokeStyle = T(0.7); K.lineWidth = 1.6;
-        for (let k = -60; k < 60; k++) { K.beginPath(); K.moveTo(GC - 400 + k * 11.9, 300); K.lineTo(GC + k * 11.9, 720); K.stroke(); K.beginPath(); K.moveTo(GC + 400 + k * 11.9, 300); K.lineTo(GC + k * 11.9, 720); K.stroke(); }
+        K.save(); K.beginPath(); gout(K, 17); K.clip();
+        // (measured at 3×: two families of fine red lines at ±45°, ~12 px apart, clean yellow
+        // between them with a few red specks)
+        K.strokeStyle = T(0.95); K.lineWidth = 2.3;
+        for (let k = -50; k < 50; k++) { const x = GC + k * 17; K.beginPath(); K.moveTo(x - 420, 300); K.lineTo(x, 720); K.stroke(); K.beginPath(); K.moveTo(x + 420, 300); K.lineTo(x, 720); K.stroke(); }
         K.restore();
         // eight bars fanning from the hub (polar scan at r 80/110/150: -170, -148.5, -126,
         // -104, -79.5, -57, -34.3, -9.6°), widening outward 9 → 17 px
@@ -152,7 +155,7 @@ CARDS.radio = (press, t) => {
             }
             g.restore();
             // the bottom band and the hub dome
-            g.beginPath(); g.moveTo(GC - GRX + 2, 679); g.lineTo(GC + GRX - 2, 679); g.lineTo(GC + GRX - 2, 702); g.lineTo(GC - GRX + 2, 702); g.closePath(); g.fill();
+            g.beginPath(); g.moveTo(GC - GRX + 2, 687); g.lineTo(GC + GRX - 2, 687); g.lineTo(GC + GRX - 2, 702); g.lineTo(GC - GRX + 2, 702); g.closePath(); g.fill();
             g.beginPath(); g.ellipse(477, 697, 56, 52, 0, Math.PI, 0); g.fill();
         });
         // the red highlight on the dome (pink + yellow, the darks cleared)

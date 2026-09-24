@@ -98,7 +98,9 @@ var G3 = (() => {
     };
     // the push as a table: scale per drawing (the mid frame of each drawing, measured with a
     // correlation of four corner patches against the base frame the card is authored on)
-    const push = (rate, d, base = 1.5) => 1 + rate * (2 * d - base);
+    // lf (the frame inside the shot, from the scene) when given, else the drawing's mid frame;
+    // f0 = the frame (inside the shot) the card was measured on
+    const push = (rate, t, lf, f0) => 1 + rate * ((lf ?? Math.floor(t * 12 + 1e-6) * 2 + 0.5) - f0);
     // hand-set halftone dots on a MEASURED lattice (the film's screens are not all at the
     // press's pitch/angle: each layer of the collage has its own, very regular, lattice).
     // L = [ax, ay, bx, by, ox, oy]: the two lattice vectors and one dot centre, in ref px.
