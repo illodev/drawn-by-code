@@ -6,7 +6,7 @@
 // and printed pink + yellow (red-orange) in a spiral; the bee = yellow + pink dots, navy
 // stripes, paper wings with blue dots. Per drawing the wings buzz. Needs _group2-util.js.
 var CARDS = CARDS || {};
-CARDS.sunflower = (press, t) => {
+CARDS.sunflower = (press, t, lf) => {
     const { T, px, poly, disc, ell, fillWith, inside, blob, blobPath, curve, taper, spline, speckle } = G2;
     const P = (ink, k) => press.plate(ink, k);
     const yellow = P('yellow'), yellowS = P('yellow', 'screen'), pink = P('pink'), pinkS = P('pink', 'screen');
@@ -22,9 +22,12 @@ CARDS.sunflower = (press, t) => {
         return { pts, Q };
     };
     const outline = (pts, w = 4) => { for (const [g, v] of [[navy, 0.6], [yellow, 1], [blue, 0.6]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = w; g.lineJoin = 'round'; G2.path(g, pts); g.stroke(); g.restore(); } };
+    // the camera pushes in ≈ 0.8 % a frame about (514, 514) px (frames 210 → 215: × 1.04)
+    const f = lf ?? 2 * d + 0.5, zs = 1 + 0.008 * f;
     px(press, () => {
-        // the sky: blue dots on paper, a couple of navy scratches
-        blueS.fillStyle = T(0.55); blueS.fillRect(0, 0, 1080, 1080);
+        press.save(); press.each((g) => { g.translate(514, 514); g.scale(zs, zs); g.translate(-514, -514); });
+        // the sky: blue dots on paper (10.1 px lattice at 15°, measured), navy scratches
+        G2.lat([10.1, 0.2594, 903.09, 625.5], () => 0.68, blue, [-60, -60, 1140, 1140]);
         pinkS.fillStyle = T(0.04); pinkS.fillRect(0, 0, 1080, 1080);
         curve(navy, [[640, 30], [720, 55], [800, 100]], 2, 0.5);
         // back petals: longer, hatched with green lines, a darker pink-dot shade at the base
@@ -110,5 +113,6 @@ CARDS.sunflower = (press, t) => {
         wing(BX + 25, BY - 55, -1.22 + buzz, 230, 72);
         wing(BX + 75, BY + 20, -0.1 - buzz, 280, 105);
         wing(BX + 70, BY + 0, -0.3 - buzz, 240, 70);
+        press.restore();
     });
 };
