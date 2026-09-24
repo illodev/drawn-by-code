@@ -1,0 +1,13 @@
+{
+  "duration": 6,
+  "sfxDir": "../../assets/sfx",
+  "cues": [
+    ["swoosh_in", 0.2, -16],
+    ["stamp", 0.5, -9],
+    ["pop", 3.0, -14],
+    ["pop", 3.5, -12],
+    ["swoosh_in", 4.0, -11],
+    ["scribble", 4.5, -12],
+    ["tap", 5.0, -10]
+  ]
+}
