@@ -6,7 +6,7 @@
 // knocked out) with navy hatching and navy dots on the cups; dial ring = yellow; finger
 // holes = paper with pink centres; table = pink + yellow solid, shadow = navy screen.
 var CARDS = CARDS || {};
-CARDS.phone = (press, t) => {
+CARDS.phone = (press, t, lf) => {
     const { T, fill, stroke, taper, smoothPath, polyPath, clipped, specks } = G1;
     const P = (ink, k) => press.plate(ink, k);
     const pink = P('pink'), pinkS = P('pink', 'screen'), yellow = P('yellow'), yellowS = P('yellow', 'screen');
@@ -14,23 +14,29 @@ CARDS.phone = (press, t) => {
     const erase = (g, fn) => { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.strokeStyle = '#000'; fn(g); g.restore(); };
     const d = Math.floor(t * 12 + 1e-6);
     // the handset's jiggle per drawing (dx, dy, tilt) and the rings' slight wobble
-    const JIG = [[0, 0, 0], [-6, -8, -0.012], [5, -3, 0.01], [-3, -10, -0.006], [6, -5, 0.012], [-5, -2, -0.01]];
+    const JIG = [[0, 0, 0]]; // (measured: the handset holds still; only the camera moves)
     const [jx, jy, ja] = JIG[d % JIG.length];
+    // the camera pushes in every frame (handset extent 737 → 757 px over frames 168–173):
+    // ≈ 0.54 % a frame about (550, 500) px
+    const f = lf ?? 2 * d + 0.5, zs = 1 + 0.0054 * f;
 
     G1.frame(press, () => {
+        press.save(); press.each((g) => { g.translate(550, 500); g.scale(zs, zs); g.translate(-550, -500); });
         // --- background: flat pink, rays of yellow dots from behind the phone
-        fill(pink, [[0, 0], [1080, 0], [1080, 940], [0, 940]], 0.88);
-        const RC = [560, 510];
-        for (let i = 0; i < 18; i++) {
-            const a = (i / 18) * Math.PI * 2 + 0.09, s = 0.085;
+        fill(pink, [[-40, -40], [1120, -40], [1120, 940], [-40, 940]], 1);
+        // rays measured on circles round their centre (530, 520): 15 wedges, 12° wide, at 22.5° + 24° k
+        const RC = [530, 520];
+        for (let i = 0; i < 15; i++) {
+            const a = (22.5 + 24 * i) * Math.PI / 180, s = 6 * Math.PI / 180;
             fill(yellowS, [RC, [RC[0] + Math.cos(a - s) * 1400, RC[1] + Math.sin(a - s) * 1400], [RC[0] + Math.cos(a + s) * 1400, RC[1] + Math.sin(a + s) * 1400]], 0.42);
         }
         erase(yellowS, (g) => { g.beginPath(); g.arc(RC[0], RC[1], 90, 0, 7); g.fill(); });
         // the rings (white, hand drawn)
         press.knockout((g) => {
-            for (const [r, w, s] of [[395, 11, 'a'], [505, 9, 'b'], [620, 8, 'c']]) Riso.ring(g, 578, 502, r + (d % 2) * 3, w, 'ph' + s, { wobble: 0.02 });
+            for (const [r, w, s] of [[352, 12, 'a'], [465, 10, 'b'], [600, 9, 'c']]) Riso.ring(g, 537, 366, r, w, 'ph' + s, { wobble: 0.008 }); // fitted to runs of white on rows and columns
         });
-        press.knockout((g) => specks(g, 'ph-st', 0, 0, 1080, 930, 50, 1, 2.2));
+        press.knockout((g) => specks(g, 'ph-st', 0, 0, 1080, 930, 90, 1, 2.2));
+        G2.voids(pink, 'ph-bg', -40, -40, 1120, 930, 16000, 0.85); // the pink's fine white grain (3× crop)
 
         // --- the table: orange (pink + yellow), a navy edge, the dotted shadow, two cracks
         const table = [[-10, 932], [1090, 928], [1090, 1090], [-10, 1090]];
@@ -44,7 +50,7 @@ CARDS.phone = (press, t) => {
         specks(yellow, 'ph-tab', 0, 950, 1080, 1080, 40, 1.5, 3);
 
         // --- the body
-        const body = [[168, 932], [172, 860], [190, 740], [230, 680], [272, 640], [320, 612], [540, 598], [770, 606], [812, 630], [852, 690], [890, 820], [906, 900], [900, 934]];
+        const body = [[240, 934], [196, 914], [178, 880], [176, 840], [190, 740], [230, 680], [272, 640], [320, 612], [540, 598], [770, 606], [812, 630], [852, 690], [890, 820], [906, 900], [900, 934]];
         const bodyPath = (g) => smoothPath(g, body, true, 0.12);
         press.knockout((g) => { bodyPath(g); g.fill(); });
         blue.fillStyle = T(1); bodyPath(blue); blue.fill();
@@ -72,17 +78,19 @@ CARDS.phone = (press, t) => {
             taper(navy, [[x + 26, 560], [x + 30, 606]], 3, 2);
         }
         // the dial: a yellow ring, blue face, white finger holes with pink centres, the hub
-        const DC = [542, 786];
+        const DC = [539, 784];
+        // the hatching and its dots stop at the dial's ring
+        for (const g of [navy, navyS]) erase(g, (c) => { c.beginPath(); c.arc(DC[0], DC[1], 172, 0, 7); c.fill(); });
         erase(blue, (g) => { g.lineWidth = 13; g.beginPath(); g.arc(DC[0], DC[1], 164, 0, 7); g.stroke(); });
         yellow.strokeStyle = T(1); yellow.lineWidth = 11; yellow.beginPath(); yellow.arc(DC[0], DC[1], 164, 0, 7); yellow.stroke();
-        press.knockout((g) => { g.lineWidth = 3; g.beginPath(); g.arc(DC[0], DC[1], 154, 0, 7); g.stroke(); });
         const holes = [];
-        for (let i = 0; i < 10; i++) { const a = Math.PI * 0.9 + (i / 9) * Math.PI * 1.43; holes.push([DC[0] + 4 + Math.cos(a) * 110, DC[1] - 8 + Math.sin(a) * 106]); }
-        press.knockout((g) => { for (const [x, y] of holes) { g.beginPath(); g.arc(x, y, 29, 0, 7); g.fill(); } g.beginPath(); g.arc(DC[0], DC[1], 48, 0, 7); g.fill(); });
+        holes.push(...[[442, 823], [439, 773], [460, 729], [499, 696], [548, 689], [596, 704], [630, 741], [644, 789], [634, 837], [601, 875]]); // (hole centres read off a 1.4× crop)
+        press.knockout((g) => { for (const [x, y] of holes) { g.beginPath(); g.arc(x, y, 25, 0, 7); g.fill(); } g.beginPath(); g.arc(DC[0], DC[1], 48, 0, 7); g.fill(); });
         pink.fillStyle = T(1);
-        for (const [x, y] of holes) { pink.beginPath(); pink.arc(x + 4, y + 4, 7.5, 0, 7); pink.fill(); }
-        pink.beginPath(); pink.arc(DC[0], DC[1], 19, 0, 7); pink.fill();
-        press.knockout((g) => specks(g, 'ph-bst', 200, 620, 890, 920, 40, 1, 2.4));
+        for (const [x, y] of holes) { pink.beginPath(); pink.arc(x + 1, y + 2, 7, 0, 7); pink.fill(); }
+        pink.beginPath(); pink.arc(DC[0], DC[1], 17, 0, 7); pink.fill();
+        press.knockout((g) => specks(g, 'ph-bst', 200, 620, 890, 920, 120, 0.8, 2));
+        G2.voids(blue, 'ph-body', 170, 600, 910, 935, 5000, 0.85);
 
         // --- the cord: navy coils from the left cup down round to the body
         const cord = [[205, 525], [140, 560], [95, 620], [75, 700], [85, 790], [120, 860], [165, 895]];
@@ -99,7 +107,8 @@ CARDS.phone = (press, t) => {
         for (const [x, y, h] of ticks) taper(navy, [[x, y - h / 2 + (d % 2) * 4], [x + 1, y + h / 2 + (d % 2) * 4]], 5, 3);
 
         // --- the handset (jiggles per drawing), with white echo outlines behind it
-        const hand = [[200, 530], [180, 505], [186, 460], [222, 440], [300, 430], [365, 408], [445, 356], [540, 326], [650, 324], [740, 346], [800, 356], [880, 358], [926, 380], [930, 420], [900, 446], [800, 446], [752, 430], [712, 404], [640, 382], [560, 384], [475, 412], [385, 466], [364, 506], [322, 532], [250, 536]];
+        // (outline from runs of blue on rows every 10 px of frame 168)
+        const hand = [[201, 440], [238, 420], [288, 410], [323, 390], [356, 370], [404, 350], [465, 330], [506, 320], [560, 313], [609, 310], [654, 310], [731, 320], [776, 330], [810, 340], [849, 338], [890, 340], [908, 360], [917, 380], [922, 400], [914, 420], [893, 432], [843, 434], [822, 442], [770, 443], [747, 440], [738, 420], [731, 392], [672, 380], [582, 380], [517, 390], [474, 400], [443, 410], [414, 420], [390, 430], [371, 440], [360, 460], [367, 480], [365, 500], [333, 512], [312, 522], [265, 531], [214, 532], [190, 526], [182, 505], [183, 475], [188, 455]];
         press.knockout((g) => {
             for (const [ex, ey] of [[-38, -26], [22, -44]]) {
                 g.save(); g.translate(ex * 0.8, ey * 0.8); g.lineWidth = 4; smoothPath(g, hand, true, 0.12); g.stroke(); g.restore();
@@ -111,12 +120,13 @@ CARDS.phone = (press, t) => {
         press.knockout((g) => { handPath(g); g.fill(); });
         blue.fillStyle = T(1); handPath(blue); blue.fill();
         // the cups: navy dots, darker at the bottom
-        for (const [cx, cy, rx, ry] of [[270, 486, 92, 50], [846, 402, 88, 46]]) {
+        for (const [cx, cy, rx, ry] of [[275, 487, 92, 46], [831, 390, 90, 52]]) {
             clipped(navyS, (g) => { g.ellipse(cx, cy, rx, ry, -0.08, 0, 7); }, (g) => { g.fillStyle = Riso.ramp(g, 0, cy - ry, 0, cy + ry, 0.3, 0.7); g.fillRect(cx - rx, cy - ry, rx * 2, ry * 2); });
         }
         // the white highlight along the top of the bar, a navy line under it
-        press.knockout((g) => taper(g, [[196, 470], [260, 450], [365, 424], [450, 376], [540, 346], [650, 342], [760, 368], [880, 372]], 6, 9));
+        press.knockout((g) => { taper(g, [[222, 442], [262, 430], [322, 410], [357, 390], [392, 370], [448, 350], [490, 338]], 8, 7); taper(g, [[752, 372], [770, 360], [790, 350], [835, 340]], 8, 5); }); // (the gaps in the runs)
         taper(navy, [[380, 462], [470, 412], [560, 384], [650, 382], [720, 404]], 3, 2);
+        press.restore();
         press.restore();
     });
 };
