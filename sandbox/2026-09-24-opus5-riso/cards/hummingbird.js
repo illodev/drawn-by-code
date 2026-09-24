@@ -19,7 +19,10 @@ CARDS.hummingbird = (press, t) => {
     yellow.fillStyle = T(1); yellow.fillRect(0, 0, 1000, 1000);
     U.ref(press, 1, () => {
         const sm = (a, b, v) => { const k = Math.max(0, Math.min(1, (v - a) / (b - a))); return k * k * (3 - 2 * k); };
-        const gb = (x, y) => 0.24 + 0.42 * sm(560, 1080, y) + 0.4 * Math.max(0, 1 - Math.hypot(x, y) / 260) + 0.15 * sm(850, 1080, x) - 0.08 * Math.max(0, 1 - Math.hypot(x - 420, y - 280) / 260);
+        const gb = (x, y) => {
+            const r = Math.hypot((x - 600) / 1.2, (y - 540) / (y > 540 ? 0.8 : 1.05));
+            return 0.13 + (y > 540 ? 0.62 : 0.52) * Math.pow(Math.max(0, Math.min(1, (r - 140) / 560)), 1.25);
+        };
         U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], gb, -20, -20, 1100, 1100, { jit: 0.15 });
     });
 
@@ -27,9 +30,9 @@ CARDS.hummingbird = (press, t) => {
     const darkLeaf = (pts, veins) => {
         press.knockout((g) => { U.smooth(g, pts); g.fill(); });
         fillS(yellow, pts, 1);
-        fillS(blueS, pts, 0.62);
-        fillS(pinkS, pts, 0.24);
-        fillS(navyS, pts, 0.05);
+        fillS(blueS, pts, 0.55);
+        fillS(pinkS, pts, 0.08);
+        fillS(navyS, pts, 0.38);
         // veins: red-orange lines (pink + yellow, the blue knocked)
         for (const v of veins) {
             blueS.save(); blueS.globalCompositeOperation = 'destination-out'; U.stroke(blueS, v, 3.2, 1, true); blueS.restore();
@@ -74,9 +77,10 @@ CARDS.hummingbird = (press, t) => {
         press.knockout((g) => { g.lineWidth = 2.2; g.beginPath(); g.moveTo(tube[0][0] * 0.5 + tube[1][0] * 0.5, tube[0][1] * 0.5 + tube[1][1] * 0.5); g.lineTo(tube[2][0] * 0.4 + tube[3][0] * 0.6, tube[2][1] * 0.4 + tube[3][1] * 0.6); g.stroke(); });
         // the heart: a small yellow + red star
         const [hx, hy, hr] = heart;
-        yellow.fillStyle = T(1);
         pink.save(); pink.globalCompositeOperation = 'destination-out'; U.ell(pink, hx, hy, hr, hr * 0.45, -0.1); pinkS.save(); pinkS.globalCompositeOperation = 'destination-out'; U.ell(pinkS, hx, hy, hr, hr * 0.45, -0.1); pinkS.restore(); pink.restore();
-        pinkS.fillStyle = T(0.5); pinkS.beginPath(); pinkS.ellipse(hx, hy, hr * 0.8, hr * 0.35, -0.1, 0, 7); pinkS.fill();
+        // a yellow star with a red-orange (pink + yellow) core and navy stamens
+        U.ell(yellow, hx, hy, hr, hr * 0.45, -0.1, 1);
+        pink.fillStyle = T(0.8); pink.beginPath(); pink.ellipse(hx, hy, hr * 0.55, hr * 0.22, -0.1, 0, 7); pink.fill();
         for (let i = 0; i < 5; i++) { const a = i * 1.26; U.stroke(navy, [[hx, hy], [hx + Math.cos(a) * hr * 2.2, hy + Math.sin(a) * hr * 0.8]], 1.6, 0.75); }
         navy.save(); navy.lineWidth = 3; navy.strokeStyle = T(0.9); U.smooth(navy, mouth); navy.stroke(); navy.restore();
         for (const l of lines) U.stroke(navy, l, 2.2, 0.85, true);
@@ -90,6 +94,17 @@ CARDS.hummingbird = (press, t) => {
     trumpet([[0, 666], [25, 660], [45, 690], [50, 740], [35, 780], [10, 785], [0, 760]],
         [[0, 700], [10, 700], [10, 760], [0, 760]], [24, 726, 20], [[[28, 670], [36, 775]]]);
 
+    // lighter leaves lying over the dark ones at the bottom corners (lemon-green: the dark
+    // screens cleared, a medium blue screen, a green edge), ref px
+    U.ref(press, 1, () => {
+        for (const pts of [[[640, 1085], [655, 1010], [690, 950], [740, 925], [790, 935], [772, 990], [735, 1045], [700, 1085]],
+            [[128, 1085], [140, 1000], [175, 915], [215, 880], [258, 905], [250, 980], [215, 1050], [190, 1085]]]) {
+            for (const g of [blueS, pinkS, navyS, pink, navy, blue]) { g.save(); g.globalCompositeOperation = 'destination-out'; U.smooth(g, pts); g.fill(); g.restore(); }
+            blue.save(); U.smooth(blue, pts); blue.clip(); U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], () => 0.42, 100, 850, 820, 1090, { jit: 0.15 }); blue.restore();
+            blue.save(); blue.lineWidth = 4; blue.strokeStyle = T(0.9); U.smooth(blue, pts); blue.stroke(); blue.restore();
+        }
+    });
+
     // ── the hummingbird, in reference pixels (measured on 2× and 4× grid crops of f230)
     const wob = [0, 3, -2][d % 3]; // the blurred wings flutter on twos
     U.ref(press, 1, () => {
@@ -99,15 +114,37 @@ CARDS.hummingbird = (press, t) => {
         const L8 = [7.94, 2.06, -2.05, 7.73, 600, 300]; // a fine screen for the plumage
         const LF = [5.6, 1.5, -1.5, 5.6, 0, 0]; // the specks' grid (motion blur)
 
-        // the far wing, a motion blur: a paper wedge (yellow and the ground dots thinned)
-        // speckled with blue and pink, fanning left from the shoulder; a second beat upward
-        const ghost = [[495, 330], [460, 300 + wob], [400, 260 + wob], [320, 225 + wob], [230, 205 + wob], [150, 200], [120, 260], [140, 360], [150, 470], [250, 440], [350, 400], [430, 370]];
-        const ghost2 = [[520, 262], [470, 200], [440, 120], [425, 40], [420, -5], [515, -5], [520, 60], [528, 150], [540, 240]];
-        for (const [gh, k] of [[ghost, 0.62], [ghost2, 0.45]]) {
-            for (const g of [yellow, blue, blueS]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(g === yellow ? k : 0.6); U.smooth(g, gh); g.fill(); g.restore(); }
-            const rs = Motion.rng('hbg' + k + (d % 3));
-            inside(blue, sm(gh), (g) => U.lat(g, LF, () => 0.22 * (0.5 + rs()), 200, -10, 560, 380, { jit: 0.9 }));
-            inside(pink, sm(gh), (g) => U.lat(g, [LF[0], LF[1], LF[2], LF[3], 2.8, 2.8], () => (rs() < 0.35 ? 0.2 : 0), 200, -10, 560, 380, { jit: 0.5 }));
+        // the far wings, a motion blur: wisps of fine blue (and a few pink) specks along rays
+        // fanning from the shoulder (520, 330): the left beat 158–202° long (≈ 470 px), the
+        // upper beat -112 to -86° (≈ 340 px); along each wisp the ground's dots and some of the
+        // yellow thin out. Re-drawn each drawing (the wings flutter).
+        {
+            const SX = 520, SY = 330, rs = Motion.rng('hbw' + (d % 3));
+            const fans = [[150, 188, 480, 13, 3200], [-110, -86, 340, 6, 900]];
+            for (const [a0, a1, L, n, N] of fans) {
+                const rays = [];
+                for (let k = 0; k < n; k++) rays.push(((a0 + (a1 - a0) * (k + 0.5) / n + (rs() - 0.5) * 3 + wob) * Math.PI) / 180);
+                // thin the ground under each wisp (soft round strokes, never a filled shape)
+                for (const [g, v] of [[blue, 0.6], [yellow, 0.2]]) {
+                    g.save(); g.globalCompositeOperation = 'destination-out'; g.lineCap = 'round';
+                    for (const a of rays) {
+                        g.strokeStyle = T(v); g.lineWidth = 26 + rs() * 16;
+                        g.beginPath(); g.moveTo(SX + Math.cos(a) * 60, SY + Math.sin(a) * 60); g.lineTo(SX + Math.cos(a) * L * (0.8 + rs() * 0.2), SY + Math.sin(a) * L * (0.8 + rs() * 0.2)); g.stroke();
+                    }
+                    g.restore();
+                }
+                // the specks: denser mid-wisp, spread wider toward the tip
+                for (const [g, frac, v] of [[blue, 1, 0.95], [pink, 0.18, 0.8]]) {
+                    g.fillStyle = T(v); g.beginPath();
+                    for (let i = 0; i < N * frac; i++) {
+                        const a = rays[Math.floor(rs() * rays.length)], u = 0.15 + 0.85 * Math.sqrt(rs());
+                        const off = (rs() - 0.5) * (8 + u * 26), rr = 0.9 + rs() * 1.0;
+                        const x = SX + Math.cos(a) * L * u - Math.sin(a) * off, y = SY + Math.sin(a) * L * u + Math.cos(a) * off;
+                        g.moveTo(x + rr, y); g.arc(x, y, rr, 0, 7);
+                    }
+                    g.fill();
+                }
+            }
         }
 
         // the tail: a dark fan (navy + yellow + blue) with a red rim on top and left, feather
@@ -151,7 +188,7 @@ CARDS.hummingbird = (press, t) => {
 
         // the near wing: a long blade, blue flat with a navy screen, a dark top edge, pink
         // feather lines and two paper streaks along it; paler to the tip
-        const WING = [[150, 28], [200, 60], [250, 75], [300, 84], [350, 97], [400, 118], [450, 152], [495, 200], [532, 246], [536, 262], [480, 316], [430, 280], [350, 206], [300, 165], [250, 122], [200, 84], [165, 52]];
+        const WING = [[100, 12], [150, 34], [200, 60], [250, 75], [300, 84], [350, 97], [400, 118], [450, 152], [495, 200], [532, 246], [536, 262], [480, 316], [430, 280], [350, 206], [300, 165], [250, 122], [200, 84], [165, 52]];
         press.knockout((g) => { U.smooth(g, WING); g.fill(); });
         fillS(blue, WING, 0.92);
         inside(navy, sm(WING), (g) => U.lat(g, L8, (x) => Math.max(0, 0.08 + (x - 230) * 0.0011), 210, 50, 550, 330, { jit: 0.25 }));
@@ -163,7 +200,7 @@ CARDS.hummingbird = (press, t) => {
         press.save(); press.clip(sm(WING));
         press.knockout((g) => { g.lineWidth = 2.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(165, 40); g.quadraticCurveTo(340, 130, 500, 262); g.stroke(); g.lineWidth = 1.6; g.beginPath(); g.moveTo(190, 62); g.quadraticCurveTo(320, 160, 440, 262); g.stroke(); });
         press.restore();
-        U.stroke(navy, [[152, 30], [250, 76], [350, 97], [450, 152], [495, 200], [532, 246]], 3.2, 0.9, true);
+        U.stroke(navy, [[102, 13], [160, 40], [250, 76], [350, 97], [450, 152], [495, 200], [532, 246]], 3.2, 0.9, true);
 
         // the head: a green ball, solid on the crown, a fine screen (yellow showing) on the
         // cheek lower right
