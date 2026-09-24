@@ -16,6 +16,11 @@ Worked example: `sandbox/2026-09-24-what-do-you-love/`, a replica of [a video by
 (detail pass), and the user's verdict was «I have to zoom in to see differences». Its
 `review.md` tells the story round by round; `segments/README.md` explains how it is built.
 
+**Transcribing is copying.** A tool that reads an artist's pixels (or vectors, or frames) off
+the reference and replays them is a copy of their art, not a drawing by code: keep that
+data in the experiment's `private/` (gitignored), never commit or publish it, and say so in
+the brief. What goes in the repo is the kit, the tools and the lessons (pixel-building).
+
 Rights: a replica of someone else's film is an **internal study**. The reference video and
 its audio stay in the experiment's `out/` (gitignored), never in the repo, and the result
 is never published as ours.
