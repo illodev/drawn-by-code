@@ -1,124 +1,162 @@
 // Card «bats» (reference 7.75–8.0 s, full frame): bats pouring out of a cave in a red cliff
 // at dusk, three big bats with white sound arcs. Authored in reference pixels (G2.px),
-// measured on the 7.8 s frame. Separations: the sky = pink (solid at the top with navy
-// dots, into pink dots over yellow at the horizon: orange); the cliff = pink + yellow (red)
-// with navy strata; the cave = yellow + navy + blue (near-black green); bats = navy + pink +
-// yellow (brown-black); the sea = navy + blue. Per drawing: the swarm drifts up, wings flap.
-// Needs cards/_group2-util.js.
+// measured on frame 186 (7.75 s): outlines from 1.3×–3× grid crops, inks from area means,
+// halftone lattices from an FFT of the dots (pitch, angle and one dot centre).
+// Separations: the sky = pink solid with navy dots (10 px, 15°) at the top, turning into
+// pink dots (10 px, −15°) over a yellow that fades in towards the horizon (orange); the
+// cliff = pink + yellow (red) under navy dots (8 px, 15°) that merge into purple bands; the
+// cave = navy + yellow (olive black) with stalactites (navy dots on pink) and small orange
+// bats; bats = navy + yellow, the big ones' wing membranes printed with red dots (6 px:
+// pink with the navy cleared under each dot) between dark bones; the sea = navy + a yellow
+// screen. The reference holds the drawing still for the whole card. Needs _group2-util.js.
 var CARDS = CARDS || {};
 CARDS.bats = (press, t) => {
-    const { T, px, poly, disc, fillWith, inside, blob, blobPath, curve, taper, spline, speckle } = G2;
+    const { T, px, poly, disc, inside, blob, blobPath, curve, taper, spline, speckle, lat, lerpT, field } = G2;
     const P = (ink, k) => press.plate(ink, k);
-    const yellow = P('yellow'), yellowS = P('yellow', 'screen'), pink = P('pink'), pinkS = P('pink', 'screen');
-    const blue = P('blue'), blueS = P('blue', 'screen'), navy = P('navy'), navyS = P('navy', 'screen');
-    const d = Math.floor(t * 12 + 1e-6);
-    const grad = (g, y0, y1, stops) => { const gr = g.createLinearGradient(0, y0, 0, y1); for (const [p, v] of stops) gr.addColorStop(p, T(v)); return gr; };
+    const yellow = P('yellow'), yellowS = P('yellow', 'screen'), pink = P('pink'), blue = P('blue'), navy = P('navy');
+    const SKY_N = [10.05, 0.2594, 633.41, 229.2], SKY_P = [10.05, -0.2569, 814.5, 724.6];
+    const ROCK = [8.04, 0.2621, 162.25, 586.95], WING = [6.03, 0.2618, 753.8, 371.5];
     px(press, () => {
-        // the sky
-        pink.fillStyle = grad(pink, 0, 420, [[0, 1], [0.6, 0.9], [1, 0]]); pink.fillRect(0, 0, 1080, 1080);
-        pinkS.fillStyle = grad(pinkS, 250, 850, [[0, 1], [0.4, 0.8], [0.65, 0.55], [1, 0.4]]); pinkS.fillRect(0, 250, 1080, 830);
-        navyS.fillStyle = grad(navyS, 0, 440, [[0, 0.7], [0.5, 0.45], [1, 0]]); navyS.fillRect(0, 0, 1080, 440);
-        yellowS.fillStyle = grad(yellowS, 330, 760, [[0, 0], [0.4, 0.45], [1, 0.8]]); yellowS.fillRect(0, 330, 1080, 430);
-        yellow.fillStyle = grad(yellow, 560, 780, [[0, 0], [1, 1]]); yellow.fillRect(0, 560, 1080, 520);
-        press.knockout((g) => speckle(g, 'sky', 0, 0, 1080, 800, 160, 0.8, 1.8, 0.9));
-        // the sea (far right, below the horizon): navy + blue, ragged top edge
-        const sea = [[640, 1080], [650, 860], [700, 850], [760, 858], [820, 845], [900, 852], [960, 838], [1020, 842], [1080, 830], [1080, 1080]];
+        // ---- the sky (profiles measured every 40 px down the right edge)
+        pink.fillStyle = T(1); pink.fillRect(0, 0, 1080, 390);
+        lat(SKY_P, (x, y) => lerpT([[380, 1.2], [420, 0.85], [480, 0.75], [600, 0.62], [760, 0.44], [860, 0.4]], y), pink, [0, 370, 1080, 1080]);
+        lat(SKY_N, (x, y) => lerpT([[0, 0.62], [150, 0.55], [250, 0.38], [330, 0.16], [400, 0]], y), navy, [0, 0, 1080, 420]);
+        const gy = yellow.createLinearGradient(0, 380, 0, 720);
+        gy.addColorStop(0, T(0)); gy.addColorStop(0.3, T(0.3)); gy.addColorStop(0.65, T(0.62)); gy.addColorStop(1, T(1));
+        yellow.fillStyle = gy; yellow.fillRect(0, 380, 1080, 700);
+        press.knockout((g) => speckle(g, 'sky', 0, 0, 1080, 850, 300, 0.6, 1.5, 0.85));
+        // ---- the sea (right, below the horizon): navy + a yellow screen, ragged top
+        const sea = [[660, 1080], [672, 870], [700, 858], [760, 862], [820, 850], [900, 856], [960, 842], [1020, 846], [1080, 836], [1080, 1080]];
         press.knockout((g) => { G2.path(g, sea); g.fill(); });
-        poly(navy, sea, 0.8); poly(blue, sea, 0.35);
-        inside(pinkS, (g) => G2.path(g, sea), (g) => { g.fillStyle = T(0.2); g.fillRect(0, 0, 1080, 1080); });
-        press.knockout((g) => speckle(g, 'sea', 660, 870, 1080, 1080, 40, 0.8, 1.6, 0.9));
-        // the cliff: red (pink + yellow), a dark outline, navy strata on its shaded side
-        const cliff = [[0, 305], [40, 290], [70, 272], [175, 270], [240, 330], [300, 380], [345, 395], [420, 440], [455, 500], [500, 560], [545, 610], [570, 660], [600, 700], [640, 790], [680, 870], [720, 960], [765, 1080], [0, 1080]];
+        poly(navy, sea, 1); inside(yellowS, (g) => G2.path(g, sea), (g) => { g.fillStyle = T(0.3); g.fillRect(600, 800, 480, 280); });
+        speckle(pink, 'sea', 660, 850, 1080, 1080, 300, 0.6, 1.5, 0.7);
+        // ---- the cliff: red, navy dots everywhere, merging into purple bands
+        const cliff = [[0, 320], [50, 281], [100, 272], [150, 285], [231, 342], [300, 361], [350, 396], [400, 450], [438, 473], [461, 511], [492, 538], [512, 588], [538, 642], [573, 681], [600, 723], [623, 788], [654, 842], [681, 881], [700, 942], [738, 1011], [762, 1080], [0, 1080]];
         const cp = (g) => G2.path(g, cliff);
         press.knockout((g) => { cp(g); g.fill(); });
-        for (const g of [navy]) { g.save(); g.strokeStyle = T(0.9); g.lineWidth = 5; g.lineJoin = 'round'; cp(g); g.stroke(); g.restore(); }
-        fillWith(pink, cp, T(1)); fillWith(yellow, cp, T(0.95));
-        inside(navyS, cp, (g) => { g.fillStyle = Riso.ramp(g, 0, 0, 700, 0, 0.4, 0.08); g.fillRect(0, 0, 1080, 1080); });
-        // strata: navy streaks sloping down to the right, solid on the left, dots to the right
-        const strata = (g) => {
-            for (const [pts, w, v] of [
-                [[[0, 330], [80, 330], [200, 360], [300, 410], [380, 440]], 70, 0.85],
-                [[[0, 420], [100, 430], [230, 470], [330, 500], [420, 540]], 50, 0.8],
-                [[[0, 520], [120, 540], [260, 580], [360, 610]], 40, 0.7],
-                [[[0, 640], [60, 650], [130, 700]], 70, 0.85],
-                [[[0, 760], [60, 800], [110, 880], [120, 1000], [140, 1080]], 110, 0.9],
-                [[[380, 1000], [460, 1060], [520, 1080]], 60, 0.7],
-                [[[560, 780], [610, 850], [650, 960]], 26, 0.55],
-                [[[480, 620], [540, 680], [570, 720]], 22, 0.5],
-            ]) taper(g, spline(pts, 20), w, v);
-        };
-        // the strata are navy over pink (blue-violet): the yellow is cleared under them
-        inside(navy, cp, strata);
-        inside(yellow, cp, (g) => { g.globalCompositeOperation = 'destination-out'; strata(g); });
-        inside(blue, cp, (g) => speckle(g, 'strb', 0, 300, 500, 1080, 90, 1, 2.5, 0.8));
-        inside(navyS, cp, (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(0.8); for (const [x, y, rx, ry] of [[360, 330, 60, 25], [230, 540, 120, 22], [420, 760, 80, 40], [260, 1000, 140, 40], [620, 900, 40, 70]]) { g.beginPath(); g.ellipse(x, y, rx, ry, 0.35, 0, 7); g.fill(); } });
-        // pink crack lines in the rock (the pink shows where navy is cut)
-        inside(navy, cp, (g) => { g.globalCompositeOperation = 'destination-out'; for (const pts of [[[120, 400], [200, 405], [260, 430], [330, 445]], [[265, 390], [250, 405]], [[0, 555], [60, 560], [140, 575]]]) curve(g, pts, 3, 1); });
-        // the cave: a near-black green mouth with pink stalactites and small bats inside
-        const cave = [[190, 680], [260, 650], [340, 640], [420, 655], [480, 690], [500, 780], [490, 900], [470, 1010], [430, 1060], [300, 1070], [180, 1040], [120, 960], [110, 850], [140, 740]];
-        press.knockout((g) => { g.beginPath(); blobPath(g, cave); g.fill(); });
-        blob(yellow, cave, 1); blob(navy, cave, 0.85); blob(blue, cave, 0.45);
-        inside(navyS, (g) => blobPath(g, cave), (g) => { g.fillStyle = Riso.radial(g, 300, 850, 60, 260, 0.2, 0.6); g.fillRect(0, 0, 1080, 1080); });
-        // the cave lip: a red band over the mouth
-        curve(pink, [[180, 690], [260, 660], [340, 650], [420, 664], [480, 700]], 14, 1);
-        curve(yellow, [[180, 690], [260, 660], [340, 650], [420, 664], [480, 700]], 14, 0.9);
-        for (const [x, w, h] of [[200, 34, 80], [240, 30, 70], [290, 26, 100], [330, 34, 110], [385, 30, 80], [430, 26, 60]]) {
-            const tri = [[x - w / 2, 668], [x + w / 2, 666], [x + 3, 668 + h]];
+        inside(pink, cp, (g) => { g.fillStyle = T(1); g.fillRect(0, 250, 800, 830); });
+        inside(yellow, cp, (g) => { g.fillStyle = T(1); g.fillRect(0, 250, 800, 830); });
+        // the purple bands: navy dots over pink with the yellow gone (measured ≈ [78, 51, 82])
+        // (laid out from a 20 px map of the reference's cliff: purple where blue ≥ 0.85 red)
+        const BANDS = [
+            [[[0, 310], [100, 318], [160, 340], [220, 360], [280, 380], [330, 400], [300, 425], [290, 445], [345, 462], [370, 492], [230, 510], [140, 508], [60, 492], [0, 490]], 0.9],
+            [[[0, 530], [40, 540], [70, 560], [110, 590], [120, 610], [60, 625], [20, 632], [70, 660], [100, 700], [110, 740], [60, 770], [0, 772]], 0.9],
+            [[[0, 815], [70, 830], [120, 860], [130, 950], [100, 1000], [60, 1010], [0, 1010]], 0.9],
+            [[[0, 1018], [120, 1020], [180, 1034], [220, 1060], [230, 1080], [0, 1080]], 0.9],
+            [[[370, 1062], [490, 1030], [520, 1010], [620, 1015], [690, 1045], [720, 1080], [360, 1080]], 0.9],
+            [[[200, 522], [245, 522], [245, 545], [200, 545]], 0.7],
+            [[[515, 518], [560, 518], [560, 548], [515, 548]], 0.7],
+        ];
+        const bandShapes = (g, k = 1) => { for (const [pts, v] of BANDS) { g.fillStyle = T(Math.min(1, (v - 0.3) / 0.55 * k)); g.beginPath(); blobPath(g, pts); g.fill(); } };
+        const bands = field('bats-rock', (g) => { g.fillStyle = T(0.3); g.fillRect(0, 0, 1080, 1080); for (const [pts, v] of BANDS) { g.fillStyle = T(v); g.beginPath(); blobPath(g, pts); g.fill(); } }, 6);
+        inside(yellow, cp, (g) => { g.globalCompositeOperation = 'destination-out'; g.filter = 'blur(4px)'; bandShapes(g, 0.9); g.filter = 'none'; });
+        // the navy dots, and a mottle: clusters of voids and flecks (a sponge-like print)
+        inside(navy, cp, (g) => lat(ROCK, bands, g, [0, 260, 780, 1080]));
+        inside(navy, cp, (g) => speckle(g, 'rockn', 0, 280, 700, 1080, 900, 0.8, 2.2, 0.7));
+        inside(navy, cp, (g) => { g.globalCompositeOperation = 'destination-out'; speckle(g, 'rockv', 0, 280, 700, 1080, 700, 0.8, 2.4, 0.8); });
+        inside(blue, cp, (g) => speckle(g, 'rockb', 0, 280, 700, 1080, 120, 0.8, 2, 0.8));
+        // the rim: a dark line with a red lit edge inside it, and the ledge lines
+        navy.save(); navy.strokeStyle = T(0.95); navy.lineWidth = 4; navy.lineJoin = 'round'; navy.beginPath(); cliff.slice(0, -1).forEach(([x, y], i) => (i ? navy.lineTo(x, y) : navy.moveTo(x, y))); navy.stroke(); navy.restore();
+        for (const pts of [[[127, 400], [200, 418], [254, 435], [331, 458]], [[238, 388], [262, 380], [277, 373]], [[150, 560], [260, 590], [380, 615]], [[470, 720], [540, 760], [590, 800]]]) {
+            taper(navy, spline(pts, 12), 4, 0.95);
+            pink.save(); pink.translate(1, -3); taper(pink, spline(pts, 12), 3, 1); pink.restore();
+            navy.save(); navy.globalCompositeOperation = 'destination-out'; navy.translate(1, -3); taper(navy, spline(pts, 12), 3, 1); navy.restore();
+        }
+        // ---- the cave: olive black, a red lip, stalactites, small orange bats inside
+        const cave = [[190, 648], [250, 640], [330, 640], [400, 645], [440, 690], [470, 790], [482, 860], [485, 940], [470, 1000], [420, 1035], [330, 1060], [250, 1060], [180, 1040], [140, 1010], [120, 950], [115, 850], [120, 760], [150, 700]];
+        const caveP = (g) => blobPath(g, cave);
+        press.knockout((g) => { g.beginPath(); caveP(g); g.fill(); });
+        blob(yellow, cave, 1); blob(navy, cave, 1); blob(blue, cave, 0.3); blob(pink, cave, 0.15);
+        inside(navy, caveP, (g) => { g.globalCompositeOperation = 'destination-out'; speckle(g, 'cavev', 110, 640, 490, 1060, 500, 0.6, 1.4, 0.7); });
+        inside(pink, caveP, (g) => speckle(g, 'cavep', 110, 640, 490, 1060, 350, 0.6, 1.5, 0.8));
+        inside(blue, caveP, (g) => speckle(g, 'caveb', 110, 640, 490, 1060, 80, 0.8, 1.8, 0.8));
+        // the lip: an orange band with curls at the top of the mouth
+        const lip = [[175, 668], [200, 650], [250, 642], [300, 646], [340, 640], [380, 648], [410, 664]];
+        press.knockout((g) => taper(g, spline(lip, 20), 16, 1));
+        for (const g of [pink, yellow]) taper(g, spline(lip, 20), 14, 1);
+        // stalactites: navy dots on pink (purple), a pink rim, hanging from the lip
+        for (const [x0, x1, y0, tx, ty] of [[180, 205, 680, 195, 745], [228, 255, 660, 245, 760], [287, 305, 660, 298, 730], [322, 348, 660, 338, 790], [380, 400, 680, 392, 770], [420, 440, 725, 432, 780]]) {
+            const tri = [[x0, y0], [x1, y0], [tx + 2, ty - 6], [tx, ty], [tx - 2, ty - 6]];
             press.knockout((g) => { G2.path(g, tri); g.fill(); });
-            poly(pink, tri, 1); poly(navyS, tri, 0.5); poly(pinkS, tri, 0.0);
-            poly(navy, [[x + 2, 668], [x + w / 2, 666], [x + 3, 668 + h]], 0.35);
+            poly(pink, tri, 1);
+            inside(navy, (g) => G2.path(g, tri), (g) => lat(ROCK, () => 0.55, g, [x0 - 10, y0 - 10, x1 + 10, ty + 10]));
+            navy.save(); navy.globalCompositeOperation = 'destination-out'; navy.strokeStyle = T(1); navy.lineWidth = 3; G2.path(navy, tri); navy.stroke(); navy.restore();
         }
-        // a bat silhouette: body, ears, two scalloped wings (flap = 0 up .. 1 down)
-        const bat = (x, y, span, flap, ink = 1, ang = 0) => {
-            const s = span / 2, f = flap, c = Math.cos(ang), sn = Math.sin(ang), Q = (u, v) => [x + (u * c - v * sn) * s, y + (u * sn + v * c) * s];
-            const wing = (k) => [Q(0.08 * k, -0.12), Q(0.3 * k, -0.3 + f * 0.1), Q(0.62 * k, -0.42 + f * 0.3), Q(1.0 * k, -0.55 + f * 0.75), Q(0.86 * k, 0.12 + f * 0.2), Q(0.7 * k, 0.06 + f * 0.15), Q(0.56 * k, 0.24 + f * 0.1), Q(0.4 * k, 0.16 + f * 0.05), Q(0.26 * k, 0.3), Q(0.1 * k, 0.22)];
-            return { wings: [wing(1), wing(-1)], body: [Q(-0.1, -0.2), Q(-0.09, -0.36), Q(-0.04, -0.24), Q(0.04, -0.24), Q(0.09, -0.36), Q(0.1, -0.2), Q(0.1, 0.12), Q(0, 0.3), Q(-0.1, 0.12)] };
+        // the cave's bats: orange flecks like little ︶ marks
+        const r2 = Motion.rng('cavebats2');
+        for (let i = 0; i < 30; i++) {
+            const x = 280 + r2() * 180, y = 780 + r2() * 120, w = 16 + r2() * 12;
+            if (x < 330 && y < 820) continue;
+            const pts = [[x - w / 2, y - 3], [x - w / 4, y + 2], [x, y - 1], [x + w / 4, y + 2], [x + w / 2, y - 3]];
+            press.knockout((g) => taper(g, pts, 7, 1));
+            for (const g of [pink, yellow]) taper(g, pts, 6, 1);
+        }
+        // ---- bats
+        const olive = (fn) => { press.knockout((g) => fn(g, 1)); for (const [g, v] of [[navy, 1], [yellow, 1], [blue, 0.35]]) fn(g, v); };
+        // a small bat of the swarm: two scalloped wings and a body (the shape changes with
+        // the wing beat k: 0 up, 1 level, 2 down)
+        const small = (x, y, w, k, ang) => {
+            const c = Math.cos(ang), s = Math.sin(ang), Q = (u, v) => [x + (u * c - v * s) * w / 2, y + (u * s + v * c) * w / 2];
+            const lift = [-0.55, -0.15, 0.25][k];
+            const shape = [Q(0, -0.18), Q(0.35, -0.2 + lift * 0.5), Q(1, lift), Q(0.82, 0.12 + lift * 0.4), Q(0.6, 0.02 + lift * 0.3), Q(0.42, 0.18), Q(0.2, 0.08), Q(0, 0.3), Q(-0.2, 0.08), Q(-0.42, 0.18), Q(-0.6, 0.02 + lift * 0.3), Q(-0.82, 0.12 + lift * 0.4), Q(-1, lift), Q(-0.35, -0.2 + lift * 0.5)];
+            olive((g, v) => poly(g, shape, v));
         };
-        const bigBat = (x, y, span, flap, eyes) => {
-            const b = bat(x, y, span, flap);
-            for (const w of b.wings) {
-                press.knockout((g) => { G2.path(g, w); g.fill(); });
-                poly(navy, w, 0.82); poly(yellow, w, 1); poly(pinkS, w, 0.6); poly(blue, w, 0.25);
-                // wing bones: darker lines from the wrist
-                for (let i = 3; i <= 7; i += 2) curve(navy, [w[0], w[i]], 2.5, 0.6);
+        // the swarm: one bat per dark blob found on the reference (centre, width, height of
+        // each blob, then drawn with our own bat shape; tall blobs have their wings up)
+        const SWARM = [[663,44,52,28],[729,48,52,21],[934,113,56,29],[641,115,55,28],[816,125,29,18],[986,133,56,29],[1063,137,29,34],[699,136,49,24],[594,142,63,33],[752,161,57,29],[938,164,38,22],[839,168,60,29],[909,173,26,14],[701,191,53,27],[612,205,58,31],[1039,212,64,36],[506,208,51,23],[771,213,64,31],[906,220,49,22],[564,233,58,33],[985,238,44,26],[840,237,50,21],[676,243,63,30],[614,270,49,19],[492,274,43,22],[564,296,52,32],[1027,310,64,54],[700,304,44,20],[630,313,64,26],[543,330,49,23],[493,345,57,25],[614,368,64,32],[490,385,64,23],[585,404,46,20],[667,409,49,20],[603,440,43,21],[504,441,36,16],[555,443,37,19],[653,454,43,20],[533,468,45,20],[686,493,33,16],[592,497,43,18],[491,505,40,15],[555,516,24,14],[634,521,36,15],[654,545,30,11],[578,550,35,17],[547,573,36,19],[623,576,32,14],[582,584,26,13],[656,584,37,12],[566,623,64,72],[607,608,31,12],[649,615,34,17],[628,695,29,11],[622,735,42,19],[994,832,27,16]];
+        const rs = Motion.rng('swarm3');
+        for (const [x, y, w, h] of SWARM) {
+            const k = h / w > 0.52 ? 0 : h / w > 0.4 ? 1 : 2;
+            if (h > 45) { small(x - 16, y - 18, 44, 1, 0.1); small(x + 14, y + 18, 44, 2, -0.1); continue; } // two bats merged in one blob
+            small(x, y, w * 0.95, k, (rs() - 0.5) * 0.3);
+        }
+        // and the ones along the cliff's rim, half hidden in its shadow
+        for (const [x, y, w] of [[470, 560, 36], [500, 600, 40], [520, 650, 34], [560, 700, 38], [590, 745, 34], [620, 800, 30]]) small(x, y, w, 1, 0.2);
+        // a big bat: body with ears and yellow eyes, wings = membrane (red dots on olive)
+        // stretched between dark bones (arm and fingers), a scalloped trailing edge
+        const big = (o) => {
+            const { x, y, s } = o, Q = (pts) => pts.map(([u, v]) => [x + u * s, y + v * s]);
+            for (const side of [-1, 1]) {
+                const wp = side < 0 ? o.left : o.right, wing = Q(wp);
+                olive((g, v) => { g.fillStyle = T(v); G2.path(g, wing); g.fill(); });
+                // the membrane: red (pink + yellow) under a navy with round holes (0.3): red dots
+                // on olive, measured ≈ [99, 51, 17]
+                poly(pink, wing, 1);
+                inside(navy, (g) => G2.path(g, wing), (g) => { g.globalCompositeOperation = 'destination-out'; lat(WING, () => 0.3, g, [x - 160 * s, y - 100 * s, x + 160 * s, y + 100 * s]); });
+                // bones: the arm to the wrist, fingers from the wrist to the scallop points
+                const sh = [x + 12 * side * s, y - 30 * s], w0 = side < 0 ? o.wristL : o.wristR, wr = [x + w0[0] * s, y + w0[1] * s];
+                const bone = (a, b, w) => { for (const [g, v] of [[navy, 1], [yellow, 1]]) curve(g, [a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 3 * s], b], w, v); };
+                bone(sh, wr, 4 * s);
+                for (const f of (side < 0 ? o.fingL : o.fingR)) bone(wr, [x + wp[f][0] * s, y + wp[f][1] * s], 2.2 * s);
             }
-            press.knockout((g) => { G2.path(g, b.body); g.fill(); });
-            for (const [g, v] of [[navy, 0.95], [yellow, 0.9], [pink, 0.5]]) poly(g, b.body, v);
-            if (eyes) for (const k of [-1, 1]) { const ex = x + k * span * 0.028, ey = y - span * 0.07; press.knockout((g) => { g.beginPath(); g.arc(ex, ey, span * 0.012, 0, 7); g.fill(); }); disc(yellow, ex, ey, span * 0.012, 1); }
+            const body = Q(o.body);
+            olive((g, v) => { g.fillStyle = T(v); g.beginPath(); blobPath(g, body); g.fill(); });
+            for (const [ex, ey] of o.eyes) { press.knockout((g) => { g.beginPath(); g.arc(x + ex * s, y + ey * s, 3.2 * s, 0, 7); g.fill(); }); disc(yellow, x + ex * s, y + ey * s, 3.2 * s, 1); disc(blue, x + ex * s, y + ey * s, 1.6 * s, 0.6); }
         };
-        // the swarm: small bats streaming from the cave up and to the right (seeded, drifting)
-        const r = Motion.rng('swarm');
-        for (let i = 0; i < 110; i++) {
-            const u = r(), side = (r() - 0.5);
-            // along a curve from the cave mouth (470, 720) up to the top right (760, 40)
-            // along a fan from the cave mouth (500, 640) spreading up to the top right
-            const cx = 490 + u * 180 + side * (60 + u * 420), cy = 660 - u * 620 + side * u * 60 - Math.max(0, side) * u * 80;
-            const x = cx + d * 2 * (0.5 + u), y = cy - d * 3 * (0.3 + u);
-            if (y < 10 || x > 1075) continue;
-            const span = 30 + r() * 22 + u * 14, flap = ((i + d) % 3) / 2;
-            const b = bat(x, y, span, 0.35 + flap * 0.4, 1, (r() - 0.5) * 0.5);
-            for (const w of b.wings.concat([b.body])) for (const [g, v] of [[navy, 0.92], [yellow, 0.9], [pink, 0.5]]) poly(g, w, v);
-        }
-        // bats inside the cave: small red-orange marks (pink + yellow, navy cleared)
-        const r2 = Motion.rng('cavebats');
-        for (let i = 0; i < 26; i++) {
-            const x = 240 + r2() * 220, y = 770 + r2() * 150, b = bat(x, y, 22 + r2() * 10, (i + d) % 2, 1, -0.2);
-            for (const w of b.wings) { press.knockout((g) => { G2.path(g, w); g.fill(); }); poly(pink, w, 1); poly(yellow, w, 0.9); }
-        }
-        // the three big bats
-        bigBat(330, 170, 200, [0.5, 0.3, 0.1, 0.3][d % 4], false);
-        bigBat(840, 385, 290, [0.1, 0.2, 0.4, 0.2][d % 4], true);
-        bigBat(965, 655, 175, [0.6, 0.4, 0.2, 0.4][d % 4], true);
-        // sound arcs: white strokes (knocked out) with a yellow edge, above each big bat
-        const arcs = (cx, cy, rs, a0, a1, w) => {
-            for (const rr of rs) {
-                const pts = []; for (let i = 0; i <= 14; i++) { const a = a0 + (a1 - a0) * i / 14; pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); }
+        // bat 2 (measured at 3×: body 835, 395; wing tips 692, 325 and 977, 380), authored
+        // for the right wing (mirrored on the left, which sits a little higher)
+        const B2 = {
+            left: [[-12, -30], [-55, -77], [-100, -75], [-143, -70], [-123, -28], [-108, -5], [-95, 25], [-75, 22], [-55, 33], [-35, 45], [-12, 40]], wristL: [-55, -77], fingL: [3, 4, 6, 8],
+            right: [[12, -30], [40, -50], [70, -55], [110, -35], [142, -15], [125, 15], [108, 20], [95, 25], [80, 55], [62, 45], [45, 50], [25, 45], [12, 38]], wristR: [70, -55], fingR: [4, 6, 8, 10],
+            body: [[-13, -38], [-12, -62], [-4, -44], [4, -44], [13, -60], [15, -36], [22, -18], [22, 18], [10, 44], [0, 56], [-10, 44], [-22, 18], [-22, -18]],
+            eyes: [[-8, -28], [7, -27]],
+        };
+        big({ x: 835, y: 395, s: 1, ...B2 });
+        // bat 1 (3× crop: body 325, 190; the right wing raised)
+        big({ x: 325, y: 190, s: 1, left: [[-10, -30], [-42, -37], [-65, -40], [-93, -18], [-65, -10], [-50, 5], [-42, 10], [-28, 33], [-12, 28]], wristL: [-42, -37], fingL: [3, 5, 7],
+            right: [[10, -30], [32, -50], [70, -55], [105, -60], [95, -17], [75, 10], [60, 15], [45, 17], [18, 20]], wristR: [32, -50], fingR: [3, 4, 6, 8],
+            body: [[-10, -28], [-9, -42], [-3, -32], [4, -32], [10, -42], [11, -26], [14, 0], [10, 20], [0, 32], [-10, 20], [-14, 0]], eyes: [[-6, -22], [6, -21]] });
+        big({ x: 962, y: 650, s: 0.6, ...B2 });
+        // ---- sound arcs: white (paper) tapered arcs with a thin yellow edge
+        const arcs = (cx, cy, list, w) => {
+            for (const [rr, a0, a1] of list) {
+                const pts = []; for (let i = 0; i <= 18; i++) { const a = a0 + (a1 - a0) * i / 18; pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); }
                 press.knockout((g) => taper(g, pts, w, 1));
-                taper(yellow, pts.map(([x, y]) => [x, y + w * 0.6]), w * 0.5, 0.8);
+                taper(yellow, pts.map(([x, y]) => [x, y + w * 0.55]), w * 0.45, 0.9);
             }
         };
-        arcs(320, 150, [52, 78, 104, 130], -2.3, -0.95, 6);
-        arcs(810, 380, [140, 180, 220, 255, 290], -1.95, -0.75, 6.5);
-        arcs(960, 640, [62, 88, 114], -2.25, -0.9, 5.5);
+        arcs(360, 250, [[233, -2.09, -1.44], [203, -2.07, -1.47], [178, -2.05, -1.5], [150, -2.04, -1.57]], 6);
+        arcs(830, 440, [[328, -1.77, -0.86], [293, -1.76, -0.93], [258, -1.74, -1.0], [222, -1.73, -1.07], [180, -1.71, -1.13]], 6.5);
+        arcs(955, 690, [[185, -2.0, -1.2], [160, -1.98, -1.25], [135, -1.95, -1.3], [110, -1.9, -1.35]], 5);
     });
 };

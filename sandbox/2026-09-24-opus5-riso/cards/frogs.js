@@ -1,134 +1,202 @@
 // Card «frogs» (reference 7.5–7.75 s, full frame): two frogs singing on a lily pad under a
 // huge yellow moon, cattails and reeds, sound arcs. Authored in reference pixels (G2.px),
-// measured on the 7.6 s frame. Separations: sky = navy (top) into pink dots (bottom); the
-// moon = yellow with pink-dot maria (orange); frogs = yellow + blue (green) with navy dots
-// on the back; sacs = yellow + pink dots; reeds = navy + yellow + blue (near black green).
-// Per drawing: the sacs pump, the arcs grow, a green streak crosses the moon. Needs
-// cards/_group2-util.js.
+// measured on frame 180 (7.5 s) with 2× grid crops and colour-run scans.
+// Separations (measured): sky = navy solid at the top, then navy dots (11.6 px lattice at
+// 15°) over a pink solid that fades in from y 150 to 290; the moon = yellow with pink-dot
+// maria (10.3 px at −15°); the frogs = yellow + blue solid (green) with fine yellow flecks
+// (voids in the blue), navy dots shading the back, a lit yellow rim, a lighter foot (blue
+// dots, 7.7 px); sacs = yellow + pink dots (7.7 px); reeds = navy + yellow (olive black);
+// water = navy + a yellow screen. The reference holds everything still (frames 180–185
+// differ only in green streaks falling across the moon from frame 183). Needs cards/_group2-util.js.
 var CARDS = CARDS || {};
-CARDS.frogs = (press, t) => {
-    const { T, px, poly, disc, ell, ringS, fillWith, inside, blob, curve, taper, spline, speckle } = G2;
+CARDS.frogs = (press, t, lf) => {
+    const { T, px, poly, disc, ell, ringS, inside, blob, curve, taper, spline, speckle, lat, lerpT, field } = G2;
     const P = (ink, k) => press.plate(ink, k);
-    const yellow = P('yellow'), yellowS = P('yellow', 'screen'), pink = P('pink'), pinkS = P('pink', 'screen');
-    const blue = P('blue'), blueS = P('blue', 'screen'), navy = P('navy'), navyS = P('navy', 'screen');
-    const d = Math.floor(t * 12 + 1e-6);
-    const MX = 632, MY = 556, MRX = 428, MRY = 440; // the moon
+    const yellow = P('yellow'), yellowS = P('yellow', 'screen'), pink = P('pink');
+    const blue = P('blue'), navy = P('navy'), navyS = P('navy', 'screen');
+    const d = Math.floor(t * 12 + 1e-6), f = lf ?? 2 * d;
+    const MX = 638, MY = 551, MRX = 434, MRY = 434; // the moon (edges at x 205 / 1072, top y 117, bottom 985 at x 650)
     const moon = (g) => g.ellipse(MX, MY, MRX, MRY, 0, 0, 7);
+    // lattices measured on the reference [pitch, angle, a dot centre]
+    const SKY = [11.57, 0.2635, 128.76, 746.37], MOON = [10.31, -0.2548, 316.2, 553.1];
+    const FINE_P = [7.73, -0.2597, 558.9, 1000.8], FINE_B = [7.70, 0.2649, 394.6, 1031.06];
     px(press, () => {
-        // the sky: navy at the top thinning to dots, pink dots growing to near solid below
-        const sky = (g, stops) => { const gr = g.createLinearGradient(0, 0, 0, 1080); for (const [p, v] of stops) gr.addColorStop(p, T(v)); g.fillStyle = gr; g.fillRect(0, 0, 1080, 1080); };
-        sky(navy, [[0, 1], [0.15, 0.9], [0.4, 0.35], [0.6, 0.08], [0.75, 0]]);
-        sky(navyS, [[0, 0], [0.4, 0.12], [0.65, 0.3], [1, 0.28]]);
-        // pink dots growing down the sky, printed clean: the navy is cleared under each dot
-        const lerp = (st, y) => { for (let i = 1; i < st.length; i++) if (y <= st[i][0]) { const [a, va] = st[i - 1], [b, vb] = st[i]; return va + (vb - va) * (y - a) / (b - a); } return st[st.length - 1][1]; };
-        const pd = (x, y) => lerp([[0, 0.1], [216, 0.2], [432, 0.6], [756, 0.85], [1080, 0.85]], y);
-        G2.dots(pink, 0, 0, 1080, 1080, pd);
-        sky(blue, [[0, 0.4], [0.3, 0.3], [0.5, 0.1], [0.7, 0]]);
-        for (const g of [navy, blue]) { g.save(); g.globalCompositeOperation = 'destination-out'; G2.dots(g, 0, 0, 1080, 1080, (x, y) => pd(x, y) * 0.8); g.restore(); }
-        sky(pink, [[0, 0], [0.3, 0.1], [0.45, 0.35], [0.7, 0.2], [1, 0.1]]);
-        // the pink flecks in the navy (navy cleared under them so they print bright)
-        for (const g of [navy, pink]) { if (g === navy) g.globalCompositeOperation = 'destination-out'; speckle(g, 'sky', 0, 0, 1080, 600, 900, 0.8, 2.2, 0.9); g.globalCompositeOperation = 'source-over'; }
-        speckle(blue, 'skyb', 0, 0, 1080, 700, 60, 1.5, 3, 0.8);
-        // the pink rings round the moon (some doubled)
-        for (const [r, w] of [[492, 4], [548, 5], [560, 2.5], [612, 5], [676, 4.5], [690, 2.5], [746, 5]]) {
-            navy.globalCompositeOperation = 'destination-out'; ringS(navy, MX, MY, r, w + 1, 1, Math.PI * 0.98, Math.PI * 2.02); navy.globalCompositeOperation = 'source-over';
-            ringS(pink, MX, MY, r, w, 1, Math.PI * 0.98, Math.PI * 2.02);
+        // ---- the sky
+        navy.fillStyle = T(1); navy.fillRect(0, 0, 1080, 205);
+        // the top is deeper than navy alone: a little blue over it
+        const gb = blue.createLinearGradient(0, 0, 0, 320); gb.addColorStop(0, T(0.4)); gb.addColorStop(0.6, T(0.3)); gb.addColorStop(1, T(0));
+        blue.fillStyle = gb; blue.fillRect(0, 0, 1080, 320);
+        const navyT = (x, y) => lerpT([[200, 1.5], [230, 0.85], [290, 0.7], [360, 0.55], [440, 0.45], [600, 0.36], [1080, 0.34]], y);
+        lat(SKY, navyT, navy, [0, 160, 1080, 1080]);
+        const gp = pink.createLinearGradient(0, 180, 0, 330);
+        gp.addColorStop(0, T(0.25)); gp.addColorStop(0.35, T(0.4)); gp.addColorStop(1, T(1));
+        pink.fillStyle = T(0.25); pink.fillRect(0, 0, 1080, 180); pink.fillStyle = gp; pink.fillRect(0, 180, 1080, 900);
+        // flecks in the navy: pink bits (navy cleared under them), a few blue and white ones
+        navy.save(); navy.globalCompositeOperation = 'destination-out'; speckle(navy, 'sky', 0, 0, 1080, 330, 500, 0.7, 1.9, 0.85); navy.restore();
+        speckle(pink, 'sky', 0, 0, 1080, 330, 500, 0.7, 1.9, 0.9);
+        speckle(blue, 'skyb', 0, 0, 1080, 400, 90, 1, 2.4, 0.8);
+        press.knockout((g) => speckle(g, 'skyw', 0, 0, 1080, 1030, 260, 0.5, 1.3, 0.8));
+        // the pink rings round the moon (radii measured with runs: 487, 543, 617, 685)
+        for (const [r, w] of [[487, 7], [543, 5], [553, 2], [617, 3.5], [685, 3], [700, 2], [752, 3]]) {
+            navy.save(); navy.globalCompositeOperation = 'destination-out'; ringS(navy, MX, 556, r, w + 1.5, 1, Math.PI * 0.95, Math.PI * 2.05); navy.restore();
+            ringS(pink, MX, 556, r, w, 1, Math.PI * 0.95, Math.PI * 2.05);
         }
-        // the moon: flat yellow, its edge a thin dark line, pink-dot maria (orange)
+        // ---- the moon: flat yellow, pink-dot maria with soft edges
         press.knockout((g) => { g.beginPath(); moon(g); g.fill(); });
-        fillWith(yellow, moon, T(1));
-        inside(navy, moon, (g) => { g.lineWidth = 5; g.strokeStyle = T(0.45); g.beginPath(); g.ellipse(MX, MY, MRX, MRY, 0, 2.3, 4.2); g.stroke(); });
-        inside(pinkS, moon, (g) => {
-            g.filter = 'blur(14px)';
+        yellow.fillStyle = T(1); yellow.beginPath(); moon(yellow); yellow.fill();
+        // a paper gap between the moon and the sky on the left
+        press.knockout((g) => { g.lineWidth = 4; g.beginPath(); g.ellipse(MX, MY, MRX + 1, MRY + 1, 0, 1.9, 3.7); g.stroke(); });
+        // a dark rim along the top of the moon (navy on the yellow: olive)
+        inside(navy, moon, (g) => { g.lineWidth = 5; g.strokeStyle = T(0.9); g.beginPath(); g.ellipse(MX, MY, MRX, MRY, 0, 3.75, 6.1); g.stroke(); });
+        const maria = field('frogs-maria', (g) => {
             for (const [pts, v] of [
-                [[[300, 190], [470, 120], [660, 150], [690, 230], [620, 310], [520, 280], [420, 330], [300, 310]], 0.5],
-                [[[200, 420], [290, 340], [370, 400], [400, 520], [330, 560], [300, 700], [390, 800], [300, 860], [210, 760], [190, 560]], 0.5],
-                [[[930, 380], [1030, 360], [1070, 470], [1040, 590], [950, 580], [905, 470]], 0.5],
-                [[[800, 595], [860, 590], [862, 655], [805, 660]], 0.55],
-                [[[590, 420], [640, 400], [650, 440], [600, 450]], 0.2],
-                [[[230, 560], [300, 600], [330, 760], [250, 800]], 0.35],
-            ]) blob(g, pts, v);
-            g.filter = 'none';
-        });
-        press.knockout((g) => speckle(g, 'moonw', 250, 150, 1050, 900, 40, 1, 2.2, 0.9));
-        // a green streak across the moon (a dragonfly's flight), from the 2nd drawing
-        if (d >= 1) {
-            const k = Math.min(3, d) - 1, s0 = [[680 - k * 20, 145 + k * 25], [760 - k * 20, 180 + k * 30], [840 - k * 15, 245 + k * 30]];
-            for (const g of [blue, navy]) taper(g, spline(s0, 16), 7, g === blue ? 1 : 0.5);
-        }
+                [[[250, 360], [275, 280], [330, 210], [420, 150], [520, 122], [640, 122], [700, 170], [690, 250], [640, 305], [560, 322], [470, 300], [390, 330], [310, 370]], 0.34],
+                [[[206, 420], [270, 385], [350, 410], [420, 470], [410, 560], [385, 650], [440, 750], [470, 830], [380, 860], [290, 820], [230, 730], [205, 600]], 0.34],
+                [[[905, 380], [985, 366], [1045, 392], [1056, 470], [1042, 570], [980, 594], [920, 562], [898, 470]], 0.32],
+                [[[800, 590], [852, 584], [860, 652], [803, 656]], 0.24],
+                [[[720, 630], [760, 625], [765, 660], [725, 665]], 0.08],
+            ]) { g.fillStyle = T(v); g.beginPath(); G2.blobPath(g, pts); g.fill(); }
+        }, 10);
+        inside(pink, moon, (g) => lat(MOON, maria, g, [200, 110, 1080, 1000]));
+        press.knockout((g) => speckle(g, 'moonw', 250, 150, 1050, 900, 70, 0.8, 1.8, 0.9));
+        // green streaks falling across the moon, measured frame by frame (183–185: tapered,
+        // sagging, ≈ 200 px long, sliding down-left ≈ (−8, +15) px a frame)
+        const streak = (x0, y0, x1, y1) => { const pts = spline([[x0, y0], [(x0 + x1) / 2 + 6, (y0 + y1) / 2 - 8], [x1, y1]], 16); press.knockout((g) => taper(g, pts, 7, 1)); for (const [g, v] of [[yellow, 1], [blue, 1], [navy, 0.55]]) taper(g, pts, 6, v); };
+        const STREAKS = { 3: [[675, 140, 845, 250]], 4: [[665, 155, 840, 260], [610, 240, 770, 335]], 5: [[660, 170, 830, 280], [600, 255, 750, 335]] };
+        for (const s4 of STREAKS[Math.min(5, f)] ?? []) streak(...s4);
         // the sound arcs: red (pink on the yellow), two fans that cross into a net
-        const fan = (cx, cy, rs, a0, a1, w) => { for (const r of rs) { const pts = []; for (let i = 0; i <= 16; i++) { const a = a0 + (a1 - a0) * i / 16; pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } taper(pink, pts, w, 1); } };
-        const grow = [0, 12, 24][Math.min(2, d % 3)];
-        fan(560, 1000, [220, 262, 304 + grow * 0.5], -1.3, -0.35, 6);
-        fan(930, 990, [150, 195, 240 + grow * 0.5], -2.95, -2.05, 6);
-        // the lily pads and the water: navy water, yellow reflections, dark green pads
-        poly(navy, [[0, 1040], [1080, 1030], [1080, 1080], [0, 1080]], 0.8);
-        poly(blue, [[0, 1040], [1080, 1030], [1080, 1080], [0, 1080]], 0.5);
-        for (const [x0, x1, y] of [[480, 760, 1048], [560, 700, 1062], [900, 1060, 1044]]) { press.knockout((g) => curve(g, [[x0, y], [x1, y - 2]], 5, 1)); curve(yellow, [[x0, y], [x1, y - 2]], 5, 1); }
-        // the reeds: near-black green blades and cattails (navy + yellow + blue)
-        const reed = (pts, w) => { press.knockout((g) => taper(g, spline(pts, 20), w, 1)); for (const [g, v] of [[navy, 0.9], [yellow, 0.9], [blue, 0.6]]) taper(g, spline(pts, 20), w, v); };
-        const stalk = (pts, w) => { press.knockout((g) => curve(g, pts, w, 1)); for (const [g, v] of [[navy, 0.9], [yellow, 0.9], [blue, 0.6]]) curve(g, pts, w, v); };
-        const cattail = (x, y0, y1, w) => { press.knockout((g) => ell(g, x, (y0 + y1) / 2, w / 2, (y1 - y0) / 2, 0, 1)); for (const [g, v] of [[navy, 0.95], [yellow, 0.95], [blue, 0.5], [pinkS, 0.2]]) ell(g, x, (y0 + y1) / 2, w / 2, (y1 - y0) / 2, 0, v); };
-        stalk([[62, 230], [60, 600], [52, 1080]], 9); cattail(68, 100, 230, 38); stalk([[68, 60], [68, 100]], 3);
-        stalk([[190, 350], [176, 700], [160, 1080]], 9); cattail(192, 250, 355, 40); stalk([[194, 205], [192, 250]], 3);
-        reed([[20, 1080], [30, 700], [15, 420]], 12);
-        reed([[110, 1080], [140, 700], [210, 400], [255, 250]], 12);
-        reed([[230, 1080], [240, 700], [252, 430]], 11);
-        reed([[280, 900], [330, 700], [372, 515]], 8);
-        reed([[130, 1080], [100, 800], [90, 640]], 8);
-        stalk([[1000, 100], [1040, 500], [1072, 1080]], 8);
-        cattail(1072, 350, 470, 34);
-        reed([[1080, 1000], [1050, 700], [1020, 540]], 10);
-        // a frog: green body (yellow + blue), navy dots on the back, a lit yellow edge,
-        // eyes on top, a mouth line, the singing sac (yellow + pink dots, red rim)
+        // (two families of four tapered arcs, traced point by point on a 1.6× grid crop)
+        for (const pts of [
+            [[640, 699], [746, 750], [809, 806], [852, 880], [865, 912]], [[627, 749], [727, 800], [790, 862], [815, 950]],
+            [[612, 801], [696, 850], [746, 900], [762, 969]], [[596, 856], [665, 894], [696, 937], [709, 981]],
+            [[674, 906], [740, 837], [840, 797]], [[696, 945], [765, 862], [846, 830]],
+            [[727, 962], [790, 894], [852, 862]], [[759, 969], [815, 925], [865, 897]],
+        ]) taper(pink, spline(pts, 20), 7.5, 1);
+        // ---- the reeds: olive-black blades and cattails (navy + yellow), a red fringe
+        const ink3 = (fn) => { press.knockout((g) => fn(g, 1)); for (const [g, v] of [[navy, 0.92], [yellow, 0.95], [blue, 0.35]]) fn(g, v); pink.save(); pink.translate(-3, 0); fn(pink, 0.35); pink.restore(); };
+        const reed = (pts, w) => ink3((g, v) => taper(g, spline(pts, 20), w, v));
+        const stalk = (pts, w) => ink3((g, v) => curve(g, pts, w, v));
+        const cattail = (x, y0, y1, w) => ink3((g, v) => blob(g, [[x, y0], [x + w * 0.45, y0 + (y1 - y0) * 0.3], [x + w * 0.5, y0 + (y1 - y0) * 0.7], [x, y1], [x - w * 0.5, y0 + (y1 - y0) * 0.7], [x - w * 0.45, y0 + (y1 - y0) * 0.3]], v));
+        // positions from colour-run scans of the olive-black on rows every 50 px
+        stalk([[66, 236], [62, 400], [58, 550], [54, 700], [50, 850], [46, 1080]], 9); cattail(68, 104, 240, 38); stalk([[68, 58], [68, 108]], 3);
+        stalk([[187, 400], [184, 500], [179, 650], [173, 800], [169, 950], [165, 1080]], 7); cattail(189, 258, 405, 36); stalk([[190, 208], [189, 262]], 3);
+        reed([[128, 1080], [131, 900], [140, 750], [152, 600], [162, 500], [174, 398]], 13);
+        reed([[222, 1010], [236, 800], [242, 650], [249, 538]], 10);
+        reed([[258, 930], [289, 800], [320, 700], [336, 652]], 9);
+        reed([[-6, 720], [5, 600], [21, 478]], 7);
+        reed([[24, 1090], [20, 950], [22, 870]], 18);
+        stalk([[998, 110], [1018, 200], [1036, 300], [1054, 450], [1062, 650], [1068, 800], [1066, 1080]], 8);
+        cattail(1078, 372, 510, 34);
+        // ---- the water: navy with pink flecks (a yellow screen on the far left), clean of the
+        // sky's pink; glints = yellow bars with a paper core and a red lower fringe
+        pink.save(); pink.globalCompositeOperation = 'destination-out'; pink.fillStyle = T(1); pink.fillRect(0, 1029, 1080, 60); pink.restore();
+        poly(navy, [[0, 1029], [1080, 1029], [1080, 1080], [0, 1080]], 1);
+        speckle(pink, 'water', 0, 1029, 1080, 1080, 700, 0.6, 1.6, 0.8);
+        yellowS.fillStyle = T(0.3); yellowS.fillRect(0, 1029, 170, 51);
+        for (const [x0, x1, y, w] of [[645, 830, 1047, 9], [480, 640, 1063, 6], [680, 722, 1072, 6], [870, 940, 1046, 6], [960, 1062, 1048, 7]]) {
+            const bar = [[x0, y], [(x0 + x1) / 2, y - 1], [x1, y]], low = bar.map(([x, yy]) => [x, yy + w * 0.45]);
+            press.knockout((g) => taper(g, bar, w + 2, 1));
+            taper(yellow, bar, w + 1, 1); taper(pink, low, w * 0.45, 0.9);
+            press.knockout((g) => taper(g, bar.map(([x, yy]) => [x, yy - 1]), w * 0.35, 1));
+        }
+        // ---- a frog, authored on the big one (its eye at 495, 835); the small one is the
+        // same drawing mirrored at 0.57 (eye at 934, 884)
         const frog = (o) => {
-            const { x, y, s, sac } = o, fx = o.flip ? -1 : 1, X = (u) => x + u * s * fx, Y = (v) => y + v * s, Q = (p) => p.map(([u, v]) => [X(u), Y(v)]);
-            const body = Q([[-330, 200], [-334, 100], [-300, 30], [-210, -32], [-80, -56], [40, -52], [100, -30], [114, 15], [92, 60], [20, 85], [-30, 200]]);
-            press.knockout((g) => { g.beginPath(); G2.blobPath(g, body); g.fill(); });
+            const { ex, ey, s, fx } = o, Q = (p) => p.map(([x, y]) => [ex + (x - 495) * s * fx, y >= 1100 ? 1090 : ey + (y - 835) * s]), X = (x) => ex + (x - 495) * s * fx, Y = (y) => ey + (y - 835) * s;
+            const body = Q([[165, 1100], [162, 1000], [168, 958], [184, 934], [212, 910], [252, 886], [302, 866], [360, 852], [410, 846], [455, 847], [530, 852], [576, 867], [606, 886], [617, 906], [610, 919], [585, 928], [550, 936], [520, 950], [505, 970], [498, 1000], [500, 1040], [505, 1100]]);
+            const bodyP = (g) => G2.blobPath(g, body);
+            press.knockout((g) => { g.beginPath(); bodyP(g); g.fill(); });
             blob(yellow, body, 1); blob(blue, body, 1);
-            // the back in shade: navy dots on the top half
-            inside(navyS, (g) => G2.blobPath(g, body), (g) => { g.fillStyle = Riso.ramp(g, 0, Y(-60), 0, Y(60), 0.22, 0); g.fillRect(x - 400 * s, y - 60 * s, 600 * s, 330 * s); });
-            // the lit belly and legs: blue as dots, not flat
-            inside(blue, (g) => G2.blobPath(g, body), (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(0.7); g.beginPath(); g.ellipse(X(-80), Y(210), 180 * s, 70 * s, -0.2 * fx, 0, 7); g.fill(); });
-            inside(blueS, (g) => G2.blobPath(g, body), (g) => { g.fillStyle = T(0.55); g.beginPath(); g.ellipse(X(-80), Y(210), 180 * s, 70 * s, -0.2 * fx, 0, 7); g.fill(); });
-            // the yellow rim of light along the back: blue kept only where the body shifted
-            // down-right still covers (a lit crescent on the top-left edge), yellow flecks
-            inside(blue, (g) => G2.blobPath(g, body), (g) => { g.globalCompositeOperation = 'destination-in'; g.fillStyle = T(1); g.beginPath(); G2.blobPath(g, body.map(([u, v]) => [u + 9 * s * fx, v + 11 * s])); g.fill(); });
-            inside(blue, (g) => G2.blobPath(g, body), (g) => { g.globalCompositeOperation = 'destination-out'; speckle(g, 'fr' + x, X(-340), Y(-60), X(120), Y(200), 300 * s, 0.6, 1.2, 0.9); });
+            // the lit rim along the back: the blue shifted down-right (a yellow crescent)
+            inside(blue, bodyP, (g) => { g.globalCompositeOperation = 'destination-in'; g.fillStyle = T(1); g.beginPath(); G2.blobPath(g, body.map(([u, v]) => [u + 6 * s * fx, v + 9 * s])); g.fill(); });
+            // the lighter foot: blue as dots (7.7 px lattice)
+            const foot = Q([[336, 1040], [372, 1025], [420, 1020], [462, 1028], [478, 1045], [484, 1100], [336, 1100]]);
+            inside(blue, (g) => G2.path(g, foot), (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(1); g.fillRect(0, 0, 1080, 1080); });
+            inside(blue, (g) => { G2.path(g, foot); }, (g) => lat(FINE_B, () => 0.62, g, [X(330) - 60, Y(980), X(482) + 60, 1080]));
+            // the back in shade: navy dots thinning down from the top edge
+            inside(navy, bodyP, (g) => lat([7.7, 0.785, ex, ey], (x, y) => Math.max(0, 0.4 - (y - Y(850)) / (50 * s) * 0.4), g, [X(165) - 400, Y(840), X(620) + 400, Y(910)]));
+            // fine yellow flecks all over the green (voids in the blue plate)
+            inside(blue, bodyP, (g) => { g.globalCompositeOperation = 'destination-out'; speckle(g, 'frf' + ex, Math.min(X(165), X(620)), Y(845), Math.max(X(165), X(620)), 1080, Math.round(800 * s * s), 0.5, 0.9, 0.95); });
             // spots
-            for (const [u, v, r] of o.spots) { disc(navy, X(u), Y(v), r * s, 0.9); disc(pink, X(u), Y(v), r * s, 0.5); disc(yellow, X(u), Y(v), r * s, 0.8); }
-            // mouth, leg creases
-            for (const g of [navy, pink]) curve(g, Q([[-50, 20], [20, 15], [80, 22], [114, 18]]), 7 * s, g === navy ? 0.9 : 0.4);
-            for (const pts of o.creases) curve(navy, Q(pts), 5 * s, 0.85);
-            // eyes: the far one (small, a dark ring) and the near one (big, red rim, pupil)
-            const [ux, uy, fr] = o.far;
-            ringS(navy, X(ux), Y(uy), fr * s, 7 * s, 0.9); ringS(pink, X(ux), Y(uy), fr * s, 7 * s, 0.5);
-            inside(blue, (g) => g.arc(X(ux), Y(uy), fr * s - 3 * s, 0, 7), (g) => { g.globalCompositeOperation = 'destination-out'; g.fillRect(0, 0, 1080, 1080); });
-            inside(navyS, (g) => g.arc(X(ux), Y(uy), fr * s - 3 * s, 0, 7), (g) => { g.globalCompositeOperation = 'destination-out'; g.fillRect(0, 0, 1080, 1080); });
-            const [ex, ey, er] = o.eye;
-            press.knockout((g) => { g.beginPath(); g.arc(X(ex), Y(ey), er * s, 0, 7); g.fill(); });
-            disc(yellow, X(ex), Y(ey), er * s, 1);
-            ringS(pink, X(ex), Y(ey), er * s - 3 * s, 7 * s, 1); ringS(navy, X(ex) + 2, Y(ey) + 2, er * s - 2 * s, 4 * s, 0.6, -0.3, 2.2);
-            for (const [g, v] of [[navy, 1], [pink, 0.6], [yellow, 0.6]]) ell(g, X(ex + 2), Y(ey + 3), er * 0.52 * s, er * 0.33 * s, 0, v);
-            press.knockout((g) => { g.beginPath(); g.ellipse(X(ex - 14), Y(ey - 12), 9 * s, 7 * s, -0.3, 0, 7); g.fill(); });
-            // the sac
-            const [sx, sy, sr] = sac;
+            for (const [u, v, r] of [[370, 877, 9], [302, 892, 9], [225, 937, 9], [380, 945, 12], [215, 1022, 12]]) for (const [g, k] of [[navy, 0.95], [pink, 0.45]]) disc(g, X(u), Y(v), r * s, k);
+            // the hind leg and the toes: dark tapered lines (navy + pink)
+            const dark = (pts, w) => { for (const [g, v] of [[navy, 0.95], [pink, 0.5]]) taper(g, spline(Q(pts), 14), w * s, v); };
+            dark([[168, 962], [260, 990], [352, 1018]], 6);
+            dark([[168, 1076], [260, 1046], [348, 1020]], 6);
+            dark([[340, 1024], [350, 1045], [362, 1064]], 4);
+            dark([[372, 1012], [398, 1030], [422, 1052]], 4);
+            dark([[436, 1000], [460, 1012], [478, 1030]], 4);
+            // a purple wedge of water between the toes
+            const wedge = Q([[392, 1064], [426, 1048], [434, 1070]]);
+            press.knockout((g) => { G2.path(g, wedge); g.fill(); });
+            poly(navy, wedge, 0.7); poly(pink, wedge, 0.9);
+            // the mouth: a dark line with a red tick
+            for (const [g, v] of [[navy, 0.95], [pink, 0.5]]) taper(g, spline(Q([[448, 916], [490, 913], [528, 913], [570, 911], [612, 912]]), 16), 7 * s, v);
+            disc(pink, X(490), Y(910), 3 * s, 1);
+            // the tympanum: a dark ring, a green ring, a yellow centre
+            ringS(navy, X(412), Y(902), 22 * s, 5 * s, 0.95); ringS(pink, X(412), Y(902), 22 * s, 5 * s, 0.5);
+            press.knockout((g) => { g.beginPath(); g.arc(X(412), Y(902), 12 * s, 0, 7); g.fill(); });
+            disc(yellow, X(412), Y(902), 12 * s, 1);
+            // the eye: dark outline, a red ring inside it (fat at the lower right), yellow
+            // ball, a dark pupil and a white highlight
+            const ER = 42 * s;
+            press.knockout((g) => { g.beginPath(); g.arc(X(495), Y(835), ER, 0, 7); g.fill(); });
+            disc(yellow, X(495), Y(835), ER, 1);
+            ringS(pink, X(495) + 2 * s * fx, Y(835) + 2 * s, ER - 6 * s, 7 * s, 1);
+            for (const [g, v] of [[navy, 0.95], [pink, 0.6]]) ringS(g, X(495), Y(835), ER - 2 * s, 4 * s, v);
+            for (const [g, v] of [[navy, 1], [pink, 0.6], [yellow, 0.6]]) ell(g, X(495), Y(839), 22 * s, 12.5 * s, 0, v);
+            press.knockout((g) => { g.beginPath(); g.ellipse(X(479), Y(819), 7 * s, 6 * s, 0, 0, 7); g.fill(); });
+            // the sac: yellow, pink dots denser to the lower right, a dark rim on the left,
+            // a red rim on the right, a white highlight arc
+            const [sx, sy, sr] = [X(555), Y(1005), (60 + o.pump) * s];
             press.knockout((g) => { g.beginPath(); g.arc(sx, sy, sr, 0, 7); g.fill(); });
             disc(yellow, sx, sy, sr, 1);
-            inside(pinkS, (g) => g.arc(sx, sy, sr, 0, 7), (g) => { g.fillStyle = Riso.radial(g, sx - sr * 0.35, sy - sr * 0.4, 0, sr * 1.3, 0.25, 0.75); g.fillRect(sx - sr, sy - sr, sr * 2, sr * 2); });
-            ringS(pink, sx, sy, sr - 2, 5, 1, -1.2, 2.6); ringS(pink, sx, sy, sr - 2, 2.5, 0.8, 2.6, 5.1);
-            press.knockout((g) => { g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.arc(sx, sy, sr * 0.78, -1.9, -1.1); g.stroke(); });
+            inside(pink, (g) => g.arc(sx, sy, sr, 0, 7), (g) => lat(FINE_P, (x, y) => 0.16 + 0.22 * Math.min(1, Math.hypot(x - sx + 20 * s * fx, y - sy + 25 * s) / (sr * 1.3)), g, [sx - sr, sy - sr, sx + sr, sy + sr]));
+            ringS(pink, sx, sy, sr - 2 * s, 5 * s, 1, fx > 0 ? -1.2 : 1.9, fx > 0 ? 1.4 : 4.3);
+            for (const [g, v] of [[navy, 0.9], [pink, 0.4]]) ringS(g, sx, sy, sr - 1.5 * s, 3.5 * s, v, fx > 0 ? 1.9 : -1.2, fx > 0 ? 4.1 : 1.1);
+            press.knockout((g) => { g.lineWidth = 5 * s; g.lineCap = 'round'; g.beginPath(); fx > 0 ? g.arc(sx, sy, sr * 0.8, -1.4, -0.55) : g.arc(sx, sy, sr * 0.8, -2.6, -1.75); g.stroke(); });
         };
-        const pump = [0, 5, 9, 5][d % 4];
-        frog({ x: 500, y: 890, s: 1, sac: [555, 1005, 56 + pump], eye: [-8, -52, 44], far: [-88, 10, 26],
-            spots: [[-130, -24, 12], [-230, 20, 14], [-285, 150, 12], [-120, 55, 13], [-290, 20, 7]],
-            creases: [[[-340, 70], [-200, 110], [-120, 130]], [[-80, 160], [-40, 180], [-10, 200]], [[-330, 270], [-230, 230], [-160, 190]]] });
-        frog({ x: 929, y: 910, s: 0.62, flip: true, sac: [900, 990, 40 - pump * 0.5], eye: [-10, -52, 45], far: [-90, 24, 29],
-            spots: [[-200, 10, 12], [-150, 60, 10]], creases: [[[-320, 100], [-220, 140], [-150, 150]]] });
-        // the lily pad under them: dark green
-        const pad = [[140, 1080], [180, 1050], [420, 1040], [640, 1052], [700, 1080]];
-        for (const [g, v] of [[navy, 0.8], [yellow, 0.9], [blue, 0.8]]) poly(g, pad, v);
-        const pad2 = [[820, 1080], [860, 1052], [1000, 1046], [1080, 1050], [1080, 1080]];
-        for (const [g, v] of [[navy, 0.7], [yellow, 0.9], [blue, 0.8]]) poly(g, pad2, v);
+        const pump = 0;
+        frog({ ex: 495, ey: 835, s: 1, fx: 1, pump });
+        // the small frog's lily pad (green, a dark rim) under it, then the frog
+        const pad2 = [[815, 1080], [830, 1056], [900, 1044], [1000, 1042], [1080, 1046], [1080, 1080]];
+        press.knockout((g) => { G2.path(g, pad2); g.fill(); });
+        for (const [g, v] of [[yellow, 1], [blue, 0.9], [navyS, 0.35]]) poly(g, pad2, v);
+        // the small frog (facing left), measured on its own 3× crop
+        {
+            const body = [[862, 918], [880, 902], [910, 893], [935, 888], [975, 886], [1020, 896], [1060, 908], [1090, 915], [1090, 1046], [946, 1046], [943, 1000], [940, 966], [905, 948], [874, 933]];
+            const bodyP = (g) => G2.blobPath(g, body);
+            press.knockout((g) => { g.beginPath(); bodyP(g); g.fill(); });
+            blob(yellow, body, 1); blob(blue, body, 1);
+            inside(blue, bodyP, (g) => { g.globalCompositeOperation = 'destination-in'; g.fillStyle = T(1); g.beginPath(); G2.blobPath(g, body.map(([u, v]) => [u - 2, v + 6])); g.fill(); });
+            inside(navy, bodyP, (g) => lat([7.7, 0.785, 934, 884], (x, y) => Math.max(0, 0.35 - (y - 890) / 30 * 0.35), g, [850, 880, 1080, 930]));
+            const thigh = [[962, 994], [1000, 986], [1082, 974], [1082, 1042], [975, 1042], [958, 1020]];
+            inside(blue, (g) => G2.path(g, thigh), (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(1); g.fillRect(0, 0, 1080, 1080); });
+            inside(blue, (g) => G2.path(g, thigh), (g) => lat(FINE_B, () => 0.62, g, [950, 970, 1080, 1050]));
+            inside(blue, bodyP, (g) => { g.globalCompositeOperation = 'destination-out'; speckle(g, 'frs', 860, 886, 1080, 1046, 350, 0.5, 1.0, 0.95); });
+            const dark = (pts, w) => { for (const [g, v] of [[navy, 0.95], [pink, 0.5]]) taper(g, spline(pts, 14), w, v); };
+            dark([[972, 1000], [1030, 988], [1082, 978]], 4);
+            dark([[988, 1022], [1030, 1030], [1072, 1037]], 4);
+            dark([[866, 925], [900, 930], [930, 932], [962, 934]], 5);
+            const wedge = [[990, 1023], [1026, 1017], [1012, 1031]];
+            press.knockout((g) => { G2.path(g, wedge); g.fill(); });
+            poly(navy, wedge, 0.35); poly(pink, wedge, 1);
+            for (const [g, v] of [[navy, 0.95], [pink, 0.45]]) disc(g, 1000, 946, 7, v);
+            ringS(navy, 983, 925, 11, 4, 0.95); ringS(pink, 983, 925, 11, 4, 0.5);
+            press.knockout((g) => { g.beginPath(); g.arc(983, 925, 6.5, 0, 7); g.fill(); });
+            disc(yellow, 983, 925, 6.5, 1);
+            press.knockout((g) => { g.beginPath(); g.arc(935, 882, 23, 0, 7); g.fill(); });
+            disc(yellow, 935, 882, 23, 1);
+            ringS(pink, 936, 883, 19.5, 4, 1);
+            for (const [g, v] of [[navy, 0.95], [pink, 0.6]]) ringS(g, 935, 882, 22, 2.5, v);
+            for (const [g, v] of [[navy, 1], [pink, 0.6], [yellow, 0.6]]) ell(g, 933, 884, 12, 7, 0, v);
+            press.knockout((g) => { g.beginPath(); g.arc(944, 872, 4, 0, 7); g.fill(); });
+            const [sx, sy, sr] = [897, 990, 36 - pump * 0.3];
+            press.knockout((g) => { g.beginPath(); g.arc(sx, sy, sr, 0, 7); g.fill(); });
+            disc(yellow, sx, sy, sr, 1);
+            inside(pink, (g) => g.arc(sx, sy, sr, 0, 7), (g) => lat([7.75, -0.2544, 899.56, 976.2], (x, y) => 0.18 + 0.2 * Math.min(1, Math.hypot(x - sx + 12, y - sy + 14) / (sr * 1.3)), g, [sx - sr, sy - sr, sx + sr, sy + sr]));
+            ringS(pink, sx, sy, sr - 2, 4, 1, -1.0, 1.6);
+            for (const [g, v] of [[navy, 0.8], [pink, 0.4]]) ringS(g, sx, sy, sr - 1.5, 3, v, 1.8, 3.6);
+        }
     });
 };
