@@ -83,10 +83,11 @@ Motion.scene({
         // cuts land on the frame (24 fps: the film cuts every 1/8 s, which is not on twos);
         // motion inside a shot holds on twos, counted from the cut
         const { press } = env.state, f = Math.floor(t * 24 + 1e-6), tf = f / 24;
-        let i = EDIT.findIndex(([a]) => a > tf + 1e-6) - 1;
+        // shots start on whole frames: compare frame numbers (15.667 s is frame 376, not 377)
+        let i = EDIT.findIndex(([a]) => Math.round(a * 24) > f) - 1;
         if (i < 0) i = EDIT.length - 2;
         const [t0, kind, card, o = {}] = EDIT[i];
-        const ld = Math.floor((tf - t0) * 12 + 1e-6), lt = ld / 12, lf = Math.round((tf - t0) * 24);
+        const lf = f - Math.round(t0 * 24), ld = Math.floor(lf / 2), lt = ld / 12;
         // the sonar, circles, orbits and full cards (slow camera pushes) change every frame
         const d = i * 1000 + (kind === 'sonar' || kind === 'circle' || kind === 'orbits' || kind === 'full' ? 500 + lf : ld);
         press.begin(d);
