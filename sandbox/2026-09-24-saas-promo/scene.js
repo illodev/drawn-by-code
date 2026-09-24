@@ -11,7 +11,7 @@ Motion.scene({
     uses: [
         'styles/paper-cutout/paper.js', 'styles/paper-cutout/kit.js', 'styles/paper-cutout/detail.js',
         DIR + 'segments/brand-default.js', { src: DIR + 'private/brand.js', optional: true },
-        DIR + 'segments/props.js', DIR + 'segments/laura.js', DIR + 'segments/shots.js',
+        DIR + 'segments/props.js', DIR + 'segments/laura.js', DIR + 'segments/office.js', DIR + 'segments/shots.js',
     ],
     fonts: [
         { family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' },
