@@ -141,6 +141,8 @@ proves useful twice, add it here.
 | The character sat 47 units too high in every interior | anchor guessed | `box` of the hair on the reference and on our still; move the anchor |
 | The flower 17 % too small | reach vs radius assumed | calibrate by tracking our own render |
 | Drawings one frame late | `ffmpeg -ss` rounding lands on the next frame | seek at `frame/24 − 0.004` |
+| Cuts one frame off, or a sweep of cut times all one frame early | times read off `compare`/`-ss` sheets | cut times from a frame-index scan (`select=between(n,a,b)` or all frames piped raw, diff > 25 between neighbours): the index is the truth |
+| Rings and flecks «almost» right but the gate says too clean | vector strokes, softened by the print's spread, thinner than the painted ones | measure widths on a pixel profile; paint annuli with varying width; lower `spread` for line-only shots |
 | `track` catches other things | the colour is shared | tighter `--tol`, `--crop`, or a colour unique to the character |
 | Rays looked like blobs when short | width kept constant | short rays slimmer too |
 | A caught plane drawn over or under the whole flower | one layer | rays in an arc drawn over the plane, the face over everything |

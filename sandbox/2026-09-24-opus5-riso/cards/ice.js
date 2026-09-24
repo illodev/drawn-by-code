@@ -15,31 +15,48 @@ CARDS.ice = (press, t) => {
     const px = (v) => v / 1.08, P = (pts) => pts.map(([x, y]) => [x / 1.08, y / 1.08]);
     const lift = (gs, fn) => { for (const g of gs) { g.save(); g.globalCompositeOperation = 'destination-out'; fn(g); g.restore(); } };
 
-    // the ice: navy screen all over, darker blotches, blue patches
-    navyS.fillStyle = T(0.72); navyS.fillRect(0, 0, 1000, 1000);
-    pinkS.fillStyle = T(0.06); pinkS.fillRect(0, 0, 1000, 1000);
-    blue.fillStyle = T(0.18); blue.fillRect(0, 0, 1000, 1000);
-    const rb = Motion.rng('iceb');
-    for (let i = 0; i < 14; i++) { const x = rb() * 1000, y = rb() * 1000, r = 60 + rb() * 140; navyS.fillStyle = R.radial(navyS, x, y, 0, r, 0.35, 0); navyS.beginPath(); navyS.arc(x, y, r, 0, 7); navyS.fill(); }
-    for (const [x, y, r, v] of [[px(880), px(600), 170, 0.8], [px(960), px(420), 120, 0.7], [px(300), px(450), 150, 0.35], [px(180), px(860), 120, 0.4], [px(560), px(180), 150, 0.3], [px(900), px(900), 110, 0.3]]) {
-        blueS.fillStyle = R.radial(blueS, x, y, 0, r, v, 0); blueS.beginPath(); blueS.arc(x, y, r, 0, 7); blueS.fill();
-        lift([navyS], (g) => { g.fillStyle = R.radial(g, x, y, 0, r, v * 0.7, 0); g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); });
-    }
-    // pale haze patches (the navy thinned, paper between the dots)
-    for (const [x, y, rx, ry] of [[px(300), px(450), 150, 60], [px(180), px(850), 90, 60]]) lift([navyS], (g) => { g.fillStyle = T(0.35); g.beginPath(); g.ellipse(x, y, rx, ry, -0.5, 0, 7); g.fill(); });
-
-    // the diagonal glow: along a line from low left to high right, navy lifted, yellow in
-    const G0 = [px(0), px(976)], G1 = [px(1080), px(104)];
-    for (let i = 0; i <= 30; i++) {
-        const f = i / 30, x = G0[0] + (G1[0] - G0[0]) * f, y = G0[1] + (G1[1] - G0[1]) * f;
-        const w = 125 - 30 * Math.abs(f - 0.6), core = Math.max(0, 1 - Math.abs(f - 0.62) * 1.8);
-        lift([navyS, blueS, blue], (g) => { g.fillStyle = R.radial(g, x, y, 0, w, 0.35 + 0.4 * core, 0); g.beginPath(); g.arc(x, y, w, 0, 7); g.fill(); });
-        yellowS.fillStyle = R.radial(yellowS, x, y, 0, w * 0.9, 0.35 + 0.55 * core, 0); yellowS.beginPath(); yellowS.arc(x, y, w * 0.9, 0, 7); yellowS.fill();
-        // its lower-left edge warms to orange/red (pink screen), stronger towards the bottom
-        const ox = x - 45, oy = y + 55;
-        if (f < 0.55) { pinkS.fillStyle = R.radial(pinkS, ox, oy, 0, w * 0.7, 0.35 * (1 - f * 1.5), 0); pinkS.beginPath(); pinkS.arc(ox, oy, w * 0.7, 0, 7); pinkS.fill(); }     }
-    // a flat yellow hot spot at the glow's heart
-    yellow.fillStyle = R.radial(yellow, px(780), px(330), 0, 120, 0.6, 0); yellow.beginPath(); yellow.arc(px(780), px(330), 120, 0, 7); yellow.fill();
+    // the reference's own screens, measured per drawing (reference px): blue and navy share a
+    // 7.56 px screen at 78°, pink 8.63 px at 18°, yellow 8.64 px at 48°; the inks move a few
+    // px independently from one drawing to the next (per-ink misregistration)
+    const k = Math.min(1, d);
+    const LN = [{ o: [-2.22, 0.92], a: [-7.3960, 1.5703], b: [1.5695, 7.3964] }, { o: [-1.28, -2.55], a: [1.5705, 7.3958], b: [-7.3952, 1.5690] }][k];
+    const LPk = [{ o: [-4.11, 0.33], a: [8.2172, 2.6505], b: [-2.6543, 8.2194] }, { o: [1.07, -4.21], a: [8.2196, 2.6648], b: [-2.6557, 8.2102] }][k];
+    const LY = [{ o: [4.78, -0.39], a: [-6.4360, 5.7684], b: [5.7616, 6.4307] }, { o: [-4.88, 2.99], a: [5.7613, 6.4301], b: [-6.4354, 5.7682] }][k];
+    // a soft tone blob (px): an elliptical radial ramp, v at the centre → 0 at the rim
+    const blob = (m, x, y, rx, ry, v, rot = 0, op = 'source-over') => {
+        m.save(); m.globalCompositeOperation = op; m.translate(px(x), px(y)); m.rotate(rot); m.scale(1, ry / rx);
+        const gr = m.createRadialGradient(0, 0, 0, 0, 0, px(rx)); gr.addColorStop(0, T(v)); gr.addColorStop(0.5, T(v * 0.75)); gr.addColorStop(1, T(0));
+        m.fillStyle = gr; m.beginPath(); m.arc(0, 0, px(rx), 0, 7); m.fill(); m.restore();
+    };
+    // the glow's centre-line (from the yellow coverage per 90 px column): (1035, 250) → (45, 900)
+    const glow = (m, v0, v1, w, op) => {
+        for (let i = 0; i <= 24; i++) { const f = i / 24, x = 1035 + (45 - 1035) * f, y = 250 + (900 - 250) * f + 30 * Math.sin(f * 3.1); blob(m, x, y, w * (1 + 0.3 * f), w * 0.8, v0 + (v1 - v0) * f, -0.58, op); }
+    };
+    // blue: a medium screen over all the ice, denser in the darker pools, lifted in the glow
+    U.lattice(blue, LN, (m) => {
+        m.fillStyle = T(0.76); m.fillRect(-20, -20, 1040, 1040);
+        for (const [x, y, rx, ry, v] of [[330, 150, 260, 120, 0.3], [260, 330, 160, 120, 0.25], [60, 560, 200, 260, 0.3], [700, 900, 500, 220, 0.3], [150, 1000, 250, 100, 0.3]]) blob(m, x, y, rx, ry, v);
+        glow(m, 0.3, 0.05, 150, 'destination-out');
+    }, { gain: 1 });
+    // navy: dark pools (left, top right, the whole bottom), light ice between; the deepest
+    // pools print nearly flat (a solid under the dots, so they don't read as a busy screen)
+    for (const [x, y, rx, ry, v] of [[60, 470, 190, 330, 0.7], [860, 60, 190, 140, 0.7], [760, 950, 520, 230, 0.45], [330, 1030, 330, 120, 0.5], [30, 860, 120, 110, 0.5]]) blob(navy, x, y, rx, ry, v);
+    U.lattice(navy, LN, (m) => {
+        m.fillStyle = T(0.24); m.fillRect(-20, -20, 1040, 1040);
+        for (const [x, y, rx, ry, v] of [[60, 470, 190, 330, 1.6], [860, 60, 190, 140, 1.5], [760, 950, 520, 230, 0.55], [330, 1030, 330, 120, 0.7], [30, 860, 120, 110, 0.9], [300, 700, 200, 110, 0.35], [400, 180, 240, 110, 0.55], [230, 240, 150, 90, 0.4], [560, 760, 170, 90, 0.7]]) blob(m, x, y, rx, ry, v);
+        glow(m, 0.35, 0.05, 150, 'destination-out');
+    });
+    // pink: specks everywhere, strong in the lower half and the lower-left warm edge of the glow
+    U.lattice(pink, LPk, (m) => {
+        m.fillStyle = T(0.14); m.fillRect(-20, -20, 1040, 1040);
+        for (const [x, y, rx, ry, v] of [[540, 930, 620, 250, 0.55], [120, 700, 260, 240, 0.45], [820, 50, 150, 110, 0.6], [30, 400, 120, 100, 0.5], [880, 780, 180, 120, 0.4]]) blob(m, x, y, rx, ry, v);
+        for (let i = 0; i <= 12; i++) { const f = 0.6 + i / 30, x = 1035 + (45 - 1035) * f, y = 250 + (900 - 250) * f; blob(m, x - 30, y + 70, 130, 90, 0.45, -0.58); }
+    });
+    // yellow: the glow, 0.8 at the upper right thinning to 0.35 at the lower left
+    // (yellow coverage per 90 px column, fitted on the reference: the band's centre and peak)
+    U.lattice(yellow, LY, (m) => {
+        for (const [x, y, v] of [[1040, 215, 0.9], [990, 240, 0.85], [900, 300, 0.8], [810, 320, 0.68], [720, 390, 0.72], [630, 470, 0.72], [540, 555, 0.6], [450, 590, 0.55], [360, 655, 0.58], [270, 720, 0.4], [180, 760, 0.36], [90, 820, 0.32], [0, 880, 0.3]]) blob(m, x, y, 120, 85, v * 1.7, -0.6);
+    });
 
     // bubbles: white discs with dotted trails (paper through coarse dots)
     const bubbles = [
@@ -55,11 +72,23 @@ CARDS.ice = (press, t) => {
         // bottom-right
         [775, 753, 30, 13], [690, 797, 20, 10], [698, 862, 30, 14], [728, 890, 20, 9], [755, 912, 22, 10], [722, 935, 30, 12], [720, 957, 34, 14], [885, 832, 28, 12], [912, 850, 18, 9], [936, 880, 26, 12], [920, 910, 26, 12], [884, 940, 18, 9],
     ];
-    const trail = (m) => { for (const [x, y, rx, ry] of bubbles) for (let k = 1; k <= 3; k++) { m.beginPath(); m.ellipse(px(x), px(y + k * ry * 1.7), px(rx) * (1 - k * 0.08), px(ry) * 0.9, 0, 0, 7); m.fill(); } };
     // the trails: the navy lifted through a mask of coarse dots, pink dots peeking in
     const tboxes = bubbles.map(([x, y, rx, ry]) => [px(x - rx), px(y), px(x + rx), px(y + ry * 6.2)]);
-    U.masked([[navyS, 'destination-out'], [blueS, 'destination-out']], trail, (m) => U.dots(m, tboxes, 8.8, 3.1, 0.5));
-    U.masked([[pinkS]], trail, (m) => U.dots(m, tboxes, 8.8, 1.6, 0.5));
+    // coarse dots on the ice's own 7.56 px screen, only inside the trail boxes; one Path2D per
+    // dot size, filled through a clip of the trails (no scratch canvas: this runs every drawing)
+    const tdots = (r) => {
+        const [ax, ay] = LN.a, [bx, by] = LN.b, det = ax * by - ay * bx, p = new Path2D();
+        for (const [x0, y0, x1, y1] of tboxes) {
+            const cs = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([x, y]) => { const X = x * 1.08 - LN.o[0], Y = y * 1.08 - LN.o[1]; return [(X * by - Y * bx) / det, (ax * Y - ay * X) / det]; });
+            const i0 = Math.floor(Math.min(...cs.map((c) => c[0]))), i1 = Math.ceil(Math.max(...cs.map((c) => c[0]))), j0 = Math.floor(Math.min(...cs.map((c) => c[1]))), j1 = Math.ceil(Math.max(...cs.map((c) => c[1])));
+            for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const x = (LN.o[0] + i * ax + j * bx) / 1.08, y = (LN.o[1] + i * ay + j * by) / 1.08; if (x < x0 || x > x1 || y < y0 || y > y1) continue; p.moveTo(x + r, y); p.arc(x, y, r, 0, 6.2832); }
+        }
+        return p;
+    };
+    const trailPath = new Path2D();
+    for (const [x, y, rx, ry] of bubbles) for (let k = 1; k <= 3; k++) { const cx = px(x), cy = px(y + k * ry * 1.7), ex = px(rx) * (1 - k * 0.08), ey = px(ry) * 0.9; trailPath.moveTo(cx + ex, cy); trailPath.ellipse(cx, cy, ex, ey, 0, 0, 7); }
+    const big = tdots(2.6), small = tdots(1.3);
+    for (const [g, p, op] of [[navy, big, 'destination-out'], [blue, big, 'destination-out'], [yellow, big, 'destination-out'], [pink, small, 'source-over']]) { g.save(); g.clip(trailPath); g.globalCompositeOperation = op; g.fillStyle = T(1); g.fill(p); g.restore(); }
     press.knockout((g) => { for (const [x, y, rx, ry] of bubbles) { g.beginPath(); g.ellipse(px(x), px(y), px(rx), px(ry), 0, 0, 7); g.fill(); } });
     // a blue rim under each disc (its lower edge)
     for (const [x, y, rx, ry] of bubbles) { blue.save(); blue.lineWidth = 1.4; blue.strokeStyle = T(0.8); blue.beginPath(); blue.ellipse(px(x), px(y) + 1, px(rx), px(ry), 0, 0.3, Math.PI - 0.3); blue.stroke(); blue.restore(); }
@@ -68,24 +97,27 @@ CARDS.ice = (press, t) => {
     const cracks = [
         [[[440, 0], [470, 90], [520, 180], [555, 260], [590, 350], [605, 430], [625, 520], [640, 600], [650, 700], [635, 780], [615, 870], [605, 960], [600, 1080]], 3.4],
         [[[0, 505], [120, 480], [230, 462], [330, 440], [430, 428], [520, 440], [600, 452], [700, 440], [800, 425], [900, 400], [1000, 375], [1080, 360]], 2.8],
-        [[[0, 925], [150, 900], [300, 880], [420, 845], [520, 800], [600, 760], [650, 738], [760, 700], [860, 680], [960, 680], [1080, 695]], 3],
+        [[[0, 882], [150, 866], [300, 848], [420, 815], [520, 780], [600, 752], [650, 738], [760, 700], [860, 680], [960, 680], [1080, 695]], 3],
         [[[520, 215], [580, 210], [640, 230], [680, 220]], 1.6], [[[600, 340], [660, 320], [720, 250]], 1.2], [[[640, 660], [700, 600], [720, 560]], 1.3],
         [[[650, 700], [690, 720], [720, 690]], 1.2], [[[560, 800], [580, 820], [560, 880]], 1.1], [[[900, 680], [960, 620], [1040, 640]], 1.2], [[[330, 440], [320, 400], [340, 360]], 1], [[[160, 900], [140, 860]], 1],
         [[[620, 740], [590, 700], [560, 690]], 1], [[[1000, 375], [1040, 330], [1080, 320]], 1.2],
     ];
-    for (const [pts, w] of cracks) {
+    // (each crack jagged once; the white of all of them knocked out in one pass)
+    const jags = cracks.map(([pts, w]) => {
         const q = P(pts), rj = Motion.rng('crk' + pts[0][0] + pts[0][1]);
         const jag = []; q.forEach(([x, y], i) => { jag.push([x, y]); if (i < q.length - 1) { const [x2, y2] = q[i + 1]; jag.push([(x + x2) / 2 + (rj() - 0.5) * 6, (y + y2) / 2 + (rj() - 0.5) * 6]); } });
         U.stroke(blue, jag.map(([x, y]) => [x + 2, y + 2]), w * 2.8 + 1.4, T(0.9));
-        press.knockout((g) => U.stroke(g, jag, w * 2.8));
-        U.stroke(blue, jag, w * 0.35, T(0.6));
-    }
+        return [jag, w];
+    });
+    press.knockout((g) => { for (const [jag, w] of jags) U.stroke(g, jag, w * 2.8); });
+    for (const [jag, w] of jags) U.stroke(blue, jag, w * 0.35, T(0.6));
 
     // the bank: top-left corner, paper with a ragged stippled edge and a blue line along it
-    const bank = P([[0, 0], [470, 0], [440, 30], [380, 75], [320, 120], [240, 175], [150, 235], [70, 280], [0, 310]]);
+    // (the snow's lower edge measured bottom-up per 30 px column: (0, 312) … (150, 186); the solid
+    // bank stops ~20 px short of it, a stippled fringe covers the rest)
+    const bank = P([[0, 0], [410, 0], [350, 32], [300, 64], [250, 95], [200, 130], [150, 166], [120, 184], [60, 252], [0, 292]]);
     press.knockout((g) => { U.path(g, bank); g.fill(); });
-    const rsn = Motion.rng('icesn');
-    press.knockout((g) => { for (let i = 0; i < 1600; i++) { const f = rsn(), x = px(470) * (1 - f), y = px(310) * f, o = rsn() * rsn() * 75; g.beginPath(); g.arc(x + o * 0.55, y + o * 0.83, 1.4 + rsn() * 2.4 * (1 - o / 80), 0, 7); g.fill(); } });
+    press.knockout((g) => { const rsn = Motion.rng('icesn'); for (let i = 0; i < 1400; i++) { const f = rsn(), x = px(420) * (1 - f), y = px(300) * f, o = rsn() * rsn() * 34; g.beginPath(); g.arc(x + o * 0.6, y + o * 0.8, 1.2 + rsn() * 2.2 * (1 - o / 40), 0, 7); g.fill(); } });
     U.stroke(blue, P([[0, 290], [60, 262], [150, 215], [240, 160], [320, 105], [380, 62], [430, 20], [452, 0]]), 2.2, T(0.9));
     U.stroke(blueS, P([[0, 275], [150, 200], [320, 92], [440, 5]]), 10, T(0.35));
     // grass blades on the bank: dark green (navy + yellow) curves

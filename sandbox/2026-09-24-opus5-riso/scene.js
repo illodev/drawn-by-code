@@ -39,7 +39,7 @@ const EDIT = [
     [12.25, 'full', 'balloons', { ring: true }], [12.375, 'full', 'cello'], [12.5, 'full', 'volcano'], [12.625, 'full', 'shell'],
     [12.75, 'full', 'dish'], [12.875, 'full', 'train'], [13.0, 'full', 'campfire'], [13.125, 'full', 'chimes'], [13.25, 'full', 'field'],
     [13.375, 'full', 'snowflake'], [13.5, 'full', 'mountains'], [13.625, 'full', 'aurora'], [13.75, 'full', 'savanna'],
-    [13.875, 'full', 'dunes'], [14.0, 'full', 'ice'],
+    [13.875, 'full', 'dunes'], [14.0, 'full', 'ice', { ring: true }],
     // the same cards again, re-inked, with a white ring
     [14.125, 'full', 'koi', { ring: true, inks: { blue: 'pink', pink: 'yellow', yellow: 'blue' } }],
     [14.25, 'full', 'grasshopper', { ring: true, inks: { navy: 'blue', yellow: 'yellow' } }],
@@ -48,17 +48,22 @@ const EDIT = [
     [14.625, 'full', 'bell', { ring: true, inks: { pink: 'blue' } }],
     [14.75, 'full', 'lighthouse', { ring: true, inks: { blue: 'pink', pink: 'blue' } }],
     [14.875, 'full', 'wolf', { ring: true, inks: { blue: 'pink' } }],
+    // from 15.0 the re-inked run cuts every 2 frames (measured by frame index, 360–383)
     [15.0, 'full', 'phone', { ring: true, inks: { blue: 'pink', pink: 'blue' } }],
-    [15.125, 'full', 'turntable', { ring: true, inks: { blue: 'pink', pink: 'yellow' } }],
+    [15.083, 'full', 'turntable', { ring: true, inks: { blue: 'pink', pink: 'yellow' } }],
+    [15.167, 'full', 'frogs', { ring: true }],
     [15.25, 'full', 'bats', { ring: true, inks: { pink: 'blue', blue: 'yellow' } }],
-    [15.375, 'full', 'wave', { ring: true, inks: { blue: 'pink', pink: 'blue' } }],
+    [15.333, 'full', 'wave', { ring: true, inks: { blue: 'pink', pink: 'blue' } }],
+    [15.417, 'full', 'cat', { ring: true }],
     [15.5, 'full', 'sunflower', { ring: true, inks: { blue: 'pink' } }],
-    [15.625, 'full', 'radio', { ring: true, inks: { pink: 'blue' } }],
+    [15.583, 'full', 'radio', { ring: true, inks: { pink: 'blue' } }],
+    [15.667, 'full', 'fireworks', { ring: true }],
     [15.75, 'full', 'hummingbird', { ring: true, inks: { blue: 'pink', pink: 'yellow' } }],
-    [15.875, 'full', 'kettle', { ring: true, inks: { pink: 'blue', blue: 'pink' } }],
-    [16.0, 'mosaic'], [18.0, 'orbits'], [22.958, 'full', 'waterfall', { inks: PINKSET }], [23.083, 'full', 'bicycle', { inks: PINKSET }], [23.208, 'full', 'whale', { inks: PINKSET }],
-    [23.333, 'full', 'piano', { inks: PINKSET }], [23.458, 'full', 'rocket', { inks: PINKSET, flip: true }], [23.583, 'full', 'city', { inks: PINKSET }],
-    [23.708, 'full', 'planet', { inks: PINKSET }], [23.833, 'full', 'lightning', { inks: PINKSET }], [24.0, 'night'], [26.0, 'title'], [28.1, 'end'],
+    [15.833, 'full', 'kettle', { ring: true, inks: { pink: 'blue', blue: 'pink' } }],
+    [15.917, 'full', 'ferris', { ring: true, inks: { pink: 'blue', yellow: 'blue', navy: 'blue' } }],
+    [16.0, 'mosaic'], [18.0, 'orbits'], [23.0, 'full', 'waterfall', { inks: PINKSET }], [23.125, 'full', 'bicycle', { inks: PINKSET }], [23.25, 'full', 'whale', { inks: PINKSET }],
+    [23.375, 'full', 'piano', { inks: PINKSET }], [23.5, 'full', 'rocket', { inks: PINKSET, flip: true }], [23.625, 'full', 'city', { inks: PINKSET }],
+    [23.75, 'full', 'planet', { inks: PINKSET }], [23.875, 'full', 'lightning', { inks: PINKSET }], [24.0, 'night'], [26.0, 'title'], [28.1, 'end'],
 ];
 Motion.scene({
     fps: 24,
@@ -79,32 +84,33 @@ Motion.scene({
         if (i < 0) i = EDIT.length - 2;
         const [t0, kind, card, o = {}] = EDIT[i];
         const ld = Math.floor((tf - t0) * 12 + 1e-6), lt = ld / 12, lf = Math.round((tf - t0) * 24);
-        // the sonar and the opening circles change every frame; everything else on twos
-        const d = i * 1000 + (kind === 'sonar' || kind === 'circle' ? 500 + lf : ld);
+        // the sonar, circles, orbits and full cards (slow camera pushes) change every frame
+        const d = i * 1000 + (kind === 'sonar' || kind === 'circle' || kind === 'orbits' || kind === 'full' ? 500 + lf : ld);
         press.begin(d);
         if (kind === 'sonar') sonar(press, lf, o);
         else if (kind === 'circle') circleCard(press, card, lt, ld, o, lf);
         else if (kind === 'full') {
             // o.flip: the reference re-uses some drawings mirrored left–right
             if (o.flip) { press.save(); press.each((g) => g.transform(-1, 0, 0, 1, 1000, 0)); }
-            drawCard(press, card, lt);
+            drawCard(press, card, lt, lf);
             if (o.flip) press.restore();
             if (o.ring) whiteRing(press, ld);
         }
         else if (kind === 'mosaic') mosaic(press, lt);
         ORBIT_DOT = null;
-        if (kind === 'orbits') orbits(press, lt);
+        if (kind === 'orbits') orbits(press, lf / 24);
         else if (kind === 'night') night(press, lt);
         else if (kind === 'title') title(press, lt);
         if (ORBIT_DOT !== 'none') dot(press, ORBIT_DOT ?? [500, 500]);
-        press.print(g, { key: d, inks: kind === 'mosaic' && lt >= 1.0 ? MOSAIC_BLUE : o.inks, spread: kind === 'night' ? 0.3 : undefined });
+        press.print(g, { key: d, inks: kind === 'mosaic' && lt >= 1.0 ? MOSAIC_BLUE : o.inks, spread: kind === 'night' ? 0.3 : kind === 'orbits' || kind === 'sonar' ? 0.5 : undefined });
     },
 });
 
 // ------------------------------------------------------------------ pieces
 const T = (v) => Riso.tone(v);
-function drawCard(press, name, lt) {
-    if (CARDS[name]) return CARDS[name](press, lt);
+// lf: the frame inside the shot (24 fps), for cards whose camera pushes in every frame
+function drawCard(press, name, lt, lf) {
+    if (CARDS[name]) return CARDS[name](press, lt, lf);
     // placeholder until the card exists: a two-ink field with its name
     const s = press.plate('pink', 'screen'), n = press.plate('navy');
     s.fillStyle = T(0.35);
@@ -304,7 +310,7 @@ const MOSAIC_BLUE = { pink: 'blue', yellow: 'blue' };
 // they reach the other, it pings (a small ring round it for a few frames) and answers.
 // Positions per frame, in s after 18: the dot, then the pink planet (enters at 19.75).
 const DOT_PATH = [[0, 500, 500], [1.583, 500, 500], [1.625, 520, 481], [1.667, 537, 468], [1.708, 554, 454], [1.75, 569, 439], [1.792, 585, 426], [1.833, 603, 411], [1.875, 617, 400], [1.917, 631, 385], [1.958, 648, 372], [2.0, 657, 367], [2.042, 669, 357], [2.083, 678, 348], [2.125, 685, 343], [2.167, 689, 336], [2.208, 694, 331], [2.25, 698, 330], [5, 698, 330]];
-const PLANET_PATH = [[1.583, -40, 1040], [1.75, -20, 925], [1.792, 52, 872], [1.833, 89, 841], [1.875, 122, 811], [1.917, 159, 783], [1.958, 193, 756], [2.0, 219, 731], [2.042, 241, 709], [2.083, 259, 693], [2.125, 276, 678], [2.167, 289, 667], [2.208, 296, 659], [2.25, 300, 657], [5, 300, 657]];
+const PLANET_PATH = [[1.583, 0, 1000], [1.75, -20, 925], [1.792, 52, 872], [1.833, 89, 841], [1.875, 122, 811], [1.917, 159, 783], [1.958, 193, 756], [2.0, 219, 731], [2.042, 241, 709], [2.083, 259, 693], [2.125, 276, 678], [2.167, 289, 667], [2.208, 296, 659], [2.25, 300, 657], [5, 300, 657]];
 const along = (P, t) => { if (t <= P[0][0]) return [P[0][1], P[0][2]]; let i = 0; while (i < P.length - 2 && t >= P[i + 1][0]) i++; const [t0, x0, y0] = P[i], [t1, x1, y1] = P[i + 1], u = Ease.seg(t, t0, t1); return [x0 + (x1 - x0) * u, y0 + (y1 - y0) * u]; };
 // emissions: [first ring's birth, emitter ('corner' | 'dot' | 'planet'), start radius, reach]
 // (three rings, 1/12 s apart; r = start + reach·(1 − e^(−age/0.25)))
@@ -320,13 +326,16 @@ function orbits(press, lt) {
         pS.fillStyle = Riso.radial(pS, 0, 1000, 0, 360, 0.95, 0);
         pS.fillRect(0, 580, 420, 420);
     }
-    const at = { corner: [-40, 1040], dot: blue, planet: pinkP ?? [-20, 925] };
+    const at = { corner: [0, 1000], dot: blue, planet: pinkP ?? [-20, 925] };
     for (const [t0, who, r0, reach] of EMIT) {
+        // pink rings (corner, planet) travel far at a near-constant speed, born 1/8 s apart
+        // (measured from the corner: r ≈ 50 + 1750·age − 350·age²); the dot's ease out
+        const pinkish = who !== 'dot', step = pinkish ? 1 / 8 : 1 / 12;
         for (let k = 0; k < 3; k++) {
-            const age = tq - t0 - k / 12;
-            if (age < 0 || age > (who === 'corner' ? 0.95 : 0.6) || tq >= 4.0) continue;
-            const r = (r0 - k * 40) + reach * (1 - Math.exp(-age / 0.25));
-            const w = Math.max(3, (12 - k * 2.5) * (1 - age * 0.7));
+            const age = tq - t0 - k * step;
+            if (age < 0 || age > (pinkish ? 0.95 : 0.6) || tq >= 4.0) continue;
+            const r = pinkish ? 50 + 1750 * age - 350 * age * age : (r0 - k * 40) + reach * (1 - Math.exp(-age / 0.25));
+            const w = Math.max(4, (15 - k * 3) * (1 - age * 0.6));
             Riso.ring(who === 'dot' ? bp : pp, at[who][0], at[who][1], r, w, 'orb' + t0 + k, { color: T(0.97), wobble: 0.004 });
         }
     }
@@ -339,20 +348,62 @@ function orbits(press, lt) {
         pp.fillStyle = T(1);
         pp.beginPath(); pp.arc(pinkP[0], pinkP[1], 19, 0, 7); pp.fill();
     }
-    // 22.0: the two bodies swell (pink over yellow = orange, navy over pink)
-    if (tq >= 4.0 && tq < 4.17) {
+    // 22.0 (one frame): the two bodies swell (pink over yellow = orange, navy over pink)
+    if (tq >= 4.0 && tq < 4.03) {
         const y = press.plate('yellow'), n = press.plate('navy');
         y.fillStyle = T(1); y.beginPath(); y.arc(pinkP[0], pinkP[1], 75, 0, 7); y.fill();
         pp.fillStyle = T(1); pp.beginPath(); pp.arc(pinkP[0], pinkP[1], 58, 0, 7); pp.fill();
         pp.beginPath(); pp.arc(blue[0], blue[1], 78, 0, 7); pp.fill();
         n.fillStyle = T(1); n.beginPath(); n.arc(blue[0], blue[1], 66, 0, 7); n.fill();
     }
-    // 22.17–22.84: the flower grows at the centre, rings round it
-    if (tq >= 4.17) {
-        const s = Math.min(1, (tq - 4.17) / 0.25);
-        drawCard(press, 'flower', tq - 4.12); // the card grows on its own (measured 22.12 → 22.45)
-        Riso.ring(bp, 500, 500, 250 + (tq - 4.17) * 60, 5, 'fl1', { color: T(0.9) });
-        Riso.ring(pp, 480, 520, 330 + (tq - 4.17) * 80, 4, 'fl2', { color: T(0.9) });
+    // 22.04–22.5: both bodies send thick rings every 1/8 s (measured 172/167 → 264/290 → …);
+    // yellow sparks where the first two cross; 22.54–23: rings from the flower's heart,
+    // blue and pink by turns; the flower grows from a bud (22.125 → whole at 22.42)
+    if (tq >= 4.03) {
+        const bodyRings = [];
+        for (const [c, g, who] of [[blue, bp, 'b'], [pinkP, pp, 'p']]) {
+            for (let k = 0; k < 3; k++) {
+                const age = tq - 4.03 - k / 8;
+                if (age < 0 || age > 0.36) continue;
+                const r = 170 + 1250 * age - 300 * age * age, w = Math.max(5, 22 * (1 - age * 1.3));
+                Riso.ring(g, c[0], c[1], r, w, 'fin' + who + k, { color: T(0.97), wobble: 0.006 });
+                if (k === 0) bodyRings.push([c, r]);
+            }
+            // a small double ping round each body (22.125–22.375)
+            if (tq >= 4.125 && tq < 4.375) { Riso.ring(g, c[0], c[1], 42, 5, 'fp' + who, { color: T(0.95) }); Riso.ring(g, c[0], c[1], 24, 4, 'fq' + who, { color: T(0.95) }); }
+        }
+        if (bodyRings.length === 2 && tq < 4.25) {
+            const [[c1, r1], [c2, r2]] = bodyRings, dx = c2[0] - c1[0], dy = c2[1] - c1[1], d = Math.hypot(dx, dy);
+            if (d < r1 + r2 && d > Math.abs(r1 - r2)) {
+                const a = (r1 * r1 - r2 * r2 + d * d) / (2 * d), h = Math.sqrt(r1 * r1 - a * a), mx = c1[0] + (a * dx) / d, my = c1[1] + (a * dy) / d;
+                const y = press.plate('yellow'), n = press.plate('navy');
+                for (const sgn of [1, -1]) {
+                    const x = mx - (sgn * h * dy) / d, yv = my + (sgn * h * dx) / d;
+                    press.knockout((g) => { g.beginPath(); g.arc(x, yv, 12, 0, 7); g.fill(); });
+                    y.fillStyle = T(1); y.beginPath(); y.arc(x, yv, 10, 0, 7); y.fill();
+                    n.fillStyle = T(1); n.beginPath(); n.arc(x, yv, 3.5, 0, 7); n.fill();
+                }
+            }
+        }
+        for (let k = 0; k < 6; k++) {
+            const born = 4.54 + k / 12, age = tq - born;
+            if (age < 0 || age > 0.45) continue;
+            Riso.ring(k % 2 ? pp : bp, 500, 500, 190 + 900 * age - 300 * age * age, Math.max(4, 8 * (1 - age)), 'flr' + k, { color: T(0.95), wobble: 0.005 });
+        }
+        // the flower opens as a bud off centre and settles (measured: 22.125 small at
+        // (560, 470), whole at the centre by 22.42)
+        if (tq >= 4.125) {
+            const u = Ease.out(Ease.seg(tq, 4.125, 4.42));
+            if (u >= 1) drawCard(press, 'flower', tq - 4.1);
+            else CARDS.flower.at(press, tq - 4.1, 560 - 60 * u, 470 + 28 * u, 0.4 + 0.6 * u, 0);
+        }
+        // 22.04–22.12: the bodies still flushed (a pink disc round the dot, yellow round the planet)
+        if (tq < 4.125) {
+            const y = press.plate('yellow'), n = press.plate('navy');
+            pp.fillStyle = T(1); pp.beginPath(); pp.arc(blue[0], blue[1], 24, 0, 7); pp.fill();
+            y.fillStyle = T(1); y.beginPath(); y.arc(pinkP[0], pinkP[1], 24, 0, 7); y.fill();
+            pp.beginPath(); pp.arc(pinkP[0], pinkP[1], 11, 0, 7); pp.fill();
+        }
     }
     ORBIT_DOT = blue;
 }
