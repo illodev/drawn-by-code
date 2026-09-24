@@ -1,6 +1,6 @@
 ---
 name: style-clay3d
-description: Clay 3D style, in testing: a raymarched plasticine set (WebGL2 in the headless browser) with a camera at table height, soft shadows, occlusion, waxy skin, glossy eyes, fingerprints and depth of field, in the manner of classic claymation. Use it when asked for claymation that looks photographed, a 3D clay set, «like a stop-motion film», or when working with styles/clay3d/.
+description: Clay 3D style, in testing: raymarched plasticine puppets (WebGL2 in the headless browser) built from lumpy pressed-on pieces (flat disc eyes, ball noses, hair in clumps), matte clay with fingerprints, soft studio light on a seamless backdrop, stop motion on twos. Use it when asked for claymation, plasticine or stop-motion characters that should look like real clay, or when working with styles/clay3d/.
 ---
 
 # Style · Clay 3D
@@ -27,27 +27,39 @@ folds, chair, wallpaper, a panelled door).
 
 ## Style rules
 
-- **Build like a sculptor:** balls, sausages and slabs pressed together (`smin` for clay
-  joins, `smax(-…)` to carve a mouth or a panel). Rounded everything; nothing sharp but
-  glasses and teeth.
-- **Camera at table height**, a long-ish lens (`fov` 0.45–0.55), focus on the face,
-  `aperture` ~0.2: the background melts, the foreground cloth is soft. That is the scale
-  cue of a table-top set.
-- **One warm key from the front left** (`light` ≈ [-0.65, 0.72, 0.7]), a cool sky fill, a
-  warm bounce from the table, a vignette in `post`, film grain per drawing.
-- **Materials:** skin with translucency ~0.45; clay `specular` 0.2–0.35 with low shininess
-  (waxy); eyes, pupils, glasses glossy (shininess 80–140); fabric with a pattern in albedo
-  (knit Vs, woven cloth) and a little bump; wood with grain.
-- **Stop motion on twos**, a boil of the surface per drawing; contacts squash.
-- **Logos:** from the brand's SVG (lobes, proportions and gaps), e.g. in relief on a plaque.
+The user's verdict on a first, «photographed set» version: «parece más 3D que plastilina».
+What makes it plasticine and not CG (from their references: a puppet on a seamless
+backdrop, pieces pressed on):
+
+- **Hand-made, never perfect:** every clay piece gets `lumps(p, amp)` added to its
+  distance (a head ≈ 0.012, small pieces ≈ 0.004): dents and bulges, no perfect ellipsoid.
+- **Pieces pressed on, joins visible:** eyes are flat white discs with a flat black dot
+  (`disc()`), the nose a ball, the mouth a flat piece (a curved sausage; a D with a teeth
+  strip for a grin), eyebrows and lashes sausages, cheeks flat pink dabs, hair in clumps of
+  balls (hard unions, not smooth), collars and lapels flat strips, buttons flattened discs,
+  the brand's logo a flat badge (lobes from its SVG). Use `opU` for pressed pieces and keep
+  `smin` for the body's own forms.
+- **Matte material:** specular ≈ 0.05, shininess ≈ 5; skin translucency ≈ 0.4; bump 1.4
+  for fingerprints; fine pigment speckle in albedo (tiny, faint: big dots read as dirt).
+- **Studio light:** a seamless backdrop (floor and wall joined by `smin(p.y, p.z + d, 1.2)`)
+  in a saturated pastel, a soft key from the front left (`soft` 8), a strong fill (`fill`
+  0.55), a long lens (`fov` ≈ 0.36), little depth of field (`aperture` ≈ 0.06), a light
+  vignette, film grain per drawing.
+- **Characters:** a big egg head, a slab torso, sausage arms with cuffs, four-finger hands
+  (open for a wave: palm to camera, thumb on the inner side; a fist with the thumb up).
+- **Stop motion on twos**, boil per drawing (`uA[95]`), blinks and winks as a black line.
+- A table-top room (the first version) is possible too, but it drifts towards CG: keep the
+  pressed-piece rules there as well.
 
 ## Pitfalls (each cost a round)
 
 - **A sign error in a plane** (`-p.z - 1.9` for a wall behind) puts the camera inside it:
   a black frame, no error. Planes: distance = how far in front of them the point is.
-- **Bounding spheres cast ghost shadows:** a bound is a surface to the soft-shadow ray,
-  so a near one draws rings of penumbra on everything. Switch bounds at a wide margin
-  (`BOUND = 0.5`).
+- **Bounding spheres cast ghost shadows:** a bound is a surface to the soft-shadow ray.
+  Bounds return **material 0**: the kit's soft shadow steps over them without casting (and
+  resets its estimate after one: a stale estimate reads as full shadow, streaks everywhere).
+  A bound must also be big enough to hold the character's penumbra, or the shadow on the
+  backdrop is cut in a sharp arc (Laura: radius 1.6 round the torso).
 - **Soft-shadow banding:** coarse steps band into contour lines on round forms; use the
   improved estimate with fine steps (the kit does) and a fairly frontal key.
 - **Depth in 8 bits** makes the depth-of-field blur jump in steps (contour lines): the kit
@@ -65,3 +77,5 @@ folds, chair, wallpaper, a panelled door).
 - [ ] The brand's logo from its SVG?
 
 ## Lessons
+
+- 2026-09-24 · clay3d-test · Round 1 (a photographed table-top room, perfect SDF forms, glossy eyes) read as «más 3D que plastilina». Round 2 with lumps, flat pressed-on features, matte clay and a studio backdrop is the style.

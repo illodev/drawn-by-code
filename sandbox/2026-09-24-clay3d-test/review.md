@@ -18,3 +18,19 @@ Lessons that apply to other videos go up to the matching skill (see review/SKILL
   rings. Collar and shirt stuck out like ears in the toast: flattened. The logo floated
   over its bar as a figurine: now in relief on a clay plaque, gaps as in the SVG. Door with
   panels and a knob, a picture in the frame, a warm vignette and film grain per drawing.
+
+## Round 2 (user)
+
+> «Parece más 3D que plastilina», with four references: puppets on seamless backdrops, flat
+> disc eyes, ball noses, hair in clumps, matte clay, visible fingerprints.
+
+- Rebuilt as a puppet on a pink studio sweep: lumps on every piece, eyes as flat discs with
+  flat dots, a ball nose, a flat mouth (sausage / D with teeth), sausage eyebrows and
+  lashes, pink cheek dabs, hair in clumps with a fringe and a bun, flat collar strips,
+  flattened buttons, the brand's cloud as a flat badge; matte material, soft key, strong
+  fill. She blinks, waves on twos, and gives a thumbs up with a grin and a wink.
+- The first renders were bald on top (clumps only round the sides) and masculine: a cap,
+  a fringe of clumps, a bun, lashes and earrings.
+- Ghost shadows again with the softer light: bounds now return material 0 and the soft
+  shadow skips them; a stale estimate after a skip painted streaks (reset it); the bound
+  must hold the penumbra (radius 1.6).

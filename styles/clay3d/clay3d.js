@@ -8,19 +8,22 @@
 //   const R = Clay3D.renderer(env, { scene: GLSL, scale: 0.6 })
 //   R.render(g, key, { cam: [x,y,z], target: [x,y,z], fov, focus, aperture, light: [x,y,z],
 //                     a: [floats…] })       draws the frame on g (logical units, full frame)
+//     soft: shadow edge (12 a lamp, 4 a big softbox), fill: ambient (0.38), key: key light (2.3)
 //     noDof: true renders without depth of field (a quicker preview)
 //     key: memo key (the drawing index: on twos, frame pairs share one render)
 //     a:   up to 95 floats for the scene's animation (uniform float uA[96]); uA[95] is the
 //          boil (the drawing's variant: Clay3D moves the fingerprints with it)
 //
 // The scene GLSL defines (see the style test sandbox/2026-09-24-clay3d-test/):
-//   vec2  map(vec3 p)                      distance and material id
+//   vec2  map(vec3 p)                      distance and material id (≥ 1; material 0 marks
+//                                          a bounding volume: skipped by soft shadows)
 //   vec3  albedo(float m, vec3 p, vec3 n)  colour (sRGB) of material m at p
 //   vec4  material(float m)                (specular, shininess, translucency, bump)
 //   vec3  background(vec3 rd)              colour where nothing is hit
 // The prelude gives: sdSphere, sdEllipsoid, sdCapsule, sdRoundCone, sdRoundBox, sdTorus,
 // sdCylinder, smin, smax, opU (union with material), opSU (smooth union keeping the nearer
-// material), rot (2D rotation), hash/noise/fbm, and the uniforms uT, uA[96].
+// material), rot (2D rotation), hash/noise/fbm, lumps (hand-made unevenness to add to a
+// distance), speckle (pigment dots for albedo), and the uniforms uT, uA[96].
 const Clay3D = (() => {
     const PRELUDE = `#version 300 es
 precision highp float;
@@ -28,6 +31,7 @@ uniform vec2 uRes;
 uniform float uT;
 uniform float uA[96];
 uniform vec3 uCamPos, uCamTarget, uLight;
+uniform float uSoft, uFill, uKey;
 uniform float uFov, uFocus, uAperture;
 out vec4 fragColor;
 
@@ -57,6 +61,10 @@ float noise(vec3 x) {
                mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
 }
 float fbm(vec3 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * noise(p); p *= 2.03; a *= 0.5; } return s; }
+// hand-made unevenness: add to a clay piece's distance (amp ≈ 0.006–0.015 for a head)
+float lumps(vec3 p, float amp) { return amp * (noise(p * 4.5) + 0.5 * noise(p * 11.0) - 0.75) * 1.6; }
+// fine pigment speckle and dust for albedo (0..1, mostly 0)
+float speckle(vec3 p) { return step(0.93, hash(floor(p * 260.0))) * 0.6 + step(0.985, hash(floor(p * 90.0) + 3.1)); }
 `;
     const MAIN = `
 // fingerprints and tool marks: a fine noise plus sparse ridged whorls
@@ -84,11 +92,15 @@ float softShadow(vec3 ro, vec3 rd) {
     float res = 1.0, ph = 1e10;
     float t = 0.03;
     for (int i = 0; i < 96; i++) {
-        float h = map(ro + rd * t).x;
-        float y = h * h / (2.0 * ph);
-        float d = sqrt(max(h * h - y * y, 0.0));
-        res = min(res, 12.0 * d / max(0.001, t - y));
-        ph = h;
+        vec2 hm = map(ro + rd * t);
+        float h = hm.x;
+        // material 0 = a bounding volume: step over it, it casts nothing
+        if (hm.y > 0.5) {
+            float y = h * h / (2.0 * ph);
+            float d = sqrt(max(h * h - y * y, 0.0));
+            res = min(res, uSoft * d / max(0.001, t - y));
+            ph = h;
+        } else ph = 1e10; // the next real sample starts a fresh estimate (a stale one reads as full shadow)
         t += clamp(h, 0.004, 0.2);
         if (res < 0.003 || t > 6.0) break;
     }
@@ -134,10 +146,10 @@ void main() {
         float sky = 0.5 + 0.5 * n.y;
         float bounce = clamp(0.5 - 0.5 * n.y, 0.0, 1.0);
         float fre = pow(1.0 - max(dot(n, -rd), 0.0), 3.0);
-        vec3 key = vec3(1.0, 0.9, 0.76) * 2.3;
+        vec3 key = vec3(1.0, 0.92, 0.8) * uKey;
         col = alb * key * mix(dif, wrap, 0.6) * mix(sh, 1.0, 0.12);
         col += alb * mat.z * vec3(0.9, 0.35, 0.25) * 0.25 * (1.0 - dif) * occ; // warm scattering in shadow
-        col += alb * vec3(0.55, 0.62, 0.72) * 0.38 * sky * occ;
+        col += alb * vec3(0.62, 0.66, 0.72) * uFill * sky * occ;
         col += alb * vec3(0.7, 0.5, 0.35) * 0.3 * bounce * occ;
         col += alb * fre * 0.18 * occ;
         col += vec3(1.0, 0.95, 0.85) * spe;
@@ -240,6 +252,9 @@ void main() { gl_Position = vec4(p, 0.0, 1.0); }
                     gl.uniform3fv(U1('uLight'), f.light ?? [-0.6, 0.8, 0.55]);
                     gl.uniform1f(U1('uFov'), f.noDof ? -(f.fov ?? 0.6) : (f.fov ?? 0.6));
                     gl.uniform1f(U1('uFocus'), f.focus ?? 4);
+                    gl.uniform1f(U1('uSoft'), f.soft ?? 12);  // shadow edge: 12 a lamp, 4 a big softbox
+                    gl.uniform1f(U1('uFill'), f.fill ?? 0.38); // sky/ambient fill
+                    gl.uniform1f(U1('uKey'), f.key ?? 2.3);   // key light intensity
                     gl.uniform1f(U1('uAperture'), f.aperture ?? 0.012);
                     gl.drawArrays(gl.TRIANGLES, 0, 3);
                     if (!f.noDof) {
