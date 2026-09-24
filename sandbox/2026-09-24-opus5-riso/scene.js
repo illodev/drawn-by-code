@@ -80,7 +80,7 @@ Motion.scene({
         const [t0, kind, card, o = {}] = EDIT[i];
         const ld = Math.floor((tf - t0) * 12 + 1e-6), lt = ld / 12, lf = Math.round((tf - t0) * 24);
         // the sonar and the opening circles change every frame; everything else on twos
-        const d = i * 1000 + (kind === 'sonar' || kind === 'circle' ? 500 + lf : ld);
+        const d = i * 1000 + (kind === 'sonar' || kind === 'circle' || kind === 'orbits' ? 500 + lf : ld);
         press.begin(d);
         if (kind === 'sonar') sonar(press, lf, o);
         else if (kind === 'circle') circleCard(press, card, lt, ld, o, lf);
@@ -93,11 +93,11 @@ Motion.scene({
         }
         else if (kind === 'mosaic') mosaic(press, lt);
         ORBIT_DOT = null;
-        if (kind === 'orbits') orbits(press, lt);
+        if (kind === 'orbits') orbits(press, lf / 24);
         else if (kind === 'night') night(press, lt);
         else if (kind === 'title') title(press, lt);
         if (ORBIT_DOT !== 'none') dot(press, ORBIT_DOT ?? [500, 500]);
-        press.print(g, { key: d, inks: kind === 'mosaic' && lt >= 1.0 ? MOSAIC_BLUE : o.inks, spread: kind === 'night' ? 0.3 : undefined });
+        press.print(g, { key: d, inks: kind === 'mosaic' && lt >= 1.0 ? MOSAIC_BLUE : o.inks, spread: kind === 'night' ? 0.3 : kind === 'orbits' || kind === 'sonar' ? 0.5 : undefined });
     },
 });
 
@@ -304,7 +304,7 @@ const MOSAIC_BLUE = { pink: 'blue', yellow: 'blue' };
 // they reach the other, it pings (a small ring round it for a few frames) and answers.
 // Positions per frame, in s after 18: the dot, then the pink planet (enters at 19.75).
 const DOT_PATH = [[0, 500, 500], [1.583, 500, 500], [1.625, 520, 481], [1.667, 537, 468], [1.708, 554, 454], [1.75, 569, 439], [1.792, 585, 426], [1.833, 603, 411], [1.875, 617, 400], [1.917, 631, 385], [1.958, 648, 372], [2.0, 657, 367], [2.042, 669, 357], [2.083, 678, 348], [2.125, 685, 343], [2.167, 689, 336], [2.208, 694, 331], [2.25, 698, 330], [5, 698, 330]];
-const PLANET_PATH = [[1.583, -40, 1040], [1.75, -20, 925], [1.792, 52, 872], [1.833, 89, 841], [1.875, 122, 811], [1.917, 159, 783], [1.958, 193, 756], [2.0, 219, 731], [2.042, 241, 709], [2.083, 259, 693], [2.125, 276, 678], [2.167, 289, 667], [2.208, 296, 659], [2.25, 300, 657], [5, 300, 657]];
+const PLANET_PATH = [[1.583, 0, 1000], [1.75, -20, 925], [1.792, 52, 872], [1.833, 89, 841], [1.875, 122, 811], [1.917, 159, 783], [1.958, 193, 756], [2.0, 219, 731], [2.042, 241, 709], [2.083, 259, 693], [2.125, 276, 678], [2.167, 289, 667], [2.208, 296, 659], [2.25, 300, 657], [5, 300, 657]];
 const along = (P, t) => { if (t <= P[0][0]) return [P[0][1], P[0][2]]; let i = 0; while (i < P.length - 2 && t >= P[i + 1][0]) i++; const [t0, x0, y0] = P[i], [t1, x1, y1] = P[i + 1], u = Ease.seg(t, t0, t1); return [x0 + (x1 - x0) * u, y0 + (y1 - y0) * u]; };
 // emissions: [first ring's birth, emitter ('corner' | 'dot' | 'planet'), start radius, reach]
 // (three rings, 1/12 s apart; r = start + reach·(1 − e^(−age/0.25)))
@@ -320,13 +320,16 @@ function orbits(press, lt) {
         pS.fillStyle = Riso.radial(pS, 0, 1000, 0, 360, 0.95, 0);
         pS.fillRect(0, 580, 420, 420);
     }
-    const at = { corner: [-40, 1040], dot: blue, planet: pinkP ?? [-20, 925] };
+    const at = { corner: [0, 1000], dot: blue, planet: pinkP ?? [-20, 925] };
     for (const [t0, who, r0, reach] of EMIT) {
+        // pink rings (corner, planet) travel far at a near-constant speed, born 1/8 s apart
+        // (measured from the corner: r ≈ 50 + 1750·age − 350·age²); the dot's ease out
+        const pinkish = who !== 'dot', step = pinkish ? 1 / 8 : 1 / 12;
         for (let k = 0; k < 3; k++) {
-            const age = tq - t0 - k / 12;
-            if (age < 0 || age > (who === 'corner' ? 0.95 : 0.6) || tq >= 4.0) continue;
-            const r = (r0 - k * 40) + reach * (1 - Math.exp(-age / 0.25));
-            const w = Math.max(3, (12 - k * 2.5) * (1 - age * 0.7));
+            const age = tq - t0 - k * step;
+            if (age < 0 || age > (pinkish ? 0.95 : 0.6) || tq >= 4.0) continue;
+            const r = pinkish ? 50 + 1750 * age - 350 * age * age : (r0 - k * 40) + reach * (1 - Math.exp(-age / 0.25));
+            const w = Math.max(4, (15 - k * 3) * (1 - age * 0.6));
             Riso.ring(who === 'dot' ? bp : pp, at[who][0], at[who][1], r, w, 'orb' + t0 + k, { color: T(0.97), wobble: 0.004 });
         }
     }
