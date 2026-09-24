@@ -2,7 +2,7 @@
 // bulbs at dusk, striped circus tents and stalls, a crescent moon. 1000 × 1000 units,
 // measured on the 10.3 s frame. Needs _g3-util.js (G3).
 var CARDS = CARDS || {};
-CARDS.ferris = (press, t) => {
+const DRAW_FERRIS = (press, t) => {
     const R = Riso, T = R.tone, U = G3;
     const d = Math.floor(t * 12 + 1e-6);
     const pink = press.plate('pink'), pinkS = press.plate('pink', 'screen');
@@ -14,10 +14,10 @@ CARDS.ferris = (press, t) => {
     const knock = (fn) => press.knockout(fn);
 
     // ── dusk sky: a pink screen all over, navy dots at the top, yellow rising to orange below
-    pinkS.fillStyle = R.ramp(pinkS, 0, 250, 0, 1000, 0.72, 0.42); pinkS.fillRect(0, 0, 1000, 1000);
+    pinkS.fillStyle = R.ramp(pinkS, 0, 150, 0, 1000, 0.88, 0.6); pinkS.fillRect(0, 0, 1000, 1000);
     navyS.fillStyle = R.ramp(navyS, 0, 0, 0, 420, 0.4, 0); navyS.fillRect(0, 0, 1000, 450);
     blueS.fillStyle = R.ramp(blueS, 0, 0, 0, 330, 0.75, 0); blueS.fillRect(0, 0, 1000, 300);
-    yellowS.fillStyle = R.ramp(yellowS, 0, 360, 0, 900, 0, 0.9); yellowS.fillRect(0, 360, 1000, 640);
+    yellowS.fillStyle = R.ramp(yellowS, 0, 300, 0, 700, 0, 1); yellowS.fillRect(0, 300, 1000, 700);
     yellow.fillStyle = R.ramp(yellow, 0, 620, 0, 1000, 0, 0.45); yellow.fillRect(0, 620, 1000, 380);
     // stars (paper specks) in the navy
     const rs = Motion.rng('fe-stars');
@@ -173,4 +173,14 @@ CARDS.ferris = (press, t) => {
     garland([[700, 955], [850, 925], [1000, 880]], 14, 7);
     // a thin pole with a pennant line on the right
     ink([[navy, 0.85], [yellow, 0.6]], (g) => { g.lineWidth = 3; g.beginPath(); g.moveTo(915, 720); g.quadraticCurveTo(965, 640, 975, 530); g.stroke(); g.lineWidth = 2; g.beginPath(); g.moveTo(960, 640); g.quadraticCurveTo(990, 700, 1000, 720); g.stroke(); });
+};
+// the film pushes in on this card: 1.01 % a frame about the centre (four corner
+// patches correlated frame to frame against f247 (10.292 s), the frame it was measured on); one scale
+// per frame
+CARDS.ferris = (press, t, lf) => {
+    const z = G3.push(0.0101, t, lf, 1);
+    press.save();
+    press.each((g) => { g.translate(500, 500); g.scale(z, z); g.translate(-500, -500); });
+    DRAW_FERRIS(press, t);
+    press.restore();
 };
