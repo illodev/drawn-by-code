@@ -531,12 +531,12 @@
             k = k < 0 ? TAPK.length - 1 : k;
             const [a0, v0] = TAPK[Math.max(0, k - 1)], [a1, v1] = TAPK[k];
             const away = E.lerp(v0, v1, E.inOut(E.seg(tq, a0, a1)));
-            const rot = 0.5, size = 150, [ax0, ay] = D.handAnchor('point'), ax = -ax0;
+            const rot = 0.5, size = 150, [ax0, ay] = D.handAnchor('pointBack'), ax = -ax0;
             const tip = toGlobal(SHUTTER[0], SHUTTER[1] + 4);
             const ox = (ax * Math.cos(rot) - ay * Math.sin(rot)) * size / 60, oy = (ax * Math.sin(rot) + ay * Math.cos(rot)) * size / 60;
             const wx = tip[0] - ox - away * 200, wy = tip[1] - oy + away * 320;
             sleeve(g, wx, wy, rot, size, 'R');
-            D.hand(g, wx, wy, size, rot, 'point', { skin: SKIN(), cuff: Laura.COL.shirt, mirror: true });
+            D.hand(g, wx, wy, size, rot, 'pointBack', { skin: SKIN(), cuff: Laura.COL.shirt, side: 'left' });
         }
 
         // the tags in flight: peel up in place, arc over to the phone, land on the beat

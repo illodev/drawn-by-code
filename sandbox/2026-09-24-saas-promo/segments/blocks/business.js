@@ -248,7 +248,7 @@
         // the pointing arm rises in three drawings
         const v = E.clamp((drawing(lt, 3.6) + 1) / 3);
         const arms = lt < 3.6 ? DESK : [DESK[0], DESK[1].map((p, j) => E.lerpPt(p, POINT[1][j], E.inOut(v)))];
-        const hands = lt < 3.6 ? ['rest', 'rest'] : ['rest', v < 0.5 ? 'fist' : 'point'];
+        const hands = lt < 3.6 ? ['rest', 'rest'] : ['rest', v < 0.5 ? 'fist' : 'pointBack'];
         return { t: lt, look, eyes, mouth, arms, hands, tilt: t >= 3.6 ? 0.05 : t >= 1.0 && t < 1.7 ? -0.05 : 0.02 };
     }
 

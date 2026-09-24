@@ -25,6 +25,11 @@ in one sentence, literal on-screen text, format, music, what must not happen. If
 a product or brand, **nothing promises more than its website**: note the source of every
 claim.
 
+**The brand's logo is traced, never drawn by eye.** Take the path from the site's SVG
+(sample its curves into points, keep its proportions and gaps) and cut that as paper. An
+approximated logo is the first thing the client sees: in saas-promo a «cloud with a bar»
+drawn by eye was a blob that «no se parece al logo» (see the mark in `private/brand.js`).
+
 ## 2 · Shot-by-shot script
 
 A `Time | Shot | What happens` table in the brief. Rules that have already cost us dearly:

@@ -5,7 +5,7 @@
 // the hash chain) that runs down into the tax office's mailbox on the desk.
 //   0.5 / 1.0  a green tick lands on each deadline page (handled, not scary)
 //   1.0–1.4    the new invoice slides in from the right and settles
-//   1.5        Laura's hand brings the stamp down on the beat: QR + the green label appear
+//   1.5        the stamp comes down by itself on the beat: QR + the green label appear
 //   2.0–2.5    the stamped invoice shrinks onto the twine and clicks into a peg; its seal
 //              pops between it and the previous invoice (2.5)
 //   3.0–4.0    the chain feeds along the twine into the mailbox; the flag goes up at 4.0
@@ -588,7 +588,8 @@
         sheet.draw(g);
         g.restore();
     }
-    // the hand (Laura's, cardigan sleeve) gripping the stamp's neck, from the top left
+    // the stamp swooping in from the top left, pressing on the beat (no arm: a long arm from
+    // the frame's edge read as a stretched tube)
     const STAMP = [[1.2, -380, -260], [1.34, -120, -90], [1.42, -24, -14], [1.5, 0, 0], [1.58, -6, -4], [1.7, -110, -70], [1.84, -380, -260]];
     function stampHand(g, lt) {
         if (lt < 1.2 || lt >= 1.84) return;
@@ -598,20 +599,8 @@
         const u = k < 0 ? 1 : E.seg(t, a0, a1);
         const oy = E.lerp(y0, y1, u), ox = E.lerp(x0, x1, u);
         const sx = IX - 96 * IS + ox, sy = IY + 200 * IS + oy, ss = 0.78, rot = -0.06;
-        // the stamp's neck centre, in world units
-        const nx = sx + Math.sin(rot) * 135 * ss, ny = sy - Math.cos(rot) * 135 * ss;
-        // the hand: fingers wrap the neck from the right, the wrist bent; the forearm comes in
-        // from the bottom right
-        const HS = 74, hr = rot - Math.PI / 2, [ax, ay] = D.handAnchor('grip');
-        const kk = HS / 60, wx = nx - (ax * kk * Math.cos(hr) - ay * kk * Math.sin(hr)), wy = ny - (ax * kk * Math.sin(hr) + ay * kk * Math.cos(hr));
-        const fa = 0.42; // forearm direction (from the wrist, towards the elbow)
-        sprite('cmp-sleeve', { x: -60, y: -60, w: 860, h: 120 }, (c) => {
-            P.cutout(c, P.noodle([[0, 0], [780, 0]], 66, 96), Laura.COL.cardigan, 'cmp-sleeve', { border: 2.6, shadow: 0.2, tex: { alpha: [0.2, 0.4] }, inner: (cc, box) => D.knit(cc, box, Laura.COL.cardigan, { seed: 'cmp-sleeve', size: 13, alpha: 0.16 }) });
-        }, 1.3).draw((g.save(), g.translate(wx + Math.cos(fa) * 30, wy + Math.sin(fa) * 30), g.rotate(fa), g));
-        g.restore();
-        D.hand(g, wx, wy, HS, hr, 'grip', { skin: Laura.COL.skin, cuff: Laura.COL.shirt, part: 'back' });
+        // the stamp comes down by itself, like in «send»: the product seals it, not her arm
         Props.stamp(g, sx, sy, ss, rot);
-        D.hand(g, wx, wy, HS, hr, 'grip', { skin: Laura.COL.skin, part: 'front' });
         if (lt >= 1.5 && lt < 1.67) {
             sprite('cmp-stamp-ticks', { x: -150, y: -70, w: 300, h: 140 }, (c) => {
                 for (const sd of [-1, 1]) for (let j = 0; j < 3; j++) P.markerStroke(c, [[sd * 92, -22 + j * 22], [sd * 128, -32 + j * 26]], bc.ink, 5, 'cmp-st' + sd + j, 0.9);

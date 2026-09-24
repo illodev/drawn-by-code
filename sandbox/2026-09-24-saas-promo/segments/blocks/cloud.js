@@ -29,9 +29,9 @@
     const FACE_T = 2.5;
 
     // the big cloud: BRAND.mark cut at its own scale (so the torn edge and the texture have the
-    // proportions of a real piece of paper, not a scaled-up sticker), built as layered paper:
-    // the coral piece, a lighter layer glued on it (up-left, towards the light) and a darker
-    // belly with a torn scalloped top, both torn pieces clipped to it; fibres and flecks
+    // proportions of a real piece of paper, not a scaled-up sticker). One flat coral piece with
+    // fibres and flecks: extra light/dark layers inside blurred the logo's lobes into a mound
+    // (the client's logo must read as itself)
     function cloudSprite() {
         const S = CLOUD.s;
         return C.sprite('cloud-big', { x: -80 * S, y: -70 * S, w: 160 * S, h: 140 * S }, (c) => {
@@ -42,16 +42,6 @@
                 P.cutout(cc, big, col, key + '-big', {
                     border: 5, borderVar: 0.5, jag: 1.2, step: 3, shadow: 0.24, tex: { alpha: [0.25, 0.5], len: [30, 90], h: [8, 16] },
                     inner: (c2, box) => {
-                        // the lighter layer: the same outline, smaller, nudged towards the light
-                        const lite = big.map(([x, y]) => [cx + (x - cx) * 0.8 - H * 0.05, cy + (y - cy) * 0.74 - H * 0.08]);
-                        P.cutout(c2, lite, D.shade(col, 9), key + '-lite', { border: 0, shadow: 0.12, jag: 1.6, step: 3, tex: { alpha: [0.2, 0.4], len: [30, 90], h: [8, 16] } });
-                        // the belly: a darker strip with a torn, scalloped top edge
-                        const belly = [];
-                        for (let x = box.x - 10; x <= box.x + box.w + 10; x += 12) belly.push([x, by1 - H * 0.24 + Math.sin((x - box.x) * 0.018) * H * 0.05]);
-                        belly.push([box.x + box.w + 10, box.y + box.h + 10], [box.x - 10, box.y + box.h + 10]);
-                        c2.globalAlpha = 0.85;
-                        P.cutout(c2, belly, D.shade(col, -9), key + '-belly', { border: 0, shadow: 0, jag: 1.8, step: 3, tex: { alpha: [0.25, 0.45], len: [30, 90], h: [8, 16] } });
-                        c2.globalAlpha = 1;
                         // paper fibres (long light strands) and a few pale flecks
                         const r = P.rng('cloudfib' + key);
                         for (let k = 0; k < 22; k++) {

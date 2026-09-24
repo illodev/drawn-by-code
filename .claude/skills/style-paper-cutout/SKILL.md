@@ -91,6 +91,23 @@ until a full-resolution crop of it could pass for the reference (or for a finish
   across. `PaperDetail.hand(g, x, y, size, rot, pose, o)` does all this: poses open, wave,
   point, fist, pinch/hold, rest, grip; `o.part: 'back' | 'front'` puts a held note, pen or
   mug handle between the fingers and the thumb (`PaperDetail.handAnchor(pose)` says where).
+- **Hands the right way round.** Pass `o.side: 'right' | 'left'` (the character's hand; a
+  character facing the camera has her right hand on the left of the image), never
+  `o.mirror` by habit: the poses are drawn as different hands (back views of a right hand,
+  palm-side views of a left hand), and mirroring «the hand on the left» put the thumb on the
+  wrong side of every back view: the user saw hands «al revés». Pick the view that matches
+  what the camera sees: `palm` (palm to the camera: stop, whoa), `open`/`wave` (back to the
+  camera), `pointBack` (POV finger, or pointing away: the back with its nail) vs `point`
+  (pointing at the camera), `wrap` round a mug's body (fingers across its front, thumb
+  behind, handle turned away; `Laura.wrap` in saas-promo solves the wrist from the mug),
+  `edge` (fingers hooked over the top of something held from behind).
+- **Hands never pass through things.** Decide the depth of each hand against what it
+  touches: behind a pile, draw the hand with the arm (the pile covers it); holding the pile,
+  only the fingers come over its edge (`edge`); in front, the whole arm is in front too. An
+  arm behind with its hand in front reads as the hand going through the paper.
+- **No arm stretched in from the frame's edge.** A straight sleeve from a corner to a prop
+  (no elbow, no shoulder) reads as a tube. Frame the elbow, or let the prop move by itself
+  (a stamp that comes down on its own: the product does it).
 - **Cut small pieces at a big authoring scale** (a hand at palm = 200 units, then scaled):
   `Paper.cutout`'s border, jag, fibres and grain are in absolute units, so cut at a 60-unit
   palm they swamp the fingers. Pick the sprite resolution from `g.getTransform()` and keep
@@ -142,6 +159,7 @@ until a full-resolution crop of it could pass for the reference (or for a finish
 - [ ] Is anything that changes shape (steam, smoke) made of fixed pieces and not by deforming a torn outline?
 - [ ] Crop every element at full resolution: is each part its own piece, with its texture, its highlight and its layering?
 - [ ] Any hand drawn as a circle, any shape that is a plain ellipse or polygon where it should be organic?
+- [ ] Every hand: the right hand (`side`), the right view (palm / back / POV), and in front of or behind what it touches, never through it? Mugs held round the body, not by a sideways fist?
 
 ## Lessons
 
@@ -169,3 +187,4 @@ until a full-resolution crop of it could pass for the reference (or for a finish
 - 2026-09-24 · saas-promo · Full-frame boards laid side by side leave gaps where torn edges meet: paint a dark base under them.
 - 2026-09-24 · saas-promo · To show a shared cached set «tidied», redraw its base pieces with the same seeds and pull the kept objects from the original sprite through a clip: the seams match exactly.
 - 2026-09-24 · saas-promo · An end card that unfolds reads best as three or four fold drawings on twos; its content lands on the beats after it opens (mark, line, button, small print).
+- 2026-09-24 · saas-promo · Animatic v1: the user saw «manos que atraviesan cosas», odd perspectives and «coge el café al revés». Root cause: `o.mirror` used as «the hand on the left of the image» while the poses are drawn as different hands. Now `o.side`, new views (palm, pointBack, wrap, edge) and the rules in «Detail».

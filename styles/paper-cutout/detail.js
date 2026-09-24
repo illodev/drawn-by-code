@@ -496,7 +496,19 @@ const PaperDetail = (() => {
     //   'point' (index out of a fist, palm side), 'fist' (four curled fingers from the front,
     //   thumb across), 'pinch' / 'hold' (holding a paper edge: thumb in front, fingers behind),
     //   'rest' (lying on a desk, fingers curled towards the camera), 'grip' (curled fingers
-    //   round a mug handle or a pen, thumb up).
+    //   round a mug handle or a pen, thumb up), 'palm' (the open palm facing the camera: palm
+    //   lines, finger pads, no nails: stop, whoa, fending off), 'wrap' (round a mug's body: the
+    //   backs of the four fingers across its front, thumb behind (part 'back'); draw the mug
+    //   between the parts, rot ≈ ±π/2 so the fingers run across it), 'edge' (fingers hooked over
+    //   an edge from behind: only the curled fingers, knuckles on the edge, tips hanging towards
+    //   the camera; rot ≈ π so they hang down; the anchor is the point on the edge),
+    //   'pointBack' (pointing seen from the back of the hand: a POV finger pressing a button,
+    //   or a hand pointing away; 'point' is the palm side, for a hand pointing at the camera).
+    // o.side: 'right' | 'left', the character's hand. Use it instead of o.mirror: every pose is
+    //   drawn as one of the two hands (VIEW below: back views of a right hand, palm-side views
+    //   of a left hand) and the kit mirrors when needed. Mirroring «the hand on the left of the
+    //   image» by habit puts the thumb on the wrong side of every back view: a hand on
+    //   backwards. A character facing the camera: her right hand is on the left of the image.
     // o.skin, o.cuff (colour: a ribbed cuff at the wrist), o.sleeve (colour: a knitted sleeve end
     //   under the cuff), o.mirror, o.res (sprite resolution; default: picked from the current
     //   transform so the hand is crisp and never re-cut per frame), o.part: 'back' | 'front' to
@@ -568,7 +580,7 @@ const PaperDetail = (() => {
     function handPieces(pose) {
         if (pose === 'hold') pose = 'pinch';
         const P60 = [];
-        const palm = (pts, o = {}) => P60.push({ kind: 'palm', pts: spline(pts, 7), shade: o.shade ?? -4, part: o.part ?? 'b', knuckles: o.knuckles ?? [] });
+        const palm = (pts, o = {}) => P60.push({ kind: 'palm', pts: spline(pts, 7), shade: o.shade ?? -4, part: o.part ?? 'b', knuckles: o.knuckles ?? [], lines: o.lines });
         const fingers = (list, part = 'b', order = [3, 2, 1, 0]) => order.forEach((i) => P60.push({ kind: 'finger', part, ...list[i] }));
         const thumb = (f, part = 'b') => P60.push({ kind: 'finger', part, w: 16.5, shade: f.shade ?? 1, ...f });
         if (pose === 'open' || pose === 'wave') {
@@ -613,10 +625,58 @@ const PaperDetail = (() => {
             thumb({ b: [-24, -14], a: -0.5, L: [12, 11, 10], bend: [0.1, 0.12, 0.1], nail: true, shade: -2 });
             fingers(fs);
             palm([[0, 5], [-22, 2], [-28, -10], [-31, -22], [-26, -34], [-12, -42], [2, -44], [16, -42], [27, -35], [31, -20], [28, -6], [15, 3]], { knuckles: [[-19, -36], [-5, -39], [9, -38], [21, -33]] });
+        } else if (pose === 'palm') {
+            // the palm facing the camera: the same bones as 'open', seen from the other side:
+            // finger pads instead of nails, the thumb out from a fleshy base, palm lines
+            const fs = fingerSet([-0.2, -0.06, 0.08, 0.26], [[0.02, 0.03, 0.02], [0, 0.01, 0.01], [-0.01, -0.02, -0.02], [-0.03, -0.05, -0.04]], { all: { nail: false } });
+            thumb({ b: [-25, -28], a: -0.58, L: [13, 15, 13], bend: [0.08, 0.1, 0.06], nail: false, shade: -1 });
+            fingers(fs);
+            palm([[0, 5], [-19, 3], [-27, -10], [-32, -26], [-33, -36], [-27, -50], [-25, -59], [-19, -63], [-12, -63.5], [-5, -67], [2, -65.5], [9, -65.5], [16, -62], [22, -58.5], [27, -53], [30, -34], [26, -8], [15, 3]], { shade: 1, lines: [
+                [[27, -44], [10, -46], [-6, -50], [-18, -54]], // heart line
+                [[-26, -40], [-8, -36], [10, -30], [20, -24]], // head line
+                [[-24, -42], [-14, -30], [-12, -14], [-10, 0]], // life line round the thumb's base
+            ] });
+        } else if (pose === 'pointBack') {
+            // pointing, seen from the back of the hand (a POV finger, or a hand pointing away):
+            // the index out with its nail, the other three folded under (only their first
+            // joints show, foreshortened), the thumb tucked along the side
+            const fs = fingerSet([-0.08, 0.02, 0.1, 0.2], [[0.02, 0.03, 0.02], [0.05, 0.1, 0.1], [0.02, 0.08, 0.08], [0, 0.06, 0.06]], {
+                0: { nail: true }, 1: { L: [6, 2, 1.5], nail: false, crease: false }, 2: { L: [5.5, 2, 1.5], nail: false, crease: false }, 3: { L: [4.5, 2, 1.5], nail: false, crease: false },
+            });
+            thumb({ b: [-24, -26], a: -0.42, L: [13, 13, 11], bend: [0.1, 0.12, 0.1], nail: true, shade: -2 });
+            fingers(fs, 'b', [3, 2, 1, 0]);
+            palm([[0, 5], [-19, 3], [-25, -12], [-31, -30], [-33, -40], [-28, -50], [-25, -59], [-19, -63], [-12, -63.5], [-5, -66], [2, -64.5], [9, -64.5], [16, -61], [22, -57.5], [27, -52], [30, -34], [26, -8], [15, 3]], { knuckles: [[-19, -58], [-5, -61], [9, -59], [21, -52]] });
+        } else if (pose === 'wrap') {
+            // round a mug's body, seen from the front with the forearm coming from the side:
+            // the back of the hand is edge-on (short), the four fingers run across the mug's
+            // front (their backs: nails at the tips, the far joints foreshortened by the
+            // curve), the thumb behind the mug (part 'back', its tip peeking over the index)
+            thumb({ b: [-22, -18], a: -0.2, L: [12, 13, 11], bend: [0.1, 0.12, 0.1], nail: true, shade: -4 }, 'b');
+            const fs = fingerSet([-0.06, -0.01, 0.03, 0.08], [[0.02, 0.04, 0.05], [0, 0.03, 0.04], [-0.01, 0.01, 0.02], [-0.03, -0.02, -0.01]], {
+                all: { nail: true, part: 'f', back: 6 },
+                0: { b: [-19, -26], L: [16, 12, 8] }, 1: { b: [-5, -28], L: [17, 13, 8.5] },
+                2: { b: [9, -27], L: [16, 12, 8] }, 3: { b: [22, -23], L: [13, 10, 7] },
+            });
+            fingers(fs, 'f');
+            palm([[0, 5], [-20, 3], [-26, -8], [-26, -22], [-19, -30], [-5, -32], [9, -31], [21, -27], [28, -18], [28, -6], [15, 3]], { part: 'f', knuckles: [[-19, -25], [-5, -27], [9, -26], [21, -22]] });
+        } else if (pose === 'edge') {
+            // fingers hooked over an edge from behind, seen from the front: only the curled
+            // fingers, knuckles on the edge (y = -50), short and foreshortened, nails at the tips
+            const fs = fingerSet([-0.1, -0.03, 0.05, 0.14], [[0.05, 0.08, 0.08], [0, 0.03, 0.03], [-0.03, -0.04, -0.05], [-0.05, -0.08, -0.08]], {
+                all: { nail: true, back: 2 },
+                0: { b: [-19, -50], L: [10, 8, 8], ws: [14.5, 14.8, 14.8, 14.6, 14] },
+                1: { b: [-5, -52], L: [11, 9, 8.5], ws: [15.2, 15.6, 15.6, 15.2, 14.6] },
+                2: { b: [9, -51], L: [10, 8, 8], ws: [14.2, 14.6, 14.4, 14.2, 13.6] },
+                3: { b: [22, -48], L: [8, 6.5, 6.5], ws: [12.2, 12.6, 12.4, 12, 11.8] },
+            });
+            fingers(fs);
         } else throw new Error('PaperDetail.hand: unknown pose ' + pose);
         return P60;
     }
-    const ANCHORS = { pinch: [-10, -52], hold: [-10, -52], grip: [-2, -54], fist: [-2, -60], point: [-19, -128], open: [0, -60], wave: [0, -60], rest: [0, -30] };
+    const ANCHORS = { pinch: [-10, -52], hold: [-10, -52], grip: [-2, -54], fist: [-2, -60], point: [-19, -128], open: [0, -60], wave: [0, -60], rest: [0, -30], palm: [0, -60], wrap: [-2, -58], edge: [0, -50], pointBack: [-22, -128] };
+    // which hand each pose is drawn as (before o.mirror): back views of a right hand, palm-side
+    // views of a left hand, both with the thumb on -x
+    const VIEW = { pointBack: 'right', open: 'right', wave: 'right', wrap: 'right', edge: 'right', palm: 'left', rest: 'left', fist: 'left', point: 'left', grip: 'left', pinch: 'left', hold: 'left' };
     const handAnchor = (pose) => ANCHORS[pose] ?? [0, -60];
 
     const mix = (a, b, k) => {
@@ -627,6 +687,7 @@ const PaperDetail = (() => {
     const RES = [0.2, 0.28, 0.4, 0.55, 0.75, 1, 1.4, 2];
     function hand(g, x, y, size, rot, pose = 'open', o = {}) {
         const skin = o.skin ?? '#edc4a7', part = o.part ?? 'all';
+        const mirror = o.side ? o.side !== VIEW[pose] : o.mirror;
         const m = g.getTransform(), px = (Math.hypot(m.a, m.b) * size) / 60 / HU; // output px per sprite unit
         const res = o.res ?? RES.find((r) => r >= px) ?? RES[RES.length - 1];
         // chunkier cut for miniatures: the white border never thinner than ~1.3 output px
@@ -647,6 +708,8 @@ const PaperDetail = (() => {
                     cut(pc.pts, col, 'palm' + i, { shadow: 0.16 });
                     // knuckle dimples on the back of the hand
                     if (!chunky) pc.knuckles.forEach(([kx, ky], j) => crease([[kx - 3.2, ky + 4], [kx, ky + 5.2], [kx + 3.2, ky + 4]], shade(skin, -14), 0.55, 'kn' + i + j, 0.45));
+                    // palm lines (the palm-side view)
+                    if (pc.lines) pc.lines.forEach((ln, j) => crease(ln, shade(skin, -16), chunky ? 0.9 : 0.6, 'pl' + i + j, 0.5));
                 } else if (pc.kind === 'bar') {
                     const out = taper(pc.ctrl, [pc.w * 0.97, pc.w, pc.w * 0.96], 6);
                     cut(out, col, 'bar' + i);
@@ -662,7 +725,7 @@ const PaperDetail = (() => {
                     cut(f.outline, col, 'f' + i);
                     if (f.nail && !chunky) cut(f.nail, mix(shade(skin, 3), '#f4d3cf', 0.32), 'nail' + i, { border: 0, shadow: 0, jag: 0.3, tex: { alpha: [0.1, 0.2] } });
                     if (!chunky) f.creases.forEach((cr, j) => crease(cr, shade(skin, -15), j < 2 ? 0.55 : 0.45, 'cr' + i + j, j < 2 ? 0.5 : 0.35));
-                    else crease(f.creases[0], shade(skin, -15), 0.8, 'cr' + i, 0.5);
+                    else if (f.creases[0]) crease(f.creases[0], shade(skin, -15), 0.8, 'cr' + i, 0.5);
                 }
             });
         });
@@ -670,10 +733,10 @@ const PaperDetail = (() => {
         g.translate(x, y);
         g.rotate(rot);
         const k = size / 60 / HU;
-        g.scale(o.mirror ? -k : k, k);
+        g.scale(mirror ? -k : k, k);
         sp.draw(g);
         g.restore();
     }
 
-    return { shade, spline, cspline, centre, taper, curl, knit, rib, newsprint, wordBars, sheetMusic, mapPaper, rings, wobblyLine, woodGrain, cursive, strands, crease, markerPath, punch, hand, handPieces, handAnchor };
+    return { shade, spline, cspline, centre, taper, curl, knit, rib, newsprint, wordBars, sheetMusic, mapPaper, rings, wobblyLine, woodGrain, cursive, strands, crease, markerPath, punch, hand, handPieces, handAnchor, HAND_VIEW: VIEW };
 })();

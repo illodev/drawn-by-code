@@ -152,8 +152,9 @@
             flat(c, ell(x0 + w / 2, top + 1.5, w / 2 - 6, 4, 32), '#5a3a2a', 'close-coffee', { tex: { alpha: [0.2, 0.4] } });
         }, 1.8);
     }
-    // arm keyframes (Laura units): [time, elbow, wrist, hand rotation extra]
-    const HOLD = [[0, [-214, -120], [-120, -150], 0], [1.0, [-214, -120], [-120, -150], 0], [1.33, [-232, -262], [-104, -372], 0.62], [1.92, [-232, -262], [-104, -372], 0.62], [2.25, [-214, -120], [-120, -150], 0]];
+    // arm keyframes (Laura units): [time, elbow, mug centre, mug tilt]; her right hand is
+    // wrapped round the mug (Laura.wrap), so the wrist follows the mug
+    const HOLD = [[0, [-214, -110], [-58, -168], 0], [1.0, [-214, -110], [-58, -168], 0], [1.33, [-222, -250], [-18, -376], 0.45], [1.92, [-222, -250], [-18, -376], 0.45], [2.25, [-214, -110], [-58, -168], 0]];
     function holdAt(t) {
         const k = HOLD.findIndex(([at]) => at > t);
         if (k < 0) return HOLD[HOLD.length - 1];
@@ -165,8 +166,9 @@
         const tq = q2(t), lean = E.inOut(E.seg(tq, 0, 0.5));
         const sip = tq >= 1.17 && tq < 2.0;
         const eyes = sip ? 'closed' : tq >= 2.1 && tq < 2.9 ? 'happy' : (tq >= 4.2 && tq < 4.3) || (tq >= 0.6 && tq < 0.7) ? 'closed' : 'open';
-        const [, el, wr, rx] = holdAt(tq);
-        const arms = [[[-118, -250], el, wr], Laura.ARMS.desk[1]];
+        const [, el, mc, tilt] = holdAt(tq);
+        const hold = Laura.wrap(mc, tilt, 'right', MUG.w);
+        const arms = [[[-118, -250], el, hold.wrist], Laura.ARMS.desk[1]];
         g.save();
         // leaning back: a touch smaller and lower, pivoting on the seat
         g.translate(LX, LY);
@@ -175,32 +177,31 @@
         if (layer === 'body') Laura.draw(g, LX, LY, LS, { t, eyes, look: [0.2, 0.1], mouth: tq >= 2.1 ? 'grin' : 'smile', tilt: -0.02 - 0.05 * lean + (sip ? 0.03 : 0), layer: 'body' });
         else {
             Laura.draw(g, LX, LY, LS, { t, arms, hands: [null, 'rest'], layer: 'arms' });
-            // her hand round the mug handle: palm, the mug, then the curled fingers and thumb
+            // her hand round the mug: thumb behind, the mug (handle turned away), the fingers
             g.save();
             g.translate(LX, LY + Math.sin((drawing(t) / 12) * 2.4) * 1.5);
             g.scale(LS, LS);
-            const rot = Math.atan2(wr[1] - el[1], wr[0] - el[0]) + Math.PI / 2 + 0.26 + rx, HS = 60;
-            const [ax, ay] = D.handAnchor('grip'), k = HS / 60;
-            const mx = wr[0] + ax * k * Math.cos(rot) - ay * k * Math.sin(rot), my = wr[1] + ax * k * Math.sin(rot) + ay * k * Math.cos(rot);
-            D.hand(g, wr[0], wr[1], HS, rot, 'grip', { skin: Laura.COL.skin, cuff: Laura.COL.shirt, part: 'back' });
-            g.save();
-            g.translate(mx, my);
-            g.rotate(rot - Math.PI / 2);
-            mugSprite().draw(g);
-            g.restore();
-            D.hand(g, wr[0], wr[1], HS, rot, 'grip', { skin: Laura.COL.skin, part: 'front' });
+            hold.draw(g, () => {
+                g.save();
+                g.translate(mc[0], mc[1]);
+                g.rotate(tilt);
+                g.scale(-1, 1);
+                g.translate(-16 - MUG.w / 2, 0);
+                mugSprite().draw(g);
+                g.restore();
+            });
             // steam from the mug (not while she sips)
             if (!sip) {
                 const kit = Props.kit, top = -MUG.h / 2;
                 g.save();
-                g.translate(mx, my);
-                g.rotate(rot - Math.PI / 2);
+                g.translate(mc[0], mc[1]);
+                g.rotate(tilt);
                 for (let i = 0; i < 2; i++) {
                     const life = 2.4, age = tq + 0.9 * i + 5, cyc = Math.floor(age / life), f = (age % life) / life;
                     const wsp = kit.wisp(`close${i}-${cyc % 3}`, { len: 110, width: 9, drift: 1, color: '#fffdf6' });
                     g.save();
                     g.globalAlpha = E.seg(f, 0, 0.15) * (1 - E.seg(f, 0.5, 1)) * 0.9;
-                    g.translate(16 + MUG.w * (0.4 + i * 0.2) + f * 20, top - 4 - E.out(f) * 70);
+                    g.translate(MUG.w * (-0.1 + i * 0.2) + f * 20, top - 4 - E.out(f) * 70);
                     g.rotate(0.05 + f * 0.1);
                     g.scale(1 + f * 0.4, 1 + f * 0.2);
                     wsp.draw(g);

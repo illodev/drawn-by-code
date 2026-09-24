@@ -57,13 +57,48 @@ function drawHands(g, t, kit) {
     label('point 60 %', 1480, 870);
 }
 
+// Third shot: the hand-to-object poses and handedness. o.side picks the hand; the same arm
+// from the left of the image is her right hand. palm (both hands), wrap round a mug (both
+// hands, mug between the parts), edge (fingers hooked over a board's top from behind).
+function drawHands2(g, t, kit) {
+    const P = Paper, D = PaperDetail, S = 96;
+    kit.paperBg(g, 'showcase-hands2', '#24424a');
+    const label = (s, x, y) => kit.hand(g, s, x, y, 26, '#f4ecda', { align: 'center' });
+    D.hand(g, 150, 400, S, 0.25, 'palm', { side: 'right', cuff: '#389486' });
+    D.hand(g, 360, 400, S, -0.25, 'palm', { side: 'left', cuff: '#389486' });
+    label('palm · right, left', 255, 480);
+    // wrap: the right hand from the left (rot π/2), the left hand from the right (rot -π/2)
+    const mug = kit.sprite('show-mug', { x: -60, y: -70, w: 120, h: 140 }, (c) => {
+        P.cutout(c, P.roundRect(-46, -52, 92, 110, 14), '#f6efe2', 'showmug', { border: 2.2, shadow: 0.2 });
+        P.cutout(c, [[-46, -22], [46, -22], [46, -12], [-46, -12]], '#d2563f', 'showmugband', { border: 0, shadow: 0 });
+    }, 1.6);
+    [[640, 'right', Math.PI / 2], [1000, 'left', -Math.PI / 2]].forEach(([mx, side, rot]) => {
+        const k = S / 60, [ax, ay] = D.handAnchor('wrap');
+        const u = (side === 'left' ? -ax : ax) * k, v = ay * k;
+        const x = mx - (u * Math.cos(rot) - v * Math.sin(rot)), y = 400 - (u * Math.sin(rot) + v * Math.cos(rot));
+        D.hand(g, x, y, S, rot, 'wrap', { side, cuff: '#d9473b', sleeve: '#b83a30', part: 'back' });
+        mug.draw((g.save(), g.translate(mx, 400), g));
+        g.restore();
+        D.hand(g, x, y, S, rot, 'wrap', { side, part: 'front' });
+    });
+    label('wrap · right, left (mug between parts)', 820, 520);
+    // edge: fingers over the top of a board, the wrist behind it
+    kit.sprite('show-board', { x: 1180, y: 300, w: 380, h: 300 }, (c) => P.cutout(c, P.roundRect(1190, 320, 360, 260, 6), '#f7f3e7', 'showboard', { border: 2.4 }), 1.2).draw(g);
+    D.hand(g, 1280, 320 - 50 * S / 60, S, Math.PI + 0.1, 'edge', { side: 'left' });
+    D.hand(g, 1460, 320 - 50 * S / 60, S, Math.PI - 0.1, 'edge', { side: 'right' });
+    label('edge (over the top, from behind)', 1370, 640);
+    D.hand(g, 300, 820, S, -0.3, 'pointBack', { side: 'right', cuff: '#389486' });
+    D.hand(g, 520, 820, S, 0.3, 'pointBack', { side: 'left', cuff: '#389486' });
+    label('pointBack · right, left', 410, 880);
+}
+
 Motion.scene({
     fps: 24,
-    duration: 6,
+    duration: 9,
     logical: [1600, 900],
     uses: ['styles/paper-cutout/paper.js', 'styles/paper-cutout/kit.js', 'styles/paper-cutout/detail.js'],
     fonts: [{ family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' }],
-    shots: [[0, 3, 'Showcase'], [3, 6, 'Hands']],
+    shots: [[0, 3, 'Showcase'], [3, 6, 'Hands'], [6, 9, 'Hands 2']],
 
     setup(env) {
         return { kit: PaperKit.make(env, { font: 'Hand' }) };
@@ -72,6 +107,7 @@ Motion.scene({
     draw(g, t, env) {
         const { kit } = env.state, P = Paper, D = PaperDetail;
         kit.paperBg(g, 'showcase', '#3a2146');
+        if (t >= 6) return drawHands2(g, t, kit);
         if (t >= 3) return drawHands(g, t, kit);
         // hands at miniature size (the fingers must still read): every pose, one with a cuff
         POSES.forEach((pose, i) => {

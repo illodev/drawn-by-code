@@ -78,8 +78,9 @@ const Shots = {};
             }
         }, 1.4).draw((g.save(), g.translate(Props.BUTTON.x, Props.BUTTON.y), g));
         if (lt >= 1.0 && lt < 1.34) g.restore();
-        // the pointing hand: in from the bottom right on twos, pressing on the beat
-        const HAND = [[1500, 1160], [1450, 1080], [1400, 1020], [1362, 980], [1340, 958], [1330, 946], [1326, 940], [1324, 942], [1322, 950], [1322, 950], [1326, 944], [1340, 958]];
+        // the pointing hand (her right, seen from behind: POV): in from the bottom right on twos,
+        // pressing on the beat
+        const HAND = [[1450, 1098], [1400, 1018], [1350, 958], [1312, 918], [1290, 896], [1280, 884], [1276, 878], [1274, 880], [1272, 888], [1272, 888], [1276, 882], [1290, 896]];
         const [hx, hy] = HAND[Math.min(HAND.length - 1, d)];
         if (lt < 1.9) {
             const sleeve = [[hx + 40, hy + 60]];
@@ -88,7 +89,7 @@ const Shots = {};
                 P.cutout(c, P.noodle([[-10, -14], [14, 22]], 118, 118), Laura.COL.shirt, 'issue-cuff', { border: 2.4 });
             }, 1.2).draw((g.save(), g.translate(sleeve[0][0], sleeve[0][1]), g));
             g.restore();
-            D.hand(g, hx, hy, 92 * (press ? 0.96 : 1), -0.62, 'point', { skin: Laura.COL.skin, res: 3 });
+            D.hand(g, hx, hy, 92 * (press ? 0.96 : 1), -0.62, 'pointBack', { skin: Laura.COL.skin, side: 'right', res: 3 });
         }
         g.restore();
         // 1.25–2.0: the invoice peels off the screen and comes at the camera

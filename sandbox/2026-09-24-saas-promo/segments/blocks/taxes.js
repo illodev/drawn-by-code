@@ -409,9 +409,10 @@
         }, 2);
     }
     // wrist, elbow and hand angle for a mug pose (the handle sits in the grip's anchor)
+    // her left hand wrapped round the mug's body (the handle turned away, on the far side)
     function armFor(pose) {
-        const [ax, ay] = D.handAnchor('grip'), hx = MUG.w / 2 + 16, [ox, oy] = rot2([hx - ax, 2 - ay], pose.r);
-        return { wrist: [pose.m[0] + ox, pose.m[1] + oy], el: pose.el, r: pose.r };
+        const w = Laura.wrap(pose.m, pose.r, 'left', MUG.w);
+        return { wrist: w.wrist, el: pose.el, r: w.rot, w };
     }
     function mugSteam(g, pose, lt) {
         const kit = Props.kit, t = q2(lt), top = rot2([0, -MUG.h / 2], pose.r);
@@ -441,18 +442,18 @@
         const arms = [Laura.ARMS.desk[0], [[118, -250], arm.el, arm.wrist]];
         if (layer === 'body') return Laura.draw(g, LX, LY, LS, { t: lt, eyes, look, mouth, tilt: t >= 4.5 && t < 5.5 ? 0.06 : 0.02, layer: 'body' });
         Laura.draw(g, LX, LY, LS, { t: lt, arms, hands: ['rest', null], layer: 'arms' });
-        // the mug in her hand: palm behind the handle, fingers and thumb in front
+        // the mug in her hand: thumb behind, fingers round the front
         g.save();
         g.translate(LX, LY + Math.sin((Math.floor(lt * 12) / 12) * 2.4) * 1.5);
         g.scale(LS, LS);
-        const hand = (part) => D.hand(g, arm.wrist[0], arm.wrist[1], 60, arm.r, 'grip', { skin: Laura.COL.skin, cuff: Laura.COL.shirt, part });
-        hand('back');
-        g.save();
-        g.translate(pose.m[0], pose.m[1]);
-        g.rotate(pose.r);
-        mugSprite().draw(g);
-        g.restore();
-        hand('front');
+        arm.w.draw(g, () => {
+            g.save();
+            g.translate(pose.m[0], pose.m[1]);
+            g.rotate(pose.r);
+            g.scale(-1, 1);
+            mugSprite().draw(g);
+            g.restore();
+        });
         if (!sipping) mugSteam(g, pose, lt);
         g.restore();
     }

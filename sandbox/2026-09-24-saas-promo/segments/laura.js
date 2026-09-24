@@ -22,7 +22,7 @@ const Laura = (() => {
         cheer: [[[-118, -250], [-190, -86], [-80, -30]], [[118, -250], [236, -170], [214, -330]]],
         point: [[[-118, -250], [-190, -86], [-80, -30]], [[118, -250], [220, -120], [300, -180]]],
     };
-    const HANDS = { desk: ['rest', 'rest'], cheer: ['rest', 'fist'], point: ['rest', 'point'] };
+    const HANDS = { desk: ['rest', 'rest'], cheer: ['rest', 'fist'], point: ['rest', 'pointBack'] };
 
     function segment(g, a, b, w, seed) {
         const key = 'laura-seg:' + seed + [a, b].map(([x, y]) => Math.round(x / 2) + ',' + Math.round(y / 2)).join(';');
@@ -56,7 +56,7 @@ const Laura = (() => {
                 segment(g, sh, el, 56, 'upper' + i);
                 segment(g, el, hd, 50, 'fore' + i);
                 const rot = Math.atan2(hd[1] - el[1], hd[0] - el[0]) + Math.PI / 2;
-                if (hands[i]) D.hand(g, hd[0], hd[1], 60, rot, hands[i], { skin: COL.skin, mirror: i === 0, cuff: COL.shirt });
+                if (hands[i]) D.hand(g, hd[0], hd[1], 60, rot, hands[i], { skin: COL.skin, side: i === 0 ? 'right' : 'left', cuff: COL.shirt });
             }
         }
         g.restore();
@@ -180,5 +180,24 @@ const Laura = (() => {
         g.restore();
     }
 
-    return { COL, ARMS, HANDS, draw };
+    // A hand wrapped round a mug's body (PaperDetail pose 'wrap'), in Laura's local units.
+    // m: the mug's centre, r: its tilt, side: 'right' (her right hand, from the left of the
+    // image) or 'left', mugW: the mug's width. The hand turns with the mug (a rigid hold).
+    // Returns the wrist (end the forearm there) and draw(g, drawMug): the thumb behind, the
+    // mug, then the back of the hand and the fingers across its front.
+    function wrap(m, r, side, mugW, size = 60) {
+        const k = size / 60, rot = (side === 'right' ? Math.PI / 2 : -Math.PI / 2) + r;
+        const mir = side !== D.HAND_VIEW.wrap, lx = (mir ? 2 : -2) * k, ly = (-24 - mugW / 2 / k) * k;
+        const wrist = [m[0] - (lx * Math.cos(rot) - ly * Math.sin(rot)), m[1] - (lx * Math.sin(rot) + ly * Math.cos(rot))];
+        return {
+            wrist, rot,
+            draw(g, drawMug) {
+                D.hand(g, wrist[0], wrist[1], size, rot, 'wrap', { skin: COL.skin, side, cuff: COL.shirt, part: 'back' });
+                drawMug();
+                D.hand(g, wrist[0], wrist[1], size, rot, 'wrap', { skin: COL.skin, side, part: 'front' });
+            },
+        };
+    }
+
+    return { COL, ARMS, HANDS, draw, wrap };
 })();

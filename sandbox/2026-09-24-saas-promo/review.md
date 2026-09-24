@@ -58,3 +58,21 @@ real photos of desks) and fill the frame in depth.
 - `review.mjs`: no warnings; the 17.0 s jump is the camera flash (intended).
 - Known weak spots (from the agents): the compliance stamp arm has no elbow; the end card
   has a lot of empty cream around the mark; the receipt's crumple is mild.
+
+## Animatic v1 · round 2 (user)
+
+> «Logo, me da mucho TOC porque no se parece al logo de Fube.» «Sus manos atraviesan cosas
+> y hay veces que cogen perspectivas muy raras. Sus manos cogen el café al revés.»
+
+- Logo: the mark is now the site's SVG cloud path, sampled (three round lobes on a flat
+  bottom, a separate bar); the big cloud lost its inner light/dark layers, which blurred
+  the lobes into a mound.
+- Hands, root cause: `mirror` meant «the hand on the left of the image» while the kit's
+  poses are drawn as different hands, so back views had the thumb on the wrong side. The kit
+  now takes `side` and has the missing views: `palm`, `pointBack`, `wrap` (round a mug's
+  body), `edge` (fingers over an edge from behind).
+- Chaos: raised palms drawn behind the pile (it covers them), the clutch is fingers hooked
+  over its top edge; nothing crosses the paper. Mugs (taxes, close): held round the body,
+  handle turned away, the wrist solved from the mug (`Laura.wrap`). Pointing (issue POV,
+  expenses, collections, business): back of the hand with its nail. Compliance: the stamp
+  comes down by itself (the stretched arm from the corner is gone), like in «send».

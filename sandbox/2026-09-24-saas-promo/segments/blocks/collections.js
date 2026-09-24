@@ -244,7 +244,7 @@
     const LX = 470, LY = 660, LS = 0.92;
     const DESK_ARMS = Laura.ARMS.desk;
     function reachArm(tip) {
-        const [ax, ay] = D.handAnchor('point'), sh = DESK_ARMS[1][0];
+        const [ax0, ay] = D.handAnchor('pointBack'), ax = -ax0, sh = DESK_ARMS[1][0]; // her left hand: mirrored
         let rot = 1.3, wrist = tip, elbow = sh;
         for (let k = 0; k < 4; k++) {
             wrist = [tip[0] - (ax * Math.cos(rot) - ay * Math.sin(rot)), tip[1] - (ax * Math.sin(rot) + ay * Math.cos(rot))];
@@ -438,7 +438,7 @@
             const k = Math.max(0, REACH.findIndex(([a]) => a > tq) - 1), away = REACH[k][1];
             const t2 = [tip[0] - away * 260, tip[1] + away * 170];
             arms = [DESK_ARMS[0], reachArm(t2)];
-            hands = ['rest', 'point'];
+            hands = ['rest', 'pointBack'];
         }
         Laura.draw(g, LX, LY, LS, { t: lt, arms: arms ?? undefined, hands: hands ?? undefined, layer: 'arms' });
 

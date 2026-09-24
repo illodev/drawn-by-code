@@ -785,31 +785,41 @@ const Chaos = (() => {
     }
 
     // ============================================================== Laura's arms and hands
-    // Laura is drawn at (LX, LY) scale LS (the approved medium shot). Hands are drawn after
-    // the pile (in front), the arms before it (behind): she holds it from behind.
+    // Laura is drawn at (LX, LY) scale LS (the approved medium shot). She is behind the pile:
+    // her arms always go behind it. Raised hands (palms out, fending the paper off) are drawn
+    // with the arms, so whatever lands in front covers them; when she clutches the pile, only
+    // her fingers come over its top edge, in front ('edge'). Nothing of hers crosses the pile.
     const LX = 470, LY = 660, LS = 0.92;
     const toL = ([x, y]) => [Math.round((x - LX) / LS), Math.round((y - LY) / LS)];
-    // pose → world hand positions, elbows (local), hand pose and rotation
+    // pose → world hand positions (wrists), where the arm ends (behind the pile), elbows
+    // (local), hand pose, rotation and layer
     function armPose(name, top) {
-        if (name === 'brace') return { hands: [[318, 522], [642, 508]], elbows: [[-222, -118], [222, -118]], pose: ['open', 'open'], rot: [0.42, -0.42] };
-        if (name === 'raise') return { hands: [[332, 440], [618, 428]], elbows: [[-232, -170], [232, -170]], pose: ['open', 'open'], rot: [0.36, -0.36] };
-        if (name === 'raise2') return { hands: [[326, 424], [626, 440]], elbows: [[-236, -180], [230, -166]], pose: ['open', 'open'], rot: [0.44, -0.3] };
-        if (name === 'clutch') return { hands: [[352, top + 20], [602, top + 16]], elbows: [[-246, -250], [246, -250]], pose: ['grip', 'grip'], rot: [0.2, -0.2] };
-        if (name === 'whoa') return { hands: [[236, 420], [726, 404]], elbows: [[-236, -120], [238, -110]], pose: ['wave', 'wave'], rot: [-0.3, 0.3] };
+        const palms = (hands, elbows, rot) => ({ hands, arm: hands, elbows, pose: ['palm', 'palm'], rot, layer: 'back' });
+        if (name === 'brace') return palms([[300, 470], [648, 458]], [[-222, -118], [222, -118]], [-0.32, 0.32]);
+        if (name === 'raise') return palms([[312, 392], [632, 382]], [[-232, -170], [232, -170]], [-0.26, 0.26]);
+        if (name === 'raise2') return palms([[306, 378], [640, 394]], [[-236, -180], [230, -166]], [-0.36, 0.2]);
+        if (name === 'whoa') return palms([[236, 420], [726, 404]], [[-236, -120], [238, -110]], [-0.45, 0.45]);
+        if (name === 'clutch') {
+            // fingers hooked over the pile's top edge at y = top; the wrists just behind it
+            const e = [[356, top + 6], [598, top + 2]], rot = [Math.PI - 0.12, Math.PI + 0.12];
+            const hands = e.map(([x, y], i) => [x + Math.sin(rot[i]) * 50 * LS, y - 50 * LS * -Math.cos(rot[i])]);
+            return { hands, arm: e.map(([x, y]) => [x, y + 40]), elbows: [[-246, -250], [246, -250]], pose: ['edge', 'edge'], rot, layer: 'front' };
+        }
         return null; // 'desk'
     }
     function arms(g, T, pose) {
         if (!pose) return Laura.draw(g, LX, LY, LS, { t: T, pose: 'desk', layer: 'arms' });
         const shoulders = [[-118, -250], [118, -250]];
-        const a = [0, 1].map((i) => [shoulders[i], pose.elbows[i], toL(pose.hands[i])]);
+        const a = [0, 1].map((i) => [shoulders[i], pose.elbows[i], toL(pose.arm[i])]);
         Laura.draw(g, LX, LY, LS, { t: T, arms: a, hands: [null, null], layer: 'arms' });
+        hands(g, T, pose, 'back');
     }
-    function hands(g, T, pose) {
-        if (!pose) return;
+    function hands(g, T, pose, layer = 'front') {
+        if (!pose || pose.layer !== layer) return;
         const breath = Math.sin((drawing(T) / 12) * 2.4) * 1.5;
         for (let i = 0; i < 2; i++) {
             const [hx, hy] = pose.hands[i];
-            D.hand(g, hx, hy + breath, 60 * LS, pose.rot[i], pose.pose[i], { skin: Laura.COL.skin, mirror: i === 0, cuff: Laura.COL.shirt });
+            D.hand(g, hx, hy + breath, 60 * LS, pose.rot[i], pose.pose[i], { skin: Laura.COL.skin, side: i === 0 ? 'right' : 'left', cuff: pose.layer === 'back' ? Laura.COL.shirt : undefined });
         }
     }
     // a bead of sweat sliding down her temple
