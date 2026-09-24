@@ -91,3 +91,18 @@ Open:
   `box`, `runs` and `face`; the agents' best helpers moved into `PaperDetail` (`cspline`,
   `taper`, `curl`, `rings`, `wobblyLine`, `markerPath`, `punch`, `wordBars`, `sheetMusic`,
   `mapPaper`), with pixel-identical output; `segments/README.md` maps the replica.
+
+## Round 5 (auto · exteriors)
+
+- The town, the paper planes and the five exterior shots rebuilt by a parallel agent
+  (`segments/town.js`, `segments/exterior.js`; the old versions removed from `sets.js` and
+  `shots.js`). Exterior shots went from 18–22 to 6–10; whole video 14.2 → **11.2**.
+- The town is a collage of printed papers (newsprint bars, cursive, sheet music, maps with
+  contours and dashed routes), dark triangular roofs, sticky-note windows, the cat on a
+  roof. Planes are folded from printed paper, pinned per drawing by three measured points
+  (nose, fold, wing), on dashed trails anchored to their start.
+- Measured, not assumed: the girl's head holds still in the window (tilt −0.19), her hands
+  are round mitts at that size, windows light up as tissue-paper discs, the flower's size
+  per drawing from its measured width.
+- `review.mjs`: only the known flashes at 15–16 s (the reference's 0.25 s cards).
+- Worst seconds now 3.0 and 7.0 (cut instants) and 9.0.

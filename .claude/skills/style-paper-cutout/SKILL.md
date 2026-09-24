@@ -98,6 +98,9 @@ until a full-resolution crop of it could pass for the reference (or for a finish
   `halo` in the what-do-you-love replica), not a bold fill.
 - **Miniatures are redrawn chunkier** (bigger cells, thicker lines, fewer pieces), not just
   scaled down; give drawers a miniature variant.
+- Collage towns and printed-paper planes: `sandbox/2026-09-24-what-do-you-love/segments/town.js`
+  (houses of sheet music, newsprint, maps; sticky-note windows; a plane of any printed
+  paper pinned by three points).
 - `styles/paper-cutout/showcase/` renders the detail kit; `sandbox/2026-09-24-what-do-you-love/segments/things/`
   has one fully detailed object per file to copy from (dog, tree, bread, rain, words,
   music, sea, math, stars, octopus, tea, flowers, cat).

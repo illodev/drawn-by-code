@@ -158,4 +158,9 @@ choreography.
 
 <!-- date · experiment · one line -->
 - 2026-09-24 · what-do-you-love · Whole-frame comparisons hid the lack of craft; the user saw it at once. Crop every element at full resolution.
+- 2026-09-24 · what-do-you-love · Pin a moving prop (a paper plane) by three measured points per drawing (an affine map): perspective and banking come for free, where position + angle + scale never matched.
+- 2026-09-24 · what-do-you-love · Key a pose at a few drawings but correct the position every drawing with the tracked centre; straight lines between keys lose the arc.
+- 2026-09-24 · what-do-you-love · Measure secondary motion before animating it: the head sway assumed for the girl in the window was a perfectly still head in the reference.
+- 2026-09-24 · what-do-you-love · A growing dashed trail must anchor its dash pattern to the path's start, or the dashes crawl.
+- 2026-09-24 · what-do-you-love · Check the drawing phase once (which frames start a drawing) with frame-to-frame differences decoded without seeking.
 - 2026-09-24 · what-do-you-love · After the measured detail pass the user needed to zoom in to see differences; the one thing seen at a glance (the '?' off the page) came from a font metric nobody had measured. Measure text too.

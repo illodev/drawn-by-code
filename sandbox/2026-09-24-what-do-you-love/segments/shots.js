@@ -1,4 +1,5 @@
-// Shots of the replica, by name (the same names as `shots` in scene.js).
+// Shots of the replica, by name (the same names as `shots` in scene.js). The exterior shots
+// (0–1.5, 6–7, 20–21, 24–26, 27–28) live in exterior.js, with the town in town.js.
 // Each one is (g, t, env, shot) => void; shot.local is the time inside the shot.
 const Shots = {};
 (() => {
@@ -6,17 +7,6 @@ const Shots = {};
     const bump = (t, a, d) => E.bump(t, a, d);
 
     // ------------------------------------------------------------------ helpers
-    // paper planes rising from the town towards the flower, in a loop
-    function risingPlanes(g, t, n = 3, speed = 0.55) {
-        for (let k = 0; k < n; k++) {
-            const u = (((t * speed + k / n) % 1) + 1) % 1;
-            const path = P.bezier([990, 760], [1010, 480], [880, 330], [735, 285], 30);
-            const i = Math.min(path.length - 2, Math.floor(u * (path.length - 1)));
-            const [x, y] = path[i], [x2, y2] = path[i + 1];
-            WL.trail(g, path.slice(Math.max(0, i - 9), i + 1));
-            WL.plane(g, x, y, 0.55 + 0.25 * (1 - u), Math.atan2(y2 - y, x2 - x));
-        }
-    }
     const NOTE_LINES = ['what do', 'you love?'];
     // notepad + writing arm, with a camera (cx, cy, zoom)
     function writing(g, t, env, p, cam, withArm = true, hand = 1) {
@@ -34,15 +24,6 @@ const Shots = {};
             },
         });
     }
-
-    // ------------------------------------------------------------------ 0–1.5
-    Shots['Exterior · planes'] = (g, t, env) => {
-        Sets.exterior(g, t, env, {
-            flower: { ticks: bump(t, 0.35, 0.55), wiggle: bump(t, 0.35, 0.55) },
-            girl: { eyes: 'up', mouth: 'smile' },
-            sky: (gg) => risingPlanes(gg, t),
-        });
-    };
 
     // ------------------------------------------------------------------ 1.5–2
     Shots['Interior · idea'] = (g, t, env) => {
@@ -236,18 +217,7 @@ const Shots = {};
         });
     };
 
-    // ------------------------------------------------------------------ 6–7
-    // a low town silhouette along the bottom of the open sky
-    function skyline(g) {
-        WL.sprite('skyline', { x: -50, y: 780, w: 1100, h: 260 }, (c) => {
-            const r = P.rng('skyline');
-            for (let x = -40; x < 1060; x += 70 + r() * 40) {
-                const h = 70 + r() * 110, w = 70 + r() * 40;
-                P.cutout(c, [[x, 1000 - h], [x + w / 2, 1000 - h - 30 - r() * 30], [x + w, 1000 - h], [x + w, 1040], [x, 1040]], r() < 0.5 ? C.town : C.town2, 'sk' + x, { border: 1.4, paper: '#b9b6cf', shadow: 0.2, jag: 0.8 });
-                for (let yy = 1000 - h + 25; yy < 990; yy += 40) if (r() < 0.6) (c.fillStyle = C.window, c.fillRect(x + 15 + r() * (w - 40), yy, 16, 18));
-            }
-        }, 1.2).draw(g);
-    }
+    // the crescent moon of the close sky shots
     function moon(g, x = 140, y = 135, s = 1) {
         g.save();
         g.translate(x - 140 * s, y - 135 * s);
@@ -262,18 +232,6 @@ const Shots = {};
         }, 1.4).draw(g);
         g.restore();
     }
-    Shots['Sky · flight'] = (g, t, env) => {
-        Sets.sky(g, t, env, { key: 'open', bands: [[160, 90, C.band], [430, 120, C.band2], [640, 90, C.band]] });
-        moon(g, 330, 230, 0.8);
-        WL.flower(g, 890, 110, 85, { t, rot: t * 0.5, wiggle: 0.3 });
-        skyline(g);
-        const u = E.inOut(E.seg(t, 6.0, 6.95));
-        const path = P.bezier([-40, 1000], [250, 700], [520, 420], [800, 210], 40);
-        const k = Math.min(path.length - 2, Math.floor(u * (path.length - 1)));
-        WL.trail(g, path.slice(0, k + 1));
-        WL.plane(g, path[k][0], path[k][1], 1.2 - u * 0.4, Math.atan2(path[k + 1][1] - path[k][1], path[k + 1][0] - path[k][0]));
-    };
-
     // ------------------------------------------------------------------ 7–7.5
     // Close sky (7–10 s, 18–20 s), measured: three bands with torn white tops.
     const skyClose = (g, t, env, key = 'close') => Sets.sky(g, t, env, { key, bands: [[270, 290, '#272b64'], [560, 520, '#323a7e']], stars: 24, starSize: 13 });
@@ -448,26 +406,6 @@ const Shots = {};
         }
     };
 
-    // ------------------------------------------------------------------ 20–21
-    Shots['Exterior · arrival'] = (g, t, env) => {
-        const u = E.inOut(E.seg(t, 20.0, 20.5));
-        const path = P.bezier([650, 320], [620, 520], [480, 560], [360, 700], 30);
-        const k = Math.min(path.length - 2, Math.floor(u * (path.length - 1)));
-        const caught = t >= 20.5;
-        Sets.exterior(g, t, env, {
-            flower: { mouth: 'smile', ticks: 0 },
-            girl: caught ? { pose: 'wave', eyes: 'open', mouth: 'o' } : { pose: 'desk', eyes: 'up' },
-            // the caught plane in her raised hand (drawn inside the window's own camera)
-            window: caught ? { extra: (gi) => { const [hx, hy] = WL.girlHand('wave', 1); WL.plane(gi, hx + 10, hy - 20, 1.3, -0.4); } } : {},
-            over: (gg) => {
-                if (!caught) {
-                    WL.trail(gg, path.slice(0, k + 1));
-                    WL.plane(gg, path[k][0], path[k][1], 0.8, Math.atan2(path[k + 1][1] - path[k][1], path[k + 1][0] - path[k][0]));
-                }
-            },
-        });
-    };
-
     // ------------------------------------------------------------------ 21–22
     Shots['Interior · reads'] = (g, t, env) => {
         // she unfolds the plane in two steps (measured: 125 wide, then 166, open at 21.5 s)
@@ -545,28 +483,6 @@ const Shots = {};
         });
     };
 
-    // ------------------------------------------------------------------ 24–26
-    Shots['Exterior · lights'] = (g, t, env) => {
-        const r = Motion.rng('town-lights');
-        const lights = Array.from({ length: 11 }, (_, i) => [640 + r() * 340, 640 + r() * 330, 24.05 + i * 0.1]);
-        Sets.exterior(g, t, env, {
-            flower: { pose: 'holding', arms: [[-0.35, 0.9], [0.45, 0.8]], mouth: 'grin', ticks: E.bump(t, 25.4, 0.5), wiggle: E.bump(t, 25.4, 0.5) },
-            girl: t >= 25.0 ? { pose: 'wave', eyes: 'happy', mouth: 'grin' } : { pose: 'desk', eyes: 'up', mouth: 'smile' },
-            town: (gg) => {
-                lights.forEach(([x, y, at], i) => {
-                    const u = E.back(E.seg(t, at, at + 0.2));
-                    if (u <= 0) return;
-                    if (t < at + 0.3) WL.trail(gg, [[660, 330], [x, y]], 'rgba(240,235,220,0.5)');
-                    gg.fillStyle = '#f7e3a0';
-                    gg.beginPath();
-                    gg.arc(x, y, 17 * u, 0, Math.PI * 2);
-                    gg.fill();
-                    WL.plus(gg, x, y, 7 * u, '#b8892f');
-                });
-            },
-        });
-    };
-
     // ------------------------------------------------------------------ 26–27
     Shots['Interior · pins'] = (g, t, env) => {
         const pinned = t >= 26.2, hug = t >= 26.45;
@@ -585,12 +501,4 @@ const Shots = {};
         });
     };
 
-    // ------------------------------------------------------------------ 27–28
-    Shots['Exterior · loop'] = (g, t, env) => {
-        Sets.exterior(g, t, env, {
-            flower: { ticks: E.bump(t, 27.4, 0.5), wiggle: E.bump(t, 27.4, 0.5) },
-            girl: { eyes: 'up', mouth: 'smile' },
-            sky: (gg) => risingPlanes(gg, t),
-        });
-    };
 })();

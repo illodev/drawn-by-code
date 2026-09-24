@@ -8,7 +8,7 @@ Motion.scene({
     previewSize: 900,
     uses: [
         'styles/paper-cutout/paper.js', 'styles/paper-cutout/kit.js', 'styles/paper-cutout/detail.js',
-        DIR + 'segments/common.js', DIR + 'segments/sets.js', DIR + 'segments/shots.js', DIR + 'segments/things.js',
+        DIR + 'segments/common.js', DIR + 'segments/sets.js', DIR + 'segments/shots.js', DIR + 'segments/town.js', DIR + 'segments/exterior.js', DIR + 'segments/things.js',
         ...['words', 'music', 'sea', 'tree', 'dog', 'bread', 'rain', 'math', 'stars', 'octopus', 'tea', 'flowers', 'cat'].map((n) => DIR + 'segments/things/' + n + '.js'),
         DIR + 'segments/montage.js',
     ],

@@ -13,7 +13,8 @@ rounds and the user's feedback in `../review.md`.
 | `things.js` | `Things.kit` | the object contract and helpers `place` (cached sprite at x, y, s) and `cut` |
 | `things/*.js` | `Things.<name>` | one montage object per file, drawn 1:1 at scale 1 on its card |
 | `montage.js` | `Shots['Montage']`, `Shots['Heart']` | the 13 cards and the heart: object placement, the flower's per-drawing performance, bursts, words, pop-in order |
-| `exterior.js`, `town.js` | | (being rebuilt: the town collage, printed-paper planes, the exterior shots) |
+| `town.js` | `Town` | the town collage: houses of printed paper (`music`, `news`, `map`, `graph`, `lined`), sticky-note windows, the cat; paper planes of any printed paper pinned by three points (`plane`, `planePoint`); dashed trails anchored to their start (`trail`) |
+| `exterior.js` | `Sets.exterior`, 5 shots | the house with the girl in the window (drawn through `Sets.interior` in a clip), the sky, and the shots `Exterior · planes/arrival/lights/loop` and `Sky · flight`, with plane tracks keyed per drawing plus a tracked-centre correction (`drawTracks`, `poseAt`) |
 
 ## Contracts
 
