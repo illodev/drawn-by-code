@@ -25,7 +25,7 @@ CARDS.savanna = (press, t) => {
     // a flattened glow round (745, 690) px
     const LP = { o: [0.52, -6.15], a: [2.6984, 12.6783], b: [-12.6751, 2.6956] };
     U.lattice(pink, LP, (m) => {
-        m.fillStyle = vramp(m, 0, px(880), [[0, 0.97], [0.12, 0.9], [0.26, 0.74], [0.37, 0.64], [0.49, 0.49], [0.7, 0.46], [0.88, 0.44], [1, 0.44]]);
+        m.fillStyle = vramp(m, 0, px(880), [[0, 1.1], [0.12, 1.0], [0.26, 0.84], [0.37, 0.72], [0.49, 0.56], [0.7, 0.52], [0.88, 0.5], [1, 0.5]]);
         m.fillRect(-20, -20, 1040, px(900));
         m.globalCompositeOperation = 'destination-out'; m.fillStyle = T(0.8); m.fillRect(-20, px(845), 1040, 400); m.globalCompositeOperation = 'source-over';
         // the glow low in the sky: the pink thins to nothing in a wide flat ellipse round
@@ -33,7 +33,7 @@ CARDS.savanna = (press, t) => {
         // behind the tree (0.2–0.35 at y 700–790, x 180–600)
         m.globalCompositeOperation = 'destination-out';
         const gl = m.createRadialGradient(0, 0, 0, 0, 0, 1);
-        gl.addColorStop(0, T(0.9)); gl.addColorStop(0.45, T(0.8)); gl.addColorStop(0.75, T(0.5)); gl.addColorStop(1, T(0));
+        gl.addColorStop(0, T(0.75)); gl.addColorStop(0.45, T(0.65)); gl.addColorStop(0.75, T(0.5)); gl.addColorStop(1, T(0));
         m.save(); m.translate(px(760), px(690)); m.scale(px(390), px(200)); m.fillStyle = gl; m.beginPath(); m.arc(0, 0, 1, 0, 7); m.fill(); m.restore();
         m.save(); m.translate(px(420), px(760)); m.scale(px(330), px(55)); m.fillStyle = gl; m.globalAlpha = 0.6; m.beginPath(); m.arc(0, 0, 1, 0, 7); m.fill(); m.restore();
     });
