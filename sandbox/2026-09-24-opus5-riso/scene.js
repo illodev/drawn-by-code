@@ -15,18 +15,25 @@ const CARD_NAMES = [
 // (the card opens in a circle over the previous frame), 'full' (the card full frame).
 // the pink colourway of 23–24 s: only pink and navy (purple where they meet)
 const PINKSET = { yellow: 'pink', blue: 'navy' };
+// circles measured frame by frame (24 fps) on the reference: [cx, cy, rx, ry] per frame
+// from the shot's start (the bounding box of everything that is not paper, rim included)
+const OPEN = {
+    koi: [[520, 546, 163, 161], [533, 576, 236, 235], [541, 587, 273, 272], [544, 594, 288, 287], [544, 597, 290, 290], [544, 597, 290, 290], [544, 598, 290, 290], [544, 598, 290, 290], [544, 594, 288, 287], [543, 591, 272, 272], [537, 572, 229, 228], [522, 544, 144, 144]],
+    grasshopper: [[487, 448, 162, 163], [481, 417, 234, 235], [478, 400, 274, 274], [476, 394, 287, 287], [477, 396, 290, 289], [477, 396, 290, 289], [477, 396, 290, 289], [477, 396, 290, 289], [477, 396, 290, 289], [477, 400, 286, 272], [477, 417, 272, 228], [480, 446, 258, 143]],
+    jellyfish: [[552, 496, 163, 163], [583, 493, 236, 237], [600, 493, 277, 274], [606, 494, 290, 289], ...Array(11).fill([606, 494, 290, 291]), [606, 493, 288, 289], [600, 493, 272, 274], [581, 493, 230, 230], [550, 494, 143, 143]],
+};
 const EDIT = [
-    [0, 'sonar'], [1.5, 'circle', 'koi', { c: [500, 500], r: [150, 262, 290, 290, 290, 232] }],
-    [2.0, 'sonar'], [2.75, 'circle', 'grasshopper', { c: [500, 500], r: [147, 244, 258, 261, 255, 190], coin: true }],
-    [3.25, 'circle', 'jellyfish', { c: [575, 540], r: [130, 250, 262, 262, 262, 262, 262, 262] }],
-    [4.0, 'sonar', null, { rings: 'late' }], [4.5, 'circle', 'owl', { c: [500, 500], r: [270], thenFull: true }],
+    [0, 'sonar', null, { sonar: 'first' }], [1.5, 'circle', 'koi', { open: OPEN.koi }],
+    [2.0, 'sonar', null, { sonar: 'second' }], [2.75, 'circle', 'grasshopper', { open: OPEN.grasshopper, coin: true }],
+    [3.25, 'circle', 'jellyfish', { open: OPEN.jellyfish }],
+    [4.0, 'sonar', null, { sonar: 'late' }], [4.5, 'circle', 'owl', { c: [500, 500], r: [270], thenFull: true }],
     [5.0, 'circle', 'bell', { c: [500, 500], r: [360], thenFull: true, over: 'owl' }],
     [5.5, 'circle', 'lighthouse', { c: [500, 500], r: [360], thenFull: true, over: 'bell' }],
-    [6.0, 'sonar', null, { rings: 'late' }], [6.5, 'circle', 'wolf', { c: [500, 500], r: [385], thenFull: true }],
+    [6.0, 'sonar', null, { sonar: 'late2' }], [6.5, 'circle', 'wolf', { c: [500, 500], r: [385], thenFull: true }],
     [7.0, 'full', 'phone'], [7.25, 'full', 'turntable'], [7.5, 'full', 'frogs'], [7.75, 'full', 'bats'],
-    [8.0, 'sonar', null, { rings: 'late' }],
+    [8.0, 'sonar', null, { sonar: 'short' }],
     [8.25, 'full', 'wave'], [8.5, 'full', 'cat'], [8.75, 'full', 'sunflower'], [9.0, 'full', 'radio'], [9.25, 'full', 'fireworks'],
-    [9.5, 'full', 'hummingbird'], [9.75, 'full', 'kettle'], [10.0, 'sonar', null, { rings: 'late' }],
+    [9.5, 'full', 'hummingbird'], [9.75, 'full', 'kettle'], [10.0, 'sonar', null, { sonar: 'short' }],
     [10.25, 'full', 'ferris'], [10.5, 'full', 'waterfall'], [10.75, 'full', 'bicycle'], [11.0, 'full', 'whale'], [11.25, 'full', 'piano'],
     [11.5, 'full', 'rocket'], [11.75, 'full', 'city'], [12.0, 'full', 'planet'], [12.125, 'full', 'lightning', { ring: true }],
     [12.25, 'full', 'balloons', { ring: true }], [12.375, 'full', 'cello'], [12.5, 'full', 'volcano'], [12.625, 'full', 'shell'],
@@ -71,10 +78,12 @@ Motion.scene({
         let i = EDIT.findIndex(([a]) => a > tf + 1e-6) - 1;
         if (i < 0) i = EDIT.length - 2;
         const [t0, kind, card, o = {}] = EDIT[i];
-        const ld = Math.floor((tf - t0) * 12 + 1e-6), lt = ld / 12, d = i * 1000 + ld;
+        const ld = Math.floor((tf - t0) * 12 + 1e-6), lt = ld / 12, lf = Math.round((tf - t0) * 24);
+        // the sonar and the opening circles change every frame; everything else on twos
+        const d = i * 1000 + (kind === 'sonar' || kind === 'circle' ? 500 + lf : ld);
         press.begin(d);
-        if (kind === 'sonar') sonar(press, lt, o);
-        else if (kind === 'circle') circleCard(press, card, lt, ld, o);
+        if (kind === 'sonar') sonar(press, lf, o);
+        else if (kind === 'circle') circleCard(press, card, lt, ld, o, lf);
         else if (kind === 'full') {
             // o.flip: the reference re-uses some drawings mirrored left–right
             if (o.flip) { press.save(); press.each((g) => g.transform(-1, 0, 0, 1, 1000, 0)); }
@@ -106,64 +115,121 @@ function drawCard(press, name, lt) {
     n.fillText(name, 500, 700);
 }
 var CARDS = CARDS || {};
-// the blue dot at the centre: navy with a pink under-print (the register shows it)
+// the blue dot at the centre: navy over blue and pink discs, each a little off (measured at
+// 3×: blue peeks out lower left, pink upper right)
 function dot(press, [x, y]) {
-    const n = press.plate('navy'), b = press.plate('blue'), p = press.plate('pink');
-    for (const [g, v, r] of [[b, 0.9, 20], [n, 1, 17], [p, 0.5, 14]]) {
+    for (const [ink, v, dx, dy] of [['blue', 0.95, -4, 3], ['pink', 0.9, 4, -2], ['navy', 1, 0, 0]]) {
+        const g = press.plate(ink);
         g.fillStyle = T(v);
         g.beginPath();
-        g.arc(x, y, r, 0, 7);
+        g.arc(x + dx, y + dy, 18, 0, 7);
         g.fill();
     }
 }
-// sonar rings: one born every 2 drawings, radius by age (measured): 160, 270, 465, 620…
-const RING_R = [160, 270, 465, 640, 820];
-function sonar(press, lt, o) {
-    const b = press.plate('blue'), ld = Math.round(lt * 12);
-    const births = o.rings === 'late' ? [0, 1, 3] : [0, 2, 4];
-    for (const bd of births) {
-        const age = ld - bd;
-        if (age < 0 || age >= RING_R.length) continue;
-        Riso.ring(b, 500, 500, RING_R[age] * (o.rings === 'late' ? 0.82 : 1), Math.max(3.5, 9 - age * 1.6), 'sonar' + bd + age, { color: T(0.95), wobble: 0.01 });
-    }
-    // flecks: trios of short arcs converging on the dot from the edges (0.6–1.45 s after)
-    const groups = [[Math.PI + 0.12, 0.58, 0.42], [-0.85, 0.92, 0.5], [0.72, 1.0, 0.46]];
-    for (const [ang, at, dur] of groups) {
-        const u = (lt - at) / dur;
-        if (u < 0 || u > 1) continue;
-        const R = 520 - u * 150;
-        for (let k = 0; k < 3; k++) {
-            const r = R + k * 28 - 28, a0 = ang - 0.1 + k * 0.02;
-            b.save();
-            b.strokeStyle = T(0.9);
-            b.lineWidth = 3.2 - k * 0.5;
-            b.lineCap = 'round';
-            b.beginPath();
-            b.arc(500, 500, r, a0, a0 + 0.2 - k * 0.03);
-            b.stroke();
-            b.restore();
+// a brush ring: an annulus whose width swells and thins round the circle, slightly out of
+// round (the reference's rings are painted, not stroked)
+function brushRing(g, cx, cy, r, w, seed, wave = 0) {
+    const rr = Motion.rng('br' + seed), p1 = rr() * 6.28, p2 = rr() * 6.28, p3 = rr() * 6.28, n = Math.max(48, Math.round(r * 0.9));
+    const at = (a, side) => {
+        const rad = r * (1 + 0.009 * Math.sin(2 * a + p1) + 0.005 * Math.sin(5 * a + p2)) + wave * Math.sin(9 * a + p3);
+        const hw = (w / 2) * (1 + 0.32 * Math.sin(a + p2) + 0.14 * Math.sin(3 * a + p3));
+        return [cx + Math.cos(a) * (rad + side * hw), cy + Math.sin(a) * (rad + side * hw)];
+    };
+    g.beginPath();
+    for (let i = 0; i <= n; i++) { const [px, py] = at((i / n) * Math.PI * 2, 1); i ? g.lineTo(px, py) : g.moveTo(px, py); }
+    for (let i = n; i >= 0; i--) { const [px, py] = at((i / n) * Math.PI * 2, -1); g.lineTo(px, py); }
+    g.fill('evenodd');
+}
+// a fleck: a tapered brush arc round the dot at radius r, centred on angle a; far ones are
+// long, thin and wavy, near ones short fat crescents (arc length ≈ 170 units, measured)
+function fleck(g, r, a, w, seed) {
+    const rr = Motion.rng('fk' + seed), ph = rr() * 6.28, span = Math.min(2.0, 170 / r), wav = Math.max(0, (r - 250) / 250) * 3.5, n = 40;
+    const at = (s, side) => {
+        const ang = a + (s - 0.5) * span, hw = (w / 2) * Math.pow(Math.sin(Math.PI * s), 0.8);
+        const rad = r + wav * Math.sin(s * 9.4 + ph) + side * hw;
+        return [500 + Math.cos(ang) * rad, 500 + Math.sin(ang) * rad];
+    };
+    g.beginPath();
+    for (let i = 0; i <= n; i++) { const [px, py] = at(i / n, 1); i ? g.lineTo(px, py) : g.moveTo(px, py); }
+    for (let i = n; i >= 0; i--) { const [px, py] = at(i / n, -1); g.lineTo(px, py); }
+    g.fill();
+}
+// the sonar, measured frame by frame (24 fps, radii in units round the dot):
+//   rings: born on the listed frames, radius and brush width by age in frames
+//   flecks: groups of three tapered arcs at an angle, each arc [first frame, radii per
+//   frame], converging on the dot (the reference's «waves»)
+const D2R = Math.PI / 180;
+const SONAR = {
+    first: {
+        births: [0, 4, 8], R: [0, 155, 270, 373, 465, 548, 618, 677], W: [0, 17, 16, 15, 14, 13, 12, 11], wave: 0,
+        groups: [
+            [-155, 22, [[14, [515, 510, 497, 482, 470, 452, 430, 410, 385]], [16, [520, 512, 507, 492, 482, 465, 442]], [19, [517, 515, 512, 497]]]],
+            [-55, 30, [[23, [492, 480, 462, 440, 418, 387, 360]], [23, [517, 512, 505, 485, 467, 430, 410, 400]], [26, [520, 505, 492, 470, 450]]]],
+            [65, 35, [[24, [590, 560, 527, 497, 452, 415, 362, 315, 260, 205, 142, 82]], [26, [590, 562, 535, 502, 462, 422, 377, 327, 272, 217]], [29, [572, 542, 512, 472, 432, 385, 335]]]],
+        ],
+    },
+    second: { ref: 'first', groups: [[-105, 17, [[8, [532, 497, 455, 410, 362, 312, 262, 205, 145, 85]], [11, [502, 462, 422, 377, 330, 277, 220]], [13, [510, 477, 435, 387, 340]]]]] },
+    late: {
+        births: [1, 4, 7], R: [110, 210, 290, 370, 450, 495, 540, 590, 620, 660], W: [6, 5.5, 5, 4.6, 4.2, 3.9, 3.6, 3.3, 3, 2.8], wave: 2,
+        groups: [[35, 11, [[3, [545, 538, 525, 505, 475, 395, 300, 160]], [5, [555, 540, 520, 500, 470, 400, 280]], [7, [560, 545, 520, 470, 380]]]]],
+    },
+    late2: { ref: 'late', groups: [[-70, 11, [[3, [545, 538, 525, 505, 475, 395, 300, 160]], [5, [555, 540, 520, 500, 470, 400, 280]], [7, [560, 545, 520, 470, 380]]]]] },
+    short: {
+        births: [1, 4], R: [115, 220, 295, 372, 450], W: [9, 8.5, 8, 7.5, 7], wave: 0,
+        groups: [[115, 5, [[-3, [545, 530, 510, 470, 445, 410, 300, 160, 90]], [-1, [555, 540, 500, 440, 350, 230]], [0, [560, 545, 520, 470, 390, 290]]]]],
+    },
+};
+function sonar(press, lf, o) {
+    const v = SONAR[o.sonar ?? 'first'], base = v.ref ? SONAR[v.ref] : v, b = press.plate('blue');
+    b.fillStyle = T(0.97);
+    for (const bd of base.births) {
+        const age = lf - bd;
+        if (age < 0 || age >= base.R.length) continue;
+        if (base.R[age] === 0) {
+            // the birth frame: a blue halo round the dot (40, 37, 34), later ones already
+            // pulling away from it (a paper crescent lower left)
+            b.beginPath(); b.arc(500, 500, 40 - bd * 0.75, 0, 7); b.fill();
+            if (bd > 0) press.knockout((g) => { g.beginPath(); g.arc(497, 503, 23, 0, 7); g.fill(); });
+            continue;
         }
+        brushRing(b, 500, 500, base.R[age], base.W[age], 'sonar' + (o.sonar ?? '') + bd, base.wave * Math.max(0, age - 5));
+    }
+    for (const [ang, end, arcs] of v.groups) {
+        if (lf > end) continue;
+        arcs.forEach(([f0, rs], k) => {
+            const r = rs[lf - f0];
+            if (r == null) return;
+            fleck(b, r, ang * D2R, (k === 0 ? 10 : 6) * (r < 300 ? 1.2 : 0.8), 'fk' + ang + k + lf);
+        });
     }
 }
 // a card opening in a circle: radius per drawing from o.r (the last one holds); over the
 // previous card (o.over) or the paper; a blue rim; 'thenFull' goes full frame after one drawing
-function circleCard(press, name, lt, ld, o) {
+function circleCard(press, name, lt, ld, o, lf) {
     if (o.thenFull && ld >= 1) return drawCard(press, name, lt);
-    const r = o.r[Math.min(ld, o.r.length - 1)], [cx, cy] = o.c;
+    let cx, cy, rx, ry;
+    if (o.open) [cx, cy, rx, ry] = o.open[Math.min(lf, o.open.length - 1)].map((v, i) => (i < 2 ? v : v - 5)); // the rim's outer edge → the circle
+    else { rx = ry = o.r[Math.min(ld, o.r.length - 1)]; [cx, cy] = o.c; }
     if (o.over) drawCard(press, o.over, lt + 0.5);
+    const path = (g) => g.ellipse(cx, cy, rx, ry, 0, 0, 7);
+    // the coin: a navy edge under the disc, showing as it turns (ry < rx)
     if (o.coin) {
-        const n = press.plate('navy');
-        n.fillStyle = T(0.85);
-        n.beginPath();
-        n.ellipse(cx, cy + r * 0.12, r, r, 0, 0, 7);
-        n.fill();
+        const n = press.plate('navy'), b = press.plate('blue', 'screen');
+        const edge = Math.max(10, (rx - ry) * 0.25 + 14);
+        n.fillStyle = T(0.85); b.fillStyle = T(0.5);
+        for (const g of [n, b]) { g.beginPath(); g.ellipse(cx, cy + edge, rx, ry, 0, 0, 7); g.fill(); }
     }
-    press.knockout((g) => { g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill(); });
+    press.knockout((g) => { g.beginPath(); path(g); g.fill(); });
+    // the whole illustration, scaled down into the circle (not a crop: the jellyfish at
+    // 3.6 s shows its bell, tentacles and both small jellies inside the circle)
+    const k = (rx * 2 * 1.06) / 1000;
     press.save();
-    press.clip((g) => g.arc(cx, cy, r, 0, 7));
+    press.clip((g) => path(g));
+    press.each((g) => { g.translate(cx, cy); g.scale(k, (k * ry) / rx); g.translate(-500, -500); });
     drawCard(press, name, lt);
     press.restore();
-    Riso.ring(press.plate('blue'), cx, cy, r, 7, 'rim' + name, { color: T(1), wobble: 0.006 });
+    const bp = press.plate('blue');
+    bp.save(); bp.strokeStyle = T(1); bp.lineWidth = 8; bp.beginPath(); path(bp); bp.stroke(); bp.restore();
 }
 // the white ring over re-inked cards (knocked out of every plate), breathing on twos
 function whiteRing(press, ld) {

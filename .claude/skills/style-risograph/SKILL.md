@@ -72,7 +72,20 @@ Status: **in testing**. Studied on `references/opus5-risograph.mp4`: a 1:1 study
 - [ ] Register offset visible on edges (a coloured fringe)?
 - [ ] Whites knocked out of every plate?
 - [ ] Paper grain and uneven ink visible?
+- [ ] The paper at 3×: fibres and a faint cloud, no confetti of coloured specks?
+- [ ] Dark overprints mottled, with no paper-white pinholes punched through every ink?
+- [ ] Line work painted (brush width swelling and thinning, tapered ends), not stroked?
 
 ## Lessons
 
 - 2026-09-24 · opus5-riso · Clean vector dots read as digital; the ink spread (a 0.9 px blur of the whole print) and starved blotches made them read as ink on paper.
+- 2026-09-24 · opus5-riso · «Their image has a noise filter ours lacks»: measured at 3×, the
+  riso's paper is an even stock with hair-like fibres and a faint cloud, and nearly no
+  specks; ours threw a confetti of coloured dots on the paper, and shared ink voids punched
+  white pinholes through dark overprints (too busy). The press now draws fibres, keeps
+  voids per ink, and softens dot edges (1.4 px) and spread (1 px) to match the texture
+  energy tile by tile (`engine/detail.mjs`).
+- 2026-09-24 · opus5-riso · The sonar's rings and «waves» are brush work, measured frame by
+  frame: rings as annuli whose width swells round the circle, waves as trios of tapered
+  arcs (≈ 170 units long: long and thin far out, fat crescents near the dot) converging on
+  it. Stroked circles and straight dashes read as vector.

@@ -56,7 +56,43 @@ const Riso = (() => {
             const su = u * u * (3 - 2 * u), sv = v * v * (3 - 2 * v);
             starve[y * W + x] = a + (b - a) * su + (c - a) * sv + (a - b - c + d) * su * sv;
         }
+        // the print's noise, measured on a riso film at 3×: ink mottles at a small scale
+        // (~3 px), every ink throws stray specks (on paper and inside other inks), and each
+        // halftone dot is a little off in size and place. Fine value noise, per ink:
+        const fine = (seed, scale) => {
+            const rr = Motion.rng(seed), gw = Math.ceil(W / scale) + 2, gh = Math.ceil(H / scale) + 2, v = new Float32Array(gw * gh), f = new Float32Array(W * H);
+            for (let i = 0; i < v.length; i++) v[i] = rr();
+            for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+                const fx = x / scale, fy = y / scale, ix = Math.floor(fx), iy = Math.floor(fy), u = fx - ix, w2 = fy - iy;
+                const a = v[iy * gw + ix], b = v[iy * gw + ix + 1], c = v[(iy + 1) * gw + ix], d = v[(iy + 1) * gw + ix + 1];
+                f[y * W + x] = a + (b - a) * u + (c - a) * w2 + (a - b - c + d) * u * w2;
+            }
+            return f;
+        };
+        const sc = W / 1080, mottle = {}, speck = {};
+        // the paper, measured at 3× on the reference: an even warm stock with a faint cloud
+        // (a few % at ~50 px) and hair-like fibres (thin grey curls, 10–40 px), almost no
+        // specks. Never a confetti of coloured dots.
+        const cloud = fine('cloud' + W, 48 * sc), fiber = new Float32Array(W * H);
+        {
+            const fc = mk(), fg = fc.getContext('2d'), fr = Motion.rng('fibres' + W), n = Math.round(300 * (W * H) / (1080 * 1080));
+            fg.lineCap = 'round';
+            for (let k = 0; k < n; k++) {
+                let x = fr() * W, y = fr() * H, a = fr() * 6.28;
+                const len = (8 + fr() * 32) * sc, bend = (fr() - 0.5) * 0.25;
+                fg.strokeStyle = `rgba(0,0,0,${0.25 + fr() * 0.35})`;
+                fg.lineWidth = (0.6 + fr() * 0.5) * sc;
+                fg.beginPath();
+                fg.moveTo(x, y);
+                for (let s2 = 0; s2 < len; s2 += 2 * sc) { a += bend; x += Math.cos(a) * 2 * sc; y += Math.sin(a) * 2 * sc; fg.lineTo(x, y); }
+                fg.stroke();
+            }
+            const fd = fg.getImageData(0, 0, W, H).data;
+            for (let i = 0; i < W * H; i++) fiber[i] = fd[i * 4 + 3] / 255;
+        }
+        for (const ink of ORDER) { mottle[ink] = fine('mottle' + ink + W, 3.2 * sc); speck[ink] = fine('speck' + ink + W, 1.6 * sc); }
         let memoKey = null;
+        const EDGE = globalThis.RISO_EDGE ?? 1.4, SPREAD = globalThis.RISO_SPREAD ?? 1.0;
 
         return {
             W, H,
@@ -85,7 +121,7 @@ const Riso = (() => {
                 if (key == null || key !== memoKey) {
                     const img = og.createImageData(W, H), D = img.data;
                     for (let i = 0; i < W * H; i++) {
-                        const p = 0.975 + 0.035 * grain[i];
+                        const p = (0.982 + 0.018 * grain[i] + 0.012 * (cloud[i] - 0.5)) * (1 - 0.2 * fiber[i]);
                         D[i * 4] = PAPER[0] * p; D[i * 4 + 1] = PAPER[1] * p; D[i * 4 + 2] = PAPER[2] * p; D[i * 4 + 3] = 255;
                     }
                     const reg = po.register ?? { yellow: [2, -1], pink: [-1, 1], blue: [1, 2], navy: [0, 0] };
@@ -97,7 +133,7 @@ const Riso = (() => {
                         const T = ctxs[ink + 'screen'].getImageData(0, 0, W, H).data;
                         const I = INKS[inkOf(ink)], [ir, ig, ib] = I.rgb, ca = Math.cos(INKS[ink].angle), sa = Math.sin(INKS[ink].angle);
                         const [ox, oy] = (reg[ink] ?? [0, 0]).map((v) => Math.round(v * (W / 1080)));
-                        const ip = I.pitch * pitch;
+                        const ip = I.pitch * pitch, io = ORDER.indexOf(ink) * 7919;
                         for (let y = 0; y < H; y++) {
                             const sy = y - oy;
                             if (sy < 0 || sy >= H) continue;
@@ -110,16 +146,24 @@ const Riso = (() => {
                                 if (tv > 0.003) {
                                     // the halftone: a dot per cell, its area = the tone
                                     const u = (x * ca + y * sa) / ip, v = (-x * sa + y * ca) / ip;
-                                    const du = u - Math.floor(u) - 0.5, dv = v - Math.floor(v) - 0.5;
-                                    const d = Math.sqrt(du * du + dv * dv), rad = Math.sqrt(tv / Math.PI) * 1.02;
-                                    const edge = 0.7 / ip;
+                                    // each cell's dot a little off in place and size (a hash of the cell)
+                                    const cu = Math.floor(u), cv = Math.floor(v), hsh = Math.sin(cu * 127.1 + cv * 311.7 + ink.length * 17.3) * 43758.5453, hj = hsh - Math.floor(hsh);
+                                    const du = u - cu - 0.5 + (hj - 0.5) * 0.14, dv = v - cv - 0.5 + ((hj * 7.13) % 1 - 0.5) * 0.14;
+                                    const d = Math.sqrt(du * du + dv * dv), rad = Math.sqrt(tv / Math.PI) * (0.9 + 0.22 * hj);
+                                    const edge = EDGE / ip;
                                     const dot = Math.min(1, Math.max(0, (rad - d) / edge + 0.5));
                                     cov = Math.max(cov, dot);
                                 }
-                                if (cov <= 0.003) continue;
                                 const i = y * W + x;
-                                // uneven inking: starved blotches and pinholes
-                                cov *= 0.86 + 0.14 * starve[i] - (grain[i] > 0.985 ? 0.5 : 0);
+                                // stray specks of this ink anywhere (on paper, in other inks)
+                                const sp = speck[ink][i];
+                                if (sp > 0.985) cov = Math.max(cov, (sp - 0.985) * 40);
+                                if (cov <= 0.003) continue;
+                                // (voids per ink: shared ones would punch paper-white pinholes through overprints)
+                                const gv = grain[(i + io) % (W * H)];
+                                // uneven inking: a solid prints nearly full and crisp, pocked with
+                                // pixel-size voids (paper showing through); starved blotches are faint
+                                cov *= (0.86 + 0.16 * mottle[ink][i]) * (0.93 + 0.07 * starve[i]) - (gv > 0.93 ? 0.3 : 0) - (gv > 0.985 ? 0.5 : 0) - (sp < 0.04 ? 0.5 : 0);
                                 if (cov <= 0) continue;
                                 const q = i * 4;
                                 D[q] *= 1 - cov + (cov * ir) / 255;
@@ -130,7 +174,7 @@ const Riso = (() => {
                     }
                     og.putImageData(img, 0, 0);
                     // ink spreads into the paper fibres: a slight blur of the whole print
-                    const sp = (po.spread ?? 0.9) * (W / 1080);
+                    const sp = (po.spread ?? SPREAD) * (W / 1080);
                     if (sp > 0) {
                         const tmp = mk(), tg = tmp.getContext('2d');
                         tg.filter = `blur(${sp}px)`;

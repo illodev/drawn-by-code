@@ -17,7 +17,7 @@ inside videos is creative content and stays in whatever language the video needs
 | `.claude/skills/new-style/` | How to add a style |
 | `.claude/skills/transitions/` | Transitions between shots and between styles (`engine/transitions.js`) |
 | `.claude/skills/replicate/` | Copying a reference video 1:1: measure, per-drawing tables, element by element, parallel agents |
-| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `gif.mjs`, `serve.mjs` |
+| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `gif.mjs`, `detail.mjs`, `serve.mjs` |
 | `styles/<style>/` | Drawing kit, `template.js`, `README.md` and `strip.jpg` for each style |
 | `sandbox/` | One experiment per folder (`YYYY-MM-DD-name/`), indexed in `INDEX.md` |
 | `assets/sfx/`, `fonts/` | Freely licensed sound effects and fonts |
@@ -32,6 +32,7 @@ node engine/review.mjs sandbox/<exp>/scene.js       # automatic review + contact
 node engine/render.mjs sandbox/<exp>/scene.js --at 1,2.5   # stills
 node engine/render.mjs sandbox/<exp>/scene.js --size 1920  # MP4
 node engine/reference.mjs compare sandbox/<exp>/scene.js ref.mp4 --times 2,4 --crop 0.3,0.2,0.4,0.4
+node engine/detail.mjs sandbox/<exp>/scene.js ref.mp4 --every 1   # the detail gate (must PASS)
 ```
 
 ## The loop (mandatory)
@@ -46,6 +47,14 @@ node engine/reference.mjs compare sandbox/<exp>/scene.js ref.mp4 --times 2,4 --c
    together.
 
 ## The detail bar
+
+**Nothing is shown to the user until it passes the detail gate.** With a reference:
+`node engine/detail.mjs <scene.js> <reference.mp4> --every 1` must say PASS (it is
+calibrated on the replica the user approved; it catches missing texture/noise, wrong
+colours and missing pieces zone by zone). Without a reference: crop every element at full
+resolution against the style's «Detail» checklist. An agent whose report lists things
+«still off» has not finished: fix them before merging, never pass them on to the user.
+The user should never have to point out an evident detail.
 
 Detail is the job, not a polish step. Every element is its own set of pieces with organic
 shapes, textures that say what it is made of and real hands; crop it at full resolution

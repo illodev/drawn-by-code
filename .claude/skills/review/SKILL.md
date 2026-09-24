@@ -63,6 +63,7 @@ hesitate between "it reads" and "it doesn't read", **it doesn't read**.
   `reference.mjs compare --crop`) and hold it to the style's detail bar: separate pieces,
   organic shapes, textures that say what the material is, real hands. «It reads» is not
   enough; «it could be a frame of a finished film» is.
+- **The detail gate:** with a reference, `engine/detail.mjs` must PASS before anything is shown (CLAUDE.md → «The detail bar»); without one, crop every element at full resolution. Evident details are never left for the user to find.
 - **Hands and brand:** at every contact frame check each hand (right side, right view,
   never through what it holds; style skill → «Detail») and put the logo next to the
   client's SVG at the same size.

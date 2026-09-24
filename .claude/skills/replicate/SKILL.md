@@ -25,6 +25,17 @@ Rights: a replica of someone else's film is an **internal study**. The reference
 its audio stay in the experiment's `out/` (gitignored), never in the repo, and the result
 is never published as ours.
 
+## The detail gate (mandatory)
+
+`node engine/detail.mjs <scene.js> <reference.mp4> --every 1` splits every instant into
+6×6 zones and compares colour (after a blur) and texture (high-frequency energy: grain,
+dots, noise, fine lines) with the reference. It passes only at the level of the replica the
+user approved: colour median ≤ 12, p90 ≤ 35, ≤ 6 % of zones too clean, ≤ 12 % too busy.
+Nothing is shown to the user before it passes; agents working on elements run it on their
+own instants (`--times`) and do not report «done» with a failing gate or a list of things
+still off. «Too clean» almost always means a missing texture layer (print noise, paper,
+fine hatching), not a missing object.
+
 ## The four principles
 
 1. **Detail is the job.** Timing and palette give you an animatic. The user judges the craft
