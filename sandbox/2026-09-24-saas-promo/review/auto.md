@@ -1,6 +1,6 @@
 # Automatic review · sandbox/2026-09-24-saas-promo/scene.js
 
-960×540 px · 24 fps · 6.00 s · 144 frames · 120 BPM
+960×540 px · 24 fps · 50.00 s · 1200 frames · 120 BPM
 
 ## Warnings
 
@@ -11,16 +11,19 @@
 Energy per second (how much the image changes):
 
 ```
-▃█▄▅▅▃
-0    5    
+▂▄▅▅▄▃▅▄▄█▂▆▃▃▃▅▅▅▃▂▅▂▂▃▄▂▄▃▄▄▄▃▅▂▃▃▃▅▂▅▆▃▅▂▃▃▆▂▂▂
+0    5    10   15   20   25   30   35   40   45   
 ```
 
 No still stretches of 1 s or more.
 
+Large jumps outside cuts (can be normal in dense patterns; check whether they bother): 17.00 s.
+
 ## Speed
 
-Painting: 141 ms/frame cold, 8 ms warm → full render ≈ 1 s at this size.
+Painting: 222 ms/frame cold, 14 ms warm → full render ≈ 16 s at this size.
 
 ## Contact sheet
 
-![sheet](sheet.jpg)
+![sheet](sheet-1.jpg)
+![sheet](sheet-2.jpg)

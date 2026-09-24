@@ -159,3 +159,13 @@ until a full-resolution crop of it could pass for the reference (or for a finish
 - 2026-09-24 · what-do-you-love · The user: «every element has to go to detail». A dog of five ellipses, a ring drawn as one stroke, round hands and polygon shapes read as low effort next to a reference built piece by piece. The bar is now in «Detail».
 - 2026-09-24 · what-do-you-love · `PaperDetail.shade` returned hsla and `Paper.marker` only parses hex: every shaded piece became a brown blob. Colour helpers return hex.
 - 2026-09-24 · saas-promo · Style test rejected on detail: «las manos parecen muñones» and «5 cosas repartidas en un espacio hueco». Without a reference I stopped at «it reads»; original work is held to the same bar (see «Detail»: full sets, real hands).
+- 2026-09-24 · saas-promo · A pile that grows: every landing squashes the item AND the pile under it (two drawings: 1.07/0.88, 0.97/1.04); items landing alone on a still pile look pasted.
+- 2026-09-24 · saas-promo · A logo shown big is re-cut at its display scale (its own sprite key per size); scaling up the small cut shows soft, fat torn edges.
+- 2026-09-24 · saas-promo · Big flat shapes (a logo cloud, a card) need layered torn volume: a darker under-layer offset down, a lighter top lobe, a highlight edge; one flat fill reads as a sticker.
+- 2026-09-24 · saas-promo · An arm holding a mass (a pile, a mug) goes behind it with only the hand in front; a `grip` rotated ±π/2 holds vertical things (a stamp's neck, a mug handle), bend the wrist so the forearm can come from anywhere.
+- 2026-09-24 · saas-promo · A phone held in a close-up: an `open` hand turned sideways behind it, only the fingertips curling round the far edge. A `pinch` thumb over the screen reads as a stump.
+- 2026-09-24 · saas-promo · Shadows of floating paper need the torn silhouette of the piece (a sprite), never a rectangle: a rectangle reads as a grey box.
+- 2026-09-24 · saas-promo · A mug from above with a curved crema arc under a glint reads as a smiley: keep highlights off the lower half of round things seen from above.
+- 2026-09-24 · saas-promo · Full-frame boards laid side by side leave gaps where torn edges meet: paint a dark base under them.
+- 2026-09-24 · saas-promo · To show a shared cached set «tidied», redraw its base pieces with the same seeds and pull the kept objects from the original sprite through a clip: the seams match exactly.
+- 2026-09-24 · saas-promo · An end card that unfolds reads best as three or four fold drawings on twos; its content lands on the beats after it opens (mark, line, button, small print).

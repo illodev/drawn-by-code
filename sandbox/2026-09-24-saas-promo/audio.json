@@ -18,6 +18,13 @@
     ["button_click", 11.0, -6], ["page_turn", 11.3, -10],
     ["stamp", 12.5, -5], ["paper_fold", 13.0, -9], ["plane_whoosh", 13.5, -9], ["mail_clank", 14.5, -7], ["bell_ding", 14.55, -16],
 
+    ["shutter", 17.0, -7], ["page_turn", 17.5, -15], ["ticket", 18.0, -11], ["ticket", 18.5, -11],
+    ["ticket", 19.0, -11], ["ticket", 19.5, -10], ["chime_ok", 20.0, -10], ["swoosh_in", 20.5, -12], ["pop", 20.92, -11],
+
+    ["bell_ding", 21.5, -12], ["bell_ding", 22.0, -13], ["pop", 22.5, -10], ["swoosh_in", 22.55, -14],
+    ["tap", 23.5, -15], ["tap", 24.0, -15], ["button_click", 24.5, -6], ["paper_fold", 24.75, -10],
+    ["plane_whoosh", 25.1, -10], ["pop", 26.5, -12], ["chime_ok", 26.5, -13],
+
     ["paper_land", 27.5, -17], ["paper_land", 28.0, -16], ["page_turn", 28.25, -13], ["paper_land", 28.5, -17],
     ["paper_land", 29.0, -16], ["page_turn", 29.25, -13], ["paper_land", 29.5, -17], ["paper_land", 30.0, -16],
     ["page_turn", 30.25, -13], ["paper_land", 30.5, -17], ["stamp", 31.0, -7], ["stamp", 31.5, -8], ["scribble", 32.0, -14],

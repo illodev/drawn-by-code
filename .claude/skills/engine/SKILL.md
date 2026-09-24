@@ -110,3 +110,4 @@ Chrome: looked up in `CHROME_PATH`, `/opt/pw-browsers`, and the usual Linux/macO
 - 2026-09-24 · coffee-first · Everything that bleeds off the frame (backgrounds, floors, tables) must cover the camera's full travel: `paperBg(…, { bleed })` and pieces wider than the pan. `review.mjs` warns about «Transparent holes».
 - 2026-09-24 · coffee-first · To cache a moving piece, draw the sprite at its origin and move it with `translate/rotate/scale`; the sprite key must not depend on t.
 - 2026-09-24 · what-do-you-love · A text drawn with `strokeText` on top of `fillText` only gets bolder; a felt-tip look needs the glyph thinned: fill, then `destination-out` stroke on an offscreen canvas (cache it per scale from `getTransform()`).
+- 2026-09-24 · saas-promo · Key tables compared with `tq = Math.floor(t*12)/12` must be exact twelfths: 1.67 is not ≥ 20/12, so a drawing silently shifts. Write times as beats/halves/quarters or snap with `Math.round(a*12)/12`.

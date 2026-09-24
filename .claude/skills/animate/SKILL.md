@@ -85,6 +85,17 @@ For big pieces, split the detail work: one file per object/prop with a small dra
 contract (`(g, x, y, s, t, part?)`), and give groups of objects to parallel agents with a
 written brief; keep choreography and shared kits with the lead.
 
+For a marketing piece, the three ideas that carried saas-promo: **one evolving idea**
+(a buried desk that each feature clears), **a set piece that carries a sequence** (a twine of
+invoices feeding into a slot gives the block one verb and fills the frame), and **show the
+product waiting for the user** when the claim is «you approve» (hover, a button ring
+pulsing on the beats, a turning hourglass: three signals read at speed).
+
+Parallel block agents: one brief for all (see `sandbox/2026-09-24-saas-promo` history),
+the approved frames as the bar, on-screen text only through copy keys, shared kits
+read-only, the lead merges by file. Ask each for a shot list with times: it is also the cue
+sheet for the sound.
+
 ## How to organize a large scene
 
 For more than one shot, the scene declares `shots: [[start, end, 'Name'], …]` and `draw`

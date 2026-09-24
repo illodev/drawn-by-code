@@ -44,3 +44,17 @@ real photos of desks) and fill the frame in depth.
 
 > «¡Ese es el nivel!» — the style test is approved: Laura, the paper UI, the office, the
 > hands and the titles are locked. Every block of the edit is held to this bar.
+
+## Animatic v1 · 50 s, all blocks (auto)
+
+- Blocks built by three parallel agents on one brief (bar: the approved frames, copy only
+  through keys, shared kits read-only), merged by file: chaos + cloud, expenses +
+  collections, compliance + close; taxes + business earlier.
+- Fixes at merge: close on the September page (after business), the collections second
+  title given context in the private copy (a bare «you approve them» read as a fragment).
+- Sound: the ElevenLabs track cut by bars (drop on 10 s), its dead stop at 48.5 thrown
+  through an eighth-note delay so it rings out; 89 cues from each block's contact
+  constants, aligned on each effect's onset (`mix.mjs` `"align": "onset"`). −13 LUFS.
+- `review.mjs`: no warnings; the 17.0 s jump is the camera flash (intended).
+- Known weak spots (from the agents): the compliance stamp arm has no elbow; the end card
+  has a lot of empty cream around the mark; the receipt's crumple is mild.
