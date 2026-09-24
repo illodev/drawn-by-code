@@ -125,5 +125,64 @@ var G1 = (() => {
         }
         return { outline: L.concat(R.reverse()), spine: S, left: L };
     }
-    return { T, frame, polyPath, smoothPath, fill, stroke, taper, clipped, specks, blob, ribbon };
+    // a halftone screen measured on the reference (the film's screens are not the press's
+    // 9.5 px: 10.4 px, 17.3 px, 23 px … each at its own angle and phase): a dot centre
+    // (ox, oy) and the two lattice vectors, in reference px (engine: scratch lattice probe)
+    function lattice(ox, oy, ax, ay, bx, by) { return { ox, oy, ax, ay, bx, by, area: Math.abs(ax * by - ay * bx) }; }
+    const REG = { yellow: [2, -1], pink: [-1, 1], blue: [1, 2], navy: [0, 0] }; // riso.js's default register
+    const hash = (i, j, s) => { const h = Math.sin(i * 127.1 + j * 311.7 + s * 74.7) * 43758.5453; return h - Math.floor(h); };
+    // hand-set dots on a solid plate, one per lattice cell inside box [x0, y0, x1, y1]: dot
+    // area = tone (a number or fn(x, y) → 0..1), each dot a little off in size and roundness
+    function dots(g, L, box, tone, o = {}) {
+        const [x0, y0, x1, y1] = box, det = L.ax * L.by - L.ay * L.bx;
+        const ij = (x, y) => { const dx = x - L.ox, dy = y - L.oy; return [(dx * L.by - dy * L.bx) / det, (L.ax * dy - L.ay * dx) / det]; };
+        const cs = [ij(x0, y0), ij(x1, y0), ij(x0, y1), ij(x1, y1)];
+        const i0 = Math.floor(Math.min(...cs.map((c) => c[0]))) - 1, i1 = Math.ceil(Math.max(...cs.map((c) => c[0]))) + 1;
+        const j0 = Math.floor(Math.min(...cs.map((c) => c[1]))) - 1, j1 = Math.ceil(Math.max(...cs.map((c) => c[1]))) + 1;
+        const jit = o.jit ?? 0.14, seed = o.seed ?? 1, fn = typeof tone === 'function';
+        // the press prints each plate a little out of register: set the dots back by it so
+        // they land on the measured lattice (o.ink: the plate's ink)
+        const [rx, ry] = REG[o.ink] ?? [0, 0];
+        g.fillStyle = T(o.v ?? 1);
+        g.beginPath();
+        for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+            const x = L.ox + i * L.ax + j * L.bx - rx, y = L.oy + i * L.ay + j * L.by - ry;
+            if (x < x0 - 12 || x > x1 + 12 || y < y0 - 12 || y > y1 + 12) continue;
+            const tv = fn ? tone(x, y) : tone;
+            if (tv <= 0.004) continue;
+            const h = hash(i, j, seed), h2 = hash(j, i, seed + 3);
+            const r = Math.sqrt((Math.min(tv, 1) * L.area) / Math.PI) * (1 + jit * (h - 0.5) * 2) * (tv > 0.7 ? 1 + (tv - 0.7) * 0.5 : 1);
+            const e = 1 + 0.16 * (h2 - 0.5);
+            g.moveTo(x + r * e, y);
+            g.ellipse(x, y, r * e, r / e, 0, 0, Math.PI * 2);
+        }
+        g.fill();
+    }
+    // tiny marks (specks, flecks, streaks) scattered in a region: n marks of size s0..s1 px,
+    // elongated by `stretch` along angle `ang` (radians, ± spread)
+    function marks(g, seed, pathFn, box, n, s0, s1, o = {}) {
+        const r = Motion.rng('g1mk' + seed), [x0, y0, x1, y1] = box;
+        g.save();
+        if (pathFn) { g.beginPath(); pathFn(g); g.clip(); }
+        for (let k = 0; k < n; k++) {
+            const x = x0 + (x1 - x0) * r(), y = y0 + (y1 - y0) * r(), s = s0 + (s1 - s0) * r() * r(), a = (o.ang ?? 0) + (r() - 0.5) * (o.spread ?? 6.28), st = o.stretch ?? 1;
+            g.fillStyle = T((o.v0 ?? 1) - ((o.v0 ?? 1) - (o.v1 ?? o.v0 ?? 1)) * r());
+            g.beginPath();
+            g.ellipse(x, y, s * st / 2, s / 2, a, 0, Math.PI * 2);
+            g.fill();
+        }
+        g.restore();
+    }
+    // a tone field: a grid of ink coverages measured cell by cell on the reference (mean
+    // colour of each cell solved for the inks' area coverage), read back bilinearly between
+    // the cell centres → fn(x, y) for dots()
+    function field(grid, x0 = 0, y0 = 0, x1 = 1080, y1 = 1080) {
+        const ny = grid.length, nx = grid[0].length, cw = (x1 - x0) / nx, ch = (y1 - y0) / ny;
+        return (x, y) => {
+            const fx = Math.max(0, Math.min(nx - 1, (x - x0) / cw - 0.5)), fy = Math.max(0, Math.min(ny - 1, (y - y0) / ch - 0.5));
+            const i = Math.min(nx - 2, Math.floor(fx)), j = Math.min(ny - 2, Math.floor(fy)), u = fx - i, v = fy - j;
+            return (grid[j][i] * (1 - u) + grid[j][i + 1] * u) * (1 - v) + (grid[j + 1][i] * (1 - u) + grid[j + 1][i + 1] * u) * v;
+        };
+    }
+    return { T, frame, polyPath, smoothPath, fill, stroke, taper, clipped, specks, blob, ribbon, lattice, dots, marks, hash, field };
 })();
