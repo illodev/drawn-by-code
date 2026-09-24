@@ -87,5 +87,77 @@ var G3 = (() => {
         g.arc(x2, y2, r2, base + Math.PI + be, base + Math.PI - be, true);
         g.closePath();
     };
-    return { crescent, T, path, smooth, poly, blobFill, inside, blob, leaf, taper, stroke, disc, ell, frond };
+    // ---------------------------------------------------------------- the detail pass
+    // A card authored in reference pixels (the 1080 frame) with the film's camera push: every
+    // plate scaled by 1/1.08 and zoomed by z about the frame centre (measured per drawing)
+    const ref = (press, z, fn, cx = 540, cy = 540) => {
+        press.save();
+        press.each((g) => { g.scale(1 / 1.08, 1 / 1.08); g.translate(cx, cy); g.scale(z, z); g.translate(-cx, -cy); });
+        fn();
+        press.restore();
+    };
+    // the push as a table: scale per drawing (the mid frame of each drawing, measured with a
+    // correlation of four corner patches against the base frame the card is authored on)
+    // lf (the frame inside the shot, from the scene) when given, else the drawing's mid frame;
+    // f0 = the frame (inside the shot) the card was measured on
+    const push = (rate, t, lf, f0) => 1 + rate * ((lf ?? Math.floor(t * 12 + 1e-6) * 2 + 0.5) - f0);
+    // hand-set halftone dots on a MEASURED lattice (the film's screens are not all at the
+    // press's pitch/angle: each layer of the collage has its own, very regular, lattice).
+    // L = [ax, ay, bx, by, ox, oy]: the two lattice vectors and one dot centre, in ref px.
+    // tone(x, y) → 0..1 (dot area); o.jit: size jitter per dot; o.clear: draw on a
+    // destination-out context too (the same dots cleared from another plate)
+    const lat = (g, L, tone, x0, y0, x1, y1, o = {}) => {
+        const [ax, ay, bx, by, ox, oy] = L, det = ax * by - ay * bx, A = Math.abs(det);
+        const ij = (x, y) => [((x - ox) * by - (y - oy) * bx) / det, (ax * (y - oy) - ay * (x - ox)) / det];
+        const cs = [ij(x0, y0), ij(x1, y0), ij(x0, y1), ij(x1, y1)];
+        const i0 = Math.floor(Math.min(...cs.map((c) => c[0]))) - 1, i1 = Math.ceil(Math.max(...cs.map((c) => c[0]))) + 1;
+        const j0 = Math.floor(Math.min(...cs.map((c) => c[1]))) - 1, j1 = Math.ceil(Math.max(...cs.map((c) => c[1]))) + 1;
+        const jit = o.jit ?? 0.12, p = Math.sqrt(A);
+        g.save();
+        if (o.clear) g.globalCompositeOperation = 'destination-out';
+        g.fillStyle = T(o.v ?? 1);
+        g.beginPath();
+        for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+            const x = ox + i * ax + j * bx, y = oy + i * ay + j * by;
+            if (x < x0 - p || x > x1 + p || y < y0 - p || y > y1 + p) continue;
+            let tv = tone(x, y);
+            if (!(tv > 0.01)) continue;
+            const h = Math.sin(i * 127.1 + j * 311.7) * 43758.5453, hj = h - Math.floor(h);
+            tv = Math.min(1, tv * (1 + (hj - 0.5) * 2 * jit));
+            // area = tone while the dots stay apart; past ~0.7 they merge (a larger radius
+            // so the last holes close like a real screen)
+            const r = tv < 0.7 ? Math.sqrt((tv * A) / Math.PI) : Math.sqrt((0.7 * A) / Math.PI) + (tv - 0.7) / 0.3 * (p * 0.71 - Math.sqrt((0.7 * A) / Math.PI));
+            const rr = r * (o.rk ?? 1);
+            g.moveTo(x + rr, y);
+            g.arc(x, y, rr, 0, 6.2832);
+        }
+        g.fill();
+        g.restore();
+    };
+    // a painted ribbon: a centreline (smoothed), width by a profile along it, tapered ends
+    // pts: [[x, y, w?], …] (w per point, else o.w); returns the outline as a closed polygon
+    const ribbon = (pts, o = {}) => {
+        const n = o.n ?? 40, P = pts.length;
+        const at = (u) => {
+            const k = u * (P - 1), i = Math.min(P - 2, Math.floor(k)), f = k - i;
+            const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(P - 1, i + 2)];
+            const c = (a, b, c2, d) => 0.5 * (2 * b + (-a + c2) * f + (2 * a - 5 * b + 4 * c2 - d) * f * f + (-a + 3 * b - 3 * c2 + d) * f * f * f);
+            const w1 = p1[2] ?? o.w ?? 10, w2 = p2[2] ?? o.w ?? 10;
+            return [c(p0[0], p1[0], p2[0], p3[0]), c(p0[1], p1[1], p2[1], p3[1]), w1 + (w2 - w1) * f];
+        };
+        const S = [];
+        for (let i = 0; i <= n; i++) S.push(at(i / n));
+        const L = [], R = [], t0 = o.taper ?? 0.18, sh = o.shift ?? 0;
+        for (let i = 0; i <= n; i++) {
+            const a = S[Math.max(0, i - 1)], b = S[Math.min(n, i + 1)];
+            let dx = b[0] - a[0], dy = b[1] - a[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+            const u = i / n, tap = Math.min(1, u / t0, (1 - u) / t0);
+            const hw = (S[i][2] / 2) * Math.pow(Math.max(0, tap), 0.6);
+            const c = sh * S[i][2];
+            L.push([S[i][0] - dy * (hw + c), S[i][1] + dx * (hw + c)]);
+            R.push([S[i][0] + dy * (hw - c), S[i][1] - dx * (hw - c)]);
+        }
+        return L.concat(R.reverse());
+    };
+    return { crescent, T, path, smooth, poly, blobFill, inside, blob, leaf, taper, stroke, disc, ell, frond, ref, push, lat, ribbon };
 })();

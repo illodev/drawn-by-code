@@ -1,4 +1,4 @@
-// Card «hummingbird» (reference ≈ 9.45–9.7 s, full frame at 9.55): a hummingbird hovering by
+// Card «hummingbird» (reference 9.5–9.75 s, full frame, static; re-inked at 15.75): a hummingbird hovering by
 // pink trumpet flowers among dark leaves, on a yellow ground with a green (blue-on-yellow)
 // screen. 1000 × 1000 units, measured on the 9.55 s frame. Needs _g3-util.js (G3).
 var CARDS = CARDS || {};
@@ -14,17 +14,22 @@ CARDS.hummingbird = (press, t) => {
     const knockS = (pts, v = 1) => press.knockout((g) => { g.globalAlpha = v; U.smooth(g, pts); g.fill(); });
 
     // ── ground: flat yellow, a green screen (blue dots) lighter round the bird
+    // (measured: yellow flat, clean blue dots on an 11.7 px lattice at 15°; coverage unmixed
+    // on a 90 px grid: 0.6 top left, ~0.2 round the bird, 0.45–0.65 along the bottom)
     yellow.fillStyle = T(1); yellow.fillRect(0, 0, 1000, 1000);
-    blueS.fillStyle = R.radial(blueS, 560, 540, 60, 760, 0.12, 0.58);
-    blueS.fillRect(0, 0, 1000, 1000);
+    U.ref(press, 1, () => {
+        const sm = (a, b, v) => { const k = Math.max(0, Math.min(1, (v - a) / (b - a))); return k * k * (3 - 2 * k); };
+        const gb = (x, y) => 0.24 + 0.42 * sm(560, 1080, y) + 0.4 * Math.max(0, 1 - Math.hypot(x, y) / 260) + 0.15 * sm(850, 1080, x) - 0.08 * Math.max(0, 1 - Math.hypot(x - 420, y - 280) / 260);
+        U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], gb, -20, -20, 1100, 1100, { jit: 0.15 });
+    });
 
     // ── leaves: dark ones (dense blue + red dots over yellow), pale ones (outlined, fewer dots)
     const darkLeaf = (pts, veins) => {
         press.knockout((g) => { U.smooth(g, pts); g.fill(); });
         fillS(yellow, pts, 1);
-        fillS(blueS, pts, 0.72);
-        fillS(pinkS, pts, 0.36);
-        fillS(navyS, pts, 0.12);
+        fillS(blueS, pts, 0.62);
+        fillS(pinkS, pts, 0.24);
+        fillS(navyS, pts, 0.05);
         // veins: red-orange lines (pink + yellow, the blue knocked)
         for (const v of veins) {
             blueS.save(); blueS.globalCompositeOperation = 'destination-out'; U.stroke(blueS, v, 3.2, 1, true); blueS.restore();
@@ -85,95 +90,112 @@ CARDS.hummingbird = (press, t) => {
     trumpet([[0, 666], [25, 660], [45, 690], [50, 740], [35, 780], [10, 785], [0, 760]],
         [[0, 700], [10, 700], [10, 760], [0, 760]], [24, 726, 20], [[[28, 670], [36, 775]]]);
 
-    // ── the hummingbird
-    const wob = [0, 4, -3][d % 3]; // the blurred wings flutter on twos
-    // the far wing, a blur: fanned streaks where the yellow thins to paper and blue specks fly
-    const fan = [];
-    for (let i = 0; i < 7; i++) {
-        const a0 = Math.PI - 0.06 - i * 0.07 + wob * 0.004, L = 400 - i * 12;
-        fan.push([470 + Math.cos(a0) * L, 285 + Math.sin(a0) * L * 1.1]);
-    }
-    const streak = (g, i, w) => { g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(460, 285); g.lineTo(fan[i][0], fan[i][1]); g.stroke(); };
-    for (const g of [yellow, blueS]) {
-        g.save(); g.globalCompositeOperation = 'destination-out';
-        for (let i = 0; i < 7; i++) { g.strokeStyle = T(g === yellow ? 0.24 : 0.45); streak(g, i, 30 - i * 2); }
-        g.restore();
-    }
-    const blur2 = [[398, 0], [468, 0], [478, 120], [455, 205], [415, 170]];
-    for (const g of [yellow, blueS]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = R.ramp(g, 0, 0, 0, 220, g === yellow ? 0.3 : 0.4, 0.05); U.smooth(g, blur2); g.fill(); g.restore(); }
-    const rs = Motion.rng('hb-speck' + (d % 3));
-    for (let i = 0; i < 520; i++) {
-        const k = Math.floor(rs() * 7), u = Math.pow(rs(), 0.7), sp = (rs() - 0.5) * (30 - k * 2) * u;
-        const x = 460 + (fan[k][0] - 460) * u, y = 285 + (fan[k][1] - 285) * u + sp;
-        U.disc(blue, x, y, 0.8 + rs() * 1.1, 0.75);
-    }
-    for (let i = 0; i < 110; i++) { const x = 400 + rs() * 75, y = rs() * 200; U.disc(blue, x, y, 0.8 + rs(), 0.6); }
+    // ── the hummingbird, in reference pixels (measured on 2× and 4× grid crops of f230)
+    const wob = [0, 3, -2][d % 3]; // the blurred wings flutter on twos
+    U.ref(press, 1, () => {
+        const sm = (pts) => (g) => U.smooth(g, pts);
+        const clear = (gs, shape) => { for (const g of gs) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; shape(g); g.fill(); g.restore(); } };
+        const inside = (g, shape, fn) => { g.save(); g.beginPath(); shape(g); g.clip(); fn(g); g.restore(); };
+        const L8 = [7.94, 2.06, -2.05, 7.73, 600, 300]; // a fine screen for the plumage
+        const LF = [5.6, 1.5, -1.5, 5.6, 0, 0]; // the specks' grid (motion blur)
 
-    // tail: a dark fan (navy + yellow) with pale scalloped tips
-    const tail = [[360, 490], [305, 458], [242, 454], [226, 470], [230, 520], [248, 556], [290, 580], [300, 574], [348, 512]];
-    press.knockout((g) => { U.path(g, tail); g.fill(); });
-    for (const [g, v] of [[yellow, 1], [navy, 0.85], [blue, 0.5]]) U.poly(g, tail, v);
-    // feather splits: thin yellow lines fanning from the rump
-    for (const [x, y] of [[235, 490], [236, 520], [250, 546], [272, 562]]) { for (const g of [navy, blue]) { g.save(); g.globalCompositeOperation = 'destination-out'; U.stroke(g, [[350, 500], [x, y]], 2, 1); g.restore(); } }
-    for (const [x, y, a] of [[240, 478, 3.6], [232, 505, 3.2], [240, 532, 2.8], [258, 553, 2.4], [282, 562, 2]]) {
-        press.knockout((g) => { g.lineWidth = 3.5; g.beginPath(); g.arc(x + 8, y, 10, a - 0.9, a + 0.9); g.stroke(); });
-        pink.save(); pink.lineWidth = 2.5; pink.strokeStyle = T(0.8); pink.beginPath(); pink.arc(x + 5, y, 12, a - 0.9, a + 0.9); pink.stroke(); pink.restore();
-    }
-    // body: a green ellipse (dense blue screen on yellow), navy screen shading below
-    const body = U.blob(448, 380, 156, 70, 'hb-body', 0.02, 16, -0.74);
-    press.knockout((g) => { U.smooth(g, body); g.fill(); });
-    fillS(yellow, body, 1);
-    fillS(blueS, body, 0.86);
-    blueS.save(); U.smooth(blueS, body); blueS.clip(); blueS.fillStyle = T(0.4); blueS.fillRect(0, 0, 1000, 1000); blueS.restore();
-    navyS.save(); U.smooth(navyS, body); navyS.clip(); navyS.fillStyle = R.ramp(navyS, 470, 300, 380, 470, 0, 0.25); navyS.fillRect(0, 0, 1000, 1000); navyS.restore();
-    // feather scales: little yellow arcs
-    for (const [x, y] of [[380, 360], [420, 330], [455, 305], [400, 405], [360, 420], [440, 360], [500, 320], [350, 455]]) {
-        blueS.save(); blueS.globalCompositeOperation = 'destination-out'; blueS.lineWidth = 2.6; blueS.beginPath(); blueS.arc(x, y - 8, 11, 0.6, 2.4); blueS.stroke(); blueS.restore();
-        blue.save(); blue.globalCompositeOperation = 'destination-out'; blue.lineWidth = 2.6; blue.beginPath(); blue.arc(x, y - 8, 11, 0.6, 2.4); blue.stroke(); blue.restore();
-    }
-    // the pale belly
-    // (the body below a line from the rump to the throat, running on under the gorget)
-    const belly = [[352, 470], [470, 398], [612, 306], [660, 350], [600, 420], [520, 480], [430, 525], [370, 530]];
-    press.save(); press.clip((g) => { U.smooth(g, body, true, false); U.smooth(g, [[560, 330], [612, 318], [615, 345], [575, 380]], true, false); });
-    press.knockout((g) => { U.path(g, belly); g.fill(); });
-    pinkS.fillStyle = T(0.14); U.path(pinkS, belly); pinkS.fill();
-    press.restore();
-    fillS(blueS, [[520, 395], [590, 342], [575, 375], [530, 410]], 0.2);
-    // the near wing: blue-violet (flat blue + navy screen), pink feather lines
-    const wing = [[100, 10], [170, 36], [236, 66], [252, 70], [330, 96], [420, 150], [482, 212], [500, 250], [478, 276], [440, 282], [380, 232], [320, 176], [266, 120], [246, 96], [228, 88], [160, 52], [102, 28]];
-    press.knockout((g) => { U.smooth(g, wing); g.fill(); });
-    fillS(blueS, wing, 0.9);
-    fillS(blue, wing, 0.5);
-    fillS(navyS, wing, 0.2);
-    fillS(pinkS, wing, 0.28);
-    for (let i = 0; i < 6; i++) {
-        const k = i / 6;
-        U.stroke(pink, [[130 + k * 20, 22 + k * 10], [300 + k * 20, 130 + k * 25], [440 + k * 30, 215 + k * 25]], 1.3, 0.55, true);
-    }
-    press.knockout((g) => { g.lineWidth = 2; g.beginPath(); g.moveTo(140, 25); g.quadraticCurveTo(300, 110, 470, 230); g.stroke(); });
-    // head: a green ball, darker at the back
-    const head = U.blob(592, 222, 84, 80, 'hb-head', 0.03, 14);
-    press.knockout((g) => { U.smooth(g, head); g.fill(); });
-    fillS(yellow, head, 1);
-    fillS(blueS, head, 0.7);
-    blue.save(); U.smooth(blue, head); blue.clip(); blue.fillStyle = R.radial(blue, 560, 190, 20, 120, 0.1, 0.6); blue.fillRect(400, 100, 400, 250); blue.restore();
-    navyS.save(); U.smooth(navyS, head); navyS.clip(); navyS.fillStyle = R.ramp(navyS, 600, 190, 660, 300, 0, 0.4); navyS.fillRect(500, 130, 200, 200); navyS.restore();
-    // head highlight: a yellow crescent (blue knocked)
-    for (const g of [blue, blueS, navyS]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.lineWidth = 7; g.lineCap = 'round'; g.beginPath(); g.arc(578, 222, 60, 3.35, 4.3); g.stroke(); g.restore(); }
-    // the eye: dark brown (navy + pink + yellow), a paper glint below-left
-    U.disc(navy, 598, 188, 12, 0.95); U.disc(pink, 598, 188, 12, 0.7);
-    press.knockout((g) => { g.beginPath(); g.arc(562, 221, 5.5, 0, 7); g.fill(); });
-    press.knockout((g) => { g.beginPath(); g.arc(594, 184, 3, 0, 7); g.fill(); });
-    // the beak: a long dark line to the top-right flower
-    for (const [g, v] of [[navy, 0.75], [pink, 0.9], [yellow, 1]]) U.stroke(g, [[652, 166], [860, 14]], 7, v);
-    press.knockout((g) => { g.lineWidth = 1.4; g.beginPath(); g.moveTo(665, 154); g.lineTo(850, 20); g.stroke(); });
-    // the gorget: red-orange (pink + yellow), yellow striations, a dark rim
-    const gorget = [[560, 330], [585, 300], [630, 268], [680, 238], [697, 262], [688, 300], [650, 330], [600, 345]];
-    press.knockout((g) => { U.smooth(g, gorget); g.fill(); });
-    fillS(yellow, gorget, 1); fillS(pink, gorget, 0.95);
-    for (let i = 0; i < 4; i++) {
-        const o = i * 11;
-        pink.save(); pink.globalCompositeOperation = 'destination-out'; U.stroke(pink, [[590 + o * 0.3, 330 - o], [640, 300 - o * 0.9], [684, 262 - o * 0.4]], 1.8, 1, true); pink.restore();
-    }
-    navy.save(); navy.lineWidth = 2.5; navy.strokeStyle = T(0.6); U.smooth(navy, gorget); navy.stroke(); navy.restore();
+        // the far wing, a motion blur: a paper wedge (yellow and the ground dots thinned)
+        // speckled with blue and pink, fanning left from the shoulder; a second beat upward
+        const ghost = [[495, 330], [460, 300 + wob], [400, 260 + wob], [320, 225 + wob], [230, 205 + wob], [150, 200], [120, 260], [140, 360], [150, 470], [250, 440], [350, 400], [430, 370]];
+        const ghost2 = [[520, 262], [470, 200], [440, 120], [425, 40], [420, -5], [515, -5], [520, 60], [528, 150], [540, 240]];
+        for (const [gh, k] of [[ghost, 0.62], [ghost2, 0.45]]) {
+            for (const g of [yellow, blue, blueS]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(g === yellow ? k : 0.6); U.smooth(g, gh); g.fill(); g.restore(); }
+            const rs = Motion.rng('hbg' + k + (d % 3));
+            inside(blue, sm(gh), (g) => U.lat(g, LF, () => 0.22 * (0.5 + rs()), 200, -10, 560, 380, { jit: 0.9 }));
+            inside(pink, sm(gh), (g) => U.lat(g, [LF[0], LF[1], LF[2], LF[3], 2.8, 2.8], () => (rs() < 0.35 ? 0.2 : 0), 200, -10, 560, 380, { jit: 0.5 }));
+        }
+
+        // the tail: a dark fan (navy + yellow + blue) with a red rim on top and left, feather
+        // splits and white-pink crescents on the stepped tips
+        const TAIL = [[257, 494], [345, 490], [388, 528], [318, 614], [300, 612], [263, 602], [243, 582], [236, 550], [248, 522]];
+        press.knockout((g) => { U.path(g, TAIL); g.fill(); });
+        // the red rim (misregistered under the fan)
+        const rim = TAIL.map(([x, y]) => [x - 4, y - 4]);
+        U.poly(pink, rim, 1); U.poly(yellow, rim, 1);
+        clear([pink], (g) => U.path(g, TAIL));
+        for (const [g, v] of [[yellow, 1], [navy, 0.92], [blue, 0.6]]) U.poly(g, TAIL, v);
+        // streaks along the feathers (fine yellow-green lines fanning from the rump)
+        for (let i = 0; i < 9; i++) {
+            const a = 2.2 + i * 0.12, x0 = 372, y0 = 528;
+            for (const g of [navy]) { g.save(); g.globalCompositeOperation = 'destination-out'; U.stroke(g, [[x0 - 12, y0 - 4], [x0 + Math.cos(a) * 150, y0 + Math.sin(a) * 110]], 1.6, 0.6); g.restore(); }
+        }
+        for (const [x, y, a] of [[272, 515, 3.5], [262, 545, 3.3], [264, 572, 2.9], [282, 590, 2.5], [303, 603, 2.2]]) {
+            const arc = [];
+            for (let k = 0; k <= 6; k++) { const b = a - 0.8 + k * 0.27; arc.push([x + 10 + Math.cos(b) * 12, y + Math.sin(b) * 12, 4.2 * Math.sin((k / 6) * Math.PI) + 0.5]); }
+            press.knockout((g) => { U.path(g, U.ribbon(arc, { taper: 0.25 })); g.fill(); });
+            U.poly(pink, U.ribbon(arc.map(([px, py, w]) => [px + 2, py + 1, w * 0.55]), { taper: 0.3 }), 0.7);
+        }
+
+        // the body: green (yellow + blue flat), a fine navy screen shading its back
+        const BODY = [[560, 296], [522, 296], [470, 318], [420, 358], [378, 410], [354, 462], [350, 505], [362, 532], [395, 532], [440, 506], [520, 452], [600, 400], [640, 372], [600, 330]];
+        press.knockout((g) => { U.smooth(g, BODY); g.fill(); });
+        fillS(yellow, BODY, 1);
+        inside(blue, sm(BODY), (g) => U.lat(g, [8.7, 2.3, -2.3, 8.7, 500, 400], () => 0.72, 340, 290, 650, 540, { jit: 0.25 }));
+        inside(navy, sm(BODY), (g) => U.lat(g, L8, (x, y) => Math.max(0, Math.min(0.12, (520 - x) * 0.0006)), 340, 290, 650, 540, { jit: 0.2 }));
+        // feather scales: small yellow arcs (the blue and navy cleared)
+        for (const [x, y] of [[410, 395], [445, 360], [482, 335], [520, 318], [395, 440], [430, 420], [468, 392], [505, 370], [380, 480], [415, 462], [455, 440], [540, 350]]) {
+            for (const g of [blue, navy]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.lineWidth = 2.4; g.lineCap = 'round'; g.beginPath(); g.arc(x, y - 7, 9, 0.5, 2.5); g.stroke(); g.restore(); }
+        }
+        // the belly: paper with pink and a few blue dots, a lens under the body
+        const BELLY = [[398, 532], [402, 506], [470, 462], [548, 412], [612, 378], [640, 374], [636, 398], [575, 446], [495, 500], [430, 530]];
+        press.knockout((g) => { U.smooth(g, BELLY); g.fill(); });
+        inside(pink, sm(BELLY), (g) => U.lat(g, [6.3, 1.7, -1.7, 6.3, 500, 460], () => 0.13, 390, 360, 650, 540, { jit: 0.4 }));
+        inside(blue, sm(BELLY), (g) => U.lat(g, [9.1, 2.4, -2.4, 9.1, 503, 463], (x, y) => (y > 480 ? 0.1 : 0.05), 390, 360, 650, 540, { jit: 0.6 }));
+        // the feet: a thin green line under the belly
+        U.stroke(blue, [[392, 532], [420, 536], [446, 534]], 2.4, 0.9); U.stroke(yellow, [[392, 532], [446, 534]], 2.4, 1);
+
+        // the near wing: a long blade, blue flat with a navy screen, a dark top edge, pink
+        // feather lines and two paper streaks along it; paler to the tip
+        const WING = [[150, 28], [200, 60], [250, 75], [300, 84], [350, 97], [400, 118], [450, 152], [495, 200], [532, 246], [536, 262], [480, 316], [430, 280], [350, 206], [300, 165], [250, 122], [200, 84], [165, 52]];
+        press.knockout((g) => { U.smooth(g, WING); g.fill(); });
+        fillS(blue, WING, 0.92);
+        inside(navy, sm(WING), (g) => U.lat(g, L8, (x) => Math.max(0, 0.08 + (x - 230) * 0.0011), 210, 50, 550, 330, { jit: 0.25 }));
+        inside(pink, sm(WING), (g) => U.lat(g, [6.3, 1.7, -1.7, 6.3, 300, 100], (x) => 0.12 + 0.1 * Math.max(0, (330 - x) / 110), 210, 50, 550, 330, { jit: 0.4 }));
+        // feather lines: fanning from the base toward the tip
+        inside(pink, sm(WING), (g) => {
+            for (let i = 0; i < 7; i++) { const k = i / 6; U.stroke(g, [[160 + k * 20, 36 + k * 20], [330 + k * 10, 110 + k * 70], [500 - k * 10, 230 + k * 70]], 1.5, 0.75, true); }
+        });
+        press.save(); press.clip(sm(WING));
+        press.knockout((g) => { g.lineWidth = 2.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(165, 40); g.quadraticCurveTo(340, 130, 500, 262); g.stroke(); g.lineWidth = 1.6; g.beginPath(); g.moveTo(190, 62); g.quadraticCurveTo(320, 160, 440, 262); g.stroke(); });
+        press.restore();
+        U.stroke(navy, [[152, 30], [250, 76], [350, 97], [450, 152], [495, 200], [532, 246]], 3.2, 0.9, true);
+
+        // the head: a green ball, solid on the crown, a fine screen (yellow showing) on the
+        // cheek lower right
+        const HEAD = U.blob(636, 234, 91, 86, 'hb-head2', 0.015, 16);
+        press.knockout((g) => { U.smooth(g, HEAD); g.fill(); });
+        fillS(yellow, HEAD, 1);
+        inside(blue, sm(HEAD), (g) => { g.save(); g.beginPath(); g.ellipse(612, 212, 86, 78, -0.5, 0, 7); g.clip(); U.lat(g, [6.4, 1.7, -1.7, 6.4, 612, 212], () => 0.9, 520, 130, 720, 300, { jit: 0.2 }); g.restore(); U.lat(g, [7.2, 1.9, -1.9, 7.2, 640, 240], (x, y) => 0.62, 540, 140, 740, 330, { jit: 0.2 }); });
+        inside(navy, sm(HEAD), (g) => U.lat(g, L8, (x, y) => Math.max(0, Math.min(0.08, (x + y - 900) * 0.001)), 540, 140, 740, 330, { jit: 0.2 }));
+        // the crown's highlight: a tapered yellow crescent (blue and navy cleared)
+        const cres = U.ribbon([[564, 250, 3], [565, 214, 8], [582, 188, 9], [607, 173, 8], [634, 168, 3]], { taper: 0.3 });
+        clear([blue, navy], (g) => U.path(g, cres));
+        // the eye: dark red-brown (navy + pink + yellow), a pink-white glint; a paper dot on
+        // the cheek
+        for (const [g, v] of [[navy, 0.95], [pink, 0.75], [blue, 0]]) { if (v) U.disc(g, 646, 206, 14, v); else clear([g], (c) => { c.beginPath(); c.arc(646, 206, 14, 0, 7); }); }
+        press.knockout((g) => { g.beginPath(); g.arc(655, 203, 4.2, 0, 7); g.fill(); g.beginPath(); g.arc(607, 239, 6.5, 0, 7); g.fill(); });
+        U.disc(pink, 653, 201, 2.2, 0.8);
+        // the beak: a long dark line (navy + yellow + blue) to the flower, red along its top
+        const BEAK = [[690, 180, 10], [760, 130, 8], [860, 58, 6], [955, 5, 4]];
+        const bk = U.ribbon(BEAK, { taper: 0.04 });
+        press.knockout((g) => { U.path(g, bk); g.fill(); });
+        for (const [g, v] of [[navy, 0.95], [yellow, 1], [blue, 0.6]]) U.poly(g, bk, v);
+        const bkr = U.ribbon(BEAK.map(([x, y, w]) => [x - 2.5, y - 3.5, w * 0.4]), { taper: 0.04 });
+        clear([navy, blue], (g) => U.path(g, bkr)); U.poly(pink, bkr, 1);
+        // the gorget: iridescent red-orange (pink + yellow), three curved yellow bars, a dark
+        // edge under the chin
+        const GOR = [[602, 350], [620, 320], [660, 290], [700, 265], [740, 252], [752, 272], [745, 302], [715, 332], [670, 357], [640, 372], [612, 373]];
+        press.knockout((g) => { U.smooth(g, GOR); g.fill(); });
+        fillS(yellow, GOR, 1); fillS(pink, GOR, 0.96);
+        inside(pink, sm(GOR), (g) => {
+            g.globalCompositeOperation = 'destination-out';
+            for (let i = 0; i < 3; i++) { const o = i * 13; U.stroke(g, [[626 + o * 0.6, 356 - o * 0.2], [680 + o * 0.3, 320 - o * 0.7], [742 - o * 0.2, 272 - o * 0.4]], 3.2 - i * 0.5, 1, true); }
+        });
+                U.stroke(navy, [[606, 344], [625, 318], [662, 290], [705, 264], [740, 250]], 2.5, 0.55, true);
+    });
 };

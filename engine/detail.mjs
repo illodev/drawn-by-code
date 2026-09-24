@@ -10,10 +10,11 @@
 //   texture  high-frequency energy (the image minus its blur: grain, dots, noise, fine
 //            lines) of ours ÷ the reference's: < 1 = ours is smoother, too clean, missing
 //            detail; > 1 = noisier or busier
-// A tile is flagged when colour > 45 or texture is outside 0.6–1.6. The gate (exit code 0)
+// A tile is flagged when colour > 35 or texture is outside 0.6–1.6. The gate (exit code 0)
 // is calibrated on the replica the user approved («I have to zoom in to see differences»:
-// what-do-you-love, colour median 9.5, p90 32, texture p5 0.72):
-//   colour median ≤ 12 · colour p90 ≤ 35 · tiles too clean ≤ 6 % · tiles too busy ≤ 12 %
+// what-do-you-love, colour median 6.5, p90 24.3 at the 12 px colour scale; texture p5 0.72):
+//   colour median ≤ 8 · colour p90 ≤ 27 · tiles too clean ≤ 6 % · tiles too busy ≤ 12 %
+// (a halftone reference against itself shifted half a dot: median 3.4, p90 5.2: passes)
 // Output: <out>/detail.md (the verdict, then the flagged tiles), tiles.json, and one image
 // per instant (reference | ours, flagged tiles boxed: red = colour, yellow = texture).
 import fs from 'node:fs';
@@ -55,7 +56,11 @@ function blur(src, r) {
 }
 const chan = (img, c) => { const g = new Float32Array(W * H); for (let i = 0; i < W * H; i++) g[i] = img[i * 3 + c]; return g; };
 const lum = (img) => { const g = new Float32Array(W * H); for (let i = 0; i < W * H; i++) g[i] = 0.3 * img[i * 3] + 0.59 * img[i * 3 + 1] + 0.11 * img[i * 3 + 2]; return g; };
-const R = Math.max(2, Math.round(W / 270)); // blur radius ≈ 4 px at 1080: the scale of a halftone dot
+const R = Math.max(2, Math.round(W / 270)); // texture: blur radius ≈ 4 px at 1080, the scale of a halftone dot
+// colour: compared at a coarser scale (--colour-blur, default ≈ 12 px at 1080, over a halftone
+// pitch) so a screen's dot phase doesn't count as a wrong colour: the reference against
+// itself shifted half a dot (5 px) scored median 12.9 at 4 px, 3.4 at 12 px
+const RC = Math.max(R, Math.round(W / (+opt('colour-blur-div', 90))));
 const rows = [], boxes = {}, all = [];
 let flagged = 0;
 for (const t of times) {
@@ -63,7 +68,7 @@ for (const t of times) {
     const f = ours.find((n) => n === `t_${tt.toFixed(2)}s.png`);
     if (!f) continue;
     const A = raw(ref, Math.max(0, tt - 0.004)), B = raw(path.join(tmp, f)); // −4 ms: -ss rounding can land on the next frame
-    const bl = (img) => [0, 1, 2].map((c) => blur(chan(img, c), R));
+    const bl = (img) => [0, 1, 2].map((c) => blur(chan(img, c), RC));
     const [Ab, Bb] = [bl(A), bl(B)];
     const [Al, Bl] = [lum(A), lum(B)], [Alb, Blb] = [blur(Al, R), blur(Bl, R)];
     const tw = W / grid, th = H / grid;
@@ -81,7 +86,7 @@ for (const t of times) {
         const tex = (eb + 0.5) / (ea + 0.5);
         all.push({ t: tt, gx, gy, colour: +dc.toFixed(1), texture: +tex.toFixed(2), refEnergy: +ea.toFixed(1) });
         const bad = [];
-        if (dc > 45) bad.push('colour');
+        if (dc > 35) bad.push('colour');
         if (ea > 1.5 && (tex < 0.6 || tex > 1.6)) bad.push(tex < 0.6 ? 'too clean' : 'too busy');
         if (bad.length) {
             flagged++;
@@ -97,9 +102,9 @@ fs.rmSync(tmp, { recursive: true, force: true });
 const q = (v, p) => v.length ? v[Math.floor(p * (v.length - 1))] : 0;
 const cs = all.map((a) => a.colour).sort((a, b) => a - b), tx = all.filter((a) => a.refEnergy > 1.5).map((a) => a.texture);
 const clean = tx.filter((v) => v < 0.6).length / Math.max(1, tx.length), busy = tx.filter((v) => v > 1.6).length / Math.max(1, tx.length);
-const checks = [['colour median', q(cs, 0.5), 12], ['colour p90', q(cs, 0.9), 35], ['tiles too clean (%)', clean * 100, 6], ['tiles too busy (%)', busy * 100, 12]];
+const checks = [['colour median', q(cs, 0.5), 8], ['colour p90', q(cs, 0.9), 27], ['tiles too clean (%)', clean * 100, 6], ['tiles too busy (%)', busy * 100, 12]];
 const pass = checks.every(([, v, lim]) => v <= lim);
-const md = `# Detail gate · ${path.basename(path.dirname(scene))}: ${pass ? 'PASS' : 'FAIL'}\n\n${times.length} instants, ${grid}×${grid} tiles.\n\n| check | value | limit |\n|---|---|---|\n${checks.map(([n, v, l]) => `| ${n} | ${v.toFixed(1)} | ≤ ${l} ${v <= l ? '✓' : '✗'} |`).join('\n')}\n\nFlagged tiles: **${flagged}** (colour > 45, or texture outside 0.6–1.6 of the reference).\n\n| t | tile x,y | colour | texture (ours ÷ ref) | why |\n|---|---|---|---|---|\n${rows.join('\n')}\n`;
+const md = `# Detail gate · ${path.basename(path.dirname(scene))}: ${pass ? 'PASS' : 'FAIL'}\n\n${times.length} instants, ${grid}×${grid} tiles.\n\n| check | value | limit |\n|---|---|---|\n${checks.map(([n, v, l]) => `| ${n} | ${v.toFixed(1)} | ≤ ${l} ${v <= l ? '✓' : '✗'} |`).join('\n')}\n\nFlagged tiles: **${flagged}** (colour > 35, or texture outside 0.6–1.6 of the reference).\n\n| t | tile x,y | colour | texture (ours ÷ ref) | why |\n|---|---|---|---|---|\n${rows.join('\n')}\n`;
 fs.writeFileSync(path.join(out, 'detail.md'), md);
 fs.writeFileSync(path.join(out, 'tiles.json'), JSON.stringify(all));
 console.log(md.split('\n').slice(0, 11).join('\n'));
