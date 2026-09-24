@@ -1,6 +1,8 @@
 # drawn-by-code
 
-![saas-promo](sandbox/2026-09-24-saas-promo/render/strip.jpg)
+![drawn by code](sandbox/2026-09-24-readme-cover/render/cover.gif)
+
+<sub>This cover is itself drawn by the repo: the paper kit tears the tiles and the hand, and each polaroid is painted live by its own style's kit ([readme-cover](sandbox/2026-09-24-readme-cover/)).</sub>
 
 Animations and videos made **with code** by Claude. JavaScript paints every frame on a
 `<canvas>` (2D, or 3D through WebGL2), deterministically. Chromium and ffmpeg render the
@@ -52,6 +54,7 @@ how you made it too.
 ## Gallery
 
 **[saas-promo](sandbox/2026-09-24-saas-promo/)** · paper cutout · 50 s · [mp4](sandbox/2026-09-24-saas-promo/render/saas-promo.mp4)
+![saas-promo](sandbox/2026-09-24-saas-promo/render/strip.jpg)
 A marketing video for an invoicing product. A desk buried in paperwork is cleared block by
 block: invoices, expenses, collections, taxes, business, compliance. Built by parallel
 agents on one brief, with music and sound effects.

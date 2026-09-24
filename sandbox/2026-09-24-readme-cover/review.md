@@ -1,0 +1,14 @@
+# Reviews · readme-cover
+
+## Round 1 (auto, by eye)
+
+- The first paper card was the template's blob on purple: nearly empty at polaroid size.
+  Now a lined sheet with a handwritten title, a paper sun and a waving hand.
+- The hand holding the last tile first came in from below with its sleeve running down
+  over the cards: the forearm now goes up to the top right, fingers behind the tile,
+  thumb in front ('hold', side right).
+- The line card was bare: a sun with rays, a cloud, grass and a balloon.
+- «skill it» ran together in the hand font: the subtitle says «lesson» instead.
+- Each style's kit paints into its own offscreen canvas with a small env ({W, H, k, px}):
+  every kit worked unchanged at polaroid size, the clay3d renderer included.
+- `review.mjs`: no warnings.
