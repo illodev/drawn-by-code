@@ -18,11 +18,11 @@ const Laura = (() => {
 
     // [shoulder, elbow, hand] per arm with the desk edge at y = 0
     const ARMS = {
-        desk: [[[-118, -250], [-190, -86], [-80, -30]], [[118, -250], [190, -86], [80, -30]]],
+        desk: [[[-118, -250], [-190, -86], [-86, -70]], [[118, -250], [190, -86], [86, -70]]],
         cheer: [[[-118, -250], [-190, -86], [-80, -30]], [[118, -250], [236, -170], [214, -330]]],
         point: [[[-118, -250], [-190, -86], [-80, -30]], [[118, -250], [220, -120], [300, -180]]],
     };
-    const HANDS = { desk: ['fist', 'fist'], cheer: ['fist', 'fist'], point: ['fist', 'point'] };
+    const HANDS = { desk: ['rest', 'rest'], cheer: ['rest', 'fist'], point: ['rest', 'point'] };
 
     function segment(g, a, b, w, seed) {
         const key = 'laura-seg:' + seed + [a, b].map(([x, y]) => Math.round(x / 2) + ',' + Math.round(y / 2)).join(';');
