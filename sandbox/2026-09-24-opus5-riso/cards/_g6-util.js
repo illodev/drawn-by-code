@@ -145,5 +145,31 @@ var G6 = (() => {
         g.fill();
         g.restore();
     };
-    return { T, path, poly, smooth, blob, clipped, stroke, ridge, under, speckle, pine, masked, dots, lattice };
+    // a hand-cut foliage outline: an ellipse (cx, cy, rx, ry) whose rim is a run of small
+    // scallops (n bumps, amp deep) with a seeded wobble; returns closed [[x, y]…]
+    const scallop = (cx, cy, rx, ry, n, amp, seed, rot = 0) => {
+        const r = Motion.rng('g6sc' + seed), out = [], ph = r() * 6.28, M = n * 6;
+        const bump = []; for (let i = 0; i < n; i++) bump.push(0.6 + 0.8 * r());
+        for (let i = 0; i < M; i++) {
+            const a = (i / M) * 6.2832 + ph, k = Math.floor(i / 6), f = (i % 6) / 6;
+            const s = Math.sin(f * Math.PI) * bump[k] * amp + (r() - 0.5) * amp * 0.25;
+            const x = Math.cos(a) * (rx + s), y = Math.sin(a) * (ry + s * ry / rx);
+            out.push([cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)]);
+        }
+        return out;
+    };
+    // a swallow seen from below at (x, y), span s, heading a (radians), wing beat w (-1 up … 1 down):
+    // swept wings, a slim body and a forked tail, one closed polygon
+    const swallow = (x, y, s, a, w) => {
+        const pts = [[0.55, 0], [0.3, -0.07], [0.05, -0.1], [-0.2 + 0.05 * w, -0.5 - 0.1 * w], [-0.42, -0.62 - 0.12 * w], [-0.12, -0.12], [-0.35, -0.08], [-0.75, -0.2], [-0.5, 0], [-0.75, 0.2], [-0.35, 0.08], [-0.12, 0.12], [-0.42, 0.62 + 0.12 * w], [-0.2 + 0.05 * w, 0.5 + 0.1 * w], [0.05, 0.1], [0.3, 0.07]];
+        const c = Math.cos(a), si = Math.sin(a);
+        return pts.map(([u, v]) => [x + (u * c - v * si) * s, y + (u * si + v * c) * s]);
+    };
+    // a tapered brush blade from (x0, y0) to (x1, y1) bending by `bend`, base width w
+    const blade = (x0, y0, x1, y1, w, bend = 0) => {
+        const L = [], R = [], dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+        for (let i = 0; i <= 8; i++) { const f = i / 8, b = bend * Math.sin(f * Math.PI * 0.5) * f, x = x0 + dx * f + nx * b, y = y0 + dy * f + ny * b, hw = (w / 2) * (1 - f) ** 0.8; L.push([x + nx * hw, y + ny * hw]); R.unshift([x - nx * hw, y - ny * hw]); }
+        return [...L, ...R];
+    };
+    return { T, path, poly, smooth, blob, clipped, stroke, ridge, under, speckle, pine, masked, dots, lattice, scallop, swallow, blade };
 })();

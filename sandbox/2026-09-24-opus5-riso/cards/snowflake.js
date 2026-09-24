@@ -23,6 +23,9 @@ CARDS.snowflake = (press, t) => {
     pink.fillStyle = vr(pink, [[0, 0], [380, 0], [460, 0.9], [520, 0.95], [1080, 0.95]]); pink.fillRect(0, 0, 1000, 1000);
     U.lattice(yellow, LS, (m) => { m.fillStyle = vr(m, [[0, 0], [740, 0], [810, 0.22], [900, 0.48], [1080, 0.65]]); m.fillRect(-20, -20, 1040, 1040); });
 
+    // the upper sky is cloudy: soft darker navy mottling and a lighter purple drift (measured
+    // at 2×: blotches 80–200 units across)
+    { const rc = Motion.rng('snowcl'); for (let i = 0; i < 16; i++) { const x = rc() * 1000, y = rc() * 450, r = 60 + rc() * 110; navy.fillStyle = Riso.radial(navy, x, y, 0, r, 0.18 + 0.2 * rc(), 0); navy.beginPath(); navy.arc(x, y, r, 0, 7); navy.fill(); } }
     // dark navy blobs (shadows of the ghost flakes) top right
     navy.fillStyle = T(0.95);
     for (const b of [[[800, 0], [900, 30], [880, 120], [790, 150], [740, 90]], [[840, 170], [920, 190], [940, 300], [880, 330], [830, 260]], [[640, 60], [720, 40], [770, 140], [690, 200], [630, 150]], [[900, 60], [990, 40], [1000, 150], [950, 180]]]) { U.smooth(navy, b); navy.fill(); }
@@ -45,7 +48,7 @@ CARDS.snowflake = (press, t) => {
         ghost(g, 905, 190, 300, 0.38, 46 * w, 'a');
         ghost(g, 70, 900, 300, -1.57, 48 * w, 'b');
         g.fillStyle = T(v);
-        for (const [x, y, rx, ry] of [[285, 505, 55, 42], [72, 640, 42, 62], [850, 650, 40, 28], [320, 775, 82, 62], [790, 925, 55, 40]]) { g.beginPath(); g.ellipse(x, y, rx, ry, 0.3, 0, 7); g.fill(); }
+        for (const [x, y, rx, ry] of [[285, 505, 55, 42], [72, 640, 42, 62], [850, 650, 40, 28], [320, 775, 82, 62]]) { g.beginPath(); g.ellipse(x, y, rx, ry, 0.3, 0, 7); g.fill(); }
     };
     // (the navy lifts a little so the gaps between the coarse pink dots read violet)
     // coarse dots, bigger than the press screen (the ghost is out of focus); under each dot
@@ -61,7 +64,9 @@ CARDS.snowflake = (press, t) => {
     press.knockout((g) => { for (let i = 0; i < 7; i++) U.stroke(g, [[285 + i * 4, 770 + i * 5], [370 - i * 3, 755 + i * 7]], 1.3); });
 
     // stars: white specks knocked out, pink asterisks, a few yellow specks low
-    press.knockout((g) => U.speckle(g, [0, 0, 1000, 1000], 110, 0.8, 2.6, 'snowst'));
+    press.knockout((g) => U.speckle(g, [0, 0, 1000, 1000], 220, 0.6, 2.2, 'snowst'));
+    U.speckle(pink, [0, 0, 1000, 600], 70, 0.8, 2.2, 'snowps');
+    { const bs = press.plate('blue'); press.knockout((g) => U.speckle(g, [0, 0, 1000, 500], 40, 0.8, 1.8, 'snowbs')); }
     const aster = (g, x, y, r, w) => { for (let k = 0; k < 3; k++) { const a = (k * Math.PI) / 3 + 0.2; U.stroke(g, [[x - Math.cos(a) * r, y - Math.sin(a) * r], [x + Math.cos(a) * r, y + Math.sin(a) * r]], w); } };
     for (const [x, y, r] of [[553, 162, 13], [615, 97, 9], [685, 90, 11], [460, 320, 9], [815, 330, 10], [885, 535, 12], [640, 18, 8], [995, 200, 10]]) aster(pink, x, y, r, 2.4);
     press.knockout((g) => { for (const [x, y, r] of [[73, 707, 12], [68, 815, 11], [645, 45, 9], [985, 205, 11], [663, 18, 7], [230, 20, 6]]) aster(g, x, y, r, 2.2); });
@@ -72,35 +77,28 @@ CARDS.snowflake = (press, t) => {
     const ends = [[856, 419], [662, 639], [380, 579], [278, 347], [430, 130], [731, 171]];
     const arms = ends.map(([x, y]) => { const dx = x - C[0], dy = y - C[1], L = Math.hypot(dx, dy); return { a: Math.atan2(dy, dx), L }; });
     const at = (a, L, f) => [C[0] + Math.cos(a) * L * f, C[1] + Math.sin(a) * L * f];
-    const flake = [];
+    // (measured at 2×: each arm is a tapered blade, ~20 units wide at the hexagon, 6 at the
+    // tip, ending in a V fork; the side branches are plumes: thick at the base, tapering,
+    // leaning outwards, the longest at mid-arm, each with one or two short twigs; a blue
+    // shadow edge down one side of every piece)
+    const fl = new Path2D();
+    const addBlade = (x0, y0, x1, y1, w, bend) => { const q = U.blade(x0, y0, x1, y1, w, bend); q.forEach(([x, y], i) => (i ? fl.lineTo(x, y) : fl.moveTo(x, y))); fl.closePath(); };
     arms.forEach(({ a, L }, k) => {
-        const r = Motion.rng('arm' + k);
-        flake.push({ pts: [at(a, L, 0.12), at(a, L, 1)], w: 15 });
-        // tip fork
-        const tip = at(a, L, 0.97);
-        for (const s of [-1, 1]) flake.push({ pts: [tip, [tip[0] + Math.cos(a + s * 0.75) * 22, tip[1] + Math.sin(a + s * 0.75) * 22]], w: 5 });
-        // side branches, pairs at ±57°, longest in the middle; each with small twigs
-        for (const [f, bl] of [[0.36, 0.23], [0.52, 0.3], [0.68, 0.24], [0.83, 0.13]]) {
-            const b0 = at(a, L, f);
-            for (const s of [-1, 1]) {
-                const ba = a + s * 1.0, len = L * bl * (0.85 + 0.3 * r());
-                const b1 = [b0[0] + Math.cos(ba) * len, b0[1] + Math.sin(ba) * len];
-                flake.push({ pts: [b0, b1], w: 10 });
-                for (const g of bl > 0.2 ? [0.5] : []) {
-                    const q = [b0[0] + Math.cos(ba) * len * g, b0[1] + Math.sin(ba) * len * g], tl = len * 0.3;
-                    for (const s2 of [-1, 1]) flake.push({ pts: [q, [q[0] + Math.cos(ba + s2 * 0.85) * tl, q[1] + Math.sin(ba + s2 * 0.85) * tl]], w: 7 });
-                }
-            }
+        const r = Motion.rng('arm' + k), [sx, sy] = at(a, L, 0.1), [ex, ey] = at(a, L, 1);
+        addBlade(sx, sy, ex, ey, 17, 0);
+        const tip = at(a, L, 0.95);
+        for (const sg of [-1, 1]) addBlade(tip[0], tip[1], tip[0] + Math.cos(a + sg * 0.7) * 26, tip[1] + Math.sin(a + sg * 0.7) * 26, 6, 0);
+        for (const [f, bl, side] of [[0.4, 0.28, 1], [0.44, 0.25, -1], [0.62, 0.26, 1], [0.66, 0.24, -1], [0.82, 0.14, 1], [0.84, 0.13, -1]]) {
+            const b0 = at(a, L, f), ba = a + side * (0.95 + 0.15 * r()), len = L * bl * (0.8 + 0.4 * r());
+            const b1 = [b0[0] + Math.cos(ba) * len, b0[1] + Math.sin(ba) * len];
+            addBlade(b0[0], b0[1], b1[0], b1[1], 16, side * 4);
+            if (bl > 0.18) for (const [g2, s2] of [[0.45, -side], [0.7, side]]) { const q = [b0[0] + Math.cos(ba) * len * g2, b0[1] + Math.sin(ba) * len * g2], tl = len * 0.42; addBlade(q[0], q[1], q[0] + Math.cos(ba + s2 * 0.9) * tl, q[1] + Math.sin(ba + s2 * 0.9) * tl, 9, 0); }
         }
     });
-    // a drop shadow of the flake: a slight blue offset (the blue plate prints the edge)
-    blue.save(); blue.translate(3, 4);
-    for (const s of flake) U.stroke(blue, s.pts, s.w, T(0.55));
-    blue.restore();
-    press.knockout((g) => { for (const s of flake) U.stroke(g, s.pts, s.w); });
-    // the blue spine line down each arm and branch (the crystal's ridge)
-    arms.forEach(({ a, L }) => { const o = [Math.cos(a + 1.57) * 2.5, Math.sin(a + 1.57) * 2.5]; U.stroke(blue, [at(a, L, 0.15), at(a, L, 0.97)].map(([x, y]) => [x + o[0], y + o[1]]), 2.2, T(0.9)); });
-    for (const s of flake) if (s.w === 10) U.stroke(blueS, s.pts, 1.8, T(0.8));
+    blue.save(); blue.translate(2.5, 3.5); blue.fillStyle = T(0.8); blue.fill(fl); blue.restore();
+    press.knockout((g) => g.fill(fl));
+    // a fine blue ridge line down each arm, off-centre
+    arms.forEach(({ a, L }) => { const o = [Math.cos(a + 1.57) * 3, Math.sin(a + 1.57) * 3]; U.stroke(blue, [at(a, L, 0.15), at(a, L, 0.9)].map(([x, y]) => [x + o[0], y + o[1]]), 1.8, T(0.85)); });
 
     // the hexagon: yellow plate, a green inner hexagon (blue over yellow), bevel spokes
     const hex = (cx, cy, r, a0) => Array.from({ length: 6 }, (_, i) => [cx + Math.cos(a0 + (i * Math.PI) / 3) * r, cy + Math.sin(a0 + (i * Math.PI) / 3) * r]);
@@ -116,7 +114,10 @@ CARDS.snowflake = (press, t) => {
     // plate crystal (top left): a white octagonal plate with blue spokes and a web
     const P = [88, 171];
     const oct = Array.from({ length: 8 }, (_, i) => { const a = 0.3 + (i * Math.PI) / 4, rr = 78 * (i % 2 ? 0.95 : 1.02); return [P[0] + Math.cos(a) * rr, P[1] + Math.sin(a) * rr]; });
-    press.knockout((g) => { U.path(g, oct); g.fill(); });
+    // the plate: its rim is ragged, a spike out from every corner (measured: 8–14 units)
+    const octR = []; oct.forEach(([x, y], i) => { const [x2, y2] = oct[(i + 1) % 8], a = Math.atan2(y - P[1], x - P[0]); octR.push([x + Math.cos(a) * 12, y + Math.sin(a) * 12], [x, y], [(x + x2) / 2 + (x2 - x) * 0.1, (y + y2) / 2 + (y2 - y) * 0.1]); });
+    U.stroke(blue, octR.concat([octR[0]]).map(([x, y]) => [x + 2.5, y + 3]), 3, T(0.85));
+    press.knockout((g) => { U.path(g, octR); g.fill(); });
     for (let i = 0; i < 6; i++) {
         const a = -1.35 + (i * Math.PI) / 3, rr = 98;
         U.stroke(blue, [[P[0] - Math.cos(a) * 12, P[1] - Math.sin(a) * 12], [P[0] + Math.cos(a) * rr, P[1] + Math.sin(a) * rr]], 2.4, T(0.9));

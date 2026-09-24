@@ -25,13 +25,17 @@ CARDS.savanna = (press, t) => {
     // a flattened glow round (745, 690) px
     const LP = { o: [0.52, -6.15], a: [2.6984, 12.6783], b: [-12.6751, 2.6956] };
     U.lattice(pink, LP, (m) => {
-        m.fillStyle = vramp(m, 0, px(880), [[0, 0.97], [0.12, 0.9], [0.26, 0.74], [0.37, 0.64], [0.49, 0.49], [0.7, 0.46], [0.88, 0.44], [1, 0.44]]);
+        m.fillStyle = vramp(m, 0, px(880), [[0, 1.1], [0.12, 1.0], [0.26, 0.84], [0.37, 0.72], [0.49, 0.56], [0.7, 0.52], [0.88, 0.5], [1, 0.5]]);
         m.fillRect(-20, -20, 1040, px(900));
         m.globalCompositeOperation = 'destination-out'; m.fillStyle = T(0.8); m.fillRect(-20, px(845), 1040, 400); m.globalCompositeOperation = 'source-over';
+        // the glow low in the sky: the pink thins to nothing in a wide flat ellipse round
+        // (760, 690) px (coverage 0.0–0.2 over x 600–900, y 590–760), and along the horizon
+        // behind the tree (0.2–0.35 at y 700–790, x 180–600)
         m.globalCompositeOperation = 'destination-out';
-        const gl = m.createRadialGradient(px(745), px(690), 0, px(745), px(690), px(330));
-        gl.addColorStop(0, T(0.84)); gl.addColorStop(0.3, T(0.8)); gl.addColorStop(0.65, T(0.45)); gl.addColorStop(1, T(0));
-        m.fillStyle = gl; m.save(); m.translate(0, px(690)); m.scale(1, 0.75); m.translate(0, -px(690)); m.fillRect(-20, -200, 1040, 1600); m.restore();
+        const gl = m.createRadialGradient(0, 0, 0, 0, 0, 1);
+        gl.addColorStop(0, T(0.75)); gl.addColorStop(0.45, T(0.65)); gl.addColorStop(0.75, T(0.5)); gl.addColorStop(1, T(0));
+        m.save(); m.translate(px(760), px(690)); m.scale(px(390), px(200)); m.fillStyle = gl; m.beginPath(); m.arc(0, 0, 1, 0, 7); m.fill(); m.restore();
+        m.save(); m.translate(px(420), px(760)); m.scale(px(330), px(55)); m.fillStyle = gl; m.globalAlpha = 0.6; m.beginPath(); m.arc(0, 0, 1, 0, 7); m.fill(); m.restore();
     });
 
     // the murmuration: three linked loops of specks (dense rims ~45 px wide, sparse insides);
@@ -66,8 +70,8 @@ CARDS.savanna = (press, t) => {
         }
         return sp;
     };
-    const rims = loops.map((l) => along(l, true, 2.2, 26));
-    bridges.forEach((br) => along(br, false, 2.2, 20));
+    const rims = loops.map((l) => along(l, true, 3.4, 27));
+    bridges.forEach((br) => along(br, false, 2.6, 22));
     // the insides: sparse
     rims.forEach((sp, li) => {
         const xs = sp.map((p) => p[0]), ys = sp.map((p) => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
@@ -75,22 +79,22 @@ CARDS.savanna = (press, t) => {
         for (let k = 0; k < n; k++) specks.push([x0 + rs() * (x1 - x0), y0 + rs() * (y1 - y0), sp]);
     });
     const inside = (p, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c; } return c; };
-    for (const [g, v, share] of [[navy, 0.72, 1], [blue, 0.5, 0.55]]) {
-        const r2 = Motion.rng('svmur2');
-        // (filled in batches: one path of thousands of overlapping subpaths is slow to fill)
-        g.fillStyle = T(v); g.beginPath();
-        let nb = 0;
-        for (const s of specks) {
-            if (++nb % 120 === 0) { g.fill(); g.beginPath(); }
-            const a = r2() * 6.28, len = 2.2 + r2() * 3.4, w = 0.9 + r2() * 0.9, pick = r2();
-            if (s[2] && !inside(s, s[2])) continue;
-            if (pick > share) continue;
-            const x = s[0], y = s[1], ca = Math.cos(a), sa = Math.sin(a);
-            // a tapered dash: a thin diamond
-            g.moveTo(px(x - ca * len), px(y - sa * len)); g.lineTo(px(x - sa * w), px(y + ca * w)); g.lineTo(px(x + ca * len), px(y + sa * len)); g.lineTo(px(x + sa * w), px(y - ca * w)); g.closePath();
-        }
-        g.fill();
+    // each speck is a little bird: a curved comma 5–9 px long. Measured at 3×, about half
+    // are bright green (the pink knocked out under them, blue over the yellow) and half dark
+    // olive (navy); under the band a faint olive haze (navy screen).
+    const r2 = Motion.rng('svmur2'), green = new Path2D(), dark = new Path2D();
+    for (const sp of specks) {
+        if (sp[2] && !inside(sp, sp[2])) continue;
+        const a = r2() * 6.28, len = 2.8 + r2() * 2.6, w = 1.6 + r2() * 1.2, bend = (r2() - 0.5) * 3, ca = Math.cos(a), sa = Math.sin(a);
+        const x = px(sp[0]), y = px(sp[1]), q = r2() < 0.6 ? green : dark;
+        q.moveTo(x - ca * len, y - sa * len);
+        q.quadraticCurveTo(x - sa * (w + bend), y + ca * (w + bend), x + ca * len, y + sa * len);
+        q.quadraticCurveTo(x + sa * (w - bend) * 0.2, y - ca * (w - bend) * 0.2, x - ca * len, y - sa * len);
     }
+    pink.save(); pink.globalCompositeOperation = 'destination-out'; pink.fillStyle = T(1); pink.fill(green); pink.restore();
+    blue.fillStyle = T(0.95); blue.fill(green);
+    navy.fillStyle = T(0.85); navy.fill(dark); blue.fillStyle = T(0.4); blue.fill(dark);
+    { const hz = press.plate('navy', 'screen'); hz.save(); hz.strokeStyle = T(0.08); hz.lineWidth = px(62); hz.lineJoin = 'round'; for (const sp of rims) { hz.beginPath(); P(sp).forEach(([x, y], i) => (i ? hz.lineTo(x, y) : hz.moveTo(x, y))); hz.closePath(); hz.stroke(); } hz.restore(); }
 
     // red streak clouds low on the right: pink brush lines over the yellow (739–771, 793–809 px)
     const streak = (x0, x1, y0, y1, w, seed) => {
@@ -98,49 +102,63 @@ CARDS.savanna = (press, t) => {
         for (let i = 0; i <= 24; i++) { const f = i / 24, x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f + Math.sin(f * 9 + seed) * 1.2, hw = w * Math.sin(Math.PI * Math.min(1, f * 1.15)) ** 0.6 * (0.8 + 0.4 * r()); top.push([x, y - hw]); bot.unshift([x, y + hw]); }
         U.poly(pink, P([...top, ...bot]), T(0.95));
     };
-    streak(410, 965, 740, 770, 3.2, 1); streak(470, 720, 752, 760, 1.6, 2); streak(595, 945, 795, 808, 2.8, 3);
-    // birds on the right, flapping on twos
-    const bird = (x, y, s, up) => { const w = up ? -7 : 3; U.poly(navy, P([[x - 13 * s, y + w * s], [x - 3 * s, y - 2 * s], [x, y + 4 * s], [x + 3 * s, y - 2 * s], [x + 13 * s, y + w * s], [x + 2 * s, y + 2 * s], [x - 2 * s, y + 2 * s]]), T(1)); };
-    [[977, 548, 1.1], [934, 620, 1.2], [1069, 600, 1.3], [1060, 425, 1.0], [1105, 640, 1]].forEach(([x, y, s], i) => bird(x, y, s, (d + i) % 2 === 0));
+    // (measured: the upper streak 6–8 px thick, 410→965 px, falling 30 px; a thin one inside it;
+    // the lower 5 px thick, 590→945)
+    streak(405, 965, 738, 772, 4.2, 1); streak(470, 760, 750, 761, 1.8, 2); streak(588, 948, 794, 810, 3.2, 3); streak(700, 900, 781, 786, 1.2, 4);
+    // six swallows on the right (dark-blob bounding boxes on the 13.75 s frame): swept wings,
+    // forked tails, dark olive (navy over the yellow, the pink knocked out under them)
+    const birds = [[1063, 428, 40, 2.3, 1], [1024, 484, 26, 2.6, -0.5], [981, 551, 32, 2.2, 0.5], [1066, 606, 48, 2.0, 1], [937, 628, 36, 2.4, -0.2], [884, 481, 13, 2.8, 0]];
+    const bp = new Path2D();
+    for (const [x, y, sz, a, w] of birds) { const q = P(U.swallow(x, y, sz, a, w)); q.forEach(([bx, by], i) => (i ? bp.lineTo(bx, by) : bp.moveTo(bx, by))); bp.closePath(); }
+    pink.save(); pink.globalCompositeOperation = 'destination-out'; pink.fillStyle = T(1); pink.fill(bp); pink.restore();
+    navy.fillStyle = T(0.9); navy.fill(bp); blue.fillStyle = T(0.5); blue.fill(bp);
 
     // silhouettes: one flat dark olive-brown (fitted: navy 0.66, blue 0.75, pink 0.35 over the
-    // yellow); nearer layers are one piece, so they print as one colour
-    const sil = (fn) => {
-        pink.save(); pink.globalCompositeOperation = 'destination-out'; pink.fillStyle = T(1); pink.strokeStyle = T(1); fn(pink); pink.restore();
-        for (const [g, v] of [[navy, 0.68], [blue, 0.76], [pink, 0.36]]) { g.save(); g.fillStyle = T(v); g.strokeStyle = T(v); fn(g); g.restore(); }
-    };
-    // (the sky's pink dots under the silhouettes: cleared so the silhouette pink is flat)
-    const shapes = [];
-    // hedge: top and bottom edges measured every 30 px
-    const hedgeTop = [[-10, 780], [30, 785], [90, 796], [180, 797], [210, 810], [240, 806], [270, 814], [300, 818], [330, 808], [360, 805], [420, 809], [480, 816], [510, 823], [540, 816], [570, 812], [630, 819], [690, 832], [750, 825], [810, 831], [870, 832], [930, 838], [945, 806], [960, 790], [980, 772], [1010, 764], [1040, 759], [1090, 758]];
-    const hedgeBot = [[1090, 886], [1000, 884], [900, 876], [780, 872], [640, 868], [600, 861], [540, 859], [480, 854], [390, 851], [300, 846], [210, 842], [120, 839], [30, 832], [-10, 831]];
+    // yellow). Every shape goes into one Path2D and is filled once per plate, so overlaps
+    // (a cypress over the hedge) don't print darker.
+    const silP = new Path2D();
+    const add = (pts) => { P(pts).forEach(([x, y], i) => (i ? silP.lineTo(x, y) : silP.moveTo(x, y))); silP.closePath(); };
+    // hedge: top and bottom edges measured every 30 px; the top a run of small rounded bushes
+    const hedgeTop = [[-10, 780], [30, 785], [90, 796], [180, 797], [210, 810], [240, 806], [270, 814], [300, 818], [330, 808], [360, 805], [420, 809], [480, 816], [510, 823], [540, 816], [570, 812], [630, 819], [690, 832], [750, 825], [810, 831], [870, 832], [930, 838]];
+    const hedgeBot = [[945, 880], [900, 876], [780, 872], [640, 868], [600, 861], [540, 859], [480, 854], [390, 851], [300, 846], [210, 842], [120, 839], [30, 832], [-10, 831]];
     const rh = Motion.rng('svhedge');
-    const bumpy = (pts, amp) => { const out = []; for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], n = Math.max(1, Math.round(Math.abs(x1 - x0) / 9)); for (let k = 0; k < n; k++) { const f = k / n; out.push([x0 + (x1 - x0) * f, y0 + (y1 - y0) * f + (rh() - 0.5) * amp - Math.abs(Math.sin((x0 + (x1 - x0) * f) / 17)) * amp * 0.8]); } } out.push(pts[pts.length - 1]); return out; };
-    const hedge = P([...bumpy(hedgeTop, 5), ...hedgeBot]);
-    // cypresses: flames (centre, top, half-width at the base, base) measured from the scans
+    const bumpy = (pts, amp) => { const out = []; for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], n = Math.max(1, Math.round(Math.abs(x1 - x0) / 7)); for (let k = 0; k < n; k++) { const f = k / n, x = x0 + (x1 - x0) * f; out.push([x, y0 + (y1 - y0) * f + (rh() - 0.5) * amp * 0.5 - Math.abs(Math.sin(x / 13 + Math.sin(x / 41))) * amp]); } } out.push(pts[pts.length - 1]); return out; };
+    add([...bumpy(hedgeTop, 7), ...hedgeBot]);
+    // the bush on the right: a lumpy mass of scallop-edged clumps (bbox 935–1080 × 758–886 px)
+    for (const [cx, cy, rx, ry, sd] of [[985, 812, 48, 40, 1], [1030, 790, 50, 36, 2], [1070, 795, 30, 40, 3], [960, 850, 30, 32, 4], [1020, 850, 70, 38, 5], [1000, 775, 26, 18, 6]]) add(U.scallop(cx, cy, rx, ry, Math.round(rx / 6), 4, 'bu' + sd));
+    // cypresses: flames with ragged sides (small leafy notches), measured from the scans
     const cyp = (cx, top, hw, bot, seed) => {
         const r = Motion.rng('svcy' + seed), L = [], R = [];
-        for (let i = 0; i <= 16; i++) {
-            const f = i / 16, y = top + (bot - top) * f, w = hw * Math.pow(Math.sin(Math.min(1, f * 1.45) * Math.PI / 2), 0.8) * (1 - 0.1 * f);
-            R.push([cx + w * (1 + 0.06 * (r() - 0.5)), y]); L.unshift([cx - w * (1 + 0.06 * (r() - 0.5)), y]);
+        for (let i = 0; i <= 40; i++) {
+            const f = i / 40, y = top + (bot - top) * f, w = hw * Math.pow(Math.sin(Math.min(1, f * 1.45) * Math.PI / 2), 0.8) * (1 - 0.1 * f);
+            // lumpy sides: low-frequency bulges (6–8 px) plus small leafy notches
+            const lump = Math.min(1, f * 5), nr = (5 * Math.sin(f * 17 + seed) + 3 * Math.sin(f * 41 + seed * 2) + (i % 2 ? 3 : -1) * r()) * lump, nl = (5 * Math.sin(f * 19 + seed * 3) + 3 * Math.sin(f * 37 + seed) + (i % 2 ? -1 : 3) * r()) * lump;
+            R.push([cx + w + nr, y]); L.unshift([cx - w - nl, y]);
         }
-        return P([...R, ...L]);
+        return [...R, ...L];
     };
-    // the umbrella pine's canopy: one lobed outline (top from the scans, the dot's bump removed)
-    const canopy = P([[192, 690], [186, 655], [196, 628], [218, 612], [236, 600], [246, 585], [262, 570], [286, 559], [310, 541], [332, 546], [352, 546], [373, 534], [395, 526], [412, 520], [432, 527], [456, 542], [480, 561], [500, 578], [520, 592], [548, 600], [572, 614], [588, 640], [594, 670], [586, 700], [566, 716], [540, 719], [515, 712], [498, 698], [472, 683], [442, 670], [420, 686], [398, 676], [372, 678], [346, 667], [330, 660], [314, 682], [292, 692], [262, 699], [232, 696], [210, 683]]);
-    const trunk = P([[368, 830], [372, 760], [374, 700], [390, 700], [394, 760], [398, 830]]);
-    const branches = [[[[380, 735], [340, 708], [300, 682]], 10], [[[384, 738], [440, 712], [500, 698]], 9], [[[379, 722], [364, 690], [355, 668]], 9], [[[385, 722], [404, 692], [420, 670]], 8]];
-    sil((g) => {
-        U.path(g, hedge); g.fill();
-        U.path(g, cyp(84, 512, 44, 836, 1)); g.fill();
-        U.path(g, cyp(148, 588, 28, 840, 2)); g.fill();
-        U.smooth(g, canopy); g.fill();
-        U.path(g, trunk); g.fill();
-        g.lineCap = 'round'; g.lineJoin = 'round';
-        for (const [pts, w] of branches) { g.lineWidth = px(w); g.beginPath(); P(pts).forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); }
-    });
-    // grass sprigs by the bush
-    for (let i = 0; i < 6; i++) U.stroke(blue, P([[955 + i * 8, 800], [945 + i * 11, 745 + (i % 3) * 10]]), 1.6, T(0.9));
+    add(cyp(84, 512, 42, 836, 1)); add(cyp(146, 586, 28, 840, 2));
+    // the umbrella pine: the canopy is nine clumps, each a scallop-edged ellipse (their union
+    // gives the bumpy crown); trunk and four branches as tapered blades
+    const lobes = [[245, 652, 58, 42], [305, 596, 70, 48], [392, 575, 82, 55], [478, 582, 72, 50], [540, 628, 56, 44], [560, 690, 38, 30], [430, 655, 62, 30], [330, 660, 58, 32], [215, 686, 34, 22], [395, 630, 90, 36]];
+    lobes.forEach(([x, y, rx, ry], i) => add(U.scallop(x, y, rx, ry, Math.round(rx / 7), 5, 'lb' + i)));
+    add([[366, 832], [371, 760], [374, 700], [391, 700], [395, 760], [400, 832]]);
+    for (const [x0, y0, x1, y1, w, b] of [[380, 740, 298, 680, 11, 6], [384, 742, 505, 697, 10, -8], [379, 726, 355, 664, 9, 3], [386, 726, 422, 668, 8, -3]]) add(U.blade(x0, y0, x1, y1, w, b));
+    pink.save(); pink.globalCompositeOperation = 'destination-out'; pink.fillStyle = T(1); pink.fill(silP); pink.restore();
+    for (const [g, v] of [[navy, 0.68], [blue, 0.76], [pink, 0.36]]) { g.fillStyle = T(v); g.fill(silP); }
+    // light on the crowns and the cypresses' sunward side: the navy thinned in soft patches
+    // (dark green-olive), and the ink grainy (pinholes and a mottle), measured at 3×
+    navy.save(); navy.clip(silP); navy.globalCompositeOperation = 'destination-out';
+    for (const [x, y, rx, ry] of [...lobes.slice(0, 5).map(([x, y, rx, ry]) => [x - rx * 0.2, y - ry * 0.4, rx * 0.45, ry * 0.3]), [92, 620, 22, 80], [152, 680, 12, 60], ]) {
+        const gr = navy.createRadialGradient(px(x), px(y), 0, px(x), px(y), px(rx)); gr.addColorStop(0, T(0.25)); gr.addColorStop(1, T(0));
+        navy.fillStyle = gr; navy.save(); navy.translate(px(x), px(y)); navy.scale(1, ry / rx); navy.translate(-px(x), -px(y)); navy.beginPath(); navy.arc(px(x), px(y), px(rx), 0, 7); navy.fill(); navy.restore();
+    }
+    { const rg = Motion.rng('svgrain'), gp = new Path2D(); for (let i = 0; i < 2600; i++) { const x = rg() * 1000, y = px(500) + rg() * px(390), r = 0.35 + rg() * 0.9; gp.moveTo(x + r, y); gp.arc(x, y, r, 0, 6.2832); } navy.fillStyle = T(0.55); navy.fill(gp); }
+    navy.restore();
+    // grass tufts by the bush: tall tapered blades, dark olive, one pale green
+    { const gp = new Path2D(), gl = new Path2D(); for (const [x0, y0, x1, y1, w, b, lt] of [[948, 800, 905, 718, 4, 6, 0], [955, 802, 930, 735, 3.5, -4, 0], [962, 800, 958, 722, 3, 3, 1], [940, 806, 918, 760, 3, -3, 0], [970, 796, 985, 745, 3, -4, 0], [930, 812, 890, 770, 2.5, 4, 1]]) { const q = lt ? gl : gp; P(U.blade(x0, y0, x1, y1, w, b)).forEach(([x, y], i) => (i ? q.lineTo(x, y) : q.moveTo(x, y))); q.closePath(); }
+      pink.save(); pink.globalCompositeOperation = 'destination-out'; pink.fillStyle = T(1); pink.fill(gp); pink.fill(gl); pink.restore();
+      navy.fillStyle = T(0.75); navy.fill(gp); blue.fillStyle = T(0.8); blue.fill(gp); blue.fill(gl); }
 
     // the field: the blue screen (9.72 px, 18°) over the yellow; a light far band on the left
     // (a diagonal from (0, 925) to (560, 866) px), dark near the horizon, then furrows whose
@@ -148,33 +166,32 @@ CARDS.savanna = (press, t) => {
     const field = P([[-20, 830], [1100, 830], [1100, 1100], [-20, 1100]]);
     const VP = [778, 874];
     const LB = { o: [-2.28, 0.60], a: [-2.9741, 9.2597], b: [9.2517, 2.9840] };
-    const crests = (m, wmul) => {
-        for (let i = -34; i <= 34; i++) {
-            // crests start ~40 px below the horizon (the far rows merge into dark green)
-            const bx = VP[0] + i * 60 + 30, w = (5 + Math.abs(i) * 0.25) * wmul, f0 = 0.16;
-            const sx = VP[0] + (bx - VP[0]) * f0, sy = VP[1] + (1090 - VP[1]) * f0;
-            m.beginPath(); m.moveTo(px(sx), px(sy)); m.lineTo(px(bx - w), px(1090)); m.lineTo(px(bx + w), px(1090)); m.closePath(); m.fill();
-        }
-    };
+    // the furrows: measured crest lines (bright yellow, x at y = 1060 px, some in pairs) with a
+    // broad dark-green band between each pair of crests (the blue solid plus a navy screen)
+    // and the lighter green screen either side; all converge on the vanishing point. Beyond the
+    // measured ones the pattern repeats outwards by angle.
+    const X60 = [33, 106, 131, 186, 260, 284, 334, 355, 404, 416, 475, 539, 571, 603, 665, 724, 734, 784, 805, 839, 857, 893, 950, 1001, 1010, 1041];
+    // (and where they cross the left edge, x = 5 px)
+    const Y5 = [907, 918, 961, 978, 988, 999, 1011, 1027, 1044, 1068];
+    const ang = [...Y5.map((y) => Math.atan2(y - VP[1], 5 - VP[0])), ...X60.map((x) => Math.atan2(1060 - VP[1], x - VP[0]))].sort((p, q) => q - p);
+    for (let k = 0; k < 4; k++) ang.push(ang[ang.length - 1] - (ang[ang.length - 4] - ang[ang.length - 1]) / 3);
+    const ray = (g, a, wBottom, a0 = 0.08) => { const L = 900, c = Math.cos(a), sn = Math.sin(a), hw = Math.atan2(wBottom / 2, 200 / Math.max(0.2, sn)); g.moveTo(px(VP[0] + Math.cos(a) * L * a0 * 0.1), px(VP[1] + Math.sin(a) * L * a0 * 0.1)); g.lineTo(px(VP[0] + Math.cos(a - hw) * 1600), px(VP[1] + Math.sin(a - hw) * 1600)); g.lineTo(px(VP[0] + Math.cos(a + hw) * 1600), px(VP[1] + Math.sin(a + hw) * 1600)); g.closePath(); };
+    const bands = new Path2D(), crestP = new Path2D();
+    for (let i = 0; i < ang.length - 1; i++) { const da = ang[i] - ang[i + 1]; if (da > 0.02) { const m = (ang[i] + ang[i + 1]) / 2, hw = da * 0.26; bands.moveTo(px(VP[0]), px(VP[1])); bands.lineTo(px(VP[0] + Math.cos(m - hw) * 1600), px(VP[1] + Math.sin(m - hw) * 1600)); bands.lineTo(px(VP[0] + Math.cos(m + hw) * 1600), px(VP[1] + Math.sin(m + hw) * 1600)); bands.closePath(); } }
+    // a crest is ~6 px wide at the frame's edge and starts ~25 px below the horizon
+    for (const a of ang) { const c = Math.cos(a), sn = Math.sin(a), rEnd = Math.min(sn > 0.01 ? (1080 - VP[1]) / sn : 2000, c < -0.01 ? -VP[0] / c : c > 0.01 ? (1080 - VP[0]) / c : 2000), hw = 3 / rEnd, r0 = 25 / Math.max(0.15, sn); crestP.moveTo(px(VP[0] + c * r0), px(VP[1] + sn * r0)); crestP.lineTo(px(VP[0] + Math.cos(a - hw) * 1600), px(VP[1] + Math.sin(a - hw) * 1600)); crestP.lineTo(px(VP[0] + Math.cos(a + hw) * 1600), px(VP[1] + Math.sin(a + hw) * 1600)); crestP.closePath(); }
     U.lattice(blue, LB, (m) => {
         U.clipped(m, field, (h) => {
-            h.fillStyle = vramp(h, px(840), px(1080), [[0, 1.1], [0.45, 1.1], [0.6, 0.95], [1, 0.9]]);
+            h.fillStyle = vramp(h, px(840), px(1080), [[0, 1.0], [0.45, 0.85], [1, 0.72]]);
             h.fillRect(-20, 0, 1040, 1100);
             h.globalCompositeOperation = 'destination-out';
             // the far band: light (bare yellow with sparse dots)
             h.fillStyle = T(0.75); U.path(h, P([[-20, 830], [560, 830], [560, 866], [-20, 927]])); h.fill();
         });
     }, { min: 0.05 });
-    // furrows: solid blue lines (dark green) and yellow crests cut through the screen, crisp
-    // (a screen can't carry lines finer than its pitch)
-    U.clipped(blue, field, (h) => {
-        h.fillStyle = T(0.9);
-        for (let i = -34; i <= 34; i++) {
-            const bx = VP[0] + i * 60, w = 4 + Math.abs(i) * 0.3, f0 = 0.05, sx = VP[0] + (bx - VP[0]) * f0, sy = VP[1] + (1090 - VP[1]) * f0;
-            h.beginPath(); h.moveTo(px(sx), px(sy)); h.lineTo(px(bx - w), px(1090)); h.lineTo(px(bx + w), px(1090)); h.closePath(); h.fill();
-        }
-        h.globalCompositeOperation = 'destination-out'; h.fillStyle = T(1); crests(h, 1.05);
-    });
+    const fieldP = new Path2D(); P([[-20, 872], [1100, 872], [1100, 1100], [-20, 1100]]).forEach(([x, y], i) => (i ? fieldP.lineTo(x, y) : fieldP.moveTo(x, y)));
+    blue.save(); blue.clip(fieldP); blue.fillStyle = T(0.95); blue.fill(bands); blue.globalCompositeOperation = 'destination-out'; blue.fillStyle = T(1); blue.fill(crestP); blue.restore();
+    { const ns = press.plate('navy', 'screen'); ns.save(); ns.clip(fieldP); ns.fillStyle = T(0.3); ns.fill(bands); ns.restore(); }
     // red flecks in the field (the reference's field carries a sparse pink screen)
     U.clipped(press.plate('pink', 'screen'), field, (h) => { h.fillStyle = T(0.07); h.fillRect(-20, 0, 1040, 1100); });
     // the far band's navy tint (olive)
