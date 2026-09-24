@@ -7,33 +7,37 @@
 // spray shift. Needs cards/_group2-util.js.
 var CARDS = CARDS || {};
 CARDS.wave = (press, t) => {
-    const { T, px, poly, disc, fillWith, inside, blob, blobPath, curve, taper, spline, speckle } = G2;
+    const { T, px, poly, disc, fillWith, inside, blob, blobPath, curve, taper, spline, speckle, lat, lerpT } = G2;
     const P = (ink, k) => press.plate(ink, k);
     const yellow = P('yellow'), yellowS = P('yellow', 'screen'), pink = P('pink'), pinkS = P('pink', 'screen');
     const blue = P('blue'), blueS = P('blue', 'screen'), navy = P('navy'), navyS = P('navy', 'screen');
     const d = Math.floor(t * 12 + 1e-6), jig = (d % 2) * 4;
     const grad = (g, x0, y0, x1, y1, stops) => { const gr = g.createLinearGradient(x0, y0, x1, y1); for (const [p, v] of stops) gr.addColorStop(p, T(v)); return gr; };
-    const SX = 795, SY = 545, SR = 165; // the barrel (the sun sits in it)
+    const SX = 770, SY = 548, SR = 128; // (sun edges measured: left 642, top 419, horizon 662) // the barrel (the sun sits in it)
     px(press, () => {
         // the sky: yellow ink, pink dots growing towards the top (orange)
         yellow.fillStyle = T(1); yellow.fillRect(0, 0, 1080, 1080);
-        pinkS.fillStyle = grad(pinkS, 0, 0, 0, 600, [[0, 0.8], [0.33, 0.45], [0.7, 0.2], [1, 0.12]]); pinkS.fillRect(0, 0, 1080, 1080);
+        lat([12.53, -0.26, 170.12, 248.74], (x, y) => lerpT([[0, 0.72], [200, 0.45], [420, 0.22], [600, 0.12]], y), pink, [0, 0, 1080, 700]); // the sky's pink dots, on the reference's lattice
         // the paper above the crest (foam and cloud), a scrap of orange sky in the corner
-        const paperTop = [[585, 175], [600, 140], [650, 110], [690, 60], [720, 0], [1080, 0], [1080, 250], [1040, 190], [960, 130], [850, 100], [740, 105], [640, 150]];
+        const paperTop = [[520, 240], [590, 170], [660, 90], [740, 30], [770, 0], [1080, 0], [1080, 210], [1040, 150], [960, 100], [840, 75], [690, 95], [580, 170]]; // (edges read off a 1× crop of the crest)
         press.knockout((g) => { g.beginPath(); blobPath(g, paperTop); g.fill(); });
         blob(yellow, [[975, -20], [1090, -20], [1090, 50], [1040, 55], [990, 30]], 1);
         blob(pinkS, [[975, -20], [1090, -20], [1090, 50], [1040, 55], [990, 30]], 0.6);
         // the wave: its outline, teal body, deep water below
-        const wave = [[0, 612], [90, 575], [200, 505], [330, 485], [420, 385], [500, 285], [560, 212], [640, 150], [740, 105], [850, 100], [960, 130], [1040, 190], [1080, 240], [1080, 1080], [0, 1080]];
+        const wave = [[0, 612], [90, 575], [200, 505], [320, 478], [395, 390], [470, 290], [530, 215], [580, 170], [690, 95], [840, 75], [960, 100], [1040, 150], [1080, 210], [1080, 1080], [0, 1080]];
         const wp = (g) => G2.path(g, wave);
         press.knockout((g) => { wp(g); g.fill(); });
         fillWith(blue, wp, (g) => grad(g, 0, 150, 0, 1000, [[0, 0.88], [0.5, 0.85], [0.7, 0.25], [1, 0.05]]));
-        fillWith(navy, wp, (g) => grad(g, 0, 500, 0, 950, [[0, 0], [0.35, 0.55], [1, 0.9]]));
+        fillWith(navy, wp, (g) => grad(g, 0, 500, 0, 950, [[0, 0.15], [0.3, 0.85], [1, 1]]));
         fillWith(navy, wp, (g) => grad(g, 300, 0, 0, 0, [[0, 0], [1, 0.35]]));
         inside(navyS, wp, (g) => { g.fillStyle = grad(g, 0, 100, 0, 700, [[0, 0.3], [1, 0.45]]); g.fillRect(0, 0, 1080, 1080); });
+        // the crest's top is lighter: no navy dots there (blue alone, then green)
+        inside(navyS, wp, (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = Riso.radial(g, 820, 120, 80, 330, 1, 0); g.fillRect(0, 0, 1080, 700); });
         // the crest catching the light: yellow dots over the blue (green), top right
-        inside(yellowS, wp, (g) => { g.fillStyle = Riso.radial(g, 930, 260, 40, 260, 0.75, 0); g.fillRect(0, 0, 1080, 1080); });
-        inside(navy, wp, (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = Riso.radial(g, 930, 260, 40, 280, 0.9, 0); g.fillRect(0, 0, 1080, 1080); });
+        // (measured: yellow dots on a 11.3 px lattice at 45° over x 650–1060, y 100–560)
+        const crest = G2.field('wave-crest', (g) => { g.fillStyle = T(0.75); g.beginPath(); blobPath(g, [[660, 120], [800, 90], [960, 110], [1060, 170], [1070, 400], [1020, 560], [900, 560], [800, 420], [700, 330], [640, 220]]); g.fill(); }, 40);
+        inside(yellow, wp, (g) => lat([11.31, 0.785, 879.06, 294.83], crest, g, [600, 60, 1080, 620]));
+        inside(navy, wp, (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = Riso.radial(g, 900, 300, 60, 330, 0.9, 0); g.fillRect(0, 0, 1080, 1080); });
         // pink flecks in the deep water
         inside(pink, wp, (g) => speckle(g, 'deep', 0, 600, 1080, 1080, 700, 0.8, 2.4, 0.9));
         inside(pinkS, wp, (g) => { g.fillStyle = grad(g, 0, 600, 0, 1000, [[0, 0], [0.4, 0.3], [1, 0.45]]); g.fillRect(0, 0, 1080, 1080); });
@@ -49,8 +53,17 @@ CARDS.wave = (press, t) => {
         inside(pinkS, hole, (g) => { g.fillStyle = T(0.14); g.fillRect(0, 648, 1080, 22); });
         inside(blue, hole, (g) => { g.fillStyle = T(0.85); g.fillRect(0, 668, 1080, 400); });
         inside(navyS, hole, (g) => { g.fillStyle = T(0.4); g.fillRect(0, 668, 1080, 400); });
+        // the tube floor: teal (blue with navy dots) from the horizon down to the foam
+        const floor = [[640, 664], [1080, 664], [1080, 790], [900, 800], [760, 780], [690, 720]];
+        navy.save(); navy.globalCompositeOperation = 'destination-out'; poly(navy, floor, 1); navy.restore();
+        poly(blue, floor, 0.95); poly(navyS, floor, 0.3);
         // the horizon behind the lip, right of the barrel
-        poly(yellow, [[1040, 640], [1080, 630], [1080, 668], [1030, 668]], 1);
+        // (measured at 1.5×: the sky shows through behind the curl as a yellow wedge with red
+        // dots, a white band of spray above it, the curl's back in blue with navy dots)
+        const behind = [[995, 640], [1080, 598], [1080, 664], [985, 664]];
+        press.knockout((g) => { G2.path(g, behind); g.fill(); });
+        poly(yellow, behind, 1); inside(pink, (g) => G2.path(g, behind), (g) => lat([12.53, -0.26, 170.12, 248.74], () => 0.12, g, [980, 590, 1080, 670]));
+        press.knockout((g) => taper(g, [[960, 640], [1010, 615], [1080, 585]], 22, 1));
         // crest hatching: short blue strokes on the paper above the wave
         inside(blue, (g) => { g.beginPath(); blobPath(g, paperTop); }, (g) => {
             const r = Motion.rng('hatch' + (d % 2)); g.strokeStyle = T(0.85); g.lineCap = 'round';
@@ -87,14 +100,16 @@ CARDS.wave = (press, t) => {
             if (i % 3 === 0) taper(pink, spline(pts, 10).map(([x, yy]) => [x, yy + w * 0.5]), w * 0.3, 0.8);
         }
         for (const [y, x0, x1] of [[985, 860, 1080], [1040, 920, 1080]]) press.knockout((g) => taper(g, [[x0, y], [(x0 + x1) / 2, y - 4], [x1, y - 8]], 6, 1));
+        // the spray at the foot of the curl: a dense spatter of paper (1.5× crop)
+        press.knockout((g) => { const r = Motion.rng('spray2'); for (let i = 0; i < 700; i++) { const x = 860 + r() * 220, y = 740 + r() * 130 * (0.4 + 0.6 * r()); g.fillRect(x, y, 1.5 + r() * 4, 1.5 + r() * 3); } });
         // pink streaks in the deep water, on the left
         for (const pts of [[[300, 690], [370, 665], [450, 640]], [[140, 830], [220, 800], [300, 785]], [[240, 865], [320, 840], [400, 820]], [[130, 880], [190, 860]], [[290, 720], [330, 710]]]) taper(pink, spline(pts, 10), 4.5, 1);
         // the green rock in the corner: yellow + blue + navy, a white edge, white pits
-        const rock = [[-10, 905], [120, 898], [250, 912], [380, 950], [500, 1005], [610, 1085], [-10, 1085]];
-        press.knockout((g) => { g.beginPath(); blobPath(g, rock); g.fill(); });
-        blob(yellow, rock, 1); blob(blue, rock, 0.8); blob(navy, rock, 0.12);
-        inside(navyS, (g) => blobPath(g, rock), (g) => { g.fillStyle = Riso.radial(g, 200, 1080, 60, 330, 0.7, 0.2); g.fillRect(0, 880, 640, 200); });
-        inside(navy, (g) => blobPath(g, rock), (g) => { g.globalCompositeOperation = 'destination-out'; g.lineWidth = 34; g.strokeStyle = T(0.8); g.beginPath(); g.moveTo(-10, 924); g.quadraticCurveTo(250, 930, 520, 1030); g.stroke(); });
+        const rock = [[-10, 905], [135, 899], [270, 912], [405, 960], [540, 1027], [598, 1085], [-10, 1085]];
+        press.knockout((g) => { G2.path(g, rock); g.fill(); });
+        poly(yellow, rock, 1); poly(blue, rock, 0.3); poly(navy, rock, 0.92); // olive black (≈ [36, 45, 15])
+        inside(navyS, (g) => G2.path(g, rock), (g) => { g.fillStyle = Riso.radial(g, 200, 1080, 60, 330, 0.7, 0.2); g.fillRect(0, 880, 640, 200); });
+        inside(navy, (g) => G2.path(g, rock), (g) => { g.globalCompositeOperation = 'destination-out'; g.lineWidth = 34; g.strokeStyle = T(0.8); g.beginPath(); g.moveTo(-10, 924); g.quadraticCurveTo(250, 930, 520, 1030); g.stroke(); });
         press.knockout((g) => { g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.moveTo(0, 906); g.bezierCurveTo(120, 896, 300, 915, 400, 958); g.bezierCurveTo(480, 992, 560, 1040, 606, 1082); g.stroke(); });
         press.knockout((g) => { const r = Motion.rng('pits'); for (let i = 0; i < 30; i++) { const x = r() * 560, y = 918 + r() * 40 + x * 0.15; g.beginPath(); g.arc(x, y, 2 + r() * 3, 0, 7); g.fill(); } });
         for (const pts of [[[20, 975], [60, 968], [85, 962]], [[300, 1020], [380, 1030], [440, 1050]], [[310, 1050], [380, 1060], [430, 1078]]]) press.knockout((g) => taper(g, spline(pts, 10), 6, 1));

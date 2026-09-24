@@ -56,6 +56,14 @@ var G2 = (() => {
         const r = Motion.rng('g2sp' + seed); g.fillStyle = T(v);
         for (let i = 0; i < n; i++) { g.beginPath(); g.arc(x0 + r() * (x1 - x0), y0 + r() * (y1 - y0), r0 + r() * (r1 - r0), 0, 7); g.fill(); }
     };
+    // ink voids: a dense sprinkle of pixel-size holes in one plate (paper showing through a
+    // solid, the reference's fine white grain), squares of 0.8–1.8 px, alpha a (fast: rects)
+    const voids = (g, seed, x0, y0, x1, y1, n, a = 0.9, s0 = 0.8, s1 = 1.8) => {
+        const r = Motion.rng('g2v' + seed);
+        g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = `rgba(0,0,0,${a})`;
+        for (let i = 0; i < n; i++) { const s = s0 + (s1 - s0) * r() * r(); g.fillRect(x0 + r() * (x1 - x0), y0 + r() * (y1 - y0), s, s); }
+        g.restore();
+    };
     // a wobbling circle path (hand-cut)
     const wob = (g, x, y, r, amt, seed, sq = 1) => {
         const rr = Motion.rng('g2w' + seed), p1 = rr() * 6.28, p2 = rr() * 6.28, n = 64;
@@ -84,20 +92,45 @@ var G2 = (() => {
     // a hand-made halftone on a SOLID plate: dots on a grid (pitch in reference px, angle),
     // radius from tone(x, y) (area = tone). Draw the same dots with destination-out on the
     // ink underneath and they print clean (pink dots in navy stay pink, not maroon).
+    // o.origin: one dot centre measured on the reference (g2 lattice probe: an FFT of the dots
+    // gives pitch, angle and phase), so our dots sit on the reference's own lattice
     const dots = (g, x0, y0, x1, y1, tone, o = {}) => {
         const p = o.pitch ?? 9.5, a = o.angle ?? 0.26, ca = Math.cos(a), sa = Math.sin(a);
-        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, R = Math.hypot(x1 - x0, y1 - y0) / 2 + p;
-        g.fillStyle = '#000';
+        let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+        const R = Math.ceil((Math.hypot(x1 - x0, y1 - y0) / 2 + p) / p) * p; // a whole number of cells: dots stay on the lattice
+        if (o.origin) {
+            // snap the grid centre onto the measured lattice
+            const [ox, oy] = o.origin, du = (cx - ox) * ca + (cy - oy) * sa, dv = -(cx - ox) * sa + (cy - oy) * ca;
+            const nu = Math.round(du / p) * p, nv = Math.round(dv / p) * p;
+            cx = ox + nu * ca - nv * sa; cy = oy + nu * sa + nv * ca;
+        }
+        g.fillStyle = o.color ?? '#000';
         g.beginPath();
         for (let v = -R; v <= R; v += p) for (let u = -R; u <= R; u += p) {
             const x = cx + u * ca - v * sa, y = cy + u * sa + v * ca;
             if (x < x0 - p || x > x1 + p || y < y0 - p || y > y1 + p) continue;
             const tv = tone(x, y);
             if (tv <= 0.01) continue;
-            const r = Math.sqrt(Math.min(1, tv) / Math.PI) * p * 1.02;
+            const r = Math.sqrt(Math.min(1.6, tv) / Math.PI) * p * (o.gain ?? 1.02);
             g.moveTo(x + r, y); g.arc(x, y, r, 0, 6.2832);
         }
         g.fill();
     };
-    return { T, px, conic, dots, path, poly, disc, ell, ringS, fillWith, inside, blobPath, blob, curve, taper, spline, speckle, wob, arcs };
+    // a tone field: shapes drawn once (drawFn(g) in reference px, alpha = tone) on a small
+    // canvas, blurred by `soft` px; returns tone(x, y). Cached by key (deterministic).
+    const FIELDS = {};
+    const field = (key, drawFn, soft = 0, res = 0.25) => {
+        if (!FIELDS[key]) {
+            const n = Math.round(1080 * res), c = document.createElement('canvas'); c.width = c.height = n;
+            const g = c.getContext('2d'); g.scale(res, res); if (soft) g.filter = `blur(${soft * res}px)`; drawFn(g);
+            const D = g.getImageData(0, 0, n, n).data;
+            FIELDS[key] = (x, y) => { const i = Math.min(n - 1, Math.max(0, Math.round(x * res))), j = Math.min(n - 1, Math.max(0, Math.round(y * res))); return D[(j * n + i) * 4 + 3] / 255; };
+        }
+        return FIELDS[key];
+    };
+    // a lattice measured on the reference: [pitch px, angle rad, origin x, origin y]
+    const lat = (L, tone, g, box = [0, 0, 1080, 1080], o = {}) => dots(g, ...box, tone, { pitch: L[0], angle: L[1], origin: [L[2], L[3]], ...o });
+    // piecewise-linear tone table [[y, v], …] → v(y)
+    const lerpT = (st, y) => { if (y <= st[0][0]) return st[0][1]; for (let i = 1; i < st.length; i++) if (y <= st[i][0]) { const [a, va] = st[i - 1], [b, vb] = st[i]; return va + (vb - va) * (y - a) / (b - a); } return st[st.length - 1][1]; };
+    return { T, px, conic, dots, lat, lerpT, field, voids, path, poly, disc, ell, ringS, fillWith, inside, blobPath, blob, curve, taper, spline, speckle, wob, arcs };
 })();
