@@ -108,6 +108,7 @@ to see its strip, files and the videos made with it.
 | [line](styles/line/) | a wobbling black line on white paper | approved |
 | [clay](styles/clay/) | 2D plasticine: bevels, fingerprints, soft shadows | in testing |
 | [clay3d](styles/clay3d/) | 3D plasticine puppets, raymarched, studio light | in testing |
+| [risograph](styles/risograph/) | four spot inks, halftone, overprints, misregistration | in testing |
 
 ![paper-cutout](styles/paper-cutout/strip.jpg)
 ![70s-poster](styles/70s-poster/strip.jpg)
@@ -116,6 +117,7 @@ to see its strip, files and the videos made with it.
 ![line](styles/line/strip.jpg)
 ![clay](styles/clay/strip.jpg)
 ![clay3d](styles/clay3d/strip.jpg)
+![risograph](styles/risograph/strip.jpg)
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 

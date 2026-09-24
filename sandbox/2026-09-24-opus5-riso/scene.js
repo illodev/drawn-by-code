@@ -1,37 +1,27 @@
-// 2026-09-24-opus5-riso · style paper-cutout
+// 2026-09-24-opus5-riso · a 1:1 study (not published as ours) of a risograph-printed film
+// (references/opus5-risograph.mp4, author to be credited): illustrations open one inside the
+// other in circles round a blue dot, a mosaic of all of them, orbits, «opus 5 · claude».
+// Style test first: the lighthouse card, printed by styles/risograph (Riso).
+const DIR = 'sandbox/2026-09-24-opus5-riso/';
 Motion.scene({
     fps: 24,
-    duration: 28,
+    duration: 2,
     logical: [1000, 1000],
-    uses: ['styles/paper-cutout/paper.js', 'styles/paper-cutout/kit.js'],
-    fonts: [{ family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' }],
-    bpm: 120,
-    shots: [[0, 4, 'Template']],
-
+    uses: ['styles/risograph/riso.js', DIR + 'cards/lighthouse.js'],
+    shots: [[0, 2, 'Lighthouse']],
     setup(env) {
-        return { kit: PaperKit.make(env, { font: 'Hand' }) };
+        return { press: Riso.press(env) };
     },
-
     draw(g, t, env) {
-        const { kit } = env.state, P = Paper, E = Ease, C = kit.COL;
-        kit.paperBg(g, 'pared', C.wall);
-        kit.glow(g, 800, 380, 260);
-
-        // the piece drops with a bounce on the first beat and breathes afterwards
-        const drop = E.back(E.seg(t, 0.2, 0.8));
-        const breathe = 1 + Math.sin(t * 2.6) * 0.012;
-        g.save();
-        g.translate(800, E.lerp(-300, 380, drop));
-        g.scale(breathe, 1 / breathe);
-        kit.sprite('estrella', { x: -200, y: -200, w: 400, h: 400 }, (c) => {
-            P.cutout(c, P.circleUnion([[0, -60, 110], [-90, 20, 90], [90, 20, 90], [0, 60, 120]]), C.orange, 'nube', { border: 3.2 });
-        }).draw(g);
-        g.restore();
-
-        kit.title(g, t, 1.5, 'An idea, on paper.', 800, 760, 72, C.cream, C.orange, { align: 'center', dur: 0.8 });
-    },
-
-    post(ctx, t, env) {
-        env.state.kit.grainPost(ctx);
+        const { press } = env.state, d = Math.floor(t * 12 + 1e-6);
+        press.begin(d);
+        CARDS.lighthouse(press, d / 12);
+        // the blue dot at the centre, on top of everything
+        const n = press.plate('navy');
+        n.fillStyle = Riso.tone(1);
+        n.beginPath();
+        n.arc(500, 500, 9, 0, 7);
+        n.fill();
+        press.print(g, { key: d });
     },
 });
