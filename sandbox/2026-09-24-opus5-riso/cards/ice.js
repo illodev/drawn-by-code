@@ -36,7 +36,7 @@ CARDS.ice = (press, t) => {
     U.lattice(blue, LN, (m) => {
         m.fillStyle = T(0.76); m.fillRect(-20, -20, 1040, 1040);
         for (const [x, y, rx, ry, v] of [[330, 150, 260, 120, 0.3], [260, 330, 160, 120, 0.25], [60, 560, 200, 260, 0.3], [700, 900, 500, 220, 0.3], [150, 1000, 250, 100, 0.3]]) blob(m, x, y, rx, ry, v);
-        glow(m, 0.3, 0.05, 150, 'destination-out');
+        glow(m, 0.3, 0.05, 150, 'destination-out'); glow(m, 0.75, 0.3, 70, 'destination-out');
     }, { gain: 1 });
     // navy: dark pools (left, top right, the whole bottom), light ice between; the deepest
     // pools print nearly flat (a solid under the dots, so they don't read as a busy screen)
@@ -50,7 +50,7 @@ CARDS.ice = (press, t) => {
     U.lattice(pink, LPk, (m) => {
         m.fillStyle = T(0.14); m.fillRect(-20, -20, 1040, 1040);
         for (const [x, y, rx, ry, v] of [[540, 930, 620, 250, 0.55], [120, 700, 260, 240, 0.45], [820, 50, 150, 110, 0.6], [30, 400, 120, 100, 0.5], [880, 780, 180, 120, 0.4]]) blob(m, x, y, rx, ry, v);
-        for (let i = 0; i <= 12; i++) { const f = 0.6 + i / 30, x = 1035 + (45 - 1035) * f, y = 250 + (900 - 250) * f; blob(m, x - 30, y + 70, 130, 90, 0.45, -0.58); }
+        for (let i = 0; i <= 12; i++) { const f = 0.6 + i / 30, x = 1035 + (45 - 1035) * f, y = 250 + (900 - 250) * f; blob(m, x - 30, y + 70, 130, 90, 0.3, -0.58); }
     });
     // yellow: the glow, 0.8 at the upper right thinning to 0.35 at the lower left
     // (yellow coverage per 90 px column, fitted on the reference: the band's centre and peak)
@@ -88,7 +88,7 @@ CARDS.ice = (press, t) => {
     const trailPath = new Path2D();
     for (const [x, y, rx, ry] of bubbles) for (let k = 1; k <= 3; k++) { const cx = px(x), cy = px(y + k * ry * 1.7), ex = px(rx) * (1 - k * 0.08), ey = px(ry) * 0.9; trailPath.moveTo(cx + ex, cy); trailPath.ellipse(cx, cy, ex, ey, 0, 0, 7); }
     const big = tdots(2.6), small = tdots(1.3);
-    for (const [g, p, op] of [[navy, big, 'destination-out'], [blue, big, 'destination-out'], [yellow, big, 'destination-out'], [pink, small, 'source-over']]) { g.save(); g.clip(trailPath); g.globalCompositeOperation = op; g.fillStyle = T(1); g.fill(p); g.restore(); }
+    for (const [g, p, op] of [[navy, big, 'destination-out'], [blue, big, 'destination-out'], [yellow, big, 'destination-out'], [pink, small, 'destination-out']]) { g.save(); g.clip(trailPath); g.globalCompositeOperation = op; g.fillStyle = T(1); g.fill(p); g.restore(); }
     press.knockout((g) => { for (const [x, y, rx, ry] of bubbles) { g.beginPath(); g.ellipse(px(x), px(y), px(rx), px(ry), 0, 0, 7); g.fill(); } });
     // a blue rim under each disc (its lower edge)
     for (const [x, y, rx, ry] of bubbles) { blue.save(); blue.lineWidth = 1.4; blue.strokeStyle = T(0.8); blue.beginPath(); blue.ellipse(px(x), px(y) + 1, px(rx), px(ry), 0, 0.3, Math.PI - 0.3); blue.stroke(); blue.restore(); }
@@ -105,12 +105,18 @@ CARDS.ice = (press, t) => {
     // (each crack jagged once; the white of all of them knocked out in one pass)
     const jags = cracks.map(([pts, w]) => {
         const q = P(pts), rj = Motion.rng('crk' + pts[0][0] + pts[0][1]);
-        const jag = []; q.forEach(([x, y], i) => { jag.push([x, y]); if (i < q.length - 1) { const [x2, y2] = q[i + 1]; jag.push([(x + x2) / 2 + (rj() - 0.5) * 6, (y + y2) / 2 + (rj() - 0.5) * 6]); } });
+        const jag = []; q.forEach(([x, y], i) => { jag.push([x, y]); if (i < q.length - 1) { const [x2, y2] = q[i + 1]; for (const f of [0.25, 0.5, 0.75]) jag.push([x + (x2 - x) * f + (rj() - 0.5) * 7, y + (y2 - y) * f + (rj() - 0.5) * 7]); } });
         U.stroke(blue, jag.map(([x, y]) => [x + 2, y + 2]), w * 2.8 + 1.4, T(0.9));
         return [jag, w];
     });
     press.knockout((g) => { for (const [jag, w] of jags) U.stroke(g, jag, w * 2.8); });
     for (const [jag, w] of jags) U.stroke(blue, jag, w * 0.35, T(0.6));
+    // hairline fractures branching off the main cracks (measured at 2×: 1–1.5 px white lines,
+    // 20–90 px long, jagged, in little fans where cracks meet)
+    { const rh = Motion.rng('icehair'), hp = new Path2D();
+      for (const [jag, w] of jags) { if (w < 2.5) continue; for (let i = 2; i < jag.length - 2; i += 2) { if (rh() < 0.45) continue; let [x, y] = jag[i]; const [xa, ya] = jag[i - 1], [xb, yb] = jag[i + 1], a0 = Math.atan2(yb - ya, xb - xa) + (rh() < 0.5 ? 1 : -1) * (0.5 + rh() * 0.8), L = 20 + rh() * 70; hp.moveTo(x, y); let a = a0; for (let k = 0; k < 6; k++) { a += (rh() - 0.5) * 0.8; x += Math.cos(a) * L / 6; y += Math.sin(a) * L / 6; hp.lineTo(x, y); } } }
+      press.knockout((g) => { g.lineWidth = 1.3; g.lineJoin = 'round'; g.stroke(hp); });
+      blue.save(); blue.translate(1.2, 1.2); blue.lineWidth = 1; blue.strokeStyle = T(0.6); blue.stroke(hp); blue.restore(); }
 
     // the bank: top-left corner, paper with a ragged stippled edge and a blue line along it
     // (the snow's lower edge measured bottom-up per 30 px column: (0, 312) … (150, 186); the solid
@@ -120,13 +126,21 @@ CARDS.ice = (press, t) => {
     press.knockout((g) => { const rsn = Motion.rng('icesn'); for (let i = 0; i < 1400; i++) { const f = rsn(), x = px(420) * (1 - f), y = px(300) * f, o = rsn() * rsn() * 34; g.beginPath(); g.arc(x + o * 0.6, y + o * 0.8, 1.2 + rsn() * 2.2 * (1 - o / 40), 0, 7); g.fill(); } });
     U.stroke(blue, P([[0, 290], [60, 262], [150, 215], [240, 160], [320, 105], [380, 62], [430, 20], [452, 0]]), 2.2, T(0.9));
     U.stroke(blueS, P([[0, 275], [150, 200], [320, 92], [440, 5]]), 10, T(0.35));
-    // grass blades on the bank: dark green (navy + yellow) curves
-    const rg = Motion.rng('icegr');
-    for (let i = 0; i < 16; i++) {
-        const f = 0.12 + rg() * 0.75, bx = px(440) * (1 - f) - 12, by = px(300) * f - 10, h = 60 + rg() * 90, lean = 20 + rg() * 45;
-        const pts = []; for (let k = 0; k <= 6; k++) { const q = k / 6; pts.push([bx + lean * q * q, by - h * q]); }
-        U.stroke(navy, pts, 3.6, T(0.9)); U.stroke(yellow, pts, 5, T(0.9)); U.stroke(blue, pts.map(([x, y]) => [x + 1.5, y]), 1.4, T(0.8));
-    }
+    // grass blades on the bank (measured at 2×): tapered blades 4–6 px at the base with a
+    // hooked tip, dark olive (navy over yellow) with a bright yellow lit edge on one side
+    { const rg = Motion.rng('icegr'), dk = new Path2D(), lt = new Path2D();
+      for (let i = 0; i < 18; i++) {
+          const f = 0.25 + rg() * 0.72, bx = px(430) * (1 - f) - 10, by = px(300) * f - 8, h = 70 + rg() * 90, lean = (rg() - 0.3) * 50, hook = (rg() - 0.5) * 30;
+          const L = [], Rr = [];
+          for (let k = 0; k <= 10; k++) { const q = k / 10, x = bx + lean * q * q + hook * Math.max(0, q - 0.7) ** 2 * 10, y = by - h * q, hw = 2.6 * (1 - q) ** 0.7 + 0.3; L.push([x - hw, y]); Rr.unshift([x + hw, y]); }
+          [...L, ...Rr].forEach(([x, y], k) => (k ? dk.lineTo(x, y) : dk.moveTo(x, y))); dk.closePath();
+          L.forEach(([x, y], k) => (k ? lt.lineTo(x + 0.6, y) : lt.moveTo(x + 0.6, y)));
+      }
+      for (const g of [pink, blue]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fill(dk); g.restore(); }
+      yellow.fillStyle = T(1); yellow.fill(dk); navy.fillStyle = T(0.85); navy.fill(dk);
+      navy.save(); navy.globalCompositeOperation = 'destination-out'; navy.lineWidth = 1.2; navy.strokeStyle = T(1); navy.stroke(lt); navy.restore(); }
+    // pink specks on the snow
+    U.speckle(pink, [0, 0, px(420), px(280)], 60, 0.6, 1.4, 'icesnp', T(1), (x, y) => x * 300 / 420 + y < px(290));
     // a small twinkle on twos in the glow
     if (d % 2) press.knockout((g) => { g.beginPath(); g.arc(px(790), px(420), 2.5, 0, 7); g.fill(); });
 };
