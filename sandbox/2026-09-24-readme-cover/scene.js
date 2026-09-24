@@ -111,11 +111,11 @@ function tile(g, env, tl, x, y, rot, [sx, sy] = [1, 1]) {
 // her right hand holding a tile by its top edge ('hold': thumb in front, fingers behind),
 // the knitted sleeve going off the top right
 function heldTile(g, env, tl, x, y, rot) {
-    const D = PaperDetail, S = 112, hr = Math.PI + 0.32 + rot * 0.5; // fingers down-left, the forearm up-right
+    const D = PaperDetail, S = 112, hr = Math.PI + 1.05 + rot * 0.5; // the thumb points down over the tile's face, fingers behind it to the left, the forearm off to the right
     const [ax, ay] = D.handAnchor('hold'), mir = 'right' !== D.HAND_VIEW.hold, k = S / 60;
     const lx = (mir ? -ax : ax) * k, ly = ay * k;
     // the tile's top edge, a little in from its left
-    const ex = x - 20 * Math.cos(rot) + (COVER_TILES.TH / 2 - 16) * Math.sin(rot), ey = y - 20 * Math.sin(rot) - (COVER_TILES.TH / 2 - 16) * Math.cos(rot);
+    const ex = x + 10 * Math.cos(rot) + (COVER_TILES.TH / 2 - 26) * Math.sin(rot), ey = y + 10 * Math.sin(rot) - (COVER_TILES.TH / 2 - 26) * Math.cos(rot);
     const wx = ex - (lx * Math.cos(hr) - ly * Math.sin(hr)), wy = ey - (lx * Math.sin(hr) + ly * Math.cos(hr));
     // the sleeve: from the wrist back along the forearm, off the frame
     const fa = hr + Math.PI / 2; // local +y: from the wrist back up the forearm
