@@ -38,7 +38,9 @@ CARDS.ice = (press, t) => {
         for (const [x, y, rx, ry, v] of [[330, 150, 260, 120, 0.3], [260, 330, 160, 120, 0.25], [60, 560, 200, 260, 0.3], [700, 900, 500, 220, 0.3], [150, 1000, 250, 100, 0.3]]) blob(m, x, y, rx, ry, v);
         glow(m, 0.3, 0.05, 150, 'destination-out');
     }, { gain: 1 });
-    // navy: dark pools (left, top right, the whole bottom), light ice between
+    // navy: dark pools (left, top right, the whole bottom), light ice between; the deepest
+    // pools print nearly flat (a solid under the dots, so they don't read as a busy screen)
+    for (const [x, y, rx, ry, v] of [[60, 470, 190, 330, 0.7], [860, 60, 190, 140, 0.7], [760, 950, 520, 230, 0.45], [330, 1030, 330, 120, 0.5], [30, 860, 120, 110, 0.5]]) blob(navy, x, y, rx, ry, v);
     U.lattice(navy, LN, (m) => {
         m.fillStyle = T(0.24); m.fillRect(-20, -20, 1040, 1040);
         for (const [x, y, rx, ry, v] of [[60, 470, 190, 330, 1.6], [860, 60, 190, 140, 1.5], [760, 950, 520, 230, 0.55], [330, 1030, 330, 120, 0.7], [30, 860, 120, 110, 0.9], [300, 700, 200, 110, 0.35], [400, 180, 240, 110, 0.55], [230, 240, 150, 90, 0.4], [560, 760, 170, 90, 0.7]]) blob(m, x, y, rx, ry, v);
@@ -70,11 +72,23 @@ CARDS.ice = (press, t) => {
         // bottom-right
         [775, 753, 30, 13], [690, 797, 20, 10], [698, 862, 30, 14], [728, 890, 20, 9], [755, 912, 22, 10], [722, 935, 30, 12], [720, 957, 34, 14], [885, 832, 28, 12], [912, 850, 18, 9], [936, 880, 26, 12], [920, 910, 26, 12], [884, 940, 18, 9],
     ];
-    const trail = (m) => { for (const [x, y, rx, ry] of bubbles) for (let k = 1; k <= 3; k++) { m.beginPath(); m.ellipse(px(x), px(y + k * ry * 1.7), px(rx) * (1 - k * 0.08), px(ry) * 0.9, 0, 0, 7); m.fill(); } };
     // the trails: the navy lifted through a mask of coarse dots, pink dots peeking in
     const tboxes = bubbles.map(([x, y, rx, ry]) => [px(x - rx), px(y), px(x + rx), px(y + ry * 6.2)]);
-    U.masked([[navy, 'destination-out'], [blue, 'destination-out'], [yellow, 'destination-out']], trail, (m) => U.dots(m, tboxes, 7.56 / 1.08, 2.6, 1.36));
-    U.masked([[pink]], trail, (m) => U.dots(m, tboxes, 7.56 / 1.08, 1.3, 1.36));
+    // coarse dots on the ice's own 7.56 px screen, only inside the trail boxes; one Path2D per
+    // dot size, filled through a clip of the trails (no scratch canvas: this runs every drawing)
+    const tdots = (r) => {
+        const [ax, ay] = LN.a, [bx, by] = LN.b, det = ax * by - ay * bx, p = new Path2D();
+        for (const [x0, y0, x1, y1] of tboxes) {
+            const cs = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([x, y]) => { const X = x * 1.08 - LN.o[0], Y = y * 1.08 - LN.o[1]; return [(X * by - Y * bx) / det, (ax * Y - ay * X) / det]; });
+            const i0 = Math.floor(Math.min(...cs.map((c) => c[0]))), i1 = Math.ceil(Math.max(...cs.map((c) => c[0]))), j0 = Math.floor(Math.min(...cs.map((c) => c[1]))), j1 = Math.ceil(Math.max(...cs.map((c) => c[1])));
+            for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const x = (LN.o[0] + i * ax + j * bx) / 1.08, y = (LN.o[1] + i * ay + j * by) / 1.08; if (x < x0 || x > x1 || y < y0 || y > y1) continue; p.moveTo(x + r, y); p.arc(x, y, r, 0, 6.2832); }
+        }
+        return p;
+    };
+    const trailPath = new Path2D();
+    for (const [x, y, rx, ry] of bubbles) for (let k = 1; k <= 3; k++) { const cx = px(x), cy = px(y + k * ry * 1.7), ex = px(rx) * (1 - k * 0.08), ey = px(ry) * 0.9; trailPath.moveTo(cx + ex, cy); trailPath.ellipse(cx, cy, ex, ey, 0, 0, 7); }
+    const big = tdots(2.6), small = tdots(1.3);
+    for (const [g, p, op] of [[navy, big, 'destination-out'], [blue, big, 'destination-out'], [yellow, big, 'destination-out'], [pink, small, 'source-over']]) { g.save(); g.clip(trailPath); g.globalCompositeOperation = op; g.fillStyle = T(1); g.fill(p); g.restore(); }
     press.knockout((g) => { for (const [x, y, rx, ry] of bubbles) { g.beginPath(); g.ellipse(px(x), px(y), px(rx), px(ry), 0, 0, 7); g.fill(); } });
     // a blue rim under each disc (its lower edge)
     for (const [x, y, rx, ry] of bubbles) { blue.save(); blue.lineWidth = 1.4; blue.strokeStyle = T(0.8); blue.beginPath(); blue.ellipse(px(x), px(y) + 1, px(rx), px(ry), 0, 0.3, Math.PI - 0.3); blue.stroke(); blue.restore(); }
@@ -88,13 +102,15 @@ CARDS.ice = (press, t) => {
         [[[650, 700], [690, 720], [720, 690]], 1.2], [[[560, 800], [580, 820], [560, 880]], 1.1], [[[900, 680], [960, 620], [1040, 640]], 1.2], [[[330, 440], [320, 400], [340, 360]], 1], [[[160, 900], [140, 860]], 1],
         [[[620, 740], [590, 700], [560, 690]], 1], [[[1000, 375], [1040, 330], [1080, 320]], 1.2],
     ];
-    for (const [pts, w] of cracks) {
+    // (each crack jagged once; the white of all of them knocked out in one pass)
+    const jags = cracks.map(([pts, w]) => {
         const q = P(pts), rj = Motion.rng('crk' + pts[0][0] + pts[0][1]);
         const jag = []; q.forEach(([x, y], i) => { jag.push([x, y]); if (i < q.length - 1) { const [x2, y2] = q[i + 1]; jag.push([(x + x2) / 2 + (rj() - 0.5) * 6, (y + y2) / 2 + (rj() - 0.5) * 6]); } });
         U.stroke(blue, jag.map(([x, y]) => [x + 2, y + 2]), w * 2.8 + 1.4, T(0.9));
-        press.knockout((g) => U.stroke(g, jag, w * 2.8));
-        U.stroke(blue, jag, w * 0.35, T(0.6));
-    }
+        return [jag, w];
+    });
+    press.knockout((g) => { for (const [jag, w] of jags) U.stroke(g, jag, w * 2.8); });
+    for (const [jag, w] of jags) U.stroke(blue, jag, w * 0.35, T(0.6));
 
     // the bank: top-left corner, paper with a ragged stippled edge and a blue line along it
     // (the snow's lower edge measured bottom-up per 30 px column: (0, 312) … (150, 186); the solid

@@ -78,7 +78,7 @@ CARDS.dunes = (press, t) => {
     face(S1, [[pink, 0.9], [blueS, 0.8], [blue, 0.35], [navyS, 0.2]]);
     face(Rd, [[pink, 0.9], [yellow, 0.8], [navyS, 0.22]]);
     face(S2, [[pink, 0.9], [blueS, 0.8], [blue, 0.4]]);
-    face(Bd, [[pink, 0.95], [yellow, 0.9], [yellowS, 0.3]]);
+    face(Bd, [[pink, 0.95], [yellow, 0.9], [yellowS, 0.3], [navyS, 0.05]]);
     // a warm glow on the front dune (lighter to the left)
     U.clipped(pinkS, Bd, (g) => { g.fillStyle = R.radial(g, px(200), px(1000), 10, 400, 0.4, 0); g.fillRect(0, 0, 1000, 1000); });
 

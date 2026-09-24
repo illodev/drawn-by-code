@@ -30,7 +30,7 @@ CARDS.savanna = (press, t) => {
         m.globalCompositeOperation = 'destination-out'; m.fillStyle = T(0.8); m.fillRect(-20, px(845), 1040, 400); m.globalCompositeOperation = 'source-over';
         m.globalCompositeOperation = 'destination-out';
         const gl = m.createRadialGradient(px(745), px(690), 0, px(745), px(690), px(330));
-        gl.addColorStop(0, T(1)); gl.addColorStop(0.3, T(0.92)); gl.addColorStop(0.65, T(0.45)); gl.addColorStop(1, T(0));
+        gl.addColorStop(0, T(0.84)); gl.addColorStop(0.3, T(0.8)); gl.addColorStop(0.65, T(0.45)); gl.addColorStop(1, T(0));
         m.fillStyle = gl; m.save(); m.translate(0, px(690)); m.scale(1, 0.75); m.translate(0, -px(690)); m.fillRect(-20, -200, 1040, 1600); m.restore();
     });
 
@@ -77,8 +77,11 @@ CARDS.savanna = (press, t) => {
     const inside = (p, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c; } return c; };
     for (const [g, v, share] of [[navy, 0.72, 1], [blue, 0.5, 0.55]]) {
         const r2 = Motion.rng('svmur2');
+        // (filled in batches: one path of thousands of overlapping subpaths is slow to fill)
         g.fillStyle = T(v); g.beginPath();
+        let nb = 0;
         for (const s of specks) {
+            if (++nb % 120 === 0) { g.fill(); g.beginPath(); }
             const a = r2() * 6.28, len = 2.2 + r2() * 3.4, w = 0.9 + r2() * 0.9, pick = r2();
             if (s[2] && !inside(s, s[2])) continue;
             if (pick > share) continue;
@@ -172,6 +175,8 @@ CARDS.savanna = (press, t) => {
         }
         h.globalCompositeOperation = 'destination-out'; h.fillStyle = T(1); crests(h, 1.05);
     });
+    // red flecks in the field (the reference's field carries a sparse pink screen)
+    U.clipped(press.plate('pink', 'screen'), field, (h) => { h.fillStyle = T(0.07); h.fillRect(-20, 0, 1040, 1100); });
     // the far band's navy tint (olive)
     U.clipped(press.plate('navy', 'screen'), P([[-20, 830], [560, 830], [560, 866], [-20, 927]]), (h) => { h.fillStyle = T(0.22); h.fillRect(-20, 0, 1040, 1100); });
     press.restore();

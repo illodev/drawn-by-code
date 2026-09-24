@@ -43,7 +43,6 @@ CARDS.mountains = (press, t) => {
         m.fillStyle = T(0.27); m.fillRect(-20, -20, 1040, 580);
         m.fillStyle = R.radial(m, SUN[0], SUN[1], 40, 390, 0.85, 0); m.beginPath(); m.arc(SUN[0], SUN[1], 380, 0, 7); m.fill();
     });
-    yellow.fillStyle = R.radial(yellow, SUN[0], SUN[1], 70, 200, 0.9, 0); yellow.beginPath(); yellow.arc(SUN[0], SUN[1], 200, 0, 7); yellow.fill();
     // the sun rings: thin yellow lines, a little wobbly, the upper part only
     for (const [rr, w] of [[100, 3], [160, 3], [230, 2.8], [322, 2.6]]) {
         pinkL.save(); pinkL.globalCompositeOperation = 'destination-out';

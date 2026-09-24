@@ -19,8 +19,8 @@ CARDS.snowflake = (press, t) => {
     navy.fillStyle = vr(navy, [[0, 0.95], [270, 0.93], [350, 0], [1080, 0]]); navy.fillRect(0, 0, 1000, 1000);
     U.lattice(navy, LS, (m) => { m.fillStyle = vr(m, [[0, 0], [450, 0.05], [600, 0.15], [720, 0.5], [810, 0.38], [900, 0.3], [1080, 0.38]]); m.fillRect(-20, -20, 1040, 1040); });
     U.lattice(blue, LS, (m) => { m.fillStyle = vr(m, [[0, 0.1], [270, 0.35], [360, 0.95], [500, 0.8], [630, 0.55], [720, 0.1], [1080, 0]]); m.fillRect(-20, -20, 1040, 1040); });
-    U.lattice(pink, LS, (m) => { m.fillStyle = vr(m, [[0, 0.3], [270, 0.35], [360, 0.88], [450, 0.98], [1080, 1]]); m.fillRect(-20, -20, 1040, 1040); });
-    pink.fillStyle = vr(pink, [[0, 0], [380, 0], [460, 0.9], [1080, 0.92]]); pink.fillRect(0, 0, 1000, 1000);
+    U.lattice(pink, LS, (m) => { m.fillStyle = vr(m, [[0, 0.3], [270, 0.35], [360, 0.88], [450, 0.98], [520, 1], [1080, 1]]); m.fillRect(-20, -20, 1040, 1040); }, { max: 0.995 });
+    pink.fillStyle = vr(pink, [[0, 0], [380, 0], [460, 0.9], [520, 0.95], [1080, 0.95]]); pink.fillRect(0, 0, 1000, 1000);
     U.lattice(yellow, LS, (m) => { m.fillStyle = vr(m, [[0, 0], [740, 0], [810, 0.22], [900, 0.48], [1080, 0.65]]); m.fillRect(-20, -20, 1040, 1040); });
 
     // dark navy blobs (shadows of the ghost flakes) top right
