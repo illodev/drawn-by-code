@@ -39,3 +39,8 @@ real photos of desks) and fill the frame in depth.
   and a payment note on the form (both on the client's site).
 - Plane darker against the cream wall; calendar months and weekdays from the brand copy.
 - `review.mjs`: no warnings.
+
+## Style test · round 4 (user)
+
+> «¡Ese es el nivel!» — the style test is approved: Laura, the paper UI, the office, the
+> hands and the titles are locked. Every block of the edit is held to this bar.
