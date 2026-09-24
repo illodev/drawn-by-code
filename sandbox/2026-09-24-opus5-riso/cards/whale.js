@@ -21,8 +21,8 @@ CARDS.whale = (press, t) => {
     // [top-left, top-right, a left point, a right point, yellow tone stops (by y / y1), y1];
     // tones solved from 30 px means along each shaft (yellow + blue, the blue thinned inside)
     const SHAFTS = [
-        [[0, 0], [90, 0], [118, 450], [205, 450], [[0, 0.36], [0.5, 0.48], [0.68, 0.31], [0.87, 0.24], [1, 0]], 620],
-        [[126, 0], [216, 0], [300, 600], [372, 600], [[0, 0.62], [0.37, 0.6], [0.52, 0.63], [0.67, 0.48], [0.85, 0.3], [1, 0]], 820],
+        [[0, 0], [90, 0], [118, 450], [205, 450], [[0, 0.5], [0.45, 0.5], [0.6, 0.33], [0.78, 0.25], [1, 0]], 720],
+        [[126, 0], [216, 0], [300, 600], [372, 600], [[0, 0.75], [0.35, 0.62], [0.5, 0.63], [0.63, 0.48], [0.8, 0.32], [1, 0]], 880],
         [[643, 0], [740, 0], [790, 450], [865, 450], [[0, 0.42], [0.48, 0.38], [0.68, 0.33], [0.87, 0.25], [1, 0]], 620],
         [[830, 0], [912, 0], [990, 560], [1075, 560], [[0, 0.48], [0.47, 0.39], [0.66, 0.34], [0.84, 0.45], [1, 0]], 640],
     ];
@@ -35,20 +35,30 @@ CARDS.whale = (press, t) => {
         ramp(g, [[0, 0.38], [0.11, 0.43], [0.22, 0.49], [0.28, 0.55], [0.33, 0.61], [0.39, 0.67], [0.44, 0.73], [0.5, 0.8], [0.56, 0.87], [0.61, 0.92], [0.7, 0.97], [0.8, 1]]);
         // the light thins the blue inside the shafts
         g.globalCompositeOperation = 'destination-out';
-        for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], [[0, 0.04], [1, 0]]); shaftPath(g, sh); g.fill(); }
+        for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], [[0, 0.22], [0.3, 0.1], [0.5, 0]]); shaftPath(g, sh); g.fill(); }
         g.globalCompositeOperation = 'source-over';
-    }, { mode: 'holes', jit: 0.2, pj: 0.03, edge: 0.7, also: [{ ink: 'navy', mask: (g) => ramp(g, [[0.3, 0], [0.54, 0.1], [0.65, 0.15], [1, 0.15]]) }] });
+    }, { mode: 'holes', jit: 0.2, pj: 0.03, edge: 0.7, also: [{ ink: 'navy', mask: (g) => { ramp(g, [[0.3, 0], [0.54, 0.1], [0.65, 0.15], [1, 0.15]]); g.globalCompositeOperation = 'destination-out'; g.fillStyle = U.lin(g, 0, 0, 540, 0, [[0, 0.7], [1, 0]]); g.fillRect(-20, 500, 560, 420); g.globalCompositeOperation = 'source-over'; } }] });
     // the ink's grain: stray pink specks and paper pinholes in the water (seen at 4×)
     U.specks(pink, 'wh-w', 1400, [0, 300, 1080, 1080], 0.7, 1.6, 0.9);
     U.speckle(press, 'wh-w', 700, [0, 0, 1080, 1080], 0.6, 1.3);
     // the navy dots come in lower on the left (the water is lit under the left shafts)
-    U.screen(press, 'navy', LN, (g) => { g.fillStyle = U.lin(g, 620, 560, 400, 1160, [[0, 0], [0.12, 0.2], [0.5, 0.27], [1, 0.3]]); g.fillRect(-20, 500, 1120, 600); }, { box: [0, 540, 1080, 1080], jit: 0.3, pj: 0.08, edge: 0.7 });
+    U.screen(press, 'navy', LN, (g) => {
+        // start line y0(x) = 620 right of x = 540, dropping to 860 at the left edge
+        g.save(); g.beginPath(); g.moveTo(-20, 870); g.lineTo(540, 620); g.lineTo(1100, 620); g.lineTo(1100, 1100); g.lineTo(-20, 1100); g.closePath(); g.clip();
+        g.transform(1, Math.min(0, 0), 0, 1, 0, 0);
+        g.fillStyle = U.lin(g, 0, 620, 0, 1080, [[0, 0.12], [0.15, 0.22], [1, 0.27]]); g.fillRect(-20, 540, 1120, 560);
+        g.fillStyle = U.lin(g, 0, 0, 540, 0, [[0, 0.6], [1, 0]]); g.globalCompositeOperation = 'destination-out'; g.fillRect(-20, 540, 560, 380); g.fillStyle = U.lin(g, 0, 920, 0, 1000, [[0, 1], [1, 0]]); g.globalAlpha = 0.2; g.fillRect(-20, 920, 280, 80);
+        g.restore();
+    }, { box: [0, 540, 1080, 1080], jit: 0.3, pj: 0.08, edge: 0.7 });
     pink.fillStyle = U.lin(pink, 0, 850, 0, 1080, [[0, 0], [1, 0.1]]); pink.fillRect(0, 850, 1080, 230);
 
     // ── shafts of light: yellow dots on their own screen, fading downwards; fine paper
     // streaks along them. Edges from row scans: [top-left, top-right, bottom-left, bottom-right]
+    // soft-edged beams (the light spills 10–20 px past the measured edges)
     U.screen(press, 'yellow', LY, (g) => {
+        g.filter = 'blur(9px)';
         for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], sh[4]); shaftPath(g, sh); g.fill(); }
+        g.filter = 'none';
     });
     const rs = Motion.rng('wh-streak');
     press.knockout((g) => {
@@ -103,24 +113,27 @@ CARDS.whale = (press, t) => {
     const shape = (g) => { U.smooth(g, BODY, true, true); U.smooth(g, FLUKE, true, false); U.smooth(g, FIN, true, false); };
     press.knockout((g) => { shape(g); g.fill(); });
     // navy + pink (deep purple), a little blue; the head and the fluke more pink
-    navy.fillStyle = T(0.97); shape(navy); navy.fill();
+    navy.fillStyle = T(1); shape(navy); navy.fill();
     U.clip(navy, (g) => shape(g), (g) => {
         off(g, (h) => { h.fillStyle = U.rad(h, 60, 990, 0, 140, [[0, 0.95], [1, 0]]); h.fillRect(-20, 820, 240, 280); });
         off(g, (h) => { h.fillStyle = U.rad(h, 930, 630, 0, 120, [[0, 0.08], [1, 0]]); h.fillRect(800, 500, 260, 280); });
     });
-    pink.fillStyle = T(0.26); shape(pink); pink.fill();
+    pink.fillStyle = T(0.34); shape(pink); pink.fill();
     U.clip(pink, (g) => shape(g), (g) => {
         g.fillStyle = U.rad(g, 930, 630, 0, 140, [[0, 0.45], [1, 0]]); g.fillRect(780, 480, 300, 320);
         g.fillStyle = U.rad(g, 60, 990, 0, 140, [[0, 0.5], [1, 0]]); g.fillRect(-20, 820, 240, 280);
     });
     blue.fillStyle = T(0.15); shape(blue); blue.fill();
+    // the shafts light the body too (a green-teal glaze where they cross it)
+    U.screen(press, 'yellow', LY, (g) => { g.save(); shape(g); g.clip(); for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], sh[4].map(([o, v]) => [o, v * 0.7])); shaftPath(g, sh); g.fill(); } g.restore(); }, { box: [0, 560, 1080, 1080] });
+    U.clip(navy, (g) => shape(g), (g) => off(g, (h) => { for (const sh of SHAFTS) { h.fillStyle = U.lin(h, 0, 0, 0, sh[5], sh[4].map(([o, v]) => [o, v * 0.75])); shaftPath(h, sh); h.fill(); } }));
     U.clip(blue, (g) => shape(g), (g) => { g.fillStyle = U.rad(g, 60, 990, 0, 140, [[0, 0.85], [1, 0]]); g.fillRect(-20, 820, 240, 280); });
     // mottle: darker navy dots in the body (its own navy screen shows through)
-    U.screen(press, 'navy', LN, (g) => { shape(g); g.fillStyle = T(0.2); g.fill(); }, { box: [0, 560, 1080, 1080], op: 'source-over' });
+    U.screen(press, 'navy', LN, (g) => { shape(g); g.fillStyle = T(0.2); g.fill(); }, { box: [0, 560, 1080, 1080], op: 'source-over', jit: 0.3 });
 
     // the body's grain: dense pink specks, navy thinned in small blotches (mottled print)
     U.clip(pink, (g) => shape(g), (g) => U.specks(g, 'wh-b', 2600, [0, 560, 1010, 1080], 0.8, 1.9, 0.85));
-    U.clip(navy, (g) => shape(g), (g) => off(g, (h) => U.specks(h, 'wh-nb', 1800, [0, 560, 1010, 1080], 1, 2.6, 0.45)));
+    U.clip(navy, (g) => shape(g), (g) => off(g, (h) => U.specks(h, 'wh-nb', 700, [0, 560, 1010, 1080], 0.8, 1.8, 0.35)));
     U.clip(blue, (g) => shape(g), (g) => U.specks(g, 'wh-bb', 900, [0, 560, 1010, 1080], 0.8, 2, 0.8));
 
     // the stripe along the flank: navy thinned, blue shows (tapered brush)
