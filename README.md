@@ -31,6 +31,7 @@ The `animate` skill guides the process: brief → script → style test → anim
 | `liquid-light`: merging oil blobs, 60s light show projection | approved | [exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/) |
 | `kaleidoscope`: mirror symmetry, rotation, color cycling | approved | [exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/) |
 | `line`: wobbling black line on white paper | approved | [exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/) |
+| `clay`: plasticine, soft 3D, fingerprints, stop motion | in testing | [fube-clay](sandbox/2026-09-24-fube-clay/) |
 
 Replicating a reference video 1:1 (measuring tools, per-drawing choreography, element by
 element, parallel agents): the `replicate` skill and `engine/reference.mjs`; worked example
