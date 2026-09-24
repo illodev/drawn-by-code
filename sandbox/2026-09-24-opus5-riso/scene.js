@@ -40,7 +40,7 @@ const EDIT = [
     [12.25, 'full', 'balloons', { ring: true }], [12.375, 'full', 'cello'], [12.5, 'full', 'volcano'], [12.625, 'full', 'shell'],
     [12.75, 'full', 'dish'], [12.875, 'full', 'train'], [13.0, 'full', 'campfire'], [13.125, 'full', 'chimes'], [13.25, 'full', 'field'],
     [13.375, 'full', 'snowflake'], [13.5, 'full', 'mountains'], [13.625, 'full', 'aurora'], [13.75, 'full', 'savanna'],
-    [13.875, 'full', 'dunes'], [14.0, 'full', 'ice', { ring: true }],
+    [13.875, 'full', 'dunes'], [14.0, 'full', 'ice', { ring: true, ringFrom: 1 }],
     // the same cards again, re-inked, with a white ring
     [14.125, 'full', 'koi', { ring: true, inks: { blue: 'pink', pink: 'yellow', yellow: 'blue' } }],
     [14.25, 'full', 'grasshopper', { ring: true, inks: { navy: 'blue', yellow: 'yellow' } }],
@@ -100,7 +100,7 @@ Motion.scene({
             drawCard(press, card, lt, lf);
             if (o.zoom) press.restore();
             if (o.flip) press.restore();
-            if (o.ring) whiteRing(press, ld);
+            if (o.ring && lf >= (o.ringFrom ?? 0)) whiteRing(press, ld); // the ice gets the ring from its 2nd frame (337)
         }
         else if (kind === 'mosaic') mosaic(press, lt);
         ORBIT_DOT = null;
