@@ -5,7 +5,9 @@
 - **Purpose:** frame-by-frame replica exercise of a paper-cutout reference video, to measure
   how far the style and the engine go. **Internal use only:** it is someone else's work; it
   is not published as ours.
-- **Reference:** video supplied by the user (`out/reference.mp4`, not committed). Sheets every
+- **Reference:** [a video by Kevin Ngo](https://x.com/kevin_t_ngo/status/2102437977435893771)
+  ([@kevin_t_ngo](https://x.com/kevin_t_ngo)): the design and animation are his, this is a
+  study. Supplied by the user (`out/reference.mp4`, not committed). Sheets every
   0.25 s with `node engine/reference.mjs sheets out/reference.mp4`.
 - **On-screen text (literal):** «what do you love?», and in the montage: words, music, the
   sea, trees, dogs, bread, rain, math, the stars, octopus, tea, flowers, cats.

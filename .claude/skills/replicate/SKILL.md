@@ -5,7 +5,13 @@ description: How to replicate a reference video 1:1 (or study a style from one) 
 
 # Replicate a reference video
 
-Worked example: `sandbox/2026-09-24-what-do-you-love/` (a 28 s paper-cutout film, 2160²,
+**Credit the original.** A replica is a study of someone else's work: name the author and
+link the original in the experiment's `brief.md`, in `sandbox/INDEX.md` and wherever the
+replica is shown (the README's gallery). Keep the reference video and its soundtrack out of
+git (`out/`), and commit the replica's render without the original's audio (`-an`).
+
+Worked example: `sandbox/2026-09-24-what-do-you-love/`, a replica of [a video by Kevin Ngo](https://x.com/kevin_t_ngo/status/2102437977435893771)
+([@kevin_t_ngo](https://x.com/kevin_t_ngo)) (a 28 s paper-cutout film, 2160²,
 24 fps, animated on twos). Its whole-video difference went 29 → 22.6 (animatic) → 14.2
 (detail pass), and the user's verdict was «I have to zoom in to see differences». Its
 `review.md` tells the story round by round; `segments/README.md` explains how it is built.

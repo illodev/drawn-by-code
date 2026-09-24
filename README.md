@@ -12,6 +12,22 @@ experiment in `sandbox/` goes through an automatic review (real frames, determin
 rhythm, motion) and through human feedback. What is learned goes back into the skills, so
 every test improves the next one.
 
+## Why it is all public
+
+A lot of impressive AI-made videos get posted with no prompt, no skill and no word on how
+they were made. We respect that choice, but we think everyone would learn faster, and the
+field would grow faster, if that knowledge were public.
+
+So nothing here is hidden:
+- **Code:** the engine and every scene.
+- **Skills:** the ones that direct Claude, including their rules, checklists and pitfalls.
+- **The process:** every experiment's brief, its rounds of review with the feedback quoted
+  verbatim, and the lessons that came out of them.
+
+If a video here makes you want to try something, everything you need to make it, or to do
+it better, is in this repo. And if you publish a video made with AI, consider publishing
+how you made it too.
+
 ## Gallery
 
 **[saas-promo](sandbox/2026-09-24-saas-promo/)** · paper cutout · 50 s · [mp4](sandbox/2026-09-24-saas-promo/render/saas-promo.mp4)
@@ -21,8 +37,10 @@ agents on one brief, with music and sound effects.
 
 **[what-do-you-love](sandbox/2026-09-24-what-do-you-love/)** · paper cutout · 28 s · [mp4](sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.mp4)
 ![what-do-you-love](sandbox/2026-09-24-what-do-you-love/render/strip.jpg)
-A 1:1 replica of a reference video, measured drawing by drawing until the differences only
-show when zooming in (skill `replicate`).
+A 1:1 replica, made as a study, of [a paper-cutout video by Kevin Ngo](https://x.com/kevin_t_ngo/status/2102437977435893771)
+([@kevin_t_ngo](https://x.com/kevin_t_ngo)). The original design and animation are his. It
+was measured drawing by drawing until the differences only show when zooming in (skill
+`replicate`). His video also inspired the first version of the saas-promo.
 
 **[exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/)** · five styles · 30 s · [mp4](sandbox/2026-09-24-exquisite-corpse/render/exquisite-corpse.mp4)
 ![exquisite-corpse](sandbox/2026-09-24-exquisite-corpse/render/strip.jpg)
