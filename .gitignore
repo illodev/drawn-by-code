@@ -6,3 +6,7 @@ out/
 *.key
 styles/*/review/
 .claude/worktrees/
+
+# brand material of client experiments (copy, logos, fonts): never committed
+sandbox/*/private/
+sandbox/2026-09-24-saas-promo/review/*.jpg

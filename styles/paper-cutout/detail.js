@@ -486,6 +486,7 @@ const PaperDetail = (() => {
     // Mitten-style paper hands with a separate thumb (a piece of its own, like a real cutout).
     // Local coordinates: wrist at (0, 0), fingers pointing up (-y), size ≈ 1 palm = 60 units.
     // pose: 'open' (flat, thumb out), 'fist' (closed, thumb over the knuckles; holds a pencil),
+// 'point' (fist with the index finger out: pressing buttons),
     // 'pinch' (thumb pressed to the fingers; holds a paper edge), 'wave' (open, fingers apart).
     // o.skin, o.cuff (sleeve colour; draws a ribbed cuff at the wrist), o.mirror (left hand).
     function handShape(pose) {
@@ -494,6 +495,15 @@ const PaperDetail = (() => {
                 palm: spline([[-24, 2], [-30, -26], [-26, -52], [-4, -62], [20, -58], [30, -34], [26, -4], [4, 6]], 8),
                 thumb: spline([[-28, -26], [-12, -40], [10, -44], [16, -36], [0, -30], [-18, -18]], 6),
                 knuckles: [[[-18, -54], [-14, -60]], [[-4, -58], [0, -63]], [[10, -56], [14, -60]]],
+            };
+        }
+        if (pose === 'point') {
+            // a fist with the index finger out (its own piece, drawn over the palm)
+            return {
+                palm: spline([[-24, 2], [-30, -26], [-26, -52], [-4, -62], [20, -58], [30, -34], [26, -4], [4, 6]], 8),
+                thumb: spline([[-28, -26], [-12, -40], [10, -44], [16, -36], [0, -30], [-18, -18]], 6),
+                knuckles: [[[4, -56], [8, -61]], [[16, -52], [20, -57]]],
+                index: spline([[-18, -50], [-20, -86], [-16, -112], [-8, -118], [0, -112], [2, -86], [0, -52]], 6),
             };
         }
         if (pose === 'pinch') {
@@ -518,14 +528,15 @@ const PaperDetail = (() => {
     }
     function hand(g, x, y, size, rot, pose = 'open', o = {}) {
         const skin = o.skin ?? '#edc4a7', key = 'dhand:' + pose + skin + (o.cuff ?? '');
-        const sp = Motion.sprite(key, { x: -70, y: -100, w: 140, h: 160 }, (o.res ?? 3), (c) => {
+        const sp = Motion.sprite(key, { x: -70, y: -130, w: 140, h: 190 }, (o.res ?? 3), (c) => {
             const sh = handShape(pose);
             if (o.cuff) {
                 P.cutout(c, P.roundRect(-30, -4, 60, 48, 10), o.cuff, key + 'cuff', { border: 2, shadow: 0.15, inner: (cc, box) => rib(cc, box, o.cuff, { step: 5 }) });
             }
-            const thumbFront = pose === 'fist';
+            const thumbFront = pose === 'fist' || pose === 'point';
             if (!thumbFront) P.cutout(c, sh.thumb, skin, key + 'thumb', { border: 2, shadow: 0.12, tex: { alpha: [0.12, 0.25] } });
             P.cutout(c, sh.palm, skin, key + 'palm', { border: 2.2, shadow: 0.15, tex: { alpha: [0.12, 0.25] } });
+            if (sh.index) P.cutout(c, sh.index, skin, key + 'index', { border: 1.8, shadow: 0.14, tex: { alpha: [0.12, 0.25] } });
             if (thumbFront) P.cutout(c, sh.thumb, shade(skin, -4), key + 'thumb', { border: 1.4, shadow: 0.1, tex: { alpha: [0.12, 0.25] } });
             for (const [a, b] of sh.knuckles) P.markerStroke(c, [a, b], shade(skin, -12), 1.8, key + a[0], 0.55);
         });

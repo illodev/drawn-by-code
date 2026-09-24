@@ -27,7 +27,11 @@ Motion.scene({
 ```
 
 `env`: `W, H` (logical), `k`, `fps`, `duration`, `total`, `px: [width, height]`, `state`.
-Paths in `uses` and `fonts` are relative to the repo root.
+Paths in `uses` and `fonts` are relative to the repo root. An entry can be optional
+(`{ src: 'sandbox/x/private/brand.js', optional: true }`, fonts `{ family, src, optional:
+true }`): it is skipped when missing. That is how a client's brand material stays in the
+uncommitted `sandbox/*/private/` while the committed code still runs on a placeholder
+brand.
 
 Utilities in `engine/core.js`: `Motion.rng(seed)`, `noise1`, `sprite(key, box,
 scale, draw)`, `shotAt`, `pulse(t, bpm)`, `beatIndex`, `onBeat`, `cam(g, env, cx, cy,

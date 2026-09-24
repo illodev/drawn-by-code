@@ -43,11 +43,24 @@ const loadScript = (src) => new Promise((ok, ko) => {
     await loadScript(root + scenePath);
     const def = Motion.def;
     if (!def) return showErr('The scene did not call Motion.scene({...})');
-    for (const u of def.uses ?? []) await loadScript(root + u);
+    // uses: 'path' or { src, optional: true }; fonts: { family, src, optional? }.
+    // Optional entries (a client's private brand files, not committed) are skipped if absent.
+    for (const u of def.uses ?? []) {
+        const src = typeof u === 'string' ? u : u.src;
+        try {
+            await loadScript(root + src);
+        } catch (e) {
+            if (!(typeof u === 'object' && u.optional)) throw e;
+        }
+    }
     for (const f of def.fonts ?? []) {
-        const ff = new FontFace(f.family, `url(${root + f.src})`, f.descriptors ?? {});
-        await ff.load();
-        document.fonts.add(ff);
+        try {
+            const ff = new FontFace(f.family, `url(${root + f.src})`, f.descriptors ?? {});
+            await ff.load();
+            document.fonts.add(ff);
+        } catch (e) {
+            if (!f.optional) throw e;
+        }
     }
     const fps = def.fps ?? 24;
     const [W, H] = def.logical ?? [1600, 900];
