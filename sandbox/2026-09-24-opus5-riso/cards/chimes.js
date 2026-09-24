@@ -5,7 +5,7 @@
 // on paper with white rings of sound, a yellow beam of light across, pink-dot bushes below.
 // Authored in reference pixels (1080 frame) through G5.px. CARDS.chimes(press, t).
 var CARDS = CARDS || {};
-CARDS.chimes = (press, t) => {
+CARDS.chimes = (press, t, lf = Math.round(t * 24)) => {
     const R = Riso, T = R.tone, U = G5;
     const d = Math.floor(t * 12 + 1e-6);
     const P = (ink, k) => press.plate(ink, k);
@@ -15,30 +15,39 @@ CARDS.chimes = (press, t) => {
     const eraseIn = (plates, fn) => { for (const g of plates) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.strokeStyle = '#000'; g.beginPath(); fn(g); g.restore(); } };
     const dark = (pts, w, close = false) => { U.stroke(blue, pts, w, T(0.9), false); U.stroke(yel, pts, w, T(0.8), false); U.stroke(navy, pts, w, T(0.4), false); if (close) { U.stroke(blue, [pts[pts.length - 1], pts[0]], w, T(0.9)); U.stroke(yel, [pts[pts.length - 1], pts[0]], w, T(0.8)); } };
 
+    // screens (lattice fits, px at 1080): blue 10.8 px at 12°, the beam's yellow 10.8 px at 42°
+    const LB = { o: [43.5, 131.31], a: [-2.2372, 10.5561], b: [10.5712, 2.2383] };
+    const LY = { o: [940.66, 46.97], a: [7.9765, 7.2898], b: [-7.284, 7.9725] };
+    // the film weaves: the cut's first frame is the same print moved (−5, +6)
+    const [dx, dy] = [[-5, 6], [0, 0], [0, 0]][Math.min(2, lf)];
     U.px(press, () => {
-        // the sky: light-blue dots on paper
-        blueS.fillStyle = T(0.5); blueS.fillRect(0, 0, 1080, 1080);
+        press.save(); press.each((g) => g.translate(dx, dy));
+        // the sky: light-blue dots on paper, denser at the top (measured: 0.65 → 0.35)
+        const beam = [[980, 70], [1090, 60], [1090, 270], [450, 900], [300, 1090], [-10, 1090], [-10, 1000]];
+        U.screen(blue, 'blue', LB, (m) => { const gr = m.createLinearGradient(0, 100, 300, 950); gr.addColorStop(0, T(0.82)); gr.addColorStop(0.5, T(0.56)); gr.addColorStop(1, T(0.42)); m.fillStyle = gr; m.fillRect(0, 0, 1080, 1080); m.globalCompositeOperation = 'destination-out'; m.fillStyle = T(0.6); m.beginPath(); U.trace(m, beam); m.fill(); });
         // the beam of light: yellow dots across, from the upper right down to the lower left
-        const beam = [[990, 60], [1090, 60], [1090, 270], [450, 900], [300, 1090], [-10, 1090], [-10, 1000]];
-        U.fill(yelS, beam, T(0.38));
-        eraseIn([blueS], (g) => { U.trace(g, beam); g.fill(); });
-        U.fill(blueS, beam, T(0.28));
+        U.screen(yel, 'yellow', LY, (m) => { const gr = m.createLinearGradient(1000, 150, 250, 950); gr.addColorStop(0, T(0.48)); gr.addColorStop(0.5, T(0.3)); gr.addColorStop(1, T(0.14)); m.fillStyle = gr; m.beginPath(); U.trace(m, beam); m.fill(); });
         // rings of sound: white circles knocked out round the chimes
         const ring = (d % 2) * 8;
         eraseIn(all, (g) => { g.lineWidth = 3.5; for (const r of [230, 330, 440, 560, 690]) { g.moveTo(560 + r + ring, 600); g.arc(560, 600, r + ring, 0, 7); } g.stroke(); });
         // bushes at the bottom: pink-dot scallops
-        const bush = [[-10, 1090], [-10, 1010], [60, 985], [140, 1000], [230, 975], [330, 990], [430, 965], [540, 985], [640, 960], [760, 975], [880, 950], [980, 970], [1090, 955], [1090, 1090]];
+        const bush = [[-10, 1090], [-10, 980], [30, 978], [120, 995], [210, 1017], [300, 1001], [390, 1010], [480, 1009], [570, 1003], [660, 956], [750, 1013], [840, 965], [930, 987], [1020, 973], [1090, 951], [1090, 1090]];
         eraseIn([blueS, yelS], (g) => U.smooth(g, bush) || g.fill());
         U.fill(pinkS, bush, T(0.62), true);
         for (const [x, y] of [[120, 1040], [420, 1030], [700, 1020], [960, 1030]]) U.glow(pinkS, x, y, 90, 0.35, 0);
 
         // the eaves: a navy beam with two pink lines, the hook
-        const top = [[-10, -10], [1090, -10], [1090, 92], [-10, 100]];
+        // (edges and lines measured on column scans: bottom 106 → 76, lines 40 → 10 and 85 → 51)
+        const top = [[-10, -10], [1090, -10], [1090, 75], [800, 83], [540, 94], [300, 98], [50, 107], [-10, 109]];
         eraseIn(all, (g) => U.trace(g, top) || g.fill());
-        U.fill(navy, top, T(0.9));
-        U.erase([navy], [[-10, 32], [1090, 22]], 5, false); U.erase([navy], [[-10, 88], [1090, 72]], 6, false);
-        U.stroke(pink, [[-10, 32], [1090, 22]], 4, T(1));
-        U.stroke(pink, [[-10, 88], [1090, 72]], 5, T(1));
+        U.fill(navy, top, T(1));
+        // purple on the left (pink + blue), navy towards the right
+        U.clipped(pink, top, false, (g) => { const gr = g.createLinearGradient(0, 0, 500, 0); gr.addColorStop(0, T(0.95)); gr.addColorStop(1, T(0.2)); g.fillStyle = gr; g.fillRect(0, 0, 1080, 120); });
+        U.clipped(navy, top, false, (g) => { g.globalCompositeOperation = 'destination-out'; const gr = g.createLinearGradient(0, 0, 500, 0); gr.addColorStop(0, T(0.9)); gr.addColorStop(1, T(0)); g.fillStyle = gr; g.fillRect(0, 0, 1080, 120); });
+        U.fill(blue, top, T(0.8));
+        const l1 = [[-10, 41], [300, 32], [540, 25], [800, 15], [1090, 9]], l2 = [[-10, 86], [300, 74], [540, 68], [800, 60], [1090, 50]];
+        U.erase([navy, blue], l1, 4); U.erase([navy, blue], l2, 7);
+        U.brush(pink, l1, 4, T(0.8), 'chl1', { taper: 0 }); U.brush(pink, l2, 7, T(1), 'chl2', { taper: 0 });
         navy.fillStyle = T(1); navy.beginPath(); navy.ellipse(522, 98, 18, 14, 0, 0, 7); navy.fill();
         U.stroke(navy, [[522, 100], [535, 215]], 2, T(0.8));
 
@@ -55,9 +64,11 @@ CARDS.chimes = (press, t) => {
 
         // the tubes: back ones first
         const sw = [0, 3, 5, 3, 0, -3][d % 6];
-        const tubes = [[368, 380, 700, 27, 0.02], [512, 350, 690, 36, 0.01], [690, 335, 720, 29, 0.02], [430, 400, 835, 40, 0.02], [608, 385, 890, 41, 0.01], [740, 350, 815, 40, 0.02]];
-        for (const [cx, y0, y1, r, tilt] of tubes) {
-            const x0 = cx + sw * 0.3, x1 = cx + (y1 - y0) * tilt + sw;
+        // measured on row scans: [top centre x, top y, bottom centre x, bottom y, radius], back
+        // tubes first
+        const tubes = [[371, 380, 405, 668, 27], [502, 350, 519, 695, 27], [678, 335, 725, 700, 25], [431, 400, 441, 835, 33], [603, 383, 616, 893, 36], [733, 347, 758, 815, 29]];
+        for (const [xa, y0, xb, y1, r] of tubes) {
+            const x0 = xa + sw * 0.3, x1 = xb + sw;
             const body = [[x0 - r, y0], [x0 + r, y0], [x1 + r, y1], [x1 - r, y1]];
             const shape = [...body.slice(0, 2), [x1 + r, y1], ...Array.from({ length: 9 }, (_, i) => { const a = i / 8 * Math.PI; return [x1 + Math.cos(a) * r, y1 + Math.sin(a) * r * 0.3]; }), [x1 - r, y1]];
             eraseIn(all, (g) => U.trace(g, shape) || g.fill());
@@ -116,5 +127,6 @@ CARDS.chimes = (press, t) => {
             const pt = [[x - l, y], [x, y - l * 0.45], [x + l, y], [x, y + l * 0.45]].map(([px, py]) => [x + (px - x) * Math.cos(a) - (py - y) * Math.sin(a), y + (px - x) * Math.sin(a) + (py - y) * Math.cos(a)]);
             U.fill(pink, pt, T(1), true);
         }
+        press.restore();
     });
 };

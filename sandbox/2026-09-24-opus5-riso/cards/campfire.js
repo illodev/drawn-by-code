@@ -16,59 +16,66 @@ CARDS.campfire = (press, t) => {
     const ellP = (x, y, rx, ry, rot = 0) => { const p = []; for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; p.push([x + Math.cos(a) * rx * Math.cos(rot) - Math.sin(a) * ry * Math.sin(rot), y + Math.cos(a) * rx * Math.sin(rot) + Math.sin(a) * ry * Math.cos(rot)]); } return p; };
 
     U.px(press, () => {
-        // the forest behind: dotted green-navy (blue, yellow, navy screens) everywhere
-        blueS.fillStyle = T(0.6); blueS.fillRect(0, 0, 1080, 1080);
-        yelS.fillStyle = R.ramp(yelS, 0, 250, 0, 760, 0.05, 0.5); yelS.fillRect(0, 0, 1080, 1080);
-        navyS.fillStyle = R.ramp(navyS, 0, 0, 0, 760, 0.5, 0.2); navyS.fillRect(0, 0, 1080, 780);
-        pinkS.fillStyle = R.ramp(pinkS, 0, 0, 0, 760, 0.3, 0.1); pinkS.fillRect(0, 0, 1080, 780);
-        navy.fillStyle = T(0.45); navy.fillRect(0, 0, 1080, 780);
-        // trunks: purple columns (navy + pink flat), each a little different
-        const trunks = [[-10, 105, 0.9], [165, 245, 0.8], [262, 332, 0.95], [372, 430, 0.85], [612, 690, 0.9], [706, 762, 0.8], [850, 975, 0.9], [995, 1090, 0.85]];
+        // the forest, measured as vertical bands (column means over y 0–250 and 250–500):
+        // dark trunks = blue + pink flat + a little navy (purple-navy); lit gaps between them =
+        // blue + less pink + yellow dots on the reference's 9.7 px screen at 48°
+        const LY = { o: [535.52, 138.25], a: [6.447, 7.273], b: [-7.231, 6.482] };
+        blue.fillStyle = T(1); blue.fillRect(0, 0, 1080, 800);
+        pink.fillStyle = T(0.55); pink.fillRect(0, 0, 1080, 800);
+        U.screen(yel, 'yellow', LY, (m) => { m.fillStyle = T(0.32); m.fillRect(0, 0, 1080, 800); });
+        // dark dots between the yellow ones in the lit gaps (navy on the same screen, offset half a cell)
+        const LYn = { o: [535.52 + 0.5 * (6.447 - 7.231), 138.25 + 0.5 * (7.273 + 6.482)], a: LY.a, b: LY.b };
+        U.screen(navy, 'navy', LYn, (m) => { m.fillStyle = T(0.3); m.fillRect(0, 0, 1080, 800); });
+        // trunks from column means (y 0–500): 'n' navy (navy solid, a little blue), 'p' purple
+        // (pink + blue solids)
+        const trunks = [[-10, 100, 'n'], [125, 145, 'n'], [190, 245, 'p'], [280, 325, 'n'], [395, 430, 'n'], [630, 650, 'n'], [705, 755, 'p'], [880, 950, 'n'], [1000, 1090, 'n']];
         const rt = Motion.rng('cf-tr');
-        for (const [a, b, v] of trunks) {
-            const w0 = rt() * 10 - 5, foot = 730 + rt() * 50;
-            const ph = rt() * 6, L = [], Rr = [];
-            for (let y = -10; y <= foot; y += 40) { const u = (y + 10) / (foot + 10), wob = Math.sin(y / 85 + ph) * 4; L.push([a + w0 * (1 - u) - u * u * 14 + wob, y]); Rr.push([b + w0 * (1 - u) + u * u * 14 + wob * 0.6, y]); }
-            const tr = [...L, [a - 16, foot], [b + 16, foot], ...Rr.reverse()];
-            eraseIn([blueS, yelS, navyS, pinkS], (g) => U.trace(g, tr) || g.fill());
-            const purple = rt() < 0.5;
-            U.fill(navy, tr, T(purple ? v * 0.7 : v));
-            U.fill(pink, tr, T(purple ? 0.45 : 0.14));
-            U.fill(blueS, tr, T(purple ? 0 : 0.3));
-            // bark shading: a darker band down one side, a pink-dot glow near the foot
-            U.fill(navy, [[a + w0 + (b - a) * 0.55, -10], [b + w0, -10], [b + 6, foot], [a - 6 + (b - a) * 0.6, foot]], T(0.3));
-            const side = (a + b) / 2 < 540 ? b : a;
-            U.clipped(pinkS, tr, false, (g) => { g.fillStyle = R.ramp(g, 0, foot - 300, 0, foot, 0, 0.8); g.fillRect(side === b ? (a + b) / 2 : a - 20, 0, (b - a) / 2 + 20, 1080); });
-            U.clipped(yelS, tr, false, (g) => { g.fillStyle = R.ramp(g, 0, foot - 160, 0, foot, 0, 0.5); g.fillRect(0, 0, 1080, 1080); });
-            U.clipped(pink, tr, false, (g) => U.speckle(g, 'cf-bk' + a, 40, a, 0, b, foot, 0.8, 1.8, T(1)));
+        for (const [a, b, kind] of trunks) {
+            const ph = rt() * 6, L = [], Rr = [], foot = 740 + rt() * 40;
+            for (let y = -10; y <= foot; y += 40) { const u = (y + 10) / (foot + 10), wob = Math.sin(y / 85 + ph) * 3; L.push([a - u * u * 10 + wob, y]); Rr.push([b + u * u * 10 + wob * 0.6, y]); }
+            const tr = [...L, ...Rr.reverse()];
+            U.cut([yel, navy, pink, blue], (g) => { g.beginPath(); U.trace(g, tr); g.fill(); });
+            if (kind === 'n') { U.fill(navy, tr, T(1)); U.fill(blue, tr, T(0.45)); }
+            else { U.fill(pink, tr, T(0.97)); U.fill(blue, tr, T(1)); }
+            U.clipped(kind === 'n' ? blue : navy, tr, false, (g) => U.blotch(g, 'cf-bl' + a, [a, 0, b, foot], 4, 30, 70, 0.2, 0.5));
+            // a red glow at the foot of the trunks near the fire (yellow)
+            U.clipped(yel, tr, false, (g) => { g.fillStyle = R.ramp(g, 0, foot - 200, 0, foot, 0, 0.5); g.fillRect(0, 0, 1080, 1080); });
         }
+        // the print's grit over the forest: voids in the navy and pink (blue specks), specks
+        U.grit(navy, [0, 0, 1080, 800], { out: true, p: 0.15, a: 0.6, seed: 1 });
+        U.grit(pink, [0, 0, 1080, 800], { out: true, p: 0.22, a: 0.6, seed: 2 });
+        U.grit(blue, [0, 0, 1080, 800], { out: true, p: 0.08, a: 0.8, seed: 3, cell: 1.8 });
+        U.grit(navy, [0, 0, 1080, 800], { p: 0.15, a: 0.7, seed: 4 });
         // the clearing: yellow round the fire, green dots (blue on yellow) outward, navy dots at the rim
         const gl = [];
         for (let x = -10; x <= 1090; x += 30) gl.push([x, 735 + 25 * (x / 1080) + 6 * Math.sin(x / 60)]);
         const ground = [...gl, [1090, 1090], [-10, 1090]];
         eraseIn(all, (g) => U.trace(g, ground) || g.fill());
         U.fill(yel, ground, T(0.9));
-        U.clipped(blueS, ground, false, (g) => { g.save(); g.translate(540, 880); g.scale(1, 0.42); const gr = g.createRadialGradient(0, 0, 0, 0, 0, 620); gr.addColorStop(0, T(0)); gr.addColorStop(0.25, T(0.02)); gr.addColorStop(0.45, T(0.5)); gr.addColorStop(0.7, T(0.7)); gr.addColorStop(1, T(0.75)); g.fillStyle = gr; g.fillRect(-1200, -2400, 2400, 4800); g.restore(); });
-        U.clipped(navyS, ground, false, (g) => { g.save(); g.translate(540, 880); g.scale(1, 0.42); const gr = g.createRadialGradient(0, 0, 0, 0, 0, 620); gr.addColorStop(0, T(0)); gr.addColorStop(0.4, T(0)); gr.addColorStop(0.7, T(0.45)); gr.addColorStop(1, T(0.7)); g.fillStyle = gr; g.fillRect(-1200, -2400, 2400, 4800); g.restore(); });
+        U.clipped(blueS, ground, false, (g) => { g.save(); g.translate(540, 880); g.scale(1, 0.42); const gr = g.createRadialGradient(0, 0, 0, 0, 0, 620); gr.addColorStop(0, T(0)); gr.addColorStop(0.2, T(0.1)); gr.addColorStop(0.4, T(0.8)); gr.addColorStop(0.6, T(1)); gr.addColorStop(1, T(1.2)); g.fillStyle = gr; g.fillRect(-1200, -2400, 2400, 4800); g.restore(); });
+        U.clipped(navyS, ground, false, (g) => { g.save(); g.translate(540, 880); g.scale(1, 0.42); const gr = g.createRadialGradient(0, 0, 0, 0, 0, 620); gr.addColorStop(0, T(0)); gr.addColorStop(0.35, T(0.1)); gr.addColorStop(0.6, T(0.35)); gr.addColorStop(1, T(0.45)); g.fillStyle = gr; g.fillRect(-1200, -2400, 2400, 4800); g.restore(); });
+        // the clearing darkens to the sides and bottom corners (navy grass, yellow thinning)
+        for (const [x, y] of [[-40, 1100], [1120, 1100], [-60, 800], [1140, 800]]) {
+            U.cut([yel], (g) => { g.save(); g.translate(x, y); g.scale(1, 0.8); U.glow(g, 0, 0, 260, 0.8, 0); g.restore(); });
+            navy.save(); navy.translate(x, y); navy.scale(1, 0.8); U.glow(navy, 0, 0, 240, 0.7, 0); navy.restore();
+        }
         // grass tufts at the bottom edge: navy strokes
         const rg = Motion.rng('cf-gr');
         for (let k = 0; k < 60; k++) { const x = rg() * 1080, y = 1040 + rg() * 45; U.stroke(navyS, [[x, y], [x + rg() * 10 - 5, y - 20 - rg() * 20]], 3, T(0.8)); }
 
-        // the flames: outer red-orange, inner yellow, a white core; they flicker on twos
-        const f = d % 3;
-        const sway = [0, 8, -6][f], tip = [0, -18, 10][f];
-        const outer = [[330, 800], [320, 720], [335, 650], [360, 690], [370, 640], [405, 525 + tip * 0.4], [430, 600], [470, 500], [510, 420 + tip], [525, 480], [560, 400], [598, 318 + tip], [640, 420], [640, 505], [690, 555 + tip * 0.5], [700, 620], [740, 675], [735, 740], [760, 800]].map(([x, y]) => [x + sway * (800 - y) / 480, y]);
+        // the flames, measured row by row (colour runs every 30 px): five orange tongues, a
+        // yellow heart split by an orange tongue, a white core
+        const outer = [[322, 800], [324, 690], [332, 660], [343, 642], [353, 660], [368, 672], [384, 660], [401, 630], [405, 600], [401, 570], [397, 540], [410, 524], [423, 540], [432, 552], [442, 540], [453, 510], [469, 480], [488, 450], [509, 416], [513, 450], [513, 480], [514, 510], [522, 522], [532, 510], [547, 480], [562, 450], [573, 420], [579, 390], [585, 360], [591, 330], [600, 316], [609, 330], [611, 360], [620, 390], [629, 420], [633, 450], [634, 480], [635, 510], [637, 540], [628, 570], [631, 600], [636, 630], [646, 648], [657, 630], [671, 600], [680, 570], [688, 553], [693, 570], [704, 600], [712, 630], [710, 660], [721, 690], [704, 720], [707, 750], [716, 790], [718, 800]];
         eraseIn(all, (g) => U.smooth(g, outer) || g.fill());
-        U.fill(pink, outer, T(0.9), true);
+        U.fill(pink, outer, T(1), true);
         U.fill(yel, outer, T(1), true);
-        const inner = [[380, 800], [378, 700], [395, 610], [420, 660], [450, 560], [470, 600], [492, 530 + tip * 0.6], [530, 590], [560, 470 + tip], [590, 560], [600, 620], [640, 585 + tip * 0.4], [660, 660], [650, 740], [700, 800]].map(([x, y]) => [x + sway * (800 - y) / 480, y]);
-        eraseIn([pink], (g) => U.smooth(g, inner) || g.fill());
-        // the orange tongues licking inside the yellow (pink strokes back in)
-        U.stroke(pink, [[455, 780], [450, 700], [470, 640]].map(([x, y]) => [x + sway * (800 - y) / 480, y]), 12, T(0.9), true);
-        U.stroke(pink, [[610, 780], [615, 700], [600, 650]].map(([x, y]) => [x + sway * (800 - y) / 480, y]), 12, T(0.9), true);
-        const core = [[505, 790], [500, 720], [510, 660], [528, 610 + tip * 0.3], [530, 690], [525, 790]].map(([x, y]) => [x + sway * (800 - y) / 480, y]);
+        const heart = [[387, 800], [385, 750], [387, 720], [395, 690], [410, 660], [424, 630], [428, 605], [434, 590], [440, 605], [450, 630], [452, 660], [447, 690], [447, 720], [450, 760], [466, 760], [468, 720], [471, 690], [473, 660], [468, 630], [462, 600], [463, 570], [468, 540], [476, 528], [490, 570], [528, 570], [565, 540], [567, 510], [582, 480], [591, 450], [595, 438], [599, 450], [601, 480], [601, 510], [597, 540], [590, 570], [584, 600], [594, 630], [608, 660], [640, 680], [671, 692], [649, 720], [634, 750], [629, 790], [629, 800]];
+        U.cut([pink], (g) => { g.beginPath(); U.smooth(g, heart); g.fill(); });
+        U.cut([pink], (g) => { g.beginPath(); U.smooth(g, [[657, 660], [670, 645], [682, 662], [676, 690], [660, 688]]); g.fill(); });
+        const core = [[517, 538], [528, 600], [540, 630], [532, 660], [530, 690], [529, 720], [530, 752], [503, 752], [505, 720], [511, 690], [521, 660], [524, 610]];
         eraseIn(all, (g) => U.smooth(g, core) || g.fill());
-
+        // red glows at the foot of three trunks
+        for (const [x0, x1, y0, y1] of [[228, 240, 560, 705], [840, 852, 580, 755], [77, 90, 650, 700]]) { const r = [[x0, y0], [x1, y0], [x1 + 2, y1], [x0 - 2, y1]]; eraseIn([blue, navy], (g) => U.trace(g, r) || g.fill()); U.fill(pink, r, T(1)); U.fill(yel, r, T(0.8)); }
         // logs: thick navy rods crossing in a pile, a pink lit edge on top, ends as ovals
         const log = (x0, y0, x1, y1, w, endL, endR) => {
             const L = Math.hypot(x1 - x0, y1 - y0), nx = (y1 - y0) / L, ny = -(x1 - x0) / L; // normal pointing up
@@ -87,11 +94,17 @@ CARDS.campfire = (press, t) => {
                 U.stroke(pink, e.slice(10, 22), 3, T(1));
             }
         };
-        log(238, 842, 560, 772, 46, true, false);
-        log(505, 776, 792, 856, 46, false, true);
-        log(262, 878, 548, 818, 44, true, false);
-        log(470, 835, 800, 893, 44, false, true);
-        log(300, 890, 520, 858, 40, true, false);
+        // the pile, measured on a 1.3× grid crop: one purple mass (navy + pink), log ends as
+        // rounded lobes, pink cracks along the logs
+        const pile = [[212, 845], [222, 815], [245, 800], [290, 797], [330, 782], [352, 772], [372, 782], [400, 790], [440, 776], [480, 768], [505, 760], [530, 772], [565, 778], [600, 792], [640, 808], [700, 820], [745, 826], [790, 838], [812, 858], [812, 885], [796, 906], [770, 918], [735, 906], [700, 905], [645, 897], [600, 893], [560, 892], [520, 896], [470, 888], [430, 880], [385, 886], [340, 904], [290, 905], [250, 885], [222, 868]];
+        eraseIn(all, (g) => U.smooth(g, pile) || g.fill());
+        U.fill(navy, pile, T(0.95), true);
+        U.fill(pink, pile, T(0.35), true);
+        U.fill(blue, pile, T(0.3), true);
+        for (const pts of [[[250, 870], [320, 860], [420, 845], [520, 832]], [[330, 790], [400, 815], [470, 830]], [[440, 890], [520, 870], [600, 862]], [[505, 772], [580, 800], [650, 830], [730, 858], [800, 880]], [[600, 885], [680, 875], [740, 868]], [[260, 812], [300, 820]]]) {
+            U.cut([navy, blue], (g) => U.brush(g, pts, 5, '#000', 'cfc' + pts[0][0], { taper: 0.25 }));
+            U.brush(pink, pts, 5, T(1), 'cfc' + pts[0][0], { taper: 0.25 });
+        }
         // the end grain on the right log end: yellow rings
         yel.strokeStyle = T(0.8); yel.lineWidth = 1.5;
         for (const r of [6, 12, 17]) { yel.beginPath(); yel.ellipse(800, 893, r * 0.7, r, -0.5, 0, 7); yel.stroke(); }
@@ -100,7 +113,7 @@ CARDS.campfire = (press, t) => {
         eraseIn(all, (g) => { for (let k = 0; k < 26; k++) { const x = 330 + re() * 320, y = 805 + re() * 60, r = 2 + re() * 3; g.moveTo(x + r, y); g.arc(x, y, r, 0, 7); } g.fill(); });
         U.speckle(pink, 'cf-hot', 14, 340, 800, 650, 870, 2, 3, T(1));
         // stones round the fire
-        for (const [x, y, rx, ry] of [[392, 924, 40, 24], [508, 944, 42, 22], [632, 940, 40, 24], [735, 920, 34, 20]]) {
+        for (const [x, y, rx, ry] of [[388, 922, 36, 22], [512, 934, 38, 25], [634, 934, 42, 25], [750, 909, 35, 23]]) {
             const e = ellP(x, y, rx, ry);
             eraseIn(all, (g) => U.trace(g, e) || g.fill());
             U.fill(navy, e, T(0.95));
@@ -118,5 +131,10 @@ CARDS.campfire = (press, t) => {
             U.stroke(yel, pts, 3.2, T(1));
             if (rs() < 0.5) U.stroke(pink, pts, 2.2, T(0.7));
         }
+        // grit over the whole print: pinholes in every ink and a few stray specks
+        U.grit(pink, [0, 500, 1080, 1080], { out: true, p: 0.18, a: 0.7, seed: 11 });
+        U.grit(yel, [0, 500, 1080, 1080], { out: true, p: 0.12, a: 0.6, seed: 12 });
+        U.grit(navy, [0, 780, 1080, 1080], { out: true, p: 0.2, a: 0.7, seed: 13 });
+        U.grit(pink, [0, 0, 1080, 1080], { p: 0.04, a: 0.8, seed: 14 });
     });
 };
