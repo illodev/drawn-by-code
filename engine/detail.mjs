@@ -62,7 +62,7 @@ for (const t of times) {
     const i = Math.round(t * fps), tt = i / fps;
     const f = ours.find((n) => n === `t_${tt.toFixed(2)}s.png`);
     if (!f) continue;
-    const A = raw(ref, tt), B = raw(path.join(tmp, f));
+    const A = raw(ref, Math.max(0, tt - 0.004)), B = raw(path.join(tmp, f)); // −4 ms: -ss rounding can land on the next frame
     const bl = (img) => [0, 1, 2].map((c) => blur(chan(img, c), R));
     const [Ab, Bb] = [bl(A), bl(B)];
     const [Al, Bl] = [lum(A), lum(B)], [Alb, Blb] = [blur(Al, R), blur(Bl, R)];
@@ -91,7 +91,7 @@ for (const t of times) {
     }
     // the annotated pair: reference | ours, flagged tiles boxed on ours
     const draw = boxes[tt].map(([gx, gy, c]) => `drawbox=x=${Math.round(gx * tw)}:y=${Math.round(gy * th)}:w=${Math.round(tw)}:h=${Math.round(th)}:color=${c}@0.9:t=${Math.max(3, Math.round(W / 300))}`).join(',');
-    run(ffmpeg, ['-v', 'error', '-y', '-ss', String(tt), '-i', ref, '-i', path.join(tmp, f), '-filter_complex', `[0:v]scale=${W}:${H},trim=end_frame=1[a];[1:v]scale=${W}:${H}${draw ? ',' + draw : ''}[b];[a][b]hstack,scale=${Math.min(2 * W, 1600)}:-2`, '-frames:v', '1', path.join(out, `t_${tt.toFixed(2)}.jpg`)]);
+    run(ffmpeg, ['-v', 'error', '-y', '-ss', String(Math.max(0, tt - 0.004)), '-i', ref, '-i', path.join(tmp, f), '-filter_complex', `[0:v]scale=${W}:${H},trim=end_frame=1[a];[1:v]scale=${W}:${H}${draw ? ',' + draw : ''}[b];[a][b]hstack,scale=${Math.min(2 * W, 1600)}:-2`, '-frames:v', '1', path.join(out, `t_${tt.toFixed(2)}.jpg`)]);
 }
 fs.rmSync(tmp, { recursive: true, force: true });
 const q = (v, p) => v.length ? v[Math.floor(p * (v.length - 1))] : 0;
