@@ -84,15 +84,15 @@ Motion.scene({
         if (i < 0) i = EDIT.length - 2;
         const [t0, kind, card, o = {}] = EDIT[i];
         const ld = Math.floor((tf - t0) * 12 + 1e-6), lt = ld / 12, lf = Math.round((tf - t0) * 24);
-        // the sonar and the opening circles change every frame; everything else on twos
-        const d = i * 1000 + (kind === 'sonar' || kind === 'circle' || kind === 'orbits' ? 500 + lf : ld);
+        // the sonar, circles, orbits and full cards (slow camera pushes) change every frame
+        const d = i * 1000 + (kind === 'sonar' || kind === 'circle' || kind === 'orbits' || kind === 'full' ? 500 + lf : ld);
         press.begin(d);
         if (kind === 'sonar') sonar(press, lf, o);
         else if (kind === 'circle') circleCard(press, card, lt, ld, o, lf);
         else if (kind === 'full') {
             // o.flip: the reference re-uses some drawings mirrored left–right
             if (o.flip) { press.save(); press.each((g) => g.transform(-1, 0, 0, 1, 1000, 0)); }
-            drawCard(press, card, lt);
+            drawCard(press, card, lt, lf);
             if (o.flip) press.restore();
             if (o.ring) whiteRing(press, ld);
         }
@@ -108,8 +108,9 @@ Motion.scene({
 
 // ------------------------------------------------------------------ pieces
 const T = (v) => Riso.tone(v);
-function drawCard(press, name, lt) {
-    if (CARDS[name]) return CARDS[name](press, lt);
+// lf: the frame inside the shot (24 fps), for cards whose camera pushes in every frame
+function drawCard(press, name, lt, lf) {
+    if (CARDS[name]) return CARDS[name](press, lt, lf);
     // placeholder until the card exists: a two-ink field with its name
     const s = press.plate('pink', 'screen'), n = press.plate('navy');
     s.fillStyle = T(0.35);
