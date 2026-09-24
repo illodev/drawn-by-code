@@ -11,20 +11,21 @@ CARDS.snowflake = (press, t) => {
     const yellowS = press.plate('yellow', 'screen'), yellow = press.plate('yellow');
     const d = Math.floor(t * 12 + 1e-6);
 
-    // sky: navy dense at the top fading out by the bottom; pink rising; blue in the middle;
-    // yellow only at the bottom (pink + yellow = the red floor)
-    navyS.fillStyle = (() => { const gr = navyS.createLinearGradient(0, 0, 0, 1000); gr.addColorStop(0, T(0.95)); gr.addColorStop(0.22, T(0.8)); gr.addColorStop(0.4, T(0.22)); gr.addColorStop(0.55, T(0.12)); gr.addColorStop(0.85, T(0.22)); gr.addColorStop(1, T(0.22)); return gr; })();
-    navyS.fillRect(0, 0, 1000, 1000);
-    pinkS.fillStyle = (() => { const gr = pinkS.createLinearGradient(0, 0, 0, 1000); gr.addColorStop(0, T(0.25)); gr.addColorStop(0.3, T(0.55)); gr.addColorStop(0.45, T(0.82)); gr.addColorStop(1, T(0.95)); return gr; })();
-    pinkS.fillRect(0, 0, 1000, 1000);
-    blueS.fillStyle = (() => { const gr = blueS.createLinearGradient(0, 0, 0, 1000); gr.addColorStop(0, T(0.1)); gr.addColorStop(0.3, T(0.4)); gr.addColorStop(0.45, T(0.65)); gr.addColorStop(0.65, T(0.4)); gr.addColorStop(0.82, T(0.2)); gr.addColorStop(1, T(0.08)); return gr; })();
-    blueS.fillRect(0, 0, 1000, 1000);
-    yellowS.fillStyle = R.ramp(yellowS, 0, 700, 0, 1000, 0, 0.7);
-    yellowS.fillRect(0, 700, 1000, 300);
+    // sky: navy solid at the top, then blue and pink (purple), pink and navy, and the red floor
+    // (pink + yellow). Coverages fitted on 90 px blocks; every ink on the reference's own
+    // screen here: one 7.56 px lattice at 12° shared by all four inks, phase per drawing.
+    const LS = [{ o: [-2.10, -1.06], a: [-1.5606, 7.3947], b: [7.3974, 1.5613] }, { o: [-3.50, -0.89], a: [-1.5602, 7.3950], b: [7.3974, 1.5611] }][Math.min(1, d)];
+    const vr = (g, stops) => { const gr = g.createLinearGradient(0, 0, 0, 1000); stops.forEach(([y, v]) => gr.addColorStop(Math.min(1, y / 1080), T(v))); return gr; };
+    navy.fillStyle = vr(navy, [[0, 0.95], [270, 0.93], [350, 0], [1080, 0]]); navy.fillRect(0, 0, 1000, 1000);
+    U.lattice(navy, LS, (m) => { m.fillStyle = vr(m, [[0, 0], [450, 0.05], [600, 0.15], [720, 0.5], [810, 0.38], [900, 0.3], [1080, 0.38]]); m.fillRect(-20, -20, 1040, 1040); });
+    U.lattice(blue, LS, (m) => { m.fillStyle = vr(m, [[0, 0.1], [270, 0.35], [360, 0.95], [500, 0.8], [630, 0.55], [720, 0.1], [1080, 0]]); m.fillRect(-20, -20, 1040, 1040); });
+    U.lattice(pink, LS, (m) => { m.fillStyle = vr(m, [[0, 0.3], [270, 0.35], [360, 0.88], [450, 0.98], [1080, 1]]); m.fillRect(-20, -20, 1040, 1040); });
+    pink.fillStyle = vr(pink, [[0, 0], [380, 0], [460, 0.9], [1080, 0.92]]); pink.fillRect(0, 0, 1000, 1000);
+    U.lattice(yellow, LS, (m) => { m.fillStyle = vr(m, [[0, 0], [740, 0], [810, 0.22], [900, 0.48], [1080, 0.65]]); m.fillRect(-20, -20, 1040, 1040); });
 
     // dark navy blobs (shadows of the ghost flakes) top right
-    navyS.fillStyle = T(0.95);
-    for (const b of [[[800, 0], [900, 30], [880, 120], [790, 150], [740, 90]], [[840, 170], [920, 190], [940, 300], [880, 330], [830, 260]], [[640, 60], [720, 40], [770, 140], [690, 200], [630, 150]], [[900, 60], [990, 40], [1000, 150], [950, 180]]]) { U.smooth(navyS, b); navyS.fill(); }
+    navy.fillStyle = T(0.95);
+    for (const b of [[[800, 0], [900, 30], [880, 120], [790, 150], [740, 90]], [[840, 170], [920, 190], [940, 300], [880, 330], [830, 260]], [[640, 60], [720, 40], [770, 140], [690, 200], [630, 150]], [[900, 60], [990, 40], [1000, 150], [950, 180]]]) { U.smooth(navy, b); navy.fill(); }
 
     // ghost flakes: big dendrite branches in dense pink screen (top right, bottom left)
     const ghost = (g, cx, cy, len, a0, w, seed) => {
@@ -52,7 +53,7 @@ CARDS.snowflake = (press, t) => {
     const gdots = (m) => U.dots(m, [[560, 0, 1000, 560], [0, 560, 480, 1000], [740, 600, 900, 980]], 13.5, 6, 0.05);
     // one mask, two tones: a half tone over the whole ghost (so it reads over the pink floor
     // too) and full ink in the dots; pink goes on, navy and blue come off by the same amount
-    U.masked([[pink], [navyS, 'destination-out'], [blueS, 'destination-out']], (m) => ghosts(m, 1), (m) => {
+    U.masked([[pink], [navy, 'destination-out'], [blue, 'destination-out']], (m) => ghosts(m, 1), (m) => {
         gdots(m);
         m.globalCompositeOperation = 'destination-over'; ghosts(m, 1, 0.4);
     });
