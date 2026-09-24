@@ -4,22 +4,31 @@
     const P = Paper, E = Ease, C = WL.COL;
     // ------------------------------------------------------------------ the cards
     // [start, end, word, background, thing, thing x/y/scale, text colour, order]
-    // order: 'over' = the flower is drawn over the object, 'under' = the object covers it
+    // order: 'over' = the flower is drawn over the object, 'under' = the object covers it,
+    // 'split' = the object has a back and a front layer with the flower between them (letters
+    // flying out of a book, a boat on waves, a cup): Things.x.back/.front when the drawer has
+    // them, else the drawer is called with a sixth argument 'back' | 'front'
     const CARDS = [
-        [10.0, 10.5, 'words', '#edc444', 'words', [500, 560, 1.3], null, 'over'],
-        [10.5, 11.0, 'music', '#81ceb2', 'music', [460, 600, 1.35], null, 'over'],
-        [11.0, 11.5, 'the sea', '#eaa4c8', 'sea', [500, 640, 1.55], null, 'under'],
+        [10.0, 10.5, 'words', '#edc444', 'words', [500, 610, 1], null, 'split'],
+        [10.5, 11.0, 'music', '#81ceb2', 'music', [350, 700, 1], null, 'over'],
+        [11.0, 11.5, 'the sea', '#eaa4c8', 'sea', [500, 640, 1], null, 'split'],
         [11.5, 12.0, 'trees', '#94c5e5', 'tree', [502.3, 782.4, 1], null, 'over'],
         [12.0, 12.5, 'dogs', '#efda8b', 'dog', [661, 593, 0.602], null, 'over'],
         [12.5, 13.0, 'bread', '#85abdc', 'bread', [463, 601.9, 1], null, 'under'],
         [13.0, 13.5, 'rain', '#d7b585', 'rain', [509.3, 509.3, 1], null, 'over'],
-        [13.5, 14.0, 'math', '#b89edb', 'math', [570, 520, 1.35], null, 'over'],
-        [14.0, 15.0, 'the stars', '#171a45', 'stars', [490, 510, 1.58], '#f4e9c5', 'over'],
-        [15.0, 15.25, 'octopus', '#318289', 'octopus', [620, 640, 1.35], '#f4e9c5', 'over'],
-        [15.25, 15.5, 'tea', '#673c71', 'tea', [480, 660, 1.45], '#f4e9c5', 'under'],
-        [15.5, 15.75, 'flowers', '#e798c7', 'flowers', [480, 660, 1.45], null, 'over'],
-        [15.75, 16.0, 'cats', '#3f66b4', 'cat', [560, 760, 1.35], '#f4e9c5', 'over'],
+        [13.5, 14.0, 'math', '#b89edb', 'math', [490, 518, 1], null, 'over'],
+        [14.0, 15.0, 'the stars', '#171a45', 'stars', [515, 505, 1], '#f2e8cc', 'over'],
+        [15.0, 15.25, 'octopus', '#318289', 'octopus', [600, 600, 0.463], '#f2e8cc', 'under'],
+        [15.25, 15.5, 'tea', '#673c71', 'tea', [500, 700, 0.463], '#f2e8cc', 'split'],
+        [15.5, 15.75, 'flowers', '#e798c7', 'flowers', [500, 700, 0.463], '#74314c', 'over'],
+        [15.75, 16.0, 'cats', '#3f66b4', 'cat', [500, 700, 0.463], '#f2e8cc', 'over'],
     ];
+    // The word under each card, measured: [width, tilt, baseline]; Patrick Hand in felt-tip
+    // marker like every other piece of lettering in the film
+    const TEXT = {
+        words: [287, -0.03], music: [260], sea: [364], tree: [232], dog: [223], bread: [279], rain: [188], math: [237],
+        stars: [null], octopus: [354], tea: [156], flowers: [328, -0.04, 925], cat: [188],
+    };
     // The flower's performance on each card, one row per drawing (the reference animates on
     // twos: a new drawing every 1/12 s). Measured with `reference.mjs track` (ray reach, box)
     // and a face finder (eyes + mouth centroid): [face x, face y, ray reach, vertical stretch,
@@ -67,8 +76,8 @@
             P.markerStroke(g, [[cx + Math.cos(a) * ra, cy + Math.sin(a) * ra], [cx + Math.cos(a) * rb, cy + Math.sin(a) * rb]], col, w, 'burst' + key + i, 0.95);
         }
     }
-    // centre of the entry pop when the object's anchor is not its middle
-    const POP = { tree: [502, 600] };
+    // entry pop: [centre x, centre y, scale] on the first drawing
+    const POP = { dog: [640, 590, 1.07], bread: [470, 610, 1.08], rain: [500, 560, 1.08] };
     // calibrated by tracking our own render the same way: our horizontal reach ≈ 0.92 R
     const REACH = 0.92;
     Shots['Montage'] = (g, t, env) => {
@@ -82,24 +91,36 @@
         const flower = () => WL.flower(g, fx, fy, reach / REACH, {
             t, rot: (Motion.rng('rot' + thing + step)() - 0.5) * 0.6, sy, eyes, mouth, faceTilt, face: 1.55, rayW: 1.25, spread: 0.4,
         });
-        // the object pops in: 7 % bigger on the card's first drawing (measured on dog and bread)
+        // the object pops in: bigger on the card's first drawing (measured: dog, bread, rain;
+        // the others enter at full size)
         const object = () => {
             g.save();
-            if (step === 0) {
-                const [px, py] = POP[thing] ?? [tx, ty];
+            if (step === 0 && POP[thing]) {
+                const [px, py, k] = POP[thing];
                 g.translate(px, py);
-                g.scale(1.07, 1.07);
+                g.scale(k, k);
                 g.translate(-px, -py);
             }
-            Things[thing](g, tx, ty, ts, t);
+            const fn = Things[thing];
+            if (!part) fn(g, tx, ty, ts, t);
+            else if (fn[part]) fn[part](g, tx, ty, ts, t);
+            else fn(g, tx, ty, ts, t, part);
             g.restore();
         };
+        let part = null;
+        if (order === 'split') (part = 'back', object(), (part = 'front'));
         if (order === 'over') object();
         flower();
-        if (order === 'under') object();
+        if (order === 'under' || order === 'split') object();
         // the word writes itself fast (a wipe): ~1.5 letters on the first drawing, whole by 0.16 s
         const p = t1 - t0 > 0.3 ? E.clamp(0.32 + lt * 4.2) : 1;
-        WL.write(g, word, 500, 882, 92, ink ?? '#2b2530', { p, align: 'center', stroke: 0.012 });
+        const [tw, tilt = 0, base = 880] = TEXT[thing], col = ink ?? '#2b2530';
+        const size = ((tw ?? TEXT.words[0]) * 100) / WL.textW(g, tw ? word : 'words', 100, 'Hand', 0.05);
+        g.save();
+        g.translate(500, base);
+        g.rotate(tilt);
+        WL.write(g, word, 0, 0, size, col, { p, align: 'center', font: 'Hand', spacing: 0.05, sy: 0.92, marker: -0.012, halo: PaperDetail.shade(col, col === '#2b2530' ? 14 : col === '#74314c' ? 10 : -10) });
+        g.restore();
     };
 
     // ------------------------------------------------------------------ the heart
@@ -115,9 +136,9 @@
         [[215, 490], [283, 560]], [[700, 565], [640, 630]], [[402, 667], [455, 720]], [[540, 725], [512, 770]], [[494, 786], [498, 802]]];
     // miniatures round the heart: [thing, x, y, scale, drawing it pops in on (1/12 s steps)]
     const AROUND = [
-        ['words', 680, 150, 0.35, 0], ['music', 330, 150, 0.4, 2], ['sea', 810, 200, 0.3, 3], ['tree', 185, 256, 0.31, 5], ['dog', 880, 300, 0.15, 6],
-        ['bread', 115.8, 312, 0.28, 8], ['math', 140, 440, 0.3, 10], ['stars', 770, 545, 0.18, 11], ['octopus', 220, 545, 0.3, 14], ['tea', 670, 640, 0.3, 15],
-        ['flowers', 330, 640, 0.3, 17], ['cat', 570, 740, 0.3, 18], ['rain', 430.6, 757, 0.25, 20],
+        ['words', 682, 155, 0.287, 0], ['music', 323, 186, 0.3, 2], ['sea', 802, 227, 0.25, 3], ['tree', 185, 256, 0.31, 5], ['dog', 880, 300, 0.15, 6],
+        ['bread', 115.8, 312, 0.28, 8], ['math', 140, 439, 0.262, 10], ['stars', 774, 550, 0.272, 11], ['octopus', 222, 548, 0.128, 14], ['tea', 674, 645, 0.128, 15],
+        ['flowers', 324, 666, 0.123, 17], ['cat', 566, 746, 0.136, 18], ['rain', 430.6, 757, 0.25, 20],
     ];
     // the flower's expression per drawing: surprised by the '?' at the end
     const heartFace = (d) => (d < 2 ? FACE.os : d === 21 || d === 22 ? FACE.oo : FACE.hs);
