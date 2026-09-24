@@ -15,32 +15,35 @@ CARDS.dunes = (press, t) => {
     const px = (v) => v / 1.08, P = (pts) => pts.map(([x, y]) => [x / 1.08, y / 1.08]);
     const vramp = (g, y0, y1, stops) => { const gr = g.createLinearGradient(0, y0, 0, y1); stops.forEach(([f, v]) => gr.addColorStop(f, T(v))); return gr; };
 
-    // the sky
-    blueS.fillStyle = vramp(blueS, 0, 520, [[0, 0.95], [0.3, 0.8], [0.6, 0.35], [1, 0]]); blueS.fillRect(0, 0, 1000, 700);
-    blue.fillStyle = vramp(blue, 0, 300, [[0, 0.35], [1, 0]]); blue.fillRect(0, 0, 1000, 300);
-    pinkS.fillStyle = vramp(pinkS, 0, 650, [[0, 0.15], [0.35, 0.55], [0.6, 0.85], [1, 0.9]]); pinkS.fillRect(0, 0, 1000, 700);
-    navyS.fillStyle = vramp(navyS, 0, 450, [[0, 0.12], [0.5, 0.2], [1, 0]]); navyS.fillRect(0, 0, 1000, 450);
-    yellowS.fillStyle = vramp(yellowS, 380, 660, [[0, 0], [0.5, 0.3], [1, 0.75]]); yellowS.fillRect(0, 380, 1000, 320);
+    // the sky (coverages fitted on 90 px blocks down the left edge; the screens are the
+    // reference's own: navy 10.8 px at 72°, pink 10.8 px at 78°, phases per drawing)
+    const k = Math.min(1, d);
+    const LN = [{ o: [-4.43, 5.38], a: [-10.2695, 3.3272], b: [3.3212, 10.2746] }, { o: [3.09, 4.55], a: [3.3217, 10.2751], b: [-10.2692, 3.3269] }][k];
+    const LPk = [{ o: [-5.62, 3.75], a: [-2.2993, 10.6197], b: [10.5474, 2.2468] }, { o: [3.48, -1.54], a: [-2.2811, 10.6084], b: [10.5569, 2.2468] }][k];
+    const A = [px(830), px(-10)], B = [px(160), px(640)];
+    const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
+    const lane = (f) => { const x = A[0] + dx * f, y = A[1] + dy * f, o = Math.sin(f * 17) * 10 + Math.sin(f * 41) * 5; return [x + nx * o, y + ny * o]; };
+    // the milky way's glow lifts the blue, navy and pink along the band
+    const mwLift = (m, v, wf) => { m.save(); m.globalCompositeOperation = 'destination-out'; for (let i = 0; i <= 40; i++) { const f = i / 40, [x, y] = lane(f), w = px(105) * (1 - 0.5 * f) * wf; m.fillStyle = R.radial(m, x, y, 0, w, v, 0); m.beginPath(); m.arc(x, y, w, 0, 7); m.fill(); } m.restore(); };
+    blue.fillStyle = vramp(blue, 0, px(480), [[0, 0.97], [0.47, 0.95], [0.66, 0.68], [0.84, 0.52], [1, 0]]); blue.fillRect(0, 0, 1000, px(480));
+    mwLift(blue, 0.3, 1);
+    U.lattice(navy, LN, (m) => { m.fillStyle = vramp(m, 0, px(650), [[0, 0.45], [0.2, 0.34], [0.35, 0.05], [0.6, 0.02], [0.76, 0.25], [0.9, 0.14], [1, 0.1]]); m.fillRect(-20, -20, 1040, px(700)); mwLift(m, 0.6, 1); });
+    U.lattice(pink, LPk, (m) => { m.fillStyle = vramp(m, 0, px(650), [[0, 0.15], [0.2, 0.3], [0.35, 0.58], [0.48, 0.68], [0.62, 0.83], [0.76, 0.85], [0.9, 0.9], [1, 0.92]]); m.fillRect(-20, -20, 1040, px(700)); mwLift(m, 0.35, 0.6); });
+    // low down the pink is nearly solid: a flat ink fills between the dots
+    pink.fillStyle = vramp(pink, px(380), px(700), [[0, 0], [0.5, 0.75], [1, 0.95]]); pink.fillRect(0, px(380), 1000, px(330));
+    navyS.fillStyle = vramp(navyS, px(450), px(720), [[0, 0], [0.5, 0.15], [1, 0.2]]); navyS.fillRect(0, px(450), 1000, px(280));
+    yellowS.fillStyle = vramp(yellowS, px(440), px(680), [[0, 0], [0.25, 0.12], [0.6, 0.42], [1, 0.5]]); yellowS.fillRect(0, px(440), 1000, 300);
     // stars
     press.knockout((g) => U.speckle(g, [0, 0, 1000, 560], 140, 0.6, 2.2, 'dust'));
 
     // the milky way: a diagonal band of specks (yellow, pink, white) round a dark dust lane
-    const A = [px(830), px(-10)], B = [px(160), px(640)];
-    const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
     const rm = Motion.rng('dumw');
-    const lane = (f) => { const x = A[0] + dx * f, y = A[1] + dy * f, o = Math.sin(f * 17) * 10 + Math.sin(f * 41) * 5; return [x + nx * o, y + ny * o]; };
-    // a soft glow first: the blue lifted and yellow screened along the band
-    for (let i = 0; i <= 40; i++) {
-        const f = i / 40, [x, y] = lane(f), w = px(150) * (1 - 0.6 * f);
-        for (const g of [blueS, blue, navyS]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = R.radial(g, x, y, 0, w, 0.35, 0); g.beginPath(); g.arc(x, y, w, 0, 7); g.fill(); g.restore(); }
-        pinkS.save(); pinkS.globalCompositeOperation = 'destination-out'; pinkS.fillStyle = R.radial(pinkS, x, y, 0, w * 0.6, 0.35, 0); pinkS.beginPath(); pinkS.arc(x, y, w * 0.6, 0, 7); pinkS.fill(); pinkS.restore();
-        yellowS.fillStyle = R.radial(yellowS, x, y, 0, w * 0.7, 0.22 * (1 - f * 0.5), 0); yellowS.beginPath(); yellowS.arc(x, y, w * 0.8, 0, 7); yellowS.fill();
-    }
+    for (let i = 0; i <= 40; i++) { const f = i / 40, [x, y] = lane(f), w = px(150) * (1 - 0.6 * f); yellowS.fillStyle = R.radial(yellowS, x, y, 0, w * 0.5, 0.2 * Math.max(0, 1 - Math.abs(f - 0.35) * 2.5), 0); yellowS.beginPath(); yellowS.arc(x, y, w * 0.8, 0, 7); yellowS.fill(); }
     const whites = [];
     for (let i = 0; i < 2600; i++) {
         const f = rm(), w = px(120) * (1 - 0.6 * f), o = (rm() + rm() + rm() - 1.5) * w * 0.9, [x, y] = lane(f), X = x + nx * o, Y = y + ny * o, s = 1.8 + rm() * 2.6, k = rm();
         // a speck is a light colour over the sky: lift the blue under it, then ink it
-        if (k < 0.5) { for (const g of [blueS, navyS]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillRect(X - 1, Y - 1, s + 2, s + 2); g.restore(); } yellow.fillStyle = T(0.95); yellow.fillRect(X, Y, s, s); }
+        if (k < 0.5) { for (const g of [blue, navy, pink]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillRect(X - 1, Y - 1, s + 2, s + 2); g.restore(); } yellow.fillStyle = T(0.95); yellow.fillRect(X, Y, s, s); }
         else if (k < 0.62) { navy.fillStyle = T(0.8); navy.fillRect(X, Y, s * 0.8, s * 0.8); }
         else whites.push([X, Y, s * 0.8]);
     }
@@ -75,7 +78,7 @@ CARDS.dunes = (press, t) => {
     face(S1, [[pink, 0.9], [blueS, 0.8], [blue, 0.35], [navyS, 0.2]]);
     face(Rd, [[pink, 0.9], [yellow, 0.8], [navyS, 0.22]]);
     face(S2, [[pink, 0.9], [blueS, 0.8], [blue, 0.4]]);
-    face(Bd, [[pink, 0.95], [yellow, 0.9], [yellowS, 0.3]]);
+    face(Bd, [[pink, 0.95], [yellow, 0.9], [yellowS, 0.3], [navyS, 0.05]]);
     // a warm glow on the front dune (lighter to the left)
     U.clipped(pinkS, Bd, (g) => { g.fillStyle = R.radial(g, px(200), px(1000), 10, 400, 0.4, 0); g.fillRect(0, 0, 1000, 1000); });
 

@@ -21,9 +21,11 @@ CARDS.aurora = (press, t) => {
     const SHORE = lerpTab([[0, 684], [300, 672], [600, 660], [800, 650], [1080, 636]]);
 
     // sky: blue everywhere above the shore (a light flat and a dense screen), purple top
-    blue.fillStyle = T(0.45); blue.fillRect(0, 0, 1000, 1000);
-    blueS.fillStyle = vramp(blueS, 0, 640, [[0, 0.5], [0.35, 0.75], [1, 0.8]]); blueS.fillRect(0, 0, 1000, 640);
-    pinkS.fillStyle = vramp(pinkS, 0, 200, [[0, 0.75], [0.5, 0.4], [1, 0]]); pinkS.fillRect(0, 0, 1000, 200);
+    // (inks fitted on 90 px blocks: the blue is a full solid under the curtain and in the
+    // lake, 0.65 in the purple top; navy dots darken it)
+    blue.fillStyle = vramp(blue, 0, 170, [[0, 0.65], [0.6, 0.7], [1, 1]]); blue.fillRect(0, 0, 1000, 1000);
+    navyS.fillStyle = T(0.1); navyS.fillRect(0, 150, 1000, 500);
+    pinkS.fillStyle = vramp(pinkS, 0, 200, [[0, 0.95], [0.5, 0.55], [1, 0]]); pinkS.fillRect(0, 0, 1000, 200);
     navyS.fillStyle = vramp(navyS, 0, 150, [[0, 0.25], [1, 0]]); navyS.fillRect(0, 0, 1000, 150);
     // pink drips hanging from the top band (vertical streaks)
     {
@@ -60,8 +62,6 @@ CARDS.aurora = (press, t) => {
     for (let i = 0; i < 90; i++) { const x = r() * 1000, b = BOT(x); bright(x, b + r() * 16, 20 + r() * 60, 2 + r() * 3.5, [[0, 0.2], [1, 1]]); }
     // pink rays dripping from the top band into the curtain
     for (let i = 0; i < 80; i++) { const x = r() * 1000; ray(pink, x, 60 + r() * 170, 60 + r() * 120, 1.5 + r() * 4, [[0, 0.6], [1, 0]]); }
-    // the blue sky under the curtain thins towards the treeline (a lighter band)
-    blueS.save(); blueS.globalCompositeOperation = 'destination-out'; blueS.fillStyle = vramp(blueS, 420, 600, [[0, 0], [1, 0.1]]); blueS.fillRect(0, 420, 1000, 180); blueS.restore();
     // stars
     press.knockout((g) => U.speckle(g, [60, 300, 900, 600], 90, 0.7, 2, 'aust', T(1), (x, y) => y > BOT(x) + 10));
     U.speckle(pink, [100, 300, 900, 600], 10, 1, 2, 'aups', T(1), (x, y) => y > BOT(x) + 10);
@@ -83,16 +83,17 @@ CARDS.aurora = (press, t) => {
     // more firs packed in the clusters (left and right), smaller behind
     { const rr = Motion.rng('aufill'); for (let i = 0; i < 26; i++) { const side = i % 2, X = side ? 820 + rr() * 260 : rr() * 300, Y = side ? 430 + rr() * 150 + (1080 - X) * 0.05 : 400 + X * 0.6 + rr() * 60; firs.push([X, Y]); } }
     press.knockout((g) => { for (const f of firs) tree(g, f); U.path(g, massL); g.fill(); U.path(g, massR); g.fill(); });
-    for (const [g, v] of [[navy, 0.82], [pinkS, 0.4], [blueS, 0.25]]) { g.fillStyle = T(v); for (const f of firs) tree(g, f); U.poly(g, massL, T(v)); U.poly(g, massR, T(v)); }
+    for (const [g, v] of [[navy, 0.66], [pinkS, 0.45], [blueS, 0.35]]) { g.fillStyle = T(v); for (const f of firs) tree(g, f); U.poly(g, massL, T(v)); U.poly(g, massR, T(v)); }
 
     // the lake: everything below the shore
     const lake = [];
     for (let x = 0; x <= 1000; x += 20) lake.push([x, SHORE(x) + 3]);
     lake.push([1000, 1000], [0, 1000]);
     press.knockout((g) => { U.path(g, lake); g.fill(); });
-    U.poly(blue, lake, T(0.55));
-    U.clipped(blueS, lake, (g) => { g.fillStyle = vramp(g, 620, 1000, [[0, 0.7], [1, 0.85]]); g.fillRect(0, 0, 1000, 1000); });
-    U.clipped(navyS, lake, (g) => { g.fillStyle = vramp(g, 620, 1000, [[0, 0.1], [0.6, 0.15], [1, 0.4]]); g.fillRect(0, 0, 1000, 1000); });
+    U.poly(blue, lake, T(1));
+    // the lake's navy is the reference's own screen (10.8 px at 72°, phase per drawing)
+    const LL = [{ o: [1.01, 4.08], a: [3.3227, 10.2934], b: [-10.2768, 3.3143] }, { o: [1.50, -1.11], a: [3.3226, 10.2927], b: [-10.2773, 3.3143] }][Math.min(1, d)];
+    U.lattice(navy, LL, (m) => U.clipped(m, lake, (g) => { g.fillStyle = vramp(g, 620, 1000, [[0, 0.3], [0.5, 0.3], [1, 0.45]]); g.fillRect(0, 0, 1000, 1000); }));
     // green light on the water: soft yellow bands
     U.clipped(yellowS, lake, (g) => {
         for (const [y, h, x0, x1, v] of [[705, 30, 160, 900, 0.55], [735, 22, 200, 960, 0.5], [770, 26, 120, 1000, 0.45], [805, 20, 260, 880, 0.35], [840, 18, 300, 800, 0.25]]) {
@@ -100,7 +101,7 @@ CARDS.aurora = (press, t) => {
         }
     });
     // reflections of the firs, broken into slices by ripples
-    U.clipped(navyS, lake, (g) => { g.fillStyle = T(0.75); for (const f of firs) tree(g, f, true); });
+    U.clipped(navyS, lake, (g) => { g.fillStyle = T(0.5); for (const f of firs) tree(g, f, true); });
     U.clipped(pinkS, lake, (g) => { g.fillStyle = T(0.35); for (const f of firs) tree(g, f, true); });
     // ripples: thin horizontal knock-outs across the reflections, a few white glints
     press.knockout((g) => {

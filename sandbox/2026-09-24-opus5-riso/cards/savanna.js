@@ -1,105 +1,183 @@
-// Card «savanna» (reference 13.75–13.875 s, full frame). An umbrella acacia and two cypresses
+// Card «savanna» (reference 13.75–13.875 s, full frame). An umbrella pine and two cypresses
 // in silhouette against a sunset over a striped field: yellow printed flat over the whole card,
-// a pink screen that turns the sky red at the top and thins to bare yellow at the horizon,
-// stippled clouds (navy + blue specks), red streaks, birds, a dark hedge line, green furrows
-// converging to a vanishing point. Measured on the 13.75 s frame (px / 1.08 = units).
+// the reference's own pink screen (12.96 px, 78°) turning the sky red at the top and thinning
+// to bare yellow round the glow low on the right, a murmuration cloud (three linked loops of
+// olive specks), red streaks, birds, a dark hedge line, and a field of blue screen (9.72 px,
+// 18°) with yellow furrow crests converging on a vanishing point. Everything measured on the
+// 13.75 s frame in reference px (1080 = 1000 units): colour-run scans for the silhouettes,
+// ink coverages fitted on 90 × 54 px blocks, lattices fitted per drawing.
 // Needs cards/_g6-util.js.
 var CARDS = CARDS || {};
 CARDS.savanna = (press, t) => {
-    const R = Riso, T = R.tone, U = G6;
-    const pinkS = press.plate('pink', 'screen'), pink = press.plate('pink');
-    const blueS = press.plate('blue', 'screen'), blue = press.plate('blue');
-    const navyS = press.plate('navy', 'screen'), navy = press.plate('navy');
-    const yellow = press.plate('yellow');
-    const d = Math.floor(t * 12 + 1e-6);
+    const T = Riso.tone, U = G6;
+    const pink = press.plate('pink'), blue = press.plate('blue'), navy = press.plate('navy'), yellow = press.plate('yellow');
+    const d = Math.min(1, Math.floor(t * 12 + 1e-6));
     const px = (v) => v / 1.08, P = (pts) => pts.map(([x, y]) => [x / 1.08, y / 1.08]);
     const vramp = (g, y0, y1, stops) => { const gr = g.createLinearGradient(0, y0, 0, y1); stops.forEach(([f, v]) => gr.addColorStop(f, T(v))); return gr; };
+    // the second drawing is the same print moved (-4, 1.5) px (both screens' phases shift by it)
+    press.save();
+    if (d === 1) press.each((g) => g.translate(px(-4.1), px(1.5)));
 
     // yellow flat over everything
-    yellow.fillStyle = T(1); yellow.fillRect(0, 0, 1000, 1000);
-    // the sky's pink screen: dense at the top, bare over the bright glow low on the right
-    pinkS.fillStyle = vramp(pinkS, 0, 780, [[0, 0.85], [0.35, 0.62], [0.65, 0.4], [0.85, 0.22], [1, 0.12]]);
-    pinkS.fillRect(0, 0, 1000, 800);
-    pinkS.save(); pinkS.globalCompositeOperation = 'destination-out';
-    pinkS.fillStyle = R.radial(pinkS, px(760), px(700), 20, 330, 0.85, 0); pinkS.fillRect(0, 0, 1000, 800); pinkS.restore();
-    // a hint of blue at the top corners (the red goes brownish)
-    blueS.fillStyle = vramp(blueS, 0, 200, [[0, 0.12], [1, 0]]); blueS.fillRect(0, 0, 1000, 200);
+    yellow.fillStyle = T(1); yellow.fillRect(-20, -20, 1040, 1040);
 
-    // stippled clouds: one ribbon of specks looping in an S (a murmuration-like cloud), the sky
-    // showing through its loops; specks in navy and blue (dark olive and green on the yellow)
-    const ribbon = [
-        P([[20, 205], [60, 110], [140, 70], [240, 105], [300, 150], [380, 140], [420, 205], [410, 300], [450, 380], [540, 420], [650, 425], [720, 385], [780, 300], [830, 205], [930, 150], [1050, 120], [1085, 170], [1060, 265], [1040, 350], [980, 400], [880, 402], [820, 372]]),
-        P([[20, 205], [80, 232], [180, 222], [250, 182], [300, 150]]),
-        P([[410, 195], [520, 178], [620, 230], [700, 300], [770, 330]]),
+    // the sky's pink screen: coverage 0.95 at the top, 0.6 at a third, 0.44 low down; bare in
+    // a flattened glow round (745, 690) px
+    const LP = { o: [0.52, -6.15], a: [2.6984, 12.6783], b: [-12.6751, 2.6956] };
+    U.lattice(pink, LP, (m) => {
+        m.fillStyle = vramp(m, 0, px(880), [[0, 0.97], [0.12, 0.9], [0.26, 0.74], [0.37, 0.64], [0.49, 0.49], [0.7, 0.46], [0.88, 0.44], [1, 0.44]]);
+        m.fillRect(-20, -20, 1040, px(900));
+        m.globalCompositeOperation = 'destination-out'; m.fillStyle = T(0.8); m.fillRect(-20, px(845), 1040, 400); m.globalCompositeOperation = 'source-over';
+        m.globalCompositeOperation = 'destination-out';
+        const gl = m.createRadialGradient(px(745), px(690), 0, px(745), px(690), px(330));
+        gl.addColorStop(0, T(0.84)); gl.addColorStop(0.3, T(0.8)); gl.addColorStop(0.65, T(0.45)); gl.addColorStop(1, T(0));
+        m.fillStyle = gl; m.save(); m.translate(0, px(690)); m.scale(1, 0.75); m.translate(0, -px(690)); m.fillRect(-20, -200, 1040, 1600); m.restore();
+    });
+
+    // the murmuration: three linked loops of specks (dense rims ~45 px wide, sparse insides);
+    // each speck a tiny tapered dash (a bird at that distance), navy with a little blue: olive
+    // on the red sky. Rim centre-lines measured on a speck-density map (15 × 20 px cells).
+    const loops = [
+        [[20, 200], [10, 130], [45, 70], [110, 42], [200, 40], [270, 70], [300, 120], [270, 175], [200, 205], [100, 212]],
+        [[390, 190], [480, 168], [580, 180], [640, 230], [690, 300], [690, 370], [620, 400], [520, 405], [440, 395], [405, 320]],
+        [[795, 200], [880, 160], [980, 135], [1075, 125], [1085, 260], [1060, 360], [980, 395], [860, 395], [795, 360], [785, 280]],
     ];
-    const rs = Motion.rng('svcl');
-    for (const line of ribbon) for (let i = 0; i < line.length - 1; i++) {
-        const [x0, y0] = line[i], [x1, y1] = line[i + 1], L = Math.hypot(x1 - x0, y1 - y0), n = Math.round(L * 5.5);
-        const nx = -(y1 - y0) / L, ny = (x1 - x0) / L, wid = px(62);
-        for (let k = 0; k < n; k++) {
-            const f = rs(), o = (rs() + rs() + rs() - 1.5) * wid;
-            const x = x0 + (x1 - x0) * f + nx * o, y = y0 + (y1 - y0) * f + ny * o;
-            const g = rs() < 0.5 ? navy : blue, s = 0.9 + rs() * 2.2;
-            g.fillStyle = T(0.6 + rs() * 0.4);
-            g.beginPath(); g.ellipse(x, y, s, s * 0.55, rs() * 3, 0, 7); g.fill();
+    const fills = [0.004, 0.009, 0.008];
+    const bridges = [[[270, 110], [320, 140], [380, 165], [440, 175]], [[600, 395], [700, 393], [800, 392], [900, 390], [975, 385]]];
+    const rs = Motion.rng('svmur');
+    const smoothPts = (pts, closed) => {
+        const out = [], n = pts.length;
+        for (let i = 0; i < (closed ? n : n - 1); i++) {
+            const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+            for (let k = 0; k < 8; k++) {
+                const s = k / 8, s2 = s * s, s3 = s2 * s;
+                out.push([0, 1].map((c) => 0.5 * (2 * p1[c] + (-p0[c] + p2[c]) * s + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * s2 + (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * s3)));
+            }
         }
-        U.stroke(navyS, [[x0, y0], [x1, y1]], px(90), T(0.1));
+        return out;
+    };
+    const specks = [];
+    const along = (pts, closed, per, spread) => {
+        const sp = smoothPts(pts, closed);
+        for (let i = 0; i < sp.length - (closed ? 0 : 1); i++) {
+            const [x0, y0] = sp[i], [x1, y1] = sp[(i + 1) % sp.length], L = Math.hypot(x1 - x0, y1 - y0) || 1, nx = -(y1 - y0) / L, ny = (x1 - x0) / L;
+            const n = Math.round(L * per);
+            for (let k = 0; k < n; k++) { const f = rs(), o = (rs() + rs() + rs() + rs() - 2) * spread; specks.push([x0 + (x1 - x0) * f + nx * o, y0 + (y1 - y0) * f + ny * o]); }
+        }
+        return sp;
+    };
+    const rims = loops.map((l) => along(l, true, 2.2, 26));
+    bridges.forEach((br) => along(br, false, 2.2, 20));
+    // the insides: sparse
+    rims.forEach((sp, li) => {
+        const xs = sp.map((p) => p[0]), ys = sp.map((p) => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        const n = Math.round((x1 - x0) * (y1 - y0) * fills[li]);
+        for (let k = 0; k < n; k++) specks.push([x0 + rs() * (x1 - x0), y0 + rs() * (y1 - y0), sp]);
+    });
+    const inside = (p, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c; } return c; };
+    for (const [g, v, share] of [[navy, 0.72, 1], [blue, 0.5, 0.55]]) {
+        const r2 = Motion.rng('svmur2');
+        // (filled in batches: one path of thousands of overlapping subpaths is slow to fill)
+        g.fillStyle = T(v); g.beginPath();
+        let nb = 0;
+        for (const s of specks) {
+            if (++nb % 120 === 0) { g.fill(); g.beginPath(); }
+            const a = r2() * 6.28, len = 2.2 + r2() * 3.4, w = 0.9 + r2() * 0.9, pick = r2();
+            if (s[2] && !inside(s, s[2])) continue;
+            if (pick > share) continue;
+            const x = s[0], y = s[1], ca = Math.cos(a), sa = Math.sin(a);
+            // a tapered dash: a thin diamond
+            g.moveTo(px(x - ca * len), px(y - sa * len)); g.lineTo(px(x - sa * w), px(y + ca * w)); g.lineTo(px(x + ca * len), px(y + sa * len)); g.lineTo(px(x + sa * w), px(y - ca * w)); g.closePath();
+        }
+        g.fill();
     }
-    // red streak clouds low on the right: pink flat lines over the yellow
-    for (const [x0, x1, y, w] of [[440, 985, 742, 5], [600, 940, 800, 4], [480, 700, 752, 2.5]]) U.stroke(pink, [[px(x0), px(y)], [px((x0 + x1) / 2), px(y + 3)], [px(x1), px(y + 8)]], w, T(0.9));
+
+    // red streak clouds low on the right: pink brush lines over the yellow (739–771, 793–809 px)
+    const streak = (x0, x1, y0, y1, w, seed) => {
+        const r = Motion.rng('svst' + seed), top = [], bot = [];
+        for (let i = 0; i <= 24; i++) { const f = i / 24, x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f + Math.sin(f * 9 + seed) * 1.2, hw = w * Math.sin(Math.PI * Math.min(1, f * 1.15)) ** 0.6 * (0.8 + 0.4 * r()); top.push([x, y - hw]); bot.unshift([x, y + hw]); }
+        U.poly(pink, P([...top, ...bot]), T(0.95));
+    };
+    streak(410, 965, 740, 770, 3.2, 1); streak(470, 720, 752, 760, 1.6, 2); streak(595, 945, 795, 808, 2.8, 3);
     // birds on the right, flapping on twos
-    const bird = (x, y, s, up) => { const w = up ? -7 : 3; U.poly(navy, [[x - 13 * s, y + w * s], [x - 3 * s, y - 2 * s], [x, y + 4 * s], [x + 3 * s, y - 2 * s], [x + 13 * s, y + w * s], [x + 2 * s, y + 2 * s], [x - 2 * s, y + 2 * s]], T(1)); };
-    [[1062, 425, 1.2], [1022, 482, 0.9], [985, 548, 1.1], [936, 626, 1.2], [1070, 600, 1.3], [1110, 640, 1]].forEach(([x, y, s], i) => bird(px(x), px(y), s, (d + i) % 2 === 0));
+    const bird = (x, y, s, up) => { const w = up ? -7 : 3; U.poly(navy, P([[x - 13 * s, y + w * s], [x - 3 * s, y - 2 * s], [x, y + 4 * s], [x + 3 * s, y - 2 * s], [x + 13 * s, y + w * s], [x + 2 * s, y + 2 * s], [x - 2 * s, y + 2 * s]]), T(1)); };
+    [[977, 548, 1.1], [934, 620, 1.2], [1069, 600, 1.3], [1060, 425, 1.0], [1105, 640, 1]].forEach(([x, y, s], i) => bird(x, y, s, (d + i) % 2 === 0));
 
-    // silhouettes: navy flat over the yellow (a dark olive), a touch of blue and pink
-    const sil = (fn) => { for (const [g, v] of [[navy, 0.92], [blueS, 0.35], [pinkS, 0.3]]) { g.save(); g.fillStyle = T(v); g.strokeStyle = T(v); fn(g); g.restore(); } };
-    // the hedge line along the horizon and the bush on the right
-    const hedge = [];
-    { const rh = Motion.rng('svh'); for (let x = 0; x <= 1000; x += 12) hedge.push([x, px(806) + Math.sin(x / 23) * 4 + (rh() - 0.5) * 6 - (x > 850 ? (x - 850) * 0.05 : 0)]); }
-    const hedgePoly = [...hedge, [1000, px(860)], [0, px(860)]];
-    const bushPts = P([[940, 870], [932, 820], [950, 785], [990, 762], [1040, 758], [1080, 770], [1080, 875]]);
+    // silhouettes: one flat dark olive-brown (fitted: navy 0.66, blue 0.75, pink 0.35 over the
+    // yellow); nearer layers are one piece, so they print as one colour
+    const sil = (fn) => {
+        pink.save(); pink.globalCompositeOperation = 'destination-out'; pink.fillStyle = T(1); pink.strokeStyle = T(1); fn(pink); pink.restore();
+        for (const [g, v] of [[navy, 0.68], [blue, 0.76], [pink, 0.36]]) { g.save(); g.fillStyle = T(v); g.strokeStyle = T(v); fn(g); g.restore(); }
+    };
+    // (the sky's pink dots under the silhouettes: cleared so the silhouette pink is flat)
+    const shapes = [];
+    // hedge: top and bottom edges measured every 30 px
+    const hedgeTop = [[-10, 780], [30, 785], [90, 796], [180, 797], [210, 810], [240, 806], [270, 814], [300, 818], [330, 808], [360, 805], [420, 809], [480, 816], [510, 823], [540, 816], [570, 812], [630, 819], [690, 832], [750, 825], [810, 831], [870, 832], [930, 838], [945, 806], [960, 790], [980, 772], [1010, 764], [1040, 759], [1090, 758]];
+    const hedgeBot = [[1090, 886], [1000, 884], [900, 876], [780, 872], [640, 868], [600, 861], [540, 859], [480, 854], [390, 851], [300, 846], [210, 842], [120, 839], [30, 832], [-10, 831]];
+    const rh = Motion.rng('svhedge');
+    const bumpy = (pts, amp) => { const out = []; for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], n = Math.max(1, Math.round(Math.abs(x1 - x0) / 9)); for (let k = 0; k < n; k++) { const f = k / n; out.push([x0 + (x1 - x0) * f, y0 + (y1 - y0) * f + (rh() - 0.5) * amp - Math.abs(Math.sin((x0 + (x1 - x0) * f) / 17)) * amp * 0.8]); } } out.push(pts[pts.length - 1]); return out; };
+    const hedge = P([...bumpy(hedgeTop, 5), ...hedgeBot]);
+    // cypresses: flames (centre, top, half-width at the base, base) measured from the scans
+    const cyp = (cx, top, hw, bot, seed) => {
+        const r = Motion.rng('svcy' + seed), L = [], R = [];
+        for (let i = 0; i <= 16; i++) {
+            const f = i / 16, y = top + (bot - top) * f, w = hw * Math.pow(Math.sin(Math.min(1, f * 1.45) * Math.PI / 2), 0.8) * (1 - 0.1 * f);
+            R.push([cx + w * (1 + 0.06 * (r() - 0.5)), y]); L.unshift([cx - w * (1 + 0.06 * (r() - 0.5)), y]);
+        }
+        return P([...R, ...L]);
+    };
+    // the umbrella pine's canopy: one lobed outline (top from the scans, the dot's bump removed)
+    const canopy = P([[192, 690], [186, 655], [196, 628], [218, 612], [236, 600], [246, 585], [262, 570], [286, 559], [310, 541], [332, 546], [352, 546], [373, 534], [395, 526], [412, 520], [432, 527], [456, 542], [480, 561], [500, 578], [520, 592], [548, 600], [572, 614], [588, 640], [594, 670], [586, 700], [566, 716], [540, 719], [515, 712], [498, 698], [472, 683], [442, 670], [420, 686], [398, 676], [372, 678], [346, 667], [330, 660], [314, 682], [292, 692], [262, 699], [232, 696], [210, 683]]);
+    const trunk = P([[368, 830], [372, 760], [374, 700], [390, 700], [394, 760], [398, 830]]);
+    const branches = [[[[380, 735], [340, 708], [300, 682]], 10], [[[384, 738], [440, 712], [500, 698]], 9], [[[379, 722], [364, 690], [355, 668]], 9], [[[385, 722], [404, 692], [420, 670]], 8]];
     sil((g) => {
-        U.path(g, hedgePoly); g.fill();
-        U.smooth(g, bushPts); g.fill();
-        // cypresses: tall flames
-        for (const [cx, top, w, bot] of [[85, 512, 44, 805], [142, 588, 30, 805]]) {
-            const pts = [];
-            for (let i = 0; i <= 12; i++) { const f = i / 12, y = top + (bot - top) * f, ww = w * Math.sin(Math.min(1, f * 1.6) * Math.PI * 0.5) * (1 - 0.15 * f) * (1 + 0.08 * Math.sin(i * 2.3)); pts.push([px(cx + ww), px(y)]); }
-            for (let i = 12; i >= 0; i--) { const f = i / 12, y = top + (bot - top) * f, ww = w * Math.sin(Math.min(1, f * 1.6) * Math.PI * 0.5) * (1 - 0.15 * f) * (1 + 0.08 * Math.cos(i * 1.9)); pts.push([px(cx - ww), px(y)]); }
-            U.smooth(g, pts); g.fill();
-        }
-        // the umbrella pine: a canopy of lobes, a trunk forking into branches
-        g.lineCap = 'round';
-        for (const [pts, w] of [[[[380, 830], [382, 760], [376, 705]], 16], [[[378, 740], [340, 715], [300, 690]], 7], [[[380, 735], [420, 705], [470, 700], [520, 690]], 7], [[[376, 705], [360, 660]], 8], [[[380, 715], [410, 670]], 7]]) {
-            g.lineWidth = px(w); g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(px(x), px(y)) : g.moveTo(px(x), px(y)))); g.stroke();
-        }
-        for (const [x, y, rx, ry] of [[240, 655, 50, 38], [300, 610, 70, 50], [380, 580, 85, 58], [460, 575, 70, 50], [525, 610, 55, 40], [555, 680, 40, 30], [470, 640, 55, 35], [330, 660, 50, 30], [230, 610, 35, 25]]) {
-            g.beginPath(); g.ellipse(px(x), px(y), px(rx), px(ry), 0, 0, 7); g.fill();
-        }
+        U.path(g, hedge); g.fill();
+        U.path(g, cyp(84, 512, 44, 836, 1)); g.fill();
+        U.path(g, cyp(148, 588, 28, 840, 2)); g.fill();
+        U.smooth(g, canopy); g.fill();
+        U.path(g, trunk); g.fill();
+        g.lineCap = 'round'; g.lineJoin = 'round';
+        for (const [pts, w] of branches) { g.lineWidth = px(w); g.beginPath(); P(pts).forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); }
     });
-    // light lifts inside the canopy (the yellow shows through the lobes' gaps)
-    for (const g of [navy]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(0.7); for (const [x, y, rx, ry] of [[265, 690, 12, 5], [505, 660, 10, 5], [420, 690, 14, 4]]) { g.beginPath(); g.ellipse(px(x), px(y), px(rx), px(ry), 0, 0, 7); g.fill(); } g.restore(); }
     // grass sprigs by the bush
-    for (let i = 0; i < 6; i++) U.stroke(blue, [[px(955 + i * 8), px(800)], [px(945 + i * 11), px(745 + (i % 3) * 10)]], 1.6, T(0.9));
+    for (let i = 0; i < 6; i++) U.stroke(blue, P([[955 + i * 8, 800], [945 + i * 11, 745 + (i % 3) * 10]]), 1.6, T(0.9));
 
-    // the field: green (blue screen over the yellow) with furrows converging to (780, 870) px
-    const field = [[0, px(855)], [1000, px(855)], [1000, 1000], [0, 1000]];
-    U.clipped(blueS, field, (g) => { g.fillStyle = vramp(g, px(850), 1000, [[0, 0.35], [0.2, 0.5], [1, 0.6]]); g.fillRect(0, 0, 1000, 1000); });
-    // the far band on the left: lighter dots
-    U.clipped(blueS, [[0, px(850)], [px(560), px(862)], [0, px(905)]], (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(0.4); g.fillRect(0, 0, 1000, 1000); });
-    const VP = [px(780), px(862)];
-    U.clipped(blue, field, (g) => {
-        for (let i = -40; i <= 40; i++) {
-            const bx = VP[0] + i * 56, w0 = 0.2, w1 = 14 + Math.abs(i) * 0.4;
-            g.fillStyle = T(0.8);
-            g.beginPath(); g.moveTo(VP[0] + i * 0.4, VP[1]); g.lineTo(bx - w1, 1000); g.lineTo(bx + w1, 1000); g.lineTo(VP[0] + i * 0.4 + w0, VP[1]); g.fill();
+    // the field: the blue screen (9.72 px, 18°) over the yellow; a light far band on the left
+    // (a diagonal from (0, 925) to (560, 866) px), dark near the horizon, then furrows whose
+    // crests are yellow (blue lifted) converging on (778, 874) px
+    const field = P([[-20, 830], [1100, 830], [1100, 1100], [-20, 1100]]);
+    const VP = [778, 874];
+    const LB = { o: [-2.28, 0.60], a: [-2.9741, 9.2597], b: [9.2517, 2.9840] };
+    const crests = (m, wmul) => {
+        for (let i = -34; i <= 34; i++) {
+            // crests start ~40 px below the horizon (the far rows merge into dark green)
+            const bx = VP[0] + i * 60 + 30, w = (5 + Math.abs(i) * 0.25) * wmul, f0 = 0.16;
+            const sx = VP[0] + (bx - VP[0]) * f0, sy = VP[1] + (1090 - VP[1]) * f0;
+            m.beginPath(); m.moveTo(px(sx), px(sy)); m.lineTo(px(bx - w), px(1090)); m.lineTo(px(bx + w), px(1090)); m.closePath(); m.fill();
         }
+    };
+    U.lattice(blue, LB, (m) => {
+        U.clipped(m, field, (h) => {
+            h.fillStyle = vramp(h, px(840), px(1080), [[0, 1.1], [0.45, 1.1], [0.6, 0.95], [1, 0.9]]);
+            h.fillRect(-20, 0, 1040, 1100);
+            h.globalCompositeOperation = 'destination-out';
+            // the far band: light (bare yellow with sparse dots)
+            h.fillStyle = T(0.75); U.path(h, P([[-20, 830], [560, 830], [560, 866], [-20, 927]])); h.fill();
+        });
+    }, { min: 0.05 });
+    // furrows: solid blue lines (dark green) and yellow crests cut through the screen, crisp
+    // (a screen can't carry lines finer than its pitch)
+    U.clipped(blue, field, (h) => {
+        h.fillStyle = T(0.9);
+        for (let i = -34; i <= 34; i++) {
+            const bx = VP[0] + i * 60, w = 4 + Math.abs(i) * 0.3, f0 = 0.05, sx = VP[0] + (bx - VP[0]) * f0, sy = VP[1] + (1090 - VP[1]) * f0;
+            h.beginPath(); h.moveTo(px(sx), px(sy)); h.lineTo(px(bx - w), px(1090)); h.lineTo(px(bx + w), px(1090)); h.closePath(); h.fill();
+        }
+        h.globalCompositeOperation = 'destination-out'; h.fillStyle = T(1); crests(h, 1.05);
     });
-    // the furrow crests: pale (the blue lifted, yellow shows)
-    for (const g of [blueS, blue]) U.clipped(g, field, (h) => {
-        h.globalCompositeOperation = 'destination-out';
-        for (let i = -40; i <= 40; i++) { const bx = VP[0] + i * 56 + 28; h.fillStyle = T(0.8); h.beginPath(); h.moveTo(VP[0] + i * 0.4 + 0.2, VP[1]); h.lineTo(bx - 11, 1000); h.lineTo(bx + 11, 1000); h.fill(); }
-    });
-    // a darker dip where the field meets the hedge
-    U.poly(navyS, [[0, px(850)], [1000, px(850)], [1000, px(875)], [0, px(875)]], T(0.25));
+    // red flecks in the field (the reference's field carries a sparse pink screen)
+    U.clipped(press.plate('pink', 'screen'), field, (h) => { h.fillStyle = T(0.07); h.fillRect(-20, 0, 1040, 1100); });
+    // the far band's navy tint (olive)
+    U.clipped(press.plate('navy', 'screen'), P([[-20, 830], [560, 830], [560, 866], [-20, 927]]), (h) => { h.fillStyle = T(0.22); h.fillRect(-20, 0, 1040, 1100); });
+    press.restore();
 };
