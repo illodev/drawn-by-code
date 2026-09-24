@@ -108,24 +108,22 @@ function tile(g, env, tl, x, y, rot, [sx, sy] = [1, 1]) {
     g.restore();
 }
 
-// her right hand holding a tile by its top edge ('hold': thumb in front, fingers behind),
-// the knitted sleeve going off the top right
+// her right hand holding a tile by its top edge: the four fingers over its face, the thumb
+// behind it (PaperDetail 'wrap': thumb = part back, palm and fingers = part front), the
+// forearm going off to the top right
 function heldTile(g, env, tl, x, y, rot) {
-    const D = PaperDetail, S = 112, hr = Math.PI + 1.05 + rot * 0.5; // the thumb points down over the tile's face, fingers behind it to the left, the forearm off to the right
-    const [ax, ay] = D.handAnchor('hold'), mir = 'right' !== D.HAND_VIEW.hold, k = S / 60;
-    const lx = (mir ? -ax : ax) * k, ly = ay * k;
-    // the tile's top edge, a little in from its left
-    const ex = x + 10 * Math.cos(rot) + (COVER_TILES.TH / 2 - 26) * Math.sin(rot), ey = y + 10 * Math.sin(rot) - (COVER_TILES.TH / 2 - 26) * Math.cos(rot);
-    const wx = ex - (lx * Math.cos(hr) - ly * Math.sin(hr)), wy = ey - (lx * Math.sin(hr) + ly * Math.cos(hr));
-    // the sleeve: from the wrist back along the forearm, off the frame
+    const D = PaperDetail, S = 90, hr = Math.PI - 0.3 + rot;
+    // the wrist a little above the middle of the tile's top edge: the fingers hang over it
+    const top = COVER_TILES.TH / 2, d = top + 54;
+    const wx = x + d * Math.sin(rot) - 4, wy = y - d * Math.cos(rot);
     const fa = hr + Math.PI / 2; // local +y: from the wrist back up the forearm
     env.state.kit.sprite('cover-sleeve', { x: -20, y: -70, w: 760, h: 140 }, (c) => {
         Paper.cutout(c, Paper.roundRect(0, -58, 720, 116, 40), '#33306e', 'coversleeve', { border: 3, shadow: 0.22, inner: (cc, box) => D.knit(cc, box, '#33306e', { seed: 'coverknit', size: 22, alpha: 0.18 }) });
-    }, 1.2).draw((g.save(), g.translate(wx, wy), g.rotate(fa), g));
+    }, 1.2).draw((g.save(), g.translate(wx + Math.cos(fa) * 30, wy + Math.sin(fa) * 30), g.rotate(fa), g));
     g.restore();
-    D.hand(g, wx, wy, S, hr, 'hold', { side: 'right', cuff: '#f4ecda', part: 'back' });
+    D.hand(g, wx, wy, S, hr, 'wrap', { side: 'right', cuff: '#f4ecda', part: 'back' });
     tile(g, env, tl, x, y, rot);
-    D.hand(g, wx, wy, S, hr, 'hold', { side: 'right', part: 'front' });
+    D.hand(g, wx, wy, S, hr, 'wrap', { side: 'right', cuff: '#f4ecda', part: 'front' });
 }
 
 // a polaroid: cream frame, the style's picture, a handwritten label, a strip of tape

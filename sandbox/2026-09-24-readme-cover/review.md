@@ -20,3 +20,11 @@
 - The 'hold' thumb lay flat across the tile's top edge with the palm above it: a mitten.
   The hand is turned so the thumb points down over the tile's face, the fingertips peek
   from behind its left edge and the forearm goes off to the right: a real pinch.
+
+## Round 3 (user)
+
+> «Deberían salir 4 dedos y el pulgar atrás, creo que es lo más natural.»
+
+- The tile is now held with PaperDetail 'wrap': the thumb behind it (part back), the back
+  of the hand and the four fingers over the top of its face (part front), the forearm up to
+  the top right; small enough and high enough to leave the letter clear.
