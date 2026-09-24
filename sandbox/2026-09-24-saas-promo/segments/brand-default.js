@@ -30,3 +30,22 @@ var BRAND = {
         cut(c, Paper.circleUnion([[-22, 4, 26], [8, -12, 32], [34, 8, 20]]), BRAND.col.brand, 'mark-cloud');
     },
 };
+
+// the full logo for screens (the app's own UI): mark and name, both in the brand colour
+// (never the name in ink: a logo is one colour). private/brand.js draws the real one.
+// x = left edge, y = vertical centre, h = height; returns the width.
+BRAND.lockup = (c, x, y, h, col = BRAND.col.brand) => {
+    c.save();
+    c.fillStyle = col;
+    for (const [cx, cy, r] of [[0.3, 0.55, 0.26], [0.6, 0.4, 0.32], [0.86, 0.6, 0.2]]) {
+        c.beginPath();
+        c.arc(x + cx * h, y - h / 2 + cy * h, r * h, 0, 7);
+        c.fill();
+    }
+    c.font = `700 ${h * 0.8}px "${BRAND.font}"`;
+    c.textBaseline = 'middle';
+    c.fillText(BRAND.name, x + h * 1.25, y);
+    const w = h * 1.25 + c.measureText(BRAND.name).width;
+    c.restore();
+    return w;
+};

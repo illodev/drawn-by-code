@@ -29,6 +29,10 @@ claim.
 (sample its curves into points, keep its proportions and gaps) and cut that as paper. An
 approximated logo is the first thing the client sees: in saas-promo a «cloud with a bar»
 drawn by eye was a blob that «no se parece al logo» (see the mark in `private/brand.js`).
+The same goes for the **wordmark**: wherever the logo appears with its name (an app's
+sidebar, a phone screen), draw the whole lockup from the SVG in the brand colour
+(`BRAND.lockup`), never the mark plus the name typed in ink with the brand font: the user
+caught a two-colour logo on two renders in a row.
 
 ## 2 · Shot-by-shot script
 

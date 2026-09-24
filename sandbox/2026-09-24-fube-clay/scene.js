@@ -57,7 +57,7 @@ function uiSprite(pressed) {
             c.fillStyle = i === 1 ? cl.brand : '#2a2530';
             c.fillRect(x0 + 34, y0 + 120 + i * 46, [90, 120, 80, 104, 70][i], 5);
         });
-        P(c, BRAND.name, x0 + 86, y0 + 56, 26, '#2a2530', { weight: 700 });
+        BRAND.lockup(c, x0 + 30, y0 + 50, 38); // the logo in one colour
         const fx = x0 + 280, fr = x0 + SCR.w - 50;
         P(c, cp.newInvoice, fx, y0 + 72, 40, '#2a2530', { weight: 700 });
         P(c, cp.number, fx, y0 + 100, 17, '#8d8a92', { mono: true });
@@ -119,7 +119,6 @@ function pov(g, t, tq, v) {
     gl.addColorStop(0.4, 'rgba(255,255,255,0)');
     g.fillStyle = gl;
     g.fillRect(SCR.x, SCR.y, SCR.w, SCR.h);
-    F.mark(g, 290, 140, 0.34, 'povmark');
     F.P(g, 'pov-base', C.lumpy(C.roundRect(80, 820, 1440, 160, 30), 'lbase', 2, 4), COL.grey, { bevel: 14, shine: 0.6, prints: 5, marks: 8, shadowOffset: [0, -6] });
     for (let i = 0; i < 13; i++) F.put(g, 150 + i * 100, 860, 1, 0, () => F.P(g, 'pov-key' + (i % 3), C.lumpy(C.roundRect(0, 0, 86, 40, 10), 'key' + (i % 3), 0.6), '#4a4d57', F.small({ bevel: 4 })));
     // sticky notes on the bezel, with handwriting pressed in

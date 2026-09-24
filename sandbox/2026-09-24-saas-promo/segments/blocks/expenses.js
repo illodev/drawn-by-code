@@ -329,8 +329,7 @@
             // header: the brand, a thin rule
             c.fillStyle = cl.cream;
             c.fillRect(-SW / 2, -SH / 2, SW, 62);
-            Props.mark(c, -84, -SH / 2 + 34, 0.26, 'eform');
-            Props.print(c, BRAND.name, -62, -SH / 2 + 42, 19, cl.ink, { weight: 700 });
+            BRAND.lockup(c, -SW / 2 + 16, -SH / 2 + 32, 26); // the logo in one colour
             for (const [k, f] of Object.entries(FIELDS())) {
                 Props.print(c, f.label, f.x, f.y - 7, 12, cl.grey);
                 c.fillStyle = '#ffffff';

@@ -136,8 +136,7 @@ const Props = (() => {
                     // sidebar
                     cc.fillStyle = cl.cream;
                     cc.fillRect(x, y, 250, h);
-                    mark(cc, x + 60, y + 58, 0.5, 'side');
-                    print(cc, BRAND.name, x + 100, y + 70, 28, cl.ink, { weight: 700 });
+                    BRAND.lockup(cc, x + 34, y + 62, 40); // the logo in one colour
                     [0, 1, 2, 3, 4].forEach((it, i) => {
                         const yy = y + 150 + i * 56;
                         if (i === 1) (cc.fillStyle = cl.brand, (cc.globalAlpha = 0.16), cc.fillRect(x + 18, yy - 30, 214, 44), (cc.globalAlpha = 1));

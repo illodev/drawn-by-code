@@ -76,3 +76,12 @@ real photos of desks) and fill the frame in depth.
   handle turned away, the wrist solved from the mug (`Laura.wrap`). Pointing (issue POV,
   expenses, collections, business): back of the hand with its nail. Compliance: the stamp
   comes down by itself (the stretched arm from the corner is gone), like in «send».
+
+## Round 3 (user)
+
+> «El logo de Fube con wordmark de la pantalla del ordenador tiene 2 colores, y tiene que ir
+> logo y wordmark de color de Fube.»
+
+- The app's sidebar (laptop screen), the phone app header (expenses) and the clay test's
+  screen now draw `BRAND.lockup`: the site's logo.svg (cloud, bar and wordmark as paths), all
+  in the brand colour. The placeholder brand has its own one-colour lockup.
