@@ -19,6 +19,7 @@ var BRAND = {
         askAI: 'Which client pays off?', margin: 'Margin per client', clients: [['Studio Mirlo', 38], ['Vera Shoes', 31], ['Hotel Albor', 24], ['Nordic Café', 12]],
         comply: 'Compliance, no scares.', deadlines: [['1 Jan 2027', 'Companies'], ['1 Jul 2027', 'Freelancers']],
         closeLine: 'Less admin. More business.', startFree: 'Start free.', includedAll: 'Compliance included in every plan', web: 'example.com',
+        ready: 'Ready', numFormat: [',', '.'],
         newInvoice: 'New invoice', client: 'Client', clientName: 'Acme Ltd', total: 'Total',
         amount: '3,496.90', issue: 'Issue', invoice: 'INVOICE', number: 'F-0118',
         office: 'TAX', issued: 'Issued in 30 seconds', compliance: 'Compliance built in',

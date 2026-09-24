@@ -624,7 +624,7 @@ const Office = (() => {
             const r = P.rng('flowers' + page);
             for (let i = 0; i < 14; i++) pf(ell(x + r() * w, y + h * (0.6 + r() * 0.35), 3, 3, 10), [COL.coral, COL.mustard, '#fbf8ef'][i % 3], 'fl' + i);
         } else {
-            for (let i = 0; i < 7; i++) pf(R(x + i * w / 7 + 2, y + h * (0.3 + ((i * 37) % 30) / 100), w / 7 - 3, h), ['#5a6079', '#4a5a8a', '#6b6f88'][i % 3], 'bld' + i);
+            for (let i = 0; i < 7; i++) pf(R(x + i * w / 7 + 2, y + h * (0.3 + ((i * 37) % 30) / 100), w / 7 - 3, h * (0.7 - ((i * 37) % 30) / 100)), ['#5a6079', '#4a5a8a', '#6b6f88'][i % 3], 'bld' + i);
         }
     }
     function calendar(g, page = 0) {
