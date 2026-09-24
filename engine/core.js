@@ -104,10 +104,37 @@ const Motion = (() => {
         return frames[frames.length - 1][1];
     }
 
+    // --- capas: lienzos fuera de pantalla del tamaño de salida -----------------------
+    // Para transiciones y efectos que necesitan el plano ya pintado como imagen.
+    // layer(env, 'a', (g) => pintarPlanoA(g)) devuelve el lienzo con el plano pintado
+    // en coordenadas lógicas; se pinta encima con drawLayer(g, env, lienzo).
+    const layers = new Map();
+    function layer(env, name, drawFn) {
+        let c = layers.get(name);
+        if (!c || c.width !== env.px[0] || c.height !== env.px[1]) {
+            c = document.createElement('canvas');
+            c.width = env.px[0];
+            c.height = env.px[1];
+            layers.set(name, c);
+        }
+        const g = c.getContext('2d');
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = 'source-over';
+        g.filter = 'none';
+        g.clearRect(0, 0, c.width, c.height);
+        g.setTransform(env.k, 0, 0, env.k, 0, 0);
+        g.save();
+        drawFn(g);
+        g.restore();
+        return c;
+    }
+    const drawLayer = (g, env, c) => g.drawImage(c, 0, 0, env.W, env.H);
+
     return {
         scene: (d) => { def = d; },
         get def() { return def; },
-        hashStr, rng, noise1, sprite, cache, shotAt, beatLen, pulse, beatIndex, onBeat, cam, shake, keys,
+        hashStr, rng, noise1, sprite, cache, shotAt, beatLen, pulse, beatIndex, onBeat, cam, shake, keys, layer, drawLayer,
     };
 })();
 

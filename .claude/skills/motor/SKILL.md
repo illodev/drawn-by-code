@@ -32,7 +32,8 @@ Rutas de `uses` y `fonts` desde la raíz del repo.
 Utilidades de `engine/core.js`: `Motion.rng(semilla)`, `noise1`, `sprite(clave, caja,
 escala, dibujar)`, `shotAt`, `pulse(t, bpm)`, `beatIndex`, `onBeat`, `cam(g, env, cx, cy,
 zoom, rot)`, `shake`, `keys([[t, v], …], t)`; y `Ease.seg/inOut/out/in/back/elastic/bump/
-pop/lerp/lerpPt`. El patrón de tiempo local es `const u = Ease.out(Ease.seg(t, 2.0, 2.6))`.
+pop/lerp/lerpPt`. `Motion.layer(env, nombre, fn)` pinta un plano en un lienzo aparte
+(del tamaño de salida) y `Motion.drawLayer` lo pega: para transiciones y espejos. El patrón de tiempo local es `const u = Ease.out(Ease.seg(t, 2.0, 2.6))`.
 
 ## Determinismo (regla de oro)
 
@@ -43,6 +44,13 @@ pop/lerp/lerpPt`. El patrón de tiempo local es `const u = Ease.out(Ease.seg(t, 
 - Simulaciones (caídas, lluvias de papel): fórmula cerrada por partícula con su semilla,
   o una simulación que se precalcula entera en `setup` y se indexa por fotograma.
 - `review.mjs` pinta los fotogramas en otro orden y compara hashes: si avisa, hay estado.
+
+## Escenas largas o con varios estilos
+
+Un fichero por tramo en `tramos/` (cada uno añade su función a un objeto global, p. ej.
+`Tramo.rana = (g, t, env) => …`), cargados desde `uses` junto con los kits de todos los
+estilos. `scene.js` solo monta: decide qué tramo o qué transición toca en cada `t`. Ver
+`sandbox/2026-09-24-cadaver-exquisito/`.
 
 ## Rendimiento
 

@@ -19,6 +19,15 @@ El vídeo se monta **sobre la música**, no al revés: primero el tempo, despué
   pista suelta**; no la subas al repo (sí el script de corte). Si YouTube la reclama por
   Content ID, se disputa con la licencia.
 
+### Música sintetizada (sin licencias)
+
+Si no hay pista, se puede generar con código: `sandbox/2026-09-24-cadaver-exquisito/musica.mjs`
+escribe un WAV con bombo, caja, charles, bajo, sitar y un colchón con filtro, y cambia de
+textura en los mismos segundos que los tramos de la escena. Es determinista, así que el
+`.wav` no se sube: se regenera. Sin oírla, compruébala con la forma de onda
+(`ffmpeg -i mezcla.wav -filter_complex showwavespic=s=1600x240 -frames:v 1 onda.png`) y
+`volumedetect`: ningún tramo debe quedar casi plano.
+
 ## Efectos
 
 - Biblioteca en `assets/sfx/` (33 efectos de papel, oficina y cartoon). Los prompts con
@@ -44,3 +53,4 @@ en la escena, `render.mjs` la añade sola. Si mueves un plano, mueve sus cues.
 ## Lecciones
 
 - 2026-09-23 · la-caja-y-el-torno · Un silencio a mitad de vídeo parece un fallo técnico: si la música para, que sea en un golpe claro y breve.
+- 2026-09-24 · cadaver-exquisito · Con el bombo a tope y el colchón bajo, los tramos tranquilos quedaban casi mudos tras normalizar: equilibra por tramo mirando la forma de onda.

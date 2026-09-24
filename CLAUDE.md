@@ -13,6 +13,7 @@ mejore las skills que las generan. Todo en español.
 | `.claude/skills/sonido/` | Música, efectos, mezcla |
 | `.claude/skills/estilo-*/` | Una skill por estilo visual |
 | `.claude/skills/nuevo-estilo/` | Cómo añadir un estilo |
+| `.claude/skills/transiciones/` | Transiciones entre planos y entre estilos (`engine/transitions.js`) |
 | `engine/` | Motor: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `new.mjs`, `mix.mjs`, `serve.mjs` |
 | `styles/<estilo>/` | Kit de dibujo y `template.js` de cada estilo |
 | `sandbox/` | Un experimento por carpeta (`AAAA-MM-DD-nombre/`), con índice en `INDEX.md` |

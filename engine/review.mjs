@@ -59,11 +59,30 @@ try {
     const stepF = Math.max(1, Math.round(fps / 6));
     const thumbs = [];
     const holes = [];
-    for (let i = 0; i < total; i += stepF) {
+    const meanLum = new Array(total);
+    // todos los fotogramas: el brillo medio de cada uno sirve para detectar destellos;
+    // las miniaturas cada 1/6 s, para la energía de movimiento
+    for (let i = 0; i < total; i++) {
         const th = await page.evaluate((i) => window.thumb(i), i);
-        thumbs.push([i, th.lum]);
-        if (th.holes > 0.002) holes.push([i, th.holes]);
+        meanLum[i] = th.lum.reduce((a, b) => a + b, 0) / th.lum.length;
+        if (i % stepF === 0) {
+            thumbs.push([i, th.lum]);
+            if (th.holes > 0.002) holes.push([i, th.holes]);
+        }
     }
+    // Destellos (fotosensibilidad): subidas o bajadas del brillo medio de más del 10 %
+    // en ≤ 2 fotogramas. Más de 3 en un segundo es un riesgo real (criterio WCAG 2.3.1).
+    const flashes = [];
+    for (let i = 2; i < total; i++) {
+        const d = meanLum[i] - meanLum[i - 2];
+        if (Math.abs(d) > 25.5 && (!flashes.length || i - flashes[flashes.length - 1] > 2)) flashes.push(i);
+    }
+    const flashSecs = [];
+    for (let s = 0; s < Math.ceil(duration); s++) {
+        const n = flashes.filter((i) => i / fps >= s && i / fps < s + 1).length;
+        if (n > 3) flashSecs.push(`${s}–${s + 1} s (${n})`);
+    }
+    if (flashSecs.length) warn.push(`**Destellos** de más de 3 por segundo (riesgo de fotosensibilidad): ${flashSecs.join(', ')}. Suaviza los cambios de brillo o baja el contraste.`);
     if (holes.length) warn.push(`**Huecos transparentes** (asoma el lienzo vacío: fondo que no cubre la cámara o nada pintado) en ${holes.slice(0, 6).map(([i, h]) => `${fmt(T(i))} (${(h * 100).toFixed(1)} %)`).join(', ')}${holes.length > 6 ? '…' : ''}.`);
     const diffs = [];
     for (let n = 1; n < thumbs.length; n++) {
@@ -87,7 +106,9 @@ try {
         return px.reduce((s, v) => s + (v - m) ** 2, 0) / px.length < 4;
     });
     if (flat.length) warn.push(`**Fotogramas planos** (un solo color) en ${flat.slice(0, 6).map(([i]) => fmt(T(i))).join(', ')}${flat.length > 6 ? '…' : ''}.`);
-    const jumps = diffs.filter(([, d]) => d > 40);
+    // saltos grandes que NO caen en un corte de plano (los de los cortes son normales)
+    const cuts = shots.slice(1).map(([a]) => a);
+    const jumps = diffs.filter(([i, d]) => d > 40 && !cuts.some((c) => Math.abs(T(i) - c) <= 0.34));
 
     // energía por segundo, como una tira de bloques
     const blocks = ' ▁▂▃▄▅▆▇█';
@@ -149,7 +170,7 @@ try {
     report.push(longStill.length
         ? `Tramos quietos de 1 s o más (¿intencionados? un silencio visual que parece fallo es un error): ${longStill.map(([a, b]) => `${fmt(T(a))}–${fmt(T(b))}`).join(', ')}.`
         : 'Sin tramos quietos de 1 s o más.');
-    if (jumps.length) report.push('', `Saltos bruscos (cortes o fogonazos; comprobar que son cortes de plano): ${jumps.slice(0, 12).map(([i]) => fmt(T(i))).join(', ')}.`);
+    if (jumps.length) report.push('', `Saltos grandes fuera de los cortes (en patrones densos pueden ser normales; mira si molestan): ${jumps.slice(0, 12).map(([i]) => fmt(T(i))).join(', ')}.`);
     report.push('', '## Velocidad', '', `Pintado: ${msFirst.toFixed(0)} ms/fotograma en frío, ${msWarm.toFixed(0)} ms en caliente → render completo ≈ ${((msWarm * total) / 1000).toFixed(0)} s a este tamaño.`);
     if (msWarm > 400) report.push('', '> Lento: cachea lo estático con `Motion.sprite` y baja la densidad de las texturas.');
     report.push('', '## Hoja de contacto', '', ...sheets.map((f) => `![hoja](${path.basename(f)})`), '');

@@ -42,6 +42,10 @@ Tabla `Tiempo | Plano | Qué pasa` en el brief. Reglas que ya nos han costado ca
   fuego, tela, un salto, un andar), mira una referencia real (foto o vídeo) y apunta sus
   3–4 rasgos que lo hacen reconocible. El estilo simplifica esos rasgos, no se los
   inventa: si no, sale el cliché (el vapor de tres tentáculos).
+- **Varios estilos en un vídeo** (cadáver exquisito): un **hilo conductor** que cruza
+  todos los tramos (un objeto siempre visible y lo más saturado del plano) y transiciones
+  que pasan a través de él (skill **transiciones**). Cada tramo, un estilo claramente
+  distinto, no el mismo con otros colores. Si puede cerrar en bucle, que cierre.
 - Para piezas largas, cruza 2–3 propuestas de guion distintas y quédate con lo mejor de
   cada una antes de animar.
 
