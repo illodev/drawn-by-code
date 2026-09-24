@@ -17,7 +17,7 @@ inside videos is creative content and stays in whatever language the video needs
 | `.claude/skills/new-style/` | How to add a style |
 | `.claude/skills/transitions/` | Transitions between shots and between styles (`engine/transitions.js`) |
 | `.claude/skills/replicate/` | Copying a reference video 1:1: measure, per-drawing tables, element by element, parallel agents |
-| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `new.mjs`, `mix.mjs`, `serve.mjs` |
+| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `serve.mjs` |
 | `styles/<style>/` | Drawing kit and `template.js` for each style |
 | `sandbox/` | One experiment per folder (`YYYY-MM-DD-name/`), indexed in `INDEX.md` |
 | `assets/sfx/`, `fonts/` | Freely licensed sound effects and fonts |

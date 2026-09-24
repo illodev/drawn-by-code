@@ -44,6 +44,18 @@ const SFX = {
     flyby: ['cartoon superhero flying past quickly, airy whoosh left to right', 1.4],
     whoosh_close: ['whoosh approaching the camera fast and getting louder, ending in a soft whump', 1.6],
     spin_rise: ['psychedelic swirling whoosh that spins faster and rises, then settles', 6],
+    // saas-promo
+    paper_rain: ['many sheets of paper and envelopes falling and piling onto a wooden desk, rustling thuds, busy', 2.5],
+    paper_land: ['a single stack of papers landing flat on a wooden desk, soft slap', 0.4],
+    suck_up: ['cartoon vacuum whoosh sucking dozens of paper sheets up into the air, rising, ends with a soft pop', 2],
+    button_click: ['soft satisfying click of a big rubber button being pressed', 0.3],
+    phone_buzz: ['smartphone vibrating on a wooden desk, two short buzzes', 0.8],
+    bell_ding: ['small desk service bell ding, bright and friendly', 0.8],
+    mail_clank: ['paper envelope dropped into a metal mailbox slot, the flap clanks shut', 0.6],
+    paper_fold: ['a sheet of paper being folded quickly three times into a paper plane, crisp creases', 0.8],
+    plane_whoosh: ['light paper plane flying past, soft airy whoosh', 0.9],
+    page_turn: ['a single calendar page flipped over, crisp paper flap', 0.5],
+    chime_ok: ['soft friendly confirmation chime, two rising marimba notes', 0.7],
 };
 const only = process.argv.slice(2);
 for (const [name, [text, dur]] of Object.entries(SFX)) {

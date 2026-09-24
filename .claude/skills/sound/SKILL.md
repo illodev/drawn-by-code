@@ -27,6 +27,20 @@ is not committed: it is regenerated. Without listening to it, check it with the 
 (`ffmpeg -i mix.wav -filter_complex showwavespic=s=1600x240 -frames:v 1 wave.png`) and
 `volumedetect`: no segment should end up nearly flat.
 
+### Generated music (ElevenLabs Music)
+
+`POST https://api.elevenlabs.io/v1/music` (key in `ELEVENLABS_API_KEY`, never in the repo;
+commercial use = paid plan; the track is third-party audio: keep it in the experiment's
+`private/` or `out/`, never committed).
+- A plain `prompt` ignores tempo and timings («120 BPM, drop at 10 s» gave ~96 BPM with
+  the drop at 24 s). A `composition_plan` (global styles with «120 bpm», sections with
+  `duration_ms`, `respect_sections_durations: true`) gets the tempo right, but sections
+  still don't land where asked.
+- So: generate with a plan, **measure** it (`node engine/tempo.mjs track.mp3`: BPM, first
+  beat, dB per half second → where the build, the drop and the ending really are), then
+  cut it by bars with ffmpeg (`atrim` + 30 ms `acrossfade`) so each section lands on the
+  edit. Example: `sandbox/2026-09-24-saas-promo/cut-music.sh`.
+
 ## Effects
 
 - Library in `assets/sfx/` (33 paper, office and cartoon effects). The prompts they were
