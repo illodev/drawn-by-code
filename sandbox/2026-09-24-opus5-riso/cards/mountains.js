@@ -63,6 +63,8 @@ CARDS.mountains = (press, t) => {
     const r1b = band(r1, 1000);
     // each range is opaque: what is behind it is knocked out first, then it mists to paper
     press.knockout((g) => { U.path(g, r1b); g.fill(); });
+    // a pale rim of light along the ridge (paper showing: the reference's ranges are edged)
+    press.knockout((g) => { g.globalAlpha = 0.8; U.stroke(g, r1, 3); });
     U.clipped(pinkS, r1b, (g) => { g.fillStyle = vramp(g, 360, 540, [[0, 0.4], [0.5, 0.28], [1, 0.06]]); g.fillRect(0, 0, 1000, 1000); });
     U.clipped(navyS, r1b, (g) => { g.fillStyle = vramp(g, 360, 540, [[0, 0.16], [1, 0.0]]); g.fillRect(0, 0, 1000, 1000); });
     U.clipped(yellowS, r1b, (g) => { g.fillStyle = vramp(g, 400, 560, [[0, 0.1], [1, 0.4]]); g.fillRect(0, 0, 1000, 1000); });
@@ -74,18 +76,22 @@ CARDS.mountains = (press, t) => {
     const r2 = edge(u([[0, 548], [70, 540], [150, 527], [228, 522], [300, 540], [380, 572], [440, 598], [510, 604], [575, 600], [640, 590], [705, 598], [760, 574], [830, 552], [900, 548], [980, 538], [1080, 528]]), 'r2', 5);
     const r2b = band(r2, 1000);
     press.knockout((g) => { U.path(g, r2b); g.fill(); });
-    press.knockout((g) => { g.globalAlpha = 0.7; U.stroke(g, r2, 2.2); });
+    press.knockout((g) => { g.globalAlpha = 0.85; U.stroke(g, r2, 3); });
     U.clipped(pinkS, r2b, (g) => { g.fillStyle = vramp(g, 490, 680, [[0, 0.38], [1, 0.08]]); g.fillRect(0, 0, 1000, 1000); });
     U.clipped(navyS, r2b, (g) => { g.fillStyle = vramp(g, 490, 680, [[0, 0.36], [0.6, 0.16], [1, 0.02]]); g.fillRect(0, 0, 1000, 1000); });
     U.clipped(yellowS, r2b, (g) => { g.fillStyle = vramp(g, 560, 700, [[0, 0], [1, 0.35]]); g.fillRect(0, 0, 1000, 1000); });
-    U.clipped(yellowS, r2b, (g) => { g.fillStyle = R.radial(g, 560, 640, 10, 230, 0.85, 0); g.fillRect(0, 0, 1000, 1000); });
-    for (const g of [pinkS, navyS]) U.clipped(g, r2b, (h) => { h.globalCompositeOperation = 'destination-out'; h.fillStyle = R.radial(h, 560, 650, 10, 210, 0.85, 0); h.fillRect(0, 0, 1000, 1000); });
+    // the yellow haze in the valleys: under range 2's left hump (centre (310, 690) px, measured)
+    // and in the V below the sun
+    for (const [hx, hy, hr, hv] of [[287, 640, 170, 0.9], [540, 600, 150, 0.7]]) {
+        U.clipped(yellowS, r2b, (g) => { g.fillStyle = R.radial(g, hx, hy, 10, hr, hv, 0); g.fillRect(0, 0, 1000, 1000); });
+        for (const g of [pinkS, navyS]) U.clipped(g, r2b, (h) => { h.globalCompositeOperation = 'destination-out'; h.fillStyle = R.radial(h, hx, hy, 10, hr * 0.9, hv, 0); h.fillRect(0, 0, 1000, 1000); });
+    }
 
     // range 3: blue-violet (navy + blue + pink), a V round the valley
     const r3 = edge(u([[0, 598], [60, 612], [130, 640], [200, 672], [245, 700], [300, 697], [350, 682], [420, 650], [480, 622], [530, 606], [575, 600], [630, 612], [700, 640], [770, 670], [830, 700], [900, 718], [960, 710], [1080, 690]]), 'r3', 5);
     const r3b = band(r3, 1000);
     press.knockout((g) => { U.path(g, r3b); g.fill(); });
-    press.knockout((g) => { g.globalAlpha = 0.55; U.stroke(g, r3, 2); });
+    press.knockout((g) => { g.globalAlpha = 0.8; U.stroke(g, r3, 2.8); });
     U.clipped(navyS, r3b, (g) => { g.fillStyle = vramp(g, 560, 760, [[0, 0.55], [1, 0.25]]); g.fillRect(0, 0, 1000, 1000); });
     U.clipped(pinkS, r3b, (g) => { g.fillStyle = vramp(g, 560, 760, [[0, 0.3], [1, 0.12]]); g.fillRect(0, 0, 1000, 1000); });
     U.clipped(blueS, r3b, (g) => { g.fillStyle = vramp(g, 600, 760, [[0, 0.1], [1, 0.3]]); g.fillRect(0, 0, 1000, 1000); });
@@ -110,11 +116,23 @@ CARDS.mountains = (press, t) => {
     // 500–640 px, lower on the right)
     const FB = [[-10, 905], [200, 910], [300, 915], [420, 900], [480, 905], [500, 930], [540, 965], [600, 985], [640, 960], [700, 955], [800, 950], [900, 955], [960, 965], [1020, 990], [1090, 1000]];
     const fbY = (X) => { for (let i = 0; i < FB.length - 1; i++) if (X <= FB[i + 1][0]) { const f = (X - FB[i][0]) / (FB[i + 1][0] - FB[i][0]); return FB[i][1] + (FB[i + 1][1] - FB[i][1]) * f; } return FB[FB.length - 1][1]; };
-    const front = [...row(0, 1000, 14, (x) => fbY(x * 1.08) / 1.08 + 8, 30, 90, 'f')];
+    const front = [...row(0, 1000, 12, (x) => fbY(x * 1.08) / 1.08 + 8, 45, 105, 'f')];
     const frontBase = u(FB).concat([[1000, 1000], [0, 1000]]);
-    U.poly(navy, frontBase, T(0.8));
-    U.clipped(press.plate('pink', 'screen'), frontBase, (g) => { g.fillStyle = vramp(g, 820, 1000, [[0, 0.15], [1, 0.45]]); g.fillRect(0, 0, 1000, 1000); });
-    U.poly(blue, frontBase, T(0.5));
+    // the front forest mass is flat ink, not a screen: navy with a purple mottle (soft pink
+    // blotches) and a grainy, uneven inking (pinholes and pink specks), measured at 2×
+    // (fitted: navy 0.95, blue 0.45, pink 0.2 on the left, more pink on the right)
+    U.poly(navy, frontBase, T(0.95));
+    U.poly(blue, frontBase, T(0.45));
+    U.clipped(press.plate('pink', 'screen'), frontBase, (g) => { g.fillStyle = R.ramp(g, 0, 0, 1000, 0, 0.15, 0.5); g.fillRect(0, 0, 1000, 1000); });
+    U.clipped(press.plate('pink'), frontBase, (g) => { const rb = Motion.rng('mtmot'); for (let i = 0; i < 22; i++) { const x = rb() * 1000, y = 880 + rb() * 130, r = 30 + rb() * 70; g.fillStyle = R.radial(g, x, y, 0, r, 0.25, 0); g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } });
+    // the specks in the dark ink: magenta (navy knocked out, pink in) and pale blue (navy out)
+    {
+        const rb = Motion.rng('mtgr'), pk = new Path2D(), bl = new Path2D();
+        for (let i = 0; i < 3200; i++) { const x = rb() * 1000, y = 830 + rb() * 180, r = 0.35 + rb() * rb() * 1.4, q = rb() < 0.65 ? pk : bl; q.moveTo(x + r, y); q.arc(x, y, r, 0, 7); }
+        const fp = new Path2D(); frontBase.forEach(([x, y], i) => (i ? fp.lineTo(x, y) : fp.moveTo(x, y)));
+        navy.save(); navy.clip(fp); navy.globalCompositeOperation = 'destination-out'; navy.fillStyle = T(0.9); navy.fill(pk); navy.fill(bl); navy.restore();
+        const pl = press.plate('pink'); pl.save(); pl.clip(fp); pl.fillStyle = T(1); pl.fill(pk); pl.restore();
+    }
     navy.fillStyle = T(0.9); blue.fillStyle = T(0.5);
     for (const [x, y, h] of front) { U.pine(navy, x, y, h, h * 0.34, 'fr' + x); U.pine(blue, x, y, h, h * 0.34, 'fr' + x); }
     // soft purple mottling and pink specks in the dark forest
