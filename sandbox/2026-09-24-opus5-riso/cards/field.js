@@ -16,23 +16,26 @@ CARDS.field = (press, t) => {
     const eraseIn = (plates, fn) => { for (const g of plates) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.strokeStyle = '#000'; g.beginPath(); fn(g); g.restore(); } };
     const green = (pts, w) => { U.stroke(navy, pts, w, T(0.75), true); U.stroke(blue, pts, w, T(0.6), true); };
 
+    // the sky's pink is the reference's own screen (9.72 px at 78°, phase measured per drawing),
+    // set in card units by G6.lattice before the px transform
+    const LSK = [{ o: [-3.05, -2.76], a: [-9.5078, 2.0025], b: [2.0006, 9.5127] }, { o: [4.27, -1.88], a: [1.9996, 9.5108], b: [-9.5141, 2.0074] }][Math.min(1, d)];
+    G6.lattice(pink, LSK, (m) => { m.fillStyle = R.ramp(m, 0, 0, 0, 360 / 1.08, 0.6, 0.04); m.fillRect(-20, -20, 1040, 460 / 1.08); });
     U.px(press, () => {
         // sky: yellow flat, pink dots thinning towards the horizon
         yel.fillStyle = T(1); yel.fillRect(0, 0, 1080, 1080);
-        pinkS.fillStyle = R.ramp(pinkS, 0, 0, 0, 360, 0.58, 0.04); pinkS.fillRect(0, 0, 1080, 460);
         // the sun's rays: pale lines where the pink dots are knocked out, turning slowly
         const SUN = [1000, 40], rot = d * 0.008;
-        eraseIn([pinkS], (g) => { for (let k = 0; k < 22; k++) { const a = 1.75 + k * 0.075 + rot + (k % 3) * 0.01, w = 3 + (k % 4) * 1.5; g.moveTo(SUN[0], SUN[1]); g.lineTo(SUN[0] + Math.cos(a - w / 1400) * 900, SUN[1] + Math.sin(a - w / 1400) * 900); g.lineTo(SUN[0] + Math.cos(a + w / 1400) * 900, SUN[1] + Math.sin(a + w / 1400) * 900); g.closePath(); } g.fill(); });
+        eraseIn([pinkS, pink], (g) => { for (let k = 0; k < 22; k++) { const a = 1.75 + k * 0.075 + rot + (k % 3) * 0.01, w = 3 + (k % 4) * 1.5; g.moveTo(SUN[0], SUN[1]); g.lineTo(SUN[0] + Math.cos(a - w / 1400) * 900, SUN[1] + Math.sin(a - w / 1400) * 900); g.lineTo(SUN[0] + Math.cos(a + w / 1400) * 900, SUN[1] + Math.sin(a + w / 1400) * 900); g.closePath(); } g.fill(); });
         eraseIn(all, (g) => { g.arc(SUN[0], SUN[1], 92, 0, 7); g.fill(); });
 
         // the field: yellow + blue dots (green), rows of flowers to the vanishing point
         const HZ = (x) => 432 + (x - 330) * 0.022 + ((x - 700) / 400) ** 2 * 4;
         const field = []; for (let x = -10; x <= 1090; x += 30) field.push([x, HZ(x)]);
         const fpoly = [...field, [1090, 1090], [-10, 1090]];
-        eraseIn([pinkS], (g) => U.trace(g, fpoly) || g.fill());
+        eraseIn([pinkS, pink], (g) => U.trace(g, fpoly) || g.fill());
         U.clipped(blueS, fpoly, false, (g) => { g.fillStyle = R.ramp(g, 0, 450, 0, 800, 0.02, 0.62); g.fillRect(0, 0, 1080, 1080); });
         U.clipped(navyS, fpoly, false, (g) => { g.fillStyle = R.ramp(g, 0, 600, 0, 1080, 0, 0.18); g.fillRect(0, 0, 1080, 1080); });
-        const VP = [690, 405];
+        const VP = [605, 410]; // (the rows converge on (605, 432) px: measured on the 13.25 s frame)
         const rows = [];
         for (let Z = 34; Z > 1.1; Z /= 1.15) rows.push(Z);
         for (const Z of rows) {
@@ -102,11 +105,14 @@ CARDS.field = (press, t) => {
             }
             // the head: dark olive with red seeds in a Fibonacci spiral, a green heart
             eraseIn(all, (g) => { g.arc(cx, cy, R0, 0, 7); g.fill(); });
-            yel.fillStyle = T(1); navy.fillStyle = T(0.8); blue.fillStyle = T(0.3);
-            for (const g of [yel, navy, blue]) { g.beginPath(); g.arc(cx, cy, R0, 0, 7); g.fill(); }
+            // (inks fitted on the reference's heads: pink 0.7–0.95 over the yellow, navy 0.3 at the
+            // rim rising to 0.6 round the heart, a trace of blue)
+            yel.fillStyle = T(1); pink.fillStyle = T(0.8); blue.fillStyle = T(0.1);
+            navy.fillStyle = R.radial(navy, cx, cy, R0 * 0.4, R0, 0.72, 0.42);
+            for (const g of [yel, pink, navy, blue]) { g.beginPath(); g.arc(cx, cy, R0, 0, 7); g.fill(); }
             const seeds = Math.round(R0 * R0 / 22), GA = 2.39996;
             eraseIn([navy, blue], (g) => { for (let i = 0; i < seeds; i++) { const r = Math.sqrt(i / seeds) * R0 * 0.92, a = i * GA; if (r < R0 * 0.34) continue; const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r, sz = 1.4 + r / R0 * 2.2; g.moveTo(x + sz, y); g.arc(x, y, sz, 0, 7); } g.fill(); });
-            pink.fillStyle = T(0.9);
+            pink.fillStyle = T(1);
             pink.beginPath();
             for (let i = 0; i < seeds; i++) { const r = Math.sqrt(i / seeds) * R0 * 0.92, a = i * GA; if (r < R0 * 0.34) continue; const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r, sz = 1.4 + r / R0 * 2.2; pink.moveTo(x + sz, y); pink.arc(x, y, sz, 0, 7); }
             pink.fill();
