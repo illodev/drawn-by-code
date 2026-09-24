@@ -31,9 +31,9 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
             }
         };
         // stops from the reference's colour by u (a fit over ~1000 probes), solved into inks
-        field(Y, [[0, 1], [0.8, 1], [1.0, 0.9], [1.2, 0.76], [1.4, 0.64], [1.6, 0.49], [1.8, 0.38], [2.0, 0.25], [2.2, 0.2], [2.4, 0.09], [2.6, 0]]);
+        field(Y, [[0, 1], [0.8, 1], [1.0, 0.97], [1.2, 0.84], [1.4, 0.72], [1.6, 0.55], [1.8, 0.44], [2.0, 0.3], [2.2, 0.26], [2.4, 0.09], [2.6, 0]]);
         field(P, [[0, 1], [1.05, 1], [1.15, 0]]);
-        U.screen(P, 'pink', LP, (m) => field(m, [[0, 1], [1.05, 1], [1.4, 1], [1.6, 0.93], [1.8, 0.83], [2.0, 0.56], [2.2, 0.5], [2.4, 0.4], [2.6, 0.25], [3.2, 0.2]]));
+        U.screen(P, 'pink', LP, (m) => field(m, [[0, 1], [1.05, 1], [1.4, 1.1], [1.6, 1.05], [1.8, 0.95], [2.0, 0.75], [2.2, 0.7], [2.4, 0.35], [2.6, 0.1], [3.2, 0.1]]));
         U.screen(N, 'navy', LN, (m) => field(m, [[0, 0], [0.9, 0], [1.0, 0.05], [1.2, 0.25], [1.4, 0.26], [1.6, 0.47], [1.8, 0.5], [2.0, 0.6], [2.2, 0.25], [2.4, 0.38], [2.6, 0.6], [3.2, 0.62]]));
         field(B, [[0, 0], [0.9, 0], [1.0, 0.1], [1.2, 0], [1.4, 0.2], [1.6, 0.15], [1.8, 0.42], [2.0, 0.48], [2.2, 0.95], [2.4, 1], [3.2, 1]]);
         // ------------------------------------------------------------ the ash cloud
@@ -43,7 +43,7 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
         // (the right half of the cloud is plain navy: measured n 1, p 0 at (900, 80))
         const lr = (g, v0, v1) => { const gr = g.createLinearGradient(560, 0, 700, 0); gr.addColorStop(0, T(v0)); gr.addColorStop(1, T(v1)); return gr; };
         U.fill(P, cloud, lr(P, 0.88, 0.45), true);
-        U.fill(B, cloud, lr(B, 0.95, 0.3), true);
+        U.fill(B, cloud, lr(B, 0.95, 0.6), true);
         U.fill(N, cloud, lr(N, 0.3, 1), true);
         // lighter purple lobes (more pink, less navy) and pink specks
         U.clipped(P, cloud, true, (g) => { for (const [x, y, rx, ry, v] of [[300, 90, 150, 80, 0.55], [720, 110, 190, 100, 0.12], [620, 370, 140, 55, 0.35], [470, 300, 70, 70, 0.3], [880, 60, 90, 60, 0.3]]) { g.save(); g.translate(x, y); g.scale(1, ry / rx); U.glow(g, 0, 0, rx, v, 0); g.restore(); } });
@@ -65,7 +65,7 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
         U.clipped(P, cloud, true, (g) => U.speckle(g, 'vcl', 220, 130, 0, 1000, 440, 0.8, 1.8, T(1)));
         U.clipped(B, cloud, true, (g) => U.speckle(g, 'vcl2', 120, 130, 0, 1000, 440, 0.8, 1.6, T(1)));
         // ------------------------------------------------------------ the cone
-        const cone = [[-20, 872], [0, 860], [50, 830], [100, 802], [150, 782], [200, 762], [300, 736], [395, 712], [432, 695], [482, 670], [540, 646], [596, 627], [650, 616], [706, 630], [760, 668], [810, 710], [850, 745], [900, 790], [950, 828], [1000, 855], [1050, 875], [1100, 890], [1100, 1100], [-20, 1100]];
+        const cone = [[-20, 872], [0, 860], [50, 830], [100, 802], [150, 782], [200, 762], [300, 736], [395, 712], [432, 695], [482, 670], [540, 646], [596, 626], [615, 628], [640, 634], [665, 634], [690, 628], [712, 628], [760, 668], [810, 710], [850, 745], [900, 790], [950, 828], [1000, 855], [1050, 875], [1100, 890], [1100, 1100], [-20, 1100]];
         press.knockout((g) => { g.beginPath(); U.trace(g, cone); g.fill(); });
         U.fill(P, cone, T(0.88));
         U.fill(B, cone, T(0.95));
@@ -113,7 +113,8 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
         });
         // ------------------------------------------------------------ crater and fountain
         // the crater: a thin dark dome of a rim over the cone
-        for (const [g, v] of [[N, 1], [B, 0.6]]) U.brush(g, [[598, 632], [620, 622], [655, 617], [690, 620], [712, 632]], 11, T(v), 'vcr', { taper: 0.2 });
+        // the crater: the fountain sits in a dip of the cone's top, a dark lip under it
+        for (const [g, v] of [[N, 1], [B, 0.6]]) U.brush(g, [[612, 632], [640, 640], [668, 640], [694, 632]], 6, T(v), 'vcr', { taper: 0.3 });
         const rf = Motion.rng('volc-f' + (d % 2));
         const tongue = (a, len, w) => {
             const bx = 652 + Math.cos(a) * 14, by = 610, tx = 652 + Math.cos(a) * len, ty = 610 + Math.sin(a) * len;
@@ -129,7 +130,7 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
         }
         tongue(-Math.PI / 2 + 0.15, 190, 10);
         // the fountain's solid base
-        const base = U.blob(652, 590, 52, 30, 'vfb', 0.1);
+        const base = U.blob(656, 606, 44, 28, 'vfb', 0.1);
         U.cut([P, N, B], (g) => { g.beginPath(); U.smooth(g, base); g.fill(); });
         U.fill(Y, base, T(1), true);
         // ------------------------------------------------------------ lightning
@@ -150,9 +151,9 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
         // the print's grit: pinholes and specks in every ink (the reference's flats mottle at 2–4 px)
         // (balanced: voids and as many specks, so the mean tone stays as measured)
         U.grit(N, [0, 0, 1080, 1080], { out: true, p: 0.1, a: 0.7, seed: 21 });
-        U.grit(N, [0, 0, 1080, 1080], { p: 0.1, a: 0.7, seed: 26 });
+        for (const sh of [cloud, cone]) U.clipped(N, sh, sh === cloud, (g) => U.grit(g, [0, 0, 1080, 1080], { p: 0.1, a: 0.7, seed: 26 }));
         U.grit(B, [0, 0, 1080, 1080], { out: true, p: 0.08, a: 0.7, seed: 22 });
-        U.grit(P, [0, 0, 1080, 1080], { out: true, p: 0.08, a: 0.6, seed: 23 });
+        U.grit(P, [0, 0, 1080, 1080], { out: true, p: 0.04, a: 0.6, seed: 23 });
         U.grit(P, [0, 0, 1080, 1080], { p: 0.06, a: 0.8, seed: 25 });
         press.restore();
     });
