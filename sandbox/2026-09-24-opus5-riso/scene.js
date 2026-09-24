@@ -299,41 +299,45 @@ function mosaic(press, lt) {
 const MOSAIC_BLUE = { pink: 'blue', yellow: 'blue' };
 
 // ------------------------------------------------------------------ the orbits (18–23)
-// two bodies: the blue dot (navy) and a pink dot; rings pulse out of one or the other.
-// Keyframes measured on the sheets (every 1/6 s): [t, blue xy, pink xy | null]
-const BODY = [[0, [500, 500], null], [1.5, [500, 500], null], [1.83, [630, 390], [300, 700]], [2.0, [640, 360], [300, 720]], [3.0, [700, 300], [300, 700]], [5.0, [720, 300], [280, 710]]];
-// pulses: [t0 (s after 18), 'blue' | 'pink' | 'corner', rings, max radius, duration]
-const PULSES = [
-    [0.0, 'corner', 0, 0, 0.3], [0.1, 'cornerRings', 3, 900, 0.9], [0.45, 'blue', 1, 70, 0.3], [1.0, 'blue', 2, 380, 0.6],
-    [1.5, 'corner', 0, 0, 0.2], [1.62, 'cornerRings', 3, 820, 0.4], [1.83, 'pink', 1, 60, 0.25], [1.95, 'blue', 1, 60, 0.3],
-    [2.15, 'blue', 3, 420, 0.5], [2.62, 'pink', 3, 460, 0.45], [2.8, 'blue', 2, 90, 0.25], [3.1, 'blue', 3, 520, 0.5],
-    [3.45, 'pink', 3, 300, 0.4], [3.65, 'pink', 1, 450, 0.3], [3.65, 'blue', 1, 70, 0.3],
-];
+// a call and answer between two bodies, measured frame by frame (18.0–22.1): one sends out
+// three rings that ease outwards (thick, thinning as they grow) and leave the frame; when
+// they reach the other, it pings (a small ring round it for a few frames) and answers.
+// Positions per frame, in s after 18: the dot, then the pink planet (enters at 19.75).
+const DOT_PATH = [[0, 500, 500], [1.583, 500, 500], [1.625, 520, 481], [1.667, 537, 468], [1.708, 554, 454], [1.75, 569, 439], [1.792, 585, 426], [1.833, 603, 411], [1.875, 617, 400], [1.917, 631, 385], [1.958, 648, 372], [2.0, 657, 367], [2.042, 669, 357], [2.083, 678, 348], [2.125, 685, 343], [2.167, 689, 336], [2.208, 694, 331], [2.25, 698, 330], [5, 698, 330]];
+const PLANET_PATH = [[1.583, -40, 1040], [1.75, -20, 925], [1.792, 52, 872], [1.833, 89, 841], [1.875, 122, 811], [1.917, 159, 783], [1.958, 193, 756], [2.0, 219, 731], [2.042, 241, 709], [2.083, 259, 693], [2.125, 276, 678], [2.167, 289, 667], [2.208, 296, 659], [2.25, 300, 657], [5, 300, 657]];
+const along = (P, t) => { if (t <= P[0][0]) return [P[0][1], P[0][2]]; let i = 0; while (i < P.length - 2 && t >= P[i + 1][0]) i++; const [t0, x0, y0] = P[i], [t1, x1, y1] = P[i + 1], u = Ease.seg(t, t0, t1); return [x0 + (x1 - x0) * u, y0 + (y1 - y0) * u]; };
+// emissions: [first ring's birth, emitter ('corner' | 'dot' | 'planet'), start radius, reach]
+// (three rings, 1/12 s apart; r = start + reach·(1 − e^(−age/0.25)))
+const EMIT = [[0.0, 'corner', 260, 900], [1.083, 'dot', 175, 560], [1.583, 'planet', 200, 750], [2.083, 'dot', 150, 620], [2.583, 'planet', 150, 650], [3.083, 'dot', 150, 620], [3.583, 'planet', 220, 650]];
+// pings: [from, to, body, radius]; the corner glows (a halftone pink radial) as it sends
+const PINGS = [[0.458, 0.792, 'dot', 62], [1.833, 2.083, 'dot', 52], [2.5, 2.667, 'planet', 55], [2.917, 3.042, 'dot', 55], [3.333, 3.5, 'planet', 55], [3.75, 3.917, 'dot', 55]];
+const GLOWS = [[0, 0.125], [1.5, 1.625]];
 function orbits(press, lt) {
-    const tq = lt, key = BODY.findIndex(([a]) => a > tq), [a0, b0, p0] = BODY[Math.max(0, key - 1)], [a1, b1, p1] = BODY[key < 0 ? BODY.length - 1 : key];
-    const u = key < 0 ? 1 : Ease.inOut(Ease.seg(tq, a0, a1));
-    const blue = [b0[0] + (b1[0] - b0[0]) * u, b0[1] + (b1[1] - b0[1]) * u];
-    const pinkP = p0 && p1 ? [p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u] : p1 && tq >= a1 ? p1 : null;
+    const tq = lt, blue = along(DOT_PATH, tq), pinkP = tq >= 1.583 ? along(PLANET_PATH, tq) : null;
     const bp = press.plate('blue'), pp = press.plate('pink'), pS = press.plate('pink', 'screen');
-    for (const [t0, who, n, R, dur] of PULSES) {
-        const age = tq - t0;
-        if (age < 0 || age > dur) continue;
-        const v = age / dur;
-        if (who === 'corner') {
-            pS.fillStyle = Riso.radial(pS, 0, 1000, 0, 330, 0.95, 0);
-            pS.fillRect(0, 600, 400, 400);
-            continue;
+    for (const [a, b] of GLOWS) {
+        if (tq < a || tq >= b) continue;
+        pS.fillStyle = Riso.radial(pS, 0, 1000, 0, 360, 0.95, 0);
+        pS.fillRect(0, 580, 420, 420);
+    }
+    const at = { corner: [-40, 1040], dot: blue, planet: pinkP ?? [-20, 925] };
+    for (const [t0, who, r0, reach] of EMIT) {
+        for (let k = 0; k < 3; k++) {
+            const age = tq - t0 - k / 12;
+            if (age < 0 || age > (who === 'corner' ? 0.95 : 0.6) || tq >= 4.0) continue;
+            const r = (r0 - k * 40) + reach * (1 - Math.exp(-age / 0.25));
+            const w = Math.max(3, (12 - k * 2.5) * (1 - age * 0.7));
+            Riso.ring(who === 'dot' ? bp : pp, at[who][0], at[who][1], r, w, 'orb' + t0 + k, { color: T(0.97), wobble: 0.004 });
         }
-        const c = who === 'cornerRings' ? [-120, 1120] : who === 'blue' ? blue : pinkP ?? [300, 700];
-        const g = who === 'blue' ? bp : pp;
-        for (let k = 0; k < Math.max(1, n); k++) {
-            const r = (R * (0.35 + 0.65 * Ease.out(v))) * (1 - k * 0.28) + (who === 'cornerRings' ? 260 : 0);
-            Riso.ring(g, c[0], c[1], r, Math.max(2.2, 7 - k * 2 - v * 3), 'orb' + t0 + k, { color: T(0.95), wobble: 0.006 });
-        }
+    }
+    for (const [a, b, who, r] of PINGS) {
+        if (tq < a || tq >= b || (who === 'planet' && !pinkP)) continue;
+        const c = who === 'dot' ? blue : pinkP;
+        Riso.ring(who === 'dot' ? bp : pp, c[0], c[1], r * (0.85 + 0.15 * Ease.seg(tq, a, b)), 4.5, 'ping' + a, { color: T(0.95) });
     }
     if (pinkP) {
         pp.fillStyle = T(1);
-        pp.beginPath(); pp.arc(pinkP[0], pinkP[1], 16, 0, 7); pp.fill();
+        pp.beginPath(); pp.arc(pinkP[0], pinkP[1], 19, 0, 7); pp.fill();
     }
     // 22.0: the two bodies swell (pink over yellow = orange, navy over pink)
     if (tq >= 4.0 && tq < 4.17) {
