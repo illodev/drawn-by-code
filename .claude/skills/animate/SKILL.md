@@ -112,5 +112,9 @@ loaded from `uses`.
 
 1. `review.md` up to date and the `sandbox/INDEX.md` row with status and main lesson.
 2. Generalizable lessons moved up to their skill (see **review**).
-3. Commit with the experiment and the skills touched. Videos and frames (`out/`) are not
-   committed; the contact sheet (`review/sheet.jpg`) is, it is the visual history.
+3. Commit with the experiment and the skills touched. The latest render goes in
+   `render/<name>.mp4`, re-encoded small (`ffmpeg -i out/x.mp4 -c:v libx264 -crf 26
+   -preset slow -c:a aac -b:a 160k -movflags +faststart render/<name>.mp4`), overwriting
+   the previous round's; no third-party footage or audio in it (`-an` when the soundtrack
+   is the reference's). Full-quality MP4s and frames (`out/`) are not committed; the
+   contact sheet (`review/sheet.jpg`) is, it is the visual history.

@@ -55,8 +55,11 @@ from measurements (`engine/reference.mjs`, skill **replicate**), never from gues
 ## Conventions
 
 - Deterministic scenes: no `Math.random`, `Date` or state carried between frames.
-- Committed: code, `brief.md`, `review.md`, `review/sheet.jpg`, `review/auto.md`, `audio.json`.
-  Not committed: `out/` (MP4s, frames), `.wav`, third-party music, keys.
+- Committed: code, `brief.md`, `review.md`, `review/sheet.jpg`, `review/auto.md`, `audio.json`,
+  and the latest render in `render/<name>.mp4` (re-encoded `-crf 26`, one file per
+  experiment, overwritten each round). Not committed: `out/` (full-quality MP4s, frames),
+  `.wav`, keys, and third-party footage or audio (a reference video, a comparison with its
+  frames, a render carrying the reference's soundtrack: commit it with `-an`).
 - Code, comments and docs in English, like the rest of the repo.
 - If you change `engine/`, run `review.mjs` on `styles/*/template.js` and on the latest
   experiment to check nothing broke.
