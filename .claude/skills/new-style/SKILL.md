@@ -1,6 +1,6 @@
 ---
 name: new-style
-description: Creates a new animation style in illomotion (code kit + template + skill + style test). Use it when the user asks for a look no style in styles/ covers (e.g. kinetic typography, flat/product motion graphics, UI mockups, pixel art, line/sketch, isometric 3D, whiteboard explainer, glitch, retro VHS) or says "try another style".
+description: Creates a new animation style in drawn-by-code (code kit + template + skill + style test). Use it when the user asks for a look no style in styles/ covers (e.g. kinetic typography, flat/product motion graphics, UI mockups, pixel art, line/sketch, isometric 3D, whiteboard explainer, glitch, retro VHS) or says "try another style".
 ---
 
 # New style

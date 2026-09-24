@@ -1,4 +1,4 @@
-# illomotion
+# drawn-by-code
 
 Sandbox for generating animations and videos **with code** and Claude, so that every test
 improves the skills that generate them. The repo (code, comments, docs, skills, commit

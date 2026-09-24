@@ -1,4 +1,4 @@
-// illomotion core: utilities shared by every style.
+// drawn-by-code core: utilities shared by every style.
 // Loaded as a classic <script> in engine/player.html; it defines two globals: Motion and Ease.
 //
 // A scene is declared like this (see .claude/skills/engine/SKILL.md):

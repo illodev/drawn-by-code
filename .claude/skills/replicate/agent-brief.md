@@ -6,7 +6,7 @@ Copy this file into your scratchpad, replace every `<…>`, and pass its path to
 ---
 
 You are rebuilding `<elements>` of a 1:1 replica of a `<duration>` s `<style>` reference
-video (`<size>`, 24 fps, animated on twos). The repo is `illomotion`: animations drawn with
+video (`<size>`, 24 fps, animated on twos). The repo is `drawn-by-code`: animations drawn with
 deterministic canvas-2D code, rendered with Playwright + ffmpeg. Everything in the repo
 (code, comments) is in ENGLISH. The replica is for internal study only.
 

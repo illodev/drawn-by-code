@@ -1,6 +1,6 @@
 ---
 name: engine
-description: Technical reference for the illomotion engine. Use it when writing or debugging a scene's code (scene.js), when rendering to MP4 or stills, when touching engine/ or a style kit, or when something jitters, runs slow or doesn't load. Covers the Motion.scene contract, determinism, units, caching and commands.
+description: Technical reference for the drawn-by-code engine. Use it when writing or debugging a scene's code (scene.js), when rendering to MP4 or stills, when touching engine/ or a style kit, or when something jitters, runs slow or doesn't load. Covers the Motion.scene contract, determinism, units, caching and commands.
 ---
 
 # Engine

@@ -1,6 +1,6 @@
 ---
 name: animate
-description: Directs the creation of a code-made animation or video in illomotion, from brief to final MP4. Use it whenever the user asks for a video, animation, motion graphics, explainer, product/launch video, reel, intro, animated logo or "a test" of a style; also to resume an experiment in sandbox/. Orchestrates the other skills (engine, review, sound and the chosen style's skill).
+description: Directs the creation of a code-made animation or video in drawn-by-code, from brief to final MP4. Use it whenever the user asks for a video, animation, motion graphics, explainer, product/launch video, reel, intro, animated logo or "a test" of a style; also to resume an experiment in sandbox/. Orchestrates the other skills (engine, review, sound and the chosen style's skill).
 ---
 
 # Animate: from brief to video

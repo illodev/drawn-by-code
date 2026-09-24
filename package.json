@@ -1,8 +1,8 @@
 {
-  "name": "illomotion",
+  "name": "drawn-by-code",
   "private": true,
   "type": "module",
-  "description": "Sandbox de animación generada con código y Claude: motor, estilos, skills y experimentos",
+  "description": "Animation drawn by code with Claude: an engine, styles, skills that learn from every render, and experiments",
   "scripts": {
     "preview": "node engine/serve.mjs",
     "new": "node engine/new.mjs",

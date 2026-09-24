@@ -1,6 +1,6 @@
 ---
 name: sound
-description: Music, sound effects and mixing for illomotion videos. Use it when choosing or cutting music, syncing the animation to the beat, placing sound effects (sfx) or generating new ones with ElevenLabs, and when adding the audio to the MP4.
+description: Music, sound effects and mixing for drawn-by-code videos. Use it when choosing or cutting music, syncing the animation to the beat, placing sound effects (sfx) or generating new ones with ElevenLabs, and when adding the audio to the MP4.
 ---
 
 # Sound

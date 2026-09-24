@@ -1,6 +1,6 @@
 ---
 name: replicate
-description: How to replicate a reference video 1:1 (or study a style from one) with the illomotion engine, measuring instead of guessing, element by element, until the difference only shows when zooming in. Use it whenever the user gives a video to copy, recreate, match or "make it like this", when working on sandbox/2026-09-24-what-do-you-love, or when a piece has to reach the detail level of a finished film. Covers the workflow, the measuring tools in engine/reference.mjs, per-drawing choreography, recipes, pitfalls with their fixes, and splitting the work across parallel agents.
+description: How to replicate a reference video 1:1 (or study a style from one) with the drawn-by-code engine, measuring instead of guessing, element by element, until the difference only shows when zooming in. Use it whenever the user gives a video to copy, recreate, match or "make it like this", when working on sandbox/2026-09-24-what-do-you-love, or when a piece has to reach the detail level of a finished film. Covers the workflow, the measuring tools in engine/reference.mjs, per-drawing choreography, recipes, pitfalls with their fixes, and splitting the work across parallel agents.
 ---
 
 # Replicate a reference video

@@ -1,4 +1,4 @@
-# illomotion
+# drawn-by-code
 
 ![saas-promo](sandbox/2026-09-24-saas-promo/render/strip.jpg)
 
@@ -7,10 +7,31 @@ Animations and videos made **with code** by Claude. JavaScript paints every fram
 frames to MP4. No After Effects, no AI-generated video: every torn edge, fingerprint and
 hand is code.
 
+**The goal: push Claude's knowledge and visual limits as far as they go.** How far can a
+language model get as an animator, with nothing but code: paper that tears like paper,
+hands that hold a mug the right way round, clay that looks like clay, a replica you have
+to zoom into to tell apart? Every experiment here pushes that edge a little further.
+
 The repo is both a **toolbox** (engine, styles, Claude skills) and a **test bench**. Every
 experiment in `sandbox/` goes through an automatic review (real frames, determinism,
 rhythm, motion) and through human feedback. What is learned goes back into the skills, so
 every test improves the next one.
+
+## A hub for styles: contribute
+
+The idea is for this to become a **hub**: a growing library of animation styles, each with
+its drawing kit, its template, its skill (the rules and the checklist that keep it
+consistent) and the videos that prove it. Styles and skills are yours to add and improve,
+by pull request:
+
+- **A new style:** risograph, pixel art, isometric, whiteboard, stained glass, woodcut,
+  anime, a style no one has named yet.
+- **A better existing style:** more detail, a fixed pitfall, a new pose for the hands, a
+  faster kit, a lesson learned the hard way.
+- **The engine and the skills:** tools, review checks, sound, transitions, the process.
+
+Every contribution follows the same loop as everything else here: a render, frames looked
+at, a review. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Why it is all public
 
@@ -85,7 +106,7 @@ to see its strip, files and the videos made with it.
 ![clay](styles/clay/strip.jpg)
 ![clay3d](styles/clay3d/strip.jpg)
 
-To add one: the `new-style` skill.
+To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 
 ## Getting started
 
@@ -148,6 +169,7 @@ brand's SVG, bounding volumes that must not cast shadows.
 | `.claude/skills/` | Claude's skills: process, engine, sound, one per style |
 | `sandbox/<date>-<name>/` | one experiment per folder: brief, scene, reviews, contact sheet, latest render |
 | `assets/sfx/`, `fonts/` | sound effects and freely licensed fonts |
+| `CONTRIBUTING.md` | how to add or improve a style by pull request |
 
 ## Licenses
 

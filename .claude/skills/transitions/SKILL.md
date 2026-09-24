@@ -1,6 +1,6 @@
 ---
 name: transitions
-description: Transitions between shots and between styles in illomotion (engine/transitions.js): entering through a point (eye, mouth), iris, engulf, vortex, frame within a frame, paper ball. Use it when linking two shots or two different styles, in «exquisite corpse» videos, or when a hard cut feels poor.
+description: Transitions between shots and between styles in drawn-by-code (engine/transitions.js): entering through a point (eye, mouth), iris, engulf, vortex, frame within a frame, paper ball. Use it when linking two shots or two different styles, in «exquisite corpse» videos, or when a hard cut feels poor.
 ---
 
 # Transitions

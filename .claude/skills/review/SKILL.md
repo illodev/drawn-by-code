@@ -1,6 +1,6 @@
 ---
 name: review
-description: Review and self-improvement loop for illomotion. Use it after EVERY render or visible change to a scene, whenever the user gives feedback on a video ("this doesn't read", "faster", "I like X"), and when closing an experiment. Runs the automatic critique on real frames, fixes the scene and turns what was learned into permanent changes to the skills and the engine.
+description: Review and self-improvement loop for drawn-by-code. Use it after EVERY render or visible change to a scene, whenever the user gives feedback on a video ("this doesn't read", "faster", "I like X"), and when closing an experiment. Runs the automatic critique on real frames, fixes the scene and turns what was learned into permanent changes to the skills and the engine.
 ---
 
 # Review: critique, fix and learn

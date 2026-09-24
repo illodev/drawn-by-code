@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>illomotion</title>
+<title>drawn-by-code</title>
 <style>
   html, body { margin: 0; height: 100%; background: #100817; color: #d9cde0; font: 12px ui-monospace, monospace; }
   body { display: grid; grid-template-rows: 1fr auto; }
@@ -136,7 +136,7 @@ const loadScript = (src) => new Promise((ok, ko) => {
     window.SCENE_INFO = { fps, duration: def.duration, total, logical: [W, H], px: [c.width, c.height], shots: (def.shots ?? []).map(([a, b, n]) => [a, b, n]), bpm: def.bpm ?? null, beatOffset: def.beatOffset ?? 0, audio: def.audio ?? null };
     window.renderFrame = renderFrame;
     window.READY = true;
-    document.title = `${scenePath} · illomotion`;
+    document.title = `${scenePath} · drawn-by-code`;
     if (q.get('render')) return;
 
     // --- preview -------------------------------------------------------------------
