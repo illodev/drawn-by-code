@@ -37,9 +37,9 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // angles, the hands with elbow poles, the feet planted between steps. Keys are spaced by
     // the action (anticipation, overlap, settle), and motion flows through them.
     const CH = {
-        P: [[0, [440, 772]], [1.46, [440, 772]], [1.5, [440, 780]], [1.62, [440, 768]], [1.8, [440, 772]], [2.55, [440, 772]], [2.8, [462, 766]], [3.05, [515, 640]], [3.3, [552, 454]], [3.4, [558, 447]], [3.62, [612, 452]], [3.78, [614, 449]], [3.95, [560, 720]], [4.05, [560, 720]], [4.3, [612, 452]], [4.62, [612, 450]], [4.78, [588, 458]], [4.92, [652, 448]], [5.0, [690, 452]], [5.2, [706, 458]], [5.55, [700, 450]], [7, [700, 450]]],
-        sp: [[0, -0.1], [1.46, -0.1], [1.5, 0.05], [1.62, -0.24], [1.9, -0.12], [2.55, -0.1], [2.8, 0.7], [3.05, 0.55], [3.3, 0.08], [3.42, 0.0], [3.62, 0.1], [3.78, 0.04], [3.95, 0.8], [4.05, 0.8], [4.3, 0.02], [4.62, 0.0], [4.78, -0.26], [4.92, 0.08], [5.0, 0.36], [5.2, 0.46], [5.55, 0.08], [7, 0.06]],
-        nk: [[0, 0.4], [1.46, 0.4], [1.5, 0.75], [1.62, -0.2], [1.9, 0.12], [2.2, 0.25], [2.55, 0.3], [2.8, 0.1], [3.3, 0.3], [3.62, 0.3], [3.95, -0.35], [4.05, -0.35], [4.3, 0.2], [4.47, 0.28], [4.57, -0.42], [4.78, -0.3], [5.0, -0.2], [5.3, -0.6], [7, -0.62]],
+        P: [[0, [440, 772]], [1.46, [440, 772]], [1.5, [440, 780]], [1.62, [440, 768]], [1.8, [440, 772]], [2.55, [440, 772]], [2.8, [462, 766]], [3.05, [515, 640]], [3.3, [552, 454]], [3.4, [558, 447]], [3.62, [612, 452]], [3.78, [614, 449]], [3.95, [665, 655]], [4.05, [665, 655]], [4.3, [612, 452]], [4.62, [612, 450]], [4.78, [588, 458]], [4.92, [652, 448]], [5.0, [690, 452]], [5.2, [706, 458]], [5.55, [700, 450]], [7, [700, 450]]],
+        sp: [[0, -0.1], [1.46, -0.1], [1.5, 0.05], [1.62, -0.24], [1.9, -0.12], [2.55, -0.1], [2.8, 0.7], [3.05, 0.55], [3.3, 0.08], [3.42, 0.0], [3.62, 0.1], [3.78, 0.04], [3.95, 1.1], [4.05, 1.1], [4.3, 0.02], [4.62, 0.0], [4.78, -0.26], [4.92, 0.08], [5.0, 0.36], [5.2, 0.46], [5.55, 0.08], [7, 0.06]],
+        nk: [[0, 0.4], [1.46, 0.4], [1.5, 0.75], [1.62, -0.2], [1.9, 0.12], [2.2, 0.25], [2.55, 0.3], [2.8, 0.1], [3.3, 0.3], [3.62, 0.3], [3.95, -0.55], [4.05, -0.55], [4.3, 0.2], [4.47, 0.28], [4.57, -0.42], [4.78, -0.3], [5.0, -0.2], [5.3, -0.6], [7, -0.62]],
         poleN: [[0, [60, 80]], [1.5, [60, 80]], [1.62, [40, 60]], [1.8, [90, -60]], [2.3, [90, -60]], [2.55, [60, 100]], [3.3, [-20, 120]], [3.8, [40, 120]], [4.3, [30, 140]], [4.62, [30, 140]], [4.78, [-80, 40]], [4.92, [-60, -90]], [5.0, [40, -100]], [5.2, [60, 80]], [7, [60, 80]]],
         poleF: [[0, [60, 80]], [1.62, [20, 100]], [3.3, [-20, 120]], [4.62, [-20, 120]], [4.78, [60, 40]], [5.0, [-40, 100]], [7, [-40, 100]]],
         kneeN: [[0, [40, -130]], [2.9, [40, -130]], [3.3, [150, 0]], [7, [150, 0]]],
@@ -69,7 +69,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // the hand reaches the resting apple: the grab key is placed from the physics
     const GRAB = [REST_X - 18, REST_Y + 12];
     CH.hN = [[0, [560, 598]], [1.46, [560, 598]], [1.5, [584, 556]], [1.62, [520, 520]], [1.8, [448, 404]], [1.9, [460, 398]], [2.0, [436, 404]], [2.1, [458, 398]], [2.2, [438, 404]], [2.32, [452, 400]], [2.55, [560, 610]], [2.8, [600, 650]], [3.05, [590, 560]], [3.3, [575, 470]], [3.62, [640, 470]], [3.8, [690, 560]], [3.95, GRAB], [4.05, GRAB], [4.3, [745, 205]], [4.47, [742, 210]], [4.62, [735, 215]], [4.78, [470, 480]], [4.92, [560, 70]], [5.0, [880, 40]], [5.1, [960, 230]], [5.25, [905, 420]], [5.6, [830, 380]], [7, [830, 380]]];
-    CH.hF = [[0, [576, 590]], [1.46, [576, 590]], [1.5, [600, 548]], [1.62, [560, 700]], [2.55, [540, 640]], [2.8, [580, 660]], [3.05, [570, 560]], [3.3, [520, 470]], [3.62, [580, 460]], [3.95, [640, 640]], [4.3, [600, 460]], [4.62, [600, 460]], [4.78, [720, 330]], [4.92, [740, 300]], [5.0, [560, 420]], [5.3, [580, 470]], [7, [580, 470]]];
+    CH.hF = [[0, [576, 590]], [1.46, [576, 590]], [1.5, [600, 548]], [1.62, [560, 700]], [2.55, [540, 640]], [2.8, [560, 690]], [3.05, [600, 610]], [3.3, [520, 470]], [3.62, [580, 460]], [3.95, [735, 700]], [4.3, [600, 460]], [4.62, [600, 460]], [4.78, [720, 330]], [4.92, [740, 300]], [5.0, [560, 420]], [5.3, [580, 470]], [7, [580, 470]]];
     function poseAt(t) {
         const n = Fig.foot(FEET_N, 575, t, 812), f = Fig.foot(FEET_F, 550, t, 812);
         return Fig.build(CH, t, u, { fN: n.p, fF: f.p, toeN: n.toe, toeF: t > 5.05 ? 0.5 * S(t, 5.0, 5.15) : f.toe });
@@ -114,7 +114,15 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // the anchor's height on screen: from under the frame (the throw is framed at the waist)
     // it comes up fast so the ground and its horizon are in view, then settles high on the
     // globe's top
-    const anchorY = (t) => Fig.track([[T.pull[0], (G - 180) * 1.25 + 450], [5.5, 740], [6.2, 520], [T.pull[1], 250]], t);
+    // After the release the camera rides with the apple: AY is the apple's height on screen
+    // (it leaves the hand at y 260 and the camera tilts up after it, so it settles near the
+    // top), GD the screen distance from the apple down to the ground. GD first grows (the
+    // camera still at 1.25: the ground drops out of frame below, the apple rising fast and
+    // slowing), then the zoom-out brings the shrinking world back up under it, to the globe.
+    const AY = [[T.release, (28 - 180) * 1.25 + 450], [5.3, 175], [6.3, 160], [T.pull[1], 140]];
+    const GD = [[T.release, (G - 28) * 1.25], [5.2, 1150], [5.45, 780], [5.9, 480], [6.4, 280], [T.pull[1], 110]];
+    const AX = [[T.release, 1025], [5.3, 990], [5.9, 930]];
+    const anchorY = (t) => Fig.track(AY, t) + Fig.track(GD, t);
     function anchorAt(t, camB) {
         const k = IO(S(t, T.pull[0], T.pull[1]));
         const a0 = (FEET[0] - camB.c[0]) * camB.z + 800;
@@ -436,11 +444,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
     // the apple's height above the ground, on screen: up fast, then settling to an orbit
     function altScreen(t) {
-        // the apple climbs to near the top of the frame and stays there while the world falls
-        // away under it (the anchor goes from the bottom to y 250), ending 110 above the limb
-        // the hand is 792 units above the ground at the release (y 28)
-        // it leaves the hand fast (0.18 s to the top of the frame), then rides there
-        return anchorY(t) - L(L((28 - 180) * Z0 + 450, 70, Ease.out(S(t, T.release, T.release + 0.18))), 140, IO(S(t, 5.4, T.pull[1])));
+        return Fig.track(GD, t);
     }
 
     Seg.newtonApple = {
@@ -606,16 +610,20 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             }
             // the apple after the throw: screen space, with its amber trail
             if (t >= T.release) {
-                const th = st.theta, as = altScreen(t), rS = Rs + as;
-                // a trail point keeps its height in world units: seen now, at the current zoom
-                // the trail: the path of the last moments seen now (the angle from the flight, the
-                // radius falling off behind the apple while it still climbs): no hook as the zoom runs
-                const rise = 1400 * (1 - S(t, 5.3, 5.9));
-                const pos = (tt) => { const a2 = th(tt), r2 = rS - (t - tt) * rise; return [C[0] + Math.cos(a2) * r2, C[1] + Math.sin(a2) * r2]; };
+                // where it is on screen: while it climbs, the camera rides with it (AX, AY: a
+                // gentle drift from the release point); from 5.9 it hands over to its place on
+                // the orbit round the globe (angle from the flight)
+                const th = st.theta;
+                const orbitAt = (tt) => { const zz = zoomAt(tt), RR = RW * zz, an = anchorAt(tt, camAB(T.pull[0], [0, 0])), CC = [an[0], an[1] + RR], rr = RR + altScreen(tt); return [CC[0] + Math.cos(th(tt)) * rr, CC[1] + Math.sin(th(tt)) * rr]; };
+                const riseAt = (tt) => [Fig.track(AX, tt), Fig.track(AY, tt)];
+                const posAt = (tt) => { const w = IO(S(tt, 5.9, 6.5)); if (w <= 0) return riseAt(tt); const a1 = riseAt(tt), b1 = orbitAt(tt); return [L(a1[0], b1[0], w), L(a1[1], b1[1], w)]; };
+                // the trail: its screen path, stretched downward by its climb while the camera
+                // rides with it (the world streaming away under it)
+                const climb = 1100 * (1 - S(t, 5.3, 6.0));
                 const trail = [];
-                for (let tt = Math.max(T.release + 0.12, t - 0.35); tt <= t + 1e-6; tt += 0.01) trail.push(pos(tt));
+                for (let tt = Math.max(T.release + 0.04, t - 0.3); tt <= t + 1e-6; tt += 0.01) { const q = posAt(tt); trail.push([q[0], q[1] + (t - tt) * climb]); }
                 if (trail.length > 2) line(press, trail, taper(8, 0.9, 0.02), AMBER);
-                const p = [C[0] + Math.cos(th(t)) * rS, C[1] + Math.sin(th(t)) * rS];
+                const p = posAt(t);
                 const r = L(APPLE_R * Math.max(z, 0.55), 17, S(t, T.release, 5.4));
                 drawApple(press, p[0], p[1], r, t * 6);
             }

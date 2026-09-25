@@ -129,35 +129,38 @@ const Fig = (() => {
         leg(hipF, knF, anF, true, p.toeF);
         // the body: a straight back from the neck to the waist, a chest a little forward, a
         // narrow waist; the coat's skirt flares from the waist to the knees in an A with folds
-        // the coat's skirt hangs from the waist over the thighs to just above the knees, so it
-        // follows the legs (standing it falls straight, squatting it lies along the thighs)
+        // torso offsets are in the body's frame: x across the body, y along the spine, so a
+        // leaning figure keeps its chest, waistcoat and seams where they belong
+        const spAng = Math.atan2(p.C[0] - p.P[0], p.P[1] - p.C[1]), ca = Math.cos(spAng), sa = Math.sin(spAng);
+        const tb = (q, dx, dy) => [q[0] + dx * ca - dy * sa, q[1] + dx * sa + dy * ca];
+        // the coat's skirt hangs from the waist by gravity: standing it falls to the knees,
+        // bending or squatting it still hangs down (behind the thighs), never along them
         const back = -f;
-        const waistB = add(p.P, back * 0.48 * u, -0.35 * u), waistF = add(p.P, -back * 0.42 * u, -0.35 * u);
-        const kMid = LP(knN, knF, 0.5), hip = LP(hipN, hipF, 0.5);
-        const hang = Math.max(0, Math.min(1, (kMid[1] - hip[1]) / (1.6 * u))); // 1 standing, 0 thighs level
-        const skirtB = add(LP(hip, kMid, 0.95), back * L(0.5, 0.2, 1 - hang) * u, L(-0.05, 0.25, hang) * u);
-        const frontX = LP(hip, kMid, 0.95)[0] - back * L(0.4, 0.15, 1 - hang) * u, hemY = LP(hip, kMid, 0.95)[1] + L(-0.3, 0.1, hang) * u;
-        const skirt = [waistB, add(LP(waistB, skirtB, 0.5), back * 0.12 * u, 0), skirtB, [L(skirtB[0], frontX, 0.5), L(skirtB[1], hemY, 0.5) + 0.06 * u], [frontX, hemY], LP(waistF, [frontX, hemY], 0.45), waistF];
+        const waistB = tb(p.P, back * 0.48 * u, -0.35 * u), waistF = tb(p.P, -back * 0.42 * u, -0.35 * u);
+        const ground = Math.max(anN[1], anF[1]);
+        const hemY = Math.min(waistB[1] + 2.05 * u, ground - 0.25 * u);
+        const skirtB = [waistB[0] + back * 0.35 * u, hemY];
+        const frontX = waistF[0] - back * 0.1 * u;
+        const skirt = [waistB, add(LP(waistB, skirtB, 0.5), back * 0.12 * u, 0), skirtB, [L(skirtB[0], frontX, 0.5), hemY + 0.06 * u], [frontX, hemY - 0.1 * u], LP(waistF, [frontX, hemY], 0.45), waistF];
         put(press, (g) => smooth(g, skirt), COAT_FAR);
-        for (let i = 1; i < 4; i++) line(press, [LP(waistB, waistF, i / 4), LP(skirtB, [frontX, hemY], i / 4)], taper(0.05 * u, 0.3, 0.1), { navy: 1, pink: 0.9, yellow: 1 });
-        const neckB = add(p.C, back * 0.2 * u, -0.3 * u), neckF = add(p.C, -back * 0.16 * u, -0.32 * u);
-        const torso = [neckB, add(p.C, back * 0.5 * u, -0.05 * u), add(p.C, back * 0.52 * u, 0.6 * u), waistB, add(p.P, back * 0.45 * u, 0.15 * u), add(p.P, -back * 0.38 * u, 0.15 * u), waistF, add(p.C, -back * 0.52 * u, 0.7 * u), add(p.C, -back * 0.5 * u, 0.2 * u), neckF];
+        for (let i = 1; i < 4; i++) line(press, [LP(waistB, waistF, i / 4), LP(skirtB, [frontX, hemY - 0.1 * u], i / 4)], taper(0.05 * u, 0.3, 0.1), { navy: 1, pink: 0.9, yellow: 1 });
+        const neckB = tb(p.C, back * 0.2 * u, -0.3 * u), neckF = tb(p.C, -back * 0.16 * u, -0.32 * u);
+        const torso = [neckB, tb(p.C, back * 0.5 * u, -0.05 * u), tb(p.C, back * 0.52 * u, 0.6 * u), waistB, tb(p.P, back * 0.45 * u, 0.15 * u), tb(p.P, -back * 0.38 * u, 0.15 * u), waistF, tb(p.C, -back * 0.52 * u, 0.7 * u), tb(p.C, -back * 0.5 * u, 0.2 * u), neckF];
         put(press, (g) => smooth(g, torso), COAT);
         // waistcoat showing in the coat's opening, with buttons
-        const vt = add(p.C, -back * 0.22 * u, -0.1 * u), vb = add(p.P, -back * 0.3 * u, 0.05 * u);
-        put(press, (g) => smooth(g, [vt, add(vt, -back * 0.26 * u, 0.12 * u), add(vb, -back * 0.08 * u, 0), add(vb, back * 0.14 * u, 0.02 * u), add(vt, back * 0.08 * u, 0.25 * u)]), VEST);
+        const vt = tb(p.C, -back * 0.22 * u, -0.1 * u), vb = tb(p.P, -back * 0.3 * u, 0.05 * u);
+        put(press, (g) => smooth(g, [vt, tb(vt, -back * 0.26 * u, 0.12 * u), tb(vb, -back * 0.08 * u, 0), tb(vb, back * 0.14 * u, 0.02 * u), tb(vt, back * 0.08 * u, 0.25 * u)]), VEST);
         for (let i = 0; i < 6; i++) {
-            const q = LP(add(vt, -back * 0.06 * u, 0.22 * u), add(vb, back * 0.0 * u, -0.12 * u), i / 5);
+            const q = LP(tb(vt, -back * 0.06 * u, 0.22 * u), tb(vb, back * 0.0 * u, -0.12 * u), i / 5);
             put(press, circle(q[0], q[1], 0.045 * u), { yellow: 1, 'pink.s': 0.3, 'navy.s': 0.2 });
         }
         // the coat's front edge and a pocket flap
-        line(press, [add(p.C, -back * 0.16 * u, 0.1 * u), add(p.P, -back * 0.12 * u, 0.05 * u)], taper(0.05 * u), { navy: 1, 'pink.s': 0.6 });
-        line(press, [add(p.P, back * 0.1 * u, 0.02 * u), add(p.P, -back * 0.36 * u, 0.02 * u)], taper(0.07 * u), COAT_LIT);
-        line(press, [add(p.C, back * 0.45 * u, 0.1 * u), add(p.P, back * 0.4 * u, -0.1 * u)], taper(0.06 * u), COAT_LIT);
+        line(press, [tb(p.C, -back * 0.16 * u, 0.1 * u), tb(p.P, -back * 0.12 * u, 0.05 * u)], taper(0.05 * u), { navy: 1, 'pink.s': 0.6 });
+        line(press, [tb(p.P, back * 0.1 * u, 0.02 * u), tb(p.P, -back * 0.36 * u, 0.02 * u)], taper(0.07 * u), COAT_LIT);
         // near leg, then the coat's front skirt panel over the near thigh
         leg(hipN, knN, anN, false, p.toeN);
-        put(press, (g) => smooth(g, [waistF, add(waistF, back * 0.3 * u, 0.05 * u), add(LP(hipN, knN, 0.85), back * 0.1 * u, 0), add(LP(hipN, knN, 0.88), -back * 0.3 * u, 0.05 * u), add(waistF, -back * 0.1 * u, 0.3 * u)]), COAT);
-        line(press, [add(waistF, -back * 0.02 * u, 0.1 * u), add(LP(hipN, knN, 0.85), -back * 0.24 * u, 0)], taper(0.05 * u), COAT_LIT);
+        // the front of the coat over the near hip, a short panel (the skirt hangs behind)
+        put(press, (g) => smooth(g, [waistF, tb(waistF, back * 0.3 * u, 0.05 * u), add(LP(hipN, knN, 0.35), back * 0.1 * u, 0), add(LP(hipN, knN, 0.4), -back * 0.25 * u, 0.05 * u), tb(waistF, -back * 0.1 * u, 0.3 * u)]), COAT);
         // head (the cast's Newton head at 165 cast units per head unit: a touch large, as in
         // illustration, so the face reads)
         Ph.cam(press, p.H[0], p.H[1], u / 150, () => {

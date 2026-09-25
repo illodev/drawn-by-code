@@ -213,3 +213,37 @@ What changed:
 - dappled sunlight on the grass;
 - leaves drifting down;
 - the crown kept to the left, so the throw has open sky.
+
+### Round 5 (user)
+
+> El lanzamiento se sigue viendo antinatural, es como que la lanza y sube lento y después más
+> rápido y sin sincronización es una cosa muy rara. También hay un detalle en la espalda que
+> parece que tiene como un hilo que le va de la cabeza al trasero cuando se levanta. También su
+> cuerpo al agacharse se ve muy raro, como si se plegara y tuviera unos cuadriceps larguísimos
+
+What changed:
+
+**The throw.** The camera used to lift the horizon (the ground rose towards the apple) while
+the log zoom eased in, so the apple read as slow, then fast. Now the camera rides with the
+apple:
+- Its screen height AY leaves the hand at 260 and settles near the top.
+- The ground's screen distance below it, GD, first grows: the apple climbs fast and slows,
+  and the ground drops out of frame.
+- Then the zoom-out brings the shrinking world back up under it, down to the globe.
+- The apple's screen position is explicit while it climbs and hands over to its place on the
+  orbit from 5.9.
+- The trail is its screen path, stretched by the climb.
+
+**The «thread» on his back:** a seam line drawn in screen axes crossed the leaning torso. It
+is gone, and every torso offset (the chest, waist, waistcoat, seams and buttons) is now in
+the body's own frame (across and along the spine), so a leaning figure keeps its parts in
+place.
+
+**The crouch:**
+- The coat's skirt used to lie along the thighs, which read as enormously long quads. It now
+  hangs from the waist by gravity, behind the thighs.
+- The front panel is short.
+- The pick-up is a stoop-squat: pelvis back, torso leaning, the far hand on his knee.
+
+**Lesson (animate / engine):** offsets on a body are in the body's frame, never in screen
+axes. Anything that hangs (skirts, hair, straps) follows gravity, not the limb.
