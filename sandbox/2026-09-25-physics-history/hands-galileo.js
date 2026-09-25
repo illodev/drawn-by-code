@@ -177,10 +177,11 @@ const GalHands = (() => {
         if (o.above) { press.save(); press.each((g) => g.scale(1, -1)); fist(press, r, { ...o, above: false, fa: [(o.fa ?? [0, -1])[0], -(o.fa ?? [0, -1])[1]] }); press.restore(); return; }
         const fa = o.fa ?? [0, 1], sq = o.squeeze ?? 0;
         const F4 = [[23, 15.5], [7.5, 16.5], [-8.5, 15.5], [-23, 13.5]]; // index → little: [a, width]
-        const W = [0, r + 30], W1 = add(W, fa, 16), side = [fa[1], -fa[0]];
+        // o.align: the wrist lies on the forearm's line from the knuckles (no bend at the wrist)
+        const W = o.align ? add([0, r + 4], fa, 28) : [0, r + 30], W1 = add(W, fa, 16), side = [fa[1], -fa[0]];
         // each finger: from the knuckle just under the bottom edge, up the near face, over the top
         const finger = ([ac, w], i) => {
-            const bot = r + 11 - (i === 3 ? 3 : 0), top = -r - 3 - sq * 0.5 + (i === 3 ? 5 : 0);
+            const bot = r + 11 - (i === 3 ? 3 : 0), top = o.short ? -r + 6 : -r - 3 - sq * 0.5 + (i === 3 ? 5 : 0); // short: the tips go round the far edge, out of sight
             return [[ac - w / 2, bot], [ac - w / 2 - 0.4, 2], [ac - w * 0.46, top + 6], [ac - w * 0.3, top + 1.2], [ac, top - 0.6], [ac + w * 0.3, top + 1.2], [ac + w * 0.46, top + 6], [ac + w / 2 + 0.4, 2], [ac + w / 2, bot]];
         };
         const fingers = F4.map(finger);

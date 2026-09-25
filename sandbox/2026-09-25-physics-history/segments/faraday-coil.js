@@ -248,18 +248,21 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const o = C.proj([s, AX, r]), a = C.proj([s + 1, AX, r]), b = C.proj([s, AX - 1, r]);
         const J = [a[0] - o[0], a[1] - o[1], b[0] - o[0], b[1] - o[1]];
         const F = { apply: (q) => [o[0] + J[0] * q[0] + J[2] * q[1], o[1] + J[1] * q[0] + J[3] * q[1]] };
-        const Wl = GalHands.wristPt('fistAbove', r), W = F.apply(Wl);
+        // IK to the knuckles, the hand as the forearm's straight continuation: the wrist on the
+        // line from the knuckles to the elbow (no bend at the wrist)
         const k = Math.hypot(J[0], J[1]);
-        const [el] = Fig.ik(sh, W, 240 * k, 215 * k, [sh[0] + 20 * k, sh[1] + 400 * k]);
+        const Kl = [0, -(r + 4)], K = F.apply(Kl);
+        const [el] = Fig.ik(sh, K, 240 * k, 243 * k, [sh[0] + 20 * k, sh[1] + 400 * k]);
         const inv = (w) => { const det = J[0] * J[3] - J[1] * J[2], x = w[0] - o[0], y = w[1] - o[1]; return [(J[3] * x - J[2] * y) / det, (-J[1] * x + J[0] * y) / det]; };
-        const v = inv([W[0] + (el[0] - W[0]) * 0.01, W[1] + (el[1] - W[1]) * 0.01]), l = Math.hypot(v[0] - Wl[0], v[1] - Wl[1]) || 1, fa = [(v[0] - Wl[0]) / l, (v[1] - Wl[1]) / l];
+        const ve = inv(el), l = Math.hypot(ve[0] - Kl[0], ve[1] - Kl[1]) || 1, fa = [(ve[0] - Kl[0]) / l, (ve[1] - Kl[1]) / l];
+        const Wl = [Kl[0] + fa[0] * 28, Kl[1] + fa[1] * 28];
         const cu = F.apply([Wl[0] + fa[0] * 27, Wl[1] + fa[1] * 27]);
         const w = (u) => L(64, 44, u) * k * 0.9;
         line(press, [sh, el, cu], (u) => w(u) + 4 * k, { navy: 1, yellow: 1, pink: 0.8 });
         line(press, [sh, el, cu], w, COATC);
         line(press, [[L(sh[0], el[0], 0.2), L(sh[1], el[1], 0.2) - 18 * k], [el[0], el[1] - 16 * k], [L(el[0], cu[0], 0.8), L(el[1], cu[1], 0.8) - 14 * k]], taper(5 * k, 0.2, 0.3), COAT_LIT);
         press.save(); press.each((g) => g.transform(J[0], J[1], J[2], J[3], o[0], o[1]));
-        GalHands.fist(press, r, { fa, squeeze: 0, above: true });
+        GalHands.fist(press, r, { fa, squeeze: 0, above: true, align: true, short: true });
         press.restore();
     }
 
