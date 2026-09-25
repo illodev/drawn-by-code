@@ -568,3 +568,16 @@ redesign what was right.
 
 **Lessons:** see the 2026-09-25 physics-history v2 lines in animate, style-risograph, sound
 and engine.
+
+## Script v2 · adversarial review and the title
+
+Four review agents (Galileo+Newton, Faraday+Curie, Einstein+Schrödinger, the whole film) on
+the 58 s render; the verified list was fixed one item at a time with the user: the black
+after the dive, the ending (wink, the lid slams, a meow and a click inside), Curie's ray
+out of the radium salt followed by the camera into Einstein, Faraday's arm and cat, Newton
+looking at the apple and the pull-away to the Earth as one move, the spark seen and heard,
+Faraday's lab assembling round the still coil, the light entered in pulses, Galileo's
+campanili and tripod, the quiet stretches filled, the worlds alive in colour and dead in
+X-ray from one half-and-half box, all collapsing together. A closing title card «A Brief
+History of Physics» with the cat hopping on the letters and peeking at us; credits
+illodev × Claude. The film is 64 s.
