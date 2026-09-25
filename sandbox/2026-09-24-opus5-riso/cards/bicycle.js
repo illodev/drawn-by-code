@@ -24,6 +24,8 @@ const DRAW_BICYCLE = (press, t) => {
         const specks = [];
         for (let i = 0; i < 1700; i++) specks.push([rs() * 1000, rs() * WALL, 0.9 + rs() * 1.1]);
         for (const [g, v] of [[pink, 0.95], [navy, 0.45]]) { g.fillStyle = T(v); g.beginPath(); for (const [x, y, r] of specks) { g.moveTo(x + r, y); g.arc(x, y, r, 0, 7); } g.fill(); }
+        // pinholes: the wall's ink is pocked with tiny paper specks (seen at 3× in both inkings)
+        off(yellow, (g) => { g.beginPath(); for (let i = 0; i < 4200; i++) { const x = rs() * 1000, y = rs() * WALL, r = 0.5 + rs() * 0.7; g.moveTo(x + r, y); g.arc(x, y, r, 0, 7); } g.fill(); });
         off(yellow, (g) => { g.globalAlpha = 0.1; for (let i = 0; i < 160; i++) { const x = rs() * 1000, y = rs() * WALL, r = 6 + rs() * 16; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } });
     }
     off(yellow, (g) => { g.beginPath(); for (let i = 0; i < 120; i++) { const x = rs() * 1000, y = rs() * WALL, r = 0.8 + rs(); g.moveTo(x + r, y); g.arc(x, y, r, 0, 7); } g.fill(); });
@@ -35,7 +37,7 @@ const DRAW_BICYCLE = (press, t) => {
     for (const l of [[[160, 900], [210, 945], [300, 1000]], [[150, 930], [230, 985]]]) U.stroke(blue, l, 2, 0.85, true);
 
     // ── the bike's geometry (reference units)
-    const RW = [271, 720], FW = [747, 718], WR = 158, BB = [497, 765];
+    const RW = [259, 720], FW = [751, 718], WR = 158, BB = [497, 765];
     const SEAT = [432, 424], ST = [440, 478], HT = [700, 470], HB = [722, 560], BAR = [690, 392];
     const tubes = [[ST, BB], [ST, HT], [HT, BB], [ST, RW], [BB, RW], [HB, FW], [BAR, HB], [SEAT, ST]];
 
@@ -71,29 +73,33 @@ const DRAW_BICYCLE = (press, t) => {
         // (at 3×: every bract is pocked with paper pinholes, one or two per lobe)
         press.knockout((g) => { g.beginPath(); for (let k = 0; k < 3; k++) { const b = a + k * 2.094 + 0.4; const px = x + Math.cos(b) * s * 0.62, py = y + Math.sin(b) * s * 0.62; g.moveTo(px + 1.6, py); g.arc(px, py, 1.6, 0, 7); } g.fill(); });
     };
-    // cluster centres and radii from where the ref's pink and red sit (40 px blocks, f260)
-    const clusters = [
-        [37, 56, 55], [56, 167, 55], [120, 241, 55], [93, 306, 74], [37, 389, 46], [93, 463, 37], [167, 509, 37],
-        [426, 130, 55], [519, 56, 74], [630, 56, 74], [741, 56, 55], [574, 167, 55], [704, 185, 65], [815, 167, 46], [741, 259, 37],
-        [926, 407, 46], [852, 481, 46],
-    ].map(([x, y, r]) => [x, y, r, r * 0.6]);
+    // the bracts, laid out from measured density: the share of pink and of red pixels per
+    // 60 px block of the reference (f259, tenths; the basket excluded, drawn on its own).
+    // Each block gets bracts in proportion (one bract ≈ 300 px² of ink), placed at random.
+    const PINK = ['110000031343013000', '131000000544432000', '031001513332012200', '132000000032423400', '123000000000222000', '121300000000011000', '001310000000000000', '100000000000000002', '011000000000001200', '003200000000002210', '000000000001002100', '000000000000000100', '100000000000000000', '201000000000000000'];
+    const RED = ['110000022111011000', '131000103311110000', '220001113211032100', '011000000022111100', '142000000000111000', '231200000000100000', '511200000000000000', '510000000000000242', '121000000000000000', '001100000000000000', '000100000000000000', '001300000000000000', '100100000000000000', '011000000000000000'];
     const rb = Motion.rng('bc-bracts');
-    for (const [cx, cy, R0, n0] of clusters) for (let i = 0, n = Math.round(n0 * 1.4); i < n; i++) {
-        const a = rb() * 6.28, r = Math.sqrt(rb()) * R0;
-        bract(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8, 9 + rb() * 5, rb() * 6.28, rb() < 0.55);
+    for (let j = 0; j < PINK.length; j++) for (let i = 0; i < 18; i++) {
+        for (const [tab, onPaper] of [[PINK, true], [RED, false]]) {
+            const n = Math.round((+tab[j][i] / 10) * (3600 / 300) * (onPaper ? 1.5 : 1.25) / 1.7);
+            for (let k = 0; k < n; k++) bract(((i + rb()) * 60) / 1.08, ((j + rb()) * 60) / 1.08, 12 + rb() * 6, rb() * 6.28, onPaper);
+        }
     }
-    // the bell's ring: blue swooshes to the upper right of the bars
+    // the bell's ring (measured at 2×): four blue brush arcs round the bell (720, 390 ref px),
+    // radii 92–185 px, from -109° to -49°, thick at the left end and tapering to the right;
+    // blue + a little navy with the yellow cleared under them
     for (let i = 0; i < 4; i++) {
-        const r0 = 90 + i * 22;
-        blue.save(); blue.strokeStyle = T(0.95); blue.lineWidth = 7 - i; blue.lineCap = 'round';
-        blue.beginPath(); blue.ellipse(700, 330, r0, r0 * 0.55, -0.25, -2.3 + i * 0.05, -1.55 + i * 0.08); blue.stroke();
-        blue.restore();
+        const r = [85, 109, 139, 171][i], pts = [];
+        for (let k = 0; k <= 8; k++) { const a = -1.9 + (1.05 * k) / 8; pts.push([667 + Math.cos(a) * r, 361 + Math.sin(a) * r, (8 - i * 0.8) * (1 - 0.7 * k / 8)]); }
+        const band = U.ribbon(pts, { taper: 0.08 });
+        off(yellow, (g) => { U.path(g, band); g.fill(); });
+        U.poly(blue, band, 1); U.poly(navy, band, 0.35);
     }
 
     // ── the wheels: blue-violet tyres (navy + blue + a little pink), paper glint, blue spokes
     const wheel = ([cx, cy]) => {
         press.knockout((g) => { g.lineWidth = 16; g.beginPath(); g.arc(cx, cy, WR, 0, 7); g.stroke(); });
-        for (const [g, v] of [[navy, 0.8], [blue, 0.7], [pink, 0.3]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 14; g.beginPath(); g.arc(cx, cy, WR, 0, 7); g.stroke(); g.restore(); }
+        for (const [g, v] of [[navy, 0.62], [blue, 0.8], [pink, 0.35]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 12; g.beginPath(); g.arc(cx, cy, WR, 0, 7); g.stroke(); g.restore(); }
         press.knockout((g) => { g.lineWidth = 2.6; g.beginPath(); g.arc(cx, cy, WR - 10, 0, 7); g.stroke(); });
         for (const [g, v] of [[blue, 0.9]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 3; g.beginPath(); g.arc(cx, cy, WR - 13, 0, 7); g.stroke(); g.restore(); }
         // spokes (measured at 2×): 36 light-blue wires, each with a paper edge
