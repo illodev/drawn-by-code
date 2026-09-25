@@ -19,7 +19,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // 0–2.6 out of the light to the medium close-up; 2.6–6.2 the camera drifts round her; she
     // turns the tube a little, a blink; 3.4–6.4 particles fly at us; 6.2–7.4 one of them becomes
     // the ray, which spans the frame by 7.2 and holds
-    const T = { pull: [0, 2.6], drift: [2.0, 6.6], parts: [3.4, 6.0], ray: [6.2, 7.2], end: 7.6 };
+    const T = { pull: [0, 2.6], drift: [2.0, 6.6], parts: [2.6, 6.0], ray: [6.2, 7.2], end: 7.6 };
 
     // ── colours ──────────────────────────────────────────────────────────────────────────
     const DARK = { blue: 0.9, 'navy.s': 0.92, 'pink.s': 0.2 };
@@ -48,7 +48,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
     // a layer at depth factor p (1 = her plane; < 1 farther, > 1 nearer): scale and slide
     function layer(press, c, p, fn) {
-        const z = 1 + (c.Z - 1) * p, dx = (c.drift - 0.5) * -140 * (p - 1) * 2 + (c.drift - 0.5) * -60 * p;
+        // (a drift wide enough that the depths visibly slide past each other)
+        const z = 1 + (c.Z - 1) * p, dx = (c.drift - 0.5) * -380 * (p - 1) * 2 + (c.drift - 0.5) * -150 * p;
         press.save();
         press.each((g) => { g.translate(c.S[0] + dx, c.S[1]); g.scale(z, z); g.translate(-c.F[0], -c.F[1]); });
         fn();
@@ -74,13 +75,38 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             put(press, (g) => g.rect(x, 250 - h, w, h), c);
             press.knockout((g) => { g.globalAlpha = 0.35; g.fillRect(x + 6, 256 - h, 5, h * 0.6); g.globalAlpha = 1; });
         }
+        // her glowing samples on the shelf: small tubes in a rack, each with a faint blue-green
+        // glow that breathes (she kept radium by her bed as a night light)
+        put(press, (g) => g.rect(1560, 226, 170, 24), PLANK_LT);
+        for (let i = 0; i < 6; i++) {
+            const x = 1580 + i * 26, gl = 0.35 + 0.15 * Math.sin(t * 2.2 + i * 1.7);
+            press.knockout((g) => { g.fillStyle = Riso.radial(g, x, 196, 2, 40, gl, 0); g.beginPath(); g.arc(x, 196, 40, 0, 6.2832); g.fill(); });
+            put(press, (g) => { g.beginPath(); g.roundRect(x - 6, 160, 12, 64, [2, 2, 6, 6]); }, { 'blue.s': 0.2, 'yellow.s': 0.15 });
+            put(press, (g) => { g.beginPath(); g.roundRect(x - 4, 196, 8, 26, [0, 0, 5, 5]); }, GLOW_HOT);
+        }
+        // a notebook open on a crate, lower left, catching the glow: her columns of figures
+        put(press, (g) => g.rect(120, 700, 320, 260), { navy: 1, 'yellow.s': 0.45, 'pink.s': 0.35 });
+        put(press, (g) => poly(g, [[140, 690], [280, 676], [290, 700], [150, 716]]), { 'yellow.s': 0.15, 'blue.s': 0.12 });
+        put(press, (g) => poly(g, [[282, 676], [420, 688], [410, 714], [292, 700]]), { 'yellow.s': 0.12, 'blue.s': 0.15 });
+        for (let k = 0; k < 4; k++) { line(press, [[160, 688 - k * 3 + 5], [270, 678 - k * 3 + 5]].map(([x, y]) => [x, y + k * 5]), 1.6, { navy: 0.7 }); line(press, [[300, 684 + k * 5], [400, 694 + k * 5]], 1.6, { navy: 0.7 }); }
+        // dust in the air, drifting through the glow
+        { const rd = Motion.rng('shed-dust'); for (let i = 0; i < 30; i++) { const x = 500 + rd() * 900 + Math.sin(t * 0.7 + i) * 20, y = ((rd() * 900 + t * (8 + rd() * 14)) % 900); press.knockout((g) => { g.globalAlpha = 0.5; g.beginPath(); g.arc(x, y, 1.6 + rd() * 1.8, 0, 6.2832); g.fill(); g.globalAlpha = 1; }); } }
         // sacks of pitchblende on the floor, lower right
         put(press, (g) => smooth(g, [[1150, 900], [1170, 700], [1260, 660], [1360, 690], [1390, 900]]), { navy: 1, 'yellow.s': 0.4, 'pink.s': 0.3 });
         put(press, (g) => smooth(g, [[1340, 900], [1370, 740], [1460, 710], [1550, 740], [1580, 900]]), { navy: 1, 'yellow.s': 0.5, 'pink.s': 0.2 });
         // the film's cat on the sacks, lost in the dark: only its silhouette against the plank
         // wall's glow and its eyes, lit green by the radium, turned to the tube; it blinks
         const cx = 1440, cy = 712, bl = Math.abs(t - 5.1) < 0.06;
-        put(press, (g) => smooth(g, [[cx - 60, cy], [cx - 58, cy - 50], [cx - 30, cy - 80], [cx + 10, cy - 84], [cx + 34, cy - 60], [cx + 40, cy]]), { navy: 1, 'yellow.s': 0.6, 'pink.s': 0.3 });
+        // (a rim of the radium's blue-green light on its ears and back, so it reads as a cat)
+        const CATB = [[cx - 60, cy], [cx - 58, cy - 50], [cx - 30, cy - 80], [cx + 10, cy - 84], [cx + 34, cy - 60], [cx + 40, cy]];
+        put(press, (g) => smooth(g, CATB.map(([x, y]) => [x - 4, y - 4])), GLOW_HOT);
+        put(press, (g) => poly(g, [[cx - 26, cy - 76], [cx - 24, cy - 104], [cx - 10, cy - 82]]), GLOW_HOT);
+        put(press, (g) => poly(g, [[cx - 2, cy - 84], [cx + 8, cy - 108], [cx + 18, cy - 78]]), GLOW_HOT);
+        put(press, (g) => smooth(g, CATB), { navy: 1, 'yellow.s': 0.6, 'pink.s': 0.3 });
+        // its tail over the sack with the white tip, a white paw
+        line(press, Ph.sample([[cx + 36, cy - 6], [cx + 76, cy + 4], [cx + 96, cy - 24], [cx + 90, cy - 50]], false, 6), taper(12, 0.1, 0.5), { navy: 1, 'yellow.s': 0.6, 'pink.s': 0.3 });
+        line(press, [[cx + 96, cy - 30], [cx + 90, cy - 50]], taper(9, 0.2, 0.6), { 'blue.s': 0.12, 'yellow.s': 0.1 });
+        put(press, ellipse(cx - 30, cy - 2, 12, 6), { 'blue.s': 0.12, 'yellow.s': 0.1 });
         put(press, (g) => poly(g, [[cx - 22, cy - 74], [cx - 20, cy - 100], [cx - 6, cy - 80]]), { navy: 1, 'yellow.s': 0.6, 'pink.s': 0.3 });
         put(press, (g) => poly(g, [[cx + 2, cy - 82], [cx + 12, cy - 104], [cx + 22, cy - 76]]), { navy: 1, 'yellow.s': 0.6, 'pink.s': 0.3 });
         for (const ex of [-18, 8]) {
