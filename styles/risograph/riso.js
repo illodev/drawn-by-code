@@ -33,7 +33,10 @@ const Riso = (() => {
 
     function press(env, o = {}) {
         const [W, H] = env.px, k = env.k;
-        const pitch = (o.pitch ?? 9.5) * (W / 1080); // halftone cell, output px (≈ 9.5 at 1080)
+        // everything measured on a 1080 × 1080 print scales with the short side, so a 16:9
+        // frame at 1920 × 1080 keeps the same screen and grain as a square one at 1080
+        const S1 = Math.min(W, H) / 1080;
+        const pitch = (o.pitch ?? 9.5) * S1; // halftone cell, output px (≈ 9.5 at 1080)
         const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
         const plates = {};
         for (const ink of ORDER) plates[ink] = { solid: mk(), screen: mk() };
@@ -69,7 +72,7 @@ const Riso = (() => {
             }
             return f;
         };
-        const sc = W / 1080, mottle = {}, speck = {};
+        const sc = S1, mottle = {}, speck = {};
         // the paper, measured at 3× on the reference: an even warm stock with a faint cloud
         // (a few % at ~50 px) and hair-like fibres (thin grey curls, 10–40 px), almost no
         // specks. Never a confetti of coloured dots.
@@ -132,7 +135,7 @@ const Riso = (() => {
                         const S = ctxs[ink + 'solid'].getImageData(0, 0, W, H).data;
                         const T = ctxs[ink + 'screen'].getImageData(0, 0, W, H).data;
                         const I = INKS[inkOf(ink)], [ir, ig, ib] = I.rgb, ca = Math.cos(INKS[ink].angle), sa = Math.sin(INKS[ink].angle);
-                        const [ox, oy] = (reg[ink] ?? [0, 0]).map((v) => Math.round(v * (W / 1080)));
+                        const [ox, oy] = (reg[ink] ?? [0, 0]).map((v) => Math.round(v * S1));
                         const ip = I.pitch * pitch, io = ORDER.indexOf(ink) * 7919;
                         for (let y = 0; y < H; y++) {
                             const sy = y - oy;
@@ -174,7 +177,7 @@ const Riso = (() => {
                     }
                     og.putImageData(img, 0, 0);
                     // ink spreads into the paper fibres: a slight blur of the whole print
-                    const sp = (po.spread ?? SPREAD) * (W / 1080);
+                    const sp = (po.spread ?? SPREAD) * S1;
                     if (sp > 0) {
                         const tmp = mk(), tg = tmp.getContext('2d');
                         tg.filter = `blur(${sp}px)`;

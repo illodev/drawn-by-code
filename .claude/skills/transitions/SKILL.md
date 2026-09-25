@@ -44,3 +44,4 @@ Full example with all five, plus a paper ball that crumples and opens:
 
 - 2026-09-24 · exquisite-corpse · In `engulf`, the cloud edges are painted before `b`; otherwise each circle leaves its full ring and you get a tangle (now in the engine).
 - 2026-09-24 · exquisite-corpse · Everything deformed with clipping (crumpling, tearing) is also clipped to the shot rectangle, or bits poke out of the sheet.
+- 2026-09-25 · physics-newton-faraday · A morph across a pan (an orbit winding into a coil while one set slides out and the next slides in) lives in screen space, not in either set. It stays mid-frame and lands on its target exactly when the pan ends. The target's own copy is hidden until then: a copy that travels with its set flies off, and one that is always drawn doubles up.

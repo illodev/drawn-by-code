@@ -96,6 +96,11 @@ how you made it too.
 <b><a href="sandbox/2026-09-24-coffee-first/">coffee-first</a></b> · paper cutout · 6 s · <a href="sandbox/2026-09-24-coffee-first/render/coffee-first.mp4">mp4</a><br>
 <sub>The first style test: a sleepy mug wakes up.</sub>
 </td>
+<td width="50%" valign="top">
+<a href="sandbox/2026-09-25-physics-newton-faraday/"><img src="sandbox/2026-09-25-physics-newton-faraday/render/physics-newton-faraday.gif" alt="physics-newton-faraday"></a><br>
+<b><a href="sandbox/2026-09-25-physics-newton-faraday/">physics-newton-faraday</a></b> · risograph · 12 s · <a href="sandbox/2026-09-25-physics-newton-faraday/render/physics-newton-faraday.mp4">mp4</a><br>
+<sub>A test for a short history of physics, told without text. Newton drops a ball, and its fall closes into an orbit round the Earth. The orbit winds into Faraday's coil, where a magnet makes the needle swing one way going in, rest while it is held, and swing back coming out.</sub>
+</td>
 </tr>
 </table>
 
