@@ -1,5 +1,8 @@
 # physics-history
 
+> **v2 (user, round 2):** the script below is replaced by the chain in «Script v2» at the
+> end. The v1 table stays as history.
+
 - **Style:** risograph (four inks on a night-blue ground; see `.claude/skills/style-risograph`)
 - **Format:** 16:9 · 40 s · 24 fps (960 frames, drawings on twos) · 1920 × 1080, composed so a
   4K render stays possible
@@ -75,3 +78,18 @@ Faces follow period portraits:
 - [F7] Einstein Online (MPI), *Gravity: from weightlessness to curvature*
 - [F8] University of Zurich, Erwin Schrödinger, Nobel 1933
 - [F9] Nobel Prize, *The quantised world*: wave function and Born's interpretation
+
+## Script v2 (approved by the user after round 2)
+
+The piece is one continuous chain of transformations with ironic humour. Nobody sits. The
+figures are full body, upright and moving. Framing is close, the camera travels, and every
+join is one object turning into the next.
+
+| Time | Scene |
+|---|---|
+| 0–5 | **Galileo** on a rooftop at night, a close profile at the eyepiece. The camera travels along the tube to the sky; nights pass fast and Jupiter's moons move. The zoom goes on until Jupiter fills the frame and its bands turn into the skin of an **apple** (a stalk and a leaf appear). |
+| 5–12 | **Newton** lies under the tree by day. The apple falls, the camera follows it, and it lands on his head (bonk, little stars circling). He gets up, picks it up, looks at it, glances at the daytime Moon and throws it up hard. The camera pulls away, Powers of Ten style: the field, the hills, the coast, the curve of the Earth. The apple rises and bends into an orbit round the globe. |
+| 12–18 | The orbit's trails spiral into Faraday's **coil**. A psychedelic zoom through copper rings and blooming field lines lands in his lab, close and low-angled: Faraday, standing, thrusts the magnet in and out, the needle kicks and a spark jumps. |
+| 18–24 | The spark becomes the blue-green glow of a **radium** tube (its salts really glowed). Marie Curie lifts it to her face in the dark shed while the camera circles her. Particles fly out in slow motion towards us and one stretches into a ray of light. |
+| 24–30 | Young **Einstein** runs beside the ray: his thought experiment of chasing light. The spacetime grid streams past, bends round a huge Sun, and the ray bends with it. The grid folds into a **cube**. |
+| 30–40 | The cube becomes a wooden **box**. The lid opens and **Schrödinger and the cat** appear. The frame splits into 2, 4, 8, 16…, each cell a different outcome: the cat dead and Schrödinger alive, the reverse, both dancing, the cat shutting the lid on him, the cat playing chess… until a mosaic of probability. Last beat: every cat looks at the camera at once. |

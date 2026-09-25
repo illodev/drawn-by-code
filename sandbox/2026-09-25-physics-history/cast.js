@@ -70,16 +70,19 @@ const Cast = (() => {
         const HAIR = { 'pink.s': 0.5, yellow: 0.82, 'navy.s': 0.42 };
         const HAIR_LT = { 'pink.s': 0.28, yellow: 0.7, 'navy.s': 0.1 };
         const HAIR_DK = { 'pink.s': 0.6, yellow: 1, navy: 0.95 };
-        seated(press, { thigh: { navy: 1, 'pink.s': 0.55, yellow: 0.85 }, shin: { 'blue.s': 0.42, 'navy.s': 0.4 }, buckle: true });
+        if (!o.headOnly) seated(press, { thigh: { navy: 1, 'pink.s': 0.55, yellow: 0.85 }, shin: { 'blue.s': 0.42, 'navy.s': 0.4 }, buckle: true });
         // the back of the hair, behind the neck and shoulders
         put(press, (g) => smooth(g, [[-20, -96], [30, -90], [40, -40], [30, 40], [20, 130], [-40, 190], [-120, 186], [-128, 100], [-112, 0], [-90, -70]]), HAIR_DK);
-        // coat: shoulders, chest, a lit front towards the candle on the right
-        put(press, (g) => smooth(g, [[-150, 158], [-112, 120], [-40, 108], [40, 104], [110, 118], [152, 172], [168, 300], [150, 380], [-120, 380], [-156, 300]]), COAT);
-        put(press, (g) => smooth(g, [[30, 110], [105, 120], [148, 174], [162, 300], [150, 380], [80, 380], [52, 200]]), COAT_LIT);
-        line(press, [[40, 118], [52, 200], [62, 380]], taper(5), COAT_DK);
-        for (let i = 0; i < 5; i++) {
-            put(press, circle(68 + i * 1.5, 146 + i * 38, 6), { yellow: 1, 'pink.s': 0.3, 'navy.s': 0.25 });
-            press.knockout(circle(66 + i * 1.5, 144 + i * 38, 2));
+        // coat: shoulders, chest, a lit front towards the candle on the right (o.headOnly: a
+        // full-body rig draws the body itself, see figure.js)
+        if (!o.headOnly) {
+            put(press, (g) => smooth(g, [[-150, 158], [-112, 120], [-40, 108], [40, 104], [110, 118], [152, 172], [168, 300], [150, 380], [-120, 380], [-156, 300]]), COAT);
+            put(press, (g) => smooth(g, [[30, 110], [105, 120], [148, 174], [162, 300], [150, 380], [80, 380], [52, 200]]), COAT_LIT);
+            line(press, [[40, 118], [52, 200], [62, 380]], taper(5), COAT_DK);
+            for (let i = 0; i < 5; i++) {
+                put(press, circle(68 + i * 1.5, 146 + i * 38, 6), { yellow: 1, 'pink.s': 0.3, 'navy.s': 0.25 });
+                press.knockout(circle(66 + i * 1.5, 144 + i * 38, 2));
+            }
         }
         // neck
         put(press, (g) => smooth(g, [[-6, 46], [36, 50], [42, 104], [-10, 108]]), SKIN_SH);
@@ -107,8 +110,11 @@ const Cast = (() => {
         line(press, [[58, 44], [64, 45]], taper(3), LINE);
         line(press, [[42, 60], [54, 58], [62, 54]], taper(3), LINE);
         line(press, [[26, 76], [44, 80], [58, 74]], taper(2.6), LINE);
-        line(press, [[16, -30], [34, -38], [56, -34]], taper(8, 0.2, 0.3), { navy: 1, 'pink.s': 0.4 });
-        eye(press, 42, -14, 30, look);
+        // brows: o.brow lifts them (surprise), o.shut closes the eye (a stunned squint)
+        const bl = o.brow ?? 0;
+        line(press, [[16, -30 - bl * 8], [34, -38 - bl * 12], [56, -34 - bl * 8]], taper(8, 0.2, 0.3), { navy: 1, 'pink.s': 0.4 });
+        if (o.shut) line(press, [[28, -12], [42, -8], [56, -14]], taper(4.5), INK);
+        else eye(press, 42, -14, 30, look);
         line(press, [[18, 2], [34, 8], [48, 6]], taper(2.6), { 'pink.s': 0.5, 'navy.s': 0.15 });
         // hair: a cap over the skull down to the hairline, then locks from the middle parting,
         // waves over the ear and falling to the chest
