@@ -4,7 +4,7 @@
 // colour-run scans, inks solved from 30 px means, screens fitted with a DFT (pitch 12.05 px:
 // blue 14.9°, navy 75.05°, yellow 45.1°). Needs _g4-util.js (G4).
 var CARDS = CARDS || {};
-CARDS.whale = (press, t) => {
+CARDS.whale = (press, t, lf = 0, o = {}) => {
     const U = G4, T = U.T;
     const d = Math.floor(t * 12 + 1e-6);
     const pink = press.plate('pink'), blue = press.plate('blue'), navy = press.plate('navy'), yellow = press.plate('yellow');
@@ -19,7 +19,7 @@ CARDS.whale = (press, t) => {
     const PAN = [[0, 0], [1.5, 0.5], [2.5, 2]][Math.min(2, d)];
     press.each((g) => g.translate(PAN[0], PAN[1]));
     // regional tone, calibrated against the reference in passes (see G4.fix)
-    const FIX = D.fix ?? null;
+    const FIX = (o.inks ? D.fixPink : D.fix) ?? null; // the pink run has its own table
     G4.fixBegin(FIX);
 
     // ── water: blue ink with paper holes (white dots on blue), deeper to the bottom; navy
@@ -49,6 +49,9 @@ CARDS.whale = (press, t) => {
     // the ink's grain: stray pink specks and paper pinholes in the water (seen at 4×)
     U.specks(pink, 'wh-w', 1400, [0, 300, 1080, 1080], 0.7, 1.6, 0.9);
     U.speckle(press, 'wh-w', 700, [0, 0, 1080, 1080], 0.6, 1.3);
+    // the lower water is grainier (at 3×: pink and paper specks between the holes)
+    U.specks(pink, 'wh-w2', 1800, [0, 520, 1080, 1080], 0.8, 1.8, 0.9);
+    U.speckle(press, 'wh-w2', 1400, [0, 520, 1080, 1080], 0.7, 1.5);
     // the navy dots come in lower on the left (the water is lit under the left shafts)
     U.screen(press, 'navy', LN, (g) => {
         // start line y0(x) = 620 right of x = 540, dropping to 860 at the left edge
