@@ -42,6 +42,7 @@ Follow this page every time a hand is on screen.
 | Fist round a bar (power grip), fingers towards the camera | the fingers' side | four fingers wrapping the near face, pressed together, their backs to us; a crease per joint; lines between the fingers; tips curling over the far edge; below the bar, the hand's edge down to the wrist | the thumb, on the far side of the bar |
 | Fist round a bar, the back of the hand towards the camera | the back of the hand | knuckles' row near one edge, the fingers going over that edge and away, tendons | the fingertips; the thumb except its root at the heel |
 | Hand reaching over a bar from the far side | across the bar | fingertips curling over the top and down the near face, with nails | the palm, the thumb, the wrist |
+| A figure in profile facing right holding something up with its right hand (camera on its right) | the little finger's side | the hand's edge from the wrist to the knuckle in profile; the little finger nearest, wrapping the object's front; the others stepped behind | the thumb, on the far side of the hand |
 | Holding a round object (an apple) | the side | the fingers cupping under it, the thumb on top or on the near side, and more hand than object: a hand is about 2.3 times as long as an apple | the palm behind the object |
 | Pinch (small object) | the side | the thumb and index tips meeting, the other fingers curled loosely | the palm |
 | Open hand, relaxed | any | fingers slightly curled, the middle the longest, the thumb lower and turned | nothing |
