@@ -145,7 +145,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // grows until it passes the side of the globe (no going back)
     const ORB = { c: [780, 510], r: 390, phi0: 1.12, w: 0.85 };
     const orbitPos = (t) => { const f = ORB.phi0 + ORB.w * (t - 6.6); return [ORB.c[0] + Math.sin(f) * ORB.r, ORB.c[1] - Math.cos(f) * ORB.r]; };
-    const PATH = [[T.release, [1025, 262]], [5.12, [1075, 190]], [5.3, [1098, 166]], [6.0, [1110, 170]], [6.6, orbitPos(6.6)], [7.0, orbitPos(7.0)]];
+    const PATH = [[T.release, [1047, 230]], [5.12, [1075, 190]], [5.3, [1098, 166]], [6.0, [1110, 170]], [6.6, orbitPos(6.6)], [7.0, orbitPos(7.0)]];
     const applePos = (t) => (t >= 6.6 ? orbitPos(t) : Fig.track(PATH, t));
     // terrain height along the ground (world units) as a sum of octaves: fields, hills, downs;
     // flat near Newton; the land ends at the coast (s > 1.1e8, the North Sea)
