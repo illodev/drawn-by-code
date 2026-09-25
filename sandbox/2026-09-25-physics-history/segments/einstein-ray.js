@@ -19,8 +19,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
 
     // 0–1.4 they run into their places; 1.4–3.2 the chase, speeding up; 3.2–4.8 the black hole
     // opens ahead; 4.5–6.1 it pulls them in (spaghettification); 5.2–7.0 the camera dives in,
-    // rolling, to black; 7.2–8.6 the cube snaps in edge by edge; 8.6–9.2 it holds, eyes inside
-    const T = { enter: [0.2, 1.4], hole: [3.2, 4.8], pull: [4.5, 6.1], dive: [5.2, 7.0], build: [7.25, 8.6], end: 9.2 };
+    // rolling, to black (a beat of 0.2 s); 6.6–7.25 the cube snaps in edge by edge; to 8.6 it holds, eyes inside
+    const T = { enter: [0.2, 1.4], hole: [3.2, 4.8], pull: [4.5, 6.1], dive: [5.2, 7.0], build: [6.6, 7.5], end: 8.6 };
 
     const AMBER = { yellow: 1, 'pink.s': 0.55 };
     const GRID = { 'blue.s': 0.55, 'yellow.s': 0.15 };
