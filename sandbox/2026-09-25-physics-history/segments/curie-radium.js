@@ -84,7 +84,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // hand seen from its back with the fingers pointing forward has its thumb on top). Local
     // units: the tube's axis at x = 0, y down; screen px at Z = 1.
     function hand(press, o) {
-        const G = [TB[0], TB[1] + TL * 0.36], K = 0.8, ca = Math.cos(-0.35), sa = Math.sin(-0.35);
+        const G = [TB[0], TB[1] + TL * 0.36], K = 0.68, ca = Math.cos(-0.35), sa = Math.sin(-0.35);
         const X = (x, y) => [G[0] + (x * ca - y * sa) * K, G[1] + (x * sa + y * ca) * K];
         const EDGE = { 'pink.s': 0.6, 'navy.s': 0.45 };
         // the fingers curling round the tube, beyond the knuckles (index at top)
@@ -180,7 +180,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             const t = tq, c = cam(t);
             layer(press, c, 0.7, () => shed(press, t));
             layer(press, c, 1, () => {
-                const wr = [TB[0] - 170 * 0.8 * Math.cos(-0.35) + 7 * 0.8 * Math.sin(-0.35) - 0, TB[1] + TL * 0.36 - 170 * 0.8 * Math.sin(-0.35) + 7 * 0.8 * Math.cos(-0.35)];
+                const wr = [TB[0] - 170 * 0.68 * Math.cos(-0.35) + 7 * 0.68 * Math.sin(-0.35), TB[1] + TL * 0.36 - 170 * 0.68 * Math.sin(-0.35) + 7 * 0.68 * Math.cos(-0.35)];
                 marie(press, t, [wr[0] - 60, wr[1] + 330], wr);
                 tube(press, t, 1);
                 hand(press, { t });
