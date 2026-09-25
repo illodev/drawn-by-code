@@ -1,9 +1,9 @@
 // Segment «Schrödinger's box» of physics-history (script v2), after Einstein's black hole. The
-// amber wireframe cube that cut in on the black stays a drawing: inside it, line by line, the
-// 1935 thought experiment draws itself in, seen in cutaway (a speck of radioactive matter, a
-// Geiger counter, a hammer on a trip arm over a flask of poison) and the green eyes become the
-// film's cat. Unobserved, the cat is both: alive and dead on alternate drawings. The lid lifts
-// and Schrödinger leans in from the right to look; then the frame splits into outcomes.
+// amber wireframe cube that cut in on the black closes into an opaque box with the cat inside.
+// The Geiger counter clicks, the radioactivity lights the inside, and a scan line turns the
+// frame into a radiograph: through the box, the 1935 apparatus and the cat's skeleton. Unseen,
+// reality splits: 2, 4, 8, 16 radiographs, alive in some, dead in others. Then Schrödinger
+// lifts the lid and every world collapses into one.
 //
 //   Seg.schrodingerBox.draw(press, tq, st)   local time 0–T.end (on twos)
 //
@@ -13,7 +13,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
 (() => {
     const { put, ink, line, smooth, poly, taper, circle, ellipse } = Ph;
     const L = Ease.lerp, S = Ease.seg, IO = Ease.inOut;
-    const T = { cam: [0.2, 2.2], parts: [0.5, 1.7], cat: [0.9, 1.3], both: 1.5, lean: [2.2, 3.2], lid: [2.4, 3.1], end: 10 };
+    const T = { close: [0.3, 0.9], click: 1.2, scan: [1.4, 2.2], split: [2.8, 3.5, 4.1, 4.6], collapse: 6.6, end: 10 };
 
     const AMBER = { yellow: 1, 'pink.s': 0.55 };
     const AMBER_LT = { yellow: 0.6, 'pink.s': 0.3 };
@@ -100,42 +100,97 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         }
     }
 
+    // ── the radiograph of the box: pale walls, the apparatus in white, the cat's skeleton;
+    // o.dead: the hammer down, the flask broken, the cat on its back
+    const XR_BG = { navy: 1, blue: 0.85 };
+    const kline = (press, pts, w, a) => press.knockout((g) => { poly(g, Ph.outline(pts, w)); g.globalAlpha = a; g.fill(); g.globalAlpha = 1; });
+    function radiograph(press, t, c, o) {
+        const V = [];
+        for (const x of [-h, h]) for (const y of [-h, h]) for (const z of [-h, h]) V.push(P([x, y, z], c));
+        const E = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]];
+        // the walls: a faint glow inside the box's outline, its edges pale
+        press.knockout((g) => { poly(g, [V[0], V[1], V[3], V[7], V[6], V[4]]); g.globalAlpha = 0.07; g.fill(); g.globalAlpha = 1; });
+        for (const [i, j] of E) kline(press, [V[i], V[j]], 4 * c.z, 0.4);
+        // the apparatus, in the same place as the diagram's, as white shadows
+        const A = (q) => P(tr(q), c), k = kAt(tr([170, h, 120]), c) * 1.9, fl = h;
+        const cs = [[100, fl - 110, 120], [240, fl - 110, 120], [240, fl, 120], [100, fl, 120]].map(A);
+        press.knockout((g) => { poly(g, cs); g.globalAlpha = 0.3; g.fill(); g.globalAlpha = 1; });
+        kline(press, [A([170, fl - 110, 120]), A([170, fl - 230, 120])], 12 * k, 0.55);
+        const sp = A([170, fl - 250, 120]);
+        press.knockout((g) => { g.fillStyle = Riso.radial(g, sp[0], sp[1], 2, 60 * k, 0.95, 0); g.beginPath(); g.arc(sp[0], sp[1], 60 * k, 0, 6.2832); g.fill(); });
+        const pv = A([220, fl - 110, 40]), hd = A(o.dead ? [220, fl - 80, -90] : [220, fl - 150, -90]);
+        kline(press, [pv, hd], 5 * k, 0.8);
+        press.knockout((g) => { g.beginPath(); g.ellipse(hd[0], hd[1], 16 * k, 11 * k, 0, 0, 6.2832); g.globalAlpha = 0.9; g.fill(); g.globalAlpha = 1; });
+        const fq = A([220, fl - 40, -90]);
+        if (o.dead) { for (let i = 0; i < 6; i++) { const a = i * 1.1, r = 30 * k; kline(press, [[fq[0] + Math.cos(a) * r * 0.4, fq[1] + 30 * k], [fq[0] + Math.cos(a) * r * 1.3, fq[1] + 30 * k + Math.sin(a) * 6 * k]], 3 * k, 0.6); } }
+        else { press.knockout((g) => { g.beginPath(); g.arc(fq[0], fq[1], 38 * k, 0, 6.2832); g.globalAlpha = 0.35; g.fill(); g.globalAlpha = 1; }); kline(press, [[fq[0], fq[1] - 36 * k], [fq[0], fq[1] - 70 * k]], 18 * k, 0.35); }
+        // the cat
+        const cq = P([-170, h, 0], c), ck = kAt([-170, h, 0], c);
+        Cat.xray(press, { x: cq[0], y: cq[1], s: ck * (o.dead ? 2.4 : 2.9), face: 1, pose: o.dead ? 'dead' : 'sit' });
+        ink(press, (g) => g.rect(-5000, -5000, 10000, 10000), { 'blue.s': 0.25 });
+    }
+    // the opaque box: dark panels, amber edges, the eyes inside while it is still open
+    function solid(press, t, c) {
+        const V = [];
+        for (const x of [-h, h]) for (const y of [-h, h]) for (const z of [-h, h]) V.push([x, y, z]);
+        const faces = [[0, 1, 3, 2], [4, 5, 7, 6], [0, 1, 5, 4], [2, 3, 7, 6], [0, 2, 6, 4], [1, 3, 7, 5]];
+        const cl = S(t, T.close[0], T.close[1]);
+        // the faces close one by one, on their own drawings; a panel turned to us is lighter
+        if (cl < 1) for (let i = 1; i < 4; i++) {
+            const u = -h + i * h / 2, gk = 1 - cl;
+            for (const [a, b] of [[[u, h, -h], [u, h, h]], [[-h, h, u], [h, h, u]], [[u, -h, h], [u, h, h]], [[-h, u, h], [h, u, h]], [[-h, u, -h], [-h, u, h]], [[-h, -h, u], [-h, h, u]]]) line(press, [P(a, c), P(b, c)], 2, { yellow: 0.45 * gk, 'pink.s': 0.25 * gk });
+        }
+        let nf = 0; const visF = [];
+        faces.forEach((f) => {
+            const n = [0, 1, 2].map((a) => (V[f[0]][a] === V[f[1]][a] && V[f[1]][a] === V[f[2]][a]) ? Math.sign(V[f[0]][a]) : 0), nr = rot(n, c);
+            const ctr = rot(f.reduce((m, j) => [m[0] + V[j][0] / 4, m[1] + V[j][1] / 4, m[2] + V[j][2] / 4], [0, 0, 0]), c);
+            if (nr[0] * -ctr[0] + nr[1] * -ctr[1] + nr[2] * (-1800 - ctr[2]) <= 0) return;
+            visF.push(f);
+            if (cl < ++nf / 3) return;
+            const Q = f.map((j) => P(V[j], c));
+            // the top catches the most light, the side turned right the least
+            const dk = nr[1] < -0.3 ? 0.5 : nr[0] > 0.2 ? 0.95 : 0.75;
+            put(press, (g) => poly(g, Q), { 'navy.s': dk, 'blue.s': 0.55, 'pink.s': 0.2 });
+        });
+        const E = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]];
+        // at the click, light leaks out along every seam
+        const leak = Ease.bump(t, T.click, 0.35) + S(t, T.click + 0.2, T.scan[0]);
+        // once it is shut, only the edges of the faces turned to us (the rest are behind them)
+        const onVis = ([i, j]) => cl < 1 || visF.some((f) => f.includes(i) && f.includes(j));
+        for (const e of E) if (onVis(e)) line(press, [P(V[e[0]], c), P(V[e[1]], c)], 6 * c.z, AMBER);
+        if (leak > 0) for (const [i, j] of E.filter(onVis)) { const a = P(V[i], c), b = P(V[j], c); kline(press, [a, b], (6 + 14 * leak) * c.z, 0.5 * Math.min(1, leak)); }
+        if (cl < 0.5) { const q = P([0, 110, 0], c); for (const dx of [-34, 34]) { put(press, ellipse(q[0] + dx, q[1], 22, 16), { yellow: 1, blue: 0.7 }); put(press, ellipse(q[0] + dx, q[1], 5, 14), BH); } }
+    }
+    // the worlds: how the frame is cut at each split, and which worlds hold a dead cat
+    const GRID = [[1, 1], [2, 1], [2, 2], [4, 2], [4, 4]];
+    const deadIn = (n, i) => { const x = Math.sin((n * 7 + i) * 12.9898) * 43758.5453; return x - Math.floor(x) < 0.5; };
     Seg.schrodingerBox = {
         T,
         init() { return {}; },
         draw(press, tq) {
-            const t = tq, c = cam(t);
+            const t = tq, c = { z: 1, dx: 0, dy: 0, yaw: 0.55, pitch: 0.38 };
             put(press, (g) => g.rect(0, 0, 1600, 900), BH);
-            const lidA = IO(S(t, T.lid[0], T.lid[1]));
-            // Schrödinger, behind the box's right side, leaning in to look down into it (mirrored:
-            // facing left); his torso runs off the frame's bottom edge
-            const ln = IO(S(t, T.lean[0], T.lean[1]));
-            if (ln > 0) {
-                const top = P([h, -h, 0], c), sc = kAt([h, -h, 0], c) * 1.7;
-                const hx = top[0] + L(600, 200, ln), hy = top[1] + L(120, -40, ln);
-                Ph.cam(press, hx, hy, sc, () => {
-                    press.each((g) => { g.scale(-1, 1); g.rotate(0.3 * ln); });
-                    // the jacket goes on down past the frame's edge
-                    const pp = Seg.schrodinger.parts;
-                    put(press, (g) => g.rect(-128, 360, 290, 900), pp.SUIT);
-                    put(press, (g) => g.rect(60, 360, 100, 900), pp.SUIT_LT);
-                    pp.schrodinger(press, { look: [1, 0.9], noLegs: true });
-                });
+            if (t < T.scan[1]) solid(press, t, c);
+            if (t < T.scan[0]) return;
+            // the scan: a bright line sweeping down; above it, the radiograph
+            const sc = S(t, T.scan[0], T.scan[1]), sy = L(-20, 920, IO(sc));
+            const lvl = T.split.filter((x) => t >= x).length, [gx, gy] = GRID[lvl], W = 1600 / gx, H = 900 / gy;
+            press.save();
+            if (sc < 1) press.clip((g) => g.rect(0, 0, 1600, sy));
+            for (let j = 0; j < gy; j++) for (let i = 0; i < gx; i++) {
+                const n = j * gx + i, pad = lvl ? 6 : 0;
+                press.save();
+                const x0 = i * W + pad, y0 = j * H + pad, cw = W - 2 * pad, chh = H - 2 * pad;
+                if (lvl) press.clip((g) => g.rect(x0, y0, cw, chh));
+                // the cell frames the box (a 1000 × 760 window round it), whatever its shape
+                const zs = lvl ? Math.min(cw / 1000, chh / 760) : 1;
+                press.each((g) => { g.translate(x0 + cw / 2, y0 + chh / 2); g.scale(zs, zs); g.translate(-800, -450); });
+                put(press, (g) => g.rect(-4000, -4000, 9600, 8900), XR_BG);
+                radiograph(press, t, c, { dead: lvl > 0 && deadIn(lvl, n) });
+                press.restore();
             }
-            cube(press, t, c, lidA);
-            apparatus(press, t, c);
-            // the cat: its eyes, then all of it; from T.both, alive and dead on alternate drawings
-            const cq = P([-170, h, 0], c), ck = kAt([-170, h, 0], c);
-            const cu = S(t, T.cat[0], T.cat[1]);
-            if (cu < 1) {
-                const q = P([0, 110, 0], c);
-                if (t < T.cat[0] + 0.1) for (const dx of [-34, 34]) { put(press, ellipse(q[0] + dx, q[1], 22, 16), { yellow: 1, blue: 0.7 }); put(press, ellipse(q[0] + dx, q[1], 5, 14), BH); }
-            }
-            if (t >= T.cat[0]) {
-                const alive = t < T.both || Math.floor(t * 12) % 2 === 0;
-                if (alive) Cat.sit(press, { x: cq[0], y: cq[1], s: ck * 2.9, face: 1, look: P(tr([170, h - 250, 120]), c), tail: t * 0.5 });
-                else Cat.dead(press, { x: cq[0] + 10 * ck, y: cq[1], s: ck * 2.4, face: 1 });
-            }
+            press.restore();
+            if (sc < 1) { kline(press, [[0, sy], [1600, sy]], 10, 0.9); press.knockout((g) => { g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(0, sy - 40, 1600, 40); }); }
         },
     };
 })();

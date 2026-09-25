@@ -171,6 +171,51 @@ const Cat = (() => {
         for (const ex of [H[0] - 8, H[0] + 12]) { const ey = H[1] - 4; line(press, [[ex - 5, ey - 5], [ex + 5, ey + 5]], 3, WHITE); line(press, [[ex - 5, ey + 5], [ex + 5, ey - 5]], 3, WHITE); }
         press.restore();
     }
+    // the X-ray: the same cat (pose 'sit' as Cat.sit, 'dead' as Cat.dead, same local units)
+    // seen through a radiograph: the body a faint glow, the skeleton bright. Drawn by knocking
+    // the paper through the dark (so it only reads on a dark ground). o: { x, y, s, face, pose }
+    function xray(press, o) {
+        const f = o.face ?? 1, s = o.s ?? 1;
+        press.save();
+        press.each((g) => { g.translate(o.x, o.y); g.scale(s * f, s); });
+        const glow = (pts, a) => press.knockout((g) => { smooth(g, pts); g.globalAlpha = a; g.fill(); g.globalAlpha = 1; });
+        const bone = (pts, w, a = 0.9) => press.knockout((g) => { poly(g, Ph.outline(pts.length > 2 ? Ph.sample(pts, false, 5) : pts, typeof w === 'number' ? w : w)); g.globalAlpha = a; g.fill(); g.globalAlpha = 1; });
+        const blob = (x, y, rx, ry, a = 0.9, r = 0) => press.knockout((g) => { g.beginPath(); g.ellipse(x, y, rx, ry, r, 0, 6.2832); g.globalAlpha = a; g.fill(); g.globalAlpha = 1; });
+        const chain = (pts, n, r, a = 0.85) => { const P = Ph.sample(pts, false, 12), m = P.length - 1; for (let i = 0; i <= n; i++) { const k = i / n * m, j = Math.min(m - 1, Math.floor(k)), u = k - j, q = [P[j][0] + (P[j + 1][0] - P[j][0]) * u, P[j][1] + (P[j + 1][1] - P[j][1]) * u]; blob(q[0], q[1], r * (1 - 0.4 * i / n), r * 0.8 * (1 - 0.4 * i / n), a); } };
+        if (o.pose === 'dead') {
+            glow([[-78, 0], [-86, -26], [-56, -52], [0, -58], [52, -48], [72, -20], [64, 0]], 0.16);
+            glow([[66, -20], [70, -44], [94, -54], [120, -42], [122, -18], [98, -4]], 0.16);
+            // spine along the back (on the floor), ribs arching up, pelvis, legs straight up
+            chain([[-70, -12], [-20, -16], [30, -16], [66, -20]], 14, 4.5);
+            for (let i = 0; i < 7; i++) { const x = -6 + i * 9; bone([[x, -16], [x - 6, -34], [x + 2, -48]], 3.2, 0.7); }
+            blob(-62, -20, 14, 9, 0.85, 0.3);
+            for (const [x, a, len] of [[-54, -1.9, 70], [30, -1.5, 70], [-42, -1.75, 62], [38, -1.4, 62]]) {
+                const k = [x + Math.cos(a) * len * 0.5, -40 + Math.sin(a) * len * 0.5], p2 = [x + Math.cos(a) * len, -40 + Math.sin(a) * len];
+                bone([[x, -34], k], 5); bone([k, p2], 4); blob(k[0], k[1], 4.5, 4.5); blob(p2[0], p2[1] - 3, 6, 5, 0.8);
+            }
+            chain([[-70, -8], [-104, -4], [-136, -4], [-156, -8]], 12, 3.4, 0.75);
+            // skull upside down: cranium, the eye's socket, the jaw
+            blob(94, -28, 24, 20, 0.85);
+            put(press, ellipse(100, -20, 7, 6), { navy: 0.9, blue: 0.6 });
+            bone([[106, -44], [122, -34], [118, -18]], 4);
+        } else {
+            glow([[-32, 0], [-38, -32], [-30, -68], [-12, -92], [2, -104], [24, -106], [38, -92], [30, -62], [28, -30], [24, 0]], 0.16);
+            glow([[0, -104], [4, -122], [24, -130], [44, -120], [54, -104], [50, -92], [34, -84], [12, -86]], 0.16);
+            // spine up the back to the skull, the ribcage, pelvis, the legs, the tail
+            chain([[-24, -14], [-32, -44], [-22, -76], [-2, -96], [12, -104]], 16, 4.2);
+            for (let i = 0; i < 7; i++) { const y = -56 - i * 6; bone([[-26 + i * 2, y], [-6 + i * 2, y + 6], [14 + i, y + 2]], 3, 0.7); }
+            blob(-20, -14, 13, 9, 0.85, -0.4);
+            bone([[-20, -14], [6, -24]], 6); bone([[6, -24], [-22, -8]], 5); bone([[-22, -8], [-2, -3]], 4); blob(6, -24, 5, 5);
+            bone([[20, -84], [22, -40]], 5.5); bone([[22, -40], [24, -4]], 4.5); blob(22, -40, 4.5, 4.5); blob(26, -3, 7, 4, 0.8);
+            chain([[-28, -8], [-62, -4], [-98, -12], [-112, -34]], 14, 3.4, 0.75);
+            // the skull: a round cranium, the muzzle tapering forward, the jaw under it, the
+            // eye's socket dark
+            press.knockout((g) => { smooth(g, [[2, -104], [6, -124], [24, -130], [42, -122], [58, -104], [54, -96], [36, -94], [14, -92]]); g.globalAlpha = 0.85; g.fill(); g.globalAlpha = 1; });
+            bone([[16, -92], [36, -90], [52, -94]], 4);
+            put(press, ellipse(36, -110, 7, 6), { navy: 0.9, blue: 0.6 });
+        }
+        press.restore();
+    }
     const L = (a, b, k) => a + (b - a) * k;
-    return { sit, curl, run, dead };
+    return { sit, curl, run, dead, xray };
 })();
