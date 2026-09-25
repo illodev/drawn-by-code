@@ -43,13 +43,15 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             put(press, (g) => g.rect(0, 0, 1600, 900), DEEP);
             const r = Motion.rng('intro-stars');
             for (let i = 0; i < 160; i++) { const x = r() * 1600, y = r() * 900, rr = 1.2 + r() * 2.4, tw = 0.6 + 0.4 * Math.sin(t * 5 + i); press.knockout((g) => { g.globalAlpha = 0.7 * tw; g.beginPath(); g.arc(x, y, rr, 0, 6.2832); g.fill(); g.globalAlpha = 1; }); }
-            const ks = S(t, 0.2, 0.7), kb = S(t, 0.45, 1.2), out = IO(S(t, 2.5, 2.9));
-            press.save(); press.each((g) => { g.translate(800, 470); g.scale(1 + 0.25 * out, 1 + 0.25 * out); g.translate(-800, -470); });
+            // (at the end the title flies past us, full ink, and we are in the night: no fade, which
+            // on a riso press darkens the letters into a muddy ghost)
+            const ks = S(t, 0.2, 0.7), kb = S(t, 0.45, 1.2), out = Ease.in ? Ease.in(S(t, 2.55, 2.95)) : S(t, 2.55, 2.95);
+            press.save(); press.each((g) => { g.translate(800, 470); g.scale(1 + 7 * out, 1 + 7 * out); g.translate(-800, -470); });
             if (out < 1) {
-                if (ks > 0) text(press, 'A Brief History of', 800, 380, 64, { yellow: 1 - out, ...(ks > 0.5 ? { 'pink.s': 0.35 * (1 - out) } : {}) }, { align: 'center', knock: out === 0 });
+                if (ks > 0) text(press, 'A Brief History of', 800, 380, 64, { yellow: 1, ...(ks > 0.5 ? { 'pink.s': 0.35 } : {}) }, { align: 'center' });
                 if (kb > 0) {
-                    text(press, WORD, 808, 560 + 10, 190, { navy: 1 - out }, { align: 'center', knock: out === 0 });
-                    text(press, WORD, 800, 560, 190, { yellow: 1 - out, ...(kb > 0.45 ? { pink: 0.85 * (1 - out) } : {}) }, { align: 'center', knock: out === 0 });
+                    text(press, WORD, 808, 560 + 10, 190, { navy: 1 }, { align: 'center' });
+                    text(press, WORD, 800, 560, 190, { yellow: 1, ...(kb > 0.45 ? { pink: 0.85 } : {}) }, { align: 'center' });
                 }
             }
             press.restore();

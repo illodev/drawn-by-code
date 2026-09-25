@@ -114,7 +114,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
 
     // ── the pull-back (shot C) ──────────────────────────────────────────────────────────
-    const ZEND = 260 / RW; // the globe 520 px across at the end (radius 260)
+    const ZEND = 320 / RW; // the globe 640 px across at the end (radius 320): the orbit (390) is a low one
     const Z0 = 1.25; // = ZK at the release // the last key of shot B's camera: the pull-back starts from it, no jump
     // smoothstep in log z: it starts sooner than a cubic ease, so the world falls away while the
     // apple still has its speed (the world height h = GD / z keeps growing)
@@ -132,32 +132,59 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const AY = [[T.release, (28 - 180) * 1.25 + 450], [5.12, 190], [5.3, 165], [6.3, 160], [T.pull[1], 140]];
     // (the ground never leaves the frame: the tree, Newton and the farm shrink into the land as
     // the camera pulls away, one continuous move, no empty sky)
-    const GD = [[T.release, (G - 28) * 1.25], [5.12, 760], [5.3, 660], [5.5, 580], [5.9, 460], [6.4, 280], [T.pull[1], 110]];
+    const GD = [[T.release, (G - 28) * 1.25], [5.12, 760], [5.3, 660], [5.5, 580], [5.9, 460], [6.4, 280], [T.pull[1], 130]];
     const AX = [[T.release, 1025], [5.12, 1075], [5.3, 1100], [5.9, 1000]];
     const LEAN = 0.36; // the throw goes up and forward (≈ 20° from the vertical)
     const anchorY = (t) => Fig.track(AY, t) + Fig.track(GD, t);
     // the ground under the camera: it slides back a little as the apple flies forward (never
     // forward again), and ends as the globe's top at (780, 250)
     const GX = [[T.release, 800], [5.3, 786], [6.6, 780], [7, 780]];
-    function anchorAt(t, camB) {
-        return [Fig.track(GX, t), L(Fig.track(AY, t) + Fig.track(GD, t), 250, IO(S(t, 6.0, 6.6)))];
+    // Newton's cannonball: the apple leaves the hand with a huge speed along the ground; it goes
+    // on at that screen speed along the curved ground at its screen height GD, so the Earth
+    // curves away under it as it falls: it never lands. θ is its angle round the Earth's
+    // centre from Newton's spot, integrated at 1 ms (float64: the globe is 2.65e9 units wide).
+    // In the world: a thrown body barely rises while it races forward; the ground curves away
+    // under it, and it climbs slowly to the orbit's low height (70 px over a 320 px Earth) by
+    // the time it has gone TH1 round. On screen its speed follows the camera: 700 px/s off the
+    // hand, a burst while the camera draws back fastest, the orbit's own speed at the end.
+    const RE_END = 320, H_END = 70, TH1 = 1.1, V_ORBIT = 0.85 * (RE_END + H_END), BURST = 3733;
+    const hW0 = 990 / 1.25, hWO = H_END / ZEND;
+    const heightW = (th) => { const u = Math.min(1, th / TH1); return hW0 + (hWO - hW0) * (1 - (1 - u) * (1 - u)); };
+    let FL = null;
+    function flightTab() {
+        if (!FL) {
+            const dt = 0.001, n = Math.ceil((6.6 - T.release) / dt) + 1, th = new Float64Array(n), gd = new Float64Array(n);
+            let a = (1047 - 800) / 1.25 / RW;
+            for (let i = 0; i < n; i++) {
+                const tt = T.release + i * dt, z = zoomAt(tt), Rs = RW * z;
+                // (never closer than 45 px to the ground on screen: it skims the land, never lands)
+                const g = Math.max(heightW(a) * z, Math.min(45, H_END + (1 - S(tt, 6.3, 6.6)) * 45));
+                const v = L(700, V_ORBIT, IO(S(tt, T.release, 6.6))) + BURST * Ease.bump(tt, 5.7, 0.9);
+                th[i] = a; gd[i] = g; a += (v * dt) / (Rs + g);
+            }
+            const at = (arr) => (tt) => arr[Math.min(n - 1, Math.max(0, Math.round((tt - T.release) / 0.001)))];
+            FL = { th: at(th), gd: at(gd), end: a };
+        }
+        return FL;
     }
-    // the apple's screen path: it leaves the hand up and forward, rides near the top while
+    const theta = (t) => flightTab().th(t);
+    const gdAt = (t) => (t <= T.release ? Fig.track(GD, t) : flightTab().gd(t));
+    // (tz: draw it at the camera of time tz — for the trail, the path it flew, seen now)
+    function appleRel(t, tz = t) {
+        const z = zoomAt(tz), Rs = RW * z, gd = gdAt(t) * z / zoomAt(t), th = theta(t), R = Rs + gd, sh = Math.sin(th / 2);
+        return [Math.sin(th) * R, 2 * Rs * sh * sh - gd * Math.cos(th)];
+    }
+    // the camera pans after the apple while the world is big (it stays near x 1050), then settles
+    // on the globe (anchor x 780) as it forms
+    function anchorAt(t, camB) {
+        const rel = appleRel(Math.max(T.release, t)), follow = L(1047, 1060, S(t, T.release, 6.0));
+        return [L(follow - rel[0], 780, IO(S(t, 5.9, 6.6))), L(Fig.track(AY, t) + gdAt(t), 250, IO(S(t, 6.25, 6.6)))];
+    }    // the apple's screen path: it leaves the hand up and forward, rides near the top while
     // the world falls away, then (6.6 on) falls round the finished globe in orbit; x only
     // grows until it passes the side of the globe (no going back)
-    const ORB = { c: [780, 510], r: 390, phi0: 0.6, w: 0.85 };   // (it reaches the orbit high on the globe's right, as the globe appears)
+    const ORB = { c: [780, 250 + 320], r: 390, phi0: 1.1, w: 0.85 };   // phi0 = TH1, where the cannonball flight arrives
     const orbitPos = (t) => { const f = ORB.phi0 + ORB.w * (t - 6.6); return [ORB.c[0] + Math.sin(f) * ORB.r, ORB.c[1] - Math.cos(f) * ORB.r]; };
-    // one smooth flight on screen (a cubic Hermite): it leaves the hand fast, up and forward,
-    // slows as it climbs, and falls into the orbit with the orbit's own speed and heading, so
-    // the speed never stalls or jumps between keys
-    // (while the camera pulls back it only climbs, drifting in towards Newton's spot like the
-    // rest of the shrinking world; it turns along the orbit only once the globe is there)
-    const P0 = [1047, 230], V0 = [-70, -110], P1 = orbitPos(6.6), f1 = ORB.phi0, V1 = [ORB.w * ORB.r * Math.cos(f1), ORB.w * ORB.r * Math.sin(f1)], DT = 6.6 - T.release;
-    const hermite = (t) => {
-        const u = (t - T.release) / DT, u2 = u * u, u3 = u2 * u, h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
-        return [0, 1].map((i) => h00 * P0[i] + h10 * DT * V0[i] + h01 * P1[i] + h11 * DT * V1[i]);
-    };
-    const applePos = (t) => (t >= 6.6 ? orbitPos(t) : hermite(Math.max(T.release, t)));
+    const applePos = (t) => { if (t >= 6.6) return orbitPos(t); const a = anchorAt(t), r = appleRel(Math.max(T.release, t)); return [a[0] + r[0], a[1] + r[1]]; };
     // terrain height along the ground (world units) as a sum of octaves: fields, hills, downs;
     // flat near Newton; the land ends at the coast (s > 1.1e8, the North Sea)
     function terrain(s) {
@@ -493,7 +520,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
     // the apple's height above the ground, on screen: up fast, then settling to an orbit
     function altScreen(t) {
-        return Fig.track(GD, t);
+        return gdAt(t);
     }
 
     Seg.newtonApple = {
@@ -671,9 +698,11 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 const posAt = applePos;
                 // the trail: its screen path, stretched downward by its climb while the camera
                 // rides with it (the world streaming away under it)
-                const climb = 1100 * (1 - S(t, 5.3, 6.0));
                 const trail = [];
-                for (let tt = Math.max(T.release + 0.04, t - 0.3); tt <= t + 1e-6; tt += 0.01) { const q = posAt(tt); trail.push([q[0] - (t - tt) * climb * LEAN, q[1] + (t - tt) * climb]); }
+                // (the path it flew over the ground: where it was relative to the world as the world is now,
+                // so the trail shows its real heading, forward and curving round the Earth)
+                const an = anchorAt(Math.min(t, 6.6));
+                for (let tt = Math.max(T.release + 0.04, t - 0.3); tt <= t + 1e-6; tt += 0.01) { const q = tt >= 6.6 ? posAt(tt) : (() => { const r = appleRel(tt, Math.min(t, 6.6)); return [an[0] + r[0], an[1] + r[1]]; })(); trail.push(q); }
                 if (trail.length > 2) line(press, trail, taper(8, 0.9, 0.02), AMBER);
                 const p = posAt(t);
                 const r = L(APPLE_R * Math.max(z, 0.55), 17, S(t, T.release, 5.4));

@@ -36,10 +36,10 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const mix = (a, b, k) => { const o = {}; for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) o[key] = L(a[key] ?? 0, b[key] ?? 0, k); return o; };
 
     // ── the orbit's world ────────────────────────────────────────────────────────────────
-    const RE = 260, RO = 390;                  // the Earth, the orbit (Newton's last frame)
+    const RE = 320, RO = 390;                  // the Earth, the orbit (Newton's last frame)
     const TURNS = 10, PITCH = 145, SC = 5.57;  // SC: orbit units per lab unit             // the coil: 10 turns, 1450 long
     const RM = 111, HL = 445;                  // the magnet: radius and half length
-    const A0 = 0.6 + 0.85 * 0.4;                // the apple's angle where Newton leaves it
+    const A0 = 1.1 + 0.85 * 0.4;                 // the apple's angle where Newton leaves it
     const AEND = A0 + TURNS * 2 * Math.PI;
     // the apple's angle: it speeds up from its orbit's pace to a blur, and stops at the coil's end
     const W0 = 0.85, W1 = 36;
