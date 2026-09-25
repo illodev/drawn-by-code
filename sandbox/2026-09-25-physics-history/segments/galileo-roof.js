@@ -391,7 +391,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         return {
             sleeve: () => {
                 sleeve(press, sh, el, cu, M.k, far);
-                if (far) { press.save(); press.each((g) => g.transform(F.J[0], F.J[1], F.J[2], F.J[3], F.o[0], F.o[1])); GalHands.cuff(press, [Wl[0] + fa[0] * 18, Wl[1] + fa[1] * 18], fa, 40, 1); press.restore(); }
+                if (far) { press.save(); press.each((g) => g.transform(F.J[0], F.J[1], F.J[2], F.J[3], F.o[0], F.o[1])); GalHands.cuff(press, [Wl[0] + fa[0] * 10, Wl[1] + fa[1] * 10], fa, 40, 1); press.restore(); }
             },
             hand: () => {
                 press.save();
