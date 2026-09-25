@@ -153,6 +153,9 @@ CARDS.turntable = (press, t, lf) => {
             ringS(navy, x, y, 30, 3, 0.6); ringS(blue, x, y, 30, 3, 0.6);
             if (c === 'p') { disc(pink, x, y, 28, 1); G2.curve(navy, [[x - 18, y + 16], [x + 18, y - 16]], 3, 0.9); }
         }
+        // the print's grain (3× crops): paper pocks in the solids
+        G2.voids(yellow, 'tt-y', 0, 0, 1080, 1080, 40000, 0.85, 0.8, 2.4);
+        G2.voids(navy, 'tt-n', 0, 100, 950, 1080, 30000, 0.85, 0.8, 2.4);
         press.restore();
     });
 };

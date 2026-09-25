@@ -36,7 +36,7 @@ CARDS.phone = (press, t, lf) => {
             for (const [r, w, s] of [[352, 12, 'a'], [465, 10, 'b'], [600, 9, 'c']]) Riso.ring(g, 537, 366, r, w, 'ph' + s, { wobble: 0.008 }); // fitted to runs of white on rows and columns
         });
         press.knockout((g) => specks(g, 'ph-st', 0, 0, 1080, 930, 90, 1, 2.2));
-        G2.voids(pink, 'ph-bg', -40, -40, 1120, 930, 16000, 0.85); // the pink's fine white grain (3× crop)
+        G2.voids(pink, 'ph-bg', -40, -40, 1120, 930, 45000, 0.9, 0.8, 2.4); G2.voids(yellowS, 'ph-ry', -40, -40, 1120, 930, 20000, 0.9, 0.8, 2.4); // the pink's fine white grain (3× crop)
 
         // --- the table: orange (pink + yellow), a navy edge, the dotted shadow, two cracks
         const table = [[-10, 932], [1090, 928], [1090, 1090], [-10, 1090]];
@@ -90,7 +90,7 @@ CARDS.phone = (press, t, lf) => {
         for (const [x, y] of holes) { pink.beginPath(); pink.arc(x + 1, y + 2, 7, 0, 7); pink.fill(); }
         pink.beginPath(); pink.arc(DC[0], DC[1], 17, 0, 7); pink.fill();
         press.knockout((g) => specks(g, 'ph-bst', 200, 620, 890, 920, 120, 0.8, 2));
-        G2.voids(blue, 'ph-body', 170, 600, 910, 935, 5000, 0.85);
+        G2.voids(blue, 'ph-body', 170, 600, 910, 935, 15000, 0.9, 0.8, 2.2);
 
         // --- the cord: navy coils from the left cup down round to the body
         const cord = [[205, 525], [140, 560], [95, 620], [75, 700], [85, 790], [120, 860], [165, 895]];
