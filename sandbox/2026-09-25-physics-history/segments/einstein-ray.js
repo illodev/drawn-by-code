@@ -32,7 +32,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // the run (x shrinks by 1/γ) and the view ahead bunches forward (aberration), so the grid
     // squeezes and curves into a tunnel, bluer ahead and redder behind (Doppler).
     const F = 900, CY = 450, H = 560, XE = 4000, ZB = 2200;
-    const beta = (t) => L(0.25, 0.7, IO(S(t, T.enter[0], T.hole[1])));
+    const beta = (t) => L(0.25, 0.86, IO(S(t, T.enter[0], T.hole[1])));
     function view(t) { const b = beta(t); return { beta: b, c: Math.sqrt(1 - b * b), ab: 0.5 * b }; }
     function toScreen(q, v) {
         let X = q[0] * v.c, Y = q[1], Z = q[2] + F;
@@ -74,7 +74,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             const P2 = Q.map(([x, y]) => [x, y]), w = Math.max(1.4, 3 * Math.min(1, Q[0][2] * 1.2));
             const u = Math.min(1, Math.max(0, Q[Q.length >> 1][0] / 1600)), dop = v.beta;
             // (the grid fades in over the first moments: the cut from Curie is the ray alone)
-            const gi = IO(S(t, 0.05, 0.9));
+            const gi = IO(S(t, 0, 0.5));
             if (gi <= 0) continue;
             press.knockout((g) => { Ph.poly(g, Ph.outline(P2, w)); g.globalAlpha = 0.55 * gi; g.fill(); g.globalAlpha = 1; });
             line(press, P2, w, { 'blue.s': (0.25 + 0.45 * dop * u) * gi, 'yellow.s': 0.12 * gi, 'pink.s': 0.55 * dop * (1 - u) * gi }, { knock: false });
@@ -282,7 +282,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         // the head: the approved Einstein face, with his own thick tousled hair (the neat short hair read as Tesla), leaning into the run, eyes on
         // the pulse ahead; scaled to a 7.5-head figure
         const hc = B(40, -330);
-        Ph.cam(press, hc[0], hc[1], 0.6, () => { press.each((g) => g.rotate(lean * 0.6)); su.einsteinBody(press, { headOnly: true, bold: true, look: [1, 0.05], brow: 4, hairWave: Math.sin(ph) * 4 }); });
+        Ph.cam(press, hc[0], hc[1], 0.6, () => { press.each((g) => g.rotate(lean * 0.6)); const wow = IO(S(t, 2.0, 2.4)) * (1 - IO(S(t, 3.2, 3.6)));
+            su.einsteinBody(press, { headOnly: true, bold: true, look: [1, 0.05 - 0.25 * wow], brow: 4 + 8 * wow, hairWave: Math.sin(ph) * 4 }); });
         // near leg and arm
         leg(0, false);
         arm(1, false);
@@ -300,6 +301,10 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 // middle of the frame and its shadow growing past the frame's edges
                 const dv = IO(S(t, T.dive[0], T.dive[1])), Z = 1 + 11 * dv * dv, roll = 3.2 * Math.pow(dv, 1.4);
                 const cc = [L(HC[0], 800, dv), L(HC[1], 450, dv)];
+                // a beat in the chase: the camera pushes in on him as he looks at the light he is
+                // keeping pace with, wide-eyed (the cat pounces at it), then pulls back out
+                const pi = IO(S(t, 1.9, 2.6)) * (1 - IO(S(t, 3.1, 3.7))), PZ = 1 + 0.45 * pi, PC = [760, 330];
+                press.save(); press.each((g) => { g.translate(PC[0], PC[1]); g.scale(PZ, PZ); g.translate(-PC[0], -PC[1]); });
                 press.save(); press.each((g) => { g.translate(cc[0], cc[1]); g.rotate(roll); g.scale(Z, Z); g.translate(-HC[0], -HC[1]); });
                 grid(press, t, v);
                 holeBack(press, t);
@@ -320,15 +325,16 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                     // the cat, chasing the pulse like a laser dot: galloping just below it, pouncing
                     const e = pts[pts.length - 1] ?? [front, RY];
                     // (the cat, then Einstein, run into the frame from the left after the cut)
-                    const catX = L(-220, e[0] - 160, IO(S(t, 0.15, 1.4)));
+                    const catX = L(-40, e[0] - 160, Ease.out(S(t, 0, 1.2)));
                     const pounce = Ease.bump(t, 2.9, 0.5);
                     Cat.run(press, { x: catX, y: RY + 200, s: 1.3, face: 1, ph: t * 3.2, pounce });
                     // Einstein, in frame from the first frame, gaining ground on the pulse
-                    const ex = L(-520, e[0] - L(640, 520, IO(S(t, 1.6, 3.4))), IO(S(t, 0.35, 1.9)));
+                    const ex = L(-520, e[0] - L(640, 520, IO(S(t, 1.6, 3.4))), Ease.out(S(t, 0.2, 1.7)));
                     runner(press, t, ex, 1010);
                 }
                 press.restore();
                 holeFront(press, t);
+                press.restore();
                 press.restore();
             }
             // black: the shadow has filled the frame; the cube cuts in on it

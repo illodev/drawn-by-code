@@ -58,8 +58,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
 
     // ── the shed at night: a plank wall, a window with the night, a shelf of jars, a sack ──
     function shed(press, t) {
-        put(press, (g) => g.rect(-800, -600, 3200, 2200), DARK);
-        for (let x = -800; x < 2400; x += 92) {
+        put(press, (g) => g.rect(-800, -600, 7000, 2200), DARK);
+        for (let x = -800; x < 6000; x += 92) {
             put(press, (g) => g.rect(x, -600, 88, 2200), PLANK);
             line(press, [[x + 88, -600], [x + 88, 1600]], 4, { navy: 1, 'pink.s': 0.5 });
             for (let k = 0; k < 5; k++) { const y = -500 + ((x * 7 + k * 331) % 1900); line(press, [[x + 20 + k * 10, y], [x + 26 + k * 10, y + 90]], 2, PLANK_LT, { knock: false }); }
@@ -254,7 +254,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             // the ray's moment: the shed goes dark round it (inks only darken: a veil of the
             // night's navy thickening over everything but the ray)
             // (it ends opaque, in Einstein's ground: she is gone whole, never seen through)
-            const dk = IO(S(t, T.ray[0] + 0.1, T.ray[1] + 0.1));
+            const dk = IO(S(t, T.ray[0] + 0.1, T.ray[1] + 0.25));
             if (dk >= 1) put(press, (g) => g.rect(0, 0, 1600, 900), { blue: 0.9, 'navy.s': 0.92, 'pink.s': 0.2 });
             else if (dk > 0) ink(press, (g) => g.rect(0, 0, 1600, 900), { navy: 0.92 * dk, 'blue.s': 0.5 * dk });
             // the frame full of light at the start (the join with Faraday's spark): its glow
