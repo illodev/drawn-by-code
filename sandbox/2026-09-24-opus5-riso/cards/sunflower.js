@@ -38,16 +38,20 @@ CARDS.sunflower = (press, t, lf) => {
         // rays that ran off the frame (60–130°, 140–212°: bottom and left) have no sky: long
         const beAt = (deg) => ((deg > 60 && deg < 130) || (deg > 140 && deg < 212) ? 700 : G2.lerpT(BE, deg));
         const back = [0, 23, 45, 67, 133, 155, 177, 199, 221, 243, 266, 290, 310, 330, 350].map((deg) => [deg * Math.PI / 180, Math.max(120, beAt(deg) - 224)]);
-        for (const [a, L] of back) {
-            const bx = CX + Math.cos(a) * R * 0.8, by = CY + Math.sin(a) * R * 0.8, { pts } = petalPts(bx, by, a, L, 90, 0, 0.66);
+        // measured petals (private/: [base x, y, tip x, y, width] read off a 1:1 grid of frame 210)
+        // (the visible base is where the petal leaves the disc; the petal starts ≈ 70 px under it)
+        const fromBT = (list) => list.map(([bx0, by0, tx, ty, w]) => { const d = Math.hypot(bx0 - CX, by0 - CY), bx = bx0 + (CX - bx0) / d * 70, by = by0 + (CY - by0) / d * 70; return [Math.atan2(ty - by, tx - bx), Math.hypot(tx - bx, ty - by), w * 1.3, false, bx, by]; });
+        const backList = PD?.back ? fromBT(PD.back) : back.map(([a, L]) => [a, L, 90]);
+        for (const [a, L, WB, , Bx, By] of backList) {
+            const bx = Bx ?? CX + Math.cos(a) * R * 0.8, by = By ?? CY + Math.sin(a) * R * 0.8, { pts } = petalPts(bx, by, a, L, WB, 0, 0.66);
             press.knockout((g) => { G2.path(g, pts); g.fill(); });
             poly(yellow, pts, 1); poly(pinkS, pts, 0.06);
-            if (Math.round(a * 57.3) % 5 === 0) poly(pink, pts, 0.5); // (some back petals are orange: pink on the yellow)
+            if (Math.round(a * 57.3) % 11 === 0) poly(pink, pts, 0.5); // (some back petals are orange: pink on the yellow)
             inside(navy, (g) => G2.path(g, pts), (g) => {
                 g.strokeStyle = T(0.95); g.lineWidth = 1.5;
                 for (let k = -40; k <= 40; k++) { const u = k * 8.5; g.beginPath(); g.moveTo(bx + Math.cos(a + 0.6) * u - 300 * Math.cos(a - 0.97), by + Math.sin(a + 0.6) * u - 300 * Math.sin(a - 0.97)); g.lineTo(bx + Math.cos(a + 0.6) * u + 300 * Math.cos(a - 0.97), by + Math.sin(a + 0.6) * u + 300 * Math.sin(a - 0.97)); g.stroke(); }
             });
-            inside(blue, (g) => G2.path(g, pts), (g) => { g.strokeStyle = T(0.6); g.lineWidth = 1.5; for (let k = -40; k <= 40; k++) { const u = k * 8.5; g.beginPath(); g.moveTo(bx + Math.cos(a + 0.6) * u - 300 * Math.cos(a - 0.97), by + Math.sin(a + 0.6) * u - 300 * Math.sin(a - 0.97)); g.lineTo(bx + Math.cos(a + 0.6) * u + 300 * Math.cos(a - 0.97), by + Math.sin(a + 0.6) * u + 300 * Math.sin(a - 0.97)); g.stroke(); } });
+            inside(blue, (g) => G2.path(g, pts), (g) => { g.strokeStyle = T(0.4); g.lineWidth = 1.5; for (let k = -40; k <= 40; k++) { const u = k * 8.5; g.beginPath(); g.moveTo(bx + Math.cos(a + 0.6) * u - 300 * Math.cos(a - 0.97), by + Math.sin(a + 0.6) * u - 300 * Math.sin(a - 0.97)); g.lineTo(bx + Math.cos(a + 0.6) * u + 300 * Math.cos(a - 0.97), by + Math.sin(a + 0.6) * u + 300 * Math.sin(a - 0.97)); g.stroke(); } });
             outline(pts, 3.5);
         }
         // front petals: yellow, pink dots (denser at the base), green outline, red veins
@@ -62,8 +66,9 @@ CARDS.sunflower = (press, t, lf) => {
         // a second, lower layer of front petals between the first (they overlap in two layers,
         // the lower ones a little shorter and more shaded)
         const lower = front.map(([a, L, W]) => [a + 11 * Math.PI / 180, L * 0.88, W, true]);
-        for (const [a, L, W, low] of [...lower, ...front]) {
-            const bx = CX + Math.cos(a) * R * 0.85, by = CY + Math.sin(a) * R * 0.85, { pts, Q } = petalPts(bx, by, a, L, W, 0.03, 0.66);
+        const frontList = PD?.front ? fromBT(PD.front) : [...lower, ...front];
+        for (const [a, L, W, low, Bx, By] of frontList) {
+            const bx = Bx ?? CX + Math.cos(a) * R * 0.85, by = By ?? CY + Math.sin(a) * R * 0.85, { pts, Q } = petalPts(bx, by, a, L, W, 0.03, 0.66);
             press.knockout((g) => { G2.path(g, pts); g.fill(); });
             poly(yellow, pts, 1);
             // (2× crop of frame 210) one half in red dots, the other lit (clean yellow), split by
@@ -85,14 +90,14 @@ CARDS.sunflower = (press, t, lf) => {
             if (rr > R - 10) break;
             const u = rs(), kind = rr > R - 60 ? (u < 0.55 ? 'y' : u < 0.8 ? 'l' : 'r') : u < 0.04 ? 'g' : u < 0.1 ? 'y' : 'r';
             const vis = rr < 70 ? 0.55 : 1;
-            seeds.push([CX + Math.cos(a) * rr, CY + Math.sin(a) * rr, 2.2 + 1.4 * (rr / R), a + 1.2, rr, kind, vis * (0.75 + 0.25 * rs())]);
+            seeds.push([CX + Math.cos(a) * rr, CY + Math.sin(a) * rr, 2.6 + 1.8 * (rr / R), a + 1.2, rr, kind, vis * (0.75 + 0.25 * rs())]);
         }
         const seedPath = (c, want) => { c.beginPath(); for (const [x, y, r, a, rr, k, v] of seeds) if (want(k, v)) { c.moveTo(x + Math.cos(a) * r * 1.6, y + Math.sin(a) * r * 1.6); c.ellipse(x, y, r * 1.6, r, a, 0, 6.283); } };
         for (const g of [navy, blue]) inside(g, dk, (c) => { c.globalCompositeOperation = 'destination-out'; for (const lvl of [0.4, 0.7, 1]) { c.fillStyle = T(lvl); seedPath(c, (k, v) => Math.abs(v - lvl) < 0.16 || (lvl === 1 && v > 0.85)); c.fill(); } });
         inside(blue, dk, (c) => { c.fillStyle = T(0.9); seedPath(c, (k) => k === 'g'); c.fill(); c.fillStyle = T(0.35); seedPath(c, (k) => k === 'l'); c.fill(); });
         inside(pink, dk, (c) => { c.fillStyle = T(1); seedPath(c, (k) => k === 'r'); c.fill(); });
         // maroon clouds in the dark between the seeds (pink over the olive black)
-        inside(pink, dk, (c) => { c.filter = 'blur(30px)'; c.fillStyle = T(0.45); for (const [x, y, rx, ry] of [[300, 560, 90, 70], [520, 620, 80, 110], [360, 820, 120, 60], [560, 830, 70, 60], [250, 720, 60, 80]]) { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, 7); c.fill(); } c.filter = 'none'; });
+        inside(pink, dk, (c) => { c.filter = 'blur(30px)'; c.fillStyle = T(0.7); for (const [x, y, rx, ry] of [[300, 560, 90, 70], [520, 620, 80, 110], [360, 820, 120, 60], [560, 830, 70, 60], [250, 720, 60, 80]]) { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, 7); c.fill(); } c.filter = 'none'; });
         // the centre is darker (fewer seeds show): navy back over the middle
         inside(navy, dk, (g) => { g.fillStyle = Riso.radial(g, CX + 30, CY + 20, 30, 200, 0.5, 0); g.fillRect(0, 0, 1080, 1080); });
         // the yellow rim crescents, top left
