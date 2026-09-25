@@ -136,3 +136,11 @@ loaded from `uses`.
    --clips a-b,c-d`, under ~5 MB), a new style a `styles/<style>/README.md` and
    `strip.jpg` (see any style folder). Full-quality MP4s and frames (`out/`) are not
    committed; the contact sheet (`review/sheet.jpg`) is, it is the visual history.
+
+## Lessons
+
+- 2026-09-25 · physics-history v2 · A likeness at a small scale lives in its signature shapes, exaggerated: young Einstein with neat short hair and a thin moustache read as Tesla; the tousled volume and a bushy moustache pushed bigger (the head's `bold` option) read as Einstein. Crop the head at its on-screen size and ask «who is this?».
+- 2026-09-25 · physics-history v2 · A solid box drawn from 3D is filled only on the faces turned to the camera, and only their edges are drawn: one hidden edge on top of an opaque face turns the box into its own inside.
+- 2026-09-25 · physics-history v2 · Something inside a container is drawn in layers: the rim's far edges, the contents, the near walls and edges, then whatever rests on the rim (the paws) last. No border may cross the character.
+- 2026-09-25 · physics-history v2 · A physics idea is worth more as a picture than as a prop: the user preferred a black hole (spaghettification, a dive to black) to a Sun, and an X-ray scan plus a frame splitting into worlds that collapse into one to a literal wooden crate. Propose the version where the physics *is* the camera move or the edit.
+- 2026-09-25 · physics-history v2 · A frame split into N worlds: each cell draws the whole scene with a uniform scale that frames the subject, clipped to the cell (never a non-uniform squash); the collapse shrinks the other cells into the chosen one while it grows to full frame.

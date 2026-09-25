@@ -548,3 +548,23 @@ of the thumb's side.
 the object. Hold the object with your own hand in the character's pose, forearm included,
 before drawing. When the user flags one detail (the thumb's side), fix that detail; do not
 redesign what was right.
+
+## Script v2 · Einstein, Schrödinger, the whole film
+
+- **Einstein:** the neat young hair read as Tesla; his own tousled hair and a bushy moustache,
+  pushed bigger for a small head (`bold`), read as Einstein. The fists became a right hand
+  from the thumb's side, with thick creases that survive the halftone; the forearm now stays
+  ahead of the elbow. The Sun was replaced, at the user's idea, by a black hole: the grid
+  (a corridor Lorentz-contracting and bunching forward as they speed up) swirls into it, the
+  ray is swallowed, runners and cat are stretched towards it and fall in while the camera
+  dives, rolling, to black; the cube then cuts in edge by edge on the black.
+- **Schrödinger:** a wooden crate and then a transparent diagram did not convince. The user's
+  idea carried it: the box closes opaque, the Geiger counter clicks, a scan turns the frame
+  into a radiograph (the cat's skeleton, `Cat.xray`), reality splits into 2–16 worlds, and when
+  Schrödinger lifts the lid they collapse into one: the cat peeks over the rim and looks at us
+  (`Cat.peek`). Fixed on review: the X-ray tail left the box, the box's borders crossed the cat.
+- **Film:** all six scenes in `dev/film` (57.8 s) with an ElevenLabs score (one section per
+  scene, ducked for the dive into the black hole) and 67 effects.
+
+**Lessons:** see the 2026-09-25 physics-history v2 lines in animate, style-risograph, sound
+and engine.

@@ -77,3 +77,4 @@ in the scene, `render.mjs` adds it automatically. If you move a shot, move its c
 
 - 2026-09-23 · paper-short · A silence mid-video looks like a technical fault: if the music stops, make it on a clear, brief hit.
 - 2026-09-24 · exquisite-corpse · With the kick at full and the pad low, the quiet segments were nearly mute after normalizing: balance per segment by looking at the waveform.
+- 2026-09-25 · physics-history v2 · ElevenLabs with a `composition_plan` of one section per scene (`duration_ms` = the scene's length, `respect_sections_durations: true`) gave the film's exact length (58 s) and a fade-out; a dark beat in the picture (the fall into a black hole) is scored by ducking the track with an ffmpeg `volume=…:eval=frame` envelope, never by cutting it to silence (see `sandbox/2026-09-25-physics-history/gen-music.mjs`, `cut-music.sh`).
