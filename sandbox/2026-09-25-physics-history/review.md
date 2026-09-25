@@ -448,3 +448,25 @@ What changed:
 **Lesson (animate):** a macro-to-wide move of one subject is one camera over one drawing at
 full detail, never a cut between two drawings; hands on a 3D prop live in its projected frame;
 to take a character's point of view, move the character out of the axis first.
+
+### Round 14 (user)
+
+> Viendo las imágenes las manos están mal, el pulgar está cortado y los dedos de la otra mano
+> también. Además la mano derecha está al revés de como se tiene que agarrar algo de forma
+> natural
+
+What changed:
+
+- **The right hand closes round the tube** the way a raised tube is really held. The back of
+  the hand faces the camera, with the knuckles' row near the top edge, tendons and a vein.
+  The fingers go over the top and away, and the thumb wraps round under the tube.
+  - Before, the palm faced up under the tube, and the thumb lay up the near face and ended
+    in the open.
+- **The left hand holds from the far side.** Only its four fingers show, curling over the top
+  and down the near face with nails and wrinkles. Its wrist and cuff are behind the tube,
+  drawn before it so the tube hides them.
+  - Before, the fingers ended abruptly at the top edge.
+
+**Lesson (animate):** hands on a prop start from how a person really holds it (a raised tube:
+a power grip, fingers over the top, thumb under). Every digit is either drawn whole to its tip
+or goes out of sight behind the prop; a digit never ends in the open.

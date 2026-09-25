@@ -21,7 +21,7 @@ Large jumps outside cuts (can be normal in dense patterns; check whether they bo
 
 ## Speed
 
-Painting: 434 ms/frame cold, 401 ms warm → full render ≈ 191 s at this size.
+Painting: 402 ms/frame cold, 402 ms warm → full render ≈ 191 s at this size.
 
 > Slow: cache static elements with `Motion.sprite` and lower the texture density.
 
