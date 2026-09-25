@@ -104,7 +104,7 @@ answer is no, fix it first.
    which way the tips go?
 2. Is it the right hand (or the left), as the handedness check says?
 3. Is every visible digit whole? Nothing amputated, no stubs, no blobs.
-4. Is it one skin, with no holes, no seams and no lines across it?
+4. Is it one skin, with no holes, no seams, no lines across it and **no border round it**? Check it in the code, not only in the image: a hand function must not stroke the outline of its palm or back (a `line(...)` over the shape's own points). A border keeps coming back when a hand is copied from an older one.
 5. Are the proportions right: the thumb against the fingers, the hand against the face
    and against the object?
 6. Would someone who has never seen the code say «a hand holding X» at first glance?

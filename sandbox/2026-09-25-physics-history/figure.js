@@ -287,7 +287,6 @@ const Fig = (() => {
         });
         // tendons on the back of the hand
         for (const [b] of F) line(press, [X(0.05, b * 0.4), X(0.45, b)], taper(0.018 * s, 0.3, 0.3), { 'pink.s': 0.14 }, { knock: false });
-        line(press, Ph.sample(PALM.concat([PALM[0]]), false, 4).slice(0, 20), taper(lw, 0.1, 0.1), EDGE, { knock: false });
     }
 
     // ── Newton ───────────────────────────────────────────────────────────────────────────
