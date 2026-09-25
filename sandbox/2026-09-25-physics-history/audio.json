@@ -1,0 +1,15 @@
+{
+  "music": "music.wav", "musicDb": -1, "duration": 40, "sfxDir": "../../assets/sfx", "align": "onset",
+  "cues": [
+    ["brass_ring", 1.08, -14],
+    ["brass_ring", 2.2, -16],
+    ["pencil_circle", 6.5, -12],
+    ["ball_knock", 9.42, -6],
+    ["magnet_slide", 14.85, -12],
+    ["magnet_slide", 16.85, -13],
+    ["glass_set", 20.92, -10],
+    ["glass_set", 22.92, -9],
+    ["page_turn", 32.35, -16],
+    ["chalk_tap", 27.3, -18]
+  ]
+}

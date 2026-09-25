@@ -85,9 +85,9 @@ how you made it too.
 <sub>A plasticine puppet raymarched in the browser: lumpy pressed-on pieces, matte clay and a studio sweep.</sub>
 </td>
 <td width="50%" valign="top">
-<a href="sandbox/2026-09-25-physics-newton-faraday/"><img src="sandbox/2026-09-25-physics-newton-faraday/render/physics-newton-faraday.gif" alt="physics-newton-faraday"></a><br>
-<b><a href="sandbox/2026-09-25-physics-newton-faraday/">physics-newton-faraday</a></b> · risograph · 12 s · <a href="sandbox/2026-09-25-physics-newton-faraday/render/physics-newton-faraday.mp4">mp4</a><br>
-<sub>A test for a short history of physics, told without text. Newton drops a ball, and its fall closes into an orbit round the Earth. The orbit winds into Faraday's coil, where a magnet makes the needle swing one way going in, rest while it is held, and swing back coming out.</sub>
+<a href="sandbox/2026-09-25-physics-history/"><img src="sandbox/2026-09-25-physics-history/render/physics-history.gif" alt="physics-history"></a><br>
+<b><a href="sandbox/2026-09-25-physics-history/">physics-history</a></b> · risograph · 40 s · <a href="sandbox/2026-09-25-physics-history/render/physics-history.mp4">mp4</a><br>
+<sub>A history of physics in 40 seconds, told without text. Galileo's moons of Jupiter, Newton's fall that is an orbit, Faraday's induction, Curie measuring radioactivity, Einstein's geometry that bends light and Schrödinger's standing waves all meet in an atlas of six lenses. Each figure passes to the next through one object that changes, and the score, synthesized in code, gains an instrument at every stage.</sub>
 </td>
 </tr>
 </table>

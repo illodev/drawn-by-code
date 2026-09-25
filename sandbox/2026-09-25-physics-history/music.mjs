@@ -86,7 +86,7 @@ note(0.1, 2.6, glass(hz(m('A', 1)), 1.6), 0.18, 0.2);
 // 2–8 · Galileo: the motif in glass; three spaced notes for the three nights; the ring drawn
 note(2.0, 2.5, glass(hz(m('D', 1))), 0.2, -0.2);
 note(2.5, 2.5, glass(hz(m('Fs', 1))), 0.16, 0.1);
-for (const [t, n] of [[3.75, 'A'], [4.75, 'Fs'], [5.75, 'E']]) note(t, 2.6, glass(hz(m(n, 1)), 2.0), 0.24, 0.35);
+for (const [t, n] of [[4.0, 'A'], [5.0, 'Fs'], [6.0, 'E']]) note(t, 2.6, glass(hz(m(n, 1)), 2.0), 0.24, 0.35);
 for (let i = 0; i < 6; i++) note(6.5 + i * 0.25, 1.8, glass(hz(m(['D', 'Fs', 'A', 'D', 'Fs', 'A'][i], i < 3 ? 1 : 2)), 1.2), 0.1, -0.3 + i * 0.12);
 // a low drone under the whole piece from the observatory on
 note(2.0, 36, strings(hz(m('D', -2)), 36, 2.5), 0.1, 0);

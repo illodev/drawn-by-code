@@ -22,6 +22,7 @@ Motion.scene({
     duration: 40,
     logical: [1600, 900],
     bpm: 120,
+    audio: { mix: 'mix.wav' }, // node music.mjs && node engine/mix.mjs audio.json (regenerated, not committed)
     uses: [
         'styles/risograph/riso.js', DIR + 'kit.js', DIR + 'cast.js', DIR + 'sets.js', DIR + 'earth.js',
         DIR + 'segments/newton-faraday.js',
