@@ -48,7 +48,7 @@ const loadScript = (src) => new Promise((ok, ko) => {
     for (const u of def.uses ?? []) {
         const src = typeof u === 'string' ? u : u.src;
         try {
-            await loadScript(root + src);
+            await loadScript(root + src + (typeof u === 'object' && u.optional ? '?optional' : ''));
         } catch (e) {
             if (!(typeof u === 'object' && u.optional)) throw e;
         }
