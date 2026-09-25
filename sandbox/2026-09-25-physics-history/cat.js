@@ -247,7 +247,8 @@ const Cat = (() => {
         // the eyes, big, yellow, slit pupils on us (or shut)
         for (const f of [-1, 1]) {
             const ex = f * 22, ey = hy - 16;
-            if (o.blink) { line(press, [[ex - 10, ey], [ex, ey + 3], [ex + 10, ey]], 3, { yellow: 0.8, 'pink.s': 0.4 }); continue; }
+            // (o.wink: its left eye, on our right, shut: the one it winks with)
+            if (o.blink || (o.wink && f === 1)) { line(press, [[ex - 11, ey + 1], [ex, ey + 4], [ex + 11, ey + 1]], 3.4, { yellow: 0.8, 'pink.s': 0.4 }); continue; }
             put(press, ellipse(ex, ey, 11, 9), C.EYE);
             put(press, ellipse(ex + lk[0] * 3, ey + lk[1] * 2, 2.6, 7.5), { navy: 1, yellow: 1 });
             press.knockout(circle(ex + lk[0] * 3 + 3, ey + lk[1] * 2 - 3, 1.8));

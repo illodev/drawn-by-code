@@ -66,6 +66,9 @@ const SFX = {
     field_bloom: ['psychedelic shimmering synth swell with sparkles, magnetic hum rising, dreamy', 1.8],
     glow_swell: ['soft glowing electric hum swelling into a bright shimmering tone', 1.6],
     chime_ok: ['soft friendly confirmation chime, two rising marimba notes', 0.7],
+    lid_slam: ['a wooden box lid slammed shut hard, one loud hollow wooden bang, close', 0.6],
+    box_meow: ['a single short cat meow, muffled, coming from inside a closed wooden box, cute', 0.9],
+    geiger_click: ['a single Geiger counter click, one sharp dry tick, close', 0.5],
 };
 const only = process.argv.slice(2);
 for (const [name, [text, dur]] of Object.entries(SFX)) {

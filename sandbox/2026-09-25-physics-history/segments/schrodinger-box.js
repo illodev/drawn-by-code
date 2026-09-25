@@ -3,7 +3,9 @@
 // The Geiger counter clicks, the radioactivity lights the inside, and a scan line turns the
 // frame into a radiograph: through the box, the 1935 apparatus and the cat's skeleton. Unseen,
 // reality splits: 2, 4, 8, 16 radiographs, alive in some, dead in others. Then Schrödinger
-// lifts the lid and every world collapses into one.
+// lifts the lid and every world collapses into one: the cat peeks out, winks at us, ducks
+// back in and the lid slams shut. A meow, one click of the counter inside: the question is
+// open again. Fade to black.
 //
 //   Seg.schrodingerBox.draw(press, tq, st)   local time 0–T.end (on twos)
 //
@@ -13,7 +15,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
 (() => {
     const { put, ink, line, smooth, poly, taper, circle, ellipse } = Ph;
     const L = Ease.lerp, S = Ease.seg, IO = Ease.inOut;
-    const T = { close: [0.3, 0.9], click: 1.2, scan: [1.4, 2.2], split: [2.8, 3.5, 4.1, 4.6], lean: [5.2, 6.1], lid: [6.0, 6.5], collapse: [6.6, 7.1], flash: 6.95, peek: [7.35, 7.9], blink: 8.9, end: 10 };
+    const T = { close: [0.3, 0.9], click: 1.2, scan: [1.4, 2.2], split: [2.8, 3.5, 4.1, 4.6], lean: [5.2, 6.1], lid: [6.0, 6.5], collapse: [6.6, 7.1], flash: 6.95, peek: [7.35, 7.9], wink: [8.3, 8.5], duck: [8.56, 8.68], slam: [8.6, 8.75], click2: 9.8, fade: [10.2, 10.8], end: 10.8 };
 
     const AMBER = { yellow: 1, 'pink.s': 0.55 };
     const AMBER_LT = { yellow: 0.6, 'pink.s': 0.3 };
@@ -176,32 +178,45 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
     // the one world left: the box, shut but for its lifted lid, blue-green light from inside,
     // the cat peeking over the front rim and looking at us
-    function opened(press, t, c) {
+    function opened(press, t, c0) {
+        // the slam jolts the box
+        const jolt = Ease.bump(t, T.slam[1], 0.2), c = { ...c0, dy: c0.dy + 10 * jolt * Math.cos((t - T.slam[1]) * 60) };
         const V = [];
         for (const x of [-h, h]) for (const y of [-h, h]) for (const z of [-h, h]) V.push([x, y, z]);
         const Pv = (i) => P(V[i], c);
+        // the lid: up in the air, then dropping back on (accelerating) once the cat has ducked
+        const lu = 1 - Math.pow(S(t, T.slam[0], T.slam[1]), 2);
+        const Q = lidQuad(lu).map((q) => P(q, c));
+        const drawLid = () => { put(press, (g) => poly(g, Q), { 'navy.s': 0.5, 'blue.s': 0.55, 'pink.s': 0.2 }); for (let i = 0; i < 4; i++) line(press, [Q[i], Q[(i + 1) % 4]], 6 * c.z, AMBER); };
+        const shut = lu <= 0;
         // the opening: dark, lit from below
         const top = [0, 1, 5, 4].map(Pv);
-        put(press, (g) => poly(g, top), { navy: 1, blue: 0.6 });
-        const oc = P([0, -h, 0], c);
-        press.knockout((g) => { g.fillStyle = Riso.radial(g, oc[0], oc[1], 20, 380, 0.6, 0); poly(g, top); g.fill(); });
-        ink(press, (g) => poly(g, top), { 'blue.s': 0.35, 'yellow.s': 0.3 });
+        if (!shut) {
+            put(press, (g) => poly(g, top), { navy: 1, blue: 0.6 });
+            const oc = P([0, -h, 0], c);
+            press.knockout((g) => { g.fillStyle = Riso.radial(g, oc[0], oc[1], 20, 380, 0.6, 0); poly(g, top); g.fill(); });
+            ink(press, (g) => poly(g, top), { 'blue.s': 0.35, 'yellow.s': 0.3 });
+        }
         // the rim's far edges, behind the cat
         for (const [i, j] of [[1, 5], [4, 5]]) line(press, [Pv(i), Pv(j)], 6 * c.z, AMBER);
-        // the lid, up in the air (behind the cat's head)
-        const Q = lidQuad(1).map((q) => P(q, c));
-        put(press, (g) => poly(g, Q), { 'navy.s': 0.5, 'blue.s': 0.55, 'pink.s': 0.2 });
-        for (let i = 0; i < 4; i++) line(press, [Q[i], Q[(i + 1) % 4]], 6 * c.z, AMBER);
-        // the cat, rising behind the front rim
-        const up = Ease.back ? Ease.back(S(t, T.peek[0], T.peek[1])) : IO(S(t, T.peek[0], T.peek[1]));
+        // the lid, up in the air (behind the cat's head) until it comes down
+        if (lu > 0.5) drawLid();
+        // the cat, rising behind the front rim, winking, then ducking back in
+        const up = (Ease.back ? Ease.back(S(t, T.peek[0], T.peek[1])) : IO(S(t, T.peek[0], T.peek[1]))) * (1 - IO(S(t, T.duck[0], T.duck[1])));
         const rim = P([-60, -h, -h], c), k = kAt([-60, -h, -h], c);
-        if (up > 0) Cat.peek(press, { x: rim[0], y: rim[1] + 4 * k, s: k * 3.1, up, blink: Math.abs(t - T.blink) < 0.09, look: t < T.peek[1] + 0.3 ? [0.8, 0.4] : [0, 0] });
+        const wink = t > T.wink[0] && t < T.wink[1];
+        if (up > 0.02) Cat.peek(press, { x: rim[0], y: rim[1] + 4 * k, s: k * 3.1, up, wink, look: t < T.peek[1] + 0.3 ? [0.8, 0.4] : [0, 0] });
         // the two walls turned to us, over its body, and the edges
         const walls = [[0, 1, 3, 2], [0, 2, 6, 4]];
         for (const f of walls) { const dk = f[1] === 1 ? 0.75 : 0.95; put(press, (g) => poly(g, f.map(Pv)), { 'navy.s': dk, 'blue.s': 0.55, 'pink.s': 0.2 }); panel(press, f.map((i) => V[i]), c); }
         // the near edges, then the paws on the rim over them
         for (const [i, j] of [[0, 1], [0, 2], [0, 4], [1, 3], [2, 3], [2, 6], [4, 6]]) line(press, [Pv(i), Pv(j)], 6 * c.z, AMBER);
         if (up > 0.4) Cat.peek(press, { x: rim[0], y: rim[1] + 4 * k, s: k * 3.1, up, pawsOnly: true });
+        // the lid coming down over the opening, then shut: the top face
+        if (lu <= 0.5) { drawLid(); if (shut) panel(press, [0, 1, 5, 4].map((i) => V[i]), c); }
+        // the counter clicks once inside: light leaks along the lid's seam
+        const lk = Ease.bump(t, T.click2, 0.3);
+        if (shut && lk > 0) for (let i = 0; i < 4; i++) kline(press, [Q[i], Q[(i + 1) % 4]], (6 + 26 * lk) * c.z, 0.9 * lk);
     }
     // Schrödinger, leaning in from the right to look (mirrored: facing left), his jacket running
     // off the frame's bottom
@@ -211,7 +226,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const top = P([h, -h, 0], c), sc = kAt([h, -h, 0], c) * 1.7;
         const hx = top[0] + L(820, 330, ln), hy = top[1] + L(160, 10, ln);
         Ph.cam(press, hx, hy, sc, () => {
-            press.each((g) => { g.scale(-1, 1); g.rotate(0.3 * ln - 0.16 * IO(S(t, T.peek[1] + 0.2, T.peek[1] + 0.5))); });
+            press.each((g) => { g.scale(-1, 1); g.rotate(0.3 * ln - 0.16 * IO(S(t, T.peek[1] + 0.2, T.peek[1] + 0.5)) - 0.14 * Ease.bump(t, T.slam[1], 0.45)); g.translate(0, -30 * Ease.bump(t, T.slam[1], 0.3)); });
             const pp = Seg.schrodinger.parts;
             put(press, (g) => g.rect(-128, 360, 290, 900), pp.SUIT);
             put(press, (g) => g.rect(60, 360, 100, 900), pp.SUIT_LT);
@@ -233,6 +248,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             if (t >= T.flash) {
                 opened(press, t, c);
                 erwin(press, t, c);
+                const fo = IO(S(t, T.fade[0], T.fade[1]));
+                if (fo > 0) ink(press, (g) => g.rect(0, 0, 1600, 900), { navy: fo, blue: fo, yellow: fo, pink: 0.7 * fo });
                 const fl = 1 - S(t, T.flash, T.flash + 0.12);
                 if (fl > 0) press.knockout((g) => { g.globalAlpha = fl; g.fillRect(0, 0, 1600, 900); g.globalAlpha = 1; });
                 return;
