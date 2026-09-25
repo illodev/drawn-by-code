@@ -165,11 +165,15 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             put(press, (g) => g.rect(an[0] - 26, an[1] - 30, 4, 4), SHOE);
         };
         // an arm swinging opposite its leg: upper arm from the shoulder, elbow bent ~90°, a loose
-        // fist (the fingers curled, the thumb over the index, knuckles leading)
+        // fist (the fingers curled, the thumb over the index, knuckles leading; see the fist below)
         const arm = (k, far) => {
             const a = Math.sin(ph + k * Math.PI + Math.PI), s0 = far ? B(-6, -236) : B(18, -238);
-            const el = [s0[0] - a * 120 + 6, s0[1] + 140];
-            const wr = [el[0] + 60 + a * 90, el[1] - 60 + Math.abs(a) * 40];
+            // the upper arm swings about the shoulder; the forearm stays bent ~80° forward of it,
+            // so the hand is always ahead of the elbow (low by the hip going back, up at the chest
+            // going forward)
+            const th = 0.75 * a, th2 = th + 1.4;
+            const el = [s0[0] + 140 * Math.sin(th), s0[1] + 140 * Math.cos(th)];
+            const wr = [el[0] + 112 * Math.sin(th2), el[1] + 112 * Math.cos(th2)];
             const spec = far ? WOOL_DK : WOOL;
             Fig.seg(press, s0, el, 60, 50, spec);
             Fig.seg(press, el, wr, 50, 42, spec);
@@ -178,12 +182,25 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             const d = Math.atan2(wr[1] - el[1], wr[0] - el[0]), dx = Math.cos(d), dy = Math.sin(d);
             const X = (x, y) => [wr[0] + x * dx - y * dy, wr[1] + x * dy + y * dx];
             put(press, (g) => smooth(g, [X(-6, -20), X(8, -21), X(10, 21), X(-6, 20)]), Cast.LINEN);
+            // right hand seen from the thumb's side (camera on the figure's right): the back of the
+            // hand, the knuckles' step, the four curled fingers stacked index to little down the front,
+            // the thumb lying over the index's middle phalanx; one skin, shaded underneath
             const skin = far ? SKIN_SH : SKIN;
-            put(press, (g) => smooth(g, [X(6, -18), X(30, -22), X(50, -16), X(58, 0), X(54, 18), X(30, 22), X(8, 18)]), skin);
-            // the curled fingers' backs: three creases; the thumb along the top over the index
-            for (const y of [-8, 2, 12]) line(press, [X(44, y), X(52, y + 1)], taper(1.6), EDGE, { knock: false });
-            line(press, [X(14, -20), X(36, -24), X(50, -18)], taper(10, 0.2, 0.4), skin);
-            line(press, [X(18, -14), X(40, -16)], taper(1.4), EDGE, { knock: false });
+            const FIST = [X(4, -16), X(22, -19), X(38, -19), X(48, -16), X(57, -10), X(62, 1), X(60, 13), X(52, 21), X(38, 22), X(20, 20), X(6, 17)];
+            put(press, (g) => smooth(g, FIST), skin);
+            press.save(); press.clip((g) => smooth(g, FIST));
+            ink(press, (g) => poly(g, [X(0, 11), X(70, 9), X(70, 40), X(0, 40)]), SKIN_SH === skin ? { navy: 0.25 } : SKIN_SH);
+            put(press, (g) => smooth(g, [X(26, -17), X(40, -17), X(44, -12), X(30, -12)]), { 'yellow.s': 0.1 }, { knock: false });
+            press.restore();
+            // the knuckles' joint, then the lines between the curled fingers: dark and thick enough
+            // to survive the halftone at this size (thin creases vanish and the fist reads as a mitten)
+            const CR = { 'pink.s': 0.55, 'navy.s': 0.3, 'yellow.s': 0.2 };
+            line(press, [X(40, -10), X(44, 2), X(41, 14)], taper(2.2, 0.3, 0.3), CR, { knock: false });
+            for (const [y0, y1] of [[-1, 0], [7, 8], [14, 16]]) line(press, [X(47, y0), X(61, y1)], taper(2.4, 0.2, 0.5), CR, { knock: false });
+            // the thumb, raised over the index as a bump on the silhouette, its underside dark
+            put(press, (g) => smooth(g, [X(12, -15), X(28, -23), X(46, -20), X(55, -11), X(50, -4), X(30, -8)]), skin);
+            line(press, [X(22, -9), X(38, -6), X(52, -4)], taper(2.4, 0.2, 0.3), CR, { knock: false });
+            if (!far) put(press, (g) => smooth(g, [X(45, -18), X(53, -13), X(52, -9), X(46, -11)]), { 'pink.s': 0.18, 'yellow.s': 0.05 }, { knock: false });
         };
         // far arm and leg first
         arm(0, true);
