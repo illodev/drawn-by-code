@@ -1,0 +1,104 @@
+1
+00:00:00,300 --> 00:00:02,800
+[whimsical orchestral music]
+A Brief History of Physics
+
+2
+00:00:03,200 --> 00:00:06,500
+Padua, 1610. Galileo turns his telescope to the night sky.
+
+3
+00:00:06,700 --> 00:00:10,800
+A cat keeps watch on the rooftop.
+
+4
+00:00:11,000 --> 00:00:14,000
+Night after night, four moons circle Jupiter.
+The heavens do not all turn around the Earth.
+
+5
+00:00:14,200 --> 00:00:15,700
+Jupiter ripens into an apple…
+
+6
+00:00:16,000 --> 00:00:17,300
+Woolsthorpe, 1666. The same cat nudges the apple off its branch.
+
+7
+00:00:17,300 --> 00:00:19,800
+[bonk]
+It falls on Isaac Newton.
+
+8
+00:00:20,000 --> 00:00:22,700
+Throw it fast enough, and it keeps falling around the Earth:
+the fall of an apple and the orbit of the Moon are one law.
+
+9
+00:00:23,000 --> 00:00:26,500
+The orbit winds into a coil. London, 1831: Michael Faraday.
+
+10
+00:00:26,700 --> 00:00:30,800
+[needle ticks]
+A moving magnet makes a current: electromagnetic induction.
+
+11
+00:00:31,000 --> 00:00:33,800
+[spark]
+The cat on the shelf does not approve.
+
+12
+00:00:34,200 --> 00:00:37,500
+Paris, 1898. Marie Curie holds radium,
+glowing with its own light.
+
+13
+00:00:37,700 --> 00:00:41,400
+Atoms that break apart: radioactivity.
+One ray of light races away…
+
+14
+00:00:41,700 --> 00:00:44,800
+Bern, 1905. Young Albert Einstein chases a beam of light,
+the cat at his heels.
+
+15
+00:00:45,000 --> 00:00:47,600
+Near light speed, space shrinks and bends.
+Gravity bends it most of all: a black hole.
+
+16
+00:00:47,700 --> 00:00:50,000
+[whoosh]
+Space folds into a box.
+
+17
+00:00:50,400 --> 00:00:53,400
+Zurich, 1935. Schrödinger's box: a radioactive atom,
+a Geiger counter, a flask of poison, a cat.
+
+18
+00:00:53,600 --> 00:00:56,000
+Unobserved, the cat is alive and dead at once.
+Reality splits into every possibility.
+
+19
+00:00:56,200 --> 00:00:58,400
+Erwin Schrödinger lifts the lid.
+All the worlds collapse into one…
+
+20
+00:00:58,500 --> 00:00:59,300
+[the lid slams shut]
+
+21
+00:00:59,500 --> 00:01:00,900
+[muffled meow]
+[a Geiger click]
+
+22
+00:01:01,300 --> 00:01:06,800
+A Brief History of Physics
+illodev × Claude
+drawn entirely in JavaScript · no footage, no AI images
