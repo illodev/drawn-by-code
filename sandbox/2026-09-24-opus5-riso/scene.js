@@ -61,7 +61,7 @@ const EDIT = [
     [15.333, 'full', 'wave', { ring: true, inks: SWAP_PB, zoom: [1.1, -50.0, -50.0] }],
     [15.417, 'full', 'cat', { ring: true, inks: SWAP_PB, zoom: [1.1, -50.0, -50.0] }],
     [15.5, 'full', 'sunflower', { ring: true, inks: SWAP_PB, zoom: [1.13, -68.5, -77.8] }],
-    [15.583, 'full', 'radio', { ring: true, inks: SWAP_PB, zoom: [1.16, -80.0, -80.0] }],
+    [15.583, 'full', 'radio', { ring: true, inks: SWAP_PB, zoom: [1.169, -91.9, -86.4] }],
     [15.667, 'full', 'fireworks', { ring: true, inks: SWAP_PB, zoom: [1.19, -95.0, -95.0] }],
     [15.75, 'full', 'hummingbird', { ring: true, inks: SWAP_PB, zoom: [1.08, -40.0, -40.0] }],
     [15.833, 'full', 'kettle', { ring: true, inks: SWAP_PB, zoom: [1.06, -30.0, -30.0] }],
