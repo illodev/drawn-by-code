@@ -291,16 +291,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         put(press, (g) => smooth(g, [[lx + 50, ly + 14 - fl * 4], [lx + 57, ly + 36], [lx + 50, ly + 46], [lx + 43, ly + 36]]), WARM);
         for (const x of [lx + 32, lx + 50, lx + 68]) line(press, [[x, ly], [x - (x - lx - 50) * 0.1, ly + 56]], 3, { navy: 1 });
         put(press, (g) => poly(g, [[lx + 26, ly], [lx + 50, ly - 22], [lx + 74, ly]]), { navy: 1, yellow: 0.8 });
-        // the cat on the rail: sitting, looking out at the city; its tail flicks, an ear twitches
-        const cx = 1240, cy = RAIL - 12, tw = Math.sin(t * 3.1) * 0.5 + Math.sin(t * 7.3) * 0.15;
-        const CAT = { navy: 1, yellow: 0.9, 'pink.s': 0.4 };
-        line(press, Ph.sample([[cx + 30, cy - 6], [cx + 70, cy + 10], [cx + 92, cy + 50 + tw * 10], [cx + 78 + tw * 30, cy + 92]], false, 6), taper(12, 0.2, 0.7), CAT);
-        put(press, (g) => smooth(g, [[cx - 34, cy], [cx - 40, cy - 40], [cx - 26, cy - 80], [cx, cy - 92], [cx + 22, cy - 70], [cx + 36, cy - 30], [cx + 38, cy]]), CAT);
-        put(press, (g) => smooth(g, [[cx - 30, cy - 90], [cx - 18, cy - 124], [cx + 16, cy - 128], [cx + 26, cy - 100], [cx + 10, cy - 82], [cx - 22, cy - 80]]), CAT);
-        const ear = Math.max(0, Math.sin(t * 5)) * 4;
-        put(press, (g) => poly(g, [[cx - 22, cy - 118], [cx - 20, cy - 144 - ear], [cx - 6, cy - 124]]), CAT);
-        put(press, (g) => poly(g, [[cx + 6, cy - 126], [cx + 18, cy - 148], [cx + 22, cy - 118]]), CAT);
-        for (const ex of [-12, 10]) put(press, ellipse(cx + ex, cy - 106, 4, 3), { yellow: 1, 'blue.s': 0.5 });
+        // the film's cat (cat.js) on the rail, watching the sky with him; its tail swings
+        Cat.sit(press, { x: 1240, y: RAIL - 12, s: 1.05, face: -1, look: [900, RAIL - 700], tail: t * 0.5, blink: Math.abs((t % 4.3) - 2) < 0.06 });
     }
 
     // ── the tripod under the tube ────────────────────────────────────────────────────────
