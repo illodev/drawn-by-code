@@ -107,8 +107,10 @@ CARDS.phone = (press, t, lf) => {
         for (const [x, y, h] of ticks) taper(navy, [[x, y - h / 2 + (d % 2) * 4], [x + 1, y + h / 2 + (d % 2) * 4]], 5, 3);
 
         // --- the handset (jiggles per drawing), with white echo outlines behind it
-        // (outline from runs of blue on rows every 10 px of frame 168)
-        const hand = [[201, 440], [238, 420], [288, 410], [323, 390], [356, 370], [404, 350], [465, 330], [506, 320], [560, 313], [609, 310], [654, 310], [731, 320], [776, 330], [810, 340], [849, 338], [890, 340], [908, 360], [917, 380], [922, 400], [914, 420], [893, 432], [843, 434], [822, 442], [770, 443], [747, 440], [738, 420], [731, 392], [672, 380], [582, 380], [517, 390], [474, 400], [443, 410], [414, 420], [390, 430], [371, 440], [360, 460], [367, 480], [365, 500], [333, 512], [312, 522], [265, 531], [214, 532], [190, 526], [182, 505], [183, 475], [188, 455]];
+        // the handset: a hand-drawn outline (the scanned one lives in private/, gitignored);
+        // measured: ear cup 182–367 × 440–532, mouth cup 738–922 × 338–443, bar top at y 310
+        const PH = typeof PRIVATE !== 'undefined' ? PRIVATE.phone : null;
+        const hand = PH?.hand ?? [[188, 452], [240, 420], [320, 392], [410, 346], [500, 320], [610, 310], [730, 320], [810, 340], [890, 340], [918, 380], [920, 410], [895, 432], [770, 443], [740, 425], [730, 392], [620, 380], [500, 392], [400, 425], [365, 460], [366, 500], [310, 523], [214, 532], [184, 506]];
         press.knockout((g) => {
             for (const [ex, ey] of [[-38, -26], [22, -44]]) {
                 g.save(); g.translate(ex * 0.8, ey * 0.8); g.lineWidth = 4; smoothPath(g, hand, true, 0.12); g.stroke(); g.restore();

@@ -13,6 +13,7 @@ CARDS.sunflower = (press, t, lf) => {
     const blue = P('blue'), blueS = P('blue', 'screen'), navy = P('navy'), navyS = P('navy', 'screen');
     const d = Math.floor(t * 12 + 1e-6);
     const CX = 430, CY = 662, R = 305; // the disc
+    const PD = typeof PRIVATE !== 'undefined' ? PRIVATE.sunflower : null; // ray scans (private/, gitignored)
     // a petal: a pointed leaf shape from its base (bx, by) along angle a, length L, width W
     const petalPts = (bx, by, a, L, W, bend = 0, tipK = 0.8) => {
         const c = Math.cos(a), s = Math.sin(a), Q = (u, v) => [bx + u * c - v * s, by + u * s + v * c], pts = [];
@@ -33,7 +34,7 @@ CARDS.sunflower = (press, t, lf) => {
         // back petals: longer, hatched with green lines, a darker pink-dot shade at the base
         // (back petals show past the front ones at 0° (to r 549), 245° (516), 320° (621), 350° (420))
         // back petals: tips where the sky begins on the same rays (L = r − 244)
-        const BE = [[0, 549], [8, 560], [16, 513], [24, 615], [32, 564], [40, 627], [48, 474], [56, 600], [136, 477], [216, 489], [224, 489], [232, 579], [240, 486], [248, 561], [256, 567], [264, 600], [272, 570], [280, 597], [288, 498], [296, 495], [304, 420], [312, 666], [320, 618], [328, 444], [336, 582], [344, 423], [352, 432], [360, 549]];
+        const BE = PD?.be ?? [[0, 550], [40, 620], [60, 600], [136, 480], [220, 490], [264, 600], [312, 660], [330, 450], [360, 550]]; // (fallback: back tips, same rays)
         const back = [0, 24, 40, 60, 140, 200, 222, 244, 264, 280, 296, 312, 336].map((deg) => [deg * Math.PI / 180, Math.max(120, G2.lerpT(BE, deg) - 244)]);
         for (const [a, L] of back) {
             const bx = CX + Math.cos(a) * R * 0.8, by = CY + Math.sin(a) * R * 0.8, { pts } = petalPts(bx, by, a, L, 120);
@@ -51,7 +52,8 @@ CARDS.sunflower = (press, t, lf) => {
         // ends, from the disc centre); angles in degrees, spaced ≈ 20–24°, lengths = tip − 259
         // (bright front petal: r > 205; hatched back petal: g ≥ r; sky: b > 115, 9 px blur;
         // 'off frame' rays set long)
-        const FE = [[0, 435], [8, 400], [16, 423], [24, 423], [32, 453], [40, 420], [48, 468], [56, 459], [64, 520], [128, 520], [136, 477], [144, 520], [176, 520], [184, 420], [192, 480], [200, 435], [208, 429], [216, 420], [224, 408], [232, 567], [240, 423], [248, 400], [256, 561], [264, 420], [272, 414], [280, 465], [288, 465], [296, 408], [304, 414], [312, 516], [320, 597], [328, 432], [336, 432], [344, 423], [352, 420], [360, 435]];
+        // (the scan lives in private/; fallback: front tips at r ≈ 440 ± 40, longer (≈ 560) at 232°, 256°, 320°)
+        const FE = PD?.fe ?? [[0, 440], [60, 520], [130, 520], [180, 470], [232, 560], [244, 420], [256, 560], [280, 460], [320, 590], [340, 430], [360, 440]];
         const fe = (deg) => G2.lerpT(FE, ((deg % 360) + 360) % 360);
         const front = [12, 34, 56, 78, 100, 122, 144, 166, 188, 210, 232, 256, 280, 300, 320, 340].map((deg, i) => [deg * Math.PI / 180, Math.max(90, fe(deg) - 259), 235 + ((i * 53) % 3) * 14]);
         for (const [a, L, W] of front) {
