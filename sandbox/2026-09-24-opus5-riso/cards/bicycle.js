@@ -82,7 +82,9 @@ const DRAW_BICYCLE = (press, t) => {
     for (let j = 0; j < PINK.length; j++) for (let i = 0; i < 18; i++) {
         for (const [tab, onPaper] of [[PINK, true], [RED, false]]) {
             const n = Math.round((+tab[j][i] / 10) * (3600 / 300) * (onPaper ? 1.5 : 1.25) / 1.7);
-            for (let k = 0; k < n; k++) bract(((i + rb()) * 60) / 1.08, ((j + rb()) * 60) / 1.08, 12 + rb() * 6, rb() * 6.28, onPaper);
+            // clumped, as bougainvillea hangs: one clump per block, bracts round its centre
+            const cx = (i + 0.2 + 0.6 * rb()) * 60 / 1.08, cy = (j + 0.2 + 0.6 * rb()) * 60 / 1.08;
+            for (let k = 0; k < n; k++) { const a = rb() * 6.28, r = Math.sqrt(rb()) * 30; bract(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 12 + rb() * 6, rb() * 6.28, onPaper); }
         }
     }
     // the bell's ring (measured at 2×): four blue brush arcs round the bell (720, 390 ref px),
@@ -114,7 +116,8 @@ const DRAW_BICYCLE = (press, t) => {
     };
     wheel(RW); wheel(FW);
     // mudguard over the rear wheel: a green arc (blue on the yellow)
-    blue.save(); blue.strokeStyle = T(0.95); blue.lineWidth = 7; blue.beginPath(); blue.arc(RW[0], RW[1], WR + 12, -2.7, -0.9); blue.stroke(); blue.restore();
+    blue.save(); blue.strokeStyle = T(0.95); blue.lineWidth = 7; blue.beginPath(); blue.arc(RW[0], RW[1] + 6, WR + 20, -2.75, -0.62); blue.stroke(); blue.restore();
+    U.stroke(navy, [[RW[0] - 150, RW[1] - 85], [RW[0] - 100, RW[1] - 145]], 3, 0.3); // its lit edge darkened at the back
 
     // ── the frame: flat blue tubes, a paper highlight along each, a chainring
     const tube = (a, b, w) => {

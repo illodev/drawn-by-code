@@ -33,15 +33,15 @@ CARDS.radio = (press, t, lf) => {
     G3.ref(press, G3.push(0.0077, t, lf, 2), () => {
         // ------------------------------------------------------------ the wall
         const WALL_B = 988;
-        N.fillStyle = T(1); N.fillRect(-60, -60, 1200, WALL_B + 60);
+        N.fillStyle = T(0.88); N.fillRect(-60, -60, 1200, WALL_B + 60);
         // pink coverage (unmixed on a 60 px grid): 0.6 beside the radio, 0.1 in the corners;
         // it falls off slower on the left than on the right
         const pk = (x, y) => {
-            const dx = x < 500 ? (x - 500) / 1.25 : (x - 500) / 0.95, dy = y < 640 ? (y - 640) / 0.85 : (y - 640) * 0.9;
+            const dx = x < 500 ? (x - 500) / 1.25 : (x - 500) / 0.82, dy = y < 640 ? (y - 640) / 0.85 : (y - 640) * 1.15;
             const r = Math.hypot(dx, dy), e = Math.max(0, r - 250);
             return cl(0.8 * Math.exp(-Math.pow(e / 260, 1.3)));
         };
-        const bl = (x, y) => cl(0.55 - 0.95 * pk(x, y) + (y > 930 && (x < 230 || x > 770) ? 0.1 : 0));
+        const bl = (x, y) => cl(0.62 - 1.0 * pk(x, y) + (y > 930 && (x < 230 || x > 770) ? 0.1 : 0));
         lat(N, L_WALL, pk, -40, -40, 1120, WALL_B, { clear: true, rk: 0.75 });
         lat(K, L_WALL, pk, -40, -40, 1120, WALL_B);
         lat(N, L_WALLB, bl, -40, -40, 1120, WALL_B, { clear: true, rk: 0.75 });
@@ -50,7 +50,7 @@ CARDS.radio = (press, t, lf) => {
         K.fillStyle = T(1); K.fillRect(-60, WALL_B, 1200, 200);
         const glow = (x, y) => cl(1 - Math.pow(Math.abs(x - 490) / 300, 2.2));
         lat(Y, [5.1, 1.3, -1.3, 5.1, 0, 0], (x, y) => glow(x, y) * 0.62, -40, WALL_B, 1120, 1120, { jit: 0.05 });
-        lat(N, L_TABLE, (x, y) => 0.45 + 0.3 * (1 - glow(x, y)), -40, WALL_B, 1120, 1120);
+        lat(N, L_TABLE, (x, y) => 0.36 + 0.24 * (1 - glow(x, y)), -40, WALL_B, 1120, 1120);
         // the front edge: a paper line, the wall above it bluer
         press.knockout((g) => { g.fillStyle = '#000'; g.fillRect(-60, WALL_B - 2, 1200, 3.5); });
         // ------------------------------------------------------------ the ribbons
@@ -105,7 +105,7 @@ CARDS.radio = (press, t, lf) => {
         // ~0.1 in the lit centre; navy ~0.15–0.4 on the front, 0.7 on the side and edges
         const inGr = (x, y) => y > 385 && y < 700 && Math.abs(x - 473) < 130 && (y > 536 || Math.hypot(x - 473, y - 536) < 130);
         const lit = (x, y) => Math.exp(-Math.pow(Math.hypot((x - 482) / 175, (y - 772) / 68), 2.2));
-        const pkT = (x, y) => cl((inGr(x, y) ? 0.1 + 0.4 * Math.min(1, Math.max(0, (490 - y) / 90)) : y < 460 ? 0.88 : y < 700 ? 0.55 : y < 860 ? 0.55 : 0.9) * (1 - 0.9 * lit(x, y)) + (x < 300 ? 0.05 : 0));
+        const pkT = (x, y) => cl((inGr(x, y) ? 0.1 + 0.4 * Math.min(1, Math.max(0, (490 - y) / 90)) : y < 460 ? 0.72 : y < 700 ? 0.55 : y < 860 ? 0.55 : 0.9) * (1 - 0.9 * lit(x, y)) + (x < 300 ? 0.05 : 0));
         const nvT = (x, y) => {
             if (inGr(x, y)) return 0;
             let v = 0.18 + 0.25 * Math.max(0, (x - 600) / 90) + 0.25 * Math.max(0, (330 - x) / 60) + (y < 360 ? 0.1 : 0);
