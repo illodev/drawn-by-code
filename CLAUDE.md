@@ -15,6 +15,7 @@ inside videos is creative content and stays in whatever language the video needs
 | `.claude/skills/sound/` | Music, sound effects, mixing |
 | `.claude/skills/style-*/` | One skill per visual style |
 | `.claude/skills/new-style/` | How to add a style |
+| `.claude/skills/hands/` | Hands: reference first, handedness, grips, one skin, the hand check sheet before any render |
 | `.claude/skills/transitions/` | Transitions between shots and between styles (`engine/transitions.js`) |
 | `.claude/skills/replicate/` | Copying a reference video 1:1: measure, per-drawing tables, element by element, parallel agents |
 | `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `gif.mjs`, `detail.mjs`, `serve.mjs` |
@@ -54,7 +55,7 @@ calibrated on the replica the user approved; it catches missing texture/noise, w
 colours and missing pieces zone by zone). Without a reference: crop every element at full
 resolution against the style's «Detail» checklist. An agent whose report lists things
 «still off» has not finished: fix them before merging, never pass them on to the user.
-The user should never have to point out an evident detail.
+The user should never have to point out an evident detail. Hands follow the skill **hands**: a reference for every grip, a hand check image the user approves, then the render.
 
 Detail is the job, not a polish step. Every element is its own set of pieces with organic
 shapes, textures that say what it is made of and real hands; crop it at full resolution

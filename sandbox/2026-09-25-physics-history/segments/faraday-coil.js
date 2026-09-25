@@ -248,7 +248,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const o = C.proj([s, AX, r]), a = C.proj([s + 1, AX, r]), b = C.proj([s, AX - 1, r]);
         const J = [a[0] - o[0], a[1] - o[1], b[0] - o[0], b[1] - o[1]];
         const F = { apply: (q) => [o[0] + J[0] * q[0] + J[2] * q[1], o[1] + J[1] * q[0] + J[3] * q[1]] };
-        const Wl = GalHands.wristPt('near', r), W = F.apply(Wl);
+        const Wl = GalHands.wristPt('fist', r), W = F.apply(Wl);
         const k = Math.hypot(J[0], J[1]);
         const [el] = Fig.ik(sh, W, 240 * k, 215 * k, [sh[0] + 20 * k, sh[1] + 400 * k]);
         const inv = (w) => { const det = J[0] * J[3] - J[1] * J[2], x = w[0] - o[0], y = w[1] - o[1]; return [(J[3] * x - J[2] * y) / det, (-J[1] * x + J[0] * y) / det]; };
@@ -259,7 +259,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         line(press, [sh, el, cu], w, COATC);
         line(press, [[L(sh[0], el[0], 0.2), L(sh[1], el[1], 0.2) - 18 * k], [el[0], el[1] - 16 * k], [L(el[0], cu[0], 0.8), L(el[1], cu[1], 0.8) - 14 * k]], taper(5 * k, 0.2, 0.3), COAT_LIT);
         press.save(); press.each((g) => g.transform(J[0], J[1], J[2], J[3], o[0], o[1]));
-        GalHands.near(press, r, { fa, squeeze: 0 });
+        GalHands.fist(press, r, { fa, squeeze: 0 });
         press.restore();
     }
 
