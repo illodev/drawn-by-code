@@ -177,10 +177,10 @@ const Fig = (() => {
         const dx = Math.cos(dir), dy = Math.sin(dir);
         let qx = -dy, qy = dx;
         if (qx * f < 0) { qx = -qx; qy = -qy; }
-        const X = (a, b) => [w[0] + (dx * a * 0.84 + qx * b) * R, w[1] + (dy * a * 0.84 + qy * b) * R]; // 0.84: the hand's length (wrist to knuckle) against the apple
+        const X = (a, b) => [w[0] + (dx * a + qx * b) * R, w[1] + (dy * a + qy * b) * R];
         const lw = Math.max(1.4, R * 0.06), EDGE = { 'pink.s': 0.7, 'navy.s': 0.55 };
         const C = [1.45, reach + 0.15];
-        const on = (t, r) => X(C[0] + Math.cos(t) * r / 0.84, C[1] + Math.sin(t) * r);
+        const on = (t, r) => X(C[0] + Math.cos(t) * r, C[1] + Math.sin(t) * r);
         const arc = (t0, t1, r, n = 12) => Array.from({ length: n + 1 }, (_, i) => on(t0 + (t1 - t0) * i / n, r));
         const dig = (P, wd, spc, edge) => {
             line(press, P, wd * R, spc);
@@ -189,7 +189,7 @@ const Fig = (() => {
             if (edge) { const ol = Ph.outline(P, wd * R), h = ol.length / 2; line(press, ol.slice(0, h), taper(lw, 0.1, 0.1), EDGE, { knock: false }); }
         };
         // the fingers behind the index: their tips stepped along the apple's front
-        for (const [t1, dt] of [[1.05, 0.5], [0.95, 0.3], [0.8, 0.15]]) dig([X(1.9, 0.1 + dt * 0.3)].concat(arc(-0.4 + dt, t1, 1.12)), 0.32, sh, false);
+        for (const [t1, dt] of [[0.6, 0.5], [0.5, 0.3], [0.38, 0.15]]) dig([X(1.9, 0.1 + dt * 0.3)].concat(arc(-0.4 + dt, t1, 1.08)), 0.27, sh, false);
         // the thumb is on the far side of the hand (a right hand seen from its little-finger
         // side): behind the apple, only its tip showing past the apple's near edge
         const TH = [X(0.45, 0.35), X(0.95, 0.85), on(2.35, 1.0)];
@@ -204,9 +204,9 @@ const Fig = (() => {
         line(press, Ph.sample([X(-0.35, -0.42), X(0.8, -0.42), X(1.75, -0.36), X(2.08, -0.22), X(2.16, 0.02)], false, 6), taper(lw, 0.1, 0.1), EDGE, { knock: false });
         // the little finger, nearest: from the knuckle round the apple's far side to its front
         // (starting at the knuckle, at the end of the back of the hand, so the finger grows out of it)
-        const IX = [X(1.95, 0.05), X(2.25, 0.25)].concat(arc(-0.45, 0.55, 1.14).slice(1));
-        dig(IX, 0.3, spec, true);
-        for (const k of [4, 8]) { const p = IX[k], q = IX[k + 1], an = Math.atan2(q[1] - p[1], q[0] - p[0]); line(press, [[p[0] - Math.sin(an) * R * 0.12, p[1] + Math.cos(an) * R * 0.12], [p[0] + Math.sin(an) * R * 0.12, p[1] - Math.cos(an) * R * 0.12]], taper(lw * 0.8), EDGE, { knock: false }); }
+        const IX = [X(1.95, 0.05), X(2.25, 0.25)].concat(arc(-0.45, 0.15, 1.1).slice(1));
+        dig(IX, 0.26, spec, true);
+        for (const k of [3, 6]) { const p = IX[k], q = IX[k + 1], an = Math.atan2(q[1] - p[1], q[0] - p[0]); line(press, [[p[0] - Math.sin(an) * R * 0.12, p[1] + Math.cos(an) * R * 0.12], [p[0] + Math.sin(an) * R * 0.12, p[1] - Math.cos(an) * R * 0.12]], taper(lw * 0.8), EDGE, { knock: false }); }
         // the thumb: from the heel, round the apple's near side, the nail at its tip
         return X(C[0], C[1]);
     }
