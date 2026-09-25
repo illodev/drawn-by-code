@@ -470,3 +470,19 @@ What changed:
 **Lesson (animate):** hands on a prop start from how a person really holds it (a raised tube:
 a power grip, fingers over the top, thumb under). Every digit is either drawn whole to its tip
 or goes out of sight behind the prop; a digit never ends in the open.
+
+### Round 15 (user)
+
+> Ahora está bien. Me he dado cuenta que en la de Newton el sol está anclado a la pantalla
+
+What changed:
+
+- **Galileo approved** (rounds 13–14).
+- **Newton's sun and daytime moon are part of the sky now**, not stuck to the screen. They
+  are a far layer: the camera's pans and tilts move them (a quarter of the world's motion),
+  so the sun drops as the camera tilts up after the apple, and the zoom-out shrinks them
+  gently before they fade into space.
+
+**Lesson (animate):** an object at infinity keeps still only under a pure dolly. When the
+camera pans, tilts or zooms to follow the action, the sky moves too; give it a far-layer
+share of the motion, or it reads as pasted onto the screen.

@@ -481,12 +481,21 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             if (dark > 0.4) Sets.stars(press, 0, 1600, S(dark, 0.4, 1), t);
             // world → screen: the anchor (Newton's feet) is fixed at `anchor`, scale z
             const toS = (p) => [anchor[0] + (p[0] - FEET[0]) * z, anchor[1] + (p[1] - FEET[1]) * z];
-            // the sun and the daytime moon are at infinity: they stay put on screen while the
-            // world shrinks, and fade as the sky turns to space
+            // the sun and the daytime moon belong to the sky, not to the screen: a far layer
+            // that the camera's pans and tilts move (a quarter of the world's motion) and its
+            // zoom scales (gently); they fade as the sky turns to space
             if (dark < 0.9) {
-                const c0 = camAB(Math.min(t, T.pull[0]), [0, 0]), par = t < T.pull[0] ? c0.c : [700, 180];
-                sun(press, 1330 - (par[0] - 700) * 0.08, 110 - (par[1] - 300) * 0.08, t);
-                moon(press, 1150 - (par[0] - 700) * 0.08, 260 - (par[1] - 300) * 0.08);
+                const tb = Math.min(t, T.pull[0]), c0 = camAB(tb, [0, 0]), zb = Math.min(c0.z, 2);
+                let dx = -(c0.c[0] - 700) * zb * 0.25, dy = -(c0.c[1] - 300) * zb * 0.25, k = Math.pow(zb / 1.65, 0.3);
+                if (t > T.pull[0]) {
+                    const a0 = anchorAt(T.pull[0]), a1 = anchorAt(t);
+                    dx += (a1[0] - a0[0]) * 0.25; dy += (a1[1] - a0[1]) * 0.25;
+                    k *= Math.pow(z / Z0, 0.12);
+                }
+                for (const [x0, y0, fn] of [[1330, 110, (x, y) => sun(press, x, y, t)], [1150, 260, (x, y) => moon(press, x, y)]]) {
+                    const x = 800 + (x0 - 800) * k + dx, y = 450 + (y0 - 450) * k + dy;
+                    press.save(); press.each((g) => { g.translate(x, y); g.scale(k, k); }); fn(0, 0); press.restore();
+                }
             }
             if (z > 0.02) {
                 for (const [x, y, s, v] of [[200, -900, 1.2, 12], [900, -780, 0.9, 8], [1700, -600, 1.1, 10], [-400, -500, 1, 9], [1150, 160, 1.3, 14], [1520, 330, 0.9, 10], [1000, 420, 0.7, 7]]) {
