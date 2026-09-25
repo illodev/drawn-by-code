@@ -838,7 +838,7 @@ function eye34(press, x, y, w, look, lid) {
 // lidFar, breath }
 function galileo(press, o = {}) {
     const look = o.look ?? [1, 0.2], br = o.breath ?? 0;
-    seated(press);
+    if (!o.noSeat) seated(press);
     // gown: shoulders and chest, the front lit by the candle on the right, a centre seam
     put(press, (g) => smooth(g, [[-150, 160 - br], [-110, 122 - br], [-40, 108 - br], [44, 104 - br], [112, 118 - br], [150, 172], [166, 300], [150, 390], [-120, 390], [-156, 300]]), COAT);
     put(press, (g) => smooth(g, [[34, 110 - br], [108, 122 - br], [146, 176], [160, 300], [150, 390], [84, 390], [56, 200]]), COAT_LIT);
@@ -1084,6 +1084,8 @@ function wide(press, tq, o = {}) {
 }
 
 Seg.galileo = {
+    // parts reused by the v2 rooftop scene (segments/galileo-roof.js)
+    parts: { galileo, gripHand, moonPos, lock, MOONS },
     init() { return {}; },
     draw(press, tq, st) {
         if (tq < TM.pull[0]) { macro(press, tq); return; }

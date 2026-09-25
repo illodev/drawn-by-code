@@ -91,7 +91,15 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // the camera for shots A and B: centre in world units and zoom
     const CAM = [[T.bonk, [500, 540]], [2.2, [560, 560]], [2.9, [560, 560]], [3.3, [600, 420]], [3.7, [660, 440]], [4.0, [690, 560]], [4.35, [700, 340]], [4.7, [690, 250]], [5.0, [700, 180]], [7, [700, 180]]];
     const ZK = [[T.bonk, 1.65], [2.2, 1.45], [2.9, 1.45], [3.3, 1.35], [3.7, 1.35], [4.0, 1.45], [4.35, 1.4], [4.7, 1.3], [5.0, 1.25], [7, 1.25]];
+    // the join from Galileo: his Jupiter turns into this apple and fills the frame (radius
+    // 1400 at the centre); here the camera pulls out of the apple's skin to the hanging apple
+    const INTRO = 0.6, Z_IN = 1400 / APPLE_R;
     function camAB(t, apple) {
+        if (t < INTRO) {
+            const k = Ease.inOut(S(t, 0, INTRO));
+            const c1 = [HANG[0] + 20, HANG[1] + 60];
+            return { c: [L(apple[0], c1[0], k), L(apple[1], c1[1], k)], z: Math.exp(L(Math.log(Z_IN), Math.log(2.0), Ease.out(S(t, 0, INTRO)))) };
+        }
         if (t < T.bonk) {
             // before the snap the camera hangs with the apple; then it rides down with the fall
             // (the apple stays just above centre) and settles on the bonk framing
@@ -459,7 +467,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
 
     Seg.newtonApple = {
-        T,
+        T, drawApple,
         init() { return { theta: flight() }; },
         draw(press, tq, st) {
             const t = tq;

@@ -292,3 +292,40 @@ The Newton's apple style test (dev/newton-apple) is approved as the bar for scri
 full-body rig that moves on spline channels, physics for everything that flies or falls, a
 camera that rides with the action, close framing and dressed sets. The other scenes of v2 are
 built to this bar.
+
+### Round 9 (auto): Galileo on the roof (script v2, 0–5 s), joined to Newton's apple
+
+`segments/galileo-roof.js`; dev scene `dev/v2` plays 0–12 s: Galileo, then Newton's apple.
+
+**The set:** Padua in January 1610.
+- An altana with turned balusters, posts and finials.
+- A hanging lantern with a flickering flame and its glow.
+- A black cat on the rail with its tail flicking (the cat Schrödinger will need).
+- Beyond, roofs with tile courses, lit windows and smoking chimneys, the Santo's eight domes
+  and two bell towers, and the keel roof of the Palazzo della Ragione.
+- A starry sky with a soft Milky Way and a shooting star.
+
+**Galileo, standing:**
+- He is bent to the eyepiece of a leather telescope with gold tooling, on a wooden tripod.
+- His right hand turns the focusing collar (the knurls move) and his left holds the tube from
+  below; the elbows hang, through IK.
+- He blinks, and his breath steams in the cold.
+
+**The shot:**
+1. A slow push-in (0–1.35 s).
+2. The camera tilts and travels up the tube (1.35–2.35 s). The near world leaves fastest, the
+   city slower, the sky only tilts.
+3. Jupiter and its four moons, at their real radii ratios. Nights 0, 1 and 2 land on the
+   beats 2.5, 3.0 and 3.5 s: the sky wheels round the pole, the stars streak, the moons move
+   one day, and faint rings keep the places they left.
+4. A log zoom dives into the disc and its belts. The disc morphs into the apple (4.55–4.85 s):
+   the outline, the streaks, the shadow side, the stalk and a leaf. From 4.85 it holds the
+   apple at radius 1400 in the frame's centre.
+
+**The join into Newton:** a match cut through the apple's skin.
+- Newton's segment now opens with a 0.6 s pull-out, from inside the skin (zoom 1400/30) to
+  the hanging apple.
+- The frames at 4.92 and 5.0 are identical.
+
+**Checks:** the automatic review reports no warnings. The sound effects are provisional (no
+music yet).
