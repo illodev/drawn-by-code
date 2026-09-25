@@ -1,11 +1,11 @@
 ---
 name: style-risograph
-description: Risograph style, in testing: scenes printed like a riso print, in four spot inks (fluorescent pink, yellow, blue, navy) on warm paper, flat and halftone plates, overprints that make the other colours, misregistration, uneven inking and grain. Use it for riso, screen print, halftone, retro print, zine or «printed» looks, or when working with styles/risograph/.
+description: Risograph style: scenes printed like a riso print, in four spot inks (fluorescent pink, yellow, blue, navy) on warm paper, flat and halftone plates, overprints that make the other colours, misregistration, uneven inking and grain. Use it for riso, screen print, halftone, retro print, zine or «printed» looks, or when working with styles/risograph/.
 ---
 
 # Style · Risograph
 
-Status: **in testing**. Studied on `references/opus5-risograph.mp4`: a 1:1 study of the whole
+Approved (the user signed off the study at round 3). Studied on `references/opus5-risograph.mp4`: a 1:1 study of the whole
 28 s film in `sandbox/2026-09-24-opus5-riso/` (43 cards, circles, mosaic, orbits, title).
 
 ## Code

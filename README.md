@@ -108,7 +108,7 @@ to see its strip, files and the videos made with it.
 | [line](styles/line/) | a wobbling black line on white paper | approved |
 | [clay](styles/clay/) | 2D plasticine: bevels, fingerprints, soft shadows | in testing |
 | [clay3d](styles/clay3d/) | 3D plasticine puppets, raymarched, studio light | in testing |
-| [risograph](styles/risograph/) | four spot inks, halftone, overprints, misregistration | in testing |
+| [risograph](styles/risograph/) | four spot inks, halftone, overprints, misregistration | approved |
 | [pixel-art](styles/pixel-art/) | crisp pixels on a low-res grid, sprite maps, 10 fps loops | in testing |
 
 ![paper-cutout](styles/paper-cutout/strip.jpg)

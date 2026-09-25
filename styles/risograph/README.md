@@ -6,7 +6,7 @@ Scenes printed like a riso print: four spot inks (fluorescent pink, yellow, blue
 warm paper, flat and halftone plates, overprints that make every other colour,
 misregistration, uneven inking and paper grain.
 
-**Status:** in testing · **Skill:** [`style-risograph`](../../.claude/skills/style-risograph/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
+**Status:** approved · **Skill:** [`style-risograph`](../../.claude/skills/style-risograph/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
 
 ## Start a video in this style
 
