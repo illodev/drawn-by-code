@@ -20,7 +20,7 @@ CARDS.cat = (press, t) => {
         // the glass: blue ink with navy dots, darker lower down
         const glass = (g) => g.rect(WX, 0, 1080 - WX, 1010);
         fillWith(blue, glass, (g) => grad(g, 0, 0, 0, 1000, [[0, 0.85], [0.6, 0.8], [1, 0.6]]));
-        inside(navy, glass, (g) => lat(GLASS, (x, y) => lerpT([[0, 0.62], [300, 0.56], [360, 0.4], [600, 0.38], [1000, 0.45]], y), g, [WX, 0, 1080, 1010]));
+        inside(navy, glass, (g) => lat(GLASS, (x, y) => lerpT([[0, 0.5], [300, 0.45], [360, 0.33], [600, 0.3], [1000, 0.36]], y), g, [WX, 0, 1080, 1010]));
         inside(pinkS, glass, (g) => { g.fillStyle = T(0.16); g.fillRect(0, 0, 1080, 1080); });
         // the city: violet blocks (navy + pink dots), a stepped roofline, yellow windows
         // (the skyline from column scans of the violet under the glass)
@@ -87,7 +87,7 @@ CARDS.cat = (press, t) => {
         const rim2 = (g) => { g.save(); g.translate(-5, -1); cp(g); g.restore(); };
         inside(pink, rim2, (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(0.85); g.fillRect(0, 0, 1080, 1080); });
         press.knockout((g) => { g.beginPath(); cp(g); g.fill(); });
-        fillWith(navy, cp, T(1)); fillWith(yellow, cp, T(1)); fillWith(pink, cp, T(0.4)); // dark brown-olive, measured ≈ [55, 46, 14]
+        fillWith(navy, cp, T(1)); fillWith(yellow, cp, T(1)); fillWith(pink, cp, T(0.2)); fillWith(blue, cp, T(0.3)); // (measured ≈ (35, 55, 36): olive black, a little green) // dark brown-olive, measured ≈ [55, 46, 14]
         inside(navy, cp, (g) => { g.globalCompositeOperation = 'destination-out'; speckle(g, 'fur', 500, 280, 1000, 1010, 500, 0.8, 1.8, 0.8); });
         inside(pink, cp, (g) => speckle(g, 'furp', 500, 280, 1000, 1010, 120, 0.8, 1.8, 0.8));
         // fur tufts on the rim, the shoulder and the haunch lines
