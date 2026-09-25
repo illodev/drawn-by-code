@@ -84,6 +84,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // shadow (the Interstellar look), the disc's back arc
     const DISC = { yellow: 1, 'pink.s': 0.6 }, DISC_HOT = { yellow: 1, 'pink.s': 0.25 };
     const BH = { navy: 1, blue: 1, yellow: 1, pink: 0.7 };
+    const DEEP = { navy: 1, blue: 0.75, 'pink.s': 0.35, 'yellow.s': 0.1 };
     function arc(cx, cy, rx, ry, a0, a1, n = 40) { const pts = []; for (let i = 0; i <= n; i++) { const a = L(a0, a1, i / n); pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } return pts; }
     // (disc: 1 until the dive is under way, then 0: the camera falls past the disc's plane)
     const discK = (t) => 1 - S(t, T.dive[0] + 0.5, T.dive[0] + 0.9);
@@ -338,7 +339,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 press.restore();
             }
             // black: the shadow has filled the frame; the cube cuts in on it
-            if (t >= T.dive[1] - 0.25) put(press, (g) => g.rect(0, 0, 1600, 900), BH);
+            // (past the hole the night is the film's own: deep navy with its grain, not pure black)
+            if (t >= T.build[0]) put(press, (g) => g.rect(0, 0, 1600, 900), DEEP);
             cube(press, t);
         },
     };

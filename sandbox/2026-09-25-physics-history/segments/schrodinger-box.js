@@ -20,6 +20,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const AMBER = { yellow: 1, 'pink.s': 0.55 };
     const AMBER_LT = { yellow: 0.6, 'pink.s': 0.3 };
     const BH = { navy: 1, blue: 1, yellow: 1, pink: 0.7 };
+    const DEEP = { navy: 1, blue: 0.75, 'pink.s': 0.35, 'yellow.s': 0.1 };
     const RADIUM = { blue: 0.5, yellow: 0.6 };
     const F = 900, h = 330;
 
@@ -132,7 +133,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         else { press.knockout((g) => { g.beginPath(); g.arc(fq[0], fq[1], 38 * k, 0, 6.2832); g.globalAlpha = 0.35; g.fill(); g.globalAlpha = 1; }); kline(press, [[fq[0], fq[1] - 36 * k], [fq[0], fq[1] - 70 * k]], 18 * k, 0.35); }
         // the cat
         const cq = P([-110, h, 0], c), ck = kAt([-110, h, 0], c);
-        Cat.xray(press, { x: cq[0], y: cq[1], s: ck * (o.dead ? 2.4 : 2.9), face: 1, pose: o.dead ? 'dead' : 'sit' });
+        if (o.alive) Cat.sit(press, { x: cq[0], y: cq[1], s: ck * 2.9, face: 1, look: P(tr([170, h - 250, 120]), c), tail: t * 0.8, blink: Math.abs((t % 1.7) - 0.8) < 0.06 });
+        else Cat.xray(press, { x: cq[0], y: cq[1], s: ck * (o.dead ? 2.4 : 2.9), face: 1, pose: o.dead ? 'dead' : 'sit' });
         ink(press, (g) => g.rect(-5000, -5000, 10000, 10000), { 'blue.s': 0.25 });
     }
     // the opaque box: dark panels, amber edges, the eyes inside while it is still open
@@ -241,7 +243,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         init() { return {}; },
         draw(press, tq) {
             const t = tq, c = { z: 1, dx: 0, dy: 0, yaw: 0.55, pitch: 0.38 };
-            put(press, (g) => g.rect(0, 0, 1600, 900), BH);
+            put(press, (g) => g.rect(0, 0, 1600, 900), DEEP);
             if (t < T.scan[1]) solid(press, t, c);
             if (t < T.scan[0]) return;
             // the collapse done: one world, seen plainly
@@ -269,8 +271,11 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 if (lvl) press.clip((g) => g.rect(x0, y0, cw, chh));
                 const zs = lvl ? Math.min(cw / 1000, chh / 760) : 1;
                 press.each((g) => { g.translate(x0 + cw / 2, y0 + chh / 2); g.scale(zs, zs); g.translate(-800, -450); });
-                put(press, (g) => g.rect(-4000, -4000, 9600, 8900), XR_BG);
-                radiograph(press, t, c, { dead: lvl > 0 && deadIn(lvl, n), lid });
+                // (once reality splits, the worlds where it lives are in colour: a warm ground and
+                // the cat itself; where it died, the cold X-ray and its skeleton)
+                const dead = lvl > 0 && (lvl === 1 ? n === 1 : deadIn(lvl, n)), alive = lvl > 0 && !dead;
+                put(press, (g) => g.rect(-4000, -4000, 9600, 8900), alive ? { pink: 0.9, 'navy.s': 0.6, 'yellow.s': 0.3 } : XR_BG);
+                radiograph(press, t, c, { dead, alive, lid });
                 press.restore();
             };
             press.save();
