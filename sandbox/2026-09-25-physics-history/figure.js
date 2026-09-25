@@ -177,10 +177,10 @@ const Fig = (() => {
         const dx = Math.cos(dir), dy = Math.sin(dir);
         let qx = -dy, qy = dx;
         if (qx * f < 0) { qx = -qx; qy = -qy; }
-        const X = (a, b) => [w[0] + (dx * a + qx * b) * R, w[1] + (dy * a + qy * b) * R];
+        const X = (a, b) => [w[0] + (dx * a * 0.84 + qx * b) * R, w[1] + (dy * a * 0.84 + qy * b) * R]; // 0.84: the hand's length (wrist to knuckle) against the apple
         const lw = Math.max(1.4, R * 0.06), EDGE = { 'pink.s': 0.7, 'navy.s': 0.55 };
         const C = [1.45, reach + 0.15];
-        const on = (t, r) => X(C[0] + Math.cos(t) * r, C[1] + Math.sin(t) * r);
+        const on = (t, r) => X(C[0] + Math.cos(t) * r / 0.84, C[1] + Math.sin(t) * r);
         const arc = (t0, t1, r, n = 12) => Array.from({ length: n + 1 }, (_, i) => on(t0 + (t1 - t0) * i / n, r));
         const dig = (P, wd, spc, edge) => {
             line(press, P, wd * R, spc);
