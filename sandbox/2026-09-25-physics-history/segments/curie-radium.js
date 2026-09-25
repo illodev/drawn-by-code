@@ -208,11 +208,14 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const tailX = (t) => TIP[0] - 3000 * IO(S(t, T.ray[1] - 0.3, T.end));
     function ray(press, t, z) {
         if (t < T.ray[0]) return;
-        const x1 = headX(t), x0 = tailX(t), y = TIP[1], w = 10 / z;
+        // (drawn exactly as Einstein's scene draws it: a soft halo, a 10 px amber core, a glowing
+        // head; the same ray across the cut)
+        const x1 = headX(t), x0 = tailX(t), y = TIP[1];
         press.knockout((g) => { g.fillStyle = Riso.radial(g, TIP[0], y, 2, 120 / z, 0.8 * (1 - S(t, T.ray[0], T.ray[0] + 0.5)), 0); g.beginPath(); g.arc(TIP[0], y, 120 / z, 0, 6.2832); g.fill(); });
-        press.knockout((g) => { g.beginPath(); g.rect(x0, y - w * 2, x1 - x0, w * 4); g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1; });
-        put(press, (g) => g.rect(x0, y - w / 2, x1 - x0, w), AMBER);
-        put(press, circle(x1, y, 9 / z), { yellow: 1, 'pink.s': 0.3 });
+        press.knockout((g) => { g.lineCap = 'round'; g.lineWidth = 34 / z; g.globalAlpha = 0.35; g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke(); g.globalAlpha = 1; });
+        line(press, [[x0, y], [x1, y]], 10 / z, AMBER);
+        press.knockout((g) => { g.fillStyle = Riso.radial(g, x1, y, 2 / z, 60 / z, 0.9, 0); g.beginPath(); g.arc(x1, y, 60 / z, 0, 6.2832); g.fill(); });
+        put(press, circle(x1, y, 12 / z), { yellow: 1, 'pink.s': 0.25 });
     }
 
     // the spark's (the radium's) light as a glow, not a target: paper knocked out through a soft

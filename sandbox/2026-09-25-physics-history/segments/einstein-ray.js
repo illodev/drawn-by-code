@@ -73,8 +73,11 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             if (Q.length < 2) continue;
             const P2 = Q.map(([x, y]) => [x, y]), w = Math.max(1.4, 3 * Math.min(1, Q[0][2] * 1.2));
             const u = Math.min(1, Math.max(0, Q[Q.length >> 1][0] / 1600)), dop = v.beta;
-            press.knockout((g) => { Ph.poly(g, Ph.outline(P2, w)); g.globalAlpha = 0.55; g.fill(); g.globalAlpha = 1; });
-            line(press, P2, w, { 'blue.s': 0.25 + 0.45 * dop * u, 'yellow.s': 0.12, 'pink.s': 0.55 * dop * (1 - u) }, { knock: false });
+            // (the grid fades in over the first moments: the cut from Curie is the ray alone)
+            const gi = IO(S(t, 0.05, 0.9));
+            if (gi <= 0) continue;
+            press.knockout((g) => { Ph.poly(g, Ph.outline(P2, w)); g.globalAlpha = 0.55 * gi; g.fill(); g.globalAlpha = 1; });
+            line(press, P2, w, { 'blue.s': (0.25 + 0.45 * dop * u) * gi, 'yellow.s': 0.12 * gi, 'pink.s': 0.55 * dop * (1 - u) * gi }, { knock: false });
         }
     }
     // the hole's back half: the lensed glow, the far side of the accretion disc bent up over the
@@ -316,11 +319,12 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                     const pts = ray(press, t, front);
                     // the cat, chasing the pulse like a laser dot: galloping just below it, pouncing
                     const e = pts[pts.length - 1] ?? [front, RY];
-                    const catX = L(760, e[0] - 160, IO(S(t, 0, 1.6)));
+                    // (the cat, then Einstein, run into the frame from the left after the cut)
+                    const catX = L(-220, e[0] - 160, IO(S(t, 0.15, 1.4)));
                     const pounce = Ease.bump(t, 2.9, 0.5);
                     Cat.run(press, { x: catX, y: RY + 200, s: 1.3, face: 1, ph: t * 3.2, pounce });
                     // Einstein, in frame from the first frame, gaining ground on the pulse
-                    const ex = L(120, e[0] - L(640, 520, IO(S(t, 1.6, 3.4))), IO(S(t, 0, 1.8)));
+                    const ex = L(-520, e[0] - L(640, 520, IO(S(t, 1.6, 3.4))), IO(S(t, 0.35, 1.9)));
                     runner(press, t, ex, 1010);
                 }
                 press.restore();
