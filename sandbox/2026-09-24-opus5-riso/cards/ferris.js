@@ -14,10 +14,10 @@ const DRAW_FERRIS = (press, t) => {
     const knock = (fn) => press.knockout(fn);
 
     // ── dusk sky: a pink screen all over, navy dots at the top, yellow rising to orange below
-    pinkS.fillStyle = R.ramp(pinkS, 0, 150, 0, 1000, 0.88, 0.6); pinkS.fillRect(0, 0, 1000, 1000);
-    navyS.fillStyle = R.ramp(navyS, 0, 0, 0, 420, 0.4, 0); navyS.fillRect(0, 0, 1000, 450);
-    blueS.fillStyle = R.ramp(blueS, 0, 0, 0, 330, 0.75, 0); blueS.fillRect(0, 0, 1000, 300);
-    yellowS.fillStyle = R.ramp(yellowS, 0, 300, 0, 700, 0, 1); yellowS.fillRect(0, 300, 1000, 700);
+    pinkS.fillStyle = R.ramp(pinkS, 0, 0, 0, 1000, 0.95, 0.6); pinkS.fillRect(0, 0, 1000, 1000);
+    navyS.fillStyle = R.ramp(navyS, 0, 0, 0, 420, 0.32, 0); navyS.fillRect(0, 0, 1000, 450);
+    blueS.fillStyle = R.ramp(blueS, 0, 0, 0, 330, 0.5, 0); blueS.fillRect(0, 0, 1000, 300);
+    yellowS.fillStyle = R.ramp(yellowS, 0, 330, 0, 700, 0, 0.9); yellowS.fillRect(0, 300, 1000, 700);
     yellow.fillStyle = R.ramp(yellow, 0, 620, 0, 1000, 0, 0.45); yellow.fillRect(0, 620, 1000, 380);
     // stars (paper specks) in the navy
     const rs = Motion.rng('fe-stars');
@@ -30,13 +30,13 @@ const DRAW_FERRIS = (press, t) => {
     // ── the wheel: rim, dotted spokes with bulbs, the hub
     const bulb = (x, y, r = 5.2, hot = 0) => {
         knock((g) => { g.beginPath(); g.arc(x, y, r + 1.2, 0, 7); g.fill(); });
-        U.disc(yellow, x, y, r, 1);
-        pink.fillStyle = T(0.45 + 0.3 * hot); pink.beginPath(); pink.arc(x + r * 0.25, y + r * 0.3, r * 0.8, 0, 7); pink.fill();
-        knock((g) => { g.beginPath(); g.arc(x - r * 0.3, y - r * 0.35, r * 0.35, 0, 7); g.fill(); });
+        // (measured at 3×: a paper-white bulb with a pink rim on its lower right; a few glow yellow)
+        if (hot) U.disc(yellow, x, y, r, 0.8);
+        pink.fillStyle = T(0.7); pink.beginPath(); pink.arc(x, y, r + 0.6, 0, 7); pink.arc(x - r * 0.25, y - r * 0.25, r * 0.85, 0, 7, true); pink.fill();
     };
     const twinkle = (i) => ((i * 7 + d) % 5 === 0 ? 1 : 0); // a bulb or two brighter per drawing
     ink([[navy, 0.95]], (g) => {
-        g.lineWidth = 6; g.beginPath(); g.arc(HX, HY, RIM, 0, 7); g.stroke();
+        g.lineWidth = 9; g.beginPath(); g.arc(HX, HY, RIM, 0, 7); g.stroke();
         g.lineWidth = 3; g.beginPath(); g.arc(HX, HY, RIM - 26, 0, 7); g.stroke();
         g.lineWidth = 3; g.beginPath(); g.arc(HX, HY, 92, 0, 7); g.stroke();
         // dashed spokes

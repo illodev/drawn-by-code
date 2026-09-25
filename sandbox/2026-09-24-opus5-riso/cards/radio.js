@@ -30,18 +30,21 @@ CARDS.radio = (press, t, lf) => {
     const L_CABN = [7.942, 2.064, -2.051, 7.731, 392.0, 932.8];
     const L_CABP = [7.021, -1.742, 1.742, 7.021, 326.5 + 4.38, 749.6 + 2.64];
     const cl = (v) => Math.max(0, Math.min(1, v));
+    // measured data (private/radio-data.js, optional), else parametric fallbacks
+    const D = (typeof G3DATA !== 'undefined' && G3DATA.radio) || {};
+    const ringPts = (r, a0, a1, w) => Array.from({ length: 7 }, (_, i) => { const a = a0 + ((a1 - a0) * i) / 6; return [480 + Math.cos(a) * r, 580 + Math.sin(a) * r, w]; });
     G3.ref(press, G3.push(0.0077, t, lf, 2), () => {
         // ------------------------------------------------------------ the wall
         const WALL_B = 988;
-        N.fillStyle = T(1); N.fillRect(-60, -60, 1200, WALL_B + 60);
+        N.fillStyle = T(0.88); N.fillRect(-60, -60, 1200, WALL_B + 60);
         // pink coverage (unmixed on a 60 px grid): 0.6 beside the radio, 0.1 in the corners;
         // it falls off slower on the left than on the right
         const pk = (x, y) => {
-            const dx = x < 500 ? (x - 500) / 1.25 : (x - 500) / 0.95, dy = y < 640 ? (y - 640) / 0.85 : (y - 640) * 0.9;
+            const dx = x < 500 ? (x - 500) / 1.25 : (x - 500) / 0.82, dy = y < 640 ? (y - 640) / 0.85 : (y - 640) * 1.15;
             const r = Math.hypot(dx, dy), e = Math.max(0, r - 250);
-            return cl(0.56 * Math.exp(-Math.pow(e / 230, 1.4)));
+            return cl(0.8 * Math.exp(-Math.pow(e / 260, 1.3)));
         };
-        const bl = (x, y) => cl(0.16 - 0.6 * pk(x, y) + (y > 930 && (x < 230 || x > 770) ? 0.2 : 0));
+        const bl = (x, y) => cl(0.62 - 1.0 * pk(x, y) + (y > 930 && (x < 230 || x > 770) ? 0.1 : 0));
         lat(N, L_WALL, pk, -40, -40, 1120, WALL_B, { clear: true, rk: 0.75 });
         lat(K, L_WALL, pk, -40, -40, 1120, WALL_B);
         lat(N, L_WALLB, bl, -40, -40, 1120, WALL_B, { clear: true, rk: 0.75 });
@@ -49,36 +52,18 @@ CARDS.radio = (press, t, lf) => {
         // ------------------------------------------------------------ the table
         K.fillStyle = T(1); K.fillRect(-60, WALL_B, 1200, 200);
         const glow = (x, y) => cl(1 - Math.pow(Math.abs(x - 490) / 300, 2.2));
-        lat(Y, [5.1, 1.3, -1.3, 5.1, 0, 0], (x, y) => glow(x, y) * 1.1, -40, WALL_B, 1120, 1120, { jit: 0.05 });
-        lat(N, L_TABLE, (x, y) => 0.3 + 0.42 * (1 - glow(x, y)), -40, WALL_B, 1120, 1120);
+        lat(Y, [5.1, 1.3, -1.3, 5.1, 0, 0], (x, y) => glow(x, y) * 0.62, -40, WALL_B, 1120, 1120, { jit: 0.05 });
+        lat(N, L_TABLE, (x, y) => 0.36 + 0.24 * (1 - glow(x, y)), -40, WALL_B, 1120, 1120);
         // the front edge: a paper line, the wall above it bluer
         press.knockout((g) => { g.fillStyle = '#000'; g.fillRect(-60, WALL_B - 2, 1200, 3.5); });
         // ------------------------------------------------------------ the ribbons
         // centrelines [x, y, width] from yellow / red runs along every 20th row and 30th column
-        const YR = [
-            // [points, paper side (+1 left of travel, -1 right, 0 none)]
-            [[[0, 183, 10], [30, 160, 16], [60, 137, 18], [80, 118, 13], [118, 98, 8], [135, 90, 3]], 1],
-            [[[335, -10, 12], [300, 5, 12], [270, 16, 10], [245, 28, 4]], -1],
-            [[[208, 198, 4], [176, 220, 10], [153, 240, 14], [136, 260, 16], [122, 280, 16], [109, 300, 15], [99, 320, 13], [90, 340, 10], [80, 360, 8], [69, 380, 10], [60, 400, 12], [52, 420, 8], [46, 438, 3]], 1],
-            [[[27, 474, 4], [22, 490, 12], [19, 510, 13], [15, 530, 12], [11, 550, 12], [8, 570, 12], [7, 590, 12], [7, 610, 11], [8, 630, 9], [11, 650, 7], [15, 666, 3]], 1],
-            [[[230, 346, 4], [213, 360, 9], [195, 380, 11], [183, 400, 11], [173, 420, 11], [163, 440, 12], [156, 460, 13], [150, 480, 14], [147, 500, 16], [144, 520, 20], [142, 540, 19], [141, 560, 21], [142, 580, 18], [143, 600, 15], [145, 620, 13], [147, 640, 13], [150, 660, 11], [150, 680, 6], [150, 692, 2]], -1],
-            [[[282, 307, 5], [300, 296, 10], [330, 282, 13], [360, 270, 17], [390, 259, 15], [420, 252, 12], [450, 245, 10], [480, 238, 10], [510, 240, 10], [540, 246, 6], [570, 252, 8], [600, 263, 14], [630, 280, 16], [660, 300, 12], [690, 316, 8], [706, 336, 4]], 1],
-            [[[808, 532, 4], [810, 547, 12], [816, 560, 16], [818, 580, 18], [818, 600, 18], [817, 620, 16], [813, 640, 15], [806, 660, 12], [796, 680, 6], [787, 700, 4], [782, 714, 2]], -1],
-            [[[911, 652, 4], [917, 665, 12], [914, 680, 12], [910, 700, 11], [905, 720, 12], [900, 740, 13], [894, 760, 12], [886, 776, 4]], -1],
-            [[[728, 196, 4], [754, 220, 9], [783, 240, 14], [805, 260, 14], [823, 280, 12], [838, 300, 11], [852, 320, 11], [863, 340, 8], [878, 360, 7], [894, 380, 9], [905, 400, 12], [912, 420, 14], [920, 440, 11], [927, 460, 8], [931, 480, 10], [936, 500, 14], [939, 520, 13], [940, 540, 6], [940, 550, 2]], -1],
-            [[[838, 96, 4], [852, 101, 10], [879, 120, 14], [904, 140, 12], [925, 160, 6], [941, 180, 5], [953, 200, 6], [964, 220, 6], [978, 240, 5], [985, 260, 7], [995, 280, 8], [1002, 300, 8], [1008, 320, 7], [1014, 340, 5], [1021, 360, 5], [1030, 380, 8], [1040, 400, 14], [1047, 420, 17], [1054, 440, 13], [1062, 460, 7], [1071, 480, 6], [1082, 498, 4]], -1],
-            [[[1080, 672, 4], [1071, 700, 10], [1063, 720, 10], [1052, 740, 12], [1045, 760, 12], [1035, 780, 8], [1026, 800, 6], [1017, 820, 5], [1012, 834, 2]], -1],
-            [[[268, 162, 4], [300, 152, 16], [330, 146, 22], [360, 140, 13], [390, 132, 7], [420, 128, 5], [450, 122, 8], [480, 119, 18], [510, 120, 21], [540, 120, 13], [570, 124, 8], [600, 133, 11], [630, 143, 12], [650, 152, 8], [668, 162, 3]], -1],
-            [[[598, -6, 8], [630, 2, 10], [660, 9, 10], [690, 20, 8], [712, 29, 3]], -1],
-            [[[700, -4, 5], [728, 8, 6], [750, 20, 5], [772, 34, 2]], -1],
-        ];
-        const RR = [
-            [[0, 254, 8], [30, 222, 12], [60, 181, 13], [90, 121, 14], [120, 76, 14], [150, 43, 13], [180, 25, 12], [210, 13, 10], [250, 3, 9], [292, -6, 6]],
-            [[150, 494, 4], [160, 470, 12], [172, 448, 16], [186, 428, 15], [200, 405, 13], [214, 382, 8], [230, 360, 6], [247, 338, 8], [262, 318, 12], [280, 298, 14], [300, 278, 16], [325, 258, 12], [360, 246, 9], [420, 238, 10], [450, 243, 11], [480, 247, 9], [510, 253, 7], [545, 261, 5], [578, 269, 2]],
-            [[688, 316, 3], [705, 332, 9], [720, 342, 12], [736, 362, 14], [746, 380, 14], [760, 400, 14], [773, 420, 13], [781, 440, 9], [786, 456, 3]],
-            [[860, 156, 4], [884, 180, 10], [906, 200, 12], [934, 220, 16], [965, 240, 12], [1000, 260, 7], [1027, 280, 15], [1046, 300, 14], [1062, 314, 4]],
-            [[656, -8, 6], [685, 0, 10], [733, 20, 9], [768, 40, 8], [788, 54, 3]],
-        ];
+        const YR = D.YR ?? [
+            // fallback: yellow ribbons on three rings round (480, 580): [radius, from, to] (rad)
+            [335, -3.45, -3.0], [335, -2.85, -1.6], [335, -1.4, -0.2], [335, 0.0, 0.45], [470, -3.35, -2.95], [455, -2.85, -2.15], [455, -2.0, -1.15],
+            [460, -1.0, -0.1], [460, 0.15, 0.5], [620, -2.6, -1.95], [600, -1.4, -1.05], [620, -0.95, -0.2], [620, 0.14, 0.43],
+        ].map(([r, a0, a1]) => [ringPts(r, a0, a1, 20), -1]);
+        const RR = D.RR ?? [[325, -2.9, -1.95], [330, -1.2, -0.35], [615, -2.55, -2.0], [600, -1.35, -1.1], [615, -0.85, -0.45]].map(([r, a0, a1]) => ringPts(r, a0, a1, 12));
         // each drawing re-paints the ribbons (a slight wobble, measured corr 0.96–0.99)
         const wob = (pts, k) => pts.map(([x, y, w], i) => [x + Math.sin(i * 1.7 + d * 2.1 + k) * 1.5, y + Math.cos(i * 1.3 + d * 1.7 + k) * 1.5, w * 1.35]);
         YR.forEach(([pts0, side], k) => {
@@ -94,9 +79,10 @@ CARDS.radio = (press, t, lf) => {
         });
         // ------------------------------------------------------------ the radio
         // silhouette (outer edge of the outline), measured along rows and columns
-        const SIL = [[247, 953], [249, 830], [250, 700], [252, 590], [258, 520], [268, 474], [282, 437], [305, 398], [335, 362], [370, 333], [410, 310], [450, 292], [490, 278], [522, 270], [556, 272], [590, 284], [628, 305], [662, 334], [695, 372], [720, 420], [735, 470], [742, 520], [744, 600], [743, 700], [742, 800], [742, 953]];
+        // fallback silhouette: a cathedral arch (sides x 247 / 743, arch centre (495, 518), r 248)
+        const SIL = D.SIL ?? [[247, 953], [247, 830], [247, 700], [247, 590], ...Array.from({ length: 18 }, (_, i) => { const a = Math.PI * (1 + i / 17); return [495 + Math.cos(a) * 248, 518 + Math.sin(a) * 248]; }), [743, 700], [743, 800], [743, 880], [743, 953]];
         // the front/side divide: a dark line from the crown down the right
-        const DIV = [[470, 286], [520, 306], [580, 336], [625, 372], [652, 410], [670, 450], [680, 500], [688, 560], [692, 640], [694, 720], [693, 800], [693, 880], [695, 953]];
+        const DIV = D.DIV ?? Array.from({ length: 13 }, (_, i) => { const u = i / 12; return [470 + 225 * Math.sin(u * Math.PI / 2), 286 + 667 * (1 - Math.cos(u * Math.PI / 2)) * 0.5 + 333 * u]; });
         const sil = (g) => { smooth(g, SIL, false); g.closePath(); };
         press.knockout((g) => { sil(g); g.fill(); });
         // the cabinet's paint: yellow flat, the pink screen and the navy dots by region
@@ -104,9 +90,10 @@ CARDS.radio = (press, t, lf) => {
         // tone maps from the unmix: pink ~0.8 on the crown and the base, ~0.4 in the grille,
         // ~0.1 in the lit centre; navy ~0.15–0.4 on the front, 0.7 on the side and edges
         const inGr = (x, y) => y > 385 && y < 700 && Math.abs(x - 473) < 130 && (y > 536 || Math.hypot(x - 473, y - 536) < 130);
-        const lit = (x, y) => Math.exp(-Math.pow(Math.hypot((x - 482) / 175, (y - 785) / 95), 2.2));
-        const pkT = (x, y) => cl((inGr(x, y) ? 0.06 + 0.3 * Math.max(0, (470 - y) / 80) : y < 460 ? 0.88 : y < 700 ? 0.55 : y < 860 ? 0.55 : 0.9) * (1 - 0.9 * lit(x, y)) + (x < 300 ? 0.05 : 0));
+        const lit = (x, y) => Math.exp(-Math.pow(Math.hypot((x - 482) / 175, (y - 772) / 68), 2.2));
+        const pkT = (x, y) => cl((inGr(x, y) ? 0.1 + 0.4 * Math.min(1, Math.max(0, (490 - y) / 90)) : y < 460 ? 0.72 : y < 700 ? 0.55 : y < 860 ? 0.55 : 0.9) * (1 - 0.9 * lit(x, y)) + (x < 300 ? 0.05 : 0));
         const nvT = (x, y) => {
+            if (inGr(x, y)) return 0;
             let v = 0.18 + 0.25 * Math.max(0, (x - 600) / 90) + 0.25 * Math.max(0, (330 - x) / 60) + (y < 360 ? 0.1 : 0);
             if (y > 860) v = 0.25 + 0.3 * Math.max(0, (x - 620) / 70);
             return cl(0.75 * v * (1 - 0.75 * lit(x, y)));
@@ -131,7 +118,7 @@ CARDS.radio = (press, t, lf) => {
         { const pts = rim(30, 17).slice(0, 11), rb = ribbon(pts, { taper: 0.1 }); for (const g of [K, N]) { clr(g); g.fillStyle = '#000'; path(g, rb); g.fill(); g.restore(); } B.save(); path(B, rb); B.clip(); lat(B, L_CABN, () => 0.55, 240, 300, 360, 960, { jit: 0.2 }); B.restore(); N.save(); path(N, rb); N.clip(); lat(N, L_CABN, () => 0.2, 240, 300, 360, 960, { jit: 0.3 }); N.restore(); }
         // the divide and the front's inner arch line
         dark((g) => { g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 12; smooth(g, DIV, false); g.stroke(); });
-        const ARCH = [[300, 950], [299, 800], [298, 660], [302, 540], [315, 460], [340, 405], [380, 366], [430, 340], [476, 330], [520, 333], [565, 347], [610, 375], [640, 410], [662, 455], [675, 500]];
+        const ARCH = D.ARCH ?? [[300, 950], [299, 700], ...Array.from({ length: 12 }, (_, i) => { const a = Math.PI * (1 + (i / 11) * 0.78); return [490 + Math.cos(a) * 190, 540 + Math.sin(a) * 210]; })];
         dark((g) => { g.lineCap = 'round'; g.lineWidth = 4.5; g.globalAlpha = 0.85; smooth(g, ARCH, false); g.stroke(); });
         // ------------------------------------------------------------ the grille
         const GC = 473, GS = 536, GRX = 150, GRY = 151, GB = 700;
@@ -141,8 +128,8 @@ CARDS.radio = (press, t, lf) => {
         K.save(); K.beginPath(); gout(K, 17); K.clip();
         // (measured at 3×: two families of fine red lines at ±45°, ~12 px apart, clean yellow
         // between them with a few red specks)
-        K.strokeStyle = T(0.95); K.lineWidth = 2.3;
-        for (let k = -50; k < 50; k++) { const x = GC + k * 17; K.beginPath(); K.moveTo(x - 420, 300); K.lineTo(x, 720); K.stroke(); K.beginPath(); K.moveTo(x + 420, 300); K.lineTo(x, 720); K.stroke(); }
+        K.strokeStyle = T(1); K.lineWidth = 1.7;
+        for (let k = -70; k < 70; k++) { const x = GC + k * 12.5; K.beginPath(); K.moveTo(x - 420, 300); K.lineTo(x, 720); K.stroke(); K.beginPath(); K.moveTo(x + 420, 300); K.lineTo(x, 720); K.stroke(); }
         K.restore();
         // eight bars fanning from the hub (polar scan at r 80/110/150: -170, -148.5, -126,
         // -104, -79.5, -57, -34.3, -9.6°), widening outward 9 → 17 px
@@ -184,15 +171,16 @@ CARDS.radio = (press, t, lf) => {
             fillP(K, ribbon(arc.map(([x, y, w]) => [x - 1.5, y - 1.5, w * 0.6]), { taper: 0.3 }), 0.55, false);
         }
         // ------------------------------------------------------------ the plinth
-        const PL = [[222, 953], [742, 953], [760, 930], [792, 965], [775, 992], [225, 992], [218, 972]];
-        press.knockout((g) => { path(g, PL); g.fill(); });
-        dark((g) => { path(g, PL); g.fill(); });
-        // its front face: brown (red + navy dots) with a lit top line
-        const PF = [[227, 970], [724, 970], [728, 989], [230, 989]];
+        const TIER = [[220, 942], [770, 940], [781, 950], [776, 961], [220, 962]];
+        const SLAB = [[218, 961], [746, 961], [748, 995], [220, 996]];
+        press.knockout((g) => { path(g, TIER); g.fill(); path(g, SLAB); g.fill(); });
+        dark((g) => { path(g, TIER); g.fill(); path(g, SLAB); g.fill(); });
+        const PF = [[224, 969], [741, 969], [742, 990], [226, 991]];
         for (const g of [N, B]) { clr(g); path(g, PF); g.fill(); g.restore(); }
-        fillP(K, PF, 0.9, false);
-        N.save(); path(N, PF); N.clip(); lat(N, L_CABN, () => 0.5, 220, 960, 740, 995); N.restore();
-        const PT = ribbon([[228, 967, 2.5], [480, 966, 3], [724, 967, 2.5]], { taper: 0.02 });
+        fillP(K, PF, 0.95, false);
+        N.save(); path(N, PF); N.clip(); lat(N, L_CABN, () => 0.42, 220, 960, 750, 995); N.restore();
+        const PT = ribbon([[226, 966, 2.4], [480, 965.5, 3], [740, 966, 2.4]], { taper: 0.02 });
         for (const g of [N, B, K]) { clr(g); path(g, PT); g.fill(); g.restore(); }
+        fillP(K, PT, 0.25, false);
     });
 };

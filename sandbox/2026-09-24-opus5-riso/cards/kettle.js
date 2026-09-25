@@ -14,7 +14,9 @@ CARDS.kettle = (press, t) => {
     const knockP = (g, fn) => { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.strokeStyle = '#000'; fn(g); g.restore(); };
 
     // ── the wall: blue-screened tiles with white grout, each tile a little different
-    const VX = [-40, 146, 332, 522, 713, 905, 1100], HY = [-130, 58, 243, 430, 612, 790, 968, 1150];
+    // grout measured on f236 (luminance peaks of the blurred wall): x 156, 345, 531 px; y 78, 266,
+    // 456, 641, 831, 1021 px (a 189 px tile), in units
+    const VX = [-30, 144, 319, 492, 666, 840, 1014, 1190], HY = [-102, 72, 246, 422, 594, 769, 945, 1120];
     const rt = Motion.rng('kt-tiles');
     for (let i = 0; i < VX.length - 1; i++) for (let j = 0; j < HY.length - 1; j++) {
         const x0 = VX[i] + 4, x1 = VX[i + 1] - 4, y0 = HY[j] + 4, y1 = HY[j + 1] - 4;
@@ -34,7 +36,7 @@ CARDS.kettle = (press, t) => {
 
     // ── steam: a paper cloud rising from the spout (the screen fades out at its edge)
     const lift = d * 4;
-    const steam = [[168, 556], [128, 470], [104, 390], [104, 320], [132, 250], [168, 180], [232, 100], [290, 40], [330, -40], [860, -40], [835, 10], [770, 25], [705, 50], [650, 85], [570, 105], [500, 125], [450, 180], [380, 232], [312, 248], [255, 290], [214, 360], [200, 440], [214, 520]].map(([x, y]) => [x, y - lift * (1 - y / 700)]);
+    const steam = [[168, 556], [128, 470], [104, 390], [104, 320], [132, 250], [160, 170], [175, 110], [215, 40], [250, -40], [860, -40], [835, 10], [770, 25], [705, 50], [650, 85], [570, 105], [500, 125], [450, 180], [380, 232], [312, 248], [255, 290], [214, 360], [200, 440], [214, 520]].map(([x, y]) => [x, y - lift * (1 - y / 700)]);
     // soft edge: knock a slightly larger cloud partly, then the cloud fully
     press.knockout((g) => { g.globalAlpha = 0.45; g.lineWidth = 34; g.lineJoin = 'round'; U.smooth(g, steam); g.stroke(); g.globalAlpha = 1; U.smooth(g, steam); g.fill(); });
     // puff outlines: short blue scallops along the underside
@@ -58,11 +60,11 @@ CARDS.kettle = (press, t) => {
     for (const g of [navy, pink]) knockP(g, (k) => { k.lineWidth = 5; k.lineCap = 'round'; k.beginPath(); k.moveTo(522, 630); k.bezierCurveTo(525, 470, 590, 360, 720, 318); k.stroke(); });
 
     // ── the kettle body: red (pink + yellow), texture, navy shading at the left
-    const body = [[403, 977], [405, 900], [418, 840], [444, 750], [495, 650], [532, 632], [606, 624], [1000, 612], [1000, 977]];
+    const body = [[403, 977], [405, 900], [418, 840], [444, 750], [495, 650], [540, 612], [606, 606], [1000, 604], [1000, 977]];
     const spout = [[417, 950], [380, 910], [296, 835], [231, 752], [196, 660], [194, 630], [232, 630], [260, 672], [296, 712], [361, 768], [420, 806], [440, 860]];
     const lid = [[590, 612], [600, 580], [640, 545], [720, 527], [820, 522], [905, 535], [945, 560], [950, 598], [940, 612]];
     press.knockout((g) => { U.smooth(g, spout); g.fill(); U.path(g, body); g.fill(); U.smooth(g, lid); g.fill(); });
-    for (const [g, v] of [[pink, 1], [yellowS, 0.8], [yellow, 0.3]]) { fillS(g, spout, v); fillP(g, body, v); fillS(g, lid, v); }
+    for (const [g, v] of [[pink, 1], [yellowS, 0.62], [yellow, 0.22]]) { fillS(g, spout, v); fillP(g, body, v); fillS(g, lid, v); }
     // enamel grain: the yellow is stippled (pink shows through in fine specks), not screened
     const rg = Motion.rng('kt-grain');
     for (const [g, n, r0] of [[yellowS, 2600, 1.1], [pink, 700, 0.8]]) {
@@ -89,7 +91,6 @@ CARDS.kettle = (press, t) => {
     navyS.fillStyle = R.ramp(navyS, 800, 0, 950, 0, 0, 0.6); navyS.fillRect(780, 510, 180, 110); navyS.restore();
     press.knockout((g) => { g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(638, 560); g.quadraticCurveTo(680, 540, 740, 534); g.stroke(); });
     for (const [g, v] of [[navy, 0.95], [pink, 0.4]]) U.stroke(g, [[600, 612], [760, 605], [1000, 604]], 8, v);
-    press.knockout((g) => { g.lineWidth = 3; g.beginPath(); g.moveTo(610, 620); g.lineTo(1000, 614); g.stroke(); });
     blueS.fillStyle = T(0.6); blueS.fillRect(946, 585, 54, 22);
     // the knob
     for (const [g, v] of [[navy, 0.95], [yellow, 0.9], [pink, 0.4]]) U.ell(g, 768, 497, 38, 30, 0, v);
@@ -108,7 +109,14 @@ CARDS.kettle = (press, t) => {
     for (const [g, v] of [[navy, 0.9], [yellow, 0.6]]) { g.save(); g.strokeStyle = T(v); g.lineWidth = 5; g.beginPath(); g.moveTo(403, 977); g.lineTo(405, 900); g.quadraticCurveTo(418, 820, 444, 750); g.stroke(); g.restore(); }
 
     // the base: the body ends above the frame's edge on a thin green-yellow line
-    for (const [g, v] of [[yellow, 1], [blue, 0.7]]) U.stroke(g, [[405, 979], [1000, 979]], 4, v);
+    // (measured at 1.5×: the body stops at y 1047 ref px on a black-green base band down to
+    // the frame's edge, a yellow-and-blue glint along its top from x 440 to 755 px; navy dots
+    // shade the body's lower right)
+    press.knockout((g) => { U.path(g, [[392, 969], [1000, 969], [1000, 1000], [392, 1000]]); g.fill(); });
+    for (const [g, v] of [[navy, 1], [yellow, 1], [blue, 0.7]]) U.poly(g, [[392, 969], [1000, 969], [1000, 1000], [392, 1000]], v);
+    for (const g of [navy]) knockP(g, (k) => { k.fillRect(407, 972, 292, 3.2); });
+    blue.fillStyle = T(0.8); blue.fillRect(407, 975, 292, 2);
+    navyS.save(); U.path(navyS, body); navyS.clip(); navyS.fillStyle = R.radial(navyS, 1000, 1000, 0, 190, 0.55, 0); navyS.fillRect(800, 780, 200, 200); navyS.restore();
 
     // ── the spout's whistle: a dark cap, a wire clip with a ball
     const cap = [[172, 548], [190, 532], [212, 545], [245, 612], [230, 632], [205, 638], [182, 600]];

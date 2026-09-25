@@ -68,12 +68,13 @@ const DRAW_WATERFALL = (press, t) => {
     // ── fronds: yellow leaflets (flat, knocked out of the orange) and green ones (blue added)
     // a hanging frond: leaflets droop off the rib; each leaflet yellow (lit) or green (shade)
     const fr = (pts, n0, len, w, seed, green) => {
-        const n = Math.round(n0 * 1.7), r = Motion.rng('wfr' + seed), lv = [];
+        // (at 2×: fern fronds, many narrow leaflets, not broad leaves)
+        const n = Math.round(n0 * 2.8), r = Motion.rng('wfr' + seed), lv = [];
         for (let i = 1; i <= n; i++) {
             const u = i / (n + 1), k = u * (pts.length - 1), j = Math.min(pts.length - 2, Math.floor(k)), f = k - j;
             const x = pts[j][0] + (pts[j + 1][0] - pts[j][0]) * f, y = pts[j][1] + (pts[j + 1][1] - pts[j][1]) * f;
             const a = Math.atan2(pts[j + 1][1] - pts[j][1], pts[j + 1][0] - pts[j][0]);
-            const L = len * 1.15 * (1 - 0.5 * u) * (0.85 + 0.3 * r()), W = w * 1.05 * (1 - 0.3 * u);
+            const L = len * 1.15 * (1 - 0.45 * u) * (0.85 + 0.3 * r()), W = w * 0.75 * (1 - 0.3 * u);
             // droop: both leaflets bend towards straight down
             for (const side of [-1, 1]) {
                 let la = a + side * 0.85; la += (Math.PI / 2 - la) * 0.25;

@@ -23,17 +23,13 @@ CARDS.hummingbird = (press, t) => {
         // 120 k; cells under the bird or a leaf filled from their neighbours): a lemon glow
         // behind the bird, denser toward the leaves and the bottom
         const GBK = 1.0;
-        const GB = [
-            [.65, .45, .40, .25, .20, .20, .30, .40, .30],
-            [.45, .30, .40, .30, .30, .25, .25, .30, .45],
-            [.45, .20, .20, .25, .20, .25, .10, .35, .25],
-            [.40, .25, .20, .20, .25, .15, .15, .30, .40],
-            [.45, .30, .30, .25, .20, .15, .15, .25, .35],
-            [.45, .35, .30, .20, .25, .20, .25, .30, .50],
-            [.50, .55, .40, .35, .35, .35, .35, .40, .50],
-            [.55, .60, .55, .50, .50, .45, .50, .50, .50],
-            [.65, .55, .70, .60, .65, .45, .50, .30, .55],
-        ];
+        // the coverage table (private/hummingbird-data.js) when present; else the fallback: a
+        // lemon glow centred behind the bird (600, 540), coverage 0.19 there rising to ~0.75 at
+        // the corners, steeper below (measured stops)
+        const GB = (typeof G3DATA !== 'undefined' && G3DATA.hummingbird && G3DATA.hummingbird.GB) || Array.from({ length: 9 }, (_, j) => Array.from({ length: 9 }, (_, i) => {
+            const x = 60 + 120 * i, y = 60 + 120 * j, r = Math.hypot((x - 600) / 1.2, (y - 540) / (y > 540 ? 0.8 : 1.05));
+            return 0.19 + (y > 540 ? 0.66 : 0.56) * Math.pow(Math.max(0, Math.min(1, (r - 140) / 560)), 1.25);
+        }));
         const gb = (x, y) => {
             const fx = Math.max(0, Math.min(7.999, (x - 60) / 120)), fy = Math.max(0, Math.min(7.999, (y - 60) / 120));
             const i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j;
@@ -46,9 +42,9 @@ CARDS.hummingbird = (press, t) => {
     const darkLeaf = (pts, veins) => {
         press.knockout((g) => { U.smooth(g, pts); g.fill(); });
         fillS(yellow, pts, 1);
-        fillS(blueS, pts, 0.64);
-        fillS(pinkS, pts, 0.2);
-        fillS(navyS, pts, 0.14);
+        fillS(blueS, pts, 0.7);
+        fillS(pinkS, pts, 0.24);
+        fillS(navyS, pts, 0.3);
         // veins: red-orange lines (pink + yellow, the blue knocked)
         for (const v of veins) {
             blueS.save(); blueS.globalCompositeOperation = 'destination-out'; U.stroke(blueS, v, 3.2, 1, true); blueS.restore();
@@ -115,15 +111,14 @@ CARDS.hummingbird = (press, t) => {
         const pts = [[240, 1085], [262, 990], [330, 928], [430, 902], [540, 912], [622, 948], [602, 1020], [560, 1085]];
         blue.save(); U.smooth(blue, pts); blue.clip();
         blue.globalCompositeOperation = 'destination-out'; blue.fillStyle = '#000'; blue.fillRect(200, 880, 460, 220); blue.globalCompositeOperation = 'source-over';
-        U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], () => 0.78, 200, 880, 660, 1090, { jit: 0.2 }); blue.restore();
-        pink.save(); U.smooth(pink, pts); pink.clip(); U.lat(pink, [9.2, 2.5, -2.5, 9.2, 400, 1000], (x, y) => ((x * 7 + y * 13) % 5 < 1.4 ? 0.3 : 0), 200, 880, 660, 1090, { jit: 0.3 }); pink.restore();
+        U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], () => 0.6, 200, 880, 660, 1090, { jit: 0.2 }); blue.restore();
     });
 
     // lighter leaves lying over the dark ones at the bottom corners (lemon-green: the dark
     // screens cleared, a medium blue screen, a green edge), ref px
     U.ref(press, 1, () => {
         for (const pts of [[[640, 1085], [655, 1010], [690, 950], [740, 925], [790, 935], [772, 990], [735, 1045], [700, 1085]],
-            [[100, 1085], [112, 990], [135, 935], [200, 905], [252, 890], [250, 960], [225, 1030], [200, 1085]]]) {
+            [[102, 1085], [108, 990], [125, 935], [165, 900], [185, 950], [178, 1020], [168, 1085]]]) {
             for (const g of [blueS, pinkS, navyS, pink, navy, blue]) { g.save(); g.globalCompositeOperation = 'destination-out'; U.smooth(g, pts); g.fill(); g.restore(); }
             blue.save(); U.smooth(blue, pts); blue.clip(); U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], () => 0.22, 90, 850, 820, 1090, { jit: 0.15 }); blue.restore();
             blue.save(); blue.lineWidth = 4; blue.strokeStyle = T(0.9); U.smooth(blue, pts); blue.stroke(); blue.restore();
@@ -139,35 +134,32 @@ CARDS.hummingbird = (press, t) => {
         const L8 = [7.94, 2.06, -2.05, 7.73, 600, 300]; // a fine screen for the plumage
         const LF = [5.6, 1.5, -1.5, 5.6, 0, 0]; // the specks' grid (motion blur)
 
-        // the far wings, a motion blur: wisps of fine blue (and a few pink) specks along rays
-        // fanning from the shoulder (520, 330): the left beat 158–202° long (≈ 470 px), the
-        // upper beat -112 to -86° (≈ 340 px); along each wisp the ground's dots and some of the
-        // yellow thin out. Re-drawn each drawing (the wings flutter).
+        // the far wings, a motion blur, measured at full size on f230: three narrow wisps from
+        // the shoulder (A left along y ≈ 290 → 320, B down-left to (100, 500), C straight up to
+        // the top edge), 30–60 px wide and tapering; inside each the ground's dots are gone,
+        // the yellow is thinned to a pale lemon and fine blue specks (a few pink) fill it.
+        // Between the wisps the ground is untouched. They flutter by a few px per drawing.
         {
-            const SX = 520, SY = 330, rs = Motion.rng('hbw' + (d % 3));
-            const fans = [[150, 188, 480, 13, 3200], [-110, -86, 340, 6, 900]];
-            for (const [a0, a1, L, n, N] of fans) {
-                const rays = [];
-                for (let k = 0; k < n; k++) rays.push(((a0 + (a1 - a0) * (k + 0.5) / n + (rs() - 0.5) * 3 + wob) * Math.PI) / 180);
-                // thin the ground under each wisp (soft round strokes, never a filled shape)
-                for (const [g, v] of [[blue, 0.6], [yellow, 0.2]]) {
-                    g.save(); g.globalCompositeOperation = 'destination-out'; g.lineCap = 'round';
-                    // one path, stroked once: overlapping wisps must not clear twice
-                    g.strokeStyle = T(v); g.lineWidth = 30; g.beginPath();
-                    for (const a of rays) { g.moveTo(SX + Math.cos(a) * 60, SY + Math.sin(a) * 60); g.lineTo(SX + Math.cos(a) * L * (0.8 + rs() * 0.2), SY + Math.sin(a) * L * (0.8 + rs() * 0.2)); }
-                    g.stroke();
-                    g.restore();
-                }
-                // the specks: denser mid-wisp, spread wider toward the tip
-                for (const [g, frac, v] of [[blue, 1, 0.95], [pink, 0.18, 0.8]]) {
-                    g.fillStyle = T(v); g.beginPath();
-                    for (let i = 0; i < N * frac; i++) {
-                        const a = rays[Math.floor(rs() * rays.length)], u = 0.15 + 0.85 * Math.sqrt(rs());
-                        const off = (rs() - 0.5) * (8 + u * 26), rr = 0.9 + rs() * 1.0;
-                        const x = SX + Math.cos(a) * L * u - Math.sin(a) * off, y = SY + Math.sin(a) * L * u + Math.cos(a) * off;
-                        g.moveTo(x + rr, y); g.arc(x, y, rr, 0, 7);
+            const rs = Motion.rng('hbw' + (d % 3)), w = wob;
+            const WISPS = [
+                [[470, 292, 60], [380, 285 + w, 75], [300, 288 + w, 70], [200, 300 + w, 50], [100, 318, 30], [30, 330, 14]],
+                [[455, 335, 50], [360, 385 + w, 65], [260, 435 + w, 60], [160, 480, 40], [60, 515, 16]],
+                [[505, 270, 40], [482 + w, 180, 55], [463 + w, 90, 58], [450, -10, 60]],
+            ];
+            for (const c of WISPS) {
+                const band = U.ribbon(c, { taper: 0.12, n: 30 });
+                for (const [g, v] of [[blue, 1], [yellow, 0.7]]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(v); U.path(g, band); g.fill(); g.restore(); }
+                // specks: sample along the centreline, scattered across the local width
+                const L = c.length - 1;
+                for (const [g, frac, v] of [[blue, 1, 0.95], [pink, 0.15, 0.8]]) {
+                    g.save(); U.path(g, band); g.clip(); g.fillStyle = T(v); g.beginPath();
+                    for (let i = 0; i < 1700 * frac; i++) {
+                        const u = rs() * L, k = Math.min(L - 1, Math.floor(u)), f = u - k;
+                        const x = c[k][0] + (c[k + 1][0] - c[k][0]) * f, y = c[k][1] + (c[k + 1][1] - c[k][1]) * f, wd = c[k][2] + (c[k + 1][2] - c[k][2]) * f;
+                        const px = x + (rs() - 0.5) * wd * 1.1, py = y + (rs() - 0.5) * wd * 1.1, rr = 0.9 + rs() * 0.9;
+                        g.moveTo(px + rr, py); g.arc(px, py, rr, 0, 7);
                     }
-                    g.fill();
+                    g.fill(); g.restore();
                 }
             }
         }
