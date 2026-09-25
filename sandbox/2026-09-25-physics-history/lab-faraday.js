@@ -258,15 +258,16 @@ const FarLab = (() => {
                 put(press, circle(px, -8, 8), BRASS_SH); // the terminal
             }
             if (spark > 0) {
-                // a bright, forking thread between the knobs, a small hard halo, a few sparks
+                // a jagged white arc between the knobs, a big hard halo of paper (knocked out),
+                // rays and flying sparks: the discovery's moment must read at a glance
                 const rs = Motion.rng('spark' + Math.floor(t * 24)), pts = [[-GAP.gap / 2, -GAP.y]];
-                for (let i = 1; i < 6; i++) pts.push([-GAP.gap / 2 + (GAP.gap * i) / 6, -GAP.y + (rs() - 0.5) * 10]);
+                for (let i = 1; i < 7; i++) pts.push([-GAP.gap / 2 + (GAP.gap * i) / 7, -GAP.y + (rs() - 0.5) * 22]);
                 pts.push([GAP.gap / 2, -GAP.y]);
-                put(press, circle(0, -GAP.y, 22), { 'blue.s': 0.45, 'yellow.s': 0.3 });
-                put(press, circle(0, -GAP.y, 12), { 'blue.s': 0.25, yellow: 0.5 });
-                for (let k = 0; k < 6; k++) { const a = rs() * 6.28, l = 16 + rs() * 22; line(press, [[Math.cos(a) * 8, -GAP.y + Math.sin(a) * 8], [Math.cos(a) * l, -GAP.y + Math.sin(a) * l]], taper(2.4, 0.1, 0.9), { yellow: 0.8, 'blue.s': 0.3 }); }
-                line(press, pts, 4, { yellow: 0.5, 'blue.s': 0.4 });
-                press.knockout((g) => { Ph.poly(g, Ph.outline(pts, 1.8)); g.fill(); });
+                press.knockout((g) => { g.fillStyle = Riso.radial(g, 0, -GAP.y, 6, 260, 0.95, 0); g.beginPath(); g.arc(0, -GAP.y, 260, 0, 6.2832); g.fill(); });
+                ink(press, circle(0, -GAP.y, 260), { 'blue.s': (g) => Riso.radial(g, 0, -GAP.y, 20, 260, 0.35, 0), 'yellow.s': (g) => Riso.radial(g, 0, -GAP.y, 4, 60, 0.5, 0) });
+                for (let k = 0; k < 10; k++) { const a = rs() * 6.28, l = 40 + rs() * 70; line(press, [[Math.cos(a) * 14, -GAP.y + Math.sin(a) * 14], [Math.cos(a) * l, -GAP.y + Math.sin(a) * l]], taper(3.4, 0.1, 0.9), { yellow: 0.9, 'blue.s': 0.2 }); }
+                line(press, pts, 9, { yellow: 0.6, 'blue.s': 0.5 });
+                press.knockout((g) => { Ph.poly(g, Ph.outline(pts, 4)); g.fill(); });
             }
         });
     }

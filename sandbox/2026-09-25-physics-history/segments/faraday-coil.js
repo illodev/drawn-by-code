@@ -290,7 +290,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         if (lab) FarLab.leads(press, C);
         Coil3D.wire(press, C, pts, CW, { ay: AX, between: () => { labMagnet(press, C, t, st); } });
         if (lab) {
-            FarLab.sparkGap(press, C, st.sim.emf(t) > 900 || t > T.push[0] ? 1 : 0, t);
+            FarLab.sparkGap(press, C, st.sim.emf(t) > 900 || (t >= T.spark && t < T.spark + 0.34) || t > T.push[0] ? 1 : 0, t);
             faraday(press, C, t, 'arm');
             // the spark's light opens into the frame: solid rings of blue-green (no fades on a riso
             // press), the brightest at the core, until the core fills it (Curie's radium glow)
