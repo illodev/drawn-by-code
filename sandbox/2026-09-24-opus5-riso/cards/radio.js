@@ -39,9 +39,9 @@ CARDS.radio = (press, t, lf) => {
         const pk = (x, y) => {
             const dx = x < 500 ? (x - 500) / 1.25 : (x - 500) / 0.95, dy = y < 640 ? (y - 640) / 0.85 : (y - 640) * 0.9;
             const r = Math.hypot(dx, dy), e = Math.max(0, r - 250);
-            return cl(0.56 * Math.exp(-Math.pow(e / 230, 1.4)));
+            return cl(0.8 * Math.exp(-Math.pow(e / 260, 1.3)));
         };
-        const bl = (x, y) => cl(0.16 - 0.6 * pk(x, y) + (y > 930 && (x < 230 || x > 770) ? 0.2 : 0));
+        const bl = (x, y) => cl(0.42 - 0.9 * pk(x, y) + (y > 930 && (x < 230 || x > 770) ? 0.1 : 0));
         lat(N, L_WALL, pk, -40, -40, 1120, WALL_B, { clear: true, rk: 0.75 });
         lat(K, L_WALL, pk, -40, -40, 1120, WALL_B);
         lat(N, L_WALLB, bl, -40, -40, 1120, WALL_B, { clear: true, rk: 0.75 });
@@ -49,8 +49,8 @@ CARDS.radio = (press, t, lf) => {
         // ------------------------------------------------------------ the table
         K.fillStyle = T(1); K.fillRect(-60, WALL_B, 1200, 200);
         const glow = (x, y) => cl(1 - Math.pow(Math.abs(x - 490) / 300, 2.2));
-        lat(Y, [5.1, 1.3, -1.3, 5.1, 0, 0], (x, y) => glow(x, y) * 1.1, -40, WALL_B, 1120, 1120, { jit: 0.05 });
-        lat(N, L_TABLE, (x, y) => 0.3 + 0.42 * (1 - glow(x, y)), -40, WALL_B, 1120, 1120);
+        lat(Y, [5.1, 1.3, -1.3, 5.1, 0, 0], (x, y) => glow(x, y) * 0.62, -40, WALL_B, 1120, 1120, { jit: 0.05 });
+        lat(N, L_TABLE, (x, y) => 0.45 + 0.3 * (1 - glow(x, y)), -40, WALL_B, 1120, 1120);
         // the front edge: a paper line, the wall above it bluer
         press.knockout((g) => { g.fillStyle = '#000'; g.fillRect(-60, WALL_B - 2, 1200, 3.5); });
         // ------------------------------------------------------------ the ribbons
@@ -104,9 +104,10 @@ CARDS.radio = (press, t, lf) => {
         // tone maps from the unmix: pink ~0.8 on the crown and the base, ~0.4 in the grille,
         // ~0.1 in the lit centre; navy ~0.15–0.4 on the front, 0.7 on the side and edges
         const inGr = (x, y) => y > 385 && y < 700 && Math.abs(x - 473) < 130 && (y > 536 || Math.hypot(x - 473, y - 536) < 130);
-        const lit = (x, y) => Math.exp(-Math.pow(Math.hypot((x - 482) / 175, (y - 785) / 95), 2.2));
-        const pkT = (x, y) => cl((inGr(x, y) ? 0.06 + 0.3 * Math.max(0, (470 - y) / 80) : y < 460 ? 0.88 : y < 700 ? 0.55 : y < 860 ? 0.55 : 0.9) * (1 - 0.9 * lit(x, y)) + (x < 300 ? 0.05 : 0));
+        const lit = (x, y) => Math.exp(-Math.pow(Math.hypot((x - 482) / 175, (y - 772) / 68), 2.2));
+        const pkT = (x, y) => cl((inGr(x, y) ? 0.1 + 0.4 * Math.min(1, Math.max(0, (490 - y) / 90)) : y < 460 ? 0.88 : y < 700 ? 0.55 : y < 860 ? 0.55 : 0.9) * (1 - 0.9 * lit(x, y)) + (x < 300 ? 0.05 : 0));
         const nvT = (x, y) => {
+            if (inGr(x, y)) return 0;
             let v = 0.18 + 0.25 * Math.max(0, (x - 600) / 90) + 0.25 * Math.max(0, (330 - x) / 60) + (y < 360 ? 0.1 : 0);
             if (y > 860) v = 0.25 + 0.3 * Math.max(0, (x - 620) / 70);
             return cl(0.75 * v * (1 - 0.75 * lit(x, y)));
@@ -141,8 +142,8 @@ CARDS.radio = (press, t, lf) => {
         K.save(); K.beginPath(); gout(K, 17); K.clip();
         // (measured at 3×: two families of fine red lines at ±45°, ~12 px apart, clean yellow
         // between them with a few red specks)
-        K.strokeStyle = T(0.95); K.lineWidth = 2.3;
-        for (let k = -50; k < 50; k++) { const x = GC + k * 17; K.beginPath(); K.moveTo(x - 420, 300); K.lineTo(x, 720); K.stroke(); K.beginPath(); K.moveTo(x + 420, 300); K.lineTo(x, 720); K.stroke(); }
+        K.strokeStyle = T(1); K.lineWidth = 1.7;
+        for (let k = -70; k < 70; k++) { const x = GC + k * 12.5; K.beginPath(); K.moveTo(x - 420, 300); K.lineTo(x, 720); K.stroke(); K.beginPath(); K.moveTo(x + 420, 300); K.lineTo(x, 720); K.stroke(); }
         K.restore();
         // eight bars fanning from the hub (polar scan at r 80/110/150: -170, -148.5, -126,
         // -104, -79.5, -57, -34.3, -9.6°), widening outward 9 → 17 px
@@ -184,15 +185,16 @@ CARDS.radio = (press, t, lf) => {
             fillP(K, ribbon(arc.map(([x, y, w]) => [x - 1.5, y - 1.5, w * 0.6]), { taper: 0.3 }), 0.55, false);
         }
         // ------------------------------------------------------------ the plinth
-        const PL = [[222, 953], [742, 953], [760, 930], [792, 965], [775, 992], [225, 992], [218, 972]];
-        press.knockout((g) => { path(g, PL); g.fill(); });
-        dark((g) => { path(g, PL); g.fill(); });
-        // its front face: brown (red + navy dots) with a lit top line
-        const PF = [[227, 970], [724, 970], [728, 989], [230, 989]];
+        const TIER = [[220, 942], [770, 940], [781, 950], [776, 961], [220, 962]];
+        const SLAB = [[218, 961], [746, 961], [748, 995], [220, 996]];
+        press.knockout((g) => { path(g, TIER); g.fill(); path(g, SLAB); g.fill(); });
+        dark((g) => { path(g, TIER); g.fill(); path(g, SLAB); g.fill(); });
+        const PF = [[224, 969], [741, 969], [742, 990], [226, 991]];
         for (const g of [N, B]) { clr(g); path(g, PF); g.fill(); g.restore(); }
-        fillP(K, PF, 0.9, false);
-        N.save(); path(N, PF); N.clip(); lat(N, L_CABN, () => 0.5, 220, 960, 740, 995); N.restore();
-        const PT = ribbon([[228, 967, 2.5], [480, 966, 3], [724, 967, 2.5]], { taper: 0.02 });
+        fillP(K, PF, 0.95, false);
+        N.save(); path(N, PF); N.clip(); lat(N, L_CABN, () => 0.42, 220, 960, 750, 995); N.restore();
+        const PT = ribbon([[226, 966, 2.4], [480, 965.5, 3], [740, 966, 2.4]], { taper: 0.02 });
         for (const g of [N, B, K]) { clr(g); path(g, PT); g.fill(); g.restore(); }
+        fillP(K, PT, 0.25, false);
     });
 };
