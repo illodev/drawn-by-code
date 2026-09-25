@@ -36,6 +36,7 @@ const Cat = (() => {
         // the body: haunch, back, chest
         // (up to the neck, under the head, so the head never floats free of it)
         const BODY = [[-32, 0], [-38, -32], [-30, -68], [-12, -92], [2, -104], [24, -106], [38, -92], [30, -62], [28, -30], [24, 0]];
+        if (o.spiky && !fl) { const P = Ph.sample(BODY, true, 6); for (let i = 0; i < P.length; i += 2) { const q = P[i], c = [0, -50], d = Math.hypot(q[0] - c[0], q[1] - c[1]) || 1; line(press, [q, [q[0] + (q[0] - c[0]) / d * 14 * o.spiky, q[1] + (q[1] - c[1]) / d * 14 * o.spiky]], taper(7, 0.1, 0.9), FUR); } }
         put(press, (g) => smooth(g, BODY), FUR);
         // the haunch's round and a sheen along the back
         line(press, [[-34, -30], [-28, -60], [-10, -82], [8, -84]], taper(6, 0.2, 0.3), FUR_LT, { knock: false });
@@ -72,6 +73,36 @@ const Cat = (() => {
         put(press, ellipse(pw[0] + 3, pw[1] - 1, 9, 6, o.paw ? Math.atan2(pw[1] + 58, pw[0] - 24) : 0), WHITE);
         press.restore();
     }
+    // curled up asleep on a shelf, side-on: a round loaf of fur, the head tucked on its front
+    // paws, the tail wrapped round, eyes shut; it breathes. o: { x, y (the shelf under it),
+    // s, face, t, rim }. Local units: 220 long, 90 tall, the shelf at y = 0.
+    function curl(press, o) {
+        const f = o.face ?? 1, s = o.s ?? 1, al = o.alarm ?? 0, br = (1 + 0.03 * Math.sin((o.t ?? 0) * 2.4) * (1 - al)) * (1 + 0.45 * al);
+        press.save();
+        press.each((g) => { g.translate(o.x, o.y - 14 * al); g.scale(s * f, s); });
+        const FUR = C.FUR, FUR_LT = C.FUR_LT, WHITE = C.WHITE, WHITE_SH = C.WHITE_SH;
+        // the tail: wrapped round the front asleep; straight up and bristling when startled
+        const TT = al > 0 ? [[-96, -30], [-116, -70], [-120, -120 - 20 * al], [-112, -160 - 20 * al]] : [[-96, -10], [-60, 4], [20, 6], [80, 0], [104, -10]];
+        line(press, Ph.sample(TT, false, 6), taper(16 + 8 * al, 0.1, 0.5), FUR);
+        const tt = Ph.sample(TT, false, 6);
+        line(press, tt.slice(tt.length - 4), taper(11, 0.2, 0.6), WHITE);
+        // the body: a loaf rising and falling with its breath; arched high, fur on end, if startled
+        const B = [[-104, 0], [-110, -40 * br], [-70, -82 * br], [0, -92 * br], [60, -74 * br], [80, -40], [70, 0]];
+        if (al > 0) { const P = Ph.sample(B, true, 6); for (let i = 0; i < P.length; i += 2) { const q = P[i]; if (q[1] > -6) continue; const c = [-10, -20], d = Math.hypot(q[0] - c[0], q[1] - c[1]) || 1; line(press, [q, [q[0] + (q[0] - c[0]) / d * 18 * al, q[1] + (q[1] - c[1]) / d * 18 * al]], taper(8, 0.1, 0.9), i % 4 ? FUR : FUR_LT); } }
+        put(press, (g) => smooth(g, B), FUR);
+        line(press, [[-96, -52 * br], [-60, -80 * br], [0, -88 * br], [44, -78 * br]], taper(6, 0.2, 0.3), FUR_LT, { knock: false });
+        // the head: resting on the front paws asleep, up and staring when startled
+        const hy = -30 * al;
+        put(press, (g) => poly(g, [[52, -64 + hy], [58 - 6 * al, -94 + hy + 10 * al], [72, -70 + hy]]), FUR);
+        put(press, (g) => poly(g, [[74, -70 + hy], [88 + 4 * al, -96 + hy + 12 * al], [94, -64 + hy]]), FUR);
+        put(press, (g) => smooth(g, [[46, -30 + hy], [48, -58 + hy], [70, -72 + hy], [96, -64 + hy], [108, -40 + hy], [100, -22 + hy], [74, -16 + hy]]), FUR);
+        put(press, (g) => smooth(g, [[92, -38 + hy], [108, -40 + hy], [110, -30 + hy], [98, -24 + hy]]), WHITE);
+        if (al > 0) { put(press, circle(86, -46 + hy, 7), C.EYE); put(press, circle(88, -46 + hy, 3), { navy: 1, yellow: 1 }); press.knockout(circle(89, -48 + hy, 1.2)); }
+        else line(press, [[78, -46], [86, -44], [94, -47]], 2.4, FUR_LT);
+        put(press, ellipse(86, -8, 22, 7), WHITE);
+        put(press, ellipse(60, -6, 18, 6), WHITE_SH);
+        press.restore();
+    }
     const L = (a, b, k) => a + (b - a) * k;
-    return { sit };
+    return { sit, curl };
 })();

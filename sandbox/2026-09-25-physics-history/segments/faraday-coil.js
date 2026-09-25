@@ -227,15 +227,19 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const drawn = FarLab.card(press, C, ps.H, [FK, 0, 0], [0, -FK, 0], () => {
             if (part !== 'body') return;
             // the tailcoat from the shoulders down, the waistcoat and shirt in its opening
-            const COATP = [[-120, 140], [-80, 108], [-10, 100], [50, 104], [96, 130], [120, 200], [128, 360], [120, 560], [-150, 560], [-160, 330], [-150, 200]];
+            // (he stands: the tailcoat and his legs go on down behind the bench to the floor, the
+            // bench hiding them, so no cut shows at its edge whatever the camera's height)
+            put(press, (g) => g.rect(-120, 520, 110, 140), { navy: 1, yellow: 0.9, 'blue.s': 0.3 });
+            put(press, (g) => g.rect(0, 520, 100, 140), { navy: 1, yellow: 0.9, 'blue.s': 0.4 });
+            const COATP = [[-120, 140], [-80, 108], [-10, 100], [50, 104], [96, 130], [120, 200], [128, 360], [126, 620], [118, 660], [-160, 660], [-162, 600], [-160, 330], [-150, 200]];
             put(press, (g) => smooth(g, COATP), COATC);
             press.save(); press.clip((g) => smooth(g, COATP));
-            put(press, (g) => poly(g, [[44, 104], [100, 140], [110, 330], [90, 560], [40, 560], [34, 300]]), { 'yellow.s': 0.35, 'pink.s': 0.3, 'navy.s': 0.55 });
+            put(press, (g) => poly(g, [[44, 104], [100, 140], [110, 330], [96, 660], [40, 660], [34, 300]]), { 'yellow.s': 0.35, 'pink.s': 0.3, 'navy.s': 0.55 });
             for (let i = 0; i < 6; i++) put(press, circle(88 - i * 2, 190 + i * 55, 4), { 'yellow.s': 0.6, navy: 0.4 });
             put(press, (g) => poly(g, [[40, 104], [70, 118], [80, 170], [50, 180]]), Cast.LINEN);
             put(press, (g) => poly(g, [[30, 110], [96, 140], [70, 300], [40, 220]]), COAT_DK);
-            line(press, [[36, 116], [70, 220], [76, 330]], taper(4), COAT_LIT);
-            for (const [x0, x1] of [[-120, -130], [-70, -90]]) line(press, [[x0, 200], [x1, 560]], taper(5, 0.2, 0.2), COAT_LIT);
+            line(press, [[36, 116], [70, 220], [76, 330], [80, 660]], taper(4), COAT_LIT);
+            for (const [x0, x1] of [[-120, -130], [-70, -90]]) line(press, [[x0, 200], [x1, 660]], taper(5, 0.2, 0.2), COAT_LIT);
             line(press, [[-110, 150], [-40, 118], [40, 116]], taper(9, 0.3, 0.3), COAT_LIT);
             press.restore();
             Cast.faraday(press, { headOnly: true, look: ps.look, brow: ps.brow, mouth: ps.mouth });

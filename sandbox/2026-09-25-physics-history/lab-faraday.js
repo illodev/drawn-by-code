@@ -35,7 +35,8 @@ const FarLab = (() => {
     const INKC = { navy: 1, 'pink.s': 0.4 };
 
     const GALV = { x: 330, z: -120, y: 175, r: 95, pivot: 40 };   // dial centre height; pivot below it
-    const GAP = { x: 150, z: 60, y: 92, gap: 9 };                  // the spark gap's middle
+    const GAP = { x: 150, z: 60, y: 92, gap: 9 };
+    const SPARK = 9.36;                                            // when the spark wakes the cat (segment time)                  // the spark gap's middle
 
     // a plane: O + u·U + v·V, drawn in (u, v); skipped if its centre is behind the camera
     function card(press, C, O, U, V, fn, near = 20) {
@@ -100,10 +101,16 @@ const FarLab = (() => {
             line(press, [[380, -110], [380, -170]], 5, { 'yellow.s': 0.6, 'navy.s': 0.4 });
             put(press, circle(380, -178, 12), BRASS_SH);
             glint(348, -100, 34);
-            for (const [x, c] of [[480, { 'blue.s': 0.5, yellow: 0.5, 'navy.s': 0.3 }], [550, { 'pink.s': 0.5, 'navy.s': 0.45 }], [620, GLASS]]) {
+            for (const [x, c] of [[470, { 'blue.s': 0.5, yellow: 0.5, 'navy.s': 0.3 }]]) {
                 put(press, (g) => g.rect(x, -64, 50, 64), c);
                 put(press, (g) => g.rect(x - 4, -74, 58, 12), { 'yellow.s': 0.3, 'navy.s': 0.5 });
                 glint(x + 8, -58, 30);
+            }
+            // the film's cat (cat.js), asleep on the shelf; the spark wakes it with a start
+            if (typeof Cat !== 'undefined') {
+                const wake = t > SPARK ? Ease.seg(t, SPARK, SPARK + 0.1) : 0;
+                // (a jump on the spot, then arched, fur on end, staring at the spark)
+                Cat.curl(press, { x: 690, y: -30 * Ease.bump(t, SPARK, 0.3), s: 1, face: -1, t, alarm: wake });
             }
             // retort on a stand
             line(press, [[760, 0], [760, -180]], 5, IRON);
@@ -153,9 +160,10 @@ const FarLab = (() => {
             ink(press, ellipse(700, 330, 40, 18), { 'navy.s': 0.25 });
         });
         // the front: a thick edge, a panel with drawers and brass pulls
-        card(press, C, [-1200, 0, 120], [1, 0, 0], [0, -1, 0], () => {
-            put(press, (g) => g.rect(0, 0, 2600, 40), WOOD_LT);
-            put(press, (g) => g.rect(0, 40, 2600, 700), WOOD_DK);
+        // (in tiles: one affine card this large bends wrong near the camera and leaves gaps)
+        tiled(press, C, [-1200, 0, 120], [1, 0, 0], [0, -1, 0], 0, 2600, 0, 800, 200, () => {
+            put(press, (g) => g.rect(-4, -4, 2608, 44), WOOD_LT);
+            put(press, (g) => g.rect(-4, 40, 2608, 760), WOOD_DK);
             for (let k = 0; k < 6; k++) {
                 put(press, (g) => g.rect(120 + k * 420, 70, 360, 160), WOOD);
                 line(press, [[120 + k * 420, 232], [480 + k * 420, 232]], 4, { navy: 1 });
@@ -268,5 +276,5 @@ const FarLab = (() => {
         wire([[GAP.x + 56, 2, GAP.z - 6], [GAP.x + 100, 2, GAP.z - 50], [GALV.x + 80, 2, GALV.z + 40], [GALV.x + 80, GALV.y - 60, GALV.z + 2]]);
     }
 
-    return { card, tiled, back, bench, galvanometer, sparkGap, leads, GALV, GAP };
+    return { card, tiled, back, bench, galvanometer, sparkGap, leads, GALV, GAP, SPARK };
 })();
