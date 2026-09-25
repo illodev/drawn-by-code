@@ -58,6 +58,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // Z: pixels per world unit at the eyepiece; k: the orbit round it (0.12 from the side,
     // 1 straight down the axis from behind); F lands on screen at S; rc rolls the frame
     const D0 = 6000, ZM = 14, ZF = 420 / 11;
+    const KM = 0.17;                        // the macro's orbit: the eyepiece turned towards his eye
     const FM = at(-24), FW = [800, 450];
     // between two framings, the focus moves so the screen motion is even across a log zoom
     const zPath = (u, z0, z1, f0, f1) => {
@@ -67,11 +68,11 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     function view(t) {
         if (t < T.back[0]) {
             const u = S(t, 0, T.back[0]);
-            return { Z: ZM * (1 + 0.04 * u), k: 0.3, F: FM, S: [L(830, 800, u), 470], rc: 0.36, d: D0 / ZM };
+            return { Z: ZM * (1 + 0.04 * u), k: KM, F: FM, S: [L(830, 800, u), 470], rc: 0.36, d: D0 / ZM };
         }
         if (t < T.push[0]) {
             const u = IO(S(t, T.back[0], T.back[1])), zp = zPath(u, ZM * 1.04, 1, FM, FW);
-            return { Z: zp.Z, k: L(0.3, 0.12, u), F: zp.F, S: [800, L(470, 450, u)], rc: L(0.36, 0, u), d: D0 / zp.Z };
+            return { Z: zp.Z, k: L(KM, 0.12, u), F: zp.F, S: [800, L(470, 450, u)], rc: L(0.36, 0, u), d: D0 / zp.Z };
         }
         const u = IO(S(t, T.push[0], T.push[1])), zp = zPath(u, 1, ZF, FW, E), ko = IO(S(t, T.orbit[0], T.orbit[1]));
         // closing in, the camera comes forward past his head into his place (d shrinks faster)

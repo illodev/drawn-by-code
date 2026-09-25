@@ -33,6 +33,28 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         g.restore();
         return out;
     }
+    // the opening card: the same title, simpler: printed on Galileo's night (stars twinkling),
+    // no cat; it holds, then the night stays and the letters lift off it for the first shot
+    Seg.titleIntro = {
+        T: { end: 3.0 },
+        init() { return {}; },
+        draw(press, tq) {
+            const t = tq;
+            put(press, (g) => g.rect(0, 0, 1600, 900), DEEP);
+            const r = Motion.rng('intro-stars');
+            for (let i = 0; i < 160; i++) { const x = r() * 1600, y = r() * 900, rr = 1.2 + r() * 2.4, tw = 0.6 + 0.4 * Math.sin(t * 5 + i); press.knockout((g) => { g.globalAlpha = 0.7 * tw; g.beginPath(); g.arc(x, y, rr, 0, 6.2832); g.fill(); g.globalAlpha = 1; }); }
+            const ks = S(t, 0.2, 0.7), kb = S(t, 0.45, 1.2), out = IO(S(t, 2.5, 2.9));
+            press.save(); press.each((g) => { g.translate(800, 470); g.scale(1 + 0.25 * out, 1 + 0.25 * out); g.translate(-800, -470); });
+            if (out < 1) {
+                if (ks > 0) text(press, 'A Brief History of', 800, 380, 64, { yellow: 1 - out, ...(ks > 0.5 ? { 'pink.s': 0.35 * (1 - out) } : {}) }, { align: 'center', knock: out === 0 });
+                if (kb > 0) {
+                    text(press, WORD, 808, 560 + 10, 190, { navy: 1 - out }, { align: 'center', knock: out === 0 });
+                    text(press, WORD, 800, 560, 190, { yellow: 1 - out, ...(kb > 0.45 ? { pink: 0.85 * (1 - out) } : {}) }, { align: 'center', knock: out === 0 });
+                }
+            }
+            press.restore();
+        },
+    };
     Seg.title = {
         T,
         init() { return {}; },

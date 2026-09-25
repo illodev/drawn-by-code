@@ -226,14 +226,14 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const jump = Ease.bump(t, T.spark + 0.15, 0.35);
         // as he draws the magnet out towards him he draws his body back with it, so the arm stays
         // reaching forward (a hand that close to a still body folds the elbow out behind his back)
-        const pull = Math.max(0, Math.min(1, (-95 - magX(t)) / 155)) * S(t, T.swap, T.swap + 0.01);
+        const pull = Math.max(0, Math.min(1, (-95 - magX(t)) / 155));
         const H = [-470 + lean * 140 - jump * 30 - 150 * pull, 540 - lean * 50 + jump * 10 + 12 * pull, FZ];
         const surprise = Math.max(Ease.bump(t, T.out1[1] + 0.25, 0.5), S(t, T.spark, T.spark + 0.12));
         const brow = surprise > 0.05 ? surprise : -IO(S(t, T.lean[0] + 0.2, T.lean[1])) * (1 - S(t, T.out1[0], T.out1[0] + 0.1));
         return { H, lean, brow, mouth: surprise * 0.8, look: lean > 0.3 || surprise > 0.2 ? [1, 0.2] : [1, 0.75] };
     }
     const COATC = Cast.COAT, COAT_LIT = Cast.COAT_LIT, COAT_DK = { navy: 1, yellow: 1, pink: 0.6 };
-    function faraday(press, C, t, part) {
+    function faraday(press, C, t, part, dx = 0) {
         const ps = farPose(t);
         const toW = (q) => [ps.H[0] + q[0] * FK, ps.H[1] - q[1] * FK, FZ];
         const drawn = FarLab.card(press, C, ps.H, [FK, 0, 0], [0, -FK, 0], () => {
@@ -259,7 +259,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             press.restore();
             Cast.faraday(press, { headOnly: true, look: ps.look, brow: ps.brow, mouth: ps.mouth });
         });
-        if (part !== 'arm' || !drawn) return;
+        if (part !== 'arm' || (!drawn && dx === 0)) return;
         // the near arm: shoulder (in the card) to the hand on the magnet (the magnet's frame)
         const sh3 = toW([-20, 150]);
         const sh = C.proj([sh3[0], sh3[1], FZ + 70]);
@@ -270,17 +270,24 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         // IK to the knuckles, the hand as the forearm's straight continuation: the wrist on the
         // line from the knuckles to the elbow (no bend at the wrist)
         const k = Math.hypot(J[0], J[1]);
-        const Kl = [0, -(r + 4)], K = F.apply(Kl);
-        const [el] = Fig.ik(sh, K, 240 * k, 243 * k, [sh[0] + 20 * k, sh[1] + 400 * k]);
+        const Kl = [0, -(r + 4)], K0 = F.apply(Kl);
+        // (his hand holds the magnet from the moment it leaves the coil: while he is still
+        // sliding in, the shoulder and elbow ride with his body and the sleeve stretches in from
+        // the frame's edge to the hand, which never leaves the magnet)
+        // (first the hand itself comes in from the left and closes on the magnet)
+        const dK = [-1500 * (1 - IO(S(t, 2.8, T.out[0] + 0.12))), 0], K = [K0[0] + dK[0], K0[1]];
+        const [el0] = Fig.ik(sh, K0, 240 * k, 243 * k, [sh[0] + 20 * k, sh[1] + 400 * k]);
+        const el = [el0[0] + dx + dK[0], el0[1]];
         const inv = (w) => { const det = J[0] * J[3] - J[1] * J[2], x = w[0] - o[0], y = w[1] - o[1]; return [(J[3] * x - J[2] * y) / det, (-J[1] * x + J[0] * y) / det]; };
-        const ve = inv(el), l = Math.hypot(ve[0] - Kl[0], ve[1] - Kl[1]) || 1, fa = [(ve[0] - Kl[0]) / l, (ve[1] - Kl[1]) / l];
+        const ve = inv([el[0] - dK[0], el[1] - dK[1]]), l = Math.hypot(ve[0] - Kl[0], ve[1] - Kl[1]) || 1, fa = [(ve[0] - Kl[0]) / l, (ve[1] - Kl[1]) / l];
         const Wl = [Kl[0] + fa[0] * 28, Kl[1] + fa[1] * 28];
-        const cu = F.apply([Wl[0] + fa[0] * 27, Wl[1] + fa[1] * 27]);
+        const cu0 = F.apply([Wl[0] + fa[0] * 27, Wl[1] + fa[1] * 27]), cu = [cu0[0] + dK[0], cu0[1] + dK[1]];
         const w = (u) => L(64, 44, u) * k * 0.9;
-        line(press, [sh, el, cu], (u) => w(u) + 4 * k, { navy: 1, yellow: 1, pink: 0.8 });
-        line(press, [sh, el, cu], w, COATC);
-        line(press, [[L(sh[0], el[0], 0.2), L(sh[1], el[1], 0.2) - 18 * k], [el[0], el[1] - 16 * k], [L(el[0], cu[0], 0.8), L(el[1], cu[1], 0.8) - 14 * k]], taper(5 * k, 0.2, 0.3), COAT_LIT);
-        press.save(); press.each((g) => g.transform(J[0], J[1], J[2], J[3], o[0], o[1]));
+        const shd = [sh[0] + dx + dK[0], sh[1]];
+        line(press, [shd, el, cu], (u) => w(u) + 4 * k, { navy: 1, yellow: 1, pink: 0.8 });
+        line(press, [shd, el, cu], w, COATC);
+        line(press, [[L(shd[0], el[0], 0.2), L(shd[1], el[1], 0.2) - 18 * k], [el[0], el[1] - 16 * k], [L(el[0], cu[0], 0.8), L(el[1], cu[1], 0.8) - 14 * k]], taper(5 * k, 0.2, 0.3), COAT_LIT);
+        press.save(); press.each((g) => g.transform(J[0], J[1], J[2], J[3], o[0] + dK[0], o[1] + dK[1]));
         GalHands.fist(press, r, { fa, squeeze: 0, above: true, align: true, short: true });
         press.restore();
     }
@@ -317,10 +324,9 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const pts = Coil3D.helix({ r: CR, pitch: CP, x0: -130, a0: A0, a1: AEND, ay: AX });
         if (t >= BUILD[1]) FarLab.leads(press, C);
         Coil3D.wire(press, C, pts, CW, { ay: AX, between: () => { labMagnet(press, C, t, st); } });
+        if (t >= 2.8) faraday(press, C, t, 'arm', -900 * (1 - IO(S(t, BUILD[0] + 0.45, BUILD[1]))));
         if (t >= BUILD[1] - 0.2) {
             FarLab.sparkGap(press, C, st.sim.emf(t) > 900 || (t >= T.spark && t < T.spark + 0.34) || t > T.push[0] ? 1 : 0, t);
-            // (he takes the magnet once he is in place)
-            if (t >= BUILD[1]) faraday(press, C, t, 'arm');
             // the spark's light opens into the frame: solid rings of blue-green (no fades on a riso
             // press), the brightest at the core, until the core fills it (Curie's radium glow)
             // the spark's light swells in pulses (three throbs, each bigger than the last) and the
