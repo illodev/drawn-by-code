@@ -264,3 +264,22 @@ What changed:
   - The camera pans with it, so the ground slides back while it drops: anchor x = AX − 180·z
     − (GD − 792·z)·0.36.
   - The trail streams along the same diagonal.
+
+### Round 7 (user)
+
+> El lanzamiento ahora está bien, pero tienes que corregir la dirección nueva en los demás
+> frames, la manzana va en diagonal, bien, pero de repente va para atrás xd, eso físicamente
+> no tien sentido
+
+The cause: the apple's horizontal offset was held in world units, so the zoom-out shrank it
+on screen. Its handover to the orbit also pulled it back towards the globe's centre.
+
+What changed:
+- **The apple follows one screen path.** It leaves the hand up and forward, rides near the
+  top while the world falls away, then from 6.6 falls round the finished globe in orbit.
+  Its x only grows until it passes the side of the globe.
+- **The ground only slides back,** from 800 to 780.
+- **The zoom ends at 6.6.** From there the globe holds still and the apple circles it.
+
+**Lesson:** a move that must read as forward needs a monotonic screen path. Perspective or
+zoom can make a correct world path read as backwards.

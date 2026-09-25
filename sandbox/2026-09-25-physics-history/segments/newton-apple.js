@@ -18,7 +18,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const u = 95, G = 820;
     const RW = 2.65e9;
     // the beats (120 BPM): the bonk on 1.5, the throw on 5.0; snap is set by the fall's time
-    const T = { bonk: 1.5, release: 5.0, pull: [5.05, 7.0] };
+    const T = { bonk: 1.5, release: 5.0, pull: [5.05, 6.6] }; // the zoom ends at 6.6; then the apple orbits a globe that holds still
     const APPLE_R = 30;
     const GRAV = 4080; // g in world units (1 unit ≈ 2.4 mm): 9.8 m/s²
     // ── colours ──────────────────────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
 
     // ── the pull-back (shot C) ──────────────────────────────────────────────────────────
-    const ZEND = 230 / RW;
+    const ZEND = 260 / RW; // the globe 520 px across at the end (radius 260)
     const Z0 = 1.25; // = ZK at the release // the last key of shot B's camera: the pull-back starts from it, no jump
     // smoothstep in log z: it starts sooner than a cubic ease, so the world falls away while the
     // apple still has its speed (the world height h = GD / z keeps growing)
@@ -126,12 +126,19 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const AX = [[T.release, 1025], [5.12, 1075], [5.3, 1100], [5.9, 1000]];
     const LEAN = 0.36; // the throw goes up and forward (≈ 20° from the vertical)
     const anchorY = (t) => Fig.track(AY, t) + Fig.track(GD, t);
+    // the ground under the camera: it slides back a little as the apple flies forward (never
+    // forward again), and ends as the globe's top at (780, 250)
+    const GX = [[T.release, 800], [5.3, 786], [6.6, 780], [7, 780]];
     function anchorAt(t, camB) {
-        const k = IO(S(t, T.pull[0], T.pull[1]));
-        // the ground slides back as the apple flies forward (the camera pans with it)
-        const z = zoomAt(t), rise = Fig.track(AX, t) - 180 * z - (Fig.track(GD, t) - 792 * z) * LEAN;
-        return [L(rise, 800, IO(S(t, 5.9, 6.5))), anchorY(t)];
+        return [Fig.track(GX, t), L(Fig.track(AY, t) + Fig.track(GD, t), 250, IO(S(t, 6.0, 6.6)))];
     }
+    // the apple's screen path: it leaves the hand up and forward, rides near the top while
+    // the world falls away, then (6.6 on) falls round the finished globe in orbit; x only
+    // grows until it passes the side of the globe (no going back)
+    const ORB = { c: [780, 510], r: 390, phi0: 1.12, w: 0.85 };
+    const orbitPos = (t) => { const f = ORB.phi0 + ORB.w * (t - 6.6); return [ORB.c[0] + Math.sin(f) * ORB.r, ORB.c[1] - Math.cos(f) * ORB.r]; };
+    const PATH = [[T.release, [1025, 262]], [5.12, [1075, 190]], [5.3, [1098, 166]], [6.0, [1110, 170]], [6.6, orbitPos(6.6)], [7.0, orbitPos(7.0)]];
+    const applePos = (t) => (t >= 6.6 ? orbitPos(t) : Fig.track(PATH, t));
     // terrain height along the ground (world units) as a sum of octaves: fields, hills, downs;
     // flat near Newton; the land ends at the coast (s > 1.1e8, the North Sea)
     function terrain(s) {
@@ -614,13 +621,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             }
             // the apple after the throw: screen space, with its amber trail
             if (t >= T.release) {
-                // where it is on screen: while it climbs, the camera rides with it (AX, AY: a
-                // gentle drift from the release point); from 5.9 it hands over to its place on
-                // the orbit round the globe (angle from the flight)
-                const th = st.theta;
-                const orbitAt = (tt) => { const zz = zoomAt(tt), RR = RW * zz, an = anchorAt(tt, camAB(T.pull[0], [0, 0])), CC = [an[0], an[1] + RR], rr = RR + altScreen(tt); return [CC[0] + Math.cos(th(tt)) * rr, CC[1] + Math.sin(th(tt)) * rr]; };
-                const riseAt = (tt) => [Fig.track(AX, tt), Fig.track(AY, tt)];
-                const posAt = (tt) => { const w = IO(S(tt, 5.9, 6.5)); if (w <= 0) return riseAt(tt); const a1 = riseAt(tt), b1 = orbitAt(tt); return [L(a1[0], b1[0], w), L(a1[1], b1[1], w)]; };
+                const posAt = applePos;
                 // the trail: its screen path, stretched downward by its climb while the camera
                 // rides with it (the world streaming away under it)
                 const climb = 1100 * (1 - S(t, 5.3, 6.0));
