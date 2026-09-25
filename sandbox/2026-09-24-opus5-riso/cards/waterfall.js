@@ -24,7 +24,7 @@ const DRAW_WATERFALL = (press, t) => {
     fillP(navyS, cliffL, 0.26); fillP(navyS, cliffR, 0.26);
     // the gorge behind the fall: darker (a heavier navy screen), deepest at the top
     navyS.save(); U.path(navyS, chasm); navyS.clip();
-    navyS.fillStyle = R.ramp(navyS, 0, 0, 0, 700, 0.45, 0.25); navyS.fillRect(280, 0, 470, 780); navyS.restore();
+    navyS.fillStyle = R.ramp(navyS, 0, 0, 0, 700, 0.32, 0.25); navyS.fillRect(280, 0, 470, 780); navyS.restore();
     // (the gorge is olive-brown: blue dots join the orange)
     blueS.save(); U.path(blueS, chasm); blueS.clip(); blueS.fillStyle = T(0.3); blueS.fillRect(280, 0, 470, 780); blueS.restore();
     // green moss running down the gorge walls
@@ -88,25 +88,54 @@ const DRAW_WATERFALL = (press, t) => {
         for (const [x, y, la, L, W, gr] of lv) { const g = gr ? yellow : blue; if (!gr) U.stroke(blue, [[x, y], [x + Math.cos(la) * L * 0.8, y + Math.sin(la) * L * 0.8]], 1.2, 0.6); }
         U.stroke(blue, pts, 2.6, 0.9, true);
     };
-    fr([[0, 250], [40, 300], [70, 360], [85, 430], [70, 520]], 12, 60, 11, 'f1', false);
-    fr([[0, 420], [30, 470], [40, 540], [30, 580]], 8, 55, 10, 'f2', true);
-    fr([[110, 440], [160, 480], [190, 540], [200, 620]], 10, 50, 9, 'f3', true);
-    fr([[160, 470], [220, 500], [260, 560], [270, 620]], 9, 45, 9, 'f4', false);
-    fr([[300, 110], [320, 160], [335, 220]], 7, 45, 9, 'f5', true);
-    fr([[380, 110], [360, 160], [320, 220]], 7, 40, 8, 'f6', false);
-    fr([[650, 60], [660, 110], [690, 170]], 7, 40, 8, 'f7', false);
-    fr([[730, 80], [700, 120], [660, 160]], 6, 35, 8, 'f8', true);
-    fr([[1000, 110], [960, 160], [940, 240], [950, 320]], 10, 55, 10, 'f9', true);
-    fr([[1000, 250], [970, 300], [980, 360]], 7, 45, 9, 'f10', false);
-    fr([[800, 600], [850, 620], [900, 680], [920, 740]], 9, 55, 10, 'f11', true);
-    fr([[880, 580], [930, 620], [960, 680], [980, 740]], 9, 55, 10, 'f12', false);
-    fr([[1000, 600], [960, 650], [950, 720]], 6, 40, 8, 'f13', true);
-    fr([[0, 690], [30, 720], [50, 750]], 5, 35, 8, 'f14', true);
-    fr([[40, 230], [80, 280], [100, 350], [95, 420]], 10, 55, 10, 'f15', false);
-    fr([[0, 330], [20, 390], [15, 460]], 7, 50, 10, 'f16', true);
-    fr([[930, 100], [900, 150], [890, 220], [905, 290]], 9, 50, 10, 'f17', false);
-    fr([[760, 560], [790, 610], [820, 680], [830, 740]], 8, 50, 10, 'f18', false);
-    fr([[250, 440], [230, 500], [240, 560]], 6, 40, 9, 'f19', true);
+    const WD = (typeof G3DATA !== 'undefined' && G3DATA.waterfall) || null;
+    if (WD) {
+        // measured (private/waterfall-data.js): leaflets and dark gorge-wall streaks placed per
+        // 30 px block in proportion to the reference's lemon / green / dark-green share there
+        const rq = Motion.rng('wf-q');
+        const lv = [];
+        for (let j = 3; j < 36; j++) for (let i = 0; i < 36; i++) {
+            for (const [tab, gr] of [[WD.lemon, false], [WD.green, true]]) {
+                const n = Math.round((+tab[j][i] / 10) * 900 / 190);
+                for (let k = 0; k < n; k++) {
+                    const x = (i + rq()) * 30 / 1.08, y = (j + rq()) * 30 / 1.08, side = rq() < 0.5 ? -1 : 1;
+                    lv.push([x, y, Math.PI / 2 + side * (0.6 + rq() * 0.5), (26 + rq() * 12) / 1.08, (7 + rq() * 3) / 1.08, gr]);
+                }
+            }
+        }
+        off(pinkS, (g) => { g.beginPath(); for (const [x, y, la, L, W] of lv) U.leaf(g, x, y, la, L + 1.5, W + 1, 0.06); g.fill(); });
+        off(navyS, (g) => { g.beginPath(); for (const [x, y, la, L, W] of lv) U.leaf(g, x, y, la, L + 1.5, W + 1, 0.06); g.fill(); });
+        blue.fillStyle = T(0.9); blue.beginPath(); for (const [x, y, la, L, W, gr] of lv) if (gr) U.leaf(blue, x, y, la, L, W, 0.06); blue.fill();
+        // dark-green gorge walls: vertical streaks (navy + blue over the yellow)
+        const st = [];
+        for (let j = 0; j < 36; j++) for (let i = 0; i < 36; i++) {
+            const v = +WD.dgreen[j][i] / 10;
+            if (v < 0.15) continue;
+            for (let k = 0, n = Math.max(1, Math.round(v * 3)); k < n; k++) st.push([(i + rq()) * 30 / 1.08, (j + rq() * 0.3) * 30 / 1.08, (5 + rq() * 6) / 1.08, 28 / 1.08]);
+        }
+        for (const [g, v] of [[navyS, 0.55], [blue, 0.55]]) { g.fillStyle = T(v); g.beginPath(); for (const [x, y, w, h] of st) { g.moveTo(x, y); g.ellipse(x, y + h / 2, w / 2, h / 2 + 3, 0, 0, 7); } g.fill(); }
+    } else {
+    // fallback: hand-placed fronds
+        fr([[0, 250], [40, 300], [70, 360], [85, 430], [70, 520]], 12, 60, 11, 'f1', false);
+        fr([[0, 420], [30, 470], [40, 540], [30, 580]], 8, 55, 10, 'f2', true);
+        fr([[110, 440], [160, 480], [190, 540], [200, 620]], 10, 50, 9, 'f3', true);
+        fr([[160, 470], [220, 500], [260, 560], [270, 620]], 9, 45, 9, 'f4', false);
+        fr([[300, 110], [320, 160], [335, 220]], 7, 45, 9, 'f5', true);
+        fr([[380, 110], [360, 160], [320, 220]], 7, 40, 8, 'f6', false);
+        fr([[650, 60], [660, 110], [690, 170]], 7, 40, 8, 'f7', false);
+        fr([[730, 80], [700, 120], [660, 160]], 6, 35, 8, 'f8', true);
+        fr([[1000, 110], [960, 160], [940, 240], [950, 320]], 10, 55, 10, 'f9', true);
+        fr([[1000, 250], [970, 300], [980, 360]], 7, 45, 9, 'f10', false);
+        fr([[800, 600], [850, 620], [900, 680], [920, 740]], 9, 55, 10, 'f11', true);
+        fr([[880, 580], [930, 620], [960, 680], [980, 740]], 9, 55, 10, 'f12', false);
+        fr([[1000, 600], [960, 650], [950, 720]], 6, 40, 8, 'f13', true);
+        fr([[0, 690], [30, 720], [50, 750]], 5, 35, 8, 'f14', true);
+        fr([[40, 230], [80, 280], [100, 350], [95, 420]], 10, 55, 10, 'f15', false);
+        fr([[0, 330], [20, 390], [15, 460]], 7, 50, 10, 'f16', true);
+        fr([[930, 100], [900, 150], [890, 220], [905, 290]], 9, 50, 10, 'f17', false);
+        fr([[760, 560], [790, 610], [820, 680], [830, 740]], 8, 50, 10, 'f18', false);
+        fr([[250, 440], [230, 500], [240, 560]], 6, 40, 9, 'f19', true);
+    }
 
     // ── the fall: paper, its lip a blue screen band, blue streaks, dark purple gaps below
     const fall = [[418, 152], [598, 152], [602, 260], [615, 420], [630, 560], [645, 690], [612, 720], [390, 720], [375, 690], [390, 560], [398, 420], [410, 260]];
@@ -137,8 +166,8 @@ const DRAW_WATERFALL = (press, t) => {
     for (let i = 0; i < 70; i++) U.disc(blue, 420 + rd() * 178, 196 + Math.pow(rd(), 2) * 70, 1.2 + rd() * 1.4, 0.9);
 
     // ── the pool: blue screen, a band of yellow + blue (green) at the far edge, white ripples
-    blueS.fillStyle = R.ramp(blueS, 0, POOL, 0, 1000, 0.62, 0.8); blueS.fillRect(0, POOL, 1000, 260);
-    yellowS.fillStyle = R.ramp(yellowS, 0, POOL, 0, POOL + 120, 0.45, 0); yellowS.fillRect(0, POOL, 1000, 120);
+    blueS.fillStyle = R.ramp(blueS, 0, POOL, 0, 1000, 0.66, 0.95); blueS.fillRect(0, POOL, 1000, 260);
+    yellowS.fillStyle = R.ramp(yellowS, 0, POOL, 0, POOL + 120, 0.2, 0); yellowS.fillRect(0, POOL, 1000, 120);
     // ripples: long straight white strokes fanning out, crossed
     press.knockout((g) => {
         g.lineCap = 'round';
