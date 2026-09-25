@@ -30,7 +30,8 @@ const Cat = (() => {
         line(press, [[18, -48], [20, -20], [22, -2]], taper(12, 0.2, 0.2), FUR_LT);
         put(press, ellipse(24, -3, 9, 5), WHITE_SH);
         // the body: haunch, back, chest
-        const BODY = [[-44, 0], [-52, -34], [-42, -70], [-18, -88], [10, -84], [30, -62], [36, -30], [32, 0]];
+        // (up to the neck, under the head, so the head never floats free of it)
+        const BODY = [[-44, 0], [-52, -34], [-42, -70], [-18, -90], [0, -104], [24, -106], [40, -92], [36, -62], [36, -30], [32, 0]];
         put(press, (g) => smooth(g, BODY), FUR);
         // the haunch's round and a sheen along the back
         line(press, [[-44, -30], [-36, -60], [-14, -80], [8, -80]], taper(6, 0.2, 0.3), FUR_LT, { knock: false });
