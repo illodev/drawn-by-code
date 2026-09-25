@@ -10,15 +10,18 @@
 // pink with the navy cleared under each dot) between dark bones; the sea = navy + a yellow
 // screen. The reference holds the drawing still for the whole card. Needs _group2-util.js.
 var CARDS = CARDS || {};
-CARDS.bats = (press, t) => {
+CARDS.bats = (press, t, lf) => {
     const { T, px, poly, disc, inside, blob, blobPath, curve, taper, spline, speckle, lat, lerpT, field } = G2;
     const P = (ink, k) => press.plate(ink, k);
     const yellow = P('yellow'), yellowS = P('yellow', 'screen'), pink = P('pink'), blue = P('blue'), navy = P('navy');
     const SKY_N = [10.05, 0.2594, 633.41, 229.2], SKY_P = [10.05, -0.2569, 814.5, 724.6];
     const ROCK = [8.04, 0.2621, 162.25, 586.95], WING = [6.03, 0.2618, 753.8, 371.5];
+    // the camera pushes in ≈ 0.4 % a frame about (560, 560) px (frames 186 → 191: × 1.02)
+    const zs = 1 + 0.004 * (lf ?? Math.floor(t * 24));
     px(press, () => {
+        press.save(); press.each((g) => { g.translate(560, 560); g.scale(zs, zs); g.translate(-560, -560); });
         // ---- the sky (profiles measured every 40 px down the right edge)
-        pink.fillStyle = T(1); pink.fillRect(0, 0, 1080, 390);
+        pink.fillStyle = T(0.85); pink.fillRect(0, 0, 1080, 390); // (G ≈ 55–70 on the reference: the pink is not full)
         lat(SKY_P, (x, y) => lerpT([[380, 1.2], [420, 0.85], [480, 0.75], [600, 0.62], [760, 0.44], [860, 0.4]], y), pink, [0, 370, 1080, 1080]);
         lat(SKY_N, (x, y) => lerpT([[0, 0.62], [150, 0.55], [250, 0.38], [330, 0.16], [400, 0]], y), navy, [0, 0, 1080, 420]);
         const gy = yellow.createLinearGradient(0, 380, 0, 720);
@@ -28,13 +31,13 @@ CARDS.bats = (press, t) => {
         // ---- the sea (right, below the horizon): navy + a yellow screen, ragged top
         const sea = [[660, 1080], [672, 870], [700, 858], [760, 862], [820, 850], [900, 856], [960, 842], [1020, 846], [1080, 836], [1080, 1080]];
         press.knockout((g) => { G2.path(g, sea); g.fill(); });
-        poly(navy, sea, 1); inside(yellowS, (g) => G2.path(g, sea), (g) => { g.fillStyle = T(0.3); g.fillRect(600, 800, 480, 280); });
-        speckle(pink, 'sea', 660, 850, 1080, 1080, 300, 0.6, 1.5, 0.7);
+        poly(navy, sea, 1); inside(yellowS, (g) => G2.path(g, sea), (g) => { g.fillStyle = T(0.08); g.fillRect(600, 800, 480, 280); });
+        speckle(pink, 'sea', 660, 850, 1080, 1080, 300, 0.6, 1.5, 0.7); poly(pink, sea, 0.15); // (sea ≈ (58, 47, 110): navy with a little pink)
         // ---- the cliff: red, navy dots everywhere, merging into purple bands
         const cliff = [[0, 320], [50, 281], [100, 272], [150, 285], [231, 342], [300, 361], [350, 396], [400, 450], [438, 473], [461, 511], [492, 538], [512, 588], [538, 642], [573, 681], [600, 723], [623, 788], [654, 842], [681, 881], [700, 942], [738, 1011], [762, 1080], [0, 1080]];
         const cp = (g) => G2.path(g, cliff);
         press.knockout((g) => { cp(g); g.fill(); });
-        inside(pink, cp, (g) => { g.fillStyle = T(1); g.fillRect(0, 250, 800, 830); });
+        inside(pink, cp, (g) => { g.fillStyle = T(0.88); g.fillRect(0, 250, 800, 830); });
         inside(yellow, cp, (g) => { g.fillStyle = T(1); g.fillRect(0, 250, 800, 830); });
         // the purple bands: navy dots over pink with the yellow gone (measured ≈ [78, 51, 82])
         // (laid out from a 20 px map of the reference's cliff: purple where blue ≥ 0.85 red)
@@ -162,5 +165,6 @@ CARDS.bats = (press, t) => {
         arcs(360, 250, [[233, -2.09, -1.44], [203, -2.07, -1.47], [178, -2.05, -1.5], [150, -2.04, -1.57]], 6);
         arcs(830, 440, [[328, -1.77, -0.86], [293, -1.76, -0.93], [258, -1.74, -1.0], [222, -1.73, -1.07], [180, -1.71, -1.13]], 6.5);
         arcs(955, 690, [[185, -2.0, -1.2], [160, -1.98, -1.25], [135, -1.95, -1.3], [110, -1.9, -1.35]], 5);
+        press.restore();
     });
 };
