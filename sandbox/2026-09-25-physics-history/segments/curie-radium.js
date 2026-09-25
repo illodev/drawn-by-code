@@ -51,7 +51,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         // (a drift wide enough that the depths visibly slide past each other)
         const z = 1 + (c.Z - 1) * p, dx = (c.drift - 0.5) * -380 * (p - 1) * 2 + (c.drift - 0.5) * -150 * p;
         press.save();
-        press.each((g) => { g.translate(c.S[0] + dx, c.S[1]); g.scale(z, z); g.translate(-c.F[0], -c.F[1]); });
+        press.each((g) => { g.translate(c.S[0] + dx + (c.px ?? 0) * Math.min(1, p), c.S[1] + (c.py ?? 0) * Math.min(1, p)); g.scale(z, z); g.translate(-c.F[0], -c.F[1]); });
         fn();
         press.restore();
     }
@@ -199,20 +199,20 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         }
     }
     // the chosen particle: out of the tube to the frame's centre, then stretched into the ray
-    function ray(press, t) {
-        const u = S(t, T.ray[0] - 0.5, T.ray[0]);
-        if (u <= 0) return;
-        const p = [L(TB[0], 800, IO(u)), L(TB[1] + 30, 450, IO(u))];
-        // it stretches to the right first, away from her; only once the shed has gone wholly
-        // dark does it reach back to the left edge (the full-width ray Einstein's scene opens on)
-        const kr = IO(S(t, T.ray[0], T.ray[0] + 0.45)), kl = IO(S(t, T.ray[0] + 0.5, T.ray[1]));
-        const x1 = L(p[0], 1640, kr), x0 = L(p[0], -40, kl), w = L(12, 10, kr);
-        press.knockout((g) => { g.fillStyle = Riso.radial(g, p[0], p[1], 2, 140, 0.8, 0); g.beginPath(); g.arc(p[0], p[1], 140, 0, 6.2832); g.fill(); });
-        if (x1 - x0 > 4) {
-            press.knockout((g) => { g.beginPath(); g.rect(x0, 450 - w * 2, x1 - x0, w * 4); g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1; });
-            put(press, (g) => g.rect(x0, 450 - w / 2, x1 - x0, w), AMBER);
-        }
-        put(press, circle(p[0], p[1], L(7, 9, kr)), { yellow: 1, 'pink.s': 0.3 });
+    // the ray: born at the tube's mouth, it shoots out to the right (in her plane's units,
+    // drawn inside its layer, so it stays on the tube whatever the camera does); the camera
+    // swings after its head, dropping it to the frame's middle, and the tail runs back off the
+    // left edge once the shed is dark: the full-width ray Einstein's scene opens on
+    const TIP = [TB[0], TB[1] - TL / 2 - 4];
+    const headX = (t) => TIP[0] + 3600 * Math.pow(S(t, T.ray[0], T.end + 0.4), 1.6);
+    const tailX = (t) => TIP[0] - 3000 * IO(S(t, T.ray[1] - 0.3, T.end));
+    function ray(press, t, z) {
+        if (t < T.ray[0]) return;
+        const x1 = headX(t), x0 = tailX(t), y = TIP[1], w = 10 / z;
+        press.knockout((g) => { g.fillStyle = Riso.radial(g, TIP[0], y, 2, 120 / z, 0.8 * (1 - S(t, T.ray[0], T.ray[0] + 0.5)), 0); g.beginPath(); g.arc(TIP[0], y, 120 / z, 0, 6.2832); g.fill(); });
+        press.knockout((g) => { g.beginPath(); g.rect(x0, y - w * 2, x1 - x0, w * 4); g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1; });
+        put(press, (g) => g.rect(x0, y - w / 2, x1 - x0, w), AMBER);
+        put(press, circle(x1, y, 9 / z), { yellow: 1, 'pink.s': 0.3 });
     }
 
     // the spark's (the radium's) light as a glow, not a target: paper knocked out through a soft
@@ -231,30 +231,36 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         init() { return {}; },
         draw(press, tq) {
             const t = tq, c = cam(t);
+            // the camera following the ray: pan so its head never runs past a line that itself
+            // slides to the right edge, and tilt so the ray settles at the frame's middle
+            if (t > T.ray[0]) {
+                const z = c.Z, dx = (c.drift - 0.5) * -150, sx = (x) => c.S[0] + dx + (x - c.F[0]) * z, sy = c.S[1] + (TIP[1] - c.F[1]) * z;
+                const lim = L(1150, 1700, IO(S(t, T.ray[1] - 0.2, T.end)));
+                c.px = Math.min(0, lim - sx(headX(t)));
+                c.py = (450 - sy) * IO(S(t, T.ray[0] + 0.1, T.ray[1]));
+            }
             layer(press, c, 0.7, () => shed(press, t));
             layer(press, c, 1, () => {
                 const wr = [TB[0] - 125 * 0.53 * Math.cos(-0.35) + 7 * 0.53 * Math.sin(-0.35), TB[1] + TL * 0.36 - 125 * 0.53 * Math.sin(-0.35) + 7 * 0.53 * Math.cos(-0.35)];
                 marie(press, t, [wr[0] - 60, wr[1] + 330], wr);
                 tube(press, t, 1);
                 hand(press, { t });
+                particles(press, t);
             });
             // the ray's moment: the shed goes dark round it (inks only darken: a veil of the
             // night's navy thickening over everything but the ray)
             // (it ends opaque, in Einstein's ground: she is gone whole, never seen through)
-            const dk = IO(S(t, T.ray[0] - 0.35, T.ray[0] + 0.45));
+            const dk = IO(S(t, T.ray[0] + 0.1, T.ray[1] + 0.1));
             if (dk >= 1) put(press, (g) => g.rect(0, 0, 1600, 900), { blue: 0.9, 'navy.s': 0.92, 'pink.s': 0.2 });
             else if (dk > 0) ink(press, (g) => g.rect(0, 0, 1600, 900), { navy: 0.92 * dk, 'blue.s': 0.5 * dk });
             // the frame full of light at the start (the join with Faraday's spark): its glow
-            // shrinks back into the tube's glow as the camera pulls out
+            // shrinks back into the tube's glow as the camera pulls out (drawn in her plane, so
+            // it sits on the tube)
             const f = (1 - S(t, 0, 0.85)) * (1 + 0.1 * Math.sin(t * 16) * (1 - S(t, 0, 0.85)));
-            if (f > 0) {
-                // centred on the tube's glow wherever the camera has it
-                const zz = c.Z, q = [c.S[0] + (TB[0] - c.F[0]) * zz, c.S[1] + (TB[1] - 20 - c.F[1]) * zz];
-                lightGlow(press, q, Math.exp(L(Math.log(40), Math.log(2400), Math.min(1, f * 1.08))), t + 11.2);
-                // (the light still throbs as it shrinks back: the tube's pulse)
-            }
-            particles(press, t);
-            ray(press, t);
+            layer(press, c, 1, () => {
+                if (f > 0) lightGlow(press, [TB[0], TB[1] + 20], Math.exp(L(Math.log(40), Math.log(2400), Math.min(1, f * 1.08))) / c.Z, t + 11.2);
+                ray(press, t, c.Z);
+            });
         },
     };
 })();
