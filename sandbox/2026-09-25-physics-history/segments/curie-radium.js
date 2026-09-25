@@ -209,14 +209,13 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             else if (dk > 0) ink(press, (g) => g.rect(0, 0, 1600, 900), { navy: 0.92 * dk, 'blue.s': 0.5 * dk });
             // the frame full of light at the start (the join with Faraday's spark): rings of
             // blue-green that shrink back into the tube's glow as the camera pulls out
-            const f = 1 - S(t, 0, 1.2);
+            const f = (1 - S(t, 0, 1.2)) * (1 + 0.1 * Math.sin(t * 16) * (1 - S(t, 0, 1.2)));
             if (f > 0) {
                 const RING = [{ blue: 0.9, 'navy.s': 0.35 }, { blue: 0.75, 'yellow.s': 0.2 }, { blue: 0.55, yellow: 0.5 }, { 'blue.s': 0.35, yellow: 0.85 }, { yellow: 1, 'pink.s': 0.12 }];
                 // centred on the tube's glow wherever the camera has it
                 const zz = c.Z, q = [c.S[0] + (TB[0] - c.F[0]) * zz, c.S[1] + (TB[1] - 20 - c.F[1]) * zz];
                 RING.forEach((spec, i) => { const r = Math.exp(L(Math.log(8), Math.log(2600), Math.min(1, f * 1.15 - i * 0.07))); if (f * 1.15 - i * 0.07 > 0) put(press, circle(q[0], q[1], r * (1 - i * 0.16)), spec); });
-                // the same turning rays as Faraday's light, fading as it shrinks back into the tube
-                for (let i = 0; i < 16; i++) { const a = i * 0.3927 + (t + 11.2) * 0.35, w = 0.06 + 0.04 * Math.sin(i * 2.1); press.knockout((g) => { g.beginPath(); g.moveTo(q[0], q[1]); g.arc(q[0], q[1], 2600, a - w, a + w); g.closePath(); g.globalAlpha = 0.22 * S(f, 0.3, 0.7); g.fill(); g.globalAlpha = 1; }); }
+                // (the light still throbs as it shrinks back: the tube's pulse)
             }
             particles(press, t);
             ray(press, t);

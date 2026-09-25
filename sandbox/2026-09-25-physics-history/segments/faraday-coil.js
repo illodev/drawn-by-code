@@ -153,11 +153,16 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const CAMK = () => {
         const a = camA(2.8), e = toLab(a.C.eye);
         return {
-            pre: [[2.8, e, [0, AX, 0], a.C.flen], [3.5, [430, 150, 430], [30, AX, 0], 1300], [4.0, [300, AX + 2, 4], [0, AX, 0], 650], [T.swap, [60, AX + 5, 2], [-200, AX + 1, 0], 650]],
-            post: [[T.swap, [-215, 150, 300], [-250, 120, 0], 1000], [5.2, [-170, 170, 440], [-220, 150, -40], 1050], [6.4, ...FIN], [T.push[0], ...FIN],
+            pre: [[2.8, e, [0, AX, 0], a.C.flen], [T.swap, LAB0[0], LAB0[1], LAB0[2]]],
+            post: [[T.swap, ...LAB0], [5.2, ...LAB0], [6.4, ...FIN], [T.push[0], ...FIN],
                 [T.push[1], [FarLab.GAP.x + 6, FarLab.GAP.y + 8, FarLab.GAP.z + 70], [FarLab.GAP.x, FarLab.GAP.y, FarLab.GAP.z], 900]],
         };
     };
+    // the coil never turns: the camera keeps its side view of the coil wound round the Earth and
+    // eases to the lab's framing while the laboratory assembles round it (the bench rises
+    // under it, the wall comes down behind, Faraday steps in and takes the magnet)
+    const LAB0 = [[-170, 170, 440], [-220, 150, -40], 1050];
+    const BUILD = [3.1, 4.3];
     let CK = null;
     function camB(t) {
         CK = CK ?? CAMK();
@@ -278,42 +283,48 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
 
     function phaseLab(press, t, st) {
-        const C = camB(t), lab = t >= T.swap;
-        if (lab) FarLab.back(press, C, t); else starsB(press, t, C);
-        if (lab) { faraday(press, C, t, 'body'); FarLab.bench(press, C, t); FarLab.galvanometer(press, C, st.sim.theta(t), t); }
+        const C = camB(t), lab = t >= BUILD[0];
+        // the set assembling: each piece slides into place in screen space, on its own timing
+        const bk = (a, b) => IO(S(t, a, b));
+        const slide = (dx, dy, fn) => { if (dx === 0 && dy === 0) return fn(); press.save(); press.each((g) => g.translate(dx, dy)); fn(); press.restore(); };
+        const kWall = bk(BUILD[0], BUILD[0] + 0.7), kBench = bk(BUILD[0] + 0.15, BUILD[0] + 0.85), kFar = bk(BUILD[0] + 0.45, BUILD[1]);
+        starsB(press, t, C);
+        if (lab) {
+            slide(0, -1000 * (1 - kWall), () => { put(press, (g) => g.rect(0, -60, 1600, 1020), { navy: 1, 'pink.s': 0.45, 'blue.s': 0.3 }); FarLab.back(press, C, t); });
+            slide(-900 * (1 - kFar), 0, () => faraday(press, C, t, 'body'));
+            slide(0, 900 * (1 - kBench), () => { FarLab.bench(press, C, t); FarLab.galvanometer(press, C, st.sim.theta(t), t); });
+        }
         // the field lines retract into the magnet after the switch
-        const fg = lab ? 1 - IO(S(t, T.swap, T.swap + 0.8)) : 1;
+        const fg = 1 - IO(S(t, T.swap, T.swap + 0.8));
         if (fg > 0) {
             const cols = [{ pink: 0.8 }, { yellow: 0.9 }, { 'blue.s': 0.7, 'yellow.s': 0.2 }, { 'pink.s': 0.6, yellow: 0.6 }], cyc = Math.floor(t * 6);
             Coil3D.dipole(press, C, { ay: AX, c: magX(t), Ls: [1.3, 1.8, 2.6, 3.8].map((q) => q * MH), az: [0, 1, 2, 3].map((i) => (i / 4) * 2 * Math.PI + 0.4 + t * 0.6), spec: (li) => cols[(li + cyc) % 4], w: 3.4, grow: fg, flow: t * 3, dash: { yellow: 1, 'pink.s': 0.2 } });
         }
         const pts = Coil3D.helix({ r: CR, pitch: CP, x0: -130, a0: A0, a1: AEND, ay: AX });
-        if (lab) FarLab.leads(press, C);
+        if (t >= BUILD[1]) FarLab.leads(press, C);
         Coil3D.wire(press, C, pts, CW, { ay: AX, between: () => { labMagnet(press, C, t, st); } });
-        if (lab) {
+        if (t >= BUILD[1] - 0.2) {
             FarLab.sparkGap(press, C, st.sim.emf(t) > 900 || (t >= T.spark && t < T.spark + 0.34) || t > T.push[0] ? 1 : 0, t);
-            faraday(press, C, t, 'arm');
+            // (he takes the magnet once he is in place)
+            if (t >= BUILD[1]) faraday(press, C, t, 'arm');
             // the spark's light opens into the frame: solid rings of blue-green (no fades on a riso
             // press), the brightest at the core, until the core fills it (Curie's radium glow)
-            const gl = IO(S(t, T.push[0], T.push[1]));
+            // the spark's light swells in pulses (three throbs, each bigger than the last) and the
+            // third one takes the frame: we go into it
+            const PULSES = [T.push[0], T.push[0] + 0.45, T.push[0] + 0.9], LV = [0.42, 0.7, 1.08];
+            let gl = 0;
+            PULSES.forEach((p0, i) => { if (t >= p0) { const u = t - p0, up = IO(Math.min(1, u / 0.14)), back = i < 2 ? 0.12 * IO(Math.min(1, Math.max(0, (u - 0.14) / 0.3))) : 0; gl = LV[i] * up - back + (i ? (LV[i - 1] - 0.12) * (1 - up) : 0); } });
             if (gl > 0) {
                 const q = C.proj([FarLab.GAP.x, FarLab.GAP.y, FarLab.GAP.z]);
                 const RING = [{ blue: 0.9, 'navy.s': 0.35 }, { blue: 0.75, 'yellow.s': 0.2 }, { blue: 0.55, yellow: 0.5 }, { 'blue.s': 0.35, yellow: 0.85 }, { yellow: 1, 'pink.s': 0.12 }];
                 RING.forEach((spec, i) => {
-                    const r = Math.exp(L(Math.log(8), Math.log(2600), Math.min(1, gl * 1.15 - i * 0.07)));
-                    if (gl * 1.15 - i * 0.07 > 0) put(press, circle(q[0], q[1], r * (1 - i * 0.16)), spec);
+                    const k = Math.min(1, gl - i * 0.06);
+                    if (k > 0) put(press, circle(q[0], q[1], Math.exp(L(Math.log(8), Math.log(2600), k)) * (1 - i * 0.16)), spec);
                 });
-                // light rays turning out from the core, and motes of dust caught in them, so the
-                // frame full of light has texture, never a flat target
-                if (gl > 0.25) {
-                    const rk = S(gl, 0.25, 0.6);
-                    for (let i = 0; i < 16; i++) { const a = i * 0.3927 + t * 0.35, w = 0.06 + 0.04 * Math.sin(i * 2.1); press.knockout((g) => { g.beginPath(); g.moveTo(q[0], q[1]); g.arc(q[0], q[1], 2600, a - w, a + w); g.closePath(); g.globalAlpha = 0.22 * rk; g.fill(); g.globalAlpha = 1; }); }
-                    const rd = Motion.rng('motes');
-                    for (let i = 0; i < 40; i++) { const a = rd() * 6.28, d0 = rd() * 900, d = d0 + (t - T.push[0]) * (60 + rd() * 120), rr = 2 + rd() * 4; put(press, circle(q[0] + Math.cos(a) * d, q[1] + Math.sin(a) * d, rr * rk), { yellow: 0.9, 'pink.s': 0.2 }); }
-                }
+                // each throb's leading edge: a bright rim of paper running out ahead of the light
+                PULSES.forEach((p0) => { const u = (t - p0) / 0.25; if (u > 0 && u < 1) { const r = Math.exp(L(Math.log(40), Math.log(2600), Math.min(1, gl + 0.08))); press.knockout((g) => { g.beginPath(); g.arc(q[0], q[1], r, 0, 6.2832); g.arc(q[0], q[1], r * 0.93, 0, 6.2832, true); g.globalAlpha = 0.8 * (1 - u); g.fill('evenodd'); g.globalAlpha = 1; }); } });
             }
         }
-        iris(press, t);
     }
 
     Seg.faradayCoil = {
