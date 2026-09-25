@@ -288,12 +288,13 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         line(press, Ph.sample([[364, 470], [378, 446], [392, 470], [378, 494]], true, 6), 4, BARK_LT);
         press.restore();
         // branches with twigs
-        const BR = [[[340, 180], [180, -60], [60, -250]], [[370, 150], [480, -80], [600, -220]], [[350, 120], [380, -150], [420, -330]], [[330, 200], [120, 60], [-80, 20]], [[395, 250], [560, 170], [680, 120]]];
+        const BR = [[[340, 180], [180, -60], [60, -250]], [[370, 150], [480, -80], [600, -220]], [[350, 120], [380, -150], [420, -330]], [[330, 200], [120, 60], [-80, 20]], [[395, 250], [500, 196], [570, 168]]];
         for (const pts of BR) {
             line(press, pts, taper(34, 0.05, 0.6), BARK);
             line(press, pts.map(([x, y]) => [x + 4, y - 8]), taper(8, 0.1, 0.6), BARK_LT);
             const e = pts[2], m = pts[1];
-            for (const [dx, dy] of [[-50, -60], [60, -50], [20, -90]]) line(press, [LPt(m, e, 0.6), [e[0] + dx, e[1] + dy]], taper(8, 0.05, 0.8), BARK);
+            // (the low branch over where he stands ends short and bare: no twigs by his head)
+            if (e[0] !== 570) for (const [dx, dy] of [[-50, -60], [60, -50], [20, -90]]) line(press, [LPt(m, e, 0.6), [e[0] + dx, e[1] + dy]], taper(8, 0.05, 0.8), BARK);
         }
         // canopy: clusters (dark underneath, lit at the top right), each rimmed with leaves
         const r = Motion.rng('canopy');
