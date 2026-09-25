@@ -69,3 +69,5 @@ The committed film is the described version: cards read their grids and traces f
 `private/<card>-data.js` (gitignored); without them they draw from committed, described
 tones and shapes, and score a few points worse. Earlier commits in this round still carry
 some scan tables in the git history (G5's first commits and others moved later).
+
+User: «Lo doy por bueno.» Approved at this state; no round cap added to CLAUDE.md, git history left as is.
