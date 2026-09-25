@@ -108,16 +108,18 @@ const FarLab = (() => {
             }
             // the film's cat (cat.js), asleep on the shelf; the spark wakes it with a start
             if (typeof Cat !== 'undefined') {
-                const wake = t > SPARK ? Ease.seg(t, SPARK, SPARK + 0.1) : 0;
+                // (the needle's first kick makes it lift its head and stare; it settles; it looks
+                // up again as the magnet goes in the last time, so the spark finds it awake)
+                const wake = Math.max(0.4 * Ease.bump(t, 6.9, 1.0), 0.45 * Ease.seg(t, SPARK - 0.3, SPARK - 0.1), t > SPARK ? Ease.seg(t, SPARK, SPARK + 0.1) : 0);
                 // (a jump on the spot, then arched, fur on end, staring at the spark)
-                Cat.curl(press, { x: 690, y: -30 * Ease.bump(t, SPARK, 0.3), s: 1, face: -1, t, alarm: wake });
+                Cat.curl(press, { x: 690, y: -55 * Ease.bump(t, SPARK, 0.3), s: 1, face: -1, t, alarm: wake, rim: { d: [-4, -4], spec: { yellow: 0.8, 'pink.s': 0.45 } } });
             }
-            // retort on a stand
-            line(press, [[760, 0], [760, -180]], 5, IRON);
-            line(press, [[760, -120], [800, -120]], 4, IRON);
-            put(press, circle(820, -100, 34), GLASS);
-            line(press, [[840, -120], [930, -160], [990, -150]], taper(10, 0.1, 0.8), GLASS);
-            glint(806, -118, 20);
+            // retort on a stand, clear of the cat's tail
+            line(press, [[850, 0], [850, -180]], 5, IRON);
+            line(press, [[850, -120], [890, -120]], 4, IRON);
+            put(press, circle(910, -100, 34), GLASS);
+            line(press, [[930, -120], [1020, -160], [1080, -150]], taper(10, 0.1, 0.8), GLASS);
+            glint(896, -118, 20);
             // a hank of copper wire hanging from a peg under the shelf
             line(press, [[900, 22], [900, 44]], 6, WOOD_DK);
             for (let i = 0; i < 7; i++) {
