@@ -60,6 +60,7 @@ It never lies along the bar or on top of the fingers' side.
   - little 24/16/14 (it ends at the ring finger's last joint).
 - Finger widths: 13 to 16.5.
 - Thumb: 20 wide, phalanges 24 and 21, its root at the heel of the palm.
+- A woman's hand is smaller: about 0.85 of these sizes (and slimmer fingers).
 - The whole hand is about the face's height, from chin to hairline. A hand smaller than
   the object it holds is almost always wrong.
 
