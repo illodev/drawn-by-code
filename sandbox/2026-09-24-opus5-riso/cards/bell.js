@@ -7,33 +7,46 @@
 // (dark brown-green) with red lines where the navy is knocked out; the bell's highlight a
 // navy screen ramp; sea = pink + navy screens above, navy solid + pink screen below.
 var CARDS = CARDS || {};
-CARDS.bell = (press, t) => {
+CARDS.bell = (press, t, lf, o = {}) => {
     const { T, fill, stroke, taper, smoothPath, polyPath, clipped, specks } = G1;
     const P = (ink, k) => press.plate(ink, k);
     const pink = P('pink'), pinkS = P('pink', 'screen'), yellow = P('yellow'), yellowS = P('yellow', 'screen');
     const blue = P('blue'), blueS = P('blue', 'screen'), navy = P('navy'), navyS = P('navy', 'screen');
     const erase = (g, fn) => { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; g.strokeStyle = '#000'; g.lineCap = 'round'; fn(g); g.restore(); };
     const d = Math.floor(t * 12 + 1e-6);
-    // the bell swings away after the strike (it sits still for the first three drawings)
-    const swing = [0, 0, 0, -0.006, -0.014, -0.022, -0.028, -0.031][Math.min(d, 7)];
-    const CX = 420, CY = 560; // centre of the sound arcs
-    const arcsPath = (g, w) => { g.lineWidth = w; for (let k = 0; k < 11; k++) { g.beginPath(); g.arc(CX, CY, 285 + k * 76, 0, Math.PI * 2); g.stroke(); } };
-    const seaTop = [[-10, 822], [40, 812], [90, 818], [150, 806], [200, 815], [700, 812], [735, 792], [770, 800], [805, 752], [840, 764], [880, 748], [930, 760], [980, 742], [1030, 752], [1090, 728], [1090, 1090], [-10, 1090]];
-    const seaLow = [[-10, 962], [60, 955], [110, 968], [180, 948], [260, 960], [340, 938], [420, 952], [520, 930], [610, 946], [700, 924], [780, 940], [860, 918], [950, 936], [1020, 915], [1090, 930], [1090, 1090], [-10, 1090]];
+    // the camera, measured on the sky's yellow screen frame by frame (10.10 px on 120 → 10.60 on
+    // 131): a push of 0.48 %/frame drifting left and up; the repeat is the print 4.4 % bigger
+    // and turned −2.95° (its screen: 10.81 px at 42.4° against 10.35 px at 45.4°)
+    const f = lf != null ? 120 + lf : 120.5 + 2 * d;
+    const cam = o.ring ? [1.0439, -0.0515, 2, -3] : [1 + 0.00482 * (f - 126), 0, -0.6 * (f - 126), -0.3 * (f - 126)];
+    const swing = 0; // measured: the bell hangs still (the whole frame scales, nothing turns)
+    // the sound rings: one family of circles round (650, 655), just left of where the log
+    // strikes; a centre search over the yellow (sky) and white (sea) line pixels gives the same
+    // centre and radii for both (188, 264, 345, 430, 512, 606 …, ≈ 90 px apart)
+    const CX = 650, CY = 655;
+    const SKY_R = [188, 264, 345, 430, 512, 606, 700, 795, 890], SEA_R = SKY_R;
+    const arcsPath = (g, w, R = SKY_R) => { g.lineWidth = w; for (const r of R) { g.beginPath(); g.arc(CX, CY, r, 0, Math.PI * 2); g.stroke(); } };
+    // the sea's edges, measured on columns every 30 px (126 frame)
+    const seaTop = [[-10, 856], [0, 850], [30, 834], [60, 817], [90, 813], [120, 823], [150, 838], [180, 880], [640, 900], [690, 845], [720, 828], [750, 781], [780, 791], [810, 789], [840, 764], [870, 770], [900, 774], [930, 755], [960, 746], [990, 754], [1020, 755], [1050, 745], [1090, 740], [1090, 1090], [-10, 1090]];
+    const seaLow = [[-10, 978], [0, 976], [30, 962], [60, 971], [90, 990], [120, 978], [180, 968], [300, 975], [450, 988], [480, 998], [510, 982], [540, 982], [570, 993], [630, 999], [690, 950], [720, 932], [750, 938], [780, 947], [810, 966], [840, 948], [870, 928], [900, 951], [930, 958], [960, 958], [990, 939], [1020, 943], [1050, 931], [1090, 928], [1090, 1090], [-10, 1090]];
 
     G1.frame(press, () => {
+        press.save();
+        press.each((g) => { g.translate(540 + cam[2], 540 + cam[3]); g.rotate(cam[1]); g.scale(cam[0], cam[0]); g.translate(-540, -540); });
         // --- sky: pink fading, yellow rising towards the horizon
-        pinkS.fillStyle = Riso.ramp(pinkS, 0, 60, 0, 800, 0.98, 0.62);
-        pinkS.fillRect(0, 0, 1080, 830);
-        yellowS.fillStyle = Riso.ramp(yellowS, 0, 60, 0, 780, 0.22, 0.95);
-        yellowS.fillRect(0, 0, 1080, 830);
+        // (hand-set on the screens measured on the 126 frame: 10.35 px, pink at 75°, yellow at 45°)
+        const LP = G1.lattice(-2.0, -3.72, 2.6801, 9.9978, -9.9952, 2.6768), LY = G1.lattice(-1.65, -0.59, 7.2681, 7.3701, -7.3727, 7.2668);
+        // (at 2×: the sky is flat pink, only its yellow is a screen, with paper-white specks)
+        pinkS.fillStyle = Riso.ramp(pinkS, 0, 60, 0, 800, 1, 0.8); pinkS.fillRect(-60, -60, 1200, 920);
+        G1.dots(yellowS, LY, [-60, -60, 1140, 860], (x, y) => 0.22 + 0.73 * Math.max(0, Math.min(1, (y - 60) / 720)), { ink: 'yellow', seed: 42 });
         // the sun behind the sea: flat yellow, pink knocked out
         const sun = (g) => { g.beginPath(); g.ellipse(835, 800, 105, 78, 0, 0, 7); };
         erase(pinkS, (g) => { sun(g); g.fill(); });
         yellow.fillStyle = T(1); sun(yellow); yellow.fill();
         // sound arcs and cloud streaks in the sky: yellow lines (pink knocked out)
-        erase(pinkS, (g) => arcsPath(g, 8));
-        yellow.strokeStyle = T(1); arcsPath(yellow, 7);
+        erase(pinkS, (g) => arcsPath(g, 12));
+        yellow.strokeStyle = T(1); arcsPath(yellow, 11);
+        press.knockout((g) => G1.marks(g, 'bellsky', null, [-60, -60, 1140, 860], 1600, 1.5, 3.2, { v0: 0.85, v1: 0.4 }));
         const streaks = [[610, 1080, 196, 4], [780, 1080, 240, 3], [0, 190, 462, 4], [0, 150, 500, 3], [880, 1010, 548, 3], [900, 980, 572, 2]];
         for (const [x0, x1, y, n] of streaks) for (let i = 0; i < n; i++) {
             const yy = y + i * 5, a = x0 + i * 25;
@@ -53,7 +66,7 @@ CARDS.bell = (press, t) => {
         fill(blueS, seaLow, 0.35);
         specks(pink, 'bell-sea', 0, 930, 1080, 1080, 160, 1, 2.2);
         // the arcs in the sea are white (knocked out of every plate)
-        press.knockout((g) => { g.save(); g.beginPath(); g.rect(-10, 700, 1100, 400); g.clip(); smoothPath(g, seaTop, true, 0.12); g.clip(); arcsPath(g, 8); g.restore(); });
+        press.knockout((g) => { g.save(); g.beginPath(); g.rect(-10, 700, 1100, 400); g.clip(); smoothPath(g, seaTop, true, 0.12); g.clip(); arcsPath(g, 8, SEA_R); g.restore(); });
 
         // --- the pine branch (top left): a dark bough, green fans of needles
         taper(navy, [[-10, 125], [60, 150], [120, 175], [150, 200]], 12, 7);
@@ -91,23 +104,31 @@ CARDS.bell = (press, t) => {
         press.save();
         press.each((g) => { g.translate(422, 60); g.rotate(swing); g.translate(-422, -60); });
         dark([[404, 50], [440, 50], [440, 175], [404, 175]]);
-        const ring = (g) => { g.beginPath(); g.arc(421, 212, 58, Math.PI * 0.98, Math.PI * 2.02); g.arc(421, 212, 38, Math.PI * 2.02, Math.PI * 0.98, true); g.closePath(); };
+        // the loop: an arch (outer 362–480, top 151; the hole 385–457), read off a crop
+        const ring = (g) => { g.beginPath(); g.moveTo(362, 240); g.lineTo(362, 210); g.arc(421, 210, 59, Math.PI, 0); g.lineTo(480, 240); g.lineTo(457, 240); g.lineTo(457, 210); g.arc(421, 210, 36, 0, Math.PI, true); g.lineTo(385, 240); g.closePath(); };
         press.knockout((g) => { ring(g); g.fill(); }); for (const g of [yellow, navy]) { g.fillStyle = T(1); ring(g); g.fill(); }
-        const bell = [[206, 300], [212, 268], [248, 244], [330, 228], [420, 221], [520, 226], [600, 242], [636, 266], [645, 300], [648, 560], [652, 800], [672, 870], [712, 918], [132, 918], [172, 870], [190, 800], [196, 560]];
-        const bellPath = (g) => smoothPath(g, bell, true, 0.1);
+        // the bell: its silhouette measured on rows (dark extents): a rounded crown, straight
+        // sides, the skirt flaring out to the lip at 918
+        const bell = [[415, 228], [330, 238], [270, 250], [230, 266], [205, 288], [197, 320], [195, 540], [190, 660], [184, 740], [179, 820], [170, 860], [150, 890], [122, 916], [718, 918], [692, 895], [672, 860], [660, 820], [653, 740], [650, 600], [649, 320], [641, 288], [616, 264], [572, 246], [500, 234]];
+        const bellPath = (g) => smoothPath(g, bell, true, 0.12);
         press.knockout((g) => { bellPath(g); g.fill(); });
         yellow.fillStyle = T(1); bellPath(yellow); yellow.fill();
-        clipped(pink, bellPath, (g) => { g.fillStyle = T(1); g.fillRect(470, 200, 300, 740); });
-        clipped(pinkS, bellPath, (g) => { g.fillStyle = Riso.ramp(g, 430, 0, 470, 0, 0, 0.8); g.fillRect(430, 200, 40, 740); });
-        // dark body with a lit stripe: navy solid on the left, a screen ramp across the light
-        clipped(navy, bellPath, (g) => { g.fillStyle = T(1); g.fillRect(100, 200, 380, 740); });
-        clipped(navyS, bellPath, (g) => {
-            const gr = g.createLinearGradient(470, 0, 660, 0);
-            gr.addColorStop(0, T(1)); gr.addColorStop(0.35, T(0.12)); gr.addColorStop(0.55, T(0.05)); gr.addColorStop(1, T(0.5));
-            g.fillStyle = gr; g.fillRect(470, 200, 260, 740);
+        // the bronze warms towards the lit stripe: little red on the far left (olive black),
+        // full red at the stripe, half on the shadowed right (read off the 126 frame)
+        clipped(pink, bellPath, (g) => {
+            const gr = g.createLinearGradient(190, 0, 720, 0);
+            gr.addColorStop(0, T(0.12)); gr.addColorStop(0.35, T(0.35)); gr.addColorStop(0.58, T(0.9)); gr.addColorStop(0.7, T(1)); gr.addColorStop(0.8, T(0.6)); gr.addColorStop(1, T(0.45));
+            g.fillStyle = gr; g.fillRect(100, 200, 700, 740);
         });
-        // a dark shoulder on top (the crown), the flare's shadow
-        clipped(navy, bellPath, (g) => { g.fillStyle = T(1); g.beginPath(); g.ellipse(430, 240, 240, 55, 0, 0, 7); g.fill(); g.fillRect(100, 820, 400, 120); });
+        // dark bronze (navy over red) with one lit stripe (505–565: orange, a dotted edge)
+        // (the bronze is a dense navy screen, not a flat: dots show through it at full size)
+        const LN = G1.lattice(0, 0, 10.0, 2.68, -2.68, 10.0);
+        clipped(navy, bellPath, (g) => { G1.dots(g, LN, [100, 200, 502, 940], (x) => 0.9 - 0.25 * Math.max(0, (x - 380) / 120), { ink: 'navy', seed: 43 }); G1.dots(g, LN, [568, 200, 768, 940], (x) => 0.65 + 0.25 * Math.min(1, (x - 568) / 60), { ink: 'navy', seed: 43 }); });
+        clipped(navyS, bellPath, (g) => {
+            const gr = g.createLinearGradient(498, 0, 572, 0);
+            gr.addColorStop(0, T(0.9)); gr.addColorStop(0.3, T(0.25)); gr.addColorStop(0.55, T(0.08)); gr.addColorStop(0.8, T(0.3)); gr.addColorStop(1, T(0.9));
+            g.fillStyle = gr; g.fillRect(498, 200, 74, 740);
+        });
         // red lines: bands, panel dividers, studs (navy knocked out, pink printed)
         red((g) => {
             for (const [y, h] of [[303, 4], [322, 3], [555, 4], [575, 3], [780, 5], [800, 4]]) g.fillRect(190, y, 470, h);
@@ -121,5 +142,9 @@ CARDS.bell = (press, t) => {
         specks(pinkS, 'bell-sp', 200, 250, 470, 900, 70, 1.5, 3);
         specks(blue, 'bell-sb', 200, 250, 600, 900, 30, 1, 2.2);
         press.restore();
+        press.restore();
+        // regional tone: calibrated against the reference as a grid (private/bell-data.js,
+        // gitignored: read off the video, never committed); absent, the drawing's own tones stand
+        G1.tones(press, (typeof G1DATA !== 'undefined' && G1DATA.bell || {})[o.ring ? 'again' : 'first']);
     });
 };
