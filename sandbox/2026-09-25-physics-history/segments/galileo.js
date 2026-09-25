@@ -1085,7 +1085,7 @@ function wide(press, tq, o = {}) {
 
 Seg.galileo = {
     // parts reused by the v2 rooftop scene (segments/galileo-roof.js)
-    parts: { galileo, gripHand, moonPos, lock, MOONS },
+    parts: { galileo, gripHand, moonPos, lock, MOONS, eyeMacro, bokeh, M, TM },
     init() { return {}; },
     draw(press, tq, st) {
         if (tq < TM.pull[0]) { macro(press, tq); return; }

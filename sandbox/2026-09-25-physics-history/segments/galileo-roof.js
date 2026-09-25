@@ -17,11 +17,13 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const L = Ease.lerp, S = Ease.seg, IO = Ease.inOut;
     const P = () => Seg.galileo.parts;
 
-    // 0–1.45 the macro of v1 (the lens and his eye); 1.3–1.75 it dissolves into the roof while
-    // both pull back; 3.1–3.9 the camera goes into the eyepiece; the field; three nights on the
-    // beats; the dive into Jupiter rolls the view 90° (the belts turn vertical, as the apple's
-    // streaks), the disc becomes the apple; 6.35–6.5 the apple holds at radius 1400
-    const T = { macro: 1.5, diss: [1.5, 1.5], back: [1.5, 2.6], into: [3.1, 3.9], field: [3.55, 4.0], nights: [4.0, 4.5, 5.0], glide: 0.22, zoomB: [5.1, 6.35], roll: [5.1, 6.0], morph: [6.05, 6.35], end: 6.5 };
+    // 0–1.5 the macro: the eyepiece (a true 3D telescope, Scope3D) beside his eye; 1.5 a cut on
+    // the beat to the roof's close-up, easing back to the whole scene; 3.3–3.5 a push towards the
+    // eyepiece; 3.5 a cut back to the macro's framing, and the camera turns round the eyepiece
+    // until it looks straight down it (3.5–4.2), closing in; the glass becomes the telescope's
+    // field; three nights on the beats; the dive into Jupiter rolls the view 90° (the belts turn
+    // vertical, as the apple's streaks) and the colour ripens into the apple; 6.85–7.0 it holds
+    const T = { macro: 1.5, diss: [1.5, 1.5], back: [1.5, 2.6], push: [3.3, 3.5], orbit: [3.5, 4.25], field: [4.2, 4.5], nights: [4.5, 5.0, 5.5], glide: 0.22, zoomB: [5.6, 6.85], roll: [5.6, 6.5], ripen: [5.75, 6.85], morph: [6.5, 6.85], end: 7.0 };
 
     // ── colours ──────────────────────────────────────────────────────────────────────────
     const AMBER = { yellow: 1, 'pink.s': 0.55 };
@@ -58,7 +60,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const MOON_A = [5.9, 9.4, 15.0, 26.4];
 
     // ── the camera ───────────────────────────────────────────────────────────────────────
-    const LENS = [1070, 370], EYE_GAP = 670 / 54; // the macro's lens on screen; eye–lens gap ratio
+    const LENS = [1040, 470], EYE_GAP = 670 / 54; // the macro's lens on screen; eye–lens gap ratio
     const ER = 13;                                  // the eyepiece's radius (roof units)
     // the roof camera: the eyepiece E lands at A, scaled by Zr
     function roofCam(t) {
@@ -69,22 +71,37 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             const z0 = EYE_GAP * f, A0 = LENS;
             return { Zr: Math.exp(L(Math.log(z0), 0, k)), A: [L(A0[0], E[0], k), L(A0[1], E[1], k)] };
         }
-        const k = S(t, T.into[0], T.into[1]), e = k * k * (3 - 2 * k);
-        return { Zr: Math.exp(Math.log(34) * Math.pow(k, 1.6)), A: [L(E[0], 800, e), L(E[1], 450, e)] };
+        const k = Ease.in(S(t, T.push[0], T.push[1]));
+        return { Zr: Math.exp(Math.log(3.2) * k), A: [L(E[0], 800, k), L(E[1], 450, k)] };
     }
     function macroScale(t) { return 0.4; } // the cut on the beat lands on the roof's close-up of the same eye and eyepiece
+    // the macro views: the lens on screen, the orbit round the eyepiece and the dolly in
+    const LENS0 = [400, 450];
+    function macroView(t) {
+        if (t < T.macro) {
+            const pan = 640 * IO(S(t, 0.25, 1.25));
+            return { k: 0.36, dist: 600, flen: 600 * 15, c: [LENS0[0] + pan, LENS0[1] + 20], roll: -0.06, pan, eyeShift: 0 };
+        }
+        if (t >= T.orbit[1]) {
+            // looking straight down the eyepiece: it keeps closing in with the field
+            const fr = t < T.zoomB[0] ? 420 : L(420, 1700, Math.pow(S(t, T.zoomB[0], T.zoomB[1] - 0.4), 1.5));
+            return { k: 1, dist: 600, flen: 600 * fr / 11, c: [800, 450], roll: 0, pan: 640, eyeShift: -1400, sc: fr / 11 };
+        }
+        const k = IO(S(t, T.orbit[0], T.orbit[1]));
+        // turn from the opening's three-quarter view to straight down the axis, closing in so the
+        // glass (radius 11) grows to the field's size
+        const sc = Math.exp(L(Math.log(15), Math.log(420 / 11), Ease.in(S(t, T.orbit[0], T.orbit[1]))));
+        return { k: L(0.36, 1, k), dist: 600, flen: 600 * sc, c: [L(1040, 800, k), L(470, 450, k)], roll: L(-0.06, 0, k), pan: 640, eyeShift: -1400 * Ease.in(k), sc };
+    }
     // the sky seen through the telescope: centre, zoom, roll
     function skyCam(t) {
-        const rc = roofCam(Math.min(t, T.into[1]));
         const za = Math.log(3) + Math.log(10 / 3) * IO(S(t, T.field[0], T.field[1]));
         const zb = Math.log(1000 / 10) * Math.pow(S(t, T.zoomB[0], T.zoomB[1]), 1.35);
-        return { base: t < T.into[1] ? rc.A : [800, 450], Zs: Math.exp(za + zb), roll: -Math.PI / 2 * IO(S(t, T.roll[0], T.roll[1])) };
+        return { base: [800, 450], Zs: Math.exp(za + zb), roll: -Math.PI / 2 * IO(S(t, T.roll[0], T.roll[1])) };
     }
-    // the field of view: a disc opening from the eyepiece, radius on screen
+    // the field of view: the glass's radius on screen, then opening to fill the frame
     function fieldR(t) {
-        const rc = roofCam(Math.min(t, T.into[1]));
-        const r0 = ER * rc.Zr * S(t, T.into[0] + 0.3, T.into[1]);
-        return t < T.into[1] ? r0 : L(ER * 34, 1300, Math.pow(S(t, T.zoomB[0], T.zoomB[1] - 0.3), 1.5));
+        return t > T.field[0] ? 11 * macroView(t).sc : 0;
     }
 
     // ── the sky ──────────────────────────────────────────────────────────────────────────
@@ -142,7 +159,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // Jupiter and its moons on night nf (the moons move by one day per night)
     function jupiter(press, t, c, nf) {
         const J = c.base, Z = c.Zs, R = RJ * Z, rl = c.roll;
-        const m = S(t, T.morph[0], T.morph[1]);
+        const m = S(t, T.morph[0], T.morph[1]), mc = IO(S(t, T.ripen[0], T.ripen[1])); // shape, colour
         if (m >= 1) { Seg.newtonApple.drawApple(press, J[0], J[1], R, 0); return; }
         // the moons (behind first), with faint marks of where they were the nights before
         const moons = (n) => MOON_A.map((a, i) => {
@@ -159,12 +176,13 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         now.forEach((q) => { if (!q[2]) drawMoon(q); });
         // the glow round the planet, then the disc
         const RR = Math.max(R, 3.2);
-        press.knockout((g) => { g.fillStyle = Riso.radial(g, J[0], J[1], RR, RR * 3, 0.55 * (1 - m), 0); g.beginPath(); g.arc(J[0], J[1], RR * 3, 0, 6.2832); g.fill(); });
+        press.knockout((g) => { g.fillStyle = Riso.radial(g, J[0], J[1], RR, RR * 3, 0.55 * (1 - mc), 0); g.beginPath(); g.arc(J[0], J[1], RR * 3, 0, 6.2832); g.fill(); });
         // the outline morphs from a circle to the apple's
         const APPLE = [[-1, -0.15], [-0.72, -0.82], [-0.2, -0.86], [0, -0.72], [0.2, -0.86], [0.72, -0.82], [1, -0.15], [0.8, 0.7], [0.2, 0.98], [-0.2, 0.98], [-0.8, 0.7]];
         const outline = APPLE.map(([ax, ay]) => { const a = Math.atan2(ay, ax); return [J[0] + L(Math.cos(a), ax, m) * RR, J[1] + L(Math.sin(a), ay, m) * RR]; });
         const shape = (g) => smooth(g, outline);
-        put(press, shape, { 'yellow.s': 0.34 * (1 - m) + 0.9 * m, 'pink.s': 0.12 * (1 - m) + 0.95 * m, 'navy.s': 0.05 * m });
+        // the colour ripens through ochre and orange to the apple's red (screens first, then solid)
+            put(press, shape, { 'yellow.s': L(0.34, 1, S(mc, 0, 0.5)) * (mc < 0.85 ? 1 : 0), yellow: S(mc, 0.7, 1), 'pink.s': L(0.12, 1, mc) * (mc < 0.85 ? 1 : 0), pink: S(mc, 0.7, 1), 'navy.s': 0.05 * mc });
         if (R > 14) {
             press.save();
             press.clip(shape);
@@ -172,18 +190,18 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             // turns them vertical); each sits where an apple streak will be, and narrows into it
             press.save();
             press.each((g) => { g.translate(J[0], J[1]); g.rotate(rl); g.translate(-J[0], -J[1]); });
-            const bands = [[-0.5, L(0.13, 0.07, m), 0.6], [-0.2, L(0.16, 0.07, m), 0.72], [0.15, L(0.16, 0.07, m), 0.75], [0.45, L(0.12, 0.07, m), 0.62], [0.74, 0.08 * (1 - m), 0.45]];
+            const bands = [[-0.5, L(0.13, 0.07, mc), 0.6], [-0.2, L(0.16, 0.07, mc), 0.72], [0.15, L(0.16, 0.07, mc), 0.75], [0.45, L(0.12, 0.07, mc), 0.62], [0.74, 0.08 * (1 - mc), 0.45]];
             for (const [y, h, a] of bands) {
                 const yy = J[1] + y * RR, hh = h * RR, w = Math.sin(t * 0.6 + y * 5) * 0.02 * RR;
-                ink(press, (g) => { g.beginPath(); g.moveTo(J[0] - RR * 1.2, yy - hh / 2); for (let i = 0; i <= 12; i++) { const x = J[0] - RR * 1.2 + i * RR * 0.2; g.lineTo(x, yy - hh / 2 + Math.sin(i * 1.3 + y * 9) * hh * 0.18 + w); } g.lineTo(J[0] + RR * 1.2, yy + hh / 2); for (let i = 12; i >= 0; i--) { const x = J[0] - RR * 1.2 + i * RR * 0.2; g.lineTo(x, yy + hh / 2 + Math.sin(i * 1.7 + y * 7) * hh * 0.18); } g.closePath(); }, { 'pink.s': 0.45 * a * (1 - m), 'yellow.s': 0.3 * a * (1 - m) + m, 'navy.s': 0.12 * a * (1 - m) });
+                ink(press, (g) => { g.beginPath(); g.moveTo(J[0] - RR * 1.2, yy - hh / 2); for (let i = 0; i <= 12; i++) { const x = J[0] - RR * 1.2 + i * RR * 0.2; g.lineTo(x, yy - hh / 2 + Math.sin(i * 1.3 + y * 9) * hh * 0.18 + w); } g.lineTo(J[0] + RR * 1.2, yy + hh / 2); for (let i = 12; i >= 0; i--) { const x = J[0] - RR * 1.2 + i * RR * 0.2; g.lineTo(x, yy + hh / 2 + Math.sin(i * 1.7 + y * 7) * hh * 0.18); } g.closePath(); }, { 'pink.s': 0.45 * a * (1 - mc), 'yellow.s': L(0.3 * a, 1, mc), 'navy.s': 0.12 * a * (1 - mc) });
             }
             press.restore();
             // the apple's streaks (vertical, where the belts now lie) take over from the bands
             if (m > 0.5) for (const dx of [-0.5, -0.2, 0.15, 0.45]) line(press, [[J[0] + dx * RR, J[1] - RR * 0.6], [J[0] + dx * RR * 1.2, J[1]], [J[0] + dx * RR, J[1] + RR * 0.6]], taper(RR * 0.08), { yellow: 1, 'pink.s': 0.4 });
             // the apple's own shadow side comes in with it (the same shape drawApple uses)
-            if (m > 0) ink(press, (g) => smooth(g, [[J[0] - 0.2 * RR, J[1] + 0.1 * RR], [J[0] + 0.9 * RR, J[1] - 0.1 * RR], [J[0] + 0.6 * RR, J[1] + 0.8 * RR], [J[0], J[1] + 0.95 * RR]]), { 'navy.s': 0.45 * m });
+            if (mc > 0) ink(press, (g) => smooth(g, [[J[0] - 0.2 * RR, J[1] + 0.1 * RR], [J[0] + 0.9 * RR, J[1] - 0.1 * RR], [J[0] + 0.6 * RR, J[1] + 0.8 * RR], [J[0], J[1] + 0.95 * RR]]), { 'navy.s': 0.45 * mc });
             // limb darkening and the terminator's soft shadow
-            ink(press, circle(J[0], J[1], RR * 1.1), { 'navy.s': (g) => Riso.radial(g, J[0] - RR * 0.25, J[1] - RR * 0.25, RR * 0.4, RR * 1.15, 0, 0.5 * (1 - m)) });
+            ink(press, circle(J[0], J[1], RR * 1.1), { 'navy.s': (g) => Riso.radial(g, J[0] - RR * 0.25, J[1] - RR * 0.25, RR * 0.4, RR * 1.15, 0, 0.5 * (1 - mc)) });
             press.restore();
             if (m > 0.2) press.knockout(ellipse(J[0] - RR * 0.4, J[1] - RR * 0.35, RR * 0.18 * m, RR * 0.12 * m, -0.5));
             // the stalk and the leaf grow out of the top
@@ -349,24 +367,42 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         press.knockout((g) => { g.fillStyle = Riso.radial(g, p[0], p[1], 1, rr, 0.22 * Math.sin(ph * Math.PI), 0); g.beginPath(); g.ellipse(p[0], p[1], rr * 1.4, rr, -0.3, 0, 6.2832); g.fill(); });
     }
 
+    // the macro: the room's bokeh far behind, his eye, the 3D telescope, dust in the air
+    function macro(press, t) {
+        const v = macroView(t), Pp = P(), TMv = Pp.TM, d = Math.round(t * 12);
+        ink(press, (g) => g.rect(0, 0, 1600, 900), { blue: 0.9 });
+        ink(press, (g) => g.rect(0, 0, 1600, 900), { 'navy.s': (g) => Riso.radial(g, 820, 420, 120, 1000, 0.5, 0.95) });
+        const tt = Math.min(t, T.macro - 1 / 12);
+        press.save(); press.each((g) => g.translate(v.pan * 0.45 + v.eyeShift * 0.3, 0)); Pp.bokeh(press, tt); press.restore();
+        if (v.eyeShift > -1300) {
+            const blink = Ease.bump(tt, TMv.blink, 0.25) + (t > T.macro ? Ease.bump(t, T.orbit[0] + 0.15, 0.25) : 0);
+            press.save(); press.each((g) => g.translate(v.pan * 0.85 + v.eyeShift, 0));
+            Pp.eyeMacro(press, Pp.M.eye, { look: 0.55 + 0.25 * S(tt, 0.4, 1.0), lid: Math.min(1, blink), pupil: 1 + 0.18 * IO(S(tt, 1.1, 1.5)), brow: -8 * IO(S(tt, 1.0, 1.4)) });
+            press.restore();
+        }
+        const sweep = t < T.macro ? L(-1.2, 0.1, IO(S(t, TMv.sweep[0], TMv.sweep[1]))) : null;
+        const glow = t < T.macro ? Ease.out(S(t, 1.25, 1.5)) : 1 - S(t, T.orbit[0], T.orbit[0] + 0.3);
+        Scope3D.draw(press, Scope3D.orbit(v.k, { dist: v.dist, flen: v.flen, c: v.c, roll: v.roll, aim: 0 }), { turn: t * 0.4, sweep, glow, t });
+        // dust drifting in the air, nearest of all
+        const r = Motion.rng('air-dust3d');
+        for (let i = 0; i < 18; i++) {
+            const x = r() * 1900 - 300 + v.pan * 1.25 + v.eyeShift * 1.3, y = r() * 900, s = 1.6 + r() * 2.6, ph = r() * 6.3;
+            put(press, circle(x + Math.sin(t * 0.7 + ph) * 16, y - t * 10 + Math.cos(t * 0.9 + ph) * 8, s), { 'yellow.s': 0.3, 'blue.s': 0.1 });
+        }
+    }
+
     Seg.galileoRoof = {
         T,
         init() { return {}; },
         draw(press, tq, st) {
             const t = tq, nf = nightF(t);
-            // 1 · the macro (v1's lens and eye), shrinking about its lens while it dissolves
-            if (t < T.macro) {
-                Ph.ink(press, (g) => g.rect(0, 0, 1600, 900), { blue: 0.9 });
-                Ph.ink(press, (g) => g.rect(0, 0, 1600, 900), { 'navy.s': (g) => Riso.radial(g, 820, 420, 120, 1000, 0.5, 0.95) });
-                Seg.galileo.draw(press, t, {});
-                return;
-            }
-            // 2 · the roof, faded in over the macro (a knockout and ink at the same alpha)
-            const rc = roofCam(Math.min(t, T.into[1])), sc = skyCam(t), fr = fieldR(t);
-            if (t < T.into[1]) {
+            const inMacro = t < T.macro || (t >= T.push[1] && fieldR(t) < 1400);
+            if (inMacro) macro(press, t);
+            else if (t < T.push[1]) {
+                // the roof: the whole scene, then the push towards the eyepiece
+                const rc = roofCam(t);
                 sky(press, t, { base: JS0, Zs: 1, roll: 0 }); // the stars stay put (at infinity)
                 const turn = Math.sin(Math.max(0, t - 2.0) * 1.6) * 0.5 + 0.5;
-                // the city moves at half the zoom (it is far), the near world with the camera
                 const zc = 1 + (rc.Zr - 1) * 0.5;
                 Ph.cam(press, rc.A[0], rc.A[1], zc, () => { press.each((g) => g.translate(-E[0], -E[1])); city(press, t); });
                 Ph.cam(press, rc.A[0], rc.A[1], rc.Zr, () => {
@@ -375,26 +411,19 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                     telescope(press, t, turn);
                     galileo(press, t, turn);
                 });
+                return;
             }
-            // 3 · the view through the eyepiece: a disc of sky opening at the eyepiece, framed by
-            // the tube's dark and a brass lip; then it fills the frame for the dive
+            // the view through the eyepiece: the glass becomes a disc of sky, then fills the frame
+            // the sky opens in the glass from its centre (where the point of light was)
+            const fr = fieldR(t) * Ease.out(S(t, T.field[0], T.field[0] + 0.25));
             if (fr > 1) {
-                const C = t < T.into[1] ? rc.A : [800, 450];
-                if (fr < 1250) {
-                    // the eyepiece's inside: dark round the disc, darkening the roof as we go in
-                    const dk = t >= T.into[1] ? 1 : 0; // the tube's dark takes over at once (a partial one only greys the roof)
-                    if (t >= T.into[1]) press.knockout((g) => { g.beginPath(); g.rect(0, 0, 1600, 900); g.arc(C[0], C[1], fr + 26, 0, 6.2832, true); g.fill('evenodd'); });
-                    ink(press, (g) => { g.rect(0, 0, 1600, 900); g.arc(C[0], C[1], fr + 26, 0, 6.2832, true); }, { navy: dk, yellow: 0.85 * dk, 'pink.s': 0.35 * dk });
-                    put(press, (g) => { g.beginPath(); g.arc(C[0], C[1], fr + 24, 0, 6.2832); g.arc(C[0], C[1], fr, 0, 6.2832, true); }, BRASS_SH);
-                    put(press, (g) => { g.beginPath(); g.arc(C[0], C[1], fr + 10, 0, 6.2832); g.arc(C[0], C[1], fr, 0, 6.2832, true); }, BRASS);
-                }
+                const C = [800, 450], sc = skyCam(t);
                 press.save();
                 press.clip((g) => g.arc(C[0], C[1], fr, 0, 6.2832));
                 press.knockout((g) => { g.beginPath(); g.arc(C[0], C[1], fr, 0, 6.2832); g.fill(); });
                 sky(press, t, { ...sc, base: C });
                 jupiter(press, t, { ...sc, base: C }, nf);
-                // the glass: a faint reflection arc
-                if (fr < 1250) press.knockout((g) => { Ph.poly(g, Ph.outline(Array.from({ length: 10 }, (_, i) => [C[0] + Math.cos(-2.5 + i * 0.08) * fr * 0.9, C[1] + Math.sin(-2.5 + i * 0.08) * fr * 0.9]), taper(Math.max(2, fr * 0.02), 0.3, 0.3))); g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1; });
+                if (fr < 1400) press.knockout((g) => { Ph.poly(g, Ph.outline(Array.from({ length: 10 }, (_, i) => [C[0] + Math.cos(-2.5 + i * 0.08) * fr * 0.9, C[1] + Math.sin(-2.5 + i * 0.08) * fr * 0.9]), taper(Math.max(2, fr * 0.02), 0.3, 0.3))); g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1; });
                 press.restore();
             }
         },

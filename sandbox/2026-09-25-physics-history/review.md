@@ -358,3 +358,39 @@ the 1.5 s).
 **Lesson (transitions):** when one object turns into another, line up their structure first
 (roll the camera so the stripes run the same way). A crossfade on a riso press only greys
 both images, so use a match cut on the beat instead.
+
+### Round 11 (user)
+
+> La perspectiva de la lente está totalmente mal, tanto al principio, como cuando se mete en la
+> lente (peor todavía), antes de meterse en la lente la cámara debería rotar. La transición de
+> Jupiter-manzana tiene que ser más suave y progresiva en cuanto a color.
+
+What changed:
+
+- **The telescope is a real 3D object now** (`scope3d.js`).
+  - A perspective camera looks at a cylinder of parts: the eyepiece cup, the draw tube, the
+    knurled collar, the leather tube with gold fillets, the objective's cell.
+  - Circles perpendicular to the axis project as the right ellipses, the sides are the
+    tangents of the end circles (a convex hull), rings show only on their visible half, and
+    the parts are drawn far to near.
+  - The eyepiece's face is a brass rim with knurls and dust. Its glass has concentric
+    reflections in the glass's own plane, the amber candle's reflection, and the point of
+    light.
+- **The camera turns before going in.**
+  - 0–1.5 s: the macro, a three-quarter view of the 3D eyepiece beside his eye.
+  - 1.5 s: a cut to the roof.
+  - 3.5 s: a cut back to the macro's framing. Then the camera orbits round the eyepiece until
+    it looks straight down its axis (3.5–4.25 s), closing in while his eye slides out of
+    frame.
+  - The sky opens in the glass from its centre, and the eyepiece keeps closing in until its
+    rim leaves the frame for the dive.
+- **Jupiter ripens into the apple** (5.75–6.85 s).
+  - The colour goes from cream through ochre and orange to red, as screens first and solid
+    ink at the end.
+  - The belts narrow and turn yellow, and the shadow side comes in progressively.
+  - The shape morphs last (6.5–6.85 s).
+- **Timing:** Galileo is now 0–7 s and Newton 7–14 s.
+
+**Lesson (animate):** a round mechanical object seen at an angle (a lens, a wheel, a tube) is
+drawn as 3D geometry projected with a camera, never as hand-placed ellipses. Only a projection
+keeps the face, the sides and the rings consistent while the camera moves.
