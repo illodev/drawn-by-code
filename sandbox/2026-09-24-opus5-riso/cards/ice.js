@@ -32,11 +32,15 @@ CARDS.ice = (press, t) => {
     const glow = (m, v0, v1, w, op) => {
         for (let i = 0; i <= 24; i++) { const f = i / 24, x = 1035 + (45 - 1035) * f, y = 250 + (900 - 250) * f + 30 * Math.sin(f * 3.1); blob(m, x, y, w * (1 + 0.3 * f), w * 0.8, v0 + (v1 - v0) * f, -0.58, op); }
     };
+    // the glow's core, point by point (yellow coverage peaks per 90 px column, fitted): under it
+    // the blue drops to 0.1–0.25 and the navy to ~0.1–0.3 (fitted), so the yellow prints yellow
+    const GP = [[1040, 215, 0.9], [990, 240, 0.85], [900, 300, 0.8], [810, 320, 0.68], [720, 390, 0.72], [630, 470, 0.72], [540, 555, 0.6], [450, 590, 0.55], [360, 655, 0.58], [270, 720, 0.4], [180, 760, 0.36], [90, 820, 0.32], [0, 880, 0.3]];
+    const core = (m, k) => { for (const [x, y, v] of GP) blob(m, x, y, 170, 105, Math.min(1, v * k), -0.6, 'destination-out'); };
     // blue: a medium screen over all the ice, denser in the darker pools, lifted in the glow
     U.lattice(blue, LN, (m) => {
         m.fillStyle = T(0.76); m.fillRect(-20, -20, 1040, 1040);
         for (const [x, y, rx, ry, v] of [[330, 150, 260, 120, 0.3], [260, 330, 160, 120, 0.25], [60, 560, 200, 260, 0.3], [700, 900, 500, 220, 0.3], [150, 1000, 250, 100, 0.3]]) blob(m, x, y, rx, ry, v);
-        glow(m, 0.3, 0.05, 150, 'destination-out'); glow(m, 0.75, 0.3, 70, 'destination-out');
+        core(m, 0.85);
     }, { gain: 1 });
     // navy: dark pools (left, top right, the whole bottom), light ice between; the deepest
     // pools print nearly flat (a solid under the dots, so they don't read as a busy screen)
@@ -44,8 +48,9 @@ CARDS.ice = (press, t) => {
     U.lattice(navy, LN, (m) => {
         m.fillStyle = T(0.24); m.fillRect(-20, -20, 1040, 1040);
         for (const [x, y, rx, ry, v] of [[60, 470, 190, 330, 1.6], [860, 60, 190, 140, 1.5], [760, 950, 520, 230, 0.55], [330, 1030, 330, 120, 0.7], [30, 860, 120, 110, 0.9], [300, 700, 200, 110, 0.35], [400, 180, 240, 110, 0.55], [230, 240, 150, 90, 0.4], [560, 760, 170, 90, 0.7]]) blob(m, x, y, rx, ry, v);
-        glow(m, 0.35, 0.05, 150, 'destination-out');
+        core(m, 0.7);
     });
+    { const nb = new Path2D(); navy.save(); navy.globalCompositeOperation = 'destination-out'; for (const [x, y, v] of GP) blob(navy, x, y, 150, 95, v * 0.6, -0.6, 'destination-out'); navy.restore(); }
     // pink: specks everywhere, strong in the lower half and the lower-left warm edge of the glow
     U.lattice(pink, LPk, (m) => {
         m.fillStyle = T(0.14); m.fillRect(-20, -20, 1040, 1040);
@@ -55,7 +60,7 @@ CARDS.ice = (press, t) => {
     // yellow: the glow, 0.8 at the upper right thinning to 0.35 at the lower left
     // (yellow coverage per 90 px column, fitted on the reference: the band's centre and peak)
     U.lattice(yellow, LY, (m) => {
-        for (const [x, y, v] of [[1040, 215, 0.9], [990, 240, 0.85], [900, 300, 0.8], [810, 320, 0.68], [720, 390, 0.72], [630, 470, 0.72], [540, 555, 0.6], [450, 590, 0.55], [360, 655, 0.58], [270, 720, 0.4], [180, 760, 0.36], [90, 820, 0.32], [0, 880, 0.3]]) blob(m, x, y, 120, 85, v * 1.7, -0.6);
+        for (const [x, y, v] of [[1040, 215, 0.9], [990, 240, 0.85], [900, 300, 0.8], [810, 320, 0.68], [720, 390, 0.72], [630, 470, 0.72], [540, 555, 0.6], [450, 590, 0.55], [360, 655, 0.58], [270, 720, 0.4], [180, 760, 0.36], [90, 820, 0.32], [0, 880, 0.3]]) blob(m, x, y, 160, 100, v * 1.4, -0.6);
     });
 
     // bubbles: white discs with dotted trails (paper through coarse dots)

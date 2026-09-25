@@ -61,7 +61,7 @@ const EDIT = [
     [15.333, 'full', 'wave', { ring: true, inks: SWAP_PB, zoom: [1.1, -50.0, -50.0] }],
     [15.417, 'full', 'cat', { ring: true, inks: SWAP_PB, zoom: [1.1, -50.0, -50.0] }],
     [15.5, 'full', 'sunflower', { ring: true, inks: SWAP_PB, zoom: [1.13, -68.5, -77.8] }],
-    [15.583, 'full', 'radio', { ring: true, inks: SWAP_PB, zoom: [1.16, -80.0, -80.0] }],
+    [15.583, 'full', 'radio', { ring: true, inks: SWAP_PB, zoom: [1.169, -91.9, -86.4] }],
     [15.667, 'full', 'fireworks', { ring: true, inks: SWAP_PB, zoom: [1.19, -95.0, -95.0] }],
     [15.75, 'full', 'hummingbird', { ring: true, inks: SWAP_PB, zoom: [1.08, -40.0, -40.0] }],
     [15.833, 'full', 'kettle', { ring: true, inks: SWAP_PB, zoom: [1.06, -30.0, -30.0] }],
@@ -74,7 +74,11 @@ Motion.scene({
     fps: 24,
     duration: 28,
     logical: [1000, 1000],
-    uses: ['styles/risograph/riso.js', ...['g1', 'group2', 'g3', 'g4', 'g5', 'g6'].map((u) => ({ src: DIR + 'cards/_' + u + '-util.js', optional: true })), ...CARD_NAMES.map((n) => ({ src: DIR + 'cards/' + n + '.js', optional: true }))],
+    uses: ['styles/risograph/riso.js', ...['g1', 'group2', 'g3', 'g4', 'g5', 'g6'].map((u) => ({ src: DIR + 'cards/_' + u + '-util.js', optional: true })), // private/<card>-data.js (gitignored): data read off the reference as grids or traces
+        // (transcribing is copying: never committed); cards load it first and fall back to
+        // their described, committed tones when it is absent
+        ...CARD_NAMES.map((n) => ({ src: DIR + 'private/' + n + '-data.js', optional: true })),
+        ...CARD_NAMES.map((n) => ({ src: DIR + 'cards/' + n + '.js', optional: true }))],
     fonts: [{ family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' }],
     audio: { mix: 'out/reference-audio.wav' }, // the reference's track, local only (never committed)
     shots: EDIT.slice(0, -1).map(([a, k, c], i) => [a, EDIT[i + 1][0], c ?? k]),
@@ -91,7 +95,7 @@ Motion.scene({
         const [t0, kind, card, o = {}] = EDIT[i];
         const lf = f - Math.round(t0 * 24), ld = Math.floor(lf / 2), lt = ld / 12;
         // the sonar, circles, orbits and full cards (slow camera pushes) change every frame
-        const d = i * 1000 + (kind === 'sonar' || kind === 'circle' || kind === 'orbits' || kind === 'full' ? 500 + lf : ld);
+        const d = i * 1000 + (kind === 'sonar' || kind === 'circle' || kind === 'orbits' || kind === 'full' || kind === 'mosaic' ? 500 + lf : ld);
         press.begin(d);
         if (kind === 'sonar') sonar(press, lf, o);
         else if (kind === 'circle') circleCard(press, card, lt, ld, o, lf);
@@ -105,7 +109,7 @@ Motion.scene({
             if (o.ring && lf >= (o.ringFrom ?? 0)) whiteRing(press, ld, o.ringR && o.ringR[Math.min(lf, o.ringR.length - 1)], o.inks);
             if (o.pulse) G4.pulse(press, f); // the sonar pulse over planet → lightning → balloons (frames 289–296) // the ice gets the ring from its 2nd frame (337)
         }
-        else if (kind === 'mosaic') mosaic(press, lt);
+        else if (kind === 'mosaic') mosaic(press, lt, lf);
         ORBIT_DOT = null;
         if (kind === 'orbits') orbits(press, lf / 24);
         else if (kind === 'night') night(press, lt);
@@ -279,20 +283,27 @@ const MOSAIC = [
     ['whale', 740, 490, 34], ['piano', 688, 605, 35], ['rocket', 600, 690, 35], ['city', 488, 740, 34], ['planet', 365, 750, 34], ['lightning', 248, 718, 34],
     ['balloons', 148, 648, 35], ['cello', 78, 545, 34], ['volcano', 45, 425, 34], ['shell', 58, 305, 34], ['dish', 110, 192, 34], ['train', 200, 105, 34],
 ].map(([n, x, y, r]) => [n, x * 1.25, y * 1.25, r * 1.25]);
-function mosaic(press, lt) {
+function mosaic(press, lt, lf = Math.round(lt * 24)) {
     const ld = Math.round(lt * 12), blueOut = lt >= 1.0;
     // the ground: yellow screen (pink in the corners on the first drawing)
     if (!blueOut) {
         const y = press.plate('yellow', 'screen');
-        y.fillStyle = T(0.32);
+        // frame 384 a solid yellow, 385–387 a denser screen, then pale; pink corners at first
+        y.fillStyle = T(lf < 4 ? 0.45 : 0.18); // measured: the settled ground is paper with ≈ 0.15 yellow
         y.fillRect(0, 0, 1000, 1000);
-        if (ld === 0) { const y2 = press.plate('yellow'); y2.fillStyle = T(0.9); y2.fillRect(0, 0, 1000, 1000); }
+        if (lf === 0) { const y2 = press.plate('yellow'); y2.fillStyle = T(0.9); y2.fillRect(0, 0, 1000, 1000); }
+        if (lf < 3) { const pk = press.plate('pink'); pk.fillStyle = T(1); for (const [cx, cy] of [[0, 0], [1000, 0], [0, 1000], [1000, 1000]]) { pk.beginPath(); pk.arc(cx, cy, 45, 0, 7); pk.fill(); } }
     }
     // guide circles: a thin one, dashed hand-drawn ones, ticks round the dot
     const b = press.plate('blue');
     if (lt < 1.2) {
         Riso.ring(b, 500, 500, 375, 2.2, 'mguide', { color: T(0.8), wobble: 0.004 });
         Riso.ring(b, 500, 500, 90, 2.2, 'mcore', { color: T(0.8), wobble: 0.004 });
+        // a second ring round the dot, and fine ticks round it
+        Riso.ring(b, 500, 500, 76, 2.0, 'mcore2', { color: T(0.8), wobble: 0.004 });
+        b.save(); b.strokeStyle = T(0.8); b.lineWidth = 1.6;
+        for (let k = 0; k < 64; k++) { const a = (k / 64) * Math.PI * 2; b.beginPath(); b.moveTo(500 + Math.cos(a) * 94, 500 + Math.sin(a) * 94); b.lineTo(500 + Math.cos(a) * 104, 500 + Math.sin(a) * 104); b.stroke(); }
+        b.restore();
         for (const [R, seed] of [[250, 'md1'], [480, 'md2'], [610, 'md3']]) {
             b.save();
             b.setLineDash([26, 22]);
@@ -301,16 +312,20 @@ function mosaic(press, lt) {
             b.restore();
         }
     }
-    // the circles: shrink and scatter away from 17.17 (in blue ink from 17.0)
+    // measured on frames 384–424: the camera starts close (16.0) and settles by 16.17; from
+    // 17.33 the circles shrink away, the outer ones first, and the layout draws in (17.67:
+    // three dots left)
+    const zin = lf === 0 ? 1.3 : 1; // frame 384 is close, 385 already at rest
+    const u = Ease.seg(lt, 1.33, 1.67);
+    // the whole layout turns slowly anticlockwise, ≈ 9.2°/s about the dot (edge registration of frames 386–416)
+    const rot = (9.2 * (lt - 0.5) * Math.PI) / 180;
+    press.save();
+    press.each((g) => { g.translate(500, 500); g.rotate(rot); g.translate(-500, -500); });
     MOSAIC.forEach(([name, x, y, r], i) => {
-        let cx = x, cy = y, rr = r;
-        if (lt >= 1.17) {
-            const u = Math.min(1, (lt - 1.17) / 0.4), rnd = Motion.rng('ms' + i), ang = Math.atan2(y - 500, x - 500);
-            if (rnd() < u * 1.3) return;
-            cx += Math.cos(ang) * u * 120 * rnd();
-            cy += Math.sin(ang) * u * 120 * rnd();
-            rr *= 1 - u * 0.5 * rnd();
-        }
+        const d = Math.hypot(x - 500, y - 500) / 500, k = 1 - 0.3 * u;
+        const sh = 1 - Math.min(1, u * (0.9 + 1.6 * d));
+        if (sh <= 0.02) return;
+        const cx = 500 + (x - 500) * zin * k, cy = 500 + (y - 500) * zin * k, rr = r * zin * sh;
         press.knockout((g) => { g.beginPath(); g.arc(cx, cy, rr, 0, 7); g.fill(); });
         press.save();
         press.clip((g) => g.arc(cx, cy, rr, 0, 7));
@@ -319,6 +334,7 @@ function mosaic(press, lt) {
         press.restore();
         Riso.ring(b, cx, cy, rr, 4.5, 'mrim' + i, { color: T(1), wobble: 0.01 });
     });
+    press.restore();
     if (!blueOut) {
         const p = press.plate('pink');
         p.fillStyle = T(1);
