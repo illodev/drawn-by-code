@@ -338,14 +338,15 @@ function eyeMacro(press, c, o) {
     const lid = o.lid ?? 0;
     // skin: the brow ridge, the temple, the bridge and side of the nose, the cheek
     const contour = [[-1100, -800], [250, -800], [300, -560], [340, -360], [322, -200], [276, -70], [292, 60], [350, 240], [430, 440], [476, 640], [490, 900], [-1100, 900]];
-    put(press, (g) => smooth(g, contour), SKIN);
+    // (bare: the eye sits in a whole head that draws its own skin and the temple's shade)
+    if (!o.bare) put(press, (g) => smooth(g, contour), SKIN);
     press.save();
     press.clip((g) => smooth(g, contour));
     // the nose's side turned from the light: a soft ramp towards the contour, a shadow shape
     ink(press, (g) => g.rect(-100, -800, 700, 1700), { 'pink.s': (g) => Riso.ramp(g, 170, 0, 330, 0, 0, 0.24), 'yellow.s': (g) => Riso.ramp(g, 170, 0, 330, 0, 0, 0.16) });
     ink(press, (g) => smooth(g, [[250, -60], [292, 60], [350, 240], [430, 440], [476, 640], [400, 700], [330, 420], [262, 200], [224, 40]]), { 'pink.s': 0.2, 'navy.s': 0.1 });
     // the temple and the far side of the brow in shade
-    ink(press, (g) => g.rect(-1100, -800, 800, 1700), { 'pink.s': (g) => Riso.ramp(g, -700, 0, -330, 0, 0.26, 0), 'navy.s': (g) => Riso.ramp(g, -700, 0, -330, 0, 0.1, 0) });
+    if (!o.bare) ink(press, (g) => g.rect(-1100, -800, 800, 1700), { 'pink.s': (g) => Riso.ramp(g, -700, 0, -330, 0, 0.26, 0), 'navy.s': (g) => Riso.ramp(g, -700, 0, -330, 0, 0.1, 0) });
     // the socket: the lid's skin under the brow, the hollow by the nose
     ink(press, (g) => smooth(g, [[-250, -110], [-110, -200], [110, -196], [262, -110], [230, -40], [120, -128], [-60, -140], [-190, -92]]), { 'pink.s': 0.14, 'yellow.s': 0.12, 'navy.s': 0.04 });
     ink(press, ellipse(230, -10, 70, 110), { 'pink.s': (g) => Riso.radial(g, 230, -10, 10, 110, 0.3, 0), 'navy.s': (g) => Riso.radial(g, 230, -10, 10, 110, 0.12, 0) });
@@ -424,8 +425,8 @@ function eyeMacro(press, c, o) {
         const c = rb();
         line(press, [[x, y], [x + Math.cos(a) * l * 0.5, y + Math.sin(a) * l * 0.5 - 3], [x + Math.cos(a) * l, y + Math.sin(a) * l]], taper(5 + rb() * 3, 0.1, 0.8), c < 0.2 ? HAIR_LT : c < 0.55 ? HAIR : HAIR_DK);
     }
-    // the temple's hair, far left: locks going back, a grey strand
-    for (let k = 0; k < 5; k++) {
+    // the temple's hair, far left: locks going back, a grey strand (the whole head draws its own)
+    if (o.temple !== false) for (let k = 0; k < 5; k++) {
         const x = -760 + k * 60;
         lock(press, [[x + 60, -700], [x + 10, -400], [x - 10, -100], [x - 40, 200]], 70, HAIR, k === 2 ? { 'yellow.s': 0.3, 'blue.s': 0.2 } : HAIR_LT, HAIR_DK);
     }

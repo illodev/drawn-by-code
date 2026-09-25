@@ -1,9 +1,9 @@
-// Dev scene: script v2 so far — Galileo on the roof (0–5) into Newton's apple (5–12).
+// Dev scene: script v2 so far — Galileo on the roof (0–12.8, one continuous shot) into Newton's apple.
 const DIR = 'sandbox/2026-09-25-physics-history/';
-const PLAN = [[0, 7, 'galileoRoof'], [7, 14, 'newtonApple']];
+const PLAN = [[0, 12.8, 'galileoRoof'], [12.8, 19.8, 'newtonApple']];
 Motion.scene({
-    fps: 24, duration: 14, logical: [1600, 900], bpm: 120, audio: { mix: 'mix.wav' },
-    uses: ['styles/risograph/riso.js', DIR + 'kit.js', DIR + 'cast.js', DIR + 'sets.js', DIR + 'earth.js', DIR + 'figure.js', DIR + 'scope3d.js',
+    fps: 24, duration: 19.8, logical: [1600, 900], bpm: 120, audio: { mix: 'mix.wav' },
+    uses: ['styles/risograph/riso.js', DIR + 'kit.js', DIR + 'cast.js', DIR + 'sets.js', DIR + 'earth.js', DIR + 'figure.js', DIR + 'scope3d.js', DIR + 'head-galileo.js', DIR + 'hands-galileo.js',
         DIR + 'segments/newton-faraday.js', DIR + 'segments/galileo.js', DIR + 'segments/newton-apple.js', DIR + 'segments/galileo-roof.js'],
     shots: PLAN.map(([a, b, n]) => [a, b, n]),
     setup(env) { const st = {}; for (const [, , n] of PLAN) st[n] = Seg[n].init?.(env) ?? {}; return { press: Riso.press(env), st }; },

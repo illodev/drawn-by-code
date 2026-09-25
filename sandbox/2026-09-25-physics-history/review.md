@@ -413,3 +413,38 @@ What changed:
     tube rises at the roof tube's angle.
   - The roof's close-up after the cut puts the eyepiece at the same place on screen, on his
     eye, with the tube rising the same way.
+
+### Round 13 (user)
+
+> Hay mejorado un poco, esa transición sigue estando mal, ocurre muy rápido y la perspectiva
+> está mal. Las manos son horribles, no pueden estar peor hechas. Por favor, puedes prestar
+> atención a los detalles? Animación, transición, perspectivas, manos, que todo tenga sentido,
+> si dura más que dure
+
+What changed:
+
+- **One continuous shot, no cut** (Galileo is now 0–12.8 s).
+  - A new detailed head (`head-galileo.js`) is built round the macro eye, with real
+    proportions (thirds of the face, the ear behind the jaw, receding hair with strands, a
+    short beard and moustache), so the opening macro and the wide shot are the same drawing.
+  - The camera is a real one: a perspective view of the 3D telescope that dollies back from
+    the eye (2.2–5.4 s, slow and eased) to the whole scene, with the man on the plane through
+    the tube's axis. Far layers scale by their depth, the stars do not.
+  - At 6.3 s he pulls back from the eyepiece, astonished (brows up, mouth open); the camera
+    then closes in and turns round behind the eyepiece into his place (6.6–8.6 s), and the
+    glass opens into the field.
+  - The nights and the dive into the apple keep their beats, later and a little slower.
+- **Hands redrawn** (`hands-galileo.js`), in the tube's own projected frame so they sit on it
+  at any size.
+  - Right hand: palm up under the tube, fingertips hooking over the top edge with nails, the
+    thumb lying up the near face, the heel and wrist into a white shirt cuff.
+  - Left hand: palm up under the tube, four fingers curling up the near face with knuckle
+    wrinkles and nails, the knuckles' row underneath.
+  - Sleeves of the gown with IK on screen, a lit edge and creases at the elbow; the gown
+    has a doublet with buttons and a white falling collar.
+- **Sound** follows the new beats (the lean, the pull-back, the collar, the surprise, the
+  camera going into the eyepiece, the glass, the three nights).
+
+**Lesson (animate):** a macro-to-wide move of one subject is one camera over one drawing at
+full detail, never a cut between two drawings; hands on a 3D prop live in its projected frame;
+to take a character's point of view, move the character out of the axis first.
