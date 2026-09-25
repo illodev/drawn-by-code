@@ -153,3 +153,63 @@ with the action. There is no wide empty frame until the pull-back.
 
 The hits sit on the beat and the automatic review reports no warnings. The test is mixed
 with effects: pop, boing, knock, whoosh and a reveal.
+
+### Round 4 (user)
+
+> Lo he visto en x0.5 y hay animaciones que no están bien hechas y no cuadran a nivel tanto
+> de físicas como de timing, también los movimientos de newton son un poco ortopédicos
+>
+> La manzana cuando cae desaparece, cuando la lanza, a pesar de haber hecho el gesto de
+> lanzar, sale con retardo de la mano, cuando se aleja el zoom el escenario pierde detalles
+> (aunque en general me siguen faltando densidad de detalles)
+
+What changed:
+
+**Motion without the stiffness** (`figure.js`):
+- Poses are channels (`Fig.track`): Hermite splines through the keys, so velocity carries
+  through them and repeated keys hold.
+- The torso keeps its length (`Fig.build` derives the chest and head from the pelvis with
+  the spine and neck angles).
+- Elbows and knees follow moving pole points, so they never flip between solutions.
+- Feet stay planted between steps and lift on an arc (`Fig.foot`).
+- The acting has anticipation, overlap and settle:
+  - he flinches at the bonk, rubs his head and blinks;
+  - he gets up with a push off the trunk and one step;
+  - he crouches with his knees bent to pick up the apple and stands;
+  - he looks at the apple, then at the Moon (a double take);
+  - the wind-up goes low and behind, with a step into the throw;
+  - the release happens on the beat at the top of the arm's arc, with a follow-through.
+
+**Physics:** the apple's path is computed, not keyed.
+- It falls from rest with g (1 unit ≈ 2.4 mm), so the time of the fall sets the snap.
+- It bounces off his head with a restitution, lands, bounces once more and rolls to a stop
+  with friction.
+- The hand's grab key is placed at the apple's resting point.
+- The book jolts off his knees and falls.
+- After the throw the apple is placed from the hand on the release frame and reaches the top
+  of the frame in 0.18 s. The pull-back starts from the camera's last zoom (1.25), so there
+  is no jump.
+- The trail is the path of the last moments seen at the current zoom (no hook).
+
+**The apple no longer disappears:**
+- It hangs alone on a twig that reaches out from the trunk, below the crown.
+- The crown leaves sky round it and under it, and the other apples keep out of its column.
+- The camera follows the fall and hands over to the bonk framing without a jump.
+
+**Detail kept while pulling back:**
+- The near set fades later.
+- Then the land takes over at every scale, each drawn while it is a few px to ~140 px:
+  - hedgerow trees;
+  - farmsteads with red roofs and haystacks;
+  - villages with a church spire;
+  - market towns;
+  - woods;
+  - rows of fields receding to the horizon at three scales.
+- The sun and the Moon stay put in the sky (they are at infinity).
+
+**More detail in the near set:**
+- an orchard ladder against the trunk;
+- a wicker basket of apples;
+- dappled sunlight on the grass;
+- leaves drifting down;
+- the crown kept to the left, so the throw has open sky.

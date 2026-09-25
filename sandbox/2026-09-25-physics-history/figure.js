@@ -33,7 +33,9 @@ const Fig = (() => {
         const dx = w[0] - s[0], dy = w[1] - s[1], d = Math.min(Math.hypot(dx, dy), a + b - 0.01);
         const ang = Math.atan2(dy, dx), c = Math.acos(Math.max(-1, Math.min(1, (a * a + d * d - b * b) / (2 * a * d))));
         const e1 = [s[0] + Math.cos(ang + c) * a, s[1] + Math.sin(ang + c) * a], e2 = [s[0] + Math.cos(ang - c) * a, s[1] + Math.sin(ang - c) * a];
-        const score = (e) => (pick === 'fwd' ? e[0] * face : pick === 'back' ? -e[0] * face : pick === 'up' ? -e[1] : e[1]);
+        // pick: a keyword, or a pole point (the joint goes to the solution nearer to it, so a
+        // pole that moves smoothly makes the joint move smoothly: no flip between keys)
+        const score = Array.isArray(pick) ? (e) => -Math.hypot(e[0] - pick[0], e[1] - pick[1]) : (e) => (pick === 'fwd' ? e[0] * face : pick === 'back' ? -e[0] * face : pick === 'up' ? -e[1] : e[1]);
         const e = score(e1) >= score(e2) ? e1 : e2;
         // clamp the wrist to reach
         const wr = [s[0] + Math.cos(ang) * d, s[1] + Math.sin(ang) * d];
@@ -85,10 +87,12 @@ const Fig = (() => {
         const UA = 1.45 * u, FA = 1.25 * u, TH = 1.95 * u, SH = 1.95 * u;
         const shN = add(p.C, -0.12 * u * f, 0.06 * u), shF = add(p.C, 0.22 * u * f, -0.04 * u);
         const hipN = add(p.P, 0.1 * u * f, 0), hipF = add(p.P, -0.1 * u * f, -0.04 * u);
-        const [elF, wrF] = ik(shF, p.hF, UA, FA, p.elbowF ?? 'back', f);
-        const [elN, wrN] = ik(shN, p.hN, UA, FA, p.elbowN ?? 'back', f);
-        const [knF, anF] = ik(hipF, p.fF, TH, SH, 'fwd', f);
-        const [knN, anN] = ik(hipN, p.fN, TH, SH, 'fwd', f);
+        // poles are offsets from the shoulder / hip (p.poleN, p.poleF, p.kneeN, p.kneeF)
+        const pole = (o, base, kw) => (o ? [base[0] + o[0] * f, base[1] + o[1]] : kw);
+        const [elF, wrF] = ik(shF, p.hF, UA, FA, pole(p.poleF, shF, p.elbowF ?? 'back'), f);
+        const [elN, wrN] = ik(shN, p.hN, UA, FA, pole(p.poleN, shN, p.elbowN ?? 'back'), f);
+        const [knF, anF] = ik(hipF, p.fF, TH, SH, pole(p.kneeF, hipF, 'fwd'), f);
+        const [knN, anN] = ik(hipN, p.fN, TH, SH, pole(p.kneeN, hipN, 'fwd'), f);
         const dirOf = (a, b) => Math.atan2(b[1] - a[1], b[0] - a[0]);
         const shoe = (an, toe, spec) => {
             const d = f * (toe ?? 0);
@@ -125,13 +129,17 @@ const Fig = (() => {
         leg(hipF, knF, anF, true, p.toeF);
         // the body: a straight back from the neck to the waist, a chest a little forward, a
         // narrow waist; the coat's skirt flares from the waist to the knees in an A with folds
-        const back = -f, kneeY = (knN[1] + knF[1]) / 2, hemY = kneeY + 0.1 * u;
+        // the coat's skirt hangs from the waist over the thighs to just above the knees, so it
+        // follows the legs (standing it falls straight, squatting it lies along the thighs)
+        const back = -f;
         const waistB = add(p.P, back * 0.48 * u, -0.35 * u), waistF = add(p.P, -back * 0.42 * u, -0.35 * u);
-        const skirtB = [Math.min(p.P[0] + back * 0.75 * u, Math.min(knN[0], knF[0]) - 0.1 * u) * (f > 0 ? 1 : 0) + Math.max(p.P[0] + back * 0.75 * u, Math.max(knN[0], knF[0]) + 0.1 * u) * (f > 0 ? 0 : 1), hemY];
-        const frontX = f > 0 ? Math.max(knN[0], knF[0]) + 0.2 * u : Math.min(knN[0], knF[0]) - 0.2 * u;
-        const skirt = [waistB, LP(waistB, skirtB, 0.5), skirtB, [L(skirtB[0], frontX, 0.5), hemY + 0.06 * u], [frontX, hemY - 0.02 * u], LP(waistF, [frontX, hemY], 0.45), waistF];
+        const kMid = LP(knN, knF, 0.5), hip = LP(hipN, hipF, 0.5);
+        const hang = Math.max(0, Math.min(1, (kMid[1] - hip[1]) / (1.6 * u))); // 1 standing, 0 thighs level
+        const skirtB = add(LP(hip, kMid, 0.95), back * L(0.5, 0.2, 1 - hang) * u, L(-0.05, 0.25, hang) * u);
+        const frontX = LP(hip, kMid, 0.95)[0] - back * L(0.4, 0.15, 1 - hang) * u, hemY = LP(hip, kMid, 0.95)[1] + L(-0.3, 0.1, hang) * u;
+        const skirt = [waistB, add(LP(waistB, skirtB, 0.5), back * 0.12 * u, 0), skirtB, [L(skirtB[0], frontX, 0.5), L(skirtB[1], hemY, 0.5) + 0.06 * u], [frontX, hemY], LP(waistF, [frontX, hemY], 0.45), waistF];
         put(press, (g) => smooth(g, skirt), COAT_FAR);
-        for (let i = 1; i < 4; i++) line(press, [LP(waistB, waistF, i / 4), [L(skirtB[0], frontX, i / 4), hemY]], taper(0.05 * u, 0.3, 0.1), { navy: 1, pink: 0.9, yellow: 1 });
+        for (let i = 1; i < 4; i++) line(press, [LP(waistB, waistF, i / 4), LP(skirtB, [frontX, hemY], i / 4)], taper(0.05 * u, 0.3, 0.1), { navy: 1, pink: 0.9, yellow: 1 });
         const neckB = add(p.C, back * 0.2 * u, -0.3 * u), neckF = add(p.C, -back * 0.16 * u, -0.32 * u);
         const torso = [neckB, add(p.C, back * 0.5 * u, -0.05 * u), add(p.C, back * 0.52 * u, 0.6 * u), waistB, add(p.P, back * 0.45 * u, 0.15 * u), add(p.P, -back * 0.38 * u, 0.15 * u), waistF, add(p.C, -back * 0.52 * u, 0.7 * u), add(p.C, -back * 0.5 * u, 0.2 * u), neckF];
         put(press, (g) => smooth(g, torso), COAT);
@@ -161,5 +169,52 @@ const Fig = (() => {
         return { wrN, wrF, elN, knN, anN, H: p.H };
     }
 
-    return { pose, ik, seg, hand, newton };
+    // ── smooth choreography ──────────────────────────────────────────────────────────────
+    // A track is [[t, value], …] (numbers or points). Values pass through every key with a
+    // continuous velocity (Hermite, tangents from the neighbours: Catmull-Rom on uneven
+    // times), so motion flows through keys instead of stopping dead at each one. A key
+    // written twice in a row ([t, v], [t2, v]) is a hold.
+    function track(keys, t) {
+        const n = keys.length;
+        if (t <= keys[0][0]) return keys[0][1];
+        if (t >= keys[n - 1][0]) return keys[n - 1][1];
+        let i = 0;
+        while (t >= keys[i + 1][0]) i++;
+        const [t0, a] = keys[i], [t1, b] = keys[i + 1], h = t1 - t0, k = (t - t0) / h;
+        if (typeof a !== 'number' && !Array.isArray(a)) return a; // flags and grips step
+        const prev = keys[Math.max(0, i - 1)], next = keys[Math.min(n - 1, i + 2)];
+        const same = (x, y) => (Array.isArray(x) ? x[0] === y[0] && x[1] === y[1] : x === y);
+        const tan = (pk, qk, v0, v1) => {
+            if (same(v0, v1)) return Array.isArray(v0) ? v0.map(() => 0) : 0; // holds stay still
+            const dt = qk[0] - pk[0] || 1;
+            return Array.isArray(v0) ? v0.map((_, j) => (qk[1][j] - pk[1][j]) / dt) : (qk[1] - pk[1]) / dt;
+        };
+        const m0 = same(a, b) ? tan(keys[i], keys[i], a, a) : same(prev[1], a) ? tan(keys[i], keys[i], a, a) : tan(prev, keys[i + 1], a, b);
+        const m1 = same(a, b) ? m0 : same(b, next[1]) ? tan(keys[i], keys[i], a, a) : tan(keys[i], next, a, b);
+        const k2 = k * k, k3 = k2 * k, h00 = 2 * k3 - 3 * k2 + 1, h10 = k3 - 2 * k2 + k, h01 = -2 * k3 + 3 * k2, h11 = k3 - k2;
+        const f = (p0, p1, v0, v1) => h00 * p0 + h10 * h * v0 + h01 * p1 + h11 * h * v1;
+        return Array.isArray(a) ? a.map((_, j) => f(a[j], b[j], m0[j], m1[j])) : f(a, b, m0, m1);
+    }
+    // feet: planted between steps; a step lifts the foot on an arc and sets it down
+    function foot(steps, x0, t, ground) {
+        let x = x0, y = ground, toe = 0;
+        for (const [a, b, xa, xb, lift] of steps) {
+            if (t >= b) { x = xb; continue; }
+            if (t > a) { const k = Ease.inOut((t - a) / (b - a)); x = L(xa, xb, k); y = ground - lift * Math.sin(Math.PI * k); toe = lift ? -0.25 * Math.sin(Math.PI * k) : 0; }
+            break;
+        }
+        return { p: [x, y], toe };
+    }
+    // a pose from channels: the torso keeps its length (pelvis → chest along the spine angle,
+    // chest → head along the spine plus the neck), so the body never stretches
+    function build(ch, t, u, extra = {}) {
+        const P = track(ch.P, t), sp = track(ch.sp, t), nk = track(ch.nk, t);
+        const C = [P[0] + Math.sin(sp) * 2.4 * u, P[1] - Math.cos(sp) * 2.4 * u];
+        const H = [C[0] + Math.sin(sp + nk) * 0.85 * u, C[1] - Math.cos(sp + nk) * 0.85 * u];
+        const out = { u, P, C, H, tilt: sp * 0.6 + nk };
+        for (const k of Object.keys(ch)) if (!['P', 'sp', 'nk'].includes(k)) out[k] = typeof ch[k] === 'function' ? ch[k](t) : track(ch[k], t);
+        return { ...out, ...extra };
+    }
+
+    return { pose, ik, seg, hand, newton, track, foot, build };
 })();
