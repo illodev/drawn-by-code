@@ -81,6 +81,16 @@ CARDS.wave = (press, t) => {
             }
         });
         // the swirl: navy strokes and paper lines (with a pink edge) round the barrel
+        // (1× grid crop of frame 200) loose brush strokes round the barrel, navy with a purple
+        // cast, overlapping and crossing: points read off the crop
+        for (const [pts, w] of [
+            [[[640, 560], [612, 430], [650, 300], [750, 200], [880, 168], [990, 230], [1040, 330]], 5],
+            [[[620, 300], [700, 205], [800, 140], [960, 160]], 4],
+            [[[700, 330], [790, 250], [900, 240], [985, 300], [1010, 450], [990, 580]], 5],
+            [[[660, 470], [680, 360], [760, 290], [880, 290], [960, 360], [975, 480]], 3.5],
+            [[[560, 620], [545, 470], [590, 330], [680, 240]], 4],
+            [[[900, 150], [1000, 190], [1060, 290]], 4],
+        ]) { const sp = spline(pts, 30); taper(navy, sp, w, 0.95); taper(pink, sp, w * 0.8, 0.45); }
         const arc = (r, a0, a1, cx = SX, cy = SY + 20) => { const pts = []; for (let i = 0; i <= 20; i++) { const a = a0 + (a1 - a0) * i / 20; pts.push([cx + Math.cos(a) * r * 1.05, cy + Math.sin(a) * r]); } return pts; };
         for (const [r, a0, a1, w] of [[210, -3.25, -0.5, 5], [262, -3.0, -0.35, 6], [318, -2.9, -0.45, 5], [370, -2.55, -1.1, 4.5], [240, -2.2, 0.25, 4]]) taper(navy, arc(r + jig, a0, a1), w * 1.3, 0.95);
         for (const [r, a0, a1, w] of [[228, -3.1, -1.2, 4], [290, -3.25, -0.9, 4.5], [345, -3.0, -1.4, 4], [196, -2.7, -1.6, 3]]) {
