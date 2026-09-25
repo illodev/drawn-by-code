@@ -149,27 +149,36 @@ const FarLab = (() => {
 
     // ── the bench ────────────────────────────────────────────────────────────────────────
     function bench(press, C, t) {
-        // the top: planks along x, grain, stains, scorch marks; seen low it is a thin band
-        tiled(press, C, [-1200, 0, -300], [1, 0, 0], [0, 0, 1], 0, 2600, 0, 420, 420, () => {
-            put(press, (g) => g.rect(-2, -2, 2604, 424), WOOD);
-            for (let i = 0; i < 6; i++) {
-                line(press, [[0, i * 70], [2600, i * 70]], 3, WOOD_DK, { knock: false });
-                for (let k = 0; k < 20; k++) line(press, [[k * 130 + Math.sin(i * 3 + k) * 40, i * 70 + 20 + Math.sin(k) * 10], [k * 130 + 90, i * 70 + 24 + Math.sin(k * 2) * 10]], 2, WOOD_LT, { knock: false });
-            }
-            ink(press, ellipse(1500, 140, 60, 26), { 'navy.s': 0.2 });
-            ink(press, ellipse(700, 330, 40, 18), { 'navy.s': 0.25 });
-        });
-        // the front: a thick edge, a panel with drawers and brass pulls
-        // (in tiles: one affine card this large bends wrong near the camera and leaves gaps)
-        tiled(press, C, [-1200, 0, 120], [1, 0, 0], [0, -1, 0], 0, 2600, 0, 800, 200, () => {
-            put(press, (g) => g.rect(-4, -4, 2608, 44), WOOD_LT);
-            put(press, (g) => g.rect(-4, 40, 2608, 760), WOOD_DK);
-            for (let k = 0; k < 6; k++) {
-                put(press, (g) => g.rect(120 + k * 420, 70, 360, 160), WOOD);
-                line(press, [[120 + k * 420, 232], [480 + k * 420, 232]], 4, { navy: 1 });
-                put(press, ellipse(300 + k * 420, 150, 22, 10), BRASS_SH);
-            }
-        });
+        // the top and the front as true projected polygons (not affine cards, which bend and
+        // leave seams near the camera): every point goes through the camera; details are
+        // projected lines and shapes on the surfaces
+        const near = (p) => dot(sub(p, C.eye), C.f) > 4;
+        const P = (p) => { const q = C.proj(p); return [q[0], q[1]]; };
+        const quad = (pts, n = 24) => {
+            // sample the edges, keep what is in front of the camera
+            const out = [];
+            for (let e = 0; e < pts.length; e++) { const a = pts[e], b = pts[(e + 1) % pts.length]; for (let k = 0; k < n; k++) { const u = k / n, q = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]; if (near(q)) out.push(P(q)); } }
+            return (g) => { g.beginPath(); out.forEach(([x, y], k) => (k ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); };
+        };
+        const seg3 = (a, b, w, spec) => { const pts = []; for (let k = 0; k <= 16; k++) { const u = k / 16, q = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]; if (near(q)) pts.push(P(q)); } if (pts.length > 1) line(press, pts, w, spec, { knock: false }); };
+        const X0 = -1200, X1 = 1400, ZB = -300, ZF = 120;
+        const TOP = quad([[X0, 0, ZB], [X1, 0, ZB], [X1, 0, ZF], [X0, 0, ZF]]);
+        put(press, TOP, WOOD);
+        press.save(); press.clip(TOP);
+        for (let i = 1; i < 6; i++) seg3([X0, 0, ZB + i * 70], [X1, 0, ZB + i * 70], 2.4, WOOD_DK);
+        for (let i = 0; i < 6; i++) for (let k = 0; k < 20; k++) { const x = X0 + k * 130 + Math.sin(i * 3 + k) * 40, z = ZB + i * 70 + 22 + Math.sin(k) * 10; seg3([x, 0, z], [x + 90, 0, z + 3], 1.6, WOOD_LT); }
+        ink(press, quad([[260, 0, -180], [380, 0, -180], [380, 0, -120], [260, 0, -120]], 6), { 'navy.s': 0.2 });
+        press.restore();
+        // the front: its lit edge, the dark panel, drawers with brass pulls
+        const FR = quad([[X0, 0, ZF], [X1, 0, ZF], [X1, -800, ZF], [X0, -800, ZF]]);
+        put(press, FR, WOOD_DK);
+        put(press, quad([[X0, 0, ZF], [X1, 0, ZF], [X1, -40, ZF], [X0, -40, ZF]]), WOOD_LT);
+        for (let k = 0; k < 6; k++) {
+            const x = X0 + 120 + k * 420;
+            put(press, quad([[x, -70, ZF], [x + 360, -70, ZF], [x + 360, -230, ZF], [x, -230, ZF]], 8), WOOD);
+            seg3([x, -232, ZF], [x + 360, -232, ZF], 3, { navy: 1 });
+            const q = [x + 180, -150, ZF]; if (near(q)) { const c = P(q), k2 = C.flen / C.proj(q)[2]; put(press, ellipse(c[0], c[1], 22 * k2, 10 * k2), BRASS_SH); }
+        }
         lamp(press, C, t);
         // Faraday's notebook, open, lying on the bench (sketches of rings and helices)
         card(press, C, [60, 0.5, -200], [1, 0, 0], [0, 0, 1], () => {
