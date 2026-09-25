@@ -125,7 +125,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         if (o.dead) { for (let i = 0; i < 6; i++) { const a = i * 1.1, r = 30 * k; kline(press, [[fq[0] + Math.cos(a) * r * 0.4, fq[1] + 30 * k], [fq[0] + Math.cos(a) * r * 1.3, fq[1] + 30 * k + Math.sin(a) * 6 * k]], 3 * k, 0.6); } }
         else { press.knockout((g) => { g.beginPath(); g.arc(fq[0], fq[1], 38 * k, 0, 6.2832); g.globalAlpha = 0.35; g.fill(); g.globalAlpha = 1; }); kline(press, [[fq[0], fq[1] - 36 * k], [fq[0], fq[1] - 70 * k]], 18 * k, 0.35); }
         // the cat
-        const cq = P([-170, h, 0], c), ck = kAt([-170, h, 0], c);
+        const cq = P([-110, h, 0], c), ck = kAt([-110, h, 0], c);
         Cat.xray(press, { x: cq[0], y: cq[1], s: ck * (o.dead ? 2.4 : 2.9), face: 1, pose: o.dead ? 'dead' : 'sit' });
         ink(press, (g) => g.rect(-5000, -5000, 10000, 10000), { 'blue.s': 0.25 });
     }

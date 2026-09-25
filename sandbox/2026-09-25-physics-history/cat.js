@@ -193,7 +193,7 @@ const Cat = (() => {
                 const k = [x + Math.cos(a) * len * 0.5, -40 + Math.sin(a) * len * 0.5], p2 = [x + Math.cos(a) * len, -40 + Math.sin(a) * len];
                 bone([[x, -34], k], 5); bone([k, p2], 4); blob(k[0], k[1], 4.5, 4.5); blob(p2[0], p2[1] - 3, 6, 5, 0.8);
             }
-            chain([[-70, -8], [-104, -4], [-136, -4], [-156, -8]], 12, 3.4, 0.75);
+            chain([[-70, -8], [-96, -6], [-108, -20], [-100, -34]], 12, 3.4, 0.75);
             // skull upside down: cranium, the eye's socket, the jaw
             blob(94, -28, 24, 20, 0.85);
             put(press, ellipse(100, -20, 7, 6), { navy: 0.9, blue: 0.6 });
@@ -207,7 +207,8 @@ const Cat = (() => {
             blob(-20, -14, 13, 9, 0.85, -0.4);
             bone([[-20, -14], [6, -24]], 6); bone([[6, -24], [-22, -8]], 5); bone([[-22, -8], [-2, -3]], 4); blob(6, -24, 5, 5);
             bone([[20, -84], [22, -40]], 5.5); bone([[22, -40], [24, -4]], 4.5); blob(22, -40, 4.5, 4.5); blob(26, -3, 7, 4, 0.8);
-            chain([[-28, -8], [-62, -4], [-98, -12], [-112, -34]], 14, 3.4, 0.75);
+            // (the tail wrapped round the front paws, as a sitting cat keeps it: inside the box)
+            chain([[-28, -8], [-40, 4], [-6, 8], [30, 6], [48, -2]], 14, 3.4, 0.75);
             // the skull: a round cranium, the muzzle tapering forward, the jaw under it, the
             // eye's socket dark
             press.knockout((g) => { smooth(g, [[2, -104], [6, -124], [24, -130], [42, -122], [58, -104], [54, -96], [36, -94], [14, -92]]); g.globalAlpha = 0.85; g.fill(); g.globalAlpha = 1; });
