@@ -215,7 +215,10 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     function farPose(t) {
         const lean = IO(S(t, T.lean[0], T.lean[1])) * (1 - IO(S(t, T.out1[0] - 0.05, T.out1[1] + 0.1)));
         const jump = Ease.bump(t, T.spark + 0.15, 0.35);
-        const H = [-470 + lean * 140 - jump * 30, 540 - lean * 50 + jump * 10, FZ];
+        // as he draws the magnet out towards him he draws his body back with it, so the arm stays
+        // reaching forward (a hand that close to a still body folds the elbow out behind his back)
+        const pull = Math.max(0, Math.min(1, (-95 - magX(t)) / 155)) * S(t, T.swap, T.swap + 0.01);
+        const H = [-470 + lean * 140 - jump * 30 - 150 * pull, 540 - lean * 50 + jump * 10 + 12 * pull, FZ];
         const surprise = Math.max(Ease.bump(t, T.out1[1] + 0.25, 0.5), S(t, T.spark, T.spark + 0.12));
         const brow = surprise > 0.05 ? surprise : -IO(S(t, T.lean[0] + 0.2, T.lean[1])) * (1 - S(t, T.out1[0], T.out1[0] + 0.1));
         return { H, lean, brow, mouth: surprise * 0.8, look: lean > 0.3 || surprise > 0.2 ? [1, 0.2] : [1, 0.75] };
