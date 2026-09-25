@@ -19,44 +19,51 @@ CARDS.wave = (press, t) => {
         yellow.fillStyle = T(1); yellow.fillRect(0, 0, 1080, 1080);
         lat([12.53, -0.26, 170.12, 248.74], (x, y) => lerpT([[0, 0.72], [200, 0.45], [420, 0.22], [600, 0.12]], y), pink, [0, 0, 1080, 700]); // the sky's pink dots, on the reference's lattice
         // the paper above the crest (foam and cloud), a scrap of orange sky in the corner
-        const paperTop = [[520, 240], [590, 170], [660, 90], [740, 30], [770, 0], [1080, 0], [1080, 210], [1040, 150], [960, 100], [840, 75], [690, 95], [580, 170]]; // (edges read off a 1× crop of the crest)
+        const paperTop = [[545, 215], [610, 140], [680, 80], [740, 25], [770, 0], [1000, 0], [1010, 30], [1060, 60], [1080, 70], [1080, 250], [1055, 212], [980, 112], [880, 70], [780, 62], [680, 110], [599, 175]] // (edges read off a 1× crop of the crest)
         press.knockout((g) => { g.beginPath(); blobPath(g, paperTop); g.fill(); });
         blob(yellow, [[975, -20], [1090, -20], [1090, 50], [1040, 55], [990, 30]], 1);
         blob(pinkS, [[975, -20], [1090, -20], [1090, 50], [1040, 55], [990, 30]], 0.6);
         // the wave: its outline, teal body, deep water below
-        const wave = [[0, 612], [90, 575], [200, 505], [320, 478], [395, 390], [470, 290], [530, 215], [580, 170], [690, 95], [840, 75], [960, 100], [1040, 150], [1080, 210], [1080, 1080], [0, 1080]];
+        const wave = [[0, 612], [90, 575], [200, 505], [320, 478], [395, 390], [470, 290], [530, 215], [599, 175], [680, 110], [780, 62], [880, 70], [980, 112], [1055, 212], [1080, 240], [1080, 1080], [0, 1080]];
         const wp = (g) => G2.path(g, wave);
         press.knockout((g) => { wp(g); g.fill(); });
         fillWith(blue, wp, (g) => grad(g, 0, 150, 0, 1000, [[0, 0.88], [0.5, 0.85], [0.7, 0.25], [1, 0.05]]));
-        fillWith(navy, wp, (g) => grad(g, 0, 500, 0, 950, [[0, 0.15], [0.3, 0.85], [1, 1]]));
+        fillWith(navy, wp, (g) => grad(g, 0, 500, 0, 950, [[0, 0.1], [0.3, 0.72], [1, 0.82]]));
         fillWith(navy, wp, (g) => grad(g, 300, 0, 0, 0, [[0, 0], [1, 0.35]]));
         inside(navyS, wp, (g) => { g.fillStyle = grad(g, 0, 100, 0, 700, [[0, 0.3], [1, 0.45]]); g.fillRect(0, 0, 1080, 1080); });
         // the crest's top is lighter: no navy dots there (blue alone, then green)
         inside(navyS, wp, (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = Riso.radial(g, 820, 120, 80, 330, 1, 0); g.fillRect(0, 0, 1080, 700); });
         // the crest catching the light: yellow dots over the blue (green), top right
         // (measured: yellow dots on a 11.3 px lattice at 45° over x 650–1060, y 100–560)
-        const crest = G2.field('wave-crest', (g) => { g.fillStyle = T(0.75); g.beginPath(); blobPath(g, [[660, 120], [800, 90], [960, 110], [1060, 170], [1070, 400], [1020, 560], [900, 560], [800, 420], [700, 330], [640, 220]]); g.fill(); }, 40);
+        const crest = G2.field('wave-crest', (g) => { g.fillStyle = T(0.6); g.beginPath(); blobPath(g, [[820, 100], [960, 105], [1060, 170], [1075, 420], [1010, 500], [930, 420], [860, 260]]); g.fill(); }, 40);
         inside(yellow, wp, (g) => lat([11.31, 0.785, 879.06, 294.83], crest, g, [600, 60, 1080, 620]));
         inside(navy, wp, (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = Riso.radial(g, 900, 300, 60, 330, 0.9, 0); g.fillRect(0, 0, 1080, 1080); });
         // pink flecks in the deep water
         inside(pink, wp, (g) => speckle(g, 'deep', 0, 600, 1080, 1080, 700, 0.8, 2.4, 0.9));
         inside(pinkS, wp, (g) => { g.fillStyle = grad(g, 0, 600, 0, 1000, [[0, 0], [0.4, 0.3], [1, 0.45]]); g.fillRect(0, 0, 1080, 1080); });
-        inside(pinkS, wp, (g) => { g.fillStyle = grad(g, 0, 850, 0, 1080, [[0, 0], [1, 0.25]]); g.fillRect(560, 850, 520, 230); });
+        inside(pinkS, wp, (g) => { g.fillStyle = grad(g, 0, 850, 0, 1080, [[0, 0.1], [1, 0.45]]); g.fillRect(560, 850, 520, 230); }); // (the water turns purple bottom right: ≈ (91, 61, 138))
         // the barrel: the sun fills it (yellow with blue dots, green) above a yellow horizon;
         // the tube floor below is teal; the curl's wall cuts it on the right
         // (the curl's inner edge, a big arc on the right, trims the sun)
-        const hole = (g) => { g.arc(SX, SY, SR, 2.0, -0.9); g.arc(1250, SY, 320, -2.6, 2.75, true); g.closePath(); };
+        // (0.75× crop of frame 200: a dome from x 647 to 940, top y 420, on the horizon at 653)
+        const hole = (g) => { g.ellipse(793, 560, 147, 140, 0, 0, 7); };
         press.knockout((g) => { g.beginPath(); hole(g); g.fill(); });
-        inside(yellow, hole, (g) => { g.fillStyle = T(1); g.fillRect(0, 0, 1080, 668); });
-        inside(blueS, hole, (g) => { g.fillStyle = grad(g, 640, 0, 950, 0, [[0, 0.3], [1, 0.45]]); g.fillRect(0, 0, 1080, 650); });
+        inside(yellow, hole, (g) => { g.fillStyle = T(1); g.fillRect(0, 0, 1080, 655); });
+        inside(blueS, hole, (g) => { g.fillStyle = grad(g, 650, 0, 940, 0, [[0, 0.05], [0.4, 0.35], [1, 0.8]]); g.fillRect(0, 0, 1080, 655); });
+        // (the sun's left half is yellow with red dots, turning green to the right)
+        inside(pink, hole, (g) => lat([12.53, -0.26, 170.12, 248.74], (x) => Math.max(0, 0.22 - (x - 650) / 1200), g, [640, 410, 950, 660]));
         inside(pink, hole, (g) => speckle(g, 'sun', SX - 160, 380, SX + 160, 660, 120, 0.8, 1.8, 0.9));
-        inside(pinkS, hole, (g) => { g.fillStyle = T(0.14); g.fillRect(0, 648, 1080, 22); });
+        
         inside(blue, hole, (g) => { g.fillStyle = T(0.85); g.fillRect(0, 668, 1080, 400); });
-        inside(navyS, hole, (g) => { g.fillStyle = T(0.4); g.fillRect(0, 668, 1080, 400); });
+        // the horizon: a yellow band under the sun running on behind the lip (to x ≈ 1000)
+        const band = [[652, 612], [1000, 608], [1000, 655], [648, 655]];
+        press.knockout((g) => { G2.path(g, band); g.fill(); }); poly(yellow, band, 1);
+        poly(blueS, band, 0.3);
         // the tube floor: teal (blue with navy dots) from the horizon down to the foam
-        const floor = [[640, 664], [1080, 664], [1080, 790], [900, 800], [760, 780], [690, 720]];
+        // (a teal ring round the sun: the tube's inside, bounded below by an arc to ≈ y 780)
+        const floor = (() => { const pts = []; for (let i = 0; i <= 24; i++) { const a = Math.PI * (i / 24); pts.push([793 + Math.cos(a) * 200, 600 + Math.sin(a) * 180]); } return [[993, 655], ...pts.slice(1), [593, 655]]; })();
         navy.save(); navy.globalCompositeOperation = 'destination-out'; poly(navy, floor, 1); navy.restore();
-        poly(blue, floor, 0.95); poly(navyS, floor, 0.3);
+        poly(blue, floor, 0.85); poly(navyS, floor, 0.2); poly(yellowS, floor, 0.12);
         // the horizon behind the lip, right of the barrel
         // (measured at 1.5×: the sky shows through behind the curl as a yellow wedge with red
         // dots, a white band of spray above it, the curl's back in blue with navy dots)
