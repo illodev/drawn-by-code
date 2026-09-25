@@ -433,6 +433,8 @@ function marie(press, o) {
     put(press, (g) => smooth(g, [[268, fl - 10], [294, fl - 12], [312, fl - 4], [314, fl], [266, fl]]), IRON);
     line(press, [[276, fl - 8], [306, fl - 6]], 2.4, IRON_LT);
     }
+    // (o.slim narrows the bodice about her neck: her slight build in the close shots)
+    if (o.slim) { press.save(); press.each((g) => { g.translate(10, 0); g.scale(o.slim, 1); g.translate(-10, 0); }); }
     // bodice: narrow shoulders, a fitted front lit from the lamp on the right
     put(press, (g) => smooth(g, [[-116, 166], [-88, 122], [-34, 104], [34, 102], [88, 116], [118, 162], [130, 280], [122, 380], [-100, 380], [-124, 280]]), DRESS);
     put(press, (g) => smooth(g, [[32, 106], [86, 120], [114, 166], [126, 280], [118, 380], [72, 380], [50, 200]]), DRESS_LIT);
@@ -445,6 +447,7 @@ function marie(press, o) {
     line(press, [[82, 150], [88, 164], [86, 176]], 2.4, BRASS);
     put(press, circle(86, 184, 8), BRASS);
     put(press, circle(86, 184, 5), { 'yellow.s': 0.3, 'pink.s': 0.1 });
+    if (o.slim) press.restore();
     // neck and the high collar with a narrow white edge
     put(press, (g) => smooth(g, [[-8, 40], [30, 44], [36, 72], [-12, 76]]), SKIN_SH);
     put(press, (g) => smooth(g, [[-24, 52], [12, 56], [40, 54], [48, 76], [44, 106], [-24, 108], [-30, 80]]), DRESS);

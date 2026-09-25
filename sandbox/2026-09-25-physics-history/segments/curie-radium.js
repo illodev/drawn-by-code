@@ -145,8 +145,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     function marie(press, t, elbow, wrist) {
         const blink = Math.abs(t - 4.3) < 0.08;
         // the raised arm's sleeve behind the hand, from the shoulder to the wrist
-        const sh = [HD[0] + 30 * NS2, HD[1] + 150 * NS2];
-        Ph.cam(press, HD[0], HD[1], NS2, () => P().marie(press, { t, bust: true, look: [1, -0.15], blink }));
+        const sh = [HD[0] + 36 * NS2, HD[1] + 150 * NS2];
+        Ph.cam(press, HD[0], HD[1], NS2, () => P().marie(press, { t, bust: true, slim: 0.72, look: [1, -0.15], blink }));
         line(press, [sh, elbow, wrist], (u) => L(92, 64, u), P().DRESS);
         line(press, [[sh[0] + 20, sh[1] - 30], [elbow[0] + 20, elbow[1] - 20], [wrist[0], wrist[1] - 26]], taper(10, 0.2, 0.3), P().DRESS_LIT);
         put(press, (g) => { g.beginPath(); g.ellipse(wrist[0] + 6, wrist[1], 26, 50, 0.2, 0, 6.2832); }, Cast.LINEN);
