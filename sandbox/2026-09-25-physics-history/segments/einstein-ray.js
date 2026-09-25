@@ -80,7 +80,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // the hole's back half: the lensed glow, the far side of the accretion disc bent up over the
     // shadow (the Interstellar look), the disc's back arc
     const DISC = { yellow: 1, 'pink.s': 0.6 }, DISC_HOT = { yellow: 1, 'pink.s': 0.25 };
-    const BH = { navy: 1, yellow: 1, pink: 1 };
+    const BH = { navy: 1, blue: 1, yellow: 1, pink: 0.7 };
     function arc(cx, cy, rx, ry, a0, a1, n = 40) { const pts = []; for (let i = 0; i <= n; i++) { const a = L(a0, a1, i / n); pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } return pts; }
     // (disc: 1 until the dive is under way, then 0: the camera falls past the disc's plane)
     const discK = (t) => 1 - S(t, T.dive[0] + 0.5, T.dive[0] + 0.9);
@@ -141,9 +141,10 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const eo = IO(S(t, T.build[1], T.build[1] + 0.2));
         if (eo > 0) {
             const q = R([0, 110, 0]);
-            for (const dx of [-24, 24]) {
-                put(press, ellipse(q[0] + dx, q[1], 15, 12 * eo), { yellow: 1, blue: 0.7 });
-                put(press, ellipse(q[0] + dx, q[1], 3.6, 10.5 * eo), BH);
+            for (const dx of [-34, 34]) {
+                put(press, ellipse(q[0] + dx, q[1], 22, 16 * eo), { yellow: 1, blue: 0.7 });
+                put(press, ellipse(q[0] + dx, q[1], 5, 14 * eo), BH);
+                put(press, circle(q[0] + dx + 8, q[1] - 6 * eo, 3.5 * eo), { 'yellow.s': 0.1 });
             }
         }
     }
@@ -294,7 +295,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 const v = view(t);
                 // the dive: the camera falls towards the hole, rolling, the hole drifting to the
                 // middle of the frame and its shadow growing past the frame's edges
-                const dv = IO(S(t, T.dive[0], T.dive[1])), Z = 1 + 11 * dv * dv, roll = 1.8 * Math.pow(dv, 1.5);
+                const dv = IO(S(t, T.dive[0], T.dive[1])), Z = 1 + 11 * dv * dv, roll = 3.2 * Math.pow(dv, 1.4);
                 const cc = [L(HC[0], 800, dv), L(HC[1], 450, dv)];
                 press.save(); press.each((g) => { g.translate(cc[0], cc[1]); g.rotate(roll); g.scale(Z, Z); g.translate(-HC[0], -HC[1]); });
                 grid(press, t, v);
@@ -305,9 +306,11 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 // spaghettification: their group is stretched along the line to the hole, thinned
                 // across it, and drawn in; the shadow, drawn over them, swallows them
                 const pl = IO(S(t, T.pull[0], T.pull[1]));
-                const G = [760, 560], d = [HC[0] - G[0], HC[1] - G[1]], ang = Math.atan2(d[1], d[0]);
-                const sr = 1 + 2 * pl, mv = 0.85 * pl, sk = 1 - 0.8 * pl;
-                press.save(); press.each((g) => { g.translate(G[0] + d[0] * mv, G[1] + d[1] * mv); g.rotate(ang); g.scale(sr * sk, sk / Math.sqrt(sr)); g.rotate(-ang); g.translate(-G[0], -G[1]); });
+                // (anchored at their end nearest the hole, which is drawn to its centre: the rest
+                // trails behind, so nothing ever sticks out past the shadow)
+                const N = [1040, 430], d = [HC[0] - N[0], HC[1] - N[1]], ang = Math.atan2(d[1], d[0]);
+                const sr = 1 + 2 * pl, mv = pl, sk = 1 - 0.8 * pl;
+                press.save(); press.each((g) => { g.translate(N[0] + d[0] * mv, N[1] + d[1] * mv); g.rotate(ang); g.scale(sr * sk, sk / Math.sqrt(sr)); g.rotate(-ang); g.translate(-N[0], -N[1]); });
                 {
                     const pts = ray(press, t, front);
                     // the cat, chasing the pulse like a laser dot: galloping just below it, pouncing
