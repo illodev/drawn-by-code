@@ -124,8 +124,8 @@ const GalHands = (() => {
         const fingers = FO.map(([ac, w]) => { const top = -r - 12 - sq * 0.6; return [[ac - w / 2, -r + 8], [ac - w / 2, -r - 3], [ac - w * 0.3, top], [ac + w * 0.3, top - 0.5], [ac + w / 2, -r - 3], [ac + w / 2, -r + 8]]; });
         // the thumb: from the hand's edge on its side, along the tube's underside, its tip bent up
         // against it: seen from the side, both phalanges, the joint and the nail in profile
-        const TH = [[14, r - 8], [36, r + 4], [52, r + 6 - sq], [64, r + 3 - sq]];
-        const th = digit(TH, 21, 15);
+        const TH = [[16, r - 7], [29, r + 1], [40, r + 2.5 - sq], [48, r - 0.5 - sq]];
+        const th = digit(TH, 18, 13);
         const HB = [[-31, -r + 11], [-24, -r + 3], [-8, -r + 1], [10, -r], [28, -r + 1.5], [36, -r + 8], [37, 0], [31, r - 4], [24, r + 6], add(W, side, 17), add(W1, side, 18), add(W1, side, -18), add(W, side, -17), [-28, r + 4], [-33, 2]];
         // one skin: every piece knocked out and inked alike, shaded through one clip
         // every outline wound the same way, so their union has no holes where they overlap
@@ -140,23 +140,18 @@ const GalHands = (() => {
         // the fingers turn away over the top; the thumb's round goes under, into shade
         ink(press, (g) => g.rect(-60, -r - 20, 130, 14), { 'pink.s': (g) => Riso.ramp(g, 0, -r + 2, 0, -r - 12, 0, 0.3) });
         // the thumb's underside turns from the light; the tube's edge shades its top a little
-        ink(press, (g) => g.rect(20, r - 4, 60, 20), { 'pink.s': (g) => Riso.ramp(g, 0, r + 2, 0, r + 16, 0.02, 0.3) });
-        ink(press, (g) => g.rect(34, r - 8, 40, 5), { 'pink.s': 0.14 });
-        for (const [ac] of FO) line(press, [[W[0] + (ac - 2) * 0.25, W[1] - 8], [ac * 0.7, 2], [ac, -r + 9]], taper(3, 0.3, 0.3), { 'pink.s': 0.1 }, { knock: false });
-        line(press, [[-26, r - 2], [-10, 4], [4, 0], [14, 6], [20, r - 2]], taper(2.4, 0.2, 0.2), VEIN, { knock: false });
+        ink(press, (g) => g.rect(20, r - 4, 40, 20), { 'pink.s': (g) => Riso.ramp(g, 0, r + 2, 0, r + 16, 0.02, 0.3) });
+                for (const [ac] of FO) line(press, [[W[0] + (ac - 2) * 0.25, W[1] - 8], [ac * 0.7, 2], [ac, -r + 9]], taper(3, 0.3, 0.3), { 'pink.s': 0.1 }, { knock: false });
         press.restore();
-        // creases only: the knuckles and the finger joints on top, the gaps, the thumb's joint
+        // no lines across the hand: the knuckles are light bumps, the finger joints wrinkles
         for (const [ac, w] of FO) {
             press.knockout(ellipse(ac + 0.5, -r + 5.5, w * 0.3, 3.4, 0));
-            line(press, [[ac - w * 0.25, -r + 9.5], [ac, -r + 10.8], [ac + w * 0.25, -r + 9.5]], taper(1, 0.3, 0.3), CREASE);
             wrinkles(press, [ac + 0.5, -r - 6], Math.PI / 2, w, 3);
         }
         for (let i = 0; i < 3; i++) { const x = (FO[i][0] - FO[i][1] / 2 + FO[i + 1][0] + FO[i + 1][1] / 2) / 2; line(press, [[x, -r - 9], [x, -r + 3]], taper(1.4, 0.3, 0.2), SHADOW); }
         // where the thumb leaves the hand, its joint's wrinkles, the nail in profile at the tip
-        line(press, [[18, r - 6], [26, r + 2], [30, r + 9]], taper(1.3, 0.2, 0.5), CREASE);
-        wrinkles(press, [45, r + 6], 0.05, 16, 3);
-        nail(press, [60, r - 1.5 - sq], -0.35, 5, 11);
-        line(press, Ph.sample(HB, true, 6).slice(0, 30), taper(1, 0.1, 0.1), { 'pink.s': 0.35, 'navy.s': 0.2 }, { knock: false });
+        wrinkles(press, [34, r + 3], 0.05, 12, 2);
+        nail(press, [45, r - 1.2 - sq], -0.35, 4.4, 8);
         cuff(press, W1, fa, 40, 0);
         press.restore();
     }
