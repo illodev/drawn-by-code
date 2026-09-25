@@ -11,7 +11,3 @@
 | 2026-09-24 | [clay3d-test](2026-09-24-clay3d-test/) | [mp4](2026-09-24-clay3d-test/render/clay3d-test.mp4) | clay3d (new) | test v2 (puppet on a studio sweep) | A raymarcher in the headless browser (SwiftShader) gives photographed-looking clay at ~2.5 s per drawing; bounds and shadow steps are the traps |
 | 2026-09-24 | [fube-clay](2026-09-24-fube-clay/) | [mp4](2026-09-24-fube-clay/render/fube-clay.mp4) | clay (new) | style test v1 (the saas-promo invoice block) | A new style is tested on an already approved moment: same beats and audio, compare side by side |
 | 2026-09-24 | [saas-promo](2026-09-24-saas-promo/) | [mp4](2026-09-24-saas-promo/render/saas-promo.mp4) | paper-cutout | animatic v2 (logo from the SVG, hands by side and view) | Client brand material lives in `private/` (optional `uses`), committed code runs on a placeholder brand |
-| 2026-09-24 | [fube-clay](2026-09-24-fube-clay/) | clay | in progress | |
-| 2026-09-24 | [readme-cover](2026-09-24-readme-cover/) | [gif](2026-09-24-readme-cover/render/cover.gif) | all styles | done | Kits paint into an offscreen canvas with a small env, so one scene can show every style side by side |
-| 2026-09-24 | [clay3d-test](2026-09-24-clay3d-test/) | clay | in progress | |
-| 2026-09-24 | [readme-cover](2026-09-24-readme-cover/) | paper-cutout | in progress | |
