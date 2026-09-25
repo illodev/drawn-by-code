@@ -55,6 +55,12 @@ const SFX = {
     paper_fold: ['a sheet of paper being folded quickly three times into a paper plane, crisp creases', 0.8],
     plane_whoosh: ['light paper plane flying past, soft airy whoosh', 0.9],
     page_turn: ['a single calendar page flipped over, crisp paper flap', 0.5],
+    brass_ring: ['a brass telescope focusing ring turned slowly by hand, fine metallic friction, close and quiet', 0.8],
+    ball_knock: ['a small brass ball dropped a short height onto a wooden table, one dry knock with no bounce', 0.4],
+    pencil_circle: ['a graphite pencil drawing one quick circle on paper, soft scratch', 0.7],
+    glass_set: ['a small glass dish set down gently on a wooden laboratory bench, a light clink', 0.4],
+    magnet_slide: ['a steel bar sliding into a cardboard tube wound with wire, soft metallic scrape', 0.6],
+    chalk_tap: ['a piece of chalk tapping twice on a blackboard', 0.4],
     chime_ok: ['soft friendly confirmation chime, two rising marimba notes', 0.7],
 };
 const only = process.argv.slice(2);
