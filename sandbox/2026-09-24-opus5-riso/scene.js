@@ -42,7 +42,7 @@ const EDIT = [
     [12.25, 'full', 'balloons', { pulse: true }], [12.375, 'full', 'cello'], [12.5, 'full', 'volcano'], [12.625, 'full', 'shell'],
     [12.75, 'full', 'dish'], [12.875, 'full', 'train'], [13.0, 'full', 'campfire'], [13.125, 'full', 'chimes'], [13.25, 'full', 'field'],
     [13.375, 'full', 'snowflake'], [13.5, 'full', 'mountains'], [13.625, 'full', 'aurora'], [13.75, 'full', 'savanna'],
-    [13.875, 'full', 'dunes'], [14.0, 'full', 'ice', { ring: true, ringFrom: 1 }],
+    [13.875, 'full', 'dunes'], [14.0, 'full', 'ice', { ring: true, ringFrom: 1, ringR: [137, 137, [205, 237]] }],
     // the same cards again, re-inked, with a white ring
     [14.125, 'full', 'koi', { ring: true, ringR: [113, 171, 234], inks: { blue: 'pink', pink: 'yellow', yellow: 'blue' } }],
     [14.25, 'full', 'grasshopper', { ring: true, ringR: [136, 196, 261], inks: { navy: 'blue', yellow: 'yellow' } }],
@@ -253,6 +253,7 @@ function circleCard(press, name, lt, ld, o, lf) {
 // rR: the ring's radius on this frame (reference px, measured frame by frame: it grows ≈ 66 px
 // a frame): a 20 px band knocked out of every plate with a 5 px blue line along its middle
 function whiteRing(press, ld, rR, inks = {}) {
+    if (Array.isArray(rR)) { for (const one of rR) whiteRing(press, ld, one, inks); return; } // two rings on one frame
     if (rR) {
         const r = rR * 1000 / 1080;
         press.knockout((g) => { g.lineWidth = 19; g.beginPath(); g.arc(500, 500, r, 0, 7); g.stroke(); });
@@ -464,7 +465,7 @@ function night(press, lt) {
     }
     // the ground's grain (at 3× the navy is pocked with paper and pink pixels, not smooth)
     const gr = Motion.rng('grain' + Math.floor(lt * 12));
-    press.knockout((g) => { for (let k = 0; k < 17000; k++) { g.globalAlpha = 0.15 + gr() * 0.35; g.fillRect(gr() * 1000, gr() * 1000, 1.1, 1.1); } });
+    press.knockout((g) => { for (let k = 0; k < 7000; k++) { g.globalAlpha = 0.1 + gr() * 0.25; g.fillRect(gr() * 1000, gr() * 1000, 1.1, 1.1); } });
     pk.save(); pk.fillStyle = T(0.7);
     for (let k = 0; k < 10000; k++) pk.fillRect(gr() * 1000, gr() * 1000, 1.1, 1.1);
     pk.restore();
@@ -472,7 +473,7 @@ function night(press, lt) {
     // elsewhere; a few pink ones
     const r = Motion.rng('stars');
     press.knockout((g) => {
-        for (let k = 0; k < 9000; k++) {
+        for (let k = 0; k < 6500; k++) {
             const x = r() * 1000, y = r() * 1000, band = Math.exp(-Math.pow((x + y - 1000) / 230, 2)), keep = r();
             if (keep > 0.18 + 0.82 * band) continue;
             g.globalAlpha = 0.45 + r() * 0.55;
@@ -482,6 +483,9 @@ function night(press, lt) {
     pk.save(); pk.fillStyle = T(0.9);
     for (let k = 0; k < 260; k++) { const x = r() * 1000, y = r() * 1000; pk.beginPath(); pk.arc(x, y, 0.8 + r() * 1.3, 0, 7); pk.fill(); }
     pk.restore();
+    // the camera pulls back from 24.5 to 25.5: bodies, rings and planets shrink to ≈ 0.6
+    // (measured: yellow ring r ≈ 30 → 18, ring lines ≈ 10 → 4)
+    const zs = 1 - 0.4 * Ease.inOut(Ease.seg(lt, 0.5, 1.5));
     // the two bodies, measured per 0.25 s, drawing together at the centre
     const path = (P) => { let i = 0; while (i < P.length - 2 && lt + 24 >= P[i + 1][0]) i++; const [t0, x0, y0] = P[i], [t1, x1, y1] = P[i + 1], u = Ease.seg(lt + 24, t0, t1); return [x0 + (x1 - x0) * u, y0 + (y1 - y0) * u]; };
     const B = path([[24, 721, 317], [24.25, 666, 361], [24.5, 621, 393], [24.75, 576, 426], [25, 542, 457], [25.25, 527, 470], [25.5, 523, 474], [26, 520, 475]]);
@@ -494,41 +498,41 @@ function night(press, lt) {
             const age = lt - born, next2 = rings[k + 2]?.[0] ?? 9;
             if (age < 0 || lt >= next2) return;
             const rad = max * (1 - Math.exp(-(age + 0.01) / 0.12));
-            press.knockout((g) => { g.lineWidth = 11; g.beginPath(); g.arc(x, y, rad, 0, 7); g.stroke(); });
-            Riso.ring(press.plate(ink), x, y, rad, 10, 'np' + ink + k, { color: T(ink === 'pink' ? 0.95 : 0.8), wobble: 0.004 });
+            press.knockout((g) => { g.lineWidth = 11 * zs; g.beginPath(); g.arc(x, y, rad, 0, 7); g.stroke(); });
+            Riso.ring(press.plate(ink), x, y, rad, 10 * zs, 'np' + ink + k, { color: T(ink === 'pink' ? 0.95 : 0.8), wobble: 0.004 });
         });
     }
     // the small planets: dots of light pink or blue in a paper halo, a third ringed, a few
     // four-dot clusters; more and more from 24.6 (≈ 150 by 25.9)
     const rp = Motion.rng('planets'), count = Math.floor(Ease.seg(lt, 0.55, 1.9) * 150);
     for (let k = 0; k < 150; k++) {
-        const x0 = rp() * 1000, y0 = rp() * 1000, ink = rp() < 0.55 ? 'pink' : 'blue', sz = 5 + rp() * 4, kind = rp();
+        const x0 = rp() * 1000, y0 = rp() * 1000, ink = rp() < 0.55 ? 'pink' : 'blue', sz0 = 5 + rp() * 4, kind = rp(), sz = sz0 * zs;
         if (k >= count) continue;
         const x = x0 + (500 - x0) * 0.08 * Ease.seg(lt, 0.55, 2), y = y0 + (500 - y0) * 0.08 * Ease.seg(lt, 0.55, 2);
         const pl = press.plate(ink);
         if (kind < 0.08) {
             // a cluster of four
-            press.knockout((g) => { g.beginPath(); g.arc(x, y, sz * 2.2, 0, 7); g.fill(); });
+            press.knockout((g) => { g.beginPath(); g.arc(x, y, sz * 1.6, 0, 7); g.fill(); });
             pl.fillStyle = T(0.9);
             for (let q = 0; q < 4; q++) { pl.beginPath(); pl.arc(x + Math.cos(q * 1.57 + 0.4) * sz * 0.9, y + Math.sin(q * 1.57 + 0.4) * sz * 0.9, sz * 0.75, 0, 7); pl.fill(); }
             continue;
         }
-        press.knockout((g) => { g.beginPath(); g.arc(x, y, sz + 2.5, 0, 7); g.fill(); });
+        press.knockout((g) => { g.beginPath(); g.arc(x, y, sz + 1.5, 0, 7); g.fill(); });
         pl.fillStyle = T(0.85); pl.beginPath(); pl.arc(x, y, sz, 0, 7); pl.fill();
         if (kind > 0.62) {
             const rr2 = sz * (2.6 + rp() * 0.6);
-            press.knockout((g) => { g.lineWidth = 3; g.beginPath(); g.arc(x, y, rr2, 0, 7); g.stroke(); });
+            press.knockout((g) => { g.lineWidth = 2; g.beginPath(); g.arc(x, y, rr2, 0, 7); g.stroke(); });
             Riso.ring(press.plate(ink, 'screen'), x, y, rr2, 2.4, 'pr' + k, { color: T(0.75) });
         }
     }
     // the bodies: a yellow ring in a paper halo round a blue or pink core
     for (const [[x, y], ink] of [[B, 'blue'], [Pk, 'pink']]) {
-        press.knockout((g) => { g.beginPath(); g.arc(x, y, 36, 0, 7); g.fill(); });
+        press.knockout((g) => { g.beginPath(); g.arc(x, y, 34 * zs, 0, 7); g.fill(); });
         const yy = press.plate('yellow');
-        yy.fillStyle = T(0.95); yy.beginPath(); yy.arc(x, y, 31, 0, 7); yy.fill();
-        press.knockout((g) => { g.beginPath(); g.arc(x, y, 21, 0, 7); g.fill(); });
+        yy.fillStyle = T(0.95); yy.beginPath(); yy.arc(x, y, 30 * zs, 0, 7); yy.fill();
+        press.knockout((g) => { g.beginPath(); g.arc(x, y, 20 * zs, 0, 7); g.fill(); });
         const c = press.plate(ink);
-        c.fillStyle = T(1); c.beginPath(); c.arc(x, y, 19, 0, 7); c.fill();
+        c.fillStyle = T(1); c.beginPath(); c.arc(x, y, 18 * zs, 0, 7); c.fill();
     }
     ORBIT_DOT = 'none';
 }
