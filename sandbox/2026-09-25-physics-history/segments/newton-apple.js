@@ -108,7 +108,9 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // ── the pull-back (shot C) ──────────────────────────────────────────────────────────
     const ZEND = 230 / RW;
     const Z0 = 1.25; // = ZK at the release // the last key of shot B's camera: the pull-back starts from it, no jump
-    const zoomAt = (t) => Z0 * Math.exp(Math.log(ZEND / Z0) * IO(S(t, T.pull[0], T.pull[1])));
+    // smoothstep in log z: it starts sooner than a cubic ease, so the world falls away while the
+    // apple still has its speed (the world height h = GD / z keeps growing)
+    const zoomAt = (t) => { const k = S(t, T.pull[0], T.pull[1]); return Z0 * Math.exp(Math.log(ZEND / Z0) * k * k * (3 - 2 * k)); };
     // the anchor (Newton's feet) on screen: from where shot B leaves it to the globe's top
     const FEET = [700, G]; // the anchor under the camera at the release
     // the anchor's height on screen: from under the frame (the throw is framed at the waist)
@@ -119,14 +121,16 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // top), GD the screen distance from the apple down to the ground. GD first grows (the
     // camera still at 1.25: the ground drops out of frame below, the apple rising fast and
     // slowing), then the zoom-out brings the shrinking world back up under it, to the globe.
-    const AY = [[T.release, (28 - 180) * 1.25 + 450], [5.3, 175], [6.3, 160], [T.pull[1], 140]];
-    const GD = [[T.release, (G - 28) * 1.25], [5.2, 1150], [5.45, 780], [5.9, 480], [6.4, 280], [T.pull[1], 110]];
-    const AX = [[T.release, 1025], [5.3, 990], [5.9, 930]];
+    const AY = [[T.release, (28 - 180) * 1.25 + 450], [5.12, 190], [5.3, 165], [6.3, 160], [T.pull[1], 140]];
+    const GD = [[T.release, (G - 28) * 1.25], [5.12, 1400], [5.28, 1600], [5.5, 700], [5.9, 480], [6.4, 280], [T.pull[1], 110]];
+    const AX = [[T.release, 1025], [5.12, 1075], [5.3, 1100], [5.9, 1000]];
+    const LEAN = 0.36; // the throw goes up and forward (≈ 20° from the vertical)
     const anchorY = (t) => Fig.track(AY, t) + Fig.track(GD, t);
     function anchorAt(t, camB) {
         const k = IO(S(t, T.pull[0], T.pull[1]));
-        const a0 = (FEET[0] - camB.c[0]) * camB.z + 800;
-        return [L(a0, 800, k), anchorY(t)];
+        // the ground slides back as the apple flies forward (the camera pans with it)
+        const z = zoomAt(t), rise = Fig.track(AX, t) - 180 * z - (Fig.track(GD, t) - 792 * z) * LEAN;
+        return [L(rise, 800, IO(S(t, 5.9, 6.5))), anchorY(t)];
     }
     // terrain height along the ground (world units) as a sum of octaves: fields, hills, downs;
     // flat near Newton; the land ends at the coast (s > 1.1e8, the North Sea)
@@ -621,7 +625,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 // rides with it (the world streaming away under it)
                 const climb = 1100 * (1 - S(t, 5.3, 6.0));
                 const trail = [];
-                for (let tt = Math.max(T.release + 0.04, t - 0.3); tt <= t + 1e-6; tt += 0.01) { const q = posAt(tt); trail.push([q[0], q[1] + (t - tt) * climb]); }
+                for (let tt = Math.max(T.release + 0.04, t - 0.3); tt <= t + 1e-6; tt += 0.01) { const q = posAt(tt); trail.push([q[0] - (t - tt) * climb * LEAN, q[1] + (t - tt) * climb]); }
                 if (trail.length > 2) line(press, trail, taper(8, 0.9, 0.02), AMBER);
                 const p = posAt(t);
                 const r = L(APPLE_R * Math.max(z, 0.55), 17, S(t, T.release, 5.4));

@@ -247,3 +247,20 @@ place.
 
 **Lesson (animate / engine):** offsets on a body are in the body's frame, never in screen
 axes. Anything that hangs (skirts, hair, straps) follows gravity, not the limb.
+
+### Round 6 (user)
+
+> Mucho mejor, pero la manzana debería tener velocidad desde el principio, aparte debería
+> salir en diagonal sería más natural que la lanzara para arriba pero no con un angulo de 90º
+> si no un poco para delante
+
+What changed:
+- **The apple has its speed from the release.**
+  - Its screen path leaves the hand fast (Hermite tangent from the first key).
+  - The ground drops away at once: GD goes from 990 to 1400 in 0.12 s.
+  - The zoom-out uses a smoothstep in log z, so it starts sooner. The world height h = GD / z
+    always grows, so the apple never seems to sink.
+- **It flies up and forward, about 20° from the vertical.**
+  - The camera pans with it, so the ground slides back while it drops: anchor x = AX − 180·z
+    − (GD − 792·z)·0.36.
+  - The trail streams along the same diagonal.
