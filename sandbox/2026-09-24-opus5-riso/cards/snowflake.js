@@ -19,7 +19,7 @@ CARDS.snowflake = (press, t) => {
     navy.fillStyle = vr(navy, [[0, 0.95], [270, 0.93], [350, 0], [1080, 0]]); navy.fillRect(0, 0, 1000, 1000);
     U.lattice(navy, LS, (m) => { m.fillStyle = vr(m, [[0, 0], [450, 0.05], [600, 0.15], [720, 0.5], [810, 0.38], [900, 0.3], [1080, 0.38]]); m.fillRect(-20, -20, 1040, 1040); });
     U.lattice(blue, LS, (m) => { m.fillStyle = vr(m, [[0, 0.1], [270, 0.35], [360, 0.95], [500, 0.8], [630, 0.55], [720, 0.1], [1080, 0]]); m.fillRect(-20, -20, 1040, 1040); });
-    U.lattice(pink, LS, (m) => { m.fillStyle = vr(m, [[0, 0.3], [270, 0.35], [360, 0.88], [450, 0.98], [520, 1], [1080, 1]]); m.fillRect(-20, -20, 1040, 1040); }, { max: 0.995 });
+    U.lattice(pink, LS, (m) => { m.fillStyle = vr(m, [[0, 0.3], [270, 0.35], [360, 0.88], [450, 0.98], [520, 1], [1080, 1]]); m.fillRect(-20, -20, 1040, 1040); m.fillStyle = Riso.radial(m, 860, 160, 0, 330, 0.3, 0); m.fillRect(-20, -20, 1040, 600); }, { max: 0.995 });
     pink.fillStyle = vr(pink, [[0, 0], [380, 0], [460, 0.9], [520, 0.95], [1080, 0.95]]); pink.fillRect(0, 0, 1000, 1000);
     U.lattice(yellow, LS, (m) => { m.fillStyle = vr(m, [[0, 0], [740, 0], [810, 0.22], [900, 0.48], [1080, 0.65]]); m.fillRect(-20, -20, 1040, 1040); });
 
@@ -28,7 +28,9 @@ CARDS.snowflake = (press, t) => {
     { const rc = Motion.rng('snowcl'); for (let i = 0; i < 16; i++) { const x = rc() * 1000, y = rc() * 450, r = 60 + rc() * 110; navy.fillStyle = Riso.radial(navy, x, y, 0, r, 0.18 + 0.2 * rc(), 0); navy.beginPath(); navy.arc(x, y, r, 0, 7); navy.fill(); } }
     // dark navy blobs (shadows of the ghost flakes) top right
     navy.fillStyle = T(0.95);
-    for (const b of [[[800, 0], [900, 30], [880, 120], [790, 150], [740, 90]], [[840, 170], [920, 190], [940, 300], [880, 330], [830, 260]], [[640, 60], [720, 40], [770, 140], [690, 200], [630, 150]], [[900, 60], [990, 40], [1000, 150], [950, 180]]]) { U.smooth(navy, b); navy.fill(); }
+    // (measured on a crop of the 13.38 s frame, px → units: three dark lumps between the ghost's
+    // arms, ragged)
+    for (const b of [[[590, 50], [680, 40], [745, 90], [735, 175], [660, 205], [600, 160]], [[800, 175], [900, 165], [960, 220], [950, 320], [860, 330], [805, 270]], [[900, 305], [1000, 290], [1045, 350], [1030, 440], [940, 440], [895, 380]]]) { U.smooth(navy, b.map(([x, y]) => [x / 1.08, y / 1.08])); navy.fill(); pink.save(); pink.globalCompositeOperation = 'destination-out'; pink.fillStyle = T(1); U.smooth(pink, b.map(([x, y]) => [x / 1.08, y / 1.08])); pink.fill(); pink.restore(); }
 
     // ghost flakes: big dendrite branches in dense pink screen (top right, bottom left)
     const ghost = (g, cx, cy, len, a0, w, seed) => {
@@ -45,7 +47,15 @@ CARDS.snowflake = (press, t) => {
     // the ghosts are bright pink: the navy and blue screens are lifted where they print
     const ghosts = (g, w, v = 1) => {
         g.strokeStyle = T(v);
-        ghost(g, 905, 190, 300, 0.38, 46 * w, 'a');
+        // the top-right ghost (measured): arms from a hub off the right edge at (1040, 110) px,
+        // one left along the top to (570, 50), one down-left to (760, 380), one down the right
+        // edge to (1030, 470); ~70 px wide, stubby side branches
+        { const hub = [1040 / 1.08, 110 / 1.08], r = Motion.rng('ghtr');
+          for (const [ex, ey] of [[660, 40], [770, 350], [1010, 470], [1080, -60]]) {
+              const e = [ex / 1.08, ey / 1.08], a = Math.atan2(e[1] - hub[1], e[0] - hub[0]), L = Math.hypot(e[0] - hub[0], e[1] - hub[1]);
+              U.stroke(g, [hub, e], 52 * w, g.strokeStyle, 'butt');
+              for (const f of [0.45, 0.75]) { const bx = hub[0] + Math.cos(a) * L * f, by = hub[1] + Math.sin(a) * L * f, bl = L * (0.28 - f * 0.18) * (0.8 + 0.4 * r()); for (const sg of [-1, 1]) U.stroke(g, [[bx, by], [bx + Math.cos(a + sg * 1.05) * bl, by + Math.sin(a + sg * 1.05) * bl]], 30 * w, g.strokeStyle, 'butt'); }
+          } }
         ghost(g, 70, 900, 300, -1.57, 48 * w, 'b');
         g.fillStyle = T(v);
         for (const [x, y, rx, ry] of [[285, 505, 55, 42], [72, 640, 42, 62], [850, 650, 40, 28], [320, 775, 82, 62]]) { g.beginPath(); g.ellipse(x, y, rx, ry, 0.3, 0, 7); g.fill(); }
