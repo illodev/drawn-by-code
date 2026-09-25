@@ -289,6 +289,33 @@ const Fig = (() => {
         for (const [b] of F) line(press, [X(0.05, b * 0.4), X(0.45, b)], taper(0.018 * s, 0.3, 0.3), { 'pink.s': 0.14 }, { knock: false });
     }
 
+    // an open hand seen from its thumb side, fingers straight and together (reaching, pointing,
+    // balancing a throw): the edge of the palm from the wrist, the index finger nearest with the
+    // others' tips stepped behind it, the thumb below and apart. w: the wrist; dir: from the wrist
+    // to the fingers; s: the hand's length; down: the side the thumb is on (unit, screen).
+    function openSide(press, w, dir, s, spec, down) {
+        const dx = Math.cos(dir), dy = Math.sin(dir);
+        let tx = -dy, ty = dx;
+        if (tx * down[0] + ty * down[1] < 0) { tx = -tx; ty = -ty; }
+        const X = (a, b) => [w[0] + (dx * a + tx * b) * s, w[1] + (dy * a + ty * b) * s];
+        const lw = Math.max(1, s * 0.035), EDGE = { 'pink.s': 0.7, 'navy.s': 0.55 };
+        // the other fingers behind the index: their tops stepped above it
+        for (const [b, L0] of [[-0.12, 0.44], [-0.09, 0.47], [-0.06, 0.4]]) {
+            const P = [X(0.45, b), X(0.45 + L0 * 0.6, b - 0.01), X(0.45 + L0, b + 0.01)];
+            line(press, P, 0.1 * s, spec); put(press, circle(...P[2], 0.05 * s), spec);
+        }
+        // the palm's edge and the thumb
+        put(press, (g) => smooth(g, [X(-0.05, -0.13), X(0.48, -0.15), X(0.5, 0.06), X(0.25, 0.14), X(-0.05, 0.12)]), spec);
+        const TH = [X(0.12, 0.08), X(0.32, 0.2), X(0.48, 0.24)];
+        line(press, TH, 0.12 * s, spec); put(press, circle(...TH[2], 0.06 * s), spec);
+        // the index, nearest, its joints; the line between it and the fingers behind
+        const IX = [X(0.44, -0.02), X(0.68, -0.03), X(0.86, -0.01)];
+        line(press, IX, 0.11 * s, spec); put(press, circle(...IX[2], 0.055 * s), spec);
+        line(press, [X(0.5, -0.075), X(0.86, -0.065)], taper(lw, 0.2, 0.3), EDGE, { knock: false });
+        for (const a of [0.62, 0.78]) line(press, [X(a, -0.06), X(a + 0.01, 0.02)], taper(lw * 0.8), EDGE, { knock: false });
+        line(press, [X(0.3, 0.1), X(0.38, 0.15)], taper(lw * 0.8), EDGE, { knock: false });
+    }
+
     // ── Newton ───────────────────────────────────────────────────────────────────────────
     const COAT = { navy: 1, yellow: 1, 'pink.s': 0.55 };
     const COAT_FAR = { navy: 1, yellow: 1, pink: 0.8 };
@@ -349,6 +376,8 @@ const Fig = (() => {
             // relaxed at the side: the back of the hand out, the fingers along the forearm, curled a little
             // pressing on the knee to get up: the palm on it, the fingers forward and down over it
             else if (grip === 'knee') backHand(press, wr, Math.atan2(0.55, f), 0.72 * u, far ? SKIN_SH : SKIN, SKIN_SH);
+            // open and reaching: seen from its thumb side, the thumb down
+            else if (grip === 'open') openSide(press, add(wr, Math.cos(cd) * 0.1 * u, Math.sin(cd) * 0.1 * u), cd, 0.8 * u, far ? SKIN_SH : SKIN, [0, 1]); // from the ruffle's edge
             else if (grip === 'relax') backHand(press, wr, cd + 0.12 * f, 0.72 * u, far ? SKIN_SH : SKIN, SKIN_SH);
             else if (grip === 'apple' && !far && o.held) held = holdApple(press, wr, cd, f, o.heldR ?? 30, SKIN, SKIN_SH, o.held, o.heldMode, o.heldAt);
             else hand(press, add(wr, Math.cos(cd) * 0.08 * u, Math.sin(cd) * 0.08 * u), cd, grip, 0.62 * u, far ? SKIN_SH : SKIN, SKIN_SH, LINE, f);
