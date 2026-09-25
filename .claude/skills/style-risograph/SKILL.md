@@ -89,3 +89,5 @@ Status: **in testing**. Studied on `references/opus5-risograph.mp4`: a 1:1 study
   frame: rings as annuli whose width swells round the circle, waves as trios of tapered
   arcs (≈ 170 units long: long and thin far out, fat crescents near the dot) converging on
   it. Stroked circles and straight dashes read as vector.
+- 2026-09-25 · opus5-riso · Every card of a riso film has its own screens (pitch 7.6–14.4 px, its own angles and phase, regular to 0.1 px): measure them with a DFT and hand-set the dots; the press's single 9.5 px screen costs ≈ 10 on the gate. Dark masses and silhouettes print as flat ink with specks, not as a screen.
+- 2026-09-25 · opus5-riso · Inks are measured on flat solids, divided by the paper, and solids print ≈ 97 %: the mottle must be centred on 1 or every solid prints light and a card can't compensate.
