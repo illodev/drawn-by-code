@@ -15,7 +15,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
 (() => {
     const { put, ink, line, smooth, poly, taper, circle, ellipse } = Ph;
     const L = Ease.lerp, S = Ease.seg, IO = Ease.inOut;
-    const T = { close: [0.3, 0.9], click: 1.2, scan: [1.4, 2.2], split: [2.8, 3.5, 4.1, 4.6], lean: [5.2, 6.1], lid: [6.0, 6.5], collapse: [6.6, 7.1], flash: 6.95, peek: [7.35, 7.9], wink: [8.3, 8.5], duck: [8.56, 8.68], slam: [8.6, 8.75], click2: 9.8, fade: [10.2, 10.8], end: 10.8 };
+    const T = { close: [0.3, 0.9], click: 1.2, scan: [1.4, 2.2], split: [2.8, 3.5, 4.1], lean: [5.2, 6.1], lid: [6.0, 6.5], collapse: [6.6, 7.1], flash: 6.95, peek: [7.35, 7.9], wink: [8.3, 8.5], duck: [8.56, 8.68], slam: [8.6, 8.75], click2: 9.8, fade: [10.2, 10.8], end: 10.8 };
 
     const AMBER = { yellow: 1, 'pink.s': 0.55 };
     const AMBER_LT = { yellow: 0.6, 'pink.s': 0.3 };
@@ -133,8 +133,16 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         else { press.knockout((g) => { g.beginPath(); g.arc(fq[0], fq[1], 38 * k, 0, 6.2832); g.globalAlpha = 0.35; g.fill(); g.globalAlpha = 1; }); kline(press, [[fq[0], fq[1] - 36 * k], [fq[0], fq[1] - 70 * k]], 18 * k, 0.35); }
         // the cat
         const cq = P([-110, h, 0], c), ck = kAt([-110, h, 0], c);
-        if (o.alive) Cat.sit(press, { x: cq[0], y: cq[1], s: ck * 2.9, face: 1, look: P(tr([170, h - 250, 120]), c), tail: t * 0.8, blink: Math.abs((t % 1.7) - 0.8) < 0.06 });
-        else Cat.xray(press, { x: cq[0], y: cq[1], s: ck * (o.dead ? 2.4 : 2.9), face: 1, pose: o.dead ? 'dead' : 'sit' });
+        // every world its own cat: alive, it sits looking at the speck or up at the lid, sleeps
+        // curled, or leaps at the speck; dead, it lies one way or the other
+        const v = o.v ?? 0, spk = P(tr([170, h - 250, 120]), c);
+        if (o.alive) {
+            if (v < 0.25) Cat.sit(press, { x: cq[0], y: cq[1], s: ck * 2.9, face: 1, look: spk, tail: t * 0.8, blink: Math.abs((t % 1.7) - 0.8) < 0.06 });
+            else if (v < 0.5) Cat.sit(press, { x: cq[0] + 60 * ck, y: cq[1], s: ck * 2.9, face: -1, look: [cq[0], cq[1] - 900 * ck], tail: t * 0.8 + 0.4 });
+            else if (v < 0.75) Cat.curl(press, { x: cq[0] + 40 * ck, y: cq[1], s: ck * 1.7, face: 1, t });
+            else Cat.run(press, { x: cq[0] + 40 * ck, y: cq[1] - 60 * ck, s: ck * 2.2, face: 1, ph: 0.3, pounce: 1 });
+        } else if (o.dead) Cat.xray(press, { x: cq[0] + (v < 0.5 ? 0 : 60) * ck, y: cq[1], s: ck * 2.4, face: v < 0.5 ? 1 : -1, pose: v > 0.75 ? 'sit' : 'dead' });
+        else Cat.xray(press, { x: cq[0], y: cq[1], s: ck * 2.9, face: 1, pose: 'sit' });
         ink(press, (g) => g.rect(-5000, -5000, 10000, 10000), { 'blue.s': 0.25 });
     }
     // the opaque box: dark panels, amber edges, the eyes inside while it is still open
@@ -237,6 +245,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
     // the worlds: how the frame is cut at each split, and which worlds hold a dead cat
     const GRID = [[1, 1], [2, 1], [2, 2], [4, 2], [4, 4]];
+    const hash01 = (k) => { const x = Math.sin(k * 78.233 + 1.7) * 43758.5453; return x - Math.floor(x); };
     const deadIn = (n, i) => { const x = Math.sin((n * 7 + i) * 12.9898) * 43758.5453; return x - Math.floor(x) < 0.5; };
     Seg.schrodingerBox = {
         T,
@@ -259,12 +268,11 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             }
             // the scan: a bright line sweeping down; above it, the radiograph
             const sc = S(t, T.scan[0], T.scan[1]), sy = L(-20, 920, IO(sc));
-            const lvl = T.split.filter((x) => t >= x).length, [gx, gy] = GRID[lvl], W = 1600 / gx, H = 900 / gy;
+            // (the scan reveals reality already split in two: then 4, 8, 16)
+            const lvl = 1 + T.split.filter((x) => t >= x).length, [gx, gy] = GRID[lvl], W = 1600 / gx, H = 900 / gy;
             const lid = IO(S(t, T.lid[0], T.lid[1])), cu = IO(S(t, T.collapse[0], T.collapse[1]));
             // the world that remains: an alive one near the middle
-            const pick = [5, 6, 9, 10, 1, 2].find((n) => !deadIn(4, n)) ?? 5;
             const cellR = (n) => { const i = n % gx, j = Math.floor(n / gx), pad = lvl ? 6 : 0; return [i * W + pad, j * H + pad, W - 2 * pad, H - 2 * pad]; };
-            const pr = cellR(pick), pc = [pr[0] + pr[2] / 2, pr[1] + pr[3] / 2];
             const cell = (n, r) => {
                 press.save();
                 const [x0, y0, cw, chh] = r;
@@ -275,23 +283,21 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 // the cat itself; where it died, the cold X-ray and its skeleton)
                 const dead = lvl > 0 && (lvl === 1 ? n === 1 : deadIn(lvl, n)), alive = lvl > 0 && !dead;
                 put(press, (g) => g.rect(-4000, -4000, 9600, 8900), alive ? { pink: 0.9, 'navy.s': 0.6, 'yellow.s': 0.3 } : XR_BG);
-                radiograph(press, t, c, { dead, alive, lid });
+                radiograph(press, t, c, { dead, alive, lid, v: ((n * 3 + lvl) % 4) / 4 + 0.05 });
                 press.restore();
             };
             press.save();
             if (sc < 1) press.clip((g) => g.rect(0, 0, 1600, sy));
+            // the collapse: every world, the living and the dead alike, shrinks into the middle at
+            // once, so which one is real stays unknown until the flash
             for (let n = 0; n < gx * gy; n++) {
-                if (cu > 0 && n === pick) continue;
                 const r = cellR(n);
                 if (cu > 0) {
-                    // the other worlds shrink away into the one that stays
-                    const cx = L(r[0] + r[2] / 2, pc[0], cu), cy = L(r[1] + r[3] / 2, pc[1], cu), f = 1 - cu;
+                    const cx = L(r[0] + r[2] / 2, 800, cu), cy = L(r[1] + r[3] / 2, 450, cu), f = 1 - cu;
                     if (f < 0.02) continue;
                     cell(n, [cx - r[2] * f / 2, cy - r[3] * f / 2, r[2] * f, r[3] * f]);
                 } else cell(n, r);
             }
-            // the world that stays grows to fill the frame
-            if (cu > 0) cell(pick, [L(pr[0], 0, cu), L(pr[1], 0, cu), L(pr[2], 1600, cu), L(pr[3], 900, cu)]);
             press.restore();
             if (sc < 1) { kline(press, [[0, sy], [1600, sy]], 10, 0.9); press.knockout((g) => { g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(0, sy - 40, 1600, 40); }); }
             erwin(press, t, c);
