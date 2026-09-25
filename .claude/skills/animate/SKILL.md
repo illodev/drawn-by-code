@@ -110,7 +110,7 @@ invoices feeding into a slot gives the block one verb and fills the frame), and 
 product waiting for the user** when the claim is «you approve» (hover, a button ring
 pulsing on the beats, a turning hourglass: three signals read at speed).
 
-Parallel block agents (physics-history: four figures in parallel, joins intact): give every join as an exact screen state ("the ground plus one amber line, 8 wide, full width at y = 450"), so the cut is a match the lead can check; let a segment call its neighbour's drawing for its first frames; wrap every segment file in an IIFE (they share one global scope); give each agent's dev scene its own folder, or their stills and reviews overwrite each other. One brief for all (see `sandbox/2026-09-24-saas-promo` history),
+A morph between striped objects rolls the camera first so the stripes run the same way; on a riso press a crossfade greys both images, so prefer a match cut on the beat (physics-history). Parallel block agents (physics-history: four figures in parallel, joins intact): give every join as an exact screen state ("the ground plus one amber line, 8 wide, full width at y = 450"), so the cut is a match the lead can check; let a segment call its neighbour's drawing for its first frames; wrap every segment file in an IIFE (they share one global scope); give each agent's dev scene its own folder, or their stills and reviews overwrite each other. One brief for all (see `sandbox/2026-09-24-saas-promo` history),
 the approved frames as the bar, on-screen text only through copy keys, shared kits
 read-only, the lead merges by file. Ask each for a shot list with times: it is also the cue
 sheet for the sound.

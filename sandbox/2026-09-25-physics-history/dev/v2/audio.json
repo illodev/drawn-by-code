@@ -1,3 +1,1 @@
-{ "duration": 12, "sfxDir": "../../../../assets/sfx", "align": "onset",
-  "cues": [["brass_ring", 0.35, -14], ["flyby", 1.4, -16], ["bell_ding", 2.5, -18], ["bell_ding", 3.0, -17], ["bell_ding", 3.5, -16], ["spin_rise", 3.9, -16], ["pop", 4.8, -12],
-           ["pop", 6.02, -14], ["boing", 6.5, -5], ["paper_land", 6.75, -12], ["ball_knock", 7.21, -9], ["ball_knock", 7.46, -15], ["plane_whoosh", 10.0, -8], ["reveal", 11.8, -12]] }
+{"duration": 13.5, "sfxDir": "../../../../assets/sfx", "align": "onset", "cues": [["brass_ring", 1.08, -14], ["swoosh_in", 1.5, -14], ["flyby", 3.2, -16], ["bell_ding", 4.0, -18], ["bell_ding", 4.5, -17], ["bell_ding", 5.0, -16], ["spin_rise", 5.3, -16], ["pop", 6.3, -12], ["pop", 7.52, -14], ["boing", 8.0, -5], ["paper_land", 8.25, -12], ["ball_knock", 8.71, -9], ["ball_knock", 8.96, -15], ["plane_whoosh", 11.5, -8], ["reveal", 13.3, -12]]}

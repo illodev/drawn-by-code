@@ -17,7 +17,11 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const L = Ease.lerp, S = Ease.seg, IO = Ease.inOut;
     const P = () => Seg.galileo.parts;
 
-    const T = { pan: [1.35, 2.35], zoomA: [2.3, 2.6], nights: [2.5, 3.0, 3.5], glide: 0.22, zoomB: [3.62, 4.85], morph: [4.55, 4.85] }; // the last drawings hold the apple at radius 1400, as Newton's first
+    // 0–1.45 the macro of v1 (the lens and his eye); 1.3–1.75 it dissolves into the roof while
+    // both pull back; 3.1–3.9 the camera goes into the eyepiece; the field; three nights on the
+    // beats; the dive into Jupiter rolls the view 90° (the belts turn vertical, as the apple's
+    // streaks), the disc becomes the apple; 6.35–6.5 the apple holds at radius 1400
+    const T = { macro: 1.5, diss: [1.5, 1.5], back: [1.5, 2.6], into: [3.1, 3.9], field: [3.55, 4.0], nights: [4.0, 4.5, 5.0], glide: 0.22, zoomB: [5.1, 6.35], roll: [5.1, 6.0], morph: [6.05, 6.35], end: 6.5 };
 
     // ── colours ──────────────────────────────────────────────────────────────────────────
     const AMBER = { yellow: 1, 'pink.s': 0.55 };
@@ -54,16 +58,33 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const MOON_A = [5.9, 9.4, 15.0, 26.4];
 
     // ── the camera ───────────────────────────────────────────────────────────────────────
-    function cam(t) {
-        const p = IO(S(t, T.pan[0], T.pan[1]));
-        const tilt = [(JS1[0] - JS0[0]) * p, (JS1[1] - JS0[1]) * p];
-        const travel = [-D[0] * 1500 * p, -D[1] * 1500 * p];
-        // the sky's zoom round Jupiter: quick to the moons, slow while the nights pass, then
-        // an accelerating dive into the disc (log zoom)
-        const za = Math.log(11) * IO(S(t, T.zoomA[0], T.zoomA[1])) + Math.log(14 / 11) * S(t, T.zoomA[1], T.zoomB[0]);
-        const zb = Math.log(1400 / (RJ * 14)) * Math.pow(S(t, T.zoomB[0], T.zoomB[1]), 1.35);
-        const push = 1 + 0.06 * IO(S(t, 0, T.pan[0])); // a slow push while he focuses
-        return { p, tilt, travel, Zs: Math.exp(za + zb), push };
+    const LENS = [1070, 370], EYE_GAP = 670 / 54; // the macro's lens on screen; eye–lens gap ratio
+    const ER = 13;                                  // the eyepiece's radius (roof units)
+    // the roof camera: the eyepiece E lands at A, scaled by Zr
+    function roofCam(t) {
+        const f = macroScale(t);
+        if (t < T.back[1]) {
+            // coherent with the macro: E sits on its lens, the gap between eye and eyepiece the same
+            const k = Ease.out(S(t, T.diss[1], T.back[1]));
+            const z0 = EYE_GAP * f, A0 = LENS;
+            return { Zr: Math.exp(L(Math.log(z0), 0, k)), A: [L(A0[0], E[0], k), L(A0[1], E[1], k)] };
+        }
+        const k = S(t, T.into[0], T.into[1]), e = k * k * (3 - 2 * k);
+        return { Zr: Math.exp(Math.log(34) * Math.pow(k, 1.6)), A: [L(E[0], 800, e), L(E[1], 450, e)] };
+    }
+    function macroScale(t) { return 0.4; } // the cut on the beat lands on the roof's close-up of the same eye and eyepiece
+    // the sky seen through the telescope: centre, zoom, roll
+    function skyCam(t) {
+        const rc = roofCam(Math.min(t, T.into[1]));
+        const za = Math.log(3) + Math.log(10 / 3) * IO(S(t, T.field[0], T.field[1]));
+        const zb = Math.log(1000 / 10) * Math.pow(S(t, T.zoomB[0], T.zoomB[1]), 1.35);
+        return { base: t < T.into[1] ? rc.A : [800, 450], Zs: Math.exp(za + zb), roll: -Math.PI / 2 * IO(S(t, T.roll[0], T.roll[1])) };
+    }
+    // the field of view: a disc opening from the eyepiece, radius on screen
+    function fieldR(t) {
+        const rc = roofCam(Math.min(t, T.into[1]));
+        const r0 = ER * rc.Zr * S(t, T.into[0] + 0.3, T.into[1]);
+        return t < T.into[1] ? r0 : L(ER * 34, 1300, Math.pow(S(t, T.zoomB[0], T.zoomB[1] - 0.3), 1.5));
     }
 
     // ── the sky ──────────────────────────────────────────────────────────────────────────
@@ -72,17 +93,18 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const POLE = [-900, -1400];
     function nightF(t) { return T.nights.slice(1).reduce((n, tn) => n + IO(S(t, tn - T.glide, tn)), 0); }
     function sky(press, t, c) {
-        ink(press, (g) => g.rect(0, 0, 1600, 900), { blue: 0.9 });
-        ink(press, (g) => g.rect(0, 0, 1600, 900), { 'navy.s': (g) => Riso.ramp(g, 0, 0, 0, 900, 0.95, 0.62) });
+        ink(press, (g) => g.rect(-800, -800, 3200, 2500), { blue: 0.9 });
+        ink(press, (g) => g.rect(-800, -800, 3200, 2500), { 'navy.s': (g) => Riso.ramp(g, 0, 0, 0, 900, 0.95, 0.62) });
         const nf = nightF(t), sweep = nf * 0.22;
+        const rotB = (v, rl) => [v[0] * Math.cos(rl) - v[1] * Math.sin(rl), v[0] * Math.sin(rl) + v[1] * Math.cos(rl)];
         const toS = (q) => {
             // rotate about the pole by the nights' sweep, then the camera (tilt and zoom round Jupiter)
             const dx = q[0] - POLE[0], dy = q[1] - POLE[1], cs = Math.cos(sweep), sn = Math.sin(sweep);
             const r = [POLE[0] + dx * cs - dy * sn, POLE[1] + dx * sn + dy * cs];
             // Jupiter is re-centred each night (the telescope tracks it): measure from its rotated place
             const jr = [POLE[0] + (JS0[0] - POLE[0]) * cs - (JS0[1] - POLE[1]) * sn, POLE[1] + (JS0[0] - POLE[0]) * sn + (JS0[1] - POLE[1]) * cs];
-            const base = [JS0[0] + c.tilt[0], JS0[1] + c.tilt[1]];
-            return [base[0] + (r[0] - jr[0]) * c.Zs, base[1] + (r[1] - jr[1]) * c.Zs];
+            const v = rotB([(r[0] - jr[0]) * c.Zs, (r[1] - jr[1]) * c.Zs], c.roll);
+            return [c.base[0] + v[0], c.base[1] + v[1]];
         };
         // the Milky Way: a soft band of light, knocked back through the navy
         if (c.Zs < 3) {
@@ -102,24 +124,24 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             const spec = r() < 0.3 ? { yellow: 0.35 } : { blue: 0.15 };
             if (sw) {
                 // a short arc: where it was a moment ago
-                const t0 = Math.max(0, t - 0.08), c0 = cam(t0), dx = q[0] - POLE[0], dy = q[1] - POLE[1];
+                const t0 = Math.max(0, t - 0.08), c0 = skyCam(t0), dx = q[0] - POLE[0], dy = q[1] - POLE[1];
                 const s0 = nightF(t0) * 0.22, cs = Math.cos(s0), sn = Math.sin(s0);
                 const r0 = [POLE[0] + dx * cs - dy * sn, POLE[1] + dx * sn + dy * cs];
                 const jr0 = [POLE[0] + (JS0[0] - POLE[0]) * cs - (JS0[1] - POLE[1]) * sn, POLE[1] + (JS0[0] - POLE[0]) * sn + (JS0[1] - POLE[1]) * cs];
-                const p0 = [JS0[0] + c0.tilt[0] + (r0[0] - jr0[0]) * c0.Zs, JS0[1] + c0.tilt[1] + (r0[1] - jr0[1]) * c0.Zs];
+                const v0 = rotB([(r0[0] - jr0[0]) * c0.Zs, (r0[1] - jr0[1]) * c0.Zs], c0.roll), p0 = [c.base[0] + v0[0], c.base[1] + v0[1]];
                 line(press, [p0, p], rad * 1.6, spec);
             } else put(press, circle(p[0], p[1], rad), spec);
             if (big && !sw) for (const [ux, uy] of [[1, 0], [0, 1]]) line(press, [[p[0] - ux * rad * 3.4, p[1] - uy * rad * 3.4], [p[0] + ux * rad * 3.4, p[1] + uy * rad * 3.4]], taper(2.6, 0.5, 0.5), spec);
         }
         // a shooting star early on
-        const sk = S(t, 0.55, 0.85);
+        const sk = S(t, 2.65, 2.95);
         if (sk > 0 && sk < 1) { const a = toS([1100 + sk * 380, 40 + sk * 150]), b = toS([1100 + Math.max(0, sk - 0.3) * 380, 40 + Math.max(0, sk - 0.3) * 150]); line(press, [b, a], taper(3.5, 0.9, 0.05), { 'yellow.s': 0.6 }); }
         return toS;
     }
 
     // Jupiter and its moons on night nf (the moons move by one day per night)
     function jupiter(press, t, c, nf) {
-        const J = [JS0[0] + c.tilt[0], JS0[1] + c.tilt[1]], Z = c.Zs, R = RJ * Z;
+        const J = c.base, Z = c.Zs, R = RJ * Z, rl = c.roll;
         const m = S(t, T.morph[0], T.morph[1]);
         if (m >= 1) { Seg.newtonApple.drawApple(press, J[0], J[1], R, 0); return; }
         // the moons (behind first), with faint marks of where they were the nights before
@@ -127,9 +149,10 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             const P0 = P().parts ? null : null;
             const per = [1.769, 3.551, 7.155, 16.69][i], th0 = [3.976, 4.022, 1.077, 1.224][i];
             const th = th0 + 2 * Math.PI * n / per;
-            return [J[0] + a * RJ * Z * Math.sin(th), J[1] - a * RJ * Z * 0.07 * Math.cos(th), Math.cos(th) > 0];
+            const vx = a * RJ * Z * Math.sin(th), vy = -a * RJ * Z * 0.07 * Math.cos(th);
+            return [J[0] + vx * Math.cos(rl) - vy * Math.sin(rl), J[1] + vx * Math.sin(rl) + vy * Math.cos(rl), Math.cos(th) > 0];
         });
-        const mr = Math.max(4, 0.28 * RJ * Z), fadeM = 1 - S(t, 3.9, 4.3);
+        const mr = Math.max(4, 0.28 * RJ * Z), fadeM = 1 - S(t, T.zoomB[0] + 0.25, T.zoomB[0] + 0.6);
         if (Z > 4 && fadeM > 0) for (let k = 0; k < Math.floor(nf + 1e-6); k++) for (const [x, y] of moons(k)) line(press, Array.from({ length: 17 }, (_, q) => [x + Math.cos(q / 16 * 6.2832) * (mr + 6), y + Math.sin(q / 16 * 6.2832) * (mr + 6)]), 2.4, { 'yellow.s': 0.55 * fadeM, 'pink.s': 0.4 * fadeM });
         const drawMoon = ([x, y]) => { if (fadeM <= 0) return; press.knockout((g) => { g.fillStyle = Riso.radial(g, x, y, 1, mr * 3, 0.6 * fadeM, 0); g.beginPath(); g.arc(x, y, mr * 3, 0, 6.2832); g.fill(); }); put(press, circle(x, y, mr), { yellow: 0.3 * fadeM }); };
         const now = moons(nf);
@@ -145,14 +168,18 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         if (R > 14) {
             press.save();
             press.clip(shape);
-            // bands (horizontal): belts in ochre, zones in cream; they fade into the apple's streaks
-            const bands = [[-0.62, 0.1, 0.55], [-0.32, 0.14, 0.7], [0.08, 0.16, 0.75], [0.42, 0.11, 0.6], [0.7, 0.08, 0.45]];
+            // bands: belts in ochre, zones in cream, drawn in Jupiter's frame (the camera's roll
+            // turns them vertical); each sits where an apple streak will be, and narrows into it
+            press.save();
+            press.each((g) => { g.translate(J[0], J[1]); g.rotate(rl); g.translate(-J[0], -J[1]); });
+            const bands = [[-0.5, L(0.13, 0.07, m), 0.6], [-0.2, L(0.16, 0.07, m), 0.72], [0.15, L(0.16, 0.07, m), 0.75], [0.45, L(0.12, 0.07, m), 0.62], [0.74, 0.08 * (1 - m), 0.45]];
             for (const [y, h, a] of bands) {
                 const yy = J[1] + y * RR, hh = h * RR, w = Math.sin(t * 0.6 + y * 5) * 0.02 * RR;
-                ink(press, (g) => { g.beginPath(); g.moveTo(J[0] - RR * 1.2, yy - hh / 2); for (let i = 0; i <= 12; i++) { const x = J[0] - RR * 1.2 + i * RR * 0.2; g.lineTo(x, yy - hh / 2 + Math.sin(i * 1.3 + y * 9) * hh * 0.18 + w); } g.lineTo(J[0] + RR * 1.2, yy + hh / 2); for (let i = 12; i >= 0; i--) { const x = J[0] - RR * 1.2 + i * RR * 0.2; g.lineTo(x, yy + hh / 2 + Math.sin(i * 1.7 + y * 7) * hh * 0.18); } g.closePath(); }, { 'pink.s': 0.45 * a * (1 - m), 'yellow.s': 0.3 * a * (1 - m), 'navy.s': 0.12 * a * (1 - m) });
+                ink(press, (g) => { g.beginPath(); g.moveTo(J[0] - RR * 1.2, yy - hh / 2); for (let i = 0; i <= 12; i++) { const x = J[0] - RR * 1.2 + i * RR * 0.2; g.lineTo(x, yy - hh / 2 + Math.sin(i * 1.3 + y * 9) * hh * 0.18 + w); } g.lineTo(J[0] + RR * 1.2, yy + hh / 2); for (let i = 12; i >= 0; i--) { const x = J[0] - RR * 1.2 + i * RR * 0.2; g.lineTo(x, yy + hh / 2 + Math.sin(i * 1.7 + y * 7) * hh * 0.18); } g.closePath(); }, { 'pink.s': 0.45 * a * (1 - m), 'yellow.s': 0.3 * a * (1 - m) + m, 'navy.s': 0.12 * a * (1 - m) });
             }
-            // the apple's streaks (vertical) come in as the bands go
-            if (m > 0) for (const dx of [-0.5, -0.2, 0.15, 0.45]) line(press, [[J[0] + dx * RR, J[1] - RR * 0.6], [J[0] + dx * RR * 1.2, J[1]], [J[0] + dx * RR, J[1] + RR * 0.6]], taper(RR * 0.08), { 'yellow.s': m, 'pink.s': 0.4 * m });
+            press.restore();
+            // the apple's streaks (vertical, where the belts now lie) take over from the bands
+            if (m > 0.5) for (const dx of [-0.5, -0.2, 0.15, 0.45]) line(press, [[J[0] + dx * RR, J[1] - RR * 0.6], [J[0] + dx * RR * 1.2, J[1]], [J[0] + dx * RR, J[1] + RR * 0.6]], taper(RR * 0.08), { yellow: 1, 'pink.s': 0.4 });
             // the apple's own shadow side comes in with it (the same shape drawApple uses)
             if (m > 0) ink(press, (g) => smooth(g, [[J[0] - 0.2 * RR, J[1] + 0.1 * RR], [J[0] + 0.9 * RR, J[1] - 0.1 * RR], [J[0] + 0.6 * RR, J[1] + 0.8 * RR], [J[0], J[1] + 0.95 * RR]]), { 'navy.s': 0.45 * m });
             // limb darkening and the terminator's soft shadow
@@ -301,7 +328,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // the collar, his left further along; breath steaming in the cold
     function galileo(press, t, turn) {
         const lean = 0.08 + 0.02 * Math.sin(t * 1.3);
-        const blink = Math.max(0, 1 - Math.abs(t - 0.95) * 14);
+        const blink = Math.max(0, 1 - Math.abs(t - 2.85) * 14);
         const br = Math.sin(t * 2.4) * 2;
         const rot = (q) => [H[0] + (q[0] * Math.cos(lean) - q[1] * Math.sin(lean)) * K, H[1] + (q[0] * Math.sin(lean) + q[1] * Math.cos(lean)) * K];
         // the far arm, then the body, then the near arm over it
@@ -326,22 +353,50 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         T,
         init() { return {}; },
         draw(press, tq, st) {
-            const t = tq, c = cam(t), nf = nightF(t);
-            sky(press, t, c);
-            // the near world and the city, while they are in frame
-            if (c.p < 1) {
-                const turn = Math.sin(Math.max(0, t - 0.2) * 1.6) * 0.5 + 0.5;
-                const cityOff = [c.tilt[0] + c.travel[0] * 0.3, c.tilt[1] + c.travel[1] * 0.3];
-                const nearOff = [c.tilt[0] + c.travel[0], c.tilt[1] + c.travel[1]];
-                Ph.cam(press, cityOff[0] + 800, cityOff[1] + 450, c.push * 0.5 + 0.5, () => { press.each((g) => g.translate(-800, -450)); city(press, t); });
-                Ph.cam(press, nearOff[0] + 800, nearOff[1] + 450, c.push, () => {
-                    press.each((g) => g.translate(-800, -450));
+            const t = tq, nf = nightF(t);
+            // 1 · the macro (v1's lens and eye), shrinking about its lens while it dissolves
+            if (t < T.macro) {
+                Ph.ink(press, (g) => g.rect(0, 0, 1600, 900), { blue: 0.9 });
+                Ph.ink(press, (g) => g.rect(0, 0, 1600, 900), { 'navy.s': (g) => Riso.radial(g, 820, 420, 120, 1000, 0.5, 0.95) });
+                Seg.galileo.draw(press, t, {});
+                return;
+            }
+            // 2 · the roof, faded in over the macro (a knockout and ink at the same alpha)
+            const rc = roofCam(Math.min(t, T.into[1])), sc = skyCam(t), fr = fieldR(t);
+            if (t < T.into[1]) {
+                sky(press, t, { base: JS0, Zs: 1, roll: 0 }); // the stars stay put (at infinity)
+                const turn = Math.sin(Math.max(0, t - 2.0) * 1.6) * 0.5 + 0.5;
+                // the city moves at half the zoom (it is far), the near world with the camera
+                const zc = 1 + (rc.Zr - 1) * 0.5;
+                Ph.cam(press, rc.A[0], rc.A[1], zc, () => { press.each((g) => g.translate(-E[0], -E[1])); city(press, t); });
+                Ph.cam(press, rc.A[0], rc.A[1], rc.Zr, () => {
+                    press.each((g) => g.translate(-E[0], -E[1]));
                     altana(press, t);
                     telescope(press, t, turn);
                     galileo(press, t, turn);
                 });
             }
-            jupiter(press, t, c, nf);
+            // 3 · the view through the eyepiece: a disc of sky opening at the eyepiece, framed by
+            // the tube's dark and a brass lip; then it fills the frame for the dive
+            if (fr > 1) {
+                const C = t < T.into[1] ? rc.A : [800, 450];
+                if (fr < 1250) {
+                    // the eyepiece's inside: dark round the disc, darkening the roof as we go in
+                    const dk = t >= T.into[1] ? 1 : 0; // the tube's dark takes over at once (a partial one only greys the roof)
+                    if (t >= T.into[1]) press.knockout((g) => { g.beginPath(); g.rect(0, 0, 1600, 900); g.arc(C[0], C[1], fr + 26, 0, 6.2832, true); g.fill('evenodd'); });
+                    ink(press, (g) => { g.rect(0, 0, 1600, 900); g.arc(C[0], C[1], fr + 26, 0, 6.2832, true); }, { navy: dk, yellow: 0.85 * dk, 'pink.s': 0.35 * dk });
+                    put(press, (g) => { g.beginPath(); g.arc(C[0], C[1], fr + 24, 0, 6.2832); g.arc(C[0], C[1], fr, 0, 6.2832, true); }, BRASS_SH);
+                    put(press, (g) => { g.beginPath(); g.arc(C[0], C[1], fr + 10, 0, 6.2832); g.arc(C[0], C[1], fr, 0, 6.2832, true); }, BRASS);
+                }
+                press.save();
+                press.clip((g) => g.arc(C[0], C[1], fr, 0, 6.2832));
+                press.knockout((g) => { g.beginPath(); g.arc(C[0], C[1], fr, 0, 6.2832); g.fill(); });
+                sky(press, t, { ...sc, base: C });
+                jupiter(press, t, { ...sc, base: C }, nf);
+                // the glass: a faint reflection arc
+                if (fr < 1250) press.knockout((g) => { Ph.poly(g, Ph.outline(Array.from({ length: 10 }, (_, i) => [C[0] + Math.cos(-2.5 + i * 0.08) * fr * 0.9, C[1] + Math.sin(-2.5 + i * 0.08) * fr * 0.9]), taper(Math.max(2, fr * 0.02), 0.3, 0.3))); g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1; });
+                press.restore();
+            }
         },
     };
 })();

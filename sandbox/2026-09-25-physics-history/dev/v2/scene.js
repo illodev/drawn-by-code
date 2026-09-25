@@ -1,8 +1,8 @@
 // Dev scene: script v2 so far — Galileo on the roof (0–5) into Newton's apple (5–12).
 const DIR = 'sandbox/2026-09-25-physics-history/';
-const PLAN = [[0, 5, 'galileoRoof'], [5, 12, 'newtonApple']];
+const PLAN = [[0, 6.5, 'galileoRoof'], [6.5, 13.5, 'newtonApple']];
 Motion.scene({
-    fps: 24, duration: 12, logical: [1600, 900], bpm: 120, audio: { mix: 'mix.wav' },
+    fps: 24, duration: 13.5, logical: [1600, 900], bpm: 120, audio: { mix: 'mix.wav' },
     uses: ['styles/risograph/riso.js', DIR + 'kit.js', DIR + 'cast.js', DIR + 'sets.js', DIR + 'earth.js', DIR + 'figure.js',
         DIR + 'segments/newton-faraday.js', DIR + 'segments/galileo.js', DIR + 'segments/newton-apple.js', DIR + 'segments/galileo-roof.js'],
     shots: PLAN.map(([a, b, n]) => [a, b, n]),

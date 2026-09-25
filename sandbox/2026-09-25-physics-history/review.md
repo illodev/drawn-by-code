@@ -329,3 +329,32 @@ built to this bar.
 
 **Checks:** the automatic review reports no warnings. The sound effects are provisional (no
 music yet).
+
+### Round 10 (user)
+
+> Empezaría el vídeo con la primera escena de la cara cerca con el ojo del primer vídeo (me
+> gustó), que se aleje y ya se vea Galileo alejado y me gustaría que la transición de Galileo a
+> júpiter fuera más natural y la transición de la manzana falla en que las líneas de júpiter son
+> horizontales y la de la manzana vertical (quizás rotar la cámara?)
+
+What changed. Galileo is now 0–6.5 s, and Newton moves to 6.5–13.5 (the later scenes absorb
+the 1.5 s).
+
+1. **0–1.5: v1's macro.** The lens in its brass rim, the amber reflection, his eye, the
+   blink, and the point of light gathering in the glass.
+2. **1.5: a match cut on the beat** to the roof's close-up of the same eye and eyepiece. The
+   camera eases back to the whole scene by 2.6.
+3. **3.1–3.9: into the eyepiece.** The camera zooms into the eyepiece by his eye, and the
+   telescope's field opens from it: a disc of sky with a brass lip, the tube's dark round it.
+   A partial darkening only greys the roof, so the dark comes in at once when the field
+   takes over.
+4. **In the field:** Jupiter and its moons, the three nights on the beats 4.0, 4.5 and 5.0.
+5. **5.1–6.35: the dive.**
+   - The field opens to fill the frame.
+   - The camera rolls 90° (5.1–6.0), so the belts turn vertical. They were placed where the
+     apple's streaks will be, and they narrow into them during the morph.
+   - The apple is held at radius 1400: the match cut through its skin into Newton.
+
+**Lesson (transitions):** when one object turns into another, line up their structure first
+(roll the camera so the stripes run the same way). A crossfade on a riso press only greys
+both images, so use a match cut on the beat instead.
