@@ -25,9 +25,15 @@ CARDS.dish = (press, t, lf = Math.round(t * 24)) => {
         B.fillStyle = T(0.3); B.fillRect(0, 0, 1080, 1080);
         // purple clouds (pink + blue in place of the navy), diagonal streaks
         P.fillStyle = T(0.2); P.fillRect(0, 0, 1080, 520);
-        const clouds = [[[-20, 20], [120, 10], [220, 80], [230, 170], [120, 230], [-20, 260]], [[-20, 380], [80, 390], [110, 450], [60, 500], [-20, 500]]];
-        U.soft(N, 18, (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(0.85); clouds.forEach((c) => { g.beginPath(); U.smooth(g, c); g.fill(); }); });
-        for (const g of [P, B]) U.soft(g, 18, (c) => { c.fillStyle = T(0.9); clouds.forEach((cl) => { c.beginPath(); U.smooth(c, cl); c.fill(); }); });
+        // purple streaks across the night (navy gives way to pink + blue), running up to the
+        // right at ~35°, measured as bands by their crossings of the left and top edges
+        const streaks = [[-40, 120, 60], [-40, 330, 45], [-40, 470, 50], [150, -40, 40], [330, -40, 35], [560, -40, 30], [820, -40, 50], [1000, -40, 40]];
+        const band = (g, [x, y, w]) => { g.save(); g.translate(x, y); g.rotate(-0.62); g.beginPath(); g.ellipse(700, 0, 900, w, 0, 0, 7); g.restore(); g.fill(); };
+        U.soft(N, 22, (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(0.8); streaks.forEach((st) => band(g, st)); });
+        for (const [g, v] of [[P, 0.8], [B, 0.75]]) U.soft(g, 22, (c) => { c.fillStyle = T(v); streaks.forEach((st) => band(c, st)); });
+        // around the galaxy a purple haze
+        U.cut([N], (g) => U.glow(g, 880, 190, 260, 0.6, 0, 1, 0.7));
+        for (const g of [P, B]) U.glow(g, 880, 190, 260, 0.7, 0, 1, 0.7);
         // the horizon glow: pink dots from y 500 growing into a flat pink band (y 700–840)
         const glowT = (m, stops) => { const gr = m.createLinearGradient(0, 480, 0, 840); for (const [s, v] of stops) gr.addColorStop(s, T(v)); m.fillStyle = gr; m.fillRect(0, 480, 1080, 400); };
         U.screen(P, 'pink', LP, (m) => glowT(m, [[0, 0], [0.15, 0.2], [0.45, 0.65], [0.6, 1], [1, 1]]));
@@ -41,15 +47,18 @@ CARDS.dish = (press, t, lf = Math.round(t * 24)) => {
         // teal: blue flat with navy dots, a little pink
         U.cut([N, B], (g) => { g.beginPath(); U.smooth(g, ground); g.fill(); });
         U.fill(B, ground, T(1), true);
-        U.fill(P, ground, T(0.35), true);
-        U.screen(N, 'navy', LG, (m) => U.clipped(m, ground, true, (c) => { c.fillStyle = T(0.55); c.fillRect(0, 800, 1080, 300); }));
+        U.fill(P, ground, T(0.4), true);
+        U.screen(N, 'navy', LG, (m) => U.clipped(m, ground, true, (c) => { c.fillStyle = T(0.3); c.fillRect(0, 800, 1080, 300); }));
         // the wavy pink line on the ground
         const wave = []; for (let x = -10; x <= 1090; x += 20) wave.push([x, 995 + 9 * Math.sin(x / 55) + 4 * Math.sin(x / 23)]);
         U.cut([N, B], (g) => U.brush(g, wave, 5, '#000', 'dwv', { taper: 0 }));
         U.brush(P, wave, 5, T(1), 'dwv', { taper: 0 });
+        // below the line and in the dish's shadow between its legs the ground is purple
+        const low = wave.concat([[1090, 1100], [-10, 1100]]), shade = [[150, 812], [330, 800], [470, 845], [490, 990], [190, 1000]];
+        for (const sh of [low, shade]) { U.cut([N], (g) => { g.beginPath(); U.trace(g, sh); g.fill(); }); U.fill(P, sh, T(0.92)); U.fill(B, sh, T(1)); U.screen(N, 'navy', LG, (m) => U.fill(m, sh, T(0.12))); }
         // stars: white with a pink or blue fringe
         const rs = Motion.rng('dish-stars');
-        for (let k = 0; k < 150; k++) {
+        for (let k = 0; k < 260; k++) {
             const x = rs() * 1080, y = rs() * 820, r = 1.5 + rs() * 2.8;
             press.knockout((g) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); });
             const g = rs() < 0.5 ? P : B; g.fillStyle = T(0.9); g.beginPath(); g.arc(x + 2, y + 2, r * 0.8, 0, 7); g.fill();
@@ -64,29 +73,26 @@ CARDS.dish = (press, t, lf = Math.round(t * 24)) => {
         }
         // ------------------------------------------------------------ the dish
         const E = (cx, cy, a, b, rot, n = 64) => { const pts = []; for (let i = 0; i < n; i++) { const t2 = (i / n) * Math.PI * 2, x = Math.cos(t2) * a, y = Math.sin(t2) * b; pts.push([cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)]); } return pts; };
-        const rot = 24.1 * Math.PI / 180;
-        const face = E(378, 627, 338, 131, rot), rim = E(372, 662, 335, 142, rot);
-        // the mount's shadow under the dish: navy over the ground
-        const mount = [[180, 800], [300, 830], [420, 860], [400, 960], [230, 960], [170, 880]];
-        U.cut([B], (g) => U.soft(g, 20, (c) => { c.fillStyle = T(0.5); c.beginPath(); U.smooth(c, mount); c.fill(); }));
-        N.fillStyle = T(0.6); N.beginPath(); U.smooth(N, mount); N.fill();
+        // ellipse fit on ~50 edge points (colour scans): centre (389, 637), 335 × 132, 20.2°
+        const rot = 20.2 * Math.PI / 180;
+        const face = E(389, 637, 335, 132, rot), rim = E(374, 645, 343, 138, rot);
         // legs behind the dish: pale sticks and a pink cross
         for (const pts of [[[272, 760], [196, 1000]], [[440, 815], [478, 1000]]]) { press.knockout((g) => U.brush(g, pts, 7, '#000', 'dl' + pts[0][0], { taper: 0 })); U.brush(B, pts, 3, T(0.6), 'dlb' + pts[0][0], { taper: 0 }); }
         for (const pts of [[[250, 820], [440, 970]], [[420, 810], [240, 955]]]) { U.cut([N, B], (g) => U.brush(g, pts, 5, '#000', 'dx' + pts[0][0], { taper: 0.1 })); U.brush(P, pts, 5, T(1), 'dx' + pts[0][0], { taper: 0.1 }); }
         // the rim: a dark band under the face, a pink lip
         U.cut([P], (g) => { g.beginPath(); U.smooth(g, rim); g.fill(); });
         for (const [g, v] of [[N, 1], [B, 0.5], [P, 0.3]]) U.fill(g, rim, T(v), true);
-        U.brush(P, E(372, 660, 336, 141, rot).slice(8, 40), 4, T(0.9), 'drl', { taper: 0.2 });
+        U.brush(P, E(376, 645, 344, 139, rot).slice(14, 40), 4, T(0.9), 'drl', { taper: 0.2 });
         // the face: paper, blue dots thickening to the lower right, a pink blush upper left
         press.knockout((g) => { g.beginPath(); U.smooth(g, face); g.fill(); });
         U.screen(B, 'blue', LF, (m) => U.clipped(m, face, true, (c) => { const gr = c.createLinearGradient(150, 520, 650, 780); gr.addColorStop(0, T(0.3)); gr.addColorStop(0.45, T(0.18)); gr.addColorStop(0.7, T(0.12)); gr.addColorStop(1, T(0.35)); c.fillStyle = gr; c.fillRect(0, 400, 1080, 500); }));
-        U.screen(P, 'pink', LF, (m) => U.clipped(m, face, true, (c) => { c.save(); c.translate(230, 580); c.rotate(rot); c.scale(1, 0.5); U.glow(c, 0, 0, 260, 0.45, 0); c.restore(); }));
+        U.screen(P, 'pink', LF, (m) => U.clipped(m, face, true, (c) => { c.save(); c.translate(240, 590); c.rotate(rot); c.scale(1, 0.5); U.glow(c, 0, 0, 260, 0.45, 0); c.restore(); }));
         // its grid: concentric ellipses and radial ribs (teal: blue + a little navy)
         const teal = (pts, w, seed, close) => { for (const [g, v] of [[B, 0.9], [N, 0.35]]) U.brush(g, close ? pts.concat([pts[0]]) : pts, w, T(v), seed, { taper: close ? 0 : 0.1, wob: 0.2 }); };
         U.clipped(B, face, true, () => {});
         press.save(); press.clip((g) => U.smooth(g, face));
-        for (const k of [0.28, 0.52, 0.76]) teal(E(430 - 60 * k, 655 - 25 * k, 338 * k, 131 * k, rot, 48), 2.6, 'dge' + k, true);
-        for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, [x0, y0] = [430, 655]; const x = Math.cos(a) * 360, y = Math.sin(a) * 150; teal([[x0, y0], [x0 + x * Math.cos(rot) - y * Math.sin(rot), y0 + x * Math.sin(rot) + y * Math.cos(rot)]], 2.2, 'dgr' + i, false); }
+        for (const k of [0.28, 0.52, 0.76]) teal(E(440 - 60 * k, 665 - 25 * k, 335 * k, 132 * k, rot, 48), 2.6, 'dge' + k, true);
+        for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, [x0, y0] = [440, 665]; const x = Math.cos(a) * 360, y = Math.sin(a) * 150; teal([[x0, y0], [x0 + x * Math.cos(rot) - y * Math.sin(rot), y0 + x * Math.sin(rot) + y * Math.cos(rot)]], 2.2, 'dgr' + i, false); }
         press.restore();
         teal(face, 3, 'dfo', true);
         // ------------------------------------------------------------ struts and feed
@@ -108,11 +114,10 @@ CARDS.dish = (press, t, lf = Math.round(t * 24)) => {
         });
         // ------------------------------------------------------------ the galaxy
         press.save(); press.each((g) => { g.translate(835, 210); g.rotate(-0.25); });
-        U.cut([N, B, P], (g) => { g.beginPath(); g.ellipse(0, 0, 85, 55, 0, 0, 7); g.fill(); });
-        U.fill(N, U.blob(0, 0, 85, 55, 'dgd', 0.05), T(0.5), true);
+        U.cut([N, B, P], (g) => { g.globalAlpha = 0.75; g.beginPath(); g.ellipse(0, 0, 85, 55, 0, 0, 7); g.fill(); });
         press.restore();
         U.screen(Y, 'yellow', LP, (m) => { m.save(); m.translate(835, 210); m.rotate(-0.25); m.scale(1, 0.65); U.glow(m, 0, 0, 90, 0.7, 0.1); m.restore(); });
-        U.screen(P, 'pink', LF, (m) => { m.save(); m.translate(835, 210); m.rotate(-0.25); m.scale(1, 0.65); U.glow(m, 0, 0, 95, 0.5, 0.1); m.restore(); });
+        U.screen(P, 'pink', LF, (m) => { m.save(); m.translate(835, 210); m.rotate(-0.25); m.scale(1, 0.65); U.glow(m, 0, 0, 95, 0.25, 0.05); m.restore(); });
         const arm = (pts, w, seed, core) => {
             press.knockout((g) => U.brush(g, pts, w, '#000', seed, { taper: 0.3 }));
             U.brush(P, pts, w, T(1), seed, { taper: 0.3 });
@@ -125,6 +130,12 @@ CARDS.dish = (press, t, lf = Math.round(t * 24)) => {
         // pink dust around the rim arm
         const rd = Motion.rng('dish-dust');
         for (let k = 0; k < 80; k++) { const a = rd() * 3.6 - 1.4, r = 110 + rd() * 30; P.fillStyle = T(1); P.beginPath(); P.arc(915 + Math.cos(a) * r * 1.25, 190 + Math.sin(a) * r * 0.7, 1.5 + rd() * 2, 0, 7); P.fill(); }
+        // the print's grit (balanced voids and specks)
+        U.grit(N, [0, 0, 1080, 1080], { out: true, p: 0.1, a: 0.7, seed: 41 });
+        U.grit(N, [0, 0, 1080, 1080], { p: 0.08, a: 0.7, seed: 42 });
+        U.grit(B, [0, 0, 1080, 1080], { out: true, p: 0.08, a: 0.7, seed: 43 });
+        U.grit(P, [0, 0, 1080, 1080], { out: true, p: 0.06, a: 0.6, seed: 44 });
+        U.grit(P, [0, 0, 1080, 1080], { p: 0.05, a: 0.8, seed: 45 });
         press.restore();
     });
 };
