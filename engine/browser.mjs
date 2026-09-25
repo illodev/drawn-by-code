@@ -21,6 +21,9 @@ export function serve(port = 0, extra = null) {
         if (extra && extra(url, res)) return;
         const file = path.join(ROOT, decodeURIComponent(url.pathname));
         if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+            // an optional script (a private, uncommitted file) that is absent: an empty script,
+            // not a 404, so renders stay free of console errors
+            if (url.searchParams.has('optional') && file.endsWith('.js')) { res.writeHead(200, { 'Content-Type': TYPES['.js'] }); return res.end('/* optional file absent */'); }
             res.writeHead(404);
             return res.end('not found');
         }
