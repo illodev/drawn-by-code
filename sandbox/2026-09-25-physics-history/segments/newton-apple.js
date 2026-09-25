@@ -147,7 +147,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // under it, and it climbs slowly to the orbit's low height (70 px over a 320 px Earth) by
     // the time it has gone TH1 round. On screen its speed follows the camera: 700 px/s off the
     // hand, a burst while the camera draws back fastest, the orbit's own speed at the end.
-    const RE_END = 320, H_END = 70, TH1 = 1.1, V_ORBIT = 0.85 * (RE_END + H_END), BURST = 3733;
+    const RE_END = 320, H_END = 70, TH1 = 0.3, W_ORBIT = 1.3443, V_ORBIT = W_ORBIT * (RE_END + H_END);   // W_ORBIT solved so θ(6.6) = TH1
     const hW0 = 990 / 1.25, hWO = H_END / ZEND;
     const heightW = (th) => { const u = Math.min(1, th / TH1); return hW0 + (hWO - hW0) * (1 - (1 - u) * (1 - u)); };
     let FL = null;
@@ -159,7 +159,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 const tt = T.release + i * dt, z = zoomAt(tt), Rs = RW * z;
                 // (never closer than 45 px to the ground on screen: it skims the land, never lands)
                 const g = Math.max(heightW(a) * z, Math.min(45, H_END + (1 - S(tt, 6.3, 6.6)) * 45));
-                const v = L(700, V_ORBIT, IO(S(tt, T.release, 6.6))) + BURST * Ease.bump(tt, 5.7, 0.9);
+                const v = L(700, V_ORBIT, IO(S(tt, T.release, 5.6)));
                 th[i] = a; gd[i] = g; a += (v * dt) / (Rs + g);
             }
             const at = (arr) => (tt) => arr[Math.min(n - 1, Math.max(0, Math.round((tt - T.release) / 0.001)))];
@@ -186,7 +186,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }    // the apple's screen path: it leaves the hand up and forward, rides near the top while
     // the world falls away, then (6.6 on) falls round the finished globe in orbit; x only
     // grows until it passes the side of the globe (no going back)
-    const ORB = { c: [780, 250 + 320], r: 390, phi0: 1.1, w: 0.85 };   // phi0 = TH1, where the cannonball flight arrives
+    const ORB = { c: [780, 250 + 320], r: 390, phi0: 0.3, w: 1.3443 };   // phi0 = TH1, w = W_ORBIT: the flight's own speed
     const orbitPos = (t) => { const f = ORB.phi0 + ORB.w * (t - 6.6); return [ORB.c[0] + Math.sin(f) * ORB.r, ORB.c[1] - Math.cos(f) * ORB.r]; };
     const applePos = (t) => { if (t >= 6.6) return orbitPos(t); const a = anchorAt(t), r = appleRel(Math.max(T.release, t)); return [a[0] + r[0], a[1] + r[1]]; };
     // terrain height along the ground (world units) as a sum of octaves: fields, hills, downs;
