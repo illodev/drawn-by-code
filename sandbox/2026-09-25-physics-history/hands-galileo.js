@@ -61,7 +61,7 @@ const GalHands = (() => {
     }
     const shade = (press, clipPath, fn) => { press.save(); press.clip(clipPath); fn(); press.restore(); };
 
-    const wristPt = (which, r) => (which === 'near' ? [-40, 0] : which === 'over' ? [4, r + 20] : which === 'fist' ? [0, r + 30] : [4, r - 8]);
+    const wristPt = (which, r) => (which === 'near' ? [-40, 0] : which === 'over' ? [4, r + 20] : which === 'fist' ? [0, r + 30] : which === 'fistAbove' ? [0, -(r + 30)] : [4, r - 8]);
 
     // ── the right hand: a closed grip, the back of the hand towards us ─────────────────────
     function near(press, r, o = {}) {
@@ -171,7 +171,10 @@ const GalHands = (() => {
     // together, joint creases across each, the tips curling over the top edge; the thumb is on
     // the far side, hidden by the bar; below the bar the hand's edge runs down to the wrist.
     // Index at +a (the thumb's side), little finger at −a.
+    // o.above: the forearm comes from behind and above the bar (the fingers come down the near
+    // face): the same drawing flipped across the bar; for a right hand the index stays at +a
     function fist(press, r, o = {}) {
+        if (o.above) { press.save(); press.each((g) => g.scale(1, -1)); fist(press, r, { ...o, above: false, fa: [(o.fa ?? [0, -1])[0], -(o.fa ?? [0, -1])[1]] }); press.restore(); return; }
         const fa = o.fa ?? [0, 1], sq = o.squeeze ?? 0;
         const F4 = [[23, 15.5], [7.5, 16.5], [-8.5, 15.5], [-23, 13.5]]; // index → little: [a, width]
         const W = [0, r + 30], W1 = add(W, fa, 16), side = [fa[1], -fa[0]];

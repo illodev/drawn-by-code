@@ -441,7 +441,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             put(press, (g) => poly(g, [[-46, -12], [48, -18], [50, -12], [-44, -6]]), { 'yellow.s': 0.15 });
             press.restore();
         }
-        const fig = Fig.newton(press, pose);
+        const fig = Fig.newton(press, pose, { held: t >= 3.97 && t < T.release ? (pr, c) => drawApple(pr, c[0], c[1], APPLE_R, 9.5 + (t - 3.97) * 0.3) : null, heldR: APPLE_R });
         stunStars(press, pose.H, t);
         return fig;
     }
@@ -629,10 +629,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                     press.each((g) => g.translate(-FEET[0], -FEET[1]));
                     fig = nearWorld(press, t, pose, ap.p, S(z, 0.1, 0.5));
                     // the apple (before the throw), in the world
-                    if (t < T.release) {
-                        const a = t >= 3.97 ? [fig.wrN[0] + 18, fig.wrN[1] - 12] : ap.p;
-                        drawApple(press, a[0], a[1], APPLE_R, ap.rot, ap.squash ?? 1);
-                    }
+                    // (while he holds it, the hand draws it, in its palm, under the fingers)
+                    if (t < 3.97) drawApple(press, ap.p[0], ap.p[1], APPLE_R, ap.rot, ap.squash ?? 1);
                     grass(press, t, true);
                 });
             }

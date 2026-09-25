@@ -68,6 +68,58 @@ const Fig = (() => {
         line(press, [R(0.18 * s, -0.12 * s), R(0.5 * s, -0.12 * s)], taper(0.03 * s), lineSpec);
     }
 
+    // a right hand holding an apple up to look at it, traced from a reference line drawing of a
+    // right hand holding an apple (Alamy 2D4HPAD, measured in units of the apple's radius): the
+    // palm is behind the apple; the index and middle fingers cross its lower front with their
+    // backs and nails to us, the ring and little fingers curl under it, the thumb is hidden
+    // behind it; the heel and the wrist go down and back (towards the elbow, forward of him).
+    // c: the apple's centre; R: its radius; f: the way he faces (the drawing mirrors for
+    // f = -1, which is then his left hand). held(press, c) draws the apple (before the hand).
+    const APPLE_HAND = {
+        body: [[-1.52, 0.78], [-1.37, 1.63], [-1.07, 2.04], [0.11, 2.48], [1.37, 3.04], [2.11, 2.48], [1.52, 1.48], [0.96, 0.44], [0.63, 1.0], [-0.37, 1.0], [-0.93, 0.85]],
+        // [centre line, width, nail]: little, ring (curled under), middle, index (front)
+        fingers: [
+            [[[0.0, 1.5], [0.45, 1.48], [0.7, 1.7]], 0.27, false],
+            [[[-0.2, 1.12], [0.35, 1.02], [0.72, 1.25]], 0.31, false],
+            [[[-0.6, 1.1], [-0.2, 0.66], [0.36, 0.42]], 0.34, true],
+            [[[-1.28, 0.76], [-0.9, 0.24], [-0.38, -0.1]], 0.34, true],
+        ],
+    };
+    function holdApple(press, c, R, f, spec, sh, held) {
+        const X = ([x, y]) => [c[0] + x * R * f, c[1] + y * R];
+        held(press, c);
+        const body = APPLE_HAND.body.map(X);
+        put(press, (g) => smooth(g, body), spec);
+        // the back of the hand turns away towards the little finger's side and the wrist
+        // a soft shade along the little finger's edge of the hand (the side turned from the light)
+        press.save(); press.clip((g) => smooth(g, body));
+        const e0 = X([1.9, 1.6]), e1 = X([1.2, 1.2]);
+        Ph.ink(press, (g) => g.rect(c[0] - 4 * R, c[1] - 2 * R, 8 * R, 7 * R), { 'pink.s': (g) => Riso.ramp(g, e0[0], e0[1], e1[0], e1[1], 0.3, 0) });
+        press.restore();
+        for (const [pts, w, nail] of APPLE_HAND.fingers) {
+            const P = Ph.sample(pts.map(X), false, 6), wd = w * R;
+            line(press, P, wd, spec);
+            put(press, circle(P[0][0], P[0][1], wd * 0.5), spec);
+            const tip = P[P.length - 1], pv = P[P.length - 4], an = Math.atan2(tip[1] - pv[1], tip[0] - pv[0]);
+            put(press, circle(tip[0], tip[1], wd * 0.5), spec);
+            // the finger's contour: both sides and the round of the tip, as one thin line (the
+            // lines between the fingers, as in the reference); its base runs into the hand
+            const ol = Ph.outline(P, wd), nH = ol.length / 2;
+            const sideA = ol.slice(3, nH), sideB = ol.slice(nH, ol.length - 3);
+            const tipArc = Array.from({ length: 9 }, (_, i) => { const aa = an - Math.PI / 2 + (i / 8) * Math.PI; return [tip[0] + Math.cos(aa) * wd * 0.5, tip[1] + Math.sin(aa) * wd * 0.5]; });
+            const lw = Math.max(1, R * 0.028);
+            line(press, sideA, taper(lw, 0.3, 0.02), LINE, { knock: false });
+            line(press, tipArc, lw, LINE, { knock: false });
+            line(press, sideB, taper(lw, 0.02, 0.3), LINE, { knock: false });
+            // the middle joint's crease across the back
+            const m = P[Math.floor(P.length * 0.5)], m2 = P[Math.floor(P.length * 0.5) + 1], a2 = Math.atan2(m2[1] - m[1], m2[0] - m[0]);
+            line(press, [[m[0] - Math.sin(a2) * wd * 0.25, m[1] + Math.cos(a2) * wd * 0.25], [m[0] + Math.cos(a2) * 1.5, m[1] + Math.sin(a2) * 1.5], [m[0] + Math.sin(a2) * wd * 0.25, m[1] - Math.cos(a2) * wd * 0.25]], taper(Math.max(0.8, R * 0.025)), LINE, { knock: false });
+            if (nail) { const nc = [tip[0] - Math.cos(an) * wd * 0.1, tip[1] - Math.sin(an) * wd * 0.1]; put(press, ellipse(nc[0], nc[1], wd * 0.3, wd * 0.24, an), { 'pink.s': 0.22, 'yellow.s': 0.06 }); line(press, Array.from({ length: 9 }, (_, i) => { const aa = an + Math.PI / 2 + (i / 8) * Math.PI; return [nc[0] + Math.cos(aa) * wd * 0.3 * Math.abs(Math.cos(aa - an)) + Math.cos(aa) * 0, nc[1] + Math.sin(aa) * wd * 0.24]; }), taper(lw * 0.8), LINE, { knock: false }); }
+        }
+        // the knuckles: a few light bumps along the hand's upper edge
+        for (const q of [[-1.25, 0.85], [-0.62, 1.12]]) { const p = X(q); press.knockout(ellipse(p[0], p[1], R * 0.12, R * 0.07, 0)); }
+    }
+
     // ── Newton ───────────────────────────────────────────────────────────────────────────
     const COAT = { navy: 1, yellow: 1, 'pink.s': 0.55 };
     const COAT_FAR = { navy: 1, yellow: 1, pink: 0.8 };
@@ -84,6 +136,7 @@ const Fig = (() => {
 
     function newton(press, p, o = {}) {
         const u = p.u, f = p.face ?? 1;
+        let held = null;
         const UA = 1.45 * u, FA = 1.25 * u, TH = 1.95 * u, SH = 1.95 * u;
         const shN = add(p.C, -0.12 * u * f, 0.06 * u), shF = add(p.C, 0.22 * u * f, -0.04 * u);
         const hipN = add(p.P, 0.1 * u * f, 0), hipF = add(p.P, -0.1 * u * f, -0.04 * u);
@@ -122,7 +175,8 @@ const Fig = (() => {
             put(press, (g) => { g.beginPath(); g.ellipse(cx[0], cx[1], 0.2 * u, 0.26 * u, cd, 0, Math.PI * 2); }, far ? COAT_FAR : CUFF);
             line(press, [add(cx, -Math.sin(cd) * 0.24 * u, Math.cos(cd) * 0.24 * u), add(cx, Math.sin(cd) * 0.24 * u, -Math.cos(cd) * 0.24 * u)], 0.04 * u, { yellow: 1, 'pink.s': 0.3 });
             put(press, circle(wr[0], wr[1], 0.16 * u), LINEN);
-            hand(press, add(wr, Math.cos(cd) * 0.08 * u, Math.sin(cd) * 0.08 * u), cd, grip, 0.62 * u, far ? SKIN_SH : SKIN, SKIN_SH, LINE, f);
+            if (grip === 'apple' && !far && o.held) { const R = o.heldR ?? 30; held = [wr[0] - 1.4 * R * f, wr[1] - 2.9 * R]; holdApple(press, held, R, f, SKIN, SKIN_SH, o.held); }
+            else hand(press, add(wr, Math.cos(cd) * 0.08 * u, Math.sin(cd) * 0.08 * u), cd, grip, 0.62 * u, far ? SKIN_SH : SKIN, SKIN_SH, LINE, f);
         };
         // far arm and far leg first
         arm(shF, elF, wrF, true, p.gripF ?? 0.3);
@@ -169,7 +223,7 @@ const Fig = (() => {
         });
         // near arm last (it crosses in front)
         arm(shN, elN, wrN, false, p.gripN ?? 0.3);
-        return { wrN, wrF, elN, knN, anN, H: p.H };
+        return { wrN, wrF, elN, knN, anN, H: p.H, held };
     }
 
     // ── smooth choreography ──────────────────────────────────────────────────────────────
@@ -219,5 +273,5 @@ const Fig = (() => {
         return { ...out, ...extra };
     }
 
-    return { pose, ik, seg, hand, newton, track, foot, build };
+    return { pose, ik, seg, hand, holdApple, newton, track, foot, build };
 })();
