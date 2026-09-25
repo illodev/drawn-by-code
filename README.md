@@ -86,7 +86,7 @@ how you made it too.
 </td>
 <td width="50%" valign="top">
 <a href="sandbox/2026-09-25-physics-history/"><img src="sandbox/2026-09-25-physics-history/render/physics-history.gif" alt="A Brief History of Physics"></a><br>
-<b><a href="sandbox/2026-09-25-physics-history/">A Brief History of Physics</a></b> · risograph · 64 s · <a href="sandbox/2026-09-25-physics-history/render/physics-history.mp4">mp4</a><br>
+<b><a href="sandbox/2026-09-25-physics-history/">A Brief History of Physics</a></b> · risograph · 67 s · <a href="sandbox/2026-09-25-physics-history/render/physics-history.mp4">mp4</a><br>
 <sub>Galileo's eye at the telescope pulls back to a rooftop in Padua; Jupiter becomes the apple a cat pushes onto Newton's head; its orbit winds into Faraday's coil, whose spark is the glow of Curie's radium; its ray is the light young Einstein chases into a black hole; and the cube it leaves becomes Schrödinger's box, where the cat is alive and dead in sixteen worlds until the lid lifts. One continuous chain of objects, the same cat in every scene, drawn entirely in JavaScript; score and effects generated with ElevenLabs.</sub>
 </td>
 </tr>
