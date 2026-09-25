@@ -346,6 +346,10 @@ const Fig = (() => {
             put(press, circle(wr[0], wr[1], 0.16 * u), LINEN);
             // rubbing the head: the hand lies over the crown, fingers pointing back and down over it
             if (grip === 'head') { const tg = [p.H[0] - 0.45 * u * f, p.H[1] - 0.35 * u]; backHand(press, wr, Math.atan2(tg[1] - wr[1], tg[0] - wr[0]), 0.72 * u, far ? SKIN_SH : SKIN, SKIN_SH); }
+            // relaxed at the side: the back of the hand out, the fingers along the forearm, curled a little
+            // pressing on the knee to get up: the palm on it, the fingers forward and down over it
+            else if (grip === 'knee') backHand(press, wr, Math.atan2(0.55, f), 0.72 * u, far ? SKIN_SH : SKIN, SKIN_SH);
+            else if (grip === 'relax') backHand(press, wr, cd + 0.12 * f, 0.72 * u, far ? SKIN_SH : SKIN, SKIN_SH);
             else if (grip === 'apple' && !far && o.held) held = holdApple(press, wr, cd, f, o.heldR ?? 30, SKIN, SKIN_SH, o.held, o.heldMode, o.heldAt);
             else hand(press, add(wr, Math.cos(cd) * 0.08 * u, Math.sin(cd) * 0.08 * u), cd, grip, 0.62 * u, far ? SKIN_SH : SKIN, SKIN_SH, LINE, f);
         };
