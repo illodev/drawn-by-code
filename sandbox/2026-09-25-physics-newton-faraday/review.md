@@ -60,3 +60,34 @@ Script checks (all pass):
 | 8.5 s | the magnet is still | the needle is back at zero |
 | 9.5 s | the magnet comes out | the needle swung left |
 | — | the fall trace, the ball and the orbit | share the Earth's centre, shown by dotted radii |
+
+### Round 2 (user)
+
+> No está nada mal quizás me falte más detalles para que no se sienta tan vacío el espacio.
+> La tierra (globo terraqueo), tiene 3 manchas verdes y parece un huevo de Yoshi, como
+> siempre los detalles marcan la diferencia. ¿Newton está sentado sobre una silla invisible?
+
+What changed:
+
+- **The Earth** (`earth.js`) now draws the real continents.
+  - They are coarse coastlines in longitude/latitude, projected orthographically, turning
+    with its own rotation.
+  - Deserts are in ochre, with ice caps, knocked-out cloud bands, the night side, an
+    atmosphere ring and a lit rim.
+- **Chairs** (`sets.js`):
+  - Newton sits on a carved high-backed chair with a leather panel and brass nails, in
+    breeches, stockings and buckled shoes.
+  - Faraday sits on a Windsor chair.
+  - Both have shins and shoes that reach the floor.
+- **The rooms are furnished.**
+  - Newton's study: a panelled wainscot, floorboards, a shelf of books with his reflecting
+    telescope, curtains at the window, an inkwell and quill, and an hourglass whose sand
+    runs.
+  - When the table turns into a model, the room dissolves into dots and stars come out.
+  - Faraday's laboratory: wainscot and floor, a swaying hanging oil lamp with its glow, the
+    shelf of glassware, a hank of wire and a voltaic pile.
+- **The ending:** the light mark is made by a visible beam with dust drifting in it.
+
+Lesson: an empty background reads as unfinished even when the action reads. A set is dressed
+with objects that belong to the person's world and period, and it keeps its own small
+motions: the flame, the sand, the lamp, the stars.

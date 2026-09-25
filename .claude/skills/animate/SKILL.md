@@ -51,6 +51,7 @@ A `Time | Shot | What happens` table in the brief. Rules that have already cost 
 - **Cuts on the music beat.** At 120 BPM, multiples of 0.5 s. Declare `bpm` in the scene
   and `review.mjs` will warn about cuts off the beat.
 - **Nothing still for more than 1 s** except the ending: visual silence looks like a bug.
+- **Dress the set:** an action that reads on an empty background still looks unfinished. Give each place objects from the person's world and period (furniture they sit on, tools, a window, a floor) with their own small motions (a flame, running sand, a swaying lamp). Nobody sits on an invisible chair, and a globe gets its real continents, not blobs.
 - **Every joke has to read** at normal speed and without explanation.
 - **Short climax** (2–3 s). Six seconds of climax is tiring.
 - **Stylize from reality:** before drawing a phenomenon or a gesture (steam, smoke, water,

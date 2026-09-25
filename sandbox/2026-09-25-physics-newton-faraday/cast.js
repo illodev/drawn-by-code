@@ -50,10 +50,16 @@ const Cast = (() => {
     // seated under the table (in its shadow): the coat's skirts, the thigh reaching under the
     // table and the shin going down. legs: { thigh, shin } specs
     function seated(press, legs) {
+        const fl = 452; // the floor, in local units
         put(press, (g) => smooth(g, [[-110, 280], [150, 280], [176, 380], [150, 420], [-100, 420], [-126, 360]]), COAT_DK);
         put(press, (g) => smooth(g, [[40, 330], [230, 322], [280, 340], [284, 392], [200, 404], [40, 412]]), legs.thigh);
-        put(press, (g) => smooth(g, [[228, 352], [284, 360], [286, 560], [272, 820], [236, 820], [226, 560]]), legs.shin);
-        line(press, [[282, 380], [278, 560], [268, 800]], taper(5), { 'navy.s': 0.6 });
+        // shin down to the ankle, a calf's curve at the back
+        put(press, (g) => smooth(g, [[232, 352], [284, 360], [282, 420], [272, fl - 26], [244, fl - 26], [232, 420], [226, 380]]), legs.shin);
+        line(press, [[280, 376], [276, 420], [272, fl - 30]], taper(4), { 'navy.s': 0.6 });
+        // the shoe: flat on the floor, toe forward, a buckle or laces
+        put(press, (g) => smooth(g, [[236, fl - 30], [276, fl - 32], [300, fl - 20], [326, fl - 12], [328, fl], [236, fl]]), { navy: 1, yellow: 0.9, 'pink.s': 0.4 });
+        line(press, [[244, fl - 6], [322, fl - 6]], 2.5, { 'yellow.s': 0.4, 'navy.s': 0.3 });
+        if (legs.buckle) put(press, (g) => g.rect(270, fl - 30, 16, 11), { yellow: 1, 'pink.s': 0.25 });
     }
 
     // Newton (after Kneller's 1689 portrait): long wavy brown hair parted in the middle and
@@ -64,7 +70,7 @@ const Cast = (() => {
         const HAIR = { 'pink.s': 0.5, yellow: 0.82, 'navy.s': 0.42 };
         const HAIR_LT = { 'pink.s': 0.28, yellow: 0.7, 'navy.s': 0.1 };
         const HAIR_DK = { 'pink.s': 0.6, yellow: 1, navy: 0.95 };
-        seated(press, { thigh: { navy: 1, 'pink.s': 0.55, yellow: 0.85 }, shin: { 'blue.s': 0.42, 'navy.s': 0.4 } });
+        seated(press, { thigh: { navy: 1, 'pink.s': 0.55, yellow: 0.85 }, shin: { 'blue.s': 0.42, 'navy.s': 0.4 }, buckle: true });
         // the back of the hair, behind the neck and shoulders
         put(press, (g) => smooth(g, [[-20, -96], [30, -90], [40, -40], [30, 40], [20, 130], [-40, 190], [-120, 186], [-128, 100], [-112, 0], [-90, -70]]), HAIR_DK);
         // coat: shoulders, chest, a lit front towards the candle on the right

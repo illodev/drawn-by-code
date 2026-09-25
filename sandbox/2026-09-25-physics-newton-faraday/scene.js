@@ -99,7 +99,8 @@ function table(press, x0, x1, top, o = {}) {
     // grain: long thin streaks along the edge and the top
     const r = Motion.rng('grain' + x0 + top);
     for (let i = 0; i < Math.round((x1 - x0) / 110); i++) {
-        const y = top + (r() < 0.35 ? 4 + r() * 12 : 24 + r() * 26), xa = x0 + r() * (x1 - x0), len = 80 + r() * 260;
+        const y = top + (r() < 0.35 ? 4 + r() * 12 : 24 + r() * 26), xa = x0 + r() * (x1 - x0), len = Math.min(80 + r() * 260, x1 - 8 - xa);
+        if (len < 20) continue;
         Ph.line(press, [[xa, y], [xa + len * 0.5, y + (r() - 0.5) * 3], [xa + len, y + (r() - 0.5) * 4]], Ph.taper(1.6 + r() * 2.2), fade({ 'pink.s': 0.8, 'navy.s': 0.65, 'yellow.s': 0.9 }, f));
     }
     // a knot on the edge
@@ -197,8 +198,23 @@ function newtonShot(press, tq, d, pan) {
         const lower = Ease.inOut(seg(tq, TM.land + 0.3, TM.pull[1])); // the arm comes back down
         const wrist = [266 - lower * 80, 50 + lower * 176], rot = lower * 0.12, op = Math.min(1, open + lower * 0.3);
         const hand = (part) => Ph.cam(press, wrist[0], wrist[1], 1, () => { press.each((g) => g.rotate(rot)); Cast.pinchHand(press, op, part); });
-        // Newton sits behind the table: body, then the table over his lap, then the arm above it
-        Ph.cam(press, NEWTON[0], NEWTON[1], NS, () => Cast.newton(press, { look }));
+        // the study (it dissolves into the night while the table turns into a model)
+        const dis = 1 - seg(tq, TM.pull[0] + 0.05, TM.pull[0] + 0.45);
+        const S = (spec) => (dis < 1 ? fade(spec, dis) : spec), K = { knock: dis >= 1 };
+        const sf = seg(tq, TM.pull[0] + 0.1, TM.pull[0] + 1.1);
+        if (sf > 0) Sets.stars(press, -400, 2400, sf, tq);
+        if (dis > 0) {
+            Sets.wainscot(press, -300, 1900, 470, 850, S, K);
+            Sets.floor(press, -300, 1900, 850, S, K);
+            Sets.curtains(press, 1040, 70, 380, 330, S, K);
+            studyWindow(press, 1040, 70, 380, 330, S, K, tq);
+            Sets.studyShelf(press, 440, 230, 500, S, K);
+        }
+        // Newton sits behind the table: his chair, body, the table over his lap, the arm above it
+        Ph.cam(press, NEWTON[0], NEWTON[1], NS, () => {
+            Ph.cam(press, -178, 300, 1, () => Sets.chair(press, { depth: 330, floor: 160, back: 340, style: 'carved' }));
+            Cast.newton(press, { look });
+        });
         table(press, -300, 830, 610, { legs: tq >= TM.pull[0] + 0.05 ? [60, 790] : [60] });
         Ph.cam(press, NEWTON[0], NEWTON[1], NS, () => {
             const sh = [-50, 128], wr = [wrist[0] - 6, wrist[1] + 4];
@@ -218,16 +234,17 @@ function newtonShot(press, tq, d, pan) {
         press.each((g) => { g.scale(mc.z, mc.z); g.translate(-P[0], -P[1]); });
         const dis = 1 - seg(tq, TM.pull[0] + 0.05, TM.pull[0] + 0.45);
         if (dis > 0) {
-            // the study: a window with the Moon behind, books and a candle on the table
+            // the rest of the table: books, inkwell and quill, candle, hourglass
             const S = (spec) => (dis < 1 ? fade(spec, dis) : spec), K = { knock: dis >= 1 };
-            studyWindow(press, 1040, 70, 380, 330, S, K, tq);
             table(press, 770, 1800, 610, { f: dis, legs: [1500] });
-            books(press, 980, 622, S, K);
+            books(press, 900, 622, S, K);
+            Sets.inkwell(press, 1170, 624, S, K);
             candle(press, 1300, 624, tq, S, K);
+            Sets.hourglass(press, 1440, 624, tq, S, K);
         }
         // the Earth fills in once the ground closes
         const ef = Ease.out(seg(tq, TM.earthFill[0], TM.earthFill[1]));
-        if (ef > 0) earth(press, C, R, ef, (tq - TM.earthFill[0]) * 0.18);
+        if (ef > 0) Globe.draw(press, C, R, { f: ef, lon0: 12 - (tq - TM.earthFill[0]) * 14, lat0: 20, cloudLon: (tq - TM.earthFill[0]) * 6 });
         // the ground line: drawn on from P when the ball lands, then it bends into the Earth
         const draw = Ease.out(seg(tq, TM.land, TM.land + 0.35));
         const bu = Ease.inOut(seg(tq, TM.bend[0], TM.bend[1]));
@@ -352,10 +369,15 @@ function faradayShot(press, tq, d, pan, sim) {
     const z = lerp(1, 2.8, push), fx = GALV.pivot[0], fy = GALV.pivot[1] - GALV.needle * 0.75;
     Ph.cam(press, ox + lerp(0, 800 - fx * 2.8 + fx * 1.8 - fx * 0.8, 0), 0, 1, () => {
         press.each((g) => { g.translate(fx + (800 - fx) * push, fy + (450 - fy) * push); g.scale(z, z); g.translate(-fx, -fy); });
-        labShelf(press);
-        // Faraday behind the bench
         const lean = Ease.inOut(seg(tq, TM.magIn[0] - 0.3, TM.magIn[1])) - Ease.inOut(seg(tq, TM.magOut[0], TM.magOut[1] + 0.2));
         const head = [290 + lean * 40, 300 + lean * 6];
+        Sets.wainscot(press, -400, 2000, 470, 850);
+        Sets.floor(press, -400, 2000, 850);
+        Sets.lamp(press, 620, 110, tq);
+        labShelf(press);
+        Sets.pile(press, 1570, 650);
+        // Faraday behind the bench, on his chair
+        Ph.cam(press, head[0], head[1], NS, () => Ph.cam(press, -170, 300, 1, () => Sets.chair(press, { depth: 320, floor: 160, back: 260, style: 'windsor' })));
         const grip = [tipX - MAG.len + 30, COIL.y];
         Ph.cam(press, head[0], head[1], NS, () => {
             Cast.faraday(press, { look: [1, 0.55] });
@@ -534,7 +556,7 @@ Motion.scene({
     duration: 12,
     logical: [1600, 900],
     bpm: 120,
-    uses: ['styles/risograph/riso.js', DIR + 'kit.js', DIR + 'cast.js'],
+    uses: ['styles/risograph/riso.js', DIR + 'kit.js', DIR + 'cast.js', DIR + 'sets.js', DIR + 'earth.js'],
     shots: [[0, 6, 'Newton'], [6, 12, 'Faraday']],
     setup(env) {
         // the galvanometer: a damped needle driven by the magnet's speed (flux change),
@@ -603,6 +625,20 @@ function spotScale(press, tq, sim) {
             const x = 800 + i * 34, l = i % 5 === 0 ? 30 : i % 5 === 0 ? 22 : 14;
             Ph.line(press, [[x, top + 4], [x, top + 4 + l]], i % 5 === 0 ? 4 : 3, { navy: 1 });
             if (i % 10 === 0) Ph.put(press, Ph.circle(x, top + 48, 5), { navy: 1 });
+        }
+    }
+    // the beam that makes the mark (a mirror galvanometer's light): a soft wedge from a lamp
+    // off frame, with dust drifting in it
+    const bf = seg(tq, TM.spot[0] + 0.15, TM.spot[0] + 0.5);
+    if (bf > 0) {
+        const src = [-60, 120], wedge = (g) => { g.beginPath(); g.moveTo(src[0], src[1] - 40); g.lineTo(sx, y - 12); g.lineTo(sx, y + 12); g.lineTo(src[0], src[1] + 40); g.closePath(); };
+        press.knockout((g) => { g.fillStyle = Riso.ramp(g, src[0], 0, sx, 0, 0.12 * bf, 0.4 * bf); wedge(g); g.fill(); });
+        Ph.ink(press, wedge, { 'yellow.s': (g) => Riso.ramp(g, src[0], 0, sx, 0, 0.1 * bf, 0.5 * bf) });
+        const r = Motion.rng('dust');
+        for (let i = 0; i < 40; i++) {
+            const u = r(), off = (r() - 0.5) * 2, ph = r() * 6.28, sp = 0.3 + r() * 0.6;
+            const bx = lerp(src[0], sx, u), by = lerp(src[1], y, u) + off * lerp(34, 10, u) + Math.sin(tq * sp + ph) * 6;
+            Ph.put(press, Ph.circle(bx + Math.cos(tq * sp * 0.7 + ph) * 8, by, 2 + r() * 2), { 'yellow.s': 0.5 * bf });
         }
     }
     // the light mark: a soft screened halo round a yellow core with a paper-white centre
