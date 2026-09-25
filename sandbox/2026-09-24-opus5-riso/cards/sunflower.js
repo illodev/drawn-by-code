@@ -35,16 +35,19 @@ CARDS.sunflower = (press, t, lf) => {
         // (back petals show past the front ones at 0° (to r 549), 245° (516), 320° (621), 350° (420))
         // back petals: tips where the sky begins on the same rays (L = r − 244)
         const BE = PD?.be ?? [[0, 550], [40, 620], [60, 600], [136, 480], [220, 490], [264, 600], [312, 660], [330, 450], [360, 550]]; // (fallback: back tips, same rays)
-        const back = [0, 24, 40, 60, 140, 200, 222, 244, 264, 280, 296, 312, 336].map((deg) => [deg * Math.PI / 180, Math.max(120, G2.lerpT(BE, deg) - 244)]);
+        // rays that ran off the frame (60–130°, 140–212°: bottom and left) have no sky: long
+        const beAt = (deg) => ((deg > 60 && deg < 130) || (deg > 140 && deg < 212) ? 700 : G2.lerpT(BE, deg));
+        const back = [0, 23, 45, 67, 133, 155, 177, 199, 221, 243, 266, 290, 310, 330, 350].map((deg) => [deg * Math.PI / 180, Math.max(120, beAt(deg) - 224)]);
         for (const [a, L] of back) {
-            const bx = CX + Math.cos(a) * R * 0.8, by = CY + Math.sin(a) * R * 0.8, { pts } = petalPts(bx, by, a, L, 120);
+            const bx = CX + Math.cos(a) * R * 0.8, by = CY + Math.sin(a) * R * 0.8, { pts } = petalPts(bx, by, a, L, 90, 0, 0.66);
             press.knockout((g) => { G2.path(g, pts); g.fill(); });
             poly(yellow, pts, 1); poly(pinkS, pts, 0.06);
+            if (Math.round(a * 57.3) % 5 === 0) poly(pink, pts, 0.5); // (some back petals are orange: pink on the yellow)
             inside(navy, (g) => G2.path(g, pts), (g) => {
-                g.strokeStyle = T(0.5); g.lineWidth = 2;
-                for (let k = -14; k <= 14; k++) { const u = k * 9; g.beginPath(); g.moveTo(bx + Math.cos(a + 1.2) * u - 200 * Math.cos(a), by + Math.sin(a + 1.2) * u - 200 * Math.sin(a)); g.lineTo(bx + Math.cos(a + 1.2) * u + 500 * Math.cos(a), by + Math.sin(a + 1.2) * u + 500 * Math.sin(a)); g.stroke(); }
+                g.strokeStyle = T(0.95); g.lineWidth = 1.5;
+                for (let k = -40; k <= 40; k++) { const u = k * 8.5; g.beginPath(); g.moveTo(bx + Math.cos(a + 0.6) * u - 300 * Math.cos(a - 0.97), by + Math.sin(a + 0.6) * u - 300 * Math.sin(a - 0.97)); g.lineTo(bx + Math.cos(a + 0.6) * u + 300 * Math.cos(a - 0.97), by + Math.sin(a + 0.6) * u + 300 * Math.sin(a - 0.97)); g.stroke(); }
             });
-            inside(blue, (g) => G2.path(g, pts), (g) => { g.strokeStyle = T(0.6); g.lineWidth = 2; for (let k = -14; k <= 14; k++) { const u = k * 9; g.beginPath(); g.moveTo(bx + Math.cos(a + 1.2) * u - 200 * Math.cos(a), by + Math.sin(a + 1.2) * u - 200 * Math.sin(a)); g.lineTo(bx + Math.cos(a + 1.2) * u + 500 * Math.cos(a), by + Math.sin(a + 1.2) * u + 500 * Math.sin(a)); g.stroke(); } });
+            inside(blue, (g) => G2.path(g, pts), (g) => { g.strokeStyle = T(0.6); g.lineWidth = 1.5; for (let k = -40; k <= 40; k++) { const u = k * 8.5; g.beginPath(); g.moveTo(bx + Math.cos(a + 0.6) * u - 300 * Math.cos(a - 0.97), by + Math.sin(a + 0.6) * u - 300 * Math.sin(a - 0.97)); g.lineTo(bx + Math.cos(a + 0.6) * u + 300 * Math.cos(a - 0.97), by + Math.sin(a + 0.6) * u + 300 * Math.sin(a - 0.97)); g.stroke(); } });
             outline(pts, 3.5);
         }
         // front petals: yellow, pink dots (denser at the base), green outline, red veins
@@ -55,16 +58,18 @@ CARDS.sunflower = (press, t, lf) => {
         // (the scan lives in private/; fallback: front tips at r ≈ 440 ± 40, longer (≈ 560) at 232°, 256°, 320°)
         const FE = PD?.fe ?? [[0, 440], [60, 520], [130, 520], [180, 470], [232, 560], [244, 420], [256, 560], [280, 460], [320, 590], [340, 430], [360, 440]];
         const fe = (deg) => G2.lerpT(FE, ((deg % 360) + 360) % 360);
-        const front = [12, 34, 56, 78, 100, 122, 144, 166, 188, 210, 232, 256, 280, 300, 320, 340].map((deg, i) => [deg * Math.PI / 180, Math.max(90, fe(deg) - 259), 235 + ((i * 53) % 3) * 14]);
-        for (const [a, L, W] of front) {
-            const bx = CX + Math.cos(a) * R * 0.85, by = CY + Math.sin(a) * R * 0.85, { pts, Q } = petalPts(bx, by, a, L, W, 0.03, 0.78);
+        const front = [12, 34, 56, 78, 100, 122, 144, 166, 188, 210, 232, 256, 280, 300, 320, 340].map((deg, i) => [deg * Math.PI / 180, Math.max(90, Math.max(fe(deg), beAt(deg) - 70) - 259), 0]).map(([a, L], i) => [a, L, Math.max(150, 0.58 * L) + ((i * 53) % 3) * 10]);
+        // a second, lower layer of front petals between the first (they overlap in two layers,
+        // the lower ones a little shorter and more shaded)
+        const lower = front.map(([a, L, W]) => [a + 11 * Math.PI / 180, L * 0.88, W, true]);
+        for (const [a, L, W, low] of [...lower, ...front]) {
+            const bx = CX + Math.cos(a) * R * 0.85, by = CY + Math.sin(a) * R * 0.85, { pts, Q } = petalPts(bx, by, a, L, W, 0.03, 0.66);
             press.knockout((g) => { G2.path(g, pts); g.fill(); });
             poly(yellow, pts, 1);
-            inside(pinkS, (g) => G2.path(g, pts), (g) => { g.fillStyle = Riso.radial(g, bx, by, 10, L * 0.8, 0.2, 0); g.fillRect(0, 0, 1080, 1080); });
-            // veins
-            for (const k of [-0.18, 0.02, 0.2]) curve(pink, [Q(L * 0.15, W * k * 0.6), Q(L * 0.5, W * k), Q(L * 0.8, W * k * 0.7)], 2, 0.9);
-            // a lit sliver along one edge: pink cleared
-            inside(pinkS, (g) => G2.path(g, pts), (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(1); G2.path(g, [Q(L * 0.2, -W * 0.5), Q(L * 0.9, -W * 0.15), Q(L * 0.9, -W * 0.05), Q(L * 0.2, -W * 0.3)]); g.fill(); });
+            // (2× crop of frame 210) one half in red dots, the other lit (clean yellow), split by
+            // a single red midrib a little off centre; the dots thin out towards the tip
+            inside(pinkS, (g) => { G2.path(g, [Q(0, 0.02 * W), Q(L * 1.1, 0.02 * W), Q(L * 1.1, W), Q(0, W)]); }, (g) => { g.save(); g.beginPath(); G2.path(g, pts); g.clip(); g.fillStyle = Riso.radial(g, bx, by, 10, L, low ? 0.42 : 0.32, 0.04); g.fillRect(0, 0, 1080, 1080); g.restore(); });
+            taper(pink, spline([Q(L * 0.12, W * 0.02), Q(L * 0.5, W * 0.05), Q(L * 0.85, W * 0.02)], 16), 4, 1);
             outline(pts, 4);
         }
         // the disc: black-green, the seeds knocked out and printed red-orange in a spiral
@@ -124,7 +129,7 @@ CARDS.sunflower = (press, t, lf) => {
         const wing = (x, y, a, L, W) => {
             const { pts, Q } = petalPts(x, y, a, L, W);
             press.knockout((g) => { G2.path(g, pts); g.fill(); });
-            inside(blueS, (g) => G2.path(g, pts), (g) => { g.fillStyle = T(0.4); G2.path(g, [Q(0, W * 0.1), Q(L, W * 0.1), Q(L, W), Q(0, W)]); g.fill(); });
+            inside(blueS, (g) => G2.path(g, pts), (g) => { g.fillStyle = T(0.4); G2.path(g, [Q(0, -W * 0.05), Q(L, -W * 0.05), Q(L, -W * 0.3), Q(0, -W * 0.3)]); g.fill(); });
             outline(pts, 3.5);
             curve(blue, [Q(L * 0.1, 0), Q(L * 0.5, W * 0.05), Q(L * 0.9, W * 0.1)], 2, 0.8);
         };
@@ -132,8 +137,8 @@ CARDS.sunflower = (press, t, lf) => {
         // 756,375 → 1022,321 · 785,367 → 952,300)
         wing(677, 275, -1.243, 233, 82);
         wing(693, 275, -1.075, 166, 46);
-        wing(756, 375, -0.2, 271, 76);
-        wing(785, 367, -0.382, 180, 46);
+        wing(756, 375, -0.2, 271, 104);
+        wing(785, 367, -0.382, 180, 62);
         press.restore();
     });
 };
