@@ -48,8 +48,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // ── geometry (screen units of the opening frame) ────────────────────────────────────
     const K = 1.45;                     // the head's scale (cast units → screen)
     const H = [470, 372];               // head centre
-    const E = [556, 334];               // the eyepiece's face, at his eye
-    const ANG = -0.42, D = [Math.cos(ANG), Math.sin(ANG)], N = [-D[1], D[0]];
+    const E = [500, 333];               // the eyepiece's face, pressed to his near eye
+    const ANG = -0.6, D = [Math.cos(ANG), Math.sin(ANG)], N = [-D[1], D[0]];
     const LPt = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k];
     const at = (s, n = 0) => [E[0] + D[0] * s + N[0] * n, E[1] + D[1] * s + N[1] * n];
     const TUBE = 1500;
@@ -68,7 +68,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         if (t < T.back[1]) {
             // coherent with the macro: E sits on its lens, the gap between eye and eyepiece the same
             const k = Ease.out(S(t, T.diss[1], T.back[1]));
-            const z0 = EYE_GAP * f, A0 = LENS;
+            // the cut lands on the same moment: his eye just meeting the eyepiece, right of centre
+            const z0 = 6, A0 = [1000, 440];
             return { Zr: Math.exp(L(Math.log(z0), 0, k)), A: [L(A0[0], E[0], k), L(A0[1], E[1], k)] };
         }
         const k = Ease.in(S(t, T.push[0], T.push[1]));
@@ -80,18 +81,18 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     function macroView(t) {
         if (t < T.macro) {
             const pan = 640 * IO(S(t, 0.25, 1.25));
-            return { k: 0.36, dist: 600, flen: 600 * 15, c: [LENS0[0] + pan, LENS0[1] + 20], roll: -0.06, pan, eyeShift: 0 };
+            return { k: 0.36, dist: 600, flen: 600 * 15, c: [LENS0[0] + pan, LENS0[1] + 60], roll: -0.4, pan, eyeShift: 0, lean: 380 * IO(S(t, 1.05, 1.5)) }; // he leans in to the eyepiece
         }
         if (t >= T.orbit[1]) {
             // looking straight down the eyepiece: it keeps closing in with the field
             const fr = t < T.zoomB[0] ? 420 : L(420, 1700, Math.pow(S(t, T.zoomB[0], T.zoomB[1] - 0.4), 1.5));
-            return { k: 1, dist: 600, flen: 600 * fr / 11, c: [800, 450], roll: 0, pan: 640, eyeShift: -1400, sc: fr / 11 };
+            return { k: 1, dist: 600, flen: 600 * fr / 11, c: [800, 450], roll: 0, pan: 640, eyeShift: -1400, lean: 380, sc: fr / 11 };
         }
         const k = IO(S(t, T.orbit[0], T.orbit[1]));
         // turn from the opening's three-quarter view to straight down the axis, closing in so the
         // glass (radius 11) grows to the field's size
         const sc = Math.exp(L(Math.log(15), Math.log(420 / 11), Ease.in(S(t, T.orbit[0], T.orbit[1]))));
-        return { k: L(0.36, 1, k), dist: 600, flen: 600 * sc, c: [L(1040, 800, k), L(470, 450, k)], roll: L(-0.06, 0, k), pan: 640, eyeShift: -1400 * Ease.in(k), sc };
+        return { k: L(0.36, 1, k), dist: 600, flen: 600 * sc, c: [L(1040, 800, k), L(510, 450, k)], roll: L(-0.4, 0, k), pan: 640, eyeShift: -1400 * Ease.in(k), lean: 380, sc };
     }
     // the sky seen through the telescope: centre, zoom, roll
     function skyCam(t) {
@@ -299,25 +300,9 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             line(press, [LPt(hd, [fx, FLOOR + 40], 0.1), LPt(hd, [fx, FLOOR + 40], 0.95)], 3, WOOD_LT);
         }
         put(press, circle(hd[0], hd[1], 16), BRASS_SH);
-        const slide = turn * 4;
-        quad(-6, 16, 15, 15, BRASS);
-        quad(16, 50 + slide, 11, 11, BRASS_SH);
-        quad(50 + slide, 80 + slide, 17, 17, BRASS);
-        quad(80, TUBE - 30, 19, 30, LEATHER);
-        strip(80, TUBE - 30, -1, -0.5, 19, 30, LEATHER_LT);
-        strip(80, TUBE - 30, 0.55, 1, 19, 30, LEATHER_DK);
-        quad(TUBE - 30, TUBE, 33, 34, BRASS);
-        for (let s = 130; s < TUBE - 60; s += 110) {
-            const h = L(19, 30, (s - 80) / (TUBE - 110));
-            for (const ds of [0, 10]) line(press, [at(s + ds, -h + 1), at(s + ds - 2, 0), at(s + ds, h - 1)], 3, GOLD);
-            for (let k = -2; k <= 2; k++) put(press, circle(...at(s + 52, k * h * 0.35), 2.8), GOLD);
-        }
-        for (let k = 0; k < 8; k++) {
-            const u = ((k / 8 + turn * 0.9) % 1 + 1) % 1, n = Math.sin((u - 0.5) * Math.PI) * 16;
-            line(press, [at(52 + slide, n), at(78 + slide, n)], 2, { navy: 0.9, 'pink.s': 0.3 });
-        }
-        press.knockout((g) => { poly(g, Ph.outline([at(120, -17), at(TUBE - 60, -27)], taper(3, 0.3, 0.3))); g.fill(); });
-        press.knockout((g) => { poly(g, Ph.outline([at(54 + slide, -14), at(76 + slide, -14)], taper(3, 0.3, 0.3))); g.fill(); });
+        // the same 3D telescope as the macro, seen almost from the side (a sliver of the
+        // eyepiece's face shows), nearly orthographic, rolled to the tube's angle
+        Scope3D.draw(press, Scope3D.orbit(0.1, { dist: 20000, flen: 20000, c: E, roll: ANG, aim: 0 }), { turn, t });
     }
 
     // Galileo: the cast head on his gown, bent to the eyepiece; his right hand on the collar,
@@ -350,16 +335,19 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const br = Math.sin(t * 2.4) * 2;
         const rot = (q) => [H[0] + (q[0] * Math.cos(lean) - q[1] * Math.sin(lean)) * K, H[1] + (q[0] * Math.sin(lean) + q[1] * Math.cos(lean)) * K];
         // the far arm, then the body, then the near arm over it
-        const hF = at(330, 30);
+        // the telescope is in front of his face: the eyepiece on his near eye, the tube passing
+        // over the brow and nose, so it is drawn after the head
+        const hF = at(380, 30);
         arm(press, rot([110, 140]), [hF[0] - 30, hF[1] + 30], 310, true);
-        grip(press, 330, 24, true);
         Ph.cam(press, H[0], H[1], K, () => {
             press.each((g) => g.rotate(lean));
             P().galileo(press, { noSeat: true, look: [1, -0.1], lidNear: Math.max(0.6, blink), lidFar: blink, breath: br });
         });
-        const hN = at(64, 26); // on the focusing collar
+        telescope(press, t, turn);
+        grip(press, 380, 25, true);
+        const hN = at(175, 26); // along the tube, clear of his face
         arm(press, rot([10, 160]), [hN[0] - 30, hN[1] + 30], 300, false);
-        grip(press, 64, 22, false);
+        grip(press, 175, 23, false);
         // breath: puffs from the mouth drifting up and right, thinning out
         const mouth = rot([70, 42]);
         // (one soft cloud per breath out, swelling and fading as it drifts)
@@ -376,7 +364,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         press.save(); press.each((g) => g.translate(v.pan * 0.45 + v.eyeShift * 0.3, 0)); Pp.bokeh(press, tt); press.restore();
         if (v.eyeShift > -1300) {
             const blink = Ease.bump(tt, TMv.blink, 0.25) + (t > T.macro ? Ease.bump(t, T.orbit[0] + 0.15, 0.25) : 0);
-            press.save(); press.each((g) => g.translate(v.pan * 0.85 + v.eyeShift, 0));
+            press.save(); press.each((g) => g.translate(v.pan * 0.85 + v.eyeShift + v.lean, 0));
             Pp.eyeMacro(press, Pp.M.eye, { look: 0.55 + 0.25 * S(tt, 0.4, 1.0), lid: Math.min(1, blink), pupil: 1 + 0.18 * IO(S(tt, 1.1, 1.5)), brow: -8 * IO(S(tt, 1.0, 1.4)) });
             press.restore();
         }
@@ -408,7 +396,6 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 Ph.cam(press, rc.A[0], rc.A[1], rc.Zr, () => {
                     press.each((g) => g.translate(-E[0], -E[1]));
                     altana(press, t);
-                    telescope(press, t, turn);
                     galileo(press, t, turn);
                 });
                 return;

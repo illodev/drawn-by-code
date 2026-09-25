@@ -394,3 +394,22 @@ What changed:
 **Lesson (animate):** a round mechanical object seen at an angle (a lens, a wheel, a tube) is
 drawn as 3D geometry projected with a camera, never as hand-placed ellipses. Only a projection
 keeps the face, the sides and the rings consistent while the camera moves.
+
+### Round 12 (user)
+
+> La transición de esas 2 vistas no está bien. También veo que Galileo tiene el telescopio
+> detrás de la frente
+
+What changed:
+
+- **The telescope is in front of his face.**
+  - The eyepiece now sits on his near eye, and the telescope is drawn after the head (the
+    tube passes in front of the brow).
+  - The roof's telescope is now the same 3D model as the macro's (`Scope3D`, seen almost from
+    the side and nearly orthographic), so both shots show one object.
+  - The near hand moves along the tube, clear of his face.
+- **The cut matches.**
+  - In the macro he leans in until his eye meets the eyepiece (1.05–1.5 s), and the macro's
+    tube rises at the roof tube's angle.
+  - The roof's close-up after the cut puts the eyepiece at the same place on screen, on his
+    eye, with the tube rising the same way.
