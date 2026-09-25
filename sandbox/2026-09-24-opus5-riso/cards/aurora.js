@@ -139,3 +139,5 @@ CARDS.aurora = (press, t) => {
     // the shoreline: a thin light line
     press.knockout((g) => { g.globalAlpha = 0.6; U.stroke(g, [[0, SHORE(0) + 3], [1000, SHORE(1000) + 3]], 1.4); });
 };
+// regional tone maps, if the private fitted data is loaded
+G6.tones('aurora');

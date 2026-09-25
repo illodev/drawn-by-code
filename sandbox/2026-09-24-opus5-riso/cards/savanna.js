@@ -9,6 +9,8 @@
 // Needs cards/_g6-util.js.
 var CARDS = CARDS || {};
 CARDS.savanna = (press, t) => {
+    // measured tables scanned off the reference live in private/savanna-data.js (gitignored)
+    const PD = (globalThis.G6_DATA ?? {}).savanna ?? {};
     const T = Riso.tone, U = G6;
     const pink = press.plate('pink'), blue = press.plate('blue'), navy = press.plate('navy'), yellow = press.plate('yellow');
     const d = Math.min(1, Math.floor(t * 12 + 1e-6));
@@ -33,7 +35,7 @@ CARDS.savanna = (press, t) => {
         // behind the tree (0.2–0.35 at y 700–790, x 180–600)
         m.globalCompositeOperation = 'destination-out';
         const gl = m.createRadialGradient(0, 0, 0, 0, 0, 1);
-        gl.addColorStop(0, T(0.75)); gl.addColorStop(0.45, T(0.65)); gl.addColorStop(0.75, T(0.5)); gl.addColorStop(1, T(0));
+        gl.addColorStop(0, T(0.88)); gl.addColorStop(0.45, T(0.82)); gl.addColorStop(0.75, T(0.5)); gl.addColorStop(1, T(0));
         m.save(); m.translate(px(760), px(690)); m.scale(px(390), px(200)); m.fillStyle = gl; m.beginPath(); m.arc(0, 0, 1, 0, 7); m.fill(); m.restore();
         m.save(); m.translate(px(420), px(760)); m.scale(px(330), px(55)); m.fillStyle = gl; m.globalAlpha = 0.6; m.beginPath(); m.arc(0, 0, 1, 0, 7); m.fill(); m.restore();
     });
@@ -107,7 +109,8 @@ CARDS.savanna = (press, t) => {
     streak(405, 965, 738, 772, 4.2, 1); streak(470, 760, 750, 761, 1.8, 2); streak(588, 948, 794, 810, 3.2, 3); streak(700, 900, 781, 786, 1.2, 4);
     // six swallows on the right (dark-blob bounding boxes on the 13.75 s frame): swept wings,
     // forked tails, dark olive (navy over the yellow, the pink knocked out under them)
-    const birds = [[1063, 428, 40, 2.3, 1], [1024, 484, 26, 2.6, -0.5], [981, 551, 32, 2.2, 0.5], [1066, 606, 48, 2.0, 1], [937, 628, 36, 2.4, -0.2], [884, 481, 13, 2.8, 0]];
+    // six swallows on the right, low and scattered (x, y, span, heading, wing beat), set by eye
+    const birds = PD.birds ?? [[1060, 430, 40, 2.3, 1], [1020, 485, 26, 2.6, -0.5], [980, 550, 32, 2.2, 0.5], [1065, 605, 48, 2, 1], [935, 630, 36, 2.4, -0.2], [885, 480, 13, 2.8, 0]];
     const bp = new Path2D();
     for (const [x, y, sz, a, w] of birds) { const q = P(U.swallow(x, y, sz, a, w)); q.forEach(([bx, by], i) => (i ? bp.lineTo(bx, by) : bp.moveTo(bx, by))); bp.closePath(); }
     pink.save(); pink.globalCompositeOperation = 'destination-out'; pink.fillStyle = T(1); pink.fill(bp); pink.restore();
@@ -119,8 +122,10 @@ CARDS.savanna = (press, t) => {
     const silP = new Path2D();
     const add = (pts) => { P(pts).forEach(([x, y], i) => (i ? silP.lineTo(x, y) : silP.moveTo(x, y))); silP.closePath(); };
     // hedge: top and bottom edges measured every 30 px; the top a run of small rounded bushes
-    const hedgeTop = [[-10, 780], [30, 785], [90, 796], [180, 797], [210, 810], [240, 806], [270, 814], [300, 818], [330, 808], [360, 805], [420, 809], [480, 816], [510, 823], [540, 816], [570, 812], [630, 819], [690, 832], [750, 825], [810, 831], [870, 832], [930, 838]];
-    const hedgeBot = [[945, 880], [900, 876], [780, 872], [640, 868], [600, 861], [540, 859], [480, 854], [390, 851], [300, 846], [210, 842], [120, 839], [30, 832], [-10, 831]];
+    // the hedge top: from 782 px on the left falling gently to 836 px at the bush
+    const hedgeTop = PD.hedgeTop ?? [[-10, 782], [180, 798], [300, 814], [420, 808], [540, 818], [690, 830], [930, 836]];
+    // the hedge foot: 831 px on the left to 880 px under the bush
+    const hedgeBot = PD.hedgeBot ?? [[945, 880], [600, 862], [300, 846], [-10, 831]];
     const rh = Motion.rng('svhedge');
     const bumpy = (pts, amp) => { const out = []; for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], n = Math.max(1, Math.round(Math.abs(x1 - x0) / 7)); for (let k = 0; k < n; k++) { const f = k / n, x = x0 + (x1 - x0) * f; out.push([x, y0 + (y1 - y0) * f + (rh() - 0.5) * amp * 0.5 - Math.abs(Math.sin(x / 13 + Math.sin(x / 41))) * amp]); } } out.push(pts[pts.length - 1]); return out; };
     add([...bumpy(hedgeTop, 7), ...hedgeBot]);
@@ -170,9 +175,11 @@ CARDS.savanna = (press, t) => {
     // broad dark-green band between each pair of crests (the blue solid plus a navy screen)
     // and the lighter green screen either side; all converge on the vanishing point. Beyond the
     // measured ones the pattern repeats outwards by angle.
-    const X60 = [33, 106, 131, 186, 260, 284, 334, 355, 404, 416, 475, 539, 571, 603, 665, 724, 734, 784, 805, 839, 857, 893, 950, 1001, 1010, 1041];
+    // furrow crests where they cross y = 1060 px: about every 65 px, a few in pairs
+    const X60 = PD.X60 ?? [30, 105, 185, 260, 335, 405, 475, 540, 605, 665, 730, 785, 840, 895, 950, 1005];
     // (and where they cross the left edge, x = 5 px)
-    const Y5 = [907, 918, 961, 978, 988, 999, 1011, 1027, 1044, 1068];
+    // crests crossing the left edge (x = 5 px)
+    const Y5 = PD.Y5 ?? [905, 960, 990, 1010, 1040, 1070];
     const ang = [...Y5.map((y) => Math.atan2(y - VP[1], 5 - VP[0])), ...X60.map((x) => Math.atan2(1060 - VP[1], x - VP[0]))].sort((p, q) => q - p);
     for (let k = 0; k < 4; k++) ang.push(ang[ang.length - 1] - (ang[ang.length - 4] - ang[ang.length - 1]) / 3);
     const ray = (g, a, wBottom, a0 = 0.08) => { const L = 900, c = Math.cos(a), sn = Math.sin(a), hw = Math.atan2(wBottom / 2, 200 / Math.max(0.2, sn)); g.moveTo(px(VP[0] + Math.cos(a) * L * a0 * 0.1), px(VP[1] + Math.sin(a) * L * a0 * 0.1)); g.lineTo(px(VP[0] + Math.cos(a - hw) * 1600), px(VP[1] + Math.sin(a - hw) * 1600)); g.lineTo(px(VP[0] + Math.cos(a + hw) * 1600), px(VP[1] + Math.sin(a + hw) * 1600)); g.closePath(); };
@@ -198,3 +205,5 @@ CARDS.savanna = (press, t) => {
     U.clipped(press.plate('navy', 'screen'), P([[-20, 830], [560, 830], [560, 866], [-20, 927]]), (h) => { h.fillStyle = T(0.22); h.fillRect(-20, 0, 1040, 1100); });
     press.restore();
 };
+// regional tone maps, if the private fitted data is loaded
+G6.tones('savanna');

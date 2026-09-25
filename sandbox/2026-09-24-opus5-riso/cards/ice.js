@@ -6,6 +6,8 @@
 // the 14.0 s frame (px / 1.08 = units). Needs cards/_g6-util.js.
 var CARDS = CARDS || {};
 CARDS.ice = (press, t) => {
+    // measured tables scanned off the reference live in private/ice-data.js (gitignored)
+    const PD = (globalThis.G6_DATA ?? {}).ice ?? {};
     const R = Riso, T = R.tone, U = G6;
     const pinkS = press.plate('pink', 'screen'), pink = press.plate('pink');
     const blueS = press.plate('blue', 'screen'), blue = press.plate('blue');
@@ -34,7 +36,8 @@ CARDS.ice = (press, t) => {
     };
     // the glow's core, point by point (yellow coverage peaks per 90 px column, fitted): under it
     // the blue drops to 0.1–0.25 and the navy to ~0.1–0.3 (fitted), so the yellow prints yellow
-    const GP = [[1040, 215, 0.9], [990, 240, 0.85], [900, 300, 0.8], [810, 320, 0.68], [720, 390, 0.72], [630, 470, 0.72], [540, 555, 0.6], [450, 590, 0.55], [360, 655, 0.58], [270, 720, 0.4], [180, 760, 0.36], [90, 820, 0.32], [0, 880, 0.3]];
+    // the glow's centre-line from the upper right (1040, 215) to the lower left, coverage 0.9 to 0.3
+    const GP = PD.GP ?? [[1040, 215, 0.9], [810, 330, 0.72], [630, 470, 0.7], [450, 590, 0.56], [270, 720, 0.4], [90, 820, 0.32]];
     const core = (m, k) => { for (const [x, y, v] of GP) blob(m, x, y, 170, 105, Math.min(1, v * k), -0.6, 'destination-out'); };
     // blue: a medium screen over all the ice, denser in the darker pools, lifted in the glow
     U.lattice(blue, LN, (m) => {
@@ -149,3 +152,5 @@ CARDS.ice = (press, t) => {
     // a small twinkle on twos in the glow
     if (d % 2) press.knockout((g) => { g.beginPath(); g.arc(px(790), px(420), 2.5, 0, 7); g.fill(); });
 };
+// regional tone maps, if the private fitted data is loaded
+G6.tones('ice');

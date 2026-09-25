@@ -169,3 +169,5 @@ CARDS.snowflake = (press, t) => {
     // twinkle on twos: two stars pop
     if (d % 2) press.knockout((g) => { aster(g, 610, 95, 12, 2.6); aster(g, 460, 318, 10, 2.4); });
 };
+// regional tone maps, if the private fitted data is loaded
+G6.tones('snowflake');

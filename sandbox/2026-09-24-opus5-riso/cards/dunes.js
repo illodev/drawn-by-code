@@ -124,3 +124,5 @@ CARDS.dunes = (press, t) => {
     // a comet twinkle on twos
     if (d % 2) press.knockout((g) => { g.beginPath(); g.arc(H[0], H[1], 8, 0, 7); g.fill(); });
 };
+// regional tone maps, if the private fitted data is loaded
+G6.tones('dunes');

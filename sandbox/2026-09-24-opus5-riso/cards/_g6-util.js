@@ -171,5 +171,34 @@ var G6 = (() => {
         for (let i = 0; i <= 8; i++) { const f = i / 8, b = bend * Math.sin(f * Math.PI * 0.5) * f, x = x0 + dx * f + nx * b, y = y0 + dy * f + ny * b, hw = (w / 2) * (1 - f) ** 0.8; L.push([x + nx * hw, y + ny * hw]); R.unshift([x - nx * hw, y - ny * hw]); }
         return [...L, ...R];
     };
-    return { T, path, poly, smooth, blob, clipped, stroke, ridge, under, speckle, pine, masked, dots, lattice, scallop, swallow, blade };
+    // regional tone maps (private: sandbox/<exp>/private/<card>-data.js, gitignored, as
+    // G6_TONES.<card>): per ink a grid (n x n blocks over the card, row-major, in %) of ink to
+    // add (a screen tone laid down before the card, so its knockouts still clear it) and a
+    // fraction of ink to take off (after the card), drawn as a smooth (bilinear) field. They
+    // are fitted automatically on the reference, so they stay out of the repo; without them the
+    // card draws from its own committed, described tones. G6.tones('name') after CARDS.name.
+    const field = (g, n, vals, op) => {
+        const c = document.createElement('canvas'); c.width = n; c.height = n;
+        const x = c.getContext('2d'), im = x.createImageData(n, n);
+        for (let i = 0; i < n * n; i++) im.data[i * 4 + 3] = Math.max(0, Math.min(255, Math.round(vals[i] * 2.55)));
+        x.putImageData(im, 0, 0);
+        g.save(); g.globalCompositeOperation = op; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+        g.drawImage(c, -500 / n, -500 / n, 1000 + 1000 / n, 1000 + 1000 / n);
+        g.restore();
+    };
+    const tones = (name) => {
+        const fn = CARDS[name];
+        if (!fn || fn.__g6tones) return;
+        const w = (press, ...a) => {
+            const tab = (globalThis.G6_TONES ?? {})[name];
+            if (!tab) return fn(press, ...a);
+            for (const [ink, v] of Object.entries(tab.add ?? {})) field(press.plate(ink, 'screen'), tab.n, v, 'source-over');
+            const r = fn(press, ...a);
+            for (const [ink, v] of Object.entries(tab.cut ?? {})) for (const k of ['solid', 'screen']) field(press.plate(ink, k), tab.n, v, 'destination-out');
+            return r;
+        };
+        w.__g6tones = true;
+        CARDS[name] = w;
+    };
+    return { T, path, poly, smooth, blob, clipped, stroke, ridge, under, speckle, pine, masked, dots, lattice, scallop, swallow, blade, tones };
 })();
