@@ -124,13 +124,22 @@ const GalHands = (() => {
         const fingers = FO.map(([ac, w]) => { const top = -r - 12 - sq * 0.6; return [[ac - w / 2, -r + 8], [ac - w / 2, -r - 3], [ac - w * 0.3, top], [ac + w * 0.3, top - 0.5], [ac + w / 2, -r - 3], [ac + w / 2, -r + 8]]; });
         // the thumb: from the hand's edge on its side, along the tube's underside, its tip bent up
         // against it: seen from the side, both phalanges, the joint and the nail in profile
-        const TH = [[16, r - 7], [29, r + 1], [40, r + 2.5 - sq], [48, r - 0.5 - sq]];
-        const th = digit(TH, 18, 13);
+        // the thumb closes the grip from the other side: from its root at the hand's heel it bends
+        // under the bar's bottom edge and goes away round it, its tip pressing on the fingertips
+        // that come round from the far side; below the edge we see its bent joint and, just past
+        // it, the fingertips it presses on
+        const TH = [[30, r - 10], [42, r + 1], [40, r + 11 + sq * 0.3], [30, r + 15 + sq * 0.3]];
+        const th = digit(TH, 19, 15);
+        const TIPS = [[20, 13], [8, 13]].map(([x, w]) => [[x - w / 2, r + 4], [x + w / 2, r + 4], [x + w / 2 - 1, r + 12], [x, r + 15], [x - w / 2 + 1, r + 12]]);
         const HB = [[-31, -r + 11], [-24, -r + 3], [-8, -r + 1], [10, -r], [28, -r + 1.5], [36, -r + 8], [37, 0], [31, r - 4], [24, r + 6], add(W, side, 17), add(W1, side, 18), add(W1, side, -18), add(W, side, -17), [-28, r + 4], [-33, 2]];
         // one skin: every piece knocked out and inked alike, shaded through one clip
         // every outline wound the same way, so their union has no holes where they overlap
         const cw = (P) => { let a = 0; for (let i = 0; i < P.length; i++) { const [x0, y0] = P[i], [x1, y1] = P[(i + 1) % P.length]; a += x0 * y1 - x1 * y0; } return a < 0 ? P.slice().reverse() : P; };
-        const traced = [...fingers.map((f) => Ph.sample(f, true, 10)), th, Ph.sample(HB, true, 10)].map(cw);
+        // the fingertips under the bar, behind the thumb, in shade
+        for (const tp of TIPS) put(press, (g) => smooth(g, tp), SKIN_SH);
+        for (const tp of TIPS) { const c = tp[3]; line(press, [[c[0] - 3, c[1] - 2.5], [c[0] + 3, c[1] - 2.5]], taper(1.2), CREASE, { knock: false }); }
+        const WEB = [[20, r - 6], [38, r - 4], [40, r + 8], [30, r + 14], [18, r + 12]]; // the thumb's web: no gap between it and the heel
+        const traced = [...fingers.map((f) => Ph.sample(f, true, 10)), th, Ph.sample(WEB, true, 10), Ph.sample(HB, true, 10)].map(cw);
         const all = (g) => { g.beginPath(); for (const P of traced) { P.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); } };
         press.knockout((g) => { all(g); g.fill('nonzero'); });
         ink(press, (g) => { for (const P of traced) { P.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); } }, SKIN);
@@ -140,7 +149,7 @@ const GalHands = (() => {
         // the fingers turn away over the top; the thumb's round goes under, into shade
         ink(press, (g) => g.rect(-60, -r - 20, 130, 14), { 'pink.s': (g) => Riso.ramp(g, 0, -r + 2, 0, -r - 12, 0, 0.3) });
         // the thumb's underside turns from the light; the tube's edge shades its top a little
-        ink(press, (g) => g.rect(20, r - 4, 40, 20), { 'pink.s': (g) => Riso.ramp(g, 0, r + 2, 0, r + 16, 0.02, 0.3) });
+        ink(press, (g) => g.rect(22, r - 4, 40, 26), { 'pink.s': (g) => Riso.ramp(g, 0, r + 2, 0, r + 18, 0.04, 0.32) });
                 for (const [ac] of FO) line(press, [[W[0] + (ac - 2) * 0.25, W[1] - 8], [ac * 0.7, 2], [ac, -r + 9]], taper(3, 0.3, 0.3), { 'pink.s': 0.1 }, { knock: false });
         press.restore();
         // no lines across the hand: the knuckles are light bumps, the finger joints wrinkles
@@ -150,8 +159,9 @@ const GalHands = (() => {
         }
         for (let i = 0; i < 3; i++) { const x = (FO[i][0] - FO[i][1] / 2 + FO[i + 1][0] + FO[i + 1][1] / 2) / 2; line(press, [[x, -r - 9], [x, -r + 3]], taper(1.4, 0.3, 0.2), SHADOW); }
         // where the thumb leaves the hand, its joint's wrinkles, the nail in profile at the tip
-        wrinkles(press, [34, r + 3], 0.05, 12, 2);
-        nail(press, [45, r - 1.2 - sq], -0.35, 4.4, 8);
+        // the thumb's bent joint: its wrinkles on the knuckle, the nail edge seen end on
+        wrinkles(press, [41, r + 4], Math.PI / 2 + 0.3, 13, 3);
+        nail(press, [31, r + 14 + sq * 0.3], Math.PI - 0.3, 7, 7);
         cuff(press, W1, fa, 40, 0);
         press.restore();
     }
