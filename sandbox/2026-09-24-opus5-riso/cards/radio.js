@@ -41,7 +41,7 @@ CARDS.radio = (press, t, lf) => {
             const r = Math.hypot(dx, dy), e = Math.max(0, r - 250);
             return cl(0.8 * Math.exp(-Math.pow(e / 260, 1.3)));
         };
-        const bl = (x, y) => cl(0.42 - 0.9 * pk(x, y) + (y > 930 && (x < 230 || x > 770) ? 0.1 : 0));
+        const bl = (x, y) => cl(0.55 - 0.95 * pk(x, y) + (y > 930 && (x < 230 || x > 770) ? 0.1 : 0));
         lat(N, L_WALL, pk, -40, -40, 1120, WALL_B, { clear: true, rk: 0.75 });
         lat(K, L_WALL, pk, -40, -40, 1120, WALL_B);
         lat(N, L_WALLB, bl, -40, -40, 1120, WALL_B, { clear: true, rk: 0.75 });
