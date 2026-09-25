@@ -85,18 +85,6 @@ how you made it too.
 <sub>A plasticine puppet raymarched in the browser: lumpy pressed-on pieces, matte clay and a studio sweep.</sub>
 </td>
 <td width="50%" valign="top">
-<a href="sandbox/2026-09-24-fube-clay/"><img src="sandbox/2026-09-24-fube-clay/render/fube-clay.gif" alt="fube-clay"></a><br>
-<b><a href="sandbox/2026-09-24-fube-clay/">fube-clay</a></b> · clay 2D · 6 s · <a href="sandbox/2026-09-24-fube-clay/render/fube-clay.mp4">mp4</a><br>
-<sub>The saas-promo invoice block redone in 2D clay, as a style comparison.</sub>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<a href="sandbox/2026-09-24-coffee-first/"><img src="sandbox/2026-09-24-coffee-first/render/coffee-first.gif" alt="coffee-first"></a><br>
-<b><a href="sandbox/2026-09-24-coffee-first/">coffee-first</a></b> · paper cutout · 6 s · <a href="sandbox/2026-09-24-coffee-first/render/coffee-first.mp4">mp4</a><br>
-<sub>The first style test: a sleepy mug wakes up.</sub>
-</td>
-<td width="50%" valign="top">
 <a href="sandbox/2026-09-25-physics-newton-faraday/"><img src="sandbox/2026-09-25-physics-newton-faraday/render/physics-newton-faraday.gif" alt="physics-newton-faraday"></a><br>
 <b><a href="sandbox/2026-09-25-physics-newton-faraday/">physics-newton-faraday</a></b> · risograph · 12 s · <a href="sandbox/2026-09-25-physics-newton-faraday/render/physics-newton-faraday.mp4">mp4</a><br>
 <sub>A test for a short history of physics, told without text. Newton drops a ball, and its fall closes into an orbit round the Earth. The orbit winds into Faraday's coil, where a magnet makes the needle swing one way going in, rest while it is held, and swing back coming out.</sub>
