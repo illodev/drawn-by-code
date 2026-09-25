@@ -145,12 +145,14 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // the apple's screen path: it leaves the hand up and forward, rides near the top while
     // the world falls away, then (6.6 on) falls round the finished globe in orbit; x only
     // grows until it passes the side of the globe (no going back)
-    const ORB = { c: [780, 510], r: 390, phi0: 1.12, w: 0.85 };
+    const ORB = { c: [780, 510], r: 390, phi0: 0.6, w: 0.85 };   // (it reaches the orbit high on the globe's right, as the globe appears)
     const orbitPos = (t) => { const f = ORB.phi0 + ORB.w * (t - 6.6); return [ORB.c[0] + Math.sin(f) * ORB.r, ORB.c[1] - Math.cos(f) * ORB.r]; };
     // one smooth flight on screen (a cubic Hermite): it leaves the hand fast, up and forward,
     // slows as it climbs, and falls into the orbit with the orbit's own speed and heading, so
     // the speed never stalls or jumps between keys
-    const P0 = [1047, 230], V0 = [150, -620], P1 = orbitPos(6.6), f1 = ORB.phi0, V1 = [ORB.w * ORB.r * Math.cos(f1), ORB.w * ORB.r * Math.sin(f1)], DT = 6.6 - T.release;
+    // (while the camera pulls back it only climbs, drifting in towards Newton's spot like the
+    // rest of the shrinking world; it turns along the orbit only once the globe is there)
+    const P0 = [1047, 230], V0 = [-70, -110], P1 = orbitPos(6.6), f1 = ORB.phi0, V1 = [ORB.w * ORB.r * Math.cos(f1), ORB.w * ORB.r * Math.sin(f1)], DT = 6.6 - T.release;
     const hermite = (t) => {
         const u = (t - T.release) / DT, u2 = u * u, u3 = u2 * u, h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
         return [0, 1].map((i) => h00 * P0[i] + h10 * DT * V0[i] + h01 * P1[i] + h11 * DT * V1[i]);
