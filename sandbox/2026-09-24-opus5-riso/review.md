@@ -25,7 +25,7 @@
   12–16 and 23–24 s): that is the original's rhythm, kept in the study.
 - Not committed: the reference, its audio, the side-by-side (out/).
 
-## Round 3 · the detail pass (in progress)
+## Round 3 · the detail pass (capped by the user)
 
 User: «falta ir al detalle … su imagen tiene como un filtro de ruido que el nuestro no se nota
 … nuestra medusa no sale … Los animales les falta detalles. A los círculos les faltan las
@@ -53,3 +53,19 @@ Still to do (no card passes yet, first-showing medians ≈ 11–25):
   G5 (cello … chimes) first passes: in their worktree branches, to merge.
 - Ink maps of the pink run for whale…lightning (G4) and the frogs/wave/cat repeat zooms.
 - Then: gate on the whole film (`--every 1`), render, GIF, strip, INDEX, commit, show.
+
+### Closed (2026-09-25)
+
+User: «Creo que deberíamos ponerle límite al repaso, llevamos horas y tampoco hemos avanzado
+mucho y el uso de tokens por mejora se está volviendo carísimo.» The pass stopped there.
+
+Final gate over the film (`--every 0.25`, 112 instants, with the private data): **FAIL on colour
+median 9.6** (limit 8; round 2 scored 18); p90 21.7 ✓, too clean 5.3 % ✓, too busy 4.0 % ✓.
+66 of 112 instants still over 8. Cards that pass on their own: savanna, whale, cello, volcano,
+train, campfire (snowflake and dunes within a point). Worst left: the 14–16 s repeats, the
+mosaic cells (miniatures in the reference, not scaled cards), bicycle, waterfall, sunflower.
+
+The committed film is the described version: cards read their grids and traces from
+`private/<card>-data.js` (gitignored); without them they draw from committed, described
+tones and shapes, and score a few points worse. Earlier commits in this round still carry
+some scan tables in the git history (G5's first commits and others moved later).
