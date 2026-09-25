@@ -189,7 +189,7 @@ const Fig = (() => {
             if (edge) { const ol = Ph.outline(P, wd * R), h = ol.length / 2; line(press, ol.slice(0, h), taper(lw, 0.1, 0.1), EDGE, { knock: false }); }
         };
         // the fingers behind the index: their tips stepped along the apple's front
-        for (const [t1, dt] of [[2.1, 0.5], [1.85, 0.3], [1.6, 0.15]]) dig(arc(-0.9 + dt, t1, 1.18), 0.38, sh, false);
+        for (const [t1, dt] of [[2.1, 0.5], [1.85, 0.3], [1.6, 0.15]]) dig([X(1.9, 0.1 + dt * 0.3)].concat(arc(-0.4 + dt, t1, 1.18)), 0.38, sh, false);
         held(press, X(C[0], C[1]));
         // the back of the hand, edge-on: a band as thick as a hand, the knuckle's bump at its end
         const BAND = [X(-0.35, -0.5), X(0.8, -0.52), X(1.75, -0.45), X(2.12, -0.3), X(2.22, 0.02), X(2.0, 0.3), X(1.2, 0.4), X(0.3, 0.42), X(-0.35, 0.45)];
@@ -199,9 +199,10 @@ const Fig = (() => {
         press.restore();
         line(press, Ph.sample([X(-0.35, -0.5), X(0.8, -0.52), X(1.75, -0.45), X(2.12, -0.3), X(2.22, 0.02)], false, 6), taper(lw, 0.1, 0.1), EDGE, { knock: false });
         // the index: from the knuckle round the apple's far side to its front
-        const IX = arc(-0.55, 1.45, 1.2);
+        // (starting at the knuckle, at the end of the back of the hand, so the finger grows out of it)
+        const IX = [X(1.95, 0.05), X(2.25, 0.25)].concat(arc(-0.45, 1.45, 1.2).slice(1));
         dig(IX, 0.42, spec, true);
-        for (const k of [4, 8]) { const p = IX[k], q = IX[k + 1], an = Math.atan2(q[1] - p[1], q[0] - p[0]); line(press, [[p[0] - Math.sin(an) * R * 0.12, p[1] + Math.cos(an) * R * 0.12], [p[0] + Math.sin(an) * R * 0.12, p[1] - Math.cos(an) * R * 0.12]], taper(lw * 0.8), EDGE, { knock: false }); }
+        for (const k of [5, 9]) { const p = IX[k], q = IX[k + 1], an = Math.atan2(q[1] - p[1], q[0] - p[0]); line(press, [[p[0] - Math.sin(an) * R * 0.12, p[1] + Math.cos(an) * R * 0.12], [p[0] + Math.sin(an) * R * 0.12, p[1] - Math.cos(an) * R * 0.12]], taper(lw * 0.8), EDGE, { knock: false }); }
         // the thumb: from the heel, round the apple's near side, the nail at its tip
         // (seen from the index side the thumb is nearest: it crosses the apple's near face)
         const TH = [X(0.45, 0.35), X(0.95, 0.85), on(2.2, 0.25)];
