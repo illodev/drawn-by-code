@@ -420,7 +420,8 @@ function seatedLegs(press) {
 }
 function schrodinger(press, o) {
     const look = o.look;
-    seatedLegs(press);
+    // (o.noLegs: for a figure whose lower half is hidden, e.g. standing in a box)
+    if (!o.noLegs) seatedLegs(press);
     // the jacket: shoulders, the lit front, a dark rim on the back, the near lapel
     put(press, (g) => smooth(g, [[-146, 164], [-104, 116], [-30, 104], [50, 102], [118, 120], [160, 180], [174, 320], [158, 400], [-128, 400], [-156, 310]]), SUIT);
     put(press, (g) => smooth(g, [[40, 106], [116, 124], [156, 182], [168, 320], [156, 400], [82, 400], [60, 210]]), SUIT_LT);
@@ -641,5 +642,7 @@ Seg.schrodinger = {
     },
     // the vignette: the frame from 5 s on (only the small motions change)
     atlas(press, tq, st) { frame(press, Math.max(tq, TM.atlas)); },
+    // the figure and its pieces, for other segments (schrodinger-box)
+    parts: { schrodinger, lock, sleeve, SUIT, SUIT_LT, SUIT_DK, HAIR, HAIR_DK },
 };
 })();
