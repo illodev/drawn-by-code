@@ -18,7 +18,7 @@ CARDS.turntable = (press, t, lf) => {
         press.save(); press.each((g) => { g.translate(560, 560); g.scale(zs, zs); g.translate(-560, -560); });
         // the deck: yellow ink with blue dots over it (green)
         yellow.fillStyle = T(1); yellow.fillRect(0, 0, 1080, 1080);
-        G2.lat([9.08, 0.26, 973.47, 573.18], () => 0.55, blue, [-20, -20, 1100, 1100]); // the deck's dots, on the reference's lattice
+        G2.lat([9.08, 0.26, 973.47, 573.18], () => 0.4, blue, [-20, -20, 1100, 1100]); // the deck's dots, on the reference's lattice
         // a couple of dark green scratches on the deck
         curve(navy, [[815, 1010], [870, 930], [940, 860]], 2, 0.5);
         curve(navy, [[900, 1040], [960, 985], [1010, 930]], 2, 0.4);
@@ -46,8 +46,8 @@ CARDS.turntable = (press, t, lf) => {
         const rec = (g) => g.arc(CX, CY, RR, 0, 7);
         fillWith(yellow, rec, T(1));
         fillWith(blue, rec, T(0.95));
-        fillWith(navy, rec, T(0.66));
-        const W1 = -0.91, W2 = W1 + Math.PI; // measured on rings round the label: the light is fixed, it does not spin // the two light wedges (angle of their axis)
+        fillWith(navy, rec, T(0.8)); // measured on a ring round the label: ≈ (45, 72, 22), yellow + navy with a little blue
+        const W1 = -0.87, W2 = W1 + Math.PI; // measured on rings round the label: the light is fixed, it does not spin // the two light wedges (angle of their axis)
         const out = (g, style) => inside(g, rec, (c) => { c.globalCompositeOperation = 'destination-out'; c.fillStyle = style(c); c.fillRect(0, 0, 1080, 1080); });
         // broad sheen: lighter green trailing each wedge, darker between
         const two = (f) => [...f(W1), ...f(W2)];
@@ -63,17 +63,21 @@ CARDS.turntable = (press, t, lf) => {
         const core = (a, k) => { const ux = Math.cos(a), uy = Math.sin(a), R0 = 170, R1 = RR + 10, w = 0.47 * (R1 - 177) * k; return [[LX + ux * R0, LY + uy * R0], [LX + ux * R1 - uy * w, LY + uy * R1 + ux * w], [LX + ux * R1 + uy * w, LY + uy * R1 - ux * w]]; };
         for (const a of [W1, W2]) {
             for (const g of [navy, blue]) inside(g, rec, (c) => { c.globalCompositeOperation = 'destination-out'; c.filter = 'blur(3px)'; poly(c, core(a, 1), 1); c.filter = 'none'; });
-            inside(yellow, rec, (c) => { c.globalCompositeOperation = 'destination-out'; poly(c, core(a, 0.8), 0.45); });
+            inside(yellow, rec, (c) => { c.globalCompositeOperation = 'destination-out'; c.filter = 'blur(3px)'; poly(c, core(a, 0.85), 0.35); c.filter = 'none'; }); // the core is beige (≈ 195, 173, 75): paper through a thinner yellow
         }
         // the grooves: fine lighter rings every 3.6 px (and fine green lines across the wedges)
         inside(navy, rec, (g) => {
             g.globalCompositeOperation = 'destination-out'; g.lineWidth = 1.1; g.strokeStyle = T(0.4);
             for (let r = 166; r < RR - 4; r += 3.6) { g.beginPath(); g.arc(LX, LY, r, 0, 7); g.stroke(); }
         });
-        for (const a of [W1, W2]) inside(blue, (g) => G2.path(g, core(a, 1)), (g) => {
-            g.lineWidth = 1.1; g.strokeStyle = T(0.7);
-            for (let r = 166; r < RR - 4; r += 3.6) { g.beginPath(); g.arc(LX, LY, r, 0, 7); g.stroke(); }
+        // (2× crop, frame 176) the wedge is full yellow crossed by dark grooves every ≈ 3 px,
+        // not a pale fill; the rest of the record shows fine red and yellow rings
+        for (const a of [W1, W2]) inside(navy, (g) => G2.path(g, core(a, 1.15)), (g) => {
+            g.lineWidth = 1.0; g.strokeStyle = T(0.75);
+            for (let r = 172; r < RR - 2; r += 3.1) { g.beginPath(); g.arc(LX, LY, r, 0, 7); g.stroke(); }
         });
+        inside(pink, rec, (g) => { g.lineWidth = 1.2; for (let r = 170, k = 0; r < RR - 4; r += 7.3, k++) { g.strokeStyle = T(k % 5 ? 0.12 : 0.7); g.beginPath(); g.arc(LX, LY, r, 0, 7); g.stroke(); } });
+        inside(navy, rec, (g) => { g.globalCompositeOperation = 'destination-out'; g.lineWidth = 1.2; g.strokeStyle = T(0.6); for (let r = 173.6; r < RR - 4; r += 7.3) { g.beginPath(); g.arc(LX, LY, r, 0, 7); g.stroke(); } });
         // the rays: bright yellow tapered strokes converging on the label
         for (const a of [W1, W2]) for (const [da, w, r0, r1] of [[-0.14, 4, 200, 420], [-0.05, 5, 185, 430], [0.04, 5, 185, 410], [0.12, 3, 210, 420]]) {
             const pts = []; for (let i = 0; i <= 10; i++) { const r = r0 + (r1 - r0) * i / 10, u = a + da * (0.35 + 0.65 * i / 10); pts.push([LX + Math.cos(u) * r, LY + Math.sin(u) * r]); }
