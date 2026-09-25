@@ -22,7 +22,7 @@ const Cat = (() => {
         press.each((g) => { g.translate(o.x, o.y); g.scale(s * f, s); });
         const tl = o.tail ?? 0, lk = o.look ? toL(o.look) : [80, -100];
         // the tail: from the rump round along the perch behind, its tip white and flicking
-        const T = [[-38, -8], [-70, -4], [-98, -12 - 14 * Math.sin(tl * 6.28)], [-112, -34 - 10 * Math.sin(tl * 6.28 + 1)]];
+        const T = [[-28, -8], [-62, -4], [-98, -12 - 14 * Math.sin(tl * 6.28)], [-112, -34 - 10 * Math.sin(tl * 6.28 + 1)]];
         line(press, Ph.sample(T, false, 6), taper(13, 0.1, 0.5), FUR);
         const tip = Ph.sample(T, false, 6), n = tip.length;
         line(press, tip.slice(n - 4), taper(9, 0.2, 0.6), WHITE);
@@ -31,13 +31,13 @@ const Cat = (() => {
         put(press, ellipse(24, -3, 9, 5), WHITE_SH);
         // the body: haunch, back, chest
         // (up to the neck, under the head, so the head never floats free of it)
-        const BODY = [[-44, 0], [-52, -34], [-42, -70], [-18, -90], [0, -104], [24, -106], [40, -92], [36, -62], [36, -30], [32, 0]];
+        const BODY = [[-32, 0], [-38, -32], [-30, -68], [-12, -92], [2, -104], [24, -106], [38, -92], [30, -62], [28, -30], [24, 0]];
         put(press, (g) => smooth(g, BODY), FUR);
         // the haunch's round and a sheen along the back
-        line(press, [[-44, -30], [-36, -60], [-14, -80], [8, -80]], taper(6, 0.2, 0.3), FUR_LT, { knock: false });
-        line(press, Ph.sample([[-40, -8], [-48, -34], [-30, -46], [-8, -30], [-4, -6]], false, 5), taper(3), FUR_LT, { knock: false });
+        line(press, [[-34, -30], [-28, -60], [-10, -82], [8, -84]], taper(6, 0.2, 0.3), FUR_LT, { knock: false });
+        line(press, Ph.sample([[-30, -8], [-36, -32], [-22, -44], [-6, -30], [-2, -6]], false, 5), taper(3), FUR_LT, { knock: false });
         // hind paw, white
-        put(press, ellipse(-8, -3, 16, 6), WHITE);
+        put(press, ellipse(-4, -3, 13, 5), WHITE);
         // the head: round skull, muzzle, ears; turned to what it looks at
         const la = Math.max(-0.5, Math.min(0.6, Math.atan2(lk[1] + 108, lk[0] - 24) * 0.4));
         press.save();
