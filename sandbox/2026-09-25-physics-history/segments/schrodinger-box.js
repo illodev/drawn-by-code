@@ -155,6 +155,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             // the top catches the most light, the side turned right the least
             const dk = nr[1] < -0.3 ? 0.5 : nr[0] > 0.2 ? 0.95 : 0.75;
             put(press, (g) => poly(g, Q), { 'navy.s': dk, 'blue.s': 0.55, 'pink.s': 0.2 });
+            panel(press, f.map((j) => V[j]), c);
         });
         const E = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]];
         // at the click, light leaks out along every seam
@@ -164,6 +165,14 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         for (const e of E) if (onVis(e)) line(press, [P(V[e[0]], c), P(V[e[1]], c)], 6 * c.z, AMBER);
         if (leak > 0) for (const [i, j] of E.filter(onVis)) { const a = P(V[i], c), b = P(V[j], c); kline(press, [a, b], (6 + 14 * leak) * c.z, 0.5 * Math.min(1, leak)); }
         if (cl < 0.5) { const q = P([0, 110, 0], c); for (const dx of [-34, 34]) { put(press, ellipse(q[0] + dx, q[1], 22, 16), { yellow: 1, blue: 0.7 }); put(press, ellipse(q[0] + dx, q[1], 5, 14), BH); } }
+    }
+    // a wall's face detail: an inset frame line and a rivet in each corner
+    function panel(press, q4, c) {
+        const cq = q4.reduce((m, q) => [m[0] + q[0] / 4, m[1] + q[1] / 4, m[2] + q[2] / 4], [0, 0, 0]);
+        const ins = q4.map((q) => lerp3(q, cq, 0.12)), Q = ins.map((q) => P(q, c));
+        line(press, [...Q, Q[0]], 5 * c.z, { navy: 1, 'blue.s': 0.3 }, { knock: false });
+        line(press, [Q[3], Q[0], Q[1]].map(([x, y]) => [x + 3, y + 3]), 2.4 * c.z, { 'blue.s': 0.4, 'yellow.s': 0.15 }, { knock: false });
+        for (const q of q4.map((q) => lerp3(q, cq, 0.06))) { const p = P(q, c); put(press, circle(p[0], p[1], 7 * c.z), { yellow: 0.8, 'pink.s': 0.5, 'navy.s': 0.3 }); press.knockout(circle(p[0] - 1.5, p[1] - 1.5, 1.6 * c.z)); }
     }
     // the one world left: the box, shut but for its lifted lid, blue-green light from inside,
     // the cat peeking over the front rim and looking at us
@@ -177,6 +186,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const oc = P([0, -h, 0], c);
         press.knockout((g) => { g.fillStyle = Riso.radial(g, oc[0], oc[1], 20, 380, 0.6, 0); poly(g, top); g.fill(); });
         ink(press, (g) => poly(g, top), { 'blue.s': 0.35, 'yellow.s': 0.3 });
+        // the rim's far edges, behind the cat
+        for (const [i, j] of [[1, 5], [4, 5]]) line(press, [Pv(i), Pv(j)], 6 * c.z, AMBER);
         // the lid, up in the air (behind the cat's head)
         const Q = lidQuad(1).map((q) => P(q, c));
         put(press, (g) => poly(g, Q), { 'navy.s': 0.5, 'blue.s': 0.55, 'pink.s': 0.2 });
@@ -187,10 +198,10 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         if (up > 0) Cat.peek(press, { x: rim[0], y: rim[1] + 4 * k, s: k * 3.1, up, blink: Math.abs(t - T.blink) < 0.09, look: t < T.peek[1] + 0.3 ? [0.8, 0.4] : [0, 0] });
         // the two walls turned to us, over its body, and the edges
         const walls = [[0, 1, 3, 2], [0, 2, 6, 4]];
-        for (const f of walls) { const dk = f[1] === 1 ? 0.75 : 0.95; put(press, (g) => poly(g, f.map(Pv)), { 'navy.s': dk, 'blue.s': 0.55, 'pink.s': 0.2 }); }
-        // the paws on the rim go over the front wall
+        for (const f of walls) { const dk = f[1] === 1 ? 0.75 : 0.95; put(press, (g) => poly(g, f.map(Pv)), { 'navy.s': dk, 'blue.s': 0.55, 'pink.s': 0.2 }); panel(press, f.map((i) => V[i]), c); }
+        // the near edges, then the paws on the rim over them
+        for (const [i, j] of [[0, 1], [0, 2], [0, 4], [1, 3], [2, 3], [2, 6], [4, 6]]) line(press, [Pv(i), Pv(j)], 6 * c.z, AMBER);
         if (up > 0.4) Cat.peek(press, { x: rim[0], y: rim[1] + 4 * k, s: k * 3.1, up, pawsOnly: true });
-        for (const [i, j] of [[0, 1], [0, 2], [0, 4], [1, 3], [2, 3], [2, 6], [4, 6], [1, 5], [4, 5]]) line(press, [Pv(i), Pv(j)], 6 * c.z, AMBER);
     }
     // Schrödinger, leaning in from the right to look (mirrored: facing left), his jacket running
     // off the frame's bottom
@@ -200,7 +211,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const top = P([h, -h, 0], c), sc = kAt([h, -h, 0], c) * 1.7;
         const hx = top[0] + L(820, 330, ln), hy = top[1] + L(160, 10, ln);
         Ph.cam(press, hx, hy, sc, () => {
-            press.each((g) => { g.scale(-1, 1); g.rotate(0.3 * ln); });
+            press.each((g) => { g.scale(-1, 1); g.rotate(0.3 * ln - 0.16 * IO(S(t, T.peek[1] + 0.2, T.peek[1] + 0.5))); });
             const pp = Seg.schrodinger.parts;
             put(press, (g) => g.rect(-128, 360, 290, 900), pp.SUIT);
             put(press, (g) => g.rect(60, 360, 100, 900), pp.SUIT_LT);
@@ -222,7 +233,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             if (t >= T.flash) {
                 opened(press, t, c);
                 erwin(press, t, c);
-                const fl = 1 - S(t, T.flash, T.flash + 0.3);
+                const fl = 1 - S(t, T.flash, T.flash + 0.12);
                 if (fl > 0) press.knockout((g) => { g.globalAlpha = fl; g.fillRect(0, 0, 1600, 900); g.globalAlpha = 1; });
                 return;
             }

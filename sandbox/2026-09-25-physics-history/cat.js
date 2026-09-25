@@ -236,13 +236,14 @@ const Cat = (() => {
             put(press, (g) => poly(g, [[f * 18, hy - 40], [f * 44, hy - 78], [f * 50, hy - 26]]), FUR);
             put(press, (g) => poly(g, [[f * 26, hy - 42], [f * 42, hy - 66], [f * 45, hy - 32]]), { pink: 0.5, navy: 0.6 });
         }
-        put(press, (g) => smooth(g, [[-54, hy - 10], [-46, hy - 44], [0, hy - 58], [46, hy - 44], [54, hy - 10], [44, hy + 22], [0, hy + 34], [-44, hy + 22]]), FUR);
+        put(press, (g) => smooth(g, [[-56, hy], [-50, hy - 36], [-24, hy - 56], [0, hy - 60], [24, hy - 56], [50, hy - 36], [56, hy], [46, hy + 24], [22, hy + 36], [0, hy + 38], [-22, hy + 36], [-46, hy + 24]]), FUR);
         line(press, [[-36, hy - 44], [0, hy - 54], [36, hy - 44]], taper(5, 0.3, 0.3), FUR_LT, { knock: false });
         // the white muzzle, the pink nose, the mouth, whiskers
         put(press, (g) => smooth(g, [[-20, hy + 6], [0, hy - 2], [20, hy + 6], [16, hy + 26], [0, hy + 30], [-16, hy + 26]]), WHITE);
         put(press, (g) => poly(g, [[-6, hy + 4], [6, hy + 4], [0, hy + 11]]), { pink: 0.9, 'navy.s': 0.2 });
         line(press, [[-8, hy + 18], [0, hy + 14], [8, hy + 18]], 2, WHITE_SH, { knock: false });
-        for (const f of [-1, 1]) for (const [dy, a] of [[8, -0.12], [13, 0.05], [18, 0.2]]) line(press, [[f * 16, hy + dy], [f * (16 + Math.cos(a) * 36), hy + dy + Math.sin(a) * 36]], 1.4, WHITE_SH, { knock: false });
+        // (whiskers knocked out to the paper so they show on the dark fur and the night)
+        for (const f of [-1, 1]) for (const [dy, a] of [[8, -0.12], [13, 0.05], [18, 0.2]]) press.knockout((g) => { poly(g, Ph.outline([[f * 18, hy + dy], [f * (18 + Math.cos(a) * 44), hy + dy + Math.sin(a) * 44]], taper(2, 0.1, 0.8))); g.globalAlpha = 0.8; g.fill(); g.globalAlpha = 1; });
         // the eyes, big, yellow, slit pupils on us (or shut)
         for (const f of [-1, 1]) {
             const ex = f * 22, ey = hy - 16;
