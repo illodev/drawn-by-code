@@ -149,3 +149,5 @@ CARDS.ice = (press, t) => {
     // a small twinkle on twos in the glow
     if (d % 2) press.knockout((g) => { g.beginPath(); g.arc(px(790), px(420), 2.5, 0, 7); g.fill(); });
 };
+// regional tone maps, if the private fitted data is loaded
+G6.tones('ice');

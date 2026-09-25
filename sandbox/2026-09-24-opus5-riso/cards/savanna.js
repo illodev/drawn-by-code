@@ -198,3 +198,5 @@ CARDS.savanna = (press, t) => {
     U.clipped(press.plate('navy', 'screen'), P([[-20, 830], [560, 830], [560, 866], [-20, 927]]), (h) => { h.fillStyle = T(0.22); h.fillRect(-20, 0, 1040, 1100); });
     press.restore();
 };
+// regional tone maps, if the private fitted data is loaded
+G6.tones('savanna');

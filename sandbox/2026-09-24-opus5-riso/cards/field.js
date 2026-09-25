@@ -154,3 +154,5 @@ CARDS.field = (press, t) => {
         flower(868, 928, 136, 318, 'R', 0.05 - d * 0.004);
     });
 };
+// regional tone maps, if the private fitted data is loaded
+G6.tones('field');

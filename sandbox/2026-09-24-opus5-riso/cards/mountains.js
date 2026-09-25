@@ -142,3 +142,5 @@ CARDS.mountains = (press, t) => {
     U.speckle(press.plate('pink'), [0, 850, 1000, 1000], 60, 0.8, 2.2, 'mtp');
     press.knockout((g) => U.speckle(g, [0, 820, 1000, 1000], 20, 0.6, 1.4, 'mtw'));
 };
+// regional tone maps, if the private fitted data is loaded
+G6.tones('mountains');
