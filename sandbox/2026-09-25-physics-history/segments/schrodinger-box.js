@@ -132,7 +132,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         if (o.dead) { for (let i = 0; i < 6; i++) { const a = i * 1.1, r = 30 * k; kline(press, [[fq[0] + Math.cos(a) * r * 0.4, fq[1] + 30 * k], [fq[0] + Math.cos(a) * r * 1.3, fq[1] + 30 * k + Math.sin(a) * 6 * k]], 3 * k, 0.6); } }
         else { press.knockout((g) => { g.beginPath(); g.arc(fq[0], fq[1], 38 * k, 0, 6.2832); g.globalAlpha = 0.35; g.fill(); g.globalAlpha = 1; }); kline(press, [[fq[0], fq[1] - 36 * k], [fq[0], fq[1] - 70 * k]], 18 * k, 0.35); }
         // the cat
-        const cq = P([-110, h, 0], c), ck = kAt([-110, h, 0], c);
+        const ck = kAt([-110, h, 0], c), cq0 = P([-110, h, 0], c), cq = o.midCat ? [800 - 8 * ck * 2.9, cq0[1]] : cq0;
         // every world its own cat: alive, it sits looking at the speck or up at the lid, sleeps
         // curled, or leaps at the speck; dead, it lies one way or the other
         const v = o.v ?? 0, spk = P(tr([170, h - 250, 120]), c);
@@ -285,14 +285,14 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 if (lvl === 0) {
                     // before it splits, the one box is both: the left half alive, in colour, the
                     // right half dead, in X-ray, the seam running through the cat
-                    const sx = P([-110, h, 0], c)[0] + 10;
+                    const sx = 800;   // (the cat moved to the middle, so the seam splits the frame and the cat in two)
                     press.save(); press.clip((g) => g.rect(-4000, -4000, 4000 + sx, 8900));
                     put(press, (g) => g.rect(-4000, -4000, 9600, 8900), ALIVE_BG);
-                    radiograph(press, t, c, { alive: true, lid, v: 0.05 });
+                    radiograph(press, t, c, { alive: true, lid, v: 0.05, midCat: true });
                     press.restore();
                     press.save(); press.clip((g) => g.rect(sx, -4000, 6000, 8900));
                     put(press, (g) => g.rect(-4000, -4000, 9600, 8900), XR_BG);
-                    radiograph(press, t, c, { dead: true, lid, v: 0.05, samePlace: true });
+                    radiograph(press, t, c, { dead: true, lid, v: 0.05, samePlace: true, midCat: true });
                     press.restore();
                     line(press, [[sx, -100], [sx, 1000]], 4, { yellow: 0.6, 'pink.s': 0.3 });
                 } else {
