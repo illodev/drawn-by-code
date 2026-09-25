@@ -118,6 +118,14 @@ var G4 = (() => {
         tg.setTransform(M);
         tg.globalCompositeOperation = 'source-over';
         tones(tg);
+        // a regional tone fix (G4.fixBegin) raises the tones before the dots are set
+        // (raised where it is positive; lowered where negative, so the dots shrink rather than fade)
+        if (curFix && curFix[ink]) {
+            tg.save(); tg.imageSmoothingQuality = 'high';
+            tg.globalCompositeOperation = 'lighter'; tg.drawImage(fixCanvas(curFix[ink], 1), 0, 0, curFix.n, curFix.n, 0, 0, 1080, 1080);
+            tg.globalCompositeOperation = 'destination-out'; tg.drawImage(fixCanvas(curFix[ink], -1), 0, 0, curFix.n, curFix.n, 0, 0, 1080, 1080);
+            tg.restore();
+        }
         // work box in output px
         let bx0 = 0, by0 = 0, bx1 = W, by1 = H;
         if (o.box) {
@@ -161,6 +169,12 @@ var G4 = (() => {
             }
         }
         cg.putImageData(out, 0, 0);
+        if (curFix && curFix[ink]) {
+            // remember what the screen printed: the fix pass leaves those pixels alone
+            // unless something is drawn over them later
+            const rec = fixRec[ink] ?? (fixRec[ink] = new Uint8Array(W * H));
+            for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) { const v = O[(y * bw + x) * 4 + 3]; if (v) rec[(by0 + y) * W + bx0 + x] = v; }
+        }
         plate.save();
         plate.setTransform(1, 0, 0, 1, 0, 0);
         plate.globalCompositeOperation = o.op ?? 'source-over';
@@ -208,7 +222,57 @@ var G4 = (() => {
         press.restore();
         return true;
     }
+    // Regional tone: a table per ink of coverage changes on an n × n grid over the 1080 px
+    // frame (reference px, the card's own space), measured by unmixing 90 px blocks of the
+    // reference and of our render into the four inks and calibrated in passes. It fixes what
+    // an area 50–100 px across gets, not shapes. G4.fixBegin(FIX) before drawing (screens
+    // then set bigger dots where the table is positive), G4.fix(press) at the end of the
+    // card, before its press.restore(): partial inks are raised, all inks lowered.
+    let curFix = null, fixRec = {};
+    const fixCache = new Map();
+    function fixCanvas(vals, sign) {
+        const key = vals + '|' + sign;
+        if (fixCache.has(key)) return fixCache.get(key);
+        const n = Math.round(Math.sqrt(vals.length)), c = document.createElement('canvas'); c.width = n; c.height = n;
+        const g = c.getContext('2d'), im = g.createImageData(n, n);
+        for (let i = 0; i < vals.length; i++) { im.data[i * 4] = 0; im.data[i * 4 + 3] = Math.round(255 * Math.max(0, Math.min(1, sign * vals[i]))); }
+        g.putImageData(im, 0, 0);
+        fixCache.set(key, c);
+        return c;
+    }
+    function fixBegin(F) { curFix = F; for (const k in fixRec) fixRec[k].fill(0); if (F) F.n = F.n ?? Math.round(Math.sqrt((F.yellow ?? F.pink ?? F.blue ?? F.navy).length)); }
+    let fcan = null;
+    function fix(press) {
+        const F = curFix;
+        curFix = null;
+        if (!F) return;
+        for (const ink of ['yellow', 'pink', 'blue', 'navy']) {
+            if (!F[ink]) continue;
+            for (const kind of ['solid', 'screen']) {
+                const g = press.plate(ink, kind), W = g.canvas.width, H = g.canvas.height, M = g.getTransform();
+                if (!fcan || fcan.width !== W) { fcan = document.createElement('canvas'); fcan.width = W; fcan.height = H; }
+                const fg = fcan.getContext('2d', { willReadFrequently: true });
+                const read = (sign) => { fg.setTransform(1, 0, 0, 1, 0, 0); fg.clearRect(0, 0, W, H); fg.setTransform(M); fg.imageSmoothingQuality = 'high'; fg.drawImage(fixCanvas(F[ink], sign), 0, 0, F.n, F.n, 0, 0, 1080, 1080); return fg.getImageData(0, 0, W, H).data; };
+                const Pp = read(1), Pn = read(-1);
+                const im = g.getImageData(0, 0, W, H), A = im.data;
+                let any = false;
+                const rec = kind === 'solid' ? fixRec[ink] : null;
+                for (let i = 3; i < A.length; i += 4) {
+                    const a = A[i];
+                    if (!a) continue;
+                    if (rec && rec[i >> 2] === a) continue; // a screen dot, already fixed
+                    const up = Pp[i], dn = Pn[i];
+                    if (!up && !dn) continue;
+                    let v = a;
+                    if (up && a < 247) v = a + (up * (255 - a)) / 255;
+                    if (dn) v = v * (1 - dn / 255);
+                    A[i] = v; any = true;
+                }
+                if (any) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.putImageData(im, 0, 0); g.restore(); }
+            }
+        }
+    }
     // author a card in reference px (the 1080 frame): scale every plate by 1000/1080
     function refpx(press) { press.save(); press.each((g) => g.scale(1000 / 1080, 1000 / 1080)); }
-    return { pulse, refpx, T, path, smooth, poly, blob, sline, seg, disc, ell, clip, on, erase, speckle, specks, dots, lin, rad, jag, screen };
+    return { fixBegin, fix, pulse, refpx, T, path, smooth, poly, blob, sline, seg, disc, ell, clip, on, erase, speckle, specks, dots, lin, rad, jag, screen };
 })();

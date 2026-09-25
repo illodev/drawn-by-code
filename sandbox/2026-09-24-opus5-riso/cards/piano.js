@@ -7,7 +7,7 @@
 // The camera pushes in 1.22 % a frame about (550, 545) (fitted on 270 → 272/274/275).
 // Needs _g4-util.js (G4).
 var CARDS = CARDS || {};
-CARDS.piano = (press, t, lf = 0) => {
+CARDS.piano = (press, t, lf = 0, o = {}) => {
     const U = G4, T = U.T;
     const d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
@@ -17,6 +17,10 @@ CARDS.piano = (press, t, lf = 0) => {
     // the push-in, every frame
     const z = 1 + 0.0122 * lf;
     press.each((g) => { g.translate(550, 545); g.scale(z, z); g.translate(-550, -545); });
+    // measured data (private, gitignored: sandbox/…/private/piano-data.js); fallbacks here
+    const D = (typeof G4DATA !== 'undefined' && G4DATA.piano) || {};
+    // regional tone, calibrated against the reference in passes (G4.fix); the pink run has its own
+    G4.fixBegin((o.inks ? D.fixPink : D.fix) ?? null);
 
     // ── the rim, measured every 40 px: [y, inner edge, inner band end, outer band start, blue]
     const RIM = [[-40, 313, 376, 400, 470], [0, 359, 422, 441, 494], [40, 405, 468, 482, 520], [80, 449, 510, 527, 590], [120, 494, 552, 572, 623], [160, 537, 595, 611, 664], [200, 578, 632, 647, 697], [240, 615, 669, 684, 733], [280, 651, 704, 720, 768], [320, 687, 736, 752, 798], [360, 720, 768, 783, 827], [400, 749, 797, 814, 854], [440, 775, 824, 838, 879], [480, 799, 847, 861, 901], [520, 823, 869, 882, 924], [560, 843, 890, 901, 945], [600, 865, 907, 921, 960], [640, 882, 925, 937, 976], [680, 900, 942, 952, 992], [720, 915, 957, 966, 1008], [760, 927, 969, 979, 1018], [800, 940, 981, 993, 1029], [840, 950, 990, 1002, 1038], [880, 960, 998, 1010, 1047], [920, 968, 1006, 1018, 1056], [980, 978, 1016, 1028, 1066]];
@@ -63,8 +67,8 @@ CARDS.piano = (press, t, lf = 0) => {
         for (let i = 1; i < RIM.length; i++) { const xa = RIM[i - 1][1] - 70, xb = RIM[i][1] - 70; if (x >= xa && x <= xb) return RIM[i - 1][0] + ((x - xa) / (xb - xa)) * (RIM[i][0] - RIM[i - 1][0]); }
         return x < RIM[0][1] ? -60 : 980;
     };
-    for (let x = 250; x < 900; x += 9.6) {
-        const y0 = Math.max(-40, pinY(x) + 8), slope = -0.28 + (x - 250) * 0.00027;
+    for (let x = 330; x < 900; x += 9.6) {
+        const y0 = Math.max(-40, pinY(x) + 8), slope = -0.16 + (x - 330) * 0.00022;
         // a pale string (paper) with a green shadow line beside it, in pairs
         const L = (dx, y0b, y1b) => [[x + dx + slope * (y0b - y0), y0b], [x + dx + slope * (y1b - y0), y1b]];
         for (const dx of [0, 4.6]) {
@@ -72,7 +76,7 @@ CARDS.piano = (press, t, lf = 0) => {
             U.seg(B, L(dx + 1.9, y0, 714), 1.3, 0.9); U.seg(B, L(dx + 1.9, 785, 895), 1.3, 0.9);
             U.seg(Y, L(dx + 1.9, y0, 714), 1.3, 1); U.seg(Y, L(dx + 1.9, 785, 895), 1.3, 1);
         }
-        if (x > 470) { U.disc(B, x, y0, 2.6, 1); U.disc(N, x, y0, 2.6, 0.4); }
+        U.disc(B, x, y0, 2.8, 1); U.disc(N, x, y0, 2.8, 0.4);
     }
     // the hitch pins along the rim: green studs (measured on 270)
     const STUDS = [[392, 57], [475, 132], [556, 212], [636, 293], [707, 381], [770, 472], [822, 566], [865, 660], [898, 752], [922, 845]];
@@ -130,9 +134,10 @@ CARDS.piano = (press, t, lf = 0) => {
     press.knockout((g) => {
         g.save(); g.beginPath(); g.rect(-100, -100, 1300, 814); g.clip();
         g.lineCap = 'round';
-        for (const [r, w] of [[67, 14], [149, 6], [247, 10], [360, 10], [524, 7], [650, 5], [840, 5]]) {
+        // [radius, width, start, end (deg)]: spans from row scans on 270
+        for (const [r, w, a0, a1] of [[67, 14, -175, -5], [149, 6, -174, -15], [247, 10, -172, -10], [360, 10, -172, -12], [495, 7, -172, -15], [650, 5, -170, -40]]) {
             g.lineWidth = w;
-            g.beginPath(); g.arc(604, 689, r, Math.PI - 0.2, 0.2); g.stroke();
+            g.beginPath(); g.arc(604, 689, r, (a0 * Math.PI) / 180, (a1 * Math.PI) / 180); g.stroke();
         }
         g.restore();
     });
@@ -161,5 +166,6 @@ CARDS.piano = (press, t, lf = 0) => {
     // the print's specks on the dark
     U.speckle(press, 'piano', 160, [0, -40, 1100, 1040], 0.6, 1.4);
     U.specks(P, 'pianodark', 90, [0, 900, 1100, 950], 0.8, 1.8);
+    G4.fix(press);
     press.restore();
 };
