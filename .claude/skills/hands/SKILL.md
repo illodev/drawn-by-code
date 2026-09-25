@@ -68,6 +68,7 @@ It never lies along the bar or on top of the fingers' side.
 - **One skin.** Every piece of a hand (palm, fingers, thumb, web) is knocked out and inked
   as one union: trace every outline with the same winding, or overlaps punch holes. Shade
   the hand through one clip.
+- **One colour for every visible piece.** The thumb, the fingers and the back of the hand are inked with the same skin spec; a darker spec is only for a piece that is really in shadow (behind the object, turned away), never for the thumb by default.
 - **No lines across the hand.** The only lines allowed are:
   - the lines between fingers pressed together;
   - one short curved crease per joint, on the finger's middle;

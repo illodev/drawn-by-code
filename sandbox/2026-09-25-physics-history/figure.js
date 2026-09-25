@@ -270,7 +270,7 @@ const Fig = (() => {
         const lw = Math.max(1, s * 0.035), EDGE = { 'pink.s': 0.7, 'navy.s': 0.55 };
         // the thumb, alongside, lower: from the heel on its side, pointing along the fingers
         const TH = [X(0.08, 0.2), X(0.26, 0.3), X(0.4, 0.3)];
-        line(press, TH, 0.14 * s, sh); put(press, circle(...TH[2], 0.07 * s), sh);
+        line(press, TH, 0.14 * s, spec); put(press, circle(...TH[2], 0.07 * s), spec); // the same skin as the hand
         // the back of the hand
         const PALM = [X(-0.05, -0.19), X(0.52, -0.21), X(0.56, 0), X(0.52, 0.21), X(-0.05, 0.2)];
         put(press, (g) => smooth(g, PALM), spec);
