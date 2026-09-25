@@ -240,9 +240,14 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             line(press, [[SX + dx, SY - 40 - h], [SX + dx, SY - 58 - h]], 5, SIL);
             put(press, circle(SX + dx, SY - 62 - h, 4), SIL);
         }
+        // (square brick campanili with a belfry and a short cone: thin pointed towers read as
+        // minarets, and the skyline as Istanbul)
         for (const bx of [SX - 290, SX + 330]) {
-            put(press, (g) => poly(g, [[bx - 12, SY + 20], [bx - 10, SY - 180], [bx, SY - 230], [bx + 10, SY - 180], [bx + 12, SY + 20]]), SIL);
-            put(press, (g) => g.rect(bx - 16, SY - 150, 32, 10), SIL);
+            put(press, (g) => g.rect(bx - 22, SY - 170, 44, 190), SIL);
+            put(press, (g) => g.rect(bx - 27, SY - 176, 54, 10), SIL);
+            put(press, (g) => poly(g, [[bx - 22, SY - 176], [bx, SY - 236], [bx + 22, SY - 176]]), SIL);
+            put(press, (g) => g.rect(bx - 2, SY - 256, 4, 22), SIL);
+            for (const dx of [-12, 4]) put(press, (g) => { g.beginPath(); g.moveTo(bx + dx, SY - 132); g.lineTo(bx + dx, SY - 150); g.arc(bx + dx + 4, SY - 150, 4, Math.PI, 0); g.lineTo(bx + dx + 8, SY - 132); g.closePath(); }, { 'blue.s': 0.35, navy: 0.6 });
         }
         // the Palazzo della Ragione's keel roof, far left
         put(press, (g) => { g.beginPath(); g.moveTo(20, SY + 30); g.quadraticCurveTo(200, SY - 120, 380, SY + 30); g.closePath(); }, { navy: 1, 'blue.s': 0.4 });
@@ -305,6 +310,9 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             line(press, [[L(hd[0], f[0], 0.1), L(hd[1], f[1], 0.1)], [L(hd[0], f[0], 0.95), L(hd[1], f[1], 0.95)]], 2.4 * M.k, WOOD_LT);
         }
         put(press, circle(hd[0], hd[1], 15 * M.k), BRASS_SH);
+        // the brass fork the tube rests in (it lies on the stand; his hands only steady it)
+        const up = R.C.proj([s, -(rAt(s) + 12) + 60, 0]), ux = up[0] - hd[0], uy = up[1] - hd[1], ul = Math.hypot(ux, uy) || 1, nx = -uy / ul, ny = ux / ul, rr = 24 * M.k;
+        for (const sg of [-1, 1]) line(press, [[hd[0] + sg * nx * rr * 0.3, hd[1] + sg * ny * rr * 0.3], [hd[0] + sg * nx * rr - (ux / ul) * rr * 1.1, hd[1] + sg * ny * rr - (uy / ul) * rr * 1.1]], 6 * M.k, BRASS_SH);
     }
 
     // ── Galileo ──────────────────────────────────────────────────────────────────────────
