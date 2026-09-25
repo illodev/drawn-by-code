@@ -283,3 +283,12 @@ What changed:
 
 **Lesson:** a move that must read as forward needs a monotonic screen path. Perspective or
 zoom can make a correct world path read as backwards.
+
+### Round 8 (user)
+
+> Lo doy por bueno, por ahora
+
+The Newton's apple style test (dev/newton-apple) is approved as the bar for script v2: a
+full-body rig that moves on spline channels, physics for everything that flies or falls, a
+camera that rides with the action, close framing and dressed sets. The other scenes of v2 are
+built to this bar.
