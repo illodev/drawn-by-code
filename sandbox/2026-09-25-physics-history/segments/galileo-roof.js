@@ -110,7 +110,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
     // the sky seen through the telescope: centre, zoom, roll
     function skyCam(t) {
-        const za = Math.log(3) + Math.log(10 / 3) * IO(S(t, T.field[0], T.field[1]));
+        // (a slow push-in through the nights, so the field is never frozen)
+        const za = Math.log(3) + Math.log(10 / 3) * IO(S(t, T.field[0], T.field[1])) + Math.log(1.6) * S(t, T.field[1], T.zoomB[0]);
         const zb = Math.log(1000 / 10) * Math.pow(S(t, T.zoomB[0], T.zoomB[1]), 1.35);
         return { base: [800, 450], Zs: Math.exp(za + zb), roll: -Math.PI / 2 * IO(S(t, T.roll[0], T.roll[1])) };
     }
@@ -184,9 +185,13 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             const vx = a * RJ * Z * Math.sin(th), vy = -a * RJ * Z * 0.07 * Math.cos(th);
             return [J[0] + vx * Math.cos(rl) - vy * Math.sin(rl), J[1] + vx * Math.sin(rl) + vy * Math.cos(rl), Math.cos(th) > 0];
         });
-        const mr = Math.max(4, 0.28 * RJ * Z), fadeM = 1 - S(t, T.zoomB[0] + 0.25, T.zoomB[0] + 0.6);
+        // (moons big enough to read; each pops as its night arrives)
+        const pop = 1 + T.nights.reduce((a, tn) => a + 0.5 * Ease.bump(t, tn - 0.05, 0.3), 0);
+        const mr = Math.max(7, 0.5 * RJ * Z) * pop, fadeM = 1 - S(t, T.zoomB[0] + 0.25, T.zoomB[0] + 0.6);
         if (Z > 4 && fadeM > 0) for (let k = 0; k < Math.floor(nf + 1e-6); k++) for (const [x, y] of moons(k)) line(press, Array.from({ length: 17 }, (_, q) => [x + Math.cos(q / 16 * 6.2832) * (mr + 6), y + Math.sin(q / 16 * 6.2832) * (mr + 6)]), 2.4, { 'yellow.s': 0.55 * fadeM, 'pink.s': 0.4 * fadeM });
         const drawMoon = ([x, y]) => { if (fadeM <= 0) return; press.knockout((g) => { g.fillStyle = Riso.radial(g, x, y, 1, mr * 3, 0.6 * fadeM, 0); g.beginPath(); g.arc(x, y, mr * 3, 0, 6.2832); g.fill(); }); put(press, circle(x, y, mr), { yellow: 0.3 * fadeM }); };
+        // while the nights pass the moons slide along their orbits, trailing a short arc
+        if (Z > 4 && fadeM > 0 && nf % 1 > 0.02 && nf % 1 < 0.98) for (let i = 0; i < 4; i++) { const pts = []; for (let k = 0; k <= 8; k++) { const q = moons(nf - 0.3 + 0.3 * k / 8)[i]; pts.push([q[0], q[1]]); } line(press, pts, taper(mr * 0.9, 0.05, 0.9), { yellow: 0.5 * fadeM, 'pink.s': 0.2 * fadeM }); }
         const now = moons(nf);
         now.forEach((q) => { if (!q[2]) drawMoon(q); });
         // the glow round the planet, then the disc
@@ -297,7 +302,10 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         for (const x of [lx + 32, lx + 50, lx + 68]) line(press, [[x, ly], [x - (x - lx - 50) * 0.1, ly + 56]], 3, { navy: 1 });
         put(press, (g) => poly(g, [[lx + 26, ly], [lx + 50, ly - 22], [lx + 74, ly]]), { navy: 1, yellow: 0.8 });
         // the film's cat (cat.js) on the rail, watching the sky with him; its tail swings
-        Cat.sit(press, { x: 1240, y: RAIL - 12, s: 1.05, face: -1, look: [900, RAIL - 700], tail: t * 0.5, rim: { d: [-3.5, -1.5], spec: { yellow: 1, 'pink.s': 0.3 } }, blink: Math.abs((t % 4.3) - 2) < 0.06 });
+        // (it follows the shooting star across the sky, flicks an ear, then turns to watch him)
+        const cs = S(t, T.star - 0.1, T.star + 0.5), cb = IO(S(t, T.star + 0.7, T.star + 1.1));
+        const clook = [L(L(1000, 300, cs), 420, cb), L(L(RAIL - 820, RAIL - 700, cs), RAIL - 260, cb)];
+        Cat.sit(press, { x: 1240, y: RAIL - 12, s: 1.05, face: -1, look: clook, ears: 0.6 * Ease.bump(t, T.star + 0.55, 0.2), tail: t * 0.5 + 0.8 * cs, rim: { d: [-3.5, -1.5], spec: { yellow: 1, 'pink.s': 0.3 } }, blink: Math.abs((t % 4.3) - 2) < 0.06 });
     }
 
     // ── the tripod under the tube ────────────────────────────────────────────────────────
