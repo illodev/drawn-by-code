@@ -35,7 +35,7 @@ CARDS.whale = (press, t) => {
         ramp(g, [[0, 0.38], [0.11, 0.43], [0.22, 0.49], [0.28, 0.55], [0.33, 0.61], [0.39, 0.67], [0.44, 0.73], [0.5, 0.8], [0.56, 0.87], [0.61, 0.92], [0.7, 0.97], [0.8, 1]]);
         // the light thins the blue inside the shafts
         g.globalCompositeOperation = 'destination-out';
-        for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], [[0, 0.22], [0.3, 0.1], [0.5, 0]]); shaftPath(g, sh); g.fill(); }
+        for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], [[0, 0.3], [0.35, 0.18], [0.6, 0]]); shaftPath(g, sh); g.fill(); }
         g.globalCompositeOperation = 'source-over';
     }, { mode: 'holes', jit: 0.2, pj: 0.03, edge: 0.7, also: [{ ink: 'navy', mask: (g) => { ramp(g, [[0.3, 0], [0.54, 0.1], [0.65, 0.15], [1, 0.15]]); g.globalCompositeOperation = 'destination-out'; g.fillStyle = U.lin(g, 0, 0, 540, 0, [[0, 0.7], [1, 0]]); g.fillRect(-20, 500, 560, 420); g.globalCompositeOperation = 'source-over'; } }] });
     // the ink's grain: stray pink specks and paper pinholes in the water (seen at 4×)
@@ -59,6 +59,8 @@ CARDS.whale = (press, t) => {
         g.filter = 'blur(9px)';
         for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], sh[4]); shaftPath(g, sh); g.fill(); }
         g.filter = 'none';
+        // the glow round the head: yellow dots between the arcs (seen on 266 at 3×)
+        g.fillStyle = U.rad(g, 1060, 600, 40, 260, [[0, 0.22], [0.6, 0.15], [1, 0]]); g.fillRect(780, 320, 320, 360);
     });
     const rs = Motion.rng('wh-streak');
     press.knockout((g) => {
@@ -89,7 +91,7 @@ CARDS.whale = (press, t) => {
     // edge (its crossing of x = 1080 measured), radius eased between the two; a paper line
     // just outside each. [left end x, y, right-edge y, width]
     const AC = [1130, 700];
-    const ARCS = [[807, 213, 152, 4.5], [820, 263, 207, 4.5], [843, 320, 267, 5], [873, 378, 330, 5.5], [900, 418, 392, 6], [920, 470, 446, 6.5], [950, 515, 503, 7.5], [977, 563, 557, 10], [1003, 600, 610, 15]];
+    const ARCS = [[807, 213, 152, 4.5], [820, 263, 207, 4.5], [843, 320, 267, 5], [873, 378, 330, 5.5], [900, 418, 392, 6], [920, 470, 446, 6.5], [950, 515, 503, 7.5], [977, 563, 557, 10], [1003, 592, 650, 16]];
     for (const [x0, y0, y1, w] of ARCS) {
         const a0 = Math.atan2(y0 - AC[1], x0 - AC[0]) + Math.PI * 2, a1 = Math.atan2(y1 - AC[1], 1080 - AC[0]) + Math.PI * 2;
         const r0 = Math.hypot(x0 - AC[0], y0 - AC[1]), r1 = Math.hypot(1080 - AC[0], y1 - AC[1]), a2 = a1 + 0.2;
@@ -123,7 +125,7 @@ CARDS.whale = (press, t) => {
         g.fillStyle = U.rad(g, 930, 630, 0, 140, [[0, 0.45], [1, 0]]); g.fillRect(780, 480, 300, 320);
         g.fillStyle = U.rad(g, 60, 990, 0, 140, [[0, 0.5], [1, 0]]); g.fillRect(-20, 820, 240, 280);
     });
-    blue.fillStyle = T(0.15); shape(blue); blue.fill();
+    blue.fillStyle = T(0.45); shape(blue); blue.fill();
     // the shafts light the body too (a green-teal glaze where they cross it)
     U.screen(press, 'yellow', LY, (g) => { g.save(); shape(g); g.clip(); for (const sh of SHAFTS) { g.fillStyle = U.lin(g, 0, 0, 0, sh[5], sh[4].map(([o, v]) => [o, v * 0.7])); shaftPath(g, sh); g.fill(); } g.restore(); }, { box: [0, 560, 1080, 1080] });
     U.clip(navy, (g) => shape(g), (g) => off(g, (h) => { for (const sh of SHAFTS) { h.fillStyle = U.lin(h, 0, 0, 0, sh[5], sh[4].map(([o, v]) => [o, v * 0.75])); shaftPath(h, sh); h.fill(); } }));
@@ -161,7 +163,7 @@ CARDS.whale = (press, t) => {
         const x0 = 632 - 4.5 * i, y0 = 785 + 11 * i, x2 = 985, y2 = 665 + 2 * i, cx = 800 + 10, cy = 722 + 9.7 * i + 6;
         const ln = (g, w) => { g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(2 * cx - (x0 + x2) / 2, 2 * cy - (y0 + y2) / 2, x2, y2); g.stroke(); };
         press.knockout((g) => ln(g, 3.4));
-        pink.save(); pink.strokeStyle = T(0.3); ln(pink, 3.4); pink.restore();
+        yellow.save(); yellow.strokeStyle = T(0.25); ln(yellow, 2); yellow.restore();
     }
     // the eye (paper ring, dark pupil) and the blowhole (a pink ring)
     press.knockout((g) => { g.beginPath(); g.arc(937, 642, 9, 0, 7); g.fill(); });
