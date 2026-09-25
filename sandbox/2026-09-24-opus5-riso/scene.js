@@ -74,7 +74,11 @@ Motion.scene({
     fps: 24,
     duration: 28,
     logical: [1000, 1000],
-    uses: ['styles/risograph/riso.js', ...['g1', 'group2', 'g3', 'g4', 'g5', 'g6'].map((u) => ({ src: DIR + 'cards/_' + u + '-util.js', optional: true })), ...CARD_NAMES.map((n) => ({ src: DIR + 'cards/' + n + '.js', optional: true }))],
+    uses: ['styles/risograph/riso.js', ...['g1', 'group2', 'g3', 'g4', 'g5', 'g6'].map((u) => ({ src: DIR + 'cards/_' + u + '-util.js', optional: true })), // private/<card>-data.js (gitignored): data read off the reference as grids or traces
+        // (transcribing is copying: never committed); cards load it first and fall back to
+        // their described, committed tones when it is absent
+        ...CARD_NAMES.map((n) => ({ src: DIR + 'private/' + n + '-data.js', optional: true })),
+        ...CARD_NAMES.map((n) => ({ src: DIR + 'cards/' + n + '.js', optional: true }))],
     fonts: [{ family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' }],
     audio: { mix: 'out/reference-audio.wav' }, // the reference's track, local only (never committed)
     shots: EDIT.slice(0, -1).map(([a, k, c], i) => [a, EDIT[i + 1][0], c ?? k]),
