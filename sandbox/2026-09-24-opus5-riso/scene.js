@@ -22,17 +22,17 @@ const PINK4 = { yellow: 'pink', blue: 'pink', pink: 'blue' };
 const OPEN = {
     koi: [[520, 546, 163, 161], [533, 576, 236, 235], [541, 587, 273, 272], [544, 594, 288, 287], [544, 597, 290, 290], [544, 597, 290, 290], [544, 598, 290, 290], [544, 598, 290, 290], [544, 594, 288, 287], [543, 591, 272, 272], [537, 572, 229, 228], [522, 544, 144, 144]],
     grasshopper: [[487, 448, 162, 163], [481, 417, 234, 235], [478, 400, 274, 274], [476, 394, 287, 287], [477, 396, 290, 289], [477, 396, 290, 289], [477, 396, 290, 289], [477, 396, 290, 289], [477, 396, 290, 289], [477, 400, 286, 272], [477, 417, 272, 228], [480, 446, 258, 143]],
-    jellyfish: [[552, 496, 163, 163], [583, 493, 236, 237], [600, 493, 277, 274], [606, 494, 290, 289], ...Array(11).fill([606, 494, 290, 291]), [606, 493, 288, 289], [600, 493, 272, 274], [581, 493, 230, 230], [550, 494, 143, 143]],
+    jellyfish: [[552, 496, 163, 163], [583, 493, 236, 237], [600, 493, 277, 274], [606, 494, 290, 289], ...Array(11).fill([606, 494, 290, 291]), [600, 493, 272, 274], [581, 493, 230, 230], [550, 494, 143, 143]],
 };
 const SWAP_PB = { pink: 'blue', blue: 'pink' };
 const EDIT = [
     [0, 'sonar', null, { sonar: 'first' }], [1.5, 'circle', 'koi', { open: OPEN.koi }],
     [2.0, 'sonar', null, { sonar: 'second' }], [2.75, 'circle', 'grasshopper', { open: OPEN.grasshopper, coin: true }],
     [3.25, 'circle', 'jellyfish', { open: OPEN.jellyfish }],
-    [4.0, 'sonar', null, { sonar: 'late' }], [4.5, 'circle', 'owl', { c: [500, 500], r: [270], thenFull: true }],
-    [5.0, 'circle', 'bell', { c: [500, 500], r: [360], thenFull: true, over: 'owl' }],
-    [5.5, 'circle', 'lighthouse', { c: [500, 500], r: [360], thenFull: true, over: 'bell' }],
-    [6.0, 'sonar', null, { sonar: 'late2' }], [6.5, 'circle', 'wolf', { c: [500, 500], r: [385], thenFull: true }],
+    [4.0, 'sonar', null, { sonar: 'late' }], [4.5, 'circle', 'owl', { c: [500, 500], r: [382, 588], crop: true, thenFull: true }],
+    [5.0, 'circle', 'bell', { c: [500, 500], r: [382, 588], crop: true, thenFull: true, over: 'owl' }],
+    [5.5, 'circle', 'lighthouse', { c: [500, 500], r: [382, 588], crop: true, thenFull: true, over: 'bell' }],
+    [6.0, 'sonar', null, { sonar: 'late2' }], [6.5, 'circle', 'wolf', { c: [500, 500], r: [382, 588], crop: true, thenFull: true }],
     [7.0, 'full', 'phone'], [7.25, 'full', 'turntable'], [7.5, 'full', 'frogs'], [7.75, 'full', 'bats'],
     [8.0, 'sonar', null, { sonar: 'short' }],
     [8.25, 'full', 'wave'], [8.5, 'full', 'cat'], [8.75, 'full', 'sunflower'], [9.0, 'full', 'radio'], [9.25, 'full', 'fireworks'],
@@ -44,13 +44,13 @@ const EDIT = [
     [13.375, 'full', 'snowflake'], [13.5, 'full', 'mountains'], [13.625, 'full', 'aurora'], [13.75, 'full', 'savanna'],
     [13.875, 'full', 'dunes'], [14.0, 'full', 'ice', { ring: true, ringFrom: 1 }],
     // the same cards again, re-inked, with a white ring
-    [14.125, 'full', 'koi', { ring: true, inks: { blue: 'pink', pink: 'yellow', yellow: 'blue' } }],
-    [14.25, 'full', 'grasshopper', { ring: true, inks: { navy: 'blue', yellow: 'yellow' } }],
-    [14.375, 'full', 'jellyfish', { ring: true, inks: { blue: 'pink', pink: 'blue' } }],
-    [14.5, 'full', 'owl', { ring: true, inks: { pink: 'blue' } }],
-    [14.625, 'full', 'bell', { ring: true, inks: { pink: 'blue' } }],
-    [14.75, 'full', 'lighthouse', { ring: true, inks: { blue: 'pink', pink: 'blue' } }],
-    [14.875, 'full', 'wolf', { ring: true, inks: { blue: 'pink' } }],
+    [14.125, 'full', 'koi', { ring: true, ringR: [113, 171, 234], inks: { blue: 'pink', pink: 'yellow', yellow: 'blue' } }],
+    [14.25, 'full', 'grasshopper', { ring: true, ringR: [136, 196, 261], inks: { navy: 'blue', yellow: 'yellow' } }],
+    [14.375, 'full', 'jellyfish', { ring: true, ringR: [161, 225, 291], inks: { blue: 'pink', pink: 'blue' } }],
+    [14.5, 'full', 'owl', { ring: true, ringR: [185, 251, 319], inks: { pink: 'blue', blue: 'pink' } }],
+    [14.625, 'full', 'bell', { ring: true, ringR: [208, 276, 347], inks: { pink: 'blue' } }],
+    [14.75, 'full', 'lighthouse', { ring: true, ringR: [232, 305, 380], inks: { blue: 'pink', pink: 'blue' } }],
+    [14.875, 'full', 'wolf', { ring: true, ringR: [257, 331, 409], inks: { blue: 'pink' } }],
     // from 15.0 the re-inked run cuts every 2 frames; 15.0–15.5 swap pink and blue and
     // push in (zoom [s, tx, ty] in units: x' = s·x + t, registered on edge maps by G2)
     // (measured by frame index, 360–383) (measured by frame index, 360–383)
@@ -99,10 +99,10 @@ Motion.scene({
             // o.flip: the reference re-uses some drawings mirrored left–right
             if (o.flip) { press.save(); press.each((g) => g.transform(-1, 0, 0, 1, 1000, 0)); }
             if (o.zoom) { const [zs, zx, zy] = o.zoom; press.save(); press.each((g) => g.transform(zs, 0, 0, zs, zx, zy)); }
-            drawCard(press, card, lt, lf);
+            drawCard(press, card, lt, lf, o);
             if (o.zoom) press.restore();
             if (o.flip) press.restore();
-            if (o.ring && lf >= (o.ringFrom ?? 0)) whiteRing(press, ld);
+            if (o.ring && lf >= (o.ringFrom ?? 0)) whiteRing(press, ld, o.ringR && o.ringR[Math.min(lf, o.ringR.length - 1)], o.inks);
             if (o.pulse) G4.pulse(press, f); // the sonar pulse over planet → lightning → balloons (frames 289–296) // the ice gets the ring from its 2nd frame (337)
         }
         else if (kind === 'mosaic') mosaic(press, lt);
@@ -118,8 +118,9 @@ Motion.scene({
 // ------------------------------------------------------------------ pieces
 const T = (v) => Riso.tone(v);
 // lf: the frame inside the shot (24 fps), for cards whose camera pushes in every frame
-function drawCard(press, name, lt, lf) {
-    if (CARDS[name]) return CARDS[name](press, lt, lf);
+// o: the edit row's options (a card can tell a re-inked repeat, o.ring, from its first showing)
+function drawCard(press, name, lt, lf, o = {}) {
+    if (CARDS[name]) return CARDS[name](press, lt, lf, o);
     // placeholder until the card exists: a two-ink field with its name
     const s = press.plate('pink', 'screen'), n = press.plate('navy');
     s.fillStyle = T(0.35);
@@ -223,10 +224,10 @@ function sonar(press, lf, o) {
 // a card opening in a circle: radius per drawing from o.r (the last one holds); over the
 // previous card (o.over) or the paper; a blue rim; 'thenFull' goes full frame after one drawing
 function circleCard(press, name, lt, ld, o, lf) {
-    if (o.thenFull && ld >= 1) return drawCard(press, name, lt);
+    if (o.thenFull && ld >= 1) return drawCard(press, name, lt, lf, o);
     let cx, cy, rx, ry;
     if (o.open) [cx, cy, rx, ry] = o.open[Math.min(lf, o.open.length - 1)].map((v, i) => (i < 2 ? v : v - 5)); // the rim's outer edge → the circle
-    else { rx = ry = o.r[Math.min(ld, o.r.length - 1)]; [cx, cy] = o.c; }
+    else { rx = ry = o.r[Math.min(o.crop ? lf : ld, o.r.length - 1)]; [cx, cy] = o.c; }
     if (o.over) drawCard(press, o.over, lt + 0.5);
     const path = (g) => g.ellipse(cx, cy, rx, ry, 0, 0, 7);
     // the coin: a navy edge under the disc, showing as it turns (ry < rx)
@@ -239,17 +240,27 @@ function circleCard(press, name, lt, ld, o, lf) {
     press.knockout((g) => { g.beginPath(); path(g); g.fill(); });
     // the whole illustration, scaled down into the circle (not a crop: the jellyfish at
     // 3.6 s shows its bell, tentacles and both small jellies inside the circle)
-    const k = (rx * 2 * 1.06) / 1000;
+    const k = o.crop ? 1 : (rx * 2 * 1.06) / 1000; // o.crop: the card at full size seen through the circle
     press.save();
     press.clip((g) => path(g));
     press.each((g) => { g.translate(cx, cy); g.scale(k, (k * ry) / rx); g.translate(-500, -500); });
-    drawCard(press, name, lt);
+    drawCard(press, name, lt, lf, o);
     press.restore();
     const bp = press.plate('blue');
     bp.save(); bp.strokeStyle = T(1); bp.lineWidth = 8; bp.beginPath(); path(bp); bp.stroke(); bp.restore();
 }
 // the white ring over re-inked cards (knocked out of every plate), breathing on twos
-function whiteRing(press, ld) {
+// rR: the ring's radius on this frame (reference px, measured frame by frame: it grows ≈ 66 px
+// a frame): a 20 px band knocked out of every plate with a 5 px blue line along its middle
+function whiteRing(press, ld, rR, inks = {}) {
+    if (rR) {
+        const r = rR * 1000 / 1080;
+        press.knockout((g) => { g.lineWidth = 19; g.beginPath(); g.arc(500, 500, r, 0, 7); g.stroke(); });
+        // the line prints blue: on whichever plate the row's re-inking prints in blue
+        const plate = ['blue', 'pink', 'yellow', 'navy'].find((k) => (inks[k] ?? k) === 'blue') ?? 'blue';
+        Riso.ring(press.plate(plate), 500, 500, r, 4.6, 'wr' + rR, { color: T(0.95), wobble: 0.003 });
+        return;
+    }
     const r = 300 + (ld % 3) * 12;
     // a white band with a thin blue rim each side (measured on the repeats)
     const b = press.plate('blue');
