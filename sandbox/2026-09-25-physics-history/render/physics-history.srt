@@ -22,7 +22,7 @@ Jupiter ripens into an apple…
 
 6
 00:00:16,000 --> 00:00:17,300
-Woolsthorpe, 1666. The same cat nudges the apple off its branch.
+Woolsthorpe, 1666. An apple lets go of its branch…
 
 7
 00:00:17,300 --> 00:00:19,800
@@ -46,7 +46,7 @@ A moving magnet makes a current: electromagnetic induction.
 11
 00:00:31,000 --> 00:00:33,800
 [spark]
-The cat on the shelf does not approve.
+The cat on the shelf wakes up.
 
 12
 00:00:34,200 --> 00:00:37,500
@@ -75,7 +75,7 @@ Space folds into a box.
 
 17
 00:00:50,400 --> 00:00:53,400
-Zurich, 1935. Schrödinger's box: a radioactive atom,
+Oxford, 1935. Schrödinger's box: a radioactive atom,
 a Geiger counter, a flask of poison, a cat.
 
 18
