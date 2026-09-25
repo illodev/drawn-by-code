@@ -174,16 +174,19 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
     // the chosen particle: out of the tube to the frame's centre, then stretched into the ray
     function ray(press, t) {
-        const u = S(t, T.ray[0] - 0.5, T.ray[0]), k = IO(S(t, T.ray[0], T.ray[1]));
+        const u = S(t, T.ray[0] - 0.5, T.ray[0]);
         if (u <= 0) return;
         const p = [L(TB[0], 800, IO(u)), L(TB[1] + 30, 450, IO(u))];
-        const half = L(0, 900, k), w = L(12, 10, k);
+        // it stretches to the right first, away from her; only once the shed has gone wholly
+        // dark does it reach back to the left edge (the full-width ray Einstein's scene opens on)
+        const kr = IO(S(t, T.ray[0], T.ray[0] + 0.45)), kl = IO(S(t, T.ray[0] + 0.5, T.ray[1]));
+        const x1 = L(p[0], 1640, kr), x0 = L(p[0], -40, kl), w = L(12, 10, kr);
         press.knockout((g) => { g.fillStyle = Riso.radial(g, p[0], p[1], 2, 140, 0.8, 0); g.beginPath(); g.arc(p[0], p[1], 140, 0, 6.2832); g.fill(); });
-        if (half > 2) {
-            press.knockout((g) => { g.beginPath(); g.rect(p[0] - half, 450 - w * 2, half * 2, w * 4); g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1; });
-            put(press, (g) => g.rect(p[0] - half, 450 - w / 2, half * 2, w), AMBER);
+        if (x1 - x0 > 4) {
+            press.knockout((g) => { g.beginPath(); g.rect(x0, 450 - w * 2, x1 - x0, w * 4); g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1; });
+            put(press, (g) => g.rect(x0, 450 - w / 2, x1 - x0, w), AMBER);
         }
-        put(press, circle(p[0], p[1], L(7, 9, k)), { yellow: 1, 'pink.s': 0.3 });
+        put(press, circle(p[0], p[1], L(7, 9, kr)), { yellow: 1, 'pink.s': 0.3 });
     }
 
     Seg.curieRadium = {
@@ -200,8 +203,10 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             });
             // the ray's moment: the shed goes dark round it (inks only darken: a veil of the
             // night's navy thickening over everything but the ray)
-            const dk = IO(S(t, T.ray[0] - 0.35, T.ray[0] + 0.3));
-            if (dk > 0) ink(press, (g) => g.rect(0, 0, 1600, 900), { navy: 0.92 * dk, 'blue.s': 0.5 * dk });
+            // (it ends opaque, in Einstein's ground: she is gone whole, never seen through)
+            const dk = IO(S(t, T.ray[0] - 0.35, T.ray[0] + 0.45));
+            if (dk >= 1) put(press, (g) => g.rect(0, 0, 1600, 900), { blue: 0.9, 'navy.s': 0.92, 'pink.s': 0.2 });
+            else if (dk > 0) ink(press, (g) => g.rect(0, 0, 1600, 900), { navy: 0.92 * dk, 'blue.s': 0.5 * dk });
             // the frame full of light at the start (the join with Faraday's spark): rings of
             // blue-green that shrink back into the tube's glow as the camera pulls out
             const f = 1 - S(t, 0, 1.2);
