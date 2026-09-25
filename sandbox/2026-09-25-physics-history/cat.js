@@ -79,7 +79,7 @@ const Cat = (() => {
     function curl(press, o) {
         const f = o.face ?? 1, s = o.s ?? 1, al = o.alarm ?? 0, br = (1 + 0.03 * Math.sin((o.t ?? 0) * 2.4) * (1 - al)) * (1 + 0.45 * al);
         press.save();
-        press.each((g) => { g.translate(o.x, o.y - 14 * al); g.scale(s * f, s); });
+        press.each((g) => { g.translate(o.x, o.y); g.scale(s * f, s); });
         const FUR = C.FUR, FUR_LT = C.FUR_LT, WHITE = C.WHITE, WHITE_SH = C.WHITE_SH;
         // the tail: wrapped round the front asleep; straight up and bristling when startled
         const TT = al > 0 ? [[-96, -30], [-116, -70], [-120, -120 - 20 * al], [-112, -160 - 20 * al]] : [[-96, -10], [-60, 4], [20, 6], [80, 0], [104, -10]];
