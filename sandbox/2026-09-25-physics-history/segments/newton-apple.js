@@ -177,8 +177,12 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // the camera pans after the apple while the world is big (it stays near x 1050), then settles
     // on the globe (anchor x 780) as it forms
     function anchorAt(t, camB) {
-        const rel = appleRel(Math.max(T.release, t)), follow = L(1047, 1060, S(t, T.release, 6.0));
-        return [L(follow - rel[0], 780, IO(S(t, 5.9, 6.6))), L(Fig.track(AY, t) + gdAt(t), 250, IO(S(t, 6.25, 6.6)))];
+        // (at first the camera does not pan: the apple flies off to the right over the still
+        // orchard while the world shrinks; only once it nears the frame's right third does the
+        // camera begin to follow it, gently)
+        const rel = appleRel(Math.max(T.release, t)), follow = 1230, fw = IO(S(t, 5.25, 5.75));
+        const ax = L(800, follow - rel[0], fw);
+        return [L(ax, 780, IO(S(t, 5.9, 6.6))), L(Fig.track(AY, t) + gdAt(t), 250, IO(S(t, 6.25, 6.6)))];
     }    // the apple's screen path: it leaves the hand up and forward, rides near the top while
     // the world falls away, then (6.6 on) falls round the finished globe in orbit; x only
     // grows until it passes the side of the globe (no going back)
