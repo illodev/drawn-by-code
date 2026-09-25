@@ -68,56 +68,59 @@ const Fig = (() => {
         line(press, [R(0.18 * s, -0.12 * s), R(0.5 * s, -0.12 * s)], taper(0.03 * s), lineSpec);
     }
 
-    // a right hand holding an apple up to look at it, traced from a reference line drawing of a
-    // right hand holding an apple (Alamy 2D4HPAD, measured in units of the apple's radius): the
-    // palm is behind the apple; the index and middle fingers cross its lower front with their
-    // backs and nails to us, the ring and little fingers curl under it, the thumb is hidden
-    // behind it; the heel and the wrist go down and back (towards the elbow, forward of him).
-    // c: the apple's centre; R: its radius; f: the way he faces (the drawing mirrors for
-    // f = -1, which is then his left hand). held(press, c) draws the apple (before the hand).
+    // a right hand holding an apple up to look at it. Posed after a reference line drawing of a
+    // right hand holding an apple (Alamy 2D4HPAD): its contours were measured in units of the
+    // apple's radius from the apple's centre, then redrawn as filled riso shapes. The palm is
+    // behind the apple (its edge shows to the apple's right); the index lies across the apple's
+    // left, the middle across its lower front, both with their nails to us; the ring and little
+    // fingers curl under it; the thumb is hidden; the wrist goes down to the right. f = -1
+    // mirrors it (then it is a left hand).
     const APPLE_HAND = {
-        body: [[-1.52, 0.78], [-1.37, 1.63], [-1.07, 2.04], [0.11, 2.48], [1.37, 3.04], [2.11, 2.48], [1.52, 1.48], [0.96, 0.44], [0.63, 1.0], [-0.37, 1.0], [-0.93, 0.85]],
-        // [centre line, width, nail]: little, ring (curled under), middle, index (front)
-        fingers: [
-            [[[0.0, 1.5], [0.45, 1.48], [0.7, 1.7]], 0.27, false],
-            [[[-0.2, 1.12], [0.35, 1.02], [0.72, 1.25]], 0.31, false],
-            [[[-0.6, 1.1], [-0.2, 0.66], [0.36, 0.42]], 0.34, true],
-            [[[-1.28, 0.76], [-0.9, 0.24], [-0.38, -0.1]], 0.34, true],
-        ],
+        // the hand's silhouette: index top edge, the hand's left edge, the bottom edge to the
+        // wrist, the wrist, the palm's right edge up to the apple, round under the apple
+        body: [[-0.37, -0.36], [-0.61, -0.3], [-0.84, -0.23], [-1.08, -0.09], [-1.26, 0.12], [-1.4, 0.36], [-1.54, 0.62], [-1.55, 0.87], [-1.42, 1.15], [-1.25, 1.43], [-1.1, 1.66], [-0.95, 1.9], [-0.65, 2.06], [-0.29, 2.22], [-0.02, 2.46], [0.33, 2.6], [0.74, 2.79], [1.02, 3.01], [1.38, 3.29], [2.36, 2.25], [1.98, 1.93], [1.75, 1.63], [1.6, 1.43], [1.54, 1.15], [1.43, 0.89], [1.23, 0.67], [1.07, 0.46], [1.0, 0.36], [0.8, 0.62], [0.5, 0.82], [0.2, 0.7]],
+        index: [[-0.37, -0.36], [-0.61, -0.3], [-0.84, -0.23], [-1.08, -0.09], [-1.26, 0.12], [-1.4, 0.36], [-1.2, 0.5], [-1.02, 0.3], [-0.85, 0.06], [-0.62, -0.09], [-0.4, -0.1], [-0.34, -0.22]],
+        middle: [[-0.84, 2.0], [-0.98, 1.84], [-1.03, 1.63], [-1.02, 1.36], [-0.96, 1.08], [-0.91, 0.87], [-0.82, 0.67], [-0.69, 0.53], [-0.51, 0.43], [-0.3, 0.34], [-0.09, 0.23], [0.12, 0.18], [0.3, 0.16], [0.44, 0.17], [0.47, 0.25], [0.39, 0.36], [0.32, 0.45], [0.14, 0.6], [-0.02, 0.68], [-0.22, 0.8], [-0.33, 0.87], [-0.41, 1.05], [-0.41, 1.22], [-0.55, 1.6]],
+        ring: [[-0.48, 1.49], [-0.39, 1.29], [-0.3, 1.08], [-0.12, 0.95], [0.12, 0.91], [0.35, 0.94], [0.59, 1.01], [0.74, 1.14], [0.81, 1.3], [0.8, 1.43], [0.62, 1.38], [0.25, 1.32], [0.05, 1.41], [-0.08, 1.56]],
+        little: [[-0.08, 1.56], [0.05, 1.41], [0.25, 1.32], [0.55, 1.42], [0.78, 1.52], [0.86, 1.68], [0.78, 1.82], [0.55, 1.9], [0.3, 1.98], [0.1, 1.94], [-0.05, 1.8]],
+        nails: [[[-0.47, -0.25], -0.35, 0.11, 0.075], [[0.32, 0.27], -0.1, 0.12, 0.08]],
+        creases: [[[-0.95, 0.02], [-0.88, 0.1], [-0.84, 0.22]], [[-0.62, 0.52], [-0.56, 0.62], [-0.55, 0.74]], [[0.28, 1.7], [0.29, 1.8], [0.26, 1.86]], [[0.12, 1.02], [0.14, 1.12], [0.13, 1.22]]],
     };
     function holdApple(press, c, R, f, spec, sh, held) {
         const X = ([x, y]) => [c[0] + x * R * f, c[1] + y * R];
+        const lw = Math.max(1, R * 0.028);
+        const shape = (pts) => (g) => smooth(g, pts.map(X));
         held(press, c);
-        const body = APPLE_HAND.body.map(X);
-        put(press, (g) => smooth(g, body), spec);
-        // the back of the hand turns away towards the little finger's side and the wrist
-        // a soft shade along the little finger's edge of the hand (the side turned from the light)
-        press.save(); press.clip((g) => smooth(g, body));
-        const e0 = X([1.9, 1.6]), e1 = X([1.2, 1.2]);
-        Ph.ink(press, (g) => g.rect(c[0] - 4 * R, c[1] - 2 * R, 8 * R, 7 * R), { 'pink.s': (g) => Riso.ramp(g, e0[0], e0[1], e1[0], e1[1], 0.3, 0) });
+        put(press, shape(APPLE_HAND.body), spec);
+        // the hand's side towards the wrist turns away from the light
+        press.save(); press.clip(shape(APPLE_HAND.body));
+        const e0 = X([1.9, 2.4]), e1 = X([1.0, 1.6]);
+        Ph.ink(press, (g) => g.rect(c[0] - 4 * R, c[1] - 2 * R, 8 * R, 7 * R), { 'pink.s': (g) => Riso.ramp(g, e0[0], e0[1], e1[0], e1[1], 0.24, 0) });
         press.restore();
-        for (const [pts, w, nail] of APPLE_HAND.fingers) {
-            const P = Ph.sample(pts.map(X), false, 6), wd = w * R;
-            line(press, P, wd, spec);
-            put(press, circle(P[0][0], P[0][1], wd * 0.5), spec);
-            const tip = P[P.length - 1], pv = P[P.length - 4], an = Math.atan2(tip[1] - pv[1], tip[0] - pv[0]);
-            put(press, circle(tip[0], tip[1], wd * 0.5), spec);
-            // the finger's contour: both sides and the round of the tip, as one thin line (the
-            // lines between the fingers, as in the reference); its base runs into the hand
-            const ol = Ph.outline(P, wd), nH = ol.length / 2;
-            const sideA = ol.slice(3, nH), sideB = ol.slice(nH, ol.length - 3);
-            const tipArc = Array.from({ length: 9 }, (_, i) => { const aa = an - Math.PI / 2 + (i / 8) * Math.PI; return [tip[0] + Math.cos(aa) * wd * 0.5, tip[1] + Math.sin(aa) * wd * 0.5]; });
-            const lw = Math.max(1, R * 0.028);
-            line(press, sideA, taper(lw, 0.3, 0.02), LINE, { knock: false });
-            line(press, tipArc, lw, LINE, { knock: false });
-            line(press, sideB, taper(lw, 0.02, 0.3), LINE, { knock: false });
-            // the middle joint's crease across the back
-            const m = P[Math.floor(P.length * 0.5)], m2 = P[Math.floor(P.length * 0.5) + 1], a2 = Math.atan2(m2[1] - m[1], m2[0] - m[0]);
-            line(press, [[m[0] - Math.sin(a2) * wd * 0.25, m[1] + Math.cos(a2) * wd * 0.25], [m[0] + Math.cos(a2) * 1.5, m[1] + Math.sin(a2) * 1.5], [m[0] + Math.sin(a2) * wd * 0.25, m[1] - Math.cos(a2) * wd * 0.25]], taper(Math.max(0.8, R * 0.025)), LINE, { knock: false });
-            if (nail) { const nc = [tip[0] - Math.cos(an) * wd * 0.1, tip[1] - Math.sin(an) * wd * 0.1]; put(press, ellipse(nc[0], nc[1], wd * 0.3, wd * 0.24, an), { 'pink.s': 0.22, 'yellow.s': 0.06 }); line(press, Array.from({ length: 9 }, (_, i) => { const aa = an + Math.PI / 2 + (i / 8) * Math.PI; return [nc[0] + Math.cos(aa) * wd * 0.3 * Math.abs(Math.cos(aa - an)) + Math.cos(aa) * 0, nc[1] + Math.sin(aa) * wd * 0.24]; }), taper(lw * 0.8), LINE, { knock: false }); }
+        // the fingers, back to front; each shaded on its lower side, with its contour
+        // (the contour leaves out the finger's base, where it joins the hand: skip = how many of
+        // its first/last points belong to the base)
+        const SKIP = { index: [0, 6], little: [0, 1], ring: [0, 0], middle: [2, 2] };
+        for (const key of ['index', 'little', 'ring', 'middle']) {
+            const pts = APPLE_HAND[key], P = pts.map(X);
+            put(press, shape(pts), spec);
+            // curled fingers under the apple sit in its shadow
+            if (key === 'ring' || key === 'little') { press.save(); press.clip(shape(pts)); Ph.ink(press, shape(pts), { 'pink.s': key === 'little' ? 0.2 : 0.12 }); press.restore(); }
+            const [s0, s1] = SKIP[key];
+            const open = key === 'index' ? P.slice(0, 6).reverse().concat(P.slice(6).reverse()).reverse() : P.slice(s0, P.length - s1);
+            line(press, Ph.sample(key === 'index' ? P.slice(6).concat(P.slice(0, 6)) : open, key === 'ring', 8), taper(lw, 0.1, 0.1), LINE, { knock: false });
         }
-        // the knuckles: a few light bumps along the hand's upper edge
-        for (const q of [[-1.25, 0.85], [-0.62, 1.12]]) { const p = X(q); press.knockout(ellipse(p[0], p[1], R * 0.12, R * 0.07, 0)); }
+        // the hand's outer edges
+        const outline = (pts) => line(press, Ph.sample(pts.map(X), false, 8), taper(lw, 0.1, 0.2), LINE, { knock: false });
+        outline([[-1.4, 0.36], [-1.54, 0.62], [-1.55, 0.87], [-1.42, 1.15], [-1.25, 1.43], [-1.1, 1.66]]);
+        outline([[-0.65, 2.06], [-0.29, 2.22], [-0.02, 2.46], [0.33, 2.6], [0.74, 2.79], [1.02, 3.01], [1.38, 3.29]]);
+        outline([[1.03, 0.35], [1.23, 0.67], [1.43, 0.89], [1.54, 1.15], [1.6, 1.43], [1.75, 1.63], [1.98, 1.93], [2.36, 2.25]]);
+        for (const cr of APPLE_HAND.creases) line(press, Ph.sample(cr.map(X), false, 5), taper(lw * 0.9), LINE, { knock: false });
+        for (const [q, a, rx, ry] of APPLE_HAND.nails) {
+            const p = X(q), an = f > 0 ? a : Math.PI - a;
+            put(press, ellipse(p[0], p[1], rx * R, ry * R, an), { 'pink.s': 0.2, 'yellow.s': 0.05 });
+            line(press, Array.from({ length: 17 }, (_, i) => { const t = (i / 16) * 6.2832, x = Math.cos(t) * rx * R, y = Math.sin(t) * ry * R; return [p[0] + x * Math.cos(an) - y * Math.sin(an), p[1] + x * Math.sin(an) + y * Math.cos(an)]; }), lw * 0.8, LINE, { knock: false });
+        }
     }
 
     // ── Newton ───────────────────────────────────────────────────────────────────────────
