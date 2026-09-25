@@ -4,7 +4,8 @@
 - **Format:** 1:1 · 28 s · 24 fps (the reference is 1080²)
 - **Purpose:** a 1:1 study of a riso-printed film, to build the risograph style. **Internal
   study:** someone else's work, not published as ours.
-- **Reference:** `references/opus5-risograph.mp4` (a video from X, author to be credited),
+- **Reference:** `references/opus5-risograph.mp4` ([a film by Kevin Ngo](https://x.com/kevin_t_ngo/status/2099477219877978289),
+  [@kevin_t_ngo](https://x.com/kevin_t_ngo)),
   copied to `out/reference.mp4` (not committed).
 - **The film:** a blue dot on paper; illustrations open one inside another in circles round
   it (a grasshopper on the moon, jellyfish, a bell with an owl, a lighthouse, a wolf, a

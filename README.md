@@ -75,7 +75,7 @@ how you made it too.
 <td width="50%" valign="top">
 <a href="sandbox/2026-09-24-opus5-riso/"><img src="sandbox/2026-09-24-opus5-riso/render/opus5-riso.gif" alt="opus5-riso"></a><br>
 <b><a href="sandbox/2026-09-24-opus5-riso/">opus5-riso</a></b> · risograph · 28 s · <a href="sandbox/2026-09-24-opus5-riso/render/opus5-riso.mp4">mp4</a><br>
-<sub>A 1:1 replica, made as a study, of a risograph film shared on X (credit to its author pending); the original design and animation are theirs. Four spot inks, halftone and misregistration from a simulated press, scored tile by tile against the original by the detail gate.</sub>
+<sub>A 1:1 replica, made as a study, of <a href="https://x.com/kevin_t_ngo/status/2099477219877978289">a risograph film by Kevin Ngo</a> (<a href="https://x.com/kevin_t_ngo">@kevin_t_ngo</a>). The original design and animation are his. Four spot inks, halftone and misregistration from a simulated press, scored tile by tile against the original by the detail gate.</sub>
 </td>
 </tr>
 <tr>
