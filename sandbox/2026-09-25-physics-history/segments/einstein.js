@@ -618,14 +618,26 @@ function einsteinBody(press, o) {
     }
     line(press, [[16, 2], [34, 8], [48, 6]], taper(2.4), { 'pink.s': 0.5, 'navy.s': 0.15 });
     // the moustache: full and dark, covering the upper lip, strands combed down
+    // (o.bold: for a small head, the moustache and hair pushed bigger so they still read as
+    // Einstein at a distance; neat, thin versions read as Tesla)
+    if (o.bold) { press.save(); press.each((g) => { g.translate(58, 34); g.scale(1.3, 1.35); g.translate(-58, -30); }); }
     const mo = [[42, 24], [58, 20], [70, 22], [80, 30], [78, 40], [66, 42], [52, 44], [40, 40], [36, 30]];
     put(press, (g) => smooth(g, mo), HAIR);
     for (const [a, b] of [[[48, 26], [46, 40]], [[58, 24], [58, 40]], [[68, 26], [70, 39]]]) line(press, [a, b], taper(2.2), HAIR_LT);
     line(press, [[40, 38], [56, 43], [76, 38]], taper(2.4), HAIR_DK);
+    if (o.bold) press.restore();
     // hair: a thick, wavy dark mass brushed up and back off the brow (the 1910s portraits),
     // full over the ear and at the back, a few wisps lifting at the crown
     const wv = o.hairWave ?? 0;
+    // (o.neat: the young man's shorter hair, 1905: the mass pressed closer to the skull, no wisps)
+    if (o.neat) { press.save(); press.each((g) => { g.translate(-10, -20); g.scale(0.84, 0.78); g.translate(10, 20); }); }
+    if (o.bold) { press.save(); press.each((g) => { g.translate(-30, -20); g.scale(1.2, 1.22); g.translate(30, 20); }); }
     put(press, (g) => smooth(g, [[42, -64], [50, -84], [48, -102], [40, -118], [26, -130], [16, -134], [-2, -140], [-22, -134], [-40, -138], [-60, -126], [-78, -120], [-90, -104], [-104, -92], [-106, -72], [-114, -54], [-110, -34], [-114, -14], [-104, 6], [-100, 24], [-86, 36], [-72, 48], [-56, 40], [-44, 16], [-36, -20], [-14, -54], [10, -64], [36, -62]]), HAIR);
+    // (o.bold: an uneven silhouette of wavy tufts, so the mass reads as unruly hair, not a helmet)
+    if (o.bold) for (const [x, y, r, a] of [[40, -104, 15, -0.6], [22, -128, 17, -0.3], [-4, -140, 16, 0.1], [-32, -140, 18, -0.2], [-62, -128, 17, 0.3], [-88, -110, 16, 0.6], [-106, -84, 15, 0.9], [-116, -54, 14, 1.2], [-114, -22, 13, 1.4], [-104, 12, 12, 1.7]]) {
+        const w = wv * 0.4;
+        put(press, (g) => smooth(g, [[x - r, y + 4], [x - r * 0.6 + w, y - r * 0.9], [x + r * 0.4 + w, y - r * 1.1], [x + r * 1.1, y - r * 0.3], [x + r * 0.6, y + r * 0.5]].map(([px, py]) => [x + (px - x) * Math.cos(a) - (py - y) * Math.sin(a), y + (px - x) * Math.sin(a) + (py - y) * Math.cos(a)])), HAIR);
+    }
     const L = (pts, w, oo) => lock(press, pts, w, { ...oo, lit: false });
     // from the brow up and back over the crown, in waves
     L([[44, -68], [44, -98], [22, -122], [-8, -130], [-44, -124], [-78, -104]], 28, { a: 0.15, b: 0.3 });
@@ -636,7 +648,8 @@ function einsteinBody(press, o) {
     L([[-24, -40], [-42, -24], [-52, 2], [-66, 26], [-60, 44]], 20, { a: 0.1, b: 0.4 });
     L([[-12, -58], [-28, -38], [-34, -12], [-40, 12]], 13, { a: 0.1, b: 0.5 });
     // wisps lifting off the crown and the back (tousled, soft, never spikes)
-    for (const [pts, w] of [
+    // (at a small scale the wisps read as spikes: none for o.bold)
+    if (!o.neat && !o.bold) for (const [pts, w] of [
         [[[8, -130], [18, -144 + wv], [32, -148 + wv]], 10],
         [[[-22, -132], [-26, -148 + wv], [-14, -158 + wv]], 10],
         [[[-70, -116], [-88, -126 + wv], [-100, -122 + wv]], 9],
@@ -647,6 +660,8 @@ function einsteinBody(press, o) {
         line(press, Ph.sample([[x - 11 * Math.cos(a), y - 11 * Math.sin(a)], [x + 4 * Math.sin(a), y - 4 * Math.cos(a)], [x + 11 * Math.cos(a), y + 11 * Math.sin(a)]], false, 5), taper(3.4, 0.3, 0.3), HAIR_LT);
     }
     for (const pts of [[[38, -84], [16, -104], [-20, -104]], [[-38, -104], [-70, -92], [-92, -64]], [[-64, -68], [-84, -34], [-86, 6]], [[-44, -30], [-54, -4], [-66, 22]]]) line(press, pts, taper(2.6, 0.2, 0.3), HAIR_DK);
+    if (o.bold) press.restore();
+    if (o.neat) press.restore();
 }
 // Cast keeps its lock drawer private; the same drawer here
 function lock(press, pts, w, o = {}) {

@@ -61,19 +61,28 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             if (Q.length < 2) continue;
             // pale lines: the paper knocked back through the night, tinted blue-green
             const P2 = Q.map(([x, y]) => [x, y]), w = Math.max(1.4, 3 * Math.min(1, Q[0][2] * 1.2));
-            press.knockout((g) => { Ph.poly(g, Ph.outline(P2, w)); g.globalAlpha = 0.55; g.fill(); g.globalAlpha = 1; });
-            line(press, P2, w, { 'blue.s': 0.25, 'yellow.s': 0.12 }, { knock: false });
+            const al = 1 - S(fold, 0.55, 0.95);
+            if (al <= 0) continue;
+            press.knockout((g) => { Ph.poly(g, Ph.outline(P2, w)); g.globalAlpha = 0.55 * al; g.fill(); g.globalAlpha = 1; });
+            line(press, P2, w, { 'blue.s': 0.25 * al, 'yellow.s': 0.12 * al }, { knock: false });
         }
     }
     // the cube's edges at the end: amber, clean, over the folded grid
     function cube(press, t) {
-        const k = IO(S(t, T.fold[1] - 0.8, T.fold[1]));
+        const k = IO(S(t, T.fold[0] + 0.6, T.fold[1] - 0.3));
         if (k <= 0) return;
         const c = [0, 0, 900], h = 350, a = 0.5 + 0.3 * IO(S(t, T.fold[0], T.end)), b = 0.35;
         const R = ([x, y, z]) => { const x1 = x * Math.cos(a) - z * Math.sin(a), z1 = x * Math.sin(a) + z * Math.cos(a); const y1 = y * Math.cos(b) - z1 * Math.sin(b), z2 = y * Math.sin(b) + z1 * Math.cos(b); return proj(c[0] + x1, c[1] + y1, c[2] + z2); };
         const V = [];
         for (const x of [-h, h]) for (const y of [-h, h]) for (const z of [-h, h]) V.push([x, y, z]);
         const E = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]];
+        // a faint grid on the three back faces (what is left of spacetime's lattice), then the edges
+        for (const [ax, sg] of [[0, 1], [1, 1], [2, 1]]) for (let i = 1; i < 4; i++) for (const dir of [0, 1]) {
+            const u = -h + i * (2 * h / 4), a3 = [0, 0, 0], b3 = [0, 0, 0], o1 = (ax + 1 + dir) % 3, o2 = (ax + 2 - dir) % 3;
+            a3[ax] = sg * h; b3[ax] = sg * h; a3[o1] = u; b3[o1] = u; a3[o2] = -h; b3[o2] = h;
+            const p = R(a3), q = R(b3);
+            press.knockout((g) => { Ph.poly(g, Ph.outline([[p[0], p[1]], [q[0], q[1]]], 2)); g.globalAlpha = 0.4 * k; g.fill(); g.globalAlpha = 1; });
+        }
         for (const [i, j] of E) { const p = R(V[i]), q = R(V[j]); line(press, [[p[0], p[1]], [q[0], q[1]]], 6 * k, AMBER); }
     }
 
@@ -85,7 +94,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         for (let x = -40; x <= front; x += 8) {
             if (b > 0) {
                 const sp = proj(sn.p[0], sn.p[1], sn.p[2]), dx = sp[0] - x, dy = sp[1] - y, r2 = dx * dx + dy * dy;
-                vy += b * 900 * dy / Math.pow(r2 + 900, 1.5) * 8;
+                vy += b * 260 * dy / Math.pow(r2 + 900, 1.5) * 8;
             }
             y += vy * 8;
             pts.push([x, y]);
@@ -106,8 +115,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // ── the Sun: a disc with a limb, granules and prominences, pulling the grid ─────────────
     function sun(press, t) {
         const sn = sunAt(t);
-        if (sn.u <= 0 || t > T.fold[0] + 1.2) return;
-        const p = proj(sn.p[0], sn.p[1], sn.p[2]), R = sn.R * p[2] * (1 - IO(S(t, T.fold[0], T.fold[0] + 1.2)));
+        if (sn.u <= 0) return;
+        const p = proj(sn.p[0], sn.p[1], sn.p[2]), R = sn.R * p[2];
         press.knockout((g) => { g.fillStyle = Riso.radial(g, p[0], p[1], R, R * 1.8, 0.7, 0); g.beginPath(); g.arc(p[0], p[1], R * 1.8, 0, 6.2832); g.fill(); });
         put(press, circle(p[0], p[1], R), { yellow: 1, 'pink.s': 0.35 });
         ink(press, circle(p[0], p[1], R), { 'pink.s': (g) => Riso.radial(g, p[0], p[1], R * 0.5, R, 0, 0.5) });
@@ -116,38 +125,96 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         for (let i = 0; i < 9; i++) { const a = i * 0.7 + t * 0.1, q = [p[0] + Math.cos(a) * R, p[1] + Math.sin(a) * R]; line(press, [q, [q[0] + Math.cos(a + 0.3) * R * 0.14, q[1] + Math.sin(a + 0.3) * R * 0.14], [q[0] + Math.cos(a) * R * 0.06, q[1] + Math.sin(a) * R * 0.06]], taper(R * 0.03, 0.2, 0.6), { pink: 0.8, yellow: 1 }); }
     }
 
-    // ── Einstein running (young, 1905: dark hair, moustache, a suit) ──────────────────────
-    const U = 1.0;
+    // ── Einstein running (young, 1905: short dark hair, a moustache, a dark three-piece suit)
+    // A 7.5-head figure about 830 tall. The run on a 2.6 Hz stride: the legs swing from the
+    // hip, the knee lifts in front, the arms swing opposite with bent elbows and loose fists;
+    // the body leans into it and bobs. Every piece is drawn in its own shape, shaded on the
+    // side turned from the ray's light (the ray is above and ahead: lit edges at front-top).
+    const WOOL = { 'navy.s': 0.82, 'yellow.s': 0.62, 'pink.s': 0.44, 'blue.s': 0.22 };
+    const WOOL_LT = { 'navy.s': 0.62, 'yellow.s': 0.58, 'pink.s': 0.42, 'blue.s': 0.24 };
+    const WOOL_DK = { navy: 1, 'yellow.s': 0.7, 'pink.s': 0.5, 'blue.s': 0.2 };
+    const SHOE = { navy: 1, yellow: 1, 'pink.s': 0.55 };
+    const EDGE = { 'pink.s': 0.6, 'navy.s': 0.45 };
     function runner(press, t, x0, ground) {
         const ph = t * 2.6 * 6.2832, su = P();
-        const bob = -Math.abs(Math.sin(ph)) * 14;
-        const hip = [x0, ground - 360 + bob], sh = [x0 + 40, ground - 610 + bob], head = [x0 + 78, ground - 700 + bob];
-        const legAt = (k) => { const a = Math.sin(ph + k * Math.PI); return [hip[0] + a * 150, ground - Math.max(0, Math.cos(ph + k * Math.PI)) * 70]; };
-        const armAt = (k) => { const a = Math.sin(ph + k * Math.PI + Math.PI); return [sh[0] + a * 120 + 20, sh[1] + 180 - Math.abs(a) * 40]; };
-        const limb = (a, b, l1, l2, pole, w, spec, end) => {
-            const [m] = Fig.ik(a, b, l1, l2, pole);
-            line(press, [a, m, b], (u) => L(w, w * 0.75, u), spec);
-            end?.(b, m);
+        const bob = -Math.abs(Math.sin(ph)) * 16;
+        const lean = 0.2, cl = Math.cos(lean), sl = Math.sin(lean);
+        const hip = [x0, ground - 390 + bob];
+        // body frame: x forward, y down the spine, pivoting at the hip
+        const B = (x, y) => [hip[0] + x * cl - y * sl, hip[1] + x * sl + y * cl];
+        const sh = B(10, -250), neck = B(22, -290);
+        // a leg: the foot's target on the stride ellipse; knee pole forward
+        const legAt = (k) => { const a = ph + k * Math.PI, sw = Math.sin(a); return [hip[0] + sw * 170 + 20, ground - Math.max(0, Math.cos(a)) * 110 - 4]; };
+        const leg = (k, far) => {
+            const hp = B(far ? -12 : 8, 0), ft = legAt(k);
+            const [kn, an] = Fig.ik(hp, ft, 205, 195, [hp[0] + 300, hp[1] + 60]);
+            const spec = far ? WOOL_DK : WOOL;
+            Fig.seg(press, hp, kn, 78, 60, spec);
+            Fig.seg(press, kn, an, 58, 44, spec);
+            if (!far) {
+                // the crease down the front of the trouser leg, lit
+                line(press, [[hp[0] + 22, hp[1] + 10], [kn[0] + 18, kn[1] - 6], [an[0] + 12, an[1] - 14]], taper(4, 0.2, 0.3), WOOL_LT, { knock: false });
+                line(press, [[kn[0] - 22, kn[1] + 4], [kn[0] - 6, kn[1] + 14]], taper(3), EDGE, { knock: false });
+            }
+            // the shoe: an oxford in profile, its toe along the ground or pointing down in the swing
+            const fa = Math.atan2(an[1] - kn[1], an[0] - kn[0]) - Math.PI / 2, ca = Math.cos(fa), sa = Math.sin(fa);
+            const S2 = (x, y) => [an[0] + x * ca - y * sa, an[1] + x * sa + y * ca];
+            put(press, (g) => smooth(g, [S2(-24, -10), S2(10, -18), S2(50, -8), S2(72, 8), S2(70, 22), S2(-26, 22), S2(-30, 6)]), SHOE);
+            line(press, [S2(-28, 20), S2(70, 20)], 5, { 'yellow.s': 0.4, 'navy.s': 0.4 }, { knock: false });
+            line(press, [S2(30, -12), S2(44, 2)], taper(3), { 'yellow.s': 0.4, 'blue.s': 0.3 }, { knock: false });
+            put(press, (g) => g.rect(an[0] - 26, an[1] - 30, 4, 4), SHOE);
         };
-        const shoe = (p, m) => put(press, (g) => smooth(g, [[p[0] - 16, p[1] - 22], [p[0] + 40, p[1] - 18], [p[0] + 46, p[1]], [p[0] - 20, p[1]]]), { navy: 1, yellow: 1, 'pink.s': 0.5 });
-        const hand = (p) => put(press, circle(p[0], p[1], 20), SKIN);
-        // far limbs first
-        limb([hip[0] - 10, hip[1]], legAt(1), 170, 170, [hip[0] + 200, hip[1] + 100], 58, su.SUIT_DK, shoe);
-        limb([sh[0] - 14, sh[1] + 10], armAt(1), 150, 140, [sh[0] - 60, sh[1] + 200], 48, su.SUIT_DK, hand);
-        // the body leaning into the run: jacket tails flying
-        const lean = 0.25;
-        press.save(); press.each((g) => { g.translate(hip[0], hip[1]); g.rotate(lean); g.translate(-hip[0], -hip[1]); });
-        put(press, (g) => smooth(g, [[hip[0] - 60, hip[1] + 20], [hip[0] - 70, hip[1] - 120], [sh[0] - 70, sh[1] + 10], [sh[0] - 10, sh[1] - 30], [sh[0] + 60, sh[1] - 10], [sh[0] + 70, sh[1] + 120], [hip[0] + 60, hip[1] + 10]]), su.SUIT);
-        put(press, (g) => poly(g, [[sh[0] + 20, sh[1] - 20], [sh[0] + 64, sh[1] - 6], [sh[0] + 50, sh[1] + 150], [sh[0] + 20, sh[1] + 60]]), Cast.LINEN);
-        put(press, (g) => poly(g, [[sh[0] + 36, sh[1] - 16], [sh[0] + 50, sh[1] - 10], [sh[0] + 44, sh[1] + 100]]), { navy: 1, 'pink.s': 0.65 });
-        const fl = Math.sin(ph * 0.5) * 20;
-        put(press, (g) => smooth(g, [[hip[0] - 60, hip[1] + 10], [hip[0] - 150, hip[1] + 40 + fl], [hip[0] - 170, hip[1] + 90 + fl], [hip[0] - 40, hip[1] + 60]]), su.SUIT_DK);
+        // an arm swinging opposite its leg: upper arm from the shoulder, elbow bent ~90°, a loose
+        // fist (the fingers curled, the thumb over the index, knuckles leading)
+        const arm = (k, far) => {
+            const a = Math.sin(ph + k * Math.PI + Math.PI), s0 = far ? B(-6, -236) : B(18, -238);
+            const el = [s0[0] - a * 120 + 6, s0[1] + 140];
+            const wr = [el[0] + 60 + a * 90, el[1] - 60 + Math.abs(a) * 40];
+            const spec = far ? WOOL_DK : WOOL;
+            Fig.seg(press, s0, el, 60, 50, spec);
+            Fig.seg(press, el, wr, 50, 42, spec);
+            if (!far) line(press, [[s0[0] + 16, s0[1] + 6], [el[0] + 14, el[1] - 6]], taper(4, 0.2, 0.3), WOOL_LT, { knock: false });
+            // the shirt cuff, then the fist
+            const d = Math.atan2(wr[1] - el[1], wr[0] - el[0]), dx = Math.cos(d), dy = Math.sin(d);
+            const X = (x, y) => [wr[0] + x * dx - y * dy, wr[1] + x * dy + y * dx];
+            put(press, (g) => smooth(g, [X(-6, -20), X(8, -21), X(10, 21), X(-6, 20)]), Cast.LINEN);
+            const skin = far ? SKIN_SH : SKIN;
+            put(press, (g) => smooth(g, [X(6, -18), X(30, -22), X(50, -16), X(58, 0), X(54, 18), X(30, 22), X(8, 18)]), skin);
+            // the curled fingers' backs: three creases; the thumb along the top over the index
+            for (const y of [-8, 2, 12]) line(press, [X(44, y), X(52, y + 1)], taper(1.6), EDGE, { knock: false });
+            line(press, [X(14, -20), X(36, -24), X(50, -18)], taper(10, 0.2, 0.4), skin);
+            line(press, [X(18, -14), X(40, -16)], taper(1.4), EDGE, { knock: false });
+        };
+        // far arm and leg first
+        arm(0, true);
+        leg(1, true);
+        // the jacket: shoulders, chest, back, skirts to the hip that fly back with the run
+        const fly = 10 + 8 * Math.sin(ph * 2);
+        const JACK = [B(-56, -250), B(-10, -272), B(50, -266), B(70, -210), B(72, -60), B(62, 34), B(10, 46), B(-44, 44), B(-66 - fly, 36), B(-64, -40), B(-66, -160)];
+        put(press, (g) => smooth(g, JACK), WOOL);
+        press.save(); press.clip((g) => smooth(g, JACK));
+        // the back in shade, a seam, the lit front edge
+        ink(press, (g) => smooth(g, [B(-120, -300), B(-30, -300), B(-40, 80), B(-160, 80)]), { navy: 0.35 });
+        line(press, [B(-20, -250), B(-26, -60), B(-40, 40)], taper(3), WOOL_DK, { knock: false });
         press.restore();
-        // the head (from the approved Einstein drawing), leaning forward, eyes on the pulse
-        Ph.cam(press, head[0], head[1], 0.72, () => { press.each((g) => g.rotate(0.12)); su.einsteinBody(press, { headOnly: true, look: [1, 0.1], brow: 6, hairWave: Math.sin(ph) * 6 }); });
-        // near limbs
-        limb(hip, legAt(0), 170, 170, [hip[0] + 200, hip[1] + 100], 62, su.SUIT, shoe);
-        limb([sh[0] + 6, sh[1] + 10], armAt(0), 150, 140, [sh[0] - 60, sh[1] + 200], 52, su.SUIT, (p, m) => { put(press, (g) => { g.beginPath(); g.ellipse(p[0], p[1], 14, 20, 0, 0, 6.2832); }, Cast.LINEN); hand([p[0] + 8, p[1] + 10]); });
+        // the opening: waistcoat, shirt, a dark tie; lapels; buttons
+        put(press, (g) => poly(g, [B(34, -262), B(62, -258), B(70, -120), B(58, -40), B(40, -60), B(36, -180)]), { navy: 1, 'yellow.s': 0.5, 'pink.s': 0.5 });
+        put(press, (g) => poly(g, [B(38, -266), B(62, -262), B(58, -200), B(44, -186)]), Cast.LINEN);
+        put(press, (g) => poly(g, [B(50, -262), B(58, -262), B(60, -196), B(54, -186), B(48, -196)]), { navy: 1, 'pink.s': 0.6 });
+        put(press, (g) => poly(g, [B(28, -266), B(46, -250), B(66, -130), B(56, -110), B(30, -200)]), WOOL_LT);
+        line(press, [B(30, -262), B(48, -248), B(66, -130)], taper(3), EDGE, { knock: false });
+        for (let i = 0; i < 3; i++) { const q = B(64, -100 + i * 36); put(press, circle(q[0], q[1], 4.5), { navy: 1, yellow: 0.8 }); }
+        line(press, [B(10, -40), B(56, -44)], taper(3), WOOL_DK, { knock: false });
+        // neck and collar
+        put(press, (g) => smooth(g, [B(8, -276), B(40, -278), B(44, -306), B(12, -310)]), SKIN_SH);
+        put(press, (g) => smooth(g, [B(4, -270), B(46, -272), B(50, -290), B(6, -292)]), Cast.LINEN);
+        // the head: the approved Einstein face, with his own thick tousled hair (the neat short hair read as Tesla), leaning into the run, eyes on
+        // the pulse ahead; scaled to a 7.5-head figure
+        const hc = B(40, -330);
+        Ph.cam(press, hc[0], hc[1], 0.6, () => { press.each((g) => g.rotate(lean * 0.6)); su.einsteinBody(press, { headOnly: true, bold: true, look: [1, 0.05], brow: 4, hairWave: Math.sin(ph) * 4 }); });
+        // near leg and arm
+        leg(0, false);
+        arm(1, false);
     }
 
     Seg.einsteinRay = {
@@ -158,12 +225,15 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             put(press, (g) => g.rect(0, 0, 1600, 900), { blue: 0.9, 'navy.s': 0.92, 'pink.s': 0.2 });
             const fold = IO(S(t, T.fold[0], T.fold[1]));
             grid(press, t, fold);
-            sun(press, t);
             // the pulse runs ahead at the frame's right third; they keep up with it (the camera
             // runs with them); at the end it stays on screen as the cube's edge takes over
             const front = t < T.enter[0] ? 1640 : L(1640, 1180, IO(S(t, T.enter[0], T.enter[1])));
-            const show = 1 - S(t, T.fold[0], T.fold[0] + 0.8);
-            if (show > 0) {
+            // during the fold the camera draws back: the runners, the ray and the pulse shrink
+            // towards the middle and end up inside the cube, still running
+            const zb = L(1, 0.26, IO(S(t, T.fold[0], T.fold[1])));
+            press.save(); press.each((g) => { g.translate(800, 450); g.scale(zb, zb); g.translate(-800, -450 - 60 * (1 - zb)); });
+            sun(press, t);
+            {
                 const pts = ray(press, t, front);
                 // the cat, chasing the pulse like a laser dot: galloping just below it, pouncing
                 const e = pts[pts.length - 1] ?? [front, RY];
@@ -174,6 +244,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 const ex = L(-500, e[0] - 620, IO(S(t, T.enter[0], T.enter[1] + 0.4)));
                 runner(press, t, ex, 1010);
             }
+            press.restore();
             cube(press, t);
         },
     };
