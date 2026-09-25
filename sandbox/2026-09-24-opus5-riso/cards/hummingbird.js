@@ -23,17 +23,13 @@ CARDS.hummingbird = (press, t) => {
         // 120 k; cells under the bird or a leaf filled from their neighbours): a lemon glow
         // behind the bird, denser toward the leaves and the bottom
         const GBK = 1.0;
-        const GB = [
-            [.65, .45, .40, .25, .20, .20, .30, .40, .30],
-            [.45, .30, .40, .30, .30, .25, .25, .30, .45],
-            [.45, .20, .20, .25, .20, .25, .10, .35, .25],
-            [.40, .25, .20, .20, .25, .15, .15, .30, .40],
-            [.45, .30, .30, .25, .20, .15, .15, .25, .35],
-            [.45, .35, .30, .20, .25, .20, .25, .30, .50],
-            [.50, .55, .40, .35, .35, .35, .35, .40, .50],
-            [.55, .60, .55, .50, .50, .45, .50, .50, .50],
-            [.65, .55, .70, .60, .65, .45, .50, .30, .55],
-        ];
+        // the coverage table (private/hummingbird-data.js) when present; else the fallback: a
+        // lemon glow centred behind the bird (600, 540), coverage 0.19 there rising to ~0.75 at
+        // the corners, steeper below (measured stops)
+        const GB = (typeof G3DATA !== 'undefined' && G3DATA.hummingbird && G3DATA.hummingbird.GB) || Array.from({ length: 9 }, (_, j) => Array.from({ length: 9 }, (_, i) => {
+            const x = 60 + 120 * i, y = 60 + 120 * j, r = Math.hypot((x - 600) / 1.2, (y - 540) / (y > 540 ? 0.8 : 1.05));
+            return 0.19 + (y > 540 ? 0.66 : 0.56) * Math.pow(Math.max(0, Math.min(1, (r - 140) / 560)), 1.25);
+        }));
         const gb = (x, y) => {
             const fx = Math.max(0, Math.min(7.999, (x - 60) / 120)), fy = Math.max(0, Math.min(7.999, (y - 60) / 120));
             const i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j;

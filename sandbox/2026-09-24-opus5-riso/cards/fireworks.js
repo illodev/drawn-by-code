@@ -14,9 +14,9 @@ const DRAW_FIREWORKS = (press, t) => {
     // ── sky: navy + blue dots at the top, pink rising to a purple haze at the horizon
     navyS.fillStyle = R.ramp(navyS, 0, 0, 0, HOR, 0.5, 0.72);
     navyS.fillRect(0, 0, 1000, HOR);
-    blueS.fillStyle = R.ramp(blueS, 0, 0, 0, HOR, 0.6, 0.3);
+    blueS.fillStyle = R.ramp(blueS, 0, 0, 0, HOR, 0.72, 0.45);
     blueS.fillRect(0, 0, 1000, HOR);
-    pinkS.fillStyle = R.ramp(pinkS, 0, 100, 0, HOR, 0.08, 0.6);
+    pinkS.fillStyle = R.ramp(pinkS, 0, 220, 0, HOR, 0.02, 0.5);
     pinkS.fillRect(0, 0, 1000, HOR);
     // soft purple smoke drifting across the middle
     for (const [x, y, rx, ry, v] of [[160, 470, 260, 70, 0.28], [520, 560, 300, 60, 0.3], [880, 330, 200, 90, 0.18], [420, 200, 160, 110, 0.12]]) {
@@ -52,7 +52,7 @@ const DRAW_FIREWORKS = (press, t) => {
         g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(xm, ym, x1, y1); g.stroke();
     };
     // a big yellow chrysanthemum: thick tapering rays with round tips, the sky knocked out under them
-    const bigYellow = (g, knock) => rays('y', 276, 297, 38, 238, 84, (x0, y0, xm, ym, x1, y1, r, i) => {
+    const bigYellow = (g, knock) => rays('y', 269, 272, 38, 250, 84, (x0, y0, xm, ym, x1, y1, r, i) => {
         const w = (i % 3 === 0 ? 5.2 : 3.8) + r() * 1.4, pad = knock ? 1.5 : 0;
         g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(xm, ym, x1, y1);
         g.lineCap = 'round';
@@ -70,7 +70,7 @@ const DRAW_FIREWORKS = (press, t) => {
         const r = Motion.rng('fw-heart');
         for (let i = 0; i < 70; i++) {
             const a = r() * 7, rr = Math.sqrt(r()) * 44;
-            g.beginPath(); g.arc(276 + Math.cos(a) * rr, 297 + Math.sin(a) * rr, 2.6, 0, 7); g.fill();
+            g.beginPath(); g.arc(269 + Math.cos(a) * rr, 266 + Math.sin(a) * rr, 2.6, 0, 7); g.fill();
         }
     });
 
@@ -104,7 +104,7 @@ const DRAW_FIREWORKS = (press, t) => {
         g.beginPath(); g.arc(x1, y1, 2.6, 0, 7); g.fill();
     });
     press.knockout(whiteRays);
-    pinkS.strokeStyle = T(0.18); pinkS.fillStyle = T(0.18); whiteRays(pinkS);
+    pinkS.strokeStyle = T(0.08); pinkS.fillStyle = T(0.08); whiteRays(pinkS);
 
     // the red-orange burst (pink + yellow) and the small yellow one
     const thin = (seed, cx, cy, R1, n, w) => (g) => rays(seed, cx, cy, 0, R1, n, (x0, y0, xm, ym, x1, y1, r) => {
@@ -159,8 +159,8 @@ const DRAW_FIREWORKS = (press, t) => {
     for (const [x, y, rr] of [[150, 760, 180], [520, 930, 220], [860, 820, 170], [380, 700, 120]]) { navy.fillStyle = R.radial(navy, x, y, 0, rr, 0.18, 0); navy.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
     const rw = Motion.rng('fw-water');
     const streaks = [];
-    for (let i = 0; i < 300; i++) {
-        const y = HOR + 8 + rw() * 340, x = rw() * 1050 - 50, L = 25 + rw() * 120;
+    for (let i = 0; i < 180; i++) {
+        const y = HOR + 8 + rw() * 340, x = rw() * 1050 - 50, L = 15 + rw() * 70;
         streaks.push([x, y, L, 1.8 + rw() * 1.8]);
     }
     for (const g of [navy, pink]) {
@@ -182,9 +182,9 @@ const DRAW_FIREWORKS = (press, t) => {
         press.knockout((g) => bars.forEach(([x, y, w, h]) => g.fillRect(x - 1, y - 1, w + 2, h + 2)));
         for (const [ink, v] of inks) { const g = press.plate(ink); g.fillStyle = T(v); bars.forEach(([x, y, w, h]) => g.fillRect(x, y, w, h)); }
     };
-    refl('y', 272, 150, HOR + 8, 1000, [['yellow', 1]], 110, 95);
+    refl('y', 262, 150, HOR + 8, 1000, [['yellow', 1]], 85, 70);
     refl('p', 750, 90, HOR + 8, 880, [['pink', 1]], 60, 80);
-    refl('w', 605, 60, HOR + 8, 820, [], 34, 60);
+    refl('w', 605, 60, HOR + 8, 820, [], 22, 50);
     refl('o', 92, 30, HOR + 8, 1000, [['pink', 1], ['yellow', 1]], 30, 34);
     refl('s', 925, 30, HOR + 8, 1000, [['yellow', 1]], 32, 38);
     refl('m', 500, 900, 880, 1000, [['yellow', 1]], 16, 30);

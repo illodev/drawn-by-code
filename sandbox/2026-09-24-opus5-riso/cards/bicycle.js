@@ -73,11 +73,14 @@ const DRAW_BICYCLE = (press, t) => {
         // (at 3×: every bract is pocked with paper pinholes, one or two per lobe)
         press.knockout((g) => { g.beginPath(); for (let k = 0; k < 3; k++) { const b = a + k * 2.094 + 0.4; const px = x + Math.cos(b) * s * 0.62, py = y + Math.sin(b) * s * 0.62; g.moveTo(px + 1.6, py); g.arc(px, py, 1.6, 0, 7); } g.fill(); });
     };
-    // the bracts, laid out from measured density: the share of pink and of red pixels per
-    // 60 px block of the reference (f259, tenths; the basket excluded, drawn on its own).
-    // Each block gets bracts in proportion (one bract ≈ 300 px² of ink), placed at random.
-    const PINK = ['110000031343013000', '131000000544432000', '031001513332012200', '132000000032423400', '123000000000222000', '121300000000011000', '001310000000000000', '100000000000000002', '011000000000001200', '003200000000002210', '000000000001002100', '000000000000000100', '100000000000000000', '201000000000000000'];
-    const RED = ['110000022111011000', '131000103311110000', '220001113211032100', '011000000022111100', '142000000000111000', '231200000000100000', '511200000000000000', '510000000000000242', '121000000000000000', '001100000000000000', '000100000000000000', '001300000000000000', '100100000000000000', '011000000000000000'];
+    // the bracts: from the measured density (private/bicycle-data.js: pink / red share per 60 px
+    // block, tenths) when present; else the fallback, three named masses read off the frame:
+    // a band across the top (x 250–850, y 0–260 ref px), a column down the left (x 0–200,
+    // y 0–560) and a clump right of the bell (x 830–1000, y 400–560), 2–4 tenths each
+    const BD = (typeof G3DATA !== 'undefined' && G3DATA.bicycle) || null;
+    const zone = (i, j, k) => { const x = i * 60 + 30, y = j * 60 + 30; const inZ = (x > 250 && x < 850 && y < 260) || (x < 200 && y < 560) || (x > 830 && x < 1000 && y > 400 && y < 560); return inZ ? (k ? '2' : '3') : '0'; };
+    const PINK = BD ? BD.PINK : Array.from({ length: 14 }, (_, j) => Array.from({ length: 18 }, (_, i) => zone(i, j, 0)).join(''));
+    const RED = BD ? BD.RED : Array.from({ length: 14 }, (_, j) => Array.from({ length: 18 }, (_, i) => zone(i, j, 1)).join(''));
     const rb = Motion.rng('bc-bracts');
     for (let j = 0; j < PINK.length; j++) for (let i = 0; i < 18; i++) {
         for (const [tab, onPaper] of [[PINK, true], [RED, false]]) {
