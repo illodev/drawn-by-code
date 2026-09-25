@@ -552,6 +552,8 @@ function einsteinBody(press, o) {
     const LINE = { 'pink.s': 0.55, 'navy.s': 0.4 };
     const INK = { navy: 1 };
     const br = o.breath ?? 0;
+    // (o.headOnly: the head, neck and collar only, for a body drawn by another scene)
+    if (!o.headOnly) {
     // legs and shoes: the far leg a step behind, the near one in front; the floor at y = 660
     const fl = 660;
     put(press, (g) => smooth(g, [[-66, 420], [30, 420], [22, 540], [8, fl - 20], [-34, fl - 20], [-40, 540]]), SUIT_DK);
@@ -580,6 +582,7 @@ function einsteinBody(press, o) {
     // pocket flap and the jacket's hem
     put(press, (g) => poly(g, [[4, 350], [74, 346], [76, 362], [6, 366]]), SUIT_DK);
     line(press, [[-112, 438], [40, 448], [114, 438]], taper(3), SUIT_DK);
+    }
     // neck and wing collar
     put(press, (g) => smooth(g, [[-8, 44], [34, 48], [42, 100], [-12, 104]]), SKIN_SH);
     put(press, (g) => smooth(g, [[-26, 76], [22, 72], [60, 80], [62, 104], [8, 108], [-28, 104]]), LINEN);
@@ -961,6 +964,8 @@ function drawRays(press, c, tq, m, bf, clear, opts) {
 }
 
 Seg.einstein = {
+    // parts reused by the v2 segment (segments/einstein-ray.js)
+    parts: { einsteinBody, SUIT, SUIT_DK, SUIT_LT },
     init() {
         return { lat: buildLattice(), stars: buildStars().concat(buildGalaxies()) };
     },

@@ -103,6 +103,45 @@ const Cat = (() => {
         put(press, ellipse(60, -6, 18, 6), WHITE_SH);
         press.restore();
     }
+    // running flat out (a gallop), side-on, facing o.face; o.ph: the stride's phase (0..1),
+    // o: { x, y (the ground under it), s, face, ph, pounce (0..1: leaping, front paws up) }
+    function run(press, o) {
+        const f = o.face ?? 1, s = o.s ?? 1, ph = (o.ph ?? 0) * 6.2832, pc = o.pounce ?? 0;
+        press.save();
+        press.each((g) => { g.translate(o.x, o.y); g.scale(s * f, s); g.rotate(-0.35 * pc); });
+        const FUR = C.FUR, FUR_LT = C.FUR_LT, WHITE = C.WHITE;
+        const ext = Math.sin(ph), lift = -30 - 10 * Math.abs(Math.cos(ph)) - 40 * pc;
+        const leg = (hip, a, len, far) => {
+            const knee = [hip[0] + Math.cos(a) * len * 0.5, hip[1] + Math.sin(a) * len * 0.5 + 6];
+            const paw = [hip[0] + Math.cos(a) * len, hip[1] + Math.sin(a) * len];
+            line(press, [hip, knee, paw], taper(12, 0.2, 0.2), far ? FUR_LT : FUR);
+            put(press, ellipse(paw[0] + 3, paw[1], 8, 5), WHITE);
+        };
+        // far legs first
+        leg([-50, lift + 6], Math.PI / 2 - 0.9 * ext, 50, true);
+        leg([34, lift + 4], Math.PI / 2 + 0.9 * ext - 0.3 * pc, 46, true);
+        // the tail streaming behind, its tip white
+        const T = [[-60, lift - 6], [-96, lift - 16 - 6 * Math.sin(ph)], [-130, lift - 20 - 10 * Math.sin(ph + 1)]];
+        line(press, Ph.sample(T, false, 6), taper(12, 0.1, 0.5), FUR);
+        line(press, [T[1], T[2]].map(([x, y], i) => i ? [x, y] : [(x + T[2][0]) / 2, (y + T[2][1]) / 2]), taper(9, 0.2, 0.6), WHITE);
+        // the body, stretched long, the back flexing with the stride
+        const flex = 8 * Math.cos(ph);
+        const B = [[-66, lift - 4], [-40, lift - 30 - flex], [10, lift - 34 - flex], [46, lift - 24], [56, lift], [30, lift + 18], [-30, lift + 18]];
+        put(press, (g) => smooth(g, B), FUR);
+        line(press, [[-56, lift - 16], [-20, lift - 30 - flex], [30, lift - 28 - flex]], taper(5, 0.2, 0.3), FUR_LT, { knock: false });
+        // the head forward, ears back a little, the eye on its quarry
+        const H = [70, lift - 24];
+        put(press, (g) => poly(g, [[H[0] - 10, H[1] - 14], [H[0] - 16, H[1] - 38], [H[0], H[1] - 20]]), FUR);
+        put(press, (g) => poly(g, [[H[0] + 2, H[1] - 20], [H[0] + 4, H[1] - 42], [H[0] + 16, H[1] - 18]]), FUR);
+        put(press, (g) => smooth(g, [[H[0] - 20, H[1] + 4], [H[0] - 18, H[1] - 18], [H[0], H[1] - 24], [H[0] + 22, H[1] - 14], [H[0] + 28, H[1]], [H[0] + 10, H[1] + 12]]), FUR);
+        put(press, (g) => smooth(g, [[H[0] + 16, H[1] - 4], [H[0] + 30, H[1] - 2], [H[0] + 28, H[1] + 6], [H[0] + 16, H[1] + 8]]), WHITE);
+        put(press, ellipse(H[0] + 10, H[1] - 10, 5, 4, -0.2), C.EYE);
+        put(press, ellipse(H[0] + 12, H[1] - 10, 1.4, 3.6), { navy: 1, yellow: 1 });
+        // near legs
+        leg([-44, lift + 8], Math.PI / 2 + 0.9 * ext, 52, false);
+        leg([40, lift + 6], Math.PI / 2 - 0.9 * ext - 1.1 * pc, 48, false);
+        press.restore();
+    }
     const L = (a, b, k) => a + (b - a) * k;
-    return { sit, curl };
+    return { sit, curl, run };
 })();
