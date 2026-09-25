@@ -63,8 +63,8 @@ CARDS.piano = (press, t, lf = 0) => {
         for (let i = 1; i < RIM.length; i++) { const xa = RIM[i - 1][1] - 70, xb = RIM[i][1] - 70; if (x >= xa && x <= xb) return RIM[i - 1][0] + ((x - xa) / (xb - xa)) * (RIM[i][0] - RIM[i - 1][0]); }
         return x < RIM[0][1] ? -60 : 980;
     };
-    for (let x = 250; x < 900; x += 9.6) {
-        const y0 = Math.max(-40, pinY(x) + 8), slope = -0.28 + (x - 250) * 0.00027;
+    for (let x = 330; x < 900; x += 9.6) {
+        const y0 = Math.max(-40, pinY(x) + 8), slope = -0.16 + (x - 330) * 0.00022;
         // a pale string (paper) with a green shadow line beside it, in pairs
         const L = (dx, y0b, y1b) => [[x + dx + slope * (y0b - y0), y0b], [x + dx + slope * (y1b - y0), y1b]];
         for (const dx of [0, 4.6]) {
@@ -72,7 +72,7 @@ CARDS.piano = (press, t, lf = 0) => {
             U.seg(B, L(dx + 1.9, y0, 714), 1.3, 0.9); U.seg(B, L(dx + 1.9, 785, 895), 1.3, 0.9);
             U.seg(Y, L(dx + 1.9, y0, 714), 1.3, 1); U.seg(Y, L(dx + 1.9, 785, 895), 1.3, 1);
         }
-        if (x > 470) { U.disc(B, x, y0, 2.6, 1); U.disc(N, x, y0, 2.6, 0.4); }
+        U.disc(B, x, y0, 2.8, 1); U.disc(N, x, y0, 2.8, 0.4);
     }
     // the hitch pins along the rim: green studs (measured on 270)
     const STUDS = [[392, 57], [475, 132], [556, 212], [636, 293], [707, 381], [770, 472], [822, 566], [865, 660], [898, 752], [922, 845]];
@@ -130,9 +130,10 @@ CARDS.piano = (press, t, lf = 0) => {
     press.knockout((g) => {
         g.save(); g.beginPath(); g.rect(-100, -100, 1300, 814); g.clip();
         g.lineCap = 'round';
-        for (const [r, w] of [[67, 14], [149, 6], [247, 10], [360, 10], [524, 7], [650, 5], [840, 5]]) {
+        // [radius, width, start, end (deg)]: spans from row scans on 270
+        for (const [r, w, a0, a1] of [[67, 14, -175, -5], [149, 6, -174, -15], [247, 10, -172, -10], [360, 10, -172, -12], [495, 7, -172, -15], [650, 5, -170, -40]]) {
             g.lineWidth = w;
-            g.beginPath(); g.arc(604, 689, r, Math.PI - 0.2, 0.2); g.stroke();
+            g.beginPath(); g.arc(604, 689, r, (a0 * Math.PI) / 180, (a1 * Math.PI) / 180); g.stroke();
         }
         g.restore();
     });
