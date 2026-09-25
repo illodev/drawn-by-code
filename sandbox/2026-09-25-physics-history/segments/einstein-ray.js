@@ -2,9 +2,10 @@
 // Einstein (the 1905 thought experiment: what would a light wave look like if you ran beside
 // it?) runs flat out beside the ray, whose front is a bright pulse; the film's cat gallops
 // ahead chasing the pulse like a laser dot. Around them the grid of spacetime streams past in
-// perspective. A huge Sun rises ahead: the grid is pulled in towards it and the ray bends round
-// it (gravitational lensing, the 1919 eclipse test). The camera draws back and up, the grid
-// folds up into a cube, and the cube is what the next scene opens as Schrödinger's box.
+// perspective, contracting and curving forward as they speed up. A huge Sun rises ahead: the
+// grid is pulled in towards it and the ray bends round it (gravitational lensing, the 1919
+// eclipse test). Near the speed of light the corridor contracts into a box with them inside,
+// the camera draws back and up, and the box is what the next scene opens as Schrödinger's.
 //
 //   Seg.einsteinRay.draw(press, tq, st)   local time 0–T.end (on twos)
 //
@@ -26,83 +27,106 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const SKIN = Cast.SKIN, SKIN_SH = Cast.SKIN_SH;
     const RY = 450;                                        // the ray's height on screen
 
-    // ── the grid of spacetime: lines along x (depths z) and across (x), on planes above and
-    // below the ray, streaming towards −x as they run; pulled towards the Sun when it is there
-    const F = 900, CY = 450;
-    const proj = (x, y, z) => { const k = F / (z + 900); return [800 + x * k, CY + y * k, k]; };
-    function sunAt(t) { const u = IO(S(t, T.sun[0], T.sun[1])); return { u, p: [L(2400, 980, u), -120, 900], R: 420 }; }
+    // ── spacetime: a corridor of grid (floor, ceiling, far wall) in the world's rest frame,
+    // seen by a camera running with them. As they speed up the world is Lorentz-contracted along
+    // the run (x shrinks by 1/γ) and the view ahead bunches forward (aberration), so the grid
+    // squeezes and curves into a tunnel, bluer ahead and redder behind (Doppler). At the end, near
+    // the speed of light, the endless corridor contracts into a box with them inside, and the
+    // camera draws back and up to show it: that box is Schrödinger's.
+    const F = 900, CY = 450, H = 560, XE = 4000, ZB = 2200, CEND = H / XE;
+    function sunAt(t) { const u = IO(S(t, T.sun[0], T.sun[1])); return { u, p: [L(2400, 420, u), -540, 900], R: 360 }; }
+    const beta = (t) => L(0.25, 0.7, IO(S(t, T.enter[0], T.sun[1])));
+    function view(t) {
+        const fold = IO(S(t, T.fold[0], T.fold[1])), b = beta(t);
+        return {
+            fold, beta: b, c: L(Math.sqrt(1 - b * b), CEND, fold), zk: L(1, 2 * H / (ZB + H), fold), ab: 0.5 * b * (1 - fold),
+            D: L(900, 3000, fold), cx: L(0, -1400, fold), cy: L(0, -900, fold),
+        };
+    }
+    // rest-frame point → screen [x, y, scale]; the lens is shifted so the box stays centred
+    function toScreen(q, v) {
+        const z = -H + (q[2] + H) * v.zk;
+        let X = q[0] * v.c - v.cx, Y = q[1] - v.cy, Z = z + v.D;
+        if (v.ab > 0) {
+            const r = Math.hypot(X, Y, Z), nx = X / r, den = 1 + v.ab * nx, sc = Math.sqrt(1 - v.ab * v.ab) / den;
+            X = r * (nx + v.ab) / den; Y *= sc; Z *= sc;
+        }
+        if (Z < 60) return null;
+        const k = F / Z, k0 = F / v.D;
+        return [800 + X * k + v.cx * k0, CY + Y * k + v.cy * k0, k];
+    }
     function warp(q, t) {
-        const sn = sunAt(t), b = IO(S(t, T.bend[0], T.bend[1]));
+        const sn = sunAt(t), b = IO(S(t, T.bend[0], T.bend[1])) * (1 - S(t, T.fold[0], T.fold[0] + 1));
         if (b <= 0) return q;
         const dx = sn.p[0] - q[0], dy = sn.p[1] - q[1], dz = sn.p[2] - q[2], r = Math.hypot(dx, dy, dz) || 1;
         const a = 260, d = b * 380 * a * a * r / Math.pow(r * r + a * a, 1.5);
         return [q[0] + dx / r * d, q[1] + dy / r * d, q[2] + dz / r * d];
     }
-    function grid(press, t, fold) {
-        const off = (t * 900) % 200;
-        const lines = [];
-        for (const y of [-520, 520]) {
-            for (let z = -200; z <= 2200; z += 200) { const pts = []; for (let x = -2200; x <= 3200; x += 100) pts.push([x, y, z]); lines.push(pts); }
-            for (let x = -2200 - off + 200; x <= 3200; x += 200) { const pts = []; for (let z = -200; z <= 2200; z += 100) pts.push([x, y, z]); lines.push(pts); }
+    function grid(press, t, v) {
+        // the lines across the run stream past faster as they speed up; as the contraction packs
+        // them closer, every other one fades (then every other again) so the grid never clogs
+        const off = (900 * t + 260 * Math.pow(Math.max(0, t - T.enter[1]), 2)) % 800;
+        const lod = (n) => { const m = ((n % 4) + 4) % 4; return m === 0 ? 1 : m === 2 ? S(v.c, 0.3, 0.55) : S(v.c, 0.55, 0.8); };
+        const xs = [];
+        for (let n = Math.ceil((-XE + off) / 200); n <= Math.floor((XE + off) / 200); n++) xs.push([n * 200 - off, lod(n)]);
+        const lines = [], face = S(v.fold, 0.3, 0.8);
+        const run = (f, a0, a1, st) => { const pts = []; for (let u = a0; u <= a1 + 0.1; u += st) pts.push(f(u)); return pts; };
+        // (the camera rises through the ceiling's plane in the fold: the ceiling fades first, so it
+        // never shows edge-on as a band; the box's top is left to its amber edges)
+        for (const y of [-H, H]) {
+            const fy = y < 0 ? 1 - S(v.fold, 0.15, 0.45) : 1;
+            for (let z = -H; z <= ZB; z += 197) lines.push([run((x) => [x, y, z], -XE, XE, 100), fy]);
+            for (const [x, wt] of xs) lines.push([run((z) => [x, y, z], -H, ZB, 100), wt * fy]);
         }
-        // vertical lines at the far side, a curtain of the grid behind
-        for (let x = -2200 - off + 200; x <= 3200; x += 200) { const pts = []; for (let y = -520; y <= 520; y += 80) pts.push([x, y, 2200]); lines.push(pts); }
-        for (const pts of lines) {
-            const Q = pts.map((q) => {
-                let w = warp(q, t);
-                // the fold: every point is drawn towards the cube's surface (a box 700 wide)
-                if (fold > 0) {
-                    const c = [0, 0, 900], h = 350, v = [w[0] - c[0], w[1] - c[1], w[2] - c[2]], m = Math.max(Math.abs(v[0]), Math.abs(v[1]), Math.abs(v[2])) || 1;
-                    const onBox = [c[0] + v[0] / m * h, c[1] + v[1] / m * h, c[2] + v[2] / m * h];
-                    w = [L(w[0], onBox[0], fold), L(w[1], onBox[1], fold), L(w[2], onBox[2], fold)];
-                }
-                return w;
-            }).filter((q) => q[2] > -800).map((q) => proj(q[0], q[1], q[2]));
+        for (const [x, wt] of xs) lines.push([run((y) => [x, y, ZB], -H, H, 80), wt]);
+        // the box's other faces come in with the fold: the far wall's rows, the two end walls
+        if (face > 0) {
+            for (const y of [-H / 2, 0, H / 2]) lines.push([run((x) => [x, y, ZB], -XE, XE, 100), face]);
+            for (const x of [-XE, XE]) {
+                for (let z = -H; z <= ZB; z += 394) lines.push([run((y) => [x, y, z], -H, H, 80), face]);
+                for (const y of [-H / 2, 0, H / 2]) lines.push([run((z) => [x, y, z], -H, ZB, 100), face]);
+            }
+        }
+        for (const [pts, wt] of lines) {
+            if (wt <= 0.01) continue;
+            const Q = pts.map((q) => toScreen(warp(q, t), v)).filter(Boolean);
             if (Q.length < 2) continue;
-            // pale lines: the paper knocked back through the night, tinted blue-green
-            const P2 = Q.map(([x, y]) => [x, y]), w = Math.max(1.4, 3 * Math.min(1, Q[0][2] * 1.2));
-            const al = 1 - S(fold, 0.55, 0.95);
-            if (al <= 0) continue;
+            const P2 = Q.map(([x, y]) => [x, y]), w = Math.max(1.4 + 1.6 * v.fold, 3 * Math.min(1, Q[0][2] * 1.2));
+            const u = Math.min(1, Math.max(0, Q[Q.length >> 1][0] / 1600)), dop = v.beta * (1 - v.fold);
+            const al = wt * (1 - 0.35 * v.fold);
             press.knockout((g) => { Ph.poly(g, Ph.outline(P2, w)); g.globalAlpha = 0.55 * al; g.fill(); g.globalAlpha = 1; });
-            line(press, P2, w, { 'blue.s': 0.25 * al, 'yellow.s': 0.12 * al }, { knock: false });
+            line(press, P2, w, { 'blue.s': (0.25 + 0.45 * dop * u) * al, 'yellow.s': 0.12 * al, 'pink.s': 0.55 * dop * (1 - u) * al }, { knock: false });
         }
     }
-    // the cube's edges at the end: amber, clean, over the folded grid
-    function cube(press, t) {
-        const k = IO(S(t, T.fold[0] + 0.6, T.fold[1] - 0.3));
+    // the box's edges, traced in amber once the corridor has closed round them
+    function cube(press, t, v) {
+        const k = IO(S(t, T.fold[0] + 1.0, T.fold[1]));
         if (k <= 0) return;
-        const c = [0, 0, 900], h = 350, a = 0.5 + 0.3 * IO(S(t, T.fold[0], T.end)), b = 0.35;
-        const R = ([x, y, z]) => { const x1 = x * Math.cos(a) - z * Math.sin(a), z1 = x * Math.sin(a) + z * Math.cos(a); const y1 = y * Math.cos(b) - z1 * Math.sin(b), z2 = y * Math.sin(b) + z1 * Math.cos(b); return proj(c[0] + x1, c[1] + y1, c[2] + z2); };
         const V = [];
-        for (const x of [-h, h]) for (const y of [-h, h]) for (const z of [-h, h]) V.push([x, y, z]);
+        for (const x of [-XE, XE]) for (const y of [-H, H]) for (const z of [-H, ZB]) V.push(toScreen([x, y, z], v));
         const E = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]];
-        // a faint grid on the three back faces (what is left of spacetime's lattice), then the edges
-        for (const [ax, sg] of [[0, 1], [1, 1], [2, 1]]) for (let i = 1; i < 4; i++) for (const dir of [0, 1]) {
-            const u = -h + i * (2 * h / 4), a3 = [0, 0, 0], b3 = [0, 0, 0], o1 = (ax + 1 + dir) % 3, o2 = (ax + 2 - dir) % 3;
-            a3[ax] = sg * h; b3[ax] = sg * h; a3[o1] = u; b3[o1] = u; a3[o2] = -h; b3[o2] = h;
-            const p = R(a3), q = R(b3);
-            press.knockout((g) => { Ph.poly(g, Ph.outline([[p[0], p[1]], [q[0], q[1]]], 2)); g.globalAlpha = 0.4 * k; g.fill(); g.globalAlpha = 1; });
-        }
-        for (const [i, j] of E) { const p = R(V[i]), q = R(V[j]); line(press, [[p[0], p[1]], [q[0], q[1]]], 6 * k, AMBER); }
+        for (const [i, j] of E) if (V[i] && V[j]) line(press, [[V[i][0], V[i][1]], [V[j][0], V[j][1]]], 6 * k, AMBER);
     }
 
     // ── the ray: from the left edge to its front (a bright pulse), bending round the Sun ──────
-    function rayPts(t, front) {
+    function rayPts(t, front, x0 = -40) {
         const pts = [];
-        const sn = sunAt(t), b = IO(S(t, T.bend[0], T.bend[1]));
+        const sn = sunAt(t), b = IO(S(t, T.bend[0], T.bend[1])) * (1 - IO(S(t, T.fold[0], T.fold[0] + 0.4)));
+        const sp = toScreen(sn.p, { ...view(t), fold: 0, D: 900, cx: 0, cy: 0 });
         let y = RY, vy = 0;
         for (let x = -40; x <= front; x += 8) {
-            if (b > 0) {
-                const sp = proj(sn.p[0], sn.p[1], sn.p[2]), dx = sp[0] - x, dy = sp[1] - y, r2 = dx * dx + dy * dy;
-                vy += b * 260 * dy / Math.pow(r2 + 900, 1.5) * 8;
+            if (x < x0) { pts.length = 0; }
+            if (b > 0 && sp) {
+                const dx = sp[0] - x, dy = sp[1] - y, r2 = dx * dx + dy * dy;
+                vy += b * 110 * dy / Math.pow(r2 + 900, 1.5) * 8;
             }
             y += vy * 8;
             pts.push([x, y]);
         }
         return pts;
     }
-    function ray(press, t, front) {
-        const pts = rayPts(t, front);
+    function ray(press, t, front, x0) {
+        const pts = rayPts(t, front, x0);
         if (pts.length < 2) return pts;
         press.knockout((g) => { g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 34; g.globalAlpha = 0.35; g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); g.globalAlpha = 1; });
         line(press, pts, 10, AMBER);
@@ -113,16 +137,24 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     }
 
     // ── the Sun: a disc with a limb, granules and prominences, pulling the grid ─────────────
-    function sun(press, t) {
+    function sun(press, t, v) {
         const sn = sunAt(t);
         if (sn.u <= 0) return;
-        const p = proj(sn.p[0], sn.p[1], sn.p[2]), R = sn.R * p[2];
+        // they overtake it: in the fold it slides back behind them and shrinks away; contracted
+        // along the run like everything else in the rest frame
+        const gone = IO(S(v.fold, 0, 0.3));
+        if (gone >= 1) return;
+        const p = toScreen([sn.p[0] - 1500 * gone, sn.p[1], sn.p[2]], v);
+        if (!p) return;
+        const R = sn.R * p[2] * (1 - 0.5 * gone);
+        press.save(); press.each((g) => { g.translate(p[0], p[1]); g.scale(Math.max(0.04, v.c * (1 - gone)), 1); g.translate(-p[0], -p[1]); });
         press.knockout((g) => { g.fillStyle = Riso.radial(g, p[0], p[1], R, R * 1.8, 0.7, 0); g.beginPath(); g.arc(p[0], p[1], R * 1.8, 0, 6.2832); g.fill(); });
         put(press, circle(p[0], p[1], R), { yellow: 1, 'pink.s': 0.35 });
         ink(press, circle(p[0], p[1], R), { 'pink.s': (g) => Riso.radial(g, p[0], p[1], R * 0.5, R, 0, 0.5) });
         const r = Motion.rng('sun-gran');
         for (let i = 0; i < 70; i++) { const a = r() * 6.28, rr = Math.sqrt(r()) * R * 0.9; put(press, circle(p[0] + Math.cos(a) * rr, p[1] + Math.sin(a) * rr, R * (0.02 + r() * 0.03)), { 'pink.s': 0.5 }, { knock: false }); }
         for (let i = 0; i < 9; i++) { const a = i * 0.7 + t * 0.1, q = [p[0] + Math.cos(a) * R, p[1] + Math.sin(a) * R]; line(press, [q, [q[0] + Math.cos(a + 0.3) * R * 0.14, q[1] + Math.sin(a + 0.3) * R * 0.14], [q[0] + Math.cos(a) * R * 0.06, q[1] + Math.sin(a) * R * 0.06]], taper(R * 0.03, 0.2, 0.6), { pink: 0.8, yellow: 1 }); }
+        press.restore();
     }
 
     // ── Einstein running (young, 1905: short dark hair, a moustache, a dark three-piece suit)
@@ -240,29 +272,29 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         draw(press, tq) {
             const t = tq;
             put(press, (g) => g.rect(0, 0, 1600, 900), { blue: 0.9, 'navy.s': 0.92, 'pink.s': 0.2 });
-            const fold = IO(S(t, T.fold[0], T.fold[1]));
-            grid(press, t, fold);
-            // the pulse runs ahead at the frame's right third; they keep up with it (the camera
-            // runs with them); at the end it stays on screen as the cube's edge takes over
-            const front = t < T.enter[0] ? 1640 : L(1640, 1180, IO(S(t, T.enter[0], T.enter[1])));
-            // during the fold the camera draws back: the runners, the ray and the pulse shrink
-            // towards the middle and end up inside the cube, still running
-            const zb = L(1, 0.26, IO(S(t, T.fold[0], T.fold[1])));
-            press.save(); press.each((g) => { g.translate(800, 450); g.scale(zb, zb); g.translate(-800, -450 - 60 * (1 - zb)); });
-            sun(press, t);
+            const v = view(t);
+            grid(press, t, v);
+            sun(press, t, v);
+            // the pulse runs ahead at the frame's right; it creeps further on through the chase
+            // (they gain on the screen but never catch it)
+            const front = (t < T.enter[0] ? 1640 : L(1640, 1180, IO(S(t, T.enter[0], T.enter[1])))) + 160 * IO(S(t, T.enter[1], T.fold[0]));
+            // their own frame (z = 0): drawn flat, scaled as the camera draws back, nudged to the
+            // box's middle; the ray starts at the box's end wall once it closes
+            const k0 = F / v.D, sh = 150 * v.fold;
+            press.save(); press.each((g) => { g.translate(800, 450); g.scale(k0, k0); g.translate(-800 - sh, -450); });
             {
-                const pts = ray(press, t, front);
+                const pts = ray(press, t, front, Math.max(-40, 800 + sh - XE * v.c));
                 // the cat, chasing the pulse like a laser dot: galloping just below it, pouncing
                 const e = pts[pts.length - 1] ?? [front, RY];
-                const catX = L(-300, e[0] - 170, IO(S(t, 0.4, 1.6)));
+                const catX = L(760, e[0] - 160, IO(S(t, 0, 1.6)));
                 const pounce = Ease.bump(t, 2.9, 0.5) + Ease.bump(t, 4.6, 0.5);
                 Cat.run(press, { x: catX, y: RY + 200, s: 1.3, face: 1, ph: t * 3.2, pounce });
-                // Einstein, running below the ray, a stride behind the cat
-                const ex = L(-500, e[0] - 620, IO(S(t, T.enter[0], T.enter[1] + 0.4)));
+                // Einstein, in frame from the first frame, gaining ground on the pulse through the chase
+                const ex = L(120, e[0] - L(640, 500, IO(S(t, 1.6, 5.4))), IO(S(t, 0, 1.8)));
                 runner(press, t, ex, 1010);
             }
             press.restore();
-            cube(press, t);
+            cube(press, t, v);
         },
     };
 })();
