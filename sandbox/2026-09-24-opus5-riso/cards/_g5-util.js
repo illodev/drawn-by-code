@@ -205,15 +205,17 @@ var G5 = G5 || (() => {
     // coverage corrections in percent on an n × n grid of the 1080 frame, measured by solving
     // each block's mean colour into inks on the reference and on our own render and moving by
     // the difference (2–3 passes). It is drawn smoothly (bilinear) on the solid plates:
-    // positive cells add ink, negative ones take ink away (every mark of that plate).
+    // positive cells add ink as halftone dots, negative ones take ink away (every mark).
     // toneMap(press, { n, yellow: [...], pink: [...], blue: [...], navy: [...] }), inside px().
     const toneMap = (press, map) => {
         if (!map || !map.n) return;
         const n = map.n;
         for (const ink of ['yellow', 'pink', 'blue', 'navy']) {
             const d = map[ink]; if (!d) continue;
-            const g = press.plate(ink);
-            for (const sign of [1, -1]) {
+            // added ink goes through the halftone screen (dots, as the print adds tone; a flat
+            // fill would clog the gaps between the reference's dots); removed ink comes off
+            // both plates of that ink
+            for (const sign of [1, -1]) for (const g of sign > 0 ? [press.plate(ink, 'screen')] : [press.plate(ink), press.plate(ink, 'screen')]) {
                 const c = document.createElement('canvas'); c.width = n; c.height = n;
                 const x = c.getContext('2d'), img = x.createImageData(n, n);
                 let any = false;
