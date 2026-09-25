@@ -377,7 +377,7 @@ const Fig = (() => {
             // pressing on the knee to get up: the palm on it, the fingers forward and down over it
             else if (grip === 'knee') backHand(press, wr, Math.atan2(0.55, f), 0.72 * u, far ? SKIN_SH : SKIN, SKIN_SH);
             // open and reaching: seen from its thumb side, the thumb down
-            else if (grip === 'open') openSide(press, add(wr, Math.cos(cd) * 0.1 * u, Math.sin(cd) * 0.1 * u), cd, 0.8 * u, far ? SKIN_SH : SKIN, [0, 1]); // from the ruffle's edge
+            else if (grip === 'open') openSide(press, add(wr, Math.cos(cd) * 0.1 * u, Math.sin(cd) * 0.1 * u), cd, 0.8 * u, { 'yellow.s': 0.2, 'pink.s': 0.16 }, [0, 1]); // skin, a touch warmer than the near hand so it reads against the pale sky // from the ruffle's edge
             else if (grip === 'relax') backHand(press, wr, cd + 0.12 * f, 0.72 * u, far ? SKIN_SH : SKIN, SKIN_SH);
             else if (grip === 'apple' && !far && o.held) held = holdApple(press, wr, cd, f, o.heldR ?? 30, SKIN, SKIN_SH, o.held, o.heldMode, o.heldAt);
             else hand(press, add(wr, Math.cos(cd) * 0.08 * u, Math.sin(cd) * 0.08 * u), cd, grip, 0.62 * u, far ? SKIN_SH : SKIN, SKIN_SH, LINE, f);
