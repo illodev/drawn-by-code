@@ -64,6 +64,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             if (kr > 0) line(press, [[800 - 360 * kr, 700], [800 + 360 * kr, 700]], 4, { yellow: 0.9, 'pink.s': 0.3 });
             // the credits, under the rule
             const kc = S(t, T.big[1] + 0.2, T.big[1] + 0.6);
+            const kj = S(t, T.big[1] + 0.5, T.big[1] + 0.9);
+            if (kj > 0) text(press, 'drawn entirely in JavaScript · no footage, no AI images', 800, 850, 30, { 'blue.s': 0.9 * kj, 'yellow.s': 0.4 * kj }, { align: 'center', knock: kj >= 1 });
             if (kc > 0) text(press, 'illodev × Claude', 800, 790, 58, { 'yellow.s': 0.9 * kc, ...(kc >= 1 ? { 'pink.s': 0.25 } : {}) }, { align: 'center', knock: kc >= 1 });
             if (inPeek && up > 0.4) Cat.peek(press, { ...pk, pawsOnly: true });
             // the hopping cat, in front of the letters
