@@ -121,6 +121,8 @@ CARDS.mountains = (press, t) => {
     // the front forest mass is flat ink, not a screen: navy with a purple mottle (soft pink
     // blotches) and a grainy, uneven inking (pinholes and pink specks), measured at 2×
     // (fitted: navy 0.95, blue 0.45, pink 0.2 on the left, more pink on the right)
+    // the front mass is opaque: the range behind is knocked out first (no screen under it)
+    press.knockout((g) => { U.path(g, frontBase); g.fill(); for (const [x, y, h] of front) U.pine(g, x, y, h, h * 0.34, 'fr' + x); });
     U.poly(navy, frontBase, T(0.95));
     U.poly(blue, frontBase, T(0.45));
     U.clipped(press.plate('pink', 'screen'), frontBase, (g) => { g.fillStyle = R.ramp(g, 0, 0, 1000, 0, 0.15, 0.5); g.fillRect(0, 0, 1000, 1000); });
@@ -133,8 +135,9 @@ CARDS.mountains = (press, t) => {
         navy.save(); navy.clip(fp); navy.globalCompositeOperation = 'destination-out'; navy.fillStyle = T(0.9); navy.fill(pk); navy.fill(bl); navy.restore();
         const pl = press.plate('pink'); pl.save(); pl.clip(fp); pl.fillStyle = T(1); pl.fill(pk); pl.restore();
     }
-    navy.fillStyle = T(0.9); blue.fillStyle = T(0.5);
-    for (const [x, y, h] of front) { U.pine(navy, x, y, h, h * 0.34, 'fr' + x); U.pine(blue, x, y, h, h * 0.34, 'fr' + x); }
+    // (the front pines print like the mass: navy with blue and a touch of pink, flat)
+    navy.fillStyle = T(0.95); blue.fillStyle = T(0.45); const pk = press.plate('pink'); pk.fillStyle = T(0.25);
+    for (const [x, y, h] of front) { U.pine(navy, x, y, h, h * 0.34, 'fr' + x); U.pine(blue, x, y, h, h * 0.34, 'fr' + x); U.pine(pk, x, y, h, h * 0.34, 'fr' + x); }
     // soft purple mottling and pink specks in the dark forest
     U.speckle(press.plate('pink'), [0, 850, 1000, 1000], 60, 0.8, 2.2, 'mtp');
     press.knockout((g) => U.speckle(g, [0, 820, 1000, 1000], 20, 0.6, 1.4, 'mtw'));
