@@ -17,13 +17,13 @@ Motion.scene({
             Scope3D.draw(press, v, { turn: 0.3, t });
             const s = 110, r = rAt(s), o = C.proj([s, 0, r]), a = C.proj([s + 1, 0, r]), b = C.proj([s, -1, r]);
             press.save(); press.each((g2) => g2.transform(a[0] - o[0], a[1] - o[1], b[0] - o[0], b[1] - o[1], o[0], o[1]));
-            GalHands.over(press, r, { fa });
+            GalHands.fist(press, r, { fa });
             press.restore();
         };
         // Galileo: tube rising right, right forearm up from below
         panel(420, 520, -0.6, [0.15, 1]);
         // Faraday: magnet pointing right, right forearm from behind and below
-        panel(1180, 520, 0, [0.75, 0.66]);
+        panel(1180, 520, 0, [-0.6, 0.8]);
         press.print(g, { key: 0 });
     },
 });
