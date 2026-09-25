@@ -193,7 +193,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     function iris(press, t) {
         const c = t < T.iris[1] ? IO(S(t, T.iris[0], T.iris[1])) : 1 - IO(S(t, T.iris[1], T.iris[2]));
         if (c <= 0) return;
-        const cols = [{ pink: 0.9 }, { yellow: 1 }, { blue: 0.8 }, { pink: 0.7, yellow: 0.8 }, { navy: 1, 'pink.s': 0.3 }, { 'blue.s': 0.5, yellow: 0.7 }];
+        // (the film's night inks: navy, blue and copper, not a rainbow)
+        const cols = [{ navy: 1, 'blue.s': 0.4 }, { pink: 0.75, yellow: 0.9, 'navy.s': 0.3 }, { blue: 0.85, 'navy.s': 0.35 }, { navy: 1, 'pink.s': 0.4 }, { pink: 0.6, yellow: 0.7, 'navy.s': 0.15 }, { blue: 0.7, 'navy.s': 0.6 }];
         const closing = t < T.iris[1], R = 1000, n = 12, rot = Math.floor(t * 12);
         // closing: bands appear from the outside in; opening: the inner ones go first. Each
         // band is a ring, so the scene shows through the hole in the middle
@@ -297,11 +298,19 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             const gl = IO(S(t, T.push[0], T.push[1]));
             if (gl > 0) {
                 const q = C.proj([FarLab.GAP.x, FarLab.GAP.y, FarLab.GAP.z]);
-                const RING = [{ 'blue.s': 0.75, 'navy.s': 0.2 }, { 'blue.s': 0.6, 'yellow.s': 0.25 }, { 'blue.s': 0.5, 'yellow.s': 0.45 }, { 'blue.s': 0.4, yellow: 0.55 }, { 'blue.s': 0.3, yellow: 0.75 }];
+                const RING = [{ blue: 0.9, 'navy.s': 0.35 }, { blue: 0.75, 'yellow.s': 0.2 }, { blue: 0.55, yellow: 0.5 }, { 'blue.s': 0.35, yellow: 0.85 }, { yellow: 1, 'pink.s': 0.12 }];
                 RING.forEach((spec, i) => {
                     const r = Math.exp(L(Math.log(8), Math.log(2600), Math.min(1, gl * 1.15 - i * 0.07)));
                     if (gl * 1.15 - i * 0.07 > 0) put(press, circle(q[0], q[1], r * (1 - i * 0.16)), spec);
                 });
+                // light rays turning out from the core, and motes of dust caught in them, so the
+                // frame full of light has texture, never a flat target
+                if (gl > 0.25) {
+                    const rk = S(gl, 0.25, 0.6);
+                    for (let i = 0; i < 16; i++) { const a = i * 0.3927 + t * 0.35, w = 0.06 + 0.04 * Math.sin(i * 2.1); press.knockout((g) => { g.beginPath(); g.moveTo(q[0], q[1]); g.arc(q[0], q[1], 2600, a - w, a + w); g.closePath(); g.globalAlpha = 0.22 * rk; g.fill(); g.globalAlpha = 1; }); }
+                    const rd = Motion.rng('motes');
+                    for (let i = 0; i < 40; i++) { const a = rd() * 6.28, d0 = rd() * 900, d = d0 + (t - T.push[0]) * (60 + rd() * 120), rr = 2 + rd() * 4; put(press, circle(q[0] + Math.cos(a) * d, q[1] + Math.sin(a) * d, rr * rk), { yellow: 0.9, 'pink.s': 0.2 }); }
+                }
             }
         }
         iris(press, t);
