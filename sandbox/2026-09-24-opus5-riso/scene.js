@@ -56,10 +56,10 @@ const EDIT = [
     // (measured by frame index, 360–383) (measured by frame index, 360–383)
     [15.0, 'full', 'phone', { ring: true, inks: SWAP_PB, zoom: [1.07, -29.6, -29.6] }],
     [15.083, 'full', 'turntable', { ring: true, inks: SWAP_PB, zoom: [1.08, -37.0, -40.7] }],
-    [15.167, 'full', 'frogs', { ring: true, inks: SWAP_PB, zoom: [1.1, -50.0, -50.0] }],
+    [15.167, 'full', 'frogs', { ring: true, inks: SWAP_PB, zoom: [1.082, -49.3, -32.9] }],
     [15.25, 'full', 'bats', { ring: true, inks: SWAP_PB, zoom: [1.1, -63.0, -74.1] }],
-    [15.333, 'full', 'wave', { ring: true, inks: SWAP_PB, zoom: [1.1, -50.0, -50.0] }],
-    [15.417, 'full', 'cat', { ring: true, inks: SWAP_PB, zoom: [1.1, -50.0, -50.0] }],
+    [15.333, 'full', 'wave', { ring: true, inks: SWAP_PB }],
+    [15.417, 'full', 'cat', { ring: true, inks: SWAP_PB, zoom: [1.08, -48, -43] }],
     [15.5, 'full', 'sunflower', { ring: true, inks: SWAP_PB, zoom: [1.13, -68.5, -77.8] }],
     [15.583, 'full', 'radio', { ring: true, inks: SWAP_PB, zoom: [1.169, -91.9, -86.4] }],
     [15.667, 'full', 'fireworks', { ring: true, inks: SWAP_PB, zoom: [1.19, -95.0, -95.0] }],
