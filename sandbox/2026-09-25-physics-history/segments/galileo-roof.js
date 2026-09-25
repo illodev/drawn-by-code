@@ -292,7 +292,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         for (const x of [lx + 32, lx + 50, lx + 68]) line(press, [[x, ly], [x - (x - lx - 50) * 0.1, ly + 56]], 3, { navy: 1 });
         put(press, (g) => poly(g, [[lx + 26, ly], [lx + 50, ly - 22], [lx + 74, ly]]), { navy: 1, yellow: 0.8 });
         // the film's cat (cat.js) on the rail, watching the sky with him; its tail swings
-        Cat.sit(press, { x: 1240, y: RAIL - 12, s: 1.05, face: -1, look: [900, RAIL - 700], tail: t * 0.5, blink: Math.abs((t % 4.3) - 2) < 0.06 });
+        Cat.sit(press, { x: 1240, y: RAIL - 12, s: 1.05, face: -1, look: [900, RAIL - 700], tail: t * 0.5, rim: { d: [-3.5, -1.5], spec: { yellow: 1, 'pink.s': 0.3 } }, blink: Math.abs((t % 4.3) - 2) < 0.06 });
     }
 
     // ── the tripod under the tube ────────────────────────────────────────────────────────

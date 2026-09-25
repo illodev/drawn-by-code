@@ -9,13 +9,17 @@
 // Local units: the hind paws at (0, 0), the head's top at y ≈ -130, facing +x.
 const Cat = (() => {
     const { put, ink, line, smooth, poly, taper, circle, ellipse } = Ph;
-    const FUR = { navy: 1, yellow: 0.9, 'pink.s': 0.45 };
-    const FUR_LT = { navy: 1, 'yellow.s': 0.5, 'blue.s': 0.45, 'pink.s': 0.3 };
-    const WHITE = { 'blue.s': 0.06, 'yellow.s': 0.05 };
-    const WHITE_SH = { 'blue.s': 0.3, 'navy.s': 0.12 };
-    const EYE = { yellow: 1, 'blue.s': 0.45 };
+    const C = { FUR: { navy: 1, yellow: 0.9, 'pink.s': 0.45 }, FUR_LT: { navy: 1, 'yellow.s': 0.5, 'blue.s': 0.45, 'pink.s': 0.3 },
+        WHITE: { 'blue.s': 0.06, 'yellow.s': 0.05 }, WHITE_SH: { 'blue.s': 0.3, 'navy.s': 0.12 }, EYE: { yellow: 1, 'blue.s': 0.45 } };
 
+    // o.rim: { d: [dx, dy] (screen offset towards the light), spec }: a lit edge round its
+    // silhouette on the light's side (the whole cat printed once in the rim's ink, shifted, under it)
     function sit(press, o) {
+        if (o.rim) sit1(press, { ...o, x: o.x + o.rim.d[0], y: o.y + o.rim.d[1], flat: o.rim.spec, rim: null });
+        sit1(press, o);
+    }
+    function sit1(press, o) {
+        const fl = o.flat, FUR = fl ?? C.FUR, FUR_LT = fl ?? C.FUR_LT, WHITE = fl ?? C.WHITE, WHITE_SH = fl ?? C.WHITE_SH, EYE = fl ?? C.EYE;
         const f = o.face ?? 1, s = o.s ?? 1;
         const toL = (p) => [(p[0] - o.x) / (s * f), (p[1] - o.y) / s];
         press.save();
