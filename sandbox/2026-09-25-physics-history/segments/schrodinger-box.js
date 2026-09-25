@@ -15,7 +15,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
 (() => {
     const { put, ink, line, smooth, poly, taper, circle, ellipse } = Ph;
     const L = Ease.lerp, S = Ease.seg, IO = Ease.inOut;
-    const T = { close: [0.3, 0.9], click: 1.2, scan: [1.4, 2.2], split: [2.8, 3.5, 4.1], lean: [5.2, 6.1], lid: [6.0, 6.5], collapse: [6.6, 7.1], flash: 6.95, peek: [7.35, 7.9], wink: [8.3, 8.5], duck: [8.56, 8.68], slam: [8.6, 8.75], click2: 9.8, fade: [10.2, 10.8], end: 10.8 };
+    const T = { close: [0.3, 0.9], click: 1.2, scan: [1.4, 2.2], split: [2.8, 3.5, 4.1, 4.6], lean: [5.2, 6.1], lid: [6.0, 6.5], collapse: [6.6, 7.1], flash: 6.95, peek: [7.35, 7.9], wink: [8.3, 8.5], duck: [8.56, 8.68], slam: [8.6, 8.75], click2: 9.8, fade: [10.2, 10.8], end: 10.8 };
 
     const AMBER = { yellow: 1, 'pink.s': 0.55 };
     const AMBER_LT = { yellow: 0.6, 'pink.s': 0.3 };
@@ -141,7 +141,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             else if (v < 0.5) Cat.sit(press, { x: cq[0] + 60 * ck, y: cq[1], s: ck * 2.9, face: -1, look: [cq[0], cq[1] - 900 * ck], tail: t * 0.8 + 0.4 });
             else if (v < 0.75) Cat.curl(press, { x: cq[0] + 40 * ck, y: cq[1], s: ck * 1.7, face: 1, t });
             else Cat.run(press, { x: cq[0] + 40 * ck, y: cq[1] - 60 * ck, s: ck * 2.2, face: 1, ph: 0.3, pounce: 1 });
-        } else if (o.dead) Cat.xray(press, { x: cq[0] + (v < 0.5 ? 0 : 60) * ck, y: cq[1], s: ck * 2.4, face: v < 0.5 ? 1 : -1, pose: v > 0.75 ? 'sit' : 'dead' });
+        } else if (o.dead && o.samePlace) Cat.xray(press, { x: cq[0], y: cq[1], s: ck * 2.9, face: 1, pose: 'sit' });
+        else if (o.dead) Cat.xray(press, { x: cq[0] + (v < 0.5 ? 0 : 60) * ck, y: cq[1], s: ck * 2.4, face: v < 0.5 ? 1 : -1, pose: v > 0.75 ? 'sit' : 'dead' });
         else Cat.xray(press, { x: cq[0], y: cq[1], s: ck * 2.9, face: 1, pose: 'sit' });
         ink(press, (g) => g.rect(-5000, -5000, 10000, 10000), { 'blue.s': 0.25 });
     }
@@ -263,13 +264,12 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 if (fo > 0) ink(press, (g) => g.rect(0, 0, 1600, 900), { navy: fo, blue: fo, yellow: fo, pink: 0.7 * fo });
                 // (the flash is one drawing of bare paper, warmed with yellow: a hard white, never a
                 // grey half-fade over the dark)
-                if (t < T.flash + 0.05) { press.knockout((g) => g.fillRect(0, 0, 1600, 900)); ink(press, (g) => g.rect(0, 0, 1600, 900), { 'yellow.s': 0.18 }); }
+                if (t < T.flash + 0.05) press.knockout((g) => { g.fillStyle = Riso.radial(g, 800, 450, 20, 900, 0.55, 0); g.fillRect(0, 0, 1600, 900); });
                 return;
             }
             // the scan: a bright line sweeping down; above it, the radiograph
             const sc = S(t, T.scan[0], T.scan[1]), sy = L(-20, 920, IO(sc));
-            // (the scan reveals reality already split in two: then 4, 8, 16)
-            const lvl = 1 + T.split.filter((x) => t >= x).length, [gx, gy] = GRID[lvl], W = 1600 / gx, H = 900 / gy;
+            const lvl = T.split.filter((x) => t >= x).length, [gx, gy] = GRID[lvl], W = 1600 / gx, H = 900 / gy;
             const lid = IO(S(t, T.lid[0], T.lid[1])), cu = IO(S(t, T.collapse[0], T.collapse[1]));
             // the world that remains: an alive one near the middle
             const cellR = (n) => { const i = n % gx, j = Math.floor(n / gx), pad = lvl ? 6 : 0; return [i * W + pad, j * H + pad, W - 2 * pad, H - 2 * pad]; };
@@ -281,9 +281,25 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 press.each((g) => { g.translate(x0 + cw / 2, y0 + chh / 2); g.scale(zs, zs); g.translate(-800, -450); });
                 // (once reality splits, the worlds where it lives are in colour: a warm ground and
                 // the cat itself; where it died, the cold X-ray and its skeleton)
-                const dead = lvl > 0 && (lvl === 1 ? n === 1 : deadIn(lvl, n)), alive = lvl > 0 && !dead;
-                put(press, (g) => g.rect(-4000, -4000, 9600, 8900), alive ? { pink: 0.9, 'navy.s': 0.6, 'yellow.s': 0.3 } : XR_BG);
-                radiograph(press, t, c, { dead, alive, lid, v: ((n * 3 + lvl) % 4) / 4 + 0.05 });
+                const ALIVE_BG = { pink: 0.9, 'navy.s': 0.6, 'yellow.s': 0.3 };
+                if (lvl === 0) {
+                    // before it splits, the one box is both: the left half alive, in colour, the
+                    // right half dead, in X-ray, the seam running through the cat
+                    const sx = P([-110, h, 0], c)[0] + 10;
+                    press.save(); press.clip((g) => g.rect(-4000, -4000, 4000 + sx, 8900));
+                    put(press, (g) => g.rect(-4000, -4000, 9600, 8900), ALIVE_BG);
+                    radiograph(press, t, c, { alive: true, lid, v: 0.05 });
+                    press.restore();
+                    press.save(); press.clip((g) => g.rect(sx, -4000, 6000, 8900));
+                    put(press, (g) => g.rect(-4000, -4000, 9600, 8900), XR_BG);
+                    radiograph(press, t, c, { dead: true, lid, v: 0.05, samePlace: true });
+                    press.restore();
+                    line(press, [[sx, -100], [sx, 1000]], 4, { yellow: 0.6, 'pink.s': 0.3 });
+                } else {
+                    const dead = lvl === 1 ? n === 1 : deadIn(lvl, n), alive = !dead;
+                    put(press, (g) => g.rect(-4000, -4000, 9600, 8900), alive ? ALIVE_BG : XR_BG);
+                    radiograph(press, t, c, { dead, alive, lid, v: ((n * 3 + lvl) % 4) / 4 + 0.05 });
+                }
                 press.restore();
             };
             press.save();
@@ -302,7 +318,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             if (sc < 1) { kline(press, [[0, sy], [1600, sy]], 10, 0.9); press.knockout((g) => { g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(0, sy - 40, 1600, 40); }); }
             erwin(press, t, c);
             // the flash as the worlds collapse
-            if (t >= T.flash - 0.05) { press.knockout((g) => g.fillRect(0, 0, 1600, 900)); ink(press, (g) => g.rect(0, 0, 1600, 900), { 'yellow.s': 0.18 }); }
+            // (a soft burst of light from the middle, where the worlds went: not a full white frame)
+            if (t >= T.flash - 0.05) press.knockout((g) => { g.fillStyle = Riso.radial(g, 800, 450, 20, 900, 0.8, 0); g.fillRect(0, 0, 1600, 900); });
         },
     };
 })();
