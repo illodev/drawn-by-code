@@ -61,6 +61,10 @@ const SFX = {
     glass_set: ['a small glass dish set down gently on a wooden laboratory bench, a light clink', 0.4],
     magnet_slide: ['a steel bar sliding into a cardboard tube wound with wire, soft metallic scrape', 0.6],
     chalk_tap: ['a piece of chalk tapping twice on a blackboard', 0.4],
+    spark_snap: ['a small sharp electric spark snapping across a tiny gap between two brass knobs, crackle, close', 0.5],
+    needle_tick: ['a light brass galvanometer needle swinging and ticking against its stop, tiny metallic tick', 0.3],
+    field_bloom: ['psychedelic shimmering synth swell with sparkles, magnetic hum rising, dreamy', 1.8],
+    glow_swell: ['soft glowing electric hum swelling into a bright shimmering tone', 1.6],
     chime_ok: ['soft friendly confirmation chime, two rising marimba notes', 0.7],
 };
 const only = process.argv.slice(2);

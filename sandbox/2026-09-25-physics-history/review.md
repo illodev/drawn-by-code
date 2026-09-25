@@ -486,3 +486,45 @@ What changed:
 **Lesson (animate):** an object at infinity keeps still only under a pure dolly. When the
 camera pans, tilts or zooms to follow the action, the sky moves too; give it a far-layer
 share of the motion, or it reads as pasted onto the screen.
+
+### Round 16 (Faraday, and the user on the hands)
+
+> Seguimos
+
+> Veo que la mano está fatal (Faraday), está al revés! Y además divides la mano en
+> secciones con bordes. También me he dado cuenta que Galileo tiene el dedo gordo de la mano
+> derecha como si fuera la mano izquierda. Son errores muy tontos no?
+
+What changed:
+
+- **Faraday's coil (`segments/faraday-coil.js`, 11.2 s, after Newton).**
+  - The apple speeds round the Earth and its trail winds into a helix. The camera turns a
+    quarter round and the helix is a copper coil (`coil3d.js`, a real 3D helix).
+  - The Earth, a magnet itself, opens its field lines and takes a north and a south pole.
+    Then it stretches into Faraday's cylindrical bar magnet inside the coil.
+  - The magnet slides out, and the camera swings to the coil's end and flies in.
+  - An iris of rings in the four inks hides the switch from the orbit's world to the
+    laboratory (the same coil, 5.57 times smaller). It opens on his hand holding the magnet
+    and draws back to the bench (`lab-faraday.js`, a 3D set drawn as tiled cards).
+  - In: the needle kicks. Held: nothing; he leans in, frowning. Out: it kicks the other way,
+    under his nose. In hard: a spark across the gap (only the fast thrust gives it: the spark
+    fires on the induced EMF).
+  - The camera goes into the spark's light, as solid rings of blue-green: the join to
+    Curie's radium.
+- **Faraday's head** is the profile of the approved test (`Cast.faraday`, now with a
+  `headOnly` option, a frown, raised brows and an open mouth), consistent with Newton. A
+  realistic three-quarter head was tried and dropped: it read as a mannequin.
+- **Hands:** the right hand had a left hand's geometry.
+  - Checked by holding a real bar: a right hand holding a bar that points forward, seen
+    from its right side, has its thumb on top pointing forward, its fingers curling under
+    and its index in front.
+  - `GalHands.near` is redrawn that way for Galileo and Faraday.
+  - The far (left) hand reaching over has its index towards the body; its finger order was
+    reversed and is now fixed.
+  - The hand is one skin: its pieces are inked as one, with no outlines between them, only
+    creases and a faint outer edge.
+
+**Lesson (animate):** before drawing a hand on something, hold the object with your own right
+or left hand the same way and note where the thumb and the index go. Mirror errors are not
+visible in a single piece, only against a real hand. A hand is one skin: never outline its
+parts.

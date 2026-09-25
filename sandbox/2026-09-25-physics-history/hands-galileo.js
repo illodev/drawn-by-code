@@ -4,19 +4,22 @@
 //
 // A natural hold of a tube raised in front of the face, the forearms coming up from below:
 //
-//   GalHands.near(press, r, o)   his right hand (the side facing the camera) closed round the
-//                                tube: the back of the hand on the near face, the knuckles'
-//                                row near the top, the fingers going over the top and away, the
-//                                thumb wrapping round under it. o: { fa, squeeze }
+//   GalHands.near(press, r, o)   his right hand (the side facing the camera) holding the bar
+//                                as one holds a torch pointing forward: the back of the hand on
+//                                the near face, the fingers curling under, the thumb over the
+//                                top pointing forward, the index in front. o: { fa, squeeze }
 //   GalHands.far(press, r, o)    his left hand, from the far side: only the fingers show,
-//                                curling over the top and down the near face, nails towards us
+//                                curling over the top and down the near face, nails towards us,
+//                                the index towards him (−a)
 //   GalHands.wristPt(which, r)   where each wrist is (local), for the arm's IK (the far one is
 //                                behind the tube)
 //   GalHands.cuff(press, w, dir, width, shade)   a white shirt cuff round a wrist
 //
 // Sizes from a real hand (1 unit ≈ 1.35 mm): palm 63 wide and 52 from wrist to knuckles,
-// fingers 13–17 wide, the thumb 19; the tube is 38–45 across. Index towards the objective (the
-// thumb's side is the way he faces), little finger towards the eyepiece.
+// fingers 13–17 wide, the thumb 19; the tube is 38–45 across. Handedness checked by holding a
+// real bar: a right hand seen from its right side, torch grip, has its thumb on top pointing
+// forward and its index in front; a left hand reaching over from the far side has its index
+// towards the body.
 const GalHands = (() => {
     const { put, ink, line, smooth, poly, taper, circle, ellipse } = Ph;
     const SKIN = Cast.SKIN, SKIN_SH = Cast.SKIN_SH;
@@ -56,62 +59,60 @@ const GalHands = (() => {
     }
     const shade = (press, clipPath, fn) => { press.save(); press.clip(clipPath); fn(); press.restore(); };
 
-    const wristPt = (which, r) => (which === 'near' ? [-4, r + 20] : [4, r - 8]);
+    const wristPt = (which, r) => (which === 'near' ? [-44, 4] : [4, r - 8]);
 
     // ── the right hand: a closed grip, the back of the hand towards us ─────────────────────
     function near(press, r, o = {}) {
-        const fa = o.fa ?? [-0.35, 0.94], sq = o.squeeze ?? 0;
-        const W = wristPt('near', r), W1 = add(W, fa, 16), side = [fa[1], -fa[0]]; // side: towards +a
-        // the fingers going over the top edge and away (their backs; the middle knuckles on top)
-        for (const [ac, w] of FING) {
-            const top = -r - 12 - sq * 0.6;
-            const sh = [[ac - w / 2, -r + 8], [ac - w / 2, -r - 3], [ac - w * 0.3, top], [ac + w * 0.3, top - 0.5], [ac + w / 2, -r - 3], [ac + w / 2, -r + 8]];
-            put(press, (g) => smooth(g, sh), SKIN);
-            shade(press, (g) => smooth(g, sh), () => ink(press, (g) => g.rect(ac - w, -r - 14, w * 2, 24), { 'pink.s': (g) => Riso.ramp(g, 0, -r + 2, 0, top, 0.04, 0.34), 'navy.s': (g) => Riso.ramp(g, 0, -r - 2, 0, top, 0, 0.1) }));
-            line(press, sh, taper(1, 0.2, 0.2), LINE, { knock: false });
-            wrinkles(press, [ac + 0.5, -r - 6], Math.PI / 2, w, 3);
+        const fa = o.fa ?? [-0.6, 0.8], sq = o.squeeze ?? 0;
+        const W = wristPt('near', r), W1 = add(W, fa, 16), side = [fa[1], -fa[0]];
+        // the right hand holds a bar pointing forward as one holds a torch: the palm against its
+        // far side, the fingers curling under it, the thumb over the top pointing forward; seen
+        // from his right we get the back of the hand, the knuckles low, the index in front
+        const FR = [[27, 16], [11, 16.5], [-5, 15.5], [-20, 13.5]]; // index → little: [a, width]
+        const shapes = [];
+        // the fingers' middle joints showing under the bottom edge as they curl round it
+        for (const [ac, w] of FR) shapes.push([[ac - w / 2, r - 8], [ac - w / 2, r + 2], [ac - w * 0.3, r + 8 + sq * 0.5], [ac + w * 0.3, r + 8.5 + sq * 0.5], [ac + w / 2, r + 2], [ac + w / 2, r - 8]]);
+        // the back of the hand, from the knuckles' row to the wrist behind the fist
+        const HB = [[-30, r - 6], [-12, r - 3], [6, r - 2], [24, r - 3], [36, r - 8], [38, 0], [30, -r + 8], [10, -r + 5], [-12, -r + 6], add(W, side, 17), add(W1, side, 18), add(W1, side, -18), add(W, side, -16), [-32, 6]];
+        // the thumb over the top: from its root at the back of the fist, forward along the bar
+        const TH = [[-14, -r + 6], [2, -r - 2], [20, -r - 5 - sq * 0.3], [33, -r - 3 - sq * 0.3]];
+        const th = digit(TH, 21, 14);
+        // one skin, no seams: every piece knocked out and inked the same, then shaded as one
+        const paths = [...shapes.map((sh) => (g) => smooth(g, sh)), (g) => smooth(g, HB), (g) => poly(g, th)];
+        for (const pth of paths) press.knockout((g) => { g.beginPath(); pth(g); g.fill(); });
+        for (const pth of paths) ink(press, pth, SKIN);
+        press.save(); press.clip((g) => { g.beginPath(); for (const sh of shapes) { const S = Ph.sample(sh, true, 10); S.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); } const S2 = Ph.sample(HB, true, 10); S2.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); th.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); });
+        // round across the back of the hand: lit high, turning away under the bar and towards
+        // the little finger's edge; the tube's shadow under the thumb
+        ink(press, (g) => g.rect(-60, -r - 20, 120, 2 * r + 70), { 'pink.s': (g) => Riso.ramp(g, 0, -r, 0, r + 10, 0.02, 0.3), 'navy.s': (g) => Riso.ramp(g, 0, r - 4, 0, r + 10, 0, 0.12) });
+        ink(press, (g) => g.rect(-60, -r - 20, 120, 2 * r + 70), { 'pink.s': (g) => Riso.ramp(g, -34, 0, -14, 0, 0.2, 0) });
+        ink(press, (g) => g.rect(-20, -r - 1, 60, 5), { 'pink.s': 0.2, 'navy.s': 0.12 });
+        // tendons fanning from the wrist to the knuckles, a vein
+        for (const [ac] of FR) line(press, [[W[0] + 6, W[1] - 4 + ac * 0.12], [ac * 0.5 - 4, r * 0.35], [ac, r - 8]], taper(3, 0.3, 0.3), { 'pink.s': 0.1 }, { knock: false });
+        line(press, [[-28, -4], [-12, 4], [0, 0], [12, 8], [22, r - 8]], taper(2.4, 0.2, 0.2), VEIN, { knock: false });
+        press.restore();
+        // creases only (no outlines between the pieces): the knuckles' bumps and their creases,
+        // the gaps between the fingers under the bar, the thumb's joint and its nail
+        for (const [ac, w] of FR) {
+            press.knockout(ellipse(ac, r - 6, w * 0.28, 3, 0));
+            line(press, [[ac - w * 0.25, r - 1], [ac, r + 0.5], [ac + w * 0.25, r - 1]], taper(1, 0.3, 0.3), CREASE);
         }
-        for (let i = 0; i < 3; i++) { const x = (FING[i][0] + FING[i][1] / 2 + FING[i + 1][0] - FING[i + 1][1] / 2) / 2; line(press, [[x, -r - 8], [x, -r + 4]], taper(1.8, 0.3, 0.2), SHADOW); }
-        // the thumb wraps round under the tube towards the far side: only its root and the
-        // round of its first joint show below the bottom edge, foreshortened as it goes away
-        const TH = [[20, r - 6], [32, r + 2], [44, r + 5 - sq], [52, r + 3 - sq]];
-        const th = digit(TH, 22, 15);
-        put(press, (g) => poly(g, th), SKIN);
-        shade(press, (g) => poly(g, th), () => {
-            ink(press, (g) => g.rect(10, r - 12, 60, 30), { 'pink.s': (g) => Riso.ramp(g, 30, 0, 58, 0, 0.1, 0.4), 'navy.s': (g) => Riso.ramp(g, 36, 0, 58, 0, 0, 0.16) });
-            ink(press, (g) => g.rect(10, r - 12, 60, 12), { navy: 0.3, 'pink.s': 0.3 }); // the tube's shadow on it
-        });
-        line(press, th.concat([th[0]]), 1, LINE, { knock: false });
-        wrinkles(press, [40, r + 5], 0.1, 13, 2);
-        // the back of the hand on the near face, down to the wrist
-        const HB = [[-31, -r + 11], [-24, -r + 3], [-8, -r + 1], [10, -r], [28, -r + 1.5], [36, -r + 8], [37, 0], [31, r - 4], [24, r + 6], add(W, side, 17), add(W1, side, 18), add(W1, side, -18), add(W, side, -17), [-28, r + 4], [-33, 2]];
-        put(press, (g) => smooth(g, HB), SKIN);
-        shade(press, (g) => smooth(g, HB), () => {
-            // round across the back: lit along the knuckles, turning away towards the little
-            // finger's edge and down to the wrist
-            ink(press, (g) => g.rect(-40, -r - 4, 90, 2 * r + 60), { 'pink.s': (g) => Riso.ramp(g, 0, -r + 6, 0, r + 30, 0.02, 0.3) });
-            ink(press, (g) => g.rect(-40, -r - 4, 90, 2 * r + 60), { 'pink.s': (g) => Riso.ramp(g, -34, 0, -12, 0, 0.26, 0), 'navy.s': (g) => Riso.ramp(g, -34, 0, -16, 0, 0.1, 0) });
-            // tendons fanning from the wrist to the knuckles, a vein across them
-            for (const [ac] of FING) line(press, [[W[0] + (ac - 2) * 0.25, W[1] - 8], [ac * 0.7, 2], [ac, -r + 9]], taper(3, 0.3, 0.3), { 'pink.s': 0.1 }, { knock: false });
-            for (const [ac] of FING) line(press, [[W[0] + (ac - 2) * 0.25 + 3, W[1] - 8], [ac * 0.7 + 3, 2], [ac + 3, -r + 9]], taper(1.2, 0.3, 0.3), { 'pink.s': 0.16 }, { knock: false });
-            line(press, [[-26, r - 2], [-10, 4], [4, 0], [14, 6], [20, r - 2]], taper(2.6, 0.2, 0.2), VEIN, { knock: false });
-            // the thumb's root muscle on the front edge
-            ink(press, ellipse(30, r - 6, 9, 14, 0.4), { 'pink.s': 0.16 });
-        });
-        line(press, Ph.sample(HB, true, 6).slice(0, 44), taper(1.1, 0.1, 0.1), LINE, { knock: false });
-        // the knuckles' row: bony bumps catching the light, their creases
-        for (const [ac, w] of FING) {
-            press.knockout(ellipse(ac + 0.5, -r + 5.5, w * 0.3, 3.6, 0));
-            ink(press, ellipse(ac + 0.5, -r + 9, w * 0.36, 2.6), { 'pink.s': 0.2 });
-            line(press, [[ac - w * 0.25, -r + 9.5], [ac, -r + 10.8], [ac + w * 0.25, -r + 9.5]], taper(1, 0.3, 0.3), CREASE);
-        }
+        for (let i = 0; i < 3; i++) { const x = (FR[i][0] - FR[i][1] / 2 + FR[i + 1][0] + FR[i + 1][1] / 2) / 2; line(press, [[x, r - 1], [x, r + 7]], taper(1.4, 0.3, 0.2), SHADOW); }
+        line(press, [[-12, -r + 9], [0, -r + 4], [10, -r + 2]], taper(1.3, 0.2, 0.5), CREASE);
+        wrinkles(press, [20, -r - 4], 0, 13, 2);
+        nail(press, [29, -r - 6.5 - sq * 0.3], -0.1, 6, 10);
+        // the outer silhouette only, faint
+        line(press, Ph.sample(HB, true, 6).slice(0, 30), taper(1, 0.1, 0.1), { 'pink.s': 0.35, 'navy.s': 0.2 }, { knock: false });
         cuff(press, W1, fa, 40, 0);
     }
 
     // ── the left hand: from the far side, its fingers curling over the top towards us ───────
     function far(press, r, o = {}) {
         const sq = o.squeeze ?? 0;
-        const TIP = [-r + 13, -r + 18, -r + 20, -r + 17]; // how far down the near face each reaches
+        // his left hand reaching over from the far side: the index towards him (−a), the little
+        // finger forward
+        const FING = [[22, 13.5], [6.5, 15.5], [-9.5, 16.5], [-26, 16]];
+        const TIP = [-r + 13, -r + 18, -r + 20, -r + 17]; // little, ring, middle, index // how far down the near face each reaches
         for (let i = 0; i < 4; i++) { const [ac, w] = FING[i]; ink(press, ellipse(ac + 1.5, TIP[i] + 3 + sq, w * 0.46, 3.4), SHADOW); }
         for (let i = 0; i < 4; i++) {
             const [ac, w] = FING[i], tipB = TIP[i] + sq, lean = (i - 1.5) * 0.8;
@@ -127,11 +128,11 @@ const GalHands = (() => {
                 ink(press, (g) => g.rect(ac - w, -r - 14, w * 2, 40), { 'pink.s': (g) => Riso.ramp(g, 0, -r + 4, 0, tipB, 0, 0.16) });
                 ink(press, (g) => g.rect(ac + w * 0.18, -r - 14, w * 0.5, 40), { 'pink.s': 0.12 });
             });
-            line(press, fg.concat([fg[0]]), 1, LINE, { knock: false });
+            line(press, fg.slice(0, Math.floor(fg.length / 2)), taper(1, 0.2, 0.2), { 'pink.s': 0.35, 'navy.s': 0.15 }, { knock: false });
             wrinkles(press, [ac - lean * 0.6, -r - 1], Math.PI / 2, w, 3);
             nail(press, [ac, tipB - w * 0.4 + 1.5], Math.PI / 2, w * 0.56, 10);
         }
-        for (let i = 0; i < 3; i++) { const x = (FING[i][0] + FING[i][1] / 2 + FING[i + 1][0] - FING[i + 1][1] / 2) / 2; line(press, [[x, -r - 8], [x + 0.4, -r + 4], [x + 0.6, Math.min(TIP[i], TIP[i + 1]) - 2]], taper(1.8, 0.3, 0.3), SHADOW); }
+        for (let i = 0; i < 3; i++) { const x = (FING[i][0] - FING[i][1] / 2 + FING[i + 1][0] + FING[i + 1][1] / 2) / 2; line(press, [[x, -r - 8], [x + 0.4, -r + 4], [x + 0.6, Math.min(TIP[i], TIP[i + 1]) - 2]], taper(1.8, 0.3, 0.3), SHADOW); }
     }
 
     // a white shirt cuff round the wrist: a band across the arm, gathered, a small frill

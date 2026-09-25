@@ -140,12 +140,15 @@ const Cast = (() => {
         const HAIR = { 'pink.s': 0.55, yellow: 0.9, 'navy.s': 0.62 };
         const HAIR_LT = { 'pink.s': 0.35, yellow: 0.78, 'navy.s': 0.25 };
         const HAIR_DK = { 'pink.s': 0.5, yellow: 1, navy: 1 };
-        seated(press, { thigh: { navy: 1, yellow: 0.9, 'blue.s': 0.35 }, shin: { navy: 1, yellow: 0.9, 'blue.s': 0.25 } });
-        // coat and shoulders; lapels
-        put(press, (g) => smooth(g, [[-150, 164], [-104, 118], [-30, 106], [50, 104], [120, 122], [164, 182], [178, 320], [160, 400], [-130, 400], [-160, 310]]), COAT);
-        put(press, (g) => smooth(g, [[40, 108], [118, 126], [158, 184], [172, 320], [158, 400], [84, 400], [62, 210]]), COAT_LIT);
-        put(press, (g) => poly(g, [[36, 112], [74, 122], [96, 196], [80, 250], [58, 200]]), COAT_DK);
-        line(press, [[40, 116], [84, 196], [88, 300]], taper(4), { 'navy.s': 0.9, 'blue.s': 0.3 });
+        // (headOnly: the head, neck, stock and collar only, for a body drawn by the scene)
+        if (!o.headOnly) {
+            seated(press, { thigh: { navy: 1, yellow: 0.9, 'blue.s': 0.35 }, shin: { navy: 1, yellow: 0.9, 'blue.s': 0.25 } });
+            // coat and shoulders; lapels
+            put(press, (g) => smooth(g, [[-150, 164], [-104, 118], [-30, 106], [50, 104], [120, 122], [164, 182], [178, 320], [160, 400], [-130, 400], [-160, 310]]), COAT);
+            put(press, (g) => smooth(g, [[40, 108], [118, 126], [158, 184], [172, 320], [158, 400], [84, 400], [62, 210]]), COAT_LIT);
+            put(press, (g) => poly(g, [[36, 112], [74, 122], [96, 196], [80, 250], [58, 200]]), COAT_DK);
+            line(press, [[40, 116], [84, 196], [88, 300]], taper(4), { 'navy.s': 0.9, 'blue.s': 0.3 });
+        }
         // neck
         put(press, (g) => smooth(g, [[-8, 48], [32, 50], [40, 98], [-12, 102]]), SKIN_SH);
         // shirt front, the black stock wound round the neck and the collar points up to the jaw
@@ -167,11 +170,22 @@ const Cast = (() => {
         press.restore();
         line(press, [[55, -28], [64, -12], [76, 6], [80, 13]], taper(4, 0.2, 0.2), LINE);
         line(press, [[64, 19], [58, 18], [56, 12]], taper(4.5), INK);
+        // the nostril's wing and the fold to the mouth
+        line(press, [[50, 10], [46, 18], [52, 24]], taper(3), LINE);
+        line(press, [[44, 26], [42, 36], [44, 44]], taper(2.4, 0.2, 0.6), { 'pink.s': 0.4, 'navy.s': 0.1 });
+        // the mouth: o.mouth opens it (surprise), the lower lip drops with the jaw
+        const mo = o.mouth ?? 0;
+        if (mo > 0) put(press, (g) => smooth(g, [[52, 34], [66, 34], [66, 36 + mo * 14], [56, 38 + mo * 12]]), { navy: 1, 'pink.s': 0.6 });
         line(press, [[50, 34], [58, 36], [65, 35]], taper(4.8, 0.4, 0.1), INK);
-        put(press, (g) => smooth(g, [[56, 37], [68, 38], [66, 45], [58, 44]]), { 'pink.s': 0.45, 'yellow.s': 0.15 });
-        line(press, [[46, 58], [58, 55], [64, 50]], taper(3), LINE);
-        line(press, [[14, -30], [32, -36], [54, -32]], taper(7, 0.2, 0.3), { navy: 1, 'pink.s': 0.5 });
-        eye(press, 40, -14, 29, look);
+        put(press, (g) => smooth(g, [[56, 37 + mo * 12], [68, 38 + mo * 12], [66, 45 + mo * 12], [58, 44 + mo * 12]]), { 'pink.s': 0.45, 'yellow.s': 0.15 });
+        line(press, [[46, 58 + mo * 8], [58, 55 + mo * 8], [64, 50 + mo * 8]], taper(3), LINE);
+        // brows: o.brow lifts them (surprise, > 0) or knits them (a frown, < 0)
+        const fb = o.brow ?? 0;
+        line(press, [[14, -30 - fb * 6], [32, -36 - fb * 9 + (fb < 0 ? -fb * 4 : 0)], [54, -32 - fb * 5 + (fb < 0 ? -fb * 10 : 0)]], taper(7, 0.2, 0.3), { navy: 1, 'pink.s': 0.5 });
+        if (fb < -0.3) line(press, [[56, -40], [58, -30]], taper(2.4), { 'pink.s': 0.5, 'navy.s': 0.2 });
+        if (fb > 0.3) for (const y of [-44, -50]) line(press, [[10, y - fb * 4], [30, y - 3 - fb * 4], [50, y - fb * 4]], taper(2), { 'pink.s': 0.4 });
+        if (o.shut) line(press, [[28, -12], [42, -8], [54, -14]], taper(4.5), INK);
+        else eye(press, 40, -14, 29 + (fb > 0 ? fb * 3 : 0), look);
         line(press, [[16, 0], [32, 6], [46, 4]], taper(2.4), { 'pink.s': 0.5, 'navy.s': 0.15 });
         line(press, [[8, -54], [30, -58]], taper(2.4), { 'pink.s': 0.4 });
         // hair: side parting on the near side, a big wave rising over the brow, full over the
