@@ -85,9 +85,9 @@ how you made it too.
 <sub>A plasticine puppet raymarched in the browser: lumpy pressed-on pieces, matte clay and a studio sweep.</sub>
 </td>
 <td width="50%" valign="top">
-<a href="sandbox/2026-09-25-physics-history/"><img src="sandbox/2026-09-25-physics-history/render/physics-history.gif" alt="physics-history"></a><br>
-<b><a href="sandbox/2026-09-25-physics-history/">physics-history</a></b> · risograph · 40 s · <a href="sandbox/2026-09-25-physics-history/render/physics-history.mp4">mp4</a><br>
-<sub>A history of physics in 40 seconds, told without text. Galileo's moons of Jupiter, Newton's fall that is an orbit, Faraday's induction, Curie measuring radioactivity, Einstein's geometry that bends light and Schrödinger's standing waves all meet in an atlas of six lenses. Each figure passes to the next through one object that changes, and the score, synthesized in code, gains an instrument at every stage.</sub>
+<a href="sandbox/2026-09-25-physics-history/"><img src="sandbox/2026-09-25-physics-history/render/physics-history.gif" alt="A Brief History of Physics"></a><br>
+<b><a href="sandbox/2026-09-25-physics-history/">A Brief History of Physics</a></b> · risograph · 64 s · <a href="sandbox/2026-09-25-physics-history/render/physics-history.mp4">mp4</a><br>
+<sub>Galileo's eye at the telescope pulls back to a rooftop in Padua; Jupiter becomes the apple a cat pushes onto Newton's head; its orbit winds into Faraday's coil, whose spark is the glow of Curie's radium; its ray is the light young Einstein chases into a black hole; and the cube it leaves becomes Schrödinger's box, where the cat is alive and dead in sixteen worlds until the lid lifts. One continuous chain of objects, the same cat in every scene, drawn entirely in JavaScript; score and effects generated with ElevenLabs.</sub>
 </td>
 </tr>
 </table>
