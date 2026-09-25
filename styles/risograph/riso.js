@@ -22,7 +22,7 @@
 const Riso = (() => {
     const INKS = {
         pink: { rgb: [240, 76, 183], angle: 0.26, pitch: 1 },
-        yellow: { rgb: [255, 250, 36], angle: 0.0, pitch: 1 },
+        yellow: { rgb: [255, 250, 40], angle: 0.0, pitch: 1 },
         blue: { rgb: [58, 146, 197], angle: 1.31, pitch: 1 },
         navy: { rgb: [32, 56, 146], angle: 0.79, pitch: 1 },
     };
@@ -163,7 +163,7 @@ const Riso = (() => {
                                 const gv = grain[(i + io) % (W * H)];
                                 // uneven inking: a solid prints nearly full and crisp, pocked with
                                 // pixel-size voids (paper showing through); starved blotches are faint
-                                cov *= (0.91 + 0.12 * mottle[ink][i]) * (0.95 + 0.05 * starve[i]) - (gv > 0.93 ? 0.3 : 0) - (gv > 0.985 ? 0.5 : 0) - (sp < 0.04 ? 0.5 : 0);
+                                cov *= (0.97 + 0.06 * mottle[ink][i]) * (0.985 + 0.03 * starve[i]) - (gv > 0.93 ? 0.3 : 0) - (gv > 0.985 ? 0.5 : 0) - (sp < 0.04 ? 0.5 : 0);
                                 if (cov <= 0) continue;
                                 const q = i * 4;
                                 D[q] *= 1 - cov + (cov * ir) / 255;
