@@ -21,19 +21,15 @@ CARDS.dish = (press, t, lf = Math.round(t * 24)) => {
     U.px(press, () => {
         press.save(); press.each((g) => g.translate(dx, dy));
         // ------------------------------------------------------------ night
-        N.fillStyle = T(1); N.fillRect(0, 0, 1080, 1080);
-        B.fillStyle = T(0.3); B.fillRect(0, 0, 1080, 1080);
-        // purple clouds (pink + blue in place of the navy), diagonal streaks
-        P.fillStyle = T(0.2); P.fillRect(0, 0, 1080, 520);
-        // purple streaks across the night (navy gives way to pink + blue), running up to the
-        // right at ~35°, measured as bands by their crossings of the left and top edges
-        const streaks = [[-40, 120, 60], [-40, 330, 45], [-40, 470, 50], [150, -40, 40], [330, -40, 35], [560, -40, 30], [820, -40, 50], [1000, -40, 40]];
-        const band = (g, [x, y, w]) => { g.save(); g.translate(x, y); g.rotate(-0.62); g.beginPath(); g.ellipse(700, 0, 900, w, 0, 0, 7); g.restore(); g.fill(); };
-        U.soft(N, 22, (g) => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(0.8); streaks.forEach((st) => band(g, st)); });
-        for (const [g, v] of [[P, 0.8], [B, 0.75]]) U.soft(g, 22, (c) => { c.fillStyle = T(v); streaks.forEach((st) => band(c, st)); });
-        // around the galaxy a purple haze
-        U.cut([N], (g) => U.glow(g, 880, 190, 260, 0.6, 0, 1, 0.7));
-        for (const g of [P, B]) U.glow(g, 880, 190, 260, 0.7, 0, 1, 0.7);
+        // the night, measured (30 px means solved into inks): mostly pink + blue overprinted
+        // (a blue-violet), with darker navy clouds drifting through it up to the right
+        P.fillStyle = T(0.9); P.fillRect(0, 0, 1080, 1080);
+        B.fillStyle = T(1); B.fillRect(0, 0, 1080, 1080);
+        N.fillStyle = T(0.22); N.fillRect(0, 0, 1080, 1080);
+        const clouds = [[200, 300, 170, 1], [330, 150, 120, 0.7], [80, 470, 110, 0.6], [950, 330, 150, 0.9], [560, 250, 90, 0.5], [760, 60, 110, 0.5]];
+        for (const [x, y, r, v] of clouds) { N.save(); N.translate(x, y); N.rotate(-0.6); N.scale(1.6, 0.6); U.glow(N, 0, 0, r, v, 0); N.restore(); }
+        U.cut([P], (g) => clouds.forEach(([x, y, r, v]) => { g.save(); g.translate(x, y); g.rotate(-0.6); g.scale(1.6, 0.6); U.glow(g, 0, 0, r, v * 0.4, 0); g.restore(); }));
+        U.cut([B], (g) => clouds.forEach(([x, y, r, v]) => { g.save(); g.translate(x, y); g.rotate(-0.6); g.scale(1.6, 0.6); U.glow(g, 0, 0, r, v, 0); g.restore(); }));
         // the horizon glow: pink dots from y 500 growing into a flat pink band (y 700–840)
         const glowT = (m, stops) => { const gr = m.createLinearGradient(0, 480, 0, 840); for (const [s, v] of stops) gr.addColorStop(s, T(v)); m.fillStyle = gr; m.fillRect(0, 480, 1080, 400); };
         U.screen(P, 'pink', LP, (m) => glowT(m, [[0, 0], [0.15, 0.2], [0.45, 0.65], [0.6, 1], [1, 1]]));
