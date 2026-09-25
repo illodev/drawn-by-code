@@ -10,6 +10,11 @@
 // axis, grid crops and lattice fits of the four screens. Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
 CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
+    // measured grids and scans (the tone map per 45 px block, outlines sampled off the
+    // reference) live in private/shell-data.js, never committed; the card falls back to its
+    // described shapes without them
+    const D = (typeof G5DATA !== 'undefined' && G5DATA.shell) || {};
+    const TONE = D.tone;
     const U = G5, T = Riso.tone, d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
     // the screens (lattice fits, px at 1080): sand pink 8.64 px at 72°, sea blue 9.72 px at
@@ -41,8 +46,8 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
         }
         // ------------------------------------------------------------ the water's edge
         // measured: the sea's edge, the foam band's inner edge (colour runs every 50 px)
-        const seaEdge = [[600, -20], [610, 0], [705, 40], [790, 80], [800, 120], [830, 160], [863, 200], [891, 240], [914, 280], [936, 320], [962, 360], [974, 400], [979, 440], [977, 480], [972, 520], [960, 560], [954, 600], [946, 640], [944, 680], [942, 720], [952, 760], [961, 800], [982, 840], [1006, 880], [1034, 920], [1070, 960], [1100, 995]];
-        const foamIn = [[520, -20], [530, 0], [582, 40], [653, 80], [705, 120], [732, 160], [777, 200], [817, 240], [865, 280], [891, 320], [901, 360], [914, 400], [930, 440], [918, 480], [898, 520], [909, 560], [918, 600], [906, 640], [884, 680], [900, 720], [905, 760], [907, 800], [928, 840], [964, 880], [978, 920], [1012, 960], [1059, 1000], [1100, 1035]];
+        const seaEdge = D.sea ?? [[600, -20], [800, 110], [930, 300], [980, 450], [945, 700], [1000, 860], [1100, 995]];
+        const foamIn = D.foam ?? [[520, -20], [650, 80], [820, 240], [915, 400], [905, 600], [905, 780], [980, 910], [1100, 1035]];
         const sea = seaEdge.concat([[1100, 1100], [1100, -20]]);
         const foam = foamIn.concat(seaEdge.slice().reverse().concat([[1100, 1100]]).slice(0, -1).reverse().reverse());
         // wet sand: a deeper band with navy dots before the foam
@@ -96,15 +101,23 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
             out.push(pts[pts.length - 1]);
             return out;
         };
-        const bands = [
-            [[[205, 215], [240, 290], [281, 374], [302, 408], [304, 458], [329, 489], [342, 530], [348, 576], [370, 608], [367, 664], [392, 695], [411, 731], [423, 773], [474, 834], [517, 851], [545, 879]], 26],
-            [[[250, 225], [300, 290], [328, 336], [353, 367], [370, 405], [404, 429], [419, 468], [440, 502], [476, 577], [505, 605], [522, 642], [537, 681], [587, 743], [609, 777], [647, 798], [690, 830]], 30],
-            [[[400, 300], [439, 350], [520, 372], [577, 393], [604, 422], [641, 444], [672, 470], [702, 497], [727, 528], [751, 560], [783, 588], [800, 625], [818, 665], [822, 709]], 30],
-        ];
-        U.clipped(P, shell, true, (g) => bands.forEach(([pts, w], i) => U.brush(g, zig(pts, w, 14, 'sz' + i), w * 1.5, T(1), 'szb' + i, { taper: 0.1, wob: 0.25 })));
-        U.clipped(Y, shell, true, (g) => bands.forEach(([pts, w], i) => U.brush(g, zig(pts, w, 14, 'sz' + i), w * 1.5, T(1), 'szb' + i, { taper: 0.1, wob: 0.25 })));
+        const bands = D.bands ?? [[[[205, 215], [300, 430], [370, 620], [420, 770], [545, 879]], 26], [[[250, 225], [370, 405], [476, 577], [587, 743], [690, 830]], 30], [[[400, 300], [577, 393], [702, 497], [800, 625], [822, 709]], 30]];
+        // each band a chevron strip: its two edges saw-toothed in step (sharp corners, as the
+        // reference's cut-paper zigzags), 24 px per tooth
+        const chevron = (pts, w, seed) => {
+            const r = Motion.rng(seed), L = [], Rr = [];
+            for (let i = 0; i < pts.length - 1; i++) {
+                const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], l = Math.hypot(x1 - x0, y1 - y0), nx = -(y1 - y0) / l, ny = (x1 - x0) / l, n = Math.max(1, Math.round(l / 24));
+                for (let k = 0; k < n; k++) {
+                    const s2 = k / n, cx = x0 + (x1 - x0) * s2, cy = y0 + (y1 - y0) * s2, z = (k % 2 ? 1 : -1) * w * 0.35 * (0.7 + 0.6 * r()), hw = w * (0.45 + 0.2 * r());
+                    L.push([cx + nx * (hw + z), cy + ny * (hw + z)]); Rr.push([cx - nx * (hw - z), cy - ny * (hw - z)]);
+                }
+            }
+            return L.concat(Rr.reverse());
+        };
+        for (const g of [P, Y]) U.clipped(g, shell, true, (c) => bands.forEach(([pts, w], i) => { c.fillStyle = T(1); c.beginPath(); U.trace(c, chevron(pts, w * 0.95, 'sz' + i)); c.fill(); }));
         // fine light hatching across the bands
-        U.clipped(P, shell, true, (g) => { g.globalCompositeOperation = 'destination-out'; U.hatch(g, 'shb', [150, 150, 860, 920], [0.62, 0.78], 7, 1.6, T(0.5), { bend: 1, len: 0.15 }); });
+        U.clipped(P, shell, true, (g) => { g.globalCompositeOperation = 'destination-out'; U.hatch(g, 'shb', [150, 150, 860, 920], [0.62, 0.78], 7, 1.2, T(0.35), { bend: 1, len: 0.15 }); });
         // ------------------------------------------------------------ the aperture
         const ap = [[537, 373], [580, 380], [623, 394], [670, 422], [716, 459], [755, 510], [787, 566], [812, 616], [830, 666], [838, 705], [837, 730], [830, 752], [816, 766], [790, 768], [751, 751], [705, 712], [659, 666], [620, 625], [587, 587], [560, 550], [537, 509], [518, 470], [509, 437], [506, 405], [515, 385]];
         U.cut([P, Y, N, B], (g) => { g.beginPath(); U.smooth(g, ap); g.fill(); });
@@ -120,8 +133,8 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
         press.knockout((g) => U.brush(g, [[620, 452], [660, 495], [700, 540], [740, 595], [772, 645]], (s) => 16 * Math.sin(Math.PI * Math.min(1, s * 1.1)), '#000', 'shl', { taper: 0.1 }));
         // ------------------------------------------------------------ outlines
         const teal = (pts, w, seed, close) => { for (const [g, v] of [[N, 0.85], [B, 0.8]]) U.brush(g, close ? pts.concat([pts[0]]) : pts, w, T(v), seed, { taper: close ? 0 : 0.2, wob: 0.15 }); };
-        teal(shell, 5, 'sol', true);
-        teal(ap, 4.5, 'sao', true);
+        teal(shell, 7, 'sol', true);
+        teal(ap, 6, 'sao', true);
         // whorl lines across the spire, the growth lines on the body
         for (const pts of [[[205, 182], [196, 200], [185, 214]], [[248, 205], [238, 228], [205, 245]], [[322, 246], [300, 290], [260, 320], [236, 330]], [[424, 302], [405, 360], [360, 400], [300, 420], [262, 424]], [[540, 380], [520, 450], [470, 520], [400, 565], [330, 585], [284, 592]]]) teal(pts, 3.2, 'sw' + pts[0][0], false);
         for (let k = 0; k < 9; k++) {
@@ -129,5 +142,6 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
             teal([[x0, y0 + 20], [x0 + 110, y0 - 10], [x0 + 230, y0 - 50 + k * 3]], 1.4, 'sg' + k, false);
         }
         press.restore();
+        U.toneMap(press, TONE);
     });
 };

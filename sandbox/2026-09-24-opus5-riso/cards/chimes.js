@@ -6,6 +6,11 @@
 // Authored in reference pixels (1080 frame) through G5.px. CARDS.chimes(press, t).
 var CARDS = CARDS || {};
 CARDS.chimes = (press, t, lf = Math.round(t * 24)) => {
+    // measured grids and scans (the tone map per 45 px block, outlines sampled off the
+    // reference) live in private/chimes-data.js, never committed; the card falls back to its
+    // described shapes without them
+    const D = (typeof G5DATA !== 'undefined' && G5DATA.chimes) || {};
+    const TONE = D.tone;
     const R = Riso, T = R.tone, U = G5;
     const d = Math.floor(t * 12 + 1e-6);
     const P = (ink, k) => press.plate(ink, k);
@@ -23,7 +28,8 @@ CARDS.chimes = (press, t, lf = Math.round(t * 24)) => {
     U.px(press, () => {
         press.save(); press.each((g) => g.translate(dx, dy));
         // the sky: light-blue dots on paper, denser at the top (measured: 0.65 → 0.35)
-        const beam = [[980, 70], [1090, 60], [1090, 270], [450, 900], [300, 1090], [-10, 1090], [-10, 1000]];
+        // the beam's edges measured on row scans: upper x = 866 − 0.92 (y − 150), lower x = 945 − 0.93 (y − 450)
+        const beam = [[1004, -10], [1090, -10], [1090, 294], [359, 1090], [10, 1090]];
         U.screen(blue, 'blue', LB, (m) => { const gr = m.createLinearGradient(0, 100, 300, 950); gr.addColorStop(0, T(0.82)); gr.addColorStop(0.5, T(0.56)); gr.addColorStop(1, T(0.42)); m.fillStyle = gr; m.fillRect(0, 0, 1080, 1080); m.globalCompositeOperation = 'destination-out'; m.fillStyle = T(0.6); m.beginPath(); U.trace(m, beam); m.fill(); });
         // the beam of light: yellow dots across, from the upper right down to the lower left
         U.screen(yel, 'yellow', LY, (m) => { const gr = m.createLinearGradient(1000, 150, 250, 950); gr.addColorStop(0, T(0.48)); gr.addColorStop(0.5, T(0.3)); gr.addColorStop(1, T(0.14)); m.fillStyle = gr; m.beginPath(); U.trace(m, beam); m.fill(); });
@@ -31,7 +37,7 @@ CARDS.chimes = (press, t, lf = Math.round(t * 24)) => {
         const ring = (d % 2) * 8;
         eraseIn(all, (g) => { g.lineWidth = 3.5; for (const r of [230, 330, 440, 560, 690]) { g.moveTo(560 + r + ring, 600); g.arc(560, 600, r + ring, 0, 7); } g.stroke(); });
         // bushes at the bottom: pink-dot scallops
-        const bush = [[-10, 1090], [-10, 980], [30, 978], [120, 995], [210, 1017], [300, 1001], [390, 1010], [480, 1009], [570, 1003], [660, 956], [750, 1013], [840, 965], [930, 987], [1020, 973], [1090, 951], [1090, 1090]];
+        const bush = D.bush ?? [[-10, 1090], [-10, 980], [200, 1010], [480, 1005], [660, 960], [750, 1010], [840, 965], [1090, 950], [1090, 1090]];
         eraseIn([blueS, yelS], (g) => U.smooth(g, bush) || g.fill());
         U.fill(pinkS, bush, T(0.62), true);
         for (const [x, y] of [[120, 1040], [420, 1030], [700, 1020], [960, 1030]]) U.glow(pinkS, x, y, 90, 0.35, 0);
@@ -54,7 +60,7 @@ CARDS.chimes = (press, t, lf = Math.round(t * 24)) => {
         // the disc (wind catcher): brown (pink + yellow + navy dots), a lit rim below
         const disc = []; for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2; disc.push([537 + Math.cos(a) * 190, 228 + Math.sin(a) * 42 - Math.cos(a) * 12]); }
         eraseIn(all, (g) => U.trace(g, disc) || g.fill());
-        U.fill(pink, disc, T(0.85)); U.fill(yel, disc, T(0.9)); U.fill(navyS, disc, T(0.55));
+        U.fill(pink, disc, T(0.9)); U.fill(yel, disc, T(0.9)); U.fill(navyS, disc, T(0.75));
         const under = disc.slice(3, 20);
         U.stroke(navy, under.map(([x, y]) => [x, y + 3]), 8, T(0.95));
         U.stroke(yel, disc.slice(6, 16).map(([x, y]) => [x, y - 4]), 3, T(1));
@@ -77,7 +83,7 @@ CARDS.chimes = (press, t, lf = Math.round(t * 24)) => {
             U.clipped(pinkS, shape, false, (g) => { g.fillStyle = R.ramp(g, x0 - r, 0, x0 + r, 0, 0.03, 0.32); g.fillRect(0, 0, 1080, 1080); });
             U.clipped(navyS, shape, false, (g) => { g.fillStyle = R.ramp(g, x0 + r * 0.3, 0, x0 + r, 0, 0, 0.2); g.fillRect(0, 0, 1080, 1080); });
             // the highlight: a white stripe left of centre
-            eraseIn(all, (g) => { g.lineWidth = r * 0.22; g.lineCap = 'round'; g.moveTo(x0 - r * 0.45, y0 + 25); g.lineTo(x1 - r * 0.45, y1 - 20); g.stroke(); });
+            eraseIn(all, (g) => { g.lineWidth = r * 0.3; g.lineCap = 'round'; g.moveTo(x0 - r * 0.42, y0 + 22); g.lineTo(x1 - r * 0.42, y1 - 14); g.stroke(); });
             // outline: dark green
             dark([[x0 - r, y0], [x1 - r, y1]], 2.5); dark([[x0 + r, y0], [x1 + r, y1]], 2.5);
             dark(Array.from({ length: 9 }, (_, i) => { const a = i / 8 * Math.PI; return [x1 + Math.cos(a) * r, y1 + Math.sin(a) * r * 0.3]; }), 2.5);
@@ -123,10 +129,14 @@ CARDS.chimes = (press, t, lf = Math.round(t * 24)) => {
         // petals blowing: pink ovals, drifting right on twos
         const rp = Motion.rng('ch-pet');
         for (let k = 0; k < 42; k++) {
-            const x = (rp() < 0.25 ? rp() * 280 : 220 + rp() * 860) + d * 3, y = 380 + rp() * 480, a = rp() * 3, l = 10 + rp() * 8;
+            // two drifts measured on the frame: left of the tubes (x 170–470, y 300–620) and
+            // below right (x 750–1060, y 580–1000); bright pink on paper, 13–21 px long
+            const left = k < 20, x = (left ? 170 + rp() * 300 : 750 + rp() * 310) + d * 3, y = left ? 300 + rp() * 320 : 580 + rp() * 420, a = rp() * 3, l = 13 + rp() * 8;
             const pt = [[x - l, y], [x, y - l * 0.45], [x + l, y], [x, y + l * 0.45]].map(([px, py]) => [x + (px - x) * Math.cos(a) - (py - y) * Math.sin(a), y + (px - x) * Math.sin(a) + (py - y) * Math.cos(a)]);
+            eraseIn(all, (g) => U.smooth(g, pt) || g.fill());
             U.fill(pink, pt, T(1), true);
         }
         press.restore();
+        U.toneMap(press, TONE);
     });
 };

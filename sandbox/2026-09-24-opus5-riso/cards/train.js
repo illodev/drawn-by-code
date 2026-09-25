@@ -9,6 +9,11 @@
 // Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
 CARDS.train = (press, t, lf = Math.round(t * 24)) => {
+    // measured grids and scans (the tone map per 45 px block, outlines sampled off the
+    // reference) live in private/train-data.js, never committed; the card falls back to its
+    // described shapes without them
+    const D = (typeof G5DATA !== 'undefined' && G5DATA.train) || {};
+    const TONE = D.tone;
     const U = G5, T = Riso.tone;
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
     // screens (lattice fits, px at 1080): blue/navy 9.7 px at 12°, pink 9.7 px at 72°, the
@@ -109,5 +114,6 @@ CARDS.train = (press, t, lf = Math.round(t * 24)) => {
         U.screen(B, 'blue', LB, (m) => { m.fillStyle = T(0.12); m.beginPath(); U.trace(m, lb); m.fill(); });
         press.knockout((g) => { g.beginPath(); g.arc(742, 420, 20, 0, 7); g.fill(); });
         press.restore();
+        U.toneMap(press, TONE);
     });
 };
