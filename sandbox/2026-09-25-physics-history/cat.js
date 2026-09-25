@@ -7,6 +7,7 @@
 //          (world point it looks at), blink, tail (0..1 swish phase), ears (0..1 flatten) }
 //
 // Local units: the hind paws at (0, 0), the head's top at y ≈ -130, facing +x.
+//   Cat.curl, Cat.run, Cat.dead (on its back, X eyes): see each below.
 const Cat = (() => {
     const { put, ink, line, smooth, poly, taper, circle, ellipse } = Ph;
     const C = { FUR: { navy: 1, yellow: 0.9, 'pink.s': 0.45 }, FUR_LT: { navy: 1, 'yellow.s': 0.5, 'blue.s': 0.45, 'pink.s': 0.3 },
@@ -142,6 +143,34 @@ const Cat = (() => {
         leg([40, lift + 6], Math.PI / 2 - 0.9 * ext - 1.1 * pc, 48, false);
         press.restore();
     }
+    // «dead» (the cartoon kind): on its back, belly up, the four legs stiff in the air, X eyes,
+    // the tongue out, the tail limp along the floor. o: { x, y (the floor), s, face }.
+    // Local units: 200 long, the floor at y = 0, the head at +x.
+    function dead(press, o) {
+        const f = o.face ?? 1, s = o.s ?? 1;
+        press.save();
+        press.each((g) => { g.translate(o.x, o.y); g.scale(s * f, s); });
+        const FUR = C.FUR, FUR_LT = C.FUR_LT, WHITE = C.WHITE, WHITE_SH = C.WHITE_SH;
+        // the tail, limp, its white tip
+        const T = [[-70, -8], [-104, -4], [-136, -4], [-156, -8]];
+        line(press, Ph.sample(T, false, 6), taper(12, 0.1, 0.5), FUR);
+        line(press, [T[2], T[3]], taper(9, 0.2, 0.6), WHITE);
+        // the far legs up, then the body on its back, the belly's paler fur on top
+        for (const [x, a] of [[-42, -1.75], [38, -1.4]]) { const pw = [x + Math.cos(a) * 62, -40 + Math.sin(a) * 62]; line(press, [[x, -40], pw], taper(19, 0.3, 0.15), FUR_LT); put(press, ellipse(pw[0], pw[1] - 2, 9, 7), WHITE_SH); }
+        const B = [[-78, 0], [-86, -26], [-56, -52], [0, -58], [52, -48], [72, -20], [64, 0]];
+        put(press, (g) => smooth(g, B), FUR);
+        put(press, (g) => smooth(g, [[-50, -46], [0, -54], [44, -44], [20, -36], [-30, -38]]), FUR_LT, { knock: false });
+        for (const [x, a] of [[-54, -1.9], [30, -1.5]]) { const pw = [x + Math.cos(a) * 70, -44 + Math.sin(a) * 70]; line(press, [[x, -44], pw], taper(21, 0.3, 0.15), FUR); put(press, ellipse(pw[0], pw[1] - 2, 10, 8), WHITE); }
+        // the head, upside down on the floor: ears pointing down, X eyes, the tongue out
+        const H = [92, -26];
+        put(press, (g) => poly(g, [[H[0] - 18, H[1] + 14], [H[0] - 24, H[1] + 34], [H[0] - 4, H[1] + 20]]), FUR);
+        put(press, (g) => poly(g, [[H[0] + 4, H[1] + 22], [H[0] + 10, H[1] + 40], [H[0] + 22, H[1] + 16]]), FUR);
+        put(press, (g) => smooth(g, [[H[0] - 26, H[1] + 6], [H[0] - 22, H[1] - 18], [H[0] + 2, H[1] - 28], [H[0] + 28, H[1] - 16], [H[0] + 30, H[1] + 8], [H[0] + 6, H[1] + 22]]), FUR);
+        put(press, (g) => smooth(g, [[H[0] + 10, H[1] - 26], [H[0] + 30, H[1] - 24], [H[0] + 32, H[1] - 12], [H[0] + 14, H[1] - 12]]), WHITE);
+        put(press, (g) => smooth(g, [[H[0] + 22, H[1] - 30], [H[0] + 30, H[1] - 34], [H[0] + 34, H[1] - 26], [H[0] + 26, H[1] - 22]]), { pink: 0.8, 'yellow.s': 0.2 });
+        for (const ex of [H[0] - 8, H[0] + 12]) { const ey = H[1] - 4; line(press, [[ex - 5, ey - 5], [ex + 5, ey + 5]], 3, WHITE); line(press, [[ex - 5, ey + 5], [ex + 5, ey - 5]], 3, WHITE); }
+        press.restore();
+    }
     const L = (a, b, k) => a + (b - a) * k;
-    return { sit, curl, run };
+    return { sit, curl, run, dead };
 })();
