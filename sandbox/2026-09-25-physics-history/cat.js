@@ -191,7 +191,7 @@ const Cat = (() => {
             blob(-62, -20, 14, 9, 0.85, 0.3);
             for (const [x, a, len] of [[-54, -1.9, 70], [30, -1.5, 70], [-42, -1.75, 62], [38, -1.4, 62]]) {
                 const k = [x + Math.cos(a) * len * 0.5, -40 + Math.sin(a) * len * 0.5], p2 = [x + Math.cos(a) * len, -40 + Math.sin(a) * len];
-                bone([[x, -34], k], 5); bone([k, p2], 4); blob(k[0], k[1], 4.5, 4.5); blob(p2[0], p2[1] - 3, 6, 5, 0.8);
+                bone([[x, -34], k], 7); bone([k, p2], 6); blob(k[0], k[1], 5, 5); blob(p2[0], p2[1] - 3, 7, 5, 0.8);
             }
             chain([[-70, -8], [-96, -6], [-108, -20], [-100, -34]], 12, 3.4, 0.75);
             // skull upside down: cranium, the eye's socket, the jaw
@@ -217,6 +217,44 @@ const Cat = (() => {
         }
         press.restore();
     }
+    // peeking over an edge, face to the camera: the head, two front paws on the rim. The rim
+    // at y = 0, the head rising above it by o.up (0..1). o: { x, y, s, up, blink, look: [dx, dy]
+    // (−1..1, where the eyes turn; [0, 0] = straight at us) }
+    function peek(press, o) {
+        const s = o.s ?? 1, up = o.up ?? 1, lk = o.look ?? [0, 0];
+        press.save();
+        press.each((g) => { g.translate(o.x, o.y); g.scale(s, s); });
+        const FUR = C.FUR, FUR_LT = C.FUR_LT, WHITE = C.WHITE, WHITE_SH = C.WHITE_SH;
+        const hy = 20 - 92 * up;
+        // (o.pawsOnly: just the paws, to lay them over a rim drawn after the head)
+        if (o.pawsOnly) { for (const f of [-1, 1]) { put(press, (g) => smooth(g, [[f * 18, 4], [f * 22, -12], [f * 42, -14], [f * 48, 2], [f * 40, 10], [f * 20, 10]]), WHITE); for (const k of [26, 34, 41]) line(press, [[f * k, -10], [f * k, 0]], 1.4, WHITE_SH, { knock: false }); } press.restore(); return; }
+        // the chest and neck, from the rim up to the head
+        put(press, (g) => smooth(g, [[-40, 10], [-44, hy + 20], [0, hy + 10], [44, hy + 20], [40, 10]]), FUR);
+        put(press, (g) => smooth(g, [[-14, 8], [-12, hy + 40], [0, hy + 34], [12, hy + 40], [14, 8]]), WHITE_SH);
+        // ears, the head (wider than tall), cheeks' fur
+        for (const f of [-1, 1]) {
+            put(press, (g) => poly(g, [[f * 18, hy - 40], [f * 44, hy - 78], [f * 50, hy - 26]]), FUR);
+            put(press, (g) => poly(g, [[f * 26, hy - 42], [f * 42, hy - 66], [f * 45, hy - 32]]), { pink: 0.5, navy: 0.6 });
+        }
+        put(press, (g) => smooth(g, [[-54, hy - 10], [-46, hy - 44], [0, hy - 58], [46, hy - 44], [54, hy - 10], [44, hy + 22], [0, hy + 34], [-44, hy + 22]]), FUR);
+        line(press, [[-36, hy - 44], [0, hy - 54], [36, hy - 44]], taper(5, 0.3, 0.3), FUR_LT, { knock: false });
+        // the white muzzle, the pink nose, the mouth, whiskers
+        put(press, (g) => smooth(g, [[-20, hy + 6], [0, hy - 2], [20, hy + 6], [16, hy + 26], [0, hy + 30], [-16, hy + 26]]), WHITE);
+        put(press, (g) => poly(g, [[-6, hy + 4], [6, hy + 4], [0, hy + 11]]), { pink: 0.9, 'navy.s': 0.2 });
+        line(press, [[-8, hy + 18], [0, hy + 14], [8, hy + 18]], 2, WHITE_SH, { knock: false });
+        for (const f of [-1, 1]) for (const [dy, a] of [[8, -0.12], [13, 0.05], [18, 0.2]]) line(press, [[f * 16, hy + dy], [f * (16 + Math.cos(a) * 36), hy + dy + Math.sin(a) * 36]], 1.4, WHITE_SH, { knock: false });
+        // the eyes, big, yellow, slit pupils on us (or shut)
+        for (const f of [-1, 1]) {
+            const ex = f * 22, ey = hy - 16;
+            if (o.blink) { line(press, [[ex - 10, ey], [ex, ey + 3], [ex + 10, ey]], 3, { yellow: 0.8, 'pink.s': 0.4 }); continue; }
+            put(press, ellipse(ex, ey, 11, 9), C.EYE);
+            put(press, ellipse(ex + lk[0] * 3, ey + lk[1] * 2, 2.6, 7.5), { navy: 1, yellow: 1 });
+            press.knockout(circle(ex + lk[0] * 3 + 3, ey + lk[1] * 2 - 3, 1.8));
+        }
+        // the front paws over the rim
+        for (const f of [-1, 1]) { put(press, (g) => smooth(g, [[f * 18, 4], [f * 22, -12], [f * 42, -14], [f * 48, 2], [f * 40, 10], [f * 20, 10]]), WHITE); for (const k of [26, 34, 41]) line(press, [[f * k, -10], [f * k, 0]], 1.4, WHITE_SH, { knock: false }); }
+        press.restore();
+    }
     const L = (a, b, k) => a + (b - a) * k;
-    return { sit, curl, run, dead, xray };
+    return { sit, curl, run, dead, xray, peek };
 })();

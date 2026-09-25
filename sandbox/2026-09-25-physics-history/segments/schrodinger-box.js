@@ -13,7 +13,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
 (() => {
     const { put, ink, line, smooth, poly, taper, circle, ellipse } = Ph;
     const L = Ease.lerp, S = Ease.seg, IO = Ease.inOut;
-    const T = { close: [0.3, 0.9], click: 1.2, scan: [1.4, 2.2], split: [2.8, 3.5, 4.1, 4.6], collapse: 6.6, end: 10 };
+    const T = { close: [0.3, 0.9], click: 1.2, scan: [1.4, 2.2], split: [2.8, 3.5, 4.1, 4.6], lean: [5.2, 6.1], lid: [6.0, 6.5], collapse: [6.6, 7.1], flash: 6.95, peek: [7.35, 7.9], blink: 8.9, end: 10 };
 
     const AMBER = { yellow: 1, 'pink.s': 0.55 };
     const AMBER_LT = { yellow: 0.6, 'pink.s': 0.3 };
@@ -103,6 +103,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // ── the radiograph of the box: pale walls, the apparatus in white, the cat's skeleton;
     // o.dead: the hammer down, the flask broken, the cat on its back
     const XR_BG = { navy: 1, blue: 0.85 };
+    // the lid's corners lifted off the box by u (0..1): up and tipped back on its far edge
+    const lidQuad = (u) => [[-h, -h, -h], [h, -h, -h], [h, -h, h], [-h, -h, h]].map(([x, , z]) => { const dz = z - h, a = 0.3 * u; return [x, -h - 170 * u + dz * Math.sin(a), h + dz * Math.cos(a)]; });
     const kline = (press, pts, w, a) => press.knockout((g) => { poly(g, Ph.outline(pts, w)); g.globalAlpha = a; g.fill(); g.globalAlpha = 1; });
     function radiograph(press, t, c, o) {
         const V = [];
@@ -111,6 +113,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         // the walls: a faint glow inside the box's outline, its edges pale
         press.knockout((g) => { poly(g, [V[0], V[1], V[3], V[7], V[6], V[4]]); g.globalAlpha = 0.07; g.fill(); g.globalAlpha = 1; });
         for (const [i, j] of E) kline(press, [V[i], V[j]], 4 * c.z, 0.4);
+        // the lid, lifted off and tipped back (o.lid 0..1)
+        if (o.lid > 0) { const Q = lidQuad(o.lid).map((q) => P(q, c)); press.knockout((g) => { poly(g, Q); g.globalAlpha = 0.12; g.fill(); g.globalAlpha = 1; }); for (let i = 0; i < 4; i++) kline(press, [Q[i], Q[(i + 1) % 4]], 5 * c.z, 0.7); }
         // the apparatus, in the same place as the diagram's, as white shadows
         const A = (q) => P(tr(q), c), k = kAt(tr([170, h, 120]), c) * 1.9, fl = h;
         const cs = [[100, fl - 110, 120], [240, fl - 110, 120], [240, fl, 120], [100, fl, 120]].map(A);
@@ -161,6 +165,48 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         if (leak > 0) for (const [i, j] of E.filter(onVis)) { const a = P(V[i], c), b = P(V[j], c); kline(press, [a, b], (6 + 14 * leak) * c.z, 0.5 * Math.min(1, leak)); }
         if (cl < 0.5) { const q = P([0, 110, 0], c); for (const dx of [-34, 34]) { put(press, ellipse(q[0] + dx, q[1], 22, 16), { yellow: 1, blue: 0.7 }); put(press, ellipse(q[0] + dx, q[1], 5, 14), BH); } }
     }
+    // the one world left: the box, shut but for its lifted lid, blue-green light from inside,
+    // the cat peeking over the front rim and looking at us
+    function opened(press, t, c) {
+        const V = [];
+        for (const x of [-h, h]) for (const y of [-h, h]) for (const z of [-h, h]) V.push([x, y, z]);
+        const Pv = (i) => P(V[i], c);
+        // the opening: dark, lit from below
+        const top = [0, 1, 5, 4].map(Pv);
+        put(press, (g) => poly(g, top), { navy: 1, blue: 0.6 });
+        const oc = P([0, -h, 0], c);
+        press.knockout((g) => { g.fillStyle = Riso.radial(g, oc[0], oc[1], 20, 380, 0.6, 0); poly(g, top); g.fill(); });
+        ink(press, (g) => poly(g, top), { 'blue.s': 0.35, 'yellow.s': 0.3 });
+        // the lid, up in the air (behind the cat's head)
+        const Q = lidQuad(1).map((q) => P(q, c));
+        put(press, (g) => poly(g, Q), { 'navy.s': 0.5, 'blue.s': 0.55, 'pink.s': 0.2 });
+        for (let i = 0; i < 4; i++) line(press, [Q[i], Q[(i + 1) % 4]], 6 * c.z, AMBER);
+        // the cat, rising behind the front rim
+        const up = Ease.back ? Ease.back(S(t, T.peek[0], T.peek[1])) : IO(S(t, T.peek[0], T.peek[1]));
+        const rim = P([-60, -h, -h], c), k = kAt([-60, -h, -h], c);
+        if (up > 0) Cat.peek(press, { x: rim[0], y: rim[1] + 4 * k, s: k * 3.1, up, blink: Math.abs(t - T.blink) < 0.09, look: t < T.peek[1] + 0.3 ? [0.8, 0.4] : [0, 0] });
+        // the two walls turned to us, over its body, and the edges
+        const walls = [[0, 1, 3, 2], [0, 2, 6, 4]];
+        for (const f of walls) { const dk = f[1] === 1 ? 0.75 : 0.95; put(press, (g) => poly(g, f.map(Pv)), { 'navy.s': dk, 'blue.s': 0.55, 'pink.s': 0.2 }); }
+        // the paws on the rim go over the front wall
+        if (up > 0.4) Cat.peek(press, { x: rim[0], y: rim[1] + 4 * k, s: k * 3.1, up, pawsOnly: true });
+        for (const [i, j] of [[0, 1], [0, 2], [0, 4], [1, 3], [2, 3], [2, 6], [4, 6], [1, 5], [4, 5]]) line(press, [Pv(i), Pv(j)], 6 * c.z, AMBER);
+    }
+    // Schrödinger, leaning in from the right to look (mirrored: facing left), his jacket running
+    // off the frame's bottom
+    function erwin(press, t, c) {
+        const ln = IO(S(t, T.lean[0], T.lean[1]));
+        if (ln <= 0) return;
+        const top = P([h, -h, 0], c), sc = kAt([h, -h, 0], c) * 1.7;
+        const hx = top[0] + L(820, 330, ln), hy = top[1] + L(160, 10, ln);
+        Ph.cam(press, hx, hy, sc, () => {
+            press.each((g) => { g.scale(-1, 1); g.rotate(0.3 * ln); });
+            const pp = Seg.schrodinger.parts;
+            put(press, (g) => g.rect(-128, 360, 290, 900), pp.SUIT);
+            put(press, (g) => g.rect(60, 360, 100, 900), pp.SUIT_LT);
+            pp.schrodinger(press, { look: t > T.peek[0] + 0.2 ? [1, 0.5] : [1, 0.9], noLegs: true });
+        });
+    }
     // the worlds: how the frame is cut at each split, and which worlds hold a dead cat
     const GRID = [[1, 1], [2, 1], [2, 2], [4, 2], [4, 4]];
     const deadIn = (n, i) => { const x = Math.sin((n * 7 + i) * 12.9898) * 43758.5453; return x - Math.floor(x) < 0.5; };
@@ -172,25 +218,52 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             put(press, (g) => g.rect(0, 0, 1600, 900), BH);
             if (t < T.scan[1]) solid(press, t, c);
             if (t < T.scan[0]) return;
+            // the collapse done: one world, seen plainly
+            if (t >= T.flash) {
+                opened(press, t, c);
+                erwin(press, t, c);
+                const fl = 1 - S(t, T.flash, T.flash + 0.3);
+                if (fl > 0) press.knockout((g) => { g.globalAlpha = fl; g.fillRect(0, 0, 1600, 900); g.globalAlpha = 1; });
+                return;
+            }
             // the scan: a bright line sweeping down; above it, the radiograph
             const sc = S(t, T.scan[0], T.scan[1]), sy = L(-20, 920, IO(sc));
             const lvl = T.split.filter((x) => t >= x).length, [gx, gy] = GRID[lvl], W = 1600 / gx, H = 900 / gy;
-            press.save();
-            if (sc < 1) press.clip((g) => g.rect(0, 0, 1600, sy));
-            for (let j = 0; j < gy; j++) for (let i = 0; i < gx; i++) {
-                const n = j * gx + i, pad = lvl ? 6 : 0;
+            const lid = IO(S(t, T.lid[0], T.lid[1])), cu = IO(S(t, T.collapse[0], T.collapse[1]));
+            // the world that remains: an alive one near the middle
+            const pick = [5, 6, 9, 10, 1, 2].find((n) => !deadIn(4, n)) ?? 5;
+            const cellR = (n) => { const i = n % gx, j = Math.floor(n / gx), pad = lvl ? 6 : 0; return [i * W + pad, j * H + pad, W - 2 * pad, H - 2 * pad]; };
+            const pr = cellR(pick), pc = [pr[0] + pr[2] / 2, pr[1] + pr[3] / 2];
+            const cell = (n, r) => {
                 press.save();
-                const x0 = i * W + pad, y0 = j * H + pad, cw = W - 2 * pad, chh = H - 2 * pad;
+                const [x0, y0, cw, chh] = r;
                 if (lvl) press.clip((g) => g.rect(x0, y0, cw, chh));
-                // the cell frames the box (a 1000 × 760 window round it), whatever its shape
                 const zs = lvl ? Math.min(cw / 1000, chh / 760) : 1;
                 press.each((g) => { g.translate(x0 + cw / 2, y0 + chh / 2); g.scale(zs, zs); g.translate(-800, -450); });
                 put(press, (g) => g.rect(-4000, -4000, 9600, 8900), XR_BG);
-                radiograph(press, t, c, { dead: lvl > 0 && deadIn(lvl, n) });
+                radiograph(press, t, c, { dead: lvl > 0 && deadIn(lvl, n), lid });
                 press.restore();
+            };
+            press.save();
+            if (sc < 1) press.clip((g) => g.rect(0, 0, 1600, sy));
+            for (let n = 0; n < gx * gy; n++) {
+                if (cu > 0 && n === pick) continue;
+                const r = cellR(n);
+                if (cu > 0) {
+                    // the other worlds shrink away into the one that stays
+                    const cx = L(r[0] + r[2] / 2, pc[0], cu), cy = L(r[1] + r[3] / 2, pc[1], cu), f = 1 - cu;
+                    if (f < 0.02) continue;
+                    cell(n, [cx - r[2] * f / 2, cy - r[3] * f / 2, r[2] * f, r[3] * f]);
+                } else cell(n, r);
             }
+            // the world that stays grows to fill the frame
+            if (cu > 0) cell(pick, [L(pr[0], 0, cu), L(pr[1], 0, cu), L(pr[2], 1600, cu), L(pr[3], 900, cu)]);
             press.restore();
             if (sc < 1) { kline(press, [[0, sy], [1600, sy]], 10, 0.9); press.knockout((g) => { g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(0, sy - 40, 1600, 40); }); }
+            erwin(press, t, c);
+            // the flash as the worlds collapse
+            const fl = S(t, T.flash - 0.2, T.flash);
+            if (fl > 0) press.knockout((g) => { g.globalAlpha = fl; g.fillRect(0, 0, 1600, 900); g.globalAlpha = 1; });
         },
     };
 })();
