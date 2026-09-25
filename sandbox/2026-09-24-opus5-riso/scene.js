@@ -301,16 +301,20 @@ function mosaic(press, lt) {
             b.restore();
         }
     }
-    // the circles: shrink and scatter away from 17.17 (in blue ink from 17.0)
+    // measured on frames 384–424: the camera starts close (16.0) and settles by 16.17; from
+    // 17.33 the circles shrink away, the outer ones first, and the layout draws in (17.67:
+    // three dots left)
+    const zin = 1 + 0.3 * (1 - Ease.out(Ease.seg(lt, 0, 0.17)));
+    const u = Ease.seg(lt, 1.33, 1.67);
+    // the whole layout turns slowly anticlockwise, ≈ 9.2°/s about the dot (edge registration of frames 386–416)
+    const rot = (9.2 * (lt - 0.5) * Math.PI) / 180;
+    press.save();
+    press.each((g) => { g.translate(500, 500); g.rotate(rot); g.translate(-500, -500); });
     MOSAIC.forEach(([name, x, y, r], i) => {
-        let cx = x, cy = y, rr = r;
-        if (lt >= 1.17) {
-            const u = Math.min(1, (lt - 1.17) / 0.4), rnd = Motion.rng('ms' + i), ang = Math.atan2(y - 500, x - 500);
-            if (rnd() < u * 1.3) return;
-            cx += Math.cos(ang) * u * 120 * rnd();
-            cy += Math.sin(ang) * u * 120 * rnd();
-            rr *= 1 - u * 0.5 * rnd();
-        }
+        const d = Math.hypot(x - 500, y - 500) / 500, k = 1 - 0.3 * u;
+        const sh = 1 - Math.min(1, u * (0.9 + 1.6 * d));
+        if (sh <= 0.02) return;
+        const cx = 500 + (x - 500) * zin * k, cy = 500 + (y - 500) * zin * k, rr = r * zin * sh;
         press.knockout((g) => { g.beginPath(); g.arc(cx, cy, rr, 0, 7); g.fill(); });
         press.save();
         press.clip((g) => g.arc(cx, cy, rr, 0, 7));
@@ -319,6 +323,7 @@ function mosaic(press, lt) {
         press.restore();
         Riso.ring(b, cx, cy, rr, 4.5, 'mrim' + i, { color: T(1), wobble: 0.01 });
     });
+    press.restore();
     if (!blueOut) {
         const p = press.plate('pink');
         p.fillStyle = T(1);
