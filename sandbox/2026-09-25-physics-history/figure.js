@@ -68,59 +68,56 @@ const Fig = (() => {
         line(press, [R(0.18 * s, -0.12 * s), R(0.5 * s, -0.12 * s)], taper(0.03 * s), lineSpec);
     }
 
-    // a right hand holding an apple up to look at it. Posed after a reference line drawing of a
-    // right hand holding an apple (Alamy 2D4HPAD): its contours were measured in units of the
-    // apple's radius from the apple's centre, then redrawn as filled riso shapes. The palm is
-    // behind the apple (its edge shows to the apple's right); the index lies across the apple's
-    // left, the middle across its lower front, both with their nails to us; the ring and little
-    // fingers curl under it; the thumb is hidden; the wrist goes down to the right. f = -1
-    // mirrors it (then it is a left hand).
-    const APPLE_HAND = {
-        // the hand's silhouette: index top edge, the hand's left edge, the bottom edge to the
-        // wrist, the wrist, the palm's right edge up to the apple, round under the apple
-        body: [[-0.37, -0.36], [-0.61, -0.3], [-0.84, -0.23], [-1.08, -0.09], [-1.26, 0.12], [-1.4, 0.36], [-1.54, 0.62], [-1.55, 0.87], [-1.42, 1.15], [-1.25, 1.43], [-1.1, 1.66], [-0.95, 1.9], [-0.65, 2.06], [-0.29, 2.22], [-0.02, 2.46], [0.33, 2.6], [0.74, 2.79], [1.02, 3.01], [1.38, 3.29], [2.36, 2.25], [1.98, 1.93], [1.75, 1.63], [1.6, 1.43], [1.54, 1.15], [1.43, 0.89], [1.23, 0.67], [1.07, 0.46], [1.0, 0.36], [0.8, 0.62], [0.5, 0.82], [0.2, 0.7]],
-        index: [[-0.37, -0.36], [-0.61, -0.3], [-0.84, -0.23], [-1.08, -0.09], [-1.26, 0.12], [-1.4, 0.36], [-1.2, 0.5], [-1.02, 0.3], [-0.85, 0.06], [-0.62, -0.09], [-0.4, -0.1], [-0.34, -0.22]],
-        middle: [[-0.84, 2.0], [-0.98, 1.84], [-1.03, 1.63], [-1.02, 1.36], [-0.96, 1.08], [-0.91, 0.87], [-0.82, 0.67], [-0.69, 0.53], [-0.51, 0.43], [-0.3, 0.34], [-0.09, 0.23], [0.12, 0.18], [0.3, 0.16], [0.44, 0.17], [0.47, 0.25], [0.39, 0.36], [0.32, 0.45], [0.14, 0.6], [-0.02, 0.68], [-0.22, 0.8], [-0.33, 0.87], [-0.41, 1.05], [-0.41, 1.22], [-0.55, 1.6]],
-        ring: [[-0.48, 1.49], [-0.39, 1.29], [-0.3, 1.08], [-0.12, 0.95], [0.12, 0.91], [0.35, 0.94], [0.59, 1.01], [0.74, 1.14], [0.81, 1.3], [0.8, 1.43], [0.62, 1.38], [0.25, 1.32], [0.05, 1.41], [-0.08, 1.56]],
-        little: [[-0.08, 1.56], [0.05, 1.41], [0.25, 1.32], [0.55, 1.42], [0.78, 1.52], [0.86, 1.68], [0.78, 1.82], [0.55, 1.9], [0.3, 1.98], [0.1, 1.94], [-0.05, 1.8]],
-        nails: [[[-0.47, -0.25], -0.35, 0.11, 0.075], [[0.32, 0.27], -0.1, 0.12, 0.08]],
-        creases: [[[-0.95, 0.02], [-0.88, 0.1], [-0.84, 0.22]], [[-0.62, 0.52], [-0.56, 0.62], [-0.55, 0.74]], [[0.28, 1.7], [0.29, 1.8], [0.26, 1.86]], [[0.12, 1.02], [0.14, 1.12], [0.13, 1.22]]],
-    };
-    function holdApple(press, c, R, f, spec, sh, held) {
-        const X = ([x, y]) => [c[0] + x * R * f, c[1] + y * R];
-        const lw = Math.max(1, R * 0.028);
-        const shape = (pts) => (g) => smooth(g, pts.map(X));
-        held(press, c);
-        put(press, shape(APPLE_HAND.body), spec);
-        // the hand's side towards the wrist turns away from the light
-        press.save(); press.clip(shape(APPLE_HAND.body));
-        const e0 = X([1.9, 2.4]), e1 = X([1.0, 1.6]);
-        Ph.ink(press, (g) => g.rect(c[0] - 4 * R, c[1] - 2 * R, 8 * R, 7 * R), { 'pink.s': (g) => Riso.ramp(g, e0[0], e0[1], e1[0], e1[1], 0.24, 0) });
+    // the near (right) hand holding an apple up to look at it, as the scene shows it: Newton in
+    // profile facing +x, palm up, so we see the hand's little-finger edge; the apple sits in the
+    // palm, the fingers curl up round its front (the little finger nearest us, the others just
+    // behind, their tips beyond the apple's edge), the thumb is on the far side, its tip showing
+    // over the apple's top. Local frame: x along the forearm (from the elbow), y the palm's
+    // normal pointing up. w: the wrist; dir: the forearm's angle; R: the apple's radius; world
+    // units (a real hand: palm 2.6 R long, fingers 2 R). Returns the apple's centre.
+    function holdApple(press, w, dir, f, R, spec, sh, held) {
+        // x along the forearm (from the elbow), y towards the face (the palm's side): the apple
+        // is held between the palm and his eyes
+        const ux = Math.cos(dir), uy = Math.sin(dir);
+        let nx = -uy, ny = ux;
+        if (nx * f > 0) { nx = -nx; ny = -ny; } // towards the face (−x when facing +x)
+        const X = (x, y) => [w[0] + (ux * x + nx * y) * R, w[1] + (uy * x + ny * y) * R];
+        const lw = Math.max(1.6, R * 0.07), EDGE = { 'pink.s': 0.7, 'navy.s': 0.55 };
+        const C = [1.5, 1.35];                                     // the apple, against the palm
+        const onA = (t, r) => X(C[0] + Math.cos(t) * r, C[1] + Math.sin(t) * r);
+        const arc = (t0, t1, r, n = 10) => Array.from({ length: n + 1 }, (_, i) => onA(t0 + (t1 - t0) * i / n, r));
+        // t = 0 points along the forearm (beyond the apple), t = π/2 back to the palm, t = −π/2 … no:
+        // here y grows towards the face, so t = +π/2 is the face's side, t = −π/2 the palm's
+        const finger = (P, wd, spc, contour) => {
+            line(press, P, wd * R, spc);
+            const e = P[P.length - 1];
+            put(press, circle(e[0], e[1], wd * R * 0.5), spc);
+            if (contour) {
+                const ol = Ph.outline(P, wd * R), h = ol.length / 2;
+                line(press, ol.slice(0, h), taper(lw, 0.1, 0.1), EDGE, { knock: false });
+                // the round of the tip, where it lies on the apple
+                const tp = P[P.length - 1], pv = P[P.length - 2], an = Math.atan2(tp[1] - pv[1], tp[0] - pv[0]), rr = wd * R * 0.5;
+                line(press, Array.from({ length: 7 }, (_, i) => { const aa = an - Math.PI / 2 + (i / 6) * Math.PI; return [tp[0] + Math.cos(aa) * rr, tp[1] + Math.sin(aa) * rr]; }), lw, EDGE, { knock: false });
+            }
+        };
+        // behind the apple: the thumb from the heel round its lower far side, the tip on its
+        // face-side bottom; the ring, middle and index fingers over its top, their tips on the
+        // face side (each a little longer and further back than the one before)
+        finger([X(0.35, 0.3), X(0.4, 0.95), onA(2.3, 1.02)], 0.52, sh, false);
+        for (const [r, t1, wd] of [[1.18, 1.45, 0.4], [1.2, 1.2, 0.42], [1.18, 0.9, 0.4]]) finger(arc(-0.95, t1, r), wd, spec, true);
+        held(press, X(C[0], C[1]));
+        // the palm's little-finger edge, from the wrist to the knuckles, against the apple
+        const PALM = [X(-0.25, -0.35), X(0.5, -0.45), X(1.5, -0.42), X(2.25, -0.32), X(2.45, 0.05), X(2.2, 0.3), X(1.4, 0.36), X(0.5, 0.3), X(-0.25, 0.3)];
+        put(press, (g) => smooth(g, PALM), spec);
+        press.save(); press.clip((g) => smooth(g, PALM));
+        Ph.ink(press, (g) => smooth(g, [X(-0.4, -0.6), X(2.6, -0.6), X(2.6, -0.2), X(-0.4, -0.2)]), { 'pink.s': 0.22 });
         press.restore();
-        // the fingers, back to front; each shaded on its lower side, with its contour
-        // (the contour leaves out the finger's base, where it joins the hand: skip = how many of
-        // its first/last points belong to the base)
-        const SKIP = { index: [0, 6], little: [0, 1], ring: [0, 0], middle: [2, 2] };
-        for (const key of ['index', 'little', 'ring', 'middle']) {
-            const pts = APPLE_HAND[key], P = pts.map(X);
-            put(press, shape(pts), spec);
-            // curled fingers under the apple sit in its shadow
-            if (key === 'ring' || key === 'little') { press.save(); press.clip(shape(pts)); Ph.ink(press, shape(pts), { 'pink.s': key === 'little' ? 0.2 : 0.12 }); press.restore(); }
-            const [s0, s1] = SKIP[key];
-            const open = key === 'index' ? P.slice(0, 6).reverse().concat(P.slice(6).reverse()).reverse() : P.slice(s0, P.length - s1);
-            line(press, Ph.sample(key === 'index' ? P.slice(6).concat(P.slice(0, 6)) : open, key === 'ring', 8), taper(lw, 0.1, 0.1), LINE, { knock: false });
-        }
-        // the hand's outer edges
-        const outline = (pts) => line(press, Ph.sample(pts.map(X), false, 8), taper(lw, 0.1, 0.2), LINE, { knock: false });
-        outline([[-1.4, 0.36], [-1.54, 0.62], [-1.55, 0.87], [-1.42, 1.15], [-1.25, 1.43], [-1.1, 1.66]]);
-        outline([[-0.65, 2.06], [-0.29, 2.22], [-0.02, 2.46], [0.33, 2.6], [0.74, 2.79], [1.02, 3.01], [1.38, 3.29]]);
-        outline([[1.03, 0.35], [1.23, 0.67], [1.43, 0.89], [1.54, 1.15], [1.6, 1.43], [1.75, 1.63], [1.98, 1.93], [2.36, 2.25]]);
-        for (const cr of APPLE_HAND.creases) line(press, Ph.sample(cr.map(X), false, 5), taper(lw * 0.9), LINE, { knock: false });
-        for (const [q, a, rx, ry] of APPLE_HAND.nails) {
-            const p = X(q), an = f > 0 ? a : Math.PI - a;
-            put(press, ellipse(p[0], p[1], rx * R, ry * R, an), { 'pink.s': 0.2, 'yellow.s': 0.05 });
-            line(press, Array.from({ length: 17 }, (_, i) => { const t = (i / 16) * 6.2832, x = Math.cos(t) * rx * R, y = Math.sin(t) * ry * R; return [p[0] + x * Math.cos(an) - y * Math.sin(an), p[1] + x * Math.sin(an) + y * Math.cos(an)]; }), lw * 0.8, LINE, { knock: false });
-        }
+        line(press, Ph.sample([X(-0.25, -0.35), X(0.5, -0.45), X(1.5, -0.42), X(2.25, -0.32)], false, 6), taper(lw, 0.1, 0.1), EDGE, { knock: false });
+        // the little finger, nearest us: from its knuckle at the palm's end over the apple's top
+        finger(arc(-1.0, 0.6, 1.16), 0.38, spec, true);
+        const k = onA(-0.35, 1.16), k2 = onA(-0.35, 1.16 + 0.2);
+        line(press, [onA(-0.35, 0.98), k2], taper(lw * 0.8), EDGE, { knock: false });
+        return X(C[0], C[1]);
     }
 
     // ── Newton ───────────────────────────────────────────────────────────────────────────
@@ -178,7 +175,7 @@ const Fig = (() => {
             put(press, (g) => { g.beginPath(); g.ellipse(cx[0], cx[1], 0.2 * u, 0.26 * u, cd, 0, Math.PI * 2); }, far ? COAT_FAR : CUFF);
             line(press, [add(cx, -Math.sin(cd) * 0.24 * u, Math.cos(cd) * 0.24 * u), add(cx, Math.sin(cd) * 0.24 * u, -Math.cos(cd) * 0.24 * u)], 0.04 * u, { yellow: 1, 'pink.s': 0.3 });
             put(press, circle(wr[0], wr[1], 0.16 * u), LINEN);
-            if (grip === 'apple' && !far && o.held) { const R = o.heldR ?? 30; held = [wr[0] - 1.4 * R * f, wr[1] - 2.9 * R]; holdApple(press, held, R, f, SKIN, SKIN_SH, o.held); }
+            if (grip === 'apple' && !far && o.held) held = holdApple(press, wr, cd, f, o.heldR ?? 30, SKIN, SKIN_SH, o.held);
             else hand(press, add(wr, Math.cos(cd) * 0.08 * u, Math.sin(cd) * 0.08 * u), cd, grip, 0.62 * u, far ? SKIN_SH : SKIN, SKIN_SH, LINE, f);
         };
         // far arm and far leg first

@@ -441,7 +441,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             put(press, (g) => poly(g, [[-46, -12], [48, -18], [50, -12], [-44, -6]]), { 'yellow.s': 0.15 });
             press.restore();
         }
-        const fig = Fig.newton(press, pose, { held: t >= 3.97 && t < T.release ? (pr, c) => drawApple(pr, c[0], c[1], APPLE_R, 9.5 + (t - 3.97) * 0.3) : null, heldR: APPLE_R });
+        const fig = Fig.newton(press, pose, { held: t >= 3.97 && t < T.release ? (pr, c) => drawApple(pr, c[0], c[1], APPLE_R, 0.15) : null, heldR: APPLE_R });
         stunStars(press, pose.H, t);
         return fig;
     }
