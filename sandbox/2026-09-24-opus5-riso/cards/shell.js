@@ -102,10 +102,22 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
             return out;
         };
         const bands = D.bands ?? [[[[205, 215], [300, 430], [370, 620], [420, 770], [545, 879]], 26], [[[250, 225], [370, 405], [476, 577], [587, 743], [690, 830]], 30], [[[400, 300], [577, 393], [702, 497], [800, 625], [822, 709]], 30]];
-        U.clipped(P, shell, true, (g) => bands.forEach(([pts, w], i) => U.brush(g, zig(pts, w, 14, 'sz' + i), w * 1.5, T(1), 'szb' + i, { taper: 0.1, wob: 0.25 })));
-        U.clipped(Y, shell, true, (g) => bands.forEach(([pts, w], i) => U.brush(g, zig(pts, w, 14, 'sz' + i), w * 1.5, T(1), 'szb' + i, { taper: 0.1, wob: 0.25 })));
+        // each band a chevron strip: its two edges saw-toothed in step (sharp corners, as the
+        // reference's cut-paper zigzags), 24 px per tooth
+        const chevron = (pts, w, seed) => {
+            const r = Motion.rng(seed), L = [], Rr = [];
+            for (let i = 0; i < pts.length - 1; i++) {
+                const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], l = Math.hypot(x1 - x0, y1 - y0), nx = -(y1 - y0) / l, ny = (x1 - x0) / l, n = Math.max(1, Math.round(l / 24));
+                for (let k = 0; k < n; k++) {
+                    const s2 = k / n, cx = x0 + (x1 - x0) * s2, cy = y0 + (y1 - y0) * s2, z = (k % 2 ? 1 : -1) * w * 0.35 * (0.7 + 0.6 * r()), hw = w * (0.45 + 0.2 * r());
+                    L.push([cx + nx * (hw + z), cy + ny * (hw + z)]); Rr.push([cx - nx * (hw - z), cy - ny * (hw - z)]);
+                }
+            }
+            return L.concat(Rr.reverse());
+        };
+        for (const g of [P, Y]) U.clipped(g, shell, true, (c) => bands.forEach(([pts, w], i) => { c.fillStyle = T(1); c.beginPath(); U.trace(c, chevron(pts, w * 0.95, 'sz' + i)); c.fill(); }));
         // fine light hatching across the bands
-        U.clipped(P, shell, true, (g) => { g.globalCompositeOperation = 'destination-out'; U.hatch(g, 'shb', [150, 150, 860, 920], [0.62, 0.78], 7, 1.6, T(0.5), { bend: 1, len: 0.15 }); });
+        U.clipped(P, shell, true, (g) => { g.globalCompositeOperation = 'destination-out'; U.hatch(g, 'shb', [150, 150, 860, 920], [0.62, 0.78], 7, 1.2, T(0.35), { bend: 1, len: 0.15 }); });
         // ------------------------------------------------------------ the aperture
         const ap = [[537, 373], [580, 380], [623, 394], [670, 422], [716, 459], [755, 510], [787, 566], [812, 616], [830, 666], [838, 705], [837, 730], [830, 752], [816, 766], [790, 768], [751, 751], [705, 712], [659, 666], [620, 625], [587, 587], [560, 550], [537, 509], [518, 470], [509, 437], [506, 405], [515, 385]];
         U.cut([P, Y, N, B], (g) => { g.beginPath(); U.smooth(g, ap); g.fill(); });
@@ -121,8 +133,8 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
         press.knockout((g) => U.brush(g, [[620, 452], [660, 495], [700, 540], [740, 595], [772, 645]], (s) => 16 * Math.sin(Math.PI * Math.min(1, s * 1.1)), '#000', 'shl', { taper: 0.1 }));
         // ------------------------------------------------------------ outlines
         const teal = (pts, w, seed, close) => { for (const [g, v] of [[N, 0.85], [B, 0.8]]) U.brush(g, close ? pts.concat([pts[0]]) : pts, w, T(v), seed, { taper: close ? 0 : 0.2, wob: 0.15 }); };
-        teal(shell, 5, 'sol', true);
-        teal(ap, 4.5, 'sao', true);
+        teal(shell, 7, 'sol', true);
+        teal(ap, 6, 'sao', true);
         // whorl lines across the spire, the growth lines on the body
         for (const pts of [[[205, 182], [196, 200], [185, 214]], [[248, 205], [238, 228], [205, 245]], [[322, 246], [300, 290], [260, 320], [236, 330]], [[424, 302], [405, 360], [360, 400], [300, 420], [262, 424]], [[540, 380], [520, 450], [470, 520], [400, 565], [330, 585], [284, 592]]]) teal(pts, 3.2, 'sw' + pts[0][0], false);
         for (let k = 0; k < 9; k++) {
