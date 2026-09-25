@@ -79,10 +79,10 @@ const Fig = (() => {
     // 'cock': winding up to throw, the back of the hand down, the apple on the palm; both seen
     // from the little finger's side. 'hold' (the back of the hand to the camera) is holdBack.
     function holdApple(press, w, dir, f, R, spec, sh, held, mode = 'cock', at = null) {
-        if (mode === 'hold') return holdBack(press, w, dir, f, R, spec, sh, held);
+        if (mode === 'hold') return holdSide(press, w, dir, f, R, spec, sh, held);
         if (mode === 'pick') return pickUp(press, w, f, R, spec, sh, held, at);
         // winding up to throw: the back of the hand to the camera too, the apple in the fist
-        if (mode === 'cock') return holdBack(press, w, dir, f, R, spec, sh, held, 1.6);
+        if (mode === 'cock') return holdSide(press, w, dir, f, R, spec, sh, held, 1.6);
         // x along the forearm (from the elbow), y towards the apple: down to the ground when
         // picking it up, up to the sky when winding up (the palm faces the apple)
         const ux = Math.cos(dir), uy = Math.sin(dir);
@@ -162,6 +162,54 @@ const Fig = (() => {
         line(press, ol.slice(0, h), taper(lw, 0.1, 0.1), EDGE, { knock: false });
         line(press, Ph.sample(BACK.slice(0, 3), false, 5), taper(lw, 0.1, 0.1), EDGE, { knock: false });
         return A;
+    }
+
+    // holding the apple seen from the side of the hand (the index side): the back of the hand
+    // edge-on as a band from the wrist to the knuckle, whose bump shows in profile at its end;
+    // the index finger curls from the knuckle round the apple's far side, its joints as bumps on
+    // its outer edge; the other fingers' tips peek out behind it, stepped; the thumb comes from
+    // the heel round the apple's near side, its nail towards us
+    function wrinkles2(press, c, an, w, lw, spec) {
+        const nx = -Math.sin(an), ny = Math.cos(an);
+        for (const o of [-2, 2]) line(press, [[c[0] - nx * w * 0.3 + Math.cos(an) * o, c[1] - ny * w * 0.3 + Math.sin(an) * o], [c[0] + nx * w * 0.3 + Math.cos(an) * o, c[1] + ny * w * 0.3 + Math.sin(an) * o]], Ph.taper(lw * 0.7), spec, { knock: false });
+    }
+    function holdSide(press, w, dir, f, R, spec, sh, held, reach = 1.15) {
+        const dx = Math.cos(dir), dy = Math.sin(dir);
+        let qx = -dy, qy = dx;
+        if (qx * f < 0) { qx = -qx; qy = -qy; }
+        const X = (a, b) => [w[0] + (dx * a + qx * b) * R, w[1] + (dy * a + qy * b) * R];
+        const lw = Math.max(1.4, R * 0.06), EDGE = { 'pink.s': 0.7, 'navy.s': 0.55 };
+        const C = [1.45, reach + 0.15];
+        const on = (t, r) => X(C[0] + Math.cos(t) * r, C[1] + Math.sin(t) * r);
+        const arc = (t0, t1, r, n = 12) => Array.from({ length: n + 1 }, (_, i) => on(t0 + (t1 - t0) * i / n, r));
+        const dig = (P, wd, spc, edge) => {
+            line(press, P, wd * R, spc);
+            put(press, circle(...P[0], wd * R * 0.5), spc);
+            put(press, circle(...P[P.length - 1], wd * R * 0.5), spc);
+            if (edge) { const ol = Ph.outline(P, wd * R), h = ol.length / 2; line(press, ol.slice(0, h), taper(lw, 0.1, 0.1), EDGE, { knock: false }); }
+        };
+        // the fingers behind the index: their tips stepped along the apple's front
+        for (const [t1, dt] of [[2.1, 0.5], [1.85, 0.3], [1.6, 0.15]]) dig(arc(-0.9 + dt, t1, 1.18), 0.38, sh, false);
+        held(press, X(C[0], C[1]));
+        // the back of the hand, edge-on: a band as thick as a hand, the knuckle's bump at its end
+        const BAND = [X(-0.35, -0.5), X(0.8, -0.52), X(1.75, -0.45), X(2.12, -0.3), X(2.22, 0.02), X(2.0, 0.3), X(1.2, 0.4), X(0.3, 0.42), X(-0.35, 0.45)];
+        put(press, (g) => smooth(g, BAND), spec);
+        press.save(); press.clip((g) => smooth(g, BAND));
+        Ph.ink(press, (g) => smooth(g, [X(-0.5, 0.1), X(2.4, 0.1), X(2.4, 0.6), X(-0.5, 0.6)]), { 'pink.s': 0.22 });
+        press.restore();
+        line(press, Ph.sample([X(-0.35, -0.5), X(0.8, -0.52), X(1.75, -0.45), X(2.12, -0.3), X(2.22, 0.02)], false, 6), taper(lw, 0.1, 0.1), EDGE, { knock: false });
+        // the index: from the knuckle round the apple's far side to its front
+        const IX = arc(-0.55, 1.45, 1.2);
+        dig(IX, 0.42, spec, true);
+        for (const k of [4, 8]) { const p = IX[k], q = IX[k + 1], an = Math.atan2(q[1] - p[1], q[0] - p[0]); line(press, [[p[0] - Math.sin(an) * R * 0.12, p[1] + Math.cos(an) * R * 0.12], [p[0] + Math.sin(an) * R * 0.12, p[1] - Math.cos(an) * R * 0.12]], taper(lw * 0.8), EDGE, { knock: false }); }
+        // the thumb: from the heel, round the apple's near side, the nail at its tip
+        // (seen from the index side the thumb is nearest: it crosses the apple's near face)
+        const TH = [X(0.45, 0.35), X(0.95, 0.85), on(2.2, 0.25)];
+        dig(TH, 0.48, spec, true);
+        wrinkles2(press, TH[1], Math.atan2(TH[2][1] - TH[0][1], TH[2][0] - TH[0][0]), R * 0.5, lw, EDGE);
+        const tp = TH[2], pv = TH[1], an = Math.atan2(tp[1] - pv[1], tp[0] - pv[0]);
+        put(press, ellipse(tp[0] - Math.cos(an) * R * 0.08, tp[1] - Math.sin(an) * R * 0.08, R * 0.13, R * 0.1, an), { 'pink.s': 0.2, 'yellow.s': 0.05 });
+        return X(C[0], C[1]);
     }
 
     // holding the apple up with the back of the hand to the camera (after a photo of a cupped
