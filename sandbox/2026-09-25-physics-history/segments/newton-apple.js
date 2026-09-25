@@ -130,7 +130,9 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // camera still at 1.25: the ground drops out of frame below, the apple rising fast and
     // slowing), then the zoom-out brings the shrinking world back up under it, to the globe.
     const AY = [[T.release, (28 - 180) * 1.25 + 450], [5.12, 190], [5.3, 165], [6.3, 160], [T.pull[1], 140]];
-    const GD = [[T.release, (G - 28) * 1.25], [5.12, 1400], [5.28, 1600], [5.5, 700], [5.9, 480], [6.4, 280], [T.pull[1], 110]];
+    // (the ground never leaves the frame: the tree, Newton and the farm shrink into the land as
+    // the camera pulls away, one continuous move, no empty sky)
+    const GD = [[T.release, (G - 28) * 1.25], [5.12, 760], [5.3, 660], [5.5, 580], [5.9, 460], [6.4, 280], [T.pull[1], 110]];
     const AX = [[T.release, 1025], [5.12, 1075], [5.3, 1100], [5.9, 1000]];
     const LEAN = 0.36; // the throw goes up and forward (≈ 20° from the vertical)
     const anchorY = (t) => Fig.track(AY, t) + Fig.track(GD, t);
@@ -172,10 +174,15 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         put(press, circle(x, y, 56), { yellow: 1, 'pink.s': 0.2 });
         press.knockout(ellipse(x - 16, y - 18, 14, 10));
     }
-    function cloud(press, x, y, s, spec = { 'blue.s': 0.08 }) {
+    // a = opacity (clouds fade in and out, never pop)
+    function cloud(press, x, y, s, spec = { 'blue.s': 0.08 }, a = 1) {
+        if (a <= 0.01) return;
         const bumps = [[-60, 10, 38], [-20, -14, 48], [30, -6, 44], [70, 12, 32], [0, 18, 40]];
-        put(press, (g) => { g.beginPath(); for (const [bx, by, r] of bumps) { g.moveTo(x + (bx + r) * s, y + by * s); g.arc(x + bx * s, y + by * s, r * s, 0, 6.2832); } }, spec);
-        ink(press, (g) => g.rect(x - 110 * s, y + 18 * s, 220 * s, 30 * s), { 'blue.s': 0.2 });
+        const path = (g) => { g.beginPath(); for (const [bx, by, r] of bumps) { g.moveTo(x + (bx + r) * s, y + by * s); g.arc(x + bx * s, y + by * s, r * s, 0, 6.2832); } };
+        if (a >= 1) put(press, path, spec);
+        else { press.knockout((g) => { path(g); g.globalAlpha = a; g.fill(); g.globalAlpha = 1; }); ink(press, path, Object.fromEntries(Object.entries(spec).map(([k, v]) => [k, v * a]))); }
+        // its shaded underside, inside the bumps (no flat band cutting across it)
+        ink(press, (g) => { g.beginPath(); for (const [bx, by, r] of bumps) { if (by < 5) continue; g.moveTo(x + (bx + r * 0.8) * s, (y + by + r * 0.3) * 1 + 0 * s); g.arc(x + bx * s, y + (by + r * 0.3) * s, r * 0.8 * s, 0, 6.2832); } }, { 'blue.s': 0.16 * a });
     }
     function moon(press, x, y) {
         put(press, circle(x, y, 30), { 'blue.s': 0.12 });
@@ -628,11 +635,13 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 // a layer of cumulus clouds 1.2e6 units up (≈ 3 km): the apple goes through it
                 const cpx = 2.6e6 * z;
                 if (cpx > 12 && cpx < 1400) {
+                    // (they fade in as they shrink under ~900 px and out under ~40; each its own size)
+                    const ca = Math.min(1, (1400 - cpx) / 500, (cpx - 12) / 30);
                     for (let k = -30; k <= 30; k++) {
-                        const s2 = k * 5.5e6 + 1.3e6, phi = s2 / RW;
+                        const s2 = k * 5.5e6 + 1.3e6 + hash(k, 21) * 3e6, phi = s2 / RW;
                         if (Math.abs(phi) > span) continue;
-                        const q = onGround(s2, 1.2e6 - terrain(s2));
-                        cloud(press, q[0], q[1], cpx / 190, { 'blue.s': 0.06 });
+                        const q = onGround(s2, 1.2e6 + hash(k, 22) * 4e5 - terrain(s2));
+                        cloud(press, q[0], q[1], (cpx / 190) * (0.6 + hash(k, 23) * 0.8), { 'blue.s': 0.06 }, ca);
                     }
                 }
             }
