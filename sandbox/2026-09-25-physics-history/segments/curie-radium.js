@@ -77,6 +77,19 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         // sacks of pitchblende on the floor, lower right
         put(press, (g) => smooth(g, [[1150, 900], [1170, 700], [1260, 660], [1360, 690], [1390, 900]]), { navy: 1, 'yellow.s': 0.4, 'pink.s': 0.3 });
         put(press, (g) => smooth(g, [[1340, 900], [1370, 740], [1460, 710], [1550, 740], [1580, 900]]), { navy: 1, 'yellow.s': 0.5, 'pink.s': 0.2 });
+        // the film's cat on the sacks, lost in the dark: only its silhouette against the plank
+        // wall's glow and its eyes, lit green by the radium, turned to the tube; it blinks
+        const cx = 1440, cy = 712, bl = Math.abs(t - 5.1) < 0.06;
+        put(press, (g) => smooth(g, [[cx - 60, cy], [cx - 58, cy - 50], [cx - 30, cy - 80], [cx + 10, cy - 84], [cx + 34, cy - 60], [cx + 40, cy]]), { navy: 1, 'yellow.s': 0.6, 'pink.s': 0.3 });
+        put(press, (g) => poly(g, [[cx - 22, cy - 74], [cx - 20, cy - 100], [cx - 6, cy - 80]]), { navy: 1, 'yellow.s': 0.6, 'pink.s': 0.3 });
+        put(press, (g) => poly(g, [[cx + 2, cy - 82], [cx + 12, cy - 104], [cx + 22, cy - 76]]), { navy: 1, 'yellow.s': 0.6, 'pink.s': 0.3 });
+        for (const ex of [-18, 8]) {
+            const x = cx + ex, y = cy - 62;
+            if (bl) { line(press, [[x - 7, y], [x + 7, y]], 2, GLOW_HOT); continue; }
+            press.knockout((g) => { g.fillStyle = Riso.radial(g, x, y, 1, 22, 0.5, 0); g.beginPath(); g.arc(x, y, 22, 0, 6.2832); g.fill(); });
+            put(press, ellipse(x, y, 7, 5), GLOW_HOT);
+            put(press, ellipse(x - 1.5, y, 1.6, 4.4), { navy: 1 });
+        }
     }
 
     // ── her right hand holding the tube up, the back of the hand to us (fist round the tube's
