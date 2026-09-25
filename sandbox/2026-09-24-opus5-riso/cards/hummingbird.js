@@ -139,35 +139,32 @@ CARDS.hummingbird = (press, t) => {
         const L8 = [7.94, 2.06, -2.05, 7.73, 600, 300]; // a fine screen for the plumage
         const LF = [5.6, 1.5, -1.5, 5.6, 0, 0]; // the specks' grid (motion blur)
 
-        // the far wings, a motion blur: wisps of fine blue (and a few pink) specks along rays
-        // fanning from the shoulder (520, 330): the left beat 158–202° long (≈ 470 px), the
-        // upper beat -112 to -86° (≈ 340 px); along each wisp the ground's dots and some of the
-        // yellow thin out. Re-drawn each drawing (the wings flutter).
+        // the far wings, a motion blur, measured at full size on f230: three narrow wisps from
+        // the shoulder (A left along y ≈ 290 → 320, B down-left to (100, 500), C straight up to
+        // the top edge), 30–60 px wide and tapering; inside each the ground's dots are gone,
+        // the yellow is thinned to a pale lemon and fine blue specks (a few pink) fill it.
+        // Between the wisps the ground is untouched. They flutter by a few px per drawing.
         {
-            const SX = 520, SY = 330, rs = Motion.rng('hbw' + (d % 3));
-            const fans = [[150, 188, 480, 13, 3200], [-110, -86, 340, 6, 900]];
-            for (const [a0, a1, L, n, N] of fans) {
-                const rays = [];
-                for (let k = 0; k < n; k++) rays.push(((a0 + (a1 - a0) * (k + 0.5) / n + (rs() - 0.5) * 3 + wob) * Math.PI) / 180);
-                // thin the ground under each wisp (soft round strokes, never a filled shape)
-                for (const [g, v] of [[blue, 0.6], [yellow, 0.2]]) {
-                    g.save(); g.globalCompositeOperation = 'destination-out'; g.lineCap = 'round';
-                    // one path, stroked once: overlapping wisps must not clear twice
-                    g.strokeStyle = T(v); g.lineWidth = 30; g.beginPath();
-                    for (const a of rays) { g.moveTo(SX + Math.cos(a) * 60, SY + Math.sin(a) * 60); g.lineTo(SX + Math.cos(a) * L * (0.8 + rs() * 0.2), SY + Math.sin(a) * L * (0.8 + rs() * 0.2)); }
-                    g.stroke();
-                    g.restore();
-                }
-                // the specks: denser mid-wisp, spread wider toward the tip
-                for (const [g, frac, v] of [[blue, 1, 0.95], [pink, 0.18, 0.8]]) {
-                    g.fillStyle = T(v); g.beginPath();
-                    for (let i = 0; i < N * frac; i++) {
-                        const a = rays[Math.floor(rs() * rays.length)], u = 0.15 + 0.85 * Math.sqrt(rs());
-                        const off = (rs() - 0.5) * (8 + u * 26), rr = 0.9 + rs() * 1.0;
-                        const x = SX + Math.cos(a) * L * u - Math.sin(a) * off, y = SY + Math.sin(a) * L * u + Math.cos(a) * off;
-                        g.moveTo(x + rr, y); g.arc(x, y, rr, 0, 7);
+            const rs = Motion.rng('hbw' + (d % 3)), w = wob;
+            const WISPS = [
+                [[470, 292, 60], [380, 285 + w, 75], [300, 288 + w, 70], [200, 300 + w, 50], [100, 318, 30], [30, 330, 14]],
+                [[455, 335, 50], [360, 385 + w, 65], [260, 435 + w, 60], [160, 480, 40], [60, 515, 16]],
+                [[505, 270, 40], [482 + w, 180, 55], [463 + w, 90, 58], [450, -10, 60]],
+            ];
+            for (const c of WISPS) {
+                const band = U.ribbon(c, { taper: 0.12, n: 30 });
+                for (const [g, v] of [[blue, 1], [yellow, 0.35]]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(v); U.path(g, band); g.fill(); g.restore(); }
+                // specks: sample along the centreline, scattered across the local width
+                const L = c.length - 1;
+                for (const [g, frac, v] of [[blue, 1, 0.95], [pink, 0.15, 0.8]]) {
+                    g.save(); U.path(g, band); g.clip(); g.fillStyle = T(v); g.beginPath();
+                    for (let i = 0; i < 1700 * frac; i++) {
+                        const u = rs() * L, k = Math.min(L - 1, Math.floor(u)), f = u - k;
+                        const x = c[k][0] + (c[k + 1][0] - c[k][0]) * f, y = c[k][1] + (c[k + 1][1] - c[k][1]) * f, wd = c[k][2] + (c[k + 1][2] - c[k][2]) * f;
+                        const px = x + (rs() - 0.5) * wd * 1.1, py = y + (rs() - 0.5) * wd * 1.1, rr = 0.9 + rs() * 0.9;
+                        g.moveTo(px + rr, py); g.arc(px, py, rr, 0, 7);
                     }
-                    g.fill();
+                    g.fill(); g.restore();
                 }
             }
         }
