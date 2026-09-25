@@ -84,7 +84,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // hand seen from its back with the fingers pointing forward has its thumb on top). Local
     // units: the tube's axis at x = 0, y down; screen px at Z = 1.
     function hand(press, o) {
-        const G = [TB[0], TB[1] + TL * 0.36], K = 0.58, ca = Math.cos(-0.35), sa = Math.sin(-0.35);
+        const G = [TB[0], TB[1] + TL * 0.36], K = 0.53, ca = Math.cos(-0.35), sa = Math.sin(-0.35);
         const X = (x, y) => [G[0] + (x * ca - y * sa) * K, G[1] + (x * sa + y * ca) * K];
         const EDGE = { 'pink.s': 0.6, 'navy.s': 0.45 };
         // the fingers curling round the tube, beyond the knuckles (index at top)
@@ -94,24 +94,24 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             line(press, Q, w * K, SKIN); put(press, circle(...Q[2], w * K / 2), SKIN);
         }
         // the back of the hand, from the wrist to the knuckles' row
-        const BACK = [X(-170, -52), X(-60, -64), X(26, -62), X(34, 0), X(30, 76), X(-60, 80), X(-170, 66)];
+        const BACK = [X(-125, -52), X(-50, -64), X(26, -62), X(34, 0), X(30, 76), X(-50, 80), X(-125, 66)]; // the back of the hand, short (a woman's hand)
         put(press, (g) => smooth(g, BACK), SKIN);
         press.save(); press.clip((g) => smooth(g, BACK));
         { const a = X(0, 20), b = X(0, 80); ink(press, (g) => g.rect(TB[0] - 260, TB[1], 360, 360), { 'pink.s': (g) => Riso.ramp(g, a[0], a[1], b[0], b[1], 0, 0.26) }); }
-        for (const [y] of F) line(press, [X(-140, y * 0.3), X(10, y)], taper(4, 0.3, 0.3), { 'pink.s': 0.12 }, { knock: false });
+        for (const [y] of F) line(press, [X(-100, y * 0.3), X(10, y)], taper(4, 0.3, 0.3), { 'pink.s': 0.12 }, { knock: false });
         press.restore();
         // the knuckles: light bumps along the row, a crease beside each; gaps between fingers
         for (const [y, w] of F) { const k = X(24, y); press.knockout(ellipse(k[0], k[1], 7 * K, w * 0.3 * K)); line(press, [X(40, y - w * 0.3), X(42, y), X(40, y + w * 0.3)], taper(2), EDGE, { knock: false }); }
         for (let i = 0; i < 3; i++) { const y = (F[i][0] + F[i + 1][0]) / 2; line(press, [X(36, y), X(62, y + 4)], taper(2.4, 0.2, 0.3), EDGE, { knock: false }); }
         // the thumb along the top, from the wrist side, its tip over the index by the tube
-        const TH = [X(-120, -58), X(-40, -78), X(14, -74)];
+        const TH = [X(-90, -58), X(-30, -78), X(14, -74)];
         line(press, TH, 30 * K, SKIN); put(press, circle(...TH[2], 15 * K), SKIN);
         put(press, ellipse(TH[2][0] + 1, TH[2][1] - 3, 7, 5, -0.5), { 'pink.s': 0.2, 'yellow.s': 0.05 });
         line(press, [X(-40, -64), X(-30, -90)], taper(2.2), EDGE, { knock: false });
         // the glow on the hand: the side towards the tube lit blue-green
         ink(press, (g) => smooth(g, [X(-20, -90), X(40, -90), X(70, 90), X(-20, 90)]), { 'blue.s': (g) => Riso.ramp(g, TB[0] + 60, 0, TB[0] - 60, 0, 0.3, 0) });
         // the white cuff at the wrist and the black sleeve going down to her elbow
-        return X(-170, 7);
+        return X(-125, 7);
     }
 
     // the tube: glass, a cork, the salt glowing at its bottom; its light round it
@@ -180,7 +180,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             const t = tq, c = cam(t);
             layer(press, c, 0.7, () => shed(press, t));
             layer(press, c, 1, () => {
-                const wr = [TB[0] - 170 * 0.58 * Math.cos(-0.35) + 7 * 0.58 * Math.sin(-0.35), TB[1] + TL * 0.36 - 170 * 0.58 * Math.sin(-0.35) + 7 * 0.58 * Math.cos(-0.35)];
+                const wr = [TB[0] - 125 * 0.53 * Math.cos(-0.35) + 7 * 0.53 * Math.sin(-0.35), TB[1] + TL * 0.36 - 125 * 0.53 * Math.sin(-0.35) + 7 * 0.53 * Math.cos(-0.35)];
                 marie(press, t, [wr[0] - 60, wr[1] + 330], wr);
                 tube(press, t, 1);
                 hand(press, { t });
