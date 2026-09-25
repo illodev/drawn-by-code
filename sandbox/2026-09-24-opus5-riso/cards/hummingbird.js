@@ -46,9 +46,9 @@ CARDS.hummingbird = (press, t) => {
     const darkLeaf = (pts, veins) => {
         press.knockout((g) => { U.smooth(g, pts); g.fill(); });
         fillS(yellow, pts, 1);
-        fillS(blueS, pts, 0.64);
-        fillS(pinkS, pts, 0.2);
-        fillS(navyS, pts, 0.14);
+        fillS(blueS, pts, 0.7);
+        fillS(pinkS, pts, 0.24);
+        fillS(navyS, pts, 0.3);
         // veins: red-orange lines (pink + yellow, the blue knocked)
         for (const v of veins) {
             blueS.save(); blueS.globalCompositeOperation = 'destination-out'; U.stroke(blueS, v, 3.2, 1, true); blueS.restore();
@@ -115,15 +115,14 @@ CARDS.hummingbird = (press, t) => {
         const pts = [[240, 1085], [262, 990], [330, 928], [430, 902], [540, 912], [622, 948], [602, 1020], [560, 1085]];
         blue.save(); U.smooth(blue, pts); blue.clip();
         blue.globalCompositeOperation = 'destination-out'; blue.fillStyle = '#000'; blue.fillRect(200, 880, 460, 220); blue.globalCompositeOperation = 'source-over';
-        U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], () => 0.78, 200, 880, 660, 1090, { jit: 0.2 }); blue.restore();
-        pink.save(); U.smooth(pink, pts); pink.clip(); U.lat(pink, [9.2, 2.5, -2.5, 9.2, 400, 1000], (x, y) => ((x * 7 + y * 13) % 5 < 1.4 ? 0.3 : 0), 200, 880, 660, 1090, { jit: 0.3 }); pink.restore();
+        U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], () => 0.6, 200, 880, 660, 1090, { jit: 0.2 }); blue.restore();
     });
 
     // lighter leaves lying over the dark ones at the bottom corners (lemon-green: the dark
     // screens cleared, a medium blue screen, a green edge), ref px
     U.ref(press, 1, () => {
         for (const pts of [[[640, 1085], [655, 1010], [690, 950], [740, 925], [790, 935], [772, 990], [735, 1045], [700, 1085]],
-            [[100, 1085], [112, 990], [135, 935], [200, 905], [252, 890], [250, 960], [225, 1030], [200, 1085]]]) {
+            [[102, 1085], [108, 990], [125, 935], [165, 900], [185, 950], [178, 1020], [168, 1085]]]) {
             for (const g of [blueS, pinkS, navyS, pink, navy, blue]) { g.save(); g.globalCompositeOperation = 'destination-out'; U.smooth(g, pts); g.fill(); g.restore(); }
             blue.save(); U.smooth(blue, pts); blue.clip(); U.lat(blue, [11.6285, 2.8233, -2.8916, 11.2415, 491.8, 698.7], () => 0.22, 90, 850, 820, 1090, { jit: 0.15 }); blue.restore();
             blue.save(); blue.lineWidth = 4; blue.strokeStyle = T(0.9); U.smooth(blue, pts); blue.stroke(); blue.restore();
@@ -153,7 +152,7 @@ CARDS.hummingbird = (press, t) => {
             ];
             for (const c of WISPS) {
                 const band = U.ribbon(c, { taper: 0.12, n: 30 });
-                for (const [g, v] of [[blue, 1], [yellow, 0.35]]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(v); U.path(g, band); g.fill(); g.restore(); }
+                for (const [g, v] of [[blue, 1], [yellow, 0.7]]) { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = T(v); U.path(g, band); g.fill(); g.restore(); }
                 // specks: sample along the centreline, scattered across the local width
                 const L = c.length - 1;
                 for (const [g, frac, v] of [[blue, 1, 0.95], [pink, 0.15, 0.8]]) {
