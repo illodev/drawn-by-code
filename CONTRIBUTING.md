@@ -39,7 +39,7 @@ The `new-style` skill walks through it. A style is complete when it has:
    `brief.md`, `scene.js`, `review.md` with its rounds, `review/sheet.jpg`, and the render
    in `render/<name>.mp4` with its `render/strip.jpg` (`node engine/strip.mjs`).
 5. `styles/<style>/README.md` and `strip.jpg` (copy another style's README), a row in the
-   README's style table and its strip, and a row in `sandbox/INDEX.md`.
+   README's style table, and a row in `sandbox/INDEX.md`.
 
 A new style starts as **in testing**. It becomes **approved** when a video made with it
 holds up to review and feedback.

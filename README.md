@@ -73,17 +73,24 @@ how you made it too.
 <sub>One object travels through five styles joined by transitions: paper, a 70s poster, liquid light, a kaleidoscope and line.</sub>
 </td>
 <td width="50%" valign="top">
+<a href="sandbox/2026-09-24-opus5-riso/"><img src="sandbox/2026-09-24-opus5-riso/render/opus5-riso.gif" alt="opus5-riso"></a><br>
+<b><a href="sandbox/2026-09-24-opus5-riso/">opus5-riso</a></b> · risograph · 28 s · <a href="sandbox/2026-09-24-opus5-riso/render/opus5-riso.mp4">mp4</a><br>
+<sub>A 1:1 replica, made as a study, of a risograph film shared on X (credit to its author pending); the original design and animation are theirs. Four spot inks, halftone and misregistration from a simulated press, scored tile by tile against the original by the detail gate.</sub>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
 <a href="sandbox/2026-09-24-clay3d-test/"><img src="sandbox/2026-09-24-clay3d-test/render/clay3d-test.gif" alt="clay3d-test"></a><br>
 <b><a href="sandbox/2026-09-24-clay3d-test/">clay3d-test</a></b> · clay 3D · 4 s · <a href="sandbox/2026-09-24-clay3d-test/render/clay3d-test.mp4">mp4</a><br>
 <sub>A plasticine puppet raymarched in the browser: lumpy pressed-on pieces, matte clay and a studio sweep.</sub>
 </td>
-</tr>
-<tr>
 <td width="50%" valign="top">
 <a href="sandbox/2026-09-24-fube-clay/"><img src="sandbox/2026-09-24-fube-clay/render/fube-clay.gif" alt="fube-clay"></a><br>
 <b><a href="sandbox/2026-09-24-fube-clay/">fube-clay</a></b> · clay 2D · 6 s · <a href="sandbox/2026-09-24-fube-clay/render/fube-clay.mp4">mp4</a><br>
 <sub>The saas-promo invoice block redone in 2D clay, as a style comparison.</sub>
 </td>
+</tr>
+<tr>
 <td width="50%" valign="top">
 <a href="sandbox/2026-09-24-coffee-first/"><img src="sandbox/2026-09-24-coffee-first/render/coffee-first.gif" alt="coffee-first"></a><br>
 <b><a href="sandbox/2026-09-24-coffee-first/">coffee-first</a></b> · paper cutout · 6 s · <a href="sandbox/2026-09-24-coffee-first/render/coffee-first.mp4">mp4</a><br>
@@ -110,16 +117,6 @@ to see its strip, files and the videos made with it.
 | [clay3d](styles/clay3d/) | 3D plasticine puppets, raymarched, studio light | in testing |
 | [risograph](styles/risograph/) | four spot inks, halftone, overprints, misregistration | approved |
 | [pixel-art](styles/pixel-art/) | crisp pixels on a low-res grid, sprite maps, 10 fps loops | in testing |
-
-![paper-cutout](styles/paper-cutout/strip.jpg)
-![70s-poster](styles/70s-poster/strip.jpg)
-![liquid-light](styles/liquid-light/strip.jpg)
-![kaleidoscope](styles/kaleidoscope/strip.jpg)
-![line](styles/line/strip.jpg)
-![clay](styles/clay/strip.jpg)
-![clay3d](styles/clay3d/strip.jpg)
-![risograph](styles/risograph/strip.jpg)
-![pixel-art](styles/pixel-art/strip.jpg)
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 
@@ -152,7 +149,7 @@ skill guides the process: brief → script → style test → animatic → final
   - `tempo.mjs`: reads BPM and loudness;
   - `mix.mjs`: music plus effects, each aligned on the frame where you hear it;
   - `transitions.js`: transitions between styles;
-  - `strip.mjs` and `gif.mjs`: the strips and GIFs on this page.
+  - `gif.mjs` and `strip.mjs`: the GIFs on this page and the strips in each style's folder.
 - **Skills** (`.claude/skills/`) hold the process and the taste:
   - `animate` (brief to MP4) and `review` (the critique loop);
   - `engine` and `sound`;
