@@ -14,6 +14,11 @@
 // Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
 CARDS.cello = (press, t, lf = Math.round(t * 24)) => {
+    // measured grids and scans (the tone map per 45 px block, outlines sampled off the
+    // reference) live in private/cello-data.js, never committed; the card falls back to its
+    // described shapes without them
+    const D = (typeof G5DATA !== 'undefined' && G5DATA.cello) || {};
+    const TONE = D.tone;
     const U = G5, T = Riso.tone, d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
     const YS = press.plate('yellow', 'screen'), PS = press.plate('pink', 'screen'), BS = press.plate('blue', 'screen'), NS = press.plate('navy', 'screen');
@@ -41,7 +46,7 @@ CARDS.cello = (press, t, lf = Math.round(t * 24)) => {
         U.cut([N, B, P], (g) => { bodyPath(g); g.fill(); });
         // the highlight band along the strings, measured as [y, left, right] on colour-run
         // scans (yellow + half the orange): pink thins to dots there
-        const B8 = [[-30, 118, 420], [5, 130, 410], [100, 185, 410], [200, 245, 452], [300, 342, 494], [400, 392, 534], [450, 408, 512], [600, 442, 532], [700, 412, 508], [780, 410, 542], [870, 432, 568], [930, 468, 602], [990, 480, 614], [1050, 474, 668], [1110, 480, 690]];
+        const B8 = D.band ?? [[-30, 120, 420], [300, 340, 490], [600, 440, 530], [900, 460, 590], [1110, 480, 690]];
         const bandP = B8.map(([y, l]) => [l, y]).concat(B8.slice().reverse().map(([y, , r]) => [r, y]));
         const coreP = B8.map(([y, l, r]) => [l + (r - l) * 0.22, y]).concat(B8.slice().reverse().map(([y, l, r]) => [r - (r - l) * 0.22, y]));
         U.clipped(P, body, true, (g) => {
@@ -85,10 +90,12 @@ CARDS.cello = (press, t, lf = Math.round(t * 24)) => {
         U.clipped(NS, fb, false, (g) => { g.fillStyle = T(0.3); g.fillRect(250, 0, 260, 230); });
         U.clipped(PS, fb, false, (g) => { g.fillStyle = T(0.2); g.fillRect(250, 0, 260, 230); });
         const bar = (pts, w) => { for (const [g, v] of [[N, 0.95], [B, 0.4]]) U.brush(g, pts, w, T(v), 'cfb' + w, { taper: 0, wob: 0.05 }); };
-        bar([[339, -10], [360, 100], [380, 206]], 14);
-        bar([[382, -10], [413, 90], [454, 182]], 27);
-        bar([[294, -10], [318, 100], [346, 210]], 5);
-        // ---------------------------------------------------------------- f-holes
+        // the two dark bars of the fingerboard's end, measured on a 1.8× grid crop
+        bar([[320, -10], [347, 100], [372, 196]], 22);
+        bar([[372, -10], [406, 90], [436, 176]], 30);
+        // the tailpiece's shadow: dark olive to its right
+        U.cut([P], (g) => U.soft(g, 10, (c) => { c.beginPath(); U.trace(c, [[790, 760], [840, 760], [900, 1090], [830, 1090]]); c.fill(); }));
+        for (const [g, v] of [[N, 0.85], [B, 0.4]]) U.soft(g, 10, (c) => { c.fillStyle = T(v); c.beginPath(); U.trace(c, [[790, 760], [840, 760], [900, 1090], [830, 1090]]); c.fill(); });
         const fhole = (pts, r0, r1, seed) => {
             for (const [g, v] of [[N, 0.95], [B, 0.5]]) {
                 U.brush(g, pts, (s) => 17 - 6 * Math.sin(Math.PI * s), T(v), seed, { taper: 0, wob: 0.1 });
@@ -151,5 +158,6 @@ CARDS.cello = (press, t, lf = Math.round(t * 24)) => {
         press.knockout((g) => { g.lineWidth = 14; g.beginPath(); g.arc(540, 540, rr, 0, 7); g.stroke(); });
         B.save(); B.strokeStyle = T(0.6); B.lineWidth = 2.5; B.beginPath(); B.arc(540, 540, rr - 8, 0, 7); B.stroke(); B.restore();
         press.restore();
+        U.toneMap(press, TONE);
     });
 };

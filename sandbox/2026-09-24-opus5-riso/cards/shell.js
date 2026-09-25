@@ -10,6 +10,11 @@
 // axis, grid crops and lattice fits of the four screens. Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
 CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
+    // measured grids and scans (the tone map per 45 px block, outlines sampled off the
+    // reference) live in private/shell-data.js, never committed; the card falls back to its
+    // described shapes without them
+    const D = (typeof G5DATA !== 'undefined' && G5DATA.shell) || {};
+    const TONE = D.tone;
     const U = G5, T = Riso.tone, d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
     // the screens (lattice fits, px at 1080): sand pink 8.64 px at 72°, sea blue 9.72 px at
@@ -41,8 +46,8 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
         }
         // ------------------------------------------------------------ the water's edge
         // measured: the sea's edge, the foam band's inner edge (colour runs every 50 px)
-        const seaEdge = [[600, -20], [610, 0], [705, 40], [790, 80], [800, 120], [830, 160], [863, 200], [891, 240], [914, 280], [936, 320], [962, 360], [974, 400], [979, 440], [977, 480], [972, 520], [960, 560], [954, 600], [946, 640], [944, 680], [942, 720], [952, 760], [961, 800], [982, 840], [1006, 880], [1034, 920], [1070, 960], [1100, 995]];
-        const foamIn = [[520, -20], [530, 0], [582, 40], [653, 80], [705, 120], [732, 160], [777, 200], [817, 240], [865, 280], [891, 320], [901, 360], [914, 400], [930, 440], [918, 480], [898, 520], [909, 560], [918, 600], [906, 640], [884, 680], [900, 720], [905, 760], [907, 800], [928, 840], [964, 880], [978, 920], [1012, 960], [1059, 1000], [1100, 1035]];
+        const seaEdge = D.sea ?? [[600, -20], [800, 110], [930, 300], [980, 450], [945, 700], [1000, 860], [1100, 995]];
+        const foamIn = D.foam ?? [[520, -20], [650, 80], [820, 240], [915, 400], [905, 600], [905, 780], [980, 910], [1100, 1035]];
         const sea = seaEdge.concat([[1100, 1100], [1100, -20]]);
         const foam = foamIn.concat(seaEdge.slice().reverse().concat([[1100, 1100]]).slice(0, -1).reverse().reverse());
         // wet sand: a deeper band with navy dots before the foam
@@ -96,11 +101,7 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
             out.push(pts[pts.length - 1]);
             return out;
         };
-        const bands = [
-            [[[205, 215], [240, 290], [281, 374], [302, 408], [304, 458], [329, 489], [342, 530], [348, 576], [370, 608], [367, 664], [392, 695], [411, 731], [423, 773], [474, 834], [517, 851], [545, 879]], 26],
-            [[[250, 225], [300, 290], [328, 336], [353, 367], [370, 405], [404, 429], [419, 468], [440, 502], [476, 577], [505, 605], [522, 642], [537, 681], [587, 743], [609, 777], [647, 798], [690, 830]], 30],
-            [[[400, 300], [439, 350], [520, 372], [577, 393], [604, 422], [641, 444], [672, 470], [702, 497], [727, 528], [751, 560], [783, 588], [800, 625], [818, 665], [822, 709]], 30],
-        ];
+        const bands = D.bands ?? [[[[205, 215], [300, 430], [370, 620], [420, 770], [545, 879]], 26], [[[250, 225], [370, 405], [476, 577], [587, 743], [690, 830]], 30], [[[400, 300], [577, 393], [702, 497], [800, 625], [822, 709]], 30]];
         U.clipped(P, shell, true, (g) => bands.forEach(([pts, w], i) => U.brush(g, zig(pts, w, 14, 'sz' + i), w * 1.5, T(1), 'szb' + i, { taper: 0.1, wob: 0.25 })));
         U.clipped(Y, shell, true, (g) => bands.forEach(([pts, w], i) => U.brush(g, zig(pts, w, 14, 'sz' + i), w * 1.5, T(1), 'szb' + i, { taper: 0.1, wob: 0.25 })));
         // fine light hatching across the bands
@@ -129,5 +130,6 @@ CARDS.shell = (press, t, lf = Math.round(t * 24)) => {
             teal([[x0, y0 + 20], [x0 + 110, y0 - 10], [x0 + 230, y0 - 50 + k * 3]], 1.4, 'sg' + k, false);
         }
         press.restore();
+        U.toneMap(press, TONE);
     });
 };

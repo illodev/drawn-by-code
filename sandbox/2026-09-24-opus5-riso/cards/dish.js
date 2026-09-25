@@ -9,6 +9,11 @@
 // lattice fits of the screens. Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
 CARDS.dish = (press, t, lf = Math.round(t * 24)) => {
+    // measured grids and scans (the tone map per 45 px block, outlines sampled off the
+    // reference) live in private/dish-data.js, never committed; the card falls back to its
+    // described shapes without them
+    const D = (typeof G5DATA !== 'undefined' && G5DATA.dish) || {};
+    const TONE = D.tone;
     const U = G5, T = Riso.tone, d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
     // screens (lattice fits, px at 1080): sky pink 10.8 px at 18°, ground blue 8.6 px at 78°,
@@ -144,5 +149,6 @@ CARDS.dish = (press, t, lf = Math.round(t * 24)) => {
         U.grit(P, [0, 0, 1080, 1080], { out: true, p: 0.06, a: 0.6, seed: 44 });
         U.grit(P, [0, 0, 1080, 1080], { p: 0.05, a: 0.8, seed: 45 });
         press.restore();
+        U.toneMap(press, TONE);
     });
 };

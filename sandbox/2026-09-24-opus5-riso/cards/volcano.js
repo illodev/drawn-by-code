@@ -7,6 +7,11 @@
 // the same print moved (−5, −1) px, as measured. Uses G5 (cards/_g5-util.js).
 var CARDS = CARDS || {};
 CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
+    // measured grids and scans (the tone map per 45 px block, outlines sampled off the
+    // reference) live in private/volcano-data.js, never committed; the card falls back to its
+    // described shapes without them
+    const D = (typeof G5DATA !== 'undefined' && G5DATA.volcano) || {};
+    const TONE = D.tone;
     const U = G5, T = Riso.tone, d = Math.floor(t * 12 + 1e-6);
     const Y = press.plate('yellow'), P = press.plate('pink'), B = press.plate('blue'), N = press.plate('navy');
     // the reference's screens (lattice fits, px at 1080): pink 10.8 px at 18°, navy 10.8 px at 78°
@@ -77,14 +82,7 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
         U.cut([N], (g) => U.brush(g, [[596, 628], [540, 647], [482, 671], [432, 696], [395, 713], [330, 724]], 6, '#000', 'vsl', { taper: 0.15 }));
         // ------------------------------------------------------------ lava rivers
         // centrelines from colour-run scans of the yellow cores every 20 px
-        const rivers = [
-            [[598, 640], [596, 670], [587, 690], [576, 710], [563, 730], [549, 750], [534, 770], [524, 790], [518, 810], [511, 830], [507, 850], [502, 870], [493, 890], [478, 910], [461, 930], [443, 950], [424, 970], [390, 990], [332, 1010], [277, 1030], [213, 1050], [165, 1054]],
-            [[424, 970], [410, 990], [401, 1010], [380, 1030], [360, 1050], [345, 1070], [338, 1090]],
-            [[672, 638], [668, 670], [666, 690], [664, 710], [659, 730], [654, 750], [650, 770], [643, 790], [639, 810], [638, 830], [636, 850], [633, 870], [632, 890], [632, 910], [636, 930], [642, 950], [651, 970], [658, 990], [665, 1010], [660, 1030], [654, 1050], [644, 1070], [638, 1090]],
-            [[665, 1010], [678, 1012], [702, 1030], [726, 1050], [741, 1070], [750, 1090]],
-            [[712, 638], [726, 650], [747, 670], [765, 690], [787, 710], [807, 730], [826, 750], [835, 770], [842, 790], [847, 810], [851, 830], [855, 850], [859, 870], [866, 895], [869, 915], [875, 935], [882, 950], [890, 970], [896, 990], [906, 1010], [915, 1030], [930, 1050], [934, 1070], [938, 1090]],
-            [[869, 925], [853, 950], [848, 970], [847, 990], [848, 1010], [850, 1040], [852, 1070], [853, 1090]],
-        ];
+        const rivers = D.rivers ?? [[[598, 640], [560, 740], [505, 850], [440, 968], [330, 1012], [150, 1056]], [[440, 968], [380, 1030], [338, 1090]], [[672, 638], [655, 760], [633, 880], [665, 1010], [638, 1090]], [[665, 1010], [741, 1070], [750, 1090]], [[712, 638], [826, 750], [859, 870], [896, 990], [938, 1090]], [[869, 925], [847, 1000], [853, 1090]]];
         const trunk = (i) => (i % 2 === 0 ? 1 : 0.8);
         // halo of pink dots on the cone round each river
         U.screen(P, 'pink', LP, (m) => U.clipped(m, cone, false, (c) => rivers.forEach((pts, i) => U.soft(c, 10, (c2) => U.brush(c2, pts, 70 * trunk(i), T(0.4), 'vh' + i, { taper: 0.05 })))));
@@ -156,5 +154,6 @@ CARDS.volcano = (press, t, lf = Math.round(t * 24)) => {
         U.grit(P, [0, 0, 1080, 1080], { out: true, p: 0.04, a: 0.6, seed: 23 });
         U.grit(P, [0, 0, 1080, 1080], { p: 0.06, a: 0.8, seed: 25 });
         press.restore();
+        U.toneMap(press, TONE);
     });
 };

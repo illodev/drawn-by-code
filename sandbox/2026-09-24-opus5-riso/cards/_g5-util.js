@@ -199,5 +199,35 @@ var G5 = G5 || (() => {
         g.fillRect(x0 - 250, y0 - 250, x1 - x0 + 250, y1 - y0 + 250);
         g.restore();
     };
-    return { trace, smooth, fill, stroke, clipped, glow, speckle, blob, px, band, erase, brush, soft, hatch, blotch, cut, inks, screen, grit };
+    // Tone maps: the regional ink each area of the reference gets, 90 px at a time. Once a
+    // card's pieces are in place most of the gate's colour error is regional tone (G6: a
+    // smooth 44 px colour offset takes the medians to 6–8). A tone map is a table per ink of
+    // coverage corrections in percent on an n × n grid of the 1080 frame, measured by solving
+    // each block's mean colour into inks on the reference and on our own render and moving by
+    // the difference (2–3 passes). It is drawn smoothly (bilinear) on the solid plates:
+    // positive cells add ink, negative ones take ink away (every mark of that plate).
+    // toneMap(press, { n, yellow: [...], pink: [...], blue: [...], navy: [...] }), inside px().
+    const toneMap = (press, map) => {
+        if (!map || !map.n) return;
+        const n = map.n;
+        for (const ink of ['yellow', 'pink', 'blue', 'navy']) {
+            const d = map[ink]; if (!d) continue;
+            const g = press.plate(ink);
+            for (const sign of [1, -1]) {
+                const c = document.createElement('canvas'); c.width = n; c.height = n;
+                const x = c.getContext('2d'), img = x.createImageData(n, n);
+                let any = false;
+                for (let i = 0; i < n * n; i++) { const v = Math.max(0, sign * d[i]) / 100; img.data[i * 4 + 3] = Math.round(Math.min(1, v) * 255); if (v > 0) any = true; }
+                if (!any) continue;
+                x.putImageData(img, 0, 0);
+                g.save();
+                if (sign < 0) g.globalCompositeOperation = 'destination-out';
+                g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+                // cell centres at (i + 0.5) S: the n-pixel image stretched over the frame
+                g.drawImage(c, 0, 0, n, n, 0, 0, 1080, 1080);
+                g.restore();
+            }
+        }
+    };
+    return { trace, smooth, fill, stroke, clipped, glow, speckle, blob, px, band, erase, brush, soft, hatch, blotch, cut, inks, screen, grit, toneMap };
 })();
