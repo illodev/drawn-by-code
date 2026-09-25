@@ -67,7 +67,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     const REST_X = X2 + (VX3 * TROLL) / 2;
     T.land = T.bonk + T1; T.land2 = T.land + T2; T.rest = T.land2 + TROLL;
     // the hand reaches the resting apple: the grab key is placed from the physics
-    const GRAB = [REST_X - 1.4 * APPLE_R, REST_Y - 2.6 * APPLE_R]; // above and behind it: the hand comes down on its top // the wrist above and behind it: the hand comes down on its top
+    const GRAB = [REST_X - 0.9 * APPLE_R, REST_Y - 1.75 * APPLE_R]; // above and behind it: the hand comes down on its top // the wrist above and behind it: the hand comes down on its top
     CH.hN = [[0, [560, 598]], [1.46, [560, 598]], [1.5, [584, 556]], [1.62, [520, 520]], [1.8, [448, 404]], [1.9, [460, 398]], [2.0, [436, 404]], [2.1, [458, 398]], [2.2, [438, 404]], [2.32, [452, 400]], [2.55, [560, 610]], [2.8, [600, 650]], [3.05, [590, 560]], [3.3, [575, 470]], [3.62, [640, 470]], [3.8, [690, 560]], [3.95, GRAB], [4.05, GRAB], [4.3, [745, 205]], [4.47, [742, 210]], [4.62, [735, 215]], [4.78, [455, 95]], [4.92, [560, 70]], [5.0, [880, 40]], [5.1, [960, 230]], [5.25, [905, 420]], [5.6, [830, 380]], [7, [830, 380]]];
     CH.hF = [[0, [576, 590]], [1.46, [576, 590]], [1.5, [600, 548]], [1.62, [560, 700]], [2.55, [540, 640]], [2.8, [560, 690]], [3.05, [600, 610]], [3.3, [520, 470]], [3.62, [580, 460]], [3.95, [735, 700]], [4.3, [600, 460]], [4.62, [600, 460]], [4.78, [720, 330]], [4.92, [740, 300]], [5.0, [560, 420]], [5.3, [580, 470]], [7, [580, 470]]];
     function poseAt(t) {
