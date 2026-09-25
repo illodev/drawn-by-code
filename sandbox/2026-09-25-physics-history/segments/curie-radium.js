@@ -189,6 +189,15 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         put(press, circle(p[0], p[1], L(7, 9, kr)), { yellow: 1, 'pink.s': 0.3 });
     }
 
+    // the spark's (the radium's) light as a glow, not a target: paper knocked out through a soft
+    // radial falloff, a warm yellow core, a blue-green edge; R its radius on screen
+    function lightGlow(press, q, R, performanceT = 0) {
+        const R2 = R * 1.6;
+        press.knockout((g) => { g.fillStyle = Riso.radial(g, q[0], q[1], R * 0.15, R2, 1, 0); g.beginPath(); g.arc(q[0], q[1], R2, 0, 6.2832); g.fill(); });
+        ink(press, circle(q[0], q[1], R2), { 'yellow.s': (g) => Riso.radial(g, q[0], q[1], 0, R, 0.85, 0), 'blue.s': (g) => Riso.radial(g, q[0], q[1], R * 0.6, R2, 0.45, 0) });
+        // inside the light it keeps beating: rings of brighter paper running out from its heart
+        if (R > 900) for (let k = 0; k < 3; k++) { const ph = ((performanceT * 4.5 + k / 3) % 1), rr = 60 + ph * 1500; press.knockout((g) => { g.beginPath(); g.arc(q[0], q[1], rr, 0, 6.2832); g.arc(q[0], q[1], rr * 0.9, 0, 6.2832, true); g.globalAlpha = 0.55 * (1 - ph); g.fill('evenodd'); g.globalAlpha = 1; }); ink(press, (g) => { g.beginPath(); g.arc(q[0], q[1], rr, 0, 6.2832); g.arc(q[0], q[1], rr * 0.9, 0, 6.2832, true); }, { 'yellow.s': 0.25 * (1 - ph) }); }
+    }
     Seg.curieRadium = {
         T,
         init() { return {}; },
@@ -207,14 +216,13 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             const dk = IO(S(t, T.ray[0] - 0.35, T.ray[0] + 0.45));
             if (dk >= 1) put(press, (g) => g.rect(0, 0, 1600, 900), { blue: 0.9, 'navy.s': 0.92, 'pink.s': 0.2 });
             else if (dk > 0) ink(press, (g) => g.rect(0, 0, 1600, 900), { navy: 0.92 * dk, 'blue.s': 0.5 * dk });
-            // the frame full of light at the start (the join with Faraday's spark): rings of
-            // blue-green that shrink back into the tube's glow as the camera pulls out
+            // the frame full of light at the start (the join with Faraday's spark): its glow
+            // shrinks back into the tube's glow as the camera pulls out
             const f = (1 - S(t, 0, 1.2)) * (1 + 0.1 * Math.sin(t * 16) * (1 - S(t, 0, 1.2)));
             if (f > 0) {
-                const RING = [{ blue: 0.9, 'navy.s': 0.35 }, { blue: 0.75, 'yellow.s': 0.2 }, { blue: 0.55, yellow: 0.5 }, { 'blue.s': 0.35, yellow: 0.85 }, { yellow: 1, 'pink.s': 0.12 }];
                 // centred on the tube's glow wherever the camera has it
                 const zz = c.Z, q = [c.S[0] + (TB[0] - c.F[0]) * zz, c.S[1] + (TB[1] - 20 - c.F[1]) * zz];
-                RING.forEach((spec, i) => { const r = Math.exp(L(Math.log(8), Math.log(2600), Math.min(1, f * 1.15 - i * 0.07))); if (f * 1.15 - i * 0.07 > 0) put(press, circle(q[0], q[1], r * (1 - i * 0.16)), spec); });
+                lightGlow(press, q, Math.exp(L(Math.log(40), Math.log(2400), Math.min(1, f * 1.08))), t + 11.2);
                 // (the light still throbs as it shrinks back: the tube's pulse)
             }
             particles(press, t);

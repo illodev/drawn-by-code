@@ -163,10 +163,13 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // under it, the wall comes down behind, Faraday steps in and takes the magnet)
     const LAB0 = [[-170, 170, 440], [-220, 150, -40], 1050];
     const BUILD = [3.1, 4.3];
+    const PULSES = [T.push[0], T.push[0] + 0.45, T.push[0] + 0.9];
     let CK = null;
     function camB(t) {
         CK = CK ?? CAMK();
         const K = t < T.swap ? CK.pre : CK.post, k = (i) => K.map((q) => [q[0], q[i]]);
+        // into the spark's light by surges, one per throb (pulled in, not a steady dolly)
+        if (t > T.push[0]) { let p = 0; PULSES.forEach((p0, i) => { if (t >= p0) p = L(i ? [0.32, 0.64][i - 1] : 0, [0.32, 0.64, 1][i], IO(Math.min(1, (t - p0) / 0.18))); }); t = T.push[0] + p * (T.push[1] - T.push[0]); }
         const eye = Fig.track(k(1), t), tgt = Fig.track(k(2), t), fl = Fig.track(k(3), t);
         return Coil3D.cam(eye, tgt, fl, [800, 450], 0);
     }
@@ -282,6 +285,15 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         press.restore();
     }
 
+    // the spark's (the radium's) light as a glow, not a target: paper knocked out through a soft
+    // radial falloff, a warm yellow core, a blue-green edge; R its radius on screen
+    function lightGlow(press, q, R, performanceT = 0) {
+        const R2 = R * 1.6;
+        press.knockout((g) => { g.fillStyle = Riso.radial(g, q[0], q[1], R * 0.15, R2, 1, 0); g.beginPath(); g.arc(q[0], q[1], R2, 0, 6.2832); g.fill(); });
+        ink(press, circle(q[0], q[1], R2), { 'yellow.s': (g) => Riso.radial(g, q[0], q[1], 0, R, 0.85, 0), 'blue.s': (g) => Riso.radial(g, q[0], q[1], R * 0.6, R2, 0.45, 0) });
+        // inside the light it keeps beating: rings of brighter paper running out from its heart
+        if (R > 900) for (let k = 0; k < 3; k++) { const ph = ((performanceT * 4.5 + k / 3) % 1), rr = 60 + ph * 1500; press.knockout((g) => { g.beginPath(); g.arc(q[0], q[1], rr, 0, 6.2832); g.arc(q[0], q[1], rr * 0.9, 0, 6.2832, true); g.globalAlpha = 0.55 * (1 - ph); g.fill('evenodd'); g.globalAlpha = 1; }); ink(press, (g) => { g.beginPath(); g.arc(q[0], q[1], rr, 0, 6.2832); g.arc(q[0], q[1], rr * 0.9, 0, 6.2832, true); }, { 'yellow.s': 0.25 * (1 - ph) }); }
+    }
     function phaseLab(press, t, st) {
         const C = camB(t), lab = t >= BUILD[0];
         // the set assembling: each piece slides into place in screen space, on its own timing
@@ -311,16 +323,12 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             // press), the brightest at the core, until the core fills it (Curie's radium glow)
             // the spark's light swells in pulses (three throbs, each bigger than the last) and the
             // third one takes the frame: we go into it
-            const PULSES = [T.push[0], T.push[0] + 0.45, T.push[0] + 0.9], LV = [0.42, 0.7, 1.08];
+            const LV = [0.42, 0.7, 1.08];
             let gl = 0;
             PULSES.forEach((p0, i) => { if (t >= p0) { const u = t - p0, up = IO(Math.min(1, u / 0.14)), back = i < 2 ? 0.12 * IO(Math.min(1, Math.max(0, (u - 0.14) / 0.3))) : 0; gl = LV[i] * up - back + (i ? (LV[i - 1] - 0.12) * (1 - up) : 0); } });
             if (gl > 0) {
                 const q = C.proj([FarLab.GAP.x, FarLab.GAP.y, FarLab.GAP.z]);
-                const RING = [{ blue: 0.9, 'navy.s': 0.35 }, { blue: 0.75, 'yellow.s': 0.2 }, { blue: 0.55, yellow: 0.5 }, { 'blue.s': 0.35, yellow: 0.85 }, { yellow: 1, 'pink.s': 0.12 }];
-                RING.forEach((spec, i) => {
-                    const k = Math.min(1, gl - i * 0.06);
-                    if (k > 0) put(press, circle(q[0], q[1], Math.exp(L(Math.log(8), Math.log(2600), k)) * (1 - i * 0.16)), spec);
-                });
+                lightGlow(press, q, Math.exp(L(Math.log(30), Math.log(2400), Math.min(1, gl))), t);
                 // each throb's leading edge: a bright rim of paper running out ahead of the light
                 PULSES.forEach((p0) => { const u = (t - p0) / 0.25; if (u > 0 && u < 1) { const r = Math.exp(L(Math.log(40), Math.log(2600), Math.min(1, gl + 0.08))); press.knockout((g) => { g.beginPath(); g.arc(q[0], q[1], r, 0, 6.2832); g.arc(q[0], q[1], r * 0.93, 0, 6.2832, true); g.globalAlpha = 0.8 * (1 - u); g.fill('evenodd'); g.globalAlpha = 1; }); } });
             }
