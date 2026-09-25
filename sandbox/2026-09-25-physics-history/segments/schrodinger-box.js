@@ -250,8 +250,9 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 erwin(press, t, c);
                 const fo = IO(S(t, T.fade[0], T.fade[1]));
                 if (fo > 0) ink(press, (g) => g.rect(0, 0, 1600, 900), { navy: fo, blue: fo, yellow: fo, pink: 0.7 * fo });
-                const fl = 1 - S(t, T.flash, T.flash + 0.12);
-                if (fl > 0) press.knockout((g) => { g.globalAlpha = fl; g.fillRect(0, 0, 1600, 900); g.globalAlpha = 1; });
+                // (the flash is one drawing of bare paper, warmed with yellow: a hard white, never a
+                // grey half-fade over the dark)
+                if (t < T.flash + 0.05) { press.knockout((g) => g.fillRect(0, 0, 1600, 900)); ink(press, (g) => g.rect(0, 0, 1600, 900), { 'yellow.s': 0.18 }); }
                 return;
             }
             // the scan: a bright line sweeping down; above it, the radiograph
@@ -290,8 +291,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             if (sc < 1) { kline(press, [[0, sy], [1600, sy]], 10, 0.9); press.knockout((g) => { g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(0, sy - 40, 1600, 40); }); }
             erwin(press, t, c);
             // the flash as the worlds collapse
-            const fl = S(t, T.flash - 0.2, T.flash);
-            if (fl > 0) press.knockout((g) => { g.globalAlpha = fl; g.fillRect(0, 0, 1600, 900); g.globalAlpha = 1; });
+            if (t >= T.flash - 0.05) { press.knockout((g) => g.fillRect(0, 0, 1600, 900)); ink(press, (g) => g.rect(0, 0, 1600, 900), { 'yellow.s': 0.18 }); }
         },
     };
 })();
