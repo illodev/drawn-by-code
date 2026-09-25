@@ -184,5 +184,43 @@ var G1 = (() => {
             return (grid[j][i] * (1 - u) + grid[j][i + 1] * u) * (1 - v) + (grid[j + 1][i] * (1 - u) + grid[j + 1][i + 1] * u) * v;
         };
     }
-    return { T, frame, polyPath, smoothPath, fill, stroke, taper, clipped, specks, blob, ribbon, lattice, dots, marks, hash, field };
+    // regional tone: how much ink each 45 px of the frame gets, measured against the reference
+    // and our own render (a calibration loop, scratch tool calib2.py): per plate an n × n grid
+    // of changes, + adds flat ink, − thins what is there; read back smoothly (bilinear) over
+    // the frame, in frame pixels (call it inside G1.frame, outside any view transform)
+    const toneCanvas = {};
+    function tones(press, TN) {
+        if (!TN) return;
+        const n = TN.n;
+        for (const ink of ['yellow', 'pink', 'blue', 'navy']) {
+            const grid = TN[ink];
+            if (!grid) continue;
+            for (const sign of [1, -1]) {
+                const key = n + ink + sign;
+                const c = toneCanvas[key] ?? (toneCanvas[key] = Object.assign(document.createElement('canvas'), { width: n, height: n }));
+                const cg = c.getContext('2d'), img = cg.createImageData(n, n);
+                let any = false;
+                for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+                    const v = Math.max(0, sign * grid[j][i]);
+                    img.data[(j * n + i) * 4 + 3] = Math.round(Math.min(1, v) * 255);
+                    if (v > 0.005) any = true;
+                }
+                if (!any) continue;
+                cg.putImageData(img, 0, 0);
+                // more light ink goes on as a screen (dots keep the print's texture); more dark
+                // ink flat (a coarse dark screen would ripple through the gate's 12 px blur);
+                // less thins both
+                for (const kind of sign > 0 ? (ink === 'navy' || ink === 'blue' ? ['solid'] : ['screen']) : ['solid', 'screen']) {
+                    const g = press.plate(ink, kind);
+                    g.save();
+                    if (sign < 0) g.globalCompositeOperation = 'destination-out';
+                    g.imageSmoothingEnabled = true;
+                    g.imageSmoothingQuality = 'high';
+                    g.drawImage(c, 0, 0, n, n, 0, 0, 1080, 1080);
+                    g.restore();
+                }
+            }
+        }
+    }
+    return { T, frame, polyPath, smoothPath, fill, stroke, taper, clipped, specks, blob, ribbon, lattice, dots, marks, hash, field, tones };
 })();
