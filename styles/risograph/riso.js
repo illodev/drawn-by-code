@@ -22,7 +22,7 @@
 const Riso = (() => {
     const INKS = {
         pink: { rgb: [240, 76, 183], angle: 0.26, pitch: 1 },
-        yellow: { rgb: [255, 250, 55], angle: 0.0, pitch: 1 },
+        yellow: { rgb: [255, 250, 36], angle: 0.0, pitch: 1 },
         blue: { rgb: [58, 146, 197], angle: 1.31, pitch: 1 },
         navy: { rgb: [32, 56, 146], angle: 0.79, pitch: 1 },
     };
