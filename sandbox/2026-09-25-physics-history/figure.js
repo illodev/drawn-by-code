@@ -80,9 +80,7 @@ const Fig = (() => {
     // from the little finger's side. 'hold' (the back of the hand to the camera) is holdBack.
     function holdApple(press, w, dir, f, R, spec, sh, held, mode = 'cock', at = null) {
         if (mode === 'hold') return holdSide(press, w, dir, f, R, spec, sh, held);
-        // picking it up: the same hand seen from its side, coming down on the apple from above and
-        // behind, the palm on its top (the wrist placed so the palm sits on the apple)
-        if (mode === 'pick') { const v = [at[0] - w[0], at[1] - w[1]]; return holdSide(press, w, Math.atan2(v[1], v[0]) - 0.73 * f, f, R, spec, sh, (pr) => held(pr, at), 1.15, 1); }
+        if (mode === 'pick') return pickUp(press, w, f, R, spec, sh, held, at);
         // winding up to throw: the back of the hand to the camera too, the apple in the fist
         if (mode === 'cock') return holdSide(press, w, dir, f, R, spec, sh, held, 1.6);
         // x along the forearm (from the elbow), y towards the apple: down to the ground when
@@ -175,10 +173,10 @@ const Fig = (() => {
         const nx = -Math.sin(an), ny = Math.cos(an);
         for (const o of [-2, 2]) line(press, [[c[0] - nx * w * 0.3 + Math.cos(an) * o, c[1] - ny * w * 0.3 + Math.sin(an) * o], [c[0] + nx * w * 0.3 + Math.cos(an) * o, c[1] + ny * w * 0.3 + Math.sin(an) * o]], Ph.taper(lw * 0.7), spec, { knock: false });
     }
-    function holdSide(press, w, dir, f, R, spec, sh, held, reach = 1.15, qSign = 0) {
+    function holdSide(press, w, dir, f, R, spec, sh, held, reach = 1.15) {
         const dx = Math.cos(dir), dy = Math.sin(dir);
         let qx = -dy, qy = dx;
-        if (qSign ? qSign < 0 : qx * f < 0) { qx = -qx; qy = -qy; }
+        if (qx * f < 0) { qx = -qx; qy = -qy; }
         const X = (a, b) => [w[0] + (dx * a + qx * b) * R, w[1] + (dy * a + qy * b) * R];
         const lw = Math.max(1.4, R * 0.06), EDGE = { 'pink.s': 0.7, 'navy.s': 0.55 };
         const C = [1.45, reach + 0.15];
