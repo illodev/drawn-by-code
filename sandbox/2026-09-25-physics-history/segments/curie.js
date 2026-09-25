@@ -412,6 +412,8 @@ function closedEye(press, x, y, w) {
 // head centre (0, 0). o: { look, blink, t }
 function marie(press, o) {
     const fl = (FLOOR - H[1]) / NS, t = o.t ?? 0;
+    // o.bust: from the waist up (no stool, no skirt), for close shots
+    if (!o.bust) {
     // the stool under her: a round seat that shows behind her, three splayed legs and a ring
     for (const [x0, x1, sp] of [[-150, -176, WOOD_DK], [-58, -44, WOOD_DK], [-112, -112, WOOD]]) put(press, (g) => poly(g, [[x0 - 7, 300], [x0 + 7, 300], [x1 + 7, fl], [x1 - 7, fl]]), sp);
     put(press, (g) => g.rect(-168, 404, 118, 8), WOOD_DK);
@@ -430,6 +432,7 @@ function marie(press, o) {
     // the hem breaks on the floor; a boot's toe shows
     put(press, (g) => smooth(g, [[268, fl - 10], [294, fl - 12], [312, fl - 4], [314, fl], [266, fl]]), IRON);
     line(press, [[276, fl - 8], [306, fl - 6]], 2.4, IRON_LT);
+    }
     // bodice: narrow shoulders, a fitted front lit from the lamp on the right
     put(press, (g) => smooth(g, [[-116, 166], [-88, 122], [-34, 104], [34, 102], [88, 116], [118, 162], [130, 280], [122, 380], [-100, 380], [-124, 280]]), DRESS);
     put(press, (g) => smooth(g, [[32, 106], [86, 120], [114, 166], [126, 280], [118, 380], [72, 380], [50, 200]]), DRESS_LIT);
@@ -910,6 +913,8 @@ function readingAt(lt, st) {
 }
 
 Seg.curie = {
+    // parts reused by the v2 segment (segments/curie-radium.js)
+    parts: { marie, DRESS, DRESS_LIT, DRESS_RIM },
     init() {
         // the electrometer: a damped response of the mark to the ionisation current, from
         // where Faraday's mark stopped (1360, at rest) at 0.5 s; integrated once at 1 ms
