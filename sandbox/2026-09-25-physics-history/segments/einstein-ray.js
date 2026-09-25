@@ -302,7 +302,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
                 holeBack(press, t);
                 // the pulse runs ahead at the frame's right; it creeps further on through the chase
                 // (they gain on the screen but never catch it)
-                const front = (t < T.enter[0] ? 1640 : L(1640, 1180, IO(S(t, T.enter[0], T.enter[1])))) + 120 * IO(S(t, T.enter[1], T.hole[1]));
+                // (the pulse opens where Curie's scene left it, x 1250, never out of frame)
+                const front = L(1250, 1180, IO(S(t, 0, T.enter[1]))) + 120 * IO(S(t, T.enter[1], T.hole[1]));
                 // spaghettification: their group is stretched along the line to the hole, thinned
                 // across it, and drawn in; the shadow, drawn over them, swallows them
                 const pl = IO(S(t, T.pull[0], T.pull[1]));

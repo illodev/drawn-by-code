@@ -157,8 +157,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     function tube(press, t, bright) {
         const x0 = TB[0] - TR, y0 = TB[1] - TL / 2;
         const R = 160 + 30 * Math.sin(t * 2.3);
-        press.knockout((g) => { g.fillStyle = Riso.radial(g, TB[0], TB[1] + 20, 10, R * 2.2, 0.55 * bright, 0); g.beginPath(); g.arc(TB[0], TB[1] + 20, R * 2.2, 0, 6.2832); g.fill(); });
-        ink(press, circle(TB[0], TB[1] + 20, R * 2.2), { 'blue.s': (g) => Riso.radial(g, TB[0], TB[1] + 20, 10, R * 2.2, 0.45 * bright, 0), 'yellow.s': (g) => Riso.radial(g, TB[0], TB[1] + 20, 10, R, 0.3 * bright, 0) });
+        press.knockout((g) => { g.fillStyle = Riso.radial(g, TB[0], TB[1] - 8, 10, R * 2.2, 0.55 * bright, 0); g.beginPath(); g.arc(TB[0], TB[1] - 8, R * 2.2, 0, 6.2832); g.fill(); });
+        ink(press, circle(TB[0], TB[1] - 8, R * 2.2), { 'blue.s': (g) => Riso.radial(g, TB[0], TB[1] - 8, 10, R * 2.2, 0.45 * bright, 0), 'yellow.s': (g) => Riso.radial(g, TB[0], TB[1] - 8, 10, R, 0.3 * bright, 0) });
         put(press, (g) => { g.beginPath(); g.roundRect(x0, y0, TR * 2, TL, [2, 2, TR, TR]); }, GLASS);
         put(press, (g) => { g.beginPath(); g.roundRect(x0 + 2, y0 + TL * 0.2, TR * 2 - 4, TL * 0.8 - 2, [0, 0, TR, TR]); }, GLOW);
         put(press, (g) => { g.beginPath(); g.roundRect(x0 + 3, y0 + TL * 0.45, TR * 2 - 6, TL * 0.55 - 3, [0, 0, TR, TR]); }, GLOW_HOT);
@@ -199,11 +199,11 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         }
     }
     // the chosen particle: out of the tube to the frame's centre, then stretched into the ray
-    // the ray: born at the tube's mouth, it shoots out to the right (in her plane's units,
+    // the ray: born in the glowing salt, through the glass, it shoots out to the right (in her plane's units,
     // drawn inside its layer, so it stays on the tube whatever the camera does); the camera
     // swings after its head, dropping it to the frame's middle, and the tail runs back off the
     // left edge once the shed is dark: the full-width ray Einstein's scene opens on
-    const TIP = [TB[0], TB[1] - TL / 2 - 4];
+    const TIP = [TB[0] + TR * 0.3, TB[1] - TL * 0.04];   // in the glowing salt at the tube's bottom
     const headX = (t) => TIP[0] + 3600 * Math.pow(S(t, T.ray[0], T.end + 0.4), 1.6);
     const tailX = (t) => TIP[0] - 3000 * IO(S(t, T.ray[1] - 0.3, T.end));
     function ray(press, t, z) {
@@ -235,7 +235,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             // slides to the right edge, and tilt so the ray settles at the frame's middle
             if (t > T.ray[0]) {
                 const z = c.Z, dx = (c.drift - 0.5) * -150, sx = (x) => c.S[0] + dx + (x - c.F[0]) * z, sy = c.S[1] + (TIP[1] - c.F[1]) * z;
-                const lim = L(1150, 1700, IO(S(t, T.ray[1] - 0.2, T.end)));
+                // (the head always in frame: the camera keeps up with the light)
+                const lim = 1250;
                 c.px = Math.min(0, lim - sx(headX(t)));
                 c.py = (450 - sy) * IO(S(t, T.ray[0] + 0.1, T.ray[1]));
             }
@@ -258,7 +259,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             // it sits on the tube)
             const f = (1 - S(t, 0, 0.85)) * (1 + 0.1 * Math.sin(t * 16) * (1 - S(t, 0, 0.85)));
             layer(press, c, 1, () => {
-                if (f > 0) lightGlow(press, [TB[0], TB[1] + 20], Math.exp(L(Math.log(40), Math.log(2400), Math.min(1, f * 1.08))) / c.Z, t + 11.2);
+                if (f > 0) lightGlow(press, [TB[0], TB[1] - TL * 0.04], Math.exp(L(Math.log(40), Math.log(2400), Math.min(1, f * 1.08))) / c.Z, t + 11.2);
                 ray(press, t, c.Z);
             });
         },
