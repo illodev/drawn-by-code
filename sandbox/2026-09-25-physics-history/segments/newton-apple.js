@@ -317,6 +317,19 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         const tw = [[395, HANG[1] + 120], [HANG[0] - 40, HANG[1] - 30], [HANG[0] + 4, HANG[1] - APPLE_R * 1.25]];
         line(press, tw, taper(14, 0.05, 0.8), BARK);
         for (const [dx, dy, a] of [[-70, -10, -0.5], [-30, -40, 0.6], [20, -70, -0.3], [-110, 20, 0.4]]) put(press, (g) => { g.beginPath(); g.ellipse(HANG[0] + dx + sway * 0.4, HANG[1] + dy, 24, 9, a, 0, 6.2832); }, LEAF[Math.abs(dx) % 3]);
+        // the film's cat (cat.js) sits on the twig by the apple: it eyes it, taps it twice, and
+        // pushes it off at the snap, as cats do; then it watches it fall
+        if (typeof Cat !== 'undefined') {
+            const taps = [[0.66, 0.74], [0.8, 0.88], [T.snap - 0.08, T.snap + 0.02]];
+            const reach = taps.reduce((m, [a, b]) => Math.max(m, Ease.bump(t, a - 0.03, b - a + 0.06)), 0);
+            const ap = [HANG[0] - APPLE_R * 0.95, HANG[1] - APPLE_R * 0.1];
+            const perch = [HANG[0] - 115, HANG[1] + 92], rest = [perch[0] + 40, perch[1] - 4];
+            // a sturdier limb for it, out from the trunk under the apple's twig
+            line(press, [[395, perch[1] + 60], [L(395, perch[0], 0.5), perch[1] + 14], [perch[0] + 70, perch[1] + 4], [perch[0] + 110, perch[1] - 6]], taper(26, 0.05, 0.8), BARK);
+            const paw = reach > 0.02 ? [L(rest[0], ap[0] + (t > T.snap - 0.1 ? 10 : 0), reach), L(rest[1], ap[1], reach)] : null;
+            const look = t < T.snap ? [HANG[0], HANG[1]] : [HANG[0] + 40, HANG[1] + 400];
+            Cat.sit(press, { x: perch[0], y: perch[1], s: 1.5, face: 1, paw, look, blink: Math.abs(t - 0.35) < 0.05, tail: t * 0.8, ears: t > T.snap && t < T.snap + 0.3 ? 0.4 : 0 });
+        }
         for (const [x, y] of apples) {
             if (Math.abs(x - HANG[0]) < 130) continue; // keep the falling apple alone in its column
             line(press, [[x + sway * 0.5, y - APPLE_R * 1.4], [x + sway * 0.5, y - APPLE_R * 0.7]], 3, BARK);
