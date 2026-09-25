@@ -528,3 +528,23 @@ What changed:
 or left hand the same way and note where the thumb and the index go. Mirror errors are not
 visible in a single piece, only against a real hand. A hand is one skin: never outline its
 parts.
+
+### Round 16b (user)
+
+> Ya te adelanto que has empeorado las manos y no te has enterado de mi revisión de antes
+
+The grip depends on where the forearm comes from, and I had changed the whole grip instead
+of the thumb's side.
+
+- **Galileo:** the forearm comes up from below, nearly upright, with the palm against the
+  tube's far side. So the right hand's thumb points back towards his face and wraps under the
+  tube; the fingers go over the top, with the index next to the thumb (`GalHands.over`). Round
+  14 had this grip mirrored: the thumb pointed forward, as a left hand's would.
+- **Faraday:** the forearm comes from behind, along the magnet. So the torch grip is right
+  for him (`GalHands.near`): the thumb on top pointing forward, the fingers under.
+- Both hands are one skin, without outlines between the pieces.
+
+**Lesson (animate):** a grip is decided by the forearm's direction and the palm's side, not by
+the object. Hold the object with your own hand in the character's pose, forearm included,
+before drawing. When the user flags one detail (the thumb's side), fix that detail; do not
+redesign what was right.

@@ -381,7 +381,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     function armAndHand(press, R, M, bf, which, s, pole, ps) {
         const F = tubeFrame(R, s), r = F.r, far = which === 'far';
         const sh = M.apply(bf(SHOULDER[which]));
-        const Wl = GalHands.wristPt(which, r), W = F.apply(Wl);
+        const Wl = GalHands.wristPt(which === 'near' ? 'over' : which, r), W = F.apply(Wl);
         const [el] = Fig.ik(sh, W, ARM[0] * M.k, ARM[1] * M.k, M.apply(bf(pole)));
         const v = F.inv([W[0] + (el[0] - W[0]) * 0.01, W[1] + (el[1] - W[1]) * 0.01]);
         const l = Math.hypot(v[0] - Wl[0], v[1] - Wl[1]) || 1, fa = [(v[0] - Wl[0]) / l, (v[1] - Wl[1]) / l];
@@ -396,7 +396,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             hand: () => {
                 press.save();
                 press.each((g) => g.transform(F.J[0], F.J[1], F.J[2], F.J[3], F.o[0], F.o[1]));
-                GalHands[which](press, r, { fa, squeeze: which === 'near' ? 1.5 * Math.max(0, Math.sin((ps.lean + ps.look) * Math.PI)) : 0 });
+                GalHands[which === 'near' ? 'over' : which](press, r, { fa, squeeze: which === 'near' ? 1.5 * Math.max(0, Math.sin((ps.lean + ps.look) * Math.PI)) : 0 });
                 press.restore();
             },
         };
