@@ -40,7 +40,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
     // a slow drift (the layers slide by their depth, as if the camera went round her)
     function cam(t) {
         const u = S(t, T.pull[0], T.pull[1]), k = IO(u);
-        const Z = Math.exp(L(Math.log(14), 0, 1 - Math.pow(1 - u, 2.2)));
+        const Z = Math.exp(L(Math.log(7), 0, 1 - Math.pow(1 - u, 2.2)));
         const F = [L(TB[0], 800, k), L(TB[1], 450, k)];              // the point held at S
         const Sx = [800, 450];
         const d = IO(S(t, T.drift[0], T.drift[1]));
@@ -196,6 +196,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         press.knockout((g) => { g.fillStyle = Riso.radial(g, q[0], q[1], R * 0.15, R2, 1, 0); g.beginPath(); g.arc(q[0], q[1], R2, 0, 6.2832); g.fill(); });
         ink(press, circle(q[0], q[1], R2), { 'yellow.s': (g) => Riso.radial(g, q[0], q[1], 0, R, 0.85, 0), 'blue.s': (g) => Riso.radial(g, q[0], q[1], R * 0.6, R2, 0.45, 0) });
         // inside the light it keeps beating: rings of brighter paper running out from its heart
+        // and streaks of light rush past us, out from its heart (we are flying through it)
+        if (R > 900) { const rd = Motion.rng('rush'); for (let i = 0; i < 46; i++) { const a = rd() * 6.2832, sp = 0.6 + rd(), ph = (performanceT * sp * 1.4 + rd()) % 1, d0 = 40 + ph * ph * 1300, d1 = d0 * (1.3 + 0.5 * ph); const P2 = [[q[0] + Math.cos(a) * d0, q[1] + Math.sin(a) * d0], [q[0] + Math.cos(a) * d1, q[1] + Math.sin(a) * d1]], w = 8 + 22 * ph; if (i % 3) { press.knockout((g) => { poly(g, Ph.outline(P2, taper(w, 0.2, 0.3))); g.globalAlpha = 0.9; g.fill(); g.globalAlpha = 1; }); } else line(press, P2, taper(w, 0.2, 0.3), { blue: 0.8, 'navy.s': 0.2 }); } }
         if (R > 900) for (let k = 0; k < 3; k++) { const ph = ((performanceT * 4.5 + k / 3) % 1), rr = 60 + ph * 1500; press.knockout((g) => { g.beginPath(); g.arc(q[0], q[1], rr, 0, 6.2832); g.arc(q[0], q[1], rr * 0.9, 0, 6.2832, true); g.globalAlpha = 0.55 * (1 - ph); g.fill('evenodd'); g.globalAlpha = 1; }); ink(press, (g) => { g.beginPath(); g.arc(q[0], q[1], rr, 0, 6.2832); g.arc(q[0], q[1], rr * 0.9, 0, 6.2832, true); }, { 'yellow.s': 0.25 * (1 - ph) }); }
     }
     Seg.curieRadium = {
@@ -218,7 +220,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             else if (dk > 0) ink(press, (g) => g.rect(0, 0, 1600, 900), { navy: 0.92 * dk, 'blue.s': 0.5 * dk });
             // the frame full of light at the start (the join with Faraday's spark): its glow
             // shrinks back into the tube's glow as the camera pulls out
-            const f = (1 - S(t, 0, 1.2)) * (1 + 0.1 * Math.sin(t * 16) * (1 - S(t, 0, 1.2)));
+            const f = (1 - S(t, 0, 0.85)) * (1 + 0.1 * Math.sin(t * 16) * (1 - S(t, 0, 0.85)));
             if (f > 0) {
                 // centred on the tube's glow wherever the camera has it
                 const zz = c.Z, q = [c.S[0] + (TB[0] - c.F[0]) * zz, c.S[1] + (TB[1] - 20 - c.F[1]) * zz];

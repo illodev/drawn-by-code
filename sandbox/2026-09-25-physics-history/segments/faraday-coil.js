@@ -292,6 +292,8 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
         press.knockout((g) => { g.fillStyle = Riso.radial(g, q[0], q[1], R * 0.15, R2, 1, 0); g.beginPath(); g.arc(q[0], q[1], R2, 0, 6.2832); g.fill(); });
         ink(press, circle(q[0], q[1], R2), { 'yellow.s': (g) => Riso.radial(g, q[0], q[1], 0, R, 0.85, 0), 'blue.s': (g) => Riso.radial(g, q[0], q[1], R * 0.6, R2, 0.45, 0) });
         // inside the light it keeps beating: rings of brighter paper running out from its heart
+        // and streaks of light rush past us, out from its heart (we are flying through it)
+        if (R > 900) { const rd = Motion.rng('rush'); for (let i = 0; i < 46; i++) { const a = rd() * 6.2832, sp = 0.6 + rd(), ph = (performanceT * sp * 1.4 + rd()) % 1, d0 = 40 + ph * ph * 1300, d1 = d0 * (1.3 + 0.5 * ph); const P2 = [[q[0] + Math.cos(a) * d0, q[1] + Math.sin(a) * d0], [q[0] + Math.cos(a) * d1, q[1] + Math.sin(a) * d1]], w = 8 + 22 * ph; if (i % 3) { press.knockout((g) => { poly(g, Ph.outline(P2, taper(w, 0.2, 0.3))); g.globalAlpha = 0.9; g.fill(); g.globalAlpha = 1; }); } else line(press, P2, taper(w, 0.2, 0.3), { blue: 0.8, 'navy.s': 0.2 }); } }
         if (R > 900) for (let k = 0; k < 3; k++) { const ph = ((performanceT * 4.5 + k / 3) % 1), rr = 60 + ph * 1500; press.knockout((g) => { g.beginPath(); g.arc(q[0], q[1], rr, 0, 6.2832); g.arc(q[0], q[1], rr * 0.9, 0, 6.2832, true); g.globalAlpha = 0.55 * (1 - ph); g.fill('evenodd'); g.globalAlpha = 1; }); ink(press, (g) => { g.beginPath(); g.arc(q[0], q[1], rr, 0, 6.2832); g.arc(q[0], q[1], rr * 0.9, 0, 6.2832, true); }, { 'yellow.s': 0.25 * (1 - ph) }); }
     }
     function phaseLab(press, t, st) {
@@ -323,7 +325,7 @@ var Seg = globalThis.Seg ?? (globalThis.Seg = {});
             // press), the brightest at the core, until the core fills it (Curie's radium glow)
             // the spark's light swells in pulses (three throbs, each bigger than the last) and the
             // third one takes the frame: we go into it
-            const LV = [0.42, 0.7, 1.08];
+            const LV = [0.56, 0.8, 1.08];
             let gl = 0;
             PULSES.forEach((p0, i) => { if (t >= p0) { const u = t - p0, up = IO(Math.min(1, u / 0.14)), back = i < 2 ? 0.12 * IO(Math.min(1, Math.max(0, (u - 0.14) / 0.3))) : 0; gl = LV[i] * up - back + (i ? (LV[i - 1] - 0.12) * (1 - up) : 0); } });
             if (gl > 0) {
