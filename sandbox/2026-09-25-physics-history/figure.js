@@ -80,8 +80,9 @@ const Fig = (() => {
     // from the little finger's side. 'hold' (the back of the hand to the camera) is holdBack.
     function holdApple(press, w, dir, f, R, spec, sh, held, mode = 'cock', at = null) {
         if (mode === 'hold') return holdBack(press, w, dir, f, R, spec, sh, held);
-        // picking it up: the same hand, the back of the hand up as it closes on the apple's top
-        if (mode === 'pick') return holdBack(press, w, dir, f, R, spec, sh, held);
+        if (mode === 'pick') return pickUp(press, w, f, R, spec, sh, held, at);
+        // winding up to throw: the back of the hand to the camera too, the apple in the fist
+        if (mode === 'cock') return holdBack(press, w, dir, f, R, spec, sh, held, 1.6);
         // x along the forearm (from the elbow), y towards the apple: down to the ground when
         // picking it up, up to the sky when winding up (the palm faces the apple)
         const ux = Math.cos(dir), uy = Math.sin(dir);
@@ -169,18 +170,19 @@ const Fig = (() => {
     // backs to us with a crease at each middle joint, the tips curling round its far side; the
     // apple shows past the index, past the fingertips and under the little finger; the thumb is
     // behind it, its tip showing at the apple's top
-    function holdBack(press, w, dir, f, R, spec, sh, held) {
+    function holdBack(press, w, dir, f, R, spec, sh, held, reach = 1.15) {
         const dx = Math.cos(dir), dy = Math.sin(dir);   // along the forearm, towards the hand
         let qx = -dy, qy = dx;                            // forward, across it
         if (qx * f < 0) { qx = -qx; qy = -qy; }
         const X = (a, b) => [w[0] + (dx * a + qx * b) * R, w[1] + (dy * a + qy * b) * R];
         const lw = Math.max(1.4, R * 0.06), EDGE = { 'pink.s': 0.7, 'navy.s': 0.55 };
-        const A = X(1.35, 1.15);
+        const A = X(1.35, reach);
         held(press, A);
         // the thumb's tip on the far side, over the apple's top
         put(press, circle(...X(2.25, 0.75), 0.24 * R), sh);
         // the back of the hand: from the wrist to the knuckles, a little wider at the knuckles
-        const BACK = [X(0, -0.42), X(0.9, -0.5), X(2.05, -0.36), X(2.2, 0.15), X(2.1, 0.5), X(1.2, 0.55), X(0.3, 0.45), X(0, 0.4)];
+        // as wide at the wrist as the forearm, so the hand continues it (no pinch at the joint)
+        const BACK = [X(-0.35, -0.62), X(0.9, -0.6), X(2.05, -0.4), X(2.2, 0.15), X(2.1, 0.55), X(1.2, 0.62), X(0.3, 0.62), X(-0.35, 0.6)];
         put(press, (g) => smooth(g, BACK), spec);
         press.save(); press.clip((g) => smooth(g, BACK));
         Ph.ink(press, (g) => smooth(g, [X(-0.2, -0.7), X(2.4, -0.7), X(2.4, -0.25), X(-0.2, -0.25)]), { 'pink.s': 0.2 });
@@ -207,7 +209,7 @@ const Fig = (() => {
         }
         // the knuckles' row: light bumps where the fingers leave the back of the hand
         for (const [a, wd] of F) { const k = X(a, 0.3); press.knockout(ellipse(k[0], k[1], wd * R * 0.2, wd * R * 0.16, 0)); }
-        line(press, Ph.sample([X(0, -0.42), X(0.9, -0.5), X(2.05, -0.36), X(2.2, 0.15)], false, 6), taper(lw, 0.1, 0.1), EDGE, { knock: false });
+        line(press, Ph.sample([X(-0.35, -0.62), X(0.9, -0.6), X(2.05, -0.4), X(2.2, 0.15)], false, 6), taper(lw, 0.1, 0.1), EDGE, { knock: false });
         return A;
     }
 
