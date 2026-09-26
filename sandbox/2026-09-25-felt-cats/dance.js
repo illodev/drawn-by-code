@@ -83,6 +83,16 @@ const Dance = (() => {
         if (!RES) RES = KEYS.map(resolve);
         const d = Math.floor(t * 15 + 1e-6), tq = d / 15;
         const poses = FIT[d] ? FIT[d].map((p) => ({ ...clone(Cats.REST), ...p })) : RES.map((k) => sample(k, tq));
+        // depth and lift are smoothed over ±0.2 s: keyed from measured sizes they jitter key
+        // to key (a cat pulsing towards the camera), and stretches keyed apart meet smoothly
+        RES.forEach((k, c) => {
+            let z = 0, b = 0;
+            for (let i = -3; i <= 3; i++) { const p = sample(k, tq + i / 15); z += p.z; b += p.bob; }
+            poses[c].z = z / 7;
+            // never below the floor: a negative lift sank the feet (the frame sits lower than
+            // the camera model; that is the camera's to fix, not the cat's)
+            poses[c].bob = Math.max(-0.02, b / 7);
+        });
         return { tq, poses, zoom: [scalar(ZOOM, tq), ...ZOOM_AT] };
     }
     return { at, ZOOM, ZOOM_AT, resolve };
