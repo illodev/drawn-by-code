@@ -36,6 +36,15 @@ const Star = (() => {
             { mesh: 'box', inst: new Float32Array(rays), box: true, cast: false },
         );
         P.lights = P.lights.map((l) => [l[0], l[1], l[2], l[3], 0]);
+        // the answer along the first joint: a line of live blue that runs the stone's width
+        // and goes out, with a small glow on the stone round it
+        if (pulse > 0) {
+            const S0 = Pyramid.S0(), line = [], run = Ease.seg(u, 58.0, 58.5);
+            const x0 = S0.c[0] - S0.half[0], len = 2 * S0.half[0] * run;
+            Engrave.inst(line, [x0 + len / 2, S0.c[1] - Pyramid.H / 2, S0.c[2] + S0.half[2] + 0.002], 4, [len / 2 + 0.001, 0.0022, 0.002], 0.5, [0, 0, 0, 1], pulse);
+            P.draws.push({ mesh: 'box', inst: new Float32Array(line), box: true, cast: false });
+            P.lights.push([S0.c[0], S0.c[1] - Pyramid.H / 2, S0.c[2] + S0.half[2] + 0.03, 0, 0.25 * pulse]);
+        }
         return P;
     }
     const KEYS = [

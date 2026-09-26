@@ -145,7 +145,8 @@ const Pyramid = (() => {
         const box = [], dust = [], tops = [], marks = [];
         for (const s of S) Engrave.inst(box, place(s, o.stoneT ? o.stoneT(s) : t), s.worn, s.half, s.seed, s.qt);
         // the capstone rides the axis
-        Engrave.inst(tops, [0, HP * (1 + 0.45 * e) + H * 0.2, 0], 0, [H * 1.1, H * 1.1, H * 1.1], 0.3);
+        // (the capstone: the size of one course, worn stone like the rest, drawn as masonry)
+        Engrave.inst(tops, [0, HP * (1 + 0.45 * e) - H * 0.35, 0], 1, [H * 0.9, H * 0.65, H * 0.9], 0.3);
         // the first stone's joint and mark (they travel with it)
         const p0 = place(S0, o.stoneT ? o.stoneT(S0) : t), f0 = p0[2] + S0.half[2];
         const joint = Math.max(0.3 * E(t, 2.4, 3.2), E(t, 4.6, 5.6)), mark = E(t, 5.3, 6.1);
@@ -264,7 +265,7 @@ const Pyramid = (() => {
         }
         const draws = [
             { mesh: 'box', inst: new Float32Array(box), box: true },
-            { mesh: 'pyramid', inst: new Float32Array(tops) },
+            { mesh: 'pyramid', inst: new Float32Array(tops), masonry: true },
             { mesh: 'box', inst: new Float32Array(core), box: true },
             { mesh: 'cylinder', inst: new Float32Array(cyl), tan: 'y' },
             { mesh: 'box', inst: new Float32Array(blue), box: true, cast: false },

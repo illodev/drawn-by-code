@@ -869,7 +869,8 @@ void main() {
         ink2 = vec4(uInkGold, 0.42);
     }
     // the blue light tints the lines it touches
-    if (M.w < 0.5) ink = mix(ink, uInkBlue * 0.8, clamp(glow * 1.6, 0.0, 0.85));
+    // (not obsidian: the seed and the core stay dark, the light shows on stone round them)
+    if (M.w < 0.5 && m != 2) ink = mix(ink, uInkBlue * 0.8, clamp(glow * 1.6, 0.0, 0.85));
     o = vec4(print(gl_FragCoord.xy, cov, ink2, ink), 1.0);
 }
 `;
@@ -894,7 +895,8 @@ void main() {
     float D = mix(uHorizon, uZenith, smoothstep(0.005, 0.3, el));
     D = max(D, 0.2 * smoothstep(0.01, 0.05, el));
     if (uChar > 0.5) D = mix(uHorizon, uZenith, smoothstep(-0.02, 0.35, el));   // charcoal: a rubbed sky, no bare band
-    D *= 0.85 + 0.15 * vnoise(gl_FragCoord.xy / uPx * vec2(0.002, 0.02));
+    // (isotropic in charcoal: a streaky noise read as scan lines across the sky)
+    D *= 0.85 + 0.15 * vnoise(gl_FragCoord.xy / uPx * (uChar > 0.5 ? vec2(0.004) : vec2(0.002, 0.02)));
     // ruled sky: straight horizontal lines, thicker as the sky darkens
     float s = gl_FragCoord.y / (uSpacing * 0.8 * uPx);
     float cov = lines(s, clamp(D * 1.1, 0.0, 0.7), fwidth(s) * 0.8);
