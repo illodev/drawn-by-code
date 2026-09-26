@@ -219,18 +219,25 @@ layout(location = 4) in vec4 iQ;   // rotation
 layout(location = 5) in vec4 iX;   // glow, tone bias
 uniform mat4 uVP;
 uniform float uTan;   // hatch direction: 0 box faces, 1 along the local y axis, 2 round the local y axis
-out vec3 vW; out vec3 vN; out vec3 vT; out vec3 vL; out vec3 vH;
+out vec3 vW; out vec3 vN; out vec3 vT; out vec3 vL; out vec3 vH; out vec3 vQ; out vec3 vNL; out vec3 vTL;
 flat out float vMat; flat out float vSeed; flat out vec4 vX;
 vec3 qrot(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
 void main() {
     vec3 w = iA.xyz + qrot(iQ, aPos * iB.xyz);
     vW = w; vL = aPos; vH = iB.xyz; vMat = iA.w; vSeed = iB.w; vX = iX;
+    // the texture's own space: the piece's unrotated local position (world units), offset per
+    // piece, so lines and stones stay printed on a piece that moves or turns
+    // (no per-piece offset here: on a curved piece an offset times the turning line direction
+    // makes the ruling race; per-piece variety comes from the seed in each pattern instead)
+    vQ = aPos * iB.xyz;
+    vNL = normalize(aNor / iB.xyz);
     vN = qrot(iQ, normalize(aNor / iB.xyz));
     // hatch direction on a box face: horizontal courses on the sides, along x on top
     vec3 t = abs(aNor.x) > 0.5 ? vec3(0, 0, 1) : vec3(1, 0, 0);
     if (uTan > 0.5 && uTan < 1.5) t = vec3(0, 1, 0);
     if (uTan > 1.5) { vec3 c = cross(aNor, vec3(0, 1, 0)); t = dot(c, c) > 1e-4 ? normalize(c) : vec3(1, 0, 0); }
     vT = qrot(iQ, t);
+    vTL = t;
     gl_Position = uVP * vec4(w, 1.0);
 }
 `;
@@ -252,10 +259,10 @@ void main() { o = vec4(1.0); }
 precision highp float;
 precision highp sampler2DShadow;
 ${COMMON}
-in vec3 vW; in vec3 vN; in vec3 vT; in vec3 vL; in vec3 vH;
+in vec3 vW; in vec3 vN; in vec3 vT; in vec3 vL; in vec3 vH; in vec3 vQ; in vec3 vNL; in vec3 vTL;
 flat in float vMat; flat in float vSeed; flat in vec4 vX;
 uniform vec3 uEye, uSun, uRight;
-uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason;
+uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason, uTan;
 uniform mat4 uLVP;
 uniform sampler2DShadow uShadowMap;
 uniform vec4 uLights[8];
@@ -297,6 +304,11 @@ void main() {
         T = uRight;
     }
     vec3 B = cross(N, T);
+    // texture frame: the piece's own (the ground keeps the world's, turned to the camera)
+    vec3 P = vQ, Nl = normalize(vNL), Tl = normalize(vTL - Nl * dot(vTL, Nl));
+    if (!gl_FrontFacing) Nl = -Nl;
+    if (m == 5) { P = vW; Nl = N; Tl = T; }
+    vec3 Bl = cross(Nl, Tl);
     // light
     float sh = shadow(vW, N);
     float lam = max(dot(N, uSun), 0.0) * sh * uSunK;
@@ -310,13 +322,14 @@ void main() {
     glow += vX.x;
     float spec = M.y * pow(max(dot(reflect(-uSun, N), V), 0.0), M.z) * sh;
     // stone: weathering, pores, a few darker stones
-    float stone = (fbm3(vW * 14.0 + vSeed * 7.0) - 0.5) * 0.18 + (vSeed - 0.5) * 0.12;
+    float stone = (fbm3(P * 14.0 + vSeed * 7.0) - 0.5) * 0.18 + (vSeed - 0.5) * 0.12;
     float lum = M.x * (lam + sky) * (1.0 + stone * (m < 2 || m == 5 ? 1.0 : 0.2)) + spec + glow * 0.6;
     float D = clamp(1.0 - lum + vX.y, 0.0, 1.0);
     // the plates' tone: long greys and few blacks (ink never quite closes)
     D = 0.12 + 0.8 * smoothstep(0.05, 0.92, D);
     // cut stone always carries some line work, heavier where it is weathered
-    if (m < 2) D = max(D, 0.2 + 0.06 * vSeed + 0.18 * smoothstep(0.4, 0.8, fbm3(vW * 9.0 + vSeed * 5.0)));
+    if (m < 2) D = max(D, 0.2 + 0.06 * vSeed + 0.18 * smoothstep(0.4, 0.8, fbm3(P * 9.0 + vSeed * 5.0)));
+    if (m == 3 || m == 6) D = max(D, 0.45);          // metal is engraved too: its form in lines under the wash
     float bend = 0.0;
     if (m == 5) { D = max(D, 0.13); bend = (vnoise(vW.xz * 0.45 + 3.0) * 7.0 + vnoise(vW.xz * 1.7) * 1.5) / (1.0 + 0.25 * length(uEye - vW)); }  // sand: thin lines everywhere, bending with the dunes
     // aerial perspective: the far plane is engraved lighter
@@ -328,9 +341,9 @@ void main() {
     float lvl = log2(sp), l0 = floor(lvl), fr = lvl - l0, a = exp2(l0);
     float grow = exp2(fr);
     vec3 dirs[3];
-    dirs[0] = B;
-    dirs[1] = normalize(B * cos(0.95) + T * sin(0.95));
-    dirs[2] = normalize(B * cos(-0.8) + T * sin(-0.8));
+    dirs[0] = Bl;
+    dirs[1] = normalize(Bl * cos(0.95) + Tl * sin(0.95));
+    dirs[2] = normalize(Bl * cos(-0.8) + Tl * sin(-0.8));
     float cs[3];
     // the first set carries the form; crossings come in thinner, only where it is dark
     // (deep shadow is heavy parallel lines with thin continuous light between them, not a
@@ -338,11 +351,23 @@ void main() {
     cs[0] = clamp(D, 0.0, 0.86);
     cs[1] = clamp((D - 0.6) * 0.6, 0.0, 0.16);
     cs[2] = 0.0;
+    if (uBox < 0.5 && uTan > 0.5) { cs[1] = 0.0; cs[2] = 0.0; }   // one ruling on round things
     float cov = 0.0;
     for (int k = 0; k < 3; k++) {
         if (cs[k] < 0.035) continue;
-        float along = dot(vW, k == 0 ? T : cross(N, dirs[k])) / sp;
-        float s0 = dot(vW, dirs[k]) + ((vnoise(vec2(along * 0.06, float(k) * 7.0 + vSeed * 13.0)) - 0.5) * 0.2 + bend) * sp;
+        float along = dot(P, k == 0 ? Tl : cross(Nl, dirs[k])) / sp;
+        float lin = dot(P, dirs[k]);
+        // round meshes: measure along the surface (arc length), since a line direction that
+        // turns with the surface makes a dot product with the position race
+        if (uBox < 0.5 && uTan > 1.5) {          // ring (unit radius): lines run round the axis
+            vec2 rel = vec2(length(P.xz) - vH.x, P.y);
+            lin = atan(rel.y, rel.x) * length(rel);
+            along = atan(P.z, P.x) * vH.x / sp;
+        } else if (uBox < 0.5 && uTan > 0.5) {   // cylinder: lines run along the axis
+            lin = atan(P.z, P.x) * length(P.xz);
+            along = P.y / sp;
+        }
+        float s0 = lin + ((vnoise(vec2(along * 0.06, float(k) * 7.0 + vSeed * 13.0)) - 0.5) * 0.2 + bend) * sp;
         // two octaves of the same ruling (spacing a and 2a, the second's lines on the first's
         // even ones), each drawn at the full tone and cross-faded: no alternating thick/thin
         // lines (a barcode on small faces), the dropped lines just grow paler as they recede
@@ -360,7 +385,7 @@ void main() {
     if (m < 2 && (uBox > 0.5 || uMason > 0.5)) {
         cov *= 0.45;
         float ch = uCourse;
-        vec2 fp = abs(N.y) > 0.7 ? vec2(dot(vW, T), dot(vW, B)) : vec2(dot(vW, T), vW.y);
+        vec2 fp = (abs(Nl.y) > 0.7 ? vec2(dot(P, Tl), dot(P, Bl)) : vec2(dot(P, Tl), P.y)) + vSeed * vec2(3.71, 1.13);
         fp += (vec2(vnoise(fp / ch * 1.7), vnoise(fp.yx / ch * 1.7 + 5.0)) - 0.5) * ch * 0.22;
         float row = floor(fp.y / ch), fy = fp.y / ch - row;
         float w = ch * (1.6 + 1.4 * hash(vec2(row, 3.0)));
@@ -393,7 +418,7 @@ void main() {
         vec2 gq = fp / 0.0016;
         vec2 gc = floor(gq), gf = fract(gq) - 0.5 - (vec2(hash(gc + 1.3), hash(gc + 7.9)) - 0.5) * 0.6;
         float gpx = 0.0016 / ps / uPx;
-        float weather = smoothstep(0.35, 0.8, fbm3(vW * 22.0 + vSeed * 3.0));
+        float weather = smoothstep(0.35, 0.8, fbm3(P * 22.0 + vSeed * 3.0));
         float gd = step(hash(gc + vSeed * 5.0), 0.05 + 0.3 * D + 0.35 * weather);
         float grain = gd * (1.0 - smoothstep(0.18, 0.3, length(gf * vec2(1.0, 1.0 + 2.0 * hash(gc))))) * smoothstep(1.5, 3.0, gpx);
         cov = max(cov, grain * (1.0 - vis));
@@ -405,10 +430,10 @@ void main() {
         float face = ax.x > ax.y ? (ax.x > ax.z ? 0.0 : 2.0) : (ax.y > ax.z ? 1.0 : 2.0);
         float ed = face == 0.0 ? min(e.y, e.z) : face == 1.0 ? min(e.x, e.z) : min(e.x, e.y);
         // chips: the edge bites into the face here and there
-        float chip = 0.0014 * smoothstep(0.62, 0.9, vnoise(vec2(dot(vW, vec3(260.0, 280.0, 240.0)), vSeed * 31.0)));
+        float chip = 0.0014 * smoothstep(0.62, 0.9, vnoise(vec2(dot(P, vec3(260.0, 280.0, 240.0)), vSeed * 31.0)));
         float epx = max(ed - chip, 0.0) / ps / uPx;
         float blockPx = 2.0 * min(vH.x, min(vH.y, vH.z)) / ps / uPx;
-        float wear = vnoise(vW.xz * 90.0 + vW.y * 60.0);
+        float wear = vnoise(P.xz * 90.0 + P.y * 60.0);
         // edges are cut thin: in the plates form is carried by tone, not by outlines
         float w = uEdge * mix(0.5, 1.0, D) * (0.7 + 0.6 * wear);
         float edge = 1.0 - smoothstep(w, w + 1.0, epx);
@@ -420,7 +445,7 @@ void main() {
     // cut stone up close: pores (a jittered dot here and there, once a dot is bigger than a
     // pixel) and faces turned edge-on (joints) cut solid, not as a zebra of lines
     if (uBox > 0.5 && m < 3) {
-        vec3 pw = vW * 55.0, cell = floor(pw), f = fract(pw) - 0.5;
+        vec3 pw = P * 55.0, cell = floor(pw), f = fract(pw) - 0.5;
         vec3 off = vec3(hash3(cell + 1.7), hash3(cell + 4.1), hash3(cell + 8.3)) - 0.5;
         vec3 dv = f - off * 0.6;
         float rr = length(dv - N * dot(dv, N));
@@ -444,10 +469,10 @@ void main() {
         cov *= 0.0;
     } else if (M.w > 0.5) {
         // metal: a gold wash under the dark line work, as a hand-coloured plate
-        ink2 = vec4(uInkGold, 0.62 - 0.25 * smoothstep(0.3, 0.9, D));
+        ink2 = vec4(uInkGold, 0.4);
     }
     // the blue light tints the lines it touches
-    ink = mix(ink, uInkBlue * 0.8, clamp(glow * 1.6, 0.0, 0.85));
+    if (M.w < 0.5) ink = mix(ink, uInkBlue * 0.8, clamp(glow * 1.6, 0.0, 0.85));
     o = vec4(print(gl_FragCoord.xy, cov, ink2, ink), 1.0);
 }
 `;

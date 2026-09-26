@@ -73,27 +73,63 @@ const Pyramid = (() => {
                 dz: 0.014 + 0.008 * s.seed,
             };
         }
+        // slabs: the building opens in slabs, not stones. A slab is four courses of one shell on
+        // one face, a third of a metre or so along it; its stones stay packed and move as one,
+        // so every moving piece is a panel of many small drawn stones, as the plates draw walls
+        const slabs = new Map();
+        for (const s of S) {
+            const ax = s.n[0] !== 0 ? 0 : 2, along = ax === 0 ? s.c[2] : s.c[0];
+            const key = [s.shell, s.n[0], s.n[2], Math.floor(s.course / 4), Math.floor((along + 1.2) / 0.32)].join(',');
+            if (!slabs.has(key)) slabs.set(key, { members: [], ax });
+            slabs.get(key).members.push(s);
+        }
+        const rs = Motion.rng('pyramid-slabs');
+        for (const sl of slabs.values()) {
+            const m = sl.members;
+            sl.c = [0, 1, 2].map((i) => m.reduce((a, s) => a + s.c[i], 0) / m.length);
+            sl.shell = m[0].shell;
+            sl.n = m[0].n;
+            sl.drift = rs();
+            sl.tilt = (rs() - 0.5) * 0.14;
+            sl.dist = Math.hypot(sl.c[0] - S0.c[0], sl.c[1] - S0.c[1], sl.c[2] - S0.c[2]);
+            for (const s of m) s.slab = sl;
+        }
         return { S, S0 };
     }
     let ST = null;
     const face = (n) => { const v = [n[0] * HP, B, n[2] * HP], l = Math.hypot(...v); return v.map((x) => x / l); };
-    // where a stone is at t: its waking slide, then the bands, then its face moving out
-    function place(s, t) {
-        const sh = SHELLS[s.shell];
-        const eb = E(t, 10 + s.dist * 0.5, 12 + s.dist * 0.5);
-        const eo = E(t, 11 + s.dist * 0.4, 13.2 + s.dist * 0.2);
+    // where a slab's centre is at t: the bands part, then its face moves out (the skin
+    // furthest), and it turns a little about its own face line
+    function slabAt(sl, t) {
+        const sh = SHELLS[sl.shell];
+        const eb = E(t, 10 + sl.dist * 0.5, 12 + sl.dist * 0.5);
+        const eo = E(t, 11 + sl.dist * 0.4, 13.2 + sl.dist * 0.2);
         const fs = 1 + (sh.fs - 1) * eo, fy = 1 + (sh.fy - 1) * eb;
-        const nf = face(s.n), k = sh.out * eo + sh.drift * eo * (s.drift - 0.3);
-        const band = Math.floor(s.c[1] / H / 4);
-        const p = [s.c[0] * fs + nf[0] * k, s.c[1] * fy + nf[1] * k + band * 0.035 * eb, s.c[2] * fs + nf[2] * k];
+        const nf = face(sl.n), k = sh.out * eo + sh.drift * eo * (sl.drift - 0.3);
+        const band = Math.floor(sl.c[1] / H / 4);
+        const p = [sl.c[0] * fs + nf[0] * k, sl.c[1] * fy + nf[1] * k + band * 0.035 * eb, sl.c[2] * fs + nf[2] * k];
+        const q = Engrave.quat(sl.ax === 0 ? [0, 0, 1] : [1, 0, 0], sl.tilt * eo);
+        return { p, q };
+    }
+    const qrot = (q, v) => {
+        const [x, y, z, w] = q, c1 = [y * v[2] - z * v[1] + w * v[0], z * v[0] - x * v[2] + w * v[1], x * v[1] - y * v[0] + w * v[2]];
+        return [v[0] + 2 * (y * c1[2] - z * c1[1]), v[1] + 2 * (z * c1[0] - x * c1[2]), v[2] + 2 * (x * c1[1] - y * c1[0])];
+    };
+    // where a stone is at t (and its turn, in s.qt): carried by its slab, plus its own waking
+    // slide for the stones round the first one
+    function place(s, t) {
+        const { p: sp, q: sq } = slabAt(s.slab, t);
+        const o = qrot(sq, [s.c[0] - s.slab.c[0], s.c[1] - s.slab.c[1], s.c[2] - s.slab.c[2]]);
+        const p = [sp[0] + o[0], sp[1] + o[1], sp[2] + o[2]];
+        s.qt = Engrave.qmul(sq, s.q);
         if (s.first) {
             // out a few centimetres at 6 s (slow to start, stopping with weight), aside at 8 s
             p[2] += 0.025 * E(t, 6, 6.9);
             p[0] -= 0.1 * E(t, 8, 8.9);
         } else if (s.wake) {
-            const o = E(t, s.wake.t0, s.wake.t0 + 0.9);
-            p[0] += s.wake.dx * o;
-            p[2] += s.wake.dz * o;
+            const w = E(t, s.wake.t0, s.wake.t0 + 0.9);
+            p[0] += s.wake.dx * w;
+            p[2] += s.wake.dz * w;
         }
         return p;
     }
@@ -104,7 +140,7 @@ const Pyramid = (() => {
         const box = [], dust = [], tops = [], marks = [];
         // the ground
         Engrave.inst(box, [0, -0.5, 0], 5, [60, 0.5, 60], 0.5);
-        for (const s of S) Engrave.inst(box, place(s, t), s.worn, s.half, s.seed, s.q);
+        for (const s of S) Engrave.inst(box, place(s, t), s.worn, s.half, s.seed, s.qt);
         // the capstone rides the axis
         Engrave.inst(tops, [0, HP * (1 + 0.45 * e) + H * 0.2, 0], 0, [H * 1.1, H * 1.1, H * 1.1], 0.3);
         // the first stone's joint and mark (they travel with it)
@@ -146,7 +182,7 @@ const Pyramid = (() => {
             const fy = 1 + (sh2.fy - 1) * e, fs = 1 + (sh2.fs - 1) * e;
             return (halfAt(Math.min(y / fy + H, HP)) - 3 * TK) * fs + sh2.out * e * 0.78 - 0.035;
         };
-        const R = [[0.36, 0.35, 0.08], [0.45, -0.55, 0.06], [0.54, 0.8, 0.05]];
+        const R = [[0.36, 0.35, 0.14], [0.47, -0.55, 0.22], [0.58, 0.8, 0.3]];
         R.forEach(([y0r, sp, tilt], i) => {
             const y = y0r * (1 + 0.25 * e);
             let rad = 0.3;
