@@ -82,17 +82,29 @@ const Dance = (() => {
     function at(t) {
         if (!RES) RES = KEYS.map(resolve);
         const d = Math.floor(t * 15 + 1e-6), tq = d / 15;
-        const poses = FIT[d] ? FIT[d].map((p) => ({ ...clone(Cats.REST), ...p })) : RES.map((k) => sample(k, tq));
-        // depth and lift are smoothed over ±0.2 s: keyed from measured sizes they jitter key
-        // to key (a cat pulsing towards the camera), and stretches keyed apart meet smoothly
-        if (!FIT[d]) RES.forEach((k, c) => {
+        // the hand keys; depth and lift smoothed over ±0.2 s (keyed from measured sizes they
+        // jitter key to key, and stretches keyed apart meet smoothly), the lift never below the
+        // floor (a negative lift sank the feet: the camera model's error, not the cat's)
+        const keyed = () => RES.map((k) => {
+            const p = sample(k, tq);
             let z = 0, b = 0;
-            for (let i = -3; i <= 3; i++) { const p = sample(k, tq + i / 15); z += p.z; b += p.bob; }
-            poses[c].z = z / 7;
-            // never below the floor: a negative lift sank the feet (the frame sits lower than
-            // the camera model; that is the camera's to fix, not the cat's)
-            poses[c].bob = Math.max(-0.02, b / 7);
+            for (let i = -3; i <= 3; i++) { const q = sample(k, tq + i / 15); z += q.z; b += q.bob; }
+            p.z = z / 7;
+            p.bob = Math.max(-0.02, b / 7);
+            return p;
         });
+        let poses = FIT[d] ? FIT[d].map((p) => ({ ...clone(Cats.REST), ...p })) : keyed();
+        // where the pose model can't see the faces (the bowed heads of the opening, the backs of
+        // the turn) the fit gets heads and turns wrong: the hand keys dance those stretches,
+        // crossfaded in and out over a few drawings
+        if (FIT[d]) {
+            const win = (a, b, fin, fout) => Math.min(1, Math.max(0, (tq - a) / fin)) * Math.min(1, Math.max(0, (b - tq) / fout));
+            const w = Math.max(win(-1, 2.2, 1, 0.3), win(9.4, 12.1, 0.2, 0.25));
+            if (w > 0) {
+                const K = keyed();
+                poses = poses.map((p, c) => (w >= 1 ? K[c] : { blend: [p, K[c], w] }));
+            }
+        }
         return { tq, poses, zoom: [scalar(ZOOM, tq), ...ZOOM_AT] };
     }
     return { at, ZOOM, ZOOM_AT, resolve };

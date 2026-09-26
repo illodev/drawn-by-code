@@ -87,7 +87,7 @@ const Cats = (() => {
         out.push(...pel, ...R, ...up(chest), ...Rc, ...up(head), ...Rh);
         for (const j of [...aL, ...aR, ...lL, ...lR]) out.push(...up(j));
         for (const j of tail) out.push(...j);
-        out.push(P.mouth, P.yaw);
+        out.push(P.mouth, P.yaw, P.x, P.z, 1); // root and scale: a crossfade with an IK pose lerps them
         while (out.length < STRIDE) out.push(0);
         return out;
     }
@@ -169,9 +169,13 @@ const Cats = (() => {
         while (out.length < STRIDE) out.push(0);
         return out;
     }
+    // a blend of two poses' joints (a short crossfade between the tracked dance and the hand
+    // keys: positions and frames lerped, fine for a few drawings)
+    const mix = (a, b, w) => a.map((v, i) => v + (b[i] - v) * w);
     // poses of the three cats, then the puddle: up to 6 blobs [x, z, r] on the floor
     const pack = (poses, puddle = []) => {
-        const out = poses.flatMap((p, c) => (p.feet ? jointsIK(p) : joints(p, c)));
+        const J = (p, c) => (p.blend ? mix(J(p.blend[0], c), J(p.blend[1], c), p.blend[2]) : p.feet ? jointsIK(p) : joints(p, c));
+        const out = poses.flatMap((p, c) => J(p, c));
         for (let k = 0; k < 6; k++) out.push(...(puddle[k] ?? [0, 0, 0]));
         return out;
     };
