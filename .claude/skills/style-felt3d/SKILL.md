@@ -69,3 +69,6 @@ a comb-over, a resin puddle).
 - [ ] Nothing still for more than a second; stop motion on twos?
 
 ## Lessons
+- 2026-09-26 · felt-cats · Needs a GPU for real work: on SwiftShader a 720-wide drawing takes ~40 s on one core (four stretches in parallel: a 16 s film in ~40 min). Render the puppets once with alpha and composite the sets.
+- 2026-09-26 · felt-cats · Crossfading two rigs' poses works by lerping their packed joints, as long as both carry the same root and scale slots (a missing scale lerped from 0 halved the cats).
+
