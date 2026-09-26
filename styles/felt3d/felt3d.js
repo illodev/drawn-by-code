@@ -199,9 +199,11 @@ void main() {
 #ifdef FLOOR_DECAL
             outc = floorDecal(pf, rd, normalize(uLight));
 #endif
-            if (uShadow > 0.0) {
+            // far from every puppet (the bounds' distance), the floor is lit: skip the traces
+            float far = map(pf).x;
+            if (uShadow > 0.0 && far < 1.2) {
                 float sh = softShadow(pf + vec3(0.0, 0.01, 0.0), normalize(uLight));
-                float occ = calcAO(pf, vec3(0.0, 1.0, 0.0));
+                float occ = far < 0.3 ? calcAO(pf, vec3(0.0, 1.0, 0.0)) : 1.0;
                 float a = clamp(uShadow * (1.0 - sh) * 0.7 + uShadow * (1.0 - occ) * 0.8, 0.0, 0.85);
                 outc = vec4(outc.rgb * (1.0 - a), a + outc.a * (1.0 - a));
             }
