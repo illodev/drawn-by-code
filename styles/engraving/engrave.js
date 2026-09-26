@@ -163,6 +163,28 @@ const Engrave = (() => {
         return { P, I };
     }
 
+    // a field stone: a sphere pushed in and out by a few smooth bumps (seeded)
+    function rock(seed = 1) {
+        const m = sphere(28, 16), r = Motion.rng('rock-' + seed);
+        const bumps = Array.from({ length: 7 }, () => [norm([r() - 0.5, r() - 0.5, r() - 0.5]), (r() - 0.5) * 0.5]);
+        for (let i = 0; i < m.P.length; i += 6) {
+            const n = [m.P[i], m.P[i + 1], m.P[i + 2]];
+            let k = 1;
+            for (const [d, a] of bumps) k += a * Math.max(0, dot(n, d)) ** 3;
+            k *= n[1] < -0.3 ? 0.6 + 0.4 * (1 + n[1]) : 1;     // flat underneath, it sits
+            m.P[i] *= k; m.P[i + 1] *= k; m.P[i + 2] *= k;
+        }
+        // flat shading: the normals of the facets, for a cut, chipped stone
+        const P = [], I = [];
+        for (let t = 0; t < m.I.length; t += 3) {
+            const v = [0, 1, 2].map((j) => m.I[t + j] * 6).map((o) => [m.P[o], m.P[o + 1], m.P[o + 2]]);
+            const n = norm(cross(sub(v[1], v[0]), sub(v[2], v[0])));
+            for (const p of v) P.push(...p, ...n);
+            I.push(t, t + 1, t + 2);
+        }
+        return { P, I };
+    }
+
     // ---------- shaders ----------
     const COMMON = `
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -488,7 +510,8 @@ precision highp float;
 ${COMMON}
 uniform mat4 uInvVP;
 uniform vec3 uEye, uInk;
-uniform float uZenith, uHorizon, uSpacing, uChar;
+uniform float uZenith, uHorizon, uSpacing, uChar, uDusk;
+uniform vec3 uDuskCol;
 out vec4 o;
 void main() {
     vec2 ndc = gl_FragCoord.xy / uRes * 2.0 - 1.0;
@@ -505,7 +528,9 @@ void main() {
     float cov = lines(s, clamp(D * 1.1, 0.0, 0.7), fwidth(s) * 0.8);
     if (uChar > 0.5) cov = D * 0.8;
     if (D < 0.03) cov = 0.0;
-    o = vec4(print(gl_FragCoord.xy, cov, vec4(0.0), uInk), 1.0);
+    // dusk: a thin warm wash along the horizon (a second ink)
+    vec4 dusk = vec4(uDuskCol, uDusk * exp(-max(el, 0.0) * 28.0) * step(-0.01, el));
+    o = vec4(print(gl_FragCoord.xy, cov, dusk, uInk), 1.0);
 }
 `;
 
@@ -662,6 +687,8 @@ void main() {
             gl.uniform1f(skyP.u('uZenith'), f.sky?.zenith ?? 0.45);
             gl.uniform1f(skyP.u('uHorizon'), f.sky?.horizon ?? 0.05);
             gl.uniform1f(skyP.u('uChar'), f.charcoal ? 1 : 0);
+            gl.uniform1f(skyP.u('uDusk'), f.sky?.dusk ?? 0);
+            gl.uniform3fv(skyP.u('uDuskCol'), hex(f.duskCol ?? '#d9a066'));
             gl.bindVertexArray(tri);
             gl.drawArrays(gl.TRIANGLES, 0, 3);
             gl.depthMask(true);
@@ -868,5 +895,5 @@ void main() {
     function inst(arr, c, mat, half, seed, q = [0, 0, 0, 1], glow = 0, bias = 0) {
         arr.push(c[0], c[1], c[2], mat, half[0], half[1], half[2], seed, q[0], q[1], q[2], q[3], glow, bias, 0, 0);
     }
-    return { renderer, ager, inst, box, pyramid, torus, cylinder, sphere, quat, qmul, M4 };
+    return { renderer, ager, inst, rock, box, pyramid, torus, cylinder, sphere, quat, qmul, M4 };
 })();

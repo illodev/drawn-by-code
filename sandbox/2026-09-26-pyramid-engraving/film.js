@@ -30,6 +30,12 @@ const PyramidFilm = (() => {
         const rel = (dx, dy, dz) => [x0 + dx, y0 + dy, f0 + dz];
         // [t, cam, target, [fov]]
         return [
+            // PIR-01: low, from the left of the face, the pyramid right of centre with air above
+            // the apex and the foreground stone in the lower left; a diagonal travelling in
+            // that ends following the grain to the joint
+            [0.0, [-1.55, 0.16, 5.4], [-0.15, 0.62, 0], [0.66]],
+            [2.5, [-0.95, 0.2, 3.7], [0.05, 0.5, 0.2], [0.64]],
+            [4.0, rel(-0.18, 0.06, 0.75), rel(-0.03, 0.03, 0), [0.58]],
             [5.0, rel(0.045, 0.022, 0.19), rel(0, 0, 0), [0.55]],
             [6.5, rel(0.04, 0.03, 0.24), rel(0, 0.002, 0), [0.55]],
             [8.5, rel(0.01, 0.075, 0.4), rel(-0.01, 0.07, -0.2), [0.58]],
@@ -53,7 +59,7 @@ const PyramidFilm = (() => {
             sun: [-0.35, 0.5, 0.8], sunK: 0.8, fill: 0.2, ink: '#2e261d', paper: '#ebe1cb',
             draws: P.draws, lights: P.lights,
             shadow: { center: target, radius: Math.min(3.2, Math.max(1.5, dist * 0.8)) },
-            sky: { zenith: 0.22, horizon: 0.15 },
+            sky: { zenith: 0.22, horizon: 0.15, dusk: 0.35 },
             fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: plate, charcoal: true,
         };
         const img = env.state.R.layer((o.plate ? 'p' : 'f') + Math.round(t * 24), f);
@@ -96,6 +102,7 @@ const PyramidFilm = (() => {
     function setup(env) {
         const R = Engrave.renderer(env, { scale: 2 });
         R.mesh('ring', Engrave.torus(0.085));
+        R.mesh('rock', Engrave.rock(7));
         return { R, A: Engrave.ager(env) };
     }
     return { frame, setup };

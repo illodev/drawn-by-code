@@ -6,8 +6,11 @@
 // machine (a stepped obsidian core with blue channels, a bronze axis, three gold rings)
 // lives there and is already turning before anything opens.
 //
-// The timeline (script PIR-02 and PIR-03):
-//   5.0  a blue line wakes in the joint under the first stone (S0, the +z face, low)
+// The timeline (script PIR-01, PIR-02 and PIR-03):
+//   0    the closed pyramid at dusk; a small dust devil crosses the foreground
+//   2.5  a very faint blue line wakes in the joint under the first stone (S0, the +z face);
+//        a falling grain of sand turns aside and drifts to it (the camera follows it in)
+//   5.0  the blue line is clear
 //   5.4  the notched triangle mark on S0 lights from its incision
 //   6.0  S0 moves a few centimetres out, pressing dust from its lower edge
 //   7.0  its neighbours answer: the opening spreads upwards and through the three shells,
@@ -145,9 +148,10 @@ const Pyramid = (() => {
         Engrave.inst(tops, [0, HP * (1 + 0.45 * e) + H * 0.2, 0], 0, [H * 1.1, H * 1.1, H * 1.1], 0.3);
         // the first stone's joint and mark (they travel with it)
         const p0 = place(S0, t), f0 = p0[2] + S0.half[2];
-        const joint = E(t, 4.6, 5.6), mark = E(t, 5.3, 6.1);
+        const joint = Math.max(0.3 * E(t, 2.4, 3.2), E(t, 4.6, 5.6)), mark = E(t, 5.3, 6.1);
+        const jointGlow = 0.6 * (0.35 + 0.65 * E(t, 4.4, 5.4));
         // the joint line glows from inside the joint, thin
-        if (joint > 0) Engrave.inst(marks, [p0[0], p0[1] - H / 2 - 0.0002, f0 - 0.006], 4, [S0.half[0] * 0.95 * joint, 0.0009, 0.004], 0.5, [0, 0, 0, 1], 0.6);
+        if (joint > 0) Engrave.inst(marks, [p0[0], p0[1] - H / 2 - 0.0002, f0 - 0.006], 4, [S0.half[0] * 0.95 * Math.min(1, joint / 0.3), 0.0009, 0.004], 0.5, [0, 0, 0, 1], jointGlow * Math.min(1, joint / 0.3));
         if (mark > 0) {
             // the mark: a triangle left incomplete (its right side stops short of the apex)
             // with a V notch cut up into its base; a fictional sign, not a hieroglyph
@@ -220,6 +224,37 @@ const Pyramid = (() => {
             if (y < 0.005 || e < 0.05) continue;
             Engrave.inst(dust, [p[0] + jx * 0.06, y, p[2] + jz * 0.06], 5, [sz, sz, sz], sd, [0, 0, 0, 1], 0, 0.75);
         }
+        // PIR-01. The grain of sand: it falls past the face, and at 2.9 s, as the joint wakes,
+        // turns aside and drifts to it, arriving as the camera closes in (4.9 s)
+        const jy = S0.c[1] - H / 2, jp = [S0.c[0] + 0.02, jy, S0.c[2] + S0.half[2] + 0.004];
+        if (t > 1.6 && t < 5.2) {
+            const fall = (u) => [jp[0] - 0.55 + 0.04 * u, jp[1] + 0.62 - 0.5 * 0.28 * u * u, jp[2] + 0.34];
+            let g;
+            if (t < 2.9) g = fall(t - 1.6);
+            else {
+                const a0 = fall(1.3), u = Ease.inOut(Ease.seg(t, 2.9, 4.9));
+                const c1 = [a0[0] + 0.12, a0[1] - 0.08, a0[2]], c2 = [jp[0] - 0.05, jp[1] + 0.03, jp[2] + 0.06];
+                const b3 = (a, b, c, d) => (1 - u) ** 3 * a + 3 * (1 - u) ** 2 * u * b + 3 * (1 - u) * u * u * c + u ** 3 * d;
+                g = [0, 1, 2].map((i) => b3(a0[i], c1[i], c2[i], jp[i]));
+            }
+            Engrave.inst(dust, g, 5, [0.0022, 0.0022, 0.0022], 0.4, [0, 0, 0, 1], 0, 0.75);
+        }
+        // the dust devil: a thin spinning column of sand crossing the foreground left to right
+        if (t < 4.2) {
+            const rd = Motion.rng('pyramid-devil');
+            const cx = -2.3 + t * 0.55, cz = 3.9, fade = 1 - Ease.seg(t, 3.2, 4.2);
+            for (let i = 0; i < 900; i++) {
+                const h = Math.pow(rd(), 1.6) * 0.9, a = rd() * Math.PI * 2 + t * (7 - h * 3), rad = 0.02 + h * 0.2 + rd() * 0.03;
+                const sz = 0.0018 + rd() * 0.0025, lean = h * 0.18;
+                if (rd() > fade) continue;
+                Engrave.inst(dust, [cx + lean + Math.cos(a) * rad, h, cz + Math.sin(a) * rad], 5, [sz, sz, sz], rd(), [0, 0, 0, 1], 0, 0.75);
+            }
+        }
+        // stones on the sand: one in the foreground for scale and parallax, a few further off
+        const rocks = [];
+        const rr = Motion.rng('pyramid-rocks');
+        const ROCKS = [[-1.05, 4.35, 0.19, 0.11, 0.15], [-0.62, 4.1, 0.05, 0.03, 0.04], [0.9, 3.2, 0.07, 0.04, 0.06], [-1.6, 2.4, 0.09, 0.05, 0.07], [1.6, 1.9, 0.05, 0.03, 0.04]];
+        for (const [x, z, a, b2, c] of ROCKS) Engrave.inst(rocks, [x, b2 * 0.6, z], 1, [a, b2, c], rr(), Engrave.quat([rr() - 0.5, 1, rr() - 0.5], rr() * 3));
         const draws = [
             { mesh: 'box', inst: new Float32Array(box), box: true },
             { mesh: 'pyramid', inst: new Float32Array(tops) },
@@ -229,6 +264,7 @@ const Pyramid = (() => {
             { mesh: 'box', inst: new Float32Array(marks), box: true, cast: false },
             { mesh: 'ring', inst: new Float32Array(rings) },
             { mesh: 'sphere', inst: new Float32Array(dust), cast: false },
+            { mesh: 'rock', inst: new Float32Array(rocks) },
         ];
         // the machine's light shows once the slot opens; the mark lights its own stone
         const inner = Math.max(e, 0.35 * E(t, 7.2, 9));
