@@ -420,7 +420,9 @@ void main() {
     vec4 w = uInvVP * vec4(ndc, 1.0, 1.0);
     vec3 d = normalize(w.xyz / w.w - uEye);
     float el = d.y;
-    float D = mix(uHorizon, uZenith, smoothstep(0.0, 0.5, el));
+    // a band of bare paper at the horizon, then the ruling darkens quickly to the zenith tone
+    float D = mix(uHorizon, uZenith, smoothstep(0.005, 0.3, el));
+    D = max(D, 0.2 * smoothstep(0.01, 0.05, el));
     D *= 0.85 + 0.15 * vnoise(gl_FragCoord.xy / uPx * vec2(0.002, 0.02));
     // ruled sky: straight horizontal lines, thicker as the sky darkens
     float s = gl_FragCoord.y / (uSpacing * 0.8 * uPx);
