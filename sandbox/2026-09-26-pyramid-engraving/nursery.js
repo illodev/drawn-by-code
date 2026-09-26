@@ -33,7 +33,7 @@ const Nursery = (() => {
         return lerp3(far, near, k).map((v, j) => v + (j === 1 ? 0.5 * Math.sin(Math.PI * k) : 0));
     };
     const burst = (i) => CH[i].t0 + 1.55;
-    function build(u) {
+    function build(u, rise = 0) {
         const stone = [], worn = [], obs = [], blue = [], rings = [], gold = [], dust = [], motes = [], cols = [], hathor = [], caps = [], leaves = [], sparks = [];
         // the hall
         Engrave.inst(worn, [0, -0.1, 0], 1, [HW, 0.1, HW], 0.21);
@@ -74,7 +74,7 @@ const Nursery = (() => {
             Engrave.inst(gold, mid, 3, [0.05, Math.hypot(...d) / 2, 0.05], 0.5 + i * 0.1, qTo(d));
         }
         // the three rings: turning round the growing sphere, sweeping the leaves in
-        const c = [C[0], C[1] + 0.45 * lift, C[2]];
+        const c = [C[0], C[1] + 0.45 * lift + rise, C[2]];
         [[1.55, [1, 0.2, 0.3], 0.5], [1.32, [0.2, 1, 0.5], -0.7], [1.1, [0.4, 0.3, 1], 0.9]].forEach(([r, ax, sp], i) => {
             const q = Engrave.qmul(Engrave.quat(ax, u * sp + i * 1.7), Engrave.quat([1, 0, 0], Math.PI / 2));
             Engrave.inst(rings, c, 3, [r, r, r], 0.3 + i * 0.2, q);
