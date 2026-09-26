@@ -92,12 +92,21 @@ const PyramidFilm = (() => {
         g.fillText(caption, W / 2, y1 + 52);
         g.restore();
     }
+    const PLATE_OUT = 2.9, LAG = 1.6;
+    function storyTime(t) {
+        if (t < PLATE_OUT) return t * 0.3;
+        const u0 = PLATE_OUT * 0.3, t1 = 5 + LAG;
+        if (t < t1) return u0 + ((t - PLATE_OUT) * (5 - u0)) / (t1 - PLATE_OUT);
+        return t - LAG;
+    }
     function frame(g, t, env, o = {}) {
         KEYS = KEYS ?? keys();
-        const P = Pyramid.build(t);
-        // the camera holds while the plate is on; the travelling then runs from 1.3 s to 5 s
-        const tc = t < 5 ? Math.max(0, (t - 1.3) / 3.7) * 5 : t;
-        const [cam, target, [fov0]] = path(KEYS, tc);
+        // story time: the plate holds and goes in (0–2.9 s) with the camera still, the dust
+        // devil drifting slowly; once the plate has gone the travelling runs (2.9–6.6 s); from
+        // there the film runs 1.6 s behind the script's timings
+        const u = storyTime(t);
+        const P = Pyramid.build(u);
+        const [cam, target, [fov0]] = path(KEYS, t < PLATE_OUT ? 0 : u);
         const s = plateScale(t, o);
         const on = s < PLATE_FILL - 1e-4;
         // the image area, scaled about the centre; the lens is widened so that area shows the
@@ -118,7 +127,7 @@ const PyramidFilm = (() => {
         if (o.age === false) g.drawImage(img, 0, 0, env.W, env.H);
         else env.state.A.apply(g, img, { ink: f.ink, paper: f.paper, charcoal: f.charcoal });
         if (on) {
-            const open = t > 10;
+            const open = u > 10;
             drawPlate(g, env, s, open ? 'VUE DE LA PYRAMIDE OUVERTE, ET DE SA MACHINE, PRISE AU CRÉPUSCULE.' : 'VUE DE LA GRANDE PYRAMIDE, PRISE AU CRÉPUSCULE.');
         }
     }
@@ -131,5 +140,5 @@ const PyramidFilm = (() => {
         R.mesh('rock', Engrave.rock(7));
         return { R, A: Engrave.ager(env) };
     }
-    return { frame, setup };
+    return { frame, setup, storyTime, LAG };
 })();
