@@ -328,7 +328,7 @@ void main() {
     // the plates' tone: long greys and few blacks (ink never quite closes)
     D = 0.12 + 0.8 * smoothstep(0.05, 0.92, D);
     // cut stone always carries some line work, heavier where it is weathered
-    if (m < 2) D = max(D, 0.2 + 0.06 * vSeed + 0.18 * smoothstep(0.4, 0.8, fbm3(P * 9.0 + vSeed * 5.0)));
+    if (m < 2) D = max(D, 0.12 + 0.05 * vSeed + 0.14 * smoothstep(0.4, 0.8, fbm3(P * 9.0 + vSeed * 5.0)));
     if (m == 3 || m == 6) D = max(D, 0.45);          // metal is engraved too: its form in lines under the wash
     float bend = 0.0;
     if (m == 5) { D = max(D, 0.13); bend = (vnoise(vW.xz * 0.45 + 3.0) * 7.0 + vnoise(vW.xz * 1.7) * 1.5) / (1.0 + 0.25 * length(uEye - vW)); }  // sand: thin lines everywhere, bending with the dunes
@@ -412,7 +412,7 @@ void main() {
         float joint = max(1.0 - smoothstep(0.5, 1.4, dy / pyx), (1.0 - smoothstep(0.5, 1.4, dx / pxx)) * step(0.1, fy) * step(fy, 0.9));
         // (up close, shade is burin lines over a light etched tone, never a flat grey)
         float shade = mix(max(min(cov / 0.45 * 1.15, 1.0), D * 0.3), (1.0 - 0.45 * joint) * clamp(D * (0.9 + 0.3 * st), 0.0, 0.97), vis);
-        cov = mix(max(lit, 0.18 + 0.2 * smoothstep(0.3, 0.6, D)), shade, smoothstep(0.42, 0.72, D));
+        cov = mix(max(lit * 0.75, 0.06 + 0.2 * smoothstep(0.3, 0.6, D)), shade, smoothstep(0.42, 0.72, D));
         // up close the stone's own grain: stippled pits and short scratches, denser in shade
         // and where it is weathered (cells fixed to the surface, fading when under 1.5 px)
         vec2 gq = fp / 0.0016;
@@ -705,9 +705,134 @@ void main() {
         };
     }
 
+    // ---------- the aged print: a filter over the finished frame ----------
+    // Measured on plates of the «Description de l'Égypte» (Vol. V, Pl. 9 and 11, image areas):
+    // their paper is a greyish warm white, not cream, and their ink a warm black; a tone
+    // curve and a gradient map (luminance → the plates' own colour at that luminance) move our
+    // print onto theirs. Second inks (blue, gold) ride on top as the difference from our
+    // neutral palette. Then what age does to a sheet: softer, slightly spread lines, paper
+    // grain, uneven toning in large soft patches, a darker rim, faint offset and wear.
+    // The sheet is the same in every frame (no boil): it is one print that moves.
+    const AGE_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uSrc;
+uniform vec2 uRes, uSrcRes;
+uniform float uPx, uAmt;
+uniform vec3 uInk0, uPaper0;
+uniform float uCurve[17];
+uniform vec3 uGrad[17];
+out vec4 o;
+float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
+float fbm(vec2 p) { return 0.5 * vnoise(p) + 0.3 * vnoise(p * 2.03 + 7.1) + 0.2 * vnoise(p * 4.1 + 3.3); }
+float lut(float x) { float t = clamp(x, 0.0, 1.0) * 16.0; int i = int(min(floor(t), 15.0)); return mix(uCurve[i], uCurve[i + 1], t - float(i)); }
+vec3 grad(float x) { float t = clamp(x, 0.0, 1.0) * 16.0; int i = int(min(floor(t), 15.0)); return mix(uGrad[i], uGrad[i + 1], t - float(i)); }
+vec3 src(vec2 uv) { return texture(uSrc, uv).rgb; }
+void main() {
+    vec2 uv = gl_FragCoord.xy / uRes;
+    vec2 q = gl_FragCoord.xy / uPx;                      // px at 1920 wide
+    vec2 d = 1.0 / uSrcRes;
+    // a 4×4 box down to the output (the source is supersampled), then a soft spread: the
+    // lines of a worn plate print a little fatter and softer
+    vec3 c = vec3(0.0);
+    for (int j = 0; j < 4; j++) for (int i = 0; i < 4; i++) c += src(uv + (vec2(i, j) - 1.5) * d * 0.5);
+    c /= 16.0;
+    vec3 blur = (src(uv + vec2(d.x, 0.0) * 1.6) + src(uv - vec2(d.x, 0.0) * 1.6) + src(uv + vec2(0.0, d.y) * 1.6) + src(uv - vec2(0.0, d.y) * 1.6)) * 0.25;
+    c = mix(c, min(c, blur), 0.35 * uAmt);                // ink spreads (darkens into light)
+    c = mix(c, blur, 0.25 * uAmt);
+    float L = dot(c, vec3(0.299, 0.587, 0.114));
+    // second inks: what differs from our neutral ink-to-paper ramp
+    float f = clamp((L - dot(uInk0, vec3(0.299, 0.587, 0.114))) / max(dot(uPaper0 - uInk0, vec3(0.299, 0.587, 0.114)), 1e-3), 0.0, 1.0);
+    vec3 extra = c - mix(uInk0, uPaper0, f);
+    float L2 = lut(L);
+    // (only real second inks carry over: the small cast of our own paper does not)
+    vec3 col = grad(L2) + extra * smoothstep(0.04, 0.12, length(extra));
+    // the sheet: grain, toning patches, a darker rim, offset from the facing page, wear
+    float grain = (hash(floor(q * 1.3)) - 0.5) * 0.035 + (vnoise(q * vec2(0.7, 0.25)) - 0.5) * 0.03;
+    float patches = fbm(q * 0.0022 + 4.0) - 0.5;
+    vec2 e = abs(uv - 0.5) * 2.0;
+    float rim = smoothstep(0.55, 1.05, max(e.x, e.y * 1.1)) + 0.4 * smoothstep(0.6, 1.2, length(e));
+    vec3 tone = vec3(1.0) - vec3(0.02, 0.04, 0.08) * (patches * 1.4 + rim * 0.9) * uAmt;
+    col *= tone * (1.0 + grain * uAmt) * (1.0 - 0.06 * rim * uAmt);
+    // wear: faint pale scuffs where the ink rubbed off, only on inked areas
+    float scuff = smoothstep(0.72, 0.9, fbm(q * vec2(0.012, 0.05) + 9.0)) * (1.0 - L2) * 0.25 * uAmt;
+    col = mix(col, grad(0.9), scuff);
+    o = vec4(col, 1.0);
+}
+`;
+    // the plates' measured curves (see above): our luminance quantiles → theirs, and their
+    // colour per luminance
+    const AGE_CURVE = (() => {
+        const src = [15.1, 66.8, 89.9, 110.8, 130.0, 148.5, 164.4, 176.5, 182.3, 186.5, 191.5, 195.5, 201.5, 206.5, 213.5, 215.5, 240.5];
+        const dst = [0.3, 47.9, 76.7, 106.1, 134.6, 159.9, 170.6, 175.6, 178.9, 181.6, 183.8, 186.6, 189.1, 192.6, 196.8, 203.2, 252.5];
+        // resample as y(x) at x = 0, 1/16, … 1 (piecewise linear, soft: half way to identity)
+        const out = [];
+        for (let i = 0; i <= 16; i++) {
+            const x = (i / 16) * 255;
+            let k = 0;
+            while (k < 15 && src[k + 1] < x) k++;
+            const u = Math.min(Math.max((x - src[k]) / (src[k + 1] - src[k]), 0), 1);
+            const y = x < src[0] ? (x / src[0]) * dst[0] : x > src[16] ? dst[16] + ((x - src[16]) / (255 - src[16])) * (255 - dst[16]) : dst[k] + u * (dst[k + 1] - dst[k]);
+            out.push((0.5 * y + 0.5 * x) / 255);
+        }
+        return out;
+    })();
+    const AGE_GRAD = [[9, 5, 1], [22, 17, 9], [37, 32, 24], [54, 47, 38], [70, 63, 53], [87, 78, 68], [103, 94, 83], [120, 110, 99], [136, 126, 114], [152, 142, 130], [170, 160, 148], [186, 176, 165], [197, 188, 177], [211, 202, 192], [229, 220, 210], [242, 235, 228], [253, 246, 236]].flat().map((v) => v / 255);
+    // ager(env): { apply(g, canvas, { amount, ink, paper }) } paints the aged frame at output size
+    function ager(env) {
+        const W = env.px[0], H = env.px[1];
+        const cv = document.createElement('canvas');
+        cv.width = W;
+        cv.height = H;
+        const gl = cv.getContext('webgl2', { preserveDrawingBuffer: true, antialias: false });
+        const sh = (t, src) => { const x = gl.createShader(t); gl.shaderSource(x, src); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error('Engrave age: ' + gl.getShaderInfoLog(x)); return x; };
+        const P = gl.createProgram();
+        gl.attachShader(P, sh(gl.VERTEX_SHADER, '#version 300 es\nin vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }'));
+        gl.attachShader(P, sh(gl.FRAGMENT_SHADER, AGE_FS));
+        gl.bindAttribLocation(P, 0, 'p');
+        gl.linkProgram(P);
+        const b = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, b);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        const tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        const U = (n) => gl.getUniformLocation(P, n);
+        const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+        return {
+            apply(g, source, o = {}) {
+                gl.viewport(0, 0, W, H);
+                gl.useProgram(P);
+                gl.bindTexture(gl.TEXTURE_2D, tex);
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+                gl.uniform1i(U('uSrc'), 0);
+                gl.uniform2f(U('uRes'), W, H);
+                gl.uniform2f(U('uSrcRes'), source.width, source.height);
+                gl.uniform1f(U('uPx'), W / 1920);
+                gl.uniform1f(U('uAmt'), o.amount ?? 1);
+                gl.uniform3fv(U('uInk0'), hex(o.ink ?? '#2e261d'));
+                gl.uniform3fv(U('uPaper0'), hex(o.paper ?? '#ebe1cb'));
+                gl.uniform1fv(U('uCurve'), AGE_CURVE);
+                gl.uniform3fv(U('uGrad'), AGE_GRAD);
+                gl.drawArrays(gl.TRIANGLES, 0, 3);
+                g.save();
+                g.setTransform(1, 0, 0, 1, 0, 0);
+                g.drawImage(cv, 0, 0, W, H);
+                g.restore();
+            },
+        };
+    }
+
     // instance packing: push one instance into an array
     function inst(arr, c, mat, half, seed, q = [0, 0, 0, 1], glow = 0, bias = 0) {
         arr.push(c[0], c[1], c[2], mat, half[0], half[1], half[2], seed, q[0], q[1], q[2], q[3], glow, bias, 0, 0);
     }
-    return { renderer, inst, box, pyramid, torus, cylinder, sphere, quat, qmul, M4 };
+    return { renderer, ager, inst, box, pyramid, torus, cylinder, sphere, quat, qmul, M4 };
 })();
