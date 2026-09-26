@@ -408,8 +408,16 @@ void main() {
     if (uBox < 0.5 && uTan > 0.5) { cs[1] = 0.0; cs[2] = 0.0; }   // one ruling on round things
     // charcoal: no ruled lines, the tone itself (the print filter lays it down as graphite on
     // the paper's tooth, in strokes); drawn marks (joints, edges) stay as pencil lines
-    if (uChar > 0.5 && !(M.w > 0.5 && M.w < 1.5)) { cs[0] = 0.0; cs[1] = 0.0; cs[2] = 0.0; }   // (metal keeps its engraved lines)
+    if (uChar > 0.5) { cs[0] = 0.0; cs[1] = 0.0; cs[2] = 0.0; }
+    // (charcoal: the tone itself; metal is drawn lighter, its form carried by its ruled lines)
     float cov = uChar > 0.5 ? D * 0.92 : 0.0;
+    if (uChar > 0.5 && M.w > 0.5 && M.w < 1.5) {
+        // metal in charcoal: a tube's volume, dark at its turning edges and along the side away
+        // from the light, a bright band where it faces the eye and the light
+        float fv = abs(dot(N, V));
+        float lit2 = max(dot(N, normalize(uSun + V)), 0.0);
+        cov = clamp(0.3 + 0.6 * (1.0 - fv) * (1.0 - fv) - 0.3 * pow(lit2, 5.0) + 0.2 * (D - 0.5) + 0.08 * (vnoise(gl_FragCoord.xy / uPx * 0.08) - 0.5), 0.03, 0.92);
+    }
     for (int k = 0; k < 3; k++) {
         if (cs[k] < 0.035) continue;
         float along = dot(P, k == 0 ? Tl : cross(Nl, dirs[k])) / sp;
@@ -515,9 +523,9 @@ void main() {
                     float lip = max(1.0 - smoothstep(0.012, 0.012 + aaC, abs(cr.x - 0.04)), 1.0 - smoothstep(0.012, 0.012 + aaC, abs(oval - 0.035)));
                     // a smoothed field inside the oval (the carver dressed it flat and light)
                     float field = 1.0 - smoothstep(0.48, 0.5, length(q * vec2(0.88, 1.45)));
-                    float wearC = 0.6 + 0.4 * smoothstep(0.25, 0.6, vnoise(q * 9.0 + 3.0));
-                    cov = mix(cov, cov * 0.75, field);
-                    cov = mix(cov, min(max(cov + 0.35, 0.65), 0.9), cut * wearC);
+                    float wearC = 0.3 + 0.5 * smoothstep(0.3, 0.7, vnoise(q * 9.0 + 3.0));
+                    cov = mix(cov, cov * 0.9, field);
+                    cov = mix(cov, min(max(cov + 0.2, 0.55), 0.8), cut * wearC);
                     cov *= 1.0 - 0.25 * lip * (1.0 - cut) * wearC;
                 }
                 float gsz = 0.15;
@@ -532,7 +540,7 @@ void main() {
                     vec2 hid = id + float(b) * 13.0;
                     float h0 = hash(hid), h1 = hash(hid + 3.1), h2 = hash(hid + 5.7);
                     float dline, fillE = 1.0;
-                    if (h0 < 0.07) { vec2 cr = sdCritter(q * 1.15); dline = cr.x / 1.15 + 0.02; fillE = cr.y / 1.15; }
+                    if (h0 < 0.025) { vec2 cr = sdCritter(q * 1.15); dline = cr.x / 1.15 + 0.02; fillE = cr.y / 1.15; }
                     else if (h0 < 0.45) dline = glyphSign(int(h1 * 16.0), q);
                     else if (h0 < 0.75) dline = min(glyphSign(int(h1 * 16.0), (q - vec2(0.0, 0.22)) * 2.1) / 2.1, glyphSign(int(h2 * 16.0), (q + vec2(0.0, 0.22)) * 2.1) / 2.1);
                     else dline = min(glyphSign(int(h1 * 16.0), (q + vec2(0.1, 0.0)) * 1.4) / 1.4, glyphSign(int(h2 * 16.0), (q - vec2(0.3, 0.2)) * 3.0) / 3.0);
@@ -616,14 +624,24 @@ void main() {
         float peb = step(hash(pc), dens) * (1.0 - smoothstep(pr * 0.7, pr, length(pf))) * smoothstep(0.6, 1.5, pr / 90.0 / ps / uPx);
         // (indoors the sand only gets the room's fill: keep it in the mid greys so ripples,
         // drifts and pebbles still read instead of closing into a flat dark)
-        if (uInterior > 0.5) tone = 0.2 + 0.5 * tone + 0.22 * (vnoise(g * 9.0) - 0.5) + 0.18 * smoothstep(0.55, 0.9, vnoise(g * vec2(2.0, 11.0)));
+        if (uInterior > 0.5) {
+            // indoors the sand has no sun to model it: draw what is on it. Wind ripples in
+            // sweeping bands, drag marks, darker damp patches, a scatter of grit
+            float rp = sin(dot(g, vec2(150.0, 45.0)) + vnoise(g * 5.0) * 9.0);
+            float ripple = smoothstep(0.8, 0.98, rp) * 0.13;
+            float drag = (1.0 - smoothstep(0.0, 0.006, abs(fract(g.x * 6.0 + vnoise(g * 2.0) * 1.5) - 0.5) - 0.485)) * smoothstep(0.55, 0.75, vnoise(g * 1.3 + 9.0)) * 0.15;
+            float damp = smoothstep(0.5, 0.85, vnoise(g * 2.2 + 5.0)) * 0.22;
+            float grit = step(0.9, hash(floor(g * 260.0))) * 0.35;
+            tone = 0.42 + 0.2 * (sh - 0.5) + ripple + drag + damp + grit + 0.12 * (vnoise(g * 14.0) - 0.5);
+        }
         cov = max(clamp(tone, 0.0, 0.95) * 0.92, peb * 0.85);
     }
     // round things have no edges to cut: their outline is drawn where they turn away
     // (not on ground: seen low, a whole desert is at a grazing angle)
     if (uBox < 0.5 && m != 5 && uMason < 0.5) {
         float rim = abs(dot(N, V));
-        cov = max(cov, 1.0 - smoothstep(0.12, 0.3, rim));
+        // (metal: a thin rim, or a slim ring is all outline)
+        cov = max(cov, M.w > 0.5 && M.w < 1.5 ? 1.0 - smoothstep(0.04, 0.1, rim) : 1.0 - smoothstep(0.12, 0.3, rim));
     }
     // second inks: live blue (emissive surfaces print solid blue with a paper core), gold
     vec4 ink2 = vec4(0.0);
@@ -633,7 +651,7 @@ void main() {
         cov *= 0.0;
     } else if (M.w > 0.5) {
         // metal: a gold wash under the dark line work, as a hand-coloured plate
-        ink2 = vec4(uInkGold, 0.6);
+        ink2 = vec4(uInkGold, 0.42);
     }
     // the blue light tints the lines it touches
     if (M.w < 0.5) ink = mix(ink, uInkBlue * 0.8, clamp(glow * 1.6, 0.0, 0.85));

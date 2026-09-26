@@ -64,7 +64,7 @@ const Gallery = (() => {
         return p;
     }
     function build(u) {
-        const stone = [], worn = [], obs = [], cyl = [], blue = [], dust = [], rings = [], sand = [];
+        const chips = [], stone = [], worn = [], obs = [], cyl = [], blue = [], dust = [], rings = [], sand = [];
         // the room
         Engrave.inst(worn, [0, -0.05, -3.5], 1, [1.3, 0.05, 6], 0.21);
         Engrave.inst(stone, [0, 2.05, -3.5], 1, [1.3, 0.05, 6], 0.33);
@@ -150,7 +150,16 @@ const Gallery = (() => {
             { mesh: 'sphere', inst: new Float32Array(dust), cast: false },
             { mesh: 'sphere', inst: new Float32Array(motes), cast: false },
         ];
-        const lights = [[c[0], c[1] + 0.05, c[2], 0, 0.25 * mark], [0.45, 0.05, -3, 0, 0.12]];
+        // chips and small stones on the floor and the sand (broken off the walls long ago)
+        const rk = Motion.rng('gallery-chips');
+        for (let i = 0; i < 260; i++) {
+            const x = (rk() - 0.5) * 2.4, zc = 1.5 - rk() * 10.5, sz = 0.004 + Math.pow(rk(), 3) * 0.03;
+            if (Math.abs(x) > 1.2) continue;
+            Engrave.inst(chips, [x, sz * 0.35, zc], 1, [sz * (0.8 + rk() * 0.7), sz * 0.55, sz * (0.8 + rk() * 0.7)], rk(), Engrave.quat([rk() - 0.5, 1, rk() - 0.5], rk() * 6));
+        }
+        draws.push({ mesh: 'rock', inst: new Float32Array(chips) });
+        // the exit ring catches the glow of what approaches it, and its own lamp
+        const lights = [[c[0], c[1] + 0.05, c[2], 0, 0.25 * mark], [0.45, 0.05, -3, 0, 0.12], [0.05, 0.6, -7.2, 0, 0.35 + 0.3 * mark]];
         return { draws, lights, centre: c };
     }
     // the camera: [u, cam, target, [fov]]
