@@ -68,7 +68,13 @@ const Cats = (() => {
         while (out.length < STRIDE) out.push(0);
         return out;
     }
-    const pack = (poses) => poses.flatMap((p, c) => joints(p, c));
+    // poses of the three cats, then the puddle: up to 6 blobs [x, z, r] on the floor
+    const pack = (poses, puddle = []) => {
+        const out = poses.flatMap((p, c) => joints(p, c));
+        for (let k = 0; k < 6; k++) out.push(...(puddle[k] ?? [0, 0, 0]));
+        return out;
+    };
+    const PARAMS = 3 * STRIDE + 18;
 
     const GLSL = `
 #define ST 96
@@ -85,14 +91,18 @@ const Cats = (() => {
 #define HS 1.14
 float ear(vec3 q, float side, int c) {
     // an ear: a flattened cone; the fold (cat 0) bends the tip forward and down
+    if (c != 1) {
+        // a fold: a short root, the flap bent forward and down over the ear hole (Scottish
+        // folds; both side cats have them in the reference)
+        vec3 e = q - vec3(side * 0.098, 0.074, -0.004);
+        e.xy = rot(side * 0.55) * e.xy;
+        float d1 = sdRoundCone(vec3(e.x, e.y, e.z * 1.8), vec3(0.0), vec3(0.0, 0.032, 0.012), 0.04, 0.03);
+        float d2 = sdRoundCone(vec3(e.x, e.y * 1.6, e.z), vec3(0.0, 0.05, 0.02), vec3(side * 0.004, 0.028, 0.068), 0.03, 0.01);
+        return min(d1 / 1.8, d2 / 1.6);
+    }
     vec3 b = vec3(side * 0.088, 0.08, -0.005);
     vec3 e = q - b;
     e.xy = rot(side * 0.35) * e.xy;
-    if (c == 0) {
-        float d1 = sdRoundCone(vec3(e.x, e.y, e.z * 1.9), vec3(0.0), vec3(0.0, 0.05, 0.02), 0.042, 0.03);
-        float d2 = sdRoundCone(vec3(e.x, e.y, e.z * 1.9), vec3(0.0, 0.05, 0.02), vec3(side * -0.005, 0.03, 0.09), 0.03, 0.012);
-        return min(d1, d2) / 1.9;
-    }
     return sdRoundCone(vec3(e.x, e.y, e.z * 2.0), vec3(0.0), vec3(side * 0.016, 0.1, 0.0), 0.052, 0.01) / 2.0;
 }
 vec2 headSDF(vec3 q, int c, int o, float base) {
@@ -105,15 +115,35 @@ vec2 headSDF(vec3 q, int c, int o, float base) {
     d = smin(d, ear(q, 1.0, c), 0.012);
     d = smin(d, ear(q, -1.0, c), 0.012);
     // eye sockets: a soft dent where the beads sit
-    d = smax(d, -sdSphere(vec3(abs(q.x), q.y, q.z) - vec3(0.053, -0.008, 0.132), 0.022), 0.012);
+    d = smax(d, -sdSphere(vec3(abs(q.x), q.y, q.z) - vec3(0.054, -0.01, 0.132), 0.024), 0.012);
     // open mouth: a dark notch under the nose
     d = smax(d, -sdEllipsoid(q - vec3(0.0, -0.066, 0.118), vec3(0.016, 0.004 + mo * 0.012, 0.016)), 0.004);
     d += lumps(q, 0.0035);
     vec2 r = vec2(d, base + 7.0);
+    if (c == 2) {
+        // the bald crown: bare pink skin between the two black side patches, a hole left in
+        // the wool on purpose, and three long strands combed over it
+        vec2 bz = vec2(q.x / 0.072, (q.z + 0.01) / 0.1);
+        if (q.y > 0.03 && dot(bz, bz) < 1.0) r.y = base + 10.0;
+        // the strands follow the scalp (the skull's top curve) a hair above it
+        float cs = 1e9;
+        for (int k = 0; k < 3; k++) {
+            float z = -0.035 + 0.032 * float(k);
+            vec3 prev = vec3(0.0);
+            for (int j = 0; j < 5; j++) {
+                float x = -0.085 + 0.04 * float(j) - 0.006 * float(k);
+                float y = 0.128 * sqrt(max(0.0, 1.0 - (x / 0.15) * (x / 0.15) - (z / 0.132) * (z / 0.132))) + 0.003;
+                vec3 pt = vec3(x, y, z + 0.012 * sin(float(j) * 1.3 + float(k)));
+                if (j > 0) cs = min(cs, sdCapsule(q, prev, pt, 0.0019));
+                prev = pt;
+            }
+        }
+        r = opU(r, vec2(cs, base + 11.0));
+    }
     // mouth inside (dark felt)
     if (mo > 0.02) r = opU(r, vec2(sdEllipsoid(q - vec3(0.0, -0.066, 0.108), vec3(0.014, 0.004 + mo * 0.011, 0.012)), base + 6.0));
     // glass bead eyes
-    r = opU(r, vec2(sdSphere(vec3(abs(q.x), q.y, q.z) - vec3(0.053, -0.006, 0.123), 0.022), base + 1.0));
+    r = opU(r, vec2(sdSphere(vec3(abs(q.x), q.y, q.z) - vec3(0.054, -0.008, 0.122), 0.024), base + 1.0));
     // nose: a small pink felt triangle
     vec3 nq = q - vec3(0.0, -0.036, 0.142);
     float nd = sdEllipsoid(nq, vec3(0.014, 0.009, 0.009)) - 0.002;
@@ -126,7 +156,7 @@ vec2 headSDF(vec3 q, int c, int o, float base) {
         e.xy = rot(side * 0.35) * e.xy;
         float id = c == 0 ? sdEllipsoid(e - vec3(0.0, 0.02, 0.04), vec3(0.022, 0.016, 0.008))
                           : sdEllipsoid(e - vec3(side * 0.006, 0.036, 0.0), vec3(0.027, 0.05, 0.009));
-        if (c != 0) r = opU(r, vec2(id, base + 3.0));
+        if (c == 1) r = opU(r, vec2(id, base + 3.0));
     }
     if (c == 1) {
         // the cowboy hat: felt crown with a pinched top, a brim curled up at the sides
@@ -164,10 +194,12 @@ vec2 headSDF(vec3 q, int c, int o, float base) {
 }
 vec2 catSDF(vec3 p, int c) {
     int o = c * ST;
-    float base = 10.0 * float(c + 1);
-    // bound: a sphere round the pelvis (material 0)
-    float bd = length(p - P3(o + PEL) - vec3(0.0, 0.25, 0.0)) - 0.62;
-    if (bd > 0.12) return vec2(bd - 0.1, 0.0); // a shell round the cat holds its penumbra
+    float base = 20.0 * float(c + 1);
+    // bound: a capsule from below the pelvis to above the head (arms, hat brim and tail fit
+    // in 0.36), material 0; inside a 0.25 shell the real cat is evaluated, so the soft
+    // shadow's penumbra is not cut off where the bound starts
+    float bd = sdCapsule(p, P3(o + PEL) - vec3(0.0, 0.2, 0.0), P3(o + HEA) + vec3(0.0, 0.12, 0.0), 0.36);
+    if (bd > 0.25) return vec2(bd - 0.23, 0.0);
     vec3 pel = P3(o + PEL), che = P3(o + CHE);
     vec3 bq = local(p, o + PEL);
     // body: a pear from the pelvis to the chest, a round belly
@@ -209,6 +241,31 @@ vec2 catSDF(vec3 p, int c) {
     r = opSU(r, vec2(hr.x * HS, hr.y), 0.035);
     return r;
 }
+// the pee puddle of cat 2: up to 6 blobs on the floor (x, z, r) after the three cats,
+// glossy yellow resin as in felt dioramas
+#define FLOOR_DECAL
+vec4 floorDecal(vec3 p, vec3 rd, vec3 L) {
+    float f = 1e9;
+    for (int k = 0; k < 6; k++) {
+        int i = 3 * ST + k * 3;
+        float r = uP[i + 2];
+        if (r <= 0.0) continue;
+        vec2 q = p.xz - vec2(uP[i], uP[i + 1]);
+        float wob = 1.0 + 0.12 * sin(atan(q.y, q.x) * 3.0 + float(k) * 1.7) + 0.06 * sin(atan(q.y, q.x) * 7.0 + float(k));
+        f = smin(f, length(q) - r * wob, 0.04);
+    }
+    if (f > 0.004) return vec4(0.0);
+    float a = smoothstep(0.004, -0.004, f);
+    float depth = smoothstep(0.0, -0.06, f);
+    vec3 n = normalize(vec3(-0.25 * (1.0 - depth), 1.0, 0.0) * 0.0 + vec3(0.0, 1.0, 0.0));
+    vec3 col = mix(vec3(1.0, 0.8, 0.12), vec3(0.9, 0.62, 0.02), depth);
+    vec3 h = normalize(L - rd);
+    float spec = pow(max(dot(n, h), 0.0), 80.0) * 1.5 + smoothstep(-0.006, 0.0, f) * 0.35; // the rim catches light
+    float fres = 0.1 + 0.5 * pow(1.0 - max(dot(n, -rd), 0.0), 4.0);
+    col = col * (0.8 + 0.2 * depth) + vec3(1.0, 0.97, 0.85) * (spec + fres * 0.12);
+    float al = a * (0.85 + 0.15 * depth);
+    return vec4(col * al, al);
+}
 vec2 map(vec3 p) {
     vec2 r = catSDF(p, 0);
     r = opU(r, catSDF(p, 1));
@@ -247,11 +304,16 @@ float stitchToes(vec3 p, int o) {
 }
 vec3 albedoFelt(float m, vec3 p, vec3 n, int c, int o, vec3 hq, vec3 bq, bool head, bool tail);
 vec3 albedo(float m, vec3 p, vec3 n) {
-    int c = int(m / 10.0) - 1;
-    float part = m - 10.0 * float(c + 1);
+    int c = int(m / 20.0) - 1;
+    float part = m - 20.0 * float(c + 1);
     int o = c * ST;
     if (part == 1.0) return vec3(0.02, 0.018, 0.02);      // bead
-    if (part == 2.0) return vec3(0.86, 0.52, 0.55);       // nose
+    if (part == 2.0) return c == 0 ? vec3(0.8, 0.5, 0.45) : vec3(0.86, 0.52, 0.55); // nose
+    if (part == 10.0) { // bald skin: pale pink, a little blotchy, a few pale hairs left
+        vec3 hq = local(p, c * ST + HEA) / HS;
+        return heather(vec3(0.97, 0.78, 0.74), p, 0.3) * (0.95 + 0.1 * fbm(hq * 30.0));
+    }
+    if (part == 11.0) return vec3(0.06, 0.055, 0.06);     // combed-over strands
     if (part == 3.0) return vec3(0.93, 0.66, 0.66);       // inner ear
     if (part == 4.0) return heather(vec3(0.05, 0.045, 0.045), p, 1.2); // hat felt
     if (part == 5.0) return vec3(0.75, 0.75, 0.74);       // metal
@@ -268,16 +330,30 @@ vec3 albedo(float m, vec3 p, vec3 n) {
 }
 vec3 albedoFelt(float m, vec3 p, vec3 n, int c, int o, vec3 hq, vec3 bq, bool head, bool tail) {
     if (c == 0) {
-        // cream-orange fold: paler muzzle, chest and belly, soft darker stripes on the back
-        vec3 orange = vec3(0.86, 0.6, 0.38), cream = vec3(0.96, 0.84, 0.68), dark = vec3(0.72, 0.44, 0.24);
-        float pale = head ? smoothstep(0.02, -0.06, hq.y - 0.4 * (hq.z - 0.12)) * smoothstep(0.06, 0.12, hq.z)
-                          : smoothstep(0.0, 0.08, bq.z) * smoothstep(0.42, 0.25, bq.y);
-        vec3 col = mix(orange, cream, pale * 0.85);
-        float stripes = head ? sin(hq.x * 70.0 + fbm(hq * 12.0) * 3.0) * smoothstep(0.05, 0.12, hq.y) * smoothstep(0.1, -0.05, hq.z)
-                             : sin(bq.y * 55.0 + fbm(bq * 10.0) * 3.0) * smoothstep(0.02, -0.06, bq.z);
-        if (tail) stripes = sin(length(p - P3(o + TAI)) * 70.0);
-        col = mix(col, dark, smoothstep(0.2, 0.8, stripes) * 0.55 * (1.0 - pale));
-        return heather(col, p, 1.0);
+        // ginger-cream fold (from the reference): cream whisker pads, chin, chest and belly;
+        // brown-ginger tabby stripes running up the forehead and over the crown, bands on the
+        // back, the flanks and the arms
+        vec3 ginger = vec3(0.88, 0.66, 0.46), cream = vec3(0.97, 0.9, 0.8), dark = vec3(0.66, 0.42, 0.26);
+        float pale, stripes;
+        if (head) {
+            float pads = smoothstep(0.0, -0.03, hq.y + 0.012) * smoothstep(0.07, 0.11, hq.z);
+            float chin = smoothstep(-0.06, -0.085, hq.y);
+            pale = max(pads, chin) + 0.35 * smoothstep(0.02, -0.02, hq.y) * smoothstep(0.03, 0.09, hq.z);
+            float fore = smoothstep(0.02, 0.05, hq.y) * smoothstep(0.08, 0.05, abs(hq.x)) * step(0.0, hq.z);
+            float crown = smoothstep(0.08, 0.11, hq.y + max(-hq.z, 0.0) * 0.6);
+            float lines = sin(hq.x * 120.0 + fbm(hq * 14.0) * 2.5);
+            float bands = sin(hq.z * 70.0 + hq.y * 20.0 + fbm(hq * 14.0) * 2.5);
+            stripes = max(smoothstep(0.35, 0.85, lines) * fore, smoothstep(0.35, 0.85, bands) * crown * (1.0 - fore));
+            stripes = max(stripes, smoothstep(0.4, 0.85, sin((hq.y - abs(hq.x) * 0.4) * 110.0)) * smoothstep(0.1, 0.13, abs(hq.x)) * 0.8);
+        } else {
+            pale = smoothstep(0.02, 0.08, bq.z) * smoothstep(0.4, 0.2, bq.y) * smoothstep(0.1, 0.05, abs(bq.x));
+            stripes = smoothstep(0.3, 0.85, sin(bq.y * 60.0 + bq.x * 10.0 + fbm(bq * 9.0) * 3.0)) * (1.0 - smoothstep(0.0, 0.07, bq.z) * 0.7);
+            if (tail) stripes = smoothstep(0.2, 0.8, sin(length(p - P3(o + TAI)) * 75.0));
+        }
+        pale = clamp(pale, 0.0, 1.0);
+        vec3 col = mix(ginger, cream, pale * 0.9);
+        col = mix(col, dark, stripes * 0.6 * (1.0 - pale));
+        return heather(col, p, 0.9);
     }
     vec3 white = vec3(0.95, 0.94, 0.91), black = vec3(0.07, 0.065, 0.07);
     if (c == 1) return heather(white, p, 0.7);
@@ -285,12 +361,17 @@ vec3 albedoFelt(float m, vec3 p, vec3 n, int c, int o, vec3 hq, vec3 bq, bool he
     // back, a black tail
     float blk = 0.0;
     if (head) {
-        // black above a line that drops towards the sides (round the eyes), a white blaze
-        // down the middle of the forehead that widens into the muzzle
-        blk = smoothstep(-0.006, 0.006, hq.y + 0.55 * abs(hq.x) - 0.035);
-        float blaze = smoothstep(0.004, -0.004, abs(hq.x) - 0.014 - max(0.0, 0.1 - hq.y) * 0.3) * smoothstep(0.02, 0.07, hq.z);
-        blk *= 1.0 - blaze;
-        blk = max(blk, smoothstep(0.0, 0.02, -hq.z - 0.02) * smoothstep(-0.06, -0.02, hq.y)); // the back of the head
+        // two black side patches over the folded ears and temples, the cat's left one (image
+        // right) reaching down past the outer eye; the crown between them white (the bald
+        // skin is its own material); the back of the head black; grey brow smudges
+        float e = (fbm(hq * 22.0) - 0.5) * 0.03;
+        float left = smoothstep(0.0, 0.008, hq.x - 0.052 + e) * smoothstep(-0.05, -0.035, hq.y - 0.3 * max(hq.z - 0.08, 0.0));
+        float right = smoothstep(0.0, 0.008, -hq.x - 0.064 + e) * smoothstep(-0.005, 0.01, hq.y);
+        float back = smoothstep(0.0, 0.015, -hq.z - 0.035 + e) * smoothstep(0.015, 0.03, abs(hq.x)) * smoothstep(-0.07, -0.04, hq.y);
+        blk = max(max(left, right), back);
+        vec2 br = vec2(abs(hq.x) - 0.045, hq.y - 0.043);
+        float brow = smoothstep(1.0, 0.6, length(br / vec2(0.014, 0.005))) * step(0.08, hq.z);
+        return heather(mix(mix(white, vec3(0.6, 0.58, 0.58), brow * 0.8), black, blk), p, 0.8);
     } else if (tail) {
         blk = 1.0;
     } else {
@@ -301,14 +382,16 @@ vec3 albedoFelt(float m, vec3 p, vec3 n, int c, int o, vec3 hq, vec3 bq, bool he
     return heather(mix(white, black, blk), p, 0.8);
 }
 vec4 material(float m) {
-    int c = int(m / 10.0) - 1;
-    float part = m - 10.0 * float(c + 1);
+    int c = int(m / 20.0) - 1;
+    float part = m - 20.0 * float(c + 1);
     if (part == 1.0) return vec4(1.2, 90.0, 0.0, 0.0);   // glass bead
     if (part == 5.0 || part == 9.0) return vec4(0.9, 40.0, 0.0, 0.0);   // wire, band
     if (part == 6.0) return vec4(0.0, 4.0, 0.3, 0.0);
+    if (part == 10.0) return vec4(0.08, 10.0, 0.6, 0.004); // bald skin: smoother, a slight sheen
+    if (part == 11.0) return vec4(0.05, 8.0, 0.2, 0.0);
     if (part == 4.0) return vec4(0.02, 4.0, 0.3, 0.008);
     return vec4(0.02, 4.0, 0.55, 0.013);                 // felt: deep wrap, stray fibres
 }
 `;
-    return { GLSL, pack, joints, REST, STRIDE };
+    return { GLSL, pack, joints, REST, STRIDE, PARAMS };
 })();

@@ -8,7 +8,7 @@ Motion.scene({
     shots: [[0, 2, 'Desert'], [2, 4, 'Kitchen'], [4, 6, 'Disco']],
 
     setup(env) {
-        return { R: Felt3D.renderer(env, { scene: Cats.GLSL, scale: 0.6, params: 3 * Cats.STRIDE }) };
+        return { R: Felt3D.renderer(env, { scene: Cats.GLSL, scale: 0.6, params: Cats.PARAMS }) };
     },
     draw(g, t, env) {
         const d = Math.floor(t * 15 + 1e-6), tq = d / 15;
@@ -21,6 +21,6 @@ Motion.scene({
             { x: 0.0, z: 0.05, roll: -0.05 * s, head: [0, -0.1, -0.08 * s], armL: arms(-s), armR: arms(s), mouth: 0.7 },
             { x: 0.45, roll: 0.06 * s, head: [-0.1, -0.05, 0.12 * s], armL: arms(s), armR: arms(-s), tail: [-0.8, 0, 0.5] },
         ];
-        env.state.R.render(g, d + 1000 * Math.floor(t / 2), { p: Cats.pack(poses), boil: d % 3, ...Stage.CAM, ...set.light });
+        env.state.R.render(g, d + 1000 * Math.floor(t / 2), { p: Cats.pack(poses, [[0.47, 0.1, 0.16], [0.63, 0.02, 0.08], [0.33, 0.22, 0.05]]), boil: d % 3, ...Stage.CAM, ...set.light });
     },
 });

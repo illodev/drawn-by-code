@@ -178,12 +178,19 @@ void main() {
     } else {
         // the invisible floor: shadows only
         float tf = rd.y < -1e-4 ? (uFloorY - ro.y) / rd.y : -1.0;
-        if (tf > 0.0 && uShadow > 0.0) {
+        if (tf > 0.0) {
             vec3 pf = ro + rd * tf;
-            float sh = softShadow(pf + vec3(0.0, 0.01, 0.0), normalize(uLight));
-            float occ = calcAO(pf, vec3(0.0, 1.0, 0.0));
-            float a = uShadow * (1.0 - sh) * 0.7 + uShadow * (1.0 - occ) * 0.8;
-            outc = vec4(0.0, 0.0, 0.0, clamp(a, 0.0, 0.85));
+            // a decal on the floor (a puddle, a rug): the scene defines FLOOR_DECAL and
+            // vec4 floorDecal(p, rd, L) → premultiplied linear colour
+#ifdef FLOOR_DECAL
+            outc = floorDecal(pf, rd, normalize(uLight));
+#endif
+            if (uShadow > 0.0) {
+                float sh = softShadow(pf + vec3(0.0, 0.01, 0.0), normalize(uLight));
+                float occ = calcAO(pf, vec3(0.0, 1.0, 0.0));
+                float a = clamp(uShadow * (1.0 - sh) * 0.7 + uShadow * (1.0 - occ) * 0.8, 0.0, 0.85);
+                outc = vec4(outc.rgb * (1.0 - a), a + outc.a * (1.0 - a));
+            }
         }
     }
     // the halo of stray fibres in front of whatever is behind
