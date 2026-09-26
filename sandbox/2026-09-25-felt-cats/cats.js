@@ -4,10 +4,21 @@
 // ears; cat 1: white, a black cowboy hat with a silver band; cat 2: white with a black
 // helmet and back patches, a black tail and round wire glasses.
 //
-//   Cats.pack(poses) → floats for Felt3D's uP (Cats.STRIDE per cat)
-//   pose: { x, z, bob, yaw, pitch, roll, twist, bend, head: [yaw, pitch, roll],
-//           armL/armR: [forward, out, elbow, inward], legL/legR: [lift, out],
-//           tail: [swing, lift, curl], mouth }   angles in radians
+//   Cats.pack(poses, puddle) → floats for Felt3D (Cats.PARAMS)
+//   pose (angles in radians; the cat's L is its own left = +x = image right when it faces us):
+//     x, z      where it stands (z > 0 is towards the camera); the lower foot is kept on the floor
+//     bob       lift of the whole cat (a hop)
+//     yaw       turn about the vertical: 0 faces the camera, −π/2 faces image left, −π away
+//     pitch     lean forwards (+) / back (−) from the hips; roll: lean to its left (+) / right
+//     twist     chest turned against the hips (+ = to its left); bend: chest bowed forward
+//     head      [turn (+ = to its left), nod (+ = looks down), tilt (+ = ear to its left shoulder)]
+//     armL/armR [forward, out, elbow, inward]: forward raises the arm in front (π/2 =
+//               horizontal, pointing forward); out raises it to the side (π/2 = horizontal);
+//               elbow bends the forearm (0 straight); inward turns the bend's plane about the
+//               upper arm: 0 bends forward, + bends towards the body's midline, − away from it
+//               (arms out to the side with the paws up: out ≈ 1.3, elbow ≈ 1.3, inward ≈ −1.4)
+//     legL/legR [lift (knee forward and up), out (splay)]
+//     tail      [swing (+ to its left), lift, curl];  mouth: 0 shut … 1 open
 const Cats = (() => {
     const { V } = Felt3D;
     const STRIDE = 96;
@@ -25,7 +36,7 @@ const Cats = (() => {
         const [hy, hp, hr] = P.head;
         const Rh = V.mm(Rc, V.mm(V.ry(hy), V.mm(V.rx(hp), V.rz(hr))));
         const neck = V.add(chest, V.app(Rc, [0, 0.075, 0.02]));
-        const head = V.add(neck, V.app(Rh, [0, 0.13, 0.0]));
+        const head = V.add(neck, V.app(Rh, [0, 0.115, 0.0]));
         const arm = (sgn, [fw, out, el, inw]) => {
             const sh = V.add(chest, V.app(Rc, [sgn * 0.085, 0.0, 0.045]));
             const Ra = V.mm(Rc, V.mm(V.rz(sgn * out), V.rx(-fw)));
@@ -88,7 +99,7 @@ const Cats = (() => {
 #define LGR 63
 #define TAI 72
 #define MOU 87
-#define HS 1.14
+#define HS 1.0
 float ear(vec3 q, float side, int c) {
     // an ear: a flattened cone; the fold (cat 0) bends the tip forward and down
     if (c != 1) {
@@ -106,7 +117,7 @@ float ear(vec3 q, float side, int c) {
     return sdRoundCone(vec3(e.x, e.y, e.z * 2.0), vec3(0.0), vec3(side * 0.016, 0.1, 0.0), 0.052, 0.01) / 2.0;
 }
 vec2 headSDF(vec3 q, int c, int o, float base) {
-    float mo = uP[o + MOU];
+    float mo = PF(o + MOU);
     float d = sdEllipsoid(q, vec3(0.15, 0.128, 0.132));
     // cheeks and muzzle: kittens are wide at the cheeks, a small muzzle between
     d = smin(d, sdEllipsoid(vec3(abs(q.x), q.y, q.z) - vec3(0.062, -0.045, 0.06), vec3(0.078, 0.066, 0.075)), 0.03);
@@ -160,11 +171,12 @@ vec2 headSDF(vec3 q, int c, int o, float base) {
     }
     if (c == 1) {
         // the cowboy hat: felt crown with a pinched top, a brim curled up at the sides
-        vec3 h = q - vec3(0.0, 0.125, -0.01);
+        // the hat is big on this kitten (measured: the brim 1.9× the head's width)
+        vec3 h = (q - vec3(0.0, 0.118, -0.01)) / 1.28;
         h.yz = rot(0.14) * h.yz;
         // cattleman crown: an oval dome, a lengthwise crease on top, two pinches at the front
-        float crown = sdEllipsoid(h - vec3(0.0, 0.065, 0.0), vec3(0.112, 0.105, 0.118));
-        crown = smax(crown, h.y - 0.145 + 0.028 * exp(-h.x * h.x / 0.0012), 0.025);
+        float crown = sdEllipsoid(h - vec3(0.0, 0.075, 0.0), vec3(0.112, 0.13, 0.118));
+        crown = smax(crown, h.y - 0.17 + 0.03 * exp(-h.x * h.x / 0.0012), 0.025);
         crown = smax(crown, -sdEllipsoid(vec3(abs(h.x) - 0.1, h.y - 0.12, h.z - 0.085), vec3(0.03, 0.055, 0.045)), 0.02);
         crown = max(crown, -h.y);
         // brim: a flat oval whose two halves tilt up from beside the crown (mirrored, so the
@@ -172,11 +184,11 @@ vec2 headSDF(vec3 q, int c, int o, float base) {
         vec3 bq = vec3(abs(h.x) - 0.07, h.y, h.z);
         bq.xy = rot(0.36 * smoothstep(0.0, 0.12, bq.x)) * bq.xy;
         float brim = sdEllipsoid(bq + vec3(0.07, 0.0, 0.0), vec3(0.265, 0.011, 0.235));
-        float hat = min(crown, brim) + lumps(h, 0.002);
+        float hat = (min(crown, brim) + lumps(h, 0.002)) * 1.28;
         r = opU(r, vec2(hat, base + 4.0));
         float band = max(abs(sdEllipsoid(h - vec3(0.0, 0.07, 0.0), vec3(0.127, 0.102, 0.117))) - 0.003, abs(h.y - 0.028) - 0.011);
         band = min(band, sdCappedCylinder(h, vec3(0.0, 0.028, 0.112), vec3(0.0, 0.028, 0.123), 0.017));
-        r = opU(r, vec2(band, base + 5.0));
+        r = opU(r, vec2(band * 1.28, base + 5.0));
     }
     if (c == 2) {
         // round wire glasses on the nose
@@ -199,17 +211,19 @@ vec2 catSDF(vec3 p, int c) {
     // in 0.36), material 0; inside a 0.25 shell the real cat is evaluated, so the soft
     // shadow's penumbra is not cut off where the bound starts
     float bd = sdCapsule(p, P3(o + PEL) - vec3(0.0, 0.2, 0.0), P3(o + HEA) + vec3(0.0, 0.12, 0.0), 0.36);
-    if (bd > 0.25) return vec2(bd - 0.23, 0.0);
+    float shell = gLumps < 0.5 ? 0.25 : 0.03; // wide only for shadow rays (a camera ray needs just the fibres' reach)
+    if (bd > shell) return vec2(bd - shell + 0.02, 0.0);
     vec3 pel = P3(o + PEL), che = P3(o + CHE);
     vec3 bq = local(p, o + PEL);
     // body: a pear from the pelvis to the chest, a round belly
-    float d = sdRoundCone(p, pel, che, 0.12, 0.092);
-    d = smin(d, sdEllipsoid(bq - vec3(0.0, 0.04, 0.015), vec3(0.13, 0.125, 0.115)), 0.05);
+    float d = sdRoundCone(p, pel, che, 0.105, 0.085);
+    d = smin(d, sdEllipsoid(bq - vec3(0.0, 0.04, 0.015), vec3(0.112, 0.125, 0.108)), 0.05);
     d = smin(d, sdSphere(p - (che + (P3(o + HEA) - che) * 0.35), 0.075), 0.05); // neck
     // arms: upper arm, forearm, paw
     for (int s = 0; s < 2; s++) {
         int a = o + (s == 0 ? ARL : ARR);
         vec3 sh = P3(a), el = P3(a + 3), pw = P3(a + 6);
+        if (length(p - el) - 0.15 > d + 0.04) continue; // far from this arm: skip it
         float ad = sdRoundCone(p, sh, el, 0.043, 0.034);
         ad = smin(ad, sdRoundCone(p, el, pw, 0.034, 0.031), 0.02);
         ad = smin(ad, sdSphere(p - pw - normalize(pw - el) * 0.012, 0.036), 0.02);
@@ -220,6 +234,7 @@ vec2 catSDF(vec3 p, int c) {
     for (int s = 0; s < 2; s++) {
         int l = o + (s == 0 ? LGL : LGR);
         vec3 hp = P3(l), kn = P3(l + 3), ft = P3(l + 6);
+        if (length(p - kn) - 0.16 > d + 0.05) continue;
         float ld = sdRoundCone(p, hp, kn, 0.062, 0.042);
         ld = smin(ld, sdRoundCone(p, kn, ft, 0.042, 0.034), 0.02);
         vec3 fq = transpose(R) * (p - ft) - vec3(0.0, 0.0, 0.03);
@@ -229,16 +244,23 @@ vec2 catSDF(vec3 p, int c) {
     d += lumps(bq, 0.004);
     vec2 r = vec2(d, base);
     // tail
-    float td = 1e9;
-    for (int i = 0; i < 4; i++) {
-        float f = float(i) / 4.0;
-        td = min(td, sdRoundCone(p, P3(o + TAI + i * 3), P3(o + TAI + i * 3 + 3), 0.034 - f * 0.006, 0.028 - f * 0.006));
+    // tail (its own bound; skipped far away: a 1e9 stand-in blended by opSU loses the
+    // other distance to float rounding and the cat turns into its bound)
+    if (length(p - P3(o + TAI + 6)) - 0.2 < r.x + 0.04) {
+        float td = 1e9;
+        for (int i = 0; i < 4; i++) {
+            float f = float(i) / 4.0;
+            td = min(td, sdRoundCone(p, P3(o + TAI + i * 3), P3(o + TAI + i * 3 + 3), 0.034 - f * 0.006, 0.028 - f * 0.006));
+        }
+        r = opSU(r, vec2(td + lumps(p, 0.002), base + 8.0), 0.03);
     }
-    r = opSU(r, vec2(td + lumps(p, 0.002), base + 8.0), 0.03);
-    // head
-    vec3 hq = local(p, o + HEA) / HS;
-    vec2 hr = headSDF(hq, c, o, base);
-    r = opSU(r, vec2(hr.x * HS, hr.y), 0.035);
+    // head (its own bound: the hat's brim is the widest part)
+    float hb = length(p - P3(o + HEA)) - (c == 1 ? 0.42 : 0.24);
+    if (hb < r.x + 0.04) {
+        vec3 hq = local(p, o + HEA) / HS;
+        vec2 hr = headSDF(hq, c, o, base);
+        r = opSU(r, vec2(hr.x * HS, hr.y), 0.035);
+    }
     return r;
 }
 // the pee puddle of cat 2: up to 6 blobs on the floor (x, z, r) after the three cats,
@@ -248,9 +270,9 @@ vec4 floorDecal(vec3 p, vec3 rd, vec3 L) {
     float f = 1e9;
     for (int k = 0; k < 6; k++) {
         int i = 3 * ST + k * 3;
-        float r = uP[i + 2];
+        float r = PF(i + 2);
         if (r <= 0.0) continue;
-        vec2 q = p.xz - vec2(uP[i], uP[i + 1]);
+        vec2 q = p.xz - vec2(PF(i), PF(i + 1));
         float wob = 1.0 + 0.12 * sin(atan(q.y, q.x) * 3.0 + float(k) * 1.7) + 0.06 * sin(atan(q.y, q.x) * 7.0 + float(k));
         f = smin(f, length(q) - r * wob, 0.04);
     }

@@ -15,7 +15,8 @@
 //   const R = Felt3D.renderer(env, { scene: GLSL, scale: 0.75, params: 320 })
 //   R.render(g, key, { cam, target, fov, light, keyCol, fillCol, key, fill, soft,
 //                     floorY, shadow, p: [floats…], boil })
-//     p:      scene data (uniform float uP[params]): joint positions, poses
+//     p:      scene data (PF(i) in the shader, i < params): joint positions, poses
+//     zoom:   [scale, u, v]: a 2D zoom about the point (u, v) of the frame (fractions, y down)
 //     boil:   the drawing's variant (fibres move a little per drawing, like stop motion)
 //     keyCol / fillCol: key and ambient colours, taken from the backdrop so the wool sits
 //             in its light; shadow: opacity of the caught floor shadow (0 = none)
@@ -29,14 +30,17 @@
 //                                          fuzz = 0 is a hard material (beads, wire)
 // Prelude: sdSphere, sdEllipsoid, sdCapsule, sdRoundCone, sdRoundBox, sdTorus, sdCylinder,
 // sdCappedCylinder, smin, smax, opU, opSU, rot, hash, noise, fbm, lumps, and local(p, o, i)
-// (p in the frame stored at uP[o] (origin) and uP[o+3..o+11] (a column-major rotation)).
+// (p in the frame stored at PF(o) (origin) and PF(o+3..o+11) (a column-major rotation)).
 const Felt3D = (() => {
     const PRELUDE = (n) => `#version 300 es
 precision highp float;
 uniform vec2 uRes;
-uniform float uP[${n}];
+// scene data in a uniform block: SwiftShader indexes a plain uniform array dynamically
+// through a chain of selects (a pose fit spent ~20 µs a pixel on it); a block is memory
+layout(std140) uniform Data { vec4 uP4[${Math.ceil(n / 4)}]; };
+float PF(int i) { return uP4[i >> 2][i & 3]; }
 uniform float uBoil;
-uniform vec3 uCamPos, uCamTarget, uLight, uKeyCol, uFillCol;
+uniform vec3 uCamPos, uCamTarget, uLight, uKeyCol, uFillCol, uZoom;
 uniform float uSoft, uFill, uKey, uFov, uFloorY, uShadow, uDebug;
 out vec4 fragColor;
 
@@ -75,10 +79,10 @@ float noise(vec3 x) {
 float fbm(vec3 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * noise(p); p *= 2.03; a *= 0.5; } return s; }
 // hand-felted unevenness: add to a piece's distance (amp ≈ 0.004 for a head 0.3 across)
 float gLumps = 1.0; // 0 while tracing shadows: they fall from the smooth forms (lumps made them noisy)
-float lumps(vec3 p, float amp) { return gLumps * amp * (noise(p * 9.0) + 0.5 * noise(p * 23.0) - 0.75) * 1.6; }
-vec3 P3(int i) { return vec3(uP[i], uP[i + 1], uP[i + 2]); }
-mat3 M3(int i) { return mat3(uP[i], uP[i + 1], uP[i + 2], uP[i + 3], uP[i + 4], uP[i + 5], uP[i + 6], uP[i + 7], uP[i + 8]); }
-// p in the frame stored at uP[o]: origin, then a column-major rotation (local → world)
+float lumps(vec3 p, float amp) { if (gLumps == 0.0) return 0.0; return gLumps * amp * (noise(p * 9.0) + 0.5 * noise(p * 23.0) - 0.75) * 1.6; }
+vec3 P3(int i) { return vec3(PF(i), PF(i + 1), PF(i + 2)); }
+mat3 M3(int i) { return mat3(PF(i), PF(i + 1), PF(i + 2), PF(i + 3), PF(i + 4), PF(i + 5), PF(i + 6), PF(i + 7), PF(i + 8)); }
+// p in the frame stored at PF(o): origin, then a column-major rotation (local → world)
 vec3 local(vec3 p, int o) { return transpose(M3(o + 3)) * (p - P3(o)); }
 `;
     const MAIN = `
@@ -154,7 +158,12 @@ float strays(vec3 p, float d, float reach) {
     return clamp(lines * fall * fall * 0.95 + haze * fall * fall * fall * 0.55, 0.0, 1.0);
 }
 void main() {
-    vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+    // a 2D zoom about a fixed point of the frame (a lens zoom, or a zoom made in the edit):
+    // exact, at full resolution, and the backdrop gets the same transform
+    if (uDebug == 1.0) gLumps = 0.0; // the albedo view (pose fitting) needs the forms, not the lumps
+    vec2 fixp = vec2(uZoom.y, 1.0 - uZoom.z) * uRes;
+    vec2 fc = fixp + (gl_FragCoord.xy - fixp) / uZoom.x;
+    vec2 uv = (fc - 0.5 * uRes) / uRes.y;
     vec3 ww = normalize(uCamTarget - uCamPos), uu = normalize(cross(ww, vec3(0, 1, 0))), vv = cross(uu, ww);
     vec3 rd = normalize(uv.x * uu + uv.y * vv + (0.5 / tan(uFov * 0.5)) * ww);
     vec3 ro = uCamPos;
@@ -167,9 +176,14 @@ void main() {
         // on the surface it will hit is not passing a silhouette (that drew fibres all over faces)
         if (h.y > 0.5 && h.x < dmin && material(h.y).w > 0.0) { dmin = h.x; tmin = t; mmin = h.y; passed = false; }
         if (h.x > dmin * 1.6 + 0.004) passed = true;
-        if (h.x < 0.0003 * t) { m = h.y; break; }
-        t += h.x * (h.x < 0.03 ? 0.6 : 0.9); // small steps near the surface: the halo needs them
+        if (h.x < (uDebug == 1.0 ? 0.002 : 0.0003) * t) { m = h.y; break; }
+        t += h.x * (h.x < 0.03 && uDebug != 1.0 ? 0.6 : 0.9); // small steps near the surface: the halo needs them
         if (t > 20.0) break;
+    }
+    // albedo view, fast (pose fitting reads it): no lighting, no floor, no stray fibres
+    if (uDebug == 1.0) {
+        fragColor = m > 0.0 ? vec4(albedo(m, ro + rd * t, vec3(0.0, 0.0, 1.0)), 1.0) : vec4(0.0);
+        return;
     }
     vec4 outc = vec4(0.0); // premultiplied
     if (m > 0.0) {
@@ -245,6 +259,12 @@ void main() { gl_Position = vec4(p, 0.0, 1.0); }
         gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         const U = (n) => gl.getUniformLocation(P, n);
+        const N4 = Math.ceil(N / 4) * 4;
+        const ubo = gl.createBuffer();
+        gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+        gl.bufferData(gl.UNIFORM_BUFFER, N4 * 4, gl.DYNAMIC_DRAW);
+        gl.uniformBlockBinding(P, gl.getUniformBlockIndex(P, 'Data'), 0);
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, ubo);
         const memo = document.createElement('canvas');
         memo.width = W;
         memo.height = H;
@@ -259,15 +279,17 @@ void main() { gl_Position = vec4(p, 0.0, 1.0); }
                     gl.clear(gl.COLOR_BUFFER_BIT);
                     gl.useProgram(P);
                     gl.uniform2f(U('uRes'), W, H);
-                    const a = new Float32Array(N);
+                    const a = new Float32Array(N4);
                     (f.p ?? []).forEach((v, i) => (a[i] = v));
-                    gl.uniform1fv(U('uP'), a);
+                    gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+                    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, a);
                     gl.uniform1f(U('uBoil'), f.boil ?? 0);
                     gl.uniform3fv(U('uCamPos'), f.cam);
                     gl.uniform3fv(U('uCamTarget'), f.target);
                     gl.uniform3fv(U('uLight'), f.light ?? [-0.5, 0.8, 0.6]);
                     gl.uniform3fv(U('uKeyCol'), f.keyCol ?? [1.0, 0.94, 0.84]);
                     gl.uniform3fv(U('uFillCol'), f.fillCol ?? [0.66, 0.7, 0.78]);
+                    gl.uniform3fv(U('uZoom'), f.zoom ?? [1, 0.5, 0.5]);
                     gl.uniform1f(U('uFov'), f.fov ?? 0.6);
                     gl.uniform1f(U('uSoft'), f.soft ?? 12);
                     gl.uniform1f(U('uFill'), f.fill ?? 0.75);

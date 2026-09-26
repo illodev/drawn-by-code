@@ -1,23 +1,11 @@
 // Interchangeable backdrops for the felt cats. Each backdrop paints the set in 2D (logical
 // 900×1600) and says how the set lights the wool: the key's direction and colour, the fill
-// colour, and how dark the caught floor shadow is. The camera is shared (Stage.CAM) so a set
-// can put things on the floor in perspective with Stage.project([x, y, z]).
+// colour, and how dark the caught floor shadow is. The camera is shared (Stage.CAM in
+// dance.js) so a set can put things on the floor in perspective with Stage.project([x, y, z]).
 //
 //   Backdrops.list                    names
 //   Backdrops.get(name) → { paint(g, t, env), light: { light, keyCol, fillCol, key, fill,
 //                           shadow }, front?(g, t, env) }   front paints over the cats
-const Stage = (() => {
-    // a level camera at the kittens' head height (measured: the horizon sits at mid-frame
-    // and the feet at 0.71 of the height, the cats 0.26 of it)
-    const CAM = { cam: [0, 0.8, 6], target: [0, 0.8, 0], fov: 0.62 };
-    const F = 0.5 / Math.tan(CAM.fov / 2) * 1600;
-    const project = ([x, y, z]) => {
-        const dz = CAM.cam[2] - z;
-        return [450 + (x / dz) * F, 800 - ((y - CAM.cam[1]) / dz) * F, F / dz];
-    };
-    return { CAM, project, HORIZON: 800 };
-})();
-
 const Backdrops = (() => {
     // felt pieces in 2D: a shape filled, speckled with fibres of two shades, and a fuzzy rim
     // of short stray strokes; cached (the sets are still)

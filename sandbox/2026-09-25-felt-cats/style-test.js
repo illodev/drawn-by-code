@@ -4,7 +4,7 @@ Motion.scene({
     fps: 30,
     duration: 6,
     logical: [900, 1600],
-    uses: ['styles/felt3d/felt3d.js', 'sandbox/2026-09-25-felt-cats/cats.js', 'sandbox/2026-09-25-felt-cats/backdrops.js'],
+    uses: ['styles/felt3d/felt3d.js', 'sandbox/2026-09-25-felt-cats/cats.js', 'sandbox/2026-09-25-felt-cats/dance.js', 'sandbox/2026-09-25-felt-cats/backdrops.js'],
     shots: [[0, 2, 'Desert'], [2, 4, 'Kitchen'], [4, 6, 'Disco']],
 
     setup(env) {
