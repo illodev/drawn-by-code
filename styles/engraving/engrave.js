@@ -255,6 +255,119 @@ float glyphSign(int k, vec2 q) {
     if (k == 14) return min(abs(max(abs(q.x) - 0.22, abs(q.y) - 0.3)), min(sdSeg(q, vec2(-0.22, 0.1), vec2(0.22, 0.1)), sdSeg(q, vec2(0.0, 0.1), vec2(0.0, -0.3))));   // shrine
     return min(abs(length(q * vec2(1.0, 1.4)) - 0.2), min(min(sdSeg(q, vec2(-0.2, 0.0), vec2(-0.32, 0.12)), sdSeg(q, vec2(0.2, 0.0), vec2(0.32, 0.12))), min(sdSeg(q, vec2(-0.16, -0.1), vec2(-0.3, -0.24)), sdSeg(q, vec2(0.16, -0.1), vec2(0.3, -0.24)))));   // beetle
 }
+// ---- temple decoration, after the plates of Dendera (Description de l'Égypte, A. Vol. IV):
+// a wall is a dado, three registers of offering scenes (a standing figure facing a seated
+// one, a small altar between, short columns of signs above, a column of signs between
+// panels), a frieze of uprights, a torus moulding and a fluted cavetto cornice. All of it in
+// low relief: raised areas a shade lighter, a thin darker edge. Fictional signs, invented
+// figures; in the spirit of the plates, never copies of real inscriptions.
+float sminF(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
+// an Egyptian figure in profile, facing +x, feet at y = 0, about 1.7 tall: wig or crown,
+// head with nose, broad shoulders narrowing to the waist, a flared kilt, striding legs, one
+// arm raised holding an offering, the other down
+float sdStanding(vec2 q) {
+    float d = length((q - vec2(0.06, 1.44)) * vec2(1.0, 0.9)) - 0.1;                    // head
+    d = min(d, sdSeg(q, vec2(0.15, 1.44), vec2(0.19, 1.4)) - 0.018);                     // nose
+    d = sminF(d, sdBox2(q, vec2(0.02, 1.47), vec2(0.1, 0.1)) - 0.02, 0.03);             // wig
+    d = min(d, sdSeg(q, vec2(0.02, 1.58), vec2(0.03, 1.78)) - 0.05);                     // crown
+    d = min(d, length(q - vec2(0.03, 1.8)) - 0.035);
+    float torso = sdSeg(q, vec2(0.03, 1.25), vec2(0.03, 0.82)) - mix(0.07, 0.15, clamp((q.y - 0.82) / 0.43, 0.0, 1.0));
+    d = sminF(d, torso, 0.03);
+    float kilt = sdBox2(q, vec2(0.05, 0.66), vec2(0.1 + 0.1 * clamp((0.8 - q.y) / 0.3, 0.0, 1.0), 0.14));
+    d = min(d, kilt);
+    d = min(d, sdSeg(q, vec2(-0.02, 0.55), vec2(-0.12, 0.03)) - 0.035);                 // back leg
+    d = min(d, sdSeg(q, vec2(0.09, 0.55), vec2(0.2, 0.03)) - 0.035);                    // front leg
+    d = min(d, sdBox2(q, vec2(-0.1, 0.02), vec2(0.07, 0.02)));
+    d = min(d, sdBox2(q, vec2(0.23, 0.02), vec2(0.07, 0.02)));
+    d = min(d, sdSeg(q, vec2(0.08, 1.2), vec2(0.28, 1.08)) - 0.028);                    // upper arm
+    d = min(d, sdSeg(q, vec2(0.28, 1.08), vec2(0.42, 1.24)) - 0.024);                   // forearm raised
+    d = min(d, sdBox2(q, vec2(0.46, 1.3), vec2(0.07, 0.05)) - 0.01);                   // offering
+    d = min(d, sdSeg(q, vec2(-0.05, 1.18), vec2(-0.08, 0.8)) - 0.024);                 // other arm
+    return d;
+}
+float sdSeated(vec2 q) {                                                                 // faces −x
+    float d = sdBox2(q, vec2(0.1, 0.3), vec2(0.16, 0.3)) - 0.01;                        // throne
+    d = min(d, sdBox2(q, vec2(0.22, 0.66), vec2(0.03, 0.08)));                          // its back
+    float torso = sdSeg(q, vec2(0.04, 1.2), vec2(0.04, 0.7)) - mix(0.08, 0.13, clamp((q.y - 0.7) / 0.5, 0.0, 1.0));
+    d = min(d, torso);
+    d = min(d, length((q - vec2(0.0, 1.36)) * vec2(1.0, 0.9)) - 0.1);
+    d = min(d, sdSeg(q, vec2(-0.09, 1.36), vec2(-0.13, 1.32)) - 0.018);
+    d = sminF(d, sdBox2(q, vec2(0.04, 1.39), vec2(0.1, 0.1)) - 0.02, 0.03);
+    d = min(d, sdSeg(q, vec2(0.02, 1.5), vec2(0.0, 1.74)) - 0.045);                      // tall crown
+    d = min(d, abs(length(q - vec2(0.0, 1.8)) - 0.06) - 0.012);                          // sun disc
+    d = min(d, sdSeg(q, vec2(0.04, 0.66), vec2(-0.2, 0.64)) - 0.06);                    // thighs
+    d = min(d, sdSeg(q, vec2(-0.22, 0.62), vec2(-0.22, 0.05)) - 0.04);                  // shins
+    d = min(d, sdBox2(q, vec2(-0.28, 0.02), vec2(0.07, 0.02)));
+    d = min(d, sdSeg(q, vec2(-0.02, 1.12), vec2(-0.22, 0.9)) - 0.024);                  // arm to the staff
+    d = min(d, sdSeg(q, vec2(-0.26, 0.05), vec2(-0.26, 1.5)) - 0.014);                  // was-staff
+    d = min(d, sdSeg(q, vec2(-0.26, 1.5), vec2(-0.2, 1.56)) - 0.014);
+    d = min(d, abs(length(q - vec2(-0.2, 1.05)) - 0.045) - 0.01);                        // sign of life
+    return d;
+}
+// returns (edge darkness, raised-area lightening, carved darkness) for a point (h, y) on a
+// wall of height H (world units); px = world size of a pixel here
+vec3 templeWall(float h, float y, float H, float px, float seed) {
+    float U = clamp(H / 10.0, 0.12, 3.0), v = y / U, x = h / U, pu = px / U;
+    float edge = 0.0, raised = 0.0, carved = 0.0;
+    float lw = max(0.028, pu * 1.4);
+    float vis = smoothstep(0.012, 0.004, pu);            // details smaller than ~1 px fade to tone
+    if (v < 1.0) {
+        edge = (1.0 - smoothstep(lw, lw + pu, abs(v - 0.96))) * 0.8;      // dado: plain, one band
+    } else if (v < 7.6) {
+        float rv = v - 1.0, reg = floor(rv / 2.2), ry = rv - reg * 2.2;
+        edge = max(1.0 - smoothstep(lw, lw + pu, ry), 1.0 - smoothstep(lw, lw + pu, abs(ry - 0.06))) * 0.9;
+        float pw = 3.0, pid = floor(x / pw), px0 = x - pid * pw;
+        vec2 hid = vec2(pid, reg + seed * 7.0);
+        float h0 = hash(hid);
+        // the column of signs between panels
+        if (px0 < 0.36) {
+            edge = max(edge, (1.0 - smoothstep(lw, lw + pu, abs(px0 - 0.02))) * 0.7);
+            edge = max(edge, (1.0 - smoothstep(lw, lw + pu, abs(px0 - 0.34))) * 0.7);
+            vec2 gq = vec2((px0 - 0.18) / 0.3, (ry - 0.15) / 0.3);
+            float gi = floor(gq.y);
+            if (gq.y > 0.0 && gq.y < 6.5) {
+                float g = glyphSign(int(hash(hid + gi * 1.7) * 16.0), vec2(gq.x, fract(gq.y) - 0.5) * 1.1) / 1.1 * 0.3;
+                edge = max(edge, (1.0 - smoothstep(0.012, 0.012 + pu, g)) * 0.75 * vis);
+            }
+        } else {
+            // the scene: mirrored in some panels, the figures vary a little
+            float lx = px0 - 0.36, mx = h0 < 0.5 ? lx : 2.64 - lx;
+            vec2 q = vec2(mx, ry - 0.12);
+            float sc = 0.92 + 0.12 * hash(hid + 3.3);
+            float fig = min(sdStanding((q - vec2(0.55, 0.0)) / sc) * sc, h0 < 0.8 ? sdSeated((q - vec2(1.9, 0.0)) / sc) * sc : sdStanding((vec2(2.5 - q.x, q.y) - vec2(0.05, 0.0)) / sc) * sc);
+            fig = min(fig, sdBox2(q, vec2(1.25, 0.34), vec2(0.06, 0.34)));
+            fig = min(fig, sdBox2(q, vec2(1.25, 0.72), vec2(0.16, 0.035)));
+            fig = min(fig, sdBox2(q, vec2(1.25, 0.86), vec2(0.09, 0.1)));
+            raised = (1.0 - smoothstep(-pu, 0.0, fig)) * vis;
+            edge = max(edge, (1.0 - smoothstep(lw * 0.8, lw * 0.8 + pu, abs(fig))) * 0.85 * vis);
+            // short columns of signs above the figures
+            if (q.y > 1.78 && q.y < 2.06) {
+                float cx = floor(q.x / 0.26), gx = q.x - cx * 0.26 - 0.13;
+                if (hash(hid + cx * 3.1) < 0.8) {
+                    float g = glyphSign(int(hash(hid + cx * 5.3) * 16.0), vec2(gx, q.y - 1.92) / 0.26 * 1.2) / 1.2 * 0.26;
+                    edge = max(edge, (1.0 - smoothstep(0.009, 0.009 + pu, g)) * 0.7 * vis);
+                }
+            }
+        }
+    } else if (v < 8.6) {
+        // frieze of uprights (tall rounded shafts with a knob)
+        float fx = fract(x / 0.3) - 0.5, fy = v - 7.6;
+        float up = min(sdBox2(vec2(fx * 0.3, fy), vec2(0.0, 0.4), vec2(0.07, 0.34)), length(vec2(fx * 0.3, fy - 0.84)) - 0.06);
+        raised = (1.0 - smoothstep(-pu, 0.0, up)) * vis;
+        edge = max((1.0 - smoothstep(lw, lw + pu, abs(up))) * 0.8 * vis, (1.0 - smoothstep(lw, lw + pu, abs(fy - 0.02))) * 0.9);
+    } else if (v < 9.0) {
+        // torus: a rod bound with a spiral band
+        float fy = (v - 8.6) / 0.4;
+        carved = 0.25 * (1.0 - sin(fy * 3.1416));
+        edge = (1.0 - smoothstep(lw * 1.5, lw * 1.5 + pu, abs(fract((x + (v - 8.6)) / 0.22) - 0.5) * 0.22)) * 0.6 * vis;
+    } else {
+        // cavetto cornice: flutes, deeper shade into its undercut
+        float fy = (v - 9.0) / 1.0;
+        carved = 0.35 * (1.0 - fy) * (1.0 - fy);
+        edge = (1.0 - smoothstep(lw, lw + pu, abs(fract(x / 0.26) - 0.5) * 0.26)) * 0.6 * vis * (0.4 + 0.6 * fy);
+    }
+    return vec3(edge, raised, carved);
+}
 // a set of engraved lines across coordinate s (in line spacings): coverage for tone c
 // (fraction of the spacing that is ink, 0..0.9); w is the width scale of this line
 float lines(float s, float c, float aa) {
@@ -363,6 +476,9 @@ void main() {
     if (!gl_FrontFacing) Nl = -Nl;
     if (m == 5) { P = vW; Nl = N; Tl = T; }
     vec3 Bl = cross(Nl, Tl);
+    // a decorated temple wall or column indoors: one smooth dressed surface (no stone joints,
+    // no per-stone tone), carrying the carved registers
+    bool deco = uInterior > 0.5 && m < 2 && abs(N.y) < 0.35 && ((uBox > 0.5 && vH.y > 0.6) || (uBox < 0.5 && uTan > 0.5 && uTan < 1.5));
     // light
     float sh = shadow(vW, N);
     float lam = max(dot(N, uSun), 0.0) * sh * uSunK;
@@ -376,14 +492,14 @@ void main() {
     glow += vX.x;
     float spec = M.y * pow(max(dot(reflect(-uSun, N), V), 0.0), M.z) * sh;
     // stone: weathering, pores, a few darker stones
-    float stone = (fbm3(P * 14.0 + vSeed * 7.0) - 0.5) * 0.18 + (vSeed - 0.5) * 0.12;
+    float stone = deco ? (fbm3(vW * 3.0) - 0.5) * 0.06 : (fbm3(P * 14.0 + vSeed * 7.0) - 0.5) * 0.18 + (vSeed - 0.5) * 0.12;
     float lum = M.x * (lam + sky) * (1.0 + stone * (m < 2 || m == 5 ? 1.0 : 0.2)) + spec + glow * 0.6;
     float D = clamp(1.0 - lum + vX.y, 0.0, 1.0);
     // the plates' tone: long greys and few blacks (ink never quite closes)
     D = 0.12 + 0.8 * smoothstep(0.05, 0.92, D);
     // cut stone always carries some line work, heavier where it is weathered
-    if (m < 2) D = max(D, 0.12 + 0.05 * vSeed + 0.14 * smoothstep(0.4, 0.8, fbm3(P * 9.0 + vSeed * 5.0)));
-    if (m < 2 && uInterior > 0.5) D = max(D, 0.34 + 0.08 * vSeed);     // indoors even sunlit stone is drawn, never bare paper
+    if (m < 2 && !deco) D = max(D, 0.12 + 0.05 * vSeed + 0.14 * smoothstep(0.4, 0.8, fbm3(P * 9.0 + vSeed * 5.0)));
+    if (m < 2 && uInterior > 0.5) D = max(D, deco ? 0.36 : 0.34 + 0.08 * vSeed);     // indoors even sunlit stone is drawn, never bare paper
     if (m == 3 || m == 6) D = max(D, 0.45);          // metal is engraved too: its form in lines under the wash
     float bend = 0.0;
     if (m == 5) { D = max(D, 0.13); bend = (vnoise(vW.xz * 0.45 + 3.0) * 7.0 + vnoise(vW.xz * 1.7) * 1.5) / (1.0 + 0.25 * length(uEye - vW)); }  // sand: thin lines everywhere, bending with the dunes
@@ -491,8 +607,10 @@ void main() {
             vec2 cd = vec2(cos(ang), sin(ang));
             float cs1 = dot(fp, cd) / 0.009;
             float chis = lines(cs1, 0.35, fwidth(cs1) * 0.8) * step(0.45, vnoise(vec2(dot(fp, vec2(-cd.y, cd.x)) / 0.03, floor(cs1) * 0.37)));
-            float tI = clamp(stoneT * (0.7 + 0.3 * st) + wtex * 0.35 + edgeDk * 0.28 + chis * 0.14, 0.0, 0.97);
-            jointed = max(tI, joint * 0.95);
+            // (one dressed surface: stones differ only a little, the plates show smooth walls)
+            float tI = clamp(stoneT * (0.9 + 0.1 * st) + wtex * 0.18 + edgeDk * 0.1 + chis * 0.06, 0.0, 0.97);
+            jointed = max(tI, joint * 0.5 * (0.6 + 0.4 * st));
+            if (deco) jointed = clamp(stoneT * 0.95 + (fbm3(vW * 6.0) - 0.5) * 0.08, 0.0, 0.97);
         }
         float shade = mix(max(min(cov / 0.45 * 1.15, 1.0), D * 0.3), jointed, vis);
         cov = mix(max(lit * 0.75, 0.06 + 0.2 * smoothstep(0.3, 0.6, D)), shade, smoothstep(0.42, 0.72, D));
@@ -504,7 +622,7 @@ void main() {
         float weather = smoothstep(0.35, 0.8, fbm3(P * 22.0 + vSeed * 3.0));
         float gd = step(hash(gc + vSeed * 5.0), 0.05 + 0.3 * D + 0.35 * weather);
         float grain = gd * (1.0 - smoothstep(0.18, 0.3, length(gf * vec2(1.0, 1.0 + 2.0 * hash(gc))))) * smoothstep(1.5, 3.0, gpx);
-        cov = max(cov, grain * (1.0 - vis) * (uChar > 0.5 ? 0.3 : 1.0));   // charcoal: pits are soft grey, not ink
+        cov = max(cov, grain * (1.0 - vis) * (uChar > 0.5 ? 0.3 : 1.0) * (deco ? 0.0 : 1.0));   // charcoal: pits are soft grey, not ink
         if (uInterior > 0.5) {
             vec3 gw = vW;
             if (abs(N.y) < 0.35) {
@@ -530,36 +648,6 @@ void main() {
                     cov = mix(cov, min(max(cov + 0.2, 0.55), 0.8), cut * wearC);
                     cov *= 1.0 - 0.25 * lip * (1.0 - cut) * wearC;
                 }
-                float gsz = 0.15;
-                for (int b = 0; b < 2; b++) {
-                    float y0 = b == 0 ? 0.5 : 1.15;
-                    float vy = (gw.y - y0) / gsz;
-                    if (vy < 0.0 || vy > 3.0 || panel < 0.5) continue;
-                    vec2 cc = vec2(hcoord / gsz, vy);
-                    vec2 id = floor(cc), q = fract(cc) - 0.5;
-                    // each cell: one sign, or two small ones stacked, or a sign with a small
-                    // companion beside it; the little creature appears now and then
-                    vec2 hid = id + float(b) * 13.0;
-                    float h0 = hash(hid), h1 = hash(hid + 3.1), h2 = hash(hid + 5.7);
-                    float dline, fillE = 1.0;
-                    if (h0 < 0.025) { vec2 cr = sdCritter(q * 1.15); dline = cr.x / 1.15 + 0.02; fillE = cr.y / 1.15; }
-                    else if (h0 < 0.45) dline = glyphSign(int(h1 * 16.0), q);
-                    else if (h0 < 0.75) dline = min(glyphSign(int(h1 * 16.0), (q - vec2(0.0, 0.22)) * 2.1) / 2.1, glyphSign(int(h2 * 16.0), (q + vec2(0.0, 0.22)) * 2.1) / 2.1);
-                    else dline = min(glyphSign(int(h1 * 16.0), (q + vec2(0.1, 0.0)) * 1.4) / 1.4, glyphSign(int(h2 * 16.0), (q - vec2(0.3, 0.2)) * 3.0) / 3.0);
-                    float wpx = 0.05 * gsz / ps / uPx;
-                    float aaG = 1.2 / max(gsz / ps / uPx, 1.0);
-                    float cut = max(1.0 - smoothstep(0.05, 0.05 + aaG, dline), 1.0 - smoothstep(0.0, aaG, fillE));
-                    // carved: the cut is dark, its lower lip catches the light
-                    float lip = 1.0 - smoothstep(0.05, 0.05 + aaG, abs(dline - 0.075));
-                    // carved, and worn: the cut darkens the stone (not ink-black), broken where
-                    // the face has weathered; its lower lip catches a little light
-                    float wearG = 0.55 + 0.45 * smoothstep(0.2, 0.55, vnoise(cc * 2.3 + 17.0));
-                    cov = mix(cov, min(max(cov + 0.32, 0.62), 0.9), cut * wearG * smoothstep(0.6, 1.6, wpx));
-                    cov *= 1.0 - 0.25 * lip * (1.0 - cut) * wearG * smoothstep(0.6, 1.6, wpx);
-                    // the ruled bands framing the register
-                    float rule = min(abs(vy), abs(vy - 3.0)) * gsz;
-                    cov = max(cov, (1.0 - smoothstep(0.004, 0.008, rule)) * 0.5);
-                }
             } else if (N.y > 0.7) {
                 // the floor: dust and sand drifted against the walls and pillars, scuffed grit,
                 // darker stains, stipple of pebbles and chips
@@ -572,6 +660,29 @@ void main() {
                 cov = max(max(cov, stain + cov * 0.8), peb * 0.8);
             }
         }
+    }
+    // temple decoration on interior walls (large blocks) and columns
+    if (deco) {
+        float hh, yy = P.y + vH.y;
+        if (uBox > 0.5) hh = abs(Nl.x) > 0.5 ? P.z * sign(Nl.x) : -P.x * sign(Nl.z);
+        else hh = atan(P.z, P.x) * vH.x;
+        vec3 tw = templeWall(hh, yy, 2.0 * vH.y, ps, vSeed);
+        float wear = 0.55 + 0.45 * smoothstep(0.25, 0.65, vnoise(vec2(hh, yy) * 2.3 + vSeed * 9.0));
+        // relief: the raised field is dressed lighter and smoother (the stone's mottle is
+        // cut away), its edge a clear line
+        cov = mix(cov, cov * 0.8 + 0.04, tw.y * wear);
+        cov = clamp(cov + 0.34 * tw.x * wear + tw.z, 0.0, 1.0);
+    }
+    // ceilings: the sky of the temple, five-pointed stars in rows between beams (in relief)
+    if (uInterior > 0.5 && m < 2 && N.y < -0.7) {
+        vec2 c2 = vW.xz / 0.22, id2 = floor(c2), f2 = fract(c2) - 0.5;
+        f2 += (vec2(hash(id2 + 2.0), hash(id2 + 5.0)) - 0.5) * 0.2;
+        float a5 = atan(f2.y, f2.x), r5 = length(f2);
+        float star = r5 - 0.19 * (0.55 + 0.45 * cos(5.0 * a5 + 1.57));
+        float beam = abs(fract(vW.x / 1.3) - 0.5) * 1.3;
+        float pc = 0.22 / ps / uPx;
+        cov = clamp(cov + 0.18 * (1.0 - smoothstep(0.0, 0.03, abs(star))) * smoothstep(4.0, 9.0, pc) - 0.06 * (1.0 - smoothstep(-0.02, 0.0, star)) * smoothstep(4.0, 9.0, pc), 0.0, 1.0);
+        cov = max(cov, (1.0 - smoothstep(0.1, 0.13, beam)) * 0.55);
     }
     // contours: every stone's edges are cut, worn and broken a little; far stones lose them
     if (uBox > 0.5) {

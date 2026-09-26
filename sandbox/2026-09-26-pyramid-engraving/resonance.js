@@ -20,7 +20,7 @@ const Resonance = (() => {
     const face = Engrave.quat([1, 0, 0], Math.PI / 2);     // a ring facing down the corridor
     // the far wall of the last room recedes from 33.5
     const zOf = (k, u) => (k < 2 ? Z[k] : Z[2] - 26 * E(u, 33.4, 37.6));
-    function room(k, u, stone, worn, obs, blue, rings, gold) {
+    function room(k, u, stone, worn, obs, blue, rings, gold, cols, caps) {
         const S = Math.pow(3, k), W = S, Hh = 2.5 * S;
         const z0 = k === 0 ? 2.2 : zOf(k - 1, u), z1 = zOf(k, u), zm = (z0 + z1) / 2, hl = (z0 - z1) / 2;
         // floor, ceiling, walls
@@ -40,10 +40,26 @@ const Resonance = (() => {
             }
             Engrave.inst(stone, [sx * (W + 0.1 * S), Hh / 2, zm], 0, [0.1 * S, Hh / 2, hl], 0.4 + k * 0.1 + sx * 0.03);
         }
-        // pilasters along the walls, the room's rhythm (their spacing scales with the room)
-        for (let i = 1; i < 6; i++) {
-            const z = z0 - ((z0 - z1) * i) / 6;
-            for (const sx of [-1, 1]) Engrave.inst(stone, [sx * (W - 0.08 * S), Hh / 2, z], 0, [0.08 * S, Hh / 2, 0.1 * S], 0.6 + i * 0.05);
+        // columns along both sides (a hypostyle that grows with the room): round shafts on
+        // plinths, a flared capital, an abacus, beams across to the walls
+        const nCol = k === 2 ? 7 : 4, rC = 0.16 * S;
+        for (let i = 0; i < nCol; i++) {
+            const z = z0 - ((z0 - z1) * (i + 0.6)) / (nCol + 0.2);
+            for (const sx of [-1, 1]) {
+                const x = sx * (W - 0.42 * S);
+                Engrave.inst(cols, [x, Hh * 0.42, z], 0, [rC, Hh * 0.42, rC], 0.2 + i * 0.07 + sx * 0.02);
+                Engrave.inst(stone, [x, 0.04 * S, z], 1, [rC * 1.25, 0.04 * S, rC * 1.25], 0.31);
+                Engrave.inst(caps, [x, Hh * 0.87, z], 0, [rC * 1.45, Hh * 0.05, rC * 1.45], 0.4 + i * 0.05);
+                Engrave.inst(stone, [x, Hh * 0.94, z], 0, [rC * 1.2, Hh * 0.02, rC * 1.2], 0.5);
+                Engrave.inst(stone, [x + sx * 0.21 * S, Hh * 0.98, z], 0, [0.24 * S, Hh * 0.02, 0.1 * S], 0.55);
+            }
+        }
+        // a long beam down each colonnade
+        for (const sx of [-1, 1]) Engrave.inst(stone, [sx * (W - 0.42 * S), Hh * 0.975, zm], 0, [0.12 * S, Hh * 0.025, hl], 0.6);
+        // offering tables and a statue base on the axis of the big rooms (things to pass)
+        if (k > 0) {
+            Engrave.inst(stone, [0.6 * S, 0.12 * S, z1 + 0.35 * (z0 - z1)], 0, [0.14 * S, 0.12 * S, 0.1 * S], 0.72);
+            Engrave.inst(stone, [-0.6 * S, 0.12 * S, z1 + 0.6 * (z0 - z1)], 0, [0.14 * S, 0.12 * S, 0.1 * S], 0.73);
         }
         // the portal at the end: a wall with a door-sized opening, two pillars, a lintel, the
         // notched triangle above in live blue, and two stone doors that slide apart
@@ -72,12 +88,12 @@ const Resonance = (() => {
         [[0.62, [1, 0.3, 0], 0.9], [0.5, [0.2, 1, 0.4], -1.2], [0.38, [0.5, 0.2, 1], 1.5]].forEach(([r, ax, sp], i) => {
             let q = nlerp(Engrave.quat(ax, u * sp + i * 2 + k), face, line);
             if (k === 1 && i === 2) q = Engrave.qmul(Engrave.quat([0, 1, 0], -1.1 * E(u, 36.3, 37.0)), q);   // the tilt
-            Engrave.inst(rings, [0, 0.95 * S, zp + 1.6 * S], 3, [r * S, r * S, r * S], 0.3 + i * 0.2 + k * 0.1, q);
+            Engrave.inst(rings, [0, (k === 1 ? 2.05 : 0.95) * S, zp + (k === 1 ? 0.75 : 1.6) * S], 3, [r * S, r * S, r * S], 0.3 + i * 0.2 + k * 0.1, q);
         });
     }
     function build(u) {
-        const stone = [], worn = [], obs = [], blue = [], rings = [], gold = [], dust = [], motes = [];
-        for (let k = 0; k < 3; k++) room(k, u, stone, worn, obs, blue, rings, gold);
+        const stone = [], worn = [], obs = [], blue = [], rings = [], gold = [], dust = [], motes = [], cols = [], caps = [];
+        for (let k = 0; k < 3; k++) room(k, u, stone, worn, obs, blue, rings, gold, cols, caps);
         // the membrane behind: a triangular frame in the entrance wall, glowing as it is crossed
         const glowM = 0.9 * (1 - E(u, 31.2, 32.2));
         const tri = [[0, 1.75], [-0.75, 0.25], [0.75, 0.25]];
@@ -97,6 +113,8 @@ const Resonance = (() => {
         const draws = [
             { mesh: 'box', inst: new Float32Array(stone), box: true, masonry: true },
             { mesh: 'box', inst: new Float32Array(worn), box: true, masonry: true },
+            { mesh: 'cylinder', inst: new Float32Array(cols), tan: 'y' },
+            { mesh: 'capital', inst: new Float32Array(caps), tan: 'y' },
             { mesh: 'box', inst: new Float32Array(obs), box: true },
             { mesh: 'box', inst: new Float32Array(blue), box: true, cast: false },
             { mesh: 'ring', inst: new Float32Array(rings) },

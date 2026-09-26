@@ -83,8 +83,7 @@ const Gallery = (() => {
         Engrave.inst(stone, [0, 1, -9.6], 1, [1.3, 1, 0.1], 0.8);
         // pillars
         for (let i = 0; i < 8; i++) for (const sx of [-1, 1]) Engrave.inst(stone, [sx * 0.95, 1, 0.6 - i * 1.25], 0, [0.1, 1, 0.1], 0.1 + i * 0.07 + (sx > 0 ? 0.03 : 0));
-        // the sand patch, sunk into the floor
-        Engrave.inst(sand, [SAND[0], 0.004, SAND[1]], 5, [0.55, 0.004, 0.45], 0.6);
+        // (no separate sand patch: the grains lie on the flagstones' own dust, like the rooms' floors)
         // the cups where the beams land, on low plinths, and the channel from them to the sand
         const cups = GAPS.map((gz) => [0.35, gz - 0.12]);
         for (const [cx, cz] of cups) {

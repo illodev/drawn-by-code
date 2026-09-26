@@ -158,6 +158,18 @@ const PyramidFilm = (() => {
         R.mesh('terrain-rock', T.rock);
         R.mesh('terrain-sand', T.sand);
         R.mesh('rock', Engrave.rock(7));
+        // a flared column capital (open papyrus): a lathe profile, radius by height
+        const cap = { P: [], I: [] }, NS = 40, NR = 12;
+        for (let j = 0; j <= NR; j++) {
+            const y = j / NR, r = 0.62 + 0.38 * Math.pow(y, 0.7), yy = y * 2 - 1;
+            for (let i = 0; i <= NS; i++) {
+                const a = (i / NS) * Math.PI * 2, c = Math.cos(a), s2 = Math.sin(a);
+                const n = [c, -0.35 * 0.38, s2], l = Math.hypot(...n);
+                cap.P.push(c * r, yy, s2 * r, n[0] / l, n[1] / l, n[2] / l);
+            }
+        }
+        for (let j = 0; j < NR; j++) for (let i = 0; i < NS; i++) { const a = j * (NS + 1) + i, b = a + NS + 1; cap.I.push(a, b, a + 1, a + 1, b, b + 1); }
+        R.mesh('capital', cap);
         return { R, A: Engrave.ager(env) };
     }
     return { frame, setup, storyTime, LAG };
