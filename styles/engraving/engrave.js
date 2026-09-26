@@ -255,7 +255,7 @@ ${COMMON}
 in vec3 vW; in vec3 vN; in vec3 vT; in vec3 vL; in vec3 vH;
 flat in float vMat; flat in float vSeed; flat in vec4 vX;
 uniform vec3 uEye, uSun, uRight;
-uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge;
+uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason;
 uniform mat4 uLVP;
 uniform sampler2DShadow uShadowMap;
 uniform vec4 uLights[8];
@@ -354,6 +354,50 @@ void main() {
         cov = max(cov, mix(c1, c2, fr) * flick);
     }
     float edgePx = 99.0;
+    // masonry, drawn as in the plates: every face is a mosaic of small hand-cut stones in
+    // courses, each outlined by a broken, wobbling burin line (heavier in shade), the darker
+    // stones carrying a few short dashes; over it, in shade, a continuous etched tone
+    if (m < 2 && (uBox > 0.5 || uMason > 0.5)) {
+        cov *= 0.45;
+        float ch = uCourse;
+        vec2 fp = abs(N.y) > 0.7 ? vec2(dot(vW, T), dot(vW, B)) : vec2(dot(vW, T), vW.y);
+        fp += (vec2(vnoise(fp / ch * 1.7), vnoise(fp.yx / ch * 1.7 + 5.0)) - 0.5) * ch * 0.22;
+        float row = floor(fp.y / ch), fy = fp.y / ch - row;
+        float w = ch * (1.6 + 1.4 * hash(vec2(row, 3.0)));
+        float ux = fp.x / w + hash(vec2(row, 7.0)) * 3.0;
+        float col = floor(ux), fx = ux - col;
+        float dx = min(fx, 1.0 - fx) * w, dy = min(fy, 1.0 - fy) * ch;
+        float cpx = ch / ps / uPx;                     // course height on screen, px
+        // joints measured in screen px along each axis (a foreshortened face keeps thin joints)
+        float pyx = max(fwidth(fp.y), 1e-6) * uPx, pxx = max(fwidth(fp.x), 1e-6) * uPx;
+        // far: the mosaic fades into tone; very near: one block is one stone, its own edges
+        float cpx2 = ch / max(fwidth(fp.y), 1e-6) / uPx;   // along the slope (foreshortened faces too)
+        float vis = smoothstep(1.2, 3.0, min(cpx, cpx2)) * (1.0 - smoothstep(30.0, 70.0, cpx));
+        float st = hash(vec2(row, col) + vSeed * 17.0);   // this stone's own shade
+        float lw = mix(0.3, 1.1, D) + 0.35 * st;
+        float brk = step(0.3 + 0.45 * (1.0 - D), vnoise(fp / ch * vec2(2.5, 1.2) + 11.0) + 0.35 * D);
+        float jy = 1.0 - smoothstep(lw, lw + 0.9, dy / pyx);
+        float jx = (1.0 - smoothstep(lw * 0.9, lw * 0.9 + 0.9, dx / pxx)) * step(0.15, fy) * step(fy, 0.85);
+        float marks = max(jy * max(brk, D), jx * brk) * vis;
+        // dark stones: two or three short dashes along the course
+        float dash = lines(fy * 3.0, 0.35 * smoothstep(0.35, 0.9, D + st * 0.35), fwidth(fy * 3.0) * 0.8)
+                   * step(0.5, vnoise(fp / ch * vec2(1.3, 4.0) + st * 9.0)) * vis;
+        float lit = max(cov, max(marks, dash));
+        // in shade the stones themselves are dark (each its own depth), the joints lighter
+        float joint = max(1.0 - smoothstep(0.5, 1.4, dy / pyx), (1.0 - smoothstep(0.5, 1.4, dx / pxx)) * step(0.1, fy) * step(fy, 0.9));
+        // (up close, shade is burin lines over a light etched tone, never a flat grey)
+        float shade = mix(max(min(cov / 0.45 * 1.15, 1.0), D * 0.3), (1.0 - 0.45 * joint) * clamp(D * (0.9 + 0.3 * st), 0.0, 0.97), vis);
+        cov = mix(max(lit, 0.18 + 0.2 * smoothstep(0.3, 0.6, D)), shade, smoothstep(0.42, 0.72, D));
+        // up close the stone's own grain: stippled pits and short scratches, denser in shade
+        // and where it is weathered (cells fixed to the surface, fading when under 1.5 px)
+        vec2 gq = fp / 0.0016;
+        vec2 gc = floor(gq), gf = fract(gq) - 0.5 - (vec2(hash(gc + 1.3), hash(gc + 7.9)) - 0.5) * 0.6;
+        float gpx = 0.0016 / ps / uPx;
+        float weather = smoothstep(0.35, 0.8, fbm3(vW * 22.0 + vSeed * 3.0));
+        float gd = step(hash(gc + vSeed * 5.0), 0.05 + 0.3 * D + 0.35 * weather);
+        float grain = gd * (1.0 - smoothstep(0.18, 0.3, length(gf * vec2(1.0, 1.0 + 2.0 * hash(gc))))) * smoothstep(1.5, 3.0, gpx);
+        cov = max(cov, grain * (1.0 - vis));
+    }
     // contours: every stone's edges are cut, worn and broken a little; far stones lose them
     if (uBox > 0.5) {
         vec3 e = (1.0 - abs(vL)) * vH;
@@ -382,7 +426,7 @@ void main() {
         float rr = length(dv - N * dot(dv, N));
         float pr = 0.02 + 0.03 * hash3(cell + 2.2);
         float prPx = pr / 55.0 / ps / uPx;
-        float pore = step(hash3(cell + vSeed * 3.0), 0.14) * (1.0 - smoothstep(pr - 0.7 * pr / prPx, pr, rr)) * smoothstep(0.5, 1.2, prPx);
+        float pore = 0.0 * step(hash3(cell + vSeed * 3.0), 0.14) * (1.0 - smoothstep(pr - 0.7 * pr / prPx, pr, rr)) * smoothstep(0.5, 1.2, prPx);
         cov = max(cov, pore);
         cov = max(cov, 1.0 - smoothstep(0.1, 0.22, abs(dot(N, V))));
     }
@@ -600,6 +644,7 @@ void main() {
             gl.uniform1f(main.u('uSunK'), f.sunK ?? 0.95);
             gl.uniform1f(main.u('uFill'), f.fill ?? 0.3);
             gl.uniform1f(main.u('uEdge'), f.edge ?? 0.35);
+            gl.uniform1f(main.u('uCourse'), f.course ?? 0.012);
             gl.uniform1f(main.u('uFogNear'), f.fog?.[0] ?? 8);
             gl.uniform1f(main.u('uFogFar'), f.fog?.[1] ?? 40);
             gl.uniform3fv(main.u('uInkBlue'), hex(f.blue ?? '#2fb3cf'));
@@ -614,6 +659,7 @@ void main() {
             gl.uniform1i(main.u('uShadowMap'), 0);
             drawAll(main, draws, (d) => {
                 gl.uniform1f(main.u('uBox'), d.box ? 1 : 0);
+                gl.uniform1f(main.u('uMason'), d.masonry ? 1 : 0);
                 gl.uniform1f(main.u('uTan'), d.box ? 0 : d.tan === 'y' ? 1 : 2);
             });
             const m = memo.getContext('2d');

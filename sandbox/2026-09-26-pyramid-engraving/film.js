@@ -50,11 +50,11 @@ const PyramidFilm = (() => {
         const dist = Math.hypot(cam[0] - target[0], cam[1] - target[1], cam[2] - target[2]);
         env.state.R.render(g, (o.plate ? 'p' : 'f') + Math.round(t * 24), {
             cam, target, fov, near: 0.01,
-            sun: [-0.45, 0.42, 0.8], sunK: 0.9, fill: 0.26, ink: '#2e261d', paper: '#ebe1cb',
+            sun: [-0.35, 0.5, 0.8], sunK: 0.8, fill: 0.2, ink: '#2e261d', paper: '#ebe1cb',
             draws: P.draws, lights: P.lights,
             shadow: { center: target, radius: Math.min(3.2, Math.max(1.5, dist * 0.8)) },
-            sky: { zenith: 0.55, horizon: 0.3 },
-            fog: [5, 22], spacing: 2.0, edge: 0.35, frame: plate,
+            sky: { zenith: 0.32, horizon: 0.2 },
+            fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: plate,
         });
         if (o.plate) {
             const W = env.W, H = env.H;
