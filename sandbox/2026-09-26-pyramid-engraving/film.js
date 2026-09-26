@@ -132,7 +132,7 @@ const PyramidFilm = (() => {
             sun: [-0.75, 0.38, 0.55], sunK: 0.85, fill: 0.2, ink: '#2e261d', paper: '#ebe1cb',
             draws: P.draws, lights: P.lights,
             shadow: { center: target, radius: Math.min(6, Math.max(1.5, dist * 1.1)) },
-            sky: { zenith: 0.22 + 0.3 * Ease.inOut(Ease.seg(u, 53, 58.5)), horizon: 0.15, dusk: 0.35 },
+            sky: { zenith: 0.22 + 0.18 * Ease.inOut(Ease.seg(u, 53, 58.5)), horizon: 0.15, dusk: 0.35 },
             fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: rect, charcoal: true,
         };
         if (inside) Object.assign(f, seed ? Seed.frameParams(u) : nurse ? Nursery.frameParams : reso ? Resonance.frameParams : shaft ? Shaft.frameParams : Gallery.frameParams);

@@ -820,8 +820,18 @@ void main() {
         float patches = smoothstep(0.4, 0.75, vnoise(g * 1.3 + 7.0)) * 0.3 + smoothstep(0.45, 0.8, vnoise(g * vec2(0.6, 3.5) + 2.0)) * 0.18 + (vnoise(g * 5.0) - 0.5) * 0.12;
         float tone = max(D, 0.2) + 0.45 * turn + 0.35 * dd + patches + 0.25 * slope;
         // ripples: fine wavy bands across the wind, stronger on the lit windward side
-        float rip = sin(dot(g, vec2(26.0, 9.0)) + vnoise(g * 3.0) * 6.0) * 0.5 + 0.5;
-        tone += 0.08 * smoothstep(0.6, 1.0, rip) * (1.0 - turn);
+        // wind ripples in patches: their direction wanders, they break off, their lee side
+        // (the steep side) is the dark stroke, the windward side is left bare
+        float ra = 0.35 + 0.9 * (vnoise(g * 0.35 + 11.0) - 0.5);
+        vec2 rd = vec2(cos(ra), sin(ra));
+        float ph = dot(g, rd) * 30.0 + vnoise(g * 2.5) * 5.0;
+        float saw = fract(ph / 6.2832);
+        float lee = smoothstep(0.78, 0.9, saw) * (1.0 - smoothstep(0.9, 1.0, saw));
+        float patchR = smoothstep(0.35, 0.65, vnoise(g * 0.8 + 3.0));
+        tone += 0.16 * lee * patchR * (1.0 - turn) * smoothstep(0.004, 0.015, 0.033 / max(ps * uPx * 30.0, 1e-4) * 0.01);
+        // large-scale mottling: darker drifts of coarse sand and grit, lighter wind-scoured
+        // bands, so a lit slope is never one flat tone
+        tone += 0.14 * (fbm3(vec3(g * 1.6, 2.0)) - 0.5) + 0.1 * smoothstep(0.55, 0.8, vnoise(g * vec2(0.5, 2.8) + 8.0));
         // pebbles: jittered dots fixed to the ground, fading when smaller than a pixel
         vec2 pc = floor(g * 90.0), pf = fract(g * 90.0) - 0.5 - (vec2(hash(pc + 1.7), hash(pc + 8.1)) - 0.5) * 0.7;
         float pr = 0.09 + 0.2 * hash(pc + 3.3);
