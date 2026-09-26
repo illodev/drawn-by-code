@@ -43,6 +43,10 @@ const Terrain = (() => {
             let m = crest * Math.max(0, 1 - d * d) ** 1.2;
             // facets and gullies down the slopes
             m += (0.05 * (ridge(x * 3.2 + z * 0.6, z * 2.2) - 0.55) + 0.02 * (fbm(x * 9, z * 9) - 0.5)) * Math.min(1, m / 0.05);
+            // spurs running from the crest down towards the camera: sharp-crested ribs whose
+            // right flanks turn away from the sun (left) and hold the shade the plate shows
+            const rib = Math.pow(ridge(x * 1.5 + 0.25 * z + 3.0, z * 0.25), 3);
+            m += 0.13 * rib * Math.max(0, 1 - Math.abs(z - zc - 0.35) / 1.1) * Math.min(1, crest / 0.08);
             // loose stones
             m += 0.015 * Math.max(0, vn(x * 18, z * 18) - 0.72) * 4;
             h = Math.max(h, h + m * band);
