@@ -30,10 +30,10 @@ const PyramidFilm = (() => {
         const rel = (dx, dy, dz) => [x0 + dx, y0 + dy, f0 + dz];
         // [t, cam, target, [fov]]
         return [
-            [5.0, rel(0.07, 0.035, 0.3), rel(0, 0, 0), [0.55]],
-            [6.5, rel(0.06, 0.045, 0.38), rel(0, 0.002, 0), [0.55]],
-            [8.5, rel(0.03, 0.09, 0.62), rel(0, 0.03, -0.2), [0.58]],
-            [10.0, rel(0.0, 0.2, 1.05), rel(0, 0.05, -0.6), [0.62]],
+            [5.0, rel(0.045, 0.022, 0.19), rel(0, 0, 0), [0.55]],
+            [6.5, rel(0.04, 0.03, 0.24), rel(0, 0.002, 0), [0.55]],
+            [8.5, rel(0.01, 0.075, 0.4), rel(-0.01, 0.07, -0.2), [0.58]],
+            [10.0, rel(0.0, 0.2, 1.0), rel(0, 0.06, -0.6), [0.62]],
             [12.0, [1.7, 1.35, 3.1], [0, 0.72, 0], [0.7]],
             [13.5, [3.4, 1.9, 4.3], [0, 0.85, 0], [0.72]],
             [15.5, [3.6, 1.95, 4.1], [0, 0.85, 0], [0.72]],
@@ -50,11 +50,11 @@ const PyramidFilm = (() => {
         const dist = Math.hypot(cam[0] - target[0], cam[1] - target[1], cam[2] - target[2]);
         env.state.R.render(g, (o.plate ? 'p' : 'f') + Math.round(t * 24), {
             cam, target, fov, near: 0.01,
-            sun: [-0.45, 0.42, 0.8], sunK: 1.0, fill: 0.3,
+            sun: [-0.45, 0.42, 0.8], sunK: 0.9, fill: 0.26, ink: '#2e261d', paper: '#ebe1cb',
             draws: P.draws, lights: P.lights,
             shadow: { center: target, radius: Math.min(3.2, Math.max(1.5, dist * 0.8)) },
-            sky: { zenith: 0.62, horizon: 0.03 },
-            fog: [5, 22], spacing: 6, frame: plate,
+            sky: { zenith: 0.55, horizon: 0.3 },
+            fog: [5, 22], spacing: 2.0, edge: 0.35, frame: plate,
         });
         if (o.plate) {
             const W = env.W, H = env.H;
@@ -90,7 +90,7 @@ const PyramidFilm = (() => {
         }
     }
     function setup(env) {
-        const R = Engrave.renderer(env, { scale: 1 });
+        const R = Engrave.renderer(env, { scale: 2 });
         R.mesh('ring', Engrave.torus(0.085));
         return { R };
     }

@@ -255,7 +255,7 @@ ${COMMON}
 in vec3 vW; in vec3 vN; in vec3 vT; in vec3 vL; in vec3 vH;
 flat in float vMat; flat in float vSeed; flat in vec4 vX;
 uniform vec3 uEye, uSun, uRight;
-uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar;
+uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge;
 uniform mat4 uLVP;
 uniform sampler2DShadow uShadowMap;
 uniform vec4 uLights[8];
@@ -313,9 +313,10 @@ void main() {
     float stone = (fbm3(vW * 14.0 + vSeed * 7.0) - 0.5) * 0.18 + (vSeed - 0.5) * 0.12;
     float lum = M.x * (lam + sky) * (1.0 + stone * (m < 2 || m == 5 ? 1.0 : 0.2)) + spec + glow * 0.6;
     float D = clamp(1.0 - lum + vX.y, 0.0, 1.0);
-    D = smoothstep(0.14, 0.95, D);
+    // the plates' tone: long greys and few blacks (ink never quite closes)
+    D = 0.12 + 0.8 * smoothstep(0.05, 0.92, D);
     // cut stone always carries some line work, heavier where it is weathered
-    if (m < 2) D = max(D, 0.1 + 0.06 * vSeed + 0.22 * smoothstep(0.45, 0.8, fbm3(vW * 7.0 + vSeed * 5.0)));
+    if (m < 2) D = max(D, 0.2 + 0.06 * vSeed + 0.18 * smoothstep(0.4, 0.8, fbm3(vW * 9.0 + vSeed * 5.0)));
     float bend = 0.0;
     if (m == 5) { D = max(D, 0.13); bend = (vnoise(vW.xz * 0.45 + 3.0) * 7.0 + vnoise(vW.xz * 1.7) * 1.5) / (1.0 + 0.25 * length(uEye - vW)); }  // sand: thin lines everywhere, bending with the dunes
     // aerial perspective: the far plane is engraved lighter
@@ -334,23 +335,23 @@ void main() {
     // the first set carries the form; crossings come in thinner, only where it is dark
     // (deep shadow is heavy parallel lines with thin continuous light between them, not a
     // mesh of crossings: at video size a dense mesh reads as perforated metal)
-    cs[0] = clamp(D * 0.95, 0.0, 0.72) + 0.16 * smoothstep(0.8, 1.0, D);
-    cs[1] = clamp((D - 0.55) * 0.9, 0.0, 0.26) * (1.0 - smoothstep(0.82, 0.95, D));
+    cs[0] = clamp(D, 0.0, 0.86);
+    cs[1] = clamp((D - 0.6) * 0.6, 0.0, 0.16);
     cs[2] = 0.0;
     float cov = 0.0;
     for (int k = 0; k < 3; k++) {
         if (cs[k] < 0.035) continue;
         float along = dot(vW, k == 0 ? T : cross(N, dirs[k])) / sp;
-        float s = dot(vW, dirs[k]) / a + (vnoise(vec2(along * 0.06, float(k) * 7.0 + vSeed * 13.0)) - 0.5) * 0.5 + bend * sp / a;
-        float idx = floor(s + 0.5);
-        float odd = mod(idx, 2.0);
-        // burin lines swell and thin along their length; light lines break into flicks
-        float sw = 1.0 + (0.4 * vnoise(vec2(along * 0.12, idx * 3.1 + float(k))) - 0.2) * (1.0 - D);
-        float c = cs[k] * grow * sw;
-        c *= odd > 0.5 ? (1.0 - fr) : 1.0;
-        float flick = smoothstep(0.1, 0.4, vnoise(vec2(along * 0.15, idx * 5.7)) + D * 3.0);
-        float aa = fwidth(s) * 0.8;
-        cov = max(cov, lines(s, c, aa) * flick);
+        float s0 = dot(vW, dirs[k]) + ((vnoise(vec2(along * 0.06, float(k) * 7.0 + vSeed * 13.0)) - 0.5) * 0.2 + bend) * sp;
+        // two octaves of the same ruling (spacing a and 2a, the second's lines on the first's
+        // even ones), each drawn at the full tone and cross-faded: no alternating thick/thin
+        // lines (a barcode on small faces), the dropped lines just grow paler as they recede
+        float flick = smoothstep(0.1, 0.4, vnoise(vec2(along * 0.15, floor(s0 / a + 0.5) * 5.7)) + D * 3.0);
+        float s1 = s0 / a, s2 = s0 / (2.0 * a);
+        float sw = 1.0 + (0.2 * vnoise(vec2(along * 0.12, floor(s1 + 0.5) * 3.1 + float(k))) - 0.1) * (1.0 - D);
+        float c1 = lines(s1, cs[k] * sw, fwidth(s1) * 0.8);
+        float c2 = lines(s2, cs[k] * sw, fwidth(s2) * 0.8);
+        cov = max(cov, mix(c1, c2, fr) * flick);
     }
     float edgePx = 99.0;
     // contours: every stone's edges are cut, worn and broken a little; far stones lose them
@@ -364,11 +365,13 @@ void main() {
         float epx = max(ed - chip, 0.0) / ps / uPx;
         float blockPx = 2.0 * min(vH.x, min(vH.y, vH.z)) / ps / uPx;
         float wear = vnoise(vW.xz * 90.0 + vW.y * 60.0);
-        float w = mix(0.7, 1.5, D) * (0.7 + 0.6 * wear);
+        // edges are cut thin: in the plates form is carried by tone, not by outlines
+        float w = uEdge * mix(0.5, 1.0, D) * (0.7 + 0.6 * wear);
         float edge = 1.0 - smoothstep(w, w + 1.0, epx);
         // (full ink: a cut line is never grey; far stones lose theirs by thinning, not fading)
         edgePx = epx;
-        cov = max(cov, (1.0 - smoothstep(w * smoothstep(3.0, 9.0, blockPx), w * smoothstep(3.0, 9.0, blockPx) + 1.0, epx)) * step(3.0, blockPx));
+        float we = w * smoothstep(3.0, 9.0, blockPx);
+        cov = max(cov, (1.0 - smoothstep(we, we + 1.0, epx)) * clamp(we / 0.6, 0.0, 1.0));
     }
     // cut stone up close: pores (a jittered dot here and there, once a dot is bigger than a
     // pixel) and faces turned edge-on (joints) cut solid, not as a zebra of lines
@@ -377,9 +380,9 @@ void main() {
         vec3 off = vec3(hash3(cell + 1.7), hash3(cell + 4.1), hash3(cell + 8.3)) - 0.5;
         vec3 dv = f - off * 0.6;
         float rr = length(dv - N * dot(dv, N));
-        float pr = 0.035 + 0.05 * hash3(cell + 2.2);
+        float pr = 0.02 + 0.03 * hash3(cell + 2.2);
         float prPx = pr / 55.0 / ps / uPx;
-        float pore = step(hash3(cell + vSeed * 3.0), 0.22) * (1.0 - smoothstep(pr - 0.7 * pr / prPx, pr, rr)) * smoothstep(0.5, 1.2, prPx);
+        float pore = step(hash3(cell + vSeed * 3.0), 0.14) * (1.0 - smoothstep(pr - 0.7 * pr / prPx, pr, rr)) * smoothstep(0.5, 1.2, prPx);
         cov = max(cov, pore);
         cov = max(cov, 1.0 - smoothstep(0.1, 0.22, abs(dot(N, V))));
     }
@@ -596,6 +599,7 @@ void main() {
             gl.uniform3fv(main.u('uRight'), [view[0], view[4], view[8]]);
             gl.uniform1f(main.u('uSunK'), f.sunK ?? 0.95);
             gl.uniform1f(main.u('uFill'), f.fill ?? 0.3);
+            gl.uniform1f(main.u('uEdge'), f.edge ?? 0.35);
             gl.uniform1f(main.u('uFogNear'), f.fog?.[0] ?? 8);
             gl.uniform1f(main.u('uFogFar'), f.fog?.[1] ?? 40);
             gl.uniform3fv(main.u('uInkBlue'), hex(f.blue ?? '#2fb3cf'));

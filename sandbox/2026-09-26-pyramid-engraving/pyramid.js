@@ -17,7 +17,7 @@
 //        out along its own normal, the skin furthest (the corners open into V gaps), until
 //        13.5, when skin, shells and heart read apart; held to 15.5; the machine never stops
 const Pyramid = (() => {
-    const B = 1, HP = 1.27, NC = 18, H = HP / NC, TK = 0.12;
+    const B = 1, HP = 1.27, NC = 30, H = HP / NC, TK = 0.08;
     const SHELLS = [
         { out: 0.95, fs: 1.18, fy: 1.2, drift: 0.08 },
         { out: 0.52, fs: 1.12, fy: 1.13, drift: 0.05 },
@@ -41,32 +41,36 @@ const Pyramid = (() => {
                     let u = -len + (c % 2 ? r() * 0.05 : 0);
                     u = Math.max(u, -len);
                     while (u < len - 0.005) {
-                        const l = Math.min(0.14 + r() * 0.1, len - u);
+                        const l = Math.min(0.08 + r() * 0.08, len - u);
                         const mid = u + l / 2, d = (wo + inner) / 2;
                         const cpos = ax === 0 ? [sg * d, y, mid] : [mid, y, sg * d];
-                        const half = ax === 0 ? [(wo - inner) / 2 - 0.002, H / 2 - 0.0018, l / 2 - 0.002] : [l / 2 - 0.002, H / 2 - 0.0018, (wo - inner) / 2 - 0.002];
+                        const half = ax === 0 ? [(wo - inner) / 2 - 0.002, H / 2 - 0.0009, l / 2 - 0.002] : [l / 2 - 0.002, H / 2 - 0.0009, (wo - inner) / 2 - 0.002];
                         const n = ax === 0 ? [sg, 0, 0] : [0, 0, sg];
-                        S.push({ c: cpos, half, shell: s, n, seed: r(), drift: r(), worn: r() < 0.12 ? 1 : 0 });
+                        // hand-cut and settled: sizes, seats and faces a little off true
+                        const sh = [half[0] - r() * 0.0012, half[1] - r() * 0.0008, half[2] - r() * 0.0012];
+                        const jit = [(r() - 0.5) * 0.002, (r() - 0.5) * 0.0008, (r() - 0.5) * 0.002];
+                        const q = Engrave.quat([r() - 0.5, r() - 0.5, r() - 0.5], (r() - 0.5) * 0.025);
+                        S.push({ c: cpos.map((v, i) => v + jit[i]), half: sh, q, course: c, shell: s, n, seed: r(), drift: r(), worn: r() < 0.12 ? 1 : 0 });
                         u += l;
                     }
                 }
             }
         }
         // the first stone: skin, +z face, the sixth course, nearest x = 0.05
-        const c0 = 5, y0 = (c0 + 0.5) * H;
+        const c0 = 8, y0 = (c0 + 0.5) * H;
         let S0 = null;
-        for (const s of S) if (s.shell === 0 && s.n[2] === 1 && Math.abs(s.c[1] - y0) < 1e-6 && (!S0 || Math.abs(s.c[0] - 0.05) < Math.abs(S0.c[0] - 0.05))) S0 = s;
+        for (const s of S) if (s.shell === 0 && s.n[2] === 1 && s.course === c0 && (!S0 || Math.abs(s.c[0] - 0.05) < Math.abs(S0.c[0] - 0.05))) S0 = s;
         S0.first = true;
         // the waking zone: stones of all three shells on the +z side around and above S0
         for (const s of S) {
             const rel = s.c[0] - S0.c[0], dy = s.c[1] - S0.c[1];
             s.dist = Math.hypot(s.c[0] - S0.c[0], s.c[1] - S0.c[1], s.c[2] - S0.c[2]);
-            if (s.first || s.n[2] !== 1 || Math.abs(rel) > 0.3 || dy < -0.05 || dy > 0.42) continue;
+            if (s.first || s.n[2] !== 1 || Math.abs(rel) > 0.22 || dy < -0.03 || dy > 0.3) continue;
             const side = Math.abs(rel) < 0.02 ? (s.seed < 0.5 ? -1 : 1) : Math.sign(rel);
             s.wake = {
-                t0: 7 + dy * 3.2 + s.shell * 0.35 + Math.abs(rel) * 1.2,
-                dx: side * (0.08 + 0.04 * s.shell) * (1.15 - Math.abs(rel) / 0.35),
-                dz: 0.02 + 0.01 * s.seed,
+                t0: 7 + dy * 4.2 + s.shell * 0.35 + Math.abs(rel) * 1.6,
+                dx: side * (0.06 + 0.03 * s.shell) * (1.15 - Math.abs(rel) / 0.26),
+                dz: 0.014 + 0.008 * s.seed,
             };
         }
         return { S, S0 };
@@ -84,8 +88,8 @@ const Pyramid = (() => {
         const p = [s.c[0] * fs + nf[0] * k, s.c[1] * fy + nf[1] * k + band * 0.035 * eb, s.c[2] * fs + nf[2] * k];
         if (s.first) {
             // out a few centimetres at 6 s (slow to start, stopping with weight), aside at 8 s
-            p[2] += 0.035 * E(t, 6, 6.9);
-            p[0] -= 0.13 * E(t, 8, 8.9);
+            p[2] += 0.025 * E(t, 6, 6.9);
+            p[0] -= 0.1 * E(t, 8, 8.9);
         } else if (s.wake) {
             const o = E(t, s.wake.t0, s.wake.t0 + 0.9);
             p[0] += s.wake.dx * o;
@@ -93,12 +97,6 @@ const Pyramid = (() => {
         }
         return p;
     }
-    // normalised lerp between two quaternions (the short way)
-    const nlerp = (a, b, u) => {
-        const sg = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3] < 0 ? -1 : 1;
-        const q = a.map((x, i) => x * (1 - u) + b[i] * sg * u), l = Math.hypot(...q);
-        return q.map((x) => x / l);
-    };
     function build(t) {
         ST = ST ?? stones();
         const { S, S0 } = ST;
@@ -106,7 +104,7 @@ const Pyramid = (() => {
         const box = [], dust = [], tops = [], marks = [];
         // the ground
         Engrave.inst(box, [0, -0.5, 0], 5, [60, 0.5, 60], 0.5);
-        for (const s of S) Engrave.inst(box, place(s, t), s.worn, s.half, s.seed);
+        for (const s of S) Engrave.inst(box, place(s, t), s.worn, s.half, s.seed, s.q);
         // the capstone rides the axis
         Engrave.inst(tops, [0, HP * (1 + 0.45 * e) + H * 0.2, 0], 0, [H * 1.1, H * 1.1, H * 1.1], 0.3);
         // the first stone's joint and mark (they travel with it)
@@ -117,7 +115,7 @@ const Pyramid = (() => {
         if (mark > 0) {
             // the mark: a triangle left incomplete (its right side stops short of the apex)
             // with a V notch cut up into its base; a fictional sign, not a hieroglyph
-            const tr = 0.026, cx = p0[0], cy = p0[1] + 0.003, z = f0 + 0.0004, w = 0.0016, gl = 0.7 * mark;
+            const tr = 0.012, cx = p0[0], cy = p0[1] + 0.002, z = f0 + 0.0004, w = 0.0009, gl = 0.7 * mark;
             const bar = (x, y, len, ang) => Engrave.inst(marks, [x, y, z], 4, [w, len, 0.0008], 0.5, Engrave.quat([0, 0, 1], ang), gl);
             const a = Math.atan2(tr, tr * 1.7);   // side slope
             bar(cx - tr * 0.5, cy, tr * 0.98, -a);
@@ -131,31 +129,46 @@ const Pyramid = (() => {
         // the heart: a stepped obsidian core, blue channels along its steps, a bronze axis and
         // three gold rings turning round it; closed, it is folded small inside the chamber
         const core = [], blue = [], cyl = [], rings = [];
-        const TIERS = 7, TH = 0.08;
+        const TIERS = 6, TH = 0.05, CORE_TOP = TIERS * TH;
         for (let i = 0; i < TIERS; i++) {
-            const hw = 0.5 - i * 0.065, y = TH * (i + 0.5);
+            const hw = 0.3 - i * 0.045, y = TH * (i + 0.5);
             Engrave.inst(core, [0, y, 0], 2, [hw, TH / 2 - 0.002, hw], 0.3 + i * 0.1);
-            for (const [dx, dz, lx, lz] of [[1, 0, 0.004, hw], [-1, 0, 0.004, hw], [0, 1, hw, 0.004], [0, -1, hw, 0.004]])
-                Engrave.inst(blue, [dx * (hw + 0.004), y + TH / 2 - 0.006, dz * (hw + 0.004)], 4, [lx, 0.005, lz], 0.5, [0, 0, 0, 1], 0.6);
+            for (const [dx, dz, lx, lz] of [[1, 0, 0.003, hw], [-1, 0, 0.003, hw], [0, 1, hw, 0.003], [0, -1, hw, 0.003]])
+                Engrave.inst(blue, [dx * (hw + 0.003), y + TH / 2 - 0.005, dz * (hw + 0.003)], 4, [lx, 0.004, lz], 0.5, [0, 0, 0, 1], 0.6);
         }
-        const g = 0.45 + 0.55 * e, ah = 0.2 + 0.3 * e;
-        Engrave.inst(cyl, [0, TIERS * TH + ah, 0], 6, [0.03, ah, 0.03], 0.2);
-        // at 9 s the rings line up, concentric and facing the slot, then turn on
-        const align = E(t, 8.2, 9.0) * (1 - E(t, 9.7, 10.7));
-        const qa = Engrave.quat([1, 0, 0], Math.PI / 2);
-        const R = [[0.36, 0.8, 0.35, 0.22], [0.58, 0.64, -0.55, 0.55], [0.8, 0.46, 0.8, 0.95]];
-        R.forEach(([y, rad, sp, tilt], i) => {
-            const q0 = Engrave.qmul(Engrave.quat([0, 1, 0], t * sp + i), Engrave.quat([1, 0, 0.3], tilt));
-            const q = nlerp(q0, qa, align);
-            const yy = Ease.lerp((y + 0.1 * e * i) * (0.6 + 0.4 * e), S0.c[1] + 0.02, align);
-            Engrave.inst(rings, [0, yy, 0], 3, [rad * g, rad * g, rad * g], 0.3 + i * 0.2, q);
+        const ah = 0.25 + 0.3 * e;
+        Engrave.inst(cyl, [0, CORE_TOP + ah, 0], 6, [0.022, ah, 0.022], 0.2);
+        // the rings turn round the axis above the core; each is sized every frame to the room
+        // the chamber has at its height (the inner shell's face, moved out as the stone opens),
+        // so no ring ever cuts a stone, closed or open
+        const sh2 = SHELLS[2];
+        const room = (y) => {
+            const fy = 1 + (sh2.fy - 1) * e, fs = 1 + (sh2.fs - 1) * e;
+            return (halfAt(Math.min(y / fy + H, HP)) - 3 * TK) * fs + sh2.out * e * 0.78 - 0.035;
+        };
+        const R = [[0.36, 0.35, 0.08], [0.45, -0.55, 0.06], [0.54, 0.8, 0.05]];
+        R.forEach(([y0r, sp, tilt], i) => {
+            const y = y0r * (1 + 0.25 * e);
+            let rad = 0.3;
+            for (let k = 0; k < 4; k++) rad = Math.max(0.04, 0.92 * room(y + rad * Math.sin(tilt) + 0.02) / 1.085);
+            const q = Engrave.qmul(Engrave.quat([0, 1, 0], t * sp + i), Engrave.quat([1, 0, 0.3], tilt));
+            Engrave.inst(rings, [0, y, 0], 3, [rad, rad, rad], 0.3 + i * 0.2, q);
         });
+        // in the slot, one small ring per shell: they come out edge-on as the stones part, and
+        // at 9 s turn to face the eye, concentric, so the eye sees on through them
+        const show = E(t, 8.1, 8.6), face9 = E(t, 8.6, 9.2);
+        if (show > 0) for (let k = 0; k < 3; k++) {
+            const yy = S0.c[1] + 0.07, zz = halfAt(yy + H) - TK * (k + 0.5) + 0.012;
+            const q = Engrave.qmul(Engrave.quat([0, 1, 0], (1 - face9) * (Math.PI / 2) * (k % 2 ? 1 : -1)), Engrave.quat([1, 0, 0], Math.PI / 2));
+            const rr = 0.03 * show * (1 - 0.12 * k);
+            Engrave.inst(rings, [S0.c[0] - 0.01, yy, zz], 3, [rr, rr, rr], 0.2 + k * 0.2, q);
+        }
         // dust. S0's lower edge presses out a puff at 6 s (each grain on its own closed-form
         // fall); from 10 s grains fall from every opened joint
         const r = Motion.rng('pyramid-dust');
         for (let i = 0; i < 260; i++) {
             const t0 = 6.05 + r() * 0.5, vx = (r() - 0.5) * 0.12, vz = 0.02 + r() * 0.06, vy = r() * 0.03;
-            const x0 = (r() - 0.5) * 2 * S0.half[0], sz = 0.0005 + r() * 0.0009, sd = r();
+            const x0 = (r() - 0.5) * 2 * S0.half[0], sz = 0.00025 + r() * 0.0004, sd = r();
             const u = t - t0;
             if (u < 0 || u > 3) continue;
             const y = S0.c[1] - H / 2 + vy * u - 0.5 * 0.35 * u * u;
