@@ -227,7 +227,7 @@ const Pyramid = (() => {
         // PIR-01. The grain of sand: it falls past the face, and at 2.9 s, as the joint wakes,
         // turns aside and drifts to it, arriving as the camera closes in (4.9 s)
         const jy = S0.c[1] - H / 2, jp = [S0.c[0] + 0.02, jy, S0.c[2] + S0.half[2] + 0.004];
-        if (t > 1.6 && t < 5.2) {
+        if (!o.quiet && t > 1.6 && t < 5.2) {
             const fall = (u) => [jp[0] - 0.55 + 0.04 * u, jp[1] + 0.62 - 0.5 * 0.28 * u * u, jp[2] + 0.34];
             let g;
             if (t < 2.9) g = fall(t - 1.6);
@@ -240,7 +240,7 @@ const Pyramid = (() => {
             Engrave.inst(dust, g, 5, [0.0032, 0.0032, 0.0032], 0.4, [0, 0, 0, 1], 0, 0.75);
         }
         // the dust devil: a thin spinning column of sand crossing the foreground left to right
-        if (t < 4.2) {
+        if (!o.quiet && t < 4.2) {
             const rd = Motion.rng('pyramid-devil');
             const cx = -2.3 + t * 0.55, cz = 4.3, fade = 1 - Ease.seg(t, 3.2, 4.2);
             for (let i = 0; i < 2600; i++) {

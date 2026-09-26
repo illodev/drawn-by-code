@@ -54,6 +54,9 @@ const PyramidFilm = (() => {
     const PLATE_FILL = 1 / (PLATE[3] - PLATE[1]);            // scale at which the image fills
     function plateScale(t, o) {
         if (o.plate) return 1;
+        const u = storyTime(t);
+        // the end: the engraving draws back into its plate (story 59.0–60.4)
+        if (u > 58.9) return PLATE_FILL - (PLATE_FILL - 1) * Ease.inOut(Ease.seg(u, 59.0, 60.4));
         return 1 + (PLATE_FILL - 1) * Ease.inOut(Ease.seg(t, 1.3, 2.9));
     }
     function drawPlate(g, env, s, caption) {
@@ -106,11 +109,12 @@ const PyramidFilm = (() => {
         // there the film runs 1.6 s behind the script's timings
         const u = storyTime(t);
         // PIR-04 onwards: the gallery inside (a hidden cut through the entrance ring)
-        const apex = u >= Apex.T0;
+        const star = u >= Star.T0, apex = u >= Apex.T0 && !star;
         const inside = u >= Gallery.T0 && !apex, shaft = u >= Shaft.T0 && u < Resonance.T0, reso = u >= Resonance.T0 && u < Nursery.T0, nurse = u >= Nursery.T0 && u < Seed.T0, seed = u >= Seed.T0 && !apex;
-        const P = apex ? Apex.build(u) : seed ? Seed.build(u) : nurse ? Nursery.build(u) : reso ? Resonance.build(u) : shaft ? Shaft.build(u) : inside ? Gallery.build(u) : Pyramid.build(u);
+        const P = star ? Star.build(u) : apex ? Apex.build(u) : seed ? Seed.build(u) : nurse ? Nursery.build(u) : reso ? Resonance.build(u) : shaft ? Shaft.build(u) : inside ? Gallery.build(u) : Pyramid.build(u);
         let cam, target, fov0, up;
-        if (apex) [cam, target, [fov0]] = path(Apex.KEYS, u);
+        if (star) [cam, target, [fov0]] = path(Star.KEYS, u);
+        else if (apex) [cam, target, [fov0]] = path(Apex.KEYS, u);
         else if (seed) ({ cam, target, fov: fov0, up } = Seed.camera(u));
         else if (nurse) ({ cam, target, fov: fov0, up } = Nursery.camera(u));
         else if (reso) ({ cam, target, fov: fov0, up } = Resonance.camera(u));
@@ -128,7 +132,7 @@ const PyramidFilm = (() => {
             sun: [-0.75, 0.38, 0.55], sunK: 0.85, fill: 0.2, ink: '#2e261d', paper: '#ebe1cb',
             draws: P.draws, lights: P.lights,
             shadow: { center: target, radius: Math.min(6, Math.max(1.5, dist * 1.1)) },
-            sky: { zenith: 0.22, horizon: 0.15, dusk: 0.35 },
+            sky: { zenith: 0.22 + 0.3 * Ease.inOut(Ease.seg(u, 53, 58.5)), horizon: 0.15, dusk: 0.35 },
             fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: rect, charcoal: true,
         };
         if (inside) Object.assign(f, seed ? Seed.frameParams(u) : nurse ? Nursery.frameParams : reso ? Resonance.frameParams : shaft ? Shaft.frameParams : Gallery.frameParams);
@@ -152,8 +156,7 @@ const PyramidFilm = (() => {
         // indoors the paper's tooth is kept finer so the carved detail survives the print
         else env.state.A.apply(g, img, { ink: f.ink, paper: f.paper, charcoal: f.charcoal, grain: inside ? 0.45 : 1 });
         if (on) {
-            const open = u > 10;
-            drawPlate(g, env, s, open ? 'VUE DE LA PYRAMIDE OUVERTE, ET DE SA MACHINE, PRISE AU CRÉPUSCULE.' : 'VUE DE LA GRANDE PYRAMIDE, PRISE AU CRÉPUSCULE.');
+            drawPlate(g, env, s, u > 50 ? "VUE DE LA GRANDE PYRAMIDE ET DE L'ÉTOILE NOUVELLE, PRISE AU CRÉPUSCULE." : 'VUE DE LA GRANDE PYRAMIDE, PRISE AU CRÉPUSCULE.');
         }
     }
     function setup(env) {

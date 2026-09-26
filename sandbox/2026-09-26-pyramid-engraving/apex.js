@@ -15,7 +15,7 @@ const Apex = (() => {
     // the seed: up the axis from inside the core, out through the gap at the top, and on
     const seedAt = (u) => {
         const k1 = Ease.inOut(Ease.seg(u, 52, 55)), k2 = Ease.seg(u, 55, 57);
-        const y = 0.75 + (HP * 1.45 + 0.1 - 0.75) * k1 + (0.9 * k2 + 1.6 * k2 * k2);
+        const y = 0.75 + (HP * 1.45 + 0.1 - 0.75) * k1 + 0.45 * k2;
         return [0, y, 0];
     };
     function build(u) {
