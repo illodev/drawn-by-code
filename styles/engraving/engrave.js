@@ -400,7 +400,7 @@ void main() {
         float pyx = max(fwidth(fp.y), 1e-6) * uPx, pxx = max(fwidth(fp.x), 1e-6) * uPx;
         // far: the mosaic fades into tone; very near: one block is one stone, its own edges
         float cpx2 = ch / max(fwidth(fp.y), 1e-6) / uPx;   // along the slope (foreshortened faces too)
-        float vis = smoothstep(1.2, 3.0, min(cpx, cpx2)) * (1.0 - smoothstep(30.0, 70.0, cpx));
+        float vis = smoothstep(1.2, 3.0, min(cpx, cpx2)) * (1.0 - smoothstep(uChar > 0.5 ? 110.0 : 30.0, uChar > 0.5 ? 220.0 : 70.0, cpx));
         float st = hash(vec2(row, col) + vSeed * 17.0);   // this stone's own shade
         float lw = mix(0.3, 1.1, D) + 0.35 * st;
         float brk = step(0.3 + 0.45 * (1.0 - D), vnoise(fp / ch * vec2(2.5, 1.2) + 11.0) + 0.35 * D);
@@ -424,7 +424,7 @@ void main() {
         float weather = smoothstep(0.35, 0.8, fbm3(P * 22.0 + vSeed * 3.0));
         float gd = step(hash(gc + vSeed * 5.0), 0.05 + 0.3 * D + 0.35 * weather);
         float grain = gd * (1.0 - smoothstep(0.18, 0.3, length(gf * vec2(1.0, 1.0 + 2.0 * hash(gc))))) * smoothstep(1.5, 3.0, gpx);
-        cov = max(cov, grain * (1.0 - vis));
+        cov = max(cov, grain * (1.0 - vis) * (uChar > 0.5 ? 0.3 : 1.0));   // charcoal: pits are soft grey, not ink
     }
     // contours: every stone's edges are cut, worn and broken a little; far stones lose them
     if (uBox > 0.5) {
@@ -498,6 +498,7 @@ void main() {
     // a band of bare paper at the horizon, then the ruling darkens quickly to the zenith tone
     float D = mix(uHorizon, uZenith, smoothstep(0.005, 0.3, el));
     D = max(D, 0.2 * smoothstep(0.01, 0.05, el));
+    if (uChar > 0.5) D = mix(uHorizon, uZenith, smoothstep(-0.02, 0.35, el));   // charcoal: a rubbed sky, no bare band
     D *= 0.85 + 0.15 * vnoise(gl_FragCoord.xy / uPx * vec2(0.002, 0.02));
     // ruled sky: straight horizontal lines, thicker as the sky darkens
     float s = gl_FragCoord.y / (uSpacing * 0.8 * uPx);
