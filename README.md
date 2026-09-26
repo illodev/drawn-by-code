@@ -110,6 +110,8 @@ to see its strip, files and the videos made with it.
 | [clay3d](styles/clay3d/) | 3D plasticine puppets, raymarched, studio light | in testing |
 | [risograph](styles/risograph/) | four spot inks, halftone, overprints, misregistration | approved |
 | [pixel-art](styles/pixel-art/) | crisp pixels on a low-res grid, sprite maps, 10 fps loops | in testing |
+| [felt3d](styles/felt3d/) | needle-felted wool puppets, raymarched, over any backdrop | in testing |
+| [engraving](styles/engraving/) | a plate of the «Description de l'Égypte»: charcoal, aged print, temple reliefs | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 

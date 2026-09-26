@@ -1,13 +1,14 @@
 ---
 name: style-engraving
-description: Engraving style (in testing): 3D scenes printed as a 19th-century copperplate engraving, like the plates of the «Description de l'Égypte» — tone made only of burin lines, a ruled sky, laid paper with foxing, one or two second inks (live blue, a gold wash). Instanced WebGL, so thousands of pieces are cheap. Use it for architecture, machines, archaeology, exploded views, scientific plates, or when working with styles/engraving/.
+description: Engraving style (in testing): 3D scenes drawn as a plate of the «Description de l'Égypte» — charcoal tone on toothed paper, masonry drawn stone by stone, temple walls in low relief (registers of offering scenes, Hathor capitals, starred ceilings), an aged print measured on the originals, one live blue and a gold wash as second inks. Instanced WebGL, so thousands of pieces are cheap. Use it for architecture, archaeology, temples, machines, exploded views, scientific plates, or when working with styles/engraving/.
 ---
 
 # Style · Engraving
 
-Reference in testing: `sandbox/2026-09-26-pyramid-engraving/` (the pyramid that makes skies,
-5–17 s: the waking joint and the exploded view). References the user chose: the plates of
-Vol. V of the «Description de l'Égypte» (Pl. 9, 11, 13, 14 — Wikimedia Commons, NYPL).
+Reference in testing: `sandbox/2026-09-26-pyramid-engraving/` («The pyramid that makes skies»,
+63.6 s, ten shots from the desert to a sky inside a seed). References the user chose: the
+plates of the «Description de l'Égypte»: Vol. V (Giza, Pl. 9, 11, 13, 14) for the outside,
+Vol. IV (Dendera, Pl. 17, 25, 30) for walls, friezes and interiors (Wikimedia Commons, NYPL).
 
 ## Code
 
@@ -48,31 +49,60 @@ R.layer(key, f), { ink, paper, charcoal: true })` to paint. What makes it:
 Calibrate against the plate with `sandbox/2026-09-26-pyramid-engraving/plate-test.js`
 (one smooth pyramid from afar) before touching a scene.
 
+## Interiors (the temple)
+
+Draw flag and frame field for a room inside: `interior: true` in the frame. Then:
+
+- **Walls are one dressed surface, not stones.** A tall box (`vH.y > 0.6`) or a column
+  (`cylinder` with `tan: 'y'`) inside is decorated by `templeWall()` in the shader, after
+  Dendera: a plain dado; three registers of offering scenes in low relief (a standing
+  figure offering to a seated one, two standing face to face, a kneeling one with a bowl,
+  a seated one with an attendant, or an inscription panel), panels of varying width,
+  mirrored at random, sign columns between them and short sign columns above the figures;
+  a frieze of uprights, a torus bound with a spiral band, a fluted cavetto cornice. The
+  raised field is dressed lighter, its edge a clear line; worn in patches.
+- **Signs are invented** (`glyphSign`, 16 of them: ring, notched triangle, staff, water, eye,
+  comb, stepped mound, serpent, lotus, bird, rayed disc, crescent, seated figure, zigzag,
+  shrine, beetle), combined in pairs per cell so they do not repeat. Never real hieroglyphs.
+  The little creature (`sdCritter`) appears rarely, and once in a worn cartouche.
+- **Hathor capitals:** a box draw with `hathor: true` carries her face on four sides (wig
+  lappets, cow's ears, the shrine above). Columns: shaft, plinth, flared `capital`, the
+  Hathor block, abacus, beams.
+- **Ceilings** carry five-pointed stars in relief between beams.
+- **Floors**: flagstones with dust drifted against walls, stains, grit, chips; loose stones
+  (`rock`) and furniture from the scene's `props.js` (offering tables with loaves and a jar,
+  jars on stands, seated statues on bases, rubble).
+- The paper's tooth is finer indoors (`grain: 0.45` in the ager), or the carving drowns.
+- Light comes in as the story needs (slits with dust motes in the beams: bias −1 prints a
+  mote as bare paper; a shaft lit from above); `fill ≈ 0.4` so shade stays drawn.
+
+A night sky (inside the seed): `sky` above 1 (a dark rubbed ground), stars as `sphere`
+instances with bias −1 (bare paper), sizes small and many (thousands), an engraved star as
+four long and four short thin rays.
+
 ## Style rules
 
-- **Tone is line width, never grey.** Lit stone keeps a few hairlines; shade thickens one
-  set of parallel lines; a second, thinner crossing set only in the half-dark; deep shadow
-  is heavy parallel lines with thin continuous light between (a dense mesh of crossings
-  reads as perforated metal at video size).
-- **Lines are fixed to the surface** and follow it (courses horizontal on walls, along a
-  cylinder, round a ring), at a constant spacing on screen: they never swim over the
-  object when the camera moves. Only the sky and the paper are fixed to the frame.
-- **Cut lines are full ink.** Every stone's edge is a line; far stones lose it by thinning,
-  never by turning grey. Joints seen edge-on are cut solid.
-- **Colour is a second ink:** live blue prints solid (outlined) and tints the stone lines
-  near it; gold is a wash under the dark lines, as on a hand-coloured plate. Three
-  quarters of the frame stay ink on paper.
-- The sky is ruled (straight horizontal lines, darker to the zenith); a band of bare paper
-  at the horizon; the desert is thin lines everywhere bending with the dunes, lighter with
-  distance.
-- Dust and pores are stipple (solid dots), never tiny shaded cubes.
+- **Tone is graphite on toothed paper,** never a flat grey: laid in short diagonal strokes,
+  catching on the tooth only in the half-tones. Drawn marks (joints, relief edges, signs)
+  stay crisp lines.
+- **Outside, stone is a mosaic of small hand-cut stones** in courses; up close each block
+  is still drawn (grain, pits). Inside, walls are dressed and decorated (above).
+- **Textures belong to the piece** (`vQ`, the piece's own space): they never swim when the
+  piece or the camera moves. Round pieces measure arc length, not a dot product.
+- **Colour is a second ink:** live blue on what is alive (channels, marks, the seed), gold as
+  a wash on metal; three quarters of the frame stay ink on paper.
+- **The ground is drawn:** dunes everywhere with lee slopes in shade, patchy wind ripples
+  (dark lee strokes), mottling, pebbles; no flat patch next to a busy one.
+- Dust, pores, pebbles and stars are stipple; motes in light are bare paper.
+- Nothing crosses stone: rings are sized to the room they turn in, slabs keep their gaps.
 
 ## Style checklist
 
-- [ ] No flat grey anywhere at full size (crop edges, shadows, rings, glow).
-- [ ] No band where the line density jumps (level changes fade their odd lines out).
-- [ ] Close-ups: pores, chipped edges, joints; shadows sharp (shadow radius follows).
-- [ ] Round things carry lines in their direction and an outline.
+- [ ] Side by side with the plate at the same size: tones measured, not guessed.
+- [ ] No flat grey at full size (walls in light, shaded faces, metal, sand).
+- [ ] Walls inside: registers readable but not shouting; no two neighbouring panels alike.
+- [ ] Every room furnished and dirty (tables, jars, statues, rubble, dust at the walls).
+- [ ] Nothing in the foreground covering half the frame by accident (rings, mounds, blocks).
 - [ ] Blue only on what is alive; gold only on metal.
 
 ## Lessons
@@ -93,3 +123,11 @@ Calibrate against the plate with `sandbox/2026-09-26-pyramid-engraving/plate-tes
 - 2026-09-26 · pyramid-engraving · The colour of «old» is measured, not guessed: a gradient
   map from the plates' own pixels (their paper is greyish, not cream) did more than any
   sepia tint.
+- 2026-09-26 · pyramid-engraving · «The walls don't look Egyptian»: the fix came from the
+  plates themselves (Dendera): smooth dressed walls filled edge to edge with registers, not
+  stones with a few signs. Download the references first and copy their structure.
+- 2026-09-26 · pyramid-engraving · «The glyphs repeat»: one sign per cell from a fixed grid
+  repeats visibly; vary the panel widths, the composition per panel, pair signs per cell and
+  offset each wall.
+- 2026-09-26 · pyramid-engraving · A low camera on a lit foreground mound flattens the whole
+  frame; look over the dunes so their lit and shaded sides read.

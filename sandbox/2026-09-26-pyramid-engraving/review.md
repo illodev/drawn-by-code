@@ -36,3 +36,34 @@ Fixed before rendering the sequence:
 - Dust as tiny hatched cubes → stipple spheres, solid.
 - The mark read as a warning sign (a bar in the middle) → an incomplete triangle with a V
   notch in its base.
+
+## Round 2 · «It still doesn't look like the plates»
+
+The user: «demasiado 3D y no tanto como esto que me enseñaste», and the rings cut through
+stones. Three passes of tone and line work did not get there; putting a crop of plate 11
+beside our render at the same size did: the plates draw a face as a mosaic of tiny stones,
+not ruled lines. Built the masonry mosaic, the slabs (each face opens in panels of many
+drawn stones), an aged-print filter measured on the plates (their paper is greyish, not
+cream), then — the user's idea — charcoal: «¡Lo has clavado!». Rings are now sized every
+frame to the room they turn in.
+
+## Round 3 · the whole film, shot by shot (stills only)
+
+- PIR-01: the plate opens the film and the camera goes into the engraving; the ground after
+  plate 11 (dunes everywhere, spoil mounds with a broken crest, no terraces: «demasiado
+  artificial»), side sun, shade and dirt on the dunes; signature «illodev x Claude sculp.».
+- PIR-04 gallery, PIR-05 gravity shaft, PIR-06 resonance chamber (rooms at 1, 3, 9), PIR-07
+  nursery, PIR-08 the sky inside the seed, PIR-09 the stone goes back, PIR-10 one more star
+  and the closing plate.
+- Interiors after the user's notes: «parecen ladrillos de casa», «los jeroglíficos se notan
+  demasiado / son muy simples y repetidos», «las paredes deberían ser lisas… rellenas de
+  motivos y secciones», «hace falta mucho detalle, ambientación»: Dendera walls (registers,
+  frieze, torus, cornice), 16 invented signs in pairs, five scene compositions, Hathor
+  capitals, starred ceilings, furniture and rubble, a finer paper tooth indoors.
+- The creature as a sign: the user asked for it («ponerte a ti como jeroglífico»), then
+  «demasiado visibles»: now rare in the registers and worn in its cartouche.
+- The last shot's ground «no tan currado»: patchy ripples, mottling, a camera over the dunes.
+
+Still open (next rounds): the seed's close-up tint, the joint's last blue answer, the
+capstone's size, banding in the seed's sky, the shaft's underside walkway, figures still
+schematic up close, the cut from the nursery to the outside.

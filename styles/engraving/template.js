@@ -1,5 +1,5 @@
 // Engraving style template: a small stepped temple of cut stones on the desert, a gold ring
-// turning above it round a blue live core; the camera drifts. Ink on laid paper.
+// turning above it round a blue live core; the camera drifts. Charcoal on an aged plate.
 Motion.scene({
     fps: 24,
     duration: 3,
@@ -7,7 +7,7 @@ Motion.scene({
     uses: ['styles/engraving/engrave.js'],
     shots: [[0, 3, 'Template']],
     setup(env) {
-        const R = Engrave.renderer(env);
+        const R = Engrave.renderer(env, { scale: 2 });
         R.mesh('ring', Engrave.torus(0.08));
         const r = Motion.rng('template-stones'), stones = [];
         for (let c = 0; c < 6; c++) {
@@ -22,17 +22,17 @@ Motion.scene({
                 }
             }
         }
-        return { R, stones };
+        return { R, A: Engrave.ager(env), stones };
     },
     draw(g, t, env) {
-        const { R, stones } = env.state;
+        const { R, A, stones } = env.state;
         const box = [], ring = [], core = [];
         Engrave.inst(box, [0, -0.5, 0], 5, [40, 0.5, 40], 0.5);
         for (const [c, m, h, s] of stones) Engrave.inst(box, c, m, h, s);
         Engrave.inst(core, [0, 0.35, 0], 4, [0.06, 0.3, 0.06], 0.5, [0, 0, 0, 1], 0.6);
         Engrave.inst(ring, [0, 0.95, 0], 3, [0.45, 0.45, 0.45], 0.4, Engrave.qmul(Engrave.quat([0, 1, 0], t * 0.8), Engrave.quat([1, 0, 0], 0.5)));
         const a = 0.7 + t * 0.08;
-        R.render(g, 'f' + Math.round(t * 24), {
+        const f = {
             cam: [Math.sin(a) * 2.6, 1.3, Math.cos(a) * 2.6], target: [0, 0.45, 0], fov: 0.7,
             sun: [-0.45, 0.42, 0.8], fill: 0.3, shadow: { center: [0, 0.4, 0], radius: 1.6 },
             draws: [
@@ -41,6 +41,8 @@ Motion.scene({
                 { mesh: 'ring', inst: new Float32Array(ring) },
             ],
             lights: [[0, 0.4, 0, 0, 0.6]],
-        });
+            charcoal: true, course: 0.012, ink: '#2e261d', paper: '#ebe1cb',
+        };
+        A.apply(g, R.layer('f' + Math.round(t * 24), f), { ink: f.ink, paper: f.paper, charcoal: true });
     },
 });
