@@ -165,7 +165,7 @@ const Engrave = (() => {
 
     // a field stone: a sphere pushed in and out by a few smooth bumps (seeded)
     function rock(seed = 1) {
-        const m = sphere(28, 16), r = Motion.rng('rock-' + seed);
+        const m = sphere(9, 6), r = Motion.rng('rock-' + seed);
         const bumps = Array.from({ length: 7 }, () => [norm([r() - 0.5, r() - 0.5, r() - 0.5]), (r() - 0.5) * 0.5]);
         for (let i = 0; i < m.P.length; i += 6) {
             const n = [m.P[i], m.P[i + 1], m.P[i + 2]];
@@ -481,6 +481,26 @@ void main() {
         cov = max(cov, 1.0 - smoothstep(0.1, 0.22, abs(dot(N, V))));
     }
     if (m == 5 && vH.x < 0.02) cov = uChar > 0.5 ? 0.45 + 0.4 * vSeed : 1.0;   // dust: stipple (soft grey specks in charcoal)
+    // ground (the terrain instance): shade and dirt. Charcoal pushes the dune's turned-away
+    // slopes into real shadow; then what a desert floor carries: pebbles (stipple, denser in
+    // hollows), darker drifts and wind streaks, grit scuffed into the lee sides, ripples
+    if (m == 5 && vH.x > 0.5 && uChar > 0.5) {
+        vec2 g = vW.xz;
+        float slope = 1.0 - N.y;
+        float turn = clamp(-dot(N, uSun) * 2.0 + 0.3, 0.0, 1.0) * (1.0 - sh * 0.5);   // lee, unlit
+        float dd = 1.0 - sh;                                                            // cast shadow
+        float patches = smoothstep(0.4, 0.75, vnoise(g * 1.3 + 7.0)) * 0.3 + smoothstep(0.45, 0.8, vnoise(g * vec2(0.6, 3.5) + 2.0)) * 0.18 + (vnoise(g * 5.0) - 0.5) * 0.12;
+        float tone = max(D, 0.2) + 0.45 * turn + 0.35 * dd + patches + 0.25 * slope;
+        // ripples: fine wavy bands across the wind, stronger on the lit windward side
+        float rip = sin(dot(g, vec2(26.0, 9.0)) + vnoise(g * 3.0) * 6.0) * 0.5 + 0.5;
+        tone += 0.08 * smoothstep(0.6, 1.0, rip) * (1.0 - turn);
+        // pebbles: jittered dots fixed to the ground, fading when smaller than a pixel
+        vec2 pc = floor(g * 90.0), pf = fract(g * 90.0) - 0.5 - (vec2(hash(pc + 1.7), hash(pc + 8.1)) - 0.5) * 0.7;
+        float pr = 0.09 + 0.2 * hash(pc + 3.3);
+        float dens = 0.08 + 0.2 * smoothstep(0.4, 0.8, vnoise(g * 0.9 + 1.0)) + 0.1 * turn;
+        float peb = step(hash(pc), dens) * (1.0 - smoothstep(pr * 0.7, pr, length(pf))) * smoothstep(0.6, 1.5, pr / 90.0 / ps / uPx);
+        cov = max(clamp(tone, 0.0, 0.95) * 0.92, peb * 0.85);
+    }
     // round things have no edges to cut: their outline is drawn where they turn away
     // (not on ground: seen low, a whole desert is at a grazing angle)
     if (uBox < 0.5 && m != 5 && uMason < 0.5) {

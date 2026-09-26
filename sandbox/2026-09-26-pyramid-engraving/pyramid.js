@@ -252,6 +252,14 @@ const Pyramid = (() => {
         const rockG = [], sandG = [];
         Engrave.inst(rockG, [0, 0, 0], 1, [1, 1, 1], 0.37);
         Engrave.inst(sandG, [0, 0, 0], 5, [1, 1, 1], 0.61);
+        // loose stones half sunk in the sand, thicker on the spoil mounds in front
+        const stones = [];
+        const rs2 = Motion.rng('pyramid-loose');
+        for (let i = 0; i < 160; i++) {
+            const x = (rs2() - 0.5) * 6, z = 1.9 + rs2() * 3.6, sz = 0.005 + Math.pow(rs2(), 4) * 0.035;
+            if (Math.max(Math.abs(x), Math.abs(z)) < 1.25) continue;
+            Engrave.inst(stones, [x, Terrain.height(x, z) + sz * 0.25, z], 1, [sz * (0.8 + rs2() * 0.6), sz * 0.6, sz * (0.8 + rs2() * 0.6)], rs2(), Engrave.quat([rs2() - 0.5, 1, rs2() - 0.5], rs2() * 6));
+        }
         const draws = [
             { mesh: 'box', inst: new Float32Array(box), box: true },
             { mesh: 'pyramid', inst: new Float32Array(tops) },
@@ -263,6 +271,7 @@ const Pyramid = (() => {
             { mesh: 'sphere', inst: new Float32Array(dust), cast: false },
             { mesh: 'terrain-rock', inst: new Float32Array(sandG) },
             { mesh: 'terrain-sand', inst: new Float32Array(sandG) },
+            { mesh: 'rock', inst: new Float32Array(stones) },
         ];
         // the machine's light shows once the slot opens; the mark lights its own stone
         const inner = Math.max(e, 0.35 * E(t, 7.2, 9));

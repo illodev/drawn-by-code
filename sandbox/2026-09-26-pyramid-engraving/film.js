@@ -58,7 +58,7 @@ const PyramidFilm = (() => {
             cam, target, fov, near: 0.01,
             sun: [-0.75, 0.38, 0.55], sunK: 0.85, fill: 0.2, ink: '#2e261d', paper: '#ebe1cb',
             draws: P.draws, lights: P.lights,
-            shadow: { center: target, radius: Math.min(3.2, Math.max(1.5, dist * 0.8)) },
+            shadow: { center: target, radius: Math.min(6, Math.max(1.5, dist * 1.1)) },
             sky: { zenith: 0.22, horizon: 0.15, dusk: 0.35 },
             fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: plate, charcoal: true,
         };
@@ -105,6 +105,7 @@ const PyramidFilm = (() => {
         const T = Terrain.meshes();
         R.mesh('terrain-rock', T.rock);
         R.mesh('terrain-sand', T.sand);
+        R.mesh('rock', Engrave.rock(7));
         return { R, A: Engrave.ager(env) };
     }
     return { frame, setup };
