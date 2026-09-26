@@ -172,7 +172,7 @@ vec2 headSDF(vec3 q, int c, int o, float base) {
     if (c == 1) {
         // the cowboy hat: felt crown with a pinched top, a brim curled up at the sides
         // the hat is big on this kitten (measured: the brim 1.9× the head's width)
-        vec3 h = (q - vec3(0.0, 0.118, -0.01)) / 1.28;
+        vec3 h = (q - vec3(0.0, 0.118, -0.01)) / 1.12;
         h.yz = rot(0.14) * h.yz;
         // cattleman crown: an oval dome, a lengthwise crease on top, two pinches at the front
         float crown = sdEllipsoid(h - vec3(0.0, 0.075, 0.0), vec3(0.112, 0.13, 0.118));
@@ -184,11 +184,11 @@ vec2 headSDF(vec3 q, int c, int o, float base) {
         vec3 bq = vec3(abs(h.x) - 0.07, h.y, h.z);
         bq.xy = rot(0.36 * smoothstep(0.0, 0.12, bq.x)) * bq.xy;
         float brim = sdEllipsoid(bq + vec3(0.07, 0.0, 0.0), vec3(0.265, 0.011, 0.235));
-        float hat = (min(crown, brim) + lumps(h, 0.002)) * 1.28;
+        float hat = (min(crown, brim) + lumps(h, 0.002)) * 1.12;
         r = opU(r, vec2(hat, base + 4.0));
         float band = max(abs(sdEllipsoid(h - vec3(0.0, 0.07, 0.0), vec3(0.127, 0.102, 0.117))) - 0.003, abs(h.y - 0.028) - 0.011);
         band = min(band, sdCappedCylinder(h, vec3(0.0, 0.028, 0.112), vec3(0.0, 0.028, 0.123), 0.017));
-        r = opU(r, vec2(band * 1.28, base + 5.0));
+        r = opU(r, vec2(band * 1.12, base + 5.0));
     }
     if (c == 2) {
         // round wire glasses on the nose
