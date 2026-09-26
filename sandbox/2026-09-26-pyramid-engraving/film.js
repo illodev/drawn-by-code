@@ -106,10 +106,12 @@ const PyramidFilm = (() => {
         // there the film runs 1.6 s behind the script's timings
         const u = storyTime(t);
         // PIR-04 onwards: the gallery inside (a hidden cut through the entrance ring)
-        const inside = u >= Gallery.T0, shaft = u >= Shaft.T0 && u < Resonance.T0, reso = u >= Resonance.T0 && u < Nursery.T0, nurse = u >= Nursery.T0 && u < Seed.T0, seed = u >= Seed.T0;
-        const P = seed ? Seed.build(u) : nurse ? Nursery.build(u) : reso ? Resonance.build(u) : shaft ? Shaft.build(u) : inside ? Gallery.build(u) : Pyramid.build(u);
+        const apex = u >= Apex.T0;
+        const inside = u >= Gallery.T0 && !apex, shaft = u >= Shaft.T0 && u < Resonance.T0, reso = u >= Resonance.T0 && u < Nursery.T0, nurse = u >= Nursery.T0 && u < Seed.T0, seed = u >= Seed.T0 && !apex;
+        const P = apex ? Apex.build(u) : seed ? Seed.build(u) : nurse ? Nursery.build(u) : reso ? Resonance.build(u) : shaft ? Shaft.build(u) : inside ? Gallery.build(u) : Pyramid.build(u);
         let cam, target, fov0, up;
-        if (seed) ({ cam, target, fov: fov0, up } = Seed.camera(u));
+        if (apex) [cam, target, [fov0]] = path(Apex.KEYS, u);
+        else if (seed) ({ cam, target, fov: fov0, up } = Seed.camera(u));
         else if (nurse) ({ cam, target, fov: fov0, up } = Nursery.camera(u));
         else if (reso) ({ cam, target, fov: fov0, up } = Resonance.camera(u));
         else if (shaft) ({ cam, target, fov: fov0, up } = Shaft.camera(u));

@@ -136,16 +136,18 @@ const Pyramid = (() => {
         }
         return p;
     }
-    function build(t) {
+    // o.stoneT(s): a stone's own time (closing, PIR-09, replays each stone's opening backwards);
+    // o.e: openness of the capstone and the machine
+    function build(t, o = {}) {
         ST = ST ?? stones();
         const { S, S0 } = ST;
-        const e = E(t, 10.5, 13.5);
+        const e = o.e ?? E(t, 10.5, 13.5);
         const box = [], dust = [], tops = [], marks = [];
-        for (const s of S) Engrave.inst(box, place(s, t), s.worn, s.half, s.seed, s.qt);
+        for (const s of S) Engrave.inst(box, place(s, o.stoneT ? o.stoneT(s) : t), s.worn, s.half, s.seed, s.qt);
         // the capstone rides the axis
         Engrave.inst(tops, [0, HP * (1 + 0.45 * e) + H * 0.2, 0], 0, [H * 1.1, H * 1.1, H * 1.1], 0.3);
         // the first stone's joint and mark (they travel with it)
-        const p0 = place(S0, t), f0 = p0[2] + S0.half[2];
+        const p0 = place(S0, o.stoneT ? o.stoneT(S0) : t), f0 = p0[2] + S0.half[2];
         const joint = Math.max(0.3 * E(t, 2.4, 3.2), E(t, 4.6, 5.6)), mark = E(t, 5.3, 6.1);
         const jointGlow = 0.6 * (0.35 + 0.65 * E(t, 4.4, 5.4));
         // the joint line glows from inside the joint, thin
@@ -282,5 +284,5 @@ const Pyramid = (() => {
         ];
         return { draws, lights, stones: S.length, S0: p0, S0face: f0 };
     }
-    return { build, B, HP, H, S0: () => (ST = ST ?? stones()).S0 };
+    return { build, B, HP, H, S0: () => (ST = ST ?? stones()).S0, all: () => (ST = ST ?? stones()).S };
 })();
