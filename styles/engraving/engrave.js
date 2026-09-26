@@ -383,6 +383,7 @@ void main() {
     D = 0.12 + 0.8 * smoothstep(0.05, 0.92, D);
     // cut stone always carries some line work, heavier where it is weathered
     if (m < 2) D = max(D, 0.12 + 0.05 * vSeed + 0.14 * smoothstep(0.4, 0.8, fbm3(P * 9.0 + vSeed * 5.0)));
+    if (m < 2 && uInterior > 0.5) D = max(D, 0.34 + 0.08 * vSeed);     // indoors even sunlit stone is drawn, never bare paper
     if (m == 3 || m == 6) D = max(D, 0.45);          // metal is engraved too: its form in lines under the wash
     float bend = 0.0;
     if (m == 5) { D = max(D, 0.13); bend = (vnoise(vW.xz * 0.45 + 3.0) * 7.0 + vnoise(vW.xz * 1.7) * 1.5) / (1.0 + 0.25 * length(uEye - vW)); }  // sand: thin lines everywhere, bending with the dunes
@@ -451,7 +452,7 @@ void main() {
         cov *= uChar > 0.5 ? 0.8 : 0.45;
         float ch = uCourse;
         vec2 fp = (abs(Nl.y) > 0.7 ? vec2(dot(P, Tl), dot(P, Bl)) : vec2(dot(P, Tl), P.y)) + vSeed * vec2(3.71, 1.13);
-        fp += (vec2(vnoise(fp / ch * 1.7), vnoise(fp.yx / ch * 1.7 + 5.0)) - 0.5) * ch * 0.22;
+        fp += (vec2(vnoise(fp / ch * 1.7), vnoise(fp.yx / ch * 1.7 + 5.0)) - 0.5) * ch * (uInterior > 0.5 ? 0.07 : 0.22);   // dressed stone indoors: straighter joints
         float row = floor(fp.y / ch), fy = fp.y / ch - row;
         float w = ch * (1.6 + 1.4 * hash(vec2(row, 3.0)));
         float ux = fp.x / w + hash(vec2(row, 7.0)) * 3.0;
@@ -466,6 +467,7 @@ void main() {
         float st = hash(vec2(row, col) + vSeed * 17.0);   // this stone's own shade
         float lw = mix(0.3, 1.1, D) + 0.35 * st;
         float brk = step(0.3 + 0.45 * (1.0 - D), vnoise(fp / ch * vec2(2.5, 1.2) + 11.0) + 0.35 * D);
+        if (uInterior > 0.5) brk = max(brk, step(0.12, vnoise(fp / ch * vec2(1.2, 0.6) + 23.0)));   // indoors: joints mostly continuous (dressed masonry)
         float jy = 1.0 - smoothstep(lw, lw + 0.9, dy / pyx);
         float jx = (1.0 - smoothstep(lw * 0.9, lw * 0.9 + 0.9, dx / pxx)) * step(0.15, fy) * step(fy, 0.85);
         float marks = max(jy * max(brk, D), jx * brk) * vis;
