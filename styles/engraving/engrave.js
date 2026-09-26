@@ -262,7 +262,7 @@ ${COMMON}
 in vec3 vW; in vec3 vN; in vec3 vT; in vec3 vL; in vec3 vH; in vec3 vQ; in vec3 vNL; in vec3 vTL;
 flat in float vMat; flat in float vSeed; flat in vec4 vX;
 uniform vec3 uEye, uSun, uRight;
-uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason, uTan;
+uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason, uTan, uChar;
 uniform mat4 uLVP;
 uniform sampler2DShadow uShadowMap;
 uniform vec4 uLights[8];
@@ -352,7 +352,10 @@ void main() {
     cs[1] = clamp((D - 0.6) * 0.6, 0.0, 0.16);
     cs[2] = 0.0;
     if (uBox < 0.5 && uTan > 0.5) { cs[1] = 0.0; cs[2] = 0.0; }   // one ruling on round things
-    float cov = 0.0;
+    // charcoal: no ruled lines, the tone itself (the print filter lays it down as graphite on
+    // the paper's tooth, in strokes); drawn marks (joints, edges) stay as pencil lines
+    if (uChar > 0.5) { cs[0] = 0.0; cs[1] = 0.0; cs[2] = 0.0; }
+    float cov = uChar > 0.5 ? D * 0.92 : 0.0;
     for (int k = 0; k < 3; k++) {
         if (cs[k] < 0.035) continue;
         float along = dot(P, k == 0 ? Tl : cross(Nl, dirs[k])) / sp;
@@ -383,7 +386,7 @@ void main() {
     // courses, each outlined by a broken, wobbling burin line (heavier in shade), the darker
     // stones carrying a few short dashes; over it, in shade, a continuous etched tone
     if (m < 2 && (uBox > 0.5 || uMason > 0.5)) {
-        cov *= 0.45;
+        cov *= uChar > 0.5 ? 0.8 : 0.45;
         float ch = uCourse;
         vec2 fp = (abs(Nl.y) > 0.7 ? vec2(dot(P, Tl), dot(P, Bl)) : vec2(dot(P, Tl), P.y)) + vSeed * vec2(3.71, 1.13);
         fp += (vec2(vnoise(fp / ch * 1.7), vnoise(fp.yx / ch * 1.7 + 5.0)) - 0.5) * ch * 0.22;
@@ -485,7 +488,7 @@ precision highp float;
 ${COMMON}
 uniform mat4 uInvVP;
 uniform vec3 uEye, uInk;
-uniform float uZenith, uHorizon, uSpacing;
+uniform float uZenith, uHorizon, uSpacing, uChar;
 out vec4 o;
 void main() {
     vec2 ndc = gl_FragCoord.xy / uRes * 2.0 - 1.0;
@@ -499,6 +502,7 @@ void main() {
     // ruled sky: straight horizontal lines, thicker as the sky darkens
     float s = gl_FragCoord.y / (uSpacing * 0.8 * uPx);
     float cov = lines(s, clamp(D * 1.1, 0.0, 0.7), fwidth(s) * 0.8);
+    if (uChar > 0.5) cov = D * 0.8;
     if (D < 0.03) cov = 0.0;
     o = vec4(print(gl_FragCoord.xy, cov, vec4(0.0), uInk), 1.0);
 }
@@ -656,6 +660,7 @@ void main() {
             gl.uniformMatrix4fv(skyP.u('uInvVP'), false, M4.inv(VP));
             gl.uniform1f(skyP.u('uZenith'), f.sky?.zenith ?? 0.45);
             gl.uniform1f(skyP.u('uHorizon'), f.sky?.horizon ?? 0.05);
+            gl.uniform1f(skyP.u('uChar'), f.charcoal ? 1 : 0);
             gl.bindVertexArray(tri);
             gl.drawArrays(gl.TRIANGLES, 0, 3);
             gl.depthMask(true);
@@ -670,6 +675,7 @@ void main() {
             gl.uniform1f(main.u('uFill'), f.fill ?? 0.3);
             gl.uniform1f(main.u('uEdge'), f.edge ?? 0.35);
             gl.uniform1f(main.u('uCourse'), f.course ?? 0.012);
+            gl.uniform1f(main.u('uChar'), f.charcoal ? 1 : 0);
             gl.uniform1f(main.u('uFogNear'), f.fog?.[0] ?? 8);
             gl.uniform1f(main.u('uFogFar'), f.fog?.[1] ?? 40);
             gl.uniform3fv(main.u('uInkBlue'), hex(f.blue ?? '#2fb3cf'));
@@ -717,7 +723,7 @@ void main() {
 precision highp float;
 uniform sampler2D uSrc;
 uniform vec2 uRes, uSrcRes;
-uniform float uPx, uAmt;
+uniform float uPx, uAmt, uChar;
 uniform vec3 uInk0, uPaper0;
 uniform float uCurve[17];
 uniform vec3 uGrad[17];
@@ -742,9 +748,35 @@ void main() {
     c = mix(c, min(c, blur), 0.35 * uAmt);                // ink spreads (darkens into light)
     c = mix(c, blur, 0.25 * uAmt);
     float L = dot(c, vec3(0.299, 0.587, 0.114));
+    vec3 c0 = c;
+    if (uChar > 0.5) {
+        // charcoal / graphite on toothed paper: the tone is smudged a little, then laid in
+        // short parallel strokes on a diagonal (each patch of strokes its own angle and
+        // pressure), and it only catches on the tooth's peaks in the half-tones, so light
+        // areas speckle and darks fill in; dark contours stay crisp pencil lines
+        vec3 sm = vec3(0.0);
+        for (int j = -2; j <= 2; j++) for (int i = -2; i <= 2; i++) sm += src(uv + vec2(i, j) * d * 3.0);
+        sm /= 25.0;
+        float T = 1.0 - dot(mix(c, sm, 0.55), vec3(0.299, 0.587, 0.114));      // darkness
+        float line = clamp((1.0 - L) - T, 0.0, 1.0);                            // crisp marks
+        vec2 cell = floor(q / 90.0);
+        float ang = -1.0 + (hash(cell) - 0.5) * 0.35;
+        vec2 dir = vec2(cos(ang), sin(ang)), nrm = vec2(-dir.y, dir.x);
+        float along = dot(q, dir), across = dot(q, nrm) / 2.6;
+        float row = floor(across);
+        float stroke = smoothstep(0.5, 0.1, abs(fract(across) - 0.5)) * (0.55 + 0.45 * vnoise(vec2(along / 28.0, row * 3.7)));
+        float tooth = 0.35 * hash(floor(q * 0.9)) + 0.65 * vnoise(q * vec2(0.55, 0.3));
+        float g = pow(T, 1.25) * (0.8 + 0.45 * stroke * (1.0 - T));
+        float grit = smoothstep(tooth - 0.45, tooth + 0.35, g * 1.1);
+        // the tooth shows in the half-tones only: light paper stays clean, darks fill in
+        float dark = mix(g, grit, 0.35 * smoothstep(0.05, 0.3, g) * (1.0 - smoothstep(0.6, 0.9, g))) + line * 0.9;
+        L = 1.0 - clamp(dark, 0.0, 1.0);
+        c = vec3(L);
+    }
     // second inks: what differs from our neutral ink-to-paper ramp
     float f = clamp((L - dot(uInk0, vec3(0.299, 0.587, 0.114))) / max(dot(uPaper0 - uInk0, vec3(0.299, 0.587, 0.114)), 1e-3), 0.0, 1.0);
-    vec3 extra = c - mix(uInk0, uPaper0, f);
+    float f0 = clamp((dot(c0, vec3(0.299, 0.587, 0.114)) - dot(uInk0, vec3(0.299, 0.587, 0.114))) / max(dot(uPaper0 - uInk0, vec3(0.299, 0.587, 0.114)), 1e-3), 0.0, 1.0);
+    vec3 extra = c0 - mix(uInk0, uPaper0, f0);
     float L2 = lut(L);
     // (only real second inks carry over: the small cast of our own paper does not)
     vec3 col = grad(L2) + extra * smoothstep(0.04, 0.12, length(extra));
@@ -817,6 +849,7 @@ void main() {
                 gl.uniform2f(U('uSrcRes'), source.width, source.height);
                 gl.uniform1f(U('uPx'), W / 1920);
                 gl.uniform1f(U('uAmt'), o.amount ?? 1);
+                gl.uniform1f(U('uChar'), o.charcoal ? 1 : 0);
                 gl.uniform3fv(U('uInk0'), hex(o.ink ?? '#2e261d'));
                 gl.uniform3fv(U('uPaper0'), hex(o.paper ?? '#ebe1cb'));
                 gl.uniform1fv(U('uCurve'), AGE_CURVE);

@@ -53,13 +53,13 @@ const PyramidFilm = (() => {
             sun: [-0.35, 0.5, 0.8], sunK: 0.8, fill: 0.2, ink: '#2e261d', paper: '#ebe1cb',
             draws: P.draws, lights: P.lights,
             shadow: { center: target, radius: Math.min(3.2, Math.max(1.5, dist * 0.8)) },
-            sky: { zenith: 0.32, horizon: 0.2 },
-            fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: plate,
+            sky: { zenith: 0.2, horizon: 0.08 },
+            fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: plate, charcoal: true,
         };
         const img = env.state.R.layer((o.plate ? 'p' : 'f') + Math.round(t * 24), f);
         // the aged print (o.age === false shows the clean render, to compare)
         if (o.age === false) g.drawImage(img, 0, 0, env.W, env.H);
-        else env.state.A.apply(g, img, { ink: f.ink, paper: f.paper });
+        else env.state.A.apply(g, img, { ink: f.ink, paper: f.paper, charcoal: f.charcoal });
         if (o.plate) {
             const W = env.W, H = env.H;
             const x0 = plate[0] * W, y0 = plate[1] * H, x1 = plate[2] * W, y1 = plate[3] * H;
