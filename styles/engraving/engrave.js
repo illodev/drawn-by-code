@@ -223,6 +223,38 @@ vec3 print(vec2 fc, float cov, vec4 ink2, vec3 ink) {
     vec3 c = mix(paper, ink2.rgb, clamp(ink2.a * brk, 0.0, 1.0));
     return mix(c, ink, clamp(cov * brk, 0.0, 1.0));
 }
+float sdBox2(vec2 q, vec2 c, vec2 h) { vec2 d = abs(q - c) - h; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
+// the blocky little creature (the Claude Code mascot) as a sign: body, two slot eyes, arm
+// stubs, four legs. Returns the outline distance in .x and the filled eyes' distance in .y
+vec2 sdCritter(vec2 q) {
+    float d = sdBox2(q, vec2(0.0, 0.04), vec2(0.28, 0.17));
+    d = min(d, sdBox2(q, vec2(-0.36, 0.04), vec2(0.08, 0.055)));
+    d = min(d, sdBox2(q, vec2(0.36, 0.04), vec2(0.08, 0.055)));
+    for (int i = 0; i < 4; i++) d = min(d, sdBox2(q, vec2(-0.21 + 0.14 * float(i) + (i > 1 ? 0.0 : 0.0), -0.2), vec2(0.035, 0.07)));
+    float e = min(sdBox2(q, vec2(-0.12, 0.07), vec2(0.028, 0.06)), sdBox2(q, vec2(0.12, 0.07), vec2(0.028, 0.06)));
+    return vec2(abs(d), e);
+}
+float sdSeg(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0)); }
+// a library of invented signs (outline distance, sign about 0.6 across): fictional, in the
+// spirit of a carved script, never real hieroglyphs
+float glyphSign(int k, vec2 q) {
+    if (k == 0) return abs(length(q) - 0.26);                                                   // ring
+    if (k == 1) { vec2 a = abs(q); float d = abs(max(q.y * 0.5 + a.x * 0.87 - 0.2, -q.y - 0.26)); return (q.y < -0.2 && a.x < 0.06) ? 1.0 : d; }   // notched triangle
+    if (k == 2) return min(sdSeg(q, vec2(0.0, -0.34), vec2(0.0, 0.3)), abs(length(q - vec2(0.0, 0.3)) - 0.07));   // staff with a knob
+    if (k == 3) { float d = 1.0; for (int i = 0; i < 3; i++) d = min(d, abs(q.y - 0.16 * float(i - 1) - 0.05 * sin(q.x * 20.0)) + max(0.0, abs(q.x) - 0.32)); return d; }   // water
+    if (k == 4) return min(abs(length(q * vec2(0.62, 1.3)) - 0.2), max(length(q) - 0.05, 0.0));  // eye
+    if (k == 5) return min(sdSeg(q, vec2(-0.3, 0.2), vec2(0.3, 0.2)), abs(fract(q.x * 3.3 + 0.5) - 0.5) / 3.3 + max(0.0, abs(q.y + 0.04) - 0.22));   // comb
+    if (k == 6) { float d = 1.0; for (int i = 0; i < 3; i++) { float w = 0.32 - 0.1 * float(i), y0 = -0.3 + 0.18 * float(i); d = min(d, min(sdSeg(q, vec2(-w, y0), vec2(w, y0)), min(sdSeg(q, vec2(-w, y0), vec2(-w, y0 + 0.18)), sdSeg(q, vec2(w, y0), vec2(w, y0 + 0.18))))); } return d; }   // stepped mound
+    if (k == 7) return abs(q.x - 0.12 * sin(q.y * 11.0)) + max(0.0, abs(q.y) - 0.34) + (length(q - vec2(0.05, 0.34)) < 0.07 ? -0.02 : 0.0);   // serpent
+    if (k == 8) return min(min(sdSeg(q, vec2(0.0, -0.34), vec2(0.0, 0.0)), abs(length(q - vec2(0.0, 0.26)) - 0.26) + max(0.0, q.y - 0.12)), min(sdSeg(q, vec2(0.0, 0.0), vec2(-0.18, 0.2)), sdSeg(q, vec2(0.0, 0.0), vec2(0.18, 0.2))));   // lotus
+    if (k == 9) { float d = abs(length((q - vec2(-0.02, 0.02)) * vec2(1.0, 1.7)) - 0.22); d = min(d, sdSeg(q, vec2(0.18, 0.08), vec2(0.34, 0.02))); d = min(d, min(sdSeg(q, vec2(-0.05, -0.1), vec2(-0.08, -0.32)), sdSeg(q, vec2(0.05, -0.1), vec2(0.06, -0.32)))); return d; }   // bird
+    if (k == 10) { float d = abs(length(q) - 0.12); for (int i = 0; i < 8; i++) { float a = float(i) * 0.785; vec2 v = vec2(cos(a), sin(a)); d = min(d, sdSeg(q, v * 0.18, v * 0.32)); } return d; }   // rayed disc
+    if (k == 11) return max(abs(length(q) - 0.26), q.x - 0.06) ;                                   // crescent
+    if (k == 12) { float d = abs(length(q - vec2(0.0, 0.22)) - 0.09); d = min(d, min(sdSeg(q, vec2(0.0, 0.12), vec2(0.0, -0.08)), sdSeg(q, vec2(0.0, -0.08), vec2(0.24, -0.08)))); d = min(d, min(sdSeg(q, vec2(0.24, -0.08), vec2(0.24, -0.32)), sdSeg(q, vec2(0.0, 0.02), vec2(0.2, 0.1)))); return d; }   // seated figure
+    if (k == 13) { float d = 1.0; for (int i = 0; i < 4; i++) d = min(d, sdSeg(q, vec2(-0.3 + 0.2 * float(i), (i % 2 == 0) ? -0.2 : 0.2), vec2(-0.1 + 0.2 * float(i), (i % 2 == 0) ? 0.2 : -0.2))); return d; }   // zigzag
+    if (k == 14) return min(abs(max(abs(q.x) - 0.22, abs(q.y) - 0.3)), min(sdSeg(q, vec2(-0.22, 0.1), vec2(0.22, 0.1)), sdSeg(q, vec2(0.0, 0.1), vec2(0.0, -0.3))));   // shrine
+    return min(abs(length(q * vec2(1.0, 1.4)) - 0.2), min(min(sdSeg(q, vec2(-0.2, 0.0), vec2(-0.32, 0.12)), sdSeg(q, vec2(0.2, 0.0), vec2(0.32, 0.12))), min(sdSeg(q, vec2(-0.16, -0.1), vec2(-0.3, -0.24)), sdSeg(q, vec2(0.16, -0.1), vec2(0.3, -0.24)))));   // beetle
+}
 // a set of engraved lines across coordinate s (in line spacings): coverage for tone c
 // (fraction of the spacing that is ink, 0..0.9); w is the width scale of this line
 float lines(float s, float c, float aa) {
@@ -376,7 +408,7 @@ void main() {
     if (uBox < 0.5 && uTan > 0.5) { cs[1] = 0.0; cs[2] = 0.0; }   // one ruling on round things
     // charcoal: no ruled lines, the tone itself (the print filter lays it down as graphite on
     // the paper's tooth, in strokes); drawn marks (joints, edges) stay as pencil lines
-    if (uChar > 0.5) { cs[0] = 0.0; cs[1] = 0.0; cs[2] = 0.0; }
+    if (uChar > 0.5 && !(M.w > 0.5 && M.w < 1.5)) { cs[0] = 0.0; cs[1] = 0.0; cs[2] = 0.0; }   // (metal keeps its engraved lines)
     float cov = uChar > 0.5 ? D * 0.92 : 0.0;
     for (int k = 0; k < 3; k++) {
         if (cs[k] < 0.035) continue;
@@ -471,6 +503,23 @@ void main() {
                 // not hieroglyphs. Only on some stretches (panels), between ruled bands
                 float hcoord = dot(gw, normalize(vec3(N.z, 0.0, -N.x)));
                 float panel = step(0.2, hash(vec2(floor(hcoord / 1.6), floor(gw.x * 0.3) + 7.0)));
+                if (N.z > 0.5 && gw.z < -9.3) panel = 0.0;          // the end wall carries only the cartouche
+                // the cartouche: one large carved sign in an oval, on the wall facing the camera
+                // above the exit ring at the end of the corridor
+                if (N.z > 0.5 && gw.z < -9.3 && abs(gw.x - 0.05) < 0.5 && abs(gw.y - 1.3) < 0.34) {
+                    vec2 q = vec2(gw.x - 0.05, gw.y - 1.3) / 0.6;
+                    vec2 cr = sdCritter(q);
+                    float oval = abs(length(q * vec2(0.88, 1.45)) - 0.5);
+                    float aaC = 1.4 / max(0.6 / ps / uPx, 1.0);
+                    float cut = max(max(1.0 - smoothstep(0.022, 0.022 + aaC, cr.x), 1.0 - smoothstep(0.0, aaC, cr.y)), 1.0 - smoothstep(0.018, 0.018 + aaC, oval));
+                    float lip = max(1.0 - smoothstep(0.012, 0.012 + aaC, abs(cr.x - 0.04)), 1.0 - smoothstep(0.012, 0.012 + aaC, abs(oval - 0.035)));
+                    // a smoothed field inside the oval (the carver dressed it flat and light)
+                    float field = 1.0 - smoothstep(0.48, 0.5, length(q * vec2(0.88, 1.45)));
+                    float wearC = 0.6 + 0.4 * smoothstep(0.25, 0.6, vnoise(q * 9.0 + 3.0));
+                    cov = mix(cov, cov * 0.75, field);
+                    cov = mix(cov, min(max(cov + 0.35, 0.65), 0.9), cut * wearC);
+                    cov *= 1.0 - 0.25 * lip * (1.0 - cut) * wearC;
+                }
                 float gsz = 0.15;
                 for (int b = 0; b < 2; b++) {
                     float y0 = b == 0 ? 0.5 : 1.15;
@@ -478,20 +527,28 @@ void main() {
                     if (vy < 0.0 || vy > 3.0 || panel < 0.5) continue;
                     vec2 cc = vec2(hcoord / gsz, vy);
                     vec2 id = floor(cc), q = fract(cc) - 0.5;
-                    float k = floor(hash(id + float(b) * 13.0) * 6.0);
-                    float dline;
-                    if (k < 1.0) dline = abs(length(q) - 0.28);
-                    else if (k < 2.0) { vec2 a2 = abs(q); dline = max(q.y * 0.5 + a2.x * 0.87 - 0.2, -q.y - 0.28); dline = abs(dline); if (q.y < -0.22 && abs(q.x) < 0.07) dline = 1.0; }
-                    else if (k < 3.0) dline = abs(q.x) + max(0.0, abs(q.y) - 0.36);
-                    else if (k < 4.0) dline = abs(q.y - 0.09 * sin(q.x * 16.0)) + max(0.0, abs(q.x) - 0.38);
-                    else if (k < 5.0) dline = min(abs(length(q * vec2(0.62, 1.3)) - 0.2), length(q) - 0.05);
-                    else dline = min(abs(q.y - 0.25) + max(0.0, abs(q.x) - 0.3), abs(fract(q.x * 3.3 + 0.5) - 0.5) / 3.3 + max(0.0, abs(q.y + 0.02) - 0.26));
-                    float wpx = 0.045 * gsz / ps / uPx;
-                    float cut = 1.0 - smoothstep(0.045, 0.045 + 1.2 / max(gsz / ps / uPx, 1.0), dline);
-                    cov = max(cov, cut * 0.85 * smoothstep(0.6, 1.6, wpx));
+                    // each cell: one sign, or two small ones stacked, or a sign with a small
+                    // companion beside it; the little creature appears now and then
+                    vec2 hid = id + float(b) * 13.0;
+                    float h0 = hash(hid), h1 = hash(hid + 3.1), h2 = hash(hid + 5.7);
+                    float dline, fillE = 1.0;
+                    if (h0 < 0.07) { vec2 cr = sdCritter(q * 1.15); dline = cr.x / 1.15 + 0.02; fillE = cr.y / 1.15; }
+                    else if (h0 < 0.45) dline = glyphSign(int(h1 * 16.0), q);
+                    else if (h0 < 0.75) dline = min(glyphSign(int(h1 * 16.0), (q - vec2(0.0, 0.22)) * 2.1) / 2.1, glyphSign(int(h2 * 16.0), (q + vec2(0.0, 0.22)) * 2.1) / 2.1);
+                    else dline = min(glyphSign(int(h1 * 16.0), (q + vec2(0.1, 0.0)) * 1.4) / 1.4, glyphSign(int(h2 * 16.0), (q - vec2(0.3, 0.2)) * 3.0) / 3.0);
+                    float wpx = 0.05 * gsz / ps / uPx;
+                    float aaG = 1.2 / max(gsz / ps / uPx, 1.0);
+                    float cut = max(1.0 - smoothstep(0.05, 0.05 + aaG, dline), 1.0 - smoothstep(0.0, aaG, fillE));
+                    // carved: the cut is dark, its lower lip catches the light
+                    float lip = 1.0 - smoothstep(0.05, 0.05 + aaG, abs(dline - 0.075));
+                    // carved, and worn: the cut darkens the stone (not ink-black), broken where
+                    // the face has weathered; its lower lip catches a little light
+                    float wearG = 0.55 + 0.45 * smoothstep(0.2, 0.55, vnoise(cc * 2.3 + 17.0));
+                    cov = mix(cov, min(max(cov + 0.32, 0.62), 0.9), cut * wearG * smoothstep(0.6, 1.6, wpx));
+                    cov *= 1.0 - 0.25 * lip * (1.0 - cut) * wearG * smoothstep(0.6, 1.6, wpx);
                     // the ruled bands framing the register
                     float rule = min(abs(vy), abs(vy - 3.0)) * gsz;
-                    cov = max(cov, (1.0 - smoothstep(0.004, 0.008, rule)) * 0.8);
+                    cov = max(cov, (1.0 - smoothstep(0.004, 0.008, rule)) * 0.5);
                 }
             } else if (N.y > 0.7) {
                 // the floor: dust and sand drifted against the walls and pillars, scuffed grit,
@@ -555,11 +612,11 @@ void main() {
         // pebbles: jittered dots fixed to the ground, fading when smaller than a pixel
         vec2 pc = floor(g * 90.0), pf = fract(g * 90.0) - 0.5 - (vec2(hash(pc + 1.7), hash(pc + 8.1)) - 0.5) * 0.7;
         float pr = 0.09 + 0.2 * hash(pc + 3.3);
-        float dens = 0.08 + 0.2 * smoothstep(0.4, 0.8, vnoise(g * 0.9 + 1.0)) + 0.1 * turn;
+        float dens = (uInterior > 0.5 ? 0.18 : 0.08) + 0.2 * smoothstep(0.4, 0.8, vnoise(g * 0.9 + 1.0)) + 0.1 * turn;
         float peb = step(hash(pc), dens) * (1.0 - smoothstep(pr * 0.7, pr, length(pf))) * smoothstep(0.6, 1.5, pr / 90.0 / ps / uPx);
         // (indoors the sand only gets the room's fill: keep it in the mid greys so ripples,
         // drifts and pebbles still read instead of closing into a flat dark)
-        if (uInterior > 0.5) tone = 0.22 + 0.5 * tone;
+        if (uInterior > 0.5) tone = 0.2 + 0.5 * tone + 0.22 * (vnoise(g * 9.0) - 0.5) + 0.18 * smoothstep(0.55, 0.9, vnoise(g * vec2(2.0, 11.0)));
         cov = max(clamp(tone, 0.0, 0.95) * 0.92, peb * 0.85);
     }
     // round things have no edges to cut: their outline is drawn where they turn away
@@ -576,7 +633,7 @@ void main() {
         cov *= 0.0;
     } else if (M.w > 0.5) {
         // metal: a gold wash under the dark line work, as a hand-coloured plate
-        ink2 = vec4(uInkGold, 0.4);
+        ink2 = vec4(uInkGold, 0.6);
     }
     // the blue light tints the lines it touches
     if (M.w < 0.5) ink = mix(ink, uInkBlue * 0.8, clamp(glow * 1.6, 0.0, 0.85));
