@@ -284,7 +284,7 @@ ${COMMON}
 in vec3 vW; in vec3 vN; in vec3 vT; in vec3 vL; in vec3 vH; in vec3 vQ; in vec3 vNL; in vec3 vTL;
 flat in float vMat; flat in float vSeed; flat in vec4 vX;
 uniform vec3 uEye, uSun, uRight;
-uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason, uTan, uChar;
+uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason, uTan, uChar, uInterior;
 uniform mat4 uLVP;
 uniform sampler2DShadow uShadowMap;
 uniform vec4 uLights[8];
@@ -422,7 +422,7 @@ void main() {
         float pyx = max(fwidth(fp.y), 1e-6) * uPx, pxx = max(fwidth(fp.x), 1e-6) * uPx;
         // far: the mosaic fades into tone; very near: one block is one stone, its own edges
         float cpx2 = ch / max(fwidth(fp.y), 1e-6) / uPx;   // along the slope (foreshortened faces too)
-        float vis = smoothstep(1.2, 3.0, min(cpx, cpx2)) * (1.0 - smoothstep(uChar > 0.5 ? 110.0 : 30.0, uChar > 0.5 ? 220.0 : 70.0, cpx));
+        float vis = smoothstep(1.2, 3.0, min(cpx, cpx2)) * (uInterior > 0.5 ? 1.0 : 1.0 - smoothstep(uChar > 0.5 ? 110.0 : 30.0, uChar > 0.5 ? 220.0 : 70.0, cpx));
         float st = hash(vec2(row, col) + vSeed * 17.0);   // this stone's own shade
         float lw = mix(0.3, 1.1, D) + 0.35 * st;
         float brk = step(0.3 + 0.45 * (1.0 - D), vnoise(fp / ch * vec2(2.5, 1.2) + 11.0) + 0.35 * D);
@@ -436,7 +436,23 @@ void main() {
         // in shade the stones themselves are dark (each its own depth), the joints lighter
         float joint = max(1.0 - smoothstep(0.5, 1.4, dy / pyx), (1.0 - smoothstep(0.5, 1.4, dx / pxx)) * step(0.1, fy) * step(fy, 0.9));
         // (up close, shade is burin lines over a light etched tone, never a flat grey)
-        float shade = mix(max(min(cov / 0.45 * 1.15, 1.0), D * 0.3), (1.0 - 0.45 * joint) * clamp(D * (0.9 + 0.3 * st), 0.0, 0.97), vis);
+        float stoneT = clamp(D * (0.9 + 0.3 * st), 0.0, 0.97);
+        // outside, as the plate's shadow face: dark stones, lighter joints. Inside (interior),
+        // joints are dark cracks between lit stones, never a negative
+        float jointed = (1.0 - 0.45 * joint) * stoneT;
+        if (uInterior > 0.5) {
+            // a big dressed block seen close: never a flat grey. Weathered tone across its face,
+            // edges worn darker, chisel marks in short parallel strokes (each block its own angle)
+            float wtex = fbm3(vec3(fp * 7.0, st * 11.0)) - 0.5;
+            float edgeDk = 1.0 - smoothstep(0.0, 0.04, min(dx, dy));
+            float ang = (st - 0.5) * 1.2 + 0.6;
+            vec2 cd = vec2(cos(ang), sin(ang));
+            float cs1 = dot(fp, cd) / 0.009;
+            float chis = lines(cs1, 0.35, fwidth(cs1) * 0.8) * step(0.45, vnoise(vec2(dot(fp, vec2(-cd.y, cd.x)) / 0.03, floor(cs1) * 0.37)));
+            float tI = clamp(stoneT * (0.7 + 0.3 * st) + wtex * 0.35 + edgeDk * 0.28 + chis * 0.14, 0.0, 0.97);
+            jointed = max(tI, joint * 0.95);
+        }
+        float shade = mix(max(min(cov / 0.45 * 1.15, 1.0), D * 0.3), jointed, vis);
         cov = mix(max(lit * 0.75, 0.06 + 0.2 * smoothstep(0.3, 0.6, D)), shade, smoothstep(0.42, 0.72, D));
         // up close the stone's own grain: stippled pits and short scratches, denser in shade
         // and where it is weathered (cells fixed to the surface, fading when under 1.5 px)
@@ -447,6 +463,48 @@ void main() {
         float gd = step(hash(gc + vSeed * 5.0), 0.05 + 0.3 * D + 0.35 * weather);
         float grain = gd * (1.0 - smoothstep(0.18, 0.3, length(gf * vec2(1.0, 1.0 + 2.0 * hash(gc))))) * smoothstep(1.5, 3.0, gpx);
         cov = max(cov, grain * (1.0 - vis) * (uChar > 0.5 ? 0.3 : 1.0));   // charcoal: pits are soft grey, not ink
+        if (uInterior > 0.5) {
+            vec3 gw = vW;
+            if (abs(N.y) < 0.35) {
+                // carved registers on the walls: bands of invented signs cut into the stone
+                // (a ring, the notched triangle, a staff, a wave, an eye, a comb); fictional,
+                // not hieroglyphs. Only on some stretches (panels), between ruled bands
+                float hcoord = dot(gw, normalize(vec3(N.z, 0.0, -N.x)));
+                float panel = step(0.2, hash(vec2(floor(hcoord / 1.6), floor(gw.x * 0.3) + 7.0)));
+                float gsz = 0.15;
+                for (int b = 0; b < 2; b++) {
+                    float y0 = b == 0 ? 0.5 : 1.15;
+                    float vy = (gw.y - y0) / gsz;
+                    if (vy < 0.0 || vy > 3.0 || panel < 0.5) continue;
+                    vec2 cc = vec2(hcoord / gsz, vy);
+                    vec2 id = floor(cc), q = fract(cc) - 0.5;
+                    float k = floor(hash(id + float(b) * 13.0) * 6.0);
+                    float dline;
+                    if (k < 1.0) dline = abs(length(q) - 0.28);
+                    else if (k < 2.0) { vec2 a2 = abs(q); dline = max(q.y * 0.5 + a2.x * 0.87 - 0.2, -q.y - 0.28); dline = abs(dline); if (q.y < -0.22 && abs(q.x) < 0.07) dline = 1.0; }
+                    else if (k < 3.0) dline = abs(q.x) + max(0.0, abs(q.y) - 0.36);
+                    else if (k < 4.0) dline = abs(q.y - 0.09 * sin(q.x * 16.0)) + max(0.0, abs(q.x) - 0.38);
+                    else if (k < 5.0) dline = min(abs(length(q * vec2(0.62, 1.3)) - 0.2), length(q) - 0.05);
+                    else dline = min(abs(q.y - 0.25) + max(0.0, abs(q.x) - 0.3), abs(fract(q.x * 3.3 + 0.5) - 0.5) / 3.3 + max(0.0, abs(q.y + 0.02) - 0.26));
+                    float wpx = 0.045 * gsz / ps / uPx;
+                    float cut = 1.0 - smoothstep(0.045, 0.045 + 1.2 / max(gsz / ps / uPx, 1.0), dline);
+                    cov = max(cov, cut * 0.85 * smoothstep(0.6, 1.6, wpx));
+                    // the ruled bands framing the register
+                    float rule = min(abs(vy), abs(vy - 3.0)) * gsz;
+                    cov = max(cov, (1.0 - smoothstep(0.004, 0.008, rule)) * 0.8);
+                }
+            } else if (N.y > 0.7) {
+                // the floor: dust and sand drifted against the walls and pillars, scuffed grit,
+                // darker stains, stipple of pebbles and chips
+                float wallNear = smoothstep(0.75, 1.25, abs(gw.x));
+                float drift = smoothstep(0.35, 0.75, vnoise(gw.xz * 1.8) + wallNear * 0.5);
+                float stain = smoothstep(0.55, 0.85, vnoise(gw.xz * 0.9 + 4.0)) * 0.25;
+                vec2 pc = floor(gw.xz * 70.0), pf = fract(gw.xz * 70.0) - 0.5 - (vec2(hash(pc + 1.7), hash(pc + 8.1)) - 0.5) * 0.7;
+                float peb = step(hash(pc), 0.05 + 0.25 * drift) * (1.0 - smoothstep(0.1, 0.25, length(pf))) * smoothstep(0.6, 1.5, 0.25 / 70.0 / ps / uPx);
+                cov = mix(cov, max(cov * 0.6, 0.35 + 0.25 * vnoise(gw.xz * 6.0)), drift * 0.8);
+                cov = max(max(cov, stain + cov * 0.8), peb * 0.8);
+            }
+        }
     }
     // contours: every stone's edges are cut, worn and broken a little; far stones lose them
     if (uBox > 0.5) {
@@ -480,7 +538,7 @@ void main() {
         cov = max(cov, pore);
         cov = max(cov, 1.0 - smoothstep(0.1, 0.22, abs(dot(N, V))));
     }
-    if (m == 5 && vH.x < 0.02) cov = uChar > 0.5 ? 0.45 + 0.4 * vSeed : 1.0;   // dust: stipple (soft grey specks in charcoal)
+    if (m == 5 && vH.x < 0.02) cov = vX.y < 0.0 ? 0.0 : (uChar > 0.5 ? 0.45 + 0.4 * vSeed : 1.0);   // light motes (bias < 0) print as bare paper   // dust: stipple (soft grey specks in charcoal)
     // ground (the terrain instance): shade and dirt. Charcoal pushes the dune's turned-away
     // slopes into real shadow; then what a desert floor carries: pebbles (stipple, denser in
     // hollows), darker drifts and wind streaks, grit scuffed into the lee sides, ripples
@@ -499,6 +557,9 @@ void main() {
         float pr = 0.09 + 0.2 * hash(pc + 3.3);
         float dens = 0.08 + 0.2 * smoothstep(0.4, 0.8, vnoise(g * 0.9 + 1.0)) + 0.1 * turn;
         float peb = step(hash(pc), dens) * (1.0 - smoothstep(pr * 0.7, pr, length(pf))) * smoothstep(0.6, 1.5, pr / 90.0 / ps / uPx);
+        // (indoors the sand only gets the room's fill: keep it in the mid greys so ripples,
+        // drifts and pebbles still read instead of closing into a flat dark)
+        if (uInterior > 0.5) tone = 0.22 + 0.5 * tone;
         cov = max(clamp(tone, 0.0, 0.95) * 0.92, peb * 0.85);
     }
     // round things have no edges to cut: their outline is drawn where they turn away
@@ -725,6 +786,7 @@ void main() {
             gl.uniform1f(main.u('uEdge'), f.edge ?? 0.35);
             gl.uniform1f(main.u('uCourse'), f.course ?? 0.012);
             gl.uniform1f(main.u('uChar'), f.charcoal ? 1 : 0);
+            gl.uniform1f(main.u('uInterior'), f.interior ? 1 : 0);
             gl.uniform1f(main.u('uFogNear'), f.fog?.[0] ?? 8);
             gl.uniform1f(main.u('uFogFar'), f.fog?.[1] ?? 40);
             gl.uniform3fv(main.u('uInkBlue'), hex(f.blue ?? '#2fb3cf'));

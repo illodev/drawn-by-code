@@ -43,7 +43,7 @@ const PyramidFilm = (() => {
             [12.0, [1.7, 1.35, 3.1], [0, 0.72, 0], [0.7]],
             [13.5, [3.4, 1.9, 4.3], [0, 0.85, 0], [0.72]],
             [15.5, [3.6, 1.95, 4.1], [0, 0.85, 0], [0.72]],
-            [17.0, [2.3, 1.3, 2.75], [0, 0.55, 0.1], [0.74]],
+            [17.0, [1.2, 0.75, 1.45], [0, 0.4, 0], [0.74]],
         ];
     }
     // The printed plate: the film opens on it (the closed pyramid, as a plate of the
@@ -126,6 +126,18 @@ const PyramidFilm = (() => {
         };
         if (inside) Object.assign(f, Gallery.frameParams);
         const img = env.state.R.layer((on ? 'p' : 'f') + Math.round(t * 24), f);
+        // outside to inside: the camera flies into the dark of the opened stone and comes out
+        // of the dark through the entrance ring; the dark is rubbed in before the print, so it
+        // carries the charcoal grain (16.6–17.4 story time)
+        const dark = Math.max(0, 1 - Math.abs(u - 17) / 0.4);
+        if (dark > 0) {
+            const m = img.getContext('2d');
+            m.save();
+            m.globalAlpha = Math.min(1, dark * 1.25);
+            m.fillStyle = '#3a342d';
+            m.fillRect(0, 0, img.width, img.height);
+            m.restore();
+        }
         // the aged print (o.age === false shows the clean render, to compare)
         if (o.age === false) g.drawImage(img, 0, 0, env.W, env.H);
         else env.state.A.apply(g, img, { ink: f.ink, paper: f.paper, charcoal: f.charcoal });

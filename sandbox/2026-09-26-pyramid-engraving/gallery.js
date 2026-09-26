@@ -12,7 +12,7 @@ const Gallery = (() => {
     const GAPS = [-0.4, -1.5, -2.6];            // slits in the left wall (z)
     const SUN = [-0.9, 0.35, 0.1];              // towards the sun: low, from the left
     const SAND = [0, -5.2];                     // centre of the sand patch (x, z)
-    const L = 0.12, GR = 0.0055, PER = 9;       // structure edge, grain radius, grains per edge
+    const L = 0.12, GR = 0.0034, PER = 13;       // structure edge, grain radius, grains per edge
     const r3 = L / Math.sqrt(3);
     const V = [[r3, 0, 0], [-r3 / 2, 0, (r3 * Math.sqrt(3)) / 2], [-r3 / 2, 0, (-r3 * Math.sqrt(3)) / 2], [0, L * Math.sqrt(2 / 3), 0]];
     const EDGES = [[0, 1], [1, 2], [2, 0], [0, 3], [1, 3], [2, 3]];
@@ -127,33 +127,46 @@ const Gallery = (() => {
             const d = pb.map((v, i) => v - pa[i]);
             Engrave.inst(blue, lerp3(pa, pb, 0.5), 4, [0.0022, (Math.hypot(...d) / 2) * mark, 0.0022], 0.5, qTo(d), 0.8);
         }
+        // the beams: dust motes hanging in the sunlight that comes through the slits (light
+        // specks on the dim air: the shafts read without any fog)
+        const motes = [];
+        const rm = Motion.rng('gallery-motes');
+        const sl = Math.hypot(...SUN), dn = SUN.map((v) => -v / sl);
+        for (const gz of GAPS) for (let i = 0; i < 520; i++) {
+            const y0 = 0.3 + rm() * 1.1, z0 = gz + (rm() - 0.5) * 0.24, tMax = y0 / -dn[1];
+            const tt = rm() * tMax, sz = 0.0012 + rm() * 0.0022, ph = rm() * 6.28;
+            const p = [-1.3 + dn[0] * tt + 0.01 * Math.sin(u * 0.7 + ph), y0 + dn[1] * tt + 0.015 * Math.sin(u * 0.5 + ph * 2), z0 + dn[2] * tt];
+            if (p[0] > 1.2) continue;
+            Engrave.inst(motes, p, 5, [sz, sz, sz], rm(), [0, 0, 0, 1], 0, -1);
+        }
         const draws = [
             { mesh: 'box', inst: new Float32Array(stone), box: true, masonry: true },
-            { mesh: 'box', inst: new Float32Array(worn), box: true },
+            { mesh: 'box', inst: new Float32Array(worn), box: true, masonry: true },
             { mesh: 'box', inst: new Float32Array(obs), box: true },
             { mesh: 'box', inst: new Float32Array(sand), box: true },
             { mesh: 'cylinder', inst: new Float32Array(cyl), tan: 'y' },
             { mesh: 'box', inst: new Float32Array(blue), box: true, cast: false },
             { mesh: 'ring', inst: new Float32Array(rings) },
             { mesh: 'sphere', inst: new Float32Array(dust), cast: false },
+            { mesh: 'sphere', inst: new Float32Array(motes), cast: false },
         ];
         const lights = [[c[0], c[1] + 0.05, c[2], 0, 0.25 * mark], [0.45, 0.05, -3, 0, 0.12]];
         return { draws, lights, centre: c };
     }
     // the camera: [u, cam, target, [fov]]
     const KEYS = [
-        [17.0, [0, 0.75, 3.1], [0, 0.55, -2], [0.8]],
-        [17.9, [0.05, 0.5, 1.3], [0.15, 0.2, -2.5], [0.8]],
-        [19.0, [-0.25, 0.22, -3.1], [0, 0.07, -5.2], [0.72]],
-        [20.8, [-0.4, 0.15, -4.25], [-0.03, 0.08, -5.2], [0.62]],
-        [22.4, [-0.35, 0.14, -4.45], [0, 0.1, -5.3], [0.62]],
-        [24.0, [-0.2, 0.26, -5.9], [0.05, 0.45, -7.4], [0.66]],
+        [17.0, [0.05, 0.85, 2.15], [0, 0.8, -2], [0.8]],
+        [17.9, [0.05, 0.5, 1.2], [0.15, 0.2, -2.5], [0.78]],
+        [19.0, [-0.2, 0.2, -3.6], [0, 0.07, -5.2], [0.66]],
+        [20.2, [-0.28, 0.13, -4.7], [-0.04, 0.1, -5.2], [0.56]],
+        [22.4, [-0.25, 0.12, -4.75], [-0.03, 0.12, -5.25], [0.54]],
+        [24.0, [-0.15, 0.3, -6.6], [0.05, 0.47, -7.5], [0.58]],
     ];
     const frameParams = {
-        sun: SUN, sunK: 3.0, fill: 0.5,
+        sun: SUN, sunK: 3.4, fill: 0.36, interior: true,
         shadow: { center: [0, 1, -3.5], radius: 6.5 },
         sky: { zenith: 0.9, horizon: 0.9, dusk: 0 },
-        fog: [9, 30], course: 0.075,
+        fog: [9, 30], course: 0.26,
     };
     return { build, KEYS, frameParams, T0: 17, T1: 24 };
 })();
