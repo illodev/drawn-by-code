@@ -157,6 +157,11 @@ const Gallery = (() => {
             Engrave.inst(chips, [x, sz * 0.35, zc], 1, [sz * (0.8 + rk() * 0.7), sz * 0.55, sz * (0.8 + rk() * 0.7)], rk(), Engrave.quat([rk() - 0.5, 1, rk() - 0.5], rk() * 6));
         }
         draws.push({ mesh: 'rock', inst: new Float32Array(chips) });
+        // furniture along the right wall (the left has the slits): jars, a statue, rubble
+        const P = { vases: [], small: [], stone: [] }, rf = Motion.rng('gallery-props');
+        Props.jar(P, 0.95, 0.0, 1, rf); Props.statue(P, 1.0, -1.9, 1, rf, -Math.PI / 2); Props.table(P, 0.95, -3.3, 1, rf);
+        Props.rubble(P, 1.05, -6.3, 1, rf); Props.jar(P, 0.95, -7.0, 1, rf); Props.rubble(P, -1.1, -6.6, 1, rf);
+        draws.push({ mesh: 'box', inst: new Float32Array(P.stone), box: true }, { mesh: 'vase', inst: new Float32Array(P.vases), tan: 'y' }, { mesh: 'rock', inst: new Float32Array(P.small) });
         // the exit ring catches the glow of what approaches it, and its own lamp
         const lights = [[c[0], c[1] + 0.05, c[2], 0, 0.25 * mark], [0.45, 0.05, -3, 0, 0.12], [0.05, 0.6, -7.2, 0, 0.35 + 0.3 * mark]];
         return { draws, lights, centre: c };

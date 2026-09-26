@@ -145,7 +145,8 @@ const PyramidFilm = (() => {
         }
         // the aged print (o.age === false shows the clean render, to compare)
         if (o.age === false) g.drawImage(img, 0, 0, env.W, env.H);
-        else env.state.A.apply(g, img, { ink: f.ink, paper: f.paper, charcoal: f.charcoal });
+        // indoors the paper's tooth is kept finer so the carved detail survives the print
+        else env.state.A.apply(g, img, { ink: f.ink, paper: f.paper, charcoal: f.charcoal, grain: inside ? 0.45 : 1 });
         if (on) {
             const open = u > 10;
             drawPlate(g, env, s, open ? 'VUE DE LA PYRAMIDE OUVERTE, ET DE SA MACHINE, PRISE AU CRÉPUSCULE.' : 'VUE DE LA GRANDE PYRAMIDE, PRISE AU CRÉPUSCULE.');
@@ -170,6 +171,15 @@ const PyramidFilm = (() => {
         }
         for (let j = 0; j < NR; j++) for (let i = 0; i < NS; i++) { const a = j * (NS + 1) + i, b = a + NS + 1; cap.I.push(a, b, a + 1, a + 1, b, b + 1); }
         R.mesh('capital', cap);
+        // a jar: a lathe profile (foot, belly, shoulder, neck, lip)
+        const vase = { P: [], I: [] }, VR = 16;
+        const prof = (y) => { const t = (y + 1) / 2; return t < 0.08 ? 0.35 : t < 0.7 ? 0.35 + 0.65 * Math.sin(((t - 0.08) / 0.62) * Math.PI * 0.9) : t < 0.88 ? 0.55 - (t - 0.7) * 1.8 : 0.28 + (t > 0.95 ? 0.08 : 0); };
+        for (let j = 0; j <= VR; j++) {
+            const yy = (j / VR) * 2 - 1, rr = prof(yy);
+            for (let i = 0; i <= NS; i++) { const a = (i / NS) * Math.PI * 2; vase.P.push(Math.cos(a) * rr, yy, Math.sin(a) * rr, Math.cos(a), 0, Math.sin(a)); }
+        }
+        for (let j = 0; j < VR; j++) for (let i = 0; i < NS; i++) { const a = j * (NS + 1) + i, b = a + NS + 1; vase.I.push(a, b, a + 1, a + 1, b, b + 1); }
+        R.mesh('vase', vase);
         return { R, A: Engrave.ager(env) };
     }
     return { frame, setup, storyTime, LAG };

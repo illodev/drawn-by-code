@@ -20,7 +20,7 @@ const Resonance = (() => {
     const face = Engrave.quat([1, 0, 0], Math.PI / 2);     // a ring facing down the corridor
     // the far wall of the last room recedes from 33.5
     const zOf = (k, u) => (k < 2 ? Z[k] : Z[2] - 26 * E(u, 33.4, 37.6));
-    function room(k, u, stone, worn, obs, blue, rings, gold, cols, caps) {
+    function room(k, u, stone, worn, obs, blue, rings, gold, cols, caps, hathor, props) {
         const S = Math.pow(3, k), W = S, Hh = 2.5 * S;
         const z0 = k === 0 ? 2.2 : zOf(k - 1, u), z1 = zOf(k, u), zm = (z0 + z1) / 2, hl = (z0 - z1) / 2;
         // floor, ceiling, walls
@@ -47,15 +47,20 @@ const Resonance = (() => {
             const z = z0 - ((z0 - z1) * (i + 0.6)) / (nCol + 0.2);
             for (const sx of [-1, 1]) {
                 const x = sx * (W - 0.42 * S);
-                Engrave.inst(cols, [x, Hh * 0.42, z], 0, [rC, Hh * 0.42, rC], 0.2 + i * 0.07 + sx * 0.02);
+                // shaft, plinth, then the Hathor block (her face on its four sides), abacus
+                Engrave.inst(cols, [x, Hh * 0.39, z], 0, [rC, Hh * 0.39, rC], 0.2 + i * 0.07 + sx * 0.02);
                 Engrave.inst(stone, [x, 0.04 * S, z], 1, [rC * 1.25, 0.04 * S, rC * 1.25], 0.31);
-                Engrave.inst(caps, [x, Hh * 0.87, z], 0, [rC * 1.45, Hh * 0.05, rC * 1.45], 0.4 + i * 0.05);
-                Engrave.inst(stone, [x, Hh * 0.94, z], 0, [rC * 1.2, Hh * 0.02, rC * 1.2], 0.5);
+                Engrave.inst(caps, [x, Hh * 0.79, z], 0, [rC * 1.12, Hh * 0.02, rC * 1.12], 0.4 + i * 0.05);
+                Engrave.inst(hathor, [x, Hh * 0.87, z], 0, [rC * 1.25, Hh * 0.065, rC * 1.25], 0.45 + i * 0.03);
+                Engrave.inst(stone, [x, Hh * 0.945, z], 0, [rC * 1.3, Hh * 0.01, rC * 1.3], 0.5);
                 Engrave.inst(stone, [x + sx * 0.21 * S, Hh * 0.98, z], 0, [0.24 * S, Hh * 0.02, 0.1 * S], 0.55);
             }
         }
         // a long beam down each colonnade
         for (const sx of [-1, 1]) Engrave.inst(stone, [sx * (W - 0.42 * S), Hh * 0.975, zm], 0, [0.12 * S, Hh * 0.025, hl], 0.6);
+        // furnishing along the colonnades: offering tables heaped with loaves, jars on stands,
+        // seated statues on bases, fallen stones and rubble at the foot of the walls
+        Props.room(props, W, S, z0, z1, 'reso' + k);
         // offering tables and a statue base on the axis of the big rooms (things to pass)
         if (k > 0) {
             Engrave.inst(stone, [0.6 * S, 0.12 * S, z1 + 0.35 * (z0 - z1)], 0, [0.14 * S, 0.12 * S, 0.1 * S], 0.72);
@@ -92,8 +97,9 @@ const Resonance = (() => {
         });
     }
     function build(u) {
-        const stone = [], worn = [], obs = [], blue = [], rings = [], gold = [], dust = [], motes = [], cols = [], caps = [];
-        for (let k = 0; k < 3; k++) room(k, u, stone, worn, obs, blue, rings, gold, cols, caps);
+        const stone = [], worn = [], obs = [], blue = [], rings = [], gold = [], dust = [], motes = [], cols = [], caps = [], hathor = [];
+        const props = { vases: [], small: [], stone };
+        for (let k = 0; k < 3; k++) room(k, u, stone, worn, obs, blue, rings, gold, cols, caps, hathor, props);
         // the membrane behind: a triangular frame in the entrance wall, glowing as it is crossed
         const glowM = 0.9 * (1 - E(u, 31.2, 32.2));
         const tri = [[0, 1.75], [-0.75, 0.25], [0.75, 0.25]];
@@ -115,6 +121,9 @@ const Resonance = (() => {
             { mesh: 'box', inst: new Float32Array(worn), box: true, masonry: true },
             { mesh: 'cylinder', inst: new Float32Array(cols), tan: 'y' },
             { mesh: 'capital', inst: new Float32Array(caps), tan: 'y' },
+            { mesh: 'box', inst: new Float32Array(hathor), box: true, hathor: true },
+            { mesh: 'vase', inst: new Float32Array(props.vases), tan: 'y' },
+            { mesh: 'rock', inst: new Float32Array(props.small) },
             { mesh: 'box', inst: new Float32Array(obs), box: true },
             { mesh: 'box', inst: new Float32Array(blue), box: true, cast: false },
             { mesh: 'ring', inst: new Float32Array(rings) },
