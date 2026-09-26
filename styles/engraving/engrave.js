@@ -480,9 +480,10 @@ void main() {
         cov = max(cov, pore);
         cov = max(cov, 1.0 - smoothstep(0.1, 0.22, abs(dot(N, V))));
     }
-    if (m == 5 && vH.x < 0.02) cov = 1.0;          // dust prints as stipple
+    if (m == 5 && vH.x < 0.02) cov = uChar > 0.5 ? 0.45 + 0.4 * vSeed : 1.0;   // dust: stipple (soft grey specks in charcoal)
     // round things have no edges to cut: their outline is drawn where they turn away
-    if (uBox < 0.5) {
+    // (not on ground: seen low, a whole desert is at a grazing angle)
+    if (uBox < 0.5 && m != 5 && uMason < 0.5) {
         float rim = abs(dot(N, V));
         cov = max(cov, 1.0 - smoothstep(0.12, 0.3, rim));
     }

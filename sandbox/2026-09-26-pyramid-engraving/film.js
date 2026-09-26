@@ -33,8 +33,8 @@ const PyramidFilm = (() => {
             // PIR-01: low, from the left of the face, the pyramid right of centre with air above
             // the apex and the foreground stone in the lower left; a diagonal travelling in
             // that ends following the grain to the joint
-            [0.0, [-1.55, 0.16, 5.4], [-0.15, 0.62, 0], [0.66]],
-            [2.5, [-0.95, 0.2, 3.7], [0.05, 0.5, 0.2], [0.64]],
+            [0.0, [-1.55, 0.32, 5.6], [-0.95, 0.5, 0], [0.66]],
+            [2.5, [-0.85, 0.5, 3.4], [0.05, 0.45, 0.2], [0.64]],
             [4.0, rel(-0.18, 0.06, 0.75), rel(-0.03, 0.03, 0), [0.58]],
             [5.0, rel(0.045, 0.022, 0.19), rel(0, 0, 0), [0.55]],
             [6.5, rel(0.04, 0.03, 0.24), rel(0, 0.002, 0), [0.55]],
@@ -102,7 +102,9 @@ const PyramidFilm = (() => {
     function setup(env) {
         const R = Engrave.renderer(env, { scale: 2 });
         R.mesh('ring', Engrave.torus(0.085));
-        R.mesh('rock', Engrave.rock(7));
+        const T = Terrain.meshes();
+        R.mesh('terrain-rock', T.rock);
+        R.mesh('terrain-sand', T.sand);
         return { R, A: Engrave.ager(env) };
     }
     return { frame, setup };

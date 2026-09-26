@@ -141,8 +141,6 @@ const Pyramid = (() => {
         const { S, S0 } = ST;
         const e = E(t, 10.5, 13.5);
         const box = [], dust = [], tops = [], marks = [];
-        // the ground
-        Engrave.inst(box, [0, -0.5, 0], 5, [60, 0.5, 60], 0.5);
         for (const s of S) Engrave.inst(box, place(s, t), s.worn, s.half, s.seed, s.qt);
         // the capstone rides the axis
         Engrave.inst(tops, [0, HP * (1 + 0.45 * e) + H * 0.2, 0], 0, [H * 1.1, H * 1.1, H * 1.1], 0.3);
@@ -237,24 +235,23 @@ const Pyramid = (() => {
                 const b3 = (a, b, c, d) => (1 - u) ** 3 * a + 3 * (1 - u) ** 2 * u * b + 3 * (1 - u) * u * u * c + u ** 3 * d;
                 g = [0, 1, 2].map((i) => b3(a0[i], c1[i], c2[i], jp[i]));
             }
-            Engrave.inst(dust, g, 5, [0.0022, 0.0022, 0.0022], 0.4, [0, 0, 0, 1], 0, 0.75);
+            Engrave.inst(dust, g, 5, [0.0032, 0.0032, 0.0032], 0.4, [0, 0, 0, 1], 0, 0.75);
         }
         // the dust devil: a thin spinning column of sand crossing the foreground left to right
         if (t < 4.2) {
             const rd = Motion.rng('pyramid-devil');
-            const cx = -2.3 + t * 0.55, cz = 3.9, fade = 1 - Ease.seg(t, 3.2, 4.2);
-            for (let i = 0; i < 900; i++) {
+            const cx = -2.3 + t * 0.55, cz = 4.3, fade = 1 - Ease.seg(t, 3.2, 4.2);
+            for (let i = 0; i < 2600; i++) {
                 const h = Math.pow(rd(), 1.6) * 0.9, a = rd() * Math.PI * 2 + t * (7 - h * 3), rad = 0.02 + h * 0.2 + rd() * 0.03;
-                const sz = 0.0018 + rd() * 0.0025, lean = h * 0.18;
+                const sz = 0.0006 + rd() * 0.0009, lean = h * 0.18;
                 if (rd() > fade) continue;
                 Engrave.inst(dust, [cx + lean + Math.cos(a) * rad, h, cz + Math.sin(a) * rad], 5, [sz, sz, sz], rd(), [0, 0, 0, 1], 0, 0.75);
             }
         }
-        // stones on the sand: one in the foreground for scale and parallax, a few further off
-        const rocks = [];
-        const rr = Motion.rng('pyramid-rocks');
-        const ROCKS = [[-1.05, 4.35, 0.19, 0.11, 0.15], [-0.62, 4.1, 0.05, 0.03, 0.04], [0.9, 3.2, 0.07, 0.04, 0.06], [-1.6, 2.4, 0.09, 0.05, 0.07], [1.6, 1.9, 0.05, 0.03, 0.04]];
-        for (const [x, z, a, b2, c] of ROCKS) Engrave.inst(rocks, [x, b2 * 0.6, z], 1, [a, b2, c], rr(), Engrave.quat([rr() - 0.5, 1, rr() - 0.5], rr() * 3));
+        // the ground (terrain.js): the excavated rock and the sand, one instance each
+        const rockG = [], sandG = [];
+        Engrave.inst(rockG, [0, 0, 0], 1, [1, 1, 1], 0.37);
+        Engrave.inst(sandG, [0, 0, 0], 5, [1, 1, 1], 0.61);
         const draws = [
             { mesh: 'box', inst: new Float32Array(box), box: true },
             { mesh: 'pyramid', inst: new Float32Array(tops) },
@@ -264,7 +261,8 @@ const Pyramid = (() => {
             { mesh: 'box', inst: new Float32Array(marks), box: true, cast: false },
             { mesh: 'ring', inst: new Float32Array(rings) },
             { mesh: 'sphere', inst: new Float32Array(dust), cast: false },
-            { mesh: 'rock', inst: new Float32Array(rocks) },
+            { mesh: 'terrain-rock', inst: new Float32Array(sandG) },
+            { mesh: 'terrain-sand', inst: new Float32Array(sandG) },
         ];
         // the machine's light shows once the slot opens; the mark lights its own stone
         const inner = Math.max(e, 0.35 * E(t, 7.2, 9));
