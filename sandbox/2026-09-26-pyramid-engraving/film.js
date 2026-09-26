@@ -56,7 +56,7 @@ const PyramidFilm = (() => {
         const dist = Math.hypot(cam[0] - target[0], cam[1] - target[1], cam[2] - target[2]);
         const f = {
             cam, target, fov, near: 0.01,
-            sun: [-0.35, 0.5, 0.8], sunK: 0.8, fill: 0.2, ink: '#2e261d', paper: '#ebe1cb',
+            sun: [-0.75, 0.38, 0.55], sunK: 0.85, fill: 0.2, ink: '#2e261d', paper: '#ebe1cb',
             draws: P.draws, lights: P.lights,
             shadow: { center: target, radius: Math.min(3.2, Math.max(1.5, dist * 0.8)) },
             sky: { zenith: 0.22, horizon: 0.15, dusk: 0.35 },

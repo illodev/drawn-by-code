@@ -26,7 +26,9 @@ const Terrain = (() => {
         // banked against the pyramid's foot; only its footprint is level
         const far = E(1.2, 9, Math.hypot(x * 0.8, z - 1));
         const sw = fbm(x * 0.35 + 3, z * 0.55), crestD = Math.pow(ridge(x * 0.28 + z * 0.12, z * 0.5 + 2), 3);
-        let h = (0.05 + 0.3 * far) * (sw - 0.45) + (0.03 + 0.12 * far) * crestD + 0.012 * (fbm(x * 2.5, z * 2.5) - 0.5);
+        // (relief of the same strength everywhere, near and far: no flat patches next to busy ones)
+        const mid = fbm(x * 0.9 + 1, z * 1.1 + 4);
+        let h = (0.13 + 0.17 * far) * (sw - 0.45) + (0.06 + 0.08 * far) * crestD + 0.05 * (mid - 0.5) + 0.012 * (fbm(x * 2.5, z * 2.5) - 0.5);
         h *= E(1.05, 1.5, r);
         h += 0.05 * E(1.5, 1.02, r) * E(0.9, 1.05, r);          // sand banked at the foot
         // the foreground, as in the plate: mounds of rock and spoil from the excavation, their
