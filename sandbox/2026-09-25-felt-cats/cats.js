@@ -112,7 +112,7 @@ const Cats = (() => {
         return [...x, ...y, ...z];
     }
     // lengths (measured on the reference kittens, relative to the head)
-    const LEN = { spine: 0.3, neck: 0.075, head: 0.115, thigh: 0.105, shin: 0.095, ankle: 0.03, upper: 0.1, fore: 0.095 };
+    const LEN = { spine: 0.3, neck: 0.075, head: 0.115, thigh: 0.125, shin: 0.115, ankle: 0.03, upper: 0.115, fore: 0.11 }; // limbs: the reference kittens stride and reach long
     const REST_IK = {
         x: 0, z: 0, yaw: 0, pel: [0, 0.2, 0], spine: [0, 0.575, 0.02], twist: 0, head: [0, 0, 0],
         feet: [[0.075, 0.02, 0], [-0.075, 0.02, 0]], paws: [[0.06, -0.14, 0.11], [-0.06, -0.14, 0.11]],

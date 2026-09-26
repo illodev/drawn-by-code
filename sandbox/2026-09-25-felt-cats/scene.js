@@ -9,7 +9,8 @@ Motion.scene({
     uses: [
         'styles/felt3d/felt3d.js', DIR + 'cats.js',
         DIR + 'keys/segA.js', DIR + 'keys/segB.js', DIR + 'keys/segC.js',
-        { src: DIR + 'private/fit-A-poses.js', optional: true }, { src: DIR + 'private/fit-B-poses.js', optional: true }, { src: DIR + 'private/fit-C-poses.js', optional: true },
+        // the tracked dance (measured on the reference: private); without it the hand keys dance
+        { src: DIR + 'private/solved-poses.js', optional: true }, { src: DIR + 'private/tracked-poses.js', optional: true },
         DIR + 'dance.js', DIR + 'backdrops.js', DIR + 'film.js',
     ],
     bpm: 123,

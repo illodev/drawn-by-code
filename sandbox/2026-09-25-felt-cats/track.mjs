@@ -146,16 +146,23 @@ function loss(poses, d, ref, prev, P, detail = false) {
     for (let c = 0; c < 3; c++) {
         const p = poses[c], s0 = START[d][c];
         lim += out(p.yaw - s0.yaw, -0.25, 0.25) + out(p.twist, -0.45, 0.45);
+        lim += 4 * (out(p.z - s0.z, -0.25, 0.25) + out(p.x - s0.x, -0.15, 0.15)); // depth drifts where the silhouettes overlap
+        // the torso's lean stays near the solver's (where cats overlap the silhouette lays them down)
+        lim += 2 * (out(p.spine[0] - p.pel[0] - (s0.spine[0] - s0.pel[0]), -0.1, 0.1) + out(p.spine[2] - p.pel[2] - (s0.spine[2] - s0.pel[2]), -0.1, 0.1));
         lim += out(p.head[0], -0.8, 0.8) + out(p.head[1], -0.25, 1.1) + out(p.head[2], -0.45, 0.45);
         lim += out(p.spine[2] - p.pel[2], -0.05, 0.3) + out(p.spine[1] - p.pel[1], 0.2, 0.45);
         // a face the pose model saw looks roughly at the camera
         const K = KP[d][c];
-        if (K[0][2] > 0.5 && K[1][2] > 0.5) {
+        // (only where the keys have it facing us: the model also 'finds' eyes on the backs)
+        if (K[0][2] > 0.5 && K[1][2] > 0.5 && Math.cos(s0.yaw) > 0.3) {
             const a = p.yaw + p.twist + p.head[0], w = Math.atan2(Math.sin(a), Math.cos(a));
-            lim += 2 * out(w, -0.45, 0.45);
+            lim += 2 * out(w, -0.45, 0.45) + 2 * out(p.head[1] - s0.head[1], -0.3, 0.3); // and nods as the eyes-to-crown measure says
+        } else {
+            // a hidden face (a bowed head, a back): the head keeps the hand-keyed angles
+            for (let i = 0; i < 3; i++) lim += 2 * out(p.head[i] - s0.head[i], -0.15, 0.15);
         }
     }
-    const total = sil * 3 + gl * 2 + bl * 2 + kpl * 0.02 + sm + lim * 2;
+    const total = sil * 3 + gl * 2 + bl * 2 + kpl * 0.05 + sm + lim * 2;
     return detail ? { total, sil, gl, bl, kpl, sm } : total;
 }
 const FIELDS = [
