@@ -86,7 +86,7 @@ const PyramidFilm = (() => {
         g.textAlign = 'left';
         g.fillText('Code del.', x0, y1 + 22);
         g.textAlign = 'right';
-        g.fillText('Claude sculp.', x1, y1 + 22);
+        g.fillText('illodev x Claude sculp.', x1, y1 + 22);
         g.textAlign = 'center';
         g.font = '24px Fell';
         g.fillText(caption, W / 2, y1 + 52);
