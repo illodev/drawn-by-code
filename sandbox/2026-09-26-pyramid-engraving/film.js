@@ -106,10 +106,11 @@ const PyramidFilm = (() => {
         // there the film runs 1.6 s behind the script's timings
         const u = storyTime(t);
         // PIR-04 onwards: the gallery inside (a hidden cut through the entrance ring)
-        const inside = u >= Gallery.T0, shaft = u >= Shaft.T0;
-        const P = shaft ? Shaft.build(u) : inside ? Gallery.build(u) : Pyramid.build(u);
+        const inside = u >= Gallery.T0, shaft = u >= Shaft.T0 && u < Resonance.T0, reso = u >= Resonance.T0;
+        const P = reso ? Resonance.build(u) : shaft ? Shaft.build(u) : inside ? Gallery.build(u) : Pyramid.build(u);
         let cam, target, fov0, up;
-        if (shaft) ({ cam, target, fov: fov0, up } = Shaft.camera(u));
+        if (reso) ({ cam, target, fov: fov0, up } = Resonance.camera(u));
+        else if (shaft) ({ cam, target, fov: fov0, up } = Shaft.camera(u));
         else [cam, target, [fov0]] = inside ? path(Gallery.KEYS, u) : path(KEYS, t < PLATE_OUT ? 0 : u);
         const s = plateScale(t, o);
         const on = s < PLATE_FILL - 1e-4;
@@ -126,13 +127,14 @@ const PyramidFilm = (() => {
             sky: { zenith: 0.22, horizon: 0.15, dusk: 0.35 },
             fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: rect, charcoal: true,
         };
-        if (inside) Object.assign(f, shaft ? Shaft.frameParams : Gallery.frameParams);
+        if (inside) Object.assign(f, reso ? Resonance.frameParams : shaft ? Shaft.frameParams : Gallery.frameParams);
+        if (reso) f.shadow = { center: [cam[0], 2, cam[2] - 3], radius: 9 };
         if (up) f.up = up;
         const img = env.state.R.layer((on ? 'p' : 'f') + Math.round(t * 24), f);
         // outside to inside: the camera flies into the dark of the opened stone and comes out
         // of the dark through the entrance ring; the dark is rubbed in before the print, so it
         // carries the charcoal grain (16.6–17.4 story time)
-        const dark = Math.max(0, 1 - Math.abs(u - 17) / 0.4);
+        const dark = Math.max(Math.max(0, 1 - Math.abs(u - 17) / 0.4), reso ? Resonance.dim(u) : 0);
         if (dark > 0) {
             const m = img.getContext('2d');
             m.save();

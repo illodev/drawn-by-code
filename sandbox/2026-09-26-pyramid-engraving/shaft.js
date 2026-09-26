@@ -178,5 +178,5 @@ const Shaft = (() => {
         sky: { zenith: 0.9, horizon: 0.9, dusk: 0 },
         fog: [9, 30], course: 0.26,
     };
-    return { build, camera, frameParams, T0: 24, T1: 31 };
+    return { build, camera, frameParams, structure, T0: 24, T1: 31 };
 })();
