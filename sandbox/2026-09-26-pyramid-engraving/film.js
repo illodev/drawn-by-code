@@ -34,7 +34,7 @@ const PyramidFilm = (() => {
             // the apex and the foreground stone in the lower left; a diagonal travelling in
             // that ends following the grain to the joint
             [0.0, [-1.55, 0.32, 5.6], [-0.95, 0.5, 0], [0.66]],
-            [2.5, [-0.85, 0.5, 3.4], [0.05, 0.45, 0.2], [0.64]],
+            [2.5, [-0.9, 0.3, 4.1], [0.0, 0.45, 0.2], [0.62]],
             [4.0, rel(-0.18, 0.06, 0.75), rel(-0.03, 0.03, 0), [0.58]],
             [5.0, rel(0.045, 0.022, 0.19), rel(0, 0, 0), [0.55]],
             [6.5, rel(0.04, 0.03, 0.24), rel(0, 0.002, 0), [0.55]],
