@@ -69,6 +69,14 @@ const SFX = {
     lid_slam: ['a wooden box lid slammed shut hard, one loud hollow wooden bang, close', 0.6],
     box_meow: ['a single short cat meow, muffled, coming from inside a closed wooden box, cute', 0.9],
     geiger_click: ['a single Geiger counter click, one sharp dry tick, close', 0.5],
+    desert_wind: ['desert wind blowing over sand dunes at dusk, fine sand hiss, lonely and steady, no music', 12],
+    stone_shift: ['one huge limestone block grinding a few centimetres against stone, slow heavy start, low friction scrape, stops with weight, a little dust trickling', 1.8],
+    stone_answer: ['several heavy stone blocks sliding one after another inside an ancient temple, deep grinding scrapes, small debris falling', 3],
+    cavity_hum: ['deep low resonant hum from inside a huge stone chamber, subsonic drone, mysterious, no music', 6],
+    ring_align: ['three large metal rings locking into alignment, then a single clear resonant metallic note ringing out, bell-like, in a stone hall', 2.5],
+    stone_rumble: ['a massive stone structure opening in slow waves, deep earth rumble, grinding blocks separating, debris falling, slow and heavy', 5],
+    machine_turn: ['ancient alien machinery turning slowly, deep rotating metal hum with soft rhythmic pulses, reverberant, no music', 6],
+    air_rush: ['soft air rush as a camera glides into a dark gap between floating stones, low whoosh with reverb', 1.8],
 };
 const only = process.argv.slice(2);
 for (const [name, [text, dur]] of Object.entries(SFX)) {

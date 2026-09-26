@@ -7,7 +7,7 @@ Motion.scene({
     logical: [1920, 1080],
     uses: ['styles/engraving/engrave.js', 'sandbox/2026-09-26-pyramid-engraving/pyramid.js', 'sandbox/2026-09-26-pyramid-engraving/film.js'],
     fonts: [{ family: 'Fell', src: 'fonts/IMFellDWPicaSC-Regular.ttf' }],
-    shots: [[0, 17, 'Opening']],
+    shots: [[5, 10, 'PIR-02 first breath'], [10, 17, 'PIR-03 impossible opening']],
     setup: (env) => PyramidFilm.setup(env),
     draw: (g, t, env) => PyramidFilm.frame(g, t, env),
 });

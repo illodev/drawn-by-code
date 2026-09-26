@@ -4,11 +4,18 @@
 // The building: a square pyramid (half base B, height HP) laid in NC courses. Each course is
 // three shells of stones (the skin, 0, and two layers under it) round a hollow chamber: the
 // machine (a stepped obsidian core with blue channels, a bronze axis, three gold rings)
-// lives there.
-// Opening (e = 0 closed … 1 open): each of the four faces moves out along its own face
-// normal, the skin furthest, so the corners open into V-shaped gaps that show the shells
-// under it and the machine at the heart; the stones also spread a little within their face
-// (a lattice) and the courses part in bands of four. The silhouette stays a pyramid, larger.
+// lives there and is already turning before anything opens.
+//
+// The timeline (script PIR-02 and PIR-03):
+//   5.0  a blue line wakes in the joint under the first stone (S0, the +z face, low)
+//   5.4  the notched triangle mark on S0 lights from its incision
+//   6.0  S0 moves a few centimetres out, pressing dust from its lower edge
+//   7.0  its neighbours answer: the opening spreads upwards and through the three shells,
+//        a slot that shows the polished black core
+//   9.0  the three rings of the machine line up, concentric, and the eye sees further in
+//   10   the whole building answers: first the courses part in bands, then each face moves
+//        out along its own normal, the skin furthest (the corners open into V gaps), until
+//        13.5, when skin, shells and heart read apart; held to 15.5; the machine never stops
 const Pyramid = (() => {
     const B = 1, HP = 1.27, NC = 18, H = HP / NC, TK = 0.12;
     const SHELLS = [
@@ -17,6 +24,7 @@ const Pyramid = (() => {
         { out: 0.24, fs: 1.06, fy: 1.06, drift: 0.03 },
     ];
     const halfAt = (y) => B * (1 - y / HP);
+    const E = (t, a, b) => Ease.inOut(Ease.seg(t, a, b));
     function stones() {
         const r = Motion.rng('pyramid-stones');
         const S = [];
@@ -44,54 +52,124 @@ const Pyramid = (() => {
                 }
             }
         }
-        return S;
+        // the first stone: skin, +z face, the sixth course, nearest x = 0.05
+        const c0 = 5, y0 = (c0 + 0.5) * H;
+        let S0 = null;
+        for (const s of S) if (s.shell === 0 && s.n[2] === 1 && Math.abs(s.c[1] - y0) < 1e-6 && (!S0 || Math.abs(s.c[0] - 0.05) < Math.abs(S0.c[0] - 0.05))) S0 = s;
+        S0.first = true;
+        // the waking zone: stones of all three shells on the +z side around and above S0
+        for (const s of S) {
+            const rel = s.c[0] - S0.c[0], dy = s.c[1] - S0.c[1];
+            s.dist = Math.hypot(s.c[0] - S0.c[0], s.c[1] - S0.c[1], s.c[2] - S0.c[2]);
+            if (s.first || s.n[2] !== 1 || Math.abs(rel) > 0.3 || dy < -0.05 || dy > 0.42) continue;
+            const side = Math.abs(rel) < 0.02 ? (s.seed < 0.5 ? -1 : 1) : Math.sign(rel);
+            s.wake = {
+                t0: 7 + dy * 3.2 + s.shell * 0.35 + Math.abs(rel) * 1.2,
+                dx: side * (0.08 + 0.04 * s.shell) * (1.15 - Math.abs(rel) / 0.35),
+                dz: 0.02 + 0.01 * s.seed,
+            };
+        }
+        return { S, S0 };
     }
     let ST = null;
-    function build(t, e) {
+    const face = (n) => { const v = [n[0] * HP, B, n[2] * HP], l = Math.hypot(...v); return v.map((x) => x / l); };
+    // where a stone is at t: its waking slide, then the bands, then its face moving out
+    function place(s, t) {
+        const sh = SHELLS[s.shell];
+        const eb = E(t, 10 + s.dist * 0.5, 12 + s.dist * 0.5);
+        const eo = E(t, 11 + s.dist * 0.4, 13.2 + s.dist * 0.2);
+        const fs = 1 + (sh.fs - 1) * eo, fy = 1 + (sh.fy - 1) * eb;
+        const nf = face(s.n), k = sh.out * eo + sh.drift * eo * (s.drift - 0.3);
+        const band = Math.floor(s.c[1] / H / 4);
+        const p = [s.c[0] * fs + nf[0] * k, s.c[1] * fy + nf[1] * k + band * 0.035 * eb, s.c[2] * fs + nf[2] * k];
+        if (s.first) {
+            // out a few centimetres at 6 s (slow to start, stopping with weight), aside at 8 s
+            p[2] += 0.035 * E(t, 6, 6.9);
+            p[0] -= 0.13 * E(t, 8, 8.9);
+        } else if (s.wake) {
+            const o = E(t, s.wake.t0, s.wake.t0 + 0.9);
+            p[0] += s.wake.dx * o;
+            p[2] += s.wake.dz * o;
+        }
+        return p;
+    }
+    // normalised lerp between two quaternions (the short way)
+    const nlerp = (a, b, u) => {
+        const sg = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3] < 0 ? -1 : 1;
+        const q = a.map((x, i) => x * (1 - u) + b[i] * sg * u), l = Math.hypot(...q);
+        return q.map((x) => x / l);
+    };
+    function build(t) {
         ST = ST ?? stones();
-        const box = [], dust = [], tops = [];
+        const { S, S0 } = ST;
+        const e = E(t, 10.5, 13.5);
+        const box = [], dust = [], tops = [], marks = [];
         // the ground
         Engrave.inst(box, [0, -0.5, 0], 5, [60, 0.5, 60], 0.5);
-        const face = (n) => { const v = [n[0] * HP, B, n[2] * HP], l = Math.hypot(...v); return v.map((x) => x / l); };
-        const place = (s, e) => {
-            const sh = SHELLS[s.shell];
-            const fs = 1 + (sh.fs - 1) * e, fy = 1 + (sh.fy - 1) * e;
-            const nf = face(s.n), k = sh.out * e + sh.drift * e * (s.drift - 0.3);
-            const band = Math.floor(s.c[1] / H / 4);
-            return [s.c[0] * fs + nf[0] * k, s.c[1] * fy + nf[1] * k + band * 0.035 * e, s.c[2] * fs + nf[2] * k];
-        };
-        for (const s of ST) Engrave.inst(box, place(s, e), s.worn, s.half, s.seed);
+        for (const s of S) Engrave.inst(box, place(s, t), s.worn, s.half, s.seed);
         // the capstone rides the axis
         Engrave.inst(tops, [0, HP * (1 + 0.45 * e) + H * 0.2, 0], 0, [H * 1.1, H * 1.1, H * 1.1], 0.3);
+        // the first stone's joint and mark (they travel with it)
+        const p0 = place(S0, t), f0 = p0[2] + S0.half[2];
+        const joint = E(t, 4.6, 5.6), mark = E(t, 5.3, 6.1);
+        // the joint line glows from inside the joint, thin
+        if (joint > 0) Engrave.inst(marks, [p0[0], p0[1] - H / 2 - 0.0002, f0 - 0.006], 4, [S0.half[0] * 0.95 * joint, 0.0009, 0.004], 0.5, [0, 0, 0, 1], 0.6);
+        if (mark > 0) {
+            // the mark: a triangle left incomplete (its right side stops short of the apex)
+            // with a V notch cut up into its base; a fictional sign, not a hieroglyph
+            const tr = 0.026, cx = p0[0], cy = p0[1] + 0.003, z = f0 + 0.0004, w = 0.0016, gl = 0.7 * mark;
+            const bar = (x, y, len, ang) => Engrave.inst(marks, [x, y, z], 4, [w, len, 0.0008], 0.5, Engrave.quat([0, 0, 1], ang), gl);
+            const a = Math.atan2(tr, tr * 1.7);   // side slope
+            bar(cx - tr * 0.5, cy, tr * 0.98, -a);
+            bar(cx + tr * 0.62, cy - tr * 0.24, tr * 0.72, a);
+            const by = cy - tr * 0.97;
+            Engrave.inst(marks, [cx - tr * 0.62, by, z], 4, [tr * 0.38, w, 0.0008], 0.5, [0, 0, 0, 1], gl);
+            Engrave.inst(marks, [cx + tr * 0.62, by, z], 4, [tr * 0.38, w, 0.0008], 0.5, [0, 0, 0, 1], gl);
+            bar(cx - tr * 0.12, by + tr * 0.15, tr * 0.19, 0.6);
+            bar(cx + tr * 0.12, by + tr * 0.15, tr * 0.19, -0.6);
+        }
         // the heart: a stepped obsidian core, blue channels along its steps, a bronze axis and
-        // three gold rings turning round it
+        // three gold rings turning round it; closed, it is folded small inside the chamber
         const core = [], blue = [], cyl = [], rings = [];
         const TIERS = 7, TH = 0.08;
         for (let i = 0; i < TIERS; i++) {
             const hw = 0.5 - i * 0.065, y = TH * (i + 0.5);
             Engrave.inst(core, [0, y, 0], 2, [hw, TH / 2 - 0.002, hw], 0.3 + i * 0.1);
-            // the channel: a glowing line along the four upper edges of the step
             for (const [dx, dz, lx, lz] of [[1, 0, 0.004, hw], [-1, 0, 0.004, hw], [0, 1, hw, 0.004], [0, -1, hw, 0.004]])
                 Engrave.inst(blue, [dx * (hw + 0.004), y + TH / 2 - 0.006, dz * (hw + 0.004)], 4, [lx, 0.005, lz], 0.5, [0, 0, 0, 1], 0.6);
         }
-        // closed, the machine is folded inside the chamber; it grows as the stone opens
         const g = 0.45 + 0.55 * e, ah = 0.2 + 0.3 * e;
         Engrave.inst(cyl, [0, TIERS * TH + ah, 0], 6, [0.03, ah, 0.03], 0.2);
+        // at 9 s the rings line up, concentric and facing the slot, then turn on
+        const align = E(t, 8.2, 9.0) * (1 - E(t, 9.7, 10.7));
+        const qa = Engrave.quat([1, 0, 0], Math.PI / 2);
         const R = [[0.36, 0.8, 0.35, 0.22], [0.58, 0.64, -0.55, 0.55], [0.8, 0.46, 0.8, 0.95]];
         R.forEach(([y, rad, sp, tilt], i) => {
-            const q = Engrave.qmul(Engrave.quat([0, 1, 0], t * sp + i), Engrave.quat([1, 0, 0.3], tilt));
-            Engrave.inst(rings, [0, (y + 0.1 * e * i) * (0.6 + 0.4 * e), 0], 3, [rad * g, rad * g, rad * g], 0.3 + i * 0.2, q);
+            const q0 = Engrave.qmul(Engrave.quat([0, 1, 0], t * sp + i), Engrave.quat([1, 0, 0.3], tilt));
+            const q = nlerp(q0, qa, align);
+            const yy = Ease.lerp((y + 0.1 * e * i) * (0.6 + 0.4 * e), S0.c[1] + 0.02, align);
+            Engrave.inst(rings, [0, yy, 0], 3, [rad * g, rad * g, rad * g], 0.3 + i * 0.2, q);
         });
-        // dust falling from the opened joints: dark stipples, each on its own closed-form fall
+        // dust. S0's lower edge presses out a puff at 6 s (each grain on its own closed-form
+        // fall); from 10 s grains fall from every opened joint
         const r = Motion.rng('pyramid-dust');
+        for (let i = 0; i < 260; i++) {
+            const t0 = 6.05 + r() * 0.5, vx = (r() - 0.5) * 0.12, vz = 0.02 + r() * 0.06, vy = r() * 0.03;
+            const x0 = (r() - 0.5) * 2 * S0.half[0], sz = 0.0005 + r() * 0.0009, sd = r();
+            const u = t - t0;
+            if (u < 0 || u > 3) continue;
+            const y = S0.c[1] - H / 2 + vy * u - 0.5 * 0.35 * u * u;
+            if (y < 0) continue;
+            Engrave.inst(dust, [p0[0] + x0 + vx * u, y, f0 + 0.005 + vz * u], 5, [sz, sz, sz], sd, [0, 0, 0, 1], 0, 0.75);
+        }
         for (let i = 0; i < 700; i++) {
-            const s = ST[Math.floor(r() * ST.length)];
-            const p0 = place(s, e);
+            const s = S[Math.floor(r() * S.length)];
+            const p = place(s, t);
             const ph = (t * (0.08 + r() * 0.1) + r()) % 1;
-            const y = p0[1] - ph * 0.6;
+            const y = p[1] - ph * 0.6;
             const sz = 0.003 + r() * 0.004, jx = r() - 0.5, jz = r() - 0.5, sd = r();
             if (y < 0.005 || e < 0.05) continue;
-            Engrave.inst(dust, [p0[0] + jx * 0.06, y, p0[2] + jz * 0.06], 5, [sz, sz, sz], sd, [0, 0, 0, 1], 0, 0.75);
+            Engrave.inst(dust, [p[0] + jx * 0.06, y, p[2] + jz * 0.06], 5, [sz, sz, sz], sd, [0, 0, 0, 1], 0, 0.75);
         }
         const draws = [
             { mesh: 'box', inst: new Float32Array(box), box: true },
@@ -99,11 +177,18 @@ const Pyramid = (() => {
             { mesh: 'box', inst: new Float32Array(core), box: true },
             { mesh: 'cylinder', inst: new Float32Array(cyl), tan: 'y' },
             { mesh: 'box', inst: new Float32Array(blue), box: true, cast: false },
+            { mesh: 'box', inst: new Float32Array(marks), box: true, cast: false },
             { mesh: 'ring', inst: new Float32Array(rings) },
-            { mesh: 'box', inst: new Float32Array(dust), box: true, cast: false },
+            { mesh: 'sphere', inst: new Float32Array(dust), cast: false },
         ];
-        const lights = [[0.55, 0.3, 0.55, 0, 0.9 * e], [-0.4, 0.3, 0.55, 0, 0.6 * e], [0.55, 0.35, -0.4, 0, 0.6 * e], [0, 0.75, 0, 0, 0.5 * e]];
-        return { draws, lights, stones: ST.length };
+        // the machine's light shows once the slot opens; the mark lights its own stone
+        const inner = Math.max(e, 0.35 * E(t, 7.2, 9));
+        const lights = [
+            [0.55, 0.3, 0.55, 0, 0.9 * e], [-0.4, 0.3, 0.55, 0, 0.6 * e], [0.55, 0.35, -0.4, 0, 0.6 * e],
+            [0, 0.75, 0, 0, 0.5 * inner], [0, S0.c[1], 0.25, 0, 0.5 * inner],
+            [p0[0], p0[1], f0 + 0.03, 0, 0.12 * mark],
+        ];
+        return { draws, lights, stones: S.length, S0: p0, S0face: f0 };
     }
-    return { build, B, HP };
+    return { build, B, HP, H, S0: () => (ST = ST ?? stones()).S0 };
 })();

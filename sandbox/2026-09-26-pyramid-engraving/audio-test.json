@@ -1,0 +1,17 @@
+{
+    "duration": 12,
+    "sfxDir": "../../assets/sfx",
+    "align": "onset",
+    "cues": [
+        ["desert_wind", 0.0, -13],
+        ["cavity_hum", 0.4, -17],
+        ["stone_shift", 1.0, -5],
+        ["stone_answer", 2.0, -8],
+        ["ring_align", 4.0, -7],
+        ["stone_rumble", 5.0, -5],
+        ["cavity_hum", 5.5, -14],
+        ["stone_rumble", 6.3, -8],
+        ["machine_turn", 8.4, -11],
+        ["air_rush", 10.8, -9]
+    ]
+}

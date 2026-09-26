@@ -206,7 +206,8 @@ vec3 print(vec2 fc, float cov, vec4 ink2, vec3 ink) {
 float lines(float s, float c, float aa) {
     float d = abs(fract(s + 0.5) - 0.5);
     float hw = 0.5 * c;
-    return 1.0 - smoothstep(hw - aa, hw + aa, d);
+    // a line thinner than a pixel prints lighter, never as a half-tone smear of fixed width
+    return (1.0 - smoothstep(hw - aa, hw + aa, d)) * clamp(hw / max(aa, 1e-5), 0.0, 1.0);
 }
 `;
     const VS = `#version 300 es
@@ -313,7 +314,8 @@ void main() {
     float lum = M.x * (lam + sky) * (1.0 + stone * (m < 2 || m == 5 ? 1.0 : 0.2)) + spec + glow * 0.6;
     float D = clamp(1.0 - lum + vX.y, 0.0, 1.0);
     D = smoothstep(0.14, 0.95, D);
-    if (m < 2) D = max(D, 0.04 + 0.06 * vSeed);       // cut stone always carries a few flicks
+    // cut stone always carries some line work, heavier where it is weathered
+    if (m < 2) D = max(D, 0.1 + 0.06 * vSeed + 0.22 * smoothstep(0.45, 0.8, fbm3(vW * 7.0 + vSeed * 5.0)));
     float bend = 0.0;
     if (m == 5) { D = max(D, 0.13); bend = (vnoise(vW.xz * 0.45 + 3.0) * 7.0 + vnoise(vW.xz * 1.7) * 1.5) / (1.0 + 0.25 * length(uEye - vW)); }  // sand: thin lines everywhere, bending with the dunes
     // aerial perspective: the far plane is engraved lighter
@@ -350,19 +352,38 @@ void main() {
         float aa = fwidth(s) * 0.8;
         cov = max(cov, lines(s, c, aa) * flick);
     }
+    float edgePx = 99.0;
     // contours: every stone's edges are cut, worn and broken a little; far stones lose them
     if (uBox > 0.5) {
         vec3 e = (1.0 - abs(vL)) * vH;
         vec3 ax = abs(vL);
         float face = ax.x > ax.y ? (ax.x > ax.z ? 0.0 : 2.0) : (ax.y > ax.z ? 1.0 : 2.0);
         float ed = face == 0.0 ? min(e.y, e.z) : face == 1.0 ? min(e.x, e.z) : min(e.x, e.y);
-        float epx = ed / ps / uPx;
+        // chips: the edge bites into the face here and there
+        float chip = 0.0014 * smoothstep(0.62, 0.9, vnoise(vec2(dot(vW, vec3(260.0, 280.0, 240.0)), vSeed * 31.0)));
+        float epx = max(ed - chip, 0.0) / ps / uPx;
         float blockPx = 2.0 * min(vH.x, min(vH.y, vH.z)) / ps / uPx;
         float wear = vnoise(vW.xz * 90.0 + vW.y * 60.0);
         float w = mix(0.7, 1.5, D) * (0.7 + 0.6 * wear);
         float edge = 1.0 - smoothstep(w, w + 1.0, epx);
-        cov = max(cov, edge * smoothstep(3.0, 9.0, blockPx) * (0.55 + 0.45 * D));
+        // (full ink: a cut line is never grey; far stones lose theirs by thinning, not fading)
+        edgePx = epx;
+        cov = max(cov, (1.0 - smoothstep(w * smoothstep(3.0, 9.0, blockPx), w * smoothstep(3.0, 9.0, blockPx) + 1.0, epx)) * step(3.0, blockPx));
     }
+    // cut stone up close: pores (a jittered dot here and there, once a dot is bigger than a
+    // pixel) and faces turned edge-on (joints) cut solid, not as a zebra of lines
+    if (uBox > 0.5 && m < 3) {
+        vec3 pw = vW * 55.0, cell = floor(pw), f = fract(pw) - 0.5;
+        vec3 off = vec3(hash3(cell + 1.7), hash3(cell + 4.1), hash3(cell + 8.3)) - 0.5;
+        vec3 dv = f - off * 0.6;
+        float rr = length(dv - N * dot(dv, N));
+        float pr = 0.035 + 0.05 * hash3(cell + 2.2);
+        float prPx = pr / 55.0 / ps / uPx;
+        float pore = step(hash3(cell + vSeed * 3.0), 0.22) * (1.0 - smoothstep(pr - 0.7 * pr / prPx, pr, rr)) * smoothstep(0.5, 1.2, prPx);
+        cov = max(cov, pore);
+        cov = max(cov, 1.0 - smoothstep(0.1, 0.22, abs(dot(N, V))));
+    }
+    if (m == 5 && vH.x < 0.02) cov = 1.0;          // dust prints as stipple
     // round things have no edges to cut: their outline is drawn where they turn away
     if (uBox < 0.5) {
         float rim = abs(dot(N, V));
@@ -372,8 +393,7 @@ void main() {
     vec4 ink2 = vec4(0.0);
     vec3 ink = uInk;
     if (M.w > 1.5) {
-        float core = pow(max(dot(N, V), 0.0), 2.0);
-        ink2 = vec4(uInkBlue, 0.85 - core * 0.55);
+        ink2 = vec4(uInkBlue, edgePx < 1.4 ? 1.0 : 0.72);
         cov *= 0.0;
     } else if (M.w > 0.5) {
         // metal: a gold wash under the dark line work, as a hand-coloured plate
@@ -522,8 +542,11 @@ void main() {
             const VP = M4.mul(proj, view);
             const sun = norm(f.sun ?? [-0.5, 0.5, 0.6]);
             const sc = f.shadow?.center ?? f.target, sr = f.shadow?.radius ?? 4;
-            const lview = M4.lookAt([sc[0] + sun[0] * sr * 2, sc[1] + sun[1] * sr * 2, sc[2] + sun[2] * sr * 2], sc, Math.abs(sun[1]) > 0.95 ? [0, 0, 1] : [0, 1, 0]);
-            const LVP = M4.mul(M4.ortho(-sr, sr, -sr, sr, 0.01, sr * 4), lview);
+            // the map follows the camera's subject (a small radius for close-ups keeps shadows
+            // sharp); its depth range stays long so far casters still shade the close-up
+            const sd = Math.max(sr * 2, 5);
+            const lview = M4.lookAt([sc[0] + sun[0] * sd, sc[1] + sun[1] * sd, sc[2] + sun[2] * sd], sc, Math.abs(sun[1]) > 0.95 ? [0, 0, 1] : [0, 1, 0]);
+            const LVP = M4.mul(M4.ortho(-sr, sr, -sr, sr, 0.01, sd * 2), lview);
             const draws = f.draws ?? [];
             const px = W / 1920;
             gl.enable(gl.DEPTH_TEST);

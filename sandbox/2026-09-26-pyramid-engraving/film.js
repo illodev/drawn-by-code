@@ -1,19 +1,58 @@
 // One frame of the film, shared by the full-bleed scene and the plate variant (the image
 // inside a printed plate: margins, neat line, running heads and a caption in the plate's
 // capitals). The plate is for the opening and closing frames; the film itself is full bleed.
+//
+// The camera (PIR-02, PIR-03): a macro on the first stone's mark, backing off just enough
+// for the opening to gain room; looking down the slot at the rings lining up; then a rising
+// retreat to the whole opened building, held; at 16 s it leans to the V gap of the near
+// corner and starts in. Keys are relative to the first stone's face until 10 s.
 const PyramidFilm = (() => {
-    const CAM = { cam: [3.4, 1.8, 4.3], target: [0, 0.85, 0], fov: 0.72 };
+    // Hermite through keys with time-aware tangents: the camera never stops at a key
+    function path(keys, t) {
+        if (t <= keys[0][0]) return keys[0].slice(1);
+        const n = keys.length;
+        if (t >= keys[n - 1][0]) return keys[n - 1].slice(1);
+        let i = 0;
+        while (keys[i + 1][0] < t) i++;
+        const [t0] = keys[i], [t1] = keys[i + 1], h = t1 - t0, u = (t - t0) / h;
+        const tan = (j) => {
+            if (j === 0 || j === n - 1) return keys[j].slice(1).map((v) => v.map(() => 0));
+            const dt = keys[j + 1][0] - keys[j - 1][0];
+            return keys[j].slice(1).map((v, a) => v.map((_, c) => (keys[j + 1][a + 1][c] - keys[j - 1][a + 1][c]) / dt));
+        };
+        const m0 = tan(i), m1 = tan(i + 1);
+        const h00 = 2 * u ** 3 - 3 * u * u + 1, h10 = u ** 3 - 2 * u * u + u, h01 = -2 * u ** 3 + 3 * u * u, h11 = u ** 3 - u * u;
+        return keys[i].slice(1).map((v, a) => v.map((p0, c) => h00 * p0 + h10 * h * m0[a][c] + h01 * keys[i + 1][a + 1][c] + h11 * h * m1[a][c]));
+    }
+    let KEYS = null;
+    function keys() {
+        const s = Pyramid.S0(), x0 = s.c[0], y0 = s.c[1], f0 = s.c[2] + s.half[2];
+        const rel = (dx, dy, dz) => [x0 + dx, y0 + dy, f0 + dz];
+        // [t, cam, target, [fov]]
+        return [
+            [5.0, rel(0.07, 0.035, 0.3), rel(0, 0, 0), [0.55]],
+            [6.5, rel(0.06, 0.045, 0.38), rel(0, 0.002, 0), [0.55]],
+            [8.5, rel(0.03, 0.09, 0.62), rel(0, 0.03, -0.2), [0.58]],
+            [10.0, rel(0.0, 0.2, 1.05), rel(0, 0.05, -0.6), [0.62]],
+            [12.0, [1.7, 1.35, 3.1], [0, 0.72, 0], [0.7]],
+            [13.5, [3.4, 1.9, 4.3], [0, 0.85, 0], [0.72]],
+            [15.5, [3.6, 1.95, 4.1], [0, 0.85, 0], [0.72]],
+            [17.0, [2.3, 1.3, 2.75], [0, 0.55, 0.1], [0.74]],
+        ];
+    }
     function frame(g, t, env, o = {}) {
-        const e = Ease.inOut(Ease.seg(t, 10, 13.5));
-        const P = Pyramid.build(t, e);
+        KEYS = KEYS ?? keys();
+        const P = Pyramid.build(t);
+        const [cam, target, [fov0]] = path(KEYS, t);
         const plate = o.plate ? [0.075, 0.1, 0.925, 0.86] : [0, 0, 1, 1];
         // the plate's image area keeps the full-bleed composition: widen the lens to match
-        const fov = o.plate ? 2 * Math.atan(Math.tan(CAM.fov / 2) / (plate[3] - plate[1])) : CAM.fov;
+        const fov = o.plate ? 2 * Math.atan(Math.tan(fov0 / 2) / (plate[3] - plate[1])) : fov0;
+        const dist = Math.hypot(cam[0] - target[0], cam[1] - target[1], cam[2] - target[2]);
         env.state.R.render(g, (o.plate ? 'p' : 'f') + Math.round(t * 24), {
-            ...CAM, fov,
+            cam, target, fov, near: 0.01,
             sun: [-0.45, 0.42, 0.8], sunK: 1.0, fill: 0.3,
             draws: P.draws, lights: P.lights,
-            shadow: { center: [0, 0.9, 0], radius: 3.2 },
+            shadow: { center: target, radius: Math.min(3.2, Math.max(1.5, dist * 0.8)) },
             sky: { zenith: 0.62, horizon: 0.03 },
             fog: [5, 22], spacing: 6, frame: plate,
         });
