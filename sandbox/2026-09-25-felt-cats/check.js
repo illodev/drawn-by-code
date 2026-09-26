@@ -8,7 +8,7 @@ Motion.scene({
     uses: [
         'styles/felt3d/felt3d.js', 'sandbox/2026-09-25-felt-cats/cats.js',
         'sandbox/2026-09-25-felt-cats/keys/segA.js', 'sandbox/2026-09-25-felt-cats/keys/segB.js', 'sandbox/2026-09-25-felt-cats/keys/segC.js',
-        { src: 'sandbox/2026-09-25-felt-cats/private/fit-poses.js', optional: true }, 'sandbox/2026-09-25-felt-cats/dance.js',
+        { src: 'sandbox/2026-09-25-felt-cats/private/solved-poses.js', optional: true }, { src: 'sandbox/2026-09-25-felt-cats/private/tracked-poses.js', optional: true }, 'sandbox/2026-09-25-felt-cats/dance.js',
     ],
     shots: [[0, 15.84, 'Dance']],
     setup(env) {

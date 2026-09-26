@@ -19,6 +19,18 @@
 //               (arms out to the side with the paws up: out ≈ 1.3, elbow ≈ 1.3, inward ≈ −1.4)
 //     legL/legR [lift (knee forward and up), out (splay)]
 //     tail      [swing (+ to its left), lift, curl];  mouth: 0 shut … 1 open
+//
+//   IK pose (Cats.jointsIK, used when a pose has `feet`): what the dance is measured in.
+//     x, z, yaw      the root on the floor (between the feet)
+//     pel            [x, y, z] pelvis centre in the root frame (y: its height; ~0.2 standing,
+//                    lower in a crouch: the knees bend to keep the feet where they are)
+//     spine          [x, y, z] the neck in the root frame (the torso runs pelvis → neck; its
+//                    length is kept, so this gives the lean, not a stretch)
+//     twist          chest turned against the hips (+ to its left)
+//     head           [turn, nod, tilt] relative to the chest (as above)
+//     feet           [[x, z, lift] its left, [x, z, lift] its right] in the root frame
+//     paws           [[x, y, z] left, [x, y, z] right] in the chest frame (y up the spine, z forward)
+//     tail, mouth    as above
 const Cats = (() => {
     const { V } = Felt3D;
     const STRIDE = 96;
@@ -75,13 +87,91 @@ const Cats = (() => {
         out.push(...pel, ...R, ...up(chest), ...Rc, ...up(head), ...Rh);
         for (const j of [...aL, ...aR, ...lL, ...lR]) out.push(...up(j));
         for (const j of tail) out.push(...j);
-        out.push(P.mouth);
+        out.push(P.mouth, P.yaw);
+        while (out.length < STRIDE) out.push(0);
+        return out;
+    }
+    // two-bone IK: from a towards t, bones l1 and l2, the middle joint bent towards pole
+    function ik2(a, t, l1, l2, pole) {
+        let d = V.sub(t, a), L = Math.hypot(...d);
+        const Lc = Math.min(Math.max(L, Math.abs(l1 - l2) + 1e-3), l1 + l2 - 1e-4);
+        const dir = V.mul(d, 1 / Math.max(L, 1e-6));
+        const cosA = (l1 * l1 + Lc * Lc - l2 * l2) / (2 * l1 * Lc), sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA));
+        let perp = V.sub(pole, V.mul(dir, pole[0] * dir[0] + pole[1] * dir[1] + pole[2] * dir[2]));
+        const pl = Math.hypot(...perp) || 1;
+        perp = V.mul(perp, 1 / pl);
+        const mid = V.add(a, V.add(V.mul(dir, l1 * cosA), V.mul(perp, l1 * sinA)));
+        return [mid, V.add(a, V.mul(dir, Lc))];
+    }
+    // the rotation whose y axis points along v and whose z axis stays as near as it can to fwd
+    function frameY(v, fwd) {
+        const y = V.mul(v, 1 / Math.hypot(...v));
+        let x = [y[1] * fwd[2] - y[2] * fwd[1], y[2] * fwd[0] - y[0] * fwd[2], y[0] * fwd[1] - y[1] * fwd[0]];
+        x = V.mul(x, 1 / (Math.hypot(...x) || 1));
+        const z = [x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]];
+        return [...x, ...y, ...z];
+    }
+    // lengths (measured on the reference kittens, relative to the head)
+    const LEN = { spine: 0.3, neck: 0.075, head: 0.115, thigh: 0.105, shin: 0.095, ankle: 0.03, upper: 0.1, fore: 0.095 };
+    const REST_IK = {
+        x: 0, z: 0, yaw: 0, pel: [0, 0.2, 0], spine: [0, 0.575, 0.02], twist: 0, head: [0, 0, 0],
+        feet: [[0.075, 0.02, 0], [-0.075, 0.02, 0]], paws: [[0.06, -0.14, 0.11], [-0.06, -0.14, 0.11]],
+        tail: [0.6, 0, 0.5], mouth: 0,
+    };
+    function jointsIK(ps) {
+        const P = { ...REST_IK, ...ps };
+        const Ry = V.ry(P.yaw), root = [P.x, 0, P.z];
+        const W = (v) => V.add(root, V.app(Ry, v));
+        const pel = W(P.pel);
+        // the torso keeps its length: the neck target sets its direction
+        const neckT = W(P.spine), sv = V.sub(neckT, pel);
+        const fwd = V.app(Ry, [0, 0, 1]);
+        const Rc0 = frameY(sv, fwd);
+        const Rc = V.mm(Rc0, V.ry(P.twist));
+        // the pelvis follows half the lean
+        const Rp = frameY(V.add(V.mul(V.mul(sv, 1 / Math.hypot(...sv)), 0.5), [0, 0.5, 0]), fwd);
+        const chest = V.add(pel, V.app(Rc, [0, LEN.spine * 0.72, 0.005]));
+        const neck = V.add(pel, V.app(Rc, [0, LEN.spine, 0.02]));
+        const [hy, hp, hr] = P.head;
+        const Rh = V.mm(Rc, V.mm(V.ry(hy), V.mm(V.rx(hp), V.rz(hr))));
+        const head = V.add(neck, V.app(Rh, [0, LEN.head, 0]));
+        const arm = (sgn, tgt) => {
+            const sh = V.add(chest, V.app(Rc, [sgn * 0.09, 0.02, 0.04]));
+            const t = V.add(chest, V.app(Rc, tgt));
+            const pole = V.app(Rc, [sgn * 0.6, -0.5, -0.6]);
+            const [el, paw] = ik2(sh, t, LEN.upper, LEN.fore, pole);
+            return [sh, el, paw];
+        };
+        const leg = (sgn, [fx, fz, lift]) => {
+            const hip = V.add(pel, V.app(Rp, [sgn * 0.075, -0.03, 0.0]));
+            const ankle = W([fx, 0.03 + lift, fz]);
+            const pole = V.app(Ry, [sgn * 0.35, 0, 1]);
+            const [knee, ank] = ik2(hip, ankle, LEN.thigh, LEN.shin, pole);
+            return [hip, knee, ank];
+        };
+        const aL = arm(1, P.paws[0]), aR = arm(-1, P.paws[1]);
+        const lL = leg(1, P.feet[0]), lR = leg(-1, P.feet[1]);
+        const tail = [];
+        let tp = V.add(pel, V.app(Rp, [0, -0.1, -0.1]));
+        const [sw, tl, cu] = P.tail;
+        for (let i = 0; i < 5; i++) {
+            tail.push(tp);
+            const yaw = sw * (0.3 + 0.35 * i) * (1 + cu * i * 0.3), pit = -0.55 + tl + cu * 0.25 * i;
+            const dl = V.app(Ry, [Math.sin(yaw) * Math.cos(pit), Math.sin(pit), -Math.cos(yaw) * Math.cos(pit)]);
+            tp = V.add(tp, V.mul(dl, 0.075));
+            tp[1] = Math.max(tp[1], 0.028);
+        }
+        const out = [];
+        out.push(...pel, ...Rp, ...chest, ...Rc, ...head, ...Rh);
+        for (const j of [...aL, ...aR, ...lL, ...lR]) out.push(...j);
+        for (const j of tail) out.push(...j);
+        out.push(P.mouth, P.yaw, P.x, P.z, P.scale ?? 1);
         while (out.length < STRIDE) out.push(0);
         return out;
     }
     // poses of the three cats, then the puddle: up to 6 blobs [x, z, r] on the floor
     const pack = (poses, puddle = []) => {
-        const out = poses.flatMap((p, c) => joints(p, c));
+        const out = poses.flatMap((p, c) => (p.feet ? jointsIK(p) : joints(p, c)));
         for (let k = 0; k < 6; k++) out.push(...(puddle[k] ?? [0, 0, 0]));
         return out;
     };
@@ -99,6 +189,7 @@ const Cats = (() => {
 #define LGR 63
 #define TAI 72
 #define MOU 87
+#define FYAW 88
 #define HS 1.0
 float ear(vec3 q, float side, int c) {
     // an ear: a flattened cone; the fold (cat 0) bends the tip forward and down
@@ -230,7 +321,8 @@ vec2 catSDF(vec3 p, int c) {
         d = smin(d, ad, 0.035);
     }
     // legs: chubby thighs into the belly, short shins, oval feet facing forward
-    mat3 R = M3(o + PEL + 3);
+    float fy = PF(o + FYAW);
+    mat3 R = mat3(cos(fy), 0.0, -sin(fy), 0.0, 1.0, 0.0, sin(fy), 0.0, cos(fy)); // feet lie flat, turned with the cat
     for (int s = 0; s < 2; s++) {
         int l = o + (s == 0 ? LGL : LGR);
         vec3 hp = P3(l), kn = P3(l + 3), ft = P3(l + 6);
@@ -288,10 +380,15 @@ vec4 floorDecal(vec3 p, vec3 rd, vec3 L) {
     float al = a * (0.85 + 0.15 * depth);
     return vec4(col * al, al);
 }
+// each cat is modelled at unit size about its root and drawn at its scale (the reference
+// kittens are smaller than the model: measured 0.82)
+float catS(int c) { float s = PF(c * ST + 91); return s > 0.0 ? s : 1.0; }
+vec3 catQ(vec3 p, int c) { vec3 rt = vec3(PF(c * ST + 89), 0.0, PF(c * ST + 90)); return rt + (p - rt) / catS(c); }
+vec2 catW(vec3 p, int c) { vec2 r = catSDF(catQ(p, c), c); r.x *= catS(c); return r; }
 vec2 map(vec3 p) {
-    vec2 r = catSDF(p, 0);
-    r = opU(r, catSDF(p, 1));
-    r = opU(r, catSDF(p, 2));
+    vec2 r = catW(p, 0);
+    r = opU(r, catW(p, 1));
+    r = opU(r, catW(p, 2));
     return r;
 }
 // heathered wool: two or three shades of fibre mixed, as a felter mixes batts
@@ -313,7 +410,8 @@ float stitchMouth(vec3 hq) {
     return smoothstep(0.0028, 0.0012, d);
 }
 float stitchToes(vec3 p, int o) {
-    mat3 R = M3(o + PEL + 3);
+    float fy = PF(o + FYAW);
+    mat3 R = mat3(cos(fy), 0.0, -sin(fy), 0.0, 1.0, 0.0, sin(fy), 0.0, cos(fy));
     float s = 0.0;
     for (int k = 0; k < 2; k++) {
         vec3 fq = transpose(R) * (p - P3(o + (k == 0 ? LGL : LGR) + 6)) - vec3(0.0, 0.0, 0.03);
@@ -327,6 +425,7 @@ float stitchToes(vec3 p, int o) {
 vec3 albedoFelt(float m, vec3 p, vec3 n, int c, int o, vec3 hq, vec3 bq, bool head, bool tail);
 vec3 albedo(float m, vec3 p, vec3 n) {
     int c = int(m / 20.0) - 1;
+    p = catQ(p, c);
     float part = m - 20.0 * float(c + 1);
     int o = c * ST;
     if (part == 1.0) return vec3(0.02, 0.018, 0.02);      // bead
@@ -415,5 +514,5 @@ vec4 material(float m) {
     return vec4(0.02, 4.0, 0.55, 0.013);                 // felt: deep wrap, stray fibres
 }
 `;
-    return { GLSL, pack, joints, REST, STRIDE, PARAMS };
+    return { GLSL, pack, joints, jointsIK, REST, REST_IK, LEN, STRIDE, PARAMS };
 })();

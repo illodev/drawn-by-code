@@ -85,7 +85,7 @@ const Dance = (() => {
         const poses = FIT[d] ? FIT[d].map((p) => ({ ...clone(Cats.REST), ...p })) : RES.map((k) => sample(k, tq));
         // depth and lift are smoothed over ±0.2 s: keyed from measured sizes they jitter key
         // to key (a cat pulsing towards the camera), and stretches keyed apart meet smoothly
-        RES.forEach((k, c) => {
+        if (!FIT[d]) RES.forEach((k, c) => {
             let z = 0, b = 0;
             for (let i = -3; i <= 3; i++) { const p = sample(k, tq + i / 15); z += p.z; b += p.bob; }
             poses[c].z = z / 7;
