@@ -46,13 +46,64 @@ const PyramidFilm = (() => {
             [17.0, [2.3, 1.3, 2.75], [0, 0.55, 0.1], [0.74]],
         ];
     }
+    // The printed plate: the film opens on it (the closed pyramid, as a plate of the
+    // «Description de l'Égypte»), holds, then the camera goes into the engraving: the plate
+    // grows about the centre until its image area fills the frame and the margins, rules and
+    // lettering pass out of shot; the travelling starts as the plate lets go.
+    const PLATE = [0.075, 0.12, 0.925, 0.88];
+    const PLATE_FILL = 1 / (PLATE[3] - PLATE[1]);            // scale at which the image fills
+    function plateScale(t, o) {
+        if (o.plate) return 1;
+        return 1 + (PLATE_FILL - 1) * Ease.inOut(Ease.seg(t, 1.3, 2.9));
+    }
+    function drawPlate(g, env, s, caption) {
+        const W = env.W, H = env.H;
+        g.save();
+        g.translate(W / 2, H / 2);
+        g.scale(s, s);
+        g.translate(-W / 2, -H / 2);
+        const x0 = PLATE[0] * W, y0 = PLATE[1] * H, x1 = PLATE[2] * W, y1 = PLATE[3] * H;
+        g.strokeStyle = 'rgba(42, 37, 32, 0.9)';
+        g.fillStyle = 'rgba(42, 37, 32, 0.9)';
+        g.lineWidth = 1.6;
+        g.strokeRect(x0, y0, x1 - x0, y1 - y0);
+        g.lineWidth = 0.6;
+        g.strokeRect(x0 - 7, y0 - 7, x1 - x0 + 14, y1 - y0 + 14);
+        g.textBaseline = 'alphabetic';
+        g.font = '28px Fell';
+        g.textAlign = 'left';
+        g.fillText('A. Vol. VII.', x0, y0 - 24);
+        g.textAlign = 'right';
+        g.fillText('Pl. 3.', x1, y0 - 24);
+        g.textAlign = 'center';
+        g.font = '44px Fell';
+        g.save();
+        g.translate(W / 2, y0 - 22);
+        g.scale(1.25, 1);
+        g.fillText('PYRAMIDE DES CIEUX.', 0, 0);
+        g.restore();
+        g.font = '15px Fell';
+        g.textAlign = 'left';
+        g.fillText('Code del.', x0, y1 + 22);
+        g.textAlign = 'right';
+        g.fillText('Claude sculp.', x1, y1 + 22);
+        g.textAlign = 'center';
+        g.font = '24px Fell';
+        g.fillText(caption, W / 2, y1 + 52);
+        g.restore();
+    }
     function frame(g, t, env, o = {}) {
         KEYS = KEYS ?? keys();
         const P = Pyramid.build(t);
-        const [cam, target, [fov0]] = path(KEYS, t);
-        const plate = o.plate ? [0.075, 0.1, 0.925, 0.86] : [0, 0, 1, 1];
-        // the plate's image area keeps the full-bleed composition: widen the lens to match
-        const fov = o.plate ? 2 * Math.atan(Math.tan(fov0 / 2) / (plate[3] - plate[1])) : fov0;
+        // the camera holds while the plate is on; the travelling then runs from 1.3 s to 5 s
+        const tc = t < 5 ? Math.max(0, (t - 1.3) / 3.7) * 5 : t;
+        const [cam, target, [fov0]] = path(KEYS, tc);
+        const s = plateScale(t, o);
+        const on = s < PLATE_FILL - 1e-4;
+        // the image area, scaled about the centre; the lens is widened so that area shows the
+        // full-bleed composition (at full scale it is exactly the film's lens)
+        const rect = on ? PLATE.map((v) => 0.5 + (v - 0.5) * s) : [0, 0, 1, 1];
+        const fov = on ? 2 * Math.atan(Math.tan(fov0 / 2) / ((PLATE[3] - PLATE[1]) * s)) : fov0;
         const dist = Math.hypot(cam[0] - target[0], cam[1] - target[1], cam[2] - target[2]);
         const f = {
             cam, target, fov, near: 0.01,
@@ -60,43 +111,15 @@ const PyramidFilm = (() => {
             draws: P.draws, lights: P.lights,
             shadow: { center: target, radius: Math.min(6, Math.max(1.5, dist * 1.1)) },
             sky: { zenith: 0.22, horizon: 0.15, dusk: 0.35 },
-            fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: plate, charcoal: true,
+            fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: rect, charcoal: true,
         };
-        const img = env.state.R.layer((o.plate ? 'p' : 'f') + Math.round(t * 24), f);
+        const img = env.state.R.layer((on ? 'p' : 'f') + Math.round(t * 24), f);
         // the aged print (o.age === false shows the clean render, to compare)
         if (o.age === false) g.drawImage(img, 0, 0, env.W, env.H);
         else env.state.A.apply(g, img, { ink: f.ink, paper: f.paper, charcoal: f.charcoal });
-        if (o.plate) {
-            const W = env.W, H = env.H;
-            const x0 = plate[0] * W, y0 = plate[1] * H, x1 = plate[2] * W, y1 = plate[3] * H;
-            g.save();
-            g.strokeStyle = '#2a2520';
-            g.lineWidth = 1.6;
-            g.strokeRect(x0, y0, x1 - x0, y1 - y0);
-            g.lineWidth = 0.6;
-            g.strokeRect(x0 - 7, y0 - 7, x1 - x0 + 14, y1 - y0 + 14);
-            g.fillStyle = '#2a2520';
-            g.textBaseline = 'alphabetic';
-            g.font = '30px Fell';
-            g.textAlign = 'left';
-            g.fillText('A. Vol. VII.', x0, y0 - 26);
-            g.textAlign = 'right';
-            g.fillText('Pl. 3.', x1, y0 - 26);
-            g.textAlign = 'center';
-            g.font = '46px Fell';
-            g.save();
-            g.translate(W / 2, y0 - 24);
-            g.scale(1.25, 1);
-            g.fillText('PYRAMIDE DES CIEUX.', 0, 0);
-            g.restore();
-            g.font = '26px Fell';
-            g.fillText("VUE DE LA PYRAMIDE OUVERTE, ET DE SA MACHINE, PRISE AU CRÉPUSCULE.", W / 2, y1 + 58);
-            g.font = '15px Fell';
-            g.textAlign = 'left';
-            g.fillText('Code del.', x0, y1 + 24);
-            g.textAlign = 'right';
-            g.fillText('Claude sculp.', x1, y1 + 24);
-            g.restore();
+        if (on) {
+            const open = t > 10;
+            drawPlate(g, env, s, open ? 'VUE DE LA PYRAMIDE OUVERTE, ET DE SA MACHINE, PRISE AU CRÉPUSCULE.' : 'VUE DE LA GRANDE PYRAMIDE, PRISE AU CRÉPUSCULE.');
         }
     }
     function setup(env) {
