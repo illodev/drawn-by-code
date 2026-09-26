@@ -105,8 +105,10 @@ const PyramidFilm = (() => {
         // devil drifting slowly; once the plate has gone the travelling runs (2.9–6.6 s); from
         // there the film runs 1.6 s behind the script's timings
         const u = storyTime(t);
-        const P = Pyramid.build(u);
-        const [cam, target, [fov0]] = path(KEYS, t < PLATE_OUT ? 0 : u);
+        // PIR-04 onwards: the gallery inside (a hidden cut through the entrance ring)
+        const inside = u >= Gallery.T0;
+        const P = inside ? Gallery.build(u) : Pyramid.build(u);
+        const [cam, target, [fov0]] = inside ? path(Gallery.KEYS, u) : path(KEYS, t < PLATE_OUT ? 0 : u);
         const s = plateScale(t, o);
         const on = s < PLATE_FILL - 1e-4;
         // the image area, scaled about the centre; the lens is widened so that area shows the
@@ -122,6 +124,7 @@ const PyramidFilm = (() => {
             sky: { zenith: 0.22, horizon: 0.15, dusk: 0.35 },
             fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: rect, charcoal: true,
         };
+        if (inside) Object.assign(f, Gallery.frameParams);
         const img = env.state.R.layer((on ? 'p' : 'f') + Math.round(t * 24), f);
         // the aged print (o.age === false shows the clean render, to compare)
         if (o.age === false) g.drawImage(img, 0, 0, env.W, env.H);
