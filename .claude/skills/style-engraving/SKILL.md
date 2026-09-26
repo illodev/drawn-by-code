@@ -28,6 +28,26 @@ Vol. V of the «Description de l'Égypte» (Pl. 9, 11, 13, 14 — Wikimedia Comm
 - The plate (margins, neat line, running heads, caption) is 2D on top, in IM Fell DW Pica SC
   (`fonts/IMFellDWPicaSC-Regular.ttf`, OFL). See the scene's `film.js`.
 
+## The approved look (charcoal + aged print)
+
+The user approved («¡Lo has clavado!») the **charcoal** mode with the **aged print** filter,
+not the ruled burin lines: `charcoal: true` in the frame and `Engrave.ager(env).apply(g,
+R.layer(key, f), { ink, paper, charcoal: true })` to paint. What makes it:
+
+- stone faces drawn as a **mosaic of small hand-cut stones** in courses (`course`, world
+  size of a course): joints as broken pencil marks on the lit side, dark stones with lighter
+  joints in shade; the mosaic stays on up close (a big stone is still a drawn wall);
+- tone laid as **graphite in short diagonal strokes** that catch on the paper's tooth only in
+  the half-tones (lights stay clean, darks fill in); drawn marks stay crisp;
+- the **aged print**: tone curve and gradient map measured on the plates (a greyish warm
+  paper, a warm black), second inks carried over, softer lines, grain, toning patches, a
+  darker rim; the sheet does not boil;
+- light as in plate 11: sun from the front left (`sun: [-0.35, 0.5, 0.8]`, `sunK: 0.8`,
+  `fill: 0.2`), a light rubbed sky (`zenith 0.22, horizon 0.15`).
+
+Calibrate against the plate with `sandbox/2026-09-26-pyramid-engraving/plate-test.js`
+(one smooth pyramid from afar) before touching a scene.
+
 ## Style rules
 
 - **Tone is line width, never grey.** Lit stone keeps a few hairlines; shade thickens one
@@ -63,3 +83,13 @@ Vol. V of the «Description de l'Égypte» (Pl. 9, 11, 13, 14 — Wikimedia Comm
 - 2026-09-26 · pyramid-engraving · An exploded building reads when each face moves out along
   its own normal (the corners open into V gaps that show the inside); scaling the shells
   about the axis only makes a lattice that hides the heart.
+- 2026-09-26 · pyramid-engraving · «It still doesn't look like it» three times: parallel burin
+  hatching read as 3D with a filter. What the plates actually do was only seen by cropping
+  the plate next to our render at the same size and measuring tones: faces are mosaics of
+  tiny drawn stones and soft, grainy tone. Put the reference beside the render first.
+- 2026-09-26 · pyramid-engraving · A ruling measured as dot(position, direction) races on a
+  curved piece when the direction turns (rings, cylinders): measure arc length instead, and
+  never add a per-piece offset to the position (it multiplies the error).
+- 2026-09-26 · pyramid-engraving · The colour of «old» is measured, not guessed: a gradient
+  map from the plates' own pixels (their paper is greyish, not cream) did more than any
+  sepia tint.
