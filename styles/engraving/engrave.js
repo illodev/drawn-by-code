@@ -789,7 +789,7 @@ uniform float uVH;    // viewport height, px
 void main() {
     vec3 w = iA.xyz + qrot(iQ, aPos * iB.xyz);
     // a grain of dust passing by the lens stays a grain: never over ~16 px across
-    if (iA.w > 4.5 && iA.w < 5.5 && iB.x < 0.02 && uVH > 0.0) {
+    if (iA.w > 4.5 && iA.w < 5.5 && (iB.x < 0.02 || iX.y < 0.0) && uVH > 0.0) {   // (and stars: bare-paper motes of any size)
         vec4 c0 = uVP * vec4(iA.xyz, 1.0), c1 = uVP * vec4(iA.xyz + vec3(0.0, iB.x, 0.0), 1.0);
         float rpx = c0.w > 1e-4 && c1.w > 1e-4 ? length(c1.xy / c1.w - c0.xy / c0.w) * 0.5 * uVH : 0.0;
         if (rpx > 8.0) w = iA.xyz + (w - iA.xyz) * (8.0 / rpx);
