@@ -65,7 +65,12 @@ paper and an aged print, opened and closed by a printed plate.
 from `private/audio/music-eleven.mp3`, made with ElevenLabs by `gen-music.mjs`, at −5 dB,
 plus 30 cues from `assets/sfx/`). `render.mjs` adds `mix.wav` on its own when it exists.
 Or mux afterwards: `ffmpeg -i video.mp4 -i mix.wav -c:v copy -c:a aac -b:a 256k -shortest out.mp4`.
-New music or sfx need an ElevenLabs key in the environment (`ELEVENLABS_API_KEY`); never
+`private/` folders and `references/` are **not in git and stay that way** (the repo is
+public; the user decided on 2026-09-27 to keep them out): client material, third-party
+footage and music. On a fresh clone the pyramid's music is missing: the user copies
+`music-eleven.mp3` (sent through the chat) into
+`sandbox/2026-09-26-pyramid-engraving/private/audio/`, or it is regenerated with
+`gen-music.mjs` (which gives a different take). New music or sfx need an ElevenLabs key in the environment (`ELEVENLABS_API_KEY`); never
 commit or print a key.
 
 ## How the user works (keep doing this)
