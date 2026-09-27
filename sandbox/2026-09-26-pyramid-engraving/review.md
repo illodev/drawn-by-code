@@ -64,6 +64,23 @@ frame to the room they turn in.
   «demasiado visibles»: now rare in the registers and worn in its cartouche.
 - The last shot's ground «no tan currado»: patchy ripples, mottling, a camera over the dunes.
 
-Still open (next rounds): the seed's close-up tint, the joint's last blue answer, the
-capstone's size, banding in the seed's sky, the shaft's underside walkway, figures still
-schematic up close, the cut from the nursery to the outside.
+## Round 4 · detail, zone by zone (bench.js, then the whole film)
+
+The user: «trabajaría meticulosamente (lento) en las paredes… que no queden espacios en
+blanco… trabajar a más profundidad y zonas más pequeñas». A corner bench (`bench.js`) with a
+view per element, each beside a crop of Dendera at the same size:
+
+- Walls: text columns in every gap, figures filling the registers, relief by its bevel,
+  banded columns, no mosaic on dressed walls.
+- Capital: the creature in the place of Hathor's face («donde has puesto la cara, pondría
+  la mascota de Claude»), in a sunk niche inside the shrine, lappets and collar; lotus bell.
+- Ceiling: bands of vultures, stars and boats between beams. Floor: flagstones, joints,
+  sand, cracks, chips, pebbles («se nota un suelo más viejo»).
+- Across the film («aplicar todas estas técnicas… incluso a las vistas exteriores»): the
+  limestone up close, engraved rings and rods, dust never a disc, flagstones sized per room.
+- The shaft's walkways carried on corbels and struts; loose stones in facets; figures
+  rebuilt to the canon.
+
+Still open (next rounds): the seed's close-up tint, the joint's last blue answer and the
+capstone's size (fixed in code, to verify in frames), banding in the seed's sky, the cut
+from the nursery to the outside.

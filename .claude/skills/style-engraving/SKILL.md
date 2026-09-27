@@ -53,25 +53,40 @@ Calibrate against the plate with `sandbox/2026-09-26-pyramid-engraving/plate-tes
 
 Draw flag and frame field for a room inside: `interior: true` in the frame. Then:
 
-- **Walls are one dressed surface, not stones.** A tall box (`vH.y > 0.6`) or a column
-  (`cylinder` with `tan: 'y'`) inside is decorated by `templeWall()` in the shader, after
-  Dendera: a plain dado; three registers of offering scenes in low relief (a standing
-  figure offering to a seated one, two standing face to face, a kneeling one with a bowl,
-  a seated one with an attendant, or an inscription panel), panels of varying width,
-  mirrored at random, sign columns between them and short sign columns above the figures;
-  a frieze of uprights, a torus bound with a spiral band, a fluted cavetto cornice. The
-  raised field is dressed lighter, its edge a clear line; worn in patches.
-- **Signs are invented** (`glyphSign`, 16 of them: ring, notched triangle, staff, water, eye,
-  comb, stepped mound, serpent, lotus, bird, rayed disc, crescent, seated figure, zigzag,
-  shrine, beetle), combined in pairs per cell so they do not repeat. Never real hieroglyphs.
-  The little creature (`sdCritter`) appears rarely, and once in a worn cartouche.
-- **Hathor capitals:** a box draw with `hathor: true` carries her face on four sides (wig
-  lappets, cow's ears, the shrine above). Columns: shaft, plinth, flared `capital`, the
-  Hathor block, abacus, beams.
-- **Ceilings** carry five-pointed stars in relief between beams.
-- **Floors**: flagstones with dust drifted against walls, stains, grit, chips; loose stones
-  (`rock`) and furniture from the scene's `props.js` (offering tables with loaves and a jar,
-  jars on stands, seated statues on bases, rubble).
+- **Walls are one dressed surface, not stones, and no stone is left empty** (worked on a
+  corner bench, `bench.js`, beside a crop of Dendera at the same size). A tall box
+  (`vH.y > 0.6`) or a column (`cylinder` with `tan: 'y'`) inside is decorated by
+  `templeWall()`: a dado of lotus stems; three registers, each a row of panels (a king
+  offering at an altar to two or three gods, standing or enthroned) whose figures fill the
+  register's height; columns of signs between ruled verticals fill every gap; a frieze of
+  text and uprights, a torus bound with a spiral band, a fluted cornice. Columns are stacks
+  of thin bands of signs, cartouches and uprights over one scene register.
+- **Relief is the wall's own tone,** a shade lighter, drawn by its bevel (the edge towards
+  the light pale, the far edge dark), a fine contour and inner lines. White cut-out figures
+  read as stickers.
+- **Figures follow the canon** (`sdStanding`, `sdGoddess`, `sdSeated`): profile head with
+  wig, frontal shoulders, narrow waist, legs with knee and calf, long feet in a stride,
+  arms with elbows and hands; kilt and apron, or the sheath dress; crowns (`crown()`).
+  Inner lines (`figureInner`, `seatedInner`) are masked to each figure's own body.
+- **Signs are invented** (`glyphSign`, 16 of them), combined in pairs per cell so they do not
+  repeat. Never real hieroglyphs.
+- **Capitals:** a box draw with `hathor: true` carries, on each side, the creature (the
+  user's choice, in the place of Hathor's face) in relief in a sunk ruled niche, framed by
+  the shrine with its winged disc and uraei, the wig band, banded lappets ending in curls,
+  the bead collar; text in the corners; no masonry courses. The flared `capital` below
+  takes `hathor: true` too: two rows of ribbed lotus petals.
+- **Ceilings** (`templeCeiling`): bands between beams, one subject each: vultures with
+  spread wings, stars on a sunk field, boats of the hours; text along the edges, signs on
+  the beams.
+- **Floors**: large flagstones in rows (frame field `flag` sets their width per room), each
+  its own slight tone, worn lighter where walked, broken joints that still read in shade,
+  sand beside them and in drifts, cracks, chipped corners, pits, pebbles with a shadow;
+  loose stones (`rock`, drawn in flat facets with their arrises) and furniture from
+  `props.js`.
+- **Metal is engraved:** rings as an armillary's (rules, a graduated scale on one face,
+  signs on the other; slim tubes bands every 10°), rods with collars and spiral fluting.
+- **Anything built is carried:** walkways and slabs run into walls and sit on stepped
+  corbels or struts; nothing hangs in the air unless the story says so.
 - The paper's tooth is finer indoors (`grain: 0.45` in the ager), or the carving drowns.
 - Light comes in as the story needs (slits with dust motes in the beams: bias −1 prints a
   mote as bare paper; a shaft lit from above); `fill ≈ 0.4` so shade stays drawn.
@@ -85,15 +100,17 @@ four long and four short thin rays.
 - **Tone is graphite on toothed paper,** never a flat grey: laid in short diagonal strokes,
   catching on the tooth only in the half-tones. Drawn marks (joints, relief edges, signs)
   stay crisp lines.
-- **Outside, stone is a mosaic of small hand-cut stones** in courses; up close each block
-  is still drawn (grain, pits). Inside, walls are dressed and decorated (above).
+- **Outside, stone is a mosaic of small hand-cut stones** in courses; up close (a course
+  over ~22–70 px) the limestone takes over: vugs with a lit lip, pits, coin fossils, cracks,
+  broken arrises, sand in the joints, a mottle; no wavy dashes. Inside, walls are dressed and decorated (above).
 - **Textures belong to the piece** (`vQ`, the piece's own space): they never swim when the
   piece or the camera moves. Round pieces measure arc length, not a dot product.
 - **Colour is a second ink:** live blue on what is alive (channels, marks, the seed), gold as
   a wash on metal; three quarters of the frame stay ink on paper.
 - **The ground is drawn:** dunes everywhere with lee slopes in shade, patchy wind ripples
   (dark lee strokes), mottling, pebbles; no flat patch next to a busy one.
-- Dust, pores, pebbles and stars are stipple; motes in light are bare paper.
+- Dust, pores, pebbles and stars are stipple; motes in light are bare paper. A grain never
+  grows past ~16 px on screen (the vertex shader clamps it), or it passes the lens as a disc.
 - Nothing crosses stone: rings are sized to the room they turn in, slabs keep their gaps.
 
 ## Style checklist
@@ -104,6 +121,8 @@ four long and four short thin rays.
 - [ ] Every room furnished and dirty (tables, jars, statues, rubble, dust at the walls).
 - [ ] Nothing in the foreground covering half the frame by accident (rings, mounds, blocks).
 - [ ] Blue only on what is alive; gold only on metal.
+- [ ] Every element cropped at full size: no blank stone, ceiling, floor, capital or metal.
+- [ ] Nothing built floating: every slab, walkway, beam has its bearing.
 
 ## Lessons
 
@@ -131,3 +150,11 @@ four long and four short thin rays.
   offset each wall.
 - 2026-09-26 · pyramid-engraving · A low camera on a lit foreground mound flattens the whole
   frame; look over the dunes so their lit and shaded sides read.
+- 2026-09-27 · pyramid-engraving · «Trabaja más en detalle y zonas más pequeñas»: one bench
+  scene (a corner with wall, column, capital, ceiling, floor) with a view per element, each
+  compared at full size with the plate, moved the rooms further in a night than the film
+  shots had in days. Give every bench view its own layer key: the renderer memoises the
+  layer by key and silently returns the first view.
+- 2026-09-27 · pyramid-engraving · The figures stayed «schematic» until they were rebuilt
+  from the canon (tapered limbs with knee, calf, ankle; frontal shoulders; profile head),
+  not by adding lines to stick figures.
