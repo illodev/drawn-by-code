@@ -63,15 +63,24 @@ export const rel = (p) => path.relative(ROOT, path.resolve(p)).split(path.sep).j
 // instead of software GL (SwiftShader). Which GL backend works depends on the machine (a
 // Linux box may have no Vulkan, WSL only OpenGL…), so each candidate is launched and probed
 // in turn, and the first that gives WebGL2 on real hardware wins; every attempt is printed.
-// MOTION_ANGLE=<backend> (gl, vulkan, gles, d3d11, metal…) tries only that one. If none
-// works, the render goes on in software GL with a warning.
+// MOTION_ANGLE=<backend> (gl, vulkan, gles, d3d11, metal…) tries only that one; on Linux a
+// discrete NVIDIA card is tried first (MOTION_IGPU=1 skips it). If none works, the render
+// goes on in software GL with a warning.
 const SOFT = /swiftshader|llvmpipe|softpipe|software|no webgl2/i;
 function gpuCandidates() {
     const angle = (a, extra = []) => ({ name: 'angle-' + a, args: ['--use-gl=angle', '--use-angle=' + a, ...extra] });
-    if (process.env.MOTION_ANGLE) return [angle(process.env.MOTION_ANGLE)];
+    if (process.env.MOTION_ANGLE) return [angle(process.env.MOTION_ANGLE)];   // (the process's own env applies: set PRIME variables yourself)
     if (process.platform === 'win32') return [angle('d3d11'), angle('gl')];
     if (process.platform === 'darwin') return [angle('metal'), angle('gl')];
     const list = [angle('gl'), angle('vulkan', ['--enable-features=Vulkan']), angle('gles'), { name: 'egl', args: ['--use-gl=egl'] }];
+    // a laptop with a discrete NVIDIA card next to the integrated one (Optimus): the
+    // integrated GPU answers first unless the process asks for the other through PRIME render
+    // offload. Vulkan on the NVIDIA card measured ~6× faster than OpenGL on the Intel one
+    // (and only without --enable-features=Vulkan, which there leaves no WebGL2 at all).
+    if (process.env.MOTION_IGPU !== '1' && spawnSync('nvidia-smi', ['-L']).status === 0) {
+        const nv = { __NV_PRIME_RENDER_OFFLOAD: '1', __VK_LAYER_NV_optimus: 'NVIDIA_only', __GLX_VENDOR_LIBRARY_NAME: 'nvidia' };
+        list.unshift({ ...angle('vulkan'), name: 'nvidia-angle-vulkan', env: nv }, { ...angle('gl'), name: 'nvidia-angle-gl', env: nv });
+    }
     // last resort on a desktop: a real (visible) window, where some drivers only then give the GPU
     if (process.env.DISPLAY || process.env.WAYLAND_DISPLAY) list.push({ ...angle('gl'), name: 'window-angle-gl', window: true }, { name: 'window-default', args: [], window: true });
     return list;
@@ -96,6 +105,7 @@ async function launchBrowser(chromium, executablePath, gpu) {
         try {
             browser = await chromium.launch({
                 executablePath, headless: false,
+                ...(c.env ? { env: { ...process.env, ...c.env } } : {}),
                 args: [...(c.window ? [] : ['--headless=new']), '--enable-gpu', '--ignore-gpu-blocklist', '--font-render-hinting=none', ...c.args],
             });
             const gl = await probeGL(browser);
