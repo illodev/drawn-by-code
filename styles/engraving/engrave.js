@@ -694,8 +694,15 @@ uniform float uTan;   // hatch direction: 0 box faces, 1 along the local y axis,
 out vec3 vW; out vec3 vN; out vec3 vT; out vec3 vL; out vec3 vH; out vec3 vQ; out vec3 vNL; out vec3 vTL;
 flat out float vMat; flat out float vSeed; flat out vec4 vX;
 vec3 qrot(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
+uniform float uVH;    // viewport height, px
 void main() {
     vec3 w = iA.xyz + qrot(iQ, aPos * iB.xyz);
+    // a grain of dust passing by the lens stays a grain: never over ~3 px across
+    if (iA.w > 4.5 && iA.w < 5.5 && iB.x < 0.02 && uVH > 0.0) {
+        vec4 c0 = uVP * vec4(iA.xyz, 1.0), c1 = uVP * vec4(iA.xyz + vec3(0.0, iB.x, 0.0), 1.0);
+        float rpx = c0.w > 1e-4 && c1.w > 1e-4 ? length(c1.xy / c1.w - c0.xy / c0.w) * 0.5 * uVH : 0.0;
+        if (rpx > 1.6) w = iA.xyz + (w - iA.xyz) * (1.6 / rpx);
+    }
     vW = w; vL = aPos; vH = iB.xyz; vMat = iA.w; vSeed = iB.w; vX = iX;
     // the texture's own space: the piece's unrotated local position (world units), offset per
     // piece, so lines and stones stay printed on a piece that moves or turns
@@ -734,7 +741,7 @@ ${COMMON}
 in vec3 vW; in vec3 vN; in vec3 vT; in vec3 vL; in vec3 vH; in vec3 vQ; in vec3 vNL; in vec3 vTL;
 flat in float vMat; flat in float vSeed; flat in vec4 vX;
 uniform vec3 uEye, uSun, uRight;
-uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason, uTan, uChar, uInterior, uHathor;
+uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason, uTan, uChar, uInterior, uHathor, uFlag;
 uniform mat4 uLVP;
 uniform sampler2DShadow uShadowMap;
 uniform vec4 uLights[8];
@@ -840,6 +847,62 @@ void main() {
         float lit2 = max(dot(N, normalize(uSun + V)), 0.0);
         cov = clamp(0.3 + 0.6 * (1.0 - fv) * (1.0 - fv) - 0.3 * pow(lit2, 5.0) + 0.2 * (D - 0.5) + 0.08 * (vnoise(gl_FragCoord.xy / uPx * 0.08) - 0.5), 0.03, 0.92);
     }
+    // metal rods and posts (round, along y): collars of double rules at intervals, spiral
+    // fluting between them, so a rod is never a smooth white tube
+    if (uBox < 0.5 && uTan > 0.5 && uTan < 1.5 && (m == 3 || m == 6)) {
+        float r = length(P.xz), ang = atan(P.z, P.x);
+        float fadeC = smoothstep(2.0, 6.0, r / max(ps, 1e-6));
+        float per = r * 7.0, yy = P.y / per, fy2 = (fract(yy) - 0.5) * per;
+        float L = min(abs(abs(fy2) - r * 0.35), abs(abs(fy2) - r * 0.6));
+        float fl = (fract((ang * r + P.y * 0.6) / (r * 0.7)) - 0.5) * r * 0.7;
+        L = min(L, abs(fl) + step(abs(fy2), r * 0.75) * 9.0);
+        float lwC = max(ps * 0.7, r * 0.04);
+        cov = max(cov, (1.0 - smoothstep(lwC, lwC + ps * 1.1, L)) * 0.6 * fadeC);
+    }
+    // rings are instruments, engraved as an armillary sphere's: a double rule along each rim,
+    // on one half of the outer face a graduated scale (a tick every 2°, long every 10°), on the
+    // other a line of signs every 15°; worn and pitted a little. Fades when the tube is small.
+    if (uBox < 0.5 && uTan > 1.5 && (m == 3 || m == 6)) {
+        vec2 rel = vec2(length(P.xz) - vH.x, P.y);
+        float tr = length(rel), th = atan(rel.y, rel.x), ph = atan(P.z, P.x);
+        float fadeR = smoothstep(3.0, 10.0, tr / max(ps, 1e-6));
+        float aa = ps * 1.1, lwR = max(ps * 0.7, tr * 0.025);
+        float c = th * tr;                                    // across the tube, world units
+        float degU = vH.x * 6.2832 / 360.0;                    // one degree along the ring
+        float deg = ph / 6.2832 * 360.0;
+        // the tube read as a band: its outer edge (|th| < 0.4) carries the middle line; one
+        // face (th ≈ +π/2) the scale between rules, the other (th ≈ −π/2) the signs
+        float L = min(abs(abs(th) - 0.42) * tr, abs(abs(th) - 2.5) * tr);
+        L = min(L, abs(abs(th) - 0.55) * tr);
+        L = min(L, abs(th) * tr + step(0.08, abs(th)) * 9.0);
+        float tick = abs(fract(deg / 2.0 + 0.5) - 0.5) * 2.0 * degU;
+        float tick10 = abs(fract(deg / 10.0 + 0.5) - 0.5) * 10.0 * degU;
+        if (th > 0.55 && th < 2.5) {
+            L = min(L, tick + step(1.15, th) * 9.0);
+            L = min(L, tick10 + step(1.75, th) * 9.0);
+        }
+        if (th < -0.55 && th > -2.5) {
+            float cell = floor(deg / 15.0), gx = (fract(deg / 15.0) - 0.5) * 15.0 * degU;
+            float gsz = tr * 1.1;
+            float gg = glyphSign(int(hash(vec2(cell, vSeed * 7.0)) * 16.0), vec2(gx, c + tr * 1.52) / gsz) * gsz;
+            L = min(L, gg);
+            L = min(L, abs(fract(deg / 15.0 + 0.5) - 0.5) * 15.0 * degU + step(abs(th + 1.52), 0.9) * 0.0);
+        }
+        // a slim tube (under ~7 px across) can't hold the scale: bands every 10° across it,
+        // a double band every 30°, and its middle line
+        float tpx = tr / max(ps, 1e-6);
+        if (tpx < 7.0) {
+            float t30 = abs(fract(deg / 30.0 + 0.5) - 0.5) * 30.0 * degU;
+            L = min(min(tick10, abs(t30 - degU * 1.2)), min(abs(th) * tr + step(0.15, abs(th)) * 9.0, abs(abs(th) - 1.57) * tr + step(0.15, abs(abs(th) - 1.57)) * 9.0));
+            fadeR = smoothstep(1.2, 2.5, tpx);
+            lwR = ps * 0.8;
+        }
+        float lines = (1.0 - smoothstep(lwR, lwR + aa, L)) * step(abs(th), 2.55);
+        float wearR = smoothstep(0.3, 0.7, vnoise(vec2(ph * 20.0, th * 3.0) + vSeed * 5.0));
+        cov = max(cov, lines * (0.55 + 0.25 * wearR) * fadeR);
+        vec2 pq = vec2(ph * vH.x, c) / (tr * 0.12);
+        cov = max(cov, step(hash(floor(pq) + vSeed), 0.05) * (1.0 - smoothstep(0.15, 0.35, length(fract(pq) - 0.5))) * 0.4 * fadeR);
+    }
     for (int k = 0; k < 3; k++) {
         if (cs[k] < 0.035) continue;
         float along = dot(P, k == 0 ? Tl : cross(Nl, dirs[k])) / sp;
@@ -894,7 +957,8 @@ void main() {
         float marks = max(jy * max(brk, D), jx * brk) * vis;
         // dark stones: two or three short dashes along the course
         float dash = lines(fy * 3.0, 0.35 * smoothstep(0.35, 0.9, D + st * 0.35), fwidth(fy * 3.0) * 0.8)
-                   * step(0.5, vnoise(fp / ch * vec2(1.3, 4.0) + st * 9.0)) * vis;
+                   * step(0.5, vnoise(fp / ch * vec2(1.3, 4.0) + st * 9.0)) * vis
+                   * (1.0 - (uInterior > 0.5 ? 0.0 : smoothstep(22.0, 70.0, cpx)));   // close up the stone's surface takes over
         float lit = max(cov, max(marks, dash));
         // in shade the stones themselves are dark (each its own depth), the joints lighter
         float joint = max(1.0 - smoothstep(0.5, 1.4, dy / pyx), (1.0 - smoothstep(0.5, 1.4, dx / pxx)) * step(0.1, fy) * step(fy, 0.9));
@@ -928,6 +992,46 @@ void main() {
         float gd = step(hash(gc + vSeed * 5.0), 0.05 + 0.3 * D + 0.35 * weather);
         float grain = gd * (1.0 - smoothstep(0.18, 0.3, length(gf * vec2(1.0, 1.0 + 2.0 * hash(gc))))) * smoothstep(1.5, 3.0, gpx);
         cov = max(cov, grain * (1.0 - vis) * (uChar > 0.5 ? 0.3 : 1.0) * (deco ? 0.0 : 1.0));   // charcoal: pits are soft grey, not ink
+        // outside, close up (a course over ~40 px): the limestone itself. Weathered hollows
+        // (vugs) dark inside with a lit lip, pits, the coin-shaped fossils of Giza's limestone,
+        // cracks through some blocks, arrises broken back irregularly, sand lodged in the
+        // joints; a slow mottle so no block is one flat tone
+        float nearS = uInterior > 0.5 ? 0.0 : smoothstep(22.0, 70.0, cpx);
+        if (nearS > 0.0) {
+            vec2 sq = fp / ch;
+            float apx = 1.0 / cpx;                                   // one pixel, in course units
+            vec2 vc = floor(sq / 0.22), vf = fract(sq / 0.22) - 0.5;
+            vec2 vo = (vec2(hash(vc + 1.1), hash(vc + 2.2)) - 0.5) * 0.45;
+            float vr = 0.07 + 0.17 * hash(vc + 3.3);
+            float vd = (length((vf - vo) * vec2(1.0, 1.7)) - vr * (0.75 + 0.5 * vnoise(sq * 30.0 + st * 4.0))) * 0.22;
+            float isV = step(hash(vc + st * 13.0), 0.16 + 0.2 * weather);
+            float vug = isV * (1.0 - smoothstep(-apx, 0.0, vd));
+            float lip = isV * (1.0 - smoothstep(apx * 0.6, apx * 1.8, abs(vd)));
+            float sideV = dot(normalize(vf - vo + 1e-5), normalize(vec2(-0.6, 0.8)));
+            vec2 pq = sq / 0.028, pc = floor(pq), pf = fract(pq) - 0.5;
+            float pit = step(hash(pc + st), 0.07 + 0.18 * weather) * (1.0 - smoothstep(0.12, 0.32, length(pf))) * smoothstep(1.5, 3.0, 0.028 * cpx);
+            vec2 nq = sq / 0.1, nc = floor(nq), nf = fract(nq) - 0.5 - (vec2(hash(nc + 5.0), hash(nc + 6.0)) - 0.5) * 0.4;
+            float nr = length(nf * vec2(1.0, 1.5));
+            float numm = step(hash(nc + 9.1), 0.05 + 0.08 * step(0.6, st)) * max(1.0 - smoothstep(0.0, apx * 10.0 + 0.02, abs(nr - 0.17)), 1.0 - smoothstep(0.03, 0.05, nr));
+            float cn = vnoise((sq + st * 7.0) * 2.4) + 0.5 * vnoise(sq * 8.0 + st * 3.0);
+            float crack = (1.0 - smoothstep(0.0, 0.003 + apx, abs(cn - 0.75) * 0.1)) * step(0.55, st) * smoothstep(0.35, 0.55, vnoise(sq * 1.2 + st * 9.0));
+            float edgeD = min(dx, dy) / ch;
+            float chipW = 0.025 + 0.08 * smoothstep(0.45, 0.85, vnoise(sq * 5.0 + st * 5.0));
+            float chipped = 1.0 - smoothstep(chipW - apx, chipW, edgeD);
+            float chipLine = (1.0 - smoothstep(apx * 0.5, apx * 1.5, abs(edgeD - chipW))) * step(0.04, chipW);
+            float sandS = step(hash(floor(sq / 0.012) + st), 0.3) * (1.0 - smoothstep(0.0, 0.09, min(fy, 1.0 - fy))) * smoothstep(1.5, 3.0, 0.012 * cpx);
+            float c0 = cov;
+            cov += 0.18 * (fbm3(vec3(sq * 2.5, st * 7.0)) - 0.5) + 0.06 * (st - 0.5);
+            cov = mix(cov, max(cov, 0.42 + 0.35 * smoothstep(-0.4, 0.6, sideV)), vug);
+            cov = mix(cov, sideV > 0.0 ? cov * 0.6 : max(cov, 0.6), lip * 0.8);
+            cov = max(cov, pit * 0.5);
+            cov = max(cov, numm * 0.45);
+            cov = max(cov, crack * 0.7);
+            cov = mix(cov, cov + 0.14, chipped * 0.8);
+            cov = max(cov, chipLine * 0.55);
+            cov = max(cov, sandS * 0.4);
+            cov = mix(c0, clamp(cov, 0.0, 1.0), nearS);
+        }
         if (uInterior > 0.5) {
             vec3 gw = vW;
             if (abs(N.y) < 0.35) {
@@ -1025,7 +1129,9 @@ void main() {
     // worn lighter where walked; broken joints, cracks in some, chipped corners, pits, sand
     // in the joints and drifted in patches, pebbles with their small shadow
     if (uInterior > 0.5 && m < 2 && N.y > 0.7 && uBox > 0.5 && vH.x > 1.0) {
-        vec2 fq = vW.xz;
+        float kF = uFlag / 0.8;                     // every feature scales with the flagstones
+        vec2 fq = vW.xz / kF;
+        float psF = ps / kF;
         fq += (vec2(vnoise(fq * 1.3), vnoise(fq.yx * 1.3 + 5.0)) - 0.5) * 0.04;
         float rw = 0.8, row = floor(fq.y / rw), fy = fq.y / rw - row;
         float len = 1.0 + 0.6 * hash(vec2(row, 2.0));
@@ -1034,20 +1140,20 @@ void main() {
         vec2 cc = vec2(min(fx, 1.0 - fx) * len, min(fy, 1.0 - fy) * rw);
         float dj = min(cc.x, cc.y);
         float st = hash(sid + vSeed * 3.0);
-        float px = ps * uPx;
+        float px = psF * uPx;
         cov = clamp(D * 0.8 + 0.22 + (st - 0.5) * 0.07 + 0.06 * (fbm3(vW * 4.0) - 0.5), 0.0, 1.0);
         cov -= 0.05 * smoothstep(0.08, 0.35, dj) * smoothstep(0.3, 0.7, vnoise(fq * 0.7 + 2.0));   // worn
         // the joint: a dark line with broken edges; sand lighter beside it
         float jw = 0.006 + 0.012 * smoothstep(0.55, 0.85, vnoise(fq * 11.0 + st));
-        float joint = 1.0 - smoothstep(jw, jw + ps * 1.2, dj);
+        float joint = 1.0 - smoothstep(jw, jw + psF * 1.2, dj);
         float sandJ = (1.0 - smoothstep(jw, jw + 0.03, dj)) * (1.0 - joint) * smoothstep(0.4, 0.7, vnoise(fq * 5.0));
         // cracks: a thin wandering line across some stones, with a branch
         float cn = vnoise((fq + st * 7.0) * 2.2) + 0.5 * vnoise((fq + st * 3.0) * 7.0);
         float crack = (1.0 - smoothstep(0.0, 0.0025 + ps, abs(cn - 0.75) * 0.08)) * step(0.65, st) * smoothstep(0.4, 0.6, vnoise(fq * 1.5 + st * 9.0));
         // a chipped corner (darker, broken outline)
         float chipd = cc.x + cc.y - 0.07 - 0.03 * vnoise(fq * 35.0);
-        float chip = step(0.6, hash(sid + 3.0)) * step(cc.x, 0.2) * step(cc.y, 0.2) * (1.0 - smoothstep(0.0, ps, chipd));
-        float chipL = step(0.6, hash(sid + 3.0)) * step(cc.x, 0.2) * step(cc.y, 0.2) * (1.0 - smoothstep(0.002, 0.002 + ps, abs(chipd)));
+        float chip = step(0.6, hash(sid + 3.0)) * step(cc.x, 0.2) * step(cc.y, 0.2) * (1.0 - smoothstep(0.0, psF, chipd));
+        float chipL = step(0.6, hash(sid + 3.0)) * step(cc.x, 0.2) * step(cc.y, 0.2) * (1.0 - smoothstep(0.002, 0.002 + psF, abs(chipd)));
         // pits
         vec2 pq = fq / 0.02, pc2 = floor(pq), pf2 = fract(pq) - 0.5;
         float pit = step(hash(pc2 + st), 0.06) * (1.0 - smoothstep(0.12, 0.3, length(pf2))) * smoothstep(1.2, 3.0, 0.02 / px);
@@ -1396,12 +1502,14 @@ void main() {
             common(main);
             gl.uniformMatrix4fv(main.u('uVP'), false, VP);
             gl.uniformMatrix4fv(main.u('uLVP'), false, LVP);
+            gl.uniform1f(main.u('uVH'), H);
             gl.uniform3fv(main.u('uSun'), sun);
             gl.uniform3fv(main.u('uRight'), [view[0], view[4], view[8]]);
             gl.uniform1f(main.u('uSunK'), f.sunK ?? 0.95);
             gl.uniform1f(main.u('uFill'), f.fill ?? 0.3);
             gl.uniform1f(main.u('uEdge'), f.edge ?? 0.35);
             gl.uniform1f(main.u('uCourse'), f.course ?? 0.012);
+            gl.uniform1f(main.u('uFlag'), f.flag ?? 0.8);          // flagstone width (interior floors)
             gl.uniform1f(main.u('uChar'), f.charcoal ? 1 : 0);
             gl.uniform1f(main.u('uInterior'), f.interior ? 1 : 0);
             gl.uniform1f(main.u('uFogNear'), f.fog?.[0] ?? 8);

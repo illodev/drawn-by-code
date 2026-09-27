@@ -179,7 +179,7 @@ const Gallery = (() => {
         sun: SUN, sunK: 3.4, fill: 0.36, interior: true,
         shadow: { center: [0, 1, -3.5], radius: 6.5 },
         sky: { zenith: 0.9, horizon: 0.9, dusk: 0 },
-        fog: [9, 30], course: 0.26,
+        fog: [9, 30], course: 0.26, flag: 0.45,
     };
     return { build, KEYS, frameParams, T0: 17, T1: 24 };
 })();
