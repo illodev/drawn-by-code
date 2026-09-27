@@ -265,67 +265,154 @@ float sminF(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k
 // an Egyptian figure in profile, facing +x, feet at y = 0, about 1.7 tall: wig or crown,
 // head with nose, broad shoulders narrowing to the waist, a flared kilt, striding legs, one
 // arm raised holding an offering, the other down
-float sdStanding(vec2 q) {
-    float d = length((q - vec2(0.06, 1.44)) * vec2(1.0, 0.9)) - 0.1;                    // head
-    d = min(d, sdSeg(q, vec2(0.15, 1.44), vec2(0.19, 1.4)) - 0.018);                     // nose
-    d = sminF(d, sdBox2(q, vec2(0.02, 1.47), vec2(0.1, 0.1)) - 0.02, 0.03);             // wig
-    d = min(d, sdSeg(q, vec2(0.02, 1.58), vec2(0.03, 1.78)) - 0.05);                     // crown
-    d = min(d, length(q - vec2(0.03, 1.8)) - 0.035);
-    float torso = sdSeg(q, vec2(0.03, 1.25), vec2(0.03, 0.82)) - mix(0.07, 0.15, clamp((q.y - 0.82) / 0.43, 0.0, 1.0));
-    d = sminF(d, torso, 0.03);
-    float kilt = sdBox2(q, vec2(0.05, 0.66), vec2(0.1 + 0.1 * clamp((0.8 - q.y) / 0.3, 0.0, 1.0), 0.14));
-    d = min(d, kilt);
-    d = min(d, sdSeg(q, vec2(-0.02, 0.55), vec2(-0.12, 0.03)) - 0.035);                 // back leg
-    d = min(d, sdSeg(q, vec2(0.09, 0.55), vec2(0.2, 0.03)) - 0.035);                    // front leg
-    d = min(d, sdBox2(q, vec2(-0.1, 0.02), vec2(0.07, 0.02)));
-    d = min(d, sdBox2(q, vec2(0.23, 0.02), vec2(0.07, 0.02)));
-    d = min(d, sdSeg(q, vec2(0.08, 1.2), vec2(0.28, 1.08)) - 0.028);                    // upper arm
-    d = min(d, sdSeg(q, vec2(0.28, 1.08), vec2(0.42, 1.24)) - 0.024);                   // forearm raised
-    d = min(d, sdBox2(q, vec2(0.46, 1.3), vec2(0.07, 0.05)) - 0.01);                   // offering
-    d = min(d, sdSeg(q, vec2(-0.05, 1.18), vec2(-0.08, 0.8)) - 0.024);                 // other arm
+// ---- figures, drawn to the Egyptian canon (feet at y 0, hairline ~1.42, facing +x) --------
+// Head in profile with its wig, shoulders shown frontally, narrow waist, legs with thigh, knee,
+// calf and ankle, feet in a stride; arms with elbow, wrist and hand. Men wear the kilt with its
+// apron, goddesses the sheath dress. Inner lines (figureInner) cut the eye, collar, armlets,
+// belt, pleats, anklets.
+float sdTaper(vec2 p, vec2 a, vec2 b, float ra, float rb) {
+    vec2 pa = p - a, ba = b - a;
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - ba * h) - mix(ra, rb, h);
+}
+float sdTrap(vec2 p, float r1, float r2, float he) {     // r1 bottom, r2 top half widths
+    vec2 k1 = vec2(r2, he), k2 = vec2(r2 - r1, 2.0 * he);
+    p.x = abs(p.x);
+    vec2 ca = vec2(p.x - min(p.x, (p.y < 0.0) ? r1 : r2), abs(p.y) - he);
+    vec2 cb = p - k1 + k2 * clamp(dot(k1 - p, k2) / dot(k2, k2), 0.0, 1.0);
+    float sg = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+    return sg * sqrt(min(dot(ca, ca), dot(cb, cb)));
+}
+float sdHead(vec2 q) {                // q relative to the centre of the skull; faces +x
+    float d = length(q * vec2(1.0, 0.88)) - 0.085;
+    d = min(d, sdTaper(q, vec2(0.04, 0.02), vec2(0.105, -0.035), 0.03, 0.012));        // nose
+    d = min(d, sdTaper(q, vec2(0.05, -0.05), vec2(0.085, -0.075), 0.028, 0.014));      // lips
+    d = min(d, length((q - vec2(0.05, -0.085)) * vec2(1.0, 1.3)) - 0.03);              // chin
+    // the wig: to the nape and over the ear, its front edge a curve over the brow
+    float wig = sdTaper(q, vec2(-0.02, 0.03), vec2(-0.04, -0.1), 0.095, 0.07);
+    wig = max(wig, -(length(q - vec2(0.09, -0.04)) - 0.09));
+    return min(d, wig);
+}
+float sdLegs(vec2 q, float stride) {
+    // front leg: hip, knee, calf, ankle; the back leg the same, stepped back
+    float d = sdTaper(q, vec2(0.08, 0.74), vec2(0.13 + stride * 0.35, 0.4), 0.072, 0.045);
+    d = min(d, sdTaper(q, vec2(0.13 + stride * 0.35, 0.4), vec2(0.15 + stride * 0.6, 0.07), 0.05, 0.028));
+    d = min(d, length((q - vec2(0.125 + stride * 0.45, 0.27)) * vec2(1.6, 1.0)) - 0.075);  // calf
+    d = min(d, sdTaper(q, vec2(-0.01, 0.74), vec2(-0.02 - stride * 0.25, 0.4), 0.07, 0.045));
+    d = min(d, sdTaper(q, vec2(-0.02 - stride * 0.25, 0.4), vec2(-0.03 - stride * 0.45, 0.07), 0.05, 0.028));
+    d = min(d, length((q - vec2(-0.05 - stride * 0.33, 0.27)) * vec2(1.6, 1.0)) - 0.072);
+    // feet: long, flat, the toes forward
+    d = min(d, sdTaper(q, vec2(0.13 + stride * 0.6, 0.035), vec2(0.34 + stride * 0.6, 0.02), 0.035, 0.02));
+    d = min(d, sdTaper(q, vec2(-0.06 - stride * 0.45, 0.035), vec2(0.15 - stride * 0.45, 0.02), 0.035, 0.02));
     return d;
 }
-float sdSeated(vec2 q) {                                                                 // faces −x
-    float d = sdBox2(q, vec2(0.1, 0.3), vec2(0.16, 0.3)) - 0.01;                        // throne
-    d = min(d, sdBox2(q, vec2(0.22, 0.66), vec2(0.03, 0.08)));                          // its back
-    float torso = sdSeg(q, vec2(0.04, 1.2), vec2(0.04, 0.7)) - mix(0.08, 0.13, clamp((q.y - 0.7) / 0.5, 0.0, 1.0));
-    d = min(d, torso);
-    d = min(d, length((q - vec2(0.0, 1.36)) * vec2(1.0, 0.9)) - 0.1);
-    d = min(d, sdSeg(q, vec2(-0.09, 1.36), vec2(-0.13, 1.32)) - 0.018);
-    d = sminF(d, sdBox2(q, vec2(0.04, 1.39), vec2(0.1, 0.1)) - 0.02, 0.03);
-    d = min(d, sdSeg(q, vec2(0.02, 1.5), vec2(0.0, 1.74)) - 0.045);                      // tall crown
-    d = min(d, abs(length(q - vec2(0.0, 1.8)) - 0.06) - 0.012);                          // sun disc
-    d = min(d, sdSeg(q, vec2(0.04, 0.66), vec2(-0.2, 0.64)) - 0.06);                    // thighs
-    d = min(d, sdSeg(q, vec2(-0.22, 0.62), vec2(-0.22, 0.05)) - 0.04);                  // shins
-    d = min(d, sdBox2(q, vec2(-0.28, 0.02), vec2(0.07, 0.02)));
-    d = min(d, sdSeg(q, vec2(-0.02, 1.12), vec2(-0.22, 0.9)) - 0.024);                  // arm to the staff
-    d = min(d, sdSeg(q, vec2(-0.26, 0.05), vec2(-0.26, 1.5)) - 0.014);                  // was-staff
-    d = min(d, sdSeg(q, vec2(-0.26, 1.5), vec2(-0.2, 1.56)) - 0.014);
-    d = min(d, abs(length(q - vec2(-0.2, 1.05)) - 0.045) - 0.01);                        // sign of life
+float sdTorso(vec2 q) {
+    float d = sdTrap(q - vec2(0.03, 1.03), 0.085, 0.19, 0.19);                           // shoulders to waist
+    d = sminF(d, length((q - vec2(0.03, 1.2)) * vec2(0.6, 1.8)) - 0.12, 0.03);          // shoulder caps
+    d = min(d, sdTaper(q, vec2(0.05, 1.2), vec2(0.06, 1.3), 0.04, 0.036));             // neck
+    return d;
+}
+float sdStanding(vec2 q) {            // a king or god in a kilt, offering with the front hand
+    float d = sdHead(q - vec2(0.06, 1.39));
+    d = min(d, sdTorso(q));
+    d = sminF(d, sdTrap(vec2(q.x - 0.06 - (0.84 - q.y) * 0.18, q.y - 0.7), 0.15, 0.1, 0.15), 0.02);   // kilt, flaring forward
+    d = min(d, sdLegs(q, 0.35));
+    // back arm hanging, a fist; front arm raised holding a jar
+    d = min(d, sdTaper(q, vec2(-0.13, 1.17), vec2(-0.16, 0.93), 0.042, 0.033));
+    d = min(d, sdTaper(q, vec2(-0.16, 0.93), vec2(-0.14, 0.7), 0.033, 0.025));
+    d = min(d, length((q - vec2(-0.135, 0.66)) * vec2(1.0, 0.8)) - 0.033);
+    d = min(d, sdTaper(q, vec2(0.19, 1.16), vec2(0.33, 1.0), 0.042, 0.032));
+    d = min(d, sdTaper(q, vec2(0.33, 1.0), vec2(0.45, 1.15), 0.032, 0.024));
+    d = min(d, length((q - vec2(0.48, 1.18)) * vec2(1.0, 1.3)) - 0.03);
+    d = min(d, sdTrap(q - vec2(0.5, 1.27), 0.035, 0.05, 0.06) - 0.008);                // the jar
+    return d;
+}
+float sdGoddess(vec2 q) {             // in a sheath dress, a sceptre and the sign of life
+    float d = sdHead(q - vec2(0.06, 1.39));
+    d = min(d, length((q - vec2(0.02, 1.36)) * vec2(1.2, 0.7)) - 0.1);               // long wig
+    d = min(d, sdTorso(q));
+    d = min(d, length(q - vec2(0.15, 1.08)) - 0.045);                                 // breast
+    d = sminF(d, sdTrap(vec2(q.x - 0.04 - (0.9 - q.y) * 0.05, q.y - 0.5), 0.1, 0.09, 0.42), 0.04);   // the dress to the ankles
+    d = min(d, sdLegs(q, 0.12));
+    d = min(d, sdTaper(q, vec2(-0.13, 1.17), vec2(-0.15, 0.93), 0.04, 0.032));
+    d = min(d, sdTaper(q, vec2(-0.15, 0.93), vec2(-0.13, 0.72), 0.032, 0.024));
+    d = min(d, abs(length((q - vec2(-0.13, 0.64)) * vec2(1.0, 0.8)) - 0.04) - 0.012);   // ankh loop
+    d = min(d, sdSeg(q, vec2(-0.13, 0.6), vec2(-0.13, 0.48)) - 0.012);
+    d = min(d, sdSeg(q, vec2(-0.17, 0.57), vec2(-0.09, 0.57)) - 0.011);
+    d = min(d, sdTaper(q, vec2(0.19, 1.16), vec2(0.3, 0.98), 0.04, 0.032));
+    d = min(d, sdTaper(q, vec2(0.3, 0.98), vec2(0.36, 1.14), 0.032, 0.024));
+    d = min(d, sdSeg(q, vec2(0.37, 0.03), vec2(0.37, 1.5)) - 0.013);                    // papyrus sceptre
+    d = min(d, sdTrap(q - vec2(0.37, 1.55), 0.015, 0.06, 0.05));
+    return d;
+}
+float sdSeated(vec2 q) {              // enthroned, faces −x (as the old convention)
+    q.x = -q.x;
+    float d = sdTrap(q - vec2(-0.12, 0.3), 0.17, 0.16, 0.3) - 0.01;                     // throne block
+    d = min(d, sdBox2(q, vec2(-0.26, 0.66), vec2(0.03, 0.09)));                         // its low back
+    d = min(d, sdBox2(q, vec2(-0.02, 0.02), vec2(0.36, 0.02)));                         // the dais
+    d = min(d, sdHead(q - vec2(0.02, 1.33)));
+    d = min(d, sdTorso((q - vec2(-0.04, -0.07) - vec2(0.03, 1.03)) * vec2(1.25, 1.0) + vec2(0.03, 1.03)) / 1.25);   // (slimmer: the torso seen seated)
+    d = min(d, sdTaper(q, vec2(-0.02, 0.72), vec2(0.23, 0.66), 0.08, 0.06));           // thigh
+    d = min(d, sdTaper(q, vec2(0.23, 0.66), vec2(0.25, 0.08), 0.052, 0.03));          // shin
+    d = min(d, length((q - vec2(0.22, 0.38)) * vec2(1.7, 1.0)) - 0.07);
+    d = min(d, sdTaper(q, vec2(0.25, 0.04), vec2(0.43, 0.025), 0.034, 0.02));          // foot
+    d = min(d, sdTaper(q, vec2(0.15, 1.1), vec2(0.28, 0.9), 0.04, 0.032));             // arm to the staff
+    d = min(d, sdTaper(q, vec2(0.28, 0.9), vec2(0.34, 1.02), 0.032, 0.025));
+    d = min(d, sdSeg(q, vec2(0.36, 0.05), vec2(0.36, 1.5)) - 0.014);                    // was-sceptre
+    d = min(d, sdSeg(q, vec2(0.36, 1.5), vec2(0.42, 1.56)) - 0.014);
+    d = min(d, sdSeg(q, vec2(0.36, 0.05), vec2(0.32, 0.0)) - 0.012);
+    d = min(d, abs(length(q - vec2(0.1, 0.84)) - 0.04) - 0.012);                         // sign of life on the knee
+    d = min(d, sdSeg(q, vec2(0.1, 0.8), vec2(0.1, 0.72)) - 0.012);
     return d;
 }
 float sdKneeling(vec2 q) {                                                               // faces +x
-    float d = length((q - vec2(0.02, 1.0)) * vec2(1.0, 0.9)) - 0.1;
-    d = min(d, sdSeg(q, vec2(0.11, 1.0), vec2(0.15, 0.96)) - 0.018);
-    d = sminF(d, sdBox2(q, vec2(-0.02, 1.03), vec2(0.1, 0.1)) - 0.02, 0.03);
-    d = sminF(d, sdSeg(q, vec2(0.0, 0.85), vec2(-0.02, 0.45)) - mix(0.07, 0.13, clamp((q.y - 0.45) / 0.4, 0.0, 1.0)), 0.03);
-    d = min(d, sdSeg(q, vec2(-0.02, 0.4), vec2(0.2, 0.06)) - 0.06);                     // thigh to knee
-    d = min(d, sdSeg(q, vec2(0.2, 0.04), vec2(-0.18, 0.04)) - 0.04);                    // shin on the ground
-    d = min(d, sdSeg(q, vec2(0.05, 0.78), vec2(0.3, 0.72)) - 0.026);
-    d = min(d, sdSeg(q, vec2(0.3, 0.72), vec2(0.36, 0.86)) - 0.022);
+    float d = sdHead(q - vec2(0.03, 0.99));
+    d = min(d, sdTorso((q - vec2(0.0, -0.43)) * vec2(1.0, 1.0)));
+    d = min(d, sdTaper(q, vec2(-0.02, 0.36), vec2(0.2, 0.06), 0.07, 0.05));             // thigh to knee
+    d = min(d, sdTaper(q, vec2(0.2, 0.04), vec2(-0.18, 0.04), 0.045, 0.03));            // shin on the ground
+    d = min(d, sdTaper(q, vec2(0.05, 0.75), vec2(0.28, 0.7), 0.04, 0.03));
+    d = min(d, sdTaper(q, vec2(0.28, 0.7), vec2(0.36, 0.84), 0.03, 0.022));
     d = min(d, abs(length((q - vec2(0.4, 0.92)) * vec2(1.0, 2.2)) - 0.07) - 0.014);    // bowl
     return d;
 }
-// the lines cut inside a figure (standing/kneeling origin at feet): the broad collar, the
-// belt, the kilt's pleats, the bands of the wig
+// the lines cut inside a figure. Upper: the eye and its cosmetic line, the ear, the wig's
+// strands, the broad collar in rows, armlets. Lower (standing only): the belt, the kilt's
+// pleats and apron edge, bracelets, anklets. r: figure coordinates (standing head at 0.06, 1.39)
+float figureInnerUpper(vec2 r) {
+    vec2 h = r - vec2(0.06, 1.39);
+    float d = abs(length((h - vec2(0.045, 0.012)) * vec2(1.0, 2.4)) - 0.022);           // eye
+    d = min(d, sdSeg(h, vec2(0.065, 0.014), vec2(0.1, 0.02)));                           // cosmetic line
+    d = min(d, abs(length((h - vec2(-0.01, -0.005)) * vec2(1.3, 1.0)) - 0.025));        // ear
+    float wr = abs(fract((h.x + h.y * 0.3) / 0.022) - 0.5) * 0.022;
+    d = min(d, wr + step(-0.04, h.x) * 9.0 + step(0.1, abs(h.y + 0.02)) * 9.0);          // wig strands
+    vec2 c = r - vec2(0.04, 1.28);
+    float cr = length(c * vec2(0.75, 1.0));
+    d = min(d, abs(fract(cr / 0.03) - 0.5) * 0.03 + step(0.12, cr) * 9.0 + step(-0.02, c.y) * 9.0 + step(cr, 0.05) * 9.0);   // collar rows
+    d = min(d, abs(r.y - 1.06) + max(0.0, abs(r.x + 0.15) - 0.04));                     // armlet
+    return d;
+}
 float figureInner(vec2 q, float top) {
-    float s = 1.0 / top;                       // top: head height of this pose (1.42 standing)
-    vec2 r = vec2(q.x, q.y * s * 1.42);
-    float d = abs(length(r - vec2(0.03, 1.3)) - 0.14) + max(0.0, r.y - 1.28);          // collar
-    d = min(d, abs(r.y - 0.8) + max(0.0, abs(r.x - 0.04) - 0.12));                       // belt
-    float pl = abs(fract((r.x - r.y * 0.5) / 0.05) - 0.5) * 0.05 + max(0.0, abs(r.y - 0.66) - 0.1);
-    d = min(d, pl + 0.006);                                                              // pleats
-    d = min(d, abs(fract((r.y - 1.4) / 0.045) - 0.5) * 0.045 + max(0.0, abs(r.y - 1.47) - 0.08) + max(0.0, abs(r.x + 0.03) - 0.06));   // wig bands
+    vec2 r = vec2(q.x, q.y * 1.42 / top);
+    float d = figureInnerUpper(r);
+    d = min(d, abs(r.y - 0.86) + max(0.0, abs(r.x - 0.04) - 0.1));                      // belt
+    d = min(d, abs(r.y - 0.89) + max(0.0, abs(r.x - 0.04) - 0.1));
+    float kl = abs(fract((r.x - r.y * 0.45) / 0.04) - 0.5) * 0.04 + max(0.0, abs(r.y - 0.71) - 0.14);
+    d = min(d, kl + 0.004);                                                              // pleats
+    d = min(d, sdSeg(r, vec2(0.08, 0.85), vec2(0.18, 0.58)));                            // apron edge
+    d = min(d, abs(r.y - 0.75) + max(0.0, abs(r.x + 0.145) - 0.035));                   // bracelet
+    d = min(d, abs(r.y - 0.1) + max(0.0, abs(r.x - 0.28) - 0.04));                      // anklets
+    d = min(d, abs(r.y - 0.1) + max(0.0, abs(r.x + 0.09) - 0.04));
+    return d;
+}
+// the seated figure's lines (q as sdSeated takes it): upper lines, the belt, the throne's
+// panel with its feathered frame
+float seatedInner(vec2 q) {
+    vec2 m = vec2(-q.x, q.y);
+    float d = figureInnerUpper(m + vec2(0.04, 0.06));
+    d = min(d, abs(m.y - 0.8) + max(0.0, abs(m.x + 0.01) - 0.08));
+    float pan = sdBox2(m, vec2(-0.12, 0.3), vec2(0.1, 0.2));
+    d = min(d, abs(pan));
+    d = min(d, abs(fract(m.y / 0.035) - 0.5) * 0.035 + step(0.0, pan) * 9.0 + step(abs(m.x + 0.12), 0.06) * 9.0);
     return d;
 }
 // ---- temple walls v2, worked against a crop of Dendera Pl. 30 at the same size -------------
@@ -339,15 +426,16 @@ float crown(vec2 q, float k) {        // q: at the top of the head
     if (k < 3.0) return length((q - vec2(0.0, 0.14)) * vec2(1.6, 0.75)) - 0.12;                                                           // tall white crown
     return min(sdBox2(q, vec2(0.0, 0.06), vec2(0.09, 0.07)), sdSeg(q, vec2(0.06, 0.1), vec2(0.13, 0.28)) - 0.02);                          // red crown
 }
-float sdGod(vec2 q, float kind) {     // standing, facing +x, crowned; kind picks crown and hands
-    float d = sdStanding(q);
-    d = min(d, crown(q - vec2(0.03, 1.56), floor(kind * 4.0)));
-    if (fract(kind * 7.0) < 0.5) d = min(d, sdSeg(q, vec2(0.36, 0.02), vec2(0.36, 1.46)) - 0.014);      // a tall staff
+float sdGod(vec2 q, float kind) {     // standing, facing +x, crowned; kind picks crown, dress and hands
+    bool fem = fract(kind * 13.0) > 0.55;
+    float d = fem ? sdGoddess(q) : sdStanding(q);
+    d = min(d, crown(q - vec2(0.04, 1.46), floor(kind * 4.0)));
+    if (!fem && fract(kind * 7.0) < 0.5) d = min(d, sdSeg(q, vec2(-0.2, 0.02), vec2(-0.2, 1.46)) - 0.014);      // a tall staff
     return d;
 }
 float sdThroned(vec2 q, float kind) {
     float d = sdSeated(q);
-    return min(d, crown(q - vec2(0.0, 1.48), floor(kind * 4.0)));
+    return min(d, crown(q - vec2(-0.02, 1.41), floor(kind * 4.0)));
 }
 // signs in a column of text: cell size 1, one sign or two stacked
 float textColumn(vec2 q, vec2 id, float seed) {
@@ -375,15 +463,18 @@ vec3 register(float x, float ry, vec2 hid, float pu, float lw, float vis) {
     // the offering king at one end, the gods in a row facing him
     float xk = mir > 0.0 ? 0.35 : 3.0, xg0 = mir > 0.0 ? 1.15 : 0.35;
     vec2 qk = vec2(mir * (q.x - xk), q.y) / sc;
-    fig = min(fig, sdGod(qk, hash(cid + 7.1)) * sc);
-    float inner = figureInner(qk, 1.42) * sc;
+    float fk = sdGod(qk, hash(cid + 7.1)) * sc;
+    fig = min(fig, fk);
+    // (each figure's inner lines only inside its own body)
+    float inner = figureInner(qk, 1.42) * sc + step(0.0, fk) * 9.0;
     for (int i = 0; i < 3; i++) {
         if (float(i) >= n - 1.0) break;
         float gx = xg0 + float(i) * 0.72;
         vec2 qg = vec2(-mir * (q.x - gx), q.y) / sc;
         float hk = hash(cid + float(i) * 3.3 + 9.0);
-        fig = min(fig, hk < 0.3 ? sdThroned(qg + vec2(0.1, 0.0), hk * 3.0) * sc : sdGod(qg, hk) * sc);
-        if (hk >= 0.3) inner = min(inner, figureInner(qg, 1.42) * sc);
+        float fg = hk < 0.3 ? sdThroned(qg + vec2(0.1, 0.0), hk * 3.0) * sc : sdGod(qg, hk) * sc;
+        fig = min(fig, fg);
+        inner = min(inner, (hk >= 0.3 ? figureInner(qg, 1.42) : seatedInner(qg + vec2(0.1, 0.0))) * sc + step(0.0, fg) * 9.0);
     }
     // an altar with offerings between the king and the gods
     float xa = mir > 0.0 ? 0.82 : 2.55;
@@ -697,11 +788,11 @@ vec3 qrot(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w 
 uniform float uVH;    // viewport height, px
 void main() {
     vec3 w = iA.xyz + qrot(iQ, aPos * iB.xyz);
-    // a grain of dust passing by the lens stays a grain: never over ~3 px across
+    // a grain of dust passing by the lens stays a grain: never over ~16 px across
     if (iA.w > 4.5 && iA.w < 5.5 && iB.x < 0.02 && uVH > 0.0) {
         vec4 c0 = uVP * vec4(iA.xyz, 1.0), c1 = uVP * vec4(iA.xyz + vec3(0.0, iB.x, 0.0), 1.0);
         float rpx = c0.w > 1e-4 && c1.w > 1e-4 ? length(c1.xy / c1.w - c0.xy / c0.w) * 0.5 * uVH : 0.0;
-        if (rpx > 1.6) w = iA.xyz + (w - iA.xyz) * (1.6 / rpx);
+        if (rpx > 8.0) w = iA.xyz + (w - iA.xyz) * (8.0 / rpx);
     }
     vW = w; vL = aPos; vH = iB.xyz; vMat = iA.w; vSeed = iB.w; vX = iX;
     // the texture's own space: the piece's unrotated local position (world units), offset per
@@ -741,7 +832,7 @@ ${COMMON}
 in vec3 vW; in vec3 vN; in vec3 vT; in vec3 vL; in vec3 vH; in vec3 vQ; in vec3 vNL; in vec3 vTL;
 flat in float vMat; flat in float vSeed; flat in vec4 vX;
 uniform vec3 uEye, uSun, uRight;
-uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason, uTan, uChar, uInterior, uHathor, uFlag;
+uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason, uTan, uChar, uInterior, uHathor, uFlag, uRock;
 uniform mat4 uLVP;
 uniform sampler2DShadow uShadowMap;
 uniform vec4 uLights[8];
@@ -774,6 +865,12 @@ void main() {
     vec3 N = normalize(vN);
     if (!gl_FrontFacing) N = -N;
     vec3 V = normalize(uEye - vW);
+    vec3 Nsmooth = N;
+    // loose stones (flag rock): split stone, each facet flat and its own tone, not a soft blob
+    if (uRock > 0.5) {
+        vec3 fn = normalize(cross(dFdx(vW), dFdy(vW)));
+        N = dot(fn, N) < 0.0 ? -fn : fn;
+    }
     vec3 T = normalize(vT - N * dot(vT, N));
     if (m == 5 && N.y > 0.9 && uBox > 0.5) {
         // the desert: long dunes and wind ripples tilt the ground's normal
@@ -1282,10 +1379,21 @@ void main() {
         }
         cov = max(clamp(tone, 0.0, 0.95) * 0.92, peb * 0.85);
     }
+    // loose stones: pits and grit in the facets, heavier in shade
+    if (uRock > 0.5 && m < 2) {
+        vec3 rq = vQ / max(vH.x, 1e-4) * 9.0;
+        vec3 rc = floor(rq);
+        float pitR = step(hash(rc.xy + rc.z * 7.1 + vSeed), 0.12 + 0.2 * D) * (1.0 - smoothstep(0.15, 0.35, length(fract(rq) - 0.5)));
+        cov = max(cov, pitR * 0.5 * smoothstep(1.5, 3.0, vH.x / 9.0 / max(ps, 1e-6)));
+        cov = clamp(cov + 0.08 * (fbm3(rq * 0.6) - 0.5), 0.0, 1.0);
+        // the arrises between facets, drawn as the plates draw a broken stone's edges
+        vec3 fnE = normalize(cross(dFdx(vW), dFdy(vW)));
+        cov = max(cov, smoothstep(0.08, 0.3, length(fwidth(fnE))) * 0.55);
+    }
     // round things have no edges to cut: their outline is drawn where they turn away
     // (not on ground: seen low, a whole desert is at a grazing angle)
     if (uBox < 0.5 && m != 5 && uMason < 0.5) {
-        float rim = abs(dot(N, V));
+        float rim = abs(dot(uRock > 0.5 ? Nsmooth : N, V));
         // (metal: a thin rim, or a slim ring is all outline)
         cov = max(cov, M.w > 0.5 && M.w < 1.5 ? 1.0 - smoothstep(0.04, 0.1, rim) : 1.0 - smoothstep(0.12, 0.3, rim));
     }
@@ -1528,6 +1636,7 @@ void main() {
                 gl.uniform1f(main.u('uBox'), d.box ? 1 : 0);
                 gl.uniform1f(main.u('uMason'), d.masonry ? 1 : 0);
                 gl.uniform1f(main.u('uHathor'), d.hathor ? 1 : 0);
+                gl.uniform1f(main.u('uRock'), d.mesh === 'rock' ? 1 : 0);
                 gl.uniform1f(main.u('uTan'), d.box ? 0 : d.tan === 'y' ? 1 : 2);
             });
             const m = memo.getContext('2d');

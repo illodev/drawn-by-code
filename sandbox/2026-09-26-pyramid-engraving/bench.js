@@ -3,7 +3,7 @@
 // plate. Not part of the film: each element is worked here, side by side with the plate's
 // crop at the same size, before it goes into the rooms.
 Motion.scene({
-    fps: 24, duration: 1, logical: [1920, 1080],
+    fps: 24, duration: 1.25, logical: [1920, 1080],
     uses: ['styles/engraving/engrave.js'],
     setup(env) {
         const R = Engrave.renderer(env, { scale: 2 });
@@ -33,7 +33,8 @@ Motion.scene({
             ...[{ cam: [-2.4, 2.6, 5.2], target: [0.2, 2.9, -2], fov: 0.72 },
                 { cam: [-0.2, 4.6, 2.6], target: [-1.2, 5.2, 0.2], fov: 0.6 },
                 { cam: [0.5, 2.2, 3.5], target: [0.8, 6, -0.5], fov: 0.9 },
-                { cam: [-0.5, 1.9, 4.2], target: [0.4, 0, 0.5], fov: 0.8 }][Math.min(3, Math.floor(t * 4 + 1e-6))],
+                { cam: [-0.5, 1.9, 4.2], target: [0.4, 0, 0.5], fov: 0.8 },
+                { cam: [1.0, 2.9, 1.6], target: [1.4, 2.9, -2], fov: 0.42 }][Math.min(4, Math.floor(t * 4 + 1e-6))],
             sun: [-0.6, 0.55, 0.6], sunK: 1.2, fill: 0.42, interior: true, charcoal: true,
             ink: '#2e261d', paper: '#ebe1cb', course: 0.26,
             draws: [

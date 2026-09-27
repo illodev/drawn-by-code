@@ -107,10 +107,24 @@ const Shaft = (() => {
         Engrave.inst(rings, [0, 0.03, 0], 3, [0.36, 0.36, 0.36], 0.4, [0, 0, 0, 1]);
         // walkways in four orientations
         // (grouped round the far wall, where the camera looks all through the shot)
-        walkway(stone, small, dust, [-1.0, 2.1, -HW + 0.45], [0, 1, 0], [0.5, 0.05, 0.45], 1);             // ledge (down −y)
+        // (each walkway is carried: built into the walls and set on stepped corbels or struts,
+        // never a slab floating in the air)
+        walkway(stone, small, dust, [-1.25, 2.1, -HW + 0.45], [0, 1, 0], [0.55, 0.05, 0.45], 1);           // ledge (down −y), into two walls
+        for (const cx of [-1.45, -0.85]) for (let i = 0; i < 3; i++) {
+            const d = 0.36 - i * 0.12, h = 0.06;
+            Engrave.inst(stone, [cx, 2.05 - h * (i + 0.5) * 2, -HW + d / 2], 0, [0.07, h, d / 2], 0.2 + i * 0.1);
+        }
         walkway(stone, small, dust, [0.95, 2.6, -HW + 0.05], [0, 0, 1], [0.45, 0.05, 0.4], 2);             // flat on the far wall (down −z)
         walkway(stone, small, dust, [0, 4.55, -HW + 0.5], [0, -1, 0], [HW, 0.06, 0.28], 3);                // bridge, things on its underside (down +y)
-        walkway(stone, small, dust, [-HW + 0.35, 3.4, -0.9], norm([1, 1, 0]), [0.35, 0.05, 0.5], 4);      // slope (down at 45°)
+        for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) {                                            // its ends on corbels
+            const d = 0.34 - i * 0.11, h = 0.06;
+            Engrave.inst(stone, [sx * (HW - d / 2), 4.49 - h * (i + 0.5) * 2, -HW + 0.5], 0, [d / 2, h, 0.26], 0.4 + i * 0.1);
+        }
+        walkway(stone, small, dust, [-HW + 0.38, 3.4, -0.9], norm([1, 1, 0]), [0.42, 0.05, 0.5], 4);      // slope (down at 45°), its high end in the wall
+        for (const sz of [-1.3, -0.5]) {                                                                   // two struts from the wall to its low end
+            const A = [-HW, 2.72, sz], B = [-1.18, 3.08, sz], d = sub(B, A), len = Math.hypot(...d);
+            Engrave.inst(stone, lerp3(A, B, 0.5), 0, [0.05, len / 2, 0.05], 0.7, Engrave.quat([0, 0, 1], Math.atan2(-d[0], d[1])));
+        }
         walkway(stone, small, dust, [HW - 0.05, 3.3, -0.8], [-1, 0, 0], [0.45, 0.05, 0.5], 5);             // on the right wall (down +x)
         // the console: an obsidian disc in the right wall, seven radial sockets
         const qc = Engrave.quat([0, 0, 1], Math.PI / 2);
