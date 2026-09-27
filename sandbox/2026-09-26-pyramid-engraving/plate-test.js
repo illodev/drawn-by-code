@@ -20,6 +20,6 @@ Motion.scene({
             shadow: { center: [0, 0.5, 0], radius: 3 },
             sky: { zenith: 0.32, horizon: 0.2 }, fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.014, charcoal: true,
         };
-        env.state.A.apply(g, env.state.R.layer('p', f), { ink: f.ink, paper: f.paper, charcoal: true });
+        env.state.A.apply(g, env.state.R.layer('p', f), { ink: f.ink, paper: f.paper });
     },
 });

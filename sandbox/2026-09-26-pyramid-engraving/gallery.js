@@ -39,10 +39,17 @@ const Gallery = (() => {
     }
     const A = grains('gallery-first', 4), B = grains('gallery-second', -1);
     const C0 = [SAND[0] - 0.05, 0.1, SAND[1]];
-    // where the second structure is: forms at C0, drifts to the ring from 22.6
+    // the exit ring (the doorway to the shaft, junctions.js): the structure goes through it at
+    // PASS, its centroid on the ring's centre, still speeding up (the shaft takes it on)
+    const EXIT = [0.05, 0.5, -7.6], EXIT_R = 0.42, PASS = 23.8, DRIFT = 22.5;
+    const CEN = L * Math.sqrt(2 / 3) / 4;                  // the centroid above the base's centre
     const centre = (u) => {
-        const k = E(u, 22.6, 24.2);
-        return [C0[0] + 0.05 * k, C0[1] + 0.35 * k + 0.008 * Math.sin(u * 5), C0[2] - 2.1 * k];
+        const T = PASS - DRIFT, k = (u - DRIFT) / T, to = [EXIT[0], EXIT[1] - CEN, EXIT[2]];
+        if (k <= 0) return [C0[0], C0[1] + 0.008 * Math.sin(u * 5), C0[2]];
+        // slow off, arriving with speed (f(1) = 1, f'(1) = 0.94) and on at that speed
+        const f = k < 1 ? -1.06 * k ** 3 + 2.06 * k * k : 1 + 0.94 * (k - 1);
+        const wob = 0.008 * Math.sin(u * 5) * (1 - Math.min(1, k));
+        return [C0[0] + (to[0] - C0[0]) * f, C0[1] + (to[1] - C0[1]) * f + wob, C0[2] + (to[2] - C0[2]) * f];
     };
     // one grain: lift (with a small arc) from the floor to its place, hold, maybe fall
     function grainAt(g, u, c, t0, dur, tFall) {
@@ -104,7 +111,7 @@ const Gallery = (() => {
         // the rings: the entrance (passed at the start) and the exit at the end of the corridor
         const up = Engrave.quat([1, 0, 0], Math.PI / 2);
         Engrave.inst(rings, [0, 0.85, 1.9], 3, [0.82, 0.82, 0.82], 0.4, up);
-        Engrave.inst(rings, [0.05, 0.5, -7.6], 3, [0.42, 0.42, 0.42], 0.6, up);
+        Engrave.inst(rings, EXIT, 3, [EXIT_R, EXIT_R, EXIT_R], 0.6, up);
         // the structures. First: a lone grain (18.6), then a group, assembled by 20.2 with one
         // edge missing, it trembles and falls (20.6)
         A.forEach((g, i) => {
@@ -136,7 +143,7 @@ const Gallery = (() => {
             const tt = rm() * tMax, sz = 0.0012 + rm() * 0.0022, ph = rm() * 6.28;
             const p = [-1.3 + dn[0] * tt + 0.01 * Math.sin(u * 0.7 + ph), y0 + dn[1] * tt + 0.015 * Math.sin(u * 0.5 + ph * 2), z0 + dn[2] * tt];
             if (p[0] > 1.2) continue;
-            Engrave.inst(motes, p, 5, [sz, sz, sz], rm(), [0, 0, 0, 1], 0, -1);
+            Engrave.inst(motes, p, 5, [sz, sz, sz], rm(), [0, 0, 0, 1], 0, -0.3);
         }
         const draws = [
             { mesh: 'box', inst: new Float32Array(stone), box: true, masonry: true },
@@ -168,12 +175,15 @@ const Gallery = (() => {
     }
     // the camera: [u, cam, target, [fov]]
     const KEYS = [
-        [17.0, [0.05, 0.85, 2.15], [0, 0.8, -2], [0.8]],
+        [17.3, [0, 0.85, 1.9], [0, 0.75, -2], [0.8]],          // through the entrance ring (from the heart's gate)
         [17.9, [0.05, 0.5, 1.2], [0.15, 0.2, -2.5], [0.78]],
         [19.0, [-0.2, 0.2, -3.6], [0, 0.07, -5.2], [0.66]],
         [20.2, [-0.28, 0.13, -4.7], [-0.04, 0.1, -5.2], [0.56]],
         [22.4, [-0.25, 0.12, -4.75], [-0.03, 0.12, -5.25], [0.54]],
-        [24.0, [-0.15, 0.3, -6.6], [0.05, 0.47, -7.5], [0.58]],
+        // behind the structure as it drifts to the exit ring (the bridge takes the camera on
+        // through it from 23.5)
+        [23.5, [-0.08, 0.36, -6.05], [0.05, 0.5, -7.6], [0.6]],
+        [24.1, [0.05, 0.5, -7.6], [0.05, 0.5, -9.0], [0.62]],   // (the ring: so the camera is still moving at 23.5)
     ];
     const frameParams = {
         sun: SUN, sunK: 3.4, fill: 0.36, interior: true,
@@ -181,5 +191,5 @@ const Gallery = (() => {
         sky: { zenith: 0.9, horizon: 0.9, dusk: 0 },
         fog: [9, 30], course: 0.26, flag: 0.45,
     };
-    return { build, KEYS, frameParams, T0: 17, T1: 24 };
+    return { build, KEYS, frameParams, EXIT, EXIT_R, PASS, T0: 17, T1: 24 };
 })();

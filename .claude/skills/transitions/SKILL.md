@@ -33,6 +33,14 @@ passes **through** something in the shot (an eye, a mouth, a picture frame, some
 | `vortex(g, env, u, { a, b, cx, cy, turns })` | `a` twists in a spiral and shrinks to a point | Whirlpools, drains, portals; a good lead into a climax |
 | `frame(g, env, u, { inner, outer, at, rim })` | The camera pulls back: `inner` was a picture, a drawing or a screen inside `outer` | Reveals ("it was a drawing"), galleries, screens |
 
+**Between 3D rooms: portals.** When the shots are places a camera travels through (rooms of a
+building, a sky inside a sphere), don't cut between them: join them by an opening in the shot
+and fly through it. Each room keeps its own coordinates, scale and light; the opening is a
+portal (a hole in this room's layer, the next room rendered from the mapped camera beneath
+it). Engraving kit: `Engrave.portal`, material 7, `R.mask`; worked example with seven
+doorways (a ring, a floor ring, a tunnel's membrane, a side door, a sphere's skin both ways,
+a ceiling shaft) in `sandbox/2026-09-26-pyramid-engraving/junctions.js`.
+
 `u` goes from 0 to 1 (`Ease.seg(t, start, end)`); `a`, `b`, `inner` and `outer` are
 functions `(g) => void` that paint their shot full-bleed. `Motion.layer(env, name, fn)`
 paints a shot on a separate canvas when the transition needs to deform it as an image.
@@ -45,3 +53,4 @@ Full example with all five, plus a paper ball that crumples and opens:
 - 2026-09-24 · exquisite-corpse · In `engulf`, the cloud edges are painted before `b`; otherwise each circle leaves its full ring and you get a tangle (now in the engine).
 - 2026-09-24 · exquisite-corpse · Everything deformed with clipping (crumpling, tearing) is also clipped to the shot rectangle, or bits poke out of the sheet.
 - 2026-09-25 · physics-newton-faraday · A morph across a pan (an orbit winding into a coil while one set slides out and the next slides in) lives in screen space, not in either set. It stays mid-frame and lands on its target exactly when the pan ends. The target's own copy is hidden until then: a copy that travels with its set flies off, and one that is always drawn doubles up.
+- 2026-09-27 · pyramid-engraving · A fade to dark between two 3D rooms is a cut by another name; the user saw «saltos». A portal through something already in the shot, with the camera's speed matched across it and whatever leads going through first, made the ten shots one travel.

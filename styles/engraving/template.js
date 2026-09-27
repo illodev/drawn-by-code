@@ -43,6 +43,6 @@ Motion.scene({
             lights: [[0, 0.4, 0, 0, 0.6]],
             charcoal: true, course: 0.012, ink: '#2e261d', paper: '#ebe1cb',
         };
-        A.apply(g, R.layer('f' + Math.round(t * 24), f), { ink: f.ink, paper: f.paper, charcoal: true });
+        A.apply(g, R.layer('f' + Math.round(t * 24), f), { ink: f.ink, paper: f.paper });
     },
 });

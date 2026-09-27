@@ -11,6 +11,8 @@ const Star = (() => {
         const s = Apex.seedAt(57), k = E(u, 57, 58.4);
         return [s[0] + 0.1 * k, s[1] + 0.3 * k, s[2]];
     };
+    // the seed's radius as it shrinks into the star
+    const radius = (u) => Apex.SEED_R * (1 - E(u, 57, 58.4)) + 0.002 * (1 - E(u, 58.2, 58.4));
     function build(u) {
         // the stone closed and quiet; a brief answer along the joint (58.0–58.9)
         const pulse = Math.max(0, Math.sin(Math.PI * Ease.seg(u, 58.0, 58.9)));
@@ -18,8 +20,10 @@ const Star = (() => {
         const P = Pyramid.build(tj, { quiet: true, e: 0 });
         const c = at(u), k = E(u, 57, 58.4);
         const core = [], rays = [], glow = [];
-        // the seed shrinks into a point: dark with sparks at first, then a star (bare paper)
-        if (k < 1) Engrave.inst(glow, c, 2, [0.05 * (1 - k) + 0.002, 0.05 * (1 - k) + 0.002, 0.05 * (1 - k) + 0.002], 0.5);
+        // the seed shrinks into a point: its skin and its sky at first (the sky through the skin
+        // is a portal: junctions.js), then a star (bare paper)
+        const skin = [];
+        if (k < 1) Nursery.skin(skin, c, radius(u));
         const sz = 0.004 + 0.012 * k;
         Engrave.inst(core, c, 5, [sz, sz, sz], 0.5, [0, 0, 0, 1], 0, -1);
         // an engraved star: four long rays and four short, as the plates draw stars
@@ -31,6 +35,7 @@ const Star = (() => {
         }
         Engrave.inst(glow, c, 4, [0.006 * k, 0.006 * k, 0.006 * k], 0.5, [0, 0, 0, 1], 0.8);
         P.draws.push(
+            { mesh: 'box', inst: new Float32Array(skin), box: true, cast: false },
             { mesh: 'sphere', inst: new Float32Array(glow), cast: false },
             { mesh: 'sphere', inst: new Float32Array(core), cast: false },
             { mesh: 'box', inst: new Float32Array(rays), box: true, cast: false },
@@ -52,5 +57,5 @@ const Star = (() => {
         [58.5, [-1.25, 1.02, 5.0], [-0.42, 1.05, 0], [0.72]],
         [62.0, [-1.25, 1.02, 5.0], [-0.42, 1.05, 0], [0.72]],
     ];
-    return { build, KEYS, T0: 57, T1: 60 };
+    return { build, KEYS, at, radius, T0: 57, T1: 60 };
 })();

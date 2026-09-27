@@ -19,8 +19,10 @@ const Terrain = (() => {
     // along the front of the plateau. Its edge wanders; the drop is tall in some stretches and
     // low in others; the face is a sheer spur here and a soft eroded slope there, cut by
     // gullies; a second, partial ledge shows only in some stretches.
-        function height(x, z) {
-        const r = Math.max(Math.abs(x), Math.abs(z));
+    function height(x, z) {
+        // (the footprint's «radius»: a rounded square, not max(|x|, |z|), whose fold along the
+        // diagonals showed as a straight edge in the dunes behind the pyramid's corners)
+        const r = Math.pow(x ** 8 + z ** 8, 1 / 8);
         // dunes: long, low swells, bigger far off and to the sides; the plateau stays flat
         // dunes everywhere, the plateau too: long swells with a crest (a steep lee side), sand
         // banked against the pyramid's foot; only its footprint is level
@@ -29,8 +31,10 @@ const Terrain = (() => {
         // (relief of the same strength everywhere, near and far: no flat patches next to busy ones)
         const mid = fbm(x * 0.9 + 1, z * 1.1 + 4);
         let h = (0.13 + 0.17 * far) * (sw - 0.45) + (0.06 + 0.08 * far) * crestD + 0.05 * (mid - 0.5) + 0.012 * (fbm(x * 2.5, z * 2.5) - 0.5);
-        h *= E(1.05, 1.5, r);
-        h += 0.05 * E(1.5, 1.02, r) * E(0.9, 1.05, r);          // sand banked at the foot
+        h *= E(1.05, 1.8, r);
+        // sand banked at the foot: an uneven drift, higher here and lower there (a straight,
+        // even bank showed past the back corners as a crisp ruled rectangle)
+        h += (0.02 + 0.05 * fbm(x * 2.2 + 3, z * 2.2 + 1)) * E(1.9, 1.02, r) * E(0.9, 1.05, r);
         // the foreground, as in the plate: mounds of rock and spoil from the excavation, their
         // crest line rising and falling (peaks, saddles, a gap), faces broken into facets and
         // gullies that catch the light or turn away from it; they hide part of the plateau
@@ -53,14 +57,17 @@ const Terrain = (() => {
         }
         return h;
     }
-    // sample positions: dense in [a, b], stretched outside
+    // sample positions: dense in [a, b], stretched outside, but never so coarse that a dune's
+    // crest becomes a straight edge (with steps growing 12 % each, far crests were drawn as
+    // straight silhouettes that the final shot showed as ruled lines on the dunes)
     function axis(a, b, step, far) {
         const xs = [];
         for (let x = a; x <= b + 1e-9; x += step) xs.push(x);
+        const cap = (x) => (Math.abs(x) < 25 ? 0.22 : 0.6);
         let d = step;
-        for (let x = a - step; x > -far; x -= (d *= 1.12)) xs.unshift(x);
+        for (let x = a - step; x > -far; x -= (d = Math.min(d * 1.05, cap(x)))) xs.unshift(x);
         d = step;
-        for (let x = b + step; x < far; x += (d *= 1.12)) xs.push(x);
+        for (let x = b + step; x < far; x += (d = Math.min(d * 1.05, cap(x)))) xs.push(x);
         return xs;
     }
     function meshes() {
@@ -68,20 +75,21 @@ const Terrain = (() => {
         const nx = xs.length, nz = zs.length;
         const H = new Float32Array(nx * nz);
         for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) H[j * nx + i] = height(xs[i], zs[j]);
-        const P = [];
-        for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+        const P = new Float32Array(nx * nz * 6);
+        for (let j = 0, k = 0; j < nz; j++) for (let i = 0; i < nx; i++, k += 6) {
             const i0 = Math.max(i - 1, 0), i1 = Math.min(i + 1, nx - 1), j0 = Math.max(j - 1, 0), j1 = Math.min(j + 1, nz - 1);
             const dx = (H[j * nx + i1] - H[j * nx + i0]) / (xs[i1] - xs[i0]), dz = (H[j1 * nx + i] - H[j0 * nx + i]) / (zs[j1] - zs[j0]);
             const l = Math.hypot(dx, 1, dz);
-            P.push(xs[i], H[j * nx + i], zs[j], -dx / l, 1 / l, -dz / l);
+            P[k] = xs[i]; P[k + 1] = H[j * nx + i]; P[k + 2] = zs[j]; P[k + 3] = -dx / l; P[k + 4] = 1 / l; P[k + 5] = -dz / l;
         }
-        const rock = [], sand = [];
+        const rock = new Uint32Array((nx - 1) * (nz - 1) * 6), sand = new Uint32Array((nx - 1) * (nz - 1) * 6);
+        let nr = 0, ns = 0;
         for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
             const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
             const ny = Math.min(P[a * 6 + 4], P[b * 6 + 4], P[c * 6 + 4], P[d * 6 + 4]);
-            (ny < 0.9 ? rock : sand).push(a, c, b, b, c, d);
+            if (ny < 0.9) { rock.set([a, c, b, b, c, d], nr); nr += 6; } else { sand.set([a, c, b, b, c, d], ns); ns += 6; }
         }
-        return { rock: { P, I: rock }, sand: { P, I: sand } };
+        return { rock: { P, I: rock.subarray(0, nr) }, sand: { P, I: sand.subarray(0, ns) } };
     }
     return { height, meshes };
 })();

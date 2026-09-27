@@ -83,6 +83,49 @@ const Engrave = (() => {
         a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
         a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2],
     ];
+    const qconj = (q) => [-q[0], -q[1], -q[2], q[3]];
+    const qrot = (q, v) => {
+        const [x, y, z, w] = q, c1 = [y * v[2] - z * v[1] + w * v[0], z * v[0] - x * v[2] + w * v[1], x * v[1] - y * v[0] + w * v[2]];
+        return [v[0] + 2 * (y * c1[2] - z * c1[1]), v[1] + 2 * (z * c1[0] - x * c1[2]), v[2] + 2 * (x * c1[1] - y * c1[0])];
+    };
+    // the rotation whose +z is fwd and whose +y is as close to up as it can be
+    function frameQ(fwd, up = [0, 1, 0]) {
+        const z = norm(fwd), x = norm(cross(up, z)), y = cross(z, x);
+        const m00 = x[0], m11 = y[1], m22 = z[2], tr = m00 + m11 + m22;
+        // (columns x, y, z of the rotation matrix → quaternion)
+        let q;
+        if (tr > 0) { const S = Math.sqrt(tr + 1) * 2; q = [(y[2] - z[1]) / S, (z[0] - x[2]) / S, (x[1] - y[0]) / S, S / 4]; }
+        else if (m00 > m11 && m00 > m22) { const S = Math.sqrt(1 + m00 - m11 - m22) * 2; q = [S / 4, (y[0] + x[1]) / S, (z[0] + x[2]) / S, (y[2] - z[1]) / S]; }
+        else if (m11 > m22) { const S = Math.sqrt(1 + m11 - m00 - m22) * 2; q = [(y[0] + x[1]) / S, S / 4, (z[1] + y[2]) / S, (z[0] - x[2]) / S]; }
+        else { const S = Math.sqrt(1 + m22 - m00 - m11) * 2; q = [(z[0] + x[2]) / S, (z[1] + y[2]) / S, S / 4, (x[1] - y[0]) / S]; }
+        const l = Math.hypot(...q);
+        return q.map((v) => v / l);
+    }
+
+    // ---------- portals: another space seen through an opening in this one ----------
+    // A film can be a chain of spaces that are not built in one world (each room its own
+    // coordinates, lights and scale) and still be one continuous camera move: every doorway
+    // is a portal. An opening is a frame { c, q, s }: its centre, a rotation whose +z is the
+    // way through (leaving the first space, entering the second) and whose +y is its up, and a
+    // size. portal(a, b) maps points and directions from the first space to the second
+    // (rotate, scale, move), so the camera looking at opening a is, mapped, the camera that
+    // sees what lies beyond opening b; ip/id map back. clip keeps only what is beyond b (the
+    // second space's layer, f.clip), iclip only what is behind a (looking back). The opening
+    // itself is drawn in its own space with material 7: a hole in that layer, with depth.
+    function portal(a, b) {
+        const k = b.s / a.s, r = qmul(b.q, qconj(a.q)), ri = qconj(r);
+        const za = qrot(a.q, [0, 0, 1]), zb = qrot(b.q, [0, 0, 1]);
+        const add = (u, v) => [u[0] + v[0], u[1] + v[1], u[2] + v[2]], mul = (u, f) => [u[0] * f, u[1] * f, u[2] * f];
+        return {
+            k, r,
+            p: (v) => add(b.c, mul(qrot(r, sub(v, a.c)), k)),
+            d: (v) => qrot(r, v),
+            ip: (v) => add(a.c, mul(qrot(ri, sub(v, b.c)), 1 / k)),
+            id: (v) => qrot(ri, v),
+            clip: [zb[0], zb[1], zb[2], -dot(zb, b.c) - 1e-4 * b.s],
+            iclip: [-za[0], -za[1], -za[2], dot(za, a.c) - 1e-4 * a.s],
+        };
+    }
 
     // ---------- meshes (unit size: the instance's half size scales them) ----------
     function box() {
@@ -187,22 +230,48 @@ const Engrave = (() => {
 
     // ---------- shaders ----------
     const COMMON = `
+precision highp int;        // (a fragment shader's int and uint default to mediump: 16 bits on some GPUs)
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float hash3(vec3 p) { return hash(p.xy + p.z * 17.13); }
+// value noise hashes its lattice in integers: the float hash above amplifies a rounding
+// difference ~100×, and a GPU compiler that computes (i + 1) · k as i · k + k for one corner
+// gave neighbouring cells different values for their shared corner: the noise jumped at its
+// lattice lines (hard-edged rectangles on the dunes, ruled lines across big surfaces)
+uint uhash(uvec3 v) {
+    v = v * 1664525u + 1013904223u;
+    v.x += v.y * v.z; v.y += v.z * v.x; v.z += v.x * v.y;
+    v ^= v >> 16u;
+    v.x += v.y * v.z; v.y += v.z * v.x; v.z += v.x * v.y;
+    return v.x ^ v.y ^ v.z;
+}
+float lhash(vec3 i) { return float(uhash(uvec3(ivec3(i) + 65536)) >> 8u) / 16777215.0; }
 float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-    return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
+    vec3 c = vec3(i, 0.0);
+    return mix(mix(lhash(c), lhash(c + vec3(1, 0, 0)), f.x), mix(lhash(c + vec3(0, 1, 0)), lhash(c + vec3(1, 1, 0)), f.x), f.y); }
 float vnoise3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-    float a = mix(mix(hash3(i), hash3(i + vec3(1, 0, 0)), f.x), mix(hash3(i + vec3(0, 1, 0)), hash3(i + vec3(1, 1, 0)), f.x), f.y);
-    float b = mix(mix(hash3(i + vec3(0, 0, 1)), hash3(i + vec3(1, 0, 1)), f.x), mix(hash3(i + vec3(0, 1, 1)), hash3(i + vec3(1, 1, 1)), f.x), f.y);
+    i.z += 7919.0;
+    float a = mix(mix(lhash(i), lhash(i + vec3(1, 0, 0)), f.x), mix(lhash(i + vec3(0, 1, 0)), lhash(i + vec3(1, 1, 0)), f.x), f.y);
+    float b = mix(mix(lhash(i + vec3(0, 0, 1)), lhash(i + vec3(1, 0, 1)), f.x), mix(lhash(i + vec3(0, 1, 1)), lhash(i + vec3(1, 1, 1)), f.x), f.y);
     return mix(a, b, f.z); }
 float fbm3(vec3 p) { return 0.55 * vnoise3(p) + 0.3 * vnoise3(p * 2.1 + 3.1) + 0.15 * vnoise3(p * 4.3 + 7.7); }
 uniform vec2 uRes;
 uniform float uPx;          // output px per 1920-wide px
 uniform vec3 uPaper;
 uniform vec4 uFrame;
-// the print: paper fibre, foxing, ink breaking up; cov = dark ink, col2 = second ink (rgb, coverage)
+uniform float uSheet;       // the printed sheet's scale about the frame's centre (a plate going in)
+// the print; cov = dark ink, col2 = second ink (rgb, coverage). Nothing here is fixed to the
+// screen: the image area is flat paper and ink (the tooth and the strokes belong to each
+// surface, see charcoal()), and the margins' fibre and foxing are the sheet's, so they grow
+// with it when the plate goes in
 vec3 print(vec2 fc, float cov, vec4 ink2, vec3 ink) {
-    vec2 q = fc / uPx;
+    vec2 u = fc / uRes; u.y = 1.0 - u.y;
+    bool inPlate = u.x > uFrame.x && u.x < uFrame.z && u.y > uFrame.y && u.y < uFrame.w;
+    if (inPlate) {
+        vec3 c = mix(uPaper * 0.985, ink2.rgb, clamp(ink2.a, 0.0, 1.0));   // plate tone: the wiped plate leaves a film of ink
+        return mix(c, ink, clamp(cov, 0.0, 1.0));
+    }
+    vec2 half_ = uRes / uPx * 0.5;
+    vec2 q = (fc / uPx - half_) / max(uSheet, 1e-3) + half_;
     float fib = vnoise(q * vec2(0.9, 0.12)) * 0.5 + vnoise(q * vec2(0.13, 0.8)) * 0.5;
     vec3 paper = uPaper * (0.975 + 0.035 * fib) - vec3(0.0, 0.006, 0.014) * vnoise(q * 0.004);
     // foxing: a few rust spots, soft edged
@@ -215,13 +284,162 @@ vec3 print(vec2 fc, float cov, vec4 ink2, vec3 ink) {
         fox = (1.0 - smoothstep(0.6, 1.0, d0)) * (0.5 + 0.5 * smoothstep(0.7, 1.0, d0));
     }
     paper = mix(paper, paper * vec3(0.9, 0.8, 0.66), fox * 0.45);
-    vec2 u = fc / uRes; u.y = 1.0 - u.y;
-    bool inPlate = u.x > uFrame.x && u.x < uFrame.z && u.y > uFrame.y && u.y < uFrame.w;
-    if (!inPlate) return paper;
-    paper *= 0.985;                      // plate tone: the wiped plate leaves a film of ink
-    float brk = 0.9 + 0.1 * smoothstep(0.2, 0.7, vnoise(q * 1.7));   // ink skips on the fibre
-    vec3 c = mix(paper, ink2.rgb, clamp(ink2.a * brk, 0.0, 1.0));
-    return mix(c, ink, clamp(cov * brk, 0.0, 1.0));
+    // the sheet's toning: large soft patches, darker towards its edges
+    float patches = vnoise(q * 0.0022 + 4.0) * 0.6 + vnoise(q * 0.0051 + 1.0) * 0.4 - 0.5;
+    vec2 e = abs(q / half_ - 1.0);
+    float rim = smoothstep(0.55, 1.05, max(e.x, e.y * 1.1));
+    return paper * (vec3(1.0) - vec3(0.02, 0.04, 0.08) * (patches * 1.4 + rim * 0.9));
+}
+// charcoal on toothed paper, as a texture of the surface it is drawn on: short parallel
+// strokes on a diagonal (each patch of strokes its own angle and pressure), and graphite that
+// only catches on the tooth's peaks in the half-tones, so light areas speckle and darks fill.
+// q is the surface position in output pixels at the current octave (see charcoalAt), so the
+// grain moves, turns and foreshortens with the surface and never sits still on the screen.
+uniform float uGrainK;      // how much stroke and tooth (indoors less: carved detail survives)
+uniform float uHatch;       // how much of the tone is drawn as pencil hatching (0: rubbed charcoal)
+// one set of hand-drawn hatching: short strokes in rows about 5 px apart, each patch of rows
+// its own angle, each stroke its own length, offset and pressure, tapered at both ends. At
+// tone T a stroke is as wide as T of its row (light: thin scattered strokes; dark: they merge).
+// q is in rows' units (see pencilSet); stretch shortens the strokes where the surface is seen
+// foreshortened across them, so they keep their length on screen
+float hatchSet(float T, vec2 q, float ang0, float seed, float stretch) {
+    if (T <= 0.01) return 0.0;
+    vec2 cc = q / 70.0 + seed, ci = floor(cc), cf = cc - ci;
+    cf = cf * cf * (3.0 - 2.0 * cf);
+    float r = 0.0;
+    for (int k = 0; k < 4; k++) {
+        vec2 o = vec2(float(k % 2), float(k / 2));
+        float wk = (o.x > 0.5 ? cf.x : 1.0 - cf.x) * (o.y > 0.5 ? cf.y : 1.0 - cf.y);
+        if (wk < 0.01) continue;
+        float h = hash(ci + o + seed * 3.1);
+        float ang = ang0 + (h - 0.5) * 0.22;      // (patches only a little apart: a hand keeps its angle)
+        vec2 dir = vec2(cos(ang), sin(ang)), nrm = vec2(-dir.y, dir.x);
+        float sp = 4.2 + 1.6 * hash(ci + o + 7.7);
+        float across = dot(q, nrm) / sp, row = floor(across), f = fract(across);
+        // the stroke: its length and where it starts vary by row
+        float L = (34.0 + 26.0 * hash(vec2(row, h * 13.0))) / clamp(stretch, 0.3, 4.0);
+        // (the strokes of a patch start about together, as a hand draws a block of them)
+        float along = dot(q, dir) / L + 0.35 * hash(vec2(row, 3.3 + h)) + h, seg = floor(along), fa = fract(along);
+        // a lift between strokes, and the taper at their ends; in the darks the strokes run
+        // into each other (dark hatching is a closed mass of lines, not a field of ovals)
+        float gap = mix(step(0.12 + 0.1 * hash(vec2(row, seg + 9.0)), fa), 1.0, smoothstep(0.45, 0.8, T));
+        float taper = mix(smoothstep(0.12, 0.3, fa) * smoothstep(1.0, 0.82, fa), 1.0, smoothstep(0.35, 0.75, T));
+        float press = 0.7 + 0.3 * hash(vec2(row * 1.7, seg + h));
+        // the row wanders a little (a hand, not a ruler)
+        float fw = f + 0.07 * (vnoise(vec2(dot(q, dir) / 60.0, row * 2.3)) - 0.5);
+        float prof = 1.0 - abs(fw - 0.5) * 2.0;                                  // 1 at the stroke's middle
+        float wT = clamp(T * 1.15 * taper * press, 0.0, 1.0);
+        float st = smoothstep(1.0 - wT - 0.18, 1.0 - wT + 0.05, prof) * gap;
+        r += wk * st * (0.75 + 0.25 * press);
+    }
+    return r;
+}
+// a set at its own scale: rows about 5 output px apart across the strokes however the surface
+// is seen (the octave is picked from how fast the across-coordinate changes on screen, two
+// octaves cross-faded, so the strokes stay put on the surface as the camera moves)
+float pencilSet(float T, vec2 x, vec2 jx, vec2 jy, float ang0, float seed) {
+    if (T <= 0.01) return 0.0;
+    vec2 dir = vec2(cos(ang0), sin(ang0)), nrm = vec2(-dir.y, dir.x);
+    float rA = length(vec2(dot(jx, nrm), dot(jy, nrm))) * uPx, rL = length(vec2(dot(jx, dir), dot(jy, dir))) * uPx;
+    float lv = log2(max(rA, 1e-7)), l0 = floor(lv), fr = lv - l0, a = exp2(l0);
+    float stretch = rA / max(rL, 1e-7);
+    return mix(hatchSet(T, x / a, ang0, seed, stretch), hatchSet(T, x / (2.0 * a), ang0, seed, stretch), fr);
+}
+// charcoal laid with the side of the stick: broad soft strokes (rows ~16 px) that modulate the
+// tone instead of drawing lines; 0–1, 1 in a stroke's middle
+float stickSet(vec2 q, float ang0, float seed, float stretch) {
+    vec2 cc = q / 120.0 + seed, ci = floor(cc), cf = cc - ci;
+    cf = cf * cf * (3.0 - 2.0 * cf);
+    float r = 0.0;
+    for (int k = 0; k < 4; k++) {
+        vec2 o = vec2(float(k % 2), float(k / 2));
+        float wk = (o.x > 0.5 ? cf.x : 1.0 - cf.x) * (o.y > 0.5 ? cf.y : 1.0 - cf.y);
+        if (wk < 0.01) continue;
+        float h = hash(ci + o + seed * 3.1);
+        float ang = ang0 + (h - 0.5) * 0.3;
+        vec2 dir = vec2(cos(ang), sin(ang)), nrm = vec2(-dir.y, dir.x);
+        float sp = 13.0 + 7.0 * hash(ci + o + 7.7);
+        float across = dot(q, nrm) / sp, row = floor(across), f = fract(across);
+        float L = (60.0 + 50.0 * hash(vec2(row, h * 13.0))) / clamp(stretch, 0.3, 4.0);
+        float along = dot(q, dir) / L + hash(vec2(row, 3.3 + h)), fa = fract(along);
+        float ends = smoothstep(0.0, 0.25, fa) * smoothstep(1.0, 0.7, fa);
+        float fw = f + 0.1 * (vnoise(vec2(dot(q, dir) / 50.0, row * 2.3)) - 0.5);
+        float prof = pow(max(1.0 - abs(fw - 0.5) * 2.0, 0.0), 0.8);
+        r += wk * prof * ends * (0.6 + 0.4 * hash(vec2(row * 1.7, floor(along) + h)));
+    }
+    return r;
+}
+float stickAt(vec2 x, vec2 jx, vec2 jy, float ang0, float seed) {
+    vec2 dir = vec2(cos(ang0), sin(ang0)), nrm = vec2(-dir.y, dir.x);
+    float rA = length(vec2(dot(jx, nrm), dot(jy, nrm))) * uPx, rL = length(vec2(dot(jx, dir), dot(jy, dir))) * uPx;
+    float lv = log2(max(rA, 1e-7)), l0 = floor(lv), fr = lv - l0, a = exp2(l0);
+    float stretch = rA / max(rL, 1e-7);
+    return mix(stickSet(x / a, ang0, seed, stretch), stickSet(x / (2.0 * a), ang0, seed, stretch), fr);
+}
+// the hatching for a tone: one set in the half-tones, a crossing set in the darks, a third in
+// the deepest shade; each catches the paper's tooth
+float pencil(float T, vec2 x, vec2 jx, vec2 jy, float ang0, float tooth) {
+    float h1 = pencilSet(clamp(T * 1.1, 0.0, 1.0), x, jx, jy, ang0, 0.0);
+    float h2 = pencilSet(clamp((T - 0.45) * 1.6, 0.0, 1.0), x, jx, jy, ang0 + 1.25, 17.0);
+    float h3 = pencilSet(clamp((T - 0.75) * 2.2, 0.0, 1.0), x, jx, jy, ang0 + 0.6, 41.0);
+    return max(h1, max(h2 * 0.9, h3 * 0.85)) * (0.72 + 0.4 * tooth);
+}
+// rubbed charcoal: a soft tone that catches the paper's tooth in the half-tones (q in output
+// px at the current octave)
+float charcoal(float T, vec2 q) {
+    float tooth = 0.35 * vnoise(q * 1.1 + 5.3) + 0.65 * vnoise(q * vec2(0.55, 0.3));
+    float g = pow(T, 1.25);
+    return mix(g, smoothstep(tooth - 0.45, tooth + 0.35, g * 1.1), (0.35 + 0.3 * uHatch) * uGrainK * smoothstep(0.05, 0.3, g) * (1.0 - smoothstep(0.6, 0.9, g)));
+}
+// a drawing's tone: its half-tones are lighter than a render's (the paper does more of the work)
+float drawnTone(float T) { return clamp(pow(clamp((T - 0.06) / 0.88, 0.0, 1.0), 1.15), 0.0, 1.0); }
+// a surface's tone drawn in pencil over a light rub: P its own position, n its normal, dPx and
+// dPy the screen derivatives of P (taken by the caller in uniform flow), angY the strokes'
+// angle on horizontal faces (99: the default)
+float pencilAt(float T, vec3 P, vec3 n, vec3 dPx, vec3 dPy, float angY) {
+    vec3 w = pow(abs(n), vec3(4.0));
+    w /= max(w.x + w.y + w.z, 1e-5);
+    float Td = drawnTone(T), r = 0.0;
+    for (int k = 0; k < 3; k++) {
+        float wk = k == 0 ? w.x : k == 1 ? w.y : w.z;
+        if (wk < 0.02) continue;
+        vec2 x = k == 0 ? P.zy : k == 1 ? P.xz : P.xy;
+        vec2 jx = k == 0 ? dPx.zy : k == 1 ? dPx.xz : dPx.xy, jy = k == 0 ? dPy.zy : k == 1 ? dPy.xz : dPy.xy;
+        float a0 = k == 1 && angY < 90.0 ? angY : -0.95;
+        float lv = log2(max(length(jx) + length(jy), 1e-7) * uPx * 0.7), l0 = floor(lv), fr = lv - l0;
+        // the stick's side: the tone itself, pushed darker in its strokes and lighter between
+        // them; a second pass across in the darks
+        float s1 = stickAt(x, jx, jy, a0, 0.0);
+        float s2 = stickAt(x, jx, jy, a0 + 1.2, 17.0);
+        float c = Td * (0.62 + 0.5 * s1);
+        c = mix(c, max(c, Td * (0.7 + 0.45 * s2)), smoothstep(0.45, 0.8, Td));
+        // …on the paper's tooth: the charcoal catches on its peaks, the pits stay paper (white
+        // specks in the half-tones), the darks fill in (two octaves, like the strokes)
+        float g0 = charcoal(clamp(c, 0.0, 1.0), x / exp2(l0)), g1 = charcoal(clamp(c, 0.0, 1.0), x / exp2(l0 + 1.0));
+        r += wk * mix(g0, g1, fr);
+    }
+    return mix(T, clamp(r, 0.0, 1.0), uHatch);
+}
+// the texture laid on a surface: P its own position (world units), n its own normal, s the
+// size of one output pixel on it (world units). Three planar projections blended by the normal
+// (no seams on round things), and two octaves of the grain cross-faded so it keeps its size on
+// screen as the camera comes near (a mipmapped paper, not a pattern that swells). The two
+// octaves are the same pattern at 1× and 2× (so the finer's end is the coarser's start: no
+// seam where the octave steps), and s is the geometric mean of the pixel's footprint (at a
+// grazing angle the longest side would stretch the grain into streaks)
+float charcoalAt(float T, vec3 P, vec3 n, float s) {
+    if (uGrainK <= 0.0) return T;
+    float lv = log2(max(s, 1e-7)), l0 = floor(lv), fr = lv - l0, a = exp2(l0);
+    vec3 w = pow(abs(n), vec3(4.0));
+    w /= max(w.x + w.y + w.z, 1e-5);
+    float r = 0.0;
+    for (int k = 0; k < 3; k++) {
+        float wk = k == 0 ? w.x : k == 1 ? w.y : w.z;
+        if (wk < 0.02) continue;
+        vec2 x = k == 0 ? P.zy : k == 1 ? P.xz : P.xy;
+        r += wk * mix(charcoal(T, x / a), charcoal(T, x / (2.0 * a)), fr);
+    }
+    return r;
 }
 float sdBox2(vec2 q, vec2 c, vec2 h) { vec2 d = abs(q - c) - h; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
 // the blocky little creature (the Claude Code mascot) as a sign: body, two slot eyes, arm
@@ -827,13 +1045,17 @@ layout(location = 3) in vec4 iB;
 layout(location = 4) in vec4 iQ;
 uniform mat4 uVP;
 invariant gl_Position;
+out vec3 vWs;
 vec3 qrot(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
-void main() { gl_Position = uVP * vec4(iA.xyz + qrot(iQ, aPos * iB.xyz), 1.0); }
+void main() { vWs = iA.xyz + qrot(iQ, aPos * iB.xyz); gl_Position = uVP * vec4(vWs, 1.0); }
 `;
+    // (the depth pre-pass clips like the scene: see uClip)
     const SHADOW_FS = `#version 300 es
 precision highp float;
+in vec3 vWs;
+uniform vec4 uClip;
 out vec4 o;
-void main() { o = vec4(1.0); }
+void main() { if (dot(vec4(vWs, 1.0), uClip) < 0.0) discard; o = vec4(1.0); }
 `;
     const FS = `#version 300 es
 precision highp float;
@@ -843,13 +1065,20 @@ in vec3 vW; in vec3 vN; in vec3 vT; in vec3 vL; in vec3 vH; in vec3 vQ; in vec3 
 flat in float vMat; flat in float vSeed; flat in vec4 vX;
 uniform vec3 uEye, uSun, uRight;
 uniform float uSunK, uFill, uSpacing, uBox, uFogNear, uFogFar, uEdge, uCourse, uMason, uTan, uChar, uInterior, uHathor, uFlag, uRock;
+uniform float uPixAng;      // one render pixel, in world units per unit of distance
 uniform mat4 uLVP;
 uniform sampler2DShadow uShadowMap;
 uniform vec4 uLights[8];
 uniform int uNL;
 uniform vec3 uInk, uInkBlue, uInkGold;
-out vec4 o;
-// material: albedo, specular, shininess, ink (0 dark, 1 gold, 2 blue)
+uniform vec4 uClip;         // a space seen through a portal: nothing on the viewer's side of its plane
+layout(location = 0) out vec4 o;
+// the geometry buffers for the pencil contours (INK_FS): the surface's normal and its
+// distance; its world position and material
+layout(location = 1) out vec4 oG;
+layout(location = 2) out vec4 oW;
+layout(location = 3) out vec4 oM;         // the drawn marks (carving, joints…) over the tone: their edges are drawn in pencil
+// material: albedo, specular, shininess, ink (0 dark, 1 gold, 2 blue); 7 is a portal (see below)
 vec4 mat(int m) {
     if (m == 0) return vec4(0.86, 0.0, 1.0, 0.0);
     if (m == 1) return vec4(0.7, 0.0, 1.0, 0.0);
@@ -867,10 +1096,17 @@ float shadow(vec3 p, vec3 n) {
     float a = 0.0;
     for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++)
         a += texture(uShadowMap, vec3(s.xy + vec2(i, j) * ts * 1.2, s.z - 0.0015));
-    return a / 9.0;
+    // (fades out towards the map's border: its edge drew a straight-sided patch on the dunes)
+    float e = min(min(s.x, 1.0 - s.x), min(s.y, 1.0 - s.y));
+    return mix(1.0, a / 9.0, smoothstep(0.0, 0.12, e));
 }
 void main() {
     int m = int(vMat + 0.5);
+    if (dot(vec4(vW, 1.0), uClip) < 0.0) discard;
+    // a portal: an opening onto another space. It prints nothing and leaves the pixel
+    // transparent (with its depth, so what lies behind it in this space is hidden); the other
+    // space, rendered from the matching camera, is laid under this layer (Engrave.portal)
+    if (m == 7) { o = vec4(0.0); oG = vec4(0.0, 0.0, 0.0, -1.0); oW = vec4(vW, 7.0); oM = vec4(0.0); return; }
     vec4 M = mat(m);
     vec3 N = normalize(vN);
     if (!gl_FrontFacing) N = -N;
@@ -922,6 +1158,8 @@ void main() {
     if (m < 2 && !deco) D = max(D, 0.12 + 0.05 * vSeed + 0.14 * smoothstep(0.4, 0.8, fbm3(P * 9.0 + vSeed * 5.0)));
     if (m < 2 && uInterior > 0.5) D = max(D, deco ? 0.36 : 0.34 + 0.08 * vSeed);     // indoors even sunlit stone is drawn, never bare paper
     if (m == 3 || m == 6) D = max(D, 0.45);          // metal is engraved too: its form in lines under the wash
+    // (the screen derivatives of the texture space, for the pencil: here, in uniform flow)
+    vec3 dQx = dFdx(m == 5 ? vW : vQ), dQy = dFdy(m == 5 ? vW : vQ);
     float bend = 0.0;
     if (m == 5) { D = max(D, 0.13); bend = (vnoise(vW.xz * 0.45 + 3.0) * 7.0 + vnoise(vW.xz * 1.7) * 1.5) / (1.0 + 0.25 * length(uEye - vW)); }  // sand: thin lines everywhere, bending with the dunes
     // aerial perspective: the far plane is engraved lighter
@@ -954,7 +1192,7 @@ void main() {
         // from the light, a bright band where it faces the eye and the light
         float fv = abs(dot(N, V));
         float lit2 = max(dot(N, normalize(uSun + V)), 0.0);
-        cov = clamp(0.3 + 0.6 * (1.0 - fv) * (1.0 - fv) - 0.3 * pow(lit2, 5.0) + 0.2 * (D - 0.5) + 0.08 * (vnoise(gl_FragCoord.xy / uPx * 0.08) - 0.5), 0.03, 0.92);
+        cov = clamp(0.3 + 0.6 * (1.0 - fv) * (1.0 - fv) - 0.3 * pow(lit2, 5.0) + 0.2 * (D - 0.5) + 0.08 * (fbm3(P * 30.0 + vSeed * 7.0) - 0.5), 0.03, 0.92);
     }
     // metal rods and posts (round, along y): collars of double rules at intervals, spiral
     // fluting between them, so a rod is never a smooth white tube
@@ -1043,6 +1281,9 @@ void main() {
         cov = max(cov, mix(c1, c2, fr) * flick);
     }
 #endif
+    // the tone before the marks: the pencil hatches it; what the textures add on top of it
+    // (joints, carving, grain, pebbles) is laid over the hatching as drawn marks
+    float baseT = cov;
     float edgePx = 99.0;
     // masonry, drawn as in the plates: every face is a mosaic of small hand-cut stones in
     // courses, each outlined by a broken, wobbling burin line (heavier in shade), the darker
@@ -1288,8 +1529,10 @@ void main() {
         float pit = step(hash(pc2 + st), 0.06) * (1.0 - smoothstep(0.12, 0.3, length(pf2))) * smoothstep(1.2, 3.0, 0.02 / px);
         // sand drifts: stipple, denser in the patches
         float drift = smoothstep(0.5, 0.8, vnoise(fq * 0.9 + 7.0) + 0.3 * vnoise(fq * 3.0));
-        vec2 sq = fq / 0.008, sc3 = floor(sq);
-        float sand = step(hash(sc3 + 0.3), 0.1 * drift) * smoothstep(1.0, 2.5, 0.008 / px);
+        // (each grain round and off-centre in its cell: whole cells printed as square flecks
+        // once the screen grain that hid them was gone)
+        vec2 sq = fq / 0.008, sc3 = floor(sq), sf3 = fract(sq) - 0.5 - (vec2(hash(sc3 + 1.9), hash(sc3 + 6.3)) - 0.5) * 0.5;
+        float sand = step(hash(sc3 + 0.3), 0.1 * drift) * (1.0 - smoothstep(0.2, 0.2 + 1.2 * px / 0.008, length(sf3) * (1.0 + hash(sc3 + 2.6)))) * smoothstep(1.0, 2.5, 0.008 / px);
         // pebbles: lit on the sun's side, a shadow on the other
         vec2 bq = fq / 0.07, bc = floor(bq), bf = fract(bq) - 0.5 - (vec2(hash(bc + 1.7), hash(bc + 8.1)) - 0.5) * 0.5;
         float hasP = step(hash(bc + 4.4), 0.03 + 0.08 * drift);
@@ -1371,12 +1614,19 @@ void main() {
         cov = max(cov, pore);
         cov = max(cov, 1.0 - smoothstep(0.1, 0.22, abs(dot(N, V))));
     }
-    if (m == 5 && vH.x < 0.02) cov = vX.y < 0.0 ? 0.0 : (uChar > 0.5 ? 0.45 + 0.4 * vSeed : 1.0);   // light motes (bias < 0) print as bare paper   // dust: stipple (soft grey specks in charcoal)
+    // light motes (bias < 0): −1 prints as bare paper (stars), between −1 and 0 a lighter tone
+    // than the air round it (dust in a sunbeam: a paper-white speck on a dark wall reads as
+    // snow); dust: stipple (soft grey specks in charcoal)
+    if (m == 5 && vH.x < 0.02) cov = vX.y < 0.0 ? 0.5 * (1.0 + vX.y) : (uChar > 0.5 ? 0.45 + 0.4 * vSeed : 1.0);
     // ground (the terrain instance): shade and dirt. Charcoal pushes the dune's turned-away
     // slopes into real shadow; then what a desert floor carries: pebbles (stipple, denser in
     // hollows), darker drifts and wind streaks, grit scuffed into the lee sides, ripples
     if (m == 5 && vH.x > 0.5 && uChar > 0.5) {
         vec2 g = vW.xz;
+        // (the pixel's size from the distance and the smooth normal: from derivatives it jumps
+        // at every triangle edge of the ground mesh, and the fades below drew those edges as
+        // long straight lines across the dunes)
+        float ps = length(uEye - vW) * uPixAng / max(abs(dot(N, V)), 0.2);
         float slope = 1.0 - N.y;
         float turn = clamp(-dot(N, uSun) * 2.0 + 0.3, 0.0, 1.0) * (1.0 - sh * 0.5);   // lee, unlit
         float dd = 1.0 - sh;                                                            // cast shadow
@@ -1415,6 +1665,7 @@ void main() {
         }
 #endif
         cov = max(clamp(tone, 0.0, 0.95) * 0.92, peb * 0.85);
+        baseT = clamp(tone, 0.0, 0.95) * 0.92;          // (the ground: all of its tone is hatched)
     }
     // loose stones: pits and grit in the facets, heavier in shade
 #ifdef F_ROCK
@@ -1449,7 +1700,30 @@ void main() {
     // the blue light tints the lines it touches
     // (not obsidian: the seed and the core stay dark, the light shows on stone round them)
     if (M.w < 0.5 && m != 2) ink = mix(ink, uInkBlue * 0.8, clamp(glow * 1.6, 0.0, 0.85));
+    // charcoal: the tone laid on the paper's tooth, as this surface's own texture
+    // (the grain's scale from the distance and the smooth normal, not from derivatives, which
+    // jump from one triangle to the next on a curved mesh)
+    float mk = 0.0;
+    if (uChar > 0.5 && !(m == 5 && vH.x < 0.02)) {
+        if (uHatch > 0.0 && M.w < 1.5) {
+            // pencil: the tone hatched, the marks on top (darker marks keep their own weight)
+            float marks = cov - baseT;
+            float angY = m == 5 && vH.x > 0.5 ? atan(uRight.z, uRight.x) : 99.0;   // the ground: strokes along the view
+            // (indoors a drawing keeps the walls light, the carving drawn on them: the room's
+            // shade is hatched at about 60 % of the render's)
+            // (decorated walls, as the Dendera plates draw them: almost paper, the carving drawn
+            // on them in line; the hatching only where they turn from the light)
+            float hk = deco ? 0.85 : 1.0;
+            float h = pencilAt(baseT * hk, P, Nl, dQx, dQy, angY);
+            // (the carving's own tone stays light: its edges are drawn as lines by the ink pass)
+            cov = clamp(h + marks * (marks > 0.0 ? (deco ? 0.9 : 1.1) : 0.9), 0.0, 1.0);
+            mk = marks;
+        } else if (cov > 0.0) cov = charcoalAt(cov, P, Nl, length(uEye - vW) * uPixAng / sqrt(max(abs(dot(Nsmooth, V)), 0.2)) * uPx);
+    }
     o = vec4(print(gl_FragCoord.xy, cov, ink2, ink), 1.0);
+    oG = vec4(Nsmooth, length(uEye - vW));
+    oW = vec4(vW, float(m) + (M.w > 1.5 ? 10.0 : 0.0));
+    oM = vec4(mk, 0.0, 0.0, 1.0);
 }
 `;
     const SKY_VS = `#version 300 es
@@ -1463,7 +1737,10 @@ uniform mat4 uInvVP;
 uniform vec3 uEye, uInk;
 uniform float uZenith, uHorizon, uSpacing, uChar, uDusk;
 uniform vec3 uDuskCol;
-out vec4 o;
+layout(location = 0) out vec4 o;
+layout(location = 1) out vec4 oG;
+layout(location = 2) out vec4 oW;
+layout(location = 3) out vec4 oM;         // the drawn marks (carving, joints…) over the tone: their edges are drawn in pencil
 void main() {
     vec2 ndc = gl_FragCoord.xy / uRes * 2.0 - 1.0;
     vec4 w = uInvVP * vec4(ndc, 1.0, 1.0);
@@ -1474,15 +1751,106 @@ void main() {
     D = max(D, 0.2 * smoothstep(0.01, 0.05, el));
     if (uChar > 0.5) D = mix(uHorizon, uZenith, smoothstep(-0.02, 0.35, el));   // charcoal: a rubbed sky, no bare band
     // (isotropic in charcoal: a streaky noise read as scan lines across the sky)
-    D *= 0.85 + 0.15 * vnoise(gl_FragCoord.xy / uPx * (uChar > 0.5 ? vec2(0.004) : vec2(0.002, 0.02)));
+    // (a slow mottle fixed to the sky: it turns with the view instead of sitting on the lens)
+    D *= 0.85 + 0.15 * (uChar > 0.5 ? vnoise3(d * 4.0 + 3.0) : vnoise(gl_FragCoord.xy / uPx * vec2(0.002, 0.02)));
     // ruled sky: straight horizontal lines, thicker as the sky darkens
     float s = gl_FragCoord.y / (uSpacing * 0.8 * uPx);
     float cov = lines(s, clamp(D * 1.1, 0.0, 0.7), fwidth(s) * 0.8);
-    if (uChar > 0.5) cov = D * 0.8;
+    // charcoal: a rubbed sky with the paper's tooth, the tooth fixed to the sky's directions
+    // (one output pixel is ~ the angle between neighbouring rays)
+    if (uChar > 0.5) {
+        // (in the sky's own angles, azimuth and elevation, so the strokes stay straight: a
+        // planar projection of the directions drew them as arcs)
+        vec2 ae = vec2(atan(d.x, -d.z), asin(clamp(d.y, -1.0, 1.0)));
+        float pa = max(length(dFdx(d)), length(dFdy(d))) * uPx, lv = log2(max(pa, 1e-7)), l0 = floor(lv), a = exp2(l0);
+        cov = uGrainK > 0.0 ? mix(charcoal(D * 0.8, ae / a), charcoal(D * 0.8, ae / (2.0 * a)), lv - l0) : D * 0.8;
+        if (uHatch > 0.0) {
+            // pencil: the sky mostly paper, a light rub, and a few long flat strokes that
+            // thicken towards the zenith
+            vec2 jx = dFdx(ae), jy = dFdy(ae);
+            float tooth = vnoise(ae / a * 1.1 + 5.3);
+            float st = stickAt(ae, jx, jy, 0.04, 3.0);
+            float c = D * 0.8 * (0.7 + 0.45 * st);
+            cov = mix(cov, mix(charcoal(c, ae / a), charcoal(c, ae / (2.0 * a)), lv - l0), uHatch);
+        }
+    }
     if (D < 0.03) cov = 0.0;
     // dusk: a thin warm wash along the horizon (a second ink)
     vec4 dusk = vec4(uDuskCol, uDusk * exp(-max(el, 0.0) * 28.0) * step(-0.01, el));
     o = vec4(print(gl_FragCoord.xy, cov, dusk, uInk), 1.0);
+    oG = vec4(0.0, 0.0, 0.0, 1e5);           // the sky: as far as it gets
+    oW = vec4(d * 1e5, -1.0);
+    oM = vec4(0.0);
+}
+`;
+    // ---------- pencil contours: lines drawn where the forms end or fold ----------
+    // From the geometry buffers: an edge where the distance jumps (a silhouette: drawn on the
+    // nearer side) or the normal turns (a crease). Drawn as a pencil line: it wanders a little
+    // off the true edge and swells and thins with the pressure, both from noise fixed to the
+    // world (the line never swims on the screen), breaks here and there, doubles where the
+    // hand went over it twice, catches the paper's tooth, and grows lighter with distance.
+    const INK_FS = `#version 300 es
+precision highp float;
+${COMMON}
+uniform sampler2D uCol, uGb, uWb, uMk;
+uniform float uPixAng, uInkAmt, uFogNear, uFogFar;
+uniform vec3 uInk;
+out vec4 o;
+vec4 G(vec2 p) { return texelFetch(uGb, ivec2(clamp(p, vec2(0.0), uRes - 1.0)), 0); }
+// noise fixed to the world, at a size that stays about \`px\` output pixels on screen (two
+// octaves cross-faded as the distance changes, like the paper's grain)
+float wnoise(vec3 P, float dist, float px, float seed) {
+    float wpx = dist * uPixAng;                      // one render pixel, in world units
+    float lv = log2(max(wpx * px, 1e-6)), l0 = floor(lv), a = exp2(l0);
+    return mix(vnoise3(P / a + seed), vnoise3(P / (2.0 * a) + seed * 1.7), lv - l0);
+}
+float edgeAt(vec2 q, float r) {
+    vec4 c = G(q);
+    if (c.w < 0.0) return 0.0;                        // a portal's hole: the far space draws its own
+    float e = 0.0;
+    for (int i = 0; i < 8; i++) {
+        float a = float(i) * 0.785398;
+        vec4 n = G(q + vec2(cos(a), sin(a)) * r);
+        if (n.w < 0.0) { e = max(e, 1.0); continue; }  // the rim of a hole: the opening is drawn
+        float dz = (n.w - c.w) / max(c.w, 1e-4);
+        e = max(e, smoothstep(0.012, 0.04, dz));       // the far side of a silhouette
+        float cr = 1.0 - dot(n.xyz, c.xyz);
+        e = max(e, smoothstep(0.22, 0.55, cr) * step(abs(dz), 0.04));   // a fold
+    }
+    return e;
+}
+void main() {
+    vec2 p = gl_FragCoord.xy;
+    vec4 col = texelFetch(uCol, ivec2(p), 0);
+    vec4 g = G(p), w = texelFetch(uWb, ivec2(p), 0);
+    if (g.w < 0.0 || w.w > 9.5) { o = col; return; }  // holes, and live blue: its own ink
+    float dist = min(g.w, 400.0);
+    vec3 P = w.xyz;
+    // the hand: a wander off the edge (up to ~1.5 output px) and a pressure, both fixed to the world
+    vec2 wob = (vec2(wnoise(P, dist, 60.0, 1.3), wnoise(P, dist, 60.0, 8.1)) - 0.5) * 3.0 * uPx;
+    float pres = wnoise(P, dist, 90.0, 4.2);
+    float r = (1.2 + 1.8 * pres) * uPx;          // (charcoal: a broad, soft line)
+    float e1 = edgeAt(p + wob, r) * (0.55 + 0.45 * edgeAt(p + wob, r * 0.5));
+    // a second pass of the hand, fainter, a little off the first, only here and there
+    vec2 wob2 = (vec2(wnoise(P, dist, 45.0, 21.0), wnoise(P, dist, 45.0, 33.0)) - 0.5) * 5.0 * uPx;
+    float twice = smoothstep(0.55, 0.8, wnoise(P, dist, 200.0, 12.0));
+    float e2 = edgeAt(p + wob2, 0.8 * uPx) * twice * 0.5;
+    // breaks: the pencil lifts
+    float lift = smoothstep(0.78, 0.9, wnoise(P, dist, 70.0, 17.0));
+    float e = max(e1 * (1.0 - lift), e2);
+    // the marks' edges (the carving's outlines, joints, cracks): where the drawn marks change
+    // fast, a finer line, lighter than a form's contour
+    float mr = 1.1 * uPx;
+    vec2 mo = p + wob * 0.4;
+    float mx = texelFetch(uMk, ivec2(mo + vec2(mr, 0.0)), 0).x - texelFetch(uMk, ivec2(mo - vec2(mr, 0.0)), 0).x;
+    float my = texelFetch(uMk, ivec2(mo + vec2(0.0, mr)), 0).x - texelFetch(uMk, ivec2(mo - vec2(0.0, mr)), 0).x;
+    float em = smoothstep(0.14, 0.4, length(vec2(mx, my))) * (1.0 - smoothstep(uFogNear * 0.6, uFogFar * 0.5, dist));
+    e = max(e, em * 0.6);
+    // graphite on the tooth, lighter far off
+    float tooth = 0.5 + 0.5 * wnoise(P, dist, 1.6, 5.0);
+    float far = 1.0 - 0.75 * smoothstep(uFogNear, uFogFar, dist);
+    float ink = clamp(e * (0.45 + 0.4 * pres) * tooth * far * uInkAmt, 0.0, 1.0);
+    o = vec4(mix(col.rgb, uInk, ink), col.a);
 }
 `;
 
@@ -1512,6 +1880,27 @@ void main() {
             return { p, u: (n) => (n in u ? u[n] : (u[n] = gl.getUniformLocation(p, n))) };
         };
         const shadowP = program(SHADOW_VS, SHADOW_FS), skyP = program(SKY_VS, SKY_FS);
+        const inkP = program('#version 300 es\nlayout(location = 0) in vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }', INK_FS);
+        // the frame and its geometry buffers (colour; normal + distance; world position + material)
+        gl.getExtension('EXT_color_buffer_float');
+        const gfb = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, gfb);
+        const gtex = [gl.RGBA8, gl.RGBA16F, gl.RGBA32F, gl.RGBA16F].map((fmt, i) => {
+            const t = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, t);
+            gl.texStorage2D(gl.TEXTURE_2D, 1, fmt, W, H);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, t, 0);
+            return t;
+        });
+        const gdepth = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, gdepth);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, W, H);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, gdepth);
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error('Engrave: geometry buffers incomplete');
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         // the scene shader in variants: each draw compiles in only the blocks it can use.
         // (software GL runs every branch of a shader for every pixel, masked: one shader
         // holding walls, ceilings, capitals, floors, rings and stone cost them all everywhere)
@@ -1625,6 +2014,9 @@ void main() {
             const LVP = M4.mul(M4.ortho(-sr, sr, -sr, sr, 0.01, sd * 2), lview);
             const draws = f.draws ?? [];
             const px = W / 1920;
+            // f.clip = [nx, ny, nz, d]: keep only what has n·p + d ≥ 0 (a space seen through a
+            // portal loses everything between the eye and the portal's plane)
+            const clip = f.clip ?? [0, 0, 0, 1];
             gl.enable(gl.DEPTH_TEST);
             // 1. shadow map
             gl.bindFramebuffer(gl.FRAMEBUFFER, sfb);
@@ -1632,14 +2024,18 @@ void main() {
             gl.clear(gl.DEPTH_BUFFER_BIT);
             gl.useProgram(shadowP.p);
             gl.uniformMatrix4fv(shadowP.u('uVP'), false, LVP);
+            gl.uniform4fv(shadowP.u('uClip'), [0, 0, 0, 1]);          // the whole space casts its shadows
             gl.enable(gl.POLYGON_OFFSET_FILL);
             gl.polygonOffset(2, 4);
             drawAll(shadowP, draws.filter((d) => d.cast !== false));
             gl.disable(gl.POLYGON_OFFSET_FILL);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, gfb);
             gl.viewport(0, 0, W, H);
-            gl.clearColor(0, 0, 0, 1);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.clearBufferfv(gl.COLOR, 0, [0, 0, 0, 1]);
+            gl.clearBufferfv(gl.COLOR, 1, [0, 0, 0, 1e5]);
+            gl.clearBufferfv(gl.COLOR, 2, [0, 0, 0, -1]);
+            gl.clearBufferfv(gl.COLOR, 3, [0, 0, 0, 0]);
+            gl.clear(gl.DEPTH_BUFFER_BIT);
             const paper = hex(f.paper ?? '#efe6d2'), ink = hex(f.ink ?? '#2a2520');
             const frame = f.frame ?? [0, 0, 1, 1];
             const common = (P) => {
@@ -1647,6 +2043,9 @@ void main() {
                 gl.uniform1f(P.u('uPx'), px);
                 gl.uniform3fv(P.u('uPaper'), paper);
                 gl.uniform4fv(P.u('uFrame'), frame);
+                gl.uniform1f(P.u('uSheet'), f.sheet ?? 1);
+                gl.uniform1f(P.u('uGrainK'), f.charcoal ? (f.grain ?? 1) : 0);
+                gl.uniform1f(P.u('uHatch'), f.hatch ?? 0);
                 gl.uniform3fv(P.u('uEye'), f.cam);
                 gl.uniform3fv(P.u('uInk'), ink);
                 gl.uniform1f(P.u('uSpacing'), f.spacing ?? 5);
@@ -1670,6 +2069,7 @@ void main() {
             const solid = draws.filter((d) => d.cast !== false);
             gl.useProgram(shadowP.p);
             gl.uniformMatrix4fv(shadowP.u('uVP'), false, VP);
+            gl.uniform4fv(shadowP.u('uClip'), clip);
             gl.colorMask(false, false, false, false);
             drawAll(shadowP, solid);
             gl.colorMask(true, true, true, true);
@@ -1680,7 +2080,9 @@ void main() {
                 common(P);
                 gl.uniformMatrix4fv(P.u('uVP'), false, VP);
                 gl.uniformMatrix4fv(P.u('uLVP'), false, LVP);
+                gl.uniform4fv(P.u('uClip'), clip);
                 gl.uniform1f(P.u('uVH'), H);
+                gl.uniform1f(P.u('uPixAng'), (2 * Math.tan((f.fov ?? 0.8) / 2)) / H);
                 gl.uniform3fv(P.u('uSun'), sun);
                 gl.uniform3fv(P.u('uRight'), [view[0], view[4], view[8]]);
                 gl.uniform1f(P.u('uSunK'), f.sunK ?? 0.95);
@@ -1713,13 +2115,65 @@ void main() {
                 gl.uniform1f(P.u('uTan'), d.box ? 0 : d.tan === 'y' ? 1 : 2);
             });
             gl.depthFunc(gl.LESS);
+            // 4. the pencil contours, over the frame, onto the canvas
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.disable(gl.DEPTH_TEST);
+            gl.useProgram(inkP.p);
+            gtex.forEach((t, i) => { gl.activeTexture(gl.TEXTURE1 + i); gl.bindTexture(gl.TEXTURE_2D, t); });
+            gl.uniform1i(inkP.u('uCol'), 1);
+            gl.uniform1i(inkP.u('uGb'), 2);
+            gl.uniform1i(inkP.u('uWb'), 3);
+            gl.uniform1i(inkP.u('uMk'), 4);
+            gl.uniform2f(inkP.u('uRes'), W, H);
+            gl.uniform1f(inkP.u('uPx'), px);
+            gl.uniform1f(inkP.u('uPixAng'), (2 * Math.tan((f.fov ?? 0.8) / 2)) / H);
+            gl.uniform1f(inkP.u('uInkAmt'), f.contour ?? 0);
+            gl.uniform1f(inkP.u('uFogNear'), f.fog?.[0] ?? 8);
+            gl.uniform1f(inkP.u('uFogFar'), f.fog?.[1] ?? 40);
+            gl.uniform3fv(inkP.u('uInk'), ink);
+            gl.bindVertexArray(tri);
+            gl.drawArrays(gl.TRIANGLES, 0, 3);
+            gl.bindVertexArray(null);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.enable(gl.DEPTH_TEST);
             const m = memo.getContext('2d');
+            m.clearRect(0, 0, W, H);                 // (portals leave holes: nothing of the last layer may show)
             m.drawImage(cv, 0, 0);
             memoKey = key;
             return memo;
         }
+        // where one opening of a layer shows: white where the draw `hole` is the nearest surface
+        // of the scene f (the same camera and clip), clear elsewhere. With two portals open in
+        // one view, each far space is cut to its own opening with it
+        const maskCv = document.createElement('canvas');
+        maskCv.width = W;
+        maskCv.height = H;
+        // (others: the other openings, which hide this one where they are in front of it)
+        function mask(f, hole, others = []) {
+            const up = f.up ?? [0, 1, 0];
+            const VP = M4.mul(M4.persp(f.fov ?? 0.8, W / H, f.near ?? 0.05, f.far ?? 200), M4.lookAt(f.cam, f.target, up));
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, W, H);
+            gl.enable(gl.DEPTH_TEST);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.useProgram(shadowP.p);
+            gl.uniformMatrix4fv(shadowP.u('uVP'), false, VP);
+            gl.uniform4fv(shadowP.u('uClip'), f.clip ?? [0, 0, 0, 1]);
+            gl.colorMask(false, false, false, false);
+            drawAll(shadowP, [...(f.draws ?? []).filter((d) => d.cast !== false), ...others]);
+            gl.colorMask(true, true, true, true);
+            gl.depthFunc(gl.LEQUAL);
+            drawAll(shadowP, [hole]);
+            gl.depthFunc(gl.LESS);
+            const m = maskCv.getContext('2d');
+            m.clearRect(0, 0, W, H);
+            m.drawImage(cv, 0, 0);
+            memoKey = null;                      // (the GL canvas no longer holds the memoised layer)
+            return maskCv;
+        }
         return {
-            W, H, mesh: (n, m) => mesh(n, m), layer,
+            W, H, mesh: (n, m) => mesh(n, m), layer, mask,
             render(g, key, f) {
                 const img = layer(key, f);
                 g.save();
@@ -1731,86 +2185,42 @@ void main() {
         };
     }
 
-    // ---------- the aged print: a filter over the finished frame ----------
+    // ---------- the aged print: the plates' colour over the finished frame ----------
     // Measured on plates of the «Description de l'Égypte» (Vol. V, Pl. 9 and 11, image areas):
     // their paper is a greyish warm white, not cream, and their ink a warm black; a tone
     // curve and a gradient map (luminance → the plates' own colour at that luminance) move our
     // print onto theirs. Second inks (blue, gold) ride on top as the difference from our
-    // neutral palette. Then what age does to a sheet: softer, slightly spread lines, paper
-    // grain, uneven toning in large soft patches, a darker rim, faint offset and wear.
-    // The sheet is the same in every frame (no boil): it is one print that moves.
+    // neutral palette. Only colour happens here, pixel by pixel, plus the downsample of the
+    // supersampled frame: no grain, strokes, toning or vignette on the screen. Those looked
+    // like a dirty lens once the camera moved (the user: «se vería a nivel de texturas y no de
+    // pantalla»); the tooth and the strokes are each surface's own texture (charcoal() in the
+    // scene shader) and the sheet's toning lives on the sheet (print()).
     const AGE_FS = `#version 300 es
 precision highp float;
 uniform sampler2D uSrc;
 uniform vec2 uRes, uSrcRes;
-uniform float uPx, uAmt, uChar, uGrain;
+uniform float uAmt;
 uniform vec3 uInk0, uPaper0;
 uniform float uCurve[17];
 uniform vec3 uGrad[17];
 out vec4 o;
-float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
-float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-    return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
-float fbm(vec2 p) { return 0.5 * vnoise(p) + 0.3 * vnoise(p * 2.03 + 7.1) + 0.2 * vnoise(p * 4.1 + 3.3); }
 float lut(float x) { float t = clamp(x, 0.0, 1.0) * 16.0; int i = int(min(floor(t), 15.0)); return mix(uCurve[i], uCurve[i + 1], t - float(i)); }
 vec3 grad(float x) { float t = clamp(x, 0.0, 1.0) * 16.0; int i = int(min(floor(t), 15.0)); return mix(uGrad[i], uGrad[i + 1], t - float(i)); }
 vec3 src(vec2 uv) { return texture(uSrc, uv).rgb; }
 void main() {
     vec2 uv = gl_FragCoord.xy / uRes;
-    vec2 q = gl_FragCoord.xy / uPx;                      // px at 1920 wide
     vec2 d = 1.0 / uSrcRes;
-    // a 4×4 box down to the output (the source is supersampled), then a soft spread: the
-    // lines of a worn plate print a little fatter and softer
+    // a 4×4 box down to the output (the source is supersampled)
     vec3 c = vec3(0.0);
     for (int j = 0; j < 4; j++) for (int i = 0; i < 4; i++) c += src(uv + (vec2(i, j) - 1.5) * d * 0.5);
     c /= 16.0;
-    vec3 blur = (src(uv + vec2(d.x, 0.0) * 1.6) + src(uv - vec2(d.x, 0.0) * 1.6) + src(uv + vec2(0.0, d.y) * 1.6) + src(uv - vec2(0.0, d.y) * 1.6)) * 0.25;
-    c = mix(c, min(c, blur), 0.35 * uAmt);                // ink spreads (darkens into light)
-    c = mix(c, blur, 0.25 * uAmt);
     float L = dot(c, vec3(0.299, 0.587, 0.114));
-    vec3 c0 = c;
-    if (uChar > 0.5) {
-        // charcoal / graphite on toothed paper: the tone is smudged a little, then laid in
-        // short parallel strokes on a diagonal (each patch of strokes its own angle and
-        // pressure), and it only catches on the tooth's peaks in the half-tones, so light
-        // areas speckle and darks fill in; dark contours stay crisp pencil lines
-        vec3 sm = vec3(0.0);
-        for (int j = -2; j <= 2; j++) for (int i = -2; i <= 2; i++) sm += src(uv + vec2(i, j) * d * 3.0);
-        sm /= 25.0;
-        float T = 1.0 - dot(mix(c, sm, 0.55 * uGrain), vec3(0.299, 0.587, 0.114));      // darkness (less smudge: finer detail survives)
-        float line = clamp((1.0 - L) - T, 0.0, 1.0);                            // crisp marks
-        vec2 cell = floor(q / 90.0);
-        float ang = -1.0 + (hash(cell) - 0.5) * 0.35;
-        vec2 dir = vec2(cos(ang), sin(ang)), nrm = vec2(-dir.y, dir.x);
-        float along = dot(q, dir), across = dot(q, nrm) / 2.6;
-        float row = floor(across);
-        float stroke = smoothstep(0.5, 0.1, abs(fract(across) - 0.5)) * (0.55 + 0.45 * vnoise(vec2(along / 28.0, row * 3.7)));
-        float tooth = 0.35 * hash(floor(q * 0.9)) + 0.65 * vnoise(q * vec2(0.55, 0.3));
-        float g = pow(T, 1.25) * (0.8 + 0.45 * uGrain * stroke * (1.0 - T));
-        float grit = smoothstep(tooth - 0.45, tooth + 0.35, g * 1.1);
-        // the tooth shows in the half-tones only: light paper stays clean, darks fill in
-        float dark = mix(g, grit, 0.35 * uGrain * smoothstep(0.05, 0.3, g) * (1.0 - smoothstep(0.6, 0.9, g))) + line * (0.9 + 0.3 * (1.0 - uGrain));
-        L = 1.0 - clamp(dark, 0.0, 1.0);
-        c = vec3(L);
-    }
     // second inks: what differs from our neutral ink-to-paper ramp
-    float f = clamp((L - dot(uInk0, vec3(0.299, 0.587, 0.114))) / max(dot(uPaper0 - uInk0, vec3(0.299, 0.587, 0.114)), 1e-3), 0.0, 1.0);
-    float f0 = clamp((dot(c0, vec3(0.299, 0.587, 0.114)) - dot(uInk0, vec3(0.299, 0.587, 0.114))) / max(dot(uPaper0 - uInk0, vec3(0.299, 0.587, 0.114)), 1e-3), 0.0, 1.0);
-    vec3 extra = c0 - mix(uInk0, uPaper0, f0);
-    float L2 = lut(L);
+    float f0 = clamp((L - dot(uInk0, vec3(0.299, 0.587, 0.114))) / max(dot(uPaper0 - uInk0, vec3(0.299, 0.587, 0.114)), 1e-3), 0.0, 1.0);
+    vec3 extra = c - mix(uInk0, uPaper0, f0);
     // (only real second inks carry over: the small cast of our own paper does not)
-    vec3 col = grad(L2) + extra * smoothstep(0.04, 0.12, length(extra));
-    // the sheet: grain, toning patches, a darker rim, offset from the facing page, wear
-    float grain = (hash(floor(q * 1.3)) - 0.5) * 0.035 + (vnoise(q * vec2(0.7, 0.25)) - 0.5) * 0.03;
-    float patches = fbm(q * 0.0022 + 4.0) - 0.5;
-    vec2 e = abs(uv - 0.5) * 2.0;
-    float rim = smoothstep(0.55, 1.05, max(e.x, e.y * 1.1)) + 0.4 * smoothstep(0.6, 1.2, length(e));
-    vec3 tone = vec3(1.0) - vec3(0.02, 0.04, 0.08) * (patches * 1.4 + rim * 0.9) * uAmt;
-    col *= tone * (1.0 + grain * uAmt) * (1.0 - 0.06 * rim * uAmt);
-    // wear: faint pale scuffs where the ink rubbed off, only on inked areas
-    float scuff = smoothstep(0.72, 0.9, fbm(q * vec2(0.012, 0.05) + 9.0)) * (1.0 - L2) * 0.25 * uAmt;
-    col = mix(col, grad(0.9), scuff);
-    o = vec4(col, 1.0);
+    vec3 col = grad(lut(L)) + extra * smoothstep(0.04, 0.12, length(extra));
+    o = vec4(mix(c, col, uAmt), 1.0);
 }
 `;
     // the plates' measured curves (see above): our luminance quantiles → theirs, and their
@@ -1830,8 +2240,22 @@ void main() {
         }
         return out;
     })();
-    const AGE_GRAD = [[9, 5, 1], [22, 17, 9], [37, 32, 24], [54, 47, 38], [70, 63, 53], [87, 78, 68], [103, 94, 83], [120, 110, 99], [136, 126, 114], [152, 142, 130], [170, 160, 148], [186, 176, 165], [197, 188, 177], [211, 202, 192], [229, 220, 210], [242, 235, 228], [253, 246, 236]].flat().map((v) => v / 255);
-    // ager(env): { apply(g, canvas, { amount, ink, paper }) } paints the aged frame at output size
+    // the colour per luminance: measured on the plates, then aged to old yellowed paper (the
+    // user: «todo debería tener más ese color desgastado que tienen los aros, como más papel
+    // viejo»): the rings' wash is R:G:B ≈ 1 : 0.89 : 0.77; the sheet a little darker and
+    // yellower than a fresh one, the darks sepia. Luminance kept, hue from sepia to buff
+    const AGE_GRAD = (() => {
+        const plates = [[9, 5, 1], [22, 17, 9], [37, 32, 24], [54, 47, 38], [70, 63, 53], [87, 78, 68], [103, 94, 83], [120, 110, 99], [136, 126, 114], [152, 142, 130], [170, 160, 148], [186, 176, 165], [197, 188, 177], [211, 202, 192], [229, 220, 210], [242, 235, 228], [253, 246, 236]];
+        const lum = (c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+        return plates.map((c, i) => {
+            const t = i / 16, k = Math.min(1, t / 0.6), w = k * k * (3 - 2 * k);
+            const ratio = [1, 0.8 + 0.1 * w, 0.62 + 0.15 * w];
+            const Y = lum(c) * (0.88 - 0.04 * t) + 3;
+            const f = Y / lum(ratio);
+            return ratio.map((r) => Math.min(255, r * f));
+        }).flat().map((v) => v / 255);
+    })();
+    // ager(env): { apply(g, canvas, { amount, ink, paper }) } paints the frame at output size in the plates' colour
     function ager(env) {
         const W = env.px[0], H = env.px[1];
         const cv = document.createElement('canvas');
@@ -1867,10 +2291,7 @@ void main() {
                 gl.uniform1i(U('uSrc'), 0);
                 gl.uniform2f(U('uRes'), W, H);
                 gl.uniform2f(U('uSrcRes'), source.width, source.height);
-                gl.uniform1f(U('uPx'), W / 1920);
                 gl.uniform1f(U('uAmt'), o.amount ?? 1);
-                gl.uniform1f(U('uChar'), o.charcoal ? 1 : 0);
-                gl.uniform1f(U('uGrain'), o.grain ?? 1);
                 gl.uniform3fv(U('uInk0'), hex(o.ink ?? '#2e261d'));
                 gl.uniform3fv(U('uPaper0'), hex(o.paper ?? '#ebe1cb'));
                 gl.uniform1fv(U('uCurve'), AGE_CURVE);
@@ -1888,5 +2309,5 @@ void main() {
     function inst(arr, c, mat, half, seed, q = [0, 0, 0, 1], glow = 0, bias = 0) {
         arr.push(c[0], c[1], c[2], mat, half[0], half[1], half[2], seed, q[0], q[1], q[2], q[3], glow, bias, 0, 0);
     }
-    return { renderer, ager, inst, rock, box, pyramid, torus, cylinder, sphere, quat, qmul, M4 };
+    return { renderer, ager, inst, rock, box, pyramid, torus, cylinder, sphere, quat, qmul, qconj, qrot, frameQ, portal, M4 };
 })();

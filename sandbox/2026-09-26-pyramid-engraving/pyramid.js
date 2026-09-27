@@ -7,11 +7,11 @@
 // lives there and is already turning before anything opens.
 //
 // The timeline (script PIR-01, PIR-02 and PIR-03):
-//   0    the closed pyramid at dusk; a small dust devil crosses the foreground
+//   0    the closed pyramid at dusk
 //   2.5  a very faint blue line wakes in the joint under the first stone (S0, the +z face);
 //        a falling grain of sand turns aside and drifts to it (the camera follows it in)
 //   5.0  the blue line is clear
-//   5.4  the notched triangle mark on S0 lights from its incision
+//   5.0  the mark on S0 (the Claude mascot) is painted line by line, until 6.8
 //   6.0  S0 moves a few centimetres out, pressing dust from its lower edge
 //   7.0  its neighbours answer: the opening spreads upwards and through the three shells,
 //        a slot that shows the polished black core
@@ -100,6 +100,23 @@ const Pyramid = (() => {
         return { S, S0 };
     }
     let ST = null;
+    // the heart's rings: each sized every frame to the room the chamber has at its height (the
+    // inner shell's face, moved out as the stone opens), so no ring ever cuts a stone, closed
+    // or open; e is the openness
+    const RINGS = [[0.36, 0.35, 0.14], [0.47, -0.55, 0.22], [0.58, 0.8, 0.3]];
+    function ringPose(t, i, e) {
+        const sh2 = SHELLS[2];
+        const room = (y) => {
+            const fy = 1 + (sh2.fy - 1) * e, fs = 1 + (sh2.fs - 1) * e;
+            return (halfAt(Math.min(y / fy + H, HP)) - 3 * TK) * fs + sh2.out * e * 0.78 - 0.035;
+        };
+        const [y0r, sp, tilt] = RINGS[i];
+        const y = y0r * (1 + 0.25 * e);
+        let rad = 0.3;
+        for (let k = 0; k < 4; k++) rad = Math.max(0.04, 0.92 * room(y + rad * Math.sin(tilt) + 0.02) / 1.085);
+        const q = Engrave.qmul(Engrave.quat([0, 1, 0], t * sp + i), Engrave.quat([1, 0, 0.3], tilt));
+        return { c: [0, y, 0], rad, q };
+    }
     const face = (n) => { const v = [n[0] * HP, B, n[2] * HP], l = Math.hypot(...v); return v.map((x) => x / l); };
     // where a slab's centre is at t: the bands part, then its face moves out (the skin
     // furthest), and it turns a little about its own face line
@@ -149,24 +166,13 @@ const Pyramid = (() => {
         Engrave.inst(tops, [0, HP * (1 + 0.45 * e) - H * 0.35, 0], 1, [H * 0.9, H * 0.65, H * 0.9], 0.3);
         // the first stone's joint and mark (they travel with it)
         const p0 = place(S0, o.stoneT ? o.stoneT(S0) : t), f0 = p0[2] + S0.half[2];
-        const joint = Math.max(0.3 * E(t, 2.4, 3.2), E(t, 4.6, 5.6)), mark = E(t, 5.3, 6.1);
+        // (the mark is painted, line by line, at an even pace over 1.8 s: mascot.js)
+        const joint = Math.max(0.3 * E(t, 2.4, 3.2), E(t, 4.6, 5.6)), mark = Ease.seg(t, 5.0, 6.8);
         const jointGlow = 0.6 * (0.35 + 0.65 * E(t, 4.4, 5.4));
         // the joint line glows from inside the joint, thin
         if (joint > 0) Engrave.inst(marks, [p0[0], p0[1] - H / 2 - 0.0002, f0 - 0.006], 4, [S0.half[0] * 0.95 * Math.min(1, joint / 0.3), 0.0009, 0.004], 0.5, [0, 0, 0, 1], jointGlow * Math.min(1, joint / 0.3));
-        if (mark > 0) {
-            // the mark: a triangle left incomplete (its right side stops short of the apex)
-            // with a V notch cut up into its base; a fictional sign, not a hieroglyph
-            const tr = 0.012, cx = p0[0], cy = p0[1] + 0.002, z = f0 + 0.0004, w = 0.0009, gl = 0.7 * mark;
-            const bar = (x, y, len, ang) => Engrave.inst(marks, [x, y, z], 4, [w, len, 0.0008], 0.5, Engrave.quat([0, 0, 1], ang), gl);
-            const a = Math.atan2(tr, tr * 1.7);   // side slope
-            bar(cx - tr * 0.5, cy, tr * 0.98, -a);
-            bar(cx + tr * 0.62, cy - tr * 0.24, tr * 0.72, a);
-            const by = cy - tr * 0.97;
-            Engrave.inst(marks, [cx - tr * 0.62, by, z], 4, [tr * 0.38, w, 0.0008], 0.5, [0, 0, 0, 1], gl);
-            Engrave.inst(marks, [cx + tr * 0.62, by, z], 4, [tr * 0.38, w, 0.0008], 0.5, [0, 0, 0, 1], gl);
-            bar(cx - tr * 0.12, by + tr * 0.15, tr * 0.19, 0.6);
-            bar(cx + tr * 0.12, by + tr * 0.15, tr * 0.19, -0.6);
-        }
+        // the mark: the Claude mascot, traced in live blue from its incision (mascot.js)
+        if (mark > 0) Mascot.draw(marks, [p0[0], p0[1] + 0.002, f0 + 0.0004], [0, 0, 0, 1], 0.03, 0.7, { w: 0.0007, k: mark });
         // the heart: a stepped obsidian core, blue channels along its steps, a bronze axis and
         // three gold rings turning round it; closed, it is folded small inside the chamber
         const core = [], blue = [], cyl = [], rings = [];
@@ -177,24 +183,15 @@ const Pyramid = (() => {
             for (const [dx, dz, lx, lz] of [[1, 0, 0.003, hw], [-1, 0, 0.003, hw], [0, 1, hw, 0.003], [0, -1, hw, 0.003]])
                 Engrave.inst(blue, [dx * (hw + 0.003), y + TH / 2 - 0.005, dz * (hw + 0.003)], 4, [lx, 0.004, lz], 0.5, [0, 0, 0, 1], 0.6);
         }
-        const ah = 0.25 + 0.3 * e;
+        const ah = 0.25 + 0.3 * (o.axis ?? e);
         Engrave.inst(cyl, [0, CORE_TOP + ah, 0], 6, [0.022, ah, 0.022], 0.2);
-        // the rings turn round the axis above the core; each is sized every frame to the room
-        // the chamber has at its height (the inner shell's face, moved out as the stone opens),
-        // so no ring ever cuts a stone, closed or open
-        const sh2 = SHELLS[2];
-        const room = (y) => {
-            const fy = 1 + (sh2.fy - 1) * e, fs = 1 + (sh2.fs - 1) * e;
-            return (halfAt(Math.min(y / fy + H, HP)) - 3 * TK) * fs + sh2.out * e * 0.78 - 0.035;
-        };
-        const R = [[0.36, 0.35, 0.14], [0.47, -0.55, 0.22], [0.58, 0.8, 0.3]];
-        R.forEach(([y0r, sp, tilt], i) => {
-            const y = y0r * (1 + 0.25 * e);
-            let rad = 0.3;
-            for (let k = 0; k < 4; k++) rad = Math.max(0.04, 0.92 * room(y + rad * Math.sin(tilt) + 0.02) / 1.085);
-            const q = Engrave.qmul(Engrave.quat([0, 1, 0], t * sp + i), Engrave.quat([1, 0, 0.3], tilt));
-            Engrave.inst(rings, [0, y, 0], 3, [rad, rad, rad], 0.3 + i * 0.2, q);
-        });
+        // the rings turn round the axis above the core (see ringPose); o.ring(i, pose) may
+        // take one over (the gate the camera goes through, junctions.js)
+        for (let i = 0; i < 3; i++) {
+            let r = ringPose(t, i, e);
+            if (o.ring) r = o.ring(i, r) ?? r;
+            if (r) Engrave.inst(rings, r.c, 3, [r.rad, r.rad, r.rad], 0.3 + i * 0.2, r.q);
+        }
         // in the slot, one small ring per shell: they come out edge-on as the stones part, and
         // at 9 s turn to face the eye, concentric, so the eye sees on through them
         const show = E(t, 8.1, 8.6), face9 = E(t, 8.6, 9.2);
@@ -240,28 +237,17 @@ const Pyramid = (() => {
             }
             Engrave.inst(dust, g, 5, [0.0032, 0.0032, 0.0032], 0.4, [0, 0, 0, 1], 0, 0.75);
         }
-        // the dust devil: a thin spinning column of sand crossing the foreground left to right
-        if (!o.quiet && t < 4.2) {
-            const rd = Motion.rng('pyramid-devil');
-            const cx = -2.3 + t * 0.55, cz = 4.3, fade = 1 - Ease.seg(t, 3.2, 4.2);
-            for (let i = 0; i < 2600; i++) {
-                const h = Math.pow(rd(), 1.6) * 0.9, a = rd() * Math.PI * 2 + t * (7 - h * 3), rad = 0.02 + h * 0.2 + rd() * 0.03;
-                const sz = 0.0006 + rd() * 0.0009, lean = h * 0.18;
-                if (rd() > fade) continue;
-                Engrave.inst(dust, [cx + lean + Math.cos(a) * rad, h, cz + Math.sin(a) * rad], 5, [sz, sz, sz], rd(), [0, 0, 0, 1], 0, 0.75);
-            }
-        }
         // the ground (terrain.js): the excavated rock and the sand, one instance each
         const rockG = [], sandG = [];
         Engrave.inst(rockG, [0, 0, 0], 1, [1, 1, 1], 0.37);
         Engrave.inst(sandG, [0, 0, 0], 5, [1, 1, 1], 0.61);
         // loose stones half sunk in the sand, thicker on the spoil mounds in front
-        const stones = [];
+        const loose = [];
         const rs2 = Motion.rng('pyramid-loose');
         for (let i = 0; i < 160; i++) {
             const x = (rs2() - 0.5) * 6, z = 1.9 + rs2() * 3.6, sz = 0.005 + Math.pow(rs2(), 4) * 0.035;
             if (Math.max(Math.abs(x), Math.abs(z)) < 1.25) continue;
-            Engrave.inst(stones, [x, Terrain.height(x, z) + sz * 0.25, z], 1, [sz * (0.8 + rs2() * 0.6), sz * 0.6, sz * (0.8 + rs2() * 0.6)], rs2(), Engrave.quat([rs2() - 0.5, 1, rs2() - 0.5], rs2() * 6));
+            Engrave.inst(loose, [x, Terrain.height(x, z) + sz * 0.25, z], 1, [sz * (0.8 + rs2() * 0.6), sz * 0.6, sz * (0.8 + rs2() * 0.6)], rs2(), Engrave.quat([rs2() - 0.5, 1, rs2() - 0.5], rs2() * 6));
         }
         const draws = [
             { mesh: 'box', inst: new Float32Array(box), box: true },
@@ -274,16 +260,17 @@ const Pyramid = (() => {
             { mesh: 'sphere', inst: new Float32Array(dust), cast: false },
             { mesh: 'terrain-rock', inst: new Float32Array(sandG) },
             { mesh: 'terrain-sand', inst: new Float32Array(sandG) },
-            { mesh: 'rock', inst: new Float32Array(stones) },
+            { mesh: 'rock', inst: new Float32Array(loose) },
         ];
         // the machine's light shows once the slot opens; the mark lights its own stone
         const inner = Math.max(e, 0.35 * E(t, 7.2, 9));
         const lights = [
             [0.55, 0.3, 0.55, 0, 0.9 * e], [-0.4, 0.3, 0.55, 0, 0.6 * e], [0.55, 0.35, -0.4, 0, 0.6 * e],
             [0, 0.75, 0, 0, 0.5 * inner], [0, S0.c[1], 0.25, 0, 0.5 * inner],
-            [p0[0], p0[1], f0 + 0.03, 0, 0.12 * mark],
         ];
+        // (the mark lights no light of its own: it lightened the whole face round it, «las losas
+        // se vuelven más claras»; its blue is in its lines)
         return { draws, lights, stones: S.length, S0: p0, S0face: f0 };
     }
-    return { build, B, HP, H, S0: () => (ST = ST ?? stones()).S0, all: () => (ST = ST ?? stones()).S };
+    return { build, ringPose, B, HP, H, S0: () => (ST = ST ?? stones()).S0, all: () => (ST = ST ?? stones()).S };
 })();

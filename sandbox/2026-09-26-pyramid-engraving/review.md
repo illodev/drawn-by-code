@@ -84,3 +84,104 @@ view per element, each beside a crop of Dendera at the same size:
 Still open (next rounds): the seed's close-up tint, the joint's last blue answer and the
 capstone's size (fixed in code, to verify in frames), banding in the seed's sky, the cut
 from the nursery to the outside.
+
+## Round 5 · the first full render, seen moving (local GPU)
+
+The first render of the whole film (local, `--gpu`). The user, having worked in the cloud
+without seeing it move:
+
+> «Para empezar el filtro lo quitaría, creía que se vería a nivel de texturas y no de
+> pantalla y queda raro. Lo siguiente son las transiciones, dan saltos, creía que serían
+> transiciones naturales.»
+
+What that meant, and what changed:
+
+- **The filter.** The aged-print pass laid its grain, charcoal strokes, toning patches and a
+  darker rim in screen space, over the finished frame: still, it read as paper; moving, as a
+  dirty lens the world slides behind. Now nothing is fixed to the screen. The tooth and the
+  strokes are each surface's own texture (`charcoalAt()`: triplanar in the piece's space, two
+  octaves cross-faded so the grain keeps its size on screen), the sky's in its directions;
+  the ager only downsamples and maps to the plates' colour; the sheet's toning and foxing
+  live on the printed plate's margins, which grow with it. Room dust in the light is a light
+  tone, not paper white (it read as snow on the dark walls).
+- **The transitions.** Every change of room was a cut through a fade to dark. Now every
+  room is joined to the next by an opening in the shot, a portal (`junctions.js`,
+  `Engrave.portal`, material 7 holes, `R.mask`), and the camera flies through it without a
+  cut, its speed matched across:
+  1. heart → gallery: the machine's middle ring leaves the axis, stands up as a gate, and the
+     gallery is already seen through it (its entrance ring is the same ring);
+  2. gallery → shaft: the exit ring is the shaft's floor ring; the gallery's forward is the
+     shaft's up (gravity turns); the structure goes through first, at its speed, and rights
+     itself to the shaft's down;
+  3. shaft → resonance: the tunnel ends in a membrane (the blue triangle); the hall beyond
+     is turned to meet the camera's 90° roll;
+  4. resonance → nursery: the middle room's side door opens into the nursery's wall over the
+     +z channel; the structure leads through and glides down onto its channel;
+  5. into the seed: from the first light the sphere holds the seed's own sky (the galaxy
+     forms inside it, the bulge first); the skin parts where the camera goes in;
+  6. out of the seed, backwards, through the same gap;
+  7. nursery → pyramid: the sphere rises into a shaft in the ceiling that opens onto the
+     heart of the pyramid; outside it is the seed, the same skin and the same sky, K7 times
+     smaller, and it keeps its sky until it becomes the star.
+- Camera: stops that were artefacts of segment-wise easing (the end of the gallery, the
+  seed's path, the start of the climb up the pyramid) are gone; a camera scan
+  (`tools/geo.mjs`, speed and turn per frame) found them.
+- Engine: `--gpu` takes the laptop's NVIDIA card (PRIME offload, ANGLE Vulkan): 0.27 s a
+  heavy frame instead of 1.75 s on the Intel.
+- Sound: four cues added on the new doorways (the gate, the floor ring, the side door, the
+  ceiling shaft).
+- Seen once the screen grain was gone, and fixed: hard-edged rectangles on the dunes (value
+  noise jumped at its lattice lines on the NVIDIA card: integer lattice hash, `highp int`),
+  whorls in the sky (the stroke angle wandered continuously: patches of straight strokes
+  blended), square flecks of sand on the flagstones (round, jittered grains), a straight
+  crease in the dunes behind the pyramid (a rounded-square footprint and an uneven drift at
+  its foot), far dune crests drawn as straight edges (a finer far mesh), a darker dusk at the
+  end so the new star reads; room motes toned down further.
+
+### Round 5 (user)
+
+> «[De 3 s a 4 s] la cámara hace un zigzag raro. El torbellino ese lo quitaría también, queda
+> fatal. Cuando aparece el símbolo las losas se vuelven más claras. Hay transiciones que
+> tiemblan un poco y hacen zigzags raros, hay que suavizar. En general me hace falta que se
+> vea mucho más dibujado a mano, como si estuviera dibujado con lápiz y carboncillo, que era
+> la idea original. Que se note poco que es un render 3D.»
+> «Aparte todo debería tener más ese color desgastado que tienen los aros, como más papel
+> viejo.»
+
+What changed:
+
+- Camera: key paths are monotone Hermites (central-difference tangents overshot a key and
+  came back: the zigzag at 3–4 s); the opening travelling starts from rest and story time
+  speeds up without a kink; every doorway's bridge is two Béziers joined at the opening with
+  an even speed profile (the old one trembled where either side's camera turned); the climb
+  up the pyramid keeps its up leaning back so the view never flips; the seed's inside path is
+  one curve with one stop. `tools/camscan.mjs` scans the camera frame by frame for reversals,
+  flips and jumps.
+- The dust devil is gone; the stone's mark no longer lights its own face.
+- Colour: the plates' gradient map aged to old yellowed paper (the rings' tan in the light
+  mid-tones, sepia darks). The user: «bastante mejor a nivel de color».
+
+## Round 6 · drawn, not rendered
+
+> «Me faltan las texturas, que parezca dibujado.» … (on a pencil-hatching pass) «Te has
+> pasado de lápiz, pero mucho. La idea es que fuera carboncillo.» … (on the charcoal pass,
+> seeing the full render) «Está muy bien.»
+
+- Charcoal on every surface: the tone laid with the side of the stick (broad soft strokes,
+  ~16 px rows, each patch its own angle, fixed to the surface and kept at their size on
+  screen by octaves), on the paper's tooth (pits stay paper, darks fill in); the sky rubbed.
+  Hatching in thin pencil lines read as an engraving or a comic: too much line, not charcoal.
+- Contours: a pass over geometry buffers (normal, distance, world position, drawn marks)
+  draws every silhouette and fold, and the carving's edges, as a broad soft charcoal line
+  that wanders and swells with pressure (noise fixed to the world), lifts here and there,
+  doubles where the hand went over it twice, lighter far off.
+- The mark: the user asked for the Claude mascot in place of the blue triangles, then «solo
+  en el inicio cuando se pinta en la pirámide… que se pinte por líneas en vez de aparecer»:
+  on the first stone only, one blue line traced round the figure at an even pace with a
+  bright point at its tip, then the eyes (1.8 s); everything else keeps its triangle.
+- Cost: the charcoal passes took the full render from ~5 to ~24 minutes on the GTX 1650.
+- Automatic review (`review/auto.md`, GPU): no warnings. The still stretches are the plate
+  holding at the start and the closing plate; the «large jumps» at 28.5–28.8 s are the
+  shaft's roll turning the camera over dense masonry, watched and approved in the film.
+- Published: `render/pyramid-engraving.mp4` (crf 26), `render/strip.jpg`,
+  `render/pyramid-engraving.gif` (3 MB), the README gallery, `sandbox/INDEX.md`.

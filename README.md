@@ -90,6 +90,15 @@ how you made it too.
 <sub>Galileo's eye at the telescope pulls back to a rooftop in Padua; Jupiter becomes the apple a cat pushes onto Newton's head; its orbit winds into Faraday's coil, whose spark is the glow of Curie's radium; its ray is the light young Einstein chases into a black hole; and the cube it leaves becomes Schrödinger's box, where the cat is alive and dead in sixteen worlds until the lid lifts. One continuous chain of objects, the same cat in every scene, drawn entirely in JavaScript; score and effects generated with ElevenLabs.</sub>
 </td>
 </tr>
+<tr>
+<td width="50%" valign="top">
+<a href="sandbox/2026-09-26-pyramid-engraving/"><img src="sandbox/2026-09-26-pyramid-engraving/render/pyramid-engraving.gif" alt="The pyramid that makes skies"></a><br>
+<b><a href="sandbox/2026-09-26-pyramid-engraving/">The pyramid that makes skies</a></b> · engraving · 64 s · <a href="sandbox/2026-09-26-pyramid-engraving/render/pyramid-engraving.mp4">mp4</a><br>
+<sub>A plate of the «Description de l'Égypte» comes alive: a mark is painted on a stone, the pyramid opens into thousands of floating blocks, and the camera flies without a cut through a temple's rooms (each joined to the next by a doorway in the shot) to a seed that holds a sky of its own and leaves as a new star. 3D in WebGL, drawn in charcoal on old paper; music made with ElevenLabs.</sub>
+</td>
+<td width="50%" valign="top">
+</td>
+</tr>
 </table>
 
 Every experiment, with its status and main lesson, is in [`sandbox/INDEX.md`](sandbox/INDEX.md).
@@ -111,7 +120,7 @@ to see its strip, files and the videos made with it.
 | [risograph](styles/risograph/) | four spot inks, halftone, overprints, misregistration | approved |
 | [pixel-art](styles/pixel-art/) | crisp pixels on a low-res grid, sprite maps, 10 fps loops | in testing |
 | [felt3d](styles/felt3d/) | needle-felted wool puppets, raymarched, over any backdrop | in testing |
-| [engraving](styles/engraving/) | a plate of the «Description de l'Égypte»: charcoal, aged print, temple reliefs | in testing |
+| [engraving](styles/engraving/) | a plate of the «Description de l'Égypte» drawn in charcoal on old paper, temple reliefs | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 

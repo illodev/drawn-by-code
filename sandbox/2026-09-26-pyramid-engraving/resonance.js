@@ -1,16 +1,19 @@
-// PIR-06 (script 31–38 s): «The inside no longer fits outside». Through a triangular membrane
-// into the resonance chamber: a corridor ending in a portal (two pillars, a lintel, the notched
+// PIR-06 (script 31–38 s): «The inside no longer fits outside». Through the membrane into the
+// resonance chamber: a corridor ending in a portal (two pillars, a lintel, the notched
 // triangle above). Three large rings nest round the axis without touching and turn; when they
 // line up (32.9) the doors of the next portal slide open and the space beyond is the same room
 // three times larger; the rings of that room line up (35.0) and the third, nine times larger,
 // opens, while its far wall keeps receding (the corridor that unfolds into a nave). The
 // structure rides just ahead of the camera and never changes size: the space does. At 36.4
-// the inner ring of the middle room tilts and shows a side opening; the camera turns to it and
-// the light drops (the way to the core).
+// the inner ring of the middle room tilts and shows a side opening; the structure leads the
+// camera through it, into the nursery (junctions.js). The chamber is entered through the
+// shaft's tunnel end (the membrane), turned to the camera's roll.
 // Level k has scale S = 3^k: width 2S, height 2.5S; its portal stands at Zk. Symmetric at first,
 // broken by the tilt. Near stone is drawn close; far rooms fade to silhouette and light.
 const Resonance = (() => {
     const E = (u, a, b) => Ease.inOut(Ease.seg(u, a, b));
+    // the side doorway of the middle room (its outer face: the way to the nursery)
+    const DOOR = { c: [-3.6, 1.6, -9.8], w: 1.8, h: 3.2 };
     const Z = [-4, -12, -36];
     const nlerp = (a, b, k) => {
         const sg = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3] < 0 ? -1 : 1;
@@ -35,7 +38,7 @@ const Resonance = (() => {
                 Engrave.inst(stone, [-W - 0.1 * S, Hh / 2, (a0 + a1) / 2], 0, [0.1 * S, Hh / 2, (a0 - a1) / 2], 0.51);
                 Engrave.inst(stone, [-W - 0.1 * S, Hh / 2, (b0 + b1) / 2], 0, [0.1 * S, Hh / 2, (b0 - b1) / 2], 0.52);
                 Engrave.inst(stone, [-W - 0.1 * S, (Hh + 3.2) / 2, dz], 0, [0.1 * S, (Hh - 3.2) / 2, dw], 0.53);
-                Engrave.inst(obs, [-W - 1.6, 1.6, dz], 2, [0.05, 1.6, dw], 0.4);
+                // (beyond it, the nursery: the doorway is a portal, junctions.js)
                 continue;
             }
             Engrave.inst(stone, [sx * (W + 0.1 * S), Hh / 2, zm], 0, [0.1 * S, Hh / 2, hl], 0.4 + k * 0.1 + sx * 0.03);
@@ -100,21 +103,16 @@ const Resonance = (() => {
         const stone = [], worn = [], obs = [], blue = [], rings = [], gold = [], dust = [], motes = [], cols = [], caps = [], hathor = [];
         const props = { vases: [], small: [], stone };
         for (let k = 0; k < 3; k++) room(k, u, stone, worn, obs, blue, rings, gold, cols, caps, hathor, props);
-        // the membrane behind: a triangular frame in the entrance wall, glowing as it is crossed
-        const glowM = 0.9 * (1 - E(u, 31.2, 32.2));
-        const tri = [[0, 1.75], [-0.75, 0.25], [0.75, 0.25]];
-        for (let i = 0; i < 3; i++) {
-            const a = tri[i], b = tri[(i + 1) % 3], d = [b[0] - a[0], b[1] - a[1]];
-            Engrave.inst(blue, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 2.2], 4, [0.012, Math.hypot(...d) / 2, 0.01], 0.5, Engrave.quat([0, 0, 1], Math.atan2(-d[0], d[1])), glowM);
-        }
-        // the structure rides just ahead of the camera
+        // (the membrane is the shaft's tunnel end: the camera came through it, junctions.js)
+        // the structure rides just ahead of the camera; it came in with the shaft's «down»
+        // (qIn: the doorway's turn) and rights itself to this room's
         const c = structureAt(u);
-        Shaft.structure(c, u, dust, blue);
+        Shaft.structure(c, u, dust, blue, (spin) => Engrave.qmul(qIn, spin), E(u, Shaft.OUT + 0.3, Shaft.OUT + 1.5));
         // motes in the air of the near room
         const rm = Motion.rng('reso-motes');
         for (let i = 0; i < 500; i++) {
             const x = (rm() - 0.5) * 1.8, y = rm() * 2.3, z = 2 - rm() * 13 + ((u * 0.1 * (0.5 + rm())) % 1), sz = 0.0012 + rm() * 0.002;
-            Engrave.inst(motes, [x, y, z], 5, [sz, sz, sz], rm(), [0, 0, 0, 1], 0, -1);
+            Engrave.inst(motes, [x, y, z], 5, [sz, sz, sz], rm(), [0, 0, 0, 1], 0, -0.3);
         }
         const draws = [
             { mesh: 'box', inst: new Float32Array(stone), box: true, masonry: true },
@@ -134,29 +132,42 @@ const Resonance = (() => {
         const lights = [[c[0], c[1], c[2], 0, 0.3], [0, 3.8, -8.4, 0, 0.3], [-3.6, 1.5, -9.8, 0, 0.9 * side], [0, 12, -30, 0, 0.3]];
         return { draws, lights, centre: c };
     }
-    // the camera moves on down the axis; the structure keeps 0.55 ahead of it
+    // the camera moves on down the axis; the structure keeps 0.6 ahead of it, and crosses the
+    // membrane (z = 2.2) as it leaves the shaft's tunnel, at the speed it had there
     function camAt(u) {
-        const z = 2.05 - 10.9 * (Ease.seg(u, 31, 37.2) * 0.35 + Ease.inOut(Ease.seg(u, 31, 37.2)) * 0.65);
+        // (still moving when it turns to the side doorway and goes through it: never a halt)
+        // (down the axis to level with the doorway, between two columns, by the time it turns)
+        const z = 2.8 - 12.8 * (Ease.seg(u, Shaft.OUT, 38.0) * 0.55 + Ease.inOut(Ease.seg(u, Shaft.OUT, 38.0)) * 0.45);
         const y = 0.9 + 2.2 * E(u, 33.2, 36.0);
         return [0.04 * Math.sin(u * 0.7), y, z];
     }
-    function structureAt(u) {
+    // it leads the camera to the side doorway and through it first, at PASS4, going -x
+    const PASS4 = 38.3, V4 = 1.2;
+    const herm = (p0, v0, p1, v1, T, k) => p0.map((_, i) => (2 * k ** 3 - 3 * k * k + 1) * p0[i] + (k ** 3 - 2 * k * k + k) * T * v0[i] + (-2 * k ** 3 + 3 * k * k) * p1[i] + (k ** 3 - k * k) * T * v1[i]);
+    function ride(u) {
         const p = camAt(u), side = E(u, 36.6, 37.9);
         return [p[0] - 0.02 - 0.5 * side, p[1] - 0.12, p[2] - 0.6 + 0.25 * side];
     }
+    function structureAt(u) {
+        const T0 = 37.0;
+        if (u < T0) return ride(u);
+        const v0 = ride(T0 + 0.02).map((v, i) => (v - ride(T0)[i]) / 0.02);
+        if (u < PASS4) return herm(ride(T0), v0, DOOR.c, [-V4, 0, 0], PASS4 - T0, (u - T0) / (PASS4 - T0));
+        return [DOOR.c[0] - V4 * (u - PASS4), DOOR.c[1], DOOR.c[2]];
+    }
     function camera(u) {
-        const cam = camAt(u), side = E(u, 36.5, 37.8);
+        const cam = camAt(u), side = E(u, 36.1, 38.2);
         const ahead = [0, 0.9 * Math.pow(3, E(u, 33.2, 36)) * 0.5, cam[2] - 6];
         const toSide = [-3.6, 1.6, -9.8];
         const target = ahead.map((v, i) => v + (toSide[i] - v) * side);
         return { cam, target, up: [0, 1, 0], fov: 0.86 };
     }
-    // at the end the light drops for a few tenths (the sound dims with it)
-    const dim = (u) => 0.8 * E(u, 37.6, 37.95);
     const frameParams = {
         sun: [0.12, 0.55, -0.83], sunK: 1.6, fill: 0.42, interior: true,
         sky: { zenith: 0.9, horizon: 0.9, dusk: 0 },
         fog: [6, 70], course: 0.26,
     };
-    return { build, camera, frameParams, dim, T0: 31, T1: 38 };
+    let qIn = [0, 0, 0, 1];
+    const setIn = (q) => { qIn = q; };
+    return { build, camera, frameParams, setIn, structureAt, DOOR, PASS4, V4, T0: 31, T1: 38 };
 })();

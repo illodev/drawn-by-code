@@ -7,7 +7,9 @@
 // retreat to the whole opened building, held; at 16 s it leans to the V gap of the near
 // corner and starts in. Keys are relative to the first stone's face until 10 s.
 const PyramidFilm = (() => {
-    // Hermite through keys with time-aware tangents: the camera never stops at a key
+    // Hermite through keys with monotone tangents (Fritsch–Butland, per coordinate): the
+    // camera never stops at a key where it keeps going the same way, and never overshoots a
+    // key to come back to it (central-difference tangents did: «la cámara hace un zigzag raro»)
     function path(keys, t) {
         if (t <= keys[0][0]) return keys[0].slice(1);
         const n = keys.length;
@@ -17,8 +19,12 @@ const PyramidFilm = (() => {
         const [t0] = keys[i], [t1] = keys[i + 1], h = t1 - t0, u = (t - t0) / h;
         const tan = (j) => {
             if (j === 0 || j === n - 1) return keys[j].slice(1).map((v) => v.map(() => 0));
-            const dt = keys[j + 1][0] - keys[j - 1][0];
-            return keys[j].slice(1).map((v, a) => v.map((_, c) => (keys[j + 1][a + 1][c] - keys[j - 1][a + 1][c]) / dt));
+            const h0 = keys[j][0] - keys[j - 1][0], h1 = keys[j + 1][0] - keys[j][0];
+            return keys[j].slice(1).map((v, a) => v.map((p, c) => {
+                const d0 = (p - keys[j - 1][a + 1][c]) / h0, d1 = (keys[j + 1][a + 1][c] - p) / h1;
+                if (d0 * d1 <= 0) return 0;
+                return (3 * (h0 + h1)) / ((2 * h1 + h0) / d0 + (h1 + 2 * h0) / d1);
+            }));
         };
         const m0 = tan(i), m1 = tan(i + 1);
         const h00 = 2 * u ** 3 - 3 * u * u + 1, h10 = u ** 3 - 2 * u * u + u, h01 = -2 * u ** 3 + 3 * u * u, h11 = u ** 3 - u * u;
@@ -33,7 +39,8 @@ const PyramidFilm = (() => {
             // PIR-01: low, from the left of the face, the pyramid right of centre with air above
             // the apex and the foreground stone in the lower left; a diagonal travelling in
             // that ends following the grain to the joint
-            [0.0, [-1.55, 0.32, 5.6], [-0.95, 0.5, 0], [0.66]],
+            // (held until the plate has let go, then off from rest: no jump at 2.9 s)
+            [PLATE_OUT * 0.3, [-1.55, 0.32, 5.6], [-0.95, 0.5, 0], [0.66]],
             [2.5, [-0.9, 0.3, 4.1], [0.0, 0.45, 0.2], [0.62]],
             [4.0, rel(-0.18, 0.06, 0.75), rel(-0.03, 0.03, 0), [0.58]],
             [5.0, rel(0.045, 0.022, 0.19), rel(0, 0, 0), [0.55]],
@@ -43,7 +50,11 @@ const PyramidFilm = (() => {
             [12.0, [1.7, 1.35, 3.1], [0, 0.72, 0], [0.7]],
             [13.5, [3.4, 1.9, 4.3], [0, 0.85, 0], [0.72]],
             [15.5, [3.6, 1.95, 4.1], [0, 0.85, 0], [0.72]],
-            [17.0, [1.2, 0.75, 1.45], [0, 0.4, 0], [0.74]],
+            // the lean into the V gap, lined up on the gate (junctions.js), and through it
+            ...(() => {
+                const G = Junctions.GATE, before = G.c.map((v, i) => v - G.d[i] * 0.9);
+                return [[16.5, before, G.c.map((v, i) => v + G.d[i] * 0.6), [0.74]], [17.3, G.c, G.c.map((v, i) => v + G.d[i] * 1.5), [0.76]]];
+            })(),
         ];
     }
     // The printed plate: the film opens on it (the closed pyramid, as a plate of the
@@ -96,65 +107,118 @@ const PyramidFilm = (() => {
         g.restore();
     }
     const PLATE_OUT = 2.9, LAG = 1.6;
+    // story time: slow while the plate holds, then a Hermite that speeds up to the script's
+    // rate (no kink in the camera's speed at 2.9 or 6.6 s)
     function storyTime(t) {
         if (t < PLATE_OUT) return t * 0.3;
-        const u0 = PLATE_OUT * 0.3, t1 = 5 + LAG;
-        if (t < t1) return u0 + ((t - PLATE_OUT) * (5 - u0)) / (t1 - PLATE_OUT);
+        const u0 = PLATE_OUT * 0.3, t1 = 5 + LAG, T = t1 - PLATE_OUT;
+        if (t < t1) {
+            const k = (t - PLATE_OUT) / T;
+            return (2 * k ** 3 - 3 * k * k + 1) * u0 + (k ** 3 - 2 * k * k + k) * T * 0.3 + (-2 * k ** 3 + 3 * k * k) * 5 + (k ** 3 - k * k) * T * 1;
+        }
         return t - LAG;
+    }
+    // ---- the spaces: each room in its own coordinates, with its own light and camera ----
+    const OUT = (u) => ({
+        sun: [-0.75, 0.38, 0.55], sunK: 0.85, fill: 0.2,
+        // (dusk deepens to the end, so the new star reads on it)
+        sky: { zenith: 0.22 + 0.5 * Ease.inOut(Ease.seg(u, 53, 58.5)), horizon: 0.15 + 0.12 * Ease.inOut(Ease.seg(u, 53, 58.5)), dusk: 0.35 },
+        fog: [5, 22], course: 0.0118, grain: 1,
+    });
+    const inside = (p) => ({ ...p, grain: 0.45 });       // indoors the paper's tooth is finer
+    const SPACES = {
+        out: {
+            // (the climb from the moment the seed leaves its sky: the bridge into the pyramid
+            // reads this space's camera from 51.4 on)
+            build: (u) => (u >= Star.T0 ? Star.build(u) : u >= Seed.OUT ? Apex.build(u) : Pyramid.build(u, { ring: Junctions.pyramidRing(u) })),
+            params: OUT,
+            cam: (u) => {
+                const c = pathCam(u >= Star.T0 ? Star.KEYS : u >= Seed.OUT ? Apex.KEYS : KEYS, u);
+                // (climbing the axis the camera looks straight up: its up leans back towards the
+                // shaft's far side, as it came in, so the view never flips)
+                if (u >= Seed.OUT && u < Star.T0) {
+                    const k = 1 - Ease.inOut(Ease.seg(u, 53.4, 54.8)), up = [0.6 * 0.9 * k, 1, 0.8 * 0.9 * k], l = Math.hypot(...up);
+                    c.up = up.map((v) => v / l);
+                }
+                return c;
+            },
+        },
+        gal: { build: (u) => Gallery.build(u), params: () => inside(Gallery.frameParams), cam: (u) => pathCam(Gallery.KEYS, u) },
+        shaft: { build: (u) => Shaft.build(u), params: () => inside(Shaft.frameParams), cam: (u) => Shaft.camera(u) },
+        reso: {
+            build: (u) => Resonance.build(u),
+            params: (u, c) => ({ ...inside(Resonance.frameParams), shadow: { center: [c.cam[0], 2, c.cam[2] - 3], radius: 9 } }),
+            cam: (u) => Resonance.camera(u),
+        },
+        nurse: {
+            build: (u) => (u < Seed.T0 ? Nursery.build(u) : Seed.outside(u)),
+            params: () => inside(Nursery.frameParams),
+            cam: (u) => Seed.outCamera(u),
+        },
+        seed: { build: (u) => Seed.inside(u), params: () => inside(Seed.skyParams), cam: (u) => Seed.inCamera(u) },
+    };
+    function pathCam(keys, u) {
+        const [cam, target, [fov]] = path(keys, u);
+        return { cam, target, up: [0, 1, 0], fov };
+    }
+    // one space's layer, with the spaces seen through its open portals laid under it (up to
+    // two portals deep); returns a canvas at the renderer's size
+    const COMP = [], MASK = [];
+    // (via: the junction this space is seen through, which it must not open again backwards)
+    function view(env, space, u, c, clip, depth, key, lens, via = null) {
+        const R = env.state.R, S = SPACES[space];
+        const P = S.build(u);
+        const draws = P.draws.slice();
+        const comp = (COMP[depth] = COMP[depth] ?? Object.assign(document.createElement('canvas'), { width: R.W, height: R.H }));
+        const cg = comp.getContext('2d');
+        cg.clearRect(0, 0, R.W, R.H);
+        const open = depth < 2 ? Junctions.from(space, u).filter((po) => po.J !== via && Junctions.inView(po, c)) : [];
+        const holes = open.map((po) => Junctions.hole(po));
+        draws.push(...holes);
+        const dist = Math.hypot(c.cam[0] - c.target[0], c.cam[1] - c.target[1], c.cam[2] - c.target[2]);
+        const f = {
+            cam: c.cam, target: c.target, up: c.up, fov: lens.fov(c.fov), near: 0.01 * (c.near ?? 1),
+            ink: '#2e261d', paper: '#ebe1cb', draws, lights: P.lights,
+            shadow: { center: c.target, radius: Math.min(6, Math.max(1.5, dist * 1.1)) },
+            spacing: 2.0, edge: 0.25, frame: lens.rect, charcoal: true, sheet: lens.sheet, contour: 1, hatch: 1,
+            ...S.params(u, c),
+        };
+        if (clip) f.clip = clip;
+        // the spaces seen through its openings go under it; with more than one, each is cut to
+        // its own opening (R.mask), or the last would show through every hole
+        open.forEach((po, i) => {
+            const cc = { cam: po.P.p(c.cam), target: po.P.p(c.target), up: po.P.d(c.up ?? [0, 1, 0]), fov: c.fov };
+            const far = view(env, po.to, u, cc, po.clip, depth + 1, key + po.id, lens, po.J);
+            if (open.length === 1) { cg.drawImage(far, 0, 0); return; }
+            const tmp = (MASK[depth] = MASK[depth] ?? Object.assign(document.createElement('canvas'), { width: R.W, height: R.H })).getContext('2d');
+            tmp.globalCompositeOperation = 'source-over';
+            tmp.clearRect(0, 0, R.W, R.H);
+            tmp.drawImage(far, 0, 0);
+            tmp.globalCompositeOperation = 'destination-in';
+            tmp.drawImage(R.mask(f, holes[i], holes.filter((_, j) => j !== i)), 0, 0);
+            tmp.globalCompositeOperation = 'source-over';
+            cg.drawImage(tmp.canvas, 0, 0);
+        });
+        cg.drawImage(R.layer(key + ':' + space, f), 0, 0);
+        return comp;
     }
     function frame(g, t, env, o = {}) {
         KEYS = KEYS ?? keys();
         // story time: the plate holds and goes in (0–2.9 s) with the camera still, the dust
-        // devil drifting slowly; once the plate has gone the travelling runs (2.9–6.6 s); from
+        // desert still; once the plate has gone the travelling runs (2.9–6.6 s); from
         // there the film runs 1.6 s behind the script's timings
         const u = storyTime(t);
-        // PIR-04 onwards: the gallery inside (a hidden cut through the entrance ring)
-        const star = u >= Star.T0, apex = u >= Apex.T0 && !star;
-        const inside = u >= Gallery.T0 && !apex, shaft = u >= Shaft.T0 && u < Resonance.T0, reso = u >= Resonance.T0 && u < Nursery.T0, nurse = u >= Nursery.T0 && u < Seed.T0, seed = u >= Seed.T0 && !apex;
-        const P = star ? Star.build(u) : apex ? Apex.build(u) : seed ? Seed.build(u) : nurse ? Nursery.build(u) : reso ? Resonance.build(u) : shaft ? Shaft.build(u) : inside ? Gallery.build(u) : Pyramid.build(u);
-        let cam, target, fov0, up;
-        if (star) [cam, target, [fov0]] = path(Star.KEYS, u);
-        else if (apex) [cam, target, [fov0]] = path(Apex.KEYS, u);
-        else if (seed) ({ cam, target, fov: fov0, up } = Seed.camera(u));
-        else if (nurse) ({ cam, target, fov: fov0, up } = Nursery.camera(u));
-        else if (reso) ({ cam, target, fov: fov0, up } = Resonance.camera(u));
-        else if (shaft) ({ cam, target, fov: fov0, up } = Shaft.camera(u));
-        else [cam, target, [fov0]] = inside ? path(Gallery.KEYS, u) : path(KEYS, t < PLATE_OUT ? 0 : u);
+        const w = Junctions.where(u, (sp, uu) => SPACES[sp].cam(uu));
         const s = plateScale(t, o);
         const on = s < PLATE_FILL - 1e-4;
         // the image area, scaled about the centre; the lens is widened so that area shows the
         // full-bleed composition (at full scale it is exactly the film's lens)
         const rect = on ? PLATE.map((v) => 0.5 + (v - 0.5) * s) : [0, 0, 1, 1];
-        const fov = on ? 2 * Math.atan(Math.tan(fov0 / 2) / ((PLATE[3] - PLATE[1]) * s)) : fov0;
-        const dist = Math.hypot(cam[0] - target[0], cam[1] - target[1], cam[2] - target[2]);
-        const f = {
-            cam, target, fov, near: 0.01,
-            sun: [-0.75, 0.38, 0.55], sunK: 0.85, fill: 0.2, ink: '#2e261d', paper: '#ebe1cb',
-            draws: P.draws, lights: P.lights,
-            shadow: { center: target, radius: Math.min(6, Math.max(1.5, dist * 1.1)) },
-            sky: { zenith: 0.22 + 0.18 * Ease.inOut(Ease.seg(u, 53, 58.5)), horizon: 0.15, dusk: 0.35 },
-            fog: [5, 22], spacing: 2.0, edge: 0.25, course: 0.0118, frame: rect, charcoal: true,
-        };
-        if (inside) Object.assign(f, seed ? Seed.frameParams(u) : nurse ? Nursery.frameParams : reso ? Resonance.frameParams : shaft ? Shaft.frameParams : Gallery.frameParams);
-        if (reso) f.shadow = { center: [cam[0], 2, cam[2] - 3], radius: 9 };
-        if (up) f.up = up;
-        const img = env.state.R.layer((on ? 'p' : 'f') + Math.round(t * 24), f);
-        // outside to inside: the camera flies into the dark of the opened stone and comes out
-        // of the dark through the entrance ring; the dark is rubbed in before the print, so it
-        // carries the charcoal grain (16.6–17.4 story time)
-        const dark = Math.max(Math.max(0, 1 - Math.abs(u - 17) / 0.4), reso ? Resonance.dim(u) : nurse ? 0.8 * (1 - Ease.inOut(Ease.seg(u, 38, 38.5))) : seed ? Seed.dim(u) : 0);
-        if (dark > 0) {
-            const m = img.getContext('2d');
-            m.save();
-            m.globalAlpha = Math.min(1, dark * 1.25);
-            m.fillStyle = '#3a342d';
-            m.fillRect(0, 0, img.width, img.height);
-            m.restore();
-        }
-        // the aged print (o.age === false shows the clean render, to compare)
+        const lens = { rect, sheet: s, fov: (f0) => (on ? 2 * Math.atan(Math.tan(f0 / 2) / ((PLATE[3] - PLATE[1]) * s)) : f0) };
+        const img = view(env, w.space, u, w, null, 0, (on ? 'p' : 'f') + Math.round(t * 24), lens);
+        // the plates' colour (o.age === false shows the clean render, to compare)
         if (o.age === false) g.drawImage(img, 0, 0, env.W, env.H);
-        // indoors the paper's tooth is kept finer so the carved detail survives the print
-        else env.state.A.apply(g, img, { ink: f.ink, paper: f.paper, charcoal: f.charcoal, grain: inside ? 0.45 : 1 });
+        else env.state.A.apply(g, img, { ink: '#2e261d', paper: '#ebe1cb' });
         if (on) {
             drawPlate(g, env, s, u > 50 ? "VUE DE LA GRANDE PYRAMIDE ET DE L'ÉTOILE NOUVELLE, PRISE AU CRÉPUSCULE." : 'VUE DE LA GRANDE PYRAMIDE, PRISE AU CRÉPUSCULE.');
         }
@@ -190,5 +254,8 @@ const PyramidFilm = (() => {
         R.mesh('vase', vase);
         return { R, A: Engrave.ager(env) };
     }
-    return { frame, setup, storyTime, LAG };
+    // where the camera is at story time u (for tools/geo.mjs)
+    const where = (u) => { KEYS = KEYS ?? keys(); return Junctions.where(u, (sp, uu) => SPACES[sp].cam(uu)); };
+    const bridges = () => { KEYS = KEYS ?? keys(); return Junctions.stats((sp, uu) => SPACES[sp].cam(uu)); };
+    return { frame, setup, storyTime, where, bridges, LAG };
 })();

@@ -35,7 +35,7 @@ Motion.scene({
                 { cam: [0.5, 2.2, 3.5], target: [0.8, 6, -0.5], fov: 0.9 },
                 { cam: [-0.5, 1.9, 4.2], target: [0.4, 0, 0.5], fov: 0.8 },
                 { cam: [1.0, 2.9, 1.6], target: [1.4, 2.9, -2], fov: 0.42 }][Math.min(4, Math.floor(t * 4 + 1e-6))],
-            sun: [-0.6, 0.55, 0.6], sunK: 1.2, fill: 0.42, interior: true, charcoal: true,
+            sun: [-0.6, 0.55, 0.6], sunK: 1.2, fill: 0.42, interior: true, charcoal: true, grain: 0.45,
             ink: '#2e261d', paper: '#ebe1cb', course: 0.26,
             draws: [
                 { mesh: 'box', inst: new Float32Array(wall), box: true, masonry: true },
@@ -48,6 +48,6 @@ Motion.scene({
             shadow: { center: [0, 3, -1], radius: 7 },
             sky: { zenith: 0.9, horizon: 0.9, dusk: 0 }, fog: [20, 60],
         };
-        env.state.A.apply(g, env.state.R.layer('b' + Math.floor(t * 4 + 1e-6), f), { ink: f.ink, paper: f.paper, charcoal: true, grain: 0.45 });
+        env.state.A.apply(g, env.state.R.layer('b' + Math.floor(t * 4 + 1e-6), f), { ink: f.ink, paper: f.paper });
     },
 });

@@ -29,20 +29,38 @@ Vol. IV (Dendera, Pl. 17, 25, 30) for walls, friezes and interiors (Wikimedia Co
 - The plate (margins, neat line, running heads, caption) is 2D on top, in IM Fell DW Pica SC
   (`fonts/IMFellDWPicaSC-Regular.ttf`, OFL). See the scene's `film.js`.
 
-## The approved look (charcoal + aged print)
+## The approved look (drawn in charcoal, on old paper)
 
-The user approved («¡Lo has clavado!») the **charcoal** mode with the **aged print** filter,
-not the ruled burin lines: `charcoal: true` in the frame and `Engrave.ager(env).apply(g,
-R.layer(key, f), { ink, paper, charcoal: true })` to paint. What makes it:
+Round 6 of the pyramid film moved the look from «a render with a charcoal filter» to «a
+charcoal drawing»: `hatch: 1` and `contour: 1` in the frame. The tone is laid with the side
+of the stick (`pencilAt()` → broad soft strokes, `stickAt()`, on the paper's tooth); the
+contours are drawn by the ink pass over geometry buffers (`INK_FS`: silhouettes, folds and
+the carving's edges as a broad, soft, wandering line); the colour is old yellowed paper
+(`AGE_GRAD`: the gold rings' tan in the light mid-tones, sepia darks). Thin pencil hatching
+was tried and rejected («te has pasado de lápiz… la idea es que fuera carboncillo»). The
+paragraphs below describe the earlier stage, still true where they don't contradict this.
+
+## The earlier look (charcoal on the surfaces + the plates' colour)
+
+The user approved («¡Lo has clavado!») the **charcoal** mode over the ruled burin lines:
+`charcoal: true` in the frame (and `grain`: 1 outside, 0.45 indoors) and
+`Engrave.ager(env).apply(g, R.layer(key, f), { ink, paper })` to paint. Then, seeing it
+move: «el filtro lo quitaría, creía que se vería a nivel de texturas y no de pantalla»:
+**nothing is fixed to the screen**. The paper's tooth and the strokes are a texture of each
+surface (`charcoalAt()` in the scene shader: triplanar in the piece's own space, two
+octaves cross-faded so the grain keeps its size on screen), the sky's in its directions;
+the ager only downsamples and maps colour. What makes it:
 
 - stone faces drawn as a **mosaic of small hand-cut stones** in courses (`course`, world
   size of a course): joints as broken pencil marks on the lit side, dark stones with lighter
   joints in shade; the mosaic stays on up close (a big stone is still a drawn wall);
 - tone laid as **graphite in short diagonal strokes** that catch on the paper's tooth only in
-  the half-tones (lights stay clean, darks fill in); drawn marks stay crisp;
-- the **aged print**: tone curve and gradient map measured on the plates (a greyish warm
-  paper, a warm black), second inks carried over, softer lines, grain, toning patches, a
-  darker rim; the sheet does not boil;
+  the half-tones (lights stay clean, darks fill in), stuck to the surface it shades; drawn
+  marks stay crisp;
+- the **plates' colour**: tone curve and gradient map measured on the plates (a greyish warm
+  paper, a warm black), second inks carried over. No grain, toning, rim or smudge on the
+  frame: those read as a dirty lens once the camera moves. The sheet's toning and foxing
+  live on the printed plate's margins (`print()`), which grow with the plate (`sheet`);
 - light as in plate 11: sun from the front left (`sun: [-0.35, 0.5, 0.8]`, `sunK: 0.8`,
   `fill: 0.2`), a light rubbed sky (`zenith 0.22, horizon 0.15`).
 
@@ -95,6 +113,27 @@ A night sky (inside the seed): `sky` above 1 (a dark rubbed ground), stars as `s
 instances with bias −1 (bare paper), sizes small and many (thousands), an engraved star as
 four long and four short thin rays.
 
+## Rooms joined by doorways (portals)
+
+A film through many rooms, each built in its own coordinates, scale and light, still plays
+as one camera move: every change of room is an **opening** (a ring, a tunnel's end, a door,
+a sphere's skin, a shaft) through which the next room is already seen, and the camera flies
+through it. `Engrave.portal(a, b)` maps one room onto the next through the opening's frame
+in each (`{ c, q, s }`, +z the way through; `Engrave.frameQ(fwd, up)` builds `q`); draw the
+opening as material 7 (a hole with depth), render the far room from the mapped camera with
+`f.clip` = the portal's plane, and lay it under the near layer; with two openings in view,
+cut each far room to its own hole (`R.mask(f, hole, others)`). The scene's `junctions.js`
+has the rest: bridging the camera across (a Hermite through the opening, speeds matched and
+capped so a change of scale never overshoots) and what leads through first.
+
+- The opening's `up` can differ between rooms: the room beyond comes turned (a floor ring
+  whose room is a vertical shaft; a tunnel into a hall whose «down» is the camera's rolled
+  up). That is the transition: gravity turns as you go through.
+- Match sizes: whatever goes through (a structure, a seed) keeps its size, so the two
+  openings' scale is its scale.
+- Keep the opening live whenever it can be seen, or it pops from wall to view.
+- Nothing flies through a solid: part a skin (an iris of leaves) where the camera goes in.
+
 ## Style rules
 
 - **Tone is graphite on toothed paper,** never a flat grey: laid in short diagonal strokes,
@@ -104,7 +143,8 @@ four long and four short thin rays.
   over ~22–70 px) the limestone takes over: vugs with a lit lip, pits, coin fossils, cracks,
   broken arrises, sand in the joints, a mottle; no wavy dashes. Inside, walls are dressed and decorated (above).
 - **Textures belong to the piece** (`vQ`, the piece's own space): they never swim when the
-  piece or the camera moves. Round pieces measure arc length, not a dot product.
+  piece or the camera moves. Round pieces measure arc length, not a dot product. That goes
+  for the paper too: no screen-space grain, stroke, vignette or toning over the image.
 - **Colour is a second ink:** live blue on what is alive (channels, marks, the seed), gold as
   a wash on metal; three quarters of the frame stay ink on paper.
 - **The ground is drawn:** dunes everywhere with lee slopes in shade, patchy wind ripples
@@ -122,6 +162,10 @@ four long and four short thin rays.
 - [ ] Nothing in the foreground covering half the frame by accident (rings, mounds, blocks).
 - [ ] Blue only on what is alive; gold only on metal.
 - [ ] Every element cropped at full size: no blank stone, ceiling, floor, capital or metal.
+- [ ] Two frames 1 s apart with the camera moving: the grain moves with the stone, nothing
+      stays put on the screen.
+- [ ] Every change of room goes through an opening in the shot (a portal, below), never a
+      cut or a fade to dark.
 - [ ] Nothing built floating: every slab, walkway, beam has its bearing.
 
 ## Lessons
@@ -158,3 +202,24 @@ four long and four short thin rays.
 - 2026-09-27 · pyramid-engraving · The figures stayed «schematic» until they were rebuilt
   from the canon (tapered limbs with knee, calf, ankle; frontal shoulders; profile head),
   not by adding lines to stick figures.
+- 2026-09-27 · pyramid-engraving · A texture laid in screen space after the render (grain,
+  strokes, toning, vignette) passed every still and failed the first moving render: judge
+  the look on a render with the camera moving, and put every mark on a surface.
+- 2026-09-27 · pyramid-engraving · Taking the screen grain away uncovered what it had hidden:
+  square cells printed as flecks (make every stipple a round, jittered dot), a noise that
+  jumped at its lattice lines on the NVIDIA card (value noise hashes its lattice in integers,
+  `precision highp int`), creases in the ground (a footprint from `max(|x|, |z|)` folds along
+  the diagonals; use a rounded square) and a grain scale from derivatives that stepped at
+  every triangle (take it from the distance). After removing a full-frame filter, crop the
+  ground, the sky and a floor at full size again.
+- 2026-09-27 · pyramid-engraving · «Que parezca dibujado» is charcoal, not pencil: thin
+  hatching lines everywhere read as an engraving or a comic. Charcoal is a broad soft tone
+  with the paper's tooth showing through, strokes of the stick's side that modulate it, and
+  broad soft contours; show one still per step (colour, then contours, then tone) and let
+  the user steer before a full render.
+- 2026-09-27 · pyramid-engraving · A mark that «appears» should be painted: one line traced
+  at an even pace with a bright point at its tip reads as drawn; a fast ramp of the whole
+  figure (0.8 s for 28 segments) reads as popping in.
+- 2026-09-27 · pyramid-engraving · Cuts through a fade to dark between rooms read as jumps
+  («creía que serían transiciones naturales»); rooms joined by portals through something in
+  the shot, with the camera's speed matched across, play as one continuous travel.
