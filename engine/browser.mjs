@@ -60,17 +60,54 @@ export function findFfmpeg() {
 export const rel = (p) => path.relative(ROOT, path.resolve(p)).split(path.sep).join('/');
 
 // GPU rendering (`--gpu`, or MOTION_GPU=1): Chromium with the machine's graphics card
-// instead of software GL (SwiftShader). Headless Chromium disables the GPU by default; the new
-// headless mode keeps it when told to. ANGLE picks the backend (d3d11 on Windows, metal on
-// macOS, vulkan or gl on Linux); override it with MOTION_ANGLE=<backend>.
-function launchOptions(gpu) {
-    if (!gpu) return { args: ['--disable-gpu', '--font-render-hinting=none'] };
-    const angle = process.env.MOTION_ANGLE ?? (process.platform === 'win32' ? 'd3d11' : process.platform === 'darwin' ? 'metal' : 'vulkan');
-    return {
-        headless: false,
-        args: ['--headless=new', '--use-angle=' + angle, '--enable-gpu', '--ignore-gpu-blocklist', '--font-render-hinting=none',
-            ...(angle === 'vulkan' ? ['--enable-features=Vulkan', '--use-vulkan'] : [])],
-    };
+// instead of software GL (SwiftShader). Which GL backend works depends on the machine (a
+// Linux box may have no Vulkan, WSL only OpenGL…), so each candidate is launched and probed
+// in turn, and the first that gives WebGL2 on real hardware wins; every attempt is printed.
+// MOTION_ANGLE=<backend> (gl, vulkan, gles, d3d11, metal…) tries only that one. If none
+// works, the render goes on in software GL with a warning.
+const SOFT = /swiftshader|llvmpipe|softpipe|software|no webgl2/i;
+function gpuCandidates() {
+    const angle = (a, extra = []) => ({ name: 'angle-' + a, args: ['--use-gl=angle', '--use-angle=' + a, ...extra] });
+    if (process.env.MOTION_ANGLE) return [angle(process.env.MOTION_ANGLE)];
+    if (process.platform === 'win32') return [angle('d3d11'), angle('gl')];
+    if (process.platform === 'darwin') return [angle('metal'), angle('gl')];
+    const list = [angle('gl'), angle('vulkan', ['--enable-features=Vulkan']), angle('gles'), { name: 'egl', args: ['--use-gl=egl'] }];
+    // last resort on a desktop: a real (visible) window, where some drivers only then give the GPU
+    if (process.env.DISPLAY || process.env.WAYLAND_DISPLAY) list.push({ ...angle('gl'), name: 'window-angle-gl', window: true }, { name: 'window-default', args: [], window: true });
+    return list;
+}
+async function probeGL(browser) {
+    const page = await browser.newPage();
+    try {
+        return await page.evaluate(() => {
+            const g = document.createElement('canvas').getContext('webgl2');
+            const e = g && g.getExtension('WEBGL_debug_renderer_info');
+            return g ? (e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER)) : 'no WebGL2';
+        });
+    } finally {
+        await page.close();
+    }
+}
+async function launchBrowser(chromium, executablePath, gpu) {
+    const soft = { executablePath, args: ['--disable-gpu', '--font-render-hinting=none'] };
+    if (!gpu) return chromium.launch(soft);
+    for (const c of gpuCandidates()) {
+        let browser;
+        try {
+            browser = await chromium.launch({
+                executablePath, headless: false,
+                args: [...(c.window ? [] : ['--headless=new']), '--enable-gpu', '--ignore-gpu-blocklist', '--font-render-hinting=none', ...c.args],
+            });
+            const gl = await probeGL(browser);
+            console.log(`GPU try ${c.name}: ${gl}`);
+            if (!SOFT.test(gl)) return browser;
+        } catch (e) {
+            console.log(`GPU try ${c.name}: failed (${e.message.split('\n')[0]})`);
+        }
+        await browser?.close().catch(() => {});
+    }
+    console.log('(!) --gpu: no backend gave hardware WebGL2; rendering in software GL (slow).');
+    return chromium.launch(soft);
 }
 
 export async function openScene(scenePath, { size, gpu = process.env.MOTION_GPU === '1' } = {}) {
@@ -83,7 +120,7 @@ export async function openScene(scenePath, { size, gpu = process.env.MOTION_GPU 
     const executablePath = findChrome();
     if (!executablePath) throw new Error('Chrome/Chromium not found: set its path with CHROME_PATH=/path/to/chrome');
     const { server, port } = await serve();
-    const browser = await chromium.launch({ executablePath, ...launchOptions(gpu) });
+    const browser = await launchBrowser(chromium, executablePath, gpu);
     const page = await browser.newPage({ viewport: { width: 800, height: 800 } });
     const errors = [];
     page.on('console', (m) => {
