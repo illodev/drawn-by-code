@@ -7,13 +7,15 @@
 //
 // Options: --size <width px>  --from <s>  --to <s>  --step <frames>  --out <path>
 //          --audio <file>  --crf <n, default 18>  --jpg (with --frames)
+//          --gpu  render on the graphics card (a machine with one: minutes instead of hours;
+//                 prints the GL renderer so you can see it took; MOTION_ANGLE picks the backend)
 // Times are in SECONDS. Every frame is deterministic: the same t gives the same image.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { openScene, findFfmpeg, parseArgs } from './browser.mjs';
 
-const { pos, opt } = parseArgs(process.argv.slice(2), ['frames', 'jpg']);
+const { pos, opt } = parseArgs(process.argv.slice(2), ['frames', 'jpg', 'gpu']);
 const scene = pos[0];
 if (!scene || !fs.existsSync(scene)) {
     console.error('Usage: node engine/render.mjs <scene.js> [--size 1920] [--at 1,2.5] [--frames] [--from s] [--to s] [--audio f] [--out path]');
@@ -22,7 +24,7 @@ if (!scene || !fs.existsSync(scene)) {
 const dir = path.dirname(path.resolve(scene));
 const name = path.basename(dir);
 const outBase = path.join(dir, 'out');
-const { page, info, close, errors } = await openScene(scene, { size: opt.size ? Number(opt.size) : 1920 });
+const { page, info, close, errors } = await openScene(scene, { size: opt.size ? Number(opt.size) : 1920, gpu: opt.gpu || process.env.MOTION_GPU === '1' });
 const { fps, total } = info;
 const t0 = Date.now();
 const grab = (i, type) =>

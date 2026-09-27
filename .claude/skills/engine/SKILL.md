@@ -80,6 +80,7 @@ node engine/review.mjs sandbox/x/scene.js                 # automatic review + s
 node engine/render.mjs sandbox/x/scene.js --at 1.5,3.2    # stills at 1920 → out/stills
 node engine/render.mjs sandbox/x/scene.js --size 1920     # MP4 → out/x.mp4
 node engine/render.mjs sandbox/x/scene.js --size 1080 --from 4 --to 8   # a segment
+node engine/render.mjs sandbox/x/scene.js --size 1920 --gpu   # on a machine with a graphics card (prints the GL it got)
 node engine/mix.mjs sandbox/x/audio.json                  # mix.wav
 node engine/strip.mjs sandbox/x/render/x.mp4 sandbox/x/render/strip.jpg --at 1,3,5   # a film strip for READMEs
 node engine/gif.mjs sandbox/x/render/x.mp4 sandbox/x/render/x.gif --clips 2-6,10-14   # a looping GIF (< ~5 MB)
@@ -114,3 +115,4 @@ Chrome: looked up in `CHROME_PATH`, `/opt/pw-browsers`, and the usual Linux/macO
 - 2026-09-24 · what-do-you-love · A text drawn with `strokeText` on top of `fillText` only gets bolder; a felt-tip look needs the glyph thinned: fill, then `destination-out` stroke on an offscreen canvas (cache it per scale from `getTransform()`).
 - 2026-09-24 · saas-promo · Key tables compared with `tq = Math.floor(t*12)/12` must be exact twelfths: 1.67 is not ≥ 20/12, so a drawing silently shifts. Write times as beats/halves/quarters or snap with `Math.round(a*12)/12`.
 - 2026-09-25 · physics-history v2 · Never wait for a render with `until ! pgrep -f "render.mjs …"`: the waiting shell's own command line contains the pattern, so it waits forever. Run the render itself in the background and let its completion notify you.
+- 2026-09-27 · pyramid-engraving · This container has no GPU: WebGL runs in SwiftShader, which executes every branch of a shader for every pixel (masked). An `if` never saves time there; what does: fewer call sites of heavy functions, relief gradients from `dFdx/dFdy` instead of extra evaluations, and shader variants compiled per draw (`#ifdef`, `variantFor` in the engraving kit). Profile before guessing: time one still at half size (fragment-bound work drops 4×), then knock features out one at a time. For long films, render with `--gpu` on a machine that has one.

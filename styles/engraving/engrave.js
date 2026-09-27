@@ -691,6 +691,14 @@ vec4 templeCeiling(vec2 q, float bw, float band, float pu) {
     float raised = 1.0 - smoothstep(-pu, 0.0, rel);
     return vec4(1.0 - smoothstep(lw, lw + pu, L), raised, carved * (1.0 - raised), rel);
 }
+// the gradient of a relief's sdf in its own (a, b) coordinates, from screen derivatives:
+// free, where evaluating the pattern twice more tripled the cost of every decorated pixel
+vec2 reliefGrad(float sdf, float a, float b) {
+    mat2 J = mat2(dFdx(a), dFdy(a), dFdx(b), dFdy(b));
+    vec2 ds = vec2(dFdx(sdf), dFdy(sdf));
+    float det = determinant(J);
+    return abs(det) > 1e-12 ? normalize(inverse(J) * ds + 1e-9) : vec2(0.0, 1.0);
+}
 // returns (edge dark, raised light, carved dark, bevel sdf) — see the application for the bevel
 vec4 templeWall(float h, float y, float H, float px, float seed, float isCol) {
     float U = clamp(H / 10.0, 0.12, 3.0), v = y / U, x = h / U, pu = px / U;
@@ -782,6 +790,7 @@ layout(location = 4) in vec4 iQ;   // rotation
 layout(location = 5) in vec4 iX;   // glow, tone bias
 uniform mat4 uVP;
 uniform float uTan;   // hatch direction: 0 box faces, 1 along the local y axis, 2 round the local y axis
+invariant gl_Position;   // the same depth as the depth pre-pass, bit for bit
 out vec3 vW; out vec3 vN; out vec3 vT; out vec3 vL; out vec3 vH; out vec3 vQ; out vec3 vNL; out vec3 vTL;
 flat out float vMat; flat out float vSeed; flat out vec4 vX;
 vec3 qrot(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
@@ -817,6 +826,7 @@ layout(location = 2) in vec4 iA;
 layout(location = 3) in vec4 iB;
 layout(location = 4) in vec4 iQ;
 uniform mat4 uVP;
+invariant gl_Position;
 vec3 qrot(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
 void main() { gl_Position = uVP * vec4(iA.xyz + qrot(iQ, aPos * iB.xyz), 1.0); }
 `;
@@ -867,10 +877,12 @@ void main() {
     vec3 V = normalize(uEye - vW);
     vec3 Nsmooth = N;
     // loose stones (flag rock): split stone, each facet flat and its own tone, not a soft blob
+#ifdef F_ROCK
     if (uRock > 0.5) {
         vec3 fn = normalize(cross(dFdx(vW), dFdy(vW)));
         N = dot(fn, N) < 0.0 ? -fn : fn;
     }
+#endif
     vec3 T = normalize(vT - N * dot(vT, N));
     if (m == 5 && N.y > 0.9 && uBox > 0.5) {
         // the desert: long dunes and wind ripples tilt the ground's normal
@@ -946,6 +958,7 @@ void main() {
     }
     // metal rods and posts (round, along y): collars of double rules at intervals, spiral
     // fluting between them, so a rod is never a smooth white tube
+#ifdef F_ROD
     if (uBox < 0.5 && uTan > 0.5 && uTan < 1.5 && (m == 3 || m == 6)) {
         float r = length(P.xz), ang = atan(P.z, P.x);
         float fadeC = smoothstep(2.0, 6.0, r / max(ps, 1e-6));
@@ -956,9 +969,11 @@ void main() {
         float lwC = max(ps * 0.7, r * 0.04);
         cov = max(cov, (1.0 - smoothstep(lwC, lwC + ps * 1.1, L)) * 0.6 * fadeC);
     }
+#endif
     // rings are instruments, engraved as an armillary sphere's: a double rule along each rim,
     // on one half of the outer face a graduated scale (a tick every 2°, long every 10°), on the
     // other a line of signs every 15°; worn and pitted a little. Fades when the tube is small.
+#ifdef F_RING
     if (uBox < 0.5 && uTan > 1.5 && (m == 3 || m == 6)) {
         vec2 rel = vec2(length(P.xz) - vH.x, P.y);
         float tr = length(rel), th = atan(rel.y, rel.x), ph = atan(P.z, P.x);
@@ -1000,6 +1015,8 @@ void main() {
         vec2 pq = vec2(ph * vH.x, c) / (tr * 0.12);
         cov = max(cov, step(hash(floor(pq) + vSeed), 0.05) * (1.0 - smoothstep(0.15, 0.35, length(fract(pq) - 0.5))) * 0.4 * fadeR);
     }
+#endif
+#ifdef F_RULED
     for (int k = 0; k < 3; k++) {
         if (cs[k] < 0.035) continue;
         float along = dot(P, k == 0 ? Tl : cross(Nl, dirs[k])) / sp;
@@ -1025,10 +1042,12 @@ void main() {
         float c2 = lines(s2, cs[k] * sw, fwidth(s2) * 0.8);
         cov = max(cov, mix(c1, c2, fr) * flick);
     }
+#endif
     float edgePx = 99.0;
     // masonry, drawn as in the plates: every face is a mosaic of small hand-cut stones in
     // courses, each outlined by a broken, wobbling burin line (heavier in shade), the darker
     // stones carrying a few short dashes; over it, in shade, a continuous etched tone
+#ifdef F_MASON
     if (m < 2 && (uBox > 0.5 || uMason > 0.5)) {
         cov *= uChar > 0.5 ? 0.8 : 0.45;
         float ch = uCourse;
@@ -1064,6 +1083,7 @@ void main() {
         // outside, as the plate's shadow face: dark stones, lighter joints. Inside (interior),
         // joints are dark cracks between lit stones, never a negative
         float jointed = (1.0 - 0.45 * joint) * stoneT;
+#ifdef F_INT
         if (uInterior > 0.5) {
             // a big dressed block seen close: never a flat grey. Weathered tone across its face,
             // edges worn darker, chisel marks in short parallel strokes (each block its own angle)
@@ -1078,6 +1098,7 @@ void main() {
             jointed = max(tI, joint * 0.5 * (0.6 + 0.4 * st));
             if (deco) jointed = clamp(stoneT * 0.95 + (fbm3(vW * 6.0) - 0.5) * 0.08, 0.0, 0.97);
         }
+#endif
         float shade = mix(max(min(cov / 0.45 * 1.15, 1.0), D * 0.3), jointed, vis);
         cov = mix(max(lit * 0.75, 0.06 + 0.2 * smoothstep(0.3, 0.6, D)), shade, smoothstep(0.42, 0.72, D));
         // up close the stone's own grain: stippled pits and short scratches, denser in shade
@@ -1094,6 +1115,7 @@ void main() {
         // cracks through some blocks, arrises broken back irregularly, sand lodged in the
         // joints; a slow mottle so no block is one flat tone
         float nearS = uInterior > 0.5 ? 0.0 : smoothstep(22.0, 70.0, cpx);
+#ifdef F_EXT
         if (nearS > 0.0) {
             vec2 sq = fp / ch;
             float apx = 1.0 / cpx;                                   // one pixel, in course units
@@ -1129,6 +1151,8 @@ void main() {
             cov = max(cov, sandS * 0.4);
             cov = mix(c0, clamp(cov, 0.0, 1.0), nearS);
         }
+#endif
+#ifdef F_INT
         if (uInterior > 0.5) {
             vec3 gw = vW;
             if (abs(N.y) < 0.35) {
@@ -1166,8 +1190,11 @@ void main() {
                 cov = max(max(cov, stain + cov * 0.8), peb * 0.8);
             }
         }
+#endif
     }
+#endif
     // temple decoration on interior walls (large blocks) and columns
+#ifdef F_DECO
     if (deco) {
         float hh, yy = P.y + vH.y;
         if (uBox > 0.5) hh = abs(Nl.x) > 0.5 ? P.z * sign(Nl.x) : -P.x * sign(Nl.z);
@@ -1178,10 +1205,9 @@ void main() {
         // the bevel: the relief's edge lit on the side towards the light, dark on the other
         // (the light comes from the upper left of every wall, as in the plate)
         float eB = max(ps * 1.5, 0.004);
-        float sx = templeWall(hh + eB, yy, 2.0 * vH.y, ps, wseed, isCol).w - tw.w;
-        float sy = templeWall(hh, yy + eB, 2.0 * vH.y, ps, wseed, isCol).w - tw.w;
-        vec2 gr = normalize(vec2(sx, sy) + 1e-6);
+        // (the bevel's gradient costs two more evaluations: only near a relief's edge)
         float rim = (1.0 - smoothstep(0.0, eB * 2.5, abs(tw.w))) * smoothstep(0.02, 0.006, ps / max(2.0 * vH.y / 10.0, 0.12));
+        vec2 gr = reliefGrad(tw.w, hh, yy);
         float facing = dot(gr, normalize(vec2(-0.6, 0.8)));
         float wear = 0.65 + 0.35 * smoothstep(0.25, 0.65, vnoise(vec2(hh, yy) * 2.3 + vSeed * 9.0));
         // the dressed surface: one tone, a faint mottle; relief lighter; lines; bevel
@@ -1190,9 +1216,11 @@ void main() {
         cov = mix(cov, cov * 0.88, tw.y * wear);
         cov = clamp(cov + 0.3 * tw.x * wear + tw.z + 0.28 * rim * max(-facing, 0.0) * wear - 0.2 * rim * max(facing, 0.0) * wear, 0.0, 1.0);
     }
+#endif
     // Hathor capital (draw flag hathor): on each side of the block, the goddess's face in relief:
     // a broad face, almond eyes under brows, nose, mouth, cow's ears, the heavy wig falling in
     // two banded lappets, a small shrine on her head
+#ifdef F_HATHOR
     if (uHathor > 0.5 && abs(N.y) < 0.35) {
         float hh = abs(Nl.x) > 0.5 ? P.z * sign(Nl.x) : -P.x * sign(Nl.z);
         float wdt = abs(Nl.x) > 0.5 ? vH.z : vH.x;
@@ -1200,8 +1228,8 @@ void main() {
         float pu2 = ps / wdt;
         vec4 hf = hathorFace(g, pu2, vSeed);
         float eB = max(pu2 * 1.5, 0.004);
-        vec2 gr = normalize(vec2(hathorRelief(g + vec2(eB, 0.0)), hathorRelief(g + vec2(0.0, eB))) - hf.w + 1e-6);
         float rim = 1.0 - smoothstep(0.0, eB * 2.5, abs(hf.w));
+        vec2 gr = reliefGrad(hf.w, g.x, g.y);
         float facing = dot(gr, normalize(vec2(-0.6, 0.8)));
         float wear = 0.7 + 0.3 * smoothstep(0.25, 0.65, vnoise(g * 5.0 + vSeed * 9.0));
         // dressed stone, no courses: the capital is one carved block
@@ -1209,8 +1237,10 @@ void main() {
         cov = mix(cov, cov * 0.86, hf.y * wear);
         cov = clamp(cov + hf.z + 0.34 * hf.x * wear + 0.3 * rim * max(-facing, 0.0) - 0.2 * rim * max(facing, 0.0), 0.0, 1.0);
     }
+#endif
     // the bell under a Hathor block (round mesh, flag hathor): two rows of lotus petals over a
     // double rule, the petals ribbed
+#ifdef F_HATHOR
     if (uHathor > 0.5 && uBox < 0.5 && abs(N.y) < 0.6) {
         float a = atan(P.z, P.x) / 6.2832 * 20.0, y = clamp(P.y / vH.y * 0.5 + 0.5, 0.0, 1.0);
         float pa = fract(a) - 0.5, pb = fract(a + 0.5) - 0.5, fa = max(fwidth(a), 1e-4);
@@ -1222,9 +1252,11 @@ void main() {
         cov = clamp(D * 0.9 + 0.08 + 0.05 * (fbm3(vW * 3.0) - 0.5), 0.0, 1.0);
         cov = clamp(cov + 0.34 * (1.0 - smoothstep(0.03, 0.03 + fa * 1.5, min(L, rule))) + 0.08 * smoothstep(0.1, 0.45, abs(pa)), 0.0, 1.0);
     }
+#endif
     // temple floors: large flagstones in rows (not the mosaic), each its own slight tone,
     // worn lighter where walked; broken joints, cracks in some, chipped corners, pits, sand
     // in the joints and drifted in patches, pebbles with their small shadow
+#ifdef F_ROOM
     if (uInterior > 0.5 && m < 2 && N.y > 0.7 && uBox > 0.5 && vH.x > 1.0) {
         float kF = uFlag / 0.8;                     // every feature scales with the flagstones
         vec2 fq = vW.xz / kF;
@@ -1277,7 +1309,9 @@ void main() {
         cov = max(cov, pebSh * 0.55 * pv);
         cov = clamp(cov, 0.0, 1.0);
     }
+#endif
     // ceilings: the sky of the temple, in bands between beams (templeCeiling)
+#ifdef F_ROOM
     if (uInterior > 0.5 && m < 2 && N.y < -0.7 && uBox > 0.5 && vH.x > 1.0) {
         float period = 1.3, bw = 1.1;
         float bx = vW.x / period, band = floor(bx), fx = (bx - band) * period;
@@ -1296,14 +1330,15 @@ void main() {
             vec2 q = vec2(fx - bw * 0.5, vW.z);
             vec4 tc = templeCeiling(q, bw, band + floor(vSeed * 5.0), ps);
             float eB = max(ps * 1.5, 0.003);
-            vec2 gr = normalize(vec2(templeCeiling(q + vec2(eB, 0.0), bw, band + floor(vSeed * 5.0), ps).w, templeCeiling(q + vec2(0.0, eB), bw, band + floor(vSeed * 5.0), ps).w) - tc.w + 1e-6);
             float rim = 1.0 - smoothstep(0.0, eB * 2.5, abs(tc.w));
+            vec2 gr = reliefGrad(tc.w, q.x, q.y);
             float facing = dot(gr, normalize(vec2(-0.6, 0.8)));
             float fade = smoothstep(1.0, 3.0, pc);
             cov = mix(cov, cov * 0.86, tc.y * fade);
             cov = clamp(cov + (tc.z + 0.32 * tc.x + 0.25 * rim * max(-facing, 0.0) - 0.18 * rim * max(facing, 0.0)) * fade, 0.0, 1.0);
         }
     }
+#endif
     // contours: every stone's edges are cut, worn and broken a little; far stones lose them
     if (uBox > 0.5) {
         vec3 e = (1.0 - abs(vL)) * vH;
@@ -1367,6 +1402,7 @@ void main() {
         float peb = step(hash(pc), dens) * (1.0 - smoothstep(pr * 0.7, pr, length(pf))) * smoothstep(0.6, 1.5, pr / 90.0 / ps / uPx);
         // (indoors the sand only gets the room's fill: keep it in the mid greys so ripples,
         // drifts and pebbles still read instead of closing into a flat dark)
+#ifdef F_INT
         if (uInterior > 0.5) {
             // indoors the sand has no sun to model it: draw what is on it. Wind ripples in
             // sweeping bands, drag marks, darker damp patches, a scatter of grit
@@ -1377,9 +1413,11 @@ void main() {
             float grit = step(0.9, hash(floor(g * 260.0))) * 0.35;
             tone = 0.42 + 0.2 * (sh - 0.5) + ripple + drag + damp + grit + 0.12 * (vnoise(g * 14.0) - 0.5);
         }
+#endif
         cov = max(clamp(tone, 0.0, 0.95) * 0.92, peb * 0.85);
     }
     // loose stones: pits and grit in the facets, heavier in shade
+#ifdef F_ROCK
     if (uRock > 0.5 && m < 2) {
         vec3 rq = vQ / max(vH.x, 1e-4) * 9.0;
         vec3 rc = floor(rq);
@@ -1390,6 +1428,7 @@ void main() {
         vec3 fnE = normalize(cross(dFdx(vW), dFdy(vW)));
         cov = max(cov, smoothstep(0.08, 0.3, length(fwidth(fnE))) * 0.55);
     }
+#endif
     // round things have no edges to cut: their outline is drawn where they turn away
     // (not on ground: seen low, a whole desert is at a grazing angle)
     if (uBox < 0.5 && m != 5 && uMason < 0.5) {
@@ -1472,7 +1511,27 @@ void main() {
             const u = {};
             return { p, u: (n) => (n in u ? u[n] : (u[n] = gl.getUniformLocation(p, n))) };
         };
-        const main = program(VS, FS), shadowP = program(SHADOW_VS, SHADOW_FS), skyP = program(SKY_VS, SKY_FS);
+        const shadowP = program(SHADOW_VS, SHADOW_FS), skyP = program(SKY_VS, SKY_FS);
+        // the scene shader in variants: each draw compiles in only the blocks it can use.
+        // (software GL runs every branch of a shader for every pixel, masked: one shader
+        // holding walls, ceilings, capitals, floors, rings and stone cost them all everywhere)
+        const variants = {};
+        function variantFor(d, f) {
+            const box = !!d.box, mason = box || !!d.masonry, inside = !!f.interior;
+            const defs = [];
+            if (d.mesh === 'rock') defs.push('F_ROCK');
+            if (!box && d.tan === 'y') defs.push('F_ROD');
+            if (!box && d.tan !== 'y') defs.push('F_RING');
+            if (!f.charcoal) defs.push('F_RULED');
+            if (mason) defs.push('F_MASON');
+            if (inside) defs.push('F_INT');
+            if (!inside && mason) defs.push('F_EXT');
+            if (inside && (box || d.tan === 'y')) defs.push('F_DECO');
+            if (d.hathor) defs.push('F_HATHOR');
+            if (inside && box) defs.push('F_ROOM');
+            const key = defs.join(',');
+            return variants[key] ?? (variants[key] = program(VS, FS.replace('#version 300 es\n', '#version 300 es\n' + defs.map((x) => '#define ' + x + '\n').join(''))));
+        }
 
         // shadow map
         const SM = opt.shadowSize ?? 2048;
@@ -1605,40 +1664,55 @@ void main() {
             gl.bindVertexArray(tri);
             gl.drawArrays(gl.TRIANGLES, 0, 3);
             gl.depthMask(true);
-            // 3. the scene
-            gl.useProgram(main.p);
-            common(main);
-            gl.uniformMatrix4fv(main.u('uVP'), false, VP);
-            gl.uniformMatrix4fv(main.u('uLVP'), false, LVP);
-            gl.uniform1f(main.u('uVH'), H);
-            gl.uniform3fv(main.u('uSun'), sun);
-            gl.uniform3fv(main.u('uRight'), [view[0], view[4], view[8]]);
-            gl.uniform1f(main.u('uSunK'), f.sunK ?? 0.95);
-            gl.uniform1f(main.u('uFill'), f.fill ?? 0.3);
-            gl.uniform1f(main.u('uEdge'), f.edge ?? 0.35);
-            gl.uniform1f(main.u('uCourse'), f.course ?? 0.012);
-            gl.uniform1f(main.u('uFlag'), f.flag ?? 0.8);          // flagstone width (interior floors)
-            gl.uniform1f(main.u('uChar'), f.charcoal ? 1 : 0);
-            gl.uniform1f(main.u('uInterior'), f.interior ? 1 : 0);
-            gl.uniform1f(main.u('uFogNear'), f.fog?.[0] ?? 8);
-            gl.uniform1f(main.u('uFogFar'), f.fog?.[1] ?? 40);
-            gl.uniform3fv(main.u('uInkBlue'), hex(f.blue ?? '#2fb3cf'));
-            gl.uniform3fv(main.u('uInkGold'), hex(f.gold ?? '#a8793a'));
-            const L = (f.lights ?? []).slice(0, 8);
-            const la = new Float32Array(32);
-            L.forEach((l, i) => la.set([l[0], l[1], l[2], l[4] ?? 1], i * 4));
-            gl.uniform4fv(main.u('uLights'), la);
-            gl.uniform1i(main.u('uNL'), L.length);
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, depth);
-            gl.uniform1i(main.u('uShadowMap'), 0);
-            drawAll(main, draws, (d) => {
-                gl.uniform1f(main.u('uBox'), d.box ? 1 : 0);
-                gl.uniform1f(main.u('uMason'), d.masonry ? 1 : 0);
-                gl.uniform1f(main.u('uHathor'), d.hathor ? 1 : 0);
-                gl.uniform1f(main.u('uRock'), d.mesh === 'rock' ? 1 : 0);
-                gl.uniform1f(main.u('uTan'), d.box ? 0 : d.tan === 'y' ? 1 : 2);
+            // 3. a depth pre-pass (the shadow program, colour off), then the scene shaded only
+            // where it is the nearest surface: rooms nested in rooms were shading every hidden
+            // wall in full (in software GL, most of a frame's cost)
+            const solid = draws.filter((d) => d.cast !== false);
+            gl.useProgram(shadowP.p);
+            gl.uniformMatrix4fv(shadowP.u('uVP'), false, VP);
+            gl.colorMask(false, false, false, false);
+            drawAll(shadowP, solid);
+            gl.colorMask(true, true, true, true);
+            gl.depthFunc(gl.LEQUAL);
+            const inited = new Set();
+            const setupMain = (P) => {
+                gl.useProgram(P.p);
+                common(P);
+                gl.uniformMatrix4fv(P.u('uVP'), false, VP);
+                gl.uniformMatrix4fv(P.u('uLVP'), false, LVP);
+                gl.uniform1f(P.u('uVH'), H);
+                gl.uniform3fv(P.u('uSun'), sun);
+                gl.uniform3fv(P.u('uRight'), [view[0], view[4], view[8]]);
+                gl.uniform1f(P.u('uSunK'), f.sunK ?? 0.95);
+                gl.uniform1f(P.u('uFill'), f.fill ?? 0.3);
+                gl.uniform1f(P.u('uEdge'), f.edge ?? 0.35);
+                gl.uniform1f(P.u('uCourse'), f.course ?? 0.012);
+                gl.uniform1f(P.u('uFlag'), f.flag ?? 0.8);          // flagstone width (interior floors)
+                gl.uniform1f(P.u('uChar'), f.charcoal ? 1 : 0);
+                gl.uniform1f(P.u('uInterior'), f.interior ? 1 : 0);
+                gl.uniform1f(P.u('uFogNear'), f.fog?.[0] ?? 8);
+                gl.uniform1f(P.u('uFogFar'), f.fog?.[1] ?? 40);
+                gl.uniform3fv(P.u('uInkBlue'), hex(f.blue ?? '#2fb3cf'));
+                gl.uniform3fv(P.u('uInkGold'), hex(f.gold ?? '#a8793a'));
+                const L = (f.lights ?? []).slice(0, 8);
+                const la = new Float32Array(32);
+                L.forEach((l, i) => la.set([l[0], l[1], l[2], l[4] ?? 1], i * 4));
+                gl.uniform4fv(P.u('uLights'), la);
+                gl.uniform1i(P.u('uNL'), L.length);
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, depth);
+                gl.uniform1i(P.u('uShadowMap'), 0);
+            };
+            drawAll(null, draws, (d) => {
+                const P = variantFor(d, f);
+                if (!inited.has(P)) { setupMain(P); inited.add(P); } else gl.useProgram(P.p);
+                gl.uniform1f(P.u('uBox'), d.box ? 1 : 0);
+                gl.uniform1f(P.u('uMason'), d.masonry ? 1 : 0);
+                gl.uniform1f(P.u('uHathor'), d.hathor ? 1 : 0);
+                gl.uniform1f(P.u('uRock'), d.mesh === 'rock' ? 1 : 0);
+                gl.uniform1f(P.u('uTan'), d.box ? 0 : d.tan === 'y' ? 1 : 2);
             });
+            gl.depthFunc(gl.LESS);
             const m = memo.getContext('2d');
             m.drawImage(cv, 0, 0);
             memoKey = key;

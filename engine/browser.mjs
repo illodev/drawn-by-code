@@ -59,7 +59,21 @@ export function findFfmpeg() {
 // Relative to the repo root, with forward slashes.
 export const rel = (p) => path.relative(ROOT, path.resolve(p)).split(path.sep).join('/');
 
-export async function openScene(scenePath, { size } = {}) {
+// GPU rendering (`--gpu`, or MOTION_GPU=1): Chromium with the machine's graphics card
+// instead of software GL (SwiftShader). Headless Chromium disables the GPU by default; the new
+// headless mode keeps it when told to. ANGLE picks the backend (d3d11 on Windows, metal on
+// macOS, vulkan or gl on Linux); override it with MOTION_ANGLE=<backend>.
+function launchOptions(gpu) {
+    if (!gpu) return { args: ['--disable-gpu', '--font-render-hinting=none'] };
+    const angle = process.env.MOTION_ANGLE ?? (process.platform === 'win32' ? 'd3d11' : process.platform === 'darwin' ? 'metal' : 'vulkan');
+    return {
+        headless: false,
+        args: ['--headless=new', '--use-angle=' + angle, '--enable-gpu', '--ignore-gpu-blocklist', '--font-render-hinting=none',
+            ...(angle === 'vulkan' ? ['--enable-features=Vulkan', '--use-vulkan'] : [])],
+    };
+}
+
+export async function openScene(scenePath, { size, gpu = process.env.MOTION_GPU === '1' } = {}) {
     let chromium;
     try {
         ({ chromium } = await import('playwright-core'));
@@ -69,7 +83,7 @@ export async function openScene(scenePath, { size } = {}) {
     const executablePath = findChrome();
     if (!executablePath) throw new Error('Chrome/Chromium not found: set its path with CHROME_PATH=/path/to/chrome');
     const { server, port } = await serve();
-    const browser = await chromium.launch({ executablePath, args: ['--disable-gpu', '--font-render-hinting=none'] });
+    const browser = await chromium.launch({ executablePath, ...launchOptions(gpu) });
     const page = await browser.newPage({ viewport: { width: 800, height: 800 } });
     const errors = [];
     page.on('console', (m) => {
@@ -83,6 +97,13 @@ export async function openScene(scenePath, { size } = {}) {
     const q = new URLSearchParams({ scene: rel(scenePath), render: '1' });
     if (size) q.set('size', String(size));
     await page.goto(`http://127.0.0.1:${port}/engine/player.html?${q}`);
+    // which GL the page really got: a software renderer means the GPU flag did not take
+    const glName = await page.evaluate(() => {
+        const g = document.createElement('canvas').getContext('webgl2');
+        const e = g && g.getExtension('WEBGL_debug_renderer_info');
+        return g ? (e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER)) : 'no WebGL2';
+    });
+    console.log(`GL: ${glName}${gpu && /swiftshader|llvmpipe|software/i.test(glName) ? '  (!) --gpu asked, but this is software GL' : ''}`);
     try {
         await page.waitForFunction(() => window.READY === true, null, { timeout: 60000 });
     } catch (e) {
