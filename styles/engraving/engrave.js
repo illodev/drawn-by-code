@@ -409,6 +409,197 @@ vec3 register(float x, float ry, vec2 hid, float pu, float lw, float vis) {
     }
     return vec3(edge, raised, fig);
 }
+// ---- the Hathor capital, after the Dendera plates: one face per side of the block --------
+// g: face coordinates in units of the block's half width (x ±1, y ±H/W). From the top: a
+// shrine (naos) with its cornice and a row of uraei; the band of the wig over the brow; the
+// broad face with almond eyes, arched brows, nose, full lips, cow's ears; the wig falling in
+// two heavy lappets (vertical strands, bands across) that curl outwards at the foot; the
+// broad collar under the chin; text columns in what is left at the corners.
+// returns (lines, raised, carved, relief sdf)
+// the creature, proportioned after its pixel drawing (body 8 × 6 cells, arms, four legs in
+// two pairs, square eyes); q centred on the body, body half width 0.3. Returns (body, eyes)
+vec2 sdClawd(vec2 q) {
+    float d = sdBox2(q, vec2(0.0), vec2(0.3, 0.217));
+    d = min(d, sdBox2(vec2(abs(q.x), q.y), vec2(0.373, 0.0), vec2(0.075, 0.075)));
+    d = min(d, sdBox2(vec2(abs(q.x), q.y), vec2(0.235, -0.29), vec2(0.037, 0.08)));
+    d = min(d, sdBox2(vec2(abs(q.x), q.y), vec2(0.125, -0.29), vec2(0.037, 0.08)));
+    float e = sdBox2(vec2(abs(q.x), q.y), vec2(0.18, 0.1), vec2(0.037, 0.037));
+    return vec2(d, e);
+}
+const vec2 CLAWD_C = vec2(0.0, 0.05);
+const float CLAWD_S = 0.85;
+float hathorRelief(vec2 g) {
+    float face = sdClawd((g - CLAWD_C) / CLAWD_S).x * CLAWD_S;
+    vec2 ga = vec2(abs(g.x), g.y);
+    float lap = sdBox2(ga, vec2(0.44, -0.12), vec2(0.12, 0.44)) - 0.02;
+    lap = min(lap, length(ga - vec2(0.5, -0.58)) - 0.11);                   // the curl
+    float top = sdBox2(g, vec2(0.0, 0.36), vec2(0.56, 0.07)) - 0.01;        // wig over the brow
+    float naos = min(sdBox2(g, vec2(0.0, 0.53), vec2(0.3, 0.1)), sdBox2(g, vec2(0.0, 0.67), vec2(0.37, 0.05)));
+    float coll = max(length(g - vec2(0.0, -0.22)) - 0.52, -(g.y + 0.36));
+    coll = max(coll, abs(g.x) - 0.32);
+    return min(min(min(face, lap), top), min(naos, coll));
+}
+vec4 hathorFace(vec2 g, float pu, float seed) {
+    float lw = max(0.006, pu * 0.9);
+    vec2 ga = vec2(abs(g.x), g.y);
+    float rel = hathorRelief(g);
+    float L = 9.0;                                   // the drawn lines (sdf, width lw)
+    // in the place of the goddess's face, the creature: its outline, its square eyes sunk
+    // deep, the body worked with a fine hatch (its colour, as the plates give colour)
+    vec2 cl = sdClawd((g - CLAWD_C) / CLAWD_S) * CLAWD_S;
+    float face = cl.x;
+    L = min(L, abs(face));
+    L = min(L, abs(face + 0.018) + step(0.0, face) * 9.0);              // a second, inner cut
+    L = min(L, abs(cl.y));
+    float hatch = abs(fract((g.x + g.y) / 0.022) - 0.5) * 0.022 + step(-0.03, face) * 9.0 + step(cl.y, 0.01) * 9.0;
+    // the wig over the brow: vertical strands between two rules
+    float top = sdBox2(g, vec2(0.0, 0.36), vec2(0.56, 0.07)) - 0.01;
+    float inTop = 1.0 - step(0.0, top);
+    L = min(L, abs(top));
+    L = min(L, max(abs(fract(g.x / 0.028) - 0.5) * 0.028, 0.0) + (1.0 - inTop) * 9.0 + step(0.0, face) * 0.0 - (1.0 - step(0.0, -face)) * 0.0);
+    // lappets: strands and bands, the curl as a spiral
+    float lap = sdBox2(ga, vec2(0.44, -0.12), vec2(0.12, 0.44)) - 0.02;
+    float inLap = (1.0 - step(0.0, lap)) * step(0.0, face);
+    L = min(L, abs(lap));
+    L = min(L, abs(fract(ga.x / 0.024) - 0.5) * 0.024 + (1.0 - inLap) * 9.0);
+    float bd = abs(fract((g.y + 0.1) / 0.1) - 0.5) * 0.1;
+    L = min(L, max(bd - 0.004, 0.0) + (1.0 - inLap) * 9.0);
+    vec2 cu = ga - vec2(0.5, -0.58);
+    float cr = length(cu), ca = atan(cu.y, cu.x);
+    float spiral = abs(fract((cr - ca / 6.2832 * 0.035) / 0.035) - 0.5) * 0.035;
+    L = min(L, spiral + step(0.11, cr) * 9.0);
+    L = min(L, abs(cr - 0.11) + step(0.0, -lap - 0.0) * 0.0);
+    // the naos: posts, door, cornice with its cavetto flutes, uraei on top
+    float naos = sdBox2(g, vec2(0.0, 0.53), vec2(0.3, 0.1));
+    L = min(L, abs(naos));
+    float door = sdBox2(g, vec2(0.0, 0.52), vec2(0.08, 0.08));
+    L = min(L, abs(door));
+    L = min(L, abs(door + 0.02));
+    L = min(L, abs(g.x) + step(0.0, door) * 9.0);
+    L = min(L, abs(fract(g.x / 0.03) - 0.5) * 0.03 + step(0.0, naos) * 9.0 + step(door, 0.0) * 9.0);
+    // the winged disc over the door
+    L = min(L, abs(length(g - vec2(0.0, 0.67)) - 0.028));
+    L = min(L, abs(fract(g.x / 0.018) - 0.5) * 0.018 + step(0.05, abs(g.y - 0.665)) * 9.0 + step(0.2, abs(g.x)) * 9.0 + step(abs(g.x), 0.035) * 9.0);
+    L = min(L, abs(sdBox2(g, vec2(0.0, 0.67), vec2(0.37, 0.05))));
+    L = min(L, abs(fract(g.x / 0.035) - 0.5) * 0.035 + step(0.05, abs(g.y - 0.67)) * 9.0 + step(0.37, abs(g.x)) * 9.0);
+    float ur = length(vec2(fract(g.x / 0.07) - 0.5, (g.y - 0.75) / 0.07 * 0.7)) * 0.07 - 0.02;
+    L = min(L, abs(ur) + step(0.37, abs(g.x)) * 9.0);
+    // the collar: rows of beads in arcs
+    float cd = length(g - vec2(0.0, -0.22));
+    float inColl = step(g.y, -0.36) * step(cd, 0.52) * step(abs(g.x), 0.32);
+    L = min(L, abs(fract(cd / 0.045) - 0.5) * 0.045 + (1.0 - inColl) * 9.0);
+    float bead = length(vec2(fract(atan(g.x, -(g.y + 0.22)) * cd / 0.03) - 0.5, fract(cd / 0.045) - 0.5)) - 0.28;
+    // (beads: small rings along each row)
+    // relief lightness, and text columns in the corners
+    float raised = 1.0 - smoothstep(-pu, 0.0, rel);
+    float lines = 1.0 - smoothstep(lw, lw + pu, L);
+    lines = max(lines, (1.0 - smoothstep(lw * 0.5, lw * 0.5 + pu, hatch)) * 0.22);
+    lines = max(lines, (1.0 - smoothstep(0.08, 0.08 + pu * 6.0, bead + 0.3)) * inColl * 0.4);
+    if (rel > 0.02) {
+        float cw = 0.09, cx = floor(g.x / cw), gx = g.x - cx * cw;
+        lines = max(lines, (1.0 - smoothstep(lw * 0.8, lw * 0.8 + pu, abs(gx - 0.005))) * 0.6);
+        float gg = textColumn(vec2(gx / cw, g.y / cw), vec2(cx, floor(g.y / cw) + seed * 11.0), seed);
+        lines = max(lines, (1.0 - smoothstep(0.05, 0.05 + pu / cw, gg)) * 0.5);
+    }
+    // the face is modelled: darker towards its lower right, lighter at the brow and cheekbones
+    float model = smoothstep(0.0, 1.0, dot(g - vec2(0.0, -0.02), vec2(0.6, -0.8)) / 0.35) * step(face, 0.0);
+    float onFace = 1.0 - step(0.0, face);
+    float eye = 1.0 - smoothstep(-pu, 0.0, cl.y);
+    // the creature stands in a sunk niche, darker, ruled across, so its relief reads
+    float niche = sdBox2(g, vec2(0.0, -0.035), vec2(0.315, 0.32));
+    float inNiche = (1.0 - smoothstep(-pu, 0.0, niche)) * step(0.0, face) * step(0.0, lap);
+    lines = max(lines, (1.0 - smoothstep(lw * 0.5, lw * 0.5 + pu, abs(fract(g.y / 0.02) - 0.5) * 0.02)) * 0.3 * inNiche);
+    lines = max(lines, (1.0 - smoothstep(lw, lw + pu, abs(niche))) * 0.8);
+    model += inNiche * 1.2;
+    return vec4(lines, raised * (1.0 - 0.5 * onFace), model * 0.1 + onFace * 0.03 + 0.04 * (1.0 - step(0.0, top)) + 0.45 * eye, rel);
+}
+// ---- temple ceilings, after Dendera: bands between beams, each band one subject --------
+// q: (across the band, along it) in world units; bw: band width. Kinds: a procession of
+// vultures with spread wings holding shen rings; a field of five-pointed stars on a sunk,
+// darker ground; boats of the hours, a seated god in each, stars over them. Text lines run
+// along both edges of every band. Returns (lines, raised, carved, relief sdf).
+float sdVulture(vec2 q) {          // q: x across the band (wing span ±1), y along (head +)
+    vec2 qa = vec2(abs(q.x), q.y);
+    float body = length((q - vec2(0.0, -0.05)) / vec2(0.11, 0.3)) - 1.0;
+    body *= 0.1;
+    // broad wings: the leading edge nearly straight, the trailing edge of long flight feathers
+    float wing = max(max(qa.y - 0.22 - 0.06 * qa.x, -0.24 + 0.12 * qa.x - qa.y), max(qa.x - 0.97, 0.06 - qa.x));
+    float tail = max(sdBox2(q, vec2(0.0, -0.42), vec2(0.13, 0.12)), -q.y - 0.55 + abs(q.x) * 0.4);
+    float head = length(q - vec2(0.0, 0.32)) - 0.07;
+    float beak = sdSeg(q, vec2(0.0, 0.36), vec2(0.07, 0.42)) - 0.02;
+    return min(min(body, wing), min(min(tail, head), beak));
+}
+vec4 templeCeiling(vec2 q, float bw, float band, float pu) {
+    float lw = max(0.005, pu * 0.9);
+    float u = q.x / (bw * 0.5), U = bw * 0.5;       // u: −1..1 across
+    float L = 9.0, rel = 9.0, carved = 0.0;
+    // text lines along both edges, between rules
+    float edgeB = abs(u) - 0.82;
+    L = min(L, abs(abs(u) - 0.82) * U);
+    L = min(L, abs(abs(u) - 0.97) * U);
+    if (edgeB > 0.0 && abs(u) < 0.97) {
+        float cw = 0.15 * U, cy = floor(q.y / cw), gy = q.y - cy * cw;
+        float gg = glyphSign(int(hash(vec2(cy, band + sign(u) * 3.0)) * 16.0), vec2((abs(u) - 0.895) * U / cw, gy / cw - 0.5) * 1.3) / 1.3 * cw;
+        L = min(L, abs(gg));
+        L = min(L, abs(gy - 0.004));
+        return vec4(1.0 - smoothstep(lw, lw + pu, L), 0.0, 0.0, 9.0);
+    }
+    float kind = mod(band, 3.0);
+    vec2 w = vec2(u / 0.8, q.y / (U * 0.8));        // band-interior units (±1 across)
+    if (kind < 1.0) {
+        // vultures, one every 1.6 band-widths, text columns between
+        float cell = floor(w.y / 1.3 + 0.5), vy = w.y - cell * 1.3;
+        vec2 vq = vec2(w.x, vy);
+        float v = sdVulture(vq);
+        rel = v * U * 0.8;
+        vec2 vqa = vec2(abs(vq.x), vq.y);
+        // feathers: lines across the wing, the flight feathers longer at the trailing edge
+        // coverts: rows of small scallops near the leading edge; flight feathers: long quills
+        float lead = 0.22 + 0.06 * vqa.x - vqa.y;
+        float fea = abs(fract(vqa.x / 0.055) - 0.5) * 0.055 + max(v, 0.0) * 9.0 + step(vqa.x, 0.12) * 9.0 + step(lead, 0.16) * 9.0;
+        float sc2 = abs(length(vec2(fract(vqa.x / 0.06) - 0.5, fract(lead / 0.05) - 0.2) * vec2(0.06, 0.05)) - 0.025) + max(v, 0.0) * 9.0 + step(0.16, lead) * 9.0 + step(vqa.x, 0.12) * 9.0;
+        float cov2 = min(abs(lead - 0.16) + max(v, 0.0) * 9.0 + step(vqa.x, 0.1) * 9.0, sc2);
+        float bf = abs(fract(vq.y / 0.05) - 0.5) * 0.05 + max(v, 0.0) * 9.0 + step(0.11, abs(vq.x)) * 9.0;
+        L = min(L, abs(rel));
+        L = min(L, min(min(fea, cov2), bf) * U * 0.8);
+        L = min(L, (length(vq - vec2(0.03, 0.33)) - 0.012) * U * 0.8);     // the eye
+        // shen rings in the talons
+        L = min(L, abs(length(vec2(abs(vq.x) - 0.18, vq.y + 0.35)) - 0.06) * U * 0.8);
+        if (v > 0.03 && (abs(vy) > 0.46 || abs(w.x) > 0.99)) {
+            float cw = 0.2, cx = floor(w.x / cw), gx = w.x - cx * cw;
+            float gg = textColumn(vec2(gx / cw, vy / cw), vec2(cx, floor(vy / cw) + cell * 7.0 + band), band);
+            L = min(L, max(gg - 0.045, 0.0) * cw * U * 0.8);
+            L = min(L, abs(gx - 0.005) * U * 0.8);
+        }
+    } else if (kind < 2.0) {
+        // stars: a sunk, darker field; stars in relief, in staggered rows
+        vec2 c2 = w / 0.34;
+        c2.x += 0.5 * mod(floor(c2.y), 2.0);
+        vec2 id2 = floor(c2), f2 = fract(c2) - 0.5;
+        float a5 = atan(f2.x, f2.y), r5 = length(f2);
+        float star = (r5 - 0.3 * (0.55 + 0.45 * cos(5.0 * a5))) * 0.34 * U * 0.8;
+        rel = star;
+        L = min(L, abs(star));
+        carved = 0.1;
+    } else {
+        // boats of the hours: a crescent hull, a cabin, a seated god; stars over them
+        float cell = floor(w.y / 1.5 + 0.5), by = w.y - cell * 1.5;
+        vec2 bq = vec2(by, -w.x);                   // along the band, "up" across it
+        float hull = max(length(bq - vec2(0.0, 0.55)) - 0.75, -(length(bq - vec2(0.0, 0.8)) - 0.85));
+        hull = max(hull, bq.y + 0.35);
+        float god = sdSeated((bq - vec2(0.05, -0.28)) / 0.38 * vec2(-1.0, 1.0)) * 0.38;
+        float cab = sdBox2(bq, vec2(-0.35, -0.18), vec2(0.1, 0.1));
+        rel = min(min(hull, god), cab) * U * 0.8;
+        L = min(L, abs(rel));
+        L = min(L, (abs(fract(bq.x / 0.06) - 0.5) * 0.06 + max(hull, 0.0) * 9.0) * U * 0.8);
+        L = min(L, figureInner((bq - vec2(0.05, -0.28)) / 0.38 * vec2(-1.0, 1.0), 1.2) * 0.38 * U * 0.8 + max(god, 0.0) * 9.0);
+        vec2 sq = vec2(fract(bq.x / 0.3) - 0.5, (bq.y - 0.55) / 0.3);
+        float st = (length(sq) - 0.22 * (0.55 + 0.45 * cos(5.0 * atan(sq.x, sq.y)))) * 0.3 * U * 0.8;
+        if (bq.y > 0.3) { rel = min(rel, st); L = min(L, abs(st)); }
+    }
+    float raised = 1.0 - smoothstep(-pu, 0.0, rel);
+    return vec4(1.0 - smoothstep(lw, lw + pu, L), raised, carved * (1.0 - raised), rel);
+}
 // returns (edge dark, raised light, carved dark, bevel sdf) — see the application for the bevel
 vec4 templeWall(float h, float y, float H, float px, float seed, float isCol) {
     float U = clamp(H / 10.0, 0.12, 3.0), v = y / U, x = h / U, pu = px / U;
@@ -804,35 +995,111 @@ void main() {
     if (uHathor > 0.5 && abs(N.y) < 0.35) {
         float hh = abs(Nl.x) > 0.5 ? P.z * sign(Nl.x) : -P.x * sign(Nl.z);
         float wdt = abs(Nl.x) > 0.5 ? vH.z : vH.x;
-        vec2 f = vec2(hh / wdt, P.y / vH.y);
+        vec2 g = vec2(hh, P.y) / wdt;
         float pu2 = ps / wdt;
-        float face = length((f - vec2(0.0, -0.05)) * vec2(1.0 / 0.42, 1.0 / 0.55)) - 1.0;
-        float lap = min(sdBox2(f, vec2(-0.62, -0.15), vec2(0.17, 0.72)), sdBox2(f, vec2(0.62, -0.15), vec2(0.17, 0.72)));
-        float bands = abs(fract(f.y / 0.1) - 0.5) * 0.1 + max(0.0, -lap);
-        float eyes = min(length((vec2(abs(f.x), f.y) - vec2(0.17, 0.12)) * vec2(1.0, 2.6)) - 0.08, 1.0);
-        float brows = sdSeg(vec2(abs(f.x), f.y), vec2(0.07, 0.24), vec2(0.28, 0.22)) - 0.012;
-        float nose = sdSeg(f, vec2(0.0, 0.1), vec2(0.0, -0.18)) - 0.01;
-        float mouth = sdSeg(f, vec2(-0.12, -0.32), vec2(0.12, -0.32)) - 0.01;
-        float ears = length((vec2(abs(f.x), f.y) - vec2(0.47, 0.22)) * vec2(2.2, 1.0)) - 0.12;
-        float shrine = sdBox2(f, vec2(0.0, 0.86), vec2(0.3, 0.12));
-        float door = sdBox2(f, vec2(0.0, 0.84), vec2(0.08, 0.08));
-        float lines = min(min(abs(face), abs(lap)), min(min(eyes, brows), min(nose, mouth)));
-        lines = min(lines, min(abs(ears), min(abs(shrine), abs(door))));
-        lines = min(lines, bands + 0.004);
-        float lwh = max(0.012, pu2 * 1.3);
-        cov = mix(cov, cov * 0.82, (1.0 - smoothstep(-pu2, 0.0, min(face, lap))));
-        cov = clamp(cov + 0.4 * (1.0 - smoothstep(lwh, lwh + pu2, lines)) + 0.25 * (1.0 - smoothstep(-pu2, 0.0, eyes)), 0.0, 1.0);
+        vec4 hf = hathorFace(g, pu2, vSeed);
+        float eB = max(pu2 * 1.5, 0.004);
+        vec2 gr = normalize(vec2(hathorRelief(g + vec2(eB, 0.0)), hathorRelief(g + vec2(0.0, eB))) - hf.w + 1e-6);
+        float rim = 1.0 - smoothstep(0.0, eB * 2.5, abs(hf.w));
+        float facing = dot(gr, normalize(vec2(-0.6, 0.8)));
+        float wear = 0.7 + 0.3 * smoothstep(0.25, 0.65, vnoise(g * 5.0 + vSeed * 9.0));
+        // dressed stone, no courses: the capital is one carved block
+        cov = clamp(D * 0.9 + 0.06 + 0.06 * (fbm3(vW * 3.0) - 0.5), 0.0, 1.0);
+        cov = mix(cov, cov * 0.86, hf.y * wear);
+        cov = clamp(cov + hf.z + 0.34 * hf.x * wear + 0.3 * rim * max(-facing, 0.0) - 0.2 * rim * max(facing, 0.0), 0.0, 1.0);
     }
-    // ceilings: the sky of the temple, five-pointed stars in rows between beams (in relief)
-    if (uInterior > 0.5 && m < 2 && N.y < -0.7) {
-        vec2 c2 = vW.xz / 0.22, id2 = floor(c2), f2 = fract(c2) - 0.5;
-        f2 += (vec2(hash(id2 + 2.0), hash(id2 + 5.0)) - 0.5) * 0.2;
-        float a5 = atan(f2.y, f2.x), r5 = length(f2);
-        float star = r5 - 0.19 * (0.55 + 0.45 * cos(5.0 * a5 + 1.57));
-        float beam = abs(fract(vW.x / 1.3) - 0.5) * 1.3;
-        float pc = 0.22 / ps / uPx;
-        cov = clamp(cov + 0.18 * (1.0 - smoothstep(0.0, 0.03, abs(star))) * smoothstep(4.0, 9.0, pc) - 0.06 * (1.0 - smoothstep(-0.02, 0.0, star)) * smoothstep(4.0, 9.0, pc), 0.0, 1.0);
-        cov = max(cov, (1.0 - smoothstep(0.1, 0.13, beam)) * 0.55);
+    // the bell under a Hathor block (round mesh, flag hathor): two rows of lotus petals over a
+    // double rule, the petals ribbed
+    if (uHathor > 0.5 && uBox < 0.5 && abs(N.y) < 0.6) {
+        float a = atan(P.z, P.x) / 6.2832 * 20.0, y = clamp(P.y / vH.y * 0.5 + 0.5, 0.0, 1.0);
+        float pa = fract(a) - 0.5, pb = fract(a + 0.5) - 0.5, fa = max(fwidth(a), 1e-4);
+        float L = abs(abs(pa) - 0.47 * sqrt(max(1.0 - y, 0.0)));
+        L = min(L, abs(pa) + step(0.85, y) * 9.0);
+        L = min(L, abs(abs(pb) - 0.4 * sqrt(max(0.62 - y, 0.0) / 0.62)) + step(abs(pa), 0.47 * sqrt(max(1.0 - y, 0.0))) * 0.0 + step(0.62, y) * 9.0);
+        L = min(L, abs(abs(pa) - 0.2 * sqrt(max(1.0 - y, 0.0))) * 1.0 + step(0.7, y) * 9.0 + step(y, 0.12) * 9.0);
+        float rule = min(abs(y - 0.06), abs(y - 0.1)) * 20.0;
+        cov = clamp(D * 0.9 + 0.08 + 0.05 * (fbm3(vW * 3.0) - 0.5), 0.0, 1.0);
+        cov = clamp(cov + 0.34 * (1.0 - smoothstep(0.03, 0.03 + fa * 1.5, min(L, rule))) + 0.08 * smoothstep(0.1, 0.45, abs(pa)), 0.0, 1.0);
+    }
+    // temple floors: large flagstones in rows (not the mosaic), each its own slight tone,
+    // worn lighter where walked; broken joints, cracks in some, chipped corners, pits, sand
+    // in the joints and drifted in patches, pebbles with their small shadow
+    if (uInterior > 0.5 && m < 2 && N.y > 0.7 && uBox > 0.5 && vH.x > 1.0) {
+        vec2 fq = vW.xz;
+        fq += (vec2(vnoise(fq * 1.3), vnoise(fq.yx * 1.3 + 5.0)) - 0.5) * 0.04;
+        float rw = 0.8, row = floor(fq.y / rw), fy = fq.y / rw - row;
+        float len = 1.0 + 0.6 * hash(vec2(row, 2.0));
+        float ux = fq.x / len + hash(vec2(row, 9.0)), col = floor(ux), fx = ux - col;
+        vec2 sid = vec2(row, col);
+        vec2 cc = vec2(min(fx, 1.0 - fx) * len, min(fy, 1.0 - fy) * rw);
+        float dj = min(cc.x, cc.y);
+        float st = hash(sid + vSeed * 3.0);
+        float px = ps * uPx;
+        cov = clamp(D * 0.8 + 0.22 + (st - 0.5) * 0.07 + 0.06 * (fbm3(vW * 4.0) - 0.5), 0.0, 1.0);
+        cov -= 0.05 * smoothstep(0.08, 0.35, dj) * smoothstep(0.3, 0.7, vnoise(fq * 0.7 + 2.0));   // worn
+        // the joint: a dark line with broken edges; sand lighter beside it
+        float jw = 0.006 + 0.012 * smoothstep(0.55, 0.85, vnoise(fq * 11.0 + st));
+        float joint = 1.0 - smoothstep(jw, jw + ps * 1.2, dj);
+        float sandJ = (1.0 - smoothstep(jw, jw + 0.03, dj)) * (1.0 - joint) * smoothstep(0.4, 0.7, vnoise(fq * 5.0));
+        // cracks: a thin wandering line across some stones, with a branch
+        float cn = vnoise((fq + st * 7.0) * 2.2) + 0.5 * vnoise((fq + st * 3.0) * 7.0);
+        float crack = (1.0 - smoothstep(0.0, 0.0025 + ps, abs(cn - 0.75) * 0.08)) * step(0.65, st) * smoothstep(0.4, 0.6, vnoise(fq * 1.5 + st * 9.0));
+        // a chipped corner (darker, broken outline)
+        float chipd = cc.x + cc.y - 0.07 - 0.03 * vnoise(fq * 35.0);
+        float chip = step(0.6, hash(sid + 3.0)) * step(cc.x, 0.2) * step(cc.y, 0.2) * (1.0 - smoothstep(0.0, ps, chipd));
+        float chipL = step(0.6, hash(sid + 3.0)) * step(cc.x, 0.2) * step(cc.y, 0.2) * (1.0 - smoothstep(0.002, 0.002 + ps, abs(chipd)));
+        // pits
+        vec2 pq = fq / 0.02, pc2 = floor(pq), pf2 = fract(pq) - 0.5;
+        float pit = step(hash(pc2 + st), 0.06) * (1.0 - smoothstep(0.12, 0.3, length(pf2))) * smoothstep(1.2, 3.0, 0.02 / px);
+        // sand drifts: stipple, denser in the patches
+        float drift = smoothstep(0.5, 0.8, vnoise(fq * 0.9 + 7.0) + 0.3 * vnoise(fq * 3.0));
+        vec2 sq = fq / 0.008, sc3 = floor(sq);
+        float sand = step(hash(sc3 + 0.3), 0.1 * drift) * smoothstep(1.0, 2.5, 0.008 / px);
+        // pebbles: lit on the sun's side, a shadow on the other
+        vec2 bq = fq / 0.07, bc = floor(bq), bf = fract(bq) - 0.5 - (vec2(hash(bc + 1.7), hash(bc + 8.1)) - 0.5) * 0.5;
+        float hasP = step(hash(bc + 4.4), 0.03 + 0.08 * drift);
+        float pr = 0.1 + 0.12 * hash(bc + 2.2);
+        vec2 sd = normalize(uSun.xz + 1e-4);
+        float peb = hasP * (1.0 - smoothstep(pr - 0.03, pr, length(bf)));
+        float pebDark = peb * smoothstep(-0.2, 0.6, dot(bf, -sd) / pr);
+        float pebSh = hasP * (1.0 - smoothstep(pr - 0.02, pr + 0.02, length(bf + sd * pr * 0.8))) * (1.0 - peb);
+        float pv = smoothstep(1.5, 4.0, 0.07 / px);
+        cov = clamp(cov - 0.08 * sandJ + 0.18 * sand, 0.0, 1.0);
+        cov = max(clamp(cov + joint * 0.3, 0.0, 1.0), joint * 0.8);        // joints read in shade too
+        cov = max(clamp(cov + crack * 0.2, 0.0, 1.0), crack * 0.65);
+        cov = mix(cov, cov + 0.18, chip);
+        cov = max(cov, chipL * 0.6);
+        cov = max(cov, pit * 0.5);
+        cov = mix(cov, mix(cov * 0.6, 0.75, pebDark), peb * pv);
+        cov = max(cov, pebSh * 0.55 * pv);
+        cov = clamp(cov, 0.0, 1.0);
+    }
+    // ceilings: the sky of the temple, in bands between beams (templeCeiling)
+    if (uInterior > 0.5 && m < 2 && N.y < -0.7 && uBox > 0.5 && vH.x > 1.0) {
+        float period = 1.3, bw = 1.1;
+        float bx = vW.x / period, band = floor(bx), fx = (bx - band) * period;
+        float pc = 0.02 / ps / uPx;
+        cov = clamp(D * 0.9 + 0.1 + 0.06 * (fbm3(vW * 3.0) - 0.5), 0.0, 1.0);
+        if (fx > bw) {
+            // the beam: its underside dressed, darker, two rules and a line of signs
+            float by = (fx - bw - (period - bw) * 0.5) / ((period - bw) * 0.5);
+            cov = clamp(cov + 0.12, 0.0, 1.0);
+            float Lb = abs(abs(by) - 0.75) * (period - bw) * 0.5;
+            float cw = 0.09, cz = floor(vW.z / cw), gz = vW.z - cz * cw;
+            float gg = glyphSign(int(hash(vec2(cz, band)) * 16.0), vec2(by * (period - bw) * 0.5 / cw, gz / cw - 0.5) * 1.3) / 1.3 * cw;
+            if (abs(by) < 0.7) Lb = min(Lb, abs(gg));
+            cov = clamp(cov + 0.3 * (1.0 - smoothstep(0.005, 0.005 + ps, Lb)) * smoothstep(1.0, 3.0, pc), 0.0, 1.0);
+        } else {
+            vec2 q = vec2(fx - bw * 0.5, vW.z);
+            vec4 tc = templeCeiling(q, bw, band + floor(vSeed * 5.0), ps);
+            float eB = max(ps * 1.5, 0.003);
+            vec2 gr = normalize(vec2(templeCeiling(q + vec2(eB, 0.0), bw, band + floor(vSeed * 5.0), ps).w, templeCeiling(q + vec2(0.0, eB), bw, band + floor(vSeed * 5.0), ps).w) - tc.w + 1e-6);
+            float rim = 1.0 - smoothstep(0.0, eB * 2.5, abs(tc.w));
+            float facing = dot(gr, normalize(vec2(-0.6, 0.8)));
+            float fade = smoothstep(1.0, 3.0, pc);
+            cov = mix(cov, cov * 0.86, tc.y * fade);
+            cov = clamp(cov + (tc.z + 0.32 * tc.x + 0.25 * rim * max(-facing, 0.0) - 0.18 * rim * max(facing, 0.0)) * fade, 0.0, 1.0);
+        }
     }
     // contours: every stone's edges are cut, worn and broken a little; far stones lose them
     if (uBox > 0.5) {

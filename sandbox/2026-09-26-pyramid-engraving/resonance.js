@@ -120,7 +120,7 @@ const Resonance = (() => {
             { mesh: 'box', inst: new Float32Array(stone), box: true, masonry: true },
             { mesh: 'box', inst: new Float32Array(worn), box: true, masonry: true },
             { mesh: 'cylinder', inst: new Float32Array(cols), tan: 'y' },
-            { mesh: 'capital', inst: new Float32Array(caps), tan: 'y' },
+            { mesh: 'capital', inst: new Float32Array(caps), tan: 'y', hathor: true },
             { mesh: 'box', inst: new Float32Array(hathor), box: true, hathor: true },
             { mesh: 'vase', inst: new Float32Array(props.vases), tan: 'y' },
             { mesh: 'rock', inst: new Float32Array(props.small) },

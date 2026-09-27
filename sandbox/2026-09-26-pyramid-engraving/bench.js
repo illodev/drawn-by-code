@@ -29,7 +29,11 @@ Motion.scene({
         Engrave.inst(hathor, [x, H * 0.87, z], 0, [rC * 1.25, H * 0.065, rC * 1.25], 0.45);
         Engrave.inst(wall, [x, H * 0.945, z], 0, [rC * 1.3, H * 0.01, rC * 1.3], 0.5);
         const f = {
-            cam: [-2.4, 2.6, 5.2], target: [0.2, 2.9, -2], fov: 0.72,
+            // views by time: 0 the corner, 0.25 the capital, 0.5 the ceiling, 0.75 the floor
+            ...[{ cam: [-2.4, 2.6, 5.2], target: [0.2, 2.9, -2], fov: 0.72 },
+                { cam: [-0.2, 4.6, 2.6], target: [-1.2, 5.2, 0.2], fov: 0.6 },
+                { cam: [0.5, 2.2, 3.5], target: [0.8, 6, -0.5], fov: 0.9 },
+                { cam: [-0.5, 1.9, 4.2], target: [0.4, 0, 0.5], fov: 0.8 }][Math.min(3, Math.floor(t * 4 + 1e-6))],
             sun: [-0.6, 0.55, 0.6], sunK: 1.2, fill: 0.42, interior: true, charcoal: true,
             ink: '#2e261d', paper: '#ebe1cb', course: 0.26,
             draws: [
@@ -37,12 +41,12 @@ Motion.scene({
                 { mesh: 'box', inst: new Float32Array(floor), box: true, masonry: true },
                 { mesh: 'box', inst: new Float32Array(ceil), box: true, masonry: true },
                 { mesh: 'cylinder', inst: new Float32Array(cols), tan: 'y' },
-                { mesh: 'capital', inst: new Float32Array(caps), tan: 'y' },
+                { mesh: 'capital', inst: new Float32Array(caps), tan: 'y', hathor: true },
                 { mesh: 'box', inst: new Float32Array(hathor), box: true, hathor: true },
             ],
             shadow: { center: [0, 3, -1], radius: 7 },
             sky: { zenith: 0.9, horizon: 0.9, dusk: 0 }, fog: [20, 60],
         };
-        env.state.A.apply(g, env.state.R.layer('b', f), { ink: f.ink, paper: f.paper, charcoal: true, grain: 0.45 });
+        env.state.A.apply(g, env.state.R.layer('b' + Math.floor(t * 4 + 1e-6), f), { ink: f.ink, paper: f.paper, charcoal: true, grain: 0.45 });
     },
 });
