@@ -189,7 +189,10 @@ brand's SVG, bounding volumes that must not cast shadows.
 
 ## Licenses
 
-Patrick Hand, Shrikhand and Short Stack fonts under the SIL OFL 1.1 (`fonts/`). The effects in
-`assets/sfx/` were generated with ElevenLabs: commercial use requires a paid plan.
-A client's source files (brand copy, logo files, fonts, music) live in the experiment's
-`private/` folder and are not committed.
+The code, styles, skills and docs are under the [MIT License](LICENSE): free to use, also
+commercially, keeping the copyright notice. Not covered by it: the fonts in `fonts/`
+(IM Fell DW Pica SC, Patrick Hand, Shrikhand and Short Stack, each under the SIL OFL 1.1);
+the effects in `assets/sfx/`, generated with ElevenLabs (commercial use requires a paid
+plan); and the rendered videos, GIFs and stills in `sandbox/`, which are examples for
+viewing only. A client's source files (brand copy, logo files, fonts, music) live in the
+experiment's `private/` folder and are not committed.
