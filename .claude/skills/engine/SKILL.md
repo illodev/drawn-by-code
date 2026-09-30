@@ -33,6 +33,17 @@ true }`): it is skipped when missing. That is how a client's brand material stay
 uncommitted `sandbox/*/private/` while the committed code still runs on a placeholder
 brand.
 
+**Scenes outside this repo.** A client's pieces can live in the client's own (private)
+repo and still use this engine. Mark the root of that folder with a `drawn-by-code.json`
+(its presence is the contract; `{}` is enough). Every tool then takes a scene path under it:
+the server mounts that root at `/@ext/`, so inside it paths from the root are written
+`'@ext/…'` (`const DIR = '@ext/pieces/x/'`, `uses: ['@ext/brand/brand.js']`, fonts
+`'@ext/brand/fonts/…'`), while this repo's kits, fonts and effects keep their paths
+(`'styles/…'`, `'fonts/…'`). Nothing outside the two roots is served. `new.mjs --in <dir>`
+creates the experiment there (and logs it in that folder's `INDEX.md`); the preview lists
+those scenes with `node engine/serve.mjs --ext <root>`. Lessons that generalize still come
+back here, to the skills; only the client's material stays there.
+
 Utilities in `engine/core.js`: `Motion.rng(seed)`, `noise1`, `sprite(key, box,
 scale, draw)`, `shotAt`, `pulse(t, bpm)`, `beatIndex`, `onBeat`, `cam(g, env, cx, cy,
 zoom, rot)`, `shake`, `keys([[t, v], …], t)`; and `Ease.seg/inOut/out/in/back/elastic/bump/
@@ -93,6 +104,10 @@ node engine/reference.mjs cuts ref.mp4                                         #
 node engine/reference.mjs box ref.mp4 1.75 --color '#302222' --region 150,100,850,800
 node engine/reference.mjs runs out/stills/t_3.79s.png 0 --row 0.6               # edges along a row
 node engine/reference.mjs face ref.mp4 --body '#d2745e' --from 12 --to 12.5    # face per drawing
+# a scene outside this repo (a folder marked with drawn-by-code.json)
+node engine/new.mjs x --in ../client/marketing/pieces --aspect 9:16
+node engine/serve.mjs --ext ../client/marketing
+node engine/render.mjs ../client/marketing/pieces/2026-10-01-x/scene.js --at 1
 ```
 The whole method for replicas is in the **replicate** skill.
 
@@ -118,3 +133,4 @@ Chrome: looked up in `CHROME_PATH`, `/opt/pw-browsers`, and the usual Linux/macO
 - 2026-09-27 · pyramid-engraving · This container has no GPU: WebGL runs in SwiftShader, which executes every branch of a shader for every pixel (masked). An `if` never saves time there; what does: fewer call sites of heavy functions, relief gradients from `dFdx/dFdy` instead of extra evaluations, and shader variants compiled per draw (`#ifdef`, `variantFor` in the engraving kit). Profile before guessing: time one still at half size (fragment-bound work drops 4×), then knock features out one at a time. For long films, render with `--gpu` on a machine that has one.
 - 2026-09-27 · pyramid-engraving · On a laptop with Intel + NVIDIA (Optimus), headless Chrome takes the integrated GPU unless the process is launched with PRIME offload (`__NV_PRIME_RENDER_OFFLOAD=1`, `__VK_LAYER_NV_optimus=NVIDIA_only`, `__GLX_VENDOR_LIBRARY_NAME=nvidia`); ANGLE on Vulkan there was 6× faster than OpenGL on the Intel (0.27 s vs 1.75 s a heavy frame), and only without `--enable-features=Vulkan`, which left no WebGL2. `--gpu` now tries it first.
 - 2026-09-27 · pyramid-engraving · The same shader can differ by GPU: in GLSL ES 3.0 a fragment shader's `int`/`uint` default to `mediump` (16 bits on NVIDIA: an integer hash collapsed to a constant), and a float hash like `fract(p · 123.34 …)` amplifies a compiler's reassociation of `(i + 1) · k` into a visible jump at every noise lattice line. Declare `precision highp int`, hash lattices in integers, and check a still on each GPU you render on.
+- 2026-09-30 · external product promo · Motion blur by averaging copies: paint each pass whole into its own layer (`Motion.layer`) and composite it with alpha 1/(k+1); painted straight onto the canvas, each pass's background washes out the previous ones and objects turn half transparent. Pick the number of samples from the real displacement in pixels, at least 3 as soon as anything moves (switching from 1 to 2 samples changes the edges in one frame, a visible jump), and never let it be 1 in a formula like `i / (n − 1)`: 0/0 gives NaN and the layer silently paints nothing (an empty frame).
