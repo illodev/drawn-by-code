@@ -1,12 +1,14 @@
 // Creates a new experiment in sandbox/ from a style's template.
 //
 //   node engine/new.mjs <name> [--style paper-cutout] [--aspect 16:9|9:16|1:1|4:5] [--duration 6]
+//   node engine/new.mjs <name> --in ../client/marketing/pieces   → in an external root
 //
 // Creates sandbox/YYYY-MM-DD-<name>/ with brief.md, scene.js and review.md, and logs it in
-// sandbox/INDEX.md.
+// sandbox/INDEX.md. With --in, the same inside that folder (and its INDEX.md), which must sit
+// under an external root (a folder with a drawn-by-code.json, see browser.mjs).
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, parseArgs } from './browser.mjs';
+import { ROOT, parseArgs, extRoot, EXT_MARK } from './browser.mjs';
 
 const { pos, opt } = parseArgs(process.argv.slice(2));
 const slug = (pos[0] ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -22,9 +24,14 @@ if (!logical) {
     console.error('Invalid aspect: ' + Object.keys(ASPECTS).join(', '));
     process.exit(1);
 }
+const base = opt.in ? path.resolve(opt.in) : path.join(ROOT, 'sandbox');
+if (opt.in && !extRoot(base)) {
+    console.error(`--in must be under an external root (a folder with a ${EXT_MARK}): ${opt.in}`);
+    process.exit(1);
+}
 const date = new Date().toISOString().slice(0, 10);
 const name = `${date}-${slug}`;
-const dir = path.join(ROOT, 'sandbox', name);
+const dir = path.join(base, name);
 if (fs.existsSync(dir)) {
     console.error('Already exists: ' + dir);
     process.exit(1);
@@ -62,15 +69,21 @@ Lessons that apply to other videos go up to the matching skill (see review/SKILL
 ## Round 1
 `);
 
-const index = path.join(ROOT, 'sandbox', 'INDEX.md');
+const index = path.join(base, 'INDEX.md');
 if (!fs.existsSync(index)) fs.writeFileSync(index, '# Experiments\n\n| Date | Experiment | Style | Status | Main lesson |\n|---|---|---|---|---|\n');
 fs.appendFileSync(index, `| ${date} | [${slug}](${name}/) | ${style} | in progress | |\n`);
 
-console.log(`sandbox/${name}/
+// Commands as they run from the current folder (the absolute path when it is shorter).
+const here = (p) => {
+    const r = path.relative(process.cwd(), p) || '.';
+    return (r.length <= p.length ? r : p).split(path.sep).join('/');
+};
+const scene = here(path.join(dir, 'scene.js')), engine = here(path.join(ROOT, 'engine'));
+console.log(`${here(dir)}/
   brief.md   ← fill this in first
   scene.js   ← the animation
   review.md  ← the review log
 
-Preview:  npm run preview   →  http://127.0.0.1:5173
-Review:   node engine/review.mjs sandbox/${name}/scene.js
-Render:   node engine/render.mjs sandbox/${name}/scene.js`);
+Preview:  node ${engine}/serve.mjs${opt.in ? ' --ext ' + here(extRoot(base)) : ''}   →  http://127.0.0.1:5173
+Review:   node ${engine}/review.mjs ${scene}
+Render:   node ${engine}/render.mjs ${scene}`);

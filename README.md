@@ -192,4 +192,5 @@ brand's SVG, bounding volumes that must not cast shadows.
 Patrick Hand, Shrikhand and Short Stack fonts under the SIL OFL 1.1 (`fonts/`). The effects in
 `assets/sfx/` were generated with ElevenLabs: commercial use requires a paid plan.
 A client's source files (brand copy, logo files, fonts, music) live in the experiment's
-`private/` folder and are not committed.
+`private/` folder and are not committed, or in the client's own repo: a folder marked with a
+`drawn-by-code.json` renders with this engine from outside (skill `engine`).

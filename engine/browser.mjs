@@ -8,19 +8,43 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+// A scene can also live outside this repo, in a folder of its own (a client's private
+// material that never enters this public repo). That folder is marked by a
+// drawn-by-code.json at its root and is served at /@ext/, so inside it every path from the
+// root is written '@ext/…' (DIR, uses, fonts), the same way sandbox scenes write 'sandbox/…'.
+// The kits, fonts and effects of this repo keep their usual paths ('styles/…', 'fonts/…').
+export const EXT_MARK = 'drawn-by-code.json';
+export const EXT_PREFIX = '@ext/';
+const inside = (file, root) => file === root || file.startsWith(root + path.sep);
+
+// The external root that holds a path: the nearest ancestor with a drawn-by-code.json.
+export function extRoot(p) {
+    let dir = path.resolve(p);
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) dir = path.dirname(dir);
+    for (;;) {
+        if (fs.existsSync(path.join(dir, EXT_MARK))) return dir;
+        const up = path.dirname(dir);
+        if (up === dir) return null;
+        dir = up;
+    }
+}
+
 const TYPES = {
     '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
     '.json': 'application/json', '.ttf': 'font/ttf', '.otf': 'font/otf', '.woff2': 'font/woff2', '.png': 'image/png',
     '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.md': 'text/plain; charset=utf-8',
 };
 
-export function serve(port = 0, extra = null) {
+// ext: an external root (see EXT_MARK) served at /@ext/, or null.
+export function serve(port = 0, extra = null, ext = null) {
     const server = http.createServer((req, res) => {
         const url = new URL(req.url, 'http://x');
         if (url.pathname === '/favicon.ico') return res.writeHead(204), res.end();
         if (extra && extra(url, res)) return;
-        const file = path.join(ROOT, decodeURIComponent(url.pathname));
-        if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+        const p = decodeURIComponent(url.pathname);
+        const base = ext && p.startsWith('/' + EXT_PREFIX) ? ext : ROOT;
+        const file = path.join(base, base === ext ? p.slice(EXT_PREFIX.length + 1) : p);
+        if (!inside(file, base) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
             // an optional script (a private, uncommitted file) that is absent: an empty script,
             // not a 404, so renders stay free of console errors
             if (url.searchParams.has('optional') && file.endsWith('.js')) { res.writeHead(200, { 'Content-Type': TYPES['.js'] }); return res.end('/* optional file absent */'); }
@@ -56,8 +80,13 @@ export function findFfmpeg() {
     return r.status === 0 ? 'ffmpeg' : null;
 }
 
-// Relative to the repo root, with forward slashes.
-export const rel = (p) => path.relative(ROOT, path.resolve(p)).split(path.sep).join('/');
+// Relative to the repo root, with forward slashes; a path under an external root comes out
+// as '@ext/…', which is how the player loads it.
+export const rel = (p) => {
+    const abs = path.resolve(p);
+    const ext = inside(abs, ROOT) ? null : extRoot(abs);
+    return ext ? EXT_PREFIX + path.relative(ext, abs).split(path.sep).join('/') : path.relative(ROOT, abs).split(path.sep).join('/');
+};
 
 // GPU rendering (`--gpu`, or MOTION_GPU=1): Chromium with the machine's graphics card
 // instead of software GL (SwiftShader). Which GL backend works depends on the machine (a
@@ -129,7 +158,10 @@ export async function openScene(scenePath, { size, gpu = process.env.MOTION_GPU 
     }
     const executablePath = findChrome();
     if (!executablePath) throw new Error('Chrome/Chromium not found: set its path with CHROME_PATH=/path/to/chrome');
-    const { server, port } = await serve();
+    const abs = path.resolve(scenePath);
+    const ext = inside(abs, ROOT) ? null : extRoot(abs);
+    if (!inside(abs, ROOT) && !ext) throw new Error(`A scene outside this repo needs a ${EXT_MARK} at the root of its folder: ${scenePath}`);
+    const { server, port } = await serve(0, null, ext);
     const browser = await launchBrowser(chromium, executablePath, gpu);
     const page = await browser.newPage({ viewport: { width: 800, height: 800 } });
     const errors = [];

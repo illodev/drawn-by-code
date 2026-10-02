@@ -2,9 +2,18 @@
 //
 //   npm run preview            → http://127.0.0.1:5173
 //   PORT=8080 npm run preview
+//   npm run preview -- --ext ../client/marketing   → also the scenes of an external root
+//                                                    (a folder with a drawn-by-code.json)
 import fs from 'node:fs';
 import path from 'node:path';
-import { serve, ROOT, rel } from './browser.mjs';
+import { serve, ROOT, rel, extRoot, EXT_MARK, parseArgs } from './browser.mjs';
+
+const { opt } = parseArgs(process.argv.slice(2));
+const ext = opt.ext ? extRoot(opt.ext) : null;
+if (opt.ext && !ext) {
+    console.error(`No ${EXT_MARK} in ${opt.ext} or above it`);
+    process.exit(1);
+}
 
 function scenes(dir) {
     const out = [];
@@ -20,11 +29,12 @@ function scenes(dir) {
 const port = Number(process.env.PORT ?? 5173);
 await serve(port, (url, res) => {
     if (url.pathname !== '/') return false;
-    const list = ['sandbox', 'styles'].flatMap((d) => (fs.existsSync(path.join(ROOT, d)) ? scenes(path.join(ROOT, d)) : [])).sort().reverse();
+    const dirs = ['sandbox', 'styles'].map((d) => path.join(ROOT, d)).concat(ext ? [ext] : []);
+    const list = dirs.flatMap((d) => (fs.existsSync(d) ? scenes(d) : [])).sort().reverse();
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(`<!doctype html><meta charset="utf-8"><title>drawn-by-code</title>
 <style>body{font:15px system-ui;background:#100817;color:#e8dcef;max-width:760px;margin:40px auto;padding:0 16px}a{color:#f2a07c}li{margin:6px 0}</style>
 <h1>drawn-by-code</h1><h2>Scenes</h2><ul>${list.map((s) => `<li><a href="/engine/player.html?scene=${encodeURIComponent(s)}">${s}</a></li>`).join('')}</ul>`);
     return true;
-});
-console.log(`drawn-by-code → http://127.0.0.1:${port}`);
+}, ext);
+console.log(`drawn-by-code → http://127.0.0.1:${port}` + (ext ? ` (+ ${ext} as @ext/)` : ''));
