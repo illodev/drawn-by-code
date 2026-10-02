@@ -74,3 +74,6 @@ draw(g, t, env) {
 - 2026-09-24 · pixel-building · Sample each cell by the median of its inner pixels, a pixel away from the edges the codec blurs.
 - 2026-09-24 · pixel-building · Build the palette from cells with a same-colour neighbour, then add the colours that only live in 1-pixel details (screen dots): the codec turns those into fake in-between colours otherwise.
 - 2026-09-24 · pixel-building · Replicate loops as per-frame sequences of unique drawings (the still scene = per-cell mode over all frames); timing is then exact by construction.
+- 2026-10-02 · product videos · A very low dither level (< 10 %) is not a veil: it is loose full-colour pixels and reads as dust. For a faint glow use a colour near the background at a high level, not white at a low one.
+- 2026-10-02 · product videos · Doubling pixel art: Scale2x/EPX, not ×2 blocks. A font or sprite enlarged ×2 puts pixels of two sizes in the frame; redrawn with EPX at one canvas pixel the diagonals keep the same step as everything else.
+- 2026-10-02 · product videos · Fade pieces in and out with Bayer dither, never by blinking, and slide steps over ~0.1 s on whole pixels (see `transitions` for how it is measured).
