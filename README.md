@@ -42,6 +42,7 @@ they were made. We respect that choice, but we think everyone would learn faster
 field would grow faster, if that knowledge were public.
 
 So nothing here is hidden:
+
 - **Code:** the engine and every scene.
 - **Skills:** the ones that direct Claude, including their rules, checklists and pitfalls.
 - **The process:** every experiment's brief, its rounds of review with the feedback quoted
@@ -108,19 +109,19 @@ Every experiment, with its status and main lesson, is in [`sandbox/INDEX.md`](sa
 Each style is a drawing kit, a template and a skill with its rules. Open a style's folder
 to see its strip, files and the videos made with it.
 
-| Style | Look | Status |
-|---|---|---|
-| [paper-cutout](styles/paper-cutout/) | torn paper, marker, grain, handwriting, real hands | approved |
-| [70s-poster](styles/70s-poster/) | flat acid colours, echoes, sunbursts, melting letters | approved |
-| [liquid-light](styles/liquid-light/) | merging oil blobs, a 60s light show | approved |
-| [kaleidoscope](styles/kaleidoscope/) | mirror symmetry, rotation, colour cycling | approved |
-| [line](styles/line/) | a wobbling black line on white paper | approved |
-| [clay](styles/clay/) | 2D plasticine: bevels, fingerprints, soft shadows | in testing |
-| [clay3d](styles/clay3d/) | 3D plasticine puppets, raymarched, studio light | in testing |
-| [risograph](styles/risograph/) | four spot inks, halftone, overprints, misregistration | approved |
-| [pixel-art](styles/pixel-art/) | crisp pixels on a low-res grid, sprite maps, 10 fps loops | in testing |
-| [felt3d](styles/felt3d/) | needle-felted wool puppets, raymarched, over any backdrop | in testing |
-| [engraving](styles/engraving/) | a plate of the «Description de l'Égypte» drawn in charcoal on old paper, temple reliefs | in testing |
+| Style                                | Look                                                                                    | Status     |
+| ------------------------------------ | --------------------------------------------------------------------------------------- | ---------- |
+| [paper-cutout](styles/paper-cutout/) | torn paper, marker, grain, handwriting, real hands                                      | approved   |
+| [70s-poster](styles/70s-poster/)     | flat acid colours, echoes, sunbursts, melting letters                                   | approved   |
+| [liquid-light](styles/liquid-light/) | merging oil blobs, a 60s light show                                                     | approved   |
+| [kaleidoscope](styles/kaleidoscope/) | mirror symmetry, rotation, colour cycling                                               | approved   |
+| [line](styles/line/)                 | a wobbling black line on white paper                                                    | approved   |
+| [clay](styles/clay/)                 | 2D plasticine: bevels, fingerprints, soft shadows                                       | in testing |
+| [clay3d](styles/clay3d/)             | 3D plasticine puppets, raymarched, studio light                                         | in testing |
+| [risograph](styles/risograph/)       | four spot inks, halftone, overprints, misregistration                                   | approved   |
+| [pixel-art](styles/pixel-art/)       | crisp pixels on a low-res grid, sprite maps, 10 fps loops                               | in testing |
+| [felt3d](styles/felt3d/)             | needle-felted wool puppets, raymarched, over any backdrop                               | in testing |
+| [engraving](styles/engraving/)       | a plate of the «Description de l'Égypte» drawn in charcoal on old paper, temple reliefs | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 
@@ -137,7 +138,7 @@ node engine/review.mjs sandbox/<exp>/scene.js        # automatic review + contac
 node engine/render.mjs sandbox/<exp>/scene.js --size 1920   # the MP4
 ```
 
-With Claude Code, just ask: *"make me a 10 s paper-cutout video for…"*. The `animate`
+With Claude Code, just ask: _"make me a 10 s paper-cutout video for…"_. The `animate`
 skill guides the process: brief → script → style test → animatic → final.
 
 ## How it works
@@ -178,14 +179,14 @@ brand's SVG, bounding volumes that must not cast shadows.
 
 ## Repository
 
-| Path | What it is |
-|---|---|
-| `engine/` | the engine and its tools |
-| `styles/<style>/` | a style's kit, template, strip and README |
-| `.claude/skills/` | Claude's skills: process, engine, sound, one per style |
+| Path                     | What it is                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `engine/`                | the engine and its tools                                                       |
+| `styles/<style>/`        | a style's kit, template, strip and README                                      |
+| `.claude/skills/`        | Claude's skills: process, engine, sound, one per style                         |
 | `sandbox/<date>-<name>/` | one experiment per folder: brief, scene, reviews, contact sheet, latest render |
-| `assets/sfx/`, `fonts/` | sound effects and freely licensed fonts |
-| `CONTRIBUTING.md` | how to add or improve a style by pull request |
+| `assets/sfx/`, `fonts/`  | sound effects and freely licensed fonts                                        |
+| `CONTRIBUTING.md`        | how to add or improve a style by pull request                                  |
 
 ## Licenses
 
