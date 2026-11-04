@@ -191,3 +191,12 @@ are rough; no sound effects beyond the score.
   noise settles into the kite shot's first position; at 43 s the children ease from the kite
   shot's last pose into the new one and the boy's phone stays on the ground. Measured: the
   mean frame difference across every old cut is 0.2–4.8 (camera motion), no jumps.
+
+## Round 8 (user)
+
+> La transición de la tinta no me convence, quizás usaría algo similar a la del inicio
+
+- The ink blot at 32 s → the title's bloom: the adults' painting is erased to blank paper by
+  blots that grow from the foreground back (30.9–32.0 s), the paper holds a breath, and the
+  grey shot blooms onto it sky first, then the land (32.0–34.2 s), with the same blot shapes
+  as the title. Largest frame-to-frame change in mean brightness: 17 of 255.

@@ -421,7 +421,51 @@ function drawShot(k, g, t, env) {
 // Ink-blot transitions (the user: «con mancha de tinta china en el papel, no tan brusca»).
 // Each cut gets a point where the drop lands (on what the next shot is about), in screen units.
 const INK_HALF = 0.6;
-// One stain only, between the two acts: from the adults' quarrel to the girl alone in the
+// Between the two acts (adults → children) the painting goes back to blank paper and the
+// next one blooms onto it, as in the title (the user preferred it to an ink blot). The
+// erase takes the foreground first; the reveal paints the sky first, then the land.
+const ACT = { erase: [30.9, 32.0], reveal: [32.0, 34.2] };
+const ERASE = [
+    [0.0, 400, 880, 760], [0.05, 2100, 860, 760], [0.15, 1250, 800, 900], [0.25, 100, 500, 700], [0.3, 1250, 600, 600],
+    [0.4, 600, 520, 700], [0.45, 1900, 520, 760], [0.5, 1350, 300, 650], [0.55, 500, 150, 700], [0.6, 2100, 160, 700],
+];
+const BLOOM = [
+    [0.0, 1300, 235, 230], [0.15, 700, 520, 760], [0.25, 1950, 540, 820], [0.4, 1500, 470, 380],
+    [0.5, 480, 580, 560], [0.6, 2050, 600, 520], [0.75, 1250, 820, 980], [0.9, 380, 900, 700],
+    [0.95, 2150, 880, 700], [1.05, 1250, 690, 520], [1.15, 80, 700, 760], [1.3, 380, 220, 700], [1.4, 900, 300, 400],
+];
+// blots in world units, each growing from its own start time over `grow` seconds
+function bloomMask(env, name, c, list, tl, grow) {
+    return Motion.layer(env, name, (q) => {
+        RT.view(q, c, 1);
+        list.forEach(([t0, x, y, r], i) => {
+            const u = Ease.out(Ease.seg(tl, t0, t0 + grow));
+            if (u <= 0) return;
+            Sumi.fillPoly(q, Sumi.blobPts(x, y, r * u, r * u * 0.85, 0, name + i, 0.22, 36), '#000');
+        });
+    });
+}
+function actChange(g, env, t) {
+    const out = t < ACT.erase[1], k = out ? 4 : 5, c = Film.camAt(t, k);
+    const L = Motion.layer(env, 'act-shot', (q) => drawShot(k, q, t, env));
+    const M = out ? bloomMask(env, 'act-erase', c, ERASE.map(([t0, ...v]) => [t0 * 1.4, ...v]), t - ACT.erase[0], 0.6) : bloomMask(env, 'act-bloom', c, BLOOM, t - ACT.reveal[0], 0.8);
+    const lc = L.getContext('2d');
+    lc.save();
+    lc.setTransform(1, 0, 0, 1, 0, 0);
+    lc.globalCompositeOperation = out ? 'destination-out' : 'destination-in';
+    lc.drawImage(M, 0, 0);
+    lc.restore();
+    g.save();
+    RT.view(g, c, 1);
+    Sumi.paper(g, env, { x: -500, y: -300, w: 3300, h: 1650 }, { res: 1.1 });
+    g.restore();
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage(L, 0, 0);
+    g.restore();
+}
+
+// (Not used since round 8: the ink-blot transition, kept as a recipe.) One stain only, between the two acts: from the adults' quarrel to the girl alone in the
 // rain (the user: the rest is the same place and the same people, so the camera travels).
 const INK_CUTS = [{ t: 32, x: 800, y: 640 }];
 function inkBlot(g, env, u, A, B, T) {
@@ -537,14 +581,8 @@ Motion.scene({
 
     draw(g, t, env) {
         const k = Film.shotAt(t);
-        // an ink-blot transition around every cut: the stain lands on the old shot, spreads,
-        // and thins out into the new one
-        const T = INK_CUTS.find((c) => Math.abs(t - c.t) < INK_HALF);
-        if (!T) return drawShot(k, g, t, env);
-        const u = (t - (T.t - INK_HALF)) / (2 * INK_HALF), ki = Film.shotAt(T.t);
-        const A = Motion.layer(env, 'tr-a', (q) => drawShot(ki - 1, q, t, env));
-        const B = Motion.layer(env, 'tr-b', (q) => drawShot(ki, q, t, env));
-        inkBlot(g, env, u, A, B, T);
+        if (t >= ACT.erase[0] && t < ACT.reveal[1]) return actChange(g, env, t);
+        drawShot(k, g, t, env);
     },
 
     post(ctx, t, env) {
