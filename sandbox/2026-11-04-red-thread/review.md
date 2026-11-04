@@ -345,5 +345,5 @@ are rough; no sound effects beyond the score.
 - Music: Japanese lo-fi, one ElevenLabs piece per scene in D, each with its own rhythm:
   boom-bap 75 BPM (village), no drums (the sleeve), half-time trap (the broadsheet and the
   split), double time 140 with taiko (the quarrel), rain and shakuhachi with a beat fading
-  in (grey and the kite), a building 85 BPM beat (holding on, the bridge), a breath and the
+  in (grey and the kite), a building 85 BPM beat (holding on, the bridge; take F4 after the user asked for another take), a breath and the
   full beat (the meeting and the end). Picked by loudness per second.
