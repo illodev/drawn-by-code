@@ -181,162 +181,194 @@ const RT = (() => {
         }
     }
 
-    // reeds standing in the shallows along both shores
-    function reeds(g, env) {
-        Motion.sprite('rt:reeds', { x: 300, y: 600, w: 2200, h: 600 }, env.k, (c) => {
-            const r = Motion.rng('reeds');
-            for (const [sh, side] of [[SHORE_L, 1], [SHORE_R, -1]]) {
-                for (let i = 0; i < 5; i++) {
-                    const y = 700 + r() * 380, x = shoreX(sh, y) + side * (15 + r() * 70);
-                    Sumi.reed(c, x, y, 30 + (y - 650) * 0.12, { seed: 'rd' + side + i, ink: 0.85 });
-                }
+    // --- the river (round 4) ----------------------------------------------------------------
+    // The river comes from the far hills and opens into a wide pool in the foreground, held
+    // between two promontories (the girl's on the left, the boy's on the right) and a small
+    // bank in the bottom-left corner where the old tree stands, as in the reference: the
+    // water reaches the bottom of the frame, so it never reads as a road.
+    const HORIZON = 650;
+    // the water-facing edge of each piece of land, from far to near
+    const SHORE_L = [[1040, 650], [960, 662], [860, 688], [800, 722], [770, 765], [720, 808], [600, 842], [430, 872], [240, 905], [40, 940], [-200, 975], [-700, 990]];
+    const SHORE_R = [[1330, 650], [1480, 660], [1640, 690], [1710, 714], [1760, 752], [1800, 800], [1880, 842], [2040, 875], [2260, 905], [2500, 930], [3100, 960]];
+    const SHORE_T = [[-700, 1040], [-300, 1012], [0, 1002], [180, 1022], [300, 1070], [370, 1250]];
+    const LANDS = [
+        [[-700, HORIZON - 2], ...SHORE_L, [-700, 990]],
+        [[3100, HORIZON - 2], ...SHORE_R.slice().reverse().map((p) => p).reverse(), [3100, 960]],
+        [...SHORE_T, [-700, 1250]],
+    ];
+
+    // the water: long smooth grey bands and fine dark lines, darkest along the far shore and
+    // fading to white towards the viewer (cached; it is part of the sheet)
+    function water(g, env) {
+        Motion.sprite('rt:water4', { x: -700, y: HORIZON - 10, w: 3800, h: 620 }, env.k, (c) => {
+            const r = Motion.rng('water4');
+            // the dark band where the water meets the far shore
+            const gr = c.createLinearGradient(0, HORIZON, 0, HORIZON + 110);
+            gr.addColorStop(0, Sumi.tone(0.32));
+            gr.addColorStop(0.35, Sumi.tone(0.12));
+            gr.addColorStop(1, Sumi.tone(0));
+            c.fillStyle = gr;
+            c.fillRect(-700, HORIZON, 3800, 110);
+            // broad bands: long, flat, soft-edged, lighter and sparser towards the viewer
+            for (let i = 0; i < 46; i++) {
+                const v = Math.pow(r(), 1.6), y = HORIZON + 6 + v * 560;
+                const len = 300 + r() * 1100, x = -500 + r() * 3400;
+                Sumi.stroke(c, [[x, y], [x + len * 0.5, y + (r() - 0.5) * 3], [x + len, y + (r() - 0.5) * 2]],
+                    { w: 8 + r() * 22 * (0.5 + v), ink: (0.1 + r() * 0.2) * (1 - v * 0.8), dry: 0.88, seed: 'wb' + i, taper: [0.35, 0.45], blunt: 0.25, core: r() < 0.5, bleed: false });
+            }
+            // fine dark lines running far across (the pencil-thin lines of the reference)
+            for (let i = 0; i < 38; i++) {
+                const v = Math.pow(r(), 1.4), y = HORIZON + 4 + v * 540;
+                const len = 200 + r() * 900, x = -500 + r() * 3400;
+                Sumi.stroke(c, [[x, y], [x + len, y + (r() - 0.5) * 2]],
+                    { w: 1.6 + r() * 1.6, ink: (0.45 + r() * 0.4) * (1 - v * 0.5), dry: 0.5, seed: 'wl' + i, taper: [0.15, 0.2], blunt: 0.6, core: false, bleed: false });
             }
         }).draw(g);
     }
 
-    // banks: mostly empty paper, defined by the shoreline stroke, a darker wash along the
-    // water and tufts of grass, as a painter would leave them
-    const SHORE_L = [[1040, 640], [960, 655], [820, 700], [790, 740], [700, 790], [690, 860], [590, 960], [430, 1150]];
-    const SHORE_R = [[1330, 640], [1470, 650], [1700, 702], [1720, 750], [1830, 800], [1880, 880], [2060, 980], [2350, 1150]];
-    // the river's surface: a pale wash, darker towards the far shore
-    function waterSurface(g, env, t, c) {
+    // reflections: the far landscape, the grey sun, the broken bridge and the red thread
+    // mirrored about their water lines, drawn into a layer and laid on the water in thin
+    // horizontal strips that shift and break with the current
+    function reflections(g, env, t, c, span) {
+        const L = Motion.layer(env, 'rt-refl', (q) => {
+            view(q, c, 1);
+            q.save();
+            q.translate(0, HORIZON * 2);
+            q.scale(1, -1);
+            q.globalAlpha = 0.5;
+            sky(q, env, t);
+            landscape(q, env);
+            q.restore();
+            q.save();
+            q.translate(0, 722 * 2);
+            q.scale(1, -1);
+            bridge(q, env, true);
+            q.restore();
+            if (span) {
+                q.save();
+                q.translate(0, 722 * 2);   // the water surface under the thread (as the bridge)
+                q.scale(1, -1);
+                Sumi.stroke(q, span, { w: 2.4, ink: 0.6, color: Sumi.RED, dry: 0.2, seed: 'strRefl', taper: [0, 0], blunt: 1, bleed: false, raw: true });
+                q.restore();
+            }
+        });
         g.save();
-        g.beginPath();
-        clipWater(g);
-        g.clip();
-        const gr = g.createLinearGradient(0, 640, 0, 1150);
-        gr.addColorStop(0, 'rgba(23,19,15,0.16)');
-        gr.addColorStop(0.35, 'rgba(23,19,15,0.07)');
-        gr.addColorStop(1, 'rgba(23,19,15,0.02)');
-        g.fillStyle = gr;
-        g.fillRect(-500, 600, 3400, 600);
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.globalCompositeOperation = 'darken';     // paper in the layer leaves the water as it is
+        const W = env.px[0], H = env.px[1], sh = Math.max(2, Math.round(2.5 * env.k));
+        for (let y = 0; y < H; y += sh) {
+            const gap = Motion.noise1('rgap', y * 0.06 + t * 0.7);
+            if (gap > 0.42) continue;                 // white cuts across the reflection
+            const dx = Math.sin(y * 0.05 + t * 1.6) * 2.2 * env.k + Motion.noise1('rdx', y * 0.02 + t * 0.4) * 2 * env.k;
+            g.globalAlpha = 0.5 + 0.2 * Math.max(0, -gap);
+            g.drawImage(L, 0, y, W, sh, dx, y, W, sh);
+        }
         g.restore();
     }
-    function water(g, env, t) {
-        // ripples: horizontal dry strokes, denser near the shores, drifting slowly
-        const r = Motion.rng('ripples');
-        for (let i = 0; i < 48; i++) {
-            const y = 655 + Math.pow(r(), 1.1) * 470;
-            const depth = (y - 640) / 500;
-            const xl = shoreX(SHORE_L, y), xr = shoreX(SHORE_R, y);
-            const near = r() < 0.55;
-            const x = near ? (r() < 0.5 ? xl + 10 + r() * 140 : xr - 150 + r() * 140) : xl + r() * (xr - xl);
-            const len = 120 + r() * 380 * (0.4 + depth);
-            const sp = Sumi.cachedStroke('rip' + i, [[0, 0], [len * 0.5, (r() - 0.5) * 3], [len, 0]],
-                { w: 5 + depth * 26 * (0.3 + r()), ink: 0.07 + r() * 0.2, dry: 0.8, seed: 'rip' + i, taper: [0.2, 0.35], blunt: 0.5, core: r() < 0.5 }, env.k);
-            const dx = Math.sin(t * 0.6 + i) * 10 + t * 6 * (0.5 + r());
-            g.save();
-            g.beginPath();
-            clipWater(g);
-            g.clip();
-            sp.draw(g, x - len / 2 + dx, y);
-            g.restore();
-        }
-    }
-    function shoreX(sh, y) {
-        for (let i = 1; i < sh.length; i++) if (y <= sh[i][1]) {
-            const u = (y - sh[i - 1][1]) / (sh[i][1] - sh[i - 1][1]);
-            return sh[i - 1][0] + (sh[i][0] - sh[i - 1][0]) * u;
-        }
-        return sh[sh.length - 1][0];
-    }
-    function clipWater(g) {
-        g.moveTo(SHORE_L[0][0], SHORE_L[0][1]);
-        for (const p of SHORE_L) g.lineTo(p[0], p[1]);
-        for (let i = SHORE_R.length - 1; i >= 0; i--) g.lineTo(SHORE_R[i][0], SHORE_R[i][1]);
-        g.closePath();
-    }
 
-    function banks(g, env) {
-        const key = 'banks';
-        const box = { x: -500, y: 560, w: 3200, h: 700 };
-        Motion.sprite('rt:' + key, box, env.k, (c) => {
-            for (const [sh, side] of [[SHORE_L, -1], [SHORE_R, 1]]) {
-                // a narrow damp band along the water's edge
-                const w = Sumi.wash('bank' + side, box, env.k, (q) => {
-                    q.moveTo(sh[0][0], sh[0][1]);
-                    for (const p of sh) q.lineTo(p[0], p[1]);
-                    for (let i = sh.length - 1; i >= 0; i--) q.lineTo(sh[i][0] + side * (10 + i * 7), sh[i][1] - 2);
-                    q.closePath();
-                }, { ink: 0.35, blur: 3, grain: 1 });
-                c.drawImage(w.canvas, box.x, box.y, box.w, box.h);
-                // the shoreline: two long strokes along a wandering edge, broken by stones
-                const fine = Sumi.smooth(sh, 6).map(([x, y], i) => [x + side * 9 * Motion.noise1('sh' + side, i * 0.08), y]);
-                const half = Math.floor(fine.length * 0.45);
-                Sumi.stroke(c, fine.slice(0, half + 4), { w: 7, ink: 0.8, dry: 0.75, seed: 'shoreA' + side, taper: [0.3, 0.3], blunt: 0.5, raw: true });
-                Sumi.stroke(c, fine.slice(half + 10), { w: 16, ink: 0.85, dry: 0.7, seed: 'shoreB' + side, taper: [0.15, 0.3], blunt: 0.6, raw: true });
-                const r = Motion.rng('stones' + side);
-                for (let i = 0; i < 7; i++) {
-                    const p = fine[Math.floor((0.1 + 0.85 * r()) * (fine.length - 1))];
-                    const sz = 6 + (p[1] - 640) * 0.05 * (0.6 + r());
-                    const st = Sumi.blobPts(p[0] + side * sz * 0.6, p[1] - sz * 0.2, sz * 1.5, sz, 0, 'st' + side + i, 0.15);
-                    Sumi.fillPoly(c, st, Sumi.tone(0.25 + r() * 0.2));
-                    Sumi.stroke(c, st.slice(14, 28), { w: sz * 0.35, ink: 0.85, dry: 0.6, seed: 'stc' + side + i, taper: [0.2, 0.3] });
-                    // moss dots (dian) on the stone
-                    for (let k = 0; k < 3; k++) Sumi.dab(c, p[0] + side * sz * (r() * 1.5), p[1] - sz * (0.8 + r() * 0.4), 1.6 + r() * 1.6, 1.4 + r(), { seed: 'md' + side + i + k });
+    // the land: opaque paper over the water, a damp grey band and a dry dark line along each
+    // shore, stones with moss, grass, the boy's rock
+    function lands(g, env) {
+        Motion.sprite('rt:lands4', { x: -700, y: HORIZON - 10, w: 3800, h: 620 }, env.k, (c) => {
+            const r = Motion.rng('lands4');
+            for (const poly of LANDS) Sumi.fillPoly(c, poly, Sumi.PAPER);
+            for (const [sh, side] of [[SHORE_L, 1], [SHORE_R, -1], [SHORE_T, 1]]) {
+                const fine = Sumi.smooth(sh, 6).map(([x, y], i) => [x + 5 * Motion.noise1('sh4' + side + sh.length, i * 0.1), y + 3 * Motion.noise1('shy4' + side, i * 0.13)]);
+                // damp band on the water side
+                Sumi.stroke(c, fine.map(([x, y]) => [x + side * 6, y + 8]), { w: 16, ink: 0.28, dry: 0.85, seed: 'damp' + side + sh.length, taper: [0.1, 0.1], core: false, raw: true, bleed: false });
+                // the shoreline: two or three strokes, heavier towards the viewer
+                // the shoreline: short strokes with gaps, heavier towards the viewer, never one
+                // continuous line (that reads as a kerb)
+                const n = fine.length;
+                let i0 = 0, k = 0;
+                while (i0 < n - 3) {
+                    const len = 5 + Math.floor(r() * 9), i1 = Math.min(n, i0 + len);
+                    const u = i0 / n;
+                    Sumi.stroke(c, fine.slice(i0, i1), { w: 4 + u * 9 * (0.6 + r() * 0.8), ink: 0.7 + r() * 0.25, dry: 0.7, seed: 'shl' + side + sh.length + k, taper: [0.25, 0.4], blunt: 0.5, raw: true, bleed: false });
+                    i0 = i1 + (r() < 0.4 ? 1 + Math.floor(r() * 2) : -1);
+                    k++;
                 }
-                // reeds leaning out over the water
-                for (let i = 0; i < 5; i++) {
-                    const p = fine[Math.floor((0.2 + 0.75 * r()) * (fine.length - 1))];
-                    for (let k = 0; k < 4; k++) {
-                        const hgt = 30 + r() * 40 * (p[1] - 600) / 300, a = -Math.PI / 2 - side * (0.15 + k * 0.12 + r() * 0.1);
-                        Sumi.stroke(c, [p, [p[0] + Math.cos(a) * hgt * 0.5, p[1] + Math.sin(a) * hgt * 0.5], [p[0] + Math.cos(a - side * 0.25) * hgt, p[1] + Math.sin(a - side * 0.25) * hgt]],
-                            { w: 3.2, ink: 0.75, dry: 0.4, seed: 'rd' + side + i + k, taper: [0, 0.9], blunt: 1 });
-                    }
+                // ground on the bank: dry grey strokes lying along the shore, fading inland
+                for (let j = 0; j < 14; j++) {
+                    const a = Math.floor(r() * (n - 8)), b = Math.min(n, a + 4 + Math.floor(r() * 8));
+                    const off = 10 + r() * 60;
+                    Sumi.stroke(c, fine.slice(a, b).map(([x, y]) => [x - side * off * 0.4, y - off]), { w: 3 + r() * 6, ink: 0.15 + r() * 0.2, dry: 0.9, seed: 'gr4' + side + sh.length + j, taper: [0.3, 0.4], raw: true, core: false, bleed: false });
                 }
-                // a few ground lines inland
-                for (let i = 0; i < 4; i++) {
-                    const y = 720 + r() * 360, x0 = shoreX(sh, y) + side * (60 + r() * 160), len = 90 + r() * 160;
-                    Sumi.stroke(c, [[x0, y], [x0 + side * len * 0.5, y - 3], [x0 + side * len, y + 2]],
-                        { w: 4 + r() * 4, ink: 0.22 + r() * 0.15, dry: 0.9, seed: 'gl' + side + i, taper: [0.3, 0.6], core: false });
+                // a second, lighter line behind the edge (the bank's lip), as in the reference
+                const lip = fine.slice(Math.floor(n * 0.25)).map(([x, y]) => [x - side * 14, y - 12]);
+                Sumi.stroke(c, lip, { w: 4, ink: 0.4, dry: 0.85, seed: 'lip' + side + sh.length, taper: [0.3, 0.4], raw: true, core: false, bleed: false });
+                // stones with moss dots
+                for (let i = 0; i < 6; i++) {
+                    const p = fine[Math.floor((0.15 + 0.8 * r()) * (n - 1))];
+                    const sz = 5 + (p[1] - HORIZON) * 0.035 * (0.6 + r());
+                    const st = Sumi.blobPts(p[0], p[1] - sz * 0.3, sz * 1.5, sz, 0, 'st4' + side + i + sh.length, 0.15);
+                    Sumi.fillPoly(c, st, Sumi.tone(0.22 + r() * 0.2));
+                    Sumi.stroke(c, st.slice(14, 28), { w: sz * 0.35, ink: 0.85, dry: 0.6, seed: 'stc4' + side + i + sh.length, taper: [0.2, 0.3], bleed: false });
+                    for (let k = 0; k < 3; k++) Sumi.dab(c, p[0] + (r() - 0.5) * sz * 2, p[1] - sz * (1 + r() * 0.4), 1.4 + r() * 1.4, 1.2 + r(), { seed: 'md4' + side + i + k + sh.length });
                 }
             }
-            // grass tufts and stones on both banks
-            const r = Motion.rng('tufts');
-            for (let i = 0; i < 22; i++) {
-                const side = i % 2 ? 1 : -1, sh = side < 0 ? SHORE_L : SHORE_R;
-                const y = 650 + r() * 450, x0 = shoreX(sh, y) + side * (20 + r() * 420);
-                const n = 3 + Math.floor(r() * 4), hgt = 14 + r() * 26 * (0.6 + (y - 650) / 400);
+            // grass on the land, thinning away from the water
+            const tuft = (x0, y, s, seed) => {
+                const n = 3 + Math.floor(r() * 4);
                 for (let j = 0; j < n; j++) {
-                    const a = -Math.PI / 2 + (j - n / 2) * 0.28 + (r() - 0.5) * 0.3;
-                    Sumi.stroke(c, [[x0 + j * 3, y], [x0 + j * 3 + Math.cos(a) * hgt * 0.5, y + Math.sin(a) * hgt * 0.5], [x0 + j * 3 + Math.cos(a) * hgt + 4, y + Math.sin(a) * hgt]],
-                        { w: 3 + r() * 2, ink: 0.55 + r() * 0.35, dry: 0.4, seed: 'tf' + i + j, taper: [0, 0.8], blunt: 1 });
+                    const a = -Math.PI / 2 + (j - n / 2) * 0.25 + (r() - 0.5) * 0.3, hgt = s * (0.6 + r() * 0.6);
+                    Sumi.stroke(c, [[x0 + j * 3, y], [x0 + j * 3 + Math.cos(a) * hgt * 0.5, y + Math.sin(a) * hgt * 0.5], [x0 + j * 3 + Math.cos(a) * hgt + 3, y + Math.sin(a) * hgt]],
+                        { w: 2.5 + r() * 1.5, ink: 0.6 + r() * 0.3, dry: 0.4, seed: seed + j, taper: [0, 0.85], blunt: 1, bleed: false });
                 }
-            }
-            // the boy's rock: a pale wash body, a dark dry outline on the shadow side, moss dots
+            };
+            for (let i = 0; i < 9; i++) tuft(250 + r() * 480, 700 + r() * 120, 16 + r() * 12, 'tL' + i);
+            for (let i = 0; i < 9; i++) tuft(1820 + r() * 500, 700 + r() * 140, 16 + r() * 12, 'tR' + i);
+            for (let i = 0; i < 5; i++) tuft(-200 + r() * 450, 1040 + r() * 80, 24 + r() * 14, 'tT' + i);
+            // the boy's rock
             const rk = Sumi.blobPts(ROCK.x - 6, ROCK.y - 2, 58, 30, 0, 'rock', 0.12);
             Sumi.fillPoly(c, rk, Sumi.tone(0.22));
             Sumi.fillPoly(c, Sumi.blobPts(ROCK.x + 14, ROCK.y + 8, 40, 18, 0.1, 'rocksh', 0.15), Sumi.tone(0.25));
-            Sumi.stroke(c, [...rk.slice(20), ...rk.slice(0, 13)], { w: 9, ink: 0.92, dry: 0.65, seed: 'rockc', taper: [0.15, 0.35] });
-            Sumi.stroke(c, rk.slice(13, 21), { w: 6, ink: 0.7, dry: 0.85, seed: 'rockb', taper: [0.2, 0.4] });
+            Sumi.stroke(c, [...rk.slice(20), ...rk.slice(0, 13)], { w: 9, ink: 0.92, dry: 0.65, seed: 'rockc', taper: [0.15, 0.35], bleed: false });
+            Sumi.stroke(c, rk.slice(13, 21), { w: 6, ink: 0.7, dry: 0.85, seed: 'rockb', taper: [0.2, 0.4], bleed: false });
             for (let k = 0; k < 6; k++) Sumi.dab(c, ROCK.x - 40 + k * 15, ROCK.y - 26 + (k % 2) * 4, 2.2, 1.8, { seed: 'rm' + k });
         }).draw(g);
     }
 
+    // reeds in the shallows along the shores and two clumps out in the open water
+    function reeds(g, env) {
+        Motion.sprite('rt:reeds4', { x: -700, y: HORIZON - 100, w: 3800, h: 720 }, env.k, (c) => {
+            const r = Motion.rng('reeds4');
+            const along = (sh, u) => {
+                const f = u * (sh.length - 1), i = Math.min(sh.length - 2, Math.floor(f));
+                return Ease.lerpPt(sh[i], sh[i + 1], f - i);
+            };
+            for (const [sh, side, us] of [[SHORE_L, 1, [0.32, 0.45, 0.58, 0.7]], [SHORE_R, -1, [0.35, 0.5, 0.62, 0.72]]]) {
+                for (const u of us) {
+                    const p = along(sh, u + (r() - 0.5) * 0.04);
+                    Sumi.reed(c, p[0] + side * (14 + r() * 26), p[1] + 10 + r() * 14, 26 + (p[1] - HORIZON) * 0.16, { seed: 'rd4' + side + u, ink: 0.88 });
+                }
+            }
+            Sumi.reed(c, 1040, 1010, 58, { seed: 'rdA', ink: 0.9 });
+            Sumi.reed(c, 1090, 1022, 46, { seed: 'rdB', ink: 0.9 });
+            Sumi.reed(c, 1560, 990, 50, { seed: 'rdC', ink: 0.9 });
+        }).draw(g);
+    }
+
     // the broken bridge: a deck stub from each bank, posts standing in the water
-    function bridge(g, env) {
-        Motion.sprite('rt:bridge', { x: 600, y: 560, w: 1300, h: 300 }, env.k, (c) => {
+    // (their reflections come from the reflection pass)
+    function bridge(g, env, mirror = false) {
+        Motion.sprite('rt:bridge4', { x: 600, y: 560, w: 1300, h: 300 }, env.k, (c) => {
             const deck = (a, b, seed) => {
                 Sumi.stroke(c, [a, Ease.lerpPt(a, b, 0.5), b], { w: 13, ink: 0.92, dry: 0.45, seed, taper: [0.02, 0.15], blunt: 1 });
             };
             deck([820, 676], [985, 668], 'deckL');
             deck([1525, 668], [1680, 676], 'deckR');
-            // splintered ends
             for (const [x, y, d] of [[985, 668, 1], [1525, 668, -1]]) {
                 for (let i = 0; i < 4; i++) Sumi.stroke(c, [[x - d * 6, y - 4 + i * 3], [x + d * (10 + i * 7), y - 8 + i * 5]], { w: 3, ink: 0.85, dry: 0.3, seed: 'spl' + x + i, taper: [0, 0.8] });
             }
-            // railing posts on the stubs
             for (const x of [850, 920, 975, 1540, 1600, 1660]) Sumi.stroke(c, [[x, 670], [x + 1, 640]], { w: 5, ink: 0.9, dry: 0.3, seed: 'rp' + x, taper: [0, 0.1] });
             Sumi.stroke(c, [[848, 643], [976, 640]], { w: 4, ink: 0.85, dry: 0.5, seed: 'railL', taper: [0.05, 0.2] });
             Sumi.stroke(c, [[1538, 640], [1662, 643]], { w: 4, ink: 0.85, dry: 0.5, seed: 'railR', taper: [0.05, 0.2] });
-            // posts in the water, some broken and tilted
             for (const [x, top, tilt] of [[1010, 665, 0], [1130, 690, 0.12], [1270, 700, -0.2], [1400, 684, 0.05], [1500, 668, 0]]) {
                 const bot = 722;
                 Sumi.stroke(c, [[x, top], [x + tilt * (bot - top), bot]], { w: 10, ink: 0.9, dry: 0.5, seed: 'post' + x, taper: [0, 0.05], blunt: 1 });
-                // its reflection, broken by ripples
-                const rx = x + tilt * (bot - top);
-                Sumi.stroke(c, [[rx, bot + 4], [rx - 4, bot + 16], [rx + 4, bot + 28], [rx - 2, bot + 40]], { w: 8, ink: 0.3, dry: 0.75, seed: 'pr' + x, taper: [0.05, 0.6] });
-                Sumi.stroke(c, [[rx - 16, bot + 3], [rx + 18, bot + 2]], { w: 3, ink: 0.5, dry: 0.6, seed: 'prw' + x, taper: [0.3, 0.3] });
+                // a ring of disturbed water where the post enters it
+                Sumi.stroke(c, [[x + tilt * (bot - top) - 15, bot + 2], [x + tilt * (bot - top) + 17, bot + 1]], { w: 3, ink: 0.55, dry: 0.6, seed: 'prw' + x, taper: [0.3, 0.3] });
             }
         }).draw(g);
     }
@@ -451,29 +483,14 @@ const RT = (() => {
         return null;
     }
 
-    // the thread's reflection on the river, broken by the ripples
-    function reflection(g, env, t, sp) {
-        if (!sp) return;
-        const pts = sag(sp.gh, sp.bh, sp.span);
-        g.save();
-        g.beginPath();
-        clipWater(g);
-        g.clip();
-        g.strokeStyle = 'rgba(198,42,31,0.32)';
-        g.lineWidth = 2;
-        for (let i = 1; i < pts.length; i++) {
-            const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
-            if (Math.sin(i * 1.7 + t * 3) < -0.3) continue;
-            const ry = (y) => 2 * (WL + 70) - y;
-            g.beginPath();
-            g.moveTo(ax + Math.sin(t * 2 + i) * 3, ry(ay));
-            g.lineTo(bx + Math.sin(t * 2 + i) * 3, ry(by));
-            g.stroke();
-        }
-        g.restore();
+    // the thread across the river after the catch (for its reflection), from the poses
+    function spanFor(t, gp, bp) {
+        if (t < T_CATCH) return null;
+        const settle = Ease.out(Ease.seg(t, T_CATCH, T_CATCH + 0.8));
+        return sag(gp.hands[0], bp.hands[0], 95 - 40 * settle + Math.sin(t * 2.1) * 6);
     }
 
-    return { landscape, cranes, reeds, waterSurface, W, H, cam, view, twos, sky, banks, bridge, water, tree, petals, wind, kite, string, reflection, girlPose, boyPose };
+    return { landscape, cranes, reeds, lands, reflections, spanFor, W, H, cam, view, twos, sky, bridge, water, tree, petals, wind, kite, string, girlPose, boyPose };
 })();
 
 Motion.scene({
@@ -499,12 +516,14 @@ Motion.scene({
             RT.sky(g, env, t);
             RT.cranes(g, env, tq);
             RT.landscape(g, env);
-            RT.waterSurface(g, env, t, c);
-            RT.banks(g, env);
-            RT.water(g, env, t);
+            RT.water(g, env);
+            // the figures are posed first so the thread's reflection can be laid on the water
+            const gp = RT.girlPose(tq), bp = RT.boyPose(tq);
+            RT.reflections(g, env, t, c, RT.spanFor(tq, gp, bp));
+            RT.lands(g, env);
             RT.reeds(g, env);
             RT.bridge(g, env);
-            const gd = Cast.figure(g, RT.girlPose(tq)), bd = Cast.figure(g, RT.boyPose(tq));
+            const gd = Cast.figure(g, gp), bd = Cast.figure(g, bp);
             RT.string(g, env, tq, gd, bd);
             RT.kite(g, env, tq);
             RT.wind(g, env, t);

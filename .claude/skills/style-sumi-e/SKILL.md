@@ -58,8 +58,17 @@ targets (a target out of reach leaves the prop hanging in the air).
   is broken and dry: a continuous outline reads as wire.
 - **Leave paper (ma).** Banks and sky are mostly empty paper defined by a few strokes: a
   shoreline, stones with moss dots, reeds, tufts. Washes along a whole bank read as a road.
-- **Water** is a pale wash darker towards the far shore, horizontal dry strokes denser near
-  the banks, and reflections (posts as a wavy stroke, mountains mirrored at ~0.3).
+- **Water (from the reference):** white paper crossed by long, flat, soft-ended grey bands
+  and pencil-thin dark lines that run far across, darkest where it meets the far shore and
+  fading to white towards the viewer. Reflections are the scene mirrored about its own water
+  line (far landscape about the horizon, a bridge or thread about the surface under it),
+  laid on in thin horizontal strips that shift and break with the current (`darken`, ~0.5).
+  The land is opaque paper over the water: a shore of short broken strokes with gaps (one
+  continuous line reads as a kerb), a damp grey band, stones with moss, reeds in the
+  shallows.
+- **A river must not read as a road:** never two parallel banks running to the vanishing
+  point. Open it into a pool that reaches the bottom of the frame between promontories (and
+  a corner of bank in the foreground), as in the reference.
 - **People are ink silhouettes, no faces.** Who they are reads from posture, hair and
   clothes: a robe is one broad stroke pressed harder towards the hem; a hand at this size
   (figures 120–190 units tall) is one dab at the sleeve's end. Any close-up of a hand goes
@@ -101,3 +110,4 @@ targets (a target out of reach leaves the prop hanging in the air).
 - 2026-11-04 · red-thread round 2 · Things that cross the frame (cranes, petals) must be on screen during the shot, not entering in its last second: place them by where they are at the middle of the shot, then derive the start.
 - 2026-11-04 · red-thread round 3 · The user called the landscape «a disaster»: rounded symmetric peaks «look like condoms», box temples read as nothing, and with the camera moving «everything shows through and some things move with the motion». Build landscape pieces opaque (paper knockout, mist as paper), paint the whole landscape as one sheet with no parallax, and copy each piece's construction from the reference (crop it 3× first) before drawing it.
 - 2026-11-04 · red-thread round 3 · When layers are flattened, re-lay out the scene for every framing of the camera move (first and last frame): pieces placed for a parallax layer land elsewhere, off frame or behind the action.
+- 2026-11-04 · red-thread round 4 · A thing's reflection is mirrored about the water surface directly under it, not under the viewer: a thread strung above a bridge reflects about the bridge's waterline, or its reflection lands far below and reads as a second thread.

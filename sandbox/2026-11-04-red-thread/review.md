@@ -96,3 +96,25 @@ cranes, wind and water move on their own.
   higher, clear of the kite; one limb shortened off the string; the water as wide soft bands.
 
 `review.mjs`: no warnings; 43 ms/frame warm.
+
+## Round 4 (user)
+
+> Sí, sigue con el río y el agua
+
+## Round 4 (auto)
+
+- Measured the reference's water (crop 2×): white paper, long flat soft-ended grey bands,
+  pencil-thin dark lines running far across, mirrored objects in broken horizontal strips,
+  red petals floating, reeds in the open water, shores as broken strokes with a damp band.
+- The river no longer runs as a corridor to the vanishing point (it read as a road): it
+  opens into a pool that reaches the bottom of the frame, held between the girl's and the
+  boy's promontories and a corner of bank under the tree.
+- Water: one cached sheet of bands and fine lines; reflections of the far landscape, the
+  grey sun, the broken bridge and (after the catch) the red thread, laid in strips that
+  drift and break with the current. The thread's first reflection was mirrored about the
+  wrong line (it showed as a second thread far below) → mirrored about the bridge's waterline.
+- Land: opaque paper over the water, shores of short broken strokes (a single line read as a
+  kerb), ground strokes along them, stones with moss, grass; reeds in the shallows and two
+  clumps out in the water.
+
+`review.mjs`: no warnings; 56 ms/frame warm.
