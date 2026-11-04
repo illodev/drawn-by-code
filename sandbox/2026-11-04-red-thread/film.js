@@ -418,6 +418,140 @@ const Film = (() => {
         g.restore();
     }
 
+    // --- the kuroko (round 11: «una causa externa alegorizando al sistema que nos divide sin
+    // saberlo») -----------------------------------------------------------------------------
+    // In Japanese theatre the kuroko is the stagehand dressed in black, face veiled, who moves
+    // the puppets in plain sight while everyone agrees he is not there. Here he is the system:
+    // a giant hooded figure rising behind the mountains (eclipsing the sun), his hands hidden
+    // in his sleeves, a puppeteer's control bar hanging from each sleeve with black strings
+    // down to the villagers' phones. Nobody looks up. The slogans run down his strings; a
+    // string lashes each red thread before it snaps. When someone lets the phone go his
+    // string breaks; with no strings left he dissolves into the mist.
+    const KUROKO = { x: 1240, top: 205 };
+    function kurokoAt(t) {
+        // presence (0..1) and how far below the mountains he still is
+        const rise1 = E.inOut(seg(t, 12.6, 16.6)), rise2 = E.inOut(seg(t, 43.2, 45.0));
+        const gone = E.inOut(seg(t, 53.8, 56.8));
+        if (t < 32) return { on: rise1, dy: 560 * (1 - rise1), fade: 0 };
+        if (t < 43) return { on: 0, dy: 560, fade: 1 };
+        return { on: rise2, dy: 420 * (1 - rise2) + 60 * gone, fade: gone };
+    }
+    // the two control bars (ito-ayatsuri crosses), swinging a little under the sleeves
+    function kurokoBars(t) {
+        const k = kurokoAt(t);
+        return [[-1, 1240 - 455], [1, 1240 + 455]].map(([side, x]) => {
+            const sw = Math.sin(t * 1.3 + side) * 10;
+            return { side, x: x + sw, y: 600 + k.dy + Math.sin(t * 0.9 + side * 2) * 6, rot: Math.sin(t * 1.3 + side) * 0.12, on: k.on * (1 - k.fade) };
+        });
+    }
+    // the body: behind the landscape (painted before it), so the mountains hide his foot
+    function drawKuroko(g, env, t) {
+        const k = kurokoAt(t);
+        if (k.on <= 0.01 || k.fade >= 0.99) return;
+        const sp = Motion.sprite('kuroko2', { x: 500, y: -80, w: 1500, h: 820 }, env.k, (c) => {
+            const r = Motion.rng('kuroko');
+            const X = KUROKO.x, Y = KUROKO.top;
+            const black = (pts) => S.fillPoly(c, S.smooth(pts, 6), S.tone(0.9));
+            // the robe: a bell from the shoulders down, lost in the mist behind the mountains
+            black([[X - 150, Y + 175], [X - 210, Y + 300], [X - 260, Y + 640], [X + 260, Y + 640], [X + 210, Y + 300], [X + 150, Y + 175]]);
+            // the arms held out and down towards the valley, ending in the sleeves' mouths
+            for (const s of [-1, 1]) {
+                // shoulder, elbow, the sleeve's mouth: the arm reaches out and down over the
+                // valley, the sleeve widening like a bell at the wrist (the hand stays inside)
+                const sh = [X + s * 130, Y + 185], el = [X + s * 290, Y + 250], mouth = [X + s * 430, Y + 330];
+                S.stroke(c, [sh, el, mouth], { w: 92, ink: 0.92, dry: 0.45, seed: 'karm' + s, taper: [0, 0], blunt: 1, press: (u) => 0.95 + 0.45 * u * u, bleed: false });
+                S.dab(c, mouth[0] + s * 18, mouth[1] + 18, 30, 52, { seed: 'kmouth' + s, ink: 1, rot: -s * 0.6 });
+            }
+            // the hood: a rounded cap whose cloth falls over the shoulders
+            black([[X - 95, Y + 40], [X - 85, Y - 15], [X - 45, Y - 45], [X + 45, Y - 45], [X + 85, Y - 15], [X + 95, Y + 40], [X + 135, Y + 150], [X + 165, Y + 200], [X - 165, Y + 200], [X - 135, Y + 150]]);
+            // dry-brush texture: long strokes down the cloth, only on the cloth itself
+            c.save();
+            c.globalCompositeOperation = 'source-atop';
+            for (let i = 0; i < 60; i++) {
+                const x = X - 240 + r() * 480, y0 = Y - 20 + r() * 260, len = 100 + r() * 360;
+                S.stroke(c, [[x, y0], [x + (r() - 0.5) * 10, y0 + len]], { w: 4 + r() * 10, ink: 0.5 + r() * 0.45, dry: 0.9, seed: 'kos' + i, taper: [0.2, 0.7], core: false, bleed: false });
+            }
+            c.restore();
+            // the veil over the face: a hanging panel of fine mesh, a shade lighter, no face
+            const vx = X - 52, vy = Y + 5, vw = 104, vh = 165;
+            c.fillStyle = S.tone(0.66);
+            c.fillRect(vx, vy, vw, vh);
+            c.strokeStyle = 'rgba(246,244,239,0.13)';
+            c.lineWidth = 1;
+            for (let x = vx + 3; x < vx + vw; x += 6) { c.beginPath(); c.moveTo(x, vy); c.lineTo(x + Math.sin(x) * 2, vy + vh); c.stroke(); }
+            for (let y = vy + 3; y < vy + vh; y += 6) { c.beginPath(); c.moveTo(vx, y); c.lineTo(vx + vw, y); c.stroke(); }
+            S.stroke(c, [[vx - 4, vy], [vx + vw + 4, vy]], { w: 8, ink: 1, dry: 0.4, seed: 'kband', taper: [0, 0], core: false, bleed: false });
+            // a dark dry edge on the hood
+            S.stroke(c, [[X - 95, Y + 40], [X - 85, Y - 15], [X - 45, Y - 45], [X + 45, Y - 45], [X + 85, Y - 15], [X + 95, Y + 40]], { w: 7, ink: 1, dry: 0.6, seed: 'khood', taper: [0.2, 0.2], core: false, bleed: false });
+            // his foot dissolves into the mist
+            c.save();
+            c.globalCompositeOperation = 'destination-out';
+            const gr = c.createLinearGradient(0, Y + 380, 0, Y + 640);
+            gr.addColorStop(0, 'rgba(0,0,0,0)');
+            gr.addColorStop(1, 'rgba(0,0,0,1)');
+            c.fillStyle = gr;
+            c.fillRect(X - 700, Y + 380, 1400, 300);
+            c.restore();
+        });
+        g.save();
+        // nothing of him shows below the far shore (the river and the land are in front)
+        g.beginPath();
+        g.rect(-2000, -2000, 6000, 2000 + RT.HORIZON);
+        g.clip();
+        g.globalAlpha *= Math.min(1, k.on * 1.4) * (1 - k.fade);
+        g.translate(0, k.dy);
+        sp.draw(g);
+        g.restore();
+    }
+    // in front of the landscape: the control bars and the black strings to the phones
+    function kurokoStrings(g, t, poses, drawn) {
+        const bars = kurokoBars(t);
+        if (bars[0].on <= 0.05) return;
+        const ink = Math.min(1, bars[0].on * 1.2);
+        for (const b of bars) {
+            g.save();
+            g.globalAlpha *= ink;
+            g.translate(b.x, b.y);
+            g.rotate(b.rot);
+            S.stroke(g, [[-70, 0], [70, 0]], { w: 9, ink: 0.95, dry: 0.4, seed: 'bar' + b.side, taper: [0.05, 0.05], blunt: 1, bleed: false });
+            S.stroke(g, [[0, -28], [0, 30]], { w: 8, ink: 0.95, dry: 0.4, seed: 'barv' + b.side, taper: [0.05, 0.05], blunt: 1, bleed: false });
+            // the string up into the sleeve
+            S.stroke(g, [[0, -28], [0, -55]], { w: 2, ink: 0.9, dry: 0.2, seed: 'barup' + b.side, taper: [0, 0], core: false, bleed: false });
+            g.restore();
+        }
+        const byId = Object.fromEntries(poses.map((p) => [p.id, p]));
+        for (const id of Object.keys(PHONE)) {
+            const p = byId[id], d = drawn[id];
+            if (!p || !d) continue;
+            const [t0, t1] = PHONE[id];
+            const cut = id === 'kasaL' ? 46.4 : id === 'kasaR' ? 49.4 : t1;
+            if (t < t0 + 0.6 || t > cut + 0.6) continue;
+            const b = d.head[0] < KUROKO.x ? bars[0] : bars[1];
+            const end = p.phone && p.phoneAt && t < t1 ? p.phoneAt : d.head;
+            const from = [b.x + (end[0] < b.x ? -60 : 60), b.y];
+            const grow = E.out(seg(t, t0 + 0.6, t0 + 1.4));
+            if (t <= cut) {
+                const tip = E.lerpPt(from, end, grow);
+                S.stroke(g, [from, E.lerpPt(from, tip, 0.5), tip], { w: 2.6, ink: 0.95 * ink, dry: 0.2, seed: 'ks' + id, taper: [0, 0], raw: true, core: false, bleed: false });
+            } else {
+                // the string breaks: the upper half whips back up to the bar, the lower falls
+                const u = (t - cut) / 0.6, mid = E.lerpPt(from, end, 0.5);
+                S.stroke(g, [from, E.lerpPt(from, mid, 1 - u)], { w: 1.8, ink: 0.85 * ink * (1 - u), dry: 0.3, seed: 'ksa' + id, taper: [0, 0.6], raw: true, core: false, bleed: false });
+                S.stroke(g, [[mid[0], mid[1] + 200 * u * u], [end[0], end[1] + 60 * u]], { w: 1.8, ink: 0.85 * (1 - u), dry: 0.3, seed: 'ksb' + id, taper: [0.6, 0], raw: true, core: false, bleed: false });
+            }
+        }
+    }
+    // a black string lashing a red thread just before it snaps (shot 5)
+    function kurokoLash(g, t, mid, snapAt, side) {
+        const u = (t - (snapAt - 0.3)) / 0.4;
+        if (u <= 0 || u >= 1) return;
+        const b = kurokoBars(t)[side];
+        const p0 = [b.x, b.y], ctrl = [(b.x + mid[0]) / 2 + (side ? 120 : -120), Math.min(b.y, mid[1]) - 80];
+        const pts = [];
+        for (let i = 0; i <= 10; i++) pts.push(bezier(p0, ctrl, [mid[0] + (side ? 60 : -60), mid[1] + 20], Math.min(1, u * 1.6) * (i / 10)));
+        S.stroke(g, pts, { w: 3.5, ink: 0.95 * (1 - Math.max(0, u - 0.7) / 0.3), dry: 0.3, seed: 'lash' + snapAt, taper: [0, 0.5], raw: true, core: false, bleed: false });
+    }
+
     // --- masks (round 10: «se pelean sin ningún sentido») -------------------------------------
     // What the screens do: from 20.5 s the slogans leave each phone, cross the river and land on
     // the face of a neighbour on the other bank as an oni mask. Everyone ends up seeing a demon
@@ -521,6 +655,7 @@ const Film = (() => {
             g.restore();
         }
         RT.sky(g, env, t, w);
+        drawKuroko(g, env, t);
         if (o.cranesT != null) RT.cranes(g, env, o.cranesT);
         if (o.clouds) {
             drawCloud(g, env, 'L', o.clouds.L, t);
@@ -646,6 +781,6 @@ const Film = (() => {
     return {
         SHOTS, shotAt, worldAt, camAt, villager, kid, V, KIDS, EDGE, SHOUTS, THREADS, PHONE, hAt, DECK, ROPE, ropeY,
         threadPts, drawThread, drawSnap, drawShout, drawSplash, glyph, drawCloud, drawRain, CLOUDS,
-        MASKS, drawMasks, drawMaskFlights, paintWorld, shedPetals, floatingPetals, writeText, writeVertical, stamp, bezier, hump, seg,
+        MASKS, drawMasks, drawMaskFlights, kurokoAt, kurokoBars, kurokoStrings, kurokoLash, paintWorld, shedPetals, floatingPetals, writeText, writeVertical, stamp, bezier, hump, seg,
     };
 })();

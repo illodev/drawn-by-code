@@ -40,6 +40,11 @@ const makeShots = () => {
         F.THREADS.forEach((th, i) => {
             const st = threadState(t, th, drawn);
             if (!st) return;
+            // a black string from the kuroko lashes the thread just before it snaps
+            if (th[4] != null && t > th[4] - 0.35 && t < th[4] + 0.15) {
+                const pts = F.threadPts(st.pa, st.pb, st.slack);
+                F.kurokoLash(g, t, pts[Math.floor(pts.length / 2)], th[4], i % 2);
+            }
             if (st.snapU != null) return F.drawSnap(g, st.pa, st.pb, st.slack, st.snapU, 'snap' + i);
             // a slack thread loses its red: thinner, fainter
             F.drawThread(g, F.threadPts(st.pa, st.pb, st.slack), { grow: st.grow, alpha: 1 - 0.5 * st.slack, w: 2.6 - 1.0 * st.slack, seed: 'th' + i });
@@ -59,21 +64,20 @@ const makeShots = () => {
         }).filter(Boolean);
     }
 
-    // slogans: calligraphy rising from every lit screen to the cloud over that person's home
+    // slogans: calligraphy running down the kuroko's black strings into every lit screen
     function drawSlogans(g, t, poses) {
-        if (t < 18.3 || t > 24.5) return;
+        if (t < 16.8 || t > 21.5) return;
+        const bars = F.kurokoBars(t);
         poses.forEach((p, j) => {
             if (!p.phone || !(p.glow > 0.5) || !p.phoneAt) return;
-            const home = F.V[p.id] ? (['womanL', 'kasaL', 'manL2', 'oldW'].includes(p.id) ? 'L' : 'R') : p.id === 'girl' ? 'L' : 'R';
-            const to = F.CLOUDS[home];
-            for (let k = 0; k < 6; k++) {
-                const t0 = 18.4 + k * 0.55 + (j % 3) * 0.17, u = (t - t0) / 1.6;
+            const b = p.x < 1240 ? bars[0] : bars[1];
+            for (let k = 0; k < 5; k++) {
+                const t0 = 16.9 + k * 0.7 + (j % 3) * 0.21, u = (t - t0) / 1.1;
                 if (u <= 0 || u >= 1) continue;
-                const from = p.phoneAt, mid = [(from[0] + to[0]) / 2 + (k % 2 ? 80 : -80), Math.min(from[1], to[1]) - 60];
-                const q = F.bezier(from, mid, to, E.in(u));
+                const q = E.lerpPt([b.x + (p.phoneAt[0] < b.x ? -60 : 60), b.y], p.phoneAt, E.in(u));
                 g.save();
-                g.globalAlpha *= Math.min(1, u * 5) * (1 - u * 0.4);
-                F.glyph(g, q[0], q[1], 22 + 30 * u, 'sl' + p.id + k);
+                g.globalAlpha *= Math.min(1, u * 6) * (1 - Math.max(0, u - 0.85) / 0.15);
+                F.glyph(g, q[0], q[1], 22 - 8 * u, 'sl' + p.id + k);
                 g.restore();
             }
         });
@@ -139,13 +143,12 @@ const makeShots = () => {
     function village(g, env, t, tq, c, w, o = {}) {
         const poses = all(tq);
         let drawn = {};
-        const clouds = { L: keysCloud(t), R: keysCloud(t) };
         F.paintWorld(g, env, t, tq, c, w, {
-            clouds,
             cranesT: t < 18 ? tq - 3 : null,
             figures: (h) => {
                 drawn = drawPeople(h, poses);
                 drawThreads(h, tq, drawn);
+                F.kurokoStrings(h, tq, poses, drawn);
                 drawSlogans(h, tq, poses);
                 F.drawMaskFlights(h, tq, drawn, poses);
                 F.drawMasks(h, tq, drawn);
@@ -333,6 +336,7 @@ const makeShots = () => {
                 if (ropeU > 0) drawRope(h, ropeU, tq);
                 drawn = drawPeople(h, poses);
                 F.drawMasks(h, tq, drawn);
+                F.kurokoStrings(h, tq, poses, drawn);
                 const gh = drawn.girl.hands[0], bh = drawn.boy.hands[0];
                 const main = mainPts(gh, bh);
                 // the threads that come back to everyone (shot 9), and across the river again

@@ -250,3 +250,23 @@ are rough; no sound effects beyond the score.
   shakuhachi, shamisen and taiko, a main theme, wide dynamics). Take 8: 19 dB between the
   empty screens and the quarrel, full at the return and the end; its own drop came 2 s late,
   so it is ducked to near silence at 31.3–35.6 s where only the rain plays.
+
+## Round 11 (user)
+
+> No sé si sería mejor una causa externa alegorizando al sistema que nos divide sin saberlo
+> … Sí, sigue con el kuroko
+
+- The cause is now outside the villagers: the kuroko, the black-clad stagehand of Japanese
+  theatre whom everyone agrees not to see. A giant hooded figure rises behind the mountains
+  at 12.6 s (eclipsing the sun, a low rumble), arms held out over the valley with his hands
+  hidden in the sleeves; from each sleeve hangs a puppeteer's control cross (ito-ayatsuri)
+  with black strings down to the phones. Nobody looks up. The slogans run down his strings
+  into the screens and from there across the river as the masks; a black string lashes each
+  red thread just before it snaps; the ink clouds are gone. After the act change he returns
+  faintly at 43 s; each villager's string breaks when the phone falls (or, for the two men,
+  when their mask falls), and with no strings left he dissolves into the mist at 54–57 s.
+- First silhouettes read as a gate (a T of blocks) and then as a yoke with sacks: what made
+  him read was a rounded hood falling over the shoulders, a mesh veil, arms reaching down
+  and out with bell sleeves (no hanging tamoto), the figure low enough for the hood to be in
+  the village framing, texture strokes kept inside the cloth (`source-atop`), and nothing of
+  him below the far shore line (clipped, or he showed through the water as a ghost).

@@ -171,6 +171,10 @@ noiseBed(env([[0, 0.12], [36, 0.12], [37, 0.2], [38.4, 1], [40, 0.15], [68, 0.12
 noiseBed(env([[31, 0], [32, 0.9], [35, 0.9], [36, 0]]), 0.35, 0.35, 0, 0.2);                                     // rain
 noiseBed(env([[18, 0], [20, 0.25], [25, 0.4], [26, 0]]), 0.12, 0.25, 0.2, 0.8);                                  // the slogans' murmur
 drone(14.5, 18.5, D - 13, 0.05);       // the screens: a cold, slightly sour hum
+// the kuroko: a deep rumble as he rises behind the mountains, and as he dissolves
+noiseBed(env([[12.4, 0], [14.5, 0.9], [16.8, 0.35], [18, 0]]), 0.004, 0.9, 0);
+noiseBed(env([[43.0, 0], [44.2, 0.6], [45.5, 0]]), 0.004, 0.8, 0);
+noiseBed(env([[53.6, 0], [55.0, 0.5], [57.0, 0]]), 0.006, 0.6, 0);
 drone(18, 32, D - 24, 0.06);
 drone(32, 43, D - 12, 0.04);
 drone(43, 50, D - 24, 0.05);

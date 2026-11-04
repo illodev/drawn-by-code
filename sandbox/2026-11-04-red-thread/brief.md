@@ -24,6 +24,14 @@
   «the good one» (both banks lose their red, both give it back); colours other than ink and
   vermilion (the screens are white cuts in the ink, not blue); cartoon faces.
 
+## The cause (round 11)
+
+The kuroko, the black-clad stagehand of Japanese theatre whom the audience agrees not to
+see, stands for the system that divides people without their knowing: he rises behind the
+mountains, his strings run down to the phones, his slogans become the masks, his strings
+lash the red threads. Nobody looks up. When people let the phones go his strings break and
+he dissolves into the mist.
+
 ## The evolving idea
 
 **Red is humanity.** At the start the red is everywhere: the sun, the cherry blossoms and the
