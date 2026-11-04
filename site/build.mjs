@@ -27,7 +27,7 @@ for (const f of fs.readdirSync(path.join(ROOT, 'site'))) {
     const src = path.join(ROOT, 'site', f);
     if (/\.(html|css|js)$/.test(f)) {
         let s = fs.readFileSync(src, 'utf8');
-        s = s.replace(/data-root="\.\.\/"/g, 'data-root="./"').replace(/url\('\.\.\/fonts\//g, "url('fonts/");
+        s = s.replace(/data-root="\.\.\/"/g, 'data-root="./"').replace(/url\('\.\.\/fonts\//g, "url('fonts/").replace(/(src|href)="\.\.\//g, '$1="./');
         fs.writeFileSync(path.join(OUT, f), s);
     } else copy(path.join('site', f), f);
 }
@@ -41,6 +41,8 @@ for (const f of ['sandbox/2026-09-24-readme-cover/scene.js', 'sandbox/2026-09-24
 // the films (the player and the hover previews read them from their experiment folders)
 const films = fs.readFileSync(path.join(ROOT, 'site/site.js'), 'utf8').matchAll(/\['([a-z][\w-]*)', '(\d{4}-\d{2}-\d{2}-[\w-]+)'/g);
 for (const [, id, dir] of films) copy(`sandbox/${dir}/render/${id}.mp4`);
+// the rendered cover: the hero shows it while the live one loads, or if it cannot run
+copy('sandbox/2026-09-24-readme-cover/render/readme-cover.mp4');
 
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 const size = (d) => fs.readdirSync(d, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? size(path.join(d, e.name)) : fs.statSync(path.join(d, e.name)).size), 0);

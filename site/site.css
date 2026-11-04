@@ -95,7 +95,11 @@ em { font-style: italic; font-variation-settings: 'SOFT' 100, 'opsz' 144; }
 
 /* --- hero ---------------------------------------------------------------------------- */
 .stage { position: relative; width: 100%; aspect-ratio: 1800 / 680; background: var(--paper); overflow: hidden; }
-.stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.stage iframe, .stage .fallback { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.stage .fallback { object-fit: cover; }
+.stage iframe { opacity: 0; transition: opacity 0.5s; }
+.stage.live-on iframe { opacity: 1; }
+.stage.live-on .fallback { visibility: hidden; transition: visibility 0s 0.5s; }
 .stage::after { /* the canvas melts into the page at the bottom edge */
   content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 12%;
   background: linear-gradient(to bottom, rgba(239, 227, 204, 0), var(--paper));

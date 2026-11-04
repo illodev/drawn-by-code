@@ -32,7 +32,9 @@
 
   <!-- The cover is the README's own scene, running here with the repo's engine -->
   <section class="hero" aria-label="Live title">
-    <div class="stage">
+    <div class="stage" id="stage">
+      <!-- the same scene, rendered: shown while the live one loads, and if it cannot run -->
+      <video class="fallback" src="../sandbox/2026-09-24-readme-cover/render/readme-cover.mp4" muted loop autoplay playsinline preload="auto" aria-hidden="true"></video>
       <iframe id="hero" class="live" title="The drawn-by-code title, drawn live in your browser" data-scene="sandbox/2026-09-24-readme-cover/scene.js" data-after="run" data-max="1800" loading="eager"></iframe>
     </div>
 
