@@ -137,22 +137,15 @@ const RT = (() => {
     // The whole landscape is ONE painting on one sheet (round 3): no parallax, nothing
     // translucent. It is painted back to front into a single cached sprite, each piece
     // knocking out what is behind it; mist is paper, not transparency.
-    // the sun: grey when the red has gone out of the world; the red fills it as a ring that
-    // closes from the edge inwards (and drains the same way back)
+    // the sun: grey when the red has gone out of the world. The red fades out of it evenly
+    // (and comes back the same way): the grey disc shows through as the red thins (round 10:
+    // a ring closing from the edge read as a glitch)
     const SUN = [1300, 235, 105];
     function sky(g, env, t, w = {}) {
         const red = w.red ?? 0, [x, y, r] = SUN;
         Sumi.halo(g, env, x, y, r, { color: '#6d6861', seed: 'grey' });
         if (red < 1) Sumi.sun(g, env, x, y, r, { color: '#8d877d', seed: 'grey', fade: 0.6 });
-        if (red > 0) {
-            g.save();
-            g.beginPath();
-            g.arc(x, y, r * 1.3, 0, Math.PI * 2);
-            if (red < 1) g.arc(x, y, r * 1.3 * (1 - Ease.inOut(red)), 0, Math.PI * 2, true);
-            g.clip();
-            Sumi.sun(g, env, x, y, r, { seed: 'red', fade: 0.75 });
-            g.restore();
-        }
+        if (red > 0) Sumi.sun(g, env, x, y, r, { seed: 'red', fade: 0.75, alpha: Ease.inOut(red) });
     }
 
     function landscape(g, env) {
@@ -212,7 +205,10 @@ const RT = (() => {
 
     // the water: long smooth grey bands and fine dark lines, darkest along the far shore and
     // fading to white towards the viewer (cached; it is part of the sheet)
-    function water(g, env) {
+    function water(g, env, t = 0) {
+        // the current: the whole sheet of bands drifts slowly
+        g.save();
+        g.translate(18 * Math.sin(t * 0.21) + 6 * Math.sin(t * 0.53), 0);
         Motion.sprite('rt:water4', { x: -700, y: HORIZON - 10, w: 3800, h: 620 }, env.k, (c) => {
             const r = Motion.rng('water4');
             // the dark band where the water meets the far shore
@@ -237,6 +233,7 @@ const RT = (() => {
                     { w: 1.6 + r() * 1.6, ink: (0.45 + r() * 0.4) * (1 - v * 0.5), dry: 0.5, seed: 'wl' + i, taper: [0.15, 0.2], blunt: 0.6, core: false, bleed: false });
             }
         }).draw(g);
+        g.restore();
     }
 
     // reflections: the far landscape, the grey sun, the broken bridge and the red thread
@@ -452,6 +449,12 @@ const RT = (() => {
     // `bloom` 0..1: the extra blossoms of the tree in full flower (the start and the end of
     // the film); the base blossoms are the last ones, which stay through the grey part
     function tree(g, env, t, bloom = 0) {
+        // the old tree sways a little in the wind, from its foot
+        const sway = 0.006 * Math.sin(t * 0.9) + 0.003 * Math.sin(t * 2.3 + 1);
+        g.save();
+        g.translate(-90, 1100);
+        g.rotate(sway);
+        g.translate(90, -1100);
         Motion.sprite('rt:tree2', { x: -500, y: -500, w: 1600, h: 1650 }, env.k, (c) => {
             grown = Sumi.tree(c, {
                 seed: 'plum', w: 78, gnarl: 0.8, ink: 0.95,
@@ -473,6 +476,7 @@ const RT = (() => {
             sp.draw(g);
             g.restore();
         }
+        g.restore();
     }
 
     // red petals blown off by the gust: they flutter across with the kite, settle on the

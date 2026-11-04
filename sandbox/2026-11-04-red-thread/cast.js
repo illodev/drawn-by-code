@@ -205,7 +205,7 @@ const Cast = (() => {
         }
         const heart = Ease.lerpPt(hip, sh, 0.62);
         const mouth = add(head, [s * headR * 0.95, headR * 0.3]);
-        return { hip, sh, head, headR, heart, mouth, hands: arms.map((a) => a.end), feet };
+        return { hip, sh, head, headR, heart, mouth, face: s, hands: arms.map((a) => a.end), feet };
     }
 
     return { figure, ik };

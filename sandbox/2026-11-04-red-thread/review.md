@@ -218,3 +218,35 @@ are rough; no sound effects beyond the score.
   has its own), one static gain to −15.6 LUFS, a limiter at 4× with auto-level off (on, it
   pushed the mix to −13.5 LUFS and 0 dBFS). The picture was not re-rendered: the new mix was
   muxed onto the round-8 frames.
+
+## Round 10 (user)
+
+> Cuando se cruzan los dos en el puente ~ 15s creo que está mal, porque van a un lado después
+> se juntan, y des pues se van otra vez como si se buguearan. La música me parece muy sosa.
+> Hay algo es que no hay motivo de pelea, o sea, se pelean sin ningún sentido no? Debería
+> haber algo que le diera sentido. Hay gente que pisa el rio, no sé si está hecho a propósito.
+> El sol se le va el rojo de una forma rara. Le daría una vuelta en general a pulir detalles y
+> dinamismo
+
+- The bump: on the recoil the men turned round (facing followed the walking direction, and
+  stepping back is walking the other way), then turned again. Now people keep a lane on the
+  bridge (right-goers far, left-goers near); the two men walk down the middle, bump, step
+  back without turning (`faceHold`) and then each moves to his side and passes.
+- A reason to fight: the screens turn neighbours into demons. From 21 s the slogans leave
+  each phone, cross the river and land on a face on the other bank as a white oni mask
+  (horns, furious brows, fangs); the quarrel is shouted from behind the masks. A mask cracks
+  in two and falls when its wearer lets the phone go (shot 9) or when the old hands hold the
+  thread (kasaL at 46.4 s, kasaR at 49.4 s). Sounds: an ink splat as each lands, a crack as
+  each breaks.
+- People in the river: `tools/check-feet.mjs` evaluates every pose on the timeline against
+  the water; it found the boy's start, the girl's and a woman's way off the bridge, and the
+  two elders' spots in shot 8 in the water. All moved; it now reports nobody.
+- The sun: the red no longer closes as a ring from the edge; it fades evenly over the grey
+  disc and comes back the same way.
+- Life: a slow sway and head turns on everyone standing, the old tree swaying from its foot,
+  the river's bands drifting with the current, cranes over the opening, a small camera shake
+  on every shout that lands.
+- Music: a second ElevenLabs batch with a more cinematic prompt (string orchestra with koto,
+  shakuhachi, shamisen and taiko, a main theme, wide dynamics). Take 8: 19 dB between the
+  empty screens and the quarrel, full at the return and the end; its own drop came 2 s late,
+  so it is ducked to near silence at 31.3–35.6 s where only the rain plays.

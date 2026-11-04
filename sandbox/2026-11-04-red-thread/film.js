@@ -70,7 +70,16 @@ const Film = (() => {
         const k = shot ?? shotAt(t);
         const keys = actKeys[k <= 4 ? 0 : 1];
         const f = (j) => keysAt(keys.map((c) => [c[0], c[j]]), t);
-        return { cx: f(1), cy: f(2), z: f(3) };
+        // every shout that lands in the river shakes the camera a little (decaying fast)
+        let sx = 0, sy = 0;
+        for (const [ts] of SHOUTS) {
+            const dt = t - (ts + 0.7);
+            if (dt < 0 || dt > 0.5) continue;
+            const a = 6 * Math.exp(-dt * 9);
+            sx += a * Math.sin(dt * 71);
+            sy += a * 0.6 * Math.sin(dt * 53 + 1);
+        }
+        return { cx: f(1) + sx, cy: f(2) + sy, z: f(3) };
     }
 
     // --- people --------------------------------------------------------------------------------
@@ -86,14 +95,14 @@ const Film = (() => {
     // Everyone's path: [t, x, y] keys (y = 'deck' on the bridge, 'rope' on the rope bridge).
     // Between keys they walk at constant speed; on equal keys they stand.
     const V = {
-        womanL: { kind: 'woman', base: 215, keys: [[0, 700, 742], [5, 700, 742], [6.2, 840, D], [7.6, 1190, D], [8.4, 1190, D], [9.6, 1600, D], [10.6, 1800, 762], [20, 1800, 762], [20.8, 1660, D], [23.2, 850, D], [24.2, 620, 790], [25.4, 640, 800], [32, 640, 800], [32.05, -200, 800], [50, -200, 800], [51.2, 300, 810], [62, 300, 810], [63.3, 990, R_], [66.0, 1520, R_], [66.8, 1700, 700]] },
-        womanR: { kind: 'woman', base: 215, keys: [[0, 1850, 770], [5, 1850, 770], [6.2, 1660, D], [7.6, 1290, D], [8.4, 1290, D], [9.6, 900, D], [10.6, 720, 762], [20.3, 720, 762], [21.0, 840, D], [23.4, 1650, D], [24.4, 1950, 800], [25.4, 1910, 820], [32, 1910, 820], [32.05, 2750, 820], [50, 2750, 820], [51.2, 2150, 815], [62, 2150, 815], [62.9, 1530, R_], [65.8, 1000, R_], [66.6, 820, 700]] },
+        womanL: { kind: 'woman', base: 215, keys: [[0, 700, 742], [5, 700, 742], [6.2, 840, D], [7.6, 1190, D], [8.4, 1190, D], [9.6, 1600, D], [9.9, 1680, D], [10.6, 1800, 762], [20, 1800, 762], [20.8, 1660, D], [23.2, 850, D], [24.2, 620, 790], [25.4, 640, 800], [32, 640, 800], [32.05, -200, 800], [50, -200, 800], [51.2, 300, 810], [62, 300, 810], [63.3, 990, R_], [66.0, 1520, R_], [66.8, 1700, 700]] },
+        womanR: { kind: 'woman', base: 215, keys: [[0, 1850, 770], [5, 1850, 770], [6.2, 1660, D], [7.6, 1290, D], [8.4, 1290, D], [9.6, 900, D], [9.9, 830, D], [10.6, 720, 762], [20.3, 720, 762], [21.0, 840, D], [23.4, 1650, D], [24.4, 1950, 800], [25.4, 1910, 820], [32, 1910, 820], [32.05, 2750, 820], [50, 2750, 820], [51.2, 2150, 815], [62, 2150, 815], [62.9, 1530, R_], [65.8, 1000, R_], [66.2, 840, D], [66.8, 760, 735]] },
         kasaL: { kind: 'man', base: 235, keys: [[0, 520, 780], [6.5, 520, 780], [7.5, 840, D], [8.9, 1180, D], [9.5, 1180, D], [10.9, 1630, D], [11.8, 1950, 800], [20.6, 1950, 800], [21.5, 1670, D], [24.0, 840, D], [25.0, 720, 790], [42.9, 720, 790], [42.95, 160, 770], [44.0, 740, 712], [46.6, 740, 712], [47.4, 520, 730], [62, 520, 730]] },
         kasaR: { kind: 'man', base: 235, keys: [[0, 2050, 790], [6.5, 2050, 790], [7.5, 1670, D], [8.9, 1300, D], [9.5, 1300, D], [10.9, 870, D], [11.8, 560, 800], [20.6, 560, 800], [21.5, 830, D], [24.0, 1660, D], [25.0, 1820, 800], [42.9, 1820, 800], [42.95, 2380, 800], [46.7, 2380, 800], [47.6, 1800, 728], [49.4, 1800, 728], [49.95, 2060, 745], [62, 2060, 745]] },
-        manL2: { kind: 'man', base: 225, keys: [[0, 300, 800], [12, 300, 800], [13.2, 840, D], [15.0, 1235, D], [15.4, 1205, D], [15.6, 1205, D], [17.0, 1650, D], [18, 1800, 770], [21.0, 1800, 770], [21.8, 1680, D], [24.2, 840, D], [25.2, 560, 780], [32, 560, 780], [32.05, -260, 790], [50, -260, 790], [51.6, 180, 790], [62, 180, 790]] },
-        manR2: { kind: 'man', base: 225, keys: [[0, 2200, 800], [12, 2200, 800], [13.2, 1670, D], [15.0, 1265, D], [15.4, 1295, D], [15.6, 1295, D], [17.0, 860, D], [18, 700, 780], [21.0, 700, 780], [21.8, 830, D], [24.2, 1670, D], [25.2, 1990, 800], [32, 1990, 800], [32.05, 2800, 800], [50, 2800, 800], [51.6, 2280, 795], [62, 2280, 795]] },
-        oldW: { kind: 'elder', base: 195, keys: [[0, 380, 770], [26, 380, 770], [42.9, 380, 770], [42.95, 220, 800], [44.6, 220, 800], [45.8, 760, 815], [62, 760, 815]] },
-        oldM: { kind: 'elderm', base: 205, keys: [[0, 2150, 790], [42.9, 2150, 790], [42.95, 2400, 820], [47.4, 2400, 820], [48.8, 1800, 835], [62, 1800, 835]] },
+        manL2: { kind: 'man', base: 225, faceHold: [[12, 18, 1]], keys: [[0, 300, 800], [12, 300, 800], [13.2, 840, D], [15.0, 1235, D], [15.4, 1205, D], [15.6, 1205, D], [17.0, 1650, D], [18, 1800, 770], [21.0, 1800, 770], [21.8, 1680, D], [24.2, 840, D], [25.2, 560, 780], [32, 560, 780], [32.05, -260, 790], [50, -260, 790], [51.6, 180, 790], [62, 180, 790]] },
+        manR2: { kind: 'man', base: 225, faceHold: [[12, 18, -1]], keys: [[0, 2200, 800], [12, 2200, 800], [13.2, 1670, D], [15.0, 1265, D], [15.4, 1295, D], [15.6, 1295, D], [17.0, 860, D], [18, 700, 780], [21.0, 700, 780], [21.8, 830, D], [24.2, 1670, D], [25.2, 1990, 800], [32, 1990, 800], [32.05, 2800, 800], [50, 2800, 800], [51.6, 2280, 795], [62, 2280, 795]] },
+        oldW: { kind: 'elder', base: 195, keys: [[0, 380, 770], [26, 380, 770], [42.9, 380, 770], [42.95, 220, 800], [44.6, 220, 800], [45.8, 690, 812], [62, 690, 812]] },
+        oldM: { kind: 'elderm', base: 205, keys: [[0, 2150, 790], [42.9, 2150, 790], [42.95, 2400, 820], [47.4, 2400, 820], [48.8, 1895, 840], [62, 1895, 840]] },
     };
     // shot 5: everyone at the river's edge, facing the other bank
     const EDGE = { kasaL: [720, 790], womanL: [640, 800], manL2: [560, 780], oldW: [380, 770], kasaR: [1820, 800], womanR: [1910, 820], manR2: [1990, 800], oldM: [2150, 790] };
@@ -162,8 +171,19 @@ const Film = (() => {
         let y = p.y, x = p.x;
         // shot 5: at the river's edge
         if (t >= 25.4 && t < 32 && EDGE[id]) [x, y] = EDGE[id];
+        // on the bridge people keep to a side (right-goers the far side, left-goers the near
+        // one) so two never walk through each other; the two men with phones walk down the
+        // middle, bump, step back without turning and only then each move to his side
+        const onDeck = y < 700 && x > 815 && x < 1685;
+        let lane = onDeck && p.moving ? (p.dir > 0 ? -6 : 6) : 0;
+        if (id === 'manL2' || id === 'manR2') {
+            const side = id === 'manL2' ? -7 : 7;
+            lane = t >= 12.5 && t < 18 ? side * E.inOut(seg(t, 15.5, 15.9)) : lane;
+        }
+        y += lane;
         const h = v.base * hAt(y);
-        const face = p.moving && p.dir ? p.dir : (t >= 25 && t < 62 ? HOME_FACE[id] : p.dir || HOME_FACE[id]);
+        let face = p.moving && p.dir ? p.dir : (t >= 25 && t < 62 ? HOME_FACE[id] : p.dir || HOME_FACE[id]);
+        if (v.faceHold) for (const [a, b, fc] of v.faceHold) if (t >= a && t < b) face = fc;
         const f = { x, y, h, face, kind: v.kind, id, t, lean: 0, look: 0, ink: 0.95 };
         if (v.kind === 'elder' || v.kind === 'elderm') {
             f.lean = 0.28;
@@ -171,6 +191,11 @@ const Film = (() => {
             f.look = 0.2;
         }
         if (p.moving) walk(f, p.dist, v.base);
+        else {
+            // nobody stands like a statue: a slow sway and small turns of the head
+            f.lean += 0.025 * Motion.noise1(id + 'sway', t * 0.7);
+            f.look += 0.06 * Motion.noise1(id + 'look', t * 0.5);
+        }
         // bow when greeting on the bridge
         const b = BOWS[id];
         if (b) {
@@ -218,8 +243,8 @@ const Film = (() => {
 
     // --- the children ----------------------------------------------------------------------------
     const KIDS = {
-        girl: { kind: 'girl', base: 175, keys: [[0, 650, 820], [9.0, 650, 820], [10.0, 840, D], [11.4, 1450, D], [12.2, 1640, D], [12.9, 1780, 800], [20, 1780, 800], [20.9, 1680, D], [23.3, 880, D], [24.3, 600, 830], [25.4, 600, 840], [32, 600, 840]] },
-        boy: { kind: 'boy', base: 185, keys: [[0, 700, 830], [9.0, 700, 830], [10.0, 885, D], [11.4, 1495, D], [12.2, 1690, D], [12.9, 1900, 790], [26, 1900, 790], [32, 1900, 790]] },
+        girl: { kind: 'girl', base: 175, keys: [[0, 560, 810], [9.0, 560, 810], [10.0, 840, D], [11.4, 1450, D], [12.2, 1640, D], [12.45, 1690, D], [12.65, 1760, 722], [12.9, 1840, 812], [20, 1840, 812], [20.3, 1760, 722], [20.6, 1700, 690], [20.9, 1680, D], [23.3, 880, D], [24.3, 600, 830], [25.4, 600, 840], [32, 600, 840]] },
+        boy: { kind: 'boy', base: 185, keys: [[0, 610, 815], [9.0, 610, 815], [10.0, 885, D], [11.4, 1495, D], [12.2, 1690, D], [12.45, 1700, D], [12.9, 1900, 790], [26, 1900, 790], [32, 1900, 790]] },
     };
     function kid(id, t) {
         const k = KIDS[id], p = pathAt(k.keys, t);
@@ -393,14 +418,97 @@ const Film = (() => {
         g.restore();
     }
 
+    // --- masks (round 10: «se pelean sin ningún sentido») -------------------------------------
+    // What the screens do: from 20.5 s the slogans leave each phone, cross the river and land on
+    // the face of a neighbour on the other bank as an oni mask. Everyone ends up seeing a demon
+    // across the water; they shout from behind the masks. A mask cracks and falls when its
+    // wearer lets the phone go (shot 9), or when the old hands hold the thread (shot 8).
+    // [wearer, sent from, lands at, falls at]
+    const MASKS = [
+        ['kasaL', 'kasaR', 21.0, 46.4], ['kasaR', 'kasaL', 21.3, 49.4], ['womanL', 'womanR', 21.7, 50.7],
+        ['womanR', 'womanL', 22.0, 51.2], ['manL2', 'manR2', 22.4, 52.8], ['manR2', 'manL2', 22.7, 53.3],
+    ];
+    const FLIGHT = 1.0;
+    function drawMaskFlights(g, t, drawn, poses) {
+        const byId = Object.fromEntries(poses.map((p) => [p.id, p]));
+        MASKS.forEach(([who, from, at], i) => {
+            const u = (t - (at - FLIGHT)) / FLIGHT;
+            if (u <= 0 || u >= 1 || !drawn[who] || !byId[from]) return;
+            const a = byId[from].phoneAt ?? drawn[from].head, b = drawn[who].head;
+            const mid = [(a[0] + b[0]) / 2, Math.min(a[1], b[1]) - 170];
+            const q = bezier(a, mid, b, E.inOut(u));
+            glyph(g, q[0], q[1], 18 + 14 * Math.sin(Math.PI * u), 'mk' + i + Math.floor(u * 6));
+        });
+    }
+    function drawMasks(g, t, drawn) {
+        MASKS.forEach(([who, , at, off], i) => {
+            const d = drawn[who];
+            if (!d || t < at) return;
+            const on = E.out(seg(t, at, at + 0.25)), fall = seg(t, off, off + 0.7);
+            if (fall >= 1) return;
+            oni(g, d, on, fall, 'oni' + i);
+        });
+    }
+    // a white oni mask over the head, turned three quarters towards where the wearer faces
+    function oni(g, d, on, fall, seed) {
+        const R = d.headR * 1.25, s = d.face ?? 1;
+        const [hx, hy] = d.head;
+        const piece = (k, draw) => {
+            g.save();
+            // on falling, the mask splits in two halves that tip and drop
+            const dx = fall > 0 ? (k ? 1 : -1) * R * 0.6 * fall : 0, dy = fall > 0 ? 260 * fall * fall : 0;
+            g.translate(hx + s * R * 0.18 + dx, hy + dy);
+            g.rotate(fall > 0 ? (k ? 1 : -1) * 1.2 * fall : 0);
+            g.scale(on * (0.6 + 0.4 * on), on * (0.6 + 0.4 * on));
+            g.globalAlpha *= 1 - fall * 0.8;
+            g.beginPath();
+            g.rect(k ? 0 : -R * 2, -R * 3, R * 2, R * 6);
+            g.clip();
+            draw();
+            g.restore();
+        };
+        const face = () => {
+            // the face plate: paper white, an ink rim
+            S.fillPoly(g, S.blobPts(0, 0, R * 0.95, R * 1.1, 0, seed + 'p', 0.06, 24), S.PAPER);
+            g.strokeStyle = S.tone(0.95);
+            g.lineWidth = R * 0.12;
+            g.beginPath();
+            g.ellipse(0, 0, R * 0.95, R * 1.1, 0, 0, Math.PI * 2);
+            g.stroke();
+            // horns
+            for (const k of [-1, 1]) S.stroke(g, [[k * R * 0.45, -R * 0.85], [k * R * 0.7, -R * 1.35], [k * R * 0.55, -R * 1.75]], { w: R * 0.28, ink: 0.95, dry: 0.3, seed: seed + 'h' + k, taper: [0, 0.9], blunt: 1, bleed: false });
+            // furious brows down to the middle, eye slits, a fanged grin
+            for (const k of [-1, 1]) {
+                S.stroke(g, [[k * R * 0.7, -R * 0.55], [k * R * 0.12, -R * 0.22]], { w: R * 0.24, ink: 1, dry: 0.3, seed: seed + 'b' + k, taper: [0, 0.2], blunt: 1, bleed: false });
+                S.fillPoly(g, [[k * R * 0.55, -R * 0.2], [k * R * 0.18, -R * 0.08], [k * R * 0.5, -R * 0.02]], S.tone(1));
+            }
+            g.fillStyle = S.tone(1);
+            g.beginPath();
+            g.moveTo(-R * 0.6, R * 0.35);
+            g.quadraticCurveTo(0, R * 0.95, R * 0.6, R * 0.35);
+            g.quadraticCurveTo(0, R * 0.6, -R * 0.6, R * 0.35);
+            g.fill();
+            g.fillStyle = S.PAPER;
+            for (const k of [-0.35, 0.35]) {
+                g.beginPath();
+                g.moveTo(k * R - R * 0.09, R * 0.47);
+                g.lineTo(k * R + R * 0.09, R * 0.47);
+                g.lineTo(k * R, R * 0.72);
+                g.fill();
+            }
+        };
+        piece(0, face);
+        piece(1, face);
+    }
+
     // --- the world, painted back to front ----------------------------------------------------
-    function darkWater(g, env, d) {
+    function darkWater(g, env, d, t) {
         if (d <= 0) return;
         g.save();
         g.fillStyle = S.tone(0.78 * d);
         g.fillRect(-800, RT.HORIZON, 4000, 700);
         g.globalAlpha = d;
-        RT.water(g, env);               // its bands again: the black water keeps its texture
+        RT.water(g, env, t);            // its bands again: the black water keeps its texture
         g.restore();
     }
     // o: { cranesT, clouds: {L, R}, spans, figures(g), after(g), overcast }
@@ -419,8 +527,8 @@ const Film = (() => {
             drawCloud(g, env, 'R', o.clouds.R, t);
         }
         RT.landscape(g, env);
-        RT.water(g, env);
-        darkWater(g, env, w.dark);
+        RT.water(g, env, t);
+        darkWater(g, env, w.dark, t);
         RT.reflections(g, env, t, c, o.spans ?? [], w);
         RT.lands(g, env);
         RT.reeds(g, env);
@@ -538,6 +646,6 @@ const Film = (() => {
     return {
         SHOTS, shotAt, worldAt, camAt, villager, kid, V, KIDS, EDGE, SHOUTS, THREADS, PHONE, hAt, DECK, ROPE, ropeY,
         threadPts, drawThread, drawSnap, drawShout, drawSplash, glyph, drawCloud, drawRain, CLOUDS,
-        paintWorld, shedPetals, floatingPetals, writeText, writeVertical, stamp, bezier, hump, seg,
+        MASKS, drawMasks, drawMaskFlights, paintWorld, shedPetals, floatingPetals, writeText, writeVertical, stamp, bezier, hump, seg,
     };
 })();

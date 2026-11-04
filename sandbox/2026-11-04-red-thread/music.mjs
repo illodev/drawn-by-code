@@ -203,6 +203,10 @@ koto(22, inn(1, -1), 0.3, 0.3, 1);
 koto(24.6, inn(4, -2), 0.5, 0, -2, 1.5);    // the crack
 splash(24.6, 0.12);
 
+// masks: a wet ink splat as each one lands on a face, a dry crack as it breaks and falls
+for (const [t, p] of [[21.0, -0.4], [21.3, 0.4], [21.7, -0.3], [22.0, 0.3], [22.4, -0.2], [22.7, 0.2]]) splash(t, 0.12, p);
+for (const [t, p] of [[46.4, -0.3], [49.4, 0.3], [50.7, -0.4], [51.2, 0.4], [52.8, -0.3], [53.3, 0.3]]) snap(t, 0.22, p);
+
 // --- 5 · Shouting: a taiko hit on every shout's landing; snaps; the bridge falls --------------
 const SHOUTS = [26.3, 26.8, 27.3, 27.7, 28.2, 28.6, 29.0, 29.4, 29.8, 30.2, 30.6, 31.0];
 SHOUTS.forEach((t, i) => {

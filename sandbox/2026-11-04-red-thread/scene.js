@@ -101,7 +101,7 @@ const makeShots = () => {
     function title(g, env, t, tq, c, w) {
         const world = Motion.layer(env, 'rt-world', (q) => {
             RT.view(q, c, 1);
-            F.paintWorld(q, env, t, tq, c, w, { figures: (h) => drawPeople(h, all(tq)) });
+            F.paintWorld(q, env, t, tq, c, w, { cranesT: tq - 3, figures: (h) => drawPeople(h, all(tq)) });
         });
         const mask = Motion.layer(env, 'rt-mask', (q) => {
             RT.view(q, c, 1);
@@ -142,10 +142,13 @@ const makeShots = () => {
         const clouds = { L: keysCloud(t), R: keysCloud(t) };
         F.paintWorld(g, env, t, tq, c, w, {
             clouds,
+            cranesT: t < 18 ? tq - 3 : null,
             figures: (h) => {
                 drawn = drawPeople(h, poses);
                 drawThreads(h, tq, drawn);
                 drawSlogans(h, tq, poses);
+                F.drawMaskFlights(h, tq, drawn, poses);
+                F.drawMasks(h, tq, drawn);
                 drawShouts(h, tq, drawn, [26, 32]);
                 // the planks hitting the river
                 if (w.bridge.mode === 'intact' && w.bridge.fall > 0) {
@@ -329,6 +332,7 @@ const makeShots = () => {
                 // the rope bridge first: the children walk on it
                 if (ropeU > 0) drawRope(h, ropeU, tq);
                 drawn = drawPeople(h, poses);
+                F.drawMasks(h, tq, drawn);
                 const gh = drawn.girl.hands[0], bh = drawn.boy.hands[0];
                 const main = mainPts(gh, bh);
                 // the threads that come back to everyone (shot 9), and across the river again
