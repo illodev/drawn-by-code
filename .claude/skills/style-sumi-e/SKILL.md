@@ -6,6 +6,9 @@ description: Sumi-e style, in testing: Japanese ink painting on washi — one bl
 # Style · Sumi-e
 
 In testing. Style test: `sandbox/2026-11-04-red-thread/` («The kite», 7 s; review/sheet.jpg).
+The bar is the user's best reference (round 2): a sakura tree against a red sun with halo
+rings, cranes, karst peaks, a boatman, a torii in the water, on clean white paper with a
+grainy dry brush. Every frame should hold that density of detail.
 
 ## Code
 
@@ -19,7 +22,11 @@ In testing. Style test: `sandbox/2026-11-04-red-thread/` («The kite», 7 s; rev
 | `wash(key, box, k, shapeFn, { ink, blur, rim, fade, grain, color })` | a soft-edged wet area (bokashi), granulated, optionally fading down into mist; returns a sprite |
 | `mountains(g, env, key, { x0, x1, y, h, ink, peaks, sharp, blur, contour, cun })` | a boneless (mokkotsu) range: a wash dense under the ridge that dissolves into mist; contour and texture strokes are optional and off by default |
 | `sun(g, env, x, y, r, { color, alpha })` | the sumi-e sun: a ragged disc with dry horizontal streaks (RED, or a grey) |
-| `paper(g, env, box)` · `tooth(ctx, env, { scale, ox, oy, amount })` | washi (mottling, kozo fibres, bark inclusions), and the paper's relief over everything from `post`, anchored to the ground plane |
+| `paper(g, env, box)` · `grain(ctx, env, { scale, ox, oy, amount })` | clean white washi (faint fibres), and the dry-brush grain over all the ink from `post` (screen-composited paper flecks and streaks, invisible on paper), anchored to the ground plane. `tooth` (an embossed relief) exists but the bar is ≈ 0.05 |
+| `tree(c, { trunk, limbs: [{ p, a, len, w, d }], w, gnarl, seed })` | an old plum tree grown from a seed: a trunk with dark edges, a lighter hatched bark and knots, painted over the limbs' roots; each limb ONE tapering stroke whose leader zigzags on while side limbs fork alternately. Returns `{ tips, twigs }` for blossoms |
+| `bloom(g, grown, { density, size })` · `blossom(g, x, y, r, { profile, bud })` · `petal(g, x, y, s, rot, { flip })` | blossoms at the tips and on young twigs (front and profile flowers, buds, red rings and dots in the air); a single flower (petals with pale veins, a deep red heart, ink stamens); a loose petal. `bloom` returns the flower positions (for petals that fall) |
+| `crane(g, x, y, s, flap, { dir, tilt })` | a crane in flight: long neck and beak, trailing legs, wings as an arm plus fanned primaries; `flap` 0..1 on twos |
+| `peak(g, env, key, x, base, w, h)` · `foliage(c, x, y, w, h)` · `pagoda(c, x, y, s)` · `reed(c, x, y, h)` · `halo(g, env, x, y, r)` | karst pillars black at the top with ink running down into mist; distant tree clumps in dots; a pagoda silhouette; reeds in the shallows with reflections; broken halo rings around a sun |
 | `seal(g, env, x, y, size, text)` | a red hanko with the characters cut out |
 | `smooth`, `blobPts`, `fillPoly`, `tone`, `mix`, `INK`, `PAPER`, `RED` | helpers |
 
@@ -50,13 +57,25 @@ targets (a target out of reach leaves the prop hanging in the air).
 - **Motion:** figures and props on twos (`floor(t*12)/12`), camera and mist continuous.
   Keyed paths (camera, a kite) go through a monotone spline, never eased segments between
   keys: those stop dead at every key.
-- **Texture:** the paper's tooth is subtle (amount ≈ 0.17) and moves with the ground plane.
+- **Paper and texture:** clean white paper (#f6f4ef), no embossed relief; the texture is in
+  the ink: a dry-brush grain over everything (`grain`, ≈ 0.5), anchored to the ground plane.
+- **Density of detail (the bar):** a frame has a foreground of detail (a grown tree with
+  blossoms, reeds, stones), a middle ground with life (villages: pagodas and tree clumps;
+  cranes; petals in the air and on the water) and a far ground of mist (washes, karst peaks,
+  a sun with halo rings). A frame with fewer than three of these reads as a sketch.
+- **Trees are grown, never hand-placed.** Branches drawn as a few hand-placed strokes read
+  as sticks; `tree` gives angular zigzag limbs, alternate forks, straight young shoots and
+  sharp tips. Keep its limbs out of the action's path (strings, faces).
+- **Blossoms** are distinct flowers with a dark heart, not a red mass: density ≈ 0.45, size
+  14–16 at a foreground tree. Red rings and dots around them are part of the look.
 - **Forbidden:** outlines around everything, flat vector fills, gradients that look digital,
   colours other than ink and vermilion, cartoon faces.
 
 ## Style checklist
 
 - [ ] Is red used only for what the story is about?
+- [ ] Foreground, middle and far ground all carry detail (tree/reeds, villages/cranes/petals, mist/peaks/sun)?
+- [ ] Does every piece hold up cropped at full resolution against the reference (joints, blossoms, wings)?
 - [ ] Do thick strokes show dry streaks and ragged edges at full resolution (no tubes, no hatching)?
 - [ ] Are mountains washes that dissolve into mist, with no continuous wire outline?
 - [ ] Do the banks leave paper, and does the water read as water (wash, ripples, reflections)?
@@ -67,3 +86,6 @@ targets (a target out of reach leaves the prop hanging in the air).
 
 - 2026-11-04 · red-thread · `Ease.bump` in core is `(t, start, dur)`, not a 0..1 hump: passing one argument gives NaN, and the strokes fed by it silently vanish. Use a local `sin(π u)` for a hump.
 - 2026-11-04 · red-thread · A brush made of thin parallel bristles reads as a striped cable: it needs a solid wet core that narrows where the brush runs dry, and few, wide, overlapping bristles on thin strokes (3 for a string), or they fall under a pixel.
+- 2026-11-04 · red-thread round 2 · The user found the first test «missing detail» next to their best reference: measure the reference first (paper value, texture, what each element is made of) and build every element it has as its own kit piece, checked in a lab scene (`dev/kit-lab.js`) side by side, before composing the shot.
+- 2026-11-04 · red-thread round 2 · A limb made of chained strokes shows a square step at every joint: draw a limb as one stroke from root to tip, start side limbs inside their parent, and paint the trunk over the limbs' roots.
+- 2026-11-04 · red-thread round 2 · Things that cross the frame (cranes, petals) must be on screen during the shot, not entering in its last second: place them by where they are at the middle of the shot, then derive the start.

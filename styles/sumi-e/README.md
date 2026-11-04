@@ -22,7 +22,7 @@ npm run preview    # http://127.0.0.1:5173
 | File | What it gives |
 |---|---|
 | `template.js` | a branch painting itself under a red sun, blossoms, mountains in mist |
-| `sumi.js` | `Sumi`: the brush (wet core, bristles, kasure), dabs, washes, boneless mountains, the sun, washi paper and its tooth, a hanko seal |
+| `sumi.js` | `Sumi`: the brush (wet core, bristles, kasure) and its grain, dabs, washes, boneless mountains, karst peaks, the sun with halo rings, grown plum trees with blossoms and petals, cranes, tree clumps, pagodas, reeds, washi paper, a hanko seal |
 
 ## Made with it
 

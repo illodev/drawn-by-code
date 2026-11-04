@@ -134,22 +134,46 @@ const RT = (() => {
 
     // --- set pieces -----------------------------------------------------------------------
     function sky(g, env, t) {
-        // the grey sun (the red has gone out of the world)
-        Sumi.sun(g, env, 1180, 250, 105, { color: '#8d877d', seed: 'grey' });
+        // the grey sun (the red has gone out of the world), with its halo rings
+        Sumi.halo(g, env, 1290, 235, 105, { color: '#6d6861', seed: 'grey' });
+        Sumi.sun(g, env, 1290, 235, 105, { color: '#8d877d', seed: 'grey', fade: 0.6 });
         Sumi.mountains(g, env, 'far', { x0: 380, x1: 1500, y: 600, h: 300, ink: 0.2, peaks: 2.4, blur: 5 });
         Sumi.mountains(g, env, 'far2', { x0: 1150, x1: 2300, y: 600, h: 210, ink: 0.15, peaks: 3, blur: 5 });
+        // karst peaks beyond the right bank, black at the top, running into the mist
+        Sumi.peak(g, env, 'pkA', 1560, 610, 120, 330, { ink: 0.7 });
+        Sumi.peak(g, env, 'pkB', 1660, 610, 85, 230, { ink: 0.6, lean: -0.1 });
+        Sumi.peak(g, env, 'pkC', 240, 610, 90, 210, { ink: 0.45, lean: 0.2 });
+    }
+
+    // three cranes crossing the sky with the wind, wings on twos
+    function cranes(g, env, t) {
+        for (const [i, x0, y0, s, ph] of [[0, 760, 175, 26, 0], [1, 650, 222, 22, 0.35], [2, 860, 250, 19, 0.7]]) {
+            const x = x0 + t * 105, y = y0 + Math.sin(t * 1.3 + i) * 8;
+            Sumi.crane(g, x, y, s, (t * 1.1 + ph) % 1, { seed: 'cr' + i, ink: 0.8, tilt: -0.08 });
+        }
     }
 
     function midground(g, env, t) {
         Sumi.mountains(g, env, 'midL', { x0: -500, x1: 1150, y: 640, h: 230, ink: 0.4, peaks: 2.2, sharp: 0.7, cun: 5 });
         Sumi.mountains(g, env, 'midR', { x0: 1350, x1: 2900, y: 640, h: 180, ink: 0.36, peaks: 2.6, sharp: 0.7, cun: 5 });
+        // the two villages: a pagoda and clumps of trees on each side of the river
+        Motion.sprite('rt:villages', { x: -300, y: 450, w: 3000, h: 220 }, env.k, (c) => {
+            Sumi.foliage(c, 120, 640, 130, 45, { seed: 'fL1', ink: 0.75 });
+            Sumi.foliage(c, 330, 646, 90, 32, { seed: 'fL2', ink: 0.65 });
+            Sumi.pagoda(c, 220, 642, 72, { seed: 'pgL', ink: 0.7 });
+            Sumi.foliage(c, 830, 650, 90, 30, { seed: 'fL3', ink: 0.6 });
+            Sumi.foliage(c, 1700, 646, 140, 45, { seed: 'fR1', ink: 0.75 });
+            Sumi.pagoda(c, 1830, 644, 66, { seed: 'pgR', ink: 0.65, tiers: 3 });
+            Sumi.foliage(c, 1960, 650, 120, 40, { seed: 'fR2', ink: 0.7 });
+            Sumi.foliage(c, 1500, 655, 80, 26, { seed: 'fR3', ink: 0.55 });
+        }).draw(g);
         // mist banks drifting across the foot of the mountains
         for (let i = 0; i < 3; i++) {
             const x = -300 + ((i * 1100 + t * 22) % 3300);
             const y = 600 + i * 18;
             const gr = g.createRadialGradient(x, y, 0, x, y, 520);
-            gr.addColorStop(0, 'rgba(238,232,218,0.85)');
-            gr.addColorStop(1, 'rgba(238,232,218,0)');
+            gr.addColorStop(0, 'rgba(246,244,239,0.85)');
+            gr.addColorStop(1, 'rgba(246,244,239,0)');
             g.save();
             g.translate(x, y);
             g.scale(1, 0.16);
@@ -158,6 +182,19 @@ const RT = (() => {
             g.fillRect(x - 520, y - 520, 1040, 1040);
             g.restore();
         }
+    }
+
+    // reeds standing in the shallows along both shores
+    function reeds(g, env) {
+        Motion.sprite('rt:reeds', { x: 300, y: 600, w: 2200, h: 600 }, env.k, (c) => {
+            const r = Motion.rng('reeds');
+            for (const [sh, side] of [[SHORE_L, 1], [SHORE_R, -1]]) {
+                for (let i = 0; i < 5; i++) {
+                    const y = 700 + r() * 380, x = shoreX(sh, y) + side * (15 + r() * 70);
+                    Sumi.reed(c, x, y, 30 + (y - 650) * 0.12, { seed: 'rd' + side + i, ink: 0.85 });
+                }
+            }
+        }).draw(g);
     }
 
     // banks: mostly empty paper, defined by the shoreline stroke, a darker wash along the
@@ -195,15 +232,15 @@ const RT = (() => {
     function water(g, env, t) {
         // ripples: horizontal dry strokes, denser near the shores, drifting slowly
         const r = Motion.rng('ripples');
-        for (let i = 0; i < 60; i++) {
-            const y = 650 + Math.pow(r(), 1.3) * 480;
+        for (let i = 0; i < 75; i++) {
+            const y = 650 + Math.pow(r(), 1.2) * 480;
             const depth = (y - 640) / 500;
             const xl = shoreX(SHORE_L, y), xr = shoreX(SHORE_R, y);
             const near = r() < 0.55;
             const x = near ? (r() < 0.5 ? xl + 10 + r() * 140 : xr - 150 + r() * 140) : xl + r() * (xr - xl);
-            const len = 30 + r() * 120 * (0.5 + depth);
+            const len = 40 + r() * 220 * (0.4 + depth);
             const sp = Sumi.cachedStroke('rip' + i, [[0, 0], [len * 0.5, (r() - 0.5) * 3], [len, 0]],
-                { w: 3 + depth * 9, ink: 0.12 + r() * 0.3, dry: 0.8, seed: 'rip' + i, taper: [0.25, 0.5] }, env.k);
+                { w: 3 + depth * 14 * (0.4 + r()), ink: 0.1 + r() * 0.28, dry: 0.75, seed: 'rip' + i, taper: [0.15, 0.4], blunt: 0.7 }, env.k);
             const dx = Math.sin(t * 0.6 + i) * 10 + t * 6 * (0.5 + r());
             g.save();
             g.beginPath();
@@ -321,49 +358,50 @@ const RT = (() => {
         }).draw(g);
     }
 
-    // the old cherry tree in the foreground, bare: its blossoms went grey and fell
-    const TREE = [[-60, 1080], [40, 860], [70, 640], [150, 470], [300, 330], [470, 250], [640, 215]];
-    const BRANCHES = [
-        [[150, 470], [90, 360], [20, 280]],
-        [[300, 330], [330, 220], [400, 150]],
-        [[470, 250], [560, 300], [690, 320]],
-        [[640, 215], [740, 180], [810, 190]],
-        [[640, 215], [700, 150], [760, 110]],
-        [[90, 360], [130, 300], [190, 270]],
-        [[400, 150], [470, 120], [540, 115]],
-    ];
+    // the old plum tree in the foreground: gnarled trunk, angular limbs, and the last red
+    // blossoms in the world, which the gust strips off and carries over the river
+    let grown = null, flowers = [];
     function tree(g, env, t) {
-        Motion.sprite('rt:tree', { x: -200, y: 0, w: 1100, h: 1150 }, env.k, (c) => {
-            Sumi.stroke(c, TREE, { w: 70, ink: 0.95, dry: 0.55, seed: 'trunk', taper: [0, 0.75], blunt: 1, raw: false });
-            // bark knots
-            for (const [x, y] of [[48, 820], [80, 610], [180, 430]]) Sumi.dab(c, x, y, 9, 6, { seed: 'knot' + x, ink: 0.9 });
-            BRANCHES.forEach((b, i) => Sumi.stroke(c, b, { w: 22 - i * 1.5, ink: 0.92, dry: 0.6, seed: 'br' + i, taper: [0, 0.8], blunt: 1 }));
-            // twigs: alternating along each branch, leaning the way the branch grows
-            const r = Motion.rng('twigs');
-            BRANCHES.forEach((b, i) => {
-                const dir = Math.atan2(b[2][1] - b[1][1], b[2][0] - b[1][0]);
-                for (let k = 0; k < 3; k++) {
-                    const p = Ease.lerpPt(b[0], b[2], 0.35 + k * 0.22 + r() * 0.08);
-                    const a = dir + (k % 2 ? -1 : 1) * (0.5 + r() * 0.4), l = 22 + r() * 30;
-                    Sumi.stroke(c, [p, [p[0] + Math.cos(a) * l * 0.5, p[1] + Math.sin(a) * l * 0.5], [p[0] + Math.cos(a + 0.2) * l, p[1] + Math.sin(a + 0.2) * l]],
-                        { w: 5.5, ink: 0.85, dry: 0.5, seed: 'tw' + i + k, taper: [0, 0.9], blunt: 1 });
-                }
+        Motion.sprite('rt:tree2', { x: -500, y: -500, w: 1600, h: 1650 }, env.k, (c) => {
+            grown = Sumi.tree(c, {
+                seed: 'plum', w: 78, gnarl: 0.8, ink: 0.95,
+                trunk: [[-90, 1100], [-10, 900], [40, 700], [100, 560], [168, 474]],
+                limbs: [
+                    { p: [160, 480], a: -0.95, len: 470, w: 38, d: 4 },
+                    { p: [120, 530], a: -2.1, len: 340, w: 26, d: 3 },
+                    { p: [80, 600], a: -2.75, len: 300, w: 20, d: 3 },
+                ],
             });
+            flowers = Sumi.bloom(c, grown, { seed: 'plumb', density: 0.45, size: 14 });
         }).draw(g);
     }
 
-    // grey petals blown off by the gust (closed form per petal)
+    // red petals blown off by the gust: they flutter across with the kite, settle on the
+    // river and drift with the current (closed form per petal)
     function petals(g, env, t) {
+        if (!flowers.length) return;
         const r = Motion.rng('petals');
-        for (let i = 0; i < 26; i++) {
-            const b = BRANCHES[Math.floor(r() * BRANCHES.length)];
-            const p0 = Ease.lerpPt(b[1], b[2], r());
-            const t0 = T_GUST + r() * 1.2, vx = 380 + r() * 260, ph = r() * 6;
-            const dt = t - t0;
-            const x = dt > 0 ? p0[0] + vx * dt * (1 - Math.exp(-dt * 1.5)) / (1 - Math.exp(-1.5)) * 0.6 + vx * 0.4 * dt : p0[0];
-            const y = dt > 0 ? p0[1] + 40 * dt + 22 * Math.sin(dt * 3.5 + ph) : p0[1];
-            const a = ph + Math.max(0, dt) * 5;
-            Sumi.dab(g, x, y, 5, 3, { rot: a, ink: 0.42, seed: 'pt' + i, rough: 0.25 });
+        for (let i = 0; i < 34; i++) {
+            const p0 = flowers[Math.floor(r() * flowers.length)];
+            const t0 = T_GUST + r() * 1.3, vx = 330 + r() * 300, ph = r() * 6, fall = 50 + r() * 70;
+            const dt = Math.max(0, t - t0);
+            if (dt === 0) continue;
+            let x = p0[0] + vx * 0.4 * dt + vx * 0.6 * (1 - Math.exp(-dt * 1.4)) / 1.4;
+            let y = p0[1] + fall * dt + 9 * dt * dt + 20 * Math.sin(dt * 3.2 + ph);
+            const surf = 760 + (i % 5) * 40;            // where this one meets the water
+            let rot = ph + dt * (4 + (i % 3)), flip = Math.cos(dt * 5 + ph);
+            if (y > surf) {
+                // floating: slows to the current, flat, barely turning
+                y = surf + Math.sin(t * 1.5 + i) * 1.5;
+                rot = ph;
+                flip = 0.45;
+            }
+            Sumi.petal(g, x, y, 6.5, rot, { flip });
+        }
+        // a few petals that were already floating on the water
+        for (let i = 0; i < 9; i++) {
+            const x = 850 + r() * 900 + t * 9, y = 760 + r() * 260;
+            Sumi.petal(g, x, y, 5 + r() * 2, r() * 6, { flip: 0.4, ink: 0.8 });
         }
     }
 
@@ -452,7 +490,7 @@ const RT = (() => {
         g.restore();
     }
 
-    return { waterSurface, mirrored, W, H, cam, view, twos, sky, midground, banks, bridge, water, tree, petals, wind, kite, string, reflection, girlPose, boyPose };
+    return { cranes, reeds, waterSurface, mirrored, W, H, cam, view, twos, sky, midground, banks, bridge, water, tree, petals, wind, kite, string, reflection, girlPose, boyPose };
 })();
 
 Motion.scene({
@@ -474,6 +512,7 @@ Motion.scene({
         };
         layer(1, () => Sumi.paper(g, env, { x: -500, y: -300, w: 3300, h: 1650 }, { res: 1.1 }));
         layer(0.25, () => RT.sky(g, env, t));
+        layer(0.4, () => RT.cranes(g, env, tq));
         layer(0.55, () => {
             RT.midground(g, env, t);
         });
@@ -482,6 +521,7 @@ Motion.scene({
             RT.mirrored(g, env, t, c);
             RT.banks(g, env);
             RT.water(g, env, t);
+            RT.reeds(g, env);
             RT.bridge(g, env);
             const gd = Cast.figure(g, RT.girlPose(tq)), bd = Cast.figure(g, RT.boyPose(tq));
             RT.string(g, env, tq, gd, bd);
@@ -497,6 +537,8 @@ Motion.scene({
     post(ctx, t, env) {
         const c = RT.cam(t), k = env.k;
         // the paper's tooth moves with the ground plane, so it reads as the sheet, not a lens
-        Sumi.tooth(ctx, env, { scale: 1.3 * c.z, ox: (800 - c.cx * c.z) * k, oy: (450 - c.cy * c.z) * k });
+        // the dry-brush grain lives on the sheet, so it moves with the ground plane
+        Sumi.grain(ctx, env, { scale: c.z, ox: (800 - c.cx * c.z) * k, oy: (450 - c.cy * c.z) * k, amount: 0.5 });
+        Sumi.tooth(ctx, env, { scale: 1.3 * c.z, ox: (800 - c.cx * c.z) * k, oy: (450 - c.cy * c.z) * k, amount: 0.05 });
     },
 });

@@ -56,7 +56,7 @@ const Cast = (() => {
         const hands = f.hands ?? [add(sh, [s * h * 0.03, h * 0.28]), add(sh, [-s * h * 0.03, h * 0.28])];
         const arms = hands.map((hd, i) => ik(add(sh, [-s * h * 0.015 * i, 0]), hd, armL1, armL2, f.elbow?.[i] ?? s));
 
-        const st = (pts, w, seed, o = {}) => Sm.stroke(g, pts, { w, ink, dry: o.dry ?? 0.35, seed: id + seed, taper: o.taper ?? [0.05, 0.15], blunt: o.blunt ?? 0.85, press: o.press });
+        const st = (pts, w, seed, o = {}) => Sm.stroke(g, pts, { w, ink, dry: o.dry ?? 0.35, seed: id + seed, taper: o.taper ?? [0.05, 0.15], blunt: o.blunt ?? 0.85, press: o.press, bleed: false });
         const foot = (ft, i) => st([ft, add(ft, [s * h * 0.06, 0])], h * 0.05, 'foot' + i, { taper: [0, 0.4] });
 
         // far leg, far arm (lighter: the far side is a second pass of thinner ink)
@@ -79,6 +79,32 @@ const Cast = (() => {
             const back = add(neck, [-s * h * 0.055, h * 0.012]);
             Sm.dab(g, back[0], back[1], h * 0.055, h * 0.035, { seed: id + 'hood', ink, rot: -0.3 * s });
         }
+        // clothing details, as paper left between strokes: the girl's sash and collar, the
+        // boy's zip and pocket
+        const paperLine = (pts, w, a = 0.75) => {
+            g.save();
+            g.strokeStyle = `rgba(246,244,239,${a})`;
+            g.lineWidth = w;
+            g.lineCap = 'round';
+            g.beginPath();
+            g.moveTo(pts[0][0], pts[0][1]);
+            for (const p of pts) g.lineTo(p[0], p[1]);
+            g.stroke();
+            g.restore();
+        };
+        const across = [Math.cos(lean) , Math.sin(lean) * s];
+        if (girl) {
+            const wa = add(hip, up, h * 0.1), hw = h * 0.085;
+            paperLine([add(wa, across, -hw), add(wa, across, hw)], h * 0.012);
+            paperLine([add(add(wa, up, -h * 0.022), across, -hw * 1.05), add(add(wa, up, -h * 0.022), across, hw * 1.05)], h * 0.008, 0.55);
+            const nk = add(neck, up, -h * 0.015);
+            paperLine([add(nk, across, -s * h * 0.03), add(add(nk, up, -h * 0.07), across, s * h * 0.025)], h * 0.008, 0.6);
+        } else {
+            const nk = add(neck, up, -h * 0.02);
+            paperLine([nk, add(hip, up, h * 0.03)], h * 0.006, 0.45);
+            const pk = add(add(hip, up, h * 0.07), across, s * h * 0.04);
+            paperLine([pk, add(pk, across, s * h * 0.045)], h * 0.006, 0.5);
+        }
         // near leg
         st([hip, legs[0].elbow, legs[0].end], h * 0.08, 'legN');
         foot(feet[0], 0);
@@ -95,7 +121,7 @@ const Cast = (() => {
             const knot = add(head, [-s * headR * 0.95, -headR * 0.55]);
             for (let i = 0; i < 2; i++) {
                 const fl = Math.sin(tt * 10 + i * 1.7) * h * 0.008;
-                const tip = add(knot, [-s * h * (0.035 + 0.015 * i) + wind * h * 0.03, h * (0.01 + 0.022 * i) - wind * h * 0.012 + fl]);
+                const tip = add(knot, [-s * h * (0.012 + 0.008 * i) + wind * h * 0.02 + fl, h * (0.032 + 0.016 * i) - wind * h * 0.008]);
                 Sm.stroke(g, [knot, Ease.lerpPt(knot, tip, 0.5), tip], { w: h * 0.018, color: Sm.RED, ink: 0.95, dry: 0.2, seed: id + 'rib' + i, taper: [0, 0.5], blunt: 1 });
             }
             Sm.dab(g, knot[0], knot[1], h * 0.014, h * 0.012, { seed: id + 'tie', color: Sm.RED, ink: 1 });

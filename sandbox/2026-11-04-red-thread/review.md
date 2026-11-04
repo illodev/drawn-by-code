@@ -35,3 +35,35 @@ Open questions for the user:
   road from some frames. Alternative: a river crossing the frame sideways, the two banks
   near and far (but then «two sides» reads less clearly).
 - The closing line «Antes de ser bandos, fuimos vecinos.» is a proposal.
+
+## Round 2 (user)
+
+> No está mal, pero quizás me faltan más detalles y atención a los detalles, mi mejor
+> referencia es esta. (image: a sakura tree against a red sun with halo rings, three cranes,
+> karst peaks, pagodas on wooded hills, a boatman, a torii in the water, reeds, red petals)
+
+What the reference has that the test did not, measured on it: pure white paper (254) with no
+relief; a grainy dry-brush texture inside every stroke; a gnarled trunk with dark edges and a
+lighter hatched inside; angular, finely forked limbs with sharp twigs; distinct blossoms with
+dark hearts, pale veins, red rings and dots; a sun fading from red to pink with halo rings;
+cranes; karst peaks running down into mist; tree clumps and pagodas; reeds in the water;
+petals in the air and on the water.
+
+## Round 2 (auto)
+
+- Kit: `grain`, `tree`, `bloom`/`blossom`/`petal`, `crane`, `peak`, `foliage`, `pagoda`,
+  `reed`, `halo`, a sun that fades; paper → clean white, tooth → 0.05. Each piece checked in
+  `dev/kit-lab.js` (tree: chained strokes gave square steps at the joints → one stroke per
+  limb, trunk painted over the roots; blossoms a red mass → fewer, larger; cranes too small →
+  wings as an arm plus primaries; peaks with stepped sides → a smooth column, streaks clipped).
+- Shot: the bare tree became a grown plum tree with the last red blossoms in the world; the
+  gust strips them and the petals follow the kite across, settle on the river and drift. Two
+  villages (pagoda + tree clumps) on either side, karst peaks behind the right bank, three
+  cranes crossing the grey sun with its halo, reeds in the shallows, broad grey water strokes.
+- Figures: no wet bleed (it left a pale box around them), a sash and collar on the girl, a zip
+  and pocket on the boy, the ribbon hanging downwind instead of sticking out.
+- Composition: the tree's low limb crossed the girl and the string → limbs reshaped to keep
+  the right side open; pagodas shrunk (they read as tall as the girl); the sun moved right so
+  the kite does not sit on it at the start; cranes placed to be on screen during the shot.
+
+`review.mjs`: no warnings; 62 ms/frame warm.

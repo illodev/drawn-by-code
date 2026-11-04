@@ -100,7 +100,7 @@ how you made it too.
 <td width="50%" valign="top">
 <a href="sandbox/2026-11-04-red-thread/"><img src="sandbox/2026-11-04-red-thread/render/red-thread.gif" alt="El hilo rojo"></a><br>
 <b><a href="sandbox/2026-11-04-red-thread/">El hilo rojo</a></b> · sumi-e · 7 s (style test) · <a href="sandbox/2026-11-04-red-thread/render/red-thread.mp4">mp4</a><br>
-<sub>In a grey world split by a river, a gust carries a girl's red kite, the last red thing left, to a boy on the other bank, who looks up from his phone and catches the string. Japanese ink painting on washi, brush and washes drawn in code; a koto, a flute and wind synthesized from scratch.</sub>
+<sub>In a grey world split by a river, a gust strips the last red blossoms from a plum tree and carries a girl's red kite to a boy on the other bank, who looks up from his phone and catches the string. Japanese ink painting on washi, brush and washes drawn in code; a koto, a flute and wind synthesized from scratch.</sub>
 </td>
 </tr>
 </table>

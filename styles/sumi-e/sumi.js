@@ -12,7 +12,7 @@
 // Everything is deterministic: seeds name the piece, never the frame.
 const Sumi = (() => {
     const INK = '#17130f';
-    const PAPER = '#eee8da';
+    const PAPER = '#f6f4ef';
     const RED = '#c62a1f';
     const RED_DEEP = '#9e1b16';
 
@@ -507,6 +507,17 @@ const Sumi = (() => {
                 t.lineTo(x1 - side * len, yy + (rr() - 0.5) * 2);
                 t.stroke();
             }
+            // the pigment thins towards one side: solid at the top left, washing out to pink
+            // and paper at the bottom right (as in the references' red suns)
+            if ((o.fade ?? 0.8) > 0) {
+                t.globalCompositeOperation = 'destination-out';
+                const gr = t.createLinearGradient(-r * 0.6, -r * 0.6, r * 0.9, r * 0.9);
+                gr.addColorStop(0, 'rgba(0,0,0,0)');
+                gr.addColorStop(0.45, `rgba(0,0,0,${(0.25 * (o.fade ?? 0.8)).toFixed(3)})`);
+                gr.addColorStop(1, `rgba(0,0,0,${(0.92 * (o.fade ?? 0.8)).toFixed(3)})`);
+                t.fillStyle = gr;
+                t.fillRect(-r * 1.3, -r * 1.3, r * 2.6, r * 2.6);
+            }
             // denser pigment in some strokes
             t.globalCompositeOperation = 'source-atop';
             for (let i = 0; i < r / 18; i++) {
@@ -572,9 +583,424 @@ const Sumi = (() => {
         g.restore();
     }
 
+    // --- dry-brush grain over the ink -------------------------------------------------------
+    // A tile of paper-white flecks and short streaks, composited with `screen` from `post`:
+    // on white paper it changes nothing, on ink the paper shows through in the grain, as in
+    // a dry brush on rough paper (the chalky texture of every stroke in the references).
+    let grainTile = null;
+    function grainTileMake(size, seed) {
+        const c = document.createElement('canvas');
+        c.width = c.height = size;
+        const x = c.getContext('2d');
+        const r = R(seed);
+        x.fillStyle = '#000';
+        x.fillRect(0, 0, size, size);
+        const put = (fn) => { for (const dx of [-size, 0, size]) for (const dy of [-size, 0, size]) { x.save(); x.translate(dx, dy); fn(); x.restore(); } };
+        for (let i = 0; i < size * size / 9; i++) {
+            const px = r() * size, py = r() * size, a = 0.15 + r() * r() * 0.85;
+            const w = 0.6 + r() * 1.4;
+            put(() => {
+                x.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`;
+                x.fillRect(px, py, w, w * (0.6 + r() * 0.8));
+            });
+        }
+        // short streaks: the paper's tooth catching the side of the brush
+        for (let i = 0; i < size * 2.2; i++) {
+            const px = r() * size, py = r() * size, len = 3 + r() * 14, ang = (r() < 0.5 ? 0 : Math.PI / 2) + (r() - 0.5) * 0.5;
+            const a = 0.1 + r() * 0.35;
+            put(() => {
+                x.strokeStyle = `rgba(255,255,255,${a.toFixed(2)})`;
+                x.lineWidth = 0.5 + r() * 0.9;
+                x.beginPath();
+                x.moveTo(px, py);
+                x.lineTo(px + Math.cos(ang) * len, py + Math.sin(ang) * len);
+                x.stroke();
+            });
+        }
+        return c;
+    }
+    function grain(ctx, env, o = {}) {
+        if (!grainTile) grainTile = grainTileMake(384, 'grain');
+        const pat = ctx.createPattern(grainTile, 'repeat');
+        const s = (o.scale ?? 1) * (env.px[0] / 1920);
+        pat.setTransform(new DOMMatrix([s, 0, 0, s, o.ox ?? 0, o.oy ?? 0]));
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = o.amount ?? 0.55;
+        ctx.fillStyle = pat;
+        ctx.fillRect(0, 0, env.px[0], env.px[1]);
+        ctx.restore();
+    }
+
+    // --- trees ---------------------------------------------------------------------------
+    /**
+     * An old plum/cherry tree, grown from a seed: a gnarled trunk (dark edges, a lighter
+     * hatched inside, knots), angular branches that zigzag and fork alternately, and thin
+     * twigs with sharp tips. Paints on `c` (use inside a sprite) and returns where blossoms
+     * can go: { tips: [{p, a}], twigs: [[x, y], ...] }.
+     *   base [x, y], ang (rad, -PI/2 is up), len, w, depth, gnarl, seed, ink, trunk (pts)
+     */
+    function tree(c, o) {
+        const r = R(o.seed ?? 'tree');
+        const tips = [], twigs = [], segs = [];
+        const gnarl = o.gnarl ?? 0.55, ink = o.ink ?? 0.95;
+        const at = (pts, u) => {
+            const f = u * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(f));
+            return Ease.lerpPt(pts[i], pts[i + 1], f - i);
+        };
+        // A limb is ONE stroke from its root to a fine tip: its leader zigzags on through
+        // `d` levels while side limbs (each its own stroke) fork off alternately.
+        function branch(p, ang, len, w, d) {
+            const pts = [p];
+            let a = ang, q = p, seg = (len * 1.7) / (1 + 0.7 * d);    // the whole limb is about `len` long
+            const forks = [];
+            for (let lv = d; lv >= 0; lv--) {
+                const n = 2 + Math.floor(r() * 2);
+                const gn = lv <= 1 ? gnarl * 0.45 : gnarl;      // young shoots grow straight
+                for (let i = 0; i < n; i++) {
+                    a += (r() - 0.5) * gn;
+                    q = [q[0] + Math.cos(a) * seg / n, q[1] + Math.sin(a) * seg / n];
+                    pts.push(q);
+                    if (lv > 0 && i === n - 1) twigs.push(q);
+                }
+                if (lv > 0) {
+                    const kids = lv >= 2 ? 2 + (r() < 0.4 ? 1 : 0) : r() < 0.35 ? 1 : 2;
+                    for (let j = 0; j < kids; j++) forks.push({ i: Math.max(1, pts.length - 1 - Math.floor(r() * n)), lv, side: (j + forks.length) % 2 ? 1 : -1, a });
+                }
+                seg *= 0.66 + r() * 0.1;
+            }
+            tips.push({ p: q, a });
+            segs.push({ pts, w, d, limb: true });
+            // width along the limb: from w at the root to a hair at the tip
+            const total = pts.length - 1;
+            for (const f of forks) {
+                const u = f.i / total, wu = w * (1 - 0.85 * u);
+                const fa = f.a + f.side * (0.45 + r() * 0.6);
+                const root = [pts[f.i][0] - Math.cos(fa) * wu * 0.3, pts[f.i][1] - Math.sin(fa) * wu * 0.3];
+                const sub = f.lv - 1;
+                if (sub < 0 || wu * 0.55 < 1.2) {
+                    const l = len * 0.25 * (0.6 + r() * 0.6);
+                    const tip = [root[0] + Math.cos(fa) * l, root[1] + Math.sin(fa) * l];
+                    segs.push({ pts: [root, Ease.lerpPt(root, tip, 0.5), tip], w: Math.max(1.6, wu * 0.5), d: 0 });
+                    tips.push({ p: tip, a: fa });
+                } else branch(root, fa, len * (0.4 + r() * 0.25) * (1 - u * 0.4), wu * (0.55 + r() * 0.15), sub);
+            }
+        }
+        for (const sb of o.limbs ?? []) branch(sb.p, sb.a, sb.len, sb.w, sb.d);
+        // thick first, thin on top
+        segs.sort((a, b) => b.w - a.w);
+        for (const s of segs) {
+            stroke(c, s.pts, { w: s.w, ink, dry: s.w > 10 ? 0.55 : 0.4, seed: (o.seed ?? 't') + 'b' + segs.indexOf(s), raw: false,
+                taper: [0.03, s.limb ? 0.35 : 0.9], blunt: 0.8, press: s.limb ? (u) => 1 - 0.75 * u : null });
+        }
+        // trunk, painted over the limbs' roots so every limb grows out of it
+        if (o.trunk) {
+            const T = o.trunk, tw = o.w;
+            // body: a grey dry-brush wash with streaks along the grain
+            stroke(c, T, { w: tw, ink: ink * 0.62, dry: 0.75, seed: o.seed + 'tb', taper: [0, 0.35], blunt: 1, press: (u) => 1.25 - 0.55 * u, core: true });
+            // hatching across the bark, the way the references texture a trunk
+            const { L, N, total } = measure(smooth(T, 4));
+            const P = smooth(T, 4);
+            for (let s = 0; s < total; s += 8 + r() * 10) {
+                const i = Math.min(P.length - 1, Math.round((s / total) * (P.length - 1)));
+                const uu = s / total;
+                const hw = tw * 0.5 * (1.25 - 0.55 * uu) * 0.75 * Math.pow(clamp((1 - uu) / 0.35, 0, 1), 0.65);
+                if (hw < 3) continue;
+                const p = P[i], nn = N[i];
+                const k0 = -hw * (0.3 + r() * 0.7), k1 = hw * (0.3 + r() * 0.7), sl = (r() - 0.5) * 8;
+                stroke(c, [[p[0] + nn[0] * k0, p[1] + nn[1] * k0], [p[0] + nn[0] * k1 + sl, p[1] + nn[1] * k1 - Math.abs(sl)]],
+                    { w: 1.5 + r() * 2.5, ink: ink * (0.25 + r() * 0.35), dry: 0.7, seed: o.seed + 'h' + s.toFixed(0), taper: [0.2, 0.3], core: false, bleed: false });
+            }
+            // the dark edges that give the trunk its roundness
+            for (const side of [-1, 1]) {
+                const edge = P.map((p, i) => {
+                    const hw = tw * 0.5 * (1.25 - 0.55 * (L[i] / total)) * (0.85 + 0.12 * n1(o.seed + 'e' + side, i * 0.05));
+                    return [p[0] + N[i][0] * hw * side, p[1] + N[i][1] * hw * side];
+                });
+                stroke(c, edge, { w: tw * (side < 0 ? 0.28 : 0.18), ink, dry: 0.55, seed: o.seed + 'edge' + side, taper: [0, 0.45], blunt: 1, raw: true });
+            }
+            // knots and cracks
+            for (let i = 0; i < 5; i++) {
+                const u = 0.15 + r() * 0.6, p = at(P, u);
+                dab(c, p[0] + (r() - 0.5) * tw * 0.3, p[1], tw * 0.08, tw * 0.05, { seed: o.seed + 'k' + i, ink, rot: r() * 3 });
+            }
+        }
+        return { tips, twigs, segs };
+    }
+
+    /**
+     * A blossom (ume/sakura) seen from the front or in profile: red petals with a deeper
+     * centre and pale vein lines, an ink heart with stamens. `open` 0..1 (bud → flower).
+     */
+    function blossom(g, x, y, rad, o = {}) {
+        const r = R(o.seed ?? 'bl'), rot = o.rot ?? r() * 6, open = o.open ?? 1, color = o.color ?? RED;
+        if (open < 0.35 || o.bud) {
+            dab(g, x, y, rad * 0.45, rad * 0.55, { seed: o.seed + 'bud', color, ink: 0.95, rot });
+            stroke(g, [[x, y + rad * 0.4], [x - rad * 0.1, y + rad * 0.85]], { w: rad * 0.22, ink: 0.9, dry: 0.2, seed: o.seed + 'sep', taper: [0, 0.6], core: false });
+            return;
+        }
+        const prof = o.profile ?? false;
+        const n = prof ? 3 : 5;
+        for (let i = 0; i < n; i++) {
+            const a = prof ? rot - 0.9 + i * 0.9 : rot + (i / n) * Math.PI * 2;
+            const d = rad * (prof ? 0.45 : 0.52) * open;
+            const px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * (prof ? 0.6 : 1);
+            dab(g, px, py, rad * 0.5 * open, rad * 0.42 * open, { seed: o.seed + 'p' + i, color, ink: 0.88, rot: a, rough: 0.2 });
+            // pale vein down the petal, deeper red at its root
+            g.strokeStyle = 'rgba(255,240,236,0.55)';
+            g.lineWidth = Math.max(0.5, rad * 0.06);
+            g.beginPath();
+            g.moveTo(x + Math.cos(a) * rad * 0.25, y + Math.sin(a) * rad * 0.25);
+            g.lineTo(px + Math.cos(a) * rad * 0.25, py + Math.sin(a) * rad * 0.25);
+            g.stroke();
+        }
+        dab(g, x, y, rad * 0.32, rad * 0.3, { seed: o.seed + 'c', color: RED_DEEP, ink: 0.9 });
+        // stamens: fine ink lines with dots
+        for (let i = 0; i < 6; i++) {
+            const a = rot + i * 1.05 + r() * 0.3, l = rad * (0.35 + r() * 0.25);
+            g.strokeStyle = tone(0.75);
+            g.lineWidth = Math.max(0.4, rad * 0.04);
+            g.beginPath();
+            g.moveTo(x, y);
+            g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l);
+            g.stroke();
+            g.fillStyle = INK;
+            g.beginPath();
+            g.arc(x + Math.cos(a) * l, y + Math.sin(a) * l, Math.max(0.5, rad * 0.06), 0, Math.PI * 2);
+            g.fill();
+        }
+    }
+
+    // Blossoms along a tree: clusters at the tips and on the young twigs, buds, little red
+    // rings and dots in the air around them (as in the references). density 0..1.
+    function bloom(g, grown, o = {}) {
+        const r = R(o.seed ?? 'bloom'), dens = o.density ?? 1, size = o.size ?? 9;
+        const out = [];
+        for (const t of grown.tips) {
+            if (r() > dens) continue;
+            const k = r() < 0.6 ? 1 : 2;
+            for (let j = 0; j < k; j++) {
+                const p = [t.p[0] + (r() - 0.5) * size * 2.2, t.p[1] + (r() - 0.5) * size * 2.2];
+                const kind = r();
+                if (kind < 0.25) blossom(g, p[0], p[1], size * 0.6, { seed: 'bb' + out.length, bud: true, rot: t.a + Math.PI / 2 });
+                else blossom(g, p[0], p[1], size * (0.8 + r() * 0.5), { seed: 'bf' + out.length, profile: kind > 0.75, rot: t.a - Math.PI / 2 + (r() - 0.5) });
+                out.push(p);
+            }
+        }
+        for (const p of grown.twigs) {
+            if (r() > dens * 0.12) continue;
+            blossom(g, p[0] + (r() - 0.5) * 6, p[1] + (r() - 0.5) * 6, size * (0.7 + r() * 0.4), { seed: 'bt' + out.length, profile: r() < 0.3 });
+            out.push(p);
+        }
+        // rings and dots in the air
+        const all = out.length ? out : grown.tips.map((t) => t.p);
+        for (let i = 0; i < all.length * 0.8 * dens; i++) {
+            const p = all[Math.floor(r() * all.length)];
+            const x = p[0] + (r() - 0.5) * size * 6, y = p[1] + (r() - 0.5) * size * 6;
+            if (r() < 0.5) {
+                g.strokeStyle = tone(0.8, RED);
+                g.lineWidth = Math.max(0.6, size * 0.1);
+                g.beginPath();
+                g.arc(x, y, size * (0.15 + r() * 0.2), 0, Math.PI * 2);
+                g.stroke();
+            } else {
+                g.fillStyle = tone(0.85, RED);
+                g.beginPath();
+                g.arc(x, y, size * (0.08 + r() * 0.14), 0, Math.PI * 2);
+                g.fill();
+            }
+        }
+        return out;
+    }
+
+    // A loose petal (falling or floating): a small curled red dab with a darker edge.
+    function petal(g, x, y, s, rot, o = {}) {
+        g.save();
+        g.translate(x, y);
+        g.rotate(rot);
+        g.scale(1, o.flip ?? 1);
+        g.fillStyle = tone(o.ink ?? 0.9, o.color ?? RED);
+        g.beginPath();
+        g.moveTo(-s, 0);
+        g.quadraticCurveTo(-s * 0.2, -s * 0.75, s, -s * 0.1);
+        g.quadraticCurveTo(s * 0.1, s * 0.5, -s, 0);
+        g.fill();
+        g.strokeStyle = tone(0.5, RED_DEEP);
+        g.lineWidth = Math.max(0.4, s * 0.12);
+        g.stroke();
+        g.restore();
+    }
+
+    // --- birds -------------------------------------------------------------------------------
+    /**
+     * A crane in flight, in ink silhouette: long neck and beak ahead, legs trailing, wings of
+     * separate primary feathers. `flap` is the wing phase (0..1 per beat), dir 1 = right.
+     */
+    function crane(g, x, y, s, flap, o = {}) {
+        const dir = o.dir ?? 1, ink = o.ink ?? 0.95, seed = o.seed ?? 'crane';
+        const w = Math.sin(flap * Math.PI * 2);          // +1 wings up, -1 down
+        g.save();
+        g.translate(x, y);
+        g.scale(dir, 1);
+        g.rotate(o.tilt ?? -0.15);
+        // body
+        stroke(g, [[-s * 0.5, s * 0.06], [-s * 0.1, s * 0.02], [s * 0.35, -s * 0.06]], { w: s * 0.3, ink, dry: 0.25, seed: seed + 'b', taper: [0.35, 0.45], blunt: 0.4, press: (u) => 0.7 + 0.5 * Math.sin(Math.PI * u) });
+        // neck and head, beak
+        stroke(g, [[s * 0.3, -s * 0.04], [s * 0.7, -s * 0.12], [s * 1.0, -s * 0.18]], { w: s * 0.1, ink, dry: 0.3, seed: seed + 'n', taper: [0, 0.2], blunt: 1 });
+        dab(g, s * 1.02, -s * 0.19, s * 0.07, s * 0.055, { seed: seed + 'h', ink });
+        stroke(g, [[s * 1.06, -s * 0.19], [s * 1.28, -s * 0.16]], { w: s * 0.035, ink, dry: 0.2, seed: seed + 'k', taper: [0, 0.9], blunt: 1, core: false });
+        // legs trailing
+        stroke(g, [[-s * 0.3, s * 0.05], [-s * 0.8, s * 0.12], [-s * 1.15, s * 0.16]], { w: s * 0.04, ink, dry: 0.3, seed: seed + 'l', taper: [0, 0.4], core: false });
+        // tail tuft
+        stroke(g, [[-s * 0.25, 0], [-s * 0.5, s * 0.08]], { w: s * 0.14, ink, dry: 0.6, seed: seed + 't', taper: [0, 0.8], blunt: 1 });
+        // wings: near one over the body, far one fainter; feathers fan out from the shoulder
+        for (const [k, far] of [[1, true], [0, false]]) {
+            const sh = [s * 0.08 + k * s * 0.05, -s * 0.06];
+            const base = -Math.PI / 2 + 0.2 - w * 1.05 + (far ? 0.25 : 0);   // up or down
+            const reach = s * (1.55 + 0.2 * Math.abs(w)) * (far ? 0.8 : 1);
+            g.save();
+            g.globalAlpha *= far ? 0.75 : 1;
+            // the arm of the wing (a broad stroke), then the primaries fanning from its end
+            const elbow = [sh[0] + Math.cos(base + 0.45) * reach * 0.42, sh[1] + Math.sin(base + 0.45) * reach * 0.42];
+            stroke(g, [sh, Ease.lerpPt(sh, elbow, 0.5), elbow], { w: s * 0.36, ink, dry: 0.35, seed: seed + 'arm' + k, taper: [0.25, 0.1], blunt: 0.35, press: (u) => 1 - 0.3 * u });
+            for (let i = 0; i < 7; i++) {
+                const a = base - 0.35 + i * 0.13;
+                const l = reach * (0.62 - i * 0.045);
+                const tip = [elbow[0] + Math.cos(a) * l - i * s * 0.06, elbow[1] + Math.sin(a) * l];
+                const mid = Ease.lerpPt(elbow, tip, 0.5);
+                stroke(g, [[elbow[0] - i * s * 0.04, elbow[1] + i * s * 0.02], [mid[0] + Math.cos(a + 1.57) * s * 0.03, mid[1] + Math.sin(a + 1.57) * s * 0.03], tip],
+                    { w: s * (0.2 - i * 0.008), ink, dry: 0.5, seed: seed + 'w' + k + i, taper: [0, 0.75], blunt: 1 });
+            }
+            g.restore();
+        }
+        g.restore();
+    }
+
+    // --- landscape pieces -------------------------------------------------------------------
+    /**
+     * A karst peak (the tall pillar mountains of ink landscapes): black at the top, ink
+     * running down in vertical streaks and fading into the mist at its foot. Cached.
+     */
+    function peak(g, env, key, x, base, w, h, o = {}) {
+        const box = { x: x - w, y: base - h - 30, w: w * 2, h: h + 60 };
+        Motion.sprite('sumi-peak:' + key, box, env.k, (c) => {
+            const r = R(key);
+            const outline = [];
+            const n = 40, lean = (o.lean ?? 0.15) * w;
+            for (let i = 0; i <= n; i++) {
+                const u = i / n;
+                const rise = Math.pow(Math.sin(Math.PI * u), 0.3) * (1 + 0.05 * n1(key + 'top', u * 6));
+                const xx = x + (u - 0.5) * w * (1 + 0.12 * n1(key + 's', u * 3)) + lean * rise;
+                outline.push([xx, base - h * rise]);
+            }
+            const sp = wash(key + 'w', box, env.k, (t) => {
+                t.moveTo(outline[0][0], base + 20);
+                for (const p of outline) t.lineTo(p[0], p[1]);
+                t.lineTo(outline[outline.length - 1][0], base + 20);
+                t.closePath();
+            }, { ink: o.ink ?? 0.85, blur: 1.5, fade: [base - h * 0.75, base], grain: 1.2 });
+            c.drawImage(sp.canvas, box.x, box.y, box.w, box.h);
+            // ink running down: vertical streaks from the top, of uneven length, inside the rock
+            c.save();
+            c.beginPath();
+            c.moveTo(outline[0][0], base + 20);
+            for (const p of outline) c.lineTo(p[0], p[1]);
+            c.lineTo(outline[outline.length - 1][0], base + 20);
+            c.closePath();
+            c.clip();
+            for (let i = 0; i < 22; i++) {
+                const u = 0.06 + r() * 0.88;
+                const p = outline[Math.round(u * n)];
+                const len = h * (0.25 + r() * 0.6);
+                stroke(c, [[p[0], p[1] + 4], [p[0] + (r() - 0.5) * 4, p[1] + len * 0.5], [p[0] + (r() - 0.5) * 6, p[1] + len]],
+                    { w: 6 + r() * 12, ink: (o.ink ?? 0.85) * (0.5 + r() * 0.5), dry: 0.85, seed: key + 'v' + i, taper: [0, 0.8], blunt: 1, core: false });
+            }
+            c.restore();
+            // a dark rough edge on the shadow side
+            stroke(c, outline.slice(0, Math.round(n * 0.55)), { w: 7, ink: 0.95, dry: 0.7, seed: key + 'edge', taper: [0.5, 0.2], raw: true, core: false });
+        }).draw(g);
+    }
+
+    // Foliage: a clump of distant trees as stacked ink dots and blobs (mi dots).
+    function foliage(c, x, y, w, h, o = {}) {
+        const r = R(o.seed ?? 'fol'), ink = o.ink ?? 0.9;
+        const n = Math.round((w * h) / 55);
+        for (let i = 0; i < n; i++) {
+            const u = r(), v = Math.pow(r(), 0.7);
+            const px = x + (u - 0.5) * w * (1 - v * 0.5), py = y - v * h * (0.6 + 0.4 * Math.sin(u * Math.PI));
+            dab(c, px, py, 2 + r() * 4, 1.5 + r() * 3, { seed: (o.seed ?? 'f') + i, ink: ink * (0.6 + r() * 0.4), rot: r() * 3, rough: 0.3 });
+        }
+        // a few trunks under the clump
+        for (let i = 0; i < 3; i++) {
+            const px = x + (r() - 0.5) * w * 0.6;
+            stroke(c, [[px, y + 2], [px + (r() - 0.5) * 4, y - h * 0.35]], { w: 2.5, ink, dry: 0.4, seed: (o.seed ?? 'f') + 't' + i, taper: [0, 0.6], core: false });
+        }
+    }
+
+    // A pagoda silhouette: tiers of curved roofs on a slim body, a spire with rings.
+    function pagoda(c, x, y, s, o = {}) {
+        const ink = o.ink ?? 0.85, seed = o.seed ?? 'pag', tiers = o.tiers ?? 4;
+        let yy = y;
+        for (let i = 0; i < tiers; i++) {
+            const k = 1 - i * 0.14, bw = s * 0.32 * k, rh = s * 0.17;
+            fillPoly(c, [[x - bw * 0.6, yy], [x + bw * 0.6, yy], [x + bw * 0.6, yy - rh * 0.9], [x - bw * 0.6, yy - rh * 0.9]], tone(ink));
+            yy -= rh * 0.9;
+            // roof: a curved stroke that turns up at the eaves
+            const rw = s * 0.55 * k;
+            stroke(c, [[x - rw, yy - rh * 0.25], [x - rw * 0.55, yy + rh * 0.05], [x, yy - rh * 0.12], [x + rw * 0.55, yy + rh * 0.05], [x + rw, yy - rh * 0.25]],
+                { w: rh * 0.45, ink, dry: 0.4, seed: seed + 'r' + i, taper: [0.3, 0.3], blunt: 0.6 });
+            yy -= rh * 0.15;
+        }
+        stroke(c, [[x, yy], [x, yy - s * 0.32]], { w: s * 0.035, ink, dry: 0.3, seed: seed + 'sp', taper: [0, 0.5], core: false });
+        for (let i = 0; i < 4; i++) stroke(c, [[x - s * 0.04, yy - s * (0.06 + i * 0.05)], [x + s * 0.04, yy - s * (0.06 + i * 0.05)]], { w: s * 0.02, ink, dry: 0.2, seed: seed + 'ring' + i, taper: [0, 0], core: false });
+    }
+
+    // A reed sprig in the water: a thin stem with a few leaves angled down, its reflection.
+    function reed(c, x, y, h, o = {}) {
+        const r = R(o.seed ?? 'reed'), ink = o.ink ?? 0.85;
+        const stems = 2 + Math.floor(r() * 3);
+        for (let i = 0; i < stems; i++) {
+            const sx = x + (i - stems / 2) * h * 0.12, hh = h * (0.6 + r() * 0.4), lean = (r() - 0.5) * 0.25;
+            const top = [sx + lean * hh, y - hh];
+            stroke(c, [[sx, y], top], { w: Math.max(1.2, h * 0.035), ink, dry: 0.3, seed: (o.seed ?? 'r') + 's' + i, taper: [0, 0.4], core: false });
+            const nl = 1 + Math.floor(r() * 3), lean2 = r() < 0.5 ? 1 : -1;
+            for (let j = 0; j < nl; j++) {
+                const u = 0.45 + r() * 0.5, p = Ease.lerpPt([sx, y], top, u);
+                const side = r() < 0.75 ? lean2 : -lean2, l = h * (0.25 + r() * 0.18), drop = 0.15 + r() * 0.5;
+                stroke(c, [p, [p[0] + side * l * 0.55, p[1] - l * 0.05], [p[0] + side * l, p[1] + l * drop]],
+                    { w: h * 0.07, ink, dry: 0.35, seed: (o.seed ?? 'r') + 'l' + i + j, taper: [0.05, 0.9], blunt: 1 });
+            }
+            // reflection: a broken, paler copy of the stem
+            stroke(c, [[sx, y + 3], [sx - lean * hh * 0.4, y + hh * 0.45]], { w: Math.max(1.2, h * 0.04), ink: ink * 0.3, dry: 0.8, seed: (o.seed ?? 'r') + 'rf' + i, taper: [0, 0.7], core: false });
+        }
+    }
+
+    // Halo rings around a sun: thin, broken circles in dry brush.
+    function halo(g, env, x, y, r, o = {}) {
+        const key = 'halo:' + r + (o.color ?? '') + (o.seed ?? '');
+        const box = { x: -r * 1.5, y: -r * 1.5, w: r * 3, h: r * 3 };
+        const sp = Motion.sprite(key, box, env.k, (c) => {
+            const rr = R(key);
+            for (let i = 0; i < (o.rings ?? 3); i++) {
+                const rad = r * (1.12 + i * 0.1 + rr() * 0.03), a0 = rr() * 6, span = 1.4 + rr() * 2.2;
+                const pts = [];
+                for (let k = 0; k <= 40; k++) {
+                    const a = a0 + (span * k) / 40;
+                    pts.push([Math.cos(a) * rad, Math.sin(a) * rad]);
+                }
+                stroke(c, pts, { w: 1.5 + rr() * 2, ink: 0.22 - i * 0.05, color: o.color ?? INK, dry: 0.85, seed: key + i, taper: [0.4, 0.4], core: false });
+            }
+        });
+        g.save();
+        g.translate(x, y);
+        sp.draw(g);
+        g.restore();
+    }
+
     return {
         INK, PAPER, RED, RED_DEEP, tone, mix, hex, clamp, sstep,
         smooth, measure, stroke, cachedStroke, blobPts, fillPoly, dab, wash,
         paper, tooth, ridge, mountains, sun, seal,
+        grain, tree, blossom, bloom, petal, crane, peak, foliage, pagoda, reed, halo,
     };
 })();
