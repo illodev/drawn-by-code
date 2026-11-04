@@ -1,541 +1,426 @@
-// 2026-11-04-red-thread · style sumi-e
-// Style test: «The kite» (36–43 s of the film). A gust carries the girl's red kite across
-// the river; the boy looks up from his screen, stands and catches the string: a red thread
-// spans the river. The world is grey here: the kite and its string are the only red.
-const RT = (() => {
-    const W = 1600, H = 900;
-    const WL = 700;                       // water level at the bridge's depth
-    const GIRL = { x: 600, y: 760 }, BOY = { x: 1915, y: 790 }, ROCK = { x: 1950, y: 776 };
-    const GH = 175, BH = 185, bk = BH / 135;
+// 2026-11-04-red-thread · style sumi-e · «El hilo rojo», animatic (68 s).
+// A river village where every greeting ties a red thread; screens and slogans split it into
+// two banks, the threads snap and the red drains out of the world, until a child's red kite
+// carries one thread back across the river. See brief.md for the shot list.
+//
+// Files: kite.js (RT: the set and shot 7, the approved style test), cast.js (the figures),
+// film.js (Film: world state, people, threads, effects). This file only assembles the shots.
+const ANIMATIC = true;      // timecode and shot name in the corner
 
-    // camera: [t, cx, cy, zoom]
-    const CAM = [[0, 655, 522, 1.13], [1.4, 700, 512, 1.09], [4.6, 1225, 490, 0.82], [7, 1258, 486, 0.795]];
-    // Monotone cubic through time keys (Fritsch–Carlson): velocity carries through every
-    // key and never overshoots, so nothing stops dead at a key or comes back
-    function spline(keys, t) {
-        const n = keys.length;
-        if (t <= keys[0][0]) return keys[0][1];
-        if (t >= keys[n - 1][0]) return keys[n - 1][1];
-        const d = [], m = [];
-        for (let i = 0; i < n - 1; i++) d.push((keys[i + 1][1] - keys[i][1]) / (keys[i + 1][0] - keys[i][0]));
-        m.push(0);   // start from rest
-        for (let i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (2 * d[i - 1] * d[i]) / (d[i - 1] + d[i]));
-        m.push(0);   // and come to rest
-        let i = 0;
-        while (t > keys[i + 1][0]) i++;
-        const h = keys[i + 1][0] - keys[i][0], u = (t - keys[i][0]) / h, u2 = u * u, u3 = u2 * u;
-        return (2 * u3 - 3 * u2 + 1) * keys[i][1] + (u3 - 2 * u2 + u) * h * m[i] + (-2 * u3 + 3 * u2) * keys[i + 1][1] + (u3 - u2) * h * m[i + 1];
-    }
-    function cam(t) {
-        const k = (i) => spline(CAM.map((c) => [c[0], c[i]]), t);
-        return { cx: k(1), cy: k(2), z: k(3) };
-    }
-    // a layer at parallax p (0 = fixed to the sky, 1 = the ground plane)
-    function view(g, c, p) {
-        const z = 1 + (c.z - 1) * p;
-        g.translate(W / 2, H / 2);
-        g.scale(z, z);
-        g.translate(-(W / 2 + (c.cx - W / 2) * p), -(H / 2 + (c.cy - H / 2) * p));
-    }
+// built in setup(): the kits in `uses` load after this file
+let Shots = null;
+const makeShots = () => {
+    const E = Ease, S = Sumi, F = Film;
+    const hump = F.hump, seg = F.seg;
 
-    // --- choreography ---------------------------------------------------------------------
-    const T_GUST = 1.5, T_LOOK = 3.7, T_STAND = 4.1, T_CATCH = 5.0;
-    const twos = (t) => Math.floor(t * 12 + 1e-6) / 12;
-    const hump = (u) => Math.sin(Math.PI * u);
-
-    function kiteAt(t) {
-        const n = (s, f) => Motion.noise1(s, t * f);
-        // before the gust: tugging above the girl; the gust carries it over the river;
-        // it dips past the boy; after the catch it rides the wind beyond him
-        const path = spline([
-            [0, 905], [T_GUST, 935], [2.6, 1330], [3.6, 1760], [4.6, 2060], [T_CATCH, 2110], [7, 2150],
-        ], t);
-        const py = spline([
-            [0, 265], [T_GUST, 255], [2.6, 185], [3.6, 250], [4.6, 450], [T_CATCH, 500], [5.8, 270], [7, 235],
-        ], t);
-        return { x: path + n('kx', 1.3) * 14, y: py + n('ky', 1.7) * 12, rot: 0.25 + n('kr', 2.1) * 0.22 + (t > T_GUST && t < 3.6 ? 0.2 : 0) };
+    // draw a list of poses back to front (by depth), returning what was drawn by id
+    function drawPeople(g, poses) {
+        const out = {};
+        poses.slice().sort((a, b) => a.y - b.y).forEach((p) => (out[p.id] = Cast.figure(g, p)));
+        return out;
     }
+    const villagerIds = () => Object.keys(F.V);
+    const all = (t) => [...villagerIds().map((id) => F.villager(id, t)), F.kid('girl', t), F.kid('boy', t)];
+    // where a person's heart is before they are drawn (for reflections)
+    const heartOf = (p) => [p.x, p.y - p.h * 0.6];
 
-    function girlPose(t) {
-        const g = Ease.out(Ease.seg(t, T_GUST, T_GUST + 0.6)) - 0.35 * Ease.inOut(Ease.seg(t, 2.6, 3.6));
-        const after = Ease.inOut(Ease.seg(t, T_CATCH, T_CATCH + 0.6));
-        const k = kiteAt(t);
-        const sx = GIRL.x + 28 * Ease.inOut(Ease.seg(t, T_GUST + 0.1, T_GUST + 0.5));
-        const sh = [sx + 4, GIRL.y - 0.73 * GH];
-        // the near hand reaches along the line towards the kite (or the boy, after)
-        const tgt = t < T_CATCH ? [k.x, k.y] : [BOY.x, BOY.y - 120];
-        const a = Math.atan2(tgt[1] - sh[1], tgt[0] - sh[0]);
-        const reach = (30 + 10 * g) * GH / 125;
-        const hand = [sh[0] + Math.cos(a) * reach, sh[1] + Math.sin(a) * reach + 4];
-        return {
-            x: sx, y: GIRL.y, h: GH, face: 1, kind: 'girl', id: 'girl',
-            lean: 0.04 + 0.2 * g - 0.08 * after, look: 0.35 - 0.2 * after,
-            feet: [[sx + 20 + 11 * g, GIRL.y], [GIRL.x - 8, GIRL.y]],
-            hands: [hand, [sx - 3 + 14 * after, GIRL.y - 73 - 30 * hump(Ease.seg(t, 2.3, 4.6))]],
-            wind: 0.35 + 0.65 * hump(Ease.seg(t, T_GUST, 4.0)), t,
-        };
+    // the threads of shots 2–5 (and their reflections)
+    function threadState(t, th, drawn) {
+        const [a, b, born, slackFrom, snapAt] = th;
+        if (born == null || t < born) return null;
+        if (snapAt != null && t >= snapAt + 0.9) return null;
+        const da = drawn[a], db = drawn[b];
+        if (!da || !db) return null;
+        const kids = a === 'girl';
+        const pa = kids && t < 12.9 ? da.hands[0] : da.heart, pb = kids && t < 12.9 ? db.hands[1] : db.heart;
+        const slack = slackFrom != null ? E.inOut(seg(t, slackFrom, slackFrom + 1.2)) * (kids ? 0.5 : 0.85) : 0;
+        return { pa, pb, slack, grow: E.out(seg(t, born, born + 0.6)), snapU: snapAt != null && t >= snapAt ? (t - snapAt) / 0.9 : null };
     }
-
-    // the phone: in his hands while he sits; as he stands he lets it drop to the ground,
-    // where it lies face up, its light fading
-    function phoneAt(t, held, x) {
-        const t0 = T_STAND + 0.15;
-        if (t < t0) return held;
-        const drop = BOY.y - 4 - held[1], tf = Math.sqrt(2 * drop / 2400);
-        const u = Math.min(t - t0, tf);
-        return [held[0] - 30 * Math.min(1, (t - t0) / tf), held[1] + 0.5 * 2400 * u * u];
-    }
-
-    function boyPose(t) {
-        const look = Ease.out(Ease.seg(t, T_LOOK, T_LOOK + 0.35));
-        const stand = Ease.inOut(Ease.seg(t, T_STAND, T_STAND + 0.5));
-        const reach = Ease.out(Ease.seg(t, 4.45, T_CATCH));
-        const pull = hump(Ease.seg(t, T_CATCH, T_CATCH + 0.6));
-        const x = BOY.x - 14 * stand;
-        const catchPt = stringAt(BOY.x - 24, T_CATCH - 1e-3);
-        // phone hands in front of the chest while sitting; then the phone drops to the side
-        const phoneH = [x - 30 * bk, BOY.y - (76 - 40 * stand) * bk];
-        const nearRest = [x - (34 - 26 * stand) * bk, BOY.y - (70 - 20 * stand) * bk];
-        const near = Ease.lerpPt(nearRest, [catchPt[0], catchPt[1] + 14 * pull], reach);
-        return {
-            x, y: BOY.y, h: BH, face: -1, kind: 'boy', id: 'boy',
-            sit: 1 - stand, seatY: ROCK.y - 30,
-            lean: 0.55 * (1 - stand) - 0.25 * look * (1 - stand) + 0.1 * stand - 0.12 * reach,
-            look: -0.35 + 0.95 * look,
-            feet: stand > 0.5 ? [[x - 30, BOY.y], [x + 19, BOY.y]] : [[x - 52, BOY.y], [x - 34, BOY.y]],
-            hands: [near, Ease.lerpPt([x - 26 * bk, BOY.y - 74 * bk], [x + 6 * bk, BOY.y - 50 * bk], stand)],
-            phone: 1, glow: 1 - 0.85 * Ease.seg(t, T_STAND + 0.5, 6.5), phoneAt: phoneAt(t, phoneH, x), phoneRot: 0.5 - 1.6 * Ease.in(Ease.seg(t, T_STAND + 0.15, T_STAND + 0.45)),
-            t,
-        };
-    }
-
-    // The string as a sagging curve from the girl's hand to the kite. Before the catch it
-    // is one span; after it, two: girl → boy (across the river) and boy → kite.
-    function sag(a, b, amount) {
-        const pts = [];
-        for (let i = 0; i <= 24; i++) {
-            const u = i / 24;
-            pts.push([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u + amount * 4 * u * (1 - u)]);
-        }
-        return pts;
-    }
-    let girlHand = null;
-    function stringAt(x, t) {
-        const gp = girlPose(t), k = kiteAt(t);
-        const sh = [gp.x + 4, GIRL.y - 0.73 * GH];
-        const a = gp.hands[0], kk = [k.x - 8 * Math.sin(k.rot), k.y + 8 * Math.cos(k.rot)];
-        const pts = sag(a, kk, 70 + 40 * hump(Ease.seg(t, T_GUST, 3.6)));
-        for (let i = 1; i < pts.length; i++) if (pts[i][0] >= x) {
-            const u = (x - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0]);
-            return Ease.lerpPt(pts[i - 1], pts[i], u);
-        }
-        return pts[pts.length - 1];
-    }
-
-    // --- set pieces -----------------------------------------------------------------------
-    // The whole landscape is ONE painting on one sheet (round 3): no parallax, nothing
-    // translucent. It is painted back to front into a single cached sprite, each piece
-    // knocking out what is behind it; mist is paper, not transparency.
-    function sky(g, env, t) {
-        // the grey sun (the red has gone out of the world), with its halo rings
-        Sumi.halo(g, env, 1300, 235, 105, { color: '#6d6861', seed: 'grey' });
-        Sumi.sun(g, env, 1300, 235, 105, { color: '#8d877d', seed: 'grey', fade: 0.6 });
-    }
-
-    function landscape(g, env) {
-        // far ranges: pale, broad washes (only paper and the sun are behind them)
-        Motion.sprite('rt:farwash', { x: -600, y: 280, w: 3600, h: 420 }, env.k, (c) => {
-            Sumi.mountains(c, env, 'far3', { x0: -500, x1: 1250, y: 630, h: 210, ink: 0.16, peaks: 2.6, blur: 5 });
-            Sumi.mountains(c, env, 'far4', { x0: 1000, x1: 2900, y: 630, h: 170, ink: 0.13, peaks: 3.2, blur: 5 });
-        }).draw(g);
-        // karst peaks behind the right bank, right of the sun
-        Sumi.peak(g, env, 'pk3B', 1600, 652, 120, 240, { shoulder: 0.85, slant: -0.05 });
-        Sumi.peak(g, env, 'pk3A', 1420, 652, 190, 330, { shoulder: 0.62 });
-        Motion.sprite('rt:land3', { x: -600, y: 300, w: 3600, h: 400 }, env.k, (c) => {
-            // right bank: a wooded hill with the pavilion (inside the final framing)
-            Sumi.hill(c, { x0: 1960, x1: 2700, base: 648, h: 120, peaks: 1.6, seed: 'hR1b', ink: 0.5, mist: 0.55 });
-            const hr = Sumi.hill(c, { x0: 1560, x1: 2300, base: 652, h: 130, peaks: 1.1, sharp: 1.1, seed: 'hR1', ink: 0.85 });
-            // the pavilion stands on the hill between the peaks and the boy, clear of the kite
-            const at = (x) => hr.reduce((a, p) => (Math.abs(p[0] - x) < Math.abs(a[0] - x) ? p : a));
-            const pv = at(1790);
-            Sumi.foliage(c, pv[0] - 120, pv[1] + 22, 110, 50, { seed: 'fR2' });
-            Sumi.pavilion(c, pv[0], pv[1] + 10, 115, { seed: 'pvR' });
-            const fr = at(2060);
-            Sumi.foliage(c, fr[0], fr[1] + 14, 150, 55, { seed: 'fR1' });
-            // left bank: a hill with the pagoda among trees, between the tree and the girl
-            Sumi.hill(c, { x0: 380, x1: 1150, base: 648, h: 150, peaks: 1.5, seed: 'hL1b', ink: 0.55, mist: 0.55 });
-            const hl = Sumi.hill(c, { x0: 120, x1: 900, base: 652, h: 165, peaks: 1.25, sharp: 1.1, seed: 'hL1', ink: 0.88 });
-            const topL = hl.reduce((a, p) => (p[1] < a[1] ? p : a));
-            Sumi.foliage(c, topL[0] + 90, topL[1] + 14, 120, 60, { seed: 'fL1' });
-            Sumi.pagoda(c, topL[0] - 20, topL[1] + 12, 175, { seed: 'pgL' });
-            Sumi.foliage(c, topL[0] - 120, topL[1] + 30, 100, 50, { seed: 'fL2' });
-            Sumi.hill(c, { x0: -500, x1: 260, base: 652, h: 80, peaks: 1.3, seed: 'hL0', ink: 0.75, mist: 0.6 });
-        }).draw(g);
-    }
-
-    // three cranes crossing the sky with the wind, wings on twos
-    function cranes(g, env, t) {
-        for (const [i, x0, y0, s, ph] of [[0, 600, 105, 26, 0], [1, 500, 145, 22, 0.35], [2, 690, 170, 19, 0.7]]) {
-            const x = x0 + t * 105, y = y0 + Math.sin(t * 1.3 + i) * 8;
-            Sumi.crane(g, x, y, s, (t * 1.1 + ph) % 1, { seed: 'cr' + i, ink: 0.85, tilt: -0.08 });
-        }
-    }
-
-    // --- the river (round 4) ----------------------------------------------------------------
-    // The river comes from the far hills and opens into a wide pool in the foreground, held
-    // between two promontories (the girl's on the left, the boy's on the right) and a small
-    // bank in the bottom-left corner where the old tree stands, as in the reference: the
-    // water reaches the bottom of the frame, so it never reads as a road.
-    const HORIZON = 650;
-    // the water-facing edge of each piece of land, from far to near
-    const SHORE_L = [[1040, 650], [960, 662], [860, 688], [800, 722], [770, 765], [720, 808], [600, 842], [430, 872], [240, 905], [40, 940], [-200, 975], [-700, 990]];
-    const SHORE_R = [[1330, 650], [1480, 660], [1640, 690], [1710, 714], [1760, 752], [1800, 800], [1880, 842], [2040, 875], [2260, 905], [2500, 930], [3100, 960]];
-    const SHORE_T = [[-700, 1040], [-300, 1012], [0, 1002], [180, 1022], [300, 1070], [370, 1250]];
-    const LANDS = [
-        [[-700, HORIZON - 2], ...SHORE_L, [-700, 990]],
-        [[3100, HORIZON - 2], ...SHORE_R.slice().reverse().map((p) => p).reverse(), [3100, 960]],
-        [...SHORE_T, [-700, 1250]],
-    ];
-
-    // the water: long smooth grey bands and fine dark lines, darkest along the far shore and
-    // fading to white towards the viewer (cached; it is part of the sheet)
-    function water(g, env) {
-        Motion.sprite('rt:water4', { x: -700, y: HORIZON - 10, w: 3800, h: 620 }, env.k, (c) => {
-            const r = Motion.rng('water4');
-            // the dark band where the water meets the far shore
-            const gr = c.createLinearGradient(0, HORIZON, 0, HORIZON + 110);
-            gr.addColorStop(0, Sumi.tone(0.32));
-            gr.addColorStop(0.35, Sumi.tone(0.12));
-            gr.addColorStop(1, Sumi.tone(0));
-            c.fillStyle = gr;
-            c.fillRect(-700, HORIZON, 3800, 110);
-            // broad bands: long, flat, soft-edged, lighter and sparser towards the viewer
-            for (let i = 0; i < 46; i++) {
-                const v = Math.pow(r(), 1.6), y = HORIZON + 6 + v * 560;
-                const len = 300 + r() * 1100, x = -500 + r() * 3400;
-                Sumi.stroke(c, [[x, y], [x + len * 0.5, y + (r() - 0.5) * 3], [x + len, y + (r() - 0.5) * 2]],
-                    { w: 8 + r() * 22 * (0.5 + v), ink: (0.1 + r() * 0.2) * (1 - v * 0.8), dry: 0.88, seed: 'wb' + i, taper: [0.35, 0.45], blunt: 0.25, core: r() < 0.5, bleed: false });
-            }
-            // fine dark lines running far across (the pencil-thin lines of the reference)
-            for (let i = 0; i < 38; i++) {
-                const v = Math.pow(r(), 1.4), y = HORIZON + 4 + v * 540;
-                const len = 200 + r() * 900, x = -500 + r() * 3400;
-                Sumi.stroke(c, [[x, y], [x + len, y + (r() - 0.5) * 2]],
-                    { w: 1.6 + r() * 1.6, ink: (0.45 + r() * 0.4) * (1 - v * 0.5), dry: 0.5, seed: 'wl' + i, taper: [0.15, 0.2], blunt: 0.6, core: false, bleed: false });
-            }
-        }).draw(g);
-    }
-
-    // reflections: the far landscape, the grey sun, the broken bridge and the red thread
-    // mirrored about their water lines, drawn into a layer and laid on the water in thin
-    // horizontal strips that shift and break with the current
-    function reflections(g, env, t, c, span) {
-        const L = Motion.layer(env, 'rt-refl', (q) => {
-            view(q, c, 1);
-            q.save();
-            q.translate(0, HORIZON * 2);
-            q.scale(1, -1);
-            q.globalAlpha = 0.5;
-            sky(q, env, t);
-            landscape(q, env);
-            q.restore();
-            q.save();
-            q.translate(0, 722 * 2);
-            q.scale(1, -1);
-            bridge(q, env, true);
-            q.restore();
-            if (span) {
-                q.save();
-                q.translate(0, 722 * 2);   // the water surface under the thread (as the bridge)
-                q.scale(1, -1);
-                Sumi.stroke(q, span, { w: 2.4, ink: 0.6, color: Sumi.RED, dry: 0.2, seed: 'strRefl', taper: [0, 0], blunt: 1, bleed: false, raw: true });
-                q.restore();
+    function drawThreads(g, t, drawn) {
+        F.THREADS.forEach((th, i) => {
+            const st = threadState(t, th, drawn);
+            if (!st) return;
+            if (st.snapU != null) return F.drawSnap(g, st.pa, st.pb, st.slack, st.snapU, 'snap' + i);
+            // a slack thread loses its red: thinner, fainter
+            F.drawThread(g, F.threadPts(st.pa, st.pb, st.slack), { grow: st.grow, alpha: 1 - 0.5 * st.slack, w: 2.6 - 1.0 * st.slack, seed: 'th' + i });
+            // its shimmer: a brighter bead running along it now and then
+            if (st.slack < 0.3 && st.grow >= 1) {
+                const pts = F.threadPts(st.pa, st.pb, st.slack), u = (t * 0.45 + i * 0.31) % 1, k = Math.floor(u * (pts.length - 1));
+                S.dab(g, pts[k][0], pts[k][1], 3.2, 2.6, { color: S.RED, ink: 0.9, seed: 'bead' + i });
             }
         });
+    }
+    function threadSpans(t, poses) {
+        const byId = Object.fromEntries(poses.map((p) => [p.id, p]));
+        return F.THREADS.map((th) => {
+            const [a, b, born, slackFrom, snapAt] = th;
+            if (born == null || t < born + 0.6 || (snapAt != null && t >= snapAt)) return null;
+            return F.threadPts(heartOf(byId[a]), heartOf(byId[b]), slackFrom != null ? E.inOut(seg(t, slackFrom, slackFrom + 1.2)) * 0.85 : 0);
+        }).filter(Boolean);
+    }
+
+    // slogans: calligraphy rising from every lit screen to the cloud over that person's home
+    function drawSlogans(g, t, poses) {
+        if (t < 18.3 || t > 24.5) return;
+        poses.forEach((p, j) => {
+            if (!p.phone || !(p.glow > 0.5) || !p.phoneAt) return;
+            const home = F.V[p.id] ? (['womanL', 'kasaL', 'manL2', 'oldW'].includes(p.id) ? 'L' : 'R') : p.id === 'girl' ? 'L' : 'R';
+            const to = F.CLOUDS[home];
+            for (let k = 0; k < 6; k++) {
+                const t0 = 18.4 + k * 0.55 + (j % 3) * 0.17, u = (t - t0) / 1.6;
+                if (u <= 0 || u >= 1) continue;
+                const from = p.phoneAt, mid = [(from[0] + to[0]) / 2 + (k % 2 ? 80 : -80), Math.min(from[1], to[1]) - 60];
+                const q = F.bezier(from, mid, to, E.in(u));
+                g.save();
+                g.globalAlpha *= Math.min(1, u * 5) * (1 - u * 0.4);
+                F.glyph(g, q[0], q[1], 22 + 30 * u, 'sl' + p.id + k);
+                g.restore();
+            }
+        });
+    }
+
+    // the shouts of shot 5 (and the two in shot 8): from a mouth, across, into the river
+    function drawShouts(g, t, drawn, range) {
+        for (const [ts, who, tx, ty] of F.SHOUTS) {
+            if (ts < range[0] || ts >= range[1]) continue;
+            const d = drawn[who];
+            if (!d) continue;
+            const u = (t - ts) / 0.7;
+            if (u > 0 && u < 1) F.drawShout(g, d.mouth, [tx, ty], u, 'sh' + ts);
+            const v = (t - ts - 0.7) / 0.7;
+            if (v > 0 && v < 1 && ty > 700) F.drawSplash(g, [tx, ty], v, 'sp' + ts);
+        }
+    }
+
+    // --- 1 · Title: the painting blooms onto the paper; the title is written; the seal ------
+    const REVEAL = [
+        [0.2, 1300, 235, 230], [0.7, 700, 520, 760], [0.9, 1950, 540, 820], [1.3, 1500, 470, 380],
+        [1.5, 480, 580, 560], [1.7, 2050, 600, 520], [2.0, 1250, 820, 980], [2.3, 380, 900, 700],
+        [2.4, 2150, 880, 700], [2.6, 1250, 690, 520], [2.8, 80, 700, 760], [3.1, 380, 220, 700], [3.3, 900, 300, 400],
+    ];
+    function title(g, env, t, tq, c, w) {
+        const world = Motion.layer(env, 'rt-world', (q) => {
+            RT.view(q, c, 1);
+            F.paintWorld(q, env, t, tq, c, w, { figures: (h) => drawPeople(h, all(tq)) });
+        });
+        const mask = Motion.layer(env, 'rt-mask', (q) => {
+            RT.view(q, c, 1);
+            q.fillStyle = '#000';
+            REVEAL.forEach(([t0, x, y, r], i) => {
+                const u = E.out(seg(t, t0 * 1.25, t0 * 1.25 + 1.8));
+                if (u <= 0) return;
+                const pts = S.blobPts(x, y, r * u, r * u * 0.85, 0, 'rv' + i, 0.22, 36);
+                S.fillPoly(q, pts, '#000');
+            });
+        });
+        const wc = world.getContext('2d');
+        wc.save();
+        wc.setTransform(1, 0, 0, 1, 0, 0);
+        wc.globalCompositeOperation = 'destination-in';
+        wc.drawImage(mask, 0, 0);
+        wc.restore();
+        g.save();
+        RT.view(g, c, 1);
+        S.paper(g, env, { x: -500, y: -300, w: 3300, h: 1650 }, { res: 1.1 });
+        g.restore();
         g.save();
         g.setTransform(1, 0, 0, 1, 0, 0);
-        g.globalCompositeOperation = 'darken';     // paper in the layer leaves the water as it is
-        const W = env.px[0], H = env.px[1], sh = Math.max(2, Math.round(2.5 * env.k));
-        for (let y = 0; y < H; y += sh) {
-            const gap = Motion.noise1('rgap', y * 0.06 + t * 0.7);
-            if (gap > 0.42) continue;                 // white cuts across the reflection
-            const dx = Math.sin(y * 0.05 + t * 1.6) * 2.2 * env.k + Motion.noise1('rdx', y * 0.02 + t * 0.4) * 2 * env.k;
-            g.globalAlpha = 0.5 + 0.2 * Math.max(0, -gap);
-            g.drawImage(L, 0, y, W, sh, dx, y, W, sh);
-        }
+        g.drawImage(world, 0, 0);
         g.restore();
+        // the title, in screen space, written by the brush; it fades as the shot ends
+        const fade = 1 - seg(t, 5.4, 6.0);
+        // in the empty sky right of the sun; the seal under its end
+        const tw = F.writeText(g, env, 'El hilo rojo', 1240, 118, 118, seg(t, 3.2, 4.6), { alpha: fade }) ?? 0;
+        F.stamp(g, env, 1240 + tw / 2 - 30, 215, 70, '赤い糸', t, 5.0, { alpha: fade });
     }
 
-    // the land: opaque paper over the water, a damp grey band and a dry dark line along each
-    // shore, stones with moss, grass, the boy's rock
-    function lands(g, env) {
-        Motion.sprite('rt:lands4', { x: -700, y: HORIZON - 10, w: 3800, h: 620 }, env.k, (c) => {
-            const r = Motion.rng('lands4');
-            for (const poly of LANDS) Sumi.fillPoly(c, poly, Sumi.PAPER);
-            for (const [sh, side] of [[SHORE_L, 1], [SHORE_R, -1], [SHORE_T, 1]]) {
-                const fine = Sumi.smooth(sh, 6).map(([x, y], i) => [x + 5 * Motion.noise1('sh4' + side + sh.length, i * 0.1), y + 3 * Motion.noise1('shy4' + side, i * 0.13)]);
-                // damp band on the water side
-                Sumi.stroke(c, fine.map(([x, y]) => [x + side * 6, y + 8]), { w: 16, ink: 0.28, dry: 0.85, seed: 'damp' + side + sh.length, taper: [0.1, 0.1], core: false, raw: true, bleed: false });
-                // the shoreline: two or three strokes, heavier towards the viewer
-                // the shoreline: short strokes with gaps, heavier towards the viewer, never one
-                // continuous line (that reads as a kerb)
-                const n = fine.length;
-                let i0 = 0, k = 0;
-                while (i0 < n - 3) {
-                    const len = 5 + Math.floor(r() * 9), i1 = Math.min(n, i0 + len);
-                    const u = i0 / n;
-                    Sumi.stroke(c, fine.slice(i0, i1), { w: 4 + u * 9 * (0.6 + r() * 0.8), ink: 0.7 + r() * 0.25, dry: 0.7, seed: 'shl' + side + sh.length + k, taper: [0.25, 0.4], blunt: 0.5, raw: true, bleed: false });
-                    i0 = i1 + (r() < 0.4 ? 1 + Math.floor(r() * 2) : -1);
-                    k++;
+    // --- 2–5 · The village (one function, one timeline; the camera tells the shots apart) ---
+    function village(g, env, t, tq, c, w, o = {}) {
+        const poses = all(tq);
+        let drawn = {};
+        const clouds = { L: keysCloud(t), R: keysCloud(t) };
+        F.paintWorld(g, env, t, tq, c, w, {
+            clouds,
+            figures: (h) => {
+                drawn = drawPeople(h, poses);
+                drawThreads(h, tq, drawn);
+                drawSlogans(h, tq, poses);
+                drawShouts(h, tq, drawn, [26, 32]);
+                // the planks hitting the river
+                if (w.bridge.mode === 'intact' && w.bridge.fall > 0) {
+                    RT.PLANK_SPLASH.forEach(([x, dt], i) => {
+                        const v = ((t - 30.4) - dt) / 0.7;
+                        if (v > 0 && v < 1) F.drawSplash(h, [x, 726], v, 'pk' + i, 1.3);
+                    });
                 }
-                // ground on the bank: dry grey strokes lying along the shore, fading inland
-                for (let j = 0; j < 14; j++) {
-                    const a = Math.floor(r() * (n - 8)), b = Math.min(n, a + 4 + Math.floor(r() * 8));
-                    const off = 10 + r() * 60;
-                    Sumi.stroke(c, fine.slice(a, b).map(([x, y]) => [x - side * off * 0.4, y - off]), { w: 3 + r() * 6, ink: 0.15 + r() * 0.2, dry: 0.9, seed: 'gr4' + side + sh.length + j, taper: [0.3, 0.4], raw: true, core: false, bleed: false });
-                }
-                // a second, lighter line behind the edge (the bank's lip), as in the reference
-                const lip = fine.slice(Math.floor(n * 0.25)).map(([x, y]) => [x - side * 14, y - 12]);
-                Sumi.stroke(c, lip, { w: 4, ink: 0.4, dry: 0.85, seed: 'lip' + side + sh.length, taper: [0.3, 0.4], raw: true, core: false, bleed: false });
-                // stones with moss dots
-                for (let i = 0; i < 6; i++) {
-                    const p = fine[Math.floor((0.15 + 0.8 * r()) * (n - 1))];
-                    const sz = 5 + (p[1] - HORIZON) * 0.035 * (0.6 + r());
-                    const st = Sumi.blobPts(p[0], p[1] - sz * 0.3, sz * 1.5, sz, 0, 'st4' + side + i + sh.length, 0.15);
-                    Sumi.fillPoly(c, st, Sumi.tone(0.22 + r() * 0.2));
-                    Sumi.stroke(c, st.slice(14, 28), { w: sz * 0.35, ink: 0.85, dry: 0.6, seed: 'stc4' + side + i + sh.length, taper: [0.2, 0.3], bleed: false });
-                    for (let k = 0; k < 3; k++) Sumi.dab(c, p[0] + (r() - 0.5) * sz * 2, p[1] - sz * (1 + r() * 0.4), 1.4 + r() * 1.4, 1.2 + r(), { seed: 'md4' + side + i + k + sh.length });
-                }
-            }
-            // grass on the land, thinning away from the water
-            const tuft = (x0, y, s, seed) => {
-                const n = 3 + Math.floor(r() * 4);
-                for (let j = 0; j < n; j++) {
-                    const a = -Math.PI / 2 + (j - n / 2) * 0.25 + (r() - 0.5) * 0.3, hgt = s * (0.6 + r() * 0.6);
-                    Sumi.stroke(c, [[x0 + j * 3, y], [x0 + j * 3 + Math.cos(a) * hgt * 0.5, y + Math.sin(a) * hgt * 0.5], [x0 + j * 3 + Math.cos(a) * hgt + 3, y + Math.sin(a) * hgt]],
-                        { w: 2.5 + r() * 1.5, ink: 0.6 + r() * 0.3, dry: 0.4, seed: seed + j, taper: [0, 0.85], blunt: 1, bleed: false });
-                }
-            };
-            for (let i = 0; i < 9; i++) tuft(250 + r() * 480, 700 + r() * 120, 16 + r() * 12, 'tL' + i);
-            for (let i = 0; i < 9; i++) tuft(1820 + r() * 500, 700 + r() * 140, 16 + r() * 12, 'tR' + i);
-            for (let i = 0; i < 5; i++) tuft(-200 + r() * 450, 1040 + r() * 80, 24 + r() * 14, 'tT' + i);
-            // the boy's rock
-            const rk = Sumi.blobPts(ROCK.x - 6, ROCK.y - 2, 58, 30, 0, 'rock', 0.12);
-            Sumi.fillPoly(c, rk, Sumi.tone(0.22));
-            Sumi.fillPoly(c, Sumi.blobPts(ROCK.x + 14, ROCK.y + 8, 40, 18, 0.1, 'rocksh', 0.15), Sumi.tone(0.25));
-            Sumi.stroke(c, [...rk.slice(20), ...rk.slice(0, 13)], { w: 9, ink: 0.92, dry: 0.65, seed: 'rockc', taper: [0.15, 0.35], bleed: false });
-            Sumi.stroke(c, rk.slice(13, 21), { w: 6, ink: 0.7, dry: 0.85, seed: 'rockb', taper: [0.2, 0.4], bleed: false });
-            for (let k = 0; k < 6; k++) Sumi.dab(c, ROCK.x - 40 + k * 15, ROCK.y - 26 + (k % 2) * 4, 2.2, 1.8, { seed: 'rm' + k });
-        }).draw(g);
+            },
+            after: (h) => {
+                if (t >= 26 && t < 32) F.shedPetals(h, t, 26.2, 31, 40, 'shed');
+            },
+        });
+    }
+    const keysCloud = (t) => RT.spline([[18.5, 0], [22.5, 1], [31.5, 1], [32, 0]], t);
+
+    // --- 6 · Grey: everyone has gone; ink rain; the girl's kite is the only red ---------------
+    function grey(g, env, t, tq, c, w) {
+        const tl = tq - 36;                        // the kite shot's clock, before it starts
+        const gp = RT.girlPose(0), bp = RT.boyPose(0);
+        gp.t = tq;
+        bp.t = tq;
+        bp.glow = 1;
+        const k = RT.kiteAt(0), kite = { x: k.x + Motion.noise1('gk', t * 1.2) * 18, y: k.y + Motion.noise1('gky', t * 1.5) * 14, rot: k.rot + Motion.noise1('gkr', t * 2) * 0.15 };
+        F.paintWorld(g, env, t, tq, c, w, {
+            overcast: RT.spline([[32, 1], [35, 1], [36, 0.2]], t),
+            figures: (h) => {
+                const gd = Cast.figure(h, gp);
+                Cast.figure(h, bp);
+                const kk = [kite.x - 8 * Math.sin(kite.rot), kite.y + 8 * Math.cos(kite.rot)];
+                F.drawThread(h, RT.sag(gd.hands[0], kk, 75), { w: 2.6, seed: 'gstr' });
+                RT.kite(h, env, tq, kite);
+            },
+            after: (h) => F.drawRain(h, c, w.rain, t),
+        });
     }
 
-    // reeds in the shallows along the shores and two clumps out in the open water
-    function reeds(g, env) {
-        Motion.sprite('rt:reeds4', { x: -700, y: HORIZON - 100, w: 3800, h: 720 }, env.k, (c) => {
-            const r = Motion.rng('reeds4');
-            const along = (sh, u) => {
-                const f = u * (sh.length - 1), i = Math.min(sh.length - 2, Math.floor(f));
-                return Ease.lerpPt(sh[i], sh[i + 1], f - i);
-            };
-            for (const [sh, side, us] of [[SHORE_L, 1, [0.32, 0.45, 0.58, 0.7]], [SHORE_R, -1, [0.35, 0.5, 0.62, 0.72]]]) {
-                for (const u of us) {
-                    const p = along(sh, u + (r() - 0.5) * 0.04);
-                    Sumi.reed(c, p[0] + side * (14 + r() * 26), p[1] + 10 + r() * 14, 26 + (p[1] - HORIZON) * 0.16, { seed: 'rd4' + side + u, ink: 0.88 });
-                }
-            }
-            Sumi.reed(c, 1040, 1010, 58, { seed: 'rdA', ink: 0.9 });
-            Sumi.reed(c, 1090, 1022, 46, { seed: 'rdB', ink: 0.9 });
-            Sumi.reed(c, 1560, 990, 50, { seed: 'rdC', ink: 0.9 });
-        }).draw(g);
+    // --- 7 · The kite (the approved style test, on the film's clock) ---------------------------
+    function kiteShot(g, env, t, tq, c, w) {
+        const tl = t - 36, tlq = tq - 36;
+        const gp = RT.girlPose(tlq), bp = RT.boyPose(tlq);
+        F.paintWorld(g, env, t, tq, c, w, {
+            cranesT: tlq,
+            spans: [RT.spanFor(tlq, gp, bp)].filter(Boolean),
+            figures: (h) => {
+                const gd = Cast.figure(h, gp), bd = Cast.figure(h, bp);
+                RT.string(h, env, tlq, gd, bd);
+                RT.kite(h, env, tlq);
+                RT.wind(h, env, tl);
+            },
+            after: (h) => RT.petals(h, env, tlq),
+        });
     }
 
-    // the broken bridge: a deck stub from each bank, posts standing in the water
-    // (their reflections come from the reflection pass)
-    function bridge(g, env, mirror = false) {
-        Motion.sprite('rt:bridge4', { x: 600, y: 560, w: 1300, h: 300 }, env.k, (c) => {
-            const deck = (a, b, seed) => {
-                Sumi.stroke(c, [a, Ease.lerpPt(a, b, 0.5), b], { w: 13, ink: 0.92, dry: 0.45, seed, taper: [0.02, 0.15], blunt: 1 });
-            };
-            deck([820, 676], [985, 668], 'deckL');
-            deck([1525, 668], [1680, 676], 'deckR');
-            for (const [x, y, d] of [[985, 668, 1], [1525, 668, -1]]) {
-                for (let i = 0; i < 4; i++) Sumi.stroke(c, [[x - d * 6, y - 4 + i * 3], [x + d * (10 + i * 7), y - 8 + i * 5]], { w: 3, ink: 0.85, dry: 0.3, seed: 'spl' + x + i, taper: [0, 0.8] });
-            }
-            for (const x of [850, 920, 975, 1540, 1600, 1660]) Sumi.stroke(c, [[x, 670], [x + 1, 640]], { w: 5, ink: 0.9, dry: 0.3, seed: 'rp' + x, taper: [0, 0.1] });
-            Sumi.stroke(c, [[848, 643], [976, 640]], { w: 4, ink: 0.85, dry: 0.5, seed: 'railL', taper: [0.05, 0.2] });
-            Sumi.stroke(c, [[1538, 640], [1662, 643]], { w: 4, ink: 0.85, dry: 0.5, seed: 'railR', taper: [0.05, 0.2] });
-            for (const [x, top, tilt] of [[1010, 665, 0], [1130, 690, 0.12], [1270, 700, -0.2], [1400, 684, 0.05], [1500, 668, 0]]) {
-                const bot = 722;
-                Sumi.stroke(c, [[x, top], [x + tilt * (bot - top), bot]], { w: 10, ink: 0.9, dry: 0.5, seed: 'post' + x, taper: [0, 0.05], blunt: 1 });
-                // a ring of disturbed water where the post enters it
-                Sumi.stroke(c, [[x + tilt * (bot - top) - 15, bot + 2], [x + tilt * (bot - top) + 17, bot + 1]], { w: 3, ink: 0.55, dry: 0.6, seed: 'prw' + x, taper: [0.3, 0.3] });
-            }
-        }).draw(g);
-    }
-
-    // the old plum tree in the foreground: gnarled trunk, angular limbs, and the last red
-    // blossoms in the world, which the gust strips off and carries over the river
-    let grown = null, flowers = [];
-    function tree(g, env, t) {
-        Motion.sprite('rt:tree2', { x: -500, y: -500, w: 1600, h: 1650 }, env.k, (c) => {
-            grown = Sumi.tree(c, {
-                seed: 'plum', w: 78, gnarl: 0.8, ink: 0.95,
-                trunk: [[-90, 1100], [-10, 900], [40, 700], [100, 560], [168, 474]],
-                limbs: [
-                    { p: [160, 480], a: -1.05, len: 400, w: 38, d: 4 },
-                    { p: [120, 530], a: -2.1, len: 340, w: 26, d: 3 },
-                    { p: [80, 600], a: -2.75, len: 300, w: 20, d: 3 },
-                ],
+    // --- 8–11 · After the catch: the thread across the river --------------------------------
+    // the children: holding the thread, then walking out to the bridge and onto it
+    const KID_PATH = {
+        girl: [[43, 628, 760], [55, 628, 760], [56.2, 800, 700], [57.0, 960, 'deck'], [59.3, 975, 'deck'], [61.0, 1232, 'rope'], [68, 1232, 'rope']],
+        boy: [[43, 1936, 790], [55, 1936, 790], [56.2, 1720, 700], [57.0, 1555, 'deck'], [59.3, 1535, 'deck'], [61.0, 1278, 'rope'], [68, 1278, 'rope']],
+    };
+    function kidAfter(id, t, toward) {
+        const keys = KID_PATH[id].map(([tt, x, y]) => [tt, x, y === 'deck' ? F.DECK(x) : y === 'rope' ? F.ropeY(x) - 2 : y]);
+        let i = 0;
+        while (i < keys.length - 2 && t >= keys[i + 1][0]) i++;
+        const [ta, xa, ya] = keys[i], [tb, xb, yb] = keys[i + 1];
+        const u = Math.max(0, Math.min(1, (t - ta) / (tb - ta)));
+        const x = xa + (xb - xa) * u, y = ya + (yb - ya) * u, moving = u > 0 && u < 1 && Math.abs(xb - xa) > 1;
+        const base = id === 'girl' ? 175 : 185, h = base * F.hAt(y), face = id === 'girl' ? 1 : -1;
+        const f = { x, y, h, face, kind: id, id, t, lean: 0.05, look: 0.15 };
+        if (moving) {
+            // the same walk as everyone's (feet from the distance walked)
+            const dist = Math.abs(x - xa) + keys.slice(0, i).reduce((s, k, j) => s + Math.hypot(keys[j + 1][1] - k[1], keys[j + 1][2] - k[2]), 0);
+            const cyc = dist / (base * 0.5), stride = h * 0.2;
+            f.feet = [0, 0.5].map((ph) => {
+                const cc = (((cyc + ph) % 1) + 1) % 1;
+                const off = cc < 0.5 ? stride * (0.5 - 2 * cc) : stride * (-0.5 + 2 * (cc - 0.5));
+                return [x + face * off, y - (cc < 0.5 ? 0 : Math.sin(Math.PI * 2 * (cc - 0.5)) * h * 0.035)];
             });
-            flowers = Sumi.bloom(c, grown, { seed: 'plumb', density: 0.45, size: 14 });
-        }).draw(g);
+        }
+        const sh = [x + face * h * 0.02, y - h * 0.73];
+        const a = Math.atan2(toward[1] - sh[1], toward[0] - sh[0]);
+        f.hands = [[sh[0] + Math.cos(a) * h * 0.26, sh[1] + Math.sin(a) * h * 0.26], [x - face * h * 0.02, y - h * 0.42]];
+        return f;
+    }
+    function kiteAfter(t, boyHand) {
+        const k = RT.kiteAt(7);
+        const base = t < 57 ? [k.x, k.y] : E.lerpPt([k.x, k.y], [boyHand[0] + 140, boyHand[1] - 360], E.inOut(seg(t, 57, 59)));
+        return { x: base[0] + Motion.noise1('ak', t * 1.1) * 16, y: base[1] + Motion.noise1('aky', t * 1.4) * 12, rot: 0.25 + Motion.noise1('akr', t * 1.9) * 0.2 };
     }
 
-    // red petals blown off by the gust: they flutter across with the kite, settle on the
-    // river and drift with the current (closed form per petal)
-    function petals(g, env, t) {
-        if (!flowers.length) return;
-        const r = Motion.rng('petals');
-        for (let i = 0; i < 34; i++) {
-            const p0 = flowers[Math.floor(r() * flowers.length)];
-            const t0 = T_GUST + r() * 1.3, vx = 330 + r() * 300, ph = r() * 6, fall = 50 + r() * 70;
-            const dt = Math.max(0, t - t0);
-            if (dt === 0) continue;
-            let x = p0[0] + vx * 0.4 * dt + vx * 0.6 * (1 - Math.exp(-dt * 1.4)) / 1.4;
-            let y = p0[1] + fall * dt + 9 * dt * dt + 20 * Math.sin(dt * 3.2 + ph);
-            const surf = 760 + (i % 5) * 40;            // where this one meets the water
-            let rot = ph + dt * (4 + (i % 3)), flip = Math.cos(dt * 5 + ph);
-            if (y > surf) {
-                // floating: slows to the current, flat, barely turning
-                y = surf + Math.sin(t * 1.5 + i) * 1.5;
-                rot = ph;
-                flip = 0.45;
+    // the rope bridge the threads weave (shots 10–11): deck strands, two handrails, hangers
+    function ropeLines() {
+        const line = (dy, sag, n = 24) => Array.from({ length: n + 1 }, (_, i) => {
+            const x = F.ROPE.x0 + ((F.ROPE.x1 - F.ROPE.x0) * i) / n;
+            return [x, F.ROPE.y + dy + sag * Math.sin(Math.PI * i / n)];
+        });
+        return [line(-2, 26), line(2, 26), line(5, 26), line(-40, 18), line(-36, 18)];
+    }
+    const resample = (pts, n = 24) => Array.from({ length: n + 1 }, (_, i) => {
+        const f = (i / n) * (pts.length - 1), k = Math.min(pts.length - 2, Math.floor(f));
+        return E.lerpPt(pts[k], pts[k + 1], f - k);
+    });
+
+    function after(g, env, t, tq, c, w) {
+        const girlT = tq, boyT = tq;
+        // first where the hands will be (the thread is drawn after the figures)
+        let girlHand = [700, 640], boyHand = [1860, 650];
+        const kite = kiteAfter(tq, boyHand);
+        const boy = kidAfter('boy', boyT, [700, 640]);
+        const girl = kidAfter('girl', girlT, [boy.x, boy.y - boy.h * 0.7]);
+        boy.hands[0] = boy.hands[0];
+        // the man who grabs the thread (shot 8) and the elders who lay a hand on it
+        const pullL = hump(seg(tq, 44.6, 46.6)), pullR = hump(seg(tq, 48.0, 49.4));
+        const villagers = Object.keys(F.V).map((id) => F.villager(id, tq));
+        const byId = Object.fromEntries(villagers.map((v) => [v.id, v]));
+        const holdOld = (id, t0, t1) => E.inOut(seg(tq, t0, t0 + 0.4)) * (1 - seg(tq, t1, t1 + 0.5));
+        const oldWHold = holdOld('oldW', 46.0, 55.0), oldMHold = holdOld('oldM', 48.8, 55.0);
+        // main thread through the hands (and through a grabbing hand while pulled)
+        const mainPts = (gh, bh) => {
+            if (pullL > 0.01) {
+                const p = [gh[0] + 70, gh[1] + 30 * pullL + 6];
+                return [...RT.sag(gh, p, 4), ...RT.sag(p, bh, 40).slice(1)];
             }
-            Sumi.petal(g, x, y, 6.5, rot, { flip });
-        }
-        // a few petals that were already floating on the water
-        for (let i = 0; i < 9; i++) {
-            const x = 850 + r() * 900 + t * 9, y = 760 + r() * 260;
-            Sumi.petal(g, x, y, 5 + r() * 2, r() * 6, { flip: 0.4, ink: 0.8 });
-        }
-    }
-
-    // wind: dry grey strokes sweeping left to right during the gust
-    function wind(g, env, t) {
-        for (let i = 0; i < 7; i++) {
-            const t0 = T_GUST - 0.2 + i * 0.22, u = Ease.seg(t, t0, t0 + 1.6);
-            if (u <= 0 || u >= 1) continue;
-            const y = 180 + i * 47 + (i % 2) * 30, len = 260 + (i % 3) * 90;
-            const x = -200 + u * 2200;
-            const pts = [[x, y], [x + len * 0.4, y - 18], [x + len * 0.8, y - 10], [x + len, y + 8]];
-            Sumi.stroke(g, pts, { w: 5, ink: 0.28 * Math.sin(Math.PI * u), dry: 0.85, seed: 'wind' + i, taper: [0.3, 0.6], bleed: false });
-        }
-    }
-
-    function kite(g, env, t) {
-        const k = kiteAt(t);
-        g.save();
-        g.translate(k.x, k.y);
-        g.rotate(k.rot);
-        // tails first (behind), two long red paper strips trailing downwind
-        for (const [dx, ph] of [[-14, 0], [14, 1.3]]) {
-            const pts = [];
-            for (let i = 0; i <= 8; i++) pts.push([dx + Math.sin(t * 8 + ph - i * 0.8) * (3 + i * 2.2) - i * 7, 45 + i * 16]);
-            Sumi.stroke(g, pts, { w: 6, ink: 0.9, color: Sumi.RED, dry: 0.35, seed: 'tail' + dx, taper: [0, 0.6], blunt: 1 });
-        }
-        Motion.sprite('rt:kite', { x: -45, y: -55, w: 90, h: 110 }, env.k * 1.5, (c) => {
-            const q = [[-36, -46], [36, -46], [36, 46], [-36, 46]];
-            const w = Sumi.wash('kitebody', { x: -45, y: -55, w: 90, h: 110 }, env.k * 1.5, (s) => {
-                s.moveTo(q[0][0], q[0][1]);
-                for (const p of q) s.lineTo(p[0], p[1]);
-                s.closePath();
-            }, { color: Sumi.RED, ink: 0.92, blur: 0.6, rim: 0.25, rimW: 5, grain: 0.6 });
-            c.drawImage(w.canvas, -45, -55, 90, 110);
-            // bamboo spars and frame
-            Sumi.stroke(c, [[-36, -46], [36, 46]], { w: 2.4, ink: 0.85, dry: 0.3, seed: 'sp1', taper: [0, 0] });
-            Sumi.stroke(c, [[36, -46], [-36, 46]], { w: 2.4, ink: 0.85, dry: 0.3, seed: 'sp2', taper: [0, 0] });
-            // an ensō painted on the kite
-            const ring = [];
-            for (let i = 0; i <= 22; i++) {
-                const a = -2.2 + (i / 22) * 5.6;
-                ring.push([Math.cos(a) * 20, Math.sin(a) * 20]);
+            if (pullR > 0.01) {
+                const p = [bh[0] - 70, bh[1] + 30 * pullR + 6];
+                return [...RT.sag(gh, p, 40), ...RT.sag(p, bh, 4).slice(1)];
             }
-            Sumi.stroke(c, ring, { w: 8, ink: 0.95, dry: 0.7, seed: 'enso', taper: [0.05, 0.5], blunt: 0.9 });
-        }).draw(g);
-        g.restore();
-    }
+            return RT.sag(gh, bh, tq < 57 ? 40 + Math.sin(tq * 2.1) * 5 : 30);
+        };
+        const pointAt = (pts, x) => {
+            for (let i = 1; i < pts.length; i++) if ((pts[i][0] - x) * (pts[i - 1][0] - x) <= 0) return E.lerpPt(pts[i - 1], pts[i], (x - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0] || 1));
+            return pts[0];
+        };
+        const guess = mainPts([girl.x + 60, girl.y - girl.h * 0.85], [boy.x - 60, boy.y - boy.h * 0.85]);
+        if (pullL > 0.01) byId.kasaL.hands = [pointAt(guess, girl.x + 130), byId.kasaL.hands?.[1] ?? [byId.kasaL.x, byId.kasaL.y - 100]];
+        if (pullR > 0.01) byId.kasaR.hands = [pointAt(guess, boy.x - 130), byId.kasaR.hands?.[1] ?? [byId.kasaR.x, byId.kasaR.y - 100]];
+        if (pullL > 0.01) girl.lean = -0.15 * pullL;
+        if (pullR > 0.01) boy.lean = -0.15 * pullR;
+        if (oldWHold > 0) byId.oldW.hands = [E.lerpPt([byId.oldW.x + 30, byId.oldW.y - 90], pointAt(guess, girl.x + 95), oldWHold), byId.oldW.hands?.[1] ?? [byId.oldW.x, byId.oldW.y - 90]];
+        if (oldMHold > 0) byId.oldM.hands = [E.lerpPt([byId.oldM.x - 30, byId.oldM.y - 90], pointAt(guess, boy.x - 95), oldMHold), byId.oldM.hands?.[1] ?? [byId.oldM.x, byId.oldM.y - 90]];
 
-    // the red string, one span or two after the catch
-    function string(g, env, t, gp, bp) {
-        const k = kiteAt(t), kk = [k.x - 8 * Math.sin(k.rot), k.y + 8 * Math.cos(k.rot)];
-        const gh = gp.hands[0];   // the hands as drawn (Cast.figure's result)
-        const draw = (pts, seed) => Sumi.stroke(g, pts, { w: 2.6, ink: 0.95, color: Sumi.RED, dry: 0.15, seed, taper: [0, 0], blunt: 1, bleed: false, raw: true });
-        if (t < T_CATCH) {
-            draw(sag(gh, kk, 70 + 40 * hump(Ease.seg(t, T_GUST, 3.6))), 'str');
-        } else {
-            const bh = bp.hands[0];
-            const settle = Ease.elastic ? Ease.out(Ease.seg(t, T_CATCH, T_CATCH + 0.8)) : 1;
-            const span = 95 - 40 * settle + Math.sin(t * 2.1) * 6;
-            draw(sag(gh, bh, span), 'strA');
-            draw(sag(bh, kk, 22), 'strB');
-            return { span, gh, bh };
+        // the children meet in the middle of the rope bridge and take each other's hands
+        const meet = E.inOut(seg(tq, 61.0, 61.5));
+        if (meet > 0) {
+            const m = [(girl.x + boy.x) / 2, girl.y - girl.h * 0.45];
+            girl.hands[1] = E.lerpPt(girl.hands[1], m, meet);
+            boy.hands[1] = E.lerpPt(boy.hands[1], m, meet);
         }
-        return null;
+        const poses = [...villagers, girl, boy];
+        const spansGuess = [guess];
+        let drawn = {};
+        const ropeU = E.inOut(seg(tq, 57.3, 59.3));
+        F.paintWorld(g, env, t, tq, c, w, {
+            cranesT: tq >= 62 ? tq - 61 : null,
+            spans: ropeU > 0.5 ? [] : spansGuess,
+            figures: (h) => {
+                // the rope bridge first: the children walk on it
+                if (ropeU > 0) drawRope(h, ropeU, tq);
+                drawn = drawPeople(h, poses);
+                const gh = drawn.girl.hands[0], bh = drawn.boy.hands[0];
+                const main = mainPts(gh, bh);
+                // the threads that come back to everyone (shot 9), and across the river again
+                const extra = [];
+                for (const [id, [, drop]] of Object.entries(F.PHONE)) {
+                    const born = drop + 0.3;
+                    if (tq < born) continue;
+                    const d = drawn[id];
+                    const left = ['womanL', 'kasaL', 'manL2'].includes(id);
+                    const from = pointAt(main, left ? gh[0] + 160 : bh[0] - 160);
+                    extra.push({ pts: RT.sag(from, d.heart, 30), grow: E.out(seg(tq, born, born + 0.7)), seed: 'br' + id, fade: 1 - seg(tq, 54.5, 55.5) });
+                }
+                F.THREADS.forEach(([a, b, , , , reborn], i) => {
+                    if (reborn == null || tq < reborn) return;
+                    extra.push({ pts: F.threadPts(drawn[a].heart, drawn[b].heart, 0), grow: E.out(seg(tq, reborn, reborn + 0.7)), seed: 'rb' + i });
+                });
+                // weaving: every thread moves onto the rope bridge's lines
+                const lines = ropeLines();
+                if (ropeU < 1) {
+                    extra.forEach((e, i) => {
+                        const pts = ropeU > 0 ? resample(e.pts).map((p, k) => E.lerpPt(p, resample(lines[i % lines.length])[k], ropeU)) : e.pts;
+                        F.drawThread(h, pts, { grow: e.grow, alpha: (e.fade ?? 1) * (1 - ropeU * 0.999), seed: e.seed });
+                    });
+                }
+                // the main thread, with a pulse of red running out from the children's hands
+                F.drawThread(h, ropeU > 0 && tq > 59.3 ? resample(lines[0]) : main, { w: 2.8, seed: 'main' });
+                if (tq >= 50 && tq < 57) {
+                    for (let k = 0; k < 2; k++) {
+                        const u = ((tq - 50) * 0.7 + k * 0.5) % 1;
+                        for (const side of [0, 1]) {
+                            const idx = Math.floor((side ? 1 - u * 0.5 : u * 0.5) * (main.length - 1));
+                            S.dab(h, main[idx][0], main[idx][1], 4.5, 3.5, { color: S.RED, seed: 'pulse' + k + side });
+                        }
+                    }
+                }
+                // the kite on the boy's string
+                const ka = [kite.x - 8 * Math.sin(kite.rot), kite.y + 8 * Math.cos(kite.rot)];
+                F.drawThread(h, RT.sag(bh, ka, 22), { w: 2.2, seed: 'kstr' });
+                RT.kite(h, env, tq, kite);
+                // a red glow where the old hands hold the thread
+                for (const [id, v] of [['oldW', oldWHold], ['oldM', oldMHold]]) {
+                    if (v > 0.6) S.dab(h, drawn[id].hands[0][0], drawn[id].hands[0][1], 6, 5, { color: S.RED, ink: 0.7 + 0.3 * Math.sin(tq * 6), seed: 'glow' + id });
+                }
+                drawShouts(h, tq, drawn, [43, 50]);
+            },
+            after: (h) => {
+                if (tq >= 50) F.floatingPetals(h, t, Math.round(30 * seg(tq, 52, 60)), 'float');
+                if (tq >= 62) F.shedPetals(h, t, 62, 68, 30, 'endshed');
+            },
+        });
+    }
+    // 11 · the closing line and the seal, in screen space
+    function endText(g, env, t) {
+        // above the sun, clear of its halo; the seal at the end of the line
+        const tw = F.writeText(g, env, 'Antes de ser bandos, fuimos vecinos.', 780, 70, 62, seg(t, 63.2, 65.6)) ?? 0;
+        F.stamp(g, env, 780 + tw / 2 + 50, 70, 60, '赤い糸', t, 66.0);
+    }
+    function drawRope(g, u, t) {
+        const lines = ropeLines();
+        // hangers between the handrails and the deck, appearing as the weave closes
+        const hu = seg(t, 59.0, 59.8);
+        if (hu > 0) {
+            for (let i = 1; i < 12; i++) {
+                const k = Math.round((i / 12) * 24), a = lines[3][k], b = lines[0][k];
+                F.drawThread(g, [a, E.lerpPt(a, b, hu)], { w: 1.6, seed: 'hg' + i });
+            }
+        }
+        if (u >= 1) lines.forEach((l, i) => F.drawThread(g, l, { w: i < 3 ? 2.6 : 2.2, seed: 'rope' + i }));
     }
 
-    // the thread across the river after the catch (for its reflection), from the poses
-    function spanFor(t, gp, bp) {
-        if (t < T_CATCH) return null;
-        const settle = Ease.out(Ease.seg(t, T_CATCH, T_CATCH + 0.8));
-        return sag(gp.hands[0], bp.hands[0], 95 - 40 * settle + Math.sin(t * 2.1) * 6);
-    }
-
-    return { landscape, cranes, reeds, lands, reflections, spanFor, W, H, cam, view, twos, sky, bridge, water, tree, petals, wind, kite, string, girlPose, boyPose };
-})();
+    return { title, village, grey, kiteShot, after, endText };
+};
 
 Motion.scene({
     fps: 24,
-    duration: 7,
+    duration: 68,
     logical: [1600, 900],
-    uses: ['styles/sumi-e/sumi.js', 'sandbox/2026-11-04-red-thread/cast.js'],
+    uses: ['styles/sumi-e/sumi.js', 'sandbox/2026-11-04-red-thread/cast.js', 'sandbox/2026-11-04-red-thread/kite.js', 'sandbox/2026-11-04-red-thread/film.js'],
+    fonts: [{ family: 'Brush', src: 'fonts/YujiSyuku-subset.ttf' }, { family: 'Kaushan', src: 'fonts/KaushanScript-Regular.ttf' }],
     bpm: 60,
-    shots: [[0, 7, 'The kite']],
+    shots: [
+        [0, 6, '1 · Title'], [6, 12, '2 · The bridge'], [12, 18, '3 · Screens'], [18, 26, '4 · Two banks'],
+        [26, 32, '5 · Shouting'], [32, 36, '6 · Grey'], [36, 43, '7 · The kite'], [43, 50, '8 · Holding on'],
+        [50, 57, '9 · The red returns'], [57, 62, '10 · The bridge of threads'], [62, 68, '11 · Ending'],
+    ],
     audio: { mix: 'mix.wav' },   // node sandbox/2026-11-04-red-thread/music.mjs
 
+    setup() {
+        Shots = makeShots();
+    },
+
     draw(g, t, env) {
-        const c = RT.cam(t), tq = RT.twos(t);
-        const layer = (p, fn) => {
-            g.save();
-            RT.view(g, c, p);
-            fn();
-            g.restore();
-        };
-        // one sheet: everything moves with the camera together, nothing slides
-        layer(1, () => {
-            Sumi.paper(g, env, { x: -500, y: -300, w: 3300, h: 1650 }, { res: 1.1 });
-            RT.sky(g, env, t);
-            RT.cranes(g, env, tq);
-            RT.landscape(g, env);
-            RT.water(g, env);
-            // the figures are posed first so the thread's reflection can be laid on the water
-            const gp = RT.girlPose(tq), bp = RT.boyPose(tq);
-            RT.reflections(g, env, t, c, RT.spanFor(tq, gp, bp));
-            RT.lands(g, env);
-            RT.reeds(g, env);
-            RT.bridge(g, env);
-            const gd = Cast.figure(g, gp), bd = Cast.figure(g, bp);
-            RT.string(g, env, tq, gd, bd);
-            RT.kite(g, env, tq);
-            RT.wind(g, env, t);
-            RT.tree(g, env, t);
-            RT.petals(g, env, tq);
-        });
+        const tq = RT.twos(t), c = Film.camAt(t), w = Film.worldAt(t);
+        const k = Film.SHOTS.findIndex(([a, b]) => t >= a && t < b);
+        if (k === 0) return Shots.title(g, env, t, tq, c, w);
+        g.save();
+        RT.view(g, c, 1);
+        if (k >= 1 && k <= 4) Shots.village(g, env, t, tq, c, w);
+        else if (k === 5) Shots.grey(g, env, t, tq, c, w);
+        else if (k === 6) Shots.kiteShot(g, env, t, tq, c, w);
+        else Shots.after(g, env, t, tq, c, w);
+        g.restore();
+        if (k === 10) Shots.endText(g, env, t);
     },
 
     post(ctx, t, env) {
-        const c = RT.cam(t), k = env.k;
-        // the dry-brush grain lives on the sheet, so it moves with the ground plane
+        const c = Film.camAt(t), k = env.k;
         Sumi.grain(ctx, env, { scale: c.z, ox: (800 - c.cx * c.z) * k, oy: (450 - c.cy * c.z) * k, amount: 0.5 });
         Sumi.tooth(ctx, env, { scale: 1.3 * c.z, ox: (800 - c.cx * c.z) * k, oy: (450 - c.cy * c.z) * k, amount: 0.05 });
+        if (ANIMATIC) {
+            const s = Film.SHOTS.find(([a, b]) => t >= a && t < b) ?? Film.SHOTS[Film.SHOTS.length - 1];
+            const label = `${t.toFixed(1).padStart(4, '0')} s · ${s[2]}`;
+            ctx.save();
+            ctx.font = `${Math.round(13 * k)}px monospace`;
+            ctx.fillStyle = 'rgba(23,19,15,0.55)';
+            ctx.fillText(label, 14 * k, env.px[1] - 14 * k);
+            ctx.restore();
+        }
     },
 });

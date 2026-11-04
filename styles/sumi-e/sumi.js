@@ -546,7 +546,7 @@ const Sumi = (() => {
 
     // --- hanko (seal) -------------------------------------------------------------------
     function seal(g, env, x, y, size, text, o = {}) {
-        const key = 'seal:' + text + size;
+        const key = 'seal:' + text + size + (o.cols ?? '');
         const box = { x: -size * 0.6, y: -size * 0.6, w: size * 1.2, h: size * 1.2 };
         const sp = Motion.sprite(key, box, env.k, (c) => {
             const r = R(key);
@@ -565,10 +565,11 @@ const Sumi = (() => {
             c.textAlign = 'center';
             c.textBaseline = 'middle';
             const chars = [...text];
-            const cols = chars.length > 2 ? 2 : 1, rows = Math.ceil(chars.length / cols);
+            // characters read in columns, top to bottom, right to left
+            const cols = o.cols ?? (chars.length > 2 ? 2 : 1), rows = Math.ceil(chars.length / cols), step = o.step ?? 0.42;
             chars.forEach((ch, i) => {
                 const col = cols - 1 - Math.floor(i / rows), row = i % rows;
-                c.fillText(ch, (col - (cols - 1) / 2) * size * 0.42, (row - (rows - 1) / 2) * size * 0.42);
+                c.fillText(ch, (col - (cols - 1) / 2) * size * step, (row - (rows - 1) / 2) * size * step);
             });
             // worn stamp: speckles of missing ink
             for (let i = 0; i < size * 3; i++) {

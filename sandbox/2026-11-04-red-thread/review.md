@@ -118,3 +118,38 @@ cranes, wind and water move on their own.
   clumps out in the water.
 
 `review.mjs`: no warnings; 56 ms/frame warm.
+
+## Round 5 (user)
+
+> Vale, la frase me sirve, sigue con el animatic
+
+## Animatic v1 (auto)
+
+The whole film, 68 s, 11 shots, on the approved style test's set. Structure:
+- `kite.js` (RT): the set, now driven by a world state (sun red/grey, bridge intact → cracked
+  → fallen, river ink, tree bloom) and shot 7 unchanged. `film.js` (Film): one timeline for
+  every villager, the threads (born, slack, snapped, reborn), shouts, slogans, clouds, rain,
+  petals, text. `scene.js`: the edit. `cast.js`: adults (kasa hat, long kimono with bun, old
+  woman and old man with canes).
+- Music: `music.mjs` extended to 68 s (yo scale for the village and the return, in scale
+  from the screens to the kite; phone pings, taiko on each shout, string snaps, rain, a bell
+  on the seals).
+
+Seen and fixed before showing:
+- Yuji Syuku's Latin glyphs are a thin mincho, not a brush: Latin text → Kaushan Script.
+- Thread reflections in the village shots doubled the red lines all over the water → off
+  there (kept for the one thread after the catch).
+- The sun's reflection showed as a red stain at the bottom edge → the sun is not mirrored.
+- Shot 8: the other villagers stood around the girl and hid her → off frame until shot 9;
+  kasaL and kasaR come in behind the children, the elders in front.
+- Shot 8's pan (1070 units in 1.6 s at zoom 1.25) tripped the jump check → 2.2 s, and the
+  right bank's events moved 0.6–0.8 s later (music re-cued).
+- The title over the sun → in the empty sky right of it, the seal under its end; the closing
+  line above the sun with its seal after the last word.
+
+`review.mjs`: one warning, «flat frames» at 0–0.2 s: the blank sheet before the ink blooms,
+intentional. 155 ms/frame warm at 960.
+
+Known animatic-level gaps (for the final): crowds read as dark masses in shots 2–5; slogans
+and clouds are placeholders; the children's hand-holding in shot 2 and the hug in shot 10
+are rough; no sound effects beyond the score.

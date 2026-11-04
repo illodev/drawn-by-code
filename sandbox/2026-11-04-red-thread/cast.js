@@ -23,14 +23,17 @@ const Cast = (() => {
 
     /**
      * Pose: { x, y (ground under the hips), h (height), face (1 right, -1 left), kind
-     * ('girl' | 'boy'), lean (rad, forward), look (rad, head up), sit (0..1), seatY,
+     * ('girl' | 'boy' | 'man' (straw kasa hat, knee robe) | 'woman' (bun, long kimono) |
+     * 'elder' (old woman: grey bun, cane) | 'elderm' (old man: bald, beard, cane)), lean (rad, forward), look (rad, head up), sit (0..1), seatY,
      * feet: [near, far] or null, hands: [near, far] world targets or null, phone (0..1),
      * wind (hair blown, 0..1), t (time, for hair), id (seed) }
      */
     function figure(g, f) {
         const Sm = S(), h = f.h, s = f.face, id = f.id ?? f.kind;
         const ink = f.ink ?? 0.95;
-        const child = true;
+        const adult = ['man', 'woman', 'elder', 'elderm'].includes(f.kind);
+        const child = !adult;
+        const longRobe = f.kind === 'woman' || f.kind === 'elder';
         const legL = h * 0.235, shinL = h * 0.225;
         const sit = f.sit ?? 0;
         // hips: standing height, or the seat
@@ -67,14 +70,26 @@ const Cast = (() => {
         st([sh, arms[1].elbow, arms[1].end], h * 0.065, 'armF');
         Sm.dab(g, arms[1].end[0], arms[1].end[1], h * 0.03, h * 0.026, { seed: id + 'hf', ink });
         g.restore();
+        if (f.cane) {
+            // a walking stick from the far hand to the ground, a little ahead of the feet
+            const hd = arms[1].end, tip = [hd[0] + s * h * 0.07, f.y];
+            Sm.stroke(g, [add(hd, [0, -h * 0.03]), tip], { w: h * 0.022, ink, dry: 0.3, seed: id + 'cane', taper: [0, 0.1], blunt: 1, core: false, bleed: false });
+        }
+        if (longRobe) {
+            // under a long robe only the near foot shows below the hem
+            st([hip, legs[0].elbow, legs[0].end], h * 0.08, 'legN');
+            foot(feet[0], 0);
+        }
 
         // body: one broad stroke from neck to hem, pressed harder as it goes down, so it
         // flares like a robe (the girl's short kimono) or a jacket (the boy's hoodie)
         const girl = f.kind === 'girl';
-        const hem = add(add(hip, up, -h * (girl ? 0.1 : 0.03)), [-(f.wind ?? 0) * h * 0.03 * s, 0]);
-        st([add(neck, up, -h * 0.005), add(hip, up, h * 0.13), hem], h * (girl ? 0.3 : 0.22), 'body',
-            { taper: [0, 0], blunt: 1, dry: 0.22, press: girl ? (u) => 0.48 + 0.62 * u : (u) => 0.82 + 0.25 * u });
-        if (!girl) {
+        const hemDrop = { girl: 0.1, boy: 0.03, man: 0.2, woman: 0.4, elder: 0.38, elderm: 0.22 }[f.kind] ?? 0.05;
+        const hem = add(add(hip, up, -h * hemDrop), [-(f.wind ?? 0) * h * 0.03 * s, 0]);
+        const bodyW = { girl: 0.3, boy: 0.22, man: 0.25, woman: 0.24, elder: 0.25, elderm: 0.25 }[f.kind] ?? 0.22;
+        const flare = girl || longRobe ? (u) => 0.48 + 0.62 * u : adult ? (u) => 0.75 + 0.35 * u : (u) => 0.82 + 0.25 * u;
+        st([add(neck, up, -h * 0.005), add(hip, up, h * 0.13), hem], h * bodyW, 'body', { taper: [0, 0], blunt: 1, dry: 0.22, press: flare });
+        if (f.kind === 'boy') {
             // hood lying on the back
             const back = add(neck, [-s * h * 0.055, h * 0.012]);
             Sm.dab(g, back[0], back[1], h * 0.055, h * 0.035, { seed: id + 'hood', ink, rot: -0.3 * s });
@@ -93,7 +108,13 @@ const Cast = (() => {
             g.restore();
         };
         const across = [Math.cos(lean) , Math.sin(lean) * s];
-        if (girl) {
+        if (adult) {
+            // sash (obi) and the crossed collar of a kimono
+            const wa = add(hip, up, h * 0.11), hw = h * 0.075;
+            paperLine([add(wa, across, -hw), add(wa, across, hw)], h * (longRobe ? 0.016 : 0.01), 0.7);
+            const nk = add(neck, up, -h * 0.012);
+            paperLine([add(nk, across, -s * h * 0.025), add(add(nk, up, -h * 0.08), across, s * h * 0.02)], h * 0.007, 0.6);
+        } else if (girl) {
             const wa = add(hip, up, h * 0.1), hw = h * 0.085;
             paperLine([add(wa, across, -hw), add(wa, across, hw)], h * 0.012);
             paperLine([add(add(wa, up, -h * 0.022), across, -hw * 1.05), add(add(wa, up, -h * 0.022), across, hw * 1.05)], h * 0.008, 0.55);
@@ -106,8 +127,10 @@ const Cast = (() => {
             paperLine([pk, add(pk, across, s * h * 0.045)], h * 0.006, 0.5);
         }
         // near leg
-        st([hip, legs[0].elbow, legs[0].end], h * 0.08, 'legN');
-        foot(feet[0], 0);
+        if (!longRobe) {
+            st([hip, legs[0].elbow, legs[0].end], h * 0.08, 'legN');
+            foot(feet[0], 0);
+        }
 
         // head and hair
         Sm.dab(g, head[0], head[1], headR, headR * 1.05, { seed: id + 'head', ink, rough: 0.06 });
@@ -125,6 +148,25 @@ const Cast = (() => {
                 Sm.stroke(g, [knot, Ease.lerpPt(knot, tip, 0.5), tip], { w: h * 0.018, color: Sm.RED, ink: 0.95, dry: 0.2, seed: id + 'rib' + i, taper: [0, 0.5], blunt: 1 });
             }
             Sm.dab(g, knot[0], knot[1], h * 0.014, h * 0.012, { seed: id + 'tie', color: Sm.RED, ink: 1 });
+        } else if (f.kind === 'man') {
+            // a straw kasa: a wide shallow cone over the head
+            const tip = add(head, rot(up, 0), headR * 1.25);
+            const L1 = add(add(head, up, headR * 0.1), [Math.cos(lean), Math.sin(lean) * s], -headR * 2.3);
+            const R1 = add(add(head, up, headR * 0.1), [Math.cos(lean), Math.sin(lean) * s], headR * 2.3);
+            Sm.fillPoly(g, [L1, tip, R1, add(R1, up, -headR * 0.18), add(L1, up, -headR * 0.18)], Sm.tone(ink));
+            Sm.stroke(g, [L1, add(head, up, headR * 0.0), R1], { w: headR * 0.35, ink, dry: 0.5, seed: id + 'brim', taper: [0.3, 0.3], blunt: 0.5, bleed: false });
+        } else if (f.kind === 'woman' || f.kind === 'elder') {
+            // hair gathered in a bun at the back, a pin through it; grey for the old woman
+            const hairInk = f.kind === 'elder' ? 0.55 : ink;
+            Sm.dab(g, head[0] - s * headR * 0.15, head[1] - headR * 0.25, headR * 1.05, headR * 0.85, { seed: id + 'hair', ink: hairInk, rough: 0.08 });
+            const bun = add(head, [-s * headR * 0.85, -headR * 0.85]);
+            Sm.dab(g, bun[0], bun[1], headR * 0.55, headR * 0.5, { seed: id + 'bun', ink: hairInk });
+            Sm.stroke(g, [add(bun, [-headR * 0.9, headR * 0.2]), add(bun, [headR * 0.8, -headR * 0.3])], { w: headR * 0.12, ink, dry: 0.2, seed: id + 'pin', taper: [0, 0.2], core: false, bleed: false });
+        } else if (f.kind === 'elderm') {
+            // bald, a grey beard and a thin top-knot
+            const chin = add(head, [s * headR * 0.45, headR * 0.75]);
+            Sm.stroke(g, [chin, add(chin, [s * headR * 0.1, headR * 0.9])], { w: headR * 0.6, ink: 0.55, dry: 0.5, seed: id + 'beard', taper: [0, 0.8], blunt: 1, bleed: false });
+            Sm.dab(g, head[0] - s * headR * 0.2, head[1] - headR * 1.0, headR * 0.3, headR * 0.22, { seed: id + 'knot', ink: 0.6 });
         } else {
             // short spiky hair: a few strokes swept back from the crown
             for (let i = 0; i < 4; i++) {
@@ -137,7 +179,7 @@ const Cast = (() => {
 
         // near arm and both hands
         st([sh, arms[0].elbow, arms[0].end], h * 0.07, 'armN', { taper: [0.05, 0.1] });
-        if (f.kind === 'girl') {
+        if (f.kind === 'girl' || adult) {
             // a short wide sleeve hanging from the upper arm (her jacket)
             const m = Ease.lerpPt ? Ease.lerpPt(sh, arms[0].elbow, 0.7) : [(sh[0] + arms[0].elbow[0]) / 2, (sh[1] + arms[0].elbow[1]) / 2];
             st([sh, m, add(m, [0, h * 0.07])], h * 0.085, 'sleeve', { taper: [0, 0.5], dry: 0.5 });
@@ -161,7 +203,9 @@ const Cast = (() => {
             g.fillRect(-h * 0.022, -h * 0.036, h * 0.044, h * 0.072);
             g.restore();
         }
-        return { hip, sh, head, headR, hands: arms.map((a) => a.end), feet };
+        const heart = Ease.lerpPt(hip, sh, 0.62);
+        const mouth = add(head, [s * headR * 0.95, headR * 0.3]);
+        return { hip, sh, head, headR, heart, mouth, hands: arms.map((a) => a.end), feet };
     }
 
     return { figure, ik };
