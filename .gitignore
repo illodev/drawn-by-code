@@ -13,3 +13,4 @@ sandbox/2026-09-24-saas-promo/review/*.jpg
 
 # third-party reference videos: listed in references/README.md, never committed
 references/*.mp4
+_site/
