@@ -200,3 +200,21 @@ are rough; no sound effects beyond the score.
   blots that grow from the foreground back (30.9–32.0 s), the paper holds a breath, and the
   grey shot blooms onto it sky first, then the land (32.0–34.2 s), with the same blot shapes
   as the title. Largest frame-to-frame change in mean brightness: 17 of 255.
+
+## Round 9 (user)
+
+> He añadido el conector de ElevenLabs … Ya he permitido el dominio, sigue con la música
+
+- Score generated with the ElevenLabs connector (Music v2.5, 68 s, instrumental, one prompt
+  describing the film's shape second by second; flow FifylNo6wfjLV6je96nl, four takes).
+  Downloads need `elevenlabsusercontent.com` in the environment's allowed domains.
+- Picked by measurement, not by ear: loudness per second (and below 150 Hz, the taiko) of
+  each take against the film's target shape. Take 3: correlation 0.57, no near-silent holes
+  mid-film, taiko through the build and the quarrel, a drop to near silence exactly at
+  31.5–36 s (the act change and the grey shot), a fade at the end. Take 1 had silent holes
+  at 43–44 and 51–52 s; take 2 was flat; take 4 choppy.
+- Mix (`mix-final.sh`): the score under the synthesized effects at −9 dB (water, wind, rain,
+  phone pings, thread snaps, splashes, the seal's bell; the synthesized taiko is off, the score
+  has its own), one static gain to −15.6 LUFS, a limiter at 4× with auto-level off (on, it
+  pushed the mix to −13.5 LUFS and 0 dBFS). The picture was not re-rendered: the new mix was
+  muxed onto the round-8 frames.

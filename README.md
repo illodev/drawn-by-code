@@ -100,7 +100,7 @@ how you made it too.
 <td width="50%" valign="top">
 <a href="sandbox/2026-11-04-red-thread/"><img src="sandbox/2026-11-04-red-thread/render/red-thread.gif" alt="El hilo rojo"></a><br>
 <b><a href="sandbox/2026-11-04-red-thread/">El hilo rojo</a></b> · sumi-e · 68 s (animatic) · <a href="sandbox/2026-11-04-red-thread/render/red-thread.mp4">mp4</a><br>
-<sub>A river village where every greeting ties a red thread. Screens and slogans split it into two banks, the threads snap and the red drains out of the world, until a girl's red kite carries one thread back across the river and the threads weave a new bridge. Japanese ink painting on washi, every brushstroke drawn in code; koto, flute and taiko synthesized from scratch.</sub>
+<sub>A river village where every greeting ties a red thread. Screens and slogans split it into two banks, the threads snap and the red drains out of the world, until a girl's red kite carries one thread back across the river and the threads weave a new bridge. Japanese ink painting on washi, every brushstroke drawn in code, the text written vertically in Japanese; score by ElevenLabs Music, effects synthesized.</sub>
 </td>
 </tr>
 </table>

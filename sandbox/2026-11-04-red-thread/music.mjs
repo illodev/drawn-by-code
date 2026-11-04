@@ -3,7 +3,7 @@
 //
 //   node sandbox/2026-11-04-red-thread/music.mjs         → mix.wav (score + effects)
 //   node sandbox/2026-11-04-red-thread/music.mjs --sfx   → sfx.wav (effects only: water, wind,
-//        rain, phone pings, thread snaps, splashes, taiko hits on the shouts, the seal's bell),
+//        rain, phone pings, thread snaps, splashes, the seal's bell),
 //        to lay under the ElevenLabs score (gen-music.mjs, mix-final.sh)
 //
 // Instruments: koto (Karplus-Strong plucked string with a pressed bend), a breathy flute
@@ -68,7 +68,8 @@ function fluteRaw(t0, dur, midi, gain = 0.2, pan = 0, glide = 0) {
         add(i0 + k, l, r);
     }
 }
-function taiko(t0, gain = 0.6, pitch = 70, pan = 0) {
+function taiko(...a) { if (MUSIC) taikoRaw(...a); }   // the score carries its own drums
+function taikoRaw(t0, gain = 0.6, pitch = 70, pan = 0) {
     const i0 = Math.round(t0 * SR), n = Math.round(1.4 * SR);
     let ph = 0, lp = 0;
     for (let k = 0; k < n; k++) {
