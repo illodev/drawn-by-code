@@ -153,3 +153,24 @@ intentional. 155 ms/frame warm at 960.
 Known animatic-level gaps (for the final): crowds read as dark masses in shots 2–5; slogans
 and clouds are placeholders; the children's hand-holding in shot 2 and the hug in shot 10
 are rough; no sound effects beyond the score.
+
+## Round 6 (user)
+
+> Las letras las pondría en japones y la música la generaría con mi elevenlabs, te dejo la
+> key en varible de entorno ELEVEN_KEY. Las transiciones deben ser de otra forma por ejemplo
+> con mancha de tinta china en el papel o algo así, no tan brusca
+
+- Text: the title is 赤い糸 («the red thread»), the closing line 敵味方に分かれる前、
+  私たちは隣人だった。(«Before we split into friend and foe, we were neighbours», from the
+  user's «Antes de ser bandos, fuimos vecinos»), both written vertically, right to left, each
+  character brushed in from its top; the seal is 絆 («bond»). Font: Yuji Syuku (subset).
+- Transitions: every cut is an ink blot (`inkBlot` in scene.js) 1.2 s long, centred on the
+  cut: a drop lands where the next shot's subject is, spreads with broad lobes and a
+  feathered edge plus satellite blots, black where it landed and diluted towards the edge,
+  with a wet rim just inside the edge (the mask minus a blurred copy); inside it the next
+  shot shows through as the ink thins. First version had spiky polygon edges (per-vertex
+  noise on a huge radius) and stroked outlines of every blot (a web of lines) → noise over
+  the angle, and a rim from the mask itself.
+- Music: ELEVEN_KEY was not visible in this session (environment variables load when a
+  session starts). Prepared: `gen-music.mjs` (one section per shot), `music.mjs --sfx` (the
+  synthesized effects alone), `mix-final.sh`. To run in a new session.

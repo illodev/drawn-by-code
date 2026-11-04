@@ -33,6 +33,13 @@ passes **through** something in the shot (an eye, a mouth, a picture frame, some
 | `vortex(g, env, u, { a, b, cx, cy, turns })` | `a` twists in a spiral and shrinks to a point | Whirlpools, drains, portals; a good lead into a climax |
 | `frame(g, env, u, { inner, outer, at, rim })` | The camera pulls back: `inner` was a picture, a drawing or a screen inside `outer` | Reveals ("it was a drawing"), galleries, screens |
 
+**Ink blot (sumi-e and any paper style):** a drop lands on the outgoing shot, spreads as an
+organic stain and thins out into the incoming one: `inkBlot` in
+`sandbox/2026-11-04-red-thread/scene.js` (both shots rendered into layers for 1.2 s around
+the cut; the stain is a mask of lobed blots, the ink a radial gradient inside it fading
+with `u`, the wet rim the mask minus its blurred copy). Land the drop on the next shot's
+subject.
+
 **Between 3D rooms: portals.** When the shots are places a camera travels through (rooms of a
 building, a sky inside a sphere), don't cut between them: join them by an opening in the shot
 and fly through it. Each room keeps its own coordinates, scale and light; the opening is a
@@ -61,3 +68,4 @@ Full example with all five, plus a paper ball that crumples and opens:
 - 2026-10-02 · product videos · A linear spin of a plate switches its shadow on (∝ sin θ) in the first frame; use an S-curve. Flap/tile panels scheduled to «land on» a target start turning earlier by the number of flaps between; a flap's spin following gravity (p^1.25) and the falling half drawn as ~4 strips, wider the farther from the axis, gives volume without 3D. An image laid over flaps reads cut by the gaps, and fading it to the whole image afterwards looks like a sticker: use one large flap that folds, with its own axis and the same light, and the photo of what it folds with the background of the gap behind.
 - 2026-10-02 · product videos · A sign or label leaves in dither, not by dropping at full opacity (it reads as a cut), and the next one does not enter until the previous has gone.
 - 2026-10-14 · external explainer · Entering a screen inside an orthographic (isometric) world is a camera move, never a deformation of the screen: interpolating the screen's projected parallelogram towards the frame reads as the screen peeling off its device and bending. Make the orthographic camera orientable (azimuth and elevation as parameters of the projection, same scale at the isometric angles so nothing else changes), turn it to face the screen while zooming in log scale, and pick the end zoom so the screen's own rectangle fills the frame; the interface stays mapped on the face the whole time. If an object in front would cover the screen when facing it head-on, end a few degrees above (the vertical face stays a rectangle) instead of fading the object.
+- 2026-11-04 · red-thread · The user found hard cuts «bruscas» in an ink film and asked for ink stains on the paper. Organic stains: modulate the radius with low-frequency noise over the angle (lobes) plus a small high-frequency term (feathered fibres); per-vertex random noise on a big radius gives a star. Never stroke each blot's outline (overlapping blots make a web of lines): take the rim from the union mask (mask minus a blurred copy).
