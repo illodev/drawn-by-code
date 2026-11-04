@@ -303,3 +303,24 @@ are rough; no sound effects beyond the score.
   halfway, one was silent). Laid at each scene's start and crossfaded 0.4 s across the cut.
   Effects: paper flutter for each falling sheet and for the close-up, the rumble moved to
   the reveal.
+
+## Round 13 (user)
+
+> Me sigue faltando alma en general. La parte final haría que los niños fueran los únicos que
+> se enlazaran con la cometa y los demás con las máscaras hasta que se cree el puente y
+> comprendan que son iguales, entonces se caen las máscaras y desaparece el Kuroko. Los hilos
+> solo en la primera parte. Que el puente no aparezca de golpe.
+
+- Act 2: only the children are tied, by the kite string. The adults keep their masks and
+  their broadsheets (a man still pulls at the string, the others shout); no red threads come
+  back to anyone, and the elders no longer hold the string. The kuroko is a faint ghost over
+  it all, his strings still on every sheet.
+- The bridge is woven from the string, gradually (53.4–58.6 s): five strands run out from
+  both banks and meet in the middle with a red flick and a small bell, the deck first, then
+  the rails (the kite string becomes the top rail), then eleven hangers tied from the ends
+  inwards. The sun's red and the river come back with it, only partly.
+- The children walk out and meet in the middle; they bow to each other (the greeting of
+  the opening) and take hands (60.9–62.4 s). Then the adults understand: their masks crack
+  and fall one by one (62.7–63.7 s), the sheets blow away, the strings snap, the kuroko
+  dissolves (63.4–66.2 s), the sun fills, the tree blooms; the adults bow across the river
+  and the first of them step onto the bridge. The closing line writes itself at 64.6 s.

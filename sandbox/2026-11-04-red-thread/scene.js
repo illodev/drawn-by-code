@@ -353,8 +353,8 @@ const makeShots = () => {
     // --- 8–11 · After the catch: the thread across the river --------------------------------
     // the children: holding the thread, then walking out to the bridge and onto it
     const KID_PATH = {
-        girl: [[43, 628, 760], [55, 628, 760], [56.2, 800, 700], [57.0, 960, 'deck'], [59.3, 975, 'deck'], [61.0, 1232, 'rope'], [68, 1232, 'rope']],
-        boy: [[43, 1901, 790], [55, 1901, 790], [56.2, 1720, 700], [57.0, 1555, 'deck'], [59.3, 1535, 'deck'], [61.0, 1278, 'rope'], [68, 1278, 'rope']],
+        girl: [[43, 628, 760], [51.0, 628, 760], [52.2, 800, 700], [53.0, 960, 'deck'], [58.7, 975, 'deck'], [60.8, 1226, 'rope'], [68, 1226, 'rope']],
+        boy: [[43, 1901, 790], [51.0, 1901, 790], [52.2, 1720, 700], [53.0, 1555, 'deck'], [58.7, 1535, 'deck'], [60.8, 1284, 'rope'], [68, 1284, 'rope']],
     };
     function kidAfter(id, t, toward) {
         const keys = KID_PATH[id].map(([tt, x, y]) => [tt, x, y === 'deck' ? F.DECK(x) : y === 'rope' ? F.ropeY(x) - 2 : y]);
@@ -433,8 +433,6 @@ const makeShots = () => {
         const pullL = hump(seg(tq, 44.6, 46.6)), pullR = hump(seg(tq, 48.0, 49.4));
         const villagers = Object.keys(F.V).map((id) => F.villager(id, tq));
         const byId = Object.fromEntries(villagers.map((v) => [v.id, v]));
-        const holdOld = (id, t0, t1) => E.inOut(seg(tq, t0, t0 + 0.4)) * (1 - seg(tq, t1, t1 + 0.5));
-        const oldWHold = holdOld('oldW', 46.0, 55.0), oldMHold = holdOld('oldM', 48.8, 55.0);
         // main thread through the hands (and through a grabbing hand while pulled)
         const mainPts = (gh, bh) => {
             if (pullL > 0.01) {
@@ -456,11 +454,15 @@ const makeShots = () => {
         if (pullR > 0.01) byId.kasaR.hands = [pointAt(guess, boy.x - 130), byId.kasaR.hands?.[1] ?? [byId.kasaR.x, byId.kasaR.y - 100]];
         if (pullL > 0.01) girl.lean = -0.15 * pullL;
         if (pullR > 0.01) boy.lean = -0.15 * pullR;
-        if (oldWHold > 0) byId.oldW.hands = [E.lerpPt([byId.oldW.x + 30, byId.oldW.y - 90], pointAt(guess, girl.x + 95), oldWHold), byId.oldW.hands?.[1] ?? [byId.oldW.x, byId.oldW.y - 90]];
-        if (oldMHold > 0) byId.oldM.hands = [E.lerpPt([byId.oldM.x - 30, byId.oldM.y - 90], pointAt(guess, boy.x - 95), oldMHold), byId.oldM.hands?.[1] ?? [byId.oldM.x, byId.oldM.y - 90]];
 
-        // the children meet in the middle of the rope bridge and take each other's hands
-        const meet = E.inOut(seg(tq, 61.0, 61.5));
+        // the children meet in the middle of the bridge they made, bow to each other (the
+        // greeting of the opening) and take each other's hands; the grown-ups see it
+        const bow = hump(seg(tq, 60.9, 61.9));
+        girl.lean += 0.5 * bow;
+        boy.lean += 0.5 * bow;
+        girl.look = (girl.look ?? 0) - 0.3 * bow;
+        boy.look = (boy.look ?? 0) - 0.3 * bow;
+        const meet = E.inOut(seg(tq, 61.9, 62.4));
         if (meet > 0) {
             const m = [(girl.x + boy.x) / 2, girl.y - girl.h * 0.45];
             girl.hands[1] = E.lerpPt(girl.hands[1], m, meet);
@@ -469,43 +471,24 @@ const makeShots = () => {
         const poses = [...villagers, girl, boy];
         const spansGuess = [guess];
         let drawn = {};
-        const ropeU = E.inOut(seg(tq, 57.3, 59.3));
+        const ropeU = seg(tq, 53.2, 58.6);
         F.paintWorld(g, env, t, tq, c, w, {
             cranesT: tq >= 62 ? tq - 61 : null,
-            spans: ropeU > 0.5 ? [] : spansGuess,
+            spans: tq < 56 ? spansGuess : [],
             figures: (h) => {
                 // the rope bridge first: the children walk on it
-                if (ropeU > 0) drawRope(h, ropeU, tq);
+                if (ropeU > 0) drawRope(h, tq);
                 drawn = drawPeople(h, poses);
                 F.drawMasks(h, tq, drawn);
                 F.kurokoStrings(h, tq, poses, drawn);
                 const gh = drawn.girl.hands[0], bh = drawn.boy.hands[0];
                 const main = mainPts(gh, bh);
-                // the threads that come back to everyone (shot 9), and across the river again
-                const extra = [];
-                for (const [id, [, drop]] of Object.entries(F.PHONE)) {
-                    const born = drop + 0.3;
-                    if (tq < born) continue;
-                    const d = drawn[id];
-                    const left = ['womanL', 'kasaL', 'manL2'].includes(id);
-                    const from = pointAt(main, left ? gh[0] + 160 : bh[0] - 160);
-                    extra.push({ pts: RT.sag(from, d.heart, 30), grow: E.out(seg(tq, born, born + 0.7)), seed: 'br' + id, fade: 1 - seg(tq, 54.5, 55.5) });
-                }
-                F.THREADS.forEach(([a, b, , , , reborn], i) => {
-                    if (reborn == null || tq < reborn) return;
-                    extra.push({ pts: F.threadPts(drawn[a].heart, drawn[b].heart, 0), grow: E.out(seg(tq, reborn, reborn + 0.7)), seed: 'rb' + i });
-                });
-                // weaving: every thread moves onto the rope bridge's lines
+                // the kite string becomes the bridge's handrail once that strand is woven
                 const lines = ropeLines();
-                if (ropeU < 1) {
-                    extra.forEach((e, i) => {
-                        const pts = ropeU > 0 ? resample(e.pts).map((p, k) => E.lerpPt(p, resample(lines[i % lines.length])[k], ropeU)) : e.pts;
-                        F.drawThread(h, pts, { grow: e.grow, alpha: (e.fade ?? 1) * (1 - ropeU * 0.999), seed: e.seed });
-                    });
-                }
                 // the main thread, with a pulse of red running out from the children's hands
-                F.drawThread(h, ropeU > 0 && tq > 59.3 ? resample(lines[0]) : main, { w: 2.8, seed: 'main' });
-                if (tq >= 50 && tq < 57) {
+                const onRail = E.inOut(seg(tq, 57.6, 58.6));
+                F.drawThread(h, onRail > 0 ? resample(main).map((p, k) => E.lerpPt(p, resample(lines[3])[k], onRail)) : main, { w: 2.8, seed: 'main' });
+                if (tq >= 50 && tq < 53.2) {
                     for (let k = 0; k < 2; k++) {
                         const u = ((tq - 50) * 0.7 + k * 0.5) % 1;
                         for (const side of [0, 1]) {
@@ -518,10 +501,6 @@ const makeShots = () => {
                 const ka = [kite.x - 8 * Math.sin(kite.rot), kite.y + 8 * Math.cos(kite.rot)];
                 F.drawThread(h, RT.sag(bh, ka, 22), { w: 2.2, seed: 'kstr' });
                 RT.kite(h, env, tq, kite);
-                // a red glow where the old hands hold the thread
-                for (const [id, v] of [['oldW', oldWHold], ['oldM', oldMHold]]) {
-                    if (v > 0.6) S.dab(h, drawn[id].hands[0][0], drawn[id].hands[0][1], 6, 5, { color: S.RED, ink: 0.7 + 0.3 * Math.sin(tq * 6), seed: 'glow' + id });
-                }
                 drawShouts(h, tq, drawn, [43, 50]);
             },
             after: (h) => {
@@ -535,20 +514,37 @@ const makeShots = () => {
         // «Before we split into friend and foe, we were neighbours», in two columns in the sky
         // right of the sun (the user's line: «Antes de ser bandos, fuimos vecinos»); the seal
         // under the last column
-        const r = F.writeVertical(g, env, ['敵味方に分かれる前、', '私たちは隣人だった。'], 1470, 36, 40, seg(t, 62.8, 65.6), { gap: 58 });
-        F.stamp(g, env, r.left - 62, r.bottom - 26, 44, '絆', t, 66.0);
+        const r = F.writeVertical(g, env, ['敵味方に分かれる前、', '私たちは隣人だった。'], 1470, 36, 40, seg(t, 64.6, 66.9), { gap: 58 });
+        F.stamp(g, env, r.left - 62, r.bottom - 26, 44, '絆', t, 67.2);
     }
-    function drawRope(g, u, t) {
+    // Round 13 («que el puente no aparezca de golpe»): the children's string is the first
+    // strand; from it the bridge is woven one strand at a time, each running out from both
+    // banks and meeting in the middle with a small red flick, the deck before the rails; then
+    // the hangers are tied one by one from the ends towards the middle.
+    const STRANDS = [[0, 53.4], [1, 54.5], [2, 55.5], [4, 56.4], [3, 57.2]];
+    function drawRope(g, t) {
         const lines = ropeLines();
-        // hangers between the handrails and the deck, appearing as the weave closes
-        const hu = seg(t, 59.0, 59.8);
-        if (hu > 0) {
-            for (let i = 1; i < 12; i++) {
-                const k = Math.round((i / 12) * 24), a = lines[3][k], b = lines[0][k];
-                F.drawThread(g, [a, E.lerpPt(a, b, hu)], { w: 1.6, seed: 'hg' + i });
-            }
+        STRANDS.forEach(([i, t0]) => {
+            if (i === 3 && t >= 58.6) return;        // the rail is the kite string from here on
+            const u = E.inOut(seg(t, t0, t0 + 1.4));
+            if (u <= 0) return;
+            const l = lines[i], m = Math.floor(l.length / 2);
+            const left = l.slice(0, m + 1), right = l.slice(m).reverse();
+            const n = Math.max(2, Math.ceil(left.length * u));
+            F.drawThread(g, left.slice(0, n), { w: i < 3 ? 2.6 : 2.2, seed: 'ropeL' + i });
+            F.drawThread(g, right.slice(0, n), { w: i < 3 ? 2.6 : 2.2, seed: 'ropeR' + i });
+            // they meet: a flick of red at the middle
+            const f = seg(t, t0 + 1.4, t0 + 1.9);
+            if (f > 0 && f < 1) S.dab(g, l[m][0], l[m][1], 6 * (1 - f) + 2, 5 * (1 - f) + 2, { color: S.RED, ink: 1 - f, seed: 'meet' + i });
+        });
+        // hangers: from both ends inwards, one at a time
+        for (let i = 1; i < 12; i++) {
+            const order = Math.min(i, 12 - i), t0 = 57.0 + order * 0.32 + (i > 6 ? 0.12 : 0);
+            const hu = E.out(seg(t, t0, t0 + 0.4));
+            if (hu <= 0) continue;
+            const k = Math.round((i / 12) * 24), a = lines[3][k], b = lines[0][k];
+            F.drawThread(g, [a, E.lerpPt(a, b, hu)], { w: 1.6, seed: 'hg' + i });
         }
-        if (u >= 1) lines.forEach((l, i) => F.drawThread(g, l, { w: i < 3 ? 2.6 : 2.2, seed: 'rope' + i }));
     }
 
     return { title, village, grey, kiteShot, after, endText };

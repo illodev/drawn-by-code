@@ -25,9 +25,9 @@ const Film = (() => {
         const bridge = t < 30.4 ? { mode: 'intact', crack: E.out(seg(t, 24.6, 25.2)), fall: 0 }
             : t < 32 ? { mode: 'intact', crack: 1, fall: (t - 30.4) / 1.6 } : { mode: 'broken' };
         return {
-            red: keysAt([[0, 1], [27, 1], [31, 0], [52, 0], [57, 1], [68, 1]], t),
-            dark: keysAt([[0, 0], [26.6, 0], [31.6, 0.82], [32, 0.8], [36, 0.32], [50, 0.3], [56, 0], [68, 0]], t),
-            bloom: keysAt([[0, 1], [26.5, 1], [31, 0], [57, 0], [62, 1], [68, 1]], t),
+            red: keysAt([[0, 1], [27, 1], [31, 0], [53, 0], [58.5, 0.4], [62.5, 0.45], [64.8, 1], [68, 1]], t),
+            dark: keysAt([[0, 0], [26.6, 0], [31.6, 0.82], [32, 0.8], [36, 0.32], [52, 0.3], [58.5, 0.18], [64.5, 0], [68, 0]], t),
+            bloom: keysAt([[0, 1], [26.5, 1], [31, 0], [62.8, 0], [66, 1], [68, 1]], t),
             rain: keysAt([[31, 0], [32, 1], [34.5, 1], [36, 0]], t),
             bridge,
         };
@@ -43,8 +43,8 @@ const Film = (() => {
         5: [[32, 1250, 520, 0.78], [33.8, 1150, 515, 0.86], [36, 655, 522, 1.13]],
         7: [[43, 1258, 486, 0.8], [44.6, 720, 600, 1.25], [46.4, 760, 600, 1.25], [48.6, 1830, 610, 1.25], [50, 1810, 600, 1.18]],
         8: [[50, 1250, 540, 0.8], [57, 1250, 560, 0.86]],
-        9: [[57, 1250, 640, 1.38], [62, 1250, 630, 1.48]],
-        10: [[62, 1250, 610, 1.3], [64, 1250, 560, 0.9], [68, 1250, 520, 0.76]],
+        9: [[57, 1250, 640, 1.38], [61.6, 1250, 625, 1.25]],
+        10: [[62, 1250, 600, 1.1], [63.6, 1250, 560, 0.86], [68, 1250, 520, 0.76]],
     };
     const shotAt = (t) => {
         const i = SHOTS.findIndex(([a, b]) => t >= a && t < b);
@@ -95,8 +95,8 @@ const Film = (() => {
     // Everyone's path: [t, x, y] keys (y = 'deck' on the bridge, 'rope' on the rope bridge).
     // Between keys they walk at constant speed; on equal keys they stand.
     const V = {
-        womanL: { kind: 'woman', base: 215, keys: [[0, 700, 742], [5, 700, 742], [6.2, 840, D], [7.6, 1190, D], [8.4, 1190, D], [9.6, 1600, D], [9.9, 1680, D], [10.6, 1800, 762], [20, 1800, 762], [20.8, 1660, D], [23.2, 850, D], [24.2, 620, 790], [25.4, 640, 800], [32, 640, 800], [32.05, -200, 800], [50, -200, 800], [51.2, 300, 810], [62, 300, 810], [63.3, 990, R_], [66.0, 1520, R_], [66.8, 1700, 700]] },
-        womanR: { kind: 'woman', base: 215, keys: [[0, 1850, 770], [5, 1850, 770], [6.2, 1660, D], [7.6, 1290, D], [8.4, 1290, D], [9.6, 900, D], [9.9, 830, D], [10.6, 720, 762], [20.3, 720, 762], [21.0, 840, D], [23.4, 1650, D], [24.4, 1950, 800], [25.4, 1910, 820], [32, 1910, 820], [32.05, 2750, 820], [50, 2750, 820], [51.2, 2150, 815], [62, 2150, 815], [62.9, 1530, R_], [65.8, 1000, R_], [66.2, 840, D], [66.8, 760, 735]] },
+        womanL: { kind: 'woman', base: 215, keys: [[0, 700, 742], [5, 700, 742], [6.2, 840, D], [7.6, 1190, D], [8.4, 1190, D], [9.6, 1600, D], [9.9, 1680, D], [10.6, 1800, 762], [20, 1800, 762], [20.8, 1660, D], [23.2, 850, D], [24.2, 620, 790], [25.4, 640, 800], [32, 640, 800], [32.05, -200, 800], [50, -200, 800], [51.2, 300, 810], [64.6, 300, 810], [65.7, 990, R_], [67.6, 1360, R_], [68.6, 1520, R_]] },
+        womanR: { kind: 'woman', base: 215, keys: [[0, 1850, 770], [5, 1850, 770], [6.2, 1660, D], [7.6, 1290, D], [8.4, 1290, D], [9.6, 900, D], [9.9, 830, D], [10.6, 720, 762], [20.3, 720, 762], [21.0, 840, D], [23.4, 1650, D], [24.4, 1950, 800], [25.4, 1910, 820], [32, 1910, 820], [32.05, 2750, 820], [50, 2750, 820], [51.2, 2150, 815], [64.6, 2150, 815], [65.4, 1530, R_], [67.6, 1160, R_], [68.6, 1000, R_]] },
         kasaL: { kind: 'man', base: 235, keys: [[0, 520, 780], [6.5, 520, 780], [7.5, 840, D], [8.9, 1180, D], [9.5, 1180, D], [10.9, 1630, D], [11.8, 1950, 800], [20.6, 1950, 800], [21.5, 1670, D], [24.0, 840, D], [25.0, 720, 790], [42.9, 720, 790], [42.95, 160, 770], [44.0, 740, 712], [46.6, 740, 712], [47.4, 520, 730], [62, 520, 730]] },
         kasaR: { kind: 'man', base: 235, keys: [[0, 2050, 790], [6.5, 2050, 790], [7.5, 1670, D], [8.9, 1300, D], [9.5, 1300, D], [10.9, 870, D], [11.8, 560, 800], [20.6, 560, 800], [21.5, 830, D], [24.0, 1660, D], [25.0, 1820, 800], [42.9, 1820, 800], [42.95, 2380, 800], [46.7, 2380, 800], [47.6, 1800, 728], [49.4, 1800, 728], [49.95, 2060, 745], [62, 2060, 745]] },
         manL2: { kind: 'man', base: 225, faceHold: [[12, 18, 1]], keys: [[0, 300, 800], [12, 300, 800], [13.2, 840, D], [15.0, 1235, D], [15.4, 1205, D], [15.6, 1205, D], [17.0, 1650, D], [18, 1800, 770], [21.0, 1800, 770], [21.8, 1680, D], [24.2, 840, D], [25.2, 560, 780], [32, 560, 780], [32.05, -260, 790], [50, -260, 790], [51.6, 180, 790], [62, 180, 790]] },
@@ -109,10 +109,15 @@ const Film = (() => {
     const HOME_FACE = { womanL: 1, kasaL: 1, manL2: 1, oldW: 1, womanR: -1, kasaR: -1, manR2: -1, oldM: -1 };
     // who holds a phone, when (they take it out, and later let it fall)
     const PHONE = {
-        womanL: [13.0, 50.5], womanR: [13.2, 51.0], kasaL: [13.8, 51.6], kasaR: [14.0, 52.1],
-        manL2: [13.4, 52.6], manR2: [13.5, 53.1],
+        womanL: [13.0, 63.25], womanR: [13.2, 63.45], kasaL: [13.8, 62.85], kasaR: [14.0, 63.05],
+        manL2: [13.4, 63.65], manR2: [13.5, 63.85],
     };
-    const BOWS = { womanL: [7.6, 8.4], womanR: [7.6, 8.4], kasaL: [8.9, 9.5], kasaR: [8.9, 9.5] };
+    // bows (round 13): the greeting of the opening comes back at the end, across the river,
+    // once the masks are off
+    const BOWS = {
+        womanL: [[7.6, 8.4], [63.9, 64.6]], womanR: [[7.6, 8.4], [63.9, 64.6]], kasaL: [[8.9, 9.5], [63.7, 64.4]], kasaR: [[8.9, 9.5], [63.7, 64.4]],
+        manL2: [[64.0, 64.7]], manR2: [[64.0, 64.7]], oldW: [[63.8, 64.6]], oldM: [[63.8, 64.6]],
+    };
     // shouts: [time, who, target x, target y] (they fly 0.7 s and land in the river)
     const SHOUTS = [
         [26.3, 'kasaL', 1320, 820], [26.8, 'kasaR', 1180, 840], [27.3, 'manL2', 1400, 780], [27.7, 'manR2', 1100, 800],
@@ -197,8 +202,7 @@ const Film = (() => {
             f.look += 0.06 * Motion.noise1(id + 'look', t * 0.5);
         }
         // bow when greeting on the bridge
-        const b = BOWS[id];
-        if (b) {
+        for (const b of BOWS[id] ?? []) {
             const u = hump(seg(t, b[0], b[1]));
             f.lean += 0.55 * u;
             f.look -= 0.3 * u;
@@ -276,11 +280,10 @@ const Film = (() => {
     // --- red threads -------------------------------------------------------------------------
     // [a, b, born, slackFrom, snapAt, rebornAt]
     const THREADS = [
-        ['womanL', 'womanR', 8.0, 12.8, 27.5, 54.0],
-        ['kasaL', 'kasaR', 9.2, 13.9, 28.5, 54.5],
-        ['oldW', 'oldM', 10.8, null, 29.5, 55.0],
+        ['womanL', 'womanR', 8.0, 12.8, 27.5, null],
+        ['kasaL', 'kasaR', 9.2, 13.9, 28.5, null],
+        ['oldW', 'oldM', 10.8, null, 29.5, null],
         ['girl', 'boy', 9.3, 15.8, 31.0, null],
-        ['manL2', 'manR2', null, null, null, 55.5],
     ];
     function threadPts(a, b, slack, n = 24) {
         const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -433,7 +436,7 @@ const Film = (() => {
         // presence (0..1) and how far below the mountains he still is
         // unseen until the camera pulls back from the quarrel and finds him (26.3 s)
         const rise1 = E.inOut(seg(t, 26.3, 27.9)), rise2 = E.inOut(seg(t, 43.2, 45.0));
-        const gone = E.inOut(seg(t, 53.8, 56.8));
+        const gone = E.inOut(seg(t, 63.4, 66.2));
         if (t < 32) return { on: rise1, dy: 80 * (1 - rise1), fade: 0 };
         if (t < 43) return { on: 0, dy: 560, fade: 1 };
         return { on: rise2, dy: 420 * (1 - rise2) + 60 * gone, fade: gone };
@@ -543,7 +546,7 @@ const Film = (() => {
             const p = byId[id], d = drawn[id];
             if (!p || !d) continue;
             const [t0, t1] = PHONE[id];
-            const cut = id === 'kasaL' ? 46.4 : id === 'kasaR' ? 49.4 : t1;
+            const cut = t1 - 0.15;
             if (t < Math.max(t0 + 0.6, 26.3) || t > cut + 0.6) continue;
             const b = d.head[0] < KUROKO.x ? bars[0] : bars[1];
             const end = p.phone && p.phoneAt && t < t1 ? p.phoneAt : d.head;
@@ -617,8 +620,8 @@ const Film = (() => {
     // wearer lets the phone go (shot 9), or when the old hands hold the thread (shot 8).
     // [wearer, sent from, lands at, falls at]
     const MASKS = [
-        ['kasaL', 'kasaR', 20.2, 46.4], ['kasaR', 'kasaL', 20.2, 49.4], ['womanL', 'womanR', 20.2, 50.7],
-        ['womanR', 'womanL', 20.2, 51.2], ['manL2', 'manR2', 20.2, 52.8], ['manR2', 'manL2', 20.2, 53.3],
+        ['kasaL', 'kasaR', 20.2, 62.7], ['kasaR', 'kasaL', 20.2, 62.9], ['womanL', 'womanR', 20.2, 63.1],
+        ['womanR', 'womanL', 20.2, 63.3], ['manL2', 'manR2', 20.2, 63.5], ['manR2', 'manL2', 20.2, 63.7],
     ];
     const FLIGHT = 1.0;
     function drawMaskFlights(g, t, drawn, poses) {

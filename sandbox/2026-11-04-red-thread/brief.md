@@ -56,10 +56,14 @@ flows back along it into everyone who takes hold of it.
 | 26–32 | Shouting | The camera pulls back and finds the kuroko holding all the strings. The crowds face each other across the river; shouts fly as thick black strokes and splash into the water, which turns black; threads snap with small red flicks (the children's last, as the bridge falls); the tree sheds its full bloom into the black water, keeping only its last blossoms; the sun drains to grey. |
 | 32–36 | Grey | A wide, grey world in ink rain, everyone gone: the sun is grey. On the left bank, the girl with her red kite and the plum tree's last blossoms, the only red left; on the right, the boy alone on his rock with his screen. |
 | 36–43 | The kite (**style test**) | A gust carries the girl's kite across the river; the boy looks up from his screen, stands and catches the string: a red thread spans the river. |
-| 43–50 | Holding on | Adults on both banks shout at the children; a man reaches for the string; the children hold on. An old woman on the left lays her hand on the thread beside the girl; an old man on the right does the same. |
-| 50–57 | The red returns | One by one people let their screens fall; a red thread runs from the children's thread to each of them, then across the river between the old pairs (and the two men who bumped); the river clears and the reflections come back; the sun fills with red from its edge; the children walk out to the ends of the broken bridge, holding the thread. |
-| 57–62 | The bridge of threads | The thread splits into many that weave themselves into a red rope bridge; the girl and the boy walk out and meet in the middle. |
-| 62–68 | Ending | Wide: the cherry tree in red bloom, petals on the water, the red sun, people crossing the bridge of thread. The closing line writes itself; the seal stamps. |
+| 43–50 | Holding on (round 13) | Only the children are tied, by the kite string; the masked adults shout at them and a man pulls at the string; they hold on. |
+| 43–50 | (before round 13) | Adults on both banks shout at the children; a man reaches for the string; the children hold on. An old woman on the left lays her hand on the thread beside the girl; an old man on the right does the same. |
+| 50–58 | The bridge (round 13) | The children walk out to the ends of the broken bridge; from their string a bridge is woven strand by strand from both banks, then the hangers one by one; the red comes back only partly. |
+| 50–57 | (before round 13) | One by one people let their screens fall; a red thread runs from the children's thread to each of them, then across the river between the old pairs (and the two men who bumped); the river clears and the reflections come back; the sun fills with red from its edge; the children walk out to the ends of the broken bridge, holding the thread. |
+| 58–62.4 | Meeting (round 13) | The children walk out and meet in the middle, bow to each other as at the start and take hands. |
+| 57–62 | (before round 13) | The thread splits into many that weave themselves into a red rope bridge; the girl and the boy walk out and meet in the middle. |
+| 62.4–68 | Ending (round 13) | The adults understand: masks fall one by one, the sheets fly away, the kuroko dissolves, the sun and the tree fill with red; the adults bow across the river and start to cross. The closing line, the seal. |
+| 62–68 | (before round 13) | Wide: the cherry tree in red bloom, petals on the water, the red sun, people crossing the bridge of thread. The closing line writes itself; the seal stamps. |
 
 ## Characters (locked in the style test)
 

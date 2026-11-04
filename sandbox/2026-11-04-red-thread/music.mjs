@@ -178,7 +178,7 @@ drone(14.5, 18.5, D - 13, 0.05);       // the screens: a cold, slightly sour hum
 // the kuroko: a deep rumble as he rises behind the mountains, and as he dissolves
 noiseBed(env([[26.2, 0], [27.2, 1], [29.5, 0.5], [31, 0]]), 0.004, 0.9, 0);   // the reveal
 noiseBed(env([[43.0, 0], [44.2, 0.6], [45.5, 0]]), 0.004, 0.8, 0);
-noiseBed(env([[53.6, 0], [55.0, 0.5], [57.0, 0]]), 0.006, 0.6, 0);
+noiseBed(env([[63.3, 0], [64.6, 0.5], [66.4, 0]]), 0.006, 0.6, 0);   // the kuroko dissolves
 drone(18, 32, D - 24, 0.06);
 drone(32, 43, D - 12, 0.04);
 drone(43, 50, D - 24, 0.05);
@@ -212,7 +212,9 @@ splash(24.6, 0.12);
 
 // masks: a wet ink splat as each one lands on a face, a dry crack as it breaks and falls
 for (const [t, p] of [[20.3, -0.4], [20.4, 0.4], [20.5, -0.2]]) splash(t, 0.1, p);
-for (const [t, p] of [[46.4, -0.3], [49.4, 0.3], [50.7, -0.4], [51.2, 0.4], [52.8, -0.3], [53.3, 0.3]]) snap(t, 0.22, p);
+for (const [t, p] of [[62.7, -0.3], [62.9, 0.3], [63.1, -0.4], [63.3, 0.4], [63.5, -0.3], [63.7, 0.3]]) snap(t, 0.22, p);
+// round 13: each strand of the bridge meets in the middle with a small bell
+for (const t of [54.8, 55.9, 56.9, 57.8, 58.6]) ping(t, 81, 0.07, 0);
 
 // --- 5 · Shouting: a taiko hit on every shout's landing; snaps; the bridge falls --------------
 const SHOUTS = [26.3, 26.8, 27.3, 27.7, 28.2, 28.6, 29.0, 29.4, 29.8, 30.2, 30.6, 31.0];
