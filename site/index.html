@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en" data-root="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drawn-by-code — animation made with code by Claude</title>
+<meta name="description" content="Films and animation styles drawn entirely in code by Claude: paper cutout, risograph, sumi-e, clay, engraving and more. Every frame is a function of time, and every lesson is in the open.">
+<meta property="og:title" content="drawn-by-code">
+<meta property="og:description" content="Animation made with code by Claude, and every lesson it learned, in the open.">
+<meta property="og:image" content="media/social-preview.jpg">
+<meta name="theme-color" content="#efe3cc">
+<link rel="icon" href="media/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,0..100;1,9..144,300..700,0..100&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="bar">
+  <a class="mark" href="#top" aria-label="drawn-by-code, back to the top">drawn<span>-by-</span>code</a>
+  <nav aria-label="Sections">
+    <a href="#films">Films</a>
+    <a href="#atlas">Styles</a>
+    <a href="#method">Method</a>
+    <a href="#source">Source</a>
+  </nav>
+  <a class="gh" href="https://github.com/illodev/drawn-by-code">GitHub <span aria-hidden="true">↗</span></a>
+</header>
+
+<main id="top">
+
+  <!-- The cover is the README's own scene, running here with the repo's engine -->
+  <section class="hero" aria-label="Live title">
+    <div class="stage">
+      <iframe id="hero" class="live" title="The drawn-by-code title, drawn live in your browser" data-scene="sandbox/2026-09-24-readme-cover/scene.js" data-after="run" data-max="1800" loading="eager"></iframe>
+    </div>
+
+    <div class="hero-text wrap">
+      <div class="claim">
+        <h1>This title is not a video.<br><em>It is being drawn, right now, by code.</em></h1>
+        <p class="lede">Claude wrote the code; your browser is running it. Twenty-four times a second, every torn edge, every finger of that hand and every polaroid is painted onto a canvas from one number: the time.</p>
+      </div>
+
+      <aside class="console" aria-label="Live readout of the title">
+        <dl>
+          <div><dt>t</dt><dd><span id="r-t">0.000</span> s</dd></div>
+          <div><dt>frame</dt><dd id="r-f">0</dd></div>
+          <div><dt>painted in</dt><dd><span id="r-ms">–</span> ms</dd></div>
+          <div><dt>Math.random()</dt><dd><span id="r-rand">0</span> calls</dd></div>
+        </dl>
+        <div class="scrub">
+          <button id="hero-play" class="play" aria-label="Pause the title"><span aria-hidden="true"></span></button>
+          <input id="hero-scrub" type="range" min="0" max="719" value="0" step="1" aria-label="Time of the title, in frames">
+        </div>
+        <p class="note hand"><svg viewBox="0 0 60 40" aria-hidden="true"><path d="M4 34 C 18 30, 30 20, 50 6 M 50 6 l -10 1 M 50 6 l -2 10"/></svg>drag it: frame 101 is always frame 101</p>
+      </aside>
+    </div>
+
+    <ul class="facts wrap" aria-label="The project in numbers">
+      <li><b>14</b><span>styles, each a kit of code</span></li>
+      <li><b>14</b><span>experiments, from brief to film</span></li>
+      <li><b>57</b><span>rounds of human notes, kept verbatim</span></li>
+      <li><b>22</b><span>skills that direct Claude</span></li>
+      <li><b>0</b><span>frames of AI-generated video</span></li>
+    </ul>
+  </section>
+
+  <!-- 01 · Films -->
+  <section id="films" class="chapter wrap">
+    <header class="chapter-head">
+      <span class="num">01</span>
+      <h2>Films, drawn <em>line by line</em></h2>
+      <p>Each one began as a brief and went through rounds of automatic critique and human notes until it held up frame by frame. JavaScript paints the frames, Chromium and ffmpeg turn them into a film.</p>
+    </header>
+
+    <article class="feature" data-film="red-thread">
+      <button class="poster" aria-label="Play El hilo rojo">
+        <img src="media/red-thread.jpg" alt="Two children meet in the middle of a red rope bridge woven from a kite string, in Japanese ink on washi" width="1600" height="900">
+        <span class="playmark" aria-hidden="true"></span>
+      </button>
+      <div class="feature-text">
+        <p class="kicker">Latest · sumi-e</p>
+        <h3>El hilo rojo <span lang="ja" class="ja">赤い糸</span></h3>
+        <p>A river village splits in two when a black sleeve drops broadsheets into every pair of hands. Masks go on, the bridge falls, the red drains from the world, until two children's kite string becomes a new bridge.</p>
+        <dl class="meta">
+          <div><dt>Length</dt><dd>68 s</dd></div>
+          <div><dt>Style</dt><dd>Japanese ink on washi</dd></div>
+          <div><dt>Review</dt><dd>15 rounds</dd></div>
+          <div><dt>Score</dt><dd>Japanese lo-fi, per scene</dd></div>
+        </dl>
+        <a class="more" href="https://github.com/illodev/drawn-by-code/tree/main/sandbox/2026-11-04-red-thread">Brief, notes and code <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
+
+    <div class="films" id="film-grid"></div>
+  </section>
+
+  <!-- 02 · The atlas of styles -->
+  <section id="atlas" class="chapter wrap">
+    <header class="chapter-head">
+      <span class="num">02</span>
+      <h2>Fourteen ways <em>to draw</em></h2>
+      <p>A style is a drawing kit, a template and a skill: the rules and the checklist that keep it consistent. These plates are the templates, running live. Open the source to read exactly what you are looking at.</p>
+    </header>
+    <div class="plates" id="plates"></div>
+  </section>
+
+  <!-- 03 · Method -->
+  <section id="method" class="chapter wrap">
+    <header class="chapter-head">
+      <span class="num">03</span>
+      <h2>It learns <em>in the open</em></h2>
+      <p>No render reaches a person before Claude has looked at its frames. What a person says comes back verbatim, and whatever generalizes is written into a skill, so the next film starts where the last one ended.</p>
+    </header>
+
+    <ol class="loop" aria-label="The loop">
+      <li><b>Brief</b><span>idea, audience, the shots</span></li>
+      <li><b>scene.js</b><span>a pure function of time</span></li>
+      <li><b>Render</b><span>Chromium paints, ffmpeg encodes</span></li>
+      <li><b>review.mjs</b><span>stills, jumps, flashes, determinism</span></li>
+      <li><b>Critique</b><span>Claude reads its own frames, up to three rounds</span></li>
+      <li><b>Your notes</b><span>kept word for word</span></li>
+      <li><b>A skill</b><span>the lesson, for every next film</span></li>
+    </ol>
+
+    <h3 class="sub">The notes, verbatim, and what they became</h3>
+    <div class="ledger" id="ledger"></div>
+  </section>
+
+  <!-- 04 · Source -->
+  <section id="source" class="chapter wrap">
+    <header class="chapter-head">
+      <span class="num">04</span>
+      <h2>Nothing <em>is hidden</em></h2>
+      <p>Many impressive AI-made videos are posted with no word on how they were made. Here everything is public, so anyone can learn from it, or do it better.</p>
+    </header>
+
+    <div class="open">
+      <a href="https://github.com/illodev/drawn-by-code/tree/main/engine">
+        <span class="label">The code</span>
+        <b>The engine and every scene</b>
+        <span>A scene is <code>Motion.scene({ draw(g, t, env) })</code>. The renderer, the review, the reference measurer, the mixer.</span>
+      </a>
+      <a href="https://github.com/illodev/drawn-by-code/tree/main/.claude/skills">
+        <span class="label">The skills</span>
+        <b>How Claude is directed</b>
+        <span>One skill per style, plus animate, review, hands, sound, transitions and replicate: rules, checklists and the pitfalls that cost a round.</span>
+      </a>
+      <a href="https://github.com/illodev/drawn-by-code/blob/main/sandbox/INDEX.md">
+        <span class="label">The process</span>
+        <b>Every brief and every round</b>
+        <span>Each experiment keeps its brief, its contact sheets, its reviews with the feedback quoted, and the lesson it left behind.</span>
+      </a>
+    </div>
+
+    <div class="start">
+      <div class="term" role="group" aria-label="Getting started">
+        <div class="term-bar"><span></span><span></span><span></span><em>getting started</em><button class="copy" data-copy="term-code">Copy</button></div>
+<pre id="term-code"><code><i># Node 20+, Chromium and ffmpeg</i>
+npm install
+node engine/new.mjs my-test --style sumi-e --duration 5
+npm run preview                          <i># http://127.0.0.1:5173</i>
+node engine/review.mjs sandbox/&lt;exp&gt;/scene.js
+node engine/render.mjs sandbox/&lt;exp&gt;/scene.js --size 1920</code></pre>
+      </div>
+      <div class="ask">
+        <p class="hand">or just ask Claude Code:</p>
+        <p class="prompt">“Make me a ten-second paper-cutout video of a mug that wakes up before its owner.”</p>
+        <p>The <code>animate</code> skill takes it from there: brief, script, style test, animatic, film.</p>
+        <a class="button" href="https://github.com/illodev/drawn-by-code/blob/main/CONTRIBUTING.md">Add a style to the hub <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot wrap">
+  <p class="sign">Draw <em>something.</em></p>
+  <div class="foot-cols">
+    <p>The live frames on this page run <code>engine/core.js</code>, the same file that renders the films. Nothing on it was generated as video or image by a model: Claude wrote the code that draws it.</p>
+    <p>The studies <i>what-do-you-love</i> and <i>opus5-riso</i> are 1:1 replicas of films by <a href="https://x.com/kevin_t_ngo">Kevin Ngo</a>, made to learn from; the designs are his. Music by ElevenLabs where noted. Fonts under the SIL OFL.</p>
+    <p>Code under the MIT licence · <a href="https://github.com/illodev/drawn-by-code">github.com/illodev/drawn-by-code</a></p>
+  </div>
+</footer>
+
+<dialog id="player" class="player" aria-label="Film">
+  <div class="player-in">
+    <video id="player-video" controls playsinline preload="none"></video>
+    <div class="player-meta">
+      <h3 id="player-title"></h3>
+      <p id="player-desc"></p>
+      <form method="dialog"><button class="close" aria-label="Close">Close <span aria-hidden="true">×</span></button></form>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="code" class="code" aria-label="Source code">
+  <div class="code-head">
+    <div><span class="label">Source</span><b id="code-path"></b></div>
+    <a id="code-gh" href="#">On GitHub ↗</a>
+    <form method="dialog"><button class="close" aria-label="Close">×</button></form>
+  </div>
+  <pre class="code-body"><code id="code-text"></code></pre>
+</dialog>
+
+<script src="site.js"></script>
+</body>
+</html>
