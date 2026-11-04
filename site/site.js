@@ -112,7 +112,22 @@
             if (reduced) send(hero, { cmd: 'seek', t: 5.9 });
             setHeroPlaying(heroPlaying);
         },
+        onError: (m) => {
+            // the rendered cover keeps playing underneath; the readout says why
+            console.warn('live title:', m.message);
+            $('#r-ms').textContent = 'n/a';
+            $('#stage').querySelector('.fallback')?.play().catch(() => {});
+        },
         onFrame: (m) => {
+            if (m.ms != null && !hero.parentNode.classList.contains('live-on')) {
+                // the live title takes over from the rendered one at the same moment
+                const v = hero.parentNode.querySelector('.fallback');
+                hero.parentNode.classList.add('live-on');
+                if (v) {
+                    v.pause();
+                    if (v.currentTime > 0.1 && !reduced) send(hero, { cmd: 'seek', t: v.currentTime });
+                }
+            }
             $('#r-t').textContent = m.t.toFixed(3).padStart(6, '0');
             $('#r-f').textContent = String(m.frame).padStart(3, '0');
             $('#r-ms').textContent = m.ms.toFixed(1);

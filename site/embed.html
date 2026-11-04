@@ -30,24 +30,32 @@
     let randomCalls = 0;
     const realRandom = Math.random;
     Math.random = () => { randomCalls++; return realRandom(); };
-    const load = (src) => new Promise((ok, ko) => {
-        const s = document.createElement('script');
-        s.src = src;
-        s.onload = ok;
-        s.onerror = () => ko(new Error('Could not load ' + src));
-        document.head.appendChild(s);
+    // Scripts are fetched all at once and run in order (one after another over the network
+    // took seconds for a scene with many kits); each runs under its own name in errors.
+    const get = (src) => fetch(src).then((r) => {
+        if (!r.ok) throw new Error(`Could not load ${src} (${r.status})`);
+        return r.text();
     });
+    const run = (code, src) => {
+        const s = document.createElement('script');
+        s.text = `${code}\n//# sourceURL=${new URL(src, location.href).href}`;
+        document.head.appendChild(s);
+    };
+    let lastError = null;
+    addEventListener('error', (e) => { lastError = e.error || e.message; });
     const fail = (e) => post({ type: 'error', message: String(e && e.message || e) });
 
     (async () => {
-        await load(ROOT + 'engine/core.js');
         const scene = q.get('scene');
-        await load(ROOT + scene);
+        const [core, sceneCode] = await Promise.all([get(ROOT + 'engine/core.js'), get(ROOT + scene)]);
+        run(core, ROOT + 'engine/core.js');
+        run(sceneCode, ROOT + scene);
+        if (lastError) throw lastError;
         const def = Motion.def;
-        for (const u of def.uses ?? []) {
-            const src = typeof u === 'string' ? u : u.src;
-            try { await load(ROOT + src); } catch (e) { if (!(typeof u === 'object' && u.optional)) throw e; }
-        }
+        const uses = (def.uses ?? []).map((u) => (typeof u === 'string' ? { src: u } : u));
+        const codes = await Promise.all(uses.map((u) => get(ROOT + u.src).catch((e) => (u.optional ? null : Promise.reject(e)))));
+        uses.forEach((u, i) => codes[i] != null && run(codes[i], ROOT + u.src));
+        if (lastError) throw lastError;
         for (const f of def.fonts ?? []) {
             try {
                 const ff = new FontFace(f.family, `url(${ROOT + f.src})`, f.descriptors ?? {});
@@ -91,7 +99,7 @@
             const f = frameAt(frame);
             if (f === painted) return;
             const t0 = performance.now();
-            paint(f / fps);
+            try { paint(f / fps); } catch (e) { playing = false; fail(e); return; }
             ms = performance.now() - t0;
             painted = f;
             post({ type: 'frame', frame: f, t: f / fps, total, fps, ms, random: randomCalls, duration: def.duration });
@@ -115,7 +123,6 @@
         post({ type: 'ready', total, fps, duration: def.duration, logical: [W, H] });
         if (q.get('autoplay')) { playing = true; requestAnimationFrame(tick); }
     })().catch(fail);
-    addEventListener('error', (e) => fail(e.error || e.message));
 })();
 </script>
 </body>
