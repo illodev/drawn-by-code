@@ -222,7 +222,7 @@ SHOUTS.forEach((t, i) => {
     taiko(t, 0.25, 55 + (i % 3) * 10, i % 2 ? 0.4 : -0.4);
     splash(t + 0.7, 0.18, i % 2 ? -0.2 : 0.2);
 });
-for (const t of [27.5, 28.5, 29.5, 31.0]) snap(t, t === 31.0 ? 0.55 : 0.4, 0);
+// (round 14: the red threads and their snaps are gone)
 for (const [x, dt] of [[0, 0.3], [1, 0.5], [2, 0.6], [3, 0.82]]) splash(30.4 + dt, 0.35, x / 2 - 0.75);
 taiko(30.9, 0.6, 45);
 

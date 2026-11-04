@@ -16,8 +16,8 @@
 - **On-screen text (literal, Spanish):** title «El hilo rojo» with a seal 赤い糸; closing line
   «Antes de ser bandos, fuimos vecinos.» (approved by the user, 2026-11-04). Latin text in
   Kaushan Script (a brush script, OFL); the seal's kanji in Yuji Syuku (OFL, subset).
-- **Music / rhythm (round 12):** one ElevenLabs piece per scene, traditional Japanese
-  instruments only, crossfaded at the cuts (see review.md). Before that: synthesized, licence-free: a koto (plucked string) in the Japanese
+- **Music / rhythm (round 14):** Japanese lo-fi, one ElevenLabs piece per scene in D with its
+  own rhythm, crossfaded at the cuts (round 12 was traditional instruments only, crossfaded at the cuts (see review.md). Before that: synthesized, licence-free: a koto (plucked string) in the Japanese
   *in* scale, a breathy flute (shakuhachi-like), wind and water; 60 BPM, cuts on whole seconds.
   The dark middle loses the melody (a drone, a low drum); the melody returns, warmer, when the
   red comes back.
@@ -36,6 +36,11 @@ neighbour into an oni while we read; when it blows away everyone wears the mask.
 the shouting starts does the camera pull back and find him whole, a string from his control
 crosses to every sheet. Nobody looks up. When people let the sheets go his strings break and
 he dissolves into the mist.
+
+## Round 14
+
+No red threads at all: the greetings are bows, and red is the sun, the blossoms and the
+children's kite string (from which the bridge is woven).
 
 ## The evolving idea
 

@@ -1,25 +1,27 @@
 #!/bin/sh
-# Round 12: the score is one ElevenLabs piece per scene (traditional Japanese instruments
-# only: koto, shakuhachi, shamisen, taiko), each generated a little longer than its scene,
-# laid at the scene's first second, cut 0.4 s into the next scene and crossfaded there, so
-# every change of mood lands on a cut. The takes live in private/audio/seg/ (never committed);
-# which take plays each scene is listed in SEGS. Under it, the synthesized effects (sfx.wav,
-# about 9 dB down). The mix is brought to about -15.5 LUFS by one static gain, then a limiter.
+# Round 14: the score is Japanese lo-fi (koto, shakuhachi, shamisen over dusty beats, all in
+# D), one ElevenLabs piece per scene with its own rhythm (a calm boom-bap, no drums under
+# the sleeve, a half-time trap beat, double time in the quarrel, rain and no drums, a
+# building mid-tempo beat for the bridge, a breath and the full beat for the ending), each
+# laid at its scene's first second, cut 0.4 s into the next and crossfaded there. The takes
+# live in private/audio/lofi/ (never committed); SEGS lists which plays each scene. Under it,
+# the synthesized effects (sfx.wav, about 9 dB down). The mix is brought to about -15.5 LUFS
+# by one static gain, then a limiter.
 set -e
 cd "$(dirname "$0")"
 node music.mjs --sfx
 # take  start  end   gain(dB)
-SEGS="A2 0 12 3
-B3 12 18 2
-C1 18 26 0
-D1 26 32 0
-E3 32 43 6
-F1 43 57 1
-G1 57 68 0"
+SEGS="A1 0 12 0
+B2 12 18 6
+C1 18 26 -6
+D1 26 32 -4
+E2 32 43 8
+F2 43 58 0
+G1 58 68 0"
 IN=""; F=""; L=""; i=0
 echo "$SEGS" > /tmp/rt-segs.txt
 while read take s e gain; do
-  IN="$IN -i private/audio/seg/$take.mp3"
+  IN="$IN -i private/audio/lofi/$take.mp3"
   d=$(python3 -c "print($e - $s + 0.4)")
   fo=$(python3 -c "print($e - $s)")
   fi_=$( [ "$s" = "0" ] && echo 0.01 || echo 0.25 )

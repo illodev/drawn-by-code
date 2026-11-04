@@ -144,7 +144,7 @@ const makeShots = () => {
         const poses = all(tq);
         let drawn = {};
         F.paintWorld(g, env, t, tq, c, w, {
-            cranesT: t < 18 ? tq - 3 : null,
+            cranesT: tq - 3,
             figures: (h) => {
                 drawn = drawPeople(h, poses);
                 drawThreads(h, tq, drawn);
@@ -430,7 +430,8 @@ const makeShots = () => {
         boy.glow = ph.glow * (1 - seg(tq, 43, 45));
         boy.hands[0] = boy.hands[0];
         // the man who grabs the thread (shot 8) and the elders who lay a hand on it
-        const pullL = hump(seg(tq, 44.6, 46.6)), pullR = hump(seg(tq, 48.0, 49.4));
+        // round 14: nobody grabs the string any more (the man walked through it); they shout
+        const pullL = 0, pullR = 0;
         const villagers = Object.keys(F.V).map((id) => F.villager(id, tq));
         const byId = Object.fromEntries(villagers.map((v) => [v.id, v]));
         // main thread through the hands (and through a grabbing hand while pulled)
@@ -473,7 +474,7 @@ const makeShots = () => {
         let drawn = {};
         const ropeU = seg(tq, 53.2, 58.6);
         F.paintWorld(g, env, t, tq, c, w, {
-            cranesT: tq >= 62 ? tq - 61 : null,
+            cranesT: tq < 61 ? tq - 36 : tq - 68,
             spans: tq < 56 ? spansGuess : [],
             figures: (h) => {
                 // the rope bridge first: the children walk on it

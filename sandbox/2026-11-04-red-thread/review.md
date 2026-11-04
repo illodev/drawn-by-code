@@ -324,3 +324,26 @@ are rough; no sound effects beyond the score.
   and fall one by one (62.7–63.7 s), the sheets blow away, the strings snap, the kuroko
   dissolves (63.4–66.2 s), the sun fills, the tree blooms; the adults bow across the river
   and the first of them step onto the bridge. The closing line writes itself at 64.6 s.
+
+## Round 14 (user)
+
+> Esa persona atraviesa el hilo y se superpone, hay más que también. Los pájaros
+> desaparecen. Creo que quitaría los hilos rojos del principio. La música no me gusta, quiero
+> algo más lofi japonés y que vaya cambiando el ritmo.
+
+- Overlaps: a new check (`tools/check-overlap.mjs`) over the whole timeline found the man who
+  grabbed the string walking through it and the girl, the elders and two men standing on the
+  string's line, and people placed on the same spot on both banks (the title, the right bank
+  at 12–21 s, the edge in the quarrel, the act-2 banks, the women walking through the
+  children at the end). Nobody grabs the string now; the adults shout from behind the
+  children; positions respaced (about 0.35 of a height apart); the shot-5 positions are
+  where the walks arrive (no jump at 25.4 s); the two women stop beside the children.
+- Birds: one flight per act that leaves the frame (they were drawn only in some shots and
+  vanished at 18 s and 43 s and appeared mid-frame at 62 s).
+- No red threads in the first part either: the greetings are bows; red is the sun, the
+  blossoms and the children's kite string.
+- Music: Japanese lo-fi, one ElevenLabs piece per scene in D, each with its own rhythm:
+  boom-bap 75 BPM (village), no drums (the sleeve), half-time trap (the broadsheet and the
+  split), double time 140 with taiko (the quarrel), rain and shakuhachi with a beat fading
+  in (grey and the kite), a building 85 BPM beat (holding on, the bridge), a breath and the
+  full beat (the meeting and the end). Picked by loudness per second.
