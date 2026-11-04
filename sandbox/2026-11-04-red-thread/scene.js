@@ -5,7 +5,7 @@
 //
 // Files: kite.js (RT: the set and shot 7, the approved style test), cast.js (the figures),
 // film.js (Film: world state, people, threads, effects). This file only assembles the shots.
-const ANIMATIC = true;      // timecode and shot name in the corner
+const ANIMATIC = false;     // timecode and shot name in the corner
 
 // built in setup(): the kits in `uses` load after this file
 let Shots = null;

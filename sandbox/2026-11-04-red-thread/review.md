@@ -352,4 +352,4 @@ are rough; no sound effects beyond the score.
 
 > Lo doy por bueno
 
-Approved as it stands after round 15 (the timecode of the animatic is still in the corner).
+Approved as it stands after round 15; the final render is clean (no timecode: `ANIMATIC = false`).
