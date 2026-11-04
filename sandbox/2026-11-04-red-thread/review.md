@@ -174,3 +174,20 @@ are rough; no sound effects beyond the score.
 - Music: ELEVEN_KEY was not visible in this session (environment variables load when a
   session starts). Prepared: `gen-music.mjs` (one section per shot), `music.mjs --sfx` (the
   synthesized effects alone), `mix-final.sh`. To run in a new session.
+
+## Round 7 (user)
+
+> Veo que hay varias transiciones de tinta cuando solo era una no? de los adultos a los niños
+> … Es que creo que solo debería haber una transición no? en los demás no creo que deberan
+> haber xd, o sea, la escena es la misma y mismo personajes, meter transiciones hay hace que
+> se vea peor todo.
+
+- One ink blot only, at 32 s (the adults' quarrel → the girl alone in the rain). Everywhere
+  else the film is one continuous camera per act (0–32 s and 32–68 s): each shot keeps its
+  last framing and the camera travels to the next shot's next key (first try dropped the
+  shot's last key instead: at 50 s the camera crossed half the set in 1.4 s).
+- Seams made continuous: the grey shot's camera ends on the kite shot's first framing; the
+  rain and the overcast end at 36 s; the cranes enter during the grey shot; the kite's wind
+  noise settles into the kite shot's first position; at 43 s the children ease from the kite
+  shot's last pose into the new one and the boy's phone stays on the ground. Measured: the
+  mean frame difference across every old cut is 0.2–4.8 (camera motion), no jumps.

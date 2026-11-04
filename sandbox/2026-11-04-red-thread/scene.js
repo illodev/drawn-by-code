@@ -169,9 +169,11 @@ const makeShots = () => {
         gp.t = tq;
         bp.t = tq;
         bp.glow = 1;
-        const k = RT.kiteAt(0), kite = { x: k.x + Motion.noise1('gk', t * 1.2) * 18, y: k.y + Motion.noise1('gky', t * 1.5) * 14, rot: k.rot + Motion.noise1('gkr', t * 2) * 0.15 };
+        // it tugs in the wind, settling into the kite shot's first position at 36 s
+        const k = RT.kiteAt(0), nz = 1 - E.inOut(seg(t, 34.8, 36)), kite = { x: k.x + Motion.noise1('gk', t * 1.2) * 18 * nz, y: k.y + Motion.noise1('gky', t * 1.5) * 14 * nz, rot: k.rot + Motion.noise1('gkr', t * 2) * 0.15 * nz };
         F.paintWorld(g, env, t, tq, c, w, {
-            overcast: RT.spline([[32, 1], [35, 1], [36, 0.2]], t),
+            overcast: RT.spline([[32, 1], [34.5, 1], [36, 0]], t),
+            cranesT: tq - 36,
             figures: (h) => {
                 const gd = Cast.figure(h, gp);
                 Cast.figure(h, bp);
@@ -204,7 +206,7 @@ const makeShots = () => {
     // the children: holding the thread, then walking out to the bridge and onto it
     const KID_PATH = {
         girl: [[43, 628, 760], [55, 628, 760], [56.2, 800, 700], [57.0, 960, 'deck'], [59.3, 975, 'deck'], [61.0, 1232, 'rope'], [68, 1232, 'rope']],
-        boy: [[43, 1936, 790], [55, 1936, 790], [56.2, 1720, 700], [57.0, 1555, 'deck'], [59.3, 1535, 'deck'], [61.0, 1278, 'rope'], [68, 1278, 'rope']],
+        boy: [[43, 1901, 790], [55, 1901, 790], [56.2, 1720, 700], [57.0, 1555, 'deck'], [59.3, 1535, 'deck'], [61.0, 1278, 'rope'], [68, 1278, 'rope']],
     };
     function kidAfter(id, t, toward) {
         const keys = KID_PATH[id].map(([tt, x, y]) => [tt, x, y === 'deck' ? F.DECK(x) : y === 'rope' ? F.ropeY(x) - 2 : y]);
@@ -230,10 +232,20 @@ const makeShots = () => {
         f.hands = [[sh[0] + Math.cos(a) * h * 0.26, sh[1] + Math.sin(a) * h * 0.26], [x - face * h * 0.02, y - h * 0.42]];
         return f;
     }
+    function blendPose(a, b, u) {
+        const L = (x, y) => (typeof x === 'number' && typeof y === 'number' ? x + (y - x) * u : u < 0.5 ? x : y);
+        const P = (p, q) => (p && q ? E.lerpPt(p, q, u) : q ?? p);
+        const out = { ...b };
+        for (const key of ['x', 'y', 'h', 'lean', 'look', 'sit', 'seatY', 'wind']) if (key in a || key in b) out[key] = L(a[key] ?? 0, b[key] ?? 0);
+        out.feet = a.feet && b.feet ? a.feet.map((p, i) => P(p, b.feet[i])) : b.feet;
+        out.hands = a.hands && b.hands ? a.hands.map((p, i) => P(p, b.hands[i])) : b.hands;
+        return out;
+    }
     function kiteAfter(t, boyHand) {
         const k = RT.kiteAt(7);
         const base = t < 57 ? [k.x, k.y] : E.lerpPt([k.x, k.y], [boyHand[0] - 300, boyHand[1] - 330], E.inOut(seg(t, 57, 60)));
-        return { x: base[0] + Motion.noise1('ak', t * 1.1) * 16, y: base[1] + Motion.noise1('aky', t * 1.4) * 12, rot: 0.25 + Motion.noise1('akr', t * 1.9) * 0.2 };
+        const nz = E.inOut(seg(t, 43, 44.5)), k7 = RT.kiteAt(7);
+        return { x: base[0] + Motion.noise1('ak', t * 1.1) * 16 * nz, y: base[1] + Motion.noise1('aky', t * 1.4) * 12 * nz, rot: k7.rot + (0.25 + Motion.noise1('akr', t * 1.9) * 0.2 - k7.rot) * nz };
     }
 
     // the rope bridge the threads weave (shots 10–11): deck strands, two handrails, hangers
@@ -254,8 +266,20 @@ const makeShots = () => {
         // first where the hands will be (the thread is drawn after the figures)
         let girlHand = [700, 640], boyHand = [1860, 650];
         const kite = kiteAfter(tq, boyHand);
-        const boy = kidAfter('boy', boyT, [700, 640]);
-        const girl = kidAfter('girl', girlT, [boy.x, boy.y - boy.h * 0.7]);
+        let boy = kidAfter('boy', boyT, [700, 640]);
+        let girl = kidAfter('girl', girlT, [boy.x, boy.y - boy.h * 0.7]);
+        // no cut at 43 s: the children ease out of the kite shot's last pose
+        const bl = E.inOut(seg(tq, 43, 43.8));
+        if (bl < 1) {
+            girl = blendPose(RT.girlPose(7), girl, bl);
+            boy = blendPose(RT.boyPose(7), boy, bl);
+        }
+        // the boy's phone stays on the ground where it fell, its light gone
+        const ph = RT.boyPose(7);
+        boy.phone = 1;
+        boy.phoneAt = ph.phoneAt;
+        boy.phoneRot = ph.phoneRot;
+        boy.glow = ph.glow * (1 - seg(tq, 43, 45));
         boy.hands[0] = boy.hands[0];
         // the man who grabs the thread (shot 8) and the elders who lay a hand on it
         const pullL = hump(seg(tq, 44.6, 46.6)), pullR = hump(seg(tq, 48.0, 49.4));
@@ -397,11 +421,9 @@ function drawShot(k, g, t, env) {
 // Ink-blot transitions (the user: «con mancha de tinta china en el papel, no tan brusca»).
 // Each cut gets a point where the drop lands (on what the next shot is about), in screen units.
 const INK_HALF = 0.6;
-const INK_CUTS = [
-    { t: 6, x: 800, y: 470 }, { t: 12, x: 860, y: 430 }, { t: 18, x: 760, y: 260 }, { t: 26, x: 820, y: 560 },
-    { t: 32, x: 800, y: 640 }, { t: 36, x: 560, y: 430 }, { t: 43, x: 520, y: 520 }, { t: 50, x: 820, y: 470 },
-    { t: 57, x: 800, y: 520 }, { t: 62, x: 800, y: 470 },
-];
+// One stain only, between the two acts: from the adults' quarrel to the girl alone in the
+// rain (the user: the rest is the same place and the same people, so the camera travels).
+const INK_CUTS = [{ t: 32, x: 800, y: 640 }];
 function inkBlot(g, env, u, A, B, T) {
     const E = Ease, S = Sumi, k = env.k;
     // the stain: a main blot and satellites that bleed out of it and merge, with ragged edges

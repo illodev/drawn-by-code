@@ -28,7 +28,7 @@ const Film = (() => {
             red: keysAt([[0, 1], [27, 1], [31, 0], [52, 0], [57, 1], [68, 1]], t),
             dark: keysAt([[0, 0], [26.6, 0], [31.6, 0.82], [32, 0.8], [36, 0.32], [50, 0.3], [56, 0], [68, 0]], t),
             bloom: keysAt([[0, 1], [26.5, 1], [31, 0], [57, 0], [62, 1], [68, 1]], t),
-            rain: keysAt([[31, 0], [32, 1], [35, 1], [36, 0]], t),
+            rain: keysAt([[31, 0], [32, 1], [34.5, 1], [36, 0]], t),
             bridge,
         };
     }
@@ -40,7 +40,7 @@ const Film = (() => {
         2: [[12, 1250, 625, 1.28], [18, 1250, 600, 1.0]],
         3: [[18, 1250, 590, 0.95], [26, 1250, 560, 0.84]],
         4: [[26, 1250, 640, 1.12], [32, 1250, 560, 0.86]],
-        5: [[32, 1250, 520, 0.78], [36, 1180, 515, 0.84]],
+        5: [[32, 1250, 520, 0.78], [33.8, 1150, 515, 0.86], [36, 655, 522, 1.13]],
         7: [[43, 1258, 486, 0.8], [44.6, 720, 600, 1.25], [46.4, 760, 600, 1.25], [48.6, 1830, 610, 1.25], [50, 1810, 600, 1.18]],
         8: [[50, 1250, 540, 0.8], [57, 1250, 560, 0.86]],
         9: [[57, 1250, 640, 1.38], [62, 1250, 630, 1.48]],
@@ -50,10 +50,25 @@ const Film = (() => {
         const i = SHOTS.findIndex(([a, b]) => t >= a && t < b);
         return i < 0 ? SHOTS.length - 1 : i;
     };
+    // One continuous camera per act (the user: same place, same people, no cuts): the
+    // adults' act (shots 1–5, 0–32 s) and the children's (shots 6–11, 32–68 s). Each shot's
+    // keys join the next shot's, so the camera travels from one framing to the next. The only cut is at 32 s, an ink blot.
+    const KITE_CAM = [[0, 655, 522, 1.13], [1.4, 700, 512, 1.09], [4.6, 1225, 490, 0.82], [7, 1258, 486, 0.795]].map(([tt, ...v]) => [tt + 36, ...v]);
+    const ACTS = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9, 10]];
+    const actKeys = ACTS.map((shots) => {
+        const keys = [];
+        // each shot keeps its own last framing; the next shot's first key is dropped, so the
+        // camera travels from there to the next shot's following key at that shot's pace
+        shots.forEach((k, i) => {
+            let ks = k === 6 ? KITE_CAM : CAMS[k];
+            if (i > 0) ks = ks.slice(1);
+            keys.push(...ks);
+        });
+        return keys;
+    });
     function camAt(t, shot = null) {
         const k = shot ?? shotAt(t);
-        if (k === 6) return RT.cam(t - 36);
-        const keys = CAMS[k];
+        const keys = actKeys[k <= 4 ? 0 : 1];
         const f = (j) => keysAt(keys.map((c) => [c[0], c[j]]), t);
         return { cx: f(1), cy: f(2), z: f(3) };
     }
