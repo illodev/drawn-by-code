@@ -26,7 +26,7 @@
         ['exquisite-corpse', '2026-09-24-exquisite-corpse', 'Exquisite corpse', 'five styles', 30, 'square-ish',
             'One object travels through five styles joined by transitions: paper, a 70s poster, liquid light, a kaleidoscope and a line.'],
     ];
-    const FEATURE = ['red-thread', '2026-11-04-red-thread', 'El hilo rojo', 'sumi-e', 68,
+    const FEATURE = ['red-thread', '2026-11-04-red-thread', 'The Red Thread', 'sumi-e', 68,
         'A river village splits in two when a black sleeve drops broadsheets into every pair of hands; two children’s kite string becomes a new bridge. Japanese ink on washi, every brushstroke drawn in code; music by ElevenLabs.'];
 
     // [folder, name, look, approved?, kit lines, template lines, logical aspect]
@@ -48,27 +48,22 @@
     ];
     const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV'];
 
-    // [date, experiment folder, quote (verbatim), translation, what it became, file]
+    // [date, experiment folder, what the note found (a headline), what it became, file]
     const NOTES = [
-        ['2026-11-04', '2026-11-04-red-thread', 'El paisaje es un desastre, las montañas parecen condones y los templos no sé ni que decirte.',
-            'The landscape is a disaster; the mountains look like condoms, and the temples, I don’t even know what to say.',
+        ['2026-11-04', '2026-11-04-red-thread', 'The mountains didn’t read as ink painting',
             'An ink landscape is painted as one opaque sheet: no parallax, mist made of paper, and every piece built the way the reference builds it, cropped three times larger first.',
             '.claude/skills/style-sumi-e/SKILL.md'],
-        ['2026-09-24', '2026-09-24-saas-promo', 'Sus manos atraviesan cosas y hay veces que cogen perspectivas muy raras. Sus manos cogen el café al revés.',
-            'Her hands go through things and sometimes take very strange perspectives. She holds the coffee the wrong way round.',
+        ['2026-09-24', '2026-09-24-saas-promo', 'Her hands held the coffee the wrong way round',
             'A skill of its own: a photo reference for every grip, the hand drawn by side and view, one skin, and a hand check sheet a person approves before any render.',
             '.claude/skills/hands/SKILL.md'],
-        ['2026-09-24', '2026-09-24-coffee-first', 'El vídeo de la taza está bien, pero el humo sale fuera de la taza, no del café.',
-            'The mug video is fine, but the steam comes out beside the mug, not from the coffee.',
+        ['2026-09-24', '2026-09-24-coffee-first', 'The steam rose beside the mug, not from the coffee',
             'Whatever emanates is born at its source, and real phenomena are stylized from a real reference: the paper kit’s wisp was redrawn from a photo of steam.',
             'styles/paper-cutout/kit.js'],
-        ['2026-09-24', '2026-09-24-what-do-you-love', 'Sabes que está perfecto cuando ya tengo que hacer zoom para ver diferencias jajaja.',
-            'You know it’s perfect when I have to zoom in to see the differences, haha.',
+        ['2026-09-24', '2026-09-24-what-do-you-love', 'A replica you have to zoom into to tell apart',
             'The detail gate: a replica is scored zone by zone against its reference, texture, colour and missing pieces, and must pass before anyone sees it.',
             'engine/detail.mjs'],
-        ['2026-11-04', '2026-11-04-red-thread', 'Esa persona atraviesa el hilo y se superpone, hay más que también.',
-            'That person walks through the thread and overlaps the others, and there are more.',
-            'A script checks every pair of figures against each other over the whole timeline, and every body against the kite string. Stills never showed it; the script found nineteen.',
+        ['2026-11-04', '2026-11-04-red-thread', 'A villager walked straight through the kite string',
+            'A script checks every pair of figures against each other over the whole timeline, and every body against the string. Stills never showed it; the script found nineteen.',
             'sandbox/2026-11-04-red-thread/tools/check-overlap.mjs'],
     ];
 
@@ -312,10 +307,10 @@
     drawer.addEventListener('click', (e) => { if (e.target === drawer) drawer.close(); });
 
     // --- the ledger ------------------------------------------------------------------------
-    $('#ledger').innerHTML = NOTES.map(([date, dir, q, tr, became, file]) => `
+    $('#ledger').innerHTML = NOTES.map(([date, dir, found, became, file]) => `
         <article class="reveal">
           <p class="when">${date}<br><a href="${GH}/blob/main/sandbox/${dir}/review.md">${dir.slice(11)}</a></p>
-          <blockquote lang="es"><p>«${esc(q)}»</p><footer lang="en">${esc(tr)}</footer></blockquote>
+          <h4>${esc(found)}</h4>
           <p class="became"><span class="label">Became</span>${esc(became)}<br><a href="${GH}/blob/main/${file}">${file}</a></p>
         </article>`).join('');
 

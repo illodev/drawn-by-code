@@ -331,9 +331,7 @@ h2 em { font-weight: 300; }
 .ledger article { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 6fr) minmax(0, 4fr); gap: clamp(20px, 3vw, 48px); padding: clamp(28px, 3vw, 40px) 0; border-bottom: 1px solid var(--rule); align-items: start; }
 .ledger .when { font: 400 12px/1.6 var(--mono); color: var(--ink-3); }
 .ledger .when a { color: var(--ink-2); }
-.ledger blockquote { margin: 0; }
-.ledger blockquote p { margin: 0; font: 400 clamp(26px, 2.6vw, 36px)/1.12 var(--hand); color: var(--ink); text-indent: -0.42em; }
-.ledger blockquote footer { margin-top: 12px; font-style: italic; font-size: 15.5px; color: var(--ink-2); font-variation-settings: 'SOFT' 100; }
+.ledger h4 { margin: 0; font-weight: 340; font-size: clamp(26px, 2.6vw, 38px); line-height: 1.08; letter-spacing: -0.02em; font-variation-settings: 'SOFT' 100, 'opsz' 144; text-wrap: balance; }
 .ledger .became { font-size: 15.5px; line-height: 1.5; }
 .ledger .became .label { display: block; margin-bottom: 8px; color: var(--orange); }
 .ledger .became a { display: inline-block; margin-top: 10px; font: 400 12px/1.4 var(--mono); color: var(--ink-2); }
