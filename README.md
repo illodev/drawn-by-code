@@ -98,6 +98,9 @@ how you made it too.
 <sub>A plate of the «Description de l'Égypte» comes alive: a mark is painted on a stone, the pyramid opens into thousands of floating blocks, and the camera flies without a cut through a temple's rooms (each joined to the next by a doorway in the shot) to a seed that holds a sky of its own and leaves as a new star. 3D in WebGL, drawn in charcoal on old paper; music made with ElevenLabs.</sub>
 </td>
 <td width="50%" valign="top">
+<a href="sandbox/2026-11-04-red-thread/"><img src="sandbox/2026-11-04-red-thread/render/red-thread.gif" alt="El hilo rojo"></a><br>
+<b><a href="sandbox/2026-11-04-red-thread/">El hilo rojo</a></b> · sumi-e · 68 s · <a href="sandbox/2026-11-04-red-thread/render/red-thread.mp4">mp4</a><br>
+<sub>A river village where every greeting ties a red thread. Screens and slogans split it into two banks, the threads snap and the red drains out of the world, until a girl's red kite carries one thread back across the river and the threads weave a new bridge. Japanese ink painting on washi, every brushstroke drawn in code, the text written vertically in Japanese; score by ElevenLabs Music, effects synthesized.</sub>
 </td>
 </tr>
 </table>
@@ -122,6 +125,7 @@ to see its strip, files and the videos made with it.
 | [pixel-art](styles/pixel-art/)       | crisp pixels on a low-res grid, sprite maps, 10 fps loops                               | in testing |
 | [felt3d](styles/felt3d/)             | needle-felted wool puppets, raymarched, over any backdrop                               | in testing |
 | [engraving](styles/engraving/)       | a plate of the «Description de l'Égypte» drawn in charcoal on old paper, temple reliefs | in testing |
+| [sumi-e](styles/sumi-e/)             | Japanese ink on washi: dry brush, washes in mist, vermilion as the only colour           | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 
