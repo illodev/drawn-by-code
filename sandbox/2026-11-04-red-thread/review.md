@@ -347,3 +347,9 @@ are rough; no sound effects beyond the score.
   split), double time 140 with taiko (the quarrel), rain and shakuhachi with a beat fading
   in (grey and the kite), a building 85 BPM beat (holding on, the bridge; take F4 after the user asked for another take), a breath and the
   full beat (the meeting and the end). Picked by loudness per second.
+
+## Closed (user)
+
+> Lo doy por bueno
+
+Approved as it stands after round 15 (the timecode of the animatic is still in the corner).
