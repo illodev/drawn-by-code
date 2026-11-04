@@ -407,7 +407,7 @@ function inkBlot(g, env, u, A, B, T) {
     // the stain: a main blot and satellites that bleed out of it and merge, with ragged edges
     const blobs = [];
     const R = 1250;
-    const grow = (a, b) => E.out(Math.max(0, Math.min(1, (u - a) / (b - a))));
+    const grow = (a, b) => E.inOut(Math.max(0, Math.min(1, (u - a) / (b - a))));
     blobs.push([T.x, T.y, R * grow(0, 0.85), 0.24]);
     const r = Motion.rng('blot' + T.t);
     for (let i = 0; i < 6; i++) {
@@ -443,7 +443,8 @@ function inkBlot(g, env, u, A, B, T) {
     g.drawImage(B, 0, 0);
     // the ink itself: black where the drop has just landed, thinning to nothing; the wet
     // edge stays darker while it spreads (pigment collects at a drying front)
-    const ink = 0.85 * (1 - E.inOut(Math.max(0, Math.min(1, (u - 0.08) / 0.6))));
+    // (kept light and slow enough that no frame changes the overall brightness by 10 %)
+    const ink = 0.48 * Math.sin(Math.PI * Math.max(0, Math.min(1, u / 0.85)));
     if (ink > 0.01) {
         // denser where the drop landed, diluted towards the spreading edge
         const I = Motion.layer(env, 'tr-i', (q) => {
