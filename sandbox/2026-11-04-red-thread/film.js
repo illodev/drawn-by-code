@@ -46,9 +46,12 @@ const Film = (() => {
         9: [[57, 1250, 640, 1.38], [62, 1250, 630, 1.48]],
         10: [[62, 1250, 610, 1.3], [64, 1250, 560, 0.9], [68, 1250, 520, 0.76]],
     };
-    function camAt(t) {
+    const shotAt = (t) => {
         const i = SHOTS.findIndex(([a, b]) => t >= a && t < b);
-        const k = i < 0 ? SHOTS.length - 1 : i;
+        return i < 0 ? SHOTS.length - 1 : i;
+    };
+    function camAt(t, shot = null) {
+        const k = shot ?? shotAt(t);
         if (k === 6) return RT.cam(t - 36);
         const keys = CAMS[k];
         const f = (j) => keysAt(keys.map((c) => [c[0], c[j]]), t);
@@ -466,6 +469,45 @@ const Film = (() => {
         g.restore();
         return w;
     }
+    // Japanese written vertically (tategaki): columns read top to bottom, right to left; each
+    // character is brushed in from its top as the writing reaches it. `x` is the first (right)
+    // column, `y` the top. Punctuation sits in the upper right of its cell, as in print.
+    function writeVertical(g, env, columns, x, y, size, u, o = {}) {
+        if (u <= 0) return { bottom: y, left: x };
+        const total = columns.reduce((n, c) => n + [...c].length, 0);
+        const gap = o.gap ?? size * 1.25, step = size * (o.step ?? 1.02);
+        let k = 0, bottom = y;
+        g.save();
+        g.font = `${size}px ${o.font ?? 'Brush'}`;
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.fillStyle = o.color ?? S.INK;
+        g.globalAlpha *= o.alpha ?? 1;
+        columns.forEach((col, ci) => {
+            const cx = x - ci * gap;
+            [...col].forEach((ch, i) => {
+                const v = Math.max(0, Math.min(1, u * total - k));
+                k++;
+                if (v <= 0) return;
+                const punct = '、。'.includes(ch);
+                const px = cx + (punct ? size * 0.32 : 0), py = y + i * step + size / 2 + (punct ? -size * 0.32 : 0);
+                g.save();
+                g.beginPath();
+                // the brush comes down the character: a ragged edge moving from top to bottom
+                const edge = py - size * 0.6 + size * 1.2 * E.inOut(v);
+                g.moveTo(px - size, py - size);
+                g.lineTo(px + size, py - size);
+                for (let j = 0; j <= 6; j++) g.lineTo(px + size - (j / 6) * size * 2, edge + Motion.noise1('wv' + k, j * 1.3) * size * 0.12);
+                g.closePath();
+                g.clip();
+                g.fillText(ch, px, py);
+                g.restore();
+                bottom = Math.max(bottom, py + size / 2);
+            });
+        });
+        g.restore();
+        return { bottom, left: x - (columns.length - 1) * gap };
+    }
     function stamp(g, env, x, y, size, text, t, t0, o = {}) {
         if (t < t0) return;
         const u = E.out(seg(t, t0, t0 + 0.18));
@@ -474,13 +516,13 @@ const Film = (() => {
         const sc = 1.25 - 0.25 * u;
         g.scale(sc, sc);
         g.globalAlpha *= u * (o.alpha ?? 1);
-        S.seal(g, env, 0, 0, size, text, { font: 'Brush', cols: 1, step: 0.3, fs: 0.28, ...o });
+        S.seal(g, env, 0, 0, size, text, { font: 'Brush', cols: 1, step: 0.3, fs: [...text].length > 1 ? 0.28 : 0.62, ...o });
         g.restore();
     }
 
     return {
-        SHOTS, worldAt, camAt, villager, kid, V, KIDS, EDGE, SHOUTS, THREADS, PHONE, hAt, DECK, ROPE, ropeY,
+        SHOTS, shotAt, worldAt, camAt, villager, kid, V, KIDS, EDGE, SHOUTS, THREADS, PHONE, hAt, DECK, ROPE, ropeY,
         threadPts, drawThread, drawSnap, drawShout, drawSplash, glyph, drawCloud, drawRain, CLOUDS,
-        paintWorld, shedPetals, floatingPetals, writeText, stamp, bezier, hump, seg,
+        paintWorld, shedPetals, floatingPetals, writeText, writeVertical, stamp, bezier, hump, seg,
     };
 })();

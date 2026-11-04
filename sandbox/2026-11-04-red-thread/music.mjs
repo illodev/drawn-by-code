@@ -1,7 +1,10 @@
 // Synthesized score for red-thread («El hilo rojo», 68 s). No samples, no licences,
 // deterministic: the same code always writes the same file.
 //
-//   node sandbox/2026-11-04-red-thread/music.mjs   → mix.wav (next to this file, not committed)
+//   node sandbox/2026-11-04-red-thread/music.mjs         → mix.wav (score + effects)
+//   node sandbox/2026-11-04-red-thread/music.mjs --sfx   → sfx.wav (effects only: water, wind,
+//        rain, phone pings, thread snaps, splashes, taiko hits on the shouts, the seal's bell),
+//        to lay under the ElevenLabs score (gen-music.mjs, mix-final.sh)
 //
 // Instruments: koto (Karplus-Strong plucked string with a pressed bend), a breathy flute
 // (shakuhachi-like), taiko (a pitched-down thump with skin noise), a temple bell (inharmonic
@@ -25,7 +28,9 @@ function add(i, l, r) {
 const panLR = (v, p) => [v * Math.cos((p + 1) * Math.PI / 4), v * Math.sin((p + 1) * Math.PI / 4)];
 
 // --- instruments -----------------------------------------------------------------------------
-function koto(t0, midi, gain = 0.5, pan = 0, bend = 0, decay = 0.9) {
+const MUSIC = !process.argv.includes('--sfx');
+function koto(...a) { if (MUSIC) kotoRaw(...a); }
+function kotoRaw(t0, midi, gain = 0.5, pan = 0, bend = 0, decay = 0.9) {
     const f0 = hz(midi);
     const len = Math.max(2, Math.round(SR / f0));
     const buf = new Float32Array(len + 2);
@@ -47,7 +52,8 @@ function koto(t0, midi, gain = 0.5, pan = 0, bend = 0, decay = 0.9) {
         add(i0 + k, l, r);
     }
 }
-function flute(t0, dur, midi, gain = 0.2, pan = 0, glide = 0) {
+function flute(...a) { if (MUSIC) fluteRaw(...a); }
+function fluteRaw(t0, dur, midi, gain = 0.2, pan = 0, glide = 0) {
     const i0 = Math.round(t0 * SR), n = Math.round(dur * SR);
     let ph = 0, lp = 0;
     for (let k = 0; k < n; k++) {
@@ -98,7 +104,7 @@ function ping(t0, midi, gain = 0.12, pan = 0) {
 }
 // a red thread snapping: a high pluck whose pitch falls, and a whip of noise
 function snap(t0, gain = 0.4, pan = 0) {
-    koto(t0, 88, gain * 0.7, pan, -5, 3.0);
+    kotoRaw(t0, 88, gain * 0.7, pan, -5, 3.0);
     const i0 = Math.round(t0 * SR), n = Math.round(0.25 * SR);
     let hp = 0, prev = 0;
     for (let k = 0; k < n; k++) {
@@ -135,7 +141,8 @@ function noiseBed(envFn, cut, gain, pan = 0, lfo = 0) {
     }
 }
 // a soft drone (two detuned sines with a slow swell) for the dark middle
-function drone(t0, t1, midi, gain = 0.08) {
+function drone(...a) { if (MUSIC) droneRaw(...a); }
+function droneRaw(t0, t1, midi, gain = 0.08) {
     const i0 = Math.round(t0 * SR), n = Math.round((t1 - t0) * SR);
     for (let k = 0; k < n; k++) {
         const t = k / SR, e = Math.min(1, t / 1.5) * Math.min(1, (t1 - t0 - t) / 1.5);
@@ -275,5 +282,6 @@ for (let i = 0; i < N; i++) {
     out.writeInt16LE(s(R[i]), 46 + i * 4);
 }
 const dir = path.dirname(fileURLToPath(import.meta.url));
-fs.writeFileSync(path.join(dir, 'mix.wav'), out);
-console.log('mix.wav', DUR + ' s', 'gain', g.toFixed(3));
+const name = MUSIC ? 'mix.wav' : 'sfx.wav';
+fs.writeFileSync(path.join(dir, name), out);
+console.log(name, DUR + ' s', 'gain', g.toFixed(3));

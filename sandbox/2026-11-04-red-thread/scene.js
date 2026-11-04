@@ -129,9 +129,10 @@ const makeShots = () => {
         g.restore();
         // the title, in screen space, written by the brush; it fades as the shot ends
         const fade = 1 - seg(t, 5.4, 6.0);
-        // in the empty sky right of the sun; the seal under its end
-        const tw = F.writeText(g, env, 'El hilo rojo', 1240, 118, 118, seg(t, 3.2, 4.6), { alpha: fade }) ?? 0;
-        F.stamp(g, env, 1240 + tw / 2 - 30, 215, 70, '赤い糸', t, 5.0, { alpha: fade });
+        // 赤い糸 («the red thread»), written down a column in the empty sky right of the sun;
+        // the seal 絆 («bond») beside its foot
+        const r = F.writeVertical(g, env, ['赤い糸'], 1330, 70, 112, seg(t, 3.0, 4.6), { alpha: fade });
+        F.stamp(g, env, 1330 - 100, r.bottom - 30, 58, '絆', t, 5.0, { alpha: fade });
     }
 
     // --- 2–5 · The village (one function, one timeline; the camera tells the shots apart) ---
@@ -231,7 +232,7 @@ const makeShots = () => {
     }
     function kiteAfter(t, boyHand) {
         const k = RT.kiteAt(7);
-        const base = t < 57 ? [k.x, k.y] : E.lerpPt([k.x, k.y], [boyHand[0] + 140, boyHand[1] - 360], E.inOut(seg(t, 57, 59)));
+        const base = t < 57 ? [k.x, k.y] : E.lerpPt([k.x, k.y], [boyHand[0] - 300, boyHand[1] - 330], E.inOut(seg(t, 57, 60)));
         return { x: base[0] + Motion.noise1('ak', t * 1.1) * 16, y: base[1] + Motion.noise1('aky', t * 1.4) * 12, rot: 0.25 + Motion.noise1('akr', t * 1.9) * 0.2 };
     }
 
@@ -357,9 +358,11 @@ const makeShots = () => {
     }
     // 11 · the closing line and the seal, in screen space
     function endText(g, env, t) {
-        // above the sun, clear of its halo; the seal at the end of the line
-        const tw = F.writeText(g, env, 'Antes de ser bandos, fuimos vecinos.', 780, 70, 62, seg(t, 63.2, 65.6)) ?? 0;
-        F.stamp(g, env, 780 + tw / 2 + 50, 70, 60, '赤い糸', t, 66.0);
+        // «Before we split into friend and foe, we were neighbours», in two columns in the sky
+        // right of the sun (the user's line: «Antes de ser bandos, fuimos vecinos»); the seal
+        // under the last column
+        const r = F.writeVertical(g, env, ['敵味方に分かれる前、', '私たちは隣人だった。'], 1470, 36, 40, seg(t, 62.8, 65.6), { gap: 58 });
+        F.stamp(g, env, r.left - 62, r.bottom - 26, 44, '絆', t, 66.0);
     }
     function drawRope(g, u, t) {
         const lines = ropeLines();
@@ -376,6 +379,120 @@ const makeShots = () => {
 
     return { title, village, grey, kiteShot, after, endText };
 };
+
+// one shot, full frame, on its own camera (also outside its own time, for transitions)
+function drawShot(k, g, t, env) {
+    const tq = RT.twos(t), c = Film.camAt(t, k), w = Film.worldAt(t);
+    if (k === 0) return Shots.title(g, env, t, tq, c, w);
+    g.save();
+    RT.view(g, c, 1);
+    if (k >= 1 && k <= 4) Shots.village(g, env, t, tq, c, w);
+    else if (k === 5) Shots.grey(g, env, t, tq, c, w);
+    else if (k === 6) Shots.kiteShot(g, env, t, tq, c, w);
+    else Shots.after(g, env, t, tq, c, w);
+    g.restore();
+    if (k === 10) Shots.endText(g, env, t);
+}
+
+// Ink-blot transitions (the user: «con mancha de tinta china en el papel, no tan brusca»).
+// Each cut gets a point where the drop lands (on what the next shot is about), in screen units.
+const INK_HALF = 0.6;
+const INK_CUTS = [
+    { t: 6, x: 800, y: 470 }, { t: 12, x: 860, y: 430 }, { t: 18, x: 760, y: 260 }, { t: 26, x: 820, y: 560 },
+    { t: 32, x: 800, y: 640 }, { t: 36, x: 560, y: 430 }, { t: 43, x: 520, y: 520 }, { t: 50, x: 820, y: 470 },
+    { t: 57, x: 800, y: 520 }, { t: 62, x: 800, y: 470 },
+];
+function inkBlot(g, env, u, A, B, T) {
+    const E = Ease, S = Sumi, k = env.k;
+    // the stain: a main blot and satellites that bleed out of it and merge, with ragged edges
+    const blobs = [];
+    const R = 1250;
+    const grow = (a, b) => E.out(Math.max(0, Math.min(1, (u - a) / (b - a))));
+    blobs.push([T.x, T.y, R * grow(0, 0.85), 0.24]);
+    const r = Motion.rng('blot' + T.t);
+    for (let i = 0; i < 6; i++) {
+        const a = r() * Math.PI * 2, d = 140 + r() * 260, t0 = 0.05 + r() * 0.25;
+        blobs.push([T.x + Math.cos(a) * d, T.y + Math.sin(a) * d * 0.7, R * 0.55 * grow(t0, t0 + 0.7), 0.3]);
+    }
+    // outline: broad lobes (low-frequency noise around the angle) and a feathered edge where
+    // the ink runs into the paper's fibres (high frequency, small)
+    const blob = (x, y, rad, key) => {
+        const n = 180, pts = [];
+        for (let i = 0; i < n; i++) {
+            const a = (i / n) * Math.PI * 2;
+            const ca = Math.cos(a), sa = Math.sin(a);
+            const lobe = 0.16 * Motion.noise1(key + 'l', (a / (Math.PI * 2)) * 6 + 0.5) + 0.07 * Motion.noise1(key + 'm', (a / (Math.PI * 2)) * 15);
+            const fib = 0.025 * Motion.noise1(key + 'f', i * 1.7) * Math.min(1, rad / 200);
+            const rr = rad * (1 + lobe + fib);
+            pts.push([x + ca * rr, y + sa * rr * 0.88]);
+        }
+        return pts;
+    };
+    const shapes = blobs.filter((b) => b[2] > 1).map(([x, y, rad], i) => blob(x, y, rad, 'bl' + T.t + i));
+    const M = Motion.layer(env, 'tr-m', (q) => shapes.forEach((p) => S.fillPoly(q, p, '#000')));
+    // the incoming shot inside the stain
+    const bc = B.getContext('2d');
+    bc.save();
+    bc.setTransform(1, 0, 0, 1, 0, 0);
+    bc.globalCompositeOperation = 'destination-in';
+    bc.drawImage(M, 0, 0);
+    bc.restore();
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage(A, 0, 0);
+    g.drawImage(B, 0, 0);
+    // the ink itself: black where the drop has just landed, thinning to nothing; the wet
+    // edge stays darker while it spreads (pigment collects at a drying front)
+    const ink = 0.85 * (1 - E.inOut(Math.max(0, Math.min(1, (u - 0.08) / 0.6))));
+    if (ink > 0.01) {
+        // denser where the drop landed, diluted towards the spreading edge
+        const I = Motion.layer(env, 'tr-i', (q) => {
+            q.save();
+            q.setTransform(1, 0, 0, 1, 0, 0);
+            const cx = T.x * k, cy = T.y * k, rr = 1100 * k;
+            const gr = q.createRadialGradient(cx, cy, 0, cx, cy, rr);
+            gr.addColorStop(0, 'rgba(18,15,12,1)');
+            gr.addColorStop(0.35, 'rgba(23,19,15,0.85)');
+            gr.addColorStop(1, 'rgba(23,19,15,0.55)');
+            q.fillStyle = gr;
+            q.fillRect(0, 0, env.px[0], env.px[1]);
+            q.globalCompositeOperation = 'destination-in';
+            q.drawImage(M, 0, 0);
+            q.restore();
+        });
+        g.globalAlpha = Math.min(1, ink * 1.1);
+        g.drawImage(I, 0, 0);
+    }
+    g.restore();
+    // the wet rim: a band just inside the stain's edge (the mask minus a blurred copy of it)
+    const rim = 1 - E.in(Math.max(0, Math.min(1, (u - 0.3) / 0.65)));
+    if (rim > 0.01) {
+        const Rm = Motion.layer(env, 'tr-r', (q) => {
+            q.save();
+            q.setTransform(1, 0, 0, 1, 0, 0);
+            q.drawImage(M, 0, 0);
+            q.globalCompositeOperation = 'destination-out';
+            q.filter = `blur(${(9 * k).toFixed(1)}px)`;
+            q.drawImage(M, 0, 0);
+            q.filter = 'none';
+            q.restore();
+        });
+        g.save();
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.globalAlpha = 0.75 * rim;
+        g.drawImage(Rm, 0, 0);
+        g.restore();
+    }
+    g.save();
+    // the drop's splatter around where it landed
+    if (u < 0.45) {
+        for (let i = 0; i < 14; i++) {
+            const a = r() * Math.PI * 2, d = 60 + r() * 220, s = 3 + r() * 9;
+            S.dab(g, T.x + Math.cos(a) * d * (0.6 + u), T.y + Math.sin(a) * d * (0.6 + u), s, s * 0.8, { seed: 'spl' + T.t + i, ink: 0.9 * (1 - u / 0.45) });
+        }
+    }
+    g.restore();
+}
 
 Motion.scene({
     fps: 24,
@@ -396,17 +513,15 @@ Motion.scene({
     },
 
     draw(g, t, env) {
-        const tq = RT.twos(t), c = Film.camAt(t), w = Film.worldAt(t);
-        const k = Film.SHOTS.findIndex(([a, b]) => t >= a && t < b);
-        if (k === 0) return Shots.title(g, env, t, tq, c, w);
-        g.save();
-        RT.view(g, c, 1);
-        if (k >= 1 && k <= 4) Shots.village(g, env, t, tq, c, w);
-        else if (k === 5) Shots.grey(g, env, t, tq, c, w);
-        else if (k === 6) Shots.kiteShot(g, env, t, tq, c, w);
-        else Shots.after(g, env, t, tq, c, w);
-        g.restore();
-        if (k === 10) Shots.endText(g, env, t);
+        const k = Film.shotAt(t);
+        // an ink-blot transition around every cut: the stain lands on the old shot, spreads,
+        // and thins out into the new one
+        const T = INK_CUTS.find((c) => Math.abs(t - c.t) < INK_HALF);
+        if (!T) return drawShot(k, g, t, env);
+        const u = (t - (T.t - INK_HALF)) / (2 * INK_HALF), ki = Film.shotAt(T.t);
+        const A = Motion.layer(env, 'tr-a', (q) => drawShot(ki - 1, q, t, env));
+        const B = Motion.layer(env, 'tr-b', (q) => drawShot(ki, q, t, env));
+        inkBlot(g, env, u, A, B, T);
     },
 
     post(ctx, t, env) {
