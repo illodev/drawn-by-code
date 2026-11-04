@@ -12,3 +12,28 @@ What was fixed before showing it, from the stills:
 - Pressed eyes glowed like torches on adults: removed on the walkers, kept tiny on the child.
 
 `review.mjs`: no warnings, 37 ms/frame warm.
+
+The user approved the style test and the story («si»).
+
+## Film v1 (round 2): the whole story, 45 s, with sound
+
+Built on the approved test: `cast.js` holds the set and the cast (the kid in the sun hat that
+passes down the family, walkers, the woman kneeling, the old woman sitting with her stick, the
+castles as plans, the wave, a gull, a sheet to make a figure appear or blow away, letters
+written with a finger); `scene.js` is one cut-less timeline whose light runs dawn → morning
+→ noon → afternoon → sunset → a blue night → dawn.
+
+Fixed from the stills before showing it:
+- The opening laid the sea and the beach through hard rectangular clips: the unlaid sand is
+  now wiped back with a soft, wavering edge and loose grains.
+- The castle's base heap read as a black puddle on the wet sand: thinner and flatter.
+- The old woman read as a lump (thick trunk, head merged with the bun): bigger, a slim
+  rounded back, the head held forward on a thin neck.
+- Her dissolve was invisible: twice the grains, bigger, and they live longer on the wind.
+
+Sound: an ElevenLabs Music take (60 BPM, guitar and felt piano; the take that opens near
+silence, chosen by its loudness per second) and three generated effects (a wave on every
+crossing, sand pours on the opening and the towers, the wind on the dissolve), mixed by
+`mix.sh` into `private/mix.wav` (never committed).
+
+`review.mjs`: no warnings, 35 ms/frame warm.

@@ -11,6 +11,8 @@
     // --- data -----------------------------------------------------------------------------
     // [id, sandbox folder, title, style, seconds, layout, description, study credit?]
     const FILMS = [
+        ['tide', '2026-11-04-tide', 'Tide', 'sand', 45, 'wide',
+            'One life on one beach, in sand on a light table: a child builds a castle, two walk in and meet, a mother builds it again with her daughter, and an old woman blows away on the wind while her grandchild plants the flag. Every wave is the artist’s palm; the light under the glass is the time of day. Music by ElevenLabs.'],
         ['physics-history', '2026-09-25-physics-history', 'A Brief History of Physics', 'risograph', 67, 'half',
             'Galileo’s eye at the telescope pulls back to a rooftop in Padua; Jupiter becomes the apple a cat pushes onto Newton’s head; its orbit winds into Faraday’s coil, and on to Curie, Einstein and a box where the cat is alive and dead in sixteen worlds. One chain of objects, one cat.'],
         ['pyramid-engraving', '2026-09-26-pyramid-engraving', 'The pyramid that makes skies', 'engraving', 64, 'half',
@@ -34,6 +36,7 @@
         ['paper-cutout', 'Paper cutout', 'Torn paper, marker fill, grain and handwriting; real hands that hold things the right way round.', 1, 613, 38],
         ['risograph', 'Risograph', 'Four spot inks, halftone plates, overprints that make the other colours, misregistration.', 1, 246, 28, 'square'],
         ['sumi-e', 'Sumi-e', 'Japanese ink on washi: one black in many greys, dry-brush streaks, mist, vermilion as the only colour.', 0, 1207, 39],
+        ['sand', 'Sand', 'Sand on a light table: amber grains with light between them, finger lines, poured heaps, sweeps instead of cuts.', 0, 448, 44],
         ['engraving', 'Engraving', 'A plate of the «Description de l’Égypte»: charcoal tone on toothed paper, masonry stone by stone.', 0, 2313, 48, 'gl'],
         ['clay3d', 'Clay 3D', 'Plasticine puppets raymarched in WebGL: lumpy pressed-on pieces, fingerprints, studio light.', 0, 296, 35, 'gl'],
         ['70s-poster', '70s poster', 'Flat acid colours, thick outlines, concentric echoes, sunbursts and melting letters.', 1, 158, 22],
@@ -46,10 +49,13 @@
         ['kaleidoscope', 'Kaleidoscope', 'Radial mirror symmetry; pieces born at the centre, rotation and colour cycling.', 1, 53, 30],
         ['line', 'Line', 'A black line on white paper that wobbles on purpose, at twelve drawings a second.', 1, 74, 28],
     ];
-    const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV'];
+    const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV'];
 
     // [date, experiment folder, what the note found (a headline), what it became, file]
     const NOTES = [
+        ['2026-11-04', '2026-11-04-tide', 'Thin sand looked like TV static, and the light like a sepia photo',
+            'A new style’s first rules: grain coverage that mixes single grains with clumps, and light that loses blue first through the sand and toward the edges of the glass, so a light table glows amber.',
+            '.claude/skills/style-sand/SKILL.md'],
         ['2026-11-04', '2026-11-04-red-thread', 'The mountains didn’t read as ink painting',
             'An ink landscape is painted as one opaque sheet: no parallax, mist made of paper, and every piece built the way the reference builds it, cropped three times larger first.',
             '.claude/skills/style-sumi-e/SKILL.md'],

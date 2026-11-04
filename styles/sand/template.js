@@ -29,9 +29,10 @@ Motion.scene({
             // the sun: poured from the fist
             S.heap(d, 1150, 300, 90, { u: E.out(E.seg(t, 0.1, 1.3)), a: 0.9, seed: 'sun' });
             S.press(d, 1150, 300, 26 * E.out(E.seg(t, 1.2, 1.6)), { rim: 0.3 });
-            // a gull, one stroke of the finger through a thin layer
-            S.mass(d, [[420, 220], [760, 200], [780, 400], [430, 420]], { a: 0.5, soft: 30 });
-            S.finger(d, [[480, 330], [540, 290], [590, 300], [610, 320], [630, 300], [680, 285], [740, 320]], { w: 6, rim: 0.55, prog: E.inOut(E.seg(t, 0.9, 1.8)) });
+            // a gull: a trickle of sand from the fist, its wings redrawn on twos
+            const tq = Math.floor(t * 12) / 12, x = 380 + tq * 90, y = 300 - 10 * Math.sin(tq * 2);
+            const tip = 22 * Math.sin(tq * 9);
+            S.trickle(d, [[x - 50, y - tip], [x - 24, y - 12 - tip * 0.3], [x, y], [x + 24, y - 12 - tip * 0.3], [x + 50, y - tip]], { w: 6, a: 0.95, prog: E.inOut(E.seg(t, 0.6, 1.4)) });
         };
         const u = E.inOut(E.seg(t, 2.4, 3.6));
         if (u <= 0) picture(d);

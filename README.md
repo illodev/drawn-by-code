@@ -103,6 +103,14 @@ how you made it too.
 <sub>A river village where every greeting ties a red thread. Screens and slogans split it into two banks, the threads snap and the red drains out of the world, until a girl's red kite carries one thread back across the river and the threads weave a new bridge. Japanese ink painting on washi, every brushstroke drawn in code, the text written vertically in Japanese; score by ElevenLabs Music, effects synthesized.</sub>
 </td>
 </tr>
+<tr>
+<td width="50%" valign="top">
+<a href="sandbox/2026-11-04-tide/"><img src="sandbox/2026-11-04-tide/render/tide.gif" alt="Marea"></a><br>
+<b><a href="sandbox/2026-11-04-tide/">Marea</a></b> · sand · 45 s · <a href="sandbox/2026-11-04-tide/render/tide.mp4">mp4</a><br>
+<sub>One life on one beach, in sand on a light table: a child builds a castle, two walk in and meet, a mother builds it again with her daughter, and an old woman blows away on the wind while her grandchild plants the flag. Every wave is the artist's palm sweeping the table, never a cut; the light under the glass is the time of day. A new style, the light computed per pixel through every grain; music and effects by ElevenLabs.</sub>
+</td>
+<td width="50%" valign="top"></td>
+</tr>
 </table>
 
 Every experiment, with its status and main lesson, is in [`sandbox/INDEX.md`](sandbox/INDEX.md).
@@ -126,6 +134,7 @@ to see its strip, files and the videos made with it.
 | [felt3d](styles/felt3d/)             | needle-felted wool puppets, raymarched, over any backdrop                               | in testing |
 | [engraving](styles/engraving/)       | a plate of the «Description de l'Égypte» drawn in charcoal on old paper, temple reliefs | in testing |
 | [sumi-e](styles/sumi-e/)             | Japanese ink on washi: dry brush, washes in mist, vermilion as the only colour           | in testing |
+| [sand](styles/sand/)                 | sand on a light table: amber grains, finger lines, poured heaps, sweeps instead of cuts  | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 
