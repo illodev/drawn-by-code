@@ -352,14 +352,14 @@ const Sumi = (() => {
                 const x = box.x + r() * box.w, y = box.y + r() * box.h, rad = 120 + r() * 380;
                 const gr = c.createRadialGradient(x, y, 0, x, y, rad);
                 const dark = r() < 0.5;
-                gr.addColorStop(0, dark ? 'rgba(120,96,60,0.045)' : 'rgba(255,252,240,0.07)');
+                gr.addColorStop(0, 'rgba(0,0,0,0)');
                 gr.addColorStop(1, 'rgba(0,0,0,0)');
                 c.fillStyle = gr;
                 c.fillRect(x - rad, y - rad, rad * 2, rad * 2);
             }
             // kozo fibres: long, thin, curly, slightly lighter or darker than the sheet
             c.lineCap = 'round';
-            const nf = Math.round((box.w * box.h) / 900);
+            const nf = Math.round((box.w * box.h) / 2600);
             for (let i = 0; i < nf; i++) {
                 let x = box.x + r() * box.w, y = box.y + r() * box.h, a = r() * Math.PI * 2;
                 const len = 8 + r() * 40;
@@ -877,84 +877,6 @@ const Sumi = (() => {
     }
 
     // --- landscape pieces -------------------------------------------------------------------
-    /**
-     * A karst peak (the tall pillar mountains of ink landscapes): black at the top, ink
-     * running down in vertical streaks and fading into the mist at its foot. Cached.
-     */
-    function peak(g, env, key, x, base, w, h, o = {}) {
-        const box = { x: x - w, y: base - h - 30, w: w * 2, h: h + 60 };
-        Motion.sprite('sumi-peak:' + key, box, env.k, (c) => {
-            const r = R(key);
-            const outline = [];
-            const n = 40, lean = (o.lean ?? 0.15) * w;
-            for (let i = 0; i <= n; i++) {
-                const u = i / n;
-                const rise = Math.pow(Math.sin(Math.PI * u), 0.3) * (1 + 0.05 * n1(key + 'top', u * 6));
-                const xx = x + (u - 0.5) * w * (1 + 0.12 * n1(key + 's', u * 3)) + lean * rise;
-                outline.push([xx, base - h * rise]);
-            }
-            const sp = wash(key + 'w', box, env.k, (t) => {
-                t.moveTo(outline[0][0], base + 20);
-                for (const p of outline) t.lineTo(p[0], p[1]);
-                t.lineTo(outline[outline.length - 1][0], base + 20);
-                t.closePath();
-            }, { ink: o.ink ?? 0.85, blur: 1.5, fade: [base - h * 0.75, base], grain: 1.2 });
-            c.drawImage(sp.canvas, box.x, box.y, box.w, box.h);
-            // ink running down: vertical streaks from the top, of uneven length, inside the rock
-            c.save();
-            c.beginPath();
-            c.moveTo(outline[0][0], base + 20);
-            for (const p of outline) c.lineTo(p[0], p[1]);
-            c.lineTo(outline[outline.length - 1][0], base + 20);
-            c.closePath();
-            c.clip();
-            for (let i = 0; i < 22; i++) {
-                const u = 0.06 + r() * 0.88;
-                const p = outline[Math.round(u * n)];
-                const len = h * (0.25 + r() * 0.6);
-                stroke(c, [[p[0], p[1] + 4], [p[0] + (r() - 0.5) * 4, p[1] + len * 0.5], [p[0] + (r() - 0.5) * 6, p[1] + len]],
-                    { w: 6 + r() * 12, ink: (o.ink ?? 0.85) * (0.5 + r() * 0.5), dry: 0.85, seed: key + 'v' + i, taper: [0, 0.8], blunt: 1, core: false });
-            }
-            c.restore();
-            // a dark rough edge on the shadow side
-            stroke(c, outline.slice(0, Math.round(n * 0.55)), { w: 7, ink: 0.95, dry: 0.7, seed: key + 'edge', taper: [0.5, 0.2], raw: true, core: false });
-        }).draw(g);
-    }
-
-    // Foliage: a clump of distant trees as stacked ink dots and blobs (mi dots).
-    function foliage(c, x, y, w, h, o = {}) {
-        const r = R(o.seed ?? 'fol'), ink = o.ink ?? 0.9;
-        const n = Math.round((w * h) / 55);
-        for (let i = 0; i < n; i++) {
-            const u = r(), v = Math.pow(r(), 0.7);
-            const px = x + (u - 0.5) * w * (1 - v * 0.5), py = y - v * h * (0.6 + 0.4 * Math.sin(u * Math.PI));
-            dab(c, px, py, 2 + r() * 4, 1.5 + r() * 3, { seed: (o.seed ?? 'f') + i, ink: ink * (0.6 + r() * 0.4), rot: r() * 3, rough: 0.3 });
-        }
-        // a few trunks under the clump
-        for (let i = 0; i < 3; i++) {
-            const px = x + (r() - 0.5) * w * 0.6;
-            stroke(c, [[px, y + 2], [px + (r() - 0.5) * 4, y - h * 0.35]], { w: 2.5, ink, dry: 0.4, seed: (o.seed ?? 'f') + 't' + i, taper: [0, 0.6], core: false });
-        }
-    }
-
-    // A pagoda silhouette: tiers of curved roofs on a slim body, a spire with rings.
-    function pagoda(c, x, y, s, o = {}) {
-        const ink = o.ink ?? 0.85, seed = o.seed ?? 'pag', tiers = o.tiers ?? 4;
-        let yy = y;
-        for (let i = 0; i < tiers; i++) {
-            const k = 1 - i * 0.14, bw = s * 0.32 * k, rh = s * 0.17;
-            fillPoly(c, [[x - bw * 0.6, yy], [x + bw * 0.6, yy], [x + bw * 0.6, yy - rh * 0.9], [x - bw * 0.6, yy - rh * 0.9]], tone(ink));
-            yy -= rh * 0.9;
-            // roof: a curved stroke that turns up at the eaves
-            const rw = s * 0.55 * k;
-            stroke(c, [[x - rw, yy - rh * 0.25], [x - rw * 0.55, yy + rh * 0.05], [x, yy - rh * 0.12], [x + rw * 0.55, yy + rh * 0.05], [x + rw, yy - rh * 0.25]],
-                { w: rh * 0.45, ink, dry: 0.4, seed: seed + 'r' + i, taper: [0.3, 0.3], blunt: 0.6 });
-            yy -= rh * 0.15;
-        }
-        stroke(c, [[x, yy], [x, yy - s * 0.32]], { w: s * 0.035, ink, dry: 0.3, seed: seed + 'sp', taper: [0, 0.5], core: false });
-        for (let i = 0; i < 4; i++) stroke(c, [[x - s * 0.04, yy - s * (0.06 + i * 0.05)], [x + s * 0.04, yy - s * (0.06 + i * 0.05)]], { w: s * 0.02, ink, dry: 0.2, seed: seed + 'ring' + i, taper: [0, 0], core: false });
-    }
-
     // A reed sprig in the water: a thin stem with a few leaves angled down, its reflection.
     function reed(c, x, y, h, o = {}) {
         const r = R(o.seed ?? 'reed'), ink = o.ink ?? 0.85;
@@ -997,10 +919,288 @@ const Sumi = (() => {
         g.restore();
     }
 
+    // --- opaque landscape (round 3) ---------------------------------------------------------
+    // Ink landscapes are ONE sheet: what is in front hides what is behind, and mist is the
+    // paper showing, not transparency. Every piece below first knocks out its silhouette in
+    // paper colour, then inks it, then fades its foot back to paper (opaque).
+    const PAPER_RGB = hex(PAPER);
+    const paperA = (a) => `rgba(${PAPER_RGB[0]},${PAPER_RGB[1]},${PAPER_RGB[2]},${a})`;
+    function pathOf(c, pts, close = true) {
+        c.beginPath();
+        c.moveTo(pts[0][0], pts[0][1]);
+        for (const p of pts) c.lineTo(p[0], p[1]);
+        if (close) c.closePath();
+    }
+    // fade the lower part of whatever is clipped back to paper: [y0 → y1] = ink → paper
+    function mistFoot(c, x0, x1, y0, y1) {
+        const gr = c.createLinearGradient(0, y0, 0, y1);
+        gr.addColorStop(0, paperA(0));
+        gr.addColorStop(0.6, paperA(0.75));
+        gr.addColorStop(1, paperA(1));
+        c.fillStyle = gr;
+        c.fillRect(x0, y0, x1 - x0, y1 - y0 + 400);
+    }
+
+    /**
+     * A hill in dry brush (as in the references' middle ground): an opaque silhouette, a dark
+     * broken ridge line, dense strokes running down the slopes, the foot lost in mist.
+     *   { x0, x1, base, h, peaks, ink, seed, mist (0..1 of the height left white at the foot) }
+     */
+    function hill(c, o) {
+        const r = R(o.seed ?? 'hill'), ink = o.ink ?? 0.85;
+        const pts = ridge(o.seed ?? 'hill', o.x0, o.x1, o.base, o.h, { peaks: o.peaks ?? 2, sharp: o.sharp ?? 0.8, step: 8 });
+        const top = Math.min(...pts.map((p) => p[1]));
+        const shape = [[o.x0, o.base + 30], ...pts, [o.x1, o.base + 30]];
+        c.save();
+        pathOf(c, shape);
+        c.fillStyle = PAPER;
+        c.fill();
+        c.clip();
+        // tone under the ridge
+        const gr = c.createLinearGradient(0, top, 0, o.base);
+        gr.addColorStop(0, tone(ink * 0.6));
+        gr.addColorStop(0.5, tone(ink * 0.3));
+        gr.addColorStop(1, tone(0));
+        c.fillStyle = gr;
+        c.fillRect(o.x0, top, o.x1 - o.x0, o.base - top + 10);
+        // strokes down the slopes, following the local slope direction
+        const n = Math.round((o.x1 - o.x0) / 3);
+        for (let i = 0; i < n; i++) {
+            const k = Math.floor(r() * (pts.length - 2)) + 1;
+            const p = pts[k], q = pts[k + 1];
+            const slope = Math.atan2(q[1] - p[1], q[0] - p[0]);
+            const down = slope + (Math.cos(slope) > 0 ? Math.PI / 2 : -Math.PI / 2);
+            // strokes run down the slope (along the fall line), broad and overlapping
+            const fall = slope + (Math.cos(slope) > 0 ? 1 : -1) * Math.PI * 0.5 * 0.0 + (Math.sin(slope) >= 0 ? 0 : 0);
+            const along = Math.abs(Math.sin(slope)) > 0.08 ? (Math.sin(slope) > 0 ? slope : slope + Math.PI) : Math.PI / 2;
+            const dir = along * 0.8 + (Math.PI / 2) * 0.2 + (r() - 0.5) * 0.2;   // down the slope; flat tops get flat strokes
+            const depth = r() * r();
+            const s0 = [p[0] + (r() - 0.5) * 10, p[1] + depth * (o.base - p[1]) * 0.5];
+            const len = (o.base - p[1]) * (0.15 + r() * 0.45);
+            if (len < 6) continue;
+            const s1 = [s0[0] + Math.cos(dir) * len, s0[1] + Math.sin(dir) * len];
+            stroke(c, [s0, Ease.lerpPt(s0, s1, 0.5), s1], { w: 10 + r() * 16, ink: ink * (0.22 + r() * 0.4) * (1 - depth * 0.5), dry: 0.92, seed: (o.seed ?? 'h') + 'h' + i, taper: [0.15, 0.6], blunt: 0.5, core: false, bleed: false });
+        }
+        // the foot dissolves into mist (paper)
+        mistFoot(c, o.x0, o.x1, o.base - (o.base - top) * (o.mist ?? 0.45), o.base);
+        c.restore();
+        // broken ridge line in dark dry brush
+        const segs = 3 + Math.floor(r() * 2);
+        for (let sgi = 0; sgi < segs; sgi++) {
+            const a = Math.floor((sgi / segs) * pts.length), b = Math.min(pts.length, Math.floor(((sgi + 0.85) / segs) * pts.length));
+            stroke(c, pts.slice(a, b), { w: 5 + r() * 4, ink, dry: 0.7, seed: (o.seed ?? 'h') + 'r' + sgi, taper: [0.2, 0.4], blunt: 0.6, raw: true, bleed: false });
+        }
+        return pts;
+    }
+
+    /**
+     * A karst peak (rewritten round 3): an opaque, lopsided column (steep left side, a
+     * slanted uneven top, a shoulder stepping down on the right), its top half dense black
+     * built from vertical strokes, the lower half running down in streaks into white mist.
+     *   x = left foot, base, w, h; o: { ink, seed, shoulder (0..1), slant }
+     */
+    function peak(g, env, key, x, base, w, h, o = {}) {
+        const box = { x: x - 40, y: base - h - 40, w: w + 80, h: h + 80 };
+        Motion.sprite('sumi-peak3:' + key, box, env.k, (c) => {
+            const r = R(key);
+            const sh = o.shoulder ?? 0.7, sl = o.slant ?? 0.08;
+            const J = (v, a) => v + (r() - 0.5) * a;
+            // silhouette, clockwise from the left foot
+            const S = [
+                [x, base],
+                [J(x + w * 0.03, 4), base - h * 0.45],
+                [J(x + w * 0.08, 4), base - h * 0.82],
+                [x + w * 0.16, base - h * (0.97 + sl * 0.3)],
+                [x + w * 0.3, base - h * 1.0],
+                [x + w * 0.45, base - h * (0.97 - sl)],
+                [x + w * 0.56, base - h * (0.9 - sl)],
+                [J(x + w * 0.62, 4), base - h * sh],
+                [x + w * 0.78, base - h * (sh - 0.06)],
+                [J(x + w * 0.86, 4), base - h * (sh - 0.25)],
+                [J(x + w * 0.95, 4), base - h * 0.2],
+                [x + w, base],
+            ];
+            // roughen the outline: resample, wobble
+            const out = smooth(S, 6).map(([px, py], i) => [px + 2.5 * n1(key + 'ox', i * 0.4), py + 2 * n1(key + 'oy', i * 0.4)]);
+            c.save();
+            pathOf(c, [...out, [x + w, base + 30], [x, base + 30]]);
+            c.fillStyle = PAPER;
+            c.fill();
+            c.clip();
+            // the body: dark at the top, greying downwards, under the strokes
+            const ink = o.ink ?? 0.95;
+            const bg = c.createLinearGradient(0, base - h, 0, base);
+            bg.addColorStop(0, tone(ink * 0.92));
+            bg.addColorStop(0.4, tone(ink * 0.7));
+            bg.addColorStop(0.75, tone(ink * 0.25));
+            bg.addColorStop(1, tone(0));
+            c.fillStyle = bg;
+            c.fillRect(x - 10, base - h * 1.1, w + 20, h * 1.1);
+            // dense black top from vertical strokes, then streaks running down
+            for (let i = 0; i < Math.round(w / 2.2); i++) {
+                const px = x + r() * w;
+                const topY = base - h * 1.05;
+                const len = h * (0.35 + r() * 0.35);
+                stroke(c, [[px, topY], [px + (r() - 0.5) * 3, topY + len * 0.5], [px + (r() - 0.5) * 4, topY + len]],
+                    { w: 5 + r() * 7, ink: ink * (0.75 + r() * 0.25), dry: 0.55, seed: key + 'v' + i, taper: [0, 0.55], blunt: 1, core: true, bleed: false });
+            }
+            for (let i = 0; i < Math.round(w / 3); i++) {
+                const px = x + r() * w;
+                const y0 = base - h * (0.5 + r() * 0.35), len = h * (0.25 + r() * 0.45);
+                stroke(c, [[px, y0], [px + (r() - 0.5) * 3, y0 + len * 0.5], [px + (r() - 0.5) * 4, y0 + len]],
+                    { w: 3 + r() * 8, ink: ink * (0.3 + r() * 0.45), dry: 0.9, seed: key + 's' + i, taper: [0.3, 0.9], blunt: 0.5, core: false, bleed: false });
+            }
+            mistFoot(c, x - 10, x + w + 10, base - h * 0.5, base - h * 0.05);
+            c.restore();
+            // rough dark edges on both sides, stronger on the shadow (left) side
+            const left = out.filter((p) => p[0] < x + w * 0.35 && p[1] < base - h * 0.35);
+            const right = out.filter((p) => p[0] > x + w * 0.55 && p[1] < base - h * 0.3);
+            if (left.length > 2) stroke(c, left, { w: 7, ink, dry: 0.65, seed: key + 'el', taper: [0.4, 0.1], raw: true, bleed: false });
+            if (right.length > 2) stroke(c, right, { w: 5, ink: ink * 0.9, dry: 0.75, seed: key + 'er', taper: [0.1, 0.5], raw: true, bleed: false });
+        }).draw(g);
+    }
+
+    /**
+     * Trees in the distance (rewritten round 3): dark irregular masses of foliage made of
+     * clumped dabs, lighter and broken at the top, with a few trunks showing below.
+     */
+    function foliage(c, x, y, w, h, o = {}) {
+        const r = R(o.seed ?? 'fol'), ink = o.ink ?? 0.9;
+        const clumps = Math.max(1, Math.round(w / (h * 0.9)));
+        for (let k = 0; k < clumps; k++) {
+            const cx = x - w / 2 + (w * (k + 0.5)) / clumps + (r() - 0.5) * h * 0.3;
+            const ch = h * (0.65 + r() * 0.45), cw = (w / clumps) * (0.7 + r() * 0.5);
+            // trunk(s)
+            stroke(c, [[cx, y + 2], [cx + (r() - 0.5) * 6, y - ch * 0.4]], { w: Math.max(2, h * 0.07), ink, dry: 0.4, seed: (o.seed ?? 'f') + 't' + k, taper: [0, 0.6], core: false, bleed: false });
+            // the crown: flat pads of short horizontal strokes, stacked and offset, darker
+            // underneath, broken at the edges (as distant trees are painted)
+            const pads = 2 + Math.floor(r() * 3);
+            for (let pdi = 0; pdi < pads; pdi++) {
+                const py = y - ch * (0.25 + (pdi / pads) * 0.75), pw = cw * (1 - pdi / (pads + 1) * 0.5) * (0.7 + r() * 0.4);
+                const px = cx + (r() - 0.5) * cw * 0.35;
+                const rows = 3 + Math.floor(r() * 3);
+                for (let rw = 0; rw < rows; rw++) {
+                    const yy = py - rw * h * 0.06, span = pw * (0.5 + 0.5 * Math.sin(Math.PI * (rw + 0.5) / rows));
+                    for (let q = 0; q < 3; q++) {
+                        const x0 = px - span / 2 + r() * span * 0.3, len = span * (0.25 + r() * 0.45);
+                        stroke(c, [[x0, yy + (r() - 0.5) * 3], [x0 + len, yy + (r() - 0.5) * 3]],
+                            { w: h * (0.07 + r() * 0.05), ink: ink * (0.75 + 0.25 * (1 - rw / rows)), dry: 0.55, seed: (o.seed ?? 'f') + k + 'p' + pdi + rw + q, taper: [0.2, 0.4], blunt: 0.6, bleed: false });
+                    }
+                }
+                for (let q = 0; q < 6; q++) dab(c, px + (r() - 0.5) * pw, py - r() * h * 0.2, 1.5 + r() * 2.5, 1.2 + r() * 2, { seed: (o.seed ?? 'f') + k + 'dot' + pdi + q, ink });
+            }
+        }
+    }
+
+    // A roof with eaves that sweep up into points (the shape of every temple roof in the
+    // references), filled in ink; `rw` half width at the eaves, `rh` height.
+    function roof(c, x, y, rw, rh, o = {}) {
+        const ink = o.ink ?? 0.95, lift = o.lift ?? 0.55;
+        c.fillStyle = tone(ink);
+        c.beginPath();
+        c.moveTo(x - rw, y - rh * lift);                                 // left eave tip
+        c.quadraticCurveTo(x - rw * 0.75, y + rh * 0.08, x - rw * 0.45, y + rh * 0.08);
+        c.lineTo(x + rw * 0.45, y + rh * 0.08);
+        c.quadraticCurveTo(x + rw * 0.75, y + rh * 0.08, x + rw, y - rh * lift);  // right eave tip
+        c.quadraticCurveTo(x + rw * 0.55, y - rh * 0.25, x + rw * 0.2, y - rh);
+        c.lineTo(x - rw * 0.2, y - rh);
+        c.quadraticCurveTo(x - rw * 0.55, y - rh * 0.25, x - rw, y - rh * lift);
+        c.fill();
+        // the eave's lower edge in dry brush, so the roof keeps the brush texture
+        stroke(c, [[x - rw, y - rh * lift], [x - rw * 0.55, y + rh * 0.08], [x + rw * 0.55, y + rh * 0.08], [x + rw, y - rh * lift]],
+            { w: rh * 0.22, ink, dry: 0.5, seed: (o.seed ?? 'roof') + x.toFixed(0) + y.toFixed(0), taper: [0.3, 0.3], blunt: 0.6, bleed: false });
+    }
+
+    /**
+     * A pagoda (rewritten round 3): a base, then `tiers` storeys each with a dark body, a
+     * paper-white railing line and a roof with up-swept eaves, smaller as it rises; a spire
+     * with rings and a finial. `s` = total height.
+     */
+    function pagoda(c, x, y, s, o = {}) {
+        const ink = o.ink ?? 0.95, tiers = o.tiers ?? 5, seed = o.seed ?? 'pag';
+        const unit = s / (tiers * 1.0 + 1.6);
+        let yy = y;
+        fillPoly(c, [[x - unit * 0.9, yy], [x + unit * 0.9, yy], [x + unit * 0.8, yy - unit * 0.18], [x - unit * 0.8, yy - unit * 0.18]], tone(ink));
+        yy -= unit * 0.18;
+        for (let i = 0; i < tiers; i++) {
+            const k = 1 - i * 0.11;
+            const bw = unit * 0.55 * k, bh = unit * 0.45;
+            fillPoly(c, [[x - bw, yy], [x + bw, yy], [x + bw, yy - bh], [x - bw, yy - bh]], tone(ink));
+            // railing / window band: paper showing through
+            c.strokeStyle = paperA(0.8);
+            c.lineWidth = Math.max(0.6, unit * 0.05);
+            c.beginPath();
+            c.moveTo(x - bw * 0.85, yy - bh * 0.55);
+            c.lineTo(x + bw * 0.85, yy - bh * 0.55);
+            c.stroke();
+            for (let j = -2; j <= 2; j++) {
+                c.beginPath();
+                c.moveTo(x + j * bw * 0.35, yy - bh * 0.55);
+                c.lineTo(x + j * bw * 0.35, yy - bh * 0.15);
+                c.stroke();
+            }
+            yy -= bh;
+            roof(c, x, yy, unit * 1.05 * k, unit * 0.42, { ink, seed: seed + i, lift: 0.7 });
+            yy -= unit * 0.42;
+        }
+        // spire with rings and a finial
+        stroke(c, [[x, yy + 2], [x, yy - unit * 1.1]], { w: Math.max(1.2, unit * 0.08), ink, dry: 0.2, seed: seed + 'sp', taper: [0, 0.3], core: false, bleed: false });
+        for (let i = 0; i < 5; i++) fillPoly(c, [[x - unit * 0.1, yy - unit * (0.25 + i * 0.13)], [x + unit * 0.1, yy - unit * (0.25 + i * 0.13)], [x + unit * 0.1, yy - unit * (0.29 + i * 0.13)], [x - unit * 0.1, yy - unit * (0.29 + i * 0.13)]], tone(ink));
+        dab(c, x, yy - unit * 1.12, unit * 0.06, unit * 0.09, { seed: seed + 'fin', ink });
+    }
+
+    /**
+     * A temple pavilion (as on the reference's right hill): a stone base, pillars, a
+     * paper-white frieze with balusters, a big roof with sharply up-swept eaves, and a small
+     * upper roof under a spire. `s` = total height.
+     */
+    function pavilion(c, x, y, s, o = {}) {
+        const ink = o.ink ?? 0.95, seed = o.seed ?? 'pav';
+        const u = s / 4;
+        fillPoly(c, [[x - u * 1.5, y], [x + u * 1.5, y], [x + u * 1.4, y - u * 0.2], [x - u * 1.4, y - u * 0.2]], tone(ink));
+        // pillars, the dark interior between them
+        fillPoly(c, [[x - u * 0.9, y - u * 0.2], [x + u * 0.9, y - u * 0.2], [x + u * 0.9, y - u * 1.3], [x - u * 0.9, y - u * 1.3]], tone(ink * 0.8));
+        for (const k of [-1, -0.35, 0.35, 1]) fillPoly(c, [[x + k * u * 0.95 - u * 0.07, y - u * 0.2], [x + k * u * 0.95 + u * 0.07, y - u * 0.2], [x + k * u * 0.95 + u * 0.07, y - u * 1.35], [x + k * u * 0.95 - u * 0.07, y - u * 1.35]], tone(ink));
+        // frieze: a white band with balusters
+        fillPoly(c, [[x - u * 1.0, y - u * 1.35], [x + u * 1.0, y - u * 1.35], [x + u * 1.0, y - u * 1.6], [x - u * 1.0, y - u * 1.6]], paperA(0.95));
+        c.strokeStyle = tone(ink);
+        c.lineWidth = Math.max(0.6, u * 0.04);
+        for (let i = 0; i <= 10; i++) {
+            const xx = x - u + (2 * u * i) / 10;
+            c.beginPath();
+            c.moveTo(xx, y - u * 1.35);
+            c.lineTo(xx, y - u * 1.6);
+            c.stroke();
+        }
+        c.beginPath();
+        c.moveTo(x - u, y - u * 1.35);
+        c.lineTo(x + u, y - u * 1.35);
+        c.stroke();
+        roof(c, x, y - u * 1.62, u * 2.0, u * 0.75, { ink, seed: seed + 'r1', lift: 0.9 });
+        fillPoly(c, [[x - u * 0.55, y - u * 2.35], [x + u * 0.55, y - u * 2.35], [x + u * 0.55, y - u * 2.7], [x - u * 0.55, y - u * 2.7]], tone(ink));
+        roof(c, x, y - u * 2.7, u * 1.1, u * 0.55, { ink, seed: seed + 'r2', lift: 0.85 });
+        stroke(c, [[x, y - u * 3.2], [x, y - u * 4]], { w: Math.max(1.2, u * 0.08), ink, dry: 0.2, seed: seed + 'sp', taper: [0, 0.3], core: false, bleed: false });
+        dab(c, x, y - u * 4, u * 0.06, u * 0.09, { seed: seed + 'fin', ink });
+    }
+
+    // A torii standing in the water: two pillars, the tie beam (nuki), the top beam
+    // (kasagi) with up-swept ends, and its broken reflection.
+    function torii(c, x, y, s, o = {}) {
+        const ink = o.ink ?? 0.95, seed = o.seed ?? 'torii', w = s * 0.75;
+        for (const k of [-1, 1]) {
+            stroke(c, [[x + k * w * 0.32, y], [x + k * w * 0.3, y - s * 0.82]], { w: s * 0.075, ink, dry: 0.35, seed: seed + 'p' + k, taper: [0, 0], blunt: 1, bleed: false });
+            // reflection
+            stroke(c, [[x + k * w * 0.32, y + 4], [x + k * w * 0.33, y + s * 0.35]], { w: s * 0.07, ink: ink * 0.35, dry: 0.85, seed: seed + 'rp' + k, taper: [0, 0.7], core: false, bleed: false });
+        }
+        stroke(c, [[x - w * 0.48, y - s * 0.66], [x + w * 0.48, y - s * 0.66]], { w: s * 0.05, ink, dry: 0.3, seed: seed + 'n', taper: [0.05, 0.05], blunt: 1, bleed: false });
+        roof(c, x, y - s * 0.8, w * 0.68, s * 0.12, { ink, seed: seed + 'k', lift: 1.3 });
+    }
+
     return {
         INK, PAPER, RED, RED_DEEP, tone, mix, hex, clamp, sstep,
         smooth, measure, stroke, cachedStroke, blobPts, fillPoly, dab, wash,
         paper, tooth, ridge, mountains, sun, seal,
         grain, tree, blossom, bloom, petal, crane, peak, foliage, pagoda, reed, halo,
+        hill, roof, pavilion, torii, mistFoot,
     };
 })();

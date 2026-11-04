@@ -26,7 +26,10 @@ grainy dry brush. Every frame should hold that density of detail.
 | `tree(c, { trunk, limbs: [{ p, a, len, w, d }], w, gnarl, seed })` | an old plum tree grown from a seed: a trunk with dark edges, a lighter hatched bark and knots, painted over the limbs' roots; each limb ONE tapering stroke whose leader zigzags on while side limbs fork alternately. Returns `{ tips, twigs }` for blossoms |
 | `bloom(g, grown, { density, size })` · `blossom(g, x, y, r, { profile, bud })` · `petal(g, x, y, s, rot, { flip })` | blossoms at the tips and on young twigs (front and profile flowers, buds, red rings and dots in the air); a single flower (petals with pale veins, a deep red heart, ink stamens); a loose petal. `bloom` returns the flower positions (for petals that fall) |
 | `crane(g, x, y, s, flap, { dir, tilt })` | a crane in flight: long neck and beak, trailing legs, wings as an arm plus fanned primaries; `flap` 0..1 on twos |
-| `peak(g, env, key, x, base, w, h)` · `foliage(c, x, y, w, h)` · `pagoda(c, x, y, s)` · `reed(c, x, y, h)` · `halo(g, env, x, y, r)` | karst pillars black at the top with ink running down into mist; distant tree clumps in dots; a pagoda silhouette; reeds in the shallows with reflections; broken halo rings around a sun |
+| `hill(c, { x0, x1, base, h, peaks, ink, mist })` | an opaque hill: broken dark ridge line, broad dry strokes running down the slope, foot lost in paper-white mist; returns the ridge (to stand temples and trees on it) |
+| `peak(g, env, key, x, base, w, h, { shoulder, slant })` | an opaque, lopsided karst column (x = left foot): steep left side, slanted top, a shoulder on the right; black top from vertical strokes, streaks running down into mist |
+| `foliage(c, x, y, w, h)` · `pagoda(c, x, y, s, { tiers })` · `pavilion(c, x, y, s)` · `torii(c, x, y, s)` · `roof(c, x, y, rw, rh)` | distant trees as flat pads of short strokes; temples as solid ink silhouettes with up-swept eaves and paper-white railings; a torii with its reflection |
+| `reed(c, x, y, h)` · `halo(g, env, x, y, r)` · `mistFoot(c, x0, x1, y0, y1)` | reeds in the shallows; broken halo rings around a sun; fade what is clipped back to paper (opaque mist) |
 | `seal(g, env, x, y, size, text)` | a red hanko with the characters cut out |
 | `smooth`, `blobPts`, `fillPoly`, `tone`, `mix`, `INK`, `PAPER`, `RED` | helpers |
 
@@ -44,8 +47,15 @@ targets (a target out of reach leaves the prop hanging in the air).
 - **The brush shows.** Every stroke lands blunt, leaves sharp and runs dry along its length.
   Thick strokes (trunks, banks) need `dry` ≥ 0.5 or they read as tubes; hair-thin lines
   (a kite string) use `dry` ≈ 0.15 and `taper: [0, 0]`.
-- **Boneless landscape.** Mountains, mist and water are washes, not outlines. A contour, if
-  any, is broken and dry, on part of the ridge only: a continuous outline reads as wire.
+- **One sheet, opaque.** The landscape is one painting: everything moves together with the
+  camera (no parallax between layers), and every piece knocks out what is behind it in paper
+  colour before it is inked. Mist is paper, never transparency. Layers that slide past each
+  other, or washes you can see through, read as broken the moment the camera moves.
+- **Landscape grammar (from the reference):** hills built from broad dry strokes down the
+  slope with a broken dark ridge and trees on top; temples as solid black silhouettes with
+  up-swept eaves standing ON a ridge; karst peaks lopsided and jagged, never symmetric
+  rounded columns (they read as condoms); the far range as a pale wash. A contour, if any,
+  is broken and dry: a continuous outline reads as wire.
 - **Leave paper (ma).** Banks and sky are mostly empty paper defined by a few strokes: a
   shoreline, stones with moss dots, reeds, tufts. Washes along a whole bank read as a road.
 - **Water** is a pale wash darker towards the far shore, horizontal dry strokes denser near
@@ -89,3 +99,5 @@ targets (a target out of reach leaves the prop hanging in the air).
 - 2026-11-04 · red-thread round 2 · The user found the first test «missing detail» next to their best reference: measure the reference first (paper value, texture, what each element is made of) and build every element it has as its own kit piece, checked in a lab scene (`dev/kit-lab.js`) side by side, before composing the shot.
 - 2026-11-04 · red-thread round 2 · A limb made of chained strokes shows a square step at every joint: draw a limb as one stroke from root to tip, start side limbs inside their parent, and paint the trunk over the limbs' roots.
 - 2026-11-04 · red-thread round 2 · Things that cross the frame (cranes, petals) must be on screen during the shot, not entering in its last second: place them by where they are at the middle of the shot, then derive the start.
+- 2026-11-04 · red-thread round 3 · The user called the landscape «a disaster»: rounded symmetric peaks «look like condoms», box temples read as nothing, and with the camera moving «everything shows through and some things move with the motion». Build landscape pieces opaque (paper knockout, mist as paper), paint the whole landscape as one sheet with no parallax, and copy each piece's construction from the reference (crop it 3× first) before drawing it.
+- 2026-11-04 · red-thread round 3 · When layers are flattened, re-lay out the scene for every framing of the camera move (first and last frame): pieces placed for a parallax layer land elsewhere, off frame or behind the action.

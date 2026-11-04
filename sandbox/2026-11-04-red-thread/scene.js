@@ -51,7 +51,7 @@ const RT = (() => {
             [0, 905], [T_GUST, 935], [2.6, 1330], [3.6, 1760], [4.6, 2060], [T_CATCH, 2110], [7, 2150],
         ], t);
         const py = spline([
-            [0, 265], [T_GUST, 255], [2.6, 185], [3.6, 250], [4.6, 450], [T_CATCH, 500], [5.8, 330], [7, 300],
+            [0, 265], [T_GUST, 255], [2.6, 185], [3.6, 250], [4.6, 450], [T_CATCH, 500], [5.8, 270], [7, 235],
         ], t);
         return { x: path + n('kx', 1.3) * 14, y: py + n('ky', 1.7) * 12, rot: 0.25 + n('kr', 2.1) * 0.22 + (t > T_GUST && t < 3.6 ? 0.2 : 0) };
     }
@@ -133,54 +133,51 @@ const RT = (() => {
     }
 
     // --- set pieces -----------------------------------------------------------------------
+    // The whole landscape is ONE painting on one sheet (round 3): no parallax, nothing
+    // translucent. It is painted back to front into a single cached sprite, each piece
+    // knocking out what is behind it; mist is paper, not transparency.
     function sky(g, env, t) {
         // the grey sun (the red has gone out of the world), with its halo rings
-        Sumi.halo(g, env, 1290, 235, 105, { color: '#6d6861', seed: 'grey' });
-        Sumi.sun(g, env, 1290, 235, 105, { color: '#8d877d', seed: 'grey', fade: 0.6 });
-        Sumi.mountains(g, env, 'far', { x0: 380, x1: 1500, y: 600, h: 300, ink: 0.2, peaks: 2.4, blur: 5 });
-        Sumi.mountains(g, env, 'far2', { x0: 1150, x1: 2300, y: 600, h: 210, ink: 0.15, peaks: 3, blur: 5 });
-        // karst peaks beyond the right bank, black at the top, running into the mist
-        Sumi.peak(g, env, 'pkA', 1560, 610, 120, 330, { ink: 0.7 });
-        Sumi.peak(g, env, 'pkB', 1660, 610, 85, 230, { ink: 0.6, lean: -0.1 });
-        Sumi.peak(g, env, 'pkC', 240, 610, 90, 210, { ink: 0.45, lean: 0.2 });
+        Sumi.halo(g, env, 1300, 235, 105, { color: '#6d6861', seed: 'grey' });
+        Sumi.sun(g, env, 1300, 235, 105, { color: '#8d877d', seed: 'grey', fade: 0.6 });
+    }
+
+    function landscape(g, env) {
+        // far ranges: pale, broad washes (only paper and the sun are behind them)
+        Motion.sprite('rt:farwash', { x: -600, y: 280, w: 3600, h: 420 }, env.k, (c) => {
+            Sumi.mountains(c, env, 'far3', { x0: -500, x1: 1250, y: 630, h: 210, ink: 0.16, peaks: 2.6, blur: 5 });
+            Sumi.mountains(c, env, 'far4', { x0: 1000, x1: 2900, y: 630, h: 170, ink: 0.13, peaks: 3.2, blur: 5 });
+        }).draw(g);
+        // karst peaks behind the right bank, right of the sun
+        Sumi.peak(g, env, 'pk3B', 1600, 652, 120, 240, { shoulder: 0.85, slant: -0.05 });
+        Sumi.peak(g, env, 'pk3A', 1420, 652, 190, 330, { shoulder: 0.62 });
+        Motion.sprite('rt:land3', { x: -600, y: 300, w: 3600, h: 400 }, env.k, (c) => {
+            // right bank: a wooded hill with the pavilion (inside the final framing)
+            Sumi.hill(c, { x0: 1960, x1: 2700, base: 648, h: 120, peaks: 1.6, seed: 'hR1b', ink: 0.5, mist: 0.55 });
+            const hr = Sumi.hill(c, { x0: 1560, x1: 2300, base: 652, h: 130, peaks: 1.1, sharp: 1.1, seed: 'hR1', ink: 0.85 });
+            // the pavilion stands on the hill between the peaks and the boy, clear of the kite
+            const at = (x) => hr.reduce((a, p) => (Math.abs(p[0] - x) < Math.abs(a[0] - x) ? p : a));
+            const pv = at(1790);
+            Sumi.foliage(c, pv[0] - 120, pv[1] + 22, 110, 50, { seed: 'fR2' });
+            Sumi.pavilion(c, pv[0], pv[1] + 10, 115, { seed: 'pvR' });
+            const fr = at(2060);
+            Sumi.foliage(c, fr[0], fr[1] + 14, 150, 55, { seed: 'fR1' });
+            // left bank: a hill with the pagoda among trees, between the tree and the girl
+            Sumi.hill(c, { x0: 380, x1: 1150, base: 648, h: 150, peaks: 1.5, seed: 'hL1b', ink: 0.55, mist: 0.55 });
+            const hl = Sumi.hill(c, { x0: 120, x1: 900, base: 652, h: 165, peaks: 1.25, sharp: 1.1, seed: 'hL1', ink: 0.88 });
+            const topL = hl.reduce((a, p) => (p[1] < a[1] ? p : a));
+            Sumi.foliage(c, topL[0] + 90, topL[1] + 14, 120, 60, { seed: 'fL1' });
+            Sumi.pagoda(c, topL[0] - 20, topL[1] + 12, 175, { seed: 'pgL' });
+            Sumi.foliage(c, topL[0] - 120, topL[1] + 30, 100, 50, { seed: 'fL2' });
+            Sumi.hill(c, { x0: -500, x1: 260, base: 652, h: 80, peaks: 1.3, seed: 'hL0', ink: 0.75, mist: 0.6 });
+        }).draw(g);
     }
 
     // three cranes crossing the sky with the wind, wings on twos
     function cranes(g, env, t) {
-        for (const [i, x0, y0, s, ph] of [[0, 760, 175, 26, 0], [1, 650, 222, 22, 0.35], [2, 860, 250, 19, 0.7]]) {
+        for (const [i, x0, y0, s, ph] of [[0, 600, 105, 26, 0], [1, 500, 145, 22, 0.35], [2, 690, 170, 19, 0.7]]) {
             const x = x0 + t * 105, y = y0 + Math.sin(t * 1.3 + i) * 8;
-            Sumi.crane(g, x, y, s, (t * 1.1 + ph) % 1, { seed: 'cr' + i, ink: 0.8, tilt: -0.08 });
-        }
-    }
-
-    function midground(g, env, t) {
-        Sumi.mountains(g, env, 'midL', { x0: -500, x1: 1150, y: 640, h: 230, ink: 0.4, peaks: 2.2, sharp: 0.7, cun: 5 });
-        Sumi.mountains(g, env, 'midR', { x0: 1350, x1: 2900, y: 640, h: 180, ink: 0.36, peaks: 2.6, sharp: 0.7, cun: 5 });
-        // the two villages: a pagoda and clumps of trees on each side of the river
-        Motion.sprite('rt:villages', { x: -300, y: 450, w: 3000, h: 220 }, env.k, (c) => {
-            Sumi.foliage(c, 120, 640, 130, 45, { seed: 'fL1', ink: 0.75 });
-            Sumi.foliage(c, 330, 646, 90, 32, { seed: 'fL2', ink: 0.65 });
-            Sumi.pagoda(c, 220, 642, 72, { seed: 'pgL', ink: 0.7 });
-            Sumi.foliage(c, 830, 650, 90, 30, { seed: 'fL3', ink: 0.6 });
-            Sumi.foliage(c, 1700, 646, 140, 45, { seed: 'fR1', ink: 0.75 });
-            Sumi.pagoda(c, 1830, 644, 66, { seed: 'pgR', ink: 0.65, tiers: 3 });
-            Sumi.foliage(c, 1960, 650, 120, 40, { seed: 'fR2', ink: 0.7 });
-            Sumi.foliage(c, 1500, 655, 80, 26, { seed: 'fR3', ink: 0.55 });
-        }).draw(g);
-        // mist banks drifting across the foot of the mountains
-        for (let i = 0; i < 3; i++) {
-            const x = -300 + ((i * 1100 + t * 22) % 3300);
-            const y = 600 + i * 18;
-            const gr = g.createRadialGradient(x, y, 0, x, y, 520);
-            gr.addColorStop(0, 'rgba(246,244,239,0.85)');
-            gr.addColorStop(1, 'rgba(246,244,239,0)');
-            g.save();
-            g.translate(x, y);
-            g.scale(1, 0.16);
-            g.translate(-x, -y);
-            g.fillStyle = gr;
-            g.fillRect(x - 520, y - 520, 1040, 1040);
-            g.restore();
+            Sumi.crane(g, x, y, s, (t * 1.1 + ph) % 1, { seed: 'cr' + i, ink: 0.85, tilt: -0.08 });
         }
     }
 
@@ -201,8 +198,7 @@ const RT = (() => {
     // water and tufts of grass, as a painter would leave them
     const SHORE_L = [[1040, 640], [960, 655], [820, 700], [790, 740], [700, 790], [690, 860], [590, 960], [430, 1150]];
     const SHORE_R = [[1330, 640], [1470, 650], [1700, 702], [1720, 750], [1830, 800], [1880, 880], [2060, 980], [2350, 1150]];
-    // the river's surface: a pale wash, darker towards the far shore, with the mountains
-    // mirrored in it (soft, broken by the current)
+    // the river's surface: a pale wash, darker towards the far shore
     function waterSurface(g, env, t, c) {
         g.save();
         g.beginPath();
@@ -216,31 +212,18 @@ const RT = (() => {
         g.fillRect(-500, 600, 3400, 600);
         g.restore();
     }
-    function mirrored(g, env, t, c) {
-        // drawn in the midground layer's frame, flipped about the water line
-        g.save();
-        g.beginPath();
-        clipWater(g);
-        g.clip();
-        g.globalAlpha = 0.32;
-        g.translate(0, 642 * 2);
-        g.scale(1, -1);
-        Sumi.mountains(g, env, 'midL', { x0: -500, x1: 1150, y: 640, h: 230, ink: 0.4, peaks: 2.2, sharp: 0.7, cun: 5 });
-        Sumi.mountains(g, env, 'midR', { x0: 1350, x1: 2900, y: 640, h: 180, ink: 0.36, peaks: 2.6, sharp: 0.7, cun: 5 });
-        g.restore();
-    }
     function water(g, env, t) {
         // ripples: horizontal dry strokes, denser near the shores, drifting slowly
         const r = Motion.rng('ripples');
-        for (let i = 0; i < 75; i++) {
-            const y = 650 + Math.pow(r(), 1.2) * 480;
+        for (let i = 0; i < 48; i++) {
+            const y = 655 + Math.pow(r(), 1.1) * 470;
             const depth = (y - 640) / 500;
             const xl = shoreX(SHORE_L, y), xr = shoreX(SHORE_R, y);
             const near = r() < 0.55;
             const x = near ? (r() < 0.5 ? xl + 10 + r() * 140 : xr - 150 + r() * 140) : xl + r() * (xr - xl);
-            const len = 40 + r() * 220 * (0.4 + depth);
+            const len = 120 + r() * 380 * (0.4 + depth);
             const sp = Sumi.cachedStroke('rip' + i, [[0, 0], [len * 0.5, (r() - 0.5) * 3], [len, 0]],
-                { w: 3 + depth * 14 * (0.4 + r()), ink: 0.1 + r() * 0.28, dry: 0.75, seed: 'rip' + i, taper: [0.15, 0.4], blunt: 0.7 }, env.k);
+                { w: 5 + depth * 26 * (0.3 + r()), ink: 0.07 + r() * 0.2, dry: 0.8, seed: 'rip' + i, taper: [0.2, 0.35], blunt: 0.5, core: r() < 0.5 }, env.k);
             const dx = Math.sin(t * 0.6 + i) * 10 + t * 6 * (0.5 + r());
             g.save();
             g.beginPath();
@@ -367,7 +350,7 @@ const RT = (() => {
                 seed: 'plum', w: 78, gnarl: 0.8, ink: 0.95,
                 trunk: [[-90, 1100], [-10, 900], [40, 700], [100, 560], [168, 474]],
                 limbs: [
-                    { p: [160, 480], a: -0.95, len: 470, w: 38, d: 4 },
+                    { p: [160, 480], a: -1.05, len: 400, w: 38, d: 4 },
                     { p: [120, 530], a: -2.1, len: 340, w: 26, d: 3 },
                     { p: [80, 600], a: -2.75, len: 300, w: 20, d: 3 },
                 ],
@@ -490,7 +473,7 @@ const RT = (() => {
         g.restore();
     }
 
-    return { cranes, reeds, waterSurface, mirrored, W, H, cam, view, twos, sky, midground, banks, bridge, water, tree, petals, wind, kite, string, reflection, girlPose, boyPose };
+    return { landscape, cranes, reeds, waterSurface, W, H, cam, view, twos, sky, banks, bridge, water, tree, petals, wind, kite, string, reflection, girlPose, boyPose };
 })();
 
 Motion.scene({
@@ -510,15 +493,13 @@ Motion.scene({
             fn();
             g.restore();
         };
-        layer(1, () => Sumi.paper(g, env, { x: -500, y: -300, w: 3300, h: 1650 }, { res: 1.1 }));
-        layer(0.25, () => RT.sky(g, env, t));
-        layer(0.4, () => RT.cranes(g, env, tq));
-        layer(0.55, () => {
-            RT.midground(g, env, t);
-        });
+        // one sheet: everything moves with the camera together, nothing slides
         layer(1, () => {
+            Sumi.paper(g, env, { x: -500, y: -300, w: 3300, h: 1650 }, { res: 1.1 });
+            RT.sky(g, env, t);
+            RT.cranes(g, env, tq);
+            RT.landscape(g, env);
             RT.waterSurface(g, env, t, c);
-            RT.mirrored(g, env, t, c);
             RT.banks(g, env);
             RT.water(g, env, t);
             RT.reeds(g, env);
@@ -527,8 +508,6 @@ Motion.scene({
             RT.string(g, env, tq, gd, bd);
             RT.kite(g, env, tq);
             RT.wind(g, env, t);
-        });
-        layer(1.12, () => {
             RT.tree(g, env, t);
             RT.petals(g, env, tq);
         });
@@ -536,7 +515,6 @@ Motion.scene({
 
     post(ctx, t, env) {
         const c = RT.cam(t), k = env.k;
-        // the paper's tooth moves with the ground plane, so it reads as the sheet, not a lens
         // the dry-brush grain lives on the sheet, so it moves with the ground plane
         Sumi.grain(ctx, env, { scale: c.z, ox: (800 - c.cx * c.z) * k, oy: (450 - c.cy * c.z) * k, amount: 0.5 });
         Sumi.tooth(ctx, env, { scale: 1.3 * c.z, ox: (800 - c.cx * c.z) * k, oy: (450 - c.cy * c.z) * k, amount: 0.05 });

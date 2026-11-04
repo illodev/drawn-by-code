@@ -67,3 +67,32 @@ petals in the air and on the water.
   the kite does not sit on it at the start; cranes placed to be on screen during the shot.
 
 `review.mjs`: no warnings; 62 ms/frame warm.
+
+## Round 3 (user)
+
+> Te paso de nuevo la referencia. El paisaje es un desastre, las montañas parecen condones y
+> los templos no sé ni que decirte, con el movimiento se transparenta todo y unas cosas se
+> mueven con el propio movimiento, en general, un desastre
+
+Translated into changes: (1) peaks: the symmetric rounded columns → lopsided jagged karst
+built like the reference's (black top of vertical strokes, a shoulder, streaks into mist);
+(2) temples: stacked grey boxes → solid ink silhouettes with up-swept eaves and white
+railings (a five-storey pagoda, a pavilion like the reference's), standing on the ridges;
+(3) transparency: washes and mirrored mountains were translucent → every piece knocks out
+what is behind in paper, mist is paper, the reflections of the mountains are gone; (4)
+«things move with the motion»: layers had parallax (0.25–1.12) and drifting mist → the whole
+landscape is one sheet that moves as a single painting; only the kite, the children, petals,
+cranes, wind and water move on their own.
+
+## Round 3 (auto)
+
+- `dev/land-lab.js` rebuilds the reference's middle band piece by piece: hills (first an
+  icicle fringe → broad strokes down the slope), peaks (blob with stalactites → a toned body
+  under the streaks), trees (broccoli → flat pads), paper (mottling made the opaque pieces
+  show as slabs → plain sheet).
+- Re-laid out for the first and last framing: the left village (hill, pagoda, trees) between
+  the tree and the girl; the peaks right of the sun; the pavilion on the right hill between
+  the peaks and the boy, clear of the kite, which now climbs away after the catch; cranes
+  higher, clear of the kite; one limb shortened off the string; the water as wide soft bands.
+
+`review.mjs`: no warnings; 43 ms/frame warm.
