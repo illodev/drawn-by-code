@@ -28,7 +28,21 @@ const Cast = (() => {
      * feet: [near, far] or null, hands: [near, far] world targets or null, phone (0..1),
      * wind (hair blown, 0..1), t (time, for hair), id (seed) }
      */
+    // what used to be a phone is a kawaraban sheet (f.phone, f.phoneAt, f.phoneRot)
+    function heldSheet(g, f, hands) {
+        if (!(f.phone > 0)) return;
+        const p = f.phoneAt ?? (hands ? Ease.lerpPt(hands[0], hands[1], 0.5) : [f.x, f.y - f.h * 0.5]);
+        const onGround = p[1] > f.y - f.h * 0.06;
+        sheet(g, p, f.h, onGround ? 0.1 : (f.phoneRot ?? 0) * 0.25, f.phone, (f.id ?? 'x') + 'sheet');
+        if (hands && !onGround) for (const hd of hands) S().dab(g, hd[0], hd[1], f.h * 0.016, f.h * 0.014, { seed: (f.id ?? 'x') + 'hold' + hd[0].toFixed(0), ink: 0.95 });
+    }
+
     function figure(g, f) {
+        if (['man', 'woman', 'elder', 'elderm'].includes(f.kind)) {
+            const d = adultFigure(g, f);
+            heldSheet(g, f, d._arms ? d.hands : null);
+            return d;
+        }
         const Sm = S(), h = f.h, s = f.face, id = f.id ?? f.kind;
         const ink = f.ink ?? 0.95;
         const adult = ['man', 'woman', 'elder', 'elderm'].includes(f.kind);
@@ -186,27 +200,161 @@ const Cast = (() => {
         }
         Sm.dab(g, arms[0].end[0], arms[0].end[1], h * 0.032, h * 0.028, { seed: id + 'hn', ink });
 
-        // the phone: a white cut in the ink and its cold light on the face
-        const ph = f.phone ?? 0;
-        if (ph > 0) {
-            const p = f.phoneAt ?? Ease.lerpPt(arms[0].end, arms[1].end, 0.5);
-            g.save();
-            g.globalAlpha *= ph;
-            const gl = g.createRadialGradient(p[0], p[1], 0, p[0], p[1], h * 0.16);
-            gl.addColorStop(0, `rgba(250,248,240,${(0.55 * (f.glow ?? 1)).toFixed(3)})`);
-            gl.addColorStop(1, 'rgba(250,248,240,0)');
-            g.fillStyle = gl;
-            g.fillRect(p[0] - h * 0.2, p[1] - h * 0.2, h * 0.4, h * 0.4);
-            g.translate(p[0], p[1]);
-            g.rotate(f.phoneRot ?? -0.5 * s);
-            g.fillStyle = '#f7f4ea';
-            g.fillRect(-h * 0.022, -h * 0.036, h * 0.044, h * 0.072);
-            g.restore();
-        }
+        heldSheet(g, f, arms.map((a) => a.end));
         const heart = Ease.lerpPt(hip, sh, 0.62);
         const mouth = add(head, [s * headR * 0.95, headR * 0.3]);
         return { hip, sh, head, headR, heart, mouth, face: s, hands: arms.map((a) => a.end), feet };
     }
 
-    return { figure, ik };
+    // ---------------------------------------------------------------------------------------
+    // Adults (round 12: «los trazos de los personajes son muy poco currados»), drawn like the
+    // reference's boatman: slender (seven heads), a crisp silhouette edged in dry brush, the
+    // kimono a grey wash with darker contours, calligraphic folds and paper showing through
+    // where the light catches the cloth; a sash and a crossed collar; a woven straw kasa.
+    function adultFigure(g, f) {
+        const Sm = S(), h = f.h, s = f.face, id = f.id ?? f.kind, ink = f.ink ?? 0.95;
+        const woman = f.kind === 'woman' || f.kind === 'elder', oldM = f.kind === 'elderm';
+        const legL = h * 0.25, shinL = h * 0.24;
+        const hip = [f.x, f.y - (legL + shinL) * 0.97];
+        const lean = f.lean ?? 0;
+        const up = [Math.sin(lean) * s, -Math.cos(lean)];
+        const fw = [Math.cos(lean) * s, Math.sin(lean)];          // towards the face, across the body
+        const P = (base, u, a) => add(add(base, up, u * h), fw, a * h);
+        const sh = add(hip, up, h * 0.29), neck = add(hip, up, h * 0.335);
+        const headDir = rot(up, -(f.look ?? 0) * s);
+        const head = add(neck, headDir, h * 0.058), headR = h * 0.044;
+        const feet = f.feet ?? [[f.x + s * h * 0.05, f.y], [f.x - s * h * 0.04, f.y]];
+        const legs = feet.map((ft) => ik(hip, ft, legL, shinL, -s));
+        const hands = f.hands ?? [P(sh, -0.28, 0.025), P(sh, -0.27, -0.03)];
+        const arms = hands.map((hd, i) => ik(P(sh, 0, -0.012 * i), hd, h * 0.15, h * 0.145, f.elbow?.[i] ?? s));
+        const st = (pts, w, seed, o = {}) => Sm.stroke(g, pts, { w, ink: o.ink ?? ink, dry: o.dry ?? 0.5, seed: id + seed, taper: o.taper ?? [0.1, 0.3], blunt: o.blunt ?? 0.7, press: o.press, bleed: false, raw: o.raw, core: o.core });
+        const paperStroke = (pts, w, a, seed) => {
+            g.save();
+            g.globalAlpha *= a;
+            Sm.stroke(g, pts, { w, ink: 1, color: Sm.PAPER, dry: 0.75, seed: id + seed, taper: [0.3, 0.5], core: false, bleed: false });
+            g.restore();
+        };
+        // stride: how far apart the feet are, so the hem opens as they walk
+        const stride = Math.abs(feet[0][0] - feet[1][0]) / h;
+        const hemDrop = woman ? 0.43 : oldM ? 0.33 : 0.21;
+        // a kimono narrows towards the ankles (a woman's most); a man's knee robe opens a little
+        const hemW = (woman ? 0.058 : oldM ? 0.07 : 0.078) + stride * (woman ? 0.12 : 0.3);
+
+        // far leg and arm, a lighter pass
+        g.save();
+        g.globalAlpha *= 0.85;
+        if (!woman) {
+            st([hip, legs[1].elbow, legs[1].end], h * 0.03, 'lf', { ink: ink * 0.7, dry: 0.55, taper: [0, 0.3] });
+            st([feet[1], add(feet[1], [s * h * 0.045, 0])], h * 0.022, 'ff', { taper: [0, 0.5] });
+        } else st([add(feet[1], [-s * h * 0.01, -h * 0.01]), add(feet[1], [s * h * 0.04, 0])], h * 0.02, 'ff', { taper: [0, 0.5] });
+        st([P(sh, 0, -0.015), arms[1].elbow, Ease.lerpPt(arms[1].elbow, arms[1].end, 0.85)], h * 0.042, 'af', { ink: ink * 0.6, taper: [0.1, 0.1], dry: 0.65, press: (u) => 0.8 + 0.4 * u });
+        g.restore();
+        if (f.cane) {
+            const hd = arms[1].end;
+            st([add(hd, [0, -h * 0.03]), [hd[0] + s * h * 0.06, f.y]], h * 0.013, 'cane', { dry: 0.25, taper: [0, 0.05], core: false });
+        }
+        if (!woman) {
+            // the near leg below the knee-length robe, and a straw sandal
+            st([hip, legs[0].elbow, legs[0].end], h * 0.034, 'ln', { dry: 0.5, taper: [0, 0.3] });
+            st([feet[0], add(feet[0], [s * h * 0.05, 0])], h * 0.024, 'fn', { taper: [0, 0.5] });
+        } else st([add(feet[0], [-s * h * 0.01, -h * 0.012]), add(feet[0], [s * h * 0.045, 0])], h * 0.022, 'fn', { taper: [0, 0.5] });
+
+        // the kimono, painted as sumi-e paints cloth: few strokes, each with a loaded start
+        // and a dry tail. A faint wash for the body, one heavy curved stroke down the back
+        // (the brush pressed at the shoulder, running dry at the hem), a lighter stroke down
+        // the front, the paper left between them where the light falls. The skirt hangs
+        // straight down from the hips whatever the torso does.
+        const down = [0, 1];
+        const hemC = add(add(hip, down, hemDrop * h), [s * 0.01 * h, 0]);
+        const hemB = add(hemC, [-s * hemW * h, 0]), hemF = add(hemC, [s * hemW * 1.05 * h, 0]);
+        const waistB = P(hip, 0.03, -0.055), waistF = P(hip, 0.03, 0.05);
+        g.save();
+        g.globalAlpha *= 0.32;
+        Sm.fillPoly(g, [P(neck, 0, -0.025), P(sh, 0, -0.06), waistB, add(hemB, [s * 0.012 * h, -0.006 * h]), add(hemF, [-s * 0.012 * h, -0.006 * h]), waistF, P(sh, 0, 0.05), P(neck, 0, 0.022)], Sm.tone(0.8 * ink));
+        g.restore();
+        const mid = (a, b, k, off) => add(Ease.lerpPt(a, b, k), [s * off * h, 0]);
+        // back: shoulder blade, small of the back, out to the hem
+        st([P(neck, -0.01, -0.025), P(sh, -0.02, -0.055), mid(P(sh, -0.02, -0.055), waistB, 0.6, -0.008), waistB, mid(waistB, hemB, 0.55, -0.006), add(hemB, [s * 0.01 * h, -0.004 * h])],
+            h * 0.075, 'rb', { ink, dry: 0.55, taper: [0.06, 0.12], blunt: 0.85, press: (u) => 1.25 - 0.7 * u });
+        // front: collar, chest, belly, hem, lighter and drier
+        st([P(neck, -0.01, 0.018), P(sh, -0.03, 0.05), waistF, mid(waistF, hemF, 0.5, 0.004), add(hemF, [-s * 0.01 * h, -0.004 * h])],
+            h * 0.06, 'rf', { ink: ink * 0.7, dry: 0.7, taper: [0.1, 0.2], blunt: 0.7, press: (u) => 1.15 - 0.5 * u });
+        // one fold from the knee and a broken hem line
+        st([mid(hip, hemC, 0.35, -0.01), add(hemC, [-s * 0.02 * h, -0.01 * h])], h * 0.012, 'f1', { ink: 1, dry: 0.8, taper: [0.4, 0.2] });
+        st([add(hemB, [0, -0.002 * h]), Ease.lerpPt(hemB, hemF, 0.55)], h * 0.016, 'hem', { dry: 0.75, taper: [0.1, 0.5] });
+        // sash (obi) and crossed collar
+        st([P(hip, 0.07, -0.06), P(hip, 0.072, 0.054)], h * (woman ? 0.042 : 0.026), 'obi', { ink: 1, dry: 0.4, taper: [0, 0.15], blunt: 1 });
+        paperStroke([P(neck, -0.005, -0.016), P(sh, -0.07, 0.03)], h * 0.009, 0.7, 'col');
+
+        // near arm: the kimono sleeve is wide and hangs; one stroke that swells towards its
+        // mouth, and the hand a small grey dab coming out of it
+        const nearSh = P(sh, -0.005, 0.0);
+        st([nearSh, arms[0].elbow, Ease.lerpPt(arms[0].elbow, arms[0].end, 0.82)], h * 0.05, 'an',
+            { ink: ink * 0.92, dry: 0.5, taper: [0.15, 0.05], blunt: 0.8, press: (u) => 0.75 + 0.55 * u });
+        // the sleeve's hanging pocket (tamoto) under the forearm
+        const m = Ease.lerpPt(arms[0].elbow, arms[0].end, 0.45);
+        st([add(m, [0, -h * 0.01]), add(m, [-s * h * 0.006, h * (woman ? 0.085 : 0.05)])], h * (woman ? 0.05 : 0.04), 'tamoto', { ink: ink * 0.85, dry: 0.65, taper: [0, 0.7] });
+        Sm.dab(g, arms[0].end[0], arms[0].end[1], h * 0.014, h * 0.012, { seed: id + 'hn', ink: ink * 0.8 });
+        Sm.dab(g, arms[1].end[0], arms[1].end[1], h * 0.012, h * 0.011, { seed: id + 'hf', ink: ink * 0.7 });
+
+        // head, then hair or hat
+        st([neck, add(neck, headDir, h * 0.02)], h * 0.03, 'neck', { ink: 1, dry: 0.3, taper: [0, 0], blunt: 1 });
+        Sm.dab(g, head[0], head[1], headR, headR * 1.1, { seed: id + 'head', ink: Math.min(1.15, ink * 1.2), rough: 0.05 });
+        if (f.kind === 'man') {
+            // the kasa in two strokes: a pale cone wash, then the brim as one flat stroke,
+            // pressed in the middle, flicked off at both rims
+            const c = add(head, up, headR * 0.45), tip = add(c, up, headR * 1.25);
+            const L1 = add(c, fw, -headR * 2.6), R1 = add(c, fw, headR * 2.6);
+            g.save();
+            g.globalAlpha *= 0.55;
+            g.globalAlpha /= 0.55;
+            const cone = [L1, add(tip, fw, -headR * 0.15), add(tip, fw, headR * 0.15), R1];
+            Sm.fillPoly(g, cone, Sm.PAPER);
+            Sm.fillPoly(g, cone, Sm.tone(0.55 * ink));
+            g.restore();
+            st([add(L1, up, headR * 0.1), add(tip, fw, -headR * 0.1)], headR * 0.25, 'kl', { ink: ink * 0.8, dry: 0.7, taper: [0.2, 0.2] });
+            st([L1, add(c, up, -headR * 0.1), R1], headR * 0.5, 'brim', { ink: 1, dry: 0.55, taper: [0.35, 0.45], blunt: 0.4, press: (u) => 0.7 + 0.6 * Math.sin(u * Math.PI) });
+        } else if (woman) {
+            const hairInk = f.kind === 'elder' ? 0.55 : ink;
+            Sm.dab(g, head[0] - s * headR * 0.15, head[1] - headR * 0.25, headR * 1.05, headR * 0.85, { seed: id + 'hair', ink: hairInk, rough: 0.08 });
+            const bun = add(head, [-s * headR * 0.85, -headR * 0.9]);
+            Sm.dab(g, bun[0], bun[1], headR * 0.6, headR * 0.52, { seed: id + 'bun', ink: hairInk });
+            st([add(bun, [-headR * 0.9, headR * 0.25]), add(bun, [headR * 0.85, -headR * 0.3])], headR * 0.12, 'pin', { dry: 0.2, taper: [0, 0.2], core: false });
+        } else if (oldM) {
+            const chin = add(head, [s * headR * 0.45, headR * 0.75]);
+            st([chin, add(chin, [s * headR * 0.1, headR * 1.0])], headR * 0.55, 'beard', { ink: 0.55, dry: 0.55, taper: [0, 0.8], blunt: 1 });
+            Sm.dab(g, head[0] - s * headR * 0.2, head[1] - headR * 1.0, headR * 0.3, headR * 0.22, { seed: id + 'knot', ink: 0.6 });
+        }
+
+        const heart = Ease.lerpPt(hip, sh, 0.62);
+        const mouth = add(head, [s * headR * 0.95, headR * 0.3]);
+        return { hip, sh, head, headR, heart, mouth, face: s, hands: arms.map((a) => a.end), feet, _arms: arms };
+    }
+
+    // the kawaraban: a broadsheet of news, held in both hands, columns of tiny print and a
+    // little picture (this replaces the phones: the user found them out of period)
+    function sheet(g, at, h, rot0, a = 1, seed = 'sh') {
+        const Sm = S(), w = h * 0.17, hh = h * 0.12;
+        g.save();
+        g.globalAlpha *= a;
+        g.translate(at[0], at[1]);
+        g.rotate(rot0);
+        Sm.fillPoly(g, [[-w / 2, -hh / 2], [w / 2, -hh / 2 + h * 0.004], [w / 2, hh / 2], [-w / 2, hh / 2 - h * 0.003]], '#f3efe4');
+        g.strokeStyle = Sm.tone(0.6);
+        g.lineWidth = Math.max(0.5, h * 0.003);
+        g.strokeRect(-w / 2, -hh / 2, w, hh);
+        // columns of print on the right half, a picture on the left
+        g.strokeStyle = Sm.tone(0.75);
+        for (let i = 0; i < 6; i++) {
+            const x = w / 2 - w * 0.08 - i * w * 0.07;
+            g.beginPath();
+            g.moveTo(x, -hh * 0.38);
+            g.lineTo(x, hh * (0.25 + 0.1 * Math.sin(i * 3.1)));
+            g.stroke();
+        }
+        Sm.fillPoly(g, Sm.blobPts(-w * 0.22, 0, w * 0.15, hh * 0.25, 0, seed + 'pic', 0.3, 12), Sm.tone(0.7));
+        g.restore();
+    }
+
+    return { figure, ik, adultFigure, sheet };
 })();

@@ -16,7 +16,8 @@
 - **On-screen text (literal, Spanish):** title «El hilo rojo» with a seal 赤い糸; closing line
   «Antes de ser bandos, fuimos vecinos.» (approved by the user, 2026-11-04). Latin text in
   Kaushan Script (a brush script, OFL); the seal's kanji in Yuji Syuku (OFL, subset).
-- **Music / rhythm:** synthesized, licence-free: a koto (plucked string) in the Japanese
+- **Music / rhythm (round 12):** one ElevenLabs piece per scene, traditional Japanese
+  instruments only, crossfaded at the cuts (see review.md). Before that: synthesized, licence-free: a koto (plucked string) in the Japanese
   *in* scale, a breathy flute (shakuhachi-like), wind and water; 60 BPM, cuts on whole seconds.
   The dark middle loses the melody (a drone, a low drum); the melody returns, warmer, when the
   red comes back.
@@ -24,12 +25,16 @@
   «the good one» (both banks lose their red, both give it back); colours other than ink and
   vermilion (the screens are white cuts in the ink, not blue); cartoon faces.
 
-## The cause (round 11)
+## The cause (rounds 11–12)
 
 The kuroko, the black-clad stagehand of Japanese theatre whom the audience agrees not to
-see, stands for the system that divides people without their knowing: he rises behind the
-mountains, his strings run down to the phones, his slogans become the masks, his strings
-lash the red threads. Nobody looks up. When people let the phones go his strings break and
+see, stands for the system that divides people without their knowing. He is revealed in
+steps (round 12): first only his sleeve, dropping news broadsheets (kawaraban, the Edo
+period's own medium: phones were out of period) into everyone's hands; then one sheet in
+close-up, headed 対岸に鬼あり («there are demons on the other bank»), whose picture turns the
+neighbour into an oni while we read; when it blows away everyone wears the mask. Only when
+the shouting starts does the camera pull back and find him whole, a string from his control
+crosses to every sheet. Nobody looks up. When people let the sheets go his strings break and
 he dissolves into the mist.
 
 ## The evolving idea
@@ -46,9 +51,9 @@ flows back along it into everyone who takes hold of it.
 |---|---|---|
 | 0–6 | Title | The brush paints a river village under a red sun (mountains, river, a wooden bridge, a cherry tree); the title writes itself; the seal stamps on the beat. |
 | 6–12 | The bridge | Villagers cross the bridge both ways; each pair that greets (a bow, a hand on a shoulder, a basket shared) is tied by a fine red thread that stays shimmering between them. |
-| 12–18 | Screens | One by one they stop and look down at small white rectangles; the threads go slack; two bump into each other without looking up. |
-| 18–26 | Two banks | Brush slogans (illegible calligraphy) fly up from the screens and gather into two ink clouds; people walk off to their own bank under them; the bridge cracks down the middle. |
-| 26–32 | Shouting | The crowds face each other across the river; shouts fly as thick black strokes and splash into the water, which turns black; threads snap with small red flicks (the children's last, as the bridge falls); the tree sheds its full bloom into the black water, keeping only its last blossoms; the sun drains to grey. |
+| 12–18 | The sheets | A black sleeve comes down out of the sky and drops broadsheets into everyone's hands; they stop and read; the threads go slack; two bump into each other without looking up. |
+| 18–26 | Two banks | Close-up: one sheet fills the frame, 対岸に鬼あり, the neighbour in its picture grows horns; it blows away and every face wears an oni mask; people walk off to their own bank; the bridge cracks down the middle. |
+| 26–32 | Shouting | The camera pulls back and finds the kuroko holding all the strings. The crowds face each other across the river; shouts fly as thick black strokes and splash into the water, which turns black; threads snap with small red flicks (the children's last, as the bridge falls); the tree sheds its full bloom into the black water, keeping only its last blossoms; the sun drains to grey. |
 | 32–36 | Grey | A wide, grey world in ink rain, everyone gone: the sun is grey. On the left bank, the girl with her red kite and the plum tree's last blossoms, the only red left; on the right, the boy alone on his rock with his screen. |
 | 36–43 | The kite (**style test**) | A gust carries the girl's kite across the river; the boy looks up from his screen, stands and catches the string: a red thread spans the river. |
 | 43–50 | Holding on | Adults on both banks shout at the children; a man reaches for the string; the children hold on. An old woman on the left lays her hand on the thread beside the girl; an old man on the right does the same. |

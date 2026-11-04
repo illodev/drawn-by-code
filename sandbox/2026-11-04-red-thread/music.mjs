@@ -169,10 +169,14 @@ const env = (keys) => (t) => {
 noiseBed(env([[0, 0.25], [2, 0.5], [26, 0.5], [31, 0.25], [36, 0.45], [68, 0.45]]), 0.015, 0.5, -0.2);          // water
 noiseBed(env([[0, 0.12], [36, 0.12], [37, 0.2], [38.4, 1], [40, 0.15], [68, 0.12]]), 0.06, 0.45, 0, 0.4);       // wind, the gust
 noiseBed(env([[31, 0], [32, 0.9], [35, 0.9], [36, 0]]), 0.35, 0.35, 0, 0.2);                                     // rain
-noiseBed(env([[18, 0], [20, 0.25], [25, 0.4], [26, 0]]), 0.12, 0.25, 0.2, 0.8);                                  // the slogans' murmur
+// the broadsheets (round 12): a paper flutter as each slips out of the sleeve and lands, a
+// big rustle as one sheet comes up to the camera (17.5 s) and as the wind takes it (20.3 s)
+for (const [t, p] of [[11.7, -0.3], [11.9, 0.3], [12.1, -0.4], [12.2, 0.2], [12.5, -0.2], [12.7, 0.4], [14.3, 0.4]]) noiseBed(env([[t, 0], [t + 0.1, 0.8], [t + 0.9, 0.5], [t + 1.3, 0]]), 0.45, 0.22, p, 1);
+noiseBed(env([[17.4, 0], [17.7, 1], [18.3, 0.2], [18.6, 0]]), 0.4, 0.4, 0, 1);
+noiseBed(env([[20.2, 0], [20.45, 1], [21.0, 0]]), 0.45, 0.45, 0.4, 1);
 drone(14.5, 18.5, D - 13, 0.05);       // the screens: a cold, slightly sour hum
 // the kuroko: a deep rumble as he rises behind the mountains, and as he dissolves
-noiseBed(env([[12.4, 0], [14.5, 0.9], [16.8, 0.35], [18, 0]]), 0.004, 0.9, 0);
+noiseBed(env([[26.2, 0], [27.2, 1], [29.5, 0.5], [31, 0]]), 0.004, 0.9, 0);   // the reveal
 noiseBed(env([[43.0, 0], [44.2, 0.6], [45.5, 0]]), 0.004, 0.8, 0);
 noiseBed(env([[53.6, 0], [55.0, 0.5], [57.0, 0]]), 0.006, 0.6, 0);
 drone(18, 32, D - 24, 0.06);
@@ -195,7 +199,6 @@ flute(9.5, 2.4, yo(2, 1), 0.12, 0.2);
 
 // --- 3 · Screens: the melody thins; cold pings out of the scale ---------------------------------
 for (const [t, b] of [[12, 0], [13, 2], [14, 1], [16, 0]]) koto(t, yo(b, 0), 0.22 - (t - 12) * 0.025, 0);
-for (const t of [12.5, 13.0, 13.6, 14.2, 15.6, 11.0]) ping(t, 87 + Math.round(rnd() * 2), 0.11, rnd() * 0.6);
 koto(15.0, inn(1, 0), 0.3, 0, 0);       // the bump: a dull note
 taiko(15.0, 0.18, 110);
 
@@ -208,7 +211,7 @@ koto(24.6, inn(4, -2), 0.5, 0, -2, 1.5);    // the crack
 splash(24.6, 0.12);
 
 // masks: a wet ink splat as each one lands on a face, a dry crack as it breaks and falls
-for (const [t, p] of [[21.0, -0.4], [21.3, 0.4], [21.7, -0.3], [22.0, 0.3], [22.4, -0.2], [22.7, 0.2]]) splash(t, 0.12, p);
+for (const [t, p] of [[20.3, -0.4], [20.4, 0.4], [20.5, -0.2]]) splash(t, 0.1, p);
 for (const [t, p] of [[46.4, -0.3], [49.4, 0.3], [50.7, -0.4], [51.2, 0.4], [52.8, -0.3], [53.3, 0.3]]) snap(t, 0.22, p);
 
 // --- 5 · Shouting: a taiko hit on every shout's landing; snaps; the bridge falls --------------

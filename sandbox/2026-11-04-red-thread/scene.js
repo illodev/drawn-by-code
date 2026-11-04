@@ -148,9 +148,9 @@ const makeShots = () => {
             figures: (h) => {
                 drawn = drawPeople(h, poses);
                 drawThreads(h, tq, drawn);
+                F.drawSleeve(h, tq);
+                F.drawSheetDrops(h, tq, poses);
                 F.kurokoStrings(h, tq, poses, drawn);
-                drawSlogans(h, tq, poses);
-                F.drawMaskFlights(h, tq, drawn, poses);
                 F.drawMasks(h, tq, drawn);
                 drawShouts(h, tq, drawn, [26, 32]);
                 // the planks hitting the river
@@ -165,6 +165,148 @@ const makeShots = () => {
                 if (t >= 26 && t < 32) F.shedPetals(h, t, 26.2, 31, 40, 'shed');
             },
         });
+        if (t > 17.4 && t < 21.2) kawaraban(g, env, t);
+    }
+
+    // --- 4a · The broadsheet (round 12: «no entiendo en qué momento pasa todo a mal») ------------
+    // One sheet comes up to the camera and fills the frame: a woodblock print headed 対岸に鬼あり
+    // («there are demons on the other bank»). In its picture a neighbour across the river grows
+    // horns while we read. The wind takes it, and behind it everyone already wears the mask.
+    const KW = { w: 1100, h: 760 };
+    function kawaraban(g, env, t) {
+        const up = E.out(seg(t, 17.5, 18.3)), away = E.in(seg(t, 20.3, 21.0));
+        const fl = Math.sin(t * 2.3) * 0.012 + Math.sin(t * 3.7) * 0.006;
+        const x = 520 + 280 * up + 1500 * away, y = 760 - 310 * up - 380 * away;
+        const sc = 0.12 + (1.13 - 0.12) * up + 0.08 * seg(t, 18.3, 20.3) + 0.1 * away;
+        const rot = -0.6 * (1 - up) + fl + 0.9 * away;
+        g.save();
+        // screen space (the village is drawn through the camera)
+        g.setTransform(g.canvas.width / 1600, 0, 0, g.canvas.height / 900, 0, 0);
+        g.translate(x, y);
+        g.rotate(rot);
+        g.scale(sc, sc);
+        // its shadow on the scene
+        g.save();
+        g.filter = 'blur(18px)';
+        g.fillStyle = 'rgba(20,18,16,0.22)';
+        g.fillRect(-KW.w / 2 + 24, -KW.h / 2 + 30, KW.w, KW.h);
+        g.restore();
+        kawarabanFace(g, env, t);
+        g.restore();
+    }
+    function kawarabanFace(g, env, t) {
+        const W = KW.w, H = KW.h, r = Motion.rng('kwp');
+        // cheap mulberry paper, a little crooked at the edges
+        const edge = [];
+        for (let i = 0; i <= 10; i++) edge.push([-W / 2 + (W * i) / 10, -H / 2 + 3 * Motion.noise1('ke1', i)]);
+        for (let i = 0; i <= 8; i++) edge.push([W / 2 + 3 * Motion.noise1('ke2', i), -H / 2 + (H * i) / 8]);
+        for (let i = 10; i >= 0; i--) edge.push([-W / 2 + (W * i) / 10, H / 2 + 3 * Motion.noise1('ke3', i)]);
+        for (let i = 8; i >= 0; i--) edge.push([-W / 2 + 3 * Motion.noise1('ke4', i), -H / 2 + (H * i) / 8]);
+        S.fillPoly(g, edge, '#efe6d1');
+        g.save();
+        g.strokeStyle = 'rgba(120,105,80,0.18)';
+        g.lineWidth = 1.2;
+        for (let i = 0; i < 40; i++) {
+            const fx = -W / 2 + r() * W, fy = -H / 2 + r() * H, a = r() * 6.28, l = 20 + r() * 50;
+            g.beginPath();
+            g.moveTo(fx, fy);
+            g.quadraticCurveTo(fx + Math.cos(a) * l * 0.5 + 8, fy + Math.sin(a) * l * 0.5, fx + Math.cos(a) * l, fy + Math.sin(a) * l);
+            g.stroke();
+        }
+        g.restore();
+        // the printed frame: a heavy line and a fine one, as a woodblock cuts them
+        const ink = (w, a = 0.92) => { g.strokeStyle = `rgba(22,20,18,${a})`; g.lineWidth = w; };
+        ink(7);
+        g.strokeRect(-W / 2 + 26, -H / 2 + 26, W - 52, H - 52);
+        ink(2);
+        g.strokeRect(-W / 2 + 40, -H / 2 + 40, W - 80, H - 80);
+        // the text block on the right: the headline down the first column, small print after
+        g.beginPath();
+        g.moveTo(W / 2 - 300, -H / 2 + 40);
+        g.lineTo(W / 2 - 300, H / 2 - 40);
+        g.stroke();
+        F.writeVertical(g, env, ['対岸に', '鬼あり'], W / 2 - 92, -H / 2 + 62, 92, 1, { gap: 112, color: '#1a1816' });
+        // the picture: a river between two banks, in woodblock lines
+        g.save();
+        g.beginPath();
+        g.rect(-W / 2 + 40, -H / 2 + 40, W - 340, H - 80);
+        g.clip();
+        const L = -W / 2 + 40, R = W / 2 - 300;
+        // waves: rows of little curls across the river
+        ink(2.2, 0.8);
+        for (let row = 0; row < 7; row++) {
+            const wy = 10 + row * 34;
+            g.beginPath();
+            for (let wx = L - 20; wx < R + 20; wx += 46) {
+                const o = (row % 2) * 23;
+                g.moveTo(wx + o, wy);
+                g.quadraticCurveTo(wx + o + 12, wy - 14, wx + o + 24, wy - 4);
+                g.quadraticCurveTo(wx + o + 32, wy + 2, wx + o + 40, wy - 2);
+            }
+            g.stroke();
+        }
+        // the far bank: a hill line, a pine, the neighbour standing on it
+        S.fillPoly(g, [[L, -10], [L + 120, -60], [L + 300, -50], [L + 480, -90], [R, -40], [R, -5], [L, -5]], '#d9cfba');
+        ink(4);
+        g.beginPath();
+        g.moveTo(L, -10);
+        g.bezierCurveTo(L + 120, -60, L + 300, -50, L + 480, -90);
+        g.lineTo(R, -40);
+        g.stroke();
+        // the near bank, bottom left, and two of «us» seen from behind, looking across
+        S.fillPoly(g, [[L, 250], [L + 260, 236], [L + 420, 300], [L + 460, H / 2], [L, H / 2]], '#d9cfba');
+        ink(4);
+        g.beginPath();
+        g.moveTo(L, 250);
+        g.quadraticCurveTo(L + 260, 230, L + 440, 330);
+        g.stroke();
+        Cast.figure(g, { x: L + 120, y: 360, h: 210, face: 1, kind: 'woman', id: 'kwA', t: 0, look: 0.25 });
+        Cast.figure(g, { x: L + 230, y: 352, h: 230, face: 1, kind: 'man', id: 'kwB', t: 0, look: 0.3 });
+        // the neighbour on the far bank: as we read, the ink grows him horns
+        // and behind him his shadow rises on the sky as a horned giant (the print makes him big)
+        const turn = E.inOut(seg(t, 18.8, 19.9));
+        const NX = L + 400, NY = -62;
+        if (turn > 0) {
+            g.save();
+            g.globalAlpha *= 0.55 * turn;
+            const hr = 38 + 32 * turn, hy = NY - 120 - 50 * turn;
+            S.fillPoly(g, S.blobPts(NX, hy + hr * 1.9, hr * 1.3, hr * 1.0, 0, 'kwsb', 0.06, 24), S.tone(0.6));
+            S.dab(g, NX, hy, hr, hr * 1.1, { seed: 'kwsh', ink: 0.6 });
+            for (const k of [-1, 1]) S.stroke(g, [[NX + k * hr * 0.5, hy - hr * 0.7], [NX + k * hr * 0.85, hy - hr * 1.4], [NX + k * hr * 0.6, hy - hr * 1.9]], { w: hr * 0.4, ink: 0.6, dry: 0.3, seed: 'kwh' + k, taper: [0, 0.9], blunt: 1, bleed: false });
+            g.restore();
+        }
+        const d = Cast.figure(g, { x: NX, y: NY, h: 250, face: -1, kind: 'man', id: 'kwN', t: 0, look: 0.2 * turn });
+        if (turn > 0) F.oni(g, { ...d, headR: d.headR * 1.25 }, turn, 0, 'kwoni');
+        g.restore();
+        // the publisher's square seal under the headline, in ink (no red: red is the threads)
+        g.save();
+        ink(3);
+        g.strokeRect(W / 2 - 190, H / 2 - 150, 70, 70);
+        g.font = '44px Brush';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.fillStyle = '#1a1816';
+        g.fillText('瓦', W / 2 - 155, H / 2 - 115);
+        g.restore();
+        // small print (illegible on purpose): three short columns of tiny strokes
+        g.save();
+        g.strokeStyle = 'rgba(22,20,18,0.8)';
+        g.lineWidth = 2.2;
+        for (let c = 0; c < 3; c++) {
+            const cx = W / 2 - 250 + c * 34;
+            for (let k = 0; k < 11; k++) {
+                const cy = 70 + k * 18 + (c % 2) * 4;
+                if (cy > H / 2 - 170 && c > 0) continue;
+                const rr = Motion.rng('kwt' + c + '-' + k);
+                g.beginPath();
+                g.moveTo(cx - 7 + rr() * 4, cy);
+                g.lineTo(cx + 7 - rr() * 4, cy + rr() * 3);
+                g.moveTo(cx - 2 + rr() * 4, cy - 6);
+                g.lineTo(cx + rr() * 3, cy + 7);
+                g.stroke();
+            }
+        }
+        g.restore();
     }
     const keysCloud = (t) => RT.spline([[18.5, 0], [22.5, 1], [31.5, 1], [32, 0]], t);
 

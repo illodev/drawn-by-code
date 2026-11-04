@@ -270,3 +270,36 @@ are rough; no sound effects beyond the score.
   and out with bell sleeves (no hanging tamoto), the figure low enough for the hood to be in
   the village framing, texture strokes kept inside the cloth (`source-atop`), and nothing of
   him below the far shore line (clipped, or he showed through the water as a ghost).
+
+## Round 12 (user)
+
+> La música no suena para nada japonesa y los ritmos no pegan en absoluto con las escenas.
+> Tanto los trazos de los personajes como del kuroko, son muy muy poco currados. El Kuroko no
+> me inspira nada, no entiendo en qué momento pasa todo a mal. Las máscaras igual, no se
+> entiende. … Revelación por pasos · Kawaraban · Por escenas, solo japonesa
+
+- Story told in steps. 11.0 s: only a black sleeve comes down out of the sky over the bridge
+  and lets broadsheets (kawaraban, the Edo news sheets; they replace the phones, which were
+  out of period) see-saw down into each pair of hands; nobody looks up. 17.5–21 s: one sheet
+  comes up to the camera and fills the frame, a woodblock print headed 対岸に鬼あり («there
+  are demons on the other bank»): in its picture the neighbour across the river grows a
+  horned shadow and an oni face while we read. The wind takes it, and behind it everyone
+  already wears the mask (no more flying slogans). 26.3 s: at the first shout the camera pulls
+  back and up (zoom 1.12 → 0.7) and finds the whole kuroko for the first time, arms raised
+  like a puppeteer's, a control cross in each sleeve, a black string down to every sheet.
+  In act 2 the sheets are let go and blow out over the river.
+- Brushwork: the adults are painted, not cut out (a faint wash, a heavy curved stroke down
+  the back pressed at the shoulder and running dry at the hem, a lighter front stroke, a
+  sleeve that swells to its mouth, the kasa as one flat pressed stroke). The kuroko is
+  painted like a mountain: a blurred ink halo, five broad body strokes dissolving into
+  bristles, a pressed shoulder arc, a dome hood and a lighter faceless veil (paper under it:
+  `tone` is alpha, a grey over black stayed black).
+- Music: seven ElevenLabs pieces, one per scene, traditional Japanese instruments only
+  (koto, shakuhachi, shamisen, taiko): A 0–12 koto and shakuhachi greeting, B 12–18 sparse
+  shamisen and one taiko for the sleeve, C 18–26 taiko heartbeat quickening to the crack,
+  D 26–32 kumi-daiko and tsugaru shamisen for the quarrel, E 32–43 lone shakuhachi in the
+  rain and koto for the kite, F 43–57 a rising koto melody, G 57–68 the resolution. Four takes
+  each; picked by loudness per second against the scene (several takes died to silence
+  halfway, one was silent). Laid at each scene's start and crossfaded 0.4 s across the cut.
+  Effects: paper flutter for each falling sheet and for the close-up, the rumble moved to
+  the reveal.
