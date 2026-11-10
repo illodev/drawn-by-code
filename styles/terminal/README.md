@@ -24,7 +24,7 @@ npm run preview    # http://127.0.0.1:5173
 | File | What it gives |
 |---|---|
 | `template.js` | someone types a command, a moon made of characters rises behind a skyline typed into the grid, a line resolves out of noise |
-| `term.js` | `Term`: the grid (cells, large text, boxes, the cursor), pictures turned into characters by shape matching, typing and printing in time, the tube (bloom, scanlines, vignette, grain) and glitches |
+| `term.js` | `Term`: the grid (cells, large text, boxes with square or rounded corners, meters, the cursor), pictures turned into characters by shape matching, materials (a hue that stands for a texture), light as a pass of its own, typing and printing in time, the tube (bloom, scanlines, vignette, grain) and glitches |
 
 Font: JetBrains Mono (OFL), in `fonts/`.
 

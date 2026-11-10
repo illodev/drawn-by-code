@@ -37,9 +37,9 @@ const Term = (() => {
     // --- the glyph table ----------------------------------------------------------------
     let ASCII = '';
     for (let c = 33; c < 127; c++) ASCII += String.fromCharCode(c);
-    const LATIN = 'áéíóúüñÁÉÍÓÚÜÑ¿¡·«»©®°±×÷…—•→←↑↓™¯';
-    const BOX = '─│┌┐└┘├┤┬┴┼═║╔╗╚╝';
-    const BLOCK = '█▓▒░▀▄▌▐●';
+    const LATIN = 'áéíóúüñÁÉÍÓÚÜÑ¿¡·«»©®°±×÷…—•→←↑↓™¯¦≡≈';
+    const BOX = '─│┌┐└┘├┤┬┴┼═║╔╗╚╝╭╮╰╯╠╣╦╩╬';
+    const BLOCK = '█▓▒░▀▄▌▐●○■□▮▯▁▂▃▅▆▇►◄▲▼◆';
     const GLYPHS = [' ', ...ASCII, ...LATIN, ...BOX, ...BLOCK];
     const INDEX = new Map(GLYPHS.map((ch, i) => [ch, i]));
     const gi = (ch) => INDEX.get(ch) ?? INDEX.get('?');
@@ -75,6 +75,21 @@ const Term = (() => {
         const cx = x + Math.round((w - th) / 2), cy = y + Math.round((h - th) / 2);
         const H = (a, b) => g.fillRect(a, cy, b - a, th), V = (a, b) => g.fillRect(cx, a, th, b - a);
         const L = x, R = x + w, T = y, B = y + h, mx = cx + th, my = cy + th;
+        const ring = (path) => { g.save(); g.lineWidth = th; g.strokeStyle = g.fillStyle; g.beginPath(); path(); g.stroke(); g.restore(); };
+        const tri = (x0, y0, x1, y1, x2, y2) => { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.lineTo(x2, y2); g.fill(); };
+        // a corner's arc: centre (ax, ay) on the cell's corner, radii to the mid-edges
+        const arc = (ax, ay, a0, a1) => {
+            g.save();
+            g.beginPath();
+            g.rect(x, y, w, h);
+            g.clip();
+            g.lineWidth = th;
+            g.strokeStyle = g.fillStyle;
+            g.beginPath();
+            g.ellipse(ax, ay, Math.abs(ax - (cx + th / 2)), Math.abs(ay - (cy + th / 2)), 0, a0, a1);
+            g.stroke();
+            g.restore();
+        };
         const dots = (level) => {
             // stipple on a grid of w/3: level 1 = quarter, 2 = checker, 3 = three quarters
             const s = Math.max(1, Math.round(w / 6));
@@ -86,6 +101,31 @@ const Term = (() => {
         switch (ch) {
             case '█': g.fillRect(x, y, w, h); return true;
             case '●': g.beginPath(); g.arc(x + w / 2, y + h / 2, w * 0.42, 0, Math.PI * 2); g.fill(); return true;
+            case '○': ring(() => g.arc(x + w / 2, y + h / 2, w * 0.36, 0, Math.PI * 2)); return true;
+            case '■': g.fillRect(x + Math.round(w * 0.12), y + Math.round(h / 2 - w * 0.38), Math.round(w * 0.76), Math.round(w * 0.76)); return true;
+            case '□': ring(() => g.rect(x + w * 0.16, y + h / 2 - w * 0.34, w * 0.68, w * 0.68)); return true;
+            case '▮': g.fillRect(x + Math.round(w * 0.2), y + Math.round(h * 0.2), Math.round(w * 0.6), Math.round(h * 0.6)); return true;
+            case '▯': ring(() => g.rect(x + w * 0.24, y + h * 0.22, w * 0.52, h * 0.56)); return true;
+            case '▁': case '▂': case '▃': case '▅': case '▆': case '▇': {
+                const hh = Math.round((h * { '▁': 1, '▂': 2, '▃': 3, '▅': 5, '▆': 6, '▇': 7 }[ch]) / 8);
+                g.fillRect(x, y + h - hh, w, hh);
+                return true;
+            }
+            case '►': tri(x + w * 0.1, y + h * 0.26, x + w * 0.9, y + h / 2, x + w * 0.1, y + h * 0.74); return true;
+            case '◄': tri(x + w * 0.9, y + h * 0.26, x + w * 0.1, y + h / 2, x + w * 0.9, y + h * 0.74); return true;
+            case '▲': tri(x + w * 0.05, y + h * 0.68, x + w / 2, y + h * 0.3, x + w * 0.95, y + h * 0.68); return true;
+            case '▼': tri(x + w * 0.05, y + h * 0.32, x + w / 2, y + h * 0.7, x + w * 0.95, y + h * 0.32); return true;
+            case '◆': g.beginPath(); g.moveTo(x + w / 2, y + h / 2 - w * 0.48); g.lineTo(x + w * 0.96, y + h / 2); g.lineTo(x + w / 2, y + h / 2 + w * 0.48); g.lineTo(x + w * 0.04, y + h / 2); g.fill(); return true;
+            // rounded corners: a quarter of a circle that meets the straight lines mid-edge
+            case '╭': arc(x + w, y + h, Math.PI, Math.PI * 1.5); return true;
+            case '╮': arc(x, y + h, Math.PI * 1.5, Math.PI * 2); return true;
+            case '╰': arc(x + w, y, Math.PI * 0.5, Math.PI); return true;
+            case '╯': arc(x, y, 0, Math.PI * 0.5); return true;
+            case '╠': g.fillRect(cx - th, T, th, h); g.fillRect(cx + th, T, th, cy - T); g.fillRect(cx + th, cy + th, th, B - cy - th); g.fillRect(cx + th, cy - th, R - cx - th, th); g.fillRect(cx + th, cy + th, R - cx - th, th); return true;
+            case '╣': g.fillRect(cx + th, T, th, h); g.fillRect(cx - th, T, th, cy - T); g.fillRect(cx - th, cy + th, th, B - cy - th); g.fillRect(L, cy - th, cx - L, th); g.fillRect(L, cy + th, cx - L, th); return true;
+            case '╦': g.fillRect(L, cy - th, w, th); g.fillRect(L, cy + th, cx - L, th); g.fillRect(cx + th, cy + th, R - cx - th, th); g.fillRect(cx - th, cy + th, th, B - cy - th); g.fillRect(cx + th, cy + th, th, B - cy - th); return true;
+            case '╩': g.fillRect(L, cy + th, w, th); g.fillRect(L, cy - th, cx - L, th); g.fillRect(cx + th, cy - th, R - cx - th, th); g.fillRect(cx - th, T, th, cy - T); g.fillRect(cx + th, T, th, cy - T); return true;
+            case '╬': g.fillRect(L, cy - th, cx - L, th); g.fillRect(cx + th, cy - th, R - cx - th, th); g.fillRect(L, cy + th, cx - L, th); g.fillRect(cx + th, cy + th, R - cx - th, th); g.fillRect(cx - th, T, th, cy - T); g.fillRect(cx + th, T, th, cy - T); g.fillRect(cx - th, cy + th, th, B - cy - th); g.fillRect(cx + th, cy + th, th, B - cy - th); return true;
             case '▀': g.fillRect(x, y, w, Math.round(h / 2)); return true;
             case '▄': g.fillRect(x, y + Math.round(h / 2), w, h - Math.round(h / 2)); return true;
             case '▌': g.fillRect(x, y, Math.round(w / 2), h); return true;
@@ -233,7 +273,7 @@ const Term = (() => {
         const [pic, pg] = canvas(bw, bh, { willReadFrequently: true });
         const lum = new Float32Array(bw * bh), v = new Float32Array(D);
         const sMax = new Float32Array(N), sLo = new Float32Array(N), sSum = new Float32Array(N), sA = new Float32Array(N);
-        const sCx = new Float32Array(N), sCy = new Float32Array(N), sInk = new Uint8Array(N);
+        const sCx = new Float32Array(N), sCy = new Float32Array(N), sInk = new Uint8Array(N), sMat = new Uint8Array(N);
         // the grid
         const glyph = new Uint16Array(N), ink = new Uint8Array(N), level = new Uint8Array(N), bold = new Uint8Array(N);
         const back = new Uint8Array(N), backLevel = new Uint8Array(N);
@@ -383,9 +423,10 @@ const Term = (() => {
                 return T;
             },
 
-            // A frame of box-drawing characters; o.double for ═║, o.title for a caption in the top edge.
+            // A frame of box-drawing characters; o.double for ═║, o.round for rounded corners,
+            // o.title for a caption in the top edge.
             box(c, r, w, h, o = {}) {
-                const [tl, tr, bl, br, hz, vt] = o.double ? '╔╗╚╝═║' : '┌┐└┘─│';
+                const [tl, tr, bl, br, hz, vt] = o.double ? '╔╗╚╝═║' : o.round ? '╭╮╰╯─│' : '┌┐└┘─│';
                 for (let i = 1; i < w - 1; i++) T.put(c + i, r, hz, o).put(c + i, r + h - 1, hz, o);
                 for (let j = 1; j < h - 1; j++) T.put(c, r + j, vt, o).put(c + w - 1, r + j, vt, o);
                 T.put(c, r, tl, o).put(c + w - 1, r, tr, o).put(c, r + h - 1, bl, o).put(c + w - 1, r + h - 1, br, o);
@@ -408,6 +449,10 @@ const Term = (() => {
             //   o.ramp   characters for flat areas, sparse to dense (defaults to the set's)
             //   o.fill   a text poured into the flat lit cells instead of ramp characters
             //            (o.fillLevel: how bright, 0..1)
+            //   o.mats   materials: [{ color, ramp, ink, dim, fill }]. Paint a part in a shade
+            //            of `color` and its flat cells take `ramp` instead of the picture's
+            //            (hair in strands, a suit in pinstripes); `fill: false` keeps a
+            //            poured text out of it
             //   o.ink    force an ink (otherwise the nearest ink to the painted colour)
             //   o.gain   multiplies the light before choosing (1)
             //   o.min    light below this leaves the cell as it was (0.06)
@@ -435,6 +480,11 @@ const Term = (() => {
                 const gain = o.gain ?? 1, min = o.min ?? 0.06, edge = o.edge ?? 0.3, dim = o.dim ?? 1;
                 const forced = o.ink ? inkId(o.ink) : -1;
                 const fillText = o.fill ? [...o.fill] : null;
+                // materials: a painted colour that stands for a texture of its own
+                const mats = (o.mats ?? []).map((m) => {
+                    const [r, g2, b] = hexRgb(m.color), len = Math.hypot(r, g2, b) || 1;
+                    return { dir: [r / len, g2 / len, b / len], ramp: m.ramp ? [...m.ramp].map(gi) : null, ink: m.ink ? inkId(m.ink) : inkId('ink'), dim: m.dim ?? 1, fill: m.fill !== false };
+                });
                 const slackX = o.slack ?? 2, slackY = Math.min(1, o.slack ?? 1);   // samples a stroke may sit off-centre
                 // light per sample
                 for (let q = 0, n = 0; n < bw * bh; n++, q += 4) {
@@ -460,19 +510,21 @@ const Term = (() => {
                     sMax[i] = max; sLo[i] = lo; sSum[i] = sum; sA[i] = A;
                     sCx[i] = sum ? mx / sum / (SX - 1) : 0.5;
                     sCy[i] = sum ? my / sum / (SY - 1) : 0.5;
-                    // nearest ink by direction of the colour
-                    let best = 0, bs = -1;
-                    if (forced >= 0) best = forced;
-                    else {
-                        const len = Math.hypot(R, G, B) || 1;
-                        for (let n = 0; n < inkRgb.length; n++) {
-                            if (n === BG) continue;
-                            const [ir, ig, ib] = inkRgb[n];
-                            const q = (R * ir + G * ig + B * ib) / (len * Math.hypot(ir, ig, ib));
-                            if (q > bs) { bs = q; best = n; }
-                        }
+                    // nearest ink, or material, by direction of the colour
+                    let best = 0, bs = -1, mat = 0;
+                    const len = Math.hypot(R, G, B) || 1;
+                    for (let n = 0; n < inkRgb.length; n++) {
+                        if (n === BG) continue;
+                        const [ir, ig, ib] = inkRgb[n];
+                        const q = (R * ir + G * ig + B * ib) / (len * Math.hypot(ir, ig, ib));
+                        if (q > bs) { bs = q; best = n; }
                     }
-                    sInk[i] = best;
+                    for (let n = 0; n < mats.length; n++) {
+                        const d = mats[n].dir, q = (R * d[0] + G * d[1] + B * d[2]) / len;
+                        if (q > bs) { bs = q; best = mats[n].ink; mat = n + 1; }
+                    }
+                    sInk[i] = forced >= 0 ? forced : best;
+                    sMat[i] = mat;
                 }
                 // pass 2 · a character for each
                 let poured = 0;
@@ -481,16 +533,17 @@ const Term = (() => {
                     const max = sMax[i], lo = sLo[i], sum = sSum[i];
                     // dark: if it was painted, it hides what was behind; untouched, it leaves it
                     if (max < min) { clear(i); continue; }
-                    const mean = sum / D;
+                    const mean = sum / D, M = sMat[i] ? mats[sMat[i] - 1] : null;
                     let g = 0, bright = mean;
                     const flat = max - lo < edge * Math.max(max, 0.25);
-                    if (fillText && (flat || o.fillAll)) {
+                    if (fillText && (flat || o.fillAll) && (!M || M.fill)) {
                         // a text poured into the body of the shape; its edges stay matched
                         g = gi(fillText[(o.fillFlow ? poured++ : c + r * (o.fillShift ?? 7)) % fillText.length]);
                         bright = o.fillLevel ?? (flat ? mean : max * 0.6);
                     } else if (flat) {
                         // flat: a character from the ramp by brightness
-                        g = ramp[Math.min(ramp.length - 1, Math.round(Math.pow(mean, o.gamma ?? 0.8) * (ramp.length - 1)))];
+                        const rp = M && M.ramp ? M.ramp : ramp;
+                        g = rp[Math.min(rp.length - 1, Math.round(Math.pow(mean, o.gamma ?? 0.8) * (rp.length - 1)))];
                     } else {
                         // A stroke or an edge crosses the cell. Two cells must not both claim
                         // a stroke that runs along the border between them, and a sliver of a
@@ -536,7 +589,7 @@ const Term = (() => {
                     glyph[i] = g;
                     bold[i] = o.bold ? 1 : 0;
                     back[i] = 0;
-                    level[i] = Math.max(1, Math.min(LEVELS, Math.round(Math.pow(bright, o.levelGamma ?? 0.7) * dim * LEVELS)));
+                    level[i] = Math.max(1, Math.min(LEVELS, Math.round(Math.pow(bright, o.levelGamma ?? 0.7) * dim * (M ? M.dim : 1) * LEVELS)));
                     ink[i] = sInk[i];
                 }
                 return T;
@@ -576,7 +629,7 @@ const Term = (() => {
                         const i = r * cols + c;
                         let gl = glyph[i];
                         if (corrupt > 0 && frnd() < corrupt * (gl ? 1 : 0.06)) gl = 1 + Math.floor(frnd() * 94);
-                        if (!gl) continue;
+                        if (!gl && !back[i]) continue;
                         const x = Math.round(c * pcw);
                         if (back[i]) {
                             gg.fillStyle = tone(back[i] - 1, backLevel[i]);

@@ -107,7 +107,7 @@ how you made it too.
 <td width="50%" valign="top">
 <a href="sandbox/2026-11-10-one-or-zero/"><img src="sandbox/2026-11-10-one-or-zero/render/one-or-zero.gif" alt="one-or-zero"></a><br>
 <b><a href="sandbox/2026-11-10-one-or-zero/">one-or-zero</a></b> · terminal · 10 s (style test) · <a href="sandbox/2026-11-10-one-or-zero/render/one-or-zero.mp4">mp4</a><br>
-<sub>A carriage at night on a text-mode screen: someone in a hood types <code>cat people/*</code> and the red cursor walks the bench, turning every passenger into their own words and the same three-line record. Every pixel is a character on one grid; the people are line drawings turned into <code>| / \ _ ( )</code> by shape matching. The first shot of a film on the ideas of «Mr. Robot»; music by ElevenLabs.</sub>
+<sub>A carriage at night on a text-mode screen: someone in a hood types <code>cat people/*</code> and the red cursor walks the bench, turning every passenger into their own words and the same three-line record. Every pixel is a character on one grid: the carriage is typed (ads, the line's map, a sign that scrolls), the people are line drawings turned into <code>| / \ _ ( )</code> by shape matching, each in a material of their own, and the terminal has its bars, panes and readings. The first shot of a film on the ideas of «Mr. Robot»; music by ElevenLabs.</sub>
 </td>
 <td width="50%" valign="top"></td>
 </tr>

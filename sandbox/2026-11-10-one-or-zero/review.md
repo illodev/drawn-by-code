@@ -75,6 +75,45 @@ the style test for it (the carriage, `cat people/*`), in a style made for the fi
 - On-screen text is English (records, command, sentence); the brief says so.
 - Music comes from the connector (above).
 
+## Round 4 (user)
+
+> «Creo que hacen falta muchos más detalles a nivel de diseño»
+
+The frame was correct and bare: four outlined people on two lines of bench, empty window
+frames, a prompt. Translated into a pass on everything that is designed:
+
+- **Grid:** 192 × 54 on a 1920 × 1080 logical frame (was 160 × 45): 44 % more cells, glyphs
+  still whole pixels (10 × 20 at 1920).
+- **The set** (`set.js`, typed): a ceiling with panel joints and tubes; a strip of cards
+  over the windows with copy from the film's world («FEEL BETTER™ ask for the blue one»,
+  «SMILE. you are on camera 14», «IN CASE OF DOUBT keep scrolling», «-50% TODAY you
+  deserve»); the map of LINE 7, a loop (wake, work, want, buy, owe, sleep, wake) with the
+  next stop blinking; a sign that scrolls in cyan with a running clock; a rail whose straps
+  swing in a wave on every rail joint; rounded windows with a reflection of the tube, the
+  tunnel's ribs, cables, lamps and a painted number going by; a padded bench in cushions,
+  its edge, the heater's slats; a floor with a joint, speckle and litter; poles with a
+  collar; a door with its light; the glazed end panel with «DO NOT LEAN».
+- **The terminal as a product** (`ui.js`): a top bar (tty, user@host:path, the running
+  command, CPU meters that jump when a record is read, memory, network, a clock that
+  runs), a bottom bar with the session's windows, one per command of the film
+  (`0:people* 1:real 2:find 3:ps 4:kill`); the pane is the end panel's glass, with a
+  title, a login line and a scroll bar; every record has a file name and its permissions
+  (`people/01 r--r--r--`, readable by anyone); every bracket an id, ticks and a reading.
+- **The people** (`cast.js`): each has a material of their own through `mats` (her hair in
+  strands, his pinstripe, the boy's denim and padded headphones, the old man's knit),
+  things (a striped scarf and a handbag; glasses and a badge; a cap, a hood, a skateboard
+  with grip tape; a flat cap, glasses, a moustache, a cane with a crook), a nose, shoes
+  with a sole, boots. The dog is fur with two eyes and a nose cut out as whole cells. A
+  phone is a block of 4 × 4 cells of cyan and lights the jaw above it.
+- **The lead:** twice the cells; the cloth is lit (the lamps on the crown and the front of
+  the hood, falling off toward his back) and painted as its own pass; stubble; the strap
+  of a pack with a buckle; drawstrings with tips. Brow and nose in the lamps' white;
+  lips, chin and jaw in the red of his own screen, like his eye.
+- Three things went wrong on the way and are now rules in the style's skill: a bright
+  material swallowed the outlines over it; shading in the same pass as strokes gave stray
+  parentheses; holes and blocks off the cell grid gave half-characters.
+- `review.mjs`: no warnings; 113 ms a frame at 960. Timing and sound unchanged.
+
 ## Open for the user
 
 - The look: the grid, the line-drawn people, the hood in profile with one red eye, the red

@@ -1,7 +1,8 @@
 # one-or-zero
 
 - **Style:** terminal (new, in testing: `styles/terminal/`, skill `style-terminal`)
-- **Format:** 16:9 · about 67 s · 24 fps (the style test is one shot, 10 s)
+- **Format:** 16:9 · about 67 s · 24 fps (the style test is one shot, 10 s). One grid for
+  the whole film: 192 × 54 characters on a 1920 × 1080 frame.
 - **Purpose / audience:** a short film for the repo's gallery, built on the ideas of the
   series «Mr. Robot» (created by Sam Esmail, USA Network, 2015–2019). A fan piece: the
   user chose four passages they like (people and their vulnerabilities; «are you a one or
