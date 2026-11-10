@@ -45,8 +45,9 @@
         ['clay', 'Clay', 'Plasticine in 2D: pieces lit from the top left, fingerprints, tool marks and a waxy sheen.', 0, 249, 29],
         ['kaleidoscope', 'Kaleidoscope', 'Radial mirror symmetry; pieces born at the centre, rotation and colour cycling.', 1, 53, 30],
         ['line', 'Line', 'A black line on white paper that wobbles on purpose, at twelve drawings a second.', 1, 74, 28],
+        ['terminal', 'Terminal', 'A text-mode screen: every picture is turned into characters on one grid, phosphor glow, one red.', 0, 686, 75],
     ];
-    const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV'];
+    const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
 
     // [date, experiment folder, what the note found (a headline), what it became, file]
     const NOTES = [

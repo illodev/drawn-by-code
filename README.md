@@ -103,6 +103,14 @@ how you made it too.
 <sub>A river village where every greeting ties a red thread. Screens and slogans split it into two banks, the threads snap and the red drains out of the world, until a girl's red kite carries one thread back across the river and the threads weave a new bridge. Japanese ink painting on washi, every brushstroke drawn in code, the text written vertically in Japanese; score by ElevenLabs Music, effects synthesized.</sub>
 </td>
 </tr>
+<tr>
+<td width="50%" valign="top">
+<a href="sandbox/2026-11-10-one-or-zero/"><img src="sandbox/2026-11-10-one-or-zero/render/one-or-zero.gif" alt="one-or-zero"></a><br>
+<b><a href="sandbox/2026-11-10-one-or-zero/">one-or-zero</a></b> · terminal · 10 s (style test) · <a href="sandbox/2026-11-10-one-or-zero/render/one-or-zero.mp4">mp4</a><br>
+<sub>A carriage at night on a text-mode screen: someone in a hood types <code>cat people/*</code> and the red cursor walks the bench, turning every passenger into their own words and the same three-line record. Every pixel is a character on one grid; the people are line drawings turned into <code>| / \ _ ( )</code> by shape matching. The first shot of a film on the ideas of «Mr. Robot»; music by ElevenLabs.</sub>
+</td>
+<td width="50%" valign="top"></td>
+</tr>
 </table>
 
 Every experiment, with its status and main lesson, is in [`sandbox/INDEX.md`](sandbox/INDEX.md).
@@ -126,6 +134,7 @@ to see its strip, files and the videos made with it.
 | [felt3d](styles/felt3d/)             | needle-felted wool puppets, raymarched, over any backdrop                               | in testing |
 | [engraving](styles/engraving/)       | a plate of the «Description de l'Égypte» drawn in charcoal on old paper, temple reliefs | in testing |
 | [sumi-e](styles/sumi-e/)             | Japanese ink on washi: dry brush, washes in mist, vermilion as the only colour           | in testing |
+| [terminal](styles/terminal/)         | a text-mode screen: everything is a character on one grid, phosphor glow, one red        | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 

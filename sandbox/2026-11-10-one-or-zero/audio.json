@@ -1,0 +1,26 @@
+{
+    "music": "out/music-bed.wav",
+    "musicDb": 0,
+    "duration": 10,
+    "sfxDir": "../../assets/sfx",
+    "align": "onset",
+    "cues": [
+        ["typing", 0.45, -15],
+        ["typing", 1.0, -15],
+        ["button_click", 1.78, -12],
+        ["glitch", 1.875, -12],
+        ["scan", 1.92, -17],
+        ["tap", 2.33, -20],
+        ["tap", 3.04, -20],
+        ["tap", 3.76, -20],
+        ["scan", 4.6875, -19],
+        ["scan", 5.469, -20],
+        ["scan", 6.094, -20],
+        ["glitch", 6.875, -10],
+        ["calc_glitch", 6.9, -17],
+        ["typing", 7.19, -15],
+        ["typing", 7.7, -16],
+        ["typing", 8.2, -15],
+        ["typing", 8.7, -16]
+    ]
+}
