@@ -301,6 +301,7 @@
         // it shoots up out of its socket over two drawings, and springs open on the beat
         const bOpen = at(t, BROLLY) ? Math.min(1, pop(t, BROLLY, 0.22)) : 0, uo = { open: bOpen, tilt: -0.3 + 0.05 * bump2(t, BROLLY, 0.3), color: K.yellow };
         const upD = dAt(t, BROLLY - 2 / 12), out = upD < 0 ? 0 : [0.5, 0.82][upD] ?? 1;
+        W.split(g, k, () => W.onBandCar(g, BX, LANE, CAR, co, (g2) => wet(g2, t, { part: 'stacks' })), null);
         W.onBandCar(g, BX, LANE, CAR, co, (g2) => {
             if (out > 0) Rides.at(g2, CAR, socket, (px, py, sc) => W.umbrella(g2, px, py, sc * out, uo));
             V.brollyClamp(g2, CAR, jaw, socket);
@@ -350,8 +351,13 @@
         // the speakers: a sheet of water on the stacks, running over their front
         const top = dk - 3 * 0.88, a = [-4.3 + D[0] * 0.95, top + D[1] * 0.95], bb = [-4.3 + 1.72 + D[0] * 0.95, top + D[1] * 0.95];
         const full = seg2(t, wetAt(...carPt([-3.4, -3.5])), wetAt(...carPt([-3.4, -3.5])) + 0.5);
-        V.waterHat(g, CAR, t, a, bb, [D[0] * 0.5, D[1] * 0.5], full);
-        W.drips(g, (a[0] + bb[0]) / 2, a[1] + 0.12, 1.5, t, 5, { w: 1.5 / 1.5, len: 0.5 });
+        // (its own pass, before Stan's umbrella: the stacks stand behind him, so the umbrella
+        // must cover their water, never the other way round)
+        if (o.part === 'stacks') {
+            V.waterHat(g, CAR, t, a, bb, [D[0] * 0.5, D[1] * 0.5], full);
+            W.drips(g, (a[0] + bb[0]) / 2, a[1] + 0.12, 1.5, t, 5, { w: 1.5 / 1.5, len: 0.5 });
+            return;
+        }
         // the deck: rain on the boards, water off its edge
         const boards = [];
         for (let i = 0; i < 9; i++) boards.push([-2.3 + i * 0.44 + (i % 2) * 0.1, dk - 0.02 - (i % 3) * 0.07]);

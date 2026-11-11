@@ -5,7 +5,10 @@
 // of the box's rail, a tail that can tick like a metronome, legs that can stamp on each other,
 // his two box ushers, and the venue seen past him with its darks closed up.
 // Units: his own (devil.js: 1 ≈ a head's width, the origin on the ground between the hooves).
-// Global: HellhoofProps. Depends on Cereal, Song, Cast, Devil, Fx, Rig, Inferno, Chorus1Props.
+// The house is chorus 3's: what the car threw off (Chorus3Props.dressing), the title on the
+// banner (Chorus3Props.title) and the Devil's sore nose (Chorus3Props.devil) come from there.
+// Global: HellhoofProps. Depends on Cereal, Song, Cast, Devil, Fx, Rig, Inferno, Chorus1Props
+// (the cactus), Verse3bProps and Chorus3Props.
 const HellhoofProps = (() => {
     const C = Cereal, K = C.COL, E = Ease, S = Song, TAU = Math.PI * 2;
     const D = Cast.D, Dd = Cast.Dd, DP = Devil.P;
@@ -13,6 +16,8 @@ const HellhoofProps = (() => {
     const TORSO = Devil.TORSO, SH_R = [TORSO.x + 0.03, TORSO.y + 0.14], SH_L = [TORSO.x + TORSO.w - 0.03, TORSO.y + 0.14];
     const HIP = -(TORSO.y + TORSO.h); // 0.36: the body rocks about it
     const NO = [NaN, NaN]; // a mitt Devil.draw is asked not to draw (the canvas ignores a path that is not a number)
+    const C3 = Chorus3Props, COLD = { scarf: false, nose: 1 }; // he has thrown the scarf; the sore nose of his cold stays
+    const SCARF_AT = 142.7083; // when the scarf came down on the imp's mallet (chorus 3)
     const lerp = (a, b, u) => a + (b - a) * u;
     const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
     const rot = ([x, y], a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
@@ -205,6 +210,19 @@ const HellhoofProps = (() => {
         mouth(g, L, f.mouth ?? 'flat', f.mk ?? 1);
         moustache(g, L, f.droop ?? 0);
         goatee(g, L);
+        // the sore nose of his cold, as Chorus3Props.devil paints it
+        const nr = 0.082 * COLD.nose;
+        g.beginPath();
+        g.arc(0.045, -1.225, nr, 0, TAU);
+        g.fillStyle = K.pink;
+        g.fill();
+        g.strokeStyle = K.ink;
+        g.lineWidth = L;
+        g.stroke();
+        g.beginPath();
+        g.arc(0.02, -1.25, nr * 0.3, 0, TAU);
+        g.fillStyle = '#ffffff';
+        g.fill();
         if (f.sweat > 0) {
             const u = clamp(f.sweat), bx = 0.4, by2 = T + 0.44 + 0.26 * u, r = 0.034;
             C.poly(g, [[bx, by2 - r * 2], ...C.ellipsePts(bx, by2, r, r, 10, 0, -0.5, Math.PI + 0.5)], { fill: '#bfeaff', ink: DP.ink, lw: L * 0.8 });
@@ -384,7 +402,7 @@ const HellhoofProps = (() => {
     }
 
     /**
-     * The Devil for this block: Devil.draw's body and head (no arms: draw them with arms(), no
+     * The Devil for this block: Devil.draw's body and head through Chorus3Props.devil (no scarf, the sore nose; no arms: draw them with arms(), no
      * tail: draw it with tail() first), then what the pose adds.
      *   pose: Devil.draw's { squash, lean, headDy, headTilt, mood, eyes, look, step, shadow } plus
      *         rock (the body turned about the hips), face (see face(); null keeps devil.js's own),
@@ -408,7 +426,7 @@ const HellhoofProps = (() => {
             g.closePath();
             g.clip();
         }
-        Devil.draw(g, x, y, s, { ...pose, handR: NO, handL: NO, trident: false, contract: false, pointer: null, tail: pose.clip === 'legs' ? 0 : NaN, shadow: pose.clip === 'legs' ? false : pose.shadow });
+        C3.devil(g, x, y, s, { ...pose, handR: NO, handL: NO, trident: false, contract: false, pointer: null, tail: pose.clip === 'legs' ? 0 : NaN, shadow: pose.clip === 'legs' ? false : pose.shadow }, COLD);
         g.restore();
         if (pose.face || pose.quiff > 0.01 || pose.lock > 0.01) {
             body(g, x, y, s, pose, (L) => inHead(g, pose, () => {
@@ -454,7 +472,7 @@ const HellhoofProps = (() => {
     // The camera on the set for the close shots: the banner at his head's height on the left, the
     // band under it, the front rows along the bottom. His box is drawn over it far larger than the
     // set's own (a long lens from beside the box).
-    const PAST = { k: 1.25, cx: 692, cy: 530 };
+    const PAST = { k: 1.18, cx: 703, cy: 542 };
     const SEATS = Rides.bandCarSeats(), WHEEL = [SEATS.wheel[0] - SEATS.driver[0] - 0.07, SEATS.wheel[1] - SEATS.driver[1] + 0.02];
     // the band as the chorus leaves it: Tom up front singing, the cactus in shades at the wheel
     const bandOn = (g, t, car, o = {}) => {
@@ -465,19 +483,32 @@ const HellhoofProps = (() => {
             ...o,
         });
     };
-    const HOUSE = { heat: 1, density: 1, hype: 1, lighters: 0.35 }; // the house at full tilt
+    const HOUSE = { heat: 1, density: 1, hype: 1, lighters: 0.35, wave: null }; // the house at full tilt
+    // what the car threw off in chorus 3, where it stays: part 'back' after the venue, 'stage' after the band, 'front' after the crowd
+    const dress = (g, t, view, part) => C3.dressing(g, t, { view, pan: 0, hype: HOUSE.hype, lighters: HOUSE.lighters, wave: HOUSE.wave, part, scarf: t - SCARF_AT });
+    /**
+     * The whole house in a view, in the venue's own order, with chorus 3's dressing:
+     *   mid(g, St) draws between the venue and the band (his box), St = Inferno.stage(view, 0)
+     */
+    function house(g, t, view, mid = null) {
+        const bk = S.pulseAt(t).pulse, vo = { view, pan: 0, heat: HOUSE.heat, beatK: bk }, St = Inferno.stage(view, 0);
+        Inferno.venue(g, t, vo);
+        dress(g, t, view, 'back');
+        if (mid) mid(g, St);
+        bandOn(g, t, St.car);
+        dress(g, t, view, 'stage');
+        Inferno.beams(g, t, { ...vo, front: true });
+        Inferno.crowd(g, t, { ...vo, density: HOUSE.density, hype: HOUSE.hype, lighters: HOUSE.lighters, wave: HOUSE.wave });
+        dress(g, t, view, 'front');
+    }
     /**
      * The stage and the house past him, out of focus in the cel way: the whole venue as it is,
      * then every dark closed up into one tone (the outlines go with it) and the lights' top
      * taken off, so nothing behind him is drawn in ink.
-     *   o: { title: { at: [t1, t2, t3], out } the title's words on the banner (Chorus1Props.title) }
+     *   o: { title: { at: [t1, t2, t3], out } the title on the banner (Chorus3Props.title), in full ink: it is the hit }
      */
     function past(g, t, o = {}) {
-        const bk = S.pulseAt(t).pulse, vo = { view: PAST, pan: 0, heat: HOUSE.heat, beatK: bk }, St = Inferno.stage(PAST, 0);
-        Inferno.venue(g, t, vo);
-        bandOn(g, t, St.car);
-        Inferno.beams(g, t, { ...vo, front: true });
-        Inferno.crowd(g, t, { ...vo, density: HOUSE.density, hype: HOUSE.hype, lighters: HOUSE.lighters });
+        house(g, t, PAST);
         g.save();
         g.globalCompositeOperation = 'lighten';
         g.fillStyle = '#7a1832';
@@ -486,10 +517,7 @@ const HellhoofProps = (() => {
         g.fillStyle = '#ffd9b0';
         g.fillRect(-20, -20, 1040, 1040);
         g.restore();
-        if (o.title) {
-            const bn = St.banner;
-            Chorus1Props.title(g, t, bn.x + bn.w * 0.5 - 6, bn.y + bn.h * 0.34, { k: 0.46, ...o.title });
-        }
+        if (o.title) C3.title(g, t, { view: PAST, pan: 0, slam: true, ...o.title });
     }
     // A spot of the stage's rig crossing the box: a hard-edged flat wedge, screened.
     function sweep(g, t, o = {}) {
@@ -542,5 +570,5 @@ const HellhoofProps = (() => {
         }
     }
 
-    return { NO, SH_R, SH_L, body, inHead, devil, face, arms, arm, tail, TAIL, tailAt, mixPts, legs, usher, past, PAST, HOUSE, bandOn, sweep, hit, ticks, puff, hair, locks };
+    return { NO, SH_R, SH_L, body, inHead, devil, face, arms, arm, tail, TAIL, tailAt, mixPts, legs, usher, past, house, PAST, HOUSE, SCARF_AT, bandOn, sweep, hit, ticks, puff, hair, locks };
 })();

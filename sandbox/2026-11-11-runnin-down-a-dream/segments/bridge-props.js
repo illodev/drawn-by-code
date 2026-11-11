@@ -85,6 +85,32 @@ const BridgeProps = (() => {
         line(g, [[x0 + sx * 0.012, my + 0.07], [x0 + sx * 0.035, my + 0.14]], L * 0.7, '#d9486c');
     }
 
+    // The sore nose his cold left him (Chorus3Props.devil's own, for a Devil somebody else draws): inside head().
+    function nose(g, L, k = 1) {
+        const r = 0.082 * k;
+        if (r < 0.004) return;
+        for (const [x, y, rr, fill, lw] of [[0.045, -1.225, r, K.pink, L], [0.02, -1.25, r * 0.3, '#ffffff', 0]]) {
+            g.beginPath();
+            g.arc(x, y, rr, 0, TAU);
+            g.fillStyle = fill;
+            g.fill();
+            if (lw) {
+                g.strokeStyle = K.ink;
+                g.lineWidth = lw;
+                g.stroke();
+            }
+        }
+    }
+    // The cold leaves him: a puff of steam off the nose, three lobes that rise and thin out. u 0..1, (x, y) the nose.
+    function steam(g, x, y, r, u) {
+        if (u <= 0 || u >= 1) return;
+        const k = Math.sin(Math.min(1, u * 1.6) * PI * 0.5) * (u > 0.7 ? (1 - u) / 0.3 : 1);
+        for (const [dx, dy, rr] of [[-0.5, -0.9, 0.62], [0.55, -1.3, 0.78], [-0.1, -2.1, 0.56]]) {
+            const cx = x + dx * r * (0.6 + 0.6 * u), cy = y + dy * r * (0.5 + 1.2 * u);
+            C.poly(g, C.ellipsePts(cx, cy, rr * r * k, rr * r * k * 0.86, 14), { fill: K.white, ink: K.ink, lw: 2.6 });
+        }
+    }
+
     // =========================================================================================
     // Fire of any colour (Fx.flame's three tongues and its drawings; its line keeps its width: call it in frame units)
     // =========================================================================================
@@ -253,7 +279,8 @@ const BridgeProps = (() => {
     //   up 0..1: the arms rise from the kit;  click 0..1: the sticks' tips together
     const ST = BandRhythm.STAN, SEAT = BandRhythm.KIT.seat;
     const S_SH = { R: [SEAT[0] - 0.35, SEAT[1] - 0.55], L: [SEAT[0] + 0.35, SEAT[1] - 0.55] };
-    const PATCH = [[0.44, -1.03], [0.475, -1.2], [0.7, -1.022], [0.74, -1.005], [1.17, -0.95], [1.17, -0.83], [0.8, -0.77]]; // round the arm at the hi-hat
+    const HEAD_PIVOT = 0.3; // band-rhythm.js turns his head about this height over the seat
+    const PATCH = [[0.42, -1.0], [0.475, -1.2], [0.7, -1.022], [0.74, -1.005], [1.17, -0.95], [1.17, -0.8], [0.86, -0.66]]; // round the arm at the hi-hat
     const STUB = [[0.455, -1.118], [0.56, -1.152], [0.715, -1.03], [0.7, -0.985], [0.52, -0.94], [0.45, -0.975]]; // what is left of the other arm at the shoulder
     function stick(g, L, m, a, reach = 0.47, butt = 0.07) {
         const u = [Math.cos(a), Math.sin(a)], n = [-u[1] * 0.017, u[0] * 0.017];
@@ -294,6 +321,12 @@ const BridgeProps = (() => {
         Cast.arm(g, ST, L, S_SH.R, mR);
         stick(g, L, mL, aL);
         Cast.arm(g, ST, L, S_SH.L, mL);
+        // his head again, over the arms: they go up behind it (it is wider than his shoulders)
+        g.translate(SEAT[0], SEAT[1]);
+        g.translate(0, (pose.headDy ?? 0) + HEAD_PIVOT);
+        g.rotate(pose.headTilt ?? 0);
+        g.translate(0, -HEAD_PIVOT);
+        BandRhythm.stanHead(g, ST, L, pose);
         g.restore();
         // where the tips meet, for the click's mark (figure units from his ground point)
         return [cx, top - Math.sin(lean) * 0.47];
@@ -322,5 +355,5 @@ const BridgeProps = (() => {
         g.restore();
     }
 
-    return { SH, NO_HAND, frame, toLocal, toFrame, head, arm, tongue, FIRE, flame, fire, quarters, held, scrap, burnt, sourNote, cleanNote, ticks, twist, stanCount, stick, spot };
+    return { SH, NO_HAND, frame, toLocal, toFrame, head, arm, tongue, nose, steam, FIRE, flame, fire, quarters, held, scrap, burnt, sourNote, cleanNote, ticks, twist, stanCount, stick, spot };
 })();

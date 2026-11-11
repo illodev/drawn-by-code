@@ -8,7 +8,10 @@
 // the stage into the wall. Everything comes back at once and more: the title as it is sung,
 // a skeleton surfing the crowd, the front row singing along, the band at full tilt, and the
 // Devil sat by his socket wound in cable, getting up as the block ends.
-// Props: segments/hellplug-props.js (HellplugProps); the title and the cactus are chorus 1's.
+// Props: segments/hellplug-props.js (HellplugProps); the cactus is chorus 1's (Chorus1Props).
+// What chorus 3 established is taken from Chorus3Props when it is loaded (after
+// verse3b-props.js): the things the car threw off (dressing), the Devil's sore nose (devil),
+// the title on the banner (title), a cone for a front-row imp's hat (Verse3bProps.cone).
 (() => {
     const Seg = (window.Seg = window.Seg || {});
     const C = Cereal, K = C.COL, E = Ease, S = Song, I = Inferno, P = HellplugProps, P1 = Chorus1Props, twos = S.twos, b = S.b, B = S.B, TAU = Math.PI * 2, PI = Math.PI;
@@ -35,9 +38,13 @@
     // What chorus 3 left in the house (the trident in the gum, the arrow in the teeth, the barrier
     // on the lip, two cones for hats, the imp on a hard hat with the Devil's scarf on its mallet):
     // Chorus3Props.dressing, when that block is loaded. o: the venue's and the crowd's options.
-    const dress = (g, t, o, part) => {
-        if (typeof Chorus3Props !== 'undefined' && Chorus3Props.dressing) Chorus3Props.dressing(g, t, { ...o, part, scarf: t - T0 + 2 });
+    const C3 = typeof Chorus3Props !== 'undefined' ? Chorus3Props : null;
+    const dress = (g, t, o, part, tc = t) => {
+        if (C3) C3.dressing(g, tc, { ...o, part, scarf: t - 142.7083 });
     };
+    // The Devil as chorus 3 left him: the scarf thrown off, the sore nose of his cold still on
+    // him (Chorus3Props.devil wraps Devil.draw).
+    const drawDevil = (g, x, y, s, pose) => (C3 ? C3.devil(g, x, y, s, pose, { scarf: false, nose: 1 }) : Devil.draw(g, x, y, s, pose));
 
     // --- the Devil in set coordinates -----------------------------------------------------------
     // a set point in his own units, for a mitt: where he stands, how he leans and squashes
@@ -51,11 +58,11 @@
     };
     const devil = (g, St, at, pose) => {
         const p = St.at(at);
-        Devil.draw(g, p[0], p[1], St.car.s, pose);
+        drawDevil(g, p[0], p[1], St.car.s, pose);
     };
     const sat = (g, St, at, pose, o) => {
         const p = St.at(at);
-        P.seated(g, p[0], p[1], St.car.s, pose, o);
+        P.seated(g, p[0], p[1], St.car.s, pose, { draw: drawDevil, ...o });
     };
     // his eyes and mouth, for the night: shapes to fill on a context (c is in frame coordinates)
     const face = (c, St, at, pose, seat = false) => {
@@ -229,7 +236,7 @@
         P.layer(g, SIDE, 0, (L) => drawFx(g, L, fx, d));
         // the front row along the bottom: they stop in the air when the lights go
         I.crowd(g, tc, co);
-        dress(g, tc, co, 'front');
+        dress(g, t, co, 'front', tc);
         g.restore();
         if (dark) {
             // the night, with what still shines punched out of it: the flash at the socket, the
@@ -364,7 +371,11 @@
         const co = { ...o, hype: dark ? 0 : 1, lighters: nl };
         I.venue(g, t, o);
         dress(g, t, co, 'back');
-        if (!dark) P1.title(g, t, 506, 236, { at: TITLE_AT, out: TITLE_OUT, k: 0.8 });
+        // the title, word by word as it is sung: on the banner, as chorus 3 set it
+        if (!dark) {
+            if (C3) C3.title(g, t, { view: 'wide', pan, at: TITLE_AT, out: TITLE_OUT });
+            else P1.title(g, t, 506, 236, { at: TITLE_AT, out: TITLE_OUT, k: 0.8 });
+        }
         I.box(g, St.box.x, St.box.y, St.box.s, { t }); // his box, empty
         band(g, t, St, dark ? {} : { bounce: 0.25 * Pu.pulse });
         if (!dark) I.beams(g, t, { ...o, front: true });
@@ -458,7 +469,7 @@
     // =========================================================================================
     const HOUSE = { a: '#6a1221', b: '#8a1a2c', tooth: '#fff6e0', toothT: '#fffdf4', toothS: '#d9c39a' };
     const FRONT = [
-        { kind: 'imp', x: 150, y: 986, s: 300, wear: 'specs', hold: 'lighter', ph: 0 },
+        { kind: 'imp', x: 150, y: 986, s: 300, wear: 'specs', cone: true, hold: 'lighter', ph: 0 }, // one of the two who got a cone for a hat
         { kind: 'skeleton', x: 385, y: 1090, s: 205, hawk: K.green, tee: 1, hold: 'trident', ph: 0.5 },
         { kind: 'imp', x: 622, y: 990, s: 300, wear: 'bow', hold: 'lighter', ph: 0.5 },
         { kind: 'skeleton', x: 856, y: 1096, s: 205, hawk: K.yellow, tee: 3, hold: 'lighter', ph: 0 },
@@ -480,7 +491,9 @@
             const tip = [f.x + (hand[0] + dir[0] * 0.03) * u * (1 + sq), f.y - hop * u + (hand[1] + dir[1] * 0.03) * u * (1 - sq)];
             I.lighter(g, 3, tip[0] + sway * 2, tip[1], u * 1.5, 0.9, d, -0.2 + sway * 0.14);
         }
-        Devil.imp(g, f.x, f.y, u, { squash: sq, hop, mood: sing ? 'awe' : 'grin', look: f.look ?? 0, wear: f.wear, armUp: up, tail: 0.05 * Math.cos((Pu.k + Pu.since) * PI), shadow: false });
+        const coned = f.cone && typeof Verse3bProps !== 'undefined' && Verse3bProps.cone;
+        Devil.imp(g, f.x, f.y, u, { squash: sq, hop, mood: sing ? 'awe' : 'grin', look: f.look ?? 0, wear: coned ? null : f.wear, armUp: up, tail: 0.05 * Math.cos((Pu.k + Pu.since) * PI), shadow: false });
+        if (coned) Verse3bProps.cone(g, f.x + 0.02 * u, f.y - hop * u - 1.02 * u * (1 - sq) + 2, u * 1.1, -0.12); // as chorus 3's close shot of the pit wears it
     }
     const SUNG = S.WORDS.filter(([a]) => a >= T108 - 0.3 && a < T109).map(([a]) => S.snap(a)); // the words of the line, on their frames
     function singAlong(g, t, env) {
@@ -544,7 +557,7 @@
     function fullTilt(g, t, env) {
         const St = I.stage(FIN, 0), Pu = S.pulseAt(t), d = C.drawing(t), ph = Pu.k + Pu.since;
         const o = { view: FIN, pan: 0, heat: 1, beatK: Pu.pulse };
-        const tail = P.plugTail(HOME, 0), up = on(t, RISE), at = SIT;
+        const tail = P.plugTail(HOME, 0), up = on(t, RISE), hopping = on(t, STAND) && dr(t, STAND) % 2 === 1, at = hopping ? [SIT[0], SIT[1] - 5] : SIT;
         let pose, wrap = 3;
         if (!on(t, FIGHT)) pose = { mood: 'angry', look: 1, squash: 0.02 * Pu.pulse, headTilt: 0.05, tail: 0.5 + 0.06 * Math.sin(ph * PI) };
         else if (!up) {
@@ -556,7 +569,7 @@
             // up: the turns drop round his hooves, one stays on the hoof he lifts to shake it off
             const st = on(t, STAND), f = dr(t, st ? STAND : RISE);
             pose = st
-                ? { mood: 'angry', look: f % 4 < 2 ? 1 : -0.3, squash: steps(t, STAND, [0.02, 0.1, 0.08]), lean: 0.05, headTilt: 0.04, step: 1, tail: 0.1 * (f % 2 ? 1 : -1), handR: [-0.56, -0.62], handL: [0.6, -0.9 + (f % 2 ? 0.05 : 0)] }
+                ? { mood: 'angry', look: f % 4 < 2 ? 1 : -0.3, squash: steps(t, STAND, [0.02, 0.1, 0.08]), lean: 0.05, headTilt: 0.04, step: 1, tail: 0.1 * (f % 2 ? 1 : -1), handR: [-0.56, -0.62], handL: [0.8, -1.16 + (f % 2 ? 0.07 : 0)] }
                 : { mood: 'angry', look: 1, eyes: f < 1 ? 'shut' : 'open', squash: steps(t, RISE, [0.3, 0.24, 0.18, 0.14]), lean: 0.1, tail: 0.14, handR: [-0.5, -0.42], handL: [0.52, -0.42] };
         }
         const co = { ...o, hype: 1, lighters: 0.3 };
@@ -565,12 +578,16 @@
         band(g, t, St, { bounce: 0.3 * Pu.pulse });
         I.beams(g, t, { ...o, front: true });
         dress(g, t, co, 'stage');
-        const hoof = up && on(t, STAND) ? [at[0] + 0.19 * U + 3, at[1] - 0.25 * U] : null; // the hoof in the air
+        const hoof = up && on(t, STAND) ? [at[0] + 0.19 * U + 3, at[1] - 0.27 * U] : null; // the hoof in the air, the cable round its shin
         P.layer(g, FIN, 0, (L) => {
             P.socket(g, L, { live: 1, beat: Pu.pulse, face: 'calm', d });
             P.jack(g, L);
-            // the cable: from the plug down to the floor, to him, and on to the car
-            P.cable(g, L, C.curve([tail, [tail[0] + 16, tail[1] + 4], [tail[0] + 24, 770], [102, FLOOR], [150, FLOOR - 4], [206, FLOOR + 3], [257, FLOOR], [P.JACK[0] - 1, FLOOR - 22], [P.JACK[0], P.JACK[1] + 6]], false, 8));
+            // the cable: from the plug down to the floor, to him, and on to the car; once he is up
+            // it runs from the plug straight to the hoof it has hold of
+            if (hoof) {
+                P.cable(g, L, C.curve([tail, [tail[0] + 14, tail[1] + 5], [lerp(tail[0], hoof[0], 0.5), lerp(tail[1], hoof[1], 0.5) + 12], [hoof[0] - 21, hoof[1] + 1]], false, 8));
+                P.cable(g, L, C.curve([[196, FLOOR - 2], [228, FLOOR + 3], [257, FLOOR], [P.JACK[0] - 1, FLOOR - 22], [P.JACK[0], P.JACK[1] + 6]], false, 8), { bands: false });
+            } else P.cable(g, L, C.curve([tail, [tail[0] + 16, tail[1] + 4], [tail[0] + 24, 770], [102, FLOOR], [150, FLOOR - 4], [206, FLOOR + 3], [257, FLOOR], [P.JACK[0] - 1, FLOOR - 22], [P.JACK[0], P.JACK[1] + 6]], false, 8));
             P.plug(g, L, HOME, { out: 0 });
             if (up) {
                 // the turns he has stepped out of, the far halves

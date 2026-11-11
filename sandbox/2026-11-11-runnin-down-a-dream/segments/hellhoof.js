@@ -343,7 +343,7 @@
         [bt(30), { lean: 0.14, headTilt: 0.07, handR: [-0.88, -1.44] }, 2 / 12],
     ]);
     function house(g, t) {
-        const Pu = S.pulseAt(t), vo = { view: HV, pan: 0, heat: P.HOUSE.heat, beatK: Pu.pulse }, St = I.stage(HV, 0), { x, y, s } = St.box;
+        const Pu = S.pulseAt(t), { x, y, s } = I.stage(HV, 0).box;
         const pose = act4(t), k = Math.max(24, Math.min(31, Pu.k - 440)), d = dr(t, bt(k)), i = Math.min(4, d);
         const tail = P.TAIL.tick(swing(t, bt(k), k % 2 ? 0.4 : -0.4, k % 2 ? -0.4 : 0.4), 0); // the tail keeps time behind him
         if (!on(t, bt(28))) {
@@ -379,28 +379,17 @@
                 }
             }
         }
-        I.venue(g, t, vo);
-        if (Seg.hellhoof.set.trident) {
-            // his trident, where the block before left it stuck in the proscenium: { at: [set x, set y], ang, len, grip }
-            const tr = Seg.hellhoof.set.trident, p = St.at(tr.at);
-            g.save();
-            g.translate(p[0], p[1]);
-            g.scale(s, s);
-            Devil.trident(g, 0, 0, 3.2 / s, { ang: tr.ang ?? Math.PI, len: tr.len ?? 2.3, grip: tr.grip ?? 0.7 });
-            g.restore();
-        }
-        inBox(g, t, x, y, s, { pose, tail });
-        // notes off the guitar that is not there, one an eighth, up and away towards the stage
-        for (let n = 0; n < 8; n++) {
-            const a = S.snap(S.beat(440 + 28 + n * 0.5)), u = E.seg(twos(t, a), a, a + 0.7);
-            if (!on(t, a) || u >= 1 || a >= WM - 1e-6) continue;
-            const r = Motion.rng('hellhoof-note' + n), nx = x - (0.3 + 0.9 * u + 0.3 * r()) * s, ny = y - (1.05 + 0.9 * u + 0.5 * r()) * s + Math.sin(u * 7 + n) * 6;
-            C.note(g, nx, ny, 30 * Math.min(1, 0.6 + u * 3) * (u > 0.7 ? (1 - u) / 0.3 : 1), { kind: n % 3 ? 1 : 2, color: n % 2 ? K.white : K.yellow, lw: 3, rot: -0.2 + 0.3 * u });
-        }
-        if (on(t, SLAP) && dr(t, SLAP) < 2) P.ticks(g, x + 0.06 * s, y - 0.8 * s, 40, (dr(t, SLAP) + 0.6) / 2.4, 5, -2.8, -0.3);
-        P.bandOn(g, t, St.car);
-        I.beams(g, t, { ...vo, front: true });
-        I.crowd(g, t, { ...vo, density: P.HOUSE.density, hype: P.HOUSE.hype, lighters: P.HOUSE.lighters });
+        P.house(g, t, HV, (g2) => {
+            inBox(g2, t, x, y, s, { pose, tail });
+            // notes off the guitar that is not there, one an eighth, up and away towards the stage
+            for (let n = 0; n < 8; n++) {
+                const a = S.snap(S.beat(440 + 28 + n * 0.5)), u = E.seg(twos(t, a), a, a + 0.7);
+                if (!on(t, a) || u >= 1 || a >= WM - 1e-6) continue;
+                const r = Motion.rng('hellhoof-note' + n), nx = x - (0.3 + 0.9 * u + 0.3 * r()) * s, ny = y - (1.05 + 0.9 * u + 0.5 * r()) * s + Math.sin(u * 7 + n) * 6;
+                C.note(g2, nx, ny, 30 * Math.min(1, 0.6 + u * 3) * (u > 0.7 ? (1 - u) / 0.3 : 1), { kind: n % 3 ? 1 : 2, color: n % 2 ? K.white : K.yellow, lw: 3, rot: -0.2 + 0.3 * u });
+            }
+            if (on(t, SLAP) && dr(t, SLAP) < 2) P.ticks(g2, x + 0.06 * s, y - 0.8 * s, 40, (dr(t, SLAP) + 0.6) / 2.4, 5, -2.8, -0.3);
+        });
     }
 
     // =========================================================================================
@@ -441,8 +430,6 @@
         shots: [[T0, T111, 'Arms crossed'], [T111, T112, 'The hoof'], [T112, T116, 'One part at a time'], [T116, T118, 'He lets go'], [T118, T119, 'The contract']],
         draw,
         post: () => ({}),
-        // what the house shot adds from the block before (set coordinates): trident: { at: [x, y], ang, len, grip } or null
-        set: { trident: null },
         // the block's last picture, for the block that follows: hold(g, t, o) draws the close shot at t with the last
         // pose (o.pose is merged over it; o.contract: { x, y, ang, open } in his units, false for none; o.held(g, L)
         // draws in his frame, in front of the rail and under his mitts)

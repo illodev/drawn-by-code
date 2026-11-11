@@ -331,3 +331,20 @@ Open, for the next pass: the rewind was built on an earlier draft of the spot (i
 final one, but its glimpses were timed to the old); a `66` sign behind the hearse in the
 thaw; one near cactus crossing the band in the billboards shot; the speedometer of verse
 3a's pedal gag still out at its last frame.
+
+## Round 8 (user) · the film to 2:12
+
+> «Va de locos, me flipa!»
+> «Pequeño detalle el hielo tapa el paraguas» (with a crop of the rain shot)
+
+- In «Three days of rain» the sheet of water on the speaker stacks (pale blue with drips:
+  it reads as ice) was painted in the late «everything the rain adds» pass, after Stan's
+  umbrella, so it covered the umbrella's canopy. The stacks stand behind him: their water
+  now has its own pass before the umbrella. Checked on three full-resolution crops.
+- Also from the lead's own review of that render: a `66` road sign behind the hearse's
+  pulpit in the ice and thaw shots (cleared with `World.back`'s `clear`), the one near
+  cactus that crossed the band in the billboards shot (skipped), and the rewind checked
+  against the final TV spot.
+- The ten blocks animating the rest of the film were cut off by the account's usage limit
+  and resumed on the user's «inténtalo de nuevo»; the four in Hell picked up from their
+  files, the six of the finale had not written anything yet.
