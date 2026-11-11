@@ -75,9 +75,11 @@
         band(g, t, car, {
             solo: 0, tomAt: FIN.tomAt, mikeNear: true, mikeAt: [-90, 0], bounce: o.bounce ?? 0, // the cast's own Mike waits off screen: this block draws him turned
             pose: o.pose ?? {}, cactus: { ...cactus(t), ...(o.cactus ?? {}) }, devilAt: dAt,
+            // his tail alone, behind the cactus at the wheel (the bridge's band draws the cactus under the rest of him)
+            devilTail: (g2, sc) => I.devilGuitarTail(g2, 0, -(o.devilUp ?? 0) * sc, sc, o.devil),
             devil: (g2, sc) => {
                 // the Devil first, as the bridge left them: Mike's guitar and both his mitts stay whole in front of the fork
-                I.devilGuitar(g2, 0, -(o.devilUp ?? 0) * sc, sc, { ...o.devil, shadow: !(o.devilUp > 0) });
+                I.devilGuitar(g2, 0, -(o.devilUp ?? 0) * sc, sc, { ...o.devil, shadow: !(o.devilUp > 0), noTail: true });
                 P.mike(g2, (mAt[0] - dAt[0]) * sc, (mAt[1] - dAt[1] - (o.mikeUp ?? 0)) * sc, sc, { ...o.mike, shadow: !(o.mikeUp > 0) });
             },
         });

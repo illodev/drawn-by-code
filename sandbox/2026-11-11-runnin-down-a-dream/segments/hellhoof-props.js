@@ -432,7 +432,10 @@ const HellhoofProps = (() => {
             g.closePath();
             g.clip();
         }
-        C3.devil(g, x, y, s, { ...pose, handR: NO, handL: NO, trident: false, contract: false, pointer: null, tail: pose.clip === 'legs' ? 0 : NaN, shadow: pose.clip === 'legs' ? false : pose.shadow }, COLD);
+        // Devil.draw's own tail is left out (noTail): this block draws its own with tail(), before him. In the cutaway
+        // (clip 'legs') it used to be asked for at rest and the clip let its root through: a flat red slab with a hard
+        // vertical cut beside the coat's lower right corner
+        C3.devil(g, x, y, s, { ...pose, handR: NO, handL: NO, trident: false, contract: false, pointer: null, tail: NaN, noTail: true, shadow: pose.clip === 'legs' ? false : pose.shadow }, COLD);
         g.restore();
         if (pose.face || pose.quiff > 0.01 || pose.lock > 0.01) {
             body(g, x, y, s, pose, (L) => inHead(g, pose, () => {

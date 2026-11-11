@@ -39,8 +39,8 @@
     // on the lip, two cones for hats, the imp on a hard hat with the Devil's scarf on its mallet):
     // Chorus3Props.dressing, when that block is loaded. o: the venue's and the crowd's options.
     const C3 = typeof Chorus3Props !== 'undefined' ? Chorus3Props : null;
-    const dress = (g, t, o, part, tc = t) => {
-        if (C3) C3.dressing(g, tc, { ...o, part, scarf: t - 142.7083 });
+    const dress = (g, t, o, part, tc = t, more = {}) => {
+        if (C3) C3.dressing(g, tc, { ...o, ...more, part, scarf: t - 142.7083 });
     };
     // The Devil as chorus 3 left him: the scarf thrown off, the sore nose of his cold still on
     // him (Chorus3Props.devil wraps Devil.draw).
@@ -396,8 +396,11 @@
         });
         if (seat) sat(g, St, at, pose, { between: (g2, sc) => coils(g2, sc, pose, wrap) });
         else devil(g, St, at, pose);
-        I.crowd(g, t, { ...co, surf: { u: surfU(t), on: on(t, SURF[0]) } });
-        dress(g, t, co, 'front');
+        // the two cones sit on heads of the far row and the surfer is handed along over them by the near rows: in this
+        // shot they go on inside the crowd, under him and under those rows (they were painted over him as he passed;
+        // nothing of the near rows reaches them, so nothing else changes)
+        I.crowd(g, t, { ...co, surf: { u: surfU(t), on: on(t, SURF[0]) }, mid: () => dress(g, t, co, 'cones') });
+        dress(g, t, co, 'front', t, { cones: false });
         if (dark) {
             // the night: the work light's cone on him, a pool round every flame, his eyes and his grin
             const lamp = St.lamps[1], flames = P.lighterPoints(t, nl, x0, x1).map((q) => [...St.at([q.x, q.y]), q.u]);

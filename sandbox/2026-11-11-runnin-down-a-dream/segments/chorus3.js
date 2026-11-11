@@ -28,7 +28,51 @@
     const band = (g, t, car, o = {}) => Rig.band(g, t, car.x, car.y, car.s, { spin: 0, sing: true, tomDrives: false, driver: driver(t), ...o });
 
     // The Devil in his box (SET scale 84): pose and cold as Chorus3Props.devil takes them
-    const inBox = (g, t, Sg, o, pose, cold) => I.box(g, Sg.box.x, Sg.box.y, Sg.box.s, { t, ...o }, pose && ((g2) => P.devil(g2, Sg.box.x, Sg.box.y, Sg.box.s, { shadow: false, ...pose }, { t, ...cold })));
+    //   o: Inferno.box's { shake }, plus rail: true when his mitts rest on the rail or come down on it. He stands behind
+    //   the parapet, but those mitts lie on top of its velvet roll: in front of it and of the lamp at its end (they were
+    //   painted behind both, the sleeves ending at the rail). He is drawn once more over the box's front half, clipped to
+    //   each forearm's cuff and mitt, so inside them his own order holds (the scarf's ends stay over the sleeve).
+    const inBox = (g, t, Sg, o, pose, cold) => {
+        const { rail, ...bo } = o, b = Sg.box;
+        const him = pose && ((g2) => P.devil(g2, b.x, b.y, b.s, { shadow: false, ...pose }, { t, ...cold }));
+        const over = him && rail && ((g2) => {
+            const q = pose.squash ?? 0;
+            g2.save();
+            g2.save();
+            g2.translate(b.x, b.y);
+            g2.scale(b.s, b.s);
+            g2.rotate(pose.lean ?? 0);
+            g2.scale(1 + q, 1 - q);
+            g2.beginPath();
+            for (const [sh, hand] of [[Devil.SH.R, pose.handR], [Devil.SH.L, pose.handL]]) {
+                if (!hand || !(hand[1] > RAIL_Y)) continue; // only a mitt that is down on the rail
+                const hull = cuffAndMitt(sh, hand);
+                hull.forEach(([px, py], i) => (i ? g2.lineTo(px, py) : g2.moveTo(px, py)));
+                g2.closePath();
+            }
+            g2.restore(); // the path keeps the frame it was traced in
+            g2.clip();
+            him(g2);
+            g2.restore();
+        });
+        I.box(g, b.x, b.y, b.s, { t, ...bo, ...(over ? { over } : {}) }, him);
+    };
+    const RAIL_Y = -0.9; // a mitt lower than this (his units) is on the rail, not in the air
+    // The outline of an arm's cuff and mitt as devil.js draws them (its geometry, an outline's width added): the forearm
+    // from the cuff's upper edge to the mitt's end, swept by its depth. A convex outline, clockwise or not.
+    function cuffAndMitt(sh, hand) {
+        const el = Cast.elbow(sh, hand), s0 = el ?? sh, dx = hand[0] - s0[0], dy = hand[1] - s0[1], len = Math.hypot(dx, dy) || 1e-6;
+        const ux = dx / len, uy = dy / len, hw = 0.08 * 1.12 + 0.03, a = Math.max(0.03, len - 0.14) - 0.03, c = len + 0.11 + 0.03, z = Cast.Dd(0.17);
+        const quad = [[a, hw], [c, hw], [c, -hw], [a, -hw]].map(([al, ac]) => [s0[0] + ux * al - uy * ac, s0[1] + uy * al + ux * ac]);
+        const pts = [...quad, ...quad.map(([px, py]) => [px + z[0], py + z[1]])].sort((p, r) => p[0] - r[0] || p[1] - r[1]);
+        const cross = (o2, p, r) => (p[0] - o2[0]) * (r[1] - o2[1]) - (p[1] - o2[1]) * (r[0] - o2[0]);
+        const half = (list) => list.reduce((h, p) => {
+            while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], p) <= 0) h.pop();
+            return [...h, p];
+        }, []);
+        const lo = half(pts), up = half(pts.slice().reverse());
+        return [...lo.slice(0, -1), ...up.slice(0, -1)];
+    }
     // the venue's layers in order; `mid` draws between the band and the pit, `over` after the pit
     function house(g, t, o, parts) {
         const Sg = I.stage(o.view, o.pan);
@@ -113,7 +157,7 @@
                 }
                 // upright: he pops up dizzy, then finds the band on his stage and likes what he sees
                 const calm = t >= LAND.calm - EPS, pop = hitK(t, LAND.up, [-0.16, 0.1, 0.04, 0]);
-                inBox(g, t, Sg, { shake: jolt }, calm
+                inBox(g, t, Sg, { shake: jolt, rail: true }, calm
                     ? { mood: 'sly', look: -1, headTilt: -0.05, squash: 0.03 * Pu.pulse, tail: 0.05 * f, ...I.BOX.rail }
                     : { mood: 'shock', look: f, headTilt: 0.07 * f, squash: pop, tail: 0.2 * f, handR: [-0.62, -0.74], handL: [0.52, -0.74] }, { blow: calm ? 0.2 : -0.6 * f, nose: calm ? 1 : 1.2 });
             },
@@ -331,7 +375,8 @@
         else pose = { mood: 'angry', look: -1, lean: -0.05, headDy: 0.04 * bang, squash: 0.06 * bang, tail: 0.3 * f, step: f, handR: nextBang ? [-0.72, -1.5] : [-0.64, -0.76], handL: nextBang ? [0.66, -1.46] : [0.54, -0.76] }, cold = { blow: nextBang ? -1.2 : 0.8 * f, nose: 1.2 };
         I.venue(g, t, o);
         const Sg = I.stage(BOXV, 0);
-        inBox(g, t, Sg, { shake: bang }, pose, cold);
+        // from the moment he leans on the rail to the last bang his mitts are on it (in the air between two bangs: inBox sorts that out)
+        inBox(g, t, Sg, { shake: bang, rail: t >= tUp + 2 * FR - EPS && t < tGrabs - EPS }, pose, cold);
         I.beams(g, t, { ...o, front: true });
         // the souvenir: a foam trident thrown up from the pit, turning, and back down
         const u = E.seg(t, tUp - 3 * FR, tSee + 2 * FR);

@@ -444,6 +444,8 @@ const Devil = (() => {
      * Devil.draw(g, x, y, s, pose)
      *   pose: { squash, lean, headDy, headTilt, mood ('grin' | 'sly' | 'angry' | 'shock' | 'laugh'),
      *           eyes ('open' | 'shut'), look (-1..1), tail (sway, about ±0.05), step (-1..1 lifts a hoof),
+     *           noTail (true: his tail is left out, for a shot that puts something between his tail and his body:
+     *           draw it first with Devil.tail and the same pose),
      *           handR, handL  ([x, y] in his units; the right mitt is on screen left),
      *           shadow (false in the air or on a perch), pointer ([x, y] a cane from the left mitt to that point),
      *           trident (false | { ang, grip }), contract (false | { ang, open, at: [dx, dy] from the left mitt }) }
@@ -461,7 +463,7 @@ const Devil = (() => {
         }
         g.rotate(pose.lean ?? 0);
         g.scale(1 + q, 1 - q);
-        tail(g, L, pose.tail ?? 0);
+        if (!pose.noTail) tail(g, L, pose.tail ?? 0);
         legs(g, L, pose.step ?? 0);
         torso(g, L);
         g.save();
@@ -489,6 +491,21 @@ const Devil = (() => {
         arm(g, L, shL, hL);
         g.restore();
     }
+
+    // His tail alone, where draw() puts it for the same (x, y, s, pose): for a shot in which something stands
+    // between his tail and the rest of him (draw this, then that thing, then draw() with noTail).
+    function tailOf(g, x, y, s, pose = {}) {
+        const q = pose.squash ?? 0;
+        g.save();
+        g.translate(x, y);
+        g.scale(s, s);
+        g.rotate(pose.lean ?? 0);
+        g.scale(1 + q, 1 - q);
+        tail(g, 3.2 / s, pose.tail ?? 0);
+        g.restore();
+    }
+    // his shoulders, in his units (R is on screen left): where draw() hangs his arms
+    const SH = { R: [TORSO.x + 0.03, TORSO.y + 0.14], L: [TORSO.x + TORSO.w - 0.03, TORSO.y + 0.14] };
 
     // --- imps -------------------------------------------------------------------------------
     // The Devil's staff: a small red box with stubby horns, big slit eyes and a fang, told
@@ -615,5 +632,5 @@ const Devil = (() => {
         g.restore();
     }
 
-    return { P, draw, imp, trident, contract, TORSO, HEAD };
+    return { P, draw, imp, trident, contract, TORSO, HEAD, tail: tailOf, SH };
 })();

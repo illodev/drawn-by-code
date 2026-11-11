@@ -938,7 +938,9 @@ const Inferno = (() => {
      *              one by one; 1 everybody jumps with both mitts in the air),
      *        lighters (0..1: how many hold a little flame up; they sway together),
      *        surf: { u (0..1 left to right), on } a skeleton passed along on the crowd's mitts,
-     *        wave (0..1, or null: a wave of raised arms running left to right through the rows) }
+     *        wave (0..1, or null: a wave of raised arms running left to right through the rows),
+     *        mid() draws, in the frame's own units, what sits on heads of the two far rows (a cone for a hat): after
+     *              those rows, before the surfer and the two near rows that carry him, so he passes over it }
      */
     function crowd(g, t, o = {}) {
         const V = cam(o.view, o.pan), dens = clamp(o.density ?? 1), hype = clamp(o.hype ?? 0.5), nl = clamp(o.lighters ?? 0), wave = o.wave;
@@ -949,6 +951,15 @@ const Inferno = (() => {
         g.lineJoin = 'round';
         layer(g, V, 1, (L) => {
             pit().forEach((row, r) => {
+                if (r === 2 && o.mid) {
+                    // out of the layer's transform and back: the hook draws in the frame's units
+                    g.save();
+                    g.translate(500 + (V.cx - 500), V.cy);
+                    g.scale(1 / V.k, 1 / V.k);
+                    g.translate(-500, -500);
+                    o.mid();
+                    g.restore();
+                }
                 if (r === 2 && surf) {
                     g.save();
                     g.translate(surf.x, surf.y);
@@ -1317,6 +1328,10 @@ const Inferno = (() => {
         if (fl > 0.5) flame([AX_TIP - 0.06, 0], 0.2, 1);
     }
 
+    // His tail alone for a devilGuitar pose (the pose's own lean applied, as devilGuitar hands it to Devil.draw): for a
+    // shot that puts something between his tail and the rest of him. Draw this, that thing, then devilGuitar with noTail.
+    const devilGuitarTail = (g, x, y, s, pose = {}) => Devil.tail(g, x, y, s, { ...pose, lean: axeRig(pose).lean });
+
     /**
      * The guitar alone, rising out of a flame: the fork first, like his trident, then the rest.
      *   x, y  the fire's foot;  s  figure units;  k  0 → 1 (0: only the fire; 0.85: it is all out; 1: it hangs
@@ -1495,7 +1510,8 @@ const Inferno = (() => {
     /**
      * The Devil's balcony. x, y: the floor under him; s: figure units.
      *   o: { shake (0..1: it judders on twos, the lamp hops, crumbs fall: for his stomping), t (seconds),
-     *        part ('back' | 'front' to draw one half yourself), glow (0..1 the lamp's eyes and flame, default 1) }
+     *        part ('back' | 'front' to draw one half yourself), glow (0..1 the lamp's eyes and flame, default 1),
+     *        over(g): draws what lies on the rail, over the front half (his mitts), in the frame's units, the shake applied }
      *   inside(g): draws whoever stands in it, between the two halves, in the frame's units (the shake is applied).
      * Inferno.BOX.rail gives handR / handL for his mitts on the rail; Inferno.boxLamp(x, y, s) where the lamp is.
      */
@@ -1623,6 +1639,12 @@ const Inferno = (() => {
         }
         if (o.part !== 'back') {
             frontHalf();
+            if (o.over) {
+                g.save();
+                g.translate(jx, jy);
+                o.over(g);
+                g.restore();
+            }
             const lp = boxLamp(x + jx, y + jy, s), gl = clamp(o.glow ?? 1);
             if (gl > 0.05) Fx.flame(g, lp[0], lp[1] - 0.35 * s, 0.22 * s * gl * (1 + 0.15 * (d % 2)), d, 1);
         }
@@ -1869,8 +1891,15 @@ const Inferno = (() => {
                     const u = i / 36;
                     pts.push([VX - hw + 2 * hw * u, y0 - h * k * (0.55 + 0.45 * Math.cos(u * PI * 10 + (f ? PI : 0))) * Math.sin(u * PI) ** 0.4]);
                 }
-                C.poly(g, [...pts, [VX + hw, yc + 2], [VX - hw, yc + 2]], { fill: col, lw: 0 });
-                if (ink) line(g, pts, 3.6 * L);
+                // the lower edge hangs in drips, longer towards the middle, and the red lip is inked all round (it was three
+                // flat rectangles with a ruled bottom across the column and square ends past it): the same crown as
+                // Solo2Props.column's part 'front', which the next shot cuts to
+                const low = [];
+                for (let i = 36; i >= 0; i--) {
+                    const u = i / 36;
+                    low.push([VX - hw + 2 * hw * u, yc + (10 + h * 1.5) * k * (0.25 + 0.75 * Math.abs(Math.sin(u * PI * 7 + (f ? 0.9 : 0)))) * Math.sin(u * PI) ** 0.5]);
+                }
+                C.poly(g, [...pts, ...low], ink ? { fill: col, ink: K.ink, lw: 3.6 * L } : { fill: col, lw: 0 });
             }
             for (let i = 0; i < 6; i++) {
                 const sx = i % 2 ? 1 : -1, u = ((d + i * 2) % 6) / 6, px = VX + sx * (150 + i * 22 + 60 * u), py = top + 6 - 80 * u + 90 * u * u;
@@ -1885,5 +1914,5 @@ const Inferno = (() => {
     }
 
     // --- exports -----------------------------------------------------------------------------
-    return { R, VIEW, PAN, cam, toScreen, stage, STAGE: { wide: stage('wide'), stage: stage('stage') }, venue, beams, crowd, fan, surfPoint, lighter, foamTrident, devilGuitar, guitarPoints, guitar: axe, guitarFromFire, fromFirePoints, tornContract, tornPoints, box, BOX, boxLamp, volcano, volcanoFront, volcanoTop, VOLCANO: { wide: volcanoTop({ view: 'wide' }), stage: volcanoTop({ view: 'stage' }) } };
+    return { R, VIEW, PAN, cam, toScreen, stage, STAGE: { wide: stage('wide'), stage: stage('stage') }, venue, beams, crowd, fan, surfPoint, lighter, foamTrident, devilGuitar, devilGuitarTail, guitarPoints, guitar: axe, guitarFromFire, fromFirePoints, tornContract, tornPoints, box, BOX, boxLamp, volcano, volcanoFront, volcanoTop, VOLCANO: { wide: volcanoTop({ view: 'wide' }), stage: volcanoTop({ view: 'stage' }) } };
 })();

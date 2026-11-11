@@ -46,7 +46,9 @@
     const dress = (g, t, view, pan, crowd, part) => C3.dressing(g, t, { view, pan, hype: 1, lighters: 0.35, wave: null, ...crowd, part, scarf: t - SCARF_AT });
     const BOX = [884, 440]; // the box's floor under him (set coordinates)
     const BRZ = I.STAGE.wide.braziers[1]; // the right stack's brazier: the bowl's rim (set coordinates)
-    const STACK = [872, 579]; // where he stands on the right stack, in front of the bowl's left end
+    // where he stands on the right stack, in front of the bowl's left end: both hooves on its top (which starts at x = 859.5
+    // at this depth; at 872 his screen-left hoof stood past its edge, on nothing), his toes at its front edge
+    const STACK = [888, 581];
     // his box as he left it: empty, the two ushers still dancing at the rail
     const emptyBox = (g, t, St) => {
         const b = St.box;
@@ -68,6 +70,7 @@
      *        tomAt: [x, y] car units (default his place up front),
      *        mikeAt: [x, y] (default his place), mikeNear: true once he is in the near row,
      *        devil: (g2, sc) => … draws the Devil at (0, 0), devilAt: [x, y] (default DEVIL_AT),
+     *        devilTail: (g2, sc) => … draws his tail alone at (0, 0), when `devil` leaves it out (noTail),
      *        count: { up, click } Stan's arms up for the count }
      * Returns where Stan's sticks meet (screen), when he counts.
      */
@@ -90,13 +93,18 @@
             put(seats.deck[3], (sc) => BandStrings.howie(g2, 0, 0, sc, pose('howie')));
             if (!o.mikeNear) put(o.mikeAt ?? seats.deck[1], mike);
             put(seats.deck[2], (sc) => BandRhythm.benmont(g2, 0, 0, sc, pose('ben')));
+            // the cactus at the wheel (z 0.5) sits further from the camera than the deck's near row (z 0.2): it goes on
+            // before Tom, the Devil in Tom's place and Mike stepped forward, whose heads, arms and guitars pass in front
+            // of it (Rig.band's own order: the driver, then whoever stands up front). The Devil's tail curls away behind
+            // the cactus (its spade shows past it), as it always did here: drawn with him it would lie across the cactus's face
+            if (o.devil && o.devilTail) put(o.devilAt ?? DEVIL_AT, (sc) => o.devilTail(g2, sc));
+            put(seats.driver, (sc) => Chorus1Props.cactus(g2, 0, 0, sc, { wheel: WHEEL, shades: 1, squash: 0.05 * Pu.pulse, wave: Pu.k % 2 ? Pu.pulse : -Pu.pulse * 0.6, ...(o.cactus ?? {}) }));
             put(o.tomAt ?? seats.deck[0], (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
             // the Devil first when Mike has stepped forward beside him: their necks point at each other, and Mike's
             // guitar with both his mitts on it stays whole in front of the fork
             if (o.devil && o.mikeNear) put(o.devilAt ?? DEVIL_AT, (sc) => o.devil(g2, sc));
             if (o.mikeNear) put(o.mikeAt ?? MIKE_FWD, mike);
             if (o.devil && !o.mikeNear) put(o.devilAt ?? DEVIL_AT, (sc) => o.devil(g2, sc));
-            put(seats.driver, (sc) => Chorus1Props.cactus(g2, 0, 0, sc, { wheel: WHEEL, shades: 1, squash: 0.05 * Pu.pulse, wave: Pu.k % 2 ? Pu.pulse : -Pu.pulse * 0.6, ...(o.cactus ?? {}) }));
         });
         return tips ? [car.x + (SEATS.kit[0] + tips[0]) * car.s, car.y + (SEATS.kit[1] + tips[1]) * car.s] : null;
     }
@@ -206,6 +214,14 @@
     const SLIDE = T1 + 5 * FR, LAND = n(10), ROLL = n(11), DIP = n(12), STEAM = n(14), HEAVE = n(15.5), PULL = n(16), PULL2 = n(17.25), OUT = n(18.75), HANG = n(19.5);
     const FLANK0 = [808, 480], FLANK1 = [870, 524]; // the corbel's left flank, where his hooves slide (set coordinates)
     const COLS = ['green', 'blue', 'purple', 'pink'];
+    const TAIL_DOWN = 0.3; // how far his tail drops during the pull (Devil.draw's sway)
+    // Where his ground point goes so that he stands ON the stack whatever the pose does: Devil.draw leans and squashes him
+    // about that point, which sinks the hoof he leans over into the rock and pushes the other past the stack's left edge.
+    // The screen-left hoof's outer corner keeps its place across the stack, and the lower hoof stays on its top.
+    const planted = (pose) => {
+        const q = pose.squash ?? 0, a = pose.lean ?? 0, r = 0.33 * 84; // the hooves' outer corners are 0.33 of his units out
+        return [STACK[0] + r * ((1 + q) * Math.cos(a) - 1), STACK[1] - r * (1 + q) * Math.abs(Math.sin(a))];
+    };
     // the guitar's k (Inferno.guitarFromFire): the fork, a beat of doubt, the rest, and it hangs
     const axeK = (t) => (!on(t, PULL) ? 0 : !on(t, PULL2) ? 0.06 + 0.1 * E.out(seg2(t, PULL, PULL + 2 / 12)) : !on(t, OUT) ? lerp(0.16, 0.85, seg2(t, PULL2, OUT)) : lerp(0.85, 1, smooth(seg2(t, OUT, HANG))));
     function fireShot(g, t) {
@@ -217,7 +233,7 @@
         dress(g, t, V2, 0, {}, 'stage');
         const F = St.at([BRZ[0] + 9, BRZ[1] + 6]), k = axeK(t);
         // --- where he is -------------------------------------------------------------------------
-        let at, pose = { shadow: false, handR: P.NO_HAND, handL: P.NO_HAND, tail: 0.04 * Math.sin((Pu.k + Pu.since) * PI) }, hR = [-0.5, -0.5], hL = [0.5, -0.5], roll = 0, tongue = false, chips = -1;
+        let at, pose = { shadow: false, handR: P.NO_HAND, handL: P.NO_HAND, tail: 0.04 * Math.sin((Pu.k + Pu.since) * PI) }, hR = [-0.5, -0.5], hL = [0.5, -0.5], roll = 0, tongue = false, chips = -1, mitt = F, dipK = 0;
         if (!on(t, SLIDE)) {
             // over the rail (he is already in the air on the cut) and down onto the corbel's flank
             const u = E.seg(t, T1 - 3 * FR, SLIDE);
@@ -251,11 +267,15 @@
             } else if (!on(t, PULL)) {
                 // in to the shoulder, feeling about, not looking; a heave before the pull
                 roll = 1;
-                const dip = E.out(seg2(t, DIP, DIP + 2 / 12)), hv = on(t, HEAVE) ? E.out(seg2(t, HEAVE, HEAVE + 2 / 12)) : 0, f = dr(t, DIP);
+                const dip = (dipK = E.out(seg2(t, DIP, DIP + 2 / 12))), hv = on(t, HEAVE) ? E.out(seg2(t, HEAVE, HEAVE + 2 / 12)) : 0, f = dr(t, DIP);
                 Object.assign(pose, { lean: 0.2 * dip + 0.025 * (f % 2) + 0.07 * hv, look: -1, headTilt: -0.13 * dip, squash: 0.03 * Pu.pulse + 0.06 * hv, mood: 'grin', eyes: f % 8 === 5 ? 'shut' : 'open' });
+                at = planted(pose);
                 tongue = dip > 0.5;
+                // where the mitt feels about: over the bowl, in the foot of the fire (never lower than the bowl's rim, which is
+                // behind him: the arm is drawn over his coat)
                 const feel = [[0, 0], [-16, 8], [10, -6], [-6, 12], [14, 6], [-12, -4]][f % 6];
-                hL = P.toLocal(...St.at(at), s, pose, [F[0] - 4 + feel[0] * dip, F[1] - 8 + feel[1] * dip]);
+                mitt = [F[0] + 20 + 0.7 * feel[0] * dip, F[1] - 36 + feel[1] * dip];
+                hL = P.toLocal(...St.at(at), s, pose, mitt);
                 hL = lerpPt([0.66, -1.3], hL, dip);
                 hR = [-0.62, -0.62 - 0.08 * (f % 2)];
             } else {
@@ -265,12 +285,17 @@
                 Object.assign(pose, {
                     lean: -0.12 * E.out(seg2(t, PULL, PULL + 2 / 12)) - 0.06 * up, squash: 0.03 * Pu.pulse - 0.05 * bump(t, PULL2, 0.3),
                     mood: doubt ? 'shock' : on(t, HANG) ? 'grin' : on(t, PULL2) ? 'laugh' : 'grin', look: 1, headTilt: doubt ? 0.06 : 0,
+                    // his tail drops out of the way as he pulls (Devil.draw's sway: positive lowers its end): at rest its
+                    // spade stood where the guitar comes up and the tail crossed the arm that holds the neck
+                    tail: pose.tail + TAIL_DOWN * E.out(seg2(t, PULL, PULL + 3 / 12)),
                 });
+                at = planted(pose);
                 const G = I.fromFirePoints(k), grip = lerpPt(G.body, G.neck, 1.22);
                 hL = P.toLocal(...St.at(at), s, pose, [F[0] + grip[0] * sF, F[1] + grip[1] * sF]);
                 hR = doubt ? [-0.3, -0.92] : lerpPt([-0.6, -0.6], [-0.66, -1.42], up); // a mitt to his chin, then a fist in the air
             }
         }
+        if (on(t, LAND)) at = planted(pose);
         // his cold: the sore nose until the fire steams it off him
         const nose = 1 - seg2(t, STEAM, STEAM + 4 / 12);
         // part 'armL': only the arm that goes into the fire; 'rest': everything but that arm (he stands in front of
@@ -306,12 +331,25 @@
             C.poly(g, [[-46, 0], [38, 0], [33, 20], [-40, 20]].map(([x, y]) => St.at([BRZ[0] + x, BRZ[1] + y])), { fill: I.R.wall, ink: K.ink, lw: 3.2 });
             C.poly(g, [St.at([BRZ[0] - 38, BRZ[1] + 8]), St.at([BRZ[0] + 30, BRZ[1] + 8])], { ink: I.R.wallL, lw: 2.2, close: false });
         };
+        // The arm that is in the fire. It goes on after the rest of him, as Devil.draw paints any arm: over his coat (behind
+        // him and the front flames nothing of it could be seen: he stood beside the fire with one arm). A low tongue of the
+        // fire licks over the mitt at x = mx (null: none yet): the rolled sleeve and the bare arm show going into it. Both
+        // stop at the bowl's rim, which is in front of what is inside it.
+        const armInFire = (mx, cols) => {
+            const lip = St.at(BRZ)[1], end = St.at([BRZ[0] + 38, BRZ[1]])[0], sz = 0.46 * sF;
+            g.save();
+            g.beginPath();
+            g.rect(-50, -50, 1100, lip + 50);
+            g.clip();
+            body('armL');
+            if (mx != null) P.flame(g, Math.min(mx, end - 0.36 * sz), F[1], sz, d + 1, 1, cols);
+            g.restore();
+        };
         const mainMin = (44 + 50) * (1 + 0.14 * o.beatK) * St.k * 1.05; // over the venue's own flame
         if (!on(t, DIP)) body();
         else if (!on(t, PULL)) {
             const beat = Math.min(3, Math.floor((twos(t, DIP) - DIP) / S.BEAT + 0.04)), cols = P.FIRE[COLS[beat]], big = 0.6 + 0.3 * pop(t, n(12 + beat), 0.2) + 0.1 * (on(t, HEAVE) ? 1 : 0);
             P.fire(g, F[0], F[1], sF, d, cols, big, 'back', mainMin);
-            body('armL');
             P.fire(g, F[0], F[1], sF, d, cols, big, 'front');
             // sparks of its colour jump out on each change
             const r = Motion.rng('bridge-sparks' + beat), since = twos(t, n(12 + beat)) - n(12 + beat);
@@ -322,13 +360,15 @@
             }
             rim();
             body('rest');
+            armInFire(dipK > 0.5 ? mitt[0] + 0.02 * sF : null, cols);
         } else {
             I.guitarFromFire(g, F[0], F[1], sF, k, t);
-            body('armL');
-            // while it is still low the mitt is in the flames
-            if (k < 0.3) P.flame(g, F[0] - 0.12 * sF, F[1], 0.62 * sF, d + 1, 1);
+            // the arm that holds the neck goes on last, over his coat and his tail (the rest of him, tail and all, used to be
+            // painted over the forearm, the cuff and the mitt); while the guitar is still low the mitt is down in the fire
             rim();
             body('rest');
+            if (k < 0.3) armInFire(F[0] + I.fromFirePoints(k).body[0] * sF, P.FIRE.hot);
+            else body('armL');
             // twinkles when it is out
             if (on(t, OUT)) {
                 const G = I.fromFirePoints(k), c = [F[0] + G.body[0] * sF, F[1] + G.body[1] * sF];
@@ -445,7 +485,8 @@
         band(g, t, car, {
             bounce: bn, pose: bandPoses(t), tomAt: tomAt(t),
             cactus: { ...(on(t, LOOKS.cactus) && t < TOM_OFF ? { shades: 1 - 0.5 * E.out(seg2(t, LOOKS.cactus, LOOKS.cactus + 2 / 12)), lean: 0.06, wave: 0.4 } : {}), ...(duck > 0.01 ? { squash: 0.26 * duck, mouth: 'oh' } : {}), ...(w > 0.01 ? { lean: -0.12 * w, mouth: 'oh', shades: 1 - 0.3 * w } : {}) },
-            devil: onDeck ? (g2, sc) => devil(g2, 0, 0, sc) : null,
+            devil: onDeck ? (g2, sc) => I.devilGuitar(g2, 0, 0, sc, { ...pose, noTail: true }) : null,
+            devilTail: (g2, sc) => I.devilGuitarTail(g2, 0, 0, sc, pose),
         });
         let at;
         if (!onDeck) {
@@ -545,7 +586,8 @@
             solo, tomAt: HOOD, mikeAt, mikeNear: fwd > 0.5,
             pose: { mike: mikePose, ben: on(t, FACE) ? { headTilt: 0.08 } : {}, howie: on(t, FACE) ? { headTilt: 0.08 } : {}, stan: on(t, COUNT - 4 / 12) ? { kick: 0, headDy: 0.03 * Pu.pulse, eyes: 'wide', sway: 0 } : {} },
             cactus: { lean: 0.07, wave: 0.5 + 0.2 * Pu.pulse },
-            devil: (g2, sc) => I.devilGuitar(g2, 0, 0, sc, pose),
+            devil: (g2, sc) => I.devilGuitar(g2, 0, 0, sc, { ...pose, noTail: true }),
+            devilTail: (g2, sc) => I.devilGuitarTail(g2, 0, 0, sc, pose),
             count: on(t, COUNT - 4 / 12) ? { up: E.out(seg2(t, COUNT - 4 / 12, COUNT - 1 / 12)), click } : null,
         });
         spots(0.07, false);

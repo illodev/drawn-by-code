@@ -180,6 +180,9 @@ const Chorus3Props = (() => {
      *        part: 'back' (after Inferno.venue: the arrow in the teeth, the trident in the gum),
      *              'stage' (after Rig.band, before Inferno.crowd: the barrier on the lip),
      *              'front' (after Inferno.crowd: the cones on two heads, the imp on a colleague's hard hat),
+     *              'cones' (the two cones alone, for Inferno.crowd's `mid` hook when a surfer crosses the pit: their
+     *              wearers stand in the far row, he is carried over them by the near ones; then pass cones: false
+     *              with part 'front'),
      *        scarf: seconds since the Devil's scarf came down on the imp's mallet (absent: no scarf there) }
      */
     function dressing(g, t, o = {}) {
@@ -190,9 +193,11 @@ const Chorus3Props = (() => {
         } else if (o.part === 'stage') {
             V.barrier(g, ...v.at(HOME.barrier), BARRIER_S * v.k, { t });
         } else {
-            coneHat(g, v, HAT_A, t, o, -0.12);
-            coneHat(g, v, HAT_B, t, o, 0.1);
-            impOnSkull(g, v, t, o, {}, o.scarf ?? null);
+            if (o.cones !== false) {
+                coneHat(g, v, HAT_A, t, o, -0.12);
+                coneHat(g, v, HAT_B, t, o, 0.1);
+            }
+            if (o.part !== 'cones') impOnSkull(g, v, t, o, {}, o.scarf ?? null);
         }
     }
 
@@ -444,7 +449,12 @@ const Chorus3Props = (() => {
         g.scale(s, s);
         g.lineJoin = 'round';
         const lx = -0.19, h = 0.13 * tap, z = Dd(0.36);
-        C.box(g, lx - 0.12, -0.4, 0.24, 0.3, D, { front: SKC.jeans, top: SKC.jeans, side: SKC.jeansSide }, { lw: L, depth: 0.3 });
+        // the trouser leg stands on the shoe's top, which tips up with the toe (the front edge by h, less towards the heel):
+        // as a box down to -0.1 it showed under the lifted sole. Its near face ends on the shoe's front edge, its side on
+        // the shoe's top where the leg's back is (Cast.legs's own box when the shoe is down)
+        const zt = Dd(0.3), x0 = lx - 0.12, x1 = lx + 0.12, yb = -0.1 - h, ybk = -0.1 - h * (1 - 0.3 / 0.36);
+        C.poly(g, [[x1, -0.4], [x1 + zt[0], -0.4 + zt[1]], [x1 + zt[0], ybk + zt[1]], [x1, yb]], { fill: SKC.jeansSide, ink: K.ink, lw: L });
+        C.poly(g, [[x0, -0.4], [x1, -0.4], [x1, yb], [x0, yb]], { fill: SKC.jeans, ink: K.ink, lw: L });
         const f0 = [lx - 0.15, -0.105 - h], f1 = [lx + 0.15, -0.105 - h], b0 = [lx - 0.15 + z[0], -0.105 + z[1]], b1 = [lx + 0.15 + z[0], -0.105 + z[1]];
         C.poly(g, [f0, f1, b1, b0], { fill: SKC.shoeTop, ink: K.ink, lw: L });
         C.poly(g, [f1, b1, [b1[0], z[1]], [lx + 0.15, -h]], { fill: SKC.shoeSide, ink: K.ink, lw: L });
