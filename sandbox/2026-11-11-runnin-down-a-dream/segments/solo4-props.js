@@ -31,14 +31,15 @@
 //     car      { x, y, rot }   Skyward.landingAt(limb, carA, 56): about (480, 637), rot −0.017;
 //              draw the ride at (0, 0) after g.translate(x, y), g.rotate(rot) (parked() does)
 //     hood     [x, y]   the Devil's ground point on the hood
-//     flag     { a, x, y, rot }   Skyward.moon's flag (a − moonRot, s 56) by the car's far headlamp: its foot (760, 668)
+//     flag     { a, x, y, rot }   Skyward.moon's flag (a − moonRot, s 56) by the car's far headlamp: its foot (752, 665)
 //              just behind the limb, its lean on screen; moonStage adds a glint down the rod (Solo4Props.whip, core)
 //     earth    { x: 800, y: 380, r: 62 }   where the Earth ends up
 //     stand    { h0 … h3, a0 … a2 }   each { x, y, rot }: the feet on the surface and the turn
 //              that stands them upright there. Left of the tail: h3 the skeleton, then the imps
 //              as a pyramid: h2 (the third imp) and h1 (the bow) on the ground, h0 (the specs)
-//              standing on their heads. Right of the nose, in a row a step nearer the camera than
-//              the flag (28 units below the limb): a0 the harp, a1 the trumpet, a2 the ginger one.
+//              standing on their heads. Right of the nose: a1 the trumpet on the limb, a0 the harp
+//              and a2 the ginger one either side of him and a step nearer the camera (28 units
+//              below the limb), so all three faces show. Solo4Props.IDS is the drawing order.
 //
 // Also here, for solo4's own shots: the weightless overlays (Stan's sticks, Benmont's curls,
 // the cactus's flower), the whip with the pennant on its own, the Earth, a burst of moon
@@ -534,7 +535,7 @@ const Solo4Props = (() => {
     const carAt = (a, h = 0) => ({ x: LIMB.x + Math.sin(a) * DCH, y: LIMB.y - Math.cos(a) * DCH - h, rot: a });
     // The flag is Skyward.moon's (the car's whip and pennant, planted just behind the limb so the
     // ground hides its foot), by the car's far headlamp; x, y its foot and rot its lean on screen.
-    const FLAG_A = Math.asin((760 - LIMB.x) / (LIMB.r * 0.985));
+    const FLAG_A = Math.asin((752 - LIMB.x) / (LIMB.r * 0.985));
     const FLAG = { a: FLAG_A, x: LIMB.x + Math.sin(FLAG_A) * LIMB.r * 0.985, y: LIMB.y - Math.cos(FLAG_A) * LIMB.r * 0.985, rot: FLAG_A * 0.55 + MOON_ROT * 0.45 };
     const EARTH = { x: 800, y: 380, r: 62 };
     // The company stands a little straighter than the ground's normal (half its lean), or the
@@ -543,7 +544,7 @@ const Solo4Props = (() => {
         const p = onLimb(aOf(x), near);
         return { x: p.x, y: p.y, rot: p.rot * 0.5 };
     };
-    const STAND = { h1: mark(192), h2: mark(154), h3: mark(102), a0: mark(830, 28), a1: mark(871, 28), a2: mark(912, 28) };
+    const STAND = { h1: mark(192), h2: mark(154), h3: mark(102), a0: mark(822, 28), a1: mark(868), a2: mark(912, 28) };
     STAND.h0 = (() => {
         const top = (m) => [m.x + Math.sin(m.rot) * 1.0 * 0.67 * CS, m.y - Math.cos(m.rot) * 1.0 * 0.67 * CS], p = top(STAND.h1), q = top(STAND.h2);
         return { x: (p[0] + q[0]) / 2, y: (p[1] + q[1]) / 2, rot: (STAND.h1.rot + STAND.h2.rot) / 2 };
@@ -617,7 +618,7 @@ const Solo4Props = (() => {
     }
 
     // --- the company ------------------------------------------------------------------------------
-    const IMP = 0.67, WEAR = ['specs', 'bow', undefined], IDS = ['h3', 'h2', 'h1', 'h0', 'a2', 'a1', 'a0']; // back to front
+    const IMP = 0.67, WEAR = ['specs', 'bow', undefined], IDS = ['h3', 'h2', 'h1', 'h0', 'a1', 'a2', 'a0']; // back to front
     // the angels' poses on the ground at t: Solo3Props' own (playing on the beat), wings folded
     function angelPose(who, t) {
         const P = S.pulseAt(t), ph = P.k + P.since, p = P.pulse;

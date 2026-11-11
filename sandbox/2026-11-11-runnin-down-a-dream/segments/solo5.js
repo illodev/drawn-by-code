@@ -677,8 +677,9 @@
             over: (c, V) => {
                 // … and float away, turning
                 if (landed) KNOCKED.forEach((k, i) => {
-                    const q = t - H_LAND, p = V.P(k.x, k.y), dir = i % 2 ? 1 : -1;
-                    if (q < 4) boulder(c, p[0] + dir * 46 * q * V.z + 30 * dir * (1 - Math.exp(-q * 3)), p[1] - (150 * q + 60 * (1 - Math.exp(-q * 4))) * V.z, k.s * V.z, MOON_ROT + dir * 0.9 * q);
+                    // out to the left first, clear of the band's car, then up and away
+                    const q = t - H_LAND, p = V.P(k.x, k.y), away = Math.max(0, k.x - (REST.x - 5.4 * CS)) + 60 + 50 * i;
+                    if (q < 4) boulder(c, p[0] - (away * (1 - Math.exp(-q * 1.8)) + 30 * q) * V.z, p[1] - (50 * q + 62 * q * q) * V.z, k.s * V.z, MOON_ROT - 0.9 * q);
                 });
                 if (!landed) {
                     const p = V.P(hw[0], hw[1]);
