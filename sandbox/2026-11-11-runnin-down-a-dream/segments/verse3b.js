@@ -1,11 +1,25 @@
-// Verse 3, bars 85–92 (120.375–131.667 s): the Devil's last trap, at night.
-// Props and sets: segments/verse3b-props.js (Verse3bProps); the cactus at the wheel is chorus 1's.
+// Verse 3's last block, bars 85–92 (120.375–131.667 s): the Devil's last trap, at night. He has
+// a cold (a scarf, a sore nose) and a road crew of three imps in hard hats; the band never
+// notices a thing. Tom sings up front on the deck and the cactus in shades drives.
+//   bars 85–86  Billboards   a travelling shot: the headlights light a run of billboards, a
+//                            picture and an arrow each (a pie, a bed, a pot of gold, a trophy),
+//                            then the biggest, EXIT 666, and the camera lets the car go
+//   bars 87–88  The trap     a wide static shot: he hangs his weight on a giant lever, the
+//                            highway swings out of its bed onto the tongue of Hell's mouth, an
+//                            imp runs its rolled end out, two drive a spike; he dusts his mitts
+//                            and sneezes
+//   bars 89–92  Pickin' up / Down the hatch   ONE travelling shot that comes to rest (the
+//                            boundary on bar 91 is not a cut): the car takes everything of his,
+//                            a thing a beat, and on «mine» (bar 91's first beat) his own scarf
+//                            catches on the whip; up the tongue, in, and the mouth shuts on bar
+//                            92; it blinks, burps a flame and a cone, the sign spins and settles
+// Props and sets: segments/verse3b-props.js (Verse3bProps); the cactus is chorus 1's (Chorus1Props).
 (() => {
     const Seg = (window.Seg = window.Seg || {});
     const C = Cereal, K = C.COL, E = Ease, S = Song, V = Verse3bProps, twos = S.twos, b = S.b, B = S.B, pop = S.pop;
     const T85 = B(85), T87 = B(87), T89 = B(89), T91 = B(91), T92 = B(92), T93 = B(93);
     const n = (k) => b(340 + k); // beat k of the block
-    const SC = Rig.CAR, LANE = World.LANE, FR = 1 / 24, PI = Math.PI, TAU = PI * 2;
+    const SC = Rig.CAR, LANE = World.LANE, PI = Math.PI, TAU = PI * 2;
     const MOON = { x: 720, y: 270, r: 170 };
     const bump = (t, a, dur = 0.3) => E.bump(twos(t, a), a, dur);
     const seg2 = (t, a, c) => E.seg(twos(t, a), a, c);
@@ -315,7 +329,7 @@
                 if (kk === 0) hits.push([x, y - 26, 'b']);
             }
             if (taken('fork')) {
-                const [x, y, u, kk] = flight('fork', [NOSE + 0.2, 0], 2.6), tau = Math.max(0, twos(t, TAKE.fork + FLY) - TAKE.fork - FLY);
+                const [x, y, u, kk] = flight('fork', [NOSE + 0.2, 0], 2.6, 3 / 12), tau = Math.max(0, twos(t, TAKE.fork + 3 / 12) - TAKE.fork - 3 / 12);
                 g.save();
                 g.translate(x, y);
                 g.scale(S3, S3);
@@ -342,7 +356,7 @@
         // his blueprint: out of his mitts, over the band and onto the whip
         const planFly = () => {
             if (!taken('plan')) return;
-            const dur = 5 / 12, th = TAKE.plan, u = seg2(t, th, th + dur);
+            const dur = 4 / 12, th = TAKE.plan, u = seg2(t, th, th + dur);
             const from = [(XD - carX(th)) / SC, (NEARY3 - G.LANE) / SC - 0.62];
             const p = carPt([lerp(from[0], HOME.plan[0], u), lerp(from[1], HOME.plan[1], u) - 3.4 * Math.sin(PI * u)]);
             V.blueprint(g, p[0], p[1], S3, { ang: u < 1 ? -5.5 * (1 - u) : -lean + 0.02 * f, wave: u < 1 ? 1 : 0.5 * f });
@@ -430,7 +444,7 @@
         }
         if (kb >= 0) {
             const a = Math.max(0, twos(t, tBurp) - tBurp), fly = Math.min(1, a / 0.33), rollU = E.out(E.seg(a, 0.33, 0.33 + 0.38));
-            const wx = lerp(-40, -330, fly) - 150 * rollU, wy = lerp(770, 948, fly * fly) - 150 * Math.sin(PI * fly);
+            const wx = lerp(-40, -250, fly) - 120 * rollU, wy = lerp(770, 934, fly * fly) - 150 * Math.sin(PI * fly);
             const p = V.toScreen(cam, [wx, wy]);
             // in the air it tumbles; on the ground it rolls on its side round its own tip and rocks to a stop
             V.cone(g, p[0], p[1] - (fly >= 1 ? 0.13 * S3 : 0), S3, fly < 1 ? -TAU * 1.5 * fly : -PI / 2 - 0.2 + 0.5 * (1 - rollU) * Math.cos(a * 22) - 0.25 * rollU);

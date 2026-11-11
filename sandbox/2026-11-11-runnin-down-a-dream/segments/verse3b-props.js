@@ -638,6 +638,10 @@ const Verse3bProps = (() => {
         return [q[0] + G.HINGE[0], q[1] + G.HINGE[1]];
     };
     const SHUT = -0.084;
+    // the body's face for a lid turned by a: behind the mouth's corner the cheek follows the lid, so no gap opens along the joint
+    const lower = (a) => (a > 0 ? LOWER.map((p, i) => (i >= 5 && i <= 7 ? turn(p, a) : p)) : LOWER);
+    // the mouth's opening, from the jaw's tip to its corner, for a lid turned by a
+    const mouth = (a) => [...LOWER.slice(1, 5), ...LIP.slice(3).map((p) => turn(p, a))];
     const strata = (g, pts, ys, x0, x1) => {
         g.save();
         C.trace(g, pts);
@@ -660,12 +664,11 @@ const Verse3bProps = (() => {
      */
     function headBack(g, t, a, o = {}) {
         const P = S.pulseAt(t), d = C.drawing(t), glow = o.glow ?? 1;
-        C.prism(g, LOWER, G.HD, { front: MESA, top: MESA_T, side: MESA_S }, { lw: 4 });
+        C.prism(g, lower(a), G.HD, { front: MESA, top: MESA_T, side: MESA_S }, { lw: 4 });
         // the inside: everything between the jaws
-        const gap = [...LOWER.slice(1, 8), ...LIP.map((p) => turn(p, a))];
-        C.poly(g, gap, { fill: PIT, lw: 0 });
+        C.poly(g, mouth(a), { fill: PIT, lw: 0 });
         g.save();
-        C.trace(g, gap);
+        C.trace(g, mouth(a));
         g.clip();
         const k = glow * (1 + 0.1 * P.pulse);
         for (const [rx, ry, col] of [[330, 190, '#8f1220'], [236, 140, K.red], [150, 92, K.orange], [74, 46, K.yellow]]) {
@@ -683,14 +686,14 @@ const Verse3bProps = (() => {
     function headFlames(g, t, a, size = 1) {
         const d = C.drawing(t), P = S.pulseAt(t);
         g.save();
-        C.trace(g, [...LOWER.slice(1, 8), ...LIP.map((p) => turn(p, a))]);
+        C.trace(g, mouth(a));
         g.clip();
         for (const [fx, fy, fs, sd] of [[236, 770, 96, 0], [318, 782, 120, 1], [150, 744, 70, 2]]) Fx.flame(g, fx, fy, fs * size * (1 + 0.14 * P.pulse * ((sd + P.k) % 2 ? 1 : 0.4)), d, sd);
         g.restore();
     }
     // The fire behind the shut teeth: it fills the slit between the jaws and beats with the song.
     function headGlow(g, t, a, k = 1) {
-        const P = S.pulseAt(t), gap = [...LOWER.slice(1, 8), ...LIP.map((p) => turn(p, a))];
+        const P = S.pulseAt(t), gap = mouth(a);
         C.poly(g, gap, { fill: K.orange, lw: 0 });
         g.save();
         C.trace(g, gap);
@@ -708,17 +711,19 @@ const Verse3bProps = (() => {
         const P = S.pulseAt(t);
         g.save();
         g.beginPath();
-        for (const pts of [LOWER, UPPER.map((p) => turn(p, a))]) {
+        for (const pts of [lower(a), UPPER.map((p) => turn(p, a))]) {
             g.moveTo(pts[0][0], pts[0][1]);
             for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
             g.closePath();
         }
         g.clip();
         g.globalCompositeOperation = 'screen';
-        g.fillStyle = '#521f0a';
-        g.beginPath();
-        g.ellipse(124, 792, 236 + 36 * P.pulse, 80 + 16 * P.pulse, -0.03, 0, TAU);
-        g.fill();
+        for (const [k, col] of [[1, '#3d1707'], [0.72, '#3d1707']]) {
+            g.fillStyle = col;
+            g.beginPath();
+            g.ellipse(124, 792, (236 + 36 * P.pulse) * k, (84 + 16 * P.pulse) * k, -0.03, 0, TAU);
+            g.fill();
+        }
         g.restore();
     }
     // An eye: a cave window with a fire behind it and a slit pupil. lid 0..1 closes it from above.
@@ -759,8 +764,9 @@ const Verse3bProps = (() => {
      * brow and horns.  o: { lid (0..1 both eyes), look (-1..1), brow (-1 raised .. 1 pressed down) }
      */
     function headFront(g, t, a, o = {}) {
-        C.poly(g, LOWER, { fill: MESA, ink: K.ink, lw: 4 });
-        strata(g, LOWER, [846, 742, 700], -80, 1100);
+        C.poly(g, lower(a), { fill: MESA, ink: K.ink, lw: 4 });
+        strata(g, lower(a), [846, 742], -80, 1100);
+        line(g, [[420, 880], [432, 852], [418, 828], [430, 806]], 3, MESA_S);
         line(g, [[-30, 846], [-18, 858], [-34, 868]], 3, MESA_S);
         for (const [x, len] of LOW_TEETH.slice().reverse()) tooth(g, x, ledgeY(x) + 2, 21, -len, [7, -4.6]);
         // the lid, turned about its hinge
@@ -774,6 +780,9 @@ const Verse3bProps = (() => {
         C.prism(g, horn.map(([x, y]) => [x + dd[0] * 0.62, y + dd[1] * 0.62]), [dd[0] * 0.16, dd[1] * 0.16], { front: MESA_S, top: MESA, side: MESA_S }, { lw: 3.2 });
         C.prism(g, UPPER, dd, { front: MESA, top: MESA_T, side: MESA_S }, { lw: 4 });
         strata(g, UPPER, [448, 606], -40, 1100);
+        line(g, [[318, 400], [308, 424], [322, 446], [312, 470]], 3, MESA_S);
+        line(g, [[24, 628], [44, 636], [38, 648]], 2.6, MESA_S);
+        line(g, [[420, 560], [436, 584], [424, 606]], 3, MESA_S);
         C.prism(g, horn.map(([x, y]) => [x + dd[0] * 0.1, y + dd[1] * 0.1]), [dd[0] * 0.16, dd[1] * 0.16], { front: MESA, top: MESA_T, side: MESA_S }, { lw: 3.2 });
         for (const k of [0.3, 0.55, 0.78]) line(g, [[lerp(184, 150, k) + dd[0] * 0.1 - 2, lerp(404, 288, k) + dd[1] * 0.1], [lerp(246, 152, k) + dd[0] * 0.1, lerp(402, 290, k) + dd[1] * 0.1 + 6]], 2.4, MESA_S);
         // teeth along the lip, the fang last

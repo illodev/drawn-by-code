@@ -13,6 +13,7 @@
 //   3 · «Runnin' down a dream» (bars 61–62): the deck in full sun, closer; on «runnin'» the
 //       band hits together and the title slams in. The last frame holds as a poster.
 // The cactus in shades drives, as in chorus 1. Props: segments/chorus2-props.js (Chorus2Props).
+// The roadside is verse 2c's (Seg.verse2c.ROAD, Verse2cProps): load verse2c-props.js and verse2c.js before this file.
 (() => {
     const Seg = (window.Seg = window.Seg || {});
     const C = Cereal, K = C.COL, E = Ease, S = Song, W = Weather, P1 = Chorus1Props, P = Chorus2Props, twos = S.twos, b = S.b, B = S.B;
@@ -100,21 +101,25 @@
     // =========================================================================================
     // Shot 2 · «The thaw» and «the letters», bars 56–60: the roadside, static
     // =========================================================================================
-    // Everything stands where verse 2c left it (Seg.verse2c.ROAD: the cars at 84, the hearse at
-    // (606, LANE − 17) with the machine on its hitch, the Devil's block at (480, 930), the world at
-    // X = 64118). This is that picture 150 / 84 closer about the Devil: the figures at 150 units,
-    // his ground point at (410, 888) on screen, so the machine is out of the frame to the left.
+    // The same place and the same things as the picture verse 2c ends on (Seg.verse2c.roadside:
+    // its positions are Seg.verse2c.ROAD, wide, the cars at 84; its props Verse2cProps): the same
+    // stretch of road, the hearse with the iced machine still on its hitch, the Devil's block,
+    // the chauffeur in his scarf with a mitt by the ice. This shot is that picture 150 / 84
+    // closer about the Devil: the figures at 150 units, his ground point at (410, 888) on screen,
+    // which leaves the machine out of the frame to the left, all but its tow bar.
     // The stage's own coordinates keep him at x = 480 (STAGE_X moves them onto the screen).
     // Three lanes on the road's near edge, front to back.
-    const RS = 150, RZ = RS / SC, STAGE_X = -70, RX = 64118, SUN2 = [760, 120, 46];
+    const V = Verse2cProps, ROAD = Seg.verse2c.ROAD;
+    const RS = 150, RZ = RS / SC, STAGE_X = -70, RX = ROAD.X, SUN2 = [760, 120, 46];
     const GB = 872, G0 = 888, GF = 906; // the ground of the back lane, of the Devil's and of the front one
-    const XD = 480, XP = 468, HX = XD + (606 - 480) * RZ, HY = G0 + (LANE - 17 - 930) * RZ; // the Devil; where he ends, under the pile; the hearse
-    const RFX = XD + STAGE_X + (520 - 480) * RZ, RFY = G0 + (LANE - 930) * RZ; // where the wide shots' (520, LANE) is on screen
-    const V2 = () => (typeof Verse2cProps !== 'undefined' ? Verse2cProps : null); // verse 2c's props, when loaded: what its last picture leaves here (the chauffeur's scarf, frost on the crank, snow)
+    const XD = 480, XP = 468; // the Devil in his block; where he ends, under the pile
+    const onStage = (p) => [XD + (p.x - ROAD.devil.x) * RZ, G0 + (p.y - ROAD.devil.y) * RZ]; // a point of verse 2c's picture on this stage
+    const [HX, HY] = onStage(ROAD.hearse);
+    const RFX = STAGE_X + onStage({ x: 520, y: LANE })[0], RFY = onStage({ x: 520, y: LANE })[1]; // where the wide shots' (520, LANE) is on screen
     const GRAV = 1600; // this shot's gravity, logical units a second squared: 10.7 figure units, the real one
     const kDay2 = (t) => 0.74 * (1 - E.seg(t, T56, hb(225.25)));
     const TH0 = edgeAt(kDay2, XD + STAGE_X + 110, 640, T56), TH1 = hb(226.5); // the block melts between these
-    const MELT = 0.62, BLOCK_H = 2.95, blockH = (u) => BLOCK_H * Math.pow(1 - u, 1.25); // verse 2c's block: Weather.iceBlock's own, a little taller
+    const MELT = 0.62, BLOCK_H = ROAD.block.h, blockH = (u) => BLOCK_H * Math.pow(1 - u, 1.25); // verse 2c's block, sinking
     const uAt = (h) => 1 - Math.pow(h / BLOCK_H, 1 / 1.25);
     const T_HEAD = S.snap(lerp(TH0, TH1, uAt(1.9))), T_ARMS = S.snap(lerp(TH0, TH1, uAt(0.95)));
     const T_AH = hb(226.5), T_AH2 = hb(226.75), T_CHOO = b(227), T_UP = hb(227.75), T_TOWEL = b(229), T_TOSS = T_TOWEL - 8 * FR, T_NECK = b(230);
@@ -221,14 +226,14 @@
     };
     /**
      * The Devil with what this shot puts on him.
-     *   ex: { crank (the angle of the snapped crank in his right mitt), paperR ({ ang }: the contract in his right mitt),
+     *   ex: { crank (the angle of the snapped crank in his right mitt), frost (0..1: what is left of the frost on it), paperR ({ ang }: the contract in his right mitt),
      *         wet (0..1 drips), hair (0..1 limp locks), chatter, towel ('head' | 'neck'), towelJ, towelSq }
      */
     function devil(g, x, y, pose, t, ex = {}) {
         const d = C.drawing(t);
-        if (ex.crank != null) {
+        if (ex.crank != null && !ex.frost) {
             const p = devPt(x, y, pose, pose.handR);
-            W.crankArm(g, p[0], p[1], RS, ex.crank + (pose.lean ?? 0), -1);
+            W.crankArm(g, p[0], p[1], RS, ex.crank + (pose.lean ?? 0), CRANK.flip);
         }
         if (ex.paperR) {
             P.onDevil(g, x, y, RS, pose, (g2, L) => {
@@ -236,7 +241,8 @@
                 Devil.contract(g2, pose.handR[0] + c[0], pose.handR[1] + c[1], L, { ang: ex.paperR.ang, open: 1 });
             });
         }
-        Devil.draw(g, x, y, RS, pose);
+        if (ex.frost) V.devilWithCrank(g, x, y, RS, { pose, crankFrost: ex.frost }); // still in the ice: the crank as verse 2c drew it, its frost going
+        else Devil.draw(g, x, y, RS, pose);
         P.onDevil(g, x, y, RS, pose, (g2, L) => {
             if (ex.wet) P.dripping(g2, L, pose, t, ex.wet);
             if (ex.towel === 'neck') P.towelNeck(g2, L, ex.towelSw ?? 0);
@@ -262,7 +268,7 @@
         }
         return { x, lift, dir, landed };
     }
-    const FROZEN = { mood: 'laugh', handR: [-0.66, -0.98], handL: [0.62, -0.92], headTilt: -0.06, tail: 0.02, shadow: false };
+    const FROZEN = V.FROZEN, CRANK = V.CRANK; // how the ice kept him: mid-laugh, the snapped crank in his right mitt
     const CRANK_AT = [XD - 112, G0 - 8]; // where the crank lies once it has slipped out of his mitt
     // His pose and what is on him at t, from the moment his head is out of the ice.
     function devilAt(t) {
@@ -272,7 +278,7 @@
         let x = XD, lift = 0, pose, ex = { wet, hair: Math.min(E.seg(t, T_HEAD, T_HEAD + 0.25), 1 - E.seg(t, T_TOWEL, T_TOWEL + 0.01)) };
         if (t < T_ARMS) {
             pose = { ...FROZEN, mood: 'shock', headTilt: -0.06 + 0.03 * f };
-            ex = { ...ex, wet: 0, crank: -1.45, chatter: on(t, T_HEAD + 2 / 12) };
+            ex = { ...ex, wet: 0, crank: CRANK.a, chatter: on(t, T_HEAD + 2 / 12) };
         } else if (t < T_AH) {
             pose = { ...shiver, ...hug, shadow: t < TH1 ? false : undefined };
             x += 3 * f;
@@ -348,8 +354,8 @@
     // --- the chauffeur ---------------------------------------------------------------------------
     const SEAT_C = Rides.hearseSeats().chauffeur, CH = [HX + SEAT_C[0] * RS, HY + SEAT_C[1] * RS]; // his own origin on the stage
     const TOSS_FROM = [-0.86, -1.4], UMB_AT = [0.56, -1.04], SHOULDER = [-0.33, -0.85];
-    // verse 2c leaves his right mitt by the ice he has been knocking on: the block's far right edge, 2.02 up
-    const KNOCK = [(XD + (0.1 + 1.2 - 0.09 + 0.3) * RS - CH[0]) / RS + 0.21, (G0 + (-0.2 - 2.02) * RS - CH[1]) / RS - 0.0275];
+    // verse 2c leaves his right mitt by the ice he has been knocking on (the block's far right edge, 2.02 up; its mittAt at rest)
+    const TOUCH = V.blockSide(XD, G0, RS, ROAD.block, 2.02), KNOCK = [(TOUCH[0] - CH[0]) / RS + 0.1 + 0.11, (TOUCH[1] - CH[1]) / RS - 0.11 * 0.25];
     const T_UMB = hb(234.25);
     function chauffeurAt(t) {
         const d = C.drawing(t), f = d % 2 ? 1 : -1;
@@ -389,15 +395,16 @@
     }
     function hearse(g, t) {
         const ch = chauffeurAt(t), sink = -0.5 * (hopAt(t, 200) / 12.5);
-        // the machine is still on the hitch, iced over (its crank is in the Devil's mitt: a NaN angle leaves it out,
-        // as in verse 2c); in this framing only its tow bar shows
-        const tow = W.towedAt(HX, HY, RS, { bounce: sink });
-        W.machine(g, tow.x, tow.y, RS, { towed: true, t, pitch: tow.pitch, crank: NaN, iced: lerp(1, 0.5, E.seg(t, TH0, b(238))), smoke: 0, needles: 1, swing: 0 });
+        // the machine is still on the hitch, iced over, its crank gone (verse 2c's way of leaving it out, and its
+        // stub of a shaft); in this framing only its tow bar shows
+        const tow = W.towedAt(HX, HY, RS, { bounce: sink }), iced = lerp(1, 0.5, E.seg(t, TH0, b(238)));
+        W.machine(g, tow.x, tow.y, RS, { towed: true, t, pitch: tow.pitch, crank: V.NO_CRANK, iced, smoke: 0, needles: 1, swing: 0 });
+        V.snappedStub(g, tow.x, tow.y, RS, { ice: iced });
         Rides.hearse(g, HX, HY, RS, { spin: 0.6, flames: 0, bounce: sink, t, swing: 0 }, (g2, seats, sc0) => {
             Rides.at(g2, sc0, seats.chauffeur, (px, py, sc) => {
                 if (ch.umb) W.umbrella(g2, px + ch.umb.at[0] * sc, py + ch.umb.at[1] * sc, sc, { open: ch.umb.open, tilt: ch.umb.tilt, color: K.magenta });
                 Rides.skeleton(g2, px, py, sc, { shadow: false, ...ch.pose });
-                if (V2()) V2().skelScarf(g2, px, py, sc, { t, headDy: ch.pose.headDy }); // the scarf verse 2c gave him
+                V.skelScarf(g2, px, py, sc, { t, headDy: ch.pose.headDy }); // the scarf verse 2c gave him
                 if (ch.towel != null) P.towelHang(g2, px + ch.pose.hands.r[0] * sc, py + ch.pose.hands.r[1] * sc, sc, ch.towel); // folded over his mitt
             });
         });
@@ -409,6 +416,14 @@
             Cast.arm(g, Rides.SKEL, 3.2 / RS, SHOULDER, ch.reach);
             g.restore();
         }
+        // the icicle under the hearse's lantern goes drop by drop
+        const lan = [HX - 3.8 * RS, HY - 0.965 * RS], icK = 1 - E.seg(t, TH0, b(232));
+        g.save();
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        W.icicle(g, 3.2, lan[0], lan[1], 0.24 * RS * icK, 0.075 * RS * (0.4 + 0.6 * icK), 0);
+        g.restore();
+        if (icK > 0.1) W.drips(g, lan[0], lan[1] + 0.24 * RS * icK, RS, t, 1, { pts: [[0, 0]], len: 0.66, slant: 0 });
         // the umbrella is still wet from the three days
         if (ch.umb && ch.umb.open > 0.9) W.drips(g, CH[0] + ch.umb.at[0] * RS, CH[1] + ch.umb.at[1] * RS, RS, t, 0, { pts: W.umbrellaTips({ open: 1, tilt: ch.umb.tilt }), len: 0.7, slant: 0 });
     }
@@ -430,9 +445,9 @@
         hearse(g, t);
         // the snow that had settled on the road goes with the ice
         const snowK = 1 - E.seg(t, TH0, TH1);
-        if (V2() && snowK > 0.05) {
-            V2().mound(g, XD - 118 * RZ, G0 + 10 * RZ, 96 * RZ * (0.5 + 0.5 * snowK), 13 * RZ * snowK);
-            V2().mound(g, HX + 196 * RZ, HY + 30 * RZ, 120 * RZ * (0.5 + 0.5 * snowK), 12 * RZ * snowK);
+        if (snowK > 0.05) {
+            V.mound(g, XD - 118 * RZ, G0 + 10 * RZ, 96 * RZ * (0.5 + 0.5 * snowK), 13 * RZ * snowK);
+            V.mound(g, HX + 196 * RZ, HY + 30 * RZ, 120 * RZ * (0.5 + 0.5 * snowK), 12 * RZ * snowK);
         }
 
         letters(g, t, 'b');
@@ -450,26 +465,28 @@
         if (crankFree) {
             const from = devPt(XD, G0, FROZEN, FROZEN.handR), a = t - T_ARMS, T = Math.sqrt((2 * (CRANK_AT[1] - from[1])) / GRAV), uu = Math.min(1, a / T);
             const cy = a < T ? from[1] + 0.5 * GRAV * a * a : CRANK_AT[1] - Math.max(0, hopAt(t, 200));
-            W.crankArm(g, lerp(from[0], CRANK_AT[0], uu), cy, RS, lerp(-1.45, 0, smooth(uu)), -1);
+            W.crankArm(g, lerp(from[0], CRANK_AT[0], uu), cy, RS, lerp(CRANK.a, 0, smooth(uu)), CRANK.flip);
             if (a >= T) P.tick(g, CRANK_AT[0], CRANK_AT[1] + 8, 34, a - T, { n: 5, a0: -Math.PI * 0.9, a1: -Math.PI * 0.1, ink: W.ICE.line });
         }
         const D = devilAt(t);
         const aL = LETTERS.find((l) => l.ch === 'A' && l.kind === 'big'), aS = letterAt(aL, t);
         if (u < 1) {
             // in the ice: it sinks from the top, he thaws from the head down
-            const bo = { t, melt: MELT * su, h: H / (1 - 0.88 * MELT * su), shake: t < TH0 ? 0 : 0.5 * (1 - u) };
-            const inside = (g2) => {
-                P.milk(g2, XD, G0, RS, bo, 0.9 * (1 - 0.5 * bo.melt)); // the ice is cloudy behind him, as verse 2c leaves it
-                if (t < T_HEAD) {
-                    if (V2()) V2().devilWithCrank(g2, XD, G0, RS, { crankFrost: 1 - Math.min(1, bo.melt * 4) });
-                    else {
-                        const p = devPt(XD, G0, FROZEN, FROZEN.handR);
-                        W.crankArm(g2, p[0], p[1], RS, -1.45, -1);
-                        Devil.draw(g2, XD, G0, RS, FROZEN);
-                    }
-                } else devil(g2, D.x, G0, D.pose, t, D.ex);
-            };
-            W.iceBlock(g, XD, G0, RS, bo, inside);
+            const bo = { ...ROAD.block, t, melt: MELT * su, h: H / (1 - 0.88 * MELT * su), shake: t < TH0 ? 0 : 0.5 * (1 - u) };
+            if (t < T_HEAD) V.frozenDevil(g, XD, G0, RS, bo); // verse 2c's own drawing of him on ice, for as long as his head is in it
+            else {
+                W.iceBlock(g, XD, G0, RS, bo, (g2) => {
+                    // the same cloudy ice behind him (frozenDevil's), then the Devil as he thaws
+                    const sh = V.blockShape(bo);
+                    g2.save();
+                    g2.translate(XD, G0);
+                    g2.scale(RS, RS);
+                    g2.globalAlpha = 0.9 * (1 - 0.5 * bo.melt);
+                    C.prism(g2, sh.face, sh.S, { front: '#cfeaff', top: '#e2f3ff', side: '#b4dafa' }, { lw: 0 });
+                    g2.restore();
+                    devil(g2, D.x, G0, D.pose, t, t < T_ARMS ? { ...D.ex, frost: Math.max(0, 1 - bo.melt * 4) } : D.ex);
+                });
+            }
             // the sun finds it: a glint where the edge touches it
             const gl = steps(t, TH0, [0.6, 1, 0.75, 0.4, 0], 0);
             if (gl) C.sparkle(g, XD + 0.95 * RS, G0 - 2.3 * RS, 70 * gl, { color: K.white, ink: K.ink, lw: 3, rot: 0.2 });
@@ -560,7 +577,7 @@
     const HIT = b(248), T_TITLE = S.snap(S.TITLES[3][0]);
     function runnin(g, t, env) {
         // the road's clock, moved on so that no tall mesa stands in front of the sun in this shot
-        const Pu = S.pulseAt(t), X = Rig.X(t) + 3800, d = C.drawing(t);
+        const Pu = S.pulseAt(t), X = Rig.X(t) + 4030, d = C.drawing(t);
         const sh = steps(t, HIT, [[0, 14], [-9, -7], [5, 4], [0, 0]], [0, 0]);
         const hit = bump(t, HIT, 0.3), wl = twos(t, HIT), wm0 = HIT - 4 / 12;
         g.save();

@@ -835,15 +835,19 @@ const Skyward = (() => {
         }
         body.rect(x - 1.1 * s, y, 2.3 * s, 0.32 * s);
         g.save();
-        g.strokeStyle = K.ink;
-        g.lineWidth = lw * 2;
-        g.lineJoin = 'round';
-        g.stroke(body);
+        if (lw > 0) {
+            g.strokeStyle = K.ink;
+            g.lineWidth = lw * 2;
+            g.lineJoin = 'round';
+            g.stroke(body);
+        }
         g.fillStyle = cols.body;
         g.fill(body);
-        g.clip(body);
-        g.fillStyle = cols.under;
-        g.fillRect(x - 1.4 * s, y + 0.1 * s, 2.8 * s, 0.4 * s);
+        if (cols.under !== cols.body) {
+            g.clip(body);
+            g.fillStyle = cols.under;
+            g.fillRect(x - 1.4 * s, y + 0.1 * s, 2.8 * s, 0.4 * s);
+        }
         g.restore();
     }
     // A row of cumulus across the frame: bumps whose tops are about at y, the body under them
@@ -939,8 +943,14 @@ const Skyward = (() => {
         if (y0 > 1100) return;
         if (dlt < 520) {
             // the body of the cloud, from its lit top down to its dark underside
-            cloudRow(g, yU, 120, 'skyward-under', ox + 77, { body: P.massD }, 4, { up: -1, depth: MASS - 400 });
-            cloudRow(g, yU - 96, 105, 'skyward-under2', ox + 400, { body: P.mass }, 0, { up: -1, depth: MASS - 500 });
+            if (yU > 1320) {
+                // its underside is out of the frame: the body is a plain field
+                g.fillStyle = P.mass;
+                g.fillRect(-60, y0 + 240, 1120, 1100 - (y0 + 240));
+            } else {
+                cloudRow(g, yU, 120, 'skyward-under', ox + 77, { body: P.massD }, 4, { up: -1, depth: MASS - 400 });
+                cloudRow(g, yU - 96, 105, 'skyward-under2', ox + 400, { body: P.mass }, 0, { up: -1, depth: MASS - 500 });
+            }
             // lumps inside, so the passage is never a flat field
             const rm = Motion.rng('skyward-mass');
             for (let i = 0; i < 12; i++) {
@@ -1074,13 +1084,15 @@ const Skyward = (() => {
                 wisp(g, x, y, w, w * (0.07 + 0.04 * r()), P, LW(f, 3.2));
             }
         }
-        if (Y < HEIGHTS.inCloud[1] + 40) land(g, t, Y, P, o);
+        // (the big cloud hides the ground from HEIGHTS.inCloud on)
+        const hidTop = EYE + (Y - DECK) + 250, hidBot = EYE + (Y - DECK) + MASS - 250; // what the big cloud's body covers
+        if (Y < HEIGHTS.inCloud[0]) land(g, t, Y, P, o);
         // low cloud: loose clouds that come down past the car, thicker towards the big one
         if (Y > 700 && Y < 3900) {
             for (let i = 0; i < 16; i++) {
                 const r = Motion.rng('skyward-low:' + i), f = [0.45, 0.7, 1][i % 3], yc = 1500 + Math.pow(i / 15, 0.75) * 1700 + r() * 120, y = 440 + (Y - yc) * f;
                 const x = ((r() * 1500 - ox * f + t * 12 * f) % 1500 + 1500) % 1500 - 250, s = (58 + r() * 40) * (0.6 + f * 0.75);
-                if (y < -140 || y > 1140) continue;
+                if (y < -140 || y > 1140 || (Y > 1900 && y - s > hidTop && y + s * 0.4 < hidBot)) continue;
                 puffCloud(g, x, y, s, { body: P.cloud, under: P.cloudUnder }, LW(f, 4));
             }
         }

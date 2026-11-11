@@ -179,26 +179,6 @@ const Chorus2Props = (() => {
         g.restore();
     }
     /**
-     * The cloud in a block of ice, behind whoever is frozen in it (draw it first in
-     * Weather.iceBlock's `inside`): the block's own solid, by weather.js's numbers, in a pale
-     * blue at `alpha`, so that what stands behind the block is only a ghost. x, y, s and o as
-     * given to iceBlock (o: melt, w, h, d, cx).
-     */
-    function milk(g, x, y, s, o = {}, alpha = 0.9) {
-        const melt = clamp(o.melt ?? 0), Wd = (o.w ?? 2.4) * (1 - 0.1 * melt), H = (o.h ?? 2.75) * (1 - 0.88 * melt), Z = o.d ?? 1.0, cx = o.cx ?? 0.1, f = Dd(-0.3);
-        if (H < 0.04 || alpha <= 0.01) return;
-        const x0 = cx - Wd / 2 + f[0], x1 = cx + Wd / 2 + f[0], yB = f[1], yT = yB - H;
-        const c1 = Math.min(H * 0.45, 0.16 + 0.4 * melt), c2 = Math.min(H * 0.45, 0.12 + 0.3 * melt), c3 = Math.min(H * 0.3, 0.07), c4 = Math.min(H * 0.3, 0.1);
-        const chip = H > 1 ? [[x0, yT + H * 0.52], [x0 + 0.07, yT + H * 0.47], [x0, yT + H * 0.4]] : [];
-        const face = [[x0 + c1, yT], [x1 - c2, yT], [x1, yT + c2], [x1, yB - c4], [x1 - c4, yB], [x0 + c3, yB], [x0, yB - c3], ...chip, [x0, yT + c1]];
-        g.save();
-        g.translate(x, y);
-        g.scale(s, s);
-        g.globalAlpha = alpha;
-        C.prism(g, face, Dd(Z), { front: '#cfeaff', top: '#e2f3ff', side: '#b4dafa' }, { lw: 0 });
-        g.restore();
-    }
-    /**
      * Wisps of steam off something the sun is drying, on twos: small puffs that rise from the
      * line (x ± w / 2, y), thin out and go. k: 0..1 how much.
      */
@@ -555,5 +535,5 @@ const Chorus2Props = (() => {
         g.restore();
     }
 
-    return { sunEdge, sun, drop, spray, puddle, milk, steam, onDevil, chatter, whiskers, wetHair, dripping, shivers, sneeze, cube, TOWEL, towelHang, towelFly, towelHead, towelNeck, GLYPH, CAP, KIND, faceOf, solid, thud, tick, tail };
+    return { sunEdge, sun, drop, spray, puddle, steam, onDevil, chatter, whiskers, wetHair, dripping, shivers, sneeze, cube, TOWEL, towelHang, towelFly, towelHead, towelNeck, GLYPH, CAP, KIND, faceOf, solid, thud, tick, tail };
 })();

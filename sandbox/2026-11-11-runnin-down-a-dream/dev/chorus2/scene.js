@@ -6,7 +6,9 @@ Motion.scene({
         'sandbox/2026-11-11-runnin-down-a-dream/band-strings.js', 'sandbox/2026-11-11-runnin-down-a-dream/band-rhythm.js', 'sandbox/2026-11-11-runnin-down-a-dream/rides.js',
         'sandbox/2026-11-11-runnin-down-a-dream/fx.js', 'sandbox/2026-11-11-runnin-down-a-dream/world.js', 'sandbox/2026-11-11-runnin-down-a-dream/rig.js',
         'sandbox/2026-11-11-runnin-down-a-dream/weather.js', 'sandbox/2026-11-11-runnin-down-a-dream/segments/chorus1-props.js',
-        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse2c-props.js', // optional: what verse 2c's last picture leaves on the roadside (scarf, frost, snow)
+        // verse 2c: the thaw happens on the roadside its last shot leaves (Seg.verse2c.ROAD, Verse2cProps)
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/planb.js', 'sandbox/2026-11-11-runnin-down-a-dream/segments/verse2b-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse2c-props.js', 'sandbox/2026-11-11-runnin-down-a-dream/segments/verse2c.js',
         'sandbox/2026-11-11-runnin-down-a-dream/segments/chorus2-props.js', 'sandbox/2026-11-11-runnin-down-a-dream/segments/chorus2.js'],
     fonts: [{ family: 'Anton', src: 'fonts/Anton-latin.woff2' }],
     bpm: 169.97, beatOffset: 0.356 - 76.625 + 216 * (60 / 169.97),
