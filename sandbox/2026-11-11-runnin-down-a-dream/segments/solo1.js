@@ -209,51 +209,47 @@
         const d = C.drawing(t), Pu = S.pulseAt(t), R = I.R;
         // which way the notes go this beat (seen from the stage the Devil is on the left: his go left to right), and where they are
         const j = Math.min(2, Math.floor((t - T_FANS) / BEAT + 0.04)), dir = j % 2 ? -1 : 1, tb = n(13 + j);
-        const ballX = (tt) => 500 + dir * (-640 + 1500 * E.seg(tt, tb, tb + BEAT * 0.9));
-        const look = E.clamp((ballX(twos(t, tb)) - 500) / 260, -1, 1);
-        // the house behind them: dark, the back wall's teeth, the lights off the stage sweeping over it
-        g.fillStyle = R.pit;
-        g.fillRect(0, 0, 1000, 1000);
-        C.sunburst(g, 500, 1080, { n: 16, rot: 0.06 * (t - T_FANS), a: R.floor, b: R.deep });
-        C.poly(g, [[0, 0], [1000, 0], [1000, 150], ...Array.from({ length: 21 }, (_, i) => [1000 - i * 50, i % 2 ? 150 : 212 - 18 * ((i * 7) % 3)]), [0, 150]], { fill: R.farD, ink: K.ink, lw: 3.2 });
-        for (const [x, w, col] of [[250 + 130 * look, 150, K.pink], [760 + 130 * look, 170, K.aqua]]) {
+        const cx = 500 + dir * (-760 + 1560 * E.seg(twos(t, tb), tb, tb + BEAT)), look = E.clamp((cx - 500) / 240, -1, 1);
+        // the house behind them: the cave's far wall and its teeth, the lights off the stage sweeping over it
+        C.sunburst(g, 500, 1100, { n: 16, rot: 0.05 * (t - T_FANS), a: R.far, b: R.farL });
+        C.poly(g, [[-10, -10], [1010, -10], [1010, 96], ...Array.from({ length: 21 }, (_, i) => [1000 - i * 50, i % 2 ? 96 : 168 - 22 * ((i * 7) % 3)]), [-10, 96]], { fill: R.wallD, ink: K.ink, lw: 3.2 });
+        for (const [x, w, col] of [[240 + 150 * look, 150, K.pink], [770 + 150 * look, 170, K.aqua]]) {
             g.save();
             g.globalCompositeOperation = 'screen';
-            g.globalAlpha = 0.16;
+            g.globalAlpha = 0.2;
             g.fillStyle = col;
             g.beginPath();
-            g.moveTo(x - w, 0);
+            g.moveTo(x - w * 0.4 + 260 * look, 1000);
+            g.lineTo(x + w * 0.4 + 260 * look, 1000);
             g.lineTo(x + w, 0);
-            g.lineTo(x + w * 0.5 + 300 * look, 1000);
-            g.lineTo(x - w * 0.5 + 300 * look, 1000);
+            g.lineTo(x - w, 0);
             g.fill();
             g.restore();
         }
-        // the rows behind: smaller, in the dark
-        const turn = { look, headTilt: 0.1 * look };
-        [[60, 0, 'imp', 'hat'], [215, 1, 'skeleton', 2], [372, 0, 'imp', 'bow'], [520, 1, 'skeleton', 3], [668, 0, 'imp', null], [815, 1, 'skeleton', 0], [955, 0, 'imp', 'specs']].forEach(([x, row, kind, w], i) => {
-            I.fan(g, x, 792 + row * 14, 124, { kind, hype: 0.5, lighter: i % 3 === 0 ? 0.6 : 0, hold: i % 3 === 0 ? 'lighter' : i % 3 === 1 ? 'none' : 'trident', t: t + i * 0.09, wear: kind === 'imp' ? w : undefined, tee: kind === 'imp' ? 0 : w, hawk: [K.yellow, K.sky, K.orange][i % 3], ...turn, shadow: false });
+        // the rows behind: smaller, in the half dark
+        const turn = { look, headTilt: 0.15 * look };
+        [[70, 0, 'imp', 'hat'], [228, 1, 'skeleton', 2], [386, 0, 'imp', 'bow'], [612, 1, 'skeleton', 0], [776, 0, 'imp', null], [934, 1, 'skeleton', 3]].forEach(([x, row, kind, w], i) => {
+            I.fan(g, x + 8 * look, 850 + row * 18, 150, { kind, hype: 0.6, lighter: i % 3 === 0 ? 0.6 : 0, hold: i % 3 === 0 ? 'lighter' : i % 3 === 1 ? 'none' : 'trident', t: t + i * 0.09, wear: kind === 'imp' ? w : undefined, tee: kind === 'imp' ? 0 : w, hawk: [K.yellow, K.sky, K.orange][i % 3], ...turn, shadow: false });
         });
-        g.fillStyle = 'rgba(42,8,16,0.52)';
-        g.fillRect(0, 380, 1000, 620);
-        // the volley over their heads
-        const cx = ballX(twos(t, tb)), wave = (k) => 250 + 26 * Math.sin(k * 2.1 + d * 0.9) - 34 * k * (k - 2);
+        g.fillStyle = 'rgba(74,12,26,0.42)';
+        g.fillRect(0, 330, 1000, 670);
+        // the volley over their heads: three notes in a row, the first the biggest
         for (let k = 2; k >= 0; k--) {
-            const x = cx - dir * k * 150, y = wave(k) - 30;
-            if (dir > 0) P.fireNote(g, x, y, 40 - 4 * k, 0.1 * Math.sin(d + k), d + k, 0.04 * Math.sin(d + k));
-            else P.cleanNote(g, x, y, 42 - 4 * k, 0.2 * Math.sin(d * 1.3 + k), 1 + (k % 2), k);
+            const x = cx - dir * k * 170, y = 300 + 30 * Math.sin(k * 2.1 + d * 0.9) - 56 * k * (2 - k) * 0.5 - 0.00016 * (x - 500) * (x - 500) * -1;
+            if (dir > 0) P.fireNote(g, x, y, 46 - 5 * k, 0.1 * Math.sin(d + k), d + k, 0.05 * Math.sin(d + k));
+            else P.cleanNote(g, x, y, 48 - 5 * k, 0.2 * Math.sin(d * 1.3 + k), 1 + (k % 2), k);
         }
         // the three at the barrier: a skeleton with a lighter, an imp in specs on the rail's step, the skeleton with the pink mohawk
         const stare = { hype: 0.22, t, ...turn };
-        I.fan(g, 236, 1010, 212, { kind: 'skeleton', ...stare, hold: 'lighter', lighter: 0.8, hawk: K.green, tee: 1 });
-        I.fan(g, 760, 1010, 212, { kind: 'skeleton', ...stare, hold: 'none', hawk: K.pink, tee: 3 });
-        I.fan(g, 500, 958, 300, { kind: 'imp', ...stare, hold: 'trident', wear: 'specs', shadow: false });
+        I.fan(g, 222 + 14 * look, 1030, 250, { kind: 'skeleton', ...stare, hold: 'lighter', lighter: 0.8, hawk: K.green, tee: 1, shadow: false });
+        I.fan(g, 778 + 14 * look, 1030, 250, { kind: 'skeleton', ...stare, hold: 'none', hawk: K.pink, tee: 3, shadow: false });
+        I.fan(g, 500 + 14 * look, 962, 350, { kind: 'imp', ...stare, hold: 'none', wear: 'specs', shadow: false });
         // the stage's edge in front of them, with its footlights
-        C.box(g, -20, 884, 1040, 140, Cast.D, { front: R.shelf, top: R.shelfL, side: R.wallD }, { lw: 3.2, depth: 60 });
+        C.box(g, -20, 900, 1040, 140, Cast.D, { front: R.shelf, top: R.shelfL, side: R.wallD }, { lw: 3.2, depth: 60 });
         for (let i = 0; i < 5; i++) {
             const x = 100 + i * 200, lit = (i + Pu.k) % 2 === 0;
-            C.box(g, x - 34, 852, 68, 36, Cast.D, { front: R.wallD, top: R.wall, side: R.deep }, { lw: 3, depth: 40 });
-            C.poly(g, [[x - 24, 860], [x + 24, 860], [x + 24, 880], [x - 24, 880]], { fill: lit ? K.yellow : R.glow, ink: K.ink, lw: 2.4 });
+            C.box(g, x - 34, 868, 68, 36, Cast.D, { front: R.wallD, top: R.wall, side: R.deep }, { lw: 3, depth: 40 });
+            C.poly(g, [[x - 24, 876], [x + 24, 876], [x + 24, 896], [x - 24, 896]], { fill: lit ? K.yellow : R.glow, ink: K.ink, lw: 2.4 });
         }
     }
 

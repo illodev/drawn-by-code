@@ -173,7 +173,7 @@
             // everybody landed: the ride as it is from here on
             const bn = 0.2 * Pu.pulse + Math.max(0, thud(t, LAND, 1, 0.35)), d2 = dr(t, LAND), wi = on(t, WINDUP) && !hit;
             const cp = chordPose(t, WINDUP, CHORD);
-            const devil = cp ?? { look: d2 < 2 ? 1 : -1, step: d2 === 2 ? -1 : d2 === 4 ? 1 : 0, squash: 0.045 * Pu.pulse + Math.max(0, thud(t, LAND, 0.2)) + (d2 === 3 || d2 === 5 ? 0.07 : 0), mood: hit ? 'laugh' : 'grin' };
+            const devil = cp ?? (hit ? { mood: 'laugh', solo: 1, shred: 1 } : { look: d2 < 2 ? 1 : -1, step: d2 === 2 ? -1 : d2 === 4 ? 1 : 0, squash: 0.045 * Pu.pulse + Math.max(0, thud(t, LAND, 0.2)) + (d2 === 3 || d2 === 5 ? 0.07 : 0) });
             F.ride(g, t, car.x, car.y, s, { spin: 0, shadow: true, exhaust: 0, bounce: bn, devil, pose: { tom: { squash: 0.045 * Pu.pulse + Math.max(0, thud(t, LAND, 0.2)) } } });
             if (wi) windmill(g, car.x + HOOD[0] * s, car.y + (HOOD[1] + 0.1 * bn) * s, s, dr(t, WINDUP), 0, cp.squash);
             if (d2 < 3) BridgeProps.ticks(g, hood[0], hood[1], 0.5 * s, 0.74 * s, 5, PI * 1.08, PI * 1.92, K.white, 2.6);

@@ -54,7 +54,7 @@
     // drawers get positions and scales, never a scaled canvas, so outlines keep their width).
     const STAGE = {
         mn: { x: 500, y: 1500, r: 900 }, // the moon
-        rot: 1.04, // it is turned so that its open eye is on the near ground, under the dancers
+        rot: 0, // its own turn (its boulders and its shade stay upright only near 0)
         s: 56, carA: -0.03, // the car's scale and where it rests on the limb (radians from the top)
         flagA: 0.36, // the pennant, planted
         earth: [846, 268, 34],
@@ -98,8 +98,8 @@
         g.translate(V.mn.x, V.mn.y + nd.dy * V.z);
         g.rotate(nd.a);
         g.translate(-V.mn.x, -V.mn.y);
-        flag(g, V.mn, V.s, t);
-        W.moon(g, V.mn.x, V.mn.y, V.mn.r, { face: 1, wink: 1, smile: 0, look: o.look ?? [0.15, -0.9], rot: STAGE.rot, t });
+        if (STAGE.rot) flag(g, V.mn, V.s, t);
+        W.moon(g, V.mn.x, V.mn.y, V.mn.r, { face: 1, wink: 1, smile: o.smile ?? 1, look: o.look ?? [0.15, -0.9], rot: STAGE.rot, flag: STAGE.rot ? false : { a: STAGE.flagA, s: V.s, t }, t });
         const rest = W.landingAt(V.mn, STAGE.carA, V.s, 1);
         W.landing(g, rest.x, rest.y, V.s, 1, { r: V.mn.r, rot: rest.rot, t, part: 'back' });
         if (o.behind) o.behind(g, V);
@@ -438,7 +438,7 @@
             pose: { stan: { crash: even ? pu : 0, kick: pu, snare: even ? 0 : pu, mouth: 'grin' }, ben: { press: 1, squash: 0.07 * pu, headDy: 0.05 * pu }, howie: { squash: 0.07 * pu, headDy: 0.04 * pu } },
         });
         // the angels overhead, playing along
-        if (opt('Solo3Props')) Solo3Props.escort(g, t, LX, LY, s, { at: { 0: [-0.2, -0.1], 1: [0.2, -0.3], 2: [0.5, -7.0] }, pose: { 2: { trident: 'R' } } });
+        if (opt('Solo3Props')) Solo3Props.escort(g, t, LX, LY, s, { at: { 0: [-0.2, -0.1], 1: [0.2, -0.3], 2: [0.5, -7.0] }, });
         g.restore();
     }
 
@@ -450,7 +450,7 @@
     const SIGN = [112, 694], CONE = [556, 852], SUN = { x: 884, y: 668, r: 44 };
     const camWide = (t) => {
         const u = seg(t, T_WIDE, T_POSTER), e = 1 - Math.pow(1 - u, 1.5);
-        return { z: lerp(0.95, 0.78, e), cx: 500, cy: lerp(566, 744, e) };
+        return { z: lerp(0.95, 0.78, e), cx: 500, cy: lerp(566, 790, e) };
     };
     // the windmill's angle on each drawing of its wind-up (4 drawings, down on the chord)
     const WM_TOM = [-PI * 0.5, -PI * 0.95, -PI * 1.5, -PI * 1.9], WM_DEV = [70, -8, -88, -128].map((a) => (a * PI) / 180);
