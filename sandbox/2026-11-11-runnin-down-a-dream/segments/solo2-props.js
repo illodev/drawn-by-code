@@ -371,8 +371,13 @@ const Solo2Props = (() => {
                     const u = i / 36;
                     pts.push([-hw + 2 * hw * u, y0 - h * k * (0.55 + 0.45 * Math.cos(u * PI * 10 + (f ? PI : 0))) * Math.sin(u * PI) ** 0.4]);
                 }
-                C.poly(g, [...pts, [hw, yc + 2], [-hw, yc + 2]], { fill: col, lw: 0 });
-                if (ink) line(g, pts, 3.6 * L);
+                // the lower edge hangs in drips, longer towards the middle: it was a ruled line across the column
+                const low = [];
+                for (let i = 36; i >= 0; i--) {
+                    const u = i / 36;
+                    low.push([-hw + 2 * hw * u, yc + (10 + h * 1.5) * k * (0.25 + 0.75 * Math.abs(Math.sin(u * PI * 7 + (f ? 0.9 : 0)))) * Math.sin(u * PI) ** 0.5]);
+                }
+                C.poly(g, [...pts, ...low], ink ? { fill: col, ink: K.ink, lw: 3.6 * L } : { fill: col, lw: 0 });
             }
             for (let i = 0; i < 6; i++) {
                 const sx = i % 2 ? 1 : -1, u = ((((d + i * 2) % 6) + 6) % 6) / 6, px = sx * (150 + i * 22 + 60 * u), py = top + 6 - 80 * u + 90 * u * u;

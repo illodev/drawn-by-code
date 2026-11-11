@@ -228,10 +228,15 @@ const FadeProps = (() => {
         g.save();
         rockXf(g, x, y, s, pose);
         const yA = y - 0.9 * s, yB = y - (HIP - 1.6 / s) * (1 - q) * s, xB = x + 0.492 * s * (1 + q);
+        // devil.js's own tail climbs to the right of the head (x 0.68–1.2, up to y −1.4): that strip is cut away too,
+        // or its top third hangs in the air beside him, a second tail
+        const xT = x + 0.672 * s * (1 + q), yT = y - 1.46 * s * (1 - q);
         g.beginPath();
         g.moveTo(-2000, -2000);
         g.lineTo(3000, -2000);
-        g.lineTo(3000, yA);
+        g.lineTo(3000, yT);
+        g.lineTo(xT, yT);
+        g.lineTo(xT, yA);
         g.lineTo(xB, yA);
         g.lineTo(xB, yB);
         g.lineTo(-2000, yB);

@@ -615,7 +615,7 @@ const Solo4Props = (() => {
     /** The ride at rest on the limb, playing, its whip gone (it is the flag), the Devil soloing with the neck up (solo 1, shred 0.6
      *  unless o.devil says otherwise). o: what Finale.ride takes; whip: true keeps the whip on the tail. */
     function parked(g, t, o = {}) {
-        const { whip: keep, ...ro } = o, ride = () => Finale.ride(g, t, 0, 0, CS, { spin: SPIN_REST, shadow: true, exhaust: 0, ...ro, devil: ro.devil === false ? false : { solo: 1, shred: 0.6, ...(ro.devil ?? {}) } });
+        const { whip: keep, ...ro } = o, ride = () => Finale.ride(g, t, 0, 0, CS, { spin: SPIN_REST, shadow: 3.8, exhaust: 0, ...ro, devil: ro.devil === false ? false : { solo: 1, shred: 0.6, ...(ro.devil ?? {}) } });
         onStage(g, REST, () => (keep ? ride() : noWhip(g, CS, ride)));
     }
 

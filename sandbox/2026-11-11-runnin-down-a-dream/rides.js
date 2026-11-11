@@ -185,7 +185,7 @@ const Rides = (() => {
             // a standing figure placed here shows head and shoulders above the door
             driver: [2.15, -0.44, 0.5],
             // front to back, alternating the near and the far row: draw the far ones (z = 0.8) first
-            deck: [[1.12, B.deck - 0.04, 0.2], [0.32, B.deck - 0.16, 0.8], [-0.48, B.deck - 0.04, 0.2], [-1.56, B.deck - 0.16, 0.8]],
+            deck: [[1.12, B.deck - 0.04, 0.2], [0.32, B.deck - 0.16, 0.8], [-0.48, B.deck - 0.04, 0.2], [-1.4, B.deck - 0.04, 0.2]],
             kit: [-2.9, B.deck - 0.03, 0.15],
             // where a mitt rests on the steering wheel's rim
             wheel: [B_WHEEL.c[0] - B_WHEEL.r * D[0] - 0.03, B_WHEEL.c[1] - B_WHEEL.r * D[1] - 0.05],
@@ -361,7 +361,7 @@ const Rides = (() => {
             // the ground shadow (shadow: false when the car is off the ground or tumbling)
             g.fillStyle = SHADOW;
             g.beginPath();
-            g.ellipse(0.3, -0.1, 4.8, 0.2, 0, 0, TAU);
+            g.ellipse(0.3, -0.1, typeof o.shadow === 'number' ? o.shadow : 4.8, 0.2, 0, 0, TAU); // shadow: a number = its half-length
             g.fill();
         }
         wheel(g, L, rx + D[0] * zf, -rR + D[1] * zf, rR, spin, P, { far: true });

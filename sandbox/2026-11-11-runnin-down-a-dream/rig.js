@@ -48,6 +48,9 @@ const Rig = (() => {
                     g2.restore();
                 });
             };
+            // Howie stands on the deck's NEAR edge, in front of the kit's right side (its hi-hat, crash stand and floor
+            // tom are behind him: seats.deck[3] is a near-row place), so he goes on after Stan and before Benmont,
+            // whose keyboard stands in front of them both
             put(seats.kit, a.stan, (sc) => BandRhythm.stan(g2, 0, 0, sc, pose('stan')));
             put(seats.deck[3], a.howie, (sc) => BandStrings.howie(g2, 0, 0, sc, pose('howie')));
             if (!drives) put(seats.deck[1], a.mike, (sc) => BandStrings.mike(g2, 0, 0, sc, pose('mike')));
@@ -58,9 +61,11 @@ const Rig = (() => {
                 put(seats.driver, a.tom, (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
                 if (o.cockpit?.front) o.cockpit.front(g2, sc0);
             } else {
-                put(seats.deck[0], a.tom, (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
+                // whoever is at the wheel sits further from the camera than Tom on the deck's near edge: Tom's neck
+                // and fretting mitt go over him (as in the first chorus), under the top's near side
                 if (o.cockpit?.back) o.cockpit.back(g2, sc0);
                 if (o.driver) put(seats.driver, 1, (sc) => o.driver(g2, sc)); // whoever is at the wheel instead: draw at (0, 0)
+                put(seats.deck[0], a.tom, (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
                 if (o.cockpit?.front) o.cockpit.front(g2, sc0);
             }
         });

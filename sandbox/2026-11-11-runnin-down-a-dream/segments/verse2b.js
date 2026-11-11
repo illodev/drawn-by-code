@@ -297,7 +297,9 @@
         });
 
         // --- on the car, over the band: Stan's umbrella on its stand, the wipers
-        const kit = SEATS.kit, jaw = [kit[0] + 1.47, kit[1] - 0.98], socket = [kit[0] + 0.98, kit[1] - 1.34];
+        // the clamp grips the floor tom's rim, between Stan and Howie: on the crash stand it stood behind Howie (he is in
+        // front of the kit's right side) and was painted on his face
+        const kit = SEATS.kit, jaw = [kit[0] + 0.7, kit[1] - 0.69], socket = [kit[0] + 0.8, kit[1] - 1.34];
         // it shoots up out of its socket over two drawings, and springs open on the beat
         const bOpen = at(t, BROLLY) ? Math.min(1, pop(t, BROLLY, 0.22)) : 0, uo = { open: bOpen, tilt: -0.3 + 0.05 * bump2(t, BROLLY, 0.3), color: K.yellow };
         const upD = dAt(t, BROLLY - 2 / 12), out = upD < 0 ? 0 : [0.5, 0.82][upD] ?? 1;

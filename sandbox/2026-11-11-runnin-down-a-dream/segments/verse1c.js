@@ -292,6 +292,12 @@
         const armsUp = falls ? 1 : 0;
         g.save();
         if (gone) PP.clipAbove(g, EXT_N.map(([x, y]) => [x, Y(y)]));
+        else if (!falls) {
+            // behind the heap: nothing of him shows under its foot (he ducks lower than it stands)
+            g.beginPath();
+            g.rect(0, 0, 1000, Y(HEAP[1]));
+            g.clip();
+        }
         PP.devil(g, HIDE[0] + (gone ? -6 * df : 0), Y(HIDE[1] + crouch + sink - jolt), SC, {
             mood, look: t < stareAt ? -1 : falls ? 0 : -1, squash: falls ? -0.06 : 0.02 * P.pulse, tail: falls ? 0.12 : tail, lean: gone ? -0.08 * df : 0,
             headTilt: !falls && t >= stareAt ? -0.06 : 0, headDy: d % 4 < 2 || falls ? 0 : 0.012, shadow: !falls,

@@ -64,8 +64,9 @@
         const dMood = t < n(1) ? 'shock' : t < n(8) ? 'angry' : inDust ? 'shock' : t < n(12) ? 'angry' : 'grin';
         const devilFoot = () => {
             if (riding) return;
+            const inAir = (t >= T8 - 1e-6 && t < T8 + 3 / 12 - 1e-6) || (t >= climbAt - 1e-6 && t < climbAt + 3 / 12 - 1e-6); // his two hops
             Devil.draw(g, dp[0], dp[1], SC, {
-                mood: dMood, look: 1, squash: 0.05 * P.pulse + 0.2 * stamp + 0.15 * bump(t, T8 + 3 / 12, 0.25), tail: 0.05 * Math.sin(ph * Math.PI),
+                shadow: !inAir, mood: dMood, look: 1, squash: 0.05 * P.pulse + 0.2 * stamp + 0.15 * bump(t, T8 + 3 / 12, 0.25), tail: 0.05 * Math.sin(ph * Math.PI),
                 contract: t < n(8) ? { open: 1, signed: true, ang: d % 2 ? 0.12 : -0.08 } : false, handL: t < n(8) ? [0.62, -1.0 - 0.12 * P.pulse] : undefined,
                 handR: t >= n(8) ? [-0.6, -0.95] : undefined, step: d % 2 ? 1 : -1,
             });
@@ -96,7 +97,7 @@
         // Tom on the near verge, then into the driver's seat
         if (!aboard.tom) {
             const tp = t < tomIn - 1e-6 ? [850, NEAR - 6] : hop(t, tomIn, 3 / 12, [850, NEAR - 6], [tomSeat[0], tomSeat[1]], 120);
-            Cast.tom(g, tp[0], tp[1], SC, { ...Rig.playing(t).tom, squash: 0.05 * P.pulse });
+            Cast.tom(g, tp[0], tp[1], SC, { ...Rig.playing(t).tom, squash: 0.05 * P.pulse, shadow: t < tomIn - 1e-6 }); // no ground shadow in his hop
         }
         devilFoot();
         // the dust it leaves, over him

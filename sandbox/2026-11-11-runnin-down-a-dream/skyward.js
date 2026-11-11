@@ -416,7 +416,14 @@ const Skyward = (() => {
         g.lineCap = 'round';
         if (part !== 'front') {
             // skid marks: two lines of tread per side (far side first), from where the wheels
-            // touched to where they are now
+            // touched to where they are now. On a limb (o.r) the far side's line would rise off the disc
+            // into the sky: both are kept to the ground there is.
+            g.save();
+            if (R !== Infinity) {
+                g.beginPath();
+                g.arc(0, Math.sqrt(Math.max(0, R * R - AXLE * AXLE)), R, 0, Math.PI * 2);
+                g.clip();
+            }
             for (const [z, col, w] of [[1.5, MOON.floor, 0.3], [-0.28, MOON.deep, 0.34]]) {
                 const off = Dd(z);
                 for (const wx of [-AXLE, AXLE]) {
@@ -436,6 +443,7 @@ const Skyward = (() => {
                     }
                 }
             }
+            g.restore();
         }
         // dust: puffs that leave each wheel, grow and thin out slowly; pebbles that float up
         const r = Motion.rng('skyward-landing'), far = [], near = [], stones = [];
@@ -1925,16 +1933,17 @@ const Skyward = (() => {
         g.scale(1 + q, 1 - q);
         const hands = angelHands(pose), prop = hands.prop;
         const sitDy = pose.sit ? 0.36 : 0;
-        // what stands beside goes first
-        if (prop && mood === 'ears') {
-            if (prop.kind === 'harp') harp(g, L, prop.x, 0, prop.ang, prop.sc, 0);
-            else trumpet(g, L, prop.x, prop.y + sitDy, prop.ang, prop.sc);
-        }
         g.save();
         g.translate(0, sitDy);
         wing(g, L, -1, fl);
         wing(g, L, 1, fl);
         g.restore();
+        // what stands beside the angel goes on after the wings (they are on its back, the prop is at its side)
+        // and before the body
+        if (prop && mood === 'ears') {
+            if (prop.kind === 'harp') harp(g, L, prop.x, 0, prop.ang, prop.sc, 0);
+            else trumpet(g, L, prop.x, prop.y + sitDy, prop.ang, prop.sc);
+        }
         if (pose.sit) {
             // sitting: the thighs come towards us (a lap seen from above), the shins hang over the
             // cloud's edge, the feet show under the hem

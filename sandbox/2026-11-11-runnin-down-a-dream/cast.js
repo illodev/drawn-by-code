@@ -313,11 +313,13 @@ const Cast = (() => {
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        // contact shadow
-        g.fillStyle = P.shadow;
-        g.beginPath();
-        g.ellipse(0.05, 0.0, 0.56 * (1 + q), 0.06, 0, 0, C.TAU);
-        g.fill();
+        // contact shadow (pose.shadow false: he is in the air, or the caller lays his shadow where he will land)
+        if (pose.shadow !== false) {
+            g.fillStyle = P.shadow;
+            g.beginPath();
+            g.ellipse(0.05, 0.0, 0.56 * (1 + q), 0.06, 0, 0, C.TAU);
+            g.fill();
+        }
         g.rotate(pose.lean ?? 0);
         g.scale(1 + q, 1 - q);
         legs(g, P, L);

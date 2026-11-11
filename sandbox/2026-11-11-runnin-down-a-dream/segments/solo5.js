@@ -293,9 +293,9 @@
     const rideOn = (g, t, s, o = {}) => {
         const { wind, ...ro } = o, P = S.pulseAt(t);
         // (as Solo4Props.parked: the Devil soloing with the neck up unless the shot says otherwise)
-        if (!wind) return F.ride(g, t, 0, 0, s, { spin: SPIN, shadow: true, exhaust: 0, ...ro, devil: { solo: 1, shred: 0.6, ...(ro.devil ?? {}) } });
+        if (!wind) return F.ride(g, t, 0, 0, s, { spin: SPIN, shadow: 3.8, exhaust: 0, ...ro, devil: { solo: 1, shred: 0.6, ...(ro.devil ?? {}) } });
         const dv = { mood: 'laugh', squash: -0.05, headTilt: -0.05, solo: 0.5, ...(ro.devil ?? {}) };
-        F.ride(g, t, 0, 0, s, { spin: SPIN, shadow: true, exhaust: 0, ...ro, devil: { ...dv, strum: NaN }, pose: { ...(ro.pose ?? {}), tom: { ...(ro.pose?.tom ?? {}), windmill: wind.tom, squash: -0.05 }, stan: { snare: 0, hat: 0, crash: 0, headDy: -0.05 } } });
+        F.ride(g, t, 0, 0, s, { spin: SPIN, shadow: 3.8, exhaust: 0, ...ro, devil: { ...dv, strum: NaN }, pose: { ...(ro.pose ?? {}), tom: { ...(ro.pose?.tom ?? {}), windmill: wind.tom, squash: -0.05 }, stan: { snare: 0, hat: 0, crash: 0, headDy: -0.05 } } });
         const hx = F.HOOD[0] * s, hy = (F.HOOD[1] + (ro.bounce ?? 0) * 0.1) * s;
         Q.strapEnd(g, hx, hy, s, dv);
         Q.windmill(g, hx, hy, s, wind.devil, { lean: dv.lean, squash: dv.squash, solo: dv.solo, from: wind.devilFrom });
@@ -453,7 +453,7 @@
         g.save();
         g.translate(x, y);
         noWhip(g, s, () => Rig.band(g, t, 0, 0, s, {
-            tomDrives: false, sing: true, shadow: true, exhaust: 0, spin: SPIN, bounce: bn, solo: o.solo ?? 0.6, aboard: { tom: 0, mike: 0 }, pose: o.pose,
+            tomDrives: false, sing: true, shadow: 3.8, exhaust: 0, spin: SPIN, bounce: bn, solo: o.solo ?? 0.6, aboard: { tom: 0, mike: 0 }, pose: o.pose,
             driver: (g2, sc) => (cac ? Verse2aProps.cactus(g2, 0, 0, sc, { shades: 0, squash: 0.05 * P.pulse, mouth: 'smile', lean: o.cactus?.lean ?? 0, ...arms }) : Chorus1Props.cactus(g2, 0, 0, sc, { shades: 1, squash: 0.05 * P.pulse, wheel: null })),
             cockpit: {
                 back: (g2, sc0) => {

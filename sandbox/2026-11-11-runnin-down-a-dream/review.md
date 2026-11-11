@@ -432,3 +432,41 @@ song, so it can be read. The fade block's agent was told while it worked.
   neck that sag onto the collar, stripes fanning with the turns, a knot to one side and the two
   tails from under it; painted over the jacket and UNDER the head and the arms (`wear` now runs
   before the head), so the jaw sits in it and the arms cross it.
+
+### The layer pass («como verás casi todos los errores son de fallos de capas»)
+
+Four reviewers who had not drawn the film went through it by stretch, read-only, every shot at
+three moments or more at 1920 px, cropping each overlap 1:1, and reported a table (time, A over
+B, crop, the function that draws it). Each row was checked on its crop before it was fixed.
+
+**0:00–1:06** (285 frames)
+- The hop (0:32): the Devil ducks behind his heap lower than the heap stands, and his hooves and
+  shadow showed under its foot for two drawings. Clipped at the heap's foot, as the digging shot does.
+- The deck's order: Howie was a far-row place drawn over the kit (his bass sawed off the floor
+  tom, the hi-hat and the crash stand stopped at his hair). Trying the honest order (kit over
+  Howie) put a cymbal stand across his face, so the staging is now what the picture always
+  said: `deck[3]` is a place on the deck's NEAR edge, in front of the kit's right side, and he
+  is drawn after Stan and before Benmont, whose keyboard stands in front of them both.
+- Stan's umbrella (1:06): its clamp gripped the crash stand, which is behind Howie, and was
+  painted on Howie's face. It grips the floor tom's rim now, between Stan and Howie.
+- Whoever is at the wheel was painted over Tom's headstock and fretting mitt from 0:55 on (and
+  under them in the first chorus: the neck changed layer at the cut). The driver goes on before
+  Tom everywhere.
+- Figures in the air carried their contact shadow with them (Tom floating out of his seat at
+  0:34, his hop into it and the Devil's two hops in the getaway). `Cast.tom` takes
+  `shadow: false`; the hops pass it.
+
+**3:18–4:24** (156 frames)
+- The dressing room (4:13–4:19): the Devil had two tails. The block draws his body with
+  devil.js's own legs and tail clipped away and its own tail on top, but the clip kept the
+  strip beside the head where devil.js's tail climbs: its top third hung there, sawn off flat,
+  over the guitar. That strip is cut away too.
+- The moon (3:52–4:08): the far wheel's skid track rose off the limb into the sky, and the
+  car's ground shadow ran past the front wheel over the sky. The tracks are clipped to the
+  disc; the car's `shadow` takes a half-length, short on a limb.
+- The angels (3:31): the trumpet and the harp they put down beside them were painted under
+  their own wings (a gold stub floating over a wing). Wings, then the prop, then the body.
+- The lava column (3:18): its front lips were three flat-bottomed slabs with a ruled lower
+  edge across the column. A splash crown now, inked all round, its lower edge in drips.
+- Left as they are (staging, not layers): Tom's mitt in front of the cactus's face while the
+  three guitars jump in a line (4:03); the hangers' chain in front of the car's sill (3:45).

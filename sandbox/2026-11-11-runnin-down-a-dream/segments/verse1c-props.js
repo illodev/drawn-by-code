@@ -742,7 +742,7 @@ const PitProps = (() => {
                 g2.ellipse(dk[0][0] + 0.05, dk[0][1], 0.5 * sw.shadow, 0.05 * sw.shadow, 0, 0, TAU);
                 g2.fill();
             }
-            Rides.at(g2, sc0, sw ? sw.tom : seats.driver, (px, py, sc) => Cast.tom(g2, px, py - (sw ? 0 : (lift.tom ?? 0)) * sc, sc, pose('tom')));
+            Rides.at(g2, sc0, sw ? sw.tom : seats.driver, (px, py, sc) => Cast.tom(g2, px, py - (sw ? 0 : (lift.tom ?? 0)) * sc, sc, { ...pose('tom'), shadow: !(sw || (lift.tom ?? 0) > 0.02) })); // off his feet he casts none here
         });
     }
     /**
