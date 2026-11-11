@@ -246,10 +246,10 @@
     const TICK = 0.44, GRAB_ANG = -0.3, GRAB_U = 0.8; // the metronome's swing; where it is when he takes it; how far up it his mitt closes
     const tick = (ang, lag = 0) => P.TAIL.tick(ang, lag);
     const GRAB = P.tailAt(tick(GRAB_ANG), GRAB_U);
-    const act3 = track({ ...BASE, ...KNEES, squash: 0.06, dy: -0.1, headDy: 0.05, face: F.strain }, [
-        [bt(9), { face: F.phew, squash: 0.03, dy: -0.07, headDy: 0.04 }, 3 / 12, 'ease'],
+    const act3 = track({ ...BASE, ...KNEES, squash: 0.06, dy: -0.03, headDy: 0.06, face: F.strain }, [
+        [bt(9), { face: F.phew, squash: 0.03, dy: -0.02, headDy: 0.04 }, 3 / 12, 'ease'],
         [bt(10) + 2 / 12, { face: F.ear }, 2 / 12],
-        [bt(11), { face: F.tailL, headDy: 0.02, headTilt: 0.03, squash: 0.01, dy: -0.04 }, 2 / 12],
+        [bt(11), { face: F.tailL, headDy: 0.02, headTilt: 0.03, squash: 0.01, dy: 0 }, 2 / 12],
         [bt(12), { face: F.tailR }, 2 / 12],
         [bt(13), { face: F.gotcha, handL: [GRAB[0] - 0.02, GRAB[1] + 0.03], squash: 0, headDy: 0.02, dy: 0 }, 2 / 12],
         [bt(14), { face: F.shoulders, headTilt: 0 }, 2 / 12],
@@ -396,11 +396,11 @@
     // Shot 5 · «The contract», bar 118: close again. He opens his eyes: the contract is still in
     // his coat. He pulls it out, looks at it, at the stage, at it; and past it at the band.
     // =========================================================================================
-    const OUT = T118 + 2 / 12, OPEN = bt(33) - 2 / 12; // the scroll comes out of the coat; it drops open
+    const OUT = T118 + 2 / 12, OPEN = bt(33); // the scroll comes out of the coat, rolled, in one mitt; on the bar's second beat it drops open
     const CTOP = -0.86; // the open contract hangs from here, out over the rail (his units)
     const LAST = { ...BASE, ...HOLD, over: 'both', lock: 0.28, headTilt: -0.035, face: F.real, mood: 'grin' }; // the block's last pose
     const act5 = track({ ...BASE, lock: 0.3, handR: RAIL.handR, handL: [0.07, -0.64], over: 'R', face: F.huh, headDy: 0.04, mood: 'grin' }, [
-        [OUT, { handL: [0.36, -1.0], headDy: 0, face: { ...F.huh, eye: { ...F.huh.eye, lx: 0.8, ly: 0.2 }, mouth: 'flat' } }, 2 / 12],
+        [OUT, { handL: [0.44, -1.04], over: 'both', headDy: 0, face: { ...F.huh, eye: { ...F.huh.eye, lx: 0.8, ly: 0.2 }, mouth: 'flat' } }, 2 / 12],
         [OPEN, { ...HOLD, over: 'both', face: F.read, headDy: 0.03 }, 2 / 12],
         [bt(34), { face: F.stage, headTilt: -0.035, headDy: 0 }, 2 / 12],
         [bt(35), { face: F.read2, headTilt: 0, headDy: 0.03 }, 2 / 12],
@@ -409,7 +409,7 @@
     // the contract at t, in his units: { x, y (its middle), ang, open }
     function contractAt(t, pose) {
         if (!on(t, OUT)) return null;
-        if (!on(t, OPEN)) return { x: pose.handL[0] + 0.02, y: pose.handL[1] - 0.06, ang: -0.35, open: 0 }; // rolled, in one mitt
+        if (!on(t, OPEN)) return { x: pose.handL[0] + 0.03, y: pose.handL[1] - 0.03, ang: -0.5, open: 0 }; // rolled, in one mitt
         const open = [0.45, 0.9, 1.07, 1][Math.min(3, dr(t, OPEN))];
         return { x: 0, y: CTOP + (0.6 * open + 0.02) / 2, ang: 0, open };
     }

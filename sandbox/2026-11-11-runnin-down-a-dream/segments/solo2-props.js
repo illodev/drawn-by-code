@@ -3,10 +3,10 @@
 // colours come from Inferno.R where it is loaded.
 //
 // THE HANGERS — three imps and the skeleton with the pink mohawk, carried off under the car's
-// tail in one chain: an imp in specs hangs from the near exhaust pipe by both mitts, the
-// skeleton holds that imp's hooves, an imp with a bow holds the skeleton's ankles and the last
-// imp holds hers. They swing on the beat (the links lag one another, so a wave runs down the
-// chain) and stay with the car for the rest of the film.
+// tail in one chain: an imp in specs hangs from the near exhaust pipe by both mitts, an imp with
+// a bow holds his hooves, a third imp holds hers, and the skeleton hangs from that one's hoof by
+// one arm, pumping his other fist. They swing on the beat (each link lags the one above, so a
+// wave runs down the chain) and stay with the car for the rest of the film.
 //
 //     Finale.ride(g, t, x, y, s, o);                        // the car first: their mitts go over its pipe
 //     Solo2Props.hangers(g, t, x, y, s, { lean, bounce });  // the SAME x, y, s (the car's ground point and scale)
@@ -14,14 +14,14 @@
 //
 //   o: { lean, bounce   what the ride was given, so the grip follows the car's body (default 0)
 //        swing          0..1.5 how far they swing (default 1; 0 hangs them dead still)
-//        trail          radians added to every link, + towards the nose (default 0: they hang
-//                       straight down; e.g. -0.5 while the car dives forwards, they trail behind)
+//        trail          radians added down the chain, + towards the nose (default 0: they hang
+//                       straight down; e.g. -0.5 while the car dives forwards and they trail behind)
 //        n              how many links are on, from the top (default 4; 0 draws nothing)
 //        jaw            the skeleton's jaw 0..1 (default: it laughs on the beat) }
-//   The chain is 3.9 car units long: at Finale.CAR (500, 640, 84) it reaches from the pipe at
-//   (119, 581) down to y ≈ 905 and stays between x ≈ 85 and 190.
-//   Solo2Props.hangerPoints(t, x, y, s, o) → [{ grip: [x, y], ang, feet: [x, y] } × 4] on screen
-//   (grip: the middle of the link's two mitts; feet: where the next link holds on).
+//   The chain is 3.2 car units long: at Finale.CAR (500, 640, 84) it reaches from the pipe at
+//   (119, 581) down to y ≈ 905 and stays between x ≈ 85 and 250.
+//   Solo2Props.hangerPoints(t, x, y, s, o) → [{ grip: [x, y], ang } × 4] on screen (grip: where
+//   the link holds on; ang: its swing, + takes its feet towards the nose).
 //   Solo2Props.hanger(g, i, gx, gy, s, ang, pose) draws link i alone, hanging from (gx, gy).
 //
 // Also here: rockets (the exhausts as rockets), and the pieces of solo2's own shots.
@@ -69,21 +69,21 @@ const Solo2Props = (() => {
     // The hangers
     // =========================================================================================
     const IMP = 0.67; // an imp's unit, in figure units (as everywhere in the film)
-    const IMP_GRIP = -1.3, IMP_LEG = 0.38, SKEL_GRIP = -1.5; // the mitts' height above the feet; a hanging imp's legs are apart
+    const IMP_GRIP = -1.2, IMP_LEG = 0.38; // the mitts' height above the hooves; a hanging imp's legs are apart
     // An imp hanging by both mitts: Devil.imp's own drawing with the arms straight up along the
     // head's sides. Drawn in its units with the feet at (0, 0); pose: { mood ('grin' | 'awe'),
-    // look, wear ('specs' | 'bow'), tail, hx (half the distance between the mitts), kick (-1..1) }
+    // look, lookY, wear ('specs' | 'bow'), tail, hx (half the distance between the mitts) }
     function hangImp(g, L, pose = {}) {
-        const P = Devil.P, mood = pose.mood ?? 'grin', top = -1.02, hx = pose.hx ?? 0.46, kick = pose.kick ?? 0;
+        const P = Devil.P, mood = pose.mood ?? 'grin', top = -1.02, hx = pose.hx ?? 0.46;
         const tw = pose.tail ?? 0;
         const tl = C.curve([[0.3, -0.34], [0.66, -0.3], [0.78, -0.52 + tw], [0.7, -0.76 + tw * 1.5]], false, 6);
         C.poly(g, ribbon(tl.map(([px, py], i) => [px, py, 0.035 - 0.012 * (i / (tl.length - 1))])), { fill: P.skin, ink: P.ink, lw: L });
         const te = tl[tl.length - 1];
         C.poly(g, [[te[0] - 0.09, te[1] + 0.02], [te[0] + 0.02, te[1] - 0.14], [te[0] + 0.1, te[1] + 0.04]], { fill: P.skin, ink: P.ink, lw: L });
         for (const sx of [-1, 1]) {
-            const x = sx * IMP_LEG, dy = pose.free ? -0.05 * Math.max(0, sx * kick) : 0; // free legs kick in turn
-            C.box(g, x - 0.11, -0.1 + dy, 0.22, 0.1, D, { front: P.hoof, top: P.hoofTop, side: P.hoof }, { lw: L, ink: P.ink, depth: 0.26 });
-            C.box(g, x - 0.085, -0.26, 0.17, 0.17 + dy, D, { front: P.skin, top: P.skinTop, side: P.skinSide }, { lw: L, ink: P.ink, depth: 0.2 });
+            const x = sx * IMP_LEG;
+            C.box(g, x - 0.11, -0.1, 0.22, 0.1, D, { front: P.hoof, top: P.hoofTop, side: P.hoof }, { lw: L, ink: P.ink, depth: 0.26 });
+            C.box(g, x - 0.085, -0.26, 0.17, 0.17, D, { front: P.skin, top: P.skinTop, side: P.skinSide }, { lw: L, ink: P.ink, depth: 0.2 });
         }
         C.box(g, -0.5, top, 1, 0.8, D, { front: P.skin, top: P.skinTop, side: P.skinSide }, { lw: L, ink: P.ink, depth: 0.5 });
         for (const sx of [-1, 1]) {
@@ -195,9 +195,10 @@ const Solo2Props = (() => {
         pts.push([0.36 + z[0], y]);
         C.prism(g, cw(pts), Dd(0.05), { front: hawk, top: hawk, side: '#b01f6e' }, { lw: L });
     }
-    // pose: { jaw, look, headTilt, hx }
+    const SKEL_GRIP = [-0.7, -1.47]; // where his holding mitt is, from the ground between his feet
+    // pose: { jaw, look, headTilt, pump (-1..1 the free fist) }: he hangs by the arm on screen left
     function hangSkel(g, L, pose = {}) {
-        const T = { x: -0.36, y: -0.98, w: 0.72, h: 0.62, d: 0.4 }, hx = pose.hx ?? 0.36;
+        const T = { x: -0.36, y: -0.98, w: 0.72, h: 0.62, d: 0.4 };
         Cast.legs(g, SK, L);
         C.box(g, T.x, T.y, T.w, T.h, D, { front: TEE[0], top: TEE[1], side: TEE[2] }, { lw: L, depth: T.d });
         C.poly(g, [[T.x, T.y + T.h - 0.09], [T.x + T.w, T.y + T.h - 0.09], [T.x + T.w, T.y + T.h], [T.x, T.y + T.h]], { fill: SK.shoe, ink: K.ink, lw: L * 0.8 });
@@ -211,16 +212,17 @@ const Solo2Props = (() => {
         g.translate(0, 1.08);
         skull(g, L, clamp(pose.jaw ?? 0.4), K.pink, pose.look ?? 0);
         g.restore();
-        Cast.arm(g, SK, L, [T.x + 0.03, T.y + 0.13], [-hx, SKEL_GRIP + 0.06]);
-        Cast.arm(g, SK, L, [T.x + T.w - 0.03, T.y + 0.13], [hx, SKEL_GRIP + 0.06]);
+        Cast.arm(g, SK, L, [T.x + 0.03, T.y + 0.13], [SKEL_GRIP[0] + 0.03, SKEL_GRIP[1] + 0.06]);
+        Cast.arm(g, SK, L, [T.x + T.w - 0.03, T.y + 0.13], [0.62, -1.48 - 0.1 * (pose.pump ?? 0)]);
     }
 
-    // The chain, top to bottom. len: from the grip to where the next link holds on (figure units).
+    // The chain, top to bottom. grip: where the link holds on, next: where the one below holds it
+    // (both in the link's own units, from the ground between its feet).
     const LINKS = [
-        { kind: 'imp', len: -IMP_GRIP * IMP - 0.05 * IMP, pose: { wear: 'specs', mood: 'grin', hx: 0.4, look: 0.6, lookY: -1 } },
-        { kind: 'skel', len: -SKEL_GRIP - 0.2, pose: { hx: 0.37 } },
-        { kind: 'imp', len: -IMP_GRIP * IMP - 0.05 * IMP, pose: { wear: 'bow', mood: 'awe', hx: 0.46, lookY: 1.6 } },
-        { kind: 'imp', len: -IMP_GRIP * IMP, pose: { mood: 'grin', hx: 0.46, look: 0.8, lookY: -0.6, free: true } },
+        { kind: 'imp', grip: [0, IMP_GRIP], next: [0, -0.05], pose: { wear: 'specs', mood: 'grin', hx: 0.4, look: 0.6, lookY: -1 } },
+        { kind: 'imp', grip: [0, IMP_GRIP], next: [0, -0.05], pose: { wear: 'bow', mood: 'awe', hx: 0.46, lookY: 1.6 } },
+        { kind: 'imp', grip: [0, IMP_GRIP], next: [IMP_LEG, -0.06], pose: { mood: 'grin', hx: 0.46, look: 1, lookY: 0.8 } },
+        { kind: 'skel', grip: SKEL_GRIP, next: [0, 0], pose: {} },
     ];
     const PIPE = [-4.54, -0.7]; // the middle of the top imp's mitts on the near megaphone pipe, in the car's units
     // a point of the car's body on screen (the body rears about the rear axle and sinks on its springs)
@@ -228,15 +230,16 @@ const Solo2Props = (() => {
         const rx = -3.55, rR = 0.56, q = rot([p[0] - rx, p[1] + rR + (o.bounce ?? 0) * 0.1], -(o.lean ?? 0));
         return [x + (rx + q[0]) * s, y + (-rR + q[1]) * s];
     };
-    const SWING = [0.05, 0.13, 0.2, 0.27], HANG = [-0.05, 0.02, 0.07, 0.12], LAG = 0.7;
+    const SWING = [0.05, 0.12, 0.2, 0.24], HANG = [-0.05, 0.0, 0.05, -0.2], LAG = 0.7;
     function hangerPoints(t, x, y, s, o = {}) {
         const P = S.pulseAt(t), ph = P.k + P.since, sw = o.swing ?? 1, out = [];
         let grip = onBody(PIPE, x, y, s, o);
         for (let i = 0; i < LINKS.length; i++) {
+            const lk = LINKS[i], u = lk.kind === 'imp' ? s * IMP : s;
             const ang = HANG[i] + (o.trail ?? 0) * (0.35 + 0.65 * (i / 3)) + SWING[i] * sw * Math.cos(ph * PI - i * LAG);
-            const feet = [grip[0] + Math.sin(ang) * LINKS[i].len * s, grip[1] + Math.cos(ang) * LINKS[i].len * s];
-            out.push({ grip, ang, feet });
-            grip = feet;
+            const q = rot([(lk.next[0] - lk.grip[0]) * u, (lk.next[1] - lk.grip[1]) * u], -ang);
+            out.push({ grip, ang });
+            grip = [grip[0] + q[0], grip[1] + q[1]];
         }
         return out;
     }
@@ -248,7 +251,7 @@ const Solo2Props = (() => {
         g.translate(gx, gy);
         g.rotate(-ang);
         g.scale(u, u);
-        g.translate(0, -(imp ? IMP_GRIP : SKEL_GRIP));
+        g.translate(-lk.grip[0], -lk.grip[1]);
         if (imp) hangImp(g, 3 / u, { ...lk.pose, ...pose });
         else hangSkel(g, 3.2 / u, { ...lk.pose, ...pose });
         g.restore();
@@ -259,7 +262,7 @@ const Solo2Props = (() => {
         const P = S.pulseAt(t), ph = P.k + P.since, pts = hangerPoints(t, x, y, s, o);
         for (let i = 0; i < n; i++) {
             const { grip, ang } = pts[i], sway = Math.cos(ph * PI - i * LAG);
-            hanger(g, i, grip[0], grip[1], s, ang, i === 1 ? { jaw: o.jaw ?? 0.25 + 0.6 * P.pulse, headTilt: 0.06 * sway, look: sway } : { tail: 0.06 * sway, kick: sway });
+            hanger(g, i, grip[0], grip[1], s, ang, i === 3 ? { jaw: o.jaw ?? 0.25 + 0.6 * P.pulse, headTilt: 0.06 * sway, look: sway, pump: Math.cos(ph * PI) } : { tail: 0.06 * sway });
         }
     }
 

@@ -111,7 +111,7 @@
     function plugScene(g, t, env) {
         const St = I.stage(SIDE, 0), Pu = S.pulseAt(t), d = C.drawing(t), dark = on(t, POP), ph = Pu.k + Pu.since;
         const o = { view: SIDE, pan: 0, heat: dark ? 0 : 0.8, beatK: dark ? 0 : Pu.pulse };
-        const out = plugOut(t), k = (t - T0) / S.BEAT; // the beat we are in, as a number
+        const out = plugOut(t);
         // --- his act -----------------------------------------------------------------------
         let at = H0, pose, plugAt = [HOME[0] + Math.min(out, 30), HOME[1]], plugAng = 0, seat = false, sock = 'calm', held = false;
         const fx = []; // what flies off him: [kind, x, y, …] in set coordinates
@@ -469,10 +469,10 @@
     // =========================================================================================
     const HOUSE = { a: '#6a1221', b: '#8a1a2c', tooth: '#fff6e0', toothT: '#fffdf4', toothS: '#d9c39a' };
     const FRONT = [
-        { kind: 'imp', x: 150, y: 986, s: 300, wear: 'specs', cone: true, hold: 'lighter', ph: 0 }, // one of the two who got a cone for a hat
-        { kind: 'skeleton', x: 385, y: 1090, s: 205, hawk: K.green, tee: 1, hold: 'trident', ph: 0.5 },
-        { kind: 'imp', x: 622, y: 990, s: 300, wear: 'bow', hold: 'lighter', ph: 0.5 },
-        { kind: 'skeleton', x: 856, y: 1096, s: 205, hawk: K.yellow, tee: 3, hold: 'lighter', ph: 0 },
+        { kind: 'imp', x: 150, y: 986, s: 300, wear: 'specs', cone: true, hold: 'lighter' }, // one of the two who got a cone for a hat
+        { kind: 'skeleton', x: 385, y: 1090, s: 205, hawk: K.green, tee: 1, hold: 'trident' },
+        { kind: 'imp', x: 622, y: 990, s: 300, wear: 'bow', hold: 'lighter' },
+        { kind: 'skeleton', x: 856, y: 1096, s: 205, hawk: K.yellow, tee: 3, hold: 'lighter' },
     ];
     const BACK = [
         { kind: 'skeleton', x: 40, y: 880, s: 150, hawk: K.sky, tee: 2, hold: 'none' },
@@ -483,7 +483,7 @@
     ];
     // one fan facing us; an imp sings with its mouth (Devil.imp's round one) on the lead's words
     function fan(g, t, f, sing) {
-        if (f.kind === 'skeleton') return I.fan(g, f.x, f.y, f.s, { kind: 'skeleton', hype: 1, lighter: f.hold === 'lighter' ? 0.9 : 0, hold: f.hold, t: t + (f.ph ?? 0) * S.BEAT * 0, hawk: f.hawk, tee: f.tee, look: f.look ?? 0 });
+        if (f.kind === 'skeleton') return I.fan(g, f.x, f.y, f.s, { kind: 'skeleton', hype: 1, lighter: f.hold === 'lighter' ? 0.9 : 0, hold: f.hold, t, hawk: f.hawk, tee: f.tee, look: f.look ?? 0 });
         const Pu = S.pulseAt(t), d = C.drawing(t), u = f.s * 0.67, sway = Math.sin((C.onTwos(t) * TAU) / 2.4), fr = Pu.since - Math.floor(Pu.since);
         const light = f.hold === 'lighter', hop = light ? 0.03 * Pu.pulse : 0.16 * Math.sin(PI * Math.min(1, fr)), sq = 0.06 * Pu.pulse, up = light ? 0.9 : 1;
         if (light) {
@@ -537,7 +537,7 @@
         const u = surfU(t), k = 2.3, sx = lerp(110, 890, u), want = lerp(40, 960, E.seg(t, T108, T109));
         I.crowd(g, t, { view: { k, cx: sx - (want - 500) / k, cy: 842 - (648 - 500) / k }, pan: 0, density: 0, surf: { u, on: true } });
         // the front row
-        for (const f of FRONT) fan(g, t + f.ph * 0, f, sing);
+        for (const f of FRONT) fan(g, t, f, sing);
         // the line leaves them as notes, one a word
         SUNG.forEach((w, i) => {
             if (!on(t, w)) return;
