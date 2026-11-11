@@ -49,7 +49,7 @@
             for (let j = 0; j < full.length; j++) if (on(t, full[j].at)) i = j;
             if (i < 0) return base;
             const k = full[i], prev = i ? full[i - 1].pose : base, u = E.seg(twos(t, k.at), k.at, k.at + k.dur);
-            if (k.kind === 'ease') return mix(prev, k.pose, E.inOut(u));
+            if (k.kind === 'ease') return { ...mix(prev, k.pose, E.inOut(u)), face: u >= 0.4 ? k.pose.face : prev.face };
             return { ...mix(prev, k.pose, 0.6 + 0.4 * E.back(u)), face: k.pose.face }; // the face is a new drawing, whole, on the hit's own frame
         };
     }
@@ -96,7 +96,7 @@
     const CROSS = { handR: [0.27, -0.8], handL: [-0.27, -0.715] }; // arms crossed, high on the chest
     const KNEES = { handR: [-0.3, -0.42], handL: [0.3, -0.42] }; // down behind the parapet
     const RAIL = { handR: [-0.3, -0.6], handL: [0.3, -0.6] }; // over the rail's velvet roll (drawn in front of it)
-    const MOUTH = { handR: [-0.085, -1.13], handL: [0.085, -1.13] }; // both mitts over his mouth
+    const MOUTH = { handR: [-0.05, -1.2], handL: [0.06, -1.19] }; // both mitts over his mouth
     const HOLD = { handR: [-0.245, -0.5], handL: [0.245, -0.5] }; // the contract's two edges, out over the rail
 
     // --- the close shot: him in his box, the show past him -------------------------------------
@@ -335,7 +335,7 @@
     // Shot 4 · «He lets go», bars 116–117: the box and the house. A proper head-bang on the
     // beats, then air guitar, eyes shut, a grin that is not the salesman's.
     // =========================================================================================
-    const HV = { k: 1.4, cx: 690, cy: 545 }; // the camera on the set: his box on the right, the band on the left, the front rows below
+    const HV = { k: 1.4, cx: 700, cy: 530 }; // the camera on the set: his box on the right, the band on the left, the front rows below
     const FRET = [-0.84, -1.3], PICK = [0.0, -0.82]; // the air guitar: the mitt on its neck, the mitt that strums
     const SLAP = bt(31.5), WM = SLAP - 5 / 12; // the slap on his own chest that ends the windmill, and the windmill
     const act4 = track({ ...BASE, ...RAIL, over: 'both', lock: 0.3, face: F.joy }, [
@@ -348,7 +348,8 @@
         const tail = P.TAIL.tick(swing(t, bt(k), k % 2 ? 0.4 : -0.4, k % 2 ? -0.4 : 0.4), 0); // the tail keeps time behind him
         if (!on(t, bt(28))) {
             // the head-bang: down on every beat, the pompadour over his face; up between them, the quiff thrown back
-            pose.headDy += [0.27, 0.2, -0.06, -0.1, -0.1][i];
+            pose.headDy += [0.17, 0.13, -0.05, -0.09, -0.09][i];
+            pose.lean = [0, 0, 0.03, 0.04, 0.04][i];
             pose.lock = [1, 0.85, 0.2, 0.1, 0.1][i];
             pose.lockSw = [0, 0.4, -0.6, -0.3, 0][i];
             pose.quiff = [0, 0.1, 1, 0.85, 0.6][i];

@@ -32,6 +32,13 @@
     };
     const band = (g, t, St, o = {}) => Rig.band(g, t, St.car.x, St.car.y, St.car.s, { sing: true, tomDrives: false, driver: cactus(t), ...o });
 
+    // What chorus 3 left in the house (the trident in the gum, the arrow in the teeth, the barrier
+    // on the lip, two cones for hats, the imp on a hard hat with the Devil's scarf on its mallet):
+    // Chorus3Props.dressing, when that block is loaded. o: the venue's and the crowd's options.
+    const dress = (g, t, o, part) => {
+        if (typeof Chorus3Props !== 'undefined' && Chorus3Props.dressing) Chorus3Props.dressing(g, t, { ...o, part, scarf: t - T0 + 2 });
+    };
+
     // --- the Devil in set coordinates -----------------------------------------------------------
     // a set point in his own units, for a mitt: where he stands, how he leans and squashes
     const toDevil = (p, at, pose = {}) => {
@@ -64,7 +71,7 @@
 
     // --- the plug, its cable, the socket ----------------------------------------------------------
     const HOME = P.HOME, FLOOR = 803; // the floor the cable lies on, behind his hooves
-    const GRIP = [[50, -29], [45, 30]]; // where his two mitts rest on the plug (its own frame)
+    const GRIP = [[72, -13], [50, 31]]; // where his two mitts rest on the plug (its own frame)
     // the cable's line from the plug's tail to the jack on the car: it hangs to the floor, lies
     // along it (a lazy wave, `slack` high) and climbs to the jack
     function cablePts(tail, o = {}) {
@@ -116,12 +123,15 @@
                 pose.handL = [0.1, -0.74 - r];
                 pose.mood = 'sly';
             } else {
-                pose[up] = [sx * 0.3, f === 0 ? -0.86 : -0.82];
-                pose[second ? 'handR' : 'handL'] = second ? [-0.3, -0.72] : [0.52, -0.52];
+                // the mitt comes up beside his mouth, flat; he turns his head to it
+                pose[up] = [sx * 0.74, f === 1 ? -0.86 : -0.92];
+                pose[second ? 'handR' : 'handL'] = second ? [-0.5, -0.56] : [0.5, -0.5];
+                pose.look = sx;
+                pose.headTilt = 0.1 * sx;
                 // the drop: from his mouth to the mitt, one drawing in the air, then a splash
-                const m = fromDevil([0, -1.08], at, pose), h = fromDevil([sx * 0.33, -0.95], at, pose);
-                if (f === 0) fx.push(['drop', lerp(m[0], h[0], 0.55), lerp(m[1], h[1], 0.4) - 4, sx]);
-                else if (f === 1) fx.push(['splash', h[0], h[1] - 3]);
+                const m = fromDevil([sx * 0.26, -1.06], at, pose), h = fromDevil([sx * 0.76, -1.03], at, pose);
+                if (f === 0) fx.push(['drop', lerp(m[0], h[0], 0.62), lerp(m[1], h[1], 0.62) - 6, sx, m]);
+                else if (f === 1) fx.push(['splash', h[0], h[1] + 2]);
             }
         } else if (!dark) {
             // he takes the plug in both mitts, braces, and heaves on the beats: one, two, three
@@ -201,8 +211,11 @@
         // --- the picture ---------------------------------------------------------------------
         g.save();
         g.translate(SHIFT, 0);
+        const co = { ...o, hype: 0.8, lighters: 0 }, tc = dark ? POP + 2 * FR : t; // the crowd's clock stops with the lights
         I.venue(g, t, o);
+        dress(g, t, co, 'back');
         band(g, t, St);
+        dress(g, t, co, 'stage');
         const tail = P.plugTail(plugAt, plugAng), tdir = rot([1, 0], plugAng);
         const pts = cablePts(tail, { dir: tdir, slack: dark ? 2.2 : 1, land: dark ? Math.min(tail[0] + 10, 150) : 86 });
         P.layer(g, SIDE, 0, (L) => {
@@ -215,7 +228,8 @@
         else devil(g, St, at, pose);
         P.layer(g, SIDE, 0, (L) => drawFx(g, L, fx, d));
         // the front row along the bottom: they stop in the air when the lights go
-        I.crowd(g, dark ? POP + 2 * FR : t, { ...o, hype: 0.8, lighters: 0 });
+        I.crowd(g, tc, co);
+        dress(g, tc, co, 'front');
         g.restore();
         if (dark) {
             // the night, with what still shines punched out of it: the flash at the socket, the
@@ -256,17 +270,20 @@
     };
     // small things in set coordinates: spit, its splash, sweat
     function drawFx(g, L, fx, d) {
-        for (const [kind, x, y, a] of fx) {
+        for (const [kind, x, y, a, from] of fx) {
+            if (from) {
+                // the streak it leaves from his mouth
+                for (const lw of [7 * L, 2.8 * L]) C.poly(g, [[lerp(from[0], x, 0.15), lerp(from[1], y, 0.15) - 2], [lerp(from[0], x, 0.7), lerp(from[1], y, 0.7) - 4]], { ink: lw > 4 * L ? K.ink : K.white, lw, close: false });
+            }
             if (kind === 'drop' || kind === 'sweat') {
-                const s = kind === 'drop' ? 7 : 6.5;
+                const s = kind === 'drop' ? 8.5 : 6.5;
                 g.save();
                 g.translate(x, y);
-                g.rotate(kind === 'drop' ? a * 0.9 : a);
+                g.rotate(kind === 'drop' ? -a * 1.9 : a);
                 C.poly(g, C.curve([[0, -s * 1.5], [s * 0.7, 0.1 * s], [0, s * 0.8], [-s * 0.7, 0.1 * s]], true, 5), { fill: kind === 'drop' ? K.white : K.aqua, ink: K.ink, lw: 2.4 * L });
                 g.restore();
             } else if (kind === 'splash') {
-                for (const [dx, dy] of [[-13, -9], [0, -15], [13, -9]]) C.poly(g, [[x + dx * 0.5, y + dy * 0.5], [x + dx, y + dy]], { ink: K.ink, lw: 5 * L, close: false });
-                for (const [dx, dy] of [[-13, -9], [0, -15], [13, -9]]) C.poly(g, [[x + dx * 0.5, y + dy * 0.5], [x + dx, y + dy]], { ink: K.white, lw: 2.2 * L, close: false });
+                for (const lw of [6.4 * L, 2.6 * L]) for (const [dx, dy] of [[-17, -8], [-7, -18], [7, -18], [17, -8]]) C.poly(g, [[x + dx * 0.45, y + dy * 0.45], [x + dx, y + dy]], { ink: lw > 4 * L ? K.ink : K.white, lw, close: false });
             }
         }
     }
@@ -343,11 +360,15 @@
             pose.handL = toDevil([hold[0] + 12, hold[1] + 4], at, pose);
         }
         // --- the picture ---------------------------------------------------------------------
+        const nl = dark ? (on(t, FLAMES[2]) ? 1 : on(t, FLAMES[1]) ? P.lightersFor(5, x0, x1) : on(t, FLAMES[0]) ? P.lightersFor(1, x0, x1) : 0) : 0.3;
+        const co = { ...o, hype: dark ? 0 : 1, lighters: nl };
         I.venue(g, t, o);
+        dress(g, t, co, 'back');
         if (!dark) P1.title(g, t, 506, 236, { at: TITLE_AT, out: TITLE_OUT, k: 0.8 });
         I.box(g, St.box.x, St.box.y, St.box.s, { t }); // his box, empty
         band(g, t, St, dark ? {} : { bounce: 0.25 * Pu.pulse });
         if (!dark) I.beams(g, t, { ...o, front: true });
+        dress(g, t, co, 'stage');
         // the cable: from the plug to his mitts when he is on the end of it, then along the floor to the car
         let pts;
         if (taut && grip === 'cable') {
@@ -364,8 +385,8 @@
         });
         if (seat) sat(g, St, at, pose, { between: (g2, sc) => coils(g2, sc, pose, wrap) });
         else devil(g, St, at, pose);
-        const nl = dark ? (on(t, FLAMES[2]) ? 1 : on(t, FLAMES[1]) ? P.lightersFor(5, x0, x1) : on(t, FLAMES[0]) ? P.lightersFor(1, x0, x1) : 0) : 0.3;
-        I.crowd(g, t, { ...o, hype: dark ? 0 : 1, lighters: nl, surf: { u: surfU(t), on: on(t, SURF[0]) } });
+        I.crowd(g, t, { ...co, surf: { u: surfU(t), on: on(t, SURF[0]) } });
+        dress(g, t, co, 'front');
         if (dark) {
             // the night: the work light's cone on him, a pool round every flame, his eyes and his grin
             const lamp = St.lamps[1], flames = P.lighterPoints(t, nl, x0, x1).map((q) => [...St.at([q.x, q.y]), q.u]);
@@ -538,9 +559,12 @@
                 ? { mood: 'angry', look: f % 4 < 2 ? 1 : -0.3, squash: steps(t, STAND, [0.02, 0.1, 0.08]), lean: 0.05, headTilt: 0.04, step: 1, tail: 0.1 * (f % 2 ? 1 : -1), handR: [-0.56, -0.62], handL: [0.6, -0.9 + (f % 2 ? 0.05 : 0)] }
                 : { mood: 'angry', look: 1, eyes: f < 1 ? 'shut' : 'open', squash: steps(t, RISE, [0.3, 0.24, 0.18, 0.14]), lean: 0.1, tail: 0.14, handR: [-0.5, -0.42], handL: [0.52, -0.42] };
         }
+        const co = { ...o, hype: 1, lighters: 0.3 };
         I.venue(g, t, o);
+        dress(g, t, co, 'back');
         band(g, t, St, { bounce: 0.3 * Pu.pulse });
         I.beams(g, t, { ...o, front: true });
+        dress(g, t, co, 'stage');
         const hoof = up && on(t, STAND) ? [at[0] + 0.19 * U + 3, at[1] - 0.25 * U] : null; // the hoof in the air
         P.layer(g, FIN, 0, (L) => {
             P.socket(g, L, { live: 1, beat: Pu.pulse, face: 'calm', d });
@@ -567,7 +591,8 @@
                 }
             });
         } else sat(g, St, at, pose, { between: (g2, sc) => coils(g2, sc, pose, wrap) });
-        I.crowd(g, t, { ...o, hype: 1, lighters: 0.3 });
+        I.crowd(g, t, co);
+        dress(g, t, co, 'front');
     }
 
     function draw(g, t, env) {

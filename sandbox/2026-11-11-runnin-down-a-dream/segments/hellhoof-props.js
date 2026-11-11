@@ -122,9 +122,8 @@ const HellhoofProps = (() => {
             C.poly(g, ribbon(cl.map(([x, y], i) => [x, y, w * (1 - Math.pow(i / (n - 1), 1.6)) + 0.004])), { fill: DP.hair, ink: DP.ink, lw: L * 0.9 });
             line(g, cl.slice(2, Math.floor(n * 0.6)).map(([x, y]) => [x - w * 0.25, y]), DP.sheen, L * 0.9);
         };
-        lock(-0.02, -0.19 + sw * 0.1, T + 0.27 + 0.36 * k, 0.058, -0.05 + sw * 0.04);
-        if (k > 0.5) lock(0.1, 0.23 + sw * 0.12, T + 0.25 + 0.3 * k, 0.044, 0.05 + sw * 0.04);
-        if (k > 0.8) lock(0.03, 0.04 + sw * 0.14, T + 0.3 + 0.24 * k, 0.036, 0.02 + sw * 0.03);
+        lock(-0.02, -0.19 + sw * 0.1, T + 0.27 + 0.33 * k, 0.062, -0.05 + sw * 0.04);
+        if (k > 0.5) lock(0.1, 0.24 + sw * 0.12, T + 0.25 + 0.3 * k, 0.056, 0.05 + sw * 0.04);
     }
     function moustache(g, L, droop = 0) {
         const mu = EY + 0.185;
