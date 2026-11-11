@@ -59,3 +59,26 @@ Open questions for the user:
 
 Not done yet, waiting for the style's approval: the README cover's carousel line and the
 site's style line (new-style, step 7).
+
+## Round 1 (user)
+
+> «Se ve muy top, habría que ver como hacemos el resto de guion, que sea original y divertido
+> con el toque "satanico" que tiene esta gente. Si no tienes la letra te la paso, por si la
+> quieres de referencia, aunque ya sabes que normalmente letra y videoclip en estos temas
+> tampoco tienen mucho que ver»
+
+Translation into changes:
+
+- The look and Tom are approved: they do not change from here.
+- The script was only a list of places. Script v2 (brief.md) has a premise with a motor: the
+  Devil as the tape's mascot, after Tom's signature, never getting it. Three ideas were
+  crossed and the best of each kept (see the brief). The moon stays as the backdrop and as
+  the solo's destination; it is no longer what is chased.
+- The lyrics are a loose guide: each verse keeps its weather (sun, rain, night) and nothing
+  else is illustrated.
+- A first drawing of the Devil is in `cast.js` (`Cast.devil`) and on the character sheet
+  (`dev/cast/scene.js`): a red box with cream horns, slit eyes, a grin with a fang, a
+  goatee, a bow tie, hooves, a tail, a trident and the contract. It is a concept sketch to
+  judge the idea, not a finished character.
+
+Waiting for the user: the premise, who plays what, the reference's author.
