@@ -1,7 +1,7 @@
 // Props of the bridge (segments/bridge.js), where the Devil swaps the contract for a guitar:
 // his arms redrawn in his own frame (over the box's rail, a rolled sleeve, a mitt on a tuning
 // peg), his tongue, flames of any colour, the contract's four pieces as loose scraps of paper,
-// the sour note and the clean one, Stan's count on his sticks, and a follow spot.
+// the puff of steam that ends his cold, the sour note and the clean one, Stan's count on his sticks, and a follow spot.
 // Units as in cast.js: 1 ≈ a head's width; a drawer's (x, y) is its ground point or its middle.
 // Global: BridgeProps. Depends on Cereal, Cast, Devil, BandRhythm.
 const BridgeProps = (() => {

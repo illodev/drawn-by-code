@@ -69,7 +69,7 @@ const Solo2Props = (() => {
     // The hangers
     // =========================================================================================
     const IMP = 0.67; // an imp's unit, in figure units (as everywhere in the film)
-    const IMP_GRIP = -1.2, IMP_LEG = 0.38; // the mitts' height above the hooves; a hanging imp's legs are apart
+    const IMP_GRIP = -1.32, IMP_LEG = 0.38; // the mitts' height above the hooves; a hanging imp's legs are apart
     // An imp hanging by both mitts: Devil.imp's own drawing with the arms straight up along the
     // head's sides. Drawn in its units with the feet at (0, 0); pose: { mood ('grin' | 'awe'),
     // look, lookY, wear ('specs' | 'bow'), tail, hx (half the distance between the mitts) }

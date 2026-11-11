@@ -16,7 +16,8 @@
 //                                round, a head every half beat; Tom lifts his shades for a beat (the
 //                                only time he notices him), nods them back on and jumps to the bonnet;
 //                                the bonnet flings the Devil over the windscreen into Tom's place; he
-//                                hits a sour note (everybody winces) and tunes one peg
+//                                hits a sour note (everybody winces)
+//   (bar 126's last beat)  The peg   the insert: his mitt turns one key of the headstock
 //   bars 127–128  Face to face   the stage view: the good note (the crowd roars, a spot on each);
 //                                Mike steps forward, they square up, necks up; Stan counts four on
 //                                his sticks. The last frame is the solo's first picture (FINAL).
@@ -419,36 +420,20 @@
         dress(g, t, V4, 0, crowd, 'back');
         emptyBox(g, t, St);
         // the Devil's pose: on the bonnet behind the windscreen, flung over it, on the deck
-        let pose, peg = null, tongue = false;
+        let pose;
         if (!on(t, FLUNG)) {
             const st = E.out(seg2(t, T3, T3 + 2 / 12));
             pose = axePose(t, { shadow: false, look: -1, step: st < 1 ? 1 : 0, mood: on(t, SWAP) ? 'shock' : on(t, SHADES) ? 'sly' : 'grin', squash: 0.04 * Pu.pulse + (on(t, SWAP) ? 0.16 : 0), x: lerp(HOODX1, HOODX2, st) });
         } else if (!onDeck) pose = axePose(t, { shadow: false, mood: 'shock', squash: -0.08, lean: 0.14, flames: 1, strum: -1 });
         else {
-            const hit = on(t, SOUR), tune = on(t, TUNE);
+            const hit = on(t, SOUR);
             pose = axePose(t, {
-                look: -1, squash: 0.04 * Pu.pulse + Math.max(0, thud(t, DECK, 0.2)) + 0.07 * bump(t, SOUR, 0.2),
-                strum: hit && !tune ? lerp(-1, 1, E.out(seg2(t, SOUR, SOUR + 2 / 12))) : tune ? 0.6 : -1, fret: 0.5,
-                mood: tune ? 'grin' : hit && on(t, SOUR + 2 / 12) ? 'shock' : 'grin', flames: hit && !tune ? 0.35 : 0.8,
-                headTilt: tune ? -0.07 : 0, eyes: tune && dr(t, TUNE) % 6 > 3 ? 'shut' : 'open',
+                look: -1, squash: 0.04 * Pu.pulse + Math.max(0, thud(t, DECK, 0.2)) + 0.07 * bump(t, SOUR, 0.2), fret: 0.5,
+                strum: hit ? lerp(-1, 1, E.out(seg2(t, SOUR, SOUR + 2 / 12))) : -1,
+                mood: hit && on(t, SOUR + 2 / 12) ? 'shock' : 'grin', flames: hit ? 0.35 : 0.8,
             });
-            if (tune) {
-                // a mitt on a peg: the neck's arm is drawn here instead (a fret that is no number draws none)
-                peg = axePoint(pose, 0.965, -0.2);
-                pose.fret = NaN;
-                tongue = true;
-            }
         }
-        const devil = (g2, x, y, sc) => {
-            I.devilGuitar(g2, x, y, sc, pose);
-            if (!peg) return;
-            const R = { lean: pose.lean ?? 0, squash: pose.squash, headDy: pose.headDy, headTilt: pose.headTilt ?? 0 };
-            P.frame(g2, x, y, sc, R, (L) => {
-                if (tongue) P.head(g2, R, () => P.tongue(g2, L, -1));
-                P.arm(g2, L, P.SH.R, P.toLocal(0, 0, 1, R, [peg[0] + 0.05, peg[1] + 0.07]));
-            });
-            P.twist(g2, x + (peg[0] - 0.02) * sc, y + (peg[1] - 0.14) * sc, 0.17 * sc, dr(t, TUNE) % 4 < 2 ? 1 : -1);
-        };
+        const devil = (g2, x, y, sc) => I.devilGuitar(g2, x, y, sc, pose);
         const duck = on(t, TOM_OFF) && !onDeck ? Math.sin(E.seg(t, TOM_OFF, DECK) * PI) : 0;
         band(g, t, car, {
             bounce: bn, pose: bandPoses(t), tomAt: tomAt(t),
@@ -469,24 +454,56 @@
         if (onDeck && dr(t, DECK) < 3) P.ticks(g, at[0], at[1] + 6, 0.5 * s, 0.72 * s, 5, PI * 1.08, PI * 1.92, K.white, 2.6);
         dress(g, t, V4, 0, crowd, 'stage');
         // the sour note out of the guitar
-        if (on(t, SOUR) && !on(t, SOUR + 0.75)) {
-            const G = I.guitarPoints({ ...pose, fret: 0.5 }), u = E.seg(twos(t, SOUR), SOUR, SOUR + 0.75), from = [at[0] + G.strings[0] * s, at[1] + G.strings[1] * s];
-            P.sourNote(g, from[0] - 150 * E.out(u) + 14 * Math.sin(u * 16), from[1] - 250 * E.out(u) + 130 * u * u * u, 44 * pop(t, SOUR, 0.2), -0.3 + 0.5 * u, d);
+        if (on(t, SOUR)) {
+            const G = I.guitarPoints(pose), u = E.seg(twos(t, SOUR), SOUR, SOUR + 0.5), from = [at[0] + G.strings[0] * s, at[1] + G.strings[1] * s];
+            P.sourNote(g, from[0] - 40 - 150 * E.out(u) + 12 * Math.sin(u * 14), from[1] - 190 - 240 * E.out(u), 54 * pop(t, SOUR, 0.2), -0.3 + 0.5 * u, d);
         }
         I.crowd(g, t, { ...o, density: 1, ...crowd });
         dress(g, t, V4, 0, crowd, 'front');
         scraps(g, t, St);
     }
-    // A point of his guitar for a pose, in his units from his ground point: u along the neck, v across it
-    // (Inferno.guitarPoints gives three of them: the strings at u = -0.06, the fork's tip at 1.134, the upper horn at (0.6, -0.27)).
-    function axePoint(pose, u, v) {
-        const G = I.guitarPoints(pose), eu = [(G.headstock[0] - G.strings[0]) / 1.194, (G.headstock[1] - G.strings[1]) / 1.194];
-        const ev = [(G.strings[0] + 0.66 * eu[0] - G.horn[0]) / 0.27, (G.strings[1] + 0.66 * eu[1] - G.horn[1]) / 0.27];
-        return [G.strings[0] + (u + 0.06) * eu[0] + v * ev[0], G.strings[1] + (u + 0.06) * eu[1] + v * ev[1]];
+    // =========================================================================================
+    // Shot 5 · «The peg», bar 126's last beat: the insert. The fork of the headstock, a mitt on one key
+    // =========================================================================================
+    const PEG = { sc: 1050, ang: -0.42, at: [-1340, 975] }; // Inferno.guitar's frame for the insert (mirrored: the neck comes in from the right)
+    // a point of the guitar on screen: u along the neck, v across it
+    const pegPt = (u, v) => {
+        const q = rot([u, v], PEG.ang);
+        return [-(q[0] * PEG.sc + PEG.at[0]), q[1] * PEG.sc + PEG.at[1]];
+    };
+    function pegShot(g, t) {
+        const d = C.drawing(t), f = dr(t, TUNE), R = I.R;
+        C.sunburst(g, 490, 540, { n: 12, rot: 0.3 + 0.4 * (t - TUNE), a: R.wallL, b: R.wall });
+        C.burst(g, 470, 540, { r0: 330, r1: 450, n: 13, seed: 'bridge-peg', fill: R.floor, ink: K.ink, lw: 3.2, rot: f % 2 ? 0.04 : 0 });
+        // the guitar's own fire, low after the sour note, behind the fork
+        const tip = pegPt(1.07, 0), low = pegPt(0.86, 0.2);
+        Fx.flame(g, tip[0] + 10, tip[1] + 40, 170, d, 1);
+        Fx.flame(g, low[0], low[1] + 30, 120, d, 2);
+        I.guitar(g, 3.2, PEG.at, PEG.ang, PEG.sc, -1);
+        // the key he turns: a gold paddle on a post out of the fork's upper edge, seen flat, then edge on
+        const p = pegPt(0.965, -0.2), nrm = [0.408, -0.913], wide = f % 2 === 0, c = [p[0] + nrm[0] * 104, p[1] + nrm[1] * 104], a = Math.atan2(nrm[1], nrm[0]);
+        C.poly(g, [p, [p[0] + nrm[0] * 70, p[1] + nrm[1] * 70]], { ink: K.ink, lw: 20, close: false });
+        C.poly(g, [p, [p[0] + nrm[0] * 70, p[1] + nrm[1] * 70]], { ink: Devil.P.tieDark, lw: 13.6, close: false });
+        C.poly(g, C.ellipsePts(c[0], c[1], 46, wide ? 58 : 17, 22, a), { fill: Devil.P.gold, ink: K.ink, lw: 3.2 });
+        if (wide) C.poly(g, C.ellipsePts(c[0] + 5, c[1] - 6, 22, 34, 16, a), { ink: '#fff59a', lw: 3, fill: null });
+        else C.poly(g, [[c[0] - nrm[0] * 30, c[1] - nrm[1] * 30], [c[0] + nrm[0] * 30, c[1] + nrm[1] * 30]], { ink: Devil.P.tieDark, lw: 3, close: false });
+        // his mitt on it, from the right; it rocks with the turn
+        const S1 = 760, rock = wide ? 0 : 0.03;
+        g.save();
+        g.scale(S1, S1);
+        g.lineJoin = 'round';
+        P.arm(g, 3.2 / S1, [1.46, 0.1 + rock], [(c[0] + 112) / S1, (c[1] - 44) / S1 + rock]);
+        g.restore();
+        P.twist(g, c[0] - 8, c[1], 96, f % 4 < 2 ? 1 : -1);
+        // in tune: a twinkle off the strings at the nut
+        if (f >= 2) {
+            const nut = pegPt(0.8, 0), u = bump(t, TUNE + 2 / 12, 0.2);
+            C.sparkle(g, nut[0] - 6, nut[1] - 4, 26 + 46 * u, { color: K.white, ink: K.ink, lw: 3 });
+        }
     }
 
     // =========================================================================================
-    // Shot 5 · «Face to face», bars 127–128: the stage view. The good note, the two square up, the count
+    // Shot 6 · «Face to face», bars 127–128: the stage view. The good note, the two square up, the count
     // =========================================================================================
     const GOOD = T4, FWD = n(33), FACE = n(34), NECKS = n(35), COUNT = n(36);
     const pan5 = (t) => lerp(40, 0, E.inOut(E.seg(t, n(32.5), n(35.5))));
@@ -544,7 +561,7 @@
     }
 
     Seg.bridge = {
-        shots: [[T0, T1, 'The contract'], [T1, T2, 'The fire'], [T2, T3, 'The house'], [T3, T4, 'The nod'], [T4, T5, 'Face to face']],
+        shots: [[T0, T1, 'The contract'], [T1, T2, 'The fire'], [T2, T3, 'The house'], [T3, TUNE, 'The nod'], [TUNE, T4, 'The peg'], [T4, T5, 'Face to face']],
         // for the block that follows: the last picture's state, and the band with this block's places
         FINAL, band, axePose,
         draw(g, t, env) {
@@ -553,7 +570,8 @@
             if (t < T1 - 1e-6) contractShot(g, t);
             else if (t < T2 - 1e-6) fireShot(g, t);
             else if (t < T3 - 1e-6) houseShot(g, t);
-            else if (t < T4 - 1e-6) nodShot(g, t);
+            else if (t < TUNE - 1e-6) nodShot(g, t);
+            else if (t < T4 - 1e-6) pegShot(g, t);
             else faceShot(g, t);
             g.restore();
         },
