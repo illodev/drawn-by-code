@@ -79,8 +79,8 @@
     // =========================================================================================
     const FUNNEL_IMP = true; // verse2b leaves an imp stuck in the funnel: «cold» shoots it out, and it lands in Hell
     const SNAPPED = [ // the two drawings between the snap and the pose the ice will keep
-        { lean: 0.12, squash: -0.07, handL: [1.0, -1.5], handR: [-0.6, -1.25], headTilt: -0.1 },
-        { lean: 0.04, squash: 0.05, handL: [1.1, -0.93], handR: [-0.7, -1.04], headTilt: -0.06 },
+        { lean: 0.1, squash: -0.07, handR: [-0.74, -1.34], handL: [0.55, -1.22], headTilt: -0.12, tail: 0.3 },
+        { lean: 0.03, squash: 0.05, handR: [-0.7, -0.93], handL: [0.66, -0.88], headTilt: -0.08, tail: 0.1 },
     ];
     function coldShot(g, t) {
         const s = CS, z = s / CAR, X = roadX(t), v = going(t), Pu = S.pulseAt(t), ph = (t - b(Pu.k)) / BEAT, d = C.drawing(t);
@@ -200,8 +200,8 @@
                 Q.devilFrost(g, fx, fy, s, { arm: armK, body: bodyK });
                 // the handle rings like a bell in the cold, on the bar's last beat
                 const tk = bump2(t, n(3), 0.34);
-                if (tk > 0) C.sparkle(g, fx + 1.35 * s, fy - 1.28 * s, (0.1 + 0.2 * tk) * s, { color: '#ffffff', ink: ICE.line, lw: 2.4, rot: 0.2 });
-                W.breath(g, fx - 0.2 * s, fy - 1.04 * s, s, t + 0.3, -1);
+                if (tk > 0) C.sparkle(g, fx - 0.93 * s, fy - 1.27 * s, (0.1 + 0.2 * tk) * s, { color: '#ffffff', ink: ICE.line, lw: 2.4, rot: 0.2 });
+                W.breath(g, fx + 0.2 * s, fy - 1.04 * s, s, t + 0.3, 1);
             }
         }
         World.rain(g, t, 1.15 * (!cold ? 1 : [0.75, 0.45, 0.18][dc] ?? 0));
@@ -301,10 +301,7 @@
                     pose.hop += f === 1 ? 0.06 : 0;
                 }
                 if (at(t, n(10))) pose.look = at(t, n(11)) ? -1 : 1;
-                if (at(t, sm.face)) {
-                    pose.mood = 'awe';
-                    pose.armUp = 0.8 * pop(t, sm.face + 2 / 12, 0.2);
-                }
+                if (at(t, sm.face)) pose.mood = 'awe';
             } else {
                 // the one by the bin: he turns to it and jumps to hold his mitts to the flame
                 if (FUNNEL_IMP && !at(t, WIN)) pose.look = at(t, LANDS) ? -1 : 0.4;
@@ -379,9 +376,9 @@
         // the skid ends, picked so that no pole, cactus or sign stands behind the funnel, the block
         // or the chauffeur's head
         X: 64118,
-        hearse: { x: 606, y: FAR + 20, s: CAR }, // Rides.hearse; its machine is on the hitch (Weather.towedAt)
-        machine: { x: 606 + OFF.x, y: FAR + 20 + OFF.y, s: CAR, pitch: OFF.pitch },
-        devil: { x: 446, y: 926, s: CAR }, // his ground point in the block (pose: Verse2cProps.FROZEN, the crank in his left mitt)
+        hearse: { x: 606, y: FAR + 36, s: CAR }, // Rides.hearse; its machine is on the hitch (Weather.towedAt)
+        machine: { x: 606 + OFF.x, y: FAR + 36 + OFF.y, s: CAR, pitch: OFF.pitch },
+        devil: { x: 480, y: 930, s: CAR }, // his ground point in the block (pose: Verse2cProps.FROZEN, the crank in his right mitt)
         block: Q.BLOCK, // Weather.iceBlock's options for it
         knocks: [n(13), n(14), n(15)],
     };
@@ -446,7 +443,7 @@
         g.restore();
         if (o.drip !== false) W.drips(g, lan[0], lan[1] + 0.24 * CAR, CAR, t, 1, { pts: [[0, 0]], len: 0.66, slant: 0 });
         // snow that has settled on the road
-        Q.mound(g, R.devil.x - 122, R.devil.y + 12, 96, 13);
+        Q.mound(g, R.devil.x - 118, R.devil.y + 10, 96, 13);
         Q.mound(g, R.machine.x - 96, R.machine.y + 22, 110, 12);
         Q.mound(g, R.hearse.x + 196, R.hearse.y + 30, 120, 12);
         // the Devil on ice

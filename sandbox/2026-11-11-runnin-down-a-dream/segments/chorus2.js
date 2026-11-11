@@ -301,7 +301,7 @@
         } else if (t < T_PULL) {
             // …hurls it at the sky and shakes his fist after it
             const thr = dr(t, T_THROW) < 2;
-            pose = { mood: 'angry', headTilt: -0.14, lean: thr ? -0.07 : -0.03, squash: thr ? -0.07 : 0.03 * f, handR: thr ? [-0.5, -1.8] : [-0.84 - 0.04 * f, -1.56 + 0.12 * f], handL: [0.44, -0.54], tail: 0.16 * f, step: thr ? 0 : f };
+            pose = { mood: 'angry', headTilt: -0.14, lean: thr ? -0.07 : -0.03, squash: thr ? -0.07 : 0.03 * f, handR: thr ? [-0.5, -1.8] : [-1.04 - 0.04 * f, -1.46 + 0.12 * f], handL: [0.44, -0.54], tail: 0.16 * f, step: thr ? 0 : f };
             lift = thr ? 9 : 0;
             ex = { ...ex, hair: 0, towel: 'neck', towelSw: thr ? 0.03 : 0 };
         } else if (t < T_GLOAT) {

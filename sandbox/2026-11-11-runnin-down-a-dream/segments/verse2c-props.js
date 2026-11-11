@@ -95,23 +95,23 @@ const Verse2cProps = (() => {
     // =========================================================================================
     // The Devil, freezing
     // =========================================================================================
-    // How he ends: mid-laugh, both mitts up, the snapped crank held out in the left one (screen
-    // right, away from the machine, where it reads against the hearse's fin and the sky).
-    const FROZEN = { mood: 'laugh', handR: [-0.66, -0.98], handL: [1.08, -1.0], headTilt: -0.05, tail: 0.4, shadow: false };
-    const CRANK = { a: -1.69, flip: 1 }; // how Weather.crankArm sits in that mitt: the grip upright, the arm out to the right
-    const BLOCK = { w: 2.7, cx: 0.35, h: 2.95 }; // the block of ice that holds that pose (Weather.iceBlock's options)
+    // How he ends: mid-laugh, both mitts up, the snapped crank in the right one (screen left).
+    // The pose of the weather sheet (dev/weather, sheets 13, 14, 18), which the thaw takes up.
+    const FROZEN = { mood: 'laugh', handR: [-0.66, -0.98], handL: [0.62, -0.92], headTilt: -0.06, tail: 0.02, shadow: false };
+    const CRANK = { a: -1.45, flip: -1 }; // how Weather.crankArm sits in that mitt: the grip upright, the arm out to the left
+    const BLOCK = {}; // the block that holds that pose: Weather.iceBlock's own size (2.4 × 2.75 × 1)
     /**
-     * The crank in his left mitt and the Devil, frozen in the pose above. o: { pose (merged
+     * The crank in his right mitt and the Devil, frozen in the pose above. o: { pose (merged
      * over FROZEN), crankFrost (0..1: icicles on the crank) }
      */
     function devilWithCrank(g, x, y, s, o = {}) {
-        const pose = { ...FROZEN, ...(o.pose ?? {}) }, hr = pose.handL, L = 3.2 / s, q = pose.squash ?? 0, ln = pose.lean ?? 0;
+        const pose = { ...FROZEN, ...(o.pose ?? {}) }, hr = pose.handR, L = 3.2 / s, q = pose.squash ?? 0, ln = pose.lean ?? 0;
         // where the mitt is in the frame, whatever his lean and squash
         const mx = hr[0] * (1 + q), my = hr[1] * (1 - q), px = mx * Math.cos(ln) - my * Math.sin(ln), py = mx * Math.sin(ln) + my * Math.cos(ln);
         W.crankArm(g, x + px * s, y + py * s, s, CRANK.a + ln, CRANK.flip);
         const f = clamp(o.crankFrost ?? 0);
         if (f > 0) {
-            // the bar sticks out to the right of the grip's top: snow along it, icicles under it
+            // the bar sticks out to the left of the grip's top: snow along it, icicles under it
             const u = [Math.cos(CRANK.a), Math.sin(CRANK.a)], n = [-u[1] * CRANK.flip, u[0] * CRANK.flip], at = (p, r) => [hr[0] + u[0] * p + n[0] * r, hr[1] + u[1] * p + n[1] * r];
             g.save();
             g.translate(x, y);
@@ -120,8 +120,8 @@ const Verse2cProps = (() => {
             g.scale(1 + q, 1 - q);
             g.lineJoin = 'round';
             g.lineCap = 'round';
-            W.snowCap(g, L, at(0.295, 0.0), at(0.295, 0.36), 0.05 * f, 'v2c-crank', 0);
-            W.icicles(g, L, at(0.19, 0.1), at(0.19, 0.3), 3, 0.2, 'v2c-crank', f, 0.035);
+            W.snowCap(g, L, at(0.295, 0.36), at(0.295, 0.0), 0.05 * f, 'v2c-crank', 0);
+            W.icicles(g, L, at(0.19, 0.3), at(0.19, 0.1), 3, 0.2, 'v2c-crank', f, 0.035);
             g.restore();
         }
         Devil.draw(g, x, y, s, pose);
@@ -135,7 +135,7 @@ const Verse2cProps = (() => {
     function devilFrost(g, x, y, s, o = {}) {
         const arm = clamp(o.arm ?? 0), body = clamp(o.body ?? 0), L = 3.2 / s, T = Devil.TORSO, H = Devil.HEAD;
         if (arm <= 0) return;
-        const sh = [T.x + T.w - 0.03, T.y + 0.14], hand = o.hand ?? FROZEN.handL, tilt = o.headTilt ?? FROZEN.headTilt;
+        const sh = [T.x + 0.03, T.y + 0.14], hand = o.hand ?? FROZEN.handR, tilt = o.headTilt ?? FROZEN.headTilt;
         const dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6, ux = dx / len, uy = dy / len, w = 0.092, nx = -uy * w, ny = ux * w;
         g.save();
         g.translate(x, y);
@@ -148,20 +148,20 @@ const Verse2cProps = (() => {
             g.beginPath();
             g.rect(T.x, T.y, T.w, T.h);
             g.clip();
-            frostCorner(g, L, T.x + T.w, T.y, -1, 1, 0.34 * body);
+            frostCorner(g, L, T.x, T.y, 1, 1, 0.34 * body);
             g.restore();
             if (body > 0.5) {
                 g.save();
                 g.rotate(tilt);
                 const k = (body - 0.5) * 2;
-                W.icicle(g, L, H.w / 2 + 0.165, H.top + 0.345, 0.16 * k, 0.05, 0); // under the near ear
-                W.icicle(g, L, H.w / 2 - 0.2, H.top + H.h + 0.005, 0.12 * k, 0.04, 0); // under the jaw
+                W.icicle(g, L, -H.w / 2 - 0.085, H.top + 0.44, 0.16 * k, 0.05, 0); // under the far ear
+                W.icicle(g, L, -H.w / 2 + 0.16, H.top + H.h + 0.005, 0.12 * k, 0.04, 0); // under the jaw
                 for (const sx of [-1, 1]) W.icicle(g, L, sx * 0.612, H.top - 0.2, 0.15 * k, 0.045, 0); // where the rain ran off his horns
                 g.restore();
             }
         }
         // the arm: from the mitt's end back to the frost's front
-        const a1 = len + 0.115, a0 = lerp(a1, 0.07, arm), S = Dd(0.165);
+        const a1 = len + 0.115, a0 = lerp(a1, 0.0, arm), S = Dd(0.165);
         const at = (a, k) => [sh[0] + ux * a + nx * k, sh[1] + uy * a + ny * k];
         const quad = [at(a0, 1), at(a1, 1), at(a1, -1), at(a0, -1)];
         const sil = hull([...quad, ...quad.map(([px, py]) => [px + S[0], py + S[1]])]);
