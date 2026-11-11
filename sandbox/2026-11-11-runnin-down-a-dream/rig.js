@@ -74,11 +74,16 @@ const Rig = (() => {
         });
     }
 
+    // The road's clock for travelling shots: the distance driven at film time t. Verse 1 and
+    // chorus 1 share it, so the world runs on across their cuts. 1100 units a second.
+    const X = (t) => 3000 + 1100 * (t - S.B(12));
+    const SPEED = 1100, CAR = 84; // units per second; the cars' scale on the road (units per figure unit)
+
     // Where a seat is on screen, for arcs that end on it: seat('band' | 'hearse', name, x, y, s).
     function seat(car, name, x, y, s) {
         const seats = car === 'band' ? Rides.bandCarSeats() : Rides.hearseSeats(), p = name.startsWith('deck') ? seats.deck[+name.slice(4)] : seats[name];
         return [x + p[0] * s, y + p[1] * s];
     }
 
-    return { playing, band, hearse, seat };
+    return { playing, band, hearse, seat, X, SPEED, CAR };
 })();
