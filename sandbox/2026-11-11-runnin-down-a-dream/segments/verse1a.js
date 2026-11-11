@@ -145,6 +145,14 @@
                 V.mesa(g, -90, SET.HOR + 6, 136, 104, 20);
             },
         });
+        // his laugh: ticks off the side of his skull, on twos
+        if (laugh) {
+            const hx = HX + 1.185 * HS, hy = HY - 1.92 * HS + shake * HS;
+            for (const [a, r0] of [[-0.95, 62], [-0.5, 66], [-0.05, 62]]) {
+                const r1 = r0 + (dl % 2 ? 24 : 15);
+                C.poly(g, [[hx + Math.cos(a) * r0, hy + Math.sin(a) * r0], [hx + Math.cos(a) * r1, hy + Math.sin(a) * r1]], { lw: 3.2, close: false });
+            }
+        }
         V.bush(g, 176, 584, 62, { seed: 1, sway: 14 * gust + (coming && !passed ? (d % 2 ? 2 : -2) : 0) });
         V.bush(g, 372, 588, 56, { seed: 2, sway: 12 * gust + (coming && !passed ? (d % 2 ? -2 : 2) : 0) });
 
