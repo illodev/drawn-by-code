@@ -139,7 +139,7 @@ const Solo3Props = (() => {
             const r = rot([px * (1 + q), py * (1 - q)], a.pose.lean ?? 0);
             return [a.x + r[0] * a.s, a.y + r[1] * a.s];
         };
-        return { bell: out([0.07 + Math.cos(-0.52) * 1.36, -1.09 + (a.pose.headDy ?? 0) + Math.sin(-0.52) * 1.36]), strings: out([0.1, -0.86]), mouth: out([0, -1.09 + (a.pose.headDy ?? 0)]) };
+        return { bell: out([0.07 + Math.cos(-0.52) * 1.36, -1.09 + (a.pose.headDy ?? 0) + Math.sin(-0.52) * 1.36]), strings: out([-0.5, -0.8]), mouth: out([0, -1.09 + (a.pose.headDy ?? 0)]) };
     }
     // The round «ooh» mouth laid over an angel's own (who 0 and 2: the third has a trumpet at his lips).
     const SKIN = ['#b97a4f', '#f7c9a3', '#f6c2a0'];
@@ -231,7 +231,7 @@ const Solo3Props = (() => {
      * keeps its to itself): bumps whose tops are about at y, a body `depth` deep under them.
      *   cols: { body, shade }   o: { depth, up (-1 hangs the bumps: an underside, its bottoms at y),
      *   lw, x0, x1 (the stretch it covers, default the whole frame), lift(x) → an offset per bump,
-     *   inside(g) drawn clipped to the body (a glow) }
+     *   inside(g) drawn clipped to the body (a glow), draw: false only builds the path }
      * Returns its Path2D.
      */
     function cloudRow(g, y, R, seed, xoff, cols, o = {}) {
@@ -258,6 +258,7 @@ const Solo3Props = (() => {
         if (xa > xb) return body;
         const bx0 = x0 <= -100 ? -60 : xa, bx1 = x1 >= 1100 ? 1060 : xb;
         body.rect(bx0, up > 0 ? yb : yb - depth, bx1 - bx0, depth);
+        if (o.draw === false) return body;
         g.save();
         if (lw > 0) {
             g.save();

@@ -117,10 +117,6 @@
                 g.lineJoin = 'round';
                 g.stroke(row(g, yLine, { body: '#000' }, { depth: 150, lw: 0, draw: false }));
                 g.restore();
-                // …with the scallops' own fill back inside the stroke, so it is an outline, not a band
-                g.save();
-                g.clip(row(g, yLine, { body: '#000' }, { depth: 150, lw: 0, draw: false }));
-                g.restore();
             }
             // the punch: lumps of the underside knocked out where the amps and his horns go in
             const tp = b(583), a = since(t, tp);
