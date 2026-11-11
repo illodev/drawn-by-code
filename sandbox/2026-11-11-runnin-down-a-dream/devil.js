@@ -439,7 +439,7 @@ const Devil = (() => {
      *   pose: { squash, lean, headDy, headTilt, mood ('grin' | 'sly' | 'angry' | 'shock' | 'laugh'),
      *           eyes ('open' | 'shut'), look (-1..1), tail (sway, about ±0.05), step (-1..1 lifts a hoof),
      *           handR, handL  ([x, y] in his units; the right mitt is on screen left),
-     *           pointer ([x, y] a cane from the left mitt to that point),
+     *           shadow (false in the air or on a perch), pointer ([x, y] a cane from the left mitt to that point),
      *           trident (false | { ang, grip }), contract (false | { ang, open, at: [dx, dy] from the left mitt }) }
      */
     function draw(g, x, y, s, pose = {}) {
@@ -447,10 +447,12 @@ const Devil = (() => {
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        g.fillStyle = P.shadow;
-        g.beginPath();
-        g.ellipse(0.06, 0, 0.6 * (1 + q), 0.065, 0, 0, C.TAU);
-        g.fill();
+        if (pose.shadow !== false) {
+            g.fillStyle = P.shadow;
+            g.beginPath();
+            g.ellipse(0.06, 0, 0.6 * (1 + q), 0.065, 0, 0, C.TAU);
+            g.fill();
+        }
         g.rotate(pose.lean ?? 0);
         g.scale(1 + q, 1 - q);
         tail(g, L, pose.tail ?? 0);
@@ -492,10 +494,12 @@ const Devil = (() => {
         const W = 1, H = 0.8, top = -1.02, x0 = -0.5;
         g.save();
         g.translate(x, y - (pose.hop ?? 0) * s);
-        g.fillStyle = P.shadow;
-        g.beginPath();
-        g.ellipse(0.04 * s, (pose.hop ?? 0) * s, 0.55 * s, 0.07 * s, 0, 0, C.TAU);
-        g.fill();
+        if (pose.shadow !== false) {
+            g.fillStyle = P.shadow;
+            g.beginPath();
+            g.ellipse(0.04 * s, (pose.hop ?? 0) * s, 0.55 * s, 0.07 * s, 0, 0, C.TAU);
+            g.fill();
+        }
         g.scale(s, s);
         g.scale(1 + q, 1 - q);
         // tail

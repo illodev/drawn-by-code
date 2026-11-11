@@ -24,6 +24,8 @@ const Rig = (() => {
      *   o: { spin, bounce, lean, exhaust        the car (Rides.bandCar)
      *        aboard: { stan, ben, howie, mike, tom }   0..1 each (0 = not there, a pop-in scale between)
      *        tomDrives (default true: Tom at the wheel and Mike up front; false: Tom up front, nobody drives)
+     *        driver(g, s)                       with tomDrives false: draws whatever sits at the wheel, at (0, 0)
+     *        shadow                             false when the car is off the ground
      *        sing, solo                         passed to playing()
      *        pose: { tom: {…}, … }              overrides merged over the beat's poses }
      */
@@ -31,7 +33,7 @@ const Rig = (() => {
         const a = { stan: 1, ben: 1, howie: 1, mike: 1, tom: 1, ...(o.aboard ?? {}) };
         const pz = playing(t, o), ov = o.pose ?? {}, drives = o.tomDrives !== false;
         const pose = (who) => ({ ...pz[who], ...(ov[who] ?? {}) });
-        Rides.bandCar(g, x, y, s, { spin: o.spin ?? 0, bounce: o.bounce ?? 0, lean: o.lean ?? 0, exhaust: o.exhaust ?? 0, t }, (g2, seats, sc0) => {
+        Rides.bandCar(g, x, y, s, { spin: o.spin ?? 0, bounce: o.bounce ?? 0, lean: o.lean ?? 0, exhaust: o.exhaust ?? 0, shadow: o.shadow, t }, (g2, seats, sc0) => {
             const put = (p, k, fn) => {
                 if (k <= 0) return;
                 Rides.at(g2, sc0, p, (px, py, sc) => {
@@ -49,17 +51,21 @@ const Rig = (() => {
             if (drives) {
                 put(seats.deck[0], a.mike, (sc) => BandStrings.mike(g2, 0, 0, sc, pose('mike')));
                 put(seats.driver, a.tom, (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
-            } else put(seats.deck[0], a.tom, (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
+            } else {
+                put(seats.deck[0], a.tom, (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
+                if (o.driver) put(seats.driver, 1, (sc) => o.driver(g2, sc)); // whoever is at the wheel instead: draw at (0, 0)
+            }
         });
     }
 
     /**
      * The Devil's hearse. o: { spin, bounce, lean, flames, jaw (the chauffeur's laugh, 0..1),
-     *   devil: a pose for Devil.draw, or false when he is not aboard; devilK: his pop-in scale }
+     *   devil: a pose for Devil.draw, or false when he is not aboard; devilK: his pop-in scale;
+     *   chauffeur: a pose merged over the skeleton's (hands, headTilt…); shadow: false off the ground }
      */
     function hearse(g, t, x, y, s, o = {}) {
         const P = S.pulseAt(t);
-        Rides.hearse(g, x, y, s, { spin: o.spin ?? 0, bounce: o.bounce ?? 0, lean: o.lean ?? 0, flames: o.flames ?? 0.4, t }, (g2, seats, sc0) => {
+        Rides.hearse(g, x, y, s, { spin: o.spin ?? 0, bounce: o.bounce ?? 0, lean: o.lean ?? 0, flames: o.flames ?? 0.4, shadow: o.shadow, t }, (g2, seats, sc0) => {
             if (o.devil !== false) {
                 Rides.at(g2, sc0, seats.devil, (px, py, sc) => {
                     const k = o.devilK ?? 1;
@@ -70,7 +76,7 @@ const Rig = (() => {
                     g2.restore();
                 });
             }
-            Rides.at(g2, sc0, seats.chauffeur, (px, py, sc) => Rides.skeleton(g2, px, py, sc, { jaw: o.jaw ?? 0, headDy: 0.02 * P.pulse, shadow: false }));
+            Rides.at(g2, sc0, seats.chauffeur, (px, py, sc) => Rides.skeleton(g2, px, py, sc, { jaw: o.jaw ?? 0, headDy: 0.02 * P.pulse, shadow: false, ...(o.chauffeur ?? {}) }));
         });
     }
 

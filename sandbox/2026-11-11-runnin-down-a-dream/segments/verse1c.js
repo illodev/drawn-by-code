@@ -22,7 +22,7 @@
     // --- the place (site coordinates: the wide shot's units, before its camera) -------------
     const X0 = 19344; // where on the road: nothing on the far verge behind the action but one pole
     const WIDE = { k: 1, ox: 0, oy: -60 }; // the camera looks lower: the near verge is part of the stage
-    const KC = 2, CLOSE = { k: KC, ox: -335 * KC, oy: 892 - 955 * KC };
+    const KC = 1.9, CLOSE = { k: KC, ox: -312 * KC, oy: 892 - 955 * KC };
     const YN = 926, YF = 830; // the pit's near and far lips
     // the pit after each stroke: its near lip, far lip, the depth it shows, how deep he stands
     const STAGE = [
@@ -48,9 +48,9 @@
     // --- clods: flung over his head on the third drawing of each stroke, under one gravity ---
     const G = 3600, REL = 2 / 12;
     const CLODS = [0, 1, 2, 3].map((k) => {
-        const t0 = n(k) + REL, p0 = [DIG[0] - 1.13 * SC, DIG[1] + (STAGE[k].sink - 1.56) * SC];
+        const t0 = n(k) + REL, p0 = [DIG[0] - 1.22 * SC, DIG[1] + (STAGE[k].sink - 1.72) * SC];
         const p1 = [HEAP[0] + [-10, 12, -4, 6][k], HEAP[1] - PP.heapSize(HK[k])[1] + 5];
-        const rise = Math.max(0, p0[1] - p1[1]) + [92, 86, 60, 44][k], vy = -Math.sqrt(2 * G * rise), T = -vy / G + Math.sqrt((2 * (p1[1] - p0[1] + rise)) / G);
+        const rise = Math.max(0, p0[1] - p1[1]) + [100, 92, 80, 74][k], vy = -Math.sqrt(2 * G * rise), T = -vy / G + Math.sqrt((2 * (p1[1] - p0[1] + rise)) / G);
         return { t0, p0, p1, vy, T, vx: (p1[0] - p0[0]) / T, land: S.snap(t0 + T), kind: k ? 'earth' : 'road' };
     });
     const heapK = (t) => CLODS.reduce((k, c, i) => k + (HK[i + 1] - HK[i]) * pop(t, c.land, 0.2), HK[0]);
@@ -90,7 +90,7 @@
             PP.clipAbove(g, sp.near.map(([x, y]) => [X(x), Y(y)]));
             PP.devil(g, X(DIG[0]), Y(DIG[1] + st.sink * SC), s, {
                 mood, look: di < 2 ? -1 : 1, squash: sq, lean: ln, tail, handR: pv, handL: hr, headDy: di === 0 ? 0.03 : 0,
-            }, { t, shovel: { hand: 'R', ang, dirt: true, load: di === 1 ? (kb ? 'earth' : 'road') : null } });
+            }, { t, shovel: { hand: 'R', ang, hold: 0.36, dirt: true, load: di === 1 ? (kb ? 'earth' : 'road') : null } });
             g.restore();
         }
         PP.inSite(g, M, (u) => {
@@ -129,10 +129,10 @@
                 for (const at of [pat1, pat2]) {
                     if (t < at - 2 / 24 - EPS) continue;
                     const k = dr(t, at);
-                    [pv, ang, hold, sq, ln, mood, hl] = k < 0 || k >= 1 ? [[-0.4, -0.8], -0.95, 0.9, -0.03, 0.03, 'sly', [0.56, -0.74]] : [[-0.23, -0.34], -1.32, 0.9, 0.1, -0.07, 'sly', [0.62, -0.56]];
+                    [pv, ang, hold, sq, ln, mood, hl] = k < 0 || k >= 1 ? [[-0.25, -0.72], -1.75, 0.9, -0.03, 0.03, 'sly', [0.62, -0.56]] : [[-0.23, -0.34], -1.32, 0.9, 0.1, -0.07, 'sly', [0.62, -0.56]];
                 }
                 pose = { mood, look: -1, squash: sq + 0.03 * P.pulse, lean: ln, tail, handR: pv, handL: hl, step: air ? 1 : 0 };
-                sv = { hand: 'R', ang, hold, dirt: true, both: hold > 0.8 && ang < -1.3 };
+                sv = { hand: 'R', ang, hold, dirt: true, both: hold > 0.8 };
             } else {
                 // the hop behind the heap; then only his eyes, and the shovel on his shoulder
                 p = hop(t, hideAt, 2 / 12, STAND, [HIDE[0], HIDE[1] + 40], 84);

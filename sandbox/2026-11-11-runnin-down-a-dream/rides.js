@@ -357,10 +357,13 @@ const Rides = (() => {
             fn();
             g.restore();
         };
-        g.fillStyle = SHADOW;
-        g.beginPath();
-        g.ellipse(0.3, -0.1, 4.8, 0.2, 0, 0, TAU);
-        g.fill();
+        if (o.shadow !== false) {
+            // the ground shadow (shadow: false when the car is off the ground or tumbling)
+            g.fillStyle = SHADOW;
+            g.beginPath();
+            g.ellipse(0.3, -0.1, 4.8, 0.2, 0, 0, TAU);
+            g.fill();
+        }
         wheel(g, L, rx + D[0] * zf, -rR + D[1] * zf, rR, spin, P, { far: true });
         body(() => wheel(g, L, fx + D[0] * zf, -fR + D[1] * zf, fR, spin, P, { far: true }), false);
         body(() => {
@@ -672,10 +675,13 @@ const Rides = (() => {
             fn();
             g.restore();
         };
-        g.fillStyle = SHADOW;
-        g.beginPath();
-        g.ellipse(0.3, -0.1, 3.95, 0.2, 0, 0, TAU);
-        g.fill();
+        if (o.shadow !== false) {
+            // the ground shadow (shadow: false when the car is off the ground or tumbling)
+            g.fillStyle = SHADOW;
+            g.beginPath();
+            g.ellipse(0.3, -0.1, 3.95, 0.2, 0, 0, TAU);
+            g.fill();
+        }
         wheel(g, L, rx + D[0] * zf, -rR + D[1] * zf, rR, spin, P, { far: true });
         body(() => wheel(g, L, fx + D[0] * zf, -fR + D[1] * zf, fR, spin, P, { far: true }), false);
         body(() => {
