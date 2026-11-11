@@ -11,7 +11,7 @@
 Energy per second (how much the image changes):
 
 ```
-▇▆▇▅▄▃▅▇▇▇▇█▇
+▇▆▇▅▄▃▅▇▇▇▆█▇
 0    5    10   
 ```
 
@@ -19,7 +19,7 @@ No still stretches of 1 s or more.
 
 ## Speed
 
-Painting: 163 ms/frame cold, 118 ms warm → full render ≈ 36 s at this size.
+Painting: 200 ms/frame cold, 144 ms warm → full render ≈ 44 s at this size.
 
 ## Contact sheet
 
