@@ -330,7 +330,8 @@ const HellplugProps = (() => {
     //   (x, y): the floor under his seat;  pose: as Devil.draw's (lean tips the whole figure
     //   about his seat; tail: about 0.5 lays it flat on the floor)
     //   o: { legs: [left, right] angles of the two legs (radians from +x; default flat out to
-    //        each side), shadow }
+    //        each side), shadow, between(g, s): drawn over his coat and under his legs, in
+    //        frame units from his seat (the cable wound round him) }
     // seatPose(pose) → the pose to hand to inDevil for the same figure (with x, y + seatDrop).
     // =========================================================================================
     const SEAT = 0.36; // his hem above his hooves
@@ -363,6 +364,7 @@ const HellplugProps = (() => {
         g.clip();
         Devil.draw(g, 0, seatDrop(pose, s), s, { tail: 0.5, ...pose, lean: 0, shadow: false });
         g.restore();
+        if (o.between) o.between(g, s); // what goes round him, under his legs: frame units from his seat
         g.scale(s, s);
         g.lineJoin = 'round';
         leg(g, L, [0.17, -0.125], legs[1]);

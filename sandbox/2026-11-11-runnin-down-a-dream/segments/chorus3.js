@@ -176,7 +176,7 @@
                         const a = P.figAt(fg, t, o);
                         star(key, a.x - 26, a.top - 14, 26);
                     } else {
-                        const a = P.figAt(fg, LAND[key], o), [x, y, u] = toss(t, LAND[key], at0(key), [a.x + 2, a.top + 1]);
+                        const a = P.figAt(fg, LAND[key], o), [x, y, u] = toss(t, LAND[key], at0(key), [a.x + 4, a.top + 1]);
                         V.cone(g, x, y, lerp(SC, P.CONE_S, u), -TAU * 1.5 * (1 - u) + tilt);
                     }
                 }
@@ -316,16 +316,17 @@
     // past his rail from the pit; he looks down at his own crowd, his face falls, and he bangs
     // the rail with both mitts.
     // =========================================================================================
-    const BOXV = { k: 2.2, cx: 868, cy: 392 };
+    const BOXV = { k: 2.4, cx: 872, cy: 368 };
     function boxShot(g, t, env) {
         const Pu = S.pulseAt(t), d = C.drawing(t), f = d % 2 ? 1 : -1, ph = Pu.k + Pu.since;
         const o = { view: BOXV, pan: 0, heat: 0.7, beatK: Pu.pulse, hype: 0.6, density: 1 };
-        const tUp = n(25), tSee = n(26), bangs = [n(27), n(27) + 4 * FR, n(27) + 8 * FR];
+        const tUp = n(25), tSee = n(26), bangs = [n(27), n(27) + 4 * FR], tGrabs = T100 - 2 * FR;
         const bang = bangs.reduce((a, at) => Math.max(a, hitK(t, at, [1, 0.6, 0.25])), 0), nextBang = bangs.find((at) => t < at - EPS && t >= at - 2 * FR - EPS);
         let pose, cold = { blow: 0.2 };
         if (t < tUp + 2 * FR - EPS) pose = { mood: 'sly', eyes: t < tUp - EPS ? 'shut' : 'open', look: -1, headTilt: 0.06, headDy: 0.02 * Pu.pulse, squash: 0.03 * Pu.pulse, tail: 0.07 * Math.sin(ph * PI), handR: [-0.2 + 0.06 * f, -0.84], handL: [0.16 - 0.06 * f, -0.8] };
         else if (t < tSee - EPS) pose = { mood: 'grin', look: -1, headTilt: -0.1 + 0.2 * E.seg(t, tUp + 2 * FR, tSee), tail: 0.02, ...I.BOX.rail };
         else if (t < bangs[0] - 2 * FR - EPS) pose = { mood: 'shock', look: -1, lean: -0.1, headTilt: -0.12, headDy: 0.05, squash: hitK(t, tSee, [-0.06, 0.03, 0]), tail: 0.25 * f, handR: [-0.7, -0.76], handL: [0.44, -0.76] }, cold = { blow: -0.6, nose: 1.15 };
+        else if (t >= tGrabs - EPS) pose = { mood: 'angry', look: -1, squash: -0.03, tail: 0.3 * f, handR: [-0.34, -0.98], handL: [0.34, -0.96] }, cold = { blow: 0.9, nose: 1.2 }; // his mitts go to his scarf: the next shot tears it off
         else pose = { mood: 'angry', look: -1, lean: -0.05, headDy: 0.04 * bang, squash: 0.06 * bang, tail: 0.3 * f, step: f, handR: nextBang ? [-0.72, -1.5] : [-0.64, -0.76], handL: nextBang ? [0.66, -1.46] : [0.54, -0.76] }, cold = { blow: nextBang ? -1.2 : 0.8 * f, nose: 1.2 };
         I.venue(g, t, o);
         const Sg = I.stage(BOXV, 0);

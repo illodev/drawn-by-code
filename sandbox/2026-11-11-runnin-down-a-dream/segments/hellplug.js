@@ -281,12 +281,12 @@
     const ARRIVE = n(11), FLAMES = [n(12), n(13), n(14)], GONE = n(14) + 3 / 12, JERK = n(15), SLAM = T106, SIT_AT = T106 + 2 / 12;
     const TITLE_AT = [T106, S.snap(S.TITLES[6][1]), S.snap(S.TITLES[6][2])], TITLE_OUT = n(21);
     const SURF = [n(20), n(28)]; // the surfer's two bars
-    const wpan = (t) => -126 + 12 * E.seg(t, TW, T108);
+    const wpan = (t) => -156 + 12 * E.seg(t, TW, T108);
     const surfU = (t) => lerp(0.1, 1, E.seg(t, SURF[0], SURF[1]));
     function house(g, t, env) {
         const pan = wpan(t), St = I.stage('wide', pan), Pu = S.pulseAt(t), d = C.drawing(t), ph = Pu.k + Pu.since, dark = !on(t, SLAM);
         const o = { view: 'wide', pan, heat: dark ? 0 : 1, beatK: dark ? 0 : Pu.pulse };
-        const x0 = 380 + pan - 30, x1 = 1380 + pan + 30; // the set's span in the frame
+        const x0 = pan - 30, x1 = 1000 + pan + 30; // the set's span in the frame
         // --- his act -----------------------------------------------------------------------
         let at = [SPOT, 808], pose, plugAt = HOME, plugAng = 0, seat = false, sock = 'dead', grip = null, wrap = 0, taut = false;
         const dust = [];
@@ -362,10 +362,8 @@
             P.plug(g, L, plugAt, { ang: plugAng, out: on(t, SLAM) ? 0 : 99 });
             for (const [dx, dy, k2] of dust) P1.puffs(g, [[dx, dy - 10 * k2, 15 * k2, 6, 0.3], [dx + 22 * k2, dy - 6 * k2, 11 * k2, 5, 1.1], [dx - 16 * k2, dy - 5 * k2, 9 * k2, 5, 2]], '#c9a0a8', 3.2 * L);
         });
-        if (seat) {
-            sat(g, St, at, pose);
-            P.layer(g, 'wide', pan, (L) => coils(g, L, at, pose, wrap, dr(t, SIT_AT)));
-        } else devil(g, St, at, pose);
+        if (seat) sat(g, St, at, pose, { between: (g2, sc) => coils(g2, sc, pose, wrap) });
+        else devil(g, St, at, pose);
         const nl = dark ? (on(t, FLAMES[2]) ? 1 : on(t, FLAMES[1]) ? P.lightersFor(5, x0, x1) : on(t, FLAMES[0]) ? P.lightersFor(1, x0, x1) : 0) : 0.3;
         I.crowd(g, t, { ...o, hype: dark ? 0 : 1, lighters: nl, surf: { u: surfU(t), on: on(t, SURF[0]) } });
         if (dark) {
@@ -395,12 +393,14 @@
                 }
                 face(c, St, at, pose);
             };
+            // a few flames: wide pools; a pit full of them: small ones that run together
+            const few = nl < 0.5;
             P.night(g, env, (c) => {
                 extra(c);
-                discs(c, 20);
+                discs(c, few ? 30 : 20);
             }, (c) => {
                 extra(c);
-                discs(c, 40);
+                discs(c, few ? 62 : 40);
             });
             if (hot || jf >= 0) P.bolts(g, pin[0], pin[1], 6, jf >= 0 ? 40 : 26, 4, 'hp-wpinb' + d, 2.2, { rot: d * 0.9 });
         } else {
@@ -416,22 +416,162 @@
             }
         }
     }
-    // The cable wound round him as he sits: `n` turns over his arms and his coat (set coordinates).
-    function coils(g, L, at, pose, turns, f) {
-        const q = pose.squash ?? 0;
+    // The cable wound round him as he sits: `turns` of it over his arms and his coat, drawn from
+    // his seat in frame units (sc: his scale); his legs go over the lowest.
+    function coils(g, sc, pose, turns) {
+        const q = pose.squash ?? 0, u = sc / U;
         for (let i = 0; i < turns; i++) {
-            const y = at[1] - (14 + i * 15) * (1 - q), tilt = (i % 2 ? 1 : -1) * 0.07, rx = 55 - i * 2;
-            const arc = C.ellipsePts(at[0] + 4, y, rx, 7, 14, tilt, -0.12, PI + 0.12);
-            P.cable(g, L, arc, { w: 10, bands: false });
+            const y = -(15 + i * 15) * (1 - q) * u, tilt = (i % 2 ? 1 : -1) * 0.07, rx = (53 - i * 2) * u;
+            const arc = C.ellipsePts(3 * u, y, rx, 7 * u, 14, tilt, -0.12, PI + 0.12);
+            P.cable(g, 1, arc, { w: 10 * u, bands: false });
             const m = arc[5 + (i % 2) * 4];
-            C.poly(g, [[m[0] - 1, m[1] - 5], [m[0] + 1, m[1] + 5]], { ink: P.CABLE.band, lw: 4.4, close: false });
+            C.poly(g, [[m[0] - 1 * u, m[1] - 5 * u], [m[0] + 1 * u, m[1] + 5 * u]], { ink: P.CABLE.band, lw: 4.4 * u, close: false });
         }
+    }
+    // a ring of cable lying round a point (set coordinates): its far half, or its near half
+    const ring = (g, L, cx, cy, rx, ry, near, tilt = 0) => P.cable(g, L, C.ellipsePts(cx, cy, rx, ry, 14, tilt, near ? 0 : PI, near ? PI : TAU), { w: 10, bands: false });
+
+    // =========================================================================================
+    // Shot 4 · «Sing along», bar 108: the front row from the stage, singing the line with
+    // Tom, lighters and foam tridents up; the surfer is handed across over their heads
+    // =========================================================================================
+    const HOUSE = { a: '#6a1221', b: '#8a1a2c', tooth: '#fff6e0', toothT: '#fffdf4', toothS: '#d9c39a' };
+    const FRONT = [
+        { kind: 'imp', x: 150, y: 1012, s: 300, wear: 'specs', hold: 'lighter', ph: 0 },
+        { kind: 'skeleton', x: 385, y: 1090, s: 205, hawk: K.green, tee: 1, hold: 'trident', ph: 0.5 },
+        { kind: 'imp', x: 622, y: 1016, s: 300, wear: 'bow', hold: 'lighter', ph: 0.5 },
+        { kind: 'skeleton', x: 856, y: 1096, s: 205, hawk: K.yellow, tee: 3, hold: 'lighter', ph: 0 },
+    ];
+    const BACK = [
+        { kind: 'skeleton', x: 40, y: 880, s: 150, hawk: K.sky, tee: 2, hold: 'none' },
+        { kind: 'imp', x: 262, y: 826, s: 215, wear: 'hat', hold: 'none' },
+        { kind: 'skeleton', x: 505, y: 884, s: 150, hawk: K.sky, tee: 0, hold: 'none' },
+        { kind: 'imp', x: 742, y: 826, s: 215, wear: null, hold: 'none' },
+        { kind: 'skeleton', x: 968, y: 880, s: 150, hawk: K.green, tee: 2, hold: 'none' },
+    ];
+    // one fan facing us; an imp sings with its mouth (Devil.imp's round one) on the lead's words
+    function fan(g, t, f, sing) {
+        if (f.kind === 'skeleton') return I.fan(g, f.x, f.y, f.s, { kind: 'skeleton', hype: 1, lighter: f.hold === 'lighter' ? 0.9 : 0, hold: f.hold, t: t + (f.ph ?? 0) * S.BEAT * 0, hawk: f.hawk, tee: f.tee, look: f.look ?? 0 });
+        const Pu = S.pulseAt(t), d = C.drawing(t), u = f.s * 0.67, sway = Math.sin((C.onTwos(t) * TAU) / 2.4), fr = Pu.since - Math.floor(Pu.since);
+        const light = f.hold === 'lighter', hop = light ? 0.03 * Pu.pulse : 0.16 * Math.sin(PI * Math.min(1, fr)), sq = 0.06 * Pu.pulse, up = light ? 0.9 : 1;
+        if (light) {
+            const hand = [-0.66, -0.4 - up * 0.5], dir = [-0.34, -0.94];
+            const tip = [f.x + (hand[0] + dir[0] * 0.03) * u * (1 + sq), f.y - hop * u + (hand[1] + dir[1] * 0.03) * u * (1 - sq)];
+            I.lighter(g, 3, tip[0] + sway * 2, tip[1], u * 1.5, 0.9, d, -0.2 + sway * 0.14);
+        }
+        Devil.imp(g, f.x, f.y, u, { squash: sq, hop, mood: sing ? 'awe' : 'grin', look: f.look ?? 0, wear: f.wear, armUp: up, tail: 0.05 * Math.cos((Pu.k + Pu.since) * PI), shadow: false });
+    }
+    const SUNG = S.WORDS.filter(([a]) => a >= T108 - 0.3 && a < T109).map(([a]) => S.snap(a)); // the words of the line, on their frames
+    function singAlong(g, t, env) {
+        const Pu = S.pulseAt(t), d = C.drawing(t), ph = Pu.k + E.out(Math.min(1, Pu.since / 0.5)), sing = S.mouth(t) != null;
+        // the house from the stage: its rock in rays, the upper teeth, three spots that swing a step a beat
+        C.sunburst(g, 500, 640, { n: 12, rot: 0.1 + t * 0.2, a: HOUSE.a, b: HOUSE.b });
+        g.save();
+        g.globalCompositeOperation = 'screen';
+        [[180, K.yellow, 0], [500, K.pink, 1], [820, K.aqua, 2]].forEach(([x, col, i]) => {
+            const tx = x + 170 * Math.sin((ph + i * 0.66) * PI * 0.5) * (i % 2 ? -1 : 1);
+            g.globalAlpha = 0.26 + 0.1 * Pu.pulse;
+            g.fillStyle = col;
+            g.beginPath();
+            g.moveTo(x - 20, -10);
+            g.lineTo(x + 20, -10);
+            g.lineTo(tx + 150, 900);
+            g.lineTo(tx - 150, 900);
+            g.closePath();
+            g.fill();
+        });
+        g.restore();
+        for (let i = 0; i < 9; i++) {
+            const x = 30 + i * 118, w = 58 + (i % 3) * 8, h = 92 + ((i * 5) % 4) * 16 + Math.abs(i - 4) * 12, lean = (i - 4) * -2.5;
+            const pts = [[x - w / 2, -10], [x + w / 2, -10], [x + lean + w * 0.07, h], [x + lean - w * 0.07, h]];
+            C.prism(g, pts, [w * 0.16, -w * 0.105], { front: HOUSE.tooth, top: HOUSE.toothT, side: HOUSE.toothS }, { lw: 3.2 });
+            C.poly(g, [[x + w * 0.12, -6], [x + w / 2 - 2, -6], [x + lean + w * 0.05, h - 5]], { fill: HOUSE.toothS, lw: 0 });
+            C.poly(g, pts, { ink: K.ink, lw: 3.2 });
+        }
+        // the row behind, both mitts up; the pit behind the front row is a tone darker
+        for (const f of BACK) fan(g, t + 0.5 * S.BEAT, f, false);
+        g.save();
+        g.globalCompositeOperation = 'multiply';
+        g.fillStyle = '#b59fd6';
+        g.fillRect(0, 0, 1000, 1000);
+        g.restore();
+        // the surfer, handed along over their mitts
+        const u = surfU(t), k = 2.3, sx = lerp(110, 890, u), want = lerp(40, 960, E.seg(t, T108, T109));
+        I.crowd(g, t, { view: { k, cx: sx - (want - 500) / k, cy: 842 - (528 - 500) / k }, pan: 0, density: 0, surf: { u, on: true } });
+        // the front row
+        for (const f of FRONT) fan(g, t + f.ph * 0, f, sing);
+        // the line leaves them as notes, one a word
+        SUNG.forEach((w, i) => {
+            if (!on(t, w)) return;
+            const f = dr(t, w), who = FRONT[[0, 2, 0, 2, 0, 2, 0][i % 7]], k2 = S.pop(t, w, 0.2);
+            if (f > 5) return;
+            const nx = who.x + (i % 2 ? 60 : -30) + f * (i % 2 ? 9 : -7), ny = who.y - 250 - f * 26;
+            C.note(g, nx, ny, 17 * k2 * (f > 4 ? 0.6 : 1), { color: [K.yellow, K.white, K.aqua][i % 3], kind: i % 2 ? 2 : 1, rot: (i % 2 ? 0.2 : -0.2) + (f % 2 ? 0.08 : -0.08) });
+        });
+    }
+
+    // =========================================================================================
+    // Shot 5 · «Full tilt», bar 109: the stage, the band flat out, the pit's mitts and flames
+    // along the bottom; by his socket the Devil fights his way out of the cable and gets up
+    // =========================================================================================
+    const FIN = { k: 1.4, cx: 320, cy: 640 };
+    const FIGHT = n(29), RISE = n(30), STAND = n(31);
+    function fullTilt(g, t, env) {
+        const St = I.stage(FIN, 0), Pu = S.pulseAt(t), d = C.drawing(t), ph = Pu.k + Pu.since;
+        const o = { view: FIN, pan: 0, heat: 1, beatK: Pu.pulse };
+        const tail = P.plugTail(HOME, 0), up = on(t, RISE), at = SIT;
+        let pose, wrap = 3;
+        if (!on(t, FIGHT)) pose = { mood: 'angry', look: 1, squash: 0.02 * Pu.pulse, headTilt: 0.05, tail: 0.5 + 0.06 * Math.sin(ph * PI) };
+        else if (!up) {
+            // he heaves at the turns from inside
+            const f = dr(t, FIGHT), w = f % 2 ? 1 : -1;
+            pose = { mood: 'angry', look: w, eyes: f % 4 === 1 ? 'shut' : 'open', lean: 0.07 * w, squash: f % 2 ? -0.05 : 0.07, headTilt: -0.06 * w, tail: 0.5 + 0.1 * w };
+            wrap = f >= 2 ? 2 : 3;
+        } else {
+            // up: the turns drop round his hooves, one stays on the hoof he lifts to shake it off
+            const st = on(t, STAND), f = dr(t, st ? STAND : RISE);
+            pose = st
+                ? { mood: 'angry', look: f % 4 < 2 ? 1 : -0.3, squash: steps(t, STAND, [0.02, 0.1, 0.08]), lean: 0.05, headTilt: 0.04, step: 1, tail: 0.1 * (f % 2 ? 1 : -1), handR: [-0.56, -0.62], handL: [0.6, -0.9 + (f % 2 ? 0.05 : 0)] }
+                : { mood: 'angry', look: 1, eyes: f < 1 ? 'shut' : 'open', squash: steps(t, RISE, [0.3, 0.24, 0.18, 0.14]), lean: 0.1, tail: 0.14, handR: [-0.5, -0.42], handL: [0.52, -0.42] };
+        }
+        I.venue(g, t, o);
+        band(g, t, St, { bounce: 0.3 * Pu.pulse });
+        I.beams(g, t, { ...o, front: true });
+        const hoof = up && on(t, STAND) ? [at[0] + 0.19 * U + 3, at[1] - 0.25 * U] : null; // the hoof in the air
+        P.layer(g, FIN, 0, (L) => {
+            P.socket(g, L, { live: 1, beat: Pu.pulse, face: 'calm', d });
+            P.jack(g, L);
+            // the cable: from the plug down to the floor, to him, and on to the car
+            P.cable(g, L, C.curve([tail, [tail[0] + 16, tail[1] + 4], [tail[0] + 24, 770], [102, FLOOR], [150, FLOOR - 4], [206, FLOOR + 3], [257, FLOOR], [P.JACK[0] - 1, FLOOR - 22], [P.JACK[0], P.JACK[1] + 6]], false, 8));
+            P.plug(g, L, HOME, { out: 0 });
+            if (up) {
+                // the turns he has stepped out of, the far halves
+                ring(g, L, at[0] + 4, at[1] - 5, 54, 9, false, 0.05);
+                ring(g, L, at[0] - 2, at[1] - 13, 50, 8, false, -0.06);
+                if (hoof) ring(g, L, hoof[0], hoof[1], 21, 5.5, false, 0.1);
+            }
+        });
+        if (up) {
+            devil(g, St, at, pose);
+            P.layer(g, FIN, 0, (L) => {
+                ring(g, L, at[0] + 4, at[1] - 5, 54, 9, true, 0.05);
+                ring(g, L, at[0] - 2, at[1] - 13, 50, 8, true, -0.06);
+                if (hoof) {
+                    // the loop on his hoof, and the slack from it down to the heap
+                    P.cable(g, L, C.curve([[hoof[0] + 20, hoof[1] + 2], [hoof[0] + 34, hoof[1] + 12], [hoof[0] + 40, at[1] - 16], [hoof[0] + 30, at[1] - 7]], false, 6), { w: 10, bands: false });
+                    ring(g, L, hoof[0], hoof[1], 21, 5.5, true, 0.1);
+                }
+            });
+        } else sat(g, St, at, pose, { between: (g2, sc) => coils(g2, sc, pose, wrap) });
+        I.crowd(g, t, { ...o, hype: 1, lighters: 0.3 });
     }
 
     function draw(g, t, env) {
         g.lineJoin = 'round';
         if (!on(t, TW)) plugScene(g, t, env);
-        else house(g, t, env);
+        else if (!on(t, T108)) house(g, t, env);
+        else if (!on(t, T109)) singAlong(g, t, env);
+        else fullTilt(g, t, env);
     }
     // a dirty edit on the hard cut in
     const post = (t) => (t < T0 + FR - 1e-6 ? { track: 0.25 } : t < T0 + 3 * FR - 1e-6 ? { track: 0.1 } : {});

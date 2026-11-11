@@ -64,9 +64,9 @@ const Chorus3Props = (() => {
         const top = f.y - hop * u - (f.skel ? 1.74 : 1.02) * u * (1 - sq);
         return { x: f.x + (light ? sway * 3 : 0), feet: f.y - hop * u, top, hat: top - (!f.skel && f.wear === 1 ? 0.27 * u * (1 - sq) : 0), u, sq, won, hop };
     }
-    // who got what: two imps of the front row (side by side, one eyeing the other) wear the
+    // who got what: two imps of the front row (nobody taller stands in front of them) wear the
     // cones; an imp of the third row, in a hard hat like the staff's, has the imp standing on it
-    const HAT_A = fig(0, 6), HAT_B = fig(0, 7), CATCHER = fig(2, 11);
+    const HAT_A = fig(0, 7), HAT_B = fig(0, 3), CATCHER = fig(2, 11);
 
     // =========================================================================================
     // Where the things the car threw off stay (SET coordinates)
@@ -147,7 +147,7 @@ const Chorus3Props = (() => {
     }
     // A cone on a head of the front row. sink: the squash of its landing.
     function coneHat(g, v, f, t, o, tilt, sink = 0) {
-        const a = figAt(f, t, o), [x, y] = v.at([a.x + 2, a.top + 1]);
+        const a = figAt(f, t, o), [x, y] = v.at([a.x + 4, a.top + 1]);
         V.cone(g, x, y + sink * 5 * v.k, CONE_S * v.k * (1 + 0.0 * sink), tilt);
     }
     // The imp on its colleague's hard hat: its pose on the beat, and where its mallet's head is (SET coordinates).
