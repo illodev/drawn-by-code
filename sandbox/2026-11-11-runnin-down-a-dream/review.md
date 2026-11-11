@@ -348,3 +348,13 @@ thaw; one near cactus crossing the band in the billboards shot; the speedometer 
 - The ten blocks animating the rest of the film were cut off by the account's usage limit
   and resumed on the user's «inténtalo de nuevo»; the four in Hell picked up from their
   files, the six of the finale had not written anything yet.
+
+## Round 9 (user) · the signature
+
+> «Hay que ir pensando también en añadir nuestra firma "illodev x Claude"»
+
+Asked where (four options: the final blue, a production-company card after it, a channel
+bug, the tape's label before PLAY); the user chose the final blue. After `STOP` lands on the
+VCR's blue, `illodev x Claude` is typed on in the display's own stroke lettering (lower-case
+glyphs drawn in the same hand) and held; the film runs to 264 s, two silent seconds past the
+song, so it can be read. The fade block's agent was told while it worked.

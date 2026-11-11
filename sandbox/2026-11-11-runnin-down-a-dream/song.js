@@ -76,5 +76,6 @@ const Song = (() => {
     const backing = (t) => ooh(t) || (within(CHORUS, t) && singing(t));
     const backMouth = (t) => (ooh(t) ? 'o' : within(CHORUS, t) ? mouth(t) : null);
     const END = 262; // the fade is silent by here (4:22); what follows on the file is the CD's spoken interlude
-    return { BPM, OFFSET, BEAT, BAR, FPS, snap, beat, bar, b, B, twos, pop, pulseAt, LICK, BAND_IN, SECTIONS, WORDS, TITLES, OOH, mouth, singing, ooh, backing, backMouth, END };
+    const FILM_END = 264; // the picture holds 2 s more, silent: the signature on the VCR's blue
+    return { BPM, OFFSET, BEAT, BAR, FPS, snap, beat, bar, b, B, twos, pop, pulseAt, LICK, BAND_IN, SECTIONS, WORDS, TITLES, OOH, mouth, singing, ooh, backing, backMouth, END, FILM_END };
 })();
