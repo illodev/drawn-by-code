@@ -33,11 +33,11 @@ const BandStrings = (() => {
     const MIKE = {
         ink: K.ink,
         skin: '#f7c9a3', skinTop: '#fcdfc6', skinSide: '#e0a17b',
-        hair: '#49322e', hairTop: '#684a40', hairSide: '#32211f', hairLine: '#84604f',
+        hair: '#432e2c', hairTop: '#62463d', hairSide: '#2e1f1e', hairLine: '#80604f',
         eye: '#1d1626', mouth: '#7a1f2e', tongue: '#ff8fa3', glint: '#ffffff',
         jacket: '#f4f0e6', jacketTop: '#ffffff', jacketSide: '#c9c2d3', lapel: '#ffffff', cuff: '#e6e0d3',
         tee: '#ffffff', print: '#e8392f',
-        bandana: '#2a2438', bandanaKnot: '#3d3652', dot: '#fffdf4',
+        bandana: '#2a2438', dot: '#fffdf4',
         jeans: '#4f86e4', jeansSide: '#3763b8', shoe: '#3d2c2d', shoeTop: '#5a4442', shoeSide: '#2b1f21', sole: '#c79d66',
         gBody: '#ffe7a8', gSide: '#d6b067', gGuard: '#35304b', gCover: '#fffdf4', gKnob: '#fffdf4',
         gNeck: '#f1c582', gNeckSide: '#c08f4c', gHead: '#f1c582', gFret: '#9a6d35', gDot: '#2a2438', gNut: '#fffdf4',
@@ -58,7 +58,7 @@ const BandStrings = (() => {
         shadow: 'rgba(36,21,49,0.28)',
     };
     // The two-tone print (see Cast.print): which colours go to black.
-    const DARK = new Set(['ink', 'eye', 'mouth', 'hair', 'hairSide', 'skinSide', 'jacketSide', 'bandana', 'bandanaKnot', 'print', 'jeansSide', 'shoe', 'shoeTop', 'shoeSide',
+    const DARK = new Set(['ink', 'eye', 'mouth', 'hair', 'hairSide', 'skinSide', 'jacketSide', 'bandana', 'print', 'jeansSide', 'shoe', 'shoeTop', 'shoeSide',
         'gSide', 'gGuard', 'gNeckSide', 'gFret', 'gDot', 'chromeDark', 'stringDark', 'strap', 'vest', 'vestTop', 'vestSide', 'shirtSide', 'stripe', 'jeans',
         'bBody', 'bSide', 'bMid', 'bGuard', 'bSpot', 'bNeck', 'bNeckSide', 'bHeadSide', 'pickup']);
     const print = (P) => Object.fromEntries(Object.keys(P).map((k) => [k, k === 'shadow' ? 'rgba(0,0,0,0)' : DARK.has(k) ? '#000000' : '#ffffff']));
@@ -141,7 +141,7 @@ const BandStrings = (() => {
 
     // Half an ellipse from a to b, bulging by h to the outside of a clockwise outline (h < 0:
     // to the inside). Without b: the next piece starts there. Scallops meet in a cusp.
-    function scallop(a, b, h, n = 10) {
+    function scallop(a, b, h, n = 16) {
         const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1e-6, nx = dy / len, ny = -dx / len, out = [];
         for (let k = 0; k < n; k++) {
             const th = (Math.PI * k) / n, u = (1 - Math.cos(th)) / 2, off = Math.sin(th) * h;
@@ -264,9 +264,10 @@ const BandStrings = (() => {
     // =========================================================================================
     // Mike
     // =========================================================================================
-    const M_HEAD = { w: 0.8, h: 0.9, top: -1.84, d: 0.44, fx: 0.27 };
+    const M_HEAD = { w: 0.84, h: 0.9, top: -1.84, d: 0.44, fx: 0.27 };
     const M_TORSO = { x: -0.35, y: -0.98, w: 0.7, h: 0.62, d: 0.4 };
     const NECK = -0.95; // the head tilts about this height
+    const HIP = -0.38; // the upper body leans back about this height for the solo
 
     // The hair is the box: straight, shaggy, cut in layers (each layer's ragged end sticks out
     // at the sides), a jagged hem at the collar and a heavy fringe down to the eyes.
@@ -300,7 +301,7 @@ const BandStrings = (() => {
         // the fringe: choppy points down to the eyes, which look out between them
         const ey = F.ey;
         const hem = [[-fx - 0.004, ey - 0.085], [-0.215, ey - 0.04], [-0.15, ey - 0.165], [-0.075, ey - 0.055], [-0.02, ey - 0.15], [0.045, ey - 0.07], [0.13, ey - 0.175], [0.205, ey - 0.05], [fx + 0.004, ey - 0.11]];
-        C.poly(g, [...hem, [fx + 0.004, fy - 0.012], [-fx - 0.004, fy - 0.012]], { fill: P.hair, lw: 0 });
+        C.poly(g, [[-fx - L * 0.6, hem[0][1]], ...hem, [fx + L * 0.6, hem[hem.length - 1][1]], [fx + L * 0.6, fy - L], [-fx - L * 0.6, fy - L]], { fill: P.hair, lw: 0 });
         C.poly(g, hem, { ink: P.ink, lw: L, close: false });
         g.strokeStyle = P.hairLine;
         g.lineWidth = L * 0.7;
@@ -317,15 +318,15 @@ const BandStrings = (() => {
     // off centre. Deep blue-violet for black, with a white border line and white dots.
     function bandana(g, P, L) {
         const b = M_HEAD.top + M_HEAD.h;
-        const cloth = [[-0.3, b - 0.07], [0.3, b - 0.07], [0.3, b + 0.0], [0.19, b + 0.035], [0.09, b + 0.075], [-0.03, b + 0.185], [-0.13, b + 0.1], [-0.3, b + 0.035]];
+        const cloth = [[-0.3, b - 0.07], [0.3, b - 0.07], [0.305, b + 0.02], [0.2, b + 0.062], [0.1, b + 0.1], [-0.02, b + 0.205], [-0.15, b + 0.1], [-0.3, b + 0.035]];
         C.poly(g, cloth, { fill: P.bandana, ink: P.ink, lw: L });
         g.save();
         C.trace(g, cloth);
         g.clip();
         // the border, parallel to the hem, and the pattern
-        C.poly(g, [[0.32, b - 0.035], [0.18, b + 0.005], [0.075, b + 0.045], [-0.03, b + 0.14], [-0.115, b + 0.07], [-0.32, b + 0.0]], { ink: P.dot, lw: L * 0.6, close: false });
+        C.poly(g, [[0.33, b - 0.022], [0.19, b + 0.028], [0.09, b + 0.066], [-0.02, b + 0.162], [-0.135, b + 0.07], [-0.32, b + 0.002]], { ink: P.dot, lw: L * 0.65, close: false });
         g.fillStyle = P.dot;
-        for (const [dx, dy, r] of [[-0.03, 0.085, 0.017], [-0.085, 0.03, 0.013], [0.03, 0.025, 0.013], [-0.2, 0.005, 0.011], [0.13, -0.01, 0.012], [-0.03, 0.02, 0.008], [0.23, -0.04, 0.01], [-0.14, -0.02, 0.008], [0.06, -0.03, 0.008]]) {
+        for (const [dx, dy, r] of [[-0.025, 0.1, 0.021], [-0.09, 0.035, 0.016], [0.04, 0.035, 0.017], [-0.21, 0.005, 0.012], [0.15, 0.0, 0.015], [-0.025, 0.03, 0.009], [0.245, -0.035, 0.012], [-0.15, -0.015, 0.009], [0.09, -0.02, 0.009], [0.035, 0.09, 0.008], [-0.085, 0.09, 0.008]]) {
             g.beginPath();
             g.arc(dx, b + dy, r, 0, TAU);
             g.fill();
@@ -340,8 +341,8 @@ const BandStrings = (() => {
         C.poly(g, [[-0.2, y], [0.2, y], [0.15, y + h], [-0.15, y + h]], { fill: P.tee, ink: P.ink, lw: L * 0.8 });
         g.fillStyle = P.print;
         g.beginPath();
-        g.roundRect(0.055, y + 0.1, 0.125, 0.058, 0.014);
-        g.roundRect(0.075, y + 0.172, 0.08, 0.018, 0.006);
+        g.roundRect(0.03, y + 0.12, 0.17, 0.055, 0.014);
+        g.roundRect(0.05, y + 0.19, 0.13, 0.02, 0.006);
         g.fill();
         // the lapels
         for (const s of [-1, 1]) C.poly(g, [[s * 0.2, y], [s * 0.31, y], [s * 0.27, y + 0.24], [s * 0.16, y + 0.42]], { fill: P.lapel, ink: P.ink, lw: L * 0.8 });
@@ -354,7 +355,7 @@ const BandStrings = (() => {
     // middle of the body, the low strings are up (-y) as the player wears it.
     const S_BODY = [[-0.385, -0.01], [-0.345, -0.19], [-0.21, -0.275], [-0.03, -0.238], [0.11, -0.25], [0.28, -0.297], [0.395, -0.282], [0.36, -0.2], [0.26, -0.125], [0.215, -0.06],
         [0.215, 0.06], [0.25, 0.125], [0.325, 0.205], [0.335, 0.27], [0.24, 0.285], [0.1, 0.245], [-0.05, 0.25], [-0.21, 0.3], [-0.35, 0.215]];
-    const S_GUARD = [[0.305, -0.212], [0.22, -0.105], [0.06, -0.112], [-0.11, -0.105], [-0.215, -0.09], [-0.225, 0.09], [-0.3, 0.17], [-0.26, 0.245], [-0.1, 0.24], [0.05, 0.2], [0.2, 0.235], [0.275, 0.215], [0.235, 0.12]];
+    const S_GUARD = [[0.225, -0.115], [0.06, -0.112], [-0.11, -0.105], [-0.215, -0.09], [-0.225, 0.09], [-0.3, 0.17], [-0.26, 0.245], [-0.1, 0.24], [0.05, 0.2], [0.2, 0.235], [0.275, 0.215], [0.235, 0.12]];
     const S_HEAD = [[0.9, -0.046], [0.955, -0.064], [1.01, -0.086], [1.2, -0.096], [1.268, -0.072], [1.287, -0.03], [1.262, 0.008], [1.2, 0.02], [1.09, 0.014], [1.0, 0.034], [0.9, 0.046]];
     const S_NUT = 0.9, S_END = 0.15; // the nut and the fretboard's end over the body
     function strat(g, P, L0, at, ang, sc = 1) {
@@ -362,9 +363,24 @@ const BandStrings = (() => {
         const body = cw(place(C.curve(S_BODY, true, 6), ang, at, sc));
         const neck = cw(place([[0.18, -0.046], [S_NUT, -0.036], [S_NUT, 0.036], [0.18, 0.046]], ang, at, sc));
         const hs = cw(place(C.curve(S_HEAD, true, 4), ang, at, sc));
+        // the neck, then the six tuner buttons in a line and the headstock in front of them
+        C.prism(g, neck, th, { front: P.gNeck, top: P.gNeckSide, side: P.gNeckSide }, { lw: L0, ink: P.ink });
+        g.save();
+        g.translate(at[0], at[1]);
+        g.rotate(ang);
+        g.scale(sc, sc);
+        for (let i = 0; i < 6; i++) {
+            g.beginPath();
+            g.roundRect(1.0 + i * 0.045 - 0.014, -0.142 - i * 0.002, 0.028, 0.058, 0.008);
+            g.fillStyle = P.chrome;
+            g.fill();
+            g.strokeStyle = P.ink;
+            g.lineWidth = L * 0.65;
+            g.stroke();
+        }
+        g.restore();
         C.prism(g, hs, th, { front: P.gHead, top: P.gNeckSide, side: P.gNeckSide }, { lw: L0, ink: P.ink, sweepInk: null });
         C.prismOutline(g, hs, th, { lw: L0, ink: P.ink });
-        C.prism(g, neck, th, { front: P.gNeck, top: P.gNeckSide, side: P.gNeckSide }, { lw: L0, ink: P.ink });
         C.prism(g, body, th, { front: P.gBody, top: P.gSide, side: P.gSide }, { lw: L0, ink: P.ink, sweepInk: null });
         C.prismOutline(g, body, th, { lw: L0, ink: P.ink });
         g.save();
@@ -408,7 +424,6 @@ const BandStrings = (() => {
             g.stroke();
         }
         C.poly(g, [[0.03, 0.135], [0.085, 0.17]], { ink: P.chromeDark, lw: L * 1.5, close: false });
-        C.poly(g, [[0.045, 0.145], [0.045, 0.145]], { ink: P.gKnob, lw: L * 2.2, close: false });
         // the fretboard over the body, frets and dots
         C.poly(g, [[S_END, -0.046], [S_NUT, -0.036], [S_NUT, 0.036], [S_END, 0.046]], { fill: P.gNeck, ink: P.ink, lw: L * 0.8 });
         const fretX = (i) => S_NUT - (S_NUT - S_END) * (1 - Math.pow(0.9, i)) / (1 - Math.pow(0.9, 12));
@@ -442,7 +457,7 @@ const BandStrings = (() => {
         }
         C.poly(g, [[S_NUT, -0.036], [S_NUT, 0.036]], { ink: P.ink, lw: L * 1.5, close: false });
         C.poly(g, [[S_NUT, -0.031], [S_NUT, 0.031]], { ink: P.gNut, lw: L * 0.8, close: false });
-        // six tuners in a line: a post on the face with its string, a button over the top edge
+        // the six posts on the face, each with its string
         for (let i = 0; i < 6; i++) {
             const tx = 1.0 + i * 0.045, ty = -0.058 - i * 0.002;
             g.strokeStyle = P.stringDark;
@@ -452,16 +467,11 @@ const BandStrings = (() => {
             g.lineTo(tx, ty);
             g.stroke();
             g.beginPath();
-            g.roundRect(tx - 0.013, ty - 0.078, 0.026, 0.036, 0.007);
+            g.arc(tx, ty, 0.0095, 0, TAU);
             g.fillStyle = P.chrome;
             g.fill();
             g.strokeStyle = P.ink;
             g.lineWidth = L * 0.6;
-            g.stroke();
-            g.beginPath();
-            g.arc(tx, ty, 0.0095, 0, TAU);
-            g.fillStyle = P.chrome;
-            g.fill();
             g.stroke();
         }
         g.restore();
@@ -471,7 +481,7 @@ const BandStrings = (() => {
     // and the two hand points. Shared by the drawer and by `points`.
     function mikeRig(pose) {
         const solo = clamp01(pose.solo ?? 0);
-        const gAt = [mix(-0.19, -0.06, solo), mix(-0.49, -0.47, solo)], gAng = mix(-0.3, -0.84, solo), gSc = 0.78;
+        const gAt = [mix(-0.19, 0.0, solo), mix(-0.49, -0.47, solo)], gAng = mix(-0.3, -0.84, solo), gSc = 0.78;
         const onG = (p) => {
             const r = rot(p, gAng);
             return [r[0] * gSc + gAt[0], r[1] * gSc + gAt[1]];
@@ -479,7 +489,7 @@ const BandStrings = (() => {
         const shR = [M_TORSO.x + 0.03, M_TORSO.y + 0.13], shL = [M_TORSO.x + M_TORSO.w - 0.03, M_TORSO.y + 0.13];
         return {
             solo, gAt, gAng, gSc, onG, shR, shL,
-            back: -0.17 * solo, // the upper body leans back about the hips
+            back: -0.15 * solo, fwd: 0.07 * solo, // the upper body leans back about the hips, which go forward
             fret: onG([0.5 + 0.3 * (pose.fret ?? 0.3), 0.03]),
             hand: onG([0.15, (pose.strum ?? 0) * 0.1 - 0.035]),
         };
@@ -502,13 +512,13 @@ const BandStrings = (() => {
         g.rotate(pose.lean ?? 0);
         g.scale(1 + q, 1 - q);
         Cast.legs(g, P, L);
-        g.translate(0, HIP);
+        g.translate(R.fwd, HIP);
         g.rotate(R.back);
         g.translate(0, -HIP + 0.025 * R.solo);
         mikeTorso(g, P, L);
         // the strap, from the left shoulder (screen right) down behind the neck's heel
         const heel = R.onG([0.3, -0.06]);
-        C.poly(g, [[0.235, M_TORSO.y + 0.015], [0.315, M_TORSO.y + 0.015], [heel[0] + 0.05, heel[1]], [heel[0] - 0.035, heel[1]]], { fill: P.strap, ink: P.ink, lw: L * 0.7 });
+        C.poly(g, [[0.255, M_TORSO.y + 0.015], [0.335, M_TORSO.y + 0.015], [heel[0] + 0.06, heel[1]], [heel[0] - 0.025, heel[1]]], { fill: P.strap, ink: P.ink, lw: L * 0.7 });
         bandana(g, P, L);
         g.save();
         g.translate(0, NECK + (pose.headDy ?? 0));
@@ -522,7 +532,6 @@ const BandStrings = (() => {
         arm(g, P, L, R.shR, R.hand, sleeve, { fold: true, roll: 0.46 });
         g.restore();
     }
-    const HIP = -0.38;
 
     // =========================================================================================
     // Howie
@@ -576,9 +585,9 @@ const BandStrings = (() => {
         // the fringe: curls over the brow
         const cusps = [[-fx - 0.004, fy + 0.1], [-0.13, fy + 0.085], [0.05, fy + 0.07], [0.2, fy + 0.095], [fx + 0.004, fy + 0.12]];
         const hem = [];
-        for (let i = 0; i < cusps.length - 1; i++) hem.push(...scallop(cusps[i], cusps[i + 1], -0.055, 8));
+        for (let i = 0; i < cusps.length - 1; i++) hem.push(...scallop(cusps[i], cusps[i + 1], -0.055, 12));
         hem.push(cusps[cusps.length - 1]);
-        C.poly(g, [...hem, [fx + 0.004, fy - 0.012], [-fx - 0.004, fy - 0.012]], { fill: P.hair, lw: 0 });
+        C.poly(g, [[-fx - L * 0.6, hem[0][1]], ...hem, [fx + L * 0.6, hem[hem.length - 1][1]], [fx + L * 0.6, fy - L], [-fx - L * 0.6, fy - L]], { fill: P.hair, lw: 0 });
         C.poly(g, hem, { ink: P.ink, lw: L, close: false });
         g.strokeStyle = P.hairLine;
         g.lineWidth = L * 0.75;
@@ -606,24 +615,29 @@ const BandStrings = (() => {
             g.restore();
             C.poly(g, pts, { ink: P.ink, lw: L * 0.8 });
         };
-        // the shirt at the armholes, in the neck's V and under the waistcoat's points
+        // the shirt at the armholes, in the neck's V and below the waistcoat's pointed hem
         stripes([[x, y], [x + 0.085, y], [x + 0.06, y + 0.2], [x, y + 0.27]]);
         stripes([[x + w, y], [x + w - 0.085, y], [x + w - 0.06, y + 0.2], [x + w, y + 0.27]]);
         stripes([[-0.19, y], [0.19, y], [0.0, y + 0.37]]);
-        stripes([[-0.07, y + h], [0.0, y + h - 0.08], [0.07, y + h]]);
+        const hy = y + h;
+        stripes([[x, hy - 0.08], [-0.15, hy - 0.03], [0, hy - 0.1], [0.15, hy - 0.03], [x + w, hy - 0.08], [x + w, hy], [x, hy]]);
+        const [sx, sy] = Dd(d);
+        C.poly(g, [[x + w, hy - 0.08], [x + w + sx, hy - 0.08 + sy], [x + w + sx, hy + sy], [x + w, hy]], { fill: P.shirtSide, ink: P.ink, lw: L * 0.8 });
         // the collar's wings
         for (const s of [-1, 1]) C.poly(g, [[s * 0.035, y], [s * 0.2, y], [s * 0.175, y + 0.125], [s * 0.06, y + 0.085]], { fill: P.collar, ink: P.ink, lw: L * 0.8 });
-        // the front edge and three buttons
-        C.poly(g, [[0, y + 0.37], [0, y + h - 0.08]], { ink: P.ink, lw: L * 0.8, close: false });
+        // the front edge with three buttons, and a pocket's welt
+        C.poly(g, [[0, y + 0.37], [0, hy - 0.1]], { ink: P.ink, lw: L * 0.8, close: false });
         for (let i = 0; i < 3; i++) {
             g.beginPath();
-            g.arc(0.035, y + 0.4 + i * 0.058, 0.014, 0, TAU);
+            g.arc(0.035, y + 0.4 + i * 0.05, 0.014, 0, TAU);
             g.fillStyle = P.button;
             g.fill();
             g.strokeStyle = P.ink;
             g.lineWidth = L * 0.55;
             g.stroke();
         }
+        C.poly(g, [[0.14, y + 0.435], [0.3, y + 0.425]], { ink: P.ink, lw: L * 0.8, close: false });
+        C.poly(g, [[-0.14, y + 0.435], [-0.3, y + 0.425]], { ink: P.ink, lw: L * 0.8, close: false });
     }
 
     // --- Howie's bass -------------------------------------------------------------------
@@ -632,7 +646,7 @@ const BandStrings = (() => {
     // board and four big tuners on the headstock's upper edge. Same local frame as the guitar.
     const B_BODY = [[-0.43, 0.0], [-0.385, -0.2], [-0.24, -0.3], [-0.06, -0.262], [0.1, -0.272], [0.3, -0.325], [0.455, -0.315], [0.415, -0.23], [0.31, -0.14], [0.26, -0.062],
         [0.26, 0.062], [0.3, 0.14], [0.365, 0.235], [0.36, 0.305], [0.265, 0.315], [0.12, 0.272], [-0.04, 0.28], [-0.24, 0.335], [-0.395, 0.23]];
-    const B_GUARD = [[0.37, -0.245], [0.275, -0.118], [0.12, -0.128], [-0.04, -0.115], [-0.15, -0.075], [-0.165, 0.07], [-0.27, 0.15], [-0.31, 0.24], [-0.2, 0.285], [-0.06, 0.24], [0.1, 0.226], [0.24, 0.265], [0.305, 0.25], [0.275, 0.14]];
+    const B_GUARD = [[0.275, -0.125], [0.12, -0.128], [-0.04, -0.115], [-0.15, -0.075], [-0.165, 0.07], [-0.27, 0.15], [-0.31, 0.24], [-0.2, 0.285], [-0.06, 0.24], [0.1, 0.226], [0.24, 0.265], [0.305, 0.25], [0.275, 0.14]];
     const B_HEAD = [[1.24, -0.04], [1.3, -0.066], [1.36, -0.098], [1.57, -0.108], [1.64, -0.078], [1.655, -0.03], [1.625, 0.012], [1.55, 0.028], [1.42, 0.03], [1.33, 0.046], [1.24, 0.04]];
     const B_NUT = 1.24, B_END = 0.2;
     function bass(g, P, L0, at, ang, sc = 1) {
@@ -640,9 +654,26 @@ const BandStrings = (() => {
         const body = cw(place(C.curve(B_BODY, true, 6), ang, at, sc));
         const neck = cw(place([[0.22, -0.05], [B_NUT, -0.036], [B_NUT, 0.036], [0.22, 0.05]], ang, at, sc));
         const hs = cw(place(C.curve(B_HEAD, true, 4), ang, at, sc));
+        // the neck, then four big tuners (a stem and a paddle each) and the headstock in front of them
+        C.prism(g, neck, th, { front: P.bNeck, top: P.bNeckSide, side: P.bNeckSide }, { lw: L0, ink: P.ink });
+        g.save();
+        g.translate(at[0], at[1]);
+        g.rotate(ang);
+        g.scale(sc, sc);
+        for (let i = 0; i < 4; i++) {
+            const tx = 1.375 + i * 0.068;
+            C.poly(g, [[tx, -0.09], [tx, -0.16]], { ink: P.ink, lw: L * 1.7, close: false });
+            g.beginPath();
+            g.roundRect(tx - 0.027, -0.205 - i * 0.003, 0.054, 0.055, [0.022, 0.022, 0.008, 0.008]);
+            g.fillStyle = P.chrome;
+            g.fill();
+            g.strokeStyle = P.ink;
+            g.lineWidth = L * 0.65;
+            g.stroke();
+        }
+        g.restore();
         C.prism(g, hs, th, { front: P.bHead, top: P.bHeadSide, side: P.bHeadSide }, { lw: L0, ink: P.ink, sweepInk: null });
         C.prismOutline(g, hs, th, { lw: L0, ink: P.ink });
-        C.prism(g, neck, th, { front: P.bNeck, top: P.bNeckSide, side: P.bNeckSide }, { lw: L0, ink: P.ink });
         C.prism(g, body, th, { front: P.bBody, top: P.bSide, side: P.bSide }, { lw: L0, ink: P.ink, sweepInk: null });
         C.prismOutline(g, body, th, { lw: L0, ink: P.ink });
         g.save();
@@ -738,7 +769,7 @@ const BandStrings = (() => {
         g.stroke();
         C.poly(g, [[B_NUT, -0.036], [B_NUT, 0.036]], { ink: P.ink, lw: L * 1.5, close: false });
         C.poly(g, [[B_NUT, -0.031], [B_NUT, 0.031]], { ink: P.string, lw: L * 0.8, close: false });
-        // four big tuners: a post with its string, a stem and a paddle over the upper edge
+        // the four posts on the face, each with its string
         for (let i = 0; i < 4; i++) {
             const tx = 1.375 + i * 0.068, ty = -0.058 - i * 0.003;
             g.strokeStyle = P.chromeDark;
@@ -747,18 +778,12 @@ const BandStrings = (() => {
             g.moveTo(B_NUT, sy(i, 1));
             g.lineTo(tx, ty);
             g.stroke();
-            C.poly(g, [[tx, ty - 0.04], [tx, ty - 0.075]], { ink: P.ink, lw: L * 1.6, close: false });
-            g.beginPath();
-            g.roundRect(tx - 0.027, ty - 0.118, 0.054, 0.05, [0.02, 0.02, 0.008, 0.008]);
-            g.fillStyle = P.chrome;
-            g.fill();
-            g.strokeStyle = P.ink;
-            g.lineWidth = L * 0.65;
-            g.stroke();
             g.beginPath();
             g.arc(tx, ty, 0.014, 0, TAU);
             g.fillStyle = P.chrome;
             g.fill();
+            g.strokeStyle = P.ink;
+            g.lineWidth = L * 0.65;
             g.stroke();
         }
         g.restore();
@@ -821,7 +846,7 @@ const BandStrings = (() => {
         const up = (p) => {
             if (!isM) return p;
             const r = rot([p[0], p[1] - HIP + 0.025 * R.solo], R.back);
-            return [r[0], r[1] + HIP];
+            return [r[0] + R.fwd, r[1] + HIP];
         };
         const out = (p) => {
             const u = up(p);
@@ -829,7 +854,7 @@ const BandStrings = (() => {
         };
         const H = isM ? M_HEAD : H_HEAD;
         return {
-            headTop: out([0, H.top - 0.06 + (pose.headDy ?? 0)]),
+            headTop: out([0, H.top - (isM ? 0.04 : 0.1) + (pose.headDy ?? 0)]),
             mouth: out([0, H.top + 0.765 + (pose.headDy ?? 0)]),
             strings: out(R.onG([isM ? -0.06 : -0.08, 0])),
             headstock: out(R.onG([isM ? 1.28 : 1.65, -0.03])),

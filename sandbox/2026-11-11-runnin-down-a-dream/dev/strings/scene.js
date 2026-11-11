@@ -3,6 +3,7 @@
 //   0 Mike + Tom (s 230)   1 Tom + Howie (s 230)   2 Mike alone (s 420)   3 Howie alone (s 420)
 //   4 Mike's poses         5 Howie's poses          6 the three at s 90 / 130 / 175
 //   7 Mike's solo (s 300)  8 the two-tone prints    9 the instruments alone
+// At t + 0.6, pages 3 and 7 also mark the anchor points of BandStrings.points.
 Motion.scene({
     fps: 24, duration: 20, logical: [1000, 1000],
     uses: ['styles/cereal-ad/cereal.js', 'sandbox/2026-11-11-runnin-down-a-dream/cast.js', 'sandbox/2026-11-11-runnin-down-a-dream/band-strings.js'],
@@ -16,8 +17,16 @@ Motion.scene({
             C.poly(g, lip, { fill: K.navy, lw: 0 });
             C.poly(g, lip.slice(1, -1), { ink: K.ink, lw: 5, close: false });
         };
+        // at t + 0.6: the anchor points of BandStrings.points, to check them
+        const mark = (who, x, y, s, pose) => {
+            for (const [name, p] of Object.entries(B.points(who, pose))) {
+                const px = x + p[0] * s, py = y + p[1] * s;
+                C.poly(g, [[px - 9, py], [px + 9, py]], { ink: K.pink, lw: 4, close: false });
+                C.poly(g, [[px, py - 9], [px, py + 9]], { ink: K.pink, lw: 4, close: false });
+            }
+        };
         if (page === 8) {
-            g.fillStyle = K.hot ?? '#ff4fa3';
+            g.fillStyle = K.pink;
             g.fillRect(0, 0, 1000, 1000);
             B.mike(g, 260, 880, 230, { eyes: 'open' }, B.print(B.MIKE));
             B.howie(g, 640, 880, 230, {}, B.print(B.HOWIE));
@@ -41,7 +50,9 @@ Motion.scene({
         } else if (page === 3) {
             C.burst(g, 500, 520, { r0: 380, r1: 470, n: 14, seed: 'dv', fill: K.yellow, ink: K.ink, lw: 5 });
             floor(880);
-            B.howie(g, 370, 925, 420, { pluck: 0.2, fret: 0.6 });
+            const ph = { pluck: 0.2, fret: 0.6, lean: t % 1 > 0.5 ? 0.1 : 0, squash: t % 1 > 0.5 ? 0.08 : 0 };
+            B.howie(g, 370, 925, 420, ph);
+            if (t % 1 > 0.5) mark('howie', 370, 925, 420, ph);
         } else if (page === 4 || page === 5) {
             floor(900);
             const who = page === 4 ? B.mike : B.howie, k = page === 4 ? 'strum' : 'pluck';
@@ -65,8 +76,10 @@ Motion.scene({
         } else if (page === 7) {
             C.burst(g, 500, 520, { r0: 380, r1: 470, n: 14, seed: 'dv', fill: K.yellow, ink: K.ink, lw: 5 });
             floor(880);
-            B.mike(g, 250, 925, 300, { solo: 0.5, mouth: 'grin', fret: 0.6 });
-            B.mike(g, 690, 925, 300, { solo: 1, eyes: 'shut', mouth: 'sing', fret: 1, strum: -0.6, sway: -0.04 });
+            const pa = { solo: 0.5, mouth: 'grin', fret: 0.6 }, pb = { solo: 1, eyes: 'shut', mouth: 'sing', fret: 1, strum: -0.6, sway: -0.04 };
+            B.mike(g, 250, 925, 300, pa);
+            B.mike(g, 690, 925, 300, pb);
+            if (t % 1 > 0.5) for (const [x, pose] of [[250, pa], [690, pb]]) mark('mike', x, 925, 300, pose);
         } else if (page === 9) {
             g.fillStyle = K.teal;
             g.fillRect(0, 0, 1000, 1000);

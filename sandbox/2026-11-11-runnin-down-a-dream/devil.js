@@ -439,6 +439,7 @@ const Devil = (() => {
      *   pose: { squash, lean, headDy, headTilt, mood ('grin' | 'sly' | 'angry' | 'shock' | 'laugh'),
      *           eyes ('open' | 'shut'), look (-1..1), tail (sway, about ±0.05), step (-1..1 lifts a hoof),
      *           handR, handL  ([x, y] in his units; the right mitt is on screen left),
+     *           pointer ([x, y] a cane from the left mitt to that point),
      *           trident (false | { ang, grip }), contract (false | { ang, open, at: [dx, dy] from the left mitt }) }
      */
     function draw(g, x, y, s, pose = {}) {
@@ -465,6 +466,14 @@ const Devil = (() => {
         const hL = pose.handL ?? (pose.contract ? [0.72, -0.74] : [0.5, -0.5]);
         if (pose.trident) trident(g, hR[0] - 0.015, hR[1] + 0.02, L, pose.trident === true ? {} : pose.trident);
         arm(g, L, shR, hR);
+        if (pose.pointer) {
+            // a cane with a brass tip, from the left mitt towards pose.pointer = [x, y]
+            const [tx, ty] = pose.pointer, dx = tx - hL[0], dy = ty - hL[1], l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l;
+            const a = [hL[0] - ux * 0.12, hL[1] - uy * 0.12];
+            C.poly(g, [a, [tx, ty]], { ink: P.ink, lw: 0.05 + L * 2, close: false });
+            C.poly(g, [a, [tx - ux * 0.08, ty - uy * 0.08]], { ink: P.hair, lw: 0.05, close: false });
+            C.poly(g, [[tx - ux * 0.08, ty - uy * 0.08], [tx, ty]], { ink: P.brass, lw: 0.05, close: false });
+        }
         if (pose.contract) {
             const c = pose.contract === true ? {} : pose.contract, at = c.at ?? [0.2, -0.2];
             contract(g, hL[0] + at[0], hL[1] + at[1], L, c);
@@ -473,5 +482,128 @@ const Devil = (() => {
         g.restore();
     }
 
-    return { P, draw, trident, contract, TORSO, HEAD };
+    // --- imps -------------------------------------------------------------------------------
+    // The Devil's staff: a small red box with stubby horns, big slit eyes and a fang, told
+    // apart by what it wears. Units: 1 = the imp's width; the origin is the ground under it.
+    //   pose: { squash, hop, mood ('grin' | 'awe' | 'oops'), look (-1..1), wear ('specs' | 'hat' | 'bow'),
+    //           hold ('board' a clipboard and pencil, null), write (0..1 wiggles the pencil), armUp (0..1 a mitt in the air), tail }
+    function imp(g, x, y, s, pose = {}) {
+        const L = 3 / s, q = pose.squash ?? 0, mood = pose.mood ?? 'grin';
+        const W = 1, H = 0.8, top = -1.02, x0 = -0.5;
+        g.save();
+        g.translate(x, y - (pose.hop ?? 0) * s);
+        g.fillStyle = P.shadow;
+        g.beginPath();
+        g.ellipse(0.04 * s, (pose.hop ?? 0) * s, 0.55 * s, 0.07 * s, 0, 0, C.TAU);
+        g.fill();
+        g.scale(s, s);
+        g.scale(1 + q, 1 - q);
+        // tail
+        const tw = pose.tail ?? 0;
+        const tl = C.curve([[0.3, -0.34], [0.66, -0.3], [0.78, -0.52 + tw], [0.7, -0.76 + tw * 1.5]], false, 6);
+        C.poly(g, ribbon(tl.map(([px, py], i) => [px, py, 0.035 - 0.012 * (i / (tl.length - 1))])), { fill: P.skin, ink: P.ink, lw: L });
+        const te = tl[tl.length - 1];
+        C.poly(g, [[te[0] - 0.09, te[1] + 0.02], [te[0] + 0.02, te[1] - 0.14], [te[0] + 0.1, te[1] + 0.04]], { fill: P.skin, ink: P.ink, lw: L });
+        // legs with little hooves
+        for (const sx of [-1, 1]) {
+            C.box(g, sx * 0.22 - 0.11, -0.1, 0.22, 0.1, D, { front: P.hoof, top: P.hoofTop, side: P.hoof }, { lw: L, ink: P.ink, depth: 0.26 });
+            C.box(g, sx * 0.22 - 0.085, -0.26, 0.17, 0.17, D, { front: P.skin, top: P.skinTop, side: P.skinSide }, { lw: L, ink: P.ink, depth: 0.2 });
+        }
+        C.box(g, x0, top, W, H, D, { front: P.skin, top: P.skinTop, side: P.skinSide }, { lw: L, ink: P.ink, depth: 0.5 });
+        // stubby horns on the top
+        for (const sx of [-1, 1]) {
+            const hx = sx * 0.3 + D[0] * 0.18, hy = top + D[1] * 0.18;
+            C.prism(g, cw([[hx - 0.1, hy], [hx + sx * 0.05, hy - 0.2], [hx + 0.1, hy]]), Dd(0.1), { front: P.horn, top: P.hornSide, side: P.hornSide }, { lw: L, ink: P.ink });
+        }
+        // the face
+        const ey = top + 0.33, look = (pose.look ?? 0) * 0.04;
+        for (const sx of [-1, 1]) {
+            const ex = sx * 0.22, eh = mood === 'awe' ? 0.3 : mood === 'oops' ? 0.14 : 0.24;
+            g.beginPath();
+            g.roundRect(ex - 0.12, ey - eh / 2, 0.24, eh, 0.06);
+            g.fillStyle = P.eye;
+            g.fill();
+            g.strokeStyle = P.ink;
+            g.lineWidth = L;
+            g.stroke();
+            g.fillStyle = P.pupil;
+            g.beginPath();
+            g.roundRect(ex - 0.03 + look, ey - Math.min(0.09, eh / 2 - 0.02), 0.06, Math.min(0.18, eh - 0.04), 0.03);
+            g.fill();
+            g.fillStyle = P.glint;
+            g.fillRect(ex - 0.08 + look * 0.5, ey - eh / 2 + 0.035, 0.04, 0.04);
+            if (mood === 'oops') line(g, [[ex - sx * 0.14, ey - 0.16], [ex + sx * 0.12, ey - 0.1]], P.ink, L * 1.6);
+        }
+        const my = top + 0.6;
+        if (mood === 'awe') {
+            g.beginPath();
+            g.ellipse(0, my + 0.02, 0.09, 0.08, 0, 0, C.TAU);
+            g.fillStyle = P.mouth;
+            g.fill();
+            g.strokeStyle = P.ink;
+            g.lineWidth = L;
+            g.stroke();
+        } else if (mood === 'oops') {
+            line(g, [[-0.14, my + 0.03], [-0.07, my - 0.01], [0, my + 0.03], [0.07, my - 0.01], [0.14, my + 0.03]], P.ink, L * 1.2);
+        } else {
+            line(g, [[-0.16, my - 0.02], [-0.06, my + 0.05], [0.06, my + 0.05], [0.16, my - 0.02]], P.ink, L * 1.2);
+            C.poly(g, [[0.07, my + 0.045], [0.13, my + 0.02], [0.105, my + 0.12]], { fill: P.tooth, ink: P.ink, lw: L * 0.8 });
+        }
+        // what it wears
+        if (pose.wear === 'specs') {
+            for (const sx of [-1, 1]) {
+                g.beginPath();
+                g.roundRect(sx * 0.22 - 0.16, ey - 0.17, 0.32, 0.34, 0.08);
+                g.strokeStyle = P.ink;
+                g.lineWidth = L * 2;
+                g.stroke();
+            }
+            line(g, [[-0.06, ey - 0.02], [0.06, ey - 0.02]], P.ink, L * 2);
+        } else if (pose.wear === 'hat') {
+            // a hard hat: a dome and a brim, over the horns' roots
+            const dome = cw(C.curve([[-0.4, top + 0.03], [-0.36, top - 0.2], [0, top - 0.3], [0.36, top - 0.2], [0.4, top + 0.03]], false, 6).concat([[0.4, top + 0.03]]));
+            C.prism(g, dome.map(([px, py]) => [px + D[0] * 0.1, py + D[1] * 0.1]), Dd(0.3), { front: K.yellow, top: '#fff59a', side: K.gold }, { lw: L, ink: P.ink, sweepInk: null });
+            C.prismOutline(g, dome.map(([px, py]) => [px + D[0] * 0.1, py + D[1] * 0.1]), Dd(0.3), { lw: L, ink: P.ink });
+            C.box(g, -0.5, top - 0.01, 1.0, 0.06, D, { front: K.gold, top: K.yellow, side: '#e0a800' }, { lw: L, ink: P.ink, depth: 0.52 });
+            line(g, [[0.03, top - 0.27], [0.03, top - 0.04]], '#e0a800', L * 1.4);
+        } else if (pose.wear === 'bow') {
+            const by = top - 0.02;
+            for (const sx of [-1, 1]) C.poly(g, [[sx * 0.03, by - 0.03], [sx * 0.24, by - 0.14], [sx * 0.26, by + 0.08], [sx * 0.03, by + 0.03]], { fill: K.pink, ink: P.ink, lw: L });
+            g.beginPath();
+            g.roundRect(-0.05, by - 0.05, 0.1, 0.1, 0.02);
+            g.fillStyle = K.magenta;
+            g.fill();
+            g.strokeStyle = P.ink;
+            g.lineWidth = L;
+            g.stroke();
+        }
+        // mitts: a clipboard and a pencil, or one mitt in the air
+        const stub = (sh, hand) => {
+            const dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6, ux = dx / len, uy = dy / len, nx = -uy * 0.08, ny = ux * 0.08;
+            C.prism(g, cw([[sh[0] + nx, sh[1] + ny], [hand[0] + ux * 0.08 + nx, hand[1] + uy * 0.08 + ny], [hand[0] + ux * 0.08 - nx, hand[1] + uy * 0.08 - ny], [sh[0] - nx, sh[1] - ny]]), Dd(0.14), { front: P.skin, top: P.skinTop, side: P.skinSide }, { lw: L, ink: P.ink });
+        };
+        const up = pose.armUp ?? 0;
+        if (pose.hold === 'board') {
+            const bx = -0.12, by = -0.36;
+            C.box(g, bx - 0.24, by - 0.2, 0.48, 0.42, D, { front: '#b98a55', top: '#8a6238', side: '#8a6238' }, { lw: L, ink: P.ink, depth: 0.03 });
+            C.box(g, bx - 0.2, by - 0.15, 0.4, 0.34, D, { front: P.paper, top: P.paper, side: P.paperSide }, { lw: L * 0.7, ink: P.ink, depth: 0.012 });
+            for (let i = 0; i < 4; i++) line(g, [[bx - 0.15, by - 0.08 + i * 0.065], [bx + (i === 3 ? 0.02 : 0.15), by - 0.08 + i * 0.065]], P.paperLine, L * 0.6);
+            C.box(g, bx - 0.08, by - 0.24, 0.16, 0.07, D, { front: P.fork, top: P.forkShine, side: P.forkSide }, { lw: L * 0.8, ink: P.ink, depth: 0.04 });
+            stub([x0 + 0.02, -0.46], [bx - 0.26, by + 0.08]);
+            const wr = (pose.write ?? 0), px = bx + 0.1 + wr * 0.06, py = by + 0.06 - Math.abs(wr) * 0.03;
+            // the pencil: yellow, a pink rubber, a point
+            const pa = -0.5 + wr * 0.3, pen = [[-0.02, 0], [0, 0.05], [0.02, 0], [0.02, -0.3], [-0.02, -0.3]].map((p) => {
+                const r = rot(p, pa);
+                return [px + r[0], py + r[1]];
+            });
+            C.poly(g, pen, { fill: K.yellow, ink: P.ink, lw: L * 0.8 });
+            stub(up > 0 ? [x0 + W - 0.02, -0.5] : [x0 + W - 0.02, -0.46], up > 0 ? [0.62, -0.66 - up * 0.5] : [px + 0.1, py - 0.1]);
+        } else {
+            stub([x0 + 0.02, -0.46], [-0.66, -0.4 - up * 0.5]);
+            stub([x0 + W - 0.02, -0.46], [0.66, -0.4 - up * 0.5]);
+        }
+        g.restore();
+    }
+
+    return { P, draw, imp, trident, contract, TORSO, HEAD };
 })();
