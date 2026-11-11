@@ -82,3 +82,46 @@ Translation into changes:
   judge the idea, not a finished character.
 
 Waiting for the user: the premise, who plays what, the reference's author.
+
+## Round 2 (user) · the Devil
+
+> «"Vale la premisa del Diablo-mascota", vale, pero el diablo que has pasado le hace falta
+> bastante curro, lo que dije al principio, prefiero detalle e ir al pixel que algo rápido»
+
+and, on who is who in the photo: Tom in the middle; Mike Campbell (lead guitar) in the white
+shirt with the dark bandana; Benmont Tench (keyboards) with the curls and the green shirt;
+Stan Lynch (drums) the tall one at the back in the striped shirt and dark jacket; Howie
+Epstein (bass) with the curls and the dark waistcoat.
+
+Translation into changes:
+
+- The premise is approved: script v2 stands.
+- The first Devil was a plain red cube with features stuck on, sent as a «concept sketch». It
+  should not have been sent: a sketch shown to the user is judged as the film. Redrawn from
+  nothing as a full character in its own file (`devil.js`): a head box with a pompadour and
+  a widow's peak, curled ribbed horns through the hair, pointed ears, slit eyes under brows
+  that carry five moods, a waxed moustache, a grin with a gold tooth and two fangs, a
+  goatee, a tailcoat with satin lapels, studs, a pocket square and a spotted bow tie, cuffs
+  with links, pinstriped trousers, cloven hooves, a tapering tail with a spade, a forged
+  trident with brass ferrules, a contract on a scroll with a wax seal. Judged on crops at
+  400 units per head and through the tape at film size, in every mood.
+- The band's looks go to the right men (the brief had three of the four roles wrong).
+- Work continues piece by piece at that bar: the four Heartbreakers, their instruments and
+  the two cars are being drawn as separate files, each with its own sheet.
+
+### Round 2 (auto) · «Sign here!», bars 4–7 (6.0–11.67 s)
+
+Built: the crossroads (a sunburst sky, the day moon, mesas as boxes with strata, the two
+roads in oblique, a crossroads sign, a saguaro, a tumbleweed), the Devil's arrival out of a
+flame on the snare, SIGN HERE!, a quill conjured and thrown to Tom, the insert of the
+contract (the Devil's eyes follow the pen over the top of the sheet while Tom's mitt writes
+«To my #1 fan! — Tom», one stroke a beat), and his reading of it: glee, shock, rage (the sky
+turns red, flames on his horn tips) while Tom hops off.
+
+Seen and fixed on the first stills: the trident's fork sat on top of his left horn (the hand
+moved out); SIGN HERE! ran over the moon (the moon moved down); the crossroads sign was
+hidden behind him (moved to the right edge); Memphis shapes at head height read as clutter
+(moved to the band of sky between the words and the heads); «SOUL» was printed twice in the
+small print; the quill covered what it had just written (smaller, laid further over); the
+Devil's raised arms behind the sheet read as stray red shapes (only his mitts on its edge
+now); a small crater made the moon look surprised.

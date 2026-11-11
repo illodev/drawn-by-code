@@ -6,6 +6,18 @@ const Song = (() => {
     const snap = (s) => Math.round(s * FPS) / FPS; // cuts and hits land on frames
     const beat = (n) => OFFSET + n * BEAT;
     const bar = (n) => OFFSET + n * BAR;
+    // on frames: a beat, a bar's first beat (what the picture is cut and hit on)
+    const b = (n) => snap(beat(n)), B = (n) => snap(bar(n));
+    // Drawings change on twos, but each event's clock starts on its own frame, so a hit never
+    // waits for the next even frame: twos(t, at) is t held on the drawing, counted from `at`.
+    const twos = (t, at) => at + Math.floor((t - at) * 12 + 1e-6) / 12;
+    // the beat we are in at t: { k, since (in beats, on twos), pulse (1 on the beat, falling) }
+    const pulseAt = (t, decay = 3.2) => {
+        let k = Math.floor((t - OFFSET) / BEAT + 0.5);
+        if (b(k) > t + 1e-6) k--;
+        const since = (twos(t, b(k)) - b(k)) / BEAT;
+        return { k, since, pulse: Math.exp(-since * decay) };
+    };
     // the four notes of the guitar's pickup, then the band
     const LICK = [0.505, 1.045, 1.411, 1.579].map(snap);
     const BAND_IN = snap(beat(4)); // 1.75
@@ -17,5 +29,5 @@ const Song = (() => {
         ['solo', 129, 179], ['fade', 179, 185],
     ];
     const END = 262; // the fade is silent by here (4:22); what follows on the file is the CD's spoken interlude
-    return { BPM, OFFSET, BEAT, BAR, FPS, snap, beat, bar, LICK, BAND_IN, SECTIONS, END };
+    return { BPM, OFFSET, BEAT, BAR, FPS, snap, beat, bar, b, B, twos, pulseAt, LICK, BAND_IN, SECTIONS, END };
 })();

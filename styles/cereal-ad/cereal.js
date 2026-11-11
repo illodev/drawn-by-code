@@ -307,7 +307,10 @@ const Cereal = (() => {
             const nx = b[1] - a[1], ny = -(b[0] - a[0]); // outward normal of a clockwise polygon (y down)
             if (nx * Dd[0] + ny * Dd[1] <= 1e-9) continue;
             const up = -ny / (Math.hypot(nx, ny) || 1); // 1 = faces up
-            poly(g, [a, b, [b[0] + Dd[0], b[1] + Dd[1]], [a[0] + Dd[0], a[1] + Dd[1]]], { fill: up > 0.35 ? cols.top ?? cols.front : cols.side ?? cols.front, ink: o.sweepInk === undefined ? ink : o.sweepInk, lw });
+            const fill = up > 0.35 ? cols.top ?? cols.front : cols.side ?? cols.front;
+            // without an outline, a hairline in the face's own colour closes the seams between facets
+            if (o.sweepInk === null) poly(g, [a, b, [b[0] + Dd[0], b[1] + Dd[1]], [a[0] + Dd[0], a[1] + Dd[1]]], { fill, ink: fill, lw: 1 / pxScale(g) });
+            else poly(g, [a, b, [b[0] + Dd[0], b[1] + Dd[1]], [a[0] + Dd[0], a[1] + Dd[1]]], { fill, ink: o.sweepInk === undefined ? ink : o.sweepInk, lw });
         }
         poly(g, pts, { fill: cols.front, ink, lw });
     }
