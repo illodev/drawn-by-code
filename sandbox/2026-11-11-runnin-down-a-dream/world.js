@@ -317,9 +317,11 @@ const World = (() => {
     }
 
     // What passes in front of the cars: now and then something near, big and fast.
-    function front(g, t, X, theme) {
+    // o.skip(i): return true for a cell whose object would cross the action (i is the cell's number).
+    function front(g, t, X, theme, o = {}) {
         const W = THEMES[theme];
         cells(X, 1.6, 1900, 400, 'near', (i, x, r) => {
+            if (o.skip && o.skip(i)) return;
             const k = r();
             if (k < 0.45) cactus(g, { ...W, cactus: W.near, cactusTop: W.near, cactusSide: W.near }, x, 1040, 330, 1);
             else if (k < 0.75) bush(g, { ...W, bush: W.near, bushD: W.near }, x, 1030, 130);

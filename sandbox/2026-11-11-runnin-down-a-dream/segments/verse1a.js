@@ -77,7 +77,7 @@
             note(g, t, b(j), j, false);
             note(g, t, S.snap(S.beat(j - 0.5)), j + 1, true);
         }
-        World.front(g, t, X, 'day');
+        World.front(g, t, X, 'day', { skip: (i) => i === 4 || i === 5 }); // those two near cacti would cross the hearse's entrance and the cut
     }
 
     // =========================================================================================
