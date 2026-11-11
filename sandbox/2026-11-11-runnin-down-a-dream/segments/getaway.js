@@ -81,7 +81,7 @@
         }
         // the band's car
         if (carOn) {
-            Rig.band(g, t, cx, LANE, SC, { spin, bounce, lean, exhaust: t >= n(5) ? 0.5 + 0.5 * revU : 0.2, aboard, sing: false, pose: { tom: { mouth: 'grin' } } });
+            Rig.band(g, t, cx, LANE, SC, { spin, bounce, lean, exhaust: t >= n(5) ? 0.5 + 0.5 * revU : 0.2, aboard });
             // a twinkle where each Heartbreaker pops aboard
             [['deck2', 1], ['deck3', 2], ['deck0', 3]].forEach(([name, k]) => {
                 const tw = bump(t, n(k), 0.3);

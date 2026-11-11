@@ -6,18 +6,18 @@ const Rig = (() => {
     const S = Song, C = Cereal, TAU = Math.PI * 2;
 
     // What everybody does on beat: { tom, mike, howie, ben, stan } poses at t. Mouths follow the
-    // voices on the track (Song.singing, Song.backing): `sing` only says Tom is the one singing.
+    // voices on the track word by word (Song.mouth, Song.backMouth); `sing: false` keeps Tom's shut.
     function playing(t, o = {}) {
         const P = S.pulseAt(t), ph = P.k + P.since, p = P.pulse, even = P.k % 2 === 0, d = C.drawing(t);
         const off = Math.exp(-((P.since * 2) % 1) * 2.4); // the eighth-note pulse
-        const back = S.backing(t); // Benmont and Stan sing the backing voices
+        const bm = S.backMouth(t), back = bm === 'eh' ? 'sing' : bm; // Benmont and Stan sing the backing voices
         const base = { squash: 0.045 * p, headDy: 0.02 * p, sway: -0.03 * Math.sin((ph - 0.3) * Math.PI) };
         return {
-            tom: { ...base, shades: 1, strum: Math.cos(ph * TAU), fret: 0.3 + 0.5 * (Math.floor(ph / 2) % 2), mouth: o.sing && S.singing(t) ? (d % 4 < 2 ? 'sing' : 'grin') : 'smirk' },
+            tom: { ...base, shades: 1, strum: Math.cos(ph * TAU), fret: 0.3 + 0.5 * (Math.floor(ph / 2) % 2), mouth: (o.sing === false ? null : S.mouth(t)) ?? 'smirk' },
             mike: { ...base, strum: Math.cos(ph * TAU), fret: 0.2 + 0.35 * (Math.floor(ph / 2) % 3), solo: o.solo ?? 0, mouth: (o.solo ?? 0) > 0.5 ? 'sing' : 'smirk', eyes: (o.solo ?? 0) > 0.5 ? 'shut' : 'open' },
             howie: { ...base, pluck: Math.cos(ph * TAU), fret: 0.15 + 0.3 * (Math.floor(ph / 4) % 3), mouth: 'smirk' },
-            ben: { ...base, handR: 0.18 + 0.1 * (P.k % 3), handL: 0.62 + 0.1 * ((P.k + 1) % 3), press: p, mouth: back ? (d % 4 < 2 ? 'o' : 'sing') : 'grin' },
-            stan: { kick: even ? p : 0, snare: even ? 0 : p, hat: off, crash: P.k % 16 === 0 ? p : 0, headDy: 0.03 * p, sway: base.sway, squash: 0.03 * p, mouth: back ? (d % 4 < 2 ? 'sing' : 'o') : 'grin' },
+            ben: { ...base, handR: 0.18 + 0.1 * (P.k % 3), handL: 0.62 + 0.1 * ((P.k + 1) % 3), press: p, mouth: back ?? 'grin' },
+            stan: { kick: even ? p : 0, snare: even ? 0 : p, hat: off, crash: P.k % 16 === 0 ? p : 0, headDy: 0.03 * p, sway: base.sway, squash: 0.03 * p, mouth: back ?? 'grin' },
         };
     }
 

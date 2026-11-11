@@ -127,8 +127,9 @@ const Cast = (() => {
         // nose: a small hook
         C.poly(g, [[0.012, ey + 0.05], [0.012, ey + 0.145], [0.05, ey + 0.145]], { ink: P.ink, lw: L * 0.85, close: false });
         // mouth
-        if (o.mouth === 'sing') {
-            const mw = 0.2, mh = 0.13;
+        if (o.mouth === 'sing' || o.mouth === 'eh' || o.mouth === 'o') {
+            // wide open, half open, round: the three shapes the lip sync uses
+            const mw = o.mouth === 'o' ? 0.12 : o.mouth === 'eh' ? 0.19 : 0.2, mh = o.mouth === 'o' ? 0.13 : o.mouth === 'eh' ? 0.075 : 0.13;
             g.save();
             g.beginPath();
             g.roundRect(mx - mw / 2, my - mh / 2 + 0.01, mw, mh, [0.02, 0.02, 0.06, 0.06]);
@@ -279,7 +280,7 @@ const Cast = (() => {
     /**
      * Tom with his guitar.
      *   x, y   the ground between his feet;  s  logical units per figure unit
-     *   pose: { squash, lean, headDy, headTilt, sway, eyes, mouth, shades (0 → 1), strum (-1..1),
+     *   pose: { squash, lean, headDy, headTilt, sway, eyes, mouth ('smirk' | 'grin' | 'sing' | 'eh' | 'o'), shades (0 → 1), strum (-1..1),
      *           fret (0..1 along the neck), windmill (angle of the strumming arm, or null) }
      *   P      a palette (Cast.TOM, or Cast.print(Cast.TOM) for the two-tone print)
      */

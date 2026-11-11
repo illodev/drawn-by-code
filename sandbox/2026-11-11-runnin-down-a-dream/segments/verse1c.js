@@ -79,8 +79,10 @@
         const pat1 = n(6), pat2 = pat1 + 4 / 24, hideAt = pat1 + 6 / 24, hidAt = hideAt + 2 / 12, curlAt = hidAt + 2 / 12;
         const pressed = (t >= pat1 - EPS && dr(t, pat1) < 1) || (t >= pat2 - EPS && t < curlAt - EPS);
         const curl = ur < 1 ? 0 : pressed ? 0.05 : t < pat1 ? pop(t, openAt + 3 / 12, 0.2) : t < pat2 ? 0.8 : pop(t, curlAt, 0.25);
+        // the whole hole first (floor, walls, the lip all round): he stands IN it
         PP.inSite(g, M, (u) => {
             PP.pitInside(g, u, sp, st);
+            PP.pitLip(g, u, sp, st);
         });
         // --- the Devil in his pit: one stroke a beat, sinking with every one
         const vaultAt = n(4), vault = t >= vaultAt + 1 / 12 - EPS;
@@ -89,12 +91,13 @@
             g.save();
             PP.clipAbove(g, sp.near.map(([x, y]) => [X(x), Y(y)]));
             PP.devil(g, X(DIG[0]), Y(DIG[1] + st.sink * SC), s, {
-                mood, look: di < 2 ? -1 : 1, squash: sq, lean: ln, tail, handR: pv, handL: hr, headDy: di === 0 ? 0.03 : 0,
+                mood, look: di < 2 ? -1 : 1, squash: sq, lean: ln, tail, handR: pv, handL: hr, headDy: di === 0 ? 0.03 : 0, shadow: false,
             }, { t, shovel: { hand: 'R', ang, hold: 0.36, dirt: true, load: di === 1 ? (kb ? 'earth' : 'road') : null } });
             g.restore();
         }
         PP.inSite(g, M, (u) => {
-            PP.pitLip(g, u, sp, st);
+            // in front of him, only the near lip (he is clipped at it), then what lies on it
+            PP.pitNear(g, u, sp);
             if (ur > 0) {
                 const yf = lerp(SH.yn - 2, SH.yf, ur), q = quadTo(yf);
                 PP.sheet(g, u, q, { curl, wave: t >= pat1 ? E.seg(t, pat1, pat1 + 5 / 12) : 0, sag: ur >= 1 ? pop(t, openAt + 3 / 12, 0.25) : 0 });
@@ -131,14 +134,14 @@
                     const k = dr(t, at);
                     [pv, ang, hold, sq, ln, mood, hl] = k < 0 || k >= 1 ? [[-0.25, -0.72], -1.75, 0.9, -0.03, 0.03, 'sly', [0.62, -0.56]] : [[-0.23, -0.34], -1.32, 0.9, 0.1, -0.07, 'sly', [0.62, -0.56]];
                 }
-                pose = { mood, look: -1, squash: sq + 0.03 * P.pulse, lean: ln, tail, handR: pv, handL: hl, step: air ? 1 : 0 };
+                pose = { mood, look: -1, squash: sq + 0.03 * P.pulse, lean: ln, tail, handR: pv, handL: hl, step: air ? 1 : 0, shadow: !air };
                 sv = { hand: 'R', ang, hold, dirt: true, both: hold > 0.8 };
             } else {
                 // the hop behind the heap; then only his eyes, and the shovel on his shoulder
                 p = hop(t, hideAt, 2 / 12, STAND, [HIDE[0], HIDE[1] + 40], 84);
                 const air = t < hidAt - EPS, peek = seg(t, hidAt + 1 / 12, hidAt + 3 / 12);
                 if (!air) p = [HIDE[0], HIDE[1] + lerp(40, 2, E.out(peek))];
-                pose = { mood: 'sly', look: -1, squash: air ? -0.05 : 0.02 * P.pulse, tail, handR: [-0.47, -0.99], handL: air ? [0.62, -0.9] : [0.5, -0.5], lean: air ? 0.1 : 0 };
+                pose = { mood: 'sly', look: -1, squash: air ? -0.05 : 0.02 * P.pulse, tail, handR: [-0.47, -0.99], handL: air ? [0.62, -0.9] : [0.5, -0.5], lean: air ? 0.1 : 0, shadow: !air };
                 sv = { hand: 'R', ang: -2.5, hold: 0.3, behind: true, dirt: true };
             }
             g.save();
@@ -291,7 +294,7 @@
         if (gone) PP.clipAbove(g, EXT_N.map(([x, y]) => [x, Y(y)]));
         PP.devil(g, HIDE[0] + (gone ? -6 * df : 0), Y(HIDE[1] + crouch + sink - jolt), SC, {
             mood, look: t < stareAt ? -1 : falls ? 0 : -1, squash: falls ? -0.06 : 0.02 * P.pulse, tail: falls ? 0.12 : tail, lean: gone ? -0.08 * df : 0,
-            headTilt: !falls && t >= stareAt ? -0.06 : 0, headDy: d % 4 < 2 || falls ? 0 : 0.012,
+            headTilt: !falls && t >= stareAt ? -0.06 : 0, headDy: d % 4 < 2 || falls ? 0 : 0.012, shadow: !falls,
             handR: armsUp ? [-0.72, -1.32 - 0.1 * (df % 2)] : [-0.47, -0.99], handL: armsUp ? [0.74, -1.26 + 0.1 * (df % 2)] : [0.5, -0.5],
         }, { t, shovel: falls ? null : { hand: 'R', ang: -2.5, hold: 0.3, behind: true, dirt: true } });
         PP.inSite(g, M, (u) => {
@@ -313,6 +316,8 @@
                 PP.shovel(g, 3.2 / SC, [0, 0], -2.5 + df * 1.25, { hold: 0.75, dirt: true });
                 g.restore();
             }
+            // what went in is behind the new hole's near lip: that edge again, in front of it all
+            if (gone) C.poly(g, EXT_N, { ink: K.ink, lw: 3.2 * u, close: false });
             if (gone) PP.dust(g, u, HEAP[0], HEAP[1], 62, E.seg(t, DAB + 1 / 12, DAB + 1 / 12 + 0.9), 'fall', t);
         });
     }
@@ -360,7 +365,7 @@
             // Tom sings with his head back, and brings it down as the car does (the last frame is the rig's own pose)
             pose: {
                 tom: {
-                    headTilt: (-0.2 - 0.05 * P.pulse) * back, headDy: (-0.02 - 0.03 * top) * back, ...(back > 0.5 && S.singing(t) ? { mouth: d % 4 < 3 ? 'sing' : 'grin' } : {}),
+                    headTilt: (-0.2 - 0.05 * P.pulse) * back, headDy: (-0.02 - 0.03 * top) * back, 
                     lean: -0.3 * Math.sin(Math.PI * tu) + 0.07 * Math.sin(3 * Math.PI * tu), squash: (swap ? -0.06 * arc : 0) + 0.14 * tomLand + (swap ? 0 : Rig.playing(t).tom.squash),
                 },
                 // the others watch him go over

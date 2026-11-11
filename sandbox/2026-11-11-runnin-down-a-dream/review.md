@@ -249,3 +249,30 @@ Translation into changes:
 - Word-by-word timing was not obtained: the transcription connector has no upload tool in
   this session and its API is not reachable, and a fetch of public synced lyrics was
   blocked by the session's permission system. The user's ear is the check.
+
+## Round 6 (user) · lip sync and a layering fault
+
+> «las bocas no van sincronizadas con el audio»
+> «Hay un fallo también en el contorno del hoyo se superpone al demonio» (with a screenshot)
+> «Qué hace falta para que puedas hacer la transcripción?»
+
+Translation into changes:
+
+- Measuring the mix was not enough for mouths: it found phrases to within a sixteenth at
+  best, missed that each verse's first line starts in the riff before it («It was a
+  beautiful day» is sung at 12.5 s, during the getaway), and could not see words. What the
+  transcription needed was an API key for the speech-to-text service, entered by the user
+  through the session's secure form; with it the track was transcribed with word timestamps.
+- `tools/make-vocals.py` turns that transcription (kept in `private/`, never committed) into
+  what `song.js` holds: every sung word's start, end and a mouth shape (wide, half, round),
+  and the eight times the title is sung. The words themselves stay out of the repo.
+- `Song.mouth(t)` gives the lead's mouth for any frame (it shuts for a frame between words
+  that touch); the rig uses it for Tom, and for Benmont and Stan in the choruses; Tom gained
+  the half-open and round mouths. Tom now also sings in the getaway.
+- Chorus 1's title follows the words: RUNNIN' on «runnin'» (35.62, the landing), DOWN A on
+  «down», DREAM on «dream»; on the last phrase the whole title lands on «runnin'», which is
+  the big hit, because the cut to Hell's office comes before «dream» is over.
+- The pit in the digging shot was stroked after the Devil, so its edge crossed his coat.
+  Layering fixed by the block's agent: floor, far walls and lip, the Devil clipped at the
+  near lip, then only the near lip in front; his contact shadow is off where he has no
+  ground under him. Checked on every drawing of the bar.

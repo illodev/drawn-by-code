@@ -207,7 +207,7 @@
     function landing(g, t, env) {
         const cx = 520, Pu = S.pulseAt(t), d = C.drawing(t);
         world(g, t, WIDE);
-        P.title(g, t, TITLE[0], TITLE[1], { at: [n(2), n(2.5), n(3)], out: T27 - 7 * FR }); // on the first phrase, as it is sung
+        P.title(g, t, TITLE[0], TITLE[1], { at: S.TITLES[0].slice(0, 3).map(S.snap), out: T27 - 7 * FR }); // on the first phrase, word by word as it is sung
         const bn = spring(t, T0), land = bump(t, T0, 0.3);
         // the cactus: it rides in on the far verge, the landing shakes it out of the ground, and
         // it comes down into the driver's seat on the snare; the shades drop on the kick after it
@@ -341,9 +341,8 @@
         // the flash behind the kit on the big one
         const fd = Math.floor((t - hitAt) * 12 + 1e-6);
         if (fd >= 0 && fd < 2) C.burst(g, drum[0] + 110, drum[1] - 70, { r0: 170 + 30 * fd, r1: 260 + 50 * fd, n: 15, seed: 'chorus1-hit', rot: fd * 0.12, fill: fd ? K.yellow : K.white, ink: K.ink, lw: 4 });
-        // the title again, on the chorus's last phrase («Runnin' down a dream»): RUNNIN' with the
-        // big hit, the rest as it is sung, held to the cut
-        P.title(g, t, 652, 306, { at: [n(32), n(34), n(34.5)], out: T34 + 1, k: 0.8 }); // to the right: the contract falls on the left
+        // the title again, on the chorus's last phrase
+        P.title(g, t, 652, 306, { at: [0, 2, 4].map((f) => S.snap(S.TITLES[1][0]) + f / 24), out: T34 + 1, k: 0.8 }); // all of it on «runnin'», which is the big hit: the cut comes before «dream» is over // to the right: the contract falls on the left
         band(g, t, cx, LANE, SC, {
             bounce: bn, driver: driving(t),
             pose: {

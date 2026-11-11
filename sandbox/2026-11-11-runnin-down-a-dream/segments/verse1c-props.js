@@ -109,7 +109,12 @@ const PitProps = (() => {
         line(g, [F, [F[0], F[1] + h]], K.ink, 2.4 * u);
         g.restore();
     }
-    // The lip over whatever is in the hole: the broken edge, cracks running out of it, chips.
+    // The hole's edge: the broken lip all round, cracks running out of it, chips. It goes down
+    // BEFORE whoever stands in the hole (the far lip and the sides are behind him); only the
+    // near lip, pitNear(), is drawn again in front of him.
+    function pitNear(g, u, sp) {
+        C.poly(g, sp.near, { ink: K.ink, lw: 3.2 * u, close: false });
+    }
     function pitLip(g, u, sp, o = {}) {
         const r = Motion.rng('pit-lip' + (o.seed ?? '')), n = sp.lip.length, cx = (sp.A[0] + sp.G[0]) / 2, cy = (sp.A[1] + sp.G[1]) / 2;
         const k = o.k ?? 1; // how far the cracks have run
@@ -410,7 +415,7 @@ const PitProps = (() => {
         g.fillRect(xl - r, y + r * 0.42, xr - xl + 2 * r, r);
         // the weave's seam, paint that came through
         if (o.smear !== false && r > 6) {
-            C.poly(g, [[xl + (xr - xl) * 0.6, y - r], [xl + (xr - xl) * 0.6 + 16, y - r], [xl + (xr - xl) * 0.6 + 11, y - r * 0.2], [xl + (xr - xl) * 0.6 + 4, y - r * 0.45]], { fill: SHEET.paint, lw: 0 });
+            C.poly(g, [[xl + (xr - xl) * 0.9, y - r], [xl + (xr - xl) * 0.9 + 16, y - r], [xl + (xr - xl) * 0.9 + 11, y - r * 0.2], [xl + (xr - xl) * 0.9 + 4, y - r * 0.45]], { fill: SHEET.paint, lw: 0 });
             C.poly(g, [[xl + (xr - xl) * 0.2, y + r], [xl + (xr - xl) * 0.2 + 9, y + r], [xl + (xr - xl) * 0.2 + 6, y + r * 0.3]], { fill: SHEET.dash, lw: 0 });
         }
         g.restore();
@@ -762,5 +767,5 @@ const PitProps = (() => {
         g.restore();
     }
 
-    return { SL, EARTH, ROAD, zx, zy, inSite, pitShape, pitInside, pitLip, clipAbove, clod, heap, heapSize, puffs, dust, inDevil, shovel, SHOVEL, mitt, devil, roll, sheet, bird, sunGrin, roadClose, car };
+    return { SL, EARTH, ROAD, zx, zy, inSite, pitShape, pitInside, pitLip, pitNear, clipAbove, clod, heap, heapSize, puffs, dust, inDevil, shovel, SHOVEL, mitt, devil, roll, sheet, bird, sunGrin, roadClose, car };
 })();
