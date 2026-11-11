@@ -226,7 +226,8 @@
     };
     /**
      * The Devil with what this shot puts on him.
-     *   ex: { crank (the angle of the snapped crank in his right mitt), frost (0..1: what is left of the frost on it), paperR ({ ang }: the contract in his right mitt),
+     *   ex: { crank (the angle of the snapped crank in his right mitt), crankOut (the angle of the crank on the frame it leaves that mitt, raised by his horn),
+     *         frost (0..1: what is left of the frost on it), paperR ({ ang }: the contract in his right mitt),
      *         wet (0..1 drips), hair (0..1 limp locks), chatter, towel ('head' | 'neck'), towelJ, towelSq }
      */
     function devil(g, x, y, pose, t, ex = {}) {
@@ -243,6 +244,15 @@
         }
         if (ex.frost) V.devilWithCrank(g, x, y, RS, { pose, crankFrost: ex.frost }); // still in the ice: the crank as verse 2c drew it, its frost going
         else Devil.draw(g, x, y, RS, pose);
+        if (ex.crankOut != null) {
+            // the frame he lets go: the crank is still in his mitt, which is up beside his horn. In
+            // front of the horn, under the mitt: after him, only what sticks out past his wrist (the
+            // grip runs along his forearm here), and his mitt once more over its grip
+            // (drawn with the flying crank, after all of him, the grip covered the mitt).
+            const p = devPt(x, y, pose, pose.handR);
+            P.pastWrist(g, x, y, RS, pose, -1, pose.handR, () => W.crankArm(g, p[0], p[1], RS, ex.crankOut, CRANK.flip));
+            P.onDevil(g, x, y, RS, pose, (g2, L) => P.mitt(g2, L, -1, pose.handR));
+        }
         P.onDevil(g, x, y, RS, pose, (g2, L) => {
             if (ex.wet) P.dripping(g2, L, pose, t, ex.wet);
             if (ex.towel === 'neck') P.towelNeck(g2, L, ex.towelSw ?? 0);
@@ -270,6 +280,7 @@
     }
     const FROZEN = V.FROZEN, CRANK = V.CRANK; // how the ice kept him: mid-laugh, the snapped crank in his right mitt
     const CRANK_AT = [XD - 112, G0 - 8]; // where the crank lies once it has slipped out of his mitt
+    const THROW_A = -1.6; // its angle as it leaves his mitt
     // His pose and what is on him at t, from the moment his head is out of the ice.
     function devilAt(t) {
         const Pu = S.pulseAt(t), d = C.drawing(t), f = d % 2 ? 1 : -1, hug = { handR: [-0.12, -0.62], handL: [0.14, -0.7] };
@@ -315,7 +326,7 @@
             const thr = dr(t, T_THROW) < 2;
             pose = { mood: 'angry', headTilt: -0.14, lean: thr ? -0.07 : -0.03, squash: thr ? -0.07 : 0.03 * f, handR: thr ? [-0.5, -1.8] : [-1.04 - 0.04 * f, -1.46 + 0.12 * f], handL: [0.44, -0.54], tail: 0.16 * f, step: thr ? 0 : f };
             lift = thr ? 9 : 0;
-            ex = { ...ex, hair: 0, towel: 'neck', towelSw: thr ? 0.03 : 0 };
+            ex = { ...ex, hair: 0, towel: 'neck', towelSw: thr ? 0.03 : 0, crankOut: t < T_THROW + FR / 2 ? THROW_A : null };
         } else if (t < T_GLOAT) {
             // a mitt inside his coat…
             pose = { mood: 'sly', headTilt: 0.04, handR: [-0.44, -0.54], handL: [0.07, -0.72], squash: 0.03, tail: 0.04 * f };
@@ -546,9 +557,10 @@
             P.towelFly(g, lerp(p0[0], p1[0], a / T), p0[1] + vy * a + 0.5 * GRAV * a * a, RS, -0.5 - dr(t, T_TOSS) * 0.9, d % 2);
         }
         // the crank on its way up, and what it finds there
-        if (on(t, T_THROW) && t < T_CLONK) {
+        // (on its first frame it is still in his mitt: devil() draws that one, under the mitt)
+        if (on(t, T_THROW + FR / 2) && t < T_CLONK) {
             const p0 = devPt(XD, G0 - 9, { lean: -0.07, squash: -0.07 }, [-0.5, -1.8]), a = t - T_THROW;
-            W.crankArm(g, p0[0] + 70 * a, p0[1] - 2150 * a + 0.5 * GRAV * a * a, RS, -1.6 - a * 26, -1);
+            W.crankArm(g, p0[0] + 70 * a, p0[1] - 2150 * a + 0.5 * GRAV * a * a, RS, THROW_A - a * 26, -1);
         }
         if (on(t, T_CLONK) && dr(t, T_CLONK) < 3) {
             const dd = dr(t, T_CLONK), ff = [0.7, 1, 1.15][dd];

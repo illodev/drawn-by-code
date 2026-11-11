@@ -119,9 +119,12 @@
         const P = S.pulseAt(t), bar = Math.floor(P.k / 4), b0 = B(bar), there = on(t, from), sing = there && S.backing(t);
         const side = P.k % 2 ? 1 : -1, sway = there ? side * 0.07 * (2 * E.out(Math.min(1, P.since / 0.45)) - 1) : 0;
         const k = E.out(seg(t, Math.max(b0, from), Math.max(b0, from) + 2 / 12)), up = !there ? 0 : bar % 2 === 0 ? k : 1 - k;
-        const spots = stack ? [[0.04 + Math.sin(sway) * 1.0, -1.0, 1], [-0.54, 0, 0], [0.54, 0, 2]] : [[-gap, 0, 0], [0, 0, 1], [gap, 0, 2]];
+        // in a pyramid the one on top comes last: it stands on the front edge of the two heads, so its
+        // legs and hooves are in front of their tops and horns (drawn first, they were behind the heads)
+        const spots = stack ? [[-0.54, 0, 0], [0.54, 0, 2], [0.04 + Math.sin(sway) * 1.0, -1.0, 1]] : [[-gap, 0, 0], [0, 0, 1], [gap, 0, 2]];
         for (const [dx, dy, i] of spots) {
             const pose = { mood: sing ? 'awe' : 'grin', look: looks[i], tilt: sway, upL: i === 0 ? up : 0, upR: i === 2 ? up : 0, wear: i === 0 ? 'specs' : null, squash: 0.03 * P.pulse, tail: 0.05 * side * (i === 1 ? -1 : 1) };
+            if (dy < 0) pose.shadow = false; // on a perch: no ground shadow across the faces under it
             A.imp(g, x + dx * s, y + dy * s, s, pose);
             bowTie(g, x + dx * s, y + dy * s, s, pose);
         }
@@ -263,13 +266,11 @@
         C.burst(g, BX, BY, { r0: 214 * bp, r1: 306 * bp, n: 15, seed: 'in', jitter: 0.18, rot: tick, fill: K.yellow, ink: K.ink, lw: 5 });
         C.burst(g, BX, BY, { r0: 150 * bp, r1: 216 * bp, n: 13, seed: 'in2', jitter: 0.18, rot: 0.22 - tick, fill: K.white, ink: K.ink, lw: 3.2 });
         // in front: the imp (he drops the pig), the table, the choir that comes up behind it
+        const IX = 122, IY = 940, IS = 118, PS = 112;
         drained(g, env, 'ad-fg', R, BX, BY, (c) => {
-            const IX = 122, IY = 940, IS = 118, PS = 112;
             const startle = bump(t, u(0), 0.3), joy = on(t, u(3)) ? Math.abs(Math.sin(seg(t, u(3), u(3) + S.BEAT) * Math.PI)) : 0;
             const arm = on(t, u(3)) ? E.out(seg(t, u(3), u(3) + 2 / 12)) : 1 - E.out(seg(t, u(0), u(0) + 4 / 12));
             A.imp(c, IX, IY, IS, { mood: on(t, u(2)) ? 'grin' : 'awe', look: 1, hop: 0.28 * startle + 0.3 * joy, upL: on(t, u(3)) ? arm : 0, upR: arm, squash: 0.03 * P.pulse, tail: 0.05 * Math.sin(ph * Math.PI) });
-            const fu = E.in(seg(t, u(0) - 1 / 12, u(0) + 3 / 12)), bounce = bump(t, u(0) + 3 / 12, 0.25);
-            A.pig(c, E.lerp(IX + 130, 254, fu), E.lerp(IY - 1.75 * IS, 936 - 0.43 * PS, fu) - 16 * bounce, PS, { ang: -1.2 * (1 - fu) });
             // the choir rises behind the table when the colour comes
             const rise = pop(t, u(1), 0.3);
             if (rise > 0) {
@@ -309,6 +310,13 @@
         const gl = bump(t, u(2), 0.42);
         if (gl > 0) A.onHead(g, 0, 0, DS, pose, (L) => C.sparkle(g, A.TOOTH[0], A.TOOTH[1], 0.07 + 0.3 * gl, { color: K.white, ink: K.ink, lw: L, rot: 0.2 + 0.5 * gl }));
         g.restore();
+        // the piggy bank lands at y 936, nearer than the Devil's hooves (908): it comes after him, or
+        // his hoof is painted over its snout. Its own layer, drained by the same ring (the ring's
+        // line never crosses it: the pig is outside R = 200 and inside R = 470).
+        drained(g, env, 'ad-near', R, BX, BY, (c) => {
+            const fu = E.in(seg(t, u(0) - 1 / 12, u(0) + 3 / 12)), bounce = bump(t, u(0) + 3 / 12, 0.25);
+            A.pig(c, E.lerp(IX + 130, 254, fu), E.lerp(IY - 1.75 * IS, 936 - 0.43 * PS, fu) - 16 * bounce, PS, { ang: -1.2 * (1 - fu) });
+        });
     }
 
     // =========================================================================================

@@ -640,8 +640,11 @@ const Verse3bProps = (() => {
     const SHUT = -0.084;
     // the body's face for a lid turned by a: behind the mouth's corner the cheek follows the lid, so no gap opens along the joint
     const lower = (a) => (a > 0 ? LOWER.map((p, i) => (i >= 5 && i <= 7 ? turn(p, a) : p)) : LOWER);
-    // the mouth's opening, from the jaw's tip to its corner, for a lid turned by a
-    const mouth = (a) => [...LOWER.slice(1, 5), ...LIP.slice(3).map((p) => turn(p, a))];
+    // the mouth's opening, from the jaw's tip to its corner, for a lid turned by a. With the lid
+    // lifted (a > 0) the corner opens into a wedge: up the cheek's edge to where the cheek meets
+    // the lid (the first point of lower(a) that turns), and back along the lid. Without that
+    // point the wedge belonged to neither the pit nor the stone, and the sky showed through the head.
+    const mouth = (a) => [...LOWER.slice(1, 5), ...LIP.slice(a > 0 ? 2 : 3).map((p) => turn(p, a))];
     const strata = (g, pts, ys, x0, x1) => {
         g.save();
         C.trace(g, pts);
@@ -1000,11 +1003,24 @@ const Verse3bProps = (() => {
     /**
      * Devil.draw, and over his own drawing a striped scarf round his neck and a sore nose.
      *   cold: { tail: [[x, y], …] the scarf's long end in HIS units (default: it hangs and flaps),
+     *           tailBack (true: that `tail` is painted behind him, from the nape, not over him),
      *           blow (-1..1), nose (its size: 1; a sneeze coming swells it), t, noTail }
      */
     function devil(g, x, y, s, pose = {}, cold = {}) {
-        Devil.draw(g, x, y, s, pose);
         const L = 3.2 / s, q = pose.squash ?? 0, d = C.drawing(cold.t ?? 0), fl = [0, 0.03, -0.02][((d % 3) + 3) % 3], blow = cold.blow ?? 0.2;
+        if (cold.tailBack && cold.tail) {
+            // the long end thrown over his shoulder: behind all of him, so it comes out from behind
+            // his head instead of lying across his face
+            g.save();
+            g.translate(x, y);
+            g.scale(s, s);
+            g.rotate(pose.lean ?? 0);
+            g.scale(1 + q, 1 - q);
+            g.lineJoin = 'round';
+            band(g, cold.tail, 0.07, SCARF, STRIPE, L, { fringe: 0.07 });
+            g.restore();
+        }
+        Devil.draw(g, x, y, s, pose);
         g.save();
         g.translate(x, y);
         g.scale(s, s);
@@ -1013,7 +1029,7 @@ const Verse3bProps = (() => {
         g.lineJoin = 'round';
         const y0 = -1.0, y1 = -0.84, hd = pose.headDy ?? 0;
         // the long end, behind the wrap
-        if (!cold.noTail) {
+        if (!cold.noTail && !(cold.tailBack && cold.tail)) {
             const tl = cold.tail ?? C.curve([[-0.24, -0.9], [-0.33 - blow * 0.1, -0.7 + fl], [-0.3 - blow * 0.26, -0.48 - fl], [-0.36 - blow * 0.4, -0.26 + fl * 2]], false, 4);
             band(g, tl, 0.07, SCARF, STRIPE, L, { fringe: 0.07 });
         }

@@ -470,3 +470,17 @@ B, crop, the function that draws it). Each row was checked on its crop before it
   edge across the column. A splash crown now, inked all round, its lower edge in drips.
 - Left as they are (staging, not layers): Tom's mitt in front of the cactus's face while the
   three guitars jump in a line (4:03); the hangers' chain in front of the car's sill (3:45).
+
+**1:06–2:12** (524 frames; fixed by an agent on the audit's table, checked by diffing 170 frames before and after)
+- Hell's gate (2:09): the night sky showed through the stone head at the mouth's corner and
+  the car was cut on a vertical there. The mouth's opening now takes in that wedge and the
+  car is cut by the cheek's own edge.
+- Billboards (2:00): the boards' braces and arrows crossed the set's own road signs standing
+  on the same verge line. Those four signs are cleared from under the boards.
+- The ad's choir (1:35): the top imp's legs were under the heads it stands on (drawn first).
+- The trap (2:05): the mallet's impact star was over the imp jumping in front of it.
+- The scarf's long end (2:08) ran up across the Devil's own face; it leaves from his nape now.
+- Burst (1:34): the Devil's boot was over the piggy bank's snout, which stands nearer.
+- The thaw (1:22): the crank's grip was over his mitt on the frame he lets it go.
+- Left: his mitt over the imp's raised arm in the ad (he is reaching to it); each lower imp of
+  the pyramid now shows one horn (the top imp's hooves stand on the other).

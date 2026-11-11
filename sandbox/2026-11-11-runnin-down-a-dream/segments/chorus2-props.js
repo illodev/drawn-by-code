@@ -280,6 +280,45 @@ const Chorus2Props = (() => {
         lock(0.33, 0.34, 0.044, 0.04, 2);
     }
     /**
+     * The Devil's mitt once more (body frame, inside onDevil), over something that has to be in
+     * front of his head and under his hand: the same block Devil.draw ends the arm with.
+     * side -1: his right arm (screen left), 1: his left; hand: pose.handR / pose.handL.
+     */
+    // his forearm as Devil.draw lays it out: from the elbow (or the shoulder) along [ux, uy] to the wrist at `a` and the mitt's end at `b`
+    const forearm = (side, hand) => {
+        let sh = [side * 0.34, -0.84];
+        sh = Cast.elbow(sh, hand) ?? sh;
+        const dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6;
+        return { sh, ux: dx / len, uy: dy / len, a: Math.max(0.06, len - 0.075), b: len + 0.11 };
+    };
+    function mitt(g, L, side, hand) {
+        const { sh, ux, uy, a, b } = forearm(side, hand), nx = -uy * 0.08, ny = ux * 0.08;
+        C.prism(g, cw([[sh[0] + ux * a + nx, sh[1] + uy * a + ny], [sh[0] + ux * b + nx, sh[1] + uy * b + ny], [sh[0] + ux * b - nx, sh[1] + uy * b - ny], [sh[0] + ux * a - nx, sh[1] + uy * a - ny]]), Dd(0.16), { front: DP.skin, top: DP.skinTop, side: DP.skinSide }, { lw: L, ink: DP.ink });
+    }
+    /**
+     * Run fn (in the caller's own frame) clipped to what lies past his wrist: for a thing gripped
+     * in a mitt and drawn after him, so that none of it is painted over his cuff and sleeve. Draw
+     * the mitt again (mitt, above) over the cut. x, y, s, pose: as given to Devil.draw.
+     */
+    function pastWrist(g, x, y, s, pose, side, hand, fn) {
+        const { sh, ux, uy, a } = forearm(side, hand), q = pose.squash ?? 0, c = [sh[0] + ux * a, sh[1] + uy * a], R = 8, m = g.getTransform();
+        g.save();
+        g.translate(x, y);
+        g.scale(s, s);
+        g.rotate(pose.lean ?? 0);
+        g.scale(1 + q, 1 - q);
+        g.beginPath(); // a path keeps the frame its points were given in
+        g.moveTo(c[0] - uy * R, c[1] + ux * R);
+        g.lineTo(c[0] + uy * R, c[1] - ux * R);
+        g.lineTo(c[0] + uy * R + ux * R, c[1] - ux * R + uy * R);
+        g.lineTo(c[0] - uy * R + ux * R, c[1] + ux * R + uy * R);
+        g.closePath();
+        g.setTransform(m);
+        g.clip();
+        fn();
+        g.restore();
+    }
+    /**
      * Water running off him, on twos: beads and drops from his elbows, coat tails, mitts and
      * tail (body frame). pose: the one given to Devil.draw; t: seconds; k: 0..1 how much.
      */
@@ -535,5 +574,5 @@ const Chorus2Props = (() => {
         g.restore();
     }
 
-    return { sunEdge, sun, drop, spray, puddle, steam, onDevil, chatter, whiskers, wetHair, dripping, shivers, sneeze, cube, TOWEL, towelHang, towelFly, towelHead, towelNeck, GLYPH, CAP, KIND, faceOf, solid, thud, tick, tail };
+    return { sunEdge, sun, drop, spray, puddle, steam, onDevil, mitt, pastWrist, chatter, whiskers, wetHair, dripping, shivers, sneeze, cube, TOWEL, towelHang, towelFly, towelHead, towelNeck, GLYPH, CAP, KIND, faceOf, solid, thud, tick, tail };
 })();

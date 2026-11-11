@@ -47,7 +47,26 @@
     const BOARDS = [['pie', n(0), 800], ['bed', n(2), 800], ['gold', n(4), 800], ['trophy', n(5), 800], ['exit', n(6), 850]].map(([pic, at, lx]) => ({ pic, at, wx: lx + X1(at) * BF }));
     function billboards(g, t, env) {
         const X = X1(t), Pu = S.pulseAt(t), cx = 430 + (X0 + SPEED * (t - T85) - X);
-        World.back(g, t, X, 'night', { moon: { ...MOON, x: MOON.x + X * 0.006 }, stars: 1 });
+        // The backdrop's own road signs stand on the billboards' line and travel with them (the same
+        // share of the motion: World.back's 'sign' cells, 0.92 · 760 · 80), so one that falls among a
+        // board's posts stays there for the whole pass, with the braces and the arrow painted
+        // across it. Those signs are left out. World.back clears one stretch a call (and every
+        // cactus in it), so the stretch is the sign's own spot and nothing else; a second sign on
+        // screen is taken out by painting the backdrop again inside that sign's box only.
+        const under = [];
+        World.cells(X, 0.92, 760, 80, 'sign', (i, x) => {
+            if (BOARDS.some((bd) => Math.abs(x - (bd.wx - X * BF)) < (bd.pic === 'exit' ? 384 : 270) / 2 + 60)) under.push(x);
+        });
+        const backdrop = (x) => World.back(g, t, X, 'night', { moon: { ...MOON, x: MOON.x + X * 0.006 }, stars: 1, clear: x == null ? undefined : [x - 1e-6, x + 1e-6] });
+        backdrop(under[0]);
+        for (const x of under.slice(1)) {
+            g.save();
+            g.beginPath();
+            g.rect(x - 50, World.ROAD0 - 10 - 178, 100, 182); // the sign with its outline, short of the road's edge line
+            g.clip();
+            backdrop(x);
+            g.restore();
+        }
         for (const bd of BOARDS) {
             const x = bd.wx - X * BF, on = t >= bd.at - 1e-6, big = bd.pic === 'exit';
             if (x < -300 || x > 1300) continue;
@@ -170,10 +189,12 @@
             // the highway: in its bed, in the air, on its new line with the roll at its end
             V.ribbon(g, cam.L - 80, xe, shape, { flush: t < tClunk - 1e-6, endB: true, pegs: t >= HITS[0] - 1e-6 ? [[PEG[0] - G.DX * 0.955, 0.955]] : [] });
             if (t >= tFlat - 1e-6) hitsNow = crew();
+            // the star of each blow, at the spike on the road's far edge: over the mallets, but behind
+            // the third imp, who jumps down on the near side of it (it was painted over his face and hat)
+            for (const p of hitsNow) if (p.hit != null) V.hit(g, PEG[0] + 2, PEG[1] - 16, p.hit ? 34 : 52, 'v3b-peg' + p.hit);
             if (rr > 3) V.roll(g, rollC[0], rollC[1], rr, (xe - END0) / 26);
             rider('roll');
             rider('air');
-            for (const p of hitsNow) if (p.hit != null) V.hit(g, PEG[0] + 2, PEG[1] - 16, p.hit ? 34 : 52, 'v3b-peg' + p.hit);
             // the dust where it comes down
             const kl = kOf(t, tLand);
             if (kl >= 0 && kl < 3) {
@@ -381,8 +402,14 @@
                     : { mood: 'angry', look: 1, squash: 0.03, lean: 0.06, handL: [0.72, -1.12 + 0.07 * f], handR: [-0.56, -0.62], tail: 0.12 * f, step: f };
                 // the scarf's long end streams after the car and finds the tail's post
                 const post = carPt(POST), e = [(post[0] - x) / S3, (post[1] - y) / S3], reach = E.seg(t, n(23.5), tA - 1 / 24);
-                const tipTo = [lerp(0.9, e[0], reach), lerp(-1.75, e[1], reach)];
-                cold = { t, tail: C.curve([[-0.24, -0.92], [lerp(-0.1, tipTo[0], 0.3), -1.16 + 0.05 * f], [lerp(-0.1, tipTo[0], 0.66), lerp(-1.2, tipTo[1], 0.6) - 0.06 * f], tipTo], false, 5) };
+                // It leaves from the nape and goes behind his head (tailBack): drawn over him from the
+                // knot it lay straight up across his own face.
+                // Streaming, it climbs behind his head and comes out over his raised mitt, under the horn.
+                const NAPE = [0.1, -1.0], STREAM = [[0.42, -1.5 + 0.04 * f], [0.92, -1.88 - 0.05 * f], [1.42, -1.8 + 0.06 * f]];
+                // Reaching, it hooks up beside his head (outside the horn) and over to the post above him.
+                const HOOK = [[0.8, -1.56], [0.92, -2.08], e];
+                const tail = [NAPE, ...STREAM.map((p, i) => E.lerpPt(p, HOOK[i], reach))];
+                cold = { t, tailBack: true, tail: C.curve(tail, false, 5) };
             }
             V.devil(g, x, y, S3, pose, cold);
             if (kp < 0) V.blueprint(g, x, y - 0.62 * S3 * (1 - (pose.squash ?? 0)), S3, { ang: 0.03 * f * Pu.pulse, wave: wind > 0.5 ? f : 0 });
@@ -404,11 +431,11 @@
             if (kc === 0) hits.push([post[0] - 6, post[1], 'd']);
         };
 
-        // past the throat it is gone: the car and what it carries show only this side of it
+        // past the throat it is gone, behind the stone: the gate's face (V.headFront, below) is
+        // painted over the car, so the cheek's own edge is what cuts it, and between the jaws it
+        // shows against the dark inside. (A clip on a vertical at the throat used to saw the amps
+        // and the drummer off in mid air.)
         g.save();
-        g.beginPath();
-        g.rect(-200, -200, V.toScreen(cam, [372, 0])[0] + 200, 1600);
-        g.clip();
         band();
         if (cx < 1700) {
             cargo();
