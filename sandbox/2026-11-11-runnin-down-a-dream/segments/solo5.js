@@ -70,7 +70,9 @@
         return { x, y: LIMB.y - Math.cos(a) * LIMB.r + near, rot: a };
     };
     const STAND = G4 ? G4.stand : { h0: onLimb(176), h1: onLimb(218), h2: onLimb(197, 24), h3: onLimb(126), a0: onLimb(792), a1: onLimb(843), a2: onLimb(892) };
-    const landK = P4 ? P4.landK : () => 1, earthAt = P4 ? P4.earthAt : () => ({ x: 805, y: 392, r: 60 }), SPIN = P4 ? P4.SPIN_REST : 0;
+    const landK4 = P4 ? P4.landK : () => 1, earthAt = P4 ? P4.earthAt : () => ({ x: 805, y: 392, r: 60 }), SPIN = P4 ? P4.SPIN_REST : 0;
+    // the landing's dust goes on thinning by solo4's law, and is all gone by the end of bar 168
+    const landK = (t) => lerp(landK4(t), 1, smooth(seg(t, T0, T_DANCE)));
     const earth = (g, x, y, r, t) => (P4 ? P4.earth(g, x, y, r, t) : Q.earth(g, x, y, r));
     const noWhip = (g, s, fn) => (P4 ? P4.noWhip(g, s, fn) : fn()); // the car's whip is the flag now
     const view = (cam) => {
@@ -97,7 +99,8 @@
     /**
      * o: { nod 0..1, warm 0..1 (the cover's bands rising behind the limb), look [x, y] (the moon's eye),
      *      sun { x, y (world), r, k (0..1 risen) },
-     *      behind(g, V)  on the limb behind the car;  car(g, s)  the car, at its place (0, 0);
+     *      behind(g, V)  on the limb behind the car;  parked: what the ride takes (the car as solo4
+     *      parks it), or car(g, s): the car drawn by the shot, at its place (0, 0);
      *      front(g, V)   everybody on the surface;  over(g, V)  what is not on the moon }
      */
     function stage(g, t, cam, o = {}) {
@@ -132,11 +135,14 @@
         const rest = W.landingAt(V.mn, A_CAR, V.s, 1), lk = landK(t), lo = { r: V.mn.r, rot: rest.rot, t };
         if (lk > 0) W.landing(g, rest.x, rest.y, V.s, lk, { ...lo, part: 'back' });
         if (o.behind) o.behind(g, V);
-        g.save();
-        g.translate(rest.x, rest.y);
-        g.rotate(rest.rot);
-        noWhip(g, V.s, () => o.car(g, V.s));
-        g.restore();
+        if (o.parked && P4 && z === 1) P4.parked(g, t, o.parked); // solo4's own car, as it parks it
+        else {
+            g.save();
+            g.translate(rest.x, rest.y);
+            g.rotate(rest.rot);
+            noWhip(g, V.s, () => (o.car ? o.car(g, V.s) : rideOn(g, t, V.s, o.parked ?? {})));
+            g.restore();
+        }
         if (o.front) o.front(g, V);
         if (lk > 0) W.landing(g, rest.x, rest.y, V.s, lk, { ...lo, part: 'front' });
         g.restore();
@@ -286,7 +292,8 @@
     // wind: { tom, devil, devilFrom } the windmills' angles on this drawing
     const rideOn = (g, t, s, o = {}) => {
         const { wind, ...ro } = o, P = S.pulseAt(t);
-        if (!wind) return F.ride(g, t, 0, 0, s, { spin: SPIN, shadow: true, exhaust: 0, ...ro });
+        // (as Solo4Props.parked: the Devil soloing with the neck up unless the shot says otherwise)
+        if (!wind) return F.ride(g, t, 0, 0, s, { spin: SPIN, shadow: true, exhaust: 0, ...ro, devil: { solo: 1, shred: 0.6, ...(ro.devil ?? {}) } });
         const dv = { mood: 'laugh', squash: -0.05, headTilt: -0.05, solo: 0.5, ...(ro.devil ?? {}) };
         F.ride(g, t, 0, 0, s, { spin: SPIN, shadow: true, exhaust: 0, ...ro, devil: { ...dv, strum: NaN }, pose: { ...(ro.pose ?? {}), tom: { ...(ro.pose?.tom ?? {}), windmill: wind.tom, squash: -0.05 }, stan: { snare: 0, hat: 0, crash: 0, headDy: -0.05 } } });
         const hx = F.HOOD[0] * s, hy = (F.HOOD[1] + (ro.bounce ?? 0) * 0.1) * s;
@@ -334,7 +341,7 @@
         const order = ORDER.map((id) => m[id]).filter((q) => !left.includes(q)).concat(left);
         stage(g, t, WIDE, {
             nod: alive * (seen ? 1 : 0), look: [-0.3, -0.9],
-            car: (c, s) => rideOn(c, t, s, seen ? { bounce: 0.25 * pu * st } : {}),
+            parked: { bounce: 0.25 * pu * st },
             front: (c, V) => people(c, V, t, order),
         });
     }
@@ -412,7 +419,7 @@
     // =========================================================================================
     function together(g, t) {
         const P = S.pulseAt(t), pu = P.pulse;
-        stage(g, t, WIDE, { nod: 1.3, look: [0.3 * (P.k % 2 ? 1 : -1), -0.9], car: (c, s) => rideOn(c, t, s, { bounce: 0.4 * pu, cactus: { wheel: null, wave: P.k % 2 ? pu : -pu } }), front: (c, V) => people(c, V, t, byDepth(dancers(t, POS.mixed))) });
+        stage(g, t, WIDE, { nod: 1.3, look: [0.3 * (P.k % 2 ? 1 : -1), -0.9], parked: { bounce: 0.4 * pu, cactus: { wheel: null, wave: P.k % 2 ? pu : -pu } }, front: (c, V) => people(c, V, t, byDepth(dancers(t, POS.mixed))) });
     }
 
     // =========================================================================================
@@ -640,6 +647,9 @@
                 if (landed) for (const k of KNOCKED) {
                     const p = V.P(k.x, k.y), ks = k.s * V.z;
                     c.save();
+                    c.beginPath();
+                    c.arc(V.mn.x, V.mn.y, V.mn.r - 3.6, 0, TAU); // inside the limb's outline
+                    c.clip();
                     c.translate(p[0], p[1]);
                     c.rotate(MOON_ROT);
                     c.fillStyle = W.MOON.cream;
