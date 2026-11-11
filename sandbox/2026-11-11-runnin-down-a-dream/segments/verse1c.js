@@ -320,12 +320,12 @@
     // Bars 23–24 · Flying
     // =========================================================================================
     const T_END = T5 - 1 / 24, Y_END = LANE - 110, Y_TOP = 392, Y_IN = 636, K_TOP = 4.3; // in beats of this shot
-    const BIRDS = [[806, 212, 46, true], [876, 158, 38, false], [912, 246, 34, false]];
+    const BIRDS = [[862, 200, 62, true], [918, 138, 50, false], [928, 262, 44, false]];
     function flying(g, t) {
         const P = S.pulseAt(t), d = C.drawing(t), X = Rig.X(t), kEnd = (8 * (T_END - T3)) / (T5 - T3), k = (8 * (t - T3)) / (T5 - T3);
         World.back(g, t, X, 'day', SKY);
         // the sun grins while they are level with it
-        PP.sunGrin(g, t, X, SKY.sun, t < n(18) - EPS ? pop(t, n(14), 0.2) : 1 - E.out(seg(t, n(18), n(18) + 2 / 12)));
+        PP.sunGrin(g, t, X, SKY.sun, t < n(18) - 2 / 12 - EPS ? pop(t, n(15), 0.2) : 1 - E.out(seg(t, n(18) - 2 / 12, n(18))));
         // wind: a few streaks at their height
         const r = Motion.rng('wind');
         for (let i = 0; i < 7; i++) {
@@ -344,14 +344,6 @@
             if (x > 1080) return;
             PP.bird(g, x, yy, bs, { flap: [0, 1, 2, 1][(((d + i) % 4) + 4) % 4], shades, look: away > 0 ? 1 : -1, lookY: y > yy + 240 ? 1 : 0, tilt: -0.5 * away });
         });
-        // notes off the backline, left behind
-        for (let j = 0; j < 9; j++) {
-            const at = n(12 + j), u = (t - at) / (S.BEAT * 1.7);
-            if (u < 0 || u >= 1 || j > 6) continue;
-            const yk = (8 * (at - T3)) / (T5 - T3), y0 = (yk < K_TOP ? Y_TOP + (Y_IN - Y_TOP) * Math.pow(1 - yk / K_TOP, 2) : Y_TOP + (Y_END - Y_TOP) * Math.pow((yk - K_TOP) / (kEnd - K_TOP), 2.3)) - 300;
-            const uu = (twos(t, at) - at) / (S.BEAT * 1.7), sz = 15 * pop(t, at, 0.2) * (uu > 0.75 ? (1 - uu) / 0.25 : 1);
-            C.note(g, 262 - 150 * uu, y0 + 40 - 70 * uu + 12 * Math.sin(uu * 7 + j), sz, { color: [K.white, K.pink, K.yellow][j % 3], kind: j % 2 ? 2 : 1, rot: -0.2 + 0.3 * Math.sin(j * 2.1), lw: 3 });
-        }
         PP.car(g, t, 520, y, SC, {
             tilt, ground: LANE, spin: X / (0.56 * SC), exhaust: 1 - E.seg(k, 6, 7.6), sing: true,
             lift: { stan: 0.05 * top, ben: 0.09 * top, howie: 0.12 * top, mike: 0.1 * top, tom: 0.06 * top },

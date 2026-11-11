@@ -1,12 +1,15 @@
 // «Verse 1 · a beautiful day», first part: bars 12–16 (17.29–24.375 s).
-//   bars 12–13  Cruising     a travelling shot: the band plays down the day road, Tom sings to
-//                            the sun, notes pour out of the car and stream back over the
-//                            speakers; in bar 13 the hearse creeps in behind them through the
-//                            music, draws level and overtakes
-//   bars 14–16  Hitchhiker   a static roadside shot, closer: the Devil in a paper-thin disguise
-//                            holds up RIDE?; the band's car goes by without slowing and its wind
-//                            strips the disguise and spins him like a top; the sign comes back
-//                            down on his horns with its back showing: RATS!
+//   bars 12–13  Cruising     a travelling shot: the band plays down the day road, Tom sings at
+//                            the sun (it nods on the snare), notes pour out of the car on the
+//                            beat and stream back over the speakers; in bar 13 the hearse creeps
+//                            in behind them under the music, draws level and, the trident
+//                            couched like a lance, overtakes
+//   bars 14–16  Hitchhiker   a static roadside shot, closer (160 units a figure): the Devil in
+//                            a paper-thin disguise hoists RIDE?; the band's car goes through
+//                            without slowing and its wind strips him (the sign straight up, the
+//                            glasses and the hat on to a cactus down the road) and spins him
+//                            like a top; the sign comes back down on his horns, back to us:
+//                            RATS!, and his chauffeur laughs
 // Props and the roadside set are in verse1a-props.js (V1A).
 (() => {
     const Seg = (window.Seg = window.Seg || {});
@@ -80,7 +83,7 @@
     // =========================================================================================
     // Bars 14–16 · The hitchhiker
     // =========================================================================================
-    const V = V1A, SET = V.SET, SC = SET.SC, RW = World.THEMES.day;
+    const V = V1A, SET = V.SET, SC = SET.SC;
     const DX = 556, DY = 694; // the Devil's mark on the far verge
     const CAX = 266, CAY = 684, CAH = 430; // the saguaro behind him: his trident leans on it, and his hearse is «hidden» behind it
     const CBX = 806, CBY = 682, CBH = 318; // the one down the road, which ends up dressed
@@ -162,10 +165,9 @@
 
         // --- the Devil
         const dn = Math.floor((t - n(4)) * 12 + 1e-6); // drawings since the car arrived
-        const SPIN = 'bbWWWWFWWWFWWFWFF'; // bar 15, a drawing each: braced, then the top (W) and glimpses of him (F) as it slows
+        const SPIN = 'bFWWWWFWWWFWWFWFF'; // bar 15, a drawing each: braced, then the top (W) and glimpses of him (F) as it slows
         const disguised = !at(t, RIP), spinning = at(t, RIP) && !at(t, n(8)), signUp = at(t, RIP) && !at(t, SIGN_FALL), signOn = at(t, SIGN_LAND);
         const tauS = twos(t, n(8)) - n(8), tauL = twos(t, SIGN_LAND) - SIGN_LAND;
-        const starsOn = at(t, n(8));
         let pose, whirl = null, dxx = 0;
         if (disguised) {
             // bar 14: he checks the road, hoists the sign, beams; then the car is on him
@@ -182,8 +184,7 @@
         } else if (spinning) {
             const kind = SPIN[Math.min(dn, SPIN.length - 1)], slow = E.seg(dn, 9, 16);
             dxx = 12 * Math.sin(dn * 0.9) * (1 - slow);
-            if (kind === 'W' || dn === 1) whirl = { d: dn, k: 1 - slow, lean: 0.07 * Math.sin(dn * 1.3) };
-            if (dn === 1) whirl = null;
+            if (kind === 'W') whirl = { d: dn, k: 1 - slow, lean: 0.07 * Math.sin(dn * 1.3) };
             pose = {
                 mood: 'shock', look: [-1, 1, 0][dn % 3], lean: dn === 1 ? 0.12 : 0.1 * Math.sin(dn * 1.3), squash: dn === 1 ? -0.06 : 0, headTilt: dn === 1 ? 0.1 : -0.06 * Math.sin(dn * 1.3),
                 tail: 0.07, step: dn % 2 ? 1 : -1, handR: [-0.92, dn === 1 ? -1.25 : -0.9], handL: [0.92, dn === 1 ? -1.2 : -0.92],
@@ -202,7 +203,7 @@
         const px = DX + dxx;
         // the stars round his head: the far half of the ring goes behind it
         const stars = (front) => {
-            if (!starsOn) return;
+            if (!at(t, n(8))) return;
             const k = pop(t, n(8), 0.25), low = signOn ? 1 : 0, scatter = signOn ? 1 + 0.45 * bump(t, SIGN_LAND, 0.4) : 1;
             V.onHead(g, px, DY, SC, pose, () => {
                 for (let i = 0; i < 5; i++) {
@@ -256,7 +257,7 @@
                 V.mitt(g, L, 0.5, pose.signY - 0.3 + 0.5 * Math.sin(pose.signAng));
             });
         }
-        if (signOn || (at(t, SIGN_FALL) && !signOn)) {
+        if (at(t, SIGN_FALL)) {
             if (signOn) {
                 // on his horns, back to us: they have gone through its lower edge
                 V.onHead(g, px, DY, SC, pose, (L) => {
@@ -264,7 +265,7 @@
                     g.save();
                     g.translate(0.02, -2.18);
                     g.rotate(rk);
-                    g.scale(1 + 0.12 * (1 - land) / 0.4, 0.82 + 0.18 * land / 1.0);
+                    g.scale(1 + 0.3 * (1 - land), 1 - 0.45 * (1 - land)); // it lands flat-footed and springs back
                     g.translate(0, -0.3);
                     V.sign(g, L, 'back');
                     // the cardboard splits where each horn came through
@@ -285,7 +286,7 @@
                 // falling out of the sky, turning over as it comes
                 const k = Math.min(4, Math.floor((t - SIGN_FALL) * 12 + 1e-6)), u = [0.08, 0.3, 0.52, 0.74, 0.92][k];
                 const face = k < 2 ? 'front' : 'back', sq = [0.9, 0.3, 0.42, 0.8, 1][k], ang = [-0.5, -0.32, 0.3, -0.14, 0.07][k];
-                const ty = DY + (-2.48 + pose.headDy * 0) * SC;
+                const ty = DY - 2.48 * SC;
                 V.units(g, px + E.lerp(-46, 3, u), E.lerp(-70, ty, u * u * 0.6 + u * 0.4), SC, ang, (L) => {
                     g.scale(1, sq);
                     V.sign(g, L, face);
@@ -328,7 +329,7 @@
         if (passed) {
             for (const [x, s, t0, seed] of [[230, 0.85, 0.16, 'a'], [600, 0.7, 0.08, 'b'], [940, 0.9, 0, 'c']]) Rides.dust(g, x, SET.LANE + 6, SC * s, 0.2 + 0.8 * E.seg(t, n(5) - t0, n(5) - t0 + 1.0), 'v1a' + seed, t);
             const k = E.seg(t, n(5), n(5) + 0.42);
-            if (k < 1) V.streaks(g, 'wake' + Math.floor((t - n(5)) * 12 + 1e-6), [300 + 500 * k, SET.LANE - 480, 800, 440], { n: Math.round(7 * (1 - k)) + 1, len: [200, 480], th: 8, ink: 0.4 });
+            if (k < 1) V.streaks(g, 'wake' + Math.floor((t - n(5)) * 12 + 1e-6), [300 + 500 * k, SET.ROAD0 + 6, 800, 200], { n: Math.round(5 * (1 - k)) + 1, len: [200, 480], th: 8, ink: 0.4 });
         }
     }
 

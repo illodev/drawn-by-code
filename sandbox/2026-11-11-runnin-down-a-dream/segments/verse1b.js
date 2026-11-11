@@ -2,8 +2,9 @@
 // At a fork the highway runs on in the sun and an exit ramp drops into Hell's mouth. He swaps
 // the signpost's two boards so HEAVEN points down the ramp; the band drives straight on without
 // reading anything, and his own chauffeur, who does read, takes the exit with him aboard.
-//   bar 17      Swap   a closer shot of the sign (no cars): HELL goes up on the first beat,
-//                      HEAVEN comes down into his mitts and goes on the low nail on the third
+//   bar 17      Swap   a closer shot of the sign (no cars): a beat on the sign as it was, HELL
+//                      goes up on the second beat (HEAVEN comes down into his mitts), HEAVEN
+//                      goes on the low nail on the third, he rubs his mitts on the fourth
 //   bars 18–19  Fork   the wide shot: the band passes, the hearse takes the exit and drops in
 (() => {
     const Seg = (window.Seg = window.Seg || {});
@@ -428,8 +429,11 @@
     function swap(g, t) {
         const s = S1, P = S.pulseAt(t), ph = P.k + P.since;
         const NT = [PX1, PY1 - NAIL_T * s], NL = [PX1, PY1 - NAIL_L * s];
-        const e1 = n(0), e2 = n(1), e3 = n(2), e4 = n(3);
-        const k1 = kOf(t, e1), k2 = kOf(t, e2), k3 = kOf(t, e3), k4 = kOf(t, e4);
+        // beat 1 the sign as it was, beat 2 the first slap, beat 3 the second, beat 4 he rubs his mitts
+        const e0 = n(0), e1 = n(1), e3 = n(2), e4 = n(3);
+        const k0 = kOf(t, e0), k1 = kOf(t, e1), k3 = kOf(t, e3), k4 = kOf(t, e4);
+        // the second hop takes off one frame before its beat (the beats are 9 frames apart here)
+        const launch = t >= e3 - 1 / 24 - 1e-6 && t < e3 - 1e-6;
 
         backdrop(g, t, SET1);
         ramp(g, RAMP1);
@@ -440,41 +444,39 @@
         // --- where the two boards are: [x, y, ang], and who has HEAVEN
         const chest = [BX1 - 0.585 * s, GY1 - 0.46 * s];
         let hell, heaven, held = false;
-        if (k1 <= 0) hell = [NL[0] + 0.03 * s, NL[1] - 0.09 * s, LOW - 0.13];
-        else if (k1 === 1) hell = [PX1 + 0.5 * s, PY1 - 3.02 * s, 0.22];
-        else if (k1 === 2) hell = [NT[0] + 0.05 * s, NT[1] - 0.05 * s, -0.15];
-        else if (k1 === 3) hell = [NT[0], NT[1], 0.06];
+        if (k1 < 0) hell = [NL[0], NL[1], LOW];
+        else if (k1 === 0) hell = [PX1 + 0.5 * s, PY1 - 3.02 * s, 0.22];
+        else if (k1 === 1) hell = [NT[0] + 0.05 * s, NT[1] - 0.05 * s, -0.15];
+        else if (k1 === 2) hell = [NT[0], NT[1], 0.06];
         else hell = [NT[0], NT[1], 0];
-        if (k1 < 2) heaven = [NT[0], NT[1], 0];
-        else if (k1 === 2) heaven = [NT[0] - 1.2 * s, NT[1] - 0.5 * s, -0.2];
-        else if (k1 === 3) heaven = [chest[0] - 0.02 * s, GY1 - 2.72 * s, -0.12];
-        else if (k3 < -2) {
+        if (k1 < 1) heaven = [NT[0], NT[1], 0];
+        else if (k1 === 1) heaven = [NT[0] - 1.2 * s, NT[1] - 0.5 * s, -0.2];
+        else if (launch) heaven = [PX1 - 0.1 * s, PY1 - 2.02 * s, 0.46];
+        else if (k3 < 0) {
             held = true;
-            heaven = [chest[0], chest[1] + (k2 === 0 ? 0.09 * s : 0), 0];
-        } else if (k3 === -2) {
-            held = true;
-            heaven = [chest[0], chest[1] + 0.07 * s, 0];
-        } else if (k3 === -1) heaven = [PX1 - 0.1 * s, PY1 - 2.02 * s, 0.46];
-        else heaven = [NL[0], NL[1], LOW + (k3 === 0 ? 0.12 : k3 === 1 ? -0.05 : 0)];
+            heaven = [chest[0], chest[1] + (k1 === 2 ? 0.09 * s : 0), 0];
+        } else heaven = [NL[0], NL[1], LOW + (k3 === 0 ? 0.12 : k3 === 1 ? -0.05 : 0)];
 
-        // --- the Devil: a hop and a slap on the first beat, the catch, a hop and a slap on the third, then he rubs his mitts
+        // --- the Devil: he looks his work over tapping his mitts, a hop and a slap on the second
+        // beat, the catch, a hop and a slap on the third, then he rubs his mitts
         const dx = BX1;
         let hopY = 0, pose;
         const tail = 0.05 * Math.sin(ph * PI);
-        if (k1 === 0) {
+        if (k1 < 0) {
+            const a = k0 % 2 ? 1 : 0; // mitts together, apart, together; then he crouches for the hop
+            if (k0 < 3) pose = { mood: 'sly', look: 1, headTilt: -0.07, squash: 0.02 + 0.04 * (1 - a), handL: [0.1 + 0.2 * a, -0.66 - 0.05 * a], handR: [-0.07 - 0.2 * a, -0.64 - 0.05 * a], tail: 0.09 * Math.sin(k0 * 2.1) };
+            else pose = { mood: 'sly', look: 1, headTilt: -0.05, squash: 0.18, handL: [0.52, -0.56], handR: [-0.56, -0.56], tail: -0.04 };
+        } else if (k1 === 0) {
             hopY = 0.7;
             pose = { mood: 'sly', look: 1, squash: -0.07, lean: 0.05, handL: [0.66, -1.54], handR: [-0.62, -0.5], tail: 0.1 };
         } else if (k1 === 1) {
             hopY = 0.38;
-            pose = { mood: 'grin', look: 1, squash: -0.03, handL: [0.7, -1.5], handR: [-0.6, -0.56], tail: 0.08 };
-        } else if (k1 === 2) pose = { mood: 'grin', look: 1, squash: 0.15, headTilt: -0.06, handL: [0.62, -0.74], handR: [-0.56, -0.6], tail };
-        else if (k1 === 3) pose = { mood: 'grin', look: 0.6, squash: -0.05, headTilt: -0.05, handL: [0.78, -1.5], handR: [-0.46, -1.5], tail: 0.08 };
-        else if (k3 < -2) pose = { mood: k2 < 2 ? 'grin' : 'sly', look: k2 < 2 ? 0.6 : 0, squash: k2 === 0 ? 0.1 : k2 === 1 ? 0.03 : 0.03 * P.pulse, headTilt: k2 < 2 ? 0 : 0.06, handL: [0.84, -0.8], handR: [-0.64, -0.8], tail };
-        else if (k3 === -2) pose = { mood: 'sly', look: 1, squash: 0.16, handL: [0.84, -0.74], handR: [-0.64, -0.74], tail: -0.04 };
-        else if (k3 === -1) {
+            pose = { mood: 'grin', look: 0.6, squash: -0.04, headTilt: -0.05, handL: [0.78, -1.5], handR: [-0.46, -1.5], tail: 0.08 };
+        } else if (launch) {
             hopY = 0.36;
             pose = { mood: 'sly', look: 1, squash: -0.08, handL: [0.78, -1.3], handR: [-0.6, -0.62], tail: 0.06 };
-        } else if (k3 === 0) {
+        } else if (k3 < 0) pose = { mood: k1 === 2 ? 'grin' : 'sly', look: k1 === 2 ? 0.6 : 0, squash: k1 === 2 ? 0.1 : 0.03, headTilt: k1 === 2 ? 0 : 0.06, handL: [0.84, -0.8], handR: [-0.64, -0.8], tail };
+        else if (k3 === 0) {
             hopY = 0.7;
             pose = { mood: 'sly', look: 1, squash: -0.07, lean: 0.05, handL: [0.66, -1.54], handR: [-0.62, -0.5], tail: 0.1 };
         } else if (k3 === 1) {
@@ -511,7 +513,7 @@
             board(g, s, word, bd[0], bd[1], bd[2]);
             for (const N of [NT, NL]) if (onPost(bd, N)) nail(g, N[0], N[1], s);
         };
-        if (k1 < 2) {
+        if (k1 < 1) {
             draw('HEAVEN', heaven);
             draw('HELL', hell);
         } else {
@@ -522,13 +524,16 @@
             mitt(g, dx - 0.66 * s, heaven[1] - 0.37 * s, s);
             mitt(g, dx + 0.9 * s, heaven[1] - 0.37 * s, s);
         }
-        // the hits, and a twinkle on each board once both hang in their new places
+        // the hits
         if (k1 === 0) hit(g, NL[0] - 0.5 * s, NL[1] + 0.12 * s, 46, 'v1b-a');
-        if (k1 === 2) hit(g, NT[0] + 0.02 * s, NT[1] - 0.02 * s, 60, 'v1b-b');
+        if (k1 === 1) hit(g, NT[0] + 0.02 * s, NT[1] - 0.02 * s, 60, 'v1b-b');
         if (k3 === 0) hit(g, NL[0] - 0.5 * s, NL[1] + 0.12 * s, 56, 'v1b-d');
-        for (const [at, x, y] of [[e4, NT[0] - 0.3 * s, NT[1] - 0.56 * s], [e4 + 2 / 24, NL[0] + 1.9 * s, NL[1] + 0.56 * s]]) {
+        // a twinkle on each board in turn: on the sign as it was (the first is already out on
+        // the first frame), and again once both hang in their new places
+        const TOP = [NT[0] - 0.3 * s, NT[1] - 0.56 * s], LOWER = [NL[0] + 1.9 * s, NL[1] + 0.56 * s];
+        for (const [at, p, until] of [[e0 - 2 / 24, TOP, e1], [e0 + 2 / 24, LOWER, e1], [e4, TOP, T1], [e4 + 2 / 24, LOWER, T1]]) {
             const tw = bump(t, at, 0.34);
-            if (tw > 0.01 && t >= at - 1e-6) C.sparkle(g, x, y, 18 + 46 * tw, { color: K.white, ink: K.ink, lw: 3 });
+            if (tw > 0.01 && t >= at - 1e-6 && t < until - 1e-6) C.sparkle(g, p[0], p[1], 18 + 46 * tw, { color: K.white, ink: K.ink, lw: 3 });
         }
     }
 

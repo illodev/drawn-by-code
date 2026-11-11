@@ -1,11 +1,11 @@
 // Props and the roadside set of «verse1a» (segments/verse1a.js): the Devil's paper-thin
-// disguise (a straw boater his horns poke through, joke glasses with a false nose), the
-// cardboard sign and its two faces, speed lines, dizzy stars, the top he turns into, and the
-// roadside where he waits (a saguaro, bushes, the road at the closer scale).
+// disguise (a straw boater his horns poke through, joke glasses with bushy brows and a false
+// nose), the cardboard sign and its two faces, speed lines, dust, dizzy stars, the top he
+// turns into, and the roadside where he waits (saguaros, bushes, the road at the closer scale).
 //
 // Things the Devil wears or holds are drawn in his units (1 ≈ a head's width, y down) with
-// the line width L = 3.2 / s, inside a transform the caller sets (see `units` and `onHead`).
-// The set is drawn in logical units. Global: V1A. Depends on Cereal, Cast, Devil, World.
+// the line width L = 3.2 / s, inside a transform the caller sets (`units`, `onHead`). The set
+// is drawn in logical units. Global: V1A. Depends on Cereal, Cast, Devil, World, Song.
 const V1A = (() => {
     const C = Cereal, K = C.COL, TAU = Math.PI * 2, D = Cast.D, Dd = Cast.Dd, DP = Devil.P;
     const ob = (x, y, z = 0) => [x + D[0] * z, y + D[1] * z];
