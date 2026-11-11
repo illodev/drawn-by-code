@@ -170,9 +170,9 @@ const BreakrewProps = (() => {
     }
     // A ruffled leaf of lettuce: round (cx, cy), a seeded wavy edge, a rib and veins.
     function lettuce(g, cx, cy, rx, ry, a, seed, fill) {
-        const r = Motion.rng(seed), n = 11;
+        const r = Motion.rng(seed), n = 16;
         const edge = C.curve(Array.from({ length: n }, (_, i) => {
-            const th = (i / n) * TAU, k = 0.84 + 0.3 * r() * (i % 2 ? 1 : 0.55);
+            const th = (i / n) * TAU, k = (i % 2 ? 1.06 : 0.86) + 0.08 * r();
             return rot([Math.cos(th) * rx * k, Math.sin(th) * ry * k], a).map((v, j) => v + (j ? cy : cx));
         }), true, 6);
         C.poly(g, edge, { fill, ink: K.ink, lw: 3.2 });
@@ -435,7 +435,7 @@ const BreakrewProps = (() => {
         const d = Math.floor((S.twos(tt, b(pa.k)) - b(pa.k)) * 12 + 1e-6), bite = d < 2;
         const q = bite ? [0.1, 0.045][d] : d % 2 ? 0.022 : -0.012, up = 0.24;
         C.poly(g, disc(x + 6, y, 0.58 * s), { fill: V.shadow, lw: 0 });
-        Devil.imp(g, x, y, s, { mood: bite ? 'awe' : 'grin', look: tt >= b(k + 2) - 1e-6 && tt < b(k + 4) - 1e-6 ? -1 : 0, squash: q, armUp: up, tail: 0.3, shadow: false });
+        Devil.imp(g, x, y, s, { mood: bite ? 'awe' : 'grin', look: tt >= b(k + 2) - 1e-6 && tt < b(k + 4) - 1e-6 ? -1 : 0, squash: q, armUp: up, tail: -0.15 + (d % 2 ? 0.02 : 0), shadow: false });
         g.save();
         g.translate(x, y);
         g.scale(s, s);
