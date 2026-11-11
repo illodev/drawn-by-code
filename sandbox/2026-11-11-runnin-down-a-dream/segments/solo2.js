@@ -91,9 +91,9 @@
     // the chord's starburst behind him and the notes it throws; (hx, hy) his ground point on screen
     function chordBurst(g, t, c, hx, hy, s, part) {
         if (!on(t, c)) return;
-        const gb = bump(t, c, 0.5), d = C.drawing(t);
+        const gb = pop(t, c, 0.2) * (1 - seg2(t, c + 0.3, c + 0.6)), d = C.drawing(t);
         if (part === 'back') {
-            if (gb > 0.01) C.burst(g, hx - 0.05 * s, hy - 1.0 * s, { r0: 1.0 * s * (0.7 + 0.3 * gb), r1: 1.65 * s * (0.7 + 0.3 * gb), n: 13, seed: 'solo2-chord', fill: K.yellow, ink: K.ink, lw: 3.2, rot: d % 2 ? 0.06 : 0 });
+            if (gb > 0.01) C.burst(g, hx - 0.05 * s, hy - 1.0 * s, { r0: 1.0 * s * gb, r1: 1.65 * s * gb, n: 13, seed: 'solo2-chord', fill: K.yellow, ink: K.ink, lw: 3.2, rot: d % 2 ? 0.06 : 0 });
             return;
         }
         const u = seg2(t, c, c + 0.75);
@@ -107,14 +107,15 @@
     // =========================================================================================
     // The four fans who end up hanging from the car
     // =========================================================================================
-    // In the volcano's own coordinates (its wide view): where each stands by the tail, who is behind
-    // the pipes, what Inferno.fan is asked for. Their order is the chain's, from the top.
+    // In the volcano's own coordinates (its wide view): the ledge under the tail where they dance, in
+    // a row; what Inferno.fan is asked for. Their order is the chain's, from the top.
     const FANS = [
-        { at: [233, 641], back: false, o: { kind: 'imp', wear: 'specs' } },
-        { at: [212, 642], back: false, o: { kind: 'imp', wear: 'bow' } },
-        { at: [252, 629], back: true, o: { kind: 'imp' } },
-        { at: [229, 631], back: true, o: { kind: 'skeleton', hawk: K.pink, tee: 2 } },
+        { at: [264, 707], o: { kind: 'imp', wear: 'specs' } },
+        { at: [229, 708], o: { kind: 'imp', wear: 'bow' } },
+        { at: [194, 709], o: { kind: 'imp' } },
+        { at: [158, 711], o: { kind: 'skeleton', hawk: K.pink, tee: 2 } },
     ];
+    const PIPE_SPOT = [236, 641], UP = 7; // where the first imp stands under the pipe, and the beat he gets there
     const toScreen = (V, [x, y]) => [(x - V.cx) * V.k + 500, (y - V.cy) * V.k + 500];
     const WIDE = { k: 1, cx: 500, cy: 500 };
     function fanStand(g, t, V, i, pos, hype, sh = [0, 0]) {
@@ -136,15 +137,12 @@
         I.volcano(g, t, o);
         P.shoreCrowd(g, t, { up: hit ? 1 : 0.12, jump: bump(t, CHORD, 0.4) });
         const T = I.volcanoTop(o), car = { x: T.x, y: T.y, s: T.s }, s = car.s, sh = [T.x - 500, T.y - 640];
-        // the fans: each scrambles up the cone's face to the tail, the one in specs first
+        // the fans on their ledge; on the bar's last beat the one in specs hops up under the pipe
         const fan = (i) => {
-            const f = FANS[i], top = i === 0 ? T0 : at(i) + 2 * FR, u = i === 0 ? 1 : seg(t, T0, top), y0 = f.at[1] + 24 * i + 6;
-            if (u >= 1) return fanStand(g, t, WIDE, i, f.at, hit ? 1 : 0.55, sh);
-            const cu = twos(t, T0), hop = Math.abs(Math.sin(((cu - T0) / BEAT) * PI * 2 + i)) * 7;
-            fanStand(g, T0, WIDE, i, [lerp(f.at[0] - 4 + 3 * i, f.at[0], smooth(u)), lerp(y0, f.at[1], u) - hop], 0.5, sh);
+            if (i > 0 || !on(t, at(UP) - 5 * FR)) return fanStand(g, t, WIDE, i, FANS[i].at, hit ? 1 : 0.55, sh);
+            if (on(t, at(UP))) return fanStand(g, t, WIDE, 0, PIPE_SPOT, 1, sh);
+            fanStand(g, at(UP), WIDE, 0, arc(FANS[0].at, PIPE_SPOT, [0.3, 0.62, 0.88][Math.min(2, dr(t, at(UP) - 5 * FR))], 22), 1, sh);
         };
-        fan(3);
-        fan(2);
         const hood = carPt(car, HOOD, 0.2 * Pu.pulse);
         chordBurst(g, t, CHORD, hood[0], hood[1], s, 'back');
         const base = { mood: 'grin', shadow: false, squash: 0.045 * Pu.pulse, headDy: 0.02 * Pu.pulse, tail: 0.05 * Math.sin(ph * PI), strum: Math.cos(ph * TAU), fret: 0.2 + 0.3 * (Math.floor(ph / 2) % 3), flames: 1, shred: 0, t };
@@ -180,8 +178,7 @@
             if (wi) windmill(g, car.x + HOOD[0] * s, car.y + (HOOD[1] + 0.1 * bn) * s, s, dr(t, WINDUP), 0, cp.squash);
             if (d2 < 3) BridgeProps.ticks(g, hood[0], hood[1], 0.5 * s, 0.74 * s, 5, PI * 1.08, PI * 1.92, K.white, 2.6);
         }
-        fan(1);
-        fan(0);
+        for (const i of [3, 2, 1, 0]) fan(i);
         chordBurst(g, t, CHORD, hood[0], hood[1], s, 'front');
         I.volcanoFront(g, t, o);
     }
@@ -191,7 +188,7 @@
     // =========================================================================================
     const V2 = { k: 1.3, cx: 469, cy: 424.6 }; // the car a little right of the middle: the tail and the fans are inside the glass
     const GRAB = [T_POP, at(9), at(10), at(11)]; // when each link's mitts close
-    const JUMP = 4 * FR; // how long before that it leaves the ground
+    const JUMP = 6 * FR; // how long before that it leaves the ground
     function popShot(g, t) {
         const Pu = S.pulseAt(t), e = 0.05 + 0.25 * seg(t, T_POP, T_ROOF), o = { view: V2, rumble: 1, erupt: e, t };
         I.volcano(g, t, o);
@@ -205,8 +202,6 @@
         }
         const n = GRAB.filter((gt) => on(t, gt)).length;
         const waiting = (i) => !on(t, GRAB[i] - JUMP) && fanStand(g, t, V2, i, FANS[i].at, 1, sh);
-        waiting(3);
-        waiting(2);
         const bn = Math.max(0, thud(t, T_POP, 1, 0.35)), ho = { swing: 1 + 1.6 * Math.max(...GRAB.map((gt) => (on(t, gt) ? 1 - seg(t, gt, gt + 0.4) : 0))) };
         F.ride(g, t, T.x, T.y, s, { spin: 0, exhaust: 0, bounce: bn, devil: { mood: 'laugh', solo: 1, shred: 1 }, cactus: { mouth: 'oh' } });
         I.volcanoFront(g, t, o);
@@ -214,11 +209,11 @@
         // whoever is in the air: from where it stood to the hooves it is about to catch, two drawings
         for (let i = 1; i < 4; i++) {
             if (!on(t, GRAB[i] - JUMP) || on(t, GRAB[i])) continue;
-            const u = [0.42, 0.8][Math.min(1, dr(t, GRAB[i] - JUMP))], stand = toScreen(V2, FANS[i].at), lk = P.LINKS[i], un = lk.kind === 'imp' ? s * P.IMP : s;
+            const u = [0.3, 0.62, 0.86][Math.min(2, dr(t, GRAB[i] - JUMP))], stand = toScreen(V2, FANS[i].at), lk = P.LINKS[i], un = lk.kind === 'imp' ? s * P.IMP : s;
             const from = [stand[0] + sh[0] + lk.grip[0] * un, stand[1] + sh[1] + lk.grip[1] * un], to = P.hangerPoints(t, T.x, T.y, s, { ...ho, bounce: bn })[i];
-            P.hanger(g, i, lerp(from[0], to.grip[0], u), lerp(from[1], to.grip[1], u) - 26 * Math.sin(u * PI), s, lerp(0, to.ang, u) + (i === 3 ? -0.3 : 0.12) * (1 - u), i === 3 ? { jaw: 1 } : { mood: 'awe' });
+            P.hanger(g, i, lerp(from[0], to.grip[0], u), lerp(from[1], to.grip[1], u) - 40 * Math.sin(u * PI), s, lerp(0, to.ang, u) + (i === 3 ? -0.3 : 0.12) * (1 - u), i === 3 ? { jaw: 1 } : { mood: 'awe' });
         }
-        waiting(1);
+        for (const i of [3, 2, 1]) waiting(i);
     }
 
     // =========================================================================================
@@ -279,10 +274,10 @@
         };
         if (!on(t, BURST)) {
             // the ground lifts and splits: it judders on twos
-            const k = 0.55 + 0.45 * seg2(t, T_OUT, BURST - 2 * FR), j = [[0, 0], [2.4, -1.6], [-2, 1.4], [1.6, 1.8]][((d % 4) + 4) % 4];
+            const k = [0.6, 0.8, 0.93, 1][Math.min(3, dr(t, T_OUT))], j = [[0, 0], [2.4, -1.6], [-2, 1.4], [1.6, 1.8]][((d % 4) + 4) % 4];
             land(() => {
                 g.translate(j[0], j[1]);
-                P.mound(g, k * pop(t, T_OUT, 0.2), d, lw);
+                P.mound(g, k, d, lw);
             });
             return;
         }
@@ -298,7 +293,7 @@
             P.thrown(g, tb, false, lw);
         });
         // the car: up out of the dust on the column, to its place on the climb; from bar 142 it is exactly there
-        const up = seg(tb, 0, RISE), cy = up < 1 ? CAR.y + 500 * (1 - back(up)) : CAR.y, s = CAR.s;
+        const up = seg(tb, 0, RISE), cy = up < 1 ? CAR.y + 720 * (1 - back(up)) : CAR.y, s = CAR.s;
         const fall = on(t, ROCKETS) ? seg(t, ROCKETS, ROCKETS + 0.55) : 0, colTop = lerp(cy, ay + 40 * m, fall * fall), colO = { w: 255 * m, k: 1 - fall * 0.5 };
         const colBase = ay + 30 * m;
         g.save();
@@ -316,6 +311,7 @@
         const burning = on(t, ROCKETS) && !on(t, COUGH + 4 / 12);
         const rk = !on(t, ROCKETS) ? 0 : on(t, COUGH) ? [0.7, 0.42, 0.18, 0][Math.min(3, dr(t, COUGH))] : pop(t, ROCKETS, 0.25) * (0.88 + 0.12 * Pu.pulse);
         const ride = { spin: t * SPIN };
+        if (on(t, ROCKETS) && !on(t, ROCKETS + 0.4)) ride.bounce = -0.5 * Math.max(0, thud(t, ROCKETS, 1, 0.35));
         if (bar < 144) Object.assign(ride, { devil, solo: bar === 143 ? 1 : bar === 142 ? 0.3 : 0.6 });
         if (!on(t, COUGH + 4 / 12)) ride.exhaust = 0;
         else if (dr(t, COUGH + 4 / 12) < 4) ride.exhaust = [0.2, 0.35, 0.45, 0.55][dr(t, COUGH + 4 / 12)];
@@ -324,6 +320,10 @@
         F.ride(g, t, CAR.x, cy, s, ride);
         if (on(t, WIND2) && !on(t, CHORD2)) windmill(g, hood[0], hood[1], s, dr(t, WIND2), 0, cp.squash);
         if (burning) P.rockets(g, t, CAR.x, cy, s, { k: rk });
+        if (on(t, ROCKETS) && dr(t, ROCKETS) < 3) {
+            const mth = P.onBody([-4.86, -0.78], CAR.x, cy, s), kk = [1, 1.25, 0.8][dr(t, ROCKETS)];
+            C.burst(g, mth[0], mth[1], { r0: 30 * kk, r1: 64 * kk, n: 10, seed: 'solo2-ignite', fill: K.yellow, ink: K.ink, lw: 3 });
+        }
         // the last flame coughs out as a puff of smoke
         if (on(t, COUGH + 2 / 12) && dr(t, COUGH + 2 / 12) < 4) {
             const u = dr(t, COUGH + 2 / 12) / 4, mth = P.onBody([-4.82, -0.78], CAR.x, cy, s);

@@ -62,7 +62,7 @@
         read: face({ lid: 0.12, lx: -1, ly: -0.5 }, { tilt: 0, raise: 0.02 }, 'flat', 0.9, 0.03),
         rage: face({ h: 0.15, lx: -1, ly: -0.5 }, { tilt: 0.085, raise: -0.012 }, 'grit', 1, 0.03), // one drawing of the old brows
         thaw: face({ lid: 0.1, lx: -1, ly: -0.5 }, { tilt: 0.03 }, 'wobble', 1, 0.015),
-        smile: face({ lid: 0.15, low: 0.3, lx: -1, ly: -0.4 }, { tilt: -0.035, raise: 0.012 }, 'smile', 1, -0.02), // the small real one
+        smile: face({ lid: 0.12, low: 0.22, lx: -1, ly: -0.4 }, { tilt: -0.035, raise: 0.012 }, 'smile', 1, -0.02), // the small real one
         up: face({ lid: 0.05, low: 0.3, lx: -0.2, ly: -1 }, { tilt: -0.02, raise: 0.03 }, 'smile', 1, -0.02),
         heave: face({ shut: 'tight' }, { tilt: 0.06, raise: -0.01 }, 'grit'),
         pleased: face({ shut: 'happy' }, { tilt: -0.03, raise: 0.02 }, 'smile', 1.05, -0.03),
@@ -70,7 +70,7 @@
         aim: face({ lid: 0.05, lx: 0.8, ly: -1 }, { tilt: 0.02, cock: 0.03 }, 'flat', 0.8, 0),
         oh: face({ lx: 0.4, ly: -1 }, { tilt: -0.03, raise: 0.04 }, 'flat', 0.7, 0.03), // it slipped back
         shrug: face({ lid: 0.2, lx: 0.3, ly: -0.8 }, { tilt: -0.04, raise: 0.03 }, 'wobble', 0.8, 0.02),
-        warm: face({ lid: 0.1, low: 0.32, lx: 0.2, ly: -0.6 }, { tilt: -0.04, raise: 0.01 }, 'smile', 1.05, -0.03),
+        warm: face({ lid: 0.08, low: 0.24, lx: 0.2, ly: -0.6 }, { tilt: -0.04, raise: 0.01 }, 'smile', 1.05, -0.03),
     };
     // Poses as keys: [from, what changes, drawings it takes]. Numbers blend on twos from the key's own
     // frame, already part of the way there on it; a mouth or shut eyes change at once.
@@ -145,7 +145,7 @@
     // --- the frame ------------------------------------------------------------------------------------
     // Where it is at t: null while it is in his coat; { x, y, s, tilt, front (it is in front of him, his
     // mitts on it), hung (it is on the wall: Skyward.frameAt's k and tilt) }
-    const HELD = { x: 372, y: 600, tilt: -0.05 }, CHEST = [622, 792];
+    const HELD = { x: 372, y: 600, tilt: -0.05 }, CHEST = [548, 770];
     function frameAt(t) {
         if (t < OUT - EPS) return null;
         if (t < CARRY - EPS) {
@@ -171,7 +171,7 @@
     }
     // The camera: from PUSH it goes in on the frame, about the point that brings the frame's middle to
     // the picture's (smooth, like every camera in the film)
-    const ZF = 2.6, FY = (505 - Sk.frameAt({ k: 1 }).y * ZF) / (1 - ZF);
+    const ZF = 2.7, FY = (505 - Sk.frameAt({ k: 1 }).y * ZF) / (1 - ZF);
     const camAt = (t) => {
         const Z = Math.exp(Math.log(ZF) * smooth(seg(t, PUSH, CLOSE)));
         return { Z, at: ([x, y]) => [500 + (x - 500) * Z, FY + (y - FY) * Z] };
@@ -199,8 +199,8 @@
             else if (c < 4) [p.handR, p.handL] = c === 2 ? [[-0.5, -1.66], [0.5, -1.66]] : [[-0.57, -1.48], [0.57, -1.48]]; // it is away: the follow-through
         } else if (fr && t >= TAP - 2 / 12 - EPS) {
             const c = dr(t, TAP - 2 / 12);
-            if (c === 1) p.handL = R.reach(R.SH_L, on(1, 12, 30), 0.78);
-            else if (c === 2 || c === 3) p.handL = R.reach(R.SH_L, on(1, 12, 10), 1);
+            if (c === 1) p.handL = R.reach(R.SH_L, on(1, 30, 46), 0.78);
+            else if (c === 2 || c === 3) p.handL = R.reach(R.SH_L, on(1, 30, 26), 1); // the mitt's end under the corner
             else if (c === 4) p.handL = [0.62, -1.0];
         }
         // the towel's ends and the tie swing against the way he moves

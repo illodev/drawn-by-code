@@ -224,19 +224,19 @@ const Solo2Props = (() => {
         { kind: 'imp', grip: [0, IMP_GRIP], next: [IMP_LEG, -0.06], pose: { mood: 'grin', hx: 0.46, look: 1, lookY: 0.8 } },
         { kind: 'skel', grip: SKEL_GRIP, next: [0, 0], pose: {} },
     ];
-    const PIPE = [-4.54, -0.7]; // the middle of the top imp's mitts on the near megaphone pipe, in the car's units
+    const PIPE = [-4.56, -0.7]; // the middle of the top imp's mitts on the near megaphone pipe, in the car's units
     // a point of the car's body on screen (the body rears about the rear axle and sinks on its springs)
     const onBody = (p, x, y, s, o = {}) => {
         const rx = -3.55, rR = 0.56, q = rot([p[0] - rx, p[1] + rR + (o.bounce ?? 0) * 0.1], -(o.lean ?? 0));
         return [x + (rx + q[0]) * s, y + (-rR + q[1]) * s];
     };
-    const SWING = [0.05, 0.12, 0.2, 0.24], HANG = [-0.05, 0.0, 0.05, -0.2], LAG = 0.7;
+    const SWING = [0.05, 0.12, 0.2, 0.24], HANG = [-0.1, -0.02, 0.05, -0.2], LAG = 0.7;
     function hangerPoints(t, x, y, s, o = {}) {
         const P = S.pulseAt(t), ph = P.k + P.since, sw = o.swing ?? 1, out = [];
         let grip = onBody(PIPE, x, y, s, o);
         for (let i = 0; i < LINKS.length; i++) {
             const lk = LINKS[i], u = lk.kind === 'imp' ? s * IMP : s;
-            const ang = HANG[i] + (o.trail ?? 0) * (0.35 + 0.65 * (i / 3)) + SWING[i] * sw * Math.cos(ph * PI - i * LAG);
+            const ang = HANG[i] + (o.trail ?? 0) * (0.35 + 0.65 * (i / 3)) + SWING[i] * (i ? sw : Math.min(sw, 1)) * Math.cos(ph * PI - i * LAG);
             const q = rot([(lk.next[0] - lk.grip[0]) * u, (lk.next[1] - lk.grip[1]) * u], -ang);
             out.push({ grip, ang });
             grip = [grip[0] + q[0], grip[1] + q[1]];
@@ -274,7 +274,7 @@ const Solo2Props = (() => {
     // one flame in the car's units, from a mouth at the origin: it leaves backwards and the air bends it down
     function rocketFlame(g, L, k, ph, len) {
         const kk = [1, 0.84, 1.12][ph % 3] * k, wob = [0.05, -0.07, 0.02][ph % 3];
-        const p0 = [0.03, 0], p1 = [-0.44, -0.08], p2 = [-0.47 + wob, len * kk];
+        const p0 = [0.03, 0], p1 = [-0.4, -0.08], p2 = [-0.36 + wob, len * kk];
         const at = (u) => [(1 - u) * (1 - u) * p0[0] + 2 * u * (1 - u) * p1[0] + u * u * p2[0], (1 - u) * (1 - u) * p0[1] + 2 * u * (1 - u) * p1[1] + u * u * p2[1]];
         const tongue = (uMax, w0, wave) => {
             const A = [], B = [], n = 16;
@@ -286,21 +286,21 @@ const Solo2Props = (() => {
             }
             return [...A, ...B.reverse()];
         };
-        C.poly(g, tongue(1, 0.2, 0.22), { fill: K.red, ink: K.ink, lw: L });
-        C.poly(g, tongue(0.8, 0.135, 0.16), { fill: K.orange, lw: 0 });
-        C.poly(g, tongue(0.58, 0.08, 0.1), { fill: K.yellow, lw: 0 });
-        C.poly(g, tongue(0.3, 0.04, 0), { fill: '#fffbe8', lw: 0 });
+        C.poly(g, tongue(1, 0.3, 0.2), { fill: K.red, ink: K.ink, lw: L });
+        C.poly(g, tongue(0.8, 0.2, 0.15), { fill: K.orange, lw: 0 });
+        C.poly(g, tongue(0.58, 0.12, 0.1), { fill: K.yellow, lw: 0 });
+        C.poly(g, tongue(0.3, 0.06, 0), { fill: '#fffbe8', lw: 0 });
         return p2;
     }
     /**
      * Flames out of the two exhaust pipes, trailing down behind the climbing car. Draw after the
      * ride and before the hangers, with the ride's x, y, s.
-     *   o: { k (0..1 their size; 0 draws nothing), lean, bounce (the ride's), len (car units, 1.9) }
+     *   o: { k (0..1 their size; 0 draws nothing), lean, bounce (the ride's), len (car units, 2.5) }
      */
     function rockets(g, t, x, y, s, o = {}) {
         const k = clamp(o.k ?? 1);
         if (k <= 0.02) return;
-        const d = C.drawing(t), L = 3 / s, len = o.len ?? 1.9;
+        const d = C.drawing(t), L = 3 / s, len = o.len ?? 2.5;
         MOUTHS.forEach((mth, i) => {
             const at = onBody(mth, x, y, s, o);
             g.save();
@@ -341,7 +341,7 @@ const Solo2Props = (() => {
      *        round the wheels and the drops, drawn over the car), bombs (true: blobs thrown out on arcs) }
      */
     function column(g, t, cx, yb, yTop, o = {}) {
-        const sc = (o.w ?? 300) / 300, k = clamp(o.k ?? 1), d = C.drawing(t), t2 = C.onTwos(t), f = ((d % 2) + 2) % 2, L = 1 / sc, top = (yTop - yb) / sc;
+        const sc = (o.w ?? 300) / 300, k = clamp(o.k ?? 1), d = C.drawing(t), t2 = C.onTwos(t), f = ((d % 2) + 2) % 2, L = 1 / sc, top = (yTop - yb + 2) / sc - 12; // the cap's top just under the wheels, whatever the width
         if (top > -50 || k <= 0.02) return;
         g.save();
         g.translate(cx, yb);
@@ -478,7 +478,7 @@ const Solo2Props = (() => {
         return pts;
     };
     // one piece of the roof: rock in facets, a dark lip, stalactites that hang from it
-    function roofPiece(g, pts, seed, x0, x1, lit = 0) {
+    function roofPiece(g, pts, seed, x0, x1, lit = 0, whole = false) {
         const cols = { front: HR.wall, top: HR.wallL, side: HR.wallD }, r = Motion.rng(seed);
         // stalactites first: they hang behind the lip
         for (let x = x0 + 22 + r() * 20; x < x1 - 16; x += 44 + r() * 30) {
@@ -486,7 +486,8 @@ const Solo2Props = (() => {
             C.prism(g, cw([[x - w, y], [x + w, y], [x + dx, y + len]]), [7, -5], { front: HR.wall, top: HR.wallL, side: HR.wallD }, { lw: 3 });
             line(g, [[x - w * 0.35, y + 6], [x + dx - 1, y + len * 0.72]], 2.2, HR.wallL);
         }
-        C.prism(g, cw(pts), [22, -15], cols, { lw: 3.4 });
+        if (whole) C.poly(g, pts, { fill: cols.front, lw: 0 }); // before it breaks the roof is one rock: no seams
+        else C.prism(g, cw(pts), [22, -15], cols, { lw: 3.4 });
         g.save();
         C.trace(g, pts);
         g.clip();
@@ -499,7 +500,7 @@ const Solo2Props = (() => {
         C.poly(g, run.map(([x, y]) => [x, y - 9]), { ink: HR.deep, lw: 18, close: false });
         C.poly(g, run.map(([x, y]) => [x, y - 21]), { ink: lit > 0 ? '#dcd6f7' : HR.top, lw: 3, close: false });
         g.restore();
-        C.poly(g, pts, { ink: K.ink, lw: 3.4 });
+        if (!whole) C.poly(g, pts, { ink: K.ink, lw: 3.4 });
     }
     const slabPts = (j) => [...roofCut(j), ...edgeRun(ROOF_X[j], ROOF_X[j + 1]).slice(1, -1), ...roofCut(j + 1).reverse()];
     // where slab j has got to, `tb` seconds after the roof broke: [dx, dy, rotation, pivot]
@@ -587,17 +588,18 @@ const Solo2Props = (() => {
             C.poly(g, [[lerp(xl, 500, 0.4), 190], [lerp(xr, 500, 0.4), 190], [lerp(xr, 500, 0.4) + 60, 1010], [lerp(xl, 500, 0.4) - 60, 1010]], { fill: 'rgba(255,251,232,0.15)', lw: 0 });
         }
         // the roof: what holds at the two sides, then the six slabs
-        roofPiece(g, [[-30, -40], ...roofCut(0), ...edgeRun(-30, ROOF_X[0]).reverse().slice(1)], 'solo2-roofL', -30, ROOF_X[0]);
-        roofPiece(g, [...roofCut(6).reverse(), [1030, -40], ...edgeRun(ROOF_X[6], 1030).reverse().slice(0, -1)], 'solo2-roofR', ROOF_X[6], 1030);
+        roofPiece(g, [[-30, -40], ...roofCut(0), ...edgeRun(-30, ROOF_X[0]).reverse().slice(1)], 'solo2-roofL', -30, ROOF_X[0], 0, !open);
+        roofPiece(g, [...roofCut(6).reverse(), [1030, -40], ...edgeRun(ROOF_X[6], 1030).reverse().slice(0, -1)], 'solo2-roofR', ROOF_X[6], 1030, 0, !open);
         for (const j of [0, 5, 1, 4, 2, 3]) {
             const [dx, dy, a, pv] = slabAt(j, tb);
             g.save();
             g.translate(pv[0] + dx, pv[1] + dy);
             g.rotate(a);
             g.translate(-pv[0], -pv[1]);
-            roofPiece(g, slabPts(j), 'solo2-slab' + j, ROOF_X[j], ROOF_X[j + 1], open ? 1 : 0);
+            roofPiece(g, slabPts(j), 'solo2-slab' + j, ROOF_X[j], ROOF_X[j + 1], open ? 1 : 0, !open);
             g.restore();
         }
+        if (!open) line(g, edgeRun(-30, 1030), 3.4);
         // before it goes: the cuts open from the middle outwards, the moon in each
         if (!open && crack > 0) {
             [3, 2, 4, 1, 5].forEach((j, n) => {
@@ -617,7 +619,7 @@ const Solo2Props = (() => {
         if (tb <= 0) return;
         const r = Motion.rng('solo2-rubble');
         for (let i = 0; i < 16; i++) {
-            const x0 = 150 + r() * 700, vx = (x0 - 500) * (0.5 + r()), vy = -260 - r() * 380, sz = 7 + r() * 13, sp = (r() - 0.5) * 14, late = r() * 0.18, tt = tb - late;
+            const side = i % 2 ? 1 : -1, x0 = 500 + side * (190 + r() * 250), vx = side * (40 + 260 * r()), vy = -260 - r() * 380, sz = 7 + r() * 13, sp = (r() - 0.5) * 14, late = r() * 0.18, tt = tb - late;
             if (tt <= 0) continue;
             const x = x0 + vx * tt, y = 200 + vy * tt + 1500 * tt * tt, a = sp * tt;
             if (y > 1040) continue;
@@ -651,7 +653,8 @@ const Solo2Props = (() => {
      *   k: 0..1 how far it has bulged;  d: the drawing (the cracks flicker);  lw: the outline in these units
      */
     function mound(g, k, d, lw = 3.2) {
-        const H = 104 * k, lift = (x, y) => [x, y - hump(x, y, H)];
+        const H = 112 * k, lift = (x, y) => [x, y - hump(x, y, H)];
+        const crown = (x) => 46 * k * Math.sqrt(Math.max(0, 1 - (x / 306) ** 2)); // the sand that shows behind the road's far edge
         g.save();
         g.lineJoin = 'round';
         g.lineCap = 'round';
@@ -666,7 +669,7 @@ const Solo2Props = (() => {
             let best = 1e9;
             const yb = 96 * Math.sqrt(Math.max(0, 1 - (x / 318) ** 2));
             for (let y = -yb; y <= yb; y += 6) best = Math.min(best, y - hump(x, y, H));
-            far.push([x, Math.min(best, -yb)]);
+            far.push([x, Math.min(best, -yb, -46 - hump(x, -46, H) - crown(x))]);
             near.push([x, yb]);
         }
         const body = [...far, ...near.reverse()];
@@ -695,20 +698,29 @@ const Solo2Props = (() => {
             line(g, pts, 8, DES.roadLine);
         }
         if (k > 0.02) {
-            const glow = (pts, w) => {
-                line(g, pts, w + lw * 2);
-                line(g, pts, w, DES.warm);
-                if (w > 3) line(g, pts, w * 0.45, d % 2 ? DES.hot : '#fffbe8');
+            // a crack: dark, the fire's light in the middle of it
+            const crack = (pts, w) => {
+                line(g, pts, w + lw * 1.5);
+                line(g, pts, w * 0.55, d % 2 ? DES.warm : DES.hot);
             };
-            // the crown splits along the far shoulder: the light comes out of it
-            glow(zigzag('solo2-fissure', [-236, -52], [236, -52], 13, 9).map(([x, y]) => lift(x, y)), 5 + 20 * k);
+            // the crown splits behind the road: the light comes out of there
+            const fis = zigzag('solo2-fissure', [-236, 0], [236, 0], 15, 8).map(([x, y]) => [x, -46 - hump(x, -46, H) - crown(x) * 0.5 + y]);
+            line(g, fis, 12 * k + lw * 2);
+            line(g, fis, 12 * k, DES.warm);
+            line(g, fis, 5.5 * k, d % 2 ? DES.hot : '#fffbe8');
             // the road breaks into slabs, the sand cracks round the foot
-            [-206, -118, -34, 62, 146, 228].forEach((x, i) => glow(zigzag('solo2-rc' + i, [x - 12, -52], [x + 14, 50], 5, 7).map(([px, py]) => lift(px, py)), 2 + 9 * k * (i % 2 ? 0.7 : 1)));
-            [[-150, 70, -214, 124], [40, 82, 70, 140], [214, 60, 300, 104], [-300, 30, -392, 62], [318, 6, 420, 30]].forEach(([x0, y0, x1, y1], i) => {
+            [-206, -118, -34, 62, 146, 228].forEach((x, i) => crack(zigzag('solo2-rc' + i, [x - 14, -47], [x + 16, 47], 6, 8).map(([px, py]) => lift(px, py)), 1.5 + 4.5 * k * (i % 2 ? 0.7 : 1)));
+            [[-150, 70, -214, 124], [40, 82, 70, 140], [214, 60, 300, 104], [-300, 30, -392, 62], [318, 6, 420, 30], [-60, -70, -96, -108], [130, -64, 178, -100]].forEach(([x0, y0, x1, y1], i) => {
                 const pts = zigzag('solo2-sc' + i, [x0, y0], [x1, y1], 4, 7).map(([px, py]) => lift(px, py));
                 line(g, pts.slice(0, Math.max(2, Math.ceil(pts.length * k))), lw * 1.6);
                 line(g, pts.slice(0, Math.max(2, Math.ceil(pts.length * k) - 1)), lw * 0.6, DES.warm);
             });
+            // stones hop round its foot
+            const rp = Motion.rng('solo2-pebbles');
+            for (let i = 0; i < 9; i++) {
+                const a = rp() * TAU, x = Math.cos(a) * (330 + rp() * 70), y = 14 + Math.sin(a) * (100 + rp() * 22), sz = 5 + rp() * 6, hop = [0, 12, 18, 9][(d + i) % 4] * k;
+                C.poly(g, [[x - sz, y - hop], [x - sz * 0.2, y - sz - hop], [x + sz, y - sz * 0.3 - hop], [x + sz * 0.5, y + sz * 0.6 - hop]], { fill: i % 2 ? DES.sandL : DES.sandD, ink: K.ink, lw: lw * 0.8 });
+            }
         }
         g.restore();
     }
@@ -742,14 +754,14 @@ const Solo2Props = (() => {
     // the dust the burst lifts (crater units): the 'back' half goes up behind the car, the 'front' half rolls towards us
     function dust(g, tb, part, lw = 3.2) {
         if (tb < 0) return;
-        const r = Motion.rng('solo2-dust:' + part), grow = 1 - Math.pow(1 - clamp(tb / 0.16), 3), fade = 1 - clamp((tb - 0.36) / 0.72), e = 1 - Math.pow(1 - clamp(tb / 1.1), 2.2), list = [];
+        const r = Motion.rng('solo2-dust:' + part), grow = 0.6 + 0.4 * (1 - Math.pow(1 - clamp(tb / 0.16), 3)), fade = 1 - clamp((tb - 0.36) / 0.72), e = 1 - Math.pow(1 - clamp(tb / 1.1), 2.2), list = [];
         const n = part === 'front' ? 13 : 11;
         for (let i = 0; i < n; i++) {
             const u = i / (n - 1), a = part === 'front' ? lerp(0.08, PI - 0.08, u) : lerp(PI + 0.25, TAU - 0.25, u), jr = r(), jk = r();
             const reach = 150 + (300 + 180 * jr) * e, x = Math.cos(a) * reach * 1.15, y = part === 'front' ? 46 + Math.sin(a) * (30 + 74 * e) + 30 * jr : -20 + Math.sin(a) * reach * (0.5 + 0.3 * jk) - 60 * e;
             list.push([x, y, (62 + 62 * jk) * grow * Math.max(0, fade - 0.25 * jr)]);
         }
-        if (part === 'front') for (let i = 0; i < 6; i++) list.push([lerp(-330, 330, i / 5) * (0.6 + 0.6 * e), 96 + 40 * e + 20 * r(), (80 + 30 * r()) * grow * fade]);
+        if (part === 'front') for (let i = 0; i < 9; i++) list.push([lerp(-490, 490, i / 8) * (0.9 + 0.35 * e), 84 + 40 * e + 24 * r(), (74 + 36 * r()) * grow * fade]);
         puffs(g, list, DES.dust, DES.dustL, lw);
     }
 

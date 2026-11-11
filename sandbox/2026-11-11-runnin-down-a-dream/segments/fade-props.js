@@ -477,7 +477,7 @@ const FadeProps = (() => {
         });
         if (cursor) {
             g.beginPath();
-            g.rect(chars.length * OSD.adv, -OSD.h, OSD.w, OSD.h);
+            g.rect(chars.length * OSD.adv + 5, -OSD.h, OSD.w, OSD.h);
             g.fill();
             g.stroke();
         }
