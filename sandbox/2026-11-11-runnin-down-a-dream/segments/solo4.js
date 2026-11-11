@@ -286,7 +286,7 @@
             else ride();
         });
         for (const i of [3, 2, 1, 0]) hanger(g, i, t);
-        for (const who of [1, 2, 0]) angel(g, who, t);
+        for (const who of [2, 0, 1]) angel(g, who, t);
         if (whip) R.whip(g, whip.x, whip.y, CS, whip.ang, whip.bend, t);
         R.moonStage(g, t, { part: 'front' });
         w1.forEach((p, i) => R.dustBurst(g, p.x, p.y, CS, d1, { seed: 'touch' + i, t, a: p.rot, part: 'front', dir: -1, n: 6 }));

@@ -482,7 +482,7 @@
             if (age < 0) continue;
             const u = age / (dur * 0.9 + 0.25);
             if (u >= 1) continue;
-            const p = arc(from, to, u, 170 + 30 * (i % 2)), k = Math.min(1, 0.6 + u * 4) * (1 - smooth(seg(u, 0.78, 1)));
+            const p = arc(from, to, u, 230 + 30 * (i % 2)), k = Math.min(1, 0.6 + u * 4) * (1 - smooth(seg(u, 0.78, 1)));
             C.note(g, p[0], p[1], 40 * k, { color: col, ink: K.ink, lw: 3, kind: i % 3 === 1 ? 2 : 1, rot: (Math.round(age * 12) % 2 ? 0.16 : -0.14) });
         }
     }
@@ -509,14 +509,14 @@
         const tom = { headTilt: 0.1 * side * inn, lean: 0.035 * side * inn, squash: 0.045 * pu + 0.1 * hit(t, STEP_UP + 3 / 12, 0.17) };
         const R = ride(g, t, TX, TY, s, { solo: mk, mike, devil, tom, tomAt, hop: { tom: 0.42 * Math.sin(PI * up) }, cactus: { side, k: Math.cos(ph * PI), lean: 0.09 * side * inn }, bounce: 0.2 * pu });
         dust();
-        // the phrases, in each player's colour, from his strings over to the other's head
-        const mp = BandStrings.points('mike', { ...mike, solo: mk }), mAt = [TX + (MIKE_AT[0] + mp.strings[0]) * s, TY + (SEATS.deckY - 0.08 + mp.strings[1]) * s];
-        const gp = I.guitarPoints(R.dp), dAt = [R.hood[0] + gp.strings[0] * s, R.hood[1] + gp.strings[1] * s];
+        // the phrases, in each player's colour: off his headstock, over Tom and the cactus, down to the other's head
+        const mp = BandStrings.points('mike', { ...mike, solo: mk }), mAt = [TX + (MIKE_AT[0] + 0.06 + mp.headstock[0]) * s, TY + (SEATS.deckY - 0.08 + mp.headstock[1]) * s];
+        const gp = I.guitarPoints(R.dp), dAt = [R.hood[0] + gp.headstock[0] * s, R.hood[1] + gp.headstock[1] * s];
         for (let i = 0; i < TURNS.length - 1; i++) {
             const [a, who] = TURNS[i], dur = TURNS[i + 1][0] - a;
             if (!on(t, a)) continue;
-            if (who === 'm') phrase(g, t, [mAt[0] + 0.4 * s, mAt[1] - 0.9 * s], [R.hood[0] - 0.1 * s, R.hood[1] - 2.7 * s], a, dur, K.gold, dur > 0.5 ? 4 : 2);
-            else phrase(g, t, [dAt[0] - 0.5 * s, dAt[1] - 0.9 * s], [TX + (MIKE_AT[0] + 0.2) * s, TY - 3.0 * s], a, dur, K.pink, dur > 0.5 ? 4 : 2);
+            if (who === 'm') phrase(g, t, [mAt[0] + 0.1 * s, mAt[1] - 0.4 * s], [R.hood[0] - 0.1 * s, R.hood[1] - 2.75 * s], a, dur, K.gold, dur > 0.5 ? 4 : 2);
+            else phrase(g, t, [dAt[0] - 0.1 * s, dAt[1] - 0.4 * s], [TX + (MIKE_AT[0] + 0.1) * s, TY - 3.1 * s], a, dur, K.pink, dur > 0.5 ? 4 : 2);
         }
         g.restore();
     }
@@ -706,7 +706,33 @@
     const PM = { x: 500, y: 640, r: 460 }, PS = 54; // the disc; everybody's scale
     const PCAR = [520, 752], PHEARSE = [506, 900];
     const CHORDS = [T_POSTER, at(40), at(44)]; // a windmill comes down on the first beat of each bar
-    const PV = { P: (x, y) => [x, y], s: PS, z: 1 };
+    const PV = { P: (x, y) => [x, y], s: PS, z: 1 }, P_ROT = 0.25;
+    // No shape touches a letter: the craters and boulders the poster's moon would put behind the
+    // title (and the boulder over the trumpet's halo) are cleared off it. Skyward.moon places them
+    // from these tables (skyward.js's M_CRATERS, M_LITTLE and M_ROCKS, turned by its tilt and by `rot`).
+    const M_HOLES = [[0.02, -0.74, 0.105], [0.62, -0.5, 0.05], [-0.68, -0.42, 0.045], [0.3, -0.78, 0.04], [-0.3, -0.72, 0.035]];
+    const turned = ([bx, by, bs]) => [...rot([bx, by], -0.3 + P_ROT), bs];
+    const P_CLEAR = { holes: M_HOLES.map(turned).filter(([, y]) => y < -0.48), rocks: M_ROCKS.map(turned).filter(([, y]) => y < -0.4) };
+    function clearTitle(g, x, y, r) {
+        g.save();
+        g.translate(x, y);
+        g.rotate(P_ROT);
+        g.beginPath();
+        g.arc(0, 0, r - 3.6, 0, TAU); // inside its outline
+        g.clip();
+        g.fillStyle = W.MOON.cream;
+        g.beginPath();
+        for (const [hx, hy, hr] of P_CLEAR.holes.map(([px, py, pr]) => [...rot([px, py], -P_ROT), pr])) {
+            g.moveTo(hx * r + hr * r * 1.34, hy * r);
+            g.arc(hx * r + hr * r * 0.04, hy * r + hr * r * 0.05, hr * r * 1.3, 0, TAU);
+        }
+        for (const [kx, ky, ks] of P_CLEAR.rocks.map(([px, py, ps]) => [...rot([px, py], -P_ROT), ps])) {
+            g.moveTo((kx + 0.24 * ks + 1.36 * ks) * r, (ky - 0.2 * ks) * r);
+            g.ellipse((kx + 0.24 * ks) * r, (ky - 0.2 * ks) * r, 1.36 * ks * r, 0.64 * ks * r, 0, 0, TAU);
+        }
+        g.fill();
+        g.restore();
+    }
     function poster(g, t) {
         const P = S.pulseAt(t), ph = P.k + P.since, pu = P.pulse, d = C.drawing(t), s = PS, even = P.k % 2 === 0;
         const chord = CHORDS.filter((c) => on(t, c)).pop(), next = CHORDS.find((c) => !on(t, c)), wind = next ? windAt(t, next) : null;
@@ -723,7 +749,8 @@
         earth(g, 102, 316, 34, t);
         Q.sun(g, 874, 334, 38, t);
         const look = [[0.5, 0.8], [-0.5, 0.8], [0, 1]][Math.floor(ph / 2) % 3];
-        W.moon(g, PM.x, PM.y + dy, PM.r * (1 + 0.012 * bang), { glow: 0.7 + 0.3 * pu, rot: 0.25, face: 1, wink: 1, smile: 0, look, t });
+        W.moon(g, PM.x, PM.y + dy, PM.r * (1 + 0.012 * bang), { glow: 0.7 + 0.3 * pu, rot: P_ROT, face: 1, wink: 1, smile: 0, look, t });
+        clearTitle(g, PM.x, PM.y + dy, PM.r * (1 + 0.012 * bang));
         Q.title(g, t, 500, 182, { at: [T_POSTER, T_POSTER + 2 * FR, T_POSTER + 4 * FR], k: 0.9 });
         g.save();
         g.translate(0, dy);
