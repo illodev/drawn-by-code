@@ -47,7 +47,7 @@
         return (t) => {
             let i = -1;
             for (let j = 0; j < full.length; j++) if (on(t, full[j].at)) i = j;
-            if (i < 0) return base;
+            if (i < 0) return { ...base }; // a copy: the shots add to it, and a shared pose would carry that into the next frame
             const k = full[i], prev = i ? full[i - 1].pose : base, u = E.seg(twos(t, k.at), k.at, k.at + k.dur);
             if (k.kind === 'ease') return { ...mix(prev, k.pose, E.inOut(u)), face: u >= 0.4 ? k.pose.face : prev.face };
             return { ...mix(prev, k.pose, 0.6 + 0.4 * E.back(u)), face: k.pose.face }; // the face is a new drawing, whole, on the hit's own frame

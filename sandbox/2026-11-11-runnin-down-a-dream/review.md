@@ -393,3 +393,24 @@ song, so it can be read. The fade block's agent was told while it worked.
   fretting arm once it was in sight, Benmont's left arm when he leans). Every stub-arm drawer
   (the band's, the Devil's and its copies in the blocks) now bends an arm shorter than 0.3 units
   at an elbow out to its side; longer arms are drawn exactly as before.
+
+## Round 11 (user) · the whole film, 4:24
+
+> «El tridente se queda detrás del cuadro» (the framed autograph, with the fork's tips under it)
+> «El que dije antes: los brazos del demonio atraviesan el balcón» (the box in the house view)
+> The signature on the final blue, the cactus at the wheel and the small title on the marquee
+> are fine as they are; the reference video is not credited, since this is not a copy of it.
+
+- **The arms through the balcony were state carried between frames.** Round 10 answered the
+  wrong picture (the pegs in the close shot). What the user saw is the head-bang in the house
+  view (2:44–2:45): the block's pose track returned its *shared* base object before its first
+  key, and the shot added the head-bang to it (`pose.headDy += …`, `pose.squash += …`), so every
+  frame started from the last one's pose. Played in order, the Devil sank behind the rail until
+  only his horns showed and his arms slid down the front of the box. A still asked for on its
+  own never showed it, and `review.mjs` tests three frames of the film for this. The track now
+  returns a copy; `tools/check-state.mjs` paints one frame every half second, then the frame
+  before it and itself again, and compares (it found exactly this stretch, and nothing after
+  the fix).
+- **The trident and the frame.** The trident in the umbrella stand reached 15 units up behind
+  the frame's lower edge: its tips showed under the frame in the wide shot and in the push-in.
+  It is shorter now and stands clear of the frame.

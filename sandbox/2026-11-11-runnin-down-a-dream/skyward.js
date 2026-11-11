@@ -2583,7 +2583,7 @@ const Skyward = (() => {
         g.save();
         g.translate(ux + 8, uy - 196);
         g.scale(150, 150);
-        Devil.trident(g, 0, 0, 3.2 / 150, { ang: 0.1, len: 2.3, grip: 1.26 });
+        Devil.trident(g, 0, 0, 3.2 / 150, { ang: 0.1, len: 2.06, grip: 1.26 }); // short enough for its tips to stand clear under the frame on the wall
         g.restore();
         // a furled umbrella: a hooked handle, a tight roll of cloth, a tip
         const um = (u) => [ux - 14 - u * 26, uy - 12 - u * 250];
