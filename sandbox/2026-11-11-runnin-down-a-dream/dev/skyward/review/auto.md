@@ -5,7 +5,6 @@
 ## Warnings
 
 - **Flashes** more than 3 per second (photosensitivity risk): 34–35 s (4). Soften the brightness changes or lower the contrast.
-- **Transparent holes** (the empty canvas shows through: a background that doesn't cover the camera, or nothing painted) at 45.67 s (4.2 %), 45.83 s (4.2 %).
 
 ## Motion
 
@@ -22,7 +21,7 @@ Large jumps outside cuts (can be normal in dense patterns; check whether they bo
 
 ## Speed
 
-Painting: 140 ms/frame cold, 113 ms warm → full render ≈ 128 s at this size.
+Painting: 162 ms/frame cold, 129 ms warm → full render ≈ 146 s at this size.
 
 ## Contact sheet
 

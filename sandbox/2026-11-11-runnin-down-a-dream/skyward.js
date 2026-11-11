@@ -3,18 +3,22 @@
 // little town, through the clouds where angels cover their ears and then join in, and on to
 // the full moon. At the fade the Devil hangs Tom's autograph on his dressing-room wall.
 //
-//   Skyward.ascent(g, t, Y, o)        the vertical travelling backdrop (and ascentFront for what
-//                                     passes in front of the car); ZONES, at, site, moonAt
-//   Skyward.town(g, x, y, s, o)       the main street, seen from the side
-//   Skyward.angel(g, x, y, s, pose)   three angels; cloudBank, pearlyBits, harp, trumpet
-//   Skyward.moon(g, x, y, r, o)       the film's moon, close; landing, landingSlide
-//   Skyward.backstage(g, t, o)        the Devil's dressing room; autograph, frameAt, BACKSTAGE
+//   the climb     ascent(g, t, Y, o) the vertical travelling backdrop, ascentFront(…) what passes in
+//                 front of the car; ZONES, HEIGHTS, EYE, at(h, Y, f), horizon(Y), site(Y, o), moonAt(Y, o)
+//   the town      town(g, x, y, s, o) the main street seen from the side; TOWN_AT
+//   the angels    angel(g, x, y, s, pose), angelPoints(pose), flap(t, rate), harp, trumpet;
+//                 cloudBank(g, x, y, s, o), bankBob(t, seed, bob), pearlyBits(g, x, y, s, o)
+//   the moon      moon(g, x, y, r, o); landing(g, x, y, s, k, o), landingSlide(k), landingAt(moon, a, s, k)
+//   backstage     backstage(g, t, o) the Devil's dressing room; autograph(g, x, y, s, o), frameAt(fr), BACKSTAGE
 //
 // Units: the frame is 1000 × 1000 logical. People and props are in figure units as in cast.js
 // (1 ≈ a head's width, a standing person is about 1.9 tall, `s` = logical units per figure
 // unit); y grows downwards; oblique projection with the cast's D. Everything is a pure
-// function of its arguments. Every drawer is documented where it is defined.
-// Global: Skyward. Depends on Cereal, Cast (arms, feet) and Devil (his palette, his trident).
+// function of its arguments (seeded with Motion.rng; things that tick take a time in seconds
+// and change on twos). Every drawer is documented where it is defined; dev/skyward/scene.js
+// stages each one. The only lettering anywhere is on the autograph.
+// Global: Skyward. Depends on Cereal, Cast (legs, arms) and Devil (his palette, his trident);
+// uses Inferno.guitar and Fx.flame for the guitar in the dressing room when they are loaded.
 const Skyward = (() => {
     const C = Cereal, K = C.COL, TAU = Math.PI * 2;
     const D = [0.3, -0.2]; // the same as Cast.D: screen offset per unit of depth
@@ -40,7 +44,6 @@ const Skyward = (() => {
         }
         return a > 0 ? pts : pts.slice().reverse();
     };
-    const shift = (pts, d) => pts.map(([x, y]) => [x + d[0], y + d[1]]);
     const circ = (g, x, y, r, fill, lw = 0, ink = K.ink) => {
         g.beginPath();
         g.arc(x, y, r, 0, TAU);
@@ -128,14 +131,14 @@ const Skyward = (() => {
             g.fill();
         }
     }
-    // A static piece painted once per output scale and pasted (Motion.sprite). The scale is
-    // rounded up to a step, so a camera that zooms makes a handful of sprites, not one a frame.
+    // A static piece painted once and pasted (Motion.sprite), when the canvas is at one of the
+    // output scales (a multiple of 0.12: 960, 1080, 1920 px…) and not shifted by a fraction of a
+    // pixel; under any other camera it is simply painted, so the result never depends on what
+    // was drawn before. The box must be a multiple of 50 units so its pixels are whole.
     function cached(g, key, box, draw) {
-        const m = g.getTransform();
-        if (Math.abs(m.b) > 1e-6 || Math.abs(m.c) > 1e-6 || m.a <= 0) return draw(g);
-        const step = Math.pow(2, Math.ceil(Math.log2(m.a) * 4 - 1e-6) / 4);
-        if (box.w * step * box.h * step > 3.6e7) return draw(g);
-        Motion.sprite('skyward:' + key, box, step, draw).draw(g);
+        const m = g.getTransform(), q = m.a / 0.12, whole = (v) => Math.abs(v - Math.round(v)) < 1e-3;
+        if (Math.abs(m.b) > 1e-6 || Math.abs(m.c) > 1e-6 || Math.abs(m.a - m.d) > 1e-6 || !whole(q) || !whole(m.e) || !whole(m.f) || m.a > 4.4) return draw(g);
+        Motion.sprite('skyward:' + key, box, m.a, draw).draw(g);
     }
 
     // =========================================================================================
@@ -472,7 +475,7 @@ const Skyward = (() => {
     // deck: the camera is level with the cloud tops (they are at y = EYE; below this the tops are
     // still coming down the frame, above it the floor of cumulus spreads out and sinks);
     // limbGone: the planet has left the bottom of the frame; moonGrows: the moon comes closer.
-    const HEIGHTS = { crater: 0, cloudBase: 1780, inCloud: [3110, 3260], deck: 4000, limbGone: 9800, moonGrows: [8600, TOP], top: TOP };
+    const HEIGHTS = { crater: 0, cloudBase: 1780, inCloud: [3110, 3440], deck: 4000, limbGone: 9800, moonGrows: [8600, TOP], top: TOP };
     const DECK = HEIGHTS.deck, MASS = 1600; // the big cloud's thickness on screen
     // Screen y of something at height h on a layer that takes the share f of the camera's
     // climb (1 = it is at the car's distance): it crosses the eye line when Y = h.
@@ -1033,6 +1036,7 @@ const Skyward = (() => {
      * Draw the car after it, then Skyward.ascentFront with the same arguments.
      */
     function ascent(g, t, Y, o = {}) {
+        Y = Math.max(0, Y);
         const dawn = clamp(o.dawn ?? (o.theme === 'dawn' ? 1 : 0)), P = mixAll(SKY.night, SKY.dawn, dawn), d = C.drawing(t);
         const ox = o.x ?? 0, hor = horizon(Y), sp = smooth(seg(Y, 5000, 9500));
         const mk = smooth(seg(Y, HEIGHTS.moonGrows[0], TOP)), mn = moonAt(Y, o);
@@ -1117,6 +1121,7 @@ const Skyward = (() => {
      * cloud the car bursts out of at the cloud tops, and a few of the speed lines.
      */
     function ascentFront(g, t, Y, o = {}) {
+        Y = Math.max(0, Y);
         const dawn = clamp(o.dawn ?? (o.theme === 'dawn' ? 1 : 0)), P = mixAll(SKY.night, SKY.dawn, dawn), ox = o.x ?? 0;
         g.save();
         g.lineJoin = 'round';
@@ -1174,7 +1179,7 @@ const Skyward = (() => {
 
     // A tiny box person (0.8 of a figure): pose { up 0..1 (looks up), arm 0..1 (a mitt goes up to
     // the brow), hop, hat 0..1 (it flies off), dir (which way), mouth open with up }.
-    function folk(g, x, y, L0, F, pose, d) {
+    function folk(g, x, y, L0, F, pose) {
         const K8 = 0.8, L = L0 / K8, up = pose.up ?? 0, hat = pose.hat ?? 0, dir = pose.dir ?? 1;
         const c = { shirt: shade3(F.top), hair: shade3(F.hair) };
         const P = { ink: K.ink, shoe: F.shoe, shoeTop: mix(F.shoe, '#ffffff', 0.25), shoeSide: mix(F.shoe, '#241531', 0.3), sole: '#fffdf4', jeans: F.leg, jeansSide: mix(F.leg, '#241531', 0.3),
@@ -1544,7 +1549,7 @@ const Skyward = (() => {
                     g.stroke();
                 }
             }
-            C.box(g, x0 + 0.1, yb + 0.0 - 0.0 - 0.1, 0.8, 0.1, D, { front: T.step, top: T.kerbTop, side: T.kerbSide }, { lw: L * 0.8, depth: 0.3 });
+            C.box(g, x0 + 0.1, yb - 0.1, 0.8, 0.1, D, { front: T.step, top: T.kerbTop, side: T.kerbSide }, { lw: L * 0.8, depth: 0.3 });
             // the roof slab and the neon line along it
             C.box(g, x0 - 0.15, yb - h - 0.2, w + 0.3, 0.2, D, { front: T.roof, top: T.roofTop, side: T.roofSide }, { lw: L, depth: 1.5 });
             if (mid) neon(g, [[x0 - 0.08, yb - h - 0.1], [x0 + w + 0.08, yb - h - 0.1]], T.neonAqua, L * 0.8, on(0.55));
@@ -1594,7 +1599,7 @@ const Skyward = (() => {
                 g.save();
                 g.translate(fx, -0.12);
                 g.scale(0.74 + 0.26 * back(a), 0.74 + 0.26 * back(a));
-                folk(g, 0, 0, L, F, { up, arm, hat, dir, hop }, d);
+                folk(g, 0, 0, L, F, { up, arm, hat, dir, hop });
                 g.restore();
             });
         }
@@ -1641,7 +1646,7 @@ const Skyward = (() => {
      * of a figure unit tall); the caller's units are figure units and L its line width.
      */
     function harp(g, L0, x, y, ang = 0, sc = 1, pluck = 0) {
-        const A = ANGEL, L = L0 / sc, at = (p) => {
+        const A = ANGEL, at = (p) => {
             const q = rot(p, ang);
             return [x + q[0] * sc, y + q[1] * sc];
         };
@@ -1719,7 +1724,7 @@ const Skyward = (() => {
         for (const [p, q] of [[[0.5, 0.05], [0.34, 0.0]], [[0.4, 0.17], [0.26, 0.07]], [[0.26, 0.26], [0.16, 0.12]]]) line(g, [at(p), at(q)], L * 0.8, A.wingLine);
     }
 
-    function angelHead(g, P, L, who, mood, o) {
+    function angelHead(g, P, L, who, mood) {
         const A = ANGEL, { w, h, top, d } = A_HEAD, x0 = -w / 2, x1 = w / 2, bot = top + h, fx = 0.31, fy = top + 0.2;
         const panel = [[-fx, fy], [fx, fy], [fx, bot - 0.1], [fx - 0.09, bot - 0.005], [-fx + 0.09, bot - 0.005], [-fx, bot - 0.1]];
         if (who === 2) {
@@ -1771,7 +1776,7 @@ const Skyward = (() => {
             line(g, [[0.1, fy + 0.02], [0.07, top]], L * 0.7, P.hairLine);
         }
         // --- the face
-        const ey = top + 0.5 + (who === 1 ? -0.02 : 0), my = top + 0.74, dip = who === 1 ? -0.06 : 0;
+        const ey = top + 0.5 + (who === 1 ? -0.02 : 0), my = top + 0.74;
         const eye = (sx, kind) => {
             const ex = sx * 0.155, ew = 0.075;
             if (kind === 'shut') line(g, [[ex - 0.065, ey + 0.02], [ex, ey + 0.055], [ex + 0.065, ey + 0.02]], L * 1.15, A.eye);
@@ -1793,7 +1798,7 @@ const Skyward = (() => {
         line(g, [[0.012, ey + 0.05], [0.012, ey + 0.145], [0.05, ey + 0.145]], L * 0.85);
         // the mouth
         const mouthBox = (mw, mh, teeth) => {
-            const y0 = my - mh / 2 + 0.01 - dip * 0;
+            const y0 = my - mh / 2 + 0.01;
             g.save();
             g.beginPath();
             g.roundRect(-mw / 2, y0, mw, mh, [0.02, 0.02, mh * 0.48, mh * 0.48]);
@@ -1903,7 +1908,8 @@ const Skyward = (() => {
         const dn = ([px, py]) => [px, py + sit];
         return { halo: dn(haloAt(pose)), handR: dn(h.R), handL: dn(h.L), mouth: dn([0, A_HEAD.top + 0.75 + (pose.headDy ?? 0)]), head: dn([0, A_HEAD.top + (pose.headDy ?? 0)]) };
     }
-    const flap = (t, rate = 3) => [0.15, 0.6, 1, 0.55][((Math.floor(C.drawing(t) * (rate / 3) * 0.5) % 4) + 4) % 4];
+    // A wing beat that changes on twos: four drawings a beat at `rate` beats a second (3 = a new drawing every time).
+    const flap = (t, rate = 3) => [0.15, 0.6, 1, 0.55][((Math.floor((C.drawing(t) * rate) / 3) % 4) + 4) % 4];
 
     function angel(g, x, y, s, pose = {}) {
         const A = ANGEL, who = pose.who ?? 0, P = WHO[who] ?? WHO[0], mood = pose.mood ?? 'serene', L = 3.2 / s, q = pose.squash ?? 0, fl = clamp(pose.flap ?? 0.3);
@@ -1979,7 +1985,7 @@ const Skyward = (() => {
         g.save();
         g.translate(0, pose.headDy ?? 0);
         g.rotate(pose.headTilt ?? 0);
-        angelHead(g, P, L, who, mood, pose);
+        angelHead(g, P, L, who, mood);
         g.restore();
         const root = ob(0.0, A_HEAD.top + (pose.headDy ?? 0), 0.34), rim = [hp[0] + D[0] * 0.3 * Math.cos(tilt), hp[1] - 0.06 + Math.sin(tilt) * 0.02];
         const wire = C.curve([root, [root[0] + 0.05, root[1] - 0.09], [root[0] - 0.03, lerp(root[1], rim[1], 0.55)], rim], false, 6);
@@ -2201,9 +2207,10 @@ const Skyward = (() => {
      *   frame     the autograph's scale (Skyward.autograph's s) when it hangs there
      *   devil     a mark for him ([x, y], s = 200): centre stage, under the nail
      *   guitar    { x, y, s }: where the guitar's tail rests in the stand's cradle, and its scale
-     *   floor     the y where the wall meets the floor;  tv, mirror, rack, trident: their middles
+     *   floor     the y where the wall meets the floor;  tv, mirror: the middle of the screen and of the
+     *             glass;  rack: the middle of the coat rail;  stand: the umbrella stand's foot
      */
-    const BACKSTAGE = { nail: [500, 206], frame: 236, devil: [500, 940], devilS: 200, guitar: { x: 846, y: 842, s: 150 }, floor: 780, tv: [171, 716], mirror: [210, 378], rack: [832, 520], trident: [372, 610] };
+    const BACKSTAGE = { nail: [500, 150], frame: 250, devil: [500, 940], devilS: 200, guitar: { x: 846, y: 842, s: 150 }, floor: 780, tv: [156, 738], mirror: [210, 382], rack: [835, 372], stand: [372, 802] };
     const A_W = 1.24, A_H = 1.08; // the framed autograph, in units of its s
 
     /**
@@ -2337,8 +2344,9 @@ const Skyward = (() => {
 
     // one of the framed things on the wall: [kind, x, y, w, h, tilt, moulding]
     const FRAMES = [
-        ['record', 104, 84, 112, 112, 0.03, 'gilt'], ['imps', 236, 100, 100, 84, -0.04, 'dark'], ['moon', 366, 92, 92, 104, 0.02, 'wood'], ['cactus', 548, 86, 86, 108, -0.03, 'gilt'],
-        ['snow', 662, 104, 80, 80, 0.05, 'dark'], ['scroll', 768, 90, 124, 92, -0.02, 'wood'], ['heart', 694, 214, 96, 112, 0.03, 'wood'], ['forks', 812, 204, 118, 96, -0.03, 'gilt'],
+        ['record', 98, 84, 108, 108, 0.03, 'gilt'], ['scroll', 216, 96, 118, 88, -0.03, 'wood'],
+        ['cactus', 676, 86, 80, 106, -0.03, 'gilt'], ['moon', 764, 90, 86, 102, 0.02, 'wood'], ['snow', 858, 102, 74, 74, 0.05, 'dark'],
+        ['heart', 676, 212, 86, 108, 0.03, 'wood'], ['imps', 770, 218, 90, 80, -0.04, 'dark'], ['forks', 868, 208, 78, 96, -0.03, 'gilt'],
     ];
     function wallFrame(g, [kind, x, y, w, h, tilt, mould]) {
         const cols = { gilt: { front: GILT.front, top: GILT.top, side: GILT.side }, dark: { front: ROOM.iron, top: ROOM.ironTop, side: ROOM.ironSide }, wood: { front: ROOM.wood, top: ROOM.woodTop, side: ROOM.woodSide } }[mould];
@@ -2585,7 +2593,6 @@ const Skyward = (() => {
         line(g, [[um(0.8)[0] - 2, um(0.8)[1]], [um(0.34)[0] + 4, um(0.34)[1]]], 2, '#4a4470');
         line(g, [[um(0.58)[0] - 9, um(0.58)[1]], [um(0.58)[0] + 10, um(0.58)[1] + 2]], 3, '#e0258b');
         // the stand in front of what is in it: a drum with two gold bands
-        const drumPts = [[ux - 30, uy - 92], ...C.ellipsePts(ux, uy, 30, 9, 16, 0, Math.PI, 0).reverse(), [ux + 30, uy - 92]];
         C.poly(g, [[ux - 30, uy - 92], [ux - 30, uy], ...C.ellipsePts(ux, uy, 30, 9, 16, 0, Math.PI, 0).reverse().slice(1, -1), [ux + 30, uy], [ux + 30, uy - 92], ...C.ellipsePts(ux, uy - 92, 30, 9, 16, 0, 0, Math.PI).slice(1, -1)], { fill: R.iron, ink: K.ink, lw: 3 });
         g.save();
         C.trace(g, [[ux - 30, uy - 92], [ux - 30, uy], ...C.ellipsePts(ux, uy, 30, 9, 16, 0, Math.PI, 0).reverse().slice(1, -1), [ux + 30, uy], [ux + 30, uy - 92], ...C.ellipsePts(ux, uy - 92, 30, 9, 16, 0, 0, Math.PI).slice(1, -1)]);
@@ -2597,7 +2604,6 @@ const Skyward = (() => {
         for (const by of [70, 18]) C.poly(g, C.ellipsePts(ux, uy - by, 30, 9, 16, 0, 0, Math.PI), { ink: K.ink, lw: 9, close: false });
         for (const by of [70, 18]) C.poly(g, C.ellipsePts(ux, uy - by, 30, 9, 16, 0, 0, Math.PI), { ink: GILT.front, lw: 4.6, close: false });
         g.restore();
-        void drumPts;
         // --- the TV on its trolley, the VCR under it, tapes on the shelf
         const tx = 84, ty = 838; // the trolley's top, front left
         for (const lx of [tx + 4, tx + 164]) C.box(g, lx, ty + 8, 10, 72, [4, -2.7], chromeC, { lw: 3 });
@@ -2645,7 +2651,7 @@ const Skyward = (() => {
         leg([[G.x + 3, G.y - 1.86 * gs], [G.x + 3, G.y - 1.25 * gs]]);
         for (const [fx, fy] of [[G.x + 46, G.y + 46], [G.x - 44, G.y + 52], [G.x + 8, G.y + 60]]) rrect(g, fx - 9, fy - 4, 18, 9, 3, '#2a2438', 2.2);
         leg([[G.x - 40, G.y + 4], [G.x - 34, G.y + 12], [G.x + 40, G.y + 12], [G.x + 46, G.y + 4]]);
-        for (const fx of [G.x - 40, G.y * 0 + G.x + 46]) rrect(g, fx - 6, G.y - 8, 12, 15, 4, '#2a2438', 2.2);
+        for (const fx of [G.x - 40, G.x + 46]) rrect(g, fx - 6, G.y - 8, 12, 15, 4, '#2a2438', 2.2);
     }
 
     /**
@@ -2665,14 +2671,16 @@ const Skyward = (() => {
      *                its tail rests in the cradle, s its scale; the neck goes up into the yoke
      *        bulbs   0..1 the mirror's bulbs (default 1; they twinkle on twos)
      *        tv      'blue' (default) | 'off'
-     *        cache   false paints the still part every frame instead of once per output scale }
+     *        cache   false paints the still part every frame (it is otherwise painted once, when the
+     *                canvas is at an output scale and unshifted; under a moving camera it is painted
+     *                every frame anyway). The set bleeds 50 units past the frame on every side. }
      * Places: Skyward.BACKSTAGE (nail, devil's mark, guitar, floor…).
      */
     function backstage(g, t, o = {}) {
         const R = ROOM, d = C.drawing(t), G = BACKSTAGE.guitar;
         g.save();
         if (o.cache === false) roomStill(g);
-        else cached(g, 'backstage', { x: -60, y: -60, w: 1120, h: 1120 }, roomStill);
+        else cached(g, 'backstage', { x: -50, y: -50, w: 1100, h: 1100 }, roomStill);
         g.lineJoin = 'round';
         g.lineCap = 'round';
         // the nail
