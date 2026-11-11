@@ -128,6 +128,13 @@ Motion.scene({
             g.translate(-cx, -cy);
             S.backstage(g, tt, { frame: { k: 1 }, cache: false });
             g.restore();
+        } else if (sheet === 55) {
+            g.fillStyle = '#231e62';
+            g.fillRect(0, 0, 1000, 1000);
+        } else if (sheet >= 56) {
+            const Y = [[0, 900, 1700, 3000], [3700, 4150, 4600, 5500], [6800, 8000, 9300, 12000], [3320, 3950, 10800, 2500]][sheet - 56][v];
+            S.ascent(g, tt, Y, { speedLines: 1 });
+            S.ascentFront(g, tt, Y, { speedLines: 1 });
         } else if (sheet === 40) {
             night();
             stars();
@@ -163,6 +170,6 @@ Motion.scene({
     },
     post(ctx, t, env) {
         const sheet = Math.floor(t + 1e-6);
-        if (sheet < 24 || [30, 31, 33, 40, 41, 42, 50, 51].includes(sheet)) Cereal.post(ctx, t, env);
+        if (sheet < 24 || sheet >= 55 || [30, 31, 33, 40, 41, 42, 50, 51].includes(sheet)) Cereal.post(ctx, t, env);
     },
 });
