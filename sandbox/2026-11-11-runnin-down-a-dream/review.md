@@ -215,3 +215,37 @@ Nine frames of the assembled render looked at, among them both sides of the one 
 is not a cut (35.62 and 35.70): the car comes down and lands in place.
 
 Not done: the film has only been judged on frames, not heard against the track by anyone.
+
+## Round 5 (user) · the first minute, heard against the track
+
+> «Hay un par de detalles, Tom sigue cantando en partes en las que no canta y el cartel de
+> runnin' down a dream, el primero sale un poco tarde y el segundo sale cuando dicen
+> "Workin' on a mystery", te paso la letra entera» (the lyrics followed)
+
+> «Otro detalle es que en el estribillo hay coros, no me acuerdo quien canta en los coros
+> pero creo que te lo pasé antes. Y del 1:34 al 1:50 más o menos hay coros que dicen "uuhh
+> uuhhh…" en el solo > 2:51 también por partes cada cierto tiempo dicen "uuhh uuhhh"»
+
+Translation into changes:
+
+- The film had only been judged on frames; the user was the first to hear it. Mouths were
+  driven by a flag per shot («the vocal is in»), so Tom sang through every gap.
+- Where the voices are was measured on the track (no listening): the verses' lead sits in
+  the middle of the mix and the choruses' stacked voices and the «ooh» backing at its sides,
+  so mid against side, and side alone, per sixteenth against the riff's bars, show them. A
+  chorus is «Yeah» and five phrases in alternate bars. The windows are in `song.js`
+  (`Song.LEAD`, `Song.OOH`, `Song.singing(t)`, `Song.backing(t)`), good to about a
+  sixteenth; the solo's «ooh» windows are the least certain.
+- `rig.js`: Tom's mouth opens only inside `Song.singing`; Benmont and Stan (the backing
+  singers, by the line-up the user gave) sing inside `Song.backing`: the chorus's phrases
+  and the «ooh»s. Segments that forced a singing mouth follow the same clock.
+- Chorus 1's title: it popped a beat late and then again over «Workin' on a mystery». It now
+  comes on the phrases that say it: on the first («runnin' down a dream», from the bar's
+  second beat, the words as they are sung) and on the last (RUNNIN' with the big hit, the
+  rest as sung, held to the cut). The second one moved right and the falling contract left:
+  they collided on the first try.
+- The break (1:32–1:50) has «ooh»s and the film is in the Devil's TV spot there: the spot's
+  agent was told to give it a jingle choir of imps that sings them.
+- Word-by-word timing was not obtained: the transcription connector has no upload tool in
+  this session and its API is not reachable, and a fetch of public synced lyrics was
+  blocked by the session's permission system. The user's ear is the check.

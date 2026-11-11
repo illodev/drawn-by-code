@@ -360,7 +360,7 @@
             // Tom sings with his head back, and brings it down as the car does (the last frame is the rig's own pose)
             pose: {
                 tom: {
-                    headTilt: (-0.2 - 0.05 * P.pulse) * back, headDy: (-0.02 - 0.03 * top) * back, ...(back > 0.5 ? { mouth: d % 4 < 3 ? 'sing' : 'grin' } : {}),
+                    headTilt: (-0.2 - 0.05 * P.pulse) * back, headDy: (-0.02 - 0.03 * top) * back, ...(back > 0.5 && S.singing(t) ? { mouth: d % 4 < 3 ? 'sing' : 'grin' } : {}),
                     lean: -0.3 * Math.sin(Math.PI * tu) + 0.07 * Math.sin(3 * Math.PI * tu), squash: (swap ? -0.06 * arc : 0) + 0.14 * tomLand + (swap ? 0 : Rig.playing(t).tom.squash),
                 },
                 // the others watch him go over

@@ -108,7 +108,7 @@
         g.translate(-cx, -SET.LANE);
         Rig.band(g, t, cx, SET.LANE, SC, {
             spin: cx / (0.56 * SC) * 0.37, bounce: -0.35, exhaust: 1, sing: true,
-            pose: { tom: { headTilt: -0.2, mouth: 'sing', headDy: -0.02 }, mike: { headTilt: -0.08 }, howie: { headTilt: -0.06 }, ben: { headTilt: -0.08 }, stan: { headTilt: -0.06 } },
+            pose: { tom: { headTilt: -0.2, ...(S.singing(t) ? { mouth: 'sing' } : {}), headDy: -0.02 }, mike: { headTilt: -0.08 }, howie: { headTilt: -0.06 }, ben: { headTilt: -0.08 }, stan: { headTilt: -0.06 } },
         });
         g.restore();
         // dust off the back wheel, and speed lines across the tail

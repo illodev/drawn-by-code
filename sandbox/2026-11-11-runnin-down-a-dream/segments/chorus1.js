@@ -207,7 +207,7 @@
     function landing(g, t, env) {
         const cx = 520, Pu = S.pulseAt(t), d = C.drawing(t);
         world(g, t, WIDE);
-        P.title(g, t, TITLE[0], TITLE[1], { at: [n(3), n(4), n(5)], out: T27 - 7 * FR });
+        P.title(g, t, TITLE[0], TITLE[1], { at: [n(2), n(2.5), n(3)], out: T27 - 7 * FR }); // on the first phrase, as it is sung
         const bn = spring(t, T0), land = bump(t, T0, 0.3);
         // the cactus: it rides in on the far verge, the landing shakes it out of the ground, and
         // it comes down into the driver's seat on the snare; the shades drop on the kick after it
@@ -262,12 +262,11 @@
 
     // =========================================================================================
     // Shot 3 · «Chase», bars 28–30: the hearse comes up through the road and hunts them; every
-    // kick shoves it back. The title again.
+    // kick shoves it back.
     // =========================================================================================
     function chaseShot(g, t, env) {
         const Pu = S.pulseAt(t), d = C.drawing(t), kicks = [14, 16, 18, 20, 22].map(n); // the kick on the cut is left to the mound's entrance
         world(g, t, WIDE);
-        P.title(g, t, TITLE[0], TITLE[1], { at: [n(16), n(17), n(18)], out: T31 - 7 * FR });
         const outAt = n(13), landAt = n(14), x0 = HITS[0].base, MX = x0 + 215;
         const drum = drumAt(CX, 0.2 * Pu.pulse);
         // the mound that catches them up, then what is left of it
@@ -342,6 +341,9 @@
         // the flash behind the kit on the big one
         const fd = Math.floor((t - hitAt) * 12 + 1e-6);
         if (fd >= 0 && fd < 2) C.burst(g, drum[0] + 110, drum[1] - 70, { r0: 170 + 30 * fd, r1: 260 + 50 * fd, n: 15, seed: 'chorus1-hit', rot: fd * 0.12, fill: fd ? K.yellow : K.white, ink: K.ink, lw: 4 });
+        // the title again, on the chorus's last phrase («Runnin' down a dream»): RUNNIN' with the
+        // big hit, the rest as it is sung, held to the cut
+        P.title(g, t, 652, 306, { at: [n(32), n(34), n(34.5)], out: T34 + 1, k: 0.8 }); // to the right: the contract falls on the left
         band(g, t, cx, LANE, SC, {
             bounce: bn, driver: driving(t),
             pose: {
@@ -388,8 +390,8 @@
             const a = t - tc, perch = hearsePt(LAST.base, LANE, SC, 0, PERCH), tip = rot(tineTip(pz.handR, pz.trident.ang), pz.lean);
             const start = [perch[0] + tip[0] * SC, perch[1] + (tip[1] + 0.2) * SC];
             const up = E.out(E.seg(a, 0, 0.42)), fall = E.seg(a, 0.42, 1.6), sw = Math.sin((a - 0.42) * 6.2);
-            const x = E.lerp(start[0], 330, up) + (a > 0.42 ? 58 * sw - 60 * fall : 0), y = E.lerp(start[1], 330, up) + 170 * fall - (a > 0.42 ? 24 * Math.abs(sw) : 0);
-            const s = E.lerp(SC, 150, up) + 90 * fall;
+            const x = E.lerp(start[0], 205, up) + (a > 0.42 ? 30 * sw - 10 * fall : 0), y = E.lerp(start[1], 330, up) + 190 * fall - (a > 0.42 ? 24 * Math.abs(sw) : 0);
+            const s = E.lerp(SC, 140, up) + 60 * fall;
             const ang = a < 0.42 ? -C.TAU * 1.5 * E.out(E.seg(twos(t, tc) - tc, 0, 0.42)) + 0.2 : 0.2 + 0.5 * Math.sin((twos(t, tc) - tc - 0.42) * 6.2 + 0.6);
             g.save();
             g.translate(x, y);
