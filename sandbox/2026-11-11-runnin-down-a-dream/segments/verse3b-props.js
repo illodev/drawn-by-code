@@ -637,7 +637,7 @@ const Verse3bProps = (() => {
         const q = rot([p[0] - G.HINGE[0], p[1] - G.HINGE[1]], a);
         return [q[0] + G.HINGE[0], q[1] + G.HINGE[1]];
     };
-    const SHUT = -0.105;
+    const SHUT = -0.084;
     const strata = (g, pts, ys, x0, x1) => {
         g.save();
         C.trace(g, pts);
@@ -686,6 +686,32 @@ const Verse3bProps = (() => {
         C.trace(g, [...LOWER.slice(1, 8), ...LIP.map((p) => turn(p, a))]);
         g.clip();
         for (const [fx, fy, fs, sd] of [[236, 770, 96, 0], [318, 782, 120, 1], [150, 744, 70, 2]]) Fx.flame(g, fx, fy, fs * size * (1 + 0.14 * P.pulse * ((sd + P.k) % 2 ? 1 : 0.4)), d, sd);
+        g.restore();
+    }
+    // The fire behind the shut teeth: it fills the slit between the jaws and beats with the song.
+    function headGlow(g, t, a, k = 1) {
+        const P = S.pulseAt(t), gap = [...LOWER.slice(1, 8), ...LIP.map((p) => turn(p, a))];
+        C.poly(g, gap, { fill: K.orange, lw: 0 });
+        g.save();
+        C.trace(g, gap);
+        g.clip();
+        for (const [rx, ry, col] of [[250, 60, K.gold], [170, 34, K.yellow]]) {
+            g.beginPath();
+            g.ellipse(120, 790, rx * k * (0.8 + 0.3 * P.pulse), ry * k * (0.8 + 0.3 * P.pulse), -0.03, 0, TAU);
+            g.fillStyle = col;
+            g.fill();
+        }
+        g.restore();
+    }
+    // and its light on the stone round the lips, one flat tone
+    function headHalo(g, t) {
+        const P = S.pulseAt(t);
+        g.save();
+        g.globalCompositeOperation = 'screen';
+        g.fillStyle = '#4a1d08';
+        g.beginPath();
+        g.ellipse(120, 792, 250 + 40 * P.pulse, 74 + 16 * P.pulse, -0.03, 0, TAU);
+        g.fill();
         g.restore();
     }
     // An eye: a cave window with a fire behind it and a slit pupil. lid 0..1 closes it from above.
@@ -1008,6 +1034,6 @@ const Verse3bProps = (() => {
         mix, rot, cw, line, tube, dot, puffs, hit, band, lerp, clamp, smooth, SHADOW, NIGHT, WOOD, WOOD_T, WOOD_S, capOf,
         arrowPlank, billboard, PICS, FIELD, beams,
         G, view, toScreen, sky, ground, roadPt, stations, bed, ribbon, inBed, roll, rampH, tongue,
-        headBack, headFlames, headFront, SHUT, exitSign, lever, leverTip, mallet, cone, barrier, blueprint, easel, devil, SCARF, STRIPE,
+        headBack, headFlames, headGlow, headHalo, headFront, SHUT, exitSign, lever, leverTip, mallet, cone, barrier, blueprint, easel, devil, SCARF, STRIPE,
     };
 })();

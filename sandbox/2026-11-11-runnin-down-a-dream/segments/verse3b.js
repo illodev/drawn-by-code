@@ -185,8 +185,8 @@
     // on «mine» (the bar line) his own scarf catches on the tail. The camera comes to rest on
     // the gate, the car runs up the tongue and in, and the mouth shuts on the next bar line.
     // =========================================================================================
-    const S3 = 54, Z3 = S3 / SC, OY3 = 770 - G.LANE * Z3, HOLD = 762; // the car's scale, and its middle's distance (wu) from the frame's left edge
-    const tA = T91, Td = n(25.5) - tA, L_F = -770 / Z3, XA = L_F - (SPEED * Td) / 2 + HOLD;
+    const S3 = 54, Z3 = S3 / SC, OY3 = 790 - G.LANE * Z3, HOLD = 762; // the car's scale, and its middle's distance (wu) from the frame's left edge
+    const tA = T91, Td = n(27) - tA, L_F = -560 / Z3, XA = L_F - (SPEED * Td) / 2 + HOLD;
     const carX = (t) => XA + SPEED * (t - tA);
     const camL = (t) => {
         if (t <= tA) return carX(t) - HOLD;
@@ -396,7 +396,13 @@
         }
         for (const [x, y, seed] of hits) V.hit(g, x, y, 44, 'v3b-take' + seed);
         // --- the gate's face, over whatever went in
-        if (cam.L + vw > -200) V.view(g, cam, () => V.headFront(g, t, jaw, eyes));
+        if (cam.L + vw > -200) {
+            V.view(g, cam, () => {
+                if (shut) V.headGlow(g, t, jaw, kb >= 0 && kb < 3 ? 1.6 : 1);
+                V.headFront(g, t, jaw, eyes);
+                if (shut) V.headHalo(g, t);
+            });
+        }
         if (!caught) devilFoot();
 
         // --- the burp: a tongue of flame, a ring of smoke, and one cone that comes back out
