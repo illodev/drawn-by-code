@@ -171,3 +171,47 @@ By the lead:
 
 `review.mjs` on 0–17.3 s: no errors, deterministic, no flashes, no still stretches, 87 ms a
 frame warm; the one warning is the cut on the first guitar note, kept on purpose.
+
+## Round 4 (user)
+
+> «Cómo vamos?»
+
+A progress question; no changes asked.
+
+### Round 4 (auto) · verse 1, chorus 1 and Plan B in the film (17.3–55.4 s)
+
+Four blocks animated in parallel, each one segment file with its own dev scene, from one
+shared brief (the segment contract, the rig and the road, the rules that had already cost
+rounds, the detail bar, exact screen states at the joins that are not hard cuts):
+
+- `verse1a` (bars 12–16): cruising with notes streaming off the car, the hearse overtaking;
+  the hitchhiker: a boater his horns go through, joke glasses, `RIDE?`; the car's pass
+  strips the disguise and spins him like a top; the sign comes down on his horns, `RATS!`.
+- `verse1b` (bars 17–19): the swapped sign: `HEAVEN` and `HELL` change nails, the band
+  drives straight on, the chauffeur reads `HEAVEN`, salutes and takes the ramp into Hell's
+  mouth.
+- `verse1c` (bars 20–24): the pit dug a stroke a beat, a sheet painted like the road, the
+  car hops it on a kick and the lip gives way under the Devil; then the flight.
+- `chorus1` (bars 25–33): the landing, the title, a close shot of Stan's kick and its shock
+  wave, the hearse bursting out of the road and being shoved back on every kick, the band
+  close, the big wave that throws the hearse off; a cactus in shades at the wheel.
+
+Lead's review, on each block's sheet and then on the assembled render:
+
+- `verse1b`: the boards' original places were on screen for two frames, so the gag had no
+  «before». Sent back: beat 68 is now a hold on the untouched sign, the swap starts on 69.
+- `verse1a`: two foreground cacti of the road set crossed the hearse's entrance and the cut
+  (`World.front` can now skip a cell; the shot skips those two).
+- `verse1c` → `chorus1`: the flight ended with Tom at the wheel, the chorus begins with
+  Tom on the deck. Found by the flight's own agent. Solved as an event, not a jump: at the
+  top of the arc, weightless, Tom floats out of the seat and comes down on the deck while
+  Mike drifts back.
+- Shared files gained what three blocks had each worked round: `shadow: false` on the cars
+  and the Devil, a `driver` hook on the band's rig, a chauffeur pose on the hearse's.
+
+`review.mjs` on the whole 55.4 s: no errors, deterministic, no flashes, no still stretches,
+95 ms a frame warm; the one warning is the cut on the first guitar note, kept on purpose.
+Nine frames of the assembled render looked at, among them both sides of the one join that
+is not a cut (35.62 and 35.70): the car comes down and lands in place.
+
+Not done: the film has only been judged on frames, not heard against the track by anyone.
