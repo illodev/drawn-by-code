@@ -9,7 +9,7 @@
 // Props and effects: segments/chorus1-props.js (Chorus1Props).
 (() => {
     const Seg = (window.Seg = window.Seg || {});
-    const C = Cereal, K = C.COL, E = Ease, S = Song, P = Chorus1Props, twos = S.twos, b = S.b, B = S.B, pop = S.pop;
+    const C = Cereal, K = C.COL, E = Ease, S = Song, P = Chorus1Props, twos = S.twos, b = S.b, B = S.B;
     const T0 = B(25), T27 = B(27), T28 = B(28), T31 = B(31), T32 = B(32), T34 = B(34);
     const n = (k) => b(100 + k); // beat k of the chorus (kicks on the even ones, the snare on the odd)
     const SC = Rig.CAR, LANE = World.LANE, FR = 1 / 24;
@@ -89,8 +89,8 @@
         return [hR[0] - 0.015 + q[0], hR[1] + 0.02 + q[1]];
     };
     /**
-     * His pose with the trident held out like a rod, the contract spiked on its middle tine.
-     *   hit: 0..1, how much the last wave is still on him (1 on contact);  d: the drawing
+     * His pose with the trident held out like a rod, the contract spiked on its lower tine.
+     *   hit: 0..1, how much the last wave is still on him (1 on contact, see chase)
      *   o: { mood, reach (0..1: 1 = stretched as far as he can) }
      */
     function hunting(t, hit, o = {}) {
@@ -179,15 +179,16 @@
     // [kick, the hearse's x when that kick's wave reaches it]
     const HITS = [[n(14), -36], [n(16), -22], [n(18), -6], [n(20), 10], [n(22), 28], [n(28), 42], [n(30), 58], [n(32), 74]].map(([tk, base]) => ({ tk, base, tc: contactAt(tk, base) }));
     const LAST = HITS[HITS.length - 1];
-    // the hearse at t: { x, hit (1 on contact, gone in half a second, on twos), since (seconds since the contact) }
+    // the hearse at t, counting the kicks from `from` on (it is at x0 until the first of them):
+    // { x, hit (1 on contact, gone in half a second, on twos), tc (when the last wave got to it) }
     function chase(t, from, x0) {
         let j = -1;
         for (let i = 0; i < HITS.length; i++) if (HITS[i].tk >= from - 1e-6 && t >= HITS[i].tc - 1e-6) j = i;
         const next = HITS.find((h) => h.tk >= from - 1e-6 && t < h.tc - 1e-6);
-        if (j < 0) return { x: next ? E.lerp(x0, next.base, E.inOut(E.seg(t, from, next.tc))) : x0, hit: 0, since: -1 };
+        if (j < 0) return { x: next ? E.lerp(x0, next.base, E.inOut(E.seg(t, from, next.tc))) : x0, hit: 0 };
         const h = HITS[j], back = h.base - RECOIL * E.out(E.seg(t, h.tc, h.tc + 0.22));
         const x = next ? E.lerp(back, next.base, E.inOut(E.seg(t, h.tc + 0.22, next.tc))) : back;
-        return { x, hit: 1 - seg2(t, h.tc, h.tc + 0.5), since: t - h.tc, tc: h.tc };
+        return { x, hit: 1 - seg2(t, h.tc, h.tc + 0.5), tc: h.tc };
     }
     // every kick's wave in a framing: drum (the head's middle on screen), s, ground
     function waves(g, t, kicks, drum, s, ground, o = {}) {
@@ -206,15 +207,15 @@
     function landing(g, t, env) {
         const cx = 520, Pu = S.pulseAt(t), d = C.drawing(t);
         world(g, t, WIDE);
-        P.title(g, t, TITLE[0], TITLE[1], { at: [n(4), n(5), n(6)], out: T27 - 8 * FR });
+        P.title(g, t, TITLE[0], TITLE[1], { at: [n(3), n(4), n(5)], out: T27 - 7 * FR });
         const bn = spring(t, T0), land = bump(t, T0, 0.3);
         // the cactus: it rides in on the far verge, the landing shakes it out of the ground, and
-        // it comes down into the driver's seat on the snare; the shades drop on the next one
+        // it comes down into the driver's seat on the snare; the shades drop on the kick after it
         const upAt = T0 + 2 * FR, inAt = n(1), seatAt = [cx + SEAT[0] * SC, LANE + SEAT[1] * SC];
         const verge = [seatAt[0] + 214 - 0.8 * Rig.SPEED * (t - upAt), 786];
         const fu = seg2(t, upAt, inAt), flying = t >= upAt - 1e-6 && t < inAt - 1e-6;
         const fly = [E.lerp(verge[0] + 0.8 * Rig.SPEED * (t - upAt), seatAt[0], fu), E.lerp(786, seatAt[1], fu * fu) - 250 * Math.sin(Math.min(1, fu * 1.25) * Math.PI * 0.8) * (1 - fu * fu * 0.6)];
-        const shadesAt = n(3), shU = E.seg(twos(t, shadesAt - 4 / 12), shadesAt - 4 / 12, shadesAt);
+        const shadesAt = n(2), shU = E.seg(twos(t, shadesAt - 4 / 12), shadesAt - 4 / 12, shadesAt);
         if (t < upAt - 1e-6) P.cactus(g, verge[0], verge[1], SC, {});
         if (flying && fu < 0.5) {
             // the hole it leaves, running off with the verge
@@ -249,7 +250,7 @@
     function kick(g, t, env) {
         const s = 300, drum = [560, 660], Pu = S.pulseAt(t);
         // the camera takes each kick: a jolt of two drawings
-        const jolt = [n(8), n(10)].map((tk) => [10, -4, 0][Math.min(2, Math.max(0, Math.floor((t - tk) * 12 + 1e-6)))] * (t >= tk - 1e-6 ? 1 : 0)).reduce((a, v) => (v ? v : a), 0);
+        const jolt = [n(8), n(10)].reduce((a, tk) => (t >= tk - 1e-6 ? [10, -4, 0][Math.min(2, Math.floor((t - tk) * 12 + 1e-6))] : a), 0);
         g.save();
         g.translate(0, jolt);
         const cx = drum[0] - DRUM[0] * s, gy = drum[1] - DRUM[1] * s;
@@ -266,7 +267,7 @@
     function chaseShot(g, t, env) {
         const Pu = S.pulseAt(t), d = C.drawing(t), kicks = [14, 16, 18, 20, 22].map(n); // the kick on the cut is left to the mound's entrance
         world(g, t, WIDE);
-        P.title(g, t, TITLE[0], TITLE[1], { at: [n(16), n(17), n(18)], out: T31 - 8 * FR });
+        P.title(g, t, TITLE[0], TITLE[1], { at: [n(16), n(17), n(18)], out: T31 - 7 * FR });
         const outAt = n(13), landAt = n(14), x0 = HITS[0].base, MX = x0 + 215;
         const drum = drumAt(CX, 0.2 * Pu.pulse);
         // the mound that catches them up, then what is left of it
@@ -385,7 +386,7 @@
         // the contract, alone: whipped up off the tine, then down like a leaf, towards us
         if (t >= tc - 1e-6) {
             const a = t - tc, perch = hearsePt(LAST.base, LANE, SC, 0, PERCH), tip = rot(tineTip(pz.handR, pz.trident.ang), pz.lean);
-            const start = [perch[0] + tip[0] * SC, perch[1] + (tip[1] + 0.19) * SC];
+            const start = [perch[0] + tip[0] * SC, perch[1] + (tip[1] + 0.2) * SC];
             const up = E.out(E.seg(a, 0, 0.42)), fall = E.seg(a, 0.42, 1.6), sw = Math.sin((a - 0.42) * 6.2);
             const x = E.lerp(start[0], 330, up) + (a > 0.42 ? 58 * sw - 60 * fall : 0), y = E.lerp(start[1], 330, up) + 170 * fall - (a > 0.42 ? 24 * Math.abs(sw) : 0);
             const s = E.lerp(SC, 150, up) + 90 * fall;

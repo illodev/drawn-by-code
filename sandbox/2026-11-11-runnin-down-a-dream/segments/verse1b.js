@@ -426,7 +426,7 @@
     };
 
     function swap(g, t) {
-        const s = S1, P = S.pulseAt(t), d = C.drawing(t), ph = P.k + P.since;
+        const s = S1, P = S.pulseAt(t), ph = P.k + P.since;
         const NT = [PX1, PY1 - NAIL_T * s], NL = [PX1, PY1 - NAIL_L * s];
         const e1 = n(0), e2 = n(1), e3 = n(2), e4 = n(3);
         const k1 = kOf(t, e1), k2 = kOf(t, e2), k3 = kOf(t, e3), k4 = kOf(t, e4);
@@ -551,7 +551,6 @@
             World.cactus(g, W, 70, HOR + 70, 104, 1);
             World.rock(g, W, 560, HOR + 86, 56);
             World.bush(g, W, 912, HOR + 92, 34);
-            World.skull(g, W, 430, HOR + 104, 36);
             for (const x of this.poles) World.pole(g, W, x, py);
         },
     };
@@ -659,7 +658,7 @@
         flames(g, t, H, F_FRONT, 1 + 0.5 * E.seg(t, tV, tE));
         // the burst of flame on the last beat
         if (eruptK > 0) {
-            const k = eruptK * (1 - 0.12 * seg(t, tBurst + 3 / 12, T2)), cy = H.cy - 150 * k;
+            const k = eruptK * (1 - 0.12 * seg(t, tBurst + 3 / 12, T2)), cy = H.cy - 190 * k;
             g.save();
             clipPit(g, H);
             C.burst(g, H.cx, cy, { r0: 150 * k, r1: 262 * k, n: 13, seed: 'v1b-poof', fill: K.red, ink: K.ink, lw: 5, rot: d % 2 ? 0.05 : 0 });

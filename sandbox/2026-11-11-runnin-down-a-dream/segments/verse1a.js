@@ -82,10 +82,10 @@
     // Bars 14–16 · The hitchhiker
     // =========================================================================================
     const V = V1A, SET = V.SET, SC = SET.SC, RW = World.THEMES.day;
-    const DX = 545, DY = 694; // the Devil's mark on the far verge
-    const CAX = 268, CAY = 684, CAH = 430; // the saguaro behind him: his trident leans on it, and his hearse is «hidden» behind it
-    const CBX = 800, CBY = 682, CBH = 318; // the one down the road, which ends up dressed
-    const HX = 0, HY = 588, HS = 108; // the hearse, hull down behind the dune: a mesa on its tail, the saguaro on its engine
+    const DX = 548, DY = 694; // the Devil's mark on the far verge
+    const CAX = 254, CAY = 684, CAH = 430; // the saguaro behind him: his trident leans on it, and his hearse is «hidden» behind it
+    const CBX = 806, CBY = 682, CBH = 318; // the one down the road, which ends up dressed
+    const HX = -14, HY = 588, HS = 108; // the hearse, hull down behind the dune: a mesa on its tail, the saguaro on its engine
     const n = (j) => b(56 + j); // beat j of this shot (0–3 bar 14, 4–7 bar 15, 8–11 bar 16)
     const RIP = n(4) + 2 / 24; // the frame the wind takes the disguise
     const HAT_LAND = n(7), SPECS_LAND = n(6), SIGN_FALL = n(9), SIGN_LAND = n(10), LAUGH = n(10) + 3 / 12;
@@ -153,8 +153,8 @@
                 C.poly(g, [[hx + Math.cos(a) * r0, hy + Math.sin(a) * r0], [hx + Math.cos(a) * r1, hy + Math.sin(a) * r1]], { lw: 3.2, close: false });
             }
         }
-        V.bush(g, 176, 584, 62, { seed: 1, sway: 14 * gust + (coming && !passed ? (d % 2 ? 2 : -2) : 0) });
-        V.bush(g, 372, 588, 56, { seed: 2, sway: 12 * gust + (coming && !passed ? (d % 2 ? -2 : 2) : 0) });
+        V.bush(g, 162, 584, 62, { seed: 1, sway: 14 * gust + (coming && !passed ? (d % 2 ? 2 : -2) : 0) });
+        V.bush(g, 358, 588, 56, { seed: 2, sway: 12 * gust + (coming && !passed ? (d % 2 ? -2 : 2) : 0) });
 
         // --- the two saguaros: the trident leans on the near one; the wind dresses the other
         V.cactus(g, CAX, CAY, CAH, { bend: 15 * gust });
@@ -171,7 +171,7 @@
         if (disguised) {
             // bar 14: he checks the road, hoists the sign, beams; then the car is on him
             const hoist = E.back(seg(t, n(1), n(1) + 3 / 12)), thrust = coming ? E.out(seg(t, n(3) + 2 / 12, n(3) + 4 / 12)) : 0;
-            const sy = E.lerp(-0.36, -0.5, hoist) - 0.028 * (at(t, n(1)) ? pulse : 0) - 0.04 * thrust;
+            const sy = E.lerp(-0.3, -0.54, hoist) - 0.028 * (at(t, n(1)) ? pulse : 0) - 0.04 * thrust;
             const spots = coming && !at(t, n(3) + 3 / 12), braced = at(t, n(4));
             pose = {
                 mood: !at(t, n(1)) ? 'sly' : spots ? 'grin' : 'laugh', look: !at(t, n(1)) ? (Math.floor((t - T14) * 12 + 1e-6) % 6 < 3 ? -1 : 1) : -1,
@@ -271,8 +271,8 @@
                 // scraps of cardboard, for a moment
                 const u = seg(t, SIGN_LAND, SIGN_LAND + 5 / 12);
                 if (u < 1) {
-                    [[-0.47, -1, 1.1], [-0.47, 0.6, 0.8], [0.5, 1, 1.2], [0.5, -0.5, 0.9]].forEach(([hx, vx, vy], i) => {
-                        V.units(g, px + (hx + vx * 0.5 * u) * SC, DY + (-2.22 - vy * 0.5 * u + 1.0 * u * u) * SC, SC, 0, (L) => V.chip(g, L, i + u * 5));
+                    [[-0.47, -1.5, 0.5], [-0.47, -0.7, -0.1], [0.5, 1.5, 0.4], [0.5, 0.8, -0.15]].forEach(([hx, vx, vy], i) => {
+                        V.units(g, px + (hx + vx * 0.5 * u) * SC, DY + (-2.14 - vy * 0.5 * u + 0.9 * u * u) * SC, SC, 0, (L) => V.chip(g, L, i + u * 5));
                     });
                 }
             } else {
@@ -280,7 +280,7 @@
                 const k = Math.min(4, Math.floor((t - SIGN_FALL) * 12 + 1e-6)), u = [0.08, 0.3, 0.52, 0.74, 0.92][k];
                 const face = k < 2 ? 'front' : 'back', sq = [0.9, 0.3, 0.42, 0.8, 1][k], ang = [-0.5, -0.32, 0.3, -0.14, 0.07][k];
                 const ty = DY + (-2.48 + pose.headDy * 0) * SC;
-                V.units(g, px + E.lerp(60, 3, u), E.lerp(-70, ty, u * u * 0.6 + u * 0.4), SC, ang, (L) => {
+                V.units(g, px + E.lerp(-46, 3, u), E.lerp(-70, ty, u * u * 0.6 + u * 0.4), SC, ang, (L) => {
                     g.scale(1, sq);
                     V.sign(g, L, face);
                 });
@@ -290,21 +290,22 @@
 
         // --- what the wind took: the sign straight up and away, the glasses and the hat to the cactus
         if (signUp) {
-            const u = (twos(t, RIP) - RIP) / 0.42;
-            if (u < 1) V.units(g, DX + 90 * u, DY - 0.5 * SC - 760 * u, SC, 0.1 + 2.6 * u, (L) => {
-                g.scale(1, Math.abs(Math.cos(u * 5)) * 0.8 + 0.2);
-                V.sign(g, L, Math.cos(u * 5) > 0 ? 'front' : 'back');
+            // straight up and out of the top, face to us
+            const u = (twos(t, RIP) - RIP) / 0.25;
+            if (u < 1.01) V.units(g, DX - 26 * u, DY - 0.5 * SC - 840 * u, SC, 0.1 - 1.3 * u, (L) => {
+                g.scale(1, 1 - 0.45 * Math.sin(Math.min(1, u) * Math.PI));
+                V.sign(g, L, 'front');
             });
         }
         if (at(t, RIP)) {
-            // the glasses: a quick spinning hop on to the cactus
+            // the glasses: a quick, low, spinning hop on to the far cactus
             const ug = Math.min(1, (twos(t, RIP) - RIP) / (SPECS_LAND - RIP)), g0 = [DX, DY - 1.36 * SC];
-            const gx = E.lerp(g0[0], SPECS_SEAT[0], ug), gy = E.lerp(g0[1], SPECS_SEAT[1], ug) - 150 * Math.sin(ug * Math.PI);
+            const gx = E.lerp(g0[0], SPECS_SEAT[0], 1 - Math.pow(1 - ug, 1.7)), gy = E.lerp(g0[1], SPECS_SEAT[1], ug) - 96 * Math.sin(ug * Math.PI);
             const settle = twos(t, SPECS_LAND) - SPECS_LAND;
-            V.units(g, gx + (ug < 1 ? 0 : 0), gy, SC, ug < 1 ? -ug * TAU * 2 : 0.07 * ring(settle, 20, 6), (L) => V.glasses(g, L, { arms: ug < 1 ? 'open' : 'worn' }));
-            // the hat: a slow, high tumble that ends on the cactus's top
+            V.units(g, gx, gy, SC, ug < 1 ? -ug * TAU * 2 : 0.07 * ring(settle, 20, 6), (L) => V.glasses(g, L, { arms: ug < 1 ? 'open' : 'worn' }));
+            // the hat: up first, then a slow, high tumble that ends on the cactus's top
             const uh = Math.min(1, (twos(t, RIP) - RIP) / (HAT_LAND - RIP)), h0 = [DX, DY - 1.95 * SC];
-            const hx = E.lerp(h0[0], HAT_SEAT[0], uh) + 64 * Math.sin(uh * Math.PI), hy = E.lerp(h0[1], HAT_SEAT[1], uh) - 215 * Math.pow(Math.sin(uh * Math.PI), 0.8);
+            const hx = E.lerp(h0[0], HAT_SEAT[0], Math.pow(uh, 1.5)) + 40 * Math.sin(uh * Math.PI), hy = E.lerp(h0[1], HAT_SEAT[1], uh) - 250 * Math.pow(Math.sin(uh * Math.PI), 0.75);
             const hs = twos(t, HAT_LAND) - HAT_LAND;
             V.units(g, hx, hy, SC, uh < 1 ? -0.4 + (0.48 + TAU) * uh : 0.08 + 0.2 * ring(hs, 15, 5), (L) => V.hat(g, L));
         }

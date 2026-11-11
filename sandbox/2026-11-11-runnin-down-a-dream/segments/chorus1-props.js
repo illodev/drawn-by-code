@@ -484,18 +484,14 @@ const Chorus1Props = (() => {
     // --- the title's words, as in the opening ------------------------------------------------------
     /**
      * title(g, t, x, y, o)   the two lines round (x, y = the first line's baseline)
-     *   o: { at: [t1, t2, t3] when RUNNIN', DOWN A and DREAM pop, out: when they start to leave
-     *        (one word every two frames, each gone in three drawings), k: size (1 = 104 and 196) }
+     *   o: { at: [t1, t2, t3] when RUNNIN', DOWN A and DREAM pop, out: when they leave (gone in
+     *        three drawings), k: size (1 = 104 and 196) }
      * Draw it before the cars: it is part of the sky.
      */
     function title(g, t, x, y, o) {
         const [t1, t2, t3] = o.at, k = o.k ?? 1, P = S.pulseAt(t), ph = P.k + P.since, d = C.drawing(t);
         if (t < t1 - 1e-6) return;
-        const leave = (i) => {
-            const at = o.out + (i * 2) / 24;
-            if (t < at - 1e-6) return 1;
-            return [1.12, 0.7, 0.3, 0][Math.min(3, Math.floor((t - at) * 12 + 1e-6))];
-        };
+        const leave = () => (t < o.out - 1e-6 ? 1 : [1.12, 0.7, 0.3, 0][Math.min(3, Math.floor((t - o.out) * 12 + 1e-6))]);
         // a star behind the words, so the sky's clouds never touch a letter: a flat one under
         // RUNNIN', which stretches under DOWN A and opens downwards when DREAM lands; it breathes
         // on the beat and goes with the last word

@@ -67,7 +67,7 @@ const V1A = (() => {
     // =========================================================================================
     const STRAW = { front: '#f2cc5e', top: '#ffe89a', side: '#cf9f38', line: '#b9862a', hole: '#4a3212', band: '#f0352f', bandSide: '#b0211f', bandLine: '#fffdf4' };
     // the brim and the crown are round: ellipses lying flat (rx across, rz in depth) about a centre at depth zc
-    const HAT = { rx: 0.84, rz: 0.43, zc: 0.22, bh: 0.055, crx: 0.31, crz: 0.2, czc: 0.27, ch: 0.31, holes: [-0.55, 0.515], holeZ: 0.2, holeR: 0.125, seat: -1.9 };
+    const HAT = { rx: 0.8, rz: 0.42, zc: 0.22, bh: 0.055, crx: 0.31, crz: 0.2, czc: 0.27, ch: 0.31, holes: [-0.55, 0.515], holeZ: 0.2, holeR: 0.125, seat: -1.9 };
     const oval = (cy, rx, rz, zc, a0 = 0, a1 = TAU, n = 40) => Array.from({ length: n + 1 }, (_, i) => {
         const a = a0 + ((a1 - a0) * i) / n;
         return [rx * Math.cos(a) + D[0] * (zc + rz * Math.sin(a)), cy + D[1] * (zc + rz * Math.sin(a))];
@@ -292,12 +292,12 @@ const V1A = (() => {
         if (back) {
             // the box it was cut from: a flap's fold, a strip of tape, the «this way up» arrows
             line(g, [[x0, 0.165], [x0 + w, 0.15]], lc, L * 1.1);
-            C.poly(g, [[-0.6, 0.06], [-0.38, 0.05], [-0.375, 0.27], [-0.6, 0.275]], { fill: CARD.tape, lw: L * 0.7 });
-            for (const ax of [0.44, 0.555]) {
-                line(g, [[ax, 0.265], [ax, 0.2]], K.ink, L * 1.3);
-                C.poly(g, [[ax - 0.04, 0.215], [ax, 0.165], [ax + 0.04, 0.215]], { fill: K.ink, lw: L * 0.5 });
+            C.poly(g, [[-0.26, 0.07], [-0.07, 0.062], [-0.065, 0.262], [-0.255, 0.268]], { fill: CARD.tape, lw: L * 0.7 });
+            for (const ax of [0.1, 0.215]) {
+                line(g, [[ax, 0.262], [ax, 0.2]], K.ink, L * 1.3);
+                C.poly(g, [[ax - 0.04, 0.215], [ax, 0.168], [ax + 0.04, 0.215]], { fill: K.ink, lw: L * 0.5 });
             }
-            line(g, [[0.385, 0.275], [0.61, 0.275]], K.ink, L * 1.1);
+            line(g, [[0.045, 0.27], [0.27, 0.27]], K.ink, L * 1.1);
         } else {
             // a crease down it
             line(g, [[x0 + w * 0.3, y0], [x0 + w * 0.27, y0 + h]], lc, L * 0.7);

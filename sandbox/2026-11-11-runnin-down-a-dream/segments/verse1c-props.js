@@ -45,7 +45,7 @@ const PitProps = (() => {
     const EARTH = { front: '#a8541c', top: '#d17c30', side: '#7a3a12', line: '#5e2a0e' };
     const ROAD = { front: '#2f2a6b', top: '#4a45a0', side: '#211c57' };
     const CANVAS = { front: '#f3e6c4', top: '#fff6de', side: '#d3bf8f', line: '#a8905a' };
-    const SHEET = { paint: '#3a3692', dash: '#ffd23f', edge: '#efe6cf', fold: '#2a2670' };
+    const SHEET = { paint: '#3d3999', sag: '#343088', dash: '#ffd23f', edge: '#efe6cf', fold: '#2a2670' };
     const SMOKE = '#f1edf8', SOOT = '#4a2a3a', SOOT_SIDE = '#3a1f2e', DUST = ['#e2c08a', '#fff1c4'];
 
     // --- the pit ---------------------------------------------------------------------------
@@ -278,26 +278,26 @@ const PitProps = (() => {
             return [at[0] + q[0], at[1] + q[1]];
         };
         // the blade: a pointed spade with a turned step on each shoulder
-        const blade = cw([[-0.045, 1.07], [0.045, 1.07], [0.16, 1.1], [0.17, 1.3], [0.11, 1.42], [0, 1.5], [-0.11, 1.42], [-0.17, 1.3], [-0.16, 1.1]].map(([px, py]) => pt(px, py)));
+        const blade = cw([[-0.05, 1.03], [0.05, 1.03], [0.2, 1.07], [0.21, 1.3], [0.14, 1.43], [0, 1.52], [-0.14, 1.43], [-0.21, 1.3], [-0.2, 1.07]].map(([px, py]) => pt(px, py)));
         C.prism(g, blade, Dd(0.05), { front: P.fork, top: P.forkShine, side: P.forkSide }, { lw: L, ink: P.ink });
         if (o.dirt) {
             g.save();
             C.trace(g, blade);
             g.clip();
-            C.poly(g, [pt(-0.2, 1.36), pt(-0.08, 1.31), pt(0.02, 1.37), pt(0.1, 1.3), pt(0.2, 1.36), pt(0.2, 1.55), pt(-0.2, 1.55)], { fill: EARTH.front, ink: P.ink, lw: L * 0.7 });
+            C.poly(g, [pt(-0.24, 1.36), pt(-0.1, 1.3), pt(0.02, 1.37), pt(0.12, 1.29), pt(0.24, 1.36), pt(0.24, 1.6), pt(-0.24, 1.6)], { fill: EARTH.front, ink: P.ink, lw: L * 0.7 });
             g.restore();
             C.poly(g, blade, { ink: P.ink, lw: L });
         }
-        line(g, [pt(-0.16, 1.1), pt(-0.07, 1.13)], P.ink, L * 0.8);
-        line(g, [pt(0.16, 1.1), pt(0.07, 1.13)], P.ink, L * 0.8);
-        line(g, [pt(0, 1.12), pt(0, 1.3)], P.forkSide, L * 0.9);
-        line(g, [pt(-0.11, 1.15), pt(-0.115, 1.29)], P.forkShine, L * 1.1);
+        line(g, [pt(-0.2, 1.07), pt(-0.09, 1.11)], P.ink, L * 0.8);
+        line(g, [pt(0.2, 1.07), pt(0.09, 1.11)], P.ink, L * 0.8);
+        line(g, [pt(0, 1.1), pt(0, 1.3)], P.forkSide, L * 0.9);
+        line(g, [pt(-0.14, 1.13), pt(-0.145, 1.29)], P.forkShine, L * 1.1);
         // the shaft, the socket that takes it, a rivet
-        C.prism(g, cw([pt(-0.03, 0.14), pt(0.03, 0.14), pt(0.03, 1.0), pt(-0.03, 1.0)]), Dd(0.05), { front: P.shaft, top: P.shaftSide, side: P.shaftSide }, { lw: L, ink: P.ink });
+        C.prism(g, cw([pt(-0.03, 0.14), pt(0.03, 0.14), pt(0.03, 0.96), pt(-0.03, 0.96)]), Dd(0.05), { front: P.shaft, top: P.shaftSide, side: P.shaftSide }, { lw: L, ink: P.ink });
         line(g, [pt(-0.008, 0.2), pt(-0.008, 0.94)], '#8a5230', L * 0.7);
-        C.prism(g, cw([pt(-0.043, 0.96), pt(0.043, 0.96), pt(0.05, 1.1), pt(-0.05, 1.1)]), Dd(0.06), { front: P.fork, top: P.forkShine, side: P.forkSide }, { lw: L * 0.9, ink: P.ink });
+        C.prism(g, cw([pt(-0.043, 0.93), pt(0.043, 0.93), pt(0.055, 1.07), pt(-0.055, 1.07)]), Dd(0.06), { front: P.fork, top: P.forkShine, side: P.forkSide }, { lw: L * 0.9, ink: P.ink });
         g.beginPath();
-        g.arc(...pt(0, 1.03), 0.013, 0, TAU);
+        g.arc(...pt(0, 1.0), 0.013, 0, TAU);
         g.fillStyle = P.ink;
         g.fill();
         // the D grip: a yoke and a crossbar you can see through
@@ -307,7 +307,7 @@ const PitProps = (() => {
         line(g, [pt(-0.07, 0.022), pt(0.07, 0.022)], '#8a5230', L * 0.7);
         if (o.load) {
             const c = pt(0, 1.27);
-            clod(g, L / 3.2, c[0] + 0.02, c[1] - 0.09, 0.15, ang * 0.5 + 0.3, o.load);
+            clod(g, L / 3.2, c[0] + 0.02, c[1] - 0.1, 0.17, ang * 0.5 + 0.3, o.load);
         }
     }
     // The Devil's block mitt again, over the thing it holds (as Devil.draw draws it).
@@ -348,7 +348,7 @@ const PitProps = (() => {
         g.save();
         C.trace(g, horn);
         g.clip();
-        const hy = T - 0.33 + D[1] * z;
+        const hy = T - 0.27 + D[1] * z;
         C.poly(g, [[0.3, hy + 0.02], [0.52, hy - 0.02], [0.57, hy + 0.035], [0.62, hy - 0.015], [0.68, hy + 0.03], [0.8, hy], [0.8, hy - 0.4], [0.3, hy - 0.4]], { fill: SOOT, lw: 0 });
         g.restore();
         C.poly(g, horn, { ink: P.ink, lw: L });
@@ -467,6 +467,15 @@ const PitProps = (() => {
         g.save();
         C.trace(g, outline);
         g.clip();
+        // it sags where nothing holds it up
+        if ((o.sag ?? 0) > 0) {
+            const sg = o.sag, ring = [];
+            for (let i = 0; i < 16; i++) {
+                const a = (i / 16) * TAU;
+                ring.push(at(0.48 + Math.cos(a) * 0.33 * sg, 0.5 + Math.sin(a) * 0.3 * sg));
+            }
+            C.poly(g, ring, { fill: SHEET.sag, lw: 0 });
+        }
         // its own edge lines and centre dashes: none of them where the road's are
         line(g, [at(-0.02, 0.085), at(0.5, 0.1), at(1.02, 0.07)], SHEET.edge, 3.4);
         if (v1 > 0.93) line(g, [at(-0.02, 0.93), at(0.45, 0.915), at(1.02, 0.94)], SHEET.edge, 3.4);
@@ -485,15 +494,19 @@ const PitProps = (() => {
         }
         g.restore();
         C.poly(g, outline, { ink: K.ink, lw: 2.8 * u });
-        // the near right corner curls up and shows the canvas
-        const c = (o.curl ?? 0);
+        // the near right corner curls up: the road under it, the canvas's back, its shadow
+        const c = o.curl ?? 0;
         if (c > 0.02 && v1 > 0.3) {
-            const a = at(1 - 0.105 * c, 0), b = at(1, 0.26 * c), tip = [lerp(a[0], b[0], 0.42) - 4 * c, Math.min(a[1], b[1]) - 15 * c];
-            C.poly(g, [a, at(1, 0), b], { fill: ROAD.front, ink: K.ink, lw: 2.4 * u });
-            const flap = C.curve([a, [lerp(a[0], tip[0], 0.5) - 2 * c, lerp(a[1], tip[1], 0.55)], tip, [lerp(b[0], tip[0], 0.45) + 4 * c, lerp(b[1], tip[1], 0.5)], b], false, 5);
+            const a = at(1 - 0.12 * c, 0), b = at(1, 0.3 * c), cn = at(1, 0);
+            // the corner folded back over the line a–b, and lifted
+            const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy, k = ((cn[0] - a[0]) * dx + (cn[1] - a[1]) * dy) / l2;
+            const tip = [2 * (a[0] + dx * k) - cn[0] + 2 * c, 2 * (a[1] + dy * k) - cn[1] - 9 * c];
+            C.poly(g, [a, cn, b], { fill: ROAD.front, ink: K.ink, lw: 2.4 * u });
+            C.poly(g, [[a[0] - 3, a[1] - 1], [tip[0] - 5, tip[1] + 5], [b[0] - 1, b[1] + 1]], { fill: SHEET.fold, lw: 0 });
+            const flap = [a, ...C.curve([a, [lerp(a[0], tip[0], 0.55) - 3 * c, lerp(a[1], tip[1], 0.5) - 3 * c], tip, [lerp(b[0], tip[0], 0.5) + 3 * c, lerp(b[1], tip[1], 0.6) - 2 * c], b], false, 5), b];
             C.poly(g, flap, { fill: CANVAS.front, ink: K.ink, lw: 2.8 * u });
-            line(g, [[lerp(a[0], b[0], 0.3), lerp(a[1], b[1], 0.3) - 1], [lerp(a[0], tip[0], 0.75), lerp(a[1], tip[1], 0.75) + 3 * c]], CANVAS.line, 2 * u);
-            line(g, [a, b], K.ink, 2.4 * u);
+            line(g, [[lerp(a[0], b[0], 0.2), lerp(a[1], b[1], 0.2) - 2 * c], [lerp(a[0], b[0], 0.8), lerp(a[1], b[1], 0.8) - 2.5 * c]], CANVAS.top, 2.2 * u);
+            line(g, [[lerp(a[0], tip[0], 0.5), lerp(a[1], tip[1], 0.5)], [lerp(b[0], tip[0], 0.4), lerp(b[1], tip[1], 0.4)]], CANVAS.line, 2 * u);
         }
     }
 
