@@ -168,6 +168,10 @@ const World = (() => {
         for (const dx of [-36, 36]) C.box(g, x + dx - 5, y - POLE_H + 10, 10, 12, [3, -2], { front: '#8cefe6', top: '#8cefe6', side: '#17b8a6' }, { lw: 2.4 });
     }
 
+    // The sun drifts left a little as the road goes by (a far layer's share), but never out of
+    // the frame: over a long drive it comes to rest near the left edge.
+    const sunX = (sun, X) => Math.max(sun.x - X * 0.004, 150);
+
     // --- layers ------------------------------------------------------------------------------
     /**
      * Everything behind the cars. o: { sun: { x, y, r, shades } | null, moon: { x, y, r } | null,
@@ -214,9 +218,9 @@ const World = (() => {
         if (o.sun) {
             // the sun wears shades too
             const { x, y, r } = o.sun, bob = d % 4 < 2 ? 0 : 3;
-            C.burst(g, x - X * 0.004, y, { r0: r * 1.18, r1: r * 1.5, n: 14, seed: 'sun', jitter: 0.08, rot: d % 2 ? 0.06 : 0, fill: K.gold, ink: K.ink, lw: 4 });
+            C.burst(g, sunX(o.sun, X), y, { r0: r * 1.18, r1: r * 1.5, n: 14, seed: 'sun', jitter: 0.08, rot: d % 2 ? 0.06 : 0, fill: K.gold, ink: K.ink, lw: 4 });
             g.save();
-            g.translate(x - X * 0.004, y + bob);
+            g.translate(sunX(o.sun, X), y + bob);
             g.beginPath();
             g.arc(0, 0, r, 0, C.TAU);
             g.fillStyle = K.yellow;
@@ -234,7 +238,7 @@ const World = (() => {
             g.restore();
         }
         // clouds drift by, but never over the sun or the moon
-        const keep = [o.sun && [o.sun.x - X * 0.004, o.sun.r * 1.6], o.moon && [o.moon.x - X * 0.006, o.moon.r * 1.15]].filter(Boolean);
+        const keep = [o.sun && [sunX(o.sun, X), o.sun.r * 1.6], o.moon && [o.moon.x - X * 0.006, o.moon.r * 1.15]].filter(Boolean);
         cells(X, 0.035, 430, 260, 'cloud', (i, x, r) => {
             const y = 130 + r() * 230, s = 60 + r() * 50;
             if (keep.some(([kx, kr]) => Math.abs(x - kx) < kr + s * 1.3)) return;
@@ -358,5 +362,5 @@ const World = (() => {
         }
     }
 
-    return { THEMES, HOR, ROAD0, ROAD1, LANE, cells, back, front, rain, cactus, cloud, mesa, rock, bush, skull, sign, pole };
+    return { THEMES, HOR, ROAD0, ROAD1, LANE, sunX, cells, back, front, rain, cactus, cloud, mesa, rock, bush, skull, sign, pole };
 })();

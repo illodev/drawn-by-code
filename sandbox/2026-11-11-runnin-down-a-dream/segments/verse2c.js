@@ -37,7 +37,7 @@
     // The join with verse2b: its last shot («Unstoppable»), by its numbers
     // =========================================================================================
     const CS = 176, MX = 408, GY = 900; // the machine's scale and place in the close shot
-    const WIDE_M = 176; // where the machine is in verse2b's wide framing (the world is drawn for that one)
+    const WIDE_M = 147; // where the machine is in verse2b's wide framing (the world is drawn for that one)
     const LAND = T49 + 2 / 12, PLUG = b(197);
     const POPS = [[b(198), [-0.625, -1.735], [0.5, -3.2]], [b(198) + S.snap(BEAT / 2), [-1.105, -1.261], [-1.9, -2.3]], [b(199), [-0.175, -1.735], [-0.8, -3.4]], [b(199) + S.snap(BEAT / 2), [-0.925, -0.625], [-1.5, -1.6]]];
     const crankC = (t) => {
@@ -54,7 +54,7 @@
         return [q[0] + MACH.axle + dx, q[1] - MACH.R + dy];
     };
     // The road's clock: verse2b's until «cold», then the rig skids to a halt in STOP seconds.
-    const STOP = 0.5, X0 = (t) => Rig.X(t) - 545;
+    const STOP = 0.5, X0 = (t) => Rig.X(t);
     const roadX = (t) => {
         if (t < COLD) return X0(t);
         const u = Math.min(STOP, t - COLD);

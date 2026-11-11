@@ -574,7 +574,7 @@ const PitProps = (() => {
         if (k <= 0) return;
         const r = sun.r, bob = C.drawing(t) % 4 < 2 ? 0 : 3;
         g.save();
-        g.translate(sun.x - X * 0.004, sun.y + bob);
+        g.translate(World.sunX(sun, X), sun.y + bob);
         g.fillStyle = K.yellow;
         g.fillRect(-r * 0.4, r * 0.28, r * 0.84, r * 0.34);
         const up = C.curve([[-0.42, 0.3], [-0.2, 0.36], [0.04, 0.37], [0.28, 0.33], [0.46, 0.24]].map(([x, y]) => [x * r, y * r]), false, 6);

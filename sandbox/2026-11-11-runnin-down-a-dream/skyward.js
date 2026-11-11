@@ -2156,6 +2156,572 @@ const Skyward = (() => {
         g.restore();
     }
 
+    // =========================================================================================
+    // Backstage: the Devil's dressing room
+    // =========================================================================================
+    const GILT = { front: '#ffc21f', top: '#ffe62e', side: '#c98a0e', deep: '#9a6408', light: '#fff1a8' };
+    const ROOM = {
+        wall: '#8a1a2c', wallB: '#7b1627', wallL: '#a82338', wallD: '#6a1221', motif: '#c9952a', rail: '#55301b', railTop: '#7b4526', railSide: '#3a2012', panel: '#6b3a20', panelD: '#472513',
+        floor: '#3a0a14', board: '#4a121c', boardLine: '#2a0710', glow: '#ff8a2b',
+        wood: '#7b4526', woodTop: '#a8683a', woodSide: '#55301b', iron: '#4a4470', ironTop: '#625c8c', ironSide: '#353055', chrome: '#c9cfe2', chromeTop: '#f4f6fc', chromeSide: '#7f879f',
+        glass: '#bfe6f5', glassD: '#93cfe6', bulb: '#ffe62e', bulbCore: '#fffdf4', bulbOff: '#e0a800',
+        rug: '#e0258b', rugIn: '#7d47e1', rugLine: '#ffc21f', rugDark: '#a8176a',
+    };
+    /**
+     * Where things are in the dressing room (logical units of its 1000 × 1000 frame):
+     *   nail      the empty nail in the middle of the wall of frames
+     *   frame     the autograph's scale (Skyward.autograph's s) when it hangs there
+     *   devil     a mark for him ([x, y], s = 200): centre stage, under the nail
+     *   guitar    { x, y, s }: where the guitar's tail rests in the stand's cradle, and its scale
+     *   floor     the y where the wall meets the floor;  tv, mirror, rack, trident: their middles
+     */
+    const BACKSTAGE = { nail: [500, 236], frame: 250, devil: [500, 936], devilS: 200, guitar: { x: 846, y: 842, s: 150 }, floor: 780, tv: [171, 716], mirror: [210, 378], rack: [832, 520], trident: [372, 610] };
+    const A_W = 1.24, A_H = 1.08; // the framed autograph, in units of its s
+
+    /**
+     * The framed autograph: the Devil's contract (headed CONTRACT, small print, the line with its
+     * cross, the wax seal) with what Tom wrote on it in blue ink, «To my #1 fan! — Tom», laid out
+     * as in segments/sign.js, under glass in a gilt frame.
+     *   x, y  the frame's middle;  s  logical units per unit (it is 1.24 × 1.08 units: s = 250 on
+     *         the dressing-room wall, about 760 to fill the frame)
+     *   o: { tilt (radians), wire (true: the hanging wire, up to a nail 0.6 … above the frame's top),
+     *        glint (0..1: where the glint on the glass is, from left to right; default 0.3) }
+     */
+    function autograph(g, x, y, s, o = {}) {
+        const L = Math.max(1.4, Math.min(3.6, 3.2 * (0.4 + s / 420))) / s, hw = A_W / 2, hh = A_H / 2, fw = 0.085, mat = 0.05;
+        g.save();
+        g.translate(x, y);
+        g.scale(s, s);
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        if (o.wire) {
+            const ny = -hh - 0.075;
+            line(g, [[-hw * 0.62, -hh + 0.02], [0, ny], [hw * 0.62, -hh + 0.02]], L * 0.8, '#3a2012');
+        }
+        g.rotate(o.tilt ?? 0);
+        // the moulding: a gilt box, an inner step, a line of beads, a leaf on each corner
+        C.box(g, -hw, -hh, A_W, A_H, D, { front: GILT.front, top: GILT.top, side: GILT.side }, { lw: L, depth: 0.09 });
+        const inner = [[-hw + fw, -hh + fw], [hw - fw, -hh + fw], [hw - fw, hh - fw], [-hw + fw, hh - fw]];
+        // the bevel: lit on top and left, in shade below and right
+        C.poly(g, [[-hw, -hh], [hw, -hh], inner[1], inner[0]], { fill: GILT.top, lw: 0 });
+        C.poly(g, [[-hw, -hh], inner[0], inner[3], [-hw, hh]], { fill: GILT.light, lw: 0 });
+        C.poly(g, [[hw, -hh], [hw, hh], inner[2], inner[1]], { fill: GILT.side, lw: 0 });
+        C.poly(g, [[-hw, hh], inner[3], inner[2], [hw, hh]], { fill: GILT.deep, lw: 0 });
+        const mid = fw * 0.5, ring = [[-hw + mid, -hh + mid], [hw - mid, -hh + mid], [hw - mid, hh - mid], [-hw + mid, hh - mid]];
+        C.poly(g, ring, { ink: GILT.front, lw: fw * 0.42 });
+        for (const [a, b] of [[[-hw, -hh], inner[0]], [[hw, -hh], inner[1]], [[hw, hh], inner[2]], [[-hw, hh], inner[3]]]) line(g, [a, b], L * 0.7, GILT.deep);
+        if (s > 120) {
+            const n = 15, m = 13;
+            g.fillStyle = GILT.light;
+            for (let i = 1; i < n; i++) for (const sy of [-1, 1]) circ(g, lerp(-hw + mid, hw - mid, i / n), sy * (hh - mid), fw * 0.1, sy < 0 ? GILT.light : GILT.side);
+            for (let i = 1; i < m; i++) for (const sx of [-1, 1]) circ(g, sx * (hw - mid), lerp(-hh + mid, hh - mid, i / m), fw * 0.1, sx < 0 ? GILT.light : GILT.deep);
+        }
+        for (const [cx, cy] of ring) C.poly(g, [[cx, cy - fw * 0.42], [cx + fw * 0.42, cy], [cx, cy + fw * 0.42], [cx - fw * 0.42, cy]], { fill: GILT.top, ink: K.ink, lw: L * 0.7 });
+        C.poly(g, [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]], { ink: K.ink, lw: L });
+        // the mount, the sheet on it
+        C.poly(g, inner, { fill: '#47228f', ink: K.ink, lw: L });
+        const sx0 = -hw + fw + mat, sy0 = -hh + fw + mat, sw = A_W - 2 * (fw + mat), sh = A_H - 2 * (fw + mat);
+        C.poly(g, [[sx0 + 0.012, sy0 + 0.014], [sx0 + sw + 0.012, sy0 + 0.014], [sx0 + sw + 0.012, sy0 + sh + 0.014], [sx0 + 0.012, sy0 + sh + 0.014]], { fill: '#2f1466', lw: 0 });
+        C.poly(g, [[sx0, sy0], [sx0 + sw, sy0], [sx0 + sw, sy0 + sh], [sx0, sy0 + sh]], { fill: '#fff3d0', ink: K.ink, lw: L * 0.8 });
+        g.save();
+        g.beginPath();
+        g.rect(sx0, sy0, sw, sh);
+        g.clip();
+        // the sheet's own drawing, in the units of segments/sign.js (the sheet 808 wide from x = 96, y = 296)
+        const k = sw / 808;
+        g.translate(sx0 - 96 * k, sy0 - 296 * k);
+        g.scale(k, k);
+        g.font = '104px "Anton"';
+        g.textAlign = 'center';
+        g.textBaseline = 'alphabetic';
+        g.fillStyle = K.ink;
+        [...'CONTRACT'].forEach((ch, i) => g.fillText(ch, 500 + (i - 3.5) * 82, 432));
+        line(g, [[170, 454], [830, 454]], 6);
+        line(g, [[170, 468], [830, 468]], 2.5);
+        // small print: lines of dashes, and a red bar where the one word that mattered stood
+        const r = Motion.rng('smallprint');
+        let bar = false;
+        for (let i = 0; i < 3; i++) {
+            const py = 506 + i * 34;
+            let px = 170;
+            while (px < 820) {
+                const w = 18 + r() * 60;
+                if (i === 1 && px > 430 && !bar) {
+                    bar = true;
+                    line(g, [[px + 6, py], [px + 80, py]], 13, K.red);
+                    px += 96;
+                    continue;
+                }
+                line(g, [[px, py], [Math.min(830, px + w), py]], 4, '#8a6d3b');
+                px += w + 12;
+            }
+        }
+        // the line, its cross, the seal with its ribbons
+        line(g, [[250, 812], [700, 812]], 5);
+        line(g, [[176, 766], [222, 812]], 7);
+        line(g, [[222, 766], [176, 812]], 7);
+        C.poly(g, [[756, 800], [728, 930], [770, 904], [800, 940], [812, 800]], { fill: K.magenta, ink: K.ink, lw: 4 });
+        C.poly(g, C.ellipsePts(784, 780, 70, 70, 12, 0.2).map(([px, py], i) => (i % 2 ? [784 + (px - 784) * 0.86, 780 + (py - 780) * 0.86] : [px, py])), { fill: '#c9182c', ink: K.ink, lw: 4 });
+        circ(g, 784, 780, 40, null, 4, '#8f0f1f');
+        for (const sx of [-1, 1]) C.poly(g, C.curve([[784 + sx * 6, 796], [784 + sx * 26, 786], [784 + sx * 22, 760], [784 + sx * 14, 778]], true, 5), { fill: '#8f0f1f', lw: 0 });
+        // what Tom wrote, in blue ink
+        g.font = '100px "Hand"';
+        g.textAlign = 'left';
+        g.fillStyle = '#2b3fd1';
+        g.fillText('To my', 250, 700);
+        g.fillText('#1 fan!', 478, 700);
+        g.fillText('— Tom', 455, 800);
+        g.restore();
+        // the glass: two hard-edged glints across it
+        g.save();
+        C.trace(g, inner);
+        g.clip();
+        const gx = lerp(-hw, hw - 0.3, o.glint ?? 0.3);
+        g.fillStyle = 'rgba(255,255,255,0.2)';
+        for (const [dx, w] of [[0, 0.11], [0.17, 0.04]]) {
+            g.beginPath();
+            g.moveTo(gx + dx + 0.34, -hh);
+            g.lineTo(gx + dx + 0.34 + w, -hh);
+            g.lineTo(gx + dx + w - 0.2, hh);
+            g.lineTo(gx + dx - 0.2, hh);
+            g.closePath();
+            g.fill();
+        }
+        g.restore();
+        C.poly(g, inner, { ink: K.ink, lw: L });
+        g.restore();
+    }
+
+    /**
+     * Where the frame is while it goes up: fr = { k, tilt }. k 0 → 0.75 it rises from 190 units
+     * under its place to a little above the nail; 0.75 → 1 it drops onto the nail and swings
+     * to rest (tilt is added to the swing). Returns { x, y (its middle), tilt, s, hung (it is on
+     * the nail), grips: [[x, y], [x, y]] (its lower corners, for the mitts that carry it) }.
+     */
+    function frameAt(fr = {}) {
+        const k = clamp(fr.k ?? 1), s = BACKSTAGE.frame, [nx, ny] = BACKSTAGE.nail, rest = ny + (0.075 + A_H / 2) * s;
+        const up = 1 - Math.pow(1 - seg(k, 0, 0.75), 2.4), set = seg(k, 0.75, 1);
+        const y = rest + 190 * (1 - up) - 16 * up * (1 - smooth(set * 2.5));
+        const tilt = (fr.tilt ?? 0) + (k < 0.75 ? -0.05 * (1 - up) : 0.085 * Math.sin(set * Math.PI * 3) * Math.pow(1 - set, 1.5));
+        const c = Math.cos(tilt), sn = Math.sin(tilt), hw = (A_W / 2) * s, hh = (A_H / 2) * s;
+        return { x: nx, y, tilt, s, hung: k >= 0.75, grips: [[nx - hw * c - hh * sn, y - hw * sn + hh * c], [nx + hw * c - hh * sn, y + hw * sn + hh * c]] };
+    }
+
+    // one of the framed things on the wall: [kind, x, y, w, h, tilt, moulding]
+    const FRAMES = [
+        ['record', 104, 84, 112, 112, 0.03, 'gilt'], ['imps', 236, 100, 100, 84, -0.04, 'dark'], ['moon', 366, 92, 92, 104, 0.02, 'wood'], ['cactus', 548, 86, 86, 108, -0.03, 'gilt'],
+        ['snow', 662, 104, 80, 80, 0.05, 'dark'], ['scroll', 768, 90, 124, 92, -0.02, 'wood'], ['heart', 694, 214, 96, 112, 0.03, 'wood'], ['forks', 812, 204, 118, 96, -0.03, 'gilt'],
+    ];
+    function wallFrame(g, [kind, x, y, w, h, tilt, mould]) {
+        const cols = { gilt: { front: GILT.front, top: GILT.top, side: GILT.side }, dark: { front: ROOM.iron, top: ROOM.ironTop, side: ROOM.ironSide }, wood: { front: ROOM.wood, top: ROOM.woodTop, side: ROOM.woodSide } }[mould];
+        const f = 9, cx = x + w / 2, cy = y + h / 2;
+        g.save();
+        g.translate(cx, cy);
+        g.rotate(tilt);
+        g.translate(-cx, -cy);
+        C.box(g, x, y, w, h, [5, -3.4], cols, { lw: 3 });
+        C.poly(g, [[x, y], [x + w, y], [x + w - f, y + f], [x + f, y + f]], { fill: cols.top, lw: 0 });
+        C.poly(g, [[x + w, y], [x + w, y + h], [x + w - f, y + h - f], [x + w - f, y + f]], { fill: cols.side, lw: 0 });
+        C.poly(g, [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], { ink: K.ink, lw: 3 });
+        const ix = x + f, iy = y + f, iw = w - 2 * f, ih = h - 2 * f, mx = ix + iw / 2, my = iy + ih / 2;
+        const bg = { record: '#2a2438', imps: '#ffc21f', moon: '#1b1750', cactus: '#48cfe0', snow: '#8fc4f2', scroll: '#fff3d0', heart: '#fff1c4', forks: '#6a37cc' }[kind];
+        C.poly(g, [[ix, iy], [ix + iw, iy], [ix + iw, iy + ih], [ix, iy + ih]], { fill: bg, ink: K.ink, lw: 2.4 });
+        g.save();
+        g.beginPath();
+        g.rect(ix, iy, iw, ih);
+        g.clip();
+        if (kind === 'record') {
+            // a gold record
+            circ(g, mx, my, 38, GILT.front, 2.4);
+            for (const rr of [31, 25, 19]) circ(g, mx, my, rr, null, 1.4, GILT.side);
+            circ(g, mx, my, 13, K.red, 2);
+            circ(g, mx, my, 3, '#2a2438');
+            line(g, [[mx - 26, my - 20], [mx - 14, my - 28]], 3, GILT.light);
+        } else if (kind === 'imps') {
+            // the staff, in a row
+            [-28, 0, 28].forEach((dx, i) => {
+                C.box(g, mx + dx - 11, my - 4, 22, 20, [4, -2.7], { front: '#e8392f', top: '#ff6f59', side: '#b0211f' }, { lw: 2 });
+                for (const sx of [-1, 1]) {
+                    C.poly(g, [[mx + dx + sx * 8 - 3, my - 4], [mx + dx + sx * 9, my - 12], [mx + dx + sx * 8 + 3, my - 4]], { fill: '#fff1c4', ink: K.ink, lw: 1.4 });
+                    g.fillStyle = '#ffe62e';
+                    g.fillRect(mx + dx + sx * 5 - 3, my + 1, 6, 6);
+                    g.fillStyle = '#1d1626';
+                    g.fillRect(mx + dx + sx * 5 - 1, my + 2, 2, 4);
+                }
+                line(g, [[mx + dx - 4, my + 11], [mx + dx, my + 13], [mx + dx + 4, my + 11]], 1.4);
+                if (i === 1) C.poly(g, [[mx - 9, my - 5], [mx - 7, my - 13], [mx, my - 16], [mx + 7, my - 13], [mx + 9, my - 5]], { fill: '#ffe62e', ink: K.ink, lw: 1.4 });
+            });
+            g.fillStyle = '#e0a800';
+            g.fillRect(ix, my + 16, iw, ih);
+        } else if (kind === 'moon') {
+            moon(g, mx, my - 4, 26, {});
+            for (const [dx, dy] of [[-28, -30], [26, -34], [30, 20], [-30, 16]]) C.sparkle(g, mx + dx, my + dy, 5, { color: '#fffbe8' });
+            g.fillStyle = '#4a3fc0';
+            g.fillRect(ix, iy + ih - 14, iw, 14);
+        } else if (kind === 'cactus') {
+            // the cactus in shades, at the wheel no more
+            g.fillStyle = '#ffc21f';
+            g.fillRect(ix, iy + ih - 20, iw, 20);
+            line(g, [[ix, iy + ih - 20], [ix + iw, iy + ih - 20]], 2);
+            g.save();
+            g.translate(mx, iy + ih - 12);
+            saguaro(g, { cactus: K.teal, cactusTop: K.aqua, cactusSide: K.tealDeep }, 2.2, 62, 1);
+            g.restore();
+            for (const sx of [-1, 1]) rrect(g, mx + sx * 5 - 4.5, iy + ih - 62, 9, 6, 1.5, '#1d1626', 1.2);
+            line(g, [[mx - 1, iy + ih - 60], [mx + 1, iy + ih - 60]], 1.6);
+        } else if (kind === 'snow') {
+            // a snowflake: the day Hell froze over
+            for (let i = 0; i < 6; i++) {
+                const a = (i / 6) * TAU, c = Math.cos(a), sn = Math.sin(a);
+                line(g, [[mx, my], [mx + c * 24, my + sn * 24]], 3.4, '#fffdf4');
+                for (const sd of [-1, 1]) line(g, [[mx + c * 14, my + sn * 14], [mx + c * 14 + Math.cos(a + sd * 0.9) * 8, my + sn * 14 + Math.sin(a + sd * 0.9) * 8]], 2.6, '#fffdf4');
+            }
+            circ(g, mx, my, 4, '#fffdf4');
+        } else if (kind === 'scroll') {
+            // a certificate: ruled lines and a seal
+            for (let i = 0; i < 5; i++) line(g, [[ix + 12, iy + 14 + i * 11], [ix + iw - (i === 4 ? 50 : 12), iy + 14 + i * 11]], i === 0 ? 3.4 : 2, i === 0 ? K.ink : '#8a6d3b');
+            C.poly(g, [[ix + iw - 28, iy + ih - 22], [ix + iw - 32, iy + ih - 2], [ix + iw - 24, iy + ih - 8], [ix + iw - 16, iy + ih - 2], [ix + iw - 20, iy + ih - 22]], { fill: K.magenta, ink: K.ink, lw: 1.6 });
+            circ(g, ix + iw - 24, iy + ih - 24, 10, '#c9182c', 2);
+        } else if (kind === 'heart') {
+            // a sampler: a heart with little horns, in cross-stitch, a border of stitches
+            const hp = C.curve([[mx, my + 24], [mx - 26, my - 2], [mx - 22, my - 22], [mx - 8, my - 22], [mx, my - 10], [mx + 8, my - 22], [mx + 22, my - 22], [mx + 26, my - 2]], true, 6);
+            for (const sx of [-1, 1]) C.poly(g, [[mx + sx * 12, my - 22], [mx + sx * 22, my - 36], [mx + sx * 21, my - 20]], { fill: '#fff1c4', ink: K.ink, lw: 1.6 });
+            C.poly(g, hp, { fill: K.red, ink: K.ink, lw: 2.2 });
+            line(g, [[mx - 14, my - 12], [mx - 8, my - 16]], 2.4, '#ff9c8f');
+            g.setLineDash([4, 4]);
+            g.strokeStyle = K.magenta;
+            g.lineWidth = 2;
+            g.strokeRect(ix + 7, iy + 7, iw - 14, ih - 14);
+            g.setLineDash([]);
+        } else {
+            // crossed forks on purple, a gold star over them
+            for (const sx of [-1, 1]) {
+                g.save();
+                g.translate(mx, my + 6);
+                g.rotate(sx * 0.7);
+                line(g, [[0, 30], [0, -18]], 5);
+                line(g, [[0, 30], [0, -18]], 2.4, '#c9cfe2');
+                C.poly(g, [[-10, -30], [-10, -18], [10, -18], [10, -30], [6, -30], [6, -22], [2, -22], [2, -34], [-2, -34], [-2, -22], [-6, -22], [-6, -30]], { fill: '#c9cfe2', ink: K.ink, lw: 1.6 });
+                g.restore();
+            }
+            C.sparkle(g, mx, iy + 14, 8, { color: '#ffe62e', ink: K.ink, lw: 1.4, pinch: 0.42 });
+        }
+        g.restore();
+        C.poly(g, [[ix, iy], [ix + iw, iy], [ix + iw, iy + ih], [ix, iy + ih]], { ink: K.ink, lw: 2.4 });
+        // the glass
+        g.save();
+        g.beginPath();
+        g.rect(ix, iy, iw, ih);
+        g.clip();
+        C.poly(g, [[ix + iw * 0.55, iy], [ix + iw * 0.75, iy], [ix + iw * 0.35, iy + ih], [ix + iw * 0.15, iy + ih]], { fill: 'rgba(255,255,255,0.16)', lw: 0 });
+        g.restore();
+        g.restore();
+    }
+    // one of his tailcoats on its hanger; (x, y) is where the hook sits on the rail
+    function tailcoat(g, x, y) {
+        const P = Devil.P, w = 46;
+        line(g, C.curve([[x, y + 22], [x, y + 8], [x + 7, y + 2], [x + 3, y - 7], [x - 5, y - 4]], false, 5), 2.6, ROOM.chromeSide);
+        const body = [[x - 12, y + 22], [x + 12, y + 22], [x + w, y + 40], [x + w - 2, y + 150], [x + w - 8, y + 196], [x + w - 22, y + 270], [x + 8, y + 262], [x, y + 170], [x - 8, y + 262], [x - w + 22, y + 270], [x - w + 8, y + 196], [x - w + 2, y + 150], [x - w, y + 40]];
+        C.prism(g, body, [12, -8], { front: P.suit, top: P.suitTop, side: P.suitSide }, { lw: 3 });
+        // the lining in the opening, the lapels, a button, a pocket square
+        C.poly(g, [[x - 12, y + 22], [x + 12, y + 22], [x + 4, y + 112], [x - 4, y + 112]], { fill: P.suitSide, ink: K.ink, lw: 2.2 });
+        for (const sx of [-1, 1]) {
+            C.poly(g, [[x + sx * 12, y + 22], [x + sx * 26, y + 28], [x + sx * 27, y + 46], [x + sx * 32, y + 56], [x + sx * 20, y + 68], [x + sx * 4, y + 112]], { fill: P.lapel, ink: K.ink, lw: 2.2 });
+            line(g, [[x + sx * 17, y + 36], [x + sx * 8, y + 88]], 2, P.lapelDark);
+        }
+        line(g, [[x, y + 112], [x, y + 170]], 2.2);
+        circ(g, x, y + 124, 4.5, P.button, 1.8);
+        C.poly(g, [[x + 22, y + 92], [x + 26, y + 84], [x + 30, y + 90], [x + 34, y + 83], [x + 38, y + 92]], { fill: P.shirt, ink: K.ink, lw: 1.6 });
+        line(g, [[x + 20, y + 92], [x + 40, y + 92]], 2);
+    }
+
+    // everything in the room that never moves
+    function roomStill(g) {
+        const R = ROOM, FL = BACKSTAGE.floor;
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        // --- the wall: papered in two reds with a little gold fork repeated on it
+        g.fillStyle = R.wall;
+        g.fillRect(-60, -60, 1120, FL + 60);
+        g.fillStyle = R.wallB;
+        for (let x = -60; x < 1060; x += 96) g.fillRect(x, -60, 48, FL + 60);
+        for (let j = 0; j < 9; j++) {
+            for (let i = 0; i < 12; i++) {
+                const mx = -36 + i * 96 + (j % 2) * 48, my = 44 + j * 66;
+                line(g, [[mx, my + 9], [mx, my - 5]], 2.2, R.motif);
+                line(g, [[mx - 6, my - 10], [mx - 6, my - 4], [mx + 6, my - 4], [mx + 6, my - 10]], 2.2, R.motif);
+                line(g, [[mx, my - 4], [mx, my - 12]], 2.2, R.motif);
+            }
+        }
+        // Hell shows through at the top: a row of stalactites, a crack that glows
+        const rs = Motion.rng('skyward-stal');
+        for (let x = -40; x < 1050; x += 60 + rs() * 44) {
+            const w = 24 + rs() * 22, h = 26 + rs() * 40;
+            C.prism(g, [[x - w, -8], [x + w, -8], [x, h]], [7, -5], { front: R.wallD, top: R.wallD, side: '#4a0c17' }, { lw: 4 });
+        }
+        // --- the dado: dark panelling under a rail
+        C.box(g, -60, 610, 1120, FL - 610, [0, 0], { front: R.panel }, { lw: 0 });
+        for (let x = -20; x < 1040; x += 132) {
+            rrect(g, x + 14, 646, 104, FL - 646 - 22, 4, R.panelD, 3);
+            line(g, [[x + 22, 656], [x + 108, 656]], 2.4, R.railTop);
+        }
+        C.box(g, -60, 600, 1120, 20, [10, -7], { front: R.rail, top: R.railTop, side: R.railSide }, { lw: 4 });
+        // --- the floor: boards, a skirting line
+        g.fillStyle = R.board;
+        g.fillRect(-60, FL, 1120, 300);
+        for (let j = 0; j < 5; j++) {
+            const y = FL + 14 + j * j * 7 + j * 26;
+            line(g, [[-60, y], [1060, y]], 2.6, R.boardLine);
+            for (let x = -60 + ((j * 170) % 240); x < 1060; x += 240) line(g, [[x, y], [x - 12, y - (j ? 26 + (j - 1) * 14 : 14)]], 2.6, R.boardLine);
+        }
+        line(g, [[-60, FL], [1060, FL]], 5);
+        // --- the rug he stands on
+        oval(g, 500, 902, 286, 62, R.rugDark, 4);
+        oval(g, 500, 896, 286, 62, R.rug, 4);
+        oval(g, 500, 896, 240, 48, null, 5, R.rugLine);
+        oval(g, 500, 896, 206, 38, R.rugIn, 3);
+        const zig = [];
+        for (let i = 0; i <= 40; i++) {
+            const a = (i / 40) * TAU, k = i % 2 ? 0.86 : 0.7;
+            zig.push([500 + Math.cos(a) * 206 * k, 896 + Math.sin(a) * 38 * k]);
+        }
+        C.poly(g, zig, { fill: R.rug, ink: K.ink, lw: 2.4 });
+        C.sparkle(g, 500, 896, 30, { color: R.rugLine, ink: K.ink, lw: 2.4, pinch: 0.5 });
+        for (let i = 0; i <= 24; i++) {
+            const a = Math.PI * (0.06 + (0.88 * i) / 24), px = 500 + Math.cos(a) * 286, py = 896 + Math.sin(a) * 62;
+            line(g, [[px, py + 6], [px + Math.cos(a) * 5, py + 17]], 2.6, R.rugLine);
+        }
+        // --- the wall of framed things, an empty nail in the middle
+        FRAMES.forEach((f) => wallFrame(g, f));
+        // --- the coat rail: a row of identical tailcoats
+        const rx0 = 724, rx1 = 946, ry = 372, chromeC = { front: R.chrome, top: R.chromeTop, side: R.chromeSide };
+        for (const px of [rx0, rx1]) {
+            C.box(g, px - 5 + 12, ry - 8, 10, FL + 26 - ry, [5, -3.4], chromeC, { lw: 3 });
+            C.box(g, px - 26 + 12, FL + 20 - 8, 52, 10, [18, -12], chromeC, { lw: 3 });
+        }
+        for (let i = 4; i >= 0; i--) tailcoat(g, rx0 + 54 + i * 40, ry);
+        tube(g, [[rx0 + 12, ry - 2], [rx1 + 12, ry - 2]], 8, R.chrome, 3);
+        line(g, [[rx0 + 16, ry - 4], [rx1 + 8, ry - 4]], 2, R.chromeTop);
+        for (const px of [rx0, rx1]) {
+            C.box(g, px - 5, ry - 2, 10, FL + 26 - ry, [5, -3.4], chromeC, { lw: 3 });
+            for (const cx of [px - 18, px + 22]) circ(g, cx, FL + 34, 8, R.iron, 3);
+        }
+        // --- the dressing table and its mirror
+        const woodC = { front: R.wood, top: R.woodTop, side: R.woodSide };
+        const mx0 = 104, my0 = 240, mw = 212, mh = 284;
+        C.box(g, mx0 - 16, my0 - 16, mw + 32, mh + 32, [8, -5.4], woodC, { lw: 4 });
+        rrect(g, mx0, my0, mw, mh, 6, R.glass, 3.2);
+        g.save();
+        g.beginPath();
+        g.roundRect(mx0, my0, mw, mh, 6);
+        g.clip();
+        // what it shows: the far wall's paper, a coat on its hook, two glints
+        g.fillStyle = '#9fd3ea';
+        g.fillRect(mx0, my0 + mh * 0.62, mw, mh);
+        C.poly(g, [[mx0 + 130, my0 + 60], [mx0 + 196, my0 + 60], [mx0 + 206, my0 + 250], [mx0 + 120, my0 + 250]], { fill: '#9b86e0', lw: 0 });
+        line(g, [[mx0 + 163, my0 + 60], [mx0 + 163, my0 + 34]], 3, '#7aa9c9');
+        for (const [dx, w] of [[20, 26], [58, 9]]) C.poly(g, [[mx0 + dx + 60, my0], [mx0 + dx + 60 + w, my0], [mx0 + dx + w - 30, my0 + mh], [mx0 + dx - 30, my0 + mh]], { fill: 'rgba(255,255,255,0.5)', lw: 0 });
+        g.restore();
+        rrect(g, mx0, my0, mw, mh, 6, null, 3.2);
+        // the table: a top, a drawer front with two drawers, legs
+        for (const lx of [100, 308]) C.box(g, lx, 590, 14, FL + 14 - 590, [5, -3.4], woodC, { lw: 3 });
+        C.box(g, 94, 568, 236, 52, [16, -11], woodC, { lw: 4 });
+        for (const dx of [104, 216]) {
+            rrect(g, dx, 577, 104, 34, 3, R.woodSide, 2.6);
+            circ(g, dx + 52, 594, 6, GILT.front, 2.2);
+        }
+        C.box(g, 84, 552, 256, 16, [22, -15], { front: R.woodTop, top: '#c98852', side: R.wood }, { lw: 4 });
+        // on it: a jar of pomade, a comb, a tin of moustache wax, a spotted bow tie
+        C.box(g, 108, 520, 40, 30, [8, -5.4], { front: '#2a2438', top: '#4a4470', side: '#1c1727' }, { lw: 3 });
+        C.box(g, 105, 512, 46, 10, [9, -6], { front: GILT.front, top: GILT.top, side: GILT.side }, { lw: 2.6 });
+        rrect(g, 116, 528, 24, 14, 2, '#e0258b', 1.8);
+        C.poly(g, [[166, 541], [226, 541], [226, 548], [166, 548]], { fill: K.yellow, ink: K.ink, lw: 2.2 });
+        for (let cx = 170; cx < 226; cx += 6) line(g, [[cx, 548], [cx, 556]], 2.2, K.ink);
+        const bt = [286, 540];
+        for (const sx of [-1, 1]) {
+            C.poly(g, [[bt[0] + sx * 4, bt[1] - 3], [bt[0] + sx * 24, bt[1] - 11], [bt[0] + sx * 25, bt[1] + 10], [bt[0] + sx * 4, bt[1] + 3]], { fill: Devil.P.tie, ink: K.ink, lw: 2.2 });
+            for (const [dx, dy] of [[11, -2], [18, 3]]) circ(g, bt[0] + sx * dx, bt[1] + dy, 1.8, Devil.P.lapel);
+        }
+        rrect(g, bt[0] - 5, bt[1] - 5, 10, 10, 2, Devil.P.tieDark, 2);
+        // --- the umbrella stand: his trident in it, and an umbrella
+        const ux = 372, uy = FL + 22;
+        oval(g, ux, uy - 92, 30, 9, R.ironSide, 3);
+        g.save();
+        g.translate(ux + 8, uy - 196);
+        g.scale(150, 150);
+        Devil.trident(g, 0, 0, 3.2 / 150, { ang: 0.1, len: 2.3, grip: 1.26 });
+        g.restore();
+        // a furled umbrella: a hooked handle, a tight roll of cloth, a tip
+        const um = (u) => [ux - 14 - u * 26, uy - 12 - u * 250];
+        line(g, C.curve([um(0.86), um(1.0), [um(1.04)[0] - 12, um(1.04)[1] - 2], [um(0.98)[0] - 20, um(0.98)[1] + 10]], false, 6), 8.5);
+        line(g, C.curve([um(0.86), um(1.0), [um(1.04)[0] - 12, um(1.04)[1] - 2], [um(0.98)[0] - 20, um(0.98)[1] + 10]], false, 6), 4, '#a8683a');
+        C.poly(g, [[um(0.86)[0] - 6, um(0.86)[1]], [um(0.86)[0] + 6, um(0.86)[1] + 1], [um(0.3)[0] + 13, um(0.3)[1]], [um(0)[0] + 3, um(0)[1]], [um(0)[0] - 3, um(0)[1]], [um(0.3)[0] - 11, um(0.3)[1] - 2]], { fill: '#2a2438', ink: K.ink, lw: 3 });
+        line(g, [[um(0.8)[0] - 2, um(0.8)[1]], [um(0.34)[0] + 4, um(0.34)[1]]], 2, '#4a4470');
+        line(g, [[um(0.58)[0] - 9, um(0.58)[1]], [um(0.58)[0] + 10, um(0.58)[1] + 2]], 3, '#e0258b');
+        // the stand in front of what is in it: a drum with two gold bands
+        const drumPts = [[ux - 30, uy - 92], ...C.ellipsePts(ux, uy, 30, 9, 16, 0, Math.PI, 0).reverse(), [ux + 30, uy - 92]];
+        C.poly(g, [[ux - 30, uy - 92], [ux - 30, uy], ...C.ellipsePts(ux, uy, 30, 9, 16, 0, Math.PI, 0).reverse().slice(1, -1), [ux + 30, uy], [ux + 30, uy - 92], ...C.ellipsePts(ux, uy - 92, 30, 9, 16, 0, 0, Math.PI).slice(1, -1)], { fill: R.iron, ink: K.ink, lw: 3 });
+        g.save();
+        C.trace(g, [[ux - 30, uy - 92], [ux - 30, uy], ...C.ellipsePts(ux, uy, 30, 9, 16, 0, Math.PI, 0).reverse().slice(1, -1), [ux + 30, uy], [ux + 30, uy - 92], ...C.ellipsePts(ux, uy - 92, 30, 9, 16, 0, 0, Math.PI).slice(1, -1)]);
+        g.clip();
+        g.fillStyle = R.ironSide;
+        g.fillRect(ux + 12, uy - 100, 30, 120);
+        g.fillStyle = R.ironTop;
+        g.fillRect(ux - 22, uy - 100, 8, 120);
+        for (const by of [70, 18]) C.poly(g, C.ellipsePts(ux, uy - by, 30, 9, 16, 0, 0, Math.PI), { ink: K.ink, lw: 9, close: false });
+        for (const by of [70, 18]) C.poly(g, C.ellipsePts(ux, uy - by, 30, 9, 16, 0, 0, Math.PI), { ink: GILT.front, lw: 4.6, close: false });
+        g.restore();
+        void drumPts;
+        // --- the TV on its trolley, the VCR under it, tapes on the shelf
+        const tx = 84, ty = 838; // the trolley's top, front left
+        for (const lx of [tx + 4, tx + 164]) C.box(g, lx, ty + 8, 10, 72, [4, -2.7], chromeC, { lw: 3 });
+        C.box(g, tx, ty + 60, 178, 9, [26, -17], woodC, { lw: 3 });
+        // three tapes on the lower shelf, their labels blank
+        [[tx + 30, 0], [tx + 36, -15], [tx + 100, 0]].forEach(([px, dy], i) => {
+            C.box(g, px, ty + 44 + dy, 58, 15, [13, -9], { front: '#2a2438', top: '#4a4470', side: '#1c1727' }, { lw: 2.4 });
+            rrect(g, px + 6, ty + 47 + dy, 40, 9, 1.5, i === 1 ? '#fff1c4' : '#fffdf4', 1.4);
+            line(g, [[px + 10, ty + 51.5 + dy], [px + 34, ty + 51.5 + dy]], 1.6, i === 1 ? K.red : K.blue);
+        });
+        for (const cx of [tx + 10, tx + 170]) circ(g, cx, ty + 88, 8, R.iron, 3);
+        C.box(g, tx - 6, ty, 190, 10, [28, -19], woodC, { lw: 4 });
+        // the VCR: a slot with its flap, buttons, two lights
+        const vy = ty - 34;
+        C.box(g, tx + 4, vy, 168, 34, [22, -15], { front: '#2a2438', top: '#4a4470', side: '#1c1727' }, { lw: 3.2 });
+        rrect(g, tx + 14, vy + 7, 84, 13, 2, '#15101d', 2);
+        line(g, [[tx + 18, vy + 11], [tx + 94, vy + 11]], 2, '#4a4470');
+        for (let i = 0; i < 4; i++) rrect(g, tx + 108 + i * 14, vy + 20, 10, 6, 1.5, '#8d95ad', 1.4);
+        // the TV: a set with a rounded screen, a speaker, two knobs, rabbit ears
+        const sy0 = vy - 124;
+        line(g, [[tx + 96, sy0 - 4], [tx + 60, sy0 - 62]], 5);
+        line(g, [[tx + 96, sy0 - 4], [tx + 60, sy0 - 62]], 2.2, R.chrome);
+        line(g, [[tx + 104, sy0 - 4], [tx + 150, sy0 - 54]], 5);
+        line(g, [[tx + 104, sy0 - 4], [tx + 150, sy0 - 54]], 2.2, R.chrome);
+        circ(g, tx + 60, sy0 - 62, 4.5, R.chromeTop, 2);
+        circ(g, tx + 150, sy0 - 54, 4.5, R.chromeTop, 2);
+        C.box(g, tx + 8, sy0, 160, 124, [22, -15], { front: R.iron, top: R.ironTop, side: R.ironSide }, { lw: 4 });
+        rrect(g, tx + 86, sy0 - 9, 26, 9, 3, R.ironSide, 2.4);
+        rrect(g, tx + 16, sy0 + 10, 112, 96, 5, '#1c1727', 2.4);
+        for (let i = 0; i < 5; i++) line(g, [[tx + 138, sy0 + 62 + i * 9], [tx + 160, sy0 + 62 + i * 9]], 2.6, R.ironSide);
+        for (const ky of [22, 44]) {
+            circ(g, tx + 149, sy0 + ky, 8, R.chrome, 2.4);
+            line(g, [[tx + 149, sy0 + ky], [tx + 153, sy0 + ky - 5]], 2);
+        }
+        for (const fx of [tx + 18, tx + 150]) C.box(g, fx, sy0 + 124, 12, 5, [3, -2], { front: R.ironSide }, { lw: 2 });
+        // --- the guitar stand: a tripod, a cradle of two padded arms, a yoke for the neck
+        const G = BACKSTAGE.guitar, gs = G.s;
+        const leg = (pts) => {
+            line(g, pts, 9);
+            line(g, pts, 4.4, R.chrome);
+        };
+        leg([[G.x + 6, G.y - 1.3 * gs], [G.x + 46, G.y + 46]]);
+        leg([[G.x, G.y - 1.3 * gs], [G.x - 44, G.y + 52]]);
+        leg([[G.x + 2, G.y - 1.3 * gs], [G.x + 8, G.y + 60]]);
+        leg([[G.x + 3, G.y - 1.86 * gs], [G.x + 3, G.y - 1.25 * gs]]);
+        for (const [fx, fy] of [[G.x + 46, G.y + 46], [G.x - 44, G.y + 52], [G.x + 8, G.y + 60]]) rrect(g, fx - 9, fy - 4, 18, 9, 3, '#2a2438', 2.2);
+        leg([[G.x - 40, G.y + 4], [G.x - 34, G.y + 12], [G.x + 40, G.y + 12], [G.x + 46, G.y + 4]]);
+        for (const fx of [G.x - 40, G.y * 0 + G.x + 46]) rrect(g, fx - 6, G.y - 8, 12, 15, 4, '#2a2438', 2.2);
+    }
+
+    /**
+     * The Devil's dressing room: a whole 1000 × 1000 set in Hell's reds, but cosy. Papered wall
+     * and dado; a mirror with bulbs round it over his dressing table (pomade, comb, bow tie); his
+     * trident in the umbrella stand; a wall of framed things (a gold record, the staff, the moon,
+     * the cactus in shades, a snowflake, a certificate, a sampler, crossed forks) with one empty
+     * nail in the middle; a rail of identical purple tailcoats; his flaming guitar on its stand;
+     * a little TV on a trolley with the VCR under it, showing the VCR's blue; a rug to stand on.
+     *   o: { frame   { k, tilt }: the framed autograph on its way up to the nail (see
+     *                Skyward.frameAt, which says where it is and where to hold it); omit it and
+     *                the nail is bare. Draw whoever carries it AFTER the room: pass `frame:
+     *                null` here and draw Skyward.autograph yourself between the Devil's body
+     *                and his mitts if it must be held properly (frameAt gives x, y, tilt, s).
+     *        flames  0..1 the fire on the guitar (default 0.7)
+     *        guitar  (g, x, y, s) => …  draws the guitar instead of Inferno.guitar: (x, y) is where
+     *                its tail rests in the cradle, s its scale; the neck goes up into the yoke
+     *        bulbs   0..1 the mirror's bulbs (default 1; they twinkle on twos)
+     *        tv      'blue' (default) | 'off'
+     *        cache   false paints the still part every frame instead of once per output scale }
+     * Places: Skyward.BACKSTAGE (nail, devil's mark, guitar, floor…).
+     */
+    function backstage(g, t, o = {}) {
+        const R = ROOM, d = C.drawing(t), G = BACKSTAGE.guitar;
+        g.save();
+        if (o.cache === false) roomStill(g);
+        else cached(g, 'backstage', { x: -60, y: -60, w: 1120, h: 1120 }, roomStill);
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        // the nail
+        const [nx, ny] = BACKSTAGE.nail;
+        line(g, [[nx + 2, ny + 3], [nx + 9, ny + 11]], 3, R.wallD);
+        circ(g, nx, ny, 5.5, R.chrome, 2.4);
+        circ(g, nx - 1.5, ny - 1.5, 1.8, R.chromeTop);
+        if (o.frame) {
+            const F = frameAt(o.frame);
+            if (F.hung) {
+                // its wire runs up to the nail
+                const c = Math.cos(F.tilt), sn = Math.sin(F.tilt), hh = (A_H / 2) * F.s, hw = (A_W / 2) * 0.62 * F.s;
+                line(g, [[F.x - hw * c + hh * sn, F.y - hw * sn - hh * c], [nx, ny], [F.x + hw * c + hh * sn, F.y + hw * sn - hh * c]], 2.6, '#3a2012');
+            }
+            autograph(g, F.x, F.y, F.s, { tilt: F.tilt });
+            if (F.hung) circ(g, nx, ny, 5.5, R.chrome, 2.4);
+        }
+        // the mirror's bulbs: five along the top, four down each side
+        const bk = clamp(o.bulbs ?? 1), mx0 = 104, my0 = 240, mw = 212, mh = 284, bulbs = [];
+        for (let i = 0; i < 5; i++) bulbs.push([mx0 + 6 + (i * (mw - 12)) / 4, my0 - 8]);
+        for (let i = 1; i <= 4; i++) bulbs.push([mx0 - 8, my0 - 8 + (i * (mh - 20)) / 4], [mx0 + mw + 8, my0 - 8 + (i * (mh - 20)) / 4]);
+        bulbs.forEach(([bx, by], i) => {
+            const lit = bk > i / 13 - 0.001 && bk > 0, tw = lit && (d + i * 5) % 18 < 2;
+            circ(g, bx, by, 12, lit ? (tw ? R.bulbCore : R.bulb) : R.bulbOff, 3);
+            if (lit) circ(g, bx - 3, by - 3.5, 4, R.bulbCore);
+            else line(g, [[bx - 4, by + 2], [bx, by - 3], [bx + 4, by + 2]], 1.6, '#9a6408');
+        });
+        // the TV's screen: the VCR's blue, a band of brighter lines that rolls on twos
+        const tx = 84, sy0 = 838 - 34 - 124;
+        g.save();
+        g.beginPath();
+        g.roundRect(tx + 20, sy0 + 14, 104, 88, 12);
+        g.clip();
+        g.fillStyle = o.tv === 'off' ? '#2a2438' : K.vcrBlue;
+        g.fillRect(tx + 20, sy0 + 14, 104, 88);
+        if (o.tv !== 'off') {
+            const by = sy0 + 14 + ((d * 7) % 100);
+            g.fillStyle = '#3b40f0';
+            g.fillRect(tx + 20, by, 104, 9);
+            g.fillRect(tx + 20, by - 100, 104, 9);
+        }
+        C.poly(g, [[tx + 34, sy0 + 20], [tx + 52, sy0 + 20], [tx + 36, sy0 + 50], [tx + 26, sy0 + 50]], { fill: 'rgba(255,255,255,0.28)', lw: 0 });
+        g.restore();
+        g.beginPath();
+        g.roundRect(tx + 20, sy0 + 14, 104, 88, 12);
+        g.strokeStyle = K.ink;
+        g.lineWidth = 2.6;
+        g.stroke();
+        // the VCR's lights: play is on
+        circ(g, tx + 110, 838 - 34 + 10, 3, o.tv === 'off' ? '#4a4470' : K.green, 1.2);
+        circ(g, tx + 122, 838 - 34 + 10, 3, d % 12 < 6 && o.tv !== 'off' ? K.red : '#7a1f2e', 1.2);
+        // the guitar in its stand: fire off its horns, on twos
+        const fl = clamp(o.flames ?? 0.7), gs = G.s;
+        if (o.guitar) o.guitar(g, G.x, G.y, gs);
+        else if (typeof Inferno !== 'undefined' && Inferno.guitar) {
+            if (fl > 0.02 && typeof Fx !== 'undefined') {
+                Fx.flame(g, G.x - 0.36 * gs, G.y - 0.26 * gs, 0.42 * gs * fl * (1 + 0.1 * (d % 2)), d, 0);
+                Fx.flame(g, G.x + 0.36 * gs, G.y - 0.3 * gs, 0.36 * gs * fl * (1 + 0.1 * ((d + 1) % 2)), d, 2);
+            }
+            g.save();
+            g.translate(G.x, G.y);
+            g.scale(gs, gs);
+            Inferno.guitar(g, 3.2 / gs, [0.02, -0.5], -Math.PI / 2 + 0.02, 1, 1);
+            g.restore();
+            if (fl > 0.5 && typeof Fx !== 'undefined') Fx.flame(g, G.x + 0.04 * gs, G.y - 1.6 * gs, 0.2 * gs * fl, d, 1);
+        }
+        // the yoke closes round the neck, the cradle's pads in front of the body
+        for (const sx of [-1, 1]) {
+            line(g, [[G.x + 3, G.y - 1.24 * gs], [G.x + 3 + sx * 13, G.y - 1.26 * gs], [G.x + 3 + sx * 15, G.y - 1.36 * gs]], 8);
+            line(g, [[G.x + 3, G.y - 1.24 * gs], [G.x + 3 + sx * 13, G.y - 1.26 * gs], [G.x + 3 + sx * 15, G.y - 1.36 * gs]], 3.6, '#2a2438');
+        }
+        for (const fx of [G.x - 40, G.x + 46]) rrect(g, fx - 6, G.y - 8, 12, 15, 4, '#2a2438', 2.2);
+        g.restore();
+    }
+
     return { D, Dd, MOON, moon, landing, landingSlide, ZONES, HEIGHTS, EYE, at, horizon, site, moonAt, ascent, ascentFront, town, TOWN_AT,
-        angel, angelPoints, flap, harp, trumpet, cloudBank, bankBob, pearlyBits };
+        angel, angelPoints, flap, harp, trumpet, cloudBank, bankBob, pearlyBits, backstage, autograph, frameAt, BACKSTAGE };
 })();

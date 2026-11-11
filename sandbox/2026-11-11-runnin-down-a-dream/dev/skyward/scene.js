@@ -89,6 +89,45 @@ Motion.scene({
             S.cloudBank(g, 330, 760, 200, { w: [2.6, 3.4, 2.2, 3][v], seed: 'x' + v, t: tt, part: 'front', dawn });
             S.cloudBank(g, 790, 420, 200, { w: 1.8, seed: 'y', t: tt, dawn });
             S.angel(g, 790, 420, 200, { who: v % 3, mood: ['serene', 'rock', 'peek', 'ears'][v], sit: true, harp: v === 0, trumpet: v === 1, flap: v / 3 });
+        } else if (sheet === 50) {
+            // the dressing room: empty, then the frame on its way up
+            S.backstage(g, tt, v === 0 ? {} : { frame: { k: [0, 0.4, 0.8, 1][v] } });
+        } else if (sheet === 51) {
+            // with the Devil on his mark (s = 200), carrying the frame up, then stepping back
+            const k = [0.05, 0.45, 0.74, 1][v], F = S.frameAt({ k }), [dx, dy] = S.BACKSTAGE.devil, ds = 200;
+            S.backstage(g, tt, { frame: null });
+            const hold = !F.hung, hand = (p) => [(p[0] - dx) / ds + (p[0] < dx ? 0.1 : -0.1), (p[1] - dy) / ds + 0.04];
+            if (!hold) S.backstage(g, tt, { frame: { k } });
+            else S.autograph(g, F.x, F.y, F.s, { tilt: F.tilt });
+            Devil.draw(g, dx, dy, ds, hold ? { mood: 'grin', handR: hand(F.grips[0]), handL: hand(F.grips[1]), headTilt: -0.03, look: 0 } : { mood: 'laugh', handR: [-0.62, -0.5], handL: [0.62, -0.5], tail: 0.04 });
+        } else if (sheet === 52) {
+            // the autograph, close
+            C.sunburst(g, 500, 500, { n: 12, rot: 0.2, a: '#8a1a2c', b: '#7b1627' });
+            if (v < 2) S.autograph(g, 500, 500, [760, 520][v], { glint: [0.3, 0.8][v], wire: v === 1 });
+            else {
+                S.autograph(g, 280, 300, 250, { wire: true });
+                S.autograph(g, 720, 280, 170, { tilt: 0.08, wire: true });
+                S.autograph(g, 300, 720, 380, { tilt: -0.05 });
+                S.autograph(g, 760, 720, 120, { glint: 0.7 });
+            }
+        } else if (sheet === 53) {
+            // the room through a camera that pushes in on the frame (the still part is cached per scale)
+            const z = [1.6, 2.4, 2, 2][v], [cx, cy] = [[500, 380], [500, 372], [200, 420], [830, 600]][v];
+            g.save();
+            g.translate(500, 500);
+            g.scale(z, z);
+            g.translate(-cx, -cy);
+            S.backstage(g, tt, { frame: { k: 1 } });
+            g.restore();
+        } else if (sheet === 54) {
+            // the room's corners, twice the size
+            const [cx, cy] = [[250, 250], [750, 250], [250, 750], [750, 750]][v];
+            g.save();
+            g.translate(500, 500);
+            g.scale(2, 2);
+            g.translate(-cx, -cy);
+            S.backstage(g, tt, { frame: { k: 1 }, cache: false });
+            g.restore();
         } else if (sheet === 40) {
             night();
             stars();
@@ -124,6 +163,6 @@ Motion.scene({
     },
     post(ctx, t, env) {
         const sheet = Math.floor(t + 1e-6);
-        if (sheet < 24 || [30, 31, 33, 40, 41, 42].includes(sheet)) Cereal.post(ctx, t, env);
+        if (sheet < 24 || [30, 31, 33, 40, 41, 42, 50, 51].includes(sheet)) Cereal.post(ctx, t, env);
     },
 });
