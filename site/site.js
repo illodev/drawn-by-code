@@ -34,6 +34,7 @@
         ['paper-cutout', 'Paper cutout', 'Torn paper, marker fill, grain and handwriting; real hands that hold things the right way round.', 1, 613, 38],
         ['risograph', 'Risograph', 'Four spot inks, halftone plates, overprints that make the other colours, misregistration.', 1, 246, 28, 'square'],
         ['sumi-e', 'Sumi-e', 'Japanese ink on washi: one black in many greys, dry-brush streaks, mist, vermilion as the only colour.', 0, 1207, 39],
+        ['cereal-ad', '’90s cereal ad', 'A Saturday-morning TV spot on VHS: cel boxes, spinning sunbursts, extruded letters that hop, tape noise on a CRT.', 0, 636, 76, 'square'],
         ['engraving', 'Engraving', 'A plate of the «Description de l’Égypte»: charcoal tone on toothed paper, masonry stone by stone.', 0, 2313, 48, 'gl'],
         ['clay3d', 'Clay 3D', 'Plasticine puppets raymarched in WebGL: lumpy pressed-on pieces, fingerprints, studio light.', 0, 296, 35, 'gl'],
         ['70s-poster', '70s poster', 'Flat acid colours, thick outlines, concentric echoes, sunbursts and melting letters.', 1, 158, 22],

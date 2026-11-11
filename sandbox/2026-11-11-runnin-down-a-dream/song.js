@@ -11,6 +11,14 @@ const Song = (() => {
     // Drawings change on twos, but each event's clock starts on its own frame, so a hit never
     // waits for the next even frame: twos(t, at) is t held on the drawing, counted from `at`.
     const twos = (t, at) => at + Math.floor((t - at) * 12 + 1e-6) / 12;
+    // Something that pops in on a hit: 0 before `at`; on the hit's own frame it is already
+    // there at 0.6 of its size (a pop that starts from nothing is seen a drawing late), then
+    // it overshoots and settles within `dur`.
+    const pop = (t, at, dur = 0.25) => {
+        if (t < at - 1e-6) return 0;
+        const u = Math.max(0, Math.min(1, (twos(t, at) - at) / dur)), c1 = 1.7, c3 = c1 + 1;
+        return 0.6 + 0.4 * (1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2));
+    };
     // the beat we are in at t: { k, since (in beats, on twos), pulse (1 on the beat, falling) }
     const pulseAt = (t, decay = 3.2) => {
         let k = Math.floor((t - OFFSET) / BEAT + 0.5);
@@ -29,5 +37,5 @@ const Song = (() => {
         ['solo', 129, 179], ['fade', 179, 185],
     ];
     const END = 262; // the fade is silent by here (4:22); what follows on the file is the CD's spoken interlude
-    return { BPM, OFFSET, BEAT, BAR, FPS, snap, beat, bar, b, B, twos, pulseAt, LICK, BAND_IN, SECTIONS, END };
+    return { BPM, OFFSET, BEAT, BAR, FPS, snap, beat, bar, b, B, twos, pop, pulseAt, LICK, BAND_IN, SECTIONS, END };
 })();

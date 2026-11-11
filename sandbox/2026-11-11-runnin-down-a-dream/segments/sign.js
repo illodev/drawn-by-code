@@ -7,7 +7,7 @@
     const Seg = (window.Seg = window.Seg || {});
     const C = Cereal, K = C.COL, E = Ease, S = Song, twos = S.twos, b = S.b, B = S.B;
     const T4 = B(4), T5 = B(5), T6 = B(6), T7 = B(7), T8 = B(8);
-    const pop = (t, at, dur = 0.25) => (t < at - 1e-6 ? 0 : E.back(E.seg(twos(t, at), at, at + dur)));
+    const pop = S.pop;
     const bump = (t, at, dur = 0.3) => E.bump(twos(t, at), at, dur);
     const seg = (t, a, c) => E.seg(twos(t, a), a, c);
     const SAND = '#ffc21f', SAND_D = '#e09a12', ROAD = '#2f2a6b', ROAD_D = '#211c57';
@@ -90,6 +90,8 @@
             g.fill();
         }
         g.restore();
+        g.beginPath();
+        g.arc(0, 0, 60, 0, C.TAU);
         g.strokeStyle = K.ink;
         g.lineWidth = 4;
         g.stroke();
@@ -199,8 +201,8 @@
                 tilt = mood === 'grin' ? 0.05 : 0;
             }
             g.save();
-            g.translate(DX + jx, GY + (1 - up) * 70);
-            g.scale(0.4 + 0.6 * up, 0.4 + 0.6 * up);
+            g.translate(DX + jx, GY + (1 - up) * 90);
+            g.scale(up, up);
             Devil.draw(g, 0, 0, 215, {
                 squash: sq, mood, look, tail: 0.04 * Math.sin(ph * Math.PI), headTilt: tilt, lean: 0.07 * pitch,
                 trident: true, handR: [-0.95, -0.66], handL: reading ? [0.5, -0.74] : [0.6 + 0.2 * pitch, -0.7 - 0.06 * pitch],

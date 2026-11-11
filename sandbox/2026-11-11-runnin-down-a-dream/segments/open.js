@@ -22,7 +22,7 @@
         });
     };
     // a band or the field arriving: 0 before `at`, overshoots, settles (on twos)
-    const arrive = (t, at) => (t < at - 1e-6 ? null : E.back(E.seg(twos(t, at), at, at + 3 / 12)));
+    const arrive = (t, at) => (t < at - 1e-6 ? null : S.pop(t, at, 3 / 12));
 
     function card(g, t, env) {
         g.fillStyle = CARD.paper;
@@ -53,7 +53,7 @@
             g.strokeStyle = CARD.black;
             g.lineWidth = 5;
             g.stroke();
-            const rise = t < n2 - 1e-6 ? 0 : E.back(E.seg(twos(t, n2), n2, n2 + 3 / 12));
+            const rise = S.pop(t, n2, 3 / 12);
             if (rise > 0) {
                 const lay = Motion.layer(env, 'print', (c) => Cast.tom(c, 500, 800 + (1 - rise) * 470, 262, { strum: 0.2 }, Cast.print(Cast.TOM)));
                 g.globalCompositeOperation = 'multiply';
@@ -119,12 +119,12 @@
         ]);
 
         // the burst and the moon pop on the band's first hit
-        const pop = E.pop(tt, T0 - 1 / 12, 0.3);
+        const pop = S.pop(t, T0, 0.3);
         if (pop > 0) {
             const s = pop * (1 + 0.03 * pulse + 0.07 * hit8 + 0.05 * chord);
             C.burst(g, 500, 670, { r0: 300 * s, r1: 425 * s, n: 15, seed: 'title', rot: C.drawing(t) % 4 < 2 ? 0 : 0.035, fill: K.teal, ink: K.ink, lw: 5, sy: 0.86 });
         }
-        const mp = E.pop(tt, T0, 0.3);
+        const mp = S.pop(t, T0, 0.3);
         if (mp > 0) {
             const r = 238 * mp;
             g.save();
@@ -142,6 +142,8 @@
                 g.fill();
             }
             g.restore();
+            g.beginPath();
+            g.arc(0, 0, r, 0, C.TAU);
             g.strokeStyle = K.ink;
             g.lineWidth = 5;
             g.stroke();
@@ -190,7 +192,7 @@
             C.text3d(g, text, x, y, {
                 size, dir: [0.72, 0.7], ...o,
                 letter: (i) => {
-                    const w = when(i), p = E.pop(L(w), w, 0.25);
+                    const w = when(i), p = S.pop(t, w, 0.25);
                     return p <= 0 ? { hide: true } : { s: p, rot: (i % 2 ? 1 : -1) * 0.035, dy: hop(i) - 10 * chord * (i % 2 ? 1 : 0.4) };
                 },
             });
