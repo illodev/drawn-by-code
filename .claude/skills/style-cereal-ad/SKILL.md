@@ -95,3 +95,7 @@ frets, tuners, strings); letters whose sides show their bands; no shape touching
 - 2026-11-11 · runnin-down-a-dream · A box person's arms as wide as the torso hide what they hold: 0.15 of the head's width, and a head no deeper than half its width.
 - 2026-11-11 · runnin-down-a-dream · A two-tone print of a character (a card, a poster) is the same drawing with a black-or-white palette on its own layer, multiplied onto the field: lights take the field's colour, like a duotone cover.
 - 2026-11-11 · runnin-down-a-dream · A card that builds piece by piece must never be mostly blank: bring the empty bands in with the first hit and let the words land on the later ones.
+- 2026-11-11 · runnin-down-a-dream · A pop that starts from nothing is seen a drawing after its hit: start it at 0.6 of its size on the hit's own frame (`Song.pop` in that experiment).
+- 2026-11-11 · runnin-down-a-dream · The glass hides the bottom 50 units as well as the corners: when people must stand in front of a car (on the near verge), lower the camera instead of staging on the last strip of the frame.
+- 2026-11-11 · runnin-down-a-dream · A scrolling set's foreground layer belongs to travelling shots only: on a static shot the one big near object sits on an actor for the whole shot.
+- 2026-11-11 · runnin-down-a-dream · Rigs keep the beat: put «the band on its car, everybody playing on the kick and the snare» in one module (who is aboard, what the car does, pose overrides), so segments stage the action instead of posing five people.

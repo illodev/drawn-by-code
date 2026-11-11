@@ -1,7 +1,7 @@
 // dev: character sheet, to judge the cast at size (through the tape, as in the film)
 Motion.scene({
     fps: 24, duration: 1, logical: [1000, 1000],
-    uses: ['styles/cereal-ad/cereal.js', 'sandbox/2026-11-11-runnin-down-a-dream/cast.js'],
+    uses: ['styles/cereal-ad/cereal.js', 'sandbox/2026-11-11-runnin-down-a-dream/cast.js', 'sandbox/2026-11-11-runnin-down-a-dream/devil.js'],
     fonts: [{ family: 'Anton', src: 'fonts/Anton-latin.woff2' }],
     draw(g, t, env) {
         const C = Cereal, K = C.COL;
@@ -13,7 +13,7 @@ Motion.scene({
         C.poly(g, lip, { fill: K.navy, lw: 0 });
         C.poly(g, lip.slice(1, -1), { ink: K.ink, lw: 5, close: false });
         Cast.tom(g, 215, 890, 235, { shades: 1, strum: 0.4 });
-        Cast.devil(g, 590, 890, 285, { contract: true, tail: 0.03 });
+        Devil.draw(g, 610, 890, 240, { contract: true, trident: true, tail: 0.03 });
         C.text3d(g, 'SIGN HERE!', 500, 190, { size: 150, face: K.white, side: K.ink, side2: K.white, bands: 4, depth: 18, ow: 4, letter: (i) => ({ rot: (i % 2 ? 1 : -1) * 0.04 }) });
     },
     post(ctx, t, env) { Cereal.post(ctx, t, env); },

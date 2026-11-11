@@ -163,9 +163,10 @@
         // --- Tom: keeps the beat and never looks; in the last bar he hops off to the right
         let tx = TX, ty = GY;
         if (reading) {
-            for (let n = 28; n <= 31; n++) {
+            // two hops aside when the Devil blows up
+            for (let n = 30; n <= 31; n++) {
                 const u = E.seg(twos(t, b(n)), b(n), b(n) + S.BEAT * 0.8);
-                tx += E.inOut(u) * 115;
+                tx += E.inOut(u) * 60;
                 ty -= Math.sin(u * Math.PI) * 34;
             }
         }

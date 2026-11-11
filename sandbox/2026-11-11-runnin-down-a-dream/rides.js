@@ -273,15 +273,15 @@ const Rides = (() => {
         }
         const nb = [2.95, -1.1], nt = [2.8, -1.78], fb = ob(nb[0], nb[1], BW), ft = ob(nt[0], nt[1], BW);
         C.poly(g, [nb, nt, ft, fb], { fill: P.glass, ink: P.ink, lw: L * 0.7 });
-        for (const [u, a, b] of [[0.3, 0.2, 0.62], [0.42, 0.3, 0.5]]) {
-            line(g, [[lerp(lerp(nb[0], fb[0], u), lerp(nt[0], ft[0], u), a), lerp(lerp(nb[1], fb[1], u), lerp(nt[1], ft[1], u), a)], [lerp(lerp(nb[0], fb[0], u), lerp(nt[0], ft[0], u), b), lerp(lerp(nb[1], fb[1], u), lerp(nt[1], ft[1], u), b)]], L * 1.1, P.glint);
-        }
+        const onGlass = (u, v) => [lerp(lerp(nb[0], fb[0], u), lerp(nt[0], ft[0], u), v), lerp(lerp(nb[1], fb[1], u), lerp(nt[1], ft[1], u), v)];
+        for (const [u, v0, v1] of [[0.3, 0.2, 0.62], [0.42, 0.3, 0.5]]) line(g, [onGlass(u, v0), onGlass(u, v1)], L * 1.1, P.glint);
         tube(g, [fb, ft, nt], 0.05, P.chrome, L * 0.8);
         const W = B_WHEEL;
         tube(g, [ob(2.8, -1.04, 0.6), W.c], 0.045, P.chromeSide, L * 0.7);
         tube(g, ringX(W.c, W.r, 28, W.up), 0.05, P.seat, L * 0.7, true);
-        // --- the backline: two stacks of two at the back of the deck, along its far edge ----
-        for (const col of [0, 1]) for (const lvl of [0, 1]) cabinet(g, L, P, -4.3 + col * 0.86, dk - lvl * 0.9, 0.95, 0.86, 0.9, 0.5);
+        // --- the backline: two stacks of three at the back of the deck, along its far edge, tall
+        // enough to show over a drummer sitting in front of them -------------------------------
+        for (const col of [0, 1]) for (const lvl of [0, 1, 2]) cabinet(g, L, P, -4.3 + col * 0.86, dk - lvl * 0.88, 0.95, 0.86, 0.88, 0.5);
     }
 
     function bandFront(g, L, P, t) {
@@ -322,7 +322,7 @@ const Rides = (() => {
         // the whip antenna on the tail and its pennant (it flutters on twos)
         const d = C.drawing(t), sw = [0, 0.05, -0.03][((d % 3) + 3) % 3];
         C.poly(g, [[-4.33, dk], [-4.33, dk - 0.1], [-4.25, dk - 0.1], [-4.25, dk]], { fill: P.chrome, ink: P.ink, lw: L * 0.7 });
-        const whip = C.curve([[-4.29, dk - 0.1], [-4.36, dk - 0.85], [-4.56 - sw * 0.4, dk - 1.6], [-4.9 - sw, dk - 2.2]], false, 8);
+        const whip = C.curve([[-4.29, dk - 0.1], [-4.36, dk - 0.95], [-4.56 - sw * 0.4, dk - 1.8], [-4.92 - sw, dk - 2.55]], false, 8);
         line(g, whip, L * 1.15, P.ink);
         const n = whip.length, pa = whip[n - 2], pb = whip[n - 7];
         C.poly(g, [pa, [pa[0] - 0.52, lerp(pa[1], pb[1], 0.6) + sw * 1.4], pb], { fill: P.pennant, ink: P.ink, lw: L * 0.8 });
@@ -330,12 +330,15 @@ const Rides = (() => {
     }
 
     /**
-     * The band's ride: a long red hot rod with a stage for a deck.
+     * The band's ride: a long red hot rod with a stage for a deck (8.8 long from tail to nose,
+     * about 9.6 with the pipes and the whip; the backline tops out 3.5 above the ground).
      *   x, y   the ground under the middle of the car;  s  logical units per figure unit
-     *   o: { spin (wheel angle, radians), bounce (-0.5..1, the body sinks on its suspension),
+     *   o: { spin (the rear wheels' angle in radians; the smaller front ones turn faster),
+     *        bounce (-0.5..1, the body sinks on its suspension by a tenth of a unit),
      *        lean (0..0.25 rad, it rears up on its back wheels), exhaust (0..1 puffs from the
-     *        pipes, on twos), t (seconds, for what ticks on twos) }
+     *        pipes, on twos), t (seconds: puffs, pennant and footlights tick on twos) }
      *   riders(g, seats, s)  called between the two passes, in the car's units; see Rides.at
+     *                        and Rides.bandCarSeats
      */
     function bandCar(g, x, y, s, o = {}, riders = null) {
         const P = ROD, L = 3.2 / s, t = o.t ?? 0, spin = o.spin ?? 0, bn = o.bounce ?? 0, lean = o.lean ?? 0, ex = o.exhaust ?? 0;
@@ -611,7 +614,10 @@ const Rides = (() => {
         window_(g, L, P, -0.82, -1.14, -1.73, 0.3);
         window_(g, L, P, -1.68, -1.16, -1.66, 0.27);
         window_(g, L, P, -2.47, -1.18, -1.6, 0.24);
-        for (const x of [-2.95, -1.7, -0.45]) C.poly(g, [[x - 0.05, lerp(-1.0, -1.08, (-0.45 - x) / 2.5) - 0.05], [x + 0.05, lerp(-1.0, -1.08, (-0.45 - x) / 2.5) - 0.05], [x + 0.05, lerp(-1.0, -1.08, (-0.45 - x) / 2.5) + 0.05], [x - 0.05, lerp(-1.0, -1.08, (-0.45 - x) / 2.5) + 0.05]], { fill: P.chromeSide, ink: P.ink, lw: L * 0.7 });
+        for (const x of [-2.95, -1.7, -0.45]) {
+            const y = lerp(-1.0, -1.08, (-0.45 - x) / 2.5);
+            C.poly(g, [[x - 0.05, y - 0.05], [x + 0.05, y - 0.05], [x + 0.05, y + 0.05], [x - 0.05, y + 0.05]], { fill: P.chromeSide, ink: P.ink, lw: L * 0.7 });
+        }
         tube(g, [[-3.08, -1.085], [-0.32, -0.996]], 0.045, P.chrome, L * 0.8);
         fin(g, L, P, 0.02);
         pulpitRail(g, L, P, 0.13);
@@ -642,7 +648,8 @@ const Rides = (() => {
     }
 
     /**
-     * The Devil's ride: a hot-rod hearse (a coffin for a cabin, a pulpit on its roof).
+     * The Devil's ride: a hot-rod hearse (a coffin for a cabin, a pulpit on its roof; 7 long,
+     * about 8 with the lantern and the lamps; the pulpit's floor is 1.98 above the ground).
      *   o: { spin, bounce (-0.5..1), lean (0..0.25 rad, rearing up), flames (0..1 out of the
      *        zoomie pipes), t (seconds: flames flicker and the lantern swings on twos),
      *        swing (radians, to pose the lantern yourself) }

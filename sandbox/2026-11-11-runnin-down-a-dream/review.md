@@ -125,3 +125,49 @@ hidden behind him (moved to the right edge); Memphis shapes at head height read 
 small print; the quill covered what it had just written (smaller, laid further over); the
 Devil's raised arms behind the sheet read as stray red shapes (only his mitts on its edge
 now); a small crater made the moon look surprised.
+
+## Round 3 (user)
+
+> «Se ve chulo, seguimos» · «Seguimos»
+
+No changes asked. Work went on at the same bar.
+
+### Round 3 (auto) · the band, the cars, the road, «the getaway» and «Plan B»
+
+Drawn in parallel by three agents from one shared brief (style skill, kit, `cast.js` as the
+model, the approved frames as the bar, one file and one dev sheet each, no commits), then
+reviewed by the lead on their sheets and at film size:
+
+- `band-strings.js`: Mike Campbell (shaggy dark hair, white jacket, the bandana, a cream
+  solid-body, a solo stance) and Howie Epstein (curls, waistcoat, a sunburst bass).
+- `band-rhythm.js`: Benmont Tench (a round mass of curls, the green western shirt, a combo
+  organ on an X stand) and Stan Lynch (the tall one, striped shirt, a full kit with a
+  cracked heart on the bass drum). The hi-hat stands on screen right so no arm crosses his
+  shirt.
+- `rides.js`: the band's car (a red hot rod with a stage for a deck, a wall of speakers,
+  flames, whitewalls), the Devil's hot-rod hearse with a pulpit on its roof, a skeleton
+  chauffeur, and the dust of a car peeling out.
+
+By the lead:
+
+- `world.js`: the road, the film's main set, in three weathers (day, rain, night). First
+  pass had boxes for mesas (they read as office blocks: now sloped walls, a ledge, a flat
+  top) and clouds over the sun and the moon (clouds now keep off them).
+- `rig.js`: the band on its car and the Devil on his hearse keeping the beat by themselves
+  (kick on 1 and 3, snare on 2 and 4, eighths on the hat), so a segment only says who is
+  aboard and what the car does.
+- `segments/getaway.js`, bars 8–11: the car skids in, the Devil leaps aside, the
+  Heartbreakers pop aboard one per beat, Tom hops in, a wheelie, the dust swallows the
+  Devil, he stamps, the hearse pulls up, he climbs to the pulpit. Seen and fixed: a
+  foreground cactus of the road set stood on the Devil for the whole shot (a static shot
+  draws no foreground layer); the near verge, where he and Tom stand, was under the glass
+  (the camera now looks 46 units lower); the dust was a puff (2.5 times larger); two signs
+  on top of each other.
+- `segments/planb.js`, bars 34–38 (not yet in the film's order: verse 1 and chorus 1 come
+  first): Hell's office, the blueprint, three imps. Seen and fixed: the lever was behind
+  his head when he pulled it (moved down beside him); the cane changed length with its
+  target (fixed length, turning towards the mark); the imps were too small to read.
+- The first Devil sketch is gone from `cast.js`; `devil.js` is the only one.
+
+`review.mjs` on 0–17.3 s: no errors, deterministic, no flashes, no still stretches, 87 ms a
+frame warm; the one warning is the cut on the first guitar note, kept on purpose.

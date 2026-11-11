@@ -9,7 +9,7 @@
 // Add 0.5 to a sheet's time for the same sheet two drawings later and the wheels at another angle.
 Motion.scene({
     fps: 24, duration: 15, logical: [1600, 1000],
-    uses: ['styles/cereal-ad/cereal.js', 'sandbox/2026-11-11-runnin-down-a-dream/cast.js', 'sandbox/2026-11-11-runnin-down-a-dream/rides.js',
+    uses: ['styles/cereal-ad/cereal.js', 'sandbox/2026-11-11-runnin-down-a-dream/cast.js', 'sandbox/2026-11-11-runnin-down-a-dream/devil.js', 'sandbox/2026-11-11-runnin-down-a-dream/rides.js',
         { src: 'sandbox/2026-11-11-runnin-down-a-dream/band-strings.js', optional: true }, { src: 'sandbox/2026-11-11-runnin-down-a-dream/band-rhythm.js', optional: true }],
     fonts: [{ family: 'Anton', src: 'fonts/Anton-latin.woff2' }],
     draw(g, t, env) {
@@ -28,11 +28,11 @@ Motion.scene({
             const tom = (p, pose) => Rides.at(g2, s, p, (x, y, sc) => Cast.tom(g2, x, y, sc, pose));
             const order = seats.deck.map((p, i) => [p, i]).sort((a, b) => b[0][2] - a[0][2]);
             for (const [p, i] of order) tom(p, { shades: i % 2, strum: 0.3, mouth: i === 0 ? 'sing' : undefined });
-            Rides.at(g2, s, seats.kit, (x, y, sc) => Cast.devil(g2, x, y, sc, { mood: 'shock', tail: 0.02 }));
+            Rides.at(g2, s, seats.kit, (x, y, sc) => Devil.draw(g2, x, y, sc, { mood: 'shock', tail: 0.02 }));
             tom(seats.driver, { shades: 1, mouth: 'grin' });
         };
         const dead = (jaw) => (g2, seats, s) => {
-            Rides.at(g2, s, seats.devil, (x, y, sc) => Cast.devil(g2, x, y, sc, { contract: true, forkUp: half ? 1 : 0, tail: 0.03 }));
+            Rides.at(g2, s, seats.devil, (x, y, sc) => Devil.draw(g2, x, y, sc, { contract: true, trident: { ang: half ? 0.3 : 0 }, tail: 0.03 }));
             Rides.at(g2, s, seats.chauffeur, (x, y, sc) => Rides.skeleton(g2, x, y, sc, { jaw, headTilt: jaw * -0.12, shadow: false }));
         };
         const calm = { spin, t: tt, exhaust: 0.5, flames: 0.5 }, wild = { spin, t: tt, bounce: 1, lean: 0.25, exhaust: 1, flames: 1 };

@@ -1,0 +1,84 @@
+// The rigs: the band on its car and the Devil on his hearse, each keeping the beat without
+// the segments having to pose everybody. A segment places a rig, says who is aboard and what
+// the car is doing, and overrides only the poses its action needs.
+// Global: Rig. Depends on Song, Cast, Devil, BandStrings, BandRhythm, Rides.
+const Rig = (() => {
+    const S = Song, C = Cereal, TAU = Math.PI * 2;
+
+    // What everybody does on beat: { tom, mike, howie, ben, stan } poses at t.
+    function playing(t, o = {}) {
+        const P = S.pulseAt(t), ph = P.k + P.since, p = P.pulse, even = P.k % 2 === 0, d = C.drawing(t);
+        const off = Math.exp(-((P.since * 2) % 1) * 2.4); // the eighth-note pulse
+        const base = { squash: 0.045 * p, headDy: 0.02 * p, sway: -0.03 * Math.sin((ph - 0.3) * Math.PI) };
+        return {
+            tom: { ...base, shades: 1, strum: Math.cos(ph * TAU), fret: 0.3 + 0.5 * (Math.floor(ph / 2) % 2), mouth: o.sing ? (d % 4 < 2 ? 'sing' : 'grin') : 'smirk' },
+            mike: { ...base, strum: Math.cos(ph * TAU), fret: 0.2 + 0.35 * (Math.floor(ph / 2) % 3), solo: o.solo ?? 0, mouth: (o.solo ?? 0) > 0.5 ? 'sing' : 'smirk', eyes: (o.solo ?? 0) > 0.5 ? 'shut' : 'open' },
+            howie: { ...base, pluck: Math.cos(ph * TAU), fret: 0.15 + 0.3 * (Math.floor(ph / 4) % 3), mouth: 'smirk' },
+            ben: { ...base, handR: 0.18 + 0.1 * (P.k % 3), handL: 0.62 + 0.1 * ((P.k + 1) % 3), press: p, mouth: 'grin' },
+            stan: { kick: even ? p : 0, snare: even ? 0 : p, hat: off, crash: P.k % 16 === 0 ? p : 0, headDy: 0.03 * p, sway: base.sway, squash: 0.03 * p, mouth: 'grin' },
+        };
+    }
+
+    /**
+     * The band on the car. x, y: the ground under the middle of the car; s: units per figure unit.
+     *   o: { spin, bounce, lean, exhaust        the car (Rides.bandCar)
+     *        aboard: { stan, ben, howie, mike, tom }   0..1 each (0 = not there, a pop-in scale between)
+     *        tomDrives (default true: Tom at the wheel and Mike up front; false: Tom up front, nobody drives)
+     *        sing, solo                         passed to playing()
+     *        pose: { tom: {…}, … }              overrides merged over the beat's poses }
+     */
+    function band(g, t, x, y, s, o = {}) {
+        const a = { stan: 1, ben: 1, howie: 1, mike: 1, tom: 1, ...(o.aboard ?? {}) };
+        const pz = playing(t, o), ov = o.pose ?? {}, drives = o.tomDrives !== false;
+        const pose = (who) => ({ ...pz[who], ...(ov[who] ?? {}) });
+        Rides.bandCar(g, x, y, s, { spin: o.spin ?? 0, bounce: o.bounce ?? 0, lean: o.lean ?? 0, exhaust: o.exhaust ?? 0, t }, (g2, seats, sc0) => {
+            const put = (p, k, fn) => {
+                if (k <= 0) return;
+                Rides.at(g2, sc0, p, (px, py, sc) => {
+                    g2.save();
+                    g2.translate(px, py);
+                    g2.scale(k, k);
+                    fn(sc);
+                    g2.restore();
+                });
+            };
+            put(seats.kit, a.stan, (sc) => BandRhythm.stan(g2, 0, 0, sc, pose('stan')));
+            put(seats.deck[3], a.howie, (sc) => BandStrings.howie(g2, 0, 0, sc, pose('howie')));
+            if (!drives) put(seats.deck[1], a.mike, (sc) => BandStrings.mike(g2, 0, 0, sc, pose('mike')));
+            put(seats.deck[2], a.ben, (sc) => BandRhythm.benmont(g2, 0, 0, sc, pose('ben')));
+            if (drives) {
+                put(seats.deck[0], a.mike, (sc) => BandStrings.mike(g2, 0, 0, sc, pose('mike')));
+                put(seats.driver, a.tom, (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
+            } else put(seats.deck[0], a.tom, (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
+        });
+    }
+
+    /**
+     * The Devil's hearse. o: { spin, bounce, lean, flames, jaw (the chauffeur's laugh, 0..1),
+     *   devil: a pose for Devil.draw, or false when he is not aboard; devilK: his pop-in scale }
+     */
+    function hearse(g, t, x, y, s, o = {}) {
+        const P = S.pulseAt(t);
+        Rides.hearse(g, x, y, s, { spin: o.spin ?? 0, bounce: o.bounce ?? 0, lean: o.lean ?? 0, flames: o.flames ?? 0.4, t }, (g2, seats, sc0) => {
+            if (o.devil !== false) {
+                Rides.at(g2, sc0, seats.devil, (px, py, sc) => {
+                    const k = o.devilK ?? 1;
+                    g2.save();
+                    g2.translate(px, py);
+                    g2.scale(k, k);
+                    Devil.draw(g2, 0, 0, sc, { mood: 'grin', trident: true, squash: 0.04 * P.pulse, tail: 0.04 * Math.sin((P.k + P.since) * Math.PI), ...(o.devil ?? {}) });
+                    g2.restore();
+                });
+            }
+            Rides.at(g2, sc0, seats.chauffeur, (px, py, sc) => Rides.skeleton(g2, px, py, sc, { jaw: o.jaw ?? 0, headDy: 0.02 * P.pulse, shadow: false }));
+        });
+    }
+
+    // Where a seat is on screen, for arcs that end on it: seat('band' | 'hearse', name, x, y, s).
+    function seat(car, name, x, y, s) {
+        const seats = car === 'band' ? Rides.bandCarSeats() : Rides.hearseSeats(), p = name.startsWith('deck') ? seats.deck[+name.slice(4)] : seats[name];
+        return [x + p[0] * s, y + p[1] * s];
+    }
+
+    return { playing, band, hearse, seat };
+})();

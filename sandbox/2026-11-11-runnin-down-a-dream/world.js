@@ -302,7 +302,7 @@ const World = (() => {
         C.poly(g, [[-20, ROAD1 - 12], [1020, ROAD1 - 12]], { ink: W.roadEdge, lw: 3.4, close: false });
         // the near verge
         g.fillStyle = W.sand;
-        g.fillRect(-20, ROAD1, 1040, 80);
+        g.fillRect(-20, ROAD1, 1040, 240); // deep enough for a camera that looks a little lower
         C.poly(g, [[-20, ROAD1], [1020, ROAD1]], { ink: K.ink, lw: 4, close: false });
         cells(X, 1.15, 110, 60, 'pebble', (i, x, r) => {
             const y = ROAD1 + 14 + r() * 36;
