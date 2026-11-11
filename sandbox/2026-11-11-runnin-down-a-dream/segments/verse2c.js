@@ -24,7 +24,7 @@
     const C = Cereal, K = C.COL, E = Ease, S = Song, W = Weather, V = V2B, Q = Verse2cProps, ICE = W.ICE, twos = S.twos, b = S.b, B = S.B, pop = S.pop, TAU = Math.PI * 2;
     const T49 = B(49), T50 = B(50), T51 = B(51), T53 = B(53), T54 = B(54);
     const n = (k) => b(200 + k); // beat k of the block (bar 50 is beats 0–3, bar 51 4–7, bar 52 8–11, bar 53 12–15)
-    const CAR = Rig.CAR, LANE = World.LANE, FAR = LANE - 53, BEAT = S.BEAT, FR = 1 / 24;
+    const CAR = Rig.CAR, LANE = World.LANE, FAR = LANE - 53, BEAT = S.BEAT; // FAR: the lane the hearse drives in, as in verse2b
     const at = (t, a) => t >= a - 1e-6;
     const clamp = (v, a = 0, c = 1) => Math.max(a, Math.min(c, v));
     const seg2 = (t, a, c) => E.seg(twos(t, a), a, c); // 0..1 on twos, counted from a
@@ -54,7 +54,7 @@
         return [q[0] + MACH.axle + dx, q[1] - MACH.R + dy];
     };
     // The road's clock: verse2b's until «cold», then the rig skids to a halt in STOP seconds.
-    const STOP = 0.5, X0 = (t) => Rig.X(t);
+    const STOP = 0.62, X0 = (t) => Rig.X(t);
     const roadX = (t) => {
         if (t < COLD) return X0(t);
         const u = Math.min(STOP, t - COLD);
@@ -238,7 +238,7 @@
         if (at(t, WIN) && !at(t, FZ)) {
             // the lava fall freezes from the top down, three drawings: a front of crystals
             const u = [0.42, 0.74, 1][dAt(t, WIN)], yf = 96 + 312 * u, front = [];
-            for (let i = 0; i <= 12; i++) front.push([30 + i * 20, yf + (i % 2 ? -13 : 9)]);
+            for (let i = 0; i <= 12; i++) front.push([30 + i * 20, Math.min(390, yf + (i % 2 ? -13 : 9))]);
             g.save();
             g.beginPath();
             g.moveTo(20, 70);

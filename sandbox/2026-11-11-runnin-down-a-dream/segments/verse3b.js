@@ -185,13 +185,15 @@
     // on «mine» (the bar line) his own scarf catches on the tail. The camera comes to rest on
     // the gate, the car runs up the tongue and in, and the mouth shuts on the next bar line.
     // =========================================================================================
-    const S3 = 54, Z3 = S3 / SC, OY3 = 790 - G.LANE * Z3, HOLD = 762; // the car's scale, and its middle's distance (wu) from the frame's left edge
-    const tA = T91, Td = n(27) - tA, L_F = -560 / Z3, XA = L_F - (SPEED * Td) / 2 + HOLD;
+    const S3 = 64, Z3 = S3 / SC, OY3 = 800 - G.LANE * Z3; // the car's scale in these shots
+    // the car's middle from the frame's left edge (wu): tight on the car while it gathers things, then room behind it for the Devil
+    const HOLD0 = (80 + 4.9 * S3) / Z3, HOLD1 = (104 + 6.9 * S3) / Z3;
+    const tA = T91, Td = n(27) - tA, L_F = -600 / Z3, XA = L_F - (SPEED * Td) / 2 + HOLD1;
     const carX = (t) => XA + SPEED * (t - tA);
     const camL = (t) => {
-        if (t <= tA) return carX(t) - HOLD;
+        if (t <= tA) return carX(t) - lerp(HOLD0, HOLD1, E.inOut(E.seg(t, n(21.5), tA)));
         const tau = Math.min(Td, t - tA);
-        return XA - HOLD + SPEED * (tau - (tau * tau) / (2 * Td));
+        return XA - HOLD1 + SPEED * (tau - (tau * tau) / (2 * Td));
     };
     const BX0 = carX(T89) - 360, BX1 = BX0 + 700; // the bend out of the old bed
     const shape3 = (x) => (x < BX1 ? [G.BED * (1 - V.smooth((x - BX0) / (BX1 - BX0))), 0] : onLine(x));
@@ -200,13 +202,13 @@
     // what the car takes: when its nose gets to it, and where it stays (car units)
     const NOSE = 4.6, FLY = 4 / 12;
     const TAKE = { coneA: n(18), coneB: n(18) + 2 / 24, coneC: n(18) + 4 / 24, barrier: n(19), arrow: n(20), imp: n(21), plan: n(22), fork: n(23) };
-    const HOME = { coneA: [-2.86, -3.64], coneB: [-4.94, -3.24], barrier: [4.74, -0.2], arrow: [-3.1, -3.8], imp: [4.78, -0.98], plan: [-5.02, -1.86], fork: [3.3, -1.1] };
+    const HOME = { coneA: [-2.86, -3.64], coneB: [-4.94, -3.24], barrier: [4.74, -0.2], arrow: [-3.1, -3.8], imp: [4.78, -0.98], plan: [-1.2, -0.5], fork: [3.3, -1.1] };
     const at = (k) => carX(TAKE[k]) + NOSE * SC; // where it stands on the lane (wu)
     const XD = XA - 4.3 * SC - 44; // where the Devil stands, on the bare bed
     const tGulp = T92, tBurp = n(30), tSpin = tBurp + 2 / 24;
     const jawAt = (t) => {
         const kg = Math.round((t - tGulp) * 24), kb = kOf(t, tBurp);
-        if (kg >= 0) return kb >= 0 && kb < 4 ? [0.085, 0.07, 0.02, V.SHUT - 0.012][kb] : kg < 2 ? V.SHUT - 0.02 : kg < 4 ? V.SHUT + 0.012 : V.SHUT;
+        if (kg >= 0) return kb >= 0 && kb < 4 ? [0.06, 0.05, 0.01, V.SHUT - 0.012][kb] : kg < 2 ? V.SHUT - 0.02 : kg < 4 ? V.SHUT + 0.012 : V.SHUT;
         if (kg >= -2) return [0.2, 0.04][kg + 2];
         return 0.34 * E.out(seg2(t, n(23.5), n(24.75)));
     };
@@ -288,7 +290,7 @@
         }
 
         // --- the band on its car, the cactus at the wheel
-        if (cx < 1700) Rig.band(g, t, cx, cy, S3, { spin: cX / (0.56 * SC), bounce: bn, lean, exhaust: 0.7, tomDrives: false, sing: true, driver: driver(t), shadow: lean > 0.004 || shape3(cX)[0] > 2 ? false : undefined });
+        const band = () => cx < 1700 && Rig.band(g, t, cx, cy, S3, { spin: cX / (0.56 * SC), bounce: bn, lean, exhaust: 0.7, tomDrives: false, sing: true, driver: driver(t), shadow: lean > 0.004 || shape3(cX)[0] > 2 ? false : undefined });
 
         // --- what it has taken
         const hits = [];
@@ -343,13 +345,13 @@
             const dur = 5 / 12, th = TAKE.plan, u = seg2(t, th, th + dur);
             const from = [(XD - carX(th)) / SC, (NEARY3 - G.LANE) / SC - 0.62];
             const p = carPt([lerp(from[0], HOME.plan[0], u), lerp(from[1], HOME.plan[1], u) - 3.4 * Math.sin(PI * u)]);
-            V.blueprint(g, p[0], p[1], S3, { ang: u < 1 ? -5.5 * (1 - u) : 0.1 + 0.12 * f, wave: u < 1 ? 1 : f });
-            // the whip goes through it
-            if (u >= 1) V.line(g, [carPt([-4.5, -2.16]), carPt([-4.44, -1.52])], 3.6);
+            V.blueprint(g, p[0], p[1], S3, { ang: u < 1 ? -5.5 * (1 - u) : -lean + 0.02 * f, wave: u < 1 ? 1 : 0.5 * f });
+            // it hangs over the deck's rail like bunting
+            if (u >= 1) for (const dx of [-0.36, 0.36]) V.dot(g, ...carPt([HOME.plan[0] + dx, HOME.plan[1] - 0.4]), 3.4, '#d5dbea', 2);
         };
 
         // --- the Devil: reading his plan on the bare bed, robbed of it, then caught by his own scarf
-        const NECK = [-6.05, -1.22], POST = [-4.3, -0.93], caught = t >= tA - 1e-6, kc = kOf(t, tA);
+        const NECK = [-6.12, -1.5], POST = [-4.37, -1.3], caught = t >= tA - 1e-6, kc = kOf(t, tA);
         const devilFoot = () => {
             const [x, y] = V.toScreen(cam, [XD, NEARY3]);
             if (x > 1150) return;
@@ -376,31 +378,39 @@
             const u = Math.min(1, (kc + 1) / 3), post = carPt(POST);
             const from = [(XD - cX) / SC, (NEARY3 - G.LANE) / SC - 0.95];
             const nk = carPt([lerp(from[0], NECK[0], u) - (u >= 1 ? 0.06 * f : 0), lerp(from[1], NECK[1], u) + (u >= 1 ? 0.07 * f : 0)]);
-            const a = lerp(0.2, PI / 2 - 0.12, u) + (u >= 1 ? 0.14 * f : 0);
+            const a = lerp(0.1, 0.92, u) + (u >= 1 ? 0.13 * f : 0);
             const sag = u >= 1 ? 0.1 * f * S3 : 0, mid = [(nk[0] + post[0]) / 2, (nk[1] + post[1]) / 2 + sag * 0.5];
             V.band(g, C.curve([nk, mid, [post[0] - 4, post[1]]], false, 6), 0.07 * S3, V.SCARF, V.STRIPE, 2.6);
             V.dot(g, post[0], post[1], 0.1 * S3, V.SCARF, 2.6);
             g.save();
             g.translate(nk[0], nk[1]);
             g.rotate(a);
-            V.devil(g, 0, 0.95 * S3, S3, { mood: 'shock', look: f, squash: -0.06, handL: [0.74, -1.1 - 0.2 * f], handR: [-0.74, -1.1 + 0.2 * f], step: f, tail: 0.25 * f, shadow: false }, { t, noTail: true });
+            V.devil(g, 0, 0.95 * S3, S3, { mood: 'shock', look: 1, squash: -0.06, headTilt: -0.1, handL: [0.78, -1.0 - 0.22 * f], handR: [-0.76, -1.0 + 0.22 * f], step: f, tail: 0.25 * f, shadow: false }, { t, noTail: true });
             g.restore();
             if (kc === 0) hits.push([post[0] - 6, post[1], 'd']);
         };
 
+        // past the throat it is gone: the car and what it carries show only this side of it
+        g.save();
+        g.beginPath();
+        g.rect(-200, -200, V.toScreen(cam, [372, 0])[0] + 200, 1600);
+        g.clip();
+        band();
         if (cx < 1700) {
             cargo();
             planFly();
             if (caught) devilFlag();
-            if (!shut) V.beams(g, cx, cy - 6 * lean * S3, S3, 380);
+            if (!shut) V.beams(g, cx, cy - 6 * lean * S3, S3, 440);
         }
+        g.restore();
         for (const [x, y, seed] of hits) V.hit(g, x, y, 44, 'v3b-take' + seed);
         // --- the gate's face, over whatever went in
         if (cam.L + vw > -200) {
             V.view(g, cam, () => {
-                if (shut) V.headGlow(g, t, jaw, kb >= 0 && kb < 3 ? 1.6 : 1);
+                const lit = shut && jaw < -0.04;
+                if (lit) V.headGlow(g, t, jaw);
                 V.headFront(g, t, jaw, eyes);
-                if (shut) V.headHalo(g, t);
+                if (lit) V.headHalo(g, t, jaw);
             });
         }
         if (!caught) devilFoot();
@@ -427,7 +437,7 @@
         }
         // the lever he left, on the near sand
         const lv = V.toScreen(cam, LEV);
-        if (lv[0] < 1200) {
+        if (lv[0] < 1200 && lv[1] < 936) {
             g.save();
             g.translate(lv[0], lv[1]);
             g.scale(Z3, Z3);

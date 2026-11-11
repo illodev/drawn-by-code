@@ -1631,7 +1631,7 @@ const Skyward = (() => {
         };
         for (let i = 0; i < 6; i++) {
             const sx = -0.15 + i * 0.065, wob = pluck ? Math.sin(i * 2.1 + pluck * 7) * 0.008 * Math.abs(pluck) : 0;
-            line(g, [at([sx, neckAt(sx) + 0.02]), at([sx + wob, -0.36 + i * 0.03]), at([sx, lerp(-0.56, -0.03, (sx + 0.25) / 0.47) - 0.02])], L0 * 0.5, A.string);
+            line(g, [at([sx, neckAt(sx) + 0.02]), at([sx + wob, -0.36 + i * 0.03]), at([sx, lerp(-0.56, -0.03, (sx + 0.25) / 0.47) - 0.02])], L0 * 0.55, A.brassSide);
         }
         C.prism(g, cw([at([-0.3, -0.6]), at([-0.22, -0.64]), at([0.24, -0.06]), at([0.24, 0.0]), at([0.12, 0.0])]), dd, gold, { lw: L0, ink: A.ink });
         line(g, [at([-0.2, -0.52]), at([0.08, -0.14])], L0 * 0.7, A.brassSide);
@@ -2175,7 +2175,7 @@ const Skyward = (() => {
      *   guitar    { x, y, s }: where the guitar's tail rests in the stand's cradle, and its scale
      *   floor     the y where the wall meets the floor;  tv, mirror, rack, trident: their middles
      */
-    const BACKSTAGE = { nail: [500, 236], frame: 250, devil: [500, 936], devilS: 200, guitar: { x: 846, y: 842, s: 150 }, floor: 780, tv: [171, 716], mirror: [210, 378], rack: [832, 520], trident: [372, 610] };
+    const BACKSTAGE = { nail: [500, 206], frame: 236, devil: [500, 940], devilS: 200, guitar: { x: 846, y: 842, s: 150 }, floor: 780, tv: [171, 716], mirror: [210, 378], rack: [832, 520], trident: [372, 610] };
     const A_W = 1.24, A_H = 1.08; // the framed autograph, in units of its s
 
     /**
@@ -2419,20 +2419,20 @@ const Skyward = (() => {
     }
     // one of his tailcoats on its hanger; (x, y) is where the hook sits on the rail
     function tailcoat(g, x, y) {
-        const P = Devil.P, w = 46;
+        const P = Devil.P, w = 31;
         line(g, C.curve([[x, y + 22], [x, y + 8], [x + 7, y + 2], [x + 3, y - 7], [x - 5, y - 4]], false, 5), 2.6, ROOM.chromeSide);
-        const body = [[x - 12, y + 22], [x + 12, y + 22], [x + w, y + 40], [x + w - 2, y + 150], [x + w - 8, y + 196], [x + w - 22, y + 270], [x + 8, y + 262], [x, y + 170], [x - 8, y + 262], [x - w + 22, y + 270], [x - w + 8, y + 196], [x - w + 2, y + 150], [x - w, y + 40]];
-        C.prism(g, body, [12, -8], { front: P.suit, top: P.suitTop, side: P.suitSide }, { lw: 3 });
+        const body = [[x - 9, y + 22], [x + 9, y + 22], [x + w, y + 38], [x + w - 1, y + 150], [x + w - 5, y + 200], [x + w - 15, y + 268], [x + 6, y + 260], [x, y + 172], [x - 6, y + 260], [x - w + 15, y + 268], [x - w + 5, y + 200], [x - w + 1, y + 150], [x - w, y + 38]];
+        C.prism(g, body, [10, -6.7], { front: P.suit, top: P.suitTop, side: P.suitSide }, { lw: 3 });
         // the lining in the opening, the lapels, a button, a pocket square
-        C.poly(g, [[x - 12, y + 22], [x + 12, y + 22], [x + 4, y + 112], [x - 4, y + 112]], { fill: P.suitSide, ink: K.ink, lw: 2.2 });
+        C.poly(g, [[x - 9, y + 22], [x + 9, y + 22], [x + 3, y + 104], [x - 3, y + 104]], { fill: P.suitSide, ink: K.ink, lw: 2.2 });
         for (const sx of [-1, 1]) {
-            C.poly(g, [[x + sx * 12, y + 22], [x + sx * 26, y + 28], [x + sx * 27, y + 46], [x + sx * 32, y + 56], [x + sx * 20, y + 68], [x + sx * 4, y + 112]], { fill: P.lapel, ink: K.ink, lw: 2.2 });
-            line(g, [[x + sx * 17, y + 36], [x + sx * 8, y + 88]], 2, P.lapelDark);
+            C.poly(g, [[x + sx * 9, y + 22], [x + sx * 19, y + 28], [x + sx * 20, y + 44], [x + sx * 24, y + 53], [x + sx * 15, y + 64], [x + sx * 3, y + 104]], { fill: P.lapel, ink: K.ink, lw: 2.2 });
+            line(g, [[x + sx * 13, y + 36], [x + sx * 6, y + 82]], 1.8, P.lapelDark);
         }
-        line(g, [[x, y + 112], [x, y + 170]], 2.2);
-        circ(g, x, y + 124, 4.5, P.button, 1.8);
-        C.poly(g, [[x + 22, y + 92], [x + 26, y + 84], [x + 30, y + 90], [x + 34, y + 83], [x + 38, y + 92]], { fill: P.shirt, ink: K.ink, lw: 1.6 });
-        line(g, [[x + 20, y + 92], [x + 40, y + 92]], 2);
+        line(g, [[x, y + 104], [x, y + 172]], 2.2);
+        circ(g, x, y + 116, 4, P.button, 1.8);
+        C.poly(g, [[x + 14, y + 86], [x + 17, y + 79], [x + 20, y + 84], [x + 23, y + 78], [x + 26, y + 86]], { fill: P.shirt, ink: K.ink, lw: 1.5 });
+        line(g, [[x + 13, y + 86], [x + 27, y + 86]], 1.8);
     }
 
     // everything in the room that never moves
@@ -2499,7 +2499,7 @@ const Skyward = (() => {
             C.box(g, px - 5 + 12, ry - 8, 10, FL + 26 - ry, [5, -3.4], chromeC, { lw: 3 });
             C.box(g, px - 26 + 12, FL + 20 - 8, 52, 10, [18, -12], chromeC, { lw: 3 });
         }
-        for (let i = 4; i >= 0; i--) tailcoat(g, rx0 + 54 + i * 40, ry);
+        for (let i = 4; i >= 0; i--) tailcoat(g, rx0 + 48 + i * 42, ry);
         tube(g, [[rx0 + 12, ry - 2], [rx1 + 12, ry - 2]], 8, R.chrome, 3);
         line(g, [[rx0 + 16, ry - 4], [rx1 + 8, ry - 4]], 2, R.chromeTop);
         for (const px of [rx0, rx1]) {
@@ -2515,11 +2515,9 @@ const Skyward = (() => {
         g.beginPath();
         g.roundRect(mx0, my0, mw, mh, 6);
         g.clip();
-        // what it shows: the far wall's paper, a coat on its hook, two glints
+        // what it shows: the room's other wall, paler towards the floor; two glints
         g.fillStyle = '#9fd3ea';
         g.fillRect(mx0, my0 + mh * 0.62, mw, mh);
-        C.poly(g, [[mx0 + 130, my0 + 60], [mx0 + 196, my0 + 60], [mx0 + 206, my0 + 250], [mx0 + 120, my0 + 250]], { fill: '#9b86e0', lw: 0 });
-        line(g, [[mx0 + 163, my0 + 60], [mx0 + 163, my0 + 34]], 3, '#7aa9c9');
         for (const [dx, w] of [[20, 26], [58, 9]]) C.poly(g, [[mx0 + dx + 60, my0], [mx0 + dx + 60 + w, my0], [mx0 + dx + w - 30, my0 + mh], [mx0 + dx - 30, my0 + mh]], { fill: 'rgba(255,255,255,0.5)', lw: 0 });
         g.restore();
         rrect(g, mx0, my0, mw, mh, 6, null, 3.2);

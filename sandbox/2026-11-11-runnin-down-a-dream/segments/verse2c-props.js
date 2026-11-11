@@ -99,7 +99,7 @@ const Verse2cProps = (() => {
     // The pose of the weather sheet (dev/weather, sheets 13, 14, 18), which the thaw takes up.
     const FROZEN = { mood: 'laugh', handR: [-0.66, -0.98], handL: [0.62, -0.92], headTilt: -0.06, tail: 0.02, shadow: false };
     const CRANK = { a: -1.45, flip: -1 }; // how Weather.crankArm sits in that mitt: the grip upright, the arm out to the left
-    const BLOCK = { h: 2.95 }; // the block that holds that pose: Weather.iceBlock's own, a little taller (2.4 × 2.95 × 1)
+    const BLOCK = { h: 3.05 }; // the block that holds that pose: Weather.iceBlock's own, a little taller (2.4 × 3.05 × 1)
     /**
      * The crank in his right mitt and the Devil, frozen in the pose above. o: { pose (merged
      * over FROZEN), crankFrost (0..1: icicles on the crank) }
@@ -410,10 +410,10 @@ const Verse2cProps = (() => {
     /**
      * A striped scarf round the skeleton chauffeur's neck, wound over his collar and his chin,
      * in his units: draw it right after Rides.skeleton with the same x, y, s.
-     *   o: { color, t (its loose end flaps on twos), headDy }
+     *   o: { color, t (its loose end flaps on twos) }
      */
     function skelScarf(g, x, y, s, o = {}) {
-        const L = 3.2 / s, color = o.color ?? K.hot ?? '#ff3d9a', dark = '#b3176e', stripe = '#fffdf4', d = C.drawing(o.t ?? 0);
+        const L = 3.2 / s, color = o.color ?? K.pink, dark = '#b3176e', stripe = '#fffdf4', d = C.drawing(o.t ?? 0);
         const y0 = -1.085, y1 = -0.925, xa = -0.33, xb = 0.33, kx = 0.2, flap = [0, 0.02, -0.012][((d % 3) + 3) % 3];
         g.save();
         g.translate(x, y);

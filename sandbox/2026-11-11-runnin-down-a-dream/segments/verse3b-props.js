@@ -704,13 +704,20 @@ const Verse3bProps = (() => {
         g.restore();
     }
     // and its light on the stone round the lips, one flat tone
-    function headHalo(g, t) {
+    function headHalo(g, t, a) {
         const P = S.pulseAt(t);
         g.save();
-        g.globalCompositeOperation = 'screen';
-        g.fillStyle = '#4a1d08';
         g.beginPath();
-        g.ellipse(120, 792, 250 + 40 * P.pulse, 74 + 16 * P.pulse, -0.03, 0, TAU);
+        for (const pts of [LOWER, UPPER.map((p) => turn(p, a))]) {
+            g.moveTo(pts[0][0], pts[0][1]);
+            for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+            g.closePath();
+        }
+        g.clip();
+        g.globalCompositeOperation = 'screen';
+        g.fillStyle = '#521f0a';
+        g.beginPath();
+        g.ellipse(124, 792, 236 + 36 * P.pulse, 80 + 16 * P.pulse, -0.03, 0, TAU);
         g.fill();
         g.restore();
     }
