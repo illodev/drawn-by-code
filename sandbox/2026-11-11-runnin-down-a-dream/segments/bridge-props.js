@@ -311,16 +311,17 @@ const BridgeProps = (() => {
         g.translate(SEAT[0], SEAT[1]);
         BandRhythm.stanTorso(g, ST, L);
         g.restore();
-        // the arms: from the kit (where the sticks sat) up beside his head; the sticks lean in over it
+        // the arms: from the kit (where the sticks sat) straight up behind his head, the mitts together over it
+        // holding the sticks crossed; a click knocks them shut
         const u = clamp(up), top = -2.5, cx = SEAT[0];
-        const mR = [lerp(-0.44, cx - 0.42, u), lerp(-1.1, top, u)], mL = [lerp(0.72, cx + 0.42, u), lerp(-0.97, top, u)];
-        const lean = lerp(1.05, 0.56, clamp(click)); // the sticks' angle over the horizontal: apart, then tip to tip
+        const mR = [lerp(-0.44, cx - 0.17, u), lerp(-1.1, top, u)], mL = [lerp(0.72, cx + 0.17, u), lerp(-0.97, top, u)];
+        const lean = lerp(1.2, 0.86, clamp(click)); // the sticks' angle over the horizontal: open, then knocked together
         const aR = lerp(-2.1, -lean, u), aL = lerp(-0.4, -PI + lean, u);
         g.lineJoin = 'round';
-        stick(g, L, mR, aR);
         Cast.arm(g, ST, L, S_SH.R, mR);
-        stick(g, L, mL, aL);
         Cast.arm(g, ST, L, S_SH.L, mL);
+        stick(g, L, mL, aL, 0.5, 0.05);
+        stick(g, L, mR, aR, 0.5, 0.05);
         // his head again, over the arms: they go up behind it (it is wider than his shoulders)
         g.translate(SEAT[0], SEAT[1]);
         g.translate(0, (pose.headDy ?? 0) + HEAD_PIVOT);
@@ -328,8 +329,8 @@ const BridgeProps = (() => {
         g.translate(0, -HEAD_PIVOT);
         BandRhythm.stanHead(g, ST, L, pose);
         g.restore();
-        // where the tips meet, for the click's mark (figure units from his ground point)
-        return [cx, top - Math.sin(lean) * 0.47];
+        // where the sticks cross, for the click's mark (figure units from his ground point)
+        return [cx, top - Math.tan(lean) * 0.17];
     }
 
     // A follow spot: a hard-edged cone from (x0, y0) to a pool at (x1, y1), screened over the picture.

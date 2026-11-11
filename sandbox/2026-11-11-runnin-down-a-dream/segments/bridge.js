@@ -58,7 +58,7 @@
     const SEATS = Rides.bandCarSeats();
     const WHEEL = [SEATS.wheel[0] - SEATS.driver[0] - 0.07, SEATS.wheel[1] - SEATS.driver[1] + 0.02];
     const HOOD = [3.98, -1.2]; // Finale.HOOD: the place on the bonnet (the Devil's from the solo on; Tom's for this block's last bars)
-    const MIKE_FWD = [0.3, -0.77], DEVIL_AT = [1.25, -0.77]; // the deck's near row: Mike in front of his own place, the Devil in Tom's
+    const MIKE_FWD = [0.3, -0.77], DEVIL_AT = [1.28, -0.77]; // the deck's near row: Mike in front of his own place, the Devil in Tom's
     // a place along the bonnet, as far in from its near edge as HOOD is
     const bonnet = (x) => [x, lerp(-1.12, -1.0, E.clamp((x - 3.375) / 1.15)) - 0.15];
     /**
@@ -197,8 +197,8 @@
     // =========================================================================================
     // Shot 2 · «The fire», bars 121–123: over the rail, down the rock, an arm in the brazier
     // =========================================================================================
-    const V2 = { k: 2.3, cx: 880, cy: 484 };
-    const SLIDE = n(9), LAND = n(10), ROLL = n(11), DIP = n(12), STEAM = n(14), HEAVE = n(15.5), PULL = n(16), PULL2 = n(17.25), OUT = n(18.75), HANG = n(19.5);
+    const V2 = { k: 2.05, cx: 880, cy: 474 };
+    const SLIDE = T1 + 5 * FR, LAND = n(10), ROLL = n(11), DIP = n(12), STEAM = n(14), HEAVE = n(15.5), PULL = n(16), PULL2 = n(17.25), OUT = n(18.75), HANG = n(19.5);
     const FLANK0 = [808, 480], FLANK1 = [870, 524]; // the corbel's left flank, where his hooves slide (set coordinates)
     const COLS = ['green', 'blue', 'purple', 'pink'];
     // the guitar's k (Inferno.guitarFromFire): the fork, a beat of doubt, the rest, and it hangs
@@ -212,19 +212,20 @@
         dress(g, t, V2, 0, {}, 'stage');
         const F = St.at([BRZ[0] + 9, BRZ[1] + 6]), k = axeK(t);
         // --- where he is -------------------------------------------------------------------------
-        let at, pose = { shadow: false, handR: P.NO_HAND, handL: P.NO_HAND, tail: 0.04 * Math.sin((Pu.k + Pu.since) * PI) }, hR = [-0.5, -0.5], hL = [0.5, -0.5], roll = 0, tongue = false;
+        let at, pose = { shadow: false, handR: P.NO_HAND, handL: P.NO_HAND, tail: 0.04 * Math.sin((Pu.k + Pu.since) * PI) }, hR = [-0.5, -0.5], hL = [0.5, -0.5], roll = 0, tongue = false, chips = -1;
         if (!on(t, SLIDE)) {
             // over the rail (he is already in the air on the cut) and down onto the corbel's flank
-            const u = E.seg(t, T1 - 2 * FR, SLIDE);
-            at = arc([850, 400], FLANK0, u, 16);
-            Object.assign(pose, { lean: lerp(-0.5, -0.16, u), mood: 'laugh', squash: -0.06 });
+            const u = E.seg(t, T1 - 3 * FR, SLIDE);
+            at = arc([846, 428], FLANK0, u, 10);
+            Object.assign(pose, { lean: lerp(-0.42, -0.2, u), mood: 'laugh', squash: -0.06 });
             hR = [-0.7, -1.3];
             hL = [0.72, -1.2];
         } else if (!on(t, LAND)) {
             // down the flank on his hooves, leaning back, and off its tip onto the stack
             const tip = LAND - 3 * FR, u = E.seg(t, SLIDE, tip);
             at = t < tip ? lerpPt(FLANK0, FLANK1, u) : arc(FLANK1, STACK, E.seg(t, tip, LAND), 6);
-            Object.assign(pose, { lean: -0.3 + 0.08 * Math.sin(dr(t, SLIDE) * 2.1), mood: 'laugh', squash: 0.06 * (1 - u) });
+            Object.assign(pose, { lean: -0.26 + 0.05 * (dr(t, SLIDE) % 2), mood: 'laugh', squash: 0.06 * (1 - u) });
+            chips = t < tip ? dr(t, SLIDE) : -1;
             hR = [-0.78, -0.95 - 0.08 * (dr(t, SLIDE) % 2)];
             hL = [0.76, -1.0 + 0.08 * (dr(t, SLIDE) % 2)];
         } else {
@@ -277,7 +278,14 @@
             });
             if (on(t, STEAM)) {
                 const np = P.toFrame(p[0], p[1], s, pose, rot([0.045, -1.225 + (pose.headDy ?? 0)], pose.headTilt ?? 0));
-                P.steam(g, np[0], np[1] - 0.06 * s, 0.17 * s, E.seg(twos(t, STEAM), STEAM, STEAM + 0.55));
+                P.steam(g, np[0] - 0.1 * s, np[1] - 0.02 * s, 0.1 * s, E.seg(twos(t, STEAM), STEAM, STEAM + 0.5));
+            }
+            if (chips >= 0) {
+                // chips of rock off the flank behind his hooves
+                for (let i = 0; i < 3; i++) {
+                    const cx = p[0] - (0.34 + 0.16 * i + 0.1 * (chips % 2)) * s, cy = p[1] - (0.1 + 0.13 * ((i + chips) % 3)) * s, r = (0.035 + 0.012 * i) * s;
+                    C.poly(g, [[cx - r, cy], [cx, cy - r], [cx + r, cy + r * 0.4], [cx - r * 0.2, cy + r]], { fill: I.R.wallL, ink: K.ink, lw: 2.4 });
+                }
             }
         };
         // --- the fire and him, in order ----------------------------------------------------------
@@ -328,7 +336,7 @@
     // Shot 3 · «The house», bar 124: wider. He has it on; the pit; down onto the bonnet
     // =========================================================================================
     const V3 = { k: 1.3, cx: 850, cy: 652 };
-    const HOP = n(22), STEP1 = n(23), HOODX1 = 3.66, HOODX2 = 3.5;
+    const HOP = n(22), STEP1 = n(23), HOODX1 = 3.62, HOODX2 = 3.42;
     // the Devil with his guitar, keeping the beat
     const axePose = (t, o = {}) => {
         const Pu = S.pulseAt(t), ph = Pu.k + Pu.since;
@@ -511,7 +519,7 @@
         const tips = band(g, t, car, {
             solo, tomAt: HOOD, mikeAt, mikeNear: fwd > 0.5,
             pose: { mike: mikePose, ben: on(t, FACE) ? { headTilt: 0.08 } : {}, howie: on(t, FACE) ? { headTilt: 0.08 } : {}, stan: on(t, COUNT - 4 / 12) ? { kick: 0, headDy: 0.03 * Pu.pulse, eyes: 'wide', sway: 0 } : {} },
-            cactus: on(t, FACE) ? { lean: -0.05 } : {},
+            cactus: { lean: 0.07, wave: 0.5 + 0.2 * Pu.pulse },
             devil: (g2, sc) => I.devilGuitar(g2, 0, 0, sc, pose),
             count: on(t, COUNT - 4 / 12) ? { up: E.out(seg2(t, COUNT - 4 / 12, COUNT - 1 / 12)), click } : null,
         });
