@@ -79,8 +79,8 @@ const Chorus3Props = (() => {
     };
     const IMP_U = 60, CONE_S = 62, BARRIER_S = 64;
 
-    // An imp of the Devil's staff from behind (the pit's view of one), in a hard hat, both mitts
-    // up on its mallet. Unit: its width; (x, y) under its hooves.  o: { squash, up (0..1), swing, tone (0..1 towards the pit's dark) }
+    // An imp of the Devil's staff from behind (the pit's view of one), in a hard hat, its mallet
+    // in its right mitt. Unit: its width; (x, y) under its hooves.  o: { squash, up (0..1 how high it holds the mallet), swing, tone (0..1 towards the pit's dark) }
     function impBack(g, x, y, u, o = {}) {
         const L = 3 / u, q = o.squash ?? 0, m = (c) => mix(c, PIT_COL, o.tone ?? 0), DP = Devil.P, top = -1.02, up = o.up ?? 0.5;
         const cols = { front: m(DP.skin), top: m(DP.skinTop), side: m(DP.skinSide) };
@@ -92,12 +92,7 @@ const Chorus3Props = (() => {
             C.box(g, sx * 0.22 - 0.11, -0.1, 0.22, 0.1, D, { front: m(DP.hoof), top: m(DP.hoofTop), side: m(DP.hoof) }, { lw: L, depth: 0.26 });
             C.box(g, sx * 0.22 - 0.085, -0.26, 0.17, 0.17, D, cols, { lw: L, depth: 0.2 });
         }
-        // the mallet, behind the head: held in both mitts over the right shoulder
-        const hand = [0.34, -0.9 - 0.3 * up], ang = 0.5 - 0.5 * up + (o.swing ?? 0);
-        g.save();
-        g.scale(1 / u, 1 / u);
-        V.mallet(g, hand[0] * u, hand[1] * u, ang, u * 0.8);
-        g.restore();
+        const hand = [0.66, -0.74 - 0.4 * up], ang = 0.34 - 0.24 * up + (o.swing ?? 0);
         C.box(g, -0.5, top, 1, 0.8, D, cols, { lw: L, depth: 0.5 });
         // the tail comes out at us and curls
         const tw = o.tail ?? 0, tl = C.curve([[0, -0.3], [-0.2, -0.16], [-0.44, -0.2], [-0.52, -0.42 + tw], [-0.4, -0.6 + tw * 1.5]], false, 5);
@@ -116,13 +111,17 @@ const Chorus3Props = (() => {
         C.prismOutline(g, dome, Dd(0.3), { lw: L });
         C.box(g, -0.5, top - 0.01, 1.0, 0.06, D, { front: m(K.gold), top: m(K.yellow), side: m('#e0a800') }, { lw: L, depth: 0.52 });
         line(g, [[0.03, top - 0.27], [0.03, top - 0.04]], L * 1.4, m('#e0a800'));
-        // the arms, up to the handle
-        const stub = (sh) => {
-            const dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6, ux = dx / len, uy = dy / len, nx = -uy * 0.08, ny = ux * 0.08;
-            C.prism(g, cw([[sh[0] + nx, sh[1] + ny], [hand[0] + ux * 0.08 + nx, hand[1] + uy * 0.08 + ny], [hand[0] + ux * 0.08 - nx, hand[1] + uy * 0.08 - ny], [sh[0] - nx, sh[1] - ny]]), Dd(0.14), cols, { lw: L });
+        // the mallet in its right mitt, held up beside its head; the other mitt hangs, or punches the air with it
+        g.save();
+        g.scale(1 / u, 1 / u);
+        V.mallet(g, hand[0] * u, hand[1] * u, ang, u * 0.8);
+        g.restore();
+        const stub = (sh, to) => {
+            const dx = to[0] - sh[0], dy = to[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6, ux = dx / len, uy = dy / len, nx = -uy * 0.08, ny = ux * 0.08;
+            C.prism(g, cw([[sh[0] + nx, sh[1] + ny], [to[0] + ux * 0.08 + nx, to[1] + uy * 0.08 + ny], [to[0] + ux * 0.08 - nx, to[1] + uy * 0.08 - ny], [sh[0] - nx, sh[1] - ny]]), Dd(0.14), cols, { lw: L });
         };
-        stub([-0.48, -0.5]);
-        stub([0.48, -0.5]);
+        stub([-0.48, -0.48], [-0.66, -0.34 - 0.62 * Math.max(0, up - 0.4) / 0.6]);
+        stub([0.48, -0.48], hand);
         g.restore();
     }
 
@@ -154,11 +153,11 @@ const Chorus3Props = (() => {
     // The imp on its colleague's hard hat: its pose on the beat, and where its mallet's head is (SET coordinates).
     const impPose = (t, o) => {
         const Pu = S.pulseAt(t), hype = clamp(o.hype ?? 0);
-        return { tone: 0.3, squash: 0.04 * Pu.pulse * hype, up: lerp(0.15, 0.6 + 0.4 * Pu.pulse, smooth(hype * 2)), swing: hype > 0.3 ? 0.25 * Math.cos((Pu.k + Pu.since) * PI) : 0, tail: 0.05 * Math.sin(C.onTwos(t) * 2.2) };
+        return { tone: 0.12, squash: 0.04 * Pu.pulse * hype, up: lerp(0.15, 0.6 + 0.4 * Pu.pulse, smooth(hype * 2)), swing: hype > 0.3 ? 0.25 * Math.cos((Pu.k + Pu.since) * PI) : 0, tail: 0.05 * Math.sin(C.onTwos(t) * 2.2) };
     };
     function malletTop(t, o, pose = {}) {
-        const a = figAt(CATCHER, t, o), p = { ...impPose(t, o), ...pose }, ang = 0.5 - 0.5 * p.up + p.swing, q = rot([0, -1.01 * 0.8 * IMP_U], ang);
-        return [a.x + 7 + 0.34 * IMP_U + q[0], a.hat + (-0.9 - 0.3 * p.up) * IMP_U + q[1], ang];
+        const a = figAt(CATCHER, t, o), p = { ...impPose(t, o), ...pose }, ang = 0.34 - 0.24 * p.up + p.swing, q = rot([0, -1.01 * 0.8 * IMP_U], ang);
+        return [a.x + 7 + 0.66 * IMP_U + q[0], a.hat + (-0.74 - 0.4 * p.up) * IMP_U + q[1], ang];
     }
     // scarf: seconds since the Devil's scarf came down on the mallet (null: no scarf)
     function impOnSkull(g, v, t, o, pose = {}, scarfAge = null) {

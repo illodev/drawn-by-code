@@ -173,9 +173,10 @@
                 seat = true;
                 at = LAND;
                 pose = { mood: on(t, LANDED + 3 / 12) ? 'grin' : 'shock', look: -0.4, squash: steps(t, LANDED, [0.24, -0.07, 0.04, 0]), headTilt: steps(t, LANDED, [0.1, -0.06, 0.02, 0]), tail: steps(t, LANDED, [0.62, 0.42, 0.55, 0.5]) };
-                // the plug in his lap, a mitt on each end of it
-                plugAng = steps(t, LANDED, [0.3, 0.1, 0.16]);
-                plugAt = [at[0] - 44, at[1] - steps(t, LANDED, [74, 50, 58, 56])];
+                // the plug out at arm's length, still in his right mitt
+                plugAng = steps(t, LANDED, [0.34, 0.1, 0.2, 0.16]);
+                plugAt = [at[0] - 152, at[1] - steps(t, LANDED, [92, 66, 80, 76])];
+                pose.handL = on(t, LANDED + 3 / 12) ? [0.5, -0.5] : [0.66, -1.3];
             }
         } else {
             // up he gets, the plug held high like a trophy: the salesman's grin
@@ -191,10 +192,8 @@
             // his mitts are on the plug wherever it is
             const gp = seat ? { ...pose, lean: 0 } : pose, ga = seat ? [at[0], at[1] + P.seatDrop(pose, U)] : at;
             if (plugAng === PI / 2) pose.handR = toDevil(P.plugPt(plugAt, plugAng, [40, 0]), ga, gp);
-            else if (seat) {
-                pose.handR = toDevil(P.plugPt(plugAt, plugAng, [10, -31]), ga, gp);
-                pose.handL = toDevil(P.plugPt(plugAt, plugAng, [58, -27]), ga, gp);
-            } else {
+            else if (seat) pose.handR = toDevil(P.plugPt(plugAt, plugAng, [56, -24]), ga, gp);
+            else {
                 pose.handR = toDevil(P.plugPt(plugAt, plugAng, GRIP[0]), ga, gp);
                 pose.handL = toDevil(P.plugPt(plugAt, plugAng, GRIP[1]), ga, gp);
             }
@@ -272,9 +271,167 @@
         }
     }
 
+    // =========================================================================================
+    // Shots 2 and 3 · «Lighters» and «Chorus 4», beats 10–23: the whole house, the camera a
+    // little to the left so the socket is in the picture. Dark, then the pit's flames, then
+    // everything back at once on bar 106
+    // =========================================================================================
+    const SPOT = 392; // where the one work light left falls on the stage's edge
+    const SIT = [160, 806]; // where the cable leaves him
+    const ARRIVE = n(11), FLAMES = [n(12), n(13), n(14)], GONE = n(14) + 3 / 12, JERK = n(15), SLAM = T106, SIT_AT = T106 + 2 / 12;
+    const TITLE_AT = [T106, S.snap(S.TITLES[6][1]), S.snap(S.TITLES[6][2])], TITLE_OUT = n(21);
+    const SURF = [n(20), n(28)]; // the surfer's two bars
+    const wpan = (t) => -126 + 12 * E.seg(t, TW, T108);
+    const surfU = (t) => lerp(0.1, 1, E.seg(t, SURF[0], SURF[1]));
+    function house(g, t, env) {
+        const pan = wpan(t), St = I.stage('wide', pan), Pu = S.pulseAt(t), d = C.drawing(t), ph = Pu.k + Pu.since, dark = !on(t, SLAM);
+        const o = { view: 'wide', pan, heat: dark ? 0 : 1, beatK: dark ? 0 : Pu.pulse };
+        const x0 = 380 + pan - 30, x1 = 1380 + pan + 30; // the set's span in the frame
+        // --- his act -----------------------------------------------------------------------
+        let at = [SPOT, 808], pose, plugAt = HOME, plugAng = 0, seat = false, sock = 'dead', grip = null, wrap = 0, taut = false;
+        const dust = [];
+        if (!on(t, ARRIVE)) {
+            // he struts to the light, the plug over his shoulder
+            const f = dr(t, TW), stp = f % 2 ? 1 : -1;
+            at = [[258, 292, 326, 360][Math.min(3, f)], 808];
+            pose = { mood: 'grin', look: 1, lean: 0.08, headTilt: 0.06, squash: f % 2 ? 0.03 : -0.02, step: stp, tail: 0.1 * stp };
+            plugAng = PI / 2;
+            plugAt = trophy(at, pose);
+            grip = 'up';
+        } else if (!on(t, JERK)) {
+            // in the light: the showman, until the flames come up
+            const gone = on(t, GONE), f = dr(t, ARRIVE);
+            pose = { mood: gone ? 'shock' : 'grin', look: gone ? (dr(t, GONE) % 4 < 2 ? -1 : 1) : 0, squash: steps(t, ARRIVE, [-0.1, 0.06, 0]) + 0.03 * Pu.pulse, headTilt: gone ? 0 : 0.05 * Math.sin(ph * PI), tail: gone ? -0.12 : 0.08 * Math.sin(ph * PI), handL: gone ? [0.5, -0.5] : [0.84, -1.02 - 0.06 * Pu.pulse] };
+            plugAng = PI / 2;
+            plugAt = trophy(at, pose);
+            if (gone) plugAt = [plugAt[0] + 6, plugAt[1] + steps(t, GONE, [14, 30, 34])];
+            grip = 'up';
+        } else if (dark) {
+            // the plug comes alive: it turns for home and takes him with it
+            const f = Math.min(3, dr(t, JERK));
+            at = [[SPOT, SPOT - 14, SPOT - 36, 318][f], [808, 808, 806, 778][f]];
+            pose = { mood: 'shock', look: -1, lean: [-0.12, -0.34, -0.62, -1.25][f], squash: [0.02, -0.04, -0.08, -0.12][f], tail: [0.1, -0.1, -0.24, -0.3][f], step: f % 2 ? 1 : -1, shadow: f < 3 };
+            plugAt = [[262, 216, 172, 96][f], [668, 684, 696, 712][f]];
+            plugAng = [0.24, 0.14, 0.1, 0.05][f];
+            grip = f === 0 ? 'one' : 'cable';
+            taut = true;
+            if (f === 1 || f === 2) dust.push([at[0] + 46, 806, 0.5 + 0.3 * f]);
+        } else if (!on(t, SIT_AT)) {
+            // home: the plug is in, and he is still on the end of its cable
+            const f = dr(t, SLAM);
+            sock = 'chomp';
+            at = [[272, 232][f], [724, 730][f]];
+            pose = { mood: 'shock', look: -1, lean: -PI / 2 + [0.04, -0.03][f], squash: [-0.14, 0.26][f], tail: [-0.3, 0.2][f], step: f ? 1 : -1, shadow: false };
+            grip = 'cable';
+            taut = true;
+        } else {
+            // sat by his socket, wound in the cable, his own house going wild in front of him
+            seat = true;
+            sock = on(t, SLAM + 6 / 12) ? 'calm' : 'chomp';
+            at = SIT;
+            const f = dr(t, SIT_AT);
+            wrap = Math.min(3, 1 + Math.floor(f / 2));
+            const look = on(t, n(18)) ? (Math.floor(ph / 2) % 2 ? -0.4 : 1) : 1;
+            pose = { mood: on(t, n(20)) ? 'angry' : 'shock', look, squash: steps(t, SIT_AT, [0.22, -0.06, 0.04, 0]) + 0.02 * Pu.pulse, headTilt: steps(t, SIT_AT, [0.12, -0.08, 0.04, 0]) + (on(t, n(18)) ? 0.05 * look : 0), tail: 0.5 + 0.06 * Math.sin(ph * PI) };
+        }
+        // his mitts: on the plug, or on the cable just behind it
+        const tail = P.plugTail(plugAt, plugAng), hold = [tail[0] + 30, tail[1] + 3];
+        if (grip === 'up') pose.handR = toDevil(P.plugPt(plugAt, plugAng, [40, 0]), at, pose);
+        else if (grip === 'one') pose.handR = toDevil(P.plugPt(plugAt, plugAng, [52, -8]), at, pose);
+        else if (grip === 'cable') {
+            pose.handR = toDevil([hold[0] - 6, hold[1] - 3], at, pose);
+            pose.handL = toDevil([hold[0] + 12, hold[1] + 4], at, pose);
+        }
+        // --- the picture ---------------------------------------------------------------------
+        I.venue(g, t, o);
+        if (!dark) P1.title(g, t, 506, 236, { at: TITLE_AT, out: TITLE_OUT, k: 0.8 });
+        I.box(g, St.box.x, St.box.y, St.box.s, { t }); // his box, empty
+        band(g, t, St, dark ? {} : { bounce: 0.25 * Pu.pulse });
+        if (!dark) I.beams(g, t, { ...o, front: true });
+        // the cable: from the plug to his mitts when he is on the end of it, then along the floor to the car
+        let pts;
+        if (taut && grip === 'cable') {
+            const hp = fromDevil([0, -0.5], at, pose);
+            pts = C.curve([tail, hold, [lerp(hold[0], hp[0], 0.5), hold[1] + 26], [hp[0] + 20, Math.min(FLOOR, hp[1] + 40)], [lerp(hp[0], 257, 0.5) + 30, FLOOR - 4], [257, FLOOR], [P.JACK[0] - 1, FLOOR - 22], [P.JACK[0], P.JACK[1] + 6]], false, 8);
+        } else if (seat) pts = C.curve([tail, [tail[0] + 16, tail[1] + 4], [tail[0] + 24, 770], [102, FLOOR], [150, FLOOR - 4], [206, FLOOR + 3], [257, FLOOR], [P.JACK[0] - 1, FLOOR - 22], [P.JACK[0], P.JACK[1] + 6]], false, 8);
+        else pts = cablePts(tail, { dir: rot([1, 0], plugAng), land: at[0] - 34, slack: 1 });
+        P.layer(g, 'wide', pan, (L) => {
+            P.socket(g, L, { live: dark ? 0 : 1, beat: Pu.pulse, face: sock, holes: dark, d });
+            P.jack(g, L);
+            P.cable(g, L, pts);
+            P.plug(g, L, plugAt, { ang: plugAng, out: on(t, SLAM) ? 0 : 99 });
+            for (const [dx, dy, k2] of dust) P1.puffs(g, [[dx, dy - 10 * k2, 15 * k2, 6, 0.3], [dx + 22 * k2, dy - 6 * k2, 11 * k2, 5, 1.1], [dx - 16 * k2, dy - 5 * k2, 9 * k2, 5, 2]], '#c9a0a8', 3.2 * L);
+        });
+        if (seat) {
+            sat(g, St, at, pose);
+            P.layer(g, 'wide', pan, (L) => coils(g, L, at, pose, wrap, dr(t, SIT_AT)));
+        } else devil(g, St, at, pose);
+        const nl = dark ? (on(t, FLAMES[2]) ? 1 : on(t, FLAMES[1]) ? P.lightersFor(5, x0, x1) : on(t, FLAMES[0]) ? P.lightersFor(1, x0, x1) : 0) : 0.3;
+        I.crowd(g, t, { ...o, hype: dark ? 0 : 1, lighters: nl, surf: { u: surfU(t), on: on(t, SURF[0]) } });
+        if (dark) {
+            // the night: the work light's cone on him, a pool round every flame, his eyes and his grin
+            const lamp = St.lamps[1], flames = P.lighterPoints(t, nl, x0, x1).map((q) => [...St.at([q.x, q.y]), q.u]);
+            const jf = on(t, JERK) ? dr(t, JERK) : -1, hot = on(t, ARRIVE) && !on(t, JERK) && dr(t, ARRIVE) % 4 < 2, pin = St.at(P.plugPt(plugAt, plugAng, [-16, 0]));
+            const cone = (c) => {
+                const a = St.at([SPOT - 96, 794]), e = St.at([SPOT + 96, 794]), m = St.at([SPOT, 800]), ux = m[0] - lamp[0], uy = m[1] - lamp[1], l = Math.hypot(ux, uy);
+                C.trace(c, [[lamp[0] + (ux / l) * 30 + (uy / l) * 20, lamp[1] + (uy / l) * 30 - (ux / l) * 20], [lamp[0] + (ux / l) * 30 - (uy / l) * 20, lamp[1] + (uy / l) * 30 + (ux / l) * 20], a, e]);
+                c.fill();
+                c.beginPath();
+                c.ellipse(m[0], m[1], 96, 22, 0, 0, TAU);
+                c.fill();
+            };
+            const discs = (c, r) => {
+                for (const [fx, fy, u] of flames) {
+                    c.beginPath();
+                    c.arc(fx, fy + r * 0.35, r * (u / 56), 0, TAU);
+                    c.fill();
+                }
+            };
+            const extra = (c) => {
+                cone(c);
+                if (hot || jf >= 0) {
+                    C.trace(c, P.flashPts(pin[0], pin[1], jf >= 0 ? 44 : 30, 'hp-wpin' + d, d));
+                    c.fill();
+                }
+                face(c, St, at, pose);
+            };
+            P.night(g, env, (c) => {
+                extra(c);
+                discs(c, 20);
+            }, (c) => {
+                extra(c);
+                discs(c, 40);
+            });
+            if (hot || jf >= 0) P.bolts(g, pin[0], pin[1], 6, jf >= 0 ? 40 : 26, 4, 'hp-wpinb' + d, 2.2, { rot: d * 0.9 });
+        } else {
+            // the plug is home: a flash at the socket, stars round his head when he lands
+            const f = dr(t, SLAM), sp = St.at([P.SOCK.x1 + 14, HOME[1]]), R = [96, 70, 40][f] ?? 0;
+            if (R) {
+                P.flash(g, sp[0], sp[1], R, 'hp-home' + f, 3.2, f * 0.4);
+                P.bolts(g, sp[0], sp[1], R * 0.7, R * 1.5, 6, 'hp-homeb' + f, 2.6, { rot: f * 0.5 });
+            }
+            if (seat) {
+                const k2 = E.bump(twos(t, SIT_AT), SIT_AT, 0.4), a = St.at([SIT[0] + 4, SIT[1] - 150]);
+                if (k2 > 0) for (let i = 0; i < 5; i++) C.sparkle(g, a[0] + Math.cos(PI + i * 0.78) * (40 + 30 * k2), a[1] + Math.sin(PI + i * 0.78) * (14 + 16 * k2), 7 + 9 * k2, { color: i % 2 ? K.yellow : K.white, ink: K.ink, lw: 2.2, rot: i + dr(t, SIT_AT) });
+            }
+        }
+    }
+    // The cable wound round him as he sits: `n` turns over his arms and his coat (set coordinates).
+    function coils(g, L, at, pose, turns, f) {
+        const q = pose.squash ?? 0;
+        for (let i = 0; i < turns; i++) {
+            const y = at[1] - (14 + i * 15) * (1 - q), tilt = (i % 2 ? 1 : -1) * 0.07, rx = 55 - i * 2;
+            const arc = C.ellipsePts(at[0] + 4, y, rx, 7, 14, tilt, -0.12, PI + 0.12);
+            P.cable(g, L, arc, { w: 10, bands: false });
+            const m = arc[5 + (i % 2) * 4];
+            C.poly(g, [[m[0] - 1, m[1] - 5], [m[0] + 1, m[1] + 5]], { ink: P.CABLE.band, lw: 4.4, close: false });
+        }
+    }
+
     function draw(g, t, env) {
         g.lineJoin = 'round';
-        plugScene(g, t, env);
+        if (!on(t, TW)) plugScene(g, t, env);
+        else house(g, t, env);
     }
     // a dirty edit on the hard cut in
     const post = (t) => (t < T0 + FR - 1e-6 ? { track: 0.25 } : t < T0 + 3 * FR - 1e-6 ? { track: 0.1 } : {});

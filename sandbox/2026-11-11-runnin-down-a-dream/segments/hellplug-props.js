@@ -255,7 +255,7 @@ const HellplugProps = (() => {
     // light punched in it. holes(c) and rim(c) only FILL shapes on the context they get (frame
     // coordinates); rim, if given, is a wider set of shapes that stays half dark round the holes.
     // =========================================================================================
-    const NIGHT = { tone: '#ffffff', half: '#ffffff' };
+    const NIGHT = { tone: '#554c9e', half: '#a198d6' };
     function night(g, env, holes, rim = null, tone = NIGHT.tone, half = NIGHT.half) {
         const A = Motion.layer(env, 'hellplug-night', (c) => {
             c.fillStyle = tone;
