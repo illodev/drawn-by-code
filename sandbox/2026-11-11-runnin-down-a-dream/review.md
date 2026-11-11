@@ -414,3 +414,10 @@ song, so it can be read. The fade block's agent was told while it worked.
 - **The trident and the frame.** The trident in the umbrella stand reached 15 units up behind
   the frame's lower edge: its tips showed under the frame in the wide shot and in the push-in.
   It is shorter now and stands clear of the frame.
+- **The lever and its label** («la palanca se queda debajo del cartel»). On the wall plate the
+  `RAIN` label was painted after the arm, so once the lever was pulled its red knob went under
+  the label's corner (Plan B's last beat and all of «Hell freezes over»). The label goes on the
+  plate first; whatever moves over a plate is painted after everything fixed to it.
+- The automatic review of the whole film (264 s): no still stretch, one cut off the beat (the
+  tape's blue to the card at 0.5 s, before the song's grid starts), large jumps only where they
+  are staged (the rewind at 1:44–1:50, the notes landing at 3:03).

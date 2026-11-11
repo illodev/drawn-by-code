@@ -73,6 +73,13 @@
             g.lineWidth = 2;
             g.stroke();
         }
+        // the label goes on the plate first: pulled down, the arm's knob comes over its corner
+        C.box(g, lx - 40, ly + 28, 80, 40, [3, -2], { front: K.yellow, top: K.yellow, side: '#e0a800' }, { lw: 3 });
+        g.fillStyle = K.ink;
+        g.font = '30px "Anton"';
+        g.textAlign = 'center';
+        g.textBaseline = 'alphabetic';
+        g.fillText('RAIN', lx, ly + 60);
         C.poly(g, [[lx, ly - 76], [lx, ly + 6]], { ink: K.ink, lw: 14, close: false });
         const ang = -0.9 + 1.8 * pulled; // up → down
         const tip = [lx + 64 * Math.cos(ang), ly - 35 + 64 * Math.sin(ang)];
@@ -89,12 +96,6 @@
         g.beginPath();
         g.arc(tip[0] - 5, tip[1] - 6, 5, 0, C.TAU);
         g.fill();
-        C.box(g, lx - 40, ly + 28, 80, 40, [3, -2], { front: K.yellow, top: K.yellow, side: '#e0a800' }, { lw: 3 });
-        g.fillStyle = K.ink;
-        g.font = '30px "Anton"';
-        g.textAlign = 'center';
-        g.textBaseline = 'alphabetic';
-        g.fillText('RAIN', lx, ly + 60);
         return tip;
     }
 
