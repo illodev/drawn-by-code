@@ -324,5 +324,5 @@
         g.restore();
     }
 
-    Seg.planb = { shots: [[T0, T1, 'Plan B']], draw, post: () => ({}) };
+    Seg.planb = { shots: [[T0, T1, 'Plan B']], draw, post: () => ({}), set, board, plan }; // the set's pieces, for later shots in Hell's office
 })();

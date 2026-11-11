@@ -19,7 +19,10 @@
     const at = (k) => b(n0 + k); // beat k of this segment (0–39)
     const CUT = { empty: B(65), burst: B(66), souls: B(67), cash: B(68), phone: B(69), card: B(71) };
     const on = (t, a) => t >= a - 1e-6;
-    const bump = (t, a, dur = 0.3) => E.bump(twos(t, a), a, dur);
+    const bump = (t, a, dur = 0.3) => {
+        const v = E.bump(twos(t, a), a, dur);
+        return v < 1e-6 ? 0 : v; // sin(π) is not quite 0
+    };
     const seg = (t, a, c) => E.seg(twos(t, a), a, c);
     const line = (g, pts, color, lw) => C.poly(g, pts, { ink: color, lw, close: false });
     const WHITE = { face: K.white, side: K.ink, side2: K.white, bands: 4 }, GOLD = { face: K.yellow, side: K.red, side2: K.orange, bands: 3 };
@@ -65,7 +68,7 @@
     };
     // Paint fn drained of colour outside a circle of radius R round (cx, cy): R 0 is all grey,
     // Infinity all colour. The drab «before» of the spot, and the wave that ends it.
-    const GREY = 'saturate(0.06) brightness(1.5) contrast(0.74)';
+    const GREY = 'saturate(0.06) brightness(1.32) contrast(0.8)';
     function drained(g, env, name, R, cx, cy, fn) {
         if (R === Infinity) return fn(g);
         const lay = Motion.layer(env, name, fn);
@@ -90,8 +93,8 @@
     // --- the jingle's choir ----------------------------------------------------------------
     // Three imps in yellow bow ties sing the song's «ooh»s: round mouths while Song.backing(t),
     // swaying together from one beat to the next, the outer mitts up through every other bar
-    // (the long notes). o: { stack (two in front, one on a box behind), gap, from (they start
-    // singing then), looks }
+    // (the long notes). o: { stack (a pyramid: one standing on the heads of two), gap, from (they start
+    // singing then), looks, notes (how high their notes rise, in imps; 0: none) }
     function bowTie(g, x, y, s, pose) {
         const q = pose.squash ?? 0;
         g.save();
@@ -112,16 +115,24 @@
         g.restore();
     }
     function choir(g, t, x, y, s, o = {}) {
-        const { stack = false, gap = 0.96, from = T0, looks = [0.4, 0, -0.4] } = o;
+        const { stack = false, gap = 0.96, from = T0, looks = [0.4, 0, -0.4], notes = 1 } = o;
         const P = S.pulseAt(t), bar = Math.floor(P.k / 4), b0 = B(bar), there = on(t, from), sing = there && S.backing(t);
         const side = P.k % 2 ? 1 : -1, sway = there ? side * 0.07 * (2 * E.out(Math.min(1, P.since / 0.45)) - 1) : 0;
         const k = E.out(seg(t, Math.max(b0, from), Math.max(b0, from) + 2 / 12)), up = !there ? 0 : bar % 2 === 0 ? k : 1 - k;
-        const spots = stack ? [[0.06, -0.97, 1], [-0.56, 0, 0], [0.56, 0, 2]] : [[-gap, 0, 0], [0, 0, 1], [gap, 0, 2]];
-        if (stack) C.box(g, x - 0.6 * s, y - 0.92 * s, 1.2 * s, 0.92 * s, [0.3, -0.2], { front: K.teal, top: K.aqua, side: K.tealDeep }, { lw: 3.2, depth: 0.5 * s });
+        const spots = stack ? [[0.04 + Math.sin(sway) * 1.0, -1.0, 1], [-0.54, 0, 0], [0.54, 0, 2]] : [[-gap, 0, 0], [0, 0, 1], [gap, 0, 2]];
         for (const [dx, dy, i] of spots) {
             const pose = { mood: sing ? 'awe' : 'grin', look: looks[i], tilt: sway, upL: i === 0 ? up : 0, upR: i === 2 ? up : 0, wear: i === 0 ? 'specs' : null, squash: 0.03 * P.pulse, tail: 0.05 * side * (i === 1 ? -1 : 1) };
             A.imp(g, x + dx * s, y + dy * s, s, pose);
             bowTie(g, x + dx * s, y + dy * s, s, pose);
+        }
+        // what they sing: a note off the top of the choir on every beat
+        if (!notes) return;
+        const top = y - (stack ? 2.3 : 1.3) * s;
+        for (let n = P.k - 2; n <= P.k; n++) {
+            const a0 = b(n), u = seg(t, a0, a0 + 0.8);
+            if (!on(a0, from) || !S.backing(a0) || u <= 0 || u >= 1) continue;
+            const sd = n % 2 ? 1 : -1, sz = s * 0.19 * Math.min(1, u * 5) * (u > 0.75 ? (1 - u) * 4 : 1);
+            C.note(g, x + sd * (0.5 + 0.5 * u) * s * (stack ? 0.5 : 1), top - u * notes * s + Math.sin(u * 8 + n) * 5, sz, { kind: n % 3 ? 1 : 2, color: n % 2 ? K.white : K.yellow, lw: 2.6, rot: sd * 0.15 });
         }
     }
 
@@ -160,14 +171,14 @@
             C.sparkle(g, x, y, rad * 1.7 * tw, { color: i % 3 === 1 ? K.yellow : K.white, ink: K.ink, lw: 2.5, rot: tw < 0.5 ? 0.4 : 0 });
         });
         // the imp on his cloud: it floats, he waves on the beat
-        const ap = pop(t, T0, 0.3), cy = 846 + Math.sin((t - T0) * 2.3) * 7, wav = on(t, T0 + 0.25) ? P.pulse : 0;
+        const ap = pop(t, T0, 0.3), cy = 852 + Math.sin((t - T0) * 2.3) * 7, wav = on(t, T0 + 0.25) ? P.pulse : 0;
         g.save();
         g.translate(500, 900);
         g.scale(ap, ap);
         g.translate(-500, -900);
-        A.cloud(g, 500, cy, 122);
-        A.imp(g, 506, cy - 2, 152, { upR: 0.72 + 0.42 * wav, upL: 0, tilt: 0.06 * (P.k % 2 ? 1 : -1) * wav, mood: 'grin', wear: 'bow', tail: 0.06 * Math.sin(ph * Math.PI), shadow: false, squash: 0.03 * P.pulse });
-        A.cloud(g, 500, cy + 30, 104, { lobes: [[-0.86, 0.04, 0.3], [-0.32, -0.05, 0.36], [0.3, -0.07, 0.38], [0.86, 0.04, 0.3]], base: 0.34 });
+        A.cloud(g, 500, cy, 132);
+        A.imp(g, 506, cy - 4, 166, { upR: 0.72 + 0.42 * wav, upL: 0, tilt: 0.06 * (P.k % 2 ? 1 : -1) * wav, mood: 'grin', wear: 'bow', tail: 0.06 * Math.sin(ph * Math.PI), shadow: false, squash: 0.03 * P.pulse });
+        A.cloud(g, 500, cy + 32, 112, { lobes: [[-0.86, 0.04, 0.3], [-0.32, -0.05, 0.36], [0.3, -0.07, 0.38], [0.86, 0.04, 0.3]], base: 0.34 });
         g.restore();
         // the words: chunky round letters, a word a beat, each letter a frame after the last
         const hop = (i) => (on(t, at(3)) ? -10 * P.pulse * ((i + P.k) % 2 ? 1 : 0.3) : 0);
@@ -227,7 +238,7 @@
     // =========================================================================================
     function burstIn(g, t, env) {
         const u = (k) => at(12 + k), P = S.pulseAt(t), d = C.drawing(t, CUT.burst), ph = P.k + P.since;
-        const BX = 372, BY = 552, DS = 196, DY = 908;
+        const BX = 384, BY = 552, DS = 196, DY = 908;
         // the colour: nothing until the snare, then a ring that takes the frame in four drawings
         const wj = Math.floor((t - u(1)) * 12 + 1e-6), R = wj < 0 ? 0 : [200, 470, 800, 1150][wj] ?? Infinity;
         drained(g, env, 'ad-bg', R, BX, BY, (c) => {
@@ -253,12 +264,12 @@
         C.burst(g, BX, BY, { r0: 150 * bp, r1: 216 * bp, n: 13, seed: 'in2', jitter: 0.18, rot: 0.22 - tick, fill: K.white, ink: K.ink, lw: 3.2 });
         // in front: the imp (he drops the pig), the table, the choir that comes up behind it
         drained(g, env, 'ad-fg', R, BX, BY, (c) => {
-            const IX = 112, IY = 940, IS = 118, PS = 124;
+            const IX = 122, IY = 940, IS = 118, PS = 112;
             const startle = bump(t, u(0), 0.3), joy = on(t, u(3)) ? Math.abs(Math.sin(seg(t, u(3), u(3) + S.BEAT) * Math.PI)) : 0;
             const arm = on(t, u(3)) ? E.out(seg(t, u(3), u(3) + 2 / 12)) : 1 - E.out(seg(t, u(0), u(0) + 4 / 12));
             A.imp(c, IX, IY, IS, { mood: on(t, u(2)) ? 'grin' : 'awe', look: 1, hop: 0.28 * startle + 0.3 * joy, upL: on(t, u(3)) ? arm : 0, upR: arm, squash: 0.03 * P.pulse, tail: 0.05 * Math.sin(ph * Math.PI) });
             const fu = E.in(seg(t, u(0) - 1 / 12, u(0) + 3 / 12)), bounce = bump(t, u(0) + 3 / 12, 0.25);
-            A.pig(c, E.lerp(IX + 130, 226, fu), E.lerp(IY - 1.75 * IS, 936 - 0.43 * PS, fu) - 16 * bounce, PS, { ang: -1.2 * (1 - fu) });
+            A.pig(c, E.lerp(IX + 130, 254, fu), E.lerp(IY - 1.75 * IS, 936 - 0.43 * PS, fu) - 16 * bounce, PS, { ang: -1.2 * (1 - fu) });
             // the choir rises behind the table when the colour comes
             const rise = pop(t, u(1), 0.3);
             if (rise > 0) {
@@ -267,7 +278,7 @@
                 c.rect(560, 0, 440, 771);
                 c.clip();
                 c.translate(0, (1 - rise) * 280);
-                choir(c, t, 772, 780, 98, { gap: 0.93, from: u(1), looks: [-0.8, -0.8, -0.8] });
+                choir(c, t, 796, 780, 88, { gap: 1.03, from: u(1), looks: [-0.8, -0.8, -0.8] });
                 c.restore();
             }
             A.table(c, 776, 966, 322);
@@ -337,17 +348,17 @@
     // =========================================================================================
     // Bar 68 · CASH PAID
     // =========================================================================================
-    function coins(g, t, waves) {
-        for (const [w0, seed, n] of waves) {
-            const r = Motion.rng('coin' + seed);
-            for (let i = 0; i < n; i++) {
-                const x = 90 + ((i + 0.15 + r() * 0.7) / n) * 820, t0 = w0 + Math.round(r() * 3) / 24, dur = 0.5 + r() * 0.12, rad = 20 + r() * 9;
-                if (!on(t, t0)) continue;
-                const u = (twos(t, t0) - t0) / dur;
-                if (u > 1.02) continue;
-                A.coin(g, x + Math.sin(u * 5 + i) * 10, -50 + (0.35 * u + 0.65 * u * u) * 1130, rad, Math.floor(u * 9 + i));
+    // Coins tossed from `from` on every beat in `beats`: up, out to the right and down.
+    function coins(g, t, beats, from) {
+        beats.forEach((t0, w) => {
+            const r = Motion.rng('toss' + w);
+            for (let i = 0; i < 6; i++) {
+                const a = ((-94 + (i + r() * 0.8) * 11) * Math.PI) / 180, v = 760 + r() * 230, rad = 19 + r() * 8, td = t0 + Math.round(r() * 2) / 24;
+                if (!on(t, td)) continue;
+                const tt = twos(t, td) - td + 1 / 24, y = from[1] + Math.sin(a) * v * tt + 1250 * tt * tt;
+                if (y < 1040) A.coin(g, from[0] + Math.cos(a) * v * tt * 0.72, y, rad, Math.floor(tt * 14 + i));
             }
-        }
+        });
     }
     function cashPaid(g, t) {
         const c_ = (k) => at(20 + k), P = S.pulseAt(t), d = C.drawing(t, CUT.cash), ph = P.k + P.since;
@@ -371,7 +382,7 @@
         Devil.draw(g, DX, DY, DS, pose);
         A.fan(g, fanAt[0] - 2, fanAt[1] - 22, 116, fo, paid ? 4 : 5, 0.06);
         // his mitt over the foot of the fan
-        A.units(g, fanAt[0], fanAt[1], DS, (L) => C.prism(g, [[-0.09, -0.1], [0.09, -0.1], [0.09, 0.1], [-0.09, 0.1]], [0.048, -0.032], { front: Devil.P.skin, top: Devil.P.skinTop, side: Devil.P.skinSide }, { lw: L }));
+        A.onBody(g, DX, DY, DS, pose, (L) => A.mitt(g, L, -1, hR));
         // the customer: his jar up, then the swap
         const got = seg(t, c_(3), c_(3) + 3 / 12), joy = got >= 1 ? Math.abs(Math.sin(seg(t, c_(3) + 3 / 12, c_(3) + 3 / 12 + S.BEAT * 0.9) * Math.PI)) : 0;
         const cpose = { mood: got >= 1 ? 'grin' : 'awe', look: 1, upR: 1, upL: got >= 1 ? joy : 0, hop: 0.3 * joy, squash: 0.03 * P.pulse, tail: 0.05 * Math.sin(ph * Math.PI) };
@@ -379,7 +390,7 @@
         const m = A.impMitt(CUST.x, CUST.y, CUST.s, cpose, 1), m0 = A.impMitt(CUST.x, CUST.y, CUST.s, { ...cpose, hop: 0 }, 1);
         if (jt <= 0) A.jar(g, m[0], m[1] + 2, 88, { bob: Math.sin(ph * Math.PI), tw: Math.floor(d / 2) + 1 });
         else if (jt < 1) {
-            const p = toss(t, c_(2), 3 / 12, [m0[0], m0[1] + 2], [CR[0] + 4, CR[1] - 40], 50);
+            const p = toss(t, c_(2), 3 / 12, [m0[0], m0[1] + 2], [CR[0] + 4, CR[1] - 40], 14);
             A.jar(g, p[0], p[1], 88, { ang: 0.4 * Math.sin(p[2] * Math.PI), tw: d });
         }
         if (paid) {
@@ -388,7 +399,8 @@
                 A.note(g, p[0], p[1], 100, -0.9 + 1.2 * p[2]);
             } else A.note(g, m[0] + 2, m[1] - 24, 100, 0.3 - 0.12 * joy);
         }
-        coins(g, t, [[c_(0) - 4 / 24, 'a', 7], [c_(1) - 2 / 24, 'b', 7], [c_(2) - 2 / 24, 'c', 7], [c_(3) - 2 / 24, 'd', 7]]);
+        // coins off his other mitt, a handful a beat
+        coins(g, t, [c_(0) - 4 / 24, c_(1), c_(2), c_(3)], [DX + 0.76 * DS, DY - 1.12 * DS]);
         const hop = (i) => (on(t, c_(1) + 0.3) ? -10 * P.pulse * ((i + P.k) % 2 ? 1 : 0.35) : 0);
         word(g, t, 'CASH PAID', 500, 296, fit(g, 'CASH PAID', 'Anton', 720), (i) => (i < 4 ? c_(0) : c_(1)), GOLD, hop);
     }
@@ -424,7 +436,7 @@
     }
     // The web in the nook beside the phone and the spider on its thread. grow, down: 0..1
     function cobweb(g, t, an, R, grow, down, len, o = {}) {
-        A.web(g, an.nook[0], an.nook[1], R, Math.PI, Math.PI * 1.5 + 0.06, grow);
+        A.web(g, an.nook[0], an.nook[1], R, Math.PI, Math.PI * 1.5 + 0.06, grow, [0.64, 0.8, 0.95, 0.86, 1]);
         if (down <= 0) return;
         const d = C.drawing(t), y = an.cup[1] + len * down, sway = down >= 1 ? Math.sin(t * 3.1) * 4 : 0, x = an.cup[0] - 6 + sway;
         line(g, [[an.cup[0] - 6, an.cup[1]], [x, y]], K.ink, 5);
@@ -441,6 +453,7 @@
             }
         });
     }
+    const PTR = 2.6; // the pointer's length, in the Devil's units
     function phoneShot(g, t) {
         const p_ = (k) => at(24 + k), P = S.pulseAt(t), ph = P.k + P.since;
         const DX = 204, DY = 908, DS = 198, PX = 690, PY = 838, PSZ = 282, wait = on(t, p_(4)), tight = on(t, p_(6));
@@ -451,13 +464,13 @@
         // the choir, on a bench behind the phone
         choir(g, t, PX + 28, 612, 100, { gap: 0.98, looks: tight ? [-1, -0.8, -0.8] : [-0.5, 0, 0.3] });
         // its plinth and the phone: it takes a bow on the fourth beat, then nothing
-        C.box(g, PX - 185, 850, 370, 70, [46, -31], { front: K.aqua, top: '#c9fbf5', side: K.teal }, { lw: 3.2 });
-        line(g, Array.from({ length: 13 }, (_, i) => [PX - 171 + i * 28.5, 886 + (i % 2 ? -10 : 10)]), K.white, 6);
+        C.box(g, PX - 240, 850, 425, 70, [46, -31], { front: K.aqua, top: '#c9fbf5', side: K.teal }, { lw: 3.2 });
+        line(g, Array.from({ length: 15 }, (_, i) => [PX - 226 + i * 28.4, 886 + (i % 2 ? -10 : 10)]), K.white, 6);
         const tada = bump(t, p_(3), 0.3);
         const an = A.phone(g, PX + 22, PY - 20 * tada, PSZ, { lift: 0.05 * tada });
         if (tada > 0) [[PX - 196, 650], [PX + 226, 600], [PX - 150, 510], [PX + 196, 770]].forEach(([x, y], i) => C.sparkle(g, x, y, 14 + 34 * tada, { color: K.white, ink: K.ink, lw: 2.6, rot: i * 0.4 }));
         // the banner over it, and the number on it
-        const bp = pop(t, CUT.phone, 0.3), BXc = 632, BYc = 200, ang = -0.035;
+        const bp = pop(t, CUT.phone, 0.3), BXc = 584, BYc = 218, ang = -0.035;
         g.save();
         g.translate(BXc, BYc);
         g.scale(bp, bp);
@@ -467,22 +480,25 @@
         g.restore();
         // the web grows on the sixth beat, the spider comes down on the seventh
         const grow = seg(t, p_(5), p_(5) + 6 / 12), down = tight ? E.back(seg(t, p_(6), p_(6) + 5 / 12)) : 0;
-        cobweb(g, t, an, 108, grow, down, 74, { look: -1, wave: on(t, p_(7)) ? bump(t, p_(7), 0.5) : 0 });
-        // the Devil: the cane on each group, then on the phone; then he waits, a hoof tapping,
-        // until the grin sets and the sweat comes
-        const hL0 = [0.62, -0.96], idx = on(t, p_(3)) ? 3 : on(t, p_(2)) ? 2 : on(t, p_(1)) ? 1 : 0;
-        const mark = idx === 3 ? [an.top[0] - 70, an.top[1] + 40] : [marks[idx][0], marks[idx][1] + 44];
-        const mdx = (mark[0] - DX) / DS - hL0[0], mdy = (mark[1] - DY) / DS - hL0[1], ml = Math.hypot(mdx, mdy) || 1;
-        const reach = 1.5 + 0.08 * (bump(t, p_(0), 0.2) + bump(t, p_(1), 0.2) + bump(t, p_(2), 0.2) + bump(t, p_(3), 0.2));
-        const plant = E.out(seg(t, p_(4), p_(4) + 2 / 12));
-        const aim = [E.lerp(hL0[0] + (mdx / ml) * reach, 0.66, plant), E.lerp(hL0[1] + (mdy / ml) * reach, 0.0, plant)];
+        cobweb(g, t, an, 132, grow, down, 70, { s: 58, look: -1, wave: on(t, p_(7)) ? bump(t, p_(7), 0.5) : 0 });
+        // the Devil: the pointer under each group on its beat; on the fourth he stands it like
+        // a staff and presents the phone; then he waits, a hoof tapping, until the grin sets
+        // (it keeps its length: for the near groups it slides back through his mitt)
+        const idx = on(t, p_(2)) ? 2 : on(t, p_(1)) ? 1 : 0, hL0 = [[0.62, -0.98], [0.68, -1.0], [0.76, -1.0]][idx], mark = [marks[idx][0], marks[idx][1] + 64];
+        const mdx = (mark[0] - DX) / DS - hL0[0], mdy = (mark[1] - DY) / DS - hL0[1], a0 = Math.atan2(mdy, mdx), tap = bump(t, p_(idx), 0.2);
+        const plant = E.out(seg(t, p_(3), p_(3) + 3 / 12)), pa = E.lerp(a0, -Math.PI / 2 + 0.03, plant);
+        const hL = [E.lerp(hL0[0], 0.78, plant), E.lerp(hL0[1], -0.62, plant)], gb = E.lerp(Math.max(0.16, PTR - Math.hypot(mdx, mdy)) + 0.07 * (1 - tap), 0.62, plant);
+        const butt = [hL[0] - Math.cos(pa) * gb, hL[1] - Math.sin(pa) * gb], tip = [butt[0] + Math.cos(pa) * PTR, butt[1] + Math.sin(pa) * PTR];
         const pose = {
-            mood: wait ? 'grin' : idx === 3 ? 'laugh' : 'sly', look: wait ? (on(t, p_(7)) ? 0 : 1) : 0.4, lean: 0.04 * plant, headTilt: 0.03 * plant,
+            mood: wait ? 'grin' : on(t, p_(3)) ? 'laugh' : 'sly', look: wait ? (on(t, p_(7)) ? 0 : 1) : 0.4, lean: 0.045 * plant, headTilt: 0.03 * plant,
             squash: wait ? 0 : 0.045 * P.pulse, tail: wait ? -0.05 * E.out(seg(t, p_(6), p_(7))) : 0.05 * Math.sin(ph * Math.PI),
-            step: wait && !tight ? Math.max(0, 1 - P.since / 0.4) : 0,
-            handL: [E.lerp(hL0[0], 0.56, plant), E.lerp(hL0[1], -0.62, plant)], pointer: aim, handR: [E.lerp(-0.5, -0.44, plant), E.lerp(-0.5, -0.54, plant)],
+            step: wait && !tight ? Math.max(0, 1 - P.since / 0.4) : 0, handL: hL, handR: [E.lerp(-0.5, -0.44, plant), E.lerp(-0.5, -0.54, plant)],
         };
         Devil.draw(g, DX, DY, DS, pose);
+        A.onBody(g, DX, DY, DS, pose, (L) => {
+            A.stick(g, L, butt, tip);
+            A.mitt(g, L, 1, hL);
+        });
         if (tight) A.onHead(g, DX, DY, DS, pose, (L) => A.tightGrin(g, L));
         sweat(g, t, DX, DY, DS, pose, p_(7));
     }
@@ -492,17 +508,17 @@
     // =========================================================================================
     function endCard(g, t) {
         const x_ = (k) => at(32 + k), P = S.pulseAt(t), ph = P.k + P.since;
-        const DX = 190, DY = 906, DS = 184, PX = 732, PY = 902, PSZ = 248;
+        const DX = 190, DY = 906, DS = 184, PX = 746, PY = 902, PSZ = 248;
         C.sunburst(g, 500, 640, { n: 12, rot: t * 0.3, a: '#ff4fa5', b: '#ff86c3' });
         C.memphis(g, t, [['ring', 88, 388, 46, 0, K.aqua], ['squiggle', 914, 372, 40, 0.5, K.yellow], ['tri', 916, 486, 38, -0.3, K.white], ['cross', 92, 250, 34, 0.5, K.purple], ['zig', 908, 236, 46, 0.4, K.navy]]);
-        starburst(g, t, 486, 716, 280, 362, CUT.card, { fill: K.teal, seed: 'card', n: 16, sy: 0.7 });
+        starburst(g, t, 500, 716, 262, 340, CUT.card, { fill: K.teal, seed: 'card2', n: 16, sy: 0.72 });
         floor(g, FLOOR, K.navy, K.yellow);
         // the choir behind the phone, the phone with its web and its spider
         choir(g, t, PX + 8, 712, 96, { gap: 0.98, looks: [-0.5, 0, 0.3] });
         const an = A.phone(g, PX, PY, PSZ, {});
-        cobweb(g, t, an, 76, 1, 1, 60, { s: 42, look: -1 });
+        cobweb(g, t, an, 64, 1, 1, 60, { s: 42, look: -1 });
         // the Devil: the grin stuck on, an eye that will not stay still
-        const cue = on(t, x_(3)), pose = { mood: 'grin', look: cue ? 1 : 0, tail: -0.05, handL: [0.56, -0.62], pointer: [0.66, 0.0], handR: [-0.44, -0.54], squash: 0 };
+        const cue = on(t, x_(3)), pose = { mood: 'grin', look: cue ? 1 : 0, tail: -0.1, handL: [0.74, -0.7], handR: [-0.44, -0.54], squash: 0 };
         Devil.draw(g, DX, DY, DS, pose);
         const dj = Math.floor((t - x_(4)) * 12 + 1e-6), tw = dj >= 0 && [1, 0, 1, 0, 0, 0, 0, 0][dj % 8];
         A.onHead(g, DX, DY, DS, pose, (L) => {
@@ -510,14 +526,16 @@
             if (tw) A.twitch(g, L, 1);
         });
         sweat(g, t, DX, DY, DS, pose, CUT.card - S.BEAT, 2);
-        // the cue card: an imp from the crew holds it up; he turns it over: nothing there either
+        // the cue card: an imp from the crew holds it up, and there is nothing on it
         const up = pop(t, x_(3), 0.3);
         if (up > 0) {
-            const IX = 456, IY = 944 + (1 - up) * 400, IS = 112, shrug = bump(t, x_(5), 0.3);
+            const IX = 462, IY = 944 + (1 - up) * 400, IS = 112, shrug = bump(t, x_(5), 0.3);
             const ip = { mood: 'oops', look: -1, wear: 'hat', upL: 1.22, upR: 1.22, squash: 0.03 * P.pulse + 0.06 * shrug, tail: 0.04 * Math.sin(ph * Math.PI) };
             A.imp(g, IX, IY, IS, ip);
-            const mL = A.impMitt(IX, IY, IS, ip, -1), mR = A.impMitt(IX, IY, IS, ip, 1), fj = Math.floor((t - x_(4)) * 12 + 1e-6), flip = fj >= 0 && fj < 3 ? [0.55, 0.12, 0.55][fj] : 1;
-            A.card(g, (mL[0] + mR[0]) / 2, (mL[1] + mR[1]) / 2 + 4, 174 * flip, 116, 0);
+            const mL = A.impMitt(IX, IY, IS, ip, -1), mR = A.impMitt(IX, IY, IS, ip, 1), fj = Math.floor((t - x_(4)) * 12 + 1e-6);
+            // he spins it round on the bar's first beat, four drawings: the other way up it says as much
+            const turn = fj >= 0 && fj < 4 ? [0.7, 1.5, 2.3, 2.9][fj] : 0, CW = 174, CH = 116, cx = (mL[0] + mR[0]) / 2, cy = (mL[1] + mR[1]) / 2 + 4 - CH / 2 - (turn ? 26 : 0);
+            A.card(g, cx - Math.sin(turn) * CH / 2, cy + Math.cos(turn) * CH / 2, CW, CH, turn);
         }
         // the lock-up
         word(g, t, 'SOULS WANTED', 500, 168, fit(g, 'SOULS WANTED', 'Anton', 560), () => x_(0), WHITE);

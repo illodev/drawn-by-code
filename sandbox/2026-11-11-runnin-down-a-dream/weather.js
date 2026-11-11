@@ -167,11 +167,11 @@ const Weather = (() => {
                 px += Math.cos(a) * seg;
                 py += Math.sin(a) * seg;
                 pts.push([px, py]);
-                if (j === 2 && k > 0.5) line(g, [[px, py], [px + Math.cos(a + 1.1) * total * 0.16 * k, py + Math.sin(a + 1.1) * total * 0.16 * k]], L * 0.6, ICE.line);
+                if (j === 2 && k > 0.5) line(g, [[px, py], [px + Math.cos(a + 1.1) * total * 0.18 * k, py + Math.sin(a + 1.1) * total * 0.18 * k]], L * 0.8, ICE.line);
             }
             if (pts.length > 1) {
-                line(g, pts.map(([qx, qy]) => [qx + L * 0.5, qy + L * 0.5]), L * 0.6, ICE.white);
-                line(g, pts, L * 0.8, ICE.line);
+                line(g, pts.map(([qx, qy]) => [qx + L * 0.9, qy + L * 0.6]), L * 0.8, ICE.white);
+                line(g, pts, L * 1.1, ICE.line);
             }
         }
     }
@@ -377,36 +377,51 @@ const Weather = (() => {
     }
 
     // The crank alone: a boss on the hub, a flat arm, a grip that sticks out towards us.
-    function crankArm_(g, L, P, hub, a, ice = 0, broken = false) {
+    function crankArm_(g, L, P, hub, a, ice = 0) {
         const e = [hub[0] + Math.cos(a) * M.crank, hub[1] + Math.sin(a) * M.crank];
         const n = [-Math.sin(a) * 0.042, Math.cos(a) * 0.042], u = [Math.cos(a), Math.sin(a)];
         const bar = cw([[hub[0] - u[0] * 0.06 + n[0], hub[1] - u[1] * 0.06 + n[1]], [e[0] + u[0] * 0.06 + n[0], e[1] + u[1] * 0.06 + n[1]], [e[0] + u[0] * 0.06 - n[0], e[1] + u[1] * 0.06 - n[1]], [hub[0] - u[0] * 0.06 - n[0], hub[1] - u[1] * 0.06 - n[1]]]);
         C.prism(g, bar, Dd(0.04), { front: P.chrome, top: P.chromeTop, side: P.chromeSide }, { lw: L, ink: P.ink });
         line(g, [[hub[0] + u[0] * 0.07 - n[0] * 0.35, hub[1] + u[1] * 0.07 - n[1] * 0.35], [e[0] - u[0] * 0.07 - n[0] * 0.35, e[1] - u[1] * 0.07 - n[1] * 0.35]], L * 0.6, P.chromeTop);
-        if (broken) {
-            // the stub of the shaft it snapped off
-            C.poly(g, [[hub[0] - 0.05, hub[1] - 0.04], [hub[0] - 0.01, hub[1] - 0.065], [hub[0] + 0.02, hub[1] - 0.035], [hub[0] + 0.055, hub[1] - 0.05], [hub[0] + 0.05, hub[1] + 0.04], [hub[0] - 0.045, hub[1] + 0.045]], { fill: P.chromeSide, ink: P.ink, lw: L * 0.8 });
-        } else {
-            circ(g, hub[0], hub[1], 0.07, P.brass, L * 0.9, P.ink);
-            circ(g, hub[0], hub[1], 0.028, P.brassSide, L * 0.6, P.ink);
-        }
+        circ(g, hub[0], hub[1], 0.07, P.brass, L * 0.9, P.ink);
+        circ(g, hub[0], hub[1], 0.028, P.brassSide, L * 0.6, P.ink);
         const gp = [e[0] + M.grip[0], e[1] + M.grip[1]];
         C.drum(g, gp[0], gp[1], 0.062, [-M.grip[0], -M.grip[1]], { front: P.grip, side: P.gripSide }, { lw: L, ink: P.ink });
         circ(g, gp[0], gp[1], 0.026, P.gripSide, L * 0.5, P.ink);
         if (ice > 0.25) icicle(g, L, gp[0], gp[1] + 0.06, 0.2 * ice, 0.05, 0);
     }
     /**
-     * The crank on its own, snapped off its shaft: for the Devil frozen with the handle still
-     * in his mitt. (x, y): the grip's end, where the mitt holds it; a: the way the arm points
-     * from the grip (radians, 0 = to the right). Draw it before the hand that holds it.
+     * The crank on its own, snapped off its shaft, seen from its side: the grip, the arm at a
+     * right angle to it, the boss with the stub of the shaft. For the Devil frozen with the
+     * handle still in his mitt.
+     *   x, y   the middle of the grip, where the mitt holds it (the grip is 0.36 long: it shows
+     *          on both sides of a mitt);  s  logical units per figure unit
+     *   a      the way the grip points, towards the arm's end (radians; 0 = right, -π/2 = up)
+     *   flip   -1 turns the arm to the other side of the grip
+     * Draw it BEFORE the figure whose mitt holds it.
      */
-    function crankArm(g, x, y, s, a = 2.4) {
+    function crankArm(g, x, y, s, a = -1.4, flip = 1) {
+        const P = MP, L = 3.2 / s, u = [Math.cos(a), Math.sin(a)], n = [-u[1] * flip, u[0] * flip];
+        const at = (p, q) => [u[0] * p + n[0] * q, u[1] * p + n[1] * q];
         g.save();
         g.translate(x, y);
         g.scale(s, s);
         g.lineJoin = 'round';
-        const e = [-M.grip[0], -M.grip[1]];
-        crankArm_(g, 3.2 / s, MP, [e[0] + Math.cos(a) * M.crank, e[1] + Math.sin(a) * M.crank], a + Math.PI, 0, true);
+        g.lineCap = 'butt';
+        // the stub of the shaft, snapped
+        C.poly(g, [at(0.2, 0.3), at(0.2, 0.42), at(0.235, 0.455), at(0.25, 0.42), at(0.275, 0.46), at(0.29, 0.42), at(0.29, 0.3)], { fill: P.chromeSide, ink: P.ink, lw: L * 0.8 });
+        // the arm, the boss
+        C.prism(g, cw([at(0.2, -0.06), at(0.29, -0.06), at(0.29, 0.34), at(0.2, 0.34)]), Dd(0.04), { front: P.chrome, top: P.chromeTop, side: P.chromeSide }, { lw: L, ink: P.ink });
+        line(g, [at(0.225, 0.0), at(0.225, 0.22)], L * 0.6, P.chromeTop);
+        const b = at(0.245, 0.3);
+        circ(g, b[0], b[1], 0.07, P.brass, L * 0.9, P.ink);
+        circ(g, b[0], b[1], 0.028, P.brassSide, L * 0.6, P.ink);
+        // the grip: a turned handle on its pin
+        C.poly(g, [at(-0.18, 0), at(0.2, 0)], { ink: P.ink, lw: 0.115 + 2 * L, close: false });
+        C.poly(g, [at(-0.18, 0), at(0.2, 0)], { ink: P.grip, lw: 0.115, close: false });
+        C.poly(g, [at(-0.17, 0.035 * flip), at(0.19, 0.035 * flip)], { ink: P.gripSide, lw: 0.035, close: false });
+        for (const p of [-0.1, 0.12]) line(g, [at(p, -0.057), at(p, 0.057)], L * 0.6, P.gripSide);
+        C.poly(g, [at(0.2, 0), at(0.22, 0)], { ink: P.brass, lw: 0.13, close: false });
         g.restore();
     }
 
@@ -528,11 +543,13 @@ const Weather = (() => {
             // --- the pressure valve: a brass stub, a lever with a weight, steam when it rattles ------
             const vb = ob(B.x1 - 0.22, B.yT, 0.6), hopV = sh ? (d % 2 ? 0.05 : 0) * sh : 0;
             if (sh > 0.3 && d % 2) puffs(g, [[vb[0] + 0.2, vb[1] - 0.33, 0.1 * sh, 5, d], [vb[0] + 0.4, vb[1] - 0.47, 0.14 * sh, 6, d * 0.7]], P.steam, L * 0.85, P.ink);
-            tube(g, [[vb[0], vb[1] + 0.01], [vb[0], vb[1] - 0.15]], 0.1, P.brass, L);
-            line(g, [[vb[0] - 0.025, vb[1] - 0.01], [vb[0] - 0.025, vb[1] - 0.13]], L * 0.7, P.brassTop);
+            C.poly(g, ringY(vb, 0.095, 18), { fill: P.brassSide, ink: P.ink, lw: L * 0.8 });
+            C.poly(g, [[vb[0] - 0.052, vb[1] - 0.15], [vb[0] + 0.052, vb[1] - 0.15], [vb[0] + 0.052, vb[1] - 0.004], [vb[0] - 0.052, vb[1] - 0.004]], { fill: P.brass, ink: P.ink, lw: L });
+            line(g, [[vb[0] - 0.025, vb[1] - 0.03], [vb[0] - 0.025, vb[1] - 0.13]], L * 0.7, P.brassTop);
             C.poly(g, [[vb[0] - 0.085, vb[1] - 0.15], [vb[0] + 0.085, vb[1] - 0.15], [vb[0] + 0.06, vb[1] - 0.21 - hopV], [vb[0] - 0.06, vb[1] - 0.21 - hopV]], { fill: P.brassSide, ink: P.ink, lw: L * 0.9 });
-            const lv = [[vb[0] - 0.1, vb[1] - 0.25 - hopV], [vb[0] + 0.3, vb[1] - 0.27 - hopV * 2.2]];
+            const lv = [[vb[0] - 0.1, vb[1] - 0.229 - hopV], [vb[0] + 0.3, vb[1] - 0.249 - hopV * 2.2]];
             tube(g, lv, 0.035, P.chrome, L * 0.8);
+            circ(g, vb[0] - 0.04, vb[1] - 0.231 - hopV, 0.022, P.brass, L * 0.5, P.ink);
             circ(g, lv[1][0], lv[1][1], 0.07, P.iron, L * 0.9, P.ink);
             circ(g, lv[1][0] - 0.02, lv[1][1] - 0.02, 0.02, P.ironTop, 0);
             if (ice > 0) icicle(g, L, lv[1][0], lv[1][1] + 0.06, 0.22 * ice, 0.05, 0);
@@ -1047,7 +1064,7 @@ const Weather = (() => {
      *   x, y   the point of its handle a mitt rests on (give the hand the same point and draw
      *          the umbrella BEFORE the figure's arm: the mitt covers the handle there)
      *   o: { open (0..1: furled along its shaft → a dome 1.96 wide; its rim is 1.24 above the grip),
-     *        tilt (radians about the grip, -0.5..0.8; positive leans its top to the right),
+     *        tilt (radians about the grip, -0.5..0.5; positive leans its top to the right),
      *        color (the panels alternate this colour and white; default yellow) }
      * Its tip is 1.86 above the grip; the crook ends 0.34 below it.
      */
@@ -1087,7 +1104,7 @@ const Weather = (() => {
             for (let j = 0; j <= 8; j++) pts.push(rib(p.a0, j / 8));
             // the hem between two ribs is cut in a curve
             for (let j = 1; j < 6; j++) {
-                const u = j / 6, a = lerp(p.a0, p.a1, u), lift = 1 - sag * 4 * u * (1 - u), ph = (lift * Math.PI) / 2, r = R * Math.sin(ph) * (1 - 0.03 * 4 * u * (1 - u));
+                const u = j / 6, a = lerp(p.a0, p.a1, u), lift = 1 - (Math.sin(p.am) > 0.3 ? 0 : sag) * 4 * u * (1 - u), ph = (lift * Math.PI) / 2, r = R * Math.sin(ph) * (1 - 0.03 * 4 * u * (1 - u));
                 pts.push(P3(Math.cos(a) * r, apex + dome * (1 - Math.cos(ph)), Math.sin(a) * r));
             }
             for (let j = 8; j >= 0; j--) pts.push(rib(p.a1, j / 8));
@@ -1108,38 +1125,55 @@ const Weather = (() => {
         g.restore();
     }
     /**
-     * Water streaming off an edge, on twos: beads that swell on the edge and fall as streaks.
+     * Where the umbrella's near rib tips are, in units from its grip: [[dx, dy], …] from left
+     * to right, for the same o (open, tilt). Give them to drips() as o.pts.
+     */
+    function umbrellaTips(o = {}) {
+        const e = smooth(clamp(o.open ?? 1)), R = lerp(0.1, 0.98, e), dome = lerp(1.0, 0.48, e), out = [];
+        for (let i = 0; i < 8; i++) {
+            const a = ((i + 0.5) / 8) * TAU;
+            if (Math.sin(a) > 0.35) continue;
+            const q = rot([Math.cos(a) * R, -1.72 + dome], o.tilt ?? 0);
+            out.push([q[0] + D[0] * Math.sin(a) * R, q[1] + D[1] * Math.sin(a) * R]);
+        }
+        return out.sort((p, q) => p[0] - q[0]);
+    }
+    /**
+     * Water streaming off an edge, on twos: a bead that swells at each point of the edge and
+     * drops that fall from it one after another.
      *   x, y   the middle of the edge;  s  logical units per figure unit;  t  seconds;  n  streams
-     *   o: { w (the edge's length in units, default n × 0.26), len (how far the drops fall, default 1.1),
-     *        slant (sideways drift per unit fallen, default -0.32 like the rain), color }
+     *   o: { w (the edge's length in units, default n × 0.26), pts ([[dx, dy], …] in units from
+     *        x, y: the points to drip from instead of a straight edge, e.g. Weather.umbrellaTips),
+     *        len (how far the drops fall, default 1.1), slant (sideways drift per unit fallen,
+     *        default -0.32 like the rain), color }
      */
     function drips(g, x, y, s, t, n = 5, o = {}) {
-        const d = C.drawing(t), w = o.w ?? n * 0.26, len = o.len ?? 1.1, sl = o.slant ?? -0.32, r = Motion.rng('weather-drips:' + n);
+        const d = C.drawing(t), len = o.len ?? 1.1, sl = o.slant ?? -0.32;
+        const pts = o.pts ?? Array.from({ length: n }, (_, i) => [((i + 0.5) / n - 0.5) * (o.w ?? n * 0.26), 0]);
+        const r = Motion.rng('weather-drips:' + pts.length), col = o.color ?? '#eaf3ff';
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        g.lineCap = 'round';
-        for (let i = 0; i < n; i++) {
-            const px = ((i + 0.5) / n - 0.5) * w + (r() - 0.5) * 0.06, ph = Math.floor(r() * 6), f = (((d + ph) % 6) + 6) % 6;
-            g.fillStyle = g.strokeStyle = o.color ?? (i % 2 ? RAINC.b : '#f4f7ff');
-            if (f < 2) {
-                // the bead swells and hangs
+        g.fillStyle = col;
+        pts.forEach(([px, py], i) => {
+            const ph = Math.floor(r() * 6), f = (((d + ph) % 6) + 6) % 6, jx = o.pts ? 0 : (r() - 0.5) * 0.06;
+            // the bead on the edge: it swells over three drawings, lets go, starts again
+            const b = [0.6, 0.8, 1, 0.45, 0.5, 0.55][f];
+            g.beginPath();
+            g.ellipse(px + jx, py + 0.035 * b, 0.034 * b, 0.05 * b, 0, 0, TAU);
+            g.fill();
+            // two drops on their way down, half a cycle apart
+            for (const k of [0, 3]) {
+                const u = (((d + ph + k) % 6) + 6) % 6 / 6, off = 0.08 + len * u * u, w = 0.03;
+                if (u < 0.15) continue;
+                const hx = px + jx + off * sl, hy = py + off, l = 0.09 + 0.12 * u;
                 g.beginPath();
-                g.ellipse(px, 0.02 + f * 0.03, 0.03 + f * 0.008, 0.035 + f * 0.022, 0, 0, TAU);
-                g.fill();
-            } else {
-                const u = (f - 1) / 4, off = len * u * u, l = 0.1 + 0.16 * u;
-                g.lineWidth = 3.4 / s;
-                g.beginPath();
-                g.moveTo(px + off * sl, 0.04 + off);
-                g.lineTo(px + (off + l) * sl, 0.04 + off + l);
-                g.stroke();
-                // the next bead is already forming
-                g.beginPath();
-                g.ellipse(px, 0.015, 0.022, 0.024, 0, 0, TAU);
+                g.moveTo(hx - sl * l, hy - l);
+                g.quadraticCurveTo(hx + w * 1.5, hy - w * 0.4, hx + w * 0.2, hy + w);
+                g.quadraticCurveTo(hx - w * 1.4, hy + w * 0.6, hx - sl * l, hy - l);
                 g.fill();
             }
-        }
+        });
         g.restore();
     }
 
@@ -1245,7 +1279,7 @@ const Weather = (() => {
      *   o: { day ('MON' | 'TUE' | 'WED'), rot (radians), curl (0..1: its lower right corner curls up) }
      */
     function calendar(g, x, y, s, o = {}) {
-        const day = o.day ?? 'MON', curl = clamp(o.curl ?? 0), L = 3.2 / s, w = 1.3, h = 1.6, c = 0.1 + 0.52 * curl;
+        const day = o.day ?? 'MON', curl = clamp(o.curl ?? 0), L = 3.2 / s, w = 1.3, h = 1.6, c = 0.08 + 0.32 * curl;
         const x0 = -w / 2, x1 = w / 2, y0 = -h / 2, y1 = h / 2, hd = y0 + 0.42;
         g.save();
         g.translate(x, y);
@@ -1361,7 +1395,7 @@ const Weather = (() => {
      * blueprint, the floor's cracks frozen, snowflakes falling on twos, the board.
      *   o: { k (0..1, default 1: how frozen; raise it to let the cold creep in),
      *        board ([x, y, s] of Weather.closedBoard, default [770, 612, 78], or false),
-     *        swing (the board's), flakes (0..1, default 1) }
+     *        swing (the board's), flakes (0..1, default 1: Weather.snowfall, drawn last) }
      */
     function frozenHell(g, t, o = {}) {
         const k = clamp(o.k ?? 1), d = C.drawing(t), lw = 3.2;
@@ -1471,8 +1505,17 @@ const Weather = (() => {
             const [bx, by, bs] = o.board ?? [770, 612, 78];
             closedBoard(g, bx, by, bs, { swing: o.swing ?? 0, snow: k });
         }
-        // --- snow falling, on twos -----------------------------------------------------------------
-        const rn = Motion.rng('weather-flakes'), nf = Math.round(46 * k * (o.flakes ?? 1));
+        g.restore();
+        snowfall(g, t, k * (o.flakes ?? 1));
+    }
+    /**
+     * Snow falling over the whole frame, on twos: dots and a few six-armed flakes. k: how thick
+     * (0..1). frozenHell draws it; with flakes: 0 there, draw it yourself over the actors.
+     */
+    function snowfall(g, t, k = 1) {
+        const d = C.drawing(t), rn = Motion.rng('weather-flakes'), nf = Math.round(46 * clamp(k));
+        g.save();
+        g.lineCap = 'round';
         for (let i = 0; i < nf; i++) {
             const x0 = rn() * 1000, y0 = rn() * 1040, sp = 9 + rn() * 9, ph = rn() * TAU, big = i % 6 === 0, sz = big ? 8 + rn() * 4 : 2.6 + rn() * 2.4;
             const yy = ((y0 + d * sp) % 1040) - 20, xx = x0 + Math.sin(d * 0.35 + ph) * 14 - yy * 0.06;
@@ -1556,7 +1599,8 @@ const Weather = (() => {
             for (const k of [-0.7, 0, 0.7]) line(g, [[e[0] - (uy / ul) * w * k, e[1] + (ux / ul) * w * k], [e[0] - (uy / ul) * w * k + (ux / ul) * 0.06, e[1] + (ux / ul) * w * k + (uy / ul) * 0.06]], L * 0.8);
         };
         tail(C.curve([[kx + 0.02, y1 - 0.05], [kx + 0.05, y1 + 0.06], [kx + 0.03 + blow * 0.04, y1 + 0.15 + flap * 0.4], [kx + 0.06 + blow * 0.06, y1 + 0.22]], false, 3), 0.062);
-        tail(C.curve([[kx - 0.03, y1 - 0.07], [kx - 0.1 - blow * 0.1, y1 - 0.02 + flap], [kx - 0.2 - blow * 0.16, y1 - 0.02 - blow * 0.1 - flap], [kx - 0.3 - blow * 0.2, y1 + 0.02 - blow * 0.16 + flap]], false, 3), 0.058);
+        if (o.board) tail(C.curve([[kx - 0.03, y1 - 0.05], [kx - 0.07, y1 + 0.04], [kx - 0.06 + blow * 0.03, y1 + 0.1 - flap * 0.4], [kx - 0.08 + blow * 0.04, y1 + 0.15]], false, 3), 0.058);
+        else tail(C.curve([[kx - 0.03, y1 - 0.07], [kx - 0.1 - blow * 0.1, y1 - 0.02 + flap], [kx - 0.2 - blow * 0.16, y1 - 0.02 - blow * 0.1 - flap], [kx - 0.3 - blow * 0.2, y1 + 0.02 - blow * 0.16 + flap]], false, 3), 0.058);
         // the knot
         g.beginPath();
         g.roundRect(kx - 0.085, y0 - 0.02, 0.17, y1 - y0 + 0.04, 0.04);
@@ -1592,13 +1636,29 @@ const Weather = (() => {
         }
         // the far pad sticks out past the head's left edge; the near one sits on its right side
         puffs(g, [[lp[0] - 0.02, lp[1], 0.17, 7, 0.3]], pad, L * 0.9, K.ink);
-        const rc = rp, ring = (r) => Array.from({ length: 22 }, (_, i) => {
-            const a = (i / 22) * TAU, rr = r * (1 + 0.1 * Math.cos(a * 7));
-            return [rc[0] + Math.cos(a) * rr * 0.62, rc[1] + Math.cos(a) * rr * -0.2 + Math.sin(a) * rr];
-        });
-        C.poly(g, shift(ring(0.2), [0.06, 0]), { fill: padSide, ink: K.ink, lw: L });
-        C.poly(g, ring(0.2), { fill: pad, ink: K.ink, lw: L });
-        C.poly(g, ring(0.09), { fill: '#d9fbf7', lw: 0 });
+        // (the same scalloped puff, seen from its side: squeezed, with a darker rim behind it)
+        const side = (dx, fill) => {
+            const parts = [[rp[0] + dx, rp[1], 0.105, 0.15]];
+            for (let i = 0; i < 7; i++) {
+                const a = 0.3 + (i / 7) * TAU;
+                parts.push([rp[0] + dx + Math.cos(a) * 0.066, rp[1] + Math.sin(a) * 0.115 - Math.cos(a) * 0.02, 0.05, 0.074]);
+            }
+            g.strokeStyle = K.ink;
+            g.lineWidth = L * 1.8;
+            for (const [x, y, rx, ry] of parts) {
+                g.beginPath();
+                g.ellipse(x, y, rx, ry, -0.12, 0, TAU);
+                g.stroke();
+            }
+            g.fillStyle = fill;
+            for (const [x, y, rx, ry] of parts) {
+                g.beginPath();
+                g.ellipse(x, y, rx, ry, -0.12, 0, TAU);
+                g.fill();
+            }
+        };
+        side(0.07, padSide);
+        side(0, pad);
         g.restore();
     }
     /**
@@ -1624,9 +1684,9 @@ const Weather = (() => {
         machine, machinePoints, crankImp, crankArm, towedAt, HITCH,
         stormCloud, front, frontX, split,
         softTop, wipers, onBandCar,
-        umbrella, drips,
+        umbrella, umbrellaTips, drips,
         iceBlock, calendar,
-        frozenHell, closedBoard, onImp, scarf, earmuffs, breath,
+        frozenHell, closedBoard, snowfall, onImp, scarf, earmuffs, breath,
         icicle, icicles, snowCap,
     };
 })();

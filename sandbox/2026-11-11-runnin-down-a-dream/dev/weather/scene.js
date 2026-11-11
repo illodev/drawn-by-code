@@ -69,7 +69,7 @@ Motion.scene({
             road('day');
             const y = World.LANE;
             // an imp on the step
-            const cr = [0, Math.PI / 2, Math.PI, Math.PI * 1.5][v], mo = { t: tt, crank: cr, needles: 0.3 + 0.2 * v, puff: v / 3, shake: v === 2 ? 1 : 0 };
+            const cr = [0, Math.PI / 2, Math.PI, Math.PI * 1.5][v], mo = { t: tt, crank: cr, needles: 0.3 + 0.2 * v, puff: v / 3, shake: v === 2 ? 1 : 0, bounce: [0, 1, 0, -0.5][v], spin: v * 0.8 };
             W.machine(g, 180, y, CAR, mo);
             const c = W.crankImp(cr, 0.67, mo);
             imp(180 + c.x * CAR, y + c.y * CAR, 0.67 * CAR, { armUp: c.armUp, hop: c.hop, squash: c.squash, look: -1, shadow: false, wear: 'hat' });
@@ -108,7 +108,7 @@ Motion.scene({
             road('rain');
             bandUnderTop(500, World.LANE, CAR, {}, [1, 0, 0.35, 0.62][v], v === 0 ? 0.5 : null);
             World.rain(g, tt, 1);
-            if (v === 0) W.drips(g, 500 + 2.3 * CAR, World.LANE - 2.45 * CAR, CAR, tt, 4, { w: 1.0 });
+            if (v === 0) W.drips(g, 500 + 2.3 * CAR, World.LANE - 2.44 * CAR, CAR, tt, 4, { w: 0.9, len: 1.2 });
         } else if (sheet === 9 || sheet === 10) {
             stage('#7f88a8', '#8a93b3', 950);
             const up = sheet === 9 ? [1, 0, 0.35, 0.62][v] : [0.18, 0.5, 0.85, 1][v];
@@ -118,15 +118,19 @@ Motion.scene({
             stage('#7f88a8', '#8a93b3');
             // Tom under an open one, the Devil with his furled, then opening
             const hand = [0.52, -0.86];
-            const tl = [0.1, -0.5, 0.8, 0.3][v];
+            const tl = [0.1, -0.5, 0.5, 0.3][v];
             W.umbrella(g, 260 + hand[0] * 200, 880 + hand[1] * 200, 200, { open: 1, tilt: tl, color: K.yellow });
             Cast.tom(g, 260, 880, 200, { shades: 1, windmill: null, fret: 0.3 });
             // Tom's own arm holds his guitar: a spare mitt for the sheet
-            Cast.arm(g, Cast.TOM, 3.2, [260 + 0.33 * 200, 880 - 0.85 * 200], [260 + hand[0] * 200, 880 + hand[1] * 200]);
+            g.save();
+            g.translate(260, 880);
+            g.scale(200, 200);
+            Cast.arm(g, Cast.TOM, 3.2 / 200, [0.33, -0.85], hand);
+            g.restore();
             const dh = [0.62, -0.8], op = [0, 0.35, 0.7, 1][v];
             W.umbrella(g, 690 + dh[0] * 200, 880 + dh[1] * 200, 200, { open: op, tilt: 0.25, color: K.magenta });
             Devil.draw(g, 690, 880, 200, { mood: op > 0.5 ? 'grin' : 'angry', handL: dh, tail: 0.02 });
-            if (v !== 1) W.drips(g, 260 + hand[0] * 200 + Math.sin(tl) * 250, 880 + hand[1] * 200 - 248 + 0, 200, tt, 6, { w: 1.9 });
+            W.drips(g, 260 + hand[0] * 200, 880 + hand[1] * 200, 200, tt, 0, { pts: W.umbrellaTips({ open: 1, tilt: tl }) });
             // at the road's size
             W.umbrella(g, 480 + 0.6 * CAR, 400 - 0.8 * CAR, CAR, { open: 1, tilt: 0.2, color: K.teal });
             Devil.draw(g, 480, 400, CAR, { mood: 'sly', handL: [0.6, -0.8] });
@@ -134,14 +138,16 @@ Motion.scene({
             Devil.draw(g, 600, 400, CAR, { mood: 'angry', handL: [0.6, -0.8] });
         } else if (sheet === 12) {
             stage('#7f88a8', '#8a93b3', 950);
-            W.umbrella(g, 500, 760, 300, { open: [1, 0, 0.5, 1][v], tilt: [0, 0.3, -0.3, 0.8][v], color: [K.yellow, K.magenta, K.teal, K.red][v] });
-            W.drips(g, 500, 760 - 1.24 * 300, 300, tt, 6, { w: 1.9 });
+            const uo = { open: [1, 0, 0.5, 1][v], tilt: [0, 0.3, -0.5, 0.5][v], color: [K.yellow, K.magenta, K.teal, K.red][v] };
+            W.umbrella(g, 500, 760, 300, uo);
+            W.drips(g, 500, 760, 300, tt, 0, { pts: W.umbrellaTips(uo) });
+            W.drips(g, 200, 880, 300, tt, 4);
         } else if (sheet === 13 || sheet === 14) {
             stage(K.pink, K.rose, sheet === 13 ? 838 : 950);
             const o = [{}, { crack: 1, shake: 1 }, { melt: 0.5, crack: 0.4 }, { melt: 1 }][v];
             const frozen = (x, y, s) => (g2) => {
-                const hr = [-0.78, -1.0];
-                W.crankArm(g2, x + hr[0] * s, y + hr[1] * s, s, 2.3);
+                const hr = [-0.66, -0.98];
+                W.crankArm(g2, x + hr[0] * s, y + hr[1] * s, s, -1.45, -1);
                 Devil.draw(g2, x, y, s, { mood: 'laugh', handR: hr, handL: [0.62, -0.92], headTilt: -0.06, tail: 0.02, shadow: false });
             };
             if (sheet === 13) {
@@ -153,7 +159,13 @@ Motion.scene({
             }
         } else if (sheet === 15) {
             road('rain', 4000 + v * 500);
-            Rig.band(g, tt, 500, World.LANE, CAR, { spin: 0.4 + v, exhaust: 0.5 });
+            // the car as Rig.band draws it, then what goes on it afterwards, through onBandCar
+            const co = { spin: 0.4 + v, exhaust: 0.5, bounce: [0, 1, -0.5, 0.5][v], lean: [0, 0, 0, 0.15][v] };
+            Rig.band(g, tt, 500, World.LANE, CAR, co);
+            W.onBandCar(g, 500, World.LANE, CAR, co, (g2) => {
+                if (v >= 2) W.softTop(g2, CAR, { up: 1, part: 'front' });
+                W.wipers(g2, CAR, [0.6, -0.6, 0.2, -0.9][v]);
+            });
             World.rain(g, tt, 1);
             const days = ['MON', 'TUE', 'WED'];
             days.forEach((day, i) => W.calendar(g, 190 + i * 300 + v * 20, 300 + (i % 2) * 150 - v * 12, [CAR, 110, 140][(i + v) % 3], { day, rot: [-0.3, 0.2, -0.12, 0.5][(i + v) % 4], curl: [0.1, 0.5, 1, 0][(i + v) % 4] }));
@@ -171,44 +183,44 @@ Motion.scene({
             const k = sheet === 17 ? [1, 0.6, 0.25, 1][v] : 1;
             W.frozenHell(g, tt + (v === 3 ? 0.5 : 0), { k, swing: v === 3 ? 0.08 : 0 });
             if (sheet === 18) {
-                const hr = [-0.78, -1.0], DX = 300, DY = 905, DS = 196;
+                const hr = [-0.66, -0.98], DX = 300, DY = 905, DS = 196;
                 W.iceBlock(g, DX, DY, DS, { t: tt, crack: v === 1 ? 1 : 0, shake: v === 1 ? 1 : 0, melt: v === 2 ? 0.4 : 0 }, (g2) => {
-                    W.crankArm(g2, DX + hr[0] * DS, DY + hr[1] * DS, DS, 2.3);
+                    W.crankArm(g2, DX + hr[0] * DS, DY + hr[1] * DS, DS, -1.45, -1);
                     Devil.draw(g2, DX, DY, DS, { mood: 'laugh', handR: hr, handL: [0.62, -0.92], headTilt: -0.06, tail: 0.02, shadow: false });
                 });
-                [[530, 'specs', K.yellow], [680, 'hat', K.green], [830, 'bow', K.violet]].forEach(([ix, wear, col], i) => {
+                [[500, 'specs', K.yellow], [668, 'hat', K.green], [836, 'bow', K.violet]].forEach(([ix, wear, col], i) => {
                     const pose = { wear, mood: i === 1 ? 'oops' : 'awe', look: -1, squash: (C.drawing(tt) + i) % 2 ? 0.05 : 0, armUp: i === 2 ? 0.6 : 0, tail: 0.03 };
                     imp(ix, 962, 132, pose, (g2) => {
                         W.scarf(g2, 132, col, { t: tt, blow: 0.4 });
                         W.earmuffs(g2, 132, wear);
                     });
-                    W.breath(g, ix - 30, 962 - 0.45 * 132, 132, tt + i * 0.3, -1);
+                    W.breath(g, ix + 20, 962 - 0.42 * 132, 132, tt + i * 0.3);
                 });
             }
         } else if (sheet === 19) {
             stage(K.pink, K.rose, 950);
             [['specs', K.yellow], ['hat', K.green], ['bow', K.violet]].forEach(([wear, col], i) => {
                 const pose = [{ wear }, { wear, hold: 'board', write: 0.5 }, { wear, hop: 0.2, squash: -0.05, mood: 'awe', armUp: 1 }, { wear, squash: 0.2, mood: 'oops' }][v];
-                imp(180 + i * 320, 900, 270, pose, (g2) => {
-                    W.scarf(g2, 270, col, { t: tt, blow: [0.3, 0.3, 1, -1][v], board: v === 1 });
-                    W.earmuffs(g2, 270, wear);
+                imp(175 + i * 325, 900, 230, pose, (g2) => {
+                    W.scarf(g2, 230, col, { t: tt, blow: [0.3, 0.3, 1, -1][v], board: v === 1 });
+                    W.earmuffs(g2, 230, wear);
                 });
             });
-            W.breath(g, 180 + 0.2 * 270, 900 - 0.42 * 270, 270, tt);
+            W.breath(g, 175 + 0.2 * 230, 560, 230, tt);
         } else if (sheet === 20) {
             stage(K.pink, K.rose);
             [['specs', K.yellow], ['hat', K.green], ['bow', K.violet]].forEach(([wear, col], i) => {
                 const pose = { wear, mood: ['grin', 'awe', 'oops'][i], squash: 0.04 };
-                imp(190 + i * 180, 880, 132, pose, (g2) => {
+                imp(170 + i * 200, 880, 132, pose, (g2) => {
                     W.scarf(g2, 132, col, { t: tt, blow: 0.4 });
                     W.earmuffs(g2, 132, wear);
                 });
-                W.breath(g, 190 + i * 180 + 26, 880 - 0.42 * 132, 132, tt + i * 0.25);
-                imp(720 + i * 80, 880, 56, pose, (g2) => {
+                W.breath(g, 170 + i * 200 + 26, 880 - 0.42 * 132, 132, tt + i * 0.25);
+                imp(730 + i * 90, 880, 56, pose, (g2) => {
                     W.scarf(g2, 56, col, { t: tt });
                     W.earmuffs(g2, 56, wear);
                 });
-                W.breath(g, 720 + i * 80 + 12, 880 - 0.42 * 56, 56, tt + i * 0.25);
+                W.breath(g, 730 + i * 90 + 12, 880 - 0.42 * 56, 56, tt + i * 0.25);
             });
             W.closedBoard(g, 500, 180, 110, { swing: [0, 0.1, -0.1, 0][v] });
             Devil.draw(g, 880, 620, CAR, { mood: 'shock' });

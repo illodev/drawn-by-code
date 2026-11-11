@@ -64,6 +64,54 @@ const BreakAd = (() => {
         g.restore();
     }
 
+    // Run fn(L) in the Devil's body space (his units, with his lean and squash).
+    function onBody(g, x, y, s, pose, fn) {
+        const q = pose.squash ?? 0;
+        g.save();
+        g.translate(x, y);
+        g.scale(s, s);
+        g.rotate(pose.lean ?? 0);
+        g.scale(1 + q, 1 - q);
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        fn(3.2 / s);
+        g.restore();
+    }
+    // The Devil's mitt once more, over what it holds (body space; the same block Devil.draw
+    // ends the arm with). side −1: his right arm (screen left), 1: his left.
+    function mitt(g, L, side, hand) {
+        const sh = [side * 0.34, -0.84], dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6;
+        const ux = dx / len, uy = dy / len, nx = -uy * 0.08, ny = ux * 0.08, a = Math.max(0.06, len - 0.075), b = len + 0.11;
+        C.prism(g, cw([[sh[0] + ux * a + nx, sh[1] + uy * a + ny], [sh[0] + ux * b + nx, sh[1] + uy * b + ny], [sh[0] + ux * b - nx, sh[1] + uy * b - ny], [sh[0] + ux * a - nx, sh[1] + uy * a - ny]]), Dd(0.16), { front: DP.skin, top: DP.skinTop, side: DP.skinSide }, { lw: L, ink: DP.ink });
+    }
+    // His pointer: a long cane from its butt (a brass cap) to its brass tip (body space).
+    function stick(g, L, a, b) {
+        const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l;
+        g.lineCap = 'butt';
+        C.poly(g, [[a[0] - ux * L, a[1] - uy * L], [b[0] + ux * L, b[1] + uy * L]], { ink: DP.ink, lw: 0.05 + L * 2, close: false });
+        g.lineCap = 'butt';
+        g.strokeStyle = DP.hair;
+        g.lineWidth = 0.05;
+        g.beginPath();
+        g.moveTo(a[0], a[1]);
+        g.lineTo(b[0], b[1]);
+        g.stroke();
+        g.strokeStyle = DP.brass;
+        g.beginPath();
+        g.moveTo(b[0] - ux * 0.1, b[1] - uy * 0.1);
+        g.lineTo(b[0], b[1]);
+        g.moveTo(a[0], a[1]);
+        g.lineTo(a[0] + ux * 0.05, a[1] + uy * 0.05);
+        g.stroke();
+        g.strokeStyle = DP.sheen;
+        g.lineWidth = L * 0.8;
+        g.beginPath();
+        g.moveTo(a[0] + ux * 0.12 - uy * 0.008, a[1] + uy * 0.12 + ux * 0.008);
+        g.lineTo(b[0] - ux * 0.16 - uy * 0.008, b[1] - uy * 0.16 + ux * 0.008);
+        g.stroke();
+        g.lineCap = 'round';
+    }
+
     // =========================================================================================
     // Imps with independent arms
     // =========================================================================================
@@ -560,7 +608,7 @@ const BreakAd = (() => {
     // =========================================================================================
     // The kitchen of Hell (in colour; the segment drains it)
     // =========================================================================================
-    const KIT = { wall: '#8a1a2c', wallD: '#6a1221', wallL: '#a82338', tileA: '#fff1c4', tileB: '#8cefe6', cab: '#7d47e1', cabTop: '#a888f5', cabSide: '#5a2fb5', cabLine: '#5a2fb5', slab: '#fff1c4', slabTop: '#fffdf4', slabSide: '#dcc690', iron: '#4a4470', ironTop: '#6c66a0', ironSide: '#2f2940', floorA: '#5a2a86', floorB: '#3f1d66', chrome: '#d5dbea', chromeD: '#8d95ad' };
+    const KIT = { wall: '#8a1a2c', wallD: '#6a1221', wallL: '#a82338', tileA: '#fff1c4', tileB: '#2fc4b4', cab: '#7d47e1', cabTop: '#a888f5', cabSide: '#5a2fb5', cabLine: '#5a2fb5', slab: '#fff1c4', slabTop: '#fffdf4', slabSide: '#dcc690', iron: '#4a4470', ironTop: '#6c66a0', ironSide: '#2f2940', floorA: '#5a2a86', floorB: '#3f1d66', chrome: '#d5dbea', chromeD: '#8d95ad' };
     const FL = 782; // where the wall meets the floor
     function kitchen(g, t) {
         const d = C.drawing(t);
@@ -662,13 +710,13 @@ const BreakAd = (() => {
         for (const kx of [700, 746, 822, 868]) disc(g, kx, 650, 10, K.yellow, 2.6);
         C.box(g, 268, 598, 780, 26, [26, -18], { front: KIT.slab, top: KIT.slabTop, side: KIT.slabSide }, { lw: 3.2 });
         // the sink's basin in the slab, the tap over it
-        C.poly(g, [[352, 594], [520, 594], [534, 584], [366, 584]], { fill: KIT.chromeD, lw: 3.2 });
-        const tap = C.curve([[440, 590], [440, 540], [452, 520], [476, 520], [488, 534], [488, 548]], false, 6);
+        C.poly(g, [[292, 594], [440, 594], [454, 584], [306, 584]], { fill: KIT.chromeD, lw: 3.2 });
+        const tap = C.curve([[412, 590], [412, 540], [400, 520], [376, 520], [364, 534], [364, 548]], false, 6);
         line(g, tap, K.ink, 15);
         line(g, tap, KIT.chrome, 9);
-        C.poly(g, [[430, 592], [450, 592], [450, 578], [430, 578]], { fill: KIT.chromeD, lw: 3 });
+        C.poly(g, [[402, 592], [422, 592], [422, 578], [402, 578]], { fill: KIT.chromeD, lw: 3 });
         const dr = (d % 12) / 12;
-        if (dr < 0.4) drop(g, 488, 558 + dr * 60, 5);
+        if (dr < 0.4) drop(g, 364, 558 + dr * 60, 5);
         // the burner and the cauldron on it, cold
         C.poly(g, [[720, 592], [860, 592], [872, 584], [732, 584]], { fill: KIT.ironSide, lw: 3.2 });
         const pot = cw(C.curve([[742, 500], [840, 500], [856, 530], [850, 572], [820, 588], [762, 588], [732, 572], [726, 530]], true, 5));
@@ -739,5 +787,5 @@ const BreakAd = (() => {
         disc(g, px - 38, py - 3, 1.8, K.ink, 0);
     }
 
-    return { units, onHead, disc, starPts, imp, impMitt, jar, note, fan, coin, pig, moth, phone, web, spider, banner, cloud, CLOUD, drop, crateBack, crateFront, card, tightGrin, twitch, TOOTH, EY, MY, kitchen, table, FL, KIT };
+    return { units, onHead, onBody, mitt, stick, disc, starPts, imp, impMitt, jar, note, fan, coin, pig, moth, phone, web, spider, banner, cloud, CLOUD, drop, crateBack, crateFront, card, tightGrin, twitch, TOOTH, EY, MY, kitchen, table, FL, KIT };
 })();

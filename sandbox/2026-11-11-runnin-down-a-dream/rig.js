@@ -27,6 +27,8 @@ const Rig = (() => {
      *        aboard: { stan, ben, howie, mike, tom }   0..1 each (0 = not there, a pop-in scale between)
      *        tomDrives (default true: Tom at the wheel and Mike up front; false: Tom up front, nobody drives)
      *        driver(g, s)                       with tomDrives false: draws whatever sits at the wheel, at (0, 0)
+     *        cockpit: { back(g, s), front(g, s) } drawn in the car's units behind and in front of whoever is at the
+     *                                           wheel (the canvas top: Weather.softTop with part 'back' / 'front')
      *        shadow                             false when the car is off the ground
      *        sing, solo                         passed to playing()
      *        pose: { tom: {…}, … }              overrides merged over the beat's poses }
@@ -52,10 +54,14 @@ const Rig = (() => {
             put(seats.deck[2], a.ben, (sc) => BandRhythm.benmont(g2, 0, 0, sc, pose('ben')));
             if (drives) {
                 put(seats.deck[0], a.mike, (sc) => BandStrings.mike(g2, 0, 0, sc, pose('mike')));
+                if (o.cockpit?.back) o.cockpit.back(g2, sc0);
                 put(seats.driver, a.tom, (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
+                if (o.cockpit?.front) o.cockpit.front(g2, sc0);
             } else {
                 put(seats.deck[0], a.tom, (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
+                if (o.cockpit?.back) o.cockpit.back(g2, sc0);
                 if (o.driver) put(seats.driver, 1, (sc) => o.driver(g2, sc)); // whoever is at the wheel instead: draw at (0, 0)
+                if (o.cockpit?.front) o.cockpit.front(g2, sc0);
             }
         });
     }
