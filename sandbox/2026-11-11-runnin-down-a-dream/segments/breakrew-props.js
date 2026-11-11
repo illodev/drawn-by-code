@@ -53,7 +53,7 @@ const BreakrewProps = (() => {
     // where things stand
     const TABLE = { yb: 830, yf: 890, cell: 40 }; // the top's far and near edges
     const DEV = { x: 400, y: 942, s: 225 }; // the Devil (he sits behind the table)
-    const IMP = { x: 762, y: 876, s: 160 };
+    const IMP = { x: 748, y: 876, s: 150 };
     const PLATE = { x: 450, y: 857, r: 116 };
     const GLASS = { x: 136, y: 868 };
 
