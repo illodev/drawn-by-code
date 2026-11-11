@@ -171,7 +171,9 @@ const World = (() => {
     // --- layers ------------------------------------------------------------------------------
     /**
      * Everything behind the cars. o: { sun: { x, y, r, shades } | null, moon: { x, y, r } | null,
-     * stars (0..1), burst: [cx, cy] the sunburst's centre }
+     * stars (0..1), burst: [cx, cy] the sunburst's centre,
+     * clear: [x0, x1] keeps the far verge free of cacti, rocks and signs between those screen x
+     *        (where a shot lays something of its own across it: a side road, a pit) }
      */
     function back(g, t, X, theme, o = {}) {
         const W = THEMES[theme], d = C.drawing(t);
@@ -279,6 +281,7 @@ const World = (() => {
         const things = [];
         cells(X, 0.8, 250, 160, 'verge', (i, x, r) => {
             const k = r(), y = HOR + 62 + r() * 40;
+            if (o.clear && x > o.clear[0] && x < o.clear[1]) return; // something of the shot's own lies across the verge here
             things.push([y, () => {
                 if (k < 0.4) cactus(g, W, x, y, 96 + r() * 60, r() < 0.5 ? 1 : -1);
                 else if (k < 0.58) rock(g, W, x, y, 50 + r() * 40);
@@ -287,7 +290,10 @@ const World = (() => {
             }]);
         });
         for (let i = Math.floor((X * PF - 200) / SP); i <= Math.ceil((X * PF + 1200) / SP); i++) things.push([py, () => pole(g, W, px(i), py)]);
-        cells(X, 0.92, 760, 80, 'sign', (i, x, r) => things.push([ROAD0 - 10, () => sign(g, W, x, ROAD0 - 10, i % 2)]));
+        cells(X, 0.92, 760, 80, 'sign', (i, x, r) => {
+            if (o.clear && x > o.clear[0] && x < o.clear[1]) return;
+            things.push([ROAD0 - 10, () => sign(g, W, x, ROAD0 - 10, i % 2)]);
+        });
         things.sort((a, b2) => a[0] - b2[0]).forEach(([, fn]) => fn());
         // the road
         g.fillStyle = W.road;

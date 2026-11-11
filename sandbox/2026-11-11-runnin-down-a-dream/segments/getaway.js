@@ -37,7 +37,7 @@
         const P = S.pulseAt(t), d = C.drawing(t), ph = P.k + P.since, n = (k) => b(32 + k); // beat k of this shot
         g.save();
         g.translate(0, CAM);
-        World.back(g, t, X0, 'day', { sun: { x: 170, y: 210, r: 70 }, moon: { x: 850, y: 180, r: 38 } });
+        World.back(g, t, X0, 'day', { sun: { x: 170, y: 210, r: 70 }, moon: { x: 850, y: 180, r: 38 }, clear: [250, 600] }); // the crossing road runs over the far verge there
         crossing(g);
 
         // --- the band's car: in, stopped, revving, gone

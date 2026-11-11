@@ -276,3 +276,15 @@ Translation into changes:
   Layering fixed by the block's agent: floor, far walls and lip, the Devil clipped at the
   near lip, then only the near lip in front; his contact shadow is off where he has no
   ground under him. Checked on every drawing of the bar.
+
+## Round 7 (user)
+
+> «TOP!» (on the minute with word-level lip sync)
+> «Otro detalle, el cactus sale tapado por la carretera» (with a screenshot of the getaway)
+
+- The lip sync is approved.
+- In the getaway the crossing road was painted over the road set's far verge, across a
+  saguaro standing there. `World.back` takes `clear: [x0, x1]` (no cacti, rocks or signs on
+  the far verge between those x) and the shot passes the crossing's span. Checked on a
+  full-resolution crop. Rule for the style skill: a shot that lays its own piece over a
+  generated set clears the set there first.
