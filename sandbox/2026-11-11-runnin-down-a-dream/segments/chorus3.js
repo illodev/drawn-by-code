@@ -30,48 +30,46 @@
     // The Devil in his box (SET scale 84): pose and cold as Chorus3Props.devil takes them
     //   o: Inferno.box's { shake }, plus rail: true when his mitts rest on the rail or come down on it. He stands behind
     //   the parapet, but those mitts lie on top of its velvet roll: in front of it and of the lamp at its end (they were
-    //   painted behind both, the sleeves ending at the rail). He is drawn once more over the box's front half, clipped to
-    //   each forearm's cuff and mitt, so inside them his own order holds (the scarf's ends stay over the sleeve).
+    //   painted behind both, the sleeves ending at the rail). Each such arm is painted once more over the box's front
+    //   half, from just above its cuff to the mitt's end (nothing of his own lies over that part in these poses).
     const inBox = (g, t, Sg, o, pose, cold) => {
         const { rail, ...bo } = o, b = Sg.box;
         const him = pose && ((g2) => P.devil(g2, b.x, b.y, b.s, { shadow: false, ...pose }, { t, ...cold }));
         const over = him && rail && ((g2) => {
-            const q = pose.squash ?? 0;
-            g2.save();
+            const q = pose.squash ?? 0, L = 3.2 / b.s;
             g2.save();
             g2.translate(b.x, b.y);
             g2.scale(b.s, b.s);
             g2.rotate(pose.lean ?? 0);
             g2.scale(1 + q, 1 - q);
-            g2.beginPath();
+            g2.lineJoin = 'round';
             for (const [sh, hand] of [[Devil.SH.R, pose.handR], [Devil.SH.L, pose.handL]]) {
                 if (!hand || !(hand[1] > RAIL_Y)) continue; // only a mitt that is down on the rail
-                const hull = cuffAndMitt(sh, hand);
-                hull.forEach(([px, py], i) => (i ? g2.lineTo(px, py) : g2.moveTo(px, py)));
-                g2.closePath();
+                g2.save();
+                C.trace(g2, forearm(sh, hand));
+                g2.clip();
+                Devil.arm(g2, L, sh, hand);
+                g2.restore();
             }
-            g2.restore(); // the path keeps the frame it was traced in
-            g2.clip();
-            him(g2);
             g2.restore();
         });
         I.box(g, b.x, b.y, b.s, { t, ...bo, ...(over ? { over } : {}) }, him);
     };
     const RAIL_Y = -0.9; // a mitt lower than this (his units) is on the rail, not in the air
-    // The outline of an arm's cuff and mitt as devil.js draws them (its geometry, an outline's width added): the forearm
-    // from the cuff's upper edge to the mitt's end, swept by its depth. A convex outline, clockwise or not.
-    function cuffAndMitt(sh, hand) {
+    // The part of an arm that lies on the rail, as an outline (devil.js's arm geometry): from a little above the cuff to
+    // past the mitt's end, swept by the arm's depth, an outline's width to spare.
+    function forearm(sh, hand) {
         const el = Cast.elbow(sh, hand), s0 = el ?? sh, dx = hand[0] - s0[0], dy = hand[1] - s0[1], len = Math.hypot(dx, dy) || 1e-6;
-        const ux = dx / len, uy = dy / len, hw = 0.08 * 1.12 + 0.03, a = Math.max(0.03, len - 0.14) - 0.03, c = len + 0.11 + 0.03, z = Cast.Dd(0.17);
+        const ux = dx / len, uy = dy / len, hw = 0.08 * 1.12 + 0.03, a = Math.max(0.03, len - 0.14) - 0.05, c = len + 0.11 + 0.03, z = Cast.Dd(0.17);
         const quad = [[a, hw], [c, hw], [c, -hw], [a, -hw]].map(([al, ac]) => [s0[0] + ux * al - uy * ac, s0[1] + uy * al + ux * ac]);
+        // the convex outline of the quad and of its copy one depth away
         const pts = [...quad, ...quad.map(([px, py]) => [px + z[0], py + z[1]])].sort((p, r) => p[0] - r[0] || p[1] - r[1]);
         const cross = (o2, p, r) => (p[0] - o2[0]) * (r[1] - o2[1]) - (p[1] - o2[1]) * (r[0] - o2[0]);
         const half = (list) => list.reduce((h, p) => {
             while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], p) <= 0) h.pop();
             return [...h, p];
         }, []);
-        const lo = half(pts), up = half(pts.slice().reverse());
-        return [...lo.slice(0, -1), ...up.slice(0, -1)];
+        return [...half(pts).slice(0, -1), ...half(pts.slice().reverse()).slice(0, -1)];
     }
     // the venue's layers in order; `mid` draws between the band and the pit, `over` after the pit
     function house(g, t, o, parts) {

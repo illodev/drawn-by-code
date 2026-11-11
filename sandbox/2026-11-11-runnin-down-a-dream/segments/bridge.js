@@ -25,7 +25,7 @@
 // sore nose are Chorus3Props's (the close shot's nose is hellhoof's own). Props: segments/bridge-props.js (BridgeProps).
 (() => {
     const Seg = (window.Seg = window.Seg || {});
-    const C = Cereal, K = C.COL, E = Ease, S = Song, I = Inferno, P = BridgeProps, C3 = Chorus3Props, twos = S.twos, pop = S.pop;
+    const C = Cereal, K = C.COL, E = Ease, S = Song, I = Inferno, P = BridgeProps, C3 = Chorus3Props, HP = HellhoofProps, twos = S.twos, pop = S.pop;
     const PI = Math.PI, TAU = PI * 2, FR = 1 / 24, lerp = E.lerp;
     const n = (k) => S.snap(S.OFFSET + (476 + k) * S.BEAT); // beat k of the block (halves too), on its frame
     const T0 = n(0), T1 = n(8), T2 = n(20), T3 = n(24), T4 = n(32), T5 = n(40);
@@ -214,7 +214,10 @@
     const SLIDE = T1 + 5 * FR, LAND = n(10), ROLL = n(11), DIP = n(12), STEAM = n(14), HEAVE = n(15.5), PULL = n(16), PULL2 = n(17.25), OUT = n(18.75), HANG = n(19.5);
     const FLANK0 = [808, 480], FLANK1 = [870, 524]; // the corbel's left flank, where his hooves slide (set coordinates)
     const COLS = ['green', 'blue', 'purple', 'pink'];
-    const TAIL_DOWN = 0.3; // how far his tail drops during the pull (Devil.draw's sway)
+    // His tail during the pull (HellhoofProps.tail's seven control points, his units): it swings out low to screen right, past
+    // the bowl. At rest it stands in front of the fire: it was painted across the arm that holds the neck, over the fork he
+    // stares at and then over the guitar's body as that came up.
+    const TAIL_OUT = [[0.2, -0.46], [0.56, -0.34], [0.88, -0.3], [1.16, -0.3], [1.38, -0.36], [1.52, -0.5], [1.62, -0.62]];
     // Where his ground point goes so that he stands ON the stack whatever the pose does: Devil.draw leans and squashes him
     // about that point, which sinks the hoof he leans over into the rock and pushes the other past the stack's left edge.
     // The screen-left hoof's outer corner keeps its place across the stack, and the lower hoof stays on its top.
@@ -233,7 +236,7 @@
         dress(g, t, V2, 0, {}, 'stage');
         const F = St.at([BRZ[0] + 9, BRZ[1] + 6]), k = axeK(t);
         // --- where he is -------------------------------------------------------------------------
-        let at, pose = { shadow: false, handR: P.NO_HAND, handL: P.NO_HAND, tail: 0.04 * Math.sin((Pu.k + Pu.since) * PI) }, hR = [-0.5, -0.5], hL = [0.5, -0.5], roll = 0, tongue = false, chips = -1, mitt = F, dipK = 0;
+        let at, pose = { shadow: false, handR: P.NO_HAND, handL: P.NO_HAND, tail: 0.04 * Math.sin((Pu.k + Pu.since) * PI) }, hR = [-0.5, -0.5], hL = [0.5, -0.5], roll = 0, tongue = false, chips = -1, mitt = F, dipK = 0, tailPts = null;
         if (!on(t, SLIDE)) {
             // over the rail (he is already in the air on the cut) and down onto the corbel's flank
             const u = E.seg(t, T1 - 3 * FR, SLIDE);
@@ -285,10 +288,10 @@
                 Object.assign(pose, {
                     lean: -0.12 * E.out(seg2(t, PULL, PULL + 2 / 12)) - 0.06 * up, squash: 0.03 * Pu.pulse - 0.05 * bump(t, PULL2, 0.3),
                     mood: doubt ? 'shock' : on(t, HANG) ? 'grin' : on(t, PULL2) ? 'laugh' : 'grin', look: 1, headTilt: doubt ? 0.06 : 0,
-                    // his tail drops out of the way as he pulls (Devil.draw's sway: positive lowers its end): at rest its
-                    // spade stood where the guitar comes up and the tail crossed the arm that holds the neck
-                    tail: pose.tail + TAIL_DOWN * E.out(seg2(t, PULL, PULL + 3 / 12)),
                 });
+                // his tail whips out to the side as he heaves (three drawings), its end still keeping the beat
+                const wag = 0.5 * pose.tail;
+                tailPts = HP.mixPts(HP.TAIL.rest(pose.tail), TAIL_OUT.map(([x, y], i) => [x, y + (i > 3 ? wag * (i - 3) : 0)]), E.out(seg2(t, PULL, PULL + 3 / 12)));
                 at = planted(pose);
                 const G = I.fromFirePoints(k), grip = lerpPt(G.body, G.neck, 1.22);
                 hL = P.toLocal(...St.at(at), s, pose, [F[0] + grip[0] * sF, F[1] + grip[1] * sF]);
@@ -302,8 +305,11 @@
         // the bowl's left end, the arm reaches back into it); default: all of him
         const p = St.at(at), body = (part = 'all') => {
             if (part !== 'armL') {
-                if (nose > 0.02) C3.devil(g, p[0], p[1], s, pose, { scarf: false, nose });
-                else Devil.draw(g, p[0], p[1], s, pose);
+                // his tail first, as Devil.draw paints it; with points of this shot's own during the pull
+                const bp = tailPts ? { ...pose, noTail: true } : pose;
+                if (tailPts) HP.tail(g, p[0], p[1], s, pose, tailPts);
+                if (nose > 0.02) C3.devil(g, p[0], p[1], s, bp, { scarf: false, nose });
+                else Devil.draw(g, p[0], p[1], s, bp);
             }
             P.frame(g, p[0], p[1], s, pose, (L) => {
                 if (part !== 'armL') {
@@ -403,9 +409,9 @@
         let p, pose;
         const off = HOP - 7 * FR;
         if (t < off) {
-            p = St.at(STACK);
             const sl = E.out(seg2(t, T2, T2 + 3 / 12));
             pose = axePose(t, { shadow: false, strum: lerp(-1, 1, sl), flames: 1, squash: 0.12 * (1 - sl) + 0.03 * S.pulseAt(t).pulse + 0.1 * seg2(t, off - 3 / 12, off), mood: t < n(21) ? 'laugh' : 'grin', look: -1 });
+            p = St.at(planted(pose)); // both hooves on the stack's top while he squashes (see planted)
         } else if (!on(t, HOP)) {
             p = arc(St.at(STACK), carPt(car, HOOD, t), E.seg(t, off, HOP), 46);
             pose = axePose(t, { shadow: false, squash: -0.08, lean: -0.1, mood: 'laugh', flames: 1 });

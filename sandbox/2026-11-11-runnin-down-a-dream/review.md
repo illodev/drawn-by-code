@@ -484,3 +484,19 @@ B, crop, the function that draws it). Each row was checked on its crop before it
 - The thaw (1:22): the crank's grip was over his mitt on the frame he lets it go.
 - Left: his mitt over the imp's raised arm in the ad (he is reaching to it); each lower imp of
   the pyramid now shows one horn (the top imp's hooves stand on the other).
+
+**2:12–3:18** (222 frames; fixed by an agent on the audit's table, every fault checked on 1:1 crops)
+- The cactus at the wheel was painted over Tom and then over the Devil in Tom's place, all
+  through the bridge and the duel; it goes on before them, as in the rig.
+- Chorus 4 (2:31): the cones worn by two far-row imps were over the crowd-surfing skeleton.
+  `Inferno.crowd` takes a `mid` hook between the far rows and the surfer; the cones go there.
+- The hoof (2:37): a slab of Devil.draw's own tail showed beside the coat (`noTail` now).
+- The fire (2:52–2:55): the tail was over the arm that pulls the guitar out, and its spade on
+  the guitar; the arm goes on after the body and the tail swings out low. The arm he dips in
+  the brazier was hidden altogether: it shows down to the rim, a tongue of fire over the mitt.
+  His left hoof stood past the stack's edge: both hooves on the stack.
+- The pit skeleton (2:16): a strip of trouser showed under his lifted sole.
+- The box (2:20): the Devil's mitts on the rail were behind the velvet and the skull lamp (the
+  2:44 fault in the other block's box): arms resting on the rail go on over the box's front.
+- The plug pops (3:17): the lava's front lip, as in the next shot.
+- Left: for three frames at 2:58 Tom, landing on the bonnet's nose, passes behind the Devil.

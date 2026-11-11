@@ -504,7 +504,8 @@ const Devil = (() => {
         tail(g, 3.2 / s, pose.tail ?? 0);
         g.restore();
     }
-    // his shoulders, in his units (R is on screen left): where draw() hangs his arms
+    // his shoulders, in his units (R is on screen left): where draw() hangs his arms. Devil.arm(g, L, sh, hand) is draw()'s
+    // own arm, in his units (L: the outline's width), for a shot that has to paint one again over something
     const SH = { R: [TORSO.x + 0.03, TORSO.y + 0.14], L: [TORSO.x + TORSO.w - 0.03, TORSO.y + 0.14] };
 
     // --- imps -------------------------------------------------------------------------------
@@ -632,5 +633,5 @@ const Devil = (() => {
         g.restore();
     }
 
-    return { P, draw, imp, trident, contract, TORSO, HEAD, tail: tailOf, SH };
+    return { P, draw, imp, trident, contract, TORSO, HEAD, tail: tailOf, SH, arm };
 })();
