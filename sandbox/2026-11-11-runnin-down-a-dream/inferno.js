@@ -402,7 +402,7 @@ const Inferno = (() => {
         C.poly(g, pts, { ink: K.ink, lw: 3.6 * L });
     }
     // A little box skull facing us (niches, the box's lamp). (x, y): the middle of its base.
-    function miniSkull(g, L, x, y, w, glow = null) {
+    function miniSkull(g, L, x, y, w, glow = null, plain = false) {
         const h = w * 0.82, jw = w * 0.62, d = [w * 0.16, -w * 0.105];
         const sk = [[x - w / 2, y - h], [x + w / 2, y - h], [x + w / 2, y - h * 0.36], [x + jw / 2, y - h * 0.28], [x + jw / 2, y], [x - jw / 2, y], [x - jw / 2, y - h * 0.28], [x - w / 2, y - h * 0.36]];
         C.prism(g, sk, d, { front: R.bone, top: R.boneTop, side: R.boneSide }, { lw: 2.8 * L });
@@ -411,7 +411,7 @@ const Inferno = (() => {
             g.roundRect(x + sx * w * 0.21 - w * 0.12, y - h * 0.8, w * 0.24, h * 0.34, w * 0.05);
             g.fillStyle = glow ?? '#2a2438';
             g.fill();
-            if (glow) {
+            if (glow && !plain) {
                 g.strokeStyle = K.ink;
                 g.lineWidth = 2 * L;
                 g.stroke();
@@ -423,7 +423,7 @@ const Inferno = (() => {
         g.beginPath();
         g.moveTo(x - jw / 2, y - h * 0.15);
         g.lineTo(x + jw / 2, y - h * 0.15);
-        for (let i = -1; i <= 1; i++) {
+        for (let i = -1; i <= 1 && !plain; i++) {
             g.moveTo(x + i * jw * 0.25, y - h * 0.27);
             g.lineTo(x + i * jw * 0.25, y);
         }
@@ -1595,7 +1595,7 @@ const Inferno = (() => {
             g.translate(BOX.lamp[0], BOX.lamp[1] - hop);
             g.rotate(shake * [0, 0.16, -0.1, 0.12, -0.14, 0.06][((d % 6) + 6) % 6]);
             C.box(g, -0.15, -0.05, 0.3, 0.05, D, { front: K.gold, top: '#fff59a', side: DP.tieDark }, { lw: L * 0.8, depth: 0.14 });
-            miniSkull(g, L * 0.8, 0.02, -0.05, 0.4, gl > 0.05 ? mix('#2a2438', K.yellow, gl) : null);
+            miniSkull(g, L * 0.8, 0.02, -0.05, 0.4, gl > 0.05 ? mix('#2a2438', K.yellow, gl) : null, s < 130); // small on screen: fewer lines
             g.restore();
             // crumbs shaken off the corbel
             if (shake > 0.05) {

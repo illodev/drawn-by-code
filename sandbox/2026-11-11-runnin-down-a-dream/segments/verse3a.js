@@ -43,6 +43,11 @@
     const LAND = 'verse3a:day-land';
     World.THEMES[LAND] = World.THEMES[LAND] ?? { ...World.THEMES.day, skyA: 'rgba(0,0,0,0)', skyB: 'rgba(0,0,0,0)' };
 
+    // What passes in front of the cars (World.front), minus whatever would cross one of the
+    // moments in `keep` ([from, to] in film time) on a camera that is at cam(t) on the road.
+    const nearX = (i, X) => i * 1900 + Motion.rng('near:' + i)() * 1900 * 0.6 - X * 1.6;
+    const front = (g, t, cam, theme, keep) => World.front(g, t, cam(t), theme, { skip: (i) => keep.some(([a, c]) => nearX(i, cam(a)) > -420 && nearX(i, cam(c)) < 1420) });
+
     // --- the band on its car -------------------------------------------------------------------
     const SEATS = Rides.bandCarSeats(), SEAT = SEATS.driver;
     const ON_WHEEL = [SEATS.wheel[0] - SEAT[0] - 0.07, SEATS.wheel[1] - SEAT[1] + 0.02];
@@ -158,7 +163,7 @@
         if (out > 0) {
             const wave = [-0.42, -1.0][((dr(t, T_WAVE) % 2) + 2) % 2], reach = seg2(t, T_GRAB - 4 * FR, T_GRAB);
             const waving = [c[0] + Math.cos(wave) * 122 * out, c[1] + Math.sin(wave) * 122 * out];
-            P.sunArm(g, c, 70, reach > 0 ? E.lerpPt(waving, [ring[0] - 3, ring[1] + 8], reach) : waving);
+            P.sunArm(g, c, 70, reach > 0 ? E.lerpPt(waving, [ring[0] - 3, ring[1] + 19], reach) : waving);
         }
         // the land stands in front of the blind, the sun's arm and the cord
         if (pull > 0) World.back(g, t, X, LAND, sky());
@@ -179,7 +184,7 @@
             driver: { hop, pose: air ? driving(t, { squash: -0.12, wheel: null, mouth: 'oh', wave: 1 }) : driving(t, crouch ? { squash: crouch, mouth: 'oh' } : {}) },
         });
         if (lit) inCar(g, cx, LANE, SC, bn, (L) => P.lamps(g, L, 1 + step(t, T_LIGHTS, [1, 0.5])));
-        World.front(g, t, XR(t), t < T_LAND - EPS ? 'day' : 'night');
+        front(g, t, XR, t < T_LAND - EPS ? 'day' : 'night', [[T_PULL, T_LAND + 0.1], [T80 - 0.2, T80 + 0.2], [T_LIGHTS - 0.15, T81]]);
     }
 
     // =========================================================================================
@@ -202,7 +207,7 @@
     function pedal(g, t, env) {
         const d = C.drawing(t), Pu = S.pulseAt(t), kd = t < T_DOWN - EPS ? -1 : dr(t, T_DOWN);
         // the car leaps ahead of the camera, which catches it up again along the deck
-        const lag = 640 * E.out(E.seg(t, LAG0, LAG1)) - 30 * E.seg(t, LAG1, RET0) - 600 * E.inOut(E.seg(t, RET0, RET1));
+        const lag = 750 * E.out(E.seg(t, LAG0, LAG1)) - 30 * E.seg(t, LAG1, RET0) - 708 * E.inOut(E.seg(t, RET0, RET1));
         const cx = CX2 + lag, jolt = step(t, T_STAMP, [9, -4]) + step(t, T_DOWN, [-6, 3]);
         g.save();
         g.translate(0, jolt);
@@ -217,7 +222,7 @@
         // the cactus: in the air on the cut, down on the pedal, then holding on
         const hop = hopAt(t), air = t < T_STAMP - EPS, rest = P.pedalTop(SEAT[0], 0) - P.pedalTop(SEAT[0], 1);
         const press = air ? Math.max(0, 1 - hop / -rest) : 1; // the pot meets the slab `-rest` above the floor
-        const land = step(t, T_STAMP, [0.3, 0.16, 0.06]);
+        const land = step(t, T_STAMP, [0.22, 0.12, 0.05]);
         const pose = air ? driving(t, { squash: -0.12, wheel: null, mouth: 'oh', wave: d % 2 ? 1 : -0.4 })
             : kd < 0 ? driving(t, { squash: 0.05 * Pu.pulse + land, mouth: 'oh' })
                 : driving(t, { squash: 0.03 * Pu.pulse, lean: step(t, T_DOWN, [-0.03, -0.1, -0.16], -0.11) + (d % 2 ? 0.012 : 0), mouth: kd < 8 ? 'oh' : 'smile', wave: d % 2 ? -1 : -0.7 });
@@ -237,7 +242,7 @@
         inCar(g, cx, GY2, S2, bn, (L) => {
             P.lamps(g, L, 1);
             // the window in the door: open on the cut, shut when the car goes
-            const win = kd < 0 ? S.pop(t, T81, 0.25) : kd === 0 ? 0.55 : 0;
+            const win = kd < 0 ? step(t, T81, [0.86, 1.07], 1) : kd === 0 ? 0.55 : 0;
             P.footwell(g, L, win, press, step(t, T_STAMP, [1, 0.5]), () => {
                 g.save();
                 g.scale(1 / S2, 1 / S2);
@@ -245,7 +250,7 @@
                 g.restore();
             }, d);
         });
-        burner(g, t, cx, GY2, S2, bn, burn);
+        burner(g, t, cx, GY2, S2, bn, burn * 0.72);
         g.restore();
         g.restore();
     }
@@ -265,46 +270,49 @@
     }
     const carX3 = (t) => XR(t) + CX3 - cam3(t);
     // the two clocks: when each is torn off its post, and where on the screen
-    const CLOCKS = [{ at: n(21), x: 716, hands: [1.0, -0.7] }, { at: n(22), x: 628, hands: [-2.2, 0.4] }];
+    const CLOCKS = [{ at: n(21), x: 716, hands: [1.0, -0.7], fly: [200, 330, 430, 330] }, { at: n(22), x: 700, hands: [-2.2, 0.4], fly: [250, 120, 300, 420] }];
     const CLOCK_Y = ROAD0 - 8, CLOCK_UP = 3.22 * SC; // the post's foot; the clock's middle above it
     // --- the work site: everything is placed from its origin O on the road's far edge -----------
     const SITE_X = 345; // where O is on the last frame
     const siteX = (t) => camEnd(T_LAST) + SITE_X - cam3(t);
-    const SITE = { tower: -168, barrow: -8, impA: -112, barrier: 166, impB: 108, lever: 292, cones: [50, 196, 246] };
-    const GROUND = 800, FRONT = 814;
+    const SITE = { tower: -185, impA: -52, barrow: 44, lever: 132, impB: 202, barrier: 238, cones: [166, 282, 330] };
+    const GROUND = 800, FRONT = 814, LEAN = -0.2;
     function site(g, t, ox) {
-        const d = C.drawing(t), Pu = S.pulseAt(t), ph = Pu.k + Pu.since;
+        const d = C.drawing(t), Pu = S.pulseAt(t), ph = Pu.k + Pu.since, is = 0.67 * SC, f = d % 2 ? 1 : -1;
         const tail = (x) => carX3(t) - 4.9 * SC - (ox + x); // how far the car's tail is past a thing (negative: not yet)
         const blown = (x) => Math.max(0, tail(x)) / ((2 * Rig.SPEED - V_END) / 12); // drawings since its tail went by
-        const gust = (x) => Math.exp(-blown(x) * 0.5) * (tail(x) > 0 ? 1 : 0);
+        const gust = (x) => (tail(x) > 0 ? Math.exp(-blown(x) * 0.45) : 0);
         const TH = World.THEMES.night;
         // the back row: the tower with the foreman, the barrier
         const tx = ox + SITE.tower;
         P.tower(g, tx, GROUND, SC);
-        P.barrier(g, ox + SITE.barrier, GROUND - 4, SC, { lamp: Pu.k % 2 === 0, rock: 0.07 * gust(SITE.barrier) * (d % 2 ? 1 : -1) });
+        P.barrier(g, ox + SITE.barrier, GROUND - 2, SC, { lamp: Pu.k % 2 === 0, rock: 0.07 * gust(SITE.barrier) * f });
         foreman(g, t, ...P.towerTop(tx, GROUND, SC));
-        // the lever under the asphalt's edge, an imp hanging off its crossbar
-        const lx = ox + SITE.lever, gl = gust(SITE.lever), swing = -0.4 - 0.02 * Math.sin(ph * Math.PI);
-        P.lever(g, lx, ROAD0 + 2, SC, swing);
-        P.prisedLip(g, lx, ROAD0, TH.road, TH.roadEdge);
-        const end = P.leverEnd(lx, ROAD0 + 2, SC, swing), is = 0.67 * SC, fly = tail(SITE.lever) > 0 ? -1.25 * Math.min(1, blown(SITE.lever) / 2) + 0.2 * gl * (d % 2 ? 1 : -1) : 0.1 * Math.sin(ph * Math.PI);
-        g.save();
-        g.translate(end[0], end[1] + 4);
-        g.rotate(fly);
-        Devil.imp(g, 0, 0.9 * is, is, { wear: 'hat', armUp: 1, mood: tail(SITE.lever) > 0 ? 'awe' : 'grin', look: -1, shadow: false, tail: 0.1 * Math.sin(ph * Math.PI) });
-        g.restore();
+        // the lever under the asphalt's edge; an imp jumps on its crossbar, a jump a beat
+        const lx = ox + SITE.lever, kl = blown(SITE.lever), up = Math.abs(Math.sin(ph * Math.PI)), lean = LEAN - 0.035 * Pu.pulse;
+        P.lever(g, lx, ROAD0 + 2, SC, lean);
+        P.prisedLip(g, lx + 8, ROAD0, TH.road, TH.roadEdge);
+        const end = P.leverEnd(lx, ROAD0 + 2, SC, lean);
+        if (kl <= 0) Devil.imp(g, end[0], end[1], is, { wear: 'hat', hop: 0.34 * up, squash: 0.12 * Pu.pulse, armUp: 0.5 * up, mood: 'grin', look: -0.5, shadow: false, tail: 0.1 * Math.sin(ph * Math.PI) });
+        else if (kl < 7) {
+            // the wake takes it off its perch, heels over head
+            g.save();
+            g.translate(end[0] + 44 * kl, end[1] - 0.5 * is - 30 * kl + 5.5 * kl * kl);
+            g.rotate(0.95 * Math.floor(kl));
+            Devil.imp(g, 0, 0.5 * is, is, { wear: 'hat', armUp: 1, mood: 'awe', look: 1, shadow: false, tail: 0.2 * f });
+            g.restore();
+        }
         // the front row: the barrow of signs and its imp, the imp with a cone, the cones
-        const ga = gust(SITE.barrow);
-        P.wheelbarrow(g, ox + SITE.barrow, FRONT, SC, { jig: ga * (d % 2 ? 1 : -1) });
-        Devil.imp(g, ox + SITE.impA, FRONT, is, { wear: 'hat', mood: tail(SITE.impA) > 0 ? 'awe' : 'grin', look: tail(SITE.impA) > 0 ? 1 : 0.4, squash: 0.05 * Pu.pulse, hop: 0.25 * gust(SITE.impA), tail: 0.06 * Math.sin(ph * Math.PI) });
-        const gb = gust(SITE.impB), bx = ox + SITE.impB, bhop = 0.3 * gb;
-        Devil.imp(g, bx, FRONT + 2, is, { wear: 'hat', armUp: 1, mood: tail(SITE.impB) > 0 ? 'oops' : 'grin', look: tail(SITE.impB) > 0 ? 1 : -0.3, squash: 0.05 * Pu.pulse, hop: bhop, tail: -0.05 * Math.sin(ph * Math.PI) });
+        const ga = gust(SITE.barrow), pa = tail(SITE.impA) > 0, pb = tail(SITE.impB) > 0;
+        Devil.imp(g, ox + SITE.impA, FRONT, is, { wear: 'hat', mood: pa ? 'awe' : 'grin', look: pa ? 1 : 0.5, squash: 0.05 * Pu.pulse, hop: 0.3 * gust(SITE.impA), tail: 0.06 * Math.sin(ph * Math.PI) });
+        P.wheelbarrow(g, ox + SITE.barrow, FRONT, SC, { jig: ga * f });
+        const gb = gust(SITE.impB), bx = ox + SITE.impB, bhop = 0.3 * gb, cb = blown(SITE.impB);
+        Devil.imp(g, bx, FRONT + 2, is, { wear: 'hat', armUp: 1, mood: pb ? 'oops' : 'grin', look: pb ? 1 : -0.4, squash: 0.05 * Pu.pulse, hop: bhop, tail: -0.05 * Math.sin(ph * Math.PI) });
         // the cone it carries over its head leaves with the wake
-        const cb = blown(SITE.impB);
-        if (cb < 6) P.cone(g, bx + 34 * cb, FRONT + 2 - (0.98 + bhop) * is - 0.9 * cb * cb, SC, { fall: Math.min(2.6, cb * 0.62) });
+        if (cb < 7) P.cone(g, bx + 40 * cb, FRONT + 2 - (0.98 + bhop) * is - 13 * cb + 2.6 * cb * cb, SC, { fall: Math.min(3.1, cb * 0.62) });
         for (const x of SITE.cones) {
             const k = blown(x);
-            P.cone(g, ox + x + Math.min(26, 9 * k), FRONT + 6, SC, { fall: [0, 0.5, 1.15, 1.66, 1.5][Math.min(4, Math.floor(k))] + (k >= 4 ? 0.07 : 0), hop: k > 0 && k < 3 ? 0.08 : 0 });
+            P.cone(g, ox + x + Math.min(30, 10 * k), FRONT + 6, SC, { fall: [0, 0.5, 1.15, 1.68, 1.5][Math.min(4, Math.floor(k))] + (k >= 4 ? 0.07 : 0), hop: k > 0 && k < 3 ? 0.1 : 0 });
         }
     }
     // The Devil up on his tower with the blueprint: «ah… ah…», the sneeze on its beat, and the
@@ -356,9 +364,10 @@
             if (px > -200 && px < 1200) {
                 P.clockPost(g, px, CLOCK_Y, SC, a >= -EPS);
                 if (a < -EPS) P.clock(g, px, CLOCK_Y - CLOCK_UP, SC, 0, c.hands);
-                else if (dr(t, c.at) < 2) C.burst(g, px, CLOCK_Y - CLOCK_UP + 30, { r0: 16, r1: 40 + 14 * dr(t, c.at), n: 8, seed: 'v3a-tick' + dr(t, c.at), fill: K.white, ink: K.ink, lw: 3 });
+                else if (dr(t, c.at) < 2) C.burst(g, px - 4, CLOCK_Y - CLOCK_UP + 0.56 * SC, { r0: 9, r1: 24 + 10 * dr(t, c.at), n: 7, seed: 'v3a-tick' + dr(t, c.at), fill: K.white, ink: K.ink, lw: 2.6 });
             }
-            if (a >= -EPS) flying.push([XR(t) + c.x - 244 * (1 - Math.exp(-9 * a)) - 250 * a - cam, CLOCK_Y - CLOCK_UP - 380 * a + 380 * a * a, twos(t, c.at) - c.at, c.hands]);
+            const [fx, vx, vy, gy] = c.fly;
+            if (a >= -EPS) flying.push([XR(t) + c.x - fx * (1 - Math.exp(-9 * a)) - vx * a - cam, CLOCK_Y - CLOCK_UP - vy * a + gy * a * a, twos(t, c.at) - c.at, c.hands]);
         }
         if (ox > -500 && ox < 1500) site(g, t, ox);
         inCar(g, cx, LANE, SC, bn, (L) => P.beams(g, L, t, 1));
@@ -371,7 +380,7 @@
             const a = t - T_RIP, a2 = twos(t, T_RIP) - T_RIP, top = P.towerTop(ox + SITE.tower, GROUND, SC);
             P.blueprint(g, top[0] + 30 + 470 * a, top[1] - 0.5 * SC - 560 * a + 520 * a * a, SC, 0.5 + a2 * 9, Math.cos(a2 * 15));
         }
-        if (t < WHIP0) World.front(g, t, cam, 'night');
+        if (t < WHIP0) front(g, t, cam3, 'night', [[T83, T83 + 0.2], ...CLOCKS.map((c) => [c.at - 0.15, c.at + 0.3])]);
     }
 
     function draw(g, t, env) {
