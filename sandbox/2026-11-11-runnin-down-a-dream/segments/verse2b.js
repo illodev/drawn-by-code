@@ -117,9 +117,10 @@
     }
     const spring = (t, a, f = 17, damp = 6.5) => (t < a - 1e-6 ? 0 : Math.exp(-(t - a) * damp) * Math.cos((t - a) * f));
     // the imp's cranking: a turn a beat as it was, then faster and faster (the angle, on twos)
+    // (verse2a's clock, counted from its bar 44, carried on: the cut does not move the handle)
     const crankA = (t) => {
-        const u = (twos(t, T45) - T45) / BEAT;
-        return 0.6 + TAU * (u + 0.075 * u * u);
+        const tq = twos(t, T45), u = (tq - T45) / BEAT;
+        return 0.6 + TAU * ((tq - B(44)) / BEAT + 0.075 * u * u);
     };
     const UMB = n(1) + 2 / 12; // two drawings of his own rain on his head, and he has an umbrella
 

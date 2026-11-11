@@ -241,8 +241,8 @@
         band(g, t, cx, GY2, S2, { bounce: bn, exhaust: kd >= 0 ? 1 : 0.6, wind: w, pinned: kd >= 1, speedo: speedoAt(t), driver });
         inCar(g, cx, GY2, S2, bn, (L) => {
             P.lamps(g, L, 1);
-            // the window in the door: open on the cut, shut when the car goes
-            const win = kd < 0 ? step(t, T81, [0.86, 1.07], 1) : kd === 0 ? 0.55 : 0;
+            // the window in the door: open on the cut, gone when the car goes
+            const win = kd < 0 ? step(t, T81, [0.86, 1.07], 1) : 0;
             P.footwell(g, L, win, press, step(t, T_STAMP, [1, 0.5]), () => {
                 g.save();
                 g.scale(1 / S2, 1 / S2);

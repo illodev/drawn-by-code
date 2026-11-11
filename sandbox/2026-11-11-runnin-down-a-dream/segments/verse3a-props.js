@@ -122,8 +122,12 @@ const Verse3aProps = (() => {
             const gy = j === 0 ? D[1] * 1.72 + 0.02 : 0.05; // the road under that lamp's lane
             const air = [[c[0] + 0.02, c[1] - 0.13], [c[0] + R, c[1] - 0.5 * k], [c[0] + R, gy], [c[0] + 1.25 * Math.min(1, k), gy], [c[0] + 0.02, c[1] + 0.13]];
             const pool = [[c[0] + 1.0 * Math.min(1, k), gy - 0.035], [c[0] + R, gy - 0.2], [c[0] + R + 0.4, gy], [c[0] + R, gy + 0.2], [c[0] + 1.0 * Math.min(1, k), gy + 0.05]];
-            C.poly(g, pool, { fill: 'rgba(255,244,176,0.5)', lw: 0 });
-            C.poly(g, air, { fill: 'rgba(255,244,176,0.3)', lw: 0 });
+            // light adds to what it falls on: flat shapes, screened over the night
+            g.save();
+            g.globalCompositeOperation = 'screen';
+            C.poly(g, pool, { fill: '#8f8448', lw: 0 });
+            C.poly(g, air, { fill: '#5e5632', lw: 0 });
+            g.restore();
             // dust: motes that the car runs into, bright only inside the wedge
             g.save();
             C.trace(g, air);
@@ -501,7 +505,7 @@ const Verse3aProps = (() => {
     // =========================================================================================
     // «Make some time»: a roadside clock
     // =========================================================================================
-    const IRON = { front: '#565082', top: '#8a84b8', side: '#3d3652' };
+    const IRON = { front: '#7a74ae', top: '#a59fd0', side: '#565082' };
     // The post, with the collar its clock sat in. (x, y): its foot; s: units per figure unit.
     function clockPost(g, x, y, s, bare = false) {
         const L = 3.2 / s;
@@ -607,7 +611,7 @@ const Verse3aProps = (() => {
             C.poly(g, [[-hw, y0], [hw, y0], [hw, y0 + h], [-hw, y0 + h]], { ink: K.ink, lw: L });
         }
         // the lamp
-        C.box(g, 0.56, -1.0, 0.16, 0.08, D, { front: '#3d3652', top: '#5d5788', side: '#2a2438' }, { lw: L * 0.8, depth: 0.08 });
+        C.box(g, 0.55, -1.01, 0.22, 0.09, D, STEEL, { lw: L * 0.8, depth: 0.08 });
         circ(g, 0.66, -1.1, 0.105, o.lamp ? K.yellow : K.orange, L * 0.9);
         if (o.lamp) {
             circ(g, 0.66, -1.1, 0.045, '#fffbe0', 0);
@@ -844,12 +848,12 @@ const Verse3aProps = (() => {
     function sneeze(g, x, y, s, age, dir = -1) {
         const dr = Math.floor(age * 12 + 1e-6);
         if (dr < 0 || dr > 2) return;
-        const k = [0.75, 1.15, 1.4][dr], cx = x + dir * (0.5 + 0.22 * dr) * s, cy = y + 0.1 * s;
-        if (dr < 2) C.burst(g, cx, cy, { r0: 0.2 * s * k, r1: 0.44 * s * k, n: 9, seed: 'v3a-choo' + dr, fill: dr ? '#dff7ff' : '#fffdf4', ink: K.ink, lw: 3, sx: 1.25, sy: 0.8, rot: 0.2 * dr });
+        const k = [0.9, 1.3, 1.5][dr], cx = x + dir * (0.62 + 0.3 * dr) * s, cy = y + 0.12 * s;
+        if (dr < 2) C.burst(g, cx, cy, { r0: 0.26 * s * k, r1: 0.56 * s * k, n: 9, seed: 'v3a-choo' + dr, fill: dr ? '#dff7ff' : '#fffdf4', ink: K.ink, lw: 3, sx: 1.25, sy: 0.8, rot: 0.2 * dr });
         const r = Motion.rng('v3a-spit');
         for (let i = 0; i < 7; i++) {
             const a = (r() - 0.5) * 1.3, v = 0.6 + r() * 0.9, u = (dr + 1) / 3;
-            const px = x + dir * (0.4 + v * u * 1.0) * s, py = y + (0.1 + Math.sin(a) * v * u * 0.7 + 0.25 * u * u) * s;
+            const px = x + dir * (0.5 + v * u * 1.5) * s, py = y + (0.1 + Math.sin(a) * v * u * 0.8 + 0.3 * u * u) * s;
             C.poly(g, C.ellipsePts(px, py, 0.06 * s * (1 - 0.2 * dr), 0.032 * s, 10, a * 0.5), { fill: '#bfefff', ink: K.ink, lw: 2.2 });
         }
     }
