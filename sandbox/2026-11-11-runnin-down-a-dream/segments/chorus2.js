@@ -131,7 +131,7 @@
         g.translate(RFX, RFY);
         g.scale(RZ, RZ);
         g.translate(-520, -LANE);
-        World.back(g, t, RX, theme, theme === 'day' ? { sun: { x: 520 + (SUN2[0] - RFX) / RZ + RX * 0.004, y: LANE + (SUN2[1] - RFY) / RZ, r: (SUN2[2] / RZ) * sunK } } : {});
+        World.back(g, t, RX, theme, { clear: [560, 600], ...(theme === 'day' ? { sun: { x: 520 + (SUN2[0] - RFX) / RZ + RX * 0.004, y: LANE + (SUN2[1] - RFY) / RZ, r: (SUN2[2] / RZ) * sunK } } : {}) });
         g.restore();
     }
 

@@ -62,7 +62,7 @@
             Rig.band(g, t, cx, LANE, SC, { spin: (X0 + SPEED * (t - T85)) / (0.56 * SC), bounce: 0.3 * Pu.pulse, exhaust: 0.6, tomDrives: false, sing: true, driver: driver(t) });
             V.beams(g, cx, LANE + 0.3 * Pu.pulse * 0.1 * SC, SC);
         }
-        World.front(g, t, X, 'night');
+        World.front(g, t, X, 'night', { skip: () => true }); // the one near cactus of this stretch crossed the band (lead's review)
     }
 
     // =========================================================================================

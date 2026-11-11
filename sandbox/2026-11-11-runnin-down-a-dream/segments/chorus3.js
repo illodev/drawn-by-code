@@ -58,12 +58,13 @@
     };
     // where each thing rides on the car (verse3b's HOME, car units) and when it lands where it stays
     const RIDE = { coneA: [-2.86, -3.64], coneB: [-4.94, -3.24], barrier: [4.74, -0.2], arrow: [-3.1, -3.8], imp: [4.78, -0.98], plan: [-1.2, -0.5], fork: [3.3, -1.1], post: [-4.37, -1.3] };
-    const LAND = { fork: TL2, barrier: TL2 + 2 * FR, arrow: TL2 + 4 * FR, coneA: n(4), coneB: n(4) + 2 * FR, plan: n(4), imp: n(4) + 4 * FR, devil: n(5), up: n(6), calm: n(7) };
+    const LAND = { fork: TL2, barrier: TL2 + 4 * FR, arrow: TL2 + 6 * FR, coneA: n(4), coneB: n(4) + 2 * FR, plan: n(4), imp: n(4) + 4 * FR, devil: n(5), up: n(6), calm: n(7) };
     // a thing thrown at TL from p0 that comes down on p1 at `t1`, on twos: [x, y, u]
     const toss = (t, t1, p0, p1, G = GF) => {
         const T = t1 - TL, a = Math.min(T, Math.max(0, twos(t, TL) - TL)), vx = (p1[0] - p0[0]) / T, vy = (p1[1] - p0[1] - 0.5 * G * T * T) / T;
         return [p0[0] + vx * a, p0[1] + vy * a + 0.5 * G * a * a, a / T];
     };
+    const HANG = [0.26, -1.9]; // on the way down he streams over the tail: his collar from the whip's post (car units)
     const COLD = { view: 'wide', pan: 0, heat: 0.05, hype: 0, density: 1 };
     function entrance(g, t, env) {
         const Pu = S.pulseAt(t), d = C.drawing(t), f = d % 2 ? 1 : -1, o = { ...COLD, beatK: Pu.pulse * 0.4 };
@@ -78,11 +79,11 @@
         const rattle = (i) => (flying ? 0 : 0.06 * ((d + i) % 2)) * SC; // weightless on the way down
         const v = P.view(o);
         // the Devil's flight: his collar's path from behind the tail to his box, tumbling
-        const post = carPt(RIDE.post), neck0 = [500 + (RIDE.post[0] - 0.36) * SC, 800 + (RIDE.post[1] - 1.72) * SC];
+        const post = carPt(RIDE.post), neck0 = [500 + (RIDE.post[0] + HANG[0]) * SC, 800 + (RIDE.post[1] + HANG[1]) * SC];
         const BOXC = [884, 440 - 0.95 * SC - 0.12 * SC];
         const devilFly = () => {
-            const T = LAND.devil - TL, u = Math.min(1, Math.max(0, twos(t, TL) - TL) / T), p = 1407 + (BOXC[1] - 360), q = p - (neck0[1] - BOXC[1]);
-            return [lerp(neck0[0], BOXC[0], u), neck0[1] - p * u + q * u * u, PI - 0.2 + (TAU + 0.2) * u, u];
+            const T = LAND.devil - TL, u = Math.min(1, Math.max(0, twos(t, TL) - TL) / T), H = neck0[1] - 168, dr = neck0[1] - BOXC[1], p = 2 * H + 2 * Math.sqrt(H * H - H * dr), q = p - dr; // a parabola that tops out at y = 168
+            return [lerp(neck0[0], BOXC[0], u), neck0[1] - p * u + q * u * u, PI + 0.12 + (TAU - 0.12) * u, u];
         };
         g.save();
         g.translate(shake[0], shake[1]);
@@ -120,7 +121,7 @@
                 // its shadow on the empty stage tells it is coming
                 const near = 1 - Math.min(1, up / 950);
                 if (air) {
-                    g.fillStyle = 'rgba(36,21,49,0.28)';
+                    g.fillStyle = 'rgba(30,10,36,0.46)';
                     g.beginPath();
                     g.ellipse(500 + 0.3 * SC, 800 - 0.1 * SC, 4.8 * SC * (0.3 + 0.7 * near * near), 0.2 * SC * (0.4 + 0.6 * near), 0, 0, TAU);
                     g.fill();
@@ -213,12 +214,12 @@
                 if (kOf(t, LAND.fork) === 0) hits.push([P.HOME.fork[0], P.HOME.fork[1] + 6, 44, 'fork']);
                 // --- the Devil: he streams over the tail on the way down, his scarf caught on the whip; the landing slings him
                 if (!flying) {
-                    const nk = [post[0] - 0.36 * SC + 5 * f, post[1] - 1.72 * SC - 6 * f];
+                    const nk = [post[0] + HANG[0] * SC + 5 * f, post[1] + HANG[1] * SC - 6 * f];
                     V.band(g, C.curve([nk, [(nk[0] + post[0]) / 2 - 8 * f, (nk[1] + post[1]) / 2], [post[0], post[1] - 3]], false, 6), 0.07 * SC, V.SCARF, V.STRIPE, 2.6);
                     V.dot(g, post[0], post[1], 0.1 * SC, V.SCARF, 2.6);
                     g.save();
                     g.translate(nk[0], nk[1]);
-                    g.rotate(PI - 0.2 + 0.1 * f);
+                    g.rotate(PI + 0.12 + 0.1 * f);
                     P.devil(g, 0, 0.95 * SC, SC, { mood: 'shock', look: 1, squash: -0.06, headTilt: -0.1, handL: [0.78, -1.0 - 0.22 * f], handR: [-0.76, -1.0 + 0.22 * f], step: f, tail: 0.25 * f, shadow: false }, { t, noTail: true });
                     g.restore();
                 } else if (!landed('devil')) {

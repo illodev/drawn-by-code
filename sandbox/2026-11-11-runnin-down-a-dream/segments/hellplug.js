@@ -437,9 +437,9 @@
     // =========================================================================================
     const HOUSE = { a: '#6a1221', b: '#8a1a2c', tooth: '#fff6e0', toothT: '#fffdf4', toothS: '#d9c39a' };
     const FRONT = [
-        { kind: 'imp', x: 150, y: 1012, s: 300, wear: 'specs', hold: 'lighter', ph: 0 },
+        { kind: 'imp', x: 150, y: 986, s: 300, wear: 'specs', hold: 'lighter', ph: 0 },
         { kind: 'skeleton', x: 385, y: 1090, s: 205, hawk: K.green, tee: 1, hold: 'trident', ph: 0.5 },
-        { kind: 'imp', x: 622, y: 1016, s: 300, wear: 'bow', hold: 'lighter', ph: 0.5 },
+        { kind: 'imp', x: 622, y: 990, s: 300, wear: 'bow', hold: 'lighter', ph: 0.5 },
         { kind: 'skeleton', x: 856, y: 1096, s: 205, hawk: K.yellow, tee: 3, hold: 'lighter', ph: 0 },
     ];
     const BACK = [
@@ -466,28 +466,24 @@
         const Pu = S.pulseAt(t), d = C.drawing(t), ph = Pu.k + E.out(Math.min(1, Pu.since / 0.5)), sing = S.mouth(t) != null;
         // the house from the stage: its rock in rays, the upper teeth, three spots that swing a step a beat
         C.sunburst(g, 500, 640, { n: 12, rot: 0.1 + t * 0.2, a: HOUSE.a, b: HOUSE.b });
-        g.save();
-        g.globalCompositeOperation = 'screen';
-        [[180, K.yellow, 0], [500, K.pink, 1], [820, K.aqua, 2]].forEach(([x, col, i]) => {
-            const tx = x + 170 * Math.sin((ph + i * 0.66) * PI * 0.5) * (i % 2 ? -1 : 1);
-            g.globalAlpha = 0.26 + 0.1 * Pu.pulse;
-            g.fillStyle = col;
-            g.beginPath();
-            g.moveTo(x - 20, -10);
-            g.lineTo(x + 20, -10);
-            g.lineTo(tx + 150, 900);
-            g.lineTo(tx - 150, 900);
-            g.closePath();
-            g.fill();
-        });
-        g.restore();
-        for (let i = 0; i < 9; i++) {
-            const x = 30 + i * 118, w = 58 + (i % 3) * 8, h = 92 + ((i * 5) % 4) * 16 + Math.abs(i - 4) * 12, lean = (i - 4) * -2.5;
-            const pts = [[x - w / 2, -10], [x + w / 2, -10], [x + lean + w * 0.07, h], [x + lean - w * 0.07, h]];
-            C.prism(g, pts, [w * 0.16, -w * 0.105], { front: HOUSE.tooth, top: HOUSE.toothT, side: HOUSE.toothS }, { lw: 3.2 });
-            C.poly(g, [[x + w * 0.12, -6], [x + w / 2 - 2, -6], [x + lean + w * 0.05, h - 5]], { fill: HOUSE.toothS, lw: 0 });
-            C.poly(g, pts, { ink: K.ink, lw: 3.2 });
-        }
+        const spots = (a) => {
+            g.save();
+            g.globalCompositeOperation = 'screen';
+            [[180, K.yellow, 0], [500, K.pink, 1], [820, K.aqua, 2]].forEach(([x, col, i]) => {
+                const tx = x + 170 * Math.sin((ph + i * 0.66) * PI * 0.5) * (i % 2 ? -1 : 1);
+                g.globalAlpha = a;
+                g.fillStyle = col;
+                g.beginPath();
+                g.moveTo(x - 20, -10);
+                g.lineTo(x + 20, -10);
+                g.lineTo(tx + 150, 900);
+                g.lineTo(tx - 150, 900);
+                g.closePath();
+                g.fill();
+            });
+            g.restore();
+        };
+        spots(0.2);
         // the row behind, both mitts up; the pit behind the front row is a tone darker
         for (const f of BACK) fan(g, t + 0.5 * S.BEAT, f, false);
         g.save();
@@ -495,9 +491,17 @@
         g.fillStyle = '#b59fd6';
         g.fillRect(0, 0, 1000, 1000);
         g.restore();
+        spots(0.2 + 0.1 * Pu.pulse);
+        for (let i = 0; i < 9; i++) {
+            const x = 30 + i * 118, w = 58 + (i % 3) * 8, h = 92 + ((i * 5) % 4) * 16 + Math.abs(i - 4) * 12, lean = (i - 4) * -2.5;
+            const pts = [[x - w / 2, -10], [x + w / 2, -10], [x + lean + w * 0.07, h], [x + lean - w * 0.07, h]];
+            C.prism(g, pts, [w * 0.16, -w * 0.105], { front: HOUSE.tooth, top: HOUSE.toothT, side: HOUSE.toothS }, { lw: 3.2 });
+            C.poly(g, [[x + w * 0.12, -6], [x + w / 2 - 2, -6], [x + lean + w * 0.05, h - 5]], { fill: HOUSE.toothS, lw: 0 });
+            C.poly(g, pts, { ink: K.ink, lw: 3.2 });
+        }
         // the surfer, handed along over their mitts
         const u = surfU(t), k = 2.3, sx = lerp(110, 890, u), want = lerp(40, 960, E.seg(t, T108, T109));
-        I.crowd(g, t, { view: { k, cx: sx - (want - 500) / k, cy: 842 - (528 - 500) / k }, pan: 0, density: 0, surf: { u, on: true } });
+        I.crowd(g, t, { view: { k, cx: sx - (want - 500) / k, cy: 842 - (648 - 500) / k }, pan: 0, density: 0, surf: { u, on: true } });
         // the front row
         for (const f of FRONT) fan(g, t + f.ph * 0, f, sing);
         // the line leaves them as notes, one a word
@@ -505,8 +509,8 @@
             if (!on(t, w)) return;
             const f = dr(t, w), who = FRONT[[0, 2, 0, 2, 0, 2, 0][i % 7]], k2 = S.pop(t, w, 0.2);
             if (f > 5) return;
-            const nx = who.x + (i % 2 ? 60 : -30) + f * (i % 2 ? 9 : -7), ny = who.y - 250 - f * 26;
-            C.note(g, nx, ny, 17 * k2 * (f > 4 ? 0.6 : 1), { color: [K.yellow, K.white, K.aqua][i % 3], kind: i % 2 ? 2 : 1, rot: (i % 2 ? 0.2 : -0.2) + (f % 2 ? 0.08 : -0.08) });
+            const nx = who.x + (i % 2 ? 70 : -20) + f * (i % 2 ? 10 : -8), ny = who.y - 236 - f * 30;
+            C.note(g, nx, ny, 23 * k2 * (f > 4 ? 0.6 : 1), { color: [K.yellow, K.white, K.aqua][i % 3], kind: i % 2 ? 2 : 1, rot: (i % 2 ? 0.2 : -0.2) + (f % 2 ? 0.08 : -0.08) });
         });
     }
 
@@ -514,7 +518,7 @@
     // Shot 5 · «Full tilt», bar 109: the stage, the band flat out, the pit's mitts and flames
     // along the bottom; by his socket the Devil fights his way out of the cable and gets up
     // =========================================================================================
-    const FIN = { k: 1.4, cx: 320, cy: 640 };
+    const FIN = { k: 1.32, cx: 296, cy: 634 };
     const FIGHT = n(29), RISE = n(30), STAND = n(31);
     function fullTilt(g, t, env) {
         const St = I.stage(FIN, 0), Pu = S.pulseAt(t), d = C.drawing(t), ph = Pu.k + Pu.since;

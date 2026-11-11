@@ -404,7 +404,7 @@
      */
     function roadside(g, t, o = {}) {
         const Pu = S.pulseAt(t), d = C.drawing(t), R = ROAD, knocks = o.knocks ?? R.knocks, iced = o.iced ?? 1;
-        World.back(g, t, R.X, 'rain');
+        World.back(g, t, R.X, 'rain', { clear: [560, 600] }); // no road sign behind the hearse's pulpit (lead's review)
         skid(g, XSTOP, R.machine.x, R.machine.y);
         // the band, a long way down the road: over the ridge of the dunes, behind the poles
         if (o.band != null) {

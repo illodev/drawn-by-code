@@ -115,15 +115,16 @@ const HellhoofProps = (() => {
         horn(g, L, 1);
     }
     // Locks shaken loose over the brow: k 0..1 how far they fall (1: over the eyes), sw their swing.
+    // A fat one off the widow's peak towards screen left, a thinner one the other way once k grows.
     function locks(g, L, k, sw = 0) {
-        const strand = (x0, y0, x1, y1, w, bend) => {
-            const cl = C.curve([[x0, y0], [lerp(x0, x1, 0.4) + bend, lerp(y0, y1, 0.45)], [x1, y1]], false, 6), n = cl.length;
-            C.poly(g, ribbon(cl.map(([x, y], i) => [x, y, w * (1 - 0.82 * (i / (n - 1)))])), { fill: DP.hair, ink: DP.ink, lw: L * 0.8 });
-            line(g, cl.slice(1, 5).map(([x, y]) => [x + 0.006, y]), DP.hairTop, L * 0.7);
+        const lock = (x0, x1, y1, w, bend) => {
+            const y0 = T + 0.15, cl = C.curve([[x0, y0], [lerp(x0, x1, 0.3) + bend, lerp(y0, y1, 0.36)], [lerp(x0, x1, 0.78) + bend * 0.7, lerp(y0, y1, 0.8)], [x1, y1]], false, 7), n = cl.length;
+            C.poly(g, ribbon(cl.map(([x, y], i) => [x, y, w * (1 - Math.pow(i / (n - 1), 1.6)) + 0.004])), { fill: DP.hair, ink: DP.ink, lw: L * 0.9 });
+            line(g, cl.slice(2, Math.floor(n * 0.6)).map(([x, y]) => [x - w * 0.25, y]), DP.sheen, L * 0.9);
         };
-        strand(-0.06, T + 0.14, -0.2 + sw * 0.1, T + 0.26 + 0.36 * k, 0.045, -0.05 + sw * 0.05);
-        strand(0.1, T + 0.14, 0.24 + sw * 0.12, T + 0.24 + 0.3 * k, 0.04, 0.06 + sw * 0.05);
-        if (k > 0.45) strand(0.02, T + 0.2, 0.03 + sw * 0.14, T + 0.3 + 0.3 * k, 0.034, 0.03 * sw);
+        lock(-0.02, -0.19 + sw * 0.1, T + 0.27 + 0.36 * k, 0.058, -0.05 + sw * 0.04);
+        if (k > 0.5) lock(0.1, 0.23 + sw * 0.12, T + 0.25 + 0.3 * k, 0.044, 0.05 + sw * 0.04);
+        if (k > 0.8) lock(0.03, 0.04 + sw * 0.14, T + 0.3 + 0.24 * k, 0.036, 0.02 + sw * 0.03);
     }
     function moustache(g, L, droop = 0) {
         const mu = EY + 0.185;
@@ -323,9 +324,9 @@ const HellhoofProps = (() => {
             return [[0.2, -0.46], [0.6, -0.33], [0.92, -0.38], p, at(len * 0.36, ang), at(len * 0.7, ang - lag * 0.5), at(len, ang - lag)];
         },
         // on the box's carpet, the spade curled up off it
-        floor: (tw = 0) => [[0.2, -0.46], [0.47, -0.25], [0.56, -0.07], [0.7, -0.045], [0.8, -0.12 - tw * 0.03], [0.77, -0.25 - tw * 0.06], [0.67, -0.31 - tw * 0.08]],
+        floor: (tw = 0) => [[0.2, -0.46], [0.45, -0.32], [0.53, -0.12], [0.6, -0.045], [0.66, -0.1 - tw * 0.01], [0.665, -0.2 - tw * 0.03], [0.62 - tw * 0.02, -0.27 - tw * 0.05]],
         // straight up, kinked like a bolt: a stamped hoof
-        bolt: (f = 1) => [[0.2, -0.46], [0.46, -0.3], [0.6, -0.2], [0.68, -0.48], [0.56 - 0.03 * f, -0.74], [0.72 + 0.03 * f, -1.0], [0.62, -1.26]],
+        bolt: (f = 1) => [[0.2, -0.46], [0.44, -0.3], [0.56, -0.2], [0.63, -0.45], [0.53 - 0.02 * f, -0.66], [0.65 + 0.02 * f, -0.86], [0.58, -1.08]],
     };
     const mixPts = (a, b, u) => a.map((p, i) => [lerp(p[0], b[i][0], u), lerp(p[1], b[i][1], u)]);
     function tail(g, x, y, s, pose, ctrl) {

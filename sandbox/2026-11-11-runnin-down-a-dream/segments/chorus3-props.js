@@ -253,7 +253,7 @@ const Chorus3Props = (() => {
         if (o.slam) {
             // the big hit: a white star flashes behind the whole banner for two drawings
             const kd = kOf(t, t1);
-            if (kd >= 0 && kd < 2) C.burst(g, lx, ly + 44 * k, { r0: (220 + 30 * kd) * k, r1: (300 + 40 * kd) * k, n: 17, seed: 'chorus3-slam', rot: kd * 0.1, fill: kd ? K.yellow : K.white, ink: K.ink, lw: 4, sy: 0.5 });
+            if (kd >= 0 && kd < 2) C.burst(g, lx, ly + 44 * k, { r0: (190 + 26 * kd) * k, r1: (262 + 36 * kd) * k, n: 17, seed: 'chorus3-slam', rot: kd * 0.1, fill: kd ? K.yellow : K.white, ink: K.ink, lw: 4, sy: 0.46 });
         }
         const word = (text, wx, wy, size, when, wi, opt) =>
             C.text3d(g, text, wx, wy, {
