@@ -21,7 +21,12 @@
     and a dark blazer in the middle; curls and a green shirt; dark shaggy hair, a white
     jacket and a black bandana; a tall one with curls, a striped shirt and a blazer; curls,
     a waistcoat and a striped shirt), drawn here as box people told apart by hair, clothes
-    and instrument. Instruments are assigned by look, to be corrected by the user.
+    and instrument. The line-up, from the user: Tom Petty (lead vocal, rhythm guitar), Mike
+    Campbell (lead guitar: the solo is his), Benmont Tench (piano and organ), Ron Blair
+    (bass), Stan Lynch (drums). Which man in the photo is which is not known here (nobody is
+    identified from a face): the four looks are given to the four roles provisionally (lead
+    guitar: shaggy dark hair, white jacket, bandana; drums: curls, green shirt; bass: the
+    tall one in the blazer; keys: curls and waistcoat), for the user to correct.
   - The cover of *Full Moon Fever*: black bands, a pink-to-yellow field, teal, condensed
     capitals. Its palette is the film's palette; the opening card is laid out like it.
   - A frame of an animated video with a band playing on a speaker car among other racers:
