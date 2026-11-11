@@ -21,7 +21,7 @@
 //                                Mike steps forward, they square up, necks up; Stan counts four on
 //                                his sticks. The last frame is the solo's first picture (FINAL).
 // The cactus in shades sits at the wheel (Chorus1Props). What the car threw off in chorus 3 and his
-// sore nose are Chorus3Props's. Props: segments/bridge-props.js (BridgeProps).
+// sore nose are Chorus3Props's (the close shot's nose is hellhoof's own). Props: segments/bridge-props.js (BridgeProps).
 (() => {
     const Seg = (window.Seg = window.Seg || {});
     const C = Cereal, K = C.COL, E = Ease, S = Song, I = Inferno, P = BridgeProps, C3 = Chorus3Props, twos = S.twos, pop = S.pop;
@@ -164,7 +164,8 @@
         // what he looks at: the band, it, the band, it (he has made his mind up); the rips; the throw; the rail
         const reads = !on(t, RIP1) && ((on(t, n(1)) && !on(t, n(2))) || on(t, n(3)));
         const decided = H.dev.face({ h: 0.15, lx: 0, ly: 1, ph: 0.085, lid: 0.1 }, { tilt: 0.05, cock: 0.05 }, 'smile', { droop: -0.015 });
-        const face = climb ? F.stage : on(t, RIP1 + 3 / 12) ? F.joy : on(t, RIP1) ? F.ouch : on(t, n(3)) ? decided : on(t, n(2)) ? F.real : on(t, n(1)) ? F.read2 : F.real;
+        const effort = H.dev.face({ shut: 'tight' }, { tilt: 0.0, raise: 0.02 }, 'joy', { droop: -0.02 });
+        const face = climb ? F.stage : on(t, RIP1 + 3 / 12) ? F.joy : on(t, RIP1) ? effort : on(t, n(3)) ? decided : on(t, n(2)) ? F.real : on(t, n(1)) ? F.read2 : F.real;
         // his mitts: on the contract's edges, each going with its half; up and back over his shoulders; down on the rail
         let hR, hL;
         if (!thrown) {
@@ -176,10 +177,11 @@
             hR = lerpPt(lerpPt([CC[0] + a[0] - 0.06, CC[1] + 0.04], [-0.56, -1.5], fling), [-0.3, -0.6], down);
             hL = lerpPt(lerpPt([CC[0] + c[0] + 0.06, CC[1] + 0.04], [0.6, -1.58], fling), [0.3, -0.6], down);
         }
+        const bob = on(t, n(1)) ? 1 : 0; // he keeps the beat from the second one on: the first frames are hellhoof's last pose, untouched
         const pose = {
             handR: hR, handL: hL, face, dy: -0.1 * crouch,
-            squash: 0.03 * Pu.pulse + 0.07 * rip + 0.1 * crouch - 0.05 * bump(t, T_THROW, 0.25),
-            headDy: 0.015 * Pu.pulse + (reads ? 0.03 : 0) + 0.03 * crouch, headTilt: reads || (on(t, RIP1) && !climb) ? (thrown ? -0.06 * fling : 0) : -0.035,
+            squash: 0.03 * Pu.pulse * bob + 0.07 * rip + 0.1 * crouch - 0.05 * bump(t, T_THROW, 0.25),
+            headDy: 0.015 * Pu.pulse * bob + (reads ? 0.03 : 0) + 0.03 * crouch, headTilt: reads || (on(t, RIP1) && !climb) ? (thrown ? -0.06 * fling : 0) : -0.035,
         };
         H.hold(g, t, { pose, contract: false, held: (g2, L) => {
             if (!thrown) {
@@ -189,7 +191,6 @@
                 I.tornContract(g2, CC[0] * CL.s, CC[1] * CL.s, CL.s, k, 0, { fall: 0 });
                 g2.restore();
             }
-            P.head(g2, { headDy: pose.headDy, headTilt: pose.headTilt }, () => P.nose(g2, L, 1)); // his cold's sore nose (Chorus3Props.devil's)
         } });
         scraps(g, t, { k: CL.s / 84, at: (p) => [CL.x + ((p[0] - BOX[0]) / 84) * CL.s, CL.y + ((p[1] - BOX[1]) / 84) * CL.s] });
     }
@@ -216,7 +217,7 @@
         if (!on(t, SLIDE)) {
             // over the rail (he is already in the air on the cut) and down onto the corbel's flank
             const u = E.seg(t, T1 - 3 * FR, SLIDE);
-            at = arc([846, 428], FLANK0, u, 10);
+            at = arc([850, 448], FLANK0, u, 4);
             Object.assign(pose, { lean: lerp(-0.42, -0.2, u), mood: 'laugh', squash: -0.06 });
             hR = [-0.7, -1.3];
             hL = [0.72, -1.2];
@@ -278,7 +279,7 @@
             });
             if (on(t, STEAM)) {
                 const np = P.toFrame(p[0], p[1], s, pose, rot([0.045, -1.225 + (pose.headDy ?? 0)], pose.headTilt ?? 0));
-                P.steam(g, np[0] - 0.1 * s, np[1] - 0.02 * s, 0.1 * s, E.seg(twos(t, STEAM), STEAM, STEAM + 0.5));
+                P.steam(g, np[0], np[1] - 0.05 * s, 0.085 * s, E.seg(twos(t, STEAM), STEAM, STEAM + 0.5), 1.1 * s);
             }
             if (chips >= 0) {
                 // chips of rock off the flank behind his hooves

@@ -41,6 +41,9 @@
   silence, a four-note guitar pickup (0.505, 1.045, 1.411, 1.579 s), the band in on beat 4
   (1.747 s); kick on 1 and 3, snare on 2 and 4. The fade is silent by 262 s; what follows
   on the file is the CD's spoken interlude and stays out. All times live in `song.js`.
+- **Signature:** `illodev x Claude` (exactly so), decided by the user: on the final blue
+  screen, after `STOP`, typed on in the VCR's own display lettering and held; the film runs
+  2 s past the song's end for it (to 264 s, silent).
 - **Must NOT happen:** a cereal ad; anything from the song's own animated video; lyrics as
   karaoke; a devil that is frightening or cruel rather than a hapless mascot; gags borrowed
   whole from a known cartoon; hands with fingers (the style's people have block mitts); a picture so degraded
