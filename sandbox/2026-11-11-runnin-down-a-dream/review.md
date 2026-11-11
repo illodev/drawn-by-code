@@ -421,3 +421,8 @@ song, so it can be read. The fade block's agent was told while it worked.
 - The automatic review of the whole film (264 s): no still stretch, one cut off the beat (the
   tape's blue to the card at 0.5 s, before the song's grid starts), large jumps only where they
   are staged (the rewind at 1:44–1:50, the notes landing at 3:03).
+- **The chauffeur's scarf** («la bufanda del esqueleto»). The scarf was painted after the whole
+  skeleton, arms included, so the arm he raises with the towel (1:20.8) went behind the scarf's
+  band, and so did the umbrella arm and both arms he throws up on the moon. `Rides.skeleton`
+  takes a `wear` callback drawn in his units after the head and before the arms; the scarf goes
+  on there in the three blocks that dress him.

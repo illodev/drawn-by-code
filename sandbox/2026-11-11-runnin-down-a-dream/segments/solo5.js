@@ -590,8 +590,8 @@
                 // he waves his free arm; with `up`, both
                 const hands = { r: [-0.6, -1.5 - 0.1 * Math.cos(ph * PI)], ...(up > 0.5 ? { l: [0.6, -1.5 + 0.1 * Math.cos(ph * PI)] } : {}) };
                 const pose = { shadow: false, jaw: 0.3 + 0.6 * pu, headDy: 0.02 * pu, headTilt: 0.05 * Math.sin(ph * PI), hands };
-                Rides.skeleton(g2, px, py, sc, pose);
-                if (opt('Verse2cProps')) Verse2cProps.skelScarf(g2, px, py, sc, { t, headDy: pose.headDy });
+                // his scarf goes on under his arms: both are up, and they cross it
+                Rides.skeleton(g2, px, py, sc, { ...pose, wear: opt('Verse2cProps') ? (g3) => Verse2cProps.skelScarf(g3, 0, 0, sc, { t, inFrame: true }) : null });
             });
         });
     }

@@ -70,8 +70,7 @@
         for (const [dx, dy] of [[0, -3], [0, 5], [30, -22], [30, -15]]) C.poly(g, [[wx + dx - len, wy + dy], [wx + dx, wy + dy]], { ink: '#2b2e42', lw: 3.4, close: false });
     }
     const chauffeur = (g2, seats, sc0, pose, scarf, t) => Rides.at(g2, sc0, seats.chauffeur, (px, py, sc) => {
-        Rides.skeleton(g2, px, py, sc, { jaw: 0, shadow: false, ...pose });
-        if (scarf) Q.skelScarf(g2, px, py, sc, { t });
+        Rides.skeleton(g2, px, py, sc, { jaw: 0, shadow: false, ...pose, wear: scarf ? (g3) => Q.skelScarf(g3, 0, 0, sc, { t, inFrame: true }) : null });
     });
 
     // =========================================================================================

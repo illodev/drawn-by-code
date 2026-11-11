@@ -804,6 +804,8 @@ const Rides = (() => {
         line(g, [[-0.25, top + 0.075], [0.02, top + 0.075]], L * 0.7, P.glint);
         circ(g, 0, bt - 0.085, 0.062, P.gold, L * 0.7, P.ink);
         g.restore();
+        // what he wears round his neck goes on here, under his arms: pose.wear(g, L) draws in his units
+        if (pose.wear) pose.wear(g, L);
         // --- arms: white-gloved mitts -------------------------------------------------------
         const hands = pose.hands ?? {};
         Cast.arm(g, P, L, [T.x + 0.03, T.y + 0.13], hands.r ?? [-0.5, -0.47]);

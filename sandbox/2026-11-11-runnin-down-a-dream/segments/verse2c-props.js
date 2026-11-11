@@ -409,15 +409,19 @@ const Verse2cProps = (() => {
     // =========================================================================================
     /**
      * A striped scarf round the skeleton chauffeur's neck, wound over his collar and his chin,
-     * in his units: draw it right after Rides.skeleton with the same x, y, s.
-     *   o: { color, t (its loose end flaps on twos) }
+     * in his units. It goes on under his arms: pass it to Rides.skeleton as the pose's `wear`
+     * (`wear: (g2) => skelScarf(g2, 0, 0, s, { t, inFrame: true })`), never after the whole skeleton,
+     * or an arm he raises goes behind it.
+     *   o: { color, t (its loose end flaps on twos), inFrame (the canvas is already in his units: only s's line width is used) }
      */
     function skelScarf(g, x, y, s, o = {}) {
         const L = 3.2 / s, color = o.color ?? K.pink, dark = '#b3176e', stripe = '#fffdf4', d = C.drawing(o.t ?? 0);
         const y0 = -1.085, y1 = -0.925, xa = -0.33, xb = 0.33, kx = 0.2, flap = [0, 0.02, -0.012][((d % 3) + 3) % 3];
         g.save();
-        g.translate(x, y);
-        g.scale(s, s);
+        if (!o.inFrame) {
+            g.translate(x, y);
+            g.scale(s, s);
+        }
         g.lineJoin = 'round';
         g.lineCap = 'round';
         const band = (pts, col, sw) => {

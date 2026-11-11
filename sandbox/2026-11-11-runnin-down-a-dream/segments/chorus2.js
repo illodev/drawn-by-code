@@ -403,8 +403,8 @@
         Rides.hearse(g, HX, HY, RS, { spin: 0.6, flames: 0, bounce: sink, t, swing: 0 }, (g2, seats, sc0) => {
             Rides.at(g2, sc0, seats.chauffeur, (px, py, sc) => {
                 if (ch.umb) W.umbrella(g2, px + ch.umb.at[0] * sc, py + ch.umb.at[1] * sc, sc, { open: ch.umb.open, tilt: ch.umb.tilt, color: K.magenta });
-                Rides.skeleton(g2, px, py, sc, { shadow: false, ...ch.pose });
-                V.skelScarf(g2, px, py, sc, { t, headDy: ch.pose.headDy }); // the scarf verse 2c gave him
+                // the scarf verse 2c gave him, under his arms (the towel arm and the umbrella arm cross it)
+                Rides.skeleton(g2, px, py, sc, { shadow: false, ...ch.pose, wear: (g3) => V.skelScarf(g3, 0, 0, sc, { t, inFrame: true }) });
                 if (ch.towel != null) P.towelHang(g2, px + ch.pose.hands.r[0] * sc, py + ch.pose.hands.r[1] * sc, sc, ch.towel); // folded over his mitt
             });
         });
