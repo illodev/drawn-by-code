@@ -426,3 +426,9 @@ song, so it can be read. The fade block's agent was told while it worked.
   band, and so did the umbrella arm and both arms he throws up on the moon. `Rides.skeleton`
   takes a `wear` callback drawn in his units after the head and before the arms; the scarf goes
   on there in the three blocks that dress him.
+- **The scarf was not worn** («siempre sale entera delante de él como un polígono rectangular,
+  no parece que la lleve puesta»). It was a straight extruded band laid over his chin, wider
+  than his jaw: a pink brick held in front of him. Redrawn as cloth: two soft turns round the
+  neck that sag onto the collar, stripes fanning with the turns, a knot to one side and the two
+  tails from under it; painted over the jacket and UNDER the head and the arms (`wear` now runs
+  before the head), so the jaw sits in it and the arms cross it.

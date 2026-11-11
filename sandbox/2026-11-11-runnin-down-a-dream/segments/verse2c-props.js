@@ -408,15 +408,16 @@ const Verse2cProps = (() => {
     // The chauffeur's scarf
     // =========================================================================================
     /**
-     * A striped scarf round the skeleton chauffeur's neck, wound over his collar and his chin,
-     * in his units. It goes on under his arms: pass it to Rides.skeleton as the pose's `wear`
-     * (`wear: (g2) => skelScarf(g2, 0, 0, s, { t, inFrame: true })`), never after the whole skeleton,
-     * or an arm he raises goes behind it.
+     * A striped scarf wound twice round the skeleton chauffeur's neck, a knot and two tails, in his
+     * units. It goes on over his jacket, under his head and under his arms: pass it to
+     * Rides.skeleton as the pose's `wear` (`wear: (g2) => skelScarf(g2, 0, 0, s, { t, inFrame: true })`),
+     * never after the whole skeleton (a flat band painted over his chin and his arms is a pink
+     * brick held in front of him, not something he wears).
      *   o: { color, t (its loose end flaps on twos), inFrame (the canvas is already in his units: only s's line width is used) }
      */
     function skelScarf(g, x, y, s, o = {}) {
-        const L = 3.2 / s, color = o.color ?? K.pink, dark = '#b3176e', stripe = '#fffdf4', d = C.drawing(o.t ?? 0);
-        const y0 = -1.085, y1 = -0.925, xa = -0.33, xb = 0.33, kx = 0.2, flap = [0, 0.02, -0.012][((d % 3) + 3) % 3];
+        const L = 3.2 / s, color = o.color ?? K.pink, dark = '#b3176e', shade = '#d81f84', stripe = '#fffdf4', d = C.drawing(o.t ?? 0);
+        const flap = [0, 0.02, -0.012][((d % 3) + 3) % 3];
         g.save();
         if (!o.inFrame) {
             g.translate(x, y);
@@ -424,18 +425,7 @@ const Verse2cProps = (() => {
         }
         g.lineJoin = 'round';
         g.lineCap = 'round';
-        const band = (pts, col, sw) => {
-            C.poly(g, pts, { fill: col, lw: 0 });
-            if (sw) {
-                g.save();
-                C.trace(g, pts);
-                g.clip();
-                sw();
-                g.restore();
-            }
-            C.poly(g, pts, { ink: K.ink, lw: L });
-        };
-        // the tails first, so the knot sits on them: one hangs down his chest, one sticks out
+        // a tail: a striped ribbon along a line, fringed at its end
         const tail = (pts, w) => {
             const n = pts.length, A = [], B = [];
             pts.forEach(([px, py], i) => {
@@ -454,23 +444,52 @@ const Verse2cProps = (() => {
             const e = pts[n - 1], p = pts[n - 2], ex = e[0] - p[0], ey = e[1] - p[1], el = Math.hypot(ex, ey) || 1;
             for (const k of [-0.7, 0, 0.7]) line(g, [[e[0] - (ey / el) * w * k, e[1] + (ex / el) * w * k], [e[0] - (ey / el) * w * k + (ex / el) * 0.055, e[1] + (ex / el) * w * k + (ey / el) * 0.055]], L * 0.8);
         };
-        tail(C.curve([[kx + 0.03, y1 - 0.05], [kx + 0.13, y1 + 0.02 + flap], [kx + 0.2, y1 + 0.1 + flap * 2], [kx + 0.24, y1 + 0.19 + flap]], false, 3), 0.058);
-        tail(C.curve([[kx - 0.01, y1 - 0.04], [kx - 0.005, y1 + 0.09], [kx - 0.02 - flap * 0.5, y1 + 0.2], [kx - 0.01, y1 + 0.3]], false, 3), 0.064);
-        // the wrap: round the right side, then across the front
-        band([[xb, y0], [xb + D[0] * 0.4, y0 + D[1] * 0.4], [xb + D[0] * 0.4, y1 + D[1] * 0.4], [xb, y1]], dark);
-        band([[xa, y0 + 0.01], [xb, y0], [xb, y1], [xa, y1 - 0.004]], color, () => {
-            g.fillStyle = stripe;
-            for (let sx = xa + 0.07; sx < xb; sx += 0.19) g.fillRect(sx, y0 - 0.02, 0.065, y1 - y0 + 0.04);
-        });
-        C.poly(g, [[xa, y0 + 0.01], [xa + D[0] * 0.4, y0 + 0.01 + D[1] * 0.4], [xb + D[0] * 0.4, y0 + D[1] * 0.4], [xb, y0]], { fill: '#ff7fbd', ink: K.ink, lw: L });
-        // the knot
+        // a turn of the scarf round his neck: a soft band between two sagging curves, its stripes fanning with it
+        // (top, bot: control points left to right; phase: where its stripes start; under: a darker lip along its top)
+        const N = 28;
+        const coil = (top, bot, phase, under) => {
+            const Tp = C.curve(top, false, N / (top.length - 1)), Bp = C.curve(bot, false, N / (bot.length - 1)), n = Math.min(Tp.length, Bp.length);
+            const shape = [...Tp.slice(0, n), ...Bp.slice(0, n).reverse()];
+            C.poly(g, shape, { fill: color, lw: 0 });
+            g.save();
+            C.trace(g, shape);
+            g.clip();
+            const at = (P, u) => {
+                const f = Math.max(0, Math.min(n - 1.001, u * (n - 1))), i = Math.floor(f), k = f - i;
+                return [P[i][0] + (P[i + 1][0] - P[i][0]) * k, P[i][1] + (P[i + 1][1] - P[i][1]) * k];
+            };
+            for (let u = phase; u < 1; u += 0.15) C.poly(g, [at(Tp, u), at(Tp, u + 0.062), at(Bp, u + 0.062), at(Bp, u)], { fill: stripe, lw: 0 });
+            if (under) C.poly(g, [...Tp.slice(0, n), ...Tp.slice(0, n).reverse().map(([px, py]) => [px, py + under])], { fill: shade, lw: 0 });
+            g.restore();
+            C.poly(g, shape, { ink: K.ink, lw: L });
+        };
+        // the tails first, from under the knot: one down his chest, one that sticks out and flaps
+        tail(C.curve([[0.26, -0.87], [0.34, -0.8 + flap], [0.4, -0.72 + flap * 2], [0.43, -0.63 + flap]], false, 3), 0.055);
+        tail(C.curve([[0.2, -0.87], [0.19, -0.76], [0.21 - flap * 0.5, -0.66], [0.195, -0.56]], false, 3), 0.062);
+        // twice round: the lower turn sags onto his collar, the upper one sits on it and takes his jaw
+        // (he has no neck to speak of: the head, drawn after this, sinks into it)
+        coil([[-0.46, -1.0], [-0.22, -0.975], [0, -0.965], [0.22, -0.975], [0.5, -1.0]], [[-0.43, -0.9], [-0.2, -0.84], [0, -0.82], [0.21, -0.84], [0.46, -0.9]], 0.05, 0);
+        coil([[-0.42, -1.14], [-0.2, -1.12], [0, -1.12], [0.22, -1.12], [0.48, -1.14]], [[-0.49, -1.0], [-0.22, -0.955], [0, -0.94], [0.22, -0.955], [0.53, -1.0]], 0.12, 0);
+        // the jaw's shadow on the upper turn
+        g.save();
         g.beginPath();
-        g.roundRect(kx - 0.085, y0 - 0.012, 0.17, y1 - y0 + 0.03, 0.045);
+        g.rect(-0.3, -1.02, 0.6, 0.035);
+        g.clip();
+        coil([[-0.42, -1.14], [-0.2, -1.12], [0, -1.12], [0.22, -1.12], [0.48, -1.14]], [[-0.49, -1.0], [-0.22, -0.955], [0, -0.94], [0.22, -0.955], [0.53, -1.0]], 2, 0.2);
+        g.restore();
+        // the knot, on the lower turn towards his left: a fat lump with a crease
+        g.save();
+        g.translate(0.235, -0.875);
+        g.rotate(0.18);
+        g.beginPath();
+        g.roundRect(-0.075, -0.062, 0.15, 0.124, 0.045);
         g.fillStyle = dark;
         g.fill();
         g.strokeStyle = K.ink;
         g.lineWidth = L;
         g.stroke();
+        line(g, [[-0.03, -0.035], [0.0, 0.03]], L * 0.7);
+        g.restore();
         g.restore();
     }
 
