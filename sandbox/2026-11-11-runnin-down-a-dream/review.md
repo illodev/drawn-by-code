@@ -288,3 +288,46 @@ Translation into changes:
   the far verge between those x) and the shot passes the crossing's span. Checked on a
   full-resolution crop. Rule for the style skill: a shot that lays its own piece over a
   generated set clears the set there first.
+
+### Round 7 (auto) · verse 2, chorus 2, the break and verse 3 in the film (55.4–131.7 s)
+
+Props first, then blocks, all in parallel from the shared brief (now with an addendum:
+voices, the rig's new hooks, the weather props): `weather.js` (the rain machine as a
+trailer, storm cloud and front, the canvas top and wipers, umbrella, ice block, calendar
+pages, Hell frozen over), then eight blocks:
+
+- `verse2a` a rainbow bridge for «anything was possible»; the cactus hits cruise control
+  (the dash in a call-out, since a dash faces away in this projection), rubs his eyes and
+  nods off; the hearse tows the rain machine in and it coughs out its first cloud.
+- `verse2b` the cloud grows, the front crosses and drains the colour, MON TUE WED fly by,
+  the top goes up, the band plays on soaked; the Devil cranks it himself, far too fast.
+- `verse2c` the machine makes cold: the crank snaps, Hell freezes over (scarves, earmuffs, a
+  snowman with horns, `HELL · CLOSED: SNOW`), the Devil in a block of ice at the roadside.
+- `chorus2` the sun shoulders the clouds apart, the title as sung, the thaw (a sneezed ice
+  cube, a towel), and the title's own letters come down on him: D, R, E as a wall he ends
+  up behind, A and M on him; the title again on the last phrase.
+- `breakad` a station bumper and the Devil's own TV spot in full cereal-ad form, with a
+  trio of imps singing the track's «ooh»s as its jingle choir (added after the user heard
+  them). `breakrew` the tape rewinds the spot and stops on the hidden frame.
+- `verse3a` the sun pulls the night down like a blind; pedal down; the pass by the work
+  site. `verse3b` billboards, the highway peeled up and laid on Hell's tongue, the car
+  picking up everything of the Devil's, down the hatch.
+
+Lead's review, on sheets and then on both sides of every join of the assembled film:
+
+- **Blocks started a frame late.** The scene handed over on four-decimal times (55.4167),
+  which can fall a hair after the frame: verse 1a, chorus 1, the getaway and three new
+  blocks each lost their first frame (chorus 1's landing on the beat among them) to the
+  block before, drawn out of its range. The order now uses `Song.B(n)`.
+- **The sun left the frame.** It drifted left with the distance driven and was off the
+  glass by the first chorus (found by verse 3a's agent). It now comes to rest near the
+  left edge (`World.sunX`).
+- Joins inside a continuing shot were closed by the blocks themselves: verse 2a → 2b and
+  2b → 2c are pixel-identical at the cut; chorus 2's roadside was rebuilt on verse 2c's
+  exported one when the two had diverged (machine hitched, block height, the scarf).
+- The Devil's cold (teal scarf with white stripes) matches between verse 3a and 3b.
+
+Open, for the next pass: the rewind was built on an earlier draft of the spot (it plays the
+final one, but its glimpses were timed to the old); a `66` sign behind the hearse in the
+thaw; one near cactus crossing the band in the billboards shot; the speedometer of verse
+3a's pedal gag still out at its last frame.

@@ -4,7 +4,7 @@
 // time comes from song.js (measured on the track).
 Motion.scene({
     fps: 24,
-    duration: 55.4167,
+    duration: 131.6667,
     logical: [1000, 1000],
     uses: [
         'styles/cereal-ad/cereal.js',
@@ -28,6 +28,23 @@ Motion.scene({
         'sandbox/2026-11-11-runnin-down-a-dream/segments/chorus1-props.js',
         'sandbox/2026-11-11-runnin-down-a-dream/segments/chorus1.js',
         'sandbox/2026-11-11-runnin-down-a-dream/segments/planb.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/weather.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse2a-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse2a.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse2b-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse2b.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse2c-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse2c.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/chorus2-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/chorus2.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/breakad-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/breakad.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/breakrew-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/breakrew.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse3a-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse3a.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse3b-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/verse3b.js',
     ],
     fonts: [
         { family: 'Anton', src: 'fonts/Anton-latin.woff2' },
@@ -40,11 +57,25 @@ Motion.scene({
         [17.2917, 20.125, 'Cruising'], [20.125, 24.375, 'Hitchhiker'], [24.375, 25.7917, 'Swap'], [25.7917, 28.5833, 'Fork'],
         [28.5833, 31.4167, 'Digging'], [31.4167, 32.8333, 'The hop'], [32.8333, 35.6667, 'Flying'],
         [35.6667, 38.5, 'Landing'], [38.5, 39.875, 'Kick'], [39.875, 44.125, 'Chase'], [44.125, 45.5417, 'Band'], [45.5417, 48.375, 'Blast'],
-        [48.375, 55.4167, 'Plan B']],
+        [48.375, 55.4167, 'Plan B'],
+        [55.4167, 58.25, 'Feeling good'], [58.25, 62.5, 'Cruise control'], [62.5, 63.9167, 'Behind them'],
+        [63.9167, 65.2917, 'The cloud grows'], [65.2917, 69.5417, 'Three days of rain'], [69.5417, 70.9583, 'Unstoppable'],
+        [70.9583, 72.375, 'Cold'], [72.375, 75.2083, 'Hell freezes over'], [75.2083, 76.625, 'On ice'],
+        [76.625, 79.4167, 'Sunshine'], [79.4167, 86.5, 'The thaw'], [86.5, 89.3333, 'Title'],
+        [89.3333, 92.125, 'Bumper'], [92.125, 93.5417, 'Empty'], [93.5417, 94.9583, 'Burst'], [94.9583, 96.375, 'Souls wanted'], [96.375, 97.7917, 'Cash paid'], [97.7917, 100.625, 'Phone'], [100.625, 103.4167, 'End card'],
+        [103.4167, 104.8333, 'REW'], [104.8333, 107.6667, 'Slowing'], [107.6667, 109.0833, 'The message'], [109.0833, 110.5, 'PLAY'],
+        [110.5, 114.7083, 'Dusk'], [114.7083, 117.5417, 'Pedal'], [117.5417, 120.375, 'Time'],
+        [120.375, 123.2083, 'Billboards'], [123.2083, 126.0417, 'The trap'], [126.0417, 131.6667, 'Pickin up']],
     audio: { mix: 'private/song.mp3' },
 
     setup() {
-        return { order: [[0, Seg.open], [6, Seg.sign], [11.6667, Seg.getaway], [17.2917, Seg.verse1a], [24.375, Seg.verse1b], [28.5833, Seg.verse1c], [35.6667, Seg.chorus1], [48.375, Seg.planb]] };
+        // each block starts on its bar's own frame (Song.B), never on a rounded literal: a
+        // four-decimal time can fall a hair after the frame and hand the block over a frame late
+        const B = Song.B;
+        return {
+            order: [[0, Seg.open], [6, Seg.sign], [B(8), Seg.getaway], [B(12), Seg.verse1a], [B(17), Seg.verse1b], [B(20), Seg.verse1c], [B(25), Seg.chorus1], [B(34), Seg.planb],
+                [B(39), Seg.verse2a], [B(45), Seg.verse2b], [B(50), Seg.verse2c], [B(54), Seg.chorus2], [B(63), Seg.breakad], [B(73), Seg.breakrew], [B(78), Seg.verse3a], [B(85), Seg.verse3b]],
+        };
     },
 
     draw(g, t, env) {

@@ -108,8 +108,11 @@ Motion.scene({
                 row(880, [{ who: 2, trumpet: true, mood: 'shocked' }, { who: 0, trumpet: true, mood: 'peek' }, { who: 1, trumpet: true, mood: 'serene' }, { who: 2, trumpet: true, mood: 'rock', armUp: 0.3 }, { who: 0, trumpet: true, mood: 'ears' }]);
             } else {
                 // small, as in a wide shot (s = 56), and with a shadow on a floor
-                g.fillStyle = K.navy;
-                g.fillRect(0, 700, 1000, 300);
+                const lip = [[-40, 1040]];
+                for (let i = 0; i <= 22; i++) lip.push([i * 50 - 50, 838 + (i % 2 ? 0 : 24)]);
+                lip.push([1040, 1040]);
+                C.poly(g, lip, { fill: K.navy, lw: 0 });
+                C.poly(g, lip.slice(1, -1), { ink: K.ink, lw: 5, close: false });
                 ['serene', 'shocked', 'ears', 'peek', 'rock'].forEach((mood, i) => [0, 1, 2].forEach((who) => S.angel(g, 90 + i * 190 + who * 58, 300 + who * 150, 56, { who, mood, harp: who === 0, trumpet: who === 1, flap: S.flap(tt + who * 0.1) })));
                 [0, 1, 2].forEach((who) => S.angel(g, 250 + who * 250, 900, 110, { who, mood: 'rock', shadow: true, harp: who === 2 }));
             }
@@ -161,12 +164,16 @@ Motion.scene({
         } else if (sheet === 39) {
             night();
             stars();
-            const k = [0.12, 0.35, 0.65, 1][v], mx = 500, my = 1520, r = 900, cx = 480, s = 56;
-            S.moon(g, mx, my, r, { flag: { a: -0.33, s, k: v / 3 + 0.34, t: tt }, t: tt });
-            const o = { r, t: tt };
-            S.landing(g, cx, my - r, s, k, { ...o, part: 'back' });
-            Rig.band(g, tt, cx + S.landingSlide(k) * s, my - r + 1, s, { spin: 6 * S.landingSlide(k), bounce: v === 0 ? 1 : 0, sing: true });
-            S.landing(g, cx, my - r, s, k, { ...o, part: 'front' });
+            const k = [0.12, 0.35, 0.65, 1][v], mn = { x: 500, y: 1520, r: 900 }, s = 56, a = -0.02;
+            S.moon(g, mn.x, mn.y, mn.r, { flag: { a: 0.36, s, k: v / 3 + 0.34, t: tt }, t: tt });
+            const rest = S.landingAt(mn, a, s, 1), now = S.landingAt(mn, a, s, k), o = { r: mn.r, rot: rest.rot, t: tt };
+            S.landing(g, rest.x, rest.y, s, k, { ...o, part: 'back' });
+            g.save();
+            g.translate(now.x, now.y);
+            g.rotate(now.rot);
+            Rig.band(g, tt, 0, 0, s, { spin: 6 * S.landingSlide(k), bounce: v === 0 ? 1 : 0, sing: true });
+            g.restore();
+            S.landing(g, rest.x, rest.y, s, k, { ...o, part: 'front' });
         } else if (sheet === 40) {
             night();
             S.moon(g, 500, 500, 430, [{ face: 0.5 }, { face: 1 }, { face: 1, wink: 1, look: [0.8, 0.6] }, { face: 1, wink: 1, smile: 1, look: [-0.6, 0.8] }][v]);
@@ -202,7 +209,7 @@ Motion.scene({
             }
         } else if (sheet === 45) {
             // the room through a camera that pushes in on the frame (the still part is cached per scale)
-            const z = [1.6, 2.4, 2, 2][v], [cx, cy] = [[500, 380], [500, 340], [200, 420], [830, 600]][v];
+            const z = [1.6, 2.4, 2, 2][v], [cx, cy] = [[500, 380], [500, 340], [200, 420], [800, 600]][v];
             zoom(z, cx, cy, () => S.backstage(g, tt, { frame: { k: 1 } }));
         } else {
             // the room's corners, twice the size

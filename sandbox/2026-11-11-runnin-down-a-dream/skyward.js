@@ -380,23 +380,34 @@ const Skyward = (() => {
      * A car touching down on the moon: skid marks behind its wheels and moon dust that bursts
      * from under them and hangs (there is hardly any gravity), as k goes 0 → 1.
      *   x, y   the ground under the middle of the car where it comes to REST (it faces right
-     *          and slides in from the left: draw the car at x + Skyward.landingSlide(k) * s)
+     *          and slides in from the left: on flat ground draw the car at
+     *          x + Skyward.landingSlide(k) * s)
      *   s      the car's scale (figure units; Rig.CAR on the road);  k  0..1
-     *   o: { r (the moon's radius in logical units when the ground is its limb: the marks
-     *        follow the curve; default flat), t (seconds: the dust boils on twos),
-     *        part ('back' the marks and the far dust, 'front' the near dust; default both) }
+     *   o: { t (seconds: the dust boils on twos),
+     *        part ('back' the marks and the far dust, 'front' the near dust; default both),
+     *        r, rot: when the ground is the moon's limb: its radius in logical units and the
+     *        car's turn at rest. Then take the car's place from Skyward.landingAt(moon, a, s, k):
+     *        { x, y, rot } with both axles on the limb at the angle a (radians clockwise from
+     *        the top), sliding along it; pass landingAt(moon, a, s, 1) as x, y, rot here and
+     *        draw the car at landingAt(moon, a, s, k) turned by its rot }
      * Draw part 'back', then the car, then part 'front'.
      */
-    const SLIDE = 2.6; // how far the car slides, in figure units
+    const SLIDE = 2.6, AXLE = 3.55; // how far the car slides, and its axles, in figure units
     const landingSlide = (k) => -SLIDE * Math.pow(1 - clamp(k / 0.55), 2.2);
+    function landingAt(mn, a, s, k = 1) {
+        const d = Math.sqrt(Math.max(0, mn.r * mn.r - AXLE * s * AXLE * s)), ak = a + (landingSlide(k) * s) / mn.r;
+        return { x: mn.x + Math.sin(ak) * d, y: mn.y - Math.cos(ak) * d, rot: ak };
+    }
     function landing(g, x, y, s, k, o = {}) {
         k = clamp(k);
         if (k <= 0) return;
         const L = 3.2 / s, R = o.r ? o.r / s : Infinity, d = C.drawing(o.t ?? 0), part = o.part ?? 'both';
-        const gy = (px) => (R === Infinity ? 0 : R - Math.sqrt(Math.max(0, R * R - px * px))); // the limb's drop at px
+        // the limb under the car, measured from the line through its two axles
+        const gy = (px) => (R === Infinity ? 0 : Math.sqrt(Math.max(0, R * R - AXLE * AXLE)) - Math.sqrt(Math.max(0, R * R - px * px)));
         const slide = landingSlide(k);
         g.save();
         g.translate(x, y);
+        g.rotate(o.rot ?? 0);
         g.scale(s, s);
         g.lineJoin = 'round';
         g.lineCap = 'round';
@@ -405,7 +416,7 @@ const Skyward = (() => {
             // touched to where they are now
             for (const [z, col, w] of [[1.5, MOON.floor, 0.3], [-0.28, MOON.deep, 0.34]]) {
                 const off = Dd(z);
-                for (const wx of [-3.55, 3.55]) {
+                for (const wx of [-AXLE, AXLE]) {
                     const x0 = wx - SLIDE, x1 = wx + slide, n = Math.max(2, Math.ceil((x1 - x0) / 0.2));
                     if (x1 - x0 < 0.05) continue;
                     const top = [], bot = [];
@@ -425,7 +436,7 @@ const Skyward = (() => {
         }
         // dust: puffs that leave each wheel, grow and thin out slowly; pebbles that float up
         const r = Motion.rng('skyward-landing'), far = [], near = [], stones = [];
-        for (const wx of [-3.55, 3.55]) {
+        for (const wx of [-AXLE, AXLE]) {
             for (let i = 0; i < 6; i++) {
                 const dir = r() < 0.72 ? -1 : 1, reach = 0.5 + 1.5 * r(), rise = 0.25 + 0.95 * r(), size = 0.3 + 0.28 * r(), born = r() * 0.3, end = 0.72 + 0.28 * r(), nb = 5 + Math.floor(r() * 3), a0 = r() * TAU;
                 const u = seg(k, born, end);
@@ -1919,15 +1930,20 @@ const Skyward = (() => {
         wing(g, L, 1, fl);
         g.restore();
         if (pose.sit) {
-            // the lap and the shins hanging over the cloud's edge, the feet under the hem
+            // sitting: the thighs come towards us (a lap seen from above), the shins hang over the
+            // cloud's edge, the feet show under the hem
+            const fw = Dd(-0.46), lx = -0.43 + fw[0], ly = -0.05 + fw[1];
             for (const sx of [-1, 1]) {
-                C.box(g, sx * 0.2 - 0.13, 0.4, 0.26, 0.11, D, skinC, { lw: L, ink: A.ink, depth: 0.3 });
-                line(g, [[sx * 0.2 - 0.13, 0.44], [sx * 0.2 + 0.13, 0.44]], L * 1.3, A.sandal);
+                C.box(g, sx * 0.2 - 0.13 + fw[0], ly + 0.46, 0.26, 0.11, D, skinC, { lw: L, ink: A.ink, depth: 0.3 });
+                line(g, [[sx * 0.2 - 0.13 + fw[0], ly + 0.5], [sx * 0.2 + 0.13 + fw[0], ly + 0.5]], L * 1.3, A.sandal);
             }
-            C.box(g, -0.43, -0.04, 0.86, 0.46, D, robeC, { lw: L, ink: A.ink, depth: 0.55 });
-            C.poly(g, [[0.43, 0.3], ob(0.43, 0.3, 0.55), ob(0.43, 0.42, 0.55), [0.43, 0.42]], { fill: A.hemSide, ink: A.ink, lw: L });
-            C.poly(g, [[-0.43, 0.3], [0.43, 0.3], [0.43, 0.42], [-0.43, 0.42]], { fill: A.hem, ink: A.ink, lw: L });
-            for (const fx of [-0.15, 0.17]) line(g, [[fx, 0.02], [fx - 0.01, 0.28]], L * 0.8, A.fold);
+            C.box(g, lx, ly, 0.86, 0.47, D, { front: A.robe, top: '#ece8fa', side: A.robeSide }, { lw: L, ink: A.ink, depth: 0.5 });
+            C.poly(g, [[lx + 0.86, ly + 0.35], ob(lx + 0.86, ly + 0.35, 0.5), ob(lx + 0.86, ly + 0.47, 0.5), [lx + 0.86, ly + 0.47]], { fill: A.hemSide, ink: A.ink, lw: L });
+            C.poly(g, [[lx, ly + 0.35], [lx + 0.86, ly + 0.35], [lx + 0.86, ly + 0.47], [lx, ly + 0.47]], { fill: A.hem, ink: A.ink, lw: L });
+            line(g, [[lx + 0.03, ly + 0.385], [lx + 0.83, ly + 0.385]], L * 0.8, A.hemTop);
+            // the knees: a fold between them, on the lap and down the front
+            line(g, [ob(lx + 0.43, ly, 0.02), ob(lx + 0.43, ly, 0.36)], L * 0.8, A.fold);
+            line(g, [[lx + 0.43, ly + 0.03], [lx + 0.43, ly + 0.3]], L * 0.8, A.fold);
         } else {
             for (const sx of [-1, 1]) {
                 C.box(g, sx * 0.2 - 0.13, -0.11, 0.26, 0.11, D, skinC, { lw: L, ink: A.ink, depth: 0.34 });
@@ -2732,6 +2748,6 @@ const Skyward = (() => {
         g.restore();
     }
 
-    return { D, Dd, MOON, moon, landing, landingSlide, ZONES, HEIGHTS, EYE, at, horizon, site, moonAt, ascent, ascentFront, town, TOWN_AT,
+    return { D, Dd, MOON, moon, landing, landingSlide, landingAt, ZONES, HEIGHTS, EYE, at, horizon, site, moonAt, ascent, ascentFront, town, TOWN_AT,
         angel, angelPoints, flap, harp, trumpet, cloudBank, bankBob, pearlyBits, backstage, autograph, frameAt, BACKSTAGE };
 })();
