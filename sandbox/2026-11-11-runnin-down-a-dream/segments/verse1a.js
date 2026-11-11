@@ -63,10 +63,9 @@
         }
 
         // --- the band's car: it holds the middle of the frame and bobs once a beat
-        const sing = Math.floor((t - T12) * 12 + 1e-6) % 4 < 2;
         Rig.band(g, t, CX, World.LANE, CAR, {
             spin: X / (0.56 * CAR), bounce: 0.55 * Math.sin(ph * TAU), exhaust: 0.45, sing: true,
-            pose: { tom: at(t, T12 + 1 / 12) ? { headTilt: sing ? -0.13 : -0.05, mouth: sing ? 'sing' : 'grin' } : {} },
+            pose: { tom: at(t, T12 + 1 / 12) ? { headTilt: -0.1 - 0.03 * P.pulse } : {} }, // he throws his head back and sings at the sun
         });
 
         // --- the notes: one a beat from each instrument in turn, a small one on the off-beat
@@ -82,10 +81,10 @@
     // Bars 14–16 · The hitchhiker
     // =========================================================================================
     const V = V1A, SET = V.SET, SC = SET.SC, RW = World.THEMES.day;
-    const DX = 548, DY = 694; // the Devil's mark on the far verge
-    const CAX = 254, CAY = 684, CAH = 430; // the saguaro behind him: his trident leans on it, and his hearse is «hidden» behind it
+    const DX = 556, DY = 694; // the Devil's mark on the far verge
+    const CAX = 266, CAY = 684, CAH = 430; // the saguaro behind him: his trident leans on it, and his hearse is «hidden» behind it
     const CBX = 806, CBY = 682, CBH = 318; // the one down the road, which ends up dressed
-    const HX = -14, HY = 588, HS = 108; // the hearse, hull down behind the dune: a mesa on its tail, the saguaro on its engine
+    const HX = -2, HY = 588, HS = 108; // the hearse, hull down behind the dune: a mesa on its tail, the saguaro on its engine
     const n = (j) => b(56 + j); // beat j of this shot (0–3 bar 14, 4–7 bar 15, 8–11 bar 16)
     const RIP = n(4) + 2 / 24; // the frame the wind takes the disguise
     const HAT_LAND = n(7), SPECS_LAND = n(6), SIGN_FALL = n(9), SIGN_LAND = n(10), LAUGH = n(10) + 3 / 12;
@@ -153,8 +152,8 @@
                 C.poly(g, [[hx + Math.cos(a) * r0, hy + Math.sin(a) * r0], [hx + Math.cos(a) * r1, hy + Math.sin(a) * r1]], { lw: 3.2, close: false });
             }
         }
-        V.bush(g, 162, 584, 62, { seed: 1, sway: 14 * gust + (coming && !passed ? (d % 2 ? 2 : -2) : 0) });
-        V.bush(g, 358, 588, 56, { seed: 2, sway: 12 * gust + (coming && !passed ? (d % 2 ? -2 : 2) : 0) });
+        V.bush(g, 174, 584, 62, { seed: 1, sway: 14 * gust + (coming && !passed ? (d % 2 ? 2 : -2) : 0) });
+        V.bush(g, 370, 588, 56, { seed: 2, sway: 12 * gust + (coming && !passed ? (d % 2 ? -2 : 2) : 0) });
 
         // --- the two saguaros: the trident leans on the near one; the wind dresses the other
         V.cactus(g, CAX, CAY, CAH, { bend: 15 * gust });
@@ -220,6 +219,13 @@
         };
         stars(false);
         if (whirl) {
+            // the top: its shadow, the dust it kicks round its point, then the whirl itself
+            g.fillStyle = 'rgba(36,21,49,0.28)';
+            g.beginPath();
+            g.ellipse(px + 6, DY, 0.5 * SC, 0.06 * SC, 0, 0, TAU);
+            g.fill();
+            const wd = whirl.d;
+            V.puffs(g, [[px - 62 + (wd % 3) * 14, DY - 8, 15 * whirl.k + 3, 5, wd * 0.9], [px + 58 - (wd % 2) * 16, DY - 6, 12 * whirl.k + 3, 5, wd * 1.3 + 2]], '#fff1c4');
             V.units(g, px, DY, SC, whirl.lean, (L) => V.whirl(g, L, whirl.d, whirl.k));
         } else {
             Devil.draw(g, px, DY, SC, pose);
