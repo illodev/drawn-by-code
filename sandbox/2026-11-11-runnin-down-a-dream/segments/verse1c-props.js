@@ -702,25 +702,20 @@ const PitProps = (() => {
     }
 
     // --- the band's car off the ground -----------------------------------------------------
-    // Rides.bandCar always paints the car's shadow under its wheels. In the air that shadow
-    // belongs on the road, so here it is clipped away (everything of the car that reaches
-    // below the shadow's top is a wheel: those are added back to the clip) and painted on
-    // the ground instead. Riders can float off the deck (o.lift, in figure units each).
+    // In the air the car's shadow belongs on the road (Rides.bandCar takes shadow: false), and
+    // its riders can float off the deck (o.lift, in figure units each).
     const SHADOW = 'rgba(36,21,49,0.28)';
-    function hull(g, x, y, r, dd) {
-        const l = Math.hypot(dd[0], dd[1]), a = Math.atan2(dd[0] / l, -dd[1] / l);
-        g.moveTo(x + dd[0] + Math.cos(a - Math.PI) * r, y + dd[1] + Math.sin(a - Math.PI) * r);
-        g.arc(x + dd[0], y + dd[1], r, a - Math.PI, a, false);
-        g.arc(x, y, r, a, a + Math.PI, false);
-        g.closePath();
-    }
+    // Rig.band with Tom at the wheel, plus the lift; and, with o.swap = { tom: [x, y] where Tom is
+    // (car units), mike: 0..1 from deck[0] back to deck[1], shadow: 0..1 Tom's on the boards },
+    // the change of places in mid-air that ends in Rig.band's `tomDrives: false` layout.
     function riders(g, t, x, y, s, o) {
         const pz = Rig.playing(t, o), ov = o.pose ?? {}, lift = o.lift ?? {};
         const pose = (who) => ({ ...pz[who], ...(ov[who] ?? {}) });
-        Rides.bandCar(g, x, y, s, { spin: o.spin ?? 0, bounce: o.bounce ?? 0, lean: o.lean ?? 0, exhaust: o.exhaust ?? 0, t }, (g2, seats, sc0) => {
+        Rides.bandCar(g, x, y, s, { spin: o.spin ?? 0, bounce: o.bounce ?? 0, lean: o.lean ?? 0, exhaust: o.exhaust ?? 0, shadow: o.shadow, t }, (g2, seats, sc0) => {
             const put = (p, who, fn) => {
                 const up = lift[who] ?? 0;
                 if (up > 0.01 && who !== 'tom') {
+                    // the shadow he leaves on the boards
                     g2.fillStyle = SHADOW;
                     g2.beginPath();
                     g2.ellipse(p[0] + 0.05, p[1], 0.5 / (1 + up * 1.5), 0.05, 0, 0, TAU);
@@ -728,11 +723,21 @@ const PitProps = (() => {
                 }
                 Rides.at(g2, sc0, [p[0], p[1] - up, p[2]], (px, py, sc) => fn(px, py, sc));
             };
+            const dk = seats.deck, sw = o.swap ?? null, back = sw && sw.mike > 0.3; // in the far row he is drawn before Benmont
+            const mikeAt = sw ? [lerp(dk[0][0], dk[1][0], sw.mike), lerp(dk[0][1], dk[1][1], sw.mike), 0] : dk[0];
+            const mike = () => put(mikeAt, 'mike', (px, py, sc) => BandStrings.mike(g2, px, py, sc, pose('mike')));
             put(seats.kit, 'stan', (px, py, sc) => BandRhythm.stan(g2, px, py, sc, pose('stan')));
-            put(seats.deck[3], 'howie', (px, py, sc) => BandStrings.howie(g2, px, py, sc, pose('howie')));
-            put(seats.deck[2], 'ben', (px, py, sc) => BandRhythm.benmont(g2, px, py, sc, pose('ben')));
-            put(seats.deck[0], 'mike', (px, py, sc) => BandStrings.mike(g2, px, py, sc, pose('mike')));
-            put(seats.driver, 'tom', (px, py, sc) => Cast.tom(g2, px, py, sc, pose('tom')));
+            put(dk[3], 'howie', (px, py, sc) => BandStrings.howie(g2, px, py, sc, pose('howie')));
+            if (back) mike();
+            put(dk[2], 'ben', (px, py, sc) => BandRhythm.benmont(g2, px, py, sc, pose('ben')));
+            if (!back) mike();
+            if (sw && (sw.shadow ?? 0) > 0) {
+                g2.fillStyle = SHADOW;
+                g2.beginPath();
+                g2.ellipse(dk[0][0] + 0.05, dk[0][1], 0.5 * sw.shadow, 0.05 * sw.shadow, 0, 0, TAU);
+                g2.fill();
+            }
+            Rides.at(g2, sc0, sw ? sw.tom : seats.driver, (px, py, sc) => Cast.tom(g2, px, py - (sw ? 0 : (lift.tom ?? 0)) * sc, sc, pose('tom')));
         });
     }
     /**
@@ -742,37 +747,18 @@ const PitProps = (() => {
      * o.lift: { stan, ben, howie, mike, tom } figure units off the deck; the rest as Rig.band.
      */
     function car(g, t, x, y, s, o = {}) {
-        const ground = o.ground ?? y, hgt = Math.max(0, ground - y), kk = 1 / (1 + hgt / 420);
-        if (hgt < 0.5 && Math.abs(o.tilt ?? 0) < 1e-4) {
-            // on the road: the rig as it is, its own shadow under it
-            if (o.lift) riders(g, t, x, y, s, o);
-            else Rig.band(g, t, x, y, s, o);
-            return;
+        const ground = o.ground ?? y, hgt = Math.max(0, ground - y), air = hgt > 0.5 || Math.abs(o.tilt ?? 0) > 1e-4, kk = 1 / (1 + hgt / 420);
+        if (air) {
+            g.fillStyle = SHADOW;
+            g.beginPath();
+            g.ellipse(x + 0.3 * s, ground - 0.1 * s, 4.8 * s * kk, 0.2 * s * kk, 0, 0, TAU);
+            g.fill();
         }
-        g.fillStyle = SHADOW;
-        g.beginPath();
-        g.ellipse(x + 0.3 * s, ground - 0.1 * s, 4.8 * s * kk, 0.2 * s * kk, 0, 0, TAU);
-        g.fill();
         g.save();
         g.translate(x, y);
         g.rotate(o.tilt ?? 0);
-        // the clip: all that is above the built-in shadow, and the four wheels
-        const lean = o.lean ?? 0, rr = 0.56, fr = 0.42, rx = -3.55, fx = 3.55, zf = 1.48, e = 0.03;
-        g.save();
-        g.scale(s, s);
-        g.beginPath();
-        g.rect(-30, -30, 60, 29.7);
-        hull(g, rx - 0.084, -rr + 0.056, rr + e, Dd(0.3));
-        hull(g, rx + D[0] * zf, -rr + D[1] * zf, rr + e, Dd(0.3));
-        g.translate(rx, -rr);
-        g.rotate(-lean);
-        g.translate(-rx, rr);
-        hull(g, fx - 0.084, -fr + 0.056, fr + e, Dd(0.3));
-        hull(g, fx + D[0] * zf, -fr + D[1] * zf, fr + e, Dd(0.3));
-        g.restore();
-        g.clip();
-        if (o.lift) riders(g, t, 0, 0, s, o);
-        else Rig.band(g, t, 0, 0, s, o);
+        if (o.lift || o.swap) riders(g, t, 0, 0, s, { ...o, shadow: !air });
+        else Rig.band(g, t, 0, 0, s, { ...o, shadow: !air });
         g.restore();
     }
 

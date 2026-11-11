@@ -1,6 +1,6 @@
 # Automatic review · sandbox/2026-11-11-runnin-down-a-dream/scene.js
 
-960×960 px · 24 fps · 17.29 s · 415 frames · 169.97 BPM
+960×960 px · 24 fps · 55.42 s · 1330 frames · 169.97 BPM
 
 ## Warnings
 
@@ -11,16 +11,17 @@
 Energy per second (how much the image changes):
 
 ```
-█▆▅▅▅▆▅▅▇▄▇▆▄▄▅▃▃▄
-0    5    10   15   
+█▆▅▅▅▆▅▅▇▄▇▆▄▄▅▃▃▆▅▆▅▆▄▄▆▅▅▄▅▃▄▅▆▇▇▆▅▅█▇▅▆▆▆▇▇▆▇▆▄▃▃▄▄▄▅
+0    5    10   15   20   25   30   35   40   45   50   55   
 ```
 
 No still stretches of 1 s or more.
 
 ## Speed
 
-Painting: 142 ms/frame cold, 99 ms warm → full render ≈ 41 s at this size.
+Painting: 108 ms/frame cold, 95 ms warm → full render ≈ 126 s at this size.
 
 ## Contact sheet
 
-![sheet](sheet.jpg)
+![sheet](sheet-1.jpg)
+![sheet](sheet-2.jpg)

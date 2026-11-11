@@ -321,33 +321,52 @@
     // =========================================================================================
     const T_END = T5 - 1 / 24, Y_END = LANE - 110, Y_TOP = 392, Y_IN = 636, K_TOP = 4.3; // in beats of this shot
     const BIRDS = [[862, 200, 62, true], [918, 138, 50, false], [928, 262, 44, false]];
+    const SEATS = Rides.bandCarSeats(), SWAP0 = 3.3, SWAP1 = 6.0; // the change of places, in beats of this shot
     function flying(g, t) {
         const P = S.pulseAt(t), d = C.drawing(t), X = Rig.X(t), kEnd = (8 * (T_END - T3)) / (T5 - T3), k = (8 * (t - T3)) / (T5 - T3);
         World.back(g, t, X, 'day', SKY);
         // the sun grins while they are level with it
         PP.sunGrin(g, t, X, SKY.sun, t < n(18) - 2 / 12 - EPS ? pop(t, n(15), 0.2) : 1 - E.out(seg(t, n(18) - 2 / 12, n(18))));
-        // wind: a few streaks at their height
+        // wind: a few streaks under the sun and the moon
         const r = Motion.rng('wind');
         for (let i = 0; i < 7; i++) {
-            const y = 110 + r() * 520, l = 70 + r() * 110, sp = 1.5 + r() * 0.8, x = 1150 - ((X * sp + r() * 2600) % 2600);
+            const y = 300 + r() * 340, l = 70 + r() * 110, sp = 1.5 + r() * 0.8, x = 1150 - ((X * sp + r() * 2600) % 2600);
             C.poly(g, [[x, y], [x + l, y]], { ink: '#fffdf4', lw: 4, close: false });
             C.poly(g, [[x + l * 0.3, y + 10], [x + l * 0.8, y + 10]], { ink: '#fffdf4', lw: 3, close: false });
         }
         // the car's arc: up to the sun's height, over, and down
         const y = k < K_TOP ? Y_TOP + (Y_IN - Y_TOP) * Math.pow(1 - k / K_TOP, 2) : Y_TOP + (Y_END - Y_TOP) * Math.pow((k - K_TOP) / (kEnd - K_TOP), 2.3);
-        const tilt = k < K_TOP ? -0.17 * (1 - E.inOut(k / K_TOP)) : 0.06 * E.inOut(Math.min(1, (k - K_TOP) / 2.6));
-        const top = Math.exp(-Math.pow((k - K_TOP) / 1.1, 2)); // weightless at the top
-        // birds keep pace, look the band over, and pull ahead when it noses over
-        const away = E.in(E.seg(k, 5.6, 7.3));
+        const tilt = k < K_TOP ? -0.17 * (1 - E.inOut(k / K_TOP)) : 0.06 * E.inOut(E.seg(k, 5.4, 7.4));
+        const top = Math.exp(-Math.pow((k - K_TOP) / 1.1, 2)) * (1 - E.seg(k, 5.2, SWAP1)); // weightless at the top
+        const back = 1 - E.inOut(E.seg(k, 6.6, 7.7));
+        // Weightless, they change places: Mike drifts back from deck[0] to deck[1], and Tom floats
+        // up out of the driver's seat with his guitar, still singing, turns a little in the air,
+        // drifts back over the seat and comes down on deck[0]. From there on nobody drives.
+        const ss = (v) => v * v * (3 - 2 * v), tu = ss(E.seg(k, SWAP0 + 0.2, SWAP1)), mu = ss(E.seg(k, SWAP0, SWAP1 - 0.7)), swap = k >= SWAP0 && k < SWAP1, swapped = k >= SWAP1;
+        const drv = SEATS.driver, d0 = SEATS.deck[0], xu = Math.pow(tu, 1.25), arc = Math.sin(Math.PI * Math.pow(tu, 0.8));
+        const tomAt = [lerp(drv[0], d0[0], xu), lerp(drv[1], d0[1], tu) - 1.05 * arc];
+        const tLand = T3 + ((T5 - T3) * SWAP1) / 8, tomLand = bump(t, S.snap(tLand), 0.3), watch = Math.sin(Math.PI * tu);
+        // birds keep pace, look the band over, and pull ahead once he is down
+        const away = E.in(E.seg(k, 6.1, 7.5));
         BIRDS.forEach(([bx, by, bs, shades], i) => {
             const x = bx + away * (260 + i * 60) + 4 * Math.sin(k * 1.3 + i * 2), yy = by - away * (90 + 30 * i) + ((d + i * 2) % 6 < 3 ? 0 : 5);
             if (x > 1080) return;
             PP.bird(g, x, yy, bs, { flap: [0, 1, 2, 1][(((d + i) % 4) + 4) % 4], shades, look: away > 0 ? 1 : -1, lookY: y > yy + 240 ? 1 : 0, tilt: -0.5 * away });
         });
         PP.car(g, t, 520, y, SC, {
-            tilt, ground: LANE, spin: X / (0.56 * SC), exhaust: 1 - E.seg(k, 6, 7.6), sing: true,
-            lift: { stan: 0.05 * top, ben: 0.09 * top, howie: 0.12 * top, mike: 0.1 * top, tom: 0.06 * top },
-            pose: { tom: { headTilt: -0.2 - 0.05 * P.pulse, headDy: -0.02 - 0.03 * top, mouth: d % 4 < 3 ? 'sing' : 'grin' }, howie: { headDy: -0.04 * top }, mike: { headDy: -0.04 * top }, ben: { headDy: -0.04 * top } },
+            tilt, ground: LANE, spin: X / (0.56 * SC), exhaust: 1 - 0.3 * E.seg(k, 6, 7.6), sing: true, tomDrives: !swapped,
+            lift: swapped || top <= 0.02 ? null : { stan: 0.05 * top, ben: 0.09 * top, howie: 0.12 * top, mike: 0.1 * top + 0.26 * Math.sin(Math.PI * mu), tom: 0.06 * top },
+            swap: swap ? { tom: tomAt, mike: mu, shadow: E.seg(tu, 0.6, 1) } : null,
+            // Tom sings with his head back, and brings it down as the car does (the last frame is the rig's own pose)
+            pose: {
+                tom: {
+                    headTilt: (-0.2 - 0.05 * P.pulse) * back, headDy: (-0.02 - 0.03 * top) * back, ...(back > 0.5 ? { mouth: d % 4 < 3 ? 'sing' : 'grin' } : {}),
+                    lean: -0.3 * Math.sin(Math.PI * tu) + 0.07 * Math.sin(3 * Math.PI * tu), squash: (swap ? -0.06 * arc : 0) + 0.14 * tomLand + (swap ? 0 : Rig.playing(t).tom.squash),
+                },
+                // the others watch him go over
+                mike: { headDy: -0.04 * top, headTilt: 0.16 * watch, lean: -0.1 * Math.sin(Math.PI * mu), ...(swap && tu > 0.2 && tu < 0.85 ? { mouth: 'o', eyes: 'wide' } : {}) },
+                howie: { headDy: -0.04 * top - 0.02 * watch, headTilt: 0.17 * watch }, ben: { headDy: -0.04 * top - 0.02 * watch, headTilt: 0.15 * watch }, stan: { headTilt: 0.11 * watch },
+            },
         });
         World.front(g, t, X, 'day');
     }
