@@ -164,6 +164,12 @@ const FadeProps = (() => {
     }
     // a sleeve, a white cuff with a gold link, a red block mitt: devil.js's own arm
     function arm(g, L, sh, hand) {
+        const el = Cast.elbow(sh, hand);
+        if (el) {
+            // a short arm bends at the elbow: the sleeve down to it, then the cuff and the mitt
+            Cast.upperArm(g, sh, el, 0.16, Cast.Dd(0.16), { front: P.suit, top: P.suitTop, side: P.suitSide }, { lw: L, ink: P.ink });
+            sh = el;
+        }
         const w = 0.16, dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6;
         const ux = dx / len, uy = dy / len, nx = -uy * w * 0.5, ny = ux * w * 0.5;
         const quad = (a, b, k = 1) => cw([[sh[0] + ux * a + nx * k, sh[1] + uy * a + ny * k], [sh[0] + ux * b + nx * k, sh[1] + uy * b + ny * k], [sh[0] + ux * b - nx * k, sh[1] + uy * b - ny * k], [sh[0] + ux * a - nx * k, sh[1] + uy * a - ny * k]]);

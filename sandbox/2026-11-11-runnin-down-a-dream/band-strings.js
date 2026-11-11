@@ -155,6 +155,25 @@ const BandStrings = (() => {
     // forearm that ends in the block mitt (it reaches 0.1 past the hand point, as in Cast.arm).
     //   cols  { sleeve, sleeveTop, sleeveSide, cuff }   o: { stripe (a colour), roll (0..1), fold }
     function arm(g, P, L, sh, hand, cols, o = {}) {
+        const el = Cast.elbow(sh, hand);
+        if (el) {
+            // a short arm bends: the sleeve to the elbow (its stripes too), then the forearm as below
+            Cast.upperArm(g, sh, el, 0.15, Dd(0.15), { front: cols.sleeve, top: cols.sleeveTop, side: cols.sleeveSide }, { lw: L, ink: P.ink });
+            if (o.stripe) {
+                const ex = el[0] - sh[0], ey = el[1] - sh[1], en = Math.hypot(ex, ey) || 1e-6;
+                g.strokeStyle = o.stripe;
+                g.lineWidth = L * 0.5;
+                g.lineCap = 'butt';
+                g.beginPath();
+                for (const k of [-0.038, 0, 0.038]) {
+                    g.moveTo(sh[0] - (ex / en) * 0.035 - (ey / en) * k, sh[1] - (ey / en) * 0.035 + (ex / en) * k);
+                    g.lineTo(el[0] + (ex / en) * 0.03 - (ey / en) * k, el[1] + (ey / en) * 0.03 + (ex / en) * k);
+                }
+                g.stroke();
+                g.lineCap = 'round';
+            }
+            sh = el;
+        }
         const dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6;
         const ux = dx / len, uy = dy / len;
         const at = (a, k) => [sh[0] + ux * a - uy * k, sh[1] + uy * a + ux * k];

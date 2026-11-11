@@ -570,16 +570,14 @@
         const P = S.pulseAt(t), ph = P.k + P.since, pu = P.pulse, Wt = opt('Weather'), ho = { lean: o.lean ?? 0, bounce: o.bounce ?? 0 }, up = o.up ?? 0;
         const hopI = (ph0) => 0.14 * Math.sin(PI * Math.min(1, (((P.since + ph0) % 1) + 1) % 1)) * (o.hype ?? 1);
         if (Wt) {
-            const tow = Wt.towedAt(x, y, s, ho), crank = o.crank ?? ph * PI, mo = { towed: true, t, pitch: tow.pitch, crank, needles: 0.5 + 0.4 * Math.sin(ph * PI), smoke: 0.6, puff: P.k % 2 ? 0 : pu, shadow: o.shadow, spin: o.spin ?? 0 };
-            Wt.machine(g, tow.x, tow.y, s, mo);
-            // one imp turns its crank, for the fun of it
-            const c = Wt.crankImp(crank, IMP, mo), ix = tow.x + c.x * s, iy = tow.y + c.y * s;
-            imp(g, ix, iy, s, { wear: OFFICE[1][0], scarf: OFFICE[1][1], armUp: c.armUp, hop: c.hop, squash: c.squash, look: 1, shadow: false, t, tail: 0.05 * Math.cos(ph * PI) });
+            // thawed and idling: its needles tick, a puff climbs the funnel on every other beat
+            const tow = Wt.towedAt(x, y, s, ho);
+            Wt.machine(g, tow.x, tow.y, s, { towed: true, t, pitch: tow.pitch, crank: o.crank ?? 0.7, needles: 0.5 + 0.4 * Math.sin(ph * PI), smoke: 0.6, puff: P.k % 2 ? 0 : pu, shadow: o.shadow, spin: o.spin ?? 0 });
         }
         Rides.hearse(g, x, y, s, { spin: o.spin ?? 0, bounce: ho.bounce, lean: ho.lean, flames: 0.5, t, shadow: o.shadow }, (g2, seats, sc0) => {
-            // two more on the roof, where their boss used to ride
-            [[seats.devil[0] - 1.3, seats.roofY + 0.2, 0.45, 0, 0.5], [seats.devil[0] + 0.1, seats.devil[1], 0.45, 2, 0]].forEach(([px0, py0, pz0, i, ph0]) => {
-                Rides.at(g2, sc0, [px0, py0, pz0], (px, py, sc) => imp(g2, px, py, sc, { wear: OFFICE[i][0], scarf: OFFICE[i][1], armUp: Math.max(up, i ? 1 : 0.5 + 0.5 * pu), hop: hopI(ph0), squash: 0.05 * pu, look: 1, shadow: false, t, tail: 0.05 * Math.cos(ph * PI + i) }));
+            // the three ride the roof, where their boss used to: two on the lid, one on his platform
+            [[-1.9, -1.68, 0, 0.5], [-0.95, -1.76, 1, 0.25], [0.1, seats.devil[1], 2, 0]].forEach(([dx, py0, i, ph0]) => {
+                Rides.at(g2, sc0, [seats.devil[0] + dx, py0, 0.45], (px, py, sc) => imp(g2, px, py, sc, { wear: OFFICE[i][0], scarf: OFFICE[i][1], armUp: Math.max(up, (P.k + i) % 2 ? 1 : 0.4 + 0.6 * pu), hop: hopI(ph0), squash: 0.05 * pu, look: 1, shadow: false, t, tail: 0.05 * Math.cos(ph * PI + i) }));
             });
             Rides.at(g2, sc0, seats.chauffeur, (px, py, sc) => {
                 // he waves his free arm; with `up`, both
@@ -589,6 +587,25 @@
                 if (opt('Verse2cProps')) Verse2cProps.skelScarf(g2, px, py, sc, { t, headDy: pose.headDy });
             });
         });
+    }
+    // The moon's boulders that the hearse comes down on (or would be left poking out from behind
+    // it): its landing knocks them off, and they float away. Skyward.moon places its boulders from
+    // this table (skyward.js's M_ROCKS, turned by its tilt and the moon's own turn).
+    const M_ROCKS = [[0.0, -0.42, 0.085], [-0.67, -0.12, 0.06], [0.8, -0.25, 0.07], [-0.15, 0.25, 0.05], [0.52, 0.58, 0.08], [-0.58, 0.44, 0.065], [0.24, -0.57, 0.045], [-0.44, -0.63, 0.055], [0.2, 0.78, 0.05], [-0.06, -0.93, 0.07], [0.33, -0.9, 0.045], [-0.38, -0.88, 0.05]];
+    const KNOCKED = M_ROCKS.map(([bx, by, bs]) => {
+        const q = rot([bx * LIMB.r, by * LIMB.r], -0.3 + MOON_ROT);
+        return { x: LIMB.x + q[0], y: LIMB.y + q[1], s: bs * LIMB.r };
+    }).filter((k) => k.x > HEARSE[0] - 7.2 * CS && k.x < HEARSE[0] + 4.4 * CS && k.y > HEARSE[1] - 3.1 * CS && k.y < HEARSE[1] + 0.5 * CS);
+    // a boulder as Skyward.moon draws it: (x, y) the middle of its base, s its size, ang its turn
+    function boulder(g, x, y, s, ang) {
+        const M = W.MOON, L = Math.min(3.2 * 0.8, s * 0.09);
+        g.save();
+        g.translate(x, y);
+        g.rotate(ang);
+        const pts = [[-0.5, 0], [-0.42, -0.34], [-0.12, -0.56], [0.26, -0.48], [0.5, -0.2], [0.52, 0]].map(([qx, qy]) => [qx * s, qy * s]);
+        C.prism(g, pts, [s * 0.16, -s * 0.1], { front: M.rock, top: M.rockTop, side: M.rockSide }, { lw: L });
+        C.poly(g, [[-0.2 * s, -0.36 * s], [0.06 * s, -0.2 * s], [0.02 * s, -0.02 * s]], { ink: M.rockSide, lw: Math.min(3.2 * 0.7, s * 0.07), close: false });
+        g.restore();
     }
     // the EXIT 666 sign (Verse3bProps'), its post's foot at the screen point (x, y), k its size
     // (1 = the road's), turned by ang about its board
@@ -611,7 +628,7 @@
         const wind = windAt(t, T_POSTER), ready = go(t, WIND, 4 / 12); // the last four drawings: everybody winds up
         // the hearse comes down out of the black, the machine swinging behind it
         const fall = seg(t, T_WIDE - 0.5, H_LAND), fe = 1 - Math.pow(1 - fall, 1.7), landed = on(t, H_LAND);
-        const hw = [lerp(HEARSE[0] - 620, HEARSE[0], fe), lerp(HEARSE[1] - 250, HEARSE[1], 0.4 * smooth(fe) + 0.6 * fe)]; // in from the left, low: never across the band
+        const hw = [lerp(HEARSE[0] - 640, HEARSE[0], fe), lerp(HEARSE[1] - 120, HEARSE[1], 0.4 * smooth(fe) + 0.6 * fe)]; // in from the left, low: never across the band
         const hb = landed ? -1.6 * thud(t, H_LAND, 1, 0.5) + 0.25 * pu : 0, hl = landed ? 0 : 0.1 * (1 - fall) + 0.03 * Math.sin(fall * 9);
         // the sign tumbles in from the top left and plants itself; the cone from the right
         const sIn = seg(t, SIGN_IN, SIGN_LAND), sPlanted = on(t, SIGN_LAND), cIn = seg(t, CONE_IN, CONE_LAND), cLanded = on(t, CONE_LAND);
@@ -619,6 +636,18 @@
         stage(g, t, cam, {
             nod: 1, warm, look, sun: { ...SUN, k: on(t, SUN_UP) ? back(go(t, SUN_UP, 4 / 12)) : 0 },
             behind: (c, V) => {
+                // the boulders the hearse has knocked off are gone from the ground
+                if (landed) for (const k of KNOCKED) {
+                    const p = V.P(k.x, k.y), ks = k.s * V.z;
+                    c.save();
+                    c.translate(p[0], p[1]);
+                    c.rotate(MOON_ROT);
+                    c.fillStyle = W.MOON.cream;
+                    c.beginPath();
+                    c.ellipse(0.24 * ks, -0.2 * ks, 1.36 * ks, 0.62 * ks, 0, 0, TAU);
+                    c.fill();
+                    c.restore();
+                }
                 if (sPlanted) {
                     const p = V.P(SIGN.x, SIGN.y), q = since(t, SIGN_LAND);
                     exitSign(c, p[0], p[1] + 4 * V.z, SIGN_K * V.z, SIGN.rot * 0.5 + 0.2 * Math.exp(-q * 6) * Math.cos(q * 22));
@@ -646,6 +675,11 @@
                 people(c, V, t, byDepth(list).filter((m) => (Array.isArray(m.at) ? m.at[1] : m.at.y) >= HEARSE[1]));
             },
             over: (c, V) => {
+                // … and float away, turning
+                if (landed) KNOCKED.forEach((k, i) => {
+                    const q = t - H_LAND, p = V.P(k.x, k.y), dir = i % 2 ? 1 : -1;
+                    if (q < 4) boulder(c, p[0] + dir * 46 * q * V.z + 30 * dir * (1 - Math.exp(-q * 3)), p[1] - (150 * q + 60 * (1 - Math.exp(-q * 4))) * V.z, k.s * V.z, MOON_ROT + dir * 0.9 * q);
+                });
                 if (!landed) {
                     const p = V.P(hw[0], hw[1]);
                     hearse(c, t, p[0], p[1], V.s, { lean: hl, spin: t * 6, shadow: false, hype: 0, crank: t * 4 });
@@ -668,7 +702,7 @@
     // The album's cover with the film's cast: the field in bands, the full moon's disc behind the
     // car (awake, one eye on the band), everybody standing on its lower part in two rows, the
     // title in the film's own solids.
-    const PM = { x: 500, y: 652, r: 436 }, PS = 54; // the disc; everybody's scale
+    const PM = { x: 500, y: 640, r: 460 }, PS = 54; // the disc; everybody's scale
     const PCAR = [520, 752], PHEARSE = [506, 900];
     const CHORDS = [T_POSTER, at(40), at(44)]; // a windmill comes down on the first beat of each bar
     const PV = { P: (x, y) => [x, y], s: PS, z: 1 };
@@ -685,10 +719,10 @@
             if (Math.hypot(x - PM.x, y - PM.y) < PM.r + 50 || (y < 400 && x > 150 && x < 850)) continue;
             C.sparkle(g, x, y, sz * ((d + f) % 12 < 3 ? 1.6 : 1), { color: K.white });
         }
-        earth(g, 112, 384, 34, t);
-        Q.sun(g, 890, 384, 38, t);
+        earth(g, 102, 316, 34, t);
+        Q.sun(g, 874, 334, 38, t);
         const look = [[0.5, 0.8], [-0.5, 0.8], [0, 1]][Math.floor(ph / 2) % 3];
-        W.moon(g, PM.x, PM.y + dy, PM.r * (1 + 0.012 * bang), { glow: 0.7 + 0.3 * pu, rot: 0.35, face: 1, wink: 1, smile: 0, look, t });
+        W.moon(g, PM.x, PM.y + dy, PM.r * (1 + 0.012 * bang), { glow: 0.7 + 0.3 * pu, rot: 0.25, face: 1, wink: 1, smile: 0, look, t });
         Q.title(g, t, 500, 182, { at: [T_POSTER, T_POSTER + 2 * FR, T_POSTER + 4 * FR], k: 0.9 });
         g.save();
         g.translate(0, dy);
@@ -705,19 +739,19 @@
         const up = Math.max(bang, 0.35 + 0.65 * pu);
         const fliers = [
             { kind: 'angel', at: [176, 640], pose: { who: 0, mood: 'rock', harp: true, strum: Math.cos(ph * TAU), flap: wingBeat(t, 0), squash: 0.03 * pu, headDy: 0.03 * pu, headTilt: 0.05 * Math.sin(ph * PI), haloUp: 0.7 * pu, halo: 0.1 * Math.sin(ph * PI), shadow: false, lift: 0.06 * Math.sin(ph * PI) } },
-            { kind: 'angel', at: [512, 566], pose: { who: 1, mood: 'rock', trumpet: true, armUp: up, flap: wingBeat(t, 0.25), squash: 0.03 * pu, headDy: 0.02 * pu, haloUp: 0.7 * pu, halo: -0.1 * Math.sin(ph * PI), lean: -0.12 - 0.05 * pu, shadow: false, lift: 0.06 * Math.sin(ph * PI + 1) } },
+            { kind: 'angel', at: [520, 590], pose: { who: 1, mood: 'rock', trumpet: true, armUp: up, flap: wingBeat(t, 0.25), squash: 0.03 * pu, headDy: 0.02 * pu, haloUp: 0.7 * pu, halo: -0.1 * Math.sin(ph * PI), lean: -0.12 - 0.05 * pu, shadow: false, lift: 0.06 * Math.sin(ph * PI + 1) } },
             { kind: 'angel', at: [862, 652], pose: { who: 2, mood: 'rock', armUp: up, handR: [-0.56, -1.2 - 0.62 * up], flap: wingBeat(t, 0.5), squash: 0.04 * pu, headDy: 0.03 * pu, headTilt: even ? 0.06 : -0.06, haloUp: pu, halo: 0.14 * Math.sin(ph * PI), trident: 'R', tilt: 0.1 + 0.14 * Math.cos(ph * PI), shadow: false, lift: 0.06 * Math.sin(ph * PI + 2) } },
         ];
         people(g, PV, t, fliers);
+        if (opt('Verse3bProps')) Verse3bProps.cone(g, 824, 794, s * 1.1, 0);
         // --- the front row: the sign, the hearse and its machine, the cone, the fans ----------------
-        exitSign(g, 872, 878, 0.46, -0.05 + 0.03 * Math.sin(ph * PI), 190);
+        exitSign(g, 876, 878, 0.46, -0.05 + 0.03 * Math.sin(ph * PI), 190);
         hearse(g, t, PHEARSE[0], PHEARSE[1], s, { bounce: 0.25 * pu + 0.8 * bang, up: 1 });
-        if (opt('Verse3bProps')) Verse3bProps.cone(g, 716, 882, s * 1.1, 0);
         const fans = [
-            { kind: 'imp', at: [768, 884], pose: { mood: 'grin', armUp: 1, hop: hop(0.5), squash: 0.06 * pu + 0.1 * bang, tail: -0.05 * Math.cos(ph * PI), look: -0.4, trident: 'L', tilt: -0.3 + 0.16 * Math.cos(ph * PI) } },
-            { kind: 'imp', at: [836, 888], pose: { wear: 'bow', mood: 'grin', armUp: 1, hop: hop(0), squash: 0.06 * pu + 0.1 * bang, tail: 0.05 * Math.cos(ph * PI), look: -0.6 } },
-            { kind: 'imp', at: [742, 910], pose: { wear: 'specs', mood: 'grin', armUp: 1, hop: hop(0), squash: 0.06 * pu + 0.1 * bang, tail: 0.05 * Math.cos(ph * PI), look: -1, halo: 1, haloDy: 0.1 * pu, haloTilt: 0.2 + 0.1 * Math.cos(ph * PI) } },
-            { kind: 'skel', at: [800, 912], pose: { hype: 1 - 0.8 * ready, look: -0.5 } },
+            { kind: 'imp', at: [778, 880], pose: { mood: 'grin', armUp: 1, hop: hop(0.5), squash: 0.06 * pu + 0.1 * bang, tail: -0.05 * Math.cos(ph * PI), look: -0.4, trident: 'L', tilt: -0.3 + 0.16 * Math.cos(ph * PI) } },
+            { kind: 'imp', at: [846, 886], pose: { wear: 'bow', mood: 'grin', armUp: 1, hop: hop(0), squash: 0.06 * pu + 0.1 * bang, tail: 0.05 * Math.cos(ph * PI), look: -0.6 } },
+            { kind: 'imp', at: [748, 914], pose: { wear: 'specs', mood: 'grin', armUp: 1, hop: hop(0), squash: 0.06 * pu + 0.1 * bang, tail: 0.05 * Math.cos(ph * PI), look: -1, halo: 1, haloDy: 0.1 * pu, haloTilt: 0.2 + 0.1 * Math.cos(ph * PI) } },
+            { kind: 'skel', at: [808, 912], pose: { hype: 1 - 0.8 * ready, look: -0.5 } },
         ];
         people(g, PV, t, fans);
         g.restore();

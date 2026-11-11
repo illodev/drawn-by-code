@@ -389,3 +389,7 @@ song, so it can be read. The fade block's agent was told while it worked.
   every eight bars from the bridge to the fade (2:50.7 → 4:21). 37 notes, each with its own
   length; the imps' choir in the fake ad now sends a note up on each onset.
 - The six blocks of the finale are in the film: 264 s.
+- **Short arms bend.** The same peg showed wherever a mitt sat right under its shoulder (Howie's
+  fretting arm once it was in sight, Benmont's left arm when he leans). Every stub-arm drawer
+  (the band's, the Devil's and its copies in the blocks) now bends an arm shorter than 0.3 units
+  at an elbow out to its side; longer arms are drawn exactly as before.

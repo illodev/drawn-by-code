@@ -252,6 +252,12 @@ const BandRhythm = (() => {
 
     // An arm in a rolled sleeve: the sleeve to the elbow, the roll, a bare forearm, the mitt.
     function armRolled(g, P, L, sh, hand) {
+        const el = Cast.elbow(sh, hand);
+        if (el) {
+            // a short arm bends: the sleeve to the elbow, then the forearm as below
+            Cast.upperArm(g, sh, el, 0.15, Dd(0.15), { front: P.shirt, top: P.shirtTop, side: P.shirtSide }, { lw: L, ink: P.ink });
+            sh = el;
+        }
         const w = 0.15, [ux, uy, len] = unit(sh, hand);
         const quad = (a, b, ww = w) => {
             const nx = -uy * ww * 0.5, ny = ux * ww * 0.5;

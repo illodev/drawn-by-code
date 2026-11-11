@@ -66,8 +66,32 @@ const Cast = (() => {
         g.fill();
     }
 
-    // A stub arm: a sleeve from the shoulder and a block mitt at the hand point.
+    // A hand close under its shoulder leaves a stub arm no length: a sleeve cube, a mitt, a peg clipped to whatever it
+    // touches. An arm shorter than `reach` bends instead: elbow(sh, hand) gives where the elbow goes (out to the
+    // shoulder's side and a little down), or null for an arm long enough to stay straight. The bend grows from
+    // nothing as the hand comes in, so an arm that shortens never jumps.
+    const REACH = 0.3;
+    function elbow(sh, hand, reach = REACH) {
+        const dx = hand[0] - sh[0], dy = hand[1] - sh[1], d = Math.hypot(dx, dy);
+        if (!(d < reach)) return null;
+        const ux = d > 1e-6 ? dx / d : 0, uy = d > 1e-6 ? dy / d : 1, off = Math.sqrt((reach * reach - d * d) / 4);
+        const side = Math.abs(sh[0]) < 0.02 ? (dx < 0 ? 1 : -1) : sh[0] < 0 ? -1 : 1, k = -uy * side + ux * 0.4 >= 0 ? 1 : -1;
+        return [(sh[0] + hand[0]) / 2 - uy * off * k, (sh[1] + hand[1]) / 2 + ux * off * k];
+    }
+    // The upper arm of a bent arm: a sleeve from the shoulder to the elbow (w: its width; faces, stroke: C.prism's).
+    function upperArm(g, sh, el, w, depth, faces, stroke) {
+        const dx = el[0] - sh[0], dy = el[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6, ux = dx / len, uy = dy / len, nx = -uy * w * 0.5, ny = ux * w * 0.5;
+        const a = -0.05, b = len + 0.045;
+        C.prism(g, cw([[sh[0] + ux * a + nx, sh[1] + uy * a + ny], [sh[0] + ux * b + nx, sh[1] + uy * b + ny], [sh[0] + ux * b - nx, sh[1] + uy * b - ny], [sh[0] + ux * a - nx, sh[1] + uy * a - ny]]), depth, faces, stroke);
+    }
+
+    // A stub arm: a sleeve from the shoulder and a block mitt at the hand point (bent at the elbow when it is short).
     function arm(g, P, L, sh, hand) {
+        const el = elbow(sh, hand);
+        if (el) {
+            upperArm(g, sh, el, 0.15, Dd(0.15), { front: P.jacket, top: P.jacketTop, side: P.jacketSide }, { lw: L, ink: P.ink });
+            sh = el;
+        }
         const w = 0.15, dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6;
         const ux = dx / len, uy = dy / len, nx = -uy * w * 0.5, ny = ux * w * 0.5;
         const quad = (a, b) => cw([[sh[0] + ux * a + nx, sh[1] + uy * a + ny], [sh[0] + ux * b + nx, sh[1] + uy * b + ny], [sh[0] + ux * b - nx, sh[1] + uy * b - ny], [sh[0] + ux * a - nx, sh[1] + uy * a - ny]]);
@@ -321,5 +345,5 @@ const Cast = (() => {
         g.restore();
     }
 
-    return { D, Dd, TOM, print, tom, guitar, head, legs, torso, arm };
+    return { D, Dd, TOM, print, tom, guitar, head, legs, torso, arm, elbow, upperArm, REACH };
 })();

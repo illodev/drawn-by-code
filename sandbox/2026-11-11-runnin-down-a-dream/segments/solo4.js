@@ -258,7 +258,7 @@
         if (t >= b(667) - EPS) return R.moonScene(g, t);
         const car = carState(t), P = S.pulseAt(t), L = ST.limb, grounded = car.air < 0.5;
         const fa = since(t, W_STICK), d1 = t < T1 ? 0 : Math.pow(seg(twos(t, T1), T1, T1 + 3.5), 0.6);
-        R.moonStage(g, t, fa < 0 ? { flag: false } : { flagTilt: fa < 0.5 ? 0.2 * Math.exp(-fa * 7) * Math.cos(fa * 26) : 0 });
+        R.moonStage(g, t, { flag: fa < 0 ? 0 : 0.6 + 0.4 * seg(fa, 0, 0.25) });
         // its shadow on the ground while it is in the air
         if (!grounded) {
             const sh = R.carAt(car.a, 0), kk = 1 - 0.45 * clamp(car.air / 300);

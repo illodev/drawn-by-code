@@ -193,6 +193,12 @@ const Solo5Props = (() => {
     const DP = Devil.P, SH = [Devil.TORSO.x + Devil.TORSO.w - 0.03, Devil.TORSO.y + 0.14]; // his picking arm's shoulder (screen right)
     const ARM = 0.66;
     function devilArm(g, L, sh, hand) {
+        const el = Cast.elbow(sh, hand);
+        if (el) {
+            // a short arm bends at the elbow: the sleeve down to it, then the cuff and the mitt
+            Cast.upperArm(g, sh, el, 0.16, Cast.Dd(0.16), { front: DP.suit, top: DP.suitTop, side: DP.suitSide }, { lw: L, ink: DP.ink });
+            sh = el;
+        }
         const w = 0.16, dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6, ux = dx / len, uy = dy / len, nx = -uy * w * 0.5, ny = ux * w * 0.5;
         const quad = (a, c, k = 1) => cw([[sh[0] + ux * a + nx * k, sh[1] + uy * a + ny * k], [sh[0] + ux * c + nx * k, sh[1] + uy * c + ny * k], [sh[0] + ux * c - nx * k, sh[1] + uy * c - ny * k], [sh[0] + ux * a - nx * k, sh[1] + uy * a - ny * k]]);
         const c0 = Math.max(0.03, len - 0.14), c1 = Math.max(0.06, len - 0.075);
