@@ -358,3 +358,34 @@ bug, the tape's label before PLAY); the user chose the final blue. After `STOP` 
 VCR's blue, `illodev x Claude` is typed on in the display's own stroke lettering (lower-case
 glyphs drawn in the same hand) and held; the film runs to 264 s, two silent seconds past the
 song, so it can be read. The fade block's agent was told while it worked.
+
+## Round 10 (user) · the film to 3:02: arms, the brazier, the «ooh»s
+
+> «Aquí un detalle de los brazos del demonio 2:44» (the box close-up)
+> «Aquí sale como cortado el recipiente de la llama con la llama y el demonio»
+> «Los "uuuuh uuuhh", no están sincronizados»
+> «En estas escenas hay algunos fallos, aunque hay tanta densidad de personajes que algunos
+> no se notan, pero por ejemplo los brazos de algunos personajes» (the deck in the stage view)
+
+- **The Devil's arms on the rail (2:44).** His mitts rested on the rail straight under his
+  shoulders: the block arm had no length, so it was a purple cube, a cuff and a mitt hanging
+  over the velvet, two pegs clipped to the rail. The mitts now meet at the middle of the rail
+  and the sleeves come down to them at an angle from the shoulders.
+- **The brazier.** The bowl's near wall was redrawn over the stirred fire only to the right
+  of him (a clip at his side), so between his leg and the clip the fire covered the bowl and
+  the bowl looked sawn off. Now in parts: the fire, the arm that goes into it, the fire's
+  front tongues, the bowl's wall whole, then the rest of him on top of its left end.
+- **Arms on the deck.** Howie's fretting mitt was hidden exactly behind Benmont's shoulder:
+  what showed was a cuff floating on Benmont (it read as Benmont's third arm). Howie stands
+  0.28 further left on the deck and frets low on the neck, so the mitt is on the neck in
+  sight in every block. In the bridge's last shot the Devil's fork lay on Mike's fretting
+  mitt and headstock: with Mike a step forward beside him, the Devil is drawn first, so
+  Mike's guitar and both his mitts stay whole (the duel block follows the same order).
+- **The «ooh»s.** They were eight long windows placed by ear (one of 11 s): the round mouths
+  opened two seconds early and never closed. Measured now: the vocal stem from an isolation
+  service holds the loud ones but gates the quiet ones out, so the clearest «woo» (1:37) was
+  used as a template against a constant-Q spectrogram of the whole mix. That gives an onset a
+  hair before every other bar: five after the second chorus (1:34.5 → 1:45.8) and three in
+  every eight bars from the bridge to the fade (2:50.7 → 4:21). 37 notes, each with its own
+  length; the imps' choir in the fake ad now sends a note up on each onset.
+- The six blocks of the finale are in the film: 264 s.

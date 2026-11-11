@@ -19,7 +19,7 @@ No still stretches of 1 s or more.
 
 ## Speed
 
-Painting: 140 ms/frame cold, 108 ms warm → full render ≈ 44 s at this size.
+Painting: 171 ms/frame cold, 148 ms warm → full render ≈ 60 s at this size.
 
 ## Contact sheet
 
