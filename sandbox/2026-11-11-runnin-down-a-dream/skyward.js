@@ -1686,7 +1686,7 @@ const Skyward = (() => {
         const shape = [[-0.06, -0.13], [0.2, -0.24], [0.44, -0.24], [0.6, -0.14], [0.64, -0.02], [0.52, 0.03], [0.56, 0.14], [0.42, 0.16], [0.43, 0.27], [0.28, 0.25], [0.24, 0.34], [0.08, 0.24], [-0.06, 0.1]];
         const at = (p) => {
             const q = rot(p, a);
-            return [sx * (0.27 + q[0]) + z[0], -0.82 + q[1] + z[1]];
+            return [sx * (0.27 + q[0] * 1.14) + z[0], -0.86 + q[1] * 1.14 + z[1]];
         };
         const pts = cw(C.curve(shape, true, 4).map(at));
         C.prism(g, pts, Dd(0.07), { front: A.wing, top: A.robeTop, side: A.wingSide }, { lw: L, ink: A.ink, sweepInk: null });
@@ -1731,11 +1731,11 @@ const Skyward = (() => {
             const side = [ob(x1, top + 0.34, 0), ob(x1, top + 0.3, d), ob(x1, bot - 0.06, d), ob(x1, bot - 0.06, 0)];
             C.poly(g, side, { fill: P.hairSide, ink: A.ink, lw: L });
             for (const sx of [-1, 1]) {
-                const tuft = bumpsOn([[sx * (w / 2 + 0.035), top + 0.36], [sx * (w / 2 + 0.05), top + 0.52], [sx * (w / 2 + 0.035), top + 0.68]], 0.3 * (sx > 0 ? 1 : -1) * -1, false, 6);
-                C.poly(g, [...tuft, [sx * (fx + 0.015), top + 0.7], [sx * (fx + 0.015), top + 0.32]], { fill: P.hair, ink: A.ink, lw: L });
+                // three tufts down each side of the face
+                const ys = [top + 0.34, top + 0.47, top + 0.6, top + 0.73], xo = sx * (w / 2 + 0.005);
+                const tuft = bumpsOn((sx > 0 ? ys : ys.slice().reverse()).map((yy) => [xo, yy]), 0.42, false, 6);
+                C.poly(g, [...tuft, [sx * (fx + 0.03), sx > 0 ? top + 0.73 : top + 0.34], [sx * (fx + 0.03), sx > 0 ? top + 0.34 : top + 0.73]], { fill: P.hair, ink: A.ink, lw: L });
             }
-            C.poly(g, panel, { fill: P.skin, lw: 0 });
-            C.poly(g, [[-fx, fy + 0.12], [-fx, bot - 0.1 - 0.06], [-fx + 0.09, bot - 0.065], [fx - 0.09, bot - 0.065], [fx, bot - 0.16], [fx, fy + 0.12]], { ink: null, lw: 0 });
             // a shine on the pate
             line(g, [[-0.2, top + 0.09], [-0.06, top + 0.07]], L * 1.3, P.skinTop);
         } else {
@@ -1846,15 +1846,14 @@ const Skyward = (() => {
         if (pose.harp) {
             if (mood === 'ears') prop = { kind: 'harp', x: 0.72, y: 0, ang: 0.1, sc: 0.8 };
             else if (mood === 'rock') {
-                prop = { kind: 'harp', x: -0.4, y: -0.3, ang: 0.95, sc: 0.86 };
-                R = [-0.02 + 0.05 * st, -0.56 + 0.07 * st];
-                Lh = [0.37, -0.83];
+                prop = { kind: 'harp', x: -0.42, y: -0.5, ang: 1.0, sc: 0.95 };
+                R = [-0.07 + 0.05 * st, -0.68 + 0.08 * st];
+                Lh = [0.37, -0.76];
             } else {
-                prop = { kind: 'harp', x: 0.36, y: -0.34, ang: 0.06, sc: 0.78 };
-                if (mood === 'serene') [R, Lh] = [[0.3, -0.62 + 0.05 * st], [0.6, -0.84]];
-                else if (mood === 'shocked') Lh = [0.6, -0.84];
-                else Lh = [0.6, -0.84];
-                if (mood === 'peek') R = [-0.47, -1.4];
+                // carried in front, a mitt on each side of it; the right one plucks when serene
+                prop = { kind: 'harp', x: 0.06, y: -0.1, ang: 0.03, sc: 1.05 };
+                Lh = [0.43, -0.5];
+                if (mood === 'serene') R = [-0.17 + 0.04 * st, -0.5 + 0.07 * st];
             }
         } else if (pose.trumpet) {
             if (mood === 'ears') prop = { kind: 'trumpet', x: 0.78, y: -1.32, ang: Math.PI / 2, sc: 1 };
@@ -1885,7 +1884,7 @@ const Skyward = (() => {
 
     function angel(g, x, y, s, pose = {}) {
         const A = ANGEL, who = pose.who ?? 0, P = WHO[who] ?? WHO[0], mood = pose.mood ?? 'serene', L = 3.2 / s, q = pose.squash ?? 0, fl = clamp(pose.flap ?? 0.3);
-        const robeC = { front: A.robe, top: A.robeTop, side: A.robeSide }, hemC = { front: A.hem, top: A.hemTop, side: A.hemSide };
+        const robeC = { front: A.robe, top: A.robeTop, side: A.robeSide };
         const skinC = { front: P.skin, top: P.skinTop, side: P.skinSide };
         g.save();
         g.translate(x, y);
@@ -1914,7 +1913,8 @@ const Skyward = (() => {
                 line(g, [[sx * 0.2 - 0.13, 0.44], [sx * 0.2 + 0.13, 0.44]], L * 1.3, A.sandal);
             }
             C.box(g, -0.43, -0.04, 0.86, 0.46, D, robeC, { lw: L, ink: A.ink, depth: 0.55 });
-            C.box(g, -0.43, 0.3, 0.86, 0.12, D, hemC, { lw: L, ink: A.ink, depth: 0.55 });
+            C.poly(g, [[0.43, 0.3], ob(0.43, 0.3, 0.55), ob(0.43, 0.42, 0.55), [0.43, 0.42]], { fill: A.hemSide, ink: A.ink, lw: L });
+            C.poly(g, [[-0.43, 0.3], [0.43, 0.3], [0.43, 0.42], [-0.43, 0.42]], { fill: A.hem, ink: A.ink, lw: L });
             for (const fx of [-0.15, 0.17]) line(g, [[fx, 0.02], [fx - 0.01, 0.28]], L * 0.8, A.fold);
         } else {
             for (const sx of [-1, 1]) {
@@ -1929,8 +1929,11 @@ const Skyward = (() => {
         const robe = [[T.x, T.y], [T.x + T.w, T.y], [wH, yH], [-wH, yH]];
         C.prism(g, robe, Dd(0.4), robeC, { lw: L, ink: A.ink });
         if (!pose.sit) {
-            const k = 0.13 / (yH - T.y), wT = lerp(wH, T.w / 2, k);
-            C.prism(g, [[-wT, yH - 0.13], [wT, yH - 0.13], [wH, yH], [-wH, yH]], Dd(0.4), hemC, { lw: L, ink: A.ink });
+            // the hem: a gold band round the foot of the robe, on its front and on the side we see
+            const k = 0.13 / (yH - T.y), wT = lerp(wH, T.w / 2, k), dd = Dd(0.4);
+            C.poly(g, [[wT, yH - 0.13], [wT + dd[0], yH - 0.13 + dd[1]], [wH + dd[0], yH + dd[1]], [wH, yH]], { fill: A.hemSide, ink: A.ink, lw: L });
+            C.poly(g, [[-wT, yH - 0.13], [wT, yH - 0.13], [wH, yH], [-wH, yH]], { fill: A.hem, ink: A.ink, lw: L });
+            line(g, [[-wT + 0.03, yH - 0.095], [wT - 0.03, yH - 0.095]], L * 0.8, A.hemTop);
             for (const fx of [-0.17, 0.16]) line(g, [[fx, -0.46], [fx * 1.2, yH - 0.16]], L * 0.8, A.fold);
         }
         // the yoke: a gold V at the neck
@@ -2001,7 +2004,8 @@ const Skyward = (() => {
             const u = n === 1 ? 0.5 : i / (n - 1), lx = (u - 0.5) * (w - 0.7), edge = Math.abs(u - 0.5) * 2, rr = 0.36 + 0.16 * r() - 0.08 * edge;
             lobes.push([lx + (r() - 0.5) * 0.1, 0.34 + 0.1 * edge - rr * 0.25 + 0.08 * r(), rr]);
             low.push([lx + (r() - 0.5) * 0.24, 0.62 + 0.12 * r() - 0.14 * edge, 0.3 + 0.14 * r() - 0.08 * edge]);
-            if (i < n - 1) lip.push([lx + (w - 0.7) / (n - 1) / 2 + (r() - 0.5) * 0.1, 0.2 + 0.05 * r(), 0.2 + 0.05 * r()]);
+            const lr = 0.16 + 0.07 * r(), lo = (r() - 0.5) * 0.2;
+            if (i < n - 1 && i % 2 === 0) lip.push([lx + (w - 0.7) / (n - 1) / 2 + lo, 0.2 + 0.04 * r(), lr]);
         }
         g.save();
         g.translate(x, y + bankBob(o.t ?? 0, seed, o.bob ?? 1) * s);
@@ -2044,12 +2048,9 @@ const Skyward = (() => {
             }
         }
         if (part !== 'back') {
-            // the lip: low lobes in front of whoever stands here
-            const path = blob(lip, cols.top, L);
-            g.save();
-            g.clip(path);
-            blob(lip.map(([lx, ly, lr]) => [lx + 0.06, ly + 0.2, lr]), cols.shade, 0);
-            g.restore();
+            // the lip: puffs in front of whoever stands here
+            // a few small puffs, each with a smaller one at its shoulder
+            blob(lip.flatMap(([lx, ly, lr], i) => [[lx, ly, lr], [lx + (i % 2 ? -1 : 1) * lr * 0.95, ly + lr * 0.3, lr * 0.62]]), cols.top, L);
         }
         g.restore();
     }

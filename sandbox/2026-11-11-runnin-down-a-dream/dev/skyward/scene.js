@@ -48,10 +48,11 @@ Motion.scene({
         } else if (sheet === 30 || sheet === 31) {
             // the three angels next to Tom at the same scale (s = 200): every mood, empty-handed and with their instruments
             C.sunburst(g, 500, 620, { n: 12, rot: 0.2, a: '#231e62', b: '#2c2380' });
-            S.cloudBank(g, 500, 905, 200, { w: 5.4, seed: 'sheet', t: tt, bob: 0 });
+            S.cloudBank(g, 500, 905, 180, { w: 5.8, seed: 'sheet', t: tt, bob: 0, part: 'back' });
             const mood = sheet === 30 ? ['serene', 'shocked', 'ears', 'rock'][v] : ['serene', 'ears', 'peek', 'rock'][v], fl = S.flap(tt);
-            Cast.tom(g, 130, 900, 200, { shades: 1, strum: 0.4 });
-            [0, 1, 2].forEach((who) => S.angel(g, 385 + who * 235, 900, 200, { who, mood, flap: [fl, 1, 0, fl][v], harp: sheet === 31 && who === 0, trumpet: sheet === 31 && who === 1, halo: [0, -0.3, 0.25, 0.1][v] * (who - 1), haloUp: mood === 'shocked' ? 1 : 0, strum: 0.6, headDy: mood === 'rock' ? 0.03 : 0 }));
+            Cast.tom(g, 120, 900, 180, { shades: 1, strum: 0.4 });
+            [0, 1, 2].forEach((who) => S.angel(g, 372 + who * 250, 900, 180, { who, mood, flap: [fl, 1, 0, fl][v], harp: sheet === 31 && who === 0, trumpet: sheet === 31 && who === 1, halo: [0, -0.3, 0.25, 0.1][v] * (who - 1), haloUp: mood === 'shocked' ? 1 : 0, strum: 0.6, headDy: mood === 'rock' ? 0.03 : 0 }));
+            S.cloudBank(g, 500, 905, 180, { w: 5.8, seed: 'sheet', t: tt, bob: 0, part: 'front' });
         } else if (sheet === 32) {
             // close (s = 300)
             C.sunburst(g, 500, 620, { n: 12, rot: 0.2, a: '#231e62', b: '#2c2380' });
@@ -73,20 +74,21 @@ Motion.scene({
             bank(170, y0 - 40, 2.4, 'a', (dy) => S.angel(g, 170, y0 - 40 + dy, s, { who: 0, mood, harp: true, flap: S.flap(tt), strum: 0.5 }));
             bank(470, y0 + 40, 3.0, 'b', (dy) => {
                 S.angel(g, 400, y0 + 40 + dy, s, { who: 1, mood, trumpet: true, flap: S.flap(tt + 0.2) });
-                S.angel(g, 555, y0 + 40 + dy, s, { who: 2, mood, flap: S.flap(tt + 0.1), sit: v % 2 === 0 });
+                S.angel(g, 555, y0 + 40 + dy, s, { who: 2, mood, flap: S.flap(tt + 0.1) });
             });
+            S.cloudBank(g, 880, y0 + 60, s, { w: 1.6, seed: 'c', t: tt });
+            S.angel(g, 880, y0 + 60 + S.bankBob(tt, 'c') * s, s, { who: 2, mood, sit: true, flap: S.flap(tt + 0.3) });
             S.ascentFront(g, tt, Y, o);
         } else if (sheet === 34) {
             // the bank and the set dressing, close (s = 200); a sitting angel
             C.sunburst(g, 500, 620, { n: 12, rot: 0.2, a: '#231e62', b: '#2c2380' });
             const dawn = v === 3 ? 1 : 0;
             S.cloudBank(g, 330, 760, 200, { w: [2.6, 3.4, 2.2, 3][v], seed: 'x' + v, t: tt, part: 'back', dawn });
-            if (v < 2) S.pearlyBits(g, 250, 760, 190, { ajar: [0.6, 1][v] });
-            else S.pearlyBits(g, 330, 760, 240, { gate: v === 3, lecternAt: v === 2 ? [0, 0] : [2.2, 0], ajar: 0 });
+            if (v < 2) S.pearlyBits(g, 250, 760, 190, { ajar: [0.6, 1][v], lectern: false });
+            else S.pearlyBits(g, 330, 760, 240, { gate: v === 3, lectern: v === 2, lecternAt: [0, 0], ajar: 0 });
             S.cloudBank(g, 330, 760, 200, { w: [2.6, 3.4, 2.2, 3][v], seed: 'x' + v, t: tt, part: 'front', dawn });
-            S.cloudBank(g, 790, 420, 200, { w: 1.8, seed: 'y', t: tt, part: 'back', dawn });
+            S.cloudBank(g, 790, 420, 200, { w: 1.8, seed: 'y', t: tt, dawn });
             S.angel(g, 790, 420, 200, { who: v % 3, mood: ['serene', 'rock', 'peek', 'ears'][v], sit: true, harp: v === 0, trumpet: v === 1, flap: v / 3 });
-            S.cloudBank(g, 790, 420, 200, { w: 1.8, seed: 'y', t: tt, part: 'front', dawn });
         } else if (sheet === 40) {
             night();
             stars();

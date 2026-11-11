@@ -88,6 +88,32 @@ const Chorus2Props = (() => {
         }
     }
 
+    /**
+     * The road set's sun in shades, exactly as World.back draws it (x, y, r in the frame, without
+     * its parallax): to paint it again OVER the edge of sunbeams, which would otherwise cross it.
+     */
+    function sun(g, x, y, r, t) {
+        const d = C.drawing(t), bob = d % 4 < 2 ? 0 : 3;
+        C.burst(g, x, y, { r0: r * 1.18, r1: r * 1.5, n: 14, seed: 'sun', jitter: 0.08, rot: d % 2 ? 0.06 : 0, fill: K.gold, ink: K.ink, lw: 4 });
+        g.save();
+        g.translate(x, y + bob);
+        g.beginPath();
+        g.arc(0, 0, r, 0, TAU);
+        g.fillStyle = K.yellow;
+        g.fill();
+        g.strokeStyle = K.ink;
+        g.lineWidth = 4;
+        g.stroke();
+        for (const sx of [-1, 1]) {
+            const cx = sx * r * 0.36;
+            C.poly(g, [[cx - r * 0.3, -r * 0.22], [cx + r * 0.3, -r * 0.22], [cx + r * 0.25, r * 0.08], [cx + r * 0.12, r * 0.16], [cx - r * 0.12, r * 0.16], [cx - r * 0.25, r * 0.08]], { fill: '#1d1626', ink: K.ink, lw: 3 });
+            C.poly(g, [[cx - r * 0.16, r * 0.04], [cx - r * 0.02, -r * 0.12]], { ink: '#ffffff', lw: 3, close: false });
+        }
+        C.poly(g, [[-r * 0.1, -r * 0.18], [r * 0.1, -r * 0.18]], { ink: K.ink, lw: 5, close: false });
+        C.poly(g, [[-r * 0.3, r * 0.42], [-r * 0.08, r * 0.52], [r * 0.14, r * 0.5], [r * 0.34, r * 0.36]], { ink: K.ink, lw: 4, close: false });
+        g.restore();
+    }
+
     // =========================================================================================
     // Water
     // =========================================================================================
@@ -529,5 +555,5 @@ const Chorus2Props = (() => {
         g.restore();
     }
 
-    return { sunEdge, drop, spray, puddle, steam, onDevil, chatter, whiskers, wetHair, dripping, shivers, sneeze, cube, TOWEL, towelHang, towelFly, towelHead, towelNeck, GLYPH, CAP, KIND, faceOf, solid, thud, tick, tail, iceLump };
+    return { sunEdge, sun, drop, spray, puddle, steam, onDevil, chatter, whiskers, wetHair, dripping, shivers, sneeze, cube, TOWEL, towelHang, towelFly, towelHead, towelNeck, GLYPH, CAP, KIND, faceOf, solid, thud, tick, tail, iceLump };
 })();

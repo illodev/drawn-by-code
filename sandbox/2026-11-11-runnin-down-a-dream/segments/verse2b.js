@@ -85,16 +85,27 @@
     // same sky, the hearse in the far lane with the machine on its hitch, the Devil rubbing his
     // mitts under the first cloud, his trident stood in the pulpit, the band's tail at the right.
     const A = { BX: 975, HX: 572 };
-    // the cloud on each beat: [x, y (the middle of its belly), scale, grow]
-    const LEVELS = [[394, 359, 84, 0.3], [412, 334, 116, 0.56], [416, 186, 154, 0.82], [470, 296, 190, 1]];
+    // the cloud on each beat: [x, y (the middle of its belly), scale, grow]. The first is where
+    // verse2a's cough leaves it hanging (HX − 207, 396), grow 0.24
+    const HANG = [365, 396], COUGH = b(178);
+    const LEVELS = [[HANG[0], HANG[1], 84, 0.24], [412, 334, 116, 0.56], [416, 186, 154, 0.82], [470, 296, 190, 1]];
     // where the trident's tines are, stood in the pulpit (the hearse at A.HX): the fork of beat 2 lands there
     const HS = Rides.hearseSeats().devil, TRIDENT = [(HS[0] - 0.5) * CAR, HS[1] * CAR], TINES = [TRIDENT[0] - 0.18 * CAR, TRIDENT[1] - 2.29 * CAR];
-    function cloudAt(t) {
-        let j = 0;
-        for (let i = 1; i <= 3; i++) if (at(t, n(i))) j = i;
-        const cur = LEVELS[j], prev = LEVELS[Math.max(0, j - 1)], u = j ? pop(t, n(j), 0.25) : 1, drift = twos(t, n(j)) - n(j);
+    const beatOf = (t) => (at(t, n(3)) ? 3 : at(t, n(2)) ? 2 : at(t, n(1)) ? 1 : 0);
+    // mouth: the funnel's mouth on screen (only the first beat needs it: the cloud is still on its way up from it)
+    function cloudAt(t, mouth = HANG) {
+        const j = beatOf(t);
+        if (j === 0) {
+            // verse2a's own clock, carried on: the cough's cloud finishes its rise and comes to rest
+            const since = t - COUGH, rise = E.out(E.seg(since, 0, 0.55)), wob = 1 - E.seg(since, 0.35, 0.65);
+            return {
+                x: E.lerp(mouth[0], HANG[0], rise * rise) + 6 * wob * Math.sin(since * 5), y: E.lerp(mouth[1] - 20, HANG[1], rise) + 5 * wob * Math.sin(since * 7),
+                s: CAR, grow: 0.04 + 0.2 * E.out(E.seg(since, 0, 0.5)), j,
+            };
+        }
+        const cur = LEVELS[j], prev = LEVELS[j - 1], u = pop(t, n(j), 0.25), drift = twos(t, n(j)) - n(j);
         const v = cur.map((c, i) => prev[i] + (c - prev[i]) * u);
-        const c = { x: v[0] + 40 * drift * (j ? 1 : 0.2), y: v[1] - 6 * drift, s: v[2] + 16 * drift * (j ? 1 : 0.3), grow: clamp(v[3] + 0.08 * drift), j };
+        const c = { x: v[0] + 40 * drift, y: v[1] - 6 * drift, s: v[2] + 16 * drift, grow: clamp(v[3] + 0.08 * drift), j };
         if (j === 2) {
             // it rears up to throw its fork: it stands where the fork's tip (Weather's own bolt, from
             // its belly) comes down on the tines, whatever its size on that drawing
@@ -104,6 +115,7 @@
         }
         return c;
     }
+    const spring = (t, a, f = 17, damp = 6.5) => (t < a - 1e-6 ? 0 : Math.exp(-(t - a) * damp) * Math.cos((t - a) * f));
     // the imp's cranking: a turn a beat as it was, then faster and faster (the angle, on twos)
     const crankA = (t) => {
         const u = (twos(t, T45) - T45) / BEAT;
@@ -115,8 +127,23 @@
         const X = Rig.X(t), Pu = S.pulseAt(t), ph = (t - b(Pu.k)) / BEAT, d = C.drawing(t);
         World.back(g, t, X, 'day', SKY);
 
+        // --- the hearse in the far lane, the machine on its hitch, as verse2a leaves them (the
+        // same clocks: the bounce, the crank, the last of the cough's spring). On the last beat
+        // the chauffeur eases off: they drop back and let the cloud go on ahead
+        const jb = beatOf(t), back = 250 * Math.pow(E.seg(t, n(3) - 2 * FR, T46 + 2 * FR), 2), hx = A.HX - back;
+        const hb = 0.4 * Math.sin(ph * TAU), ho = { bounce: hb }, tw = W.towedAt(hx, FAR, CAR, ho);
+        const crank = crankA(t), beatU = (t - n(jb)) / BEAT, feeding = jb < 3; // 0..1 through the beat
+        // the needles climb while it is cranked and fall when the puff goes
+        const mo = {
+            towed: true, t, pitch: tw.pitch, spin: (X + hx) / (0.28 * CAR), crank, smoke: 0.7,
+            bounce: 1.2 * spring(t, COUGH, 22, 8) + 0.25 * Math.sin((ph + 0.2) * TAU) * E.seg(t, T45, T45 + 0.3),
+            needles: !feeding ? E.lerp(0.92, 1, E.seg(t, n(3), T46)) : beatU < 0.36 ? 0.92 + 0.06 * (beatU / 0.36) : E.lerp(0.62, 0.92, (beatU - 0.36) / 0.64),
+            shake: 0.35 + 0.2 * E.seg(t, n(2), T46), puff: feeding && beatU < 0.36 ? beatU / 0.36 : 0,
+        };
+        const MP = W.machinePoints(mo), mouth = [tw.x + MP.mouth[0] * CAR, tw.y + MP.mouth[1] * CAR];
+
         // --- the cloud: it swells on every beat, when the funnel's puff gets to it
-        const cl = cloudAt(t), G = 0.22 + 0.78 * cl.grow, half = (0.55 + 1.8 * cl.grow) * G * cl.s;
+        const cl = cloudAt(t, mouth), G = 0.22 + 0.78 * cl.grow, half = (0.55 + 1.8 * cl.grow) * G * cl.s;
         const raining = at(t, n(1)), flashD = dAt(t, n(2));
         // where it rains: under its belly, slanted like the rain, and not yet on the band
         const y0 = cl.y + 0.2 * G * cl.s, wet = seg2(t, n(1), n(1) + 0.25), slant = 0.32 * (1010 - y0);
@@ -124,23 +151,10 @@
         const under = [[x0, y0], [x1, y0], [x1 - slant, 1010], [x0 - slant, 1010]];
         if (raining) C.poly(g, under, { fill: 'rgba(67,73,102,0.36)', lw: 0 }); // its shadow of rain on the land behind the cars
         W.stormCloud(g, cl.x, cl.y, cl.s, { grow: cl.grow, t, rain: raining ? 0.8 : 0, fall: (760 - cl.y) / cl.s, flash: flashD >= 0 && flashD < 2 ? 1 : 0 });
-
-        // --- the hearse in the far lane, the machine on its hitch. On the last beat the chauffeur
-        // eases off: they drop back and let the cloud go on ahead
-        const back = 250 * Math.pow(E.seg(t, n(3) - 2 * FR, T46 + 2 * FR), 2), hx = A.HX - back;
-        const hb = 0.4 * Math.sin(ph * TAU), ho = { bounce: hb }, tw = W.towedAt(hx, FAR, CAR, ho);
-        const crank = crankA(t), beatU = (t - n(cl.j)) / BEAT, feeding = cl.j < 3; // 0..1 through the beat
-        // the needles climb while it is cranked and fall when the puff goes
-        const mo = {
-            towed: true, t, pitch: tw.pitch, spin: (X + hx) / (0.28 * CAR), crank, smoke: 0.7, bounce: 0.25 * Math.sin((ph + 0.2) * TAU) * E.seg(t, T45, T45 + 0.3),
-            needles: !feeding ? E.lerp(0.92, 1, E.seg(t, n(3), T46)) : beatU < 0.36 ? 0.92 + 0.06 * (beatU / 0.36) : E.lerp(0.62, 0.92, (beatU - 0.36) / 0.64),
-            shake: 0.35 + 0.2 * E.seg(t, n(2), T46), puff: feeding && beatU < 0.36 ? beatU / 0.36 : 0,
-        };
-        const MP = W.machinePoints(mo), mouth = [tw.x + MP.mouth[0] * CAR, tw.y + MP.mouth[1] * CAR];
         // the puff that leaves the funnel and feeds the cloud on the next beat
-        const puffAt = n(cl.j) + 3 / 24;
+        const puffAt = n(jb) + 3 / 24;
         if (at(t, puffAt) && feeding) {
-            const u = seg2(t, puffAt, n(cl.j + 1)), to = cloudAt(n(cl.j + 1) - FR);
+            const u = seg2(t, puffAt, n(jb + 1)), to = cloudAt(n(jb + 1) - FR);
             W.stormCloud(g, E.lerp(mouth[0] - 2, to.x - 30, u * u), E.lerp(mouth[1] + 4, to.y + 6, u), CAR, { grow: 0.05 + 0.2 * u, t });
         }
         W.machine(g, tw.x, tw.y, CAR, mo);
@@ -151,16 +165,20 @@
         g.scale(CAR, CAR);
         Devil.trident(g, 0, -0.5, 3.2 / CAR, { ang: -0.1, grip: 0.5 });
         g.restore();
-        // the Devil on his pulpit: he rubs his mitts at the cloud; two drawings of his own rain on
-        // his head and he has an umbrella; a start when the fork lands beside him; then he cackles
+        // the Devil on his pulpit. He is as verse2a leaves him, sly, rubbing his mitts at the cloud;
+        // then the laugh breaks out of him: a drawing's crouch, and his mitts come up from his chest.
+        // On beat 1 his own rain is on his head; two drawings and he has an umbrella; a start when
+        // the fork lands beside him; then he cackles
         const open = at(t, UMB) ? Math.min(1, pop(t, UMB, 0.22)) : 0, lol = flashD >= 2, start = flashD >= 0 && flashD < 2;
-        const rub = d % 2 ? 1 : -1, jig = lol ? rub : 0, caught = raining && !open;
+        const gd = dAt(t, T45), crouch = !raining && gd === 1, glee = !raining && gd >= 2;
+        const rub = d % 2 ? 1 : -1, jig = lol || glee ? rub : 0, caught = raining && !open;
         const pose = {
-            mood: start ? 'shock' : caught ? 'angry' : lol ? 'laugh' : open ? 'grin' : 'sly', look: start ? -1 : caught ? 0 : -1, trident: false,
-            squash: start ? -0.07 : caught ? 0.07 : lol ? 0.035 * jig : 0.04 * Pu.pulse, headTilt: start || caught ? 0 : open && !lol ? -0.03 : -0.07 + 0.03 * jig, headDy: lol ? -0.02 * (jig > 0) : 0,
+            mood: start ? 'shock' : caught ? 'angry' : lol || glee ? 'laugh' : open || crouch ? 'grin' : 'sly', look: start ? -1 : caught ? 0 : -1, trident: false,
+            squash: start ? -0.07 : caught ? 0.07 : crouch ? 0.07 : lol || glee ? 0.035 * jig : 0.04 * Pu.pulse,
+            headTilt: start || caught ? 0 : open && !lol ? -0.03 : -0.07 + 0.03 * jig, headDy: lol || glee ? -0.02 * (jig > 0) : 0,
             tail: start ? 0.3 : 0.04 * Math.sin((Pu.k + Pu.since) * Math.PI) + 0.12 * jig, step: start ? 1 : 0,
-            handR: start ? [-0.8, -0.98] : lol ? [-0.7, -1.02 + 0.05 * jig] : open ? [-0.52, -0.56] : [-0.08 + 0.05 * rub, -0.68 - 0.035 * rub],
-            handL: start ? [0.66, -0.98] : open ? [0.6, -0.84] : [0.1 - 0.05 * rub, -0.66 + 0.035 * rub],
+            handR: start ? [-0.8, -0.98] : caught ? [-0.6, -0.72] : lol || glee ? [-0.7, -1.02 + 0.05 * jig] : crouch ? [-0.4, -0.8] : open ? [-0.52, -0.56] : [-0.08 + 0.05 * rub, -0.68 - 0.035 * rub],
+            handL: start ? [0.66, -0.98] : caught ? [0.6, -0.7] : open ? [0.6, -0.84] : glee ? [0.68, -1.0 - 0.05 * jig] : crouch ? [0.42, -0.78] : [0.1 - 0.05 * rub, -0.66 + 0.035 * rub],
         };
         hearse(g, t, hx, FAR, CAR, {
             spin: (X + hx) / (0.58 * CAR), ...ho, flames: 0.5,

@@ -211,11 +211,11 @@
     // =========================================================================================
     // Bars 51–52 · Hell freezes over
     // =========================================================================================
-    const IX = [375, 590, 806], IY = 936, IS = 150, WEAR = ['specs', 'hat', 'bow'], SCARF = [K.yellow, K.green, K.violet];
+    const IX = [358, 574, 790], IY = 936, IS = 132, WEAR = ['specs', 'hat', 'bow'], SCARF = [K.yellow, K.green, K.violet];
     const WIN = n(5), WIPE = 3 / 12, FZ = WIN + WIPE; // the lava fall freezes, then the bin's flame
     const DRESS = [n(6), n(7), n(8)]; // a scarf and earmuffs on one imp a beat
     const BOARD = { at: n(9), x: 277, y: 452, s: 80 }; // the nail HELL · CLOSED: SNOW hangs from
-    const SNOWMAN = { x: 224, y: 950, s: 125, base: n(7), body: n(8), head: n(10), face: n(11) };
+    const SNOWMAN = { x: 204, y: 950, s: 140, base: n(7), body: n(8), head: n(10), face: n(11) };
     const LANDS = T51 + 2 / 12; // the imp from the funnel lands
     const winPath = () => {
         const p = new Path2D();
@@ -311,7 +311,7 @@
                 if (at(t, n(10))) {
                     pose.look = 1;
                     pose.armUp = 1;
-                    pose.hop += 0.24 * reach;
+                    pose.hop += 0.3 * reach;
                     pose.squash += -0.05 * reach;
                     pose.mood = at(t, n(10) + 2 / 12) ? 'oops' : 'awe';
                 }
@@ -329,6 +329,7 @@
                 g2.translate(0, 0.6);
                 W.scarf(g2, IS, SCARF[i], { t, blow: 0.35 });
                 W.earmuffs(g2, IS, WEAR[i]);
+                if (pose.armUp > 0.25 && dp > 0.99) Q.impArms(g2, IS, pose.armUp); // its mitts, over the earmuffs
             };
             if (fall) {
                 g.setLineDash([14, 12]);
@@ -345,15 +346,15 @@
             Devil.imp(g, x, IY, IS, pose);
             W.onImp(g, x, IY, IS, pose, wearIt);
             if (i === 1 && FUNNEL_IMP && !dressed) W.onImp(g, x, IY, IS, pose, (g2) => W.snowCap(g2, 3 / IS, [-0.3, -1.3], [0.3, -1.3], 0.07, 'v2c-hat', 0)); // the snow it brought on its hat
-            if (dressed && dAt(t, DRESS[i]) < 3) C.sparkle(g, x + 84, IY - 176 - 8 * dAt(t, DRESS[i]), 32 - 6 * dAt(t, DRESS[i]), { color: K.white, ink: K.ink, lw: 3 });
-            if (shiverOn || (FUNNEL_IMP && i === 1 && at(t, LANDS + 2 / 12))) W.breath(g, x + (i === 0 ? -25 : 25), IY - 0.42 * IS - pose.hop * IS, IS, t + i * 0.3, i === 0 ? -1 : 1);
+            if (dressed && dAt(t, DRESS[i]) < 3) C.sparkle(g, x + 76, IY - 158 - 8 * dAt(t, DRESS[i]), 30 - 6 * dAt(t, DRESS[i]), { color: K.white, ink: K.ink, lw: 3 });
+            if ((shiverOn || (FUNNEL_IMP && i === 1 && at(t, LANDS + 2 / 12))) && !(i === 0 && at(t, sm.head - 2 / 12))) W.breath(g, x + (i === 0 ? -22 : 22), IY - 0.42 * IS - pose.hop * IS, IS, t + i * 0.3, i === 0 ? -1 : 1);
         });
         if (FUNNEL_IMP) {
             // where it lands: a puff of the snow it brought, flakes thrown out
             const f = dAt(t, LANDS);
             if (f >= 0 && f < 4) {
                 const u = [0.5, 0.8, 1, 1.1][f], fade = [1, 1, 0.75, 0.45][f];
-                Q.puffs(g, [[IX[1] - 88 * u - 24, IY - 14, 28 * fade, 6, f], [IX[1] + 88 * u + 24, IY - 12, 26 * fade, 6, f + 2], [IX[1] - 46 * u - 68, IY - 44 * u, 18 * fade, 5, f + 1], [IX[1] + 46 * u + 70, IY - 48 * u, 17 * fade, 5, f]], '#f4fbff', 2.8, ICE.line);
+                Q.puffs(g, [[IX[1] - 78 * u - 20, IY - 14, 26 * fade, 6, f], [IX[1] + 78 * u + 20, IY - 12, 24 * fade, 6, f + 2], [IX[1] - 40 * u - 60, IY - 40 * u, 17 * fade, 5, f + 1], [IX[1] + 40 * u + 62, IY - 44 * u, 16 * fade, 5, f]], '#f4fbff', 2.8, ICE.line);
                 for (let i = 0; i < 6; i++) {
                     const a = Math.PI * (1.1 + 0.16 * i);
                     Q.flake(g, IX[1] + Math.cos(a) * (90 + 110 * u), IY - 60 + Math.sin(a) * (40 + 120 * u), 9, i + f * 0.3, 2.6);
@@ -363,7 +364,7 @@
         // the flame rings when a mitt gets to it
         touchAt.forEach((a) => {
             const f = dAt(t, a + 1 / 12);
-            if (f >= 0 && f < 3) C.sparkle(g, 918, 790, [34, 24, 14][f], { color: '#ffffff', ink: ICE.line, lw: 2.4, rot: f * 0.3 });
+            if (f >= 0 && f < 3) C.sparkle(g, 906, 786, [34, 24, 14][f], { color: '#ffffff', ink: ICE.line, lw: 2.4, rot: f * 0.3 });
         });
         W.snowfall(g, t, 0.85 * k);
     }
@@ -457,7 +458,7 @@
     }
     function iceShot(g, t) {
         const u = t - T53;
-        roadside(g, t, { rain: [0.5, 0.42, 0.34, 0.26, 0.18, 0.1][dAt(t, T53)] ?? 0, snow: 0.6, band: 832 + 26 * u });
+        roadside(g, t, { rain: [0.5, 0.42, 0.34, 0.26, 0.18, 0.1][dAt(t, T53)] ?? 0, snow: 0.6, band: 852 + 16 * u });
     }
 
     function draw(g, t, env) {

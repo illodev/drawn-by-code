@@ -129,8 +129,8 @@ const Verse2cProps = (() => {
     /**
      * Frost on the Devil, over Devil.draw at the same x, y, s (his pose must be FROZEN's: no
      * lean, no squash). arm 0..1: it runs from the mitt that holds the crank down the sleeve
-     * to the shoulder; body 0..1: then over the shoulder's corner of the coat and up his cheek,
-     * with icicles under the sleeve, the ear, the jaw and the horns.
+     * to the shoulder; body 0..1: then over the shoulder's corner of the coat, with icicles
+     * under the sleeve, the ear, the jaw and the horns.
      */
     function devilFrost(g, x, y, s, o = {}) {
         const arm = clamp(o.arm ?? 0), body = clamp(o.body ?? 0), L = 3.2 / s, T = Devil.TORSO, H = Devil.HEAD;
@@ -143,19 +143,12 @@ const Verse2cProps = (() => {
         g.lineJoin = 'round';
         g.lineCap = 'round';
         if (body > 0) {
-            // the shoulder's corner of the coat, then the cheek (the head is tilted about his feet)
+            // the shoulder's corner of the coat; icicles on the head (tilted about his feet)
             g.save();
             g.beginPath();
             g.rect(T.x, T.y, T.w, T.h);
             g.clip();
-            frostCorner(g, L, T.x + T.w, T.y, -1, 1, 0.4 * body);
-            g.restore();
-            g.save();
-            g.rotate(tilt);
-            g.beginPath();
-            g.rect(-H.w / 2, H.top, H.w, H.h);
-            g.clip();
-            frostCorner(g, L, H.w / 2, H.top + H.h, -1, -1, 0.26 * body);
+            frostCorner(g, L, T.x + T.w, T.y, -1, 1, 0.34 * body);
             g.restore();
             if (body > 0.5) {
                 g.save();
@@ -375,26 +368,40 @@ const Verse2cProps = (() => {
         }
         ball(0, -0.25, 0.27, b, 'a');
         ball(0, -0.6 * (0.6 + 0.4 * Math.min(1, m)), 0.2, m, 'b');
-        const hy = -0.87 * (0.7 + 0.3 * Math.min(1, h));
+        const hy = -0.89 * (0.7 + 0.3 * Math.min(1, h));
         if (f > 0 && h > 0) {
             // the horns, behind the head's top: an imp's, cream with a darker far side
             for (const sx of [-1, 1]) {
-                const hx = sx * 0.085, by = hy - 0.11;
-                C.poly(g, [[hx - 0.045, by + 0.02], [hx + sx * 0.035, by - 0.13 * f], [hx + 0.045, by + 0.02]], { fill: sx < 0 ? Devil.P.horn : Devil.P.hornSide, ink: K.ink, lw: L * 0.9 });
+                const hx = sx * 0.095, by = hy - 0.125;
+                C.poly(g, [[hx - 0.05, by + 0.03], [hx + sx * 0.04, by - 0.14 * f], [hx + 0.05, by + 0.03]], { fill: sx < 0 ? Devil.P.horn : Devil.P.hornSide, ink: K.ink, lw: L * 0.9 });
             }
         }
-        ball(0, hy, 0.15, h, 'c');
+        ball(0, hy, 0.17, h, 'c');
         // buttons of coal on the body
-        if (m > 0.9) for (const by of [-0.66, -0.56]) circ(g, 0.005, by, 0.02, K.ink, 0);
+        if (m > 0.9) for (const by of [-0.64, -0.54]) circ(g, 0.005, by, 0.022, K.ink, 0);
         if (f > 0 && h > 0) {
             const k = Math.min(1, f);
             // coal eyes with a slant, like the boss; a carrot; a row of coal for a grin, one fang
-            for (const sx of [-1, 1]) C.poly(g, [[sx * 0.03, hy - 0.035], [sx * 0.085, hy - 0.06], [sx * 0.08, hy - 0.02], [sx * 0.035, hy - 0.005]], { fill: K.ink, lw: 0 });
-            C.poly(g, [[-0.012, hy + 0.0], [0.012, hy + 0.035], [0.15 * k, hy + 0.045]], { fill: K.orange, ink: K.ink, lw: L * 0.8 });
-            for (const [mx, my] of [[-0.075, hy + 0.055], [-0.045, hy + 0.08], [-0.01, hy + 0.092], [0.028, hy + 0.086], [0.06, hy + 0.066]]) circ(g, mx, my, 0.0135, K.ink, 0);
-            C.poly(g, [[0.035, hy + 0.092], [0.06, hy + 0.078], [0.052, hy + 0.125]], { fill: K.white, ink: K.ink, lw: L * 0.6 });
+            for (const sx of [-1, 1]) C.poly(g, [[sx * 0.03, hy - 0.04], [sx * 0.105, hy - 0.075], [sx * 0.1, hy - 0.02], [sx * 0.04, hy - 0.002]], { fill: K.ink, lw: 0 });
+            C.poly(g, [[-0.014, hy + 0.005], [0.014, hy + 0.042], [0.17 * k, hy + 0.05]], { fill: K.orange, ink: K.ink, lw: L * 0.8 });
+            for (const [mx, my] of [[-0.085, hy + 0.066], [-0.05, hy + 0.092], [-0.01, hy + 0.105], [0.032, hy + 0.098], [0.07, hy + 0.076]]) circ(g, mx, my, 0.016, K.ink, 0);
+            C.poly(g, [[0.04, hy + 0.105], [0.07, hy + 0.088], [0.06, hy + 0.145]], { fill: K.white, ink: K.ink, lw: L * 0.6 });
         }
         g.restore();
+    }
+
+    /**
+     * An imp's two stub arms again, in the imp's own units (inside Weather.onImp): drawn over
+     * what it wears when its mitts are up, or the earmuffs' pads would hide them. up: its armUp.
+     */
+    function impArms(g, s, up) {
+        const L = 3 / s, P = Devil.P;
+        for (const sx of [-1, 1]) {
+            const sh = [sx * 0.48, -0.46], hand = [sx * 0.66, -0.4 - up * 0.5];
+            const dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6, ux = dx / len, uy = dy / len, nx = -uy * 0.08, ny = ux * 0.08;
+            const pts = [[sh[0] + nx, sh[1] + ny], [hand[0] + ux * 0.08 + nx, hand[1] + uy * 0.08 + ny], [hand[0] + ux * 0.08 - nx, hand[1] + uy * 0.08 - ny], [sh[0] - nx, sh[1] - ny]];
+            C.prism(g, sx > 0 ? pts : pts.slice().reverse(), Dd(0.14), { front: P.skin, top: P.skinTop, side: P.skinSide }, { lw: L, ink: P.ink });
+        }
     }
 
     // =========================================================================================
@@ -480,10 +487,10 @@ const Verse2cProps = (() => {
      * hearse) is only a ghost and he reads on pale blue.
      *   x, y, s   his ground point and scale, as for Devil.draw
      *   o: everything Weather.iceBlock takes (melt, crack, shake, t; w, h, d, cx default to BLOCK) and
-     *      milk (0..1, default 0.84: how cloudy the ice is), pose (merged over the frozen pose)
+     *      milk (0..1, default 0.9: how cloudy the ice is), pose (merged over the frozen pose)
      */
     function frozenDevil(g, x, y, s, o0 = {}) {
-        const o = { ...BLOCK, ...o0 }, sh = blockShape(o), milk = clamp(o.milk ?? 0.84) * (1 - 0.5 * clamp(o.melt ?? 0));
+        const o = { ...BLOCK, ...o0 }, sh = blockShape(o), milk = clamp(o.milk ?? 0.9) * (1 - 0.5 * clamp(o.melt ?? 0));
         W.iceBlock(g, x, y, s, o, (g2) => {
             g2.save();
             g2.translate(x, y);
@@ -542,5 +549,5 @@ const Verse2cProps = (() => {
         }
     }
 
-    return { FROZEN, CRANK, BLOCK, NO_CRANK, COG, puffs, flake, frostCorner, devilWithCrank, devilFrost, snappedStub, snowBurst, frozenFlame, bin, snowman, skelScarf, blockShape, frozenDevil, blockSide, knock, mound, farBand };
+    return { FROZEN, CRANK, BLOCK, NO_CRANK, COG, puffs, flake, frostCorner, devilWithCrank, devilFrost, snappedStub, snowBurst, frozenFlame, bin, snowman, impArms, skelScarf, blockShape, frozenDevil, blockSide, knock, mound, farBand };
 })();

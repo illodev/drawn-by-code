@@ -71,6 +71,7 @@
             }
         }, (g2) => World.back(g2, t, X, 'day', { sun }));
         P.sunEdge(g, t, k);
+        if (on(t, T0 + 6 * FR) && k > 0) P.sun(g, SUN1[0] + jolt, SUN1[1], SUN1[2] * pp, t); // the beams come from behind it
         P1.title(g, t, TITLE1[0], TITLE1[1], { at: S.TITLES[2].slice(0, 3).map(S.snap), out: T56 + 1, k: K1 }); // word by word, as it is sung
 
         // the car: the top folds down once the edge is over it, the wipers park
@@ -315,7 +316,7 @@
         } else if (t < DASH[0][0] - DASH[0][4] * FR) {
             // he looks up; then ducks under his own contract
             const duck = on(t, T_RATTLE);
-            pose = { mood: 'shock', headTilt: duck ? 0.05 * f : -0.2, lean: duck ? 0 : -0.05, squash: duck ? 0.1 + 0.02 * f : -0.03, handR: duck ? [-0.32, -1.86] : [-0.7, -0.92], handL: duck ? [0.24, -0.74] : [0.62, -0.98], contract: { ang: duck ? -0.2 : 0.3, open: 1, at: duck ? [-0.16, -0.02] : [0.05, -0.28] }, tail: duck ? 0.2 * f : 0.26, step: duck ? f : 0 };
+            pose = { mood: 'shock', headTilt: duck ? 0.05 * f : -0.2, lean: duck ? 0 : -0.05, squash: duck ? 0.1 + 0.02 * f : -0.03, handR: duck ? [-0.26, -0.8] : [-0.7, -0.92], handL: duck ? [0.24, -0.74] : [0.62, -0.98], contract: { ang: duck ? -0.2 : 0.3, open: 1, at: duck ? [-0.16, -0.02] : [0.05, -0.28] }, tail: duck ? 0.2 * f : 0.26, step: duck ? f : 0 };
             ex = { ...ex, hair: 0, towel: 'neck' };
         } else {
             const ds = dashAt(t), air = ds.dir !== 0, since = t - ds.landed;
@@ -329,7 +330,7 @@
             } else {
                 pose = {
                     mood: ha ? 'laugh' : 'shock', lean: air ? 0.16 * ds.dir : 0, squash: air ? -0.07 : ha ? 0.03 * f : 0.1, headTilt: air ? -0.06 * ds.dir : ha ? -0.08 : 0.04 * f,
-                    handR: air ? [-0.72, -1.1] : ha ? [-0.5, -1.25 + 0.08 * f] : [-0.32, -1.86], handL: air ? [0.7, -1.0] : ha ? [0.72, -1.4] : [0.24, -0.74],
+                    handR: air ? [-0.72, -1.1] : ha ? [-0.5, -1.25 + 0.08 * f] : [-0.26, -0.8], handL: air ? [0.7, -1.0] : ha ? [0.72, -1.4] : [0.24, -0.74],
                     contract: { ang: air ? 0.5 * ds.dir : ha ? 0.14 : -0.2, open: 1, at: air || ha ? [0.04, -0.28] : [-0.16, -0.02] }, tail: air ? -0.2 * ds.dir : 0.14 * f, step: air ? ds.dir : 0,
                 };
             }
@@ -470,7 +471,7 @@
         // what he sneezed: an ice cube that lands, hops once, skids and melts
         if (on(t, T_CHOO) && t < b(233)) {
             const m0 = devPt(XD, G0, { headTilt: -0.26, lean: -0.1, squash: 0.12 }, [-0.06, Devil.HEAD.top + 0.78], true), a = t - T_CHOO, floor = G0 - 0.1 * RS;
-            const vx = -430, vy = -250, T1 = (-vy + Math.sqrt(vy * vy + 2 * GRAV * (floor - m0[1]))) / GRAV, v1 = (vy + GRAV * T1) * 0.36, T2 = (2 * v1) / GRAV;
+            const vx = -310, vy = -250, T1 = (-vy + Math.sqrt(vy * vy + 2 * GRAV * (floor - m0[1]))) / GRAV, v1 = (vy + GRAV * T1) * 0.36, T2 = (2 * v1) / GRAV;
             let cx, cy, ca;
             if (a < T1) [cx, cy, ca] = [m0[0] + vx * a, m0[1] + vy * a + 0.5 * GRAV * a * a, -a * 9];
             else if (a < T1 + T2) {
