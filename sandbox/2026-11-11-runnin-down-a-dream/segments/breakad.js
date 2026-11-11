@@ -125,15 +125,15 @@
             A.imp(g, x + dx * s, y + dy * s, s, pose);
             bowTie(g, x + dx * s, y + dy * s, s, pose);
         }
-        // what they sing: a note off the top of the choir on every beat
+        // what they sing: a note off the top of the choir as each «ooh» starts
         if (!notes) return;
         const top = y - (stack ? 2.3 : 1.3) * s;
-        for (let n = P.k - 2; n <= P.k; n++) {
-            const a0 = b(n), u = seg(t, a0, a0 + 0.8);
-            if (!on(a0, from) || !S.backing(a0) || u <= 0 || u >= 1) continue;
+        S.OOH.forEach(([a0], n) => {
+            const u = seg(t, a0, a0 + 0.8);
+            if (!on(a0, from) || u <= 0 || u >= 1) return;
             const sd = n % 2 ? 1 : -1, sz = s * 0.19 * Math.min(1, u * 5) * (u > 0.75 ? (1 - u) * 4 : 1);
             C.note(g, x + sd * (0.5 + 0.5 * u) * s * (stack ? 0.5 : 1), top - u * notes * s + Math.sin(u * 8 + n) * 5, sz, { kind: n % 3 ? 1 : 2, color: n % 2 ? K.white : K.yellow, lw: 2.6, rot: sd * 0.15 });
-        }
+        });
     }
 
     // =========================================================================================

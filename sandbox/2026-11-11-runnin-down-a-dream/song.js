@@ -44,8 +44,8 @@ const Song = (() => {
     // VOCALS:END
     // --- the voices ---------------------------------------------------------------------------
     // The lead comes from a word-by-word transcription of the track (the words themselves stay
-    // out of the repo: only their times and a mouth shape). The backing voices' «ooh» were
-    // measured on the mix (level at the sides of the stereo image) and placed by the user's ear.
+    // out of the repo: only their times and a mouth shape). The backing voices' «ooh» are
+    // measured on the mix, one note at a time (see OOH).
     const SHAPE = { A: 'sing', E: 'eh', O: 'o' };
     const wordAt = (t) => {
         let lo = 0, hi = WORDS.length - 1;
@@ -68,7 +68,15 @@ const Song = (() => {
     };
     // inside a sung phrase (words less than 0.4 s apart count as one phrase)
     const singing = (t) => WORDS.some(([a, c], i) => t >= a - 0.05 && t < Math.max(c, WORDS[i + 1] && WORDS[i + 1][0] - c < 0.4 ? WORDS[i + 1][0] : c) + 0.05);
-    const OOH = [[92.2, 103.4], [104.9, 109.0], [168.4, 178.2], [182.6, 189.5], [194.3, 195.2], [196.7, 200.8], [202.3, 205.0], [206.7, 209.3]];
+    // Every «woo-ooh», note by note: found by matching the clearest one (1:37) against the whole mix, which gives
+    // an onset just before every other bar (five after the second chorus, then three in every eight bars from the
+    // bridge to the fade); the lengths come from the isolated vocal stem where it holds them, 0.72 s where it does not.
+    const OOH = [
+        [94.48, 95.28], [95.36, 95.95], [97.29, 98.12], [98.19, 99.05], [100.10, 101.56], [102.93, 103.67], [105.70, 106.20],
+        [170.72, 171.44], [173.53, 174.25], [176.37, 177.09], [182.01, 182.73], [184.83, 185.55], [187.66, 188.42], [188.60, 189.14], [193.31, 194.00], [196.13, 196.85], [198.95, 199.65],
+        [199.78, 200.02], [204.61, 205.26], [205.31, 205.96], [207.44, 208.15], [210.25, 210.97], [215.91, 216.63], [218.72, 219.44], [221.55, 222.41], [227.20, 227.92], [230.02, 230.74],
+        [232.83, 233.55], [238.49, 239.21], [239.26, 239.96], [241.32, 242.07], [244.15, 244.87], [249.79, 251.29], [252.61, 253.33], [255.43, 256.15], [258.26, 258.98], [261.07, 261.79],
+    ];
     const CHORUS = [[35.2, 48.8], [76.2, 89.7], [131.3, 144.8], [149.4, 163.1]];
     const within = (list, t) => list.some(([a, c]) => t >= a - 1e-6 && t < c);
     const ooh = (t) => within(OOH, t);

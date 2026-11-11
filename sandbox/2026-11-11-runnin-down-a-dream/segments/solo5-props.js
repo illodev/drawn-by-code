@@ -1,11 +1,9 @@
 // Props for «solo5» (bars 167–178: the concert on the moon and the poster).
 // Global: Solo5Props. Depends on Cereal, Song, Cast, Devil, Inferno, Skyward, Fx.
 //
-//   sky(g, t, o)              the night over the moon: the film's slow burst, stars that twinkle on
-//                             twos, and the cover's field rising as hard-edged bands (o.warm 0..1,
-//                             o.hor the height they rise from)
+//   bands(g, warm, hor)       the cover's field rising behind the moon as hard-edged bands
 //   field(g, t)               the album cover's pink-to-yellow field as seven flat bands
-//   earth(g, x, y, r)         the Earth, small and blue (the Americas, a swirl of cloud)
+//   earth(g, x, y, r)         the Earth, small and blue (a stand-in for Solo4Props.earth)
 //   sun(g, x, y, r, t)        the road's sun in shades (world.js's drawing, free of the road's clock)
 //   halo(g, x, y, s, o)       a spare halo: an angel's ring without its wire
 //   mitt(g, x, y, s, who)     an angel's mitt laid over what it holds
@@ -84,31 +82,19 @@ const Solo5Props = (() => {
         }
         rays(g, t, o.cx ?? 500, o.cy ?? 700, 0.1);
     }
-    const STARS = (() => {
-        const r = Motion.rng('solo5-stars'), out = [];
-        for (let i = 0; i < 64; i++) out.push([r() * 1000, r() * 1000, 5 + r() * 9, Math.floor(r() * 12), i % 5 === 0]);
-        return out;
-    })();
     /**
-     * o: { warm 0..1: the cover's bands rise from below `hor` (default 620): the pink first, the
-     *      yellow last, each a flat band with a hard edge; at 1 the pink's top is 300 above hor.
-     *      cx, cy: the burst's centre (default the moon's, far below);  dim: the stars' size 0..1 }
+     * The cover's field rising behind the moon: seven flat bands with hard edges, the pink first
+     * and on top, the yellow last and lowest. warm 0..1; hor: the height they rise from (the
+     * limb at the frame's sides); at 1 the pink's top is 300 above it.
      */
-    function sky(g, t, o = {}) {
-        const d = C.drawing(t), warm = clamp(o.warm ?? 0), hor = o.hor ?? 620;
-        C.sunburst(g, o.cx ?? 500, o.cy ?? 1100, { n: 12, rot: t * 0.06, a: '#0e0b2c', b: '#130f3a' });
-        for (const [x, y, sz, ph, gold] of STARS) {
-            const tw = (d + ph) % 12 < 2 ? 1.5 : 1;
-            C.sparkle(g, x, y, sz * tw * (o.dim ?? 1), { color: gold ? K.yellow : '#fffbe8' });
-        }
-        if (warm > 0) {
-            // seven bands; band i (0 the pink, on top) has risen (warm − i · 0.09) of its way
-            for (let i = 0; i < BANDS.length; i++) {
-                const k = smooth(seg(warm, i * 0.09, i * 0.09 + 0.46)), top = hor + 60 - k * (360 - i * 46);
-                if (k <= 0) continue;
-                g.fillStyle = BANDS[i];
-                g.fillRect(-50, top, 1100, 1100 - top);
-            }
+    function bands(g, warm, hor = 620) {
+        warm = clamp(warm);
+        if (warm <= 0) return;
+        for (let i = 0; i < BANDS.length; i++) {
+            const k = smooth(seg(warm, i * 0.09, i * 0.09 + 0.46)), top = hor + 60 - k * (360 - i * 46);
+            if (k <= 0) continue;
+            g.fillStyle = BANDS[i];
+            g.fillRect(-50, top, 1100, 1100 - top);
         }
     }
 
@@ -348,25 +334,18 @@ const Solo5Props = (() => {
         }
     }
     /**
-     * The cactus conducting: its two arms as paths for Verse2aProps.cactus (armL, armR).
-     *   side  -1 both arms sweep to screen left (it gives the phrase to whoever is there), 1 to
-     *         the right, 0 both up and out (everybody);  k  -1..1 the beat's swing
+     * The cactus conducting: its two arms as paths for Verse2aProps.cactus (armL, armR). Its
+     * trunk shows above the car's door from about 1.1 up, so the arms leave it higher than that.
+     *   side  -1: it gives the phrase to whoever is on screen left (the arm on that side high,
+     *         the other low), 1: to the right, 0: both arms up and out (everybody);  k  -1..1 the beat's swing
      */
     function conduct(side, k = 0) {
         const hw = 0.21, bend = (pts) => C.curve(pts, false, 7);
-        if (side === 0) {
-            const up = 0.34 + 0.2 * k;
-            return {
-                armL: { pts: bend([[-hw + 0.06, -1.05], [-0.5, -1.08], [-0.62 - 0.06 * k, -1.2 - up * 0.5], [-0.66 - 0.1 * k, -1.34 - up]]), w: 0.18 },
-                armR: { pts: bend([[hw - 0.06, -1.2], [0.5, -1.23], [0.62 + 0.06 * k, -1.35 - up * 0.5], [0.66 + 0.1 * k, -1.49 - up]]), w: 0.18 },
-            };
-        }
-        const sx = side, lift = 0.1 * k;
-        // the arm on that side points out and a little up; the other comes across in front of the trunk
-        const out = bend([[sx * (hw - 0.06), -1.12], [sx * 0.5, -1.16 - lift], [sx * 0.8, -1.3 - lift * 2], [sx * 1.02, -1.5 - lift * 3]]);
-        const over = bend([[-sx * (hw - 0.06), -1.3], [-sx * 0.46, -1.36], [-sx * 0.5, -1.62 - lift], [-sx * 0.16, -1.86 - lift * 2], [sx * 0.34, -1.9 - lift * 3]]);
-        return sx < 0 ? { armL: { pts: out, w: 0.18 }, armR: { pts: over, w: 0.18 } } : { armR: { pts: out, w: 0.18 }, armL: { pts: over, w: 0.18 } };
+        const arm = (sx, y0, up, sw) => bend([[sx * (hw - 0.06), y0], [sx * 0.44, y0 - 0.02], [sx * (0.52 + 0.04 * sw), y0 - 0.14 - up * 0.5], [sx * (0.54 + 0.1 * sw), y0 - 0.26 - up]]);
+        // towards screen left it is the right arm that goes up (Tom stands at its left shoulder)
+        const upL = side === 0 ? 0.3 + 0.16 * k : 0.03, upR = side === 0 ? 0.3 - 0.16 * k : 0.44 + 0.12 * k;
+        return { armL: { pts: arm(-1, -1.42, upL, 0), w: 0.18 }, armR: { pts: arm(1, -1.5, upR, side < 0 ? -1.6 + 0.4 * k : side > 0 ? 1 + 0.4 * k : 0), w: 0.18 } };
     }
 
-    return { PINK, ORANGE, YELLOW, BANDS, EDGES, field, sky, earth, sun, halo, mitt, windmill, strapEnd, title, dust, conduct, mix, HALO };
+    return { PINK, ORANGE, YELLOW, BANDS, EDGES, field, bands, earth, sun, halo, mitt, windmill, strapEnd, title, dust, conduct, mix, HALO };
 })();

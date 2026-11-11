@@ -18,8 +18,8 @@
 //                       straight down; e.g. -0.5 while the car dives forwards and they trail behind)
 //        n              how many links are on, from the top (default 4; 0 draws nothing)
 //        jaw            the skeleton's jaw 0..1 (default: it laughs on the beat) }
-//   The chain is 3.2 car units long: at Finale.CAR (500, 640, 84) it reaches from the pipe at
-//   (119, 581) down to y ≈ 905 and stays between x ≈ 85 and 250.
+//   The chain is 3.3 car units long: at Finale.CAR (500, 640, 84) it reaches from the pipe at
+//   (117, 581) down to y ≈ 920 and stays between x ≈ 80 and 235.
 //   Solo2Props.hangerPoints(t, x, y, s, o) → [{ grip: [x, y], ang } × 4] on screen (grip: where
 //   the link holds on; ang: its swing, + takes its feet towards the nose).
 //   Solo2Props.hanger(g, i, gx, gy, s, ang, pose) draws link i alone, hanging from (gx, gy).

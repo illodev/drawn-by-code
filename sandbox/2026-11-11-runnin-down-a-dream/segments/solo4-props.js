@@ -19,24 +19,26 @@
 //
 //   moonStage o: { part   'back' (default) | 'front'
 //                  earth  { x, y, r } instead of earthAt(t);  false for none
-//                  flag   0..1 its pop (default 1: planted);  0 / false: not planted yet
+//                  flag   false: not planted yet;  flagTilt: radians added to its lean (it quivers as it goes in)
 //                  land   Skyward.landing's k instead of landK(t);  0: no tracks, no dust }
 //   company   o: { only: ['h0', 'h1', 'h2', 'h3', 'a0', 'a1', 'a2'] draws only these
 //                  squash: { h0: …, a1: … } an extra squash on one of them (a landing) }
 //   Solo4Props.stander(g, id, t, o) draws one of them: o { at: { x, y, rot } elsewhere, squash, pose }.
 //
 //   Solo4Props.STAGE — where everything is, in the frame's 1000 × 1000 units:
-//     s        50     the car's scale, and everybody's
-//     limb     { x: 500, y: 1520, r: 900 }   the moon (Skyward.moon); its top is the horizon at y = 620
-//     car      { x, y, rot }   Skyward.landingAt(limb, A_CAR, 50): about (484, 638), rot −0.018;
+//     s        56     the car's scale, and everybody's
+//     limb     { x: 500, y: 1820, r: 1200 }   the moon (Skyward.moon, turned by moonRot); its top is the horizon at y = 620
+//     car      { x, y, rot }   Skyward.landingAt(limb, carA, 56): about (480, 637), rot −0.017;
 //              draw the ride at (0, 0) after g.translate(x, y), g.rotate(rot) (parked() does)
 //     hood     [x, y]   the Devil's ground point on the hood
-//     flag     { a, x, y }   on the limb, right of the nose (Skyward.moon's flag at scale 50)
-//     earth    { x: 805, y: 392, r: 60 }   where the Earth ends up
+//     flag     { a, x, y, rot }   its foot, just behind the limb right of the nose (x 773), and its lean (−0.2);
+//              it is Solo4Props.whip (the car's own whip and pennant, bend 1) at scale 56, 2.5 units tall
+//     earth    { x: 800, y: 380, r: 62 }   where the Earth ends up
 //     stand    { h0 … h3, a0 … a2 }   each { x, y, rot }: the feet on the surface and the turn
-//              that stands them upright there. h0 the imp in specs, h1 the imp with the bow,
-//              h2 the third imp (a step nearer the camera), h3 the skeleton; a0 the harp,
-//              a1 the trumpet, a2 the ginger one.
+//              that stands them upright there. Left of the tail: h3 the skeleton, then the imps
+//              as a pyramid: h2 (the third imp) and h1 (the bow) on the ground, h0 (the specs)
+//              standing on their heads. Right of the flag, in a row: a0 the harp, a1 the trumpet,
+//              a2 the ginger one.
 //
 // Also here, for solo4's own shots: the weightless overlays (Stan's sticks, Benmont's curls,
 // the cactus's flower), the whip with the pennant on its own, the Earth, a burst of moon
@@ -154,7 +156,13 @@ const Solo4Props = (() => {
         STICKS.forEach((k, i) => {
             const sd = i ? 1 : -1, c0 = [k.m[0] + Math.cos(k.a) * ST_MID, k.m[1] + Math.sin(k.a) * ST_MID];
             const c = [c0[0] + sd * (0.2 * up + 0.07 * Math.sin(TAU * e)), c0[1] - (i ? 0.92 : 0.78) * up];
-            stick(g, 3.2 / s, c, k.a + sd * TAU * (i ? 2 : 1) * e);
+            // they tumble towards the camera: bigger at the top of their drift, or they are lost against the amps
+            const z = 1 + 1.1 * up;
+            g.save();
+            g.translate(c[0], c[1]);
+            g.scale(z, z);
+            stick(g, 3.2 / s / Math.sqrt(z), [0, 0], k.a + sd * TAU * (i ? 2 : 1) * e);
+            g.restore();
         });
         g.restore();
     }
@@ -479,8 +487,9 @@ const Solo4Props = (() => {
     // (Skyward.moon's flag) it leans the other way. bend −1 is the first, +1 the second.
     const WHIP_CAR = [[0, 0], [-0.07, -0.85], [-0.27, -1.7], [-0.63, -2.45]], WHIP_FLAG = [[0, 0.1], [0.03, -0.85], [0.2, -1.7], [0.5, -2.4]];
     const WHIP_BASE = [-4.29, SEATS.deckY - 0.1]; // its foot on the car, in the car's units
-    /** The whip alone: (x, y) its foot, s the scale, ang its turn, bend −1..1, t for the flutter on twos. */
-    function whip(g, x, y, s, ang = 0, bend = -1, t = 0) {
+    const WHIP_CORE = '#a9b0c9';
+    /** The whip alone: (x, y) its foot, s the scale, ang its turn, bend −1..1, t for the flutter on twos; core: only the glint down the rod. */
+    function whip(g, x, y, s, ang = 0, bend = -1, t = 0, core = false) {
         const L = 3.2 / s, d = C.drawing(t), sw = [0, 0.05, -0.03][((d % 3) + 3) % 3], w = (bend + 1) / 2, sd = bend < 0 ? -1 : 1, ab = Math.abs(bend);
         const ctrl = WHIP_CAR.map((p, i) => [lerp(p[0], WHIP_FLAG[i][0], w) + sd * ab * sw * [0, 0, 0.4, 1][i], lerp(p[1], WHIP_FLAG[i][1], w)]);
         g.save();
@@ -490,9 +499,12 @@ const Solo4Props = (() => {
         g.lineJoin = 'round';
         g.lineCap = 'round';
         const pts = C.curve(ctrl, false, 8), n = pts.length, pa = pts[n - 2], pb = pts[n - 7];
-        line(g, pts, L * 1.15);
-        C.poly(g, [pa, [pa[0] + bend * 0.52, lerp(pa[1], pb[1], 0.6) + sw * 1.4], pb], { fill: Rides.ROD.pennant, ink: K.ink, lw: L * 0.8 });
-        circ(g, pts[n - 1][0], pts[n - 1][1], 0.045, '#f4f6fc', L * 0.7);
+        if (!core) line(g, pts, L * 1.15);
+        line(g, pts, L * 0.42, WHIP_CORE); // a glint down the rod: ink alone is lost against the black sky
+        if (!core) {
+            C.poly(g, [pa, [pa[0] + sd * Math.max(0.34, ab) * 0.52, lerp(pa[1], pb[1], 0.6) + sw * 1.4], pb], { fill: Rides.ROD.pennant, ink: K.ink, lw: L * 0.8 });
+            circ(g, pts[n - 1][0], pts[n - 1][1], 0.045, '#f4f6fc', L * 0.7);
+        }
         g.restore();
     }
     // the car's own whip, as a hole in the car's units (for a car drawn at (0, 0) with scale s)
@@ -511,22 +523,31 @@ const Solo4Props = (() => {
     // =========================================================================================
     // The moon stage
     // =========================================================================================
-    const CS = 50, LIMB = { x: 500, y: 1520, r: 900 }, MOON_ROT = 0.5;
+    const CS = 56, LIMB = { x: 500, y: 1820, r: 1200 }, MOON_ROT = 0.3;
     const AXLE = 3.55, DCH = Math.sqrt(LIMB.r * LIMB.r - AXLE * CS * AXLE * CS); // the chord through the axles
-    const A_CAR = Math.asin((484 - LIMB.x) / DCH);
+    const A_CAR = Math.asin((480 - LIMB.x) / DCH);
     const REST = W.landingAt(LIMB, A_CAR, CS, 1);
     // a point of the surface: a (radians clockwise from the top), `in` towards the camera (down the frame)
     const onLimb = (a, near = 0) => ({ x: LIMB.x + Math.sin(a) * LIMB.r, y: LIMB.y - Math.cos(a) * LIMB.r + near, rot: a });
     const aOf = (x) => Math.asin((x - LIMB.x) / LIMB.r);
     // the car's ground point for an angle along the limb and a height above it (straight up the frame)
     const carAt = (a, h = 0) => ({ x: LIMB.x + Math.sin(a) * DCH, y: LIMB.y - Math.cos(a) * DCH - h, rot: a });
-    const FLAG_A = Math.asin((744 - LIMB.x) / (LIMB.r * 0.985));
-    const FLAG = { a: FLAG_A, x: LIMB.x + Math.sin(FLAG_A) * LIMB.r * 0.985, y: LIMB.y - Math.cos(FLAG_A) * LIMB.r * 0.985, rot: FLAG_A * 0.55 + MOON_ROT * 0.45 };
-    const EARTH = { x: 805, y: 392, r: 60 };
-    const STAND = {
-        h0: onLimb(aOf(176)), h1: onLimb(aOf(218)), h2: onLimb(aOf(197), 24), h3: onLimb(aOf(126)),
-        a0: onLimb(aOf(792)), a1: onLimb(aOf(843)), a2: onLimb(aOf(892)),
+    // The flag: the car's whip, planted just behind the limb (its foot is hidden by the ground),
+    // leaning back towards the car so the pennant flies clear of the angels' halos.
+    const FLAG_A = Math.asin((773 - LIMB.x) / (LIMB.r - 14));
+    const FLAG = { a: FLAG_A, x: 773, y: LIMB.y - Math.cos(FLAG_A) * (LIMB.r - 14), rot: -0.2 };
+    const EARTH = { x: 800, y: 380, r: 62 };
+    // The company stands a little straighter than the ground's normal (half its lean), or the
+    // ones at the frame's edges tip out of it. The top imp's hooves are on the other two's heads.
+    const mark = (x, near = 0) => {
+        const p = onLimb(aOf(x), near);
+        return { x: p.x, y: p.y, rot: p.rot * 0.5 };
     };
+    const STAND = { h1: mark(192), h2: mark(154), h3: mark(102), a0: mark(824), a1: mark(868), a2: mark(912) };
+    STAND.h0 = (() => {
+        const top = (m) => [m.x + Math.sin(m.rot) * 1.0 * 0.67 * CS, m.y - Math.cos(m.rot) * 1.0 * 0.67 * CS], p = top(STAND.h1), q = top(STAND.h2);
+        return { x: (p[0] + q[0]) / 2, y: (p[1] + q[1]) / 2, rot: (STAND.h1.rot + STAND.h2.rot) / 2 };
+    })();
     const HOOD = (() => {
         const p = rot([Finale.HOOD[0] * CS, Finale.HOOD[1] * CS], REST.rot);
         return [REST.x + p[0], REST.y + p[1]];
@@ -536,20 +557,20 @@ const Solo4Props = (() => {
     // --- the landing's clock ---------------------------------------------------------------------
     // The car touches down for good on beat 660 and skids to rest on 665; Skyward.landing's k
     // follows the skid (so its tracks end under the wheels), then the dust goes on thinning.
-    const T_DOWN = S.b(660), T_REST = S.b(665), K0 = 0.06, SLIDE0 = -W.landingSlide(K0); // the slide left at touchdown, in car units
+    const T_DOWN = S.b(660), T_REST = S.b(665), K0 = 0.1, SLIDE0 = -W.landingSlide(K0); // the slide left at touchdown, in car units
     const slideAt = (t) => (t >= T_REST ? 0 : -SLIDE0 * Math.pow(1 - seg(t, T_DOWN, T_REST), 1.2));
     const kOfSlide = (sl) => 0.55 * (1 - Math.pow(clamp(-sl / 2.6), 1 / 2.2));
-    const landK = (t) => (t < T_DOWN - 1e-6 ? 0 : t < T_REST ? kOfSlide(slideAt(t)) : 0.55 + 0.45 * (1 - Math.exp(-(t - T_REST) / 2.4)));
+    const landK = (t) => (t < T_DOWN - 1e-6 ? 0 : t < T_REST ? kOfSlide(slideAt(t)) : 0.55 + 0.45 * (1 - Math.exp(-(t - T_REST) / 0.9)));
     const SPIN_REST = T_DOWN * 12 + (SLIDE0 / 0.56) * 0.6; // the wheels' angle at rest
     // the Earth rises over the limb from the cut (beat 652) and then only creeps
     const T_CUT = S.b(652);
     const earthAt = (t) => {
-        const u = seg(t, T_CUT - 0.3, S.b(659)), e = 1 - Math.pow(1 - u, 2.2), c = 1 - Math.exp(-Math.max(0, t - T_CUT) / 6);
-        return { x: lerp(846, EARTH.x + 5, e) - 5 * c, y: lerp(712, EARTH.y + 16, e) - 16 * c, r: EARTH.r };
+        const u = seg(t, T_CUT - 0.3, S.b(656.5)), e = 1 - Math.pow(1 - u, 2.2), c = 1 - Math.exp(-Math.max(0, t - T_CUT) / 6);
+        return { x: lerp(EARTH.x + 44, EARTH.x + 5, e) - 5 * c, y: lerp(EARTH.y + 322, EARTH.y + 16, e) - 16 * c, r: EARTH.r };
     };
 
     function sky(g, t) {
-        C.sunburst(g, LIMB.x, LIMB.y - 160, { n: 12, rot: 0.2 + t * 0.03, a: '#0e0b2c', b: '#130f3a' });
+        C.sunburst(g, LIMB.x, 1150, { n: 12, rot: 0.2 + t * 0.03, a: '#0e0b2c', b: '#130f3a' });
         const r = Motion.rng('solo4-stars'), d = C.drawing(t);
         for (let i = 0; i < 74; i++) {
             const x = r() * 1000, y = r() * 760, sz = 5 + r() * 9, ph = Math.floor(r() * 12), big = i % 9 === 0;
@@ -565,8 +586,9 @@ const Solo4Props = (() => {
         sky(g, t);
         const e = o.earth === false ? null : o.earth ?? earthAt(t);
         if (e) earth(g, e.x, e.y, e.r, t);
-        const fk = o.flag === undefined ? 1 : o.flag || 0;
-        W.moon(g, LIMB.x, LIMB.y, LIMB.r, { rot: MOON_ROT, t, flag: fk > 0 ? { a: FLAG.a - MOON_ROT, s: CS, k: fk, t } : false });
+        // the flag stands behind the limb: the moon is painted over its foot
+        if (o.flag !== false && o.flag !== 0) whip(g, FLAG.x, FLAG.y, CS, FLAG.rot + (o.flagTilt ?? 0), 1, t);
+        W.moon(g, LIMB.x, LIMB.y, LIMB.r, { rot: MOON_ROT, t });
         if (k > 0) W.landing(g, REST.x, REST.y, CS, k, { ...lo, part: 'back' });
     }
 
@@ -578,14 +600,15 @@ const Solo4Props = (() => {
         fn();
         g.restore();
     }
-    /** The ride at rest on the limb, playing, its whip gone (it is the flag). o: what Finale.ride takes; whip: true keeps it. */
+    /** The ride at rest on the limb, playing, its whip gone (it is the flag), the Devil soloing with the neck up (solo 1, shred 0.6
+     *  unless o.devil says otherwise). o: what Finale.ride takes; whip: true keeps the whip on the tail. */
     function parked(g, t, o = {}) {
-        const { whip: keep, ...ro } = o, ride = () => Finale.ride(g, t, 0, 0, CS, { spin: SPIN_REST, shadow: true, exhaust: 0, ...ro });
+        const { whip: keep, ...ro } = o, ride = () => Finale.ride(g, t, 0, 0, CS, { spin: SPIN_REST, shadow: true, exhaust: 0, ...ro, devil: ro.devil === false ? false : { solo: 1, shred: 0.6, ...(ro.devil ?? {}) } });
         onStage(g, REST, () => (keep ? ride() : noWhip(g, CS, ride)));
     }
 
     // --- the company ------------------------------------------------------------------------------
-    const IMP = 0.67, WEAR = ['specs', 'bow', undefined], IDS = ['h3', 'h0', 'h1', 'h2', 'a0', 'a1', 'a2']; // back to front
+    const IMP = 0.67, WEAR = ['specs', 'bow', undefined], IDS = ['h3', 'h2', 'h1', 'h0', 'a2', 'a1', 'a0']; // back to front
     // the angels' poses on the ground at t: Solo3Props' own (playing on the beat), wings folded
     function angelPose(who, t) {
         const P = S.pulseAt(t), ph = P.k + P.since, p = P.pulse;

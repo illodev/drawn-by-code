@@ -15,7 +15,7 @@ const Rig = (() => {
         return {
             tom: { ...base, shades: 1, strum: Math.cos(ph * TAU), fret: 0.3 + 0.5 * (Math.floor(ph / 2) % 2), mouth: (o.sing === false ? null : S.mouth(t)) ?? 'smirk' },
             mike: { ...base, strum: Math.cos(ph * TAU), fret: 0.2 + 0.35 * (Math.floor(ph / 2) % 3), solo: o.solo ?? 0, mouth: (o.solo ?? 0) > 0.5 ? 'sing' : 'smirk', eyes: (o.solo ?? 0) > 0.5 ? 'shut' : 'open' },
-            howie: { ...base, pluck: Math.cos(ph * TAU), fret: 0.15 + 0.3 * (Math.floor(ph / 4) % 3), mouth: 'smirk' },
+            howie: { ...base, pluck: Math.cos(ph * TAU), fret: 0.04 + 0.13 * (Math.floor(ph / 4) % 3), mouth: 'smirk' },
             ben: { ...base, handR: 0.18 + 0.1 * (P.k % 3), handL: 0.62 + 0.1 * ((P.k + 1) % 3), press: p, mouth: back ?? 'grin' },
             stan: { kick: even ? p : 0, snare: even ? 0 : p, hat: off, crash: P.k % 16 === 0 ? p : 0, headDy: 0.03 * p, sway: base.sway, squash: 0.03 * p, mouth: back ?? 'grin' },
         };

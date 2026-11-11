@@ -517,7 +517,7 @@ const Solo1Props = (() => {
     // What comes off the roof: thin falls of dust (a trickle with a puff at its head) and stones.
     //   t: seconds since it began;  k 0..1 how much;  box: [x0, x1, yTop, yFloor] in the frame
     function dust(g, t, k, box = [60, 940, -20, 860]) {
-        const [x0, x1, yT, yF] = box, r = Motion.rng('solo1-dust'), n = 16;
+        const [x0, x1, yT, yF] = box, r = Motion.rng('solo1-dust'), n = 22;
         g.save();
         g.lineJoin = 'round';
         g.lineCap = 'round';
@@ -527,20 +527,20 @@ const Solo1Props = (() => {
             const t2 = Math.floor((t - from * (1 - k * 0.55)) * 12 + 1e-6) / 12, u = (t2 % every) / every, turn = Math.floor(t2 / every);
             if (stone) {
                 // a stone: it drops, turning, and is gone below the stage's edge
-                const y = yT + (yF + 80 - yT) * u * u, a = turn + u * 7, sz = 9 * size + 3;
+                const y = yT + (yF + 80 - yT) * u * u, a = turn + u * 7, sz = 11 * size + 5;
                 const pts = [[-1, -0.5], [-0.2, -1], [0.9, -0.6], [1, 0.4], [0.2, 1], [-0.8, 0.7]].map((p) => {
                     const q = rot([p[0] * sz, p[1] * sz], a);
                     return [x + q[0], y + q[1]];
                 });
                 if (y < yF) {
-                    C.prism(g, cw(pts), [sz * 0.36, -sz * 0.24], { front: ROCK.wall, top: ROCK.top, side: ROCK.wallD }, { lw: 2.6 });
-                    line(g, [[x - 3, y - sz - 16], [x - 3, y - sz - 34 - 20 * u]], 2.2, ROCK.top);
+                    C.prism(g, cw(pts), [sz * 0.36, -sz * 0.24], { front: ROCK.top, top: '#ee6a7c', side: ROCK.wall }, { lw: 2.8 });
+                    line(g, [[x - 3, y - sz - 14], [x - 3, y - sz - 40 - 30 * u]], 2.6, '#f2b59c');
                 }
             } else {
                 // a trickle: dashes under a puff that sinks and thins
                 const head = yT + (yF * 0.72 - yT) * Math.min(1, u * 1.5), len = 60 + 110 * size;
                 g.strokeStyle = '#f2b59c';
-                g.lineWidth = 2.6;
+                g.lineWidth = 3;
                 g.beginPath();
                 for (let j = 0; j < 4; j++) {
                     const dx = (j - 1.5) * 5 * size, off = ((j * 37 + turn * 13) % 29) - 10, ya = Math.max(yT, head - len + off + j * 12), yb = Math.min(head - 6, ya + 22 + ((j * 17) % 13));
@@ -574,16 +574,16 @@ const Solo1Props = (() => {
             run.push([mix(pts[i - 1][0], pts[i][0], u), mix(pts[i - 1][1], pts[i][1], u)]);
             left -= len;
         }
-        const w = 3.4 + 7 * wide;
+        const w = 6.5 + 13 * wide;
         // it opens as a wedge: widest where it started, a hair at its head
         const up = run.map(([x, y], i) => [x, y - (w / 2) * (1 - 0.75 * (i / (run.length - 1 || 1))) - (i % 2 ? 0 : wide * 2)]);
         const dn = run.map(([x, y], i) => [x, y + (w / 2) * (1 - 0.75 * (i / (run.length - 1 || 1))) + (i % 2 ? wide * 2 : 0)]).reverse();
         C.poly(g, [...up, ...dn], { fill: wide > 0.3 ? ROCK.glow : ROCK.deep, ink: K.ink, lw: 3 });
-        if (wide > 0.3) line(g, run.slice(0, Math.max(2, Math.ceil(run.length * 0.8))), 1.4 + 2.4 * wide, ROCK.hot);
+        if (wide > 0.3) line(g, run.slice(0, Math.max(2, Math.ceil(run.length * 0.8))), 1.6 + 4 * wide, ROCK.hot);
         // side cracks off every other corner
         for (let i = 2; i < run.length - 1; i += 2) {
             const [x, y] = run[i], sg = (i / 2) % 2 ? 1 : -1;
-            line(g, [[x, y], [x + 9, y + sg * 7], [x + 6, y + sg * 13]], 2.6);
+            line(g, [[x, y], [x + 10, y + sg * 8], [x + 6, y + sg * 15]], 3);
         }
         if (k < 1) {
             const [hx, hy] = run[run.length - 1];

@@ -95,7 +95,7 @@
     const BASE = { squash: 0, lean: 0, rock: 0, dy: 0, headDy: 0, headTilt: 0, quiff: 0, quiffX: 0, lock: 0, lockSw: 0, shrugR: 0, shrugL: 0, handR: [-0.5, -0.5], handL: [0.5, -0.5], mood: 'angry', face: F.set, over: null };
     const CROSS = { handR: [0.27, -0.8], handL: [-0.27, -0.715] }; // arms crossed, high on the chest
     const KNEES = { handR: [-0.3, -0.42], handL: [0.3, -0.42] }; // down behind the parapet
-    const RAIL = { handR: [-0.3, -0.6], handL: [0.3, -0.6] }; // over the rail's velvet roll (drawn in front of it)
+    const RAIL = { handR: [-0.15, -0.585], handL: [0.15, -0.585] }; // over the rail's velvet roll (drawn in front of it)
     const MOUTH = { handR: [-0.05, -1.2], handL: [0.06, -1.19] }; // both mitts over his mouth
     const HOLD = { handR: [-0.245, -0.5], handL: [0.245, -0.5] }; // the contract's two edges, out over the rail
 

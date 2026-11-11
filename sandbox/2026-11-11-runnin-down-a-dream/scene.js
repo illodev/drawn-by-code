@@ -4,7 +4,7 @@
 // time comes from song.js (measured on the track).
 Motion.scene({
     fps: 24,
-    duration: 182.5,
+    duration: 264,
     logical: [1000, 1000],
     uses: [
         'styles/cereal-ad/cereal.js',
@@ -54,6 +54,20 @@ Motion.scene({
         'sandbox/2026-11-11-runnin-down-a-dream/segments/hellhoof.js',
         'sandbox/2026-11-11-runnin-down-a-dream/segments/bridge-props.js',
         'sandbox/2026-11-11-runnin-down-a-dream/segments/bridge.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/skyward.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/finale.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/solo1-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/solo1.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/solo2-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/solo2.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/solo3-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/solo3.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/solo4-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/solo4.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/solo5-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/solo5.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/fade-props.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/segments/fade.js',
     ],
     fonts: [
         { family: 'Anton', src: 'fonts/Anton-latin.woff2' },
@@ -78,7 +92,13 @@ Motion.scene({
         [131.6667, 134.5, 'The entrance'], [134.5, 135.9167, 'Lights'], [135.9167, 137.3333, 'A foot taps'], [137.3333, 138.75, 'Won over'], [138.75, 140.125, 'Mitts up'], [140.125, 141.5417, 'The box'], [141.5417, 144.375, 'Full heat'],
         [144.375, 147.9167, 'The plug'], [147.9167, 150.0417, 'Lighters'], [150.0417, 152.8333, 'Chorus 4'], [152.8333, 154.25, 'Sing along'], [154.25, 155.6667, 'Full tilt'],
         [155.6667, 157.0833, 'Arms crossed'], [157.0833, 158.5, 'The hoof'], [158.5, 164.1667, 'One part at a time'], [164.1667, 166.9583, 'He lets go'], [166.9583, 168.375, 'The contract'],
-        [168.375, 171.2083, 'Torn'], [171.2083, 175.4583, 'The fire'], [175.4583, 176.875, 'The house'], [176.875, 179.3333, 'The nod'], [179.3333, 179.6667, 'The peg'], [179.6667, 182.5, 'Face to face']],
+        [168.375, 171.2083, 'Torn'], [171.2083, 175.4583, 'The fire'], [175.4583, 176.875, 'The house'], [176.875, 179.3333, 'The nod'], [179.3333, 179.6667, 'The peg'], [179.6667, 182.5, 'Face to face'],
+        [182.5, 185.3333, 'First phrase'], [185.3333, 186.375, 'The answer'], [186.375, 187.0833, 'The eyebrow'], [187.0833, 188.1667, 'Tennis'], [188.1667, 189.5833, 'Trading'], [189.5833, 190.9583, 'The clash'], [190.9583, 192.375, 'Back to back'], [192.375, 193.7917, 'The floor'],
+        [193.7917, 196.625, 'Rumble'], [196.625, 198.0417, 'The plug pops'], [198.0417, 199.4583, 'Through the roof'], [199.4583, 205.0833, 'Out'],
+        [205.0833, 209.3333, 'Into the cloud'], [209.3333, 212.1667, 'Heaven\'s doorstep'], [212.1667, 216.375, 'They join in'], [216.375, 219.2083, 'Up again'],
+        [219.2083, 224.875, 'Leaving the air'], [224.875, 230.5, 'The moon'], [230.5, 236.1667, 'Landing'],
+        [236.1667, 237.5833, 'Two crowds'], [237.5833, 239, 'The swap'], [239, 240.4167, 'Together'], [240.4167, 243.2083, 'The trade'], [243.2083, 244.625, 'One line'], [244.625, 248.875, 'Everybody'], [248.875, 253.125, 'The poster'],
+        [253.125, 254.5, 'Home'], [254.5, 257.7083, 'The frame'], [257.7083, 260.1667, 'To my #1 fan'], [260.1667, 264, 'STOP']],
     audio: { mix: 'private/song.mp3' },
 
     setup() {
@@ -88,7 +108,8 @@ Motion.scene({
         return {
             order: [[0, Seg.open], [6, Seg.sign], [B(8), Seg.getaway], [B(12), Seg.verse1a], [B(17), Seg.verse1b], [B(20), Seg.verse1c], [B(25), Seg.chorus1], [B(34), Seg.planb],
                 [B(39), Seg.verse2a], [B(45), Seg.verse2b], [B(50), Seg.verse2c], [B(54), Seg.chorus2], [B(63), Seg.breakad], [B(73), Seg.breakrew], [B(78), Seg.verse3a], [B(85), Seg.verse3b],
-                [B(93), Seg.chorus3], [B(102), Seg.hellplug], [B(110), Seg.hellhoof], [B(119), Seg.bridge]],
+                [B(93), Seg.chorus3], [B(102), Seg.hellplug], [B(110), Seg.hellhoof], [B(119), Seg.bridge],
+                [B(129), Seg.solo1], [B(137), Seg.solo2], [B(145), Seg.solo3], [B(155), Seg.solo4], [B(167), Seg.solo5], [B(179), Seg.fade]],
         };
     },
 

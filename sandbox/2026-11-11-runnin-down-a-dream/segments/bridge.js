@@ -91,8 +91,11 @@
             if (!o.mikeNear) put(o.mikeAt ?? seats.deck[1], mike);
             put(seats.deck[2], (sc) => BandRhythm.benmont(g2, 0, 0, sc, pose('ben')));
             put(o.tomAt ?? seats.deck[0], (sc) => Cast.tom(g2, 0, 0, sc, pose('tom')));
+            // the Devil first when Mike has stepped forward beside him: their necks point at each other, and Mike's
+            // guitar with both his mitts on it stays whole in front of the fork
+            if (o.devil && o.mikeNear) put(o.devilAt ?? DEVIL_AT, (sc) => o.devil(g2, sc));
             if (o.mikeNear) put(o.mikeAt ?? MIKE_FWD, mike);
-            if (o.devil) put(o.devilAt ?? DEVIL_AT, (sc) => o.devil(g2, sc));
+            if (o.devil && !o.mikeNear) put(o.devilAt ?? DEVIL_AT, (sc) => o.devil(g2, sc));
             put(seats.driver, (sc) => Chorus1Props.cactus(g2, 0, 0, sc, { wheel: WHEEL, shades: 1, squash: 0.05 * Pu.pulse, wave: Pu.k % 2 ? Pu.pulse : -Pu.pulse * 0.6, ...(o.cactus ?? {}) }));
         });
         return tips ? [car.x + (SEATS.kit[0] + tips[0]) * car.s, car.y + (SEATS.kit[1] + tips[1]) * car.s] : null;
@@ -270,14 +273,21 @@
         }
         // his cold: the sore nose until the fire steams it off him
         const nose = 1 - seg2(t, STEAM, STEAM + 4 / 12);
-        const p = St.at(at), body = () => {
-            if (nose > 0.02) C3.devil(g, p[0], p[1], s, pose, { scarf: false, nose });
-            else Devil.draw(g, p[0], p[1], s, pose);
+        // part 'armL': only the arm that goes into the fire; 'rest': everything but that arm (he stands in front of
+        // the bowl's left end, the arm reaches back into it); default: all of him
+        const p = St.at(at), body = (part = 'all') => {
+            if (part !== 'armL') {
+                if (nose > 0.02) C3.devil(g, p[0], p[1], s, pose, { scarf: false, nose });
+                else Devil.draw(g, p[0], p[1], s, pose);
+            }
             P.frame(g, p[0], p[1], s, pose, (L) => {
-                if (tongue) P.head(g, pose, () => P.tongue(g, L, 1));
-                P.arm(g, L, P.SH.R, hR);
-                P.arm(g, L, P.SH.L, hL, roll);
+                if (part !== 'armL') {
+                    if (tongue) P.head(g, pose, () => P.tongue(g, L, 1));
+                    P.arm(g, L, P.SH.R, hR);
+                }
+                if (part !== 'rest') P.arm(g, L, P.SH.L, hL, roll);
             });
+            if (part === 'armL') return;
             if (on(t, STEAM)) {
                 const np = P.toFrame(p[0], p[1], s, pose, rot([0.045, -1.225 + (pose.headDy ?? 0)], pose.headTilt ?? 0));
                 P.steam(g, np[0], np[1] - 0.05 * s, 0.085 * s, E.seg(twos(t, STEAM), STEAM, STEAM + 0.5), 1.1 * s);
@@ -292,21 +302,16 @@
         };
         // --- the fire and him, in order ----------------------------------------------------------
         const rim = () => {
-            // the bowl's near rim, over the fire's foot (the venue's own drawing of it, to the right of him)
-            g.save();
-            g.beginPath();
-            g.rect(St.at([STACK[0] + 44, 0])[0], 0, 1000, 1000);
-            g.clip();
+            // the bowl's near wall, whole, over the fire's foot (the venue's own drawing of it): he goes on top of its left end
             C.poly(g, [[-46, 0], [38, 0], [33, 20], [-40, 20]].map(([x, y]) => St.at([BRZ[0] + x, BRZ[1] + y])), { fill: I.R.wall, ink: K.ink, lw: 3.2 });
             C.poly(g, [St.at([BRZ[0] - 38, BRZ[1] + 8]), St.at([BRZ[0] + 30, BRZ[1] + 8])], { ink: I.R.wallL, lw: 2.2, close: false });
-            g.restore();
         };
         const mainMin = (44 + 50) * (1 + 0.14 * o.beatK) * St.k * 1.05; // over the venue's own flame
         if (!on(t, DIP)) body();
         else if (!on(t, PULL)) {
             const beat = Math.min(3, Math.floor((twos(t, DIP) - DIP) / S.BEAT + 0.04)), cols = P.FIRE[COLS[beat]], big = 0.6 + 0.3 * pop(t, n(12 + beat), 0.2) + 0.1 * (on(t, HEAVE) ? 1 : 0);
             P.fire(g, F[0], F[1], sF, d, cols, big, 'back', mainMin);
-            body();
+            body('armL');
             P.fire(g, F[0], F[1], sF, d, cols, big, 'front');
             // sparks of its colour jump out on each change
             const r = Motion.rng('bridge-sparks' + beat), since = twos(t, n(12 + beat)) - n(12 + beat);
@@ -316,12 +321,14 @@
                 C.sparkle(g, F[0] + Math.cos(a) * sp * u, F[1] - 60 + Math.sin(a) * sp * u + 120 * u * u, (16 + r() * 12) * (1 - u * 0.5), { color: i % 2 ? cols[2] : cols[1], ink: K.ink, lw: 2.4, rot: i });
             }
             rim();
+            body('rest');
         } else {
             I.guitarFromFire(g, F[0], F[1], sF, k, t);
-            body();
+            body('armL');
             // while it is still low the mitt is in the flames
             if (k < 0.3) P.flame(g, F[0] - 0.12 * sF, F[1], 0.62 * sF, d + 1, 1);
             rim();
+            body('rest');
             // twinkles when it is out
             if (on(t, OUT)) {
                 const G = I.fromFirePoints(k), c = [F[0] + G.body[0] * sF, F[1] + G.body[1] * sF];

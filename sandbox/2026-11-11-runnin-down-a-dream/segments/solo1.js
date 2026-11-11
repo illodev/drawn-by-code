@@ -2,7 +2,8 @@
 // Stan sing the «ooh»s to 189.5 (the rig's own mouths).
 //   bars 129–130  First phrase   the bridge's last picture goes on (no cut) and pushes in on the two: Mike's
 //                                neck goes up, his fretting mitt runs up it, clean notes fountain out of his
-//                                headstock onto the Devil, who leans back and gives a step; the Devil's spot dims
+//                                headstock onto the Devil, who ducks and tips back from them (the cactus behind him
+//                                leans away from his guitar's fire); the Devil's spot dims
 //   bar 131       The answer     closer on the Devil (three beats): he shreds, flames up, jagged burning notes,
 //                                twice as many, rain on Mike, who rocks back with his hair blown
 //   bars 131–132  The eyebrow    close on Mike (two beats): one eyebrow up on the off-beat, then two nods
@@ -11,8 +12,9 @@
 //   bar 133       Trading        half a bar each: close on Mike ripping, a whip pan on the third beat to the Devil
 //   bar 134       The clash      the stage, wide: both at once; the two streams meet over them every half beat
 //                                and burst into stars; the lights swing wildly; Stan and Howie grin at each other
-//   bar 135       Back to back   they jump round (Mike now faces left, the Devil right), land back to back and
-//                                play the same line, heads thrown back; the notes rise from between them as a braid
+//   bar 135       Back to back   they jump round (Mike now faces left, the Devil right, a hoof in the cockpit: the
+//                                cactus ducks behind the door), land back to back and play the same line, heads
+//                                thrown back; the notes rise from between them as a braid
 //   bar 136       The floor      the stage view: the house hops; dust and stones off the roof, a crack runs across
 //                                the stage floor and opens, the lake swells behind; a jolt on the last beat.
 //                                The last frame is LAST (below): what the next block cuts away from.
@@ -37,7 +39,7 @@
     const SCARF_AT = 142.7083; // when the Devil's scarf came down on the imp's mallet (chorus 3)
     // places on the deck's near row (car units): Mike's and the Devil's as the bridge left them, and back to back
     const MIKE_AT = FIN.mikeAt, DEVIL_AT = FIN.devilAt;
-    const MIKE_B2B = [MIKE_AT[0] - 0.1, MIKE_AT[1]], DEVIL_B2B = [DEVIL_AT[0] + 0.02, DEVIL_AT[1]];
+    const MIKE_B2B = [MIKE_AT[0] + 0.07, MIKE_AT[1]], DEVIL_B2B = [DEVIL_AT[0] + 0.22, DEVIL_AT[1]]; // the Devil with a hoof in the cockpit, where the cactus was
     // the camera: the venue's own stage view, and closer framings (k: the zoom; cx, cy: the set point at the frame's middle)
     const VS = I.VIEW.stage;
     const V_TWO = { k: 2.3, cx: 571, cy: 600 }, V_ANS = { k: 2.9, cx: 592, cy: 611 }, V_BROW = { k: 4.2, cx: 515, cy: 641 };
@@ -74,8 +76,9 @@
             solo: 0, tomAt: FIN.tomAt, mikeNear: true, mikeAt: [-90, 0], bounce: o.bounce ?? 0, // the cast's own Mike waits off screen: this block draws him turned
             pose: o.pose ?? {}, cactus: { ...cactus(t), ...(o.cactus ?? {}) }, devilAt: dAt,
             devil: (g2, sc) => {
-                P.mike(g2, (mAt[0] - dAt[0]) * sc, (mAt[1] - dAt[1] - (o.mikeUp ?? 0)) * sc, sc, { ...o.mike, shadow: !(o.mikeUp > 0) });
+                // the Devil first, as the bridge left them: Mike's guitar and both his mitts stay whole in front of the fork
                 I.devilGuitar(g2, 0, -(o.devilUp ?? 0) * sc, sc, { ...o.devil, shadow: !(o.devilUp > 0) });
+                P.mike(g2, (mAt[0] - dAt[0]) * sc, (mAt[1] - dAt[1] - (o.mikeUp ?? 0)) * sc, sc, { ...o.mike, shadow: !(o.mikeUp > 0) });
             },
         });
         c.mk[1] -= (o.mikeUp ?? 0) * s;
@@ -90,10 +93,10 @@
         return c;
     }
     // The cactus at the wheel has a burning guitar at his shoulder: he leans away from it, further when the Devil plays;
-    // when the Devil turns his way (back to back) he ducks under the fork and stays down.
+    // when the Devil turns his way (back to back) he ducks under the fork, down behind the door with his arm pulled in, and stays there.
     const cactus = (t) => {
         const Pu = S.pulseAt(t), away = lerp(0.07, 0.15, E.seg(t, n(1), n(2))), duck = on(t, HOP) ? E.out(seg2(t, HOP, HOP + 2 / 12)) : 0;
-        return { lean: away + 0.07 * duck, wave: (0.5 + 0.2 * Pu.pulse) * (1 - duck), ...(duck > 0 ? { squash: 0.05 * Pu.pulse + 0.36 * duck, mouth: 'oh' } : {}) };
+        return { lean: away + 0.3 * duck, wave: lerp(0.5 + 0.2 * Pu.pulse, 7, duck), ...(duck > 0 ? { squash: 0.03 * Pu.pulse + 0.5 * duck, mouth: 'oh' } : {}) };
     };
     // Mike keeping the beat (the rig's pose), with this block's overrides
     const mikePose = (t, o = {}) => ({ ...Rig.playing(t, { solo: 0 }).mike, mouth: 'smirk', eyes: 'open', ...o });
@@ -163,12 +166,12 @@
     // =========================================================================================
     // «The answer», bar 131: the Devil's, and how Mike takes it
     // =========================================================================================
-    const A_LIFE = 0.46, A_BIRTHS = Array.from({ length: 20 }, (_, i) => n(8 + i * 0.25));
+    const A_LIFE = 0.46, A_BIRTHS = Array.from({ length: 12 }, (_, i) => n(8 + i * 0.25));
     // the two of them from the answer to the eyebrow (the same acting seen in two framings)
     function answerPoses(t) {
         const Pu = S.pulseAt(t), up = E.back(seg2(t, T_ANS, T_ANS + 3 / 12)), close = on(t, T_BROW);
         const devil = axePose(t, {
-            look: -1, solo: lerp(0.4, close ? 0.55 : 0.9, up), shred: 1, flames: 1, strum: pick(t, T_ANS), fret: 0.45, mood: on(t, n(9)) && !on(t, n(10.5)) ? 'laugh' : 'grin',
+            look: -1, solo: lerp(0.4, close ? 0.55 : 0.9, up), shred: close ? 0 : 1, flames: close ? 0.7 : 1, strum: close ? 1 : pick(t, T_ANS), fret: close ? 0.8 : 0.45, mood: close ? 'sly' : on(t, n(9)) && !on(t, n(10.5)) ? 'laugh' : 'grin',
             squash: 0.05 * Pu.pulse + 0.06 * bump(t, T_ANS, 0.25), headDy: 0.04 * Pu.pulse, tail: 0.07 * Math.sin((Pu.k + Pu.since) * PI),
         });
         const rock = E.out(seg2(t, T_ANS + 1 / 12, T_ANS + 3 / 12)), brow = pop(t, n(11.5), 0.17), nod = bump(t, n(12), 0.25) + 0.7 * bump(t, n(12.5), 0.22);
@@ -179,11 +182,11 @@
         });
         return { mike, devil };
     }
-    const answerNotes = (g, t, { s, mk, dv }, devil, over = false) => {
+    const answerNotes = (g, t, { s, mk, dv }, devil) => {
         const from = add(dv, I.guitarPoints(devil).headstock, s);
         volley(g, t, A_BIRTHS, A_LIFE, (i) => {
-            const past = over || i % 3 === 2, to = add(mk, past ? [-2.3, -2.3 - 0.22 * (i % 3)] : [-0.42 + 0.26 * (i % 4), -2.0 + 0.16 * (i % 3)], s);
-            return [from, [(from[0] + to[0]) / 2 + 0.1 * s, Math.min(from[1], to[1]) - (over ? 0.25 + 0.12 * (i % 3) : 0.7 + 0.3 * (i % 3)) * s], to];
+            const past = i % 3 === 2, to = add(mk, past ? [-2.3, -2.3 - 0.22 * (i % 3)] : [-0.42 + 0.26 * (i % 4), -2.0 + 0.16 * (i % 3)], s);
+            return [from, [(from[0] + to[0]) / 2 + 0.1 * s, Math.min(from[1], to[1]) - (0.7 + 0.3 * (i % 3)) * s], to];
         }, 'fire', (i) => s * (0.12 + 0.025 * (i % 2)), puff(s));
     };
     function answerShot(g, t) {
@@ -195,7 +198,6 @@
         venueShot(g, t, V_BROW, {
             mike, devil, devilAt: DEVIL_AT, spots: [1.6, 0.8], pose: { ben: { headTilt: 0.08 } },
             mid: (c) => {
-                answerNotes(g, t, c, devil, true);
                 // the eyebrow's own mark: three ticks over it on the drawings it goes up
                 if (on(t, n(11.5)) && dr(t, n(11.5)) < 2) BP.ticks(g, c.mk[0] + 0.17 * c.s, c.mk[1] - 1.56 * c.s, 0.2 * c.s, 0.3 * c.s, 3, -PI * 0.7, -PI * 0.22, K.white, 3);
             },
@@ -235,15 +237,23 @@
         g.fillRect(0, 330, 1000, 670);
         // the volley over their heads: three notes in a row, the first the biggest
         for (let k = 2; k >= 0; k--) {
-            const x = cx - dir * k * 170, y = 300 + 30 * Math.sin(k * 2.1 + d * 0.9) - 56 * k * (2 - k) * 0.5 - 0.00016 * (x - 500) * (x - 500) * -1;
-            if (dir > 0) P.fireNote(g, x, y, 46 - 5 * k, 0.1 * Math.sin(d + k), d + k, 0.05 * Math.sin(d + k));
-            else P.cleanNote(g, x, y, 48 - 5 * k, 0.2 * Math.sin(d * 1.3 + k), 1 + (k % 2), k);
+            const x = cx - dir * k * 190, y = 330 + 26 * Math.sin(k * 2.1 + d * 0.9) - 40 * k * (2 - k) + 0.00012 * (x - 500) * (x - 500);
+            if (dir > 0) P.fireNote(g, x, y, 60 - 7 * k, 0.1 * Math.sin(d + k), d + k, 0.05 * Math.sin(d + k));
+            else P.cleanNote(g, x, y, 62 - 7 * k, 0.2 * Math.sin(d * 1.3 + k), 1 + (k % 2), k);
         }
-        // the three at the barrier: a skeleton with a lighter, an imp in specs on the rail's step, the skeleton with the pink mohawk
-        const stare = { hype: 0.22, t, ...turn };
-        I.fan(g, 222 + 14 * look, 1030, 250, { kind: 'skeleton', ...stare, hold: 'lighter', lighter: 0.8, hawk: K.green, tee: 1, shadow: false });
-        I.fan(g, 778 + 14 * look, 1030, 250, { kind: 'skeleton', ...stare, hold: 'none', hawk: K.pink, tee: 3, shadow: false });
-        I.fan(g, 500 + 14 * look, 962, 350, { kind: 'imp', ...stare, hold: 'none', wear: 'specs', shadow: false });
+        // the three at the barrier: a skeleton with a lighter, an imp in specs on the rail's step, the skeleton with the pink
+        // mohawk. A box head cannot turn: the eyes go, the head tips and the whole fan leans after the notes.
+        const stare = { hype: 0.22, t, ...turn, headTilt: 0.17 * look, shadow: false };
+        const leaning = (x, y, a, fn) => {
+            g.save();
+            g.translate(x, y);
+            g.rotate(a * look);
+            fn();
+            g.restore();
+        };
+        leaning(214, 1090, 0.06, () => I.fan(g, 0, 0, 300, { kind: 'skeleton', ...stare, hold: 'lighter', lighter: 0.8, hawk: K.green, tee: 1 }));
+        leaning(786, 1090, 0.06, () => I.fan(g, 0, 0, 300, { kind: 'skeleton', ...stare, hold: 'none', hawk: K.pink, tee: 3 }));
+        leaning(500, 1000, 0.11, () => I.fan(g, 0, 0, 400, { kind: 'imp', ...stare, hold: 'none', wear: 'specs' }));
         // the stage's edge in front of them, with its footlights
         C.box(g, -20, 900, 1040, 140, Cast.D, { front: R.shelf, top: R.shelfL, side: R.wallD }, { lw: 3.2, depth: 60 });
         for (let i = 0; i < 5; i++) {
@@ -256,7 +266,7 @@
     // =========================================================================================
     // «Trading», bar 133: half a bar each, a whip pan between them
     // =========================================================================================
-    const TR_LIFE = 0.36;
+    const TR_LIFE = 0.5;
     function tradeShot(g, t) {
         const view = mixV(V_MIKE, V_DEVIL, E.inOut(E.seg(t, T_PAN - 2 * FR, T_PAN + 3 * FR))), Pu = S.pulseAt(t), his = on(t, T_PAN);
         const mike = his
@@ -298,13 +308,12 @@
             mike, devil, devilAt: DEVIL_AT, spots: Pu.k % 2 ? [0.9, 2] : [2, 0.9],
             pose: { stan: { headTilt: 0.13 * grin, headDy: 0.03 * Pu.pulse - hop, crash: !on(t, n(21)) ? Pu.pulse : 0 }, howie: { headTilt: -0.13 * grin, headDy: 0.02 * Pu.pulse - hop, mouth: grin ? 'grin' : 'smirk' }, ben: { headTilt: 0.08 } },
             back: ({ vo }) => I.beams(g, tw + 0.41, { ...vo, front: false }),
-            floor: ({ vo }) => I.beams(g, tw + 0.41, { ...vo, front: true }),
             mid: ({ s, mk, dv }) => {
                 const mid = [(mk[0] + dv[0]) / 2, mk[1] - 3.25 * s];
                 const mFrom = add(mk, P.mikePoints(mike).headstock, s), dFrom = add(dv, I.guitarPoints(devil).headstock, s);
                 const meet = (i) => add(mid, CL_OFF[i], s);
-                volley(g, t, CL_BIRTHS, CL_LIFE, (i) => [mFrom, [mk[0] - 0.75 * s, meet(i)[1] - 0.5 * s], add(meet(i), [-0.14, 0], s)], 'clean', () => s * 0.15);
-                volley(g, t, CL_BIRTHS, CL_LIFE, (i) => [dFrom, [dv[0] + 0.75 * s, meet(i)[1] - 0.5 * s], add(meet(i), [0.14, 0], s)], 'fire', () => s * 0.14);
+                volley(g, t, CL_BIRTHS, CL_LIFE, (i) => [mFrom, [mk[0] - 0.75 * s, meet(i)[1] - 0.5 * s], add(meet(i), [-0.14, 0], s)], 'clean', () => s * 0.19);
+                volley(g, t, CL_BIRTHS, CL_LIFE, (i) => [dFrom, [dv[0] + 0.75 * s, meet(i)[1] - 0.5 * s], add(meet(i), [0.14, 0], s)], 'fire', () => s * 0.18);
                 CL_BIRTHS.forEach((tb, i) => P.clash(g, ...meet(i), 0.62 * s, on(t, tb + CL_LIFE) ? dr(t, tb + CL_LIFE) : -1, 'solo1-clash' + i));
             },
         });
@@ -314,6 +323,7 @@
     // «Back to back», bars 135–136: the same line, together; then the floor starts to shake
     // =========================================================================================
     const LAND = T_BACK + 4 * FR, BRAID = n(24.5);
+    const BEN_AWAY = { lean: -0.08, headTilt: 0.05 }; // Benmont gives Mike's headstock room
     // the two of them from the turn to the last frame
     function duet(t) {
         const Pu = S.pulseAt(t), ph = Pu.k + Pu.since, air = on(t, HOP) && !on(t, LAND), up = air ? 0.3 * Math.sin(PI * E.seg(twos(t, HOP), HOP, LAND)) + 0.04 : 0;
@@ -336,14 +346,17 @@
         const D = duet(t), Pu = S.pulseAt(t);
         venueShot(g, t, V_B2B, {
             mike: D.mike, devil: D.devil, mikeAt: D.mikeAt, devilAt: D.devilAt, mikeUp: D.up, devilUp: D.up, spots: [1.8, 1.8], bounce: 0.4 * Pu.pulse,
-            pose: { ben: { headTilt: 0.08 } },
+            pose: { ben: BEN_AWAY },
             back: (c) => braid(g, t, { ...c, mk: carPt(c.car, D.mikeAt, t, 0.4 * Pu.pulse), dv: carPt(c.car, D.devilAt, t, 0.4 * Pu.pulse) }),
             mid: ({ s, mk, dv }) => {
                 // the turn: a swirl round each while they are off the boards, the landing's mark under them
                 if (D.air) {
                     P.whirl(g, mk[0], mk[1] - 0.75 * s, 0.6 * s, dr(t, T_BACK), -1);
                     P.whirl(g, dv[0], dv[1] - 0.75 * s, 0.64 * s, dr(t, T_BACK), 1);
-                } else if (dr(t, LAND) < 2) for (const p of [mk, dv]) BP.ticks(g, p[0], p[1] + 5, 0.5 * s, 0.7 * s, 5, PI * 1.08, PI * 1.92, K.white, 2.8);
+                } else if (dr(t, LAND) < 2) {
+                    BP.ticks(g, mk[0], mk[1] - 0.04 * s, 0.56 * s, 0.76 * s, 3, PI * 0.96, PI * 1.2, K.white, 2.8);
+                    BP.ticks(g, dv[0], dv[1] - 0.04 * s, 0.6 * s, 0.8 * s, 3, -PI * 0.2, PI * 0.04, K.white, 2.8);
+                }
             },
         });
     }
@@ -354,14 +367,14 @@
         const a = E.seg(t, n(28.5), JOLT), [x, y] = SH[dr(t, T_FLOOR) % 6];
         return [x * a * 2.4, y * a * 1.8];
     }
-    const CRACK = [[150, 809], [196, 805], [226, 811], [282, 806], [318, 812], [372, 807], [414, 811], [470, 805], [512, 810], [566, 806], [604, 812], [660, 807], [704, 811], [752, 806], [800, 810]]; // set coordinates, along the stage's floor
+    const CRACK = [[196, 789], [232, 785], [262, 791], [308, 786], [338, 792], [384, 787], [420, 791], [470, 785], [512, 790], [566, 786], [604, 792], [660, 787], [704, 791], [752, 786], [806, 790]]; // set coordinates: along the stage's floor, under the car
     function floorShot(g, t) {
         const D = duet(t), Pu = S.pulseAt(t), [sx, sy] = shake(t), view = { k: VS.k, cx: VS.cx + sx, cy: VS.cy + sy }, d = C.drawing(t), jolt = bump(t, JOLT, 0.25);
         const scared = on(t, JOLT) ? { eyes: 'wide', mouth: 'o' } : {};
         venueShot(g, t, view, {
             mike: { ...D.mike, squash: D.mike.squash + 0.06 * jolt }, devil: { ...D.devil, squash: D.devil.squash + 0.06 * jolt }, mikeAt: D.mikeAt, devilAt: D.devilAt, spots: [1.8, 1.8],
             bounce: 0.5 * Pu.pulse + 1.2 * jolt, lighters: 0.2,
-            pose: { ben: { headTilt: 0.08, ...(on(t, JOLT) ? { eyes: 'wide' } : {}) }, howie: { ...scared, headDy: 0.03 * Pu.pulse }, stan: { crash: !on(t, n(29)) ? Pu.pulse : 0 } },
+            pose: { ben: { ...BEN_AWAY, ...(on(t, JOLT) ? { eyes: 'wide' } : {}) }, howie: { ...scared, headDy: 0.03 * Pu.pulse }, stan: { crash: !on(t, n(29)) ? Pu.pulse : 0 } },
             cactus: { lean: 0.07, wave: 0.5 + 0.2 * Pu.pulse, ...(on(t, JOLT) ? { mouth: 'oh', lean: -0.06 } : {}) },
             back: (c) => {
                 // the lake swells behind the car
