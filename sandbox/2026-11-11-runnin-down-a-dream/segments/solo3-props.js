@@ -20,10 +20,10 @@
 //        ooh     false: never the round mouth (default: who 0 and 2 sing while Song.ooh(t)) }
 //   The formation (Solo3Props.ESCORT), as offsets of each angel's ground point from the car's,
 //   in car units, all three at the car's own scale s:
-//       who 0 (dark hair, glasses; harp)     (-0.95, -3.50)   mood 'rock', harp: true
-//       who 1 (bald, moustache; trumpet)     ( 1.00, -3.60)   mood 'rock', trumpet: true, lean -0.2
+//       who 0 (dark hair, glasses; harp)     (-1.45, -3.70)   mood 'rock', harp: true
+//       who 1 (bald, moustache; trumpet)     ( 1.15, -3.60)   mood 'rock', trumpet: true, lean -0.2
 //       who 2 (ginger curls; empty-handed)   ( 2.85,  2.85)   mood 'rock', both mitts up in turn
-//   at Finale.CAR (500, 640, 84): (420, 346), (584, 338), (739, 879). Each bobs up to 0.06 s with
+//   at Finale.CAR (500, 640, 84): (378, 329), (597, 338), (739, 879). Each bobs up to 0.06 s with
 //   its wing beat. Solo3Props.escortPoints(t, x, y, s, o) → [{ who, x, y, s, pose } × 3] is what
 //   escort draws (the poses at t), for a block that needs to lay something over one of them.
 //
@@ -106,8 +106,8 @@ const Solo3Props = (() => {
     // The escort
     // =========================================================================================
     const ESCORT = [
-        { who: 0, at: [-0.95, -3.5], lean: 0.04 },
-        { who: 1, at: [1.0, -3.6], lean: -0.2 },
+        { who: 0, at: [-1.45, -3.7], lean: 0.04 },
+        { who: 1, at: [1.15, -3.6], lean: -0.2 },
         { who: 2, at: [2.85, 2.85], lean: 0 },
     ];
     const BEAT_WING = [0.1, 0.5, 1, 0.62], BEAT_BOB = [0.02, -0.04, -0.06, -0.01]; // down on the beat; the body rises after the stroke
@@ -153,7 +153,7 @@ const Solo3Props = (() => {
         g.translate(0, (p.sit ? 0.36 : 0) + (p.headDy ?? 0));
         g.rotate(p.headTilt ?? 0);
         g.fillStyle = SKIN[a.who];
-        g.fillRect(-0.15, my - 0.075, 0.3, 0.172);
+        g.fillRect(-0.15, my - 0.083, 0.3, 0.18);
         oval(g, 0, my + 0.02, 0.066, 0.08, '#7a1f2e', L * 0.9);
         oval(g, 0.006, my + 0.062, 0.036, 0.026, '#ff8fa3');
         g.restore();
@@ -263,8 +263,9 @@ const Solo3Props = (() => {
         if (lw > 0) {
             g.save();
             g.beginPath();
-            if (up > 0) g.rect(-80, y - 3000, 1160, 3000 + R * 1.3 + 300);
-            else g.rect(-80, y - R * 1.3 - 300, 1160, 3000);
+            // only the scalloped edge is outlined, never the body's straight sides
+            if (up > 0) g.rect(-80, y - 3000, 1160, 3000 + R * 1.3 + 1);
+            else g.rect(-80, yb - 1, 1160, 3000);
             g.clip();
             g.strokeStyle = K.ink;
             g.lineWidth = lw * 2;
@@ -322,9 +323,9 @@ const Solo3Props = (() => {
         for (let i = 0; i < n; i++) {
             const a = (i / n) * TAU + 0.2, far = Math.sin(a) < 0, j = r(), j2 = r(), j3 = r();
             if ((part === 'back') !== far) continue;
-            const k = 1 + open * (0.42 + 0.3 * j), lift = -Math.sin(Math.min(1, e * 1.5) * PI * 0.5) * (70 + 60 * j2) * (far ? 1.15 : 0.7) + 150 * e * e;
+            const k = 1 + open * (0.42 + 0.3 * j), lift = -Math.sin(Math.min(1, e * 1.5) * PI * 0.5) * (70 + 60 * j2) * (far ? 1.25 : 0.22) + (far ? 150 : 260) * e * e;
             const x = cx + Math.cos(a) * rx * k, y = cy + Math.sin(a) * ry * k * (1 + open * 0.8) + lift;
-            const size = (44 + 26 * j3) * (0.75 + 0.5 * Math.min(1, e * 6)) * fade;
+            const size = (far ? 44 + 26 * j3 : 34 + 18 * j3) * (0.75 + 0.5 * Math.min(1, e * 6)) * fade;
             if (size < 6) continue;
             cloudPuff(g, x, y, size, 5 + (i % 3), j * TAU + Math.round(e * 6) * 0.4, 3.2);
             // a crumb torn off each one
@@ -376,7 +377,7 @@ const Solo3Props = (() => {
                 return [-(r[0] * gSc + gAt[0]), r[1] * gSc + gAt[1]];
             };
             // the strap's end hangs off the tail spike: his tail's spade
-            const e = onG([-0.47, 0.01]), sw = (pose.tail ?? 0) * 2;
+            const e = onG([-0.47, 0.01]), sw = o.strap ?? 0.04; // (devilGuitar swings it with his tail and the strum; here it hangs)
             const cl = C.curve([[e[0], e[1]], [e[0] + 0.08, e[1] + 0.05], [e[0] + 0.17, e[1] + 0.02 + sw], [e[0] + 0.2, e[1] - 0.09 + sw * 1.6], [e[0] + 0.14, e[1] - 0.18 + sw * 2]], false, 5);
             C.poly(g, ribbon(cl.map(([px, py], i) => [px, py, 0.03 - 0.012 * (i / (cl.length - 1))])), { fill: P.skin, ink: K.ink, lw: L * 0.8 });
             const te = cl[cl.length - 1], tf = cl[cl.length - 3], ta = Math.atan2(te[1] - tf[1], te[0] - tf[0]);
@@ -387,14 +388,14 @@ const Solo3Props = (() => {
             // the arm: from the far shoulder (screen right) to the mitt in the air
             const T = Devil.TORSO, sh = [T.x + T.w - 0.03, T.y + 0.14];
             devilArm(g, L, sh, hand);
-            // little arcs either side of a waving mitt
+            // two arcs over the mitt's path while it wags (o.ticks: [from, to] the wag's two ends)
             if (o.ticks) {
-                const dx = hand[0] - sh[0], dy = hand[1] - sh[1], l = Math.hypot(dx, dy), ux = dx / l, uy = dy / l, c = [hand[0] + ux * 0.04, hand[1] + uy * 0.04];
-                for (const sd of [-1, 1]) {
-                    const a0 = Math.atan2(uy, ux) + sd * 0.95, pts = [];
-                    for (let i = 0; i <= 5; i++) {
-                        const a = a0 + sd * (i / 5) * 0.55;
-                        pts.push([c[0] - ux * 0.12 + Math.cos(a) * 0.3, c[1] - uy * 0.12 + Math.sin(a) * 0.3]);
+                const ang = (p) => Math.atan2(p[1] - sh[1], p[0] - sh[0]), a0 = ang(o.ticks[0]) - 0.06, a1 = ang(o.ticks[1]) + 0.06, r0 = Math.hypot(hand[0] - sh[0], hand[1] - sh[1]) + 0.21;
+                for (const [r, trim] of [[r0, 0], [r0 + 0.08, 0.1]]) {
+                    const pts = [];
+                    for (let i = 0; i <= 6; i++) {
+                        const a = lerp(a0 + trim, a1 - trim, i / 6);
+                        pts.push([sh[0] + Math.cos(a) * r, sh[1] + Math.sin(a) * r]);
                     }
                     line(g, pts, L * 0.9, K.white);
                 }
@@ -404,7 +405,7 @@ const Solo3Props = (() => {
     // A bead of sweat by his temple (he is embarrassed): k 0..1 slides it down.
     function sweat(g, x, y, s, pose, k) {
         devilFrame(g, x, y, s, pose, (L) => {
-            const px = 0.63, py = -1.62 + 0.2 * k + (pose.headDy ?? 0);
+            const px = -0.6, py = -1.66 + 0.2 * k + (pose.headDy ?? 0);
             const drop = C.curve([[px, py - 0.1], [px + 0.055, py + 0.0], [px + 0.04, py + 0.06], [px, py + 0.075], [px - 0.04, py + 0.06], [px - 0.055, py + 0.0]], true, 5);
             C.poly(g, drop, { fill: '#8cefe6', ink: K.ink, lw: L * 0.85 });
             line(g, [[px - 0.018, py + 0.0], [px - 0.022, py + 0.035]], L * 0.8, '#ffffff');
@@ -466,7 +467,7 @@ const Solo3Props = (() => {
         }
     }
     /**
-     * Skyward.angel with one foot (his left, screen right) drawn by us so it can tap: the
+     * Skyward.angel with one foot (his right, screen left) drawn by us so it can tap: the
      * angel is drawn with that foot clipped out, then the foot, `lift` 0..1 up under the hem.
      * tap 0..1: two little marks either side as it comes down.
      */
@@ -479,7 +480,7 @@ const Solo3Props = (() => {
             g.rotate(pose.lean ?? 0);
             g.scale(1 + q, 1 - q);
         };
-        const hole = [0.07 - 2 * L, -0.1 + 0.55 * L, 0.39 + 4 * L, 0.1 + 2 * L];
+        const hole = [-0.33 - 2 * L, -0.1 + 0.55 * L, 0.39 + 4 * L, 0.1 + 2 * L];
         g.save();
         g.save();
         frame();
@@ -497,14 +498,14 @@ const Solo3Props = (() => {
         g.beginPath();
         g.rect(hole[0] - 0.3, hole[1], hole[2] + 0.6, hole[3] + 0.3);
         g.clip();
-        const fy = -0.055 * lift;
-        C.box(g, 0.07, -0.11 + fy, 0.26, 0.11, D, skin, { lw: L, ink: K.ink, depth: 0.34 });
-        line(g, [[0.07, -0.07 + fy], [0.33, -0.07 + fy]], L * 1.3, '#8a5a2e');
+        const fy = -0.042 * lift;
+        C.box(g, -0.33, -0.11 + fy, 0.26, 0.11, D, skin, { lw: L, ink: K.ink, depth: 0.34 });
+        line(g, [[-0.33, -0.07 + fy], [-0.07, -0.07 + fy]], L * 1.3, '#8a5a2e');
         if (tap > 0) {
             for (const sd of [-1, 1]) {
-                const bx = sd < 0 ? 0.03 : 0.47;
-                line(g, [[bx, 0.0], [bx + sd * 0.07 * tap, -0.035 * tap]], L * 0.9);
-                line(g, [[bx + sd * 0.01, 0.035], [bx + sd * 0.09 * tap, 0.035]], L * 0.9);
+                const bx = sd < 0 ? -0.38 : 0.02;
+                line(g, [[bx, -0.01], [bx + sd * 0.09 * tap, -0.06 * tap]], L);
+                line(g, [[bx + sd * 0.01, 0.04], [bx + sd * 0.12 * tap, 0.04]], L);
             }
         }
         g.restore();

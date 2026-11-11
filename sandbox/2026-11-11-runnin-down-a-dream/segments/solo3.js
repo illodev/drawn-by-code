@@ -106,17 +106,20 @@
                 inside(c);
             });
             Motion.drawLayer(g, env, lit);
-            // the edge again, over the car
+            // the edge again, over the car: the outer half of its outline
             if (yLine < 1320) {
-                g.save();
-                g.beginPath();
-                g.rect(-80, yLine - 112 * 1.3 - 4, 1160, 600);
-                g.clip();
-                g.strokeStyle = K.ink;
-                g.lineWidth = 8;
-                g.lineJoin = 'round';
-                g.stroke(row(g, yLine, { body: '#000' }, { depth: 150, lw: 0, draw: false }));
-                g.restore();
+                const edge = Motion.layer(env, 'solo3-edge', (c) => {
+                    const path = row(c, yLine, { body: '#000' }, { depth: 150, lw: 0, draw: false });
+                    c.strokeStyle = K.ink;
+                    c.lineWidth = 8;
+                    c.lineJoin = 'round';
+                    c.stroke(path);
+                    c.globalCompositeOperation = 'destination-out';
+                    c.fillStyle = '#000';
+                    c.fill(path);
+                    c.fillRect(-80, yLine - 112 * 1.3 - 300, 1160, 300); // (the body's upper edge is not an outline)
+                });
+                Motion.drawLayer(g, env, edge);
             }
             // the punch: lumps of the underside knocked out where the amps and his horns go in
             const tp = b(583), a = since(t, tp);
@@ -140,7 +143,7 @@
     const T_BURST = B(149), T_EARS = b(598);
     const GLOW_OUT = ['#fff0c2', '#ffdc9a', '#ffbe70', '#ff9a52'];
     // the set: banks, where everybody stands (feet), at the film's scale
-    const DOOR = { s: 84, gate: [150, 428], back: [585, 402, 6.5], who1: [392, 402], who2: [702, 402], lectern: [812, 402], front: [548, 478, 1.9], who0: [548, 478], carX: 440, rest: 895, mid: 815, near: 908 };
+    const DOOR = { s: 84, gate: [150, 428], back: [585, 402, 6.5], who1: [392, 402], who2: [702, 402], lectern: [800, 402], front: [548, 478, 1.9], who0: [548, 478], carX: 440, rest: 895, mid: 815, near: 908 };
     const ASKEW = [-0.46, 0.42, -0.5]; // where the blast leaves each halo
     // the three at the doorstep: serene, then shocked on the burst, then mitts over the ears
     function doorPose(who, t) {
@@ -151,7 +154,7 @@
             if (who === 1) return { who, mood: 'serene', trumpet: true, flap: 0.18, headDy: 0.02 + 0.02 * Math.sin(d * 0.35), headTilt: -0.03 }; // dozing on his feet
             // reading: her head towards the book, a mitt on the page; she turns a leaf on beat 594
             const turn = hit(t, b(594), 0.36);
-            return { who, mood: 'serene', flap: 0.2, headTilt: 0.13, headDy: 0.015 + bob, handL: [0.74 - 0.1 * turn, -1.3 - 0.16 * turn], handR: [-0.02, -0.62] };
+            return { who, mood: 'serene', flap: 0.2, headTilt: 0.13, headDy: 0.015 + bob, handL: [0.82 - 0.12 * turn, -1.4 - 0.16 * turn], handR: [-0.02, -0.62] };
         }
         const a = since(t, T_BURST), jump = hit(t, T_BURST, 0.34), askew = ASKEW[who] * clamp(a / 0.25);
         if (t < T_EARS - 1e-6) return { who, mood: 'shocked', harp: who === 0, trumpet: who === 1, flap: 1, haloUp: 0.35 + 0.65 * jump, halo: askew, squash: -0.1 * jump, hop: 0.22 * Math.sin(Math.min(1, a / 0.34) * PI), headDy: -0.03 * jump };
@@ -180,15 +183,15 @@
         bank(Q.gate[0], Q.gate[1], 2.3, 'solo3-gate', (dy) => W.pearlyBits(g, Q.gate[0], Q.gate[1] + dy, s * 0.82, { lectern: false, ajar: 0.6 }));
         bank(Q.back[0], Q.back[1], Q.back[2], 'solo3-back', (dy) => {
             angel(1, Q.who1, dy);
-            angel(2, Q.who2, dy);
             W.pearlyBits(g, Q.lectern[0], Q.lectern[1] + dy, s, { gate: false, lecternAt: [0, 0] });
+            angel(2, Q.who2, dy);
             // the blast riffles the book and takes its loose leaves
             if (out) P3.leaves(g, Q.lectern[0], Q.lectern[1] + dy, s, clamp(a / 0.17) * (1 - 0.35 * seg(a, 0.6, 1.3)), d);
         });
         bank(Q.front[0], Q.front[1], Q.front[2], 'solo3-front', (dy) => angel(0, Q.who0, dy));
         // the floor behind the car
         P3.cloudRow(g, Q.mid, 120, 'solo3-mid', 40 + t * 5, { body: CL.top, shade: CL.shade }, { depth: 400, lift, inside: (c) => P3.glow(c, gx, gcy + 20, gk * 0.9, d, GLOW_OUT) });
-        const ring = clamp(a / 0.92);
+        const ring = 0.07 + 0.93 * clamp(a / 0.92);
         if (out) P3.tornRing(g, Q.carX + 20, 880, 400, 46, ring, 'back');
         F.ride(g, t, Q.carX, gy, s, { spin: t * SPIN, devil: { shred: 1, solo: 0.7 } });
         hangers(g, t, Q.carX, gy, s);
@@ -211,14 +214,14 @@
         if (t < b(N.wave) - 1e-6) {
             // caught: he jumps, the lick stops where it was, the fire sinks
             const j = hit(t, b(N.see), 0.3), a = since(t, b(N.see));
-            return { pose: { ...base, mood: 'shock', squash: -0.09 * j, headDy: -0.03 * j, tail: -0.06 * j, strum: 0.7, fret: 0.8, solo: 0.5, flames: a < 0.08 ? 0.7 : a < 0.17 ? 0.45 : 0.3 } };
+            return { pose: { ...base, mood: 'shock', squash: -0.09 * j, headDy: -0.03 * j, tail: -0.06 * j, strum: 0.7, fret: 0.8, solo: 0.5, flames: a < 0.08 ? 0.75 : a < 0.17 ? 0.55 : 0.38 } };
         }
         if (t < b(N.back) - 1e-6) {
             // the wave: the picking mitt comes up beside his head and wags, small, on twos
             const n = Math.floor(since(t, b(N.wave)) * 12 + 1e-6), wagging = t < b(N.peek1) + S.BEAT * 0.5 - 1e-6;
-            const A = [0.8, -1.44], Bq = [0.94, -1.33], side = Math.floor((n - 1) / 2) % 2;
-            const hand = n < 1 ? [0.7, -1.2] : wagging ? (side ? Bq : A) : [0.86, -1.36];
-            return { pose: { ...base, mood: 'grin', eyes: 'shut', squash: 0.02 * p, headDy: 0.012 * p + 0.01, headTilt: 0.05, tail: 0.11, strum: NaN, fret: 0.8, solo: 0.42, flames: 0.26 }, hand, ticks: wagging && n >= 1, sweat: clamp(n / 14) };
+            const A = [0.84, -1.44], Bq = [1.08, -1.2], side = Math.floor((n - 1) / 2) % 2;
+            const hand = n < 1 ? [0.8, -1.12] : wagging ? (side ? Bq : A) : [1.0, -1.32];
+            return { pose: { ...base, mood: 'grin', eyes: 'shut', squash: 0.02 * p, headDy: 0.012 * p + 0.01, headTilt: 0.05, tail: 0.3, strum: NaN, fret: 0.8, solo: 0.42, flames: 0.38 }, hand, ticks: wagging && n >= 1 ? [A, Bq] : null, sweat: clamp(n / 14) };
         }
         if (t < b(N.rock0) - 1e-6) return { pose: { ...base, mood: 'grin', solo: 0.45, flames: 0.62 } };
         return { pose: { ...base, mood: 'laugh', look: P.k % 4 < 2 ? 1 : -1, shred: 1, solo: 0.8, flames: 1 } };
@@ -263,8 +266,8 @@
             }
         };
         bank(Q.back[0], Q.back[1], Q.back[2], 'solo3-cback', (dy) => {
-            angel(1, Q.who1, dy);
             angel(2, Q.who2, dy);
+            angel(1, Q.who1, dy);
         });
         F.ride(g, t, cx, cy, s, { spin: t * SPIN, lean: 0, bounce: 0, devil: act.pose });
         if (act.hand) {
@@ -283,7 +286,7 @@
         const Y = F.Y(t), o = { town: false, speedLines: t < B(154) - 1e-6 ? lerp(0.14, 0.5, smooth(seg(t, T_UP, B(154)))) : 0.5 };
         W.ascent(g, t, Y, o);
         // the first shooting star, on the bar
-        P3.shootingStar(g, 70, 52, 1, 250, since(t, B(154)) / 0.42);
+        P3.shootingStar(g, 110, 95, 1, 180, since(t, B(154)) / 0.42);
         F.ride(g, t, CAR.x, CAR.y, CAR.s, { spin: t * SPIN });
         hangers(g, t, CAR.x, CAR.y, CAR.s);
         // the three come into formation as the climb picks up, and are on their marks from bar 154

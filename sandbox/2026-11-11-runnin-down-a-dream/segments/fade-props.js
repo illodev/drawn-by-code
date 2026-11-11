@@ -1,16 +1,18 @@
 // Props of «fade» (segments/fade.js): the Devil after the show. devil.js gives him buttoned up
 // and bow-tied; here he is drawn over his own drawing, in his own frame, with the bow tie undone
 // and hanging, the collar open and a towel round his neck, on legs that can shuffle (each hoof
-// where the walk puts it), with the face that acts (HellhoofProps.face: the small real smile is
-// that block's). Also his guitar alone, as the dressing room's stand holds it, for the mitt that
+// where the walk puts it), with a face that acts: lids, pupils that look anywhere, brows and four
+// mouths, drawn as segments/hellhoof-props.js draws them (the small real smile is that block's,
+// matched line for line; its own face carries the cold he had in Hell, which is long gone here,
+// so the pieces are drawn again in this file). Also his guitar alone, as the dressing room's stand holds it, for the mitt that
 // carries it in; the framed autograph hung on its nail under a camera; the glint on its glass.
 // Units: his own (devil.js: 1 ≈ a head's width, the origin on the ground between the hooves)
 // unless said otherwise. Global: FadeProps.
-// Depends on Cereal, Cast, Devil, Fx, Inferno, Skyward, HellhoofProps.
+// Depends on Cereal, Cast, Devil, Fx, Inferno, Skyward.
 const FadeProps = (() => {
-    const C = Cereal, K = C.COL, HP = HellhoofProps, P = Devil.P, T = Devil.TORSO;
-    const Dd = Cast.Dd, HIP = -(T.y + T.h);
-    const lerp = (a, b, u) => a + (b - a) * u;
+    const C = Cereal, K = C.COL, P = Devil.P, T = Devil.TORSO, TAU = Math.PI * 2;
+    const D = Cast.D, Dd = Cast.Dd, HIP = -(T.y + T.h);
+    const lerp = (a, b, u) => a + (b - a) * u, clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
     const line = (g, pts, color, lw) => C.poly(g, pts, { ink: color, lw, close: false });
     const cw = (pts) => {
         let a = 0;
@@ -31,7 +33,207 @@ const FadeProps = (() => {
         });
         return [...A, ...B.reverse()];
     };
-    const TOWEL = { front: '#fffdf4', side: '#d9d4e6', fold: '#cfc9e2', stripe: K.aqua };
+    const TOWEL = { front: K.aqua, side: K.teal, fold: K.teal, stripe: '#fffdf4' };
+
+    // --- his frame, his head, his limbs (devil.js keeps its own to itself) -----------------------------
+    const HEAD = Devil.HEAD, HT = HEAD.top, CHIN = HT + HEAD.h, EY = HT + 0.44, MY = HT + 0.7;
+    const SH_R = [T.x + 0.03, T.y + 0.14], SH_L = [T.x + T.w - 0.03, T.y + 0.14];
+    const NO = [NaN, NaN]; // a mitt Devil.draw is asked not to draw (the canvas ignores a path that is not a number)
+    const rot = ([x, y], a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+    const mixPts = (a, b, u) => a.map((p, i) => [lerp(p[0], b[i][0], u), lerp(p[1], b[i][1], u)]);
+    // pose.rock turns the figure about the hips (his shoulders going while the legs stand)
+    const rockXf = (g, x, y, s, pose) => {
+        const r = pose.rock ?? 0;
+        if (!r) return;
+        g.translate(x, y - HIP * s);
+        g.rotate(r);
+        g.translate(-x, -(y - HIP * s));
+    };
+    // fn(L) draws in his units, with the pose's squash and rock (L: the outline's width)
+    function body(g, x, y, s, pose, fn) {
+        const q = pose.squash ?? 0;
+        g.save();
+        rockXf(g, x, y, s, pose);
+        g.translate(x, y);
+        g.scale(s, s);
+        g.scale(1 + q, 1 - q);
+        g.lineJoin = g.lineCap = 'round';
+        fn(3.2 / s);
+        g.restore();
+    }
+    const inHead = (g, pose, fn) => {
+        g.save();
+        g.translate(0, pose.headDy ?? 0);
+        g.rotate(pose.headTilt ?? 0);
+        fn();
+        g.restore();
+    };
+    /**
+     * The face, painted over the one devil.js gave him (the skin under the hairline is cleared first). f:
+     *   eye:   { h (its height, 0.165 at rest), lx, ly (-1..1 where the pupils look), lid (0..1 the upper lid comes
+     *            down), low (0..1 the lower lid comes up, as in a real smile), shut (null | 'happy' | 'tight') }
+     *   brow:  { tilt (inner end down: 0.085 anger, 0.045 mischief, negative: soft), raise, cock (the screen-right one alone) }
+     *   mouth: 'grit' | 'flat' | 'wobble' | 'smile'; mk: its size;  droop: the moustache's tips (negative lifts them)
+     */
+    function face(g, L, f) {
+        const m = Math.max(0.02, L * 1.1);
+        C.poly(g, [[-0.385, HT + 0.17 + m], [-0.17, HT + 0.1 + m], [0.02, HT + 0.27 + m], [0.2, HT + 0.1 + m], [0.385, HT + 0.17 + m], [0.41, HT + 0.4], [0.465, HT + 0.42], [0.465, CHIN - m * 0.6], [-0.465, CHIN - m * 0.6], [-0.465, HT + 0.42], [-0.41, HT + 0.4]], { fill: P.skin, lw: 0 });
+        const e = { h: 0.165, lx: 0, ly: 0, lid: 0, low: 0, shut: null, ...(f.eye ?? {}) }, br = { tilt: 0.045, raise: 0, cock: 0, ...(f.brow ?? {}) };
+        for (const sx of [-1, 1]) {
+            const ex = sx * 0.21, ew = 0.2, eh = Math.max(0.06, e.h);
+            if (e.shut === 'happy') line(g, [[ex - 0.09, EY + 0.035], [ex, EY - 0.03], [ex + 0.09, EY + 0.035]], P.ink, L * 1.5);
+            else if (e.shut === 'tight') {
+                line(g, [[ex - sx * 0.09, EY - 0.055], [ex + sx * 0.07, EY], [ex - sx * 0.09, EY + 0.055]], P.ink, L * 1.5);
+                line(g, [[ex - sx * 0.02, EY - 0.03], [ex + sx * 0.07, EY]], P.ink, L * 1.1);
+            } else {
+                const ph = Math.min(0.125, eh - 0.035), top = EY - eh / 2;
+                const px = ex + clamp(e.lx, -1, 1) * 0.058, py = EY + clamp(e.ly, -1, 1) * Math.max(0, eh / 2 - ph / 2 - 0.016);
+                g.beginPath();
+                g.roundRect(ex - ew / 2, top, ew, eh, 0.045);
+                g.fillStyle = P.eye;
+                g.fill();
+                g.save();
+                g.clip();
+                g.fillStyle = P.pupil;
+                g.beginPath();
+                g.roundRect(px - 0.021, py - ph / 2, 0.042, ph, 0.02);
+                g.fill();
+                g.fillStyle = P.glint;
+                g.fillRect(ex - 0.062 + e.lx * 0.025, top + 0.028 + Math.max(0, e.lid) * eh * 0.5, 0.03, 0.03);
+                // the lids are skin, each with its edge
+                if (e.lid > 0.02) {
+                    g.fillStyle = P.skin;
+                    g.fillRect(ex - ew / 2 - 0.01, top - 0.01, ew + 0.02, eh * e.lid + 0.01);
+                }
+                if (e.low > 0.02) {
+                    g.fillStyle = P.skin;
+                    g.beginPath();
+                    g.ellipse(ex, EY + eh / 2 + 0.05, ew * 0.62, 0.05 + eh * e.low, 0, 0, TAU);
+                    g.fill();
+                    g.strokeStyle = P.ink;
+                    g.lineWidth = L * 0.9;
+                    g.stroke();
+                }
+                g.restore();
+                g.beginPath();
+                g.roundRect(ex - ew / 2, top, ew, eh, 0.045);
+                g.strokeStyle = P.ink;
+                g.lineWidth = L;
+                g.stroke();
+                const ly = top + 0.004 + eh * Math.max(0, e.lid);
+                line(g, [[ex - ew / 2 - 0.012, ly], [ex + ew / 2 + 0.012, ly]], P.ink, L * 1.7);
+            }
+            const by = EY - 0.16 - br.raise - (sx > 0 ? br.cock : 0) - Math.max(0, e.h - 0.165) * 0.6;
+            const bi = [ex - sx * 0.125, by + br.tilt], bo = [ex + sx * 0.125, by - br.tilt * 0.9];
+            C.poly(g, [[bi[0], bi[1] - 0.04], [(bi[0] + bo[0]) / 2, (bi[1] + bo[1]) / 2 - 0.05], [bo[0] + sx * 0.02, bo[1] - 0.012], [bo[0], bo[1] + 0.012], [(bi[0] + bo[0]) / 2, (bi[1] + bo[1]) / 2 + 0.012], [bi[0], bi[1] + 0.03]], { fill: P.hair, ink: P.ink, lw: L * 0.8 });
+        }
+        line(g, [[0.018, EY + 0.05], [0.018, EY + 0.16], [0.075, EY + 0.135]], P.ink, L * 0.95);
+        const k = f.mk ?? 1;
+        if (f.mouth === 'grit') {
+            // his clenched teeth, as devil.js draws them angry
+            const pts = [[-0.27, MY + 0.07], [-0.2, MY - 0.03], [0.2, MY - 0.03], [0.27, MY + 0.07], [0.2, MY + 0.14], [-0.2, MY + 0.14]];
+            C.poly(g, pts, { fill: P.tooth, lw: 0 });
+            g.save();
+            C.trace(g, pts);
+            g.clip();
+            g.strokeStyle = P.ink;
+            g.lineWidth = L * 0.7;
+            g.beginPath();
+            g.moveTo(-0.3, MY + 0.055);
+            for (let i = -5; i <= 5; i++) g.lineTo(i * 0.055, MY + 0.055 + (i % 2 ? 0.022 : -0.022));
+            g.stroke();
+            g.restore();
+            C.poly(g, pts, { ink: P.ink, lw: L });
+        } else if (f.mouth === 'wobble') {
+            // a mouth that is fighting a smile: the line will not stay straight
+            line(g, C.curve([[-0.19, MY + 0.02], [-0.12, MY + 0.06], [-0.04, MY + 0.02], [0.04, MY + 0.065], [0.12, MY + 0.025], [0.19, MY + 0.05]].map(([x, y]) => [x, MY + 0.04 + (y - MY - 0.04) * k]), false, 5), P.ink, L * 1.3);
+        } else if (f.mouth === 'smile') {
+            // the small real one: a closed curve, a dimple at each end, the lower lip's shade
+            line(g, C.curve([[-0.165, MY + 0.0], [-0.09, MY + 0.05], [0, MY + 0.064], [0.09, MY + 0.05], [0.165, MY + 0.0]].map(([x, y]) => [x * k, y]), false, 6), P.ink, L * 1.35);
+            for (const sx of [-1, 1]) line(g, [[sx * 0.185 * k, MY - 0.03], [sx * 0.2 * k, MY + 0.012]], P.ink, L * 1.0);
+            line(g, [[-0.045, MY + 0.105], [0.045, MY + 0.105]], P.skinDark, L * 0.9);
+        } else line(g, C.curve([[-0.11 * k, MY + 0.035], [0, MY + 0.045], [0.11 * k, MY + 0.035]], false, 5), P.ink, L * 1.3);
+        // the moustache and the goatee, as devil.js draws them
+        const mu = EY + 0.185, droop = f.droop ?? 0;
+        for (const sx of [-1, 1]) {
+            const cl = C.curve([[sx * 0.012, mu], [sx * 0.11, mu + 0.02], [sx * 0.24, mu + 0.0 + droop], [sx * 0.34, mu - 0.06 + droop * 1.6], [sx * 0.335, mu - 0.115 + droop * 1.8]], false, 8), n = cl.length;
+            C.poly(g, band(cl.map(([x, y], i) => [x, y, 0.022 * (1 - (i / (n - 1)) * 0.82)])), { fill: P.hair, ink: P.ink, lw: L * 0.5 });
+        }
+        C.poly(g, [[-0.08, CHIN - 0.06], [0.08, CHIN - 0.06], [0.045, CHIN + 0.06], [0, CHIN + 0.13], [-0.045, CHIN + 0.06]], { fill: P.hair, ink: P.ink, lw: L });
+        line(g, [[-0.03, CHIN - 0.03], [-0.012, CHIN + 0.055]], P.sheen, L * 0.9);
+    }
+    // a sleeve, a white cuff with a gold link, a red block mitt: devil.js's own arm
+    function arm(g, L, sh, hand) {
+        const w = 0.16, dx = hand[0] - sh[0], dy = hand[1] - sh[1], len = Math.hypot(dx, dy) || 1e-6;
+        const ux = dx / len, uy = dy / len, nx = -uy * w * 0.5, ny = ux * w * 0.5;
+        const quad = (a, b, k = 1) => cw([[sh[0] + ux * a + nx * k, sh[1] + uy * a + ny * k], [sh[0] + ux * b + nx * k, sh[1] + uy * b + ny * k], [sh[0] + ux * b - nx * k, sh[1] + uy * b - ny * k], [sh[0] + ux * a - nx * k, sh[1] + uy * a - ny * k]]);
+        const c0 = Math.max(0.03, len - 0.14), c1 = Math.max(0.06, len - 0.075);
+        C.prism(g, quad(-0.05, c0), Dd(0.16), { front: P.suit, top: P.suitTop, side: P.suitSide }, { lw: L, ink: P.ink });
+        C.prism(g, quad(c0, c1, 1.12), Dd(0.17), { front: P.shirt, top: P.shirt, side: '#d9d4e6' }, { lw: L, ink: P.ink });
+        g.beginPath();
+        g.arc(sh[0] + (ux * (c0 + c1)) / 2, sh[1] + (uy * (c0 + c1)) / 2, 0.016, 0, TAU);
+        g.fillStyle = P.button;
+        g.fill();
+        C.prism(g, quad(c1, len + 0.11), Dd(0.16), { front: P.skin, top: P.skinTop, side: P.skinSide }, { lw: L, ink: P.ink });
+    }
+    // The tail along seven control points (devil.js's own thickness, underside and spade).
+    const TAIL = {
+        rest: (sw = 0) => [[0.2, -0.46], [0.56, -0.34], [0.84, -0.44], [0.86, -0.72 + sw * 0.5], [0.72, -0.94 + sw], [0.84, -1.16 + sw * 1.4], [1.0, -1.26 + sw * 1.6]],
+        // lying on the floor beside him, the spade curled up off it
+        floor: [[0.2, -0.46], [0.45, -0.26], [0.52, -0.08], [0.62, -0.04], [0.7, -0.1], [0.67, -0.21], [0.58, -0.26]],
+        // dragged along the floor behind a tired walk
+        trail: [[0.2, -0.46], [0.52, -0.3], [0.72, -0.08], [0.98, -0.035], [1.22, -0.03], [1.42, -0.05], [1.6, -0.03]],
+    };
+    function tail(g, L, ctrl) {
+        const pts = C.curve(ctrl, false, 8), n = pts.length;
+        C.poly(g, band(pts.map(([px, py], i) => [px, py, 0.05 - 0.028 * (i / (n - 1))])), { fill: P.skin, ink: P.ink, lw: L });
+        line(g, pts.slice(4, Math.floor(n * 0.55)).map(([px, py]) => [px + 0.012, py + 0.014]), P.skinSide, L * 1.1);
+        const e = pts[n - 1], f = pts[n - 3], a = Math.atan2(e[1] - f[1], e[0] - f[0]);
+        C.prism(g, cw([[-0.02, -0.03], [-0.07, -0.13], [0.06, -0.075], [0.2, 0], [0.06, 0.075], [-0.07, 0.13], [-0.02, 0.03]].map((p) => {
+            const q = rot(p, a);
+            return [e[0] + q[0], e[1] + q[1]];
+        })), Dd(0.04), { front: P.skin, top: P.skinTop, side: P.skinSide }, { lw: L, ink: P.ink });
+    }
+    // His legs as devil.js draws them, each hoof free to go where the walk puts it: o.R, o.L = { x, y }
+    // (the hoof's offset from its place; the trouser leg runs from the hip to wherever it is), o.front the leg drawn last.
+    function legs(g, L, o = {}) {
+        for (const sx of [-1, 1]) {
+            const tx = sx * 0.17 + D[0] * 0.36, ty = D[1] * 0.36;
+            C.poly(g, [[tx - 0.13, -0.42 + ty], [tx + 0.13, -0.42 + ty], [tx + 0.1 + sx * 0.02, -0.16 + ty], [tx + sx * 0.05, -0.1 + ty], [tx - 0.1 + sx * 0.02, -0.16 + ty]], { fill: P.suitSide, ink: P.ink, lw: L });
+        }
+        const leg = (sx) => {
+            const p = (sx < 0 ? o.R : o.L) ?? {}, lx = sx * 0.19, hx = lx + (p.x ?? 0), hy = p.y ?? 0;
+            const top = [lx, -0.4], bot = [hx, hy - 0.11];
+            if (bot[1] > top[1] + 0.02) {
+                C.prism(g, cw([[top[0] - 0.12, top[1]], [top[0] + 0.12, top[1]], [bot[0] + 0.12, bot[1]], [bot[0] - 0.12, bot[1]]]), Dd(0.3), { front: P.trouser, top: P.trouser, side: P.trouserSide }, { lw: L, ink: P.ink });
+                for (const px of [-0.06, 0, 0.06]) line(g, [[top[0] + px, top[1] + 0.015], [bot[0] + px, bot[1] - 0.01]], P.stripe, L * 0.5);
+            }
+            C.box(g, hx - 0.14, hy - 0.115, 0.28, 0.115, D, { front: P.hoof, top: P.hoofTop, side: P.hoof }, { lw: L, ink: P.ink, depth: 0.34 });
+            C.poly(g, [[hx - 0.02, hy - 0.117], [hx, hy - 0.035], [hx + 0.02, hy - 0.117]], { fill: P.ink, ink: P.ink, lw: L * 0.6 });
+            line(g, [[hx - 0.108, hy - 0.082], [hx - 0.05, hy - 0.082]], P.hoofShine, L * 1.1);
+        };
+        if (o.front === 'R') [1, -1].forEach(leg);
+        else [-1, 1].forEach(leg);
+    }
+    // devil.js's body and head alone: no arms, and its own legs and tail cut away (everything above
+    // the coat's hem, and nothing to the right of the coat below the head)
+    function trunk(g, x, y, s, pose) {
+        const q = pose.squash ?? 0;
+        g.save();
+        rockXf(g, x, y, s, pose);
+        const yA = y - 0.9 * s, yB = y - (HIP - 1.6 / s) * (1 - q) * s, xB = x + 0.492 * s * (1 + q);
+        g.beginPath();
+        g.moveTo(-2000, -2000);
+        g.lineTo(3000, -2000);
+        g.lineTo(3000, yA);
+        g.lineTo(xB, yA);
+        g.lineTo(xB, yB);
+        g.lineTo(-2000, yB);
+        g.closePath();
+        g.clip();
+        Devil.draw(g, x, y, s, { squash: q, headDy: pose.headDy, headTilt: pose.headTilt, handR: NO, handL: NO, tail: 0, shadow: false });
+        g.restore();
+    }
 
     // --- what he wears after the show ------------------------------------------------------------
     // Painted over devil.js's chest, under his chin (the head's own line clips it, wherever the
@@ -81,7 +283,7 @@ const FadeProps = (() => {
         for (const s of [-1, 1]) C.poly(g, [[s * 0.012, y + 0.06], [s * 0.15, y + 0.055], [s * 0.118, y + 0.165]], { fill: P.shirt, ink: P.ink, lw: L * 0.8 });
         // the towel: its two ends down the chest, the screen-right one longer; two stripes and a fringe
         const end = (s, yb, k) => {
-            const dx = sw * k, top = [[s * 0.115, y - 0.03], [s * 0.305, y - 0.03]], bot = [[s * 0.13 + dx, yb], [s * 0.325 + dx, yb - 0.012]];
+            const dx = sw * k, top = [[s * 0.115, y - 0.03], [s * 0.33, y - 0.03]], bot = [[s * 0.125 + dx, yb], [s * 0.35 + dx, yb - 0.014]];
             C.prism(g, cw([top[0], top[1], bot[1], bot[0]]), Dd(0.05), { front: TOWEL.front, top: TOWEL.front, side: TOWEL.side }, { lw: L, ink: P.ink });
             const at = (u, v) => [lerp(lerp(top[0][0], top[1][0], u), lerp(bot[0][0], bot[1][0], u), v), lerp(lerp(top[0][1], top[1][1], u), lerp(bot[0][1], bot[1][1], u), v)];
             line(g, [at(0.42, 0.24), at(0.46, 0.6), at(0.42, 0.8)], TOWEL.fold, L * 0.9);
@@ -89,39 +291,46 @@ const FadeProps = (() => {
             for (const v of [1 - 0.05 / span, 1 - 0.085 / span]) line(g, [at(0.06, v), at(0.94, v)], TOWEL.stripe, L * 1.5);
             for (let i = 0; i <= 5; i++) {
                 const p = at(0.06 + 0.176 * i, 1);
-                line(g, [[p[0], p[1] + L * 0.5], [p[0] + dx * 0.15, p[1] + 0.03]], P.ink, L * 0.7);
+                line(g, [[p[0], p[1] + L * 0.5], [p[0] + dx * 0.15, p[1] + 0.032]], P.ink, L * 0.8);
             }
         };
-        end(-1, y + 0.37, 0.9);
-        end(1, y + 0.45, 1.2);
+        end(-1, y + 0.4, 0.9);
+        end(1, y + 0.5, 1.2);
         g.restore();
     }
 
     /**
      * The Devil of this block at (x, y, s): shadow, tail, legs (each hoof where it is), devil.js's
      * body and head, what he wears now, the acting face, whatever he holds, then his arms.
-     *   pose: { squash, rock (the body turned about the hips), headDy, headTilt, face (HellhoofProps.face's),
+     *   pose: { squash, rock (the body turned about the hips), headDy, headTilt, face (see face()),
      *           handR, handL (his units; R is the mitt on screen left), shrugR, shrugL (shoulders up; negative: down),
-     *           hoofR, hoofL ({ x, y, sq }: each hoof's offset from its place), front ('R' | 'L' the leg drawn last),
+     *           hoofR, hoofL ({ x, y }: each hoof's offset from its place), front ('R' | 'L' the leg drawn last),
      *           tail (seven control points), sw (how far the towel and the tie swing),
      *           ground ([x, y] on screen: where his shadow lies), air (0..1 off the floor: the shadow shrinks) }
      *   mid(g): drawn in the caller's coordinates between his body and his arms (what the mitts are on)
+     *   back(g): the same, behind his body and in front of his legs and tail (what he has over a shoulder)
      */
-    function devil(g, x, y, s, pose, mid) {
-        const still = { squash: 0 }, gr = pose.ground ?? [x, y], air = pose.air ?? 0;
+    function devil(g, x, y, s, pose, mid, back) {
+        const still = {}, gr = pose.ground ?? [x, y], air = pose.air ?? 0;
         g.fillStyle = P.shadow;
         g.beginPath();
         g.ellipse(gr[0] + 0.06 * s, gr[1], 0.6 * s * (1 - 0.3 * air), 0.065 * s * (1 - 0.3 * air), 0, 0, C.TAU);
         g.fill();
-        HP.tail(g, x, y, s, still, pose.tail ?? HP.TAIL.rest(0));
-        HP.body(g, x, y, s, still, (L) => HP.legs(g, L, { R: pose.hoofR, L: pose.hoofL, front: pose.front }));
-        HP.devil(g, x, y, s, { squash: pose.squash, rock: pose.rock, headDy: pose.headDy, headTilt: pose.headTilt, clip: 'legs' });
-        HP.body(g, x, y, s, pose, (L) => {
+        body(g, x, y, s, still, (L) => {
+            tail(g, L, pose.tail ?? TAIL.rest(0));
+            legs(g, L, { R: pose.hoofR, L: pose.hoofL, front: pose.front });
+        });
+        if (back) back(g);
+        trunk(g, x, y, s, pose);
+        body(g, x, y, s, pose, (L) => {
             chest(g, L, pose, pose.sw ?? 0);
-            if (pose.face) HP.inHead(g, pose, () => HP.face(g, L, pose.face));
+            if (pose.face) inHead(g, pose, () => face(g, L, pose.face));
         });
         if (mid) mid(g);
-        HP.arms(g, x, y, s, pose, 'both');
+        body(g, x, y, s, pose, (L) => {
+            arm(g, L, [SH_R[0], SH_R[1] - (pose.shrugR ?? 0)], pose.handR);
+            arm(g, L, [SH_L[0], SH_L[1] - (pose.shrugL ?? 0)], pose.handL);
+        });
     }
     // a point of the screen in his units, for a pose drawn at (x, y, s): where a mitt must be to touch it
     function toBody(x, y, s, pose, [px, py]) {
@@ -142,27 +351,27 @@ const FadeProps = (() => {
     // --- the guitar alone ---------------------------------------------------------------------------
     // As Skyward.backstage stands it in its cradle: (x, y) where its tail rests, s its scale (the
     // stand's own), the neck straight up; fl 0..1 the fire off its horns and its fork, d the drawing.
-    // o: { rot, pivot: [x, y] } swings it about a point of the screen (the mitt that carries it).
-    const NECK = [0.03, -1.0]; // where a mitt takes the neck, in the guitar's units from its tail
-    function guitar(g, x, y, s, fl, d, o = {}) {
-        g.save();
-        if (o.rot) {
-            g.translate(o.pivot[0], o.pivot[1]);
-            g.rotate(o.rot);
-            g.translate(-o.pivot[0], -o.pivot[1]);
-        }
+    // rot swings it about the middle of its body (his way of carrying it: by the neck, the body back
+    // over his shoulder); its fire always burns upwards. guitarGrip: where his mitt has the neck.
+    const GRIP_U = 0.68, MID = [0.02, -0.5];
+    const about = (x, y, s, r, [u, v]) => {
+        const mx = x + MID[0] * s, my = y + MID[1] * s, q = rot([(u - MID[0]) * s, (v - MID[1]) * s], r);
+        return [mx + q[0], my + q[1]];
+    };
+    const guitarGrip = (x, y, s, r = 0) => about(x, y, s, r, [0.03, MID[1] - GRIP_U]);
+    function guitar(g, x, y, s, fl, d, r = 0) {
         if (fl > 0.02) {
-            Fx.flame(g, x - 0.36 * s, y - 0.26 * s, 0.42 * s * fl * (1 + 0.1 * (d % 2)), d, 0);
-            Fx.flame(g, x + 0.36 * s, y - 0.3 * s, 0.36 * s * fl * (1 + 0.1 * ((d + 1) % 2)), d, 2);
+            Fx.flame(g, ...about(x, y, s, r, [-0.36, -0.26]), 0.42 * s * fl * (1 + 0.1 * (d % 2)), d, 0);
+            Fx.flame(g, ...about(x, y, s, r, [0.36, -0.3]), 0.36 * s * fl * (1 + 0.1 * ((d + 1) % 2)), d, 2);
         }
         g.save();
-        g.translate(x, y);
+        g.translate(x + MID[0] * s, y + MID[1] * s);
+        g.rotate(r);
         g.scale(s, s);
         g.lineJoin = 'round';
-        Inferno.guitar(g, 3.2 / s, [0.02, -0.5], -Math.PI / 2 + 0.02, 1, 1);
+        Inferno.guitar(g, 3.2 / s, [0, 0], -Math.PI / 2 + 0.02, 1, 1);
         g.restore();
-        if (fl > 0.5) Fx.flame(g, x + 0.04 * s, y - 1.6 * s, 0.2 * s * fl, d, 1);
-        g.restore();
+        if (fl > 0.5 && Math.abs(r) < 0.3) Fx.flame(g, ...about(x, y, s, r, [0.04, -1.6]), 0.2 * s * fl, d, 1);
     }
 
     // --- the autograph on its nail --------------------------------------------------------------------
@@ -275,5 +484,5 @@ const FadeProps = (() => {
         g.restore();
     }
 
-    return { chest, devil, toBody, reach, guitar, NECK, corner, hung, glint, typed, A_W, A_H };
+    return { chest, face, devil, toBody, reach, SH_R, SH_L, TAIL, mixPts, guitar, guitarGrip, corner, hung, glint, typed, A_W, A_H };
 })();
