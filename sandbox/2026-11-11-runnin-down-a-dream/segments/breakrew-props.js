@@ -1,9 +1,10 @@
 // Props of «REW» (segments/breakrew.js): the frame hidden in the Devil's TV spot. A plate in
-// the manner of an old public-information poster: EAT YOUR VEGETABLES on a ribbon and in
-// big round capitals, the Devil at a gingham table as its mascot (a napkin in his collar, a
-// costume halo on a wire, his trident cut down to a fork with a floret of broccoli on it, a
-// plate of greens, a glass of milk) and an imp beside him getting through a carrot.
-// Everything is in frame units (1000 × 1000) unless said otherwise.
+// the manner of an old public-information poster: a dark header with a seal of approval (the
+// VCR's display is read on it), EAT YOUR on a ribbon and VEGETABLES in big round capitals,
+// the Devil at a gingham table as its mascot (a napkin in his collar, a costume halo on a
+// wire, his trident cut down to a fork with a floret of broccoli on it, a plate of greens,
+// a glass of milk) and an imp beside him getting through a carrot. He is caught at it: see
+// acting(). Everything is in frame units (1000 × 1000) unless said otherwise.
 // Global: BreakrewProps. Depends on Cereal, Song, Cast, Devil.
 const BreakrewProps = (() => {
     const C = Cereal, K = C.COL, E = Ease, S = Song, TAU = Math.PI * 2;

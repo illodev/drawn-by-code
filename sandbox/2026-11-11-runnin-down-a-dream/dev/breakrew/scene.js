@@ -3,8 +3,7 @@
 Motion.scene({
     fps: 24, duration: 7.0833, logical: [1000, 1000],
     uses: ['styles/cereal-ad/cereal.js', 'sandbox/2026-11-11-runnin-down-a-dream/song.js', 'sandbox/2026-11-11-runnin-down-a-dream/cast.js', 'sandbox/2026-11-11-runnin-down-a-dream/devil.js',
-        'sandbox/2026-11-11-runnin-down-a-dream/band-strings.js', 'sandbox/2026-11-11-runnin-down-a-dream/band-rhythm.js', 'sandbox/2026-11-11-runnin-down-a-dream/rides.js',
-        'sandbox/2026-11-11-runnin-down-a-dream/fx.js', 'sandbox/2026-11-11-runnin-down-a-dream/world.js', 'sandbox/2026-11-11-runnin-down-a-dream/rig.js',
+        'sandbox/2026-11-11-runnin-down-a-dream/fx.js',
         { src: 'sandbox/2026-11-11-runnin-down-a-dream/segments/breakad-props.js', optional: true },
         { src: 'sandbox/2026-11-11-runnin-down-a-dream/segments/breakad.js', optional: true },
         'sandbox/2026-11-11-runnin-down-a-dream/segments/breakrew-props.js', 'sandbox/2026-11-11-runnin-down-a-dream/segments/breakrew.js'],

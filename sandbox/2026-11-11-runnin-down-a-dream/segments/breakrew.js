@@ -19,25 +19,26 @@
     // The rewind in stages: from, tape speed (× backwards), noise bars, their thickness, how
     // far the picture tears along them, how far the bands between them slip, how washed the
     // colour is, and the tape options for Cereal.post (kept low: its line jitter would shred
-    // the display, which the VCR draws clean over the picture). The spot is 11.3 s long, so the search runs at 5× (8× would be
-    // through it within the first bar) and halves on the beats.
+    // the display, which the VCR draws clean over the picture). The spot is 11.3 s long, so
+    // the search runs at 5× (8× would be through it within the first bar), then 3×, 2×, 1×, ½×.
     const STAGES = [
-        { from: T0, v: 0, bars: 2, thick: 22, tear: 44, slip: 6, wash: 0.2, track: 0.3, snow: 0.01 }, // the jolt: a frozen frame
-        { from: T0 + 4 / S.FPS, v: 5, bars: 4, thick: 58, tear: 66, slip: 14, wash: 0.42, track: 0.2, snow: 0.012 },
-        { from: at(4), v: 3, bars: 3, thick: 46, tear: 48, slip: 10, wash: 0.36, track: 0.17, snow: 0.009 },
-        { from: at(6), v: 2, bars: 3, thick: 34, tear: 34, slip: 7, wash: 0.3, track: 0.14, snow: 0.006 },
-        { from: at(8), v: 1, bars: 2, thick: 24, tear: 22, slip: 4, wash: 0.22, track: 0.11, snow: 0.003 },
+        { from: T0, v: 0, bars: 2, thick: 22, tear: 44, slip: 6, wash: 0.2, track: 0.3, snow: 0.004 }, // the jolt: a frozen frame
+        { from: T0 + 4 / S.FPS, v: 5, bars: 4, thick: 58, tear: 66, slip: 14, wash: 0.42, track: 0.2, snow: 0.005 },
+        { from: at(4), v: 3, bars: 3, thick: 46, tear: 48, slip: 10, wash: 0.36, track: 0.17, snow: 0.004 },
+        { from: at(6), v: 2, bars: 3, thick: 34, tear: 34, slip: 7, wash: 0.3, track: 0.14, snow: 0.003 },
+        { from: at(8), v: 1, bars: 2, thick: 24, tear: 22, slip: 4, wash: 0.22, track: 0.11, snow: 0.0015 },
         { from: at(10), v: 0.5, bars: 2, thick: 14, tear: 12, slip: 2, wash: 0.14, track: 0.08, snow: 0 },
     ];
     const stageAt = (t) => STAGES.filter((s) => t >= s.from - EPS).pop() ?? STAGES[0];
     // seconds of tape rewound by t
     const wound = (t) => STAGES.reduce((sum, s, i) => sum + s.v * Math.max(0, Math.min(t, STAGES[i + 1]?.from ?? STOP) - s.from), 0);
     const tapeAt = (t) => Math.max(SPOT0, TR0 - wound(t));
-    // The frame that was never in the spot, between the bars: [beat, frames, where]. `where`
-    // lists heights of the picture; the bands that hold them show the hidden frame.
+    // The frame that was never in the spot, between two bars of its own: [beat, frames, from
+    // y, to y of that frame]. A drawing long, then two; first its word, then his face, once
+    // all of it (kept few and mostly narrow: each wide one is a change of brightness).
     const GLIMPSES = [
-        [6, 2, [300]], [7, 2, [640]], [8, 4, [300, 640]], [9, 2, [300]], [10, 4, [120, 400, 640, 900]], [11, 2, [640]],
-    ].map(([k, n, where]) => ({ f: F(at(k)), n, where }));
+        [6, 2, 236, 432], [7, 2, 540, 770], [8, 4, 262, 790], [9, 2, 250, 420], [10, 4, -300, 1080], [11, 2, 570, 720],
+    ].map(([k, n, y0, y1]) => ({ f: F(at(k)), n, y0, y1 }));
     // a hash of two integers, 0..1 (the tape's noise is seeded by the frame number)
     const h01 = (p, q) => {
         let x = Math.imul(p + 0x9e3779b9, 0x85ebca6b) ^ Math.imul(q + 0x7f4a7c15, 0xc2b2ae35);
@@ -50,14 +51,14 @@
     const barsAt = (t, st) => {
         const f = F(t), span = 1100;
         return Array.from({ length: st.bars }, (_, j) => {
-            const y = st.v > 0 ? (j / st.bars) * span + wound(t) * 62 + 150 : 260 + j * 420 + (h01(f, j) - 0.5) * 90;
+            const y = st.v > 0 ? (j / st.bars) * span + wound(t) * 62 + 240 : 260 + j * 420 + (h01(f, j) - 0.5) * 90;
             return { y: (((y % span) + span) % span) - 50, dir: j % 2 ? 1 : -1, m: 0.55 + 0.9 * h01(f, j + 17) };
         }).sort((p, q) => p.y - q.y);
     };
 
     // --- the picture on the tape -----------------------------------------------------------
-    // The spot at tape time tr: the other block's draw. Without it (while that block is being
-    // made) a stand-in card that changes with tr.
+    // The spot at tape time tr: the other block's draw. Without it (a dev scene that leaves
+    // segments/breakad.js out) a labelled stand-in card that changes with tr.
     function spot(g, tr, env) {
         const ad = window.Seg && window.Seg.breakad;
         if (ad && ad.draw) return ad.draw(g, tr, env);
@@ -73,35 +74,48 @@
         g.fillText('STAND-IN FOR SEG.BREAKAD', 500, 850);
     }
 
+    // In search the picture loses its vertical lock by a notch: it drops, and the blank bar
+    // between two fields shows along the top (the display is read on it). It drops with a
+    // bounce when the rewind starts and hops again on every change of speed.
+    const DROP = 172;
+    const dropAt = (t) => {
+        const st = stageAt(t), j = F(t) - F(st.from);
+        return DROP + ((st.v === 0 ? [26, -10, 6] : st.v === 5 ? [] : [30, 10])[j] ?? 0) + Math.round((h01(F(t), 61) - 0.5) * 6);
+    };
     // The frame in rewind search: the picture cut into bands by the noise bars, each band
     // slipped sideways and torn towards its bars, snow on the bars themselves.
     function search(g, t, env) {
-        const f = F(t), st = stageAt(t), bars = barsAt(t, st), k = env.k, [W, H] = env.px;
+        const f = F(t), st = stageAt(t), k = env.k, [W, H] = env.px, drop = dropAt(t), dpx = Math.round(drop * k);
         const pic = Motion.layer(env, 'breakrew-spot', (c) => spot(c, tapeAt(t), env));
         const gl = GLIMPSES.find((q) => f >= q.f && f < q.f + q.n);
+        const frame = gl ? Motion.layer(env, 'breakrew-card', (c) => R.card(c, STOP, n0 + 12)) : null;
+        // a glimpse brings its own two bars, which shiver
+        const edges = gl ? [gl.y0 + drop + (h01(f, 41) - 0.5) * 14, gl.y1 + drop + (h01(f, 43) - 0.5) * 14] : null;
+        const inside = (q) => q.y < drop + st.thick / 2 + 8 || (edges && edges[1] - edges[0] < 320 && q.y > edges[0] - 30 && q.y < edges[1] + 30); // none on the blank bar, none through a narrow glimpse
+        const bars = barsAt(t, st).filter((q) => !inside(q))
+            .concat(edges ? edges.map((y, i) => ({ y, dir: i ? 1 : -1, m: 0.7 + 0.5 * h01(f, 47 + i) })) : [], [{ y: drop, dir: 1, m: 0.3, thick: 13 }])
+            .sort((p, q) => p.y - q.y);
         const bandOf = (y) => bars.filter((q) => q.y < y).length;
-        const hidden = gl ? new Set(gl.where.map(bandOf)) : null;
-        const frame = hidden ? Motion.layer(env, 'breakrew-card', (c) => R.card(c, STOP, n0 + 12)) : null;
-        g.fillStyle = K.black;
+        g.fillStyle = '#0b0910';
         g.fillRect(0, 0, 1000, 1000);
         const rows = Math.max(2, Math.round(4 * k)); // strips of whole pixels
-        for (let py = 0; py < H; py += rows) {
+        for (let py = dpx; py < H; py += rows) {
             const y = (py + rows / 2) / k, band = bandOf(y);
             let dx = (h01(f, band + 31) - 0.5) * 2 * st.slip;
             for (const q of bars) dx += q.dir * q.m * st.tear * Math.exp(-Math.abs(y - q.y) / 24);
             const h = Math.min(rows, H - py);
-            g.drawImage(hidden && hidden.has(band) ? frame : pic, 0, py, W, h, Math.round(dx * k) / k, py / k, W / k, h / k);
+            g.drawImage(edges && y > edges[0] && y < edges[1] ? frame : pic, 0, py - dpx, W, h, Math.round(dx * k) / k, py / k, W / k, h / k);
         }
         // the bars, on the tube's lines: inside one the picture is shredded line by line and
         // greyed, then dashes of snow, densest along its middle
         const LH = 1000 / 262, lh = Math.max(1, Math.round(LH * k)), TONES = ['#f4f1ea', '#f4f1ea', '#f4f1ea', '#c9c5d3', '#c9c5d3', '#807b90', K.black];
         for (const q of bars) {
-            const half = st.thick / 2;
+            const half = (q.thick ?? st.thick) / 2;
             for (let row = Math.floor((q.y - half) / LH); row <= Math.ceil((q.y + half) / LH); row++) {
                 const d = 1 - Math.abs((row + 0.5) * LH - q.y) / half;
                 if (d <= 0 || row < 0 || row > 262) continue;
                 const py = Math.round(row * LH * k), amp = 26 + 150 * d;
-                g.drawImage(pic, 0, py, W, lh, Math.round((h01(f * 31 + row, 5) - 0.5) * 2 * amp * k) / k, py / k, W / k, lh / k);
+                if (py >= dpx) g.drawImage(pic, 0, py - dpx, W, lh, Math.round((h01(f * 31 + row, 5) - 0.5) * 2 * amp * k) / k, py / k, W / k, lh / k);
                 g.fillStyle = `rgba(150,146,164,${0.2 + 0.4 * d})`;
                 g.fillRect(0, py / k, 1000, lh / k);
                 const n = Math.round(d * 30 + 2);
@@ -112,15 +126,15 @@
                 }
             }
         }
-        // search washes the colour out and lifts the blacks
+        // search washes the colour out and lifts the blacks (of the picture, not of the bar)
         g.save();
         g.globalCompositeOperation = 'saturation';
         g.fillStyle = `rgba(128,128,128,${st.wash})`;
-        g.fillRect(0, 0, 1000, 1000);
+        g.fillRect(0, drop + 8, 1000, 1000);
         g.globalCompositeOperation = 'screen';
         const lift = Math.round(70 * st.wash);
         g.fillStyle = `rgb(${lift},${lift},${lift + 8})`;
-        g.fillRect(0, 0, 1000, 1000);
+        g.fillRect(0, drop + 8, 1000, 1000);
         g.restore();
     }
 
@@ -171,12 +185,12 @@
     function counter(g, env, secs) {
         const s = Math.max(0, Math.floor(secs + EPS)), two = (v) => String(v).padStart(2, '0');
         const text = `${Math.floor(s / 3600)}:${two(Math.floor(s / 60) % 60)}:${two(s % 60)}`;
-        const advOf = (ch) => (ch === ':' ? 27 : OSD.adv);
+        const advOf = (ch) => (ch === ':' ? 30 : OSD.adv);
         const width = [...text].reduce((a, ch) => a + advOf(ch), 0) - (OSD.adv - OSD.w);
         display(g, env, () => {
             let cx = OSD.right - OSD.x - width;
             for (const ch of text) {
-                const off = ch === ':' ? (27 - OSD.w) / 2 : 0;
+                const off = ch === ':' ? (30 - (OSD.adv - OSD.w)) / 2 - OSD.w / 2 : 0; // midway between its neighbours
                 for (const stroke of DIGITS[ch]) {
                     g.beginPath();
                     stroke.forEach(([px, py], i) => (i ? g.lineTo(cx + off + px * OSD.w, (py / 2 - 1) * OSD.h) : g.moveTo(cx + off + px * OSD.w, (py / 2 - 1) * OSD.h)));
@@ -229,16 +243,15 @@
         } else if (t >= PLAY - EPS) C.osd(g, env, 'PLAY', { play: true });
     }
 
-    // The tape: tearing and washed colour through the search, changing every frame, with a
-    // vertical hop when the transport changes speed; a twitch on STOP; lost tracking while the
-    // picture rolls away; nothing on the blue.
+    // The tape: tearing and washed colour through the search, changing every frame, worse for
+    // two frames when the transport changes speed; a twitch and a hop on STOP; lost tracking
+    // while the picture rolls away; nothing on the blue.
     function post(t) {
         const f = F(t);
         if (t < STOP - EPS) {
             const st = stageAt(t), j = f - F(st.from), first = st === STAGES[0];
             return {
-                track: st.track * (0.72 + 0.56 * h01(f, 3)) + (first ? 0 : [0.12, 0.05][j] ?? 0),
-                roll: (first ? [0.06, 0.022, 0.008] : st.v === 5 ? [] : [0.034, 0.012])[j] ?? 0,
+                track: st.track * (0.72 + 0.56 * h01(f, 3)) + (first || st.v === 5 ? 0 : [0.12, 0.05][j] ?? 0),
                 snow: st.snow,
             };
         }
