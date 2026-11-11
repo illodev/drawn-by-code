@@ -126,6 +126,7 @@ to see its strip, files and the videos made with it.
 | [felt3d](styles/felt3d/)             | needle-felted wool puppets, raymarched, over any backdrop                               | in testing |
 | [engraving](styles/engraving/)       | a plate of the «Description de l'Égypte» drawn in charcoal on old paper, temple reliefs | in testing |
 | [sumi-e](styles/sumi-e/)             | Japanese ink on washi: dry brush, washes in mist, vermilion as the only colour           | in testing |
+| [cereal-ad](styles/cereal-ad/)       | A '90s cereal spot on VHS: cel boxes, sunbursts, extruded letters, tape noise on a CRT    | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 
