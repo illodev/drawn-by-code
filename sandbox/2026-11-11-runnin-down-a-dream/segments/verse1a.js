@@ -165,7 +165,7 @@
 
         // --- the Devil
         const dn = Math.floor((t - n(4)) * 12 + 1e-6); // drawings since the car arrived
-        const SPIN = 'bFWWWWFWWWFWWFWFF'; // bar 15, a drawing each: braced, then the top (W) and glimpses of him (F) as it slows
+        const SPIN = 'bFWWWWFWWWFWWFWFF'; // bar 15, a drawing each: braced, stripped, then the top (W) and glimpses of him (F) as it slows
         const disguised = !at(t, RIP), spinning = at(t, RIP) && !at(t, n(8)), signUp = at(t, RIP) && !at(t, SIGN_FALL), signOn = at(t, SIGN_LAND);
         const tauS = twos(t, n(8)) - n(8), tauL = twos(t, SIGN_LAND) - SIGN_LAND;
         let pose, whirl = null, dxx = 0;

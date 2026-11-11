@@ -54,7 +54,6 @@ const V1A = (() => {
         g.scale(s, s);
         g.rotate(pose.lean ?? 0);
         g.scale(1 + q, 1 - q);
-        if (fn.body) fn.body(3.2 / s);
         g.translate(0, pose.headDy ?? 0);
         g.rotate(pose.headTilt ?? 0);
         g.lineJoin = 'round';
