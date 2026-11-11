@@ -17,11 +17,9 @@ Energy per second (how much the image changes):
 
 No still stretches of 1 s or more.
 
-Large jumps outside cuts (can be normal in dense patterns; check whether they bother): 8.50 s.
-
 ## Speed
 
-Painting: 185 ms/frame cold, 133 ms warm → full render ≈ 41 s at this size.
+Painting: 164 ms/frame cold, 132 ms warm → full render ≈ 40 s at this size.
 
 ## Contact sheet
 
