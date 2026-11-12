@@ -32,17 +32,14 @@ for (const f of fs.readdirSync(path.join(ROOT, 'site'))) {
     } else copy(path.join('site', f), f);
 }
 
-// what the live scenes load
+// what a style's template loads when someone runs it live
 copy('engine/core.js');
 copy('fonts');
 copy('styles');
-for (const f of ['sandbox/2026-09-24-readme-cover/scene.js', 'sandbox/2026-09-24-readme-cover/capture.js', 'sandbox/2026-09-24-clay3d-test/set.js']) copy(f);
 
-// the films (the player and the hover previews read them from their experiment folders)
+// the films (the player reads each from its experiment folder)
 const films = fs.readFileSync(path.join(ROOT, 'site/site.js'), 'utf8').matchAll(/\['([a-z][\w-]*)', '(\d{4}-\d{2}-\d{2}-[\w-]+)'/g);
 for (const [, id, dir] of films) copy(`sandbox/${dir}/render/${id}.mp4`);
-// the rendered cover: the hero shows it while the live one loads, or if it cannot run
-copy('sandbox/2026-09-24-readme-cover/render/readme-cover.mp4');
 
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 const size = (d) => fs.readdirSync(d, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? size(path.join(d, e.name)) : fs.statSync(path.join(d, e.name)).size), 0);

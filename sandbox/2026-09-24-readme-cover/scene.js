@@ -28,6 +28,7 @@ const COVER_TILES = (() => {
 const STYLES = [
     ['paper cutout', 'paint:paper', 0, []],
     ['70s poster', '70s-poster', 2.2, ['styles/70s-poster/kit.js']],
+    ['cereal ad', 'cereal-ad', 3.2, ['styles/cereal-ad/cereal.js']],
     ['liquid light', 'liquid-light', 1.6, ['styles/liquid-light/kit.js']],
     ['kaleidoscope', 'kaleidoscope', 1.2, ['styles/kaleidoscope/kit.js']],
     ['line', 'line', 1.0, ['styles/line/kit.js']],
@@ -37,7 +38,7 @@ const STYLES = [
     ['pixel art', 'pixel-art', 3.2, ['styles/pixel-art/pixel.js']],
 ];
 const TEMPLATE_DIRS = STYLES.filter(([, d]) => !d.startsWith('paint:')).map(([, d]) => d);
-const CAROUSEL = { gap: 300, speed: 160 }; // units between polaroids; units per second (on twos)
+const CAROUSEL = { gap: 300, speed: 200 }; // units between polaroids; units per second (on twos)
 
 Motion.scene({
     fps: 24,
@@ -53,6 +54,8 @@ Motion.scene({
         { family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' },
         { family: 'Shrikhand', src: 'fonts/Shrikhand-latin.woff2' },
         { family: 'Stack', src: 'fonts/ShortStack-latin.woff2' },
+        { family: 'Anton', src: 'fonts/Anton-latin.woff2' },
+        { family: 'Titan One', src: 'fonts/TitanOne-latin.woff2' },
     ],
     bpm: 120,
     shots: [[0, 6, 'Cover']],

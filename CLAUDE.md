@@ -20,7 +20,7 @@ inside videos is creative content and stays in whatever language the video needs
 | `.claude/skills/replicate/` | Copying a reference video 1:1: measure, per-drawing tables, element by element, parallel agents |
 | `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `gif.mjs`, `detail.mjs`, `serve.mjs` |
 | `styles/<style>/` | Drawing kit, `template.js`, `README.md` and `strip.jpg` for each style |
-| `site/` | The showcase site (GitHub Pages): live templates through `site/embed.html`, films, notes; `node site/build.mjs` → `_site/`, deployed by `.github/workflows/pages.yml`. A new style or film adds one line to `site/site.js` |
+| `site/` | The showcase site (GitHub Pages): a featured film, the programme, a grid of style stills (pressing one runs its template live through `site/embed.html`, one at a time), notes; `node site/build.mjs` → `_site/`, deployed by `.github/workflows/pages.yml`. A new style adds one line to `STYLES` in `site/site.js` and a still `site/media/styles/<style>.jpg` (640×480, a frame of its template); a film adds one line and its poster `site/media/<id>.jpg`. Nothing on the page may run a scene on load |
 | `sandbox/` | One experiment per folder (`YYYY-MM-DD-name/`), indexed in `INDEX.md` |
 | `assets/sfx/`, `fonts/` | Freely licensed sound effects and fonts |
 

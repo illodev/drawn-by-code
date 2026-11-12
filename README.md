@@ -103,6 +103,15 @@ how you made it too.
 <sub>A river village where every greeting ties a red thread. Screens and slogans split it into two banks, the threads snap and the red drains out of the world, until a girl's red kite carries one thread back across the river and the threads weave a new bridge. Japanese ink painting on washi, every brushstroke drawn in code, the text written vertically in Japanese; score by ElevenLabs Music, effects synthesized.</sub>
 </td>
 </tr>
+<tr>
+<td width="50%" valign="top">
+<a href="sandbox/2026-11-11-runnin-down-a-dream/"><img src="sandbox/2026-11-11-runnin-down-a-dream/render/runnin-down-a-dream.gif" alt="Runnin' Down a Dream"></a><br>
+<b><a href="sandbox/2026-11-11-runnin-down-a-dream/">Runnin' Down a Dream</a></b> · cereal ad · 4 min 24 s · <a href="sandbox/2026-11-11-runnin-down-a-dream/render/runnin-down-a-dream.mp4">mp4</a> (silent: the song is not ours)<br>
+<sub>A full videoclip for Tom Petty's song, played as a VHS tape on a CRT in the look of a '90s cereal commercial. The Devil is the tape's mascot and wants Tom's signature on a contract: he chases the band's car down Route 66 with a hole, a rain machine and a frozen Hell, books them into his own venue, loses a guitar duel, and rides the bonnet through Heaven to a concert on the moon. He ends up with an autograph. Twenty-six blocks animated in parallel from written briefs; every mouth follows a word-level transcription of the track.</sub>
+</td>
+<td width="50%" valign="top">
+</td>
+</tr>
 </table>
 
 Every experiment, with its status and main lesson, is in [`sandbox/INDEX.md`](sandbox/INDEX.md).
@@ -126,6 +135,7 @@ to see its strip, files and the videos made with it.
 | [felt3d](styles/felt3d/)             | needle-felted wool puppets, raymarched, over any backdrop                               | in testing |
 | [engraving](styles/engraving/)       | a plate of the «Description de l'Égypte» drawn in charcoal on old paper, temple reliefs | in testing |
 | [sumi-e](styles/sumi-e/)             | Japanese ink on washi: dry brush, washes in mist, vermilion as the only colour           | in testing |
+| [cereal-ad](styles/cereal-ad/)       | A '90s cereal spot on VHS: cel boxes, sunbursts, extruded letters, tape noise on a CRT    | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 
