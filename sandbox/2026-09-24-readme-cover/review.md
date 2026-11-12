@@ -40,3 +40,10 @@
 - The polaroids are a carousel that slides left in a loop (6 s, on twos), one per style:
   each style's own template is loaded (capture.js collects its Motion.scene) and painted at
   a chosen second into its polaroid. A new style adds one line to STYLES.
+
+## 2026-11-12 · cereal-ad joins the carousel
+
+One line in STYLES (`cereal ad`, its template at 3.2 s: the starburst, RADICAL! and the box),
+its two fonts in the cover's list. With ten polaroids the last one (pixel art) no longer
+reached the frame in 6 s at 160 units a second: the carousel runs at 200 now, so every style
+still passes. `render/cover.gif` (900 px, 12 fps), `cover.jpg` (frame 76) and the MP4 re-made.

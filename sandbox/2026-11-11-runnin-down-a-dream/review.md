@@ -511,5 +511,4 @@ the fixed moments.
 
 > «Está perfecto»
 
-Approved. Not done: the README cover's carousel has no polaroid for cereal-ad yet (new-style,
-step 7; it means re-rendering the cover).
+Approved. The README cover's carousel got its cereal-ad polaroid afterwards (new-style, step 7).
