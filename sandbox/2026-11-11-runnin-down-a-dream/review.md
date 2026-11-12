@@ -500,3 +500,9 @@ B, crop, the function that draws it). Each row was checked on its crop before it
   2:44 fault in the other block's box): arms resting on the rail go on over the box's front.
 - The plug pops (3:17): the lava's front lip, as in the next shot.
 - Left: for three frames at 2:58 Tom, landing on the bonnet's nose, passes behind the Devil.
+
+**After the pass.** `tools/check-state.mjs` over the whole film: no state carried between
+frames. The film was rendered again whole (8 chunks; the duel, 3:02–3:18, has to be rendered
+alone and in short pieces: the browser reaches about 9 GB there and the container kills it
+when two renders run side by side) and frames pulled from the finished file were checked at
+the fixed moments.
