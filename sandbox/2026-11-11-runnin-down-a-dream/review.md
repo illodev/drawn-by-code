@@ -506,3 +506,10 @@ frames. The film was rendered again whole (8 chunks; the duel, 3:02–3:18, has 
 alone and in short pieces: the browser reaches about 9 GB there and the container kills it
 when two renders run side by side) and frames pulled from the finished file were checked at
 the fixed moments.
+
+## Round 12 (user) · version 2, the whole film after the layer pass
+
+> «Está perfecto»
+
+Approved. Not done: the README cover's carousel has no polaroid for cereal-ad yet (new-style,
+step 7; it means re-rendering the cover).
