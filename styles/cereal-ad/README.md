@@ -7,7 +7,7 @@ dark outline, box characters in oblique projection, spinning sunbursts, jagged s
 Memphis shapes, chunky extruded letters that hop on the beat, and a tape-and-tube finish
 measured on a reference (the glass, the chroma smear, the tracking, `PLAY ▶` on blue).
 
-**Status:** in testing · **Skill:** [`style-cereal-ad`](../../.claude/skills/style-cereal-ad/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
+**Status:** approved · **Skill:** [`style-cereal-ad`](../../.claude/skills/style-cereal-ad/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
 
 ## Start a video in this style
 

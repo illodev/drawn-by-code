@@ -57,45 +57,9 @@ how you made it too.
 <table>
 <tr>
 <td width="50%" valign="top">
-<a href="sandbox/2026-09-24-saas-promo/"><img src="sandbox/2026-09-24-saas-promo/render/saas-promo.gif" alt="saas-promo"></a><br>
-<b><a href="sandbox/2026-09-24-saas-promo/">saas-promo</a></b> · paper cutout · 50 s · <a href="sandbox/2026-09-24-saas-promo/render/saas-promo.mp4">mp4</a><br>
-<sub>A marketing video for an invoicing product: a desk buried in paperwork is cleared block by block. Built by parallel agents on one brief, with music and sound effects.</sub>
-</td>
-<td width="50%" valign="top">
-<a href="sandbox/2026-09-24-what-do-you-love/"><img src="sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.gif" alt="what-do-you-love"></a><br>
-<b><a href="sandbox/2026-09-24-what-do-you-love/">what-do-you-love</a></b> · paper cutout · 28 s · <a href="sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.mp4">mp4</a><br>
-<sub>A 1:1 replica, made as a study, of <a href="https://x.com/kevin_t_ngo/status/2102437977435893771">a paper-cutout video by Kevin Ngo</a> (<a href="https://x.com/kevin_t_ngo">@kevin_t_ngo</a>). The original design and animation are his. Measured drawing by drawing until the differences only show when zooming in (skill <code>replicate</code>). His video also inspired the first saas-promo.</sub>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<a href="sandbox/2026-09-24-exquisite-corpse/"><img src="sandbox/2026-09-24-exquisite-corpse/render/exquisite-corpse.gif" alt="exquisite-corpse"></a><br>
-<b><a href="sandbox/2026-09-24-exquisite-corpse/">exquisite-corpse</a></b> · five styles · 30 s · <a href="sandbox/2026-09-24-exquisite-corpse/render/exquisite-corpse.mp4">mp4</a><br>
-<sub>One object travels through five styles joined by transitions: paper, a 70s poster, liquid light, a kaleidoscope and line.</sub>
-</td>
-<td width="50%" valign="top">
-<a href="sandbox/2026-09-24-opus5-riso/"><img src="sandbox/2026-09-24-opus5-riso/render/opus5-riso.gif" alt="opus5-riso"></a><br>
-<b><a href="sandbox/2026-09-24-opus5-riso/">opus5-riso</a></b> · risograph · 28 s · <a href="sandbox/2026-09-24-opus5-riso/render/opus5-riso.mp4">mp4</a><br>
-<sub>A 1:1 replica, made as a study, of <a href="https://x.com/kevin_t_ngo/status/2099477219877978289">a risograph film by Kevin Ngo</a> (<a href="https://x.com/kevin_t_ngo">@kevin_t_ngo</a>). The original design and animation are his. Four spot inks, halftone and misregistration from a simulated press, scored tile by tile against the original by the detail gate.</sub>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<a href="sandbox/2026-09-24-clay3d-test/"><img src="sandbox/2026-09-24-clay3d-test/render/clay3d-test.gif" alt="clay3d-test"></a><br>
-<b><a href="sandbox/2026-09-24-clay3d-test/">clay3d-test</a></b> · clay 3D · 4 s · <a href="sandbox/2026-09-24-clay3d-test/render/clay3d-test.mp4">mp4</a><br>
-<sub>A plasticine puppet raymarched in the browser: lumpy pressed-on pieces, matte clay and a studio sweep.</sub>
-</td>
-<td width="50%" valign="top">
-<a href="sandbox/2026-09-25-physics-history/"><img src="sandbox/2026-09-25-physics-history/render/physics-history.gif" alt="A Brief History of Physics"></a><br>
-<b><a href="sandbox/2026-09-25-physics-history/">A Brief History of Physics</a></b> · risograph · 67 s · <a href="sandbox/2026-09-25-physics-history/render/physics-history.mp4">mp4</a><br>
-<sub>Galileo's eye at the telescope pulls back to a rooftop in Padua; Jupiter becomes the apple a cat pushes onto Newton's head; its orbit winds into Faraday's coil, whose spark is the glow of Curie's radium; its ray is the light young Einstein chases into a black hole; and the cube it leaves becomes Schrödinger's box, where the cat is alive and dead in sixteen worlds until the lid lifts. One continuous chain of objects, the same cat in every scene, drawn entirely in JavaScript; score and effects generated with ElevenLabs.</sub>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<a href="sandbox/2026-09-26-pyramid-engraving/"><img src="sandbox/2026-09-26-pyramid-engraving/render/pyramid-engraving.gif" alt="The pyramid that makes skies"></a><br>
-<b><a href="sandbox/2026-09-26-pyramid-engraving/">The pyramid that makes skies</a></b> · engraving · 64 s · <a href="sandbox/2026-09-26-pyramid-engraving/render/pyramid-engraving.mp4">mp4</a><br>
-<sub>A plate of the «Description de l'Égypte» comes alive: a mark is painted on a stone, the pyramid opens into thousands of floating blocks, and the camera flies without a cut through a temple's rooms (each joined to the next by a doorway in the shot) to a seed that holds a sky of its own and leaves as a new star. 3D in WebGL, drawn in charcoal on old paper; music made with ElevenLabs.</sub>
+<a href="sandbox/2026-11-11-runnin-down-a-dream/"><img src="sandbox/2026-11-11-runnin-down-a-dream/render/runnin-down-a-dream.gif" alt="Runnin' Down a Dream"></a><br>
+<b><a href="sandbox/2026-11-11-runnin-down-a-dream/">Runnin' Down a Dream</a></b> · cereal ad · 4 min 24 s · <a href="sandbox/2026-11-11-runnin-down-a-dream/render/runnin-down-a-dream.mp4">mp4</a> (silent: the song is not ours)<br>
+<sub>A full videoclip for Tom Petty's song, played as a VHS tape on a CRT in the look of a '90s cereal commercial. The Devil is the tape's mascot and wants Tom's signature on a contract: he chases the band's car down Route 66 with a hole, a rain machine and a frozen Hell, books them into his own venue, loses a guitar duel, and rides the bonnet through Heaven to a concert on the moon. He ends up with an autograph. Twenty-six blocks animated in parallel from written briefs; every mouth follows a word-level transcription of the track.</sub>
 </td>
 <td width="50%" valign="top">
 <a href="sandbox/2026-11-04-red-thread/"><img src="sandbox/2026-11-04-red-thread/render/red-thread.gif" alt="El hilo rojo"></a><br>
@@ -105,11 +69,26 @@ how you made it too.
 </tr>
 <tr>
 <td width="50%" valign="top">
-<a href="sandbox/2026-11-11-runnin-down-a-dream/"><img src="sandbox/2026-11-11-runnin-down-a-dream/render/runnin-down-a-dream.gif" alt="Runnin' Down a Dream"></a><br>
-<b><a href="sandbox/2026-11-11-runnin-down-a-dream/">Runnin' Down a Dream</a></b> · cereal ad · 4 min 24 s · <a href="sandbox/2026-11-11-runnin-down-a-dream/render/runnin-down-a-dream.mp4">mp4</a> (silent: the song is not ours)<br>
-<sub>A full videoclip for Tom Petty's song, played as a VHS tape on a CRT in the look of a '90s cereal commercial. The Devil is the tape's mascot and wants Tom's signature on a contract: he chases the band's car down Route 66 with a hole, a rain machine and a frozen Hell, books them into his own venue, loses a guitar duel, and rides the bonnet through Heaven to a concert on the moon. He ends up with an autograph. Twenty-six blocks animated in parallel from written briefs; every mouth follows a word-level transcription of the track.</sub>
+<a href="sandbox/2026-09-25-physics-history/"><img src="sandbox/2026-09-25-physics-history/render/physics-history.gif" alt="A Brief History of Physics"></a><br>
+<b><a href="sandbox/2026-09-25-physics-history/">A Brief History of Physics</a></b> · risograph · 67 s · <a href="sandbox/2026-09-25-physics-history/render/physics-history.mp4">mp4</a><br>
+<sub>Galileo's eye at the telescope pulls back to a rooftop in Padua; Jupiter becomes the apple a cat pushes onto Newton's head; its orbit winds into Faraday's coil, whose spark is the glow of Curie's radium; its ray is the light young Einstein chases into a black hole; and the cube it leaves becomes Schrödinger's box, where the cat is alive and dead in sixteen worlds until the lid lifts. One continuous chain of objects, the same cat in every scene, drawn entirely in JavaScript; score and effects generated with ElevenLabs.</sub>
 </td>
 <td width="50%" valign="top">
+<a href="sandbox/2026-09-26-pyramid-engraving/"><img src="sandbox/2026-09-26-pyramid-engraving/render/pyramid-engraving.gif" alt="The pyramid that makes skies"></a><br>
+<b><a href="sandbox/2026-09-26-pyramid-engraving/">The pyramid that makes skies</a></b> · engraving · 64 s · <a href="sandbox/2026-09-26-pyramid-engraving/render/pyramid-engraving.mp4">mp4</a><br>
+<sub>A plate of the «Description de l'Égypte» comes alive: a mark is painted on a stone, the pyramid opens into thousands of floating blocks, and the camera flies without a cut through a temple's rooms (each joined to the next by a doorway in the shot) to a seed that holds a sky of its own and leaves as a new star. 3D in WebGL, drawn in charcoal on old paper; music made with ElevenLabs.</sub>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="sandbox/2026-09-24-opus5-riso/"><img src="sandbox/2026-09-24-opus5-riso/render/opus5-riso.gif" alt="opus5-riso"></a><br>
+<b><a href="sandbox/2026-09-24-opus5-riso/">opus5-riso</a></b> · risograph · 28 s · <a href="sandbox/2026-09-24-opus5-riso/render/opus5-riso.mp4">mp4</a><br>
+<sub>A 1:1 replica, made as a study, of <a href="https://x.com/kevin_t_ngo/status/2099477219877978289">a risograph film by Kevin Ngo</a> (<a href="https://x.com/kevin_t_ngo">@kevin_t_ngo</a>). The original design and animation are his. Four spot inks, halftone and misregistration from a simulated press, scored tile by tile against the original by the detail gate.</sub>
+</td>
+<td width="50%" valign="top">
+<a href="sandbox/2026-09-24-what-do-you-love/"><img src="sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.gif" alt="what-do-you-love"></a><br>
+<b><a href="sandbox/2026-09-24-what-do-you-love/">what-do-you-love</a></b> · paper cutout · 28 s · <a href="sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.mp4">mp4</a><br>
+<sub>A 1:1 replica, made as a study, of <a href="https://x.com/kevin_t_ngo/status/2102437977435893771">a paper-cutout video by Kevin Ngo</a> (<a href="https://x.com/kevin_t_ngo">@kevin_t_ngo</a>). The original design and animation are his. Measured drawing by drawing until the differences only show when zooming in (skill <code>replicate</code>). His video also inspired the first saas-promo.</sub>
 </td>
 </tr>
 </table>
@@ -121,21 +100,23 @@ Every experiment, with its status and main lesson, is in [`sandbox/INDEX.md`](sa
 Each style is a drawing kit, a template and a skill with its rules. Open a style's folder
 to see its strip, files and the videos made with it.
 
-| Style                                | Look                                                                                    | Status     |
-| ------------------------------------ | --------------------------------------------------------------------------------------- | ---------- |
-| [paper-cutout](styles/paper-cutout/) | torn paper, marker, grain, handwriting, real hands                                      | approved   |
-| [70s-poster](styles/70s-poster/)     | flat acid colours, echoes, sunbursts, melting letters                                   | approved   |
-| [liquid-light](styles/liquid-light/) | merging oil blobs, a 60s light show                                                     | approved   |
-| [kaleidoscope](styles/kaleidoscope/) | mirror symmetry, rotation, colour cycling                                               | approved   |
-| [line](styles/line/)                 | a wobbling black line on white paper                                                    | approved   |
-| [clay](styles/clay/)                 | 2D plasticine: bevels, fingerprints, soft shadows                                       | in testing |
-| [clay3d](styles/clay3d/)             | 3D plasticine puppets, raymarched, studio light                                         | in testing |
-| [risograph](styles/risograph/)       | four spot inks, halftone, overprints, misregistration                                   | approved   |
-| [pixel-art](styles/pixel-art/)       | crisp pixels on a low-res grid, sprite maps, 10 fps loops                               | in testing |
-| [felt3d](styles/felt3d/)             | needle-felted wool puppets, raymarched, over any backdrop                               | in testing |
-| [engraving](styles/engraving/)       | a plate of the «Description de l'Égypte» drawn in charcoal on old paper, temple reliefs | in testing |
-| [sumi-e](styles/sumi-e/)             | Japanese ink on washi: dry brush, washes in mist, vermilion as the only colour           | in testing |
-| [cereal-ad](styles/cereal-ad/)       | A '90s cereal spot on VHS: cel boxes, sunbursts, extruded letters, tape noise on a CRT    | in testing |
+| Style                                | Look                                                                                     | Status     |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- | ---------- |
+| [paper-cutout](styles/paper-cutout/) | torn paper, marker, grain, handwriting, real hands                                       | approved   |
+| [risograph](styles/risograph/)       | four spot inks, halftone, overprints, misregistration                                    | approved   |
+| [sumi-e](styles/sumi-e/)             | Japanese ink on washi: dry brush, washes in mist, vermilion as the only colour           | approved   |
+| [engraving](styles/engraving/)       | a plate of the «Description de l'Égypte» drawn in charcoal on old paper, temple reliefs  | approved   |
+| [cereal-ad](styles/cereal-ad/)       | a '90s cereal spot on VHS: cel boxes, sunbursts, extruded letters, tape noise on a CRT   | approved   |
+| [70s-poster](styles/70s-poster/)     | flat acid colours, echoes, sunbursts, melting letters                                    | approved   |
+| [liquid-light](styles/liquid-light/) | merging oil blobs, a 60s light show                                                      | approved   |
+| [kaleidoscope](styles/kaleidoscope/) | mirror symmetry, rotation, colour cycling                                                | approved   |
+| [line](styles/line/)                 | a wobbling black line on white paper                                                     | approved   |
+| [clay](styles/clay/)                 | 2D plasticine: bevels, fingerprints, soft shadows                                        | in testing |
+| [clay3d](styles/clay3d/)             | 3D plasticine puppets, raymarched, studio light                                          | in testing |
+| [felt3d](styles/felt3d/)             | needle-felted wool puppets, raymarched, over any backdrop                                | in testing |
+| [tabletop3d](styles/tabletop3d/)     | desk objects as stop motion, raymarched: chrome, rubber, paper, a shallow depth of field | in testing |
+| [comic](styles/comic/)               | brush-ink outlines, flat print colours on newsprint, Ben-Day dots, balloons              | in testing |
+| [pixel-art](styles/pixel-art/)       | crisp pixels on a low-res grid, sprite maps, 10 fps loops                                | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 
