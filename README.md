@@ -117,6 +117,7 @@ to see its strip, files and the videos made with it.
 | [tabletop3d](styles/tabletop3d/)     | desk objects as stop motion, raymarched: chrome, rubber, paper, a shallow depth of field | in testing |
 | [comic](styles/comic/)               | brush-ink outlines, flat print colours on newsprint, Ben-Day dots, balloons              | in testing |
 | [pixel-art](styles/pixel-art/)       | crisp pixels on a low-res grid, sprite maps, 10 fps loops                                | in testing |
+| [oil](styles/oil/)                   | thick oil paint in brush strokes, broken colour after Monet, loose and fine on one canvas | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 
