@@ -1,11 +1,11 @@
 ---
 name: style-cereal-ad
-description: '90s cereal commercial style (in testing): a Saturday-morning TV spot taped on VHS and played on a CRT. Flat cel colour with an even dark outline, box characters in oblique projection, spinning sunbursts, jagged starbursts, Memphis shapes, chunky extruded letters that hop on the beat, and a tape-and-tube finish (glass shape, chroma smear, tracking, PLAY ▶ on blue). Use it for '90s, retro TV, VHS, Saturday-morning cartoon, cereal ad, bumper or sing-along looks, music videos in that vein, or when working with styles/cereal-ad/.
+description: '90s cereal commercial style: a Saturday-morning TV spot taped on VHS and played on a CRT. Flat cel colour with an even dark outline, box characters in oblique projection, spinning sunbursts, jagged starbursts, Memphis shapes, chunky extruded letters that hop on the beat, and a tape-and-tube finish (glass shape, chroma smear, tracking, PLAY ▶ on blue). Use it for '90s, retro TV, VHS, Saturday-morning cartoon, cereal ad, bumper or sing-along looks, music videos in that vein, or when working with styles/cereal-ad/.
 ---
 
 # Style · '90s cereal commercial
 
-**In testing.** Reference: `sandbox/2026-11-11-runnin-down-a-dream/` (`review/sheet.jpg`), a
+**Approved** (the user approved the film in its round 12). Reference: `sandbox/2026-11-11-runnin-down-a-dream/` (`review/sheet.jpg`), a
 videoclip that borrows the look. The look was measured on a cereal spot the user gave as a
 reference; a piece in this style does not need cereal or a mascot.
 

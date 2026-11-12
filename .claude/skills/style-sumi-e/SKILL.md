@@ -1,11 +1,11 @@
 ---
 name: style-sumi-e
-description: Sumi-e style, in testing: Japanese ink painting on washi — one black ink in many greys, brush strokes with tapered ends and dry-brush streaks (kasure), boneless mountain washes dissolving into mist, water as horizontal dry strokes with reflections, tiny ink-silhouette people, vermilion as the only colour (a sun, blossoms, a thread). Use it for Japanese, ink, brush, zen, haiku, parable or «tinta china» looks, or when working with styles/sumi-e/.
+description: Sumi-e style: Japanese ink painting on washi — one black ink in many greys, brush strokes with tapered ends and dry-brush streaks (kasure), boneless mountain washes dissolving into mist, water as horizontal dry strokes with reflections, tiny ink-silhouette people, vermilion as the only colour (a sun, blossoms, a thread). Use it for Japanese, ink, brush, zen, haiku, parable or «tinta china» looks, or when working with styles/sumi-e/.
 ---
 
 # Style · Sumi-e
 
-In testing. Style test: `sandbox/2026-11-04-red-thread/` («The kite», 7 s; review/sheet.jpg).
+Approved (the user approved «El hilo rojo» after 15 rounds). Style test: `sandbox/2026-11-04-red-thread/` («The kite», 7 s; review/sheet.jpg).
 The bar is the user's best reference (round 2): a sakura tree against a red sun with halo
 rings, cranes, karst peaks, a boatman, a torii in the water, on clean white paper with a
 grainy dry brush. Every frame should hold that density of detail.

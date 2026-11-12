@@ -1,11 +1,11 @@
 ---
 name: style-engraving
-description: Engraving style (in testing): 3D scenes drawn as a plate of the «Description de l'Égypte» — charcoal tone on toothed paper, masonry drawn stone by stone, temple walls in low relief (registers of offering scenes, Hathor capitals, starred ceilings), an aged print measured on the originals, one live blue and a gold wash as second inks. Instanced WebGL, so thousands of pieces are cheap. Use it for architecture, archaeology, temples, machines, exploded views, scientific plates, or when working with styles/engraving/.
+description: Engraving style: 3D scenes drawn as a plate of the «Description de l'Égypte» — charcoal tone on toothed paper, masonry drawn stone by stone, temple walls in low relief (registers of offering scenes, Hathor capitals, starred ceilings), an aged print measured on the originals, one live blue and a gold wash as second inks. Instanced WebGL, so thousands of pieces are cheap. Use it for architecture, archaeology, temples, machines, exploded views, scientific plates, or when working with styles/engraving/.
 ---
 
 # Style · Engraving
 
-Reference in testing: `sandbox/2026-09-26-pyramid-engraving/` («The pyramid that makes skies»,
+Approved (the user approved the film in its round 6). Reference: `sandbox/2026-09-26-pyramid-engraving/` («The pyramid that makes skies»,
 63.6 s, ten shots from the desert to a sky inside a seed). References the user chose: the
 plates of the «Description de l'Égypte»: Vol. V (Giza, Pl. 9, 11, 13, 14) for the outside,
 Vol. IV (Dendera, Pl. 17, 25, 30) for walls, friezes and interiors (Wikimedia Commons, NYPL).

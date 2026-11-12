@@ -6,7 +6,7 @@ Japanese ink painting on washi: one black ink in many greys, brush strokes with 
 ends and dry-brush streaks, mountains as washes dissolving into mist, water as horizontal
 strokes with reflections, tiny ink silhouettes for people, and vermilion as the only colour.
 
-**Status:** in testing · **Skill:** [`style-sumi-e`](../../.claude/skills/style-sumi-e/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
+**Status:** approved · **Skill:** [`style-sumi-e`](../../.claude/skills/style-sumi-e/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
 
 ## Start a video in this style
 
