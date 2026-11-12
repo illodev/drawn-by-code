@@ -49,9 +49,9 @@ const Plaza = (() => {
         st.paint({ dir: 0.05, dab: 0.45 }, (g) => {
             if (T) {
                 g.fillStyle = '#cfd6e6';
-                [[70, 300, 120, 22], [470, 330, 150, 20]].forEach((e) => ell(g, ...e));
+                [[6, 368, 110, 17], [470, 330, 150, 20]].forEach((e) => ell(g, ...e));
                 g.fillStyle = '#f2ebdc';
-                [[60, 286, 104, 20], [130, 300, 70, 16], [480, 318, 120, 16], [560, 330, 64, 12]].forEach((e) => ell(g, ...e));
+                [[-4, 356, 96, 16], [62, 366, 58, 12], [480, 318, 120, 16], [560, 330, 64, 12]].forEach((e) => ell(g, ...e));
             } else {
                 g.fillStyle = '#a6a7ab';
                 [[120, 120, 260, 46], [520, 250, 210, 34], [60, 330, 180, 28]].forEach((e) => ell(g, ...e));
@@ -68,9 +68,9 @@ const Plaza = (() => {
         st.paint({ dir: 1.5 }, (g) => {
             // the tower of the church
             g.fillStyle = c('#8a888f', '#e8d6ae');
-            g.fillRect(130, 300, 56, 300);
+            g.fillRect(130, 372, 56, 228);
             g.fillStyle = c('#77767e', '#b8aecb');
-            g.fillRect(168, 300, 18, 300);
+            g.fillRect(168, 372, 18, 228);
             houses.forEach(([x0, x1, y], i) => {
                 g.fillStyle = walls[i];
                 g.fillRect(x0, y, x1 - x0, GROUND - y);
@@ -78,7 +78,7 @@ const Plaza = (() => {
         });
         st.paint({ dir: 0.05 }, (g) => {
             g.fillStyle = c('#6f6a70', '#c06f48');
-            poly(g, [[122, 302], [194, 302], [158, 246]]);
+            poly(g, [[122, 374], [194, 374], [158, 318]]);
             houses.forEach(([x0, x1, y, yr]) => {
                 g.fillStyle = c('#77706f', '#c97b4e');
                 poly(g, [[x0 - 6, y], [x1 + 6, y], [x1 - 8, yr], [x0 + 8, yr]]);
@@ -87,7 +87,7 @@ const Plaza = (() => {
             });
             // windows, doors
             g.fillStyle = c('#5d5b62', '#3c4656');
-            [[-190, 490, 22, 34], [-140, 490, 22, 34], [-40, 480, 22, 34], [10, 480, 22, 34], [62, 480, 22, 34], [150, 330, 14, 30], [222, 490, 24, 36], [282, 490, 24, 36], [372, 464, 24, 36], [432, 464, 24, 36], [520, 500, 22, 32], [576, 500, 22, 32]].forEach(([x, y, w, h]) => g.fillRect(x, y, w, h));
+            [[-190, 490, 22, 34], [-140, 490, 22, 34], [-40, 480, 22, 34], [10, 480, 22, 34], [62, 480, 22, 34], [222, 490, 24, 36], [282, 490, 24, 36], [372, 464, 24, 36], [432, 464, 24, 36], [520, 500, 22, 32], [576, 500, 22, 32]].forEach(([x, y, w, h]) => g.fillRect(x, y, w, h));
             g.fillStyle = c('#66626a', '#3f7d6e');
             [[30, 548, 30, 52], [244, 552, 30, 48]].forEach(([x, y, w, h]) => g.fillRect(x, y, w, h));
             g.fillStyle = c('#64606a', '#9a4f33');
@@ -590,7 +590,21 @@ const Plaza = (() => {
             return;
         }
         // in leaf: the boughs only show below the crown and through a few gaps
-        [[[352, 338], [318, 280]], [[358, 338], [398, 268]], [[354, 332], [352, 270]]].forEach((b, i) => st.line(b, '#6f6a55', BW[i], { level: 3, seed: 'bt' + i }));
+        st.paint({ dir: 1.2, dab: 0.2 }, (g) => {
+            [[[346, 340], [312, 276], 24], [[362, 340], [402, 264], 22], [[354, 334], [352, 262], 20]].forEach(([a, b, w], i) => {
+                const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy), nx = (-dy / l) * (w / 2), ny = (dx / l) * (w / 2);
+                g.fillStyle = '#a39d80';
+                poly(g, [[a[0] - nx, a[1] - ny], [a[0] + nx, a[1] + ny], [b[0] + nx * 0.8, b[1] + ny * 0.8], [b[0] - nx * 0.8, b[1] - ny * 0.8]]);
+                g.fillStyle = '#6a6456'; // the underside, away from the light
+                const s = i === 0 ? -1 : 1;
+                poly(g, [[a[0] + nx * s, a[1] + ny * s], [a[0] + nx * s * 0.2, a[1] + ny * s * 0.2], [b[0] + nx * s * 0.16, b[1] + ny * s * 0.16], [b[0] + nx * s * 0.8, b[1] + ny * s * 0.8]]);
+                for (let k = 0; k < 5; k++) {
+                    const u = 0.1 + rn() * 0.8, v = (rn() - 0.5) * 1.2;
+                    g.fillStyle = ['#d2cba6', '#7f7a5e', '#bfc09a'][k % 3];
+                    ell(g, a[0] + dx * u + nx * v, a[1] + dy * u + ny * v, 3.4 + rn() * 3, 6 + rn() * 5, Math.atan2(dy, dx) + 1.57);
+                }
+            });
+        });
         st.paint({ dab: 1 }, (g) => {
             const mass = (list, cols, n, a, b) => list.forEach(([cx, cy, rx, ry]) => {
                 for (let i = 0; i < n; i++) {
@@ -599,12 +613,12 @@ const Plaza = (() => {
                     ell(g, cx + Math.cos(an) * rx * rr, cy + Math.sin(an) * ry * rr, a + rn() * a, b + rn() * b, rn() * 3);
                 }
             });
-            const crown = [[200, 150, 150, 110], [360, 90, 190, 110], [520, 150, 140, 110], [300, 230, 150, 70], [450, 240, 130, 60], [150, 250, 90, 50], [585, 235, 70, 50]];
+            const crown = [[200, 150, 150, 110], [360, 90, 190, 110], [520, 150, 140, 110], [300, 230, 150, 70], [450, 240, 130, 60], [585, 235, 70, 50]];
             g.fillStyle = '#22463f';
             crown.forEach(([cx, cy, rx, ry]) => ell(g, cx, cy, rx, ry));
             mass(crown, ['#22463f', '#1d3d3c', '#2d5a45', '#28505a', '#324f6a'], 26, 18, 12);
             // what the sun reaches: the top and the left of every clump
-            const lit = [[170, 110, 110, 60], [330, 40, 150, 60], [500, 100, 110, 60], [260, 200, 100, 36], [430, 205, 90, 30], [120, 225, 60, 26]];
+            const lit = [[170, 110, 110, 60], [330, 40, 150, 60], [500, 100, 110, 60], [260, 200, 100, 36], [430, 205, 90, 30]];
             mass(lit, ['#4f8a4a', '#5f9a52', '#3f7a55', '#6aa24a', '#4a8a78'], 30, 14, 9);
             mass(lit.map(([cx, cy, rx, ry]) => [cx - rx * 0.25, cy - ry * 0.35, rx * 0.6, ry * 0.5]), ['#9cc060', '#b5cf72', '#86b65a', '#d2d98a'], 14, 9, 6);
             // holes of sky
@@ -670,20 +684,33 @@ const Plaza = (() => {
         st.line([[1478, 352], [1482, 440], [1470, 546]], '#45413f', 5, { level: 2 });
     }
 
+    // PlazaDetail (detail.js) goes over each element of the memory right after it is laid
     function paint(st, era) {
-        const T = era === 'then';
+        const T = era === 'then', D = T ? PlazaDetail : null;
         sky(st, T);
         farHouses(st, T);
+        if (T) D.village(st);
         ground(st, T);
+        if (T) D.ground(st);
         wall(st, T);
-        WINDOWS.forEach((cx, i) => balcony(st, T, cx, i === 0));
+        if (T) D.wall(st);
+        WINDOWS.forEach((cx, i) => {
+            balcony(st, T, cx, i === 0);
+            if (T) D.balcony(st, cx, i);
+        });
         shop(st, T);
+        if (T) D.shop(st);
         door(st, T);
+        if (T) {
+            D.door(st);
+            D.lamp(st);
+        }
         extras(st, T);
         tree(st, T);
         if (T) {
-            bicycle(st, 392, 612);
-            woman(st, 1292, 602);
+            D.tree(st);
+            D.bicycle(st, 392, 612);
+            D.woman(st, 1292, 602);
         } else car(st);
     }
 

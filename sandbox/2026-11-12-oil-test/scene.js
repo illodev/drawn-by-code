@@ -6,11 +6,12 @@ Motion.scene({
     fps: 24,
     duration: 8,
     logical: [1600, 900],
-    uses: ['styles/oil/oil.js', 'sandbox/2026-11-12-oil-test/plaza.js'],
+    uses: ['styles/oil/oil.js', 'sandbox/2026-11-12-oil-test/plaza.js', 'sandbox/2026-11-12-oil-test/detail.js'],
+    fonts: [{ family: 'Fell', src: 'fonts/IMFellDWPicaSC-Regular.ttf' }],
     shots: [[0, 8, 'The square']],
     setup(env) {
         const box = Plaza.BOX;
-        const now = Oil.study(box, { ground: '#a39a8b' }), then = Oil.study(box);
+        const now = Oil.study(box, { ground: '#a39a8b' }), then = Oil.study(box, { res: 1.25 });
         Plaza.paint(now, 'now');
         Plaza.paint(then, 'then');
         const loose = Oil.lay(now, Plaza.NOW, { seed: 'now', ground: '#a39a8b', blur: 13, lines: false });
@@ -28,7 +29,12 @@ Motion.scene({
             const s = q / 12, p = look(s);
             return { x: p[0] + Motion.noise1('gx', q * 0.45) * 9, y: p[1] + Motion.noise1('gy', q * 0.45) * 7, r: (262 + 12 * Math.sin(s * 1.9)) * Ease.inOut(Ease.seg(s, 0.45, 1.5)) + 0.5, ph: s * 0.7 };
         };
-        pic.frame(d, (sf) => sf.stamp(fine, Oil.focus(fine, d, gaze, { wide: 1.2 })));
+        pic.frame(d, (sf) => {
+            sf.stamp(fine, Oil.focus(fine, d, gaze, { wide: 1.2 }));
+            // what moves inside the memory: swallows, leaves turning in the light
+            const live = Oil.marks(PlazaDetail.live(d), Oil.FINE, 4, 'live');
+            sf.stamp(live, Oil.focus(live, d, gaze, { wide: 1.2 }));
+        });
         // the head follows the eyes, late and not all the way
         const h = look(t - 0.3);
         g.save();

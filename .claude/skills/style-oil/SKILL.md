@@ -22,19 +22,20 @@ shot: the present painted out of focus, a memory painted fine where the eye rest
    (coarse to fine) a jittered grid, a stroke wherever the picture so far is further than
    `tol` from the study, its colour taken from the study and broken (lightness,
    temperature, hue, a share of accents), its length cut where the study's colour changes
-   (`edge`). `Oil.LOOSE` (3 wide brushes) and `Oil.FINE` (5 brushes down to 2.6 units) are
+   (`edge`). `Oil.LOOSE` (3 wide brushes) and `Oil.FINE` (6 brushes down to 1.5 units) are
    the two sets. `blur` (units) reads the study out of focus, `lines: false` drops the
    authored lines: together they give a picture that is soft because it was painted soft.
 3. **Paint** — `const pic = Oil.painting(env, box)`; `pic.base(strokes…)` stamps the
    picture every drawing starts from; `pic.frame(d, (sf) => sf.stamp(set, sel))` repaints
    on top for drawing `d` (only what changed is stamped and lit); `pic.draw(g)`.
+   `Oil.marks(list, levels, level)` makes a set from strokes placed by hand (what moves).
    `Oil.focus(set, d, gaze)` returns the strokes of a set that exist in drawing `d` around
    `gaze(d) → { x, y, r, ph }`: coarse levels reach further than fine ones, strokes linger
    a few drawings behind the eye (the finest go first) and are laid in over three drawings.
 
 The box can be wider than the frame so the camera can pan over the canvas. Everything is a
 function of the drawing index; `frame` only caches the last drawing. Paint is stamped at
-1.5× the output and scaled down. A 1920 frame of the test takes about half a second.
+1.5× the output and scaled down. A 1920 drawing of the test takes about a second.
 
 `sandbox/2026-11-12-oil-test/tools/probe.mjs` lists the strokes near a point (to find what
 a mark is made of).
@@ -81,7 +82,11 @@ left to the grid; nothing reads as a row of beads or a comb.
 
 - 2026-11-12 · oil-test · A loose picture made only of bigger strokes turns abstract (slabs, nothing can be named): blur the study and paint that with medium brushes, and the picture stays legible and soft.
 - 2026-11-12 · oil-test · Authored lines over an out-of-focus picture read as a drawing on top of a painting: drop them there (`lines: false`) and widen them in the study so they survive the blur as soft marks.
-- 2026-11-12 · oil-test · A line that a later shape covers in the study is still laid as strokes and shows through: draw lines last, or only the part that stays visible.
+- 2026-11-12 · oil-test · `st.line` pieces that a later shape covers in the study are not laid (the kit checks the study under each piece), so depth order in the study is depth order in the paint. Anything that hangs in front (an awning over shelves) is still painted last in the study.
 - 2026-11-12 · oil-test · Accents (a share of strokes in another hue) are for a finished, sunlit picture; on a grey loose one they show as stray pink slabs: set the share to 0 there.
 - 2026-11-12 · oil-test · Relief must not depend on the render size: the slope of the paint falls as the picture grows, so the light's gain rises with it (`rel ∝ k^0.45`), or a small review render looks twice as embossed as the final.
 - 2026-11-12 · oil-test · Thin closed shapes (a wheel) laid as few long pieces come out as beads: short overlapping pieces with round ends and no dry tails (`kind = 1`).
+- 2026-11-12 · oil-test round 2 · Micro-detail is authored in the study, at the size of the finest brush (1.5 units): lay the detailed picture from a study at 1.25 px per unit, give every small thing a light side, a shadow side and one highlight, and put thin things (spokes, braid, a key) in as lines at the finest level. Then crop each element at 2× and name every piece; what cannot be named is redone.
+- 2026-11-12 · oil-test round 2 · A texture tied to the canvas (dry paint catching threads) shows as a grid of dots if the threads decide alone: let noise carry more than half of the test.
+- 2026-11-12 · oil-test round 2 · White things need a ground that is not white: a stork against a cloud, washing against a lime wall and a collar on a pale dress all vanished until what was behind them changed colour.
+- 2026-11-12 · oil-test round 2 · What moves inside a painted picture is placed by hand per drawing (`Oil.marks`: birds, leaves turning) and goes through the same `focus` as the rest, so it only exists where the picture is finished.

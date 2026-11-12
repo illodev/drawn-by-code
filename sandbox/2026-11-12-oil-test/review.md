@@ -58,3 +58,72 @@ Open questions for the user:
   cap's brim, no blink. The film will need one of them.
 - Things inside the memory do not move in this test (she stands still). Moving them means
   laying that part of the study again per drawing: possible, not built.
+
+## Round 2 (user)
+
+> Importante llevar los detalles a nivel extremo, cada microdetalle cuenta. Yo te paso las
+> imágenes que te hagan falta
+
+Translation into changes:
+
+- The paint itself gets its micro-detail: dry brush that catches the canvas threads, wet
+  paint dragging what is under it, lights laid thick and darks thin, a finer brush.
+- Every element of the memory is taken apart into its real pieces, down to what a 1.5-unit
+  brush can hold (a face's features under the hand's shadow, the print of a dress, the
+  letters of the shop sign, a bicycle's chain guard, roof tiles, a stork on the tower).
+- Something small moves inside the memory (leaves, swallows).
+- A detail sheet (every element cropped at 1:1) goes to the user with the render.
+- Ask the user for the references that decide what guessing cannot (see the end).
+
+### Round 2 (auto), after the user's «cada microdetalle cuenta»
+
+The paint (kit):
+
+- Dry brush now catches the tops of the canvas threads (the weave is shared by the ground
+  and the stamp); a first version drew a visible grid of dots, so the threads count for
+  less than half of the test and noise for the rest.
+- Lights are laid thick and darks thin; wet paint drags what is under it along the
+  stroke; a sixth brush of 1.5 units; the memory's study at 1.25 px per unit.
+- `lay` no longer lays the pieces of a line that a later shape covers in the study. Until
+  then the grain of the door ran across the cat on the step, roof tiles across the tree
+  trunk and flagstone joints across every shadow.
+
+The memory, element by element (`detail.js`, sheet in `review/detail.jpg`):
+
+- Her: calves and ankles, espadrilles with ribbons, a skirt in three folds with a pale
+  hem, a print of sprigs, collar, buttons, belt and buckle, a medal, the face with the
+  shade of her hand across brow and eyes, mouth, ear and earring, hair with a bun; the
+  basket with ribs and weave, a scored loaf, greens, a tomato; the hand on the handle with
+  its knuckles; the raised hand palm down with the thumb under.
+- The door: reveal and lintel with a keystone, bevelled panels, grain, studs, hinges,
+  letter slot, lock with its key, a hand-shaped knocker; the hall's tiled floor, a coat,
+  the patio beyond; the fly curtain of coloured strips gathered on the jamb; the worn step;
+  number 7 on a blue tile, a bell push, an aspidistra, an orange cat asleep on the step.
+- The shop: ULTRAMARINOS lettered on the board; tins with labels and bottles with corks
+  on three shelves; salt cod, garlic and sausages on a rail; the strip curtain of the back
+  room; a marble counter with scales, a jar of sweets and wrapping paper; crates with
+  slats and nail heads, every fruit lit and shadowed, price cards; two sacks with a scoop;
+  a rush chair, a broom, a doormat; the awning with a braided scalloped valance and arms.
+- Tree and bicycle: boughs with bark, leaves one by one at the crown's edge, seed balls on
+  threads, sparrows, a heart cut in the bark, the pit of stones; mudguards, cream tyre
+  walls, twelve spokes a wheel, chain guard, pedals, saddle, a parcel on the rack, bell,
+  lamp, brake cable, reflector.
+- The village: tile rows, chimneys, television aerials, windows with shutters and pots,
+  washing on a line, a belfry with its bell, a stork on its nest, a dog by the garden
+  wall. Wall: cracks, a patch of fallen lime, wires on insulators, a drainpipe, the lamp.
+- Moving: six swallows over the roofs and leaves turning in the light (`live(d)`).
+
+Faults found on the crops and fixed: the awning was behind the top shelf (repainted
+last); a lamp and its glow hung behind the awning as a brown arch (removed); hung goods
+were hidden by the awning (moved under the lintel); the stork was behind the crown, then
+white on a white cloud, then had a leaf on its head (tower lowered, cloud moved, leaves
+kept off it); boughs were flat planks (painted with bark); a pink slab on the white wall
+(fewer accents on the two widest brushes); the door's grain read as bars (fewer, quieter).
+
+Still open:
+
+- Her hands are 15 units long: a wedge, a thumb and three knuckle marks. They have not
+  been through the hands skill's check sheet, which wants a reference per grip.
+- She does not move yet.
+
+References asked of the user: see the message of this round.

@@ -19,7 +19,9 @@ No still stretches of 1 s or more.
 
 ## Speed
 
-Painting: 328 ms/frame cold, 351 ms warm → full render ≈ 67 s at this size.
+Painting: 439 ms/frame cold, 425 ms warm → full render ≈ 82 s at this size.
+
+> Slow: cache static elements with `Motion.sprite` and lower the texture density.
 
 ## Contact sheet
 

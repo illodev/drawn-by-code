@@ -34,11 +34,12 @@ const Oil = (() => {
         { w: 24, len: 3, gap: 0.6, tol: 24, edge: 34, jit: [0.07, 6, 0.2, 0.1], load: 1 },
     ];
     const FINE = [
-        { w: 40, len: 3, gap: 0.5, tol: 0, edge: 40, jit: [0.06, 6, 0.3, 0.2], load: 1.05 },
-        { w: 20, len: 3.2, gap: 0.55, tol: 9, edge: 26, jit: [0.06, 6, 0.3, 0.22], load: 1 },
+        { w: 40, len: 3, gap: 0.5, tol: 0, edge: 40, jit: [0.06, 6, 0.3, 0.04], load: 1.05 },
+        { w: 20, len: 3.2, gap: 0.55, tol: 9, edge: 26, jit: [0.06, 6, 0.3, 0.08], load: 1 },
         { w: 10, len: 3.4, gap: 0.6, tol: 11, edge: 20, jit: [0.05, 5, 0.26, 0.18], load: 0.95 },
-        { w: 5, len: 3.6, gap: 0.62, tol: 13, edge: 16, jit: [0.04, 4, 0.15, 0.08], load: 0.9 },
-        { w: 2.6, len: 4, gap: 0.66, tol: 17, edge: 14, jit: [0.03, 3, 0.1, 0.04], load: 0.85 },
+        { w: 5, len: 3.6, gap: 0.62, tol: 13, edge: 16, jit: [0.04, 4, 0.15, 0.08], load: 0.9, wet: 0.3 },
+        { w: 2.6, len: 4, gap: 0.66, tol: 17, edge: 14, jit: [0.03, 3, 0.1, 0.04], load: 0.85, wet: 0.2 },
+        { w: 1.5, len: 3.6, gap: 0.7, tol: 19, edge: 13, jit: [0.02, 2, 0.06, 0], load: 0.8, wet: 0.15 },
     ];
 
     // --- study: the flat picture and the brush directions -----------------------------
@@ -119,7 +120,7 @@ const Oil = (() => {
     // --- lay: decide every stroke from the study --------------------------------------
     // Returns { n, a: Float32Array, levels } with the strokes in painting order.
     function lay(st, levels, o = {}) {
-        const { col, dir } = st.data(o.blur ?? 0), { cw, ch, s, box } = st;
+        const { col, dir } = st.data(o.blur ?? 0), { cw, ch, s, box } = st, raw = st.data().col;
         const rnd = Motion.rng(o.seed ?? 'oil');
         const cur = new Float32Array(cw * ch * 3);
         const gr = hex(o.ground ?? '#b3a188');
@@ -154,7 +155,7 @@ const Oil = (() => {
             const ph = (rnd() - 0.5) * 2 * (jit[2] ?? 0.25) * k, cs = Math.cos(ph), sn = Math.sin(ph), gain = 0.8 + rnd() * 0.5;
             [cr, cb] = [(cr * cs - cb * sn) * gain, (cr * sn + cb * cs) * gain];
             if (rnd() < (jit[3] ?? 0.16) * k) {
-                const dark = Y < 105, m = (14 + rnd() * 22) * (dark ? 0.8 : 1), a = dark ? 1.2 + rnd() * 1.3 : rnd() < 0.6 ? -1.2 + rnd() * 0.9 : 0.2 + rnd() * 0.8;
+                const dark = Y < 105, m = (10 + rnd() * 16) * (dark ? 0.9 : 1), a = dark ? 1.2 + rnd() * 1.3 : rnd() < 0.6 ? -1.2 + rnd() * 0.9 : 0.2 + rnd() * 0.8;
                 cr += Math.cos(a) * m;
                 cb += Math.sin(a) * m;
             }
@@ -235,6 +236,15 @@ const Oil = (() => {
                 };
                 for (let k = 0; k < n; k++) {
                     const a = at((total * k) / n), b = at((total * (k + 1)) / n), u = (k + 0.5) / n;
+                    // a piece the study no longer shows (a later shape was painted over the
+                    // line there) is not laid: what is in front stays in front
+                    const mx = Math.round(((a[0] + b[0]) / 2 - box.x) * s), my = Math.round(((a[1] + b[1]) / 2 - box.y) * s);
+                    let seen = 1e9;
+                    for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+                        const q = (clamp(my + oy, 0, ch - 1) * cw + clamp(mx + ox, 0, cw - 1)) * 4;
+                        seen = Math.min(seen, (Math.abs(raw[q] - ln.color[0]) + Math.abs(raw[q + 1] - ln.color[1]) + Math.abs(raw[q + 2] - ln.color[2])) / 3);
+                    }
+                    if (seen > 40) continue;
                     const w = ln.width * (1 - ln.taper * u) * (0.9 + r2() * 0.2);
                     const cc = [ln.color[0] * (0.92 + r2() * 0.16), ln.color[1] * (0.92 + r2() * 0.16), ln.color[2] * (0.92 + r2() * 0.16)];
                     out.push((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, Math.atan2(b[1] - a[1], b[0] - a[0]), Math.hypot(b[0] - a[0], b[1] - a[1]) / 2 + w * 0.7, w / 2,
@@ -246,7 +256,7 @@ const Oil = (() => {
     }
 
     // --- surface: paint as colour + relief at output resolution -----------------------
-    const bh = new Float32Array(72), b0 = new Float32Array(72), b1 = new Float32Array(72), bt = new Float32Array(72), bm = new Float32Array(72), bd = new Float32Array(72);
+    const bp = new Float32Array(72), bh = new Float32Array(72), b0 = new Float32Array(72), b1 = new Float32Array(72), bt = new Float32Array(72), bm = new Float32Array(72), bd = new Float32Array(72);
     // ss: the paint is stamped at ss × the output size and scaled down when drawn, so
     // bristles and stroke edges are smooth at any size
     function surface(env, box, ss = 1.5) {
@@ -265,19 +275,20 @@ const Oil = (() => {
         };
         const bristle = Math.max(1.7, 1.9 * k); // width of one bristle track, px
 
-        // toned linen: the weave shows wherever paint is thin or missing
+        // toned linen. Its weave shows wherever paint is thin or missing, and dry paint
+        // only catches the tops of its threads (wx, wy: 1 on a thread, 0 between two)
+        const wp = Math.max(3, 3.4 * k), wx = new Float32Array(pw), wy = new Float32Array(ph);
+        {
+            const rn = Motion.rng('weave');
+            let fat = 1;
+            for (let x = 0; x < pw; x++) { if (x % Math.round(wp) === 0) fat = 0.8 + 0.2 * rn(); wx[x] = (0.5 + 0.5 * Math.cos((x / wp) * 6.2832 + Math.sin(x * 0.011) * 2)) * fat; }
+            for (let y = 0; y < ph; y++) { if (y % Math.round(wp) === 0) fat = 0.8 + 0.2 * rn(); wy[y] = (0.5 + 0.5 * Math.cos((y / wp) * 6.2832 + Math.sin(y * 0.013) * 2)) * fat; }
+        }
         function ground(color = '#b3a188') {
-            const c = hex(color), p = Math.max(3, 3.4 * k), rn = Motion.rng('weave');
-            const jx = new Float32Array(pw), jy = new Float32Array(ph);
-            for (let x = 0; x < pw; x++) jx[x] = 0.5 + 0.5 * Math.cos((x / p) * 6.2832 + Math.sin(x * 0.011) * 2);
-            for (let y = 0; y < ph; y++) jy[y] = 0.5 + 0.5 * Math.cos((y / p) * 6.2832 + Math.sin(y * 0.013) * 2);
-            const rowT = new Float32Array(ph), colT = new Float32Array(pw);
-            for (let y = 0; y < ph; y++) rowT[y] = rn();
-            for (let x = 0; x < pw; x++) colT[x] = rn();
+            const c = hex(color);
             for (let y = 0; y < ph; y++) {
                 for (let x = 0; x < pw; x++) {
-                    const i = y * pw + x;
-                    const wv = Math.max(jx[x] * (0.8 + 0.2 * rowT[Math.floor(y / p)]), jy[y] * (0.8 + 0.2 * colT[Math.floor(x / p)]));
+                    const i = y * pw + x, wv = wx[x] > wy[y] ? wx[x] : wy[y];
                     const wash = 1 + 0.05 * Math.sin(x * 0.006 / k + y * 0.004 / k) + 0.04 * Math.sin(y * 0.013 / k - x * 0.002 / k + 1.3);
                     hgt[i] = wv * 0.55 * Math.sqrt(k);
                     const m = (0.93 + 0.07 * wv) * wash;
@@ -294,7 +305,7 @@ const Oil = (() => {
                 const o = (sel ? sel.idx[q] : q) * STRIDE, uMax = sel ? sel.grow[q] : 1;
                 const cx = (A[o] - box.x) * k, cy = (A[o + 1] - box.y) * k, ang = A[o + 2];
                 const Wd = Math.max(0.8, A[o + 4] * k), L = Math.max(A[o + 3] * k, Wd);
-                const load = S.levels[A[o + 12]].load ?? 1;
+                const lev = S.levels[A[o + 12]], load = lev.load ?? 1;
                 const dx = Math.cos(ang), dy = Math.sin(ang), bend = A[o + 13] * Wd, line = A[o + 14] === 1;
                 const ex = Math.abs(dx) * L + Math.abs(dy) * (Wd + Math.abs(bend)) + 2, ey = Math.abs(dy) * L + Math.abs(dx) * (Wd + Math.abs(bend)) + 2;
                 const x0 = Math.max(0, Math.floor(cx - ex)), x1 = Math.min(pw - 1, Math.ceil(cx + ex));
@@ -319,8 +330,13 @@ const Oil = (() => {
                     bt[b] = tone;
                     mix = clamp(mix + (r() - 0.5) * 0.7, 0, 1);
                     bm[b] = mix > 0.62 ? (mix - 0.62) / 0.38 * streak : 0;
+                    bp[b] = r();
                 }
-                const T = Math.pow(Wd, 0.55) * load;
+                // fat over lean: lights go on thick, darks thin (and a thin dark lets the
+                // weave through); wet paint drags what is under it along the stroke
+                const lum = (A[o + 5] * 0.3 + A[o + 6] * 0.59 + A[o + 7] * 0.11) / 255;
+                const T = Math.pow(Wd, 0.55) * load * (0.62 + 0.66 * lum);
+                const thin = line || Wd < 4 ? 0 : (1 - lum) * 0.07, wet = line ? 0 : r() * (lev.wet ?? 0.55);
                 const rc = line ? Wd : Wd * (0.3 + r() * 0.5), body = 0.25 + r() * 0.75; // corner radius; how much the bristles show
                 const wob = nB > 2 ? (0.4 + r()) * 0.6 / nB : 0, wf = 3 + r() * 5, wp = r() * 6.28;
                 const r1 = A[o + 5], g1 = A[o + 6], bl1 = A[o + 7], r2 = A[o + 8], g2 = A[o + 9], bl2 = A[o + 10];
@@ -348,14 +364,16 @@ const Oil = (() => {
                         const ue = b1[bi] * uMax;
                         if (u > ue) continue;
                         const uu = u / ue;
-                        // dry brush: toward the end the paint only catches here and there
-                        if (uu > 0.62) {
+                        // dry brush: toward the end, and all along a thin dark stroke, the
+                        // paint only catches the tops of the canvas threads
+                        const dq = (uu > 0.62 ? (uu - 0.62) * 2.6 * bd[bi] : 0) + thin;
+                        if (dq > 0) {
                             let hh = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ sd;
                             hh = Math.imul(hh ^ (hh >>> 13), 1274126177);
-                            if (((hh >>> 8) & 0xffff) / 65536 < (uu - 0.62) * 2.6 * bd[bi]) continue;
+                            if ((wx[x] > wy[y] ? wx[x] : wy[y]) * 0.42 + (((hh >>> 8) & 0xffff) / 65536) * 0.58 < dq) continue; // threads, but not a grid of dots
                         }
                         const av = Math.abs(v);
-                        const al = Math.min(1, cap, (1 - av) * Wd + 0.35, (ue - u) * 2 * L + 0.35);
+                        const al = Math.min(1, cap, (1 - av) * Wd + 0.35, (ue - u) * 2 * L + 0.35) * (1 - bp[bi] * wet * u);
                         const ridge = bh[bi] * (0.3 + 2.8 * ff * (1 - ff));
                         const rail = av > 0.7 ? (av - 0.7) / 0.3 : 0;
                         const blob = uu > 0.84 && b1[bi] > 0.86 && !line ? (uu - 0.84) / 0.16 : 0; // only where the whole brush lifts
@@ -452,6 +470,17 @@ const Oil = (() => {
         };
     }
 
+    // --- marks: a set of strokes placed by hand (what moves: a bird, a leaf turning) ----
+    // list: [{ x, y, ang, len, w, color, color2?, kind? }], all at `level` of `levels`.
+    function marks(list, levels, level, seed = 'marks') {
+        const a = new Float32Array(list.length * STRIDE), rn = Motion.rng(seed);
+        list.forEach((m, i) => {
+            const c = typeof m.color === 'string' ? hex(m.color) : m.color, c2 = m.color2 ? (typeof m.color2 === 'string' ? hex(m.color2) : m.color2) : c;
+            a.set([m.x, m.y, m.ang ?? 0, (m.len ?? m.w * 3) / 2, m.w / 2, c[0], c[1], c[2], c2[0], c2[1], c2[2], Math.floor(rn() * 1e6), level, m.bend ?? 0, m.kind ?? 0], i * STRIDE);
+        });
+        return { n: list.length, a, levels };
+    }
+
     // --- focus: which strokes of a set exist in drawing d ------------------------------
     // gaze(d) → { x, y, r } for any drawing index. A stroke exists while its place is
     // inside its level's share of the radius (coarse levels reach further out, so the
@@ -492,5 +521,5 @@ const Oil = (() => {
         return { idx: S._idx, grow: S._grow, n };
     }
 
-    return { STRIDE, LOOSE, FINE, hex, study, lay, surface, painting, focus };
+    return { STRIDE, LOOSE, FINE, hex, study, lay, surface, painting, focus, marks };
 })();
