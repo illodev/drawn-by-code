@@ -72,5 +72,23 @@ const People = (() => {
             { x: x + 306 * s, y: y - 56 * s, ang: 1.57, len: 22 * s, w: 10 * s, color: '#a8322c' },
         ]);
     }
-    return { girl, passer, car };
+    // A council worker with a leaf blower: a dull high-visibility jacket, the tube swinging.
+    function blower(x, y, h, d) {
+        const sw = Math.sin(d * 0.9) * 0.3;
+        return [...passer(x, y, h, -1, 0, false, '#9a8f3c'), ...soft([
+            { x: x - 0.22 * h + sw * 20, y: y - 0.3 * h, ang: 0.75 + sw, len: 0.5 * h, w: 0.07 * h, color: '#2c2e33' },
+            { x: x - 0.02 * h, y: y - 0.52 * h, ang: 0.3, len: 0.2 * h, w: 0.13 * h, color: '#a8432e' },
+        ])];
+    }
+    // Somebody gliding by on an electric scooter, upright, looking at a phone.
+    function scooter(x, y, h) {
+        return [...passer(x, y - 0.07 * h, h, 1, 0, false, '#3a4a5a'), ...soft([
+            { x: x + 0.02 * h, y: y - 0.045 * h, ang: 0, len: 0.52 * h, w: 0.035 * h, color: '#232428' },
+            { x: x + 0.27 * h, y: y - 0.3 * h, ang: 1.45, len: 0.56 * h, w: 0.03 * h, color: '#232428' },
+            { x: x - 0.22 * h, y: y - 0.02 * h, ang: 0, len: 0.07 * h, w: 0.07 * h, color: '#1c1c1e' },
+            { x: x + 0.27 * h, y: y - 0.02 * h, ang: 0, len: 0.07 * h, w: 0.07 * h, color: '#1c1c1e' },
+            { x: x + 0.14 * h, y: y - 0.62 * h, ang: 0.6, len: 0.07 * h, w: 0.05 * h, color: '#cfe0ea' },
+        ])];
+    }
+    return { girl, passer, car, blower, scooter };
 })();

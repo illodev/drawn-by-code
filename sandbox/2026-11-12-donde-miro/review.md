@@ -124,3 +124,29 @@ count, and the user hears samples before a script is recorded.
 Three generated voices rejected (Luis on multilingual v2, Rafael and El Faraón on v4). No
 more are generated blind: the film either has no spoken voice (as «Paseo» already has
 none) or a person records it. Whether the film goes on at all is still the user's call.
+
+## Round 5 (user), on «Paseo»
+
+> El video está mucho mejor así
+
+The rule holds: no narrator, the picture is the past, the sound is the present, he walks
+and the past acts. The film is rebuilt on it (`scene.js`), without a spoken word.
+
+### Film v1 without a word (auto)
+
+32 s, one shot, `scene.js`. Seen on stills at 1280, the film's contact sheet (a frame
+every 2 s, `review/film.jpg`) and the render at 1920:
+
+- The worker with the leaf blower and the scooter's rider were hidden whole by the patch
+  from the first frame, so nothing but the sound said «today». → each thing of the present
+  is seen, grey, at the edge for a moment before his eye lands on it.
+- Two new acts read at 1:1: the sweeper's broom goes back and forth with its dust, the boy
+  runs behind his hoop.
+- «He looks at her and she is gone» works by the rule alone: the child is a mark of the
+  present, so the patch covers her; what he sees there is the sunlit paving of 1974.
+- The last frame holds: the child waving in the grey, his wife waving in the doorway.
+- `review.mjs`: no warnings, no still stretch of 1 s or more. 768 frames against 32 s.
+
+Not judged: the sound (eight generated effects, levelled by measurement).
+
+Open: the stoop at the end is slight; there is no music and no title.

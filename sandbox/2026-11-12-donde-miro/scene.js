@@ -1,98 +1,87 @@
 // 2026-11-12-donde-miro · «Donde miro» · style oil
-// One shot through an old man's eyes. He has lost the centre of his sight: what he looks at
-// straight on is bare canvas, and his memory paints the summer of 1974 into it. The present
-// only survives at the edges, out of focus. Every look, and when it happens, comes from
-// the voice's timeline (timeline.js, written by gen-voice.mjs).
+// One shot through an old man's eyes, without a word. He has lost the centre of his
+// sight: where he looks, his memory paints the square as it was in 1974, and it moves.
+// The sound is the present. A leaf blower is a street sweeper, a bus is a donkey with a
+// cart, a scooter is a boy with a hoop, a cash machine is the grocer waving. Then his
+// granddaughter runs up: when he looks at her she is gone, so he looks beside her.
+// (The 14 s test of this rule is paseo.js; the narrated first attempt is in git history.)
 Motion.scene({
     fps: 24,
-    duration: 103, // = Voice.duration: stated here because the scene is read before timeline.js
+    duration: 32,
     logical: [1600, 900],
-    uses: ['styles/oil/oil.js', 'sandbox/2026-11-12-donde-miro/timeline.js', 'sandbox/2026-11-12-donde-miro/plaza.js', 'sandbox/2026-11-12-donde-miro/detail.js', 'sandbox/2026-11-12-donde-miro/people.js'],
+    uses: ['styles/oil/oil.js', 'sandbox/2026-11-12-donde-miro/plaza.js', 'sandbox/2026-11-12-donde-miro/detail.js', 'sandbox/2026-11-12-donde-miro/people.js', 'sandbox/2026-11-12-donde-miro/actors.js'],
     fonts: [{ family: 'Fell', src: 'fonts/IMFellDWPicaSC-Regular.ttf' }],
     audio: { mix: 'mix.wav' },
-    // one continuous shot; these are its beats, for the contact sheet's labels only
-    shots: [[0, 5.2, 'The square, now'], [5.2, 17.5, 'The stain'], [17.5, 27.5, 'The tree'], [27.5, 36.5, 'The shop'], [36.5, 58, 'Her'], [58, 70.5, 'The edges'], [70.5, 81, 'The girl'], [81, 103, 'Sideways']],
+    // one continuous shot; these are its beats, for the contact sheet's labels
+    shots: [[0, 3.6, 'Leaf blower / sweeper'], [3.6, 7.6, 'Bus / donkey cart'], [7.6, 11, 'Scooter / hoop'], [11, 14.8, 'Cash machine / grocer'], [14.8, 19, 'The child / his wife'], [19, 24, 'He looks at her'], [24, 32, 'Beside her']],
     setup(env) {
         const box = Plaza.BOX;
         const now = Oil.study(box, { ground: '#a39a8b' }), then = Oil.study(box, { res: 1.25 });
         Plaza.paint(now, 'now');
-        Plaza.paint(then, 'then');
+        Plaza.paint(then, 'then', { her: false }); // she is laid apart: she moves
         const loose = Oil.lay(now, Plaza.NOW, { seed: 'now', ground: '#a39a8b', blur: 13, lines: false });
         const fine = Oil.lay(then, Oil.FINE, { seed: 'then' });
         const pic = Oil.painting(env, box, { ground: '#a8987f' });
         pic.base(loose);
-        if (Math.abs(Voice.duration - env.duration) > 0.01) throw new Error(`scene duration ${env.duration} ≠ voice ${Voice.duration}`);
-
-        // --- the timeline, from the voice ---------------------------------------------
-        const L = Object.fromEntries(Voice.lines.map((l) => [l.id, l]));
-        const W = (id, start) => {
-            const w = L[id].words.find((x) => x[0].toLowerCase().startsWith(start));
-            if (!w) throw new Error(`no word «${start}» in line ${id}`);
-            return w[1];
-        };
-        const T = {
-            stain: L.mancha.t0, fill: W('huecos', 'rellena'), her: L.tu.t0, look: W('borra', 'miro'), up: W('arriba', 'arriba'),
-            girlOut: L.nina.t0 + 0.4, girlCall: W('nina', 'abuelo'), near0: L.aqui.t0, near1: W('aqui', 'aquí') + 0.4, hurry: L.bordes.t0,
-        };
-        // where his eye rests
-        const eye = [
-            [0, [800, 452]],
-            [L.nada.t0, [800, 452]], [L.nada.t0 + 1.7, [470, 400]], [L.nada.t1, [470, 400]], [L.nada.t1 + 1.4, [640, 486]],
-            [L.arbol.t0 - 0.2, [640, 486]], [W('arbol', 'árbol') + 0.5, [372, 425]],
-            [L.tienda.t0 - 0.1, [372, 425]], [W('tienda', 'persiana') + 0.9, [930, 452]], [W('tienda', 'naranjas') - 0.6, [930, 452]], [W('tienda', 'naranjas') + 0.6, [880, 520]],
-            [L.portal.t0, [880, 520]], [T.her + 0.1, [1292, 478]],
-            [L.veo.t0 + 0.4, [1292, 478]], [L.veo.t0 + 2, [1350, 556]], [L.veo.t1 - 0.4, [1350, 556]], [L.bordes.t0 + 0.6, [780, 380]],
-            [T.look - 0.9, [780, 380]], [T.look + 0.3, [1296, 520]],
-            [T.up - 0.5, [1296, 520]], [T.up + 0.9, [1215, 120]],
-            [env.duration, [1215, 120]],
-        ];
-        eye.forEach((k, i) => { if (i && k[0] <= eye[i - 1][0]) throw new Error('eye keys out of order at ' + k[0]); });
-        return { pic, fine, loose, T, eye };
+        return { pic, fine };
     },
     draw(g, t, env) {
-        const { pic, fine, loose, T, eye } = env.state, E = Ease, d = Math.floor(t * 12 + 1e-6);
-        const look = (s) => Motion.keys(eye, s);
-        // the patch of memory: nothing until his head starts filling the hole; smaller at
-        // the end, when he keeps it up on the balcony and off the child
+        const { pic, fine } = env.state, E = Ease, d = Math.floor(t * 12 + 1e-6);
+        // things that cross: the bus/cart to the left, the scooter/boy to the right
+        const BUS = [3.3, 7.4], busX = (s) => 1960 - 600 * (s - BUS[0]);
+        const BOY = [7.3, 11], boyX = (s) => 60 + 430 * (s - BOY[0]);
+        const GIRL = [960, 934]; // where the child ends up, at his knees
+        // where his eye goes: [time, place, how long the move takes]. Each thing of the
+        // present is heard and seen, grey, at the edge for a moment before his eye lands on it
+        const looks = [
+            [0, () => [170, 470], 0.2], [0.9, () => [540, 500], 0.2], [3.9, (s) => [busX(s) + 170, 690], 0.2], [7.0, () => [700, 600], 0.2], [7.7, (s) => [boyX(s) + 40, 660], 0.2],
+            [10.8, () => [1040, 470], 0.2], [15.4, () => [1292, 440], 0.2],
+            [19, () => [GIRL[0], 740], 0.2], [20.4, () => [1292, 440], 0.2], [21.6, () => [GIRL[0], 740], 0.2], [23.2, () => [1292, 440], 1.3],
+        ];
+        const look = (s) => {
+            let i = 0;
+            while (i < looks.length - 1 && looks[i + 1][0] <= s) i++;
+            const p = looks[i][1](s);
+            if (!i) return p;
+            const q = looks[i - 1][1](s), u = E.out(E.seg(s, looks[i][0], looks[i][0] + looks[i][2]));
+            return [q[0] + (p[0] - q[0]) * u, q[1] + (p[1] - q[1]) * u];
+        };
         const gaze = (q) => {
             const s = q / 12, p = look(s);
-            const r = (262 - 57 * E.inOut(E.seg(s, T.up - 0.5, T.up + 1.2)) + 12 * Math.sin(s * 1.9)) * E.inOut(E.seg(s, T.fill, T.fill + 2.8));
-            return { x: p[0] + Motion.noise1('gx', q * 0.45) * 9, y: p[1] + Motion.noise1('gy', q * 0.45) * 7, r: r + 0.5, ph: s * 0.7 };
+            return { x: p[0] + Motion.noise1('gx', q * 0.45) * 7, y: p[1] + Motion.noise1('gy', q * 0.45) * 6, r: (205 + 10 * Math.sin(s * 1.9)) * E.out(E.seg(s, 0, 0.5)) + 0.5, ph: s * 0.9 };
         };
-        // the stain itself: bare canvas where he looks, until memory has covered it
-        const stain = (q) => {
-            const s = q / 12, p = look(s);
-            return { x: p[0] + Motion.noise1('gx', q * 0.45) * 9, y: p[1] + Motion.noise1('gy', q * 0.45) * 7, r: 150 * E.inOut(E.seg(s, T.stain, T.stain + 1.4)) * (s < T.fill + 3.4 ? 1 : 0), ph: s * 0.7 };
-        };
+        // he stoops to her at the end: the picture comes closer, low and to her side
+        const stoop = E.inOut(E.seg(t, 25, 29.5));
         pic.frame(d, (sf) => {
-            const h = Oil.hole(loose, d, stain);
-            if (h) {
-                sf.clear(h.rect);
-                sf.stamp(loose, h.sel, h.rect);
-            }
-            // the present's people, under whatever memory paints over them
             const s = d / 12, ppl = [];
-            const a1 = (s - (T.hurry - 0.4)) / 6.2, a2 = (s - (T.hurry + 1.3)) / 7.4;
-            if (a1 > 0 && a1 < 1) ppl.push(...People.passer(-190 + a1 * 2020, 990, 315, 1, d, false));
-            if (a2 > 0 && a2 < 1) ppl.push(...People.passer(1790 - a2 * 2000, 978, 255, -1, d, true, '#4a4640'));
-            if (s > T.girlOut) {
-                // she comes out of the house, calls, waits; at the end she walks up to him
-                const out = E.inOut(E.seg(s, T.girlOut, T.girlCall)), near = E.inOut(E.seg(s, T.near0, T.near1));
-                const x = 1300 + 14 * out - 190 * near, y = 606 + 40 * out + 206 * near, hh = 148 * (1 + (y - 604) / 330);
-                const wave = E.seg(s, T.girlCall - 0.3, T.girlCall + 0.4) * (1 - 0.75 * E.seg(s, T.near1, T.near1 + 1.5));
-                ppl.push(...People.girl(x, y, hh, wave, d, E.seg(s, T.girlOut, T.girlOut + 0.45), (out > 0 && out < 1) || (near > 0 && near < 1)));
+            // the present, out of focus, under whatever memory paints over it
+            if (s < 4.4) ppl.push(...People.blower(560, 664, 218, d));
+            if (s > BUS[0] && s < BUS[1]) ppl.push(...People.car(busX(s) - 200, 806, 2.1));
+            if (s > BOY[0] && s < BOY[1]) ppl.push(...People.scooter(boyX(s) + 30, 742, 262));
+            if (s > 14.8) {
+                const run = E.inOut(E.seg(s, 14.8, 16.6)), y = 606 + (GIRL[1] - 606) * run, hop = run >= 1 ? Math.abs(Math.sin(d * 1.15)) * 16 * (1 - 0.7 * E.seg(s, 25, 27)) : 0;
+                ppl.push(...People.girl(1300 + (GIRL[0] - 1300) * run, y - hop, 148 * (1 + (y - 604) / 330), E.seg(s, 16.2, 16.7), d, 1, run < 1));
             }
             if (ppl.length) sf.stamp(Oil.marks(ppl, Plaza.NOW, 2, 'people'), null);
-            sf.stamp(fine, Oil.focus(fine, d, gaze, { wide: 1.2 }));
-            const live = Oil.marks(PlazaDetail.live(d), Oil.FINE, 4, 'live');
-            sf.stamp(live, Oil.focus(live, d, gaze, { wide: 1.2 }));
+            // the past where he looks, and its people, painted again for every drawing
+            const F = { wide: 1.2 }, on = (S) => sf.stamp(S, Oil.focus(S, d, gaze, F));
+            on(fine);
+            if (s < 5.2) on(Oil.sprite({ x: 440, y: 420, w: 230, h: 262 }, (st) => Actors.sweeper(st, 580, 656, d), { seed: 'sweeper' }));
+            const a = E.seg(s, 11.1, 11.5) * (1 - E.seg(s, 14.6, 15.2));
+            if (s > 9.5) on(Oil.sprite({ x: 990, y: 360, w: 160, h: 262 }, (st) => Actors.anselmo(st, 1066, 600, a, a > 0 ? d : 0), { seed: 'anselmo' }));
+            const wv = E.inOut(E.seg(s, 15.9, 16.5));
+            if (s > 12) on(Oil.sprite({ x: 1222, y: 372, w: 170, h: 250 }, (st) => PlazaDetail.woman(st, 1292, 602, { wave: wv, sw: wv > 0 ? Math.sin(d * 1.4) : 0 }), { seed: 'her' }));
+            if (s > BUS[0] && s < BUS[1]) on(Oil.sprite({ x: busX(s) - 110, y: 540, w: 560, h: 280 }, (st) => Actors.cart(st, busX(s) + 20, 792, 1.25, d), { seed: 'cart' }));
+            if (s > BOY[0] && s < BOY[1]) on(Oil.sprite({ x: boyX(s) - 80, y: 500, w: 330, h: 260 }, (st) => Actors.boy(st, boyX(s), 742, 1.45, d), { seed: 'boy' }));
+            on(Oil.marks(PlazaDetail.live(d), Oil.FINE, 4, 'live'));
         });
-        // the head follows the eyes, late and not all the way; he leans in when it is her
-        const hd = look(t - 0.3), z = 1 + 0.1 * E.inOut(E.seg(t, T.her + 1, T.her + 8)) * (1 - E.inOut(E.seg(t, T.hurry - 2.4, T.hurry + 0.4)));
+        // he walks: the street slides by and his step bobs; he stops when the child arrives
+        const hd = look(t - 0.12), going = 1 - E.seg(t, 16, 17), walk = -170 + 330 * E.inOut(E.seg(t, 0, 17)), bob = Math.abs(Math.sin(Math.PI * 1.75 * t)) * 5 * going;
+        const z = 1 + 0.22 * stoop;
         g.save();
-        g.translate(800, 450);
+        g.translate(800 - 150 * stoop, 450 + 150 * stoop);
         g.scale(z, z);
-        g.translate(-800 - (hd[0] - 800) * 0.3 + Math.sin(t * 0.9) * 3, -450 - (hd[1] - 450) * 0.08 + Math.sin(t * 1.3 + 1) * 2);
+        g.translate(-800 + 150 * stoop - walk - (hd[0] - 800) * 0.1, -450 - 150 * stoop + bob - (hd[1] - 450) * 0.06);
         pic.draw(g);
         g.restore();
     },

@@ -1,6 +1,6 @@
-# Automatic review · sandbox/2026-11-12-donde-miro/paseo.js
+# Automatic review · sandbox/2026-11-12-donde-miro/scene.js
 
-960×540 px · 24 fps · 14.00 s · 336 frames
+960×540 px · 24 fps · 32.00 s · 768 frames
 
 ## Warnings
 
@@ -11,15 +11,15 @@
 Energy per second (how much the image changes):
 
 ```
-▅█▇██▇▆▅▆▃▂▅▂▂
-0    5    10   
+▅▆▅▆█▇▇█▇▇█▇▅▅▅▆▄▂▂▅▅▅▃▆▄▃▆▇▅▃▃▃
+0    5    10   15   20   25   30   
 ```
 
 No still stretches of 1 s or more.
 
 ## Speed
 
-Painting: 279 ms/frame cold, 219 ms warm → full render ≈ 74 s at this size.
+Painting: 328 ms/frame cold, 297 ms warm → full render ≈ 228 s at this size.
 
 ## Contact sheet
 

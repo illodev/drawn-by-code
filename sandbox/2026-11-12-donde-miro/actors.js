@@ -166,5 +166,90 @@ const Actors = (() => {
         [-0.5, -0.17, 0.17, 0.5].forEach((f, i) => st.line([[hx + Math.cos(a + f) * 6, hy + Math.sin(a + f) * 6], [hx + Math.cos(a + f) * (13.4 - Math.abs(f) * 4), hy + Math.sin(a + f) * (13.4 - Math.abs(f) * 4)]], i % 2 ? '#e0ac8c' : '#f4c8a8', 2.4, { level: 3, seed: 'f' + i }));
     }
 
-    return { cart, anselmo };
+    // The street sweeper under the plane tree: cap, blue overall, a broom of twigs that
+    // goes back and forth, a little dust at its end.
+    function sweeper(st, x, y, d) {
+        const sw = Math.sin(d * 0.9), lean = 0.1 + sw * 0.04;
+        st.paint({ dir: 0.4 }, (g) => { g.fillStyle = '#8d82a8'; poly(g, [[x - 12, y - 2], [x + 16, y - 2], [x + 70, y + 10], [x + 40, y + 13]]); });
+        st.paint({ dir: 1.5 }, (g) => {
+            g.fillStyle = '#46597a'; // overall: legs apart, the body leaning into the broom
+            poly(g, [[x - 16, y - 92], [x + 12, y - 92], [x + 16, y - 6], [x + 4, y - 6], [x - 1, y - 62], [x - 8, y - 6], [x - 20, y - 6]]);
+            g.fillStyle = '#231f1e';
+            ell(g, x - 15, y - 3, 9, 4);
+            ell(g, x + 11, y - 3, 9, 4);
+            g.fillStyle = '#5a7096';
+            poly(g, [[x - 20 - lean * 60, y - 172], [x + 14 - lean * 60, y - 172], [x + 14, y - 90], [x - 18, y - 90]]);
+            g.fillStyle = '#46597a';
+            poly(g, [[x + 2 - lean * 60, y - 172], [x + 14 - lean * 60, y - 172], [x + 14, y - 90], [x + 4, y - 90]]);
+            const hx = x - 6 - lean * 80, hy = y - 190;
+            g.fillStyle = '#c99278';
+            g.fillRect(hx - 5, hy + 10, 11, 10);
+            g.fillStyle = '#dba888';
+            ell(g, hx, hy, 12, 14);
+            g.fillStyle = '#b98468';
+            g.beginPath(); g.ellipse(hx, hy, 12, 14, 0, -1.2, 1.5); g.fill();
+            g.fillStyle = '#3d4a66'; // a peaked cap pulled down
+            ell(g, hx, hy - 9, 13.4, 6.4);
+            poly(g, [[hx - 22, hy - 5], [hx - 4, hy - 8], [hx - 4, hy - 4]]);
+            g.fillStyle = '#2f2622';
+            ell(g, hx - 5, hy + 1, 1.7, 1.5);
+            g.fillStyle = '#6a625c';
+            ell(g, hx - 3, hy + 8, 6, 2);
+        });
+        // the broom: a long stick held in both hands, a head of twigs sweeping left and back
+        const top = [x - 4 - lean * 60, y - 150], tip = [x - 86 + sw * 34, y - 14];
+        st.line([top, tip], '#8a6a3a', 4, { level: 2, seed: 'stick' });
+        for (let i = 0; i < 7; i++) st.line([tip, [tip[0] - 20 + i * 4 + sw * 6, tip[1] + 14 - Math.abs(i - 3) * 1.5]], i % 2 ? '#b08a3a' : '#8a6a2a', 2.4, { level: 3, seed: 'twig' + i });
+        const h1 = [top[0] + (tip[0] - top[0]) * 0.18, top[1] + (tip[1] - top[1]) * 0.18], h2 = [top[0] + (tip[0] - top[0]) * 0.46, top[1] + (tip[1] - top[1]) * 0.46];
+        st.line([[x - 18 - lean * 60, y - 160], [h1[0] - 6, h1[1] - 14], h1], '#5a7096', 8.4, { level: 1, seed: 'a1' });
+        st.line([[x + 10 - lean * 60, y - 160], [h2[0] + 16, h2[1] - 22], h2], '#46597a', 8.4, { level: 1, seed: 'a2' });
+        st.paint({ dir: 0 }, (g) => {
+            g.fillStyle = '#dba888';
+            ell(g, h1[0], h1[1], 5, 4.4);
+            ell(g, h2[0], h2[1], 5, 4.4);
+            g.fillStyle = '#e9dcc0'; // dust lifting where the twigs pass
+            for (let i = 0; i < 5; i++) ell(g, tip[0] - 24 - i * 9 + sw * 10, tip[1] + 8 - i * 3 - Math.abs(sw) * 6, 5 - i * 0.6, 3.4 - i * 0.4);
+        });
+    }
+
+    // A boy running to the right behind his hoop, driving it with a stick. s: size.
+    function boy(st, x, y, s, d) {
+        const P = (px, py) => [x + px * s, y + py * s], ph = d * 1.55, up = Math.abs(Math.sin(ph)) * 7;
+        st.paint({ dir: 0.2 }, (g) => { g.fillStyle = '#8d82a8'; ell(g, ...P(22, 2), 62 * s, 6 * s); });
+        const leg = (phase, col, shoe) => {
+            const a = Math.sin(ph + phase) * 0.95, k = Math.max(0, -Math.sin(ph + phase - 0.6)) * 1.3;
+            const knee = [Math.sin(a) * 30, -62 - up + Math.cos(a) * 30], foot = [knee[0] + Math.sin(a - k) * 32, knee[1] + Math.cos(a - k) * 32];
+            st.line([P(0, -62 - up), P(...knee), P(...foot)], col, 8.4 * s, { level: 1, seed: 'bl' + phase });
+            st.line([P(foot[0] - 2, foot[1]), P(foot[0] + 8, foot[1] + 1)], shoe, 5.4 * s, { level: 2, seed: 'bs' + phase });
+        };
+        leg(Math.PI, '#c9957a', '#5a4032');
+        st.paint({ dir: 1.4 }, (g) => {
+            g.fillStyle = '#5a6a8a'; // short trousers, a white shirt flying, braces
+            poly(g, [P(-12, -84 - up), P(13, -84 - up), P(15, -56 - up), P(-13, -56 - up)]);
+            g.fillStyle = '#f6f1e2';
+            poly(g, [P(-12, -132 - up), P(16, -128 - up), P(14, -82 - up), P(-18, -82 - up)]);
+            g.fillStyle = '#cfc9d8';
+            poly(g, [P(-18, -100 - up), P(-12, -132 - up), P(-4, -130 - up), P(-8, -82 - up), P(-18, -82 - up)]);
+            g.fillStyle = '#8a3a2a';
+            poly(g, [P(2, -130 - up), P(6, -130 - up), P(8, -84 - up), P(4, -84 - up)]);
+            g.fillStyle = '#e6b494'; // head forward, mouth open, hair blown back
+            ell(g, ...P(10, -148 - up), 12.4 * s, 13.4 * s);
+            g.fillStyle = '#3a2a20';
+            g.beginPath(); g.ellipse(...P(7, -152 - up), 13 * s, 12 * s, -0.3, Math.PI * 0.75, Math.PI * 1.9); g.fill();
+            poly(g, [P(-4, -160 - up), P(-20, -156 - up), P(-4, -150 - up)]);
+            ell(g, ...P(16, -150 - up), 1.7 * s, 1.6 * s);
+            g.fillStyle = '#8a3a34';
+            ell(g, ...P(18, -141 - up), 2.6 * s, 2 * s);
+        });
+        leg(0, '#e6b494', '#3a2a22');
+        // the arm with the stick, and the hoop bowling along ahead of him
+        st.line([P(4, -124 - up), P(26, -108 - up), P(44, -100 - up)], '#f6f1e2', 7 * s, { level: 1, seed: 'barm' });
+        st.paint({ dir: 0 }, (g) => { g.fillStyle = '#e6b494'; ell(g, ...P(46, -99 - up), 4.4 * s, 4 * s); });
+        st.line([P(46, -99 - up), P(86, -52)], '#7a5a34', 2.4 * s, { level: 3, seed: 'bstick' });
+        const hc = P(104, -38 - Math.abs(Math.sin(ph * 0.7)) * 3), R = 38 * s;
+        st.line(Array.from({ length: 27 }, (_, i) => [hc[0] + Math.cos((i / 26) * 6.2832) * R, hc[1] + Math.sin((i / 26) * 6.2832) * R]), '#3a3238', 3.6 * s, { level: 2, seed: 'hoop' });
+        st.line(Array.from({ length: 8 }, (_, i) => [hc[0] + Math.cos(-2.4 + (i / 7) * 1.1) * (R - 1.6 * s), hc[1] + Math.sin(-2.4 + (i / 7) * 1.1) * (R - 1.6 * s)]), '#b9b4c0', 1.5 * s, { level: 3, seed: 'hoopl' });
+    }
+
+    return { cart, anselmo, sweeper, boy };
 })();

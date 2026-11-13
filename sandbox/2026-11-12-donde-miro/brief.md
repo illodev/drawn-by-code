@@ -1,62 +1,37 @@
 # donde-miro · «Donde miro»
 
-- **Style:** oil (in testing; look approved by the user on `2026-11-12-oil-test`: «no está
-  mal, podemos avanzar e ir retocando»)
-- **Format:** 16:9 · 103 s · 24 fps, painted on twos · one continuous shot
-- **Purpose / audience:** an original short. A man in the first person tells his peculiar
-  way of seeing life; what we see is reality mixed with what is in his head.
-- **One-line idea:** an old man has lost the centre of his sight, so wherever he looks his
-  memory paints 1974 over the present; to see his granddaughter he has to look beside her.
-- **The rule:** the present is painted out of focus and survives only at the edges. What he
-  looks at straight on is first bare canvas (the stain), then the same place in the summer
-  of 1974, painted fine. People of the present are soft marks; they vanish under the patch.
-- **References:** the ten Monets of the oil test (`../2026-11-12-oil-test/private/ref/`).
-- **Voice:** his, in Spanish, generated with ElevenLabs («Luis, Pleasant, Mature,
-  Engaging», `eleven_multilingual_v2`, speed 0.9). Text in `voice.json`; `gen-voice.mjs`
-  writes `timeline.js` and the scene takes every look from it.
-- **On-screen text (literal):** none yet (title and credits to decide).
-- **Music / rhythm:** none yet. The voice leads; music and the square's sounds come after
-  the animatic is approved.
-- **Must NOT happen:** anything sharp in the present; black in the shadows; a blur filter;
-  the child shown sharp (she is only ever seen sideways); explaining the ending.
+- **Style:** oil (in testing)
+- **Format:** 16:9 · 32 s · 24 fps, painted on twos · one continuous shot, no spoken word
+- **Purpose / audience:** an original short: a man in the first person and his peculiar way
+  of seeing; what we see is reality mixed with what is in his head.
+- **One-line idea:** an old man who has lost the centre of his sight walks across a
+  square: wherever he looks it is 1974, and alive; what we hear is today.
+- **The rule (approved on the 14 s test `paseo.js`: «el vídeo está mucho mejor así»):**
+  nobody explains. The picture is the past where he looks; the sound is the present. The
+  present is painted out of focus and lives at the edges; each thing of today is heard,
+  and glimpsed grey at the edge, a moment before his eye lands on it and it becomes its
+  1974 self. The past acts (its people are painted again for every drawing). He walks.
+- **Rejected on the way** (kept in git history and `review.md`): a narrator who states the
+  device (103 s animatic), three generated voices, a slow tour of still pictures.
+- **Sound:** the present only, generated effects (`gen-sfx.mjs`): the square, his steps and
+  stick, a leaf blower, a bus and its horn, an electric scooter and its bell, a cash
+  machine, a child running and giggling. No music yet, no voice.
+- **On-screen text (literal):** none (ULTRAMARINOS is on the shop's board).
+- **Must NOT happen:** an explanation, in words or titles; anything sharp in the present;
+  a still stretch; the child seen sharp.
 
-## Voice (literal)
+## Shot list (one shot)
 
-1. El médico lo llama degeneración macular.
-2. Yo lo llamo la mancha.
-3. Está justo en el centro. Allí donde miro, no hay nada.
-4. Bueno… nada, no. A la cabeza no le gustan los huecos, y los rellena con lo que tiene.
-5. Miro el árbol de la plaza y me lo encuentro con hojas. En enero.
-6. Miro la persiana del ultramarinos y está levantada. Lleva cuarenta años cerrado, y ahí siguen las naranjas.
-7. Y miro nuestro portal…
-8. …y sales tú. Con el vestido de los ramitos. Haciéndote sombra con la mano, como si la que no viera bien fueras tú.
-9. Veo estupendamente. Lo que pasa es que veo mil novecientos setenta y cuatro.
-10. Lo de ahora se me queda en los bordes. Gris. Borroso. Con prisa.
-11. Y entonces sale la niña. «Abuelo, mírame».
-12. Es lo único que no puedo hacer. Si la miro, se me borra. Y me sale su abuela.
-13. Así que he aprendido un truco.
-14. Miro un poco más arriba. Al balcón. A los geranios.
-15. Y entonces la tengo. De refilón, borrosa… pero aquí.
-16. A los vivos hay que mirarlos de lado.
-17. De frente solo se ve lo que ya no está.
-
-## Shot list (one shot; times from `timeline.js`)
-
-| Time | Beat | What happens |
+| Time | Heard (today) | Seen where he looks (1974) |
 |---|---|---|
-| 0–5.2 | The square, now | The grey square out of focus: a bare tree, a shut shop, a car, a door. |
-| 5.2–17.9 | The stain | On «la mancha» a hole opens where he looks: bare canvas. It follows his eye to the tree and back («allí donde miro, no hay nada»). |
-| 17.9–21.6 | Filling it | On «los rellena» paint comes into the hole: a sunlit corner, a bougainvillea. |
-| 21.6–27.8 | The tree | He looks at the tree and it is in leaf, the village behind it, a bicycle against it. |
-| 27.8–36.6 | The shop | The shutter is up: ULTRAMARINOS, the awning, the tins; on «naranjas» his eye drops to the crates. |
-| 36.6–51 | Her | On «…y sales tú» she is in the doorway, a hand shading her eyes. He leans in (a slow push). |
-| 51–58.4 | 1974 | His eye wanders to the cat on the step. |
-| 58.4–65 | The edges | He looks at nothing in particular; two people in a hurry cross the foreground, out of focus, and vanish where they meet the patch. |
-| 65–70.9 | The girl | A child in a red coat comes out of the same door, in the grey, and waves. |
-| 70.9–81 | He looks at her | On «si la miro» his eye goes to her: the patch covers her and the grandmother is there instead. |
-| 81–87 | The trick | On «más arriba» he lifts his eye to the balcony: geraniums and a canary up there, and below, in the grey, the child again, waving. |
-| 87–103 | Here | She walks up to him; he keeps his eye on the balcony. |
+| 0–3.6 | A leaf blower; a worker, grey, under the bare tree | The tree in leaf and a street sweeper with a broom of twigs, a bicycle against the trunk |
+| 3.6–7.6 | A bus goes by and honks; its nose and tail stick out of the patch | A donkey trots through with a cart of oranges and its driver |
+| 7.6–11 | An electric scooter whirrs past with a bell | A boy runs after his hoop, driving it with a stick |
+| 11–14.8 | A cash machine beeps | Anselmo waves from the door of his shop |
+| 14.8–19 | A child runs up giggling: a red coat, out of focus, at his knees | In the doorway of the house his wife lowers her hand from her brow and waves |
+| 19–24 | She giggles on, close | He looks at the child and she is gone: only the sunlit paving of 1974. He looks away and she is back. He tries again; gone again |
+| 24–32 | The square; her, close | He keeps his eyes on the doorway and stoops: the child, grey and red, waves at the edge of what he sees while his wife waves in the middle of it |
 
-Depth order, back to front, at every time: the present (base) · the stain's bare canvas ·
-the present's people (girl, passers-by) · the memory's strokes · what moves in the memory.
-The memory's own order is the oil test's (`plaza.js`, `detail.js`).
+Depth order at every time: the present (base) · the present's people (marks) · the
+memory's strokes · the memory's people (sprites: sweeper, grocer, wife, cart, boy) · what
+moves in the memory (swallows, leaves, the curtain).
