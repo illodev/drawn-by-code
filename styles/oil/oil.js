@@ -112,8 +112,9 @@ const Oil = (() => {
                 return { col: g.getImageData(0, 0, cw, ch).data, dir: api._d.dir };
             },
         };
-        // a neutral start: horizontal strokes everywhere
-        api.paint({ dir: 0 }, (g) => { g.fillStyle = o.ground ?? '#b3a188'; g.fillRect(box.x, box.y, box.w, box.h); });
+        // a neutral start: horizontal strokes everywhere (o.clear: the colour canvas stays
+        // transparent, for a figure that is laid on its own: see `sprite`)
+        if (o.clear) { dg.fillStyle = 'rgb(255,128,0)'; dg.fillRect(box.x, box.y, box.w, box.h); } else api.paint({ dir: 0 }, (g) => { g.fillStyle = o.ground ?? '#b3a188'; g.fillRect(box.x, box.y, box.w, box.h); });
         return api;
     }
 
@@ -124,7 +125,8 @@ const Oil = (() => {
         const rnd = Motion.rng(o.seed ?? 'oil');
         const cur = new Float32Array(cw * ch * 3);
         const gr = hex(o.ground ?? '#b3a188');
-        for (let i = 0; i < cw * ch; i++) { cur[i * 3] = gr[0]; cur[i * 3 + 1] = gr[1]; cur[i * 3 + 2] = gr[2]; }
+        const masked = !!o.masked; // only where the study is opaque; everything there is still to paint
+        for (let i = 0; i < cw * ch; i++) { cur[i * 3] = masked ? -1000 : gr[0]; cur[i * 3 + 1] = masked ? -1000 : gr[1]; cur[i * 3 + 2] = masked ? -1000 : gr[2]; }
         const out = [];
         const keep = o.keep;
         const flat = (cx, cy, ang, hl, hw, r, g, b) => {
@@ -174,10 +176,12 @@ const Oil = (() => {
                         const lx = (i + rnd()) * step, ly = (j + rnd()) * step;
                         const px = clamp(Math.floor(lx * s), 0, cw - 1), py = clamp(Math.floor(ly * s), 0, ch - 1);
                         const q = py * cw + px;
+                        if (masked && col[q * 4 + 3] < 128) continue;
                         const e = (Math.abs(col[q * 4] - cur[q * 3]) + Math.abs(col[q * 4 + 1] - cur[q * 3 + 1]) + Math.abs(col[q * 4 + 2] - cur[q * 3 + 2])) / 3;
                         if (e > best) { best = e; bx = lx; by = ly; }
                     }
                     // `any`: a share of strokes laid whatever the error, to drag paint across edges
+                    if (best < 0) continue;
                     if (L.tol > 0 && best < L.tol && !(L.any && rnd() < L.any)) continue;
                     if (keep && rnd() > keep(box.x + bx, box.y + by, li)) continue;
                     const px = clamp(Math.floor(bx * s), 0, cw - 1), py = clamp(Math.floor(by * s), 0, ch - 1), q = py * cw + px;
@@ -193,6 +197,7 @@ const Oil = (() => {
                             const x = Math.round(px + dx * sg * (d + 1)), y = Math.round(py + dy * sg * (d + 1));
                             if (x < 0 || y < 0 || x >= cw || y >= ch) break;
                             const k = (y * cw + x) * 4;
+                            if (masked && col[k + 3] < 128) break;
                             if ((Math.abs(col[k] - c0[0]) + Math.abs(col[k + 1] - c0[1]) + Math.abs(col[k + 2] - c0[2])) / 3 > L.edge) break;
                             d++;
                         }
@@ -205,7 +210,7 @@ const Oil = (() => {
                     const side = rnd() < 0.5 ? 1 : -1;
                     const sx = clamp(Math.round(px - dy * side * hwA * 1.6), 0, cw - 1), sy = clamp(Math.round(py + dx * side * hwA * 1.6), 0, ch - 1), k2 = (sy * cw + sx) * 4;
                     const c1 = broken(c0, L.jit);
-                    const nb = [col[k2], col[k2 + 1], col[k2 + 2]];
+                    const nb = masked && col[k2 + 3] < 128 ? c0 : [col[k2], col[k2 + 1], col[k2 + 2]];
                     const far = (Math.abs(nb[0] - c0[0]) + Math.abs(nb[1] - c0[1]) + Math.abs(nb[2] - c0[2])) / 3;
                     const mixN = far < 60 ? 0.5 : 0.12;
                     const c2 = broken([c0[0] + (nb[0] - c0[0]) * mixN, c0[1] + (nb[1] - c0[1]) * mixN, c0[2] + (nb[2] - c0[2]) * mixN], L.jit, 1.8);
@@ -484,6 +489,21 @@ const Oil = (() => {
         };
     }
 
+    // --- sprite: a figure laid on its own, to stamp over a picture -------------------
+    // paint(st) draws it into a transparent study; only what it draws becomes strokes.
+    // For what moves: lay it again for every drawing (same seed: a held pose does not boil).
+    const FIGURE = [
+        { w: 14, len: 3, gap: 0.55, tol: 8, edge: 24, jit: [0.05, 5, 0.22, 0.1], load: 1 },
+        { w: 7, len: 3.2, gap: 0.6, tol: 10, edge: 20, jit: [0.05, 5, 0.2, 0.1], load: 0.95 },
+        { w: 3.6, len: 3.4, gap: 0.62, tol: 12, edge: 16, jit: [0.04, 4, 0.14, 0.06], load: 0.9, wet: 0.3 },
+        { w: 1.8, len: 3.6, gap: 0.7, tol: 16, edge: 13, jit: [0.02, 2, 0.06, 0], load: 0.8, wet: 0.15 },
+    ];
+    function sprite(box, paint, o = {}) {
+        const st = study(box, { res: o.res ?? 1.25, clear: true });
+        paint(st);
+        return lay(st, o.levels ?? FIGURE, { seed: o.seed ?? 'sprite', masked: true });
+    }
+
     // --- hole: a patch of the picture left unpainted -----------------------------------
     // gaze(d) → { x, y, r, ph }. Returns { rect, sel }: clear the rect and stamp `sel`
     // clipped to it (every stroke of S that touches the rect except those the patch
@@ -559,5 +579,5 @@ const Oil = (() => {
         return { idx: S._idx, grow: S._grow, n };
     }
 
-    return { STRIDE, LOOSE, FINE, hex, study, lay, surface, painting, focus, hole, marks };
+    return { STRIDE, LOOSE, FINE, FIGURE, hex, study, lay, sprite, surface, painting, focus, hole, marks };
 })();

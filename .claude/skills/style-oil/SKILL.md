@@ -29,6 +29,9 @@ shot: the present painted out of focus, a memory painted fine where the eye rest
    picture every drawing starts from; `pic.frame(d, (sf) => sf.stamp(set, sel))` repaints
    on top for drawing `d` (only what changed is stamped and lit); `pic.draw(g)`.
    `Oil.marks(list, levels, level)` makes a set from strokes placed by hand (what moves).
+   `Oil.sprite(box, (st) => …, { seed })` lays a figure on its own (a transparent study:
+   only what it draws becomes strokes). Call it again for every drawing of something that
+   moves; with the same seed a held pose gives the same strokes, so it does not boil.
    `Oil.hole(set, d, gaze)` unpaints a patch back to bare canvas: `sf.clear(h.rect)` then
    `sf.stamp(set, h.sel, h.rect)` (every stroke that touches the rect but the removed ones,
    clipped to it).
@@ -95,3 +98,4 @@ left to the grid; nothing reads as a row of beads or a comb.
 - 2026-11-12 · oil-test round 2 · What moves inside a painted picture is placed by hand per drawing (`Oil.marks`: birds, leaves turning) and goes through the same `focus` as the rest, so it only exists where the picture is finished.
 - 2026-11-12 · donde-miro · Figures placed by hand in an out-of-focus picture come out sharper than the picture: lay each stroke twice, first wider, longer and half-way to the surrounding grey, then itself, and leave out anything thin.
 - 2026-11-12 · donde-miro · «Nothing» in a painting is the canvas: a patch left unpainted (`Oil.hole`) reads as absence at once, where a grey or black shape reads as an object.
+- 2026-11-13 · donde-miro round 2 · A painted picture with nothing acting in it is a still: characters that move are sprites laid again per drawing from a small posed study (a rig drawn with canvas calls: legs from a joint, a wheel's spokes by an angle, an arm by its elbow and wrist), about 30 ms each.

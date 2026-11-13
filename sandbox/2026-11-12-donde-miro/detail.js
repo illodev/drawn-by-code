@@ -893,7 +893,9 @@ const PlazaDetail = (() => {
     // --- her --------------------------------------------------------------------------------
     // In the doorway, a basket on her left arm, her right hand flat over her eyes against
     // the sun: looking this way. Lit from the upper left.
-    function woman(st, x, y) {
+    // pose.wave: 0 = her hand shading her eyes … 1 = the arm up, waving (pose.sw swings it)
+    function woman(st, x, y, pose = {}) {
+        const wv = pose.wave ?? 0, sw = pose.sw ?? 0;
         const skin = '#f2caa4', skinS = '#c9957a', skinD = '#a8745e', dress = '#f3e6ac', dressS = '#d8b96c', dressV = '#b9a2b4', dressL = '#fbf3d2';
         const rn = Motion.rng('her-dress');
         st.paint({ dir: 0.5 }, (g) => {
@@ -991,8 +993,8 @@ const PlazaDetail = (() => {
             g.fill();
             g.fillStyle = '#f3b79a';
             ell(g, x - 5, y - 180.6, 3.2, 2.2);
-            // her hand's shade lies across brow and eyes
-            g.fillStyle = '#b98674';
+            // her hand's shade lies across brow and eyes (while the hand is there)
+            g.fillStyle = wv < 0.35 ? '#b98674' : skin;
             poly(g, [[x - 10.4, y - 192], [x + 10, y - 193], [x + 10.6, y - 185.4], [x - 10.8, y - 184.6]]);
             g.fillStyle = '#34221f'; // eyes, in that shade
             ell(g, x - 4.6, y - 187.2, 2, 1.2);
@@ -1070,21 +1072,37 @@ const PlazaDetail = (() => {
             g.fillStyle = '#fffbe6';
             poly(g, [[x - 30.6, y - 158.6], [x - 20, y - 150], [x - 21.6, y - 148.4], [x - 32, y - 157]]);
         });
-        st.line([[x - 25, y - 154], [x - 33, y - 168], [x - 22, y - 190]], skin, 6.6, { level: SMALL });
-        st.line([[x - 23, y - 155], [x - 29.6, y - 167], [x - 19.6, y - 187]], skinS, 2, { level: FINE });
-        st.paint({ dir: 0.1 }, (g) => {
-            // the hand, palm down, fingers together pointing across the brow; thumb under
-            g.fillStyle = skinS;
-            poly(g, [[x - 21, y - 190], [x - 6, y - 191.4], [x - 5, y - 189.4], [x - 20, y - 187.4]]);
-            g.fillStyle = skin;
-            g.beginPath();
-            g.moveTo(x - 24, y - 192.6); g.quadraticCurveTo(x - 20, y - 198, x - 8, y - 197.4); g.quadraticCurveTo(x - 2.4, y - 197, x - 2, y - 194.6); g.quadraticCurveTo(x - 3, y - 192.6, x - 9, y - 192.6); g.lineTo(x - 21, y - 190.4);
-            g.fill();
-            g.fillStyle = '#fbdcbc';
-            poly(g, [[x - 20, y - 196.4], [x - 8, y - 197], [x - 8.4, y - 195.6], [x - 19.6, y - 195]]);
-        });
-        st.line([[x - 9, y - 195], [x - 2.6, y - 194.8]], skinS, 1.5, { level: FINE });
-        st.line([[x - 15, y - 190.6], [x - 9.4, y - 189.6]], skinD, 1.5, { level: FINE });
+        // elbow and wrist move from «hand at the brow» to «arm up, waving»
+        const L2 = (p, q, u) => [p[0] + (q[0] - p[0]) * u, p[1] + (q[1] - p[1]) * u];
+        const el = L2([x - 33, y - 168], [x - 37, y - 172], wv), wr = L2([x - 22, y - 190], [x - 44 + sw * 9, y - 206], wv);
+        st.line([[x - 25, y - 154], el, wr], skin, 6.6, { level: SMALL });
+        st.line([[x - 23, y - 155], [el[0] + 3.4, el[1] + 1], [wr[0] + 2.4, wr[1] + 3]], skinS, 2, { level: FINE });
+        if (wv < 0.35) {
+            st.paint({ dir: 0.1 }, (g) => {
+                // the hand, palm down, fingers together pointing across the brow; thumb under
+                g.fillStyle = skinS;
+                poly(g, [[x - 21, y - 190], [x - 6, y - 191.4], [x - 5, y - 189.4], [x - 20, y - 187.4]]);
+                g.fillStyle = skin;
+                g.beginPath();
+                g.moveTo(x - 24, y - 192.6); g.quadraticCurveTo(x - 20, y - 198, x - 8, y - 197.4); g.quadraticCurveTo(x - 2.4, y - 197, x - 2, y - 194.6); g.quadraticCurveTo(x - 3, y - 192.6, x - 9, y - 192.6); g.lineTo(x - 21, y - 190.4);
+                g.fill();
+                g.fillStyle = '#fbdcbc';
+                poly(g, [[x - 20, y - 196.4], [x - 8, y - 197], [x - 8.4, y - 195.6], [x - 19.6, y - 195]]);
+            });
+            st.line([[x - 9, y - 195], [x - 2.6, y - 194.8]], skinS, 1.5, { level: FINE });
+            st.line([[x - 15, y - 190.6], [x - 9.4, y - 189.6]], skinD, 1.5, { level: FINE });
+        } else {
+            // the open hand, fingers spread a little, seen from its palm
+            const a = -1.45 + sw * 0.5, hx = wr[0] + Math.cos(a) * 7, hy = wr[1] + Math.sin(a) * 7;
+            st.paint({ dir: 1.5 }, (g) => {
+                g.fillStyle = skin;
+                g.beginPath();
+                g.ellipse(hx, hy, 5.6, 6.6, a + 1.57, 0, 7);
+                g.fill();
+            });
+            [-0.5, -0.17, 0.17, 0.5].forEach((f, i) => st.line([[hx + Math.cos(a + f) * 5, hy + Math.sin(a + f) * 5], [hx + Math.cos(a + f) * (12.4 - Math.abs(f) * 4), hy + Math.sin(a + f) * (12.4 - Math.abs(f) * 4)]], i % 2 ? skin : '#fbdcbc', 2.2, { level: FINE }));
+            st.line([[hx + Math.cos(a + 1.2) * 4, hy + Math.sin(a + 1.2) * 4], [hx + Math.cos(a + 1.05) * 9.4, hy + Math.sin(a + 1.05) * 9.4]], skinS, 2.4, { level: FINE });
+        }
     }
 
     // What moves inside the memory, as strokes placed by hand for drawing d: swallows

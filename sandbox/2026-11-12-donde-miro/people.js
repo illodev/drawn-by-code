@@ -58,5 +58,19 @@ const People = (() => {
         }
         return soft(m);
     }
-    return { girl, passer };
+    // A car going by, nose to the left: a dark body, glass, two wheels, lights. Out of focus.
+    function car(x, y, s) {
+        return soft([
+            { x: x + 150 * s, y: y + 8 * s, ang: 0, len: 330 * s, w: 16 * s, color: '#4a4848' },
+            { x: x + 150 * s, y: y - 42 * s, ang: 0, len: 320 * s, w: 60 * s, color: '#48505a', color2: '#5c6672' },
+            { x: x + 60 * s, y: y - 50 * s, ang: 0, len: 130 * s, w: 44 * s, color: '#525b66' },
+            { x: x + 170 * s, y: y - 96 * s, ang: 0, len: 190 * s, w: 46 * s, color: '#3a424b', color2: '#262c33' },
+            { x: x + 170 * s, y: y - 118 * s, ang: 0, len: 170 * s, w: 12 * s, color: '#a9b0b6' },
+            { x: x + 70 * s, y: y - 6 * s, ang: 0, len: 58 * s, w: 52 * s, color: '#232324' },
+            { x: x + 246 * s, y: y - 6 * s, ang: 0, len: 58 * s, w: 52 * s, color: '#232324' },
+            { x: x + 4 * s, y: y - 50 * s, ang: 1.57, len: 22 * s, w: 12 * s, color: '#e6e2c8' },
+            { x: x + 306 * s, y: y - 56 * s, ang: 1.57, len: 22 * s, w: 10 * s, color: '#a8322c' },
+        ]);
+    }
+    return { girl, passer, car };
 })();

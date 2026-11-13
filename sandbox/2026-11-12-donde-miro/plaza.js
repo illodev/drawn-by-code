@@ -685,7 +685,7 @@ const Plaza = (() => {
     }
 
     // PlazaDetail (detail.js) goes over each element of the memory right after it is laid
-    function paint(st, era) {
+    function paint(st, era, o = {}) {
         const T = era === 'then', D = T ? PlazaDetail : null;
         sky(st, T);
         farHouses(st, T);
@@ -710,7 +710,7 @@ const Plaza = (() => {
         if (T) {
             D.tree(st);
             D.bicycle(st, 392, 612);
-            D.woman(st, 1292, 602);
+            if (o.her !== false) D.woman(st, 1292, 602);
         } else car(st);
     }
 

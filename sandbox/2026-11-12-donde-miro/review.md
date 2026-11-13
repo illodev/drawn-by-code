@@ -58,3 +58,42 @@ What I skipped: the animate skill asks for two or three script proposals crossed
 animating, and for the look to be locked on one shot. I built 103 s on the first script.
 
 Nothing is rebuilt until the user chooses a direction (see the message of this round).
+
+## Round 2 (user)
+
+> El problema es que cuando tienes que explicar lo que pasa, deja de tener gracia. Y el
+> hombre lo explica, parece más que está contando como se ha hecho el video a otra cosa.
+>
+> La voz es malísima, el timing es ultralento.
+>
+> La imagen, es eso, una imagen, no un vídeo.
+
+Translation into changes (test «Paseo», `paseo.js`, 14 s):
+
+- **Nobody explains.** No narrator. The rule is carried by a mismatch the viewer works out
+  alone: the picture is the past wherever he looks, the sound is the present. A bus goes
+  by (engine, horn) and inside what he sees it is a donkey with a cart of oranges; a cash
+  machine beeps and Anselmo waves from the door of his shop; a child runs up giggling and
+  in the doorway his wife lowers her hand and waves.
+- **No voice** in the test at all: the old man's was rejected, and I cannot judge one by
+  ear. If he speaks later it will be to the people he sees, not to us, and the user picks
+  the voice from samples.
+- **Fast.** A gag every three seconds; the eye jumps in a fifth of a second; the patch is
+  there from the first frame.
+- **A video.** He walks (the street slides by, his step bobs). The people of 1974 move:
+  they are painted again for every drawing (`Oil.sprite`): the donkey trots, the wheel
+  turns, the driver bobs, Anselmo's arm swings, she lowers her hand from her brow and
+  waves. The present moves too: the bus, the child running up and hopping.
+
+### «Paseo» (auto)
+
+Seen on stills at 1920 and on two motion sheets of the render:
+
+- The bus was hidden whole by the patch, so nothing said «this is a car now». → the
+  vehicle is longer than what he sees: its nose and tail stick out, grey and soft, on both
+  sides of the donkey.
+- Anselmo and she read at once and their waves are clear at 1:1; a held pose does not boil.
+- `review.mjs`: no warnings.
+
+Not judged: the sound. Five generated effects (square, his steps, bus with horn, cash
+machine, a child running and giggling), levelled by measurement only.
