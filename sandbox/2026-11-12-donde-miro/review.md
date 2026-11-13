@@ -35,3 +35,26 @@ Open:
   call).
 - The child is a soft blob with a wave: is that enough, or should she be read more?
 - No sound but the voice yet; no title.
+
+## Round 1 (user), on animatic v1
+
+> La verdad es que no me transmite nada, ni la voz, ni el timing, ni el guion, ni la imagen.
+
+My reading, to be confirmed with the user before anything is rebuilt:
+
+- **Script:** it explains a mechanism (the diagnosis, «the head fills the holes») and then
+  lists three examples of it. It is a demonstration of an idea, not a person: no name, no
+  temper, nothing only he would say. The closing lines are an aphorism.
+- **Image:** a storybook village seen flat and from far away, pasted as a patch on grey.
+  Her face is 30 px tall. I answered «every micro-detail counts» with an inventory of
+  things (tins, labels, spokes); what the references have and this lacks is light, air
+  and one face close enough to matter.
+- **Voice:** a narrator's read, even and clean, chosen from its description. I cannot hear
+  it; I only checked its words.
+- **Timing:** every look lands on its word and every beat lasts the same; it is a list
+  with a rhythm of one. No silence is used, and there is no sound but the voice.
+
+What I skipped: the animate skill asks for two or three script proposals crossed before
+animating, and for the look to be locked on one shot. I built 103 s on the first script.
+
+Nothing is rebuilt until the user chooses a direction (see the message of this round).
