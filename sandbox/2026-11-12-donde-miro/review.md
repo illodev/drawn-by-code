@@ -97,3 +97,22 @@ Seen on stills at 1920 and on two motion sheets of the render:
 
 Not judged: the sound. Five generated effects (square, his steps, bus with horn, cash
 machine, a child running and giggling), levelled by measurement only.
+
+## Round 3 (user)
+
+> Qué versión de elevenlabs has usado. Recomiendo la v4. Y la voz una consolidada, esta es
+> horrible y robótica. El guion cambiarlo entero. Y la imagen, no sé. La verdad que no sé ni
+> si seguir con el vídeo.
+
+Facts: the narrated animatic used `eleven_multilingual_v2` with «Luis, Pleasant, Mature,
+Engaging», a voice picked from its description. The account has `eleven_v4`. Ranked by use
+(`/v1/shared-voices`, Spanish, male, old), the established voices are «El Faraón - Powerful
+and Resonant» (a warm grandfather, Latin American, 364 M characters in a year) and, in
+peninsular Spanish, «Rafael - Expressive and Theatrical» (226 M).
+
+Done: two 7 s samples with `eleven_v4`, one per voice, on two lines in the new register
+(he speaks to the people he sees, he explains nothing): `private/audio/muestras/`.
+Nothing else is built until the user decides whether the film goes on.
+
+Rule from now on: the model is the newest the account has, the voice is chosen by its use
+count, and the user hears samples before a script is recorded.
