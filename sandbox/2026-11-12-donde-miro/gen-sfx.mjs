@@ -21,7 +21,7 @@ const SFX = {
 // cue: [name, starts at (s), gain, loop until (s, optional)]
 const MIXES = {
     paseo: { out: 'paseo.wav', dur: 14, cues: [['amb', 0, 0.22], ['steps', 0, 0.5], ['bus', 0.7, 0.9], ['atm', 4.5, 0.55], ['girl', 7.5, 0.9]] },
-    film: { out: 'mix.wav', dur: 32, cues: [['amb', 0, 0.22, 32], ['steps', 0, 0.5, 16.8], ['blower', 0.1, 0.8], ['bus', 3.5, 0.9], ['scooter', 7.3, 0.8], ['atm', 11.3, 0.55], ['girl', 14.8, 0.9], ['giggle', 19.2, 0.75], ['giggle', 21.8, 0.75], ['giggle', 27, 0.6]] },
+    film: { out: 'sfx.wav', dur: 32, cues: [['amb', 0, 0.22, 32], ['steps', 0, 0.5, 16.8], ['blower', 0.1, 0.8], ['bus', 2.7, 0.9], ['scooter', 7.3, 0.8], ['atm', 11.3, 0.55], ['girl', 14.8, 0.9], ['giggle', 19.2, 0.75], ['giggle', 21.8, 0.75], ['giggle', 27, 0.6]] },
 };
 const M = MIXES[process.argv[2] ?? 'film'];
 fs.mkdirSync(A, { recursive: true });

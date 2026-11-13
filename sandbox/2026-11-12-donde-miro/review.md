@@ -150,3 +150,27 @@ every 2 s, `review/film.jpg`) and the render at 1920:
 Not judged: the sound (eight generated effects, levelled by measurement).
 
 Open: the stoop at the end is slight; there is no music and no title.
+
+## Round 6 (user)
+
+> Podemos probar la de rafael
+
+Done without touching the picture (`gen-lines.mjs`): seven short lines in «Rafael -
+Expressive and Theatrical» on `eleven_v4`, each said to someone he sees, never to us, over
+the present's sounds (which drop 8 dB under each line):
+
+| At | He says | While we hear / see |
+|---|---|---|
+| 1.4 | ¡Buenos días, Paulino! | the leaf blower / the sweeper |
+| 5.4 | ¡Matías! ¿Y esa bocina? | just after the bus's horn / the donkey cart |
+| 12.1 | Apúntamelo, Anselmo, que hoy no llevo suelto. | the cash machine / the grocer waving |
+| 17.0 | Ya voy, Carmen… ya voy. | the child giggling / his wife waving |
+| 19.8 | ¿Y la niña? | he looks at her and she is gone |
+| 21.9 | Si estaba aquí… | gone again |
+| 25.2 | Ah… ahí estás. | he looks at the doorway; she is at the edge |
+
+Found on the way: takes come with silence at both ends (a 1.5 s line was 3.9 s long), so
+they are trimmed before being placed; eight lines did not fit 32 s (one dropped, two
+shortened); the horn's time is measured in the bus take and the line follows it. A
+transcription of the final mix returns the seven lines word for word, and labels traffic,
+a bell and laughter around them. The boy with the hoop stays wordless.
