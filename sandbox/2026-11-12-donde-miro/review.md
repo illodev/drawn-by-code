@@ -23,6 +23,11 @@ Seen on stills at 960 across the film:
   higher while they pass.
 - At the end the child stayed small. → she walks further in, to the bottom of the frame.
 
+`review.mjs` over the whole film: no warnings (deterministic, no holes, no flashes), no
+still stretch of 1 s or more. A chunked render repeats a frame at each join (`--to` is
+inclusive): the chunks are cut to their own frame count before joining
+(`tools/render-chunks.sh`), 2472 frames against 103 s of voice.
+
 Open:
 
 - She (1974) is a still figure for 17 s; only the curtain, her hem, the cat's tail,
