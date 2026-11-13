@@ -267,7 +267,7 @@ const Oil = (() => {
         const ctx = canvas.getContext('2d');
         const img = ctx.createImageData(pw, ph), lit = img.data;
         const col = new Uint8ClampedArray(pw * ph * 3), hgt = new Float32Array(pw * ph);
-        let colB = null, hgtB = null, litB = null;
+        let colB = null, hgtB = null, litB = null, colG = null, hgtG = null;
         let dirty = null, last = null;
         const grow = (x0, y0, x1, y1) => {
             if (!dirty) dirty = [x0, y0, x1, y1];
@@ -296,10 +296,30 @@ const Oil = (() => {
                 }
             }
             grow(0, 0, pw - 1, ph - 1);
+            colG = col.slice();
+            hgtG = hgt.slice();
+        }
+        const copyRect = (src, dst, ch, r) => {
+            for (let y = r[1]; y <= r[3]; y++) {
+                const a = (y * pw + r[0]) * ch, b = (y * pw + r[2] + 1) * ch;
+                dst.set(src.subarray(a, b), a);
+            }
+        };
+        const toPx = (r) => [Math.max(0, Math.floor((r.x - box.x) * k)), Math.max(0, Math.floor((r.y - box.y) * k)), Math.min(pw - 1, Math.ceil((r.x + r.w - box.x) * k)), Math.min(ph - 1, Math.ceil((r.y + r.h - box.y) * k))];
+        // back to bare canvas inside a rect (logical units): to unpaint part of the picture,
+        // clear and stamp again, clipped to the same rect, every stroke but the ones removed
+        function clear(rect) {
+            const r = toPx(rect);
+            if (r[2] < r[0] || r[3] < r[1]) return;
+            copyRect(colG, col, 3, r);
+            copyRect(hgtG, hgt, 1, r);
+            grow(r[0], r[1], r[2], r[3]);
         }
 
         // sel: null = every stroke whole; or { idx: Int32Array, grow: Float32Array, n }
-        function stamp(S, sel) {
+        // clip: an optional rect (logical units) nothing is painted outside of
+        function stamp(S, sel, clip) {
+            const cl = clip ? toPx(clip) : [0, 0, pw - 1, ph - 1];
             const A = S.a, n = sel ? sel.n : S.n;
             for (let q = 0; q < n; q++) {
                 const o = (sel ? sel.idx[q] : q) * STRIDE, uMax = sel ? sel.grow[q] : 1;
@@ -308,8 +328,8 @@ const Oil = (() => {
                 const lev = S.levels[A[o + 12]], load = lev.load ?? 1;
                 const dx = Math.cos(ang), dy = Math.sin(ang), bend = A[o + 13] * Wd, line = A[o + 14] === 1;
                 const ex = Math.abs(dx) * L + Math.abs(dy) * (Wd + Math.abs(bend)) + 2, ey = Math.abs(dy) * L + Math.abs(dx) * (Wd + Math.abs(bend)) + 2;
-                const x0 = Math.max(0, Math.floor(cx - ex)), x1 = Math.min(pw - 1, Math.ceil(cx + ex));
-                const y0 = Math.max(0, Math.floor(cy - ey)), y1 = Math.min(ph - 1, Math.ceil(cy + ey));
+                const x0 = Math.max(cl[0], Math.floor(cx - ex)), x1 = Math.min(cl[2], Math.ceil(cx + ex));
+                const y0 = Math.max(cl[1], Math.floor(cy - ey)), y1 = Math.min(cl[3], Math.ceil(cy + ey));
                 if (x1 < x0 || y1 < y0) continue;
                 grow(x0, y0, x1, y1);
                 // this stroke's bristles: how much paint each carries, where it starts and
@@ -407,14 +427,8 @@ const Oil = (() => {
                 }
             }
         }
-        const copyRect = (src, dst, ch, r) => {
-            for (let y = r[1]; y <= r[3]; y++) {
-                const a = (y * pw + r[0]) * ch, b = (y * pw + r[2] + 1) * ch;
-                dst.set(src.subarray(a, b), a);
-            }
-        };
         return {
-            canvas, pw, ph, ground, stamp,
+            canvas, pw, ph, ground, stamp, clear,
             // freeze what is painted so far as the picture every drawing starts from
             save() {
                 light([0, 0, pw - 1, ph - 1]);
@@ -470,6 +484,30 @@ const Oil = (() => {
         };
     }
 
+    // --- hole: a patch of the picture left unpainted -----------------------------------
+    // gaze(d) → { x, y, r, ph }. Returns { rect, sel }: clear the rect and stamp `sel`
+    // clipped to it (every stroke of S that touches the rect except those the patch
+    // removes: a stroke goes when its middle is inside the patch, reached a little further
+    // by long strokes, so the edge of the bare canvas is cut by whole brush marks).
+    function hole(S, d, gaze, o = {}) {
+        const q = gaze(d), wide = o.wide ?? 1.2, A = S.a;
+        if (q.r < 2) return null;
+        const pad = q.r * 1.45 * wide + 200, rect = { x: q.x - pad, y: q.y - pad, w: pad * 2, h: pad * 2 };
+        if (!S._hidx) { S._hidx = new Int32Array(S.n); S._hgrow = new Float32Array(S.n).fill(1); }
+        let n = 0;
+        for (let i = 0; i < S.n; i++) {
+            const o2 = i * STRIDE, x = A[o2], y = A[o2 + 1], hl = A[o2 + 3], ext = hl + A[o2 + 4];
+            if (x + ext < rect.x || x - ext > rect.x + rect.w || y + ext < rect.y || y - ext > rect.y + rect.h) continue;
+            const sd = A[o2 + 11], jit = 0.9 + (((sd * 7919) % 1000) / 1000) * 0.2;
+            const ux = (x - q.x) / wide, uy = y - q.y, a = Math.atan2(uy, ux), ph = q.ph ?? 0;
+            const m = 1 + 0.13 * Math.sin(2 * a + ph) + 0.09 * Math.sin(3 * a - 1.7 * ph + 1) + 0.05 * Math.sin(5 * a + 2.3 * ph + 2);
+            const R = q.r * jit * m + hl * 0.45;
+            if (ux * ux + uy * uy < R * R) continue;
+            S._hidx[n++] = i;
+        }
+        return { rect, sel: { idx: S._hidx, grow: S._hgrow, n } };
+    }
+
     // --- marks: a set of strokes placed by hand (what moves: a bird, a leaf turning) ----
     // list: [{ x, y, ang, len, w, color, color2?, kind? }], all at `level` of `levels`.
     function marks(list, levels, level, seed = 'marks') {
@@ -521,5 +559,5 @@ const Oil = (() => {
         return { idx: S._idx, grow: S._grow, n };
     }
 
-    return { STRIDE, LOOSE, FINE, hex, study, lay, surface, painting, focus, marks };
+    return { STRIDE, LOOSE, FINE, hex, study, lay, surface, painting, focus, hole, marks };
 })();

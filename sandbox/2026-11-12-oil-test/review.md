@@ -127,3 +127,10 @@ Still open:
 - She does not move yet.
 
 References asked of the user: see the message of this round.
+
+### Round 3 (user)
+
+> Yo creo que no está mal, podemos avanzar e ir retocando
+
+The look is accepted to go on with; the film is `sandbox/2026-11-12-donde-miro/`, and
+retouching continues there (this folder stays as the style test).

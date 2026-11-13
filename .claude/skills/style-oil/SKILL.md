@@ -29,6 +29,9 @@ shot: the present painted out of focus, a memory painted fine where the eye rest
    picture every drawing starts from; `pic.frame(d, (sf) => sf.stamp(set, sel))` repaints
    on top for drawing `d` (only what changed is stamped and lit); `pic.draw(g)`.
    `Oil.marks(list, levels, level)` makes a set from strokes placed by hand (what moves).
+   `Oil.hole(set, d, gaze)` unpaints a patch back to bare canvas: `sf.clear(h.rect)` then
+   `sf.stamp(set, h.sel, h.rect)` (every stroke that touches the rect but the removed ones,
+   clipped to it).
    `Oil.focus(set, d, gaze)` returns the strokes of a set that exist in drawing `d` around
    `gaze(d) → { x, y, r, ph }`: coarse levels reach further than fine ones, strokes linger
    a few drawings behind the eye (the finest go first) and are laid in over three drawings.
@@ -90,3 +93,5 @@ left to the grid; nothing reads as a row of beads or a comb.
 - 2026-11-12 · oil-test round 2 · A texture tied to the canvas (dry paint catching threads) shows as a grid of dots if the threads decide alone: let noise carry more than half of the test.
 - 2026-11-12 · oil-test round 2 · White things need a ground that is not white: a stork against a cloud, washing against a lime wall and a collar on a pale dress all vanished until what was behind them changed colour.
 - 2026-11-12 · oil-test round 2 · What moves inside a painted picture is placed by hand per drawing (`Oil.marks`: birds, leaves turning) and goes through the same `focus` as the rest, so it only exists where the picture is finished.
+- 2026-11-12 · donde-miro · Figures placed by hand in an out-of-focus picture come out sharper than the picture: lay each stroke twice, first wider, longer and half-way to the surrounding grey, then itself, and leave out anything thin.
+- 2026-11-12 · donde-miro · «Nothing» in a painting is the canvas: a patch left unpainted (`Oil.hole`) reads as absence at once, where a grey or black shape reads as an object.

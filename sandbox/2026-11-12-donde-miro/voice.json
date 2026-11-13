@@ -1,0 +1,27 @@
+{
+  "voice_id": "GojDwihhnL1f7RrBuXsJ",
+  "voice_name": "Luis, Pleasant, Mature, Engaging",
+  "model_id": "eleven_multilingual_v2",
+  "settings": { "stability": 0.5, "similarity_boost": 0.8, "style": 0.25, "speed": 0.9 },
+  "start": 2.0,
+  "tail": 3.5,
+  "lines": [
+    { "id": "medico", "text": "El médico lo llama degeneración macular.", "gap": 0.7 },
+    { "id": "mancha", "text": "Yo lo llamo la mancha.", "gap": 1.6 },
+    { "id": "nada", "text": "Está justo en el centro. Allí donde miro, no hay nada.", "gap": 1.8 },
+    { "id": "huecos", "text": "Bueno… nada, no. A la cabeza no le gustan los huecos, y los rellena con lo que tiene.", "gap": 1.6 },
+    { "id": "arbol", "text": "Miro el árbol de la plaza y me lo encuentro con hojas. En enero.", "gap": 1.8 },
+    { "id": "tienda", "text": "Miro la persiana del ultramarinos y está levantada. Lleva cuarenta años cerrado, y ahí siguen las naranjas.", "gap": 1.8 },
+    { "id": "portal", "text": "Y miro nuestro portal…", "gap": 1.5 },
+    { "id": "tu", "text": "…y sales tú. Con el vestido de los ramitos. Haciéndote sombra con la mano, como si la que no viera bien fueras tú.", "gap": 2.2 },
+    { "id": "veo", "text": "Veo estupendamente. Lo que pasa es que veo mil novecientos setenta y cuatro.", "gap": 2.0 },
+    { "id": "bordes", "text": "Lo de ahora se me queda en los bordes. Gris. Borroso. Con prisa.", "gap": 1.8 },
+    { "id": "nina", "text": "Y entonces sale la niña. «Abuelo, mírame».", "gap": 1.4 },
+    { "id": "borra", "text": "Es lo único que no puedo hacer. Si la miro, se me borra. Y me sale su abuela.", "gap": 2.2 },
+    { "id": "truco", "text": "Así que he aprendido un truco.", "gap": 1.0 },
+    { "id": "arriba", "text": "Miro un poco más arriba. Al balcón. A los geranios.", "gap": 1.6 },
+    { "id": "aqui", "text": "Y entonces la tengo. De refilón, borrosa… pero aquí.", "gap": 2.2 },
+    { "id": "lado", "text": "A los vivos hay que mirarlos de lado.", "gap": 1.3 },
+    { "id": "frente", "text": "De frente solo se ve lo que ya no está.", "gap": 0 }
+  ]
+}
