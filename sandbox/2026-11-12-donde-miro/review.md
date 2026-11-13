@@ -116,3 +116,11 @@ Nothing else is built until the user decides whether the film goes on.
 
 Rule from now on: the model is the newest the account has, the voice is chosen by its use
 count, and the user hears samples before a script is recorded.
+
+## Round 4 (user), on the two `eleven_v4` samples
+
+> No me convence ninguna voz
+
+Three generated voices rejected (Luis on multilingual v2, Rafael and El Faraón on v4). No
+more are generated blind: the film either has no spoken voice (as «Paseo» already has
+none) or a person records it. Whether the film goes on at all is still the user's call.
