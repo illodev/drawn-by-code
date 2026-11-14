@@ -28,7 +28,7 @@ bollards and a boat ramp the kids use as a launch, a sea wall, Dot's chip hut wi
 awning and a hand-painted sign, a lighthouse on the point, cranes and trawlers behind, a
 wooden pier with a rail to grind and an end to jump off.
 
-## The cast (model sheet: `review/cast.jpg`)
+## The cast (key art: `review/key.jpg` · model sheet: `review/cast.jpg`)
 
 | Who | Silhouette | Does | The joke |
 |---|---|---|---|

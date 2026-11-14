@@ -30,14 +30,20 @@ Motion.scene({
             T.slab(g, [[-20, 620], [1620, 606], [1620, 920], [-20, 920]], { fill: C.concrete, seed: 'quay' });
         }
 
-        // Aunt Dot, back by her hut, has seen it all before
+        // Aunt Dot, in the hatch of her hut, has seen it all before
+        g.save();
+        g.beginPath();
+        g.rect(30, 366, 236, 150);
+        g.clip();
         Cast.draw(g, 'dot', {
-            turn: 0.45, hip: [1, 0], lean: 0.02, tilt: -0.04, arms: [[1.05, -2.0], [1.05, -2.0]], armFront: ['fore', 'fore'], hands: ['fist', 'fist'], handBack: [true, true],
-            head: { tilt: 0.05 + bob(1, 0.01), turn: 0.7 }, face: { mouth: 'smirk', look: [0.6, -0.5], lid: 0.3, brow: -0.2, blink: blink(40) },
-        }, 196, 742, 2.5);
+            turn: 0.45, hip: [1, 0], lean: 0.03, tilt: -0.05, arms: [[1.0, -1.9], [0.95, -1.9]], armFront: ['fore', 'fore'], hands: ['fist', 'fist'], handBack: [true, true],
+            head: { tilt: 0.07 + bob(1, 0.012), turn: 0.75 }, face: { mouth: 'smirk', look: [0.5, -0.6], lid: 0.32, brow: -0.2, blink: blink(40) },
+        }, 128, 686, 2.12);
+        g.restore();
+        if (window.Harbor?.counter) Harbor.counter(g, env);
 
         // Captain, away with the first chip of the day
-        Cast.gullFly(g, 1392, 132 + bob(0.4, 5), 3.5, { flap: 0.5 + bob(0, 0.5), look: [-0.6, 0.5], lid: blink(26) ? 0.95 : 0.36 });
+        Cast.gullFly(g, 1350, 126 + bob(0.4, 5), 3.5, { flap: 0.5 + bob(0, 0.5), look: [-0.6, 0.5], lid: blink(26) ? 0.95 : 0.36 });
         // Hoagie jumps, his camcorder a beat behind him on its strap
         Cast.draw(g, 'hoagie', {
             turn: 0.3, hip: [0, -17 + bob(0.6, 1.4)], lean: 0.1, tilt: 0.1, cam: [19, 3 + bob(1.8, 2)],
@@ -56,7 +62,7 @@ Motion.scene({
         }, 1236, GY + 16, 4.15);
 
         // Kit, off the sea wall and over everybody, one hand out for the gull
-        const kx = 900, ky = 596 + bob(0, 6), ks = 4.2;
+        const kx = 906, ky = 622 + bob(0, 6), ks = 4.1;
         Cast.board(g, kx + 20, ky - 31 * ks, ks, 0.2);
         Cast.draw(g, 'kit', {
             turn: 0.5, hip: [-2, -26], lean: 0.2, tilt: 0.18, knee: [-1, 1],
@@ -66,12 +72,11 @@ Motion.scene({
         }, kx, ky, ks);
 
         // the cone he took it from, spilling the rest
-        Cast.cone(g, 1178, 116 + bob(2.4, 5), 3.6, 2.2, 3);
-        const chips = [[1196, 30, 0.7, 9], [1246, 96, -0.5, 8], [1232, 190, 1.9, 7], [1276, 34, 2.6, 8], [1150, 44, 0.2, 7]];
+        Cast.cone(g, 1136, 122 + bob(2.4, 5), 3.6, 2.2, 3);
+        const chips = [[1166, 40, 0.7, 9], [1216, 100, -0.5, 8], [1212, 204, 1.9, 7], [1246, 36, 2.6, 8], [1106, 60, 0.2, 7]];
         chips.forEach(([cx, cy, a, l], i) => Cast.chip(g, cx, cy + bob(i * 1.3, 4), 3.6, a + bob(i, 0.12), l));
 
         // Pip, nearest us, points out where he went
-        Cast.scooter(g, 78, 934, 5.6);
         Cast.draw(g, 'pip', {
             turn: 0.45, hip: [1, 0.4 + bob(2.6, 0.8)], lean: 0.05, tilt: -0.12,
             arms: [[1.0, -1.9], [1.85, 0.6]], armFront: ['fore', false], hands: ['fist', 'point'], handBack: [true, false], handScale: [1, 1.15],

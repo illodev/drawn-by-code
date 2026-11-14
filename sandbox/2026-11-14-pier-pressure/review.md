@@ -116,3 +116,36 @@ Changed:
 - Captain got a flying drawing with long feathered wings (the first read as a slab).
 
 The model sheet moved to `dev/sheet/` and still renders with the new figure.
+
+## Round 5 (auto) · the key art on its set
+
+`review/key.jpg`. The set (`set.js`, drawn by a parallel agent from a written brief: the
+reference's backgrounds measured first, a calm zone kept for the cast, every coordinate handed
+back in a table) came in at the reference's density: Dot's hut with its hatch and counter, the
+harbour with two trawlers, a headland of crooked houses, a lighthouse, the pier with its dark
+underside, the slipway, foreground pots and a bollard.
+
+Layer and tangent pass at 2× crops, zone by zone:
+
+- Dot stood in front of the hut and behind Pip → she serves from the hatch: drawn clipped to
+  the opening, the counter and what stands on it drawn again over her (`Harbor.counter`). At
+  first only her head showed above the counter, like a head on a plate → raised until her
+  shoulders and the apron's straps show.
+- The quay's lamp post rose from beside Milo's standing leg and read as a third leg → moved
+  to the head of the slip, its notice with it.
+- A background gull sat exactly behind Hoagie's cowlick (a cowlick with wings) → the gulls
+  moved into clear sky.
+- The spilled cone and its chips lay over Captain's wing → moved between Kit's hand and him.
+- Pip's raised arm passed in front of her head and its sleeve covered her mouth → behind the
+  head, raised outwards. Her scooter was hidden by the foreground pots → out of this shot.
+- Kit's hair and Captain's beak were cut by the frame → both brought in.
+- Bodies still small beside the heads → torsos a tenth longer and wider, the figures staged a
+  tenth bigger and closer, overlapping.
+- A hairline across Captain's neck (a square-cut tube's ink showing along its fill's edge) →
+  such ends are filled a hair past their ink (`SkateToon.skin`).
+
+`review.mjs`: no warnings on the key art (71 ms a frame warm), the set alone, the template
+and the model sheet. Everything drifts on twos, each figure on its own phase; blinks.
+
+Open, for the user: the title board's design and place; whether the key art's staging is the
+level wanted before a shot is animated.

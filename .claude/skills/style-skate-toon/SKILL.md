@@ -5,8 +5,9 @@ description: Skate toon style, in testing: the look of a late-'90s extreme-sport
 
 # Style · Skate toon
 
-**In testing.** Model sheet: `sandbox/2026-11-14-pier-pressure/review/cast.jpg` (the cast of
-an imaginary show, «Pier Pressure»). Hand chart: `…/dev/handcheck/hands.png`. The look was
+**In testing.** Key art: `sandbox/2026-11-14-pier-pressure/review/key.jpg` (the cast of an
+imaginary show, «Pier Pressure», on its set); model sheet `…/review/cast.jpg`; hand chart
+`…/dev/handcheck/hands.png`; a whole set drawn with the kit: `…/set.js`. The look was
 measured on five frames of the genre the user gave; characters and places are always our own
 (never a show's cast, logo or town).
 
