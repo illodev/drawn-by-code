@@ -226,10 +226,11 @@
      * outline of a helix on a cylinder), never a ribbon with straight hatch marks or a string of
      * beads. pts: its centreline; d: its thickness, a number or a function of u (0..1 along it:
      * a rope coming towards the camera thickens); o.caps: 'both' | 'none' | 'start' | 'end' (cut
-     * ends are closed; a turn that goes on behind something is left open); thin ropes are a line.
+     * ends are closed; a turn that goes on behind something is left open); o.only: 'lay' draws just
+     * the strands (over a tube drawn some other way); thin ropes are a line.
      */
     function rope(g, pts, d, o = {}) {
-        const { fill = P.rope, seed = 'rope', w = BG, dense = false, lay = true, caps = 'both' } = o;
+        const { fill = P.rope, seed = 'rope', w = BG, dense = false, lay = true, caps = 'both', only = null } = o;
         const dAt = typeof d === 'function' ? d : () => d, dm = dAt(0.5);
         const c = T.resample(dense ? pts : T.path(pts), Math.max(1.1, dm * 0.42));
         const n = c.length;
@@ -250,6 +251,7 @@
         };
         g.lineJoin = 'round';
         g.lineCap = 'round';
+        if (only !== 'lay') {
         // the tube: its fill, then its two edges (and its cut ends)
         trace([...L, ...R.slice().reverse()]);
         g.closePath();
@@ -263,6 +265,8 @@
         }
         if (caps === 'both' || caps === 'start') (trace([L[0], R[0]]), g.stroke());
         if (caps === 'both' || caps === 'end') (trace([L[n - 1], R[n - 1]]), g.stroke());
+        }
+        g.strokeStyle = C.ink;
         if (!lay) return;
         // the lay: one S per strand, from one edge to the other, a little over one thickness on
         g.lineWidth = Math.max(1, w * 0.72);
@@ -1622,27 +1626,33 @@
         // top turn is whole and each lower one shows as a band under it.
         const toCam = Math.atan2(-c[2], -c[0]);
         const turns = [[0, 0, 0], [0.018, -0.012, 0.01], [-0.014, 0.012, -0.012], [0.012, 0.008, 0.008], [-0.006, -0.01, 0]].map(([dx, dz, dr], i) => ({ cc: add(c, [dx, t / 2 + i * t * 0.9, dz]), r: R0 + dr }));
-        // A turn seen this flat cannot be drawn as one band round its ellipse (the band folds on
-        // itself at the two ends): it is its near stretch and its far stretch, each stopping short
-        // of the ends, and a round shoulder at each end where the rope turns away from us.
-        const K = 0.34, arc = ({ cc, r }, far) => ring3(cc, r, 22, toCam + (far ? Math.PI / 2 + K : -Math.PI / 2 + K), toCam + (far ? Math.PI * 1.5 - K : Math.PI / 2 - K));
-        const shoulders = ({ cc, r }, key) => {
-            for (const sg of [-1, 1]) {
-                const p3 = [cc[0] + Math.cos(toCam + (sg * Math.PI) / 2) * r, cc[1], cc[2] + Math.sin(toCam + (sg * Math.PI) / 2) * r], q = pt(p3), d = t * sc(p3[2]);
-                T.shape(g, T.ellipse(q[0], q[1], d * 0.62, d * 0.5, 0, 12), { fill, w, seed: key + sg, amp: 0.1 });
-            }
+        // A turn of rope seen this flat is one closed tube: the ring's projected line stroked
+        // with the rope's thickness (ink, then colour inside it), so its two ends are the tube's own
+        // round turn-backs and its silhouette has no seam. (A band offset from the line folds on
+        // itself at the ends, and separate «shoulders» read as blobs stuck on.) Under another turn
+        // its middle is filled in (we never see down a lower turn's hole); the top turn shows the
+        // pile's opening, a dark lens. The strands are then laid on the stretch that faces us.
+        const K = 0.38, DEEP = '#2f66a8';
+        const turn = (tn, i, top) => {
+            const ring = T.pathOf(ring3(tn.cc, tn.r, 44).map(pt)), d = t * sc(tn.cc[2] - tn.r * 0.6);
+            g.lineJoin = 'round';
+            g.strokeStyle = C.ink;
+            g.lineWidth = d + 2 * w;
+            g.stroke(ring);
+            g.fillStyle = fill;
+            g.fill(ring);
+            g.strokeStyle = fill;
+            g.lineWidth = d;
+            g.stroke(ring);
+            if (top) T.shape(g, ring3(add(tn.cc, [0, t * 0.5, 0]), tn.r - t * 0.62, 30).map(pt), { fill: DEEP, w, seed: seed + 'hole', dense: true, amp: 0.1 });
+            rope(g, ring3(tn.cc, tn.r, 22, toCam - Math.PI / 2 + K, toCam + Math.PI / 2 - K).map(pt), d, { seed: seed + 'nl' + i, w, dense: true, only: 'lay' });
         };
-        const turn = (tn, i, far) => rope3(g, arc(tn, far), t, { fill, seed: seed + (far ? 'f' : 'n') + i, w, caps: 'none' });
         // the tail: off the bottom turn, along the stone, its end whipped
         const tail = [[R0 * 0.72, t / 2, -R0 * 0.75], [R0 + 0.12, t / 2, -R0 * 0.62], [R0 + 0.3, t / 2, -R0 * 0.78], [R0 + 0.46, t / 2, -R0 * 0.55]].map((p) => add(c, p));
         rope3(g, tail, t, { fill, seed: seed + 't', w, caps: 'none' });
         const e = pt(tail[3]), e0 = pt(tail[2]), d = t * sc(tail[3][2]), ux = (e[0] - e0[0]) / (Math.hypot(e[0] - e0[0], e[1] - e0[1]) || 1), uy = (e[1] - e0[1]) / (Math.hypot(e[0] - e0[0], e[1] - e0[1]) || 1);
         slab(g, [[e[0] - ux * d * 0.5 + uy * d * 0.56, e[1] - uy * d * 0.5 - ux * d * 0.56], [e[0] + ux * d * 0.12 + uy * d * 0.56, e[1] + uy * d * 0.12 - ux * d * 0.56], [e[0] + ux * d * 0.12 - uy * d * 0.56, e[1] + uy * d * 0.12 + ux * d * 0.56], [e[0] - ux * d * 0.5 - uy * d * 0.56, e[1] - uy * d * 0.5 + ux * d * 0.56]], { fill: C.white, w: w * 0.9, seed: seed + 'whip', over: 0.2 });
-        for (const [i, tn] of turns.entries()) {
-            if (i >= turns.length - 2) turn(tn, i, true); // the far side shows only over the top of the pile
-            shoulders(tn, seed + 'sh' + i);
-            turn(tn, i, false);
-        }
+        for (const [i, tn] of turns.entries()) turn(tn, i, i === turns.length - 1);
     }
 
     // a traffic cone 0.5 m tall on its square foot

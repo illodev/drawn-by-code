@@ -494,3 +494,16 @@ round off where they go behind the post.
   flat an ellipse folds on itself there: it came out with jagged ends first); the tail leaves
   from under it, its end whipped.
 - The bollard's turns: tubes with a round shoulder each side.
+
+## Round 16 (user) · the coil's ends
+
+> Los bordes de la cuerda azul están mal dibujados
+
+(two crops of the coil's ends: an oval stuck on beside each band's square-cut end)
+
+→ The «shoulders» of round 15 were separate ellipses beside bands cut square: blobs, with a
+seam. A turn of rope seen nearly edge-on is one closed tube: its ring's projected line
+stroked with the rope's thickness (ink, then the colour inside it), so the two ends are the
+tube's own round turn-backs. Lower turns are filled in (nobody sees down their hole), the top
+turn shows the pile's opening as a dark lens, and the strands are laid on the stretch that
+faces the camera.
