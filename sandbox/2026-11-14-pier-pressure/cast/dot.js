@@ -2,7 +2,7 @@
 // get on with it. A square jaw, a sun visor, a bun with a pencil through it, an apron with the
 // hut's fish, flip-flops, an anchor on her forearm.
 (() => {
-    const T = SkateToon, C = T.COL, { dot } = Cast;
+    const T = SkateToon, C = T.COL, { dot, turned } = Cast;
     const { add, sub, mul, mix, unit } = SkateKid;
     const HAIRC = '#f1dfa0', VISOR = '#17a3a0', VISOR_L = '#1cc0bb', CREAM = '#fff3d6', TEE = '#f26b5b';
     // a bare foot in a flip-flop, pointing to +x like the kit's boot
@@ -20,7 +20,11 @@
     const spec = {
         seed: 'dot', skin: '#e58a45',
         leg: 50, torso: 37, shoulder: 15.5, hipW: 9.5, neck: 6, neckD: 6.6, upper: 23, fore: 21, hand: 15.5, armD: [6.2, 5], legD: [6.8, 5.2], stance: 15, ankle: 9.4,
-        head: { w: 44, h: 47, slide: 0.15, pts: [[-14, -22], [9, -23], [19, -17], [21.5, 0], [22, 13], [17, 21.5], [6, 24], [-8, 24], [-18, 21], [-21.5, 12], [-21, -3], [-19, -15]] },
+        head: {
+            w: 44, h: 47, slide: 0.2,
+            pts: [[-14, -22], [9, -23], [19, -17], [21.5, 0], [22, 13], [17, 21.5], [6, 24], [-8, 24], [-18, 21], [-21.5, 12], [-21, -3], [-19, -15]],
+            pts34: [[-16.5, -22], [6, -23.6], [16, -18.6], [19, -2], [21.6, 11], [19, 21], [9, 24.6], [-5, 24.6], [-17, 21.6], [-22, 12], [-23.6, -3], [-22, -15]],
+        },
         eye: { x: 0, y: -5, r: [5.7, 5.3], gap: 1.6, pupil: 0.24, brow: true, browW: 1.6, tall: 1.04 },
         nose: { x: 0, y: 4.4, kind: 'big', size: 5.2 },
         mouth: { x: 0, y: 15.4, w: 21 },
@@ -38,17 +42,18 @@
         },
         hairFront: (g, K, H) => {
             // hair swept back above the visor's band, a wisp at each temple
-            T.shape(g, [[-20.4, -13.6, 1], [-18.6, -19.6], [-14, -23.4], [9, -24.4], [19.4, -18], [20.8, -13.6, 1], [0, -12.4]], { fill: HAIRC, w: K.w, seed: 'dot-hair' });
+            const a = H.turn, tn = (pts) => turned(pts, a, 2.6, 0.13);
+            T.shape(g, tn([[-20.4, -13.6, 1], [-18.6, -19.6], [-14, -23.4], [9, -24.4], [19.4, -18], [20.8, -13.6, 1], [0, -12.4]]), { fill: HAIRC, w: K.w, seed: 'dot-hair' });
             for (const [x, l] of [[-10, 3.4], [-3, 4.2], [5, 3.8], [12, 3]]) T.line(g, [[x, -23.6 + Math.abs(x) * 0.08], [x + 0.8, -23.6 + l]], { w: K.fine, seed: 'dot-hl' + x });
-            for (const s of [-1, 1]) T.shape(g, [[s * 20.8, -12.4, 1], [s * 23, -8], [s * 21.6, -1, 1], [s * 19.4, -8]], { fill: HAIRC, w: K.fine, seed: 'dot-wisp' + s });
+            for (const s of a > 0.3 ? [-1] : [-1, 1]) T.shape(g, tn([[s * 20.8, -12.4, 1], [s * 23, -8], [s * 21.6, -1, 1], [s * 19.4, -8]]), { fill: HAIRC, w: K.fine, seed: 'dot-wisp' + s });
             // the visor: a band round the head and a brim towards us
-            T.shape(g, [[-21.6, -16.4, 1], [0, -14.6], [21.6, -16.4, 1], [21.4, -11.6, 1], [0, -9.8], [-21.4, -11.6, 1]], { fill: VISOR, w: K.w, seed: 'dot-band' });
-            const f = H.fx * 0.8;
+            T.shape(g, tn([[-21.6, -16.4, 1], [0, -14.6], [21.6, -16.4, 1], [21.4, -11.6, 1], [0, -9.8], [-21.4, -11.6, 1]]), { fill: VISOR, w: K.w, seed: 'dot-band' });
+            const f = H.fx * 0.9;
             T.shape(g, [[-17 + f, -12.2, 1], [-21.6 + f, -8.4], [-12 + f, -5], [2 + f, -4.2], [15 + f, -5.4], [22.6 + f, -9], [17 + f, -12.2, 1], [0 + f, -10.2]], { fill: VISOR_L, w: K.w, seed: 'dot-brim' });
             T.line(g, [[-12 + f, -7.4], [2 + f, -6.6], [14 + f, -7.6]], { w: K.fine, seed: 'dot-brimst' });
             // gold hoops
-            if (H.turn < 0.6) T.line(g, T.ellipse(-23.4 - H.turn * 3, 8.6, 1.9, 2.7, 0, 8), { w: K.fine * 1.1, seed: 'dot-hoop0', closed: true, color: '#e0a800' });
-            if (H.turn > -0.6) T.line(g, T.ellipse(23.4 - H.turn * 3, 8.6, 1.9, 2.7, 0, 8), { w: K.fine * 1.1, seed: 'dot-hoop1', closed: true, color: '#e0a800' });
+            T.line(g, T.ellipse(-23.4 + a * 22 * 0.34 + (a > 0.3 ? 2 : 0), 9 + a, 1.9, 2.7, 0, 8), { w: K.fine * 1.1, seed: 'dot-hoop0', closed: true, color: '#e0a800' });
+            if (a < 0.25) T.line(g, T.ellipse(23.4 - a * 12, 8.6, 1.9, 2.7, 0, 8), { w: K.fine * 1.1, seed: 'dot-hoop1', closed: true, color: '#e0a800' });
         },
         face: (g, K, H) => {
             // laugh lines, crow's feet and a strong chin

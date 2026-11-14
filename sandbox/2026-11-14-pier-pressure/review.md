@@ -3,10 +3,10 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **model sheet and hand chart waiting for the user's approval.** No film yet: the
-style test (one animated shot) and the set of Gull Harbor come after it. Until the style
-test is approved the style stays *in testing* and is not yet in the README's table, the
-cover's carousel or the site (new-style, steps 7 and 8).
+State: **key art (the gang in action on the quay) with the set, the model sheet and the hand
+chart waiting for the user's approval.** No film yet. Until a style test is approved the style
+stays *in testing* and is not yet in the README's table, the cover's carousel or the site
+(new-style, steps 7 and 8).
 
 ## Round 0 (user) · the brief
 
@@ -82,3 +82,37 @@ folded thumb is a small bump at the side.
 
 Not done yet, on purpose: the set (the sheet stands on a bare quay), the animated style
 test, the music.
+
+## Round 4 (user) · the model sheet
+
+> Todavía le falta muchísimo
+
+→ Put the sheet beside the reference at the same figure height. What was missing was not
+finish:
+
+- **a line-up of front-facing dolls.** The reference is a scene: every figure in three
+  quarters, foreshortened (a boot or a hand towards the camera), overlapping the next one, at
+  different depths;
+- **symmetrical, cute faces.** There the far eye reaches the head's edge, the nose sits
+  between the eyes, the mouth turns with the head, the near ear is inside the outline;
+- **bodies still small**: their clothes are as wide as the head;
+- **no place.** The reference is a whole set.
+
+Changed:
+
+- the figure (`kid.js`) became 2.5D: `head.turn` is a real three-quarter head (a second
+  outline per character, `pts34`, blended in; eyes that part, the far one narrowing out to the
+  edge; the nose between them; the near ear drawn inside the outline; a head turned left is
+  the mirror of one turned right); `turn` on the body brings the far shoulder and hip in and
+  points both feet; boots take `{ scale, view: 'sole' }` (kicked at the camera: the sole with
+  its tread) and hands a `handScale`;
+- every character: wider clothes (shirt 0.85 of the head's width), a `pts34` outline, hair
+  and headgear that ride round with the skull (`Cast.turned`);
+- the deliverable is now **key art**, as the reference is: Kit in the air over her board
+  with a boot at the camera, Hoagie jumping with his camcorder a beat behind on its strap,
+  Milo falling as his board leaves, Pip pointing in the foreground, Dot unimpressed by her
+  hut, Captain away with the chip and the cone spilling; a hand-lettered title;
+- the set of Gull Harbor drawn in parallel from a written brief (`set.js`);
+- Captain got a flying drawing with long feathered wings (the first read as a slab).
+
+The model sheet moved to `dev/sheet/` and still renders with the new figure.

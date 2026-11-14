@@ -283,8 +283,15 @@ const SkateToon = (() => {
                     g.lineCap = d.cap;
                     g.lineWidth = d.d + (pass === 0 ? 2 * w : 0);
                     g.beginPath();
-                    g.moveTo(d.tube[0][0], d.tube[0][1]);
-                    for (let k = 1; k < d.tube.length; k++) g.lineTo(d.tube[k][0], d.tube[k][1]);
+                    const n = d.tube.length;
+                    // a square-cut end is filled a hair past its ink, or the ink's edge shows as a line
+                    const ext = (p, q) => {
+                        const l = Math.hypot(p[0] - q[0], p[1] - q[1]) || 1, k = pass === 1 && d.cap === 'butt' ? (w * 0.6) / l : 0;
+                        return [p[0] + (p[0] - q[0]) * k, p[1] + (p[1] - q[1]) * k];
+                    };
+                    g.moveTo(...ext(d.tube[0], d.tube[1]));
+                    for (let k = 1; k < n - 1; k++) g.lineTo(d.tube[k][0], d.tube[k][1]);
+                    g.lineTo(...ext(d.tube[n - 1], d.tube[n - 2]));
                     g.stroke();
                 } else if (pass === 0) {
                     g.lineWidth = 2 * w;

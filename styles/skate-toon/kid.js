@@ -11,9 +11,14 @@
 //
 // Pose (all optional):
 //   hip: [dx, drop]            the hips move sideways / come down (a crouch)
+//   turn                       −1..1: the body turns to the screen's left/right: the far
+//                              shoulder and hip come in, both feet point that way
 //   lean                       spine rotation, radians, + leans to the screen's right
 //   tilt                       extra rotation of the shoulder line (one shoulder up)
-//   feet: [[x, lift, rot], ×2] ankles: x from the centre, lift off the ground, shoe rotation
+//   feet: [[x, lift, rot, o], ×2] ankles: x from the centre, lift off the ground, shoe rotation;
+//                              o: { flip, scale, view: 'side'|'sole' } (a boot kicked at the
+//                              camera is bigger and shows its sole)
+//   handScale: [k, k]          a hand held towards the camera is bigger
 //   knee: [±1, ±1]             which side each knee bends to (default outwards)
 //   arms: [[a1, a2], ×2]       upper arm from straight down, + outwards (π = straight up);
 //                              a2 = the forearm's extra bend, same sense
@@ -21,7 +26,10 @@
 //   armFront: [bool|'fore', ×2] the arm passes in front of the torso and the head; 'fore':
 //                              only the forearm does (a fist on a hip), the upper arm and
 //                              its sleeve stay behind the body
-//   head: { tilt, turn, dx, dy }   turn −1..1 slides the features (1 = looking screen right)
+//   head: { tilt, turn, dx, dy }   turn −1..1: a real three-quarter head (1 = looking screen
+//                              right): the eyes part, the far one reaches the edge, the nose
+//                              goes between them, the near ear moves inside the outline. A
+//                              head turned left is the mirror image of one turned right.
 //   face: { look: [x, y], lid, blink, brow, mouth, wide }
 const SkateKid = (() => {
     const T = SkateToon;
@@ -57,7 +65,7 @@ const SkateKid = (() => {
         socks: null, pads: null,
     };
     const POSE = {
-        hip: [0, 0], lean: 0, tilt: 0, feet: null, knee: [-1, 1], arms: [[0.4, 0.2], [0.4, 0.2]],
+        hip: [0, 0], turn: 0, lean: 0, tilt: 0, feet: null, handScale: [1, 1], knee: [-1, 1], arms: [[0.4, 0.2], [0.4, 0.2]],
         hands: ['open', 'open'], handRot: [0, 0], handBack: [false, false], armFront: [false, false],
         head: { tilt: 0, turn: 0, dx: 0, dy: 0 }, face: { look: [0, 0], lid: 0, blink: false, brow: 0, mouth: 'smile', wide: 1 },
     };
@@ -93,16 +101,17 @@ const SkateKid = (() => {
         const feet = P.feet ?? [[-S.stance, 0, 0], [S.stance, 0, 0]];
         const ankle = feet.map(([x, lift]) => [x, -(S.ankle + lift)]);
         const hipC = [P.hip[0], -(S.ankle + S.leg) + P.hip[1]];
-        const hipJ = [[hipC[0] - S.hipW, hipC[1]], [hipC[0] + S.hipW, hipC[1]]];
+        const bt = P.turn, far = (sd) => 1 - 0.32 * Math.max(0, sd * bt) + 0.08 * Math.max(0, -sd * bt);
+        const hipJ = [[hipC[0] - S.hipW * far(-1), hipC[1]], [hipC[0] + S.hipW * far(1), hipC[1]]];
         const knee = [0, 1].map((i) => bend(hipJ[i], ankle[i], S.leg / 2, S.leg / 2, P.knee[i]));
         const tor = (p) => add(hipC, rot(p, P.lean));
         const neckBase = tor([0, -S.torso]);
-        const sh = [-1, 1].map((s) => add(neckBase, rot([s * S.shoulder, 1.4], P.lean + P.tilt)));
+        const sh = [-1, 1].map((s) => add(neckBase, rot([s * S.shoulder * far(s), 1.4], P.lean + P.tilt)));
         const dir = (i, a) => rot([(i ? 1 : -1) * Math.sin(a), Math.cos(a)], P.lean);
         const elbow = [0, 1].map((i) => add(sh[i], mul(dir(i, P.arms[i][0]), S.upper)));
         const wrist = [0, 1].map((i) => add(elbow[i], mul(dir(i, P.arms[i][0] + P.arms[i][1]), S.fore)));
         const headC = add(add(neckBase, rot([0, -(S.neck + S.head.h / 2 - 1.5)], P.lean * 0.6)), [P.head.dx, P.head.dy]);
-        return { S, P, feet, ankle, hipC, hipJ, knee, tor, neckBase, sh, elbow, wrist, headC, headRot: P.lean * 0.6 + P.head.tilt };
+        return { S, P, feet, ankle, hipC, hipJ, knee, tor, neckBase, sh, elbow, wrist, headC, far, headRot: P.lean * 0.6 + P.head.tilt };
     }
     // a soft joint: the limb's centreline rounds the corner instead of breaking at it
     const soft = (a, j, b, k = 0.72) => [a, mix(a, j, k), j, mix(j, b, 1 - k), b];
@@ -171,13 +180,38 @@ const SkateKid = (() => {
             }
         }
     }
+    // The same boot kicked at the camera: its sole, toe towards −y, a sliver of the upper at
+    // the instep's side. The ankle is at the origin (behind the heel).
+    function shoeSole(g, K, sh, flip, key) {
+        const z = (K.S.ankle / 11) * (sh.size ?? 1), w = K.w;
+        const p = (pts) => pts.map(([x, y, c]) => [(flip ? -x : x) * z, y * z, c]);
+        T.shape(g, p([[-5.4, 5, 1], [-10.4, -3], [-10.6, -12], [-7.4, -19], [-6.6, -11], [-6, -2]]), { fill: sh.upper, w, seed: key + 'su' });
+        const out = [[-5.4, 6.4], [-6.6, -2], [-7.6, -12], [-5.6, -19.6], [0, -22.6], [5.8, -19.8], [8.4, -12], [7.2, -3], [6.2, 6.4], [3.2, 10], [-2.6, 10]];
+        T.shape(g, p(out), { fill: sh.sole, w, seed: key + 'so' });
+        if (sh.stripe) T.line(g, p(out.map(([x, y]) => [x * 0.86, (y + 6) * 0.9 - 6])), { w: w * 0.8, seed: key + 'sw', color: sh.stripe, closed: true });
+        // the tread: a block under the ball of the foot, one under the heel, ribs across both
+        const fore = [[-4.6, -5.4, 1], [-5, -12], [-3.6, -17.4], [0, -19.4], [3.8, -17.6], [5.6, -12], [4.8, -5.2, 1]];
+        const heel = [[-3.6, 0.2, 1], [3.8, 0.2, 1], [4, 5], [1.8, 7.4], [-1.6, 7.4], [-3.8, 5]];
+        T.shape(g, p(fore), { fill: sh.tread ?? C.grey, w: K.fine, seed: key + 'tf' });
+        T.shape(g, p(heel), { fill: sh.tread ?? C.grey, w: K.fine, seed: key + 'th' });
+        for (const y of [-16.4, -13.8, -11.2, -8.6]) T.line(g, p([[-4.4 + Math.abs(y + 12) * 0.14, y], [4.6 - Math.abs(y + 12) * 0.14, y + 0.3]]), { w: K.fine * 0.9, seed: key + 'rb' + y, amp: 0.1 });
+        for (const y of [2.4, 4.6]) T.line(g, p([[-3.2, y], [3.4, y + 0.2]]), { w: K.fine * 0.9, seed: key + 'rh' + y, amp: 0.1 });
+        const [ax, ay] = p([[0.4, -2.6]])[0];
+        T.shape(g, T.ellipse(ax, ay, 2.2 * z, 1.3 * z, 0, 8), { fill: sh.stripe ?? C.red, w: K.fine * 0.8, seed: key + 'arch' });
+    }
     function shoes(g, K) {
-        const { S, J } = K;
-        for (const i of [0, 1]) {
+        const { S, J } = K, bt = K.P.turn;
+        // the far foot first, so a boot kicked forwards lies over the other leg
+        const order = (J.feet[0][3]?.scale ?? 1) > (J.feet[1][3]?.scale ?? 1) ? [1, 0] : [0, 1];
+        for (const i of order) {
+            const o = J.feet[i][3] ?? {};
+            const flip = o.flip ?? (Math.abs(bt) > 0.45 ? bt < 0 : i === 0);
             g.save();
             g.translate(J.ankle[i][0], J.ankle[i][1]);
             g.rotate(J.feet[i][2] ?? 0);
-            (S.shoe ?? shoe)(g, K, S.shoes, i === 0, S.seed + 'shoe' + i);
+            if (o.scale) g.scale(o.scale, o.scale);
+            const KK = o.scale ? { ...K, w: K.w / o.scale, fine: K.fine / o.scale } : K;
+            (o.view === 'sole' ? shoeSole : S.shoe ?? shoe)(g, KK, S.shoes, flip, S.seed + 'shoe' + i);
             g.restore();
         }
     }
@@ -273,7 +307,7 @@ const SkateKid = (() => {
         g.save();
         g.translate(J.wrist[i][0], J.wrist[i][1]);
         g.rotate(th);
-        T.hand(g, P.hands[i], S.hand, { side: i === 0 ? 'R' : 'L', back: P.handBack[i], fill: S.skin, w, seed: S.seed + 'hand' + i, arm: { poly }, armOnly: part === 'back' });
+        T.hand(g, P.hands[i], S.hand * (P.handScale[i] ?? 1), { side: i === 0 ? 'R' : 'L', back: P.handBack[i], fill: S.skin, w, seed: S.seed + 'hand' + i, arm: { poly }, armOnly: part === 'back' });
         g.restore();
         if (part === 'back') return sleeve(g, K, i);
         if (S.wrist?.[i]) {
@@ -288,18 +322,20 @@ const SkateKid = (() => {
     // below the chest hangs towards the ground whatever the spine does.
     function torso(g, K) {
         const { S, J, w } = K, tp = S.top, t = S.torso, P = K.P;
-        const sw = S.shoulder + 2.4, bw = tp.bw, hem = tp.hem, nk = tp.neckW;
+        const bt = P.turn, sw = S.shoulder + 2.4, bw = tp.bw, hem = tp.hem, nk = tp.neckW;
+        const sx = (sd) => sd * (S.shoulder * J.far(sd) + 2.4), bx = (sd) => sd * bw * (1 - 0.2 * Math.max(0, sd * bt)), nx = bt * 1.8;
         const hang = -Math.sin(P.lean) * (t + hem) * 0.55; // the hem lags behind a lean
         const shY = (s) => -t + 1.2 + Math.sin(P.tilt) * s * S.shoulder;
         const hemY = (x) => hem + 1.3 * (1 - Math.pow(x / bw, 2)) + 0.5 * Math.sin((x / bw) * 5 + 1);
         const hx = (x) => x + hang;
         const outline = [
-            [-nk, shY(-1) - 1.7, 1], [-sw, shY(-1), 1], [-sw - 0.5, -t + 7.5], [-bw * 0.96 + hang * 0.4, -t * 0.34],
-            [hx(-bw), hem - 0.3, 1], [hx(-bw * 0.5), hemY(-bw * 0.5)], [hx(0), hemY(0)], [hx(bw * 0.5), hemY(bw * 0.5)], [hx(bw), hem - 0.5, 1],
-            [bw * 0.96 + hang * 0.4, -t * 0.34], [sw + 0.5, -t + 7.5], [sw, shY(1), 1], [nk, shY(1) - 1.7, 1],
-            ...(tp.collar === 'v' ? [[0, -t + 5.4, 1]] : [[nk * 0.6, -t + 1.4], [0, -t + 2.3], [-nk * 0.6, -t + 1.4]]),
+            [nx - nk, shY(-1) - 1.7, 1], [sx(-1), shY(-1), 1], [sx(-1) - 0.5, -t + 7.5], [bx(-1) * 0.96 + hang * 0.4, -t * 0.34],
+            [hx(bx(-1)), hem - 0.3, 1], [hx(bx(-1) * 0.5), hemY(-bw * 0.5)], [hx(0), hemY(0)], [hx(bx(1) * 0.5), hemY(bw * 0.5)], [hx(bx(1)), hem - 0.5, 1],
+            [bx(1) * 0.96 + hang * 0.4, -t * 0.34], [sx(1) + 0.5, -t + 7.5], [sx(1), shY(1), 1], [nx + nk, shY(1) - 1.7, 1],
+            ...(tp.collar === 'v' ? [[nx, -t + 5.4, 1]] : [[nx + nk * 0.6, -t + 1.4], [nx, -t + 2.3], [nx - nk * 0.6, -t + 1.4]]),
         ];
-        const B = { t, bw, hem, sw, nk, hang, hemY, hx };
+        // B.fx: how far the chest's middle has turned (prints and pockets follow it)
+        const B = { t, bw, hem, sw, nk, hang, hemY, hx, nx, fx: bt * bw * 0.22 };
         g.save();
         g.translate(J.hipC[0], J.hipC[1]);
         g.rotate(P.lean);
@@ -316,7 +352,8 @@ const SkateKid = (() => {
     }
     function neck(g, K) {
         const { S, J, w } = K, tp = S.top, t = S.torso;
-        const base = J.tor([0, -t + 2.4]);
+        const nx = K.P.turn * 1.8;
+        const base = J.tor([nx, -t + 2.4]);
         T.shape(g, T.ribbon([base, J.headC], S.neckD, S.neckD * 0.94), { fill: S.skin, w, seed: S.seed + 'neck', dense: true });
         if (tp.collar === 'round') {
             // the collar's rib passes in front of the neck
@@ -324,6 +361,7 @@ const SkateKid = (() => {
             g.save();
             g.translate(J.hipC[0], J.hipC[1]);
             g.rotate(K.P.lean);
+            g.translate(nx, 0);
             const band = T.ribbon([[-nk - 0.2, -t - 0.9], [-nk * 0.62, -t + 1.7], [0, -t + 2.7], [nk * 0.62, -t + 1.7], [nk + 0.2, -t - 0.9]], 2.3, 2.3);
             T.shape(g, band, { fill: tp.collarColor ?? tp.color, w: K.fine, seed: S.seed + 'col', dense: true });
             for (const x of [-0.5, -0.2, 0.12, 0.42]) T.line(g, [[x * nk * 1.7, -t + 1.3 + (1 - Math.abs(x) * 2.2) * 0.6], [x * nk * 1.9, -t + 3.2 + (1 - Math.abs(x) * 2.2) * 0.8]], { w: K.fine * 0.75, seed: S.seed + 'rib' + x, amp: 0 });
@@ -335,13 +373,16 @@ const SkateKid = (() => {
     function eyes(g, K, H) {
         const { S, w } = K, E = S.eye, F = K.P.face;
         const wide = F.wide ?? 1;
+        // the head's frame always faces right: eye 0 is the near one, eye 1 the far one, which
+        // narrows and moves out to the edge as the head turns, the nose coming between them
+        const a = H.turn, gap = E.gap + a * (E.spread ?? S.head.w * 0.085);
         H.eyes = [0, 1].map((i) => {
-            const far = i === 1 ? H.turn : -H.turn; // > 0: this eye is on the far side
-            const r = E.r[i] * (1 - 0.16 * Math.max(0, far)) * (1 + 0.04 * Math.max(0, -far)) * wide;
-            return { r, ry: r * (E.tall ?? 1.08), y: E.y + (i ? 0.5 : -0.3) };
+            const ry = E.r[i] * (i ? 1 - 0.08 * a : 1 + 0.05 * a) * (E.tall ?? 1.08) * wide;
+            const r = E.r[i] * (i ? 1 - 0.24 * a : 1 + 0.05 * a) * wide;
+            return { r, ry, y: E.y + (i ? 0.5 + a * 1.2 : -0.3) };
         });
-        H.eyes[0].x = E.x + H.fx - E.gap / 2 - H.eyes[0].r;
-        H.eyes[1].x = E.x + H.fx + E.gap / 2 + H.eyes[1].r;
+        H.eyes[0].x = E.x + H.fx - gap / 2 - H.eyes[0].r;
+        H.eyes[1].x = E.x + H.fx + gap / 2 + H.eyes[1].r;
         H.eyes.forEach((e, i) => {
             const key = S.seed + 'eye' + i, s = i ? 1 : -1;
             if (F.blink) {
@@ -350,7 +391,7 @@ const SkateKid = (() => {
             } else {
                 const lid = Math.max(0, Math.min(0.85, F.lid ?? 0));
                 const pr = e.r * (E.pupil ?? 0.19);
-                let lx = F.look[0], ly = F.look[1];
+                let lx = F.look[0] * H.d, ly = F.look[1];
                 const ll = Math.hypot(lx, ly);
                 if (ll > 1) (lx /= ll), (ly /= ll);
                 const reach = e.r - pr - w * 0.9;
@@ -387,8 +428,8 @@ const SkateKid = (() => {
         });
     }
     function nose(g, K, H) {
-        const { S, w } = K, N = S.nose, x = N.x + H.fx * 1.25, y = N.y, z = N.size;
-        const d = H.turn < -0.15 ? -1 : 1; // the nose points the way the head turns
+        const { S, w } = K, N = S.nose, x = N.x + H.fx * 1.05 + H.turn * 1.6, y = N.y - H.turn * (N.rise ?? 1.2), z = N.size * (1 + 0.25 * H.turn);
+        const d = 1; // the head's frame faces right
         const key = S.seed + 'nose';
         // 'c': a hook with a curl of nostril, as the genre draws small noses
         if (N.kind === 'c') T.line(g, [[x - d * z * 0.5, y - z * 1.1], [x + d * z * 0.5, y - z * 0.7], [x + d * z * 0.95, y + z * 0.1], [x + d * z * 0.4, y + z * 0.75], [x - d * z * 0.5, y + z * 0.55], [x - d * z * 0.75, y - z * 0.05], [x - d * z * 0.35, y - z * 0.3]], { w, seed: key });
@@ -404,7 +445,7 @@ const SkateKid = (() => {
      */
     function mouth(g, K, H) {
         const { S, w } = K, M = S.mouth, kind = K.P.face.mouth ?? 'smile';
-        const x = M.x + H.fx * 0.9, y = M.y, mw = M.w, h = mw / 2;
+        const x = M.x + H.fx * 1.1, y = M.y, mw = M.w * (1 - 0.14 * H.turn), h = mw / 2;
         const key = S.seed + 'mouth';
         const cheeks = (yy = 0) => {
             for (const s of [-1, 1]) T.line(g, [[x + s * (h + 0.4), y + yy - 2.6], [x + s * (h + 1.9), y + yy - 0.6], [x + s * (h + 1.2), y + yy + 1.8]], { w: K.fine, seed: key + 'ch' + s });
@@ -494,32 +535,38 @@ const SkateKid = (() => {
         }
     }
     function ears(K, H) {
-        const { S } = K, r = S.ear.r, hw = S.head.w / 2;
+        const { S } = K, r = S.ear.r, hw = S.head.w / 2, a = H.turn;
         if (!r) return [];
         const out = [];
         for (const s of [-1, 1]) {
-            // the ear on the side the head turns to slides behind the head
-            const hide = Math.max(0, s * H.turn);
-            const x = s * (hw - 0.8 + (S.ear.out ?? 0)) - H.turn * hw * 0.12 - s * hide * r * 1.6;
-            const y = S.ear.y;
-            const poly = T.path([[x - s * r * 0.3, y - r * 0.9], [x + s * r * 0.6, y - r * 1.25], [x + s * r * 1.3, y - r * 0.6], [x + s * r * 1.2, y + r * 0.5], [x + s * r * 0.5, y + r * 1.2], [x - s * r * 0.3, y + r * 0.8]], true);
-            out.push({ s, x, y, r, poly, hidden: hide > 0.75 });
+            // the near ear (on the left of a head facing right) moves in from the edge as the
+            // head turns; the far one goes behind the head
+            if (s > 0 && a > 0.25) continue;
+            const x = s * (hw - 0.8 + (S.ear.out ?? 0)) + (s < 0 ? a * hw * 0.34 : -a * r * 4);
+            const y = S.ear.y + (s < 0 ? a * 1.2 : 0), k = s < 0 ? 1 + a * 0.15 : 1;
+            const poly = T.path([[x - s * r * 0.3, y - r * 0.9 * k], [x + s * r * 0.6, y - r * 1.25 * k], [x + s * r * 1.3, y - r * 0.6 * k], [x + s * r * 1.2, y + r * 0.5 * k], [x + s * r * 0.5, y + r * 1.2 * k], [x - s * r * 0.3, y + r * 0.8 * k]], true);
+            out.push({ s, x, y, r, poly, inside: s < 0 && a > 0.3 });
         }
         return out;
     }
     function head(g, K) {
         const { S, J, P, w } = K, hd = S.head;
-        const H = { w: hd.w, h: hd.h, turn: P.head.turn, fx: P.head.turn * hd.w * (hd.slide ?? 0.15) };
+        const t = P.head.turn, a = Math.min(1, Math.abs(t)), d = t < 0 ? -1 : 1;
+        const H = { w: hd.w, h: hd.h, turn: a, d, fx: a * hd.w * (hd.slide ?? 0.2) };
         g.save();
         g.translate(J.headC[0], J.headC[1]);
         g.rotate(J.headRot);
+        g.scale(d, 1); // a head turned left is the mirror of one turned right
         if (S.hairBack) S.hairBack(g, K, H);
-        const pts = hd.pts ?? [[-hd.w * 0.36, -hd.h * 0.46], [hd.w * 0.3, -hd.h * 0.5], [hd.w * 0.5, -hd.h * 0.08], [hd.w * 0.4, hd.h * 0.36], [0, hd.h * 0.5], [-hd.w * 0.42, hd.h * 0.34], [-hd.w * 0.5, -hd.h * 0.1]];
+        let pts = hd.pts ?? [[-hd.w * 0.36, -hd.h * 0.46], [hd.w * 0.3, -hd.h * 0.5], [hd.w * 0.5, -hd.h * 0.08], [hd.w * 0.4, hd.h * 0.36], [0, hd.h * 0.5], [-hd.w * 0.42, hd.h * 0.34], [-hd.w * 0.5, -hd.h * 0.1]];
+        // the three-quarter outline (same points, moved): the back of the skull out, the face's side in
+        if (hd.pts34) pts = pts.map((q, i) => [q[0] + (hd.pts34[i][0] - q[0]) * a, q[1] + (hd.pts34[i][1] - q[1]) * a, q[2]]);
         const E = ears(K, H);
         H.outline = T.path(pts, true);
-        T.skin(g, [...E.map((e) => e.poly), H.outline], { fill: S.skin, w, seed: S.seed + 'head' });
-        // inside each ear: a hook and a curl
-        for (const e of E) if (!e.hidden) {
+        T.skin(g, [...E.filter((e) => !e.inside).map((e) => e.poly), H.outline], { fill: S.skin, w, seed: S.seed + 'head' });
+        for (const e of E) {
+            // an ear inside the outline keeps its own line
+            if (e.inside) T.shape(g, e.poly, { fill: S.skin, w, seed: S.seed + 'earin', dense: true });
             T.line(g, [[e.x + e.s * e.r * 0.2, e.y - e.r * 0.55], [e.x + e.s * e.r * 0.85, e.y - e.r * 0.5], [e.x + e.s * e.r * 0.8, e.y + e.r * 0.2], [e.x + e.s * e.r * 0.3, e.y + e.r * 0.35]], { w: K.fine, seed: S.seed + 'ear' + e.s });
             T.line(g, [[e.x + e.s * e.r * 0.5, e.y - e.r * 0.05], [e.x + e.s * e.r * 0.25, e.y + e.r * 0.62]], { w: K.fine, seed: S.seed + 'earb' + e.s });
         }
@@ -527,7 +574,7 @@ const SkateKid = (() => {
             g.fillStyle = S.freckleColor ?? shade(S.skin, 0.62);
             for (const [fx, fy] of S.freckles) {
                 g.beginPath();
-                g.arc(fx + H.fx, fy, K.fine * 0.36, 0, Math.PI * 2);
+                g.arc(fx * (1 - 0.1 * a) + H.fx, fy, K.fine * 0.36, 0, Math.PI * 2);
                 g.fill();
             }
         }

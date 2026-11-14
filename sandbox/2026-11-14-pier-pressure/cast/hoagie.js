@@ -2,7 +2,7 @@
 // trick in frame. A head wider than it is tall, a buzz cut with one cowlick, braces, ears
 // like jug handles, a Hawaiian shirt, cargo shorts.
 (() => {
-    const T = SkateToon, C = T.COL, { dot } = Cast;
+    const T = SkateToon, C = T.COL, { dot, turned } = Cast;
     const { add, mix } = SkateKid;
     const flower = (g, K, x, y, r, a, key) => {
         g.save();
@@ -18,19 +18,23 @@
     const SHIRT = C.orange, HAIRC = '#d9a441';
     const hoagie = {
         seed: 'hoagie', skin: C.skinPale,
-        leg: 25, torso: 25, shoulder: 12.5, hipW: 8, armD: [4.7, 3.9], legD: [5.6, 4.6], neck: 4, neckD: 5, stance: 13.5, upper: 13.5, fore: 13, hand: 13.5, ankle: 8.8,
-        head: { w: 57, h: 33, slide: 0.16, pts: [[-21, -14.6], [0, -16.6], [21, -14.6], [28.6, -3], [26, 9.4], [12, 16.4], [-10, 16.6], [-25, 10.4], [-28.6, -2]] },
+        leg: 25, torso: 26, shoulder: 14, hipW: 9.5, armD: [4.7, 3.9], legD: [5.6, 4.6], neck: 4, neckD: 5, stance: 13.5, upper: 13.5, fore: 13, hand: 13.5, ankle: 8.8,
+        head: {
+            w: 57, h: 33, slide: 0.2,
+            pts: [[-21, -14.6], [0, -16.6], [21, -14.6], [28.6, -3], [26, 9.4], [12, 16.4], [-10, 16.6], [-25, 10.4], [-28.6, -2]],
+            pts34: [[-24, -14.6], [-3, -17], [17, -15.6], [25, -5], [25.6, 7.6], [15, 16], [-6, 17], [-25.6, 11], [-31, -2]],
+        },
         eye: { x: 0, y: -4, r: [5.4, 5], gap: 6.4, pupil: 0.3, brow: true, browW: 1.5, tall: 1.06 },
         nose: { x: 0, y: 3, kind: 'big', size: 3.6, color: '#f9b9a4' },
         mouth: { x: 0, y: 9.4, w: 28, braces: true },
         ear: { y: 0, r: 6, out: 0.4 },
         freckles: [[-15.6, 2.6], [-18.6, 5], [-14, 6.2], [-17.4, 8.4], [15.4, 3], [18.6, 5.4], [13.6, 6.4], [17, 8.6]],
         top: {
-            color: SHIRT, sleeve: 10.5, sleeveW: 15.5, bw: 20, hem: 4.5, neckW: 5, collar: 'v', cuff: '#c8551c',
+            color: SHIRT, sleeve: 11, sleeveW: 17, bw: 24.5, hem: 4.5, neckW: 5, collar: 'v', cuff: '#c8551c',
             print: (g, K, B) => {
                 const R = Motion.rng('hoagie-aloha');
-                for (const [x, y] of [[-12.5, 6], [9.5, 4.2], [14.5, 15], [-14, 19], [4, 26], [-3.4, 13.4], [15, 26.6], [-9, 28], [-17.4, 10.6]]) flower(g, K, x, -B.t + y, 3.6 + R() * 0.9, R() * 6, 'hoagie-fl' + x);
-                for (const [x, y, a] of [[-6, 5, 0.6], [2, 19.4, 2.4], [-11, 13.4, 1.2], [15, 8.6, -0.7], [-3.6, 23, 0.2], [10, 21, 1.9], [-16.6, 24.6, -0.4]]) T.shape(g, T.ellipse(x, -B.t + y, 2.8, 1, a, 8), { fill: C.khaki, w: K.fine * 0.6, seed: 'hoagie-lf' + x });
+                for (const [x, y] of [[-14.5, 6], [11.5, 4.2], [17.5, 15], [-17, 19], [5, 26.6], [-4.4, 13.4], [18, 27], [-10, 28.6], [-21.4, 10.6], [21, 6.4], [-21, 27]]) flower(g, K, x + B.fx, -B.t + y, 3.8 + R() * 0.9, R() * 6, 'hoagie-fl' + x);
+                for (const [x, y, a] of [[-7, 5, 0.6], [2, 19.4, 2.4], [-13, 13.4, 1.2], [17, 9.6, -0.7], [-3.6, 23, 0.2], [11.6, 21, 1.9], [-19.6, 21.6, -0.4], [22, 21, 0.9]]) T.shape(g, T.ellipse(x + B.fx, -B.t + y, 2.8, 1, a, 8), { fill: C.khaki, w: K.fine * 0.6, seed: 'hoagie-lf' + x });
             },
             sleevePrint: (g, K, at, L, W) => {
                 const [x, y] = at(L * 0.55, 0.6);
@@ -38,14 +42,15 @@
             },
             draw: (g, K, B) => {
                 // an open camp collar and a button placket
-                for (const s of [-1, 1]) T.shape(g, [[s * 4, -B.t - 0.6, 1], [s * 11, -B.t + 2.2, 1], [s * 4.4, -B.t + 9.4, 1], [s * 0.4, -B.t + 4.4, 1]], { fill: SHIRT, w: K.w, seed: 'hoagie-col' + s });
-                T.line(g, [[0.5, -B.t + 6.4], [0.2 + B.hang, B.hem + 0.6]], { w: K.fine, seed: 'hoagie-plk' });
-                for (let i = 0; i < 3; i++) dot(g, 2.2 + B.hang * (i / 3), -B.t + 11.6 + i * 6.4, K.fine * 0.42, C.white);
+                const cx = B.nx;
+                for (const s of [-1, 1]) T.shape(g, [[cx + s * 4, -B.t - 0.6, 1], [cx + s * 11, -B.t + 2.2, 1], [cx + s * 4.4, -B.t + 9.4, 1], [cx + s * 0.4, -B.t + 4.4, 1]], { fill: SHIRT, w: K.w, seed: 'hoagie-col' + s });
+                T.line(g, [[cx + 0.5, -B.t + 6.4], [B.fx + 0.2 + B.hang, B.hem + 0.6]], { w: K.fine, seed: 'hoagie-plk' });
+                for (let i = 0; i < 3; i++) dot(g, cx + (B.fx - cx) * (i / 3) + 2.2 + B.hang * (i / 3), -B.t + 11.6 + i * 6.4, K.fine * 0.42, C.white);
                 // a chest pocket
-                T.shape(g, [[-13.4, -B.t + 9.4, 1], [-7, -B.t + 9, 1], [-7, -B.t + 14], [-10.2, -B.t + 15.6], [-13.4, -B.t + 14.4]], { fill: null, w: K.fine, seed: 'hoagie-pk' });
+                T.shape(g, [[-16.4 + B.fx, -B.t + 9.4, 1], [-9.6 + B.fx, -B.t + 9, 1], [-9.6 + B.fx, -B.t + 14], [-13 + B.fx, -B.t + 15.6], [-16.4 + B.fx, -B.t + 14.4]], { fill: null, w: K.fine, seed: 'hoagie-pk' });
             },
         },
-        bottom: { kind: 'shorts', color: '#8b8f1c', len: 1.12, wide: [15.5, 18],
+        bottom: { kind: 'shorts', color: '#8b8f1c', len: 1.12, wide: [18.5, 21],
             draw: (g, K, hems) => {
                 // cargo pockets with flaps
                 hems.forEach(([e, u, d, hj], i) => {
@@ -60,11 +65,12 @@
         socks: { color: C.white, up: 0.4, stripes: [C.navy] },
         hairBack: (g, K, H) => {
             // one cowlick standing up at the crown
-            T.shape(g, [[-3.4, -15, 1], [-2.4, -21], [1.6, -24.6], [6.4, -23.4], [5.4, -20.4], [2.6, -20.6], [1.6, -18], [3.4, -15, 1]], { fill: HAIRC, w: K.w, seed: 'hoagie-cow' });
+            T.shape(g, turned([[-3.4, -15, 1], [-2.4, -21], [1.6, -24.6], [6.4, -23.4], [5.4, -20.4], [2.6, -20.6], [1.6, -18], [3.4, -15, 1]], H.turn).map(([x, y, c]) => [x - H.turn * 4, y, c]), { fill: HAIRC, w: K.w, seed: 'hoagie-cow' });
         },
         hairFront: (g, K, H) => {
             // a buzz cut: a low cap with a peak in the middle and stubble
-            T.shape(g, [[-28.2, -5.4, 1], [-20, -10], [-8, -10.6], [0 + H.fx * 0.4, -7.6, 1], [8, -10.6], [20, -10], [28.2, -5.4, 1], [26, -11.6], [20.6, -15.6], [0, -17.8], [-20.6, -15.6], [-26, -11.6]], {
+            const a = H.turn;
+            T.shape(g, turned([[-28.2 + a * 3, -5.4 + a * 7, 1], [-22 + a * 5, -9.4 + a * 3, 1], [-8 + H.fx * 0.6, -10.6], [0 + H.fx * 0.8, -7.6, 1], [8 + H.fx * 0.5, -10.6], [20, -10 - a], [28.2, -5.4 - a * 2.6, 1], [26, -11.6 - a], [20.6, -15.6], [0, -17.8], [-20.6, -15.6], [-26, -11.6], [-28.8, -7 + a * 2]], a, 3.4, 0.14), {
                 fill: HAIRC, w: K.w, seed: 'hoagie-buzz',
                 inside: (gg) => {
                     const R = Motion.rng('hoagie-stubble');
@@ -78,7 +84,7 @@
         over: (g, K) => {
             // the family camcorder on a neck strap
             const { J, S } = K, w = K.w, fine = K.fine;
-            const c = J.tor([0.6, -S.torso * 0.4]);
+            const c = add(J.tor([0.6 + K.P.turn * 3, -S.torso * 0.4]), K.P.cam ?? [0, 0]);
             for (const s of [-1, 1]) T.line(g, [J.tor([s * 4.4, -S.torso + 0.6]), mix(J.tor([s * 4.4, -S.torso + 0.6]), add(c, [s * 8, -6]), 0.55), add(c, [s * 8, -6])], { w: w * 1.5, seed: 'cam-strap' + s, color: '#2a2530', taper: false });
             g.save();
             g.translate(c[0], c[1]);

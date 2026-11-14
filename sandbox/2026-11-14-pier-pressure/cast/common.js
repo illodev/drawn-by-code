@@ -40,12 +40,16 @@
         return T.shape(g, body, { fill, w: o.w ?? K.w, seed: key, dense: true });
     };
 
+    // Points of something that sits on the skull (a cap of hair, a helmet, a band), carried
+    // round as the head turns to the right by a (0..1): the back goes out, the far side comes in.
+    const turned = (pts, a, back = 2.8, far = 0.17) => pts.map(([x, y, c]) => [x < 0 ? x - a * back * Math.min(1, -x / 8) : x * (1 - far * a), y, c]);
+
     function draw(g, who, pose, x, y, s) {
         merged[who] ??= { ...SkateKid.merge(SPECS[who]), __merged: true };
         return SkateKid.draw(g, merged[who], pose, x, y, s * (SIZE[who] ?? 1));
     }
     window.Cast = {
-        SPECS, SIZE, draw, dot, star, plaster, lock,
+        SPECS, SIZE, draw, dot, star, plaster, lock, turned,
         add: (name, spec, size = 1) => {
             SPECS[name] = spec;
             SIZE[name] = size;

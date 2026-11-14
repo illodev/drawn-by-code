@@ -84,5 +84,38 @@
         g.restore();
     }
 
-    Object.assign(Cast, { board, scooter, bollard });
+    /** A paper cone of chips, its point on (x, y); rot tips it. chips: how many stick out. */
+    function cone(g, x, y, s, rotA = 0, chips = 5) {
+        const w = T.LINE / s, fine = T.LINE_FINE / s;
+        g.save();
+        g.translate(x, y);
+        g.scale(s, s);
+        g.rotate(rotA);
+        const R = Motion.rng('cone-chips');
+        for (let i = 0; i < chips; i++) {
+            const cx = -5.4 + (i / Math.max(1, chips - 1)) * 10.8, a = (cx / 9) * 0.7 + (R() - 0.5) * 0.3, l = 7 + R() * 5;
+            g.save();
+            g.translate(cx, -17);
+            g.rotate(a);
+            T.shape(g, [[-1.3, 2, 1], [-1.2, -l, 1], [1.2, -l - 0.6, 1], [1.4, 2, 1]], { fill: '#ffd76a', w: fine, seed: 'cone-chip' + i });
+            g.restore();
+        }
+        T.shape(g, [[0, 0, 1], [-8.6, -18.4, 1], [-3, -16.6], [3, -16.4], [8.8, -18, 1]], { fill: C.white, w, seed: 'cone-paper', inside: (gg) => {
+            for (let i = -2; i <= 2; i++) T.shape(gg, [[i * 3.9 - 0.9, -20, 1], [i * 3.9 + 0.9, -20, 1], [i * 0.6 + 0.4, 0.4, 1], [i * 0.6 - 0.4, 0.4, 1]], { fill: C.red, w: fine * 0.01, seed: 'cone-st' + i, stroke: false });
+        } });
+        T.line(g, [[-8.4, -18.2], [-3, -16.6], [3, -16.4], [8.6, -17.9]], { w: fine, seed: 'cone-rim' });
+        g.restore();
+    }
+    /** One loose chip in the air, its middle on (x, y). */
+    function chip(g, x, y, s, rotA = 0, len = 9) {
+        g.save();
+        g.translate(x, y);
+        g.scale(s, s);
+        g.rotate(rotA);
+        T.shape(g, [[-len / 2, -1.3, 1], [len / 2, -1.5, 1], [len / 2 + 0.3, 1.2, 1], [-len / 2, 1.4, 1]], { fill: '#ffd76a', w: T.LINE_FINE / s, seed: 'chip' + len });
+        T.line(g, [[-len * 0.2, -0.4], [len * 0.2, -0.5]], { w: (T.LINE_FINE / s) * 0.6, seed: 'chipl' + len, color: '#d99a2b' });
+        g.restore();
+    }
+
+    Object.assign(Cast, { board, scooter, bollard, cone, chip });
 })();

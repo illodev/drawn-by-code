@@ -33,9 +33,14 @@ for hand lettering (`fonts/Bangers-Regular.ttf`).
 - **Figure:** `SkateKid.draw(g, spec, pose, x, y, s)`. A spec gives sizes (`leg`, `torso`,
   `shoulder`…), the head's outline, `eye`, `nose`, `mouth`, `ear`, `top`, `bottom`, `shoes`,
   `socks`, and hooks drawn at their depth: `behind`, `hairBack`, `underFace`, `face`,
-  `hairFront` (head's frame), `over` (on the shirt), `front`. A pose gives `hip`, `lean`,
-  `tilt`, `feet`, `arms` (two angles each), `hands`, `armFront` (`true`, or `'fore'` for a
-  fist on a hip), `head { tilt, turn }`, `face { look, lid, blink, brow, mouth }`. Mouths:
+  `hairFront` (head's frame), `over` (on the shirt), `front`. A pose gives `hip`, `turn`
+  (the body in three quarters), `lean`, `tilt`, `feet` (each with `{ scale, view: 'sole',
+  flip }` for a boot kicked at the camera), `arms` (two angles each), `hands`, `handScale`,
+  `armFront` (`true`, or `'fore'` for a fist on a hip), `head { tilt, turn }` (a real
+  three-quarter head; give the spec's head a `pts34` outline), `face { look, lid, blink, brow,
+  mouth }`. The head's frame always faces right (a head turned left is mirrored), so hooks
+  draw for `H.turn` 0..1 and `H.fx`; `Cast.turned(pts, H.turn)` carries a cap of hair or a
+  helmet round the skull. Mouths:
   `smile grin open yell ooh flat frown smirk`. See the header of `kid.js` and any file in
   `sandbox/2026-11-14-pier-pressure/cast/`.
 
@@ -69,8 +74,13 @@ for hand lettering (`fonts/Bangers-Regular.ttf`).
   the cloth, flowers with leaves, a bib with buttons and one strap undone).
 - **Hands:** five fat sausage fingers of even width fanned from a palm that is wider than the
   wrist, a thumb with a fat root, one hooked crease in the palm. One skin with the arm.
-- **Poses:** never symmetrical: the hips to one side, the shoulders tilted the other way, the
-  head tilted, each arm doing something different.
+- **Poses:** never symmetrical and never flat to the camera: the body and the head in three
+  quarters (`turn` 0.3–0.5 on the body, 0.5–0.85 on the head), the hips to one side, the
+  shoulders tilted the other way, the head tilted, each arm doing something different, and in
+  action one boot or one hand towards the camera, bigger (`scale` 1.4–1.5, `view: 'sole'`).
+- **Staging:** a scene, not a line-up: figures at different depths and sizes, overlapping,
+  the nearest cut by the frame, all of them after the same thing, in a set that is drawn
+  whole.
 - **Sets:** crooked perspective, flat pastel walls, every edge ruled separately so corners
   overshoot, loose ticks (often in pairs) on roads, walls and water, slanted gleams on glass.
 - **Motion:** drawings on twos; a bob on the beat, a wave, a blink; held poses that snap.
@@ -92,7 +102,8 @@ be under.
 - [ ] Inner lines (folds, teeth, creases) nearly as heavy as the contour, and one weight at every size?
 - [ ] Shirt about two thirds of the head's width, shorts like a box, limbs thin with soft joints?
 - [ ] Every head a different silhouette, with one mark that is only theirs?
-- [ ] No pose symmetrical; a raised hand clear of the head (the head is huge: raise arms outwards)?
+- [ ] No pose symmetrical or flat to the camera; in action, something foreshortened towards us; a raised hand clear of the head (the head is huge: raise arms outwards)?
+- [ ] Staged as a scene: depths, overlaps, a whole set behind?
 - [ ] Hands: five digits, right side, one skin with the arm; a fist on a hip uses `armFront: 'fore'`?
 - [ ] Sets: edges that overshoot, ticks on every large surface, nothing shaded?
 - [ ] Original characters and place names only?
@@ -103,3 +114,5 @@ be under.
 - 2026-11-14 · pier-pressure · With heads this big a hand raised straight up is behind the head: raise arms outwards (upper arm 1.7–2.0 rad, the forearm bent a further 0.5–0.9) or pass them in front.
 - 2026-11-14 · pier-pressure · Locks built as short wide ribbons come out as hexagons and leaves; draw hair as one shape with corners at the tips and valleys (tufts, a fringe) and add strand lines.
 - 2026-11-14 · pier-pressure · A forearm drawn again in front of the body (a fist on a hip) must start past the elbow, where the folded upper arm and its sleeve have left the forearm's band; clipped at the elbow it brought a wedge of upper arm over the sleeve and a hairline across the arm.
+- 2026-11-14 · pier-pressure · A model sheet of figures standing in a row, however finished, was judged against the reference's group shot («todavía le falta muchísimo»): what reads as the genre is the drawing in space (three-quarter heads whose far eye reaches the edge, a body turned, a boot kicked at the camera, figures overlapping at different depths, a whole set). Show the style as key art, and build the figure so it can turn and foreshorten before designing a cast on it.
+- 2026-11-14 · pier-pressure · A raised arm passed in front of the head brings its sleeve over the mouth: keep it behind the head and raise it outwards, unless the forearm alone crosses the body (`'fore'`).
