@@ -221,7 +221,7 @@ const SkateToon = (() => {
         const { w = LINE, color = COL.ink, seed = 'line', closed = false, dense = false, amp = 0.3, taper = true, cap = 'round', hand = false, over = null } = o;
         if (!pts || pts.length < 2) return;
         let p = dense ? pts : path(pts, closed);
-        p = wander(p, { seed, w, amp: hand && amp ? amp * 1.3 : amp, closed, len: hand ? 8 : 11 });
+        p = wander(p, { seed, w, amp: hand ? amp * 0.5 : amp, closed, len: hand ? 16 : 11 });
         if (closed) p = [...p, p[0], p[1]];
         if (over && p.length > 2) {
             // the pen runs a little past where the stroke was meant to end
@@ -229,7 +229,7 @@ const SkateToon = (() => {
             p = [e(p[0], p[2], over[0]), ...p, e(p[m - 1], p[m - 3], over[1])];
         }
         // a hand presses harder along a stroke than where the pen lands and lifts
-        const press = hand ? 0.24 : 0.13, end = hand ? 0.58 : 0.72;
+        const press = hand ? 0.1 : 0.13, end = hand ? 0.8 : 0.72;
         const n = p.length;
         g.strokeStyle = color;
         g.lineCap = cap;
@@ -257,9 +257,9 @@ const SkateToon = (() => {
      */
     function shape(g, pts, o = {}) {
         const { fill = COL.white, w = LINE, seed = 'shape', dense = false, stroke = true, color = COL.ink, amp = 0.3, inside = null, hand = false } = o;
-        // hand: the outline is inked as the hand inks it, one stroke per run between corners,
-        // each pressed and lifted, meeting the next a little past the corner
-        const runs = hand && !dense ? runsOf(pts, true).map((r, i) => wander(r, { seed: seed + 'r' + i, w, amp: amp * 1.3, len: 8 })) : null;
+        // hand: the outline is inked in strokes, one per run between corners, with a steady,
+        // confident hand: barely any wander, an even weight, strokes that meet at the corner
+        const runs = hand && !dense ? runsOf(pts, true).map((r, i) => wander(r, { seed: seed + 'r' + i, w, amp: amp * 0.5, len: 16 })) : null;
         const p = runs ? runs.flatMap((r) => r.slice(0, -1)) : wander(dense ? pts : path(pts, true), { seed, w, amp, closed: true });
         const P = pathOf(p);
         if (fill) {
@@ -274,7 +274,7 @@ const SkateToon = (() => {
         }
         if (stroke && runs) {
             const R = Motion.rng(seed + 'over');
-            for (const [i, r] of runs.entries()) line(g, r, { w, seed: seed + 's' + i, dense: true, amp: 0, color, hand: true, over: [R() * 0.7, 0.2 + R() * 0.9] });
+            for (const [i, r] of runs.entries()) line(g, r, { w, seed: seed + 's' + i, dense: true, amp: 0, color, hand: true, over: [R() * 0.15, R() * 0.25] });
         } else if (stroke) line(g, p, { w, seed, closed: true, dense: true, amp: 0, color });
         return p;
     }

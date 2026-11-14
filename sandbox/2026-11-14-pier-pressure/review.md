@@ -3,10 +3,13 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **Kit redrawn by hand, second pass (`review/kit-hero.jpg`), waiting for the user's
-verdict.** The rest of the cast and the key art (`review/key.jpg`) are still the puppet the
-user rejected in round 6: do not show them again as they are. No film yet; the style stays
-*in testing*.
+State: **reference first.** The user chose (round 8) to have the cast designed as generated
+concept art and replicated in code by measurement. Four model sheets of Kit are generated
+(ElevenLabs flow `IZ6WMwgNs2KXvoLAzy0H`, 760 credits) and wait for the user to pick one; the
+session could not download them (the fetch of the signed image URLs was denied), so the
+chosen PNG has to be put in `ref/` by the user or the download allowed. Everything drawn so
+far (the puppet cast, the key art, Kit by hand) is superseded as character art; the set, the
+kit's line and `boot3d` stay. No film yet; the style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -211,3 +214,28 @@ this way only if the user says this is the direction.
 
 Still short, seen at 2×: the tee and the shorts are simple next to the reference's (few
 folds, no trim); the hands are the chart's; the arms are even tubes.
+
+## Round 8 (user) · Kit by hand, second pass
+
+> Todavía se sigue viendo muy poco pulido. Parece que lo ha dibujado un niño.
+
+→ Two causes. The round-7 «hand» line was the wrong reading of «artificial»: wander, uneven
+pressure and strokes crossing at the corners are what a child's drawing looks like; the
+reference's line is steady, even and clean, and its irregularity is in the design of the
+shapes. And, under it, five rounds of designing blind: inventing a drawing by typing
+coordinates and correcting it from renders can copy a design well, it cannot produce one with
+a draughtsman's polish.
+
+- `hand` mode retuned to a steady hand (half the kit's wander, light pressure, strokes that
+  meet at the corner without crossing).
+- Asked the user where the design should come from: **generated concept art, replicated in
+  code** (chosen), their own drawings, or carrying on blind.
+- Generated four model sheets of Kit (standing and jumping, flat colour, on white) with the
+  connected image generator, from a description of the manner and of the character (no show
+  named). Could not look at them: the image host was not on the network allowlist (added to
+  the repo's environment, `elevenlabsusercontent.com`, with the user's approval) and then
+  the download itself was denied by the session's permission check. Not worked around.
+
+Next: the user picks a sheet (and it reaches `ref/`); then the replicate method (measure
+colours and regions, trace contours, one file per pose, `detail.mjs`-style comparison
+against the sheet) for Kit, and the same for the other five.
