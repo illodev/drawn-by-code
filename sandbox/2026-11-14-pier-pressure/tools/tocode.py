@@ -1,38 +1,39 @@
-"""Turn a measured character sheet into a drawing written as code.
+"""Turn an approved character sheet into a drawing written as code.
 
-    python3 -I tools/tocode.py ref/kit-sheet.webp cast/kit-drawn.js kit
+    python3 -I tools/tocode.py kit          (or: all)
 
-Where tools/trace.py copies the sheet as filled polygons (ink included), this writes the
-drawing the way a person would code it: every flat colour as a shape of a few control points
-([x, y] smooth, [x, y, 1] a corner), every line as a stroke along its centre with its own
-width, the solid blacks (pupils) as shapes, all grouped by body part. The engine draws it with
-its own line (cast/drawn.js), so the parts can be moved, restyled and recoloured.
+Reads ref/<who>-sheet.png, measures it (tools/measure.py) and writes cast/<who>-drawn.js: every
+flat colour as a shape of a few control points ([x, y] smooth, [x, y, 1] a corner), every line
+as a stroke along its centre with its own width (and colour, when it is not ink), the solid blacks (pupils) as shapes, grouped
+by body part. The engine draws it with its own line (cast/drawn.js), so the parts can be
+moved, restyled and recoloured.
 """
 import sys, os, math
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 import numpy as np
 from PIL import Image
 from scipy import ndimage as ndi
 from skimage import measure, morphology
-import trace as TR
+import measure as M
 
-UP = TR.UP
-# Per character and pose: the box of the sheet, and the body parts as polygons (sheet pixels),
-# tried in order; a shape belongs to the first part that holds its centre, else to `rest`.
-SHEETS = {
+UP = M.UP
+# HOLES: page seen through a figure (between an arm and the body, inside a strap), as the centres
+# of the sheet's enclosed pure-white regions; found by listing those regions and looking at them
+# (a white eye or a paper cone is such a region too, and is not listed here).
+HOLES = {
+    'kit': [(349, 343)],
+    'milo': [(360, 340)],
+    'pip': [(230, 487), (956, 485), (314, 291), (408, 366), (264, 347)],
+    'dot': [(181, 302), (384, 299)],
+    'hoagie': [(999, 112), (992, 175), (705, 307), (962, 240), (178, 263), (927, 278)],
+    'captain': [(277, 447), (760, 457), (1003, 289)],
+}
+# Per character: its poses, left to right on the sheet. A pose may give its box (else it is
+# found) and its body parts as polygons in sheet pixels, tried in order: a shape belongs to the
+# first part that holds its centre, else to `rest`. Without parts a pose is one part, 'body'.
+CAST = {
     'kit': {
-        'jump': {
-            'box': (540, 0, 740, 720), 'rest': 'torso',
-            'parts': [
-                ('head', [(560, 0), (1030, 0), (1030, 205), (950, 235), (930, 300), (770, 305), (700, 290), (700, 250), (600, 240), (560, 200)]),
-                ('armL', [(540, 222), (700, 250), (740, 350), (540, 392)]),
-                ('armR', [(950, 240), (1035, 205), (1040, 60), (1280, 60), (1280, 262), (1010, 285)]),
-                ('bootNear', [(1000, 300), (1060, 276), (1280, 262), (1280, 620), (1010, 620), (990, 450), (975, 380)]),
-                ('bootFar', [(780, 455), (920, 455), (920, 620), (780, 620)]),
-                ('shorts', [(660, 395), (1010, 395), (1010, 540), (660, 540)]),
-            ],
-            'order': ['armR', 'bootFar', 'shorts', 'bootNear', 'torso', 'head', 'armL'],
-        },
         'stand': {
             'box': (60, 0, 470, 720), 'rest': 'torso',
             'parts': [
@@ -46,7 +47,24 @@ SHEETS = {
             ],
             'order': ['board', 'bootR', 'bootL', 'shorts', 'armR', 'torso', 'head', 'armL'],
         },
+        'jump': {
+            'box': (540, 0, 740, 720), 'rest': 'torso',
+            'parts': [
+                ('head', [(560, 0), (1030, 0), (1030, 205), (950, 235), (930, 300), (770, 305), (700, 290), (700, 250), (600, 240), (560, 200)]),
+                ('armL', [(540, 222), (700, 250), (740, 350), (540, 392)]),
+                ('armR', [(950, 240), (1035, 205), (1040, 60), (1280, 60), (1280, 262), (1010, 285)]),
+                ('bootNear', [(1000, 300), (1060, 276), (1280, 262), (1280, 620), (1010, 620), (990, 450), (975, 380)]),
+                ('bootFar', [(780, 455), (920, 455), (920, 620), (780, 620)]),
+                ('shorts', [(660, 395), (1010, 395), (1010, 540), (660, 540)]),
+            ],
+            'order': ['armR', 'bootFar', 'shorts', 'bootNear', 'torso', 'head', 'armL'],
+        },
     },
+    'hoagie': {'film': {}, 'jump': {}},
+    'milo': {'stand': {}, 'fall': {}},
+    'pip': {'stand': {}, 'ride': {}},
+    'dot': {'stand': {}, 'serve': {}},
+    'captain': {'perch': {}, 'fly': {}},
 }
 
 
@@ -91,8 +109,9 @@ def outline(mask, tol):
     return (spec([tuple(q) for q in p], True) if len(p) >= 3 else None), best[0] / (UP * UP)
 
 
-def strokes(thin, dt):
-    """Centre lines of the thin ink: skeleton → paths between its nodes → control points + width."""
+def strokes(thin, dt, img, strong):
+    """Centre lines of the thin ink: skeleton → paths between its nodes → control points, width,
+    and the line's own colour when it is not ink (a seam drawn in brown, a thin navy stripe)."""
     sk = morphology.skeletonize(thin)
     pts = set(map(tuple, np.argwhere(sk)))
     nb = lambda p: [(p[0] + dr, p[1] + dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1) if (dr or dc) and (p[0] + dr, p[1] + dc) in pts]
@@ -148,15 +167,22 @@ def strokes(thin, dt):
             p = p[:-1]
         if len(p) < 2:
             continue
-        out.append((spec([tuple(q) for q in p], closed), round(w + 0.25, 1), closed, tuple(arr.mean(0))))
+        # the line's colour: the darkest of what lies under its centre. Ink is neutral; a line with
+        # a colour of its own (the dark red of a pair of glasses, a brown seam, a navy stripe) keeps it
+        px = np.array([img[q] for q in path]); lm = px @ np.array([0.299, 0.587, 0.114])
+        dk = px[lm <= np.percentile(lm, 30)].mean(0)
+        col = M.hexof(dk) if (dk.max() - dk.min() > 45 and M.lum(dk) > 38) else None
+        out.append((spec([tuple(q) for q in p], closed), round(w + 0.25, 1), closed, tuple(np.array(path).mean(0)), col))
     return out
 
 
-def pose(im, cfg):
-    box = cfg['box']
-    names, under, inkm = TR.measure_pose(im, box)
-    part_of = lambda r, c: next((n for n, poly in cfg['parts'] if inside((box[0] + c / UP, box[1] + r / UP), poly)), cfg['rest'])
-    items = {n: {'fills': [], 'lines': []} for n in cfg['order']}
+def pose(im, cfg, box, pal, holes):
+    names, paint, under, inkm, a, strong = M.measure_pose(im, box, pal, holes)
+    parts = cfg.get('parts', [])
+    rest = cfg.get('rest', 'body')
+    order = cfg.get('order', ['body'])
+    part_of = lambda r, c: next((n for n, poly in parts if inside((box[0] + c / UP, box[1] + r / UP), poly)), rest)
+    items = {n: {'fills': [], 'lines': []} for n in order}
     # flat colours, one shape per connected piece
     for k, nme in enumerate(names):
         if nme == 'ink':
@@ -164,14 +190,14 @@ def pose(im, cfg):
         lb, n = ndi.label(under == k)
         for i, sl in enumerate(ndi.find_objects(lb)):
             m = lb[sl] == i + 1
-            if m.sum() < 14 * UP * UP:
+            if m.sum() < 5 * UP * UP:
                 continue
-            sp, area = outline(m, 0.6 * UP)
+            sp, area = outline(m, (0.32 if m.sum() < 90 * UP * UP else 0.6) * UP)
             if not sp:
                 continue
             sp = [[round(p[0] + sl[1].start / UP, 1), round(p[1] + sl[0].start / UP, 1)] + p[2:] for p in sp]
             r, c = ndi.center_of_mass(m)
-            items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((area, TR.PAINT[nme], sp))
+            items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((area, paint[k], sp))
     # ink: the solid blacks as shapes, the rest as strokes along their centre
     dt = ndi.distance_transform_edt(inkm)
     hw = float(np.median(dt[morphology.skeletonize(inkm)]))
@@ -191,31 +217,36 @@ def pose(im, cfg):
             continue
         sp = [[round(p[0] + sl[1].start / UP, 1), round(p[1] + sl[0].start / UP, 1)] + p[2:] for p in sp]
         r, c = ndi.center_of_mass(m)
-        items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((0, TR.PAINT['ink'], sp))
-    for sp, w, closed, (r, c) in strokes(inkm & ~ndi.binary_erosion(solid, iterations=2), dt):
-        items[part_of(r, c)]['lines'].append((sp, w, closed))
-    return box, items, round(hw * 2 / UP, 2)
+        items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((0, M.INK_PAINT, sp))
+    for sp, w, closed, (r, c), col in strokes(inkm & ~ndi.binary_erosion(solid, iterations=2), dt, a, strong):
+        items[part_of(r, c)]['lines'].append((sp, w, closed, col))
+    return order, items, round(hw * 2 / UP, 2)
 
 
 def fmt(sp):
     return '[' + ', '.join('[' + ', '.join(f'{v:g}' for v in p) + ']' for p in sp) + ']'
 
 
-def main():
-    src, dst, who = sys.argv[1:4]
-    im = Image.open(src).convert('RGB')
+def convert(who):
+    src = f'ref/{who}-sheet.png'
+    im = Image.open(os.path.join(HERE, '..', src)).convert('RGB')
+    pal = M.palette(im)
+    cfgs = CAST[who]
+    found = M.boxes(im, len(cfgs))
+    holes = M.hole_mask(im, HOLES.get(who, []))
     out = [f'// {who}, drawn in code. Written by tools/tocode.py from the approved sheet {src}: each flat',
            '// colour is a shape of control points ([x, y] smooth, [x, y, 1] a corner), each line a stroke',
-           '// along its centre with its width, grouped by body part. Coordinates are the sheet\'s pixels',
-           '// inside the pose\'s box. Edit a point, a colour or a width here like any drawing in the repo;',
+           "// along its centre with its width, grouped by body part. Coordinates are the sheet's pixels",
+           "// inside the pose's box. Edit a point, a colour or a width here like any drawing in the repo;",
            '// run the tool again only to start over from the sheet.', '']
-    for name, cfg in SHEETS[who].items():
-        box, items, lw = pose(im, cfg)
+    for (name, cfg), fb in zip(cfgs.items(), found):
+        box = cfg.get('box', fb)
+        order, items, lw = pose(im, cfg, box, pal, holes)
         nf = sum(len(v['fills']) for v in items.values()); nl = sum(len(v['lines']) for v in items.values())
         npt = sum(len(f[2]) for v in items.values() for f in v['fills']) + sum(len(l[0]) for v in items.values() for l in v['lines'])
-        print(name, nf, 'shapes', nl, 'strokes', npt, 'control points; line', lw)
+        print(who, name, box, nf, 'shapes', nl, 'strokes', npt, 'control points; line', lw, flush=True)
         out.append(f"Drawn.def('{who}', '{name}', {{ w: {box[2]}, h: {box[3]}, line: {lw} }}, (part, S, L) => {{")
-        for pn in cfg['order']:
+        for pn in order:
             v = items[pn]
             if not v['fills'] and not v['lines']:
                 continue
@@ -223,12 +254,15 @@ def main():
             # the bigger shape first: what lies inside another is drawn on top of it
             for area, col, sp in sorted(v['fills'], key=lambda f: -f[0]):
                 out.append(f"    S('{col}', {fmt(sp)});")
-            for sp, w, closed in v['lines']:
-                out.append(f"    L({fmt(sp)}, {w:g}{', 1' if closed else ''});")
+            for sp, w, closed, col in v['lines']:
+                tail = f", {1 if closed else 0}, '{col}'" if col else (', 1' if closed else '')
+                out.append(f"    L({fmt(sp)}, {w:g}{tail});")
         out.append('});')
         out.append('')
+    dst = os.path.join(HERE, '..', 'cast', f'{who}-drawn.js')
     open(dst, 'w').write('\n'.join(out))
-    print(dst, os.path.getsize(dst) // 1024, 'KB')
+    print(f'cast/{who}-drawn.js', os.path.getsize(dst) // 1024, 'KB', flush=True)
 
 
-main()
+for who in (list(CAST) if sys.argv[1] == 'all' else sys.argv[1:]):
+    convert(who)

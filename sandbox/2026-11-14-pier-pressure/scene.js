@@ -7,7 +7,7 @@ Motion.scene({
     fps: 24,
     duration: 4,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', DIR + 'cast/kit-drawn.js', DIR + 'set.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', DIR + 'cast/kit-drawn.js', DIR + 'cast/kit-details.js', DIR + 'set.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     shots: [[0, 4, 'Kit over the quay']],

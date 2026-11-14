@@ -1,7 +1,9 @@
 // pier-pressure · runs the cast's drawings written as code (cast/<who>-drawn.js): shapes of
 // control points and strokes with a width, grouped by body part. Load after toon.js and
 // before the drawings.
-//   Drawn.def(who, pose, { w, h, line }, (part, S, L) => { … })   a drawing declares itself
+//   Drawn.def(who, pose, { w, h, line }, (part, S, L) => { … })   a drawing declares itself:
+//       part(name); S(colour, points); L(points, width, closed?, colour?)
+//   Drawn.add(who, pose, (part, S, L) => { … })   details authored by hand on top of one
 //   Drawn.draw(g, who, pose, x, y, s, { parts: { head: { rot, at: [x, y], dx, dy } }, ink })
 //   Drawn.size(who, pose) → [w, h]
 // Shapes are compiled once into paths through SkateToon.path (smooth runs between corners).
@@ -11,7 +13,14 @@ const Drawn = (() => {
     const T = SkateToon;
     const defs = {};
     function def(who, pose, meta, build) {
-        (defs[who] ??= {})[pose] = { meta, build, parts: null };
+        (defs[who] ??= {})[pose] = { meta, build, extra: [], parts: null };
+    }
+    // Details authored by hand on top of a drawing (cast/<who>-details.js): same callbacks;
+    // part(name) goes back into an existing part. Fills land over the part's fills and under
+    // every line; strokes after the part's own.
+    function add(who, pose, build) {
+        defs[who][pose].extra.push(build);
+        defs[who][pose].parts = null;
     }
     function compile(d) {
         if (d.parts) return d.parts;
@@ -24,11 +33,16 @@ const Drawn = (() => {
             if (closed) P.closePath();
             return P;
         };
-        d.build(
-            (name) => parts.push((cur = { name, fills: [], lines: [] })),
+        const cb = [
+            (name) => {
+                cur = parts.find((p) => p.name === name);
+                if (!cur) parts.push((cur = { name, fills: [], lines: [] }));
+            },
             (color, pts) => cur.fills.push({ color, P: toPath(pts, true) }),
-            (pts, w, closed) => cur.lines.push({ w, P: toPath(pts, !!closed) }),
-        );
+            (pts, w, closed, color) => cur.lines.push({ w, color, P: toPath(pts, !!closed) }),
+        ];
+        d.build(...cb);
+        for (const b of d.extra) b(...cb);
         return (d.parts = parts);
     }
     function draw(g, who, pose, x, y, s = 1, o = {}) {
@@ -62,10 +76,10 @@ const Drawn = (() => {
             }
             g.restore();
         }
-        g.strokeStyle = ink;
         for (const p of parts) {
             enter(p);
             for (const l of p.lines) {
+                g.strokeStyle = l.color ?? ink;
                 g.lineWidth = l.w * (o.weight ?? 1);
                 g.stroke(l.P);
             }
@@ -73,5 +87,5 @@ const Drawn = (() => {
         }
         g.restore();
     }
-    return { def, draw, size: (who, pose) => [defs[who][pose].meta.w, defs[who][pose].meta.h], parts: (who, pose) => compile(defs[who][pose]).map((p) => p.name) };
+    return { def, add, draw, size: (who, pose) => [defs[who][pose].meta.w, defs[who][pose].meta.h], parts: (who, pose) => compile(defs[who][pose]).map((p) => p.name) };
 })();

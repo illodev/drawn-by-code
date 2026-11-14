@@ -3,12 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **Kit is a drawing in code, in parts** (`cast/kit-drawn.js`, written by
-`tools/tocode.py` from her approved sheet; `review/kit-drawn.jpg`), moving on the set in a 4 s
-test (`render/pier-pressure.mp4`, `review/key.jpg`). Sheets for the other five are generated
-and wait for the user's picks. Earlier character art (the puppet cast, `dev/keyart-puppets.js`,
-`cast/kit-hero.js`) is superseded and kept as history. No film yet; the style stays
-*in testing*.
+State: **the whole cast is drawn in code** from the approved sheets (`ref/<who>-sheet.png` →
+`cast/<who>-drawn.js`, two poses each; `review/cast.jpg`, `review/cast-action.jpg`). Kit is in
+parts and moves on the set in a 4 s test (`render/pier-pressure.mp4`, `review/key.jpg`); the
+other five are one part per pose so far. Earlier character art (the puppet cast,
+`dev/keyart-puppets.js`, `cast/kit-hero.js`) is superseded and kept as history. No film yet;
+the style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -306,3 +306,63 @@ regions redrawn generously, in the order they are tested.
 Still off: where a turning part meets the still one (the sleeve at the shoulder) the line
 doubles by a pixel or two at the extremes; the plaster's own lines; parts are regions of the
 sheet, not yet a rig (no elbows, no mouth shapes): a shot needs its key poses drawn.
+
+## Round 11 (user) · the other five, and what went monochrome
+
+The user sent a zip with all 24 generated sheets (no picks: the choice was left to me) and,
+on Kit:
+
+> Hay cosas, como la tirita y algunos detalles que se han quedado monocromo
+
+→ Picks, one per character, by the cleanest line and the clearest two poses: Kit 2 (as
+before, now from the lossless PNG), Hoagie 3, Milo 2, Pip 2, Aunt Dot 2, Captain 2
+(`ref/<who>-sheet.png`).
+
+What had gone monochrome, and why: details drawn in a darker tone of their own colour, one
+sheet pixel wide (the plaster's outline and seams, eyelets, a seam), are neither a flat colour
+nor half ink, so the measuring read them as anti-aliasing and cleaned them away; thin dark
+stripes that are not black (navy on a sock) came out as black ink; and a dark magenta sat just
+under the «dark fill» threshold and was repainted with the nearest light red (Kit's bobbles).
+
+- `tools/measure.py` (replaces `trace.py`): the palette is clustered per sheet from the pixels
+  of flat areas only; a ridge of the ink share (higher than a pixel away on both sides) is a
+  line even when faint, and the shoulders of strong lines are not ridges, so nothing thickens;
+  a patch holding a little ink but clear of every line becomes a colour of its own; the
+  dark-fill threshold lowered.
+- Strokes carry their own colour when they are not ink (`L(points, width, closed, colour)`):
+  the plaster's seams are brown, a sock's stripe navy.
+- Page seen through a figure (between an arm and the body, inside the camcorder's strap,
+  through Pip's scooter) was painted as white cloth: such holes are listed per character
+  (`HOLES` in `tools/tocode.py`), found by marking every enclosed pure-white region on the
+  sheets and looking (eyes and paper cones are such regions too and stay white).
+- `tools/tocode.py all` writes the six drawings; `dev/cast/scene.js` lines them up.
+
+Limit that remains: the sheets are 1280×720, so a one-pixel detail is at the edge of what can
+be measured; the plaster now has its outline and part of its seams, not all. Sheets at two to
+four times the size would settle it.
+
+Round 11, continued. Getting there took four wrong turns in the measuring, each found by
+rendering and looking, not by the numbers:
+
+- the first ridge rule also caught the shoulders of strong lines along a jagged edge: on
+  Pip's thinner-lined sheet every outline thickened and broke into grey strokes → faint lines
+  are looked for only well clear of the strong ones, and must be long;
+- classifying dark colours through the ink-mix model hollowed the lines (a line's heart
+  fitted «dark grey with a little ink») → a pixel that is one of the sheet's colours in an
+  area thicker than a line is that colour, directly; near-ink colours never explain a mix, and
+  a dark colour explains a pixel only beside its own fill;
+- thin stripes of a palette colour (a red welt) were taken for faint lines and came out
+  blotchy → a pixel that matches a palette colour is a fill, however thin;
+- Milo's dark red glasses came out black twice: the frame is a band three pixels wide, never
+  «flat», so its colour was not in the palette at all → the palette also looks for colours
+  with a hue that nothing explains (neither a colour found, nor a mix of two).
+
+And one thing authored by hand: `cast/kit-details.js` (`Drawn.add`) draws Kit's plaster in
+both poses (band, outline, two seams, dots), after the sheet at 14× with a grid. A one-pixel
+detail on a 720p sheet cannot be measured; it can be drawn.
+
+`dev/cast/scene.js`: the line-up at relative heights and the six action poses. `review.mjs`:
+no warnings (25 ms a frame with all six). Kit against her sheet: 4.8 / 255.
+
+Still off: the tape on Milo's glasses lost its cross; a red speck on his neck; Kit's plaster
+sits a little high in the jump; only Kit is split into parts.
