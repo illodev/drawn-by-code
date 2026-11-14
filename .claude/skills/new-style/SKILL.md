@@ -65,3 +65,8 @@ Approved reference: sandbox/<experiment>/ (review/sheet.jpg)
 
 ## Lessons
 ```
+
+## Lessons
+
+- 2026-11-14 · pier-pressure · A character style is its construction before its finish: with the reference's line weight and palette exact, a figure with the wrong build (clothes as narrow as the neck, limbs of even width, generic heads, inner lines thinner than the contour) still read as a template. Measure the build on the reference (widths against the head, lengths against the height, line weight inside and outside) and put those numbers in the kit's defaults.
+- 2026-11-14 · pier-pressure · A style after a show is the show's drawing manner only: design an original cast and place (names, silhouettes, outfits, town) with the user before drawing, and keep the reference frames out of the repo.
