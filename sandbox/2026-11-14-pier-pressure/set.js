@@ -220,29 +220,68 @@
         if (o.top !== false && c[1] + yt < EYE && rt > 0.01) T.shape(g, circ[circ.length - 1], { fill: o.topFill ?? fill, w, seed: seed + 'top', dense: true, amp: 0.15 });
         if (o.under !== false && c[1] + yb > EYE && rb > 0.01) T.shape(g, circ[0], { fill: o.underFill ?? fill, w, seed: seed + 'und', dense: true, amp: 0.15 });
     }
-    // a rope on screen, with its volume: strand after strand, each a fat slanted lozenge laid
-    // over the last, so its edges are scalloped and every strand turns round the rope (a flat
-    // band with hatch marks read as a ribbon). d: its thickness; thin ropes stay a plain line
+    /**
+     * A rope on screen, as a laid rope looks: a smooth tube of even thickness, its strands seen as
+     * S-shaped lines that cross it on the slant and run tangent to its edges at both ends (the
+     * outline of a helix on a cylinder), never a ribbon with straight hatch marks or a string of
+     * beads. pts: its centreline; d: its thickness, a number or a function of u (0..1 along it:
+     * a rope coming towards the camera thickens); o.caps: 'both' | 'none' | 'start' | 'end' (cut
+     * ends are closed; a turn that goes on behind something is left open); thin ropes are a line.
+     */
     function rope(g, pts, d, o = {}) {
-        const { fill = P.rope, seed = 'rope', w = BG, dense = false, lay = true } = o;
-        const c = T.resample(dense ? pts : T.path(pts), Math.max(1.2, d * 0.5));
-        if (c.length < 2) return;
-        if (!lay || d < 5) return void T.shape(g, T.ribbon(c, d, d, { dense: true }), { fill, w, seed, dense: true, amp: 0.15 });
-        const lwS = Math.min(w, Math.max(1.2, d * 0.11));
-        g.fillStyle = fill;
-        g.strokeStyle = C.ink;
-        g.lineJoin = 'round';
-        for (let i = 0; i < c.length; i++) {
-            const a = c[Math.max(0, i - 1)], b = c[Math.min(c.length - 1, i + 1)];
-            const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) + 1.02;
+        const { fill = P.rope, seed = 'rope', w = BG, dense = false, lay = true, caps = 'both' } = o;
+        const dAt = typeof d === 'function' ? d : () => d, dm = dAt(0.5);
+        const c = T.resample(dense ? pts : T.path(pts), Math.max(1.1, dm * 0.42));
+        const n = c.length;
+        if (n < 2) return;
+        if (dm < 4.5) return void T.shape(g, T.ribbon(c, dm, dm, { dense: true }), { fill, w: Math.min(w, dm * 0.4), seed, dense: true, amp: 0.15 });
+        const tan = [], L = [], R = [], dd = [];
+        for (let i = 0; i < n; i++) {
+            const a = c[Math.max(0, i - 1)], b = c[Math.min(n - 1, i + 1)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+            const t = [(b[0] - a[0]) / l, (b[1] - a[1]) / l], h = dAt(i / (n - 1)) / 2;
+            tan.push(t);
+            dd.push(h * 2);
+            L.push([c[i][0] - t[1] * h, c[i][1] + t[0] * h]);
+            R.push([c[i][0] + t[1] * h, c[i][1] - t[0] * h]);
+        }
+        const trace = (q) => {
             g.beginPath();
-            g.ellipse(c[i][0], c[i][1], d * 0.6, d * 0.3, ang, 0, Math.PI * 2);
-            g.lineWidth = lwS;
-            g.fill();
+            q.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
+        };
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        // the tube: its fill, then its two edges (and its cut ends)
+        trace([...L, ...R.slice().reverse()]);
+        g.closePath();
+        g.fillStyle = fill;
+        g.fill();
+        g.strokeStyle = C.ink;
+        g.lineWidth = w;
+        for (const q of [L, R]) {
+            trace(q);
+            g.stroke();
+        }
+        if (caps === 'both' || caps === 'start') (trace([L[0], R[0]]), g.stroke());
+        if (caps === 'both' || caps === 'end') (trace([L[n - 1], R[n - 1]]), g.stroke());
+        if (!lay) return;
+        // the lay: one S per strand, from one edge to the other, a little over one thickness on
+        g.lineWidth = Math.max(1, w * 0.72);
+        for (let i = 0; i + 2 < n; i++) {
+            const j = i + 2, k = dd[i] * 0.34, p0 = L[i], p3 = R[j];
+            g.beginPath();
+            g.moveTo(p0[0], p0[1]);
+            g.bezierCurveTo(p0[0] + tan[i][0] * k, p0[1] + tan[i][1] * k, p3[0] - tan[j][0] * k, p3[1] - tan[j][1] * k, p3[0], p3[1]);
             g.stroke();
         }
     }
-    const rope3 = (g, pts3, d, o = {}) => rope(g, pts3.map(pt), Math.max(1.6, d * sc(pts3[Math.floor(pts3.length / 2)][2])), { w: lw(pts3[0][2]), dense: pts3.length > 8, ...o });
+    // the same from world points: its thickness follows each point's distance
+    const rope3 = (g, pts3, d, o = {}) => {
+        const sAt = (u) => {
+            const x = u * (pts3.length - 1), i = Math.min(pts3.length - 2, Math.floor(x)), f = x - i;
+            return d * sc(pts3[i][2] + (pts3[i + 1][2] - pts3[i][2]) * f);
+        };
+        rope(g, pts3.map(pt), (u) => Math.max(1.6, sAt(u)), { w: lw(pts3[0][2]), dense: pts3.length > 8, ...o });
+    };
     // crossed lines clipped into a polygon: netting
     function netting(g, pts, step, o = {}) {
         const { w = 1.6, seed = 'net', color = C.ink } = o;
@@ -1039,7 +1078,12 @@
         for (const k of [-1, 1]) bar3(g, add(c, [0, 0.3, 0]), add(c, add(mul(side, k * 0.19), [0, 0.3, 0])), 0.075, { fill: P.iron, w, seed: seed + 'pin' + k, over: 0.2 });
         lathe(g, c, [[0.21, 0], [0.2, 0.035], [0.125, 0.05], [0.1, 0.2], [0.105, 0.36]], { fill: P.ironLight, w, seed: seed + 'post', top: false });
         // turns of rope round the waist
-        for (let i = 0; i < turns; i++) rope(g, nearArc(add(c, [0, 0.085 + i * 0.058, 0]), 0.14 - i * 0.005, 16), Math.max(2.4, 0.062 * sc(c[2])), { seed: seed + 'turn' + i, w, dense: true });
+        for (let i = 0; i < turns; i++) {
+            const arc = nearArc(add(c, [0, 0.085 + i * 0.056, 0]), 0.132 - i * 0.004, 16), d = Math.max(2.4, 0.056 * sc(c[2]));
+            // where a turn goes round the back we see the tube end-on: a round shoulder each side
+            for (const e of [arc[0], arc[arc.length - 1]]) T.shape(g, T.ellipse(e[0], e[1], d * 0.5, d * 0.5, 0, 10), { fill: P.rope, w, seed: seed + 'sh' + i + e[0].toFixed(0), amp: 0.1 });
+            rope(g, arc, d, { seed: seed + 'turn' + i, w, dense: true, caps: 'none' });
+        }
         lathe(g, c, [[0.105, 0.36], [0.175, 0.39], [0.185, 0.44], [0.15, 0.485], [0.06, 0.5]], { fill: P.iron, w, seed: seed + 'head', under: false });
         T.line(g, nearArc(add(c, [0, 0.44, 0]), 0.185).slice(2, 6), { w, seed: seed + 'gl', color: C.white, dense: true, amp: 0 });
     }
@@ -1571,27 +1615,34 @@
     // side round the hole in the middle, every turn a flat ring between two projected circles
     // with the lay of its strands; its end run out beside it
     function coil(g, c, o = {}) {
-        const { fill = C.blue, seed = 'coil' } = o, w = lw(c[2]), t = 0.06;
-        const tail = [[0.2, t / 2, -0.16], [0.36, t / 2, -0.1], [0.48, t / 2, -0.17], [0.6, t / 2, -0.1]].map((p) => add(c, p));
-        // each turn is a ring of rope lying at its own height, laid from its far side round and
-        // back (so the last strand, the only whole one, is at the back, behind the next turn);
-        // layer by layer from the stone up, each layer from its outer turn inwards
-        const far = Math.atan2(c[2], c[0]);
-        const layers = [[0.3, 0.235, 0.17], [0.268, 0.2], [0.234]];
-        rope3(g, tail, t, { fill, seed: seed + 't', w });
-        for (const [i, radii] of layers.entries()) {
-            const cc = add(c, [(i % 2) * 0.014, t / 2 + i * t * 0.82, (i % 2) * -0.01]);
-            for (const r of radii) rope3(g, ring3(cc, r, 40, far, far + 6.27), t, { fill, seed: seed + i + 'r' + r, w });
+        const { fill = C.blue, seed = 'coil' } = o, w = lw(c[2]), t = 0.055, R0 = 0.27;
+        // A hank left on the stone: five turns of the same size piled up, each a little out of
+        // true. Seen from the low camera: the far halves of the turns (the inside of the pile,
+        // through its hole) from the bottom up, then the near halves from the bottom up, so the
+        // top turn is whole and each lower one shows as a band under it.
+        const toCam = Math.atan2(-c[2], -c[0]);
+        const turns = [[0, 0, 0], [0.018, -0.012, 0.01], [-0.014, 0.012, -0.012], [0.012, 0.008, 0.008], [-0.006, -0.01, 0]].map(([dx, dz, dr], i) => ({ cc: add(c, [dx, t / 2 + i * t * 0.9, dz]), r: R0 + dr }));
+        // A turn seen this flat cannot be drawn as one band round its ellipse (the band folds on
+        // itself at the two ends): it is its near stretch and its far stretch, each stopping short
+        // of the ends, and a round shoulder at each end where the rope turns away from us.
+        const K = 0.34, arc = ({ cc, r }, far) => ring3(cc, r, 22, toCam + (far ? Math.PI / 2 + K : -Math.PI / 2 + K), toCam + (far ? Math.PI * 1.5 - K : Math.PI / 2 - K));
+        const shoulders = ({ cc, r }, key) => {
+            for (const sg of [-1, 1]) {
+                const p3 = [cc[0] + Math.cos(toCam + (sg * Math.PI) / 2) * r, cc[1], cc[2] + Math.sin(toCam + (sg * Math.PI) / 2) * r], q = pt(p3), d = t * sc(p3[2]);
+                T.shape(g, T.ellipse(q[0], q[1], d * 0.62, d * 0.5, 0, 12), { fill, w, seed: key + sg, amp: 0.1 });
+            }
+        };
+        const turn = (tn, i, far) => rope3(g, arc(tn, far), t, { fill, seed: seed + (far ? 'f' : 'n') + i, w, caps: 'none' });
+        // the tail: off the bottom turn, along the stone, its end whipped
+        const tail = [[R0 * 0.72, t / 2, -R0 * 0.75], [R0 + 0.12, t / 2, -R0 * 0.62], [R0 + 0.3, t / 2, -R0 * 0.78], [R0 + 0.46, t / 2, -R0 * 0.55]].map((p) => add(c, p));
+        rope3(g, tail, t, { fill, seed: seed + 't', w, caps: 'none' });
+        const e = pt(tail[3]), e0 = pt(tail[2]), d = t * sc(tail[3][2]), ux = (e[0] - e0[0]) / (Math.hypot(e[0] - e0[0], e[1] - e0[1]) || 1), uy = (e[1] - e0[1]) / (Math.hypot(e[0] - e0[0], e[1] - e0[1]) || 1);
+        slab(g, [[e[0] - ux * d * 0.5 + uy * d * 0.56, e[1] - uy * d * 0.5 - ux * d * 0.56], [e[0] + ux * d * 0.12 + uy * d * 0.56, e[1] + uy * d * 0.12 - ux * d * 0.56], [e[0] + ux * d * 0.12 - uy * d * 0.56, e[1] + uy * d * 0.12 + ux * d * 0.56], [e[0] - ux * d * 0.5 - uy * d * 0.56, e[1] - uy * d * 0.5 + ux * d * 0.56]], { fill: C.white, w: w * 0.9, seed: seed + 'whip', over: 0.2 });
+        for (const [i, tn] of turns.entries()) {
+            if (i >= turns.length - 2) turn(tn, i, true); // the far side shows only over the top of the pile
+            shoulders(tn, seed + 'sh' + i);
+            turn(tn, i, false);
         }
-        // the whipping on the tail's end
-        const [ex, ey] = pt(tail[tail.length - 1]), d = t * sc(c[2]);
-        g.fillStyle = C.white;
-        g.strokeStyle = C.ink;
-        g.lineWidth = w * 0.8;
-        g.beginPath();
-        g.ellipse(ex + d * 0.2, ey, d * 0.26, d * 0.52, 0.1, 0, Math.PI * 2);
-        g.fill();
-        g.stroke();
     }
 
     // a traffic cone 0.5 m tall on its square foot
@@ -1612,7 +1663,7 @@
             [FORE.bollard, () => {
                 const c = FORE.bollard;
                 // the line made fast: three turns, then away over the stone towards the lip
-                rope3(g, [add(c, [0.1, 0.16, 0.06]), add(c, [0.3, 0.03, 0.22]), add(c, [0.62, 0.025, 0.36]), add(c, [0.95, 0.025, 0.72]), add(c, [1.5, 0.025, 1.0])], 0.05, { seed: 'bol-line', w: BG });
+                rope3(g, [add(c, [0.11, 0.17, 0.04]), add(c, [0.26, 0.09, 0.14]), add(c, [0.44, 0.03, 0.26]), add(c, [0.75, 0.028, 0.5]), add(c, [1.1, 0.028, 0.85]), add(c, [1.6, 0.028, 1.15])], 0.056, { seed: 'bol-line', w: BG, caps: 'none' });
                 bollard(g, c, { seed: 'fb', turns: 3 });
             }],
         ];

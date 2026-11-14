@@ -474,3 +474,23 @@ a higher camera would show more sea (a choice for the user).
 - **The cone's white bands** were the hull of two whole rings, which shows the far half of the
   upper ring, as if we looked into the cone: a band is the surface between the two arcs that
   face the camera (`lathe`: also the lighthouse's bands and the piles').
+
+## Round 15 (user) · the ropes
+
+> Creo que las cuerdas no han quedado realistas
+
+→ The round-14 rope (overlapping slanted lozenges) read as scales or a string of beads. Looked
+at what a laid rope is before drawing it again: a smooth tube of even thickness; its strands
+show as S-shaped lines that cross it on the slant and run tangent to its edges at both ends
+(a helix on a cylinder, seen from the side); a coil is turns of the same size piled up, each
+showing as a band under the one above; a line made fast is turns side by side whose ends
+round off where they go behind the post.
+
+- `rope` in `set.js`: the tube (fill, its two edges, cut ends closed only where asked) and
+  one S per strand as a Bézier whose ends are tangent to the edges; thickness per point from
+  the camera (`rope3`).
+- The coil: five turns piled, each its near stretch and (for the top two) its far stretch,
+  stopping short of the ends, with a round shoulder at each end (a band drawn right round so
+  flat an ellipse folds on itself there: it came out with jagged ends first); the tail leaves
+  from under it, its end whipped.
+- The bollard's turns: tubes with a round shoulder each side.
