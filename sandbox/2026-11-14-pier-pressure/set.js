@@ -18,7 +18,7 @@
 //   chip hut        box 3 × 2.4 × 2.2 at (−3.25, 8.3), yaw 0.16: hatch 1.6 × 0.9 with its sill at
 //                   1.05; counter 1.86 × 0.4; awning 2 × 0.9 falling 0.46; roof board 3.3 × 2.56;
 //                   sign 2.6 × 0.9 on the roof (2.74–3.64 up); flue to 3.75. Round it: crates and a
-//                   sack (front left), menu A-board 0.62 × 1.02, bin 0.54 × 0.93, gas bottle 0.74,
+//                   sack (front left), menu A-board 0.62 × 0.8 (lower than the counter), bin 0.54 × 0.93, gas bottle 0.74,
 //                   longboard 2.3 leaning on the side wall
 //   café table      (−1.3, 10.4): top 0.8 across at 0.75; stools 0.45; parasol 1.9 across, 2.3 high
 //   palm            foot (−1.74, 11.48), 5.6 tall (its crown leaves the frame); far palms 5.6–7
@@ -210,7 +210,9 @@
         };
         for (const [y0, y1, col] of bands) {
             g.fillStyle = col;
-            g.fill(T.pathOf(hull2d([...ring3(C3(y0), rAt(y0), n).map(pt), ...ring3(C3(y1), rAt(y1), n).map(pt)])));
+            // between the two arcs that face us (the hull of the whole rings would show the far
+            // side of one of them, as if we looked into the shape)
+            g.fill(T.pathOf([...nearArc(C3(y0), rAt(y0), 14), ...nearArc(C3(y1), rAt(y1), 14).reverse()]));
             for (const y of [y0, y1]) T.line(g, nearArc(C3(y), rAt(y)), { w, seed: seed + 'b' + y, dense: true, amp: 0.15, taper: false });
         }
         for (const y of rings) T.line(g, nearArc(C3(y), rAt(y)), { w, seed: seed + 'r' + y, dense: true, amp: 0.15, taper: false });
@@ -218,19 +220,29 @@
         if (o.top !== false && c[1] + yt < EYE && rt > 0.01) T.shape(g, circ[circ.length - 1], { fill: o.topFill ?? fill, w, seed: seed + 'top', dense: true, amp: 0.15 });
         if (o.under !== false && c[1] + yb > EYE && rb > 0.01) T.shape(g, circ[0], { fill: o.underFill ?? fill, w, seed: seed + 'und', dense: true, amp: 0.15 });
     }
-    // a rope on screen: a band with the lay of its strands
+    // a rope on screen, with its volume: strand after strand, each a fat slanted lozenge laid
+    // over the last, so its edges are scalloped and every strand turns round the rope (a flat
+    // band with hatch marks read as a ribbon). d: its thickness; thin ropes stay a plain line
     function rope(g, pts, d, o = {}) {
         const { fill = P.rope, seed = 'rope', w = BG, dense = false, lay = true } = o;
-        const c = T.resample(dense ? pts : T.path(pts), Math.max(1.5, d * 0.95));
+        const c = T.resample(dense ? pts : T.path(pts), Math.max(1.2, d * 0.5));
         if (c.length < 2) return;
-        T.shape(g, T.ribbon(c, d, d, { dense: true }), { fill, w, seed, dense: true, amp: 0.15 });
-        if (!lay || d < 4) return;
-        for (let i = 1; i < c.length - 1; i++) {
-            const a = c[i - 1], b = c[i + 1], tl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, tx = (b[0] - a[0]) / tl, ty = (b[1] - a[1]) / tl, h = d * 0.34;
-            T.line(g, [[c[i][0] - ty * h - tx * h * 0.7, c[i][1] + tx * h - ty * h * 0.7], [c[i][0] + ty * h + tx * h * 0.7, c[i][1] - tx * h + ty * h * 0.7]], { w: w * 0.75, seed: seed + i, amp: 0, taper: false });
+        if (!lay || d < 5) return void T.shape(g, T.ribbon(c, d, d, { dense: true }), { fill, w, seed, dense: true, amp: 0.15 });
+        const lwS = Math.min(w, Math.max(1.2, d * 0.11));
+        g.fillStyle = fill;
+        g.strokeStyle = C.ink;
+        g.lineJoin = 'round';
+        for (let i = 0; i < c.length; i++) {
+            const a = c[Math.max(0, i - 1)], b = c[Math.min(c.length - 1, i + 1)];
+            const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) + 1.02;
+            g.beginPath();
+            g.ellipse(c[i][0], c[i][1], d * 0.6, d * 0.3, ang, 0, Math.PI * 2);
+            g.lineWidth = lwS;
+            g.fill();
+            g.stroke();
         }
     }
-    const rope3 = (g, pts3, d, o = {}) => rope(g, pts3.map(pt), Math.max(1.6, d * sc(pts3[Math.floor(pts3.length / 2)][2])), { w: lw(pts3[0][2]), ...o });
+    const rope3 = (g, pts3, d, o = {}) => rope(g, pts3.map(pt), Math.max(1.6, d * sc(pts3[Math.floor(pts3.length / 2)][2])), { w: lw(pts3[0][2]), dense: pts3.length > 8, ...o });
     // crossed lines clipped into a polygon: netting
     function netting(g, pts, step, o = {}) {
         const { w = 1.6, seed = 'net', color = C.ink } = o;
@@ -584,8 +596,8 @@
      * and what is needed to draw on it.
      */
     function hullOf(fr, L, B, o = {}) {
-        const { sheer = [0.5, 0.42, 0.7], transom = 0.72, rake = 0.1, cut = -Infinity, fore = 0.4, n = 12 } = o;
-        const hb = (u) => (B / 2) * (u < 0.42 ? transom + (1 - transom) * Math.sin(((u / 0.42) * Math.PI) / 2) : Math.pow(Math.cos((((u - 0.42) / 0.58) * Math.PI) / 2), 0.7));
+        const { sheer = [0.5, 0.42, 0.7], transom = 0.72, rake = 0.1, cut = -Infinity, fore = 0.4, n = 12, bowOn = false } = o;
+        const hb = (u) => (B / 2) * (u < 0.42 ? transom + (1 - transom) * Math.sin(((u / 0.42) * Math.PI) / 2) : Math.pow(Math.max(0, Math.cos((((u - 0.42) / 0.58) * Math.PI) / 2)), 0.7)); // (max: at the stem the cosine is −1e−17, and its power NaN: the bow's last plank was never drawn)
         const sy = (u) => sheer[1] + (sheer[0] - sheer[1]) * Math.pow(Math.max(0, 1 - u / 0.45), 2) + (sheer[2] - sheer[1]) * Math.pow(Math.max(0, (u - 0.45) / 0.55), 2);
         const ky = (u) => (u > 0.8 ? sy(u) * fore * Math.pow((u - 0.8) / 0.2, 2) : 0);
         const at3 = (u, t, sg) => {
@@ -594,13 +606,17 @@
             if (p[1] < cut) p[1] = cut;
             return p;
         };
-        const facing = (u, t, sg) => {
+        const facing0 = (u, t, sg) => {
             const e = 0.03, p = at3(u, t, sg);
             const du = sub(at3(Math.min(1, u + e), t, sg), at3(Math.max(0, u - e), t, sg)), dt = sub(at3(u, Math.min(1, t + e), sg), at3(u, Math.max(0, t - e), sg));
             let nn = cross(du, dt);
             if (dot3(nn, mul(fr.Z, sg)) < 0) nn = mul(nn, -1);
             return dot3(nn, sub(EYE3, p)) > 0;
         };
+        // with the bow towards us the side we see runs all the way to the stem (the test above
+        // gives up where the planks turn in to it, which left the bow unfinished)
+        const nearSg = len3(sub(at3(0.5, 0, 1), EYE3)) < len3(sub(at3(0.5, 0, -1), EYE3)) ? 1 : -1;
+        const facing = (u, t, sg) => facing0(u, t, sg) || (bowOn && sg === nearSg && u > 0.55);
         const ts = [0, 0.3, 0.62, 1], quads = [];
         for (const sg of [-1, 1]) for (let i = 0; i < n; i++) for (let j = 0; j < ts.length - 1; j++) quads.push([at3(i / n, ts[j], sg), at3((i + 1) / n, ts[j], sg), at3((i + 1) / n, ts[j + 1], sg), at3(i / n, ts[j + 1], sg)].map(pt));
         const tr = [];
@@ -1023,7 +1039,7 @@
         for (const k of [-1, 1]) bar3(g, add(c, [0, 0.3, 0]), add(c, add(mul(side, k * 0.19), [0, 0.3, 0])), 0.075, { fill: P.iron, w, seed: seed + 'pin' + k, over: 0.2 });
         lathe(g, c, [[0.21, 0], [0.2, 0.035], [0.125, 0.05], [0.1, 0.2], [0.105, 0.36]], { fill: P.ironLight, w, seed: seed + 'post', top: false });
         // turns of rope round the waist
-        for (let i = 0; i < turns; i++) rope(g, nearArc(add(c, [0, 0.1 + i * 0.05, 0]), 0.118 - i * 0.004, 10), Math.max(2.4, 0.05 * sc(c[2])), { seed: seed + 'turn' + i, w, dense: true });
+        for (let i = 0; i < turns; i++) rope(g, nearArc(add(c, [0, 0.085 + i * 0.058, 0]), 0.14 - i * 0.005, 16), Math.max(2.4, 0.062 * sc(c[2])), { seed: seed + 'turn' + i, w, dense: true });
         lathe(g, c, [[0.105, 0.36], [0.175, 0.39], [0.185, 0.44], [0.15, 0.485], [0.06, 0.5]], { fill: P.iron, w, seed: seed + 'head', under: false });
         T.line(g, nearArc(add(c, [0, 0.44, 0]), 0.185).slice(2, 6), { w, seed: seed + 'gl', color: C.white, dense: true, amp: 0 });
     }
@@ -1075,7 +1091,7 @@
      */
     function dinghy(g) {
         const kh = 0.2, fr = frame([DINGHY.o[0], kh, DINGHY.o[2]], DINGHY.yaw), w = BG;
-        const hl = hullOf(fr, 3, 1.2, { sheer: [0.5, 0.45, 0.63], transom: 0.82, rake: 0.07, fore: 0.5, n: 14 });
+        const hl = hullOf(fr, 3, 1.2, { sheer: [0.5, 0.45, 0.63], transom: 0.82, rake: 0.07, fore: 0.5, n: 14, bowOn: true });
         const S = (x, y, z) => fr.w(x, y, z);
         // a wheel: a tyre 0.4 m across standing in the plane of the hull's length
         const wheel = (z, seed) => {
@@ -1116,7 +1132,8 @@
         hl.band(g, 0, 0.17, P.coral);
         if (hl.stern) T.shape(g, hl.transom, { fill: P.cream, w, seed: 'dg-transom', dense: true, amp: 0.2 });
         for (const t of [0.17, 0.36, 0.56, 0.76]) hl.lines(g, t, { w: t < 0.2 ? w : w * 0.9, seed: 'dg-land', u1: 0.985 });
-        T.line(g, [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => pt(hl.at3(1, t, 1))), { w, seed: 'dg-stem' });
+        // the gunwale's own line, and the stem: a post from the forefoot to a head above the sheer
+        bar3(g, hl.at3(1, 0.6, 1), add(hl.at3(1, 0, 1), [0, 0.05, 0]), 0.05, { fill: P.coral, w, seed: 'dg-stempost' });
         // the keel's line under the forefoot, a ring in the stem with the painter coiled on the bar
         dot(g, ...pt(hl.at3(1, 0.3, 1)), 3, P.ironLight);
         rope3(g, [hl.at3(1, 0.3, 1), S(1.9, 0.5 - kh, 0.05), S(2.05, 0.3 - kh, 0)], 0.03, { seed: 'dg-painter', lay: false });
@@ -1362,21 +1379,21 @@
         }
         // the menu: a chalk board on an A frame, turned to the passers-by
         {
-            const fa = frame(S3(1.62, 0, -2.05), HUT.yaw - 0.42), a = fa.w(-0.31, 0, -0.2), b = fa.w(-0.31, 1.0, 0.02), pl = plane(a, fa.X, unit(sub(b, a))), L = len3(sub(b, a));
-            for (const x of [-0.29, 0.29]) bar3(g, fa.w(x, 0.98, 0.04), fa.w(x, 0, 0.3), 0.045, { fill: C.wood, w, seed: 'menu-leg' + x });
+            const fa = frame(S3(1.5, 0, -2.15), HUT.yaw - 0.45), a = fa.w(-0.31, 0, -0.2), b = fa.w(-0.31, 0.78, 0.0), pl = plane(a, fa.X, unit(sub(b, a))), L = len3(sub(b, a));
+            for (const x of [-0.29, 0.29]) bar3(g, fa.w(x, 0.76, 0.02), fa.w(x, 0, 0.26), 0.045, { fill: C.wood, w, seed: 'menu-leg' + x });
             slab(g, pl.q(0, 0, 0.62, L), { fill: C.wood, w, seed: 'menu-frame', over: 1.3 });
             slab(g, pl.q(0.05, 0.07, 0.57, L - 0.06), { fill: P.chalk, w: w * 0.85, seed: 'menu-board', over: 0.4 });
             decal(g, pl, 0.05, 0.07, 0.52, L - 0.13, (c) => {
-                chalk(c, 'MENU', 26, 17, 17, { seed: 'menu-a', align: 'center', rot: -0.04, color: C.roadLine });
+                chalk(c, 'MENU', 26, 14, 14.5, { seed: 'menu-a', align: 'center', rot: -0.04, color: C.roadLine });
                 c.strokeStyle = C.white;
                 c.lineWidth = 1;
                 c.beginPath();
-                c.moveTo(7, 22);
-                c.lineTo(45, 21);
+                c.moveTo(7, 18.5);
+                c.lineTo(45, 17.5);
                 c.stroke();
                 for (const [i, [t, p]] of [['CHIPS', '2'], ['FISH', '3'], ['PEAS', '1'], ['TEA', '1']].entries()) {
-                    chalk(c, t, 5, 38 + i * 14.5, 12.5, { seed: 'menu-r' + i, rot: -0.03 });
-                    chalk(c, p, 40, 38 + i * 14.5, 12.5, { seed: 'menu-p' + i, rot: -0.03, color: C.salmon });
+                    chalk(c, t, 5, 30.5 + i * 10.6, 10.5, { seed: 'menu-r' + i, rot: -0.03 });
+                    chalk(c, p, 40, 30.5 + i * 10.6, 10.5, { seed: 'menu-p' + i, rot: -0.03, color: C.salmon });
                 }
             }, { nx: 3, ny: 5, out: 0.004 });
         }
@@ -1554,22 +1571,27 @@
     // side round the hole in the middle, every turn a flat ring between two projected circles
     // with the lay of its strands; its end run out beside it
     function coil(g, c, o = {}) {
-        const { fill = C.blue, seed = 'coil' } = o, s = sc(c[2]), w = lw(c[2]), t = 0.055, n = 34;
-        const tail = [[0.15, 0.025, -0.13], [0.34, 0.025, -0.1], [0.46, 0.025, -0.17], [0.57, 0.025, -0.11]].map((p) => add(c, p));
-        rope(g, tail.map(pt), t * s, { fill, seed: seed + 't', w });
-        const [ex, ey] = pt(tail[tail.length - 1]);
-        ln(g, [[ex - 1, ey - t * s * 0.5], [ex + 1.5, ey + t * s * 0.5]], { w: w * 1.6, seed: seed + 'whip', color: C.white, amp: 0 });
-        for (let i = 0; i < 3; i++) {
-            const cc = add(c, [(i % 2) * 0.016 - 0.008, 0.028 + i * 0.05, (i % 2) * -0.012]), r0 = 0.115 + i * 0.012, turns = 3 - (i === 2 ? 1 : 0);
-            const circ = (r) => ring3(cc, r, n).map((p) => wob(pt(p), seed + i));
-            const rings = Array.from({ length: turns + 1 }, (_, k) => circ(r0 + k * t));
-            const path = T.pathOf(rings[turns]);
-            path.addPath(T.pathOf(rings[0]));
-            g.fillStyle = fill;
-            g.fill(path, 'evenodd');
-            for (let k = 0; k < turns; k++) for (let j = k % 2; j < n; j += 2) T.line(g, [mix(rings[k + 1][(j + 1) % n], rings[k][j], 0.14), mix(rings[k + 1][(j + 1) % n], rings[k][j], 0.86)], { w: w * 0.75, seed: seed + i + 'l' + k + j, amp: 0, taper: false });
-            for (const [k, r] of rings.entries()) T.line(g, r, { w: k === 0 || k === turns ? w : w * 0.85, seed: seed + i + 'c' + k, closed: true, dense: true, amp: 0.12 });
+        const { fill = C.blue, seed = 'coil' } = o, w = lw(c[2]), t = 0.06;
+        const tail = [[0.2, t / 2, -0.16], [0.36, t / 2, -0.1], [0.48, t / 2, -0.17], [0.6, t / 2, -0.1]].map((p) => add(c, p));
+        // each turn is a ring of rope lying at its own height, laid from its far side round and
+        // back (so the last strand, the only whole one, is at the back, behind the next turn);
+        // layer by layer from the stone up, each layer from its outer turn inwards
+        const far = Math.atan2(c[2], c[0]);
+        const layers = [[0.3, 0.235, 0.17], [0.268, 0.2], [0.234]];
+        rope3(g, tail, t, { fill, seed: seed + 't', w });
+        for (const [i, radii] of layers.entries()) {
+            const cc = add(c, [(i % 2) * 0.014, t / 2 + i * t * 0.82, (i % 2) * -0.01]);
+            for (const r of radii) rope3(g, ring3(cc, r, 40, far, far + 6.27), t, { fill, seed: seed + i + 'r' + r, w });
         }
+        // the whipping on the tail's end
+        const [ex, ey] = pt(tail[tail.length - 1]), d = t * sc(c[2]);
+        g.fillStyle = C.white;
+        g.strokeStyle = C.ink;
+        g.lineWidth = w * 0.8;
+        g.beginPath();
+        g.ellipse(ex + d * 0.2, ey, d * 0.26, d * 0.52, 0.1, 0, Math.PI * 2);
+        g.fill();
+        g.stroke();
     }
 
     // a traffic cone 0.5 m tall on its square foot

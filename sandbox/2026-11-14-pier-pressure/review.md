@@ -453,3 +453,24 @@ on his sheet: he first stood 25 units in the air on a slice of his own drawing's
 Left as it is: from 0.6 m up, the harbour's water only shows as a thin band beyond the quay
 and the pier's piles are hidden under its deck; the far trawler is small. True to the camera;
 a higher camera would show more sea (a choice for the user).
+
+## Round 14 (user) · five small things in the harbour
+
+> Creo que hay unos pequeños que estám mal: El pico del bote (parece como si estuviera roto o
+> faltara por dibujar), la cuerda (parece en 2D, ek lugar de 3D), el cartel de menu se
+> superpone con la barra, la cuerda del amarre también parece 2D, el dibujo blanco del cono
+> parece como si se viera la parte de atrás del cono.
+
+- **The dinghy's bow** really was not drawn: at the stem the hull's half-breadth is a power of
+  a cosine that comes out −1e−17, so every point at the stem was NaN and the last plank of the
+  bow, the end of the sheer strake and the stem were silently skipped. `Math.max(0, …)`; the
+  strake and the plank lines now run to the stem, which has its post. (The trawlers' bows
+  were missing their last plank for the same reason.)
+- **Rope** was a flat band with hatch marks. It is now laid strand by strand, each a fat
+  slanted lozenge over the last, so its edges are scalloped and it has volume; the coil is
+  six turns of that rope in three layers, the bollard's turns stand proud of the post.
+- **The menu board** stood in front of the counter and, being as tall as it, crossed its edge
+  on screen: now a pavement board 0.8 m high, lower than the counter, by the hut's corner.
+- **The cone's white bands** were the hull of two whole rings, which shows the far half of the
+  upper ring, as if we looked into the cone: a band is the surface between the two arcs that
+  face the camera (`lathe`: also the lighthouse's bands and the piles').
