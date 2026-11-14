@@ -3,12 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the whole cast is drawn in code** from the approved sheets (`ref/<who>-sheet.png` →
-`cast/<who>-drawn.js`, two poses each; `review/cast.jpg`, `review/cast-action.jpg`). Kit is in
-parts and moves on the set in a 4 s test (`render/pier-pressure.mp4`, `review/key.jpg`); the
-other five are one part per pose so far. Earlier character art (the puppet cast,
-`dev/keyart-puppets.js`, `cast/kit-hero.js`) is superseded and kept as history. No film yet;
-the style stays *in testing*.
+State: **the first animated shot** (`scene.js`, shot 2 of the brief, «KIT», 5 s, no sound yet:
+`render/pier-pressure.mp4`, `review/key.jpg`), waiting for the user's verdict, with the set
+corrected (`review/set.jpg`). The whole cast is drawn in code from the approved sheets
+(`cast/<who>-drawn.js`; `review/cast.jpg`, `review/cast-action.jpg`); only Kit is in parts.
+Earlier character art (the puppet cast, `dev/keyart-puppets.js`, `cast/kit-hero.js`) is
+history. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -366,3 +366,39 @@ no warnings (25 ms a frame with all six). Kit against her sheet: 4.8 / 255.
 
 Still off: the tape on Milo's glasses lost its cross; a red speck on his neck; Kit's plaster
 sits a little high in the jump; only Kit is split into parts.
+
+## Round 12 (user) · go on to the first shot; the harbour's details
+
+> Vale, sigue con el primer plano animado. Una cosa, en el plano del puerto hay muchos
+> detalles que están mal
+
+The user did not say which. The set alone, rendered at 2.4× and read zone by zone, gave:
+
+- the near palm was the kit's sketch palm at 430 high: angular blades, a hard dark blob
+  beside the traced cast → a palm drawn for the set (`palmTree`: a bowed, ringed trunk,
+  fronds that droop with leaflets cut along the lower edge, far ones darker, coconuts, a half
+  barrel for a planter), smaller, clear of where the cast plays;
+- the crane's lattice jib across the houses read as scribble → out;
+- a far palm stood exactly behind the trawler's mast (the mast grew leaves) → moved;
+- fish boxes stood on the lamp post's foot → moved; the lamp post moved clear of Kit;
+- the slip's foam was a thick white bank → a thin lip along the waterline;
+- the menu's prices («TEA 50») → plain ones.
+
+Not touched, and maybe what the user means: the pier does not join the quay (its root is
+off frame), the slipway reads through its props more than its form, the far town is finer
+and busier than the genre's distant buildings. Asked the user to point at what is wrong.
+
+The shot (`scene.js`): the quay, quiet for a beat and a half; the board and then Kit come in
+from the top left, falling on twos; she lands on beat 4 (the frame shakes three drawings,
+squash and stretch, dust, impact ticks), Captain hops off his bollard and Dot looks up; her
+name card slams in on beat 5; she keeps the beat (thumb, head) to the end. Kit's fall is her
+jump drawing with its parts turning; the landing is her standing drawing, whose board is the
+one that fell (`only: ['board']`). `review.mjs`: no warnings.
+
+Seen and fixed on the way: holes at the frame's edge during the shake (the set is drawn 4 %
+bigger while it shakes); Kit small and far (now 0.98 of her sheet, the size of the frame's
+height); the palm's crown behind her hair; the lamp post through her arm.
+
+Still off: the fall is one drawing sliding (no anticipation, no in-between from jump to
+stand: one drawing changes into the other on the landing frame); Captain's hop is his
+perch drawing lifted, wings shut; no sound.

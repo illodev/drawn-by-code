@@ -259,7 +259,7 @@
         ln(g, [[532, 408.5], [538, 408.5]], { w: FAR, seed: 'cross-b' });
         house(g, 592, 492, 36, 34, { fill: C.white, roof: P.tile, seed: 'hu5', tilt: 1, rh: 11, chim: 0.25 });
         T.palm(g, 666, 500, 66, { w: FAR, lean: -7, fronds: 6, seed: 'palm-far-b' });
-        T.palm(g, 916, 524, 70, { w: FAR, lean: 8, fronds: 6, seed: 'palm-far-c' });
+        T.palm(g, 868, 516, 70, { w: FAR, lean: 8, fronds: 6, seed: 'palm-far-c' });
         // the lower terrace, down to the net loft at the end of the harbour wall
         const row = [
             [352, 50, 74, C.salmon, P.slate, C.navy], [404, 44, 62, P.cream, P.tile, P.fishDeep], [450, 52, 80, C.teal, P.slate, C.maroon], [504, 42, 60, C.peach, P.slate, C.navy],
@@ -471,7 +471,6 @@
 
     function harbour(g) {
         harbourWall(g);
-        crane(g);
         // mooring lines from the quay's bollards to the big trawler
         ln(g, [[640, 634], [626, 600], [606, 570]], { w: FAR, seed: 'moor-a' });
         ln(g, [[905, 638], [860, 596], [806, 556]], { w: FAR, seed: 'moor-b' });
@@ -767,10 +766,8 @@
             slab(g, [[x - 4.4, railY(x) - 53], [x + 7.6, railY(x) - 53], [x + 7, railY(x) - 49.4], [x - 3.8, railY(x) - 49.4]], { fill: C.grey, w: MID, seed: 'qrail-c' + x, over: 0.5 });
             slab(g, [[x - 7, railY(x) - 1], [x + 7, railY(x) - 0.6], [x + 8, railY(x) + 3.4], [x - 8, railY(x) + 3]], { fill: C.greyDeep, w: MID, seed: 'qrail-f' + x, over: 0.5 });
         }
-        // the palm's bed: a ring cut in the stone
-        disc(g, 470, 651, 24, 7, { fill: C.sandDeep, w: MID, seed: 'palm-bed', n: 14 });
         // fish boxes left by the top of the slip
-        for (const [x, y, c, k] of [[1100, 674, C.blue, 0], [1108, 658, C.orange, 1], [1038, 670, C.blue, 2]]) {
+        for (const [x, y, c, k] of [[1010, 678, C.blue, 0], [1018, 662, C.orange, 1], [946, 674, C.blue, 2]]) {
             slab(g, [[x, y], [x + 44, y + 3], [x + 43, y + 20], [x + 1, y + 17]], { fill: c, w: BG, seed: 'qbox' + k, over: 1 });
             slab(g, [[x - 2, y - 3], [x + 46, y], [x + 46, y + 5], [x - 2, y + 2]], { fill: c, w: BG, seed: 'qboxr' + k, over: 0.8 });
             ln(g, [[x + 14, y + 9], [x + 30, y + 10.4]], { w: BG * 1.6, seed: 'qboxh' + k, amp: 0 });
@@ -778,19 +775,19 @@
         // foam where the sea runs up the concrete: white shapes with their outline
         const RFm = Motion.rng('foam-slip'), up = [], dn = [];
         for (let x = 1296, i = 0; x <= 1640; x += 30 + RFm() * 14, i++) {
-            up.push([x, shoreY(x) - 7 + (i % 2 ? 5 : -4) + RFm() * 4]);
-            dn.push([x + 8, shoreY(x) + 8 + (i % 2 ? -4 : 6) + RFm() * 5 + (x - 1296) * 0.03]);
+            up.push([x, shoreY(x) - 4 + (i % 2 ? 3 : -2) + RFm() * 2]);
+            dn.push([x + 8, shoreY(x) + 3 + (i % 2 ? -1.5 : 2.5) + RFm() * 2]);
         }
-        sh(g, [[1270, 656, 1], ...up, [1650, 730, 1], [1650, 762, 1], ...dn.reverse()], { fill: C.foam, w: BG, seed: 'foam-slip' });
+        sh(g, [[1270, 656, 1], ...up, [1650, 733, 1], [1650, 741, 1], ...dn.reverse()], { fill: C.foam, w: BG, seed: 'foam-slip' });
         sh(g, [[1392, 652], [1414, 646], [1440, 653], [1418, 660]], { fill: C.foam, w: MID, seed: 'foam-b' });
         sh(g, [[1504, 676], [1530, 670], [1560, 680], [1586, 696], [1554, 692], [1528, 684]], { fill: C.foam, w: MID, seed: 'foam-c' });
         // the dinghy hauled up on its trolley, stern in the foam
         dinghy(g);
         // the lamp post at the head of the slip, with the harbour's notices
-        lampPost(g, 1118, 668, 300, 0.84, { seed: 'quay-lamp', side: -1, lean: 6 });
+        lampPost(g, 1200, 696, 400, 1.08, { seed: 'quay-lamp', side: -1, lean: 8 });
         // (the notice rides on the post: both stand clear of where the cast plays)
         g.save();
-        g.translate(-83, -22);
+        g.translate(-4, -14);
         const nq = [[1190, 514], [1230, 511], [1231, 552], [1191, 556]];
         slab(g, nq, { fill: C.white, w: BG, seed: 'notice', over: 1.2 });
         disc(g, 1210.5, 527, 9, 9, { fill: C.white, w: BG * 1.3, seed: 'notice-o', color: C.red, n: 12 });
@@ -1115,7 +1112,7 @@
         slab(g, b, { fill: P.chalk, w: MID, seed: 'menu-board', over: 0.5 });
         chalk(g, 'MENU', ...at(b, 0.5, 0.2), 23, { seed: 'menu-a', align: 'center', rot: -0.04, color: C.roadLine });
         ln(g, [at(b, 0.14, 0.26), at(b, 0.86, 0.25)], { w: MID, seed: 'menu-u', color: C.white });
-        const rows = [['CHIPS', '1'], ['FISH', '3'], ['PEAS', '1'], ['TEA', '50']];
+        const rows = [['CHIPS', '2'], ['FISH', '3'], ['PEAS', '1'], ['TEA', '1']];
         for (const [i, [a, p]] of rows.entries()) {
             chalk(g, a, ...at(b, 0.1, 0.44 + i * 0.165), 17, { seed: 'menu-r' + i, rot: -0.04 });
             chalk(g, p, ...at(b, 0.74, 0.44 + i * 0.165), 17, { seed: 'menu-p' + i, rot: -0.04, color: C.salmon });
@@ -1289,6 +1286,58 @@
     }
 
     // --- the two calls ---------------------------------------------------------------------------
+    /**
+     * A palm drawn for this set (the kit's is a sketch for small, far ones): a trunk that
+     * curves and thins, ringed; fronds as arcs that droop under their own weight, smooth along
+     * the top and cut into leaflets along the bottom, the far ones darker; coconuts; a half
+     * barrel for a planter. Foot on (x, y); sway (radians) rocks the crown, on twos.
+     */
+    function palmTree(g, x, y, h, o = {}) {
+        const { lean = -30, sway = 0, seed = 'palm', w = BG } = o;
+        const top = [x + lean + sway * h * 0.25, y - h];
+        // the planter
+        sh(g, [[x - 31, y - 30, 1], [x + 31, y - 31, 1], [x + 27, y - 4], [x + 24, y + 4, 1], [x, y + 6], [x - 24, y + 5, 1], [x - 27, y - 4]], { fill: C.wood, w, seed: seed + 'tub' });
+        for (const yy of [-22, -6]) ln(g, [[x - 30 + (yy + 30) * 0.16, y + yy], [x, y + yy + 2], [x + 30 - (yy + 30) * 0.16, y + yy]], { w: w * 1.5, seed: seed + 'hoop' + yy, color: C.woodDeep });
+        disc(g, x, y - 31, 30, 6, { fill: C.sandDeep, w: MID, seed: seed + 'soil', n: 14 });
+        // the trunk: a band that bows and thins, ringed all the way up
+        const spine = [[x, y - 31], [x + lean * 0.08, y - h * 0.34], [x + lean * 0.42, y - h * 0.68], top];
+        sh(g, T.ribbon(spine, h * 0.074, h * 0.046, { step: 1 }), { fill: C.trunk, w, seed: seed + 'trunk', dense: true });
+        const sp = T.path(spine);
+        for (let k = 1; k < 13; k++) {
+            const q = sp[Math.floor((k / 13) * (sp.length - 1))], hw = h * (0.036 - 0.013 * (k / 13));
+            ln(g, [[q[0] - hw, q[1] - 2], [q[0] - hw * 0.2, q[1] + 2.4], [q[0] + hw * (k % 2 ? 0.9 : 0.5), q[1] - 1.6]], { w: MID, seed: seed + 'ring' + k });
+        }
+        // the fronds: [angle, length, far?]; far ones first
+        const frond = (a, len, far, key) => {
+            a += sway * (0.6 + Math.abs(Math.cos(a)));
+            const dx = Math.cos(a), dy = Math.sin(a), droop = len * (0.22 + 0.42 * Math.abs(dx)), n = 6;
+            const at = (u) => [top[0] + dx * len * u, top[1] + dy * len * u + droop * u * u];
+            const tan = (u) => {
+                const tx = dx * len, ty = dy * len + 2 * droop * u, l = Math.hypot(tx, ty) || 1;
+                return [tx / l, ty / l];
+            };
+            const wd = len * 0.17, up = [], dn = [];
+            for (let i = 0; i <= n; i++) {
+                const u = i / n, q = at(u), [tx, ty] = tan(u), nx = -ty * Math.sign(dx || 1), ny = tx * Math.sign(dx || 1);
+                const bulge = Math.sin(Math.PI * Math.min(1, u * 1.1 + 0.06));
+                up.push([q[0] + nx * wd * 0.22 * bulge, q[1] + ny * wd * 0.22 * bulge]);
+                // the lower edge: each leaflet a point hanging back towards the trunk
+                if (i > 0 && i < n) {
+                    dn.push([q[0] - nx * wd * 0.55 * bulge + tx * len * 0.02, q[1] - ny * wd * 0.55 * bulge + ty * len * 0.02, 1]);
+                    dn.push([q[0] - nx * wd * 1.0 * bulge + tx * len * 0.05, q[1] - ny * wd * 1.0 * bulge + ty * len * 0.05]);
+                }
+            }
+            const tip = at(1.04);
+            sh(g, [[...up[0], 1], ...up.slice(1), [tip[0], tip[1], 1], ...dn.reverse()], { fill: far ? C.palm : C.palmLight, w, seed: key });
+            ln(g, [at(0.06), at(0.4), at(0.72), at(0.96)], { w: MID, seed: key + 'rib' });
+        };
+        const F = [[-2.7, 0.42, 1], [-0.45, 0.44, 1], [-1.95, 0.4, 1], [-1.15, 0.42, 1], [-3.25, 0.4, 0], [0.12, 0.42, 0], [-2.3, 0.5, 0], [-0.85, 0.5, 0], [-1.58, 0.4, 0]];
+        for (const [i, [a, l, far]] of F.entries()) if (far) frond(a, h * l, 1, seed + 'f' + i);
+        for (const [i, [a, l, far]] of F.entries()) if (!far) frond(a, h * l, 0, seed + 'f' + i);
+        // coconuts tucked under the crown
+        for (const [cx, cy, r] of [[-9, 13, 8.5], [7, 15, 9], [-1, 24, 8]]) disc(g, top[0] + cx, top[1] + cy, r, r * 0.95, { fill: C.woodDeep, w: MID, seed: seed + 'nut' + cx, n: 10 });
+    }
+
     function far(g) {
         g.fillStyle = C.sky;
         g.fillRect(0, 0, W, H);
@@ -1307,7 +1356,7 @@
         flag(g, 995, 541.2, 0.42, d + 2, { seed: 'flag-b', fill: C.blue });
         flag(g, pp(0.262, 0)[0] + 4, PV[1] - 168, 0.8, d + 1, { seed: 'flag-p', fill: P.fish, bar: C.roadLine, dir: -1 });
         // the palm by the hut, swaying
-        T.palm(g, 470, 651, 428, { seed: 'palm-near', lean: -46, sway: Math.sin(d * 0.42) * 0.028, fronds: 7, w: BG });
+        palmTree(g, 604, 716, 322, { seed: 'palm-near', lean: -26, sway: Math.sin(d * 0.42) * 0.03 });
         Motion.sprite('harbor-near', { x: 0, y: 0, w: 640, h: H }, env.k, near).draw(g);
         bunting(g, [-14, 232], [146, 240], d, { n: 5, seed: 'bunt-a' });
         bunting(g, [146, 240], [296, 250], d + 3, { n: 5, seed: 'bunt-b' });
@@ -1332,7 +1381,7 @@
             horizon: 552, vanish: VP, lip: LIP, crest: CREST, shore: SHORE, crestY, shoreY,
             calm: { x0: 330, x1: 1270, y0: 150, y1: GROUND },
             hut: HUT, hatch: { x0: 34, x1: 260, y0: 346, y1: 516 }, counter: { x0: 4, x1: 294, y: 506 },
-            quayRail: { x0: 950, x1: 1092, y: 607 }, lamp: [1118, 668],
+            quayRail: { x0: 950, x1: 1092, y: 607 }, lamp: [1200, 696],
             pier: { vanish: PV, at: pp, x0: 1144, deckY: (x) => pierY(x, PIER.deck), railY: (x) => pierY(x, PIER.railTop), ...PIER },
             fore: { pots: [12, 760, 250, 896], coil: [200, 846, 396, 900], cone: [1356, 795, 1428, 896], bollard: [1458, 760, 1560, 896] },
         },

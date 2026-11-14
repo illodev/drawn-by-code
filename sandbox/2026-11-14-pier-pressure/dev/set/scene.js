@@ -8,6 +8,7 @@ Motion.scene({
     draw(g, t, env) {
         Harbor.back(g, env, t);
         // stand-ins for the cast: one on the ground, one in the air
+        if (!window.SHOW_STANDINS) { Harbor.fore(g, env, t); return; }
         g.fillStyle = 'rgba(120, 120, 128, 0.55)';
         for (const [x, y, rx, ry] of [[560, 590, 110, 185], [1010, 420, 120, 200]]) {
             g.beginPath();

@@ -4,7 +4,8 @@
 //   Drawn.def(who, pose, { w, h, line }, (part, S, L) => { … })   a drawing declares itself:
 //       part(name); S(colour, points); L(points, width, closed?, colour?)
 //   Drawn.add(who, pose, (part, S, L) => { … })   details authored by hand on top of one
-//   Drawn.draw(g, who, pose, x, y, s, { parts: { head: { rot, at: [x, y], dx, dy } }, ink })
+//   Drawn.draw(g, who, pose, x, y, s, { parts: { head: { rot, at: [x, y], dx, dy } }, ink,
+//       only: [names], hide: [names] })
 //   Drawn.size(who, pose) → [w, h]
 // Shapes are compiled once into paths through SkateToon.path (smooth runs between corners).
 // All fills are painted first, then all strokes, each inside its part's transform, so a part
@@ -62,7 +63,9 @@ const Drawn = (() => {
         g.scale(s, s);
         g.lineJoin = 'round';
         g.lineCap = 'round';
+        const shown = (p) => (!o.only || o.only.includes(p.name)) && !(o.hide && o.hide.includes(p.name));
         for (const p of parts) {
+            if (!shown(p)) continue;
             enter(p);
             for (const f of p.fills) {
                 g.fillStyle = f.color;
@@ -77,6 +80,7 @@ const Drawn = (() => {
             g.restore();
         }
         for (const p of parts) {
+            if (!shown(p)) continue;
             enter(p);
             for (const l of p.lines) {
                 g.strokeStyle = l.color ?? ink;
