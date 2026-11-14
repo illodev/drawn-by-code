@@ -3,10 +3,10 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **key art (the gang in action on the quay) with the set, the model sheet and the hand
-chart waiting for the user's approval.** No film yet. Until a style test is approved the style
-stays *in testing* and is not yet in the README's table, the cover's carousel or the site
-(new-style, steps 7 and 8).
+State: **Kit redrawn by hand (`review/kit-hero.jpg`) as a test of a new method, waiting for
+the user's verdict.** The rest of the cast and the key art (`review/key.jpg`) are still the
+puppet the user rejected in round 6: do not show them again as they are. No film yet; the
+style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -149,3 +149,34 @@ and the model sheet. Everything drifts on twos, each figure on its own phase; bl
 
 Open, for the user: the title board's design and place; whether the key art's staging is the
 level wanted before a shot is animated.
+
+## Round 6 (user) · the key art
+
+> Los personajes siguen siendo muy muy poco cuidados, dibujos muy prematuros
+
+→ Kit beside the reference's jumping figure at the same height showed why, and it was not
+something another pass over the puppet would fix:
+
+- **chibi proportions**: in the key art her head was half the figure; the reference's kids
+  are lanky (the head a quarter to a third, a long torso, long thin limbs);
+- **flat parts pasted together**: a trapezoid for a shirt, flaps for sleeves, legs that never
+  showed, a sole stuck on like a sticker; the reference draws clothes as volumes with
+  openings (a sleeve is a bell with a hem that goes round the arm);
+- **generic shapes**: ellipse eyes, a bowl mouth with pegs for teeth, zigzag hair.
+
+Changed the method: **a character in a pose is one drawing, authored by hand**, contour by
+contour, in its own file (`cast/kit-hero.js`, `Hero.kitJump`), not a puppet posed by numbers.
+Kit in the air: the head a quarter of the figure, three quarters, thrown back; the tee a long
+tube with hoops that bow round it and bell sleeves ringed parallel to their hems; shorts with
+a leg opening we look into and the shin coming out of its dark; the kicked boot as a slab
+(wall, welt, tread, the upper behind); bunches as fat leaves with strands; a band of teeth
+with her gap; a heavier line (1.3× outside, 1.2× inside, as measured against the reference at
+the same size). Two rounds against the side-by-side: the first had the head too small, a
+teeth band a third of the face, both arms up again; the second is `review/kit-hero.jpg`.
+
+Still short of the reference, seen at 2×: the trailing boot is the kit's profile boot turned
+round (its tongue muddles the ankle; her sock is hidden); hands are the chart's, not drawn
+for this pose; the face is cleaner but not yet as characterful as the reference's.
+
+Not done: the other five characters and the key art still use the puppet. They are redrawn
+this way only if the user says this is the direction.
