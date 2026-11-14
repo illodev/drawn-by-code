@@ -1,13 +1,13 @@
-// pier-pressure · Kit over the quay of Gull Harbor: the first character replicated from her
-// approved concept sheet (cast/kit-ref.js, measured by tools/trace.py), on the set, as a test
-// of the series' look. She hangs in the air and drifts on twos; the palm, the flags and the
-// gulls of the set move behind her.
+// pier-pressure · Kit over the quay of Gull Harbor: the first character of the cast as a
+// drawing in code (cast/kit-drawn.js, written by tools/tocode.py from her approved sheet), on
+// the set, as a test of the series' look. She hangs in the air, drifting, her parts turning a
+// little on twos; the palm, the flags and the gulls of the set move behind her.
 const DIR = 'sandbox/2026-11-14-pier-pressure/';
 Motion.scene({
     fps: 24,
     duration: 4,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/ref.js', DIR + 'cast/kit-ref.js', DIR + 'set.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', DIR + 'cast/kit-drawn.js', DIR + 'set.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     shots: [[0, 4, 'Kit over the quay']],
@@ -16,12 +16,22 @@ Motion.scene({
         const T = SkateToon, C = T.COL;
         const tt = T.onTwos(t), d = T.drawing(t);
         Harbor.back(g, env, t);
-        // the sheet's pose is 740 × 720; she is drawn 1.04 of that, drifting and tipping a little
-        const s = 1.04, [w, h] = Ref.size('kit', 'jump');
+        // Kit is a drawing in code (cast/kit-drawn.js), in parts: she drifts whole, and her head,
+        // her arms and the kicked boot each turn a little about their joint, on twos
+        const s = 1.04, [w, h] = Drawn.size('kit', 'jump');
+        const sw = (ph, amp) => Math.sin(tt * Math.PI * 2 + ph) * amp;
         g.save();
         g.translate(800 + Math.sin(tt * Math.PI * 0.5) * 6, 408 + Math.sin(tt * Math.PI) * 9);
         g.rotate(Math.sin(tt * Math.PI + 0.6) * 0.022);
-        Ref.draw(g, 'kit', 'jump', (-w / 2) * s, (-h / 2) * s - 40, s);
+        Drawn.draw(g, 'kit', 'jump', (-w / 2) * s, (-h / 2) * s - 40, s, {
+            parts: {
+                head: { at: [312, 296], rot: sw(0, 0.035) },
+                armL: { at: [196, 300], rot: sw(1.2, 0.07) },
+                armR: { at: [436, 276], rot: sw(2.4, 0.06) },
+                bootNear: { at: [478, 400], rot: sw(0.6, 0.03) },
+                bootFar: { at: [262, 452], rot: sw(3, 0.05) },
+            },
+        });
         g.restore();
         Harbor.fore(g, env, t);
         g.save();

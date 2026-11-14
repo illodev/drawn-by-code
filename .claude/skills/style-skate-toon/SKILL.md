@@ -5,7 +5,7 @@ description: Skate toon style, in testing: the look of a late-'90s extreme-sport
 
 # Style · Skate toon
 
-**In testing.** Characters are not designed in code: each has an approved concept sheet (`sandbox/2026-11-14-pier-pressure/ref/`) replicated by measurement (`tools/trace.py` → `cast/<who>-ref.js`, drawn with `Ref.draw`); see the lessons of rounds 8 and 9. `SkateKid` and the hand-drawn tests below are history. Key art: `sandbox/2026-11-14-pier-pressure/review/key.jpg` (the cast of an
+**In testing.** Characters are not designed in code: each has an approved concept sheet (`sandbox/2026-11-14-pier-pressure/ref/`) turned into a drawing in code by measurement (`tools/tocode.py` → `cast/<who>-drawn.js`: shapes of control points, strokes with a width, body parts; drawn with `Drawn.draw`, which can turn each part about a joint); see the lessons of rounds 8 and 9. `SkateKid` and the hand-drawn tests below are history. Key art: `sandbox/2026-11-14-pier-pressure/review/key.jpg` (the cast of an
 imaginary show, «Pier Pressure», on its set); model sheet `…/review/cast.jpg`; hand chart
 `…/dev/handcheck/hands.png`; a whole set drawn with the kit: `…/set.js`. The look was
 measured on five frames of the genre the user gave; characters and places are always our own

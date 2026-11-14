@@ -3,11 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **Kit replicated from her approved concept sheet** (`review/kit-ref.jpg`, on the set:
-`review/key.jpg`); sheets for the other five generated and waiting for the user's picks. The
-earlier character art (the puppet cast in `cast/kit.js`…, `dev/keyart-puppets.js`, Kit by hand
-in `cast/kit-hero.js`) is superseded and kept only as history; the set, the kit and `boot3d`
-stay. No film yet; the style stays *in testing*.
+State: **Kit is a drawing in code, in parts** (`cast/kit-drawn.js`, written by
+`tools/tocode.py` from her approved sheet; `review/kit-drawn.jpg`), moving on the set in a 4 s
+test (`render/pier-pressure.mp4`, `review/key.jpg`). Sheets for the other five are generated
+and wait for the user's picks. Earlier character art (the puppet cast, `dev/keyart-puppets.js`,
+`cast/kit-hero.js`) is superseded and kept as history. No film yet; the style stays
+*in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -272,3 +273,36 @@ reference so they come from the same hand. Cost: 433 credits a variant with a re
 without), 8,660 for the twenty; Kit's four were 760. The session still cannot download them:
 the user attaches the pick for each and it goes to `ref/<who>-sheet.webp`, then
 `python3 -I tools/trace.py ref/<who>-sheet.webp cast/<who>-ref.js <who> stand=x,y,w,h …`.
+
+## Round 10 (user) · image or drawing?
+
+> Pero es una imagen o un dibujo?
+
+> No podríamos pasarlo a código?
+
+→ The round-9 replica was honest vector data but a blob: thousands of anonymous polygons, the
+ink a filled stain like any colour, one rigid piece per pose. Now it is a drawing written as
+code:
+
+- `tools/tocode.py` writes `cast/kit-drawn.js`: each flat colour is a shape of control points
+  (`[x, y]` smooth, `[x, y, 1]` a corner; corners where the contour turns more than 52°), each
+  line a **stroke along its centre** (the ink's skeleton, walked from node to node, the
+  pixel staircase averaged away) with its own measured width, the solid blacks (pupils) as
+  shapes; 154 shapes and 744 strokes for the jump, 208 and 840 standing; every one assigned
+  to a body part (head, armL, armR, torso, shorts, bootNear, bootFar, board).
+- `cast/drawn.js` (`Drawn.draw`) compiles them once through `SkateToon.path` and paints all
+  fills, then all strokes with the engine's own line, each inside its part's transform: a
+  part turns about a joint without its line being painted over by a neighbour. 20 ms a frame.
+- Against the sheet: mean difference 5.4 of 255, 1.3 % of pixels off by more than 60 (the
+  polygon copy was 4.8 and 0.8 %: the strokes are the engine's line now, not the sheet's
+  pixels).
+- `scene.js`: Kit over the quay, drifting, her head, arms and boots each turning a little
+  about their joint on twos. `render/pier-pressure.mp4` (4 s, no sound), strip and GIF.
+
+Faults found and fixed: a part's region drawn too tight left some of its strokes on the
+neighbour (a ghost of the hand's outline, then of the boot's top, when the part turned) →
+regions redrawn generously, in the order they are tested.
+
+Still off: where a turning part meets the still one (the sleeve at the shoulder) the line
+doubles by a pixel or two at the extremes; the plaster's own lines; parts are regions of the
+sheet, not yet a rig (no elbows, no mouth shapes): a shot needs its key poses drawn.

@@ -41,7 +41,8 @@ def trace(mask, tol):
     return out
 
 
-def pose(im, box):
+def measure_pose(im, box):
+    """names, under (a flat colour for every pixel, -2 = the page), inkm (the lines), at UP times the sheet."""
     x, y, w, h = box
     crop = im.crop((x, y, x + w, y + h)).resize((w * UP, h * UP), Image.BICUBIC)
     a = np.asarray(crop).astype(np.int32)
@@ -95,6 +96,12 @@ def pose(im, box):
     known2 = full != -2
     idx2 = ndi.distance_transform_edt(~known2, return_distances=False, return_indices=True)
     under = np.where(inkm & (full == -2), full[idx2[0], idx2[1]], full)
+    return names, under, inkm
+
+
+def pose(im, box):
+    x, y, w, h = box
+    names, under, inkm = measure_pose(im, box)
     layers = []
     order = ['white', 'skin', 'hair', 'teal', 'tealDeep', 'red', 'yellow', 'magenta', 'tread', 'treadDeep', 'wood', 'grey', 'deck', 'mouth', 'tongue', 'plaster']
     for nme in order:
@@ -122,4 +129,5 @@ def main():
     print(dst, len(js) // 1024, 'KB')
 
 
-main()
+if __name__ == '__main__':
+    main()
