@@ -3,12 +3,11 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the first animated shot** (`scene.js`, shot 2 of the brief, «KIT», 5 s, no sound yet:
-`render/pier-pressure.mp4`, `review/key.jpg`), waiting for the user's verdict, with the set
-corrected (`review/set.jpg`). The whole cast is drawn in code from the approved sheets
-(`cast/<who>-drawn.js`; `review/cast.jpg`, `review/cast-action.jpg`); only Kit is in parts.
-Earlier character art (the puppet cast, `dev/keyart-puppets.js`, `cast/kit-hero.js`) is
-history. The style stays *in testing*.
+State: **the first animated shot on the rebuilt set** (`scene.js`, «KIT», 5 s, no sound:
+`render/pier-pressure.mp4`, `review/key.jpg`; the set alone: `review/set.jpg`), waiting for
+the user's verdict. Set and cast share one camera (`cam.js`, metres). The whole cast is drawn
+in code from the approved sheets (`cast/<who>-drawn.js`); only Kit is in parts. The puppet
+cast (`cast/kit.js`…, `cast/kit-hero.js`) is history. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -430,3 +429,27 @@ be flat cards.
 - The set is being rebuilt on it by a parallel agent from a written brief (the user's words,
   a table of real sizes, the layout redesigned to work in this camera, guides with a metre
   grid and reference figures, the same `Harbor` contract).
+
+Round 13, continued. The set came back rebuilt (`set.js`, every object placed in metres and
+projected; its plan is the comment block at its top; `dev/set/scene.js` has guides: a metre
+grid and figures 1.4 and 1.8 m tall). The user's six items, checked in the render:
+
+1. palm: 5.6 m, behind the hut, its crown out of the top of the frame;
+2. GULL HARBOR: a 3.1 × 1.4 board on 4.1 m posts at the pier's entrance, its lettering mapped
+   onto the board's projected quad;
+3. BAIT: a box on the pier's deck with a gable, a side wall, a roof, a door and a window;
+4. the boat: a 3 m dinghy upright on its keel on a trolley, taller than a kid;
+5. rope and pot: two pots and a coil lying beside them, drawn far to near;
+6. the table: a projected circle at 0.75 m, seen edge-on from a 0.6 m eye.
+
+And the hut is 2.4 m to its eaves with Aunt Dot 1.8 m inside it; the pier is seen from above.
+
+Then by the lead: the foreground props filled the frame's bottom (pots at X −1.4, a cone in
+the middle) → moved out to the corners; the cast staged through the camera (Kit 1.4 m at
+Z 2.6, a little left of the pier's board, which she covered; Dot at her spot inside the hut,
+clipped to the hatch's quad; Captain 0.46 m on the bollard's top, placed by his feet measured
+on his sheet: he first stood 25 units in the air on a slice of his own drawing's bollard).
+
+Left as it is: from 0.6 m up, the harbour's water only shows as a thin band beyond the quay
+and the pier's piles are hidden under its deck; the far trawler is small. True to the camera;
+a higher camera would show more sea (a choice for the user).

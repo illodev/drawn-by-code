@@ -8,7 +8,7 @@ Motion.scene({
     fps: 24,
     duration: 5,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'set.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cam.js', DIR + 'set.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     shots: [[0, 5, 'KIT']],
@@ -16,7 +16,11 @@ Motion.scene({
     draw(g, t, env) {
         const T = SkateToon, C = T.COL, E = Ease;
         const tt = T.onTwos(t);
-        const LAND = 2.0, CARD = 2.5, JUMP = 0.75, GY = 842, KX = 896, KS = 0.98;
+        const LAND = 2.0, CARD = 2.5, JUMP = 0.75, A = Harbor.AT;
+        // the cast stand in the set's world and are sized by its camera (cam.js): Kit, 1.4 m tall,
+        // lands 2.6 m from it; her drawing is 700 of its own units from her hair to her soles
+        const KXW = -0.12; // a little left of the set's own spot, clear of the pier's board
+        const [KX, GY] = Cam.pt([KXW, 0, A.kit[1]]), KS = (Cam.scale(A.kit[1]) * Cam.HEIGHT.kit) / 700;
         const since = (at) => T.drawing(t, at); // drawings since a hit, on its own clock
         const beat = Motion.pulse(tt, 120, 0, 7);
 
@@ -31,13 +35,17 @@ Motion.scene({
         }
         Harbor.back(g, env, t);
 
-        // Aunt Dot in her hatch: she looks up when the board hits the stone
+        // Aunt Dot (1.8 m) inside her hut, seen through the hatch, behind her counter: she looks
+        // up when the board hits the stone
+        const [dX, , dZ] = A.dot.foot, [dx, dy] = Cam.pt(A.dot.foot), ds = (Cam.scale(dZ) * Cam.HEIGHT.dot) / 700;
+        const [dw] = Drawn.size('dot', 'stand');
+        const dotUp = t >= LAND ? [5, 8, 6, 5][Math.min(3, dl)] : 0;
         g.save();
         g.beginPath();
-        g.rect(30, 366, 236, 150);
+        A.dot.hatch.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+        g.closePath();
         g.clip();
-        const dotUp = t >= LAND ? [10, 16, 12, 10][Math.min(3, dl)] : 0;
-        Drawn.draw(g, 'dot', 'stand', 20, 398 - dotUp + Math.sin(tt * Math.PI) * 1.5, 0.52);
+        Drawn.draw(g, 'dot', 'stand', dx - (dw / 2) * ds, dy - 706 * ds - dotUp + Math.sin(tt * Math.PI) * 0.8, ds);
         g.restore();
         Harbor.counter(g, env);
 
@@ -54,7 +62,7 @@ Motion.scene({
             Drawn.draw(g, 'kit', 'stand', -200 * KS, -650 * KS, KS, { only: ['board'] });
             g.restore();
             // Kit herself: in from the top left, falling faster as she comes
-            const [jw, jh] = Drawn.size('kit', 'jump'), js = 1;
+            const [jw, jh] = Drawn.size('kit', 'jump'), js = KS * 1.02;
             const kx = E.lerp(250, KX + 30, uu), ky = E.lerp(-400, GY - 360, uu * uu);
             const fl = (ph, amp) => Math.sin(tt * Math.PI * 4 + ph) * amp;
             g.save();
@@ -101,27 +109,27 @@ Motion.scene({
         }
         Harbor.fore(g, env, t);
 
-        // Captain on the bollard at the quay's corner: bored, until the stone shakes
-        const hop = t >= LAND ? [-46, -70, -52, -20, 0][Math.min(4, dl)] : 0;
-        const [cw, ch] = Drawn.size('captain', 'perch'), cs = 0.5;
-        // one drawing, cut at his feet: the bollard stays where the set's stands, the bird leaves it
-        const cx = 1508 - (cw / 2) * cs, cy = 900 - ch * cs, FEETLINE = cy + 606 * cs;
-        for (const [y0, y1, dy] of [[FEETLINE - 2, 900, 0], [cy - 80, FEETLINE, hop]]) {
-            g.save();
-            g.translate(0, dy);
-            g.beginPath();
-            g.rect(cx - 40, y0, cw * cs + 80, y1 - y0);
-            g.clip();
-            Drawn.draw(g, 'captain', 'perch', cx, cy + (dy ? 0 : Math.sin(tt * Math.PI) * 0), cs);
-            g.restore();
-        }
+        // Captain (0.46 m) on the foreground bollard: bored, until the stone shakes. Only the bird
+        // of his perch drawing is used: his feet end at y = 531 of it (measured on the sheet),
+        // 525 units below his crest, about x = 170; the bollard is the set's
+        const hop = t >= LAND ? [-40, -62, -46, -18, 0][Math.min(4, dl)] : 0;
+        const [bx, by] = Cam.pt(A.bollard.top), cs = (Cam.scale(A.bollard.top[2]) * Cam.HEIGHT.captain) / 525;
+        const [cw] = Drawn.size('captain', 'perch');
+        g.save();
+        g.translate(bx - 170 * cs, by - 527 * cs + hop);
+        g.beginPath();
+        g.rect(-40 * cs, -40 * cs, (cw + 80) * cs, 573 * cs);
+        g.clip();
+        Drawn.draw(g, 'captain', 'perch', 0, 0, cs);
+        g.restore();
         g.restore();
 
         // her name, slammed onto the frame on the next beat
         if (t >= CARD) {
             const dc = since(CARD), k = [0.6, 1.16, 0.95, 1][Math.min(3, dc)];
             g.save();
-            g.translate(330, 730);
+            g.translate(300, 748);
+            g.scale(0.9, 0.9);
             g.rotate(-0.07 + [0.1, -0.03, 0.01, 0][Math.min(3, dc)]);
             g.scale(k, k);
             T.slab(g, [[-190, -104], [186, -118], [198, 70], [-182, 86]], { fill: C.magenta, seed: 'card', over: 2.4, w: T.LINE * 1.2 });

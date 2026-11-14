@@ -1,99 +1,239 @@
 // pier-pressure · the set: Gull Harbor, a cold-water fishing and surf town under the genre's
-// flat yellow sky, seen from low on its stone quay in crooked wide-angle perspective.
+// flat yellow sky, seen by the film's one camera (cam.js: 0.6 m above the quay, level, horizon
+// at y = 552). Every object is placed in the world in metres and drawn by projecting its
+// geometry through Cam; nothing is sized or slanted by eye.
 //
 //   Harbor.back(g, env, t)   paints the whole 1600×900 frame, opaque
+//   Harbor.counter(g, env)   the hut's counter and what stands on it, again (over whoever serves)
 //   Harbor.fore(g, env, t)   the props that stand in front of the cast (transparent elsewhere)
-//   Harbor.GROUND            the feet line (770); Harbor.AT: the other coordinates a shot needs
+//   Harbor.AT                where things are, in world metres and in screen units: kit (a
+//                            landing spot), dot { foot, hatch, clip }, bollard.top, lip, pier, fore…
 //
-// Depth order, back to front: sky · headland, town, lighthouse · sea · harbour wall, crane,
-// trawlers · the pier · the quay and its slipway · [the tall palm, swaying] · Dot's chip hut and
-// what stands round it · [bunting, flags, gulls] · — the cast — · bollard, cone, pots, rope.
-// Static parts are cached once (Motion.sprite); what moves is drawn on twos.
+// THE WORLD'S PLAN (metres; X right, Y up from the quay, Z away from the camera at the origin)
+//
+//   quay            the plane Y = 0 out to its lip: the line through (0, 11.8) running 0.6 rad
+//                   off the picture plane, nearer to the right (Z = 11.8 − 0.684 X). Paving in
+//                   courses 1.4 deep and slabs 2.1 long laid with the lip; coping 0.45; yellow line
+//   water           Y = −1.5 beyond the lip (from 0.6 m up we only see it past Z ≈ 40)
+//   chip hut        box 3 × 2.4 × 2.2 at (−3.25, 8.3), yaw 0.16: hatch 1.6 × 0.9 with its sill at
+//                   1.05; counter 1.86 × 0.4; awning 2 × 0.9 falling 0.46; roof board 3.3 × 2.56;
+//                   sign 2.6 × 0.9 on the roof (2.74–3.64 up); flue to 3.75. Round it: crates and a
+//                   sack (front left), menu A-board 0.62 × 1.02, bin 0.54 × 0.93, gas bottle 0.74,
+//                   longboard 2.3 leaning on the side wall
+//   café table      (−1.3, 10.4): top 0.8 across at 0.75; stools 0.45; parasol 1.9 across, 2.3 high
+//   palm            foot (−1.74, 11.48), 5.6 tall (its crown leaves the frame); far palms 5.6–7
+//   lip             rail 1.0 high (posts 1.5 apart), ladder hoops 1.05, a bollard 0.5 with its line
+//   pier            leaves the lip square to it from (4.0, 9.06): deck 3 × 26 at Y = 0, a bay
+//                   3 × 2.7 on its far side; bents of two piles every 3 m down to the water, cross
+//                   braced; rails 1.0; lamps 4.6; flagstaff 5.4 at its end
+//   bait shed       box 2.4 × 2.2 × 2 on the bay (centre 5.9 m out), ridge 2.85, gable to the quay:
+//                   door 0.84 × 1.92, window 0.74 × 0.66, board BAIT 1.48 × 0.43
+//   gateway         two posts 4.1 high where the pier leaves the lip, the board GULL HARBOR
+//                   3.1 × 1.4 between 2.6 and 4.0 up, facing the quay; life ring 0.66 on its board
+//   dinghy          3 × 1.2, keel 0.2 up on a launching trolley (wheels 0.4), at (3.3, 6.75), bow
+//                   towards us (yaw 2.45)
+//   trawler A       14 × 4.4 at (5.6, 75), wheelhouse 2.7, mast 7 above the deck
+//   trawler B       12 × 4 at (109, 170); rowing boat 3.6 × 1.3 at (−7.6, 52); buoys 0.65
+//   far wall        from (−96, 114) to (10.5, 96), 2.3 above the water, rail 1.0, palms 5.6–6.4
+//   headland        flat cards at 176 (lower terrace: houses 4.4–5.4 wide, 5.6–8 to the eaves),
+//                   205 (upper terrace, chapel), 240 (the hill, 8 m telegraph poles); lighthouse a
+//                   round tower 16.4 + lantern (23 in all) at Z = 246
+//   foreground      lobster pots 0.64 × 0.47 × 0.4 at (−1.42, 2.42) and (−1.2, 3.1); coil of rope
+//                   0.6 across at (−0.62, 2.3), beside them; cone 0.5 at (0.8, 2.34); bollard 0.5
+//                   at (1.5, 2.5) with its line. They keep to the corners (|X| > 0.6, Z < 3.3): the cast plays
+//                   between and behind them
+//
+// Depth order: sky · water · headland · far wall | glints | boats · pier · quay · what stands on
+// it · dinghy | flags · palm (swaying) | café · hut · round the hut | bunting · gulls — the cast
+// (Dot between the hut's inside and Harbor.counter) — foreground props far to near.
+// Static parts are cached (Motion.sprite); what moves is drawn on twos.
 (() => {
     const T = SkateToon, C = T.COL;
-    const W = 1600, H = 900, GROUND = 770;
-    const BG = T.LINE_BG, MID = 1.9, FAR = 1.7, TICK = T.LINE_FINE;
-    const VP = [800, 560]; // where the quay's joints run to
+    const W = 1600, H = 900, EYE = Cam.EYE, F = Cam.F, CX = Cam.CX, H0 = Cam.H0;
+    const BG = T.LINE_BG, EYE3 = [0, EYE, 0], UP = [0, 1, 0];
+    let K = 1; // output pixels per logical unit (env.k), for lettering painted on its own canvas
 
     // the town's own colours, in the family of SkateToon.COL
     const P = {
-        quay: '#b9b2c6', coping: '#d9d4e1', ramp: '#a29bb4', wet: '#7d9c8d', iron: '#4f5b6c', ironLight: '#76849a',
+        quay: '#b9b2c6', coping: '#d9d4e1', wet: '#7d9c8d', iron: '#4f5b6c', ironLight: '#76849a',
         hill: '#a3c26e', hillDeep: '#7fa64f', cliff: '#d9b77c', rock: '#8f93a6', wall: '#a7a1b6', wallTop: '#cdc8d6',
         slate: '#5f7388', tile: '#d0603a', cream: '#fff3d6', coral: '#f26b5b', fish: '#1cc0bb', fishDeep: '#17a3a0',
-        hut: '#84ccbc', hutSide: '#69b5a5', hutDeep: '#4f9a8c', inside: '#22495a', navy: '#1c4f8f', boot: '#c8372d',
+        hut: '#84ccbc', hutSide: '#69b5a5', hutDeep: '#4f9a8c', inside: '#22495a', insideDeep: '#183645', navy: '#1c4f8f', boot: '#c8372d',
         deck: '#cdb260', woodFar: '#9a8233', under: '#665002', rope: '#e8cf8a', net: '#3f9a7a', netPale: '#a8d6b4',
-        spar: '#f3dc9a', lilac: '#c3b0dd', pink: '#f7a8bb', paleBlue: '#9cc3e4', chalk: '#2f3a3c', sack: '#d8b47a',
+        spar: '#f3dc9a', lilac: '#c3b0dd', lilacDeep: '#a893c9', pink: '#f7a8bb', paleBlue: '#9cc3e4', chalk: '#2f3a3c', sack: '#d8b47a',
+        soil: '#8a6a3c', parasolUnder: '#f4d9a8',
     };
 
-    // --- helpers ---------------------------------------------------------------------------
-    const K = (pts) => pts.map(([x, y]) => [x, y, 1]);
+    // --- vectors, projection ---------------------------------------------------------------
+    const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+    const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    const mul = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+    const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const len3 = (a) => Math.hypot(a[0], a[1], a[2]);
+    const unit = (a) => mul(a, 1 / (len3(a) || 1));
+    const lerp3 = (a, b, u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
     const mix = (a, b, u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
-    const ln = (g, pts, o = {}) => T.line(g, pts, { w: BG, ...o });
-    const sh = (g, pts, o = {}) => T.shape(g, pts, { w: BG, ...o });
-    const poly = (g, pts, o = {}) => T.shape(g, K(pts), { w: BG, ...o });
-    const slab = (g, q, o = {}) => T.slab(g, q, { w: BG, ...o });
-    const disc = (g, x, y, rx, ry = rx, o = {}) => T.shape(g, T.ellipse(x, y, rx, ry, o.rot ?? 0, o.n ?? 12), { w: BG, ...o });
+    const pt = Cam.pt, sc = Cam.scale;
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    // the set's line: 2.2 near, thinning with distance, never below 1.4
+    const lw = (Z) => clamp(BG - (Z - 10) * 0.012, 1.4, BG);
+
+    // a frame standing on the ground: local x to its right, y up, z away, turned by yaw
+    function frame(o, yaw = 0) {
+        const c = Math.cos(yaw), s = Math.sin(yaw);
+        const w = (x, y, z) => [o[0] + x * c + z * s, o[1] + y, o[2] - x * s + z * c];
+        return { o, yaw, w, s: (x, y, z) => pt(w(x, y, z)), X: [c, 0, -s], Z: [s, 0, c] };
+    }
+    // a plane in the world: o its origin, u to the right and v up as we see it (unit vectors);
+    // p(a, b, c) is the screen point a metres along u, b along v and c out towards the camera
+    function plane(o, u, v) {
+        let n = cross(u, v);
+        if (dot3(n, sub(EYE3, o)) < 0) n = mul(n, -1);
+        const w = (a, b, c = 0) => [o[0] + u[0] * a + v[0] * b + n[0] * c, o[1] + u[1] * a + v[1] * b + n[1] * c, o[2] + u[2] * a + v[2] * b + n[2] * c];
+        const p = (a, b, c = 0) => pt(w(a, b, c));
+        // a rectangle on it, as a screen quad [tl, tr, br, bl]
+        const q = (a0, b0, a1, b1, c = 0) => [p(a0, b1, c), p(a1, b1, c), p(a1, b0, c), p(a0, b0, c)];
+        return { o, u, v, n, w, p, q };
+    }
+    const facePlane = (f) => {
+        const [tl, tr, br, bl] = f.pts3, pl = plane(bl, unit(sub(br, bl)), unit(sub(tl, bl)));
+        pl.W = len3(sub(br, bl));
+        pl.H = len3(sub(tl, bl));
+        return pl;
+    };
+    // the walls of a box standing in a frame, as planes (u from the wall's left as we face it)
+    const wallOf = (fr, w, d, which) =>
+        which === 'front' ? plane(fr.w(-w / 2, 0, -d / 2), fr.X, UP) : which === 'right' ? plane(fr.w(w / 2, 0, -d / 2), fr.Z, UP) : which === 'left' ? plane(fr.w(-w / 2, 0, d / 2), mul(fr.Z, -1), UP) : plane(fr.w(w / 2, 0, d / 2), mul(fr.X, -1), UP);
+
+    // --- drawing helpers -------------------------------------------------------------------
+    const Kc = (pts) => pts.map(([x, y]) => [x, y, 1]);
+    // (these four draw in screen units: whatever the distance, their line is never under 1.3)
+    const thin = (o) => ({ ...o, w: Math.max(1.3, o.w ?? BG) });
+    const ln = (g, pts, o = {}) => T.line(g, pts, thin(o));
+    const sh = (g, pts, o = {}) => T.shape(g, pts, thin(o));
+    const poly = (g, pts, o = {}) => T.shape(g, Kc(pts), thin(o));
+    const slab = (g, q, o = {}) => T.slab(g, q, thin(o));
     const dot = (g, x, y, r, col = C.ink) => {
         g.fillStyle = col;
         g.beginPath();
         g.arc(x, y, r, 0, Math.PI * 2);
         g.fill();
     };
-    // a point of a quad [tl, tr, br, bl]
     const at = (q, u, v) => mix(mix(q[0], q[1], u), mix(q[3], q[2], u), v);
-    // a straight bar from a to b, wa wide at a and wb at b, ruled like every slab
+    // a straight bar between two screen points, wa wide at a and wb at b, ruled like a slab
     const bar = (g, a, b, wa, wb, o = {}) => {
         const d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx = -(b[1] - a[1]) / d, ny = (b[0] - a[0]) / d;
         const q = [[a[0] + (nx * wa) / 2, a[1] + (ny * wa) / 2], [b[0] + (nx * wb) / 2, b[1] + (ny * wb) / 2], [b[0] - (nx * wb) / 2, b[1] - (ny * wb) / 2], [a[0] - (nx * wa) / 2, a[1] - (ny * wa) / 2]];
-        T.slab(g, q, { w: BG, over: 0.7, ...o });
+        T.slab(g, q, thin({ over: 0.7, ...o }));
         return q;
     };
-    // plank lines across a quad, from its top edge to its bottom edge (or side to side), some
-    // stopping short, a few missing
-    function planks(g, q, n, o = {}) {
-        const { seed = 'pl', w = BG, skip = 0.1, across = false, color = C.ink } = o;
-        const R = Motion.rng(seed);
-        for (let i = 1; i < n; i++) {
-            const u = (i + (R() - 0.5) * 0.3) / n, a0 = R(), a1 = R(), sk = R();
-            if (sk < skip) continue;
-            const v0 = a0 < 0.25 ? a0 * 0.8 : 0, v1 = a1 < 0.25 ? 1 - a1 * 0.8 : 1;
-            const A = across ? at(q, v0, u) : at(q, u, v0), B = across ? at(q, v1, u) : at(q, u, v1);
-            T.line(g, [A, B], { w, seed: seed + i, color });
+    // a post, a spar, a rail: a bar between two world points, d metres thick
+    const bar3 = (g, a, b, d, o = {}) => bar(g, pt(a), pt(b), Math.max(1.2, d * sc(a[2])), Math.max(1.2, (o.d1 ?? d) * sc(b[2])), { w: lw((a[2] + b[2]) / 2), ...o });
+    const ln3 = (g, pts3, o = {}) => ln(g, pts3.map(pt), { w: lw(pts3[0][2]), ...o });
+    // a box by its faces, far to near. o.fill: a colour or { front, right, left, back, top, bottom, all };
+    // o.face(f, plane) draws on each face after it is filled
+    function boxOf(g, o3, size, yaw, o = {}) {
+        const faces = Cam.box(o3, size, yaw);
+        for (const f of faces) {
+            const fill = typeof o.fill === 'object' ? (o.fill[f.name] ?? o.fill.all) : o.fill;
+            T.slab(g, f.pts, { fill, w: o.w ?? lw(o3[2]), seed: (o.seed ?? 'box') + f.name, over: o.over ?? 1 });
+            if (o.face) o.face(f, facePlane(f));
+        }
+        return faces;
+    }
+    // the convex outline of a cloud of screen points
+    function hull2d(pts) {
+        const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+        const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+        const lo = [], up = [];
+        for (const q of p) {
+            while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop();
+            lo.push(q);
+        }
+        for (let i = p.length - 1; i >= 0; i--) {
+            const q = p[i];
+            while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop();
+            up.push(q);
+        }
+        lo.pop();
+        up.pop();
+        return lo.concat(up);
+    }
+    // the hand: a slow drift that depends only on where a point is, so pieces that share an
+    // edge still meet
+    const wob = (p, seed) => [p[0] + Motion.noise1(seed + 'x', (p[0] + p[1] * 0.7) / 23) * 0.6, p[1] + Motion.noise1(seed + 'y', (p[1] - p[0] * 0.6) / 23) * 0.6];
+    // several overlapping pieces as one silhouette: every outline inked twice as wide, then
+    // every piece filled on top, so only the union keeps its line
+    function union(g, polys, o = {}) {
+        const { fill = P.iron, w = BG, seed = 'u', color = C.ink } = o;
+        const ps = polys.filter((q) => q.length > 2).map((q) => T.pathOf(q.map((p) => wob(p, seed))));
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        g.strokeStyle = color;
+        g.lineWidth = 2 * w;
+        for (const p of ps) g.stroke(p);
+        g.fillStyle = fill;
+        g.strokeStyle = fill;
+        g.lineWidth = 0.7;
+        for (const p of ps) {
+            g.fill(p);
+            g.stroke(p);
         }
     }
-    // a wave: a long, nearly level line with a few soft kinks
-    function wave(g, x, y, len, o = {}) {
-        const { seed = 'wv', w = BG, amp = 2, color = C.ink, slope = 0 } = o;
-        const R = Motion.rng(seed), n = Math.max(2, Math.round(len / 15)), pts = [];
-        for (let i = 0; i <= n; i++) pts.push([x + (len * i) / n, y + (slope * len * i) / n + (i % 2 ? -1 : 1) * amp * (0.3 + R() * 0.9) * (i === 0 || i === n ? 0.2 : 1)]);
-        T.line(g, pts, { w, seed, color });
-        if (R() < 0.3 && len > 24) T.line(g, [[x + len * 0.55, y + w * 2.6], [x + len * 0.72, y + w * 2.2 + amp], [x + len * 0.9, y + w * 2.8]], { w, seed: seed + 'b', color });
-    }
-    // waves scattered in a box [x, y, w, h], never crowding each other
-    function waves(g, box, n, o) {
-        const { seed, len, w = BG, amp = 2, slope = 0, keep = null } = o;
-        const R = Motion.rng(seed), made = [];
-        for (let tries = 0; tries < n * 24 && made.length < n; tries++) {
-            const L = len[0] + R() * (len[1] - len[0]), x = box[0] + R() * Math.max(1, box[2] - L), y = box[1] + R() * box[3];
-            if (made.some(([mx, my, mL]) => Math.abs(my - y) < w * 3.4 && x < mx + mL + 14 && mx < x + L + 14)) continue;
-            if (keep && !keep(x, y, L)) continue;
-            made.push([x, y, L]);
-            wave(g, x, y, L, { seed: seed + made.length, w, amp, slope });
+    // a horizontal circle (or an arc of it) in the world
+    const ring3 = (c, r, n = 20, a0 = 0, a1 = Math.PI * 2) => Array.from({ length: a1 - a0 > 6.28 ? n : n + 1 }, (_, i) => {
+        const a = a0 + ((a1 - a0) * i) / n;
+        return [c[0] + Math.cos(a) * r, c[1], c[2] + Math.sin(a) * r];
+    });
+    // the half of it that faces the camera, on screen
+    const nearArc = (c, r, n = 12) => {
+        const d = Math.hypot(c[0], c[2]), a0 = Math.atan2(-c[2], -c[0]), h = Math.acos(Math.min(1, r / d));
+        return ring3(c, r, n, a0 - h, a0 + h).map(pt);
+    };
+    /**
+     * A turned shape standing on c: prof is its profile [[radius, height], …] from the bottom up,
+     * each ring a projected circle. o.bands: [[y0, y1, colour], …] painted round it; o.rings:
+     * heights of lines round it; the top is drawn when we look down on it, the underside when
+     * we look up at it.
+     */
+    function lathe(g, c, prof, o = {}) {
+        const { fill = P.iron, seed = 'lathe', n = 18, bands = [], rings = [] } = o, w = o.w ?? lw(c[2]);
+        const C3 = (y) => [c[0], c[1] + y, c[2]];
+        const circ = prof.map(([r, y]) => ring3(C3(y), Math.max(r, 0.002), n).map(pt));
+        const parts = [];
+        for (let i = 0; i < prof.length - 1; i++) parts.push(hull2d([...circ[i], ...circ[i + 1]]));
+        union(g, parts, { fill, w, seed });
+        const rAt = (y) => {
+            for (let i = 0; i < prof.length - 1; i++) if (y >= prof[i][1] - 1e-9 && y <= prof[i + 1][1] + 1e-9) return prof[i][0] + ((prof[i + 1][0] - prof[i][0]) * (y - prof[i][1])) / (prof[i + 1][1] - prof[i][1] || 1);
+            return prof[prof.length - 1][0];
+        };
+        for (const [y0, y1, col] of bands) {
+            g.fillStyle = col;
+            g.fill(T.pathOf(hull2d([...ring3(C3(y0), rAt(y0), n).map(pt), ...ring3(C3(y1), rAt(y1), n).map(pt)])));
+            for (const y of [y0, y1]) T.line(g, nearArc(C3(y), rAt(y)), { w, seed: seed + 'b' + y, dense: true, amp: 0.15, taper: false });
         }
+        for (const y of rings) T.line(g, nearArc(C3(y), rAt(y)), { w, seed: seed + 'r' + y, dense: true, amp: 0.15, taper: false });
+        const [rt, yt] = prof[prof.length - 1], [rb, yb] = prof[0];
+        if (o.top !== false && c[1] + yt < EYE && rt > 0.01) T.shape(g, circ[circ.length - 1], { fill: o.topFill ?? fill, w, seed: seed + 'top', dense: true, amp: 0.15 });
+        if (o.under !== false && c[1] + yb > EYE && rb > 0.01) T.shape(g, circ[0], { fill: o.underFill ?? fill, w, seed: seed + 'und', dense: true, amp: 0.15 });
     }
-    // a rope: a band with the lay of its strands
+    // a rope on screen: a band with the lay of its strands
     function rope(g, pts, d, o = {}) {
-        const { fill = P.rope, seed = 'rope', w = BG, dense = false } = o;
-        const c = T.resample(dense ? pts : T.path(pts), d * 0.95);
+        const { fill = P.rope, seed = 'rope', w = BG, dense = false, lay = true } = o;
+        const c = T.resample(dense ? pts : T.path(pts), Math.max(1.5, d * 0.95));
+        if (c.length < 2) return;
         T.shape(g, T.ribbon(c, d, d, { dense: true }), { fill, w, seed, dense: true, amp: 0.15 });
+        if (!lay || d < 4) return;
         for (let i = 1; i < c.length - 1; i++) {
             const a = c[i - 1], b = c[i + 1], tl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, tx = (b[0] - a[0]) / tl, ty = (b[1] - a[1]) / tl, h = d * 0.34;
             T.line(g, [[c[i][0] - ty * h - tx * h * 0.7, c[i][1] + tx * h - ty * h * 0.7], [c[i][0] + ty * h + tx * h * 0.7, c[i][1] - tx * h + ty * h * 0.7]], { w: w * 0.75, seed: seed + i, amp: 0, taper: false });
         }
     }
+    const rope3 = (g, pts3, d, o = {}) => rope(g, pts3.map(pt), Math.max(1.6, d * sc(pts3[Math.floor(pts3.length / 2)][2])), { w: lw(pts3[0][2]), ...o });
     // crossed lines clipped into a polygon: netting
     function netting(g, pts, step, o = {}) {
-        const { w = FAR, seed = 'net', color = C.ink, dense = true } = o;
+        const { w = 1.6, seed = 'net', color = C.ink } = o;
         let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
         for (const [x, y] of pts) {
             x0 = Math.min(x0, x);
@@ -102,7 +242,7 @@
             y1 = Math.max(y1, y);
         }
         g.save();
-        g.clip(T.pathOf(dense ? pts : T.path(pts, true)));
+        g.clip(T.pathOf(pts));
         const h = y1 - y0;
         let i = 0;
         for (let x = x0 - h; x < x1 + h; x += step, i++) {
@@ -110,6 +250,39 @@
             T.line(g, [[x + h * 0.8, y0], [x, y1]], { w, seed: seed + 'b' + i, color, amp: 0.5 });
         }
         g.restore();
+    }
+    // Drawing flat on a plane: fn(g, k) paints in centimetres (x along u, y down the wall) from
+    // the point (a, b); k is screen units per centimetre there (pass widths as BG / k). An
+    // affine map, good for things small against their distance.
+    function onPlane(g, pl, a, b, fn, c = 0) {
+        const o = pl.p(a, b, c), e = 0.25, pu = pl.p(a + e, b, c), pv = pl.p(a, b - e, c);
+        const ux = (pu[0] - o[0]) / (e * 100), uy = (pu[1] - o[1]) / (e * 100), vx = (pv[0] - o[0]) / (e * 100), vy = (pv[1] - o[1]) / (e * 100);
+        g.save();
+        g.transform(ux, uy, vx, vy, o[0], o[1]);
+        fn(g, Math.sqrt(Math.abs(ux * vy - uy * vx)));
+        g.restore();
+    }
+    /**
+     * Lettering (or any painting) laid on a plane in true perspective: fn(c, k) paints a canvas
+     * in centimetres, wcm × hcm, that covers the rectangle from (a, b) (its bottom left) on the
+     * plane; k is screen units per centimetre at the plane. The canvas is laid cell by cell,
+     * each cell on its own projected quad.
+     */
+    function decal(g, pl, a, b, wm, hm, fn, o = {}) {
+        const mid = pl.w(a + wm / 2, b + hm / 2), s = sc(mid[2]), res = Math.min(9, Math.max(1.2, (s * K * 1.6) / 100)); // canvas px per cm
+        const cv = document.createElement('canvas');
+        cv.width = Math.ceil(wm * 100 * res);
+        cv.height = Math.ceil(hm * 100 * res);
+        const c = cv.getContext('2d');
+        c.scale(res, res);
+        fn(c, s / 100);
+        const nx = o.nx ?? Math.max(4, Math.round(wm * 5)), ny = o.ny ?? Math.max(2, Math.round(hm * 4));
+        for (let j = 0; j < ny; j++) {
+            for (let i = 0; i < nx; i++) {
+                const a0 = a + (wm * i) / nx, a1 = a + (wm * (i + 1)) / nx, b1 = b + hm - (hm * j) / ny, b0 = b + hm - (hm * (j + 1)) / ny;
+                Motion.quad(g, cv, [pl.p(a0, b1, o.out ?? 0), pl.p(a1, b1, o.out ?? 0), pl.p(a1, b0, o.out ?? 0), pl.p(a0, b0, o.out ?? 0)], 1, { x: (cv.width * i) / nx, y: (cv.height * j) / ny, w: cv.width / nx, h: cv.height / ny });
+            }
+        }
     }
     // loose lettering with no outline: chalk on a board, paint on a hull
     function chalk(g, str, x, y, size, o = {}) {
@@ -134,1256 +307,1453 @@
         });
         g.restore();
     }
-    // the hut's fish (the one on Dot's apron), nose to +x, about 2 units long, centred
+    // the hut's fish (the one on Dot's apron), nose to +x, 2 s long, centred on (x, y)
     function fish(g, x, y, s, o = {}) {
         const { fill = P.fish, w = BG, seed = 'fish', rot = 0, flip = false } = o;
         g.save();
         g.translate(x, y);
         g.rotate(rot);
-        g.scale(flip ? -s : s, s);
-        const lw = w / s;
-        T.shape(g, [[1, 0.02, 1], [0.62, -0.3], [0.1, -0.4], [-0.42, -0.2], [-0.62, -0.04, 1], [-1, -0.42, 1], [-0.88, 0.02], [-1, 0.44, 1], [-0.62, 0.1, 1], [-0.4, 0.24], [0.1, 0.4], [0.62, 0.3]], { fill, w: lw, seed });
-        T.shape(g, [[0.3, -0.36, 1], [0.02, -0.62, 1], [-0.3, -0.3, 1]], { fill, w: lw, seed: seed + 'd' });
-        T.line(g, [[0.5, -0.26], [0.4, 0], [0.5, 0.25]], { w: lw, seed: seed + 'g' });
-        T.line(g, [[0.2, 0.1], [0, 0.22], [0.16, 0.3]], { w: lw, seed: seed + 'p' });
-        for (const [fx, fy] of [[-0.1, -0.12], [-0.34, -0.02], [-0.1, 0.08]]) T.line(g, [[fx, fy - 0.07], [fx - 0.08, fy], [fx, fy + 0.07]], { w: lw * 0.9, seed: seed + 's' + fx });
-        dot(g, 0.72, -0.08, 0.075, C.white);
-        dot(g, 0.735, -0.08, 0.04, C.ink);
-        T.line(g, [[0.86, 0.1], [0.74, 0.14]], { w: lw * 0.9, seed: seed + 'm' });
+        g.scale(((flip ? -1 : 1) * s) / 50, s / 50);
+        const l = (w * 50) / s, Z = (pts) => pts.map(([px, py, k]) => [px * 50, py * 50, k]);
+        T.shape(g, Z([[1, 0.02, 1], [0.62, -0.3], [0.1, -0.4], [-0.42, -0.2], [-0.62, -0.04, 1], [-1, -0.42, 1], [-0.88, 0.02], [-1, 0.44, 1], [-0.62, 0.1, 1], [-0.4, 0.24], [0.1, 0.4], [0.62, 0.3]]), { fill, w: l, seed });
+        T.shape(g, Z([[0.3, -0.36, 1], [0.02, -0.62, 1], [-0.3, -0.3, 1]]), { fill, w: l, seed: seed + 'd' });
+        T.line(g, Z([[0.5, -0.26], [0.4, 0], [0.5, 0.25]]), { w: l, seed: seed + 'g' });
+        T.line(g, Z([[0.2, 0.1], [0, 0.22], [0.16, 0.3]]), { w: l, seed: seed + 'p' });
+        for (const [fx, fy] of [[-0.1, -0.12], [-0.34, -0.02], [-0.1, 0.08]]) T.line(g, Z([[fx, fy - 0.07], [fx - 0.08, fy], [fx, fy + 0.07]]), { w: l * 0.9, seed: seed + 's' + fx });
+        dot(g, 36, -4, 3.8, C.white);
+        dot(g, 36.8, -4, 2, C.ink);
+        T.line(g, Z([[0.86, 0.1], [0.74, 0.14]]), { w: l * 0.9, seed: seed + 'm' });
         g.restore();
     }
+    // plank joints on a plane: lines up the wall every `step` metres, some stopping short
+    function planksOn(g, pl, a0, a1, b0, b1, step, o = {}) {
+        const { seed = 'pl', w = BG, skip = 0.08, across = false, c = 0 } = o;
+        const R = Motion.rng(seed), n = Math.round((across ? b1 - b0 : a1 - a0) / step);
+        for (let i = 1; i < n; i++) {
+            const u = (i + (R() - 0.5) * 0.25) / n, e0 = R(), e1 = R(), sk = R();
+            if (sk < skip) continue;
+            const v0 = e0 < 0.22 ? e0 * 0.8 : 0, v1 = e1 < 0.22 ? 1 - e1 * 0.8 : 1;
+            const A = across ? pl.p(a0 + (a1 - a0) * v0, b0 + (b1 - b0) * u, c) : pl.p(a0 + (a1 - a0) * u, b0 + (b1 - b0) * v0, c);
+            const B = across ? pl.p(a0 + (a1 - a0) * v1, b0 + (b1 - b0) * u, c) : pl.p(a0 + (a1 - a0) * u, b0 + (b1 - b0) * v1, c);
+            T.line(g, [A, B], { w, seed: seed + i });
+        }
+    }
 
-    // --- the far shore: headland, town, lighthouse --------------------------------------------
-    function house(g, x, y, w, h, o) {
-        const { fill, roof = P.slate, rh = 15, lean = 0, tilt = 0, seed, cols = 2, rows = 2, door = C.navy, chim = 0.72, lw = FAR, gable = false } = o;
-        const tl = [x + lean, y - h], tr = [x + w + lean * 0.6, y - h + tilt], br = [x + w, y + 2], bl = [x, y + 2];
-        const q = [tl, tr, br, bl];
+    // --- the world's plan (metres) -----------------------------------------------------------
+    // The quay's lip runs through L0 along LD (to the right and towards us); PD is the way out
+    // over the water, square to it. Quay coordinates: a metres along the lip, b metres back from
+    // it (towards the camera). The paving, the coping and the pier all follow these two axes,
+    // so their lines run to the same two points of the horizon.
+    const PHI = 0.6, L0 = [0, 0, 11.8], LD = [Math.cos(PHI), 0, -Math.sin(PHI)], PD = [Math.sin(PHI), 0, Math.cos(PHI)];
+    const Q = (a, b, y = 0) => [L0[0] + LD[0] * a - PD[0] * b, y, L0[2] + LD[2] * a - PD[2] * b];
+    const lipZ = (X) => L0[2] - Math.tan(PHI) * X;
+    const WATER = -1.5;
+    // the pier: s metres out from the lip, c metres across from its near edge (0…3), y up
+    const PIER = { a0: 4.85, w: 3, len: 26, bay: [4.4, 7.4, 5.7] };
+    const PR = (s, c, y = 0) => Q(PIER.a0 - c, -s, y);
+    const HUT = { o: [-3.25, 0, 8.3], yaw: 0.16, w: 3, h: 2.4, d: 2.2, hatch: [0.55, 2.15, 1.05, 1.95] };
+    const hutF = frame(HUT.o, HUT.yaw);
+    const TABLE = [-1.3, 0, 10.4], PALM = [-1.74, 0, 11.48], PALM_H = 5.6;
+    const DINGHY = { o: [3.3, 0, 6.75], yaw: 2.45 };
+    const BOAT_A = { at: [5.6, 75], yaw: 2.25 }, BOAT_B = { at: [109, 170], yaw: 2.7 };
+    const FORE = {
+        potA: { o: [-1.78, 0, 2.6], yaw: 0.5 }, potB: { o: [-1.62, 0, 3.45], yaw: -0.45 }, coil: [-1.02, 0, 2.42],
+        cone: [1.3, 0, 3.3], bollard: [1.5, 0, 2.5],
+    };
+
+    // a point on the ground, clipped to what the camera can see
+    function gline(g, A, B, o = {}) {
+        const zn = 1.9;
+        if (A[2] < zn && B[2] < zn) return;
+        if (A[2] < zn) A = lerp3(A, B, (zn - A[2]) / (B[2] - A[2]));
+        if (B[2] < zn) B = lerp3(B, A, (zn - B[2]) / (A[2] - B[2]));
+        T.line(g, [pt(A), pt(B)], { w: lw((A[2] + B[2]) / 2), ...o });
+    }
+
+    // --- the far shore: flat cards, each at its own depth and sized in metres -----------------
+    const card = (Z, dx = 0) => {
+        const s = F / Z;
+        return { Z, s, w: lw(Z), p: (X, Y) => [CX + s * (X + dx), H0 - s * (Y - EYE)] };
+    };
+    // the headland's cards are drawn in their own X (0 where the hill meets the frame's middle
+    // at 240 m) and stand LAND metres to the side at that depth, in step at the others
+    const LAND = -30.8, TOWN = -24.5, land = (Z, L = LAND) => card(Z, (L * Z) / 240);
+    // a house drawn in its own units (9 to the metre), set on the card at (X, Y): w × h metres
+    function house(g, k, X, Y, wm, hm, o) {
+        const { fill, roof = P.slate, lean = 0, tilt = 0, seed, cols = 2, rows = 2, door = C.navy, chim = 0.72, gable = false } = o;
+        const [px, py] = k.p(X, Y), z = k.s / 9, l = k.w / z, w = wm * 9, h = hm * 9, rh = (o.rh ?? 1.5) * 9;
+        g.save();
+        g.translate(px, py);
+        g.scale(z, z);
+        const tl = [lean, -h], tr = [w + lean * 0.6, -h + tilt], br = [w, 2], bl = [0, 2], q = [tl, tr, br, bl];
+        const S = (qq, oo) => T.slab(g, qq, { w: l, ...oo });
         // the chimney stands behind the roof: a stack and two pots
         const cx = tl[0] + w * chim, cy = tl[1] - rh + tilt * chim;
-        slab(g, [[cx - 4.5, cy - 9], [cx + 4.5, cy - 8.4], [cx + 4.8, cy + 6], [cx - 4.8, cy + 6]], { fill: P.cliff, w: lw, seed: seed + 'c', over: 1 });
-        for (const k of [-2.2, 2.2]) slab(g, [[cx + k - 1.4, cy - 13.4], [cx + k + 1.4, cy - 13.4], [cx + k + 1.6, cy - 9], [cx + k - 1.6, cy - 9]], { fill: P.tile, w: lw, seed: seed + 'p' + k, over: 0.6 });
+        S([[cx - 4.5, cy - 9], [cx + 4.5, cy - 8.4], [cx + 4.8, cy + 6], [cx - 4.8, cy + 6]], { fill: P.cliff, seed: seed + 'c', over: 1 });
+        for (const d of [-2.2, 2.2]) S([[cx + d - 1.4, cy - 13.4], [cx + d + 1.4, cy - 13.4], [cx + d + 1.6, cy - 9], [cx + d - 1.6, cy - 9]], { fill: P.tile, seed: seed + 'p' + d, over: 0.6 });
         if (gable) {
-            // gable to the front: a wall with a point, a loft door and a hoist beam
-            poly(g, [[tl[0] - 2, tl[1]], [mix(tl, tr, 0.5)[0], tl[1] - rh * 1.5], [tr[0] + 2, tr[1]], br, bl], { fill, w: lw, seed });
-            ln(g, [[tl[0] - 4, tl[1] + 1], [mix(tl, tr, 0.5)[0], tl[1] - rh * 1.5 - 2], [tr[0] + 4, tr[1] + 1]].map((p) => [...p, 1]), { w: lw * 1.5, seed: seed + 'rf', color: roof });
-            ln(g, [[tl[0] - 4, tl[1] + 1], [mix(tl, tr, 0.5)[0], tl[1] - rh * 1.5 - 2], [tr[0] + 4, tr[1] + 1]].map((p) => [...p, 1]), { w: lw * 0.6, seed: seed + 'rf', amp: 0 });
+            T.shape(g, Kc([[tl[0] - 2, tl[1]], [mix(tl, tr, 0.5)[0], tl[1] - rh * 1.5], [tr[0] + 2, tr[1]], br, bl]), { fill, w: l, seed });
+            const rf = [[tl[0] - 4, tl[1] + 1, 1], [mix(tl, tr, 0.5)[0], tl[1] - rh * 1.5 - 2, 1], [tr[0] + 4, tr[1] + 1, 1]];
+            T.line(g, rf, { w: l * 2.6, seed: seed + 'rf' });
+            T.line(g, rf, { w: l * 1.2, seed: seed + 'rf', color: roof, amp: 0.3 });
         } else {
-            slab(g, [[tl[0] + w * 0.1, tl[1] - rh * 1.05], [tr[0] - w * 0.08, tr[1] - rh], [tr[0] + 3, tr[1] + 1], [tl[0] - 3, tl[1] + 1]], { fill: roof, w: lw, seed: seed + 'r', over: 1.2 });
+            S([[tl[0] + w * 0.1, tl[1] - rh * 1.05], [tr[0] - w * 0.08, tr[1] - rh], [tr[0] + 3, tr[1] + 1], [tl[0] - 3, tl[1] + 1]], { fill: roof, seed: seed + 'r', over: 1.2 });
             const R = Motion.rng(seed + 'rt');
             for (let i = 0; i < 3; i++) {
                 const u = 0.15 + R() * 0.6, v = 0.3 + R() * 0.45;
-                ln(g, [[tl[0] + w * u, tl[1] - rh * (1 - v)], [tl[0] + w * (u + 0.14), tl[1] - rh * (1 - v) + tilt * 0.14]], { w: lw, seed: seed + 'rt' + i });
+                T.line(g, [[tl[0] + w * u, tl[1] - rh * (1 - v)], [tl[0] + w * (u + 0.14), tl[1] - rh * (1 - v) + tilt * 0.14]], { w: l, seed: seed + 'rt' + i });
             }
-            slab(g, q, { fill, w: lw, seed, over: 1.2 });
+            S(q, { fill, seed, over: 1.2 });
         }
-        // windows: panes with a cross bar and a gleam
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
                 if (r === rows - 1 && c === 0 && door) continue;
                 const u0 = (c + 0.24) / cols, u1 = (c + 0.76) / cols, v0 = (r + 0.22) / (rows + 0.25), v1 = (r + 0.74) / (rows + 0.25);
                 const wq = [at(q, u0, v0), at(q, u1, v0), at(q, u1, v1), at(q, u0, v1)];
-                T.pane(g, wq, { w: lw, seed: seed + 'w' + r + c, gleams: 1 });
-                slab(g, [[wq[3][0] - 1.5, wq[3][1]], [wq[2][0] + 1.5, wq[2][1]], [wq[2][0] + 1.5, wq[2][1] + 2.2], [wq[3][0] - 1.5, wq[3][1] + 2.2]], { fill: C.white, w: lw * 0.8, seed: seed + 'ws' + r + c, over: 0.4 });
+                T.pane(g, wq, { w: l, seed: seed + 'w' + r + c, gleams: 1 });
+                S([[wq[3][0] - 1.5, wq[3][1]], [wq[2][0] + 1.5, wq[2][1]], [wq[2][0] + 1.5, wq[2][1] + 2.2], [wq[3][0] - 1.5, wq[3][1] + 2.2]], { fill: C.white, seed: seed + 'ws' + r + c, over: 0.4 });
             }
         }
         if (door) {
             const u0 = 0.2 / cols, u1 = 0.78 / cols, v0 = (rows - 1 + 0.2) / (rows + 0.25);
-            slab(g, [at(q, u0, v0), at(q, u1, v0), at(q, u1, 1), at(q, u0, 1)], { fill: door, w: lw, seed: seed + 'd', over: 0.8, edges: [0, 1, 3] });
+            S([at(q, u0, v0), at(q, u1, v0), at(q, u1, 1), at(q, u0, 1)], { fill: door, seed: seed + 'd', over: 0.8, edges: [0, 1, 3] });
             dot(g, ...at(q, u1 - 0.06, v0 + (1 - v0) * 0.55), 1, C.roadLine);
         }
+        g.restore();
     }
+    // a palm of the kit, far away: foot on the card at (X, Y), hm metres tall
+    const farPalm = (g, k, X, Y, hm, o = {}) => T.palm(g, ...k.p(X, Y), hm * k.s, { w: k.w, fronds: 6, lean: (o.lean ?? 0.6) * k.s, seed: o.seed ?? 'fp' + X });
 
-    function pole(g, x, y0, y1, seed) {
-        bar(g, [x, y1], [x + 1.5, y0], 3.4, 3, { fill: C.trunk, w: FAR, seed });
-        ln(g, [[x - 8, y0 + 6.5], [x + 10, y0 + 5]], { w: FAR * 1.3, seed: seed + 'x' });
-        ln(g, [[x - 5, y0 + 13], [x + 7, y0 + 12]], { w: FAR * 1.3, seed: seed + 'y' });
-        for (const k of [-7, 9]) dot(g, x + k, y0 + 4, 1.5, C.teal);
-    }
-
-    function lighthouse(g) {
-        const x = 1050, y = 532;
-        // the keeper's cottage and its wall
-        slab(g, [[982, 524], [1034, 526], [1034, 532], [982, 531]], { fill: C.white, w: FAR, seed: 'lh-wall', over: 1 });
-        house(g, 996, 530, 34, 20, { fill: C.white, roof: P.tile, rh: 9, seed: 'lh-cot', cols: 2, rows: 1, door: P.coral, chim: 0.3, tilt: 1 });
-        // the tower: bands of red and white, leaning a little out of the frame's centre
-        const q = [[x - 10, y - 96], [x + 13, y - 95], [x + 17, y + 2], [x - 17, y + 2]];
-        slab(g, q, {
-            fill: C.white, w: FAR, seed: 'lh-tower',
-            inside: (c) => {
-                c.fillStyle = C.red;
-                for (const [v0, v1] of [[0.08, 0.3], [0.52, 0.76]]) c.fill(T.pathOf([at(q, -0.2, v0), at(q, 1.2, v0 + 0.015), at(q, 1.2, v1 + 0.015), at(q, -0.2, v1)]));
-            },
-        });
-        for (const v of [0.08, 0.3, 0.52, 0.76]) ln(g, [at(q, 0.02, v), at(q, 0.98, v + 0.015)], { w: FAR, seed: 'lh-b' + v });
-        slab(g, [[x - 4.5, y - 13], [x + 4.5, y - 13], [x + 5, y + 2], [x - 5, y + 2]], { fill: C.navy, w: FAR, seed: 'lh-door', over: 0.6, edges: [0, 1, 3] });
-        for (const [wx, wy] of [[x + 2, y - 40], [x - 1, y - 76]]) T.pane(g, [[wx - 3, wy - 5], [wx + 3, wy - 5], [wx + 3, wy + 4], [wx - 3, wy + 4]], { w: FAR, seed: 'lh-w' + wy, gleams: 1 });
-        // the gallery and its rail, the lantern, the cap
-        slab(g, [[x - 16, y - 100], [x + 19, y - 99], [x + 17, y - 94], [x - 14, y - 95]], { fill: P.slate, w: FAR, seed: 'lh-gal', over: 1 });
-        for (let i = 0; i <= 5; i++) ln(g, [[x - 15 + i * 6.6, y - 100], [x - 15 + i * 6.6, y - 109]], { w: FAR * 0.95, seed: 'lh-gp' + i });
-        ln(g, [[x - 17, y - 109], [x + 20, y - 108]], { w: FAR, seed: 'lh-gr' });
-        const lq = [[x - 8, y - 121], [x + 11, y - 120.5], [x + 11, y - 100], [x - 8, y - 100]];
-        T.pane(g, lq, { w: FAR, seed: 'lh-lamp', gleams: 2, fill: C.glass });
-        for (const u of [0.34, 0.67]) ln(g, [at(lq, u, 0), at(lq, u, 1)], { w: FAR, seed: 'lh-lm' + u });
-        sh(g, [[x - 11, y - 120, 1], [x - 6, y - 129], [x + 2, y - 132], [x + 10, y - 128], [x + 14, y - 119.5, 1]], { fill: C.red, w: FAR, seed: 'lh-cap' });
-        disc(g, x + 2, y - 134.5, 2.4, 2.4, { fill: C.roadLine, w: FAR, seed: 'lh-ball', n: 8 });
-        ln(g, [[x + 2, y - 137], [x + 2.6, y - 147]], { w: FAR, seed: 'lh-rod' });
-    }
-
-    function land(g) {
-        // the headland falls from behind the hut to the point; hedges, grass, a cliff under the light
-        sh(g, [[270, 562, 1], [270, 440], [420, 441], [560, 462], [700, 486], [820, 505], [940, 519], [1040, 528], [1094, 533], [1118, 553, 1]], { fill: P.hill, w: FAR, seed: 'hill' });
-        sh(g, [[868, 554, 1], [892, 538], [950, 541], [1010, 545], [1066, 542], [1100, 541, 1], [1118, 553, 1]], { fill: P.cliff, w: FAR, seed: 'cliff' });
-        T.ticks(g, [[880, 541], [1100, 544], [1108, 552], [878, 553]], { n: 9, dir: 1.4, spread: 0.3, len: [3, 6], w: FAR, seed: 'cliff-t', pair: 0.5 });
-        ln(g, [[620, 500], [700, 506], [790, 522], [860, 524]], { w: FAR, seed: 'hedge-a' });
-        ln(g, [[880, 512], [930, 530], [990, 534]], { w: FAR, seed: 'hedge-b' });
-        T.ticks(g, [[600, 478], [1040, 530], [1030, 540], [600, 540]], { n: 14, dir: -1.1, spread: 0.3, len: [3, 6], w: FAR, seed: 'hill-t', pair: 0.7 });
-        // telegraph poles on the skyline, their wires sagging from one to the next
-        const poles = [[380, 368, 446], [618, 410, 476], [850, 462, 512]];
-        for (const [i, [x, y0]] of poles.entries()) {
-            const [nx, ny] = i ? poles[i - 1] : [250, 350];
-            for (const k of [0, 6]) ln(g, [[nx + 1, ny + 5 + k], [(nx + x) / 2, (ny + y0) / 2 + 17 + k], [x, y0 + 5 + k]], { w: FAR * 0.95, seed: 'wire' + i + k, amp: 0.2 });
+    function headland(g) {
+        // the hill: high behind the hut, falling to the point where the light stands
+        const k = land(240), w = k.w, kp = (X, Y, c) => [...k.p(X, Y), c];
+        sh(g, [kp(-200, -1.5, 1), kp(-200, 44), kp(-120, 47), kp(-70, 38), kp(-38, 27), kp(-10, 17), kp(10, 10), kp(24, 6.5), kp(32, 5.2), kp(38, 4, 1), kp(41, -1.5, 1)], { fill: P.hill, w, seed: 'hill' });
+        // the cliff under the light, hedges, grass
+        sh(g, [kp(2, -1.5, 1), kp(6, 2.2), kp(16, 3), kp(27, 3.6), kp(35, 3.2), kp(38.6, 3.8, 1), kp(41, -1.5, 1)], { fill: P.cliff, w, seed: 'cliff' });
+        T.ticks(g, [k.p(5, 1.6), k.p(38, 2.6), k.p(40, -1), k.p(4, -1)], { n: 9, dir: 1.4, spread: 0.3, len: [3, 6], w, seed: 'cliff-t', pair: 0.5 });
+        ln(g, [k.p(-30, 17), k.p(-16, 15.5), k.p(-4, 11), k.p(8, 8.4)], { w, seed: 'hedge-a' });
+        ln(g, [k.p(12, 7.4), k.p(20, 4.6), k.p(30, 4.4)], { w, seed: 'hedge-b' });
+        T.ticks(g, [k.p(-40, 22), k.p(28, 5.6), k.p(28, 3.6), k.p(-40, 6)], { n: 12, dir: -1.1, spread: 0.3, len: [3, 6], w, seed: 'hill-t', pair: 0.7 });
+        // telegraph poles down the skyline, 8 m each, their wires sagging from one to the next
+        const poles = [[-52, 31.5], [-24, 21.5], [2, 12.6], [20, 7.4]];
+        for (const [i, [X, Y]] of poles.entries()) {
+            const [nX, nY] = i ? poles[i - 1] : [-84, 42];
+            for (const d of [0, 1.1]) ln(g, [k.p(nX, nY + 7.2 - d), k.p((nX + X) / 2, (nY + Y) / 2 + 4.6 - d), k.p(X, Y + 7.2 - d)], { w: w * 0.9, seed: 'wire' + i + d, amp: 0.2 });
         }
-        for (const [x, y0, y1] of poles) pole(g, x, y0, y1, 'pole' + x);
-        ln(g, [[851, 468], [876, 512]], { w: FAR * 0.95, seed: 'stay' });
-        // a palm or two up the hill: this coast is milder than it looks
-        T.palm(g, 446, 446, 74, { w: FAR, lean: 9, fronds: 6, seed: 'palm-far-a' });
-        // the upper terrace
-        house(g, 356, 474, 38, 40, { fill: C.peach, seed: 'hu1', lean: -1, tilt: 1, rh: 12, door: C.maroon });
-        house(g, 396, 476, 34, 46, { fill: P.paleBlue, roof: P.tile, seed: 'hu2', lean: 1, tilt: -1, rh: 12, chim: 0.3 });
-        house(g, 478, 480, 36, 42, { fill: P.pink, seed: 'hu3', lean: -1, tilt: 1.5, rh: 12 });
+        for (const [X, Y] of poles) {
+            bar(g, k.p(X, Y - 0.5), k.p(X + 0.2, Y + 8), 0.55 * k.s, 0.45 * k.s, { fill: C.trunk, w, seed: 'pole' + X });
+            ln(g, [k.p(X - 1.4, Y + 7.3), k.p(X + 1.7, Y + 7.5)], { w: w * 1.3, seed: 'pole-x' + X });
+            ln(g, [k.p(X - 1, Y + 6.1), k.p(X + 1.3, Y + 6.3)], { w: w * 1.3, seed: 'pole-y' + X });
+        }
+        farPalm(g, k, -42, 28, 7, { seed: 'palm-far-a', lean: 1 });
+        // the upper terrace, on the hill: houses 4.5–5 m wide, 6–7.5 m to the ridge
+        const u = land(205, TOWN);
+        house(g, u, -47, 12, 4.8, 5.6, { fill: C.peach, seed: 'hu1', lean: -1, tilt: 1, door: C.maroon });
+        house(g, u, -41.6, 11.6, 4.5, 6.4, { fill: P.paleBlue, roof: P.tile, seed: 'hu2', lean: 1, tilt: -1, chim: 0.3 });
+        house(g, u, -30, 10.6, 4.8, 5.8, { fill: P.pink, seed: 'hu3', lean: -1, tilt: 1.5 });
         // the chapel: a gable with a bell-cote
-        house(g, 520, 484, 30, 44, { fill: P.cream, roof: P.slate, seed: 'chapel', gable: true, rh: 12, cols: 1, rows: 2, door: C.maroon });
-        slab(g, [[531, 414], [539, 414], [540, 424], [530, 424]], { fill: P.cream, w: FAR, seed: 'bell', over: 0.8 });
-        dot(g, 535, 420, 1.8, C.roadLine);
-        ln(g, [[535, 414], [535, 405]], { w: FAR, seed: 'cross-a' });
-        ln(g, [[532, 408.5], [538, 408.5]], { w: FAR, seed: 'cross-b' });
-        house(g, 592, 492, 36, 34, { fill: C.white, roof: P.tile, seed: 'hu5', tilt: 1, rh: 11, chim: 0.25 });
-        T.palm(g, 666, 500, 66, { w: FAR, lean: -7, fronds: 6, seed: 'palm-far-b' });
-        T.palm(g, 868, 516, 70, { w: FAR, lean: 8, fronds: 6, seed: 'palm-far-c' });
-        // the lower terrace, down to the net loft at the end of the harbour wall
+        house(g, u, -24.4, 10, 4.2, 6.2, { fill: P.cream, roof: P.slate, seed: 'chapel', gable: true, cols: 1, rows: 2, door: C.maroon });
+        {
+            const [bx, by] = u.p(-22.3, 18.6), z = u.s / 9, l = u.w;
+            slab(g, [[bx - 4 * z, by - 10 * z], [bx + 4 * z, by - 10 * z], [bx + 5 * z, by], [bx - 5 * z, by]], { fill: P.cream, w: l, seed: 'bell', over: 0.8 });
+            dot(g, bx, by - 4 * z, 1.8 * z, C.roadLine);
+            ln(g, [[bx, by - 10 * z], [bx, by - 19 * z]], { w: l, seed: 'cross-a' });
+            ln(g, [[bx - 3 * z, by - 15.5 * z], [bx + 3 * z, by - 15.5 * z]], { w: l, seed: 'cross-b' });
+        }
+        house(g, u, -14, 8.6, 4.8, 4.8, { fill: C.white, roof: P.tile, seed: 'hu5', tilt: 1, chim: 0.25 });
+        // one palm on the hill above the terrace, standing clear of the uprights on the quay
+        farPalm(g, u, 3.6, 6.4, 6.5, { seed: 'palm-far-b', lean: -0.5 });
+        // the lower terrace along the harbour road, down to the net loft
+        const t = land(176, TOWN);
         const row = [
-            [352, 50, 74, C.salmon, P.slate, C.navy], [404, 44, 62, P.cream, P.tile, P.fishDeep], [450, 52, 80, C.teal, P.slate, C.maroon], [504, 42, 60, C.peach, P.slate, C.navy],
-            [548, 50, 72, P.lilac, P.tile, C.white], [600, 46, 56, C.white, P.slate, C.red], [648, 52, 66, P.paleBlue, P.slate, C.yellow], [702, 44, 52, P.pink, P.tile, C.navy],
+            [5.2, 7.6, C.salmon, P.slate, C.navy], [4.5, 6.4, P.cream, P.tile, P.fishDeep], [5.4, 8, C.teal, P.slate, C.maroon], [4.4, 6.2, C.peach, P.slate, C.navy],
+            [5.2, 7.4, P.lilac, P.tile, C.white], [4.8, 6, C.white, P.slate, C.red], [5.4, 6.8, P.paleBlue, P.slate, C.yellow], [4.6, 5.6, P.pink, P.tile, C.navy],
         ];
-        for (const [i, [x, w, h, fill, roof, door]] of row.entries()) house(g, x, 546, w, h, { fill, roof, door, seed: 'hl' + i, lean: (i % 3) - 1, tilt: ((i * 7) % 5) - 2, rh: 14 + (i % 2) * 3, chim: i % 2 ? 0.28 : 0.72, cols: w > 46 ? 3 : 2, rows: h > 64 ? 3 : 2 });
-        house(g, 748, 548, 60, 46, { fill: P.cliff, roof: P.slate, seed: 'loft', gable: true, rh: 13, cols: 3, rows: 2, door: P.fishDeep });
-        ln(g, [[778, 484], [796, 480]], { w: FAR * 1.4, seed: 'loft-beam' });
-        ln(g, [[795, 480], [795, 492]], { w: FAR, seed: 'loft-hook' });
+        let X = -42;
+        for (const [i, [wm, hm, fill, roof, door]] of row.entries()) {
+            house(g, t, X, 1.4, wm, hm, { fill, roof, door, seed: 'hl' + i, lean: (i % 3) - 1, tilt: ((i * 7) % 5) - 2, rh: 1.5 + (i % 2) * 0.35, chim: i % 2 ? 0.28 : 0.72, cols: wm > 5 ? 3 : 2, rows: hm > 7 ? 3 : 2 });
+            X += wm + 0.25;
+        }
+        house(g, t, X + 0.4, 1.2, 6.2, 4.8, { fill: P.cliff, roof: P.slate, seed: 'loft', gable: true, cols: 3, rows: 2, door: P.fishDeep });
         lighthouse(g);
         // rocks off the point
-        for (const [x, y, r, k] of [[1128, 553, 9, 'a'], [1146, 556, 6, 'b'], [1110, 556, 5, 'c']]) sh(g, [[x - r, y + 2, 1], [x - r * 0.6, y - r * 0.5], [x, y - r * 0.75], [x + r * 0.7, y - r * 0.3], [x + r, y + 2, 1]], { fill: P.rock, w: FAR, seed: 'rock' + k });
+        const rk = land(232);
+        for (const [RX, r, key] of [[41.5, 1.9, 'a'], [45, 1.3, 'b'], [38.6, 1.1, 'c']]) sh(g, [[...rk.p(RX - r, -1.5), 1], rk.p(RX - r * 0.6, -1.5 + r * 0.6), rk.p(RX, -1.5 + r * 0.85), rk.p(RX + r * 0.7, -1.5 + r * 0.4), [...rk.p(RX + r, -1.5), 1]], { fill: P.rock, w: rk.w, seed: 'rock' + key });
     }
 
-    // --- the harbour: wall, crane, trawlers ---------------------------------------------------
-    function harbourWall(g) {
-        // top face, then the face of dressed stone with its weed line
-        slab(g, [[330, 536], [826, 543], [846, 549], [330, 542]], { fill: P.wallTop, w: FAR, seed: 'hw-top', over: 1 });
-        slab(g, [[330, 542], [846, 549], [846, 570], [330, 568]], { fill: P.wall, w: FAR, seed: 'hw-face', over: 1 });
+    // The light on the point: a round tower 20 m tall, built of projected rings (so far away
+    // that they close to lines), its keeper's cottage beside it.
+    function lighthouse(g) {
+        const c = [31.2 + (LAND * 246) / 240, 3.4, 246], k = card(c[2]), w = k.w;
+        slab(g, [k.p(c[0] - 15, 4.8), k.p(c[0] - 3.5, 4.4), k.p(c[0] - 3.5, 3.2), k.p(c[0] - 15, 3.4)], { fill: C.white, w, seed: 'lh-wall', over: 1 });
+        house(g, k, c[0] - 12, 3.5, 7, 4, { fill: C.white, roof: P.tile, rh: 1.8, seed: 'lh-cot', cols: 2, rows: 1, door: P.coral, chim: 0.3, tilt: 1 });
+        lathe(g, c, [[3.4, 0], [2.3, 16.4]], { fill: C.white, w, seed: 'lh-tower', bands: [[2.2, 5.8, C.red], [9.4, 13, C.red]], top: false });
+        // door, two windows
+        const d = k.p(c[0] - 0.3, c[1]);
+        slab(g, [[d[0] - 0.9 * k.s, d[1] - 2.6 * k.s], [d[0] + 0.9 * k.s, d[1] - 2.6 * k.s], [d[0] + k.s, d[1] + 1], [d[0] - k.s, d[1] + 1]], { fill: C.navy, w, seed: 'lh-door', over: 0.6, edges: [0, 1, 3] });
+        for (const [wx, wy] of [[0.5, 7.4], [-0.2, 14.4]]) T.pane(g, [k.p(c[0] + wx - 0.6, c[1] + wy + 1), k.p(c[0] + wx + 0.6, c[1] + wy + 1), k.p(c[0] + wx + 0.6, c[1] + wy - 0.8), k.p(c[0] + wx - 0.6, c[1] + wy - 0.8)], { w, seed: 'lh-w' + wy, gleams: 1 });
+        // the gallery and its rail, the lantern, the cap
+        lathe(g, c, [[3.3, 16.4], [3.4, 17.1]], { fill: P.slate, w, seed: 'lh-gal', top: false, under: false });
+        for (let i = 0; i <= 5; i++) ln(g, [k.p(c[0] - 3.2 + i * 1.28, c[1] + 17.1), k.p(c[0] - 3.2 + i * 1.28, c[1] + 18.5)], { w: w * 0.9, seed: 'lh-gp' + i });
+        ln(g, [k.p(c[0] - 3.5, c[1] + 18.5), k.p(c[0] + 3.5, c[1] + 18.5)], { w, seed: 'lh-gr' });
+        const lq = [k.p(c[0] - 1.8, c[1] + 20.6), k.p(c[0] + 1.8, c[1] + 20.6), k.p(c[0] + 1.8, c[1] + 17.1), k.p(c[0] - 1.8, c[1] + 17.1)];
+        T.pane(g, lq, { w, seed: 'lh-lamp', gleams: 2 });
+        for (const u of [0.34, 0.67]) ln(g, [at(lq, u, 0), at(lq, u, 1)], { w, seed: 'lh-lm' + u });
+        sh(g, [[...k.p(c[0] - 2.3, c[1] + 20.5), 1], k.p(c[0] - 1.3, c[1] + 22.1), k.p(c[0], c[1] + 22.7), k.p(c[0] + 1.3, c[1] + 22.1), [...k.p(c[0] + 2.3, c[1] + 20.5), 1]], { fill: C.red, w, seed: 'lh-cap' });
+        dot(g, ...k.p(c[0], c[1] + 23.2), 0.45 * k.s, C.roadLine);
+        ln(g, [k.p(c[0], c[1] + 23.4), k.p(c[0] + 0.1, c[1] + 25.4)], { w, seed: 'lh-rod' });
+    }
+
+    // --- the water ---------------------------------------------------------------------------
+    // a wave: a nearly level line with a few soft kinks, `len` units long
+    function wave(g, x, y, len, o = {}) {
+        const { seed = 'wv', w = BG, amp = 2, color = C.ink } = o;
+        const R = Motion.rng(seed), n = Math.max(2, Math.round(len / 15)), pts = [];
+        for (let i = 0; i <= n; i++) pts.push([x + (len * i) / n, y + (i % 2 ? -1 : 1) * amp * (0.3 + R() * 0.9) * (i === 0 || i === n ? 0.2 : 1)]);
+        T.line(g, pts, { w, seed, color });
+        if (R() < 0.3 && len > 24) T.line(g, [[x + len * 0.55, y + w * 2.6], [x + len * 0.72, y + w * 2.2 + amp], [x + len * 0.9, y + w * 2.8]], { w, seed: seed + 'b', color });
+    }
+    function water(g) {
+        g.fillStyle = C.sea;
+        g.fillRect(0, H0, W, H - H0);
+        ln(g, [[-10, H0], [W + 10, H0]], { w: 1.4, seed: 'horizon', amp: 0.2 });
+        // waves 2.5–6.5 m long lying on the water: by projection they shorten and close up
+        // towards the horizon
+        const R = Motion.rng('waves'), made = [];
+        for (let tries = 0; tries < 2600 && made.length < 150; tries++) {
+            const dy = 2 + 86 * Math.pow(R(), 1.5), Z = (F * (EYE - WATER)) / dy, L = (2.5 + R() * 4) * sc(Z), x = -40 + R() * (W + 80 - L), y = H0 + dy, w = lw(Z);
+            if (made.some(([mx, my, mL]) => Math.abs(my - y) < w * 3 && x < mx + mL + 10 && mx < x + L + 10)) continue;
+            made.push([x, y, L]);
+            wave(g, x, y, L, { seed: 'wv' + made.length, w, amp: Math.max(0.6, 0.07 * sc(Z)) });
+        }
+    }
+    // foam on the water round something: a white shape with its outline, r metres across
+    function foam(g, c, r, o = {}) {
+        const s = sc(c[2]), [x, y] = pt([c[0], WATER, c[2]]), rx = r * s, ry = Math.max(1.6, (r * s * (EYE - WATER)) / c[2] * 1.4);
+        sh(g, [[x - rx, y + ry * 0.2], [x - rx * 0.45, y - ry], [x + rx * 0.35, y - ry * 0.8], [x + rx, y + ry * 0.3], [x + rx * 0.3, y + ry], [x - rx * 0.5, y + ry * 0.9]], { fill: C.foam, w: lw(c[2]), seed: o.seed ?? 'foam' + c[0] });
+    }
+
+    // the far harbour wall: a breakwater 2.3 m out of the water, its rail, steps, palms and light
+    function farWall(g) {
+        const A = [-96, 114], B = [10.5, 96], top = 0.8, at3 = (u, Y) => [A[0] + (B[0] - A[0]) * u, Y, A[1] + (B[1] - A[1]) * u], w = lw(100), L = Math.hypot(B[0] - A[0], B[1] - A[1]);
+        const p = (u, Y) => pt(at3(u, Y));
+        // palms planted along it, behind the rail: 6 m
+        for (const [u, hm, lean] of [[0.575, 6.4, 0.5], [0.69, 5.6, -0.4], [0.775, 6, 0.6]]) {
+            const b = at3(u, top), s = sc(b[2]);
+            T.palm(g, ...pt(b), hm * s, { w, fronds: 7, lean: lean * s, seed: 'wall-palm' + u });
+        }
+        slab(g, [p(0, top), p(1, top), p(1, WATER), p(0, WATER)], { fill: P.wall, w, seed: 'fw-face', over: 1 });
+        g.fillStyle = P.wallTop;
+        g.fill(T.pathOf([p(0, top), p(1, top), p(1, top - 0.45), p(0, top - 0.45)]));
         g.fillStyle = P.hillDeep;
-        g.fill(T.pathOf([[330, 563], [846, 565.5], [846, 570], [330, 568]]));
-        ln(g, [[330, 568], [846, 570]], { w: FAR, seed: 'hw-foot' });
-        ln(g, [[340, 555], [520, 557], [700, 558], [846, 559.5]], { w: FAR, seed: 'hw-course' });
-        const R = Motion.rng('hw-j');
-        for (let x = 356; x < 840; x += 20 + R() * 14) {
-            const up = R() < 0.5, y = 542 + ((x - 330) / 516) * 7;
-            if (R() < 0.25) continue;
-            ln(g, [[x, up ? y + 1 : y + 14], [x + 1, up ? y + 13 : y + 21]], { w: FAR * 0.95, seed: 'hw-j' + Math.round(x) });
+        g.fill(T.pathOf([p(0, WATER + 0.5), p(1, WATER + 0.5), p(1, WATER), p(0, WATER)]));
+        ln(g, [p(0, top), p(1, top)], { w, seed: 'fw-top' });
+        ln(g, [p(0, top - 0.45), p(1, top - 0.45)], { w, seed: 'fw-cope' });
+        ln(g, [p(0, WATER), p(1, WATER)], { w, seed: 'fw-foot' });
+        ln(g, [p(1, top), p(1, WATER)], { w, seed: 'fw-end' });
+        const R = Motion.rng('fw-j');
+        for (let m = 2; m < L - 1; m += 1.8 + R() * 1.6) {
+            const up = R() < 0.5, u = m / L;
+            if (R() < 0.3) continue;
+            ln(g, [p(u, up ? top - 0.5 : -0.3), p(u, up ? -0.2 : WATER + 0.55)], { w: w * 0.9, seed: 'fw-j' + m.toFixed(1) });
         }
-        // the rail along the top
-        for (let x = 360; x < 826; x += 31) {
-            const y = 536 + ((x - 330) / 496) * 7;
-            ln(g, [[x, y], [x + 0.6, y - 12]], { w: FAR, seed: 'hw-p' + x });
-        }
-        ln(g, [[352, 524.5], [600, 528], [822, 531.5]], { w: FAR, seed: 'hw-r1' });
-        ln(g, [[352, 530], [600, 533.5], [822, 537]], { w: FAR * 0.95, seed: 'hw-r2' });
+        // the rail: posts 1 m high every 3 m, two bars
+        for (let m = 1; m < L; m += 3) ln(g, [p(m / L, top), p(m / L, top + 1)], { w, seed: 'fw-p' + m });
+        ln(g, [p(0, top + 1), p((L - 1) / L, top + 1)], { w, seed: 'fw-r1' });
+        ln(g, [p(0, top + 0.5), p((L - 1) / L, top + 0.5)], { w: w * 0.9, seed: 'fw-r2' });
         // steps down to the water, an iron ladder, tyres hung as fenders
-        poly(g, [[866, 553], [846, 553], [846, 570], [880, 570], [880, 566], [873, 566], [873, 562], [866, 562], [866, 558], [859, 558], [859, 553]], { fill: P.wallTop, w: FAR, seed: 'hw-steps' });
-        for (const x of [690, 696]) ln(g, [[x, 546], [x, 569]], { w: FAR * 0.95, seed: 'hw-lad' + x });
-        for (let y = 551; y < 568; y += 4.5) ln(g, [[690, y], [696, y]], { w: FAR * 0.9, seed: 'hw-rung' + y, amp: 0 });
-        for (const x of [574, 812]) {
-            ln(g, [[x, 549], [x, 555]], { w: FAR * 0.9, seed: 'hw-ty' + x });
-            disc(g, x, 559.5, 5, 5, { fill: C.ink, w: FAR, seed: 'hw-tyre' + x, n: 9 });
-            dot(g, x, 559.5, 2, P.wall);
+        const st = [];
+        for (let i = 0; i <= 5; i++) st.push(p(0.79 + i * 0.006, top - i * 0.46), p(0.79 + (i + 1) * 0.006, top - i * 0.46));
+        poly(g, [...st, p(0.826, WATER), p(0.79, WATER)], { fill: P.wallTop, w, seed: 'fw-steps' });
+        for (const u of [0.72, 0.726]) ln(g, [p(u, top), p(u, WATER)], { w: w * 0.9, seed: 'fw-lad' + u });
+        for (let Y = top - 0.3; Y > WATER; Y -= 0.38) ln(g, [p(0.72, Y), p(0.726, Y)], { w: w * 0.8, seed: 'fw-rung' + Y.toFixed(1), amp: 0 });
+        for (const u of [0.66, 0.755, 0.84]) {
+            const [x, y] = p(u, -0.35);
+            ln(g, [p(u, top - 0.4), [x, y]], { w: w * 0.9, seed: 'fw-ty' + u });
+            T.shape(g, T.ellipse(x, y, 0.42 * sc(100), 0.42 * sc(100), 0, 9), { fill: C.ink, w, seed: 'fw-tyre' + u, dense: true });
+            dot(g, x, y, 0.17 * sc(100), P.wall);
         }
-        // the light at the end of the wall
-        bar(g, [838, 546], [839, 520], 4.4, 3.6, { fill: C.white, w: FAR, seed: 'hw-light' });
-        ln(g, [[836, 534], [841.5, 534]], { w: FAR * 1.6, seed: 'hw-band', color: C.green, amp: 0 });
-        slab(g, [[834.5, 512], [843.5, 512], [843, 520], [835, 520]], { fill: C.lime, w: FAR, seed: 'hw-lamp', over: 0.6 });
-        sh(g, [[833, 512, 1], [839, 506.5, 1], [845, 512, 1]], { fill: C.green, w: FAR, seed: 'hw-cap' });
     }
 
-    function crane(g) {
-        // a harbour crane: a pedestal, a cab, a lattice jib and its hook
-        slab(g, [[534, 520], [556, 520.5], [558, 540], [532, 539.5]], { fill: P.iron, w: FAR, seed: 'cr-ped', over: 1 });
-        const a = [552, 498], b = [622, 406];
-        // stays from the mast to the jib
-        bar(g, [541, 504], [538, 470], 4, 3, { fill: C.orange, w: FAR, seed: 'cr-mast' });
-        ln(g, [[538, 471], b], { w: FAR * 0.95, seed: 'cr-stay1' });
-        ln(g, [[538, 471], mix(a, b, 0.5)], { w: FAR * 0.95, seed: 'cr-stay2' });
-        const q = bar(g, a, b, 12, 5, { fill: C.peach, w: FAR, seed: 'cr-jib' });
-        for (let i = 0; i < 9; i++) {
-            const u0 = i / 9, u1 = (i + 1) / 9;
-            ln(g, [mix(q[0], q[1], u0), mix(q[3], q[2], u1)], { w: FAR * 0.95, seed: 'cr-l' + i, amp: 0.1 });
-            ln(g, [mix(q[3], q[2], u0), mix(q[0], q[1], u1)], { w: FAR * 0.95, seed: 'cr-m' + i, amp: 0.1 });
-        }
-        disc(g, b[0], b[1], 3.6, 3.6, { fill: P.iron, w: FAR, seed: 'cr-sheave', n: 8 });
-        ln(g, [[b[0] + 1, b[1] + 3], [b[0] + 2, 482]], { w: FAR * 0.95, seed: 'cr-cable' });
-        slab(g, [[b[0] - 2, 482], [b[0] + 6, 482], [b[0] + 6, 490], [b[0] - 2, 490]], { fill: C.roadLine, w: FAR, seed: 'cr-block', over: 0.5 });
-        ln(g, [[b[0] + 2, 490], [b[0] + 2.4, 495], [b[0] + 5.6, 498], [b[0] + 2.4, 501], [b[0] - 0.4, 498]], { w: FAR, seed: 'cr-hook' });
-        // the cab: a box with a window and a flat hat
-        slab(g, [[527, 496], [560, 495], [562, 521], [526, 521.5]], { fill: C.orange, w: FAR, seed: 'cr-cab', over: 1.2 });
-        T.pane(g, [[542, 500], [557, 499.6], [557.6, 511], [542, 511.5]], { w: FAR, seed: 'cr-win', gleams: 1 });
-        slab(g, [[523, 491.6], [564, 490.4], [564, 496], [523, 497]], { fill: P.iron, w: FAR, seed: 'cr-hat', over: 0.8 });
-        ln(g, [[531, 503], [531.4, 517]], { w: FAR, seed: 'cr-door-a' });
-        ln(g, [[537.6, 502.6], [538, 517]], { w: FAR, seed: 'cr-door-b' });
-        // fish boxes stacked on the wall beside it
-        for (const [x, y, c, k] of [[568, 530, C.blue, 0], [582, 530.4, C.orange, 1], [574, 522, C.yellow, 2], [502, 528, C.blue, 3], [506, 520, C.blue, 4]]) {
-            slab(g, [[x, y], [x + 13, y + 0.2], [x + 12.6, y + 8.4], [x + 0.4, y + 8.2]], { fill: c, w: FAR, seed: 'cr-box' + k, over: 0.7 });
-            ln(g, [[x + 3, y + 2.6], [x + 10, y + 2.8]], { w: FAR * 0.9, seed: 'cr-boxl' + k, amp: 0 });
-        }
+    // --- boats -----------------------------------------------------------------------------------
+    /**
+     * A boat's hull built from sections. fr: its frame (x to the bow, y up from the keel, z across);
+     * L × B metres; o.sheer: the gunwale's height at the stern, amidships and the bow; o.transom:
+     * the stern's width against the beam; o.cut: a world height below which nothing shows (the
+     * water). Returns the surface (at3(u, t, side): u from stern to bow, t from gunwale to keel)
+     * and what is needed to draw on it.
+     */
+    function hullOf(fr, L, B, o = {}) {
+        const { sheer = [0.5, 0.42, 0.7], transom = 0.72, rake = 0.1, cut = -Infinity, fore = 0.4, n = 12 } = o;
+        const hb = (u) => (B / 2) * (u < 0.42 ? transom + (1 - transom) * Math.sin(((u / 0.42) * Math.PI) / 2) : Math.pow(Math.cos((((u - 0.42) / 0.58) * Math.PI) / 2), 0.7));
+        const sy = (u) => sheer[1] + (sheer[0] - sheer[1]) * Math.pow(Math.max(0, 1 - u / 0.45), 2) + (sheer[2] - sheer[1]) * Math.pow(Math.max(0, (u - 0.45) / 0.55), 2);
+        const ky = (u) => (u > 0.8 ? sy(u) * fore * Math.pow((u - 0.8) / 0.2, 2) : 0);
+        const at3 = (u, t, sg) => {
+            const S = Math.pow(1 - Math.pow(t, 2.6), 1 / 2.6);
+            const p = fr.w((u - 0.5) * L + rake * L * Math.pow(Math.max(0, (u - 0.6) / 0.4), 2) * (1 - t * 0.8), sy(u) + (ky(u) - sy(u)) * t, sg * hb(u) * S);
+            if (p[1] < cut) p[1] = cut;
+            return p;
+        };
+        const facing = (u, t, sg) => {
+            const e = 0.03, p = at3(u, t, sg);
+            const du = sub(at3(Math.min(1, u + e), t, sg), at3(Math.max(0, u - e), t, sg)), dt = sub(at3(u, Math.min(1, t + e), sg), at3(u, Math.max(0, t - e), sg));
+            let nn = cross(du, dt);
+            if (dot3(nn, mul(fr.Z, sg)) < 0) nn = mul(nn, -1);
+            return dot3(nn, sub(EYE3, p)) > 0;
+        };
+        const ts = [0, 0.3, 0.62, 1], quads = [];
+        for (const sg of [-1, 1]) for (let i = 0; i < n; i++) for (let j = 0; j < ts.length - 1; j++) quads.push([at3(i / n, ts[j], sg), at3((i + 1) / n, ts[j], sg), at3((i + 1) / n, ts[j + 1], sg), at3(i / n, ts[j + 1], sg)].map(pt));
+        const tr = [];
+        for (let j = 0; j <= 8; j++) tr.push(at3(0, j / 8, -1));
+        for (let j = 8; j >= 0; j--) tr.push(at3(0, j / 8, 1));
+        // t may be a number or a function of u (tAt(y): a level line y above the keel)
+        const tv = (t, u) => (typeof t === 'function' ? t(u) : t), tAt = (y) => (u) => clamp((sy(u) - y) / (sy(u) - ky(u) || 1), 0, 1);
+        // the stretches of the line at t, from u0 to u1, that we can see on side sg
+        const runs = (t, sg, u0 = 0, u1 = 1, m = 28) => {
+            const out = [];
+            let cur = null;
+            for (let i = 0; i <= m; i++) {
+                const u = u0 + ((u1 - u0) * i) / m;
+                const tt = tv(t, u);
+                if (facing(clamp(u, 0.01, 0.99), clamp(tt, 0.02, 0.97), sg)) (cur ??= []).push(pt(at3(u, tt, sg)));
+                else if (cur) {
+                    out.push(cur);
+                    cur = null;
+                }
+            }
+            if (cur) out.push(cur);
+            return out.filter((r) => r.length > 1);
+        };
+        return {
+            at3, facing, sy, hb, runs, tAt, quads: [...quads, tr.map(pt)], transom: tr.map(pt),
+            stern: dot3(mul(fr.X, -1), sub(EYE3, at3(0, 0.4, 0))) > 0, // do we see the transom?
+            near: len3(sub(at3(0.5, 0, 1), EYE3)) < len3(sub(at3(0.5, 0, -1), EYE3)) ? 1 : -1,
+            // a band of colour between two lines of the hull, where we see it
+            band(g, t0, t1, fill, u0 = 0, u1 = 1, m = 24) {
+                g.fillStyle = fill;
+                g.strokeStyle = fill;
+                g.lineWidth = 0.6;
+                for (const sg of [-1, 1]) {
+                    for (let i = 0; i < m; i++) {
+                        const a = u0 + ((u1 - u0) * i) / m, b = u0 + ((u1 - u0) * (i + 1)) / m;
+                        if (!facing(clamp((a + b) / 2, 0.01, 0.99), clamp((tv(t0, a) + tv(t1, a)) / 2, 0.02, 0.97), sg)) continue;
+                        const p = T.pathOf([at3(a, tv(t0, a), sg), at3(b, tv(t0, b), sg), at3(b, tv(t1, b), sg), at3(a, tv(t1, a), sg)].map(pt));
+                        g.fill(p);
+                        g.stroke(p);
+                    }
+                }
+            },
+            lines(g, t, o2 = {}) {
+                for (const sg of [-1, 1]) for (const [i, r] of runs(t, sg, o2.u0 ?? 0, o2.u1 ?? 1).entries()) T.line(g, r, { dense: true, seed: (o2.seed ?? 'hl') + sg + i, w: Math.max(1.3, o2.w ?? BG), amp: 0.2, color: o2.color ?? C.ink });
+            },
+        };
     }
 
     /**
-     * A trawler, stern at x, waterline at y, bow to +x (flip: to −x), about 210 × 195 local units.
-     * Drawn back to front: gallows, stack, wheelhouse, mast and gear, the net on deck, the hull,
-     * then what hangs on the hull.
+     * A trawler riding in the harbour: 14 × 4.4 m, 1.5 m of freeboard amidships and 3 m at the
+     * bow, the wheelhouse aft (2.4 m), the mast 7 m above the deck. at: [X, Z] of its middle,
+     * yaw: where the bow points. Parts are drawn far to near, then the hull over their feet.
      */
-    function trawler(g, x, y, s, o) {
-        const { hull = P.navy, boot = P.boot, cabin = C.white, roof = C.orange, flip = false, seed = 'tr', reg = 'GH42', net = P.net, strake = C.white } = o;
-        const w = FAR / s;
-        const L = (pts, oo = {}) => T.line(g, pts, { w, seed: seed + (oo.k ?? ''), ...oo });
-        const B = (a, b, wa, wb, oo) => bar(g, a, b, wa, wb, { w, ...oo });
-        g.save();
-        g.translate(x, y);
-        g.scale(flip ? -s : s, s);
-        // stern gallows
-        B([2, -36], [9, -92], 4, 3.4, { fill: P.spar, seed: seed + 'ga' });
-        B([19, -36], [12, -92], 4, 3.4, { fill: P.spar, seed: seed + 'gb' });
-        disc(g, 10.5, -93, 3.6, 3.6, { fill: P.iron, w, seed: seed + 'gc', n: 8 });
-        L([[10.5, -90], [10, -74]], { k: 'gl' });
-        // the stack, the wheelhouse with its side, the roof and what sits on it
-        slab(g, [[33, -104], [45, -103], [46, -80], [32, -80]], { fill: hull, w, seed: seed + 'st', over: 1, inside: (c) => { c.fillStyle = boot; c.fillRect(28, -99, 22, 6); } });
-        L([[33, -99], [45, -98.5]], { k: 'st1', amp: 0 });
-        L([[33, -93], [45, -92.5]], { k: 'st2', amp: 0 });
-        slab(g, [[72, -75], [86, -70], [87, -30], [74, -30]], { fill: '#dcd8cc', w, seed: seed + 'ws', over: 1 });
-        slab(g, [[25, -77], [72, -75], [74, -30], [24, -30]], { fill: cabin, w, seed: seed + 'wh', over: 1.2 });
-        for (const [i, [a, b]] of [[30, 41], [44, 55], [58, 69]].entries()) T.pane(g, [[a, -71 + i * 0.4], [b, -70.6 + i * 0.4], [b, -57], [a, -57]], { w, seed: seed + 'win' + i, gleams: 1 });
-        T.pane(g, [[76, -68], [83.4, -65.6], [83.6, -54], [76, -55]], { w, seed: seed + 'wins', gleams: 1 });
-        disc(g, 34, -43, 6.4, 6.4, { fill: C.red, w, seed: seed + 'lr', n: 10 });
-        dot(g, 34, -43, 2.8, cabin);
-        L([[34, -49.4], [34, -46]], { k: 'lr1', color: C.white, amp: 0 });
-        L([[34, -40], [34, -36.6]], { k: 'lr2', color: C.white, amp: 0 });
-        slab(g, [[52, -52], [64, -51.6], [64, -30], [52, -30]], { fill: boot, w, seed: seed + 'door', over: 0.7, edges: [0, 1, 3] });
-        dot(g, 58, -45, 2.3, C.glass);
-        poly(g, [[20, -84], [78, -81], [91, -75], [89, -69.6], [76, -74.4], [21, -77]], { fill: roof, w, seed: seed + 'rf' });
-        L([[50, -82], [50, -91]], { k: 'rd' });
-        slab(g, [[41, -94.6], [60, -93.4], [60, -90], [41, -91]], { fill: C.white, w, seed: seed + 'radar', over: 0.6 });
-        L([[66, -81], [68, -132]], { k: 'aer', w: w * 0.9 });
-        disc(g, 26, -86.5, 3, 3, { fill: C.roadLine, w, seed: seed + 'lamp', n: 8 });
-        // the mast, its crosstree and light, the derrick boom with a net hung to dry
-        L([[131, -188], [205, -56]], { k: 'fst', w: w * 0.9 });
-        L([[130, -186], [62, -81]], { k: 'bst', w: w * 0.9 });
-        L([[130, -184], [11, -93]], { k: 'bst2', w: w * 0.9 });
-        L([[130, -170], [108, -34]], { k: 'shr1', w: w * 0.9 });
-        L([[131, -170], [152, -37]], { k: 'shr2', w: w * 0.9 });
-        const np = [[147, -80, 1], [189, -121, 1], [186, -60], [170, -44], [150, -38, 1]];
-        const nd = sh(g, np, { fill: P.netPale, w, seed: seed + 'nd' });
-        netting(g, nd, 7.5, { w: w * 0.85, seed: seed + 'ndh' });
-        L([[131, -190], [193, -125]], { k: 'top', w: w * 0.9 });
-        B([129, -62], [193, -125], 5, 3.6, { fill: P.spar, seed: seed + 'boom' });
-        B([128, -30], [131, -193], 6.4, 3.6, { fill: P.spar, seed: seed + 'mast' });
-        B([119, -152], [142, -153], 3.2, 3.2, { fill: P.spar, seed: seed + 'ct' });
-        disc(g, 131, -197, 3.2, 3.2, { fill: C.red, w, seed: seed + 'ml', n: 8 });
-        L([[193, -124], [194, -106]], { k: 'hk' });
-        disc(g, 194, -103, 3, 3, { fill: P.iron, w, seed: seed + 'blk', n: 8 });
-        // on deck: a heap of net with its floats, a stack of boxes
-        const heap = sh(g, [[78, -30, 1], [82, -45], [96, -53], [112, -46], [121, -30, 1]], { fill: net, w, seed: seed + 'heap' });
-        netting(g, heap, 6.5, { w: w * 0.85, seed: seed + 'hh' });
-        for (const [fx, fy] of [[84, -47], [99, -55], [113, -47]]) disc(g, fx, fy, 3.6, 3.6, { fill: C.orange, w, seed: seed + 'fl' + fx, n: 8 });
-        // the hull: a sheer that lifts to the bow, a painted strake, the boot topping
-        const strakePts = (dy) => [[-3, -40 + dy], [30, -35 + dy], [90, -32 + dy], [150, -37 + dy], [190, -46 + dy], [204, -53.5 + dy]];
-        sh(g, [[-4, -40, 1], [30, -35], [90, -32], [150, -37], [190, -46], [207, -55, 1], [197, -26], [186, 2, 1], [100, 5], [10, 2, 1], [0, -18]], {
-            fill: hull, w, seed: seed + 'hull',
-            inside: (c) => {
-                c.fillStyle = boot;
-                c.fillRect(-10, -9, 230, 20);
-                c.fillStyle = strake;
-                c.fill(T.pathOf([...T.path(strakePts(6)), ...T.path(strakePts(11.5)).reverse()]));
-            },
-        });
-        L([[5, -9], [100, -8.4], [190, -9]], { k: 'bt' });
-        L(strakePts(6).slice(0, 5).concat([[202, -47]]), { k: 's1' });
-        L(strakePts(11.5).slice(0, 5).concat([[200, -41.5]]), { k: 's2' });
-        for (const sx of [44, 72, 118, 160]) L([[sx, -19], [sx + 6, -19]], { k: 'sc' + sx, w: w * 1.3, amp: 0 });
-        // registration on the bow, never mirrored
-        g.save();
-        g.translate(flip ? 190 : 156, -13);
-        g.scale(flip ? -1 : 1, 1);
-        chalk(g, reg, 0, 0, 13, { seed: seed + 'reg', rot: flip ? 0.12 : -0.12 });
-        g.restore();
-        // fenders and a tyre over the side, the anchor at the hawse
-        for (const [fx, c] of [[52, C.orange], [98, C.magenta]]) {
-            L([[fx, -27], [fx, -19]], { k: 'fd' + fx });
-            sh(g, T.ellipse(fx, -12, 5.6, 7.4, 0, 10), { fill: c, w, seed: seed + 'fen' + fx });
+    function trawler(g, at, yaw, o = {}) {
+        const { hull = P.navy, boot = P.boot, cabin = C.white, roof = C.orange, seed = 'tr', reg = 'GH42', net = P.netPale, strake = C.white, L = 14, B = 4.4 } = o;
+        const draft = 1.2, fr = frame([at[0], WATER - draft, at[1]], yaw), w = lw(at[1]), s = sc(at[1]);
+        const hl = hullOf(fr, L, B, { sheer: [draft + 1.9, draft + 1.5, draft + 3], transom: 0.78, rake: 0.07, cut: WATER, fore: 0.25, n: 14 });
+        const deck = draft + 0.7, S = (x, y, z) => fr.w((x * L) / 14, y, (z * B) / 4.4);
+        const B3 = (a, b, d, oo) => bar3(g, a, b, d, { w, ...oo });
+        const parts = [
+            // the stern gallows
+            [-6.3, () => {
+                B3(S(-6.4, deck, -1.5), S(-6.1, deck + 3.3, -0.5), 0.2, { fill: P.spar, seed: seed + 'ga' });
+                B3(S(-6.4, deck, 1.5), S(-6.1, deck + 3.3, 0.5), 0.2, { fill: P.spar, seed: seed + 'gb' });
+                B3(S(-6.1, deck + 3.3, -0.7), S(-6.1, deck + 3.3, 0.7), 0.2, { fill: P.spar, seed: seed + 'gc' });
+                ln3(g, [S(-6.1, deck + 3.2, 0), S(-6.1, deck + 2.3, 0)], { w, seed: seed + 'gl' });
+                dot(g, ...pt(S(-6.1, deck + 2.2, 0)), Math.max(1.5, 0.16 * s), P.iron);
+            }],
+            // the wheelhouse: a box with windows on the faces we see, a door, a life ring; its roof and stack
+            [-3.8, () => {
+                const o3 = S(-3.8, deck - 0.3, 0);
+                boxOf(g, S(-4.6, deck + 2.5, 0), [0.8, 1.2, 0.8], yaw, { fill: { all: hull }, w, seed: seed + 'stack', face: (f, pl) => { if (f.name !== 'top' && f.name !== 'bottom') { g.fillStyle = boot; g.fill(T.pathOf(pl.q(0, 0.7, pl.W, 0.95))); ln(g, [pl.p(0, 0.7), pl.p(pl.W, 0.7)], { w, seed: seed + 'sb' + f.name, amp: 0 }); ln(g, [pl.p(0, 0.95), pl.p(pl.W, 0.95)], { w, seed: seed + 'sc' + f.name, amp: 0 }); } } });
+                boxOf(g, o3, [2.8, 2.7, 2.5], yaw, {
+                    fill: { all: cabin, left: '#dcd8cc', right: '#dcd8cc' }, w, seed: seed + 'wh',
+                    face: (f, pl) => {
+                        if (f.name === 'top' || f.name === 'bottom') return;
+                        const n = pl.W > 2.6 ? 3 : 2, m = 0.22, ww = (pl.W - m * (n + 1)) / n;
+                        for (let i = 0; i < n; i++) T.pane(g, pl.q(m + i * (ww + m), 1.75, m + i * (ww + m) + ww, 2.45), { w, seed: seed + 'win' + f.name + i, gleams: 1 });
+                        if (f.name === 'front' || f.name === 'back') {
+                            const [cx, cy] = pl.p(pl.W / 2, 1.25), r = 0.3 * s;
+                            T.shape(g, T.ellipse(cx, cy, r, r, 0, 10), { fill: C.red, w, seed: seed + 'lr' + f.name, dense: true });
+                            dot(g, cx, cy, r * 0.45, cabin);
+                        } else slab(g, pl.q(pl.W * 0.36, 0.3, pl.W * 0.36 + 0.7, 1.6), { fill: boot, w, seed: seed + 'door' + f.name, over: 0.6 });
+                    },
+                });
+                boxOf(g, S(-3.7, deck + 2.4, 0), [3.3, 0.16, 2.9], yaw, { fill: roof, w, seed: seed + 'rf' });
+                // radar, aerial, a lamp on the roof
+                B3(S(-3.2, deck + 2.56, 0), S(-3.2, deck + 3.1, 0), 0.08, { fill: C.white, seed: seed + 'rd' });
+                B3(S(-3.2, deck + 3.1, -0.6), S(-3.2, deck + 3.1, 0.6), 0.14, { fill: C.white, seed: seed + 'radar' });
+                ln3(g, [S(-2.7, deck + 2.56, 0.8), S(-2.6, deck + 5.4, 0.8)], { w: w * 0.9, seed: seed + 'aer' });
+                dot(g, ...pt(S(-4.9, deck + 2.75, -0.9)), Math.max(1.6, 0.14 * s), C.roadLine);
+            }],
+            // the mast, its crosstree and light, the boom with a net hung to dry, the rigging
+            [0.8, () => {
+                const top = S(0.8, deck + 7, 0);
+                for (const [k, e] of [['fst', S(7, hl.sy(1) + 0.1, 0)], ['bst', S(-6.1, deck + 3.3, 0)], ['sh1', S(0.4, hl.sy(0.55), -B / 2)], ['sh2', S(0.4, hl.sy(0.55), B / 2)], ['sh3', S(1.4, hl.sy(0.6), -B / 2)], ['sh4', S(1.4, hl.sy(0.6), B / 2)]]) ln3(g, [top, e], { w: w * 0.85, seed: seed + k, amp: 0.15 });
+                const b0 = S(0.9, deck + 2.2, 0), b1 = S(5.2, deck + 5.6, 0);
+                const np = [lerp3(b0, b1, 0.3), b1, S(5, deck + 1.6, 0), S(3.6, deck + 0.9, 0), S(2.4, deck + 1, 0)].map(pt);
+                const nd = sh(g, [[...np[0], 1], [...np[1], 1], np[2], np[3], [...np[4], 1]], { fill: net, w, seed: seed + 'nd' });
+                netting(g, nd, Math.max(3.2, 0.36 * s), { w: Math.max(1.3, w * 0.8), seed: seed + 'ndh' });
+                ln3(g, [top, b1], { w: w * 0.85, seed: seed + 'top' });
+                B3(b0, b1, 0.2, { fill: P.spar, seed: seed + 'boom', d1: 0.14 });
+                B3(S(0.8, deck - 0.2, 0), top, 0.3, { fill: P.spar, seed: seed + 'mast', d1: 0.18 });
+                B3(S(0.8, deck + 5.3, -0.8), S(0.8, deck + 5.3, 0.8), 0.14, { fill: P.spar, seed: seed + 'ct' });
+                dot(g, ...pt(add(top, [0, 0.2, 0])), Math.max(1.6, 0.16 * s), C.red);
+                ln3(g, [b1, add(b1, [0, -0.9, 0])], { w, seed: seed + 'hk' });
+                dot(g, ...pt(add(b1, [0, -1, 0])), Math.max(1.5, 0.14 * s), P.iron);
+            }],
+            // a heap of net on the foredeck with its floats, showing over the rail
+            [3.6, () => {
+                const hp = [S(2.2, deck + 0.6, 0), S(2.7, deck + 1.5, 0), S(3.6, deck + 1.9, 0), S(4.6, deck + 1.5, 0), S(5.2, deck + 0.6, 0)].map(pt);
+                const heap = sh(g, [[...hp[0], 1], hp[1], hp[2], hp[3], [...hp[4], 1]], { fill: P.net, w, seed: seed + 'heap' });
+                netting(g, heap, Math.max(3, 0.32 * s), { w: Math.max(1.3, w * 0.8), seed: seed + 'hh' });
+                for (const [fx, fy] of [[2.8, 1.5], [3.7, 1.95], [4.5, 1.5]]) dot(g, ...pt(S(fx, deck + fy, 0)), Math.max(1.8, 0.17 * s), C.orange);
+            }],
+        ];
+        // far parts first
+        const dist = (x) => len3(sub(S(x, deck + 1, 0), EYE3));
+        for (const [, draw] of parts.sort((a, b) => dist(b[0]) - dist(a[0]))) draw();
+        // the ensign staff at the stern (the flag itself moves: Harbor.back)
+        ln3(g, [S(-6.9, hl.sy(0), 0), S(-7.2, hl.sy(0) + 2.2, 0)], { w: w * 1.1, seed: seed + 'staff' });
+        // the hull: the boot topping at the water, a painted strake under the rail
+        union(g, hl.quads, { fill: hull, w, seed: seed + 'hull' });
+        hl.band(g, hl.tAt(draft + 0.45), 1, boot);
+        hl.band(g, 0.07, 0.15, strake);
+        if (hl.stern) T.shape(g, hl.transom, { fill: hull, w, seed: seed + 'transom', dense: true, amp: 0.2 });
+        hl.lines(g, hl.tAt(draft + 0.45), { w, seed: seed + 'bt' });
+        hl.lines(g, 0.07, { w, seed: seed + 's1' });
+        hl.lines(g, 0.15, { w, seed: seed + 's2' });
+        // the stem, where we see the bow
+        if (!hl.stern) T.line(g, [0, 0.25, 0.5, 0.75, 1].map((t) => pt(hl.at3(1, t, 1))), { w, seed: seed + 'stem' });
+        // registration on the bow of the side we see, laid on the hull
+        {
+            const sg = hl.near, a = hl.at3(0.74, 0.2, sg), b = hl.at3(0.9, 0.2, sg), c = hl.at3(0.74, 0.34, sg);
+            let u = unit(sub(b, a));
+            const flip = pt(b)[0] < pt(a)[0];
+            const pl = plane(flip ? b : a, flip ? mul(u, -1) : u, unit(sub(a, c)));
+            const wm = len3(sub(b, a)), hm = len3(sub(a, c));
+            if (hl.facing(0.82, 0.27, sg)) decal(g, pl, 0, -hm, wm, hm, (cg) => chalk(cg, reg, wm * 50, hm * 86, hm * 96, { seed: seed + 'reg', align: 'center' }), { nx: 3, ny: 1 });
         }
-        L([[138, -30], [138, -20]], { k: 'tyl' });
-        disc(g, 138, -14, 6.6, 6.6, { fill: C.ink, w, seed: seed + 'tyre', n: 10 });
-        dot(g, 138, -14, 2.8, hull);
-        L([[192, -40], [192, -30], [188, -27], [196, -27]], { k: 'anc', w: w * 1.1 });
-        // a lip of foam under the bow
-        sh(g, [[170, 2], [186, -2], [200, 0], [214, 4], [198, 7], [180, 6]], { fill: C.foam, w, seed: seed + 'foam' });
-        // the ensign staff at the stern
-        L([[-2, -40], [-9, -80]], { k: 'staff', w: w * 1.1 });
-        g.restore();
+        // fenders and a tyre over the side we see
+        for (const [u, col] of [[0.3, C.orange], [0.48, C.magenta], [0.64, null]]) {
+            if (!hl.facing(u, 0.2, hl.near)) continue;
+            const a = pt(hl.at3(u, 0.02, hl.near)), [bx, by] = pt(hl.at3(u, 0.36, hl.near));
+            ln(g, [a, [bx, by]], { w, seed: seed + 'fd' + u });
+            if (col) T.shape(g, T.ellipse(bx, by, 0.22 * s, 0.36 * s, 0, 10), { fill: col, w, seed: seed + 'fen' + u, dense: true });
+            else {
+                T.shape(g, T.ellipse(bx, by, 0.36 * s, 0.36 * s, 0, 10), { fill: C.ink, w, seed: seed + 'tyre', dense: true });
+                dot(g, bx, by, 0.15 * s, hull);
+            }
+        }
+        // foam under the forefoot
+        const bow = hl.at3(0.97, 1, 1);
+        foam(g, [bow[0], 0, bow[2]], 1.3, { seed: seed + 'foam' });
     }
 
-    function smallBoat(g, x, y, s, o = {}) {
-        const { hull = C.white, band = C.blue, seed = 'sb' } = o;
-        const w = FAR / s;
-        g.save();
-        g.translate(x, y);
-        g.scale(s, s);
-        sh(g, [[-30, -12, 1], [-8, -9], [16, -10], [34, -16, 1], [26, 0, 1], [-24, 1, 1]], { fill: hull, w, seed, inside: (c) => { c.fillStyle = band; c.fill(T.pathOf([[-34, -14], [-8, -10], [16, -11], [38, -18], [38, -12], [16, -6], [-8, -5], [-34, -8]])); } });
-        T.line(g, [[-28, -7.4], [-8, -4.8], [16, -5.8], [31, -11]], { w, seed: seed + 'l' });
-        // an outboard cocked up at the stern, an oar, a thwart
-        slab(g, [[-37, -24], [-29, -24], [-28, -11], [-35, -10]], { fill: P.iron, w, seed: seed + 'ob', over: 0.6 });
-        T.line(g, [[-33, -10], [-37, 0]], { w, seed: seed + 'leg' });
-        T.line(g, [[-10, -9], [22, -22]], { w: w * 1.2, seed: seed + 'oar' });
-        sh(g, [[20, -24, 1], [29, -27], [31, -23, 1], [23, -20]], { fill: P.spar, w, seed: seed + 'blade' });
-        g.restore();
+    // a rowing boat on the water, 3.6 × 1.3 m: we look into it
+    function rowingBoat(g, at, yaw, o = {}) {
+        const { hull = C.white, band = C.blue, seed = 'rb' } = o;
+        const fr = frame([at[0], WATER - 0.12, at[1]], yaw), w = lw(at[1]);
+        const hl = hullOf(fr, 3.6, 1.3, { sheer: [0.56, 0.5, 0.66], transom: 0.7, rake: 0.06, cut: WATER, n: 10 });
+        union(g, hl.quads, { fill: hull, w, seed });
+        hl.band(g, 0, 0.3, band);
+        hl.lines(g, 0.3, { w, seed: seed + 'l' });
+        // the inside: between the two gunwales
+        const far = [], nearG = [];
+        for (let i = 0; i <= 12; i++) {
+            far.push(pt(hl.at3(i / 12, 0, -hl.near)));
+            nearG.push(pt(hl.at3(i / 12, 0, hl.near)));
+        }
+        T.shape(g, [...far, ...nearG.reverse()], { fill: C.wood, w, seed: seed + 'in', dense: true, amp: 0.2 });
+        for (const u of [0.3, 0.58]) slab(g, [hl.at3(u, 0.08, -1), hl.at3(u + 0.07, 0.08, -1), hl.at3(u + 0.07, 0.08, 1), hl.at3(u, 0.08, 1)].map(pt), { fill: P.spar, w, seed: seed + 'th' + u, over: 0.3 });
+        // an oar shipped across, the painter to its buoy
+        bar3(g, fr.w(-0.6, 0.62, 0.3), fr.w(1.9, 0.9, -0.5), 0.07, { fill: P.spar, w, seed: seed + 'oar' });
+        foam(g, [at[0] + fr.X[0] * 1.6, 0, at[1] + fr.X[2] * 1.6], 0.5, { seed: seed + 'foam' });
     }
 
-    function buoy(g, x, y, r, col, seed) {
-        disc(g, x, y - r * 0.5, r, r * 0.92, { fill: col, w: FAR, seed, n: 10 });
-        ln(g, [[x - r * 0.9, y - r * 0.5], [x, y - r * 0.2], [x + r * 0.9, y - r * 0.5]], { w: FAR * 0.95, seed: seed + 'b' });
-        ln(g, [[x, y - r * 1.4], [x, y - r * 2]], { w: FAR, seed: seed + 's' });
-        ln(g, [[x - r * 1.2, y + r * 0.5], [x - r * 0.3, y + r * 0.72], [x + r * 1.3, y + r * 0.5]], { w: FAR, seed: seed + 'w' });
-    }
-
-    function sea(g) {
-        slab(g, [[-20, 546], [1620, 556], [1620, 920], [-20, 920]], { fill: C.sea, w: FAR, seed: 'sea', edges: [0] });
-        // waves: short and thin at the horizon, long and loose near the quay
-        waves(g, [300, 558, 1300, 14], 24, { seed: 'wv-a', len: [10, 26], w: FAR, amp: 0.9 });
-        waves(g, [300, 574, 1300, 24], 38, { seed: 'wv-b', len: [18, 46], w: FAR, amp: 1.4 });
-        waves(g, [300, 600, 1320, 46], 46, { seed: 'wv-c', len: [30, 90], w: MID, amp: 1.9 });
-        waves(g, [1240, 650, 380, 110], 30, { seed: 'wv-d', len: [44, 130], w: BG, amp: 2.6, slope: 0.03 });
+    // a mooring buoy: a turned float 0.65 m across with a band and a ring
+    function buoy(g, at, col, seed) {
+        const c = [at[0], WATER - 0.12, at[1]];
+        lathe(g, c, [[0.12, 0.1], [0.3, 0.2], [0.33, 0.42], [0.24, 0.62], [0.08, 0.7]], { fill: col, seed, n: 12, bands: [[0.36, 0.46, C.white]], top: false });
+        ln3(g, [add(c, [0, 0.7, 0]), add(c, [0, 1.05, 0])], { seed: seed + 's' });
+        foam(g, [at[0] + 0.3, 0, at[1] - 0.1], 0.5, { seed: seed + 'f' });
     }
 
     function harbour(g) {
-        harbourWall(g);
-        // mooring lines from the quay's bollards to the big trawler
-        ln(g, [[640, 634], [626, 600], [606, 570]], { w: FAR, seed: 'moor-a' });
-        ln(g, [[905, 638], [860, 596], [806, 556]], { w: FAR, seed: 'moor-b' });
-        trawler(g, 600, 607, 1, { seed: 'tr-a', hull: P.navy, roof: C.orange, reg: 'GH42' });
-        trawler(g, 990, 586, 0.56, { seed: 'tr-b', hull: C.green, boot: '#7b1f2a', cabin: P.cream, roof: P.coral, flip: true, reg: 'GH7', net: C.orange, strake: C.roadLine });
-        smallBoat(g, 712, 631, 1, { seed: 'sb-a' });
-        buoy(g, 1126, 612, 6, C.orange, 'buoy-a');
-        buoy(g, 566, 622, 6.5, C.magenta, 'buoy-b');
-        buoy(g, 930, 624, 6, C.roadLine, 'buoy-c');
-        // a channel marker out by the point
-        bar(g, [1192, 600], [1193, 572], 3.4, 2.6, { fill: C.red, w: FAR, seed: 'mark' });
-        sh(g, [[1187, 572, 1], [1193, 562, 1], [1199, 572, 1]], { fill: C.red, w: FAR, seed: 'mark-top' });
-        sh(g, [[1182, 600], [1193, 596], [1204, 600], [1196, 604], [1186, 603]], { fill: C.foam, w: FAR, seed: 'mark-foam' });
+        // the second trawler, far out beyond the harbour mouth; the first one riding inside; a
+        // rowing boat and mooring buoys nearer
+        trawler(g, BOAT_B.at, BOAT_B.yaw, { seed: 'tr-b', hull: C.green, boot: '#7b1f2a', cabin: P.cream, roof: P.coral, reg: 'GH7', net: C.salmon, strake: C.roadLine, L: 12, B: 4 });
+        buoy(g, [9.5, 78], C.orange, 'buoy-a');
+        trawler(g, BOAT_A.at, BOAT_A.yaw, { seed: 'tr-a' });
+        buoy(g, [-9, 58], C.magenta, 'buoy-b');
+        rowingBoat(g, [-7.6, 52], -0.5, { seed: 'rb' });
+        buoy(g, [4.6, 47], C.roadLine, 'buoy-c');
     }
 
-    // --- the pier -------------------------------------------------------------------------------
-    // Everything along the pier runs to one point; s is how near (1 at the frame's right edge),
-    // Y how far above (−) or below (+) the horizon at s = 1.
-    const PV = [994, 559];
-    const pp = (s, Y) => [PV[0] + 626 * s, PV[1] + s * Y];
-    const PIER = { s0: 0.24, s1: 1.03, deck: -190, soffit: -146, back: -40, railTop: -318, railMid: -256, water: 131 };
-    const BENTS = [0.905, 0.705, 0.55, 0.43, 0.335, 0.262];
-
-    function lampPost(g, x, y, h, s, o = {}) {
-        const { fill = '#3c5a78', seed = 'lamp', w = BG, side = -1, lean = 0 } = o;
-        const top = [x + lean, y - h];
-        // foot, shaft with its collars, a swan neck and a lantern hung from it
-        sh(g, [[x - 9 * s, y, 1], [x - 7 * s, y - 10 * s], [x - 3.6 * s, y - 26 * s], [x + 3.6 * s, y - 26 * s], [x + 7 * s, y - 10 * s], [x + 9 * s, y, 1]], { fill, w, seed: seed + 'f' });
-        bar(g, [x, y - 24 * s], top, 6.4 * s, 4.6 * s, { fill, w, seed: seed + 's' });
-        for (const u of [0.12, 0.62]) {
-            const c = mix([x, y - 24 * s], top, u);
-            slab(g, [[c[0] - 5 * s, c[1] - 2.4 * s], [c[0] + 5 * s, c[1] - 2.4 * s], [c[0] + 5 * s, c[1] + 2.4 * s], [c[0] - 5 * s, c[1] + 2.4 * s]], { fill, w, seed: seed + 'c' + u, over: 0.5 });
+    // --- the quay: the ground we stand on ------------------------------------------------------
+    function quay(g) {
+        // everything nearer than the lip, down to the bottom of the frame
+        const l0 = pt(Q(-30, 0)), l1 = pt(Q(8, 0)), yAt = (x) => l0[1] + ((x - l0[0]) * (l1[1] - l0[1])) / (l1[0] - l0[0]);
+        g.fillStyle = P.quay;
+        g.fill(T.pathOf([[-30, yAt(-30)], [W + 30, yAt(W + 30)], [W + 30, H + 30], [-30, H + 30]]));
+        // coping stones along the lip, 0.45 m deep, a joint every 1.5 m
+        g.fillStyle = P.coping;
+        g.fill(T.pathOf([pt(Q(-30, 0)), pt(Q(8, 0)), pt(Q(8, 0.45)), pt(Q(-30, 0.45))]));
+        gline(g, Q(-30, 0), Q(8, 0), { seed: 'cope-out', w: 1.9 });
+        gline(g, Q(-30, 0.45), Q(8, 0.45), { seed: 'cope-in', w: 1.9 });
+        const RC = Motion.rng('cope-j');
+        for (let a = -22; a < 7.6; a += 1.5) if (RC() > 0.12) gline(g, Q(a, 0.02), Q(a, 0.44), { seed: 'cope-j' + a });
+        // flagstones: courses 1.4 m deep that run with the lip, slabs 2.1 m long, the joints of
+        // one course half a slab off the next; drawn in pieces, as a hand leaves them
+        const R = Motion.rng('paving'), courses = [];
+        for (let b = 0.45; b < 13; b += 1.4) courses.push(b);
+        for (const [i, b] of courses.entries()) {
+            if (i > 0) {
+                let a = -20 + R() * 2;
+                while (a < 9) {
+                    const L = 0.8 + R() * 2.6, gap = R() < 0.75 ? 0.5 + R() * 2.4 : 0;
+                    gline(g, Q(a, b), Q(Math.min(9, a + L), b), { seed: 'pj' + i + a.toFixed(1) });
+                    a += L + gap;
+                }
+            }
+            const off = (i % 2) * 1.05 + R() * 0.25;
+            for (let a = -21 + off; a < 9; a += 2.1) {
+                const e0 = R(), e1 = R();
+                if (R() < 0.42) continue;
+                gline(g, Q(a, b + 1.4 * (e0 < 0.3 ? e0 : 0)), Q(a, b + 1.4 * (e1 < 0.3 ? 1 - e1 : 1)), { seed: 'pc' + i + a.toFixed(1) });
+            }
         }
-        const lx = top[0] + side * 30 * s, ly = top[1] + 12 * s;
-        sh(g, T.ribbon([[top[0], top[1] + 4 * s], [top[0] + side * 2 * s, top[1] - 12 * s], [top[0] + side * 18 * s, top[1] - 17 * s], [lx, top[1] - 6 * s], [lx, ly - 2 * s]], 4.4 * s, 3.4 * s), { fill, w, seed: seed + 'n', dense: true });
-        sh(g, [[lx - 10 * s, ly + 2 * s, 1], [lx - 5 * s, ly - 6 * s], [lx + 5 * s, ly - 6 * s], [lx + 10 * s, ly + 2 * s, 1]], { fill, w, seed: seed + 'h' });
-        const q = [[lx - 8 * s, ly + 2 * s], [lx + 8 * s, ly + 2 * s], [lx + 5.4 * s, ly + 22 * s], [lx - 5.4 * s, ly + 22 * s]];
-        T.pane(g, q, { fill: C.yellow, w, seed: seed + 'g', gleams: 1 });
-        ln(g, [at(q, 0.5, 0), at(q, 0.5, 1)], { w: w * 0.9, seed: seed + 'm' });
-        slab(g, [[lx - 6.4 * s, ly + 22 * s], [lx + 6.4 * s, ly + 22 * s], [lx + 5 * s, ly + 26 * s], [lx - 5 * s, ly + 26 * s]], { fill, w, seed: seed + 'b', over: 0.5 });
-        return top;
+        // a worn yellow line 0.26 m wide, 0.72 m in from the lip
+        for (const [i, [a0, a1]] of [[-16, -12.2], [-11.4, -8.6], [-7.4, -2.6], [-1.9, 0.5], [1.3, 1.9], [5.3, 7.4]].entries()) slab(g, [pt(Q(a0, 0.72)), pt(Q(a1, 0.72)), pt(Q(a1, 0.98)), pt(Q(a0, 0.98))], { fill: C.roadLine, w: 1.4, seed: 'yl' + i, over: 0.4 });
+        // and another, as worn, leading from the pier's gate back onto the quay
+        for (const [i, [b0, b1]] of [[0.5, 1.5], [1.9, 3.3], [3.7, 4.5]].entries()) slab(g, [pt(Q(3.3, b0)), pt(Q(3.48, b0)), pt(Q(3.48, b1)), pt(Q(3.3, b1))], { fill: C.roadLine, w: 1.6, seed: 'yg' + i, over: 0.4 });
+        // loose ticks, mostly in pairs, lying along the courses; bigger towards us
+        const RT = Motion.rng('quay-ticks');
+        for (let i = 0, made = 0; i < 400 && made < 46; i++) {
+            const A = Q(-14 + RT() * 22, 1.2 + RT() * 9.2), L = 0.12 + RT() * 0.3, two = RT() < 0.55, k = RT();
+            const [x, y] = pt(A);
+            if (A[2] < 2.2 || x < -20 || x > W + 20) continue;
+            // keep the middle of the ground, where the cast stands, almost clean
+            if (A[2] < 5.4 && Math.abs(A[0]) < 1.5 && RT() < 0.6) continue;
+            made++;
+            const B = add(A, mul(LD, L)), w = clamp(lw(A[2]) * (A[2] < 4 ? 1.1 : 1), 1.4, T.LINE_FINE);
+            gline(g, A, B, { seed: 'qt' + i, w, amp: 0.25 });
+            if (two) gline(g, add(add(A, mul(LD, L * 0.2 * k)), mul(PD, -0.035 - 0.012 * A[2] * 0.3)), add(add(A, mul(LD, L * (0.6 + 0.3 * k))), mul(PD, -0.035 - 0.012 * A[2] * 0.3)), { seed: 'qt' + i + 'b', w, amp: 0.25 });
+        }
+    }
+
+    // --- the pier -----------------------------------------------------------------------------------
+    // a rail between two points of a deck: posts 1.08 m high every 1.5 m, two bars that pass behind them
+    function rail(g, A, B, o = {}) {
+        const { seed = 'rail', step = 1.5, h = 1.0, first = true, last = true } = o, L = len3(sub(B, A)), n = Math.max(1, Math.round(L / step));
+        const P3 = (i, y) => add(lerp3(A, B, i / n), [0, y, 0]);
+        const order = Array.from({ length: n + 1 }, (_, i) => i).sort((i, j) => P3(j, 0)[2] - P3(i, 0)[2]);
+        for (const i of order) {
+            if (i < n) for (const [y, t] of [[h - 0.06, 0.09], [h * 0.5, 0.075]]) slab(g, [P3(i, y + t / 2), P3(i + 1, y + t / 2), P3(i + 1, y - t / 2), P3(i, y - t / 2)].map(pt), { fill: C.greyDeep, w: lw(P3(i, 0)[2]), seed: seed + y + i, over: 0.3, edges: [0, 2] });
+        }
+        for (const i of order) {
+            if ((i === 0 && !first) || (i === n && !last)) continue;
+            const a = P3(i, 0), b = P3(i, h + 0.08), s = sc(a[2]), [x, y] = pt(b);
+            bar3(g, a, b, 0.11, { fill: C.grey, seed: seed + 'p' + i });
+            if (s > 30) slab(g, [[x - 0.085 * s, y - 0.045 * s], [x + 0.085 * s, y - 0.045 * s], [x + 0.075 * s, y + 0.01 * s], [x - 0.075 * s, y + 0.01 * s]], { fill: C.grey, w: lw(a[2]), seed: seed + 'c' + i, over: 0.4 });
+        }
+    }
+    // a lamp post: a turned foot and shaft, a swan neck reaching along `arm`, a lantern hung from it
+    function lamp(g, c, o = {}) {
+        const { h = 4.6, seed = 'lamp', fill = '#3c5a78', arm = [1, 0, 0] } = o, w = lw(c[2]), s = sc(c[2]);
+        lathe(g, c, [[0.17, 0], [0.14, 0.14], [0.09, 0.5], [0.062, 0.64], [0.045, h]], { fill, w, seed, rings: [0.5, 0.64, h * 0.62], top: false, n: 12 });
+        const top = add(c, [0, h, 0]), A = (k, y) => add(top, add(mul(arm, k), [0, y, 0]));
+        sh(g, T.ribbon([A(0, -0.1), A(0.04, 0.3), A(0.3, 0.44), A(0.56, 0.3), A(0.6, 0.02)].map(pt), Math.max(2, 0.075 * s), Math.max(1.6, 0.055 * s)), { fill, w, seed: seed + 'n', dense: true });
+        const lc = A(0.6, -0.5);
+        lathe(g, lc, [[0.07, -0.05], [0.09, 0], [0.16, 0.36]], { fill: C.yellow, w, seed: seed + 'g', n: 10, underFill: fill });
+        lathe(g, lc, [[0.2, 0.36], [0.17, 0.42], [0.04, 0.52]], { fill, w, seed: seed + 'h', n: 10, under: false, top: false });
+        ln3(g, [add(lc, [0, 0.02, 0]), add(lc, [0, 0.34, 0])], { w: w * 0.9, seed: seed + 'm' });
+    }
+    // a sloping board (a roof, an awning): its top when we look down on its plane, its underside when not
+    function slope(g, q3, o = {}) {
+        let n = cross(sub(q3[1], q3[0]), sub(q3[3], q3[0]));
+        if (n[1] < 0) n = mul(n, -1);
+        const topSeen = dot3(n, sub(EYE3, q3[0])) > 0, q = q3.map(pt);
+        T.slab(g, q, { fill: topSeen ? o.fill : (o.under ?? o.fill), w: o.w ?? lw(q3[0][2]), seed: o.seed ?? 'slope', over: o.over ?? 1.2, inside: topSeen ? o.inside : o.insideUnder });
+        return { topSeen, q };
+    }
+
+    function baitShed(g) {
+        const o3 = PR(5.9, 4.35), fr = frame(o3, PHI), w = lw(o3[2]), Wd = 2.4, Dp = 2.0, Hh = 2.2, ridge = 2.85;
+        const S3 = (x, y, z) => fr.w(x, y, z), S = (x, y, z) => pt(fr.w(x, y, z));
+        const right = wallOf(fr, Wd, Dp, 'right'), front = wallOf(fr, Wd, Dp, 'front');
+        // the wall towards the deck: planks, a net hung to dry, a float
+        slab(g, right.q(0, 0, Dp, Hh), { fill: P.lilacDeep, w, seed: 'bait-side', over: 1.2 });
+        planksOn(g, right, 0, Dp, 0.12, Hh, 0.34, { seed: 'bait-side-pl', w: w * 0.9, skip: 0.1 });
+        const nq = [right.p(0.5, 1.9, 0.03), right.p(1.6, 1.9, 0.03), right.p(1.45, 0.9, 0.03), right.p(1.0, 0.7, 0.03), right.p(0.62, 1.0, 0.03)];
+        const nd = sh(g, [[...nq[0], 1], [...nq[1], 1], nq[2], nq[3], nq[4]], { fill: P.netPale, w, seed: 'bait-net' });
+        netting(g, nd, 4.6, { w: w * 0.75, seed: 'bait-netn' });
+        // the front, with its gable
+        slab(g, [S(-1.2, 0, -1), S(-1.2, Hh, -1), S(0, ridge - 0.06, -1), S(1.2, Hh, -1), S(1.2, 0, -1)], { fill: P.lilac, w, seed: 'bait-front', over: 1.2 });
+        planksOn(g, front, 0, Wd, 0.12, Hh, 0.3, { seed: 'bait-pl', w: w * 0.9, skip: 0.12 });
+        slab(g, front.q(0, 0, Wd, 0.12), { fill: P.lilacDeep, w, seed: 'bait-kick', over: 0.6 });
+        // the door, ajar on the dark inside, and a step
+        slab(g, front.q(0.22, 0, 1.06, 1.92, 0.01), { fill: P.navy, w, seed: 'bait-door', over: 0.8 });
+        for (const u of [0.5, 0.78]) ln(g, [front.p(u, 0.06), front.p(u, 1.86)], { w: w * 0.85, seed: 'bait-door-l' + u });
+        dot(g, ...front.p(0.94, 0.98, 0.02), Math.max(1.6, 0.04 * sc(o3[2])), C.roadLine);
+        slab(g, front.q(0.16, 0, 1.12, 0.1, 0.22), { fill: C.wood, w, seed: 'bait-step', over: 0.5 });
+        // the window: two panes, a sill, a box of geraniums' worth of floats under it
+        T.pane(g, front.q(1.38, 1.0, 2.12, 1.66, 0.01), { w, seed: 'bait-win', gleams: 2 });
+        ln(g, [front.p(1.75, 1.0, 0.01), front.p(1.75, 1.66, 0.01)], { w, seed: 'bait-mull' });
+        slab(g, front.q(1.32, 0.93, 2.18, 1.0, 0.06), { fill: C.white, w, seed: 'bait-sill', over: 0.5 });
+        // the roof's slope towards the deck, the barge boards on the gable
+        slope(g, [S3(0, ridge, -1.2), S3(0, ridge, 1.2), S3(1.4, Hh - 0.1, 1.2), S3(1.4, Hh - 0.1, -1.2)], { fill: P.coral, under: C.woodDeep, w, seed: 'bait-roof' });
+        for (const k of [-1, 1]) bar3(g, S3(k * 1.42, Hh - 0.12, -1.2), S3(0, ridge + 0.02, -1.2), 0.14, { fill: P.cream, w, seed: 'bait-barge' + k });
+        dot(g, ...S(0, ridge - 0.3, -1.02), Math.max(1.8, 0.07 * sc(o3[2])), P.coral);
+        // the board: BAIT, in the front's perspective
+        slab(g, front.q(0.46, 1.97, 1.94, 2.4, 0.05), { fill: P.cream, w, seed: 'bait-sign', over: 0.9 });
+        decal(g, front, 0.5, 1.99, 1.4, 0.39, (c, k) => T.sign(c, 'BAIT', 70, 34, { size: 38, fill: C.red, w: (BG * 0.8) / k, seed: 'bait-t', tilt: 0.05, track: 0.12 }), { out: 0.055, nx: 6, ny: 2 });
+        // by the door: fish boxes, a bucket, a rod leaning on the wall
+        boxOf(g, S3(1.75, 0, -1.45), [0.6, 0.25, 0.4], PHI + 0.2, { fill: C.blue, w, seed: 'bait-box-a' });
+        boxOf(g, S3(1.72, 0.25, -1.43), [0.6, 0.25, 0.4], PHI - 0.1, { fill: C.orange, w, seed: 'bait-box-b' });
+        lathe(g, S3(-0.75, 0, -1.4), [[0.12, 0], [0.16, 0.3]], { fill: C.red, w, seed: 'bait-bucket', n: 10, topFill: C.ink });
+        ln3(g, [S3(-0.1, 0, -1.25), S3(0.12, 2.6, -1.02)], { w, seed: 'bait-rod' });
+    }
+
+    // the board over the pier's entrance: 3 × 1.4 m on two posts 4.1 m high, facing the quay
+    function gateway(g) {
+        const s0 = 0.25, A = PR(s0, 2.92), B = PR(s0, 0.08), w = lw(A[2]), pl = plane(add(A, [0, 2.6, 0]), LD, UP);
+        // knee braces, then the posts
+        for (const [k, c] of [['a', A], ['b', B]]) {
+            boxOf(g, c, [0.2, 4.1, 0.2], PHI, { fill: { all: C.wood, right: C.woodDeep, left: C.woodDeep }, w, seed: 'gate-post' + k });
+            for (const y of [0.9, 1.7, 3.4]) ln(g, [pt(add(c, [-0.02, y, 0])), pt(add(c, [-0.03, y + 0.3, 0]))], { w: w * 0.9, seed: 'gate-grain' + k + y });
+            lathe(g, add(c, [0, 4.1, 0]), [[0.16, 0], [0.1, 0.1], [0.02, 0.2]], { fill: P.coral, w, seed: 'gate-cap' + k, n: 8, under: false, top: false });
+        }
+        // the life ring on its board, on the post nearer the quay's corner
+        {
+            const rc = [2.84, -1.05], bq = pl.q(rc[0] - 0.42, rc[1] - 0.42, rc[0] + 0.42, rc[1] + 0.42, 0.13);
+            slab(g, bq, { fill: C.white, w, seed: 'ring-board', over: 0.8 });
+            const circ = (r, n = 20) => Array.from({ length: n }, (_, i) => pl.p(rc[0] + Math.cos((i / n) * Math.PI * 2) * r, rc[1] + Math.sin((i / n) * Math.PI * 2) * r, 0.16));
+            T.shape(g, circ(0.33), {
+                fill: C.red, w, seed: 'ring', dense: true, amp: 0.15,
+                inside: (c) => {
+                    c.fillStyle = C.white;
+                    for (const a of [0.5, 0.5 + Math.PI / 2, 0.5 + Math.PI, 0.5 - Math.PI / 2]) c.fill(T.pathOf([pl.p(rc[0], rc[1], 0.16), pl.p(rc[0] + Math.cos(a - 0.22) * 0.5, rc[1] + Math.sin(a - 0.22) * 0.5, 0.16), pl.p(rc[0] + Math.cos(a + 0.22) * 0.5, rc[1] + Math.sin(a + 0.22) * 0.5, 0.16)]));
+                },
+            });
+            T.shape(g, circ(0.17, 14), { fill: C.white, w, seed: 'ring-in', dense: true, amp: 0.15 });
+        }
+        // the board, its edge towards the corner, its frame
+        slab(g, [pl.p(2.98, 1.4, 0.12), pl.p(2.98, 1.4, 0.2), pl.p(2.98, 0, 0.2), pl.p(2.98, 0, 0.12)], { fill: C.woodDeep, w, seed: 'gate-edge', over: 0.5 });
+        slab(g, pl.q(-0.14, 0, 2.98, 1.4, 0.2), { fill: P.cream, w, seed: 'gate-board', over: 2 });
+        slab(g, pl.q(-0.04, 0.1, 2.88, 1.3, 0.2), { fill: null, w: w * 0.85, seed: 'gate-inner', over: 0.4, color: P.fishDeep });
+        decal(g, pl, 0.02, 0.12, 2.8, 1.16, (c, k) => {
+            T.sign(c, 'GULL', 136, 54, { size: 58, fill: C.red, drop: C.navy, seed: 'gh-a', w: (BG * 0.9) / k, tilt: 0.08 });
+            T.sign(c, 'HARBOR', 142, 105, { size: 46, fill: [P.fish, C.roadLine], drop: C.navy, seed: 'gh-b', w: (BG * 0.9) / k, tilt: 0.07 });
+        }, { out: 0.205, nx: 14, ny: 5 });
+        for (const [u, v] of [[0.0, 0.07], [2.84, 0.07], [2.84, 1.33], [0.0, 1.33]]) dot(g, ...pl.p(u, v, 0.2), 2, C.ink);
+        // a gull cut from a plank stands on top of it
+        onPlane(g, pl, 0.42, 1.4, (c, k) => {
+            const l = BG / k;
+            T.shape(c, [[-22, -1, 1], [-15, -13], [-2, -17], [8, -26], [12, -38], [22, -42], [31, -38], [33, -31, 1], [45, -28, 1], [32, -24], [29, -12], [20, -1, 1]], { fill: C.white, w: l, seed: 'gh-gull' });
+            T.shape(c, [[-22, -1, 1], [-34, -15, 1], [-13, -11, 1]], { fill: C.grey, w: l, seed: 'gh-gull-t' });
+            T.shape(c, [[33, -31, 1], [45, -28, 1], [33, -25, 1]], { fill: C.orange, w: l * 0.9, seed: 'gh-gull-b' });
+            T.shape(c, [[-11, -11, 1], [2, -16], [15, -12, 1], [4, -6]], { fill: C.grey, w: l * 0.9, seed: 'gh-gull-w' });
+            dot(c, 24, -35, 1.7, C.ink);
+        }, 0.2);
     }
 
     function pier(g) {
-        const { s0, s1, deck, soffit, back, railTop, railMid, water } = PIER;
-        const lwOf = (s) => (s > 0.4 ? BG : MID);
-        // the underside: one dark mass, with the dashes of its joists running to the far end
-        const endX = pp(s0, 0)[0] - 34;
-        slab(g, [pp(s0, soffit), pp(s1, soffit), pp(s1, back), [endX, pp(s0, back + 6)[1]]], { fill: P.under, w: BG, seed: 'pier-under', edges: [2, 3] });
-        const R = Motion.rng('pier-ut');
-        for (let i = 0; i < 34; i++) {
-            const s = 0.3 + R() * 0.7, Y = soffit + 12 + R() * (back - soffit - 22), L = 0.03 + R() * 0.08;
-            if (s + L > 1.02) continue;
-            ln(g, [pp(s, Y), pp(s + L, Y)], { w: lwOf(s), seed: 'pier-ut' + i });
-            if (R() < 0.4) ln(g, [pp(s + L * 0.3, Y + 8), pp(s + L * 0.85, Y + 8)], { w: lwOf(s), seed: 'pier-uu' + i });
-        }
-        // far piles, deeper under the deck
-        const farX = (s) => pp(s, 0)[0] - 124 * s;
-        for (const [i, s] of BENTS.entries()) {
-            const x = farX(s), y0 = PV[1] - 74 * s, y1 = PV[1] + 86 * s;
-            bar(g, [x + 1.5 * s, y0], [x, y1], 21 * s, 22 * s, { fill: P.woodFar, w: MID, seed: 'pier-fp' + i, edges: [0, 2] });
-            ln(g, [[x - 11 * s, y1 - 16 * s], [x - 5 * s, y1 - 21 * s], [x + 0 * s, y1 - 15 * s], [x + 6 * s, y1 - 20 * s], [x + 11 * s, y1 - 15 * s]].map((p) => [...p, 1]), { w: MID * 0.95, seed: 'pier-fw' + i });
-            ln(g, [[x - 3 * s, y0 + 40 * s], [x - 3.4 * s, y0 + 70 * s]], { w: MID * 0.95, seed: 'pier-fg' + i });
-            sh(g, [[x - 19 * s, y1], [x - 8 * s, y1 - 4 * s], [x + 8 * s, y1 - 3.4 * s], [x + 20 * s, y1 + 0.5 * s], [x + 7 * s, y1 + 4 * s], [x - 9 * s, y1 + 3.6 * s]], { fill: C.foam, w: MID, seed: 'pier-ff' + i });
-        }
-        // cross braces from the near pile to the far one, the caps that carry the deck
-        for (const [i, s] of BENTS.entries()) {
-            const xn = pp(s, 0)[0], xf = farX(s);
-            bar(g, [xn - 6 * s, PV[1] - 48 * s], [xf, PV[1] + 42 * s], 9 * s, 7 * s, { fill: P.woodFar, w: MID, seed: 'pier-xa' + i });
-            bar(g, [xn - 6 * s, PV[1] + 80 * s], [xf, PV[1] - 36 * s], 9 * s, 7 * s, { fill: P.woodFar, w: MID, seed: 'pier-xb' + i });
-            bar(g, [xn + 2 * s, PV[1] + (soffit + 12) * s], [xf - 4 * s, PV[1] - 70 * s], 17 * s, 12 * s, { fill: C.wood, w: lwOf(s), seed: 'pier-cap' + i });
-        }
-        // a waling along the near piles, knee braces up to the deck
-        slab(g, [pp(s1, 24), pp(0.262, 24), pp(0.262, 38), pp(s1, 38)], { fill: C.wood, w: BG, seed: 'pier-wale', over: 0.8 });
-        for (const [i, s] of BENTS.entries()) {
-            const [xn] = pp(s, 0);
-            for (const k of [-1, 1]) bar(g, [xn, PV[1] - 78 * s], [xn + k * 60 * s, PV[1] + (soffit - 3) * s], 11 * s, 10 * s, { fill: C.wood, w: lwOf(s), seed: 'pier-kn' + i + k });
-        }
-        // near piles: bolts at the waling, grain, the ragged wet line, a ring of foam
-        for (const [i, s] of BENTS.entries()) {
-            const [xn] = pp(s, 0), y0 = PV[1] + (soffit - 4) * s, y1 = PV[1] + water * s, lw = lwOf(s), hw = 17 * s;
-            bar(g, [xn + 3 * s, y0], [xn, y1], 2 * hw, 2 * hw + 3 * s, { fill: C.wood, w: lw, seed: 'pier-np' + i, edges: [0, 2] });
-            const wy = y1 - 26 * s;
-            const zig = [[xn - hw - 1.4 * s, wy], [xn - 9 * s, wy - 7 * s], [xn - 3 * s, wy + 2 * s], [xn + 5 * s, wy - 6 * s], [xn + 10 * s, wy + 1 * s], [xn + hw + 1.2 * s, wy - 4 * s]];
-            g.fillStyle = P.woodFar;
-            g.fill(T.pathOf([...zig, [xn + hw + 1.4 * s, y1], [xn - hw - 1.4 * s, y1]]));
-            ln(g, zig.map((p) => [...p, 1]), { w: lw, seed: 'pier-nw' + i });
-            ln(g, [[xn - hw - 1.4 * s, wy - 2], [xn - hw - 1.5 * s, y1]], { w: lw, seed: 'pier-nl' + i });
-            ln(g, [[xn + hw + 1.3 * s, wy - 6], [xn + hw + 1.5 * s, y1]], { w: lw, seed: 'pier-nr' + i });
-            ln(g, [[xn - 6 * s, y0 + 70 * s], [xn - 6.6 * s, y0 + 112 * s]], { w: lw, seed: 'pier-g1' + i });
-            ln(g, [[xn + 7 * s, y0 + 190 * s], [xn + 6.4 * s, y0 + 222 * s]], { w: lw, seed: 'pier-g2' + i });
-            ln(g, [[xn + 1 * s, y0 + 200 * s], [xn + 0.6 * s, y0 + 214 * s]], { w: lw, seed: 'pier-g3' + i });
-            ln(g, [[xn + 8 * s, y0 + 40 * s], [xn + 7.6 * s, y0 + 58 * s]], { w: lw, seed: 'pier-g4' + i });
-            for (const k of [-7, 7]) dot(g, xn + k * s, PV[1] + 31 * s, Math.max(1.1, 2.2 * s), C.ink);
-            sh(g, [[xn - 30 * s, y1 + 1 * s], [xn - 13 * s, y1 - 5 * s], [xn + 11 * s, y1 - 4 * s], [xn + 32 * s, y1 + 2 * s], [xn + 10 * s, y1 + 7 * s], [xn - 15 * s, y1 + 6.4 * s]], { fill: C.foam, w: lw, seed: 'pier-nf' + i });
-        }
-        // on the deck, behind the rail: the bait shed, a lamp, the posts of the sign, a flagstaff
-        const shed = [pp(0.36, -398), pp(0.5, -398), pp(0.5, deck + 4), pp(0.36, deck + 4)];
-        slab(g, [pp(0.345, -404), pp(0.52, -404), pp(0.5, -476), pp(0.365, -470)], { fill: P.coral, w: MID, seed: 'bait-roof', over: 1.2 });
-        for (const u of [0.25, 0.5, 0.75]) ln(g, [mix(pp(0.365, -470), pp(0.5, -476), u), mix(pp(0.345, -404), pp(0.52, -404), u)], { w: FAR, seed: 'bait-rl' + u });
-        slab(g, shed, { fill: P.lilac, w: MID, seed: 'bait', over: 1.2 });
-        planks(g, shed, 8, { seed: 'bait-pl', w: FAR, skip: 0.2 });
-        T.pane(g, [at(shed, 0.56, 0.42), at(shed, 0.9, 0.42), at(shed, 0.9, 0.72), at(shed, 0.56, 0.72)], { w: FAR, seed: 'bait-win', gleams: 1 });
-        slab(g, [at(shed, 0.1, 0.42), at(shed, 0.42, 0.42), at(shed, 0.42, 1), at(shed, 0.1, 1)], { fill: P.navy, w: FAR, seed: 'bait-door', over: 0.6 });
-        const bq = [at(shed, 0.1, 0.06), at(shed, 0.9, 0.06), at(shed, 0.9, 0.33), at(shed, 0.1, 0.33)];
-        slab(g, bq, { fill: C.white, w: MID, seed: 'bait-sign', over: 0.8 });
-        const bc = mix(bq[3], bq[2], 0.5);
-        chalk(g, 'BAIT', bc[0], bc[1] - 3.4, 19, { color: C.red, align: 'center', rot: -0.22, seed: 'bait-t' });
-        lampPost(g, ...pp(0.3, deck + 6), 300 * 0.3, 0.34, { seed: 'pier-lamp-b', w: FAR, side: 1, lean: 1 });
-        bar(g, pp(0.262, deck + 6), [pp(0.262, 0)[0] + 3, PV[1] - 176], 3.4, 2.6, { fill: C.white, w: FAR, seed: 'pier-staff' });
-        dot(g, pp(0.262, 0)[0] + 3, PV[1] - 178, 2.2, C.roadLine);
-        bar(g, [1398, 440], [1392, 250], 9, 8, { fill: C.wood, w: BG, seed: 'sign-post-a' });
-        bar(g, [1566, 390], [1572, 230], 10, 9, { fill: C.wood, w: BG, seed: 'sign-post-b' });
-        // the deck's edge: plank ends over a heavy beam with its bolts and dashes
-        slab(g, [pp(s0, deck), pp(s1, deck), pp(s1, soffit), pp(s0, soffit)], { fill: C.wood, w: BG, seed: 'pier-fascia', over: 1.2 });
-        slab(g, [pp(s0, deck), pp(s1, deck), pp(s1, deck + 15), pp(s0, deck + 15)], { fill: P.deck, w: BG, seed: 'pier-deck', over: 1.2 });
-        for (let s = s0 * 1.05; s < s1; s *= 1.05) ln(g, [pp(s, deck + 1), pp(s * 1.004, deck + 14)], { w: s > 0.5 ? MID : FAR, seed: 'pier-pe' + s.toFixed(3), amp: 0.15 });
-        const RF = Motion.rng('pier-ft');
-        for (let i = 0; i < 12; i++) {
-            const s = 0.3 + RF() * 0.68, Y = soffit - 9 - RF() * 12, L = 0.02 + RF() * 0.04;
-            ln(g, [pp(s, Y), pp(s + L, Y)], { w: lwOf(s), seed: 'pier-ft' + i });
-        }
-        for (const s of BENTS) for (const k of [-7, 7]) dot(g, pp(s, 0)[0] + k * s, PV[1] + (soffit - 14) * s, Math.max(1.1, 2.2 * s), C.ink);
-        // the seaward end: the deck's edge turns the corner, a ladder goes down to the water
-        poly(g, [pp(s0, deck), [endX, PV[1] + s0 * -60], [endX, PV[1] + s0 * (back + 6)], pp(s0, soffit)], { fill: P.woodFar, w: MID, seed: 'pier-end' });
-        for (const k of [0, 5]) ln(g, [[pp(s0, 0)[0] + 5 + k, PV[1] + s0 * deck - 8], [pp(s0, 0)[0] + 4 + k, PV[1] + s0 * 118]], { w: FAR, seed: 'pier-lad' + k });
-        for (let y = PV[1] + s0 * deck - 2; y < PV[1] + s0 * 112; y += 5.5) ln(g, [[pp(s0, 0)[0] + 4.6, y], [pp(s0, 0)[0] + 9.6, y]], { w: FAR * 0.9, seed: 'pier-rung' + y.toFixed(0), amp: 0 });
-        // the rail: two bars that pass behind the posts
-        const posts = [1.0, 0.905, 0.8, 0.705, 0.625, 0.55, 0.49, 0.43, 0.38, 0.335, 0.297, 0.262, 0.24];
-        ln(g, [pp(s0, railTop + 4), [endX + 3, PV[1] + s0 * -96]], { w: FAR, seed: 'pier-er1' });
-        ln(g, [pp(s0, railMid), [endX + 3, PV[1] + s0 * -80]], { w: FAR, seed: 'pier-er2' });
-        ln(g, [[endX + 3, PV[1] + s0 * -98], [endX + 3, PV[1] + s0 * -60]], { w: FAR, seed: 'pier-er3' });
-        slab(g, [pp(s0, railTop), pp(s1, railTop), pp(s1, railTop + 12), pp(s0, railTop + 12)], { fill: C.greyDeep, w: BG, seed: 'pier-rail-a', over: 0.8 });
-        slab(g, [pp(s0, railMid), pp(s1, railMid), pp(s1, railMid + 10), pp(s0, railMid + 10)], { fill: C.greyDeep, w: BG, seed: 'pier-rail-b', over: 0.8 });
-        for (const [i, s] of posts.entries()) {
-            const a = pp(s, deck + 2), b = pp(s, railTop - 7);
-            bar(g, a, [b[0] + 1.5 * s, b[1]], 13 * s, 12 * s, { fill: C.grey, w: s > 0.45 ? BG : MID, seed: 'pier-post' + i });
-            if (s > 0.3) slab(g, [[b[0] - 9 * s, b[1] - 4 * s], [b[0] + 11.5 * s, b[1] - 4 * s], [b[0] + 10.5 * s, b[1] + 1 * s], [b[0] - 8 * s, b[1] + 1 * s]], { fill: C.grey, w: s > 0.45 ? BG : MID, seed: 'pier-pc' + i, over: 0.5 });
-        }
-        // a life ring on its board, a towel left on the rail
-        const lr = pp(0.588, -282);
-        slab(g, [[lr[0] - 21, lr[1] - 23], [lr[0] + 21, lr[1] - 26], [lr[0] + 22, lr[1] + 20], [lr[0] - 20, lr[1] + 23]], { fill: C.white, w: MID, seed: 'ring-board', over: 1 });
-        disc(g, lr[0], lr[1] - 1, 16, 16.5, {
-            fill: C.red, w: MID, seed: 'ring',
-            inside: (c) => {
-                c.fillStyle = C.white;
-                c.save();
-                c.translate(lr[0], lr[1] - 1);
-                c.rotate(0.5);
-                c.fillRect(-22, -4.6, 44, 9.2);
-                c.fillRect(-4.6, -22, 9.2, 44);
-                c.restore();
-            },
-        });
-        disc(g, lr[0], lr[1] - 1, 7.4, 7.8, { fill: C.white, w: MID, seed: 'ring-in', n: 10 });
-        const tw = [pp(0.845, railTop - 3), pp(0.9, railTop - 3), pp(0.905, railTop + 84), pp(0.85, railTop + 88)];
-        slab(g, tw, {
-            fill: C.magenta, w: BG, seed: 'towel',
-            inside: (c) => {
-                c.fillStyle = C.roadLine;
-                for (const v of [0.18, 0.5, 0.8]) c.fill(T.pathOf([at(tw, -0.1, v), at(tw, 1.1, v), at(tw, 1.1, v + 0.12), at(tw, -0.1, v + 0.12)]));
-            },
-        });
-        ln(g, [at(tw, 0.3, 0.3), at(tw, 0.34, 0.62)], { w: MID, seed: 'towel-f' });
-        // the sign: a crooked board on two posts, hand lettered
-        const sq = [[1376, 144], [1582, 116], [1590, 242], [1382, 262]];
-        slab(g, sq, { fill: P.cream, w: BG, seed: 'gh-board', over: 2.2 });
-        const iq = [at(sq, 0.04, 0.08), at(sq, 0.96, 0.08), at(sq, 0.96, 0.92), at(sq, 0.04, 0.92)];
-        slab(g, iq, { fill: null, w: MID, seed: 'gh-inner', over: 0.4, color: P.fishDeep });
-        g.save();
-        g.translate(1480, 196);
-        g.rotate(-0.115);
-        T.sign(g, 'GULL', -4, 0, { size: 66, fill: C.red, drop: C.navy, seed: 'gh-a', w: MID, tilt: 0.09 });
-        T.sign(g, 'HARBOR', 2, 52, { size: 50, fill: [P.fish, C.roadLine], drop: C.navy, seed: 'gh-b', w: MID, tilt: 0.08 });
-        g.restore();
-        for (const [u, v] of [[0.02, 0.05], [0.98, 0.05], [0.98, 0.95], [0.02, 0.95]]) dot(g, ...at(sq, u, v), 2.2, C.ink);
-        // a gull cut from a plank stands on top of it: a beak, a wing, a tail
-        sh(g, [[1404, 139, 1], [1410, 130], [1424, 127], [1432, 120], [1436, 110], [1445, 106], [1454, 110], [1456, 116, 1], [1467, 119, 1], [1455, 122], [1452, 132], [1444, 137, 1]], { fill: C.white, w: MID, seed: 'gh-gull' });
-        sh(g, [[1404, 139, 1], [1394, 128, 1], [1412, 131, 1]], { fill: C.grey, w: MID, seed: 'gh-gull-t' });
-        sh(g, [[1456, 116, 1], [1467, 119, 1], [1456, 121, 1]], { fill: C.orange, w: FAR, seed: 'gh-gull-b' });
-        sh(g, [[1414, 131, 1], [1426, 127], [1438, 130, 1], [1428, 135]], { fill: C.grey, w: FAR, seed: 'gh-gull-w' });
-        dot(g, 1447.5, 112, 1.5, C.ink);
-        for (const x of [1428, 1436]) ln(g, [[x, 136], [x, 142]], { w: FAR, seed: 'gh-gull-l' + x, color: C.orange });
-    }
-
-    // --- the quay --------------------------------------------------------------------------------
-    const LIP = [[-20, 630], [500, 639], [1090, 646]]; // the quay's far edge over the water
-    const CREST = [[1090, 646], [1620, 842]]; // where the slipway starts to fall
-    const SHORE = [[1300, 658], [1620, 728]]; // where the sea meets the slipway
-    const crestY = (x) => 646 + ((x - 1090) * 196) / 530;
-    const shoreY = (x) => (x < 1300 ? 646 + ((x - 1090) * 12) / 210 : 658 + ((x - 1300) * 70) / 320);
-
-    function quay(g) {
-        const flat = [[-20, 630], [500, 639], [1090, 646], [1620, 842], [1620, 920], [-20, 920]];
-        // the slipway: a ramp of ribbed concrete falling away to the right, into the sea
-        const ramp = [[1090, 646], [1300, 658], [1620, 728], [1620, 842]];
-        slab(g, ramp, { fill: P.ramp, w: BG, seed: 'ramp', edges: [0] });
-        // its wet foot, green with weed
-        const weed = [[1262, 656, 1], [1300, 658, 1], [1620, 728, 1], [1620, 768, 1], [1560, 742], [1500, 734], [1440, 708], [1380, 702], [1320, 676]];
-        g.fillStyle = P.wet;
-        g.fill(T.pathOf(T.path(weed, true)));
-        ln(g, [[1262, 656, 1], [1320, 676], [1380, 702], [1440, 708], [1500, 734], [1560, 742], [1620, 768, 1]], { w: MID, seed: 'ramp-wet' });
-        // ribs for grip, running with the crest and closing up towards the water
-        const R = Motion.rng('ramp-ribs');
-        const rampAt = (x, k) => crestY(x) + (shoreY(x) - crestY(x)) * k;
-        for (const [i, k] of [0.2, 0.38, 0.54, 0.68].entries()) {
-            let x = 1180 + i * 46 + R() * 20;
-            while (x < 1600) {
-                const L = 90 + R() * 120, x1 = Math.min(1618, x + L);
-                ln(g, [[x, rampAt(x, k)], [(x + x1) / 2, rampAt((x + x1) / 2, k)], [x1, rampAt(x1, k)]], { w: MID, seed: 'rib' + i + Math.round(x) });
-                x = x1 + 26 + R() * 50;
-            }
-        }
-        // joints down the slope
-        for (const x of [1236, 1352, 1486]) ln(g, [[x, crestY(x) + 2], [x + 44, rampAt(x + 44, 0.72)]], { w: MID, seed: 'ramp-j' + x });
-        // the quay itself
-        slab(g, flat, { fill: P.quay, w: BG, seed: 'quay', edges: [0, 1] });
-        // coping stones along the lip, each with its joint
-        const cope = [[-20, 630], [500, 639], [1090, 646], [1078, 663], [500, 655], [-20, 646]];
-        g.fillStyle = P.coping;
-        g.fill(T.pathOf(cope));
-        ln(g, [[-20, 646], [500, 655], [1078, 663]], { w: BG, seed: 'cope-in' });
-        ln(g, [[-20, 630], [500, 639], [1092, 646.2]], { w: BG, seed: 'cope-out' });
-        const RC = Motion.rng('cope-j');
-        for (let x = 372; x < 1070; x += 54 + RC() * 40) {
-            const y = 630 + (x + 20) * 0.0152 + 0.6;
-            ln(g, [[x, y], [x + (x - VP[0]) * 0.035, y + 16]], { w: MID, seed: 'cope-j' + Math.round(x) });
-        }
-        // the crest of the slipway: a kerb of the same stone
-        const kerb = [[1090, 646], [1620, 842], [1620, 866], [1078, 663]];
-        g.fillStyle = P.coping;
-        g.fill(T.pathOf(kerb));
-        ln(g, [[1078, 663], [1620, 866]], { w: BG, seed: 'kerb-in' });
-        ln(g, [[1090, 646], [1622, 842.6]], { w: BG, seed: 'kerb-out' });
-        for (const x of [1150, 1226, 1320, 1432, 1560]) ln(g, [[x, crestY(x) + 0.6], [x - 16 - (x - 1090) * 0.02, crestY(x) + 20 + (x - 1090) * 0.014]], { w: MID, seed: 'kerb-j' + x });
-        // flagstones: joints that run to the vanishing point, cross joints that bow with the lens;
-        // drawn in pieces, as a hand leaves them
-        g.save();
-        g.clip(T.pathOf([[-20, 648], [500, 657], [1076, 665], [1620, 868], [1620, 920], [-20, 920]]));
-        const RJ = Motion.rng('flag-j');
-        for (const bx of [-640, -250, 130, 480, 820, 1150, 1500, 1900]) {
-            const A = mix(VP, [bx, 900], 0.26), B = [bx, 900];
-            let u = 0;
-            while (u < 1) {
-                const L = 0.12 + RJ() * 0.3, gap = RJ() < 0.55 ? 0.05 + RJ() * 0.16 : 0;
-                ln(g, [mix(A, B, u), mix(A, B, Math.min(1, u + L))], { w: BG, seed: 'flag-r' + bx + u.toFixed(2) });
-                u += L + gap;
-            }
-        }
-        for (const [k, y] of [[0, 684], [1, 716], [2, 772], [3, 858]]) {
-            let x = -20 - RJ() * 60;
-            while (x < 1620) {
-                const L = 110 + RJ() * 240, gap = RJ() < 0.6 ? 30 + RJ() * 120 : 0;
-                const yy = (xx) => y - 6 + (xx / 1600) * 12 + Math.pow((xx - 800) / 800, 2) * (3 + k * 3);
-                ln(g, [[x, yy(x)], [x + L / 2, yy(x + L / 2)], [x + L, yy(x + L)]], { w: BG, seed: 'flag-c' + k + Math.round(x) });
-                x += L + gap;
-            }
-        }
-        g.restore();
-        // a worn yellow line painted along the lip and down the crest
-        for (const [i, [x0, x1]] of [[520, 640], [668, 836], [884, 1010]].entries()) {
-            const y = (x) => 664 + (x - 500) * 0.0136;
-            slab(g, [[x0, y(x0)], [x1, y(x1)], [x1 + 2, y(x1) + 6.5], [x0 - 2, y(x0) + 6.5]], { fill: C.roadLine, w: MID, seed: 'yl' + i, over: 0.6 });
-        }
-        for (const [i, [x0, x1]] of [[1150, 1182], [1232, 1330], [1366, 1436]].entries()) {
-            const y = (x) => crestY(x) + 26 + (x - 1090) * 0.03;
-            slab(g, [[x0, y(x0)], [x1, y(x1)], [x1 - 4, y(x1) + 9 + i * 2], [x0 - 4, y(x0) + 8 + i * 2]], { fill: C.roadLine, w: MID, seed: 'ylc' + i, over: 0.6 });
-        }
-        // ticks, mostly in pairs, more of them near us
-        T.ticks(g, [[330, 668], [1060, 676], [1240, 760], [330, 760]], { n: 12, dir: 0.01, spread: 0.08, len: [9, 22], w: BG, seed: 'quay-t1', pair: 0.6 });
-        T.ticks(g, [[0, 770], [1340, 776], [1500, 890], [0, 890]], { n: 20, dir: 0, spread: 0.1, len: [12, 34], w: TICK, seed: 'quay-t2', pair: 0.6, avoid: [[930, 838, 60], [640, 814, 40]] });
-        // a drain, an iron ring let into the stone
-        const dq = [[896, 826], [962, 827], [970, 850], [890, 849]];
-        slab(g, dq, { fill: P.iron, w: BG, seed: 'drain', over: 1 });
-        for (let i = 1; i < 7; i++) ln(g, [at(dq, i / 7, 0.14), at(dq, i / 7, 0.86)], { w: MID, seed: 'drain-b' + i });
-        ln(g, [[884, 854], [976, 855]], { w: BG, seed: 'drain-l' });
-        slab(g, [[626, 804], [654, 804.6], [656, 814], [624, 813.4]], { fill: P.ironLight, w: MID, seed: 'ring-plate', over: 0.6 });
-        disc(g, 640, 820, 15, 6.6, { fill: null, w: BG * 1.5, seed: 'ring-out', color: C.ink, n: 14 });
-        disc(g, 640, 820, 15, 6.6, { fill: null, w: BG * 0.55, seed: 'ring-out', color: P.ironLight, n: 14 });
-        // on the lip: small bollards for the trawler's lines, the hoops of a ladder, a ring
-        for (const [x, y] of [[640, 641], [905, 644]]) {
-            sh(g, [[x - 8, y + 9, 1], [x - 6, y - 6], [x - 10, y - 9], [x - 8, y - 15], [x + 8, y - 15], [x + 10, y - 9], [x + 6, y - 6], [x + 8, y + 9, 1]], { fill: P.iron, w: MID, seed: 'bol' + x });
-            ln(g, [[x - 6, y - 4], [x + 6, y - 3.6]], { w: MID, seed: 'bol-r' + x });
-            ln(g, [[x - 6, y - 0.6], [x + 6, y - 0.2]], { w: MID, seed: 'bol-s' + x });
-        }
-        for (const x of [764, 786]) ln(g, [[x, 652], [x, 624], [x + 5, 617], [x + 10, 624], [x + 10, 640]], { w: BG * 1.25, seed: 'lad' + x, color: C.ink });
-        for (const x of [764, 786]) ln(g, [[x, 652], [x, 624], [x + 5, 617], [x + 10, 624], [x + 10, 640]], { w: BG * 0.45, seed: 'lad' + x, color: C.roadLine, amp: 0.3 });
-        // a stretch of rail before the slip: two bars that pass behind their posts
-        const railY = (x) => 637 + (x + 20) * 0.0152;
-        for (const [h, t, k] of [[45, 6.4, 'a'], [24, 5.6, 'b']]) slab(g, [[950, railY(950) - h], [1092, railY(1092) - h - 1], [1092, railY(1092) - h - 1 + t], [950, railY(950) - h + t]], { fill: C.greyDeep, w: MID, seed: 'qrail-' + k, over: 0.8 });
-        for (const x of [958, 1001, 1044, 1086]) {
-            bar(g, [x, railY(x) + 2], [x + 1.6, railY(x) - 50], 8, 7.4, { fill: C.grey, w: BG, seed: 'qrail-p' + x });
-            slab(g, [[x - 4.4, railY(x) - 53], [x + 7.6, railY(x) - 53], [x + 7, railY(x) - 49.4], [x - 3.8, railY(x) - 49.4]], { fill: C.grey, w: MID, seed: 'qrail-c' + x, over: 0.5 });
-            slab(g, [[x - 7, railY(x) - 1], [x + 7, railY(x) - 0.6], [x + 8, railY(x) + 3.4], [x - 8, railY(x) + 3]], { fill: C.greyDeep, w: MID, seed: 'qrail-f' + x, over: 0.5 });
-        }
-        // fish boxes left by the top of the slip
-        for (const [x, y, c, k] of [[1010, 678, C.blue, 0], [1018, 662, C.orange, 1], [946, 674, C.blue, 2]]) {
-            slab(g, [[x, y], [x + 44, y + 3], [x + 43, y + 20], [x + 1, y + 17]], { fill: c, w: BG, seed: 'qbox' + k, over: 1 });
-            slab(g, [[x - 2, y - 3], [x + 46, y], [x + 46, y + 5], [x - 2, y + 2]], { fill: c, w: BG, seed: 'qboxr' + k, over: 0.8 });
-            ln(g, [[x + 14, y + 9], [x + 30, y + 10.4]], { w: BG * 1.6, seed: 'qboxh' + k, amp: 0 });
-        }
-        // foam where the sea runs up the concrete: white shapes with their outline
-        const RFm = Motion.rng('foam-slip'), up = [], dn = [];
-        for (let x = 1296, i = 0; x <= 1640; x += 30 + RFm() * 14, i++) {
-            up.push([x, shoreY(x) - 4 + (i % 2 ? 3 : -2) + RFm() * 2]);
-            dn.push([x + 8, shoreY(x) + 3 + (i % 2 ? -1.5 : 2.5) + RFm() * 2]);
-        }
-        sh(g, [[1270, 656, 1], ...up, [1650, 733, 1], [1650, 741, 1], ...dn.reverse()], { fill: C.foam, w: BG, seed: 'foam-slip' });
-        sh(g, [[1392, 652], [1414, 646], [1440, 653], [1418, 660]], { fill: C.foam, w: MID, seed: 'foam-b' });
-        sh(g, [[1504, 676], [1530, 670], [1560, 680], [1586, 696], [1554, 692], [1528, 684]], { fill: C.foam, w: MID, seed: 'foam-c' });
-        // the dinghy hauled up on its trolley, stern in the foam
-        dinghy(g);
-        // the lamp post at the head of the slip, with the harbour's notices
-        lampPost(g, 1200, 696, 400, 1.08, { seed: 'quay-lamp', side: -1, lean: 8 });
-        // (the notice rides on the post: both stand clear of where the cast plays)
-        g.save();
-        g.translate(-4, -14);
-        const nq = [[1190, 514], [1230, 511], [1231, 552], [1191, 556]];
-        slab(g, nq, { fill: C.white, w: BG, seed: 'notice', over: 1.2 });
-        disc(g, 1210.5, 527, 9, 9, { fill: C.white, w: BG * 1.3, seed: 'notice-o', color: C.red, n: 12 });
-        ln(g, [[1204, 533], [1217, 521]], { w: BG * 1.3, seed: 'notice-x', color: C.red });
-        ln(g, [[1197, 544], [1224, 542.4]], { w: MID, seed: 'notice-l1' });
-        ln(g, [[1200, 549.4], [1220, 548]], { w: MID, seed: 'notice-l2' });
-        g.restore();
-    }
-
-    function dinghy(g) {
-        g.save();
-        g.translate(1474, 724);
-        g.rotate(-0.3);
-        g.scale(1.12, 1.12);
-        // the trolley: a bar, an axle, a wheel
-        bar(g, [-84, 17], [58, 15], 5, 5, { fill: P.iron, w: BG, seed: 'dg-bar' });
-        disc(g, -86, 21, 5, 5, { fill: C.ink, w: MID, seed: 'dg-jockey', n: 9 });
-        // the hull, clinker built: white with a coral sheer strake, the inside showing past the gunwale
-        sh(g, [[-70, -10, 1], [-40, -20], [20, -22], [66, -14, 1], [62, 6, 1], [20, 14], [-36, 13], [-62, 4]], { fill: P.cream, w: BG, seed: 'dg-hull' });
-        sh(g, [[-70, -10, 1], [-40, -20], [20, -22], [66, -14, 1], [64, -6, 1], [20, -13], [-40, -11], [-67, -3, 1]], { fill: P.coral, w: BG, seed: 'dg-sheer' });
-        ln(g, [[-64, 0], [-36, 2], [20, 1], [63, 0]], { w: MID, seed: 'dg-st1' });
-        ln(g, [[-58, 7], [-36, 8], [20, 8], [62, 4]], { w: MID, seed: 'dg-st2' });
-        sh(g, [[-58, -15, 1], [-38, -24], [20, -26], [58, -19, 1], [20, -20], [-38, -18]], { fill: C.wood, w: MID, seed: 'dg-in' });
-        ln(g, [[-14, -25], [-12, -19]], { w: BG, seed: 'dg-th1' });
-        ln(g, [[24, -26], [25, -20]], { w: BG, seed: 'dg-th2' });
-        // oars shipped, the outboard tilted at the transom
-        bar(g, [-50, -22], [44, -33], 3.4, 3, { fill: P.spar, w: MID, seed: 'dg-oar' });
-        sh(g, [[40, -37, 1], [64, -42], [70, -35], [46, -29, 1]], { fill: P.spar, w: MID, seed: 'dg-blade' });
-        slab(g, [[62, -36], [78, -38], [80, -16], [66, -14]], { fill: P.iron, w: BG, seed: 'dg-ob', over: 0.8 });
-        ln(g, [[66, -27], [77, -28.4]], { w: MID, seed: 'dg-obl', color: C.red });
-        bar(g, [74, -15], [84, 6], 4, 3, { fill: P.ironLight, w: MID, seed: 'dg-leg' });
-        // wheel in front of the hull
-        disc(g, 6, 20, 14, 14, { fill: C.ink, w: BG, seed: 'dg-wheel', n: 12 });
-        disc(g, 6, 20, 6.4, 6.4, { fill: P.ironLight, w: MID, seed: 'dg-hub', n: 9 });
-        dot(g, 6, 20, 1.6, C.ink);
-        g.restore();
-    }
-
-    // --- Dot's chip hut and what stands round it ----------------------------------------------
-    const HUT = {
-        front: [[-40, 249], [288, 262], [300, 734], [-30, 750]], // tl, tr, br, bl
-        side: [[288, 262], [340, 290], [352, 700], [300, 734]],
-        hatch: { u0: 0.22, u1: 0.9, v0: 0.19, v1: 0.535 },
-    };
-
-    function parasol(g) {
-        const x = 474, y = 700;
-        // the table and two stools behind the pole
-        for (const [sx, k] of [[x - 46, 'a'], [x + 44, 'b']]) {
-            bar(g, [sx, y - 4], [sx, y - 30], 4, 4, { fill: P.iron, w: BG, seed: 'stool-l' + k });
-            sh(g, T.ellipse(sx, y - 31, 15, 5, 0, 10), { fill: P.coral, w: BG, seed: 'stool' + k });
-            ln(g, [[sx - 9, y - 2], [sx + 9, y - 2]], { w: BG, seed: 'stool-f' + k });
-        }
-        for (const k of [-22, 22]) bar(g, [x + k, y - 44], [x + k * 1.25, y + 2], 4.4, 4, { fill: C.white, w: BG, seed: 'tb-leg' + k });
-        bar(g, [x - 1, y + 4], [x + 2, y - 150], 5, 4.4, { fill: C.grey, w: BG, seed: 'ps-pole' });
-        sh(g, T.ellipse(x, y - 48, 44, 10, -0.02, 14), { fill: C.white, w: BG, seed: 'tb-top' });
-        ln(g, [[x - 42, y - 44], [x - 20, y - 38.6], [x + 14, y - 38], [x + 42, y - 43]], { w: BG, seed: 'tb-edge' });
-        // a cone of chips somebody left, a bottle
-        sh(g, [[x + 14, y - 49, 1], [x + 21, y - 71, 1], [x + 33, y - 69, 1]], { fill: P.cream, w: MID, seed: 'tb-cone' });
-        for (const [cx, cy, r] of [[x + 22, y - 74, 0.5], [x + 27, y - 76, -0.2], [x + 31, y - 73, 0.2]]) bar(g, [cx, cy + 4], [cx + r * 6, cy - 7], 3.4, 3.4, { fill: C.roadLine, w: MID, seed: 'tb-chip' + cx });
-        slab(g, [[x - 24, y - 71], [x - 15, y - 71], [x - 14, y - 50], [x - 25, y - 50]], { fill: C.red, w: MID, seed: 'tb-bottle', over: 0.6 });
-        sh(g, [[x - 22, y - 71, 1], [x - 20.6, y - 79, 1], [x - 18.4, y - 79, 1], [x - 17, y - 71, 1]], { fill: C.white, w: MID, seed: 'tb-noz' });
-        // the canopy: eight gores, alternately coral and cream, with a scalloped edge
-        const top = [x + 2, y - 172], rim = [];
-        for (let i = 0; i <= 5; i++) rim.push([x - 76 + i * 31 + (i === 0 ? -2 : 0), y - 128 + Math.abs(i - 2.5) * 3.4 - 6 + (i % 2) * 2]);
-        const scallop = (a, b) => [a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 9], b];
-        const edge = [];
-        for (let i = 0; i < 5; i++) edge.push([...rim[i], 1], scallop(rim[i], rim[i + 1])[1]);
-        edge.push([...rim[5], 1]);
-        const out = sh(g, [[...top, 1], ...edge.reverse()], { fill: P.cream, w: BG, seed: 'ps-canopy' });
-        g.save();
-        g.clip(T.pathOf(out));
-        g.fillStyle = P.coral;
-        for (const i of [0, 2, 4]) g.fill(T.pathOf([top, [rim[i][0], rim[i][1] + 14], [rim[i + 1][0], rim[i + 1][1] + 14]]));
-        g.restore();
-        for (let i = 1; i < 5; i++) ln(g, [top, rim[i]], { w: BG, seed: 'ps-rib' + i });
-        ln(g, out, { w: BG, seed: 'ps-canopy', dense: true, closed: true, amp: 0 });
-        disc(g, top[0], top[1] - 4, 3.6, 3.6, { fill: C.roadLine, w: MID, seed: 'ps-knob', n: 8 });
-    }
-
-    function hutSide(g) {
-        const S = HUT.side;
-        // the flue: a pipe up past the roof with a hat on it
-        bar(g, [343, 300], [338, 176], 15, 14, { fill: C.grey, w: BG, seed: 'flue' });
-        for (const y of [214, 262]) ln(g, [[331, y], [346.6, y + 1]], { w: BG, seed: 'flue-b' + y });
-        for (const k of [-5, 5]) ln(g, [[338 + k, 176], [338 + k, 166]], { w: BG, seed: 'flue-l' + k });
-        sh(g, [[320, 168, 1], [338, 150, 1], [357, 168, 1]], { fill: C.greyDeep, w: BG, seed: 'flue-hat' });
-        // the side wall: planks, a fuse box and its pipe
-        slab(g, S, { fill: P.hutSide, w: BG, seed: 'hut-side', over: 1.4 });
-        planks(g, S, 4, { seed: 'hut-side-pl', skip: 0 });
-        const fq = [at(S, 0.3, 0.3), at(S, 0.8, 0.3), at(S, 0.8, 0.4), at(S, 0.3, 0.4)];
-        slab(g, fq, { fill: C.grey, w: MID, seed: 'fuse', over: 0.6 });
-        ln(g, [at(fq, 0.5, 0.08), at(fq, 0.5, 0.92)], { w: MID, seed: 'fuse-d' });
-        dot(g, ...at(fq, 0.7, 0.5), 1.6, C.red);
-        ln(g, [at(fq, 0.16, 0.3), at(fq, 0.36, 0.3)], { w: MID, seed: 'fuse-l' });
-        ln(g, [at(S, 0.55, 0.4), at(S, 0.56, 0.9)], { w: BG, seed: 'fuse-pipe' });
-        slab(g, [at(S, 0, 0.955), at(S, 1, 0.955), S[2], S[3]], { fill: P.hutDeep, w: BG, seed: 'hut-side-kick', over: 0.8 });
-        // the roof's edge along the side
-        slab(g, [[294, 236], [346, 266], [344, 293], [290, 264]], { fill: P.cream, w: BG, seed: 'hut-fascia-s', over: 1.2 });
-    }
-
-    function surfboard(g) {
-        // Dot's old longboard, leaning on the side wall
-        const pts = [[392, 722, 1], [372, 700], [352, 600], [346, 480], [354, 410, 1], [372, 470], [392, 590], [402, 700]];
-        const out = sh(g, pts, { fill: P.cream, w: BG, seed: 'surf' });
-        g.save();
-        g.clip(T.pathOf(out));
-        g.fillStyle = P.coral;
-        g.fill(T.pathOf([[340, 560], [410, 548], [410, 574], [340, 588]]));
-        g.fillStyle = P.fish;
-        g.fill(T.pathOf([[340, 594], [410, 580], [410, 590], [340, 604]]));
-        g.restore();
-        ln(g, [[358, 430], [366, 560], [386, 706]], { w: MID, seed: 'surf-stringer' });
-        ln(g, out, { w: BG, seed: 'surf', dense: true, closed: true, amp: 0 });
-        fish(g, 364, 500, 11, { rot: -1.44, w: MID, seed: 'surf-fish' });
-    }
-
-    function gasBottle(g) {
-        const x = 418, y = 724;
-        sh(g, [[x - 17, y, 1], [x - 18, y - 60], [x - 12, y - 74], [x + 12, y - 74], [x + 18, y - 60], [x + 17, y, 1]], { fill: C.orange, w: BG, seed: 'gas' });
-        slab(g, [[x - 12, y - 88], [x + 12, y - 88], [x + 11, y - 73], [x - 11, y - 73]], { fill: P.iron, w: BG, seed: 'gas-collar', over: 0.7 });
-        g.fillStyle = P.hutSide;
-        g.fill(T.pathOf([[x - 6, y - 85], [x + 6, y - 85], [x + 5.4, y - 77], [x - 5.4, y - 77]]));
-        ln(g, [[x - 6, y - 85], [x + 6, y - 85], [x + 5.4, y - 77], [x - 5.4, y - 77], [x - 6, y - 85]].map((p) => [...p, 1]), { w: MID, seed: 'gas-hole' });
-        ln(g, [[x - 17.4, y - 14], [x + 17.4, y - 14]], { w: BG, seed: 'gas-b1' });
-        ln(g, [[x - 18, y - 52], [x + 18, y - 52]], { w: BG, seed: 'gas-b2' });
-        ln(g, [[x - 8, y - 44], [x - 8.4, y - 24]], { w: BG, seed: 'gas-gl', color: C.white });
-        // the hose to the wall
-        ln(g, [[x, y - 88], [x - 6, y - 104], [x - 30, y - 108], [x - 66, y - 90]], { w: BG * 1.5, seed: 'gas-hose' });
-    }
-
-    function bin(g) {
-        const x = 344, y = 752;
-        // a drum with a swing lid, overfull
-        sh(g, [[x - 26, y, 1], [x - 30, y - 70, 1], [x + 30, y - 71, 1], [x + 26, y, 1]], { fill: C.green, w: BG, seed: 'bin' });
-        for (const k of [-0.5, 0, 0.5]) ln(g, [[x + k * 52, y - 62], [x + k * 46, y - 8]], { w: BG, seed: 'bin-r' + k });
-        slab(g, [[x - 20, y - 44], [x + 20, y - 45], [x + 19, y - 24], [x - 19, y - 23]], { fill: C.white, w: MID, seed: 'bin-label', over: 0.6 });
-        fish(g, x, y - 34, 13, { w: MID, seed: 'bin-fish', flip: true });
-        sh(g, [[x - 33, y - 68, 1], [x - 26, y - 88], [x, y - 96], [x + 26, y - 89], [x + 33, y - 69, 1]], { fill: P.hutDeep, w: BG, seed: 'bin-lid' });
-        slab(g, [[x - 15, y - 86], [x + 15, y - 87], [x + 16, y - 73], [x - 16, y - 72]], { fill: C.ink, w: MID, seed: 'bin-flap', over: 0.5 });
-        // a cone and a cup sticking out
-        sh(g, [[x - 4, y - 78, 1], [x - 14, y - 104, 1], [x + 2, y - 106, 1]], { fill: P.cream, w: MID, seed: 'bin-cone' });
-        ln(g, [[x - 9, y - 100], [x - 4.4, y - 84]], { w: MID, seed: 'bin-cone-l', color: C.red });
-        slab(g, [[x + 4, y - 100], [x + 16, y - 98], [x + 13, y - 78], [x + 5, y - 79]], { fill: C.white, w: MID, seed: 'bin-cup', over: 0.5 });
-        ln(g, [[x + 5, y - 92], [x + 15, y - 90]], { w: MID * 1.4, seed: 'bin-cup-b', color: C.magenta });
-        // a wrapper on the ground
-        sh(g, [[x + 34, y - 2, 1], [x + 40, y - 12], [x + 52, y - 8, 1], [x + 56, y + 1], [x + 44, y + 4]], { fill: P.cream, w: MID, seed: 'wrapper' });
-        ln(g, [[x + 40, y - 3], [x + 50, y - 4]], { w: MID, seed: 'wrapper-l' });
-    }
-
-    // The counter and what stands on it: drawn with the hut, and again over anyone who
-    // stands in the hatch (Harbor.counter), so they are behind it.
-    function counterTop(g) {
-        slab(g, [[18, 506], [278, 505], [294, 520], [4, 522]], { fill: P.deck, w: BG, seed: 'counter-top', over: 1 });
-        slab(g, [[4, 522], [294, 520], [294, 539], [5, 542]], { fill: C.wood, w: BG, seed: 'counter-edge', over: 1.2 });
-        for (const [x, L] of [[60, 30], [150, 22], [156, 14], [228, 26]]) ln(g, [[x, 531 + (x % 3)], [x + L, 530.6 + (x % 3)]], { w: MID, seed: 'counter-t' + x + L });
-        // on the counter: sauce bottles and vinegar at one end, the cones and salt at the other
-        for (const [x, c, k] of [[30, C.red, 'k'], [52, C.roadLine, 'm']]) {
-            sh(g, [[x - 9, 512, 1], [x - 9.4, 480], [x - 5, 470], [x + 5, 470], [x + 9.4, 480], [x + 9, 512, 1]], { fill: c, w: BG, seed: 'sauce' + k });
-            sh(g, [[x - 4, 470, 1], [x - 1.6, 454, 1], [x + 1.6, 454, 1], [x + 4, 470, 1]], { fill: C.white, w: MID, seed: 'sauce-n' + k });
-            slab(g, [[x - 6.4, 484], [x + 6.4, 484], [x + 6.4, 500], [x - 6.4, 500]], { fill: C.white, w: MID, seed: 'sauce-l' + k, over: 0.4 });
-            ln(g, [[x - 3.6, 492], [x + 3.6, 492]], { w: MID, seed: 'sauce-t' + k });
-        }
-        sh(g, [[70, 513, 1], [69, 490], [73, 478], [74, 466, 1], [82, 466, 1], [83, 478], [87, 490], [86, 513, 1]], { fill: C.trunk, w: BG, seed: 'vinegar' });
-        slab(g, [[73, 459], [83, 459], [83, 467], [73, 467]], { fill: C.grey, w: MID, seed: 'vinegar-cap', over: 0.4 });
-        ln(g, [[74, 494], [74.4, 504]], { w: MID, seed: 'vinegar-gl', color: C.white });
-        // a stack of paper cones in its holder
-        for (let i = 3; i >= 0; i--) {
-            const y = 478 - i * 9;
-            sh(g, [[224, y, 1], [254, y - 1, 1], [241, y + 40, 1]], { fill: P.cream, w: MID, seed: 'cone' + i });
-            ln(g, [[230, y + 3], [239, y + 30]], { w: MID, seed: 'cone-l' + i, color: C.red });
-        }
-        slab(g, [[226, 494], [254, 493], [252, 513], [229, 513.4]], { fill: C.greyDeep, w: BG, seed: 'cone-holder', over: 0.7 });
-        // salt: a big shaker with holes
-        sh(g, [[262, 512, 1], [261, 488], [266, 480], [276, 480], [281, 488], [280, 512, 1]], { fill: C.white, w: BG, seed: 'salt' });
-        slab(g, [[264, 474], [278, 474], [278, 481], [264, 481]], { fill: C.grey, w: MID, seed: 'salt-cap', over: 0.4 });
-        chalk(g, 'S', 267, 506, 17, { color: C.blue, seed: 'salt-s' });
-        // a bell to ring for service
-        sh(g, [[176, 508, 1], [178, 498], [188, 493], [198, 498], [200, 508, 1]], { fill: C.roadLine, w: MID, seed: 'bell' });
-        dot(g, 188, 491, 2.2, C.ink);
-    }
-
-    function hutFront(g) {
-        const F = HUT.front, { u0, u1, v0, v1 } = HUT.hatch;
-        // the wall: teal planks, a kick board, a cream post on the corner
-        slab(g, F, { fill: P.hut, w: BG, seed: 'hut-front', over: 1.6 });
-        planks(g, F, 10, { seed: 'hut-pl', skip: 0.05 });
-        const RN = Motion.rng('hut-nails');
-        for (let i = 0; i < 16; i++) dot(g, ...at(F, 0.14 + RN() * 0.78, RN() < 0.5 ? 0.585 + RN() * 0.02 : 0.93 + RN() * 0.015), 1.5, C.ink);
-        slab(g, [at(F, 0, 0.956), at(F, 1, 0.956), F[2], F[3]], { fill: P.hutDeep, w: BG, seed: 'hut-kick', over: 1 });
-        slab(g, [at(F, 0.955, 0), F[1], F[2], at(F, 0.955, 1)], { fill: P.cream, w: BG, seed: 'hut-post', over: 1.2 });
-        // the hatch: the dark of the hut, and what Dot keeps in it
-        const hq = [at(F, u0, v0), at(F, u1, v0), at(F, u1, v1), at(F, u0, v1)];
-        slab(g, hq, {
-            fill: P.inside, w: BG, seed: 'hatch', over: 1.2,
-            inside: (c) => {
-                // the fryer's hood in the corner, a shelf of jars along the back
-                poly(c, [[196, 330], [270, 332], [268, 398], [206, 392]], { fill: C.greyDeep, w: BG, seed: 'hood' });
-                ln(c, [[206, 380], [266, 384]], { w: BG, seed: 'hood-l' });
-                for (const x of [222, 238, 254]) ln(c, [[x, 350], [x - 1, 368]], { w: MID, seed: 'hood-v' + x });
-                slab(c, [[30, 418], [200, 414], [200, 421], [30, 425]], { fill: C.wood, w: BG, seed: 'shelf', over: 0.4 });
-                // jars and tins: pickled eggs, onions, a tub of salt, a radio
-                slab(c, [[46, 384], [72, 383.4], [73, 417], [46, 418]], { fill: C.glass, w: MID, seed: 'jar-a', over: 0.6 });
-                for (const [ex, ey] of [[54, 408], [64, 409], [58, 399], [66, 398]]) sh(c, T.ellipse(ex, ey, 5, 4.2, 0.3, 8), { fill: C.white, w: FAR, seed: 'egg' + ex + ey });
-                slab(c, [[44, 378], [75, 377.4], [75, 384], [44, 385]], { fill: C.red, w: MID, seed: 'jar-a-lid', over: 0.5 });
-                slab(c, [[82, 392], [104, 391.4], [104, 416.4], [82, 417]], { fill: C.lime, w: MID, seed: 'jar-b', over: 0.6 });
-                slab(c, [[81, 386], [105, 385.4], [105, 392], [81, 392.6]], { fill: C.roadLine, w: MID, seed: 'jar-b-lid', over: 0.5 });
-                ln(c, [[86, 400], [100, 399.6]], { w: MID, seed: 'jar-b-l' });
-                slab(c, [[140, 388], [190, 386], [191, 414], [140, 415.4]], { fill: C.salmon, w: MID, seed: 'radio', over: 0.8 });
-                disc(c, 154, 401, 8, 8, { fill: C.ink, w: MID, seed: 'radio-sp', n: 10 });
-                for (const y of [394, 400, 406]) ln(c, [[168, y], [186, y - 0.6]], { w: FAR, seed: 'radio-l' + y });
-                ln(c, [[186, 387], [198, 362]], { w: MID, seed: 'radio-aer' });
-                // a rail of tools: a fish slice, a ladle, a basket
-                ln(c, [[40, 352], [190, 350]], { w: BG, seed: 'tool-rail' });
-                ln(c, [[60, 352], [60.6, 366]], { w: MID, seed: 'slice-h' });
-                slab(c, [[53, 366], [68, 366], [69, 380], [52, 380]], { fill: C.grey, w: MID, seed: 'slice', over: 0.5 });
-                for (const x of [57, 61, 65]) ln(c, [[x, 369], [x, 377]], { w: FAR, seed: 'slice-s' + x });
-                ln(c, [[96, 351], [96.4, 372]], { w: MID, seed: 'ladle-h' });
-                sh(c, [[88, 372, 1], [90, 381], [97, 384], [104, 381], [105, 372, 1]], { fill: C.grey, w: MID, seed: 'ladle' });
-                ln(c, [[130, 351], [131, 362]], { w: MID, seed: 'basket-h' });
-                const bk = sh(c, [[118, 362, 1], [121, 380], [131, 384], [142, 380], [145, 362, 1]], { fill: C.roadLine, w: MID, seed: 'basket' });
-                netting(c, bk, 5, { w: FAR * 0.9, seed: 'basket-n' });
-                // a bulb on its flex
-                ln(c, [[166, 336], [165, 352]], { w: MID, seed: 'flex' });
-                sh(c, T.ellipse(165, 359, 6, 7.4, 0, 9), { fill: C.yellow, w: MID, seed: 'bulb' });
-                // today's prices on a card
-                slab(c, [[206, 404], [254, 406], [253, 440], [205, 437]], { fill: P.cream, w: MID, seed: 'card', over: 0.8 });
-                chalk(c, 'COD', 211, 420, 13, { color: C.ink, seed: 'card-a', rot: 0.04 });
-                chalk(c, 'HAKE', 211, 434, 13, { color: C.red, seed: 'card-b', rot: 0.04 });
-            },
-        });
-        // the shutter, rolled up: its last slats and the cord
-        const sq = [at(F, u0, v0), at(F, u1, v0), at(F, u1, v0 + 0.045), at(F, u0, v0 + 0.045)];
-        slab(g, sq, { fill: C.grey, w: BG, seed: 'shutter', over: 0.6 });
-        for (const v of [0.35, 0.68]) ln(g, [at(sq, 0, v), at(sq, 1, v)], { w: MID, seed: 'shutter-s' + v });
-        ln(g, [at(sq, 0.93, 1), [at(sq, 0.93, 1)[0] + 1, 408]], { w: MID, seed: 'cord' });
-        disc(g, at(sq, 0.93, 1)[0] + 1, 412, 4, 4, { fill: null, w: MID, seed: 'cord-ring', n: 8 });
-        // the frame of the hatch
-        for (const [a, b, k] of [[at(F, u0 - 0.035, v0 - 0.01), at(F, u0 - 0.035, v1), 'l'], [at(F, u1 + 0.035, v0 - 0.01), at(F, u1 + 0.035, v1), 'r']]) bar(g, a, b, 11, 11, { fill: P.cream, w: BG, seed: 'hatch-j' + k });
-        // the counter: its top, its edge, two brackets
-        for (const [x, k] of [[46, 'a'], [258, 'b']]) {
-            poly(g, [[x - 6, 536], [x + 8, 536], [x + 6, 548], [x - 3, 590], [x - 7, 590]], { fill: P.cream, w: BG, seed: 'bracket' + k });
-            ln(g, [[x + 4, 546], [x - 3, 580]], { w: MID, seed: 'bracket-l' + k });
-        }
-        counterTop(g);
-        // under the counter: the hut's fish on a roundel, a poster, a hook with a net of spuds
-        disc(g, 138, 630, 50, 49, { fill: P.cream, w: BG, seed: 'roundel', n: 18 });
-        disc(g, 138, 630, 42, 41, { fill: null, w: MID, seed: 'roundel-in', n: 18, color: P.coral });
-        fish(g, 138, 630, 31, { seed: 'roundel-fish', rot: -0.1 });
-        const pq = [[14, 572], [62, 569], [66, 640], [18, 644]];
-        slab(g, pq, { fill: C.yellow, w: BG, seed: 'poster', over: 1 });
-        chalk(g, '2 FOR', 20, 590, 17, { color: C.red, seed: 'poster-a', rot: -0.05 });
-        chalk(g, '1', 30, 632, 44, { color: P.navy, seed: 'poster-b', rot: 0.06 });
-        for (const [u, v] of [[0.08, 0.06], [0.92, 0.06]]) dot(g, ...at(pq, u, v), 1.8, C.red);
-    }
-
-    function hutTop(g) {
-        // the roof's edge
-        slab(g, [[-40, 222], [294, 236], [290, 264], [-40, 251]], { fill: P.cream, w: BG, seed: 'hut-fascia', over: 1.6 });
-        ln(g, [[-40, 244], [292, 257.6]], { w: MID, seed: 'hut-fascia-l' });
-        // the awning: stripes of coral and cream, a scalloped valance, two arms
-        const A = [[-40, 268], [296, 277], [336, 318], [-40, 328]];
-        const n = 9;
-        const stripes = (c, q, clr) => {
-            c.fillStyle = clr;
-            for (let i = 0; i < n; i += 2) c.fill(T.pathOf([at(q, i / n, -0.1), at(q, (i + 1) / n, -0.1), at(q, (i + 1) / n, 1.1), at(q, i / n, 1.1)]));
+        const { w: PW, len, bay } = PIER;
+        // under the deck: a bent of two piles every 3 m, cross-braced, a cap beam on each
+        const bents = [];
+        for (let s = len - 0.5; s > 1; s -= 3) bents.push(s);
+        const pile = (s, c) => {
+            const f = PR(s, c, WATER);
+            lathe(g, f, [[0.16, 0], [0.14, 1.3]], { fill: C.wood, seed: 'pile' + s + c, n: 10, bands: [[0, 0.42, P.woodFar]], top: false });
+            ln3(g, [add(f, [0.03, 0.6, -0.14]), add(f, [0.03, 1.05, -0.14])], { seed: 'pile-g' + s + c, w: lw(f[2]) * 0.9 });
+            foam(g, [f[0] - 0.08, 0, f[2] - 0.12], 0.55, { seed: 'pf' + s + c });
         };
-        ln(g, [[300, 296], [334, 322]], { w: BG * 1.2, seed: 'awn-arm' });
-        ln(g, [[302, 340], [332, 322]], { w: BG * 1.2, seed: 'awn-arm2' });
-        // valance first (it hangs behind the awning's front edge)
-        const V = [A[3], A[2], [A[2][0] - 2, A[2][1] + 30], [A[3][0], A[3][1] + 32]];
-        const vpts = [[...V[0], 1], [...V[1], 1]];
-        for (let i = n; i > 0; i--) {
-            const a = at(V, i / n, 1), b = at(V, (i - 1) / n, 1);
-            vpts.push([a[0], a[1] - 9, 1], [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 3]);
+        for (const s of bents) {
+            pile(s, PW - 0.2);
+            bar3(g, PR(s, PW - 0.2, -0.45), PR(s, 0.2, -1.25), 0.13, { fill: P.woodFar, seed: 'xa' + s });
+            bar3(g, PR(s, PW - 0.2, -1.25), PR(s, 0.2, -0.45), 0.13, { fill: P.woodFar, seed: 'xb' + s });
+            bar3(g, PR(s, PW, -0.2), PR(s, 0, -0.2), 0.22, { fill: C.wood, seed: 'cap' + s });
         }
-        vpts.push([V[3][0], V[3][1] - 9, 1]);
-        const vout = sh(g, vpts, { fill: P.cream, w: BG, seed: 'valance', inside: (c) => stripes(c, V, P.coral) });
-        for (let i = 1; i < n; i++) ln(g, [at(V, i / n, 0), at(V, i / n, 0.72)], { w: MID, seed: 'val-l' + i });
-        ln(g, vout, { w: BG, seed: 'valance', dense: true, closed: true, amp: 0 });
-        slab(g, A, { fill: P.cream, w: BG, seed: 'awning', over: 1.4, inside: (c) => stripes(c, A, P.coral) });
-        for (let i = 1; i < n; i++) ln(g, [at(A, i / n, 0), at(A, i / n, 1)], { w: MID, seed: 'awn-l' + i });
-        // the sign on the roof: a navy board with a cream line, DOT'S CHIPS, bulbs all round
-        for (const [x, k] of [[60, 'a'], [280, 'b']]) bar(g, [x, 240], [x + 3, 214], 8, 8, { fill: C.wood, w: BG, seed: 'sign-leg' + k });
-        const S = [[16, 84], [330, 104], [322, 236], [20, 226]];
-        slab(g, S, { fill: P.navy, w: BG, seed: 'dot-board', over: 2.4 });
-        slab(g, [at(S, 0.035, 0.07), at(S, 0.965, 0.07), at(S, 0.965, 0.93), at(S, 0.035, 0.93)], { fill: null, w: MID, seed: 'dot-inner', over: 0.4, color: P.cream });
-        g.save();
-        g.translate(170, 160);
-        g.rotate(0.064);
-        T.sign(g, "DOT'S", -64, -14, { size: 60, fill: C.white, drop: P.coral, seed: 'dot-a', tilt: 0.1 });
-        T.sign(g, 'CHIPS', 6, 64, { size: 96, fill: C.roadLine, drop: P.coral, seed: 'dot-b', tilt: 0.08, track: 0.06 });
-        g.restore();
-        // the fish jumps over the board
-        fish(g, 236, 96, 62, { seed: 'sign-fish', rot: -0.16 });
-        // bulbs
-        const bulbs = [];
-        for (let i = 0; i <= 11; i++) if (i < 6 || i > 9) bulbs.push(at(S, i / 11, 0));
-        for (let i = 1; i <= 4; i++) bulbs.push(at(S, 1, i / 5), at(S, 0, i / 5));
-        for (let i = 0; i <= 11; i++) bulbs.push(at(S, i / 11, 1));
-        for (const [i, [x, y]] of bulbs.entries()) disc(g, x, y, 5.6, 5.6, { fill: i % 3 === 0 ? C.white : i % 3 === 1 ? C.yellow : P.coral, w: MID, seed: 'bulb' + i, n: 9 });
+        for (const s of bents) pile(s, 0.2);
+        // a waling bolted along the near piles
+        for (let i = 0; i < bents.length - 1; i++) {
+            const a = bents[i], b = bents[i + 1];
+            slab(g, [PR(b, 0.03, -0.72), PR(a, 0.03, -0.72), PR(a, 0.03, -0.92), PR(b, 0.03, -0.92)].map(pt), { fill: C.wood, w: lw(PR(b, 0, 0)[2]), seed: 'wale' + i, over: 0.4 });
+        }
+        for (const s of bents) dot(g, ...pt(PR(s, 0.02, -0.82)), Math.max(1.2, 0.035 * sc(PR(s, 0, 0)[2])), C.ink);
+        // the deck (and the bay that carries the shed), its planks laid across
+        const wd = lw(16);
+        slab(g, [PR(bay[0], PW), PR(bay[1], PW), PR(bay[1], bay[2]), PR(bay[0], bay[2])].map(pt), { fill: P.deck, w: wd, seed: 'bay', over: 1 });
+        slab(g, [PR(0, PW), PR(len, PW), PR(len, 0), PR(0, 0)].map(pt), { fill: P.deck, w: wd, seed: 'deck', over: 1.2 });
+        const R = Motion.rng('deck-planks');
+        for (let s = 0.45; s < len - 0.2; s += s < 3 ? 0.45 : s < 8 ? 0.9 : s < 15 ? 1.8 : 3.6) {
+            const e0 = R(), e1 = R(), inBay = s > bay[0] + 0.1 && s < bay[1] - 0.1;
+            ln3(g, [PR(s, e0 < 0.25 ? e0 * 2 : 0.03), PR(s, e1 < 0.25 ? PW - e1 * 2 : inBay ? bay[2] - 0.05 : PW - 0.03)], { seed: 'plank' + s.toFixed(1), w: lw(PR(s, 0, 0)[2]) * 0.8 });
+        }
+        // the deck's edge towards us: a beam with its bolts
+        slab(g, [PR(0, 0, 0), PR(len, 0, 0), PR(len, 0, -0.3), PR(0, 0, -0.3)].map(pt), { fill: C.wood, w: wd, seed: 'fascia', over: 1 });
+        for (const s of bents) for (const d of [-0.08, 0.08]) dot(g, ...pt(PR(s + d, 0, -0.15)), Math.max(1.1, 0.03 * sc(PR(s, 0, 0)[2])), C.ink);
+        // on the deck, far to near: the far rail beyond the bay, the end rail and its flagstaff,
+        // the far lamp, the bay's rail, the shed, the far rail before the bay, the near lamp, the near rail
+        rail(g, PR(len - 0.1, PW - 0.1), PR(len - 0.1, 0.1), { seed: 'rail-end', step: 1.4 });
+        bar3(g, PR(len - 0.2, 1.5), PR(len - 0.2, 1.5, 5.4), 0.09, { fill: C.white, seed: 'pier-staff' });
+        dot(g, ...pt(PR(len - 0.2, 1.5, 5.5)), 2.2, C.roadLine);
+        rail(g, PR(len - 0.1, PW - 0.1), PR(bay[1], PW - 0.1), { seed: 'rail-far-b', first: false });
+        lamp(g, PR(21, PW - 0.35), { seed: 'lamp-far', arm: mul(LD, 1) });
+        rail(g, PR(bay[1], PW - 0.1), PR(bay[1], bay[2] - 0.1), { seed: 'rail-bay' });
+        baitShed(g);
+        rail(g, PR(bay[0], PW - 0.1), PR(0.55, PW - 0.1), { seed: 'rail-far-a' });
+        lamp(g, PR(11.5, 0.35), { seed: 'lamp-near', arm: mul(LD, -1) });
+        rail(g, PR(len - 0.1, 0.1), PR(0.55, 0.1), { seed: 'rail-near', first: false });
+        gateway(g);
     }
 
-    function hutFeet(g) {
-        // a sack of spuds and two crates by the wall
-        slab(g, [[-10, 690], [64, 688], [66, 752], [-10, 756]], { fill: C.wood, w: BG, seed: 'crate-a', over: 1 });
-        for (const y of [706, 722, 738]) ln(g, [[-10, y + 1], [65, y - 1]], { w: BG, seed: 'crate-a' + y });
-        for (const x of [8, 52]) ln(g, [[x, 690], [x + 1, 754]], { w: BG, seed: 'crate-av' + x });
-        slab(g, [[0, 652], [56, 650], [58, 690], [0, 692]], { fill: C.blue, w: BG, seed: 'crate-b', over: 1 });
-        slab(g, [[-4, 646], [60, 644], [60, 654], [-4, 656]], { fill: C.blue, w: BG, seed: 'crate-b-rim', over: 0.8 });
-        ln(g, [[16, 670], [42, 669]], { w: BG * 1.8, seed: 'crate-b-h', amp: 0 });
-        sh(g, [[62, 756, 1], [58, 712], [66, 676], [78, 664, 1], [84, 672], [96, 662, 1], [110, 680], [118, 716], [114, 756, 1]], { fill: P.sack, w: BG, seed: 'sack' });
-        ln(g, [[72, 672], [84, 678], [100, 672]], { w: BG, seed: 'sack-tie' });
-        chalk(g, 'SPUDS', 68, 728, 19, { color: C.maroon, seed: 'sack-t', rot: -0.06 });
-        ln(g, [[66, 700], [70, 690]], { w: MID, seed: 'sack-f1' });
-        ln(g, [[108, 742], [111, 730]], { w: MID, seed: 'sack-f2' });
-        // the menu: a chalk board on an A frame
-        const q = [[214, 640], [292, 636], [302, 760], [206, 766]];
-        bar(g, [296, 646], [318, 752], 7, 7, { fill: C.wood, w: BG, seed: 'menu-leg' });
-        slab(g, q, { fill: C.wood, w: BG, seed: 'menu-frame', over: 1.4 });
-        const b = [at(q, 0.09, 0.07), at(q, 0.91, 0.07), at(q, 0.91, 0.9), at(q, 0.09, 0.9)];
-        slab(g, b, { fill: P.chalk, w: MID, seed: 'menu-board', over: 0.5 });
-        chalk(g, 'MENU', ...at(b, 0.5, 0.2), 23, { seed: 'menu-a', align: 'center', rot: -0.04, color: C.roadLine });
-        ln(g, [at(b, 0.14, 0.26), at(b, 0.86, 0.25)], { w: MID, seed: 'menu-u', color: C.white });
-        const rows = [['CHIPS', '2'], ['FISH', '3'], ['PEAS', '1'], ['TEA', '1']];
-        for (const [i, [a, p]] of rows.entries()) {
-            chalk(g, a, ...at(b, 0.1, 0.44 + i * 0.165), 17, { seed: 'menu-r' + i, rot: -0.04 });
-            chalk(g, p, ...at(b, 0.74, 0.44 + i * 0.165), 17, { seed: 'menu-p' + i, rot: -0.04, color: C.salmon });
-        }
+    // --- what stands on the quay ---------------------------------------------------------------------
+    // a mooring bollard 0.5 m high: a bed plate, a post that waists in, a mushroom head, the cross pin
+    function bollard(g, c, o = {}) {
+        const { seed = 'bol', turns = 0 } = o, w = lw(c[2]), side = unit(cross(UP, sub(EYE3, c)));
+        for (const k of [-1, 1]) bar3(g, add(c, [0, 0.3, 0]), add(c, add(mul(side, k * 0.19), [0, 0.3, 0])), 0.075, { fill: P.iron, w, seed: seed + 'pin' + k, over: 0.2 });
+        lathe(g, c, [[0.21, 0], [0.2, 0.035], [0.125, 0.05], [0.1, 0.2], [0.105, 0.36]], { fill: P.ironLight, w, seed: seed + 'post', top: false });
+        // turns of rope round the waist
+        for (let i = 0; i < turns; i++) rope(g, nearArc(add(c, [0, 0.1 + i * 0.05, 0]), 0.118 - i * 0.004, 10), Math.max(2.4, 0.05 * sc(c[2])), { seed: seed + 'turn' + i, w, dense: true });
+        lathe(g, c, [[0.105, 0.36], [0.175, 0.39], [0.185, 0.44], [0.15, 0.485], [0.06, 0.5]], { fill: P.iron, w, seed: seed + 'head', under: false });
+        T.line(g, nearArc(add(c, [0, 0.44, 0]), 0.185).slice(2, 6), { w, seed: seed + 'gl', color: C.white, dense: true, amp: 0 });
     }
-
-    function near(g) {
-        parasol(g);
-        surfboard(g);
-        gasBottle(g);
-        hutSide(g);
-        hutFront(g);
-        hutTop(g);
-        bin(g);
-        hutFeet(g);
-    }
-
-    // --- what moves, on twos -------------------------------------------------------------------
-    function flag(g, x, y, s, d, o = {}) {
-        const { fill = C.red, seed = 'flag', w = FAR, dir = 1, bar: stripe = C.white } = o;
-        const ph = (d % 4) * 1.57;
-        const top = [], bot = [];
-        for (let i = 0; i <= 4; i++) {
-            const u = i / 4, wv = Math.sin(u * 5.2 - ph) * 3.4 * s * u;
-            top.push([x + dir * u * 34 * s, y + wv + u * 3 * s]);
-            bot.push([x + dir * u * 33 * s, y + 20 * s + wv + u * 4 * s]);
-        }
-        const out = sh(g, [[...top[0], 1], ...top.slice(1, 4), [...top[4], 1], [...bot[4], 1], ...bot.slice(1, 4).reverse(), [...bot[0], 1]], {
-            fill, w, seed: seed + (d % 4),
-            inside: (c) => {
-                c.fillStyle = stripe;
-                c.fill(T.pathOf([...top.map(([px, py]) => [px, py + 7.4 * s]), ...bot.map(([px, py]) => [px, py - 7 * s]).reverse()]));
+    // a fish box, 0.6 × 0.4 × 0.25 m: a rim, a hand hole on each face we see
+    function fishBox(g, o3, yaw, fill, seed) {
+        boxOf(g, o3, [0.6, 0.25, 0.4], yaw, {
+            fill, w: lw(o3[2]), seed,
+            face: (f, pl) => {
+                if (f.name === 'top') return void slab(g, pl.q(0.05, 0.05, pl.W - 0.05, pl.H - 0.05), { fill: C.ink, w: lw(o3[2]) * 0.8, seed: seed + 'in', over: 0.2 });
+                if (f.name === 'bottom') return;
+                ln(g, [pl.p(0, 0.19), pl.p(pl.W, 0.19)], { w: lw(o3[2]) * 0.9, seed: seed + 'rim' + f.name });
+                ln(g, [pl.p(pl.W * 0.36, 0.11), pl.p(pl.W * 0.64, 0.11)], { w: lw(o3[2]) * 1.5, seed: seed + 'hand' + f.name, amp: 0 });
             },
         });
-        return out;
     }
 
-    // a string of pennants from a to b, sagging, each one fluttering on its own beat
-    function bunting(g, a, b, d, o = {}) {
-        const { sag = 14, n = 7, seed = 'bunting', drop = 24 } = o;
-        const cols = [C.magenta, C.roadLine, P.fish, C.white, C.blue, C.lime, P.coral];
-        const pt = (u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u + Math.sin(u * Math.PI) * sag];
-        ln(g, Array.from({ length: 9 }, (_, i) => pt(i / 8)), { w: MID, seed });
-        for (let i = 0; i < n; i++) {
-            const u0 = (i + 0.16) / n, u1 = (i + 0.84) / n, p0 = pt(u0), p1 = pt(u1);
-            const sw = Math.sin(d * 0.9 + i * 1.7) * 3.2;
-            const tip = [(p0[0] + p1[0]) / 2 + sw, (p0[1] + p1[1]) / 2 + drop + Math.cos(d * 0.9 + i * 1.7) * 1.4];
-            sh(g, [[...p0, 1], [...p1, 1], [...tip, 1]], { fill: cols[i % cols.length], w: MID, seed: seed + i });
+    function quayThings(g) {
+        // along the lip, far to near (it comes towards us to the right): the rail, a bollard with a
+        // line down to a boat below the wall, the hoops of a ladder, fish boxes, another bollard
+        rail(g, Q(-3.7, 0.2), Q(-0.75, 0.2), { seed: 'qrail' });
+        for (const a of [-0.42, -0.07]) {
+            // (they go on down the wall's face, out of sight)
+            const hoop = [Q(a, 0.5, 0), Q(a, 0.5, 0.75), Q(a, 0.35, 1.0), Q(a, 0.05, 1.05), Q(a, -0.1, 0.8), Q(a, -0.1, 0.02)].map(pt);
+            ln(g, hoop, { w: 3.4, seed: 'lad' + a });
+            ln(g, hoop, { w: 1.5, seed: 'lad' + a, color: C.roadLine });
+        }
+        // a bollard with a line made fast, running down over the lip to a boat below the wall
+        rope3(g, [Q(0.62, 0.66, 0.16), Q(0.68, 0.36, 0.05), Q(0.74, 0.03, 0.02), Q(0.76, -0.04, 0.0)], 0.045, { seed: 'lip-line-a', lay: false });
+        bollard(g, Q(0.55, 0.8), { seed: 'lip-bol-a', turns: 2 });
+        // let into the stone: a drain grating, an iron ring on its plate
+        {
+            const a = 5.0, b = 5.9, q = [Q(a, b), Q(a + 0.6, b), Q(a + 0.6, b + 0.42), Q(a, b + 0.42)].map(pt);
+            slab(g, q, { fill: P.iron, w: BG, seed: 'drain', over: 0.8 });
+            for (let i = 1; i < 7; i++) ln(g, [pt(Q(a + (0.6 * i) / 7, b + 0.05)), pt(Q(a + (0.6 * i) / 7, b + 0.37))], { w: 1.8, seed: 'drain-b' + i });
+        }
+        {
+            const c = [-0.95, 0, 5.0];
+            slab(g, [[c[0] - 0.09, 0, c[2] + 0.16], [c[0] + 0.09, 0, c[2] + 0.16], [c[0] + 0.09, 0, c[2] + 0.02], [c[0] - 0.09, 0, c[2] + 0.02]].map(pt), { fill: P.ironLight, w: 1.9, seed: 'ring-plate', over: 0.5 });
+            const el = Cam.circle([c[0], 0.012, c[2] - 0.06], 0.12, 16);
+            T.line(g, el, { w: 5, seed: 'ring-out', closed: true, dense: true, amp: 0.1 });
+            T.line(g, el, { w: 1.7, seed: 'ring-out', closed: true, dense: true, amp: 0.1, color: P.ironLight });
         }
     }
 
-    function gull(g, x, y, s, d, o = {}) {
-        const { flip = false, seed = 'gull' } = o;
-        const up = Math.floor(d / 3) % 2 === 0, k = up ? -1 : 0.55;
-        g.save();
-        g.translate(x, y + (up ? 0 : 1.5));
-        g.scale(flip ? -s : s, s);
-        const w = FAR / s;
-        // far wing, body, near wing
-        sh(g, [[2, -1, 1], [8, -4 + k * 5], [17, -3 + k * 9, 1], [9, 1 + k * 3], [3, 2.4, 1]], { fill: C.grey, w, seed: seed + 'fw' + up });
-        sh(g, [[-11, 0.6, 1], [-4, -2.6], [5, -3], [10, -1.6], [13.4, 0.2, 1], [9, 1.6], [3, 3.4], [-5, 2.6]], { fill: C.white, w, seed: seed + 'b' });
-        sh(g, [[-3, -1, 1], [-8, -5 + k * 6], [-19, -3 + k * 11, 1], [-9, 1 + k * 3.4], [-1, 2.4, 1]], { fill: C.white, w, seed: seed + 'nw' + up });
-        dot(g, 9.4, -1.2, 0.8, C.ink);
-        sh(g, [[12.4, -0.6, 1], [17, 0.6, 1], [12.6, 1.4, 1]], { fill: C.orange, w: w * 0.8, seed: seed + 'bk' });
-        g.restore();
-    }
-
-    // --- the foreground: what stands in front of the cast ---------------------------------------
-    function lobsterPot(g, x, y, s, o = {}) {
-        const { seed = 'pot', flip = false, mesh = P.fish, rot = 0 } = o;
-        g.save();
-        g.translate(x, y);
-        g.rotate(rot);
-        g.scale(flip ? -s : s, s);
-        const w = BG / s, e = [96, -24]; // the pot runs back along e
-        const arc = (dx, dy, n = 9) => Array.from({ length: n + 1 }, (_, i) => {
-            const a = Math.PI * (1 - i / n);
-            return [dx + Math.cos(a) * 46, dy - 6 - Math.sin(a) * 64];
-        });
-        const nearA = arc(0, 0), farA = arc(e[0], e[1]);
-        // the far end and the netted body between the hoops
-        const bout = T.shape(g, [[-46, 0], ...nearA.slice(0, 6), ...farA.slice(4), [46 + e[0], e[1]], [46, 0]], { fill: mesh, w, seed: seed + 'body', dense: true });
-        netting(g, bout, 13, { w: w * 0.85, seed: seed + 'net' });
-        T.line(g, bout, { w, seed: seed + 'body', dense: true, closed: true, amp: 0 });
-        // the hoops: withies bent over, lashed to the base
-        for (const u of [0.5, 1]) T.shape(g, T.ribbon(arc(e[0] * u, e[1] * u, 14).slice(u === 1 ? 6 : 5), 7, 7, { dense: true }), { fill: C.wood, w, seed: seed + 'hoop' + u, dense: true });
-        // the near end: netting round the mouth
-        const face = [[-46, 0], ...nearA, [46, 0]];
-        T.shape(g, face, { fill: mesh, w, seed: seed + 'face', dense: true });
-        netting(g, face, 12, { w: w * 0.85, seed: seed + 'facen' });
-        T.shape(g, T.ribbon([[-46, 2], ...arc(0, 0, 16), [46, 2]], 8, 8, { dense: true }), { fill: C.wood, w, seed: seed + 'hoop0', dense: true });
-        T.shape(g, T.ellipse(2, -30, 19, 21, 0, 14), { fill: C.ink, w, seed: seed + 'mouth' });
-        T.shape(g, T.ribbon(T.path(T.ellipse(2, -30, 19, 21, 0, 14), true).concat([[21, -30]]), 5, 5, { dense: true }), { fill: P.rope, w, seed: seed + 'mouth-r', dense: true });
-        // the base: slats of wood, weighted
-        T.slab(g, [[-52, -4], [50, -4], [52, 8], [-54, 8]], { fill: C.wood, w, seed: seed + 'base', over: 1 });
-        T.slab(g, [[50, -4], [50 + e[0], -4 + e[1]], [52 + e[0], 6 + e[1]], [52, 8]], { fill: C.woodDeep, w, seed: seed + 'base-s', over: 1 });
-        for (const bx of [-30, -4, 24]) T.line(g, [[bx, -3], [bx - 1, 7]], { w, seed: seed + 'bs' + bx });
-        for (const u of [0.3, 0.62]) T.line(g, [[51 + e[0] * u, -3 + e[1] * u], [52 + e[0] * u, 6 + e[1] * u]], { w, seed: seed + 'bt' + u });
-        g.restore();
-    }
-
-    function coil(g, x, y, s, o = {}) {
-        const { fill = C.blue, seed = 'coil' } = o;
-        // a tail of rope first, then the turns from the bottom up
-        rope(g, [[x + 40 * s, y - 2 * s], [x + 74 * s, y + 6 * s], [x + 104 * s, y - 4 * s], [x + 128 * s, y + 8 * s]], 11 * s, { fill, seed: seed + 't' });
-        for (let i = 0; i < 4; i++) {
-            const rx = (58 - i * 5) * s, ry = (20 - i * 1.6) * s, cy = y - i * 9 * s;
-            const el = T.path(T.ellipse(x + (i % 2) * 2 * s, cy, rx, ry, 0, 18), true);
-            rope(g, [...el, el[0]], 11 * s, { fill, seed: seed + i, dense: true });
-        }
-        sh(g, T.ellipse(x + 2 * s, y - 28 * s, 30 * s, 9 * s, 0, 14), { fill: P.quay, w: BG, seed: seed + 'hole' });
-    }
-
-    function bollard(g, x, y, s) {
-        const w = BG / s;
-        g.save();
-        g.translate(x, y);
-        g.scale(s, s);
-        // the line made fast: away over the quay's edge
-        rope(g, [[20, -40], [64, -52], [112, -96], [150, -112]], 9, { seed: 'bol-line', w });
-        // a bed plate with its bolts, a stout post that waists in, a mushroom head
-        T.shape(g, [[-44, 2, 1], [-40, -10, 1], [40, -11, 1], [45, 1, 1], [0, 6]], { fill: P.iron, w, seed: 'fb-foot' });
-        for (const bx of [-32, 33]) {
-            T.shape(g, T.ellipse(bx, -5, 4.4, 3, 0, 8), { fill: P.ironLight, w: w * 0.9, seed: 'fb-bolt' + bx });
-        }
-        T.shape(g, [[-25, -9, 1], [-21, -30], [-19, -58], [-22, -80, 1], [22, -80, 1], [19, -58], [21, -30], [25, -10, 1], [0, -6]], { fill: P.ironLight, w, seed: 'fb-post' });
-        // three turns of rope round the waist
-        for (let k = 0; k < 3; k++) {
-            const yy = -26 - k * 11.5;
-            rope(g, [[-25, yy + 1], [-10, yy + 6], [10, yy + 6], [25, yy]], 11, { seed: 'fb-rope' + k, w });
-        }
-        T.shape(g, [[-22, -78, 1], [-34, -84], [-37, -98], [-28, -112], [0, -119], [28, -112], [37, -98], [34, -84], [22, -78, 1]], { fill: P.iron, w, seed: 'fb-head' });
-        T.line(g, [[-35, -93], [-18, -86], [18, -86], [35, -93]], { w, seed: 'fb-head-l' });
-        T.line(g, [[-17, -110], [-2, -114]], { w, seed: 'fb-gl', color: C.white });
-        T.line(g, [[-27, -102], [-23, -106]], { w, seed: 'fb-gl2', color: C.white });
-        // the cross pin, rust
-        for (const k of [-1, 1]) T.shape(g, T.ellipse(k * 26, -66, 7, 6, 0, 9), { fill: P.iron, w, seed: 'fb-pin' + k });
-        for (const [px, py] of [[-10, -70], [9, -62], [-3, -14]]) T.line(g, [[px, py], [px + 0.6, py + 7]], { w, seed: 'fb-r' + px });
-        g.restore();
-    }
-
-    function cone(g, x, y, s) {
-        const w = BG / s;
-        g.save();
-        g.translate(x, y);
-        g.rotate(-0.07);
-        g.scale(s, s);
-        T.shape(g, [[-34, 0, 1], [-30, -9, 1], [30, -10, 1], [35, -1, 1], [0, 5]], { fill: C.orange, w, seed: 'cone-base' });
-        T.shape(g, [[-22, -8, 1], [-7, -92], [0, -97], [7, -92], [22, -9, 1], [0, -4]], {
-            fill: C.orange, w, seed: 'cone-body',
-            inside: (c) => {
-                c.fillStyle = C.white;
-                c.fill(T.pathOf([[-30, -42], [30, -43], [30, -27], [-30, -25]]));
-                c.fill(T.pathOf([[-30, -70], [30, -71], [30, -60], [-30, -58]]));
-            },
-        });
-        for (const [a, b] of [[[-16.4, -42], [16.4, -43]], [[-19.4, -25.6], [19.4, -27]], [[-11.4, -70], [11.4, -71]], [[-13.6, -58.4], [13.6, -60]]]) T.line(g, [a, [0, (a[1] + b[1]) / 2 + 3], b], { w, seed: 'cone-b' + a[1] });
-        T.line(g, [[-6, -84], [-9, -76]], { w, seed: 'cone-dent' });
-        T.line(g, [[8, -20], [11, -13]], { w, seed: 'cone-scuff' });
-        g.restore();
-    }
-
-    function foreground(g) {
-        lobsterPot(g, 208, 838, 0.82, { seed: 'pot-b', mesh: C.orange, flip: true, rot: 0.04 });
-        coil(g, 262, 884, 1, { seed: 'coil' });
-        lobsterPot(g, 70, 884, 1.12, { seed: 'pot-a' });
-        // a float on its line beside the pots
-        ln(g, [[150, 880], [170, 868], [186, 876]], { w: BG, seed: 'float-line' });
-        cone(g, 1392, 892, 1);
-        bollard(g, 1508, 890, 1.1);
-    }
-
-    // --- the two calls ---------------------------------------------------------------------------
     /**
-     * A palm drawn for this set (the kit's is a sketch for small, far ones): a trunk that
-     * curves and thins, ringed; fronds as arcs that droop under their own weight, smooth along
-     * the top and cut into leaflets along the bottom, the far ones darker; coconuts; a half
-     * barrel for a planter. Foot on (x, y); sway (radians) rocks the crown, on twos.
+     * The dinghy on its launching trolley: 3 m long, 1.2 m in the beam, clinker built, standing
+     * upright on its keel 0.2 m off the stone, low between its wheels, bow towards us. Its gunwale is above the camera's
+     * eye, so we see the outside of the hull and nothing of the inside.
      */
-    function palmTree(g, x, y, h, o = {}) {
-        const { lean = -30, sway = 0, seed = 'palm', w = BG } = o;
-        const top = [x + lean + sway * h * 0.25, y - h];
-        // the planter
-        sh(g, [[x - 31, y - 30, 1], [x + 31, y - 31, 1], [x + 27, y - 4], [x + 24, y + 4, 1], [x, y + 6], [x - 24, y + 5, 1], [x - 27, y - 4]], { fill: C.wood, w, seed: seed + 'tub' });
-        for (const yy of [-22, -6]) ln(g, [[x - 30 + (yy + 30) * 0.16, y + yy], [x, y + yy + 2], [x + 30 - (yy + 30) * 0.16, y + yy]], { w: w * 1.5, seed: seed + 'hoop' + yy, color: C.woodDeep });
-        disc(g, x, y - 31, 30, 6, { fill: C.sandDeep, w: MID, seed: seed + 'soil', n: 14 });
-        // the trunk: a band that bows and thins, ringed all the way up
-        const spine = [[x, y - 31], [x + lean * 0.08, y - h * 0.34], [x + lean * 0.42, y - h * 0.68], top];
-        sh(g, T.ribbon(spine, h * 0.074, h * 0.046, { step: 1 }), { fill: C.trunk, w, seed: seed + 'trunk', dense: true });
-        const sp = T.path(spine);
-        for (let k = 1; k < 13; k++) {
-            const q = sp[Math.floor((k / 13) * (sp.length - 1))], hw = h * (0.036 - 0.013 * (k / 13));
-            ln(g, [[q[0] - hw, q[1] - 2], [q[0] - hw * 0.2, q[1] + 2.4], [q[0] + hw * (k % 2 ? 0.9 : 0.5), q[1] - 1.6]], { w: MID, seed: seed + 'ring' + k });
+    function dinghy(g) {
+        const kh = 0.2, fr = frame([DINGHY.o[0], kh, DINGHY.o[2]], DINGHY.yaw), w = BG;
+        const hl = hullOf(fr, 3, 1.2, { sheer: [0.5, 0.45, 0.63], transom: 0.82, rake: 0.07, fore: 0.5, n: 14 });
+        const S = (x, y, z) => fr.w(x, y, z);
+        // a wheel: a tyre 0.4 m across standing in the plane of the hull's length
+        const wheel = (z, seed) => {
+            const c = S(-0.15, 0.2 - kh, z), ringAt = (dz, r, n = 18) => Array.from({ length: n }, (_, i) => pt(add(add(c, mul(fr.Z, dz)), add(mul(fr.X, Math.cos((i / n) * Math.PI * 2) * r), [0, Math.sin((i / n) * Math.PI * 2) * r, 0]))));
+            const out = Math.sign(z) * 0.045;
+            union(g, [hull2d([...ringAt(-out, 0.2), ...ringAt(out, 0.2)])], { fill: C.ink, w, seed });
+            const nearSide = dot3(mul(fr.Z, out), sub(EYE3, c)) > 0 ? out : -out;
+            T.shape(g, ringAt(nearSide, 0.2), { fill: '#2b2f38', w: w * 0.8, seed: seed + 'f', dense: true, amp: 0.1 });
+            T.shape(g, ringAt(nearSide, 0.1, 12), { fill: P.ironLight, w: w * 0.9, seed: seed + 'h', dense: true, amp: 0.1 });
+            dot(g, ...pt(add(c, mul(fr.Z, nearSide))), 2.6, C.ink);
+        };
+        const nearZ = hl.near * 0.66;
+        wheel(-nearZ, 'dg-wheel-far');
+        // the trolley: axle, drawbar with a prop under its handle, two cradles under the bilge
+        bar3(g, S(-0.15, 0.2 - kh, -0.62), S(-0.15, 0.2 - kh, 0.62), 0.06, { fill: P.iron, seed: 'dg-axle' });
+        for (const x of [-0.15, 0.85]) for (const k of [-1, 1]) bar3(g, S(x, 0.22 - kh, k * 0.5), S(x, hl.sy((x + 1.5) / 3) * 0.42, k * hl.hb((x + 1.5) / 3) * 0.86), 0.06, { fill: P.iron, seed: 'dg-cr' + x + k });
+        bar3(g, S(-1.2, 0.2 - kh, 0), S(2.15, 0.26 - kh, 0), 0.07, { fill: P.iron, seed: 'dg-bar' });
+        bar3(g, S(2.05, 0.26 - kh, 0), S(2.0, -kh, 0), 0.05, { fill: P.iron, seed: 'dg-prop' });
+        bar3(g, S(2.15, 0.26 - kh, -0.16), S(2.15, 0.26 - kh, 0.16), 0.05, { fill: P.ironLight, seed: 'dg-handle' });
+        // the oars shipped, their blades resting on the bow
+        for (const [k, z] of [['a', -0.2], ['b', 0.12]]) {
+            const b0 = S(0.55, hl.sy(0.68) + 0.04, z * 0.9), b1 = S(1.2, hl.sy(0.9) + 0.1, z * 0.5), s = sc(b0[2]);
+            bar3(g, S(-1.0, hl.sy(0.2) - 0.02, z), b0, 0.05, { fill: P.spar, seed: 'dg-oar' + k });
+            sh(g, T.ribbon([pt(b0), pt(lerp3(b0, b1, 0.5)), pt(b1)], 0.06 * s, 0.11 * s, { mid: 0.15 * s }), { fill: P.spar, w, seed: 'dg-blade' + k, dense: true });
         }
-        // the fronds: [angle, length, far?]; far ones first
+        // the outboard on the transom: its cowl with a band, the tiller folded forward
+        boxOf(g, S(-1.63, hl.sy(0) - 0.05, 0), [0.26, 0.3, 0.2], DINGHY.yaw, {
+            fill: P.iron, w, seed: 'dg-ob',
+            face: (f, pl) => {
+                if (f.name === 'top' || f.name === 'bottom') return;
+                g.fillStyle = C.red;
+                g.fill(T.pathOf(pl.q(0, 0.16, pl.W, 0.22)));
+            },
+        });
+        bar3(g, S(-1.5, hl.sy(0) + 0.12, 0), S(-1.05, hl.sy(0.15) + 0.1, 0.08), 0.035, { fill: P.ironLight, seed: 'dg-tiller' });
+        // the hull: cream, a coral sheer strake, the lands of its planks
+        union(g, hl.quads, { fill: P.cream, w, seed: 'dg-hull' });
+        hl.band(g, 0, 0.17, P.coral);
+        if (hl.stern) T.shape(g, hl.transom, { fill: P.cream, w, seed: 'dg-transom', dense: true, amp: 0.2 });
+        for (const t of [0.17, 0.36, 0.56, 0.76]) hl.lines(g, t, { w: t < 0.2 ? w : w * 0.9, seed: 'dg-land', u1: 0.985 });
+        T.line(g, [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => pt(hl.at3(1, t, 1))), { w, seed: 'dg-stem' });
+        // the keel's line under the forefoot, a ring in the stem with the painter coiled on the bar
+        dot(g, ...pt(hl.at3(1, 0.3, 1)), 3, P.ironLight);
+        rope3(g, [hl.at3(1, 0.3, 1), S(1.9, 0.5 - kh, 0.05), S(2.05, 0.3 - kh, 0)], 0.03, { seed: 'dg-painter', lay: false });
+        // name on the bow of the side we see
+        {
+            const sg = hl.near, a = hl.at3(0.66, 0.045, sg), b = hl.at3(0.86, 0.045, sg), c = hl.at3(0.66, 0.15, sg);
+            const flip = pt(b)[0] < pt(a)[0], u = unit(sub(b, a)), pl = plane(flip ? b : a, flip ? mul(u, -1) : u, unit(sub(a, c))), wm = len3(sub(b, a)), hm = len3(sub(a, c));
+            if (hl.facing(0.76, 0.1, sg)) decal(g, pl, 0, -hm, wm, hm, (cg) => chalk(cg, 'PUFFIN', wm * 50, hm * 88, hm * 92, { seed: 'dg-name', align: 'center' }), { nx: 4, ny: 1 });
+        }
+        wheel(nearZ, 'dg-wheel-near');
+    }
+
+    // --- Aunt Dot's chip hut ----------------------------------------------------------------------
+    // A box 3 × 2.4 × 2.2 m in its frame hutF (x along the front, z into the hut; the front wall
+    // is z = −1.1). Everything on a wall is placed in metres on that wall's plane.
+    const hutFront = wallOf(hutF, HUT.w, HUT.d, 'front'), hutRight = wallOf(hutF, HUT.w, HUT.d, 'right');
+    const HW = lw(HUT.o[2]);
+    const hatchQuad = () => hutFront.q(HUT.hatch[0], HUT.hatch[2], HUT.hatch[1], HUT.hatch[3]);
+    // a bottle, a jar, a shaker: small turned things
+    const turned = (g, c, prof, fill, seed, o = {}) => lathe(g, c, prof, { fill, w: HW * 0.9, seed, n: 10, ...o });
+
+    // what Dot keeps inside, seen through the hatch: the back wall 2.1 m behind the front one
+    function hutInside(g) {
+        const S3 = hutF.w, back = plane(S3(-1.42, 0, 1.02), hutF.X, UP);
+        slab(g, back.q(0, 0.3, 2.84, 2.34), { fill: P.inside, w: HW, seed: 'in-back', over: 0.3 });
+        // the fryer's hood in the corner
+        boxOf(g, S3(1.0, 1.42, 0.62), [0.8, 0.7, 0.72], HUT.yaw, {
+            fill: { all: C.greyDeep, bottom: P.iron }, w: HW, seed: 'hood',
+            face: (f, pl) => {
+                if (f.name !== 'front') return;
+                ln(g, [pl.p(0.06, 0.14), pl.p(pl.W - 0.06, 0.14)], { w: HW, seed: 'hood-l' });
+                for (const u of [0.22, 0.4, 0.58]) ln(g, [pl.p(u, 0.3), pl.p(u, 0.52)], { w: HW * 0.9, seed: 'hood-v' + u });
+            },
+        });
+        // a rail of tools on the back wall: a fish slice, a ladle, a frying basket
+        ln(g, [back.p(0.2, 2.02, 0.03), back.p(1.75, 2.02, 0.03)], { w: HW, seed: 'tool-rail' });
+        onPlane(g, back, 0.42, 2.02, (c, k) => {
+            const l = HW / k;
+            T.line(c, [[0, 0], [0, 13]], { w: l, seed: 'slice-h' });
+            T.slab(c, [[-7, 13], [7, 13], [8, 27], [-8, 27]], { fill: C.grey, w: l, seed: 'slice', over: 0.5 });
+            for (const x of [-3.5, 0, 3.5]) T.line(c, [[x, 16], [x, 24]], { w: l * 0.8, seed: 'slice-s' + x });
+            T.line(c, [[34, 0], [34, 20]], { w: l, seed: 'ladle-h' });
+            T.shape(c, [[26, 20, 1], [28, 29], [34, 32], [41, 29], [43, 20, 1]], { fill: C.grey, w: l, seed: 'ladle' });
+            T.line(c, [[68, 0], [68, 11]], { w: l, seed: 'basket-h' });
+            const bk = T.shape(c, [[56, 11, 1], [59, 29], [68, 33], [78, 29], [81, 11, 1]], { fill: C.roadLine, w: l, seed: 'basket' });
+            netting(c, bk, 5, { w: l * 0.75, seed: 'basket-n' });
+        }, 0.03);
+        // a shelf with jars (pickled eggs, onions) and a radio
+        const jar = (x, r, h, fill, lid, seed) => {
+            turned(g, S3(x, 1.46, 0.9), [[r, 0], [r, h]], fill, seed, { top: false, under: false });
+            turned(g, S3(x, 1.46 + h, 0.9), [[r * 1.08, 0], [r * 1.08, 0.035]], lid, seed + 'lid', { top: false, under: false });
+        };
+        jar(-1.12, 0.085, 0.21, C.glass, C.red, 'jar-a');
+        for (const [dx, dy] of [[-0.03, 0.05], [0.035, 0.06], [-0.005, 0.12], [0.04, 0.15]]) {
+            const [ex, ey] = pt(S3(-1.12 + dx, 1.46 + dy, 0.82));
+            T.shape(g, T.ellipse(ex, ey, 4.6, 3.9, 0.3, 8), { fill: C.white, w: HW * 0.75, seed: 'egg' + dx, dense: true });
+        }
+        jar(-0.86, 0.07, 0.17, C.lime, C.roadLine, 'jar-b');
+        boxOf(g, S3(-0.42, 1.46, 0.9), [0.34, 0.19, 0.12], HUT.yaw, {
+            fill: C.salmon, w: HW, seed: 'radio',
+            face: (f, pl) => {
+                if (f.name !== 'front') return;
+                dot(g, ...pl.p(0.09, 0.095), 0.055 * sc(HUT.o[2] + 0.9), C.ink);
+                for (const v of [0.05, 0.095, 0.14]) ln(g, [pl.p(0.18, v), pl.p(0.3, v)], { w: HW * 0.8, seed: 'radio-l' + v });
+            },
+        });
+        ln3(g, [S3(-0.28, 1.65, 0.9), S3(-0.2, 1.95, 0.9)], { w: HW * 0.9, seed: 'radio-aer' });
+        boxOf(g, S3(-0.62, 1.42, 0.9), [1.5, 0.04, 0.24], HUT.yaw, { fill: { all: C.wood, bottom: C.woodDeep }, w: HW, seed: 'shelf', over: 0.4 });
+        // today's fish on a card, a bulb on its flex
+        const cq = back.q(2.0, 0.95, 2.36, 1.3, 0.02);
+        slab(g, cq, { fill: P.cream, w: HW * 0.9, seed: 'card', over: 0.6 });
+        onPlane(g, back, 2.03, 1.27, (c) => {
+            chalk(c, 'COD', 2, 13, 13, { color: C.ink, seed: 'card-a' });
+            chalk(c, 'HAKE', 2, 28, 13, { color: C.red, seed: 'card-b' });
+        }, 0.025);
+        ln3(g, [S3(-0.98, 2.36, 0.3), S3(-0.98, 2.1, 0.3)], { w: HW * 0.9, seed: 'flex' });
+        const [bx, by] = pt(S3(-0.98, 2.03, 0.3)), bs = sc(HUT.o[2] + 0.3);
+        T.shape(g, T.ellipse(bx, by, 0.05 * bs, 0.065 * bs, 0, 9), { fill: C.yellow, w: HW * 0.9, seed: 'bulb', dense: true });
+    }
+
+    // The counter (its board 1.05 m up, 0.4 deep, 0.3 of it outside the wall) and what stands on
+    // it. Drawn with the hut and again over whoever serves (Harbor.counter). We look up at it:
+    // its edge and underside show, not its top.
+    function counterTop(g) {
+        const S3 = hutF.w;
+        // on it, back row first: sauce bottles and vinegar at one end, the bell, cones and salt at the other
+        const bottle = (x, fill, seed) => {
+            turned(g, S3(x, 1.05, -1.22), [[0.04, 0], [0.043, 0.13], [0.022, 0.17]], fill, seed, { top: false, under: false, bands: [[0.045, 0.11, C.white]] });
+            turned(g, S3(x, 1.22, -1.22), [[0.02, 0], [0.008, 0.075]], C.white, seed + 'n', { top: false, under: false });
+        };
+        bottle(-0.84, C.red, 'sauce-k');
+        bottle(-0.7, C.roadLine, 'sauce-m');
+        turned(g, S3(-0.55, 1.05, -1.2), [[0.038, 0], [0.04, 0.11], [0.02, 0.17], [0.018, 0.23]], C.trunk, 'vinegar', { top: false, under: false });
+        turned(g, S3(-0.55, 1.28, -1.2), [[0.022, 0], [0.022, 0.03]], C.grey, 'vinegar-cap', { top: false, under: false });
+        turned(g, S3(-0.02, 1.05, -1.24), [[0.06, 0], [0.055, 0.03], [0.03, 0.055], [0.008, 0.062]], C.roadLine, 'bell', { top: false, under: false });
+        dot(g, ...pt(S3(-0.02, 1.122, -1.24)), 1.7, C.ink);
+        // paper cones stacked in their holder: flat triangles facing the front
+        for (let i = 3; i >= 0; i--) {
+            const y = 1.2 + i * 0.045, q = [S3(0.3, y + 0.16, -1.22), S3(0.46, y + 0.16, -1.22), S3(0.38, y - 0.08, -1.22)].map(pt);
+            poly(g, q, { fill: P.cream, w: HW * 0.9, seed: 'cone' + i });
+            ln(g, [mix(q[0], q[1], 0.3), mix(q[0], q[2], 0.8)], { w: HW * 0.8, seed: 'cone-l' + i, color: C.red });
+        }
+        turned(g, S3(0.38, 1.05, -1.22), [[0.07, 0], [0.085, 0.13]], C.greyDeep, 'cone-holder', { top: false, under: false });
+        turned(g, S3(0.6, 1.05, -1.2), [[0.045, 0], [0.048, 0.1], [0.035, 0.13]], C.white, 'salt', { top: false, under: false });
+        turned(g, S3(0.6, 1.18, -1.2), [[0.037, 0], [0.03, 0.03]], C.grey, 'salt-cap', { top: false, under: false });
+        onPlane(g, plane(S3(0.57, 1.06, -1.25), hutF.X, UP), 0, 0.085, (c) => chalk(c, 'S', 0, 8, 9, { color: C.blue, seed: 'salt-s' }));
+        // the board itself
+        boxOf(g, S3(-0.15, 0.99, -1.2), [1.86, 0.06, 0.4], HUT.yaw, { fill: { all: C.wood, bottom: C.woodDeep, top: P.deck }, w: HW, seed: 'counter', over: 0.8 });
+        const fq = plane(S3(-1.08, 0.99, -1.4), hutF.X, UP);
+        for (const [u, L] of [[0.3, 0.22], [0.86, 0.15], [1.42, 0.2]]) ln(g, [fq.p(u, 0.03), fq.p(u + L, 0.03)], { w: HW * 0.8, seed: 'counter-t' + u });
+    }
+
+    function hut(g) {
+        const S3 = hutF.w, S = hutF.s, F_ = hutFront, R_ = hutRight, [u0, u1, v0, v1] = HUT.hatch, w = HW;
+        // behind the walls: the flue up through the roof, the stays of the sign
+        lathe(g, S3(0.6, 2.5, 0.75), [[0.09, 0], [0.09, 1.0]], { fill: C.grey, w, seed: 'flue', rings: [0.3, 0.75], top: false, under: false, n: 12 });
+        for (const k of [-0.06, 0.06]) ln3(g, [S3(0.6 + k, 3.5, 0.75), S3(0.6 + k, 3.6, 0.75)], { w, seed: 'flue-l' + k });
+        lathe(g, S3(0.6, 3.58, 0.75), [[0.2, 0], [0.03, 0.17]], { fill: C.greyDeep, w, seed: 'flue-hat', n: 12, top: false });
+        for (const x of [-1.0, 1.0]) ln3(g, [S3(x, 3.5, -0.86), S3(x, 2.5, 0.2)], { w, seed: 'sign-stay' + x });
+        // the roof is a board 0.1 m thick that oversails the walls: its underside first
+        const roof = Cam.box(S3(0, HUT.h, -0.08), [3.3, 0.1, 2.56], HUT.yaw);
+        for (const f of roof) if (f.name === 'bottom') slab(g, f.pts, { fill: P.hutDeep, w, seed: 'hut-soffit', over: 1 });
+        // the side wall: planks, the fuse box and its pipe
+        slab(g, R_.q(0, 0, HUT.d, HUT.h), { fill: P.hutSide, w, seed: 'hut-side', over: 1.4 });
+        planksOn(g, R_, 0.12, HUT.d, 0.12, HUT.h, 0.26, { seed: 'hut-side-pl', skip: 0.06, w });
+        slab(g, R_.q(0, 0, HUT.d, 0.12), { fill: P.hutDeep, w, seed: 'hut-side-kick', over: 0.8 });
+        slab(g, R_.q(0.5, 1.35, 0.82, 1.78, 0.07), { fill: C.grey, w: w * 0.9, seed: 'fuse', over: 0.6 });
+        ln(g, [R_.p(0.66, 1.39, 0.07), R_.p(0.66, 1.74, 0.07)], { w: w * 0.9, seed: 'fuse-d' });
+        dot(g, ...R_.p(0.74, 1.56, 0.07), 1.6, C.red);
+        ln(g, [R_.p(0.66, 1.35, 0.03), R_.p(0.67, 0.14, 0.03)], { w, seed: 'fuse-pipe' });
+        // the front wall: teal planks, a kick board, a cream post on the corner
+        slab(g, F_.q(0, 0, HUT.w, HUT.h), { fill: P.hut, w, seed: 'hut-front', over: 1.6 });
+        planksOn(g, F_, 0, HUT.w - 0.12, 0.12, HUT.h, 0.25, { seed: 'hut-pl', skip: 0.05, w });
+        const RN = Motion.rng('hut-nails');
+        for (let i = 0; i < 16; i++) dot(g, ...F_.p(0.2 + RN() * 2.5, RN() < 0.5 ? 0.95 - RN() * 0.04 : 0.2 + RN() * 0.03), 1.5, C.ink);
+        slab(g, F_.q(0, 0, HUT.w, 0.12), { fill: P.hutDeep, w, seed: 'hut-kick', over: 1 });
+        slab(g, F_.q(HUT.w - 0.13, 0, HUT.w, HUT.h), { fill: P.cream, w, seed: 'hut-post', over: 1.2 });
+        slab(g, R_.q(0, 0, 0.13, HUT.h), { fill: '#ecdcb8', w, seed: 'hut-post-s', over: 1.2 });
+        // the hatch: the dark of the hut and what is in it
+        slab(g, hatchQuad(), { fill: P.insideDeep, w, seed: 'hatch', over: 1.2, inside: hutInside });
+        // the shutter, rolled up: its last slats and the cord
+        slab(g, F_.q(u0, v1 - 0.09, u1, v1, 0.02), { fill: C.grey, w, seed: 'shutter', over: 0.6 });
+        for (const v of [0.03, 0.06]) ln(g, [F_.p(u0, v1 - v, 0.02), F_.p(u1, v1 - v, 0.02)], { w: w * 0.85, seed: 'shutter-s' + v });
+        ln(g, [F_.p(u1 - 0.1, v1 - 0.09, 0.02), F_.p(u1 - 0.1, v1 - 0.4, 0.02)], { w: w * 0.9, seed: 'cord' });
+        T.shape(g, T.ellipse(...F_.p(u1 - 0.1, v1 - 0.43, 0.02), 3.6, 3.6, 0, 8), { fill: null, w: w * 0.9, seed: 'cord-ring', dense: true });
+        // the frame of the hatch
+        for (const [a, k] of [[u0 - 0.09, 'l'], [u1, 'r']]) slab(g, F_.q(a, v0 - 0.02, a + 0.09, v1, 0.03), { fill: P.cream, w, seed: 'hatch-j' + k, over: 0.7 });
+        // under the counter: the hut's fish on a roundel, a poster by the hatch, brackets
+        const rc = [1.35, 0.52], disc = (r, n) => Array.from({ length: n }, (_, i) => F_.p(rc[0] + Math.cos((i / n) * Math.PI * 2) * r, rc[1] + Math.sin((i / n) * Math.PI * 2) * r, 0.02));
+        T.shape(g, disc(0.34, 22), { fill: P.cream, w, seed: 'roundel', dense: true, amp: 0.2 });
+        T.shape(g, disc(0.285, 20), { fill: null, w: w * 0.85, seed: 'roundel-in', dense: true, amp: 0.2, color: P.coral });
+        onPlane(g, F_, rc[0], rc[1], (c, k) => fish(c, 0, 0, 21, { seed: 'roundel-fish', rot: -0.1, w: w / k }), 0.02);
+        slab(g, F_.q(0.1, 1.16, 0.43, 1.72, 0.015), { fill: C.yellow, w, seed: 'poster', over: 0.9 });
+        onPlane(g, F_, 0.1, 1.72, (c) => {
+            chalk(c, '2 FOR', 3, 15, 13, { color: C.red, seed: 'poster-a', rot: -0.04 });
+            chalk(c, '1', 9, 50, 36, { color: P.navy, seed: 'poster-b', rot: 0.06 });
+        }, 0.02);
+        for (const [a, b] of [[0.14, 1.69], [0.39, 1.69]]) dot(g, ...F_.p(a, b, 0.02), 1.7, C.red);
+        for (const x of [-0.86, 0.56]) poly(g, [S(x, 0.99, -1.36), S(x, 0.99, -1.1), S(x, 0.7, -1.1), S(x, 0.74, -1.15)], { fill: P.cream, w, seed: 'bracket' + x });
+        counterTop(g);
+        // the roof's edges
+        for (const f of roof) if (f.name !== 'bottom') slab(g, f.pts, { fill: P.cream, w, seed: 'hut-roof' + f.name, over: 1.4 });
+        // the awning over the hatch: 0.9 m out, falling 0.4 m; stripes 0.2 m wide, a scalloped valance
+        const ax0 = -1.15, n = 10, sw = 0.2, top = [2.38, -1.1], out = [1.92, -2.0];
+        for (const x of [ax0, ax0 + n * sw]) ln3(g, [S3(x, 1.72, -1.1), S3(x, out[0], out[1])], { w: w * 1.1, seed: 'awn-arm' + x });
+        for (let i = 0; i < n; i++) {
+            const x = ax0 + i * sw;
+            sh(g, [[...S(x, out[0], out[1]), 1], [...S(x + sw, out[0], out[1]), 1], [...S(x + sw, out[0] - 0.13, out[1]), 1], S(x + sw / 2, out[0] - 0.2, out[1]), [...S(x, out[0] - 0.13, out[1]), 1]], { fill: i % 2 ? P.cream : P.coral, w: w * 0.9, seed: 'val' + i });
+        }
+        slope(g, [S3(ax0, top[0], top[1]), S3(ax0 + n * sw, top[0], top[1]), S3(ax0 + n * sw, out[0], out[1]), S3(ax0, out[0], out[1])], {
+            fill: P.cream, under: P.parasolUnder, w, seed: 'awning', over: 1.2,
+            inside: (c) => {
+                c.fillStyle = P.coral;
+                for (let i = 0; i < n; i += 2) c.fill(T.pathOf([S(ax0 + i * sw, top[0], top[1]), S(ax0 + (i + 1) * sw, top[0], top[1]), S(ax0 + (i + 1) * sw, out[0], out[1]), S(ax0 + i * sw, out[0], out[1])]));
+            },
+        });
+        for (let i = 1; i < n; i++) ln(g, [S(ax0 + i * sw, top[0], top[1]), S(ax0 + i * sw, out[0], out[1])], { w: w * 0.85, seed: 'awn-l' + i });
+        // the sign on the roof: a navy board 2.6 × 0.9 m on two legs, DOT'S CHIPS, bulbs all round
+        for (const x of [-1.0, 1.0]) boxOf(g, S3(x, 2.5, -0.9), [0.1, 0.26, 0.1], HUT.yaw, { fill: C.wood, w, seed: 'sign-leg' + x, over: 0.5 });
+        const B_ = plane(S3(-1.3, 2.74, -0.94), hutF.X, UP);
+        boxOf(g, S3(0, 2.74, -0.9), [2.6, 0.9, 0.08], HUT.yaw, { fill: { all: C.woodDeep, front: P.navy }, w, seed: 'dot-board', over: 1.8 });
+        slab(g, B_.q(0.08, 0.07, 2.52, 0.83), { fill: null, w: w * 0.85, seed: 'dot-inner', over: 0.4, color: P.cream });
+        decal(g, B_, 0.1, 0.06, 2.4, 0.8, (c, k) => {
+            T.sign(c, "DOT'S", 62, 31, { size: 33, fill: C.white, drop: P.coral, seed: 'dot-a', tilt: 0.1, w: BG / k });
+            T.sign(c, 'CHIPS', 136, 72, { size: 51, fill: C.roadLine, drop: P.coral, seed: 'dot-b', tilt: 0.08, track: 0.06, w: BG / k });
+        }, { out: 0.005, nx: 12, ny: 4 });
+        // the fish jumps over the board
+        onPlane(g, B_, 1.96, 0.9, (c, k) => fish(c, 0, 0, 41, { seed: 'sign-fish', rot: -0.16, w: BG / k }), 0.03);
+        const bulbs = [];
+        for (let i = 0; i <= 11; i++) if (i < 7 || i > 10) bulbs.push([(2.6 * i) / 11, 0.9]);
+        for (let i = 1; i <= 3; i++) bulbs.push([2.6, (0.9 * i) / 4], [0, (0.9 * i) / 4]);
+        for (let i = 0; i <= 11; i++) bulbs.push([(2.6 * i) / 11, 0]);
+        for (const [i, [a, b]] of bulbs.entries()) T.shape(g, T.ellipse(...B_.p(a, b, 0.03), 5, 5, 0, 9), { fill: i % 3 === 0 ? C.white : i % 3 === 1 ? C.yellow : P.coral, w: w * 0.85, seed: 'bulb' + i, dense: true });
+    }
+
+    // what stands round the hut, far to near
+    function hutThings(g) {
+        const S3 = hutF.w, w = HW;
+        // Dot's old longboard leaning on the side wall: 2.3 m, its foot 0.5 m out from the wall
+        {
+            const foot = hutRight.w(1.5, 0, 0.5), head = hutRight.w(1.58, 2.24, 0.03), pl = plane(foot, hutF.Z, unit(sub(head, foot))), L = len3(sub(head, foot));
+            const o = [[0, L, 1], [0.15, L * 0.84], [0.25, L * 0.55], [0.24, L * 0.22], [0.13, L * 0.03], [0, 0], [-0.13, L * 0.03], [-0.24, L * 0.22], [-0.25, L * 0.55], [-0.15, L * 0.84]].map(([a, b, c]) => [...pl.p(a, b), c]);
+            sh(g, o, {
+                fill: P.cream, w, seed: 'surf',
+                inside: (c) => {
+                    c.fillStyle = P.coral;
+                    c.fill(T.pathOf(pl.q(-0.3, L * 0.3, 0.3, L * 0.4)));
+                    c.fillStyle = P.fish;
+                    c.fill(T.pathOf(pl.q(-0.3, L * 0.24, 0.3, L * 0.28)));
+                },
+            });
+            ln(g, [pl.p(0, L * 0.04), pl.p(0, L * 0.5), pl.p(0, L * 0.96)], { w: w * 0.85, seed: 'surf-stringer' });
+            onPlane(g, pl, 0.02, L * 0.66, (c, k) => fish(c, 0, 0, 11, { rot: -1.5, w: (w * 0.85) / k, seed: 'surf-fish' }));
+        }
+        // the gas bottle by the side wall, its hose to the hut
+        {
+            const c = S3(1.8, 0, 0.35);
+            rope3(g, [add(c, [0, 0.74, 0]), add(c, [-0.05, 0.92, 0.05]), hutRight.w(1.3, 0.95, 0.05), hutRight.w(1.2, 0.7, 0.02)], 0.03, { seed: 'gas-hose', lay: false, fill: C.ink });
+            lathe(g, c, [[0.15, 0], [0.16, 0.05], [0.16, 0.5], [0.12, 0.6], [0.06, 0.63]], { fill: C.orange, w, seed: 'gas', rings: [0.12, 0.46], top: false });
+            lathe(g, c, [[0.1, 0.6], [0.1, 0.74]], { fill: P.iron, w, seed: 'gas-collar', top: false, n: 12 });
+            ln3(g, [add(c, [-0.08, 0.2, -0.12]), add(c, [-0.08, 0.4, -0.12])], { w, seed: 'gas-gl', color: C.white });
+        }
+        // crates and a sack of spuds under the left of the counter
+        boxOf(g, S3(-1.16, 0, -1.5), [0.62, 0.42, 0.44], HUT.yaw + 0.12, {
+            fill: { all: C.wood, top: P.deck }, w, seed: 'crate-a',
+            face: (f, pl) => {
+                if (f.name === 'top' || f.name === 'bottom') return;
+                for (const v of [0.14, 0.28]) ln(g, [pl.p(0, v), pl.p(pl.W, v)], { w, seed: 'crate-a' + f.name + v });
+                for (const u of [0.07, pl.W - 0.07]) ln(g, [pl.p(u, 0), pl.p(u, pl.H)], { w, seed: 'crate-av' + f.name + u });
+            },
+        });
+        fishBox(g, S3(-1.14, 0.42, -1.5), HUT.yaw - 0.1, C.blue, 'crate-b');
+        {
+            const c = S3(-0.62, 0, -1.42), pl = plane(c, hutF.X, UP);
+            onPlane(g, pl, 0, 0, (cg, k) => {
+                const l = w / k;
+                T.shape(cg, [[-24, 0, 1], [-27, -34], [-21, -60], [-12, -70, 1], [-6, -64], [6, -72, 1], [16, -58], [25, -32], [23, 0, 1]], { fill: P.sack, w: l, seed: 'sack' });
+                T.line(cg, [[-17, -63], [-6, -59], [10, -64]], { w: l, seed: 'sack-tie' });
+                chalk(cg, 'SPUDS', -19, -20, 15, { color: C.maroon, seed: 'sack-t', rot: -0.06 });
+                T.line(cg, [[-21, -42], [-18, -50]], { w: l * 0.9, seed: 'sack-f1' });
+                T.line(cg, [[19, -8], [21, -18]], { w: l * 0.9, seed: 'sack-f2' });
+            });
+        }
+        // the menu: a chalk board on an A frame, turned to the passers-by
+        {
+            const fa = frame(S3(1.62, 0, -2.05), HUT.yaw - 0.42), a = fa.w(-0.31, 0, -0.2), b = fa.w(-0.31, 1.0, 0.02), pl = plane(a, fa.X, unit(sub(b, a))), L = len3(sub(b, a));
+            for (const x of [-0.29, 0.29]) bar3(g, fa.w(x, 0.98, 0.04), fa.w(x, 0, 0.3), 0.045, { fill: C.wood, w, seed: 'menu-leg' + x });
+            slab(g, pl.q(0, 0, 0.62, L), { fill: C.wood, w, seed: 'menu-frame', over: 1.3 });
+            slab(g, pl.q(0.05, 0.07, 0.57, L - 0.06), { fill: P.chalk, w: w * 0.85, seed: 'menu-board', over: 0.4 });
+            decal(g, pl, 0.05, 0.07, 0.52, L - 0.13, (c) => {
+                chalk(c, 'MENU', 26, 17, 17, { seed: 'menu-a', align: 'center', rot: -0.04, color: C.roadLine });
+                c.strokeStyle = C.white;
+                c.lineWidth = 1;
+                c.beginPath();
+                c.moveTo(7, 22);
+                c.lineTo(45, 21);
+                c.stroke();
+                for (const [i, [t, p]] of [['CHIPS', '2'], ['FISH', '3'], ['PEAS', '1'], ['TEA', '1']].entries()) {
+                    chalk(c, t, 5, 38 + i * 14.5, 12.5, { seed: 'menu-r' + i, rot: -0.03 });
+                    chalk(c, p, 40, 38 + i * 14.5, 12.5, { seed: 'menu-p' + i, rot: -0.03, color: C.salmon });
+                }
+            }, { nx: 3, ny: 5, out: 0.004 });
+        }
+        // the bin by the corner: a drum with a domed lid and a flap, a cup left on it, a wrapper on the ground
+        {
+            const c = S3(2.05, 0, -1.5), s = sc(c[2]), toCam = unit([-c[0], 0, -c[2]]), pl = plane(add(c, mul(toCam, 0.27)), unit(cross(UP, toCam)), UP);
+            lathe(g, c, [[0.25, 0], [0.27, 0.72]], { fill: C.green, w, seed: 'bin', rings: [0.08, 0.64], top: false, n: 20 });
+            lathe(g, c, [[0.29, 0.72], [0.27, 0.8], [0.17, 0.9], [0.05, 0.93]], { fill: P.hutDeep, w, seed: 'bin-lid', under: false, n: 20 });
+            slab(g, pl.q(-0.13, 0.76, 0.13, 0.87, 0.02), { fill: C.ink, w: w * 0.85, seed: 'bin-flap', over: 0.4 });
+            slab(g, pl.q(-0.15, 0.25, 0.15, 0.5), { fill: C.white, w: w * 0.85, seed: 'bin-label', over: 0.5 });
+            onPlane(g, pl, 0, 0.375, (cg, k) => fish(cg, 0, 0, 10.5, { w: (w * 0.85) / k, seed: 'bin-fish', flip: true }));
+            const [wx, wy] = pt(add(c, [0.42, 0, -0.2]));
+            sh(g, [[wx - 0.1 * s, wy, 1], [wx - 0.06 * s, wy - 0.06 * s], [wx + 0.04 * s, wy - 0.035 * s, 1], [wx + 0.08 * s, wy + 0.01 * s], [wx, wy + 0.02 * s]], { fill: P.cream, w: w * 0.85, seed: 'wrapper' });
+        }
+    }
+
+    // --- the café table by the hut -----------------------------------------------------------------
+    // Table 0.75 m high, its top 0.8 across (above the camera's eye: we see its edge and a sliver
+    // of its underside); two stools 0.45 high; a parasol 2.3 m high and 1.9 across, seen from below.
+    function cafe(g) {
+        const c = TABLE, w = lw(c[2]);
+        const stool = (p, seed) => {
+            lathe(g, p, [[0.16, 0], [0.15, 0.02]], { fill: P.iron, w, seed: seed + 'f', n: 14 });
+            bar3(g, add(p, [0, 0.02, 0]), add(p, [0, 0.41, 0]), 0.05, { fill: P.iron, w, seed: seed + 'l' });
+            lathe(g, p, [[0.15, 0.4], [0.17, 0.42], [0.17, 0.45]], { fill: P.coral, w, seed: seed + 's', n: 14 });
+        };
+        const stools = [[0.66, 0, 0.3], [-0.5, 0, -0.5]].map((d) => add(c, d));
+        for (const [i, p] of stools.entries()) if (p[2] > c[2]) stool(p, 'stool' + i);
+        // the canopy: eight gores from the pole's top to a rim that sags between its ribs
+        const apex = add(c, [0, 2.3, 0]), R = 0.95, n = 8, rim = (i) => [c[0] + Math.cos((i / n) * Math.PI * 2 + 0.2) * R, 1.95, c[2] + Math.sin((i / n) * Math.PI * 2 + 0.2) * R];
+        const mid = (i) => { const a = ((i + 0.5) / n) * Math.PI * 2 + 0.2; return [c[0] + Math.cos(a) * R * 0.9, 1.985, c[2] + Math.sin(a) * R * 0.9]; };
+        const gores = Array.from({ length: n }, (_, i) => {
+            let nn = cross(sub(rim(i), apex), sub(rim(i + 1), apex));
+            if (nn[1] < 0) nn = mul(nn, -1);
+            return { i, top: dot3(nn, sub(EYE3, mid(i))) > 0, d: len3(sub(mid(i), EYE3)) };
+        }).sort((a, b) => b.d - a.d);
+        const gore = ({ i, top }) => sh(g, [[...pt(apex), 1], [...pt(rim(i)), 1], pt(mid(i)), [...pt(rim(i + 1)), 1]], { fill: top ? (i % 2 ? P.cream : P.coral) : i % 2 ? P.parasolUnder : '#e9a48c', w, seed: 'gore' + i });
+        for (const gr of gores) if (!gr.top) gore(gr);
+        // table: foot, pedestal (the parasol's pole runs on up through the top)
+        lathe(g, c, [[0.25, 0], [0.22, 0.03]], { fill: P.iron, w, seed: 'tb-foot', n: 16 });
+        bar3(g, add(c, [0, 0.03, 0]), add(c, [0, 0.72, 0]), 0.07, { fill: C.white, w, seed: 'tb-leg' });
+        bar3(g, add(c, [0, 0.75, 0]), add(c, [0, 2.28, 0]), 0.045, { fill: C.grey, w, seed: 'ps-pole' });
+        // a sauce bottle and a cone of chips somebody left
+        turned(g, add(c, [0.16, 0.75, -0.08]), [[0.04, 0], [0.043, 0.13], [0.02, 0.17], [0.01, 0.24]], C.red, 'tb-bottle', { top: false, under: false, w });
+        {
+            const q = [add(c, [-0.3, 0.98, 0]), add(c, [-0.14, 0.98, 0]), add(c, [-0.2, 0.75, 0])].map(pt);
+            for (const [k, dx] of [[0, -0.27], [1, -0.21], [2, -0.16]]) bar3(g, add(c, [dx, 0.97, 0]), add(c, [dx + (k - 1) * 0.02, 1.1, 0]), 0.022, { fill: C.roadLine, w: w * 0.8, seed: 'tb-chip' + k });
+            poly(g, q, { fill: P.cream, w: w * 0.9, seed: 'tb-cone' });
+        }
+        lathe(g, c, [[0.4, 0.715], [0.4, 0.75]], { fill: C.white, underFill: C.grey, w, seed: 'tb-top', n: 22 });
+        for (const gr of gores) if (gr.top) gore(gr);
+        dot(g, ...pt(add(apex, [0, 0.04, 0])), 3.2, C.roadLine);
+        for (const [i, p] of stools.entries()) if (p[2] <= c[2]) stool(p, 'stool' + i);
+    }
+
+    /**
+     * A palm, foot on the ground at `foot`, hm metres tall: a trunk that bows and thins, ringed
+     * (each ring the near half of a circle round it: they bow up above the horizon and down below
+     * it); fronds as arcs that droop under their own weight, the far ones darker; coconuts.
+     * o.lean: metres the head stands off the foot; o.sway (radians) rocks the crown, on twos.
+     */
+    function palmTree(g, foot, hm, o = {}) {
+        const { lean = -0.5, sway = 0, seed = 'palm' } = o, s = sc(foot[2]), [x, y] = pt(foot), h = hm * s, w = lw(foot[2]), ln_ = lean * s;
+        const top = [x + ln_ + sway * h * 0.25, y - h];
+        const spine = [[x, y], [x + ln_ * 0.08, y - h * 0.34], [x + ln_ * 0.42, y - h * 0.68], top];
+        sh(g, T.ribbon(spine, 0.36 * s, 0.22 * s, { step: 1 }), { fill: C.trunk, w, seed: seed + 'trunk', dense: true });
+        const sp = T.path(spine);
+        for (let k = 1; k < 15; k++) {
+            const q = sp[Math.floor((k / 15) * (sp.length - 1))], hw = (0.18 - 0.07 * (k / 15)) * s, bow = (hw * (H0 - q[1])) / (F / (foot[2] / 1)) * 1.0;
+            ln(g, [[q[0] - hw, q[1]], [q[0] - hw * 0.1, q[1] - bow * 1.15], [q[0] + hw * (k % 2 ? 0.92 : 0.5), q[1] - bow * 0.5]], { w: w * 0.9, seed: seed + 'ring' + k });
+        }
         const frond = (a, len, far, key) => {
             a += sway * (0.6 + Math.abs(Math.cos(a)));
             const dx = Math.cos(a), dy = Math.sin(a), droop = len * (0.22 + 0.42 * Math.abs(dx)), n = 6;
-            const at = (u) => [top[0] + dx * len * u, top[1] + dy * len * u + droop * u * u];
+            const at_ = (u) => [top[0] + dx * len * u, top[1] + dy * len * u + droop * u * u];
             const tan = (u) => {
                 const tx = dx * len, ty = dy * len + 2 * droop * u, l = Math.hypot(tx, ty) || 1;
                 return [tx / l, ty / l];
             };
             const wd = len * 0.17, up = [], dn = [];
             for (let i = 0; i <= n; i++) {
-                const u = i / n, q = at(u), [tx, ty] = tan(u), nx = -ty * Math.sign(dx || 1), ny = tx * Math.sign(dx || 1);
+                const u = i / n, q = at_(u), [tx, ty] = tan(u), nx = -ty * Math.sign(dx || 1), ny = tx * Math.sign(dx || 1);
                 const bulge = Math.sin(Math.PI * Math.min(1, u * 1.1 + 0.06));
                 up.push([q[0] + nx * wd * 0.22 * bulge, q[1] + ny * wd * 0.22 * bulge]);
-                // the lower edge: each leaflet a point hanging back towards the trunk
                 if (i > 0 && i < n) {
                     dn.push([q[0] - nx * wd * 0.55 * bulge + tx * len * 0.02, q[1] - ny * wd * 0.55 * bulge + ty * len * 0.02, 1]);
                     dn.push([q[0] - nx * wd * 1.0 * bulge + tx * len * 0.05, q[1] - ny * wd * 1.0 * bulge + ty * len * 0.05]);
                 }
             }
-            const tip = at(1.04);
+            const tip = at_(1.04);
             sh(g, [[...up[0], 1], ...up.slice(1), [tip[0], tip[1], 1], ...dn.reverse()], { fill: far ? C.palm : C.palmLight, w, seed: key });
-            ln(g, [at(0.06), at(0.4), at(0.72), at(0.96)], { w: MID, seed: key + 'rib' });
+            ln(g, [at_(0.06), at_(0.4), at_(0.72), at_(0.96)], { w: w * 0.85, seed: key + 'rib' });
         };
-        const F = [[-2.7, 0.42, 1], [-0.45, 0.44, 1], [-1.95, 0.4, 1], [-1.15, 0.42, 1], [-3.25, 0.4, 0], [0.12, 0.42, 0], [-2.3, 0.5, 0], [-0.85, 0.5, 0], [-1.58, 0.4, 0]];
-        for (const [i, [a, l, far]] of F.entries()) if (far) frond(a, h * l, 1, seed + 'f' + i);
-        for (const [i, [a, l, far]] of F.entries()) if (!far) frond(a, h * l, 0, seed + 'f' + i);
-        // coconuts tucked under the crown
-        for (const [cx, cy, r] of [[-9, 13, 8.5], [7, 15, 9], [-1, 24, 8]]) disc(g, top[0] + cx, top[1] + cy, r, r * 0.95, { fill: C.woodDeep, w: MID, seed: seed + 'nut' + cx, n: 10 });
+        const Fr = [[-2.7, 0.42, 1], [-0.45, 0.44, 1], [-1.95, 0.4, 1], [-1.15, 0.42, 1], [-3.25, 0.4, 0], [0.12, 0.42, 0], [-2.3, 0.5, 0], [-0.85, 0.5, 0], [-1.58, 0.4, 0]];
+        for (const [i, [a, l, far]] of Fr.entries()) if (far) frond(a, h * l, 1, seed + 'f' + i);
+        for (const [i, [a, l, far]] of Fr.entries()) if (!far) frond(a, h * l, 0, seed + 'f' + i);
+        for (const [cx, cy, r] of [[-0.1, 0.14, 0.095], [0.08, 0.16, 0.1], [-0.01, 0.26, 0.09]]) T.shape(g, T.ellipse(top[0] + cx * s, top[1] + cy * s, r * s, r * s * 0.95, 0, 10), { fill: C.woodDeep, w: w * 0.85, seed: seed + 'nut' + cx, dense: true });
+    }
+    // the pit the palm grows from: a square of soil with a stone kerb
+    function treePit(g) {
+        const q = (r) => [[-r, -r], [r, -r], [r, r], [-r, r]].map(([dx, dz]) => pt([PALM[0] + dx * Math.cos(PHI) + dz * Math.sin(PHI), 0, PALM[2] - dx * Math.sin(PHI) + dz * Math.cos(PHI)]));
+        slab(g, q(0.62), { fill: P.coping, w: lw(PALM[2]), seed: 'pit-kerb', over: 0.6 });
+        slab(g, q(0.48), { fill: P.soil, w: lw(PALM[2]) * 0.9, seed: 'pit-soil', over: 0.3 });
     }
 
-    function far(g) {
+    function near(g) {
+        cafe(g);
+        hut(g);
+        hutThings(g);
+    }
+
+    // --- the foreground: what stands in front of the cast -------------------------------------------
+    /**
+     * A lobster pot, 0.6 × 0.45 × 0.4 m: a slatted base, three bent hoops, netting over them, a
+     * netted end with its entrance. fr: its frame (x along its length).
+     */
+    function lobsterPot(g, at, yaw, o = {}) {
+        const { seed = 'pot', mesh = P.fish } = o, fr = frame(at, yaw), w = lw(at[2]), s = sc(at[2]);
+        const HL = 0.3, RZ = 0.215, RY = 0.35, Y0 = 0.05;
+        const S3 = (x, a) => fr.w(x, Y0 + Math.sin(a) * RY, Math.cos(a) * RZ), S = (x, a) => pt(S3(x, a));
+        const facing = (x, a) => dot3(add(mul(fr.Z, Math.cos(a) * RY), [0, Math.sin(a) * RZ, 0]), sub(EYE3, S3(x, a))) > 0;
+        const arc = (x, n = 14) => Array.from({ length: n + 1 }, (_, i) => S(x, (Math.PI * i) / n));
+        // which end we see
+        const end = dot3(fr.X, sub(EYE3, at)) > 0 ? 1 : -1;
+        boxOf(g, at, [0.64, Y0, 0.47], yaw, {
+            fill: { all: C.wood, top: C.woodDeep }, w, seed: seed + 'base',
+            face: (f, pl) => {
+                if (f.name === 'top' || f.name === 'bottom') return;
+                for (let u = 0.11; u < pl.W - 0.05; u += 0.11) ln(g, [pl.p(u, 0), pl.p(u, pl.H)], { w: w * 0.85, seed: seed + 'slat' + f.name + u.toFixed(2) });
+            },
+        });
+        // the netted body: one silhouette, then the meshes on the side we see
+        union(g, [hull2d([...arc(-HL), ...arc(0), ...arc(HL)])], { fill: mesh, w, seed: seed + 'body' });
+        const M = 9, step = Math.PI / M;
+        for (let k = -M; k < 2 * M; k++) {
+            for (const dir of [1, -1]) {
+                let cur = null;
+                const flush = () => {
+                    if (cur && cur.length > 1) T.line(g, cur, { w: w * 0.8, seed: seed + 'net' + k + dir, dense: true, amp: 0.1 });
+                    cur = null;
+                };
+                for (let i = 0; i <= 16; i++) {
+                    const x = -HL + (2 * HL * i) / 16, a = k * step + dir * (i / 16) * step * 4.2;
+                    if (a < 0.02 || a > Math.PI - 0.02 || !facing(x, a)) flush();
+                    else (cur ??= []).push(S(x, a));
+                }
+                flush();
+            }
+        }
+        // the hoops: withies bent over, the far ones only where they show
+        const hoop = (x, key) => {
+            const pts = [];
+            for (let i = 0; i <= 20; i++) {
+                const a = (Math.PI * i) / 20;
+                if (x * end > 0 || facing(x, a)) pts.push(S(x, a));
+            }
+            if (pts.length > 2) T.shape(g, T.ribbon(pts, 0.036 * s, 0.036 * s, { dense: true }), { fill: C.wood, w, seed: seed + key, dense: true, amp: 0.15 });
+        };
+        hoop(-end * HL, 'hoop-far');
+        hoop(0, 'hoop-mid');
+        // the end towards us: netting round the entrance, a rope ring for its mouth
+        const face = arc(end * HL, 18);
+        T.shape(g, face, { fill: mesh, w, seed: seed + 'face', dense: true, amp: 0.15 });
+        netting(g, face, 0.062 * s, { w: w * 0.8, seed: seed + 'facen' });
+        hoop(end * HL, 'hoop-near');
+        const mouth = (r, n = 16) => Array.from({ length: n }, (_, i) => pt(fr.w(end * (HL + 0.004), Y0 + 0.17 + Math.sin((i / n) * Math.PI * 2) * r, Math.cos((i / n) * Math.PI * 2) * r)));
+        T.shape(g, mouth(0.085), { fill: C.ink, w, seed: seed + 'mouth', dense: true, amp: 0.15 });
+        const mr = mouth(0.085, 20);
+        rope(g, [...mr, mr[0]], 0.024 * s, { seed: seed + 'mouth-r', w: w * 0.85, dense: true });
+        // a becket of rope on top to lift it by
+        rope3(g, [S3(-0.13, 1.5), fr.w(-0.07, Y0 + RY + 0.045, 0.01), fr.w(0.07, Y0 + RY + 0.045, -0.01), S3(0.13, 1.64)], 0.02, { seed: seed + 'becket', w: w * 0.85 });
+    }
+
+    // a coil of rope lying on the stone, 0.6 m across: three layers, each of three turns side by
+    // side round the hole in the middle, every turn a flat ring between two projected circles
+    // with the lay of its strands; its end run out beside it
+    function coil(g, c, o = {}) {
+        const { fill = C.blue, seed = 'coil' } = o, s = sc(c[2]), w = lw(c[2]), t = 0.055, n = 34;
+        const tail = [[0.15, 0.025, -0.13], [0.34, 0.025, -0.1], [0.46, 0.025, -0.17], [0.57, 0.025, -0.11]].map((p) => add(c, p));
+        rope(g, tail.map(pt), t * s, { fill, seed: seed + 't', w });
+        const [ex, ey] = pt(tail[tail.length - 1]);
+        ln(g, [[ex - 1, ey - t * s * 0.5], [ex + 1.5, ey + t * s * 0.5]], { w: w * 1.6, seed: seed + 'whip', color: C.white, amp: 0 });
+        for (let i = 0; i < 3; i++) {
+            const cc = add(c, [(i % 2) * 0.016 - 0.008, 0.028 + i * 0.05, (i % 2) * -0.012]), r0 = 0.115 + i * 0.012, turns = 3 - (i === 2 ? 1 : 0);
+            const circ = (r) => ring3(cc, r, n).map((p) => wob(pt(p), seed + i));
+            const rings = Array.from({ length: turns + 1 }, (_, k) => circ(r0 + k * t));
+            const path = T.pathOf(rings[turns]);
+            path.addPath(T.pathOf(rings[0]));
+            g.fillStyle = fill;
+            g.fill(path, 'evenodd');
+            for (let k = 0; k < turns; k++) for (let j = k % 2; j < n; j += 2) T.line(g, [mix(rings[k + 1][(j + 1) % n], rings[k][j], 0.14), mix(rings[k + 1][(j + 1) % n], rings[k][j], 0.86)], { w: w * 0.75, seed: seed + i + 'l' + k + j, amp: 0, taper: false });
+            for (const [k, r] of rings.entries()) T.line(g, r, { w: k === 0 || k === turns ? w : w * 0.85, seed: seed + i + 'c' + k, closed: true, dense: true, amp: 0.12 });
+        }
+    }
+
+    // a traffic cone 0.5 m tall on its square foot
+    function trafficCone(g, c) {
+        boxOf(g, c, [0.36, 0.03, 0.36], 0.4, { fill: C.orange, w: BG, seed: 'cone-base', over: 0.5 });
+        lathe(g, c, [[0.15, 0.03], [0.14, 0.05], [0.036, 0.5]], { fill: C.orange, w: BG, seed: 'cone-body', bands: [[0.17, 0.26, C.white], [0.34, 0.41, C.white]], topFill: C.ink });
+        ln3(g, [add(c, [-0.03, 0.4, -0.05]), add(c, [-0.045, 0.32, -0.075])], { w: BG, seed: 'cone-dent' });
+        ln3(g, [add(c, [0.05, 0.1, -0.12]), add(c, [0.07, 0.06, -0.125])], { w: BG, seed: 'cone-scuff' });
+    }
+
+    function foreground(g) {
+        // far to near: nothing touches anything else (see FORE for where each stands)
+        const things = [
+            [FORE.potA.o, () => lobsterPot(g, FORE.potA.o, FORE.potA.yaw, { seed: 'pot-a' })],
+            [FORE.potB.o, () => lobsterPot(g, FORE.potB.o, FORE.potB.yaw, { seed: 'pot-b', mesh: C.orange })],
+            [FORE.coil, () => coil(g, FORE.coil, { seed: 'coil' })],
+            [FORE.cone, () => trafficCone(g, FORE.cone)],
+            [FORE.bollard, () => {
+                const c = FORE.bollard;
+                // the line made fast: three turns, then away over the stone towards the lip
+                rope3(g, [add(c, [0.1, 0.16, 0.06]), add(c, [0.3, 0.03, 0.22]), add(c, [0.62, 0.025, 0.36]), add(c, [0.95, 0.025, 0.72]), add(c, [1.5, 0.025, 1.0])], 0.05, { seed: 'bol-line', w: BG });
+                bollard(g, c, { seed: 'fb', turns: 3 });
+            }],
+        ];
+        for (const [, draw] of things.sort((a, b) => Math.hypot(b[0][0], b[0][2]) - Math.hypot(a[0][0], a[0][2]))) draw();
+    }
+
+    // --- what moves, on twos ---------------------------------------------------------------------------
+    // a flag flying from the head of a staff: wm × hm metres, streaming along `dir`
+    function flag(g, head, dir, d, o = {}) {
+        const { fill = C.red, seed = 'flag', bar: stripe = C.white, wm = 1.1, hm = 0.7 } = o, w = lw(head[2]), ph = (d % 4) * 1.57;
+        const top = [], bot = [];
+        for (let i = 0; i <= 4; i++) {
+            const u = i / 4, wv = Math.sin(u * 5.2 - ph) * 0.1 * wm * u, p = add(head, add(mul(dir, u * wm), [0, -wv - u * 0.08, 0]));
+            top.push(pt(p));
+            bot.push(pt(add(p, [0, -hm, 0])));
+        }
+        sh(g, [[...top[0], 1], ...top.slice(1, 4), [...top[4], 1], [...bot[4], 1], ...bot.slice(1, 4).reverse(), [...bot[0], 1]], {
+            fill, w, seed: seed + (d % 4),
+            inside: (c) => {
+                c.fillStyle = stripe;
+                c.fill(T.pathOf([...top.map((p, i) => mix(p, bot[i], 0.36)), ...bot.map((p, i) => mix(top[i], p, 0.66)).reverse()]));
+            },
+        });
+    }
+    // a string of pennants between two points, sagging, each one fluttering on its own beat
+    function bunting(g, A, B, d, o = {}) {
+        const { sag = 0.3, n = 8, seed = 'bunting' } = o, w = lw((A[2] + B[2]) / 2) * 0.9;
+        const cols = [C.magenta, C.roadLine, P.fish, C.white, C.blue, C.lime, P.coral];
+        const at3 = (u) => add(lerp3(A, B, u), [0, -Math.sin(u * Math.PI) * sag, 0]), along = unit(sub(B, A));
+        ln(g, Array.from({ length: 9 }, (_, i) => pt(at3(i / 8))), { w, seed });
+        for (let i = 0; i < n; i++) {
+            const p0 = at3((i + 0.14) / n), p1 = at3((i + 0.86) / n), sw = Math.sin(d * 0.9 + i * 1.7) * 0.05;
+            const tip = add(lerp3(p0, p1, 0.5), add(mul(along, sw), [0, -0.34 + Math.cos(d * 0.9 + i * 1.7) * 0.02, 0]));
+            sh(g, [[...pt(p0), 1], [...pt(p1), 1], [...pt(tip), 1]], { fill: cols[i % cols.length], w, seed: seed + i });
+        }
+    }
+    // a gull in the air at a world point, 1.3 m from tip to tip
+    function gull(g, p, d, o = {}) {
+        const { flip = false, seed = 'gull' } = o, [x, y] = pt(p), s = (1.3 * sc(p[2])) / 36, w = lw(p[2]) / s;
+        const up = Math.floor(d / 3) % 2 === 0, k = up ? -1 : 0.55;
+        g.save();
+        g.translate(x, y + (up ? 0 : 1.5 * s));
+        g.scale(flip ? -s : s, s);
+        g.scale(0.1, 0.1); // drawn ten times up, so the kit's sampling stays fine
+        const Z = (pts) => pts.map(([a, b, c]) => [a * 10, b * 10, c]), l = w * 10;
+        T.shape(g, Z([[2, -1, 1], [8, -4 + k * 5], [17, -3 + k * 9, 1], [9, 1 + k * 3], [3, 2.4, 1]]), { fill: C.grey, w: l, seed: seed + 'fw' + up });
+        T.shape(g, Z([[-11, 0.6, 1], [-4, -2.6], [5, -3], [10, -1.6], [13.4, 0.2, 1], [9, 1.6], [3, 3.4], [-5, 2.6]]), { fill: C.white, w: l, seed: seed + 'b' });
+        T.shape(g, Z([[-3, -1, 1], [-8, -5 + k * 6], [-19, -3 + k * 11, 1], [-9, 1 + k * 3.4], [-1, 2.4, 1]]), { fill: C.white, w: l, seed: seed + 'nw' + up });
+        dot(g, 94, -12, 8, C.ink);
+        T.shape(g, Z([[12.4, -0.6, 1], [17, 0.6, 1], [12.6, 1.4, 1]]), { fill: C.orange, w: l * 0.8, seed: seed + 'bk' });
+        g.restore();
+    }
+    // glints on the water: short white strokes that come and go
+    const GLINTS = [[-13, 96], [2.5, 70], [10, 120], [-4.5, 84], [24, 150], [6, 52], [-1.5, 160], [14, 88], [33, 200]];
+    function glints(g, d) {
+        for (const [i, [X, Z]] of GLINTS.entries()) {
+            if ((d + i * 4) % 12 >= 4) continue;
+            const [x, y] = pt([X, WATER, Z]), L = 1.6 * sc(Z);
+            T.line(g, [[x - L / 2, y], [x, y - 0.6], [x + L / 2, y + 0.3]], { w: lw(Z), seed: 'glint' + i, color: C.white, amp: 0.2 });
+        }
+    }
+
+    // --- the layers ---------------------------------------------------------------------------------------
+    function sea(g) {
         g.fillStyle = C.sky;
         g.fillRect(0, 0, W, H);
-        sea(g);
-        land(g);
+        water(g);
+        headland(g);
+        farWall(g);
+    }
+    function mid(g) {
         harbour(g);
         pier(g);
         quay(g);
+        treePit(g);
+        quayThings(g);
+        dinghy(g);
     }
+    const FULL = { x: 0, y: 0, w: W, h: H };
+    const staffOf = (b, L) => frame([b.at[0], WATER - 1.2, b.at[1]], b.yaw).w((-7.2 * L) / 14, 5.3, 0);
+    const hutS3 = hutF.w;
 
     function back(g, env, t) {
+        K = env.k;
         const d = T.drawing(t);
-        Motion.sprite('harbor-back', { x: 0, y: 0, w: W, h: H }, env.k, far).draw(g);
-        // flags: the trawlers' ensigns at the heads of their stern staffs, the pier's
-        flag(g, 591, 527, 0.62, d, { seed: 'flag-a', dir: -1 });
-        flag(g, 995, 541.2, 0.42, d + 2, { seed: 'flag-b', fill: C.blue });
-        flag(g, pp(0.262, 0)[0] + 4, PV[1] - 168, 0.8, d + 1, { seed: 'flag-p', fill: P.fish, bar: C.roadLine, dir: -1 });
-        // the palm by the hut, swaying
-        palmTree(g, 604, 716, 322, { seed: 'palm-near', lean: -26, sway: Math.sin(d * 0.42) * 0.03 });
-        Motion.sprite('harbor-near', { x: 0, y: 0, w: 640, h: H }, env.k, near).draw(g);
-        bunting(g, [-14, 232], [146, 240], d, { n: 5, seed: 'bunt-a' });
-        bunting(g, [146, 240], [296, 250], d + 3, { n: 5, seed: 'bunt-b' });
+        Motion.sprite('harbor-sea', FULL, env.k, sea).draw(g);
+        glints(g, d);
+        Motion.sprite('harbor-mid', FULL, env.k, mid).draw(g);
+        // flags: the trawler's ensign at the head of its stern staff, the pier's at its end
+        flag(g, staffOf(BOAT_A, 14), unit([-0.8, 0, -0.6]), d, { seed: 'flag-a' });
+        flag(g, PR(PIER.len - 0.2, 1.5, 5.3), unit([0.9, 0, 0.3]), d + 1, { seed: 'flag-p', fill: P.fish, bar: C.roadLine, wm: 1.5, hm: 0.95 });
+        // the palm behind the hut, swaying
+        palmTree(g, PALM, PALM_H, { seed: 'palm-near', lean: -0.5, sway: Math.sin(d * 0.42) * 0.03 });
+        Motion.sprite('harbor-near', { x: 0, y: 0, w: 900, h: 720 }, env.k, near).draw(g);
+        // bunting from the sign's corner to the palm, and from its other corner out of frame
+        bunting(g, hutS3(1.3, 3.66, -0.94), [PALM[0] - 0.2, 3.5, PALM[2] - 0.1], d, { n: 9, seed: 'bunt-a', sag: 0.42 });
+        bunting(g, hutS3(-1.3, 3.66, -0.94), hutS3(-3.4, 3.2, -1.6), d + 3, { n: 6, seed: 'bunt-b', sag: 0.2 });
         // gulls, each on its own beat
-        for (const [i, [x, y, s, flip]] of [[650, 110, 1.5, 0], [452, 62, 1.25, 1], [948, 318, 1.05, 0], [1500, 300, 0.95, 1], [760, 44, 0.9, 1], [560, 356, 0.85, 0]].entries()) gull(g, x + Math.sin(d * 0.21 + i) * 3, y + Math.cos(d * 0.3 + i * 2) * 2.4, s, d + i * 2, { flip: !!flip, seed: 'gull' + i });
+        for (const [i, [X, Y, Z, flip]] of GULLS.entries()) gull(g, [X + Math.sin(d * 0.21 + i) * 0.08, Y + Math.cos(d * 0.3 + i * 2) * 0.07, Z], d + i * 2, { flip: !!flip, seed: 'gull' + i });
     }
+    const GULLS = [[1.2, 14.2, 34, 0], [4.6, 9.6, 40, 1], [-0.8, 7.6, 46, 0], [27.5, 12.4, 44, 1], [9.5, 20.5, 52, 1], [-2.4, 11.4, 70, 0]];
 
-    // the counter again, over whoever is serving (draw them clipped to AT.hatch first)
+    // the counter again, over whoever is serving (draw them clipped to AT.dot.clip first)
     function counter(g, env) {
-        Motion.sprite('harbor-counter', { x: 0, y: 440, w: 310, h: 110 }, env.k, counterTop).draw(g);
+        K = env.k;
+        const b = AT.dot.counterBox;
+        Motion.sprite('harbor-counter', { x: b[0], y: b[1], w: b[2], h: b[3] }, env.k, counterTop).draw(g);
     }
-
     function fore(g, env) {
-        Motion.sprite('harbor-fore', { x: 0, y: 700, w: W, h: 200 }, env.k, foreground).draw(g);
+        K = env.k;
+        Motion.sprite('harbor-fore', { x: 0, y: 540, w: W, h: 360 }, env.k, foreground).draw(g);
     }
 
-    // the pier's lines at a given x (it runs to PV): where a character would stand or grind
-    const pierY = (x, Y) => PV[1] + ((x - PV[0]) / 626) * Y;
-    window.Harbor = {
-        back, fore, counter, GROUND,
-        AT: {
-            horizon: 552, vanish: VP, lip: LIP, crest: CREST, shore: SHORE, crestY, shoreY,
-            calm: { x0: 330, x1: 1270, y0: 150, y1: GROUND },
-            hut: HUT, hatch: { x0: 34, x1: 260, y0: 346, y1: 516 }, counter: { x0: 4, x1: 294, y: 506 },
-            quayRail: { x0: 950, x1: 1092, y: 607 }, lamp: [1200, 696],
-            pier: { vanish: PV, at: pp, x0: 1144, deckY: (x) => pierY(x, PIER.deck), railY: (x) => pierY(x, PIER.railTop), ...PIER },
-            fore: { pots: [12, 760, 250, 896], coil: [200, 846, 396, 900], cone: [1356, 795, 1428, 896], bollard: [1458, 760, 1560, 896] },
-        },
+    // --- where things are, for the shots -------------------------------------------------------------------
+    const bbox = (pts) => {
+        const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]), x = Math.min(...xs), y = Math.min(...ys);
+        return [x, y, Math.max(...xs) - x, Math.max(...ys) - y].map((v) => Math.round(v));
     };
+    const boxBB = (o3, [w, h, d], yaw = 0) => {
+        const fr = frame(o3, yaw), pts = [];
+        for (const x of [-w / 2, w / 2]) for (const y of [0, h]) for (const z of [-d / 2, d / 2]) pts.push(fr.s(x, y, z));
+        return bbox(pts);
+    };
+    // the hatch as the camera sees it, from the sill up to the rolled shutter: whoever serves is clipped to it
+    const hq = hutFront.q(HUT.hatch[0], HUT.hatch[2], HUT.hatch[1], HUT.hatch[3] - 0.09);
+    const AT = {
+        horizon: H0,
+        // the quay's lip: its Z at a given X and its X at a given Z, the way it runs (dir) and the
+        // way out over the water (out), two of its points on screen
+        lip: { z: lipZ, x: (Z) => (L0[2] - Z) / Math.tan(PHI), dir: LD, out: PD, screen: [pt(Q(-14, 0)), pt(Q(6, 0))] },
+        // the two points of the horizon the quay's paving, the lip and the pier run to
+        vanish: [[CX + (F * LD[0]) / LD[2], H0], [CX + (F * PD[0]) / PD[2], H0]],
+        // a clear landing spot for a kid, [X, Z]
+        kit: [0.25, 2.6],
+        // Dot stands inside the hut, behind the counter (1.05 m up): her feet in the world, the
+        // hatch on screen as a quad [tl, tr, br, bl] and as its box [x, y, w, h], the box of the
+        // sprite Harbor.counter paints over her
+        dot: {
+            foot: hutF.w(-0.1, 0, 0.1), hatch: hq, clip: bbox(hq), sill: 1.05,
+            counterBox: (([x, y, w, h]) => [x - 8, y - 8, w + 16, h + 16])(bbox([[-1.12, 0.94, -1.42], [0.82, 0.94, -1.42], [-1.12, 1.52, -0.98], [0.82, 1.52, -0.98], [0.82, 0.94, -0.98], [-1.12, 1.4, -1.42]].map((p) => hutF.s(...p)))),
+        },
+        hut: { o: HUT.o, yaw: HUT.yaw, size: [HUT.w, HUT.h, HUT.d] },
+        // the top of the foreground bollard, where a gull perches
+        bollard: { top: [FORE.bollard[0], 0.5, FORE.bollard[2]] },
+        table: TABLE, palm: PALM, dinghy: DINGHY.o,
+        // the pier: where its near edge leaves the lip, the way it runs and the way across it,
+        // its width and length; at(s, c, y): a point s metres out and c across, y above the deck
+        pier: { start: PR(0, 0), dir: PD, across: mul(LD, -1), width: PIER.w, length: PIER.len, at: PR },
+        // the foreground props: where each stands and its box on screen [x, y, w, h]
+        fore: {
+            potA: { o: FORE.potA.o, box: boxBB(FORE.potA.o, [0.64, 0.42, 0.47], FORE.potA.yaw) },
+            potB: { o: FORE.potB.o, box: boxBB(FORE.potB.o, [0.64, 0.42, 0.47], FORE.potB.yaw) },
+            coil: { o: FORE.coil, box: boxBB(add(FORE.coil, [0.13, 0, 0]), [0.9, 0.18, 0.64]) },
+            cone: { o: FORE.cone, box: boxBB(FORE.cone, [0.36, 0.5, 0.36], 0.4) },
+            bollard: { o: FORE.bollard, box: boxBB(FORE.bollard, [0.42, 0.5, 0.42]) },
+        },
+        // where the dev scene stands its reference figures (1.4 m and 1.8 m tall)
+        guides: [
+            [hutF.w(-0.35, 0, 0.1), 'hatch'], [[-0.6, 0, 2.6], 'Z2.6'], [[0.3, 0, 5], 'Z5'], [[0.3, 0, 8], 'Z8'], [PR(3, 1.2), 'pier'], [PR(5.9, 2.2), 'shed'],
+            [hutF.w(-0.2, 0, -1.9), 'hut'], [add(TABLE, [0.75, 0, -0.3]), 'table'], [add(PALM, [-0.75, 0, 0]), 'palm'], [add(DINGHY.o, [-1.75, 0, -1.0]), 'dinghy'],
+            [PR(0.25, 4.0), 'gate'], [PR(11.5, 1.2), 'lamp'], [[-0.2, 0, 2.6], 'pots'], [[0.5, 0, 2.5], 'cone/bollard'], [Q(1.4, 1.2), 'lip'],
+        ],
+    };
+
+    window.Harbor = { back, counter, fore, AT };
 })();
