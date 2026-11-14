@@ -265,3 +265,10 @@ Still off, at 2×: the plaster's own lines are gone (thin light-brown on brown);
 
 Next: the same for Hoagie, Milo, Pip, Aunt Dot and Captain once their sheets are picked; then
 split poses into parts (head, arms, legs) for the animation, and key poses per shot.
+
+Sheets for Hoagie, Milo, Pip, Aunt Dot and Captain were then generated in the same flow
+(`IZ6WMwgNs2KXvoLAzy0H`), four variants each, with Kit's approved sheet wired in as the style
+reference so they come from the same hand. Cost: 433 credits a variant with a reference (190
+without), 8,660 for the twenty; Kit's four were 760. The session still cannot download them:
+the user attaches the pick for each and it goes to `ref/<who>-sheet.webp`, then
+`python3 -I tools/trace.py ref/<who>-sheet.webp cast/<who>-ref.js <who> stand=x,y,w,h …`.
