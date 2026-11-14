@@ -402,3 +402,31 @@ height); the palm's crown behind her hair; the lamp post through her arm.
 Still off: the fall is one drawing sliding (no anticipation, no in-between from jump to
 stand: one drawing changes into the other on the landing frame); Captain's hop is his
 perch drawing lifted, wings shut; no sound.
+
+## Round 13 (user) · the harbour's perspective
+
+> Hay algunas perspectivas que están mal. Por ejemplo la palmera parece que está cerca, pero
+> es enana. El cartel de Gull Harbor creo que la perspectiva no está bien. Hay cosas como lo de
+> BAIT que parece un cartón, no tiene ni profundidad ni la pespectiva creo que sea correcta. La
+> barco de la derecha? Es de juguete? parece un barco de juguete que está de costado contra el
+> suelo. Lo que te paso en imagen no sé exactamente qué es pero la cuerda atraviesa y se
+> superpone. La tabla de la mesa creo que tampoco tiene buena perpectiva. Creo que hay más
+> cosas que o no tienen buena perspectiva o no tienen el tamaño correcto o se superponen con
+> otra capa
+
+(with a crop of the foreground: the coil of rope drawn through a lobster pot)
+
+→ Every item has one cause: the set was drawn by eye, with no camera. Measured against the
+cast: the horizon is at y = 552 and Kit (1.4 m) stands 677 units tall with her feet at 842,
+so the camera is 0.6 m above the quay, and a thing standing on the quay at screen y is
+(y − 552) / 0.6 units per metre. By that scale the potted palm was 1.1 m tall, the chip hut
+1.6 m to its eaves, Aunt Dot in her hatch 1.2 m; and the pier was drawn as seen from below
+though the camera looks down on its deck, which is why its sign and the bait shed could only
+be flat cards.
+
+- `cam.js` (`Cam`): the film's one camera (pinhole, 0.6 m up, level, horizon 552, focal
+  1200), world in metres; `pt`, `scale`, `ground`, `poly` (near-plane clipping), `box`
+  (visible faces, far to near), `circle`, `ring`, and the cast's heights.
+- The set is being rebuilt on it by a parallel agent from a written brief (the user's words,
+  a table of real sizes, the layout redesigned to work in this camera, guides with a metre
+  grid and reference figures, the same `Harbor` contract).
