@@ -3,13 +3,11 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **reference first.** The user chose (round 8) to have the cast designed as generated
-concept art and replicated in code by measurement. Four model sheets of Kit are generated
-(ElevenLabs flow `IZ6WMwgNs2KXvoLAzy0H`, 760 credits) and wait for the user to pick one; the
-session could not download them (the fetch of the signed image URLs was denied), so the
-chosen PNG has to be put in `ref/` by the user or the download allowed. Everything drawn so
-far (the puppet cast, the key art, Kit by hand) is superseded as character art; the set, the
-kit's line and `boot3d` stay. No film yet; the style stays *in testing*.
+State: **Kit replicated from her approved concept sheet** (`review/kit-ref.jpg`, on the set:
+`review/key.jpg`); sheets for the other five generated and waiting for the user's picks. The
+earlier character art (the puppet cast in `cast/kit.js`…, `dev/keyart-puppets.js`, Kit by hand
+in `cast/kit-hero.js`) is superseded and kept only as history; the set, the kit and `boot3d`
+stay. No film yet; the style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -239,3 +237,31 @@ a draughtsman's polish.
 Next: the user picks a sheet (and it reaches `ref/`); then the replicate method (measure
 colours and regions, trace contours, one file per pose, `detail.mjs`-style comparison
 against the sheet) for Kit, and the same for the other five.
+
+## Round 9 (user) · the concept sheets
+
+The user attached the four generated sheets of Kit:
+
+> Las 4 están muy bien
+
+→ The design is approved. Sheet 2 is the model (`ref/kit-sheet.webp`; the other three stay in
+the uncommitted `private/`). Replicated by measurement, not by eye:
+
+- `tools/trace.py` measures a flat-colour sheet into vector data: the palette from clustering
+  and sampled medians; every pixel explained as a flat colour mixed with ink (its ink share
+  decides line or fill: nearest-colour alone turned the thin lines, never pure black in a
+  720p sheet, into slivers of the dark fills and lost them); dark fills (the mouth, the inside
+  of a trouser leg, the deck) told from lines by their thickness; slivers of anti-aliasing
+  opened away and refilled; each fill run under the ink to the middle of the line; contours
+  taken at sub-pixel precision from smoothed masks.
+- `cast/ref.js` draws a pose from that data (`Ref.draw`): fills, then the ink, cached paths,
+  12 ms a frame.
+- Measured against the sheet at its own size: mean difference 4.8 of 255, 0.8 % of pixels off
+  by more than 60 (the first pass, with the lines lost, was 6.65 and 2.4 %).
+- `scene.js`: Kit's jump over the quay on the set, drifting on twos, with the title.
+
+Still off, at 2×: the plaster's own lines are gone (thin light-brown on brown); the sheet is
+720p, so some corners are a little rounder than a hand would leave them.
+
+Next: the same for Hoagie, Milo, Pip, Aunt Dot and Captain once their sheets are picked; then
+split poses into parts (head, arms, legs) for the animation, and key poses per shot.
