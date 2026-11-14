@@ -56,12 +56,16 @@ const SkateToon = (() => {
 
     // A path from control points: [x, y] is a smooth point, [x, y, 1] a corner. The curve
     // runs smoothly between corners and breaks at them (the pointed corners of this style).
-    function path(spec, closed = false) {
+    // The runs of a spec between its corners, each a dense curve (a closed spec with no corner
+    // is one loop that ends where it began).
+    function runsOf(spec, closed = false) {
         const n = spec.length;
         const corners = [];
         for (let i = 0; i < n; i++) if (spec[i][2]) corners.push(i);
-        if (!corners.length) return curve(spec, closed);
-        const out = [];
+        if (!corners.length) {
+            const c = curve(spec, closed);
+            return [closed ? [...c, c[0]] : c];
+        }
         const runs = [];
         if (closed) {
             for (let c = 0; c < corners.length; c++) {
@@ -81,8 +85,11 @@ const SkateToon = (() => {
                 a = c;
             }
         }
-        for (const run of runs) {
-            const c = curve(run, false);
+        return runs.map((r) => curve(r, false));
+    }
+    function path(spec, closed = false) {
+        const out = [];
+        for (const c of runsOf(spec, closed)) {
             if (out.length) c.shift();
             out.push(...c);
         }
@@ -211,11 +218,18 @@ const SkateToon = (() => {
      * a little, like a marker lifted), cap.
      */
     function line(g, pts, o = {}) {
-        const { w = LINE, color = COL.ink, seed = 'line', closed = false, dense = false, amp = 0.3, taper = true, cap = 'round' } = o;
+        const { w = LINE, color = COL.ink, seed = 'line', closed = false, dense = false, amp = 0.3, taper = true, cap = 'round', hand = false, over = null } = o;
         if (!pts || pts.length < 2) return;
         let p = dense ? pts : path(pts, closed);
-        p = wander(p, { seed, w, amp, closed });
+        p = wander(p, { seed, w, amp: hand && amp ? amp * 1.3 : amp, closed, len: hand ? 8 : 11 });
         if (closed) p = [...p, p[0], p[1]];
+        if (over && p.length > 2) {
+            // the pen runs a little past where the stroke was meant to end
+            const m = p.length, e = (a, b, k) => [a[0] + ((a[0] - b[0]) / (Math.hypot(a[0] - b[0], a[1] - b[1]) || 1)) * k * w, a[1] + ((a[1] - b[1]) / (Math.hypot(a[0] - b[0], a[1] - b[1]) || 1)) * k * w];
+            p = [e(p[0], p[2], over[0]), ...p, e(p[m - 1], p[m - 3], over[1])];
+        }
+        // a hand presses harder along a stroke than where the pen lands and lifts
+        const press = hand ? 0.24 : 0.13, end = hand ? 0.58 : 0.72;
         const n = p.length;
         g.strokeStyle = color;
         g.lineCap = cap;
@@ -226,8 +240,8 @@ const SkateToon = (() => {
         for (let i = 0; i < n - 1; i += RUN) {
             const e = Math.min(n - 1, i + RUN);
             s = i * w * 0.85;
-            let f = 1 + 0.13 * Motion.noise1(seed + 'w', s / (w * 7));
-            if (!closed && taper) f *= 0.72 + 0.28 * Math.min(1, s / (w * 2.5), (total - s) / (w * 2.5));
+            let f = 1 + press * Motion.noise1(seed + 'w', s / (w * (hand ? 9 : 7)));
+            if (!closed && taper) f *= end + (1 - end) * Math.min(1, s / (w * 2.5), (total - s) / (w * 2.5));
             g.lineWidth = w * f;
             g.beginPath();
             g.moveTo(p[i][0], p[i][1]);
@@ -242,8 +256,11 @@ const SkateToon = (() => {
      * fill with no outline, o.inside(g) paints clipped inside the shape before the outline.
      */
     function shape(g, pts, o = {}) {
-        const { fill = COL.white, w = LINE, seed = 'shape', dense = false, stroke = true, color = COL.ink, amp = 0.3, inside = null } = o;
-        const p = wander(dense ? pts : path(pts, true), { seed, w, amp, closed: true });
+        const { fill = COL.white, w = LINE, seed = 'shape', dense = false, stroke = true, color = COL.ink, amp = 0.3, inside = null, hand = false } = o;
+        // hand: the outline is inked as the hand inks it, one stroke per run between corners,
+        // each pressed and lifted, meeting the next a little past the corner
+        const runs = hand && !dense ? runsOf(pts, true).map((r, i) => wander(r, { seed: seed + 'r' + i, w, amp: amp * 1.3, len: 8 })) : null;
+        const p = runs ? runs.flatMap((r) => r.slice(0, -1)) : wander(dense ? pts : path(pts, true), { seed, w, amp, closed: true });
         const P = pathOf(p);
         if (fill) {
             g.fillStyle = fill;
@@ -255,7 +272,10 @@ const SkateToon = (() => {
             inside(g);
             g.restore();
         }
-        if (stroke) line(g, p, { w, seed, closed: true, dense: true, amp: 0, color });
+        if (stroke && runs) {
+            const R = Motion.rng(seed + 'over');
+            for (const [i, r] of runs.entries()) line(g, r, { w, seed: seed + 's' + i, dense: true, amp: 0, color, hand: true, over: [R() * 0.7, 0.2 + R() * 0.9] });
+        } else if (stroke) line(g, p, { w, seed, closed: true, dense: true, amp: 0, color });
         return p;
     }
 
@@ -562,7 +582,7 @@ const SkateToon = (() => {
 
     return {
         COL, LINE, LINE_BG, LINE_FINE, drawing, onTwos,
-        curve, path, resample, wander, pathOf, ellipse, capsule, ribbon, inPoly,
+        curve, path, runsOf, resample, wander, pathOf, ellipse, capsule, ribbon, inPoly,
         line, shape, skin, tube, slab, ticks, pane, palm, sign, hand, handParts,
     };
 })();

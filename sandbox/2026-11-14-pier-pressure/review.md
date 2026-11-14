@@ -3,10 +3,10 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **Kit redrawn by hand (`review/kit-hero.jpg`) as a test of a new method, waiting for
-the user's verdict.** The rest of the cast and the key art (`review/key.jpg`) are still the
-puppet the user rejected in round 6: do not show them again as they are. No film yet; the
-style stays *in testing*.
+State: **Kit redrawn by hand, second pass (`review/kit-hero.jpg`), waiting for the user's
+verdict.** The rest of the cast and the key art (`review/key.jpg`) are still the puppet the
+user rejected in round 6: do not show them again as they are. No film yet; the style stays
+*in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -180,3 +180,34 @@ for this pose; the face is cleaner but not yet as characterful as the reference'
 
 Not done: the other five characters and the key art still use the puppet. They are redrawn
 this way only if the user says this is the direction.
+
+## Round 7 (user) · Kit by hand, first pass
+
+> Está mejor siguen siendo mejorables: la ropa, las perpestivas (ejemplo zapatos), naturalidad
+> y proporción, formas (ejemplo la cara, que no sea tan geométrica), en general las líneas se
+> notan muy artificiales
+
+→ Four things, each taken at its root:
+
+- **Lines.** Every contour was one closed stroke of even width through a smooth spline. Now
+  `SkateToon.shape/line` have a `hand` mode: a contour is inked in several strokes, one per run
+  between corners, each pressed harder along it and lighter where the pen lands and lifts,
+  running a little past the corner where it meets the next; the wander is stronger and
+  shorter-waved.
+- **Shapes.** No primitive is left in the face: the eyes are two different eggs, the pupils
+  blots, the teeth six separate teeth of different sizes hanging from the lip (her gap is a
+  missing one), the nose a hook, the skull has a brow and a cheek that bulges, bobbles and
+  the shorts' opening are authored outlines; freckles.
+- **Perspective.** `cast/boot3d.js`: the boot is a small 3D model (a sole slab from its
+  top-view outline, an upper in two forms, shaft and vamp, lofted from arches along the foot)
+  turned by a toe and an up vector and projected with perspective; silhouettes are hulls of
+  the projected parts, the welt, laces, patch and tread are projected lines drawn only where
+  their face looks at the camera. The kicked boot is now sole-first with its wall and upper
+  to one side; the other dangles toe-down, seen from its side.
+- **Naturalness, proportion, clothes.** The trailing leg hangs instead of flicking up (its
+  boot had read as a pennant and touched her hand); legs longer than the torso; the reaching
+  shoulder rides up; the far hand cleared of the jaw; the tee's sides and hem are no longer
+  straight, its hoops thicken and bow more towards the hem; baggier shorts with a seam.
+
+Still short, seen at 2×: the tee and the shorts are simple next to the reference's (few
+folds, no trim); the hands are the chart's; the arms are even tubes.
