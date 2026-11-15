@@ -295,76 +295,128 @@ const Film = (() => {
         }
     }
 
-    // === 4 · Milo (2 s): the plan, and the plan going wrong =========================================
-    function milo(g, t, u, env) {
-        // on one knee, a last turn of the spanner; up, a foot on the board, pleased with it; and
-        // on the next beat the board has other ideas
-        const d = nth(u), GO = 1.25, v = twos(u, GO) - GO, V0 = 3.1, tf = (2 * V0) / G;
-        view(g, env, F_MILO.f, F_MILO.z, 1.6, (e) => world(g, e, t, { actors: [kitRest(t), { z: MILO[2], draw(gg) {
-            if (u < 0.5) put3(gg, 'milo', 'crouch', MILO, { rot: [0, 0.02, 0, -0.012][d % 4], sy: d % 4 === 1 ? 0.985 : 1 });
-            else if (v < 0) {
-                const k = Math.min(3, nth(u, 0.5));
-                put3(gg, 'milo', 'smug', MILO, { sx: [0.94, 1.04, 0.99, 1][k], sy: [1.08, 0.95, 1.01, 1][k] * (1 + Motion.pulse(twos(u), 120, 0.05, 6) * 0.008) });
-            } else if (v < tf) {
-                // up he goes, heels over head, the board its own way
-                put3(gg, 'milo', 'fall', [MILO[0] + 0.1 - v * 0.25, 0.8 + V0 * v - (G * v * v) / 2, MILO[2]], { rot: -0.25 - v * 2.6 });
-            } else {
-                const k = Math.min(2, nth(v, tf));
-                put3(gg, 'milo', 'crouch', [MILO[0] - 0.1, 0, MILO[2]], { sx: [1.1, 0.97, 1][k], sy: [0.86, 1.04, 1][k] });
-            }
-        } }] }));
-        card(g, u, 1, 'MILO', 'HAS A PLAN', 1270, 730, { fill: C.blue, drop: C.navy, ink: C.navy, k: 0.82 });
+    // --- the presentations: each on their own card of colour, full height --------------------------
+    // A drawing with the point between its soles on (x, y) at ppm frame units per metre, edited:
+    // crouch (metres: the upper body down over the legs, for a pose cut into `legs` and `upper`),
+    // blink 0…1 (lids over the eyes of its face), rot about the anchor (for a body in the air).
+    const SKIN = { hoagie: '#f3bd90', milo: '#d49147', pip: '#b77d4d', dot: '#bf773e', kit: '#b77d4d', captain: '#fffdf6' }, lids = {};
+    const lidOf = (who, pose) => (lids[who + pose] ??= (() => {
+        const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)), w = hex(SKIN[who]);
+        return Drawn.colours(who, pose).reduce((b, c) => { const v = hex(c), dd = (v[0] - w[0]) ** 2 + (v[1] - w[1]) ** 2 + (v[2] - w[2]) ** 2; return dd < b[0] ? [dd, c] : b; }, [1e9, SKIN[who]])[1];
+    })());
+    const HALO = { color: '#fffdf6', w: 9 };
+    function act(g, who, pose, x, y, ppm, o = {}) {
+        const mt = Drawn.meta(who, pose), s = ppm / mt.m, cut = Drawn.parts(who, pose).includes('legs');
+        const eyes = o.blink ? { blink: o.blink, lid: lidOf(who, pose), face: [mt.w / 2, mt.h * 0.2, mt.h * 0.32] } : {};
+        g.save();
+        g.translate(x, y);
+        if (o.rot) g.rotate(o.rot);
+        const X = -mt.at[0] * s, Y = -mt.at[1] * s;
+        if (cut) {
+            const parts = { upper: { dy: (o.crouch ?? 0) * mt.m } };
+            Drawn.draw(g, who, pose, X, Y, s, { parts, halo: HALO, only: [] });
+            Drawn.draw(g, who, pose, X, Y, s, { parts, only: ['legs'] });
+            Drawn.draw(g, who, pose, X, Y, s, { parts, only: ['upper'], ...eyes });
+        } else Drawn.draw(g, who, pose, X, Y, s, { halo: HALO, only: o.only, hide: o.hide, ...eyes });
+        g.restore();
+    }
+    // how far a drawing has sunk at frame f of its stay [f0, f1): it arrives short of standing
+    // and eases up into it; before it leaves it is already sinking towards the next. No going
+    // past and coming back.
+    const IN = [0.05, 0.028, 0.013, 0.005], OUT = [0.008, 0.02, 0.036];
+    const cushion = (f, f0, f1, o = {}) => (o.in === false ? 0 : IN[f - f0] ?? 0) + (o.out === false ? 0 : OUT[f - (f1 - OUT.length)] ?? 0);
+    // A wipe carried across the frame: over n frames an edge crosses it (dir 1: left to right); what
+    // is ahead of the edge is still the shot before (`prev` paints it); carry(x, k) draws what brings it.
+    function wipe(g, f, n, dir, prev, carry) {
+        if (!prev || f >= n) return;
+        const k = (f + 0.5) / n, e = k * k * (3 - 2 * k), x = dir > 0 ? lerp(-280, 1880, e) : lerp(1880, -280, e), edge = (yy) => x + (yy - 450) * 0.22 * dir;
+        g.save();
+        g.beginPath();
+        g.moveTo(edge(-10), -10);
+        g.lineTo(dir > 0 ? 1700 : -100, -10);
+        g.lineTo(dir > 0 ? 1700 : -100, 910);
+        g.lineTo(edge(910), 910);
+        g.closePath();
+        g.clip();
+        prev(g);
+        g.restore();
+        const zz = Array.from({ length: 20 }, (_, i) => [edge(-20 + i * 50) + (i % 2 ? 24 : -24), -20 + i * 50, 1]);
+        T.line(g, zz, { w: 30, color: C.ink, seed: 'wipe', amp: 0, taper: false });
+        T.line(g, zz, { w: 19, color: C.white, seed: 'wipe', amp: 0, taper: false });
+        carry(x, e);
+    }
+    const FX = 640, FY = 838; // where a presented figure stands on its card
+
+    // === 4 · Milo (2 s) ===============================================================================
+    // His board shoots across and brings his card with it. On one knee, a last turn of the spanner;
+    // up, a foot on the board, arms folded, eyes shut: the plan; on the bar's last beat the board
+    // leaves without him, and he leaves the frame by the top.
+    function milo(g, t, u, env, prev) {
+        const f = Math.min(47, Math.round(u * 24)), PPM = 430, GO = 36;
+        stage(g, nth(t), FX, FY, C.teal, '#6cbba9', { floor: C.navy });
+        if (f < 14) act(g, 'milo', 'crouch', FX, FY, PPM, { blink: [0.5, 1, 1, 0.5][f - 9] ?? 0 });
+        else if (f < GO) act(g, 'milo', 'smug', FX, FY, PPM, { crouch: cushion(f, 14, GO) });
+        else {
+            const n = f - GO, tt = n / 24, h = 9 * tt - (G * tt * tt) / 2;
+            puff(g, FX, FY, n / 9, 6, 26, 'milo-go');
+            act(g, 'milo', 'board', FX + 60 + n * n * 9 + n * 40, FY - 34, PPM, { rot: -0.64 });
+            act(g, 'milo', 'fall', FX - 30 - n * 8, FY - 300 - h * PPM, PPM, { rot: -0.3 - n * 0.22 });
+        }
+        card(g, u, 1, 'MILO', 'HAS A PLAN', 1215, 560, { fill: C.navy, drop: C.ink, second: C.roadLine, ink: C.navy, tilt: -0.05 });
+        wipe(g, f, 8, 1, prev, (x, e) => act(g, 'milo', 'board', x, 520 + Math.sin(e * 6) * 30, 620, { rot: -0.64 + e * 2.4 }));
     }
 
-    // === 5 · Pip (2 s): through the lot of them, without looking up ==================================
+    // === 5 · Pip (2 s) ================================================================================
+    // Milo comes back down through the frame and her card is behind him. She rolls in on a push,
+    // coasts with her lollipop and her eyes half shut, and with a wink over her shoulder she is off.
     const pipRide = (t, X, Z, pose = 'ride') => ({ z: Z, draw(g) {
         const d = nth(t), [x, y] = Cam.pt([X, 0, Z]);
         // what she leaves behind her: three lines of speed
         for (let i = 0; i < 3; i++) T.line(g, [[x - 250 - i * 34 - (d % 2) * 26, y - 70 - i * 92], [x - 400 - i * 60 - (d % 2) * 26, y - 70 - i * 92]], { w: T.LINE, seed: 'pipspeed' + i });
         put3(g, 'pip', pose, [X, [0, 0.012][d % 2], Z], { rot: (pose === 'push' ? -0.03 : 0) + [0, 0.01][d % 2] });
     } });
-    function pip(g, t, u, env) {
-        // two pushes to get up to speed, then through the lot of them with her lollipop and her
-        // eyes half shut; a look back at us on the last beat
-        const X = -2.7 + twos(u) * 2.25, d = nth(u), pose = u < 0.5 ? (d % 3 === 2 ? 'ride' : 'push') : u < 1.25 ? 'lolly' : 'wink';
-        const c = move(u, F_MILO, { f: [600, 520], z: 1.3 }, 8); // off Milo, and along with her
-        view(g, env, [c.f[0] + 260 * ease(u / 2), c.f[1]], c.z, 1.6, (e) => world(g, e, t, { actors: [kitRest(t), hoagieRest(t), miloRest(t), pipRide(t, X, 3.05, pose)] }));
-        card(g, u, 1, 'PIP', 'NOT BOTHERED', 1240, 250, { fill: C.green, drop: C.ink, second: C.lime, ink: C.maroon, tilt: 0.05 });
+    function pip(g, t, u, env, prev) {
+        const f = Math.min(47, Math.round(u * 24)), PPM = 520, OFF = 40;
+        stage(g, nth(t), FX, FY, C.blue, '#3f7fc0', { floor: C.green });
+        const x = f < 12 ? FX - 300 * (1 - f / 12) * (1 - f / 12) : f < OFF ? FX + (f - 12) * 1.5 : FX + 42 + (f - OFF) * (f - OFF) * 22 + (f - OFF) * 20;
+        const pose = f < 12 ? 'push' : f < OFF ? 'lolly' : 'wink';
+        // what she leaves behind her when she moves: three lines of speed
+        if (f < 9 || f >= OFF + 1) for (let i = 0; i < 3; i++) T.line(g, [[x - 300 - i * 40 - (f % 2) * 30, FY - 150 - i * 130], [x - 520 - i * 70 - (f % 2) * 30, FY - 150 - i * 130]], { w: T.LINE * 1.6, seed: 'pips' + i, color: C.white });
+        act(g, 'pip', pose, x, FY - 4, PPM, { rot: pose === 'push' ? -0.03 * (1 - f / 12) : 0, blink: pose === 'lolly' ? [0.6, 1, 0.6][f - 27] ?? 0 : 0 });
+        card(g, u, 1, 'PIP', 'NOT BOTHERED', 1215, 330, { fill: C.green, drop: C.ink, second: C.lime, ink: C.maroon, tilt: 0.05 });
+        wipe(g, f, 8, 1, prev, (wx, e) => act(g, 'milo', 'fall', wx, lerp(60, 800, e), 430, { rot: 1.2 + e * 3 }));
     }
 
-    // === 6 · Aunt Dot (2 s): at her hatch; chips up ==================================================
-    function dot(g, t, u, env) {
-        const A = Harbor.AT, hx = A.dot.hatch.reduce((s, p) => s + p[0], 0) / A.dot.hatch.length, hy = A.dot.hatch.reduce((s, p) => s + p[1], 0) / A.dot.hatch.length;
-        // a shake of the basket, salt from a height, and on the last beat the cone held out: chips up
-        const d = nth(u), k = Math.min(3, nth(u, 1.25));
-        // (she works at the middle of her hatch, clear of what stands on the counter, and the basket
-        // comes up over the sill to be shaken)
-        const act = u < 0.5 ? { pose: 'basket', up: 50 + [0, 9, 1, 7][d % 4], dx: -92 + [0, -2, 0, 2][d % 4] }
-            : u < 1.25 ? { pose: 'salt', up: 22 + [3, 0][d % 2], dx: -92, sy: d === 6 ? 1.04 : 1 }
-            : { pose: 'serve', up: 44 + [16, -3, 2, 0][k], dx: -92, sy: [1.06, 0.97, 1.01, 1][k] };
-        // (the hut is eight metres off: the others are left out of this one, they would stand in it)
-        view(g, env, [hx + 46, hy + 6], 3.4, 3.4, (e) => world(g, e, t, { dot: { weight: 2.2, ...act } }));
-        card(g, u, 1, 'AUNT DOT', 'MIND THE CURVE', 1240, 720, { fill: C.red, drop: C.maroon });
+    // === 6 · Aunt Dot (2 s) ===========================================================================
+    // Pip rides through and Dot's card comes in behind her. A shake of the basket with her knees
+    // in it, salt from a height, and on the bar's last beat the cone, held out: chips up.
+    function dot(g, t, u, env, prev) {
+        const f = Math.min(47, Math.round(u * 24)), PPM = 370;
+        stage(g, nth(t), FX, FY, C.salmon, '#f59b70', { floor: C.maroon });
+        if (f < 16) act(g, 'dot', 'basket', FX, FY, PPM, { crouch: 0.011 * (1 - Math.cos((f / 4) * Math.PI)) + cushion(f, 0, 16, { in: false }) });
+        else if (f < 34) act(g, 'dot', 'salt', FX, FY, PPM, { crouch: cushion(f, 16, 34) + 0.004 * (1 - Math.cos(((f - 20) / 3) * Math.PI)) * (f >= 20 && f < 31 ? 1 : 0) });
+        else act(g, 'dot', 'serve', FX + 120, FY, PPM, { crouch: cushion(f, 34, 99), blink: [0.5, 1, 0.5][f - 42] ?? 0 });
+        card(g, u, 1, 'AUNT DOT', 'MIND THE CURVE', 1215, 560, { fill: C.red, drop: C.maroon, tilt: -0.05 });
+        wipe(g, f, 8, 1, prev, (wx, e) => act(g, 'pip', 'wink', wx + 120, FY - 4, 520, {}));
     }
 
-    // === 7 · Captain (2 s): on his bollard, then off it =============================================
-    function captain(g, t, u, env) {
-        // he has smelt the chips (they are at the hut, to the left): a look, down into a crouch
-        // with his one eye on them, and off the bollard on the bar's last beat, wings up, wings down
-        const top = Harbor.AT.bollard.top, v = twos(u, 1.5) - 1.5;
-        view(g, env, [1330, 430], 2.4, 3.4, (e) => {
-            world(g, e, t, { captain: null });
-            if (u < 0.5) put3(g, 'captain', 'perch', top, { only: ['bird'], weight: 1.3, sy: 1 + Motion.pulse(twos(u), 120, 0.05, 6) * 0.012 });
-            else if (v < 0) {
-                const k = Math.min(3, nth(u, 0.5));
-                put3(g, 'captain', 'ready', top, { flip: true, weight: 1.3, sx: [1.1, 0.96, 1.01, 1][k], sy: [0.86, 1.05, 0.99, 1][k] * (1 - Motion.pulse(twos(u), 120, 0.05, 6) * 0.02) });
-            } else {
-                const k = nth(v), h = k === 0 ? 0.04 : 0.3 + (v - 1 / 12) * 6.5;
-                if (k % 4 < 2) put3(g, 'captain', 'launch', [top[0] - v * 1.6, top[1] + h, top[2]], { flip: true, weight: 1.3, sy: k === 0 ? 1.1 : 1 });
-                else put3(g, 'captain', 'down', [top[0] - v * 1.6, top[1] + h + 0.28, top[2]], { flip: true, weight: 1.3, rot: 0.5 });
-            }
-        });
-        card(g, u, 1, 'CAPTAIN', 'WANTED', 430, 690, { fill: C.navy, drop: C.ink, ink: C.navy, ribbon: C.roadLine });
+    // === 7 · Captain (2 s) ============================================================================
+    // He comes through the frame with her chips and his card is behind him. On his bollard, a chip
+    // in his beak; down into a crouch, his one eye on the rest; and off, wings up, wings down.
+    function captain(g, t, u, env, prev) {
+        const f = Math.min(47, Math.round(u * 24)), PPM = 1150, X = 560, mt = Drawn.meta('captain', 'perch'), s = PPM / mt.m;
+        const top = FY - (mt.h - 7 - mt.at[1]) * s; // the top of his bollard: where his feet are
+        stage(g, nth(t), X, FY, C.sea, C.seaDeep, { floor: C.navy });
+        if (f < 16) act(g, 'captain', 'perch', X, top, PPM, { blink: [0.5, 1, 1, 0.5][f - 10] ?? 0 });
+        else {
+            act(g, 'captain', 'perch', X, top, PPM, { only: ['post'] });
+            const sc = PPM * 1.25;
+            if (f < 32) act(g, 'captain', 'ready', X + 10, top + 4, sc, {});
+            else if (f < 36) act(g, 'captain', 'launch', X + 10, top - (f - 32) * 22, sc, {});
+            else { const n = f - 36; capFly(g, t, X - 40 - n * 62, top - 330 - n * 52, sc / M.captain.m, { rot: -0.1 }); }
+        }
+        card(g, u, 1, 'CAPTAIN', 'WANTED', 1215, 560, { fill: C.navy, drop: C.ink, ink: C.navy, ribbon: C.roadLine, tilt: -0.05 });
+        wipe(g, f, 8, -1, prev, (wx, e) => { g.save(); g.translate(wx, 430 + Math.sin(e * 5) * 40); g.scale(-1, 1); capFly(g, t, 0, 0, 1.9, { rot: -0.05 }); g.restore(); });
     }
 
     // === 8 · the break (3 s): he has the chips; after him ==============================================

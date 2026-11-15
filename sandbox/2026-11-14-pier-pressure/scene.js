@@ -28,10 +28,10 @@ const EDIT = [
     // (in her last half second we are already looking through Hoagie's camcorder)
     [B0 + 4, B0 + 8, 'KIT', (g, t, u, env) => { kitShot(g, u, { ...env, k: env.k * 1.6 }); if (u >= 3.5) Film.viewfinder(g, t); }],
     [B0 + 8, B0 + 10, 'HOAGIE', (g, t, u, env) => Film.hoagie(g, t, u, env, (gg) => kitShot(gg, 4 - 1 / 24, { ...env, k: env.k * 1.6 }))],
-    [B0 + 10, B0 + 12, 'MILO', (g, t, u, env) => Film.milo(g, t, u, env), 'L'],
-    [B0 + 12, B0 + 14, 'PIP', (g, t, u, env) => Film.pip(g, t, u, env)],
-    [B0 + 14, B0 + 16, 'AUNT DOT', (g, t, u, env) => Film.dot(g, t, u, env), 'in'],
-    [B0 + 16, B0 + 18, 'CAPTAIN', (g, t, u, env) => Film.captain(g, t, u, env), 'R'],
+    [B0 + 10, B0 + 12, 'MILO', (g, t, u, env, prev) => Film.milo(g, t, u, env, prev)],
+    [B0 + 12, B0 + 14, 'PIP', (g, t, u, env, prev) => Film.pip(g, t, u, env, prev)],
+    [B0 + 14, B0 + 16, 'AUNT DOT', (g, t, u, env, prev) => Film.dot(g, t, u, env, prev)],
+    [B0 + 16, B0 + 18, 'CAPTAIN', (g, t, u, env, prev) => Film.captain(g, t, u, env, prev)],
     [B0 + 18, B0 + 21, 'AFTER HIM', (g, t, u, env) => Film.chase0(g, t, u, env), 'out'],
     [B0 + 21, B0 + 26, 'THE PIER', (g, t, u, env) => Film.pier(g, t, u, env), 'R'],
     [B0 + 26, B0 + 28, 'OFF THE END', (g, t, u, env) => Film.leap(g, t, u, env)],
@@ -140,7 +140,7 @@ function kitShot(g, t, env) {
         // past standing by a hair, and settled; then she breathes on the beat
         const key = dl === 0 ? ['contact', 1, 1] : dl <= 3 ? ['crouch', [1.02, 1.05, 1.01][dl - 1], [0.97, 0.93, 0.99][dl - 1]] : dl <= 5 ? ['rise', 1, [0.97, 1.02][dl - 4]]
             : ['proud', 1, dl === 6 ? 1.035 : dl === 7 ? 0.985 : 1 + beat * 0.008];
-        KitAct.pose(g, key[0], px, py, KP, { sx: key[1], sy: key[2] });
+        KitAct.pose(g, key[0], px, py, KP); // (the drawings as they are: no squash)
     };
     // the board: its flight and its roll; it jumps a little when she lands beside it
     const drawBoard = () => {
@@ -209,7 +209,9 @@ Motion.scene({
             g.scale(sm[0], sm[1]);
             g.translate(-800, -450);
         }
-        shot(g, t, t - a, env);
+        // (a shot may ask for the last frame of the one before it, to come in over it)
+        const before = EDIT[i - 1], prev = before ? (gg) => before[3](gg, before[1] - 1 / 24, before[1] - before[0] - 1 / 24, env, null) : null;
+        shot(g, t, t - a, env, prev);
         g.restore();
         if (sm) Film.streaks(g, t, sm);
     },

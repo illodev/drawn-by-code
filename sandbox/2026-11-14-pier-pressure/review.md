@@ -3,15 +3,16 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the whole cast redone from sheets on a green ground (round 35): 16 sheets, 45 drawings,
-cut out with no rules or lists (`tools/green.py`; `review/cast.jpg`, `review/kit-cut.jpg`), and the
-film running on them** (`scene.js` + `film.js`, 31.75 s, `render/pier-pressure.mp4`), waiting for
-the user's verdict on the cut. Settled by the user: no bending (27), no 3D (31), nothing drawn by
-hand that does not come from the images (31); new frames are edits of the drawings' code, with
-more frames and no rebounds (32: «creo que vamos bien»); images may be generated for views the
-drawings do not have (32), always on a coloured ground (33–35). Open: the animation level of
-everything but Hoagie's bar is as rejected in round 26. The set is approved up to round 16. The
-style stays *in testing*.
+State: **the five presentations after Kit's are in one format (round 36): each on their own card
+of colour, full height, from their sheets' drawings with edited frames, each coming in behind
+something of the cast that crosses the frame** (`film.js`: `hoagie`, `milo`, `pip`, `dot`,
+`captain`, `act`, `cushion`, `wipe`; `review/presentations.jpg`), waiting for the user's verdict.
+The cut is approved (round 35→36: «Sí»). Settled by the user: no bending (27), no 3D (31),
+nothing drawn by hand that does not come from the images (31); frames are edits of the
+drawings' code, more of them, no rebounds (32); images may be generated for views the drawings
+lack, always on a coloured ground (32–35). Still as rejected in round 26: Kit's own shot (only
+its squash was removed), the break, the pier, the leap, the title. The set is approved up to
+round 16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -1151,3 +1152,38 @@ background to solid green, also in every gap».
 Checked: every pose on lilac (`review/cast.jpg`): no green left, no white where the page should
 be; Kit at the user's crop (`review/kit-cut.jpg`): the quay shows between her arms and her body.
 Not checked pose by pose at 4× against the sheets.
+
+## Round 36 (user) · the cut is right; the other characters like Hoagie
+
+> Sí, sigue con la animación de los demás personajes
+
+(to: is the cut right now? then I go on with the others as in Hoagie's shot.)
+
+Milo, Pip, Dot and Captain leave the harbour for their bar, as Hoagie had: a card of their own
+colour, the figure at three quarters of the frame's height, the name card beside them.
+
+- **`act`**: a drawing with its soles on a point, edited. The standing poses are cut where their
+  clothes end over their legs (`tools/parts.py`: Milo `smug`, Dot `basket`, `salt`, `serve`,
+  `yell`), so the upper body comes down over the legs: a bend of the knees. **`cushion`** says
+  how far, frame by frame: a drawing arrives 5 cm short of standing and eases up over four
+  frames, and sinks over its last three towards the next one; nothing goes past and comes back.
+  Lids come down over the eyes of the face (found in the drawing; the lid takes the drawing's
+  own skin colour).
+- **Milo**: on one knee with the spanner (a blink), up with a foot on the board and his arms
+  folded, and on the bar's last beat the board leaves along the floor and he leaves by the top.
+  **Pip**: rolls in on a push, coasts with her lollipop (a blink), winks over her shoulder and
+  rides off in the last eight frames. **Dot**: shakes the basket with her knees in it (a
+  four-frame bounce), salts from a height, holds the cone out. **Captain**: on his sheet's own
+  bollard with a chip in his beak (a blink), down into a crouch, up, and away beating his wings
+  between two drawings.
+- **`wipe`**: every one of them comes in behind something of the cast crossing the frame, with
+  the shot before still ahead of a zigzag edge: Milo's board spinning (→ Milo), Milo coming
+  back down head over heels (→ Pip), Pip riding through (→ Dot), the gull with Dot's chips, the
+  other way (→ Captain). `scene.js` hands every shot the last frame of the one before; the
+  smeared whips are gone from these four cuts.
+- Kit's drop no longer squashes its drawings.
+
+What it still is not: holds are one drawing (12 to 20 frames) with a blink or a bounce in
+them, not acting; bodies in the air and riders are whole drawings moved (they do move whole);
+between two poses of one character there is no drawing between, only the cushion; Pip's and
+Captain's poses are not cut into pieces. Not seen in motion, not heard.

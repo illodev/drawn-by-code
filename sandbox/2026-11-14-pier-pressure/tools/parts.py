@@ -28,4 +28,11 @@ PARTS.update({
         ('arm', [(252, 165), (282, 150), (288, 110), (340, 110), (340, 225), (268, 228), (258, 212), (246, 192)]),
         ('torso', [(0, 160), (340, 160), (340, 315), (225, 308), (150, 322), (75, 310), (0, 310)]),
         ('shorts', [(50, 300), (275, 300), (275, 388), (50, 388)])]},
+    # standing poses cut where their clothes end over their legs: the upper body comes down over
+    # the legs (a bend of the knees, seen from the front)
+    ('milo', 'smug'): {'rest': 'upper', 'order': ['legs', 'upper'], 'parts': [('legs', [(0, 455), (2000, 455), (2000, 2000), (0, 2000)])]},
+    ('dot', 'basket'): {'rest': 'upper', 'order': ['legs', 'upper'], 'parts': [('legs', [(0, 470), (2000, 470), (2000, 2000), (0, 2000)])]},
+    ('dot', 'salt'): {'rest': 'upper', 'order': ['legs', 'upper'], 'parts': [('legs', [(0, 472), (2000, 472), (2000, 2000), (0, 2000)])]},
+    ('dot', 'serve'): {'rest': 'upper', 'order': ['legs', 'upper'], 'parts': [('legs', [(0, 475), (2000, 475), (2000, 2000), (0, 2000)])]},
+    ('dot', 'yell'): {'rest': 'upper', 'order': ['legs', 'upper'], 'parts': [('legs', [(0, 480), (2000, 480), (2000, 2000), (0, 2000)])]},
 })
