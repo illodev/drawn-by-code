@@ -17,19 +17,22 @@
 // she lands beside it; Captain's hops are jumps under the same gravity.
 const DIR = 'sandbox/2026-11-14-pier-pressure/';
 const B0 = 0.05; // the song's first beat
-// the edit: [from, to, name, shot(g, t, u, env)]; u is the time since the shot's cut
+// the edit: [from, to, name, shot(g, t, u, env), how the camera gets there]; u is the time since
+// the shot's cut. Without a fifth entry the shot carries on from the one before (the camera moves
+// inside the shots); with one, the camera whips there: the last frame of the shot before and the
+// first two of this one are smeared along the move (L, R: a pan; U: a tilt up; in, out: a zoom)
 const EDIT = [
     [0, B0 + 4, 'GULL HARBOR', (g, t, u, env) => Film.harbor(g, t, Math.max(0, t - B0), env)],
-    [B0 + 4, B0 + 8, 'KIT', (g, t, u, env) => kitShot(g, u, env)],
+    [B0 + 4, B0 + 8, 'KIT', (g, t, u, env) => kitShot(g, u, { ...env, k: env.k * 1.6 })],
     [B0 + 8, B0 + 10, 'HOAGIE', (g, t, u, env) => Film.hoagie(g, t, u, env)],
-    [B0 + 10, B0 + 12, 'MILO', (g, t, u, env) => Film.milo(g, t, u, env)],
+    [B0 + 10, B0 + 12, 'MILO', (g, t, u, env) => Film.milo(g, t, u, env), 'L'],
     [B0 + 12, B0 + 14, 'PIP', (g, t, u, env) => Film.pip(g, t, u, env)],
-    [B0 + 14, B0 + 16, 'AUNT DOT', (g, t, u, env) => Film.dot(g, t, u, env)],
-    [B0 + 16, B0 + 18, 'CAPTAIN', (g, t, u, env) => Film.captain(g, t, u, env)],
-    [B0 + 18, B0 + 21, 'AFTER HIM', (g, t, u, env) => Film.chase0(g, t, u, env)],
-    [B0 + 21, B0 + 26, 'THE PIER', (g, t, u, env) => Film.pier(g, t, u, env)],
+    [B0 + 14, B0 + 16, 'AUNT DOT', (g, t, u, env) => Film.dot(g, t, u, env), 'in'],
+    [B0 + 16, B0 + 18, 'CAPTAIN', (g, t, u, env) => Film.captain(g, t, u, env), 'R'],
+    [B0 + 18, B0 + 21, 'AFTER HIM', (g, t, u, env) => Film.chase0(g, t, u, env), 'out'],
+    [B0 + 21, B0 + 26, 'THE PIER', (g, t, u, env) => Film.pier(g, t, u, env), 'R'],
     [B0 + 26, B0 + 28, 'OFF THE END', (g, t, u, env) => Film.leap(g, t, u, env)],
-    [B0 + 28, B0 + 30, 'IN THE AIR', (g, t, u, env) => Film.hang(g, t, u, env)],
+    [B0 + 28, B0 + 30, 'IN THE AIR', (g, t, u, env) => Film.hang(g, t, u, env), 'U'],
     [B0 + 30, 31.75, 'PIER PRESSURE', (g, t, u, env) => Film.title(g, t, u, env)],
 ];
 
@@ -205,9 +208,20 @@ Motion.scene({
     shots: EDIT.map(([a, b, name]) => [a, b, name]),
 
     draw(g, t, env) {
-        const [a, , , shot] = EDIT.find(([from, to]) => t >= from && t < to) ?? EDIT[EDIT.length - 1];
+        const i = Math.max(0, EDIT.findIndex(([from, to]) => t >= from && t < to)), [a, b, , shot, tr] = EDIT[i], next = EDIT[i + 1];
+        const fr = Math.round((t - a) * 24), left = Math.round((b - t) * 24); // frames since the cut, and to the next
+        // the smear of a whip: the frame stretched [sx, sy] and pushed dx along the move
+        const OUT = { L: [9, 1, 220], R: [9, 1, -220], U: [1, 7, 0], in: [2.2, 2.2, 0], out: null };
+        const IN = { L: [[6, 1, -260], [2.2, 1, -80]], R: [[6, 1, 260], [2.2, 1, 80]], U: [[1, 4.5, 0], [1, 1.8, 0]], in: [[1.45, 1.45, 0], [1.13, 1.13, 0]], out: [[2, 2, 0], [1.3, 1.3, 0]] };
+        const sm = next?.[4] && left <= 1 ? OUT[next[4]] : tr && fr < 2 ? IN[tr][fr] : null;
         g.save();
+        if (sm) {
+            g.translate(800 + sm[2], 450);
+            g.scale(sm[0], sm[1]);
+            g.translate(-800, -450);
+        }
         shot(g, t, t - a, env);
         g.restore();
+        if (sm) Film.streaks(g, t, sm);
     },
 });

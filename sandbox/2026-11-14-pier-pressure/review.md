@@ -3,7 +3,8 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the whole opening, cut to the theme song: a first pass** (round 22): `scene.js` (the
+State: **the whole opening, cut to the theme song; camera, cards and the pier redone (round 23), the
+cast's acting still to do** (it waits for key-pose sheets: see round 23): `scene.js` (the
 edit and Kit's drop) + `film.js` (the other eleven shots), 31.75 s, `render/pier-pressure.mp4`
 (silent copy; with the song: `out/`, not committed), `review/sheet-1.jpg`, `sheet-2.jpg`. Waiting
 for the user's verdict. Only Kit is animated from key poses; the other five move between the two
@@ -736,3 +737,35 @@ each, 433 credits a sheet). Also: no sound effects yet (the song is dense; the c
 splash would still earn theirs); the pier set is plainer than the harbour; the words of the
 song are not matched to the pictures (the names could land on their own cards once the times
 they are sung at are known).
+
+## Round 23 (user) · cardboard characters, bad camera transitions, poor cards, sets
+
+> Falta muchísimo trabajo en las animaciones de los personajes, que no parezcan cartones solidos
+> que se mueven, transiciones de cámara muy malas, rótulos pobres, y escenarios
+
+Four faults, all true of round 22. Three are redone here; the first cannot be without drawings.
+
+- **Camera.** Round 22 had eleven hard cuts between framings of the same set, which read as
+  jumps. Now the camera moves: the opening is one crane from the town's sign down and back to
+  the quay; it pushes in on Hoagie, slides off Milo to go with Pip; and where it must change
+  subject it whips there, the last frame of one shot and the first two of the next smeared
+  along the move (pan, tilt or zoom) with lines of speed (`scene.js`: the edit's fifth entry;
+  `Film.move`, `Film.streaks`). The set is painted at the closest zoom of each stretch.
+- **Name cards** (`Film.card`): a plate with its shadow on a white burst that turns a tooth
+  every other drawing, block capitals with a side to them landing a letter a frame, the role
+  on a swallow-tailed ribbon that unrolls after, a zigzag, dots and a triangle thrown around,
+  a pulse on the beat; each character their own colours. Kit's is still the old one.
+- **The pier** (`pierSide`): clouds and gulls, hills with a town of windowed houses, trees and a
+  lighthouse, fishing boats bobbing on the far water, a white rail with lifebuoys, lamps with
+  bunting swaying between them, a deck with a top to it (planks, joints, nails), crates, a
+  bucket and benches left against the rail, iron bands, weed and breaking water on the piles.
+- **The cast's acting: not done.** Two drawings a character cannot act (rounds 18 and 22 said
+  so). Key-pose sheets were started with each one's model sheet as reference (prompts in
+  `ref/keypose-prompts.md`): **Milo, Captain and Kit's ride were generated** (two variations
+  each, 2,598 credits); **Hoagie, Pip and Dot's runs were refused** by the session's permission
+  check, and generated images cannot be downloaded from here either. Next: the user attaches
+  the sheets they like (and runs the other three in the flow, or allows it), then each is
+  measured into code (`tools/tocode.py`, checked with `tools/fidelity.py`) and the shots are
+  re-animated pose to pose as Kit's drop was.
+
+Still off besides: Kit's own card; the harbour set itself is unchanged; no sound effects.

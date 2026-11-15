@@ -98,20 +98,55 @@ const Film = (() => {
     }
 
     // --- a name card, slammed onto the frame at `at` -----------------------------------------
+    // A plate with its shadow on a white burst that turns a tooth every other drawing; the name
+    // in block capitals with a side to them, landing a letter a frame; the role on a ribbon that
+    // unrolls after it; a zigzag, dots and a triangle thrown around. o: fill (the plate), second
+    // (the letters), drop (their sides), ink (the role), tilt, k
+    const star = (rx, ry, inner, n, a0) => Array.from({ length: n * 2 }, (_, i) => {
+        const a = a0 + (i / (n * 2)) * Math.PI * 2, r = i % 2 ? inner : 1;
+        return [Math.cos(a) * rx * r, Math.sin(a) * ry * r, 1];
+    });
+    function block(g, str, x, y, o) {
+        // capitals with a side: the side is the same letters, three times, down and to the right
+        for (const d of [10, 6.5, 3]) T.sign(g, str, x + d, y + d, { ...o, fill: o.drop, w: o.w * 0.9 });
+        return T.sign(g, str, x, y, o);
+    }
     function card(g, t, at, name, role, x, y, o = {}) {
         if (t < at) return;
-        const dc = Math.min(3, nth(t, at)), k = [0.6, 1.16, 0.95, 1][dc] * (o.k ?? 0.9);
-        const size = Math.min(188, 440 / (name.length * 0.6)), hw = Math.max(name.length * size * 0.31 + 34, role.length * 10.6 + 30), hh = size * 0.56;
+        const d = nth(t, at), dc = Math.min(3, d), beat = Motion.pulse(twos(t), 120, 0.05, 8);
+        const k = [0.5, 1.18, 0.94, 1][dc] * (o.k ?? 1) * (1 + beat * 0.025);
+        const size = Math.min(176, 500 / (name.length * 0.56)), nw = name.length * size * 0.56, hw = Math.max(nw / 2 + 52, 190), hh = size * 0.62;
+        const fill = o.fill ?? C.magenta, second = o.second ?? C.roadLine, drop = o.drop ?? C.navy;
         g.save();
         g.translate(x, y);
-        g.rotate((o.tilt ?? -0.07) + [0.1, -0.03, 0.01, 0][dc]);
+        g.rotate((o.tilt ?? -0.06) + [0.12, -0.04, 0.012, 0][dc]);
         g.scale(k, k);
-        T.slab(g, [[-hw, -hh + 2], [hw - 4, -hh - 12], [hw + 8, hh * 0.68], [-hw + 8, hh * 0.83]], { fill: o.fill ?? C.magenta, seed: 'card' + name, over: 2.4, w: T.LINE * 1.2 });
-        T.slab(g, [[-hw + 16, -hh + 16], [hw - 19, -hh + 3], [hw - 8, hh * 0.55], [-hw + 23, hh * 0.69]], { fill: null, seed: 'rule' + name, over: 0.5, w: T.LINE_FINE, color: C.roadLine });
-        T.sign(g, name, 4, hh * 0.42, { size, fill: C.roadLine, drop: o.drop ?? C.navy, seed: 'name' + name, w: T.LINE * 1.1, track: 0.06, tilt: 0.05 });
-        const rw = role.length * 10.6 + 18;
-        T.slab(g, [[-rw, hh * 0.6], [rw + 6, hh * 0.6 - 12], [rw + 10, hh * 0.6 + 42], [-rw + 4, hh * 0.6 + 54]], { fill: C.white, seed: 'sub' + name, over: 1.6, w: T.LINE });
-        T.sign(g, role, 6, hh * 0.6 + 40, { size: 44, fill: o.ink ?? C.red, seed: 'role' + name, w: T.LINE_FINE * 0.8, track: 0.03, tilt: 0.03, outline: C.white });
+        T.shape(g, star(hw * 1.36, hh * 2.05, 0.8, 13, (d >> 1) * 0.12), { fill: C.white, w: T.LINE * 1.2, seed: 'burst' + name, amp: 0.15 });
+        const Q = [[-hw, -hh + 4], [hw - 6, -hh - 14], [hw + 10, hh * 0.72], [-hw + 10, hh * 0.9]];
+        T.slab(g, Q.map(([a, b]) => [a + 12, b + 14]), { fill: C.ink, seed: 'shade' + name, over: 1, w: T.LINE });
+        T.slab(g, Q, { fill, seed: 'card' + name, over: 2.4, w: T.LINE * 1.3 });
+        T.slab(g, [[-hw + 15, -hh + 17], [hw - 20, -hh + 2], [hw - 7, hh * 0.58], [-hw + 23, hh * 0.75]], { fill: null, seed: 'rule' + name, over: 0.5, w: T.LINE_FINE, color: second });
+        // thrown around it
+        if (d >= 2) {
+            const zz = Array.from({ length: 7 }, (_, i) => [hw * 0.62 + i * 22, -hh - 46 - (i % 2) * 24, 1]);
+            T.line(g, zz, { w: T.LINE * 2.6, seed: 'zz' + name, color: C.ink });
+            T.line(g, zz, { w: T.LINE * 1.2, seed: 'zz' + name, color: second });
+            for (let i = 0; i < 3; i++) T.shape(g, star(11, 11, 1, 5, 0).map(([a, b]) => [a - hw - 34 + i * 6, b - hh * 0.5 + i * 34]), { fill: [second, C.white, fill][i], w: T.LINE_BG, seed: 'dot' + name + i });
+            T.shape(g, [[-hw * 0.8, -hh - 58, 1], [-hw * 0.8 + 44, -hh - 40, 1], [-hw * 0.8 + 8, -hh - 14, 1]], { fill: second, w: T.LINE, seed: 'tri' + name });
+        }
+        if (d >= 1) block(g, name.slice(0, d), -nw / 2 + 2, hh * 0.4, { size, fill: second, drop, seed: 'name' + name, w: T.LINE * 1.1, track: 0.06, tilt: 0.06, align: 'left' });
+        // the role, on a ribbon with swallow tails
+        const rd = d - Math.min(name.length, 5) - 1;
+        if (rd >= 0) {
+            const rw = role.length * 10.8 + 20, ry = hh * 0.68, rk = [0.6, 1.12, 1][Math.min(2, rd)];
+            g.save();
+            g.translate(hw * 0.12, ry + 26);
+            g.rotate(-0.035);
+            g.scale(rk, rk);
+            T.shape(g, [[-rw - 34, -26, 1], [rw + 30, -30, 1], [rw + 8, 0, 1], [rw + 34, 26, 1], [-rw - 30, 30, 1], [-rw - 8, 2, 1]], { fill: o.ribbon ?? C.white, w: T.LINE, seed: 'ribbon' + name, amp: 0.2 });
+            T.sign(g, role, 2, 15, { size: 46, fill: o.ink ?? C.red, seed: 'role' + name, w: T.LINE_FINE * 0.8, track: 0.035, tilt: 0.03, outline: o.ribbon ?? C.white });
+            g.restore();
+        }
         g.restore();
     }
     // an entrance on twos: slides in from `from` frame units away, squashing as it stops
@@ -120,22 +155,25 @@ const Film = (() => {
         return { dx: [1, 0.42, 0.08, -0.03, 0][d] * from, sx: [0.92, 0.94, 1.07, 0.98, 1][d], sy: [1.08, 1.06, 0.93, 1.02, 1][d] };
     };
 
-    // === 1 · Gull Harbor (4 s): the sign, then the quay =========================================
+    // from one framing to another over n frames, slowing into it ({ f: [x, y], z })
+    const move = (u, A, B, n) => {
+        const k = 1 - Math.pow(1 - clamp((u * 24) / n, 0, 1), 3);
+        return { f: [lerp(A.f[0], B.f[0], k), lerp(A.f[1], B.f[1], k)], z: A.z * Math.pow(B.z / A.z, k) };
+    };
+    const WIDE = { f: [800, 450], z: 1 }, F_HOAGIE = { f: [1000, 500], z: 1.35 }, F_MILO = { f: [500, 400], z: 1.6 };
+
+    // === 1 · Gull Harbor (4 s): the sign; the camera cranes down and back to the quay =============
     function harbor(g, t, u, env) {
-        if (u < 2) {
-            // the town's sign, the camera coming down it
-            view(g, env, [1150, 205 + 70 * ease(u / 2)], 2, 2, (e) => world(g, e, t, {}));
-            return;
-        }
-        // the quay, quiet: Dot comes up behind her counter, Captain keeps watch
-        const v = u - 2, z = 1 + 0.06 * ease(v / 2);
-        view(g, env, [800, 470], z, 1.06, (e) => world(g, e, t, { dot: { up: -70 + 77 * ease((twos(v) - 0.5) / 0.34) }, captain: { h: hop(twos(v, 1) - 1, 1.1) } }));
+        const k = ease((u - 1.4) / 1.3), c = { f: [lerp(1150, 800, k), lerp(205 + 40 * Math.min(1, u / 1.4), 450, k)], z: 2 * Math.pow(0.5, k) };
+        // Dot comes up behind her counter once it is in sight; Captain keeps watch
+        view(g, env, c.f, c.z, 2, (e) => world(g, e, t, { dot: { up: -70 + 77 * ease((twos(u) - 2.9) / 0.34) }, captain: { h: hop(twos(u, 3.5) - 3.5, 1.1) } }));
     }
 
     // === 3 · Hoagie (2 s): through his viewfinder, then the boy behind it =========================
     function hoagie(g, t, u, env) {
         const e0 = enter(u, 520), up = hop(twos(u, 1) - 1, 1.5), s = Cam.scale(HOAGIE[2]);
-        view(g, env, [1000, 500], 1.35, 1.35, (e) => world(g, e, t, { actors: [kitRest(t), { z: HOAGIE[2], draw(gg) {
+        const c = move(u, WIDE, F_HOAGIE, 9); // the camera pushes in to the two of them
+        view(g, env, c.f, c.z, 1.6, (e) => world(g, e, t, { actors: [kitRest(t), { z: HOAGIE[2], draw(gg) {
             put3(gg, 'hoagie', 'film', [HOAGIE[0] + e0.dx / s, up, HOAGIE[2]], { sx: e0.sx, sy: e0.sy, rot: u > 0.4 && u < 1 ? Math.sin((twos(u) - 0.4) * 10) * 0.05 : 0 });
         } }] }));
         if (u < 1) {
@@ -160,14 +198,14 @@ const Film = (() => {
                 T.sign(g, 'REC', 158, 172, { size: 58, fill: C.white, seed: 'rec-t', w: T.LINE, align: 'left', tilt: 0.02 });
             }
         }
-        card(g, u, 1, 'HOAGIE', 'STILL ROLLING', 1270, 760, { fill: C.orange, drop: C.maroon });
+        card(g, u, 1, 'HOAGIE', 'STILL ROLLING', 1250, 700, { fill: C.orange, drop: C.maroon, second: C.white });
     }
 
     // === 4 · Milo (2 s): the plan, and the plan going wrong =========================================
     function milo(g, t, u, env) {
         const v = twos(u, 1) - 1, V0 = 3.3, air = v >= 0 && v < (2 * V0) / G, e0 = enter(u, -460), s = Cam.scale(MILO[2]);
         // (a medium shot: he is the tall one)
-        view(g, env, [500, 400], 1.6, 1.6, (e) => world(g, e, t, { actors: [kitRest(t), { z: MILO[2], draw(gg) {
+        view(g, env, F_MILO.f, F_MILO.z, 1.6, (e) => world(g, e, t, { actors: [kitRest(t), { z: MILO[2], draw(gg) {
             if (air) {
                 // up he goes, heels over head, the board its own way
                 const h = V0 * v - (G * v * v) / 2;
@@ -177,7 +215,7 @@ const Film = (() => {
                 put3(gg, 'milo', 'stand', [MILO[0] + 0.12, 0, MILO[2]], { sx: [1.1, 0.96, 1][Math.min(2, d)], sy: [0.88, 1.05, 1][Math.min(2, d)] });
             } else put3(gg, 'milo', 'stand', [MILO[0] + e0.dx / s, 0, MILO[2]], { sx: e0.sx, sy: e0.sy * (1 + Motion.pulse(twos(u), 120, 0, 6) * 0.012) });
         } }] }));
-        card(g, u, 1, 'MILO', 'HAS A PLAN', 1200, 760, { fill: C.navy, drop: C.ink, ink: C.navy });
+        card(g, u, 1, 'MILO', 'HAS A PLAN', 1200, 690, { fill: C.blue, drop: C.navy, ink: C.navy });
     }
 
     // === 5 · Pip (2 s): through the lot of them, without looking up ==================================
@@ -188,9 +226,10 @@ const Film = (() => {
         put3(g, 'pip', 'ride', [X, [0, 0.012][d % 2], Z], { rot: -0.04 + [0, 0.012][d % 2] });
     } });
     function pip(g, t, u, env) {
-        const X = -3.2 + twos(u) * 3.3;
-        view(g, env, [560 + 330 * ease(u / 2), 520], 1.3, 1.3, (e) => world(g, e, t, { actors: [kitRest(t), hoagieRest(t), miloRest(t), pipRide(t, X, 3.05)] }));
-        card(g, u, 1, 'PIP', 'NOT BOTHERED', 1250, 250, { fill: C.lime, drop: C.green, ink: C.maroon, tilt: 0.06 });
+        const X = -2.7 + twos(u) * 2.25;
+        const c = move(u, F_MILO, { f: [600, 520], z: 1.3 }, 8); // off Milo, and along with her
+        view(g, env, [c.f[0] + 260 * ease(u / 2), c.f[1]], c.z, 1.6, (e) => world(g, e, t, { actors: [kitRest(t), hoagieRest(t), miloRest(t), pipRide(t, X, 3.05)] }));
+        card(g, u, 1, 'PIP', 'NOT BOTHERED', 1240, 250, { fill: C.green, drop: C.ink, second: C.lime, ink: C.maroon, tilt: 0.05 });
     }
 
     // === 6 · Aunt Dot (2 s): at her hatch; chips up ==================================================
@@ -198,18 +237,18 @@ const Film = (() => {
         const A = Harbor.AT, hx = A.dot.hatch.reduce((s, p) => s + p[0], 0) / A.dot.hatch.length, hy = A.dot.hatch.reduce((s, p) => s + p[1], 0) / A.dot.hatch.length;
         const d = nth(u, 1), served = u >= 1;
         // (the hut is eight metres off: the others are left out of this one, they would stand in it)
-        view(g, env, [hx + 46, hy + 6], 3, 3, (e) => world(g, e, t, {
+        view(g, env, [hx + 46, hy + 6], 3.4, 3.4, (e) => world(g, e, t, {
             dot: served ? { pose: 'serve', weight: 2.2, up: 7 + [16, -3, 2, 0][Math.min(3, d)], dx: 2, sy: [1.06, 0.97, 1.01, 1][Math.min(3, d)] } : { weight: 2.2, up: 7 + Motion.pulse(twos(u), 120, 0, 6) * 2 },
         }));
-        card(g, u, 1, 'AUNT DOT', 'MIND THE CURVE', 1180, 730, { fill: C.red, drop: C.maroon });
+        card(g, u, 1, 'AUNT DOT', 'MIND THE CURVE', 1150, 680, { fill: C.red, drop: C.maroon });
     }
 
     // === 7 · Captain (2 s): on his bollard, then off it =============================================
     function captain(g, t, u, env) {
         // he starts at every beat, a little more each time; on the last he is gone, straight up
         const h = hop(twos(u, 0.5) - 0.5, 0.9) + hop(twos(u, 1) - 1, 1.3), v = twos(u, 1.5) - 1.5;
-        view(g, env, [1330, 470], 2.3, 2.3, (e) => world(g, e, t, { captain: { h: v >= 0 ? v * 9 : h, sy: v >= 0 ? 1.12 : 1, weight: 1.4 } }));
-        card(g, u, 1, 'CAPTAIN', 'WANTED', 420, 730, { fill: C.navy, drop: C.ink, ink: C.navy });
+        view(g, env, [1358, 492], 3, 3.4, (e) => world(g, e, t, { captain: { h: v >= 0 ? v * 9 : h, sy: v >= 0 ? 1.12 : 1, weight: 1.4 } }));
+        card(g, u, 1, 'CAPTAIN', 'WANTED', 450, 660, { fill: C.navy, drop: C.ink, ink: C.navy, ribbon: C.roadLine });
     }
 
     // === 8 · the break (3 s): he has the chips; after him ==============================================
@@ -241,7 +280,7 @@ const Film = (() => {
         const actors = [kitA, hoagieA, miloA];
         if (u >= 1.5) actors.push(pipRide(t, -4.2 + (twos(u) - 1.5) * 6.4, 3.05));
         if (cp[2] > 3.9) actors.push({ z: cp[2], draw: bird });
-        view(g, env, [800, 470], 1.06, 1.06, (e) => {
+        view(g, env, [800, 470], 1.06, 1.6, (e) => {
             world(g, e, t, { actors, captain: null, dot: { pose: 'serve', up: 7 + hop(twos(u, 0.5) - 0.5, 0.5) * 40 + Math.sin(twos(u) * 14) * 2 } });
             if (cp[2] <= 3.9) bird(g);
             for (const [gg, P] of [[gk, KIT], [gh, HOAGIE], [gm, MILO]]) if (gg) { const [px, py] = Cam.pt(P); puff(g, px, py, gg.v / 0.4, 6, 22, 'go' + P[0]); }
@@ -260,82 +299,158 @@ const Film = (() => {
         g.lineJoin = 'round';
         g.lineCap = 'round';
         const stroke = (w, col = C.ink) => { g.strokeStyle = col; g.lineWidth = w; g.stroke(); };
-        // the far shore, the town on it
+        const box = (x, y, w, h, fill, lw = T.LINE_BG) => { g.beginPath(); g.rect(x, y, w, h); g.fillStyle = fill; g.fill(); stroke(lw); };
+        const poly = (pts, fill, lw = T.LINE_BG) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); if (fill) { g.fillStyle = fill; g.fill(); } stroke(lw); };
+        const wrap = (x, span, lead = 300) => ((x % span) + span) % span - lead; // a layer that comes round again
+        // --- the sky: clouds a long way off, gulls
+        for (let i = 0; i < 4; i++) {
+            const x = wrap(i * 620 + 200 - sc * 0.015, 2480), y = 150 + ((i * 97) % 3) * 70, k = 1 + (i % 2) * 0.35;
+            T.shape(g, [[x, y + 30 * k], [x + 20 * k, y], [x + 70 * k, y - 8 * k], [x + 100 * k, y - 34 * k], [x + 160 * k, y - 30 * k], [x + 190 * k, y - 4 * k], [x + 250 * k, y + 4 * k], [x + 262 * k, y + 30 * k, 1], [x + 120 * k, y + 36 * k, 1]], { fill: C.white, w: T.LINE_BG, seed: 'cloud' + i, amp: 0.2 });
+        }
+        for (let i = 0; i < 5; i++) {
+            const x = wrap(i * 430 + 90 - sc * 0.03, 2150), y = 90 + ((i * 53) % 4) * 46 + Math.sin(d * 0.4 + i) * 5, fl = (d + i) % 4 < 2 ? 9 : -4;
+            g.beginPath(); g.moveTo(x - 20, y - fl); g.quadraticCurveTo(x - 9, y - 9, x, y); g.quadraticCurveTo(x + 9, y - 9, x + 20, y - fl); stroke(T.LINE_BG);
+        }
+        // --- the far shore: hills, the town along it, the lighthouse on its point
         g.beginPath();
         g.moveTo(-20, 560);
-        for (let x = -20; x <= 1620; x += 20) { const w = x + sc * 0.06; g.lineTo(x, 512 - 22 * Math.sin(w / 170) - 11 * Math.sin(w / 61 + 1)); }
+        for (let x = -20; x <= 1620; x += 20) { const w = x + sc * 0.06; g.lineTo(x, 506 - 26 * Math.sin(w / 170) - 12 * Math.sin(w / 61 + 1)); }
         g.lineTo(1620, 560);
         g.closePath();
         g.fillStyle = C.palmLight;
         g.fill();
         stroke(T.LINE_BG);
-        for (let i = 0; i < 9; i++) {
-            const x = ((i * 233 - sc * 0.06) % 2100 + 2100) % 2100 - 250, hgt = 26 + ((i * 7) % 4) * 9, wd = 46 + ((i * 5) % 3) * 16;
-            g.beginPath();
-            g.rect(x, 520 - hgt, wd, hgt + 24);
-            g.fillStyle = [C.teal, C.salmon, C.yellow, C.white][i % 4];
-            g.fill();
-            stroke(T.LINE_BG);
-            g.beginPath();
-            g.moveTo(x - 5, 520 - hgt); g.lineTo(x + wd / 2, 520 - hgt - 18); g.lineTo(x + wd + 5, 520 - hgt);
-            g.closePath();
-            g.fillStyle = C.red;
-            g.fill();
-            stroke(T.LINE_BG);
+        for (let i = 0; i < 12; i++) {
+            const x = wrap(i * 190 - sc * 0.06, 2280), hgt = 30 + ((i * 7) % 4) * 11, wd = 50 + ((i * 5) % 3) * 18, y = 526;
+            if (i % 6 === 2) {
+                // the lighthouse: hoops of red and white, a lamp room, a cap
+                poly([[x + 6, y + 10], [x + 14, y - 96], [x + 40, y - 96], [x + 48, y + 10]], C.white);
+                for (const [a, b] of [[0.2, 0.42], [0.62, 0.84]]) poly([[x + 6 + 8 * b, y + 10 - 106 * b], [x + 48 - 8 * b, y + 10 - 106 * b], [x + 48 - 8 * a, y + 10 - 106 * a], [x + 6 + 8 * a, y + 10 - 106 * a]], C.red);
+                box(x + 16, y - 116, 22, 20, C.roadLine);
+                poly([[x + 10, y - 116], [x + 27, y - 136], [x + 44, y - 116]], C.red);
+                continue;
+            }
+            box(x, y - hgt, wd, hgt + 18, [C.teal, C.salmon, C.yellow, C.white, C.glass][i % 5]);
+            poly([[x - 6, y - hgt], [x + wd / 2, y - hgt - 20], [x + wd + 6, y - hgt]], i % 2 ? C.red : C.road);
+            box(x + wd * 0.2, y - hgt * 0.62, 11, 13, C.navy, T.LINE_FINE * 0.7);
+            if (wd > 60) box(x + wd * 0.6, y - hgt * 0.62, 11, 13, C.navy, T.LINE_FINE * 0.7);
+            if (i % 3 === 0) { g.beginPath(); g.arc(x + wd + 26, y - 22, 17, 0, 6.3); g.fillStyle = C.palm; g.fill(); stroke(T.LINE_BG); } // a tree beside it
         }
-        // the sea, its swell in three rows
+        // --- the sea: the far water, boats on it, the swell in three rows
         g.fillStyle = C.sea;
         g.fillRect(-10, 540, 1620, 900);
+        g.fillStyle = C.seaDeep;
+        g.fillRect(-10, 540, 1620, 30);
         g.beginPath(); g.moveTo(-10, 540); g.lineTo(1610, 540); stroke(T.LINE_BG);
-        for (const [row, y, par, gap] of [[0, 578, 0.12, 210], [1, 716, 0.3, 300], [2, 838, 0.55, 380]]) {
+        for (let i = 0; i < 3; i++) {
+            const x = wrap(i * 900 + 500 - sc * 0.14, 2700, 400), y = 590 + [0, 2, 3, 2][(d + i) % 4], col = [C.red, C.white, C.orange][i];
+            poly([[x, y - 18], [x + 150, y - 18], [x + 128, y + 12], [x + 18, y + 12]], col);
+            box(x + 80, y - 50, 44, 32, C.white);
+            box(x + 90, y - 42, 12, 12, C.glass, T.LINE_FINE * 0.7);
+            g.beginPath(); g.moveTo(x + 46, y - 18); g.lineTo(x + 46, y - 92); stroke(T.LINE_BG);
+            poly([[x + 46, y - 92], [x + 80, y - 82], [x + 46, y - 72]], C.roadLine, T.LINE_FINE);
+            g.beginPath(); g.moveTo(x - 30, y + 14); g.quadraticCurveTo(x - 8, y + 6, x + 12, y + 14); g.moveTo(x + 136, y + 14); g.quadraticCurveTo(x + 156, y + 6, x + 180, y + 14); stroke(T.LINE_BG, C.foam);
+        }
+        for (const [row, y, par, gap] of [[0, 574, 0.12, 210], [1, 716, 0.3, 300], [2, 838, 0.55, 380]]) {
             for (let i = 0; i < 12; i++) {
-                const x = ((i * gap + row * 97 - sc * par) % (gap * 8) + gap * 8) % (gap * 8) - 200, a = 26 + row * 16, lift = (d + i) % 2 ? 0 : 3;
+                const x = wrap(i * gap + row * 97 - sc * par, gap * 8, 200), a = 26 + row * 16, lift = (d + i) % 2 ? 0 : 3;
                 g.beginPath();
                 g.moveTo(x, y + lift); g.quadraticCurveTo(x + a / 2, y - 9 - row * 3 + lift, x + a, y + lift); g.quadraticCurveTo(x + a * 1.5, y - 9 - row * 3 + lift, x + a * 2, y + lift);
-                stroke(T.LINE_BG + row * 0.5, row ? C.foam : C.seaDeep);
+                stroke(T.LINE_BG + row * 0.5, row ? C.foam : C.white);
             }
         }
-        const x1 = endX ?? 1700;
-        // lamps along the far side of the deck
-        for (let i = 0; i < 6; i++) {
-            const x = ((i * 840 + 300 - sc) % 5040 + 5040) % 5040 - 400;
-            if (x > x1 - 60) continue;
-            g.beginPath(); g.rect(x - 6, 372, 12, DECK - 372); g.fillStyle = C.road; g.fill(); stroke(T.LINE_BG);
-            g.beginPath(); g.moveTo(x - 22, 372); g.lineTo(x + 22, 372); g.lineTo(x + 15, 334); g.lineTo(x - 15, 334); g.closePath(); g.fillStyle = C.glass; g.fill(); stroke(T.LINE_BG);
-            g.beginPath(); g.moveTo(x - 27, 334); g.lineTo(x, 314); g.lineTo(x + 27, 334); g.closePath(); g.fillStyle = C.road; g.fill(); stroke(T.LINE_BG);
+        const x1 = endX ?? 1700, TOP = DECK - 30; // the deck's far edge on the frame
+        // --- the pier's far side: its rail, a lifebuoy, lamps with bunting between them
+        g.beginPath(); g.rect(-20, TOP - 104, x1 - 4, 9); g.rect(-20, TOP - 58, x1 - 4, 7); g.fillStyle = C.white; g.fill(); stroke(T.LINE_BG);
+        for (let i = 0; i < 14; i++) {
+            const x = wrap(i * 180 + 60 - sc, 2520);
+            if (x > x1 - 26) continue;
+            box(x - 6, TOP - 112, 12, 114, C.white);
+            if (i % 5 === 1 && x < x1 - 120) {
+                g.beginPath(); g.arc(x + 88, TOP - 76, 31, 0, 6.3); g.fillStyle = C.white; g.fill(); stroke(T.LINE_BG);
+                for (let q = 0; q < 4; q++) { g.beginPath(); g.arc(x + 88, TOP - 76, 31, q * 1.571 + 0.35, q * 1.571 + 1.2); g.arc(x + 88, TOP - 76, 13, q * 1.571 + 1.2, q * 1.571 + 0.35, true); g.closePath(); g.fillStyle = C.red; g.fill(); stroke(T.LINE_FINE * 0.8); }
+                g.beginPath(); g.arc(x + 88, TOP - 76, 13, 0, 6.3); g.fillStyle = C.sea; g.fill(); stroke(T.LINE_BG);
+            }
         }
-        // the piles and their braces, then the beam, then the deck with its plank ends
+        const lamps = [];
+        for (let i = 0; i < 6; i++) { const x = wrap(i * 840 + 300 - sc, 5040, 500); if (x < x1 - 60) lamps.push(x); }
+        lamps.sort((a, b) => a - b);
+        for (const [i, x] of lamps.entries()) {
+            const nx = lamps[i + 1] ?? x + 840;
+            // bunting to the next lamp, each flag hanging from the line
+            const sag = (k) => [lerp(x, nx, k), 338 + 4 * 70 * k * (1 - k)];
+            g.beginPath();
+            for (let k = 0; k <= 1.001; k += 0.05) { const [bx, by] = sag(k); k ? g.lineTo(bx, by) : g.moveTo(bx, by); }
+            stroke(T.LINE_FINE);
+            for (let j = 1; j < 14; j++) {
+                const [bx, by] = sag(j / 14 - 0.022), [cx, cy] = sag(j / 14 + 0.022), sw = Math.sin(d * 0.8 + j) * 5;
+                if (cx < x1 - 20) poly([[bx, by], [cx, cy], [(bx + cx) / 2 + sw, (by + cy) / 2 + 42]], [C.red, C.roadLine, C.teal, C.magenta, C.white][j % 5], T.LINE_FINE);
+            }
+            box(x - 7, 350, 14, TOP - 350, C.road);
+            box(x - 13, TOP - 26, 26, 26, C.road);
+            poly([[x - 24, 350], [x + 24, 350], [x + 16, 304], [x - 16, 304]], C.glass);
+            g.beginPath(); g.moveTo(x, 350); g.lineTo(x, 304); stroke(T.LINE_FINE);
+            poly([[x - 30, 304], [x, 280], [x + 30, 304]], C.road);
+            g.beginPath(); g.arc(x, 274, 6, 0, 6.3); g.fillStyle = C.road; g.fill(); stroke(T.LINE_BG);
+        }
+        // --- under the deck: braces, then piles with their weed and the water round them
         const piles = [];
-        for (let i = 0; i < 9; i++) {
-            const x = ((i * 280 - sc) % 2520 + 2520) % 2520 - 300;
-            if (x < x1 - 30) piles.push(x);
-        }
+        for (let i = 0; i < 9; i++) { const x = wrap(i * 280 - sc, 2520); if (x < x1 - 30) piles.push(x); }
         piles.sort((a, b) => a - b);
         for (const [i, x] of piles.entries()) {
             const nx = piles[i + 1];
-            if (nx != null && nx - x < 300) for (const [ya, yb] of [[706, 884], [884, 706]]) {
+            if (nx != null && nx - x < 300) for (const [ya, yb] of [[706, 858], [858, 706]]) {
                 g.beginPath(); g.moveTo(x + 14, ya); g.lineTo(nx - 14, yb);
-                stroke(15); stroke(9.5, C.woodDeep);
+                stroke(16); stroke(10.5, C.woodDeep);
             }
         }
-        for (const x of piles) {
-            g.beginPath(); g.rect(x - 17, DECK + 40, 34, 320); g.fillStyle = C.trunk; g.fill(); stroke(T.LINE);
-            g.beginPath(); g.moveTo(x - 8, DECK + 70); g.lineTo(x - 8, DECK + 210); g.moveTo(x + 6, DECK + 120); g.lineTo(x + 6, DECK + 250); stroke(T.LINE_FINE * 0.8);
+        for (const [i, x] of piles.entries()) {
+            box(x - 18, DECK + 40, 36, 320, C.trunk, T.LINE);
+            g.beginPath(); g.moveTo(x - 8, DECK + 70); g.lineTo(x - 8, DECK + 170); g.moveTo(x + 7, DECK + 110); g.lineTo(x + 7, DECK + 190); stroke(T.LINE_FINE * 0.8);
+            box(x - 22, DECK + 58, 44, 13, C.kerb, T.LINE_BG); // an iron band
+            // weed and barnacles where the tide reaches, and the water breaking round the pile
+            poly([[x - 18, 826], [x - 9, 818], [x - 2, 828], [x + 8, 816], [x + 18, 827], [x + 18, 900], [x - 18, 900]], C.palm, T.LINE_BG);
+            const lift = (d + i) % 2 ? 0 : 4;
+            g.beginPath(); g.moveTo(x - 52, 872 + lift); g.quadraticCurveTo(x - 36, 858 + lift, x - 20, 870 + lift); g.moveTo(x + 20, 870 - lift); g.quadraticCurveTo(x + 38, 858 - lift, x + 54, 872 - lift); stroke(T.LINE, C.foam);
         }
-        g.beginPath(); g.rect(-20, DECK + 26, x1 + 20, 28); g.fillStyle = C.woodDeep; g.fill(); stroke(T.LINE);
-        g.beginPath(); g.rect(-20, DECK, x1 + 26, 28); g.fillStyle = C.wood; g.fill(); stroke(T.LINE);
+        // --- the deck: its beam, its top with the planks' joints, their ends along the edge
+        box(-20, DECK + 30, x1 + 20, 30, C.woodDeep, T.LINE);
+        poly([[-20, TOP], [x1 - 6, TOP], [x1 + 8, DECK + 6], [-20, DECK + 6]], C.sand, T.LINE);
         g.beginPath();
         for (let i = 0; i < 40; i++) {
-            const x = ((i * 46 - sc) % 1840 + 1840) % 1840 - 100;
-            if (x < x1) { g.moveTo(x, DECK + 3); g.lineTo(x, DECK + 25); }
+            const x = wrap(i * 46 - sc, 1840, 100);
+            if (x < x1 - 4) { g.moveTo(x - 9, TOP + 2); g.lineTo(x, DECK + 4); }
+        }
+        stroke(T.LINE_FINE * 0.8, C.sandDeep);
+        box(-20, DECK + 6, x1 + 28, 26, C.wood, T.LINE);
+        g.beginPath();
+        for (let i = 0; i < 40; i++) {
+            const x = wrap(i * 46 - sc, 1840, 100);
+            if (x < x1 + 6) { g.moveTo(x, DECK + 9); g.lineTo(x, DECK + 29); }
         }
         stroke(T.LINE_FINE * 0.9);
+        for (let i = 0; i < 40; i++) { const x = wrap(i * 46 + 23 - sc, 1840, 100); if (x < x1) { g.beginPath(); g.arc(x, DECK + 19, 2.2, 0, 6.3); g.fillStyle = C.ink; g.fill(); } } // a nail in each
+        // things left on the deck, against the rail
+        for (let i = 0; i < 4; i++) {
+            const x = wrap(i * 1260 + 700 - sc, 5040, 500);
+            if (x > x1 - 160) continue;
+            if (i % 2) {
+                // a bench
+                box(x, TOP - 58, 150, 12, C.teal); box(x, TOP - 34, 150, 10, C.teal); box(x + 8, TOP - 24, 10, 26, C.road); box(x + 132, TOP - 24, 10, 26, C.road);
+            } else {
+                // a stack of fish crates and a bucket
+                box(x, TOP - 42, 78, 44, C.orange); box(x + 10, TOP - 82, 70, 40, C.blue);
+                g.beginPath(); for (const yy of [TOP - 28, TOP - 14, TOP - 68, TOP - 56]) { g.moveTo(x + (yy < TOP - 42 ? 14 : 4), yy); g.lineTo(x + 74, yy); } stroke(T.LINE_FINE * 0.8);
+                poly([[x + 96, TOP - 30], [x + 132, TOP - 30], [x + 126, TOP + 2], [x + 102, TOP + 2]], C.kerb);
+            }
+        }
         if (endX != null) {
             // the end: a last post and what it says
-            g.beginPath(); g.rect(endX - 96, DECK - 150, 12, 150); g.fillStyle = C.road; g.fill(); stroke(T.LINE_BG);
-            T.slab(g, [[endX - 176, DECK - 232], [endX - 6, DECK - 240], [endX - 2, DECK - 150], [endX - 172, DECK - 142]], { fill: C.white, seed: 'endsign', over: 1.2, w: T.LINE });
-            T.sign(g, 'NO', endX - 90, DECK - 198, { size: 40, fill: C.red, seed: 'end-a', w: T.LINE_FINE * 0.8, tilt: 0.03, outline: C.white });
-            T.sign(g, 'RUNNING', endX - 90, DECK - 158, { size: 40, fill: C.red, seed: 'end-b', w: T.LINE_FINE * 0.8, tilt: 0.03, outline: C.white });
+            box(endX - 96, TOP - 170, 12, 172, C.road);
+            T.slab(g, [[endX - 180, TOP - 262], [endX - 4, TOP - 270], [endX, TOP - 168], [endX - 176, TOP - 160]], { fill: C.white, seed: 'endsign', over: 1.2, w: T.LINE });
+            T.slab(g, [[endX - 170, TOP - 252], [endX - 14, TOP - 259], [endX - 11, TOP - 178], [endX - 167, TOP - 171]], { fill: null, seed: 'endrule', over: 0.4, w: T.LINE_FINE, color: C.red });
+            T.sign(g, 'NO', endX - 90, TOP - 222, { size: 44, fill: C.red, seed: 'end-a', w: T.LINE_FINE * 0.8, tilt: 0.03, outline: C.white });
+            T.sign(g, 'RUNNING', endX - 90, TOP - 182, { size: 40, fill: C.red, seed: 'end-b', w: T.LINE_FINE * 0.8, tilt: 0.03, outline: C.white });
         }
         g.restore();
     }
@@ -371,7 +486,7 @@ const Film = (() => {
         pierSide(g, d, u * RUN);
         speed(g, d, close ? 6 : 9);
         put(g, 'captain', 'fly', 1320 + Math.sin(twos(u) * 5) * 24 - inn * 0.4, 250 + Math.sin(twos(u) * 7) * 26, SK.captain, { rot: -0.05 });
-        for (const [who, x] of PACK) runner[who](g, t + x, x + inn * (1.4 - x / 1200), DECK);
+        for (const [who, x] of PACK) runner[who](g, t + x, x + inn * (1.4 - x / 1200), DECK - 10);
         g.restore();
     }
 
@@ -387,7 +502,7 @@ const Film = (() => {
         put(g, 'captain', 'fly', 1320 + cv * 260, 250 - cv * cv * 420, SK.captain, { rot: -0.25 });
         for (const [i, [who, x0]] of PACK.entries()) {
             const x = x0 + Math.max(0, uu - stop) * RUN, tl = stop + (END - x0) / RUN;
-            if (uu < tl) { runner[who](g, t + x0, Math.min(x, END), DECK); continue; }
+            if (uu < tl) { runner[who](g, t + x0, Math.min(x, END), DECK - 10); continue; }
             // off the end: up and out, the same arc for all four
             const v = uu - tl, ax = END + 40 + v * (190 + i * 90), ay = DECK - 150 - ((900 + i * 50) * v - 620 * v * v);
             inAir(g, who, ax, ay, -0.25 + v * 0.5);
@@ -458,5 +573,23 @@ const Film = (() => {
         if (cv >= 0) put(g, 'captain', 'perch', 1225, 138 - hop(cv, 2.2) * 60 - (cv < 0 ? 0 : 0) + (cv === 0 ? -220 : 0), 0.34, { only: ['bird'] });
     }
 
-    return { harbor, hoagie, milo, pip, dot, captain, chase0, pier, leap, hang, title, world, view, card, put, put3, twos, nth };
+    // over a frame the camera is whipping through: lines of speed along the move (sm: the
+    // frame's stretch [sx, sy, dx]: across for a pan, up for a tilt, from the middle for a zoom)
+    function streaks(g, t, sm) {
+        const R = Motion.rng('whip' + Math.round(t * 24));
+        for (let i = 0; i < 16; i++) {
+            if (sm[0] > 1 && sm[1] > 1) {
+                const a = R() * Math.PI * 2, r0 = 240 + R() * 260, r1 = r0 + 180 + R() * 420;
+                T.line(g, [[800 + Math.cos(a) * r0, 450 + Math.sin(a) * r0 * 0.62], [800 + Math.cos(a) * r1, 450 + Math.sin(a) * r1 * 0.62]], { w: T.LINE * 1.2, seed: 'zw' + i });
+            } else if (sm[1] > 1) {
+                const x = R() * 1600, y = R() * 700, L = 180 + R() * 420;
+                T.line(g, [[x, y], [x, y + L]], { w: T.LINE * 1.2, seed: 'tw' + i });
+            } else {
+                const x = R() * 1300 - 100, y = 30 + R() * 840, L = 260 + R() * 700;
+                T.line(g, [[x, y], [x + L, y]], { w: T.LINE * 1.2, seed: 'pw' + i });
+            }
+        }
+    }
+
+    return { streaks, harbor, hoagie, milo, pip, dot, captain, chase0, pier, leap, hang, title, world, view, card, block, star, put, put3, twos, nth };
 })();
