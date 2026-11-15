@@ -7,6 +7,9 @@ Generated on 2026-11-15 (two variations each): **Milo** (crouch tightening a whe
 board, running in a panic), **Captain** (crouched to spring, taking off, wings down in flight),
 **Kit** (pushing, gliding low, pointing ahead looking back, all on her board).
 
+The first variation of each is in `ref/` (`milo-keys.png`, `captain-keys.png`, `kit-ride.png`) and
+written as code; the second ones are in `private/`.
+
 Not generated yet (the run was refused in the session; the Hoagie node is on the canvas with
 its prompt, ready to run):
 

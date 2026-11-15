@@ -3,8 +3,9 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the whole opening, cut to the theme song; camera, cards and the pier redone (round 23), the
-cast's acting still to do** (it waits for key-pose sheets: see round 23): `scene.js` (the
+State: **the whole opening, cut to the theme song; camera, cards and the pier redone (round 23);
+Milo, Captain and Kit act from key poses (round 24); Hoagie, Pip and Dot still have two drawings
+each** (their key-pose sheets are not generated: the prompts are in `ref/keypose-prompts.md`): `scene.js` (the
 edit and Kit's drop) + `film.js` (the other eleven shots), 31.75 s, `render/pier-pressure.mp4`
 (silent copy; with the song: `out/`, not committed), `review/sheet-1.jpg`, `sheet-2.jpg`. Waiting
 for the user's verdict. Only Kit is animated from key poses; the other five move between the two
@@ -769,3 +770,37 @@ Four faults, all true of round 22. Three are redone here; the first cannot be wi
   re-animated pose to pose as Kit's drop was.
 
 Still off besides: Kit's own card; the harbour set itself is unchanged; no sound effects.
+
+## Round 24 (user) · «¿Seguro que no puedes acceder?»
+
+> Seguro que no puedes acceder?
+
+No: it could. The download of generated images had been refused once, many rounds ago, before
+the user allowed the host on the environment's network, and it was never tried again; round 23
+told the user it could not be done. Tried: the six sheets came down at once.
+
+- `ref/milo-keys.png` (on one knee tightening a wheel, smug with a foot on the board, running
+  in a panic), `ref/captain-keys.png` (crouched to spring, taking off with wings up, flying
+  with wings down), `ref/kit-ride.png` (pushing, gliding low, pointing ahead): the first
+  variation of each; the second ones stay in `private/`. Written as code
+  (`cast/milo-keys-drawn.js`, `captain-keys-drawn.js`, `kit-ride-drawn.js`) and checked against
+  their sheets (`dev/fidelity/scene.js`: 0.2–0.6 % off, no page left white on yellow).
+  Poses stand close on these sheets: boxes and keep polygons by hand, and a neighbour's beak
+  tip still came through one of them until its polygon was cut closer.
+- A pose from a later sheet carries its own pixels per metre (`Film.M`: a third number), and
+  Captain's two flying drawings, drawn at different sizes on their sheets, are matched on his
+  head.
+- **Milo's shot** is now acted: a last turn of the spanner on one knee, up with a foot on the
+  board and his arms folded, and on the next beat heels over head. **Captain's shot**: a look,
+  down into a crouch with his eye on the chips (he faces the hut now), off the bollard on the
+  last beat, wings up, wings down. **In flight** he beats his wings between two drawings, two
+  frames each; the cone of chips is a part of the first (`tools/tocode.py`: `cone`) and rides
+  in the second's feet. **Kit** leaves on her board and skates the pier (three drawings of
+  push, five of glide; pointing ahead for the last bar). **Milo** runs it.
+
+Still off: Hoagie, Pip and Dot move between two drawings (their three sheets were refused when
+run from the session; the cost is 433 credits a variation); Milo's run is one drawing bobbing,
+not a cycle; Kit's card is the old one; no sound effects.
+
+Lesson → `review`: a tool or a download refused once is tried again when something has changed
+(a host allowed, a permission given), and before telling the user it cannot be done.

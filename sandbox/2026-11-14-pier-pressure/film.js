@@ -15,22 +15,25 @@ const Film = (() => {
     // The cast's drawings: pixels of drawing per metre (measured on the standing pose: top of the
     // figure to its soles) and each pose's anchor in its own pixels: the point between the soles
     // of a standing pose, the middle of a flying one.
+    // (a pose from a later sheet has a third number: that sheet's own pixels per metre)
+    const CAPM = 1300;
     const M = {
         hoagie: { m: 658 / 1.32, film: [385, 660], jump: [330, 335] },
-        milo: { m: 702 / 1.62, stand: [316, 706], fall: [362, 327] },
+        milo: { m: 702 / 1.62, stand: [316, 706], fall: [362, 327], crouch: [200, 515, 413], smug: [190, 677, 413], run: [250, 565, 413] },
         pip: { m: 659 / 1.12, stand: [300, 664], ride: [300, 652] },
         dot: { m: 697 / 1.8, stand: [206, 706], serve: [296, 706] },
-        captain: { m: 525 / 0.46, perch: [170, 527], fly: [384, 324] },
-        kit: { m: 500, stand: [235, 708], jump: [370, 360] },
+        captain: { m: 525 / 0.46, perch: [170, 527], fly: [384, 324], ready: [155, 351, CAPM], launch: [150, 607, CAPM], down: [226, 210, CAPM] },
+        kit: { m: 500, stand: [235, 708], jump: [370, 360], push: [280, 519, 388], glide: [215, 486, 388], point: [250, 597, 388] },
     };
     // a drawing with its anchor on a point of the frame; o: rot, sx, sy (about the anchor), flip
     function put(g, who, pose, x, y, s, o = {}) {
         const a = M[who][pose];
+        s *= M[who].m / (a[2] ?? M[who].m);
         g.save();
         g.translate(x, y);
         if (o.rot) g.rotate(o.rot);
         g.scale((o.flip ? -1 : 1) * (o.sx ?? 1), o.sy ?? 1);
-        Drawn.draw(g, who, pose, -a[0] * s, -a[1] * s, s, { weight: o.weight, only: o.only });
+        Drawn.draw(g, who, pose, -a[0] * s, -a[1] * s, s, { weight: o.weight, only: o.only, hide: o.hide });
         g.restore();
     }
     // ... and on a point of the world, at its size there
@@ -83,6 +86,31 @@ const Film = (() => {
             const top = A.bollard.top;
             put3(g, 'captain', 'perch', [top[0], top[1] + (o.captain?.h ?? 0), top[2]], { only: ['bird'], weight: o.captain?.weight, sy: o.captain?.sy });
         }
+    }
+    // Captain in flight, his body's middle on (x, y): wings up (his model sheet's drawing) and
+    // wings down (a key pose), two drawings each. With the cone of chips, the cone is a part of
+    // the first drawing, and is carried under the second one's feet too
+    function capFly(g, t, x, y, s, o = {}) {
+        const up = (nth(t) >> 1) % 2 === 0, cone = o.cone !== false;
+        g.save();
+        g.translate(x, y + (up ? 0 : -30 * s)); // the body lifts as the wings come down
+        g.rotate(o.rot ?? 0);
+        if (up) put(g, 'captain', 'fly', 0, 0, s, cone ? {} : { hide: ['cone'] });
+        else {
+            // the two sheets draw him at different sizes: matched here on his head (1.62)
+            const k = s * 1.45, a = M.captain.down;
+            Drawn.draw(g, 'captain', 'down', -a[0] * k, -a[1] * k, k);
+            // the cone and the feet that hold it (their grip is at 204, 464 of the first drawing), on
+            // his trailing feet; the leg that comes with the foot is cut off above the ankle
+            if (cone) {
+                const ox = (45 - a[0]) * k - 204 * s, oy = (150 - a[1]) * k - 464 * s;
+                g.beginPath();
+                g.rect(ox, oy + 432 * s, 769 * s, 300 * s);
+                g.clip();
+                Drawn.draw(g, 'captain', 'fly', ox, oy, s, { only: ['cone'] });
+            }
+        }
+        g.restore();
     }
     const hop = (u, v) => (u < 0 || u > (2 * v) / G ? 0 : v * u - (G * u * u) / 2); // a jump's height, in metres
 
@@ -160,7 +188,7 @@ const Film = (() => {
         const k = 1 - Math.pow(1 - clamp((u * 24) / n, 0, 1), 3);
         return { f: [lerp(A.f[0], B.f[0], k), lerp(A.f[1], B.f[1], k)], z: A.z * Math.pow(B.z / A.z, k) };
     };
-    const WIDE = { f: [800, 450], z: 1 }, F_HOAGIE = { f: [1000, 500], z: 1.35 }, F_MILO = { f: [500, 400], z: 1.6 };
+    const WIDE = { f: [800, 450], z: 1 }, F_HOAGIE = { f: [1000, 500], z: 1.35 }, F_MILO = { f: [520, 440], z: 1.45 };
 
     // === 1 · Gull Harbor (4 s): the sign; the camera cranes down and back to the quay =============
     function harbor(g, t, u, env) {
@@ -203,19 +231,23 @@ const Film = (() => {
 
     // === 4 · Milo (2 s): the plan, and the plan going wrong =========================================
     function milo(g, t, u, env) {
-        const v = twos(u, 1) - 1, V0 = 3.3, air = v >= 0 && v < (2 * V0) / G, e0 = enter(u, -460), s = Cam.scale(MILO[2]);
-        // (a medium shot: he is the tall one)
+        // on one knee, a last turn of the spanner; up, a foot on the board, pleased with it; and
+        // on the next beat the board has other ideas
+        const d = nth(u), GO = 1.25, v = twos(u, GO) - GO, V0 = 3.1, tf = (2 * V0) / G;
         view(g, env, F_MILO.f, F_MILO.z, 1.6, (e) => world(g, e, t, { actors: [kitRest(t), { z: MILO[2], draw(gg) {
-            if (air) {
+            if (u < 0.5) put3(gg, 'milo', 'crouch', MILO, { rot: [0, 0.02, 0, -0.012][d % 4], sy: d % 4 === 1 ? 0.985 : 1 });
+            else if (v < 0) {
+                const k = Math.min(3, nth(u, 0.5));
+                put3(gg, 'milo', 'smug', MILO, { sx: [0.94, 1.04, 0.99, 1][k], sy: [1.08, 0.95, 1.01, 1][k] * (1 + Motion.pulse(twos(u), 120, 0.05, 6) * 0.008) });
+            } else if (v < tf) {
                 // up he goes, heels over head, the board its own way
-                const h = V0 * v - (G * v * v) / 2;
-                put3(gg, 'milo', 'fall', [MILO[0] + 0.1 + v * 0.2, 0.75 + h, MILO[2]], { rot: -0.5 + v * 2.2 });
-            } else if (v >= 0) {
-                const d = nth(v, (2 * V0) / G);
-                put3(gg, 'milo', 'stand', [MILO[0] + 0.12, 0, MILO[2]], { sx: [1.1, 0.96, 1][Math.min(2, d)], sy: [0.88, 1.05, 1][Math.min(2, d)] });
-            } else put3(gg, 'milo', 'stand', [MILO[0] + e0.dx / s, 0, MILO[2]], { sx: e0.sx, sy: e0.sy * (1 + Motion.pulse(twos(u), 120, 0, 6) * 0.012) });
+                put3(gg, 'milo', 'fall', [MILO[0] + 0.1 - v * 0.25, 0.8 + V0 * v - (G * v * v) / 2, MILO[2]], { rot: -0.25 - v * 2.6 });
+            } else {
+                const k = Math.min(2, nth(v, tf));
+                put3(gg, 'milo', 'crouch', [MILO[0] - 0.1, 0, MILO[2]], { sx: [1.1, 0.97, 1][k], sy: [0.86, 1.04, 1][k] });
+            }
         } }] }));
-        card(g, u, 1, 'MILO', 'HAS A PLAN', 1200, 690, { fill: C.blue, drop: C.navy, ink: C.navy });
+        card(g, u, 1, 'MILO', 'HAS A PLAN', 1270, 730, { fill: C.blue, drop: C.navy, ink: C.navy, k: 0.82 });
     }
 
     // === 5 · Pip (2 s): through the lot of them, without looking up ==================================
@@ -245,17 +277,29 @@ const Film = (() => {
 
     // === 7 · Captain (2 s): on his bollard, then off it =============================================
     function captain(g, t, u, env) {
-        // he starts at every beat, a little more each time; on the last he is gone, straight up
-        const h = hop(twos(u, 0.5) - 0.5, 0.9) + hop(twos(u, 1) - 1, 1.3), v = twos(u, 1.5) - 1.5;
-        view(g, env, [1358, 492], 3, 3.4, (e) => world(g, e, t, { captain: { h: v >= 0 ? v * 9 : h, sy: v >= 0 ? 1.12 : 1, weight: 1.4 } }));
-        card(g, u, 1, 'CAPTAIN', 'WANTED', 450, 660, { fill: C.navy, drop: C.ink, ink: C.navy, ribbon: C.roadLine });
+        // he has smelt the chips (they are at the hut, to the left): a look, down into a crouch
+        // with his one eye on them, and off the bollard on the bar's last beat, wings up, wings down
+        const top = Harbor.AT.bollard.top, v = twos(u, 1.5) - 1.5;
+        view(g, env, [1330, 430], 2.4, 3.4, (e) => {
+            world(g, e, t, { captain: null });
+            if (u < 0.5) put3(g, 'captain', 'perch', top, { only: ['bird'], weight: 1.3, sy: 1 + Motion.pulse(twos(u), 120, 0.05, 6) * 0.012 });
+            else if (v < 0) {
+                const k = Math.min(3, nth(u, 0.5));
+                put3(g, 'captain', 'ready', top, { flip: true, weight: 1.3, sx: [1.1, 0.96, 1.01, 1][k], sy: [0.86, 1.05, 0.99, 1][k] * (1 - Motion.pulse(twos(u), 120, 0.05, 6) * 0.02) });
+            } else {
+                const k = nth(v), h = k === 0 ? 0.04 : 0.3 + (v - 1 / 12) * 6.5;
+                if (k % 4 < 2) put3(g, 'captain', 'launch', [top[0] - v * 1.6, top[1] + h, top[2]], { flip: true, weight: 1.3, sy: k === 0 ? 1.1 : 1 });
+                else put3(g, 'captain', 'down', [top[0] - v * 1.6, top[1] + h + 0.28, top[2]], { flip: true, weight: 1.3, rot: 0.5 });
+            }
+        });
+        card(g, u, 1, 'CAPTAIN', 'WANTED', 430, 690, { fill: C.navy, drop: C.ink, ink: C.navy, ribbon: C.roadLine });
     }
 
     // === 8 · the break (3 s): he has the chips; after him ==============================================
     function chase0(g, t, u, env) {
         // Captain, from the hatch to over our heads
         const k = clamp((twos(u) - 0.25) / 1.25, 0, 1), kk = k * k, cp = [lerp(-2.9, 4.6, kk), lerp(1.75, 2.9, k) + Math.sin(k * 9) * 0.08, lerp(7.9, 2.0, kk)];
-        const bird = (gg) => k > 0 && k < 1 && put3(gg, 'captain', 'fly', cp, { rot: -0.08, k: 1.25 });
+        const bird = (gg) => { if (k > 0 && k < 1) { const [bx, by] = Cam.pt(cp); capFly(gg, t, bx, by, (Cam.scale(cp[2]) / M.captain.m) * 1.25, { rot: -0.08 }); } };
         // the four set off, one after another: a drawing of anticipation, then gone
         const go = (at, speed) => {
             const v = twos(u, at) - at;
@@ -264,8 +308,10 @@ const Film = (() => {
         const gk = go(2, 3.2), gh = go(2.25, 3.2), gm = go(2.5, 3.2), start = hop(twos(u, 1) - 1, 0.9);
         const kitA = { z: KIT[2], draw(gg) {
             if (!gk) { kitRest(t).draw(gg); return; }
-            const [x, y] = Cam.pt([KIT[0] + 0.5 + gk.dx, 0, KIT[2]]);
-            KitAct.stand(gg, x, y, (Cam.scale(KIT[2]) * 1.4) / 700, { droop: gk.v < 0.1 ? 0 : -0.35, lean: gk.v < 0.1 ? -0.04 : 0.07 });
+            // onto her board and away: three drawings of push, then the glide
+            const k = nth(gk.v);
+            if (k === 0) { const [x, y] = Cam.pt(KIT); KitAct.pose(gg, 'proud', x, y, (Cam.scale(KIT[2]) * 1.34) / 575, { sx: 1.06, sy: 0.92 }); KitAct.board(gg, ...Cam.pt(BOARD), (Cam.scale(BOARD[2]) * 1.4) / 700, 0); }
+            else put3(gg, 'kit', k < 4 ? 'push' : 'glide', [KIT[0] + 0.6 + gk.dx, 0, KIT[2]], { rot: k < 4 ? -0.04 : 0 });
         } };
         const hoagieA = { z: HOAGIE[2], draw(gg) {
             if (!gh) put3(gg, 'hoagie', 'film', [HOAGIE[0], start, HOAGIE[2]], {});
@@ -275,7 +321,7 @@ const Film = (() => {
         const miloA = { z: MILO[2], draw(gg) {
             if (!gm) put3(gg, 'milo', 'stand', [MILO[0], start * 0.8, MILO[2]], {});
             else if (gm.v < 1 / 12) put3(gg, 'milo', 'stand', MILO, gm);
-            else put3(gg, 'milo', 'fall', [MILO[0] + 0.3 + gm.dx, 0.7 + hop(gm.v - 1 / 12, 2.2), MILO[2]], { rot: -0.3 + gm.v * 2.5 });
+            else put3(gg, 'milo', 'run', [MILO[0] + 0.3 + gm.dx, [0, 0.07, 0.12, 0.05][nth(gm.v) % 4], MILO[2]], { rot: [0, -0.03, -0.05, -0.02][nth(gm.v) % 4] });
         } };
         const actors = [kitA, hoagieA, miloA];
         if (u >= 1.5) actors.push(pipRide(t, -4.2 + (twos(u) - 1.5) * 6.4, 3.05));
@@ -464,11 +510,16 @@ const Film = (() => {
     // the four of them and the gull, each its own way of going: x on the frame, y the deck's line
     const SK = { kit: PX / M.kit.m, hoagie: PX / M.hoagie.m, milo: PX / M.milo.m, pip: PX / M.pip.m, captain: (PX / M.captain.m) * 1.5 };
     const runner = {
-        kit(g, t, x, y) { const d = nth(t); KitAct.stand(g, x, y - [0, 3][d % 2], SK.kit, { droop: -0.3 + [0, 0.05][d % 2], crouch: [4, 9][d % 2], lean: 0.05 }); },
+        // Kit skates: three drawings of push, five of glide; near the end she has seen where he is going
+        kit(g, t, x, y, o = {}) {
+            const d = nth(t) % 8;
+            if (o.point) put(g, 'kit', 'point', x, y - [0, 2][d % 2], SK.kit, { rot: [0, 0.012][d % 2] });
+            else put(g, 'kit', d < 3 ? 'push' : 'glide', x + (d < 3 ? -8 + d * 4 : 0), y - (d === 3 ? 5 : 0), SK.kit, { rot: d < 3 ? -0.03 + d * 0.01 : [0.015, 0, -0.01, 0, 0.01][d - 3] });
+        },
         pip(g, t, x, y) { const d = nth(t); put(g, 'pip', 'ride', x, y - [0, 3][d % 2], SK.pip, { rot: -0.04 }); },
         // Hoagie runs in leaps; Milo has stopped running and is still going
         hoagie(g, t, x, y) { const ph = (twos(t) * 2) % 1; put(g, 'hoagie', 'jump', x, y - 667 * SK.hoagie * 0.5 - 150 * ph * (1 - ph) * 4 * 0.5, SK.hoagie, { rot: 0.06 + (ph - 0.5) * 0.2 }); },
-        milo(g, t, x, y) { const ph = (twos(t) * 2) % 1; put(g, 'milo', 'fall', x, y - 654 * SK.milo * 0.42 - 120 * ph * (1 - ph) * 4 * 0.5, SK.milo, { rot: twos(t) * 5.5 }); },
+        milo(g, t, x, y) { const d = nth(t) % 4; put(g, 'milo', 'run', x, y - [0, 16, 26, 10][d], SK.milo, { rot: [0.02, -0.03, -0.06, -0.02][d] }); },
     };
     const flier = { kit: 'jump', pip: 'ride', hoagie: 'jump', milo: 'fall' };
     const inAir = (g, who, x, y, rot, k = 1) => {
@@ -485,8 +536,8 @@ const Film = (() => {
         if (close) { g.translate(800, 470); g.scale(z, z); g.translate(-700 + [0, 3][d % 2], -470 + [0, -4][d % 2]); }
         pierSide(g, d, u * RUN);
         speed(g, d, close ? 6 : 9);
-        put(g, 'captain', 'fly', 1320 + Math.sin(twos(u) * 5) * 24 - inn * 0.4, 250 + Math.sin(twos(u) * 7) * 26, SK.captain, { rot: -0.05 });
-        for (const [who, x] of PACK) runner[who](g, t + x, x + inn * (1.4 - x / 1200), DECK - 10);
+        capFly(g, t, 1320 + Math.sin(twos(u) * 5) * 24 - inn * 0.4, 250 + Math.sin(twos(u) * 7) * 26, SK.captain, { rot: -0.05 });
+        for (const [who, x] of PACK) runner[who](g, t + x / 100, x + inn * (1.4 - x / 1200), DECK - 10, { point: u >= 4 });
         g.restore();
     }
 
@@ -499,10 +550,10 @@ const Film = (() => {
         g.save();
         g.translate(0, rise);
         const cv = Math.max(0, uu - 0.4);
-        put(g, 'captain', 'fly', 1320 + cv * 260, 250 - cv * cv * 420, SK.captain, { rot: -0.25 });
+        capFly(g, t, 1320 + cv * 260, 250 - cv * cv * 420, SK.captain, { rot: -0.25 });
         for (const [i, [who, x0]] of PACK.entries()) {
             const x = x0 + Math.max(0, uu - stop) * RUN, tl = stop + (END - x0) / RUN;
-            if (uu < tl) { runner[who](g, t + x0, Math.min(x, END), DECK - 10); continue; }
+            if (uu < tl) { runner[who](g, t + x0 / 100, Math.min(x, END), DECK - 10, { point: true }); continue; }
             // off the end: up and out, the same arc for all four
             const v = uu - tl, ax = END + 40 + v * (190 + i * 90), ay = DECK - 150 - ((900 + i * 50) * v - 620 * v * v);
             inAir(g, who, ax, ay, -0.25 + v * 0.5);
@@ -533,7 +584,7 @@ const Film = (() => {
         burst(g, d);
         // they have a second and a half of sky: up a little, slower, slower, and a look down
         const lift = 70 * (1 - Math.pow(1 - clamp(uu / 1.5, 0, 1), 2)) - (uu > 1.5 ? (uu - 1.5) * (uu - 1.5) * 500 : 0);
-        put(g, 'captain', 'fly', 900 + Math.sin(uu * 3) * 30, 130 + Math.sin(uu * 4.2) * 14, SK.captain * 1.25, { rot: -0.06 });
+        capFly(g, t, 900 + Math.sin(uu * 3) * 30, 130 + Math.sin(uu * 4.2) * 14, SK.captain * 1.25, { rot: -0.06 });
         for (const [i, [who, x, y, rot, k]] of HANG.entries()) {
             const pop = [1.12, 0.96, 1][Math.min(2, nth(u, i / 8))];
             if (u < i / 8) continue;

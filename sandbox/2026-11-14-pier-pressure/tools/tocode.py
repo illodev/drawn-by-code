@@ -85,6 +85,27 @@ CAST = {
         'rise': {'src': 'ref/kit-drop-b.webp', 'box': (462, 75, 428, 580), 'keep': [(491, 60), (888, 60), (888, 700), (465, 700), (465, 565), (499, 555), (499, 238), (491, 235)]},
         'proud': {'src': 'ref/kit-drop-b.webp', 'box': (888, 10, 390, 650), 'keep': [(888, 0), (1280, 0), (1280, 700), (888, 700)]},
     },
+    # key poses from further sheets (each generated with the character's model sheet as its
+    # reference): boxes and keep polygons by hand, the poses stand close; holes are the page seen
+    # through each figure, as points inside those regions
+    'milo-keys': {
+        '_who': 'milo',
+        'crouch': {'src': 'ref/milo-keys.png', 'box': (14, 151, 420, 523), 'keep': [(0, 0), (440, 0), (440, 720), (0, 720)], 'holes': [(233, 449), (221, 414)]},
+        'smug': {'src': 'ref/milo-keys.png', 'box': (444, 4, 400, 685), 'keep': [(444, 0), (760, 0), (760, 520), (840, 520), (840, 720), (444, 720)], 'holes': []},
+        'run': {'src': 'ref/milo-keys.png', 'box': (758, 84, 520, 575), 'keep': [(762, 0), (1280, 0), (1280, 720), (842, 720), (842, 520), (762, 520)], 'holes': [(897, 277)]},
+    },
+    'captain-keys': {
+        '_who': 'captain',
+        'ready': {'src': 'ref/captain-keys.png', 'box': (12, 270, 496, 352), 'keep': [(0, 250), (440, 250), (440, 372), (506, 372), (506, 720), (0, 720)], 'holes': [(301, 397), (325, 378), (464, 461), (472, 469)]},
+        'launch': {'src': 'ref/captain-keys.png', 'box': (440, 25, 432, 650), 'keep': [(442, 0), (870, 0), (870, 392), (818, 392), (818, 720), (508, 720), (508, 372), (442, 372)], 'holes': [(626, 507), (606, 541)]},
+        'down': {'src': 'ref/captain-keys.png', 'box': (818, 250, 460, 422), 'keep': [(872, 0), (1280, 0), (1280, 720), (820, 720), (820, 392), (872, 392)], 'holes': [(1084, 509)]},
+    },
+    'kit-ride': {
+        '_who': 'kit',
+        'push': {'src': 'ref/kit-ride.png', 'box': (10, 99, 452, 527), 'keep': [(0, 0), (462, 0), (462, 720), (0, 720)], 'holes': [(380, 335), (312, 379)]},
+        'glide': {'src': 'ref/kit-ride.png', 'box': (463, 130, 420, 490), 'keep': [(463, 0), (820, 0), (820, 300), (880, 300), (880, 520), (868, 520), (868, 720), (463, 720)], 'holes': [(669, 492), (682, 532)]},
+        'point': {'src': 'ref/kit-ride.png', 'box': (818, 25, 460, 605), 'keep': [(820, 0), (1280, 0), (1280, 720), (868, 720), (868, 520), (880, 520), (880, 300), (820, 300)], 'holes': [(1044, 497), (1043, 436), (1072, 242)]},
+    },
     'hoagie': {'film': {}, 'jump': {}},
     'milo': {'stand': {}, 'fall': {}},
     'pip': {'stand': {}, 'ride': {}},
@@ -101,7 +122,12 @@ CAST = {
                 ('bird', [(0, 0), (640, 0), (640, 484), (0, 484)]),
             ],
         },
-        'fly': {},
+        # what he carries is a part of its own (the cone, its chips, the feet that hold it), so
+        # another flying drawing can carry it too
+        'fly': {
+            'rest': 'body', 'order': ['body', 'cone'],
+            'parts': [('cone', [(640, 500), (672, 462), (700, 470), (728, 474), (750, 482), (770, 484), (790, 480), (815, 488), (840, 492), (915, 492), (915, 700), (600, 700), (600, 560)])],
+        },
     },
 }
 

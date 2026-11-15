@@ -367,6 +367,10 @@ def hole_mask(im, points):
         d = [abs(c[1] - px) + abs(c[0] - py) for c in com]
         i = int(np.argmin(d))
         if d[i] > 8:
-            raise SystemExit(f'no white region centred near {px},{py}')
+            # ... or the region the point itself is in (or within three pixels of)
+            near = lb[max(0, py - 3):py + 4, max(0, px - 3):px + 4]
+            if not near.any():
+                raise SystemExit(f'no white region centred near {px},{py}')
+            i = int(np.bincount(near[near > 0]).argmax()) - 1
         out |= lb == i + 1
     return out

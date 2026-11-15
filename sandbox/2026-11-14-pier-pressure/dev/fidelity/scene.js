@@ -1,6 +1,6 @@
 // pier-pressure · dev: a sheet's poses drawn from their code at the sheet's own place and size, to
-// compare with the sheet itself (tools/fidelity.py). One second per sheet on white (0–8 s), then
-// the same again on the film's sky (8–16 s): there a white that should be page, or page that should
+// compare with the sheet itself (tools/fidelity.py). One second per sheet on white, then
+// the same again on the film's sky: there a white that should be page, or page that should
 // be white, shows at once.
 const DIR = 'sandbox/2026-11-14-pier-pressure/cast/';
 const SHEETS = [
@@ -12,12 +12,16 @@ const SHEETS = [
     ['pip-sheet', ['pip', 'stand', 88, 19], ['pip', 'ride', 663, 32]],
     ['dot-sheet', ['dot', 'stand', 66, 0], ['dot', 'serve', 619, 2]],
     ['captain-sheet', ['captain', 'perch', 80, 4], ['captain', 'fly', 496, 36]],
+    ['milo-keys', ['milo', 'crouch', 14, 151], ['milo', 'smug', 444, 4], ['milo', 'run', 758, 84]],
+    ['captain-keys', ['captain', 'ready', 12, 270], ['captain', 'launch', 440, 25], ['captain', 'down', 818, 250]],
+    ['kit-ride', ['kit', 'push', 10, 99], ['kit', 'glide', 463, 130], ['kit', 'point', 818, 25]],
 ];
 const N = SHEETS.length;
 Motion.scene({
     fps: 24, duration: 2 * N, logical: [1280, 720],
     uses: ['styles/skate-toon/toon.js', DIR + 'drawn.js', DIR + 'kit-drawn.js', DIR + 'kit-details.js', DIR + 'kit-drop-drawn.js', DIR + 'kit-drop-details.js',
-        DIR + 'hoagie-drawn.js', DIR + 'milo-drawn.js', DIR + 'pip-drawn.js', DIR + 'dot-drawn.js', DIR + 'captain-drawn.js'],
+        DIR + 'hoagie-drawn.js', DIR + 'milo-drawn.js', DIR + 'pip-drawn.js', DIR + 'dot-drawn.js', DIR + 'captain-drawn.js',
+        DIR + 'milo-keys-drawn.js', DIR + 'captain-keys-drawn.js', DIR + 'kit-ride-drawn.js'],
     shots: SHEETS.map((s, i) => [i, i + 1, s[0]]),
     draw(g, t, env) {
         const i = Math.min(2 * N - 1, Math.floor(t));
