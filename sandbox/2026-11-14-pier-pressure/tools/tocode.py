@@ -192,11 +192,11 @@ def strokes(thin, dt, img, strong):
             p = p[:-1]
         if len(p) < 2:
             continue
-        # the line's colour: the darkest of what lies under its centre. Ink is neutral; a line with
+        # the line's colour: the darker half of what lies under its centre. Ink is neutral; a line with
         # a colour of its own (the dark red of a pair of glasses, a brown seam, a navy stripe) keeps it
         px = np.array([img[q] for q in path]); lm = px @ np.array([0.299, 0.587, 0.114])
-        dk = px[lm <= np.percentile(lm, 30)].mean(0)
-        col = M.hexof(dk) if (dk.max() - dk.min() > 45 and M.lum(dk) > 38) else None
+        dk = np.median(px[lm <= np.percentile(lm, 60)], 0)
+        col = None if M.is_ink(dk) else M.hexof(dk)
         out.append((spec([tuple(q) for q in p], closed), round(w + 0.25, 1), closed, tuple(np.array(path).mean(0)), col))
     return out
 
@@ -209,13 +209,11 @@ def pose(im, cfg, box, pal, holes):
     part_of = lambda r, c: next((n for n, poly in parts if inside((box[0] + c / UP, box[1] + r / UP), poly)), rest)
     items = {n: {'fills': [], 'lines': []} for n in order}
     # flat colours, one shape per connected piece
-    for k, nme in enumerate(names):
-        if nme == 'ink':
-            continue
+    for k, nme in enumerate(names):  # (the ink too: a pupil, a blot where lines meet, is a black fill)
         lb, n = ndi.label(under == k)
         for i, sl in enumerate(ndi.find_objects(lb)):
             m = lb[sl] == i + 1
-            if m.sum() < 5 * UP * UP:
+            if m.sum() < 2.5 * UP * UP:
                 continue
             sp, area = outline(m, (0.32 if m.sum() < 90 * UP * UP else 0.6) * UP)
             if not sp:
@@ -231,7 +229,9 @@ def pose(im, cfg, box, pal, holes):
     keep = np.zeros_like(solid)
     for i, sl in enumerate(ndi.find_objects(lb)):
         m = lb[sl] == i + 1
-        if m.sum() > 9 * hw * hw:
+        # a pupil, a blot; where two lines cross is no blot, and a ring (a tattooed anchor's eye)
+        # is a line going round, not a blot with a hole lost
+        if m.sum() > 28 * hw * hw and ndi.binary_fill_holes(m).sum() < 1.12 * m.sum():
             keep[sl] |= m
     solid = ndi.binary_dilation(keep, iterations=2) & inkm
     lb, n = ndi.label(solid)
@@ -242,7 +242,8 @@ def pose(im, cfg, box, pal, holes):
             continue
         sp = [[round(p[0] + sl[1].start / UP, 1), round(p[1] + sl[0].start / UP, 1)] + p[2:] for p in sp]
         r, c = ndi.center_of_mass(m)
-        items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((0, M.INK_PAINT, sp))
+        colr = np.median(a[sl][m], 0)
+        items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((0, M.INK_PAINT if M.is_ink(colr) else M.hexof(colr), sp))
     for sp, w, closed, (r, c), col in strokes(inkm & ~ndi.binary_erosion(solid, iterations=2), dt, a, strong):
         items[part_of(r, c)]['lines'].append((sp, w, closed, col))
     return order, items, round(hw * 2 / UP, 2)
@@ -305,5 +306,27 @@ def convert(who):
     print(f'cast/{who}-drawn.js', os.path.getsize(dst) // 1024, 'KB', flush=True)
 
 
-for who in (list(CAST) if sys.argv[1] == 'all' else sys.argv[1:]):
-    convert(who)
+def source(who, pose):
+    """A pose's sheet, palette, box and holes, as convert() uses them (for tools/look.py)."""
+    from PIL import ImageDraw
+    for key, cfgs in CAST.items():
+        if cfgs.get('_who', key) != who or pose not in cfgs:
+            continue
+        main = f'ref/{key}-sheet.png'
+        names = [n for n in cfgs if n != '_who']
+        cfg = cfgs[pose]
+        src = cfg.get('src', main)
+        im = Image.open(os.path.join(HERE, '..', src)).convert('RGB')
+        pal = M.palette(im)
+        box = cfg.get('box') or M.boxes(im, len(names))[names.index(pose)]
+        if 'keep' in cfg:
+            mask = Image.new('L', im.size, 0)
+            ImageDraw.Draw(mask).polygon(cfg['keep'], fill=255)
+            im = Image.composite(im, Image.new('RGB', im.size, (255, 255, 255)), mask)
+        return im, pal, box, M.hole_mask(im, cfg.get('holes', HOLES.get(key, []) if src == main else []))
+    raise SystemExit(f'no pose {who} {pose}')
+
+
+if __name__ == '__main__':
+    for who in (list(CAST) if sys.argv[1] == 'all' else sys.argv[1:]):
+        convert(who)

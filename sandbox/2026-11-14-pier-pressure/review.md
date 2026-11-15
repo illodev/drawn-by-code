@@ -3,10 +3,14 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the shot animated pose to pose from six drawn key poses** (`scene.js`, «KIT», 5 s, no
-sound: `render/pier-pressure.mp4`, `review/key.jpg`), waiting for the user's verdict. Kit's
-poses: `cast/kit-drawn.js` (her model sheet: stand, jump) and `cast/kit-drop-drawn.js` (tuck,
-reach, contact, crouch, rise, proud). The set is approved up to round 16. The style stays
+State: **the cast measured again from the sheets, with their details and colours** (round 20);
+the shot is the same animation (`scene.js`, «KIT», 5 s, `render/pier-pressure.mp4`,
+`review/key.jpg`), waiting for the user's verdict. Kit's poses: `cast/kit-drawn.js` (her model
+sheet: stand, jump) and `cast/kit-drop-drawn.js` (tuck, reach, contact, crouch, rise, proud),
+with her plaster in `cast/kit-details.js` and `cast/kit-drop-details.js`. Check any pose against
+its sheet with `dev/fidelity/scene.js` + `tools/fidelity.py`. The theme song has arrived
+(`private/`, not committed: 120 BPM, 31.75 s, first beat at 0.05 s; prompt in `suno-prompt.md`):
+the rest of the opening is cut to it next. The set is approved up to round 16. The style stays
 *in testing*.
 
 ## Round 0 (user) · the brief
@@ -594,3 +598,70 @@ up, standing proud); the other two stay in `private/`.
 Still off: once she is up she only breathes (one standing drawing: no blink, no gesture);
 the frame sees only the last metre and a half of the drop, so the tucked pose is in frame
 for one drawing and a half; no sound.
+
+## Round 20 (user) · the drawings lose details and colours
+
+> Los recortes no están bien, pierden detalles y colores.
+
+(four crops of the render: the standing hand with no lines between its fingers, two faces with
+no plaster on the nose, the board's wheels as flat discs.)
+
+True, and it was not the animation: the drawings written from the sheets were poorer than the
+sheets. Until now a drawing was only ever looked at whole, where it reads as right. Built the
+check that was missing, then fixed what it showed:
+
+- **`dev/fidelity/scene.js` + `tools/fidelity.py`**: every pose drawn from its code at the
+  sheet's own place and size, and compared with the sheet at 4×, either in boxes given by hand
+  or `--worst N`, which finds the places that differ most by itself. The same scene on the
+  film's yellow shows page left white, or white taken for page. **`tools/look.py`** shows what
+  the measuring makes of a piece of a sheet (lines, paint) before any drawing is written.
+- **`tools/measure.py`, rewritten around what the checks showed** (each rule has its fault
+  beside it in the code):
+  - lines are what is dark and thin (a black-tophat of the luminance), not what is black: the
+    creases between fingers and the plaster's edges are brown and were being cleaned away as
+    anti-aliasing. And whatever is as black as the ink is ink however thick (a pupil);
+  - not everything dark and thin is a line: a sock's stripe, the star on a shoe, the frame of
+    Milo's glasses, the navy between two laces are paint, told by being over two pixels wide
+    somewhere, or a dot clear of the ink; they go back to the fills;
+  - each region between lines is clustered on its own pixels. Nearest-palette-colour made a
+    charcoal strap navy, olive shorts brown and a shoe's shadow purple; tones are one paint
+    when they are as light and of the same hue, lightness and hue compared apart;
+  - **a paint is read only where the colour is not changing.** Where two paints meet with no
+    line between them, and beside every line, the sheet runs from one to the other through
+    tones that are nobody's paint: a mustard rim round every flower, pink round a red star,
+    olive smudges round the eyelets of a yellow boot. Rules about those tones' size and colour
+    (small, thin, a mix of its neighbours) chased them for five tries and each softer sheet
+    escaped; the slope of the colour removes them all at once, and the heart of a thin stripe,
+    where the colour does not change either, is still read. Blotches inside a flat area (the
+    sheets are lossy) are then small patches beside their own hue, and join it;
+  - the page is the white that reaches the pose's border through white. «White in a region
+    touching the border» emptied teeth and eyes wherever an outline had a hairline gap.
+- **`tools/tocode.py`**: a stroke or a blot keeps its sampled colour unless it is near black
+  (Dot's slate anchor was drawn in ink); a ring is a line going round, not a blot (the anchor's
+  eye was a disc); where two lines cross is no blot (knots at every junction).
+- **Kit's plaster on the six key poses** (`tools/plaster.py` → `cast/kit-drop-details.js`): on
+  those sheets its outline and seams are a pixel wide and cannot be measured as lines, so they
+  are drawn by rule from what can be, the plaster's patch of colour: its contour, and two
+  seams across it.
+
+Measured after: every sheet has 0.2–0.7 % of its pixels off by more than 34 levels (blurred
+1.6 px), and the worst places `--worst` finds are now stripe edges and line widths a pixel
+off. Checked by eye at 4×: the four places the user cropped (the hand's creases, both faces'
+plasters, the wheels' hubs) and every sheet's seven worst.
+
+Still approximate, all at the limit of what the sheets hold (1280 px wide for two or three
+figures): the plasters' seams are drawn by rule, not copied; the eyelets of the boots in the
+six key poses are three pixels wide on the sheet and come out as dots, not rings; Hoagie's
+braces lose their little squares; Dot's slate anchor keeps its shape but half of it reads as
+ink. None is in this shot at a size where it shows (Dot is 60 px tall in the hatch), and the
+cure for all four is the same: a sheet per character at twice the size, or `Drawn.add` by
+hand as for the plaster.
+
+The user also asked for a prompt for the theme song (Suno) and sent the song: `suno-prompt.md`;
+the track measures 120 BPM exactly (16 bars, 31.75 s), first beat at 0.05 s. It stays in
+`private/`. The shot list was planned for 24 s: it is re-timed to the song's 16 bars when the
+other shots are built.
+
+Lessons: → `replicate` (a drawing measured from a sheet is checked against the sheet at 4×,
+place by place, before it is animated; what the measuring rules ended on), → `review` (crops of
+a drawing are compared with its source, not judged alone).

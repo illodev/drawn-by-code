@@ -14,7 +14,7 @@ Motion.scene({
     fps: 24,
     duration: 5,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-drop-drawn.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-drop-drawn.js', DIR + 'cast/kit-drop-details.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     shots: [[0, 5, 'KIT']],

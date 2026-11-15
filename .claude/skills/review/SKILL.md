@@ -82,7 +82,11 @@ Work from measurements, never from eyeballing:
 4. `compare --times … --crop x,y,w,h` per element at full resolution until the side-by-side
    shows the same pieces, shapes, colours, textures and layering. The diff number helps; the
    eyes decide.
-5. Big replicas parallelise well: one file per object and one agent per group of objects,
+5. The same goes for anything built from a source that is not a film: a character measured
+   from a model sheet, a logo, a traced map. Draw it alone at the source's size and compare
+   crops at 4× with the source (`--worst`-style: let the difference pick the places) before it
+   goes into a shot. Whole, a poorer copy reads as right; the user crops.
+6. Big replicas parallelise well: one file per object and one agent per group of objects,
    each with a written brief (why, contract, tools, rules, report). Keep shared files
    (choreography, common kit) with the lead and merge by file.
 
@@ -144,3 +148,5 @@ commit, so it shows which test produced which change.
 - 2026-11-14 · pier-pressure · The user follows the session and may see any image rendered in it: a first line-up of six characters, made to test the rig, was judged beside the reference («mira la diferencia en el nivel de calidad»). Bring one character to the bar on its own sheet, against crops of the reference at the same size, before lining up the cast.
 - 2026-11-14 · pier-pressure · For a style taken from stills, study the reference in crops at 3× by part (head, hands, body, boots) and write down how each is built and its measured proportions before coding the part; comparing whole frames only shows that something is off, not what.
 - 2026-11-14 · pier-pressure round 6 · Three rejections on the same axis («mira la diferencia», «le falta muchísimo», «dibujos muy prematuros») while each round added finish: when the user repeats a verdict, stop polishing and compare one element with the reference at the same size to find what kind of thing is wrong (here proportions and construction, not detail), change the method, and prove it on one element before touching the rest.
+- 2026-11-14 · pier-pressure round 20 · «Los recortes no están bien, pierden detalles y colores»: the user judged crops of the film against the model sheets they had approved, and the round before had only checked the animation. When a shot is built from approved art, the detail check of every round includes that art: crop the render and the source side by side at the same size. A drawing judged alone passes; beside its source the missing creases, plaster and wheel hubs show at once.
+

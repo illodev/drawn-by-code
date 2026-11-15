@@ -4,7 +4,7 @@
 const DIR = 'sandbox/2026-11-14-pier-pressure/cast/';
 Motion.scene({
     fps: 24, duration: 1, logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'drawn.js', DIR + 'kit-drawn.js', DIR + 'kit-details.js', DIR + 'kit-drop-drawn.js', DIR + 'kit-act.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'drawn.js', DIR + 'kit-drawn.js', DIR + 'kit-details.js', DIR + 'kit-drop-drawn.js', DIR + 'kit-drop-details.js', DIR + 'kit-act.js'],
     shots: [[0, 1, 'Kit, key poses']],
     draw(g, t, env) {
         g.fillStyle = SkateToon.COL.sky;
