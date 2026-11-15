@@ -3,13 +3,14 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **an animation test: frames of our own, built in code from the pieces of a drawing we
-already have** (round 28: the last second of Hoagie's bar; `cast/hoagie-act.js`,
-`review/hoagie-own-frames.jpg`), waiting for the user's verdict on that way before it is spread.
-No more reference sheets are generated (round 28). The film itself (`scene.js` + `film.js`,
-31.75 s, `render/pier-pressure.mp4`) was judged in round 26: not the level wanted; everything
-but Hoagie's bar is still as rejected. The set is approved up to round 16. The style stays
-*in testing*.
+State: **an animation test: Hoagie's bar, every frame drawn from scratch in code** (round 29:
+`cast/hoagie-model.js`, his shapes written by hand and measured on his sheet; `film.js`
+`HOAGIE_KEYS`; `review/hoagie-model.jpg`, `review/hoagie-anim.jpg`), waiting for the user's
+verdict before the other five are drawn the same way. No reference sheets are generated any
+more (round 28) and no frame is built from traced drawings or their pieces (round 29). The
+film itself (`scene.js` + `film.js`, 31.75 s, `render/pier-pressure.mp4`) was judged in round
+26: not the level wanted; everything but Hoagie's bar is still as rejected, and still uses the
+traced drawings. The set is approved up to round 16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -930,3 +931,40 @@ What this way can and cannot do, said to the user: it can move what a drawing al
 and settle) and so fill holds, anticipations and settles with frames; it cannot show what no
 drawing shows (a head from another angle, a hand in another gesture, a mouth saying
 something): those still need a drawing, by hand in code or from a sheet.
+
+## Round 29 (user) · every frame drawn whole, from scratch, by us
+
+> Quiero que dibujes tú cada fotograma completo desde cero
+
+(to: frames built from the pieces of a traced drawing, or drawn whole by hand in code? with
+the warning that drawing by hand in code is what read as a child's drawing in rounds 1–6.)
+The user chose by hand. `cast/hoagie-act.js` (pieces) is removed.
+
+- **`cast/hoagie-model.js`: Hoagie, written by hand.** Every shape is a list of points in this
+  file (face, ears, the buzz cut's cap with its stitches, cowlick, the two round eyes with their
+  dots and lids, nose, freckles, a mouth that opens with its teeth, braces and tongue, the shirt
+  with its lapels, pocket, buttons and printed flowers, shorts with cargo pockets, legs, socks,
+  shoes with toe caps and laces, the camcorder from the front and from the side with the hands
+  on it, its strap, the thumb arm as an elbow and a fist) and a pose says where each is in that
+  frame: crouch, toes, lean, stretch, the head's tilt, lids, squint, brows, look, mouth, cowlick,
+  the arm's elbow and fist, the camcorder's place and facing. What made it better than the
+  puppet of rounds 1–6: it was not designed, it was **measured**: proportions, places and
+  colours read off his approved drawing under a grid, and checked beside it
+  (`dev/hoagie-model/scene.js`, `review/hoagie-model.jpg`).
+- **The bar is a list of key poses** (`film.js`, `HOAGIE_KEYS`): filming us (the lens is where
+  the shot before shrinks into), leaning in, lowering the camcorder and peeking over it, the
+  anticipation (sunk, fist by his hip, a squint), the thumb on the third beat (up on his toes,
+  stretched, mouth wide), down off his toes, back up, settled, a blink, a pump of the thumb on
+  the fourth beat, sinking away. Between two keys each frame is drawn at the pose between them,
+  slowing in or out or with nothing between (`'in'`, `'out'`, `'pop'`): 48 frames, 48 whole
+  drawings.
+- Seen and fixed while building it: the shoes were a navy lump between two white ends (sole,
+  upper and toe cap are separate shapes now); the jaw narrowed to a chin (his is as wide as his
+  cheeks); the arms holding the camcorder crossed above their sleeves (each elbow now hangs
+  below and outside the line from sleeve to hand); up on his toes the heels went down instead
+  of up.
+
+Where it is short of the sheet, said to the user: the shoes, the hands and the camcorder are
+simpler; the flowers are printed in fixed places rather than following the cloth; he only
+exists from the front (the sideways filming pose of his sheet is not in the model); line
+weight is one even width.

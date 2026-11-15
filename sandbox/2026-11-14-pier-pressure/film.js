@@ -249,52 +249,60 @@ const Film = (() => {
 
     // === 3 · Hoagie (2 s) =============================================================================
     // We have been looking through his camcorder: the camera comes back out of its lens and there
-    // he is, filming; he turns the camcorder round to us, peeks over it, sinks, and on the third
-    // beat the thumb is up. Frame by frame: eight drawings of his own for this bar (two sequences
-    // of four consecutive frames, cast/hoagie-turn-drawn.js and hoagie-thumb-drawn.js), each on
-    // the frame for as long as the exposure sheet below says. Nothing is bent, slid or squashed:
-    // what moves is the drawing changing. `prev` paints the shot before.
-    //   [first frame, drawing]: t1 filming to the side · t2 turning · t3 the lens at us · t4 peeking
-    //   over it · a1 the anticipation · a2 the thumb, up on his toes · a3 settled
-    const HOAGIE_X = [[0, 't1'], [10, 't2'], [12, 't3'], [18, 't4'], [21, 'a1'], [24, 'a2'], [28, 'a3'], [44, 'a1']];
-    // each drawing's place between the soles (its own pixels) and its pixels per metre (the two
-    // sheets were drawn at slightly different sizes)
-    const HOAGIE_AT = { t1: [180, 497, 345], t2: [150, 496, 345], t3: [146, 478, 345], t4: [141, 479, 345], a1: [141, 416, 339], a2: [141, 512, 339], a3: [136, 454, 339], a4: [137, 448, 339] };
-    // ... and from frame 28 the frames are ours, built from the settled drawing's pieces, one row
-    // a frame: [how far the upper body is down over the legs, the head about the neck, the thumb
-    // arm about the sleeve, the cowlick about its root, the lids]. He comes down off his toes
-    // into his knees with the arm and the cowlick carrying on, comes back up past standing,
-    // settles; blinks; on the fourth beat (frame 36) the thumb pumps: down with a dip of the
-    // knees, up past where it was with the chin lifted, and back.
-    const HOAGIE_OWN = {
-        28: [13, 0.05, 0.16, 0.5], 29: [15, 0.06, 0.2, 0.42],
-        30: [4, 0.01, 0.04, -0.1], 31: [-3, -0.035, -0.07, -0.34],
-        32: [-4, -0.04, -0.09, -0.2, 0.55], 33: [-1, -0.015, -0.03, 0.1, 1],
-        34: [2, 0.012, 0.02, 0.16, 1], 35: [1, 0.006, 0.01, 0.06, 0.5],
-        36: [7, 0.03, 0.26, 0.2], 37: [9, 0.04, 0.3, 0.3],
-        38: [0, -0.02, 0, -0.12], 39: [-4, -0.055, -0.13, -0.3],
-        40: [-3, -0.05, -0.11, -0.12], 41: [-1, -0.03, -0.04, 0.1],
-        42: [1, -0.01, 0.015, 0.08], 43: [0, 0, 0, 0],
-    };
+    // he is, filming us; he leans in, lowers the camcorder and peeks over it, sinks, and on the
+    // third beat the thumb is up. Every frame is drawn from scratch by cast/hoagie-model.js (his
+    // shapes written by hand, measured on his model sheet): this shot only says the pose at each
+    // key frame, and the frames between two keys are drawn at the poses between them. `prev`
+    // paints the shot before.
+    const H_FILM = { cam: { at: [108, 96], front: true }, mouth: 0.1, tilt: -0.03 };
+    const H_REST = { cam: { at: [84, 216] }, arm: { elbow: [246, 186], fist: [276, 160], thumb: -0.05 }, mouth: 0.72 };
+    const H_ANT = { crouch: 18, cam: { at: [86, 222] }, arm: { elbow: [250, 244], fist: [236, 294], thumb: null, rot: 0.3 }, lids: 0.5, squint: true, look: [5, 3], mouth: 0, tilt: 0.04, cow: 0.3 };
+    const H_THRUST = { toes: 1, stretch: 1.06, lean: 0.03, crouch: -4, mouth: 1, brows: 6, cow: -0.5, tilt: -0.04, cam: { at: [82, 212] }, arm: { elbow: [258, 150], fist: [288, 90], thumb: 0, k: 1.3 } };
+    // [frame, pose, how the frames up to it are spaced: 'in' slowing into it, 'out' leaving slowly, 'pop' none between]
+    const HOAGIE_KEYS = [
+        [0, H_FILM], [9, { ...H_FILM, crouch: 2 }, 'in'],
+        [12, { ...H_FILM, cam: { at: [112, 101], front: true }, crouch: 7, tilt: 0.02 }, 'in'], [17, { ...H_FILM, cam: { at: [111, 99], front: true }, crouch: 5, tilt: 0.01 }, 'in'],
+        [20, { cam: { at: [116, 152], front: true }, mouth: 'o', brows: 7 }, 'in'],                 // peeking over it
+        [22, H_ANT, 'in'], [23, { ...H_ANT, crouch: 21 }],                                           // the anticipation
+        [24, H_THRUST, 'pop'], [27, { ...H_THRUST, toes: 0.85, stretch: 1.04 }, 'in'],               // the thumb, on the beat
+        [29, { ...H_REST, crouch: 14, cow: 0.5, tilt: 0.05, arm: { elbow: [246, 198], fist: [274, 178], thumb: -0.05 } }, 'in'], // down off his toes
+        [31, { ...H_REST, crouch: -3, cow: -0.3, tilt: -0.03, arm: { elbow: [246, 183], fist: [277, 155], thumb: -0.05 } }, 'in'],
+        [33, H_REST, 'in'], [34, { ...H_REST, lids: 0.55 }, 'pop'], [35, { ...H_REST, lids: 1 }, 'pop'], [36, { ...H_REST, lids: 1 }, 'pop'],
+        [37, { ...H_REST, crouch: 8, tilt: 0.03, cow: 0.2, arm: { elbow: [248, 200], fist: [272, 182], thumb: -0.05 } }, 'pop'],     // the pump: down
+        [39, { ...H_REST, crouch: -3, tilt: -0.05, cow: -0.3, brows: 4, arm: { elbow: [246, 180], fist: [279, 150], thumb: -0.05 } }, 'in'], // and up
+        [42, H_REST, 'in'], [43, H_REST],
+        [46, { ...H_REST, crouch: 12, look: [6, 2], lids: 0.3, mouth: 0.1, tilt: 0.04 }, 'out'], [48, { ...H_REST, crouch: 14, look: [6, 2], lids: 0.3, mouth: 0.1, tilt: 0.04 }],
+    ];
+    // the pose of a frame: its numbers are between the two keys' numbers; what is not a number
+    // (which way the camcorder faces, an O for a mouth, whether a hand shows its thumb) is the nearer key's
+    function between(a, b, k) {
+        if (typeof a === 'number' && typeof b === 'number') return a + (b - a) * k;
+        if (Array.isArray(a) && Array.isArray(b)) return a.map((v, i) => between(v, b[i], k));
+        if (a && b && typeof a === 'object' && typeof b === 'object') return Object.fromEntries([...new Set([...Object.keys(a), ...Object.keys(b)])].map((n) => [n, between(a[n] ?? (typeof b[n] === 'number' ? (n === 'stretch' || n === 'k' ? 1 : 0) : b[n]), b[n] ?? (typeof a[n] === 'number' ? (n === 'stretch' || n === 'k' ? 1 : 0) : a[n]), k)]));
+        return k < 0.5 ? a : b;
+    }
+    function hoagiePose(f) {
+        let i = HOAGIE_KEYS.findIndex(([at]) => at > f);
+        if (i < 0) return HOAGIE_KEYS[HOAGIE_KEYS.length - 1][1];
+        if (i === 0) return HOAGIE_KEYS[0][1];
+        const [f0, a] = HOAGIE_KEYS[i - 1], [f1, b, how] = HOAGIE_KEYS[i], u = (f - f0) / (f1 - f0);
+        const k = how === 'pop' ? 0 : how === 'in' ? 1 - (1 - u) * (1 - u) : how === 'out' ? u * u : u;
+        return between(a, b, k);
+    }
     function hoagie(g, t, u, env, prev) {
-        const f = Math.round(u * 24), X = 640, Y = 838, PPM = 540, HIT = 24;
+        const f = Math.round(u * 24), X = 640, Y = 838, s = 540 / 339, HIT = 24;
         stage(g, nth(t), X, Y, C.orange, '#e0661f', { floor: C.maroon });
-        const name = HOAGIE_X.filter(([at]) => f >= at).pop()[1], [ax, ay, m] = HOAGIE_AT[name], s = PPM / m, halo = { color: C.white, w: 9 };
-        if (HOAGIE_OWN[f]) {
-            // a frame of our own: the settled drawing's pieces put down again (cast/hoagie-act.js)
-            const [crouch, head, arm, cow, blink = 0] = HOAGIE_OWN[f];
-            HoagieAct.proud(g, X, Y, PPM / HOAGIE_AT.a3[2], { crouch, head, arm, cow, blink, halo });
-        } else Drawn.draw(g, 'hoagie', name, X - ax * s, Y - ay * s, s, { halo });
+        HoagieModel.draw(g, X, Y, s, { ...hoagiePose(f), halo: C.white });
         if (f >= HIT && f < HIT + 6) for (let i = 0; i < 5; i++) {
             // the thumb lands: ticks round it
-            const n = f - HIT, a = -2.5 + i * 0.5, r0 = 100 + n * 9, r1 = r0 + 40 - n * 5, cx = X + 200, cy = 110;
+            const n = f - HIT, a = -2.5 + i * 0.5, r0 = 100 + n * 9, r1 = r0 + 40 - n * 5, cx = X + 240, cy = 190;
             T.line(g, [[cx + Math.cos(a) * r0, cy + Math.sin(a) * r0], [cx + Math.cos(a) * r1, cy + Math.sin(a) * r1]], { w: T.LINE * 1.3, seed: 'thumb' + i, color: C.white });
         }
         card(g, u, 1, 'HOAGIE', 'STILL ROLLING', 1215, 560, { fill: C.maroon, drop: C.ink, second: C.roadLine, k: 1.05, tilt: -0.05 });
         // out of the lens: what the shot before showed shrinks into the glass of his camcorder
         if (prev && f < 9) {
-            const r = [1000, 600, 340, 190, 108, 66, 44, 36, 36][f], k = Math.min(1, f / 6), [lx, ly] = [33, 110], s1 = PPM / HOAGIE_AT.t1[2];
-            const cx = lerp(800, X + (lx - HOAGIE_AT.t1[0]) * s1, k * k), cy = lerp(450, Y + (ly - HOAGIE_AT.t1[1]) * s1, k * k);
+            const r = [1000, 600, 340, 190, 108, 66, 44, 30, 27][f], k = Math.min(1, f / 6);
+            const cx = lerp(800, X + (108 - 136) * s, k * k), cy = lerp(450, Y + (92 - 454) * s, k * k);
             g.save();
             g.beginPath();
             g.arc(cx, cy, r, 0, 6.3);
