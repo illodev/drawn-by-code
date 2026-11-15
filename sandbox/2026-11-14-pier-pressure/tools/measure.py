@@ -86,7 +86,7 @@ def palette(im):
     return out
 
 
-def measure_pose(im, box, pal, holes=None):
+def measure_pose(im, box, pal, holes=None, bg=None):
     """names, paint (hex per name), under (a flat colour for every pixel; -2 = the page), inkm
     (the lines), the pose's pixels and the lines again, all at UP times the sheet. The rules are
     told where they are applied, each with the fault that asked for it.
@@ -305,10 +305,17 @@ def measure_pose(im, box, pal, holes=None):
     # the page: the white that reaches the box's border through white, by any way wider than a
     # pixel (the gap between an arm and the body is page, though the way out of it, between a hand
     # and the shorts, is two pixels wide; a hairline break in an eye's outline lets nothing in)
-    way = (a.min(-1) >= 232) & (dist > 0.5 * UP)
-    wl, nw = ndi.label(way)
-    edge = set(np.unique(np.concatenate([wl[0], wl[-1], wl[:, 0], wl[:, -1]]))) - {0}
-    lab[(lab == white) & np.isin(wl, list(edge))] = -2
+    # (a sheet drawn on a ground of its own colour, `bg`, needs none of this: the page is that
+    # colour, wherever it is, closed in or not, and white is always paint)
+    if bg is not None:
+        for i, c in enumerate(cols):
+            if float(np.sqrt(((c - np.asarray(bg, dtype=np.float32)) ** 2).sum())) < 60:
+                lab[lab == i] = -2
+    else:
+        way = (a.min(-1) >= 232) & (dist > 0.5 * UP)
+        wl, nw = ndi.label(way)
+        edge = set(np.unique(np.concatenate([wl[0], wl[-1], wl[:, 0], wl[:, -1]]))) - {0}
+        lab[(lab == white) & np.isin(wl, list(edge))] = -2
     # the holes: page seen through the figure (between an arm and the body, inside a strap)
     if holes is not None:
         hm = np.asarray(Image.fromarray(holes[y:y + h, x:x + w]).resize((w * UP, h * UP), Image.NEAREST))
@@ -332,10 +339,10 @@ def measure_pose(im, box, pal, holes=None):
     return names, paint, under, inkm, a, inkm
 
 
-def boxes(im, n=2, pad=8):
+def boxes(im, n=2, pad=8, bg=None):
     """The sheet's poses, left to right: split at the widest empty columns, then fit each."""
     a = np.asarray(im).astype(np.int32)
-    used = (a.min(-1) < 236)
+    used = (a.min(-1) < 236) if bg is None else (np.abs(a - np.asarray(bg)).max(-1) > 40)
     colsum = used.sum(0)
     W = a.shape[1]
     gaps = []

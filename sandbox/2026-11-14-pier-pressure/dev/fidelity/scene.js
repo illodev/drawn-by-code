@@ -23,15 +23,15 @@ const SHEETS = [
 ];
 const N = SHEETS.length;
 Motion.scene({
-    fps: 24, duration: 2 * N, logical: [1280, 720],
+    fps: 24, duration: 3 * N, logical: [1280, 720],
     uses: ['styles/skate-toon/toon.js', DIR + 'drawn.js', DIR + 'kit-drawn.js', DIR + 'kit-details.js', DIR + 'kit-drop-drawn.js', DIR + 'kit-drop-details.js',
         DIR + 'hoagie-drawn.js', DIR + 'milo-drawn.js', DIR + 'pip-drawn.js', DIR + 'dot-drawn.js', DIR + 'captain-drawn.js',
         DIR + 'milo-keys-drawn.js', DIR + 'captain-keys-drawn.js', DIR + 'kit-ride-drawn.js',
         DIR + 'hoagie-keys-drawn.js', DIR + 'hoagie-turn-drawn.js', DIR + 'hoagie-thumb-drawn.js', DIR + 'pip-keys-drawn.js', DIR + 'dot-keys-drawn.js'],
     shots: SHEETS.map((s, i) => [i, i + 1, s[0]]),
     draw(g, t, env) {
-        const i = Math.min(2 * N - 1, Math.floor(t));
-        g.fillStyle = i < N ? '#ffffff' : '#ffdf5e';
+        const i = Math.min(3 * N - 1, Math.floor(t));
+        g.fillStyle = i < N ? '#ffffff' : i < 2 * N ? '#ffdf5e' : '#00ff00'; // (the third: a sheet on green, to test `bg`)
         g.fillRect(0, 0, env.W, env.H);
         for (const [who, pose, x, y] of SHEETS[i % N].slice(1)) Drawn.draw(g, who, pose, x, y, 1);
     },

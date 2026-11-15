@@ -62,3 +62,11 @@ exactly the same pose as frame 3, eyes closed). Hoagie: `hoagie-seq-turn.png` (f
 side → turning → the lens at us → peeking over it), `hoagie-seq-thumb.png` (anticipation →
 thumb up on his toes → settled → blink).
 
+## The ground (round 33): never white again
+
+Replace «on a plain pure white background» with: **«on a plain, flat, solid pure green
+background (#00FF00), the same green everywhere, also in every gap between an arm and the body,
+between the legs, inside handles and straps»**, and give the pose `'bg': (0, 255, 0)` in
+`tools/tocode.py`. For a character with green on them (none here is pure green), pick another
+colour they do not have. White is then always paint, and no holes need listing.
+

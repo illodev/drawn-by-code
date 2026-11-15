@@ -1067,3 +1067,29 @@ drawing's code re-shaped point by point, which is drawing by hand again.
 Still: frames 0–20 are four whole drawings (the turn), held 10, 2, 6 and 3 frames: that part
 has no frames between; it needs either those drawings cut into pieces too, or in-between
 images of the turn.
+
+## Round 33 (user) · the cut is still the same; ask for the images on another ground
+
+> Enserio? El recorte sigue igual...
+
+> Y si pides las imágenes con otro color de fondo y nos dejamos de gastar tokens para nada?
+
+(with a crop of the same place: white between Kit's arm and her shirt.)
+
+Round 32 fixed a neighbouring fault and reported the user's as fixed without cropping the place
+the user had cropped. The gap between her arm and her body is closed all round (sleeve, arm,
+hand against the shorts): no way in from outside, however narrow, so it is page only if it is
+listed in the pose's `holes`, and the two sheets of her key poses never had their holes listed
+(the six model sheets and the later ones had). Listed now (`tools/holes.py` marks every
+enclosed pure-white region of a sheet with a point inside it; thirteen holes over her six
+poses: beside arms, between hair and face, under the chin), converted again, checked on yellow
+and at the user's crop in the film (`review/kit-cut.jpg`).
+
+And the user's fix is the right one: the whole problem (page or white?) exists only because
+the sheets are drawn on white. **From now on sheets are asked for on a flat ground of a colour
+the character does not have** (pure green, #00FF00), and the pose says `'bg': (0, 255, 0)`:
+the page is then that colour wherever it is, closed in or not, with no list and no rule
+(`tools/measure.py`, `tools/tocode.py`). Tested on a pose rendered over green
+(`dev/fidelity/scene.js`, its third ground): the closed gap comes out as page with no holes
+given. Not yet tested on a generated sheet.
+

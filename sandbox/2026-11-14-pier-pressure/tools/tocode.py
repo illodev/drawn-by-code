@@ -76,14 +76,16 @@ CAST = {
     # Her key poses for the drop onto the quay (two more approved sheets). Each pose gives its
     # box and `keep`, the polygon of the sheet that is hers (the poses' hands reach into each
     # other's boxes). Written to cast/kit-drop-drawn.js as more poses of 'kit'.
+    # (holes: the page seen through her, between an arm and the body, hair and face, chin and collar:
+    # every enclosed pure-white region of the two sheets was marked and looked at, tools/holes.py)
     'kit-drop': {
         '_who': 'kit',
-        'tuck': {'src': 'ref/kit-drop-a.webp', 'box': (30, 0, 430, 535), 'keep': [(20, 0), (455, 0), (455, 270), (385, 270), (385, 540), (20, 540)]},
-        'reach': {'src': 'ref/kit-drop-a.webp', 'box': (390, 30, 485, 670), 'keep': [(385, 275), (460, 275), (460, 30), (870, 30), (870, 460), (840, 700), (400, 700), (385, 540)]},
-        'contact': {'src': 'ref/kit-drop-a.webp', 'box': (862, 80, 418, 620), 'keep': [(872, 60), (1280, 60), (1280, 700), (860, 700), (860, 470), (872, 460)]},
-        'crouch': {'src': 'ref/kit-drop-b.webp', 'box': (10, 255, 488, 400), 'keep': [(0, 240), (497, 240), (497, 560), (460, 560), (460, 700), (0, 700)]},
-        'rise': {'src': 'ref/kit-drop-b.webp', 'box': (462, 75, 428, 580), 'keep': [(491, 60), (888, 60), (888, 700), (465, 700), (465, 565), (499, 555), (499, 238), (491, 235)]},
-        'proud': {'src': 'ref/kit-drop-b.webp', 'box': (888, 10, 390, 650), 'keep': [(888, 0), (1280, 0), (1280, 700), (888, 700)]},
+        'tuck': {'src': 'ref/kit-drop-a.webp', 'box': (30, 0, 430, 535), 'keep': [(20, 0), (455, 0), (455, 270), (385, 270), (385, 540), (20, 540)], 'holes': [(325, 189)]},
+        'reach': {'src': 'ref/kit-drop-a.webp', 'box': (390, 30, 485, 670), 'keep': [(385, 275), (460, 275), (460, 30), (870, 30), (870, 460), (840, 700), (400, 700), (385, 540)], 'holes': [(538, 286)]},
+        'contact': {'src': 'ref/kit-drop-a.webp', 'box': (862, 80, 418, 620), 'keep': [(872, 60), (1280, 60), (1280, 700), (860, 700), (860, 470), (872, 460)], 'holes': [(1007, 365)]},
+        'crouch': {'src': 'ref/kit-drop-b.webp', 'box': (10, 255, 488, 400), 'keep': [(0, 240), (497, 240), (497, 560), (460, 560), (460, 700), (0, 700)], 'holes': [(321, 355), (329, 369), (189, 472)]},
+        'rise': {'src': 'ref/kit-drop-b.webp', 'box': (462, 75, 428, 580), 'keep': [(491, 60), (888, 60), (888, 700), (465, 700), (465, 565), (499, 555), (499, 238), (491, 235)], 'holes': [(628, 308)]},
+        'proud': {'src': 'ref/kit-drop-b.webp', 'box': (888, 10, 390, 650), 'keep': [(888, 0), (1280, 0), (1280, 700), (888, 700)], 'holes': [(1226, 98), (1178, 121), (982, 212), (1067, 254), (1027, 410), (1153, 445)]},
     },
     # key poses from further sheets (each generated with the character's model sheet as its
     # reference): boxes and keep polygons by hand, the poses stand close; holes are the page seen
@@ -276,7 +278,7 @@ def strokes(thin, dt, img, strong):
 
 
 def pose(im, cfg, box, pal, holes):
-    names, paint, under, inkm, a, strong = M.measure_pose(im, box, pal, holes)
+    names, paint, under, inkm, a, strong = M.measure_pose(im, box, pal, holes, cfg.get('bg'))
     parts = cfg.get('parts', [])
     rest = cfg.get('rest', 'body')
     order = cfg.get('order', ['body'])
@@ -354,8 +356,9 @@ def convert(who):
             from PIL import ImageDraw
             mask = Image.new('L', im.size, 0)
             ImageDraw.Draw(mask).polygon(cfg['keep'], fill=255)
-            im = Image.composite(im, Image.new('RGB', im.size, (255, 255, 255)), mask)
-        holes = M.hole_mask(im, cfg.get('holes', HOLES.get(who, []) if src == main else []))
+            im = Image.composite(im, Image.new('RGB', im.size, cfg.get('bg', (255, 255, 255))), mask)
+        # (a sheet on a ground of its own colour, 'bg': (r, g, b), needs no holes: the page is that colour)
+        holes = None if 'bg' in cfg else M.hole_mask(im, cfg.get('holes', HOLES.get(who, []) if src == main else []))
         box = cfg.get('box', fb)
         order, items, lw = pose(im, cfg, box, pal, holes)
         nf = sum(len(v['fills']) for v in items.values()); nl = sum(len(v['lines']) for v in items.values())
