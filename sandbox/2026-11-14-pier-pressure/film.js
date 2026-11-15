@@ -254,38 +254,36 @@ const Film = (() => {
     // the thumb up on his toes, a4 the blink), or the code of his settled drawing (a3) edited: its
     // pieces put down again, a different way in each frame (cast/hoagie-edit.js). `prev` paints
     // the shot before.
-    const HOAGIE_X = [[0, 't1'], [10, 't2'], [12, 't3'], [18, 't4'], [21, 'a1'], [24, 'a2'], [28, null], [35, 'a4'], [37, null], [44, 'a1']];
-    const HOAGIE_AT = { t1: [180, 497, 345], t2: [150, 496, 345], t3: [146, 478, 345], t4: [141, 479, 345], a1: [141, 416, 339], a2: [141, 512, 339], a4: [137, 448, 339] };
-    const E_REST = { crouch: 0, head: 0, cow: 0, lids: 0, swing: 0 };
-    // [frame, what is changed in the drawing's code, how the frames up to it are spaced]
-    const HOAGIE_KEYS = [
-        [28, { ...E_REST, crouch: 13, head: 0.05, swing: 0.16, cow: 0.5 }], [29, { ...E_REST, crouch: 15, head: 0.06, swing: 0.2, cow: 0.42 }],   // down off his toes
-        [31, { ...E_REST, crouch: -3, head: -0.035, swing: -0.07, cow: -0.34 }, 'in'],
-        [33, E_REST, 'in'], [34, { ...E_REST, lids: 0.55 }, 'pop'], [36, { ...E_REST, lids: 0.55 }],
-        [37, { ...E_REST, crouch: 8, head: 0.035, swing: 0.28, cow: 0.25 }, 'pop'],                                         // the pump: down
-        [39, { ...E_REST, crouch: -4, head: -0.055, swing: -0.13, cow: -0.3 }, 'in'], [42, E_REST, 'in'], [48, E_REST],    // and up
-    ];
-    function between(a, b, k) {
-        if (typeof a === 'number' && typeof b === 'number') return a + (b - a) * k;
-        if (Array.isArray(a) && Array.isArray(b)) return a.map((v, i) => between(v, b[i], k));
-        if (a && b && typeof a === 'object' && typeof b === 'object') return Object.fromEntries([...new Set([...Object.keys(a), ...Object.keys(b)])].map((n) => [n, between(a[n] ?? (typeof b[n] === 'number' ? (n === 'k' ? 1 : 0) : b[n]), b[n] ?? (typeof a[n] === 'number' ? (n === 'k' ? 1 : 0) : a[n]), k)]));
-        return k < 0.5 ? a : b;
-    }
-    function hoagieEdit(f) {
-        const i = HOAGIE_KEYS.findIndex(([at]) => at > f);
-        if (i < 0) return HOAGIE_KEYS[HOAGIE_KEYS.length - 1][1];
-        if (i === 0) return HOAGIE_KEYS[0][1];
-        const [f0, a] = HOAGIE_KEYS[i - 1], [f1, b, how] = HOAGIE_KEYS[i], u = (f - f0) / (f1 - f0);
-        return between(a, b, how === 'pop' ? 0 : how === 'in' ? 1 - (1 - u) * (1 - u) : how === 'out' ? u * u : u);
-    }
+    const HOAGIE_X = [[0, 't1'], [10, 't2'], [12, 't3'], [18, 't4'], [21, null], [35, 'a4'], [37, null]];
+    const HOAGIE_AT = { t1: [180, 497, 345], t2: [150, 496, 345], t3: [146, 478, 345], t4: [141, 479, 345], a4: [137, 448, 339] };
+    // From frame 21, one row a frame: [the drawing whose code is edited, how far its upper body is
+    // down over its legs, its head about the neck, its arm about the sleeve, its cowlick, its lids].
+    // Every change of drawing is cushioned on both sides: the one that leaves is already moving
+    // towards the next, the one that arrives comes in short of its place and eases into it, with
+    // no going past and coming back. (The raised arm of `a2` is not turned: part of its outline
+    // belongs to the head and the shirt behind it, and stays behind when it moves.)
+    const HOAGIE_ROWS = {
+        21: ['a1', -3, -0.02, 0, -0.1], 22: ['a1', 2, 0, 0, 0.1], 23: ['a1', 6, 0.02, 0, 0.25],                 // sinking: the anticipation
+        24: ['a2', 9, 0.03, 0, 0.4], 25: ['a2', 4, 0.015, 0, 0.2], 26: ['a2', 1, 0.005, 0, 0.08], 27: ['a2', 0, 0, 0, 0], // up: the thumb, on the beat
+        28: ['a2', 4, 0.01, 0, 0.1], 29: ['a2', 10, 0.03, 0, 0.3],                                         // starting down
+        30: ['a3', 12, 0.045, 0.15, 0.4], 31: ['a3', 7, 0.03, 0.09, 0.25], 32: ['a3', 3.5, 0.015, 0.045, 0.12],  // off his toes, easing into standing
+        33: ['a3', 1.5, 0.006, 0.02, 0.05], 34: ['a3', 0.5, 0, 0, 0, 0.5],
+        37: ['a3', 0, 0, 0.03, 0, 0.5], 38: ['a3', 2.5, 0.012, 0.1, 0.08], 39: ['a3', 5, 0.025, 0.18, 0.15],     // the pump: the thumb down, with the knees
+        40: ['a3', 5.5, 0.028, 0.2, 0.17], 41: ['a3', 3.5, 0.016, 0.12, 0.1], 42: ['a3', 1.5, 0.006, 0.05, 0.04], 43: ['a3', 0.5, 0, 0.015, 0], // and back up
+        44: ['a3', 2, 0.01, 0.03, 0.05], 45: ['a3', 5, 0.025, 0.07, 0.15],                                       // sinking again, towards the squint
+        46: ['a1', 2, 0, 0, 0.1], 47: ['a1', 5, 0.015, 0, 0.2],
+    };
     function hoagie(g, t, u, env, prev) {
-        const f = Math.round(u * 24), X = 640, Y = 838, PPM = 540, HIT = 24, halo = { color: C.white, w: 9 };
+        const f = Math.min(47, Math.round(u * 24)), X = 640, Y = 838, PPM = 540, HIT = 24, halo = { color: C.white, w: 9 };
         stage(g, nth(t), X, Y, C.orange, '#e0661f', { floor: C.maroon });
         const name = HOAGIE_X.filter(([at]) => f >= at).pop()[1];
         if (name) {
             const [ax, ay, m] = HOAGIE_AT[name], s = PPM / m;
             Drawn.draw(g, 'hoagie', name, X - ax * s, Y - ay * s, s, { halo });
-        } else HoagieEdit.frame(g, X, Y, PPM / 339, { ...hoagieEdit(f), halo });
+        } else {
+            const [pose, crouch, head, swing, cow, lids = 0] = HOAGIE_ROWS[f];
+            HoagieEdit.frame(g, X, Y, PPM / 339, { pose, crouch, head, swing, cow, lids, halo });
+        }
         if (f >= HIT && f < HIT + 6) for (let i = 0; i < 5; i++) {
             // the thumb lands: ticks round it
             const n = f - HIT, a = -2.5 + i * 0.5, r0 = 100 + n * 9, r1 = r0 + 40 - n * 5, cx = X + 200, cy = 110;

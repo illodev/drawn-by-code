@@ -302,13 +302,13 @@ def measure_pose(im, box, pal, holes=None):
                 gone = any(is_mix(c, cols[ink], cols[n], 0.08, 0.84) for n in nbrs)
             if gone:
                 lab[g][piece] = -1
-    # the page: the white that reaches the box's border THROUGH WHITE, away from the lines (lab is
-    # only set a line and a bit from the ink, so a hairline gap in an outline does not let the
-    # page into an eye; and a region joined to the page's through a gap, or through colours that
-    # meet without a line, keeps its own whites: teeth, eyes, a shirt's stripes)
-    wl, nw = ndi.label(lab == white)
+    # the page: the white that reaches the box's border through white, by any way wider than a
+    # pixel (the gap between an arm and the body is page, though the way out of it, between a hand
+    # and the shorts, is two pixels wide; a hairline break in an eye's outline lets nothing in)
+    way = (a.min(-1) >= 232) & (dist > 0.5 * UP)
+    wl, nw = ndi.label(way)
     edge = set(np.unique(np.concatenate([wl[0], wl[-1], wl[:, 0], wl[:, -1]]))) - {0}
-    lab[np.isin(wl, list(edge))] = -2
+    lab[(lab == white) & np.isin(wl, list(edge))] = -2
     # the holes: page seen through the figure (between an arm and the body, inside a strap)
     if holes is not None:
         hm = np.asarray(Image.fromarray(holes[y:y + h, x:x + w]).resize((w * UP, h * UP), Image.NEAREST))

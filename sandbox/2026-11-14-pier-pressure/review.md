@@ -3,8 +3,10 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **an animation test: Hoagie's bar, every frame from the code of the drawings made from his
-sheets, as they are or edited** (round 31: `film.js` `HOAGIE_X` and `HOAGIE_KEYS`,
+State: **an animation test the user says is on the right track («creo que vamos bien», round 32):
+Hoagie's bar, every frame from the code of the drawings made from his sheets, as they are or
+edited; it needs more frames, and images may be generated for views the drawings do not have**
+(rounds 31–32: `film.js` `HOAGIE_X` and `HOAGIE_KEYS`,
 `cast/hoagie-edit.js`; `review/hoagie-anim.jpg`), waiting for the user's verdict. Settled by the
 user so far: no more generated sheets (28); no bending (27); **no 3D** (31); **nothing drawn by
 hand that does not come from the images** (31). The film itself (`scene.js` + `film.js`,
@@ -1032,3 +1034,36 @@ What editing this code can do: move, turn and re-time what a drawing shows, piec
 What it cannot: show what no drawing shows (the arm in another gesture, a head from another
 side). Those frames need either another drawing from an image or a part of an existing
 drawing's code re-shaped point by point, which is drawing by hand again.
+
+## Round 32 (user) · badly cut again; more frames, fewer rebounds; on the right track
+
+> Veo que no está bien cortada de nuevo. Con respecto a que se vea de otra posición si es para
+> eso si podemos sacar otras imágenes. Lo que creo es que faltan más frames para que el
+> movimiento se vea con menos rebotes, pero creo que vamos bien
+
+(with a crop of Kit standing on the quay: white between her arm and her shorts.)
+
+- **The cut**: the page seen between an arm and the body was painted white. The page was «the
+  white that reaches the pose's border through white, away from the lines», and the way out of
+  that gap, between a hand and the shorts, is two pixels wide: too narrow to count, so the gap
+  stayed cloth. Now the page gets in by any way wider than a pixel (`tools/measure.py`); a
+  hairline break in an eye's outline still lets nothing in (teeth and eyes checked). Every
+  drawing converted again (16 sheets, 43 poses), looked at on yellow, scores unchanged
+  (0.2–0.75 %). `review/kit-cut.jpg` is the user's crop after the fix. Why it was missed: the
+  fidelity check compares on white, where page and white are the same; the look on yellow was
+  done on the first sheets only and at a size where a sliver beside an arm does not show.
+- **More frames, fewer rebounds** (`film.js`, `HOAGIE_ROWS`; `cast/hoagie-edit.js` now edits
+  three cut drawings, `a1`, `a2`, `a3`): from frame 21 every frame is its own row. Each change
+  of drawing is cushioned on both sides: the drawing that leaves is already moving towards the
+  next (sinking before the thumb, coming down off his toes before the settled one), the one
+  that arrives comes in short of its place and eases into it; nothing goes past its place and
+  comes back, and the pump of the thumb is one smooth dip. The raised arm of `a2` is not
+  turned: part of its outline belongs to the head and shirt behind it and stayed behind as a
+  dotted edge.
+- A crash caught before sending: the bar's last frame asked for row 48 (the film stopped at
+  10 s); clamped.
+- Images for other views are allowed again, for that purpose only.
+
+Still: frames 0–20 are four whole drawings (the turn), held 10, 2, 6 and 3 frames: that part
+has no frames between; it needs either those drawings cut into pieces too, or in-between
+images of the turn.
