@@ -507,3 +507,37 @@ stroked with the rope's thickness (ink, then the colour inside it), so the two e
 tube's own round turn-backs. Lower turns are filled in (nobody sees down their hole), the top
 turn shows the pile's opening as a dark lens, and the strands are laid on the stretch that
 faces the camera.
+
+## Round 17 (user) · the shot's animation
+
+> Vale, ahora mejora la animación del plano. Ten en cuenta que la animación tiene que parecer
+> realista
+
+→ What made it unreal: the fall lasted 1.25 s for a drop that takes 0.68 s (it floated), on an
+eased curve; the board slid in beside her and was simply there; the landing squashed the whole
+drawing like rubber; nothing lagged; the jump drawing turned into the standing one on the
+frame of contact.
+
+Now the motion is computed in the set's metres (`cam.js`) and then held on twos:
+
+- falls are `h = H − g·t²/2`, g = 9.81: 2.3 m in 0.68 s, sideways speed constant in the air;
+- the board comes first: it drops nose-down, hits the stone on beat 2, bounces twice
+  (restitution 0.32, losing speed at each hit, rocking), rolls and stops under friction where
+  her left boot will land; its flight is worked back from that spot;
+- Kit drops on beat 4. For the last two drawings of the fall she gets her feet under her (her
+  standing drawing in the air, hair and arm still flying), so contact changes no drawing; her
+  legs take the landing (the upper body comes down over them and springs back: a damped
+  oscillation), her feet slide a hand's width, the head nods late, the bunches of hair stream
+  up in the fall and whip down after she has stopped, the arm swings down and comes up for the
+  thumb on the card's beat with an overshoot;
+- Captain starts at the clatter and again at her landing: two jumps under the same gravity;
+  Dot looks up at the clatter; dust at every hit, sized by the hit; a short shake.
+
+For that Kit was cut into more parts (`tools/tocode.py`: legs apart from the upper body, the
+two bunches apart from the head), `Drawn.draw` paints groups of parts as layers (the upper
+body really covers the legs when it comes down) and `cast/kit-act.js` (`KitAct.stand`, `air`,
+`board`) poses her from a few numbers (crouch, droop, arm, nod, lean).
+
+Limits that remain: seen from the front a crouch is the shorts coming down over the shins
+(her knees do not bend in the drawing: that needs a drawn crouch pose); her face does not
+change (no blink, no effort); still no sound.

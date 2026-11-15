@@ -4,8 +4,8 @@
 //   Drawn.def(who, pose, { w, h, line }, (part, S, L) => { … })   a drawing declares itself:
 //       part(name); S(colour, points); L(points, width, closed?, colour?)
 //   Drawn.add(who, pose, (part, S, L) => { … })   details authored by hand on top of one
-//   Drawn.draw(g, who, pose, x, y, s, { parts: { head: { rot, at: [x, y], dx, dy } }, ink,
-//       only: [names], hide: [names] })
+//   Drawn.draw(g, who, pose, x, y, s, { parts: { head: { rot, at: [x, y], dx, dy, sx, sy } }, ink,
+//       only: [names], hide: [names], layers: [[names], [names]] })
 //   Drawn.size(who, pose) → [w, h]
 // Shapes are compiled once into paths through SkateToon.path (smooth runs between corners).
 // All fills are painted first, then all strokes, each inside its part's transform, so a part
@@ -55,6 +55,7 @@ const Drawn = (() => {
                 const [ax, ay] = m.at ?? [0, 0];
                 g.translate(ax + (m.dx ?? 0), ay + (m.dy ?? 0));
                 g.rotate(m.rot ?? 0);
+                g.scale(m.sx ?? 1, m.sy ?? 1);
                 g.translate(-ax, -ay);
             }
         };
@@ -64,30 +65,35 @@ const Drawn = (() => {
         g.lineJoin = 'round';
         g.lineCap = 'round';
         const shown = (p) => (!o.only || o.only.includes(p.name)) && !(o.hide && o.hide.includes(p.name));
-        for (const p of parts) {
-            if (!shown(p)) continue;
-            enter(p);
-            for (const f of p.fills) {
-                g.fillStyle = f.color;
-                g.fill(f.P);
-                if (f.color !== ink) {
-                    // a hair of the colour itself closes the seam with its neighbour under the line
-                    g.strokeStyle = f.color;
-                    g.lineWidth = 0.7;
-                    g.stroke(f.P);
+        // o.layers: groups of parts painted one after another (each its fills, then its lines), so
+        // a group that moves over another really covers it, lines and all; otherwise one group
+        const groups = o.layers ? o.layers.map((names) => parts.filter((p) => names.includes(p.name))) : [parts];
+        for (const group of groups) {
+            for (const p of group) {
+                if (!shown(p)) continue;
+                enter(p);
+                for (const f of p.fills) {
+                    g.fillStyle = f.color;
+                    g.fill(f.P);
+                    if (f.color !== ink) {
+                        // a hair of the colour itself closes the seam with its neighbour under the line
+                        g.strokeStyle = f.color;
+                        g.lineWidth = 0.7;
+                        g.stroke(f.P);
+                    }
                 }
+                g.restore();
             }
-            g.restore();
-        }
-        for (const p of parts) {
-            if (!shown(p)) continue;
-            enter(p);
-            for (const l of p.lines) {
-                g.strokeStyle = l.color ?? ink;
-                g.lineWidth = l.w * (o.weight ?? 1);
-                g.stroke(l.P);
+            for (const p of group) {
+                if (!shown(p)) continue;
+                enter(p);
+                for (const l of p.lines) {
+                    g.strokeStyle = l.color ?? ink;
+                    g.lineWidth = l.w * (o.weight ?? 1);
+                    g.stroke(l.P);
+                }
+                g.restore();
             }
-            g.restore();
         }
         g.restore();
     }
