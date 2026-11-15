@@ -3,7 +3,9 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **an animation test: Hoagie's bar, every frame drawn from scratch in code** (round 29:
+State: **two tests of Hoagie's bar side by side, waiting for the user to choose: drawn by hand in
+2D (round 29) and built in 3D in Blender (round 30: `blender/hoagie.py`, `review/hoagie-blender.jpg`)**.
+The 2D one, every frame drawn from scratch in code (round 29:
 `cast/hoagie-model.js`, his shapes written by hand and measured on his sheet; `film.js`
 `HOAGIE_KEYS`; `review/hoagie-model.jpg`, `review/hoagie-anim.jpg`), waiting for the user's
 verdict before the other five are drawn the same way. No reference sheets are generated any
@@ -968,3 +970,33 @@ Where it is short of the sheet, said to the user: the shoes, the hands and the c
 simpler; the flowers are printed in fixed places rather than following the cloth; he only
 exists from the front (the sideways filming pose of his sheet is not in the model); line
 weight is one even width.
+
+## Round 30 (user) · the same bar in Blender
+
+> Cómo crees que quedaría con Blender?
+
+> Podemos probar
+
+Said before trying: better motion (bones or posed solids change in every frame, he can turn,
+the camera is real), another look (a vinyl toy in flat colour with an outline, not a '90s
+drawing), a model built by code from simple solids and so clean but generic.
+
+Tried: Blender runs here as a Python module (`pip install bpy`, 5.3, in a scratch
+environment; nothing needs a graphics card). `blender/hoagie.py` builds him from ellipsoids,
+tubes and boxes with emission materials in the sheet's colours and an ink line from Freestyle
+(what must have no line, pupils, petals, freckles, is in a collection the line set excludes),
+poses him frame by frame from key poses like the 2D model, and renders 48 transparent frames
+(2.6 s a frame at 1920, Cycles on the CPU, one sample). They are laid over the shot's own
+background (`dev/hoagie-stage/scene.js`, frames from the engine) with ffmpeg.
+
+What it shows, as predicted: the turn is real (he starts in profile, filming to our right, and
+comes round to the lens at us with the head leading), the thumb comes towards the camera and
+grows, everything keeps its volume. And: he is a toy, not the drawing; the mouth is a dark
+ellipsoid with a band of teeth; the hair is a cap that hides his eyes when he bows; arms are
+tubes from sleeve to hand with no shoulder; there is no sticker edge, and the lens pull-out of
+the 2D shot is not in this one.
+
+Things found on the way: Freestyle's line set needs its own line style (`linesets.new` leaves
+it empty) and «strokes set empty» is printed even when lines are drawn; on his toes the feet
+must pitch toe-down (the first try showed their soles); the camera's sensor fit must be set or
+the framing is not what the lens says.
