@@ -3,15 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the cast measured again from the sheets, with their details and colours** (rounds 20–21);
-the shot is the same animation (`scene.js`, «KIT», 5 s, `render/pier-pressure.mp4`,
-`review/key.jpg`), waiting for the user's verdict. Kit's poses: `cast/kit-drawn.js` (her model
-sheet: stand, jump) and `cast/kit-drop-drawn.js` (tuck, reach, contact, crouch, rise, proud),
-with her plaster in `cast/kit-details.js` and `cast/kit-drop-details.js`. Check any pose against
-its sheet with `dev/fidelity/scene.js` + `tools/fidelity.py`. The theme song has arrived
-(`private/`, not committed: 120 BPM, 31.75 s, first beat at 0.05 s; prompt in `suno-prompt.md`):
-the rest of the opening is cut to it next. The set is approved up to round 16. The style stays
-*in testing*.
+State: **the whole opening, cut to the theme song: a first pass** (round 22): `scene.js` (the
+edit and Kit's drop) + `film.js` (the other eleven shots), 31.75 s, `render/pier-pressure.mp4`
+(silent copy; with the song: `out/`, not committed), `review/sheet-1.jpg`, `sheet-2.jpg`. Waiting
+for the user's verdict. Only Kit is animated from key poses; the other five move between the two
+drawings of their model sheets. Check any pose against its sheet with `dev/fidelity/scene.js` +
+`tools/fidelity.py`. The set is approved up to round 16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -686,3 +683,56 @@ Both true in the frames (crops at 3840):
 Lessons → `animate`: what a model sheet stands a character on is cut from them as a part before
 anything moves; and where a character lands or stands, the set's loose ends keep clear on
 screen, not only in depth.
+
+## Round 22 (user) · the rest of the shots, on the song
+
+> Vale, sigue con el resto de planos sobre la canción
+
+The song (Suno, from `suno-prompt.md`; in `private/`): 120 BPM exactly, first beat at 0.05 s,
+16 bars, last hit at 30.05 s, silence from 31 s. Its words could not be transcribed here (the
+tool for it was refused), so the edit follows its **sections**, measured in four frequency
+bands second by second: the bass drops out at 6–8 s, 10–12 s and 18–21 s (breaks); the full
+band runs 12–18 s and 21–30 s (the loudest: the chorus).
+
+| Time | Shot | What happens |
+|---|---|---|
+| 0–4.05 | GULL HARBOR | the town's sign, the camera coming down it; then the quay, Dot coming up behind her counter |
+| 4.05–8.05 | KIT | the shot there was: the board hits on its third beat, she lands where the bass drops out |
+| 8.05–10.05 | HOAGIE | in from the right through his own viewfinder (REC), Kit in the frame; his card |
+| 10.05–12.05 | MILO | a finger up, the plan; on the third beat he goes heels over head (the song's break) |
+| 12.05–14.05 | PIP | through the three of them on her scooter without stopping, the camera going with her |
+| 14.05–16.05 | AUNT DOT | her hatch, close; on the third beat the spatula and the chips |
+| 16.05–18.05 | CAPTAIN | on his bollard, a start at every beat; on the last, gone |
+| 18.05–21.05 | AFTER HIM | the break: he crosses the quay with the chips; Pip is first after him, then the others, one a beat |
+| 21.05–26.05 | THE PIER | side on, the camera running with them; closer for the last two bars |
+| 26.05–28.05 | OFF THE END | the pier stops («NO RUNNING»); they do not |
+| 28.05–30.05 | IN THE AIR | the four and the gull against a sunburst |
+| 30.05–31.75 | PIER PRESSURE | the last hit: they drop out of frame, the sea comes up, the title; Captain lands on it |
+
+How it is built:
+
+- **One world, many views.** Every harbour shot is the same set through `Film.view` (a point of
+  the frame to its centre and a zoom); the set's cached layers are painted again at the zoom's
+  resolution (`env.k × zs`), so the close shots (Dot at 3×) are as sharp as the wide. Who has
+  arrived stays where they are in the later shots (Kit and her board from bar 4 on).
+- **The cast in metres** (`Film.put3`): each drawing has its pixels per metre and an anchor
+  (between the soles, or its middle for a flying pose), so the five stand at their heights
+  beside Kit without a number per shot.
+- **A bar per character**: in on the first beat (a slide and a squash on twos), the card on the
+  third (`Film.card`: Kit's card, any name), with the action each one's two drawings allow.
+- **The pier** is a second, flat set (`pierSide`): shore, sea, deck, piles, lamps, each layer at
+  its own speed.
+
+Seen in the contact sheets and fixed before showing: Milo, Dot and Captain's shots were first
+framed with whoever stood nearer filling the frame (Kit's head in Milo's shot, Milo's in Dot's,
+Hoagie in Captain's): reframed on their subject, and Dot's and Captain's shots leave the others
+out; the leap carried the four out of the right of the frame and left it empty: slower across,
+a lower camera; the title's splash was a tenth of the frame: three times that.
+
+Still off, and it is the big one: **Hoagie, Milo, Pip, Dot and Captain have two drawings each.**
+They slide, hop, squash and swap pose; they do not act as Kit does in her shot (the round 18
+lesson). The cure is the same as hers: key poses per character and shot (five or six drawings
+each, 433 credits a sheet). Also: no sound effects yet (the song is dense; the clatter and the
+splash would still earn theirs); the pier set is plainer than the harbour; the words of the
+song are not matched to the pictures (the names could land on their own cards once the times
+they are sung at are known).

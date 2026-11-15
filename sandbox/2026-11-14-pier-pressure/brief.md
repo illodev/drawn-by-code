@@ -39,7 +39,7 @@ wooden pier with a rail to grind and an end to jump off.
 | **Aunt Dot** | a square jaw, a visor, a bun with a pencil through it, an apron | ex-surfer, runs the chip hut | the adult who lets them get on with it |
 | **Captain** | a one-eyed gull with a patch | steals chips | closes every gag |
 
-## Shot list (proposal, 24 s at 120 BPM: to agree with the user)
+## Shot list (the first proposal, 24 s; the film is cut to the song's 16 bars instead: see `review.md`, round 22, and `scene.js`)
 
 | Time | Shot | What happens |
 |---|---|---|
