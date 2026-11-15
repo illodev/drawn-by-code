@@ -3,11 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the first animated shot on the rebuilt set** (`scene.js`, «KIT», 5 s, no sound:
-`render/pier-pressure.mp4`, `review/key.jpg`; the set alone: `review/set.jpg`), waiting for
-the user's verdict. Set and cast share one camera (`cam.js`, metres). The whole cast is drawn
-in code from the approved sheets (`cast/<who>-drawn.js`); only Kit is in parts. The puppet
-cast (`cast/kit.js`…, `cast/kit-hero.js`) is history. The style stays *in testing*.
+State: **the shot's animation is rejected** (round 18): with two drawings of Kit it can only
+be a cut-out moved about. Six key poses of her drop and landing are generated (two sheets of
+three, two variants each, in the ElevenLabs flow `IZ6WMwgNs2KXvoLAzy0H`) and wait for the user
+to send them (this session cannot download them); they go to `ref/kit-drop-a.png` and
+`ref/kit-drop-b.png`, through `tools/tocode.py` (new poses in `CAST['kit']`), and the shot is
+then animated pose to pose. The set is approved up to round 16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -541,3 +542,30 @@ body really covers the legs when it comes down) and `cast/kit-act.js` (`KitAct.s
 Limits that remain: seen from the front a crouch is the shorts coming down over the shins
 (her knees do not bend in the drawing: that needs a drawn crouch pose); her face does not
 change (no blink, no effort); still no sound.
+
+## Round 18 (user) · the animation is not animation
+
+(four crops: the board alone with half its deck missing; Kit in the air in her standing
+drawing; her boot in the air with no line under its sole; her sleeve broken where the arm had
+turned)
+
+> Quitando el hecho de que falta media tabla. El personaje cae en la misma posición como una
+> estatua. La manga del personaje no está bien dibujada, los zapatos no tiene el borde. El
+> personaje no tiene una animación real.
+
+→ Three faults of the cut-out, fixed:
+
+- **half the board**: in her standing drawing the boot hides half the deck, and the board
+  drawn alone showed the hole. The deck is now drawn whole (`KitAct.board`: its outline
+  measured on the sheet, its far edge carried on under where the boot was) over the
+  drawing's own trucks and wheels, which are a part of their own (`wheels`);
+- **the boot's border**: the line under its sole had gone to the board's part (strokes are
+  assigned by where their middle falls) and vanished with it; the boot's region now takes it;
+- **the sleeve**: the arm's region had taken the sleeve's opening with it; it is now only the
+  forearm that comes out of the sleeve, turning about the elbow inside it.
+
+And the real one, not fixable with what there is: **a character animated from two drawings is
+a statue being moved.** Physics on a cut-out gives the timing, not the acting: a fall is a
+sequence of different drawings (tucked, reaching, contact, deep crouch, pushing up, standing).
+Generated those as two key-pose sheets with her approved sheet as the reference (1,732
+credits). The shot's fall uses her jump drawing again meanwhile, as a placeholder.

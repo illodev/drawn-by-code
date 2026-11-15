@@ -36,12 +36,12 @@ const KitAct = (() => {
         };
         Drawn.draw(g, 'kit', 'stand', x - MID * s, y - FEET * s, s, {
             only: o.only, hide: o.hide,
-            layers: [['board', 'legs', 'bootR', 'bootL'], UPPER],
+            layers: [['wheels', 'board', 'legs', 'bootR', 'bootL'], UPPER],
             parts: {
                 shorts: up([250, 470], 0, { sx: 1 + crouch * 0.0022 }), // the knees spread
                 torso: up(HIP, 0),
                 armR: up([330, 300], 0),
-                armL: up([172, 315], arm),
+                armL: up([176, 320], arm), // about the elbow, inside the sleeve's opening
                 head,
                 bunchL: bunch([175, 68], -1),
                 bunchR: bunch([335, 68], 1),
@@ -66,12 +66,27 @@ const KitAct = (() => {
         });
         g.restore();
     }
-    // the board alone: its middle is (140, 648) in the standing drawing, its wheels' feet at 708
+    // The board alone. In her standing drawing her boot hides half the deck, so the deck is
+    // drawn here whole (measured on the sheet: its far edge runs on under the boot's sole), over
+    // the drawing's own trucks and wheels. Its middle is (140, 648), its wheels' feet at 708.
+    const DECK = [[14, 600], [18, 592], [30, 587], [60, 585], [100, 588], [140, 596], [180, 606], [225, 619], [258, 628, 1], [264, 633], [262, 641, 1], [240, 646], [205, 653], [180, 655], [150, 650], [120, 642], [60, 628], [24, 613]];
+    const GRIP = [[16, 598], [20, 591], [30, 588], [60, 586.6], [100, 589.6], [140, 597.4], [180, 607.4], [225, 620.4], [256, 629, 1], [254, 633, 1], [240, 636.6], [204, 645.4], [180, 646.6], [150, 641.6], [120, 634], [60, 620], [24, 603]];
     function board(g, x, y, s, rot = 0) {
+        const T = SkateToon;
         g.save();
         g.translate(x, y - 60 * s);
         g.rotate(rot);
-        Drawn.draw(g, 'kit', 'stand', -140 * s, -648 * s, s, { only: ['board'] });
+        Drawn.draw(g, 'kit', 'stand', -140 * s, -648 * s, s, { only: ['wheels'] });
+        g.translate(-140 * s, -648 * s);
+        g.scale(s, s);
+        T.shape(g, DECK, { fill: '#daa973', w: 2, seed: 'kit-deck', amp: 0.1 });
+        T.shape(g, GRIP, { fill: '#3b3b3b', w: 1.6, seed: 'kit-grip', amp: 0.1 });
+        for (const [bx, by] of [[36, 596], [48, 599], [214, 627], [228, 631]]) {
+            g.fillStyle = '#1c1c1c';
+            g.beginPath();
+            g.arc(bx, by, 1.5, 0, Math.PI * 2);
+            g.fill();
+        }
         g.restore();
     }
     return { stand, air, board, FEET, MID, BOARD_DX: 140 - MID };

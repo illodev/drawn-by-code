@@ -125,11 +125,8 @@ Motion.scene({
         if (tk >= LAND - TF && tk < LAND) {
             const u = tk - (LAND - TF), h = H0 - (G * u * u) / 2, X = KXW - SKID - VX * (LAND - tk), fall = (G * u) / v1; // 0…1: how fast she is falling
             const [px, py] = at(X, h);
-            // for the last two drawings of the fall she gets her feet under her (her standing
-            // drawing, in the air, hair and arm still flying), so the landing itself changes no
-            // drawing: only her legs give
-            if (LAND - tk < 2 / 12 + 1e-6) KitAct.stand(g, px, py, KS, { hide: ['board'], droop: -0.55, arm: -0.95, nod: -0.05, lean: -0.05 });
-            else KitAct.air(g, px, py, KS * 0.96, { lift: 0.25 + 0.55 * fall, tilt: -0.22 + 0.3 * fall, flail: Math.sin(u * 14) });
+            // (placeholder until her key poses of the drop are drawn: see review.md, round 18)
+            KitAct.air(g, px, py, KS * 0.96, { lift: 0.25 + 0.55 * fall, tilt: -0.22 + 0.3 * fall, flail: Math.sin(u * 14) });
         } else if (tk >= LAND) {
             const [px, py] = at(KXW - SKID + slide, 0);
             KitAct.stand(g, px, py, KS, {

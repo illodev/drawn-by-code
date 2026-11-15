@@ -11,5 +11,7 @@ Motion.scene({
         KitAct.stand(g, 290, 860, 1.1, {});
         KitAct.stand(g, 800, 860, 1.1, { crouch: 34, droop: 0.45, arm: -0.5, nod: 0.06 });
         KitAct.air(g, 1290, 860, 1.0, { lift: 0.4, tilt: -0.1 });
+        KitAct.board(g, 560, 300, 1.4, -0.2);
+        KitAct.stand(g, 1000, 420, 0.8, { hide: ['board', 'wheels'], arm: -0.95, droop: -0.5 });
     },
 });
