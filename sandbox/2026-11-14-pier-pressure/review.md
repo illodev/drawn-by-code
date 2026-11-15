@@ -1093,3 +1093,29 @@ the page is then that colour wherever it is, closed in or not, with no list and 
 (`dev/fidelity/scene.js`, its third ground): the closed gap comes out as page with no holes
 given. Not yet tested on a generated sheet.
 
+## Round 34 (user) · «you are not able to cut it out, however many times you try»: the same images on green
+
+> Creo que no me has entendido
+
+> No ves que ni eres capaz de recortar bien???
+
+> Por muchas veces que lo intentes
+
+Round 33 read «ask for the images on another ground» as a rule for future sheets and went on
+patching the white ones. The user meant the images there are: get them again on a coloured
+ground and stop spending rounds on a cut that white makes ambiguous.
+
+Tested on the sheet the user complained about (Kit's crouch, rise, standing; 433 credits, one
+variation): an edit of the sheet with «reproduce this image exactly, change only the white
+background to solid green, also in every gap».
+
+- **The cut is clean with no rule and no list** (`review/green-cut.jpg`: the sheet and its
+  cut-out; `'bg': (0, 255, 0)`): the gaps between arms and body are background, every white on
+  her stays white, no green is left.
+- **But it is not the same drawing.** The generator redraws: same character, same three poses,
+  the same quality, other lines (the middle pose's mouth is open, the figures sit a little
+  elsewhere). 63 % of the figures' pixels differ from the sheet by more than 60 levels. So
+  putting every sheet on green means replacing the approved drawings with their redrawn
+  versions: 16 sheets, 6,928 credits at one variation each. That is the user's decision; the
+  green test sheet is in `private/`, nothing in the film uses it yet.
+
