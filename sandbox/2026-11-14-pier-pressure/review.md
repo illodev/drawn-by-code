@@ -3,12 +3,11 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the shot's animation is rejected** (round 18): with two drawings of Kit it can only
-be a cut-out moved about. Six key poses of her drop and landing are generated (two sheets of
-three, two variants each, in the ElevenLabs flow `IZ6WMwgNs2KXvoLAzy0H`) and wait for the user
-to send them (this session cannot download them); they go to `ref/kit-drop-a.png` and
-`ref/kit-drop-b.png`, through `tools/tocode.py` (new poses in `CAST['kit']`), and the shot is
-then animated pose to pose. The set is approved up to round 16. The style stays *in testing*.
+State: **the shot animated pose to pose from six drawn key poses** (`scene.js`, «KIT», 5 s, no
+sound: `render/pier-pressure.mp4`, `review/key.jpg`), waiting for the user's verdict. Kit's
+poses: `cast/kit-drawn.js` (her model sheet: stand, jump) and `cast/kit-drop-drawn.js` (tuck,
+reach, contact, crouch, rise, proud). The set is approved up to round 16. The style stays
+*in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -569,3 +568,29 @@ a statue being moved.** Physics on a cut-out gives the timing, not the acting: a
 sequence of different drawings (tucked, reaching, contact, deep crouch, pushing up, standing).
 Generated those as two key-pose sheets with her approved sheet as the reference (1,732
 credits). The shot's fall uses her jump drawing again meanwhile, as a placeholder.
+
+## Round 19 (user) · the key poses
+
+The user attached the four generated sheets. Taken: the first of each (`ref/kit-drop-a.webp`:
+tucked in the air, legs reaching down, contact; `ref/kit-drop-b.webp`: deep crouch, pushing
+up, standing proud); the other two stay in `private/`.
+
+- `tools/tocode.py`: a character can have poses from several sheets (`src`), each with its
+  box and a `keep` polygon (the poses' hands reach into each other's boxes; the rest of the
+  sheet is painted out before measuring). `kit-drop` → `cast/kit-drop-drawn.js`, six more
+  poses of `kit`.
+- The two sheets came at different sizes, and both with a bigger head and a shorter body than
+  her model sheet: they are scaled against each other on one ground line
+  (`dev/ref/scene.js`: sheet A × 1.06) and the shot uses only these six, so she does not
+  change build in mid-shot. The thumbs-up of her model sheet is not in this shot.
+- `scene.js`: on twos from the landing: tuck (two drawings in frame, turning), reach,
+  **contact** on beat 4, crouch for three drawings (deepest on the second), rise for two,
+  proud on beat 5 with the card, an overshoot and a settle, then a breath on the beat. Her
+  place at each drawing still comes from the physics (the fall, a skid of a hand's width).
+- She no longer lands on the board (the poses have her feet on the ground): it clatters in
+  first, rolls to a stop beside her landing spot and jumps when she lands. The cone moved out
+  of its way.
+
+Still off: once she is up she only breathes (one standing drawing: no blink, no gesture);
+the frame sees only the last metre and a half of the drop, so the tucked pose is in frame
+for one drawing and a half; no sound.

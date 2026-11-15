@@ -89,5 +89,23 @@ const KitAct = (() => {
         }
         g.restore();
     }
-    return { stand, air, board, FEET, MID, BOARD_DX: 140 - MID };
+    // Her key poses for the drop (cast/kit-drop-drawn.js): for each, where her feet are in the
+    // drawing (the middle between her soles, on their line; for the two poses in the air, the
+    // lowest point of her boots under her middle) and its scale against the standing pose
+    // `proud`: the two sheets were drawn at different sizes (calibrated on dev/ref/scene.js).
+    const DROP = {
+        tuck: { at: [200, 512], k: 1.06 }, reach: { at: [238, 655], k: 1.06 }, contact: { at: [204, 598], k: 1.06 },
+        crouch: { at: [238, 388], k: 1 }, rise: { at: [218, 566], k: 1 }, proud: { at: [190, 640], k: 1 },
+    };
+    // pose(g, name, x, y, s, { rot, sx, sy }): her feet on (x, y); s: units per pixel of `proud`
+    function pose(g, name, x, y, s, o = {}) {
+        const d = DROP[name], z = s * d.k;
+        g.save();
+        g.translate(x, y);
+        g.rotate(o.rot ?? 0);
+        g.scale(o.sx ?? 1, o.sy ?? 1);
+        Drawn.draw(g, 'kit', name, -d.at[0] * z, -d.at[1] * z, z);
+        g.restore();
+    }
+    return { pose, DROP, stand, air, board, FEET, MID, BOARD_DX: 140 - MID };
 })();

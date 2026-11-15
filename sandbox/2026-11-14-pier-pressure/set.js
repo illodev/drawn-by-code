@@ -413,7 +413,7 @@
     const BOAT_A = { at: [5.6, 75], yaw: 2.25 }, BOAT_B = { at: [109, 170], yaw: 2.7 };
     const FORE = {
         potA: { o: [-1.78, 0, 2.6], yaw: 0.5 }, potB: { o: [-1.62, 0, 3.45], yaw: -0.45 }, coil: [-1.02, 0, 2.42],
-        cone: [1.3, 0, 3.3], bollard: [1.5, 0, 2.5],
+        cone: [1.66, 0, 3.7], bollard: [1.5, 0, 2.5],
     };
 
     // a point on the ground, clipped to what the camera can see

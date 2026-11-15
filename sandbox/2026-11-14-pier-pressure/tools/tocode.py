@@ -73,6 +73,18 @@ CAST = {
             'order': ['armR', 'bootFar', 'shorts', 'bootNear', 'torso', 'bunchL', 'bunchR', 'head', 'armL'],
         },
     },
+    # Her key poses for the drop onto the quay (two more approved sheets). Each pose gives its
+    # box and `keep`, the polygon of the sheet that is hers (the poses' hands reach into each
+    # other's boxes). Written to cast/kit-drop-drawn.js as more poses of 'kit'.
+    'kit-drop': {
+        '_who': 'kit',
+        'tuck': {'src': 'ref/kit-drop-a.webp', 'box': (30, 0, 430, 535), 'keep': [(20, 0), (455, 0), (455, 270), (385, 270), (385, 540), (20, 540)]},
+        'reach': {'src': 'ref/kit-drop-a.webp', 'box': (390, 30, 485, 670), 'keep': [(385, 275), (460, 275), (460, 30), (870, 30), (870, 460), (840, 700), (400, 700), (385, 540)]},
+        'contact': {'src': 'ref/kit-drop-a.webp', 'box': (862, 80, 418, 620), 'keep': [(872, 60), (1280, 60), (1280, 700), (860, 700), (860, 470), (872, 460)]},
+        'crouch': {'src': 'ref/kit-drop-b.webp', 'box': (10, 255, 488, 400), 'keep': [(0, 240), (497, 240), (497, 560), (460, 560), (460, 700), (0, 700)]},
+        'rise': {'src': 'ref/kit-drop-b.webp', 'box': (462, 75, 428, 580), 'keep': [(491, 60), (888, 60), (888, 700), (465, 700), (465, 565), (499, 555), (499, 238), (491, 235)]},
+        'proud': {'src': 'ref/kit-drop-b.webp', 'box': (888, 10, 390, 650), 'keep': [(888, 0), (1280, 0), (1280, 700), (888, 700)]},
+    },
     'hoagie': {'film': {}, 'jump': {}},
     'milo': {'stand': {}, 'fall': {}},
     'pip': {'stand': {}, 'ride': {}},
@@ -241,24 +253,40 @@ def fmt(sp):
 
 
 def convert(who):
-    src = f'ref/{who}-sheet.png'
-    im = Image.open(os.path.join(HERE, '..', src)).convert('RGB')
-    pal = M.palette(im)
-    cfgs = CAST[who]
-    found = M.boxes(im, len(cfgs))
-    holes = M.hole_mask(im, HOLES.get(who, []))
-    out = [f'// {who}, drawn in code. Written by tools/tocode.py from the approved sheet {src}: each flat',
-           '// colour is a shape of control points ([x, y] smooth, [x, y, 1] a corner), each line a stroke',
-           "// along its centre with its width, grouped by body part. Coordinates are the sheet's pixels",
-           "// inside the pose's box. Edit a point, a colour or a width here like any drawing in the repo;",
-           '// run the tool again only to start over from the sheet.', '']
+    cfgs = dict(CAST[who])
+    name_as = cfgs.pop('_who', who)
+    main = f'ref/{who}-sheet.png'
+    sheets = {}
+
+    def sheet(src):
+        if src not in sheets:
+            im = Image.open(os.path.join(HERE, '..', src)).convert('RGB')
+            sheets[src] = (im, M.palette(im))
+        return sheets[src]
+
+    found = M.boxes(sheet(main)[0], len(cfgs)) if os.path.exists(os.path.join(HERE, '..', main)) and all('src' not in c for c in cfgs.values()) else [None] * len(cfgs)
+    srcs = sorted({c.get('src', main) for c in cfgs.values()})
+    out = [f'// {name_as}, drawn in code. Written by tools/tocode.py from the approved sheet(s) {", ".join(srcs)}: each',
+           '// flat colour is a shape of control points ([x, y] smooth, [x, y, 1] a corner), each line a',
+           "// stroke along its centre with its width, grouped by body part. Coordinates are the sheet's",
+           "// pixels inside the pose's box. Edit a point, a colour or a width here like any drawing in",
+           '// the repo; run the tool again only to start over from the sheet.', '']
     for (name, cfg), fb in zip(cfgs.items(), found):
+        src = cfg.get('src', main)
+        im, pal = sheet(src)
+        if 'keep' in cfg:
+            # only this pose's part of the sheet: the rest is painted out
+            from PIL import ImageDraw
+            mask = Image.new('L', im.size, 0)
+            ImageDraw.Draw(mask).polygon(cfg['keep'], fill=255)
+            im = Image.composite(im, Image.new('RGB', im.size, (255, 255, 255)), mask)
+        holes = M.hole_mask(im, cfg.get('holes', HOLES.get(who, []) if src == main else []))
         box = cfg.get('box', fb)
         order, items, lw = pose(im, cfg, box, pal, holes)
         nf = sum(len(v['fills']) for v in items.values()); nl = sum(len(v['lines']) for v in items.values())
         npt = sum(len(f[2]) for v in items.values() for f in v['fills']) + sum(len(l[0]) for v in items.values() for l in v['lines'])
         print(who, name, box, nf, 'shapes', nl, 'strokes', npt, 'control points; line', lw, flush=True)
-        out.append(f"Drawn.def('{who}', '{name}', {{ w: {box[2]}, h: {box[3]}, line: {lw} }}, (part, S, L) => {{")
+        out.append(f"Drawn.def('{name_as}', '{name}', {{ w: {box[2]}, h: {box[3]}, line: {lw} }}, (part, S, L) => {{")
         for pn in order:
             v = items[pn]
             if not v['fills'] and not v['lines']:

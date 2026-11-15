@@ -1,17 +1,16 @@
-// pier-pressure · dev: Kit's parts. Left: her standing drawing as it is; middle: crouched (the
-// upper body down over the legs, bunches and arm lagging); right: her jump drawing, bunches up.
+// pier-pressure · dev: Kit's six key poses for the drop (cast/kit-drop-drawn.js), on one ground
+// line at the scale the shot uses, to calibrate the two sheets against each other and to check
+// each pose's anchor (KitDrop in cast/kit-act.js).
 const DIR = 'sandbox/2026-11-14-pier-pressure/cast/';
 Motion.scene({
     fps: 24, duration: 1, logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'drawn.js', DIR + 'kit-drawn.js', DIR + 'kit-details.js', DIR + 'kit-act.js'],
-    shots: [[0, 1, 'Kit, in parts']],
+    uses: ['styles/skate-toon/toon.js', DIR + 'drawn.js', DIR + 'kit-drawn.js', DIR + 'kit-details.js', DIR + 'kit-drop-drawn.js', DIR + 'kit-act.js'],
+    shots: [[0, 1, 'Kit, key poses']],
     draw(g, t, env) {
         g.fillStyle = SkateToon.COL.sky;
         g.fillRect(0, 0, env.W, env.H);
-        KitAct.stand(g, 290, 860, 1.1, {});
-        KitAct.stand(g, 800, 860, 1.1, { crouch: 34, droop: 0.45, arm: -0.5, nod: 0.06 });
-        KitAct.air(g, 1290, 860, 1.0, { lift: 0.4, tilt: -0.1 });
-        KitAct.board(g, 560, 300, 1.4, -0.2);
-        KitAct.stand(g, 1000, 420, 0.8, { hide: ['board', 'wheels'], arm: -0.95, droop: -0.5 });
+        g.fillStyle = SkateToon.COL.concrete;
+        g.fillRect(0, 820, 1600, 80);
+        ['tuck', 'reach', 'contact', 'crouch', 'rise', 'proud'].forEach((p, i) => KitAct.pose(g, p, 140 + i * 264, 820 - (i < 2 ? 60 : 0), 0.78));
     },
 });

@@ -1,25 +1,20 @@
-// pier-pressure · shot 2 of the opening, «KIT»: the quay of Gull Harbor, quiet; her board drops in
-// and clatters to a stop, then Kit herself drops in, lands on it and gives us a thumb as her name
-// slams on. 5 s at 120 BPM: the board hits the stone on beat 2 (1.0 s), she lands on beat 4
-// (2.0 s), the card on beat 5.
+// pier-pressure · shot 2 of the opening, «KIT»: the quay of Gull Harbor, quiet; her board drops in,
+// clatters and rolls to a stop; then Kit herself drops in beside it, takes the landing in her
+// legs and stands up proud as her name slams on. 5 s at 120 BPM: the board hits the stone on
+// beat 2 (1.0 s), she lands on beat 4 (2.0 s), she is up and the card is on at beat 5.
 //
-// The motion is physics, in the set's own metres (cam.js), then held on twos:
-//   · a fall is h = H − g·t²/2 with g = 9.81, so a 2.3 m drop takes 0.68 s (it used to take twice
-//     that, and floated); sideways speed is constant in the air;
-//   · the board bounces with a restitution of 0.32 (each bounce a tenth as high as the last),
-//     loses speed at each hit, then rolls to a stop under friction;
-//   · her landing is absorbed by her legs (the upper body comes down over them and springs
-//     back, a damped oscillation), not by squashing the drawing; what is loose arrives late:
-//     her bunches of hair stream up in the fall and whip down after she stops, the head nods,
-//     the arm swings;
-//   · Captain's hops are jumps under the same gravity.
-// The cast are drawings in code (cast/<who>-drawn.js), posed by cast/kit-act.js.
+// Kit is animated pose to pose, on twos, from six drawn key poses (cast/kit-drop-drawn.js):
+// tucked in the air → legs reaching for the ground → contact → deep crouch → pushing up →
+// standing proud. Where and when each drawing is comes from physics in the set's metres
+// (cam.js): a fall is h = H − g·t²/2 (2.3 m in 0.68 s), the board bounces with a restitution of
+// 0.32, loses speed at each hit and rolls to a stop under friction, and jumps a little when
+// she lands beside it; Captain's hops are jumps under the same gravity.
 const DIR = 'sandbox/2026-11-14-pier-pressure/';
 Motion.scene({
     fps: 24,
     duration: 5,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-drop-drawn.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     shots: [[0, 5, 'KIT']],
@@ -29,13 +24,17 @@ Motion.scene({
         const G = 9.81, H0 = 2.3, TF = Math.sqrt((2 * H0) / G); // the drop: 2.3 m, 0.68 s
         const HIT = 1.0, LAND = 2.0, CARD = 2.5;
         const tw = (at) => at + Math.floor((t - at) * 12 + 1e-6) / 12; // t held on twos, on an event's own clock
-        const KZ = A.kit[1], KXW = 0, S = Cam.scale(KZ), KS = (S * Cam.HEIGHT.kit) / 700;
+        const KZ = A.kit[1], KXW = -0.1, S = Cam.scale(KZ);
+        // her standing drawing (`proud`) is 575 of its pixels from the top of her head to her soles: 1.34 m
+        const KP = (S * 1.34) / 575;
         const at = (X, Y) => Cam.pt([X, Y, KZ]);
+        // the board ends up beside her, a step nearer the camera
+        const BZ = KZ - 0.15, BS = (Cam.scale(BZ) * Cam.HEIGHT.kit) / 700, bat = (X, Y) => Cam.pt([X, Y, BZ]);
 
         // --- the board ------------------------------------------------------------------------
-        // Its flight, three bounces and its roll, worked back from where it must stop: under her
-        // left boot. Each stage: [duration, sideways speed at its start, upward speed at its start].
-        const E = 0.32, v1 = Math.sqrt(2 * G * H0), BX = KXW + (KitAct.BOARD_DX * KS) / S;
+        // Its flight, three bounces and its roll, worked back from where it must stop: beside her
+        // right boot. Each stage: [duration, sideways speed at its start, upward speed at its start].
+        const E = 0.32, v1 = Math.sqrt(2 * G * H0), BX = 0.66;
         const stages = [[TF, 1.2, 0], [(2 * E * v1) / G, 0.62, E * v1], [(2 * E * E * v1) / G, 0.36, E * E * v1], [0.34, 0.36, 0]];
         const board = (tt) => {
             let t0 = HIT - TF, x = BX - 0.36 * 0.34 * 0.5 - stages[2][0] * 0.36 - stages[1][0] * 0.62 - TF * 1.2;
@@ -59,26 +58,16 @@ Motion.scene({
         };
         const hits = [HIT, HIT + stages[1][0], HIT + stages[1][0] + stages[2][0]]; // when it meets the stone
 
-        // --- Kit --------------------------------------------------------------------------------
-        const VX = 2.2, SKID = 0.14; // she comes down almost straight, and her feet slide a hand's width
-        const tk = tw(LAND), tau = tk - LAND;
-        // after the landing: the legs take it (down fast, back up past standing, settle), and what is
-        // loose follows late
-        const spring = (x, amp, decay, period) => (x <= 0 ? 0 : amp * Math.exp(-decay * x) * Math.sin((2 * Math.PI * x) / period));
-        const crouch = spring(tau, 82, 5.6, 0.74);
-        const droop = tau < 0 ? 0 : -0.55 * Math.exp(-11 * tau) + spring(tau - 0.04, 0.62, 4.2, 0.52);
-        const nod = spring(tau - 0.06, 0.13, 6, 0.6);
-        const slide = tau < 0 ? 0 : SKID * (1 - Math.pow(1 - Math.min(1, tau / 0.3), 2));
-        // the thumb arm: down for balance, then up on the card's beat with an overshoot
-        const tc = tw(CARD) - CARD;
-        const arm = tc < 0 ? -0.5 - 0.45 * Math.exp(-9 * Math.max(0, tau)) - spring(tau, 0.3, 5, 0.5) : -0.5 * Math.exp(-16 * tc) + spring(tc, 0.16, 7, 0.36);
-        // and she keeps the beat once she has settled: a breath in the knees, the head
-        const beat = Motion.pulse(tw(0), 120, 0, 6), live = Math.min(1, Math.max(0, (tk - LAND - 0.8) / 0.4));
+        // --- Kit ---------------------------------------------------------------------------------
+        const VX = 1.6, SKID = 0.1; // she comes down almost straight; her feet slide a hand's width
+        const tk = tw(LAND), tau = tk - LAND, dl = Math.round(tau * 12); // her drawings, counted from the landing
+        const slide = tau < 0 ? 0 : SKID * (1 - Math.pow(1 - Math.min(1, tau / 0.25), 2));
+        const beat = Motion.pulse(tw(0), 120, 0, 6);
 
         // --- the frame ----------------------------------------------------------------------------
         // the quay takes her landing: three drawings of shake, drawn a touch bigger so the frame
         // stays covered
-        const dl = Math.round(tau * 12);
+        g.save();
         g.save();
         if (tau >= 0 && dl < 3) {
             g.translate(800 + [0, 4, -2][dl], 450 + [7, -4, 2][dl]);
@@ -90,7 +79,7 @@ Motion.scene({
         // Aunt Dot (1.8 m) inside her hut, behind her counter: the clatter makes her look up
         {
             const [, , dZ] = A.dot.foot, [dx, dy] = Cam.pt(A.dot.foot), ds = (Cam.scale(dZ) * Cam.HEIGHT.dot) / 700, [dw] = Drawn.size('dot', 'stand');
-            const up = t < HIT ? 0 : 7 * (1 - Math.exp(-9 * (tw(HIT) - HIT))) + spring(tau, 3, 6, 0.4);
+            const up = t < HIT ? 0 : 7 * (1 - Math.exp(-9 * (tw(HIT) - HIT))) + (dl >= 0 && dl < 3 ? [3, 5, 2][dl] : 0);
             g.save();
             g.beginPath();
             A.dot.hatch.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
@@ -113,31 +102,45 @@ Motion.scene({
             }
         };
 
-        // the board, until she is on it
-        const tb = tw(HIT - TF), b = t < LAND ? board(tb) : null;
-        if (b) {
-            const [bx, by] = at(b.x, b.h);
-            KitAct.board(g, bx, by, KS, b.rot);
-        }
-        for (const [i, h] of hits.entries()) puff(board(h).x, (tw(h) - h) / (0.34 - i * 0.08), 5, 20 - i * 6, 'bd' + i);
-
-        // Kit: in the air, then on the stone
-        if (tk >= LAND - TF && tk < LAND) {
-            const u = tk - (LAND - TF), h = H0 - (G * u * u) / 2, X = KXW - SKID - VX * (LAND - tk), fall = (G * u) / v1; // 0…1: how fast she is falling
-            const [px, py] = at(X, h);
-            // (placeholder until her key poses of the drop are drawn: see review.md, round 18)
-            KitAct.air(g, px, py, KS * 0.96, { lift: 0.25 + 0.55 * fall, tilt: -0.22 + 0.3 * fall, flail: Math.sin(u * 14) });
-        } else if (tk >= LAND) {
+        // Kit: one drawing per pose, held on twos; each lands where the physics puts her
+        const kit = () => {
+            if (dl < -8) return;
+            if (dl < 0) {
+                const u = tk - (LAND - TF), h = Math.max(0, H0 - (G * u * u) / 2), [px, py] = at(KXW - SKID - VX * (LAND - tk), h);
+                // tucked, turning a little as she falls; then her legs go down for the ground
+                // (the frame only sees the last metre and a half of the drop: three drawings)
+                if (dl < -1) KitAct.pose(g, 'tuck', px, py, KP, { rot: [-0.1, 0.06, -0.04, 0.08, -0.03, 0.02, -0.06][dl + 8] });
+                else KitAct.pose(g, 'reach', px, py, KP, { rot: -0.03 });
+                return;
+            }
             const [px, py] = at(KXW - SKID + slide, 0);
-            KitAct.stand(g, px, py, KS, {
-                crouch: crouch + live * beat * 2.2, droop: droop + live * Math.sin(tw(0) * Math.PI) * 0.03, nod: nod + live * (beat * 0.02 - 0.01), arm,
-                lean: spring(tau, 0.07, 6, 0.6),
-            });
-            // dust from under her boots, and the marks of the hit for two drawings
-            puff(KXW + 0.1, tau / 0.42, 7, 30, 'kd');
+            // contact; the crouch, deepest on its second drawing; up through the half-way pose,
+            // past standing by a hair, and settled; then she breathes on the beat
+            const key = dl === 0 ? ['contact', 1, 1] : dl <= 3 ? ['crouch', [1.02, 1.05, 1.01][dl - 1], [0.97, 0.93, 0.99][dl - 1]] : dl <= 5 ? ['rise', 1, [0.97, 1.02][dl - 4]]
+                : ['proud', 1, dl === 6 ? 1.035 : dl === 7 ? 0.985 : 1 + beat * 0.008];
+            KitAct.pose(g, key[0], px, py, KP, { sx: key[1], sy: key[2] });
+        };
+        // the board: its flight and its roll; it jumps a little when she lands beside it
+        const drawBoard = () => {
+            const b = board(Math.min(tw(HIT - TF), 1.99));
+            if (!b) return;
+            const u = tau, hopV = 1.1, hop = u < 0 || u > (2 * hopV) / G ? 0 : hopV * u - (G * u * u) / 2;
+            const [bx, by] = bat(b.x + (u > 0 ? Math.min(u, (2 * hopV) / G) * 0.18 : 0), b.h + hop);
+            KitAct.board(g, bx, by, BS, b.rot + (hop > 0 ? -0.16 * Math.sin((u / ((2 * hopV) / G)) * Math.PI) : 0));
+        };
+        // she is behind the board once she is down; in the air she passes in front of where it rolls
+        kit();
+        drawBoard();
+        for (const [i, h] of hits.entries()) {
+            const k = (tw(h) - h) / (0.34 - i * 0.08), bb = board(h), [px] = bat(bb.x, 0);
+            puff(bb.x + (px - at(bb.x, 0)[0]) / S, k, 5, 20 - i * 6, 'bd' + i);
+        }
+        if (dl >= 0) {
+            puff(KXW, tau / 0.42, 7, 30, 'kd');
+            const [px, py] = at(KXW, 0);
             if (dl < 2) for (let i = 0; i < 7; i++) {
-                const a = Math.PI * (1.1 + i * 0.133), r0 = 300 + dl * 34, r1 = r0 + 56 - dl * 16;
-                T.line(g, [[px + Math.cos(a) * r0 * 1.1, py - 300 + Math.sin(a) * r0], [px + Math.cos(a) * r1 * 1.1, py - 300 + Math.sin(a) * r1]], { w: T.LINE, seed: 'tick' + i });
+                const a = Math.PI * (1.1 + i * 0.133), r0 = 330 + dl * 34, r1 = r0 + 56 - dl * 16;
+                T.line(g, [[px + Math.cos(a) * r0 * 1.1, py - 250 + Math.sin(a) * r0], [px + Math.cos(a) * r1 * 1.1, py - 250 + Math.sin(a) * r1]], { w: T.LINE, seed: 'tick' + i });
             }
         }
         Harbor.fore(g, env, t);
