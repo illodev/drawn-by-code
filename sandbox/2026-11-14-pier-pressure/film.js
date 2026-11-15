@@ -198,45 +198,119 @@ const Film = (() => {
     }
 
     // === 3 · Hoagie (2 s): through his viewfinder, then the boy behind it =========================
-    function hoagie(g, t, u, env) {
-        // in from the right at a run, a skid to a stop beside her, the camcorder to his eye; and
-        // on the bar's last beat, the proudest thumb in Gull Harbor
-        const d = nth(u), c = move(u, WIDE, F_HOAGIE, 9); // the camera pushes in to the two of them
-        view(g, env, c.f, c.z, 1.6, (e) => {
-            world(g, e, t, { actors: [kitRest(t), { z: HOAGIE[2], draw(gg) {
-                if (d < 5) put3(gg, 'hoagie', 'run', [HOAGIE[0] + [2.3, 1.8, 1.35, 0.95, 0.6][d], [0.02, 0.1, 0.02, 0.1, 0.02][d], HOAGIE[2]], { rot: [-0.04, 0.02, -0.04, 0.02, -0.02][d] });
-                else if (d < 8) put3(gg, 'hoagie', 'skid', [HOAGIE[0] + [0.3, 0.1, 0][d - 5], 0, HOAGIE[2]], { sx: [1.06, 1.02, 1][d - 5], sy: [0.94, 0.98, 1][d - 5] });
-                else if (u < 1.25) put3(gg, 'hoagie', 'film', HOAGIE, { rot: Math.sin((twos(u) - 0.67) * 9) * 0.03, sy: d === 8 ? 1.05 : 1 });
-                else {
-                    const k = Math.min(3, nth(u, 1.25));
-                    put3(gg, 'hoagie', 'proud', HOAGIE, { sx: [0.93, 1.05, 0.99, 1][k], sy: [1.09, 0.94, 1.01, 1][k] * (1 + Motion.pulse(twos(u), 120, 0.05, 6) * 0.008) });
-                }
-            } }] });
-            if (d >= 5 && d < 11) { const [px, py] = Cam.pt([HOAGIE[0] - 0.3, 0, HOAGIE[2]]); puff(g, px, py, (d - 5) / 6, 6, 18, 'skid'); }
-        });
-        if (u >= 0.67 && u < 1.25) {
-            // while he films: what his camcorder sees: the corners of the viewfinder, REC
-            const m = 70, L = 90;
-            g.save();
-            g.lineCap = 'round';
-            for (const [w, col] of [[11, C.ink], [5, C.white]]) {
-                g.strokeStyle = col;
-                g.lineWidth = w;
-                g.beginPath();
-                for (const [x, y, sx, sy] of [[m, m, 1, 1], [1600 - m, m, -1, 1], [m, 900 - m, 1, -1], [1600 - m, 900 - m, -1, -1]]) {
-                    g.moveTo(x + sx * L, y);
-                    g.lineTo(x, y);
-                    g.lineTo(x, y + sy * L);
-                }
-                g.stroke();
+    // what a camcorder sees: the viewfinder's corners, REC
+    function viewfinder(g, t) {
+        const m = 70, L = 90;
+        g.save();
+        g.lineCap = 'round';
+        for (const [w, col] of [[11, C.ink], [5, C.white]]) {
+            g.strokeStyle = col;
+            g.lineWidth = w;
+            g.beginPath();
+            for (const [x, y, sx, sy] of [[m, m, 1, 1], [1600 - m, m, -1, 1], [m, 900 - m, 1, -1], [1600 - m, 900 - m, -1, -1]]) {
+                g.moveTo(x + sx * L, y);
+                g.lineTo(x, y);
+                g.lineTo(x, y + sy * L);
             }
-            g.restore();
-            if (nth(u) % 6 < 4) {
-                T.shape(g, Array.from({ length: 12 }, (_, i) => [128 + Math.cos(i * 0.5236) * 17, 152 + Math.sin(i * 0.5236) * 17]), { fill: C.red, w: T.LINE, seed: 'rec' });
-                T.sign(g, 'REC', 158, 172, { size: 58, fill: C.white, seed: 'rec-t', w: T.LINE, align: 'left', tilt: 0.02 });
+            g.stroke();
+        }
+        g.restore();
+        if (nth(t) % 6 < 4) T.shape(g, Array.from({ length: 12 }, (_, i) => [128 + Math.cos(i * 0.5236) * 17, 152 + Math.sin(i * 0.5236) * 17]), { fill: C.red, w: T.LINE, seed: 'rec' });
+        T.sign(g, 'REC', 158, 172, { size: 58, fill: C.white, seed: 'rec-t', w: T.LINE, align: 'left', tilt: 0.02 });
+    }
+    // a character's own card to stand on: their colour, rays turning behind them on twos, a row
+    // of dots, a floor with their shadow on it
+    function stage(g, d, x, y, col, deep, o = {}) {
+        g.fillStyle = col;
+        g.fillRect(0, 0, 1600, 900);
+        g.fillStyle = deep;
+        const n = 12, a0 = d * 0.03;
+        for (let i = 0; i < n; i++) {
+            const a = a0 + (i / n) * Math.PI * 2, b = a + Math.PI / n;
+            g.beginPath();
+            g.moveTo(x, y - 380);
+            g.lineTo(x + Math.cos(a) * 2400, y - 380 + Math.sin(a) * 2400);
+            g.lineTo(x + Math.cos(b) * 2400, y - 380 + Math.sin(b) * 2400);
+            g.closePath();
+            g.fill();
+        }
+        // dots thinning out from a corner
+        g.fillStyle = o.dots ?? C.white;
+        for (let i = 0; i < 9; i++) for (let j = 0; j < 6; j++) {
+            const r = 15 - i * 1.3 - j * 1.6;
+            if (r > 1.5) { g.beginPath(); g.arc(1560 - i * 46 - (j % 2) * 23, 40 + j * 40, r, 0, 6.3); g.fill(); }
+        }
+        T.slab(g, [[-20, y - 28], [1620, y - 62], [1620, 920], [-20, 920]], { fill: o.floor ?? C.navy, seed: 'stage-floor', over: 0, w: T.LINE * 1.4 });
+        g.fillStyle = 'rgba(0, 0, 0, 0.28)';
+        g.beginPath();
+        g.ellipse(x, y + 6, 250 * (o.shadow ?? 1), 30, 0, 0, 6.3);
+        g.fill();
+    }
+
+    // === 3 · Hoagie (2 s) =============================================================================
+    // We have been looking through his camcorder: the camera comes back out of its lens and there
+    // he is, filming, following something across the quay; he looks up from it, and on the third
+    // beat the camcorder is down and the thumb is up. Animated on ones through the changes and on
+    // twos in the holds, by bending his two drawings (cast/anim.js): `prev` paints the shot before.
+    function hoagie(g, t, u, env, prev) {
+        const f = Math.round(u * 24), d = f >> 1, X = 640, Y = 838, PPM = 590, HIT = 24;
+        stage(g, nth(t), X, Y, C.orange, '#e0661f', { floor: C.maroon });
+        const halo = { color: C.white, w: 9 };
+        // the beat in his body: a breath, held on twos
+        const breath = Math.sin((d / 12) * Math.PI * 2) * 0.006;
+        if (f < HIT - 2) {
+            // filming: the camcorder sweeps left after what it follows, the head and the hands
+            // with it, the chest a little, the feet not at all; then down into the anticipation
+            const k = ease((f - 7) / 10), pan = 0.06 - 0.2 * k, dip = Math.sin(k * Math.PI) * -0.03;
+            const ant = f >= HIT - 5 ? [0.03, 0.045, 0.05][Math.min(2, f - (HIT - 5))] : 0; // sinking before the move
+            const lag = Anim.settle(f, 16, 0.04, 0.8, 0.25); // the cowlick arrives after the head
+            Anim.draw(g, 'hoagie', 'film', X, Y, PPM, { halo, blink: Anim.blink(f, 10), move: {
+                cam: [pan * 1.5, dip + ant * 0.9], handA: [pan * 1.4, dip + ant * 0.9], handB: [pan * 1.45, dip + ant * 0.9], elbow: [pan * 0.9, ant * 0.6],
+                head: [pan * 0.8, ant], chin: [pan * 0.7, ant], top: [pan * 0.9, ant * 1.1], earR: [pan * 0.7, ant], cow: [pan * 0.9 + lag, ant * 1.3],
+                chest: [pan * 0.42, breath + ant * 0.55], hem: [pan * 0.16, ant * 0.2], hips: [pan * 0.08, ant * 0.25] } });
+        } else {
+            // the change: one drawing of each pose bent towards the other, past the mark, back
+            const k = [0.22, 0.82, 1.13, 1.1, 0.97, 0.98][f - (HIT - 2)] ?? 1, b = Anim.between('hoagie', 'film', 'proud', k), n = f - HIT;
+            const move = {};
+            if (n >= 0) {
+                // settled: the thumb pumps on the beat, the cowlick and the camcorder on its strap
+                // come to rest after the body, he breathes, he looks at us
+                const pump = -0.03 * Motion.pulse(u, 120, 0, 7), sway = Math.sin((d / 12) * Math.PI) * 0.006;
+                move.thumb = [0.004, pump * 1.25]; move.handB = [0, pump];
+                move.cow = [Anim.settle(f, HIT, 0.035, 1.0, 0.2), 0];
+                move.cam = [Anim.settle(f, HIT, 0.012, 0.9, 0.2), Anim.settle(f, HIT, 0.03, 1.1, 0.24)];
+                move.handA = [0, Anim.settle(f, HIT, 0.022, 1.1, 0.24)];
+                move.chest = [sway * 0.5, breath]; move.top = [sway * 1.6, 0]; move.head = [sway, 0]; move.chin = [sway * 0.6, 0];
+                if (f >= 44) { const a = [0.01, 0.025, 0.035, 0.04][f - 44]; move.top = [a * 1.4, a]; move.head = [a, a]; move.chin = [a * 0.8, a]; move.chest = [a * 0.4, a * 0.6]; }
+            }
+            Anim.draw(g, 'hoagie', b.pose, X, Y, PPM, { halo, to: b.to, move, blink: Anim.blink(f, 35), look: n >= 0 && n < 9 ? [-2.5, 1] : null });
+            if (n >= 0 && n < 6) for (let i = 0; i < 5; i++) {
+                // the thumb lands: ticks round it
+                const a = -2.3 + i * 0.42, r0 = 96 + n * 9, r1 = r0 + 40 - n * 5, cx = X + 0.35 * PPM, cy = Y - 1.08 * PPM;
+                T.line(g, [[cx + Math.cos(a) * r0, cy + Math.sin(a) * r0], [cx + Math.cos(a) * r1, cy + Math.sin(a) * r1]], { w: T.LINE * 1.3, seed: 'thumb' + i, color: C.white });
             }
         }
-        card(g, u, 1, 'HOAGIE', 'STILL ROLLING', 1250, 700, { fill: C.orange, drop: C.maroon, second: C.white });
+        card(g, u, 1, 'HOAGIE', 'STILL ROLLING', 1215, 560, { fill: C.maroon, drop: C.ink, second: C.roadLine, k: 1.05, tilt: -0.05 });
+        // out of the lens: what the shot before showed shrinks into the glass of his camcorder
+        if (prev && f < 9) {
+            const r = [1000, 600, 340, 190, 108, 66, 44, 36, 36][f], k = Math.min(1, f / 6), lens = Anim.metres('hoagie', 'film').cam;
+            const cx = lerp(800, X + lens[0] * PPM + 0.03 * PPM * 1.5, k * k), cy = lerp(450, Y + lens[1] * PPM, k * k);
+            g.save();
+            g.beginPath();
+            g.arc(cx, cy, r, 0, 6.3);
+            g.clip();
+            g.translate(cx, cy);
+            g.scale(r / 918, r / 918);
+            g.translate(-800, -450);
+            prev(g);
+            viewfinder(g, t);
+            g.restore();
+            g.beginPath();
+            g.arc(cx, cy, r, 0, 6.3);
+            g.strokeStyle = C.ink;
+            g.lineWidth = Math.max(6, r * 0.09);
+            g.stroke();
+        }
     }
 
     // === 4 · Milo (2 s): the plan, and the plan going wrong =========================================
@@ -664,5 +738,5 @@ const Film = (() => {
         }
     }
 
-    return { streaks, harbor, hoagie, milo, pip, dot, captain, chase0, pier, leap, hang, title, world, view, card, block, star, put, put3, twos, nth };
+    return { viewfinder, stage, streaks, harbor, hoagie, milo, pip, dot, captain, chase0, pier, leap, hang, title, world, view, card, block, star, put, put3, twos, nth };
 })();

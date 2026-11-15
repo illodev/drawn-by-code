@@ -23,8 +23,9 @@ const B0 = 0.05; // the song's first beat
 // first two of this one are smeared along the move (L, R: a pan; U: a tilt up; in, out: a zoom)
 const EDIT = [
     [0, B0 + 4, 'GULL HARBOR', (g, t, u, env) => Film.harbor(g, t, Math.max(0, t - B0), env)],
-    [B0 + 4, B0 + 8, 'KIT', (g, t, u, env) => kitShot(g, u, { ...env, k: env.k * 1.6 })],
-    [B0 + 8, B0 + 10, 'HOAGIE', (g, t, u, env) => Film.hoagie(g, t, u, env)],
+    // (in her last half second we are already looking through Hoagie's camcorder)
+    [B0 + 4, B0 + 8, 'KIT', (g, t, u, env) => { kitShot(g, u, { ...env, k: env.k * 1.6 }); if (u >= 3.5) Film.viewfinder(g, t); }],
+    [B0 + 8, B0 + 10, 'HOAGIE', (g, t, u, env) => Film.hoagie(g, t, u, env, (gg) => kitShot(gg, 4 - 1 / 24, { ...env, k: env.k * 1.6 }))],
     [B0 + 10, B0 + 12, 'MILO', (g, t, u, env) => Film.milo(g, t, u, env), 'L'],
     [B0 + 12, B0 + 14, 'PIP', (g, t, u, env) => Film.pip(g, t, u, env)],
     [B0 + 14, B0 + 16, 'AUNT DOT', (g, t, u, env) => Film.dot(g, t, u, env), 'in'],
@@ -188,7 +189,7 @@ Motion.scene({
     fps: 24,
     duration: 31.75,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'hoagie', 'milo', 'pip', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-drop-drawn.js', DIR + 'cast/kit-drop-details.js', DIR + 'cast/hoagie-keys-drawn.js', DIR + 'cast/pip-keys-drawn.js', DIR + 'cast/dot-keys-drawn.js', DIR + 'cast/milo-keys-drawn.js', DIR + 'cast/captain-keys-drawn.js', DIR + 'cast/kit-ride-drawn.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'hoagie', 'milo', 'pip', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-drop-drawn.js', DIR + 'cast/kit-drop-details.js', DIR + 'cast/hoagie-keys-drawn.js', DIR + 'cast/pip-keys-drawn.js', DIR + 'cast/dot-keys-drawn.js', DIR + 'cast/milo-keys-drawn.js', DIR + 'cast/captain-keys-drawn.js', DIR + 'cast/kit-ride-drawn.js', DIR + 'cast/kit-act.js', DIR + 'cast/anim.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     beatOffset: B0,

@@ -3,13 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the whole opening, cut to the theme song, the six of them acting from key poses** (round
-25): `scene.js` (the edit and Kit's drop) + `film.js` (the other eleven shots), 31.75 s,
-`render/pier-pressure.mp4` (silent copy; with the song: `out/`, not committed),
-`review/sheet-1.jpg`, `sheet-2.jpg`. Waiting for the user's verdict. Every character has their
-model sheet's two drawings plus three key poses (Kit: nine); check any against its sheet with
-`dev/fidelity/scene.js` + `tools/fidelity.py`. The set is approved up to round 16. The style
-stays *in testing*.
+State: **an animation test: Hoagie's presentation, animated by bending his drawings** (round 26,
+`cast/anim.js`; `review/hoagie-anim.jpg`), waiting for the user's verdict on that level before
+it is spread to the other five and to the rest of the film. The film itself (`scene.js` +
+`film.js`, 31.75 s, `render/pier-pressure.mp4`) was judged in round 26: **not the level of
+animation or detail wanted**; everything but Hoagie's bar is still as rejected. The set is
+approved up to round 16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -828,3 +827,44 @@ Still off: runs and rides are two or three drawings, not full cycles (Milo's run
 drawing bobbing); between two key poses there is a pop with a squash, no in-between drawing;
 a card covers part of its character for a moment in Milo's and Pip's shots; no sound effects;
 the song's words are not matched to the pictures.
+
+## Round 26 (user) · a still image that moves is not an animation
+
+> Me siguen pareciendo super poco animados los personajes, y el problema es que tener referencia
+> de imágenes está bien, pero tendriamos que aprender a animarlos nosotros, que una imagen quieta
+> se mueva no lo convierte en una animación. Hay problemas de timing de personajes, movimientos
+> raros y personajes que casi ni se ven en su presentación. La transiciones siguen siendo muy
+> pobres. No es el nivel de animación ni detalle que buscamos.
+
+The fourth rejection on the same axis (22, 23, 25, 26), and the user names the cause: more
+drawings were bought each round and then moved whole (slid, hopped, squashed, swapped). That
+is a slide show with squash. So: no fourth pass over the film. A way of animating first, proved
+on one presentation, shown alone.
+
+- **`cast/anim.js`: the drawings bend.** A pose gets pins (top of the head, chin, chest, hips,
+  each hand, each foot, what it holds, the loose end of its hair); when pins move, every
+  control point of the drawing is turned and carried by the pins near it (a rigid
+  moving-least-squares warp, the puppet pins of a compositing program) and the shapes are
+  built again. So within one drawing he leans, sweeps his camcorder across, sinks into an
+  anticipation; and two drawings with the same pins bend towards each other: **an in-between**
+  (`Anim.between`, k < 0 an anticipation, k > 1 an overshoot). Loose ends arrive late in closed
+  form (`Anim.settle`). `cast/drawn.js` finds the eyes (a white shape with a small black one in
+  it, near the head pin) so a drawing **blinks** (`blink`) and **looks** (`look`); `halo`
+  gives the figure a sticker's edge.
+- **Hoagie's bar, 48 frames** (ones through the changes, twos in the holds): the shot before
+  was his viewfinder (REC over Kit's last half second) and the camera comes back **out of his
+  lens** in eight frames; he is filming, full frame height on his own card (his colour, rays,
+  a floor with his shadow); the camcorder sweeps a quarter of a metre left with his head, his
+  hands and his chest behind it, feet planted, the cowlick late; a blink; three frames sinking;
+  then film → proud through two in-betweens, 13 % past the mark and back; the thumb pumps on
+  the beat, the camcorder settles on its strap, he looks at us; the card lands beside him, not
+  on him.
+- Seen on the frames and fixed before showing: the blink also «closed» the white toe caps of
+  his shoes (a white shape with a black eyelet in it is not an eye: eyes are looked for near the
+  head pin); the sweep was too small to read (0.085 m → 0.2 m).
+
+Not done, on purpose: the other five presentations, the chase, the other transitions. Honest
+limits of this way: a bend cannot turn a head or swap two legs, so a run still needs its own
+drawings (four at least: contact, passing, contact, passing); the in-between of two very
+different poses is a smear, good for one frame only; pins are placed by hand under a grid
+(fifteen a pose).
