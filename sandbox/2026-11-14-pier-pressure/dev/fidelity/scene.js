@@ -3,7 +3,7 @@
 // the sheets' own green (0…N s: the comparison sees the cut too, the page is part of the image),
 // then the same again on the quay's lilac (N…2N s), where a cut that is wrong shows at once.
 const DIR = 'sandbox/2026-11-14-pier-pressure/cast/';
-const NAMES = ['kit-sheet', 'kit-drop-a', 'kit-drop-b', 'kit-ride', 'hoagie-sheet', 'hoagie-keys', 'hoagie-seq-turn', 'hoagie-seq-thumb', 'milo-sheet', 'milo-keys', 'pip-sheet', 'pip-keys', 'dot-sheet', 'dot-keys', 'captain-sheet', 'captain-keys'];
+const NAMES = ['kit-sheet', 'kit-drop-a', 'kit-drop-b', 'kit-ride', 'hoagie-sheet', 'hoagie-keys', 'hoagie-seq-turn', 'hoagie-seq-thumb', 'milo-sheet', 'milo-keys', 'pip-sheet', 'pip-keys', 'dot-sheet', 'dot-keys', 'captain-sheet', 'captain-keys', 'hoagie-seq-tween', 'hoagie-run', 'milo-run', 'kit-skate', 'pip-scoot', 'captain-flap'];
 const N = NAMES.length;
 Motion.scene({
     fps: 24, duration: 2 * N, logical: [1280, 720],

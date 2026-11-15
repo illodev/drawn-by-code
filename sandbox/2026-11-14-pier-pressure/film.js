@@ -78,21 +78,15 @@ const Film = (() => {
             put3(g, 'captain', 'perch', [top[0], top[1] + (o.captain?.h ?? 0), top[2]], { only: ['bird'], weight: o.captain?.weight, sy: o.captain?.sy });
         }
     }
-    // Captain in flight, his body's middle on (x, y): wings up (his model sheet's drawing, with
-    // the cone of chips in his feet) and wings down (a key pose), two drawings each
+    // Captain in flight with the cone of chips in his feet, his body's middle about (x, y)
     function capFly(g, t, x, y, s, o = {}) {
-        const up = (nth(t) >> 1) % 2 === 0, f = Drawn.meta('captain', 'fly'), d = Drawn.meta('captain', 'down');
+        // a cycle of four drawings of his own (wings up, level, down, level), on twos; sized so that
+        // his wings, level, span 0.62 m
+        const mt = Drawn.meta('captain', 'f2'), k = (0.62 * mt.m) / mt.w;
         g.save();
-        g.translate(x, y + (up ? 0 : -30 * s));
+        g.translate(x, y);
         g.rotate(o.rot ?? 0);
-        if (up) put(g, 'captain', 'fly', 0, 0, s);
-        else {
-            // (the cone is a piece of the first drawing: its claws' grip, at 185, 500 there, goes on
-            // the second one's trailing feet, at 45, 250)
-            const kd = (s * M.captain.m) / d.m, kf = (s * M.captain.m) / f.m;
-            Drawn.draw(g, 'captain', 'fly', (45 - d.at[0]) * kd - 185 * kf, (250 - d.at[1]) * kd - 500 * kf, kf, { only: ['cone'] });
-            Drawn.draw(g, 'captain', 'down', -d.at[0] * kd, -d.at[1] * kd, kd);
-        }
+        put(g, 'captain', ['f1', 'f2', 'f3', 'f4'][nth(t) % 4], 150 * s, -40 * s, s * k);
         g.restore();
     }
     const hop = (u, v) => (u < 0 || u > (2 * v) / G ? 0 : v * u - (G * u * u) / 2); // a jump's height, in metres
@@ -237,7 +231,8 @@ const Film = (() => {
     // the thumb up on his toes, a4 the blink), or the code of his settled drawing (a3) edited: its
     // pieces put down again, a different way in each frame (cast/hoagie-edit.js). `prev` paints
     // the shot before.
-    const HOAGIE_X = [[0, 't1'], [10, 't2'], [12, 't3'], [18, 't4'], [21, null], [35, 'a4'], [37, null]];
+    // (the turn is eight drawings: the four of its sheet and the four between them, ta…td)
+    const HOAGIE_X = [[0, 't1'], [8, 'ta'], [10, 't2'], [12, 'tb'], [14, 't3'], [16, 'tc'], [18, 't4'], [20, 'td'], [21, null], [35, 'a4'], [37, null]];
     const HOAGIE_LENS = [28, 106]; // the glass of his camcorder in `t1` (its own pixels)
     // From frame 21, one row a frame: [the drawing whose code is edited, how far its upper body is
     // down over its legs, its head about the neck, its arm about the sleeve, its cowlick, its lids].
@@ -274,7 +269,7 @@ const Film = (() => {
         }
         card(g, u, 1, 'HOAGIE', 'STILL ROLLING', 1215, 560, { fill: C.maroon, drop: C.ink, second: C.roadLine, k: 1.05, tilt: -0.05 });
         // out of the lens: what the shot before showed shrinks into the glass of his camcorder
-        if (prev && f < 9) {
+        if (prev && f < 8) {
             const r = [1000, 600, 340, 190, 108, 66, 44, 36, 36][f], k = Math.min(1, f / 6), m1 = Drawn.meta('hoagie', 't1'), s1 = PPM / m1.m;
             const cx = lerp(800, X + (HOAGIE_LENS[0] - m1.at[0]) * s1, k * k), cy = lerp(450, Y + (HOAGIE_LENS[1] - m1.at[1]) * s1, k * k);
             g.save();
@@ -435,20 +430,20 @@ const Film = (() => {
             // onto her board and away: three drawings of push, then the glide
             const k = nth(gk.v);
             if (k === 0) { const [x, y] = Cam.pt(KIT); KitAct.pose(gg, 'proud', x, y, (Cam.scale(KIT[2]) * 1.34) / 575, { sx: 1.06, sy: 0.92 }); KitAct.board(gg, ...Cam.pt(BOARD), (Cam.scale(BOARD[2]) * 1.4) / 700, 0); }
-            else put3(gg, 'kit', k < 4 ? 'push' : 'glide', [KIT[0] + 0.6 + gk.dx, 0, KIT[2]], { rot: k < 4 ? -0.04 : 0 });
+            else put3(gg, 'kit', CYC.kit[k % 4], [KIT[0] + 0.6 + gk.dx, 0, KIT[2]], {});
         } };
         const hoagieA = { z: HOAGIE[2], draw(gg) {
             if (!gh) put3(gg, 'hoagie', 'film', [HOAGIE[0], start, HOAGIE[2]], {});
             else if (gh.v < 1 / 12) put3(gg, 'hoagie', 'film', HOAGIE, gh);
-            else put3(gg, 'hoagie', 'run', [HOAGIE[0] + gh.dx, [0, 0.07, 0.12, 0.05][nth(gh.v) % 4], HOAGIE[2]], { flip: true, rot: [0, 0.03, 0.05, 0.02][nth(gh.v) % 4] });
+            else put3(gg, 'hoagie', CYC.hoagie[nth(gh.v) % 4], [HOAGIE[0] + gh.dx, 0, HOAGIE[2]], {});
         } };
         const miloA = { z: MILO[2], draw(gg) {
             if (!gm) put3(gg, 'milo', 'stand', [MILO[0], start * 0.8, MILO[2]], {});
             else if (gm.v < 1 / 12) put3(gg, 'milo', 'stand', MILO, gm);
-            else put3(gg, 'milo', 'run', [MILO[0] + 0.3 + gm.dx, [0, 0.07, 0.12, 0.05][nth(gm.v) % 4], MILO[2]], { rot: [0, -0.03, -0.05, -0.02][nth(gm.v) % 4] });
+            else put3(gg, 'milo', CYC.milo[nth(gm.v) % 4], [MILO[0] + 0.3 + gm.dx, 0, MILO[2]], {});
         } };
         const actors = [kitA, hoagieA, miloA];
-        if (u >= 1.5) actors.push(pipRide(t, -4.2 + (twos(u) - 1.5) * 6.4, 3.05, nth(u) % 6 < 3 ? 'push' : 'ride'));
+        if (u >= 1.5) actors.push(pipRide(t, -4.2 + (twos(u) - 1.5) * 6.4, 3.05, CYC.pip[nth(u) % 6]));
         if (cp[2] > 3.9) actors.push({ z: cp[2], draw: bird });
         view(g, env, [800, 470], 1.06, 1.6, (e) => {
             world(g, e, t, { actors, captain: null, dot: u < 0.5 ? { pose: 'serve', up: 44, dx: -92 } : { pose: 'yell', up: 14 + [14, -2, 3, 0][Math.min(3, nth(u, 0.5))] + [0, 3][nth(u) % 2], dx: -92 + [0, 2][nth(u) % 2] } });
@@ -633,24 +628,11 @@ const Film = (() => {
     }
     // the four of them and the gull, each its own way of going: x on the frame, y the deck's line
     const SK = { kit: PX / M.kit.m, hoagie: PX / M.hoagie.m, milo: PX / M.milo.m, pip: PX / M.pip.m, captain: (PX / M.captain.m) * 2.3 };
-    const runner = {
-        // Kit skates: three drawings of push, five of glide; near the end she has seen where he is going
-        kit(g, t, x, y, o = {}) {
-            const d = nth(t) % 8;
-            if (o.point) put(g, 'kit', 'point', x, y - [0, 2][d % 2], SK.kit, { rot: [0, 0.012][d % 2] });
-            else put(g, 'kit', d < 3 ? 'push' : 'glide', x + (d < 3 ? -8 + d * 4 : 0), y - (d === 3 ? 5 : 0), SK.kit, { rot: d < 3 ? -0.03 + d * 0.01 : [0.015, 0, -0.01, 0, 0.01][d - 3] });
-        },
-        // Pip: a push now and then, the rest of the time her lollipop
-        pip(g, t, x, y, o = {}) { const d = nth(t); put(g, 'pip', o.point ? 'wink' : d % 12 < 3 ? 'push' : 'lolly', x, y - [0, 3][d % 2], SK.pip, { rot: d % 12 < 3 && !o.point ? -0.03 : 0 }); },
-        // Hoagie runs in leaps; Milo has stopped running and is still going
-        // Hoagie bounds along: two drawings on the ground, two in the air
-        hoagie(g, t, x, y) {
-            const d = nth(t) % 4;
-            if (d < 2) put(g, 'hoagie', 'run', x, y - [0, 12][d], SK.hoagie, { flip: true, rot: [0.03, -0.02][d] });
-            else put(g, 'hoagie', 'jump', x, y - 667 * SK.hoagie * 0.5 - [46, 26][d - 2], SK.hoagie, { rot: 0.06 });
-        },
-        milo(g, t, x, y) { const d = nth(t) % 4; put(g, 'milo', 'run', x, y - [0, 16, 26, 10][d], SK.milo, { rot: [0.02, -0.03, -0.06, -0.02][d] }); },
-    };
+    // how each of them goes, side on: a cycle of four drawings of their own, on twos (Hoagie and
+    // Milo run: contact, passing, contact, passing; Kit pushes her board, Pip her scooter, and
+    // coasts two drawings more than she pushes)
+    const CYC = { hoagie: ['r1', 'r2', 'r3', 'r4'], milo: ['r1', 'r2', 'r3', 'r4'], kit: ['s1', 's2', 's3', 's4'], pip: ['s1', 's2', 's3', 's4', 's4', 's4'] };
+    const runner = (g, who, t, x, y) => put(g, who, CYC[who][nth(t) % CYC[who].length], x, y, SK[who]);
     const flier = { kit: 'jump', pip: 'ride', hoagie: 'jump', milo: 'fall' };
     const inAir = (g, who, x, y, rot, k = 1) => {
         if (who === 'pip') put(g, 'pip', 'ride', x, y + 663 * SK.pip * 0.5 * k, SK.pip * k, { rot });
@@ -659,15 +641,17 @@ const Film = (() => {
 
     // === 9 · down the pier (5 s) ======================================================================
     const RUN = 1150; // the camera's speed along the pier, frame units per second
-    const PACK = [['milo', 250], ['hoagie', 500], ['kit', 740], ['pip', 990]];
+    // where each is in the pack, on the frame, at the start and at the end of the run, and where
+    // their cycle starts: Pip comes through all of them without looking up; Milo falls behind
+    const PACK = [['milo', 330, 300, 0], ['hoagie', 560, 510, 2], ['kit', 800, 790, 1], ['pip', 90, 1070, 3]];
     function pier(g, t, u, env) {
         const d = nth(t), close = u >= 3, z = close ? 1.45 : 1, inn = close ? 0 : (1 - ease(u / 0.6)) * -900;
         g.save();
         if (close) { g.translate(800, 470); g.scale(z, z); g.translate(-700 + [0, 3][d % 2], -470 + [0, -4][d % 2]); }
         pierSide(g, d, u * RUN);
         speed(g, d, close ? 6 : 9);
-        capFly(g, t, 1320 + Math.sin(twos(u) * 5) * 24 - inn * 0.4, 250 + Math.sin(twos(u) * 7) * 26, SK.captain, { rot: -0.05 });
-        for (const [who, x] of PACK) runner[who](g, t + x / 100, x + inn * (1.4 - x / 1200), DECK - 10, { point: u >= 4 });
+        capFly(g, t, 1300 + Math.sin(twos(u) * 5) * 24 - inn * 0.4, 250 + Math.sin(twos(u) * 7) * 26, SK.captain, { rot: -0.05 });
+        for (const [who, x0, x1, ph] of PACK) runner(g, who, t + ph / 12, lerp(x0, x1, ease((u - 0.5) / 2.4)) + inn * (1.4 - x0 / 1200), DECK - 10); // (the pack is in its final order before the camera closes in)
         g.restore();
     }
 
@@ -681,9 +665,9 @@ const Film = (() => {
         g.translate(0, rise);
         const cv = Math.max(0, uu - 0.4);
         capFly(g, t, 1320 + cv * 260, 250 - cv * cv * 420, SK.captain, { rot: -0.25 });
-        for (const [i, [who, x0]] of PACK.entries()) {
+        for (const [i, [who, , x0, ph]] of PACK.entries()) {
             const x = x0 + Math.max(0, uu - stop) * RUN, tl = stop + (END - x0) / RUN;
-            if (uu < tl) { runner[who](g, t + x0 / 100, Math.min(x, END), DECK - 10, { point: true }); continue; }
+            if (uu < tl) { runner(g, who, t + ph / 12, Math.min(x, END), DECK - 10); continue; }
             // off the end: up and out, the same arc for all four
             const v = uu - tl, ax = END + 40 + v * (190 + i * 90), ay = DECK - 150 - ((900 + i * 50) * v - 620 * v * v);
             inAir(g, who, ax, ay, -0.25 + v * 0.5);

@@ -16,4 +16,10 @@ const CastSheets = [
     ['dot-keys', ['dot', 'basket', 7, 32], ['dot', 'salt', 376, 57], ['dot', 'yell', 806, 36]],
     ['captain-sheet', ['captain', 'perch', 56, 1], ['captain', 'fly', 559, 29]],
     ['captain-keys', ['captain', 'ready', 14, 294], ['captain', 'launch', 467, 11], ['captain', 'down', 799, 226]],
+    ['hoagie-seq-tween', ['hoagie', 'ta', 25, 112], ['hoagie', 'tb', 341, 112], ['hoagie', 'tc', 654, 112], ['hoagie', 'td', 971, 112]],
+    ['hoagie-run', ['hoagie', 'r1', 7, 174], ['hoagie', 'r2', 348, 172], ['hoagie', 'r3', 629, 175], ['hoagie', 'r4', 978, 171]],
+    ['milo-run', ['milo', 'r1', 3, 122], ['milo', 'r2', 386, 96], ['milo', 'r3', 650, 117], ['milo', 'r4', 1006, 93]],
+    ['kit-skate', ['kit', 's1', 7, 171], ['kit', 's2', 310, 166], ['kit', 's3', 659, 148], ['kit', 's4', 950, 178]],
+    ['pip-scoot', ['pip', 's1', 20, 164], ['pip', 's2', 319, 168], ['pip', 's3', 699, 164], ['pip', 's4', 992, 158]],
+    ['captain-flap', ['captain', 'f1', 8, 119], ['captain', 'f2', 326, 252], ['captain', 'f3', 637, 252], ['captain', 'f4', 948, 243]],
 ];

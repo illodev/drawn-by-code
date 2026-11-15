@@ -38,6 +38,14 @@ SHEETS = {
     'dot-keys': ('dot', [('basket', 'feet'), ('salt', 'feet'), ('yell', 'feet')], 1, 1.86),
     'captain-sheet': ('captain', [('perch', 'feet'), ('fly', 'mid')], 0, 0.61),
     'captain-keys': ('captain', [('ready', 'feet'), ('launch', 'feet'), ('down', 'mid')], 1, 0.46),
+    # frames between and cycles (round 37). 'run': the anchor is under the figure's middle, on its
+    # lowest point, so a cycle's drawings do not jump with the foot that is down
+    'hoagie-seq-tween': ('hoagie', [('ta', 'feet'), ('tb', 'feet'), ('tc', 'feet'), ('td', 'feet')], 3, 1.38),
+    'hoagie-run': ('hoagie', [('r1', 'run'), ('r2', 'run'), ('r3', 'run'), ('r4', 'run')], 1, 1.22),
+    'milo-run': ('milo', [('r1', 'run'), ('r2', 'run'), ('r3', 'run'), ('r4', 'run')], 1, 1.98),  # (arms above his head)
+    'kit-skate': ('kit', [('s1', 'wheels'), ('s2', 'wheels'), ('s3', 'wheels'), ('s4', 'wheels')], 2, 1.4),
+    'pip-scoot': ('pip', [('s1', 'wheels'), ('s2', 'wheels'), ('s3', 'wheels'), ('s4', 'wheels')], 3, 1.25),
+    'captain-flap': ('captain', [('f1', 'beak'), ('f2', 'beak'), ('f3', 'beak'), ('f4', 'beak')], 1, 0.36),
 }
 # (who, pose): { 'rest', 'order', 'parts': [(name, polygon in the pose's own pixels)], 'at': [x, y] }
 PARTS = {}
@@ -85,7 +93,23 @@ def convert(sheet):
             cfg['parts'] = [(n, [(px + box[0], py + box[1]) for px, py in poly]) for n, poly in extra['parts']]
         order, items, lw = T.pose(only, cfg, box, pal, None)
         r = rows(main); c = np.nonzero(main.any(0))[0]
-        if anchor == 'mid':
+        if anchor == 'wheels':
+            # what rolls is held by its wheels (magenta, at the bottom), so it rolls evenly whatever the legs do
+            px = np.asarray(im).astype(np.int32)
+            wh = main & (px[..., 0] > 140) & (px[..., 1] < 100) & (px[..., 2] > 70) & (px[..., 0] - px[..., 2] > 30)
+            wh[:int(r[-1] - 0.09 * (r[-1] - r[0]))] = False
+            wy, wx = np.nonzero(wh)
+            at = [float((wx.min() + wx.max()) / 2) - box[0], float(wy.max()) + 2 - box[1]]
+        elif anchor == 'beak':
+            # a flying bird's wings change its outline in every frame: it is held by its beak
+            px = np.asarray(im).astype(np.int32)
+            bk = main & (px[..., 0] > 215) & (px[..., 1] > 120) & (px[..., 1] < 205) & (px[..., 2] < 95)
+            bk[:, :int(c[0] + 0.6 * (c[-1] - c[0]))] = False
+            by_, bx_ = np.nonzero(bk)
+            at = [float(bx_.mean()) - box[0], float(by_.mean()) - box[1]]
+        elif anchor == 'run':
+            at = [float(np.nonzero(main)[1].mean()) - box[0], r[-1] - box[1]]
+        elif anchor == 'mid':
             at = [(c[0] + c[-1]) / 2 - box[0], (r[0] + r[-1]) / 2 - box[1]]
         else:
             low = np.nonzero(main[int(r[-1] - 0.06 * (r[-1] - r[0])):r[-1] + 1].any(0))[0]

@@ -3,15 +3,18 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the five presentations after Kit's are in one format (round 36): each on their own card
+State: **the chase is redone with cycles of four drawings each, and Hoagie's turn has its
+in-betweens (round 37: `review/chase.jpg`); before it, the five presentations after Kit's are in
+one format (round 36): each on their own card
 of colour, full height, from their sheets' drawings with edited frames, each coming in behind
 something of the cast that crosses the frame** (`film.js`: `hoagie`, `milo`, `pip`, `dot`,
 `captain`, `act`, `cushion`, `wipe`; `review/presentations.jpg`), waiting for the user's verdict.
 The cut is approved (round 35→36: «Sí»). Settled by the user: no bending (27), no 3D (31),
 nothing drawn by hand that does not come from the images (31); frames are edits of the
 drawings' code, more of them, no rebounds (32); images may be generated for views the drawings
-lack, always on a coloured ground (32–35). Still as rejected in round 26: Kit's own shot (only
-its squash was removed), the break, the pier, the leap, the title. The set is approved up to
+lack, always on a coloured ground (32–35); the presentations go well (36→37: «Sí»). Still as
+rejected in round 26: Kit's own shot (only its squash was removed), the leap's poses in the
+air, the title. The set is approved up to
 round 16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
@@ -1187,3 +1190,36 @@ What it still is not: holds are one drawing (12 to 20 frames) with a blink or a 
 them, not acting; bodies in the air and riders are whole drawings moved (they do move whole);
 between two poses of one character there is no drawing between, only the cushion; Pip's and
 Captain's poses are not cut into pieces. Not seen in motion, not heard.
+
+## Round 37 (user) · the in-betweens, and the chase again
+
+> Sí, genera los intermedios y rehaz la persecución
+
+Six sheets on green, one variation each (2,598 credits), each with a green sheet of the same
+character as its reference; all six came at the first try and were converted by
+`tools/green.py` with no hand work.
+
+- **Hoagie's turn** (`ref/hoagie-seq-tween.png`: the four drawings between the four of his
+  turn): the turn is now eight drawings in twenty frames (t1, ta, t2, tb, t3, tc, t4, td), two
+  frames each after the lens pull-out, where it had been four held 10, 2, 6 and 3 frames.
+- **Cycles for the chase**, four consecutive frames each, side on, going right: Hoagie running
+  with the camcorder at his eye and Milo in a panic with his arms up (contact, passing, contact,
+  passing), Kit pushing her board, Pip pushing her scooter, the gull beating his wings with the
+  cone in his feet. On twos; Pip coasts two drawings more than she pushes.
+- **Anchors for cycles** (`tools/green.py`): a runner is held under its middle, on its lowest
+  point (not under whichever foot is down); what rolls is held by its wheels (found by their
+  magenta, at the bottom), so the board and the scooter roll evenly whatever the legs do; the
+  gull is held by his beak, because his wings change his outline in every drawing.
+- **The pier** (`film.js`, `pier`, `PACK`): the same side-on set and camera; the four now run,
+  push and scoot in their cycles, each starting on a different drawing; Pip comes from the back
+  through all of them and Milo falls behind, and the pack is in its final order before the
+  camera closes in. The break before it and the run-up to the end of the pier use the cycles
+  too. Captain's flight everywhere is his four-drawing cycle.
+
+Seen and fixed: Milo's sheet was sized as if he were 1.6 m with his arms down (they are up:
+1.98 m to the fingertips); in the close shot he was cut by the left edge; Pip passed Kit
+during the close shot and the two were one tangle (the overtaking now happens in the wide).
+
+Still: off the end of the pier and in the air they are their old single poses; the board's
+and scooter's place in the cycles was checked on six consecutive drawings, not measured; not
+seen in motion, not heard.

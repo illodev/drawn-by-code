@@ -70,3 +70,19 @@ between the legs, inside handles and straps»**, and give the pose `'bg': (0, 25
 `tools/tocode.py`. For a character with green on them (none here is pure green), pick another
 colour they do not have. White is then always paint, and no holes need listing.
 
+## Cycles and in-betweens (round 37)
+
+- In-betweens: reference = the sheet with the key frames; «The reference shows four key frames
+  of one movement: 1 …, 2 …, 3 …, 4 …. Draw the FOUR IN-BETWEEN FRAMES of that same movement …
+  Frame A (between key 1 and key 2): … Frame D (after key 4): …».
+- A run cycle: «FOUR CONSECUTIVE FRAMES of a looping run cycle … strict side view (profile),
+  running towards the RIGHT, all four on the same ground line … Frame 1 (contact): the front
+  leg stretched forward with its heel just touching the ground, the back leg stretched behind
+  with its toe leaving the ground. Frame 2 (passing): the weight on the front leg, now under
+  the body and bent; the other leg swinging forward with its knee high. Frame 3 (contact, other
+  leg). Frame 4 (passing, other leg), the body at its highest.»
+- A push cycle (board, scooter): planted beside the board ahead of the body → stretched out
+  behind, toe leaving → swinging forward in the air → both feet on, gliding.
+- A wing beat: up → level coming down → down → level coming up, «the body at exactly the same
+  size and the same height in all four».
+
