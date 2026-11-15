@@ -249,52 +249,32 @@ const Film = (() => {
 
     // === 3 · Hoagie (2 s) =============================================================================
     // We have been looking through his camcorder: the camera comes back out of its lens and there
-    // he is, filming, following something across the quay; he looks up from it, and on the third
-    // beat the camcorder is down and the thumb is up. Animated on ones through the changes and on
-    // twos in the holds, by bending his two drawings (cast/anim.js): `prev` paints the shot before.
+    // he is, filming; he turns the camcorder round to us, peeks over it, sinks, and on the third
+    // beat the thumb is up. Frame by frame: eight drawings of his own for this bar (two sequences
+    // of four consecutive frames, cast/hoagie-turn-drawn.js and hoagie-thumb-drawn.js), each on
+    // the frame for as long as the exposure sheet below says. Nothing is bent, slid or squashed:
+    // what moves is the drawing changing. `prev` paints the shot before.
+    //   [first frame, drawing]: t1 filming to the side · t2 turning · t3 the lens at us · t4 peeking
+    //   over it · a1 the anticipation · a2 the thumb, up on his toes · a3 settled · a4 a blink
+    const HOAGIE_X = [[0, 't1'], [10, 't2'], [12, 't3'], [18, 't4'], [21, 'a1'], [24, 'a2'], [28, 'a3'], [36, 'a4'], [38, 'a3'], [44, 'a1']];
+    // each drawing's place between the soles (its own pixels) and its pixels per metre (the two
+    // sheets were drawn at slightly different sizes)
+    const HOAGIE_AT = { t1: [180, 497, 345], t2: [150, 496, 345], t3: [146, 478, 345], t4: [141, 479, 345], a1: [141, 416, 339], a2: [141, 512, 339], a3: [136, 454, 339], a4: [137, 448, 339] };
     function hoagie(g, t, u, env, prev) {
-        const f = Math.round(u * 24), d = f >> 1, X = 640, Y = 838, PPM = 590, HIT = 24;
+        const f = Math.round(u * 24), X = 640, Y = 838, PPM = 540, HIT = 24;
         stage(g, nth(t), X, Y, C.orange, '#e0661f', { floor: C.maroon });
-        const halo = { color: C.white, w: 9 };
-        // the beat in his body: a breath, held on twos
-        const breath = Math.sin((d / 12) * Math.PI * 2) * 0.006;
-        if (f < HIT - 2) {
-            // filming: the camcorder sweeps left after what it follows, the head and the hands
-            // with it, the chest a little, the feet not at all; then down into the anticipation
-            const k = ease((f - 7) / 10), pan = 0.06 - 0.2 * k, dip = Math.sin(k * Math.PI) * -0.03;
-            const ant = f >= HIT - 5 ? [0.03, 0.045, 0.05][Math.min(2, f - (HIT - 5))] : 0; // sinking before the move
-            const lag = Anim.settle(f, 16, 0.04, 0.8, 0.25); // the cowlick arrives after the head
-            Anim.draw(g, 'hoagie', 'film', X, Y, PPM, { halo, blink: Anim.blink(f, 10), move: {
-                cam: [pan * 1.5, dip + ant * 0.9], handA: [pan * 1.4, dip + ant * 0.9], handB: [pan * 1.45, dip + ant * 0.9], elbow: [pan * 0.9, ant * 0.6],
-                head: [pan * 0.8, ant], chin: [pan * 0.7, ant], top: [pan * 0.9, ant * 1.1], earR: [pan * 0.7, ant], cow: [pan * 0.9 + lag, ant * 1.3],
-                chest: [pan * 0.42, breath + ant * 0.55], hem: [pan * 0.16, ant * 0.2], hips: [pan * 0.08, ant * 0.25] } });
-        } else {
-            // the change: one drawing of each pose bent towards the other, past the mark, back
-            const k = [0.22, 0.82, 1.13, 1.1, 0.97, 0.98][f - (HIT - 2)] ?? 1, b = Anim.between('hoagie', 'film', 'proud', k), n = f - HIT;
-            const move = {};
-            if (n >= 0) {
-                // settled: the thumb pumps on the beat, the cowlick and the camcorder on its strap
-                // come to rest after the body, he breathes, he looks at us
-                const pump = -0.03 * Motion.pulse(u, 120, 0, 7), sway = Math.sin((d / 12) * Math.PI) * 0.006;
-                move.thumb = [0.004, pump * 1.25]; move.handB = [0, pump];
-                move.cow = [Anim.settle(f, HIT, 0.035, 1.0, 0.2), 0];
-                move.cam = [Anim.settle(f, HIT, 0.012, 0.9, 0.2), Anim.settle(f, HIT, 0.03, 1.1, 0.24)];
-                move.handA = [0, Anim.settle(f, HIT, 0.022, 1.1, 0.24)];
-                move.chest = [sway * 0.5, breath]; move.top = [sway * 1.6, 0]; move.head = [sway, 0]; move.chin = [sway * 0.6, 0];
-                if (f >= 44) { const a = [0.01, 0.025, 0.035, 0.04][f - 44]; move.top = [a * 1.4, a]; move.head = [a, a]; move.chin = [a * 0.8, a]; move.chest = [a * 0.4, a * 0.6]; }
-            }
-            Anim.draw(g, 'hoagie', b.pose, X, Y, PPM, { halo, to: b.to, move, blink: Anim.blink(f, 35), look: n >= 0 && n < 9 ? [-2.5, 1] : null });
-            if (n >= 0 && n < 6) for (let i = 0; i < 5; i++) {
-                // the thumb lands: ticks round it
-                const a = -2.3 + i * 0.42, r0 = 96 + n * 9, r1 = r0 + 40 - n * 5, cx = X + 0.35 * PPM, cy = Y - 1.08 * PPM;
-                T.line(g, [[cx + Math.cos(a) * r0, cy + Math.sin(a) * r0], [cx + Math.cos(a) * r1, cy + Math.sin(a) * r1]], { w: T.LINE * 1.3, seed: 'thumb' + i, color: C.white });
-            }
+        const name = HOAGIE_X.filter(([at]) => f >= at).pop()[1], [ax, ay, m] = HOAGIE_AT[name], s = PPM / m;
+        Drawn.draw(g, 'hoagie', name, X - ax * s, Y - ay * s, s, { halo: { color: C.white, w: 9 } });
+        if (f >= HIT && f < HIT + 6) for (let i = 0; i < 5; i++) {
+            // the thumb lands: ticks round it
+            const n = f - HIT, a = -2.5 + i * 0.5, r0 = 100 + n * 9, r1 = r0 + 40 - n * 5, cx = X + 200, cy = 110;
+            T.line(g, [[cx + Math.cos(a) * r0, cy + Math.sin(a) * r0], [cx + Math.cos(a) * r1, cy + Math.sin(a) * r1]], { w: T.LINE * 1.3, seed: 'thumb' + i, color: C.white });
         }
         card(g, u, 1, 'HOAGIE', 'STILL ROLLING', 1215, 560, { fill: C.maroon, drop: C.ink, second: C.roadLine, k: 1.05, tilt: -0.05 });
         // out of the lens: what the shot before showed shrinks into the glass of his camcorder
         if (prev && f < 9) {
-            const r = [1000, 600, 340, 190, 108, 66, 44, 36, 36][f], k = Math.min(1, f / 6), lens = Anim.metres('hoagie', 'film').cam;
-            const cx = lerp(800, X + lens[0] * PPM + 0.03 * PPM * 1.5, k * k), cy = lerp(450, Y + lens[1] * PPM, k * k);
+            const r = [1000, 600, 340, 190, 108, 66, 44, 36, 36][f], k = Math.min(1, f / 6), [lx, ly] = [33, 110], s1 = PPM / HOAGIE_AT.t1[2];
+            const cx = lerp(800, X + (lx - HOAGIE_AT.t1[0]) * s1, k * k), cy = lerp(450, Y + (ly - HOAGIE_AT.t1[1]) * s1, k * k);
             g.save();
             g.beginPath();
             g.arc(cx, cy, r, 0, 6.3);

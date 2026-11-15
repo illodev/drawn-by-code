@@ -45,3 +45,20 @@ Three full-body key poses side by side on a plain pure white background, well se
 3. RIGHT: furious: leaning forward, mouth wide open yelling, one fist raised high shaking a metal spatula, the other arm stretched out pointing an accusing finger, eyebrows down, the empty hand that held the cone still open.
 
 Clean finished production line art with flat fills, as in an animation studio's key-pose model sheet. No text, no lettering, no numbers, no logos, no signature, no background, no ground shadows, no motion lines.
+
+## Frame sequences (round 27): the wording that gives consecutive frames
+
+Same opening paragraph (the character, the style), then:
+
+> FOUR CONSECUTIVE FRAMES of one continuous movement, in a single row from left to right, evenly
+> spaced with a clear empty gap between them, nothing overlapping. In every frame he is drawn at
+> exactly the same size, full body, standing with both feet planted on the same ground line in
+> the same place; only the pose changes a little from one frame to the next, like four drawings
+> in a row from a traditional animator's scene. The movement: …
+> Frame 1: … Frame 2: … Frame 3: … Frame 4: …
+
+Name each frame's job where it has one: (anticipation), (the thrust), (the settle), (a blink:
+exactly the same pose as frame 3, eyes closed). Hoagie: `hoagie-seq-turn.png` (filming to the
+side → turning → the lens at us → peeking over it), `hoagie-seq-thumb.png` (anticipation →
+thumb up on his toes → settled → blink).
+

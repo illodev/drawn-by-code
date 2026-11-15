@@ -3,12 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **an animation test: Hoagie's presentation, animated by bending his drawings** (round 26,
-`cast/anim.js`; `review/hoagie-anim.jpg`), waiting for the user's verdict on that level before
-it is spread to the other five and to the rest of the film. The film itself (`scene.js` +
-`film.js`, 31.75 s, `render/pier-pressure.mp4`) was judged in round 26: **not the level of
-animation or detail wanted**; everything but Hoagie's bar is still as rejected. The set is
-approved up to round 16. The style stays *in testing*.
+State: **an animation test: Hoagie's presentation, frame by frame from eight new drawings** (round
+27; `review/hoagie-anim.jpg`), waiting for the user's verdict on that level before the other
+five and the rest of the film are drawn the same way. The film itself (`scene.js` + `film.js`,
+31.75 s, `render/pier-pressure.mp4`) was judged in round 26: not the level wanted; everything
+but Hoagie's bar is still as rejected. Bending drawings (round 26) is out: the user wants new
+frames. The set is approved up to round 16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -868,3 +868,32 @@ limits of this way: a bend cannot turn a head or swap two legs, so a run still n
 drawings (four at least: contact, passing, contact, passing); the in-between of two very
 different poses is a smear, good for one frame only; pins are placed by hand under a grid
 (fifteen a pose).
+
+## Round 27 (user) · real animation, not distortion: new frames
+
+> Busco animación real, no distorsionarlo.  Quiero frames nuevos.
+
+The warp of round 26 is out (`cast/anim.js` removed; `cast/drawn.js` keeps `halo`, and its
+`warp`, `blink` and `look` options are no longer used by the film). What the user asks for is
+what animation is: a new drawing for each change.
+
+- **Frames are generated as sequences, not as poses.** Asking for «three key poses» gave three
+  unrelated drawings; asking for «four consecutive frames of one continuous movement, the same
+  size, the feet in the same place, only the pose changing a little from one to the next»
+  gave four drawings that follow each other: a turn of the camcorder from the side round to the
+  lens pointing at us and a peek over it (`ref/hoagie-seq-turn.png`), and a thumbs-up with its
+  anticipation, its thrust up on the toes, its settle and a blink (`ref/hoagie-seq-thumb.png`).
+  Two variations each, 1,732 credits; the second ones in `private/`. Written as code
+  (`cast/hoagie-turn-drawn.js`, `hoagie-thumb-drawn.js`), checked against the sheets (0.5–0.8 %
+  off).
+- **The shot is an exposure sheet** (`film.js`, `HOAGIE_X`): which drawing is on the frame from
+  which of the bar's 48 frames: t1 ×10 (during the pull-out of his lens), t2 ×2, t3 ×6, t4 ×3,
+  a1 ×3, a2 ×4 on the third beat, a3 ×8, a4 ×2, a3 ×6, a1 ×4 as he goes. Each drawing is
+  registered between its soles; nothing is bent, slid or squashed.
+- Seen and fixed: a black bar beside the last drawing (its box ran six pixels past the edge of
+  the sheet and the crop was padded with black).
+
+Limits: the two sheets came at slightly different builds (the head 4 % bigger on the second),
+so there is a small change of size at the eleventh drawing; frames are 450–500 px tall on the
+sheet, so at full frame height the finest details (braces, freckles) are at their limit;
+eight drawings in two seconds is limited animation, on threes and fours in places.
