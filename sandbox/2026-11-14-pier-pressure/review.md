@@ -3,12 +3,13 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **an animation test: Hoagie's presentation, frame by frame from eight new drawings** (round
-27; `review/hoagie-anim.jpg`), waiting for the user's verdict on that level before the other
-five and the rest of the film are drawn the same way. The film itself (`scene.js` + `film.js`,
+State: **an animation test: frames of our own, built in code from the pieces of a drawing we
+already have** (round 28: the last second of Hoagie's bar; `cast/hoagie-act.js`,
+`review/hoagie-own-frames.jpg`), waiting for the user's verdict on that way before it is spread.
+No more reference sheets are generated (round 28). The film itself (`scene.js` + `film.js`,
 31.75 s, `render/pier-pressure.mp4`) was judged in round 26: not the level wanted; everything
-but Hoagie's bar is still as rejected. Bending drawings (round 26) is out: the user wants new
-frames. The set is approved up to round 16. The style stays *in testing*.
+but Hoagie's bar is still as rejected. The set is approved up to round 16. The style stays
+*in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -897,3 +898,35 @@ Limits: the two sheets came at slightly different builds (the head 4 % bigger on
 so there is a small change of size at the eleventh drawing; frames are 450–500 px tall on the
 sheet, so at full frame height the finest details (braces, freckles) are at their limit;
 eight drawings in two seconds is limited animation, on threes and fours in places.
+
+## Round 28 (user) · the frames are ours to make, with no more references
+
+> No
+> Quiero que generes tú los frames
+> Sin necesidad de usar más referencias
+
+(to: is this the way, another 20–25 generated sheets?) No more sheets. The drawings there are
+(thirteen of Hoagie, five to fourteen of the others) are the references; the frames between
+and around them are made here, in code.
+
+- **`cast/hoagie-act.js`**: his settled thumbs-up drawing is cut into pieces in the converter
+  (`tools/tocode.py`: cowlick, head, thumb arm, torso, shorts, legs) and a new frame is those
+  pieces put down again, each whole: the upper body lower or higher over the legs (from the
+  front, bending the knees is the shorts coming down over the shins), the head about the neck,
+  the thumb arm about where it leaves the sleeve, the cowlick about its root, the lids down
+  (`cast/drawn.js`: shut eyes are drawn as two happy arcs, what was inside the eye left out).
+  Pieces are painted far to near, each covering what is behind; behind the shirt, a patch of
+  neck and shoulder for the gap the head's turning opens.
+- **Sixteen frames of our own**, one row each in `film.js` (`HOAGIE_OWN`, frames 28–43 of the
+  bar, on ones): off his toes into his knees with the arm and the cowlick carrying on, back up
+  past standing, settled; a blink (half, shut, shut, half); on the fourth beat the thumb pumps:
+  down with a dip of the knees, up past where it was with the chin lifted, and back.
+- Seen on the frames and fixed: the shoulder patch stuck out as orange wings round the neck
+  (it is painted behind the torso now, so only the gap shows it); the first shut eyes kept
+  the pupils' rings and the eye's circle (lines inside a shut eye are left out).
+
+What this way can and cannot do, said to the user: it can move what a drawing already shows
+(a nod, a tilt, a swing of an arm about its joint, knees, loose hair, blinks, a body's bounce
+and settle) and so fill holds, anticipations and settles with frames; it cannot show what no
+drawing shows (a head from another angle, a hand in another gesture, a mouth saying
+something): those still need a drawing, by hand in code or from a sheet.

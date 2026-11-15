@@ -94,9 +94,13 @@ const Drawn = (() => {
             g.fillStyle = g.strokeStyle = o.halo.color;
             g.lineWidth = o.halo.w * 2;
             for (const p of parts) {
-                if (o.only && !o.only.includes(p.name)) continue;
+                if (o.only && o.only.length && !o.only.includes(p.name)) continue;
+                enter(p); // (the edge goes where each part has been put; `only: []` paints the edge alone)
+                g.fillStyle = g.strokeStyle = o.halo.color;
+                g.lineWidth = o.halo.w * 2;
                 for (const f of p.fills) { const P = pathOf(f); g.fill(P); g.stroke(P); }
                 for (const l of p.lines) g.stroke(pathOf(l));
+                g.restore();
             }
         }
         const shown = (p) => (!o.only || o.only.includes(p.name)) && !(o.hide && o.hide.includes(p.name));
@@ -134,7 +138,10 @@ const Drawn = (() => {
                     if (o.face && Math.hypot(f.pts[0][0] - o.face[0], f.pts[0][1] - o.face[1]) > o.face[2]) continue;
                     // the lid: the eye's own shape filled from the top down, and its edge
                     const xs = f.wpts.map((q) => q[0]), ys = f.wpts.map((q) => q[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-                    const yl = y0 + (y1 - y0) * Math.min(1, o.blink) * 0.72, sag = (y1 - y0) * 0.16 * Math.min(1, o.blink);
+                    const shut = o.blink >= 0.99;
+                    // (shut, the lid's edge is a happy arc, bowed up; half shut, it sags)
+                    const yl = y0 + (y1 - y0) * (shut ? 0.62 : o.blink * 0.72), sag = shut ? -(y1 - y0) * 0.2 : (y1 - y0) * 0.16 * o.blink;
+                    f.box = [x0, y0, x1, y1];
                     g.save();
                     g.clip(f.cur);
                     g.fillStyle = o.blink >= 1 ? o.lid ?? '#f3bd90' : o.lid ?? '#f3bd90';
@@ -146,23 +153,38 @@ const Drawn = (() => {
                     g.closePath();
                     g.fill();
                     if (o.blink >= 1) g.fillRect(x0 - 4, y0 - 4, x1 - x0 + 8, y1 - y0 + 8);
-                    g.strokeStyle = ink;
-                    g.lineWidth = (d.meta.line ?? 2) * 1.1;
-                    g.beginPath();
-                    g.moveTo(x0 - 4, yl);
-                    g.quadraticCurveTo((x0 + x1) / 2, yl + sag * 2, x1 + 4, yl);
-                    g.stroke();
+                    if (!shut) {
+                        g.strokeStyle = ink;
+                        g.lineWidth = (d.meta.line ?? 2) * 1.1;
+                        g.beginPath();
+                        g.moveTo(x0 - 4, yl);
+                        g.quadraticCurveTo((x0 + x1) / 2, yl + sag * 2, x1 + 4, yl);
+                        g.stroke();
+                    }
                     g.restore();
+                    if (shut) { g.fillStyle = g.strokeStyle = o.lid ?? '#f3bd90'; g.lineWidth = 2.4; g.fill(f.cur); g.stroke(f.cur); }
                 }
                 g.restore();
             }
             for (const p of group) {
                 if (!shown(p)) continue;
                 enter(p);
+                // (eyes shut: what is drawn inside an eye, its pupil's edge and its own outline, goes)
+                const shutEyes = o.blink >= 0.99 ? p.fills.filter((f) => f.eye && f.box) : [];
                 for (const l of p.lines) {
+                    if (shutEyes.some((e) => { const m = (e.box[2] - e.box[0]) * 0.07; return l.pts.every((q) => q[0] > e.box[0] - m && q[0] < e.box[2] + m && q[1] > e.box[1] - m && q[1] < e.box[3] + m); })) continue;
                     g.strokeStyle = l.color ?? ink;
                     g.lineWidth = l.w * (o.weight ?? 1);
                     g.stroke(pathOf(l));
+                }
+                for (const e of shutEyes) {
+                    const [x0, y0, x1, y1] = e.box, w = x1 - x0, h = y1 - y0;
+                    g.strokeStyle = ink;
+                    g.lineWidth = (d.meta.line ?? 2) * 1.15;
+                    g.beginPath();
+                    g.moveTo(x0 + w * 0.14, y0 + h * 0.62);
+                    g.quadraticCurveTo(x0 + w * 0.5, y0 + h * 0.2, x1 - w * 0.14, y0 + h * 0.62);
+                    g.stroke();
                 }
                 g.restore();
             }

@@ -255,16 +255,36 @@ const Film = (() => {
     // the frame for as long as the exposure sheet below says. Nothing is bent, slid or squashed:
     // what moves is the drawing changing. `prev` paints the shot before.
     //   [first frame, drawing]: t1 filming to the side · t2 turning · t3 the lens at us · t4 peeking
-    //   over it · a1 the anticipation · a2 the thumb, up on his toes · a3 settled · a4 a blink
-    const HOAGIE_X = [[0, 't1'], [10, 't2'], [12, 't3'], [18, 't4'], [21, 'a1'], [24, 'a2'], [28, 'a3'], [36, 'a4'], [38, 'a3'], [44, 'a1']];
+    //   over it · a1 the anticipation · a2 the thumb, up on his toes · a3 settled
+    const HOAGIE_X = [[0, 't1'], [10, 't2'], [12, 't3'], [18, 't4'], [21, 'a1'], [24, 'a2'], [28, 'a3'], [44, 'a1']];
     // each drawing's place between the soles (its own pixels) and its pixels per metre (the two
     // sheets were drawn at slightly different sizes)
     const HOAGIE_AT = { t1: [180, 497, 345], t2: [150, 496, 345], t3: [146, 478, 345], t4: [141, 479, 345], a1: [141, 416, 339], a2: [141, 512, 339], a3: [136, 454, 339], a4: [137, 448, 339] };
+    // ... and from frame 28 the frames are ours, built from the settled drawing's pieces, one row
+    // a frame: [how far the upper body is down over the legs, the head about the neck, the thumb
+    // arm about the sleeve, the cowlick about its root, the lids]. He comes down off his toes
+    // into his knees with the arm and the cowlick carrying on, comes back up past standing,
+    // settles; blinks; on the fourth beat (frame 36) the thumb pumps: down with a dip of the
+    // knees, up past where it was with the chin lifted, and back.
+    const HOAGIE_OWN = {
+        28: [13, 0.05, 0.16, 0.5], 29: [15, 0.06, 0.2, 0.42],
+        30: [4, 0.01, 0.04, -0.1], 31: [-3, -0.035, -0.07, -0.34],
+        32: [-4, -0.04, -0.09, -0.2, 0.55], 33: [-1, -0.015, -0.03, 0.1, 1],
+        34: [2, 0.012, 0.02, 0.16, 1], 35: [1, 0.006, 0.01, 0.06, 0.5],
+        36: [7, 0.03, 0.26, 0.2], 37: [9, 0.04, 0.3, 0.3],
+        38: [0, -0.02, 0, -0.12], 39: [-4, -0.055, -0.13, -0.3],
+        40: [-3, -0.05, -0.11, -0.12], 41: [-1, -0.03, -0.04, 0.1],
+        42: [1, -0.01, 0.015, 0.08], 43: [0, 0, 0, 0],
+    };
     function hoagie(g, t, u, env, prev) {
         const f = Math.round(u * 24), X = 640, Y = 838, PPM = 540, HIT = 24;
         stage(g, nth(t), X, Y, C.orange, '#e0661f', { floor: C.maroon });
-        const name = HOAGIE_X.filter(([at]) => f >= at).pop()[1], [ax, ay, m] = HOAGIE_AT[name], s = PPM / m;
-        Drawn.draw(g, 'hoagie', name, X - ax * s, Y - ay * s, s, { halo: { color: C.white, w: 9 } });
+        const name = HOAGIE_X.filter(([at]) => f >= at).pop()[1], [ax, ay, m] = HOAGIE_AT[name], s = PPM / m, halo = { color: C.white, w: 9 };
+        if (HOAGIE_OWN[f]) {
+            // a frame of our own: the settled drawing's pieces put down again (cast/hoagie-act.js)
+            const [crouch, head, arm, cow, blink = 0] = HOAGIE_OWN[f];
+            HoagieAct.proud(g, X, Y, PPM / HOAGIE_AT.a3[2], { crouch, head, arm, cow, blink, halo });
+        } else Drawn.draw(g, 'hoagie', name, X - ax * s, Y - ay * s, s, { halo });
         if (f >= HIT && f < HIT + 6) for (let i = 0; i < 5; i++) {
             // the thumb lands: ticks round it
             const n = f - HIT, a = -2.5 + i * 0.5, r0 = 100 + n * 9, r1 = r0 + 40 - n * 5, cx = X + 200, cy = 110;

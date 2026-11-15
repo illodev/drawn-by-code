@@ -189,7 +189,7 @@ Motion.scene({
     fps: 24,
     duration: 31.75,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'hoagie', 'milo', 'pip', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-drop-drawn.js', DIR + 'cast/kit-drop-details.js', DIR + 'cast/hoagie-keys-drawn.js', DIR + 'cast/pip-keys-drawn.js', DIR + 'cast/dot-keys-drawn.js', DIR + 'cast/milo-keys-drawn.js', DIR + 'cast/captain-keys-drawn.js', DIR + 'cast/kit-ride-drawn.js', DIR + 'cast/hoagie-turn-drawn.js', DIR + 'cast/hoagie-thumb-drawn.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'hoagie', 'milo', 'pip', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-drop-drawn.js', DIR + 'cast/kit-drop-details.js', DIR + 'cast/hoagie-keys-drawn.js', DIR + 'cast/pip-keys-drawn.js', DIR + 'cast/dot-keys-drawn.js', DIR + 'cast/milo-keys-drawn.js', DIR + 'cast/captain-keys-drawn.js', DIR + 'cast/kit-ride-drawn.js', DIR + 'cast/hoagie-turn-drawn.js', DIR + 'cast/hoagie-thumb-drawn.js', DIR + 'cast/hoagie-act.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     beatOffset: B0,
