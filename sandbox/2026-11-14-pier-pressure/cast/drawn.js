@@ -94,7 +94,7 @@ const Drawn = (() => {
             g.fillStyle = g.strokeStyle = o.halo.color;
             g.lineWidth = o.halo.w * 2;
             for (const p of parts) {
-                if (o.only && o.only.length && !o.only.includes(p.name)) continue;
+                if ((o.only && o.only.length && !o.only.includes(p.name)) || (o.hide && o.hide.includes(p.name))) continue;
                 enter(p); // (the edge goes where each part has been put; `only: []` paints the edge alone)
                 g.fillStyle = g.strokeStyle = o.halo.color;
                 g.lineWidth = o.halo.w * 2;

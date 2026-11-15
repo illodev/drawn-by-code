@@ -3,16 +3,14 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **two tests of Hoagie's bar side by side, waiting for the user to choose: drawn by hand in
-2D (round 29) and built in 3D in Blender (round 30: `blender/hoagie.py`, `review/hoagie-blender.jpg`)**.
-The 2D one, every frame drawn from scratch in code (round 29:
-`cast/hoagie-model.js`, his shapes written by hand and measured on his sheet; `film.js`
-`HOAGIE_KEYS`; `review/hoagie-model.jpg`, `review/hoagie-anim.jpg`), waiting for the user's
-verdict before the other five are drawn the same way. No reference sheets are generated any
-more (round 28) and no frame is built from traced drawings or their pieces (round 29). The
-film itself (`scene.js` + `film.js`, 31.75 s, `render/pier-pressure.mp4`) was judged in round
-26: not the level wanted; everything but Hoagie's bar is still as rejected, and still uses the
-traced drawings. The set is approved up to round 16. The style stays *in testing*.
+State: **an animation test: Hoagie's bar, every frame from the code of the drawings made from his
+sheets, as they are or edited** (round 31: `film.js` `HOAGIE_X` and `HOAGIE_KEYS`,
+`cast/hoagie-edit.js`; `review/hoagie-anim.jpg`), waiting for the user's verdict. Settled by the
+user so far: no more generated sheets (28); no bending (27); **no 3D** (31); **nothing drawn by
+hand that does not come from the images** (31). The film itself (`scene.js` + `film.js`,
+31.75 s, `render/pier-pressure.mp4`) was judged in round 26: not the level wanted; everything
+but Hoagie's bar is still as rejected. The set is approved up to round 16. The style stays
+*in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -1000,3 +998,37 @@ Things found on the way: Freestyle's line set needs its own line style (`lineset
 it empty) and «strokes set empty» is printed even when lines are drawn; on his toes the feet
 must pitch toe-down (the first try showed their soles); the camera's sensor fit must be set or
 the framing is not what the lens says.
+
+## Round 31 (user) · no 3D, no drawings of mine: edit the code that came from the images
+
+> No me gusta el modelo 3D
+
+> Mi pregunta es: se supone que de las imágenes convertimos a código, pero no eres capaz de
+> modificar ese código para crear otros frames?
+
+> Es que tus dibujos 2D que no salen de la imagen no me gustan nada
+
+Three answers in a row. The 3D test is dropped (`blender/hoagie.py` stays as the record of it).
+The hand-drawn model of round 29 is dropped too (`cast/hoagie-model.js` removed): round 29's
+note that it «worked this time» was mine, not the user's; the user's verdict is that drawings
+that do not come from the images are not liked at all. A turn added to that model in between
+was thrown away with it.
+
+And the question is the direction: the drawings made from the images ARE code, so new frames
+are made by editing that code. Yes, within what the code holds:
+
+- **`cast/hoagie-edit.js`**: a frame is his settled drawing's code (`a3`: every shape of the
+  sheet's drawing, cut into cowlick, head, thumb arm, torso, shorts, legs) with its pieces put
+  down again: the upper body down or up over the legs, the head about the neck, the cowlick
+  about its root, the arm about its sleeve, lids of its own skin colour. A first version also
+  wrote the arm again by hand (a fist by his hip, a thumb overhead): removed after the user's
+  third message, it was a drawing of mine.
+- **The bar**: frames 0–20 the four drawings of the turn as they are; 21–23 `a1` (the
+  anticipation), 24–27 `a2` (the thumb, up on his toes); 28–34 edited frames (down off his
+  toes into his knees, up past standing, settled, lids half down); 35–36 `a4` (the blink as the
+  sheet drew it); 37–43 edited frames (the pump of the thumb); 44–47 `a1` again.
+
+What editing this code can do: move, turn and re-time what a drawing shows, piece by piece.
+What it cannot: show what no drawing shows (the arm in another gesture, a head from another
+side). Those frames need either another drawing from an image or a part of an existing
+drawing's code re-shaped point by point, which is drawing by hand again.
