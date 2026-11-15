@@ -1,7 +1,7 @@
 """The cast's drawings from their sheets on a green ground: python3 -I tools/green.py <sheet> [<sheet> …] | all
 
-Each sheet (ref/<sheet>.png) is two to four figures on flat pure green. Nothing is boxed, masked
-or listed by hand: the figures are what is not green (the biggest pieces, left to right; a loose
+Each sheet (ref/<sheet>.png) is two to four figures on flat pure green. Nothing is boxed or masked
+by hand (but a generator's stray mark, FLAWS): the figures are what is not green (the biggest pieces, left to right; a loose
 bit, a flying camcorder, chips in the air, goes with the figure nearest to it), the page is the
 green wherever it is, and each pose gets its anchor (the point between its soles, or its middle
 for a pose in the air) and its pixels per metre (from the sheet's reference pose and how tall
@@ -46,6 +46,12 @@ SHEETS = {
     'kit-skate': ('kit', [('s1', 'wheels'), ('s2', 'wheels'), ('s3', 'wheels'), ('s4', 'wheels')], 2, 1.4),
     'pip-scoot': ('pip', [('s1', 'wheels'), ('s2', 'wheels'), ('s3', 'wheels'), ('s4', 'wheels')], 3, 1.25),
     'captain-flap': ('captain', [('f1', 'beak'), ('f2', 'beak'), ('f3', 'beak'), ('f4', 'beak')], 1, 0.36),
+    # off the end of the pier (round 38): take-off, launched, the hang with a look down, the fall.
+    # The take-off stands on the deck; the other three are held by their middle
+    'hoagie-leap': ('hoagie', [('j1', 'run'), ('j2', 'mid'), ('j3', 'mid'), ('j4', 'mid')], 2, 1.45),
+    'milo-leap': ('milo', [('j1', 'run'), ('j2', 'mid'), ('j3', 'mid'), ('j4', 'mid')], 2, 1.78),
+    'kit-leap': ('kit', [('j1', 'wheels'), ('j2', 'mid'), ('j3', 'mid'), ('j4', 'mid')], 2, 1.52),
+    'pip-leap': ('pip', [('j1', 'wheels'), ('j2', 'mid'), ('j3', 'mid'), ('j4', 'mid')], 2, 1.3),
 }
 # (who, pose): { 'rest', 'order', 'parts': [(name, polygon in the pose's own pixels)], 'at': [x, y] }
 PARTS = {}
@@ -70,9 +76,54 @@ def figures(im, n):
     return [mk & fig | ndi.binary_dilation(mk & fig, iterations=3) for mk in masks], [(lb == i) & fig for i in main]
 
 
+# a stray mark the generator left that is no part of the drawing (a pale streak between two legs,
+# a blue speck beside a sleeve): its box on the sheet and what it is made of. That paint goes back
+# to the page, and with 'thin' so does the mark's own hairline edge (anything under 3 px wide)
+STRAY = {
+    'lime': lambda r, g, b: ((g > r + 10) & (g > b + 60)) | ((g > 170) & (b < 190) & (r < g + 45)),  # (and its pale edge)
+    'blue': lambda r, g, b: (b > r + 20) & (g > 50),
+}
+FLAWS = {
+    'pip-leap': [(1116, 452, 1131, 500, 'lime', False)],
+    'hoagie-leap': [(572, 300, 591, 315, 'lime', False), (836, 295, 848, 309, 'lime', False), (829, 314, 841, 325, 'lime', False)],  # (olive smears inside his strap)
+    'milo-leap': [(101, 400, 122, 416, 'blue', True)],
+}
+
+
+def clean(im, sheet):
+    """The sheet with the page's green put back where the generator muddied it: in a narrow gap
+    (inside a strap, behind a collar) the green comes out darkened, a blob of page that is neither
+    the page's colour nor any paint. A band of it one or two pixels wide is a line's soft edge and
+    stays; anything wider is page."""
+    a = np.asarray(im).astype(np.int32).copy()
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    mud = (g - np.maximum(r, b) > 40) & (r < 110) & (b < 110) & (np.abs(a - np.array(BG)).max(-1) > 60)
+    blob = ndi.binary_dilation(ndi.binary_erosion(mud, np.ones((3, 3), bool)), np.ones((5, 5), bool)) & mud
+    a[blob] = BG
+    lb, k = ndi.label(mud & ~blob)  # ... and a ragged fleck of it that the opening leaves whole
+    for j, sl in enumerate(ndi.find_objects(lb), 1):
+        h, w = sl[0].stop - sl[0].start, sl[1].stop - sl[1].start
+        n = int((lb[sl] == j).sum())
+        if min(h, w) >= 3 and n >= 12 and n >= 0.4 * h * w:
+            a[sl][lb[sl] == j] = BG
+    for x0, y0, x1, y1, kind, thin in FLAWS.get(sheet, []):
+        box = a[y0:y1, x0:x1]
+        box[STRAY[kind](box[..., 0], box[..., 1], box[..., 2])] = BG
+        if thin:
+            fig = np.abs(a[y0 - 4:y1 + 4, x0 - 4:x1 + 4] - np.array(BG)).max(-1) > 60
+            keep = ndi.binary_dilation(ndi.binary_erosion(fig, np.ones((3, 3), bool)), np.ones((3, 3), bool))
+            box[(fig & ~keep)[4:-4, 4:-4]] = BG
+            lb, k = ndi.label(fig & keep)  # ... and what is left loose inside the box
+            for j in range(1, k + 1):
+                m = lb == j
+                if not (m[:4].any() or m[-4:].any() or m[:, :4].any() or m[:, -4:].any()):
+                    box[m[4:-4, 4:-4]] = BG
+    return Image.fromarray(a.astype(np.uint8))
+
+
 def convert(sheet):
     who, poses, ref, metres = SHEETS[sheet]
-    im = Image.open(os.path.join(HERE, '..', 'ref', sheet + '.png')).convert('RGB')
+    im = clean(Image.open(os.path.join(HERE, '..', 'ref', sheet + '.png')).convert('RGB'), sheet)
     pal = M.palette(im)
     masks, mains = figures(im, len(poses))
     rows = lambda m: np.nonzero(m.any(1))[0]

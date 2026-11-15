@@ -17,7 +17,7 @@
 // she lands beside it; Captain's hops are jumps under the same gravity.
 const DIR = 'sandbox/2026-11-14-pier-pressure/';
 // the cast's drawings: one file per sheet (ref/<sheet>.png, on green; tools/green.py)
-const SHEETS = ['kit-sheet', 'kit-drop-a', 'kit-drop-b', 'kit-ride', 'hoagie-sheet', 'hoagie-keys', 'hoagie-seq-turn', 'hoagie-seq-thumb', 'milo-sheet', 'milo-keys', 'pip-sheet', 'pip-keys', 'dot-sheet', 'dot-keys', 'captain-sheet', 'captain-keys', 'hoagie-seq-tween', 'hoagie-run', 'milo-run', 'kit-skate', 'pip-scoot', 'captain-flap'];
+const SHEETS = ['kit-sheet', 'kit-drop-a', 'kit-drop-b', 'kit-ride', 'hoagie-sheet', 'hoagie-keys', 'hoagie-seq-turn', 'hoagie-seq-thumb', 'milo-sheet', 'milo-keys', 'pip-sheet', 'pip-keys', 'dot-sheet', 'dot-keys', 'captain-sheet', 'captain-keys', 'hoagie-seq-tween', 'hoagie-run', 'milo-run', 'kit-skate', 'pip-scoot', 'captain-flap', 'hoagie-leap', 'milo-leap', 'kit-leap', 'pip-leap'];
 const B0 = 0.05; // the song's first beat
 // the edit: [from, to, name, shot(g, t, u, env), how the camera gets there]; u is the time since
 // the shot's cut. Without a fifth entry the shot carries on from the one before (the camera moves

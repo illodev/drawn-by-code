@@ -3,19 +3,20 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the chase is redone with cycles of four drawings each, and Hoagie's turn has its
-in-betweens (round 37: `review/chase.jpg`); before it, the five presentations after Kit's are in
-one format (round 36): each on their own card
-of colour, full height, from their sheets' drawings with edited frames, each coming in behind
-something of the cast that crosses the frame** (`film.js`: `hoagie`, `milo`, `pip`, `dot`,
-`captain`, `act`, `cushion`, `wipe`; `review/presentations.jpg`), waiting for the user's verdict.
+State: **the leap off the pier and the two seconds of sky are redone with four new drawings each
+(round 38: take-off, launched, the hang with a look down, the fall; `review/leap.jpg`), waiting
+for the user's verdict.** Before it: the chase in cycles of four drawings and Hoagie's turn with
+its in-betweens (round 37, `review/chase.jpg`), and the five presentations after Kit's in one
+format (round 36, `review/presentations.jpg`: `film.js` `hoagie`, `milo`, `pip`, `dot`,
+`captain`, `act`, `cushion`, `wipe`).
 The cut is approved (round 35→36: «Sí»). Settled by the user: no bending (27), no 3D (31),
 nothing drawn by hand that does not come from the images (31); frames are edits of the
 drawings' code, more of them, no rebounds (32); images may be generated for views the drawings
-lack, always on a coloured ground (32–35); the presentations go well (36→37: «Sí»). Still as
-rejected in round 26: Kit's own shot (only its squash was removed), the leap's poses in the
-air, the title. The set is approved up to
-round 16. The style stays *in testing*.
+lack, always on a coloured ground (32–35); the presentations go well (36→37: «Sí»); the chase
+with cycles goes on to the leap (37→38: «Sí, sigue con el salto y el aire»). Still as rejected
+in round 26: Kit's own shot (only its squash was removed) and the title. No sound effects yet,
+and the name cards are not timed to the sung words. The set is approved up to round 16. The
+style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -1223,3 +1224,61 @@ during the close shot and the two were one tangle (the overtaking now happens in
 Still: off the end of the pier and in the air they are their old single poses; the board's
 and scooter's place in the cycles was checked on six consecutive drawings, not measured; not
 seen in motion, not heard.
+
+## Round 38 (user) · the leap and the air
+
+> Sí, sigue con el salto y el aire
+
+(Answer to the offer at the end of round 37: the two shots after the chase still used one old
+pose each, a `jump` or a `fall` turned and slid along an arc, popping in with a bounce of size.)
+
+**Drawings.** Four sheets on green, one variation each (1,732 credits), each with the
+character's cycle sheet as reference: `ref/<who>-leap.png` → `cast/<who>-leap-drawn.js`, four
+frames of one movement side on: `j1` the take-off (the last stride crouched, or the crouch on
+the board), `j2` launched and stretched, `j3` the hang, upright, **looking straight down**, `j4`
+the fall. Each in character: Hoagie films through all of it and lets go of the camcorder only
+when he falls; Milo raises a finger to explain; Kit loses her board; Pip does not look up from
+her lollipop and shrugs on the way down.
+
+**The cut again, before anything else.** On lilac at 2560 the new drawings had what the user
+would have had to point out: bright green bits inside Hoagie's strap and behind his collar, a
+pale streak between Pip's legs, a blue speck beside Milo's sleeve. None was the cut's rule
+failing: the generator had *muddied the page* in narrow gaps (the green comes out darkened, a
+blob that is neither the page nor a paint), and had left two stray marks of its own.
+`tools/green.py` `clean()`: page-hued pixels (green well above red and blue, red and blue low)
+that are not the page's colour go back to the page when they are a blob (they survive a 3 × 3
+erosion) or a ragged fleck (≥ 12 px, at least 3 px each way, filling 40 % of its box); a band
+one or two pixels wide is a line's soft edge and stays. A stray mark is listed (`FLAWS`: its
+box and what it is made of), the only thing listed by hand. Checked by counting greenish pixels
+on a character with no green (Hoagie): what is left is the lines' own edge.
+
+**The leap** (`film.js` `leap`, `OFF`, `ROLLS`). The cycle runs up to the edge; on foot the last
+stride lands on it and is held two drawings (`j1`), on wheels the crouch is the last two
+drawings of the roll; then `j2` on the arc, leaning by a share of the arc's slope. First try:
+all four on one arc, a few drawings apart → a chain of figures on top of each other, Milo
+hidden behind Hoagie. Now each has their own way off (`OFF`: place in the line, speed out and
+up): Pip far and high, Kit steep, Hoagie flat and long, Milo short and last, and the line is
+further apart than the pack was so nobody takes off through the one in front. The camera goes
+up less (225, from earlier) and on a little with them (260), so Pip's helmet stays in frame at
+the top and the deck is still there when Milo crouches on it.
+
+**The air** (`aloft`, `HANG`, `UP`, `ACROSS`, `DROP`; it runs on under the title). In the order
+they left: five drawings of `j2` up into place, each step shorter than the last and never past
+it (560, 300, 140, 55, 15: no overshoot, no bounce of size); `j3` held 6 to 14 drawings, still
+drifting up a hand's width and back; then `j4`, a fall that starts slow (0, 10, 50, 130, 260 …),
+Hoagie first, Pip last, the last of them still falling behind the title as it stamps. Spaced so
+no two touch at their widest drawing (Kit's arms out, Milo's and Hoagie's falls).
+
+**Seen**: `review/leap.jpg` (twelve drawings of the two shots), stills at 1920 of the hang and
+of the take-offs, the fidelity scene on lilac for the sixteen new drawings; `engine/review.mjs`:
+no warnings, no still stretch. Not seen in motion and not heard.
+
+**Known limits**: the hang is one drawing per character that drifts (no blink: these drawings
+are not cut into pieces); between `j1` and `j2` and between `j3` and `j4` there is no in-between
+drawing (crouch → stretch and hold → fall are changes that take none in a cartoon, but it is
+still a change in one drawing); Milo is out of frame for the first second of the leap.
+
+**Lessons** → skill animate (a movement in four named drawings; each their own arc; arrive in
+shortening steps) and skill replicate (a generator muddies the ground in narrow gaps: count the
+ground's hue on a figure that has none of it).
+

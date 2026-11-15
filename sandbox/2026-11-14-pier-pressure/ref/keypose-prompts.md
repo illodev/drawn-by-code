@@ -86,3 +86,17 @@ colour they do not have. White is then always paint, and no holes need listing.
 - A wing beat: up → level coming down → down → level coming up, «the body at exactly the same
   size and the same height in all four».
 
+## A leap in four drawings (round 38)
+
+Reference = the character's cycle sheet (side view, same size). «FOUR CONSECUTIVE FRAMES of one
+movement, in a single row from left to right … seen in side view (profile), facing RIGHT. He
+runs off the end of a pier (the pier is NOT drawn): Frame 1 (take-off): the last stride,
+crouched low on one bent leg, body coiled … Frame 2 (launched): leaping through the air, body
+stretched out long, legs trailing behind … Frame 3 (the hang): frozen at the top of the jump,
+legs dangling straight down … looks straight down below him … Frame 4 (the fall): starting to
+drop, arms and legs flailing …». Give each frame what the character does with their thing
+(Hoagie keeps filming and loses the camcorder in frame 4; Kit's board comes away; Pip never
+lets go of the scooter). On wheels, frame 1 is «crouched very low on the board», not a stride.
+Whatever flies loose (a camcorder on its strap, glasses, a board) goes with the nearest figure
+when the sheet is cut, so ask for clear gaps between frames.
+

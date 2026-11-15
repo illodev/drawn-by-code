@@ -633,11 +633,17 @@ const Film = (() => {
     // coasts two drawings more than she pushes)
     const CYC = { hoagie: ['r1', 'r2', 'r3', 'r4'], milo: ['r1', 'r2', 'r3', 'r4'], kit: ['s1', 's2', 's3', 's4'], pip: ['s1', 's2', 's3', 's4', 's4', 's4'] };
     const runner = (g, who, t, x, y) => put(g, who, CYC[who][nth(t) % CYC[who].length], x, y, SK[who]);
-    const flier = { kit: 'jump', pip: 'ride', hoagie: 'jump', milo: 'fall' };
-    const inAir = (g, who, x, y, rot, k = 1) => {
-        if (who === 'pip') put(g, 'pip', 'ride', x, y + 663 * SK.pip * 0.5 * k, SK.pip * k, { rot });
-        else put(g, who, flier[who], x, y, SK[who] * k, { rot });
-    };
+    // Off the end and in the air: four drawings of their own each (cast/<who>-leap-drawn.js): j1 the
+    // take-off at the edge, j2 launched, j3 the hang with a look down, j4 the fall. j1 stands on the
+    // deck like the cycle's drawings; the other three are held by their middle. j2 is drawn going out
+    // flat: it leans back by LEAN while the arc is steep and levels out towards its top
+    const LEAN = { hoagie: -0.5, milo: -0.3, kit: -0.2, pip: -0.15 };
+    const ROLLS = { kit: true, pip: true }; // on wheels: no last stride, they crouch as they roll up to the edge
+    // Each one's own way off the end: where they are in the line as it reaches the edge (further
+    // apart than in the pack, so nobody takes off through the one in front; Milo, last, comes in late), the arc's speed out and
+    // up (frame units per second: Pip far and high, Kit steep, Hoagie flat and long, Milo short),
+    // and how much of the arc's slope the drawing leans by
+    const OFF = { milo: [-115, 105, 700, 0.3], hoagie: [440, 635, 653, 0.5], kit: [760, 305, 1070, 0.25], pip: [1070, 471, 1143, 0.2] };
 
     // === 9 · down the pier (5 s) ======================================================================
     const RUN = 1150; // the camera's speed along the pier, frame units per second
@@ -658,20 +664,26 @@ const Film = (() => {
     // === 10 · the end of the pier (2 s): off it, one after another ========================================
     function leap(g, t, u, env) {
         const d = nth(t), END = 1000, stop = 0.75, uu = twos(u);
-        const rise = u < 1.25 ? 0 : 300 * ease((u - 1.25) / 0.75);
-        pierSide(g, d, 5 * RUN + Math.min(u, stop) * RUN, END + Math.max(0, stop - u) * RUN, rise);
+        // the camera stops with the pier's end in frame, then goes up and a little on with them
+        const rise = 225 * ease((u - 0.85) / 1.1), pan = 260 * ease((u - 0.9) / 1.1);
+        pierSide(g, d, 5 * RUN + Math.min(u, stop) * RUN + pan, END - pan + Math.max(0, stop - u) * RUN, rise);
         if (u < stop) speed(g, d, 7);
         g.save();
-        g.translate(0, rise);
+        g.translate(-pan, rise);
         const cv = Math.max(0, uu - 0.4);
-        capFly(g, t, 1320 + cv * 260, 250 - cv * cv * 420, SK.captain, { rot: -0.25 });
-        for (const [i, [who, , x0, ph]] of PACK.entries()) {
-            const x = x0 + Math.max(0, uu - stop) * RUN, tl = stop + (END - x0) / RUN;
-            if (uu < tl) { runner(g, who, t + ph / 12, Math.min(x, END), DECK - 10); continue; }
-            // off the end: up and out, the same arc for all four
-            const v = uu - tl, ax = END + 40 + v * (190 + i * 90), ay = DECK - 150 - ((900 + i * 50) * v - 620 * v * v);
-            inAir(g, who, ax, ay, -0.25 + v * 0.5);
-            puff(g, END - 30, DECK, v / 0.3, 5, 16, 'off' + who);
+        capFly(g, t, 1320 + pan + cv * 260, 250 - cv * cv * 420, SK.captain, { rot: -0.25 });
+        for (const [who, , , ph] of PACK) {
+            // tr: when their place in the line reaches the edge (xe). On foot, the last stride lands on
+            // it a drawing early and is held two (the crouch), then they are off; on wheels the crouch
+            // is the last two drawings of the roll
+            const [x0, vx, vy, lean] = OFF[who];
+            const xe = Math.max(END, x0), tr = stop + (xe - x0) / RUN, x = x0 + Math.max(0, uu - stop) * RUN;
+            const tc = tr - (ROLLS[who] ? 2 : 1) / 12, tl = tr + (ROLLS[who] ? 0 : 1) / 12;
+            if (uu < tc - 1e-6) { runner(g, who, t + ph / 12, x, DECK - 10); continue; }
+            if (uu < tl - 1e-6) { put(g, who, 'j1', ROLLS[who] ? Math.min(x, xe) : xe, DECK - 10, SK[who]); continue; }
+            const v = uu - tl;
+            puff(g, xe - 30, DECK, v / 0.3, 5, 16, 'off' + who);
+            put(g, who, 'j2', xe + 40 + vx * v, DECK - 150 - (vy * v - 620 * v * v), SK[who], { rot: -Math.atan2(vy - 1240 * v, vx) * lean });
         }
         g.restore();
     }
@@ -692,24 +704,33 @@ const Film = (() => {
             g.fill();
         }
     }
-    const HANG = [['milo', 290, 300, -0.35, 1.45], ['kit', 650, 540, -0.05, 1.7], ['hoagie', 1150, 610, 0.08, 1.5], ['pip', 1340, 235, 0.1, 1.45]];
+    // Where each hangs on the frame (their middle) and how big; `on`: the drawing they come up into
+    // the frame on (in the order they left the pier), `off`: the drawing their fall starts on
+    const HANG = [['milo', 232, 312, 1.4, 6, 17], ['kit', 672, 540, 1.5, 2, 18], ['hoagie', 1082, 628, 1.5, 4, 16], ['pip', 1404, 252, 1.45, 0, 19]];
+    // five drawings up into place, each step shorter than the one before (no overshoot), and a fall
+    // that starts slow: how far below their place, and how far in from the left they still are
+    const UP = [560, 300, 140, 55, 15], ACROSS = [120, 70, 35, 14, 4], DROP = [0, 10, 50, 130, 260, 440, 670, 950, 1280];
+    // the four of them on drawing n of the two seconds of sky (it runs on under the title)
+    function aloft(g, n) {
+        for (const [who, x, y, k, on, off] of HANG) {
+            const m = n - on, s = SK[who] * k;
+            if (m < 0) continue;
+            if (m < 5) put(g, who, 'j2', x - ACROSS[m], y + UP[m], s, { rot: LEAN[who] * [1, 0.8, 0.55, 0.3, 0.12][m] });
+            else if (n < off) put(g, who, 'j3', x, y - 12 * Math.sin((Math.PI * (m - 5)) / (off - on - 5)), s); // (still drifting up, then not)
+            else if (n - off < DROP.length) put(g, who, 'j4', x, y + DROP[n - off], s, { rot: 0.03 * (n - off) });
+        }
+    }
     function hang(g, t, u, env) {
         const d = nth(t), uu = twos(u);
         burst(g, d);
-        // they have a second and a half of sky: up a little, slower, slower, and a look down
-        const lift = 70 * (1 - Math.pow(1 - clamp(uu / 1.5, 0, 1), 2)) - (uu > 1.5 ? (uu - 1.5) * (uu - 1.5) * 500 : 0);
-        capFly(g, t, 900 + Math.sin(uu * 3) * 30, 130 + Math.sin(uu * 4.2) * 14, SK.captain * 1.25, { rot: -0.06 });
-        for (const [i, [who, x, y, rot, k]] of HANG.entries()) {
-            const pop = [1.12, 0.96, 1][Math.min(2, nth(u, i / 8))];
-            if (u < i / 8) continue;
-            inAir(g, who, x, y - lift * (1 - i * 0.12) + Math.sin(uu * 2.6 + i * 2) * 7, rot + Math.sin(uu * 2 + i) * 0.03, k * pop);
-        }
+        capFly(g, t, 1010 + Math.sin(uu * 3) * 30, 96 + Math.sin(uu * 4.2) * 12, SK.captain * 1.25, { rot: -0.06 });
+        aloft(g, nth(u));
     }
     function title(g, t, u, env) {
         const d = nth(t), dc = nth(u), uu = twos(u);
         burst(g, d);
-        // gone: one drawing of them leaving the bottom of the frame
-        if (dc < 2) for (const [i, [who, x, y, rot, k]] of HANG.entries()) inAir(g, who, x, y + 260 + dc * 620, rot - 0.2, k * [1, 0.96][dc]);
+        // the last of them still falling, behind the title
+        aloft(g, 24 + dc);
         // the sea comes up to say so
         const sv = Math.max(0, uu - 2 / 12), top = 900 - (1900 * sv - 3000 * sv * sv);
         if (sv > 0 && top < 900) {
