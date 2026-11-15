@@ -21,7 +21,7 @@ Large jumps outside cuts (can be normal in dense patterns; check whether they bo
 
 ## Speed
 
-Painting: 106 ms/frame cold, 23 ms warm → full render ≈ 3 s at this size.
+Painting: 101 ms/frame cold, 24 ms warm → full render ≈ 3 s at this size.
 
 ## Contact sheet
 

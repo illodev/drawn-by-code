@@ -3,7 +3,7 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the cast measured again from the sheets, with their details and colours** (round 20);
+State: **the cast measured again from the sheets, with their details and colours** (rounds 20–21);
 the shot is the same animation (`scene.js`, «KIT», 5 s, `render/pier-pressure.mp4`,
 `review/key.jpg`), waiting for the user's verdict. Kit's poses: `cast/kit-drawn.js` (her model
 sheet: stand, jump) and `cast/kit-drop-drawn.js` (tuck, reach, contact, crouch, rise, proud),
@@ -665,3 +665,24 @@ other shots are built.
 Lessons: → `replicate` (a drawing measured from a sheet is checked against the sheet at 4×,
 place by place, before it is animated; what the measuring rules ended on), → `review` (crops of
 a drawing are compared with its source, not judged alone).
+
+## Round 21 (user) · the gull hops with his perch, Kit stands on the rope
+
+> Un par de cosas: el pájaro salta junto a donde está reposado y el personaje queda encima de
+> la cuerda
+
+Both true in the frames (crops at 3840):
+
+- **Captain carried a slab of his sheet's bollard under his feet.** His model sheet stands him
+  on a bollard; the shot used the drawing clipped just under his feet, but a bollard's top is
+  seen from above and reaches higher than the feet standing on it, so a dark piece of it stayed
+  inside the clip and hopped with him. He is now cut from it in the drawing itself
+  (`tools/tocode.py`: parts `bird` and `post`, his feet traced on the sheet a line's width out)
+  and the shot draws only `bird`, with no clip.
+- **The blue rope's tail ended under Kit's boot.** In metres she lands 0.3 m behind it, but on
+  screen the whipped end sat against her toe cap and read as stood on. The tail now turns
+  towards the camera and ends 0.2 m to the side of where she lands (`set.js`, `coil`).
+
+Lessons → `animate`: what a model sheet stands a character on is cut from them as a part before
+anything moves; and where a character lands or stands, the set's loose ends keep clear on
+screen, not only in depth.

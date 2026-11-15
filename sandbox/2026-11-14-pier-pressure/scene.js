@@ -146,7 +146,8 @@ Motion.scene({
         Harbor.fore(g, env, t);
 
         // Captain (0.46 m) on the foreground bollard: a start at the clatter, a bigger one when she
-        // lands; each a jump under the same gravity. Only the bird of his perch drawing is used:
+        // lands; each a jump under the same gravity. Only the `bird` part of his perch drawing is used
+        // (the bollard of his sheet is its `post` part, and stays out):
         // his feet end at y = 531 of it (measured on the sheet), about x = 170
         {
             const hop = (at0, v) => {
@@ -155,14 +156,7 @@ Motion.scene({
             };
             const hgt = Math.max(hop(HIT + 1 / 12, 1.15), hop(LAND + 1 / 24, 1.75));
             const top = A.bollard.top, [bx, by] = Cam.pt([top[0], top[1] + hgt, top[2]]), cs = (Cam.scale(top[2]) * Cam.HEIGHT.captain) / 525;
-            const [cw] = Drawn.size('captain', 'perch');
-            g.save();
-            g.translate(bx - 170 * cs, by - 527 * cs);
-            g.beginPath();
-            g.rect(-40 * cs, -40 * cs, (cw + 80) * cs, 573 * cs);
-            g.clip();
-            Drawn.draw(g, 'captain', 'perch', 0, 0, cs);
-            g.restore();
+            Drawn.draw(g, 'captain', 'perch', bx - 170 * cs, by - 527 * cs, cs, { only: ['bird'] });
         }
         g.restore();
 

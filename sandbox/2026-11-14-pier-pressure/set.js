@@ -1647,8 +1647,9 @@
             if (top) T.shape(g, ring3(add(tn.cc, [0, t * 0.5, 0]), tn.r - t * 0.62, 30).map(pt), { fill: DEEP, w, seed: seed + 'hole', dense: true, amp: 0.1 });
             rope(g, ring3(tn.cc, tn.r, 22, toCam - Math.PI / 2 + K, toCam + Math.PI / 2 - K).map(pt), d, { seed: seed + 'nl' + i, w, dense: true, only: 'lay' });
         };
-        // the tail: off the bottom turn, along the stone, its end whipped
-        const tail = [[R0 * 0.72, t / 2, -R0 * 0.75], [R0 + 0.12, t / 2, -R0 * 0.62], [R0 + 0.3, t / 2, -R0 * 0.78], [R0 + 0.46, t / 2, -R0 * 0.55]].map((p) => add(c, p));
+        // the tail: off the bottom turn and round towards the camera, its end whipped. It stays
+        // clear of where Kit lands (X −0.3 … 0.1): a rope ending under a boot reads as stood on
+        const tail = [[R0 * 0.72, t / 2, -R0 * 0.75], [R0 + 0.08, t / 2, -R0 * 0.7], [R0 + 0.2, t / 2, -R0 * 0.82], [R0 + 0.25, t / 2, -R0 * 1.05]].map((p) => add(c, p));
         rope3(g, tail, t, { fill, seed: seed + 't', w, caps: 'none' });
         const e = pt(tail[3]), e0 = pt(tail[2]), d = t * sc(tail[3][2]), ux = (e[0] - e0[0]) / (Math.hypot(e[0] - e0[0], e[1] - e0[1]) || 1), uy = (e[1] - e0[1]) / (Math.hypot(e[0] - e0[0], e[1] - e0[1]) || 1);
         slab(g, [[e[0] - ux * d * 0.5 + uy * d * 0.56, e[1] - uy * d * 0.5 - ux * d * 0.56], [e[0] + ux * d * 0.12 + uy * d * 0.56, e[1] + uy * d * 0.12 - ux * d * 0.56], [e[0] + ux * d * 0.12 - uy * d * 0.56, e[1] + uy * d * 0.12 + ux * d * 0.56], [e[0] - ux * d * 0.5 - uy * d * 0.56, e[1] - uy * d * 0.5 + ux * d * 0.56]], { fill: C.white, w: w * 0.9, seed: seed + 'whip', over: 0.2 });
