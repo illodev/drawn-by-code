@@ -1,0 +1,1 @@
+    ['kit-sheet', ['kit', 'stand', 65, 0], ['kit', 'jump', 549, 0]],

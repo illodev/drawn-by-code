@@ -3,16 +3,15 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **an animation test the user says is on the right track («creo que vamos bien», round 32):
-Hoagie's bar, every frame from the code of the drawings made from his sheets, as they are or
-edited; it needs more frames, and images may be generated for views the drawings do not have**
-(rounds 31–32: `film.js` `HOAGIE_X` and `HOAGIE_KEYS`,
-`cast/hoagie-edit.js`; `review/hoagie-anim.jpg`), waiting for the user's verdict. Settled by the
-user so far: no more generated sheets (28); no bending (27); **no 3D** (31); **nothing drawn by
-hand that does not come from the images** (31). The film itself (`scene.js` + `film.js`,
-31.75 s, `render/pier-pressure.mp4`) was judged in round 26: not the level wanted; everything
-but Hoagie's bar is still as rejected. The set is approved up to round 16. The style stays
-*in testing*.
+State: **the whole cast redone from sheets on a green ground (round 35): 16 sheets, 45 drawings,
+cut out with no rules or lists (`tools/green.py`; `review/cast.jpg`, `review/kit-cut.jpg`), and the
+film running on them** (`scene.js` + `film.js`, 31.75 s, `render/pier-pressure.mp4`), waiting for
+the user's verdict on the cut. Settled by the user: no bending (27), no 3D (31), nothing drawn by
+hand that does not come from the images (31); new frames are edits of the drawings' code, with
+more frames and no rebounds (32: «creo que vamos bien»); images may be generated for views the
+drawings do not have (32), always on a coloured ground (33–35). Open: the animation level of
+everything but Hoagie's bar is as rejected in round 26. The set is approved up to round 16. The
+style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -1119,3 +1118,36 @@ background to solid green, also in every gap».
   versions: 16 sheets, 6,928 credits at one variation each. That is the user's decision; the
   green test sheet is in `private/`, nothing in the film uses it yet.
 
+## Round 35 (user) · all sixteen sheets again, on green
+
+> Rehaz las 16 hojas sobre verde
+
+- **The sheets**: each white sheet was sent back to the generator as an edit («reproduce this
+  image exactly; only the background becomes solid green, also in every gap»). Ten came back;
+  five were blocked by the generator's own filter (Hoagie's and Milo's model sheets, Milo's key
+  poses, both of Pip's) and were asked for again as a new sheet with the old one as reference
+  («the same poses, redrawn as faithfully as possible, on green»): all five came. 20 generations
+  launched (8,660 credits) plus the test of round 34; whether the five blocked ones were charged
+  is not shown. They are redrawn, as round 34 warned: same poses, other lines. The white sheets
+  are in `private/white/`.
+- **`tools/green.py`** replaces boxes, keep polygons and hole lists: the figures are whatever is
+  not green (the biggest pieces left to right; a loose bit, a flying camcorder, chips in the
+  air, goes with the nearest figure), the page is the green wherever it is, each pose gets its
+  anchor (between its soles, or its middle in the air) and its pixels per metre from the
+  sheet's reference pose, written into the drawing (`Drawn.meta`). One file per sheet
+  (`cast/<sheet>-drawn.js`), 14 s a pose, four sheets at a time. The pieces a pose is cut into
+  (the gull off his bollard, the cone in his claws, Hoagie's three thumb drawings) are polygons
+  in the pose's own pixels (`tools/parts.py`).
+- **The film on them**: `film.js` and `scene.js` read each drawing's own anchor and scale (the
+  tables of anchors by hand are gone); Kit's board is now the skateboard drawn alone on Milo's
+  sheet, turned level (`KitAct.board`), not a deck drawn by hand; her plasters need no hand
+  details; `dev/fidelity/scene.js` draws every pose on its sheet's green and on the quay's lilac.
+- Seen and fixed: six of the new drawing files shared a name with old ones and were deleted
+  with them (converted again); Hoagie's raised fist had lost its outline (its skin is one shape
+  with the face's, painted over the arm: in that drawing the arm now goes on last); Dot stood
+  behind her stack of cones and ducked when serving (moved and raised); the gull was small on
+  the pier.
+
+Checked: every pose on lilac (`review/cast.jpg`): no green left, no white where the page should
+be; Kit at the user's crop (`review/kit-cut.jpg`): the quay shows between her arms and her body.
+Not checked pose by pose at 4× against the sheets.

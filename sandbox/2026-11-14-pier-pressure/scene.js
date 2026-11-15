@@ -16,6 +16,8 @@
 // 0.32, loses speed at each hit and rolls to a stop under friction, and jumps a little when
 // she lands beside it; Captain's hops are jumps under the same gravity.
 const DIR = 'sandbox/2026-11-14-pier-pressure/';
+// the cast's drawings: one file per sheet (ref/<sheet>.png, on green; tools/green.py)
+const SHEETS = ['kit-sheet', 'kit-drop-a', 'kit-drop-b', 'kit-ride', 'hoagie-sheet', 'hoagie-keys', 'hoagie-seq-turn', 'hoagie-seq-thumb', 'milo-sheet', 'milo-keys', 'pip-sheet', 'pip-keys', 'dot-sheet', 'dot-keys', 'captain-sheet', 'captain-keys'];
 const B0 = 0.05; // the song's first beat
 // the edit: [from, to, name, shot(g, t, u, env), how the camera gets there]; u is the time since
 // the shot's cut. Without a fifth entry the shot carries on from the one before (the camera moves
@@ -98,14 +100,14 @@ function kitShot(g, t, env) {
 
     // Aunt Dot (1.8 m) inside her hut, behind her counter: the clatter makes her look up
     {
-        const [, , dZ] = A.dot.foot, [dx, dy] = Cam.pt(A.dot.foot), ds = (Cam.scale(dZ) * Cam.HEIGHT.dot) / 700, [dw] = Drawn.size('dot', 'stand');
+        const [, , dZ] = A.dot.foot, [dx, dy] = Cam.pt(A.dot.foot);
         const up = t < HIT ? 0 : 7 * (1 - Math.exp(-9 * (tw(HIT) - HIT))) + (dl >= 0 && dl < 3 ? [3, 5, 2][dl] : 0);
         g.save();
         g.beginPath();
         A.dot.hatch.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
         g.closePath();
         g.clip();
-        Drawn.draw(g, 'dot', 'stand', dx - (dw / 2) * ds, dy - 706 * ds - up, ds);
+        Film.put(g, 'dot', 'stand', dx - 92, dy - 7 - up, Cam.scale(dZ) / Film.M.dot.m);
         g.restore();
         Harbor.counter(g, env);
     }
@@ -175,8 +177,7 @@ function kitShot(g, t, env) {
             return u < 0 || u > (2 * v) / G ? 0 : v * u - (G * u * u) / 2;
         };
         const hgt = Math.max(hop(HIT + 1 / 12, 1.15), hop(LAND + 1 / 24, 1.75));
-        const top = A.bollard.top, [bx, by] = Cam.pt([top[0], top[1] + hgt, top[2]]), cs = (Cam.scale(top[2]) * Cam.HEIGHT.captain) / 525;
-        Drawn.draw(g, 'captain', 'perch', bx - 170 * cs, by - 527 * cs, cs, { only: ['bird'] });
+        Film.put3(g, 'captain', 'perch', [A.bollard.top[0], A.bollard.top[1] + hgt, A.bollard.top[2]], { only: ['bird'] });
     }
     g.restore();
 
@@ -189,7 +190,7 @@ Motion.scene({
     fps: 24,
     duration: 31.75,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'hoagie', 'milo', 'pip', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-drop-drawn.js', DIR + 'cast/kit-drop-details.js', DIR + 'cast/hoagie-keys-drawn.js', DIR + 'cast/pip-keys-drawn.js', DIR + 'cast/dot-keys-drawn.js', DIR + 'cast/milo-keys-drawn.js', DIR + 'cast/captain-keys-drawn.js', DIR + 'cast/kit-ride-drawn.js', DIR + 'cast/hoagie-turn-drawn.js', DIR + 'cast/hoagie-thumb-drawn.js', DIR + 'cast/hoagie-edit.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...SHEETS.map((n) => DIR + 'cast/' + n + '-drawn.js'), DIR + 'cast/hoagie-edit.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     beatOffset: B0,

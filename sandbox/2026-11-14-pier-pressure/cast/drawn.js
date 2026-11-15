@@ -192,5 +192,5 @@ const Drawn = (() => {
         g.restore();
     }
     const colours = (who, pose) => [...new Set(compile(defs[who][pose]).flatMap((p) => p.fills.map((f) => f.color)))];
-    return { colours, def, add, draw, size: (who, pose) => [defs[who][pose].meta.w, defs[who][pose].meta.h], parts: (who, pose) => compile(defs[who][pose]).map((p) => p.name) };
+    return { meta: (who, pose) => defs[who][pose].meta, colours, def, add, draw, size: (who, pose) => [defs[who][pose].meta.w, defs[who][pose].meta.h], parts: (who, pose) => compile(defs[who][pose]).map((p) => p.name) };
 })();

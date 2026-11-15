@@ -1,0 +1,19 @@
+// where each pose sits on its sheet (written by tools/green.py)
+const CastSheets = [
+    ['kit-sheet', ['kit', 'stand', 65, 0], ['kit', 'jump', 549, 0]],
+    ['kit-drop-a', ['kit', 'tuck', 35, 1], ['kit', 'reach', 397, 56], ['kit', 'contact', 853, 95]],
+    ['kit-drop-b', ['kit', 'crouch', 6, 267], ['kit', 'rise', 450, 76], ['kit', 'proud', 866, 11]],
+    ['kit-ride', ['kit', 'push', 1, 123], ['kit', 'glide', 436, 162], ['kit', 'point', 828, 48]],
+    ['hoagie-sheet', ['hoagie', 'film', 70, 50], ['hoagie', 'jump', 526, 0]],
+    ['hoagie-keys', ['hoagie', 'run', 9, 97], ['hoagie', 'skid', 487, 111], ['hoagie', 'proud', 910, 94]],
+    ['hoagie-seq-turn', ['hoagie', 't1', 18, 114], ['hoagie', 't2', 341, 114], ['hoagie', 't3', 654, 118], ['hoagie', 't4', 972, 115]],
+    ['hoagie-seq-thumb', ['hoagie', 'a1', 16, 178], ['hoagie', 'a2', 328, 91], ['hoagie', 'a3', 641, 139], ['hoagie', 'a4', 960, 148]],
+    ['milo-sheet', ['milo', 'stand', 116, 0], ['milo', 'board', 642, 432], ['milo', 'fall', 571, 9]],
+    ['milo-keys', ['milo', 'crouch', 34, 133], ['milo', 'smug', 438, 0], ['milo', 'run', 783, 70]],
+    ['pip-sheet', ['pip', 'stand', 102, 22], ['pip', 'ride', 630, 35]],
+    ['pip-keys', ['pip', 'push', 11, 109], ['pip', 'lolly', 496, 93], ['pip', 'wink', 919, 95]],
+    ['dot-sheet', ['dot', 'stand', 100, 0], ['dot', 'serve', 623, 11]],
+    ['dot-keys', ['dot', 'basket', 7, 32], ['dot', 'salt', 376, 57], ['dot', 'yell', 806, 36]],
+    ['captain-sheet', ['captain', 'perch', 56, 1], ['captain', 'fly', 559, 29]],
+    ['captain-keys', ['captain', 'ready', 14, 294], ['captain', 'launch', 467, 11], ['captain', 'down', 799, 226]],
+];

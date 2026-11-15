@@ -3,7 +3,7 @@
 const DIR = 'sandbox/2026-11-14-pier-pressure/';
 Motion.scene({
     fps: 24, duration: 2, logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', DIR + 'cast/kit-drawn.js', DIR + 'cast/hoagie-drawn.js', DIR + 'cast/milo-drawn.js', DIR + 'cast/pip-drawn.js', DIR + 'cast/dot-drawn.js', DIR + 'cast/captain-drawn.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     shots: [[0, 2, 'stage']],

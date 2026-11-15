@@ -12,23 +12,14 @@ const Film = (() => {
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k;
     const ease = (k) => { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); };
 
-    // The cast's drawings: pixels of drawing per metre (measured on the standing pose: top of the
-    // figure to its soles) and each pose's anchor in its own pixels: the point between the soles
-    // of a standing pose, the middle of a flying one.
-    // (a pose from a later sheet has a third number: that sheet's own pixels per metre)
-    const CAPM = 1300;
-    const M = {
-        hoagie: { m: 658 / 1.32, film: [385, 660], jump: [330, 335], run: [200, 490, 380], skid: [185, 485, 380], proud: [175, 508, 380] },
-        milo: { m: 702 / 1.62, stand: [316, 706], fall: [362, 327], crouch: [200, 515, 413], smug: [190, 677, 413], run: [250, 565, 413] },
-        pip: { m: 659 / 1.12, stand: [300, 664], ride: [300, 652], push: [250, 530, 451], lolly: [210, 547, 451], wink: [185, 542, 451] },
-        dot: { m: 697 / 1.8, stand: [206, 706], serve: [296, 706], basket: [225, 625, 344], salt: [190, 606, 344], yell: [215, 645, 344] },
-        captain: { m: 525 / 0.46, perch: [170, 527], fly: [384, 324], ready: [155, 351, CAPM], launch: [150, 607, CAPM], down: [226, 210, CAPM] },
-        kit: { m: 500, stand: [235, 708], jump: [370, 360], push: [280, 519, 388], glide: [215, 486, 388], point: [250, 597, 388] },
-    };
+    // The cast: a nominal number of drawing pixels per metre for each (callers size a drawing as
+    // frame units per metre ÷ this); each drawing carries its own anchor and its own pixels per
+    // metre (cast/*-drawn.js, written by tools/green.py), and `put` goes by those.
+    const M = { hoagie: { m: 500 }, milo: { m: 430 }, pip: { m: 590 }, dot: { m: 390 }, captain: { m: 1140 }, kit: { m: 500 } };
     // a drawing with its anchor on a point of the frame; o: rot, sx, sy (about the anchor), flip
     function put(g, who, pose, x, y, s, o = {}) {
-        const a = M[who][pose];
-        s *= M[who].m / (a[2] ?? M[who].m);
+        const mt = Drawn.meta(who, pose), a = mt.at;
+        s *= M[who].m / mt.m;
         g.save();
         g.translate(x, y);
         if (o.rot) g.rotate(o.rot);
@@ -87,28 +78,20 @@ const Film = (() => {
             put3(g, 'captain', 'perch', [top[0], top[1] + (o.captain?.h ?? 0), top[2]], { only: ['bird'], weight: o.captain?.weight, sy: o.captain?.sy });
         }
     }
-    // Captain in flight, his body's middle on (x, y): wings up (his model sheet's drawing) and
-    // wings down (a key pose), two drawings each. With the cone of chips, the cone is a part of
-    // the first drawing, and is carried under the second one's feet too
+    // Captain in flight, his body's middle on (x, y): wings up (his model sheet's drawing, with
+    // the cone of chips in his feet) and wings down (a key pose), two drawings each
     function capFly(g, t, x, y, s, o = {}) {
-        const up = (nth(t) >> 1) % 2 === 0, cone = o.cone !== false;
+        const up = (nth(t) >> 1) % 2 === 0, f = Drawn.meta('captain', 'fly'), d = Drawn.meta('captain', 'down');
         g.save();
-        g.translate(x, y + (up ? 0 : -30 * s)); // the body lifts as the wings come down
+        g.translate(x, y + (up ? 0 : -30 * s));
         g.rotate(o.rot ?? 0);
-        if (up) put(g, 'captain', 'fly', 0, 0, s, cone ? {} : { hide: ['cone'] });
+        if (up) put(g, 'captain', 'fly', 0, 0, s);
         else {
-            // the two sheets draw him at different sizes: matched here on his head (1.62)
-            const k = s * 1.45, a = M.captain.down;
-            Drawn.draw(g, 'captain', 'down', -a[0] * k, -a[1] * k, k);
-            // the cone and the feet that hold it (their grip is at 204, 464 of the first drawing), on
-            // his trailing feet; the leg that comes with the foot is cut off above the ankle
-            if (cone) {
-                const ox = (45 - a[0]) * k - 204 * s, oy = (150 - a[1]) * k - 464 * s;
-                g.beginPath();
-                g.rect(ox, oy + 432 * s, 769 * s, 300 * s);
-                g.clip();
-                Drawn.draw(g, 'captain', 'fly', ox, oy, s, { only: ['cone'] });
-            }
+            // (the cone is a piece of the first drawing: its claws' grip, at 185, 500 there, goes on
+            // the second one's trailing feet, at 45, 250)
+            const kd = (s * M.captain.m) / d.m, kf = (s * M.captain.m) / f.m;
+            Drawn.draw(g, 'captain', 'fly', (45 - d.at[0]) * kd - 185 * kf, (250 - d.at[1]) * kd - 500 * kf, kf, { only: ['cone'] });
+            Drawn.draw(g, 'captain', 'down', -d.at[0] * kd, -d.at[1] * kd, kd);
         }
         g.restore();
     }
@@ -255,7 +238,7 @@ const Film = (() => {
     // pieces put down again, a different way in each frame (cast/hoagie-edit.js). `prev` paints
     // the shot before.
     const HOAGIE_X = [[0, 't1'], [10, 't2'], [12, 't3'], [18, 't4'], [21, null], [35, 'a4'], [37, null]];
-    const HOAGIE_AT = { t1: [180, 497, 345], t2: [150, 496, 345], t3: [146, 478, 345], t4: [141, 479, 345], a4: [137, 448, 339] };
+    const HOAGIE_LENS = [28, 106]; // the glass of his camcorder in `t1` (its own pixels)
     // From frame 21, one row a frame: [the drawing whose code is edited, how far its upper body is
     // down over its legs, its head about the neck, its arm about the sleeve, its cowlick, its lids].
     // Every change of drawing is cushioned on both sides: the one that leaves is already moving
@@ -278,11 +261,11 @@ const Film = (() => {
         stage(g, nth(t), X, Y, C.orange, '#e0661f', { floor: C.maroon });
         const name = HOAGIE_X.filter(([at]) => f >= at).pop()[1];
         if (name) {
-            const [ax, ay, m] = HOAGIE_AT[name], s = PPM / m;
-            Drawn.draw(g, 'hoagie', name, X - ax * s, Y - ay * s, s, { halo });
+            const mt = Drawn.meta('hoagie', name), s = PPM / mt.m;
+            Drawn.draw(g, 'hoagie', name, X - mt.at[0] * s, Y - mt.at[1] * s, s, { halo });
         } else {
             const [pose, crouch, head, swing, cow, lids = 0] = HOAGIE_ROWS[f];
-            HoagieEdit.frame(g, X, Y, PPM / 339, { pose, crouch, head, swing, cow, lids, halo });
+            HoagieEdit.frame(g, X, Y, PPM / Drawn.meta('hoagie', pose).m, { pose, crouch, head, swing, cow, lids, halo });
         }
         if (f >= HIT && f < HIT + 6) for (let i = 0; i < 5; i++) {
             // the thumb lands: ticks round it
@@ -292,8 +275,8 @@ const Film = (() => {
         card(g, u, 1, 'HOAGIE', 'STILL ROLLING', 1215, 560, { fill: C.maroon, drop: C.ink, second: C.roadLine, k: 1.05, tilt: -0.05 });
         // out of the lens: what the shot before showed shrinks into the glass of his camcorder
         if (prev && f < 9) {
-            const r = [1000, 600, 340, 190, 108, 66, 44, 36, 36][f], k = Math.min(1, f / 6), s1 = PPM / HOAGIE_AT.t1[2];
-            const cx = lerp(800, X + (33 - HOAGIE_AT.t1[0]) * s1, k * k), cy = lerp(450, Y + (110 - HOAGIE_AT.t1[1]) * s1, k * k);
+            const r = [1000, 600, 340, 190, 108, 66, 44, 36, 36][f], k = Math.min(1, f / 6), m1 = Drawn.meta('hoagie', 't1'), s1 = PPM / m1.m;
+            const cx = lerp(800, X + (HOAGIE_LENS[0] - m1.at[0]) * s1, k * k), cy = lerp(450, Y + (HOAGIE_LENS[1] - m1.at[1]) * s1, k * k);
             g.save();
             g.beginPath();
             g.arc(cx, cy, r, 0, 6.3);
@@ -356,9 +339,9 @@ const Film = (() => {
         const d = nth(u), k = Math.min(3, nth(u, 1.25));
         // (she works at the middle of her hatch, clear of what stands on the counter, and the basket
         // comes up over the sill to be shaken)
-        const act = u < 0.5 ? { pose: 'basket', up: 50 + [0, 9, 1, 7][d % 4], dx: -66 + [0, -2, 0, 2][d % 4] }
-            : u < 1.25 ? { pose: 'salt', up: 22 + [3, 0][d % 2], dx: -62, sy: d === 6 ? 1.04 : 1 }
-            : { pose: 'serve', up: 12 + [16, -3, 2, 0][k], dx: -70, sy: [1.06, 0.97, 1.01, 1][k] };
+        const act = u < 0.5 ? { pose: 'basket', up: 50 + [0, 9, 1, 7][d % 4], dx: -92 + [0, -2, 0, 2][d % 4] }
+            : u < 1.25 ? { pose: 'salt', up: 22 + [3, 0][d % 2], dx: -92, sy: d === 6 ? 1.04 : 1 }
+            : { pose: 'serve', up: 44 + [16, -3, 2, 0][k], dx: -92, sy: [1.06, 0.97, 1.01, 1][k] };
         // (the hut is eight metres off: the others are left out of this one, they would stand in it)
         view(g, env, [hx + 46, hy + 6], 3.4, 3.4, (e) => world(g, e, t, { dot: { weight: 2.2, ...act } }));
         card(g, u, 1, 'AUNT DOT', 'MIND THE CURVE', 1240, 720, { fill: C.red, drop: C.maroon });
@@ -416,7 +399,7 @@ const Film = (() => {
         if (u >= 1.5) actors.push(pipRide(t, -4.2 + (twos(u) - 1.5) * 6.4, 3.05, nth(u) % 6 < 3 ? 'push' : 'ride'));
         if (cp[2] > 3.9) actors.push({ z: cp[2], draw: bird });
         view(g, env, [800, 470], 1.06, 1.6, (e) => {
-            world(g, e, t, { actors, captain: null, dot: u < 0.5 ? { pose: 'serve', up: 12, dx: -70 } : { pose: 'yell', up: 14 + [14, -2, 3, 0][Math.min(3, nth(u, 0.5))] + [0, 3][nth(u) % 2], dx: -60 + [0, 2][nth(u) % 2] } });
+            world(g, e, t, { actors, captain: null, dot: u < 0.5 ? { pose: 'serve', up: 44, dx: -92 } : { pose: 'yell', up: 14 + [14, -2, 3, 0][Math.min(3, nth(u, 0.5))] + [0, 3][nth(u) % 2], dx: -92 + [0, 2][nth(u) % 2] } });
             if (cp[2] <= 3.9) bird(g);
             for (const [gg, P] of [[gk, KIT], [gh, HOAGIE], [gm, MILO]]) if (gg) { const [px, py] = Cam.pt(P); puff(g, px, py, gg.v / 0.4, 6, 22, 'go' + P[0]); }
         });
@@ -597,7 +580,7 @@ const Film = (() => {
         }
     }
     // the four of them and the gull, each its own way of going: x on the frame, y the deck's line
-    const SK = { kit: PX / M.kit.m, hoagie: PX / M.hoagie.m, milo: PX / M.milo.m, pip: PX / M.pip.m, captain: (PX / M.captain.m) * 1.5 };
+    const SK = { kit: PX / M.kit.m, hoagie: PX / M.hoagie.m, milo: PX / M.milo.m, pip: PX / M.pip.m, captain: (PX / M.captain.m) * 2.3 };
     const runner = {
         // Kit skates: three drawings of push, five of glide; near the end she has seen where he is going
         kit(g, t, x, y, o = {}) {
@@ -737,5 +720,5 @@ const Film = (() => {
         }
     }
 
-    return { viewfinder, stage, streaks, harbor, hoagie, milo, pip, dot, captain, chase0, pier, leap, hang, title, world, view, card, block, star, put, put3, twos, nth };
+    return { M, viewfinder, stage, streaks, harbor, hoagie, milo, pip, dot, captain, chase0, pier, leap, hang, title, world, view, card, block, star, put, put3, twos, nth };
 })();
