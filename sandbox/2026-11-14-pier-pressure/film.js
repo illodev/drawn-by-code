@@ -18,10 +18,10 @@ const Film = (() => {
     // (a pose from a later sheet has a third number: that sheet's own pixels per metre)
     const CAPM = 1300;
     const M = {
-        hoagie: { m: 658 / 1.32, film: [385, 660], jump: [330, 335] },
+        hoagie: { m: 658 / 1.32, film: [385, 660], jump: [330, 335], run: [200, 490, 380], skid: [185, 485, 380], proud: [175, 508, 380] },
         milo: { m: 702 / 1.62, stand: [316, 706], fall: [362, 327], crouch: [200, 515, 413], smug: [190, 677, 413], run: [250, 565, 413] },
-        pip: { m: 659 / 1.12, stand: [300, 664], ride: [300, 652] },
-        dot: { m: 697 / 1.8, stand: [206, 706], serve: [296, 706] },
+        pip: { m: 659 / 1.12, stand: [300, 664], ride: [300, 652], push: [250, 530, 451], lolly: [210, 547, 451], wink: [185, 542, 451] },
+        dot: { m: 697 / 1.8, stand: [206, 706], serve: [296, 706], basket: [225, 625, 344], salt: [190, 606, 344], yell: [215, 645, 344] },
         captain: { m: 525 / 0.46, perch: [170, 527], fly: [384, 324], ready: [155, 351, CAPM], launch: [150, 607, CAPM], down: [226, 210, CAPM] },
         kit: { m: 500, stand: [235, 708], jump: [370, 360], push: [280, 519, 388], glide: [215, 486, 388], point: [250, 597, 388] },
     };
@@ -199,13 +199,23 @@ const Film = (() => {
 
     // === 3 · Hoagie (2 s): through his viewfinder, then the boy behind it =========================
     function hoagie(g, t, u, env) {
-        const e0 = enter(u, 520), up = hop(twos(u, 1) - 1, 1.5), s = Cam.scale(HOAGIE[2]);
-        const c = move(u, WIDE, F_HOAGIE, 9); // the camera pushes in to the two of them
-        view(g, env, c.f, c.z, 1.6, (e) => world(g, e, t, { actors: [kitRest(t), { z: HOAGIE[2], draw(gg) {
-            put3(gg, 'hoagie', 'film', [HOAGIE[0] + e0.dx / s, up, HOAGIE[2]], { sx: e0.sx, sy: e0.sy, rot: u > 0.4 && u < 1 ? Math.sin((twos(u) - 0.4) * 10) * 0.05 : 0 });
-        } }] }));
-        if (u < 1) {
-            // what his camcorder sees: the corners of the viewfinder, REC
+        // in from the right at a run, a skid to a stop beside her, the camcorder to his eye; and
+        // on the bar's last beat, the proudest thumb in Gull Harbor
+        const d = nth(u), c = move(u, WIDE, F_HOAGIE, 9); // the camera pushes in to the two of them
+        view(g, env, c.f, c.z, 1.6, (e) => {
+            world(g, e, t, { actors: [kitRest(t), { z: HOAGIE[2], draw(gg) {
+                if (d < 5) put3(gg, 'hoagie', 'run', [HOAGIE[0] + [2.3, 1.8, 1.35, 0.95, 0.6][d], [0.02, 0.1, 0.02, 0.1, 0.02][d], HOAGIE[2]], { rot: [-0.04, 0.02, -0.04, 0.02, -0.02][d] });
+                else if (d < 8) put3(gg, 'hoagie', 'skid', [HOAGIE[0] + [0.3, 0.1, 0][d - 5], 0, HOAGIE[2]], { sx: [1.06, 1.02, 1][d - 5], sy: [0.94, 0.98, 1][d - 5] });
+                else if (u < 1.25) put3(gg, 'hoagie', 'film', HOAGIE, { rot: Math.sin((twos(u) - 0.67) * 9) * 0.03, sy: d === 8 ? 1.05 : 1 });
+                else {
+                    const k = Math.min(3, nth(u, 1.25));
+                    put3(gg, 'hoagie', 'proud', HOAGIE, { sx: [0.93, 1.05, 0.99, 1][k], sy: [1.09, 0.94, 1.01, 1][k] * (1 + Motion.pulse(twos(u), 120, 0.05, 6) * 0.008) });
+                }
+            } }] });
+            if (d >= 5 && d < 11) { const [px, py] = Cam.pt([HOAGIE[0] - 0.3, 0, HOAGIE[2]]); puff(g, px, py, (d - 5) / 6, 6, 18, 'skid'); }
+        });
+        if (u >= 0.67 && u < 1.25) {
+            // while he films: what his camcorder sees: the corners of the viewfinder, REC
             const m = 70, L = 90;
             g.save();
             g.lineCap = 'round';
@@ -251,28 +261,34 @@ const Film = (() => {
     }
 
     // === 5 · Pip (2 s): through the lot of them, without looking up ==================================
-    const pipRide = (t, X, Z) => ({ z: Z, draw(g) {
+    const pipRide = (t, X, Z, pose = 'ride') => ({ z: Z, draw(g) {
         const d = nth(t), [x, y] = Cam.pt([X, 0, Z]);
         // what she leaves behind her: three lines of speed
         for (let i = 0; i < 3; i++) T.line(g, [[x - 250 - i * 34 - (d % 2) * 26, y - 70 - i * 92], [x - 400 - i * 60 - (d % 2) * 26, y - 70 - i * 92]], { w: T.LINE, seed: 'pipspeed' + i });
-        put3(g, 'pip', 'ride', [X, [0, 0.012][d % 2], Z], { rot: -0.04 + [0, 0.012][d % 2] });
+        put3(g, 'pip', pose, [X, [0, 0.012][d % 2], Z], { rot: (pose === 'push' ? -0.03 : 0) + [0, 0.01][d % 2] });
     } });
     function pip(g, t, u, env) {
-        const X = -2.7 + twos(u) * 2.25;
+        // two pushes to get up to speed, then through the lot of them with her lollipop and her
+        // eyes half shut; a look back at us on the last beat
+        const X = -2.7 + twos(u) * 2.25, d = nth(u), pose = u < 0.5 ? (d % 3 === 2 ? 'ride' : 'push') : u < 1.25 ? 'lolly' : 'wink';
         const c = move(u, F_MILO, { f: [600, 520], z: 1.3 }, 8); // off Milo, and along with her
-        view(g, env, [c.f[0] + 260 * ease(u / 2), c.f[1]], c.z, 1.6, (e) => world(g, e, t, { actors: [kitRest(t), hoagieRest(t), miloRest(t), pipRide(t, X, 3.05)] }));
+        view(g, env, [c.f[0] + 260 * ease(u / 2), c.f[1]], c.z, 1.6, (e) => world(g, e, t, { actors: [kitRest(t), hoagieRest(t), miloRest(t), pipRide(t, X, 3.05, pose)] }));
         card(g, u, 1, 'PIP', 'NOT BOTHERED', 1240, 250, { fill: C.green, drop: C.ink, second: C.lime, ink: C.maroon, tilt: 0.05 });
     }
 
     // === 6 · Aunt Dot (2 s): at her hatch; chips up ==================================================
     function dot(g, t, u, env) {
         const A = Harbor.AT, hx = A.dot.hatch.reduce((s, p) => s + p[0], 0) / A.dot.hatch.length, hy = A.dot.hatch.reduce((s, p) => s + p[1], 0) / A.dot.hatch.length;
-        const d = nth(u, 1), served = u >= 1;
+        // a shake of the basket, salt from a height, and on the last beat the cone held out: chips up
+        const d = nth(u), k = Math.min(3, nth(u, 1.25));
+        // (she works at the middle of her hatch, clear of what stands on the counter, and the basket
+        // comes up over the sill to be shaken)
+        const act = u < 0.5 ? { pose: 'basket', up: 50 + [0, 9, 1, 7][d % 4], dx: -66 + [0, -2, 0, 2][d % 4] }
+            : u < 1.25 ? { pose: 'salt', up: 22 + [3, 0][d % 2], dx: -62, sy: d === 6 ? 1.04 : 1 }
+            : { pose: 'serve', up: 12 + [16, -3, 2, 0][k], dx: -70, sy: [1.06, 0.97, 1.01, 1][k] };
         // (the hut is eight metres off: the others are left out of this one, they would stand in it)
-        view(g, env, [hx + 46, hy + 6], 3.4, 3.4, (e) => world(g, e, t, {
-            dot: served ? { pose: 'serve', weight: 2.2, up: 7 + [16, -3, 2, 0][Math.min(3, d)], dx: 2, sy: [1.06, 0.97, 1.01, 1][Math.min(3, d)] } : { weight: 2.2, up: 7 + Motion.pulse(twos(u), 120, 0, 6) * 2 },
-        }));
-        card(g, u, 1, 'AUNT DOT', 'MIND THE CURVE', 1150, 680, { fill: C.red, drop: C.maroon });
+        view(g, env, [hx + 46, hy + 6], 3.4, 3.4, (e) => world(g, e, t, { dot: { weight: 2.2, ...act } }));
+        card(g, u, 1, 'AUNT DOT', 'MIND THE CURVE', 1240, 720, { fill: C.red, drop: C.maroon });
     }
 
     // === 7 · Captain (2 s): on his bollard, then off it =============================================
@@ -316,7 +332,7 @@ const Film = (() => {
         const hoagieA = { z: HOAGIE[2], draw(gg) {
             if (!gh) put3(gg, 'hoagie', 'film', [HOAGIE[0], start, HOAGIE[2]], {});
             else if (gh.v < 1 / 12) put3(gg, 'hoagie', 'film', HOAGIE, gh);
-            else put3(gg, 'hoagie', 'jump', [HOAGIE[0] + gh.dx, 0.72 + hop(gh.v - 1 / 12, 2.6), HOAGIE[2]], { rot: 0.1 });
+            else put3(gg, 'hoagie', 'run', [HOAGIE[0] + gh.dx, [0, 0.07, 0.12, 0.05][nth(gh.v) % 4], HOAGIE[2]], { flip: true, rot: [0, 0.03, 0.05, 0.02][nth(gh.v) % 4] });
         } };
         const miloA = { z: MILO[2], draw(gg) {
             if (!gm) put3(gg, 'milo', 'stand', [MILO[0], start * 0.8, MILO[2]], {});
@@ -324,10 +340,10 @@ const Film = (() => {
             else put3(gg, 'milo', 'run', [MILO[0] + 0.3 + gm.dx, [0, 0.07, 0.12, 0.05][nth(gm.v) % 4], MILO[2]], { rot: [0, -0.03, -0.05, -0.02][nth(gm.v) % 4] });
         } };
         const actors = [kitA, hoagieA, miloA];
-        if (u >= 1.5) actors.push(pipRide(t, -4.2 + (twos(u) - 1.5) * 6.4, 3.05));
+        if (u >= 1.5) actors.push(pipRide(t, -4.2 + (twos(u) - 1.5) * 6.4, 3.05, nth(u) % 6 < 3 ? 'push' : 'ride'));
         if (cp[2] > 3.9) actors.push({ z: cp[2], draw: bird });
         view(g, env, [800, 470], 1.06, 1.6, (e) => {
-            world(g, e, t, { actors, captain: null, dot: { pose: 'serve', up: 7 + hop(twos(u, 0.5) - 0.5, 0.5) * 40 + Math.sin(twos(u) * 14) * 2 } });
+            world(g, e, t, { actors, captain: null, dot: u < 0.5 ? { pose: 'serve', up: 12, dx: -70 } : { pose: 'yell', up: 14 + [14, -2, 3, 0][Math.min(3, nth(u, 0.5))] + [0, 3][nth(u) % 2], dx: -60 + [0, 2][nth(u) % 2] } });
             if (cp[2] <= 3.9) bird(g);
             for (const [gg, P] of [[gk, KIT], [gh, HOAGIE], [gm, MILO]]) if (gg) { const [px, py] = Cam.pt(P); puff(g, px, py, gg.v / 0.4, 6, 22, 'go' + P[0]); }
         });
@@ -516,9 +532,15 @@ const Film = (() => {
             if (o.point) put(g, 'kit', 'point', x, y - [0, 2][d % 2], SK.kit, { rot: [0, 0.012][d % 2] });
             else put(g, 'kit', d < 3 ? 'push' : 'glide', x + (d < 3 ? -8 + d * 4 : 0), y - (d === 3 ? 5 : 0), SK.kit, { rot: d < 3 ? -0.03 + d * 0.01 : [0.015, 0, -0.01, 0, 0.01][d - 3] });
         },
-        pip(g, t, x, y) { const d = nth(t); put(g, 'pip', 'ride', x, y - [0, 3][d % 2], SK.pip, { rot: -0.04 }); },
+        // Pip: a push now and then, the rest of the time her lollipop
+        pip(g, t, x, y, o = {}) { const d = nth(t); put(g, 'pip', o.point ? 'wink' : d % 12 < 3 ? 'push' : 'lolly', x, y - [0, 3][d % 2], SK.pip, { rot: d % 12 < 3 && !o.point ? -0.03 : 0 }); },
         // Hoagie runs in leaps; Milo has stopped running and is still going
-        hoagie(g, t, x, y) { const ph = (twos(t) * 2) % 1; put(g, 'hoagie', 'jump', x, y - 667 * SK.hoagie * 0.5 - 150 * ph * (1 - ph) * 4 * 0.5, SK.hoagie, { rot: 0.06 + (ph - 0.5) * 0.2 }); },
+        // Hoagie bounds along: two drawings on the ground, two in the air
+        hoagie(g, t, x, y) {
+            const d = nth(t) % 4;
+            if (d < 2) put(g, 'hoagie', 'run', x, y - [0, 12][d], SK.hoagie, { flip: true, rot: [0.03, -0.02][d] });
+            else put(g, 'hoagie', 'jump', x, y - 667 * SK.hoagie * 0.5 - [46, 26][d - 2], SK.hoagie, { rot: 0.06 });
+        },
         milo(g, t, x, y) { const d = nth(t) % 4; put(g, 'milo', 'run', x, y - [0, 16, 26, 10][d], SK.milo, { rot: [0.02, -0.03, -0.06, -0.02][d] }); },
     };
     const flier = { kit: 'jump', pip: 'ride', hoagie: 'jump', milo: 'fall' };

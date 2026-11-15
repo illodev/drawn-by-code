@@ -3,14 +3,13 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the whole opening, cut to the theme song; camera, cards and the pier redone (round 23);
-Milo, Captain and Kit act from key poses (round 24); Hoagie, Pip and Dot still have two drawings
-each** (their key-pose sheets are not generated: the prompts are in `ref/keypose-prompts.md`): `scene.js` (the
-edit and Kit's drop) + `film.js` (the other eleven shots), 31.75 s, `render/pier-pressure.mp4`
-(silent copy; with the song: `out/`, not committed), `review/sheet-1.jpg`, `sheet-2.jpg`. Waiting
-for the user's verdict. Only Kit is animated from key poses; the other five move between the two
-drawings of their model sheets. Check any pose against its sheet with `dev/fidelity/scene.js` +
-`tools/fidelity.py`. The set is approved up to round 16. The style stays *in testing*.
+State: **the whole opening, cut to the theme song, the six of them acting from key poses** (round
+25): `scene.js` (the edit and Kit's drop) + `film.js` (the other eleven shots), 31.75 s,
+`render/pier-pressure.mp4` (silent copy; with the song: `out/`, not committed),
+`review/sheet-1.jpg`, `sheet-2.jpg`. Waiting for the user's verdict. Every character has their
+model sheet's two drawings plus three key poses (Kit: nine); check any against its sheet with
+`dev/fidelity/scene.js` + `tools/fidelity.py`. The set is approved up to round 16. The style
+stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -804,3 +803,28 @@ not a cycle; Kit's card is the old one; no sound effects.
 
 Lesson → `review`: a tool or a download refused once is tried again when something has changed
 (a host allowed, a permission given), and before telling the user it cannot be done.
+
+## Round 25 (user) · the other three sheets
+
+> Sí
+
+(to: shall I run the key-pose sheets of Hoagie, Pip and Dot, 2,598 credits with two variations
+each?) Run, downloaded, the first of each kept (`ref/hoagie-keys.png`, `pip-keys.png`,
+`dot-keys.png`; the others in `private/`), written as code (`cast/*-keys-drawn.js`) and checked
+against their sheets (0.3–0.6 % off; nothing wrong on yellow).
+
+- **Hoagie's shot**: in at a run from the right, a skid to a stop beside Kit with a puff of
+  dust, the camcorder to his eye (the viewfinder and REC now only while he films), and on the
+  bar's last beat the thumbs-up. In the chase he bounds: two drawings on the ground, two in
+  the air.
+- **Pip's shot**: two pushes, then through the three of them with her lollipop and her eyes
+  half shut, and a wink back at us on the last beat. On the pier: a push now and then.
+- **Dot's shot**: a shake of the basket with the chips jumping, salt from a height, and the
+  cone held out. She now works at the middle of her hatch (she stood behind the stack of cones)
+  and what she does is lifted over the sill. In the break she yells after the gull.
+- Kit's name card is the new one, like the others'.
+
+Still off: runs and rides are two or three drawings, not full cycles (Milo's run is one
+drawing bobbing); between two key poses there is a pop with a squash, no in-between drawing;
+a card covers part of its character for a moment in Milo's and Pip's shots; no sound effects;
+the song's words are not matched to the pictures.

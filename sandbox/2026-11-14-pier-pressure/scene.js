@@ -180,20 +180,7 @@ function kitShot(g, t, env) {
     g.restore();
 
     // her name, slammed onto the frame on the next beat
-    if (t >= CARD) {
-        const dc = Math.round((tw(CARD) - CARD) * 12), k = [0.6, 1.16, 0.95, 1][Math.min(3, dc)];
-        g.save();
-        g.translate(300, 748);
-        g.scale(0.9, 0.9);
-        g.rotate(-0.07 + [0.1, -0.03, 0.01, 0][Math.min(3, dc)]);
-        g.scale(k, k);
-        T.slab(g, [[-190, -104], [186, -118], [198, 70], [-182, 86]], { fill: C.magenta, seed: 'card', over: 2.4, w: T.LINE * 1.2 });
-        T.slab(g, [[-174, -90], [171, -103], [182, 56], [-167, 71]], { fill: null, seed: 'card-rule', over: 0.5, w: T.LINE_FINE, color: C.roadLine });
-        T.sign(g, 'KIT', 4, 44, { size: 188, fill: C.roadLine, drop: C.navy, seed: 'card-name', w: T.LINE * 1.1, track: 0.06, tilt: 0.05 });
-        T.slab(g, [[-150, 62], [158, 50], [162, 104], [-146, 116]], { fill: C.white, seed: 'card-sub', over: 1.6, w: T.LINE });
-        T.sign(g, 'FIRST ONE DOWN', 6, 102, { size: 44, fill: C.red, seed: 'card-role', w: T.LINE_FINE * 0.8, track: 0.03, tilt: 0.03, outline: C.white });
-        g.restore();
-    }
+    Film.card(g, t, CARD, 'KIT', 'FIRST ONE DOWN', 330, 720, { fill: C.magenta, drop: C.navy });
     g.restore();
 }
 
@@ -201,7 +188,7 @@ Motion.scene({
     fps: 24,
     duration: 31.75,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'hoagie', 'milo', 'pip', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-drop-drawn.js', DIR + 'cast/kit-drop-details.js', DIR + 'cast/milo-keys-drawn.js', DIR + 'cast/captain-keys-drawn.js', DIR + 'cast/kit-ride-drawn.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
+    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...['kit', 'hoagie', 'milo', 'pip', 'dot', 'captain'].map((w) => DIR + 'cast/' + w + '-drawn.js'), DIR + 'cast/kit-details.js', DIR + 'cast/kit-drop-drawn.js', DIR + 'cast/kit-drop-details.js', DIR + 'cast/hoagie-keys-drawn.js', DIR + 'cast/pip-keys-drawn.js', DIR + 'cast/dot-keys-drawn.js', DIR + 'cast/milo-keys-drawn.js', DIR + 'cast/captain-keys-drawn.js', DIR + 'cast/kit-ride-drawn.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     beatOffset: B0,

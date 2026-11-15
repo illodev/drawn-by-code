@@ -15,13 +15,17 @@ const SHEETS = [
     ['milo-keys', ['milo', 'crouch', 14, 151], ['milo', 'smug', 444, 4], ['milo', 'run', 758, 84]],
     ['captain-keys', ['captain', 'ready', 12, 270], ['captain', 'launch', 440, 25], ['captain', 'down', 818, 250]],
     ['kit-ride', ['kit', 'push', 10, 99], ['kit', 'glide', 463, 130], ['kit', 'point', 818, 25]],
+    ['hoagie-keys', ['hoagie', 'run', 5, 112], ['hoagie', 'skid', 463, 120], ['hoagie', 'proud', 924, 112]],
+    ['pip-keys', ['pip', 'push', 18, 101], ['pip', 'lolly', 479, 84], ['pip', 'wink', 912, 89]],
+    ['dot-keys', ['dot', 'basket', 10, 48], ['dot', 'salt', 441, 69], ['dot', 'yell', 816, 28]],
 ];
 const N = SHEETS.length;
 Motion.scene({
     fps: 24, duration: 2 * N, logical: [1280, 720],
     uses: ['styles/skate-toon/toon.js', DIR + 'drawn.js', DIR + 'kit-drawn.js', DIR + 'kit-details.js', DIR + 'kit-drop-drawn.js', DIR + 'kit-drop-details.js',
         DIR + 'hoagie-drawn.js', DIR + 'milo-drawn.js', DIR + 'pip-drawn.js', DIR + 'dot-drawn.js', DIR + 'captain-drawn.js',
-        DIR + 'milo-keys-drawn.js', DIR + 'captain-keys-drawn.js', DIR + 'kit-ride-drawn.js'],
+        DIR + 'milo-keys-drawn.js', DIR + 'captain-keys-drawn.js', DIR + 'kit-ride-drawn.js',
+        DIR + 'hoagie-keys-drawn.js', DIR + 'pip-keys-drawn.js', DIR + 'dot-keys-drawn.js'],
     shots: SHEETS.map((s, i) => [i, i + 1, s[0]]),
     draw(g, t, env) {
         const i = Math.min(2 * N - 1, Math.floor(t));

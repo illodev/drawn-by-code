@@ -10,8 +10,8 @@ board, running in a panic), **Captain** (crouched to spring, taking off, wings d
 The first variation of each is in `ref/` (`milo-keys.png`, `captain-keys.png`, `kit-ride.png`) and
 written as code; the second ones are in `private/`.
 
-Not generated yet (the run was refused in the session; the Hoagie node is on the canvas with
-its prompt, ready to run):
+Generated after the user's go-ahead (two variations each, the first kept: `hoagie-keys.png`,
+`pip-keys.png`, `dot-keys.png`):
 
 ## Hoagie (reference: his model sheet)
 
