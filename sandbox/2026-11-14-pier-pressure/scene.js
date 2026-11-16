@@ -99,16 +99,16 @@ function kitShot(g, t, env) {
     }
     Harbor.back(g, env, t);
 
-    // Aunt Dot (1.8 m) inside her hut, behind her counter: the clatter makes her look up
+    // Aunt Dot (1.8 m) inside her hut, behind her counter: the clatter makes her blink, twice, and
+    // so does the landing (her drawing stays where it is: slid up and down it was a cut-out)
     {
         const [, , dZ] = A.dot.foot, [dx, dy] = Cam.pt(A.dot.foot);
-        const up = t < HIT ? 0 : 7 * (1 - Math.exp(-9 * (tw(HIT) - HIT))) + (dl >= 0 && dl < 3 ? [3, 5, 2][dl] : 0);
         g.save();
         g.beginPath();
         A.dot.hatch.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
         g.closePath();
         g.clip();
-        Film.put(g, 'dot', 'stand', dx - 92, dy - 7 - up, Cam.scale(dZ) / Film.M.dot.m);
+        Film.put(g, 'dot', 'stand', dx - 92, dy - 7, Cam.scale(dZ) / Film.M.dot.m, { blink: Math.max(Film.blinkAt(t, HIT + 2 / 24), Film.blinkAt(t, HIT + 8 / 24), Film.blinkAt(t, LAND + 3 / 24)) });
         g.restore();
         Harbor.counter(g, env);
     }

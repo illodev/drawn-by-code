@@ -16,7 +16,9 @@ const Film = (() => {
     // frame units per metre ÷ this); each drawing carries its own anchor and its own pixels per
     // metre (cast/*-drawn.js, written by tools/green.py), and `put` goes by those.
     const M = { hoagie: { m: 500 }, milo: { m: 430 }, pip: { m: 590 }, dot: { m: 390 }, captain: { m: 1140 }, kit: { m: 500 } };
-    // a drawing with its anchor on a point of the frame; o: rot, sx, sy (about the anchor), flip
+    // a drawing with its anchor on a point of the frame; o: rot, sx, sy (about the anchor), flip,
+    // blink (0…1: the lids down)
+    const blinkAt = (t, t0) => [0.5, 1, 0.5][Math.round((t - t0) * 24)] ?? 0; // three frames of blink from t0
     function put(g, who, pose, x, y, s, o = {}) {
         const mt = Drawn.meta(who, pose), a = mt.at;
         s *= M[who].m / mt.m;
@@ -24,7 +26,8 @@ const Film = (() => {
         g.translate(x, y);
         if (o.rot) g.rotate(o.rot);
         g.scale((o.flip ? -1 : 1) * (o.sx ?? 1), o.sy ?? 1);
-        Drawn.draw(g, who, pose, -a[0] * s, -a[1] * s, s, { weight: o.weight, only: o.only, hide: o.hide });
+        const eyes = o.blink ? { blink: o.blink, lid: lidOf(who, pose), face: [mt.w / 2, mt.h * 0.2, mt.h * 0.32] } : {};
+        Drawn.draw(g, who, pose, -a[0] * s, -a[1] * s, s, { weight: o.weight, only: o.only, hide: o.hide, ...eyes });
         g.restore();
     }
     // ... and on a point of the world, at its size there
@@ -67,7 +70,7 @@ const Film = (() => {
             A.dot.hatch.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
             g.closePath();
             g.clip();
-            put(g, 'dot', pose, dx + (d.dx ?? 0), dy - (d.up ?? 7), ds, { weight: d.weight, sy: d.sy });
+            put(g, 'dot', pose, dx + (d.dx ?? -92), dy - (d.up ?? 7), ds, { weight: d.weight, sy: d.sy, blink: d.blink });
             g.restore();
             Harbor.counter(g, env);
         }
@@ -170,8 +173,9 @@ const Film = (() => {
     // === 1 · Gull Harbor (4 s): the sign; the camera cranes down and back to the quay =============
     function harbor(g, t, u, env) {
         const k = ease((u - 1.4) / 1.3), c = { f: [lerp(1150, 800, k), lerp(205 + 40 * Math.min(1, u / 1.4), 450, k)], z: 2 * Math.pow(0.5, k) };
-        // Dot comes up behind her counter once it is in sight; Captain keeps watch
-        view(g, env, c.f, c.z, 2, (e) => world(g, e, t, { dot: { up: -70 + 77 * ease((twos(u) - 2.9) / 0.34) }, captain: { h: hop(twos(u, 3.5) - 3.5, 1.1) } }));
+        // Dot is at her counter when it comes into sight, where the next shot finds her (she used to
+        // rise behind it like a lift, a step to one side of that place); Captain keeps watch
+        view(g, env, c.f, c.z, 2, (e) => world(g, e, t, { dot: { blink: blinkAt(u, 3.25) }, captain: { h: hop(twos(u, 3.5) - 3.5, 1.1) } }));
     }
 
     // === 3 · Hoagie (2 s): through his viewfinder, then the boy behind it =========================
@@ -217,10 +221,14 @@ const Film = (() => {
             const r = 15 - i * 1.3 - j * 1.6;
             if (r > 1.5) { g.beginPath(); g.arc(1560 - i * 46 - (j % 2) * 23, 40 + j * 40, r, 0, 6.3); g.fill(); }
         }
-        T.slab(g, [[-20, y - 28], [1620, y - 62], [1620, 920], [-20, 920]], { fill: o.floor ?? C.navy, seed: 'stage-floor', over: 0, w: T.LINE * 1.4 });
+        // o.far: how much further back the floor goes (someone whose feet are one behind the other
+        // needs floor behind the far one, or she stands on its edge); o.at [x, dy, rx, ry]: the shadow,
+        // round the feet (both of them inside it), not under them
+        const far = o.far ?? 0, sh = o.at ?? [x, 6, 250, 30];
+        T.slab(g, [[-20, y - 28 - far], [1620, y - 62 - far], [1620, 920], [-20, 920]], { fill: o.floor ?? C.navy, seed: 'stage-floor', over: 0, w: T.LINE * 1.4 });
         g.fillStyle = 'rgba(0, 0, 0, 0.28)';
         g.beginPath();
-        g.ellipse(x, y + 6, 250 * (o.shadow ?? 1), 30, 0, 0, 6.3);
+        g.ellipse(sh[0], y + sh[1], sh[2] * (o.shadow ?? 1), sh[3], 0, 0, 6.3);
         g.fill();
     }
 
@@ -387,12 +395,33 @@ const Film = (() => {
     // in it, salt from a height, and on the bar's last beat the cone, held out: chips up.
     function dot(g, t, u, env, prev) {
         const f = Math.min(47, Math.round(u * 24)), PPM = 370;
-        stage(g, nth(t), FX, FY, C.salmon, '#f59b70', { floor: C.maroon });
+        stage(g, nth(t), FX, FY, C.salmon, '#f59b70', { floor: C.maroon, far: 46, at: [f < 34 ? FX : FX + 120, -14, 235, 40] });
         if (f < 16) act(g, 'dot', 'basket', FX, FY, PPM, { crouch: 0.011 * (1 - Math.cos((f / 4) * Math.PI)) + cushion(f, 0, 16, { in: false }) });
         else if (f < 34) act(g, 'dot', 'salt', FX, FY, PPM, { crouch: cushion(f, 16, 34) + 0.004 * (1 - Math.cos(((f - 20) / 3) * Math.PI)) * (f >= 20 && f < 31 ? 1 : 0) });
         else act(g, 'dot', 'serve', FX + 120, FY, PPM, { crouch: cushion(f, 34, 99), blink: [0.5, 1, 0.5][f - 42] ?? 0 });
         card(g, u, 1, 'AUNT DOT', 'MIND THE CURVE', 1215, 560, { fill: C.red, drop: C.maroon, tilt: -0.05 });
         wipe(g, f, 8, 1, prev, (wx, e) => act(g, 'pip', 'wink', wx + 120, FY - 4, 520, {}));
+    }
+
+    // The bollard of Captain's sheet without him. Under his feet the sheet has no metal (it was never
+    // drawn): once he is off it, its top is closed with the post's own grey and one line from
+    // shoulder to shoulder (pose pixels, read on the sheet where the top shows between his feet)
+    const DOME = [[97, 545], [108, 530], [132, 518], [165, 510], [200, 506], [240, 505], [285, 507], [322, 513], [348, 524], [361, 540]];
+    function postAlone(g, x, y, ppm) {
+        const mt = Drawn.meta('captain', 'perch'), s = ppm / mt.m, X = x - mt.at[0] * s, Y = y - mt.at[1] * s;
+        const top = new Path2D(), cap = new Path2D();
+        DOME.forEach(([px, py], i) => {
+            if (!i) { top.moveTo(px, py); cap.moveTo(px, py); return; }
+            const [qx, qy] = DOME[i - 1], last = i === DOME.length - 1, mx = last ? px : (px + qx) / 2, my = last ? py : (py + qy) / 2;
+            if (i === 1) { top.lineTo(mx, my); cap.lineTo(mx, my); } else { top.quadraticCurveTo(qx, qy, mx, my); cap.quadraticCurveTo(qx, qy, mx, my); }
+        });
+        cap.lineTo(361, 566); cap.lineTo(97, 566); cap.closePath();
+        const patch = (fill, w, P) => { g.save(); g.translate(X, Y); g.scale(s, s); g.lineJoin = g.lineCap = 'round'; g.fillStyle = g.strokeStyle = fill; g.lineWidth = w; if (P === cap) g.fill(P); if (w) g.stroke(P); g.restore(); };
+        Drawn.draw(g, 'captain', 'perch', X, Y, s, { halo: HALO, only: [], hide: ['bird'] });
+        patch(HALO.color, HALO.w * 2, cap);
+        patch('#464343', 0, cap);
+        Drawn.draw(g, 'captain', 'perch', X, Y, s, { only: ['post'] });
+        patch(C.ink, mt.line, top);
     }
 
     // === 7 · Captain (2 s) ============================================================================
@@ -404,7 +433,7 @@ const Film = (() => {
         stage(g, nth(t), X, FY, C.sea, C.seaDeep, { floor: C.navy });
         if (f < 16) act(g, 'captain', 'perch', X, top, PPM, { blink: [0.5, 1, 1, 0.5][f - 10] ?? 0 });
         else {
-            act(g, 'captain', 'perch', X, top, PPM, { only: ['post'] });
+            postAlone(g, X, top, PPM);
             const sc = PPM * 1.25;
             if (f < 32) act(g, 'captain', 'ready', X + 10, top + 4, sc, {});
             else if (f < 36) act(g, 'captain', 'launch', X + 10, top - (f - 32) * 22, sc, {});
@@ -754,6 +783,18 @@ const Film = (() => {
         T.sign(g, 'PIER', -8, -22, { size: 300, fill: C.roadLine, drop: C.navy, seed: 'title-a', w: T.LINE * 1.5, track: 0.07, tilt: 0.05 });
         T.sign(g, 'PRESSURE', 6, 186, { size: 196, fill: C.white, drop: C.navy, seed: 'title-b', w: T.LINE * 1.3, track: 0.05, tilt: 0.045 });
         g.restore();
+        // who made it: our seal, a tag slapped under the title half a second on
+        const sn = nth(u, 0.5);
+        if (u >= 0.5) {
+            const k2 = [1.3, 0.93, 1.03, 1][Math.min(3, sn)];
+            g.save();
+            g.translate(800, 812);
+            g.rotate(0.022 + [-0.05, 0.02, 0, 0][Math.min(3, sn)]);
+            g.scale(k2, k2);
+            T.slab(g, [[-262, -44], [258, -50], [264, 40], [-256, 46]], { fill: C.white, seed: 'seal', over: 1.6, w: T.LINE * 1.2 });
+            T.sign(g, 'illodev x Claude', 2, 22, { size: 62, fill: C.navy, seed: 'seal-t', w: T.LINE_FINE, track: 0.04, tilt: 0.02 });
+            g.restore();
+        }
         // ... and the one who started it, back for the last chip
         const cv = twos(u, 0.75) - 0.75;
         if (cv >= 0) put(g, 'captain', 'perch', 1225, 138 - hop(cv, 2.2) * 60 - (cv < 0 ? 0 : 0) + (cv === 0 ? -220 : 0), 0.34, { only: ['bird'] });
@@ -777,5 +818,5 @@ const Film = (() => {
         }
     }
 
-    return { M, viewfinder, stage, streaks, harbor, hoagie, milo, pip, dot, captain, chase0, pier, leap, hang, title, world, view, card, block, star, put, put3, twos, nth };
+    return { M, blinkAt, viewfinder, stage, streaks, harbor, hoagie, milo, pip, dot, captain, chase0, pier, leap, hang, title, world, view, card, block, star, put, put3, twos, nth };
 })();

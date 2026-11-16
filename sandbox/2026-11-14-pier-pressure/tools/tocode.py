@@ -218,7 +218,7 @@ def outline(mask, tol):
     return out
 
 
-def strokes(thin, dt, img, strong, bg=None):
+def strokes(thin, dt, img, strong, bg=None, pid=None):
     """Centre lines of the thin ink: skeleton → paths between its nodes → control points, width,
     and the line's own colour when it is not ink (a seam drawn in brown, a thin navy stripe)."""
     sk = morphology.skeletonize(thin)
@@ -254,7 +254,35 @@ def strokes(thin, dt, img, strong, bg=None):
             if n0:
                 paths.append(walk(a, n0[0]))
     out = []
-    for path in paths:
+    if pid is not None:
+        # a line that runs through two parts is cut where it passes from one to the other (each run
+        # keeps the first point of the next, so they meet); a run of a few pixels stays with the one before
+        cut = []
+        for path in paths:
+            ids = [int(pid[q]) for q in path]
+            runs = [[0, ids[0]]]
+            for i in range(1, len(path)):
+                if ids[i] != runs[-1][1]:
+                    runs.append([i, ids[i]])
+            ends = [r[0] for r in runs[1:]] + [len(path)]
+            keep = []
+            for (i0, j), i1 in zip(runs, ends):
+                if keep and (i1 - i0 < 2 * UP or keep[-1][2] == j):
+                    keep[-1][1] = i1
+                else:
+                    keep.append([i0, i1, j])
+            if len(keep) > 1 and keep[0][1] - keep[0][0] < 2 * UP:
+                keep[1][0] = keep[0][0]; keep.pop(0)
+            if len(keep) == 1:
+                cut.append((path, keep[0][2]))
+            else:
+                cut += [(path[i0:min(len(path), i1 + 1)], j) for i0, i1, j in keep]
+        paths = cut
+    else:
+        paths = [(path, None) for path in paths]
+    for path, part in paths:
+        if len(path) < 2:
+            continue
         L = sum(math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]) for i in range(1, len(path)))
         w = float(np.mean([dt[p] for p in path])) * 2 / UP
         spur = (deg.get(path[0], 0) == 1) != (deg.get(path[-1], 0) == 1)
@@ -287,7 +315,7 @@ def strokes(thin, dt, img, strong, bg=None):
             tt = float(((dk - ink) * (B - ink)).sum() / ((B - ink) ** 2).sum())
             if tt < 0.75 and float(np.sqrt(((dk - ink - tt * (B - ink)) ** 2).sum())) < 40:
                 col = None
-        out.append((spec([tuple(q) for q in p], closed), round(w + 0.25, 1), closed, tuple(np.array(path).mean(0)), col))
+        out.append((spec([tuple(q) for q in p], closed), round(w + 0.25, 1), closed, tuple(np.array(path).mean(0)), col, part))
     return out
 
 
@@ -338,28 +366,73 @@ def absorb(under, floor, reach):
     return under
 
 
+def partmap(cfg, box, under, paint, r):
+    """For a pose cut into parts for good ('cut': True): which part every pixel's paint is in, and
+    which part a line passing there is in. A part is a polygon (sheet pixels), tried in order,
+    the first that holds the pixel; it may also say which paints it takes: {'is': [colours]} or
+    {'not': [colours]} (within 'tol', 46 by default). Such a part takes the lines that run along
+    its paint too (within r pixels: its own outline), so a bird's foot comes away from the post
+    it stands on with its outline and none of the post's metal, and a hem keeps its line when the
+    legs under it are another part."""
+    from PIL import ImageDraw
+    H, W = under.shape
+    names = list(cfg['order'])
+    rgb = np.array([[int(c[i:i + 2], 16) for i in (1, 3, 5)] for c in paint], dtype=np.float32)
+    F = np.full((H, W), names.index(cfg.get('rest', 'body')), np.int32)
+    todo = []
+    for entry in reversed(cfg['parts']):
+        name, poly = entry[0], entry[1]
+        rule = entry[2] if len(entry) > 2 else None
+        im = Image.new('L', (W, H), 0)
+        ImageDraw.Draw(im).polygon([((x - box[0]) * UP, (y - box[1]) * UP) for x, y in poly], fill=255)
+        m = np.asarray(im) > 0
+        if rule:
+            ref = np.array([[int(c[i:i + 2], 16) for i in (1, 3, 5)] for c in rule.get('is', rule.get('not'))], dtype=np.float32)
+            hit = np.sqrt(((rgb[:, None, :] - ref[None]) ** 2).sum(-1)).min(1) <= rule.get('tol', 46)
+            ok = np.zeros((H, W), bool)
+            ok[under >= 0] = (hit if 'is' in rule else ~hit)[under[under >= 0]]
+            m = m & ok
+            todo.append((names.index(name), np.asarray(im) > 0))
+        F[m] = names.index(name)
+    S = F.copy()
+    for j, zone in reversed(todo):
+        S[ndi.binary_dilation(F == j, iterations=int(round(r))) & zone] = j
+    return names, F, S
+
+
 def pose(im, cfg, box, pal, holes):
     names, paint, under, inkm, a, strong = measured(im, cfg, box, pal, holes)
     under = absorb(under.copy(), 2.5 * UP * UP, 2.5 * UP)
     parts = cfg.get('parts', [])
     rest = cfg.get('rest', 'body')
     order = cfg.get('order', ['body'])
-    part_of = lambda r, c: next((n for n, poly in parts if inside((box[0] + c / UP, box[1] + r / UP), poly)), rest)
+    part_of = lambda r, c: next((e[0] for e in parts if inside((box[0] + c / UP, box[1] + r / UP), e[1])), rest)
     items = {n: {'fills': [], 'lines': []} for n in order}
-    # flat colours, one shape per connected piece
-    for k, nme in enumerate(names):  # (the ink too: a pupil, a blot where lines meet, is a black fill)
-        lb, n = ndi.label(under == k)
-        for i, sl in enumerate(ndi.find_objects(lb)):
-            m = lb[sl] == i + 1
-            if m.sum() < 2.5 * UP * UP:
-                continue
-            r, c = ndi.center_of_mass(m)
-            for sp, area in outline(m, (0.32 if m.sum() < 90 * UP * UP else 0.6) * UP):
-                sp = [[round(p[0] + sl[1].start / UP, 1), round(p[1] + sl[0].start / UP, 1)] + p[2:] for p in sp]
-                items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((area, paint[k], sp))
-    # ink: the solid blacks as shapes, the rest as strokes along their centre
+    # (the lines' width is needed first, for a pose cut into parts for good)
     dt = ndi.distance_transform_edt(inkm)
     hw = float(np.median(dt[morphology.skeletonize(inkm)]))
+    F = S = None
+    if cfg.get('cut'):
+        pn, F, S = partmap(cfg, box, under, paint, 2.2 * hw)
+        # every paint is cut along the parts' borders, and the slivers that leaves are given away
+        NP = len(pn)
+        code = np.where(under >= 0, under * NP + F, under)
+        code = absorb(code, 2.5 * UP * UP, 2.5 * UP)
+        under = np.where(code >= 0, code // NP, code)
+        F = np.where(code >= 0, code % NP, F)
+    # flat colours, one shape per connected piece
+    for k, nme in enumerate(names):  # (the ink too: a pupil, a blot where lines meet, is a black fill)
+        for j in ([None] if F is None else np.unique(F[under == k]).tolist()):
+            lb, n = ndi.label((under == k) if j is None else (under == k) & (F == j))
+            for i, sl in enumerate(ndi.find_objects(lb)):
+                m = lb[sl] == i + 1
+                if m.sum() < 2.5 * UP * UP:
+                    continue
+                r, c = ndi.center_of_mass(m)
+                for sp, area in outline(m, (0.32 if m.sum() < 90 * UP * UP else 0.6) * UP):
+                    sp = [[round(p[0] + sl[1].start / UP, 1), round(p[1] + sl[0].start / UP, 1)] + p[2:] for p in sp]
+                    items[part_of(r + sl[0].start, c + sl[1].start) if j is None else pn[j]]['fills'].append((area, paint[k], sp))
+    # ink: the solid blacks as shapes, the rest as strokes along their centre
     solid = ndi.binary_opening(inkm, iterations=max(2, int(round(1.7 * hw))))
     lb, n = ndi.label(solid)
     keep = np.zeros_like(solid)
@@ -377,9 +450,9 @@ def pose(im, cfg, box, pal, holes):
         colr = np.median(a[sl][m], 0)
         for sp, area in outline(m, 0.45 * UP):
             sp = [[round(p[0] + sl[1].start / UP, 1), round(p[1] + sl[0].start / UP, 1)] + p[2:] for p in sp]
-            items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((0, M.INK_PAINT if M.is_ink(colr) else M.hexof(colr), sp))
-    for sp, w, closed, (r, c), col in strokes(inkm & ~ndi.binary_erosion(solid, iterations=2), dt, a, strong, cfg.get('bg')):
-        items[part_of(r, c)]['lines'].append((sp, w, closed, col))
+            items[part_of(r + sl[0].start, c + sl[1].start) if S is None else pn[int(S[int(r + sl[0].start), int(c + sl[1].start)])]]['fills'].append((0, M.INK_PAINT if M.is_ink(colr) else M.hexof(colr), sp))
+    for sp, w, closed, (r, c), col, part in strokes(inkm & ~ndi.binary_erosion(solid, iterations=2), dt, a, strong, cfg.get('bg'), S):
+        items[part_of(r, c) if part is None else pn[part]]['lines'].append((sp, w, closed, col))
     return order, items, round(hw * 2 / UP, 2)
 
 

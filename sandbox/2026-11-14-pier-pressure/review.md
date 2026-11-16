@@ -3,20 +3,21 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 39, waiting for the user's verdict: every sheet read again with a new colour
-reading (the small colour details were being eaten: `tools/measure.py`), Kit's landing with four
-in-between drawings, and a broadcast finish over the whole film (`styles/skate-toon/tv.js`;
-`review/details.jpg`, `review/kit.jpg`).** Before it: the leap and the sky in four drawings each
-(round 38, `review/leap.jpg`), the chase in cycles and Hoagie's turn with its in-betweens (37,
-`review/chase.jpg`), the five presentations after Kit's in one format (36,
-`review/presentations.jpg`).
+State: **round 40, waiting for the user's verdict: poses cut into parts are now cut for good
+(Captain no longer takes the bollard's metal, Milo's and Dot's hems keep their line), Dot stays
+at her counter in the first shots and stands on her card's floor, and the title carries the
+seal `illodev x Claude`** (`review/round40.jpg`). Before it: round 39, the colour details read
+again (`review/details.jpg`, `review/fidelity.md`), Kit's landing with in-betweens
+(`review/kit.jpg`) and the broadcast finish (`styles/skate-toon/tv.js`); round 38, the leap and
+the sky (`review/leap.jpg`); 37, the chase in cycles (`review/chase.jpg`); 36, the five
+presentations in one format (`review/presentations.jpg`).
 The cut is approved (round 35→36: «Sí»). Settled by the user: no bending (27), no 3D (31),
 nothing drawn by hand that does not come from the images (31); frames are edits of the
 drawings' code, more of them, no rebounds (32); images may be generated for views the drawings
 lack, always on a coloured ground (32–35); the presentations go well (36→37: «Sí»); the chase
-and the leap go on (37→38→39: «Sí»). Still as rejected in round 26: the title. No sound effects
-yet, and the name cards are not timed to the sung words. The set is approved up to round 16.
-The style stays *in testing*.
+and the leap go on (37→38→39: «Sí»); the signature is `illodev x Claude` (40). Still as
+rejected in round 26: the title's own animation. No sound effects yet, and the name cards are
+not timed to the sung words. The set is approved up to round 16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -1368,4 +1369,68 @@ per drawing (about twice) and the finish on top, so a frame takes eight times lo
 **Lessons** → skill replicate (read paint by what explains a pixel, never by its shape; measure
 every sheet before and after), skill animate (in-betweens for a landing; a drawing that faces
 another way is no blink), skill style-skate-toon (the finish).
+
+## Round 40 (user) · the bird takes the metal, Dot's lift, Dot floating, hems, the seal
+
+> El pajaro en su presentación se lleva parte del metal. Aunt en la primera parte hace una
+> animación antinatural. Aunt en su presentación parece que levita.
+
+> El recortedel pantalon de milo no está bien
+
+> En aunt unos sí y otros no
+
+> También habría que añadir nuestro sello de illodev x Claude
+
+(with crops: the bollard after Captain leaves, its top bitten and ragged; Dot half behind the
+hatch's jamb; her sandals above a shadow on her card; Milo's shorts with no line along the hem;
+Dot's legs without outline in one pose and her hem without it in another)
+
+**One cause for three of them: parts were never cut.** A pose «cut into parts» (bird / post,
+upper body / legs) gave each whole shape and each whole line to the part its CENTRE fell in. So
+the bird's part carried the bollard's metal under his feet and left a bite in the post; a hem's
+line went with the legs or with the shorts by chance («unos sí y otros no»), and painted in two
+layers the one on top covered the other's line. And the legs' border was a level line, across
+hems that are never level.
+
+`tools/tocode.py` `partmap` ('cut': True in `tools/parts.py`): a map of which part every pixel
+is in. A part is a polygon and, if it says so, only certain paints inside it (`{'is': [...]}`);
+such a part also takes the lines that run along its paint. Paints are cut along the map
+(slivers given to a neighbour, never dropped) and lines are cut where they pass from one part
+to another, the two runs meeting. Used as:
+
+- Captain: in the two boxes round his feet only the feet's orange is his → the feet come away
+  with their outline and no metal. Under them the sheet has no bollard at all, so once he is
+  off it the post's top is closed with its own grey and one line from shoulder to shoulder
+  (`film.js` `postAlone`, `DOME`): the one thing here that is not from the image, and it hides
+  a join.
+- Milo `smug`, Dot `basket`, `salt`, `serve`, `yell`: the shorts' and the apron's paints are the
+  upper body's wherever their hem runs, with the hem's line; the legs are what is left below.
+
+Seen apart on lilac (`dev/parts/scene.js`: whole · each part alone). The four sheets converted
+again score as before and have no gaps.
+
+**Dot in the first shots.** In the opening she rose from behind her counter like a lift, one
+still drawing slid 77 units up, and a step to the right of where Kit's shot then had her (two
+places: `world` defaulted to no offset, Kit's shot had −92), half behind the jamb; in Kit's
+shot the same drawing was nudged up at the clatter and at the landing. Now she is at her
+counter from the first frame, in one place in every shot, and does not slide: she blinks (once
+in the opening, twice at the clatter, once at the landing; `Film.put` takes `blink`).
+
+**Dot on her card.** Her feet are one behind the other; the floor's far edge ran through the
+far one, and the shadow was an ellipse UNDER the near one, its centre below her soles, staying
+put when she stepped aside for the third pose. `stage` takes `far` (more floor behind) and `at`
+(the shadow: round both feet, following her).
+
+**The seal.** `illodev x Claude` (as in the other films: exactly those words), a white tag in
+the kit's lettering slapped on under the title half a second after it lands (`film.js` `title`).
+The lettering face has no lower case, so it reads in capitals.
+
+**Seen**: `review/round40.jpg`; the full film rendered; `engine/review.mjs`: no warnings.
+Not seen in motion, not heard.
+
+**Known limits**: Dot in her hatch only blinks; the patch on the bollard is plain grey (no
+rust on it).
+
+**Lessons** → skill animate (parts; a background figure does not slide; feet and floor), skill
+replicate (cut parts along a map, not by centres).
 

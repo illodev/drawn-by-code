@@ -3,9 +3,11 @@
 BODY = ['legs', 'shorts', 'arm', 'torso', 'head', 'cow']
 PARTS.update({
     # the gull is cut from the bollard his sheet stands him on (his feet, and all above them)
-    ('captain', 'perch'): {'rest': 'post', 'order': ['post', 'bird'], 'at': [228, 536], 'parts': [
-        ('bird', [(112, 500), (232, 500), (236, 522), (226, 538), (180, 540), (122, 538), (110, 524)]),
-        ('bird', [(232, 496), (338, 496), (342, 520), (330, 534), (290, 536), (240, 534), (232, 520)]),
+    # (cut for good: his feet come away with their outline and none of the bollard's metal: in the
+    # two boxes round his feet only the orange of the feet is his)
+    ('captain', 'perch'): {'rest': 'post', 'order': ['post', 'bird'], 'at': [228, 536], 'cut': True, 'parts': [
+        ('bird', [(104, 496), (236, 496), (240, 546), (104, 546)], {'is': ['#e77530'], 'tol': 48}),
+        ('bird', [(228, 492), (346, 492), (346, 542), (228, 542)], {'is': ['#e77530'], 'tol': 48}),
         ('bird', [(0, 0), (500, 0), (500, 500), (0, 500)])]},
     # what he carries (the cone, its chips, the claws that hold it) is a piece of its own
     ('captain', 'fly'): {'rest': 'body', 'order': ['body', 'cone'], 'parts': [
@@ -30,9 +32,12 @@ PARTS.update({
         ('shorts', [(50, 300), (275, 300), (275, 388), (50, 388)])]},
     # standing poses cut where their clothes end over their legs: the upper body comes down over
     # the legs (a bend of the knees, seen from the front)
-    ('milo', 'smug'): {'rest': 'upper', 'order': ['legs', 'upper'], 'parts': [('legs', [(0, 455), (2000, 455), (2000, 2000), (0, 2000)])]},
-    ('dot', 'basket'): {'rest': 'upper', 'order': ['legs', 'upper'], 'parts': [('legs', [(0, 470), (2000, 470), (2000, 2000), (0, 2000)])]},
-    ('dot', 'salt'): {'rest': 'upper', 'order': ['legs', 'upper'], 'parts': [('legs', [(0, 472), (2000, 472), (2000, 2000), (0, 2000)])]},
-    ('dot', 'serve'): {'rest': 'upper', 'order': ['legs', 'upper'], 'parts': [('legs', [(0, 475), (2000, 475), (2000, 2000), (0, 2000)])]},
-    ('dot', 'yell'): {'rest': 'upper', 'order': ['legs', 'upper'], 'parts': [('legs', [(0, 480), (2000, 480), (2000, 2000), (0, 2000)])]},
+    # Cut for good ('cut'): the clothes that hang over the legs are the upper body's, with the line of
+    # their hem, wherever that runs (a hem is never level); the legs are what is left below.
+    ('milo', 'smug'): {'rest': 'upper', 'order': ['legs', 'upper'], 'cut': True, 'parts': [
+        ('upper', [(0, 0), (2000, 0), (2000, 478), (0, 478)], {'is': ['#767474', '#585656', '#64287c'], 'tol': 34}), ('legs', [(0, 412), (2000, 412), (2000, 2000), (0, 2000)])]},
+    ('dot', 'basket'): {'rest': 'upper', 'order': ['legs', 'upper'], 'cut': True, 'parts': [('upper', [(0, 0), (2000, 0), (2000, 560), (0, 560)], {'is': ['#436e87', '#6f97ab', '#f4e9d1', '#477189', '#7a9aab', '#5b8198'], 'tol': 50}), ('legs', [(0, 440), (2000, 440), (2000, 2000), (0, 2000)])]},
+    ('dot', 'salt'): {'rest': 'upper', 'order': ['legs', 'upper'], 'cut': True, 'parts': [('upper', [(0, 0), (2000, 0), (2000, 560), (0, 560)], {'is': ['#436e87', '#6f97ab', '#f4e9d1', '#477189', '#7a9aab', '#5b8198'], 'tol': 50}), ('legs', [(0, 420), (2000, 420), (2000, 2000), (0, 2000)])]},
+    ('dot', 'serve'): {'rest': 'upper', 'order': ['legs', 'upper'], 'cut': True, 'parts': [('upper', [(0, 0), (2000, 0), (2000, 580), (0, 580)], {'is': ['#436e87', '#6f97ab', '#f4e9d1', '#477189', '#7a9aab', '#5b8198'], 'tol': 50}), ('legs', [(0, 455), (2000, 455), (2000, 2000), (0, 2000)])]},
+    ('dot', 'yell'): {'rest': 'upper', 'order': ['legs', 'upper'], 'cut': True, 'parts': [('upper', [(0, 0), (2000, 0), (2000, 580), (0, 580)], {'is': ['#436e87', '#6f97ab', '#f4e9d1', '#477189', '#7a9aab', '#5b8198'], 'tol': 50}), ('legs', [(0, 440), (2000, 440), (2000, 2000), (0, 2000)])]},
 })

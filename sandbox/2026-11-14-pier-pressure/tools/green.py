@@ -149,9 +149,9 @@ def convert(sheet):
         box = (int(x0), int(y0), int(min(im.width, xs.max() + 7) - x0), int(min(im.height, ys.max() + 7) - y0))
         only = Image.composite(im, Image.new('RGB', im.size, BG), Image.fromarray((mask * 255).astype(np.uint8)))
         extra = PARTS.get((who, name), {})
-        cfg = {'bg': BG, **{k: v for k, v in extra.items() if k in ('rest', 'order')}}
+        cfg = {'bg': BG, **{k: v for k, v in extra.items() if k in ('rest', 'order', 'cut')}}
         if 'parts' in extra:
-            cfg['parts'] = [(n, [(px + box[0], py + box[1]) for px, py in poly]) for n, poly in extra['parts']]
+            cfg['parts'] = [(e[0], [(px + box[0], py + box[1]) for px, py in e[1]], *e[2:]) for e in extra['parts']]
         order, items, lw = T.pose(only, cfg, box, pal, None)
         r = rows(main); c = np.nonzero(main.any(0))[0]
         if anchor == 'wheels':
