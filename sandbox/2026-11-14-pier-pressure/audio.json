@@ -1,9 +1,4 @@
 { "music": "private/pier-pressure-theme.mp3", "musicDb": -1, "duration": 31.75, "sfxDir": "../../assets/sfx", "align": "onset",
   "cues": [
-    ["board_slam", 30.05, -5, "PIER PRESSURE \u00b7 the first board lands on the hit"],
-    ["big_splash", 30.25, -6, "the four hit the sea"],
-    ["board_slam", 30.47, -6, "the second board is on"],
-    ["glint", 30.72, -6, "the music stops: the glint"],
-    ["accordion", 30.97, -10, "the seal's ribbon unrolls"],
     ["gull_call", 30.82, -8, "Captain, last word: three cries into the silence"]
   ] }

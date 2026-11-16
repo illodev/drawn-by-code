@@ -3,8 +3,9 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 44, waiting for the user's verdict: effects only on the final title (six cues,
-`audio.json`); everywhere else the song alone, by the user's decision.** Before it: rounds 42–43,
+State: **round 45, waiting for the user's verdict: one effect in the whole film, Captain's cries
+in the silence after the title (`audio.json`); everything else is the song alone, by the user's
+decision («quizás»: the version with the title's six effects is round 44's `audio.json`).** Before it: rounds 42–43,
 the effects placed, balanced by measuring and corrected after a first listen; round 41, the title
 animated (two boards on the song's last two hits, Captain riding the first, the seal unrolled in
 the silence; `review/title.jpg`); round 40, parts cut for good, Dot in place and on her floor, the seal
@@ -1558,4 +1559,12 @@ for the mixer's gain. The effects stay in `assets/sfx/` for other films.
 
 **Lesson** → skill sound: an opening cut to a song with a singer IS its sound; effects on every
 action compete with it.
+
+## Round 45 (user) · perhaps only the last gull
+
+> El de la gaviota final solo, quizás
+
+Done, and both versions sent to compare, since it was a «perhaps»: this one (one cue, the three
+cries at 30.82 s, in the song's own silence) and round 44's (the two boards, the splash, the
+glint, the ribbon and the gull). `audio.json` holds this one; the other is one `git show` away.
 
