@@ -3,7 +3,8 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 59 (after the merge of the pull request): two drawing mistakes of the generator
+State: **round 60: the committed film carries its theme song, at the user's word (it is theirs); a
+second pull request with rounds 59–60.** Round 59 (after the merge of the first pull request): two drawing mistakes of the generator
 found by the user in the published film and mended on the sheets (a second pupil in one of
 Kit's eyes; eyes inside Milo's flying glasses); the film rendered again. Before it, round 58:
 approved by the user, in the README and on the site, merged.** The film: a cold open in black shapes (0–8 s), Kit's jump into the harbour and her
@@ -1895,4 +1896,15 @@ rendered whole, `render/` and the README's GIF from it.
 
 **Lessons** → skill replicate (check the sheet, not only the copy), skill animate (what to look
 for in a generated sheet).
+
+## Round 60 (user) · a second pull request; the film with its song
+
+> Sí, abre el PR. Una cosa,lo podemos subir con la canción? Tecnicamente es mia
+
+The theme song was made by the user (with Suno, from the prompt in `suno-prompt.md`), so it is
+not third-party audio, and whether it goes in the repo is theirs to say. `render/pier-pressure.mp4`
+now carries the film's sound as mixed (`audio.json`: the song, and Captain's cries at the end);
+the README, the site (`with sound`) and `sandbox/INDEX.md` say so. The song's own file stays in
+`private/` (only the film with it was asked for), so `engine/mix.mjs` still needs it put there
+to remake the mix. The GIF has no sound, as GIFs do not.
 

@@ -58,7 +58,7 @@ how you made it too.
 <tr>
 <td width="50%" valign="top">
 <a href="sandbox/2026-11-14-pier-pressure/"><img src="sandbox/2026-11-14-pier-pressure/render/pier-pressure.gif" alt="Pier Pressure"></a><br>
-<b><a href="sandbox/2026-11-14-pier-pressure/">Pier Pressure</a></b> · skate toon · 32 s · <a href="sandbox/2026-11-14-pier-pressure/render/pier-pressure.mp4">mp4</a> (silent: the theme song is not in the repo)<br>
+<b><a href="sandbox/2026-11-14-pier-pressure/">Pier Pressure</a></b> · skate toon · 32 s · <a href="sandbox/2026-11-14-pier-pressure/render/pier-pressure.mp4">mp4</a> (with its theme song)<br>
 <sub>The opening of a cartoon that never existed, in the look of a late-'90s extreme-sports TV show: four kids chase a one-eyed gull who has made off with Aunt Dot's chips, down the pier and off its end. It opens on the chase in black shapes, and nobody is seen until their name card. The characters are generated model sheets turned into drawings in code by measurement, and they move the way cel animation does: by changing drawing, on twos. Cut to the words of its own theme song, with a broadcast finish (painted fills, film weave, standard-definition softness).</sub>
 </td>
 <td width="50%" valign="top">
