@@ -27,7 +27,8 @@ const Film = (() => {
         if (o.rot) g.rotate(o.rot);
         g.scale((o.flip ? -1 : 1) * (o.sx ?? 1), o.sy ?? 1);
         const eyes = o.blink ? { blink: o.blink, lid: lidOf(who, pose), face: [mt.w / 2, mt.h * 0.2, mt.h * 0.32] } : {};
-        Drawn.draw(g, who, pose, -a[0] * s, -a[1] * s, s, { weight: o.weight, only: o.only, hide: o.hide, ...eyes });
+        if (o.sil) Drawn.draw(g, who, pose, -a[0] * s, -a[1] * s, s, { halo: { color: o.sil, w: 1.5 }, only: [] }); // (the figure as one flat shape)
+        else Drawn.draw(g, who, pose, -a[0] * s, -a[1] * s, s, { weight: o.weight, only: o.only, hide: o.hide, ...eyes });
         g.restore();
     }
     // ... and on a point of the world, at its size there
@@ -89,7 +90,7 @@ const Film = (() => {
         g.save();
         g.translate(x, y);
         g.rotate(o.rot ?? 0);
-        put(g, 'captain', ['f1', 'f2', 'f3', 'f4'][nth(t) % 4], 150 * s, -40 * s, s * k);
+        put(g, 'captain', ['f1', 'f2', 'f3', 'f4'][nth(t) % 4], 150 * s, -40 * s, s * k, { sil: o.sil });
         g.restore();
     }
     const hop = (u, v) => (u < 0 || u > (2 * v) / G ? 0 : v * u - (G * u * u) / 2); // a jump's height, in metres
@@ -663,7 +664,7 @@ const Film = (() => {
     // Milo run: contact, passing, contact, passing; Kit pushes her board, Pip her scooter, and
     // coasts two drawings more than she pushes)
     const CYC = { hoagie: ['r1', 'r2', 'r3', 'r4'], milo: ['r1', 'r2', 'r3', 'r4'], kit: ['s1', 's2', 's3', 's4'], pip: ['s1', 's2', 's3', 's4', 's4', 's4'] };
-    const runner = (g, who, t, x, y) => put(g, who, CYC[who][nth(t) % CYC[who].length], x, y, SK[who]);
+    const runner = (g, who, t, x, y, o = {}) => put(g, who, CYC[who][nth(t) % CYC[who].length], x, y, SK[who] * (o.k ?? 1), o);
     // Off the end and in the air: four drawings of their own each (cast/<who>-leap-drawn.js): j1 the
     // take-off at the edge, j2 launched, j3 the hang with a look down, j4 the fall. j1 stands on the
     // deck like the cycle's drawings; the other three are held by their middle. j2 is drawn going out
@@ -675,6 +676,50 @@ const Film = (() => {
     // up (frame units per second: Pip far and high, Kit steep, Hoagie flat and long, Milo short),
     // and how much of the arc's slope the drawing leans by
     const OFF = { milo: [-115, 105, 700, 0.3], hoagie: [440, 635, 653, 0.5], kit: [760, 305, 1070, 0.25], pip: [1070, 471, 1143, 0.2] };
+
+    // === 0 · the cold open (7 s): the chase before anyone has a name ================================
+    // Not the harbour (the user: «no aprovecharía la escena del puerto para el inicio»): a field of
+    // rays and one line of ground. In black, flat: the gull goes over with his cone on the song's
+    // squawk; the four come in after him one to every two of its eight stabs, each on their own
+    // cycle; when the band comes in they are in colour; on «Down at…» they are gone, one after
+    // another, and the next shot is the harbour the line names.
+    //   [who, where they run (x), the stab they come in on (s), where their cycle starts]
+    const COLD = [['kit', 1215, 2, 1], ['pip', 905, 2.5, 3], ['hoagie', 570, 3, 2], ['milo', 250, 3.5, 0]];
+    const IN_X = [900, 520, 260, 110, 30]; // five drawings in from the left, each step shorter
+    function cold(g, t, u, env) {
+        const d = nth(t), uu = twos(u), n = nth(u), lit = u >= 4, GY = 742, K = 1.36, INK = C.ink;
+        // the field: the title's rays, in the card colours once the band is in
+        g.fillStyle = lit ? C.sky : C.roadLine;
+        g.fillRect(0, 0, 1600, 900);
+        g.fillStyle = lit ? C.skyDeep : '#f5d400';
+        for (let i = 0; i < 14; i++) {
+            const a = d * 0.035 + (i / 14) * Math.PI * 2, b = a + Math.PI / 14;
+            g.beginPath(); g.moveTo(800, 560); g.lineTo(800 + Math.cos(a) * 2200, 560 + Math.sin(a) * 2200); g.lineTo(800 + Math.cos(b) * 2200, 560 + Math.sin(b) * 2200); g.closePath(); g.fill();
+        }
+        // the ground: a band of ink while they are shapes, the pier's boards once they are themselves
+        T.slab(g, [[-20, GY - 6], [1620, GY - 14], [1620, 920], [-20, 920]], { fill: lit ? C.sand : INK, seed: 'cold-ground', over: 0, w: T.LINE * 1.4 });
+        if (lit) { g.beginPath(); for (let i = 0; i < 30; i++) { const x = 1700 - ((d * 150 + i * 64) % 1900); g.moveTo(x, GY - 6); g.lineTo(x - 26, 900); } g.strokeStyle = C.sandDeep; g.lineWidth = T.LINE_FINE; g.stroke(); }
+        // lines of speed, from the first stab on
+        if (u >= 2) for (let i = 0; i < 8; i++) {
+            const x = 1750 - ((d * 330 + i * 613) % 2100), y = 120 + ((i * 53) % 8) * 62;
+            T.line(g, [[x, y], [x + 150 + (i % 3) * 60, y]], { w: T.LINE * 1.3, seed: 'csp' + i, color: lit ? C.white : INK });
+        }
+        const gone = (i) => 6 + i * 0.17; // when each leaves, from the front
+        // the gull: over the frame on the squawk, then ahead of them, top right
+        {
+            const k0 = clamp(uu / 1.6, 0, 1), x = u < 2 ? lerp(-260, 1330, k0 * (2 - k0)) : 1330 + Math.sin(uu * 5) * 18 + Math.max(0, uu - 6) * 1500;
+            const y = u < 2 ? 190 - Math.sin(k0 * Math.PI) * 60 : 150 + Math.sin(uu * 7) * 16;
+            capFly(g, t, x, y, SK.captain * 1.2, { rot: -0.05, sil: lit ? null : INK });
+        }
+        for (const [i, [who, x, at, ph]] of COLD.entries()) {
+            const m = Math.round((uu - at) * 12);
+            if (m < 0) continue;
+            const out = Math.max(0, uu - gone(i));
+            runner(g, who, t + ph / 12, x - (IN_X[m] ?? 0) + out * out * 9000 + (lit ? Math.sin(uu * 2.2 + i * 1.7) * 16 : 0), GY - 16, { k: K, sil: lit ? null : INK });
+        }
+        // the band comes in: one drawing of white, and they are in colour
+        if (n === 48) { g.fillStyle = 'rgba(255, 253, 246, 0.82)'; g.fillRect(0, 0, 1600, 900); }
+    }
 
     // === 9 · down the pier (3 s) ======================================================================
     const RUN = 1150; // the camera's speed along the pier, frame units per second
@@ -875,5 +920,5 @@ const Film = (() => {
         }
     }
 
-    return { M, blinkAt, viewfinder, stage, streaks, harbor, hoagie, milo, pip, dot, captain, chase0, pier, leap, hang, title, world, view, card, block, star, put, put3, twos, nth };
+    return { M, blinkAt, cold, viewfinder, stage, streaks, harbor, hoagie, milo, pip, dot, captain, chase0, pier, leap, hang, title, world, view, card, block, star, put, put3, twos, nth };
 })();

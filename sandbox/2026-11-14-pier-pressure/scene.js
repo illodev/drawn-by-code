@@ -2,8 +2,8 @@
 // first beat at 0.05 s, 16 bars; the song is in private/, not in the repo: audio.json).
 //
 //   bars 1–2   Gull Harbor: the town's sign, then the quay, quiet
-//   0–2 s      GULL HARBOR: its sign, and back from it to the whole quay
-//   2–11 s     KIT: her board drops in, then she does (this file, kitShot)
+//   0–7 s      the cold open: the chase in black shapes on a field of rays, in colour when the band comes in
+//   7–11 s     KIT, in the harbour: her board drops in, then she does (this file, kitShot)
 //   11–21 s    HOAGIE · MILO · PIP · AUNT DOT · CAPTAIN, a bar each: in on the first beat, the
 //              name on the third, which is where the song says it (film.js)
 //   21–23 s    Captain has the chips; the four set off after him
@@ -27,17 +27,17 @@ const B0 = 0.05; // the song's first beat
 // first two of this one are smeared along the move (L, R: a pan; U: a tilt up; in, out: a zoom)
 const EDIT = [
     // The cut follows the song's words (a transcription with the time of each word; kept private):
-    //    2.04 eight stabs: her board comes down · 4.04 the band comes in: she lands
-    //    6.04 «Down at Gull Harbor, the tide's comin' in»      she rides out and round and in again
+    //    0.1 a squawk · 2.04 eight dry stabs · 4.04 the band comes in      the cold open (film.js cold)
+    //    6.04 «Down at Gull Harbor, the tide's comin' in»      they are gone; the harbour, from 7.05; Kit lands on «in»
     //   10.06 «Kit's got the board»   12.00 «Hoagie's got the grin»   14.02 «Milo's got a plan»
     //   16.02 «Pip's got the nerve»   18.08 «Aunt Dot's yellin'»: each card comes in on its name
     //   19.48 «Hey, mind the curve!»  over the gull making off with her chips
     //   21.56 «Pier Pressure! (Hey!)» twice: they set off; the pier
     //   26.02 «First one down»: off the end · 28.02 «last one dry»: in the air · 30.04 «Pressure»: the title
-    [0, B0 + 2, 'GULL HARBOR', (g, t, u, env) => Film.harbor(g, t, Math.max(0, t - B0), env)],
+    [0, B0 + 7, 'COLD OPEN', (g, t, u, env) => Film.cold(g, t, Math.max(0, t - B0), env)],
     // (in her last half second we are already looking through Hoagie's camcorder)
-    [B0 + 2, B0 + 11, 'KIT', (g, t, u, env) => { kitShot(g, u, { ...env, k: env.k * 1.6 }); if (u >= 7.5) Film.viewfinder(g, t); }],
-    [B0 + 11, B0 + 13, 'HOAGIE', (g, t, u, env) => Film.hoagie(g, t, u, env, (gg) => kitShot(gg, 9 - 1 / 24, { ...env, k: env.k * 1.6 }))],
+    [B0 + 7, B0 + 11, 'KIT', (g, t, u, env) => { kitShot(g, u, { ...env, k: env.k * 1.6 }); if (u >= 3.5) Film.viewfinder(g, t); }, 'R'],
+    [B0 + 11, B0 + 13, 'HOAGIE', (g, t, u, env) => Film.hoagie(g, t, u, env, (gg) => kitShot(gg, 4 - 1 / 24, { ...env, k: env.k * 1.6 }))],
     [B0 + 13, B0 + 15, 'MILO', (g, t, u, env, prev) => Film.milo(g, t, u, env, prev)],
     [B0 + 15, B0 + 17, 'PIP', (g, t, u, env, prev) => Film.pip(g, t, u, env, prev)],
     [B0 + 17, B0 + 19, 'AUNT DOT', (g, t, u, env, prev) => Film.dot(g, t, u, env, prev)],
@@ -49,17 +49,16 @@ const EDIT = [
     [B0 + 30, 31.75, 'PIER PRESSURE', (g, t, u, env) => Film.title(g, t, u, env)],
 ];
 
-// «KIT» (9 s, from 2.05): her board comes down through the song's eight dry stabs and hits the
-// stone on the fifth (3.05); she lands as the whole band comes in (4.05); she is on the board and
-// away at 5.55, back in from the left at 6.8, through «the tide's comin' in», and stops pointing
-// the way at 9.05; her card comes in on 10.05, as the song says her name.
+// «KIT» (4 s, from 7.05, the first shot in the harbour): the board hits the stone on the shot's
+// third beat (8.05), she lands on its fifth (9.05, on the line's last word), she is up, and her
+// card comes in on 10.05, as the song says her name.
 function kitShot(g, t, env) {
     const T = SkateToon, C = T.COL, A = Harbor.AT;
     const G = 9.81, H0 = 2.3, TF = Math.sqrt((2 * H0) / G); // the drop: 2.3 m, 0.68 s
-    const HIT = 1.0, LAND = 2.0, CARD = 8.0;
+    const HIT = 1.0, LAND = 2.0, CARD = 3.0;
     // ... and then she is on it: off to the right (RIDE), round the back of us, in again from the
     // left (BACK) and to a stop where she landed (STOP), pointing the way, for her card
-    const RIDE = 3.5, BACK = 4.75, STOP = 7.0;
+    const RIDE = 99, BACK = 99, STOP = 99; // (the ride of round 49's opening: not used; «muy lento»)
     const tw = (at) => at + Math.floor((t - at) * 12 + 1e-6) / 12; // t held on twos, on an event's own clock
     const KZ = A.kit[1], KXW = -0.1, S = Cam.scale(KZ);
     // her standing drawing (`proud`) is 575 of its pixels from the top of her head to her soles: 1.34 m
@@ -208,7 +207,7 @@ function kitShot(g, t, env) {
             const u = tw(at0) - at0;
             return u < 0 || u > (2 * v) / G ? 0 : v * u - (G * u * u) / 2;
         };
-        const hgt = Math.max(hop(HIT + 1 / 12, 1.15), hop(LAND + 1 / 24, 1.75), hop(RIDE + 7 / 12, 1.4)); // (and as she goes past him)
+        const hgt = hop(LAND + 1 / 24, 1.75); // (one jump, when she lands: the user saw him jump «cuando no debe»)
         Film.put3(g, 'captain', 'perch', [A.bollard.top[0], A.bollard.top[1] + hgt, A.bollard.top[2]], { only: ['bird'] });
     }
     g.restore();

@@ -3,19 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 49, a proposal waiting for the user's verdict, shown as stills and an 11 s clip
-only: a new opening in which Kit comes in at 2 s and lands as the band comes in (`scene.js`
-`kitShot`, `review/open.jpg`). `render/` still holds round 48's film (rejected opening) until
-this one is approved.** Round 47's cut to the song's words stands (`scene.js` `EDIT`,
-`review/sync.jpg`). The sound is settled by
-the user (round 46): the song alone, and one effect, Captain's cries in the silence after the
-title (`audio.json`). The picture of rounds 38–41 (the leap, the sky, Kit's landing, the colour
-details, the cut parts, Dot, the title) has not had a verdict of its own beyond «sí, sigue».
-Settled by the user: no bending (27), no 3D (31), nothing drawn by hand that does not come from
-the images (31); frames are edits of the drawings' code, more of them, no rebounds (32); images
-may be generated for views the drawings lack, always on a coloured ground (32–35); the cut-outs
-are right (35→36); the signature is `illodev x Claude` (40). The set is approved up to round
-16. The style stays *in testing*.
+State: **round 50, a proposal waiting for the user's verdict, shown as stills and an 11 s clip
+only: a cold open that is not the harbour (the chase in black shapes on a field of rays, in
+colour when the band comes in; `film.js` `cold`, `review/open.jpg`). `render/` still holds
+round 48's film until an opening is approved.** Round 47's cut to the song's words stands
+(`scene.js` `EDIT`, `review/sync.jpg`). Open with the user: a sheet of four drawings so that
+Aunt Dot moves at her hatch (433 credits; the generation was not allowed without their say).
 
 ## Round 0 (user) · the brief
 
@@ -1696,4 +1689,42 @@ film is not rendered and `render/` is not updated until this is approved.
 **Known limits**: the quay is empty for about a second (6.3–7.2) between her going and her
 coming back; she gets on the board with no drawing between standing and pushing; the cycle is
 side-on and the stop three-quarter, a change of drawing with nothing between.
+
+## Round 50 (user) · too slow; the gull's jump; Dot a statue; not the harbour for the start
+
+> Muy lento, aparte la gaviota mete un salto cuando no debe y aunt parece una estatua. No me
+> convence el enfoque
+
+> No aprovecharía la escena del puerto para el inicio
+
+(On round 49's opening: Kit in at two seconds, then riding round the quay until her card.)
+
+**Three openings in the harbour, three no's** (a move, cuts, one long shot with Kit riding): the
+harbour with the figures as they are cannot carry the song's first seven seconds, and the user
+says so. The harbour now starts where the song names it.
+
+**The cold open** (`film.js` `cold`; 0 to 7.05 s; nothing of the harbour in it): a field of rays
+and one band of ground.
+- 0.1 s, the squawk: the gull crosses over, a flat black shape, his cone in his feet;
+- 2.05 to 3.55 s, the eight stabs: the four come in after him from the left, black shapes, one
+  to every two stabs (Kit, Pip, Hoagie, Milo), each arriving in five shortening steps and
+  running on their own cycle of four drawings;
+- 4.05 s, the band: one drawing of white and they are in colour, the ground is the pier's
+  boards, the lines of speed go white;
+- 6.05 s, «Down at…»: they go, from the front, one after another;
+- 7.05 s: a whip to the harbour; Kit's shot as in round 48 (board 8.05, she lands 9.05 on «in»,
+  her card 10.05 on her name).
+
+The shapes are their own drawings painted flat (`put` with `sil`), so nothing is new art.
+
+**Also**: Captain jumps once in Kit's shot, when she lands (he also jumped at the clatter and,
+in round 49, as she rode past: «cuando no debe»). Kit's ride is out («muy lento»).
+
+**Not done, and why**: «Aunt parece una estatua». She has one drawing at her hatch (sliding it
+was «antinatural», round 40; still with a blink is a statue). She needs drawings: a sheet of
+four of one gesture (shaking her fry basket), 433 credits. The generation was refused by the
+session's permission check, as a spend the user had not asked for; asked.
+
+**Shown small**: `review/open.jpg` (sixteen stills with their seconds), and the first 11.3 s
+rendered alone at 1280 (67 s).
 
