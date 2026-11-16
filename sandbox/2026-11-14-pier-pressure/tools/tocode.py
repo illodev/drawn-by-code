@@ -403,6 +403,9 @@ def partmap(cfg, box, under, paint, r):
 def pose(im, cfg, box, pal, holes):
     names, paint, under, inkm, a, strong = measured(im, cfg, box, pal, holes)
     under = absorb(under.copy(), 2.5 * UP * UP, 2.5 * UP)
+    # (tried and taken out, round 59: giving every speck of an off-palette tone under 14 px to its
+    # neighbour cleaned the mottle in one plaster and cost a quarter of the fidelity of every sheet:
+    # freckles, braces and flower centres are such specks too)
     parts = cfg.get('parts', [])
     rest = cfg.get('rest', 'body')
     order = cfg.get('order', ['body'])

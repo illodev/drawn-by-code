@@ -122,3 +122,6 @@ shaking a wire fry basket full of golden chips with both hands, a loop: Frame 1 
 …». Say where the eyes go in each frame, and ask for anything see-through (a wire basket) to be
 drawn with a dark inside, so the green does not show through it.
 
+## What a sheet can get wrong (round 59)
+
+«Glasses flying off his nose» came back with a pair of eyes inside the flying glasses; a pointing pose came back with two pupils in one eye. Say it in the prompt («the glasses are empty; his eyes stay on his face»; «exactly one pupil in each eye») and run `python3 -I tools/eyes.py <sheet> --raw` on what arrives.

@@ -3,8 +3,10 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 58: approved by the user and published in the README and on the site; a pull
-request prepared.** The film: a cold open in black shapes (0–8 s), Kit's jump into the harbour and her
+State: **round 59 (after the merge of the pull request): two drawing mistakes of the generator
+found by the user in the published film and mended on the sheets (a second pupil in one of
+Kit's eyes; eyes inside Milo's flying glasses); the film rendered again. Before it, round 58:
+approved by the user, in the README and on the site, merged.** The film: a cold open in black shapes (0–8 s), Kit's jump into the harbour and her
 landing on her board (9.05), the cards on their sung names, the chase (nobody crossing
 anybody), the leap, the title; the song alone with Captain's cries at the end. **The film is
 approved by the user (round 58): the style is `approved`, and both are in the README and on
@@ -1857,4 +1859,40 @@ file; `render/` updated from it. `engine/review.mjs`: no warnings, no still stre
 - **The site**: one line in `FILMS`, one in `STYLES`, the still `site/media/styles/skate-toon.jpg`
   (a frame of the template), the poster `site/media/pier-pressure.jpg`; `node site/build.mjs`.
 - `sandbox/INDEX.md`: the row rewritten for the finished film.
+
+## Round 59 (user) · two pupils in one eye; pupils in the flying glasses
+
+> He mergeado, por cierto viendo el gif me he dado cuenta que tiene 2 pupilas
+
+> Y creo que a milo se le quedan las pupilas en las gafas
+
+(with two crops of the film: Kit's eye with two black dots; Milo's glasses in the air with a
+pupil in each lens)
+
+**Both are in the sheets, and both were copied faithfully.** The generator drew Kit's `point`
+(the drawing she lands into, and the one in the style's template) with a second pupil on the
+lower left edge of one eye; and, asked for «glasses flying off his nose», drew Milo's `j4` with
+the glasses in the air AND a pair of eyes in them, besides the eyes on his face. Fifty-eight
+rounds of comparing drawings with their sheets could not see either: the comparison says the
+copy is right. Nobody had looked at the SHEETS for mistakes of drawing.
+
+- `tools/eyes.py`: a check on the sheets themselves. An eye is a roundish region of white closed
+  in by lines; its pupils are the blobs of black inside its outline thicker than a line. On the
+  28 sheets it finds one eye with two: Kit's. (A first try on the drawings in code counted 60:
+  two eyes that touch are one white shape there.)
+- `tools/green.py` `MEND`: a mistake inside a figure is mended on the sheet before it is read,
+  by shapes in sheet pixels. Kit: the blot goes (white inside the eye, skin outside it) and the
+  eye's outline is drawn through where it was. Milo: the lenses are emptied and tinted as glass.
+  `review/pupils.jpg`: sheet and drawing, both places. After it `eyes.py` finds none.
+- A rule tried on the way and taken out by measuring: giving every speck of an off-palette tone
+  to its neighbour cleaned the mottle in the plaster on Kit's nose (seen while looking at her
+  eye) and took the cast's fidelity from 0.35 % to 0.43 % off; freckles and braces are such
+  specks too. Without it: 0.35 %, as before. The plaster is still mottled at eight times its
+  size.
+
+All 93 drawings converted again; the style's copies of Kit's two sheets updated; the film
+rendered whole, `render/` and the README's GIF from it.
+
+**Lessons** → skill replicate (check the sheet, not only the copy), skill animate (what to look
+for in a generated sheet).
 
