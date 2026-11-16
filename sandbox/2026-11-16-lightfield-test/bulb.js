@@ -20,14 +20,18 @@ const vec2 AXIS = vec2(658.0, 274.0);   // the bulb's axis and the centre of its
 const float RS = 203.0;                 // the sphere's radius
 const vec2 FIL_A = vec2(595.0, 257.0), FIL_B = vec2(737.0, 255.0);
 // the neck: radius every 20 px down from y = 275
-const float NECK[17] = float[17](203.0, 202.0, 200.0, 196.0, 191.0, 183.0, 173.0, 162.0, 149.0, 138.0, 131.5, 128.0, 126.5, 125.5, 125.0, 119.0, 86.0);
+const float NECK[17] = float[17](203.0, 202.0, 200.0, 196.0, 191.0, 183.0, 173.0, 162.0, 149.0, 138.0, 131.5, 128.0, 126.5, 125.5, 124.5, 112.0, 90.0);
 float neck(float y) {
     float x = clamp((y - 275.0) / 20.0, 0.0, 15.999);
     int i = int(floor(x)); float f = x - float(i);
     float a = NECK[max(i - 1, 0)], b = NECK[i], c = NECK[i + 1], d = NECK[min(i + 2, 16)];
     return b + 0.5 * f * (c - a + f * (2.0 * a - 5.0 * b + 4.0 * c - d + f * (3.0 * (b - c) + d - a)));
 }
-float prof(float y) { float d = 274.0 - y; return y < 274.0 ? sqrt(max(RS * RS - d * d, 0.0)) : neck(y); }
+// (the floor of the bulb turns in on a round corner 23 px in radius before it meets the cap)
+float prof(float y) {
+    float d = 274.0 - y, c = y - 558.0;
+    return y < 274.0 ? sqrt(max(RS * RS - d * d, 0.0)) : (y > 558.0 ? 101.0 + sqrt(max(529.0 - c * c, 0.0)) : neck(y));
+}
 float seg(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0)); }
 float bez(vec2 p, vec2 a, vec2 b, vec2 c) {
     float d = 1e9; vec2 q = a;
@@ -87,38 +91,63 @@ vec3 radiance(vec2 p) {
     vec3 hz = haze(PW);
     vec3 c = wall(PW) + (hz * 0.62 + (hz + emit(vec3(0.5, 0.5, 0.55)) * dot(hz, vec3(0.6))) * 1.25 * (flecks(PW, 10.0, 1.0) + flecks(PW + 40.0, 21.0, 2.0))) * (0.55 + 0.45 * sat(HEAT));
 
-    // ---- the cap: black metal, far out of focus; its thread only shows as blobs of light
+    // ---- the cap: a brass shell with a rolled thread, far out of focus. Out of focus does
+    // not mean flat: the thread still shows in three ways, all on the still: the silhouette
+    // is scalloped (a crest every 14.3 px, the right side half a turn behind the left: it is
+    // a helix), every turn is a band (its upper flank catches what is above it, its lower
+    // flank and the groove are black), and each crest throws a blurred glint past the edge.
+    vec3 capGlints = vec3(0.0);
     {
-        float dx = P.x - 654.0, hw = 86.0 - 3.0 * smoothstep(585.0, 600.0, P.y);
-        float cov = smoothstep(hw + 6.0, hw - 6.0, abs(dx)) * smoothstep(571.0, 583.0, P.y);
-        vec3 m = emit(vec3(0.060, 0.085, 0.125)) * (0.75 + 0.4 * exp(-dx * dx / 2500.0));
-        float k = (P.y - 590.0) / 14.3;
-        float ridge = 0.5 + 0.5 * cos(k * 6.283);
-        m += emit(vec3(0.07, 0.085, 0.115)) * ridge * 0.12 * smoothstep(70.0, 20.0, abs(dx));
-        for (int s = 0; s < 2; s++) {
-            float sx = s == 0 ? -80.0 : 82.0, ko = k - (s == 0 ? 0.0 : 0.45);
+        float dxc = P.x - 655.0;
+        // the lip of the shell under the glass is an ellipse seen a little from above
+        float lipY = 580.0 - 3.2 * sqrt(max(1.0 - dxc * dxc / (88.0 * 88.0), 0.0));
+        float k = (P.y - 598.0) / 14.3 - 0.25 * dxc / 68.0;          // turns, slanted across the shell
+        float crest = 0.5 + 0.5 * cos(6.283 * k);
+        float collar = smoothstep(600.0, 589.0, P.y);                 // the plain band above the thread
+        float hw = mix(66.0 + 6.5 * crest * crest, 79.0 - 0.9 * (P.y - 580.0), collar);
+        float cov = smoothstep(hw + 5.5, hw - 5.5, abs(dxc)) * smoothstep(-5.0, 4.0, P.y - lipY);
+        float u = clamp(dxc / hw, -1.0, 1.0);
+        // a band per turn: lit on its upper flank, black in the groove
+        float flank = smoothstep(0.05, 1.0, 0.5 + 0.5 * cos(6.283 * (k + 0.17))) * (0.5 + 1.0 * noise(vec2(P.x * 0.045, floor(k + 0.67) * 3.1)));
+        float turn = floor(k + 0.5);
+        vec3 th3 = hash3(vec2(turn, 4.0));
+        vec3 m = emit(vec3(0.022, 0.030, 0.050)) * (0.85 + 0.4 * flank) * (0.6 + 0.5 * th3.x);
+        // the shell is a cylinder: the wall's blue runs up its flanks, the middle mirrors the dark room
+        m += emit(vec3(0.04, 0.10, 0.18)) * pow(abs(u), 4.0) * (0.3 + 0.9 * flank);
+        m = mix(m, emit(vec3(0.050, 0.060, 0.080)) * (0.7 + 0.5 * noise(vec2(P.x * 0.05, 9.0))), collar * 0.8);
+        // the filament, mirrored as a short warm dash on the upper flank of some turns
+        float dash = exp(-pow((dxc - 22.0 + 30.0 * (th3.y - 0.5)) / (9.0 + 9.0 * th3.z), 2.0)) * flank * flank * step(0.55, th3.x);
+        m += hot * vec3(1.0, 0.72, 0.35) * 0.06 * dash * (0.3 + th3.x) * (1.0 - collar);
+        m += hot * vec3(1.0, 1.0, 0.5) * 5.0 * smoothstep(5.0, 3.4, length(P - vec2(682.0, 635.0)));
+        m += hot * vec3(1.0, 0.9, 0.5) * 0.5 * smoothstep(3.6, 2.0, length(P - vec2(678.0, 664.0)));
+        // under the lip the brass glows with the filament and falls off into the collar
+        m += emit(vec3(0.42, 0.27, 0.12)) * sat(HEAT) * 0.55 * exp(-(P.y - lipY) * (P.y - lipY) / 110.0) * smoothstep(1.0, 0.3, abs(u)) * step(lipY, P.y);
+        c = mix(c, m, cov);
+        // a glint on every crest, both sides: soft dashes slanted with the helix, uneven,
+        // spilling past the silhouette (they are light out of focus, not paint on the shell)
+        for (int sd = 0; sd < 2; sd++) {
+            float sg = sd == 0 ? -1.0 : 1.0;
+            float kk = (P.y - 598.0) / 14.3 - 0.25 * sg;
             for (int j = -1; j <= 1; j++) {
-                float ki = floor(ko + 0.5) + float(j);
-                vec3 hh = hash3(vec2(ki, float(s) * 7.0 + 2.0));
-                vec2 d = vec2(dx - sx - 9.0 * (hh.y - 0.5), (ko - ki) * 14.3 - 4.0 * (hh.z - 0.5));
-                // an out-of-focus glint on one turn of the thread: a soft dash, slanted with the helix
-                float b = (0.10 + 1.5 * hh.x * hh.x + 0.3 * hh.y) * step(-0.5, ki);
-                vec2 dd = rot((s == 0 ? 0.42 : -0.42) + 0.5 * (hh.z - 0.5)) * d / vec2(6.0 + 5.0 * hh.z, 3.2 + 1.8 * hh.y);
-                m += KEYL * emit(vec3(0.80, 0.87, 0.95)) * 1.5 * b * exp(-dot(dd, dd) * 1.1) * (s == 0 ? 0.9 : 1.0);
+                float ki = floor(kk + 0.5) + float(j);
+                vec3 hh = hash3(vec2(ki, float(sd) * 7.0 + 2.0));
+                vec2 d = vec2(dxc - sg * (72.0 + 9.0 * hh.y), (kk - ki) * 14.3 - 5.0 * (hh.z - 0.5));
+                float b = (0.05 + 1.9 * hh.x * hh.x * hh.x + 0.3 * hh.y) * step(-0.6, ki);
+                vec2 dd = rot(sg * (-0.38) + 0.9 * (hh.z - 0.5)) * d / vec2(5.0 + 8.0 * hh.z * hh.z, 3.0 + 2.8 * hh.y);
+                float l = dot(dd, dd);
+                capGlints += KEYL * emit(vec3(0.80, 0.87, 0.95)) * 2.4 * b * (exp(-l * 1.3) + 0.2 * exp(-l * 0.4)) * (0.35 + 1.3 * noise(P * 0.21 + ki * 3.7)) * (sd == 0 ? 0.9 : 1.05);
             }
         }
-        // warm glints: the filament in the thread
-        m += hot * vec3(1.0, 1.0, 0.5) * 5.0 * smoothstep(5.0, 3.4, length(P - vec2(682.0, 635.0)));
-        m += hot * 0.10 * smoothstep(9.0, 3.0, length((P - vec2(668.0, 617.0)) * vec2(0.5, 1.2))) + hot * vec3(1.0, 0.9, 0.5) * 0.5 * smoothstep(3.6, 2.0, length(P - vec2(678.0, 664.0)));
-        // the brass rim, blurred into a band
-        float rim = exp(-(P.y - 578.0) * (P.y - 578.0) / 13.0) * smoothstep(92.0, 62.0, abs(dx));
-        m += (KEYL * emit(vec3(0.55, 0.45, 0.25)) * 0.9 + emit(vec3(0.90, 0.76, 0.44)) * sat(HEAT) * 2.2 * (0.3 + exp(-dx * dx / 1800.0))) * rim * (0.55 + 0.9 * noise(vec2(P.x * 0.11, 3.0)));
-        c = mix(c, m, cov);
+        capGlints *= smoothstep(586.0, 596.0, P.y);
+        // the lip itself: brass lit from above, a thin bright arc broken into blurred beads
+        float lip = exp(-(P.y - lipY) * (P.y - lipY) / (7.0 + 9.0 * exp(-dxc * dxc / 2500.0))) * smoothstep(84.0, 70.0, abs(dxc));
+        float beads = 0.2 + 2.2 * pow(noise(vec2(P.x * 0.2, 3.0)), 3.0) + 0.9 * exp(-pow((dxc + 6.0) / 26.0, 2.0));
+        capGlints += (KEYL * emit(vec3(0.55, 0.45, 0.25)) * 0.5 + emit(vec3(0.90, 0.76, 0.44)) * sat(HEAT) * 1.6) * lip * beads;
     }
 
     // ---- the glass
     float dx = P.x - AXIS.x, r = prof(P.y);
-    float top = step(71.0, P.y) * step(P.y, 592.0);
+    float top = step(71.0, P.y) * smoothstep(586.0, 581.0, P.y);
     float cov = smoothstep(r + aa, r - aa, abs(dx)) * top;
     if (cov > 0.0) {
         float nxr = clamp(dx / max(r, 1.0), -1.0, 1.0);
@@ -127,23 +156,38 @@ vec3 radiance(vec2 p) {
         vec3 R = vec3(2.0 * N.z * N.x, 2.0 * N.z * N.y, 2.0 * N.z * N.z - 1.0);
         float fres = 0.04 + 0.96 * pow(1.0 - N.z, 5.0);
         float gl = glow(P);
-        // the dust on the glass: a fine tooth and sparse bright specks
-        // (a grain of sand a pixel across, in clumps; one grain in seventy catches the light)
-        float tooth = (0.76 + 0.48 * hash(floor(P * 1.15))) * (0.78 + 0.44 * noise(P * 0.31));
+        // the coating on the glass, close up, is sandpaper: grains a pixel across of uneven
+        // brightness, pores (one cell in eight is a pit that takes no light), blotches a few
+        // pixels wide, and one grain in seventy that sparkles
+        float sand = 0.50 + 1.0 * hash(floor(P * 0.92));
+        float pore = step(0.875, hash(floor(P / 1.7) + 3.0)) * (0.5 + 0.5 * hash(floor(P / 1.7) + 6.0));
+        float blotch = 0.62 + 0.76 * noise(P * 0.21 + 4.0);
+        float tooth = sand * blotch * (1.0 - 0.78 * pore);
         float speck = step(0.986, hash(floor(P / 1.6) + 5.0)) * (0.4 + 1.6 * hash(floor(P / 1.6) + 9.0));
         float dust = tooth + 0.9 * speck;
-        // the body: smoky amber glass, lit from above right by the studio and from inside
+        // the body, unlit by the filament: a golden cap where the studio's top light grazes
+        // the dome, falling quickly to a dark smoky brown
         float up = sat((300.0 - P.y) / 230.0);
-        vec3 body = emit(mix(vec3(0.15, 0.135, 0.15), vec3(0.50, 0.37, 0.25), up * up * sqrt(up)) * (0.75 + 0.25 * sat(0.6 + 0.6 * N.x + 0.5 * N.y))) * KEYL;
-        // the filament in the glass. Measured on the still (red channel, as radiance): 0.9 at
-        // 28 px off the filament's end, but 1.7 at 55 px above its middle and still 0.8 at 85:
-        // the dome above the wire is the screen its light falls on. So: a tight falloff round
-        // the wire plus a lobe over it. Amber glass keeps the red: the glow is redder than
-        // the filament.
-        vec2 lobe = (P - vec2(662.0, 205.0)) / vec2(72.0, 44.0);
-        vec3 lit = hot * vec3(1.0, 0.38, 0.27) * (0.9 * gl * sqrt(gl) + 1.45 * exp(-dot(lobe, lobe)) + 0.30 * exp(-dot(lobe, lobe) * 0.3));
-        float cloud = 0.30 + 1.45 * fbm(P / 44.0 + 9.0);
-        vec3 g = (body * dust + lit * cloud * (tooth + 0.9 * speck) + (hot * 0.3 + KEYL * 0.03) * speck * gl * 1.3) * mix(1.0, 0.28, smoothstep(0.42, 0.80, N.x));
+        float capT = smoothstep(150.0, 84.0, P.y) * (0.7 + 0.5 * fbm(P / 30.0 + 2.0));
+        vec3 body = emit(mix(mix(vec3(0.13, 0.115, 0.125), vec3(0.24, 0.165, 0.125), up), vec3(0.60, 0.44, 0.27), capT) * (0.75 + 0.25 * sat(0.6 + 0.6 * N.x + 0.5 * N.y))) * KEYL;
+        // the filament in the glass. It is not a halo: on the still it is a nucleus round the
+        // wire (red channel as radiance: 0.9 at 28 px off its end), a lobe over it (1.7 at
+        // 55 px above its middle, 0.8 at 85), then a darker ring (y 144 to 164, and from
+        // x 755 on the right) before the golden cap; it reaches further left than right, and
+        // dies a little under the wire. Amber glass keeps the red.
+        vec2 fv = P - vec2(662.0, 250.0);
+        vec2 lobe = (P - vec2(658.0, 216.0)) / vec2(80.0, 50.0);
+        float rho = length(fv / vec2(1.25 + 0.35 * step(fv.x, 0.0), 1.0));
+        float ring = 1.0 - 0.55 * exp(-pow((rho - 96.0) / 17.0, 2.0)) * smoothstep(40.0, -30.0, fv.y);
+        float under = 1.0 - 0.6 * smoothstep(20.0, 95.0, fv.y);
+        // rays of it, uneven, as the coil's turns throw it
+        float spoke = 1.0 + 0.75 * (noise(vec2(atan(fv.y, fv.x) * 7.0, 2.0)) - 0.5) * exp(-max(rho - 30.0, 0.0) / 60.0);
+        vec3 lit = hot * vec3(1.0, 0.31, 0.20) * (1.5 * gl * gl + 1.35 * exp(-dot(lobe, lobe)) + 0.22 * exp(-dot(lobe, lobe) * 0.35)) * ring * under * spoke;
+        // clouds in the coating: where it is thin the light dies
+        float cloud = 0.10 + 2.0 * fbm(P / 40.0 + 9.0) * (0.45 + 1.1 * fbm(P / 13.0 + 31.0));
+        // the far side of the dome, to the right, is turned away from the wire: nearly black
+        float turned = mix(1.0, 0.16, smoothstep(0.28, 0.66, N.x + 0.10 * (fbm(P / 26.0) - 0.5)));
+        vec3 g = (body * (0.80 + 0.20 * tooth + 0.12 * speck) + lit * cloud * (tooth + 0.9 * speck) + (hot * 0.3 + KEYL * 0.03) * speck * gl * 1.3) * turned;
         // what shows through from the wall behind: little, and less in the amber dome
         g += c * mix(0.05, 0.16, smoothstep(380.0, 520.0, P.y));
         // the back light soaking through the dusty dome, up right
@@ -159,9 +203,9 @@ vec3 radiance(vec2 p) {
             w = min(w, bez(P, vec2(653.0, 258.0), vec2(650.0, 310.0), vec2(657.0, 398.0)));
             w = min(w, bez(P, vec2(712.0, 257.0), vec2(708.0, 320.0), vec2(668.0, 398.0)));
             w = min(w, bez(P, vec2(701.0, 257.0), vec2(700.0, 300.0), vec2(696.0, 332.0)) + 0.3);
-            float wl = smoothstep(1.25 + aa, 1.25 - aa, w);
+            float wl = smoothstep(0.95 + aa, 0.95 - aa, w);
             float wg = glow(P);
-            g = mix(g, emit(vec3(0.06, 0.05, 0.05)) * KEYL + hot * vec3(1.0, 0.8, 0.35) * (9.0 * wg * wg + 0.25 * wg), wl);
+            g = mix(g, emit(vec3(0.06, 0.05, 0.05)) * KEYL + hot * vec3(1.0, 0.78, 0.32) * (4.0 * wg * wg + 0.2 * wg) * (0.5 + 0.9 * noise(P * 0.22 + 11.0)), wl);
         }
         // -- the stem: a lump of pinched glass with the wires sealed in it, on a glass tube.
         // Glass shows as what it reflects, so both are a height field (a lens-shaped lump
@@ -216,7 +260,11 @@ vec3 radiance(vec2 p) {
             float coil = smoothstep(thick + aa, thick - aa, d) * inx;
             float turns = 0.45 + 0.55 * abs(sin(P.x * 0.9 + 1.4 * (P.y - filY(P.x)) / 4.2));
             g = mix(g, emit(vec3(0.10, 0.09, 0.09)) * KEYL * turns, coil * 0.9);
-            g += hot * 480.0 * coil * turns;
+            g += hot * 650.0 * coil * turns;
+            // it burns unevenly: brighter knots where the supports hold it
+            g += hot * 420.0 * inx * exp(-d * d / 30.0) * (exp(-pow((P.x - 653.0) / 6.0, 2.0)) + 0.8 * exp(-pow((P.x - 706.0) / 8.0, 2.0)) + 0.6 * exp(-pow((P.x - 622.0) / 5.0, 2.0)));
+            // the wire's own fuzz: a glow of uneven height hugging it (the lens does the rest)
+            g += hot * 22.0 * exp(-abs(d) / (2.5 + 4.5 * noise(vec2(P.x * 0.27, 5.0)))) * inx;
             // the wire flares where it is clamped to its leads, and dust burns around it
             vec2 e1 = P - vec2(594.0, 258.0), e2 = P - vec2(738.0, 255.0);
             g += hot * 260.0 * (smoothstep(4.5, 2.0, length(e1 * vec2(1.0, 0.7))) + smoothstep(4.5, 2.0, length(e2 * vec2(1.0, 0.7))));
@@ -230,13 +278,28 @@ vec3 radiance(vec2 p) {
         // feathered inward through the dust and notched at the bottom by the box's frame,
         // under a soft creamy cloud where the dome's dust scatters it
         float edgeD = r - abs(dx);
-        float kw = mix(56.0, 26.0, smoothstep(238.0, 318.0, P.y)) + 13.0 * (noise(P * 0.045 + 5.0) - 0.5);
-        float key = step(0.0, dx) * smoothstep(4.0, 9.0, edgeD) * smoothstep(kw * 1.15, kw * 0.45, edgeD) * mix(0.13, 1.0, smoothstep(95.0, 185.0, P.y)) * smoothstep(74.0, 92.0, P.y) * smoothstep(338.0, 318.0, P.y);
-        key *= 1.0 - 0.9 * smoothstep(284.0, 296.0, P.y) * smoothstep(0.42, 0.56, noise(vec2(P.x * 0.07 + P.y * 0.05, P.y * 0.11)));
-        key *= 0.75 + 0.5 * tooth;
+        float right = step(0.0, dx);
+        // a veil: the box seen through the coating, wide, creamy, grainy
+        float kw = mix(60.0, 30.0, smoothstep(230.0, 320.0, P.y)) + 26.0 * (fbm(P * 0.03 + 5.0) - 0.5);
+        float veil = right * smoothstep(3.0, 9.0, edgeD) * smoothstep(kw * 1.25, kw * 0.25, edgeD) * smoothstep(84.0, 125.0, P.y) * smoothstep(342.0, 322.0, P.y);
+        // a core: the box itself, mirrored and blown: a soft crescent, wider low down, with a
+        // feathered inner edge and a slanted lower end where the box's frame cuts it
+        float cw = (16.0 + 30.0 * smoothstep(145.0, 205.0, P.y) * smoothstep(318.0, 245.0, P.y)) * (0.85 + 0.3 * noise(vec2(P.y * 0.022, 9.0)));
+        float core = right * smoothstep(5.0, 9.0, edgeD) * smoothstep(9.0 + cw + 8.0, 9.0 + cw - 4.0, edgeD + 3.0 * (tooth - 1.0))
+                   * smoothstep(138.0, 180.0, P.y) * smoothstep(8.0, -6.0, P.y - 306.0 + 0.55 * (edgeD - 18.0));
+        // the box is a frame with a diffuser: one dark bar crosses its lower end, and it is
+        // brightest on the side nearer the edge
+        core *= 1.0 - 0.8 * smoothstep(4.5, 1.5, abs((P.y - 289.0) + 0.5 * (P.x - 842.0)));
+        core *= 0.72 + 0.28 * smoothstep(cw + 9.0, 12.0, edgeD);
+        // and it shows a second time, small and dim, on the inside of the far wall (down left)
+        vec2 k2 = rot(-0.62) * (P - vec2(538.0, 338.0)) / vec2(9.0, 34.0);
+        float second = exp(-dot(k2, k2) * 1.2) * (0.6 + 0.5 * tooth);
+        // a hair of light on the very edge of the glass
+        float hair = right * exp(-(edgeD - 1.9) * (edgeD - 1.9) / 1.3) * smoothstep(96.0, 140.0, P.y) * smoothstep(335.0, 290.0, P.y);
+        float key = max(core, 0.0);
         vec2 kc = (P - vec2(776.0, 152.0)) / vec2(58.0, 46.0);
-        float kcloud = 0.35 * exp(-dot(kc, kc) * 1.3) * step(0.0, edgeD);
-        vec3 refl = KEYL * vec3(1.0, 0.95, 0.88) * (3.3 * key * key + emit(vec3(0.86, 0.76, 0.68)) * 0.95 * kcloud * dust);
+        float kcloud = 0.85 * exp(-dot(kc, kc) * 1.3) * step(0.0, edgeD);
+        vec3 refl = KEYL * (vec3(1.0, 0.95, 0.88) * (3.4 * core + 0.9 * hair + 0.30 * second) + vec3(1.0, 0.84, 0.62) * 0.46 * veil * (0.35 + 0.85 * tooth) + vec3(1.0, 0.95, 0.88) * emit(vec3(0.86, 0.76, 0.68)) * 0.95 * kcloud * (0.65 + 0.35 * dust));
         // a weak fill from the left, and the room in the rim
         refl += KEYL * emit(vec3(0.62, 0.63, 0.52)) * 1.5 * lamp(R, vec3(-0.5, 0.0, -0.86), 0.26, 0.14) * fres * 2.0;
         refl += KEYL * emit(vec3(0.30, 0.36, 0.44)) * 1.0 * smoothstep(0.6, 1.0, fres);
@@ -251,10 +314,14 @@ vec3 radiance(vec2 p) {
         float nb = (0.6 + 0.8 * noise(P * vec2(0.22, 0.03) + 20.0)) * (0.55 + 0.9 * tooth);
         refl += KEYL * (emit(vec3(0.48, 0.50, 0.55)) * sl + emit(vec3(0.70, 0.78, 0.82)) * sr) * nb;
         // the thick glass of the bulb's floor, seen edge on
-        refl += KEYL * emit(vec3(0.30, 0.32, 0.36)) * exp(-(P.y - 561.0) * (P.y - 561.0) / 90.0) * (0.35 + 1.1 * noise(vec2(P.x * 0.09, 6.0))) * smoothstep(1.0, 0.8, abs(nxr));
+        // (two thin arcs: the near and the far edge of the floor, sagging towards the sides)
+        float fl1 = P.y - (562.0 + 7.0 * nxr * nxr), fl2 = P.y - (571.0 + 5.0 * nxr * nxr);
+        refl += KEYL * emit(vec3(0.34, 0.36, 0.40)) * (exp(-fl1 * fl1 / 3.0) * (0.25 + 1.2 * noise(vec2(P.x * 0.07, 6.0))) + 0.7 * exp(-fl2 * fl2 / 5.0) * (0.3 + 1.0 * noise(vec2(P.x * 0.11, 16.0)))) * smoothstep(1.0, 0.75, abs(nxr));
+        // and the filament's warmth caught in it
+        refl += hot * vec3(1.0, 0.7, 0.3) * 0.10 * exp(-fl2 * fl2 / 40.0) * smoothstep(0.9, 0.2, abs(nxr));
         vec2 b1 = (P - vec2(574.0, 556.0)) / vec2(12.0, 15.0), b2 = (P - vec2(752.0, 568.0)) / vec2(15.0, 5.0), b3 = (P - vec2(566.0, 574.0)) / vec2(12.0, 6.0);
-        float jag = 0.25 + 0.95 * smoothstep(0.30, 0.75, noise(P * vec2(0.13, 0.18) + 31.0));
-        refl += KEYL * vec3(1.0, 0.98, 0.95) * 1.5 * jag * (exp(-dot(b1, b1) * 1.6) + 0.8 * exp(-dot(b2, b2) * 1.6) + 0.7 * exp(-dot(b3, b3) * 1.6));
+        float jag = 0.25 + 1.5 * fbm(P * vec2(0.10, 0.14) + 31.0) * fbm(P * 0.3 + 5.0);
+        refl += KEYL * vec3(1.0, 0.98, 0.95) * 3.2 * jag * (exp(-dot(b1, b1) * 1.6) + 0.8 * exp(-dot(b2, b2) * 1.6) + 0.7 * exp(-dot(b3, b3) * 1.6));
         // the glass seen edge on: a dark line at the silhouette, a thin bright one just inside
         // (up left it is a band 10 to 13 px thick on the still, dark: the unlit room in the glass)
         float rimW = mix(3.2, 12.5, smoothstep(0.1, -0.5, N.x) * smoothstep(0.0, 0.5, N.y));
@@ -265,6 +332,7 @@ vec3 radiance(vec2 p) {
         g += refl;
         c = mix(c, g, cov);
     }
+    c += capGlints;
     // ---- the air in front: haze from the back light spilling over the dome, and dust
     c += haze(P) * 0.07 * (0.55 + 0.45 * sat(HEAT));
     {

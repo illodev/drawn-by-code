@@ -89,3 +89,66 @@ Open, for the user: no sound yet; the bulb passes the gate close to its colour l
 (median 7.5 of 8: our title is not their logo, and the dome's highlight is simpler than the
 photograph's); whether `lightfield` should stay one style or the «film from orbit» and the
 «studio macro» stocks become presets with names.
+
+## Round 2 (user)
+
+With three crops (our cap, our sun on the dark disc under the band, the dome next to the
+reference's):
+
+> Hay que arreglar cosas:
+> - El sol parece que atraviesa la tierra, como si saliera de ella
+> - Es normal que el sol no genere interferencias hasta que llega a un punto?
+> - La bombilla le falta, el enrosque es muy plano, el corte de cristal metal se ve como una
+>   raya recta, mejorar reflejos, la dispersión de la luz es muy "homogenea" y artificial,
+>   faltan oscuros y poros
+
+Translation into changes:
+
+**«El sol parece que atraviesa la tierra».** The disc was only hidden below the solid edge,
+so for a second it sat on the dark planet under the band: a sun in front of the Earth. It
+rises *behind* it: the ground and the dense air just above hide it, and it is only ever seen
+through the band. Now it is masked by the pixel's height in the air (nothing under 9 px
+above the edge), it is squashed by refraction while low (0.35 → 0.8), it starts as a dim
+red ember (power ∝ clear⁵, 1500 K → 5700 K) and its light pools in the band before it shows.
+
+**«¿Es normal que no genere interferencias hasta que llega a un punto?»** No. It was the
+kit: rays were cut by a hard threshold, so they popped on in one frame. A real iris has no
+threshold; rays scale with the source. The bright pass is now a knee (m² / (m² + th²)):
+rays grow from the first glimmer, and a broad dim area still throws none.
+
+**The bulb.**
+- *«el enrosque es muy plano»*: the cap was a flat slab 172 px wide with dots. On the still
+  the shell is 132 px wide and its thread shows three ways even out of focus: a scalloped
+  silhouette (a crest every 14.3 px, the right side half a turn behind the left: a helix),
+  a band per turn (lit upper flank, black groove, slanted across the shell, uneven), and a
+  soft slanted glint on each crest spilling past the edge; some turns mirror the filament
+  as a warm dash.
+- *«el corte de cristal metal se ve como una raya recta»*: the brass lip is now an ellipse
+  seen a little from above, a thin arc broken into blurred beads, thicker and brighter
+  under the stem, with a brown glow under it; the bulb's floor turns in on a round corner
+  (it was a chamfer) and shows as two thin sagging arcs.
+- *«mejorar reflejos»*: the key highlight in layers (a blown crescent brightest near the
+  edge, cut by one dark bar of the box's frame; a warm grainy veil where the coating
+  scatters it; a hair of light on the edge), a second, dim image of it on the inside of the
+  far wall, jagged glints at the floor's corners.
+- *«la dispersión de la luz es muy homogénea y artificial, faltan oscuros y poros»*: the
+  glow was one smooth lobe. It is now what the still shows: a nucleus round the wire, a
+  lobe over it, a darker ring (y 144–164, and from x 755 on the right), the far side of the
+  dome nearly black, nothing under the wire beyond 95 px, clouds where the coating is thin;
+  and the coating is sandpaper (grains of uneven brightness, one cell in eight a pit that
+  takes no light, blotches, one grain in seventy sparkling). The golden cap of the dome is
+  the studio's top light, not the filament's.
+- the filament burns unevenly (knots at its supports, a fuzz of uneven height) and the
+  wires are thinner and dimmer.
+
+Tried and thrown away on the way: whiskers on the coil (needles), a key highlight with a
+noise-chewed edge and two crossed bars (a crumpled sticker), glints as crisp ovals (a row
+of LEDs), bands of full contrast across the cap (a ladder again).
+
+**Detail gate after the round (12 × 12):** Limb PASS (colour median 0.7, no flagged tile);
+Bulb PASS (colour median 7.8, p90 19.5, no flagged tile). Automatic review: no warnings.
+
+What the gate could not see, and the user did: it compares one instant (the sun on the
+disc happened a second before the match frame), and inside a tile it only weighs colour
+and energy, not structure (a smooth lobe and a mottled one, a flat cap and a threaded one
+score alike). Both went into the style's checklist.

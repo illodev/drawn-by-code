@@ -55,16 +55,41 @@ so every number in the shader is one you can read off the image.
 - **A light shows on what it lights:** the air, dust, glass, a wire, a brass rim. Measure
   the falloff on the reference in several directions before writing it: the bulb's glow was
   not radial (1.7 at 55 px above the filament, 0.9 at 28 px off its end).
+- **A glow has structure; a smooth lobe is the mark of a fake.** Light in a coated bulb is
+  a nucleus round the wire, a lobe over it, a darker ring, a side turned away that stays
+  nearly black, and clouds where the coating is thin. Write the darks as carefully as the
+  light («faltan oscuros»): what is *not* lit is half of the picture.
+- **Whatever rises from behind something is seen through it or not at all.** A sun behind
+  a planet is masked by the height of the air it shines through, never drawn on the dark
+  disc; while low it is dim, red (a low temperature) and squashed by refraction, and its
+  light pools in the air before the disc shows.
+- **Optical effects have no thresholds.** Rays, bloom and flares scale with the source from
+  its first glimmer (the kit's ray `threshold` is a knee): anything that pops on at one
+  frame of a continuous event reads as a bug («¿es normal que…?»).
 - **Glass is what it reflects.** A dark band at the silhouette (the unlit room), one blown
   highlight per light with a feathered inner edge and a gap to the rim, pale strips where
   walls turn, and for lumpy glass (a stem's press) a height field whose normal picks up the
   filament (gold) and the key (white). No outline, ever.
-- **Dust is the texture of this style:** sand on glass (a grain a pixel across in clumps,
-  one in seventy sparkling, only where light reaches), motes and short flecks in a beam
-  (most faint points, a few streaks), specks near anything burning. Regular dots read as a
+- **Dust is the texture of this style:** sand on glass (grains a pixel across of uneven
+  brightness, **pores**: one cell in eight a pit that takes no light, blotches a few pixels
+  wide, one grain in seventy sparkling, and only where light reaches), motes and short
+  flecks in a beam (most faint points, a few streaks), specks near anything burning.
+  Bright sparkles alone look like stars; it is the dark pits that make a surface. Regular dots read as a
   halftone: sizes and brightness vary by powers (`pow(k, 4.0)`), never linearly.
-- **Out of focus = soft blobs, no detail.** A screw thread out of focus is two columns of
-  slanted soft dashes of uneven brightness, not a ladder of ridges.
+- **Out of focus is soft, never flat.** Relief survives the blur in three ways, and a
+  thing needs all three: its **silhouette** (a screw thread scallops the edge, the far side
+  half a turn behind: it is a helix), its **bands** (each turn a lit flank and a black
+  groove, slanted, uneven, low contrast) and its **glints** (a soft slanted dash on every
+  crest, of uneven size and brightness, spilling past the edge). Measure its real width
+  first: the cap drawn 30 % too wide read as a slab whatever was painted on it.
+- **Where two materials meet there is a lip, not a line.** Glass on brass: an ellipse seen
+  a little from above, a thin arc broken into blurred beads, a round corner on the glass,
+  the floor of the glass as thin sagging arcs. A straight edge across a round object reads
+  as a cut-out.
+- **Reflections come in layers:** the blown core of a light (brightest towards the edge,
+  crossed by a dark bar if the light is a framed box), a grainy warm veil where a coating
+  scatters it, a hair of light on the very edge, and a second, small, dim image on the
+  inside of the far wall. One clean shape is a sticker.
 - **Black is black.** Space and unlit things sit under the `toe`; grain is proportional to
   the signal (`floor` 0 for film on black, ≈ 0.3 for a studio wall).
 - **Stock per shot, matched to its reference with the detail gate:** old film from orbit =
@@ -101,6 +126,9 @@ so every number in the shader is one you can read off the image.
 - **A blurred edge on the reference is not always the silhouette.** The bulb's upper-left
   outline seemed 13 px inside the circle; it was the dark rim of the glass. Changing the
   geometry gave an onion dome: check a shape reading against the whole outline first.
+- **Edges chewed by thresholded noise are jaggies**, and thin emissive whiskers are
+  needles: irregularity goes into slow width and brightness changes (`noise(y · 0.02)`)
+  and into the grain, never into a hard cut of a fine noise.
 - **A grid shows.** One mote, one fleck, one glint per cell is fine only if most cells are
   empty or faint; test at full size.
 - **The first bloom bug:** a downsample pass that samples with `gl_FragCoord * texel` of
@@ -124,6 +152,11 @@ Tune with numbers: sample the same named points on both images, fit profiles
       flat and sharp, with no painted halo left)?
 - [ ] Is black black where nothing is lit, and is the grain absent there?
 - [ ] Is anything outlined, flat, or perfectly regular (dots on a grid, a clean crescent)?
+- [ ] Is any glow a smooth gradient? Where are its darks, its ring, its unlit side, its pores?
+- [ ] Does every round or relieved thing keep its relief out of focus (silhouette, bands,
+      glints), and is every junction between materials a lip rather than a straight line?
+- [ ] Step through every event frame by frame, not only the match frame: does a source
+      ever sit in front of what should hide it, does any effect pop on in one frame?
 - [ ] Does each light warm up (colour by temperature) and light something around it?
 - [ ] Do highlights keep a feathered edge at full size (crop them)?
 - [ ] Does the title go through the plate, and does it come on after its light?
@@ -139,3 +172,9 @@ Tune with numbers: sample the same named points on both images, fit profiles
   looks right: crop every part against the reference at full size (dome, filament, stem,
   cap) and fix what reads as drawn (a rectangular press, dashes for streaks, round discs
   for bokeh) even when the tile numbers are already inside the limits.
+- 2026-11-16 · lightfield-test round 2 · The detail gate compares one instant and, inside a
+  tile, only colour and energy: it passed a sun drawn on the planet (a second before the
+  match frame), a smooth glow and a flat cap. After it passes, check structure by eye at
+  full size against the reference, part by part, and step through the shot's events.
+- 2026-11-16 · lightfield-test round 2 · When the user asks whether something «is normal»,
+  it is not: find the threshold, the step or the clamp that made a continuous thing jump.

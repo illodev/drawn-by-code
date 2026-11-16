@@ -141,14 +141,16 @@ void main() {
     o = vec4(c / 12.0 + uW * texture(uSame, uv).rgb, 1.0);
 }
 `;
-    // iris diffraction: what is brighter than a threshold is smeared along one ray (two
+    // iris diffraction: what is bright (against `threshold`, a soft knee) is smeared along one ray (two
     // cascaded passes of 8 taps = a 64-tap exponential tail)
     const BRIGHT = HEAD + `
 uniform sampler2D uTex; uniform vec2 uRes; uniform float uTh; out vec4 o;
 void main() {
     vec3 c = texture(uTex, gl_FragCoord.xy / uRes).rgb;
     float m = max(c.r, max(c.g, c.b));
-    o = vec4(c * smoothstep(uTh, uTh * 3.0, m), 1.0);
+    // a knee, not a gate: rays grow with the source from its first glimmer (a hard threshold
+    // made them pop on at one frame of a sunrise), yet a broad dim area throws none
+    o = vec4(c * (m * m / (m * m + uTh * uTh)), 1.0);
 }
 `;
     const STREAK = HEAD + `

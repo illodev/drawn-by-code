@@ -49,7 +49,9 @@ hesitate between "it reads" and "it doesn't read", **it doesn't read**.
 - **Rhythm:** cuts on the beat; visual hits (impacts, stamps, appearances) land on the
   beat too.
 - **Origin and physics:** everything that emanates (steam, smoke, sparks, liquid, papers
-  coming out of a box) is visibly born at its source and not behind or above it. Things
+  coming out of a box) is visibly born at its source and not behind or above it. What comes out
+  from behind something (a sun over a horizon, a hand from a sleeve) is never drawn in front
+  of it, not even for a frame: step through the event frame by frame. Things
   rest where they should and fall downward. Check it in a still of the instant it
   appears.
 - **Continuity:** characters and objects identical across shots and to the approved style

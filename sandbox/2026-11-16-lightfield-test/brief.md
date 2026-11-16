@@ -30,7 +30,7 @@
 
 | Time | Shot | What happens |
 |---|---|---|
-| 0–5.5 | Limb | Night side of the Earth from orbit, stars above and a few city lights drifting below. Daylight spreads along the limb from the left (the high blue air first, the low red air after); at 2 s the sun shows through the air as a red point, climbs and whitens, and at 3.5 s the frame is the reference still: the starburst over the band. It keeps climbing and flooding the lens until the cut. |
+| 0–5.5 | Limb | Night side of the Earth from orbit, stars above and a few city lights drifting below. Daylight spreads along the limb from the left (the high blue air first, the low red air after); at 2.4 s the sun shows inside the band of air (never on the dark disc: it rises behind the planet) as a squashed red ember, climbs, rounds and whitens while its halo and rays grow with it, and at 3.5 s the frame is the reference still: the starburst over the band. It keeps climbing and flooding the lens until the cut. |
 | 5.5–11.5 | Bulb | A cold bulb in studio light. At 0.55 s the filament starts as a dull red coil, climbs through orange, overshoots and settles white-hot at 2.5 s: the dust on the glass, the wires, the glass stem and the brass rim light up with it and the haze behind brightens. From 2.3 s the title is emitted in front, and a glint crosses it. Slow push in to the end; at 4.5 s the frame is the reference still. |
 
 ## Detail gate

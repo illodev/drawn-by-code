@@ -19,6 +19,7 @@ LFT.limb = {
 #define AUR uA[9]
 #define SUN_K uA[10]
 #define TURN uA[11]
+#define SUN_FLAT uA[12]
 // the air's colour by height above the solid edge (sRGB as measured, every 4 px of 1063 from −16 px)
 const float STEP = 4.0 / 1063.0, H0 = -16.0 / 1063.0;
 const vec3 PROF[33] = vec3[33](
@@ -74,11 +75,13 @@ vec3 radiance(vec2 p) {
     float hn = h / tau;
     vec3 L = air(hn) * beta * lit * mix(LOW, 1.0, smoothstep(0.028, 0.058, hn));
     L *= 1.0 + AUR * exp(-da * da / (0.028 * 0.028));
-    // the sun: a small disc, flattened by refraction, hidden by the solid Earth
+    // the sun rises BEHIND the planet: the ground and the dense air just over it hide it, so
+    // it is only ever seen through the band (never on the dark disc below it), squashed by
+    // refraction while it is low, and round once it clears
     vec2 rd = vec2(sin(SUN_ANG), cos(SUN_ANG)), td = vec2(rd.y, -rd.x);
     vec2 d = p - (C + (RAD + SUN_H) * rd);
-    float e = length(vec2(dot(d, td), dot(d, rd) / 0.8));
-    vec3 sun = blackbody(SUN_K) * SUN_POW * smoothstep(0.0062 + uPx, 0.0062 - uPx, e) * smoothstep(-0.004, 0.003, h);
+    float e = length(vec2(dot(d, td), dot(d, rd) / SUN_FLAT));
+    vec3 sun = blackbody(SUN_K) * SUN_POW * smoothstep(0.0062 + uPx, 0.0062 - uPx, e) * smoothstep(0.008, 0.021, h);
     vec3 st = stars(p) * STARS * smoothstep(0.075, 0.11, h);
     return L + sun + st + cities(q, r) * (0.35 + 0.65 * STARS);
 }
@@ -88,21 +91,24 @@ vec3 radiance(vec2 p) {
         // the sun climbs straight up through the air at a constant rate
         const sunH = 0.0273 + (t - M) * 0.0205;
         // the air it shines through: red and weak at the ground, white above
-        const clear = Ease.seg(sunH, -0.012, 0.03);
+        const clear = Ease.seg(sunH, 0.0, 0.03);
+        // before it shows, its light already pools in the air over the place it will rise
+        const pre = Ease.inOut(Ease.seg(sunH, -0.04, 0.0));
         const a = [
             0.015 * z, -3.283 * z + 0.0015 * (t - M), 3.313 * z,
             -0.1738, sunH,
-            1400 * Math.pow(clear, 2.2) * (1 + 0.9 * Ease.seg(t, M, M + 2)),
+            2000 * Math.pow(clear, 5) * (1 + 0.9 * Ease.seg(t, M, M + 2)),
             Motion.keys([[0, 0.1], [M - 0.4, 1.95]], t, Ease.inOut),
             1 - Ease.inOut(Ease.seg(t, 1.2, M - 0.5)),
             Ease.inOut(Ease.seg(t, 1.0, M - 0.6)),
-            5.0 * clear,
-            1800 + 3900 * clear,
+            1.3 * pre * (1 - clear) + 5.1 * clear,
+            1500 + 4200 * clear * clear,
             0.012 * t,
+            0.35 + 0.45 * clear,
         ];
         const optics = {
             exposure: 1, toe: 0.05, bloom: 0.12, bloomWeights: [0.5, 0.7, 0.9, 1.2, 2.0, 0.9, 0.2], halation: [1, 0.12, 0.01], halationFrom: 5,
-            streaks: { gain: 0.19, threshold: 30, length: 0.22, falloff: 6.5, rays: 15, level: 4, seed: 7, irregular: 0.8, rot: 0.2, tint: [1, 0.11, 0.008] },
+            streaks: { gain: 0.19, threshold: 90, length: 0.22, falloff: 6.5, rays: 15, level: 4, seed: 7, irregular: 0.8, rot: 0.2, tint: [1, 0.11, 0.008] },
             ca: 0.0012, vignette: 0, soften: 0.6,
             grain: { amount: 0.075, size: 2.6, chroma: 0.3, floor: 0 },
         };
