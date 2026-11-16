@@ -3,9 +3,11 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 48, waiting for the user's verdict: the opening up to Kit redone as cuts on the
-song's intro, no camera move (`film.js` `OPEN`, `review/open.jpg`); before it, round 47, the
-film cut to the song's words (each card on its sung name; `scene.js` `EDIT`, `review/sync.jpg`).** The sound is settled by
+State: **round 49, a proposal waiting for the user's verdict, shown as stills and an 11 s clip
+only: a new opening in which Kit comes in at 2 s and lands as the band comes in (`scene.js`
+`kitShot`, `review/open.jpg`). `render/` still holds round 48's film (rejected opening) until
+this one is approved.** Round 47's cut to the song's words stands (`scene.js` `EDIT`,
+`review/sync.jpg`). The sound is settled by
 the user (round 46): the song alone, and one effect, Captain's cries in the silence after the
 title (`audio.json`). The picture of rounds 38–41 (the leap, the sky, Kit's landing, the colour
 details, the cut parts, Dot, the title) has not had a verdict of its own beyond «sí, sigue».
@@ -1658,4 +1660,40 @@ edge of the set); Dot changes drawing on the beat with nothing between (basket, 
 
 **Lesson** → skill animate: an opening under music is cut on the music's events, measured; a
 camera move is not an event.
+
+## Round 49 (user) · no cuts; something new for the start
+
+> Lo siento, no me gusta nada
+
+> Aparte no hace falta perder tiempo haciendo el render completo para ver solo unos segundos.
+
+> Los cortes son malísimos, no aportan nada, quizás hacer algo nuevo para el inicio
+
+(Two openings thrown out in two rounds, both of them ways of FILLING seven seconds of harbour
+before anyone arrives: a move along it, then cuts of pieces of it.)
+
+**The new idea: do not fill the wait, remove it.** Kit comes in five seconds sooner, and the
+song's intro is what brings her in:
+
+| s | on screen | the song |
+|---|---|---|
+| 0.05–2.05 | the sign, and back from it to the whole quay (the opening the film had until round 46, in two seconds) | squawk, guitar slide |
+| 2.05–4.05 | her board comes down, hits the stone on the fifth stab, bounces on the seventh | the eight dry stabs |
+| 4.05 | **she lands** | **the whole band comes in** |
+| 4.05–5.5 | up through her ten drawings; proud | |
+| 5.55 | onto the board (`push`), low (`glide`), off to the right past Captain, who jumps | |
+| 6.8–9.05 | in again from the left on her pushing cycle, coasting, and to a stop pointing the way (`point`) | «Down at Gull Harbor, the tide's comin' in» |
+| 10.05 | her card | «Kit's got the board» |
+
+One shot from 0 to 11 s, no cut in it. The riding drawings are her sheets' (`kit-ride`: push,
+glide, point; `kit-skate`: the cycle), none new; the sign is in the frame all through, so the
+line that names the harbour is sung over it.
+
+**Shown small, as asked**: `review/open.jpg` (twenty stills with their seconds) and a render of
+the first 11.3 s only at 1280 (69 s instead of seven minutes; `--from 0 --to 11.3`). The full
+film is not rendered and `render/` is not updated until this is approved.
+
+**Known limits**: the quay is empty for about a second (6.3–7.2) between her going and her
+coming back; she gets on the board with no drawing between standing and pushing; the cycle is
+side-on and the stop three-quarter, a change of drawing with nothing between.
 

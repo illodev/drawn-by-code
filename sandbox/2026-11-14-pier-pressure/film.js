@@ -171,38 +171,13 @@ const Film = (() => {
     const WIDE = { f: [800, 450], z: 1 }, F_HOAGIE = { f: [1000, 500], z: 1.35 }, F_MILO = { f: [520, 440], z: 1.45 };
 
     // === 1 · Gull Harbor (4 s): the sign; the camera cranes down and back to the quay =============
-    // The opening, cut on what the song does (measured): a squawk and a guitar slide (0–2 s), eight dry
-    // stabs a quarter of a second apart (2–4 s), the whole band (4 s), the first line at 6 s. No
-    // camera move anywhere: cuts, each landing a little big and settling in a drawing or two.
-    //   [from (s after the first beat), centre on the frame, zoom, what Dot is doing]
-    const OPEN = [
-        // the quiet two seconds: who wants what. Captain, on the squawk; Dot and her chips
-        [0, 'captain', 2, 'stand'],
-        [1, [300, 400], 2, 'basket'], [1.5, [300, 400], 2, 'salt'],
-        // the eight stabs: the harbour, a piece a stab (none of them shows the sign: that is for its line), the last on him again
-        [2, [400, 225], 2, 'salt'], [2.25, [760, 560], 2, 'salt'], [2.5, [1060, 560], 2, 'salt'], [2.75, [430, 590], 2, 'salt'],
-        [3, [520, 225], 2, 'salt'], [3.25, [400, 675], 2, 'salt'], [3.5, [1200, 600], 2, 'salt'], [3.75, 'captain', 2, 'serve'],
-        // the band is in: all of it; then closer on each bar's third beat, to the chips she holds out
-        [4, [800, 450], 1, 'serve'], [5, [520, 420], 1.45, 'serve'], [5.5, [330, 400], 2, 'serve'],
-        // «Down at Gull Harbor»: its sign, for the second the words take
-        [6, [1150, 245], 2, 'serve'],
-    ];
+    // The opening (2 s, the song's quiet start): the harbour's sign, and back from it to the whole
+    // quay, where the next shot goes on without a cut. (Tried and thrown out by the user: one long
+    // move along the quay, round 47, and fifteen cuts on the intro's hits, round 48.)
     const DOT_AT = { stand: { up: 7 }, serve: { up: 44 }, basket: { up: 30 }, salt: { up: 30 }, yell: { up: 14 } }; // how far up each drawing stands behind her counter
     function harbor(g, t, u, env) {
-        let i = 0;
-        while (i + 1 < OPEN.length && u >= OPEN[i + 1][0] - 1e-6) i++;
-        const [at, f, z, pose] = OPEN[i], n = Math.round((u - at) * 24), quick = (OPEN[i + 1]?.[0] ?? 9) - at < 0.4;
-        const [bx, by] = Cam.pt(Harbor.AT.bollard.top), c = f === 'captain' ? [bx - 40, by - 70] : f; // (low enough to leave the sign out)
-        // each cut lands big: one drawing (two frames) at 1.09, one at 1.03, then as it is
-        const punch = i === 0 ? 1 : [1.09, 1.09, 1.03, 1.03][n] ?? 1;
-        g.save();
-        g.translate(800, 450); g.scale(punch, punch); g.translate(-800, -450);
-        view(g, env, c, z, 2, (e) => world(g, e, t, {
-            dot: { pose, ...DOT_AT[pose] },
-            // he hops on his squawk, and again when the band comes in
-            captain: { h: Math.max(hop(twos(u, 1 / 12) - 1 / 12, 1.5), hop(twos(u, 4.5) - 4.5, 1.2)), blink: blinkAt(u, 0.7) },
-        }));
-        g.restore();
+        const k = ease((u - 0.55) / 1.35), c = { f: [lerp(1150, 800, k), lerp(215 + 30 * Math.min(1, u / 0.55), 450, k)], z: 2 * Math.pow(0.5, k) };
+        view(g, env, c.f, c.z, 2, (e) => world(g, e, t, { dot: { pose: 'serve', ...DOT_AT.serve } }));
     }
 
     // === 3 · Hoagie (2 s): through his viewfinder, then the boy behind it =========================
