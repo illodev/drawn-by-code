@@ -26,7 +26,7 @@
         ['opus5-riso', '2026-09-24-opus5-riso', 'opus5-riso', 'risograph', 28],
         ['what-do-you-love', '2026-09-24-what-do-you-love', 'what do you love?', 'paper cutout', 28],
     ];
-    const EXPERIMENTS = 15; // rows in sandbox/INDEX.md
+    const EXPERIMENTS = 16; // rows in sandbox/INDEX.md
 
     // [folder, name, look, shape of its template ('square' | 'wide'), heavy (WebGL raymarching: a smaller canvas)]
     const STYLES = [
@@ -38,6 +38,7 @@
         ['clay3d', 'Clay 3D', 'Plasticine puppets raymarched in WebGL: lumpy pressed-on pieces, fingerprints, studio light.', 'wide', 1],
         ['felt3d', 'Felt 3D', 'Needle-felted wool: a halo of stray fibres on every silhouette, glass-bead eyes, stitched mouths.', 'wide', 1],
         ['tabletop3d', 'Tabletop 3D', 'An office in miniature: a paper clip, an eraser, a stapler, photographed like stop motion.', 'wide', 1],
+        ['lightfield', 'Lightfield', 'Light photographed, not drawn: radiance through a lens and film, with bloom, halation, rays and grain.', 'wide', 1],
         ['comic', 'Comic', 'Brush-ink outlines with tapered ends, flat print colours on newsprint, Ben-Day dots, balloons.', 'wide', 0],
         ['70s-poster', '70s poster', 'Flat acid colours, thick outlines, concentric echoes, sunbursts and melting letters.', 'wide', 0],
         ['liquid-light', 'Liquid light', 'The oil-and-ink projections of 60s concerts: blobs that flow, merge and shift colour.', 'wide', 0],
