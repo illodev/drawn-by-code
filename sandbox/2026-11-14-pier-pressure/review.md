@@ -3,11 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 56: the full film with the opening the user approved for rendering (rounds
-51–54), Kit's continuity into the chase fixed (55) and nobody crossing anybody as they set off (56); `render/` updated; waiting for the user's
-verdict on the whole.** The film now: a cold open in black shapes (0–8 s), Kit's jump into the
-harbour and her landing on her board (9.05), the cards on their sung names (round 47), the
-chase, the leap, the title; the song alone with Captain's cries at the end (round 46).
+State: **round 57: the whole film rendered clean (one encode) at the user's word, with
+everything up to round 56 in it; `render/` updated; waiting for the user's verdict on the
+whole.** The film: a cold open in black shapes (0–8 s), Kit's jump into the harbour and her
+landing on her board (9.05), the cards on their sung names, the chase (nobody crossing
+anybody), the leap, the title; the song alone with Captain's cries at the end. The style stays
+*in testing* (its README table and site entries wait for the user's approval of the film).
 
 ## Round 0 (user) · the brief
 
@@ -1833,4 +1834,11 @@ anybody.
 Rendered: the shot's 48 frames alone, spliced into the film (762 frames). The film outside
 that shot is now a third encode of the round 54 render (crf 16 over crf 18): a clean full
 render is due once everything is approved.
+
+## Round 57 (user) · the clean full render
+
+> Vale, haz el render completo limpio
+
+Rendered whole from the scene (414 s, 762 frames, one encode), replacing the twice-spliced
+file; `render/` updated from it. `engine/review.mjs`: no warnings, no still stretch.
 
