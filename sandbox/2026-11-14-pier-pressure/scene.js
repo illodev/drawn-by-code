@@ -2,11 +2,12 @@
 // first beat at 0.05 s, 16 bars; the song is in private/, not in the repo: audio.json).
 //
 //   bars 1–2   Gull Harbor: the town's sign, then the quay, quiet
-//   bars 3–4   KIT: her board drops in, then she does (this file, kitShot)
-//   bar 5–9    HOAGIE · MILO · PIP · AUNT DOT · CAPTAIN, a bar each: in on the first beat, the
-//              name on the third (film.js)
-//   18–21 s    the song's break: Captain has the chips; the four set off after him
-//   21–30 s    the chorus: down the pier, off its end, in the air
+//   0–7.5 s    GULL HARBOR: along the quay to its sign, as the song gets to «Down at Gull Harbor»
+//   7.5–11 s   KIT: her board drops in, then she does (this file, kitShot)
+//   11–21 s    HOAGIE · MILO · PIP · AUNT DOT · CAPTAIN, a bar each: in on the first beat, the
+//              name on the third, which is where the song says it (film.js)
+//   21–23 s    Captain has the chips; the four set off after him
+//   23–30 s    the chorus: down the pier, off its end, in the air
 //   30 s       the last hit: the title
 //
 // Kit is animated pose to pose, on twos, from six drawn key poses (cast/kit-drop-a/-b-drawn.js):
@@ -25,23 +26,30 @@ const B0 = 0.05; // the song's first beat
 // inside the shots); with one, the camera whips there: the last frame of the shot before and the
 // first two of this one are smeared along the move (L, R: a pan; U: a tilt up; in, out: a zoom)
 const EDIT = [
-    [0, B0 + 4, 'GULL HARBOR', (g, t, u, env) => Film.harbor(g, t, Math.max(0, t - B0), env)],
+    // The cut follows the song's words (a transcription with the time of each word; kept private):
+    //    6.04 «Down at Gull Harbor, the tide's comin' in»      the sign fills the frame from 5.9
+    //   10.06 «Kit's got the board»   12.00 «Hoagie's got the grin»   14.02 «Milo's got a plan»
+    //   16.02 «Pip's got the nerve»   18.08 «Aunt Dot's yellin'»: each card comes in on its name
+    //   19.48 «Hey, mind the curve!»  over the gull making off with her chips
+    //   21.56 «Pier Pressure! (Hey!)» twice: they set off; the pier
+    //   26.02 «First one down»: off the end · 28.02 «last one dry»: in the air · 30.04 «Pressure»: the title
+    [0, B0 + 7.5, 'GULL HARBOR', (g, t, u, env) => Film.harbor(g, t, Math.max(0, t - B0), env)],
     // (in her last half second we are already looking through Hoagie's camcorder)
-    [B0 + 4, B0 + 8, 'KIT', (g, t, u, env) => { kitShot(g, u, { ...env, k: env.k * 1.6 }); if (u >= 3.5) Film.viewfinder(g, t); }],
-    [B0 + 8, B0 + 10, 'HOAGIE', (g, t, u, env) => Film.hoagie(g, t, u, env, (gg) => kitShot(gg, 4 - 1 / 24, { ...env, k: env.k * 1.6 }))],
-    [B0 + 10, B0 + 12, 'MILO', (g, t, u, env, prev) => Film.milo(g, t, u, env, prev)],
-    [B0 + 12, B0 + 14, 'PIP', (g, t, u, env, prev) => Film.pip(g, t, u, env, prev)],
-    [B0 + 14, B0 + 16, 'AUNT DOT', (g, t, u, env, prev) => Film.dot(g, t, u, env, prev)],
-    [B0 + 16, B0 + 18, 'CAPTAIN', (g, t, u, env, prev) => Film.captain(g, t, u, env, prev)],
-    [B0 + 18, B0 + 21, 'AFTER HIM', (g, t, u, env) => Film.chase0(g, t, u, env), 'out'],
-    [B0 + 21, B0 + 26, 'THE PIER', (g, t, u, env) => Film.pier(g, t, u, env), 'R'],
+    [B0 + 7.5, B0 + 11, 'KIT', (g, t, u, env) => { kitShot(g, u, { ...env, k: env.k * 1.6 }); if (u >= 3) Film.viewfinder(g, t); }, 'out'],
+    [B0 + 11, B0 + 13, 'HOAGIE', (g, t, u, env) => Film.hoagie(g, t, u, env, (gg) => kitShot(gg, 3.5 - 1 / 24, { ...env, k: env.k * 1.6 }))],
+    [B0 + 13, B0 + 15, 'MILO', (g, t, u, env, prev) => Film.milo(g, t, u, env, prev)],
+    [B0 + 15, B0 + 17, 'PIP', (g, t, u, env, prev) => Film.pip(g, t, u, env, prev)],
+    [B0 + 17, B0 + 19, 'AUNT DOT', (g, t, u, env, prev) => Film.dot(g, t, u, env, prev)],
+    [B0 + 19, B0 + 21, 'CAPTAIN', (g, t, u, env, prev) => Film.captain(g, t, u, env, prev)],
+    [B0 + 21, B0 + 23, 'AFTER HIM', (g, t, u, env) => Film.chase0(g, t, u, env), 'out'],
+    [B0 + 23, B0 + 26, 'THE PIER', (g, t, u, env) => Film.pier(g, t, u, env), 'R'],
     [B0 + 26, B0 + 28, 'OFF THE END', (g, t, u, env) => Film.leap(g, t, u, env)],
     [B0 + 28, B0 + 30, 'IN THE AIR', (g, t, u, env) => Film.hang(g, t, u, env), 'U'],
     [B0 + 30, 31.75, 'PIER PRESSURE', (g, t, u, env) => Film.title(g, t, u, env)],
 ];
 
-// «KIT» (4 s): the board hits the stone on the shot's third beat (1.0 s), she lands on its fifth
-// (2.0 s, where the song's bass drops out), she is up and her card is on a beat later.
+// «KIT» (3.5 s, from 7.55): the board hits the stone on the shot's third beat (1.0 s), she lands on
+// its fifth (2.0 s), and her card comes in a beat later, on 10.05, as the song says her name.
 function kitShot(g, t, env) {
     const T = SkateToon, C = T.COL, A = Harbor.AT;
     const G = 9.81, H0 = 2.3, TF = Math.sqrt((2 * H0) / G); // the drop: 2.3 m, 0.68 s
@@ -185,7 +193,7 @@ function kitShot(g, t, env) {
     g.restore();
 
     // her name, slammed onto the frame on the next beat
-    Film.card(g, t, CARD, 'KIT', 'FIRST ONE DOWN', 330, 720, { fill: C.magenta, drop: C.navy });
+    Film.card(g, t, CARD, 'KIT', 'GOT THE BOARD', 330, 720, { fill: C.magenta, drop: C.navy });
     g.restore();
 }
 

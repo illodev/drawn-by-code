@@ -172,10 +172,11 @@ const Film = (() => {
 
     // === 1 · Gull Harbor (4 s): the sign; the camera cranes down and back to the quay =============
     function harbor(g, t, u, env) {
-        const k = ease((u - 1.4) / 1.3), c = { f: [lerp(1150, 800, k), lerp(205 + 40 * Math.min(1, u / 1.4), 450, k)], z: 2 * Math.pow(0.5, k) };
-        // Dot is at her counter when it comes into sight, where the next shot finds her (she used to
-        // rise behind it like a lift, a step to one side of that place); Captain keeps watch
-        view(g, env, c.f, c.z, 2, (e) => world(g, e, t, { dot: { blink: blinkAt(u, 3.25) }, captain: { h: hop(twos(u, 3.5) - 3.5, 1.1) } }));
+        // Along the quay, close: from Dot's hut, past the boats, to the sign, which fills the frame
+        // from 5.9 s and is held while the song says its name (6.6 to 7.6 s); a last slow push on it
+        const k = ease((u - 0.5) / 5.3), h = clamp((u - 5.8) / 1.7, 0, 1);
+        const c = { f: [lerp(430, 1150, k), lerp(330, 238, k) + 8 * h], z: lerp(1.5, 1.92, k) + 0.08 * h };
+        view(g, env, c.f, c.z, 2, (e) => world(g, e, t, { dot: { blink: Math.max(blinkAt(u, 0.9), blinkAt(u, 2.1)) } }));
     }
 
     // === 3 · Hoagie (2 s): through his viewfinder, then the boy behind it =========================
@@ -275,7 +276,7 @@ const Film = (() => {
             const n = f - HIT, a = -2.5 + i * 0.5, r0 = 100 + n * 9, r1 = r0 + 40 - n * 5, cx = X + 200, cy = 110;
             T.line(g, [[cx + Math.cos(a) * r0, cy + Math.sin(a) * r0], [cx + Math.cos(a) * r1, cy + Math.sin(a) * r1]], { w: T.LINE * 1.3, seed: 'thumb' + i, color: C.white });
         }
-        card(g, u, 1, 'HOAGIE', 'STILL ROLLING', 1215, 560, { fill: C.maroon, drop: C.ink, second: C.roadLine, k: 1.05, tilt: -0.05 });
+        card(g, u, 1, 'HOAGIE', 'GOT THE GRIN', 1215, 560, { fill: C.maroon, drop: C.ink, second: C.roadLine, k: 1.05, tilt: -0.05 });
         // out of the lens: what the shot before showed shrinks into the glass of his camcorder
         if (prev && f < 8) {
             const r = [1000, 600, 340, 190, 108, 66, 44, 36, 36][f], k = Math.min(1, f / 6), m1 = Drawn.meta('hoagie', 't1'), s1 = PPM / m1.m;
@@ -365,7 +366,7 @@ const Film = (() => {
             act(g, 'milo', 'board', FX + 60 + n * n * 9 + n * 40, FY - 34, PPM, { rot: -0.64 });
             act(g, 'milo', 'fall', FX - 30 - n * 8, FY - 300 - h * PPM, PPM, { rot: -0.3 - n * 0.22 });
         }
-        card(g, u, 1, 'MILO', 'HAS A PLAN', 1215, 560, { fill: C.navy, drop: C.ink, second: C.roadLine, ink: C.navy, tilt: -0.05 });
+        card(g, u, 1, 'MILO', 'GOT A PLAN', 1215, 560, { fill: C.navy, drop: C.ink, second: C.roadLine, ink: C.navy, tilt: -0.05 });
         wipe(g, f, 8, 1, prev, (x, e) => act(g, 'milo', 'board', x, 520 + Math.sin(e * 6) * 30, 620, { rot: -0.64 + e * 2.4 }));
     }
 
@@ -386,7 +387,7 @@ const Film = (() => {
         // what she leaves behind her when she moves: three lines of speed
         if (f < 9 || f >= OFF + 1) for (let i = 0; i < 3; i++) T.line(g, [[x - 300 - i * 40 - (f % 2) * 30, FY - 150 - i * 130], [x - 520 - i * 70 - (f % 2) * 30, FY - 150 - i * 130]], { w: T.LINE * 1.6, seed: 'pips' + i, color: C.white });
         act(g, 'pip', pose, x, FY - 4, PPM, { rot: pose === 'push' ? -0.03 * (1 - f / 12) : 0, blink: pose === 'lolly' ? [0.6, 1, 0.6][f - 27] ?? 0 : 0 });
-        card(g, u, 1, 'PIP', 'NOT BOTHERED', 1215, 330, { fill: C.green, drop: C.ink, second: C.lime, ink: C.maroon, tilt: 0.05 });
+        card(g, u, 1, 'PIP', 'GOT THE NERVE', 1215, 330, { fill: C.green, drop: C.ink, second: C.lime, ink: C.maroon, tilt: 0.05 });
         wipe(g, f, 8, 1, prev, (wx, e) => act(g, 'milo', 'fall', wx, lerp(60, 800, e), 430, { rot: 1.2 + e * 3 }));
     }
 
@@ -446,14 +447,14 @@ const Film = (() => {
     // === 8 · the break (3 s): he has the chips; after him ==============================================
     function chase0(g, t, u, env) {
         // Captain, from the hatch to over our heads
-        const k = clamp((twos(u) - 0.25) / 1.25, 0, 1), kk = k * k, cp = [lerp(-2.9, 4.6, kk), lerp(1.75, 2.9, k) + Math.sin(k * 9) * 0.08, lerp(7.9, 2.0, kk)];
+        const k = clamp((twos(u) - 2 / 12) / 1.0, 0, 1), kk = k * k, cp = [lerp(-2.9, 4.6, kk), lerp(1.75, 2.9, k) + Math.sin(k * 9) * 0.08, lerp(7.9, 2.0, kk)];
         const bird = (gg) => { if (k > 0 && k < 1) { const [bx, by] = Cam.pt(cp); capFly(gg, t, bx, by, (Cam.scale(cp[2]) / M.captain.m) * 1.25, { rot: -0.08 }); } };
         // the four set off, one after another: a drawing of anticipation, then gone
         const go = (at, speed) => {
             const v = twos(u, at) - at;
             return v < 0 ? null : v < 1 / 12 ? { dx: -0.05, sy: 0.9, sx: 1.08, v } : { dx: speed * (v - 1 / 12) * (0.6 + 3 * (v - 1 / 12)), sy: 1, sx: 1, v };
         };
-        const gk = go(2, 3.2), gh = go(2.25, 3.2), gm = go(2.5, 3.2), start = hop(twos(u, 1) - 1, 0.9);
+        const gk = go(15 / 12, 3.2), gh = go(17 / 12, 3.2), gm = go(19 / 12, 3.2), start = hop(twos(u, 0.5) - 0.5, 0.9); // (two seconds: he is over them in one, they are gone in the next)
         const kitA = { z: KIT[2], draw(gg) {
             if (!gk) { kitRest(t).draw(gg); return; }
             // onto her board and away: three drawings of push, then the glide
@@ -472,10 +473,10 @@ const Film = (() => {
             else put3(gg, 'milo', CYC.milo[nth(gm.v) % 4], [MILO[0] + 0.3 + gm.dx, 0, MILO[2]], {});
         } };
         const actors = [kitA, hoagieA, miloA];
-        if (u >= 1.5) actors.push(pipRide(t, -4.2 + (twos(u) - 1.5) * 6.4, 3.05, CYC.pip[nth(u) % 6]));
+        if (u >= 0.9) actors.push(pipRide(t, -4.2 + (twos(u) - 0.9) * 8.7, 3.05, CYC.pip[nth(u) % 6]));
         if (cp[2] > 3.9) actors.push({ z: cp[2], draw: bird });
         view(g, env, [800, 470], 1.06, 1.6, (e) => {
-            world(g, e, t, { actors, captain: null, dot: u < 0.5 ? { pose: 'serve', up: 44, dx: -92 } : { pose: 'yell', up: 14 + [14, -2, 3, 0][Math.min(3, nth(u, 0.5))] + [0, 3][nth(u) % 2], dx: -92 + [0, 2][nth(u) % 2] } });
+            world(g, e, t, { actors, captain: null, dot: u < 4 / 12 ? { pose: 'serve', up: 44, dx: -92 } : { pose: 'yell', up: 14 + [14, -2, 3, 0][Math.min(3, nth(u, 4 / 12))] + [0, 3][nth(u) % 2], dx: -92 + [0, 2][nth(u) % 2] } });
             if (cp[2] <= 3.9) bird(g);
             for (const [gg, P] of [[gk, KIT], [gh, HOAGIE], [gm, MILO]]) if (gg) { const [px, py] = Cam.pt(P); puff(g, px, py, gg.v / 0.4, 6, 22, 'go' + P[0]); }
         });
@@ -674,19 +675,19 @@ const Film = (() => {
     // and how much of the arc's slope the drawing leans by
     const OFF = { milo: [-115, 105, 700, 0.3], hoagie: [440, 635, 653, 0.5], kit: [760, 305, 1070, 0.25], pip: [1070, 471, 1143, 0.2] };
 
-    // === 9 · down the pier (5 s) ======================================================================
+    // === 9 · down the pier (3 s) ======================================================================
     const RUN = 1150; // the camera's speed along the pier, frame units per second
     // where each is in the pack, on the frame, at the start and at the end of the run, and where
     // their cycle starts: Pip comes through all of them without looking up; Milo falls behind
     const PACK = [['milo', 330, 300, 0], ['hoagie', 560, 510, 2], ['kit', 800, 790, 1], ['pip', 90, 1070, 3]];
     function pier(g, t, u, env) {
-        const d = nth(t), close = u >= 3, z = close ? 1.45 : 1, inn = close ? 0 : (1 - ease(u / 0.6)) * -900;
+        const d = nth(t), close = u >= 1.9, z = close ? 1.45 : 1, inn = close ? 0 : (1 - ease(u / 0.5)) * -900;
         g.save();
         if (close) { g.translate(800, 470); g.scale(z, z); g.translate(-700 + [0, 3][d % 2], -470 + [0, -4][d % 2]); }
         pierSide(g, d, u * RUN);
         speed(g, d, close ? 6 : 9);
         capFly(g, t, 1300 + Math.sin(twos(u) * 5) * 24 - inn * 0.4, 250 + Math.sin(twos(u) * 7) * 26, SK.captain, { rot: -0.05 });
-        for (const [who, x0, x1, ph] of PACK) runner(g, who, t + ph / 12, lerp(x0, x1, ease((u - 0.5) / 2.4)) + inn * (1.4 - x0 / 1200), DECK - 10); // (the pack is in its final order before the camera closes in)
+        for (const [who, x0, x1, ph] of PACK) runner(g, who, t + ph / 12, lerp(x0, x1, ease((u - 0.3) / 1.45)) + inn * (1.4 - x0 / 1200), DECK - 10); // (the pack is in its final order before the camera closes in)
         g.restore();
     }
 
@@ -695,7 +696,7 @@ const Film = (() => {
         const d = nth(t), END = 1000, stop = 0.75, uu = twos(u);
         // the camera stops with the pier's end in frame, then goes up and a little on with them
         const rise = 225 * ease((u - 0.85) / 1.1), pan = 260 * ease((u - 0.9) / 1.1);
-        pierSide(g, d, 5 * RUN + Math.min(u, stop) * RUN + pan, END - pan + Math.max(0, stop - u) * RUN, rise);
+        pierSide(g, d, 3 * RUN + Math.min(u, stop) * RUN + pan, END - pan + Math.max(0, stop - u) * RUN, rise);
         if (u < stop) speed(g, d, 7);
         g.save();
         g.translate(-pan, rise);

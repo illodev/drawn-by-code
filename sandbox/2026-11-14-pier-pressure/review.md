@@ -3,25 +3,16 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the sound is settled by the user (round 46): the song alone, and one effect, Captain's
-cries in the silence after the title (`audio.json`).** The picture of rounds 38–41 (the leap,
-the sky, Kit's landing, the colour details, the cut parts, Dot, the title) has not had a verdict
-of its own beyond «sí, sigue». Before it: rounds 42–43,
-the effects placed, balanced by measuring and corrected after a first listen; round 41, the title
-animated (two boards on the song's last two hits, Captain riding the first, the seal unrolled in
-the silence; `review/title.jpg`); round 40, parts cut for good, Dot in place and on her floor, the seal
-(`review/round40.jpg`); 39, the colour details read again (`review/details.jpg`,
-`review/fidelity.md`), Kit's landing with in-betweens (`review/kit.jpg`) and the broadcast
-finish (`styles/skate-toon/tv.js`); 38, the leap and the sky (`review/leap.jpg`); 37, the chase
-in cycles (`review/chase.jpg`); 36, the five presentations in one format
-(`review/presentations.jpg`).
-The cut is approved (round 35→36: «Sí»). Settled by the user: no bending (27), no 3D (31),
-nothing drawn by hand that does not come from the images (31); frames are edits of the
-drawings' code, more of them, no rebounds (32); images may be generated for views the drawings
-lack, always on a coloured ground (32–35); the presentations go well (36→37: «Sí»); the chase,
-the leap, Kit's shot and the title go on (37→…→41: «Sí»); the signature is `illodev x Claude`
-(40). Not done: the name cards are not timed to the sung words. The set is
-approved up to round 16. The style stays *in testing*.
+State: **round 47, waiting for the user's verdict: the film cut again to the song's words (each
+card comes in on its sung name; `scene.js` `EDIT`, `review/sync.jpg`).** The sound is settled by
+the user (round 46): the song alone, and one effect, Captain's cries in the silence after the
+title (`audio.json`). The picture of rounds 38–41 (the leap, the sky, Kit's landing, the colour
+details, the cut parts, Dot, the title) has not had a verdict of its own beyond «sí, sigue».
+Settled by the user: no bending (27), no 3D (31), nothing drawn by hand that does not come from
+the images (31); frames are edits of the drawings' code, more of them, no rebounds (32); images
+may be generated for views the drawings lack, always on a coloured ground (32–35); the cut-outs
+are right (35→36); the signature is `illodev x Claude` (40). The set is approved up to round
+16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -1574,4 +1565,54 @@ glint, the ribbon and the gull). `audio.json` holds this one; the other is one `
 > Me quedo con la de solo la gaviota
 
 Settled: `audio.json` as in round 45 (one cue). Nothing else changed.
+
+## Round 47 (user) · the cards on the sung names
+
+> Sí, sincroniza los rótulos con la letra
+
+**The words, with their times** (a speech-to-text pass with word timestamps over the whole mix;
+the file stays in `private/`): 6.04 «Down at Gull Harbor, the tide's comin' in» · 10.06 «Kit's
+got the board» · 12.00 «Hoagie's got the grin» · 14.02 «Milo's got a plan» · 16.02 «Pip's got
+the nerve» · 18.08 «Aunt Dot's yellin'» · 19.48 «Hey, mind the curve!» · 21.56 and 23.60 «Pier
+Pressure! (Hey!)» · 26.02 «First one down» · 28.02 «last one dry» · 29.60 «Pier Pressure».
+
+**What that showed.** The film had been cut to the bars with no idea where the words were, and
+every name was sung four to six seconds AFTER its card: Kit's card at 6.55 s, her name at 10.06;
+Hoagie's at 9.05 and 12.00; Dot's at 15.05 and 18.08; the sign of Gull Harbor on screen at 0 s
+and sung at 6.6. Moving the cards alone would have put them over other shots: the cut moves.
+
+**The new cut** (`scene.js` `EDIT`; the last four seconds already fell on their words and are
+as they were):
+
+| s | shot | on the song |
+|---|---|---|
+| 0–7.55 | GULL HARBOR: along the quay, close, from Dot's hut to the sign, held from 5.9 | the intro; «Gull Harbor» 6.6–7.6 on the sign |
+| 7.55–11.05 | KIT (3.5 s; was 4): board at 8.55, landing 9.55, card 10.05 | «Kit's» 10.06 |
+| 11.05–13.05 | HOAGIE, card 12.05 | «Hoagie's» 12.00 |
+| 13.05–15.05 | MILO, card 14.05 | «Milo's» 14.02 |
+| 15.05–17.05 | PIP, card 16.05 | «Pip's» 16.02 |
+| 17.05–19.05 | AUNT DOT, card 18.05 (its eight letters over «Aunt Dot's», 18.08–18.92) | |
+| 19.05–21.05 | CAPTAIN: off with her chips | «Hey, mind the curve!» |
+| 21.05–23.05 | AFTER HIM (2 s; was 3): they set off at 22.3 | «Pier Pressure!» |
+| 23.05–26.05 | THE PIER (3 s; was 5) | «(Hey!) Pier Pressure! (Hey!)» |
+| 26.05–30.05 | OFF THE END · IN THE AIR | «First one down, last one dry» |
+| 30.05 | the title | «Pressure» |
+
+The opening shot is new in its move (it used to start on the sign and pull back): the camera
+goes along the quay and ARRIVES at the sign for its line, then a zoom-out whip into Kit's wide.
+The cards' second lines now say what the song says of each: KIT · GOT THE BOARD (was FIRST ONE
+DOWN), HOAGIE · GOT THE GRIN (was STILL ROLLING), MILO · GOT A PLAN (was HAS A PLAN), PIP · GOT
+THE NERVE (was NOT BOTHERED); Dot's MIND THE CURVE and Captain's WANTED stay.
+
+**Seen**: `review/sync.jpg` (24 frames with their seconds); `engine/review.mjs`: no warnings.
+Not seen in motion, not heard: that the cards land on the names is arithmetic on the
+transcription's times (it heard «Kid's» for Kit's and «Ed Dot's» for Aunt Dot's; the times are
+what is used).
+
+**Known limits**: the pier is three seconds instead of five and the break two instead of
+three; Captain's own card is the one no word of the song falls on.
+
+**Lesson** → skill animate: the words of a song first, then the cut (the sound skill already
+said so; a denied install of a local transcriber in round 20 was left at that instead of asking
+for the service's one).
 
