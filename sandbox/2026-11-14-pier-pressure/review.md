@@ -3,11 +3,10 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 52, waiting for the user's verdict, shown as an 11 s clip only: round 51's
-opening (black shapes, Kit's jump into the harbour, Kit landing on her board) with Aunt Dot now
-moving at her hatch on four drawings of her own (`review/open.jpg`, `review/dot-shake.jpg`).
-`render/` still holds round 48's film until the opening is approved.** Round 47's cut to the
-song's words stands.
+State: **round 53, waiting for the user's verdict, shown as an 11 s clip only: the opening of
+rounds 51–52 with Aunt Dot on an uneven phrase instead of a loop and Kit landing a second later
+(9.05), so she is never left standing (`review/open.jpg`). `render/` still holds round 48's
+film until the opening is approved.** Round 47's cut to the song's words stands.
 
 ## Round 0 (user) · the brief
 
@@ -1774,4 +1773,24 @@ to it. Nothing slides.
 
 **Seen**: `review/dot-shake.jpg` (six close-ups of the hatch); the first 11.3 s alone at 1280.
 The break (the gull takes her chips: `serve`, then `yell`) is as it was.
+
+## Round 53 (user) · Dot robotic; Kit left standing
+
+> Muy robótico el movimiento de Aunt, y Pit se queda un rato parada
+
+- **Dot**: four drawings looped identically on every beat (k3 k3 k4 k1 k1 k2, for four seconds)
+  is a machine. Now an exposure sheet for the shot (`scene.js` `DOT_X`), nothing repeated in
+  time: a slow toss, a quick one, low; Kit lands and she looks, the basket half up, eight
+  drawings, a blink; down to it; one big toss held three drawings at the top; a rest of four
+  with a blink; a quick one.
+- **Kit**: she landed at 8.05 and then stood pointing for two seconds waiting for the word that
+  brings her card. The wait is taken out of HER and given to the chase: the cold open is eight
+  seconds (the four hold the line a second longer, each gaining and losing a little, and the
+  gull dips at them once with the cone), she jumps at 7.3, the harbour is there at 8.05, she
+  comes down at 8.55 and **lands at 9.05, on the last word of the song's line («in»)**; low on
+  the board five drawings, up and pointing at 9.5, her card half a second later on her name.
+
+**Shown small**: `review/open.jpg`; the first 11.3 s alone at 1280.
+
+**Lesson** → skill animate.
 

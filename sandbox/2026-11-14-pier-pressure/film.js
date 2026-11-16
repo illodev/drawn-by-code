@@ -677,7 +677,7 @@ const Film = (() => {
     // and how much of the arc's slope the drawing leans by
     const OFF = { milo: [-115, 105, 700, 0.3], hoagie: [440, 635, 653, 0.5], kit: [760, 305, 1070, 0.25], pip: [1070, 471, 1143, 0.2] };
 
-    // === 0 · the cold open (7 s): the chase before anyone has a name ================================
+    // === 0 · the cold open (8 s): the chase before anyone has a name ================================
     // Not the harbour («no aprovecharía la escena del puerto para el inicio»), and nobody seen («el
     // misterio de no saber quién son hasta que se presenten»): a field of rays, a band of ground, and
     // flat black shapes. The gull goes over with his cone on the song's squawk; the four come in after
@@ -692,7 +692,7 @@ const Film = (() => {
     const PUSH = [40, 150, 340, 580, 770, 870]; // the frame going up, six drawings: how far the field has dropped
     function cold(g, t, u, env, next) {
         const d = nth(t), uu = twos(u), n = nth(u), band = u >= 4, GY = 742, K = 1.36, INK = C.ink;
-        const JUMP = 6.25, UPAT = 6.5, pn = Math.round((uu - UPAT) * 12), off = pn < 0 ? 0 : PUSH[Math.min(5, pn)];
+        const JUMP = 7.25, UPAT = 7.5, pn = Math.round((uu - UPAT) * 12), off = pn < 0 ? 0 : PUSH[Math.min(5, pn)];
         if (off) { g.save(); g.translate(0, off - 900); next.paint(g); g.restore(); }
         g.save();
         g.translate(0, off);
@@ -711,18 +711,20 @@ const Film = (() => {
             const x = 1750 - ((d * 330 + i * 613) % 2100), y = 120 + ((i * 53) % 8) * 62;
             T.line(g, [[x, y], [x + 150 + (i % 3) * 60, y]], { w: T.LINE * 1.3, seed: 'csp' + i, color: INK });
         }
-        const gone = (i) => 5.6 + i * 0.1; // when each of the other three leaves, from the front
+        const gone = (i) => 6.5 + i * 0.12; // when each of the other three leaves, from the front
         // the gull: over the frame on the squawk, then ahead of them, top right; first away
         {
-            const k0 = clamp(uu / 1.6, 0, 1), x = u < 2 ? lerp(-260, 1330, k0 * (2 - k0)) : 1330 + Math.sin(uu * 5) * 18 + Math.max(0, uu - 5.5) ** 2 * 9000;
-            const y = u < 2 ? 190 - Math.sin(k0 * Math.PI) * 60 : 150 + Math.sin(uu * 7) * 16;
+            const k0 = clamp(uu / 1.6, 0, 1), x = u < 2 ? lerp(-260, 1330, k0 * (2 - k0)) : 1330 + Math.sin(uu * 5) * 18 + Math.max(0, uu - 6.3) ** 2 * 9000;
+            // (at 5 s he dips down in front of them with the cone, and is up again: a tease)
+            const dip = Math.max(0, Math.sin(clamp((uu - 4.9) / 1.0, 0, 1) * Math.PI)) * 70; // (not into their heads: black on black would be one blot)
+            const y = u < 2 ? 190 - Math.sin(k0 * Math.PI) * 60 : 150 + Math.sin(uu * 7) * 16 + dip;
             capFly(g, t, x, y, SK.captain * 1.2, { rot: -0.05, sil: INK });
         }
         for (const [i, [who, x, at, ph]] of COLD.entries()) {
             const m = Math.round((uu - at) * 12);
             if (m < 0 || (i === 0 && uu >= JUMP - 1e-6)) continue;
             const out = i ? Math.max(0, uu - gone(i)) : 0;
-            runner(g, who, t + ph / 12, x - (IN_X[m] ?? 0) + out * out * 14000, GY - 16, { k: K, sil: INK });
+            runner(g, who, t + ph / 12, x - (IN_X[m] ?? 0) + out * out * 14000 + (m > 5 ? Math.sin((uu - at) * 1.9 + i * 2.1) * 34 : 0), GY - 16, { k: K, sil: INK }); // (each gains and loses a little on the others)
         }
         g.restore();
         // the one in front: two drawings crouched on her board, then up; the frame follows her
