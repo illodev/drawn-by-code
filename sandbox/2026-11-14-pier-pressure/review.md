@@ -3,9 +3,9 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 43, waiting for the user's verdict: the sound effects after the user's first
-listen (the camcorder's whistle gone, a new gull; 47 cues, `audio.json`).** Before it: round 42,
-the effects placed and balanced by measuring; round 41, the title
+State: **round 44, waiting for the user's verdict: effects only on the final title (six cues,
+`audio.json`); everywhere else the song alone, by the user's decision.** Before it: rounds 42–43,
+the effects placed, balanced by measuring and corrected after a first listen; round 41, the title
 animated (two boards on the song's last two hits, Captain riding the first, the seal unrolled in
 the silence; `review/title.jpg`); round 40, parts cut for good, Dot in place and on her floor, the seal
 (`review/round40.jpg`); 39, the colour details read again (`review/details.jpg`,
@@ -1546,4 +1546,16 @@ tried as a judge of what the sound is (11 credits) and returned nothing for it.
 effects in the song's silence); between 7 and 9 s the effects are 15 dB under the music.
 
 **Lessons** → skill sound (look at the spectrum of every take; a bird is a series of calls).
+
+## Round 44 (user) · effects only on the title
+
+> Solo dejaría los efectos de sonido del título final, creo que estropean el vídeo
+
+Done as said: every cue before 30 s is out (41 of 47). Left, on the title: the first board on
+the hit, the splash, the second board, the glint where the music stops, the ribbon, and
+Captain's three cries into the silence. Before 30 s the mix is the song, sample for sample but
+for the mixer's gain. The effects stay in `assets/sfx/` for other films.
+
+**Lesson** → skill sound: an opening cut to a song with a singer IS its sound; effects on every
+action compete with it.
 
