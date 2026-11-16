@@ -3,12 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 50, a proposal waiting for the user's verdict, shown as stills and an 11 s clip
-only: a cold open that is not the harbour (the chase in black shapes on a field of rays, in
-colour when the band comes in; `film.js` `cold`, `review/open.jpg`). `render/` still holds
-round 48's film until an opening is approved.** Round 47's cut to the song's words stands
-(`scene.js` `EDIT`, `review/sync.jpg`). Open with the user: a sheet of four drawings so that
-Aunt Dot moves at her hatch (433 credits; the generation was not allowed without their say).
+State: **round 51, a proposal waiting for the user's verdict, shown as stills and an 11 s clip
+only: the cold open all in black shapes (nobody seen before they are named), Kit's jump out of
+it as the way into the harbour, and Kit landing ON her board (`film.js` `cold`, `scene.js`
+`kitShot`, `review/open.jpg`). `render/` still holds round 48's film until an opening is
+approved.** Round 47's cut to the song's words stands. Open with the user: a sheet of four
+drawings so that Aunt Dot moves at her hatch (433 credits; not allowed without their say).
 
 ## Round 0 (user) · the brief
 
@@ -1727,4 +1727,34 @@ session's permission check, as a spend the user had not asked for; asked.
 
 **Shown small**: `review/open.jpg` (sixteen stills with their seconds), and the first 11.3 s
 rendered alone at 1280 (67 s).
+
+## Round 51 (user) · the mystery, a better way into the harbour, Kit down with her board
+
+> No sé si dar el misterio de no saber quien son hasta que se presenten y que la transición de
+> lo primero al puerto sea más original. Podemos hacer que Kit caiga con la tabla?
+
+(On round 50's cold open, which turned them to colour at the band's entry and went to the
+harbour by a whip.)
+
+The three asks are one move:
+- **The mystery**: they stay flat black shapes through all of the cold open. The band's entry
+  (4.05) changes the FIELD (yellow to magenta, one drawing of white), not them.
+- **The way in**: no whip. At 6.05 the gull and three of them are gone to the right; the one in
+  front crouches on her board (two drawings, 6.3) and jumps UP. The frame goes up with her: the
+  field drops away below in six drawings and the harbour comes down from above; she goes out of
+  the top of the frame, bigger. 7.05: the harbour, its sign, as the song says «Gull Harbor».
+- **Kit with her board**: at 7.55 the black shape comes down into the quay from above, standing
+  on the board, and lands at 8.05 on the beat: a drawing of white, dust, the quay shakes, and
+  she is in colour, seen for the first time, low on the board (`glide`, six drawings), then up
+  on it pointing the way (`point`). Her card on 10.05, on her name. The old drop (the board
+  first, then she beside it, ten drawings to stand up) is out of the shot.
+
+First try had her hang over the quay: at this framing she is almost as tall as the frame, so
+she hung with her head out of it; she leaves by the top and comes back in instead. And the
+field's rays spilled over the harbour as it came down (clipped to the field).
+
+**Shown small**: `review/open.jpg` (twenty stills with their seconds); the first 11.3 s alone
+at 1280 (70 s). **Known limits**: from 8.6 to 10.05 she holds one drawing, pointing; the other
+four are still shown in colour at their own cards, as before; the title and the chase are
+untouched.
 

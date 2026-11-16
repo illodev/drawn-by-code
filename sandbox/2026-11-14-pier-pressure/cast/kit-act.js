@@ -1,7 +1,7 @@
 // pier-pressure · Kit's drawings put on the frame. Global: KitAct. Load after drawn.js and the cast's
 // drawings (cast/*-drawn.js, each with its own anchor `at` and pixels per metre `m`).
 //
-//   KitAct.pose(g, name, x, y, s, { rot, sx, sy })   one of her drawings, the point between its soles
+//   KitAct.pose(g, name, x, y, s, { rot, sx, sy, sil })   one of her drawings, the point between its soles
 //       on (x, y); s: frame units per 1/429 of a metre (the size her first key poses were drawn at)
 //   KitAct.board(g, x, y, s, rot)   her board alone, its wheels on (x, y); s: frame units per 1/500
 //       of a metre. It is the skateboard drawn by itself on Milo's model sheet, the only place a
@@ -22,7 +22,8 @@ const KitAct = (() => {
         g.translate(x, y);
         g.rotate(o.rot ?? 0);
         g.scale(o.sx ?? 1, o.sy ?? 1);
-        Drawn.draw(g, 'kit', name, -mt.at[0] * z, -mt.at[1] * z, z);
+        if (o.sil) Drawn.draw(g, 'kit', name, -mt.at[0] * z, -mt.at[1] * z, z, { halo: { color: o.sil, w: 1.5 }, only: [] }); // (one flat shape)
+        else Drawn.draw(g, 'kit', name, -mt.at[0] * z, -mt.at[1] * z, z);
         g.restore();
     }
     return { pose, board };

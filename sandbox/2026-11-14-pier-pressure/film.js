@@ -678,46 +678,64 @@ const Film = (() => {
     const OFF = { milo: [-115, 105, 700, 0.3], hoagie: [440, 635, 653, 0.5], kit: [760, 305, 1070, 0.25], pip: [1070, 471, 1143, 0.2] };
 
     // === 0 · the cold open (7 s): the chase before anyone has a name ================================
-    // Not the harbour (the user: «no aprovecharía la escena del puerto para el inicio»): a field of
-    // rays and one line of ground. In black, flat: the gull goes over with his cone on the song's
-    // squawk; the four come in after him one to every two of its eight stabs, each on their own
-    // cycle; when the band comes in they are in colour; on «Down at…» they are gone, one after
-    // another, and the next shot is the harbour the line names.
+    // Not the harbour («no aprovecharía la escena del puerto para el inicio»), and nobody seen («el
+    // misterio de no saber quién son hasta que se presenten»): a field of rays, a band of ground, and
+    // flat black shapes. The gull goes over with his cone on the song's squawk; the four come in after
+    // him one to every two of its eight stabs, each on their own cycle; the band comes in and the
+    // field changes colour under them. On «Down at…» three of them are gone to the right and the one
+    // in front crouches and jumps, UP: the frame goes up with her, the field drops away below and the
+    // harbour comes down from above (`next`: its painter and where she hangs over it), and the next
+    // shot is her landing.
     //   [who, where they run (x), the stab they come in on (s), where their cycle starts]
     const COLD = [['kit', 1215, 2, 1], ['pip', 905, 2.5, 3], ['hoagie', 570, 3, 2], ['milo', 250, 3.5, 0]];
     const IN_X = [900, 520, 260, 110, 30]; // five drawings in from the left, each step shorter
-    function cold(g, t, u, env) {
-        const d = nth(t), uu = twos(u), n = nth(u), lit = u >= 4, GY = 742, K = 1.36, INK = C.ink;
-        // the field: the title's rays, in the card colours once the band is in
-        g.fillStyle = lit ? C.sky : C.roadLine;
+    const PUSH = [40, 150, 340, 580, 770, 870]; // the frame going up, six drawings: how far the field has dropped
+    function cold(g, t, u, env, next) {
+        const d = nth(t), uu = twos(u), n = nth(u), band = u >= 4, GY = 742, K = 1.36, INK = C.ink;
+        const JUMP = 6.25, UPAT = 6.5, pn = Math.round((uu - UPAT) * 12), off = pn < 0 ? 0 : PUSH[Math.min(5, pn)];
+        if (off) { g.save(); g.translate(0, off - 900); next.paint(g); g.restore(); }
+        g.save();
+        g.translate(0, off);
+        g.beginPath(); g.rect(0, 0, 1600, 900); g.clip(); // (its rays stay on it as it drops away)
+        // the field: yellow; magenta from the band's entry
+        g.fillStyle = band ? C.magenta : C.roadLine;
         g.fillRect(0, 0, 1600, 900);
-        g.fillStyle = lit ? C.skyDeep : '#f5d400';
+        g.fillStyle = band ? '#cf007a' : '#f5d400';
         for (let i = 0; i < 14; i++) {
             const a = d * 0.035 + (i / 14) * Math.PI * 2, b = a + Math.PI / 14;
             g.beginPath(); g.moveTo(800, 560); g.lineTo(800 + Math.cos(a) * 2200, 560 + Math.sin(a) * 2200); g.lineTo(800 + Math.cos(b) * 2200, 560 + Math.sin(b) * 2200); g.closePath(); g.fill();
         }
-        // the ground: a band of ink while they are shapes, the pier's boards once they are themselves
-        T.slab(g, [[-20, GY - 6], [1620, GY - 14], [1620, 920], [-20, 920]], { fill: lit ? C.sand : INK, seed: 'cold-ground', over: 0, w: T.LINE * 1.4 });
-        if (lit) { g.beginPath(); for (let i = 0; i < 30; i++) { const x = 1700 - ((d * 150 + i * 64) % 1900); g.moveTo(x, GY - 6); g.lineTo(x - 26, 900); } g.strokeStyle = C.sandDeep; g.lineWidth = T.LINE_FINE; g.stroke(); }
+        T.slab(g, [[-20, GY - 6], [1620, GY - 14], [1620, 920], [-20, 920]], { fill: INK, seed: 'cold-ground', over: 0, w: T.LINE * 1.4 });
         // lines of speed, from the first stab on
         if (u >= 2) for (let i = 0; i < 8; i++) {
             const x = 1750 - ((d * 330 + i * 613) % 2100), y = 120 + ((i * 53) % 8) * 62;
-            T.line(g, [[x, y], [x + 150 + (i % 3) * 60, y]], { w: T.LINE * 1.3, seed: 'csp' + i, color: lit ? C.white : INK });
+            T.line(g, [[x, y], [x + 150 + (i % 3) * 60, y]], { w: T.LINE * 1.3, seed: 'csp' + i, color: INK });
         }
-        const gone = (i) => 6 + i * 0.17; // when each leaves, from the front
-        // the gull: over the frame on the squawk, then ahead of them, top right
+        const gone = (i) => 5.6 + i * 0.1; // when each of the other three leaves, from the front
+        // the gull: over the frame on the squawk, then ahead of them, top right; first away
         {
-            const k0 = clamp(uu / 1.6, 0, 1), x = u < 2 ? lerp(-260, 1330, k0 * (2 - k0)) : 1330 + Math.sin(uu * 5) * 18 + Math.max(0, uu - 6) * 1500;
+            const k0 = clamp(uu / 1.6, 0, 1), x = u < 2 ? lerp(-260, 1330, k0 * (2 - k0)) : 1330 + Math.sin(uu * 5) * 18 + Math.max(0, uu - 5.5) ** 2 * 9000;
             const y = u < 2 ? 190 - Math.sin(k0 * Math.PI) * 60 : 150 + Math.sin(uu * 7) * 16;
-            capFly(g, t, x, y, SK.captain * 1.2, { rot: -0.05, sil: lit ? null : INK });
+            capFly(g, t, x, y, SK.captain * 1.2, { rot: -0.05, sil: INK });
         }
         for (const [i, [who, x, at, ph]] of COLD.entries()) {
             const m = Math.round((uu - at) * 12);
-            if (m < 0) continue;
-            const out = Math.max(0, uu - gone(i));
-            runner(g, who, t + ph / 12, x - (IN_X[m] ?? 0) + out * out * 9000 + (lit ? Math.sin(uu * 2.2 + i * 1.7) * 16 : 0), GY - 16, { k: K, sil: lit ? null : INK });
+            if (m < 0 || (i === 0 && uu >= JUMP - 1e-6)) continue;
+            const out = i ? Math.max(0, uu - gone(i)) : 0;
+            runner(g, who, t + ph / 12, x - (IN_X[m] ?? 0) + out * out * 14000, GY - 16, { k: K, sil: INK });
         }
-        // the band comes in: one drawing of white, and they are in colour
+        g.restore();
+        // the one in front: two drawings crouched on her board, then up; the frame follows her
+        if (uu >= JUMP - 1e-6) {
+            const s0 = (PX * K) / 429, x0 = COLD[0][1], jn = Math.round((uu - JUMP) * 12);
+            if (jn < 2) KitAct.pose(g, 'j1', x0, GY - 16, s0, { sil: INK });
+            else {
+                // (on the screen: from where she left the ground to where she hangs over the quay)
+                const k = clamp((jn - 2 + 1) / 7, 0, 1), e = 1 - (1 - k) * (1 - k);
+                KitAct.pose(g, 'j2', lerp(x0 + 30, next.gx, e), lerp(GY - 230, next.apex, e), lerp(s0, next.KP, e), { sil: INK, rot: -0.22 * (1 - k) }); // (up, bigger, and out of the top)
+            }
+        }
+        // the band comes in: one drawing of white
         if (n === 48) { g.fillStyle = 'rgba(255, 253, 246, 0.82)'; g.fillRect(0, 0, 1600, 900); }
     }
 
