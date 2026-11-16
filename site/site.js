@@ -14,6 +14,8 @@
     // first two fields of every line to copy the film: keep them first, in this form)
     const FEATURE = ['runnin-down-a-dream', '2026-11-11-runnin-down-a-dream', 'Runnin’ Down a Dream', '’90s cereal ad', 264, 'silent', ''];
     const FILMS = [
+        ['pier-pressure', '2026-11-14-pier-pressure', 'Pier Pressure', 'skate toon', 32, 'silent',
+            'The opening of a cartoon that never existed, in the look of a late-’90s extreme-sports TV show: four kids chase a one-eyed gull down the pier and off its end. Nobody is seen until their name card; every character is a model sheet turned into drawings in code, moving on twos.'],
         ['red-thread', '2026-11-04-red-thread', 'The Red Thread', 'sumi-e', 68, 'with sound',
             'A river village splits in two when a black sleeve drops broadsheets into every pair of hands; two children’s kite string becomes a new bridge. Japanese ink on washi, every brushstroke drawn in code.'],
         ['physics-history', '2026-09-25-physics-history', 'A Brief History of Physics', 'risograph', 67, 'with sound',
@@ -26,11 +28,12 @@
         ['opus5-riso', '2026-09-24-opus5-riso', 'opus5-riso', 'risograph', 28],
         ['what-do-you-love', '2026-09-24-what-do-you-love', 'what do you love?', 'paper cutout', 28],
     ];
-    const EXPERIMENTS = 15; // rows in sandbox/INDEX.md
+    const EXPERIMENTS = 16; // rows in sandbox/INDEX.md
 
     // [folder, name, look, shape of its template ('square' | 'wide'), heavy (WebGL raymarching: a smaller canvas)]
     const STYLES = [
         ['cereal-ad', '’90s cereal ad', 'A Saturday-morning TV spot on VHS: cel boxes, spinning sunbursts, extruded letters that hop, tape noise on a CRT.', 'square', 0],
+        ['skate-toon', 'Skate toon', 'A late-’90s extreme-sports TV cartoon: a thin hand-held line, flat colour under a yellow sky, a cast drawn from model sheets and moved on twos.', 'wide', 0],
         ['sumi-e', 'Sumi-e', 'Japanese ink on washi: one black in many greys, dry-brush streaks, mist, vermilion as the only colour.', 'wide', 0],
         ['risograph', 'Risograph', 'Four spot inks, halftone plates, overprints that make the other colours, misregistration.', 'square', 0],
         ['engraving', 'Engraving', 'A plate of the «Description de l’Égypte»: charcoal tone on toothed paper, masonry stone by stone.', 'wide', 1],

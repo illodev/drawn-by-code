@@ -3,12 +3,12 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 57: the whole film rendered clean (one encode) at the user's word, with
-everything up to round 56 in it; `render/` updated; waiting for the user's verdict on the
-whole.** The film: a cold open in black shapes (0–8 s), Kit's jump into the harbour and her
+State: **round 58: approved by the user and published in the README and on the site; a pull
+request prepared.** The film: a cold open in black shapes (0–8 s), Kit's jump into the harbour and her
 landing on her board (9.05), the cards on their sung names, the chase (nobody crossing
-anybody), the leap, the title; the song alone with Captain's cries at the end. The style stays
-*in testing* (its README table and site entries wait for the user's approval of the film).
+anybody), the leap, the title; the song alone with Captain's cries at the end. **The film is
+approved by the user (round 58): the style is `approved`, and both are in the README and on
+the site.**
 
 ## Round 0 (user) · the brief
 
@@ -1841,4 +1841,20 @@ render is due once everything is approved.
 
 Rendered whole from the scene (414 s, 762 frames, one encode), replacing the twice-spliced
 file; `render/` updated from it. `engine/review.mjs`: no warnings, no still stretch.
+
+## Round 58 (user) · into the README and the site; a pull request
+
+> Sí, añádelo al README y a la web, preparamos PR
+
+(Answer to: «if you take the film as good, tell me and I add it».)
+
+- **README**: the film first in the gallery; `skate-toon` in the styles table, approved.
+- **The style** (`styles/skate-toon/`): its template still showed the puppet kid that round 6
+  rejected. It now shows what the style is: Kit from her sheets (`drawn.js`, the runner, and
+  two of her sheets in `cast/`, copied into the kit), riding in, pointing, off again, on twos,
+  with the broadcast finish; `strip.jpg` from the film; README and skill say approved, and say
+  that a character comes from a sheet.
+- **The site**: one line in `FILMS`, one in `STYLES`, the still `site/media/styles/skate-toon.jpg`
+  (a frame of the template), the poster `site/media/pier-pressure.jpg`; `node site/build.mjs`.
+- `sandbox/INDEX.md`: the row rewritten for the finished film.
 

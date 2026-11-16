@@ -1,11 +1,16 @@
-// Skate toon style template: a kid on a sea wall waves on the beat under a yellow sky, a palm
-// sways and a hand-lettered sign jostles. engine/new.mjs copies it as the scene.js of every
-// new experiment.
+// Skate toon style template: Kit rides in along a sea wall on her board, stops pointing the way and
+// is off again, under a yellow sky; a palm sways and a hand-lettered sign jostles on the beat.
+// engine/new.mjs copies it as the scene.js of every new experiment.
+//
+// The set is drawn with the kit (toon.js). The character is not: in this style a character is a
+// set of drawings written as code from an approved sheet (drawn.js runs them; cast/ holds two of
+// Kit's sheets from sandbox/2026-11-14-pier-pressure, where the tools that write them live), and
+// she moves by changing drawing, on twos. The frame ends in the broadcast finish (tv.js).
 Motion.scene({
     fps: 24,
     duration: 4,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', 'styles/skate-toon/kid.js'],
+    uses: ['styles/skate-toon/toon.js', 'styles/skate-toon/tv.js', 'styles/skate-toon/drawn.js', 'styles/skate-toon/cast/kit-skate-drawn.js', 'styles/skate-toon/cast/kit-ride-drawn.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     shots: [[0, 4, 'Template']],
@@ -40,23 +45,17 @@ Motion.scene({
         T.sign(g, 'SKATE TOON', 0, 0, { size: 104 + beat * 5, fill: [C.magenta, C.roadLine, C.white], drop: C.navy, seed: 'title' + (d % 2) });
         g.restore();
 
-        // the kid: a wave on every beat, a blink now and then
-        const wave = Math.sin(T.onTwos(t) * Math.PI * 4);
-        const kid = {
-            seed: 'template-kid', eye: { brow: true }, mouth: { gap: true },
-            top: { color: C.yellow, collarColor: C.orange }, bottom: { color: C.maroon, band: C.white },
-            shoes: { upper: C.shoe, sole: C.white, stripe: C.roadLine, cap: C.white },
-            // hair is drawn in the head's own frame: a mop with a saw-toothed fringe
-            hairFront: (gg, K, H) => {
-                const f = H.fx * 0.4;
-                T.shape(gg, [[23, -3, 1], [19 + f, -9, 1], [15 + f, -5, 1], [10 + f, -11, 1], [5 + f, -6, 1], [0 + f, -11.4, 1], [-6 + f, -6, 1], [-11 + f, -11, 1], [-16 + f, -6, 1], [-20, -9, 1], [-23, -2, 1], [-22, -13], [-12, -20.6], [6, -21.6], [19, -16], [23.4, -9]], { fill: C.navy, w: K.w, seed: 'template-hair' });
-            },
-        };
-        SkateKid.draw(g, kid, {
-            hip: [0, beat * 1.4], lean: 0.03, tilt: -0.06,
-            arms: [[0.55, 0.4], [1.8 + wave * 0.12, 0.7 + wave * 0.3]],
-            head: { tilt: wave * 0.04, turn: 0.3 },
-            face: { mouth: 'grin', blink: d % 30 === 14, look: [0.4, -0.1] },
-        }, 900, 806, 4.4);
+        // Kit (1.4 m, 380 frame units to the metre): in from the left on her pushing cycle, losing
+        // speed; low on the board; up and pointing the way; low again, and off. One drawing a step.
+        const n = d % 48, PPM = 380, Y = 836;
+        const kit = (pose, x) => { const m = Drawn.meta('kit', pose), k = PPM / m.m; Drawn.draw(g, 'kit', pose, x - m.at[0] * k, Y - m.at[1] * k, k); };
+        const CYCLE = ['s1', 's2', 's3', 's4'];
+        if (n < 20) kit(CYCLE[n % 4], -250 + 1010 * (1 - (1 - n / 20) ** 2));
+        else if (n < 25) kit('glide', 770 + (n - 20) * 9);
+        else if (n < 39) kit('point', 815);
+        else if (n < 41) kit('glide', 815);
+        else kit(CYCLE[(n - 41) % 4], 815 + (n - 40) ** 2 * 24);
     },
+    // the broadcast finish: paint, film, standard-definition video
+    post(ctx, t, env) { SkateToonTV.post(ctx, t, env); },
 });

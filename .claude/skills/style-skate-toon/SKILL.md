@@ -1,6 +1,6 @@
 ---
 name: style-skate-toon
-description: Skate toon style, in testing: the look of a late-'90s extreme-sports TV cartoon. A thin, even, hand-held black line, flat saturated colour with no shading under a yellow sky, kids with huge heads of their own silhouette, goggle eyes, wide mouths with real teeth, clothes far too big hanging off stick limbs, chunky boots, fat-fingered hands, and sets in crooked perspective with loose tick marks. Use it for '90s cartoon, Nicktoon-like, skate/surf/BMX kids, fake show intros, or when working with styles/skate-toon/.
+description: Skate toon style: the look of a late-'90s extreme-sports TV cartoon. A thin, even, hand-held black line, flat saturated colour with no shading under a yellow sky, kids with huge heads of their own silhouette, goggle eyes, wide mouths with real teeth, clothes far too big hanging off stick limbs, chunky boots, fat-fingered hands, and sets in crooked perspective with loose tick marks. Use it for '90s cartoon, Nicktoon-like, skate/surf/BMX kids, fake show intros, or when working with styles/skate-toon/.
 ---
 
 # Style · Skate toon
@@ -45,6 +45,7 @@ for hand lettering (`fonts/Bangers-Regular.ttf`).
   `smile grin open yell ooh flat frown smirk`. See the header of `kid.js` and any file in
   `sandbox/2026-11-14-pier-pressure/cast/`.
 
+- **Characters:** `styles/skate-toon/drawn.js`, `Drawn.draw(g, who, pose, x, y, s, { parts, only, hide, halo, blink })`: a character is drawings written as code from an approved model sheet on a green ground (`sandbox/2026-11-14-pier-pressure/tools/green.py` writes them, with each drawing's anchor and pixels per metre), and it moves by changing drawing on twos (cycles of four, in-betweens, an exposure sheet for a shot). `template.js` shows the minimum; `SkateKid` is for stand-ins only.
 - **The broadcast finish:** `styles/skate-toon/tv.js`, `SkateToonTV.post(ctx, t, env, { amount,
   soft, grain, paint })` from the scene's `post`: the clean vectors as a cel cartoon reached a
   television around 2000 (paint that is never quite flat, a little film weave and grain,
