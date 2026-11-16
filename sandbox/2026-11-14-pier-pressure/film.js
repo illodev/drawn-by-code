@@ -454,7 +454,9 @@ const Film = (() => {
             const v = twos(u, at) - at;
             return v < 0 ? null : v < 1 / 12 ? { dx: -0.05, sy: 0.9, sx: 1.08, v } : { dx: speed * (v - 1 / 12) * (0.6 + 3 * (v - 1 / 12)), sy: 1, sx: 1, v };
         };
-        const gk = go(15 / 12, 3.2), gh = go(17 / 12, 3.2), gm = go(19 / 12, 3.2), start = hop(twos(u, 0.5) - 0.5, 0.9); // (two seconds: he is over them in one, they are gone in the next)
+        // (two seconds: he is over them in one, they are gone in the next. They go from the right: Hoagie,
+        // Kit, Milo, each after the one in front of them, so nobody crosses anybody)
+        const gh = go(15 / 12, 3.2), gk = go(17 / 12, 3.2), gm = go(19 / 12, 3.2), start = hop(twos(u, 0.5) - 0.5, 0.9);
         const kitA = { z: KIT[2], draw(gg) {
             if (!gk) { kitRest(t).draw(gg); return; }
             // she is on her board already: down low on it for a drawing (her own crouched drawing, no
@@ -474,7 +476,9 @@ const Film = (() => {
             else put3(gg, 'milo', CYC.milo[nth(gm.v) % 4], [MILO[0] + 0.3 + gm.dx, 0, MILO[2]], {});
         } };
         const actors = [kitA, hoagieA, miloA];
-        if (u >= 0.9) actors.push(pipRide(t, -4.2 + (twos(u) - 0.9) * 8.7, 3.05, CYC.pip[nth(u) % 6]));
+        // Pip comes through last, behind where they were: by the time she is in the frame the three have
+        // gone (she used to cross behind Kit and Milo as they set off, one figure on top of another)
+        if (u >= 1.5) actors.push(pipRide(t, -4.2 + (twos(u) - 1.5) * 8.7, 3.05, CYC.pip[nth(u) % 6]));
         if (cp[2] > 3.9) actors.push({ z: cp[2], draw: bird });
         view(g, env, [800, 470], 1.06, 1.6, (e) => {
             world(g, e, t, { actors, captain: null, dot: u < 4 / 12 ? { pose: 'serve', up: 44, dx: -92 } : { pose: 'yell', up: 14 + [14, -2, 3, 0][Math.min(3, nth(u, 4 / 12))] + [0, 3][nth(u) % 2], dx: -92 + [0, 2][nth(u) % 2] } });

@@ -3,8 +3,8 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 55: the full film with the opening the user approved for rendering (rounds
-51–54) and Kit's continuity into the chase fixed; `render/` updated; waiting for the user's
+State: **round 56: the full film with the opening the user approved for rendering (rounds
+51–54), Kit's continuity into the chase fixed (55) and nobody crossing anybody as they set off (56); `render/` updated; waiting for the user's
 verdict on the whole.** The film now: a cold open in black shapes (0–8 s), Kit's jump into the
 harbour and her landing on her board (9.05), the cards on their sung names (round 47), the
 chase, the leap, the title; the song alone with Captain's cries at the end (round 46).
@@ -1816,4 +1816,21 @@ off she goes down low on it for a drawing (`glide`, her own crouched drawing: th
 Only the two seconds that changed were rendered (frames 506–553, 29 s) and spliced into the
 film (`trim` + `concat`); checked: 762 frames, the frames outside the piece unchanged, the
 ones inside different.
+
+## Round 56 (user) · Pip on top of Kit
+
+> Arregla que Pip no se pise con Kit
+
+(Told to the user in round 55: as Kit set off, Pip rode through just behind her and for a
+couple of drawings they were one figure on top of another.)
+
+`film.js` `chase0`: Pip comes through last (from 22.55, was 21.95), when the three have gone.
+The check frames then showed the same fault between Kit and Hoagie (she crossed in front of
+him as she left, covering him whole), not asked for and the same thing: they now go from the
+right, each after the one in front (Hoagie 22.3, Kit 22.47, Milo 22.63), so nobody crosses
+anybody.
+
+Rendered: the shot's 48 frames alone, spliced into the film (762 frames). The film outside
+that shot is now a third encode of the round 54 render (crf 16 over crf 18): a clean full
+render is due once everything is approved.
 
