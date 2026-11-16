@@ -14,7 +14,7 @@
     // first two fields of every line to copy the film: keep them first, in this form)
     const FEATURE = ['runnin-down-a-dream', '2026-11-11-runnin-down-a-dream', 'Runnin’ Down a Dream', '’90s cereal ad', 264, 'silent', ''];
     const FILMS = [
-        ['pier-pressure', '2026-11-14-pier-pressure', 'Pier Pressure', 'skate toon', 32, 'silent',
+        ['pier-pressure', '2026-11-14-pier-pressure', 'Pier Pressure', 'skate toon', 32, 'with sound',
             'The opening of a cartoon that never existed, in the look of a late-’90s extreme-sports TV show: four kids chase a one-eyed gull down the pier and off its end. Nobody is seen until their name card; every character is a model sheet turned into drawings in code, moving on twos.'],
         ['red-thread', '2026-11-04-red-thread', 'The Red Thread', 'sumi-e', 68, 'with sound',
             'A river village splits in two when a black sleeve drops broadsheets into every pair of hands; two children’s kite string becomes a new bridge. Japanese ink on washi, every brushstroke drawn in code.'],

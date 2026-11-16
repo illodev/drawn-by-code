@@ -94,6 +94,63 @@ FLAWS = {
 }
 
 
+# A drawing mistake of the generator's inside a figure (not a stray mark beside it): mended on
+# the sheet before it is read, by shapes given in sheet pixels. Each step: ('fill', shape, which
+# pixels of it, colour) or ('line', points, width, colour); a shape is ('poly', points) or
+# ('ellipse', cx, cy, rx, ry); pixels are 'dark' (ink), 'tinted' (anything not white), 'blot' (solid ink only) or 'light' (white).
+SKIN_KIT, WHITE, INK, GLASS = (190, 118, 66), (255, 255, 255), (18, 12, 14), (204, 236, 244)
+MEND = {
+    # Kit pointing: a second pupil in her right eye, down on its lower left edge (found by the user
+    # in the film; tools/eyes.py finds it on the sheet). The blot goes: white inside the eye, skin
+    # outside it, and the eye's outline drawn through where it was
+    'kit-ride': [
+        ('fill', ('poly', [(1009.5, 189), (1024, 189), (1024, 207), (1020.5, 206.5), (1014, 203), (1010.5, 197)]), 'tinted', WHITE),
+        ('fill', ('poly', [(1005, 189), (1009.5, 189), (1010.5, 197), (1014, 203), (1020.5, 206.5), (1021, 208.5), (1005, 208.5)]), 'blot', SKIN_KIT),
+        ('line', [(1009, 186), (1009.4, 191), (1010.5, 197), (1014, 203), (1020.5, 206.6), (1026, 207.6)], 2.6, INK),
+    ],
+    # Milo falling: his glasses have come off, and were drawn with a pair of eyes in them (he has
+    # his own on his face). The lenses are emptied and tinted as glass
+    'milo-leap': [
+        ('fill', ('ellipse', 1185.5, 165.5, 15.2, 19.6), 'dark', WHITE), ('fill', ('ellipse', 1216.5, 175.5, 10.6, 17.4), 'dark', WHITE),
+        ('fill', ('ellipse', 1185.5, 165.5, 15.2, 19.6), 'light', GLASS), ('fill', ('ellipse', 1216.5, 175.5, 10.6, 17.4), 'light', GLASS),
+    ],
+}
+
+
+def mend(a, sheet):
+    from PIL import ImageDraw
+    Q = 4
+    for step in MEND.get(sheet, []):
+        if step[0] == 'line':
+            _, pts, w, col = step
+            x0, y0 = int(min(p[0] for p in pts)) - 4, int(min(p[1] for p in pts)) - 4
+            x1, y1 = int(max(p[0] for p in pts)) + 5, int(max(p[1] for p in pts)) + 5
+            m = Image.new('L', ((x1 - x0) * Q, (y1 - y0) * Q), 0)
+            ImageDraw.Draw(m).line([((px - x0) * Q, (py - y0) * Q) for px, py in pts], fill=255, width=int(round(w * Q)), joint='curve')
+            k = np.asarray(m.resize((x1 - x0, y1 - y0), Image.LANCZOS)).astype(np.float32)[..., None] / 255
+            a[y0:y1, x0:x1] = (a[y0:y1, x0:x1] * (1 - k) + np.array(col) * k).round()
+            continue
+        _, shape, which, col = step
+        if shape[0] == 'poly':
+            pts = shape[1]
+            x0, y0, x1, y1 = int(min(p[0] for p in pts)) - 1, int(min(p[1] for p in pts)) - 1, int(max(p[0] for p in pts)) + 2, int(max(p[1] for p in pts)) + 2
+            m = Image.new('L', (x1 - x0, y1 - y0), 0)
+            ImageDraw.Draw(m).polygon([(px - x0, py - y0) for px, py in pts], fill=255)
+        else:
+            _, cx, cy, rx, ry = shape
+            x0, y0, x1, y1 = int(cx - rx) - 1, int(cy - ry) - 1, int(cx + rx) + 2, int(cy + ry) + 2
+            m = Image.new('L', (x1 - x0, y1 - y0), 0)
+            ImageDraw.Draw(m).ellipse([cx - rx - x0, cy - ry - y0, cx + rx - x0, cy + ry - y0], fill=255)
+        box = a[y0:y1, x0:x1]
+        inside = np.asarray(m) > 0
+        lum = box @ np.array([0.299, 0.587, 0.114])
+        # 'dark': anything darker than the paint round it; 'blot': only what is as black as ink (a
+        # thin lash beside it is left alone); 'light': the whites
+        pick = {'dark': lum < 170, 'tinted': lum < 240, 'blot': ndi.binary_opening(lum < 60, np.ones((3, 3), bool)), 'light': box.min(-1) >= 200}[which]
+        box[inside & pick] = col
+    return a
+
+
 def clean(im, sheet):
     """The sheet with the page's green put back where the generator muddied it: in a narrow gap
     (inside a strap, behind a collar) the green comes out darkened, a blob of page that is neither
@@ -118,6 +175,7 @@ def clean(im, sheet):
         n = int((lb[sl] == j).sum())
         if min(h, w) >= 3 and n >= 12 and n >= 0.4 * h * w:
             a[sl][lb[sl] == j] = BG
+    a = mend(a, sheet)
     for x0, y0, x1, y1, kind, thin in FLAWS.get(sheet, []):
         box = a[y0:y1, x0:x1]
         box[STRAY[kind](box[..., 0], box[..., 1], box[..., 2])] = BG
