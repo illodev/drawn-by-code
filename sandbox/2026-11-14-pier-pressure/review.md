@@ -3,8 +3,9 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 47, waiting for the user's verdict: the film cut again to the song's words (each
-card comes in on its sung name; `scene.js` `EDIT`, `review/sync.jpg`).** The sound is settled by
+State: **round 48, waiting for the user's verdict: the opening up to Kit redone as cuts on the
+song's intro, no camera move (`film.js` `OPEN`, `review/open.jpg`); before it, round 47, the
+film cut to the song's words (each card on its sung name; `scene.js` `EDIT`, `review/sync.jpg`).** The sound is settled by
 the user (round 46): the song alone, and one effect, Captain's cries in the silence after the
 title (`audio.json`). The picture of rounds 38–41 (the leap, the sky, Kit's landing, the colour
 details, the cut parts, Dot, the title) has not had a verdict of its own beyond «sí, sigue».
@@ -1615,4 +1616,46 @@ three; Captain's own card is the one no word of the song falls on.
 **Lesson** → skill animate: the words of a song first, then the cut (the sound skill already
 said so; a denied install of a local transcriber in round 20 was left at that instead of asking
 for the service's one).
+
+## Round 48 (user) · the opening is horrible
+
+> La intro hasta que sale Kit es horrible: aburrida, paneo horrible, timing, todo
+
+(Round 47's opening: one camera move seven and a half seconds long, from Dot's hut along the
+quay to the sign, then a second of empty quay before Kit's board.)
+
+**What the song does there** (loudness, kick and hats per frame of its first ten seconds; round
+47 had only the words): a squawk and a guitar slide, quiet, to 2.05 s; **eight dry stabs a
+quarter of a second apart**, with silence between them, 2.04 to 3.79; the whole band from 4.04;
+the first line at 6.04. A slow move across all of that ignored every one of those events.
+
+**The opening now** (`film.js` `OPEN`, `harbor`): no camera move at all. Fifteen cuts, each on
+one of those events, each landing a little big and settling in two drawings:
+
+| s | on screen | the song |
+|---|---|---|
+| 0.05 | Captain on his bollard, close; he hops on the squawk, blinks | squawk, slide |
+| 1.05, 1.55 | Dot at her hatch: the basket, the salt | (quiet) |
+| 2.05 … 3.80 | eight pieces of the harbour, one a stab: her sign, the boats and the lighthouse, the bait shop, the menu and the bin, the palm, the nets, the boat on its trailer, Captain again | the eight stabs |
+| 4.05 | all of it, wide; Dot holds out a cone of chips; Captain hops | the band comes in |
+| 5.05, 5.55 | closer, and closer: the chips | third beats |
+| 6.05 | the sign GULL HARBOR, close, for one second | «Down at Gull Harbor» |
+| 7.05 | zoom-out whip to the wide: Kit's shot | «the tide's comin' in» |
+
+It also tells what the film is about before anyone is named: the gull, and the chips he wants.
+No insert before 6.05 shows the sign (two did at first: moved).
+
+**Kit, half a second sooner.** Her shot is four seconds again, from 7.05: board on the quay
+8.05, **she lands 9.05, on the line's last word («in», 9.02)**, is up by 9.9, and her card
+comes in on 10.05 with her name (`CARD` 3.0: it used to cut across her getting up). Dot holds
+her cone through Kit's shot, as the opening leaves her and as the gull finds her later.
+
+**Seen**: `review/open.jpg` (24 frames with their seconds), two frames at 1920;
+`engine/review.mjs`: no warnings. Not seen in motion, not heard.
+
+**Known limits**: Captain's close-up has him at the frame's right edge (his bollard is at the
+edge of the set); Dot changes drawing on the beat with nothing between (basket, salt, serve).
+
+**Lesson** → skill animate: an opening under music is cut on the music's events, measured; a
+camera move is not an event.
 

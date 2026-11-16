@@ -2,8 +2,8 @@
 // first beat at 0.05 s, 16 bars; the song is in private/, not in the repo: audio.json).
 //
 //   bars 1–2   Gull Harbor: the town's sign, then the quay, quiet
-//   0–7.5 s    GULL HARBOR: along the quay to its sign, as the song gets to «Down at Gull Harbor»
-//   7.5–11 s   KIT: her board drops in, then she does (this file, kitShot)
+//   0–7 s      GULL HARBOR: cuts on the song's intro (film.js OPEN), its sign on «Down at Gull Harbor»
+//   7–11 s     KIT: her board drops in, then she does (this file, kitShot)
 //   11–21 s    HOAGIE · MILO · PIP · AUNT DOT · CAPTAIN, a bar each: in on the first beat, the
 //              name on the third, which is where the song says it (film.js)
 //   21–23 s    Captain has the chips; the four set off after him
@@ -27,16 +27,16 @@ const B0 = 0.05; // the song's first beat
 // first two of this one are smeared along the move (L, R: a pan; U: a tilt up; in, out: a zoom)
 const EDIT = [
     // The cut follows the song's words (a transcription with the time of each word; kept private):
-    //    6.04 «Down at Gull Harbor, the tide's comin' in»      the sign fills the frame from 5.9
+    //    6.04 «Down at Gull Harbor, the tide's comin' in»      its sign, 6.05 to 7.05; she lands on «in»
     //   10.06 «Kit's got the board»   12.00 «Hoagie's got the grin»   14.02 «Milo's got a plan»
     //   16.02 «Pip's got the nerve»   18.08 «Aunt Dot's yellin'»: each card comes in on its name
     //   19.48 «Hey, mind the curve!»  over the gull making off with her chips
     //   21.56 «Pier Pressure! (Hey!)» twice: they set off; the pier
     //   26.02 «First one down»: off the end · 28.02 «last one dry»: in the air · 30.04 «Pressure»: the title
-    [0, B0 + 7.5, 'GULL HARBOR', (g, t, u, env) => Film.harbor(g, t, Math.max(0, t - B0), env)],
+    [0, B0 + 7, 'GULL HARBOR', (g, t, u, env) => Film.harbor(g, t, Math.max(0, t - B0), env)],
     // (in her last half second we are already looking through Hoagie's camcorder)
-    [B0 + 7.5, B0 + 11, 'KIT', (g, t, u, env) => { kitShot(g, u, { ...env, k: env.k * 1.6 }); if (u >= 3) Film.viewfinder(g, t); }, 'out'],
-    [B0 + 11, B0 + 13, 'HOAGIE', (g, t, u, env) => Film.hoagie(g, t, u, env, (gg) => kitShot(gg, 3.5 - 1 / 24, { ...env, k: env.k * 1.6 }))],
+    [B0 + 7, B0 + 11, 'KIT', (g, t, u, env) => { kitShot(g, u, { ...env, k: env.k * 1.6 }); if (u >= 3.5) Film.viewfinder(g, t); }, 'out'],
+    [B0 + 11, B0 + 13, 'HOAGIE', (g, t, u, env) => Film.hoagie(g, t, u, env, (gg) => kitShot(gg, 4 - 1 / 24, { ...env, k: env.k * 1.6 }))],
     [B0 + 13, B0 + 15, 'MILO', (g, t, u, env, prev) => Film.milo(g, t, u, env, prev)],
     [B0 + 15, B0 + 17, 'PIP', (g, t, u, env, prev) => Film.pip(g, t, u, env, prev)],
     [B0 + 17, B0 + 19, 'AUNT DOT', (g, t, u, env, prev) => Film.dot(g, t, u, env, prev)],
@@ -48,12 +48,13 @@ const EDIT = [
     [B0 + 30, 31.75, 'PIER PRESSURE', (g, t, u, env) => Film.title(g, t, u, env)],
 ];
 
-// «KIT» (3.5 s, from 7.55): the board hits the stone on the shot's third beat (1.0 s), she lands on
-// its fifth (2.0 s), and her card comes in a beat later, on 10.05, as the song says her name.
+// «KIT» (4 s, from 7.05): the board hits the stone on the shot's third beat (8.05), she lands on
+// its fifth (9.05, on the line's last word), she is up, and her card comes in on 10.05, as the
+// song says her name.
 function kitShot(g, t, env) {
     const T = SkateToon, C = T.COL, A = Harbor.AT;
     const G = 9.81, H0 = 2.3, TF = Math.sqrt((2 * H0) / G); // the drop: 2.3 m, 0.68 s
-    const HIT = 1.0, LAND = 2.0, CARD = 2.5;
+    const HIT = 1.0, LAND = 2.0, CARD = 3.0;
     const tw = (at) => at + Math.floor((t - at) * 12 + 1e-6) / 12; // t held on twos, on an event's own clock
     const KZ = A.kit[1], KXW = -0.1, S = Cam.scale(KZ);
     // her standing drawing (`proud`) is 575 of its pixels from the top of her head to her soles: 1.34 m
@@ -107,7 +108,8 @@ function kitShot(g, t, env) {
     }
     Harbor.back(g, env, t);
 
-    // Aunt Dot (1.8 m) inside her hut, behind her counter: the clatter makes her blink, twice, and
+    // Aunt Dot (1.8 m) inside her hut, behind her counter, a cone of chips held out as the opening
+    // left her (and as the gull will find her): the clatter makes her blink, twice, and
     // so does the landing (her drawing stays where it is: slid up and down it was a cut-out)
     {
         const [, , dZ] = A.dot.foot, [dx, dy] = Cam.pt(A.dot.foot);
@@ -116,7 +118,7 @@ function kitShot(g, t, env) {
         A.dot.hatch.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
         g.closePath();
         g.clip();
-        Film.put(g, 'dot', 'stand', dx - 92, dy - 7, Cam.scale(dZ) / Film.M.dot.m, { blink: Math.max(Film.blinkAt(t, HIT + 2 / 24), Film.blinkAt(t, HIT + 8 / 24), Film.blinkAt(t, LAND + 3 / 24)) });
+        Film.put(g, 'dot', 'serve', dx - 92, dy - 44, Cam.scale(dZ) / Film.M.dot.m, { blink: Math.max(Film.blinkAt(t, HIT + 2 / 24), Film.blinkAt(t, HIT + 8 / 24), Film.blinkAt(t, LAND + 3 / 24)) });
         g.restore();
         Harbor.counter(g, env);
     }
