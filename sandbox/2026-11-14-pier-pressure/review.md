@@ -3,12 +3,11 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 51, a proposal waiting for the user's verdict, shown as stills and an 11 s clip
-only: the cold open all in black shapes (nobody seen before they are named), Kit's jump out of
-it as the way into the harbour, and Kit landing ON her board (`film.js` `cold`, `scene.js`
-`kitShot`, `review/open.jpg`). `render/` still holds round 48's film until an opening is
-approved.** Round 47's cut to the song's words stands. Open with the user: a sheet of four
-drawings so that Aunt Dot moves at her hatch (433 credits; not allowed without their say).
+State: **round 52, waiting for the user's verdict, shown as an 11 s clip only: round 51's
+opening (black shapes, Kit's jump into the harbour, Kit landing on her board) with Aunt Dot now
+moving at her hatch on four drawings of her own (`review/open.jpg`, `review/dot-shake.jpg`).
+`render/` still holds round 48's film until the opening is approved.** Round 47's cut to the
+song's words stands.
 
 ## Round 0 (user) · the brief
 
@@ -1757,4 +1756,22 @@ field's rays spilled over the harbour as it came down (clipped to the field).
 at 1280 (70 s). **Known limits**: from 8.6 to 10.05 she holds one drawing, pointing; the other
 four are still shown in colour at their own cards, as before; the title and the chase are
 untouched.
+
+## Round 52 (user) · Aunt Dot's sheet
+
+> Sí, genera la hoja de Aunt Dot
+
+One sheet, one variation (433 credits), her model sheet as reference: `ref/dot-shake.png` →
+`cast/dot-shake-drawn.js`, four frames of one loop, shaking her fry basket: `k1` low, looking
+into it · `k2` coming up, her eyes up · `k3` at the top, the chips in the air, a grin · `k4`
+coming down, her eyes on them. Feet in one place in all four (asked for; the anchors came out
+within two pixels).
+
+At her hatch in Kit's shot (`scene.js` `kitShot`): six drawings a shake (k3 k3 k4 k1 k1 k2), so
+the basket is up on every beat; behind the counter the low drawing hides the basket and the
+chips come up over it. When Kit lands she stops with it half up, looks, blinks, and goes back
+to it. Nothing slides.
+
+**Seen**: `review/dot-shake.jpg` (six close-ups of the hatch); the first 11.3 s alone at 1280.
+The break (the gull takes her chips: `serve`, then `yell`) is as it was.
 

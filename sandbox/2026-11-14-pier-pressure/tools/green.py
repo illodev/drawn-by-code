@@ -54,6 +54,8 @@ SHEETS = {
     'pip-leap': ('pip', [('j1', 'wheels'), ('j2', 'mid'), ('j3', 'mid'), ('j4', 'mid')], 2, 1.3),
     # the in-betweens of Kit's landing (round 39): going down, coming up, almost up, up with her eyes shut
     'kit-land': ('kit', [('n1', 'feet'), ('n2', 'feet'), ('n3', 'feet'), ('n4', 'feet')], 3, 1.49),
+    # Aunt Dot shaking her fry basket, a loop of four (round 52), so that she moves at her hatch
+    'dot-shake': ('dot', [('k1', 'feet'), ('k2', 'feet'), ('k3', 'feet'), ('k4', 'feet')], 2, 1.84),
 }
 # (who, pose): { 'rest', 'order', 'parts': [(name, polygon in the pose's own pixels)], 'at': [x, y] }
 PARTS = {}

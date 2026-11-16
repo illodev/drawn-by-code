@@ -19,7 +19,7 @@
 const DIR = 'sandbox/2026-11-14-pier-pressure/';
 // the cast's drawings: one file per sheet (ref/<sheet>.png, on green; tools/green.py)
 const FINISH = { amount: 1, soft: 1, grain: 1, paint: 1 }; // null: the clean drawings
-const SHEETS = ['kit-sheet', 'kit-drop-a', 'kit-drop-b', 'kit-ride', 'hoagie-sheet', 'hoagie-keys', 'hoagie-seq-turn', 'hoagie-seq-thumb', 'milo-sheet', 'milo-keys', 'pip-sheet', 'pip-keys', 'dot-sheet', 'dot-keys', 'captain-sheet', 'captain-keys', 'hoagie-seq-tween', 'hoagie-run', 'milo-run', 'kit-skate', 'pip-scoot', 'captain-flap', 'hoagie-leap', 'milo-leap', 'kit-leap', 'pip-leap', 'kit-land'];
+const SHEETS = ['kit-sheet', 'kit-drop-a', 'kit-drop-b', 'kit-ride', 'hoagie-sheet', 'hoagie-keys', 'hoagie-seq-turn', 'hoagie-seq-thumb', 'milo-sheet', 'milo-keys', 'pip-sheet', 'pip-keys', 'dot-sheet', 'dot-keys', 'captain-sheet', 'captain-keys', 'hoagie-seq-tween', 'hoagie-run', 'milo-run', 'kit-skate', 'pip-scoot', 'captain-flap', 'hoagie-leap', 'milo-leap', 'kit-leap', 'pip-leap', 'kit-land', 'dot-shake'];
 const B0 = 0.05; // the song's first beat
 // the edit: [from, to, name, shot(g, t, u, env), how the camera gets there]; u is the time since
 // the shot's cut. Without a fifth entry the shot carries on from the one before (the camera moves
@@ -59,6 +59,7 @@ const KIT_AT = () => {
     const m3 = Drawn.meta('kit', 'j3'), below = (m3.h - 8 - m3.at[1]) * ((KP * 429) / m3.m); // from her middle to her wheels, in the air
     return { KZ, S, KP, gx, gy, below, apex: -below - 30 }; // (the top of her jump: just out of the top of the frame; she fills it, there is no room to hang in it)
 };
+const DOT_UP = 30; // how far up her shaking drawings stand behind the counter
 function kitShot(g, t, env, o = {}) {
     const T = SkateToon, C = T.COL, A = Harbor.AT, G = 9.81;
     const DROP = 0.5, LAND = 1.0, CARD = 3.0;
@@ -76,8 +77,7 @@ function kitShot(g, t, env, o = {}) {
         g.translate(-800, -450);
     }
     Harbor.back(g, env, t);
-    // Aunt Dot (1.8 m) inside her hut, behind her counter, a cone of chips held out (as the gull will
-    // find her): the landing makes her blink (her drawing stays where it is: slid, it was a cut-out)
+    // Aunt Dot (1.8 m) inside her hut, behind her counter, shaking her fry basket
     {
         const [, , dZ] = A.dot.foot, [dx, dy] = Cam.pt(A.dot.foot);
         g.save();
@@ -85,7 +85,10 @@ function kitShot(g, t, env, o = {}) {
         A.dot.hatch.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
         g.closePath();
         g.clip();
-        Film.put(g, 'dot', 'serve', dx - 92, dy - 44, Cam.scale(dZ) / Film.M.dot.m, { blink: Math.max(Film.blinkAt(t, 0.5), Film.blinkAt(t, LAND + 3 / 24), Film.blinkAt(t, LAND + 9 / 24)) });
+        // (four drawings of her own, cast/dot-shake-drawn.js: the basket up on every beat, six drawings a
+        // shake; when Kit lands she stops with it half up and looks, blinks, and goes back to it)
+        const n = Math.floor(t * 12 + 1e-6), since = Math.round((tw(LAND) - LAND) * 12), looks = !o.noKit && since >= 0 && since < 10;
+        Film.put(g, 'dot', looks ? 'k2' : ['k3', 'k3', 'k4', 'k1', 'k1', 'k2'][n % 6], dx - 92, dy - DOT_UP, Cam.scale(dZ) / Film.M.dot.m, { blink: looks ? Film.blinkAt(t, LAND + 5 / 24) : 0 });
         g.restore();
         Harbor.counter(g, env);
     }

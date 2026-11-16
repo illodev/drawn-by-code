@@ -113,3 +113,12 @@ proud, a blink): … BOTH EYES CLOSED». Say what the loose things do in each (h
 down, falling as she rises). A «blink» frame comes back as its own drawing (another turn of the
 head): it is a pose in the sequence, not a blink for a hold.
 
+## A loop for a figure that stays in one place (round 52)
+
+Reference = the model sheet. «FOUR CONSECUTIVE FRAMES of one looping action … all four standing
+on the same ground line **with her feet in exactly the same place in every frame**. She is
+shaking a wire fry basket full of golden chips with both hands, a loop: Frame 1 (low) … Frame 2
+(rising) … Frame 3 (top): … the chips jumping well above it in the air … Frame 4 (coming down)
+…». Say where the eyes go in each frame, and ask for anything see-through (a wire basket) to be
+drawn with a dark inside, so the green does not show through it.
+
