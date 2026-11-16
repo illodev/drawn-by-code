@@ -11,7 +11,7 @@
 Energy per second (how much the image changes):
 
 ```
-▂▃▂▃▂█▄▅▃▃▃▃
+▂▃▂▃▂█▄▅▄▃▃▃
 0    5    10   
 ```
 
@@ -19,7 +19,7 @@ No still stretches of 1 s or more.
 
 ## Speed
 
-Painting: 987 ms/frame cold, 693 ms warm → full render ≈ 191 s at this size.
+Painting: 980 ms/frame cold, 672 ms warm → full render ≈ 186 s at this size.
 
 > Slow: cache static elements with `Motion.sprite` and lower the texture density.
 

@@ -63,6 +63,11 @@ so every number in the shader is one you can read off the image.
   a planet is masked by the height of the air it shines through, never drawn on the dark
   disc; while low it is dim, red (a low temperature) and squashed by refraction, and its
   light pools in the air before the disc shows.
+- **A flare is a soft flower, not a star.** Most of a halo is round (the lens's wide
+  octaves); rays only scallop its rim: many (≈ 19), at uneven angles, of similar length,
+  low gain. Few long even arms on a moving source read as a creature («una estrella de mar
+  moviéndose»). And a source that is up **holds its brightness**: a halo that keeps growing
+  reads as an effect being turned up, not as a camera.
 - **Optical effects have no thresholds.** Rays, bloom and flares scale with the source from
   its first glimmer (the kit's ray `threshold` is a knee): anything that pops on at one
   frame of a continuous event reads as a bug («¿es normal que…?»).
@@ -178,3 +183,6 @@ Tune with numbers: sample the same named points on both images, fit profiles
   full size against the reference, part by part, and step through the shot's events.
 - 2026-11-16 · lightfield-test round 2 · When the user asks whether something «is normal»,
   it is not: find the threshold, the step or the clamp that made a continuous thing jump.
+- 2026-11-16 · lightfield-test round 3 · Judge an optical effect in motion, not on the
+  match frame: a starburst that matched the still's size became «a starfish» once it rode
+  up with the sun. Render three or four moments of the move side by side before showing it.

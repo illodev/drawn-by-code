@@ -86,6 +86,17 @@ vec3 radiance(vec2 p) {
     return L + sun + st + cities(q, r) * (0.35 + 0.65 * STARS);
 }
 `,
+    rays() {
+        if (!this._rays) {
+            const r = Motion.rng('limb-iris-3'), n = 19;
+            this._rays = Array.from({ length: n }, (_, i) => ({
+                angle: ((i + (r() - 0.5) * 0.55) / n) * Math.PI * 2 + 0.11,
+                len: 0.13 + 0.09 * r(),
+                gain: 0.45 + 0.55 * r(),
+            }));
+        }
+        return this._rays;
+    },
     frame(t) {
         const M = this.MATCH, z = 1 + 0.01 * (t - M);
         // the sun climbs straight up through the air at a constant rate
@@ -97,7 +108,8 @@ vec3 radiance(vec2 p) {
         const a = [
             0.015 * z, -3.283 * z + 0.0015 * (t - M), 3.313 * z,
             -0.1738, sunH,
-            2000 * Math.pow(clear, 5) * (1 + 0.9 * Ease.seg(t, M, M + 2)),
+            // (the camera holds its exposure once the sun is up: it does not keep growing)
+            1250 * Math.pow(Math.min(1, clear / 0.91), 5),
             Motion.keys([[0, 0.1], [M - 0.4, 1.95]], t, Ease.inOut),
             1 - Ease.inOut(Ease.seg(t, 1.2, M - 0.5)),
             Ease.inOut(Ease.seg(t, 1.0, M - 0.6)),
@@ -107,8 +119,11 @@ vec3 radiance(vec2 p) {
             0.35 + 0.45 * clear,
         ];
         const optics = {
-            exposure: 1, toe: 0.05, bloom: 0.12, bloomWeights: [0.5, 0.7, 0.9, 1.2, 2.0, 0.9, 0.2], halation: [1, 0.12, 0.01], halationFrom: 5,
-            streaks: { gain: 0.19, threshold: 90, length: 0.22, falloff: 6.5, rays: 15, level: 4, seed: 7, irregular: 0.8, rot: 0.2, tint: [1, 0.11, 0.008] },
+            exposure: 1, toe: 0.05, bloom: 0.14, bloomWeights: [0.4, 0.6, 0.9, 2.0, 4.2, 2.4, 0.6], halation: [1, 0.12, 0.01], halationFrom: 5,
+            // the iris of the still is no star: a small, soft, mottled flower round a pale
+            // centre. So: many soft rays at uneven angles, most of them short and
+            // faint, overlapping into a halo with a ragged rim rather than arms
+            streaks: { gain: 0.07, threshold: 90, falloff: 5.5, rays: this.rays(), level: 4, tint: [1, 0.10, 0.012] },
             ca: 0.0012, vignette: 0, soften: 0.6,
             grain: { amount: 0.075, size: 2.6, chroma: 0.3, floor: 0 },
         };

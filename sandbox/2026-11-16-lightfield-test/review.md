@@ -152,3 +152,31 @@ What the gate could not see, and the user did: it compares one instant (the sun 
 disc happened a second before the match frame), and inside a tile it only weighs colour
 and energy, not structure (a smooth lobe and a mottled one, a flat cap and a threaded one
 score alike). Both went into the style's checklist.
+
+## Round 3 (user)
+
+With the limb reference again:
+
+> Lo que yo haría es añadir algunas escenas nuevas, originales nuestras, podemos ver ideas.
+> Y el único arreglo que veo por ahora es el sol, creo que el reflejo se ve demasiado
+> altificial todavía, es como que los rayos son muy simetricos y llega a un punto en el que
+> se ve el sol con los rayos subiendo y es como si una estrella de mar se moviera, creo que
+> tiene demasiada intensidad. En el de la imagen que te pasé se ve más pequeño, más
+> difuminado y parte de una zona central un poco más blanca y no tan estrellada
+
+Translation: the bulb is accepted for now; the sun's flare is not. Fifteen distinct arms
+of even length riding up with the sun read as a creature (a starfish), and the flare kept
+growing after the match frame (power × 1.9). What the still shows is a small soft flower:
+a pale round centre, a red halo, a ragged rim. Changes:
+
+- the halo is now mostly **round**: the lens's two widest octaves carry it (weights 2.4 and
+  0.6, tinted red), under a white octave (4.2) that gives the pale centre;
+- the rays only scallop its rim: 19 of them at uneven angles (± 0.28 of the spacing),
+  lengths 0.13–0.22, gains 0.45–1, at less than half the gain (0.19 → 0.07), a deeper red;
+- the sun **holds its brightness** once it is up (the camera's exposure): it was doubling
+  between the match frame and the cut;
+- tried and dropped: rays at octave 5 (no rim left, a blob), 24 rays with free angles
+  (they bunched into a «W» of three arms).
+
+Detail gate, Limb: PASS (colour median 0.9, p90 7.7, no flagged tile). New scenes: ideas
+proposed to the user, none built yet.

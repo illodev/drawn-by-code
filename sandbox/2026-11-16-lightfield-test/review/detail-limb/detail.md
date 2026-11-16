@@ -4,8 +4,8 @@
 
 | check | value | limit |
 |---|---|---|
-| colour median | 0.7 | ≤ 8 ✓ |
-| colour p90 | 6.6 | ≤ 27 ✓ |
+| colour median | 0.9 | ≤ 8 ✓ |
+| colour p90 | 7.7 | ≤ 27 ✓ |
 | tiles too clean (%) | 0.0 | ≤ 6 ✓ |
 | tiles too busy (%) | 0.0 | ≤ 12 ✓ |
 
