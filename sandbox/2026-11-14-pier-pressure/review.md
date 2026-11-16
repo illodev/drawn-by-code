@@ -3,11 +3,11 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 54: the opening of rounds 51–53 approved by the user for a full render («Vale,
-haz el render completo»); the whole film rendered and `render/` updated, waiting for the user's
-verdict on it.** The film now: a cold open in black shapes (0–8 s), Kit's jump into the harbour
-and her landing on her board (9.05), the cards on their sung names (round 47), the chase, the
-leap, the title; the song alone with Captain's cries at the end (round 46).
+State: **round 55: the full film with the opening the user approved for rendering (rounds
+51–54) and Kit's continuity into the chase fixed; `render/` updated; waiting for the user's
+verdict on the whole.** The film now: a cold open in black shapes (0–8 s), Kit's jump into the
+harbour and her landing on her board (9.05), the cards on their sung names (round 47), the
+chase, the leap, the title; the song alone with Captain's cries at the end (round 46).
 
 ## Round 0 (user) · the brief
 
@@ -1801,4 +1801,19 @@ The break (the gull takes her chips: `serve`, then `yell`) is as it was.
 
 The film rendered whole with round 53's opening (424 s); `render/` updated (silent copy,
 strip, gif). `engine/review.mjs`: no warnings, no still stretch. Not seen in motion, not heard.
+
+## Round 55 (user) · Kit's continuity into the chase
+
+> Sí, arregla la continuidad de Kit
+
+(Seen by me on round 54's contact sheet and offered: at 21 s she stood beside her board on the
+ground, as the old drop had left her; her new shot leaves her up on it, pointing.)
+
+`film.js` `kitRest`, `chase0`: she is as her shot leaves her (`point`, on the board); to set
+off she goes down low on it for a drawing (`glide`, her own crouched drawing: the squashed
+`proud` is gone) and away on her pushing cycle. The loose board is out of the shot.
+
+Only the two seconds that changed were rendered (frames 506–553, 29 s) and spliced into the
+film (`trim` + `concat`); checked: 762 frames, the frames outside the piece unchanged, the
+ones inside different.
 

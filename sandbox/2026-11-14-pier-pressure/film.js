@@ -52,11 +52,9 @@ const Film = (() => {
 
     // --- the world --------------------------------------------------------------------------
     const KIT = [-0.1, 0, 2.6], BOARD = [0.7, 0, 2.45], HOAGIE = [1.05, 0, 3.6], MILO = [-0.92, 0, 3.0];
-    const kitRest = (t) => ({ z: KIT[2], draw(g) {
-        const [x, y] = Cam.pt(KIT), [bx, by] = Cam.pt(BOARD);
-        KitAct.pose(g, 'proud', x, y, (Cam.scale(KIT[2]) * 1.34) / 575, { sy: 1 + Motion.pulse(twos(t), 120, 0.05, 6) * 0.008 });
-        KitAct.board(g, bx, by, (Cam.scale(BOARD[2]) * 1.4) / 700, 0);
-    } });
+    // Kit as her own shot leaves her: up on her board, pointing the way (scene.js kitShot)
+    const kitOn = (g, name) => { const [x, y] = Cam.pt(KIT); KitAct.pose(g, name, x, y, (Cam.scale(KIT[2]) * 1.34) / 575); };
+    const kitRest = (t) => ({ z: KIT[2], draw(g) { kitOn(g, 'point'); } });
     const hoagieRest = (t) => ({ z: HOAGIE[2], draw(g) { put3(g, 'hoagie', 'film', HOAGIE, { rot: Math.sin(twos(t) * Math.PI) * 0.025 }); } });
     const miloRest = (t) => ({ z: MILO[2], draw(g) { put3(g, 'milo', 'stand', MILO, { sy: 1 + Motion.pulse(twos(t), 120, 0.05, 6) * 0.006 }); } });
     // o.dot { pose, up, dx, weight }; o.actors [{ z, draw(g) }] (painted far to near, between the
@@ -459,10 +457,11 @@ const Film = (() => {
         const gk = go(15 / 12, 3.2), gh = go(17 / 12, 3.2), gm = go(19 / 12, 3.2), start = hop(twos(u, 0.5) - 0.5, 0.9); // (two seconds: he is over them in one, they are gone in the next)
         const kitA = { z: KIT[2], draw(gg) {
             if (!gk) { kitRest(t).draw(gg); return; }
-            // onto her board and away: three drawings of push, then the glide
+            // she is on her board already: down low on it for a drawing (her own crouched drawing, no
+            // squash), then away on her pushing cycle
             const k = nth(gk.v);
-            if (k === 0) { const [x, y] = Cam.pt(KIT); KitAct.pose(gg, 'proud', x, y, (Cam.scale(KIT[2]) * 1.34) / 575, { sx: 1.06, sy: 0.92 }); KitAct.board(gg, ...Cam.pt(BOARD), (Cam.scale(BOARD[2]) * 1.4) / 700, 0); }
-            else put3(gg, 'kit', CYC.kit[k % 4], [KIT[0] + 0.6 + gk.dx, 0, KIT[2]], {});
+            if (k === 0) kitOn(gg, 'glide');
+            else put3(gg, 'kit', CYC.kit[k % 4], [KIT[0] + 0.3 + gk.dx, 0, KIT[2]], {});
         } };
         const hoagieA = { z: HOAGIE[2], draw(gg) {
             if (!gh) put3(gg, 'hoagie', 'film', [HOAGIE[0], start, HOAGIE[2]], {});
