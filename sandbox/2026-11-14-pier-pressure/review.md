@@ -3,10 +3,11 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 53, waiting for the user's verdict, shown as an 11 s clip only: the opening of
-rounds 51–52 with Aunt Dot on an uneven phrase instead of a loop and Kit landing a second later
-(9.05), so she is never left standing (`review/open.jpg`). `render/` still holds round 48's
-film until the opening is approved.** Round 47's cut to the song's words stands.
+State: **round 54: the opening of rounds 51–53 approved by the user for a full render («Vale,
+haz el render completo»); the whole film rendered and `render/` updated, waiting for the user's
+verdict on it.** The film now: a cold open in black shapes (0–8 s), Kit's jump into the harbour
+and her landing on her board (9.05), the cards on their sung names (round 47), the chase, the
+leap, the title; the song alone with Captain's cries at the end (round 46).
 
 ## Round 0 (user) · the brief
 
@@ -1793,4 +1794,11 @@ The break (the gull takes her chips: `serve`, then `yell`) is as it was.
 **Shown small**: `review/open.jpg`; the first 11.3 s alone at 1280.
 
 **Lesson** → skill animate.
+
+## Round 54 (user) · the full render
+
+> Vale, haz el render completo
+
+The film rendered whole with round 53's opening (424 s); `render/` updated (silent copy,
+strip, gif). `engine/review.mjs`: no warnings, no still stretch. Not seen in motion, not heard.
 
