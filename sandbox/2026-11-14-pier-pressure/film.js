@@ -752,52 +752,107 @@ const Film = (() => {
     function hang(g, t, u, env) {
         const d = nth(t), uu = twos(u);
         burst(g, d);
-        capFly(g, t, 1010 + Math.sin(uu * 3) * 30, 96 + Math.sin(uu * 4.2) * 12, SK.captain * 1.25, { rot: -0.06 });
+        // (he leaves upwards before the title's board comes down with him on it)
+        if (nth(u) < 20) capFly(g, t, 1010 + Math.sin(uu * 3) * 30 + Math.max(0, nth(u) - 16) * 60, 96 + Math.sin(uu * 4.2) * 12 - Math.max(0, nth(u) - 16) ** 2 * 22, SK.captain * 1.25, { rot: -0.06 });
         aloft(g, nth(u));
+        titleBoards(g, nth(u) - 24, u - 2);
+    }
+    // The title, in the family of the name cards and the biggest of them: two boards. PIER comes down
+    // from above over the last two drawings of the sky, Captain riding its corner, and lands on the
+    // song's last hit; PRESSURE is slammed across its foot on the shout (0.33 s on) and knocks it
+    // askew; the music stops dead at 0.7 s, a glint; in the silence our seal unrolls under it and
+    // Captain blinks. n: the drawing, on twos, counted from the hit (−2, −1: still in the sky).
+    const TA = [800, 384], TB = [800, 648], SLAM = 4, STOP = 8, SEAL = 11;
+    function titleBoards(g, n, u) {
+        if (n < -2) return;
+        // --- PIER
+        const fall = n < 0 ? [-470, -215][n + 2] : 0, knocked = n > SLAM;
+        g.save();
+        g.translate(TA[0] + (knocked ? -6 : 0), TA[1] + fall + (knocked ? 7 : 0));
+        g.rotate(n < 0 ? [-0.1, -0.07][n + 2] : knocked ? -0.062 : -0.038);
+        const A = [[-440, -166], [428, -184], [446, 138], [-426, 156]];
+        T.slab(g, A.map(([x, y]) => [x + 16, y + 18]), { fill: C.ink, seed: 'ta-shade', over: 1, w: T.LINE });
+        T.slab(g, A, { fill: C.magenta, seed: 'title', over: 3, w: T.LINE * 1.6 });
+        T.slab(g, [[-416, -142], [404, -159], [421, 114], [-402, 131]], { fill: null, seed: 'title-rule', over: 0.6, w: T.LINE, color: C.roadLine });
+        block(g, 'PIER', -6, 96, { size: 280, fill: C.roadLine, drop: C.navy, seed: 'title-a', w: T.LINE * 1.5, track: 0.07, tilt: 0.05 });
+        // the one who started it, on its corner: the landing throws him up, and so does the slam
+        // (jumps under gravity, on twos; 370 frame units to his metre); a blink in the silence
+        const up = Math.max(hop(Math.max(0, twos(u)), 1.6), hop(twos(u) - (SLAM + 1) / 12, 1.2)) * 330;
+        put(g, 'captain', 'perch', 356, -181 - (n < 0 ? 0 : up), 0.3, { only: ['bird'], blink: Math.max(blinkAt(u, 1.29), 0) });
+        g.restore();
+        // thrown around it, one thing a drawing
+        if (n >= 1) {
+            const zz = Array.from({ length: 9 }, (_, i) => [176 + i * 34, 196 - (i % 2) * 40 - i * 4, 1]);
+            T.line(g, zz, { w: T.LINE * 3.2, seed: 'tzz', color: C.ink });
+            T.line(g, zz, { w: T.LINE * 1.5, seed: 'tzz', color: C.roadLine });
+        }
+        if (n >= 2) T.shape(g, [[1296, 300, 1], [1384, 322, 1], [1318, 386, 1]], { fill: C.teal, w: T.LINE * 1.2, seed: 'ttri' });
+        if (n >= 3) for (let i = 0; i < 3; i++) T.shape(g, star(34 - i * 6, 34 - i * 6, 0.45, 5, -1.57 + i * 0.3).map(([x, y]) => [142 + i * 30 + x, 372 + i * 58 + y, 1]), { fill: [C.roadLine, C.magenta, C.teal][i], w: T.LINE, seed: 'tstar' + i });
+        // --- PRESSURE: one drawing of it coming at the board, big; then on it
+        if (n >= SLAM) {
+            const kk = n === SLAM ? 1.42 : 1;
+            g.save();
+            g.translate(TB[0], TB[1] + (n === SLAM ? -18 : 0));
+            g.rotate(n === SLAM ? 0.085 : 0.028);
+            g.scale(kk, kk);
+            const B = [[-592, -108], [580, -126], [596, 98], [-576, 114]];
+            T.slab(g, B.map(([x, y]) => [x + 16, y + 18]), { fill: C.ink, seed: 'tb-shade', over: 1, w: T.LINE });
+            T.slab(g, B, { fill: C.navy, seed: 'title-b-board', over: 3, w: T.LINE * 1.6 });
+            T.slab(g, [[-570, -86], [558, -103], [573, 76], [-555, 91]], { fill: null, seed: 'title-b-rule', over: 0.6, w: T.LINE, color: C.roadLine });
+            block(g, 'PRESSURE', 4, 62, { size: 196, fill: C.white, drop: C.magenta, seed: 'title-b', w: T.LINE * 1.3, track: 0.05, tilt: 0.045 });
+            g.restore();
+            // what the slam knocks loose
+            if (n === SLAM + 1) for (let i = 0; i < 6; i++) {
+                const a = (i % 3 - 1) * 0.36 + (i > 2 ? Math.PI : 0), r0 = 640, r1 = 716;
+                T.line(g, [[TB[0] + Math.cos(a) * r0, TB[1] + Math.sin(a) * r0 * 0.5], [TB[0] + Math.cos(a) * r1, TB[1] + Math.sin(a) * r1 * 0.5]], { w: T.LINE * 1.6, seed: 'tk' + i });
+            }
+        }
+        // the music stops: a glint on the board's corner, three drawings
+        const gl = n - STOP;
+        if (gl >= 0 && gl < 3) {
+            const r = [44, 76, 30][gl];
+            T.shape(g, star(r, r, 0.22, 4, 0.2 + gl * 0.25).map(([x, y]) => [452 + x, 262 + y, 1]), { fill: C.white, w: T.LINE, seed: 'glint' + gl });
+        }
+        // who made it: our seal, on a ribbon like the cards' own, unrolled in the silence
+        if (n >= SEAL) {
+            const rk = [0.72, 1][Math.min(1, n - SEAL)], rw = 292;
+            g.save();
+            g.translate(800, 826);
+            g.rotate(-0.02);
+            g.scale(rk, rk);
+            T.shape(g, [[-rw - 46, -40, 1], [rw + 42, -46, 1], [rw + 12, 0, 1], [rw + 46, 42, 1], [-rw - 42, 46, 1], [-rw - 12, 3, 1]], { fill: C.roadLine, w: T.LINE * 1.2, seed: 'seal', amp: 0.2 });
+            T.sign(g, 'illodev x Claude', 2, 26, { size: 74, fill: C.navy, seed: 'seal-t', w: T.LINE_FINE, track: 0.04, tilt: 0.02, outline: C.roadLine });
+            g.restore();
+        }
     }
     function title(g, t, u, env) {
         const d = nth(t), dc = nth(u), uu = twos(u);
+        g.save();
+        // the frame takes the two hits: three drawings of shake each
+        const sh = dc < 3 ? [[0, 12], [0, -7], [0, 3]][dc] : dc > SLAM && dc <= SLAM + 2 ? [[8, 6], [-4, -3]][dc - SLAM - 1] : null;
+        if (sh) { g.translate(800 + sh[0], 450 + sh[1]); g.scale(1.03, 1.03); g.translate(-800, -450); }
         burst(g, d);
         // the last of them still falling, behind the title
         aloft(g, 24 + dc);
-        // the sea comes up to say so
+        // behind the boards: the cards' white burst, turning a notch every other drawing
+        {
+            const kb = dc === 0 ? 0.84 : 1;
+            T.shape(g, star(735 * kb, 338 * kb, 0.84, 19, (dc >> 1) * 0.1).map(([x, y, c]) => [800 + x, 478 + y, c]), { fill: C.white, w: T.LINE * 1.4, seed: 'title-burst', amp: 0.15 });
+        }
+        // the sea comes up to say so (water, with its foam thrown off the top)
         const sv = Math.max(0, uu - 2 / 12), top = 900 - (1900 * sv - 3000 * sv * sv);
         if (sv > 0 && top < 900) {
             for (const [i, cx] of [330, 640, 1090, 1310].entries()) {
                 const w = 150 - i * 6, y = top + i * 26 + 40;
-                T.shape(g, [[cx - w, 920], [cx - w * 0.82, y + 150], [cx - w * 1.05, y + 60], [cx - w * 0.5, y + 90], [cx - w * 0.42, y - 10], [cx, y + 50], [cx + w * 0.38, y - 40], [cx + w * 0.56, y + 80], [cx + w * 1.08, y + 30], [cx + w * 0.8, y + 160], [cx + w, 920]], { fill: C.foam, w: T.LINE, seed: 'splash' + i });
+                T.shape(g, [[cx - w, 920], [cx - w * 0.82, y + 150], [cx - w * 1.05, y + 60], [cx - w * 0.5, y + 90], [cx - w * 0.42, y - 10], [cx, y + 50], [cx + w * 0.38, y - 40], [cx + w * 0.56, y + 80], [cx + w * 1.08, y + 30], [cx + w * 0.8, y + 160], [cx + w, 920]], { fill: C.sea, w: T.LINE, seed: 'splash' + i });
                 for (let j = 0; j < 4; j++) {
                     const dx = (j - 1.5) * 90 + i * 13, r = 15 - j * 2, dy = top - 60 - j * 46 + sv * sv * 500;
-                    T.shape(g, [[cx + dx - r, dy], [cx + dx, dy - r * 1.5], [cx + dx + r, dy], [cx + dx, dy + r]], { fill: C.sea, w: T.LINE_BG, seed: 'drop' + i + j });
+                    T.shape(g, [[cx + dx - r, dy], [cx + dx, dy - r * 1.5], [cx + dx + r, dy], [cx + dx, dy + r]], { fill: C.foam, w: T.LINE_BG, seed: 'drop' + i + j });
                 }
             }
         }
-        // PIER PRESSURE, stamped on the last hit
-        const k = [1.6, 0.9, 1.05, 1][Math.min(3, dc)];
-        g.save();
-        g.translate(800, 430);
-        g.rotate(-0.05 + [0.05, -0.02, 0.008, 0][Math.min(3, dc)]);
-        g.scale(k * 1.12, k * 1.12);
-        T.slab(g, [[-560, -250], [545, -276], [572, 226], [-540, 252]], { fill: C.magenta, seed: 'title', over: 3, w: T.LINE * 1.6 });
-        T.slab(g, [[-532, -224], [520, -249], [545, 200], [-514, 225]], { fill: null, seed: 'title-rule', over: 0.6, w: T.LINE, color: C.roadLine });
-        T.sign(g, 'PIER', -8, -22, { size: 300, fill: C.roadLine, drop: C.navy, seed: 'title-a', w: T.LINE * 1.5, track: 0.07, tilt: 0.05 });
-        T.sign(g, 'PRESSURE', 6, 186, { size: 196, fill: C.white, drop: C.navy, seed: 'title-b', w: T.LINE * 1.3, track: 0.05, tilt: 0.045 });
+        titleBoards(g, dc, u);
         g.restore();
-        // who made it: our seal, a tag slapped under the title half a second on
-        const sn = nth(u, 0.5);
-        if (u >= 0.5) {
-            const k2 = [1.3, 0.93, 1.03, 1][Math.min(3, sn)];
-            g.save();
-            g.translate(800, 812);
-            g.rotate(0.022 + [-0.05, 0.02, 0, 0][Math.min(3, sn)]);
-            g.scale(k2, k2);
-            T.slab(g, [[-262, -44], [258, -50], [264, 40], [-256, 46]], { fill: C.white, seed: 'seal', over: 1.6, w: T.LINE * 1.2 });
-            T.sign(g, 'illodev x Claude', 2, 22, { size: 62, fill: C.navy, seed: 'seal-t', w: T.LINE_FINE, track: 0.04, tilt: 0.02 });
-            g.restore();
-        }
-        // ... and the one who started it, back for the last chip
-        const cv = twos(u, 0.75) - 0.75;
-        if (cv >= 0) put(g, 'captain', 'perch', 1225, 138 - hop(cv, 2.2) * 60 - (cv < 0 ? 0 : 0) + (cv === 0 ? -220 : 0), 0.34, { only: ['bird'] });
     }
 
     // over a frame the camera is whipping through: lines of speed along the move (sm: the

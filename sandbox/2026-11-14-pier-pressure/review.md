@@ -3,21 +3,21 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 40, waiting for the user's verdict: poses cut into parts are now cut for good
-(Captain no longer takes the bollard's metal, Milo's and Dot's hems keep their line), Dot stays
-at her counter in the first shots and stands on her card's floor, and the title carries the
-seal `illodev x Claude`** (`review/round40.jpg`). Before it: round 39, the colour details read
-again (`review/details.jpg`, `review/fidelity.md`), Kit's landing with in-betweens
-(`review/kit.jpg`) and the broadcast finish (`styles/skate-toon/tv.js`); round 38, the leap and
-the sky (`review/leap.jpg`); 37, the chase in cycles (`review/chase.jpg`); 36, the five
-presentations in one format (`review/presentations.jpg`).
+State: **round 41, waiting for the user's verdict: the title animated (two boards on the song's
+last two hits, Captain riding the first, the seal unrolled in the silence; `review/title.jpg`).**
+Before it: round 40, parts cut for good, Dot in place and on her floor, the seal
+(`review/round40.jpg`); 39, the colour details read again (`review/details.jpg`,
+`review/fidelity.md`), Kit's landing with in-betweens (`review/kit.jpg`) and the broadcast
+finish (`styles/skate-toon/tv.js`); 38, the leap and the sky (`review/leap.jpg`); 37, the chase
+in cycles (`review/chase.jpg`); 36, the five presentations in one format
+(`review/presentations.jpg`).
 The cut is approved (round 35→36: «Sí»). Settled by the user: no bending (27), no 3D (31),
 nothing drawn by hand that does not come from the images (31); frames are edits of the
 drawings' code, more of them, no rebounds (32); images may be generated for views the drawings
-lack, always on a coloured ground (32–35); the presentations go well (36→37: «Sí»); the chase
-and the leap go on (37→38→39: «Sí»); the signature is `illodev x Claude` (40). Still as
-rejected in round 26: the title's own animation. No sound effects yet, and the name cards are
-not timed to the sung words. The set is approved up to round 16. The style stays *in testing*.
+lack, always on a coloured ground (32–35); the presentations go well (36→37: «Sí»); the chase,
+the leap, Kit's shot and the title go on (37→…→41: «Sí»); the signature is `illodev x Claude`
+(40). Not done: sound effects; the name cards are not timed to the sung words. The set is
+approved up to round 16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -1433,4 +1433,44 @@ rust on it).
 
 **Lessons** → skill animate (parts; a background figure does not slide; feet and floor), skill
 replicate (cut parts along a map, not by centres).
+
+## Round 41 (user) · the title's animation
+
+> Sí, sigue con la animación del título
+
+(The title was one magenta slab with both words, popped in by a bounce of scale, plainer than
+the name cards before it; Captain appeared on it from above, and the seal was a tag below.)
+
+**Timed on the song first** (its last four seconds as loudness per frame): the last hit at
+30.04 s, the shout's second word at 30.4, the music stopping dead at 30.75, then a second of
+silence to the end. The shot is built on those four moments, counted in drawings on twos from
+the hit (`film.js` `titleBoards`, `title`):
+
+- −2, −1 (still in the sky shot): the PIER board comes down from above, tilted, Captain on its
+  corner; he has left the sky upwards four drawings before.
+- 0, the hit: it lands. The cards' white burst opens behind it (one smaller drawing, then
+  whole), the frame shakes three drawings, Captain is thrown up (a jump under gravity) and
+  comes down; the four are still falling behind it and the sea comes up after them (water now,
+  not white foam: on the white burst foam was nothing).
+- 1, 2, 3: a zigzag, a triangle, three stars, one a drawing, as round the cards.
+- 4, the shout: PRESSURE, one drawing of it big and tilted coming at the frame, then on, across
+  the first board's foot; that board is knocked askew, the frame shakes twice, ticks fly off
+  the ends, Captain hops again.
+- 8, the music stops: a glint on the board's corner, three drawings, and nothing else moves but
+  the rays.
+- 11, in the silence: the seal `illodev x Claude` unrolls on a ribbon like the cards' own
+  (yellow, to stand off the burst); 1.3 s: Captain blinks.
+
+Lettering as on the cards (`block`: letters with a side). Two boards because the title has two
+words and the song two hits; in the cards' family and the biggest of them.
+
+**Seen**: `review/title.jpg` (sixteen drawings), two frames at 1920; first try had Captain out
+of the top of the frame, the seal lost on the white burst and the splash white on white, all
+three fixed before rendering. `engine/review.mjs`: no warnings. Not seen in motion, not heard.
+
+**Known limits**: Captain on the board is his one `perch` drawing (hops and a blink); the
+boards' pops are a change of size over one drawing, as on the cards; no sound effects under
+any of it (the splash, the two slams).
+
+**Lessons** → skill animate (time a title on the measured song; an ending needs the silence).
 
