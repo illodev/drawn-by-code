@@ -3,8 +3,9 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 42, waiting for the user's verdict: sound effects (49 cues on the frames of
-contact, `audio.json`; thirteen new effects in `assets/sfx/`).** Before it: round 41, the title
+State: **round 43, waiting for the user's verdict: the sound effects after the user's first
+listen (the camcorder's whistle gone, a new gull; 47 cues, `audio.json`).** Before it: round 42,
+the effects placed and balanced by measuring; round 41, the title
 animated (two boards on the song's last two hits, Captain riding the first, the seal unrolled in
 the silence; `review/title.jpg`); round 40, parts cut for good, Dot in place and on her floor, the seal
 (`review/round40.jpg`); 39, the colour details read again (`review/details.jpg`,
@@ -1513,4 +1514,36 @@ character of each sound is not); the splash's rain runs to the last frame; no fa
 the two seconds of sky (the song is at full there).
 
 **Lessons** → skill sound.
+
+## Round 43 (user) · «a very, very annoying screech», and the gull
+
+> Regular los sonidos
+
+> Del segundo 7 al 9 hay un chirrio muy muy molesto
+
+> EL sonido de la gaviota muy regular
+
+(Asked what was wrong with them, since I cannot hear: the answers above.)
+
+**The screech.** One effect lies across seconds 7 to 9: `camcorder_rec` (7.55 s, two seconds),
+asked for as «a short electronic beep then a small zoom motor whirr». Its spectrum: all of its
+energy above 3 kHz, 95 % of it in one narrow band at 5 kHz, for 1.72 s: a whistle. Round 42
+looked at every take's length, peak, onset and loudness and at nothing that could have shown
+this. Removed from the mix and from the library. The effects-only stem is now scanned for any
+narrow tone above 2 kHz lasting over 0.3 s: none.
+
+**The gull.** The one used was a single cry 0.2 s long, cut out of a take that held two: a yip.
+Four new takes (68 credits) of «Herring gull calling, three loud laughing seagull cries, natural
+field recording by the sea, close», compared by their calls (when each cry starts and ends, its
+pitch falling from about 1.4 to 1.1 kHz, how much is noise): one gave a series of five cries.
+`gull_call` is three of them (0.9 s) and is what Captain says as he takes off and, last, into
+the silence after the title (moved earlier, 30.82 s, so that all three fit before the end);
+`gull_squawk` is one whole cry of another take, for his start at the clatter. A third squawk in
+the break is gone. Whether it now SOUNDS like a gull I cannot say: a speech-to-text pass was
+tried as a judge of what the sound is (11 credits) and returned nothing for it.
+
+**Seen** (measured): 47 cues; no second more than 3 dB over the song but the last one (the
+effects in the song's silence); between 7 and 9 s the effects are 15 dB under the music.
+
+**Lessons** → skill sound (look at the spectrum of every take; a bird is a series of calls).
 

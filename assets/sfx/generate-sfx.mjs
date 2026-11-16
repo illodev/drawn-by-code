@@ -78,16 +78,19 @@ const SFX = {
     machine_turn: ['ancient alien machinery turning slowly, deep rotating metal hum with soft rhythmic pulses, reverberant, no music', 6],
     // skate-toon (pier-pressure). Generated through the ElevenLabs connector (an `sfx` node, model
     // eleven_text_to_sound_v2, default length), then each normalised to a peak of −3 dBFS;
-    // gull_squawk is the first of the two squawks it gave, big_splash starts 0.36 s into its take,
-    // and zip_away is the last second of cartoon_scram.
+    // big_splash starts 0.36 s into its take, and zip_away is the last second of cartoon_scram.
     board_clatter: ['Skateboard dropped flat onto concrete, one hard wooden clack with truck and wheel rattle, two smaller bounces after, close, dry', 2],
     board_roll: ['Skateboard wheels rolling fast over wooden planks, steady rumble with clicks over the gaps, close, dry', 1],
     sneaker_land: ['Two sneakers landing hard on concrete from a high jump, one heavy rubber thud with a short scuff, close, dry', 1],
     big_splash: ['Several people falling into the sea at once, one big deep cartoon splash, water raining back down after', 3],
-    gull_squawk: ['A single loud seagull squawk, cheeky, close, dry', 2],
+    // (four takes of the gull, compared by their calls: `gull_call` is three cries out of the take
+    // that gave a series of five, `gull_squawk` one whole cry of another. The first gull was a
+    // 0.2 s cry cut off, and a camcorder's «beep and zoom motor» came out as a 5 kHz whistle
+    // 1.7 s long: both gone after the user heard them)
+    gull_call: ['Herring gull calling, three loud laughing seagull cries, natural field recording by the sea, close', 2],
+    gull_squawk: ['Herring gull calling, three loud laughing seagull cries, natural field recording by the sea, close', 1],
     wing_flaps: ['A large seagull taking off, four quick heavy wing flaps, close, dry', 1],
     whip_whoosh: ['Very fast short cartoon whoosh passing by, airy, dry', 0.5],
-    camcorder_rec: ['1990s camcorder starting to record, a short electronic beep then a small zoom motor whirr, close', 2],
     fry_shake: ['A wire basket of hot chips shaken twice over a deep fryer, sizzling oil and a metallic rattle, close', 2],
     cartoon_scram: ['Cartoon feet scrambling on the spot then zipping away, fast pattering then a quick rising zip', 2],
     feet_planks: ['Children running fast on a wooden pier, quick hollow footsteps on planks, close, dry', 4],

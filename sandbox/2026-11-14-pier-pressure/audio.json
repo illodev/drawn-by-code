@@ -5,7 +5,6 @@
     ["whip_whoosh", 5.84, -8, "she comes down"],
     ["sneaker_land", 6.05, -2, "she lands (LAND)"],
     ["board_slam", 6.55, -8, "her card (CARD)"],
-    ["camcorder_rec", 7.55, -8, "we are in Hoagie's viewfinder"],
     ["whip_whoosh", 8.07, -7, "HOAGIE \u00b7 out of his lens"],
     ["board_slam", 9.05, -8, "his card"],
     ["pop", 9.51, -10, "the thumb"],
@@ -22,11 +21,10 @@
     ["board_slam", 15.05, -8, "her card"],
     ["whip_whoosh", 16.12, -4, "CAPTAIN \u00b7 the wipe"],
     ["board_slam", 17.05, -8, "his card"],
-    ["gull_squawk", 17.3, -8, "he is off"],
+    ["gull_call", 17.22, -8, "he is off"],
     ["wing_flaps", 17.38, -6, "launch (f 32)"],
     ["whip_whoosh", 18.05, -4, "AFTER HIM \u00b7 the whip out"],
     ["wing_flaps", 18.45, -8, "he comes over with the chips"],
-    ["gull_squawk", 18.9, -10, ""],
     ["zip_away", 20.05, -8, "Kit sets off"],
     ["zip_away", 20.3, -9, "Hoagie"],
     ["zip_away", 20.55, -9, "Milo"],
@@ -48,5 +46,5 @@
     ["board_slam", 30.47, -6, "the second board is on"],
     ["glint", 30.72, -6, "the music stops: the glint"],
     ["accordion", 30.97, -10, "the seal's ribbon unrolls"],
-    ["gull_squawk", 31.3, -8, "Captain, last word"]
+    ["gull_call", 30.82, -8, "Captain, last word: three cries into the silence"]
   ] }
