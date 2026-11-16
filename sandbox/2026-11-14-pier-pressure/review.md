@@ -3,9 +3,10 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **round 41, waiting for the user's verdict: the title animated (two boards on the song's
-last two hits, Captain riding the first, the seal unrolled in the silence; `review/title.jpg`).**
-Before it: round 40, parts cut for good, Dot in place and on her floor, the seal
+State: **round 42, waiting for the user's verdict: sound effects (49 cues on the frames of
+contact, `audio.json`; thirteen new effects in `assets/sfx/`).** Before it: round 41, the title
+animated (two boards on the song's last two hits, Captain riding the first, the seal unrolled in
+the silence; `review/title.jpg`); round 40, parts cut for good, Dot in place and on her floor, the seal
 (`review/round40.jpg`); 39, the colour details read again (`review/details.jpg`,
 `review/fidelity.md`), Kit's landing with in-betweens (`review/kit.jpg`) and the broadcast
 finish (`styles/skate-toon/tv.js`); 38, the leap and the sky (`review/leap.jpg`); 37, the chase
@@ -16,7 +17,7 @@ nothing drawn by hand that does not come from the images (31); frames are edits 
 drawings' code, more of them, no rebounds (32); images may be generated for views the drawings
 lack, always on a coloured ground (32–35); the presentations go well (36→37: «Sí»); the chase,
 the leap, Kit's shot and the title go on (37→…→41: «Sí»); the signature is `illodev x Claude`
-(40). Not done: sound effects; the name cards are not timed to the sung words. The set is
+(40). Not done: the name cards are not timed to the sung words. The set is
 approved up to round 16. The style stays *in testing*.
 
 ## Round 0 (user) · the brief
@@ -1473,4 +1474,43 @@ boards' pops are a change of size over one drawing, as on the cards; no sound ef
 any of it (the splash, the two slams).
 
 **Lessons** → skill animate (time a title on the measured song; an ending needs the silence).
+
+## Round 42 (user) · sound effects
+
+> Sí, sigue con los efectos de sonido
+
+**The effects.** The library was paper and office; this film needs a quay. Thirteen generated
+with the ElevenLabs connector (an `sfx` node, `eleven_text_to_sound_v2`, one take each, 17
+credits each, 221 in all; the estimate had said 55 each): `board_clatter`, `board_roll`,
+`sneaker_land`, `big_splash`, `gull_squawk`, `wing_flaps`, `whip_whoosh`, `camcorder_rec`,
+`fry_shake`, `cartoon_scram` (and its last second as `zip_away`), `feet_planks`, `glint`,
+`board_slam`. Prompts in `assets/sfx/generate-sfx.mjs`. Not heard: each was looked at as a
+shape (length, peak, onset, loudness per 20 ms). That showed takes from −0 to −30 dBFS of peak
+(all normalised to −3), two squawks in the «single squawk» (the first kept), and a splash whose
+body starts a third of a second in (trimmed).
+
+**The cues** (`audio.json`, `"align": "onset"`, each with a note of what it is): 49, each on the
+frame of contact read from the shot's own code. Kit: the board on the quay (HIT), Captain's
+start, her landing (LAND), her card, the camcorder as the viewfinder comes on. Each
+presentation: the wipe, the card's slam (the title's own board, lower: the cards and the title
+are one family), and its own thing (Hoagie's thumb, Milo's board shooting away, Pip riding off,
+Dot's basket, Captain's wings and squawk). The break: the whip, wings, three zips as they set
+off. The pier: feet on planks and wheels under the music. Off the end: a whoosh for each of the
+four on their own take-off drawing. The title: the board on the hit, the splash, the second
+board, the glint where the music stops, and in the silence the ribbon and Captain's last word.
+
+**Balanced by measuring, twice.** The song is dense; effects were mixed alone and against the
+music alone, and each cue's quarter second compared with the music under it. First pass: the
+library's `stamp` is a −36 dBFS file (the cards were silent: −38 dB under the music), the
+whooshes sat 9 dB under and the pier's bed 18–21 dB under (inaudible), the camcorder's two
+seconds of whirr lifted a whole second by 5 dB, and the title's second lifted 5 dB over the
+shout. Now: hits within about ±2 dB of the music under them, wipes and zips 3–6 under, the bed
+8–13 under, no second lifted more than 3 dB, peak −1 dBFS, nothing reaching the limiter before
+it. The song's own last second is silent: the effects there are at −22.6 dB.
+
+**Known limits**: none of it has been heard by me (levels and timing are measured, the
+character of each sound is not); the splash's rain runs to the last frame; no falling sound in
+the two seconds of sky (the song is at full there).
+
+**Lessons** → skill sound.
 

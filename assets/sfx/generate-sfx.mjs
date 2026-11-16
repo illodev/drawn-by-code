@@ -76,6 +76,23 @@ const SFX = {
     ring_align: ['three large metal rings locking into alignment, then a single clear resonant metallic note ringing out, bell-like, in a stone hall', 2.5],
     stone_rumble: ['a massive stone structure opening in slow waves, deep earth rumble, grinding blocks separating, debris falling, slow and heavy', 5],
     machine_turn: ['ancient alien machinery turning slowly, deep rotating metal hum with soft rhythmic pulses, reverberant, no music', 6],
+    // skate-toon (pier-pressure). Generated through the ElevenLabs connector (an `sfx` node, model
+    // eleven_text_to_sound_v2, default length), then each normalised to a peak of −3 dBFS;
+    // gull_squawk is the first of the two squawks it gave, big_splash starts 0.36 s into its take,
+    // and zip_away is the last second of cartoon_scram.
+    board_clatter: ['Skateboard dropped flat onto concrete, one hard wooden clack with truck and wheel rattle, two smaller bounces after, close, dry', 2],
+    board_roll: ['Skateboard wheels rolling fast over wooden planks, steady rumble with clicks over the gaps, close, dry', 1],
+    sneaker_land: ['Two sneakers landing hard on concrete from a high jump, one heavy rubber thud with a short scuff, close, dry', 1],
+    big_splash: ['Several people falling into the sea at once, one big deep cartoon splash, water raining back down after', 3],
+    gull_squawk: ['A single loud seagull squawk, cheeky, close, dry', 2],
+    wing_flaps: ['A large seagull taking off, four quick heavy wing flaps, close, dry', 1],
+    whip_whoosh: ['Very fast short cartoon whoosh passing by, airy, dry', 0.5],
+    camcorder_rec: ['1990s camcorder starting to record, a short electronic beep then a small zoom motor whirr, close', 2],
+    fry_shake: ['A wire basket of hot chips shaken twice over a deep fryer, sizzling oil and a metallic rattle, close', 2],
+    cartoon_scram: ['Cartoon feet scrambling on the spot then zipping away, fast pattering then a quick rising zip', 2],
+    feet_planks: ['Children running fast on a wooden pier, quick hollow footsteps on planks, close, dry', 4],
+    glint: ['A short bright sparkle ting, tiny bell with shimmer, cartoon glint', 2],
+    board_slam: ['A heavy wooden sign board slammed down flat, one deep punchy wooden thud with a short rattle, close, dry', 2],
     air_rush: ['soft air rush as a camera glides into a dark gap between floating stones, low whoosh with reverb', 1.8],
 };
 const only = process.argv.slice(2);
