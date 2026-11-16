@@ -52,6 +52,8 @@ SHEETS = {
     'milo-leap': ('milo', [('j1', 'run'), ('j2', 'mid'), ('j3', 'mid'), ('j4', 'mid')], 2, 1.78),
     'kit-leap': ('kit', [('j1', 'wheels'), ('j2', 'mid'), ('j3', 'mid'), ('j4', 'mid')], 2, 1.52),
     'pip-leap': ('pip', [('j1', 'wheels'), ('j2', 'mid'), ('j3', 'mid'), ('j4', 'mid')], 2, 1.3),
+    # the in-betweens of Kit's landing (round 39): going down, coming up, almost up, up with her eyes shut
+    'kit-land': ('kit', [('n1', 'feet'), ('n2', 'feet'), ('n3', 'feet'), ('n4', 'feet')], 3, 1.49),
 }
 # (who, pose): { 'rest', 'order', 'parts': [(name, polygon in the pose's own pixels)], 'at': [x, y] }
 PARTS = {}
@@ -98,6 +100,14 @@ def clean(im, sheet):
     a = np.asarray(im).astype(np.int32).copy()
     r, g, b = a[..., 0], a[..., 1], a[..., 2]
     mud = (g - np.maximum(r, b) > 40) & (r < 110) & (b < 110) & (np.abs(a - np.array(BG)).max(-1) > 60)
+    # (only where it touches the page: a dark green shut in by lines and paint is a paint, the top
+    # of a scooter's deck, and stays)
+    page = ndi.binary_dilation(np.abs(a - np.array(BG)).max(-1) <= 60, iterations=2)
+    lb, k = ndi.label(mud)
+    onpage = np.zeros(k + 1, bool)
+    onpage[np.unique(lb[page & mud])] = True
+    onpage[0] = False
+    mud &= onpage[lb]
     blob = ndi.binary_dilation(ndi.binary_erosion(mud, np.ones((3, 3), bool)), np.ones((5, 5), bool)) & mud
     a[blob] = BG
     lb, k = ndi.label(mud & ~blob)  # ... and a ragged fleck of it that the opening leaves whole

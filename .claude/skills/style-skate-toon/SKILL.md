@@ -45,6 +45,13 @@ for hand lettering (`fonts/Bangers-Regular.ttf`).
   `smile grin open yell ooh flat frown smirk`. See the header of `kid.js` and any file in
   `sandbox/2026-11-14-pier-pressure/cast/`.
 
+- **The broadcast finish:** `styles/skate-toon/tv.js`, `SkateToonTV.post(ctx, t, env, { amount,
+  soft, grain, paint })` from the scene's `post`: the clean vectors as a cel cartoon reached a
+  television around 2000 (paint that is never quite flat, a little film weave and grain,
+  standard-definition softness with colour softer than luma, an edge enhancer's light rim beside
+  dark lines, blacks lifted to a warm dark brown and whites to cream, darker corners). Each
+  setting is 0 (off) … 1 (as tuned) … more; check drawings with it off, show films with it on.
+
 ## Style rules
 
 - **Palette** (`SkateToon.COL`, measured): sky `#ffe36d`, sea `#027da1`, sand `#e2c196`, road
@@ -120,3 +127,4 @@ be under.
 - 2026-11-14 · pier-pressure round 6 · «Dibujos muy prematuros»: a puppet posed by numbers stayed a puppet through three rounds of finish. In this genre a character in a pose is **one drawing authored by hand** (a file per pose, every contour placed, checked beside the reference at the same height): lanky (the head a quarter to a third of the figure, never half), clothes as volumes with openings (a tee as a tube whose hoops bow round it, a sleeve as a bell with rings parallel to its hem, a shorts leg we look into), a kicked boot as a slab with its wall and tread, the line 1.3× the kit's. Use `SkateKid` for crowds and blocking only. See `sandbox/2026-11-14-pier-pressure/cast/kit-hero.js`.
 - 2026-11-14 · pier-pressure round 7 · «Las líneas se notan muy artificiales… la cara, que no sea tan geométrica… las perspectivas (zapatos)»: (1) ink with `hand: true` (`shape`, `line`): one stroke per run between corners, pressed and lifted, meeting a little past the corner, never one even closed stroke; (2) no primitives in a character: author eyes, pupils, bobbles and openings as irregular outlines, teeth one by one in different sizes; (3) anything with a real form seen at an angle (a boot) is a small 3D model projected (`sandbox/2026-11-14-pier-pressure/cast/boot3d.js`: toe and up vectors, hulls of the projected parts, details only on faces that look at the camera), so the same boot is right kicked at the camera, dangling or standing; (4) a boot with its sole upwards reads as a flag: let a trailing foot hang.
 - 2026-11-14 · pier-pressure round 9 · The first character at the bar came from an approved concept sheet measured into vector data (difference 4.8/255 against the sheet), after six rounds of drawing blind had not. For this style: sheet first, then `tools/trace.py`; the kit draws sets, lettering and effects around the traced cast.
+- 2026-11-16 · pier-pressure round 39 · «¿Podemos darle algún tipo de filtro para que parezca más series de los 2000?»: clean vector drawings read as today's; what dates a cartoon of this genre is what happened to it after it was drawn (painted cels and backgrounds, film, SD video). That is a finish in `post`, not a change to the drawings: `tv.js`. Judge details and cut-outs with the finish off (it hides small faults) and the film with it on.

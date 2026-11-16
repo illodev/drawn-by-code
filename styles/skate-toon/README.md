@@ -24,6 +24,7 @@ npm run preview    # http://127.0.0.1:5173
 |---|---|
 | `template.js` | a kid on a sea wall waving on the beat, a palm, a hand-lettered sign |
 | `toon.js` | `SkateToon`: the palette, the hand-held line, flat shapes, one-skin unions, ribbons, set pieces whose corners overshoot, tick marks, glass, palms, sign lettering, the hand chart |
+| `tv.js` | `SkateToonTV.post`: the broadcast finish for a scene's `post` (painted fills, film weave and grain, standard-definition softness, warm lifted blacks), each part with its own amount |
 | `kid.js` | `SkateKid`: the figure from a spec and a pose (head, face and mouths, hanging clothes, soft-jointed limbs, boots), with hooks for hair, prints and props |
 
 Font: [Bangers](../../fonts/OFL-Bangers.txt), SIL OFL 1.1.

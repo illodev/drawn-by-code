@@ -9,15 +9,16 @@
 //   21–30 s    the chorus: down the pier, off its end, in the air
 //   30 s       the last hit: the title
 //
-// Kit is animated pose to pose, on twos, from six drawn key poses (cast/kit-drop-drawn.js):
+// Kit is animated pose to pose, on twos, from six drawn key poses (cast/kit-drop-a/-b-drawn.js):
 // tucked in the air → legs reaching for the ground → contact → deep crouch → pushing up →
-// standing proud. Where and when each drawing is comes from physics in the set's metres
+// standing proud, with four drawings between them (cast/kit-land-drawn.js). Where and when each drawing is comes from physics in the set's metres
 // (cam.js): a fall is h = H − g·t²/2 (2.3 m in 0.68 s), the board bounces with a restitution of
 // 0.32, loses speed at each hit and rolls to a stop under friction, and jumps a little when
 // she lands beside it; Captain's hops are jumps under the same gravity.
 const DIR = 'sandbox/2026-11-14-pier-pressure/';
 // the cast's drawings: one file per sheet (ref/<sheet>.png, on green; tools/green.py)
-const SHEETS = ['kit-sheet', 'kit-drop-a', 'kit-drop-b', 'kit-ride', 'hoagie-sheet', 'hoagie-keys', 'hoagie-seq-turn', 'hoagie-seq-thumb', 'milo-sheet', 'milo-keys', 'pip-sheet', 'pip-keys', 'dot-sheet', 'dot-keys', 'captain-sheet', 'captain-keys', 'hoagie-seq-tween', 'hoagie-run', 'milo-run', 'kit-skate', 'pip-scoot', 'captain-flap', 'hoagie-leap', 'milo-leap', 'kit-leap', 'pip-leap'];
+const FINISH = { amount: 1, soft: 1, grain: 1, paint: 1 }; // null: the clean drawings
+const SHEETS = ['kit-sheet', 'kit-drop-a', 'kit-drop-b', 'kit-ride', 'hoagie-sheet', 'hoagie-keys', 'hoagie-seq-turn', 'hoagie-seq-thumb', 'milo-sheet', 'milo-keys', 'pip-sheet', 'pip-keys', 'dot-sheet', 'dot-keys', 'captain-sheet', 'captain-keys', 'hoagie-seq-tween', 'hoagie-run', 'milo-run', 'kit-skate', 'pip-scoot', 'captain-flap', 'hoagie-leap', 'milo-leap', 'kit-leap', 'pip-leap', 'kit-land'];
 const B0 = 0.05; // the song's first beat
 // the edit: [from, to, name, shot(g, t, u, env), how the camera gets there]; u is the time since
 // the shot's cut. Without a fifth entry the shot carries on from the one before (the camera moves
@@ -129,18 +130,20 @@ function kitShot(g, t, env) {
         if (dl < -8) return;
         if (dl < 0) {
             const u = tk - (LAND - TF), h = Math.max(0, H0 - (G * u * u) / 2), [px, py] = at(KXW - SKID - VX * (LAND - tk), h);
-            // tucked, turning a little as she falls; then her legs go down for the ground
-            // (the frame only sees the last metre and a half of the drop: three drawings)
-            if (dl < -1) KitAct.pose(g, 'tuck', px, py, KP, { rot: [-0.1, 0.06, -0.04, 0.08, -0.03, 0.02, -0.06][dl + 8] });
+            // tucked, coming upright as she falls (one slow turn, not a wobble); then her legs go
+            // down for the ground (the frame only sees the last metre and a half of the drop)
+            if (dl < -1) KitAct.pose(g, 'tuck', px, py, KP, { rot: -0.16 * Math.pow((-1 - dl) / 7, 1.5) });
             else KitAct.pose(g, 'reach', px, py, KP, { rot: -0.03 });
             return;
         }
         const [px, py] = at(KXW - SKID + slide, 0);
-        // contact; the crouch, deepest on its second drawing; up through the half-way pose,
-        // past standing by a hair, and settled; then she breathes on the beat
-        const key = dl === 0 ? ['contact', 1, 1] : dl <= 3 ? ['crouch', [1.02, 1.05, 1.01][dl - 1], [0.97, 0.93, 0.99][dl - 1]] : dl <= 5 ? ['rise', 1, [0.97, 1.02][dl - 4]]
-            : ['proud', 1, dl === 6 ? 1.035 : dl === 7 ? 0.985 : 1 + beat * 0.008];
-        KitAct.pose(g, key[0], px, py, KP); // (the drawings as they are: no squash)
+        // Ten drawings from the ground to standing, the keys with the frames between them
+        // (cast/kit-land-drawn.js): contact · going down · the crouch, held two · coming up, one eye
+        // open · half-way · almost up, the grin · up with her eyes shut, held two · proud, and she
+        // holds it (the eyes-shut drawing faces us more than `proud` does: as a blink it would turn
+        // her head, so it is not used as one)
+        const SEQ = ['contact', 'n1', 'crouch', 'crouch', 'n2', 'rise', 'n3', 'n4', 'n4', 'proud'];
+        KitAct.pose(g, SEQ[Math.min(dl, SEQ.length - 1)], px, py, KP);
     };
     // the board: its flight and its roll; it jumps a little when she lands beside it
     const drawBoard = () => {
@@ -190,7 +193,7 @@ Motion.scene({
     fps: 24,
     duration: 31.75,
     logical: [1600, 900],
-    uses: ['styles/skate-toon/toon.js', DIR + 'cast/drawn.js', ...SHEETS.map((n) => DIR + 'cast/' + n + '-drawn.js'), DIR + 'cast/hoagie-edit.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
+    uses: ['styles/skate-toon/toon.js', 'styles/skate-toon/tv.js', DIR + 'cast/drawn.js', ...SHEETS.map((n) => DIR + 'cast/' + n + '-drawn.js'), DIR + 'cast/hoagie-edit.js', DIR + 'cast/kit-act.js', DIR + 'cam.js', DIR + 'set.js', DIR + 'film.js'],
     fonts: [{ family: 'Bangers', src: 'fonts/Bangers-Regular.ttf' }],
     bpm: 120,
     beatOffset: B0,
@@ -215,4 +218,6 @@ Motion.scene({
         g.restore();
         if (sm) Film.streaks(g, t, sm);
     },
+    // the broadcast finish (styles/skate-toon/tv.js): paint, film, standard-definition video
+    post(ctx, t, env) { if (FINISH) SkateToonTV.post(ctx, t, env, FINISH); },
 });

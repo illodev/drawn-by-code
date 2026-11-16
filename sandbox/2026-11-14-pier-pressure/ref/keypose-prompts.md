@@ -100,3 +100,16 @@ lets go of the scooter). On wheels, frame 1 is «crouched very low on the board�
 Whatever flies loose (a camcorder on its strap, glasses, a board) goes with the nearest figure
 when the sheet is cut, so ask for clear gaps between frames.
 
+## In-betweens of a landing (round 39)
+
+Reference = the character's model sheet (front three-quarter view, the same as the key poses).
+«FOUR FRAMES of one movement … three-quarter front view like the reference, all four standing on
+the same ground line. She has just landed from a high jump onto the ground, and these are the
+in-between frames of her landing and getting up: Frame 1 (going down into the crouch): feet flat
+and wide apart, knees half bent and still bending … hair bunches thrown straight UP by the drop …
+Frame 2 (starting to come up out of a deep crouch): still very low … one eye opening while the
+other is still squeezed shut … Frame 3 (almost up): legs nearly straight … Frame 4 (standing
+proud, a blink): … BOTH EYES CLOSED». Say what the loose things do in each (hair up on the way
+down, falling as she rises). A «blink» frame comes back as its own drawing (another turn of the
+head): it is a pose in the sequence, not a blink for a hold.
+

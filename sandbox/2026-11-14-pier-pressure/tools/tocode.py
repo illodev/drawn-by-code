@@ -196,21 +196,29 @@ def spec(pts, closed, corner=52):
 
 
 def outline(mask, tol):
-    """The outer contour of a component as control points, and its area."""
+    """The outer contours of a component as control points, each with its area: [(spec, area)].
+    Smoothed, a component joined by a neck a pixel wide comes apart into its pieces (a sock and
+    the lace that touches it): every piece is a shape, not only the biggest (the others were
+    holes the page showed through)."""
     f = ndi.gaussian_filter(np.pad(mask, 3).astype(np.float32), 1.2)
-    best = None
+    cs = []
     for c in measure.find_contours(f, 0.5):
         c = c - 3
-        a = 0.5 * abs(np.dot(c[:-1, 1], c[1:, 0]) - np.dot(c[1:, 1], c[:-1, 0]))
-        if best is None or a > best[0]:
-            best = (a, c)
-    if best is None:
-        return None, 0
-    p = measure.approximate_polygon(best[1], tol)[:-1]
-    return (spec([tuple(q) for q in p], True) if len(p) >= 3 else None), best[0] / (UP * UP)
+        cs.append((0.5 * (np.dot(c[:-1, 1], c[1:, 0]) - np.dot(c[1:, 1], c[:-1, 0])), c))
+    if not cs:
+        return []
+    sign = np.sign(max(cs, key=lambda q: abs(q[0]))[0])  # (the biggest is an outer one; holes turn the other way)
+    out = []
+    for a, c in sorted(cs, key=lambda q: -abs(q[0])):
+        if np.sign(a) != sign or (out and abs(a) < 1.5 * UP * UP):
+            continue
+        p = measure.approximate_polygon(c, tol)[:-1]
+        if len(p) >= 3:
+            out.append((spec([tuple(q) for q in p], True), abs(a) / (UP * UP)))
+    return out
 
 
-def strokes(thin, dt, img, strong):
+def strokes(thin, dt, img, strong, bg=None):
     """Centre lines of the thin ink: skeleton → paths between its nodes → control points, width,
     and the line's own colour when it is not ink (a seam drawn in brown, a thin navy stripe)."""
     sk = morphology.skeletonize(thin)
@@ -250,7 +258,7 @@ def strokes(thin, dt, img, strong):
         L = sum(math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]) for i in range(1, len(path)))
         w = float(np.mean([dt[p] for p in path])) * 2 / UP
         spur = (deg.get(path[0], 0) == 1) != (deg.get(path[-1], 0) == 1)
-        if L < 2.2 * UP or (spur and L < 1.6 * w * UP):
+        if L < 2.2 * UP or (spur and L < 0.9 * w * UP):  # (a spur as long as the line is wide is the skeleton's; longer, it is drawn: the ticks of a buzz cut)
             continue
         closed = path[0] == path[-1] and len(path) > 8
         arr = np.array(path, dtype=float)
@@ -273,12 +281,66 @@ def strokes(thin, dt, img, strong):
         px = np.array([img[q] for q in path]); lm = px @ np.array([0.299, 0.587, 0.114])
         dk = np.median(px[lm <= np.percentile(lm, 60)], 0)
         col = None if M.is_ink(dk) else M.hexof(dk)
+        if col and bg is not None:
+            # (a thin line over the page is never clear of it: the ink mixed with the ground is ink)
+            ink, B = np.array([18., 12., 14.]), np.asarray(bg, dtype=float)
+            tt = float(((dk - ink) * (B - ink)).sum() / ((B - ink) ** 2).sum())
+            if tt < 0.75 and float(np.sqrt(((dk - ink - tt * (B - ink)) ** 2).sum())) < 40:
+                col = None
         out.append((spec([tuple(q) for q in p], closed), round(w + 0.25, 1), closed, tuple(np.array(path).mean(0)), col))
     return out
 
 
+def measured(im, cfg, box, pal, holes):
+    """measure.measure_pose, kept in out/cache while the sheet, its palette and measure.py are the
+    same (reading a pose takes a minute; what is done with the reading below changes more often)."""
+    import hashlib
+    x, y, w, h = box
+    key = hashlib.md5(im.crop((x, y, x + w, y + h)).tobytes() + repr((box, cfg.get('bg'), [[round(float(v), 2) for v in c] for _, c in pal], holes is None)).encode() + open(os.path.join(HERE, 'measure.py'), 'rb').read()).hexdigest()
+    path = os.path.join(HERE, '..', 'out', 'cache', key + '.npz')
+    if holes is None and os.path.exists(path):
+        z = np.load(path, allow_pickle=False)
+        a = np.asarray(im.crop((x, y, x + w, y + h)).resize((w * UP, h * UP), Image.BICUBIC)).astype(np.float32)
+        return [str(n) for n in z['names']], [str(n) for n in z['paint']], z['under'].astype(np.int64), z['inkm'], a, z['inkm']
+    out = M.measure_pose(im, box, pal, holes, cfg.get('bg'))
+    if holes is None:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        np.savez_compressed(path, names=np.array(out[0]), paint=np.array(out[1]), under=out[2].astype(np.int32), inkm=out[3])
+    return out
+
+
+def absorb(under, floor, reach):
+    """A piece of paint too small to be a shape takes the paint beside it. Left out, as it used
+    to be, it is a gap in the figure that the page shows through (a sole's stripe cut in three
+    by its own line, a blotch in a helmet)."""
+    for _ in range(3):
+        small = np.zeros(under.shape, bool)
+        for k, bb in enumerate(ndi.find_objects(under + 1, max_label=int(under.max()) + 1)):
+            if bb is None:
+                continue
+            m = under[bb] == k
+            # (and what of it is under three quarters of a pixel wide: its outline, smoothed, would
+            # not hold it, and the hairline it leaves shows the page as surely as a gap)
+            small[bb] |= m & ~ndi.binary_opening(np.pad(m, 2), np.ones((3, 3), bool))[2:-2, 2:-2]
+            lb, n = ndi.label(m)
+            if n:
+                sz = ndi.sum(m, lb, range(1, n + 1))
+                tiny = np.nonzero(sz < floor)[0] + 1
+                if len(tiny):
+                    small[bb] |= np.isin(lb, tiny)
+        if not small.any():
+            break
+        # the paint beside it when one is within reach; else whatever is nearest, paint or page (a
+        # speck out on the page goes to the page, a patch of blotches in the middle of a shoe does not)
+        d, idx = ndi.distance_transform_edt(small | (under < 0), return_indices=True)
+        idy = ndi.distance_transform_edt(small, return_distances=False, return_indices=True)
+        under[small] = np.where(d[small] <= reach, under[idx[0], idx[1]][small], under[idy[0], idy[1]][small])
+    return under
+
+
 def pose(im, cfg, box, pal, holes):
-    names, paint, under, inkm, a, strong = M.measure_pose(im, box, pal, holes, cfg.get('bg'))
+    names, paint, under, inkm, a, strong = measured(im, cfg, box, pal, holes)
+    under = absorb(under.copy(), 2.5 * UP * UP, 2.5 * UP)
     parts = cfg.get('parts', [])
     rest = cfg.get('rest', 'body')
     order = cfg.get('order', ['body'])
@@ -291,12 +353,10 @@ def pose(im, cfg, box, pal, holes):
             m = lb[sl] == i + 1
             if m.sum() < 2.5 * UP * UP:
                 continue
-            sp, area = outline(m, (0.32 if m.sum() < 90 * UP * UP else 0.6) * UP)
-            if not sp:
-                continue
-            sp = [[round(p[0] + sl[1].start / UP, 1), round(p[1] + sl[0].start / UP, 1)] + p[2:] for p in sp]
             r, c = ndi.center_of_mass(m)
-            items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((area, paint[k], sp))
+            for sp, area in outline(m, (0.32 if m.sum() < 90 * UP * UP else 0.6) * UP):
+                sp = [[round(p[0] + sl[1].start / UP, 1), round(p[1] + sl[0].start / UP, 1)] + p[2:] for p in sp]
+                items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((area, paint[k], sp))
     # ink: the solid blacks as shapes, the rest as strokes along their centre
     dt = ndi.distance_transform_edt(inkm)
     hw = float(np.median(dt[morphology.skeletonize(inkm)]))
@@ -313,14 +373,12 @@ def pose(im, cfg, box, pal, holes):
     lb, n = ndi.label(solid)
     for i, sl in enumerate(ndi.find_objects(lb)):
         m = lb[sl] == i + 1
-        sp, area = outline(m, 0.45 * UP)
-        if not sp:
-            continue
-        sp = [[round(p[0] + sl[1].start / UP, 1), round(p[1] + sl[0].start / UP, 1)] + p[2:] for p in sp]
         r, c = ndi.center_of_mass(m)
         colr = np.median(a[sl][m], 0)
-        items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((0, M.INK_PAINT if M.is_ink(colr) else M.hexof(colr), sp))
-    for sp, w, closed, (r, c), col in strokes(inkm & ~ndi.binary_erosion(solid, iterations=2), dt, a, strong):
+        for sp, area in outline(m, 0.45 * UP):
+            sp = [[round(p[0] + sl[1].start / UP, 1), round(p[1] + sl[0].start / UP, 1)] + p[2:] for p in sp]
+            items[part_of(r + sl[0].start, c + sl[1].start)]['fills'].append((0, M.INK_PAINT if M.is_ink(colr) else M.hexof(colr), sp))
+    for sp, w, closed, (r, c), col in strokes(inkm & ~ndi.binary_erosion(solid, iterations=2), dt, a, strong, cfg.get('bg')):
         items[part_of(r, c)]['lines'].append((sp, w, closed, col))
     return order, items, round(hw * 2 / UP, 2)
 

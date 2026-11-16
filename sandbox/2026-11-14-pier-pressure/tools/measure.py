@@ -8,12 +8,13 @@ of a plaster), paints that meet with no line between them and blend there. So:
   - lines are found by what they are, dark and thin (a black-tophat), not by being black; then
     what is thin and dark but paint (a sock's stripe, a star, a pair of glasses' frame) goes
     back to the fills;
-  - each region between lines is clustered on its own pixels, tones being one paint when they
-    are as light and of the same hue; a paint then takes the sheet's palette colour when it has
-    one, so it is the same in every pose;
-  - a paint is read only where the colour is not changing: the blends between two paints, and
-    beside every line, are slopes; what blotches and slivers are left are told from paint by
-    their shape and place (small, or thin and between two paints);
+  - a paint is read where the colour is not changing (seeds), tones being one paint when they
+    are as light and of the same hue; a paint takes the sheet's palette colour when it has one,
+    so it is the same in every pose;
+  - every other pixel is read by what explains its colour: a paint seeded near it, or the mix of
+    two paints (or a paint and the ink) that both have seeds near it; a still pixel that nothing
+    near explains is a paint of its own with no flat pixel (a band two pixels wide). Nothing is
+    told from a blend by its shape: that ate every small, thin detail (round 39);
   - the page is the white that reaches the pose's border through white.
 """
 import numpy as np
@@ -26,7 +27,7 @@ hexof = lambda c: '#%02x%02x%02x' % tuple(int(round(float(v))) for v in c)
 lum = lambda c: 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
 # a line's or a blot's own colour is the ink when it is near black, or dark with no hue (a thin
 # line never reaches black on the sheet); anything else, a slate tattoo, a grey seam, keeps its colour
-is_ink = lambda c: lum(c) <= 36 or (max(c) - min(c) <= 18 and lum(c) < 80)
+is_ink = lambda c: (lum(c) <= 36 and max(c) - min(c) <= 45) or (max(c) - min(c) <= 18 and lum(c) < 80)  # (a dark red is not ink: the edge of a glasses' frame)
 
 
 def palette(im):
@@ -132,26 +133,26 @@ def measure_pose(im, box, pal, holes=None, bg=None):
     lbi, ni = ndi.label(inkm)
     if ni:
         inkm = np.isin(lbi, 1 + np.nonzero(ndi.sum(inkm, lbi, range(1, ni + 1)) >= 2.5 * UP * UP)[0])
-    # --- the fills, one region between lines at a time, each clustered on its own pixels (not by
-    # the nearest palette colour: the blue of a shoe in shadow is nearer the palette's purple
-    # than its navy, and a charcoal strap nearer the navy than the grey)
+    # --- the fills. A paint is flat, and the sheet is soft: where two paints meet with no line
+    # between them, and beside every line, it runs from one colour to the other over a pixel or
+    # three, through tones that are nobody's paint (pinks round a red star on white, olives round
+    # an eyelet on a yellow boot). Rules that told a blend from a paint by its SHAPE (thin, small,
+    # between two paints) ate what is small and thin by right: the frame of a pair of glasses, the
+    # white disc round a star, a sock's stripes. So a pixel is read by what EXPLAINS its colour:
+    #   - seeds: where the colour is not changing, a pixel is the paint it matches;
+    #   - every other pixel is the paint of a seed near it, or the mix of two paints (or a paint
+    #     and the ink) that both have seeds near it, on whichever side of halfway it falls;
+    #   - a pixel that nothing near explains, at the still heart of what it belongs to (a ridge:
+    #     a blend is never one), is a paint of its own with no flat pixel to show for it; it
+    #     becomes a seed, and the blends on both sides of it are then explained too.
     dist = ndi.distance_transform_edt(~inkm)
-    core = dist > 1.3 * UP
-    # a paint is flat. Where two paints meet with no line between them, and beside every line,
-    # the sheet runs from one colour to the other over a pixel or three, through tones that are
-    # nobody's paint (pinks round a red star on white, olives round an eyelet on a yellow boot):
-    # there the colour is changing, and only where it is not changing is it read. The heart of a
-    # thin stripe does not change either, so it is read too.
     slope = np.zeros((H, W), np.float32)
     for ch in range(3):
         slope = np.maximum(slope, ndi.gaussian_gradient_magnitude(a[..., ch], 0.6 * UP))
-    # ... as is the heart of the thin bands just given back to the fills (the top of a stripe two
-    # pixels wide is never flat, but it is where the stripe is its own colour)
     inband = ndi.distance_transform_edt(band)
     heart = band & (inband >= 0.6 * ndi.maximum_filter(inband, size=int(3 * UP) | 1))
-    flat = core & ((slope < 4.0) | heart)
-    lab = np.full((H, W), -1, np.int32)
-    reg, nr = ndi.label(~inkm)
+    still = (slope < 4.0) | heart | (slope < 0.4 * ndi.maximum_filter(slope, size=int(3.5 * UP) | 1))
+    free = ~inkm
     chr_ = lambda c: float(max(c) - min(c))
     # two tones are one paint when they are about as light and of the same hue. Plain distance
     # between colours will not do: a charcoal strap is nearer a navy shoe, and olive shorts nearer
@@ -165,34 +166,25 @@ def measure_pose(im, box, pal, holes=None, bg=None):
         dl, dc = apart(c, d)
         return dl <= tol and dc <= 0.8 * tol
 
-    def index_of(col):
-        """The palette colour this is (so a paint is the same in every region and pose), or a new one."""
-        if min(col) >= 222 and chr_(col) < 16:
-            return white  # one white: the page is told from cloth by where it is, not by its tone
-        d = [float(np.sqrt(((c - col) ** 2).sum())) for c in cols]
-        for i in np.argsort(d)[:6]:
-            if near_(cols[i], col, 14):
-                return int(i)
-        names.append(f'r{len(names)}'); cols.append(np.asarray(col, dtype=np.float32))
-        return len(cols) - 1
+    A1, A2 = a[..., 0] - a[..., 1], (a[..., 0] + a[..., 1]) / 2 - a[..., 2]
+    whitepx = (a.min(-1) >= 222) & (chroma < 16)  # one white: the page is told from cloth by where it is
+    def dto(k):
+        return np.sqrt(((a - cols[k]) ** 2).sum(-1))
+    def matches(k, tol=14):
+        c = cols[k]
+        if k == white:
+            return whitepx
+        return (np.abs(L - lum(c)) <= tol) & (np.hypot(A1 - (c[0] - c[1]), A2 - ((c[0] + c[1]) / 2 - c[2])) <= 0.8 * tol) & ~whitepx
 
-    for r, sl in enumerate(ndi.find_objects(reg)):
-        m = reg[sl] == r + 1
-        if int(m.sum()) < 2 * UP * UP:
-            continue
-        A, mc = a[sl], m & flat[sl]
-        if mc.sum() < 8:
-            mc = m & core[sl]
-        if mc.sum() < 8:
-            # no room clear of the lines: a sliver between two lines, or the heart of a small
-            # pupil. It is what its innermost pixels are (a blend, if it is one, is cleaned below)
-            dm = dist[sl] * m
-            mc = m & (dm >= 0.6 * dm.max())
-        px = A[mc]
+    def new_paints(m, floor):
+        """Paints for the pixels of m that no colour so far is: their tones, the commonest first."""
+        px = a[m]
+        if len(px) < floor:
+            return
         q = (px // 12).astype(np.int64)
         keys, inv, cnt = np.unique(q[:, 0] * 4096 + q[:, 1] * 64 + q[:, 2], return_inverse=True, return_counts=True)
         sums = np.stack([np.bincount(inv, weights=px[:, i], minlength=len(keys)) for i in range(3)], 1)
-        cent = []  # [colour, count]: the region's tones, the commonest first; close tones are one paint
+        cent = []
         for i in np.argsort(-cnt):
             col = sums[i] / cnt[i]
             for c in cent:
@@ -201,40 +193,136 @@ def measure_pose(im, box, pal, holes=None, bg=None):
                     break
             else:
                 cent.append([col, int(cnt[i])])
-        # (an absolute floor, not a share of the region: a gap in an outline can join a small
-        # detail, a star, to a region as big as the page)
-        # ... unless it is nothing like the paints kept so far: the black of a pupil that leans on
-        # the eye's outline leaves only a sliver clear of the lines, and it is not white
-        kept = []
-        for k, c in enumerate(cent):
-            far = all(apart(c[0], o[0])[0] > 60 or apart(c[0], o[0])[1] > 40 for o in kept)
-            if k == 0 or c[1] >= 2 * UP * UP or (c[1] >= 6 and far):
-                kept.append(c)
-        cent = kept
-        C = np.array([c[0] for c in cent], dtype=np.float32)
-        which = np.argmin(((px[:, None, :] - C[None]) ** 2).sum(-1), 1) if len(C) > 1 else np.zeros(len(px), np.int64)
-        final = np.array([index_of(np.median(px[which == k], 0)) if (which == k).any() else -1 for k in range(len(C))])
-        out = lab[sl]
-        out[mc] = final[which]
-        # the rest of the region, where the colour is changing, takes a paint read IN the region
-        # (left to the general fill below, the rim of a thin gold ring took the white across its
-        # outline): of the paints about as near as the nearest, the one nearest in colour, so two
-        # paints meet halfway up the slope between them and a star keeps its points
-        rest = m & core[sl] & ~mc
-        if rest.any() and mc.any():
-            ks = [int(k) for k in np.unique(out[mc]) if k >= 0]
-            if len(ks) == 1:
-                out[rest] = ks[0]
-            elif ks:
-                dn = ndi.distance_transform_edt(~mc)[rest]
-                P = A[rest]
-                bestd = np.full(len(P), 1e9, np.float32); pick = np.full(len(P), ks[0], np.int32)
-                for k in ks:
-                    dk = ndi.distance_transform_edt(~(mc & (out == k)))[rest]
-                    dc = np.sqrt(((P - cols[k]) ** 2).sum(-1))
-                    upd = (dk < dn + 3 * UP) & (dc < bestd)
-                    bestd[upd] = dc[upd]; pick[upd] = k
-                out[rest] = pick
+        for col, n in cent:
+            if n >= floor and not any(near_(c, col, 14) for c in cols):
+                names.append(f'r{len(names)}'); cols.append(np.asarray(col, dtype=np.float32))
+
+    seed = np.full((H, W), -1, np.int32)
+    wv = np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    def sow(m, tol=14):
+        """The pixels of m take the paint they match (the nearest, when more than one)."""
+        ii = np.nonzero(m)
+        px = a[ii]
+        if not len(px):
+            return
+        l, c1, c2, wh = px @ wv, px[:, 0] - px[:, 1], (px[:, 0] + px[:, 1]) / 2 - px[:, 2], whitepx[ii]
+        best = np.full(len(px), 1e9, np.float32); pick = np.full(len(px), -1, np.int32)
+        for k in range(1, len(cols)):
+            c = cols[k]
+            mk = wh if k == white else ((np.abs(l - lum(c)) <= tol) & (np.hypot(c1 - (c[0] - c[1]), c2 - ((c[0] + c[1]) / 2 - c[2])) <= 0.8 * tol) & ~wh)
+            if mk.any():
+                d = np.sqrt(((px[mk] - c) ** 2).sum(-1))
+                j = np.nonzero(mk)[0]
+                up = d < best[j]
+                best[j[up]] = d[up]; pick[j[up]] = k
+        seed[ii[0][pick >= 0], ii[1][pick >= 0]] = pick[pick >= 0]
+
+    flat0 = free & (dist > 1.0 * UP) & ((slope < 4.0) | heart)
+    sow(flat0)
+    new_paints(flat0 & (seed < 0), 3 * UP * UP)
+    sow(flat0 & (seed < 0))
+
+    R1, R2, RI = 3.5 * UP, 3.0 * UP, 2.2 * UP
+    pad = int(R1) + 2
+    nearink = free & (dist <= RI)
+    def explain():
+        """lab, cost: for every pixel off the lines, the paint that explains its colour and how well."""
+        lab = np.full((H, W), -1, np.int32)
+        cost = np.full((H, W), 1e9, np.float32)
+        sup = {0: ((slice(0, H), slice(0, W)), nearink, nearink)}  # k: (its box, near enough to be it, to mix with it)
+        for k, bb in enumerate(ndi.find_objects(seed + 1, max_label=len(cols))):
+            if bb is None or k == 0:
+                continue
+            sl = (slice(max(0, bb[0].start - pad), min(H, bb[0].stop + pad)), slice(max(0, bb[1].start - pad), min(W, bb[1].stop + pad)))
+            dk = ndi.distance_transform_edt(seed[sl] != k)
+            sup[k] = (sl, free[sl] & (dk <= R1), free[sl] & (dk <= R2))
+        for k, (sl, m1, _) in sup.items():
+            ii = np.nonzero(m1)
+            if not len(ii[0]):
+                continue
+            d = np.sqrt(((a[sl][ii] - cols[k]) ** 2).sum(-1))
+            lb, cs = lab[sl], cost[sl]
+            up = d < cs[ii]
+            lb[ii[0][up], ii[1][up]] = k; cs[ii[0][up], ii[1][up]] = d[up]
+        ks = sorted(sup)
+        for i, u in enumerate(ks):
+            su, _, mu = sup[u]
+            for v in ks[i + 1:]:
+                sv, _, mv = sup[v]
+                r0, r1, c0, c1 = max(su[0].start, sv[0].start), min(su[0].stop, sv[0].stop), max(su[1].start, sv[1].start), min(su[1].stop, sv[1].stop)
+                if r0 >= r1 or c0 >= c1:
+                    continue
+                dv = cols[v] - cols[u]
+                n2 = float((dv * dv).sum())
+                if n2 < 30 * 30:
+                    continue
+                m = mu[r0 - su[0].start:r1 - su[0].start, c0 - su[1].start:c1 - su[1].start] & mv[r0 - sv[0].start:r1 - sv[0].start, c0 - sv[1].start:c1 - sv[1].start]
+                ii = np.nonzero(m)
+                if not len(ii[0]):
+                    continue
+                g = (slice(r0, r1), slice(c0, c1))
+                P = a[g][ii] - cols[u]
+                tt = np.clip((P * dv).sum(-1) / n2, 0, 1)
+                res = np.sqrt(((P - tt[:, None] * dv) ** 2).sum(-1)) + 5.0
+                lb, cs = lab[g], cost[g]
+                up = res < cs[ii]
+                lb[ii[0][up], ii[1][up]] = np.where(tt[up] < 0.5, u, v); cs[ii[0][up], ii[1][up]] = res[up]
+        return lab, cost
+
+    # A paint with no flat pixel (a band two pixels wide) never reaches its colour on the sheet: it
+    # is seeded with the tone it does reach, so that halfway to its neighbour is measured from
+    # there and the band keeps its width; `canon` then says which paint that tone is.
+    nbase = len(cols)
+    canon = {}
+    for _ in range(3):
+        lab, cost = explain()
+        un = free & (cost > 32) & still & (seed < 0)
+        if un.sum() < 4:
+            break
+        n0 = len(cols)
+        new_paints(un, 2 * UP * UP)
+        ii = np.nonzero(un)
+        px = a[ii]
+        best = np.full(len(px), 45.0, np.float32); pick = np.full(len(px), -1, np.int32)
+        for k in range(n0, len(cols)):
+            d = np.sqrt(((px - cols[k]) ** 2).sum(-1))
+            up = d < best
+            best[up] = d[up]; pick[up] = k
+        # ... what is too little to be a tone of its own is the paint it is nearest, when one is near
+        rest = pick < 0
+        best[rest] = 60.0
+        for k in range(1, n0):
+            d = np.sqrt(((px - cols[k]) ** 2).sum(-1))
+            up = rest & (d < best)
+            best[up] = d[up]; pick[up] = k
+        seed[ii[0][pick >= 0], ii[1][pick >= 0]] = pick[pick >= 0]
+        for k in range(n0, len(cols)):
+            d = [float(np.sqrt(((cols[j] - cols[k]) ** 2).sum())) for j in range(nbase)]
+            j = int(np.argmin(d[1:])) + 1
+            if d[j] < 60:
+                canon[k] = j
+    # ... and a tone that is the page's colour mixed with a paint (the pale green of a white sole's
+    # edge against the ground) is the page or that paint, whichever it is nearer: never a paint
+    if bg is not None:
+        B = np.asarray(bg, dtype=np.float32)
+        page = next((j for j in range(1, nbase) if float(np.sqrt(((cols[j] - B) ** 2).sum())) < 60), None)
+        for k in range(nbase, len(cols)):
+            if k in canon or page is None:
+                continue
+            for j in range(1, nbase):
+                dv = cols[j] - B
+                n2 = float((dv * dv).sum())
+                if j == page or n2 < 60 * 60:
+                    continue
+                tt = float(((cols[k] - B) * dv).sum() / n2)
+                if 0.05 < tt < 0.95 and float(np.sqrt(((cols[k] - B - tt * dv) ** 2).sum())) < 34:
+                    canon[k] = page if tt < 0.5 else j
+                    break
+    lab, cost = explain()
+    for k, j in canon.items():
+        lab[lab == k] = j
+    lab[lab == ink] = -1  # a line's soft edge: the paint beside it runs under the line
+    lab[inkm] = -1
     # where two paints meet with no line between them, and along every line, the sheet blends
     # them, and the blend is a tone of its own (a peach rim round every white flower on an orange
     # shirt, a grey fringe beside an outline): a piece of paint thinner than a pixel and a third
@@ -271,36 +359,16 @@ def measure_pose(im, box, pal, holes=None, bg=None):
                 continue
             ring = ndi.binary_dilation(piece, iterations=3) & ~piece
             vals, cnts = np.unique(lab[g][ring], return_counts=True)
-            # (or the blend of two paints that meet: the grey between a pupil and the eye's white)
-            around = [int(n) for n in vals if n >= 0 and n != kcol]
-            if piece.sum() < 16 * UP * UP and any(is_mix(cols[kcol], cols[u], cols[v]) for u in around for v in around if u < v):
-                lab[g][piece] = -1
-                continue
             for n in vals[np.argsort(-cnts)]:
                 if n >= 0 and n != kcol:
                     dl, dc = apart(cols[kcol], cols[n])
                     if dl <= 34 and dc <= 16:
                         lab[g][piece] = n
                         break
+    # (what is left of noise: a piece under a pixel and a half takes its neighbour)
     for kcol in np.unique(lab[lab >= 0]):
         for g, piece, thick in pieces(kcol):
-            small = piece.sum() < 30 * UP * UP
-            if thick >= 2.5 * UP and not small:
-                continue
-            ring = ndi.binary_dilation(piece, iterations=3) & ~piece
-            nbrs = sorted(set(np.unique(lab[g][ring]).tolist()) - {-1, int(kcol)})
-            c = np.median(a[g][piece], 0)
-            # thinner than a pixel and a third between two paints; or a band up to five pixels
-            # wide (some sheets are that soft) that is their mix in colour too: the pink round
-            # a red star on white; or, beside a line, the mix of the ink and the neighbour, at
-            # least a sixth ink: the olive smudge round an eyelet on a yellow boot (a shadow
-            # painted along an outline is the neighbour a little darker, and stays)
-            gone = thick < 0.65 * UP and len(nbrs) >= 2
-            if not gone:
-                gone = any(is_mix(c, cols[u], cols[v]) for u in nbrs for v in nbrs if u < v)
-            if not gone and nbrs and dist[g][piece].min() < 1.3 * UP + 2.5:
-                gone = any(is_mix(c, cols[ink], cols[n], 0.08, 0.84) for n in nbrs)
-            if gone:
+            if piece.sum() < 1.5 * UP * UP:
                 lab[g][piece] = -1
     # the page: the white that reaches the box's border through white, by any way wider than a
     # pixel (the gap between an arm and the body is page, though the way out of it, between a hand
@@ -316,6 +384,15 @@ def measure_pose(im, box, pal, holes=None, bg=None):
         wl, nw = ndi.label(way)
         edge = set(np.unique(np.concatenate([wl[0], wl[-1], wl[:, 0], wl[:, -1]]))) - {0}
         lab[(lab == white) & np.isin(wl, list(edge))] = -2
+    # (a speck of page shut inside the figure, under five pixels, is no gap between two fingers:
+    # it is a fleck of the ground's colour on the sheet, and takes the paint around it)
+    pl, npg = ndi.label(lab == -2)
+    if npg:
+        sizes = ndi.sum(lab == -2, pl, range(1, npg + 1))
+        rim = set(np.unique(np.concatenate([pl[0], pl[-1], pl[:, 0], pl[:, -1]]))) - {0}
+        tiny = [i + 1 for i in range(npg) if sizes[i] < 5 * UP * UP and (i + 1) not in rim]
+        if tiny:
+            lab[np.isin(pl, tiny)] = -1
     # the holes: page seen through the figure (between an arm and the body, inside a strap)
     if holes is not None:
         hm = np.asarray(Image.fromarray(holes[y:y + h, x:x + w]).resize((w * UP, h * UP), Image.NEAREST))

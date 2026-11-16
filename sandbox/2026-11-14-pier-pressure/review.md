@@ -3,20 +3,20 @@
 Each round: what was seen (automatic and by eye), what was changed and what lesson comes out.
 Lessons that apply to other videos go up to the matching skill (see review/SKILL.md).
 
-State: **the leap off the pier and the two seconds of sky are redone with four new drawings each
-(round 38: take-off, launched, the hang with a look down, the fall; `review/leap.jpg`), waiting
-for the user's verdict.** Before it: the chase in cycles of four drawings and Hoagie's turn with
-its in-betweens (round 37, `review/chase.jpg`), and the five presentations after Kit's in one
-format (round 36, `review/presentations.jpg`: `film.js` `hoagie`, `milo`, `pip`, `dot`,
-`captain`, `act`, `cushion`, `wipe`).
+State: **round 39, waiting for the user's verdict: every sheet read again with a new colour
+reading (the small colour details were being eaten: `tools/measure.py`), Kit's landing with four
+in-between drawings, and a broadcast finish over the whole film (`styles/skate-toon/tv.js`;
+`review/details.jpg`, `review/kit.jpg`).** Before it: the leap and the sky in four drawings each
+(round 38, `review/leap.jpg`), the chase in cycles and Hoagie's turn with its in-betweens (37,
+`review/chase.jpg`), the five presentations after Kit's in one format (36,
+`review/presentations.jpg`).
 The cut is approved (round 35→36: «Sí»). Settled by the user: no bending (27), no 3D (31),
 nothing drawn by hand that does not come from the images (31); frames are edits of the
 drawings' code, more of them, no rebounds (32); images may be generated for views the drawings
 lack, always on a coloured ground (32–35); the presentations go well (36→37: «Sí»); the chase
-with cycles goes on to the leap (37→38: «Sí, sigue con el salto y el aire»). Still as rejected
-in round 26: Kit's own shot (only its squash was removed) and the title. No sound effects yet,
-and the name cards are not timed to the sung words. The set is approved up to round 16. The
-style stays *in testing*.
+and the leap go on (37→38→39: «Sí»). Still as rejected in round 26: the title. No sound effects
+yet, and the name cards are not timed to the sung words. The set is approved up to round 16.
+The style stays *in testing*.
 
 ## Round 0 (user) · the brief
 
@@ -1281,4 +1281,91 @@ still a change in one drawing); Milo is out of frame for the first second of the
 **Lessons** → skill animate (a movement in four named drawings; each their own arc; arrive in
 shortening steps) and skill replicate (a generator muddies the ground in narrow gaps: count the
 ground's hue on a figure that has none of it).
+
+## Round 39 (user) · colour details, Kit's shot, a 2000s look
+
+> Sí, sigue con el plano de Kit. Hay que mejorar los detalles de colores de los personajes
+
+(with three crops of the film: Milo's glasses, their red frame gone white with a black thread in
+it; Kit's face; Kit's boots, the star's white disc gone and the sole's stripe in dashes)
+
+> Son más detalles en general, he puesto solo algunos ejemplos
+
+> Podemos darle algún tipo de filtro para que parezca más series de los 2000?
+
+(with three frames of shows of the genre: grainy painted grounds, soft video, warm colour)
+
+**The details: found where they were lost.** Sheet beside drawing at 4× (`tools/fidelity.py`,
+`out/cmp.png`): the sheets have them and the code did not. Not the cut and not the vectors: the
+reading of paint in `tools/measure.py`. Its rules told a blend between two paints from a paint by
+SHAPE (thin, small, lying between two paints, «a mix of its neighbour and the ink»), and what is
+small and thin by right went with the blends: a glasses' frame (dark red = «ink + red»), the
+white disc round a star (two pixels of white between two reds), a sock's and a sole's stripes,
+an eyelet. Written again around what EXPLAINS a pixel's colour:
+
+- seeds: where the colour is not changing, a pixel is the paint it matches;
+- any other pixel is a paint with a seed near it, or the mix of two paints (or a paint and the
+  ink) that BOTH have seeds near it, on whichever side of halfway it falls: a blend can only be
+  of what is really on both sides of it, so the pink between a red and a white never becomes a
+  skin, and nothing is judged by its shape;
+- a pixel nothing near explains, at the still heart of what it is part of (a ridge: a blend is
+  never one), is a paint with no flat pixel to show for it. It becomes a seed with the tone it
+  reaches on the sheet (so halfway is measured from there and the band keeps its width), and
+  `canon` says which paint that tone is;
+- a speck of page shut inside the figure, under five pixels, takes the paint round it; a spur as
+  long as its line is wide is drawn (the ticks of Hoagie's buzz cut were being dropped, leaving
+  spikes of hair colour where they had been).
+
+The first full conversion read better and showed the page through the figures in new places
+(green flecks in a sole's stripe, in a helmet, under a shoe's tongue). Counted, not hunted
+(`tools/gaps.py`: ground showing well inside a figure), and each kind traced to its cause, all
+of them after the reading, in `tools/tocode.py` and `tools/green.py`:
+
+- a piece too small to be a shape was dropped, and left a gap → it takes the paint beside it
+  (`absorb`), and so does whatever is under three quarters of a pixel wide (its smoothed outline
+  would not hold it);
+- only the biggest contour of a component was drawn; smoothed, a sock and the lace touching it
+  come apart, and the lace was a hole → every piece is drawn (`outline`);
+- a tone that is the page's colour mixed with a paint (the pale green of a white sole's edge)
+  became a bright green paint, and thin lines over the page dark green lines → the page or the
+  paint, and ink;
+- a dark red was «ink» by its darkness, so a glasses' frame had a black thread in it → ink is
+  dark AND without hue;
+- round 38's clean-up of muddied page took the dark green top of Pip's scooter deck for mud →
+  mud is only what touches the page.
+
+Measured on every sheet before and after (`tools/score.sh`: the share of the sheet more than 34
+levels off, both blurred a little so a line a pixel out does not count; `review/fidelity.md`):
+**0.70 % → 0.34 % off on average, every sheet better, 8 gaps left in 27 sheets** (two are the
+generator's stray marks taken out on purpose, one is ground the sheet itself shows).
+`review/details.jpg`: sheet · before · after, the user's three places and three more. All 27
+sheets (89 drawings) converted again; a reading is kept in `out/cache` (it takes a minute a
+drawing), so what is done with it afterwards can be changed in seconds.
+
+**Kit's shot.** One sheet of four in-betweens of her landing (`ref/kit-land.png`, 433 credits,
+her model sheet as reference): going down (knees half bent, bunches thrown up), coming up (one
+eye open, fists on her knees), almost up (the grin), up with her eyes shut. From the ground to
+standing she now has ten drawings instead of seven, no two neighbours the same pose: contact ·
+n1 · crouch ×2 · n2 · rise · n3 · n4 ×2 · proud. The tuck no longer wobbles (it was one drawing
+turned back and forth each frame): one slow turn upright as she falls. The eyes-shut drawing was
+tried as a blink in the hold and taken out: it faces us more than `proud` does, so it turned her
+head.
+
+**The 2000s look** (`styles/skate-toon/tv.js`, on by `FINISH` in `scene.js`). What dates a
+cartoon of the genre is what happened to it after it was drawn: paint that is never quite flat
+(a slow mottle fixed to the frame), film (a weave of a fraction of a pixel on twos, grain),
+standard-definition video (luma soft over a pixel or two, colour over twice that, an edge
+enhancer's light rim beside dark lines, blacks lifted to a warm dark brown, whites to cream,
+darker corners). One shader in `post`, each part with its own amount; the drawings are checked
+with it off. Not done: 4:3 (it would crop every composition), interlace, tape faults (that is a
+VHS of the '80s–'90s, `style-cereal-ad`).
+
+**Known limits**: Kit holds `proud` for a second and a quarter under her card; the sheets are
+1280 wide with four figures, so a detail of two pixels is still read from two pixels (the
+frame of Milo's glasses is drawn, a little thinner than on the sheet in places); more shapes
+per drawing (about twice) and the finish on top, so a frame takes eight times longer to paint (141 ms). Still wrong at 4×: a sole's two thin stripes run into one, one of two eyelets is lost here and there, Dot's anchor tattoo and her frying basket's mesh are rough. Not seen in motion, not heard.
+
+**Lessons** → skill replicate (read paint by what explains a pixel, never by its shape; measure
+every sheet before and after), skill animate (in-betweens for a landing; a drawing that faces
+another way is no blink), skill style-skate-toon (the finish).
 
