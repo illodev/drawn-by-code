@@ -82,5 +82,9 @@ from measurements (`engine/reference.mjs`, skill **replicate**), never from gues
   frames, a render carrying the reference's soundtrack: commit it with `-an`).
 - Code, comments, docs and the site in English, the user's quoted feedback included (see the
   top of this file).
+- Paid services (ElevenLabs images, music, voices, transcription; anything that spends the
+  user's credits) are used only after the user says so in the current conversation. A
+  connector being attached, or an earlier experiment having used it, is not permission:
+  say what you would generate and what it costs, and wait.
 - If you change `engine/`, run `review.mjs` on `styles/*/template.js` and on the latest
   experiment to check nothing broke.
