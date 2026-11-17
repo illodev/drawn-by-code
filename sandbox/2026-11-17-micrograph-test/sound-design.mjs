@@ -1,5 +1,5 @@
-// micrograph-test · the ticking, synthesised. The user asked for no sound effects: «solo la
-// música, con el tictac del tiempo». So this is all there is besides the score and the
+// micrograph-test · the ticking, synthesised. The user asked for no sound effects: «just the
+// music, with the ticking of time». So this is all there is besides the score and the
 // narrator: a clock, and the instrument's own count while it steps through the sections.
 // Deterministic (seeded), so the .wav is not committed: run this to make it again.
 //

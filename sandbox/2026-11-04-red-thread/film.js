@@ -419,8 +419,8 @@ const Film = (() => {
         g.restore();
     }
 
-    // --- the kuroko (round 11: «una causa externa alegorizando al sistema que nos divide sin
-    // saberlo») -----------------------------------------------------------------------------
+    // --- the kuroko (round 11: «an external cause, an allegory of the system that divides us
+    // without our knowing it») --------------------------------------------------------------
     // In Japanese theatre the kuroko is the stagehand dressed in black, face veiled, who moves
     // the puppets in plain sight while everyone agrees he is not there. Here he is the system:
     // a giant hooded figure rising behind the mountains (eclipsing the sun), his hands hidden
@@ -571,7 +571,7 @@ const Film = (() => {
         S.stroke(g, pts, { w: 3.5, ink: 0.95 * (1 - Math.max(0, u - 0.7) / 0.3), dry: 0.3, seed: 'lash' + snapAt, taper: [0, 0.5], raw: true, core: false, bleed: false });
     }
 
-    // --- the sleeve (round 12: «no entiendo en qué momento pasa todo a mal») ----------------
+    // --- the sleeve (round 12: «I don't understand at what point it all turns bad») ---------
     // The first time we see him is only his sleeve: it comes down out of the sky over the bridge
     // and lets the broadsheets (kawaraban) fall, one into each pair of hands. Nobody looks up.
     const SLEEVE = { x: 1270, y: 420, on: [11.0, 11.6], off: [14.6, 15.3] };
@@ -610,7 +610,7 @@ const Film = (() => {
         }
     }
 
-    // --- masks (round 10: «se pelean sin ningún sentido») -------------------------------------
+    // --- masks (round 10: «they fight for no reason at all») ----------------------------------
     // What the screens do: from 20.5 s the slogans leave each phone, cross the river and land on
     // the face of a neighbour on the other bank as an oni mask. Everyone ends up seeing a demon
     // across the water; they shout from behind the masks. A mask cracks and falls when its

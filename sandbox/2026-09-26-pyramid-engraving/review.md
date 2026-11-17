@@ -39,44 +39,45 @@ Fixed before rendering the sequence:
 
 ## Round 2 · «It still doesn't look like the plates»
 
-The user: «demasiado 3D y no tanto como esto que me enseñaste», and the rings cut through
+The user: «too 3D, and not as much like this that you showed me», and the rings cut through
 stones. Three passes of tone and line work did not get there; putting a crop of plate 11
 beside our render at the same size did: the plates draw a face as a mosaic of tiny stones,
 not ruled lines. Built the masonry mosaic, the slabs (each face opens in panels of many
 drawn stones), an aged-print filter measured on the plates (their paper is greyish, not
-cream), then — the user's idea — charcoal: «¡Lo has clavado!». Rings are now sized every
+cream), then — the user's idea — charcoal: «You've nailed it!». Rings are now sized every
 frame to the room they turn in.
 
 ## Round 3 · the whole film, shot by shot (stills only)
 
 - PIR-01: the plate opens the film and the camera goes into the engraving; the ground after
-  plate 11 (dunes everywhere, spoil mounds with a broken crest, no terraces: «demasiado
+  plate 11 (dunes everywhere, spoil mounds with a broken crest, no terraces: «too
   artificial»), side sun, shade and dirt on the dunes; signature «illodev x Claude sculp.».
 - PIR-04 gallery, PIR-05 gravity shaft, PIR-06 resonance chamber (rooms at 1, 3, 9), PIR-07
   nursery, PIR-08 the sky inside the seed, PIR-09 the stone goes back, PIR-10 one more star
   and the closing plate.
-- Interiors after the user's notes: «parecen ladrillos de casa», «los jeroglíficos se notan
-  demasiado / son muy simples y repetidos», «las paredes deberían ser lisas… rellenas de
-  motivos y secciones», «hace falta mucho detalle, ambientación»: Dendera walls (registers,
-  frieze, torus, cornice), 16 invented signs in pairs, five scene compositions, Hathor
-  capitals, starred ceilings, furniture and rubble, a finer paper tooth indoors.
-- The creature as a sign: the user asked for it («ponerte a ti como jeroglífico»), then
-  «demasiado visibles»: now rare in the registers and worn in its cartouche.
-- The last shot's ground «no tan currado»: patchy ripples, mottling, a camera over the dunes.
+- Interiors after the user's notes: «they look like house bricks», «the hieroglyphs stand out
+  too much / are very simple and repeated», «the walls should be smooth… filled with motifs
+  and sections», «it needs a lot of detail, atmosphere»: Dendera walls (registers, frieze,
+  torus, cornice), 16 invented signs in pairs, five scene compositions, Hathor capitals,
+  starred ceilings, furniture and rubble, a finer paper tooth indoors.
+- The creature as a sign: the user asked for it («put you in as a hieroglyph»), then
+  «too visible»: now rare in the registers and worn in its cartouche.
+- The last shot's ground «not as well crafted»: patchy ripples, mottling, a camera over the
+  dunes.
 
 ## Round 4 · detail, zone by zone (bench.js, then the whole film)
 
-The user: «trabajaría meticulosamente (lento) en las paredes… que no queden espacios en
-blanco… trabajar a más profundidad y zonas más pequeñas». A corner bench (`bench.js`) with a
-view per element, each beside a crop of Dendera at the same size:
+The user: «I would work meticulously (slowly) on the walls… so that no blank spaces are
+left… work in more depth and on smaller areas». A corner bench (`bench.js`) with a view per
+element, each beside a crop of Dendera at the same size:
 
 - Walls: text columns in every gap, figures filling the registers, relief by its bevel,
   banded columns, no mosaic on dressed walls.
-- Capital: the creature in the place of Hathor's face («donde has puesto la cara, pondría
-  la mascota de Claude»), in a sunk niche inside the shrine, lappets and collar; lotus bell.
+- Capital: the creature in the place of Hathor's face («where you've put the face, I would
+  put the Claude mascot»), in a sunk niche inside the shrine, lappets and collar; lotus bell.
 - Ceiling: bands of vultures, stars and boats between beams. Floor: flagstones, joints,
-  sand, cracks, chips, pebbles («se nota un suelo más viejo»).
-- Across the film («aplicar todas estas técnicas… incluso a las vistas exteriores»): the
+  sand, cracks, chips, pebbles («you can tell it's an older floor»).
+- Across the film («apply all these techniques… even to the exterior views»): the
   limestone up close, engraved rings and rods, dust never a disc, flagstones sized per room.
 - The shaft's walkways carried on corbels and struts; loose stones in facets; figures
   rebuilt to the canon.
@@ -90,9 +91,9 @@ from the nursery to the outside.
 The first render of the whole film (local, `--gpu`). The user, having worked in the cloud
 without seeing it move:
 
-> «Para empezar el filtro lo quitaría, creía que se vería a nivel de texturas y no de
-> pantalla y queda raro. Lo siguiente son las transiciones, dan saltos, creía que serían
-> transiciones naturales.»
+> «To begin with, I'd remove the filter: I thought it would show at the level of the
+> textures, not of the screen, and it looks odd. Next are the transitions: they jump; I
+> thought they would be natural transitions.»
 
 What that meant, and what changed:
 
@@ -140,13 +141,13 @@ What that meant, and what changed:
 
 ### Round 5 (user)
 
-> «[De 3 s a 4 s] la cámara hace un zigzag raro. El torbellino ese lo quitaría también, queda
-> fatal. Cuando aparece el símbolo las losas se vuelven más claras. Hay transiciones que
-> tiemblan un poco y hacen zigzags raros, hay que suavizar. En general me hace falta que se
-> vea mucho más dibujado a mano, como si estuviera dibujado con lápiz y carboncillo, que era
-> la idea original. Que se note poco que es un render 3D.»
-> «Aparte todo debería tener más ese color desgastado que tienen los aros, como más papel
-> viejo.»
+> «[From 3 s to 4 s] the camera does a weird zigzag. I'd remove that whirlwind too; it looks
+> terrible. When the symbol appears, the slabs turn lighter. Some transitions shake a little
+> and do weird zigzags; they need smoothing. In general I need it to look much more
+> hand-drawn, as if it were drawn with pencil and charcoal, which was the original idea. It
+> should hardly show that it is a 3D render.»
+> «Besides, everything should have more of that worn colour the rings have, more like old
+> paper.»
 
 What changed:
 
@@ -159,13 +160,13 @@ What changed:
   flips and jumps.
 - The dust devil is gone; the stone's mark no longer lights its own face.
 - Colour: the plates' gradient map aged to old yellowed paper (the rings' tan in the light
-  mid-tones, sepia darks). The user: «bastante mejor a nivel de color».
+  mid-tones, sepia darks). The user: «quite a bit better in terms of colour».
 
 ## Round 6 · drawn, not rendered
 
-> «Me faltan las texturas, que parezca dibujado.» … (on a pencil-hatching pass) «Te has
-> pasado de lápiz, pero mucho. La idea es que fuera carboncillo.» … (on the charcoal pass,
-> seeing the full render) «Está muy bien.»
+> «I'm missing the textures; it should look drawn.» … (on a pencil-hatching pass) «You've
+> overdone the pencil, by a lot. The idea was for it to be charcoal.» … (on the charcoal
+> pass, seeing the full render) «It's very good.»
 
 - Charcoal on every surface: the tone laid with the side of the stick (broad soft strokes,
   ~16 px rows, each patch its own angle, fixed to the surface and kept at their size on
@@ -175,10 +176,11 @@ What changed:
   draws every silhouette and fold, and the carving's edges, as a broad soft charcoal line
   that wanders and swells with pressure (noise fixed to the world), lifts here and there,
   doubles where the hand went over it twice, lighter far off.
-- The mark: the user asked for the Claude mascot in place of the blue triangles, then «solo
-  en el inicio cuando se pinta en la pirámide… que se pinte por líneas en vez de aparecer»:
-  on the first stone only, one blue line traced round the figure at an even pace with a
-  bright point at its tip, then the eyes (1.8 s); everything else keeps its triangle.
+- The mark: the user asked for the Claude mascot in place of the blue triangles, then «only
+  at the start, when it is painted on the pyramid… it should be painted in lines instead of
+  just appearing»: on the first stone only, one blue line traced round the figure at an even
+  pace with a bright point at its tip, then the eyes (1.8 s); everything else keeps its
+  triangle.
 - Cost: the charcoal passes took the full render from ~5 to ~24 minutes on the GTX 1650.
 - Automatic review (`review/auto.md`, GPU): no warnings. The still stretches are the plate
   holding at the start and the closing plate; the «large jumps» at 28.5–28.8 s are the

@@ -2,8 +2,16 @@
 
 Sandbox for generating animations and videos **with code** and Claude, so that every test
 improves the skills that generate them. The repo (code, comments, docs, skills, commit
-messages) is in English; conversation with the user may be in Spanish. On-screen text
-inside videos is creative content and stays in whatever language the video needs.
+messages) and the site are in English; conversation with the user may be in Spanish.
+On-screen text inside videos is creative content and stays in whatever language the video
+needs.
+
+**What the user says goes into the repo in English, corrected.** They write in Spanish,
+fast, sometimes with typos: whenever their words are written down (a quote in `review.md`
+or a brief, a lesson in a skill, a code comment, a commit message, the site's notes),
+translate them faithfully into correct English, keeping the meaning, the tone and every
+concrete detail, and fixing spelling and hurried phrasing. Never commit the raw Spanish,
+and never mark a translated quote as «verbatim».
 
 ## Map
 
@@ -72,6 +80,7 @@ from measurements (`engine/reference.mjs`, skill **replicate**), never from gues
   `render/<name>.gif` (`engine/gif.mjs`), which the README's gallery shows. Not committed: `out/` (full-quality MP4s, frames),
   `.wav`, keys, and third-party footage or audio (a reference video, a comparison with its
   frames, a render carrying the reference's soundtrack: commit it with `-an`).
-- Code, comments and docs in English, like the rest of the repo.
+- Code, comments, docs and the site in English, the user's quoted feedback included (see the
+  top of this file).
 - If you change `engine/`, run `review.mjs` on `styles/*/template.js` and on the latest
   experiment to check nothing broke.

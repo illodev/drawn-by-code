@@ -29,7 +29,7 @@ npm run preview    # http://127.0.0.1:5173
 | `cast/` | two of Kit's sheets as drawings in code (her pushing cycle; push, glide, point), for the template. A cast is made per film: sheets on a green ground, read into code by the tools in [`sandbox/2026-11-14-pier-pressure/tools/`](../../sandbox/2026-11-14-pier-pressure/tools/) |
 | `toon.js` | `SkateToon`: the palette, the hand-held line, flat shapes, one-skin unions, ribbons, set pieces whose corners overshoot, tick marks, glass, palms, sign lettering, the hand chart |
 | `tv.js` | `SkateToonTV.post`: the broadcast finish for a scene's `post` (painted fills, film weave and grain, standard-definition softness, warm lifted blacks), each part with its own amount |
-| `kid.js` | `SkateKid`: a figure built from a spec and a pose. Kept for stand-ins and blocking only: characters designed this way were rejected («dibujos muy prematuros»); a character that will be seen comes from a sheet |
+| `kid.js` | `SkateKid`: a figure built from a spec and a pose. Kept for stand-ins and blocking only: characters designed this way were rejected («very rough, undeveloped drawings»); a character that will be seen comes from a sheet |
 
 Font: [Bangers](../../fonts/OFL-Bangers.txt), SIL OFL 1.1.
 

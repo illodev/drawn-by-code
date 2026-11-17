@@ -5,11 +5,11 @@ Lessons that apply to other videos go up to the matching skill (see review/SKILL
 
 ## Before round 1 (user)
 
-- On the bulb still: «Cómo definirías este estilo de dibujo?»
-- With the limb still, the bulb again and three colourised micrographs: «Crees que podríamos
-  replicar estos tonos y estilos como estilos científico/biológicos? Sé que son diferentes
-  imágenes, pero es captar un poco el estilo científico»
-- «Me gustaría probar la de lightfield primero»
+- On the bulb still: «How would you define this drawing style?»
+- With the limb still, the bulb again and three colourised micrographs: «Do you think we
+  could replicate these tones and styles as scientific/biological styles? I know they're
+  different images, but the idea is to capture a bit of the scientific style»
+- «I'd like to try the lightfield one first»
 
 Translation: two styles, not one, because the physics are opposite: in micrographs things
 are a density tinted in false colour; in the limb and the bulb things are light that
@@ -95,49 +95,49 @@ photograph's); whether `lightfield` should stay one style or the «film from orb
 With three crops (our cap, our sun on the dark disc under the band, the dome next to the
 reference's):
 
-> Hay que arreglar cosas:
-> - El sol parece que atraviesa la tierra, como si saliera de ella
-> - Es normal que el sol no genere interferencias hasta que llega a un punto?
-> - La bombilla le falta, el enrosque es muy plano, el corte de cristal metal se ve como una
->   raya recta, mejorar reflejos, la dispersión de la luz es muy "homogenea" y artificial,
->   faltan oscuros y poros
+> There are things to fix:
+> - The sun seems to go through the Earth, as if it were coming out of it
+> - Is it normal that the sun produces no interference until it reaches a certain point?
+> - The bulb needs more work: the screw base is very flat, the glass-to-metal join looks like
+>   a straight line, improve the reflections, the scattering of the light is very
+>   "homogeneous" and artificial, dark areas and pores are missing
 
 Translation into changes:
 
-**«El sol parece que atraviesa la tierra».** The disc was only hidden below the solid edge,
+**«The sun seems to go through the Earth».** The disc was only hidden below the solid edge,
 so for a second it sat on the dark planet under the band: a sun in front of the Earth. It
 rises *behind* it: the ground and the dense air just above hide it, and it is only ever seen
 through the band. Now it is masked by the pixel's height in the air (nothing under 9 px
 above the edge), it is squashed by refraction while low (0.35 → 0.8), it starts as a dim
 red ember (power ∝ clear⁵, 1500 K → 5700 K) and its light pools in the band before it shows.
 
-**«¿Es normal que no genere interferencias hasta que llega a un punto?»** No. It was the
-kit: rays were cut by a hard threshold, so they popped on in one frame. A real iris has no
-threshold; rays scale with the source. The bright pass is now a knee (m² / (m² + th²)):
-rays grow from the first glimmer, and a broad dim area still throws none.
+**«Is it normal that it produces no interference until it reaches a certain point?»** No.
+It was the kit: rays were cut by a hard threshold, so they popped on in one frame. A real
+iris has no threshold; rays scale with the source. The bright pass is now a knee
+(m² / (m² + th²)): rays grow from the first glimmer, and a broad dim area still throws none.
 
 **The bulb.**
-- *«el enrosque es muy plano»*: the cap was a flat slab 172 px wide with dots. On the still
+- *«the screw base is very flat»*: the cap was a flat slab 172 px wide with dots. On the still
   the shell is 132 px wide and its thread shows three ways even out of focus: a scalloped
   silhouette (a crest every 14.3 px, the right side half a turn behind the left: a helix),
   a band per turn (lit upper flank, black groove, slanted across the shell, uneven), and a
   soft slanted glint on each crest spilling past the edge; some turns mirror the filament
   as a warm dash.
-- *«el corte de cristal metal se ve como una raya recta»*: the brass lip is now an ellipse
+- *«the glass-to-metal join looks like a straight line»*: the brass lip is now an ellipse
   seen a little from above, a thin arc broken into blurred beads, thicker and brighter
   under the stem, with a brown glow under it; the bulb's floor turns in on a round corner
   (it was a chamfer) and shows as two thin sagging arcs.
-- *«mejorar reflejos»*: the key highlight in layers (a blown crescent brightest near the
+- *«improve the reflections»*: the key highlight in layers (a blown crescent brightest near the
   edge, cut by one dark bar of the box's frame; a warm grainy veil where the coating
   scatters it; a hair of light on the edge), a second, dim image of it on the inside of the
   far wall, jagged glints at the floor's corners.
-- *«la dispersión de la luz es muy homogénea y artificial, faltan oscuros y poros»*: the
-  glow was one smooth lobe. It is now what the still shows: a nucleus round the wire, a
-  lobe over it, a darker ring (y 144–164, and from x 755 on the right), the far side of the
-  dome nearly black, nothing under the wire beyond 95 px, clouds where the coating is thin;
-  and the coating is sandpaper (grains of uneven brightness, one cell in eight a pit that
-  takes no light, blotches, one grain in seventy sparkling). The golden cap of the dome is
-  the studio's top light, not the filament's.
+- *«the scattering of the light is very homogeneous and artificial, dark areas and pores
+  are missing»*: the glow was one smooth lobe. It is now what the still shows: a nucleus
+  round the wire, a lobe over it, a darker ring (y 144–164, and from x 755 on the right),
+  the far side of the dome nearly black, nothing under the wire beyond 95 px, clouds where
+  the coating is thin; and the coating is sandpaper (grains of uneven brightness, one cell
+  in eight a pit that takes no light, blotches, one grain in seventy sparkling). The golden
+  cap of the dome is the studio's top light, not the filament's.
 - the filament burns unevenly (knots at its supports, a fuzz of uneven height) and the
   wires are thinner and dimmer.
 
@@ -157,12 +157,12 @@ score alike). Both went into the style's checklist.
 
 With the limb reference again:
 
-> Lo que yo haría es añadir algunas escenas nuevas, originales nuestras, podemos ver ideas.
-> Y el único arreglo que veo por ahora es el sol, creo que el reflejo se ve demasiado
-> altificial todavía, es como que los rayos son muy simetricos y llega a un punto en el que
-> se ve el sol con los rayos subiendo y es como si una estrella de mar se moviera, creo que
-> tiene demasiada intensidad. En el de la imagen que te pasé se ve más pequeño, más
-> difuminado y parte de una zona central un poco más blanca y no tan estrellada
+> What I would do is add some new scenes, original ones of our own; we can look at ideas.
+> And the only fix I see for now is the sun: I think the flare still looks too artificial.
+> It's as if the rays are very symmetrical, and there comes a point where you see the sun
+> with its rays rising and it's as if a starfish were moving; I think it's too intense. In
+> the image I sent you it looks smaller and more blurred, and it starts from a central area
+> that is a little whiter and not so star-shaped
 
 Translation: the bulb is accepted for now; the sun's flare is not. Fifteen distinct arms
 of even length riding up with the sun read as a creature (a starfish), and the flare kept
@@ -183,9 +183,9 @@ proposed to the user, none built yet.
 
 ## Round 4 (user) · three scenes of our own, and the cut
 
-> Haz las tres que recomiendas, como una pieza montada
+> Make the three you recommend, as one edited piece
 
-(after «añadir algunas escenas nuevas, originales nuestras, podemos ver ideas» and six
+(after «add some new scenes, original ones of our own; we can look at ideas» and six
 proposals: eclipse, prism, double slit, match, aurora, cloud chamber; recommended and
 chosen: the first three, between the two reference shots.)
 
@@ -239,8 +239,8 @@ Render: three chunks side by side (`--from/--to`, 23 to 32 minutes each on this 
 
 ## Round 5 (user)
 
-> Veo que has reaprovechado la pared del prisma en el de la rendija. Quizás lo haría
-> diferente en el prisma.
+> I see you've reused the prism's wall in the slit one. Maybe I'd do it differently in the
+> prism one.
 
 Translation: the same grey card stood at the right of two consecutive shots, at nearly the
 same place and angle, so the second read as the first redressed. In the Prism shot the fan
@@ -254,7 +254,7 @@ prism's stretch was rendered again and spliced in.
 
 On the bowed sheet of round 5:
 
-> Quizás sin pared?
+> Maybe without a wall?
 
 Translation: no screen at all in the Prism shot. The sheet is gone: the fan runs out across
 the table and off the frame, and what it lands on is the table's grain and the dust in the
@@ -266,7 +266,7 @@ light that has a surface to skim does not need a screen to end on.
 
 ## Round 7 (user) · sound
 
-> Vamos por la música
+> Let's move on to the music
 
 Plan: an ambient score for a science documentary plus sound design that lands on the
 picture's frames (photons, the filament), which a generated track cannot do.
@@ -302,7 +302,7 @@ ticks are pleasant are for the user's ears.
 
 ## Round 8 (user) · the generated score
 
-> Creo que ya deberías poder acceder a elevenlabs
+> I think you should be able to access ElevenLabs now
 
 The file host is reachable now (the 403 on its bare root is the site's own answer to an
 unsigned request, not the proxy's). The signed links of round 7 had expired: fresh ones
@@ -334,8 +334,8 @@ Measured: RMS per second −48 −32 −26 −19 −17 −16 | −18 −20 −18
 
 ## Round 9 (user) · the signature and a narrator
 
-> Lo único que falta es la marca de illodev x Claude y quizás un narrador que diga cosas muy
-> profundas con una voz grave
+> The only thing missing is the illodev x Claude mark, and maybe a narrator who says very
+> profound things in a deep voice
 
 **The signature.** `illodev x Claude`, written exactly as in the other films (the user's
 rule in runnin-down-a-dream), takes the place of «drawn by code» under the title: Lora
@@ -372,7 +372,7 @@ Still true: **nobody has listened to any of it.**
 
 ## Round 10 (user) · approved
 
-> Está bien así, podemos abrir PR
+> It's fine as it is, we can open the PR
 
 The film is approved as it stands (the signature, the English narrator and its five lines
 included). With it the style test is approved: `lightfield` leaves «in testing».
@@ -383,7 +383,7 @@ against the script rather than transcribed blind.
 
 ## Round 11 (user) · after the merge
 
-> He mergeado, veo que no está ni en la web no?
+> I've merged it; I see it's not even on the website, is it?
 
 Right: the pull request put the *style* on the site (its tile in the grid) but not the
 *film*: no line in `FILMS`, no poster, and nothing in the README's gallery. Added: the film

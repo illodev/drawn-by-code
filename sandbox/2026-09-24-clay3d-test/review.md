@@ -21,8 +21,8 @@ Lessons that apply to other videos go up to the matching skill (see review/SKILL
 
 ## Round 2 (user)
 
-> «Parece más 3D que plastilina», with four references: puppets on seamless backdrops, flat
-> disc eyes, ball noses, hair in clumps, matte clay, visible fingerprints.
+> «It looks more like 3D than plasticine», with four references: puppets on seamless
+> backdrops, flat disc eyes, ball noses, hair in clumps, matte clay, visible fingerprints.
 
 - Rebuilt as a puppet on a pink studio sweep: lumps on every piece, eyes as flat discs with
   flat dots, a ball nose, a flat mouth (sausage / D with teeth), sausage eyebrows and
@@ -48,7 +48,8 @@ Lessons that apply to other videos go up to the matching skill (see review/SKILL
 
 ## Round 4 (user)
 
-> «El doblez de la camisa siempre muestra la misma posición y al principio sale sin boca.»
+> «The fold of the shirt always shows the same position, and at the start she appears
+> without a mouth.»
 
 - The cuff was built in the hand's frame: with the wrist bent (thumbs up) it became a disc
   under the fist. Now a cylinder along elbow → wrist at the end of a sleeve that stops

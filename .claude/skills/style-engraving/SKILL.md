@@ -37,15 +37,16 @@ of the stick (`pencilAt()` → broad soft strokes, `stickAt()`, on the paper's t
 contours are drawn by the ink pass over geometry buffers (`INK_FS`: silhouettes, folds and
 the carving's edges as a broad, soft, wandering line); the colour is old yellowed paper
 (`AGE_GRAD`: the gold rings' tan in the light mid-tones, sepia darks). Thin pencil hatching
-was tried and rejected («te has pasado de lápiz… la idea es que fuera carboncillo»). The
+was tried and rejected («you overdid the pencil… the idea was for it to be charcoal»). The
 paragraphs below describe the earlier stage, still true where they don't contradict this.
 
 ## The earlier look (charcoal on the surfaces + the plates' colour)
 
-The user approved («¡Lo has clavado!») the **charcoal** mode over the ruled burin lines:
+The user approved («You nailed it!») the **charcoal** mode over the ruled burin lines:
 `charcoal: true` in the frame (and `grain`: 1 outside, 0.45 indoors) and
 `Engrave.ager(env).apply(g, R.layer(key, f), { ink, paper })` to paint. Then, seeing it
-move: «el filtro lo quitaría, creía que se vería a nivel de texturas y no de pantalla»:
+move: «I would remove the filter; I thought it would show at the level of the textures,
+not of the screen»:
 **nothing is fixed to the screen**. The paper's tooth and the strokes are a texture of each
 surface (`charcoalAt()` in the scene shader: triplanar in the piece's own space, two
 octaves cross-faded so the grain keeps its size on screen), the sky's in its directions;
@@ -194,7 +195,7 @@ capped so a change of scale never overshoots) and what leads through first.
   offset each wall.
 - 2026-09-26 · pyramid-engraving · A low camera on a lit foreground mound flattens the whole
   frame; look over the dunes so their lit and shaded sides read.
-- 2026-09-27 · pyramid-engraving · «Trabaja más en detalle y zonas más pequeñas»: one bench
+- 2026-09-27 · pyramid-engraving · «Work in more detail and on smaller areas»: one bench
   scene (a corner with wall, column, capital, ceiling, floor) with a view per element, each
   compared at full size with the plate, moved the rooms further in a night than the film
   shots had in days. Give every bench view its own layer key: the renderer memoises the
@@ -212,7 +213,7 @@ capped so a change of scale never overshoots) and what leads through first.
   the diagonals; use a rounded square) and a grain scale from derivatives that stepped at
   every triangle (take it from the distance). After removing a full-frame filter, crop the
   ground, the sky and a floor at full size again.
-- 2026-09-27 · pyramid-engraving · «Que parezca dibujado» is charcoal, not pencil: thin
+- 2026-09-27 · pyramid-engraving · «It should look drawn» is charcoal, not pencil: thin
   hatching lines everywhere read as an engraving or a comic. Charcoal is a broad soft tone
   with the paper's tooth showing through, strokes of the stick's side that modulate it, and
   broad soft contours; show one still per step (colour, then contours, then tone) and let
@@ -221,5 +222,6 @@ capped so a change of scale never overshoots) and what leads through first.
   at an even pace with a bright point at its tip reads as drawn; a fast ramp of the whole
   figure (0.8 s for 28 segments) reads as popping in.
 - 2026-09-27 · pyramid-engraving · Cuts through a fade to dark between rooms read as jumps
-  («creía que serían transiciones naturales»); rooms joined by portals through something in
-  the shot, with the camera's speed matched across, play as one continuous travel.
+  («I thought they would be natural transitions»); rooms joined by portals through
+  something in the shot, with the camera's speed matched across, play as one continuous
+  travel.

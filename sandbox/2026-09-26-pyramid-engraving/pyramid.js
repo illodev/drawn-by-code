@@ -268,8 +268,8 @@ const Pyramid = (() => {
             [0.55, 0.3, 0.55, 0, 0.9 * e], [-0.4, 0.3, 0.55, 0, 0.6 * e], [0.55, 0.35, -0.4, 0, 0.6 * e],
             [0, 0.75, 0, 0, 0.5 * inner], [0, S0.c[1], 0.25, 0, 0.5 * inner],
         ];
-        // (the mark lights no light of its own: it lightened the whole face round it, «las losas
-        // se vuelven más claras»; its blue is in its lines)
+        // (the mark lights no light of its own: it lightened the whole face round it, «the slabs
+        // turn lighter»; its blue is in its lines)
         return { draws, lights, stones: S.length, S0: p0, S0face: f0 };
     }
     return { build, ringPose, B, HP, H, S0: () => (ST = ST ?? stones()).S0, all: () => (ST = ST ?? stones()).S };

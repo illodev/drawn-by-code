@@ -63,9 +63,9 @@ Script checks (all pass):
 
 ### Round 2 (user)
 
-> No está nada mal quizás me falte más detalles para que no se sienta tan vacío el espacio.
-> La tierra (globo terraqueo), tiene 3 manchas verdes y parece un huevo de Yoshi, como
-> siempre los detalles marcan la diferencia. ¿Newton está sentado sobre una silla invisible?
+> Not bad at all; perhaps I'd want more details so the space doesn't feel so empty. The
+> Earth (the globe) has 3 green blotches and looks like a Yoshi egg; as always, the details
+> make the difference. Is Newton sitting on an invisible chair?
 
 What changed:
 

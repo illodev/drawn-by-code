@@ -38,8 +38,8 @@ Open questions for the user:
 
 ## Round 2 (user)
 
-> No está mal, pero quizás me faltan más detalles y atención a los detalles, mi mejor
-> referencia es esta. (image: a sakura tree against a red sun with halo rings, three cranes,
+> It's not bad, but maybe I'm missing more detail and more attention to detail; my best
+> reference is this one. (image: a sakura tree against a red sun with halo rings, three cranes,
 > karst peaks, pagodas on wooded hills, a boatman, a torii in the water, reeds, red petals)
 
 What the reference has that the test did not, measured on it: pure white paper (254) with no
@@ -70,9 +70,9 @@ petals in the air and on the water.
 
 ## Round 3 (user)
 
-> Te paso de nuevo la referencia. El paisaje es un desastre, las montañas parecen condones y
-> los templos no sé ni que decirte, con el movimiento se transparenta todo y unas cosas se
-> mueven con el propio movimiento, en general, un desastre
+> Here's the reference again. The landscape is a disaster: the mountains look like condoms,
+> and as for the temples I don't even know what to tell you; with the motion everything turns
+> see-through, and some things move with the motion itself. Overall, a disaster
 
 Translated into changes: (1) peaks: the symmetric rounded columns → lopsided jagged karst
 built like the reference's (black top of vertical strokes, a shoulder, streaks into mist);
@@ -99,7 +99,7 @@ cranes, wind and water move on their own.
 
 ## Round 4 (user)
 
-> Sí, sigue con el río y el agua
+> Yes, carry on with the river and the water
 
 ## Round 4 (auto)
 
@@ -121,7 +121,7 @@ cranes, wind and water move on their own.
 
 ## Round 5 (user)
 
-> Vale, la frase me sirve, sigue con el animatic
+> OK, the line works for me, carry on with the animatic
 
 ## Animatic v1 (auto)
 
@@ -156,9 +156,9 @@ are rough; no sound effects beyond the score.
 
 ## Round 6 (user)
 
-> Las letras las pondría en japones y la música la generaría con mi elevenlabs, te dejo la
-> key en varible de entorno ELEVEN_KEY. Las transiciones deben ser de otra forma por ejemplo
-> con mancha de tinta china en el papel o algo así, no tan brusca
+> I'd put the text in Japanese, and I'd generate the music with my ElevenLabs; I'm leaving you
+> the key in the ELEVEN_KEY environment variable. The transitions should be done differently,
+> for example with a blot of India ink on the paper or something like that, not so abrupt
 
 - Text: the title is 赤い糸 («the red thread»), the closing line 敵味方に分かれる前、
   私たちは隣人だった。(«Before we split into friend and foe, we were neighbours», from the
@@ -177,10 +177,10 @@ are rough; no sound effects beyond the score.
 
 ## Round 7 (user)
 
-> Veo que hay varias transiciones de tinta cuando solo era una no? de los adultos a los niños
-> … Es que creo que solo debería haber una transición no? en los demás no creo que deberan
-> haber xd, o sea, la escena es la misma y mismo personajes, meter transiciones hay hace que
-> se vea peor todo.
+> I see there are several ink transitions when it was only meant to be one, right? From the
+> adults to the children … I think there should only be one transition, right? I don't think
+> there should be any in the others, lol; I mean, the scene is the same, with the same
+> characters, and putting transitions there makes everything look worse.
 
 - One ink blot only, at 32 s (the adults' quarrel → the girl alone in the rain). Everywhere
   else the film is one continuous camera per act (0–32 s and 32–68 s): each shot keeps its
@@ -194,7 +194,7 @@ are rough; no sound effects beyond the score.
 
 ## Round 8 (user)
 
-> La transición de la tinta no me convence, quizás usaría algo similar a la del inicio
+> The ink transition doesn't convince me; maybe I'd use something like the one at the start
 
 - The ink blot at 32 s → the title's bloom: the adults' painting is erased to blank paper by
   blots that grow from the foreground back (30.9–32.0 s), the paper holds a breath, and the
@@ -203,7 +203,7 @@ are rough; no sound effects beyond the score.
 
 ## Round 9 (user)
 
-> He añadido el conector de ElevenLabs … Ya he permitido el dominio, sigue con la música
+> I've added the ElevenLabs connector … I've now allowed the domain, carry on with the music
 
 - Score generated with the ElevenLabs connector (Music v2.5, 68 s, instrumental, one prompt
   describing the film's shape second by second; flow FifylNo6wfjLV6je96nl, four takes).
@@ -221,12 +221,12 @@ are rough; no sound effects beyond the score.
 
 ## Round 10 (user)
 
-> Cuando se cruzan los dos en el puente ~ 15s creo que está mal, porque van a un lado después
-> se juntan, y des pues se van otra vez como si se buguearan. La música me parece muy sosa.
-> Hay algo es que no hay motivo de pelea, o sea, se pelean sin ningún sentido no? Debería
-> haber algo que le diera sentido. Hay gente que pisa el rio, no sé si está hecho a propósito.
-> El sol se le va el rojo de una forma rara. Le daría una vuelta en general a pulir detalles y
-> dinamismo
+> When the two of them cross on the bridge at ~15 s I think it's wrong, because they go to one
+> side, then come together, and then move off again as if they were glitching. The music seems
+> very bland to me. Another thing is that there's no reason for the fight; I mean, they fight
+> for no reason at all, right? There should be something that gives it meaning. There are
+> people stepping on the river; I don't know if that's on purpose. The sun loses its red in a
+> strange way. Overall I'd give it another pass to polish the details and the dynamism
 
 - The bump: on the recoil the men turned round (facing followed the walking direction, and
   stepping back is walking the other way), then turned again. Now people keep a lane on the
@@ -253,8 +253,8 @@ are rough; no sound effects beyond the score.
 
 ## Round 11 (user)
 
-> No sé si sería mejor una causa externa alegorizando al sistema que nos divide sin saberlo
-> … Sí, sigue con el kuroko
+> I don't know if an external cause would be better, an allegory of the system that divides
+> us without our knowing it … Yes, go ahead with the kuroko
 
 - The cause is now outside the villagers: the kuroko, the black-clad stagehand of Japanese
   theatre whom everyone agrees not to see. A giant hooded figure rises behind the mountains
@@ -273,10 +273,11 @@ are rough; no sound effects beyond the score.
 
 ## Round 12 (user)
 
-> La música no suena para nada japonesa y los ritmos no pegan en absoluto con las escenas.
-> Tanto los trazos de los personajes como del kuroko, son muy muy poco currados. El Kuroko no
-> me inspira nada, no entiendo en qué momento pasa todo a mal. Las máscaras igual, no se
-> entiende. … Revelación por pasos · Kawaraban · Por escenas, solo japonesa
+> The music doesn't sound Japanese at all, and the rhythms don't fit the scenes in the
+> slightest. The strokes of both the characters and the kuroko have had very, very little work
+> put into them. The kuroko doesn't inspire me at all; I don't understand at what point it
+> all turns bad. Same with the masks: they can't be understood. … Reveal in steps ·
+> Kawaraban · Per scene, Japanese only
 
 - Story told in steps. 11.0 s: only a black sleeve comes down out of the sky over the bridge
   and lets broadsheets (kawaraban, the Edo news sheets; they replace the phones, which were
@@ -306,10 +307,10 @@ are rough; no sound effects beyond the score.
 
 ## Round 13 (user)
 
-> Me sigue faltando alma en general. La parte final haría que los niños fueran los únicos que
-> se enlazaran con la cometa y los demás con las máscaras hasta que se cree el puente y
-> comprendan que son iguales, entonces se caen las máscaras y desaparece el Kuroko. Los hilos
-> solo en la primera parte. Que el puente no aparezca de golpe.
+> For me it still lacks soul overall. For the final part, I'd have the children be the only
+> ones linked by the kite, and the rest keep their masks until the bridge is created and they
+> understand that they are the same; then the masks fall and the kuroko disappears. The
+> threads only in the first part. The bridge shouldn't appear all at once.
 
 - Act 2: only the children are tied, by the kite string. The adults keep their masks and
   their broadsheets (a man still pulls at the string, the others shout); no red threads come
@@ -327,9 +328,9 @@ are rough; no sound effects beyond the score.
 
 ## Round 14 (user)
 
-> Esa persona atraviesa el hilo y se superpone, hay más que también. Los pájaros
-> desaparecen. Creo que quitaría los hilos rojos del principio. La música no me gusta, quiero
-> algo más lofi japonés y que vaya cambiando el ritmo.
+> That person goes through the thread and overlaps it, and there are others that do too. The
+> birds disappear. I think I'd remove the red threads from the beginning. I don't like the
+> music; I want something more Japanese lo-fi, with the rhythm changing as it goes.
 
 - Overlaps: a new check (`tools/check-overlap.mjs`) over the whole timeline found the man who
   grabbed the string walking through it and the girl, the elders and two men standing on the
@@ -350,6 +351,6 @@ are rough; no sound effects beyond the score.
 
 ## Closed (user)
 
-> Lo doy por bueno
+> I'll call it good
 
 Approved as it stands after round 15; the final render is clean (no timecode: `ANIMATIC = false`).

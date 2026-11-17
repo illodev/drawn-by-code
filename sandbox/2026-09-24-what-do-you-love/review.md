@@ -17,10 +17,9 @@ Each round: what was seen (auto, compare and by eye), what changed and what less
 
 ## Round 2 (user)
 
-> «¿Has visto que el vídeo va al detalle? Manos, formas, perspectivas, se nota el trabajo
-> (ojo, está hecho con Claude también), pero en este repo va a ser importantísimo el detalle.»
-> (Did you notice the video goes into detail? Hands, shapes, perspectives — you can tell the
-> work (and it was made with Claude too). In this repo detail will be extremely important.)
+> «Have you seen that the video goes into detail? Hands, shapes, perspectives: the work
+> shows (mind you, it was made with Claude too), but in this repo detail is going to be
+> extremely important.»
 
 - Diagnosis with full-resolution crops (`compare --crop`): structure, timing and palette
   match, but the craft is animatic-level. Body parts are merged, hands are circles, no knit /
@@ -29,14 +28,11 @@ Each round: what was seen (auto, compare and by eye), what changed and what less
 
 ## Round 3 (user · detail, piece by piece)
 
-> «Cosas como el perro denotan el poco esfuerzo en la forma · la chica es gordita y con poca
-> artesanía · su Claude es irregular y los "tentáculos" se van moviendo y agrandando ·
-> en el corazón se nota que cada elemento ha ido al detalle · nuestras formas son muy
-> poligonales · el anillo del planeta está mal hecho. En definitiva cada elemento tiene que
-> ir al detalle.» (The dog shows little effort in its shape; the girl is chubby and crude;
-> their Claude flower is irregular and its rays keep moving and resizing; in the heart every
-> element got detail; our shapes are polygonal; the planet's ring is badly made. Every
-> element has to go to detail.)
+> «Things like the dog show how little effort went into the shape · the girl is chubby and
+> shows little craft · their Claude is irregular and the "tentacles" keep moving and
+> growing · in the heart you can tell that every element has gone to detail · our shapes are
+> very polygonal · the planet's ring is badly made. In short, every element has to go to
+> detail.»
 
 What changed (whole-video mean difference 22.6 → **14.2**; montage cards 5–9, heart 9–13):
 
@@ -71,10 +67,8 @@ Open:
 
 ## Round 4 (user)
 
-> «Sabes que está perfecto cuando ya tengo que hacer zoom para ver diferencias jajaja.
-> Brutal. Lo único que he visto a simple vista es que nuestra interrogación se sale de la
-> hoja.» (You know it's perfect when I have to zoom in to see differences. The only thing I
-> saw at a glance is that our question mark runs off the page.)
+> «You know it's perfect when I have to zoom in to see differences, hahaha. Awesome. The
+> only thing I have seen at a glance is that our question mark runs off the page.»
 
 - Cause: Patrick Hand makes «you love?» 1.27× as wide as «what do»; the reference's hand
   lettering 1.21×. The first line was measured and matched, the second never was.
@@ -83,8 +77,7 @@ Open:
   and its perforation tabs are shallower. The '?' now sits inside the page in every note.
 - Lesson (in the `replicate` skill): measure text like any other element, line by line.
 
-> «Dejaría todo tu conocimiento persistido…» (Persist everything you know so another agent
-> can use it.)
+> «I would leave everything you know persisted…» (so that another agent can use it.)
 
 - New skill `replicate` (workflow, measuring tools, recipes, pitfalls with fixes, splitting
   the work across agents, `agent-brief.md` template); `engine/reference.mjs` gained `cuts`,

@@ -1,7 +1,7 @@
 // The film's mark: the Claude mascot (the blocky creature: a body, two arm stubs, four legs,
 // two slot eyes), drawn in live blue as thin bars, in the place of the notched triangle the
-// script gave the mark (the user: «¿podemos cambiar los triángulos azules por la mascota de
-// Claude?»). The same figure as the carved sign on the capitals (sdCritter in the kit).
+// script gave the mark (the user: «can we swap the blue triangles for the Claude mascot?»).
+// The same figure as the carved sign on the capitals (sdCritter in the kit).
 //
 // Mascot.draw(arr, c, q, width, glow, { w, k }) pushes material-4 instances into arr:
 //   c      the figure's centre;  q  its plane (a rotation: +x its right, +y its up, +z out of it)

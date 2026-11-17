@@ -681,8 +681,8 @@ const Film = (() => {
     const OFF = { milo: [-115, 105, 700, 0.3], hoagie: [440, 635, 653, 0.5], kit: [760, 305, 1070, 0.25], pip: [1070, 471, 1143, 0.2] };
 
     // === 0 · the cold open (8 s): the chase before anyone has a name ================================
-    // Not the harbour («no aprovecharía la escena del puerto para el inicio»), and nobody seen («el
-    // misterio de no saber quién son hasta que se presenten»): a field of rays, a band of ground, and
+    // Not the harbour («I wouldn't use the harbour scene for the opening»), and nobody seen («the
+    // mystery of not knowing who they are until they are introduced»): a field of rays, a band of ground, and
     // flat black shapes. The gull goes over with his cone on the song's squawk; the four come in after
     // him one to every two of its eight stabs, each on their own cycle; the band comes in and the
     // field changes colour under them. On «Down at…» three of them are gone to the right and the one
