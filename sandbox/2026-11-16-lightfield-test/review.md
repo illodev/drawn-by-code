@@ -236,3 +236,16 @@ full size against the style's checklist.
 Render: three chunks side by side (`--from/--to`, 23 to 32 minutes each on this container).
 `--to` is inclusive, so each joint had its frame twice: the chunks are joined with
 `trim=end_frame=` on all but the last (732 frames, counted).
+
+## Round 5 (user)
+
+> Veo que has reaprovechado la pared del prisma en el de la rendija. Quizás lo haría
+> diferente en el prisma.
+
+Translation: the same grey card stood at the right of two consecutive shots, at nearly the
+same place and angle, so the second read as the first redressed. In the Prism shot the fan
+now lands on a sheet of **white paper stood on its edge and bowed into an arc**, hollow
+side to the prism: the spectrum wraps round it, the colours climb it, it shades from one
+end to the other as it turns through the room's light, its top edge is not cut dead
+straight. The Slits shot keeps its flat grey card (bars want a flat screen). Only the
+prism's stretch was rendered again and spliced in.

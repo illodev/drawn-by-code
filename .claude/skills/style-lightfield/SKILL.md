@@ -223,3 +223,8 @@ Tune with numbers: sample the same named points on both images, fit profiles
 - 2026-11-17 · lightfield-test round 4 · Small luminous details drawn from fine noise
   (prominences as `noise(q · 260)`) come out as scribbles, which read as outlines: fill
   the shape, shade it along its length, and keep the noise at a few cycles per shape.
+- 2026-11-17 · lightfield-test round 5 · Screens that catch light are props too: a flat
+  card twice in a row was noticed at once. A bowed sheet (the view ray against a vertical
+  cylinder, far root, an angle range) costs the same and gives a surface that turns
+  through the light; white paper in a dark blue room is lit with the room's light warmed
+  (`ambient · (1.55, 1.2, 0.92)`), or it reads as grey card.
