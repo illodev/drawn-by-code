@@ -42,6 +42,11 @@ const dur = (([, h, m, s]) => +h * 3600 + +m * 60 + +s)(probe.match(/Duration: (
 const fps = 24, grid = +opt('grid', 6);
 let times = opt('times') ? opt('times').split(',').map(Number) : [];
 if (!times.length) { const e = +opt('every', 1), a = +opt('from', 0), b = +opt('to', dur - 0.05); for (let t = a + e / 2; t < b; t += e) times.push(+t.toFixed(3)); }
+const late = times.filter((t) => t > dur - 1 / fps);
+if (late.length) {
+    console.error(`The reference lasts ${dur.toFixed(2)} s and has no frame at ${late.join(', ')} s (a still looped as a reference must last as long as the film).`);
+    process.exit(2);
+}
 const out = opt('out', path.join(path.dirname(scene), 'review', 'detail'));
 fs.mkdirSync(out, { recursive: true });
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'detail-'));
