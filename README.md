@@ -182,6 +182,7 @@ to see its strip, files and the videos made with it.
 | [micrograph](styles/micrograph/)     | false-colour micrographs: one grey signal, sharp grain on soft structures, a few inks    | approved   |
 | [comic](styles/comic/)               | brush-ink outlines, flat print colours on newsprint, Ben-Day dots, balloons              | in testing |
 | [pixel-art](styles/pixel-art/)       | crisp pixels on a low-res grid, sprite maps, 10 fps loops                                | in testing |
+| [woodcut](styles/woodcut/)           | a relief print: every white a gouge cut, an uneven film of ink, one ochre block for light | in testing |
 
 To add one: the `new-style` skill, and [CONTRIBUTING.md](CONTRIBUTING.md) for the pull request.
 
