@@ -21,7 +21,10 @@ styles/<style>/
    texture (clean, grain, paper), camera, what is forbidden. If they bring a video,
    extract a contact sheet with
    `ffmpeg -i ref.mp4 -vf "fps=1,scale=480:-1,tile=4x3" -frames:v 1 sheet.jpg` and look
-   at it.
+   at it. To choose between candidate looks before there are references, generate one image
+   per look with the connected image generator (ElevenLabs flow, two takes each), all on the
+   **same motif taken from the video's own subject**. With no subject yet, ask for one or pick
+   something specific and unlikely, never a stock motif (see Lessons).
 2. **Fonts:** only freely licensed (OFL), in `fonts/` together with their license.
 3. **Kit:** start small, with what the test needs. Follow the **engine** rules
    (determinism, caching). If something is useful for every style, it goes in
@@ -75,4 +78,5 @@ Approved reference: sandbox/<experiment>/ (review/sheet.jpg)
 - 2026-11-14 · pier-pressure · A style after a show is the show's drawing manner only: design an original cast and place (names, silhouettes, outfits, town) with the user before drawing, and keep the reference frames out of the repo.
 - 2026-11-14 · pier-pressure round 8 · A character style cannot be designed blind in code: five rounds of authored coordinates went from «the difference in the level of quality» to «it looks like a child drew it» without reaching a draughtsman's polish. For characters, get the design first (the user's drawings, or concept art generated and approved by the user) and replicate it by measurement, as the **replicate** skill does for films; ask for that reference at the first rejection of a character, not the fifth. And «natural» lines are steady and even: never answer «artificial» with wobble, uneven pressure or crossed corners.
 - 2026-11-17 · micrograph-test · Write the template after the style test, from the test's own helpers: written beside it from memory, it drew spikes as clubs on sticks, the first thing the test had removed. What the test learned to draw goes into the kit (here `lumps`), and the template calls it.
+- 2026-11-17 · style search · «For whatever reason, in 3 out of 4 sessions you've chosen a lighthouse as the reference.» A lighthouse at dusk (sea, sky, a beam, a small figure) is the motif we reach for when none is given; it had already been invented for pier-pressure. A comparison motif comes from the video's subject; failing that, it is something specific and unlikely, and it is checked against what `sandbox/` has already drawn. Also: the generator pulls neighbouring flat looks (travel poster, editorial grain, mid-century) toward one palette and one framing, so name what tells them apart (line, perspective, texture) more strongly than what they share.
 - 2026-11-17 · micrograph-test · Before designing a kit's pipeline, measure on the references how the texture relates to the colour (here: grain only in luminance, channels following the tint): it told which model was the real one (a grey signal tinted afterwards) and three different stills came out of the same kit.
