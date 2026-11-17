@@ -1,0 +1,1 @@
+    ['kit-drop-b', ['kit', 'crouch', 6, 267], ['kit', 'rise', 450, 76], ['kit', 'proud', 866, 11]],

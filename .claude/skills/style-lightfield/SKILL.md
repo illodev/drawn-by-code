@@ -1,13 +1,14 @@
 ---
 name: style-lightfield
-description: Lightfield style, in testing: light photographed, not drawn — scenes are radiance (a sun over the Earth's limb, a filament in a dusty bulb, anything that glows in the dark) shot through a simulated camera (HDR, lens bloom with film halation, diffraction rays, a film curve that burns to white, grain) with titles emitted as light. Use it for science, space, physics, «cinematic», documentary title cards, glowing things on black or on a dark wall, lens flares, or when working with styles/lightfield/.
+description: Lightfield style: light photographed, not drawn — scenes are radiance (a sun over the Earth's limb, a filament in a dusty bulb, anything that glows in the dark) shot through a simulated camera (HDR, lens bloom with film halation, diffraction rays, a film curve that burns to white, grain) with titles emitted as light. Use it for science, space, physics, «cinematic», documentary title cards, glowing things on black or on a dark wall, lens flares, or when working with styles/lightfield/.
 ---
 
 # Style · Lightfield
 
-Status: **in testing** (style test: `sandbox/2026-11-16-lightfield-test/`, two shots built on
-the user's two reference stills; waiting for the user's verdict). It is the first of two
-«scientific» styles the user asked for; the other, false-colour micrographs, is not built.
+Approved reference: `sandbox/2026-11-16-lightfield-test/` (review/sheet.jpg, render/lightfield-test.mp4):
+five shots, the first and the last matched to the user's two reference stills, three built
+without one; approved by the user in round 10. It is the first of two «scientific» styles
+the user asked for; the other, false-colour micrographs, is not built.
 
 Nothing here is drawn. A scene says how much light leaves each point, and the kit is the
 camera that photographs it. What reads as «scientific footage» is that everything on screen

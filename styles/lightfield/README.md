@@ -9,7 +9,7 @@ halation), an iris that throws rays off anything bright enough, chromatic aberra
 curve that burns highlights to white, and grain that follows the signal. Titles are emitted
 as light through the same lens. For science, space, physics and «cinematic» title cards.
 
-**Status:** in testing · **Skill:** [`style-lightfield`](../../.claude/skills/style-lightfield/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
+**Status:** approved · **Skill:** [`style-lightfield`](../../.claude/skills/style-lightfield/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
 
 ## Start a video in this style
 

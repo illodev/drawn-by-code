@@ -369,3 +369,14 @@ Measured on stems in 100 ms windows where the voice is above −26 dB: voice min
 15 dB, 10th percentile 6 dB, never under 2 dB; integrated −15.0 LUFS, peak −1.5 dBFS.
 
 Still true: **nobody has listened to any of it.**
+
+## Round 10 (user) · approved
+
+> Está bien así, podemos abrir PR
+
+The film is approved as it stands (the signature, the English narrator and its five lines
+included). With it the style test is approved: `lightfield` leaves «in testing».
+
+Left for later, said in the pull request: the style is not yet on the README cover's
+carousel (it means rendering the cover again), and the narrator's words were aligned
+against the script rather than transcribed blind.
