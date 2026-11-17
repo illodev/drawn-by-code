@@ -138,19 +138,20 @@ const Blueprint = (() => {
     }
 
     // --- lettering ----------------------------------------------------------------------
-    let mctx = null, capRatio = 0;
+    let mctx = null;
+    const capRatios = new Map();
     function mc() {
         if (!mctx) mctx = document.createElement('canvas').getContext('2d');
-        if (!capRatio) {
-            mctx.font = `100px ${FONT}`;
-            capRatio = mctx.measureText('H').actualBoundingBoxAscent / 100 || 0.7;
-        }
         return mctx;
     }
-    const fontFor = (cap) => { mc(); return `${cap / capRatio}px ${FONT}`; };
-    function textWidth(str, cap, track = 0.12) {
+    // the font string for a capital height (fonts differ in how tall their capitals are)
+    const fontFor = (cap, font = FONT) => {
+        if (!capRatios.has(font)) { const c = mc(); c.font = `100px ${font}`; capRatios.set(font, c.measureText('H').actualBoundingBoxAscent / 100 || 0.7); }
+        return `${cap / capRatios.get(font)}px ${font}`;
+    };
+    function textWidth(str, cap, track = 0.12, font = FONT) {
         const c = mc();
-        c.font = fontFor(cap);
+        c.font = fontFor(cap, font);
         c.letterSpacing = `${cap * track}px`;
         return c.measureText(str).width - cap * track;
     }
@@ -211,10 +212,11 @@ const Blueprint = (() => {
             // (the rounding of a tower, a shadow); the paper's tooth turns it to chalk
             shade(pts, axis, stops, weight = 30) { return add({ k: 'g', p: flat(pts).slice(), axis, stops, a: 1, L: weight * u }); },
             // lettering: cap is the capital height; o.align 'left' | 'center' | 'right'; o.track;
+            // o.font another family (a pencilled hand); o.bold how much the strokes are thickened;
             // o.clear rubs out the lines under the figure, as a draughtsman breaks them round it
             text(str, x, y, cap, to = {}) {
-                const track = to.track ?? 0.12, tw = textWidth(str, cap, track), al = to.align ?? 'left';
-                return add({ k: 't', str, x: al === 'center' ? x - tw / 2 : al === 'right' ? x - tw : x, y, cap, track, tw, rot: to.rot ?? 0, ox: x, oy: y, clear: to.clear ?? false, L: str.length * cap * 1.6 });
+                const track = to.track ?? 0.12, tw = textWidth(str, cap, track, to.font), al = to.align ?? 'left';
+                return add({ k: 't', str, x: al === 'center' ? x - tw / 2 : al === 'right' ? x - tw : x, y, cap, track, tw, rot: to.rot ?? 0, ox: x, oy: y, clear: to.clear ?? false, font: to.font, bold: to.bold ?? 0.02, L: str.length * cap * 1.6 });
             },
             // parallel lines clipped to a polygon (and out of its holes): section hatching
             hatch(poly, ho = {}) {
@@ -250,7 +252,8 @@ const Blueprint = (() => {
 
             // Paints the list in white. reveal: (groupName) → 0..1 (how much of that group has
             // been drafted), or nothing for the finished drawing. o.tip: the wet end of a line
-            // that is being drawn shows as a small dot.
+            // that is being drawn shows as a small dot. o.alpha: (groupName) → 0..1 dims a group
+            // (what a revision has superseded).
             paint(g, reveal, po = {}) {
                 if (!ready) {
                     for (const gr of groups.values()) {
@@ -261,7 +264,7 @@ const Blueprint = (() => {
                     ready = true;
                 }
                 const prog = new Map();
-                for (const gr of groups.values()) prog.set(gr, reveal ? Math.max(0, Math.min(1, reveal(gr.name))) : 1);
+                for (const gr of groups.values()) { prog.set(gr, reveal ? Math.max(0, Math.min(1, reveal(gr.name))) : 1); gr.dim = po.alpha ? po.alpha(gr.name) : 1; }
                 g.save();
                 g.strokeStyle = g.fillStyle = '#fff';
                 g.lineJoin = 'miter';
@@ -275,11 +278,11 @@ const Blueprint = (() => {
                     const q = p >= 1 ? 1 : Math.max(0, Math.min(1, (p - it.t0) / (it.t1 - it.t0)));
                     if (q <= 0) continue;
                     if (it.k === 's') {
-                        const k = it.w + '|' + (it.dash ? it.dash.join(',') : '') + '|' + it.a + '|' + it.cap;
+                        const k = it.w + '|' + (it.dash ? it.dash.join(',') : '') + '|' + it.a * it.g.dim + '|' + it.cap;
                         if (k !== key || q < 1) {
                             flush();
                             key = k;
-                            g.lineWidth = it.w; g.globalAlpha = it.a; g.lineCap = it.cap; g.lineJoin = it.cap === 'round' ? 'round' : 'miter';
+                            g.lineWidth = it.w; g.globalAlpha = it.a * it.g.dim; g.lineCap = it.cap; g.lineJoin = it.cap === 'round' ? 'round' : 'miter';
                             g.setLineDash(it.dash ?? []);
                         }
                         if (!open) { g.beginPath(); open = true; }
@@ -303,7 +306,7 @@ const Blueprint = (() => {
                     key = '';
                     g.setLineDash([]);
                     if (it.k === 'f') {
-                        g.globalAlpha = it.a * q;
+                        g.globalAlpha = it.a * q * it.g.dim;
                         g.beginPath();
                         g.moveTo(it.p[0], it.p[1]);
                         for (let i = 2; i < it.p.length; i += 2) g.lineTo(it.p[i], it.p[i + 1]);
@@ -321,19 +324,19 @@ const Blueprint = (() => {
                         g.fill();
                         g.fillStyle = '#fff';
                     } else if (it.k === 'd') {
-                        g.globalAlpha = it.a;
+                        g.globalAlpha = it.a * it.g.dim;
                         g.beginPath();
                         g.arc(it.p[0], it.p[1], it.p[2] * Math.min(1, q * 1.5), 0, Math.PI * 2);
                         g.fill();
                     } else if (it.k === 'm') {
-                        g.globalAlpha = it.a;
+                        g.globalAlpha = it.a * it.g.dim;
                         g.beginPath();
                         const n = Math.floor((it.p.length / 3) * q) * 3;
                         for (let i = 0; i < n; i += 3) { g.moveTo(it.p[i] + it.p[i + 2], it.p[i + 1]); g.arc(it.p[i], it.p[i + 1], it.p[i + 2], 0, Math.PI * 2); }
                         g.fill();
                     } else if (it.k === 't') {
-                        g.globalAlpha = it.a;
-                        g.font = fontFor(it.cap);
+                        g.globalAlpha = it.a * it.g.dim;
+                        g.font = fontFor(it.cap, it.font);
                         g.letterSpacing = `${it.cap * it.track}px`;
                         g.textAlign = 'left';
                         g.textBaseline = 'alphabetic';
@@ -346,11 +349,10 @@ const Blueprint = (() => {
                             g.globalAlpha = 1;
                             g.fillRect(it.x - pad, it.y - it.cap - pad, wn + pad * 2, it.cap + pad * 2);
                             g.globalCompositeOperation = 'source-over';
-                            g.globalAlpha = it.a;
+                            g.globalAlpha = it.a * it.g.dim;
                         }
                         g.fillText(sub, it.x, it.y);
-                        g.lineWidth = it.cap * 0.02; g.lineJoin = 'round';
-                        g.strokeText(sub, it.x, it.y);
+                        if (it.bold > 0) { g.lineWidth = it.cap * it.bold; g.lineJoin = 'round'; g.strokeText(sub, it.x, it.y); }
                         g.restore();
                         g.letterSpacing = '0px';
                     }
@@ -410,10 +412,14 @@ const Blueprint = (() => {
     }
 
     // --- the print: sheet, then the ink layer with the paper's tooth and a soft bleed -------
-    // frame(g, env, o, inkFn): o.cam [cx, cy, zoom, rot] moves the camera over the sheet;
-    // o.paper goes to paper(); inkFn(ig) draws the line work in white (Drawing.paint).
+    // frame(g, env, o, inkFn, pencilFn): o.cam [cx, cy, zoom, rot] moves the camera over the
+    // sheet; o.paper goes to paper(); inkFn(ig) draws the line work in white (Drawing.paint).
+    // pencilFn(pg), optional, draws what somebody pencilled over the print afterwards (in
+    // white too; it is tinted o.pencil, a red pencil by default): grainier than the print, no
+    // bleed, and on top of it.
     let halo = null;
-    function frame(g, env, o, inkFn) {
+    const PENCIL = [238, 92, 70];
+    function frame(g, env, o, inkFn, pencilFn) {
         const zoomMax = o.zoomMax ?? (o.cam ? o.cam[2] : 1);
         const P = paper(env, { res: env.k * Math.max(1, zoomMax), ...(o.paper ?? {}) });
         const camOn = (c) => { if (o.cam) Motion.cam(c, env, o.cam[0], o.cam[1], o.cam[2], o.cam[3] ?? 0); };
@@ -452,7 +458,33 @@ const Blueprint = (() => {
         g.globalAlpha = o.ink ?? 1;
         g.drawImage(ink, 0, 0, env.W, env.H);
         g.restore();
+        if (pencilFn) {
+            const pen = Motion.layer(env, 'blueprint-pencil', (pg) => {
+                pg.save();
+                camOn(pg);
+                pencilFn(pg);
+                // a pencil rides the cloth's grain: the tooth takes more of it than of the print
+                pg.globalCompositeOperation = 'destination-out';
+                pg.imageSmoothingQuality = 'high';
+                pg.drawImage(P.tooth, P.box.x, P.box.y, P.box.w, P.box.h);
+                pg.globalAlpha = 0.7;
+                pg.drawImage(P.tooth, P.box.x, P.box.y, P.box.w, P.box.h);
+                pg.restore();
+            });
+            const pg = pen.getContext('2d');
+            pg.save();
+            pg.setTransform(1, 0, 0, 1, 0, 0);
+            pg.globalCompositeOperation = 'source-in';
+            pg.fillStyle = `rgb(${o.pencil ?? PENCIL})`;
+            pg.fillRect(0, 0, pen.width, pen.height);
+            pg.restore();
+            g.save();
+            g.imageSmoothingQuality = 'high';
+            g.globalAlpha = 0.95;
+            g.drawImage(pen, 0, 0, env.W, env.H);
+            g.restore();
+        }
     }
 
-    return { FONT, INK, LUT, paper, drawing, frame, arrow, dimV, dimH, level, title, textWidth, noise: { h2, vn, fbm, sstep } };
+    return { FONT, INK, PENCIL, LUT, fontFor, paper, drawing, frame, arrow, dimV, dimH, level, title, textWidth, noise: { h2, vn, fbm, sstep } };
 })();

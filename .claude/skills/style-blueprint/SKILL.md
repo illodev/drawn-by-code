@@ -42,6 +42,11 @@ Blueprint.frame(g, env, { cam: [x, y, zoom], zoomMax, paper: { folds, seed } }, 
   items are drawn in the order they were added, each for a share of the group's time
   (`overlap`: 0.05 = one pen, 0.5 = many at once); a stroke in progress ends in a wet dot;
   lettering appears a letter at a time; fills and washes fade in.
+- **A second hand:** `frame(g, env, o, inkFn, pencilFn)` paints a pencil layer over the print
+  (a second display list, in white, tinted `o.pencil`: a red pencil by default), grainier
+  than the ink and without bleed. `text(..., { font: 'Hand' })` for its notes. What moves by
+  itself (a mechanism, a mark walking a route) is drawn every frame inside `inkFn` /
+  `pencilFn`, after the list. `paint(ink, reveal, { alpha })` dims a superseded group.
 - **The sheet:** `paper(env, { w, h, folds: { x: [fractions], y: [...] }, wear, seed, res })`
   is painted once (clouds of exposure, brushed mottle, grain, the cloth's weave, creases
   with cracked coating, edges and corners worn to the bare sheet) together with the
@@ -106,4 +111,8 @@ Blueprint.frame(g, env, { cam: [x, y, zoom], zoomMax, paper: { folds, seed } }, 
 - 2026-11-17 · blueprint-test · Freehand cannot be generated: two rock generators (joints of slanted cells; ridges with cross joints) read as crazy paving and as roots. Read the strokes off the reference instead (`sandbox/2026-11-17-blueprint-test/tools/trace.py`: lines above the local ground, hysteresis so a stroke's faint parts stay joined, centre lines walked into polylines with each stroke's strength) and keep the code for what is ruled.
 - 2026-11-17 · blueprint-test · A generated reference contradicts itself (a 2.4 m dimension on 100 px at «1:50», floors at the windows' height, a section fatter than its elevation). Copy its layout and its look; draw the object once in real units and let the figures come out of that, even where they move a note a few pixels from the reference.
 - 2026-11-17 · blueprint-test · Paper wear is one field: how worn a spot is (handling, folds, edges, corners) first hazes the coating grain by grain and only then goes bare. Separate «scratches», «rubbed blobs» and «white edges» each looked pasted on (hairs, leopard spots, clouds).
+- 2026-11-17 · the-plan · One accent is allowed when the film has a second hand: a red pencil over the print, approved by the user for a heist (white = the building, red = the plan). It stays a pencil: freehand rings that overshoot, dashed routes with eased corners, notes in a quick hand, never ruled, never lettered in Routed Gothic.
+- 2026-11-17 · the-plan · A small thing that carries the payoff (a 2 m door in a 32 m building) is shown the drawing's own way: a ring and a bubble round it, and a detail at a larger scale elsewhere on the sheet where it happens, with the figures beside it at that scale. Zooming until it is big enough runs off the paper's resolution and off the sheet.
+- 2026-11-17 · the-plan · People on a drawing are marks: a circle the size of a person in plan, numbered. Behind the wall a section looks at, they are dashed like any hidden edge. Keep the views in step: what moves in the plan moves in the section and in the detail from the same function.
+- 2026-11-17 · the-plan · A film on one sheet keeps every framing inside the sheet: at zoom z the centre stays W/2z from the sides and H/2z from top and bottom (`review.mjs` reports the miss as «transparent holes»). Lay the sheet out for the framings (what must share a frame sits within W/z of each other), and paint the sheet at the largest zoom (`zoomMax`).
 - 2026-11-17 · blueprint-test · A wall cut at its windows reads as loose blocks until each opening gets its jambs (the faces carried across), a sash near the outer face and a sill; a door gets its leaf.

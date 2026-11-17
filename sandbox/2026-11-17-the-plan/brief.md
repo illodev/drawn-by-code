@@ -5,7 +5,10 @@
 - **Purpose / audience:** the first film in the blueprint style. The user left the subject
   to us («Invent a script yourself, I like it»); to the first proposal (a ray of light
   followed from a lighthouse to a ship, `sandbox/2026-11-17-focal-plane/`) they answered:
-  «Maybe a heist?» This is that script. **Status: proposed, waiting for the user.**
+  «Maybe a heist?» This is that script. **Status: approved by the user**, with their
+  answers to the four open questions: «It works for me. Yes. English. I'd say only a
+  soundtrack.» So: the script as written, the red pencil, lettering in English, and for
+  sound a score alone (no effects, no voice).
 - **One-line idea:** a perfect plan is pencilled in red over a bank's blueprint and carried
   out on it by three numbered marks, until the building changes a line and the crew has to
   get out of the plan the only way a floor plan cannot see: down, through the section.
@@ -14,7 +17,8 @@
   in Routed Gothic, and it moves by itself (cameras sweep, a guard walks his beat). Red is
   the plan: a pencil over the print, freehand, dashed routes, timings and notes in a
   quicker hand. The film is the argument between the two. The red is the one accent the
-  style's rules allow to be proposed (a red pencil revision): **it needs the user's yes.**
+  style's rules allow to be proposed (a red pencil revision): approved by the user for
+  this film.
 - **Why it is a blueprint film:** nobody is drawn. The crew are three red numbered circles,
   the guard a plan symbol on a dotted beat, each camera a sector that turns. The escape is
   the drawing's own grammar: a projection line dropped from the plan to the section. And
@@ -43,32 +47,37 @@
 
 ## Shot list
 
-One sheet (the plan above, section B–B below, the title block), one camera, no cuts.
+One sheet (the plan above, section B–B under it on the same x, detail C, notes, legend and
+title block to the right), one camera, no cuts. 72 s. Every time below comes from `bank.js`
+(the model, the guard, the cameras, the marks) and `WHEN` / `CAM` in `scene.js`; the clock on
+the sheet starts at 26 s and runs in real time (02:14:00 → 02:14:43).
 
 | Time | Shot | What happens |
 |---|---|---|
-| 0–8 | The building | Close on blank cloth: axes, then the bank's ground floor drafts itself: walls in poché, doors with their swings, the tellers' counter, the stair, the lift, a small crossed square lettered DUCT, and a note: STRONG ROOM BELOW, SEE SECTION B–B. The title block shows DRG NO. 0412 · REV. A. |
-| 8–15 | The night runs | The building's own defences are drafted and start to move: three cameras, each a sector that sweeps; the guard's beat, a dotted loop with his mark walking it. A clock is lettered and starts: 02:14:00. For a few seconds the plan is a mechanism, turning by itself. |
-| 15–26 | The plan | The red pencil comes in: a ring round the side door, IN. A dashed route threads the gaps, leg by leg, each with its timing: behind the guard's back, WAIT 12 s in the store, across the hall in the 4 s CAM 2 looks away, to the stair. Three small numbered circles are set at the door. |
-| 26–38 | It works | The clock reads the times the pencil wrote. The three marks move along the route exactly as planned: they slip behind the guard as he turns his corner, wait while a sector passes over the store's door, and cross the hall inside the gap, the sector closing behind the last of them. Clockwork. |
-| 38–46 | The building changes a line | Ahead of them the guard's mark stops, and turns back. In white, by itself, his beat is redrawn through the stair, with a revision triangle: △B BEAT CHANGED. The route is cut. The marks stop in the store; CAM 3's sector is coming round. The pencil strikes the route out, twice, and writes: ? |
-| 46–58 | Out of the plan | The pencil stops on the crossed square. It rings DUCT and writes DOWN. A projection line drops from the square off the bottom of the plan and the camera goes with it, to SECTION B–B: the same wall, the same store, and the duct as a shaft running past the guard's floor to the basement. The three marks go down it one after the other while, above, the guard's mark walks into the empty store. They stand at the strong room's door: its wheel turns, the bolts draw back, the swing of the door is drafted as it opens. |
-| 58–66 | 0412 | Inside, the wall of boxes. The pencil rings one: 0412. A red line carries it back up the shaft, past the ground floor, to the roof: OUT. The marks leave the top of the drawing. |
-| 66–70 | The sheet | The camera pulls back to the whole sheet: the plan, the section, the red line through both. In the title block the revision is lettered in white, REV. B, and beside DRG NO. 0412 the pencil makes its last mark: ✓. The clock stops at 02:15:10. Hold. |
+| 0–8 | The building | Close on blank cloth: the column grid, then the bank's ground floor drafts itself: walls in poché, doors with their swings, the tellers' counter, the stair, the lift, a small crossed square lettered DUCT, the note STRONG ROOM BELOW, SEE SECTION B–B. The camera widens to the whole plan. |
+| 8–15 | The night runs | The clock's box, three cameras and the guard's beat are drafted and start to move: sectors sweep the hall, the guard's mark walks the dotted round. |
+| 15–26 | The plan | The camera goes in on the west half. The red pencil rings the side door, IN, and draws the route leg by leg: up the blind aisle, WAIT, across the counter front in the 5 s CAM 2 looks away, into the store, WAIT 12 s, then NOW along the counter to the stair, ringed. The camera widens for that last leg; three numbered marks are set at the door. |
+| 26–38 | It works | The clock starts. The marks slip in as the guard turns his corner two metres away, wait in the blind corner with CAM 2's sector standing right beside them, cross when it swings off, and the sector's edge comes back to the store's door as the third goes through it. |
+| 38–46 | The building changes a line | The guard stops and turns. In white, his beat is redrawn across the hall and into the store, with its triangle: △B BEAT CHANGED; the old round fades. The pencil strikes the route to the stair, twice, and writes: ? |
+| 46–55 | Out of the plan | The pencil rings DUCT: DOWN. Projection lines drop from the plan and the camera goes down them while section B–B is set out: slabs, the hall's north wall with its doors and counter, the basement lobby, the riser as hidden lines with its cowl on the roof. The marks go down it dashed (they are behind the wall we look at), come out of the grille and drop to the lobby floor, while above the guard's mark reaches the store's door and goes in. |
+| 55–62 | Detail C | A ring and a bubble round the strong room's door send the camera across the sheet to detail C, the same door at 1:25, the three marks beside it at that scale. The hand wheel turns, eight bolts draw back, the leaf swings on its hinge; through the opening the wall of boxes is drafted row by row. The pencil rings one: 0412. |
+| 62–66 | Out | Back at the section, a red line runs from the box along the lobby, up the riser and out of the cowl: OUT. The marks follow it and leave the top of the drawing. |
+| 66–72 | The sheet | The camera pulls back to the whole sheet. Revision B is lettered in the table and in the title block; the pencil ticks DRG NO. 0412; the clock stops. Hold. |
 
 The last beat is the film's small secret for whoever looks twice: the box they emptied has
 the number of this drawing. What they came for was the plan.
 
-## How it would be built
+## How it is built
 
-- The bank once, in metres (walls, openings, levels), so the plan and section B–B agree; one
-  world sheet with a camera path over it, holding at each view.
-- New in the kit: a pencil ink (red, freehand, softer and grainier than the print, on its
-  own layer above the white), marks that move along a drafted route on the clock, sectors
-  and loops that run as mechanisms, a stroke that is struck out, a group that is redrawn
-  (the changed beat).
-- Every timing in one table shared by the clock, the marks, the sectors and the sound, so
-  the gaps are true: a mark really crosses while the sector really looks away.
-- Order of work: the plan as a still (the building alone, at the test's bar); then the
-  stretch 15–38 s as stills and one clip, since the film stands or falls on the timing
-  reading at speed; then the section and the way down; then the whole camera path.
+- `bank.js`: the bank once, in metres, and the night's clockwork as functions of the film's
+  second (`guardAt`, `camAngle`, `markAt`). `tools/check-plan.mjs` walks every frame and fails
+  if a camera's sector ever holds a mark or the guard has one in front of him: the plan is
+  true, with 2.3° to spare at the store's door.
+- `plan.js`, `defences.js`, `section.js`, `extras.js`: the white drawing (one display list);
+  what moves by itself (sectors, the guard, the clock, the door's wheel, bolts and leaf) is
+  drawn every frame on the same ink layer.
+- `pencil.js`: the red drawing, a second display list on the kit's pencil layer; the marks
+  are drawn every frame from `markAt`, on the plan, in the section (dashed while behind the
+  wall) and in detail C.
+- Sound: a score alone, by the user's choice. Not made yet: it needs their explicit go-ahead
+  for the paid service, with what it would cost.
