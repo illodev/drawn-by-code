@@ -435,8 +435,8 @@ void main() {
         };
     }
     // The databar: what the instrument burns into the image (a scale bar with its label,
-    // and whatever fields the shot wants), crisp, never through the detector. len is the
-    // bar's length in logical units; fields are short strings.
+    // an optional caption on the same line, and whatever fields the shot wants), crisp, never
+    // through the detector. len is the bar's length in logical units; fields are short strings.
     function databar(g, env, o = {}) {
         const x = o.x ?? 56, y = o.y ?? env.H - 52, len = o.len ?? 180, a = o.alpha ?? 1, font = o.font ?? 'monospace';
         if (a <= 0) return;
@@ -450,9 +450,18 @@ void main() {
         g.fillRect(x + len - 3, y - 8, 3, 21);
         g.font = `${o.size ?? 26}px ${font}`;
         g.textBaseline = 'alphabetic';
+        // one line over the bar, as an instrument writes it: the caption (what the operator
+        // typed for this specimen), then the bar's length; it ends where the bar ends
+        const label = o.label ?? '100 nm';
+        if (o.caption) {
+            g.textAlign = 'right';
+            g.fillText(o.caption + '  ·  ' + label, x + len, y - 16);
+        } else {
+            g.textAlign = 'left';
+            g.fillText(label, x, y - 16);
+        }
         g.textAlign = 'left';
-        g.fillText(o.label ?? '100 nm', x, y - 16);
-        let fx = x + Math.max(len, g.measureText(o.label ?? '100 nm').width) + 44;
+        let fx = x + len + 44;
         for (const f of o.fields ?? []) { g.fillText(f, fx, y + 9); fx += g.measureText(f).width + 36; }
         g.restore();
     }

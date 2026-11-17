@@ -72,7 +72,7 @@ void specimen(vec2 p, out float s, out vec3 ink) {
         // the magnification creeps in, the stage drifts, the particle hardly turns
         const a = [t, 0.004 * u, 0.0025 * u, (1 + 0.012 * u) * (1 - 0.25 * edge.inn) * (1 - 0.45 * edge.out), 0.012 * u];
         // focus: the shot arrives soft from the magnification change and is pulled in once
-        const defocus = Motion.keys([[0, 2.6], [0.55, 0.0], [0.85, 0.6], [1.2, 0.15]], t, Ease.inOut) + 0.05 * Math.sin(t * 1.1 + 1) + 2.6 * edge.out;
+        const defocus = Motion.keys([[0, 2.6], [0.55, 0.0], [0.85, 0.6], [1.2, 0.15]], t, Ease.inOut) + 0.05 * Math.sin(t * 1.1 + 1) + 2.6 * edge.out + (edge.skip ? 2.6 * edge.inn * edge.inn : 0);
         const detector = {
             soft: 1.5, defocus, fringe: 0.2 + 0.3 * defocus, fringeWidth: 3,
             noise: { amount: 0.105, power: 0.1, floor: 0.001, size: 5.2, live: 0.6, hold: 2, sharp: 0.75, fine: 0.3 },
@@ -81,6 +81,6 @@ void specimen(vec2 p, out float s, out vec3 ink) {
         return { a, detector, stage: [a[1], a[2]] };
     },
     overlay(g, t, env) {
-        Micrograph.databar(g, env, { x: env.W - 56 - 200, len: 200, label: '50 nm', font: 'VT323', size: 34, colour: '#1c0f24', shadow: 'rgba(255,255,255,0.5)', alpha: Ease.seg(t, 0.3, 0.6) * (1 - Ease.seg(t, 4.6, 4.75)) });
+        Micrograph.databar(g, env, { x: env.W - 56 - 200, len: 200, label: '50 nm', caption: 'virion · negative stain', font: 'VT323', size: 34, colour: '#1c0f24', shadow: 'rgba(255,255,255,0.5)', alpha: Ease.seg(t, 1.3, 1.6) * (1 - Ease.seg(t, 4.6, 4.75)) });
     },
 };

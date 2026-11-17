@@ -87,3 +87,78 @@ out of the shader).
 instrument's motion and a little of their own; there is no original scene yet. The gate
 passes the section at its limit (8.0) and its membranes are still smoother than the
 still's. The stills' source is not confirmed (they look like NIAID's): to credit.
+
+## User feedback, round 2 (verbatim)
+
+- «Sí, propón ideas de escenas originales»
+- «Haz las tres recomendadas como una pieza montada, yo también propongo naegledia. Podemos
+  poner quizás algún título a cada una? o lo ves innecesario?» · «naegleria*»
+- Then, with no words, three pictures of Naegleria: a living trophozoite in contrast (a
+  slug-shaped cell, the nucleus as a ring, the rear full of vacuoles, a thread at the tail),
+  a 3D illustration (lobed cells full of round vesicles) and a stained smear (two foamy
+  amoebae among neutrophils).
+
+Translation: four original scenes (budding, a mitochondrion in serial sections, a phage on
+a bacterium, Naegleria) cut with the three reference shots into one piece; a title for
+each, which I proposed as the databar's caption, not a title card; the pictures taken as
+anatomy for the amoeba, not as a look to copy.
+
+## Round 2 (auto)
+
+**The piece.** Seven shots from the largest specimen to the smallest (see brief.md), 37.5 s.
+The wash that tints the film's first shot moved from Section to Naegleria; Section and
+Stain now start later in their own time (1.5 s and 1 s in) and arrive like any other shot.
+
+**The four new shots** (no reference: built from the traits in brief.md, checked by
+cropping each at full size against the style's checklist):
+
+- **Budding** worked at the first render: the cell's edge joined to each bud by a smooth
+  union whose width is the neck, the virion of the Dark shot (extracted to `virion.js`;
+  Dark's gate unchanged) shown only where it has come out of the membrane.
+- **Phage** read as a T4 in stain at once. Fixed: a seam in the pool of stain half way
+  between two phages (only the nearest was shaded: the next nearest now pools too, roughly)
+  and fibres that showed as dark smudges instead of pale threads.
+- **Mito** came out first as a textbook diagram: clean double outline, cristae as pale
+  rods with round ends, granules as squares (thresholded value noise shows its lattice),
+  reticulum as ruled lines. Rebuilt: many thin warped cristae with dark walls, membranes
+  of uneven weight that wander off each other, granules from gradient noise in 3D, rough
+  reticulum that breaks and is studded, vesicles as slices of spheres, softer focus.
+- **Naegleria** came out first as a cell diagram: every organelle and the cell itself had
+  an even dark line round it. At 2 µm to the bar a membrane cannot show: the lines went,
+  edges became changes of density with an uneven cortex, and the whole softened. After the
+  user's pictures: the foam of vacuoles (most of them towards the rear), lobes welling up
+  along the sides, threads at the tail (first three clean whiskers, then faint and fading).
+  The bacterium in the cup was hidden by the cell's own halo: it is now drawn after it.
+
+**Captions.** First in the corner opposite the bar, then on the bar's own line, as an
+instrument writes them: one block of text instead of two.
+
+**The reference shots in the new film.**
+
+| Shot | colour median (≤ 8) | colour p90 (≤ 27) | too clean (≤ 6 %) | too busy (≤ 12 %) |
+|---|---|---|---|---|
+| Section, 13.5 s | 7.8 | 12.1 | 0.0 | 5.6 |
+| Stain, 23.0 s | 5.4 | 11.9 | 2.1 | 2.8 |
+| Dark, 34.5 s | 6.2 | 19.8 | 3.2 | 6.3 |
+
+Section had passed at exactly 8.0 and failed at 8.1 in the new film with nothing changed
+but the frame number (another exposure of the same noise) and the caption: it had no
+margin. Tuning inks by mean bias moved it between 8.0 and 8.4. What gave margin was the
+same thing as before: measuring. The ghosts were ellipses with random mottling; with their
+tone in rings × sectors, like the cut bodies, it is 7.8. The orange and umber inks were
+also brought to the measured hue (less red, more blue). Dark's median rose from 5.4 to 6.2
+because its caption is white text on tiles that were black.
+
+**Automatic review** (`review/auto.md`, 900 frames): no warnings, deterministic, no flashes
+(the serial sections change every three frames but stay within the limit), no still
+stretch. On the sheet the mitochondrion's caption fell on a sheet of reticulum: the sheet
+was moved up.
+
+**Render.** This round at 1280 × 720 (≈ 45 min here; 1080p would take ≈ 1 h 45 min): the
+committed copy is that size anyway. A 1080p render is owed once the piece is approved.
+
+**Lessons.** A style test passes on what was measured and its originals fail on what was
+assumed: both first versions of the section-palette shots were diagrams, because a
+membrane was drawn as a line wherever one exists. What shows is decided by the
+magnification, not by the anatomy.
+

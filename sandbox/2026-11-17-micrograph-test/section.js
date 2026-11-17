@@ -45,10 +45,21 @@ MGT.section = {
         [0.54, 0.48, 0.49, 0.51, 0.44, 0.38, 0.34, 0.35, 0.31, 0.34, 0.43, 0.41, 0.38, 0.39, 0.49, 0.53, 0.37, 0.33, 0.40, 0.45, 0.43, 0.47, 0.30, 0.34, 0.31, 0.17, 0.15, 0.22, 0.27, 0.45, 0.43, 0.25, 0.23, 0.21, 0.16, 0.21, 0.29, 0.25, 0.16, 0.14, 0.08, 0.06, 0.06, 0.09, 0.11, 0.17, 0.19, 0.18, 0.34, 0.30, 0.26, 0.34, 0.26, 0.31, 0.24, 0.22, 0.22, 0.29, 0.30, 0.26, 0.28, 0.19, 0.27, 0.28, 0.63, 0.56, 0.49, 0.63, 0.53, 0.55, 0.60, 0.55, 0.65, 0.57, 0.50, 0.44, 0.57, 0.53, 0.67, 0.67, 0.77, 0.71, 0.65, 0.71, 0.69, 0.71, 0.73, 0.73, 0.75, 0.73, 0.65, 0.56, 0.57, 0.76, 0.79, 0.74],
         [0.47, 0.45, 0.45, 0.49, 0.50, 0.45, 0.47, 0.55, 0.52, 0.48, 0.31, 0.42, 0.45, 0.32, 0.35, 0.39, 0.35, 0.36, 0.41, 0.45, 0.55, 0.42, 0.42, 0.52, 0.49, 0.48, 0.30, 0.36, 0.40, 0.40, 0.48, 0.41, 0.23, 0.18, 0.22, 0.29, 0.37, 0.52, 0.54, 0.47, 0.50, 0.37, 0.27, 0.26, 0.24, 0.23, 0.27, 0.23, 0.37, 0.40, 0.28, 0.28, 0.23, 0.40, 0.54, 0.50, 0.41, 0.14, 0.22, 0.35, 0.28, 0.34, 0.31, 0.37, 0.58, 0.67, 0.54, 0.52, 0.46, 0.27, 0.43, 0.52, 0.52, 0.52, 0.39, 0.56, 0.48, 0.59, 0.60, 0.69, 0.75, 0.78, 0.73, 0.67, 0.70, 0.45, 0.28, 0.65, 0.65, 0.65, 0.55, 0.67, 0.64, 0.73, 0.74, 0.77],
     ],
-    // particles outside the section's plane: x, y, radii (px), tilt, how faint (0 solid … 1 nearly gone), how dark
+    // particles outside the section's plane: x, y, radii (px), tilt, how faint (0 solid … 1
+    // nearly gone: how much of the mauve ink it takes), and a darkness no longer used (GTONE has it)
     GHOSTS: [
         [633, 260, 68, 59, -1.25, 0.0, 0.1], [688, 118, 62, 50, 0, 0.0, 0.5], [538, 212, 40, 34, 0, 0.0, 0.8], [256, 511, 31, 29, 0, 0.0, 0],
         [765, 485, 38, 36, 0, 0.55, 0], [850, 368, 38, 36, 0, 0.15, 0], [762, 215, 30, 27, 0, 0.3, 0.5],
+    ],
+    // the tone in and round each ghost, measured like TONE but on its ellipse
+    GTONE: [
+        [0.47, 0.41, 0.44, 0.48, 0.49, 0.56, 0.56, 0.49, 0.53, 0.53, 0.48, 0.44, 0.44, 0.46, 0.38, 0.46, 0.43, 0.41, 0.42, 0.42, 0.46, 0.54, 0.52, 0.44, 0.45, 0.40, 0.41, 0.40, 0.44, 0.34, 0.29, 0.42, 0.34, 0.36, 0.45, 0.41, 0.41, 0.43, 0.33, 0.43, 0.43, 0.36, 0.42, 0.44, 0.41, 0.44, 0.37, 0.30, 0.43, 0.39, 0.38, 0.37, 0.37, 0.43, 0.42, 0.46, 0.50, 0.48, 0.52, 0.66, 0.58, 0.65, 0.57, 0.48, 0.64, 0.53, 0.55, 0.56, 0.67, 0.69, 0.68, 0.71, 0.70, 0.61, 0.56, 0.71, 0.61, 0.72, 0.70, 0.56, 0.72, 0.61, 0.73, 0.78, 0.78, 0.76, 0.74, 0.75, 0.72, 0.66, 0.63, 0.69, 0.59, 0.65, 0.67, 0.65],
+        [0.35, 0.29, 0.40, 0.59, 0.45, 0.47, 0.39, 0.48, 0.49, 0.51, 0.50, 0.36, 0.28, 0.38, 0.35, 0.37, 0.38, 0.35, 0.38, 0.41, 0.40, 0.37, 0.44, 0.52, 0.43, 0.41, 0.44, 0.49, 0.46, 0.43, 0.50, 0.46, 0.36, 0.40, 0.45, 0.43, 0.41, 0.38, 0.40, 0.46, 0.43, 0.42, 0.45, 0.49, 0.46, 0.47, 0.58, 0.48, 0.60, 0.60, 0.64, 0.66, 0.65, 0.57, 0.63, 0.57, 0.48, 0.50, 0.50, 0.56, 0.52, 0.52, 0.60, 0.48, 0.71, 0.71, 0.71, 0.73, 0.73, 0.74, 0.74, 0.72, 0.70, 0.66, 0.65, 0.72, 0.63, 0.58, 0.63, 0.59, 0.74, 0.74, 0.74, 0.74, 0.76, 0.77, 0.79, 0.79, 0.73, 0.71, 0.72, 0.75, 0.71, 0.66, 0.70, 0.75],
+        [0.35, 0.34, 0.37, 0.31, 0.29, 0.32, 0.38, 0.47, 0.45, 0.44, 0.47, 0.45, 0.37, 0.37, 0.35, 0.37, 0.34, 0.30, 0.42, 0.42, 0.42, 0.42, 0.42, 0.43, 0.48, 0.50, 0.50, 0.47, 0.40, 0.41, 0.41, 0.43, 0.40, 0.40, 0.48, 0.48, 0.48, 0.48, 0.48, 0.52, 0.53, 0.56, 0.44, 0.52, 0.52, 0.52, 0.46, 0.44, 0.43, 0.43, 0.54, 0.54, 0.54, 0.54, 0.54, 0.62, 0.59, 0.59, 0.54, 0.54, 0.61, 0.52, 0.58, 0.47, 0.48, 0.58, 0.63, 0.63, 0.63, 0.63, 0.72, 0.76, 0.71, 0.64, 0.63, 0.63, 0.63, 0.63, 0.66, 0.50, 0.60, 0.71, 0.71, 0.71, 0.71, 0.71, 0.76, 0.77, 0.75, 0.68, 0.71, 0.71, 0.71, 0.71, 0.71, 0.71],
+        [0.50, 0.55, 0.48, 0.46, 0.46, 0.51, 0.54, 0.52, 0.48, 0.51, 0.48, 0.46, 0.43, 0.45, 0.48, 0.52, 0.42, 0.41, 0.40, 0.39, 0.47, 0.50, 0.48, 0.48, 0.53, 0.59, 0.58, 0.53, 0.50, 0.43, 0.42, 0.43, 0.47, 0.47, 0.44, 0.44, 0.46, 0.51, 0.52, 0.54, 0.58, 0.58, 0.56, 0.59, 0.54, 0.45, 0.37, 0.48, 0.44, 0.52, 0.53, 0.51, 0.49, 0.54, 0.49, 0.56, 0.60, 0.55, 0.56, 0.57, 0.54, 0.49, 0.47, 0.53, 0.58, 0.55, 0.50, 0.56, 0.54, 0.62, 0.58, 0.58, 0.60, 0.58, 0.61, 0.59, 0.57, 0.54, 0.53, 0.55, 0.66, 0.62, 0.57, 0.62, 0.69, 0.70, 0.72, 0.66, 0.65, 0.61, 0.63, 0.64, 0.64, 0.64, 0.57, 0.60],
+        [0.71, 0.72, 0.76, 0.76, 0.75, 0.73, 0.69, 0.69, 0.70, 0.69, 0.67, 0.71, 0.68, 0.69, 0.68, 0.68, 0.65, 0.69, 0.73, 0.78, 0.77, 0.71, 0.68, 0.71, 0.67, 0.68, 0.69, 0.73, 0.70, 0.76, 0.67, 0.62, 0.71, 0.75, 0.77, 0.79, 0.74, 0.79, 0.69, 0.70, 0.67, 0.68, 0.75, 0.76, 0.76, 0.74, 0.70, 0.70, 0.76, 0.79, 0.80, 0.76, 0.76, 0.78, 0.71, 0.65, 0.69, 0.73, 0.81, 0.78, 0.83, 0.79, 0.73, 0.71, 0.79, 0.80, 0.80, 0.75, 0.71, 0.77, 0.73, 0.69, 0.72, 0.76, 0.77, 0.79, 0.81, 0.82, 0.74, 0.80, 0.80, 0.80, 0.80, 0.77, 0.74, 0.77, 0.72, 0.72, 0.75, 0.75, 0.77, 0.82, 0.83, 0.83, 0.82, 0.82],
+        [0.59, 0.59, 0.54, 0.56, 0.52, 0.52, 0.60, 0.56, 0.55, 0.47, 0.56, 0.54, 0.49, 0.59, 0.62, 0.59, 0.62, 0.60, 0.49, 0.52, 0.53, 0.58, 0.60, 0.61, 0.60, 0.53, 0.59, 0.64, 0.61, 0.62, 0.63, 0.61, 0.55, 0.65, 0.55, 0.58, 0.52, 0.59, 0.59, 0.55, 0.61, 0.55, 0.60, 0.56, 0.52, 0.55, 0.57, 0.60, 0.65, 0.73, 0.62, 0.58, 0.47, 0.61, 0.65, 0.58, 0.61, 0.62, 0.59, 0.57, 0.55, 0.44, 0.58, 0.60, 0.78, 0.79, 0.67, 0.65, 0.38, 0.53, 0.58, 0.64, 0.60, 0.64, 0.63, 0.71, 0.71, 0.61, 0.75, 0.79, 0.79, 0.80, 0.54, 0.72, 0.72, 0.59, 0.70, 0.71, 0.64, 0.65, 0.67, 0.80, 0.82, 0.75, 0.82, 0.81],
+        [0.50, 0.52, 0.40, 0.47, 0.45, 0.51, 0.60, 0.61, 0.58, 0.56, 0.57, 0.56, 0.40, 0.34, 0.44, 0.45, 0.58, 0.59, 0.48, 0.40, 0.44, 0.49, 0.59, 0.64, 0.57, 0.54, 0.53, 0.61, 0.47, 0.34, 0.46, 0.55, 0.60, 0.60, 0.53, 0.49, 0.54, 0.60, 0.57, 0.66, 0.64, 0.65, 0.62, 0.52, 0.56, 0.48, 0.50, 0.63, 0.70, 0.62, 0.54, 0.56, 0.64, 0.70, 0.68, 0.63, 0.74, 0.74, 0.71, 0.57, 0.57, 0.52, 0.49, 0.66, 0.66, 0.63, 0.66, 0.69, 0.66, 0.67, 0.69, 0.71, 0.75, 0.79, 0.72, 0.65, 0.56, 0.48, 0.42, 0.64, 0.66, 0.66, 0.69, 0.71, 0.72, 0.72, 0.69, 0.74, 0.75, 0.80, 0.75, 0.72, 0.65, 0.63, 0.57, 0.64],
     ],
     // wisps of thin matter in the field: x, y, radius (px), weight
     CLOUDS: [[35, 148, 60, 2.2], [800, 15, 75, 0.7], [340, 528, 60, 1], [905, 185, 50, 0.7], [60, 335, 40, 0.15], [700, 20, 60, 0.7]],
@@ -59,10 +70,11 @@ MGT.section = {
         const avg3 = (r) => r.map((_, i) => (r[(i + 31) % 32] + 2 * r[i] + r[(i + 1) % 32]) / 4);
         return this.LOBES.map((e) => avg3(med5(e[5])).map((r) => r / 540));
     },
-    // the tables for the shader: a row of tone per lobe, then a row of outline per lobe, 96 wide
+    // the tables for the shader, 96 wide: a row of tone per lobe, a row of outline per lobe,
+    // a row of tone per ghost
     get data() {
         const pad = (r) => [...r, ...new Array(96 - r.length).fill(0)];
-        return { data: [...this.TONE.flat(), ...this.radii().flatMap(pad)], width: 96 };
+        return { data: [...this.TONE.flat(), ...this.radii().flatMap(pad), ...this.GTONE.flat()], width: 96 };
     },
     get glsl() {
         const f = (x) => x.toFixed(4), X = (x) => (x - 480) / 540, Y = (y) => (270 - y) / 540, R = (r) => r / 540;
@@ -76,7 +88,8 @@ const vec4 LA[NL] = vec4[NL](${L.map((e, i) => `vec4(${[X(e[0]), Y(e[1]), e[2], 
 const vec2 LB[NL] = vec2[NL](${L.map((e, i) => `vec2(${f(e[4])}, ${f(rad[i].reduce((x, y) => x + y, 0) / 32)})`).join(', ')});
 // (the tables are data: row i = the tone of lobe i, 96 wide; row NL + i = its outline, 32 radii)
 const float RING[6] = float[6](0.175, 0.485, 0.72, 0.91, 1.075, 1.25);
-// the measured tone of lobe i at angle a and x = distance from its centre in outline radii
+// the measured tone in row i of the table at angle a and x = distance from the centre in
+// outline radii (rows: the lobes, then their outlines, then the ghosts)
 float tone(int i, float a, float x) {
     float g = fract(a / 6.2831853) * 16.0, u = fract(g), y = clamp(x, RING[0], RING[5]);
     int k = int(floor(g)), k1 = (k + 1) % 16, r0 = 0;
@@ -101,7 +114,7 @@ const vec4 CL[NCL] = vec4[NCL](${C.map((e) => `vec4(${[X(e[0]), Y(e[1]), R(e[2])
 #define ZOOM uA[5]
 const vec2 ZC = vec2(0.024, -0.05);   // what the next magnification closes in on
 // the inks (sRGB, each pure at its own luminance)
-const vec3 ORANGE = vec3(0.80, 0.49, 0.29), UMBER = vec3(0.34, 0.25, 0.19), ROSE = vec3(0.58, 0.36, 0.40);
+const vec3 ORANGE = vec3(0.78, 0.49, 0.315), UMBER = vec3(0.31, 0.25, 0.21), ROSE = vec3(0.58, 0.36, 0.40);
 const vec3 BLUSH = vec3(0.84, 0.75, 0.74), SKY = vec3(0.735, 0.815, 0.985), VIOLET = vec3(0.60, 0.61, 0.83), MAUVE = vec3(0.72, 0.47, 0.44);
 // one cut body: d = distance to its outline (negative inside), R = its size, m = the mean
 // luminance measured inside it, dk = the measured share of dark granules, l = a point fixed to it
@@ -141,7 +154,7 @@ void specimen(vec2 p, out float s, out vec3 ink) {
     float wisp = 0.0;
     for (int i = 0; i < NCL; i++) wisp += CL[i].w * exp(-dot(q - CL[i].xy, q - CL[i].xy) / (CL[i].z * CL[i].z));
     wisp *= smoothstep(0.22, 0.62, fbm(q * 7.0 + 2.0 + 0.02 * T));
-    s = 0.805 + 0.02 * (fbm(q * 3.0) - 0.5) - 0.24 * wisp - 0.06 * smoothstep(0.0, -0.45, q.y) * smoothstep(0.35, -0.35, q.x);
+    s = 0.813 + 0.02 * (fbm(q * 3.0) - 0.5) - 0.24 * wisp - 0.06 * smoothstep(0.0, -0.45, q.y) * smoothstep(0.35, -0.35, q.x);
     ink = mix(SKY, VIOLET, clamp(1.6 * wisp, 0.0, 1.0));
     grit = 0.035 * grainy(q, 0.0058, 1.0, 0.6) * (1.0 + 4.0 * wisp);
     // the cluster sits in a thin pool of its own matter, pinkish and a little denser than the field
@@ -153,21 +166,26 @@ void specimen(vec2 p, out float s, out vec3 ink) {
     // is shaded (they never overlap): a renderer that runs every branch pays for every
     // grain field it meets, so choose first and grain once
     {
-        float gd = 1e3, gR = 0.1, gk = 1.0, gz = 0.0, gs = 0.0;
+        float gd = 1e3, gR = 0.1, gk = 1.0, gs = 0.0, gx = 9.0, gt = 0.8;
         vec2 gq = q;
         for (int i = 0; i < NG; i++) {
             vec3 h = hash3(vec2(float(i), 41.0));
             vec2 c = GA[i].xy + (h.xy - 0.5) * 0.010 * U, l = rot(GF[i].x) * (q - c);
             float d = body(l, GA[i].zw, float(i) + 20.0, 0.11, T * 0.5);
-            if (d < gd) { gd = d; gq = l; gR = min(GA[i].z, GA[i].w); gk = 1.0 - GF[i].y; gz = GF[i].z; gs = float(i); }
+            if (d < gd) {
+                gd = d; gq = l; gR = min(GA[i].z, GA[i].w); gk = 1.0 - GF[i].y; gs = float(i);
+                gx = length(l / GA[i].zw);
+                gt = tone(2 * NL + i, atan(l.y, l.x), gx);
+            }
         }
-        float g1 = grainy(gq, 0.010, gs + 30.0, 0.6), g2 = grainy(gq, 0.0052, gs + 33.0, 0.8), g0 = grainy(gq, 0.022, gs + 36.0, 0.3);
+        float g1 = grainy(gq, 0.010, gs + 30.0, 0.6), g2 = grainy(gq, 0.0052, gs + 33.0, 0.8);
         float d = gd + 0.006 * g1 + 0.008 * grainy(gq, 0.03, gs + 39.0, 0.2);   // no clean edge: it is out of the plane
-        float in1 = inside(d + 0.004, 0.014), halo = smoothstep(0.06, 0.0, d);
-        float v = mix(0.43, 0.52, smoothstep(0.0, 0.8, -d / gR)) * (1.0 - 0.3 * gz) * (1.0 + 0.06 * g0) * (1.0 - 0.55 * smoothstep(0.2, 0.7, 0.15 * g0 + g1 * 0.7 + g2 * 0.35));
-        s = mix(s, 0.82, halo * 0.8 * gk);
-        ink = mix(ink, BLUSH, halo * gk);
-        s = mix(s, mix(0.74, v, gk), in1 * mix(0.55, 1.0, gk));
+        float in1 = inside(d + 0.004, 0.014), near = smoothstep(1.36, 1.2, gx);
+        // its tone is the one measured there; on it, flecks finer than the measure
+        float fleck = smoothstep(0.2, 0.7, g1 * 0.7 + g2 * 0.35) * 1.5 - 0.3;
+        s = mix(s, gt, near * (1.0 - in1));
+        ink = mix(ink, BLUSH, near * (1.0 - in1) * smoothstep(0.84, 0.74, gt));
+        s = mix(s, gt * (1.0 - 0.35 * fleck), in1);
         ink = mix(ink, MAUVE, in1 * mix(0.5, 1.0, gk));
         grit = mix(grit, 0.24 * g2 + 0.12 * g1, in1 * gk);
     }
@@ -226,19 +244,20 @@ void specimen(vec2 p, out float s, out vec3 ink) {
     },
     frame(t, edge) {
         const M = this.MATCH, u = t - M;
-        const a = [t, 0.002 * u, 0.001 * u, u, Ease.inOut(Ease.seg(t, 1.3, 2.9)), 1 + 0.9 * edge.out];
+        const wash = edge.first ? Ease.inOut(Ease.seg(t, 1.3, 2.9)) : 1;      // (the film's first shot is the one that is tinted while we watch)
+        const a = [t, 0.002 * u, 0.001 * u, u, wash, (1 + 0.9 * edge.out) * (1 - 0.25 * edge.inn)];
         // the image arrives out of focus; the operator pulls it in, a little too far, and back
-        const defocus = Motion.keys([[0, 3.4], [0.9, 0.0], [1.2, 0.7], [1.6, 0.1]], t, Ease.inOut) + 0.05 * Math.sin(t * 1.2) + 2.6 * edge.out;
+        const defocus = Motion.keys([[0, 3.4], [0.9, 0.0], [1.2, 0.7], [1.6, 0.1]], t, Ease.inOut) + 0.05 * Math.sin(t * 1.2) + 2.6 * edge.out + (edge.first ? 0 : 2.6 * edge.inn * edge.inn);
         const detector = {
             soft: 0.9, defocus, fringe: 0.3 + 0.3 * defocus, fringeWidth: 2.5,
             noise: { amount: 0.045, power: 0.4, floor: 0.001, size: 4.6, live: 0.6, hold: 2, sharp: 0.6, fine: 0.3 },
             bleed: 1.8, light: [1, 1 - 0.13 * a[4], 1 - 0.32 * a[4]],   // (highlights burn to cream only once tinted)
             // the beam comes on at the start of the film and dips at the change of magnification
-            gain: (0.12 + 0.88 * Ease.out(Ease.seg(t, 0, 0.6))) * (1 - 0.7 * edge.out),
+            gain: (edge.first ? 0.12 + 0.88 * Ease.out(Ease.seg(t, 0, 0.6)) : 1 - 0.7 * edge.inn * edge.inn) * (1 - 0.7 * edge.out),
         };
         return { a, detector, stage: [a[1], a[2]] };
     },
     overlay(g, t, env) {
-        Micrograph.databar(g, env, { x: env.W - 56 - 316, len: 316, label: '200 nm', font: 'VT323', size: 34, colour: '#141a2c', shadow: 'rgba(255,255,255,0.5)', alpha: Ease.seg(t, 0.5, 0.9) * (1 - Ease.seg(t, 5.1, 5.25)) });
+        Micrograph.databar(g, env, { x: env.W - 56 - 316, len: 316, label: '200 nm', caption: 'virions · thin section', font: 'VT323', size: 34, colour: '#141a2c', shadow: 'rgba(255,255,255,0.5)', alpha: Ease.seg(t, 1.8, 2.1) * (1 - Ease.seg(t, 5.1, 5.25)) });
     },
 };

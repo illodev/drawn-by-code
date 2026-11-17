@@ -1,6 +1,6 @@
 ---
 name: style-micrograph
-description: Micrograph style, in testing: an image made by an instrument and tinted afterwards — false-colour electron micrographs (virions, cells, membranes, particles in a pool of stain) as one grey signal with sharp grain over soft structures, a focus that hunts, shot noise, and a colourist's few inks laid over regions with a soft brush; three measured palettes (orange on pale blue, olive and rose on lilac, red/yellow/teal on black). Use it for biology, microscopy, virology, cells, «scientific image», false colour, lab or documentary inserts, or when working with styles/micrograph/.
+description: Micrograph style, in testing: an image made by an instrument and tinted afterwards — false-colour electron micrographs (virions, phages, an amoeba, organelles in serial sections, particles in a pool of stain) as one grey signal with sharp grain over soft structures, a focus that hunts, shot noise, and a colourist's few inks laid over regions with a soft brush; three measured palettes (orange on pale blue, olive and rose on lilac, red/yellow/teal on black). Use it for biology, microscopy, virology, cells, «scientific image», false colour, lab or documentary inserts, or when working with styles/micrograph/.
 ---
 
 # Style · Micrograph
@@ -17,7 +17,7 @@ there things are light that overflows, here things are density that is tinted.
 const M = Micrograph.make(env);
 M.scene('field', GLSL);          // defines: void specimen(vec2 p, out float s, out vec3 ink)
 M.render(g, 'field', { t, frame, a: [floats…], stage: [x, y], detector: {…}, plate, plateKey });
-Micrograph.databar(g, env, { x, len, label: '100 nm', font: 'VT323', colour, shadow, alpha });
+Micrograph.databar(g, env, { x, len, label: '100 nm', caption: 'budding', font: 'VT323', colour, shadow, alpha });
 ```
 
 A scene describes a **specimen**, not a picture. For every point `p` (frame units, y up,
@@ -84,9 +84,38 @@ grainy. **Databar**: the scale bar and its label, drawn crisp on `g` after `rend
 
 | | Field | Inks |
 |---|---|---|
-| **Section** (thin section, bright field) | sky `(0.735, 0.815, 0.985)`, s ≈ 0.80 | orange `(0.80, 0.49, 0.29)`, umber `(0.34, 0.25, 0.19)`, rose `(0.58, 0.36, 0.40)`, blush `(0.84, 0.75, 0.74)`, violet `(0.60, 0.61, 0.83)`, mauve `(0.72, 0.47, 0.44)`; `light` cream `[1, 0.87, 0.68]` |
+| **Section** (thin section, bright field) | sky `(0.735, 0.815, 0.985)`, s ≈ 0.80 | orange `(0.78, 0.49, 0.315)`, umber `(0.31, 0.25, 0.21)`, rose `(0.58, 0.36, 0.40)`, blush `(0.84, 0.75, 0.74)`, violet `(0.60, 0.61, 0.83)`, mauve `(0.72, 0.47, 0.44)`; `light` cream `[1, 0.87, 0.68]` |
 | **Stain** (negative stain) | lilac `(0.86, 0.78, 0.89)` falling to purple `(0.43, 0.29, 0.40)` and wine `(0.42, 0.22, 0.25)` at the particle | yolk `(0.73, 0.58, 0.26)`, pink `(0.66, 0.48, 0.42)`, rust `(0.58, 0.37, 0.34)` |
 | **Dark** | black; haze green `(0.08, 0.34, 0.20)` | teal `(0.09, 0.60, 0.56)`, red `(0.70, 0.20, 0.21)`, yellow `(0.95, 0.72, 0.28)`, blue-grey `(0.27, 0.45, 0.48)`, mauve `(0.62, 0.40, 0.39)`, olive `(0.62, 0.66, 0.20)`; `light` `[1, 0.94, 0.84]` |
+
+## Scenes without a reference (built in the style test)
+
+Write the traits of the real thing in the brief, then build each from its cause. Four
+recipes in `sandbox/2026-11-17-micrograph-test/`:
+
+- **What shows is decided by the magnification, not by the anatomy.** A membrane is 7 nm:
+  at 2 µm to the bar it cannot be a line, and a cell whose every organelle is outlined is
+  a diagram. At low magnification edges are changes of density with an uneven cortex
+  (`naegleria.js`); at high magnification a membrane is a band of uneven weight that
+  wanders, never a ruled pair (`mito.js`).
+- **A body that changes shape** is a smooth union of discs the scene's JS moves
+  (`naegleria.js`: lobes, a food cup; `budding.js`: the union's width is the bud's neck).
+- **Something forming at a surface** shows only where it has come out of it
+  (`budding.js`: the particle's cover times `smoothstep` of the distance to the base
+  membrane), with dense matter gathering underneath beforehand.
+- **Serial sections** (`mito.js`): the specimen is one function of (x, y, z) made of 3D
+  noise, and the shot only steps z, a slice every three frames; each slice gets its own
+  small offset, turn, focus and exposure from a seeded generator, and the knife's chatter.
+  Round things are slices of spheres (their radius follows z).
+- **Negative stain** (`phage.js`): the field is pale, the stain pools darkest against
+  whatever stands on it (`exp(−distance)` to the nearest thing), what the stain cannot
+  enter is pale and what it has entered is dark with a pale shell. A state change is
+  that: a head going from pale to dark as it empties.
+- **A foam, granules, vacuoles**: one per cell of a jittered grid, most cells empty, sizes
+  as a squared random; granules from gradient noise, never thresholded value noise (its
+  lattice shows as squares).
+- **The databar carries the caption** (`caption:`): one line over the bar, the specimen's
+  name and the scale. A counter there (`section 07/40`) is motion that costs nothing.
 
 ## Working from a still (the detail gate)
 
@@ -162,3 +191,11 @@ second> --grid 12` must PASS. What made each kind of image pass:
   are right, stop tuning parameters and look at the signed difference: it showed rings
   (edge profile), not blobs (tone), and measuring the tone round each body per sector
   took the shot from 13 to 8 in two steps where six rounds of tuning had moved it by 3.
+- 2026-11-17 · micrograph-test round 2 · A gate passed at exactly its limit is not passed:
+  the same shot at another frame number (another exposure of the noise) read 8.1. Leave
+  margin, and get it by measuring what is still modelled (the ghosts' tone), not by nudging
+  inks against a mean bias, which moved it at random between 8.0 and 8.4.
+- 2026-11-17 · micrograph-test round 2 · Both original shots in the section palette came
+  out first as diagrams (a line round everything): the reference shots had been measured,
+  the originals were drawn from knowledge of the anatomy. Decide what the magnification
+  can resolve before placing a single edge.

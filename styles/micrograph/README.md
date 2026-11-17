@@ -28,10 +28,10 @@ node engine/render.mjs sandbox/<exp>/scene.js --size 1920
 | File | What it gives |
 |---|---|
 | `template.js` | two particles in a pool of stain: found out of focus, pulled in, tinted by a wash, with a scale bar |
-| `micrograph.js` | `Micrograph`: scenes as a specimen (`specimen(p, s, ink)` in GLSL, plus `grit`; helpers `grainy`, `body`, `crown`, `shell`, `smin`, `plate`) and the instrument (softening, defocus with its fringe, shot noise per exposure, gain, ink bleed, the colour ramp), and `databar` |
+| `micrograph.js` | `Micrograph`: scenes as a specimen (`specimen(p, s, ink)` in GLSL, plus `grit`; helpers `grainy`, `body`, `crown`, `lumps`, `shell`, `smin`, `datum`, `plate`) and the instrument (softening, defocus with its fringe, shot noise per exposure, gain, ink bleed, the colour ramp), and `databar` (scale bar and caption) |
 
 ## Made with it
 
 | Video | What it is |
 |---|---|
-| [micrograph-test](../../sandbox/2026-11-17-micrograph-test/) | the style test: three specimens, one per palette, each matched to one of the user's reference stills, cut as changes of magnification (16.5 s) |
+| [micrograph-test](../../sandbox/2026-11-17-micrograph-test/) | the style test, grown into a piece: seven specimens from the largest to the smallest, cut as changes of magnification (an amoeba, a mitochondrion in serial sections, a phage emptying into a bacterium and virions budding are ours; three shots are matched to the user's reference stills; 37.5 s) |

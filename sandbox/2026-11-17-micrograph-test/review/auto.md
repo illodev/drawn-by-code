@@ -1,18 +1,18 @@
 # Automatic review · sandbox/2026-11-17-micrograph-test/scene.js
 
-960×540 px · 24 fps · 16.50 s · 396 frames
+960×540 px · 24 fps · 37.50 s · 900 frames
 
 ## Warnings
 
-- **Flat frames** (a single color) at 0.00 s.
+- None.
 
 ## Motion
 
 Energy per second (how much the image changes):
 
 ```
-▇▃▂▂▂█▄▄▄▄▇▂▂▂▂▂▃
-0    5    10   15   
+▆▃▃▃▂▂█▅▅▅▅█▂▂▂█▄▄▃▃▃▇▃▃▃▇▂▃▃▃▃▅▂▂▂▂▂▂
+0    5    10   15   20   25   30   35   
 ```
 
 No still stretches of 1 s or more.
@@ -21,7 +21,7 @@ Large jumps outside cuts (can be normal in dense patterns; check whether they bo
 
 ## Speed
 
-Painting: 5651 ms/frame cold, 4374 ms warm → full render ≈ 1732 s at this size.
+Painting: 2779 ms/frame cold, 1744 ms warm → full render ≈ 1569 s at this size.
 
 > Slow: cache static elements with `Motion.sprite` and lower the texture density.
 
