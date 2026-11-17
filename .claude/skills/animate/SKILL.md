@@ -130,7 +130,13 @@ loaded from `uses`.
 
 1. `review.md` up to date and the `sandbox/INDEX.md` row with status and main lesson.
 2. Generalizable lessons moved up to their skill (see **review**).
-3. Commit with the experiment and the skills touched. The latest render goes in
+3. **A film the user approves goes where films are shown, before the pull request:** one
+   line in `FILMS` in `site/site.js` and its poster `site/media/<id>.jpg` (1600 × 900, the
+   frame that works as a poster), and its cell in the README's gallery when the user wants
+   it there. Adding the style's tile is not adding the film: in lightfield-test the style
+   reached the site and the film did not, and the user found out after merging («veo que no
+   está ni en la web»). Build the site (`node site/build.mjs`) and open it to see the entry.
+4. Commit with the experiment and the skills touched. The latest render goes in
    `render/<name>.mp4`, re-encoded small (`ffmpeg -i out/x.mp4 -c:v libx264 -crf 26
    -preset slow -c:a aac -b:a 160k -movflags +faststart render/<name>.mp4`), overwriting
    the previous round's; no third-party footage or audio in it (`-an` when the soundtrack

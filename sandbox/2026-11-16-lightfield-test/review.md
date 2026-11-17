@@ -380,3 +380,14 @@ included). With it the style test is approved: `lightfield` leaves «in testing�
 Left for later, said in the pull request: the style is not yet on the README cover's
 carousel (it means rendering the cover again), and the narrator's words were aligned
 against the script rather than transcribed blind.
+
+## Round 11 (user) · after the merge
+
+> He mergeado, veo que no está ni en la web no?
+
+Right: the pull request put the *style* on the site (its tile in the grid) but not the
+*film*: no line in `FILMS`, no poster, and nothing in the README's gallery. Added: the film
+at the top of the site's programme (`site/site.js`, poster `site/media/lightfield-test.jpg`,
+the title frame at 29.5 s) and first in the README gallery. Checked on the built site in a
+browser: the film is listed with its poster, its mp4 answers, and the style's template runs
+live in the embed.
