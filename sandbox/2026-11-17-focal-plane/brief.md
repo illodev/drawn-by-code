@@ -9,7 +9,8 @@
   size of a hand, through the lens that combs it flat, round with the turning optic, out
   over a sea that curves away under it, to the pencil of a navigator who fixes a ship's
   position on it.
-- **Working title:** «Focal Plane». Script status: **proposed, waiting for the user.**
+- **Working title:** «Focal Plane». Script status: **set aside.** The user's answer was
+  «Maybe a heist?»: see `sandbox/2026-11-17-the-plan/`. Kept as an idea for the style.
 - **Why this:** a technical drawing explains by projection, so the film's edit is the
   drawing's own grammar. There are no cuts: every new view is projected from the one before
   (lines dropped from the section make the plan, lines dropped from the ship make the
