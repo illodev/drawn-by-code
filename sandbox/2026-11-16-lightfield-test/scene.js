@@ -13,6 +13,7 @@ Motion.scene({
     uses: ['styles/lightfield/lightfield.js', DIR + 'limb.js', DIR + 'eclipse.js', DIR + 'lab.js', DIR + 'prism.js', DIR + 'slits.js', DIR + 'bulb.js'],
     fonts: [{ family: 'Poppins', src: 'fonts/Poppins-Bold-latin.woff2', descriptors: { weight: '700' } },
             { family: 'Lora', src: 'fonts/Lora-Medium-latin.woff2', descriptors: { weight: '500' } }],
+    audio: { mix: 'mix.wav' },      // sh mix-sound.sh makes it (synthesised: music.mjs + sound-design.mjs)
     shots: [[0, 5.5, 'Limb'], [5.5, 12, 'Eclipse'], [12, 18.5, 'Prism'], [18.5, 24.5, 'Slits'], [24.5, 30.5, 'Bulb']],
     setup(env) {
         const L = Lightfield.make(env);

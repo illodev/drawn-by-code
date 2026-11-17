@@ -263,3 +263,39 @@ shot (a barrier and a card). Only the prism's stretch was rendered again and spl
 
 Lesson: the answer to «the same prop twice» was to take it away, not to redesign it. A
 light that has a surface to skim does not need a screen to end on.
+
+## Round 7 (user) · sound
+
+> Vamos por la música
+
+Plan: an ambient score for a science documentary plus sound design that lands on the
+picture's frames (photons, the filament), which a generated track cannot do.
+
+- **Generated score (not used yet).** Four 33 s takes made with the ElevenLabs connector
+  (Music v2.5, instrumental, one prompt describing the arc; node «lightfield score» in the
+  user's flows; 495 credits each). They could not be downloaded: this session runs on the
+  Default environment, whose network policy does not allow `elevenlabsusercontent.com`
+  (403 at the proxy); the environment saved for this repository has open network but a
+  running session cannot move onto it; a fetch through the web tool was refused. Left for
+  the user to decide (allow the host, or a new session on the repo's environment).
+- **Synthesised score (in the film now)**, `music.mjs`: a slow piece in D whose harmony
+  changes on the cuts and whose swells use the shots' own constants: a low fifth and a high
+  glass note for the limb, D minor as the Sun shows (2.4 s); B flat breathing in to the
+  last bead, a D minor ninth at totality (8.4 s), cut off with the picture at 12; F major
+  seventh and one glass note per step of the fan (13.2–16.9 s, low and left to high and
+  right); G minor then a suspended A growing with the photon count; D major following the
+  filament's heat curve, a bell on the title (26.8 s).
+- **Sound design**, `sound-design.mjs`: a sub swell at totality, air opening into the cut at
+  12, the shutter, **photon ticks** as a Poisson process with the picture's own rate law
+  (× e^1.92 a second) turning into a crackle and a hiss, the bulb's switch (25.05 s) and a
+  mains hum that brightens with the heat curve.
+- `mix-sound.sh`: both stems, one static gain, a limiter at 4× with `level=false`.
+
+Checked without listening, by measurement: RMS per second follows the film (limb −37 → −16,
+totality −15, bursting to −14 at the cut, prism −18, slits −22 → −16, bulb −12, out −29),
+no stretch near silence inside the film, integrated −15.5 LUFS, peak −1.5 dBFS. First pass
+problems caught the same way: the riser into the cut peaked at 0 dBFS (its gain was 12 dB
+too high), the prism was 7 dB under everything else, the slits did not grow.
+
+Not checked, and it matters: **nobody has listened to it.** Timbre, taste and whether the
+ticks are pleasant are for the user's ears.

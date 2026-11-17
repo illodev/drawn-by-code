@@ -24,8 +24,11 @@
     detail gate.
 - **On-screen text (literal):** «lightfield» («light» in gold Lora, «field» in white
   Poppins Bold) and under it «drawn by code» (Lora). Only in the bulb shot.
-- **Music / rhythm:** none yet (no `bpm`): the cut is at 5.5 s. Sound would be a low
-  drone with a filament hum; to do with the user (skill **sound**) if the style goes on.
+- **Music / rhythm:** no beat grid (`bpm` undeclared): an ambient score in D that changes
+  harmony on the cuts, synthesised (`music.mjs`), plus sound design on the picture's frames
+  (`sound-design.mjs`: photon ticks, the filament's hum). `sh mix-sound.sh` → `mix.wav`.
+  Four generated takes (ElevenLabs Music) wait in the user's account, not downloadable from
+  this session's environment.
 - **Must NOT happen:** anything that reads as drawn (outlines, flat fills, a clean vector
   edge); a flare or a glow painted on top instead of coming out of the lens; text that does
   not go through the same camera; the third-party logo.
