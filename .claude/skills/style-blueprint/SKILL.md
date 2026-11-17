@@ -1,12 +1,12 @@
 ---
 name: style-blueprint
-description: Blueprint style, in testing: a drawing office's cyanotype — white line work on a folded, handled sheet of Prussian blue, drafted in front of the viewer in the order a draughtsman sets it out (axes, outlines, hatching, dimensions, lettering), with elevations, sections, plans and details that agree with each other because they are drawn from one model in real units. Use it for engineering, architecture, machines, products explained by how they are built, «technical drawing», «plano», serious or institutional pieces, or when working with styles/blueprint/.
+description: Blueprint style: a drawing office's cyanotype — white line work on a folded, handled sheet of Prussian blue, drafted in front of the viewer in the order a draughtsman sets it out (axes, outlines, hatching, dimensions, lettering), with elevations, sections, plans and details that agree with each other because they are drawn from one model in real units. Use it for engineering, architecture, machines, products explained by how they are built, «technical drawing», «plano», serious or institutional pieces, or when working with styles/blueprint/.
 ---
 
 # Style · Blueprint
 
-Reference in testing: `sandbox/2026-11-17-blueprint-test/` (review/sheet.jpg), not yet
-approved by the user. Measured on one still of a lighthouse sheet (kept in `private/`).
+Approved reference: `sandbox/2026-11-17-blueprint-test/` (review/sheet.jpg). Measured on
+one still of a lighthouse sheet (kept in `private/`).
 
 The model is the print: **one scalar** (how much light the paper took) through one measured
 ramp from Prussian blue to the bare sheet. Wear and ink are the same thing in different

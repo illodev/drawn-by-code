@@ -180,7 +180,7 @@ to see its strip, files and the videos made with it.
 | [tabletop3d](styles/tabletop3d/)     | desk objects as stop motion, raymarched: chrome, rubber, paper, a shallow depth of field | in testing |
 | [lightfield](styles/lightfield/)     | light photographed: radiance through a lens and film (bloom, halation, rays, grain)      | approved   |
 | [micrograph](styles/micrograph/)     | false-colour micrographs: one grey signal, sharp grain on soft structures, a few inks    | approved   |
-| [blueprint](styles/blueprint/)       | a cyanotype drafted line by line: elevations, sections, dimensions, lettering            | in testing |
+| [blueprint](styles/blueprint/)       | a cyanotype drafted line by line: elevations, sections, dimensions, lettering            | approved   |
 | [comic](styles/comic/)               | brush-ink outlines, flat print colours on newsprint, Ben-Day dots, balloons              | in testing |
 | [pixel-art](styles/pixel-art/)       | crisp pixels on a low-res grid, sprite maps, 10 fps loops                                | in testing |
 

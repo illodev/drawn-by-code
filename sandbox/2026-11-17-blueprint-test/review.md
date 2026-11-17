@@ -62,6 +62,15 @@ are: the focal plane's note where the still has a shorter one (9,1, busy), the l
 the title block beside the slope's hatching (9,9, busy), and the top margin above the optic,
 where the still has a dimension's extension line and a torn edge (10,0, clean).
 
-**Open for the user:** the look itself; sound (none yet); whether the film this is for
+**Open for the user (at the end of round 2):** the look itself; sound (none yet); whether the film this is for
 wants an accent (a red pencil) or stays in one ink; the subject of the film. Not done on
 purpose: the README cover's carousel (it already shows a dozen of eighteen styles).
+
+## Round 3 (user)
+
+> Invent a script yourself, I like it.
+
+The look is approved as it stands: no changes to the test. The style leaves «in testing».
+The user leaves the subject to us; the script proposed is `sandbox/2026-11-17-focal-plane/`
+(one ray followed across one sheet, from the flame to a navigator's fix), waiting for
+their answer. Still open: sound, and the language of the lettering.

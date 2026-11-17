@@ -11,7 +11,7 @@ soft bleed. Views agree with each other because the object is drawn once, in rea
 For engineering, architecture, machines, products explained by how they are built, and
 serious or institutional pieces.
 
-**Status:** in testing · **Skill:** [`style-blueprint`](../../.claude/skills/style-blueprint/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
+**Status:** approved · **Skill:** [`style-blueprint`](../../.claude/skills/style-blueprint/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
 
 ## Start a video in this style
 
