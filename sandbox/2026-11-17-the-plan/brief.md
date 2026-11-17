@@ -84,4 +84,5 @@ the number of this drawing. What they came for was the plan.
   wall) and in detail C.
 - Sound: a score alone, by the user's choice, generated with their go-ahead (`gen-music.mjs`,
   one take), measured (`tools/measure-score.py`) and laid on the film's grid (`lay-music.sh` →
-  `private/mix.wav`, which the scene points at; without it the film renders silent).
+  `private/mix.wav`, which the scene points at; without it the film renders silent). The
+  committed render carries the score, by the user's decision.

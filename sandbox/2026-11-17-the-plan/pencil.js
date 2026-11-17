@@ -43,7 +43,7 @@
         note(R, 'IN', px(-0.5), py(11.22), 8.6);
         route(R.group('r.a', { overlap: 0.25 }), B.ROUTE.a);
         R.group('r.wait');
-        note(R, 'WAIT', px(1.1), py(7.75), 7, { rot: -PI / 2 });
+        note(R, 'WAIT', px(1.1), py(9.6), 7, { rot: -PI / 2 });
         route(R.group('r.b', { overlap: 0.25 }), B.ROUTE.b);
         R.group('r.gap');
         note(R, '4 s', px(5.4), py(5.74), 7.6);
@@ -59,7 +59,7 @@
         note(R.group('r.q'), '?', px(11.7), py(8.05), 17, { bold: 0.06 });
         R.group('r.duct', { overlap: 0.3 });
         ring(R, px(B.RISER[0]), py(B.RISER[1]), m(0.88), m(0.84), 'duct', -0.6);
-        note(R, 'DOWN', px(11.32), py(3.3), 7.4);
+        note(R, 'DOWN', px(11.38), py(3.12), 7.4);
     };
     // --- basement: the box, and the way back to the riser ------------------------------------------
     Film.pencilBasement = (R) => {
@@ -72,9 +72,9 @@
     // --- detail C: the same box, where it can be read; the last mark, in the title block --------------
     Film.pencilDetail = (R) => {
         const { x: cx, y: cy, k } = Film.DETAIL, ex = cx + Film.BOX[0] * k, ey = cy + Film.BOX[1] * k;
-        ring(R.group('r.boxC', { overlap: 0.3 }), ex, ey, 0.27 * k, 0.2 * k, 'boxC', 0.4);
-        R.group('r.numC', { overlap: 0.3 }).pen(1.6, { cap: 'round' }).line(ex + 0.3 * k, ey + 0.05 * k, cx + 1.12 * k, cy + 0.5 * k);
-        note(R, '0412', cx + 1.42 * k, cy + 0.56 * k, 12);
+        ring(R.group('r.boxC', { overlap: 0.3 }), ex, ey, 0.25 * k, 0.19 * k, 'boxC', 0.4);
+        R.group('r.numC', { overlap: 0.3 }).pen(1.6, { cap: 'round' }).line(ex + 0.28 * k, ey + 0.02 * k, cx + 1.3 * k, cy - 0.16 * k);
+        note(R, '0412', cx + 1.6 * k, cy - 0.1 * k, 12);
         const [tx, ty] = Film.TICK;
         R.group('r.tick').pen(2, { cap: 'round' }).poly([tx, ty - 3.5, tx + 3.6, ty + 1.2, tx + 11, ty - 9.5]);
     };

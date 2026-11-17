@@ -82,7 +82,7 @@ const Bank = (() => {
     const BEAT = [[26.5, 6.5], [3, 6.5], [3, SOUTH], [29, SOUTH], [29, 6.5], [26.5, 6.5]]; // rev. A: round the hall
     const S_CORNER = 23.5 + SOUTH - 6.5; // metres walked along BEAT when he turns the south-west corner
     const XS = 3 + VG * (TM.stop - TM.corner); // where he stops
-    const BEAT_B = [[XS, SOUTH], [XS, 6.5], [9.5, 6.5], [9.5, 5.2], [9.5, 3.3]]; // rev. B: across the hall, past the counter, into the store
+    const BEAT_B = [[XS, SOUTH], [XS, 6.5], [9.5, 6.5], [9.5, 5.2], [9.8, 2.6]]; // rev. B: across the hall, past the counter, into the store
     function guardAt(t) {
         if (t <= TM.stop) { const [x, y, h] = along(BEAT, S_CORNER + VG * (t - TM.corner)); return { x, y, h, rev: 'A' }; }
         const u = Math.max(0, Math.min(1, (t - TM.turn[0]) / (TM.turn[1] - TM.turn[0]))), e = u * u * (3 - 2 * u);
@@ -132,7 +132,7 @@ const Bank = (() => {
     }
     // the route as the pencil plans it (rev. A): in at the side door, the blind corner, the
     // crossing, the store, then on to the stair
-    const ROUTE = { a: [[-0.6, 12.5], [1.5, 12.5], [1.5, 6.6]], b: [[1.5, 6.0], [9.4, 6.0], [9.7, 5.1], [10.3, 3.0]], c: [[9.3, 4.7], [9.3, 6.25], [26.5, 6.25], [26.5, 3.6]] };
+    const ROUTE = { a: [[-0.6, 12.5], [1.5, 12.5], [1.5, 8.3]], b: [[1.5, 6.0], [9.4, 6.0], [9.7, 5.1], [10.25, 3.45]], c: [[9.3, 4.7], [9.3, 6.25], [26.5, 6.25], [26.5, 3.6]] };
 
     const clock = (t) => {
         const s = Math.floor(Math.min(TM.CLOCK_STOP, t) - TM.CLOCK0) + TM.CLOCK_AT[0] * 3600 + TM.CLOCK_AT[1] * 60 + TM.CLOCK_AT[2];

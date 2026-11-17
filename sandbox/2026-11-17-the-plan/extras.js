@@ -34,6 +34,8 @@
         D.pen(0.8, { a: 0.7 }).hatch([cx - 3.7 * k, cy + 1.15 * k, cx + 1.7 * k, cy + 1.15 * k, cx + 1.7 * k, cy + 1.24 * k, cx - 3.7 * k, cy + 1.24 * k], { gap: 3.4 });
         D.fine().line(cx - k, cy + 1.3 * k, cx - k, cy + 1.62 * k).line(cx + k, cy + 1.3 * k, cx + k, cy + 1.62 * k);
         Blueprint.dimH(D, cy + 1.52 * k, cx - k, cx + k, { label: 'Ø 2.000', cap: 5.4 });
+        // what is on the leaf is noted in a group of its own: the notes go when the leaf swings away
+        D.group('ex.leafNotes', { overlap: 0.2 });
         D.fine().poly([cx + 0.78 * k, cy - 0.78 * k, cx + 1.25 * k, cy - 1.22 * k, cx + 1.62 * k, cy - 1.22 * k]).text('8 BOLTS', cx + 1.27 * k, cy - 1.26 * k, 4.2);
         D.poly([cx + 0.2 * k, cy + 0.3 * k, cx + 1.22 * k, cy + 1.12 * k, cx + 1.62 * k, cy + 1.12 * k]).text('HAND WHEEL', cx + 1.24 * k, cy + 1.08 * k, 4.2);
         Blueprint.title(D.group('ex.detailTitle'), cx, cy + 1.96 * k, 'DETAIL C · STRONG ROOM DOOR', 'SCALE 1:25', { cap: 6.6 });

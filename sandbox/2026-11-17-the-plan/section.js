@@ -149,5 +149,5 @@
         g.restore();
     };
     // where box 0412 is in that wall (centre, in metres from the door's centre)
-    Film.BOX = [0.35, 0.2];
+    Film.BOX = [0.25, -0.3]; // the middle of a box: column 4, row 3 of the wall as Film.boxes draws it
 })();

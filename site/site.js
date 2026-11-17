@@ -14,6 +14,8 @@
     // first two fields of every line to copy the film: keep them first, in this form)
     const FEATURE = ['runnin-down-a-dream', '2026-11-11-runnin-down-a-dream', 'Runnin’ Down a Dream', '’90s cereal ad', 264, 'silent', ''];
     const FILMS = [
+        ['the-plan', '2026-11-17-the-plan', 'The Plan', 'blueprint', 56, 'with sound',
+            'A heist drawn on one sheet. In white, the architect’s print of a bank: three plans, a section, an axonometric, and cameras and a guard that move by themselves. In red pencil, the crew’s plan and three numbered marks that carry it out, until the building revises a line. Every gap they slip through is true: the timing is a model checked frame by frame.'],
         ['micrograph-test', '2026-11-17-micrograph-test', 'Micrograph', 'micrograph', 37.5, 'with sound',
             'One session at an electron microscope, from the largest thing to the smallest: an amoeba closes round a bacterium, one of its mitochondria goes by slice by slice, a phage lands on a bacterium and empties itself into it, virions bud from the edge of a cell. Nothing is drawn: each scene is a grey signal seen by an instrument made of code, and tinted afterwards.'],
         ['lightfield-test', '2026-11-16-lightfield-test', 'Lightfield', 'lightfield', 30.5, 'with sound',

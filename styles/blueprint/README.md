@@ -36,4 +36,5 @@ Font: Routed Gothic (`fonts/RoutedGothic.ttf`, SIL OFL 1.1, by Darren Embry).
 
 | Video | What it is |
 |---|---|
+| [the-plan](../../sandbox/2026-11-17-the-plan/) | «The Plan»: a heist as two inks on one sheet (white: a bank in three plans, a section and an axonometric; red pencil: the crew's plan), 38 shots, 56 s, with a score |
 | [blueprint-test](../../sandbox/2026-11-17-blueprint-test/) | the style test: the general arrangement of a lighthouse drafts itself (elevation, section, optic, plan, site plan, title block), 14 s |

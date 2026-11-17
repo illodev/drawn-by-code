@@ -41,10 +41,10 @@ const EDIT = [
     [42, 43, 'The empty store', [345, 190, 3.8], [345, 186, 3.9]],
     [43, 44.5, 'The wheel', [1400, 470, 3.4], [1400, 470, 3.6]],
     [44.5, 45, 'A bolt', [1470, 498, 6], [1466, 496, 6]],
-    [45, 46.5, 'It opens', [1330, 474, 2.2], [1342, 474, 2.2]],
-    [46.5, 48, '0412', [1440, 484, 4.2], [1444, 484, 4.4]],
+    [45, 46.5, 'It opens', [1240, 492, 2.2], [1250, 492, 2.2]],
+    [46.5, 48, '0412', [1450, 452, 4.2], [1454, 450, 4.4]],
     [48, 49.5, 'Back', [482, 1040, 2.6], [452, 1040, 2.6]],
-    [49.5, 51, 'Up', [2600, 1040, 1.7], [2600, 830, 1.7]],
+    [49.5, 51, 'Up', [2600, 1040, 1.7], [2600, 790, 1.7]],
     [51, 52.5, 'Out', [1792, 240, 2.4], [1764, 236, 2.4]],
     [52.5, 56, 'Revision', [1412, 1180, 3.2], [1412, 1182, 3.4]],
 ];
@@ -58,7 +58,7 @@ const WHEN = {
     'ck.box': [8.0, 8.6], 'def.cams': [8.4, 9.0], 'def.beat': [9.0, 10.4], 'rev.beat': [32.6, 34.2], 'rev.note': [33.7, 34.4],
     // drafted before they are shown
     'pj.down': [6, 7], 'se.cut': [6, 7], 'se.tone': [6, 7], 'se.duct': [6, 7], 'se.hall': [6, 7], 'se.lobby': [6, 7], 'se.earth': [6, 7], 'se.names': [6, 7], 'se.levels': [6, 7], 'se.title': [6, 7],
-    'ex.notes': [5, 7], 'ex.legend': [5, 7], 'ex.north': [5, 6], 'ex.detail': [5, 7], 'ex.detailTitle': [6, 7], 'tb.frame': [5, 6], 'tb.text': [6, 8], 'tb.revA': [8, 8.5],
+    'ex.notes': [5, 7], 'ex.legend': [5, 7], 'ex.north': [5, 6], 'ex.detail': [5, 7], 'ex.leafNotes': [6, 7], 'ex.detailTitle': [6, 7], 'tb.frame': [5, 6], 'tb.text': [6, 8], 'tb.revA': [8, 8.5],
     'tb.revB': [52.8, 53.9], 'tb.revCell': [53.7, 54.2],
     // the pencil
     'r.in': [12.1, 12.9], 'r.a': [13.0, 14.0], 'r.wait': [13.9, 14.4], 'r.b': [14.5, 15.5], 'r.gap': [15.4, 15.9], 'r.store': [16.1, 16.8],
@@ -148,7 +148,7 @@ Motion.scene({
                 W.axon.paint(ink, reveal);
             }
             if (on.extras) {
-                W.extras.paint(ink, reveal);
+                W.extras.paint(ink, reveal, { alpha: (name) => (name === 'ex.leafNotes' ? 1 - swing : 1) });
                 const dc = Film.DETAIL;
                 Film.door(ink, dc.x, dc.y, dc.k, { lw: 1.5, wheel, bolts, open: swing, inside: (c) => Film.boxes(c, dc.x, dc.y, dc.k, boxes) });
             }

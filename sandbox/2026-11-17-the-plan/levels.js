@@ -32,7 +32,7 @@
         L.fine();
         for (let x = DC.x[0] + 0.05; x < DC.x[1] - 0.3; x += 0.3) rect(L, x, DC.y[0], x + 0.3, DC.y[0] + 0.42);
         for (let y = DC.y[0] + 0.5; y < DC.y[1] - 0.3; y += 0.3) { rect(L, DC.x[0], y, DC.x[0] + 0.42, y + 0.3); rect(L, DC.x[1] - 0.42, y, DC.x[1], y + 0.3); }
-        rect(L, 16.6, 2.3, 19.4, 3.3);
+        rect(L, 14.2, 2.45, 16.7, 3.35); // the table, clear of the way from the door to the boxes
         // the door's swing into the lobby, and its frame
         L.fine().ellipse(px(DOOR[0]), py(LN - 0.1), m(2), m(2), 0, PI / 2);
         L.med(); for (const x of DOOR) rect(L, x - 0.12, DC.y[1] - 0.05, x + 0.12, LN + 0.05);
@@ -74,7 +74,7 @@
         g.restore();
     };
     // where box 0412 is on the plan
-    Film.BOX_PLAN = [DC.door + 0.35 + 0.1, DC.y[0] + 0.21];
+    Film.BOX_PLAN = [DC.door + 0.3, DC.y[0] + 0.21];
 
     // --- roof ------------------------------------------------------------------------------------
     Film.roof = (L) => {

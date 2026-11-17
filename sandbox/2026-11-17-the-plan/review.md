@@ -96,7 +96,30 @@ Nobody here has heard it: it was laid by measurement (`tools/measure-score.py`, 
 - Mix: −16.1 LUFS integrated, true peak −1.9 dBFS, the first half second silent.
 - `review.mjs`: no warnings.
 
-The committed render stays silent: the score was made on the user's account and whether the
-repo's copy carries it is theirs to say.
+## Round 5 (user) · approved
 
-**Open for the user:** the cut with its score (does the music fit, does it change where the film does); whether the committed MP4 should carry it.
+> It fits, I like it. Maybe I would go over it once more to refine possible details, but it is
+> fine. We upload it with the music.
+
+The film is approved and the committed render carries the score (it was generated on the
+user's account, at their request: their decision). Before uploading, the pass over details
+they mention: one frame of each of the 38 shots at 1920, read for overlaps. Eight found and
+fixed, none a matter of taste:
+
+- WAIT (the aisle) sat under the three marks while they wait: moved down the aisle, and the
+  first leg's arrowhead now ends below the last mark instead of under the second.
+- The second leg's arrowhead ended on the third mark's place in the store: shortened.
+- DOWN touched the ring round the riser: lifted.
+- The guard, searching the store, stopped on top of «WAIT 12 s»: he stops beside it.
+- In detail C the ring for box 0412 sat across two boxes and the HAND WHEEL leader ran
+  through it; the leaf's notes (8 BOLTS, HAND WHEEL) kept pointing at the opening once the
+  leaf had swung away. The ring is on one box, its note clear of the leaders, and the leaf's
+  notes fade as the leaf swings.
+- On the basement plan the way back from the box ran across the strong room's table: the
+  table moved.
+- Two framings showed the edge of a neighbouring drawing or cut a note (the legend above
+  detail C, OUT at the top of the axonometric): reframed.
+
+After the fixes: the plan is still true (1.2° to spare), `review.mjs` has no warnings.
+
+**Open:** whether the film goes into the README's gallery (the user decides that).
