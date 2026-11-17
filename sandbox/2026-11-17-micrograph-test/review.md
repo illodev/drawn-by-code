@@ -155,7 +155,10 @@ stretch. On the sheet the mitochondrion's caption fell on a sheet of reticulum: 
 was moved up.
 
 **Render.** This round at 1280 × 720 (≈ 45 min here; 1080p would take ≈ 1 h 45 min): the
-committed copy is that size anyway. A 1080p render is owed once the piece is approved.
+committed copy is that size anyway (at crf 29, not 26: with this much grain and the serial
+sections' flicker crf 26 was 18 MB). A 1080p render is owed once the piece is approved. In
+the rendered film the mitochondrion's caption still crosses the lower sheet of reticulum on
+some slices (the sheet wanders with depth): legible, not clean.
 
 **Lessons.** A style test passes on what was measured and its originals fail on what was
 assumed: both first versions of the section-palette shots were diagrams, because a
