@@ -14,6 +14,8 @@
     // first two fields of every line to copy the film: keep them first, in this form)
     const FEATURE = ['runnin-down-a-dream', '2026-11-11-runnin-down-a-dream', 'Runnin’ Down a Dream', '’90s cereal ad', 264, 'silent', ''];
     const FILMS = [
+        ['micrograph-test', '2026-11-17-micrograph-test', 'Micrograph', 'micrograph', 37.5, 'with sound',
+            'One session at an electron microscope, from the largest thing to the smallest: an amoeba closes round a bacterium, one of its mitochondria goes by slice by slice, a phage lands on a bacterium and empties itself into it, virions bud from the edge of a cell. Nothing is drawn: each scene is a grey signal seen by an instrument made of code, and tinted afterwards.'],
         ['lightfield-test', '2026-11-16-lightfield-test', 'Lightfield', 'lightfield', 30.5, 'with sound',
             'Five lights, from the sky to the bench: the Sun comes up over the edge of the Earth, the Moon covers it, a prism opens a white beam into its colours, red light goes through two slits one photon at a time, and a filament lights the title. Nothing is drawn: every scene is light, photographed by a camera made of code.'],
         ['pier-pressure', '2026-11-14-pier-pressure', 'Pier Pressure', 'skate toon', 32, 'with sound',

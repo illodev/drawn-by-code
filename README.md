@@ -57,51 +57,59 @@ how you made it too.
 <table>
 <tr>
 <td width="50%" valign="top">
+<a href="sandbox/2026-11-17-micrograph-test/"><img src="sandbox/2026-11-17-micrograph-test/render/micrograph-test.gif" alt="Micrograph"></a><br>
+<b><a href="sandbox/2026-11-17-micrograph-test/">Micrograph</a></b> · micrograph · 37 s · <a href="sandbox/2026-11-17-micrograph-test/render/micrograph-test.mp4">mp4</a> (with sound)<br>
+<sub>One session at an electron microscope, from the largest thing to the smallest: an amoeba closes round a bacterium, one of its mitochondria goes by slice by slice, a phage lands on a bacterium and empties itself into it, virions bud from a cell and drift off on black. A new style: every scene is one grey signal seen by an instrument made of code (focus, shot noise) and tinted afterwards; three of the seven shots are matched to reference micrographs.</sub>
+</td>
+<td width="50%" valign="top">
 <a href="sandbox/2026-11-16-lightfield-test/"><img src="sandbox/2026-11-16-lightfield-test/render/lightfield-test.gif" alt="Lightfield"></a><br>
 <b><a href="sandbox/2026-11-16-lightfield-test/">Lightfield</a></b> · lightfield · 30 s · <a href="sandbox/2026-11-16-lightfield-test/render/lightfield-test.mp4">mp4</a> (with sound)<br>
 <sub>Five lights, from the sky to the bench: the Sun comes up over the edge of the Earth, the Moon covers it and the corona opens, a prism splits a white beam into its colours, red light goes through two slits one photon at a time until the hits draw the fringes, and a filament heats up and lights the title. Nothing is drawn: each scene says how much light leaves every point and a camera made of code photographs it. The first and last shots are matched to two reference stills (the last one studies the title card of «InGenius by Veritasium»); the three in between are built from the physics, with a narrator and a score.</sub>
 </td>
+</tr>
+<tr>
 <td width="50%" valign="top">
 <a href="sandbox/2026-11-14-pier-pressure/"><img src="sandbox/2026-11-14-pier-pressure/render/pier-pressure.gif" alt="Pier Pressure"></a><br>
 <b><a href="sandbox/2026-11-14-pier-pressure/">Pier Pressure</a></b> · skate toon · 32 s · <a href="sandbox/2026-11-14-pier-pressure/render/pier-pressure.mp4">mp4</a> (with its theme song)<br>
 <sub>The opening of a cartoon that never existed, in the look of a late-'90s extreme-sports TV show: four kids chase a one-eyed gull who has made off with Aunt Dot's chips, down the pier and off its end. It opens on the chase in black shapes, and nobody is seen until their name card. The characters are generated model sheets turned into drawings in code by measurement, and they move the way cel animation does: by changing drawing, on twos. Cut to the words of its own theme song, with a broadcast finish (painted fills, film weave, standard-definition softness).</sub>
 </td>
-</tr>
-<tr>
 <td width="50%" valign="top">
 <a href="sandbox/2026-11-11-runnin-down-a-dream/"><img src="sandbox/2026-11-11-runnin-down-a-dream/render/runnin-down-a-dream.gif" alt="Runnin' Down a Dream"></a><br>
 <b><a href="sandbox/2026-11-11-runnin-down-a-dream/">Runnin' Down a Dream</a></b> · cereal ad · 4 min 24 s · <a href="sandbox/2026-11-11-runnin-down-a-dream/render/runnin-down-a-dream.mp4">mp4</a> (silent: the song is not ours)<br>
 <sub>A full videoclip for Tom Petty's song, played as a VHS tape on a CRT in the look of a '90s cereal commercial. The Devil is the tape's mascot and wants Tom's signature on a contract: he chases the band's car down Route 66 with a hole, a rain machine and a frozen Hell, books them into his own venue, loses a guitar duel, and rides the bonnet through Heaven to a concert on the moon. He ends up with an autograph. Twenty-six blocks animated in parallel from written briefs; every mouth follows a word-level transcription of the track.</sub>
 </td>
+</tr>
+<tr>
 <td width="50%" valign="top">
 <a href="sandbox/2026-11-04-red-thread/"><img src="sandbox/2026-11-04-red-thread/render/red-thread.gif" alt="El hilo rojo"></a><br>
 <b><a href="sandbox/2026-11-04-red-thread/">El hilo rojo</a></b> · sumi-e · 68 s · <a href="sandbox/2026-11-04-red-thread/render/red-thread.mp4">mp4</a><br>
 <sub>A river village where every greeting ties a red thread. Screens and slogans split it into two banks, the threads snap and the red drains out of the world, until a girl's red kite carries one thread back across the river and the threads weave a new bridge. Japanese ink painting on washi, every brushstroke drawn in code, the text written vertically in Japanese; score by ElevenLabs Music, effects synthesized.</sub>
 </td>
-</tr>
-<tr>
 <td width="50%" valign="top">
 <a href="sandbox/2026-09-25-physics-history/"><img src="sandbox/2026-09-25-physics-history/render/physics-history.gif" alt="A Brief History of Physics"></a><br>
 <b><a href="sandbox/2026-09-25-physics-history/">A Brief History of Physics</a></b> · risograph · 67 s · <a href="sandbox/2026-09-25-physics-history/render/physics-history.mp4">mp4</a><br>
 <sub>Galileo's eye at the telescope pulls back to a rooftop in Padua; Jupiter becomes the apple a cat pushes onto Newton's head; its orbit winds into Faraday's coil, whose spark is the glow of Curie's radium; its ray is the light young Einstein chases into a black hole; and the cube it leaves becomes Schrödinger's box, where the cat is alive and dead in sixteen worlds until the lid lifts. One continuous chain of objects, the same cat in every scene, drawn entirely in JavaScript; score and effects generated with ElevenLabs.</sub>
 </td>
+</tr>
+<tr>
 <td width="50%" valign="top">
 <a href="sandbox/2026-09-26-pyramid-engraving/"><img src="sandbox/2026-09-26-pyramid-engraving/render/pyramid-engraving.gif" alt="The pyramid that makes skies"></a><br>
 <b><a href="sandbox/2026-09-26-pyramid-engraving/">The pyramid that makes skies</a></b> · engraving · 64 s · <a href="sandbox/2026-09-26-pyramid-engraving/render/pyramid-engraving.mp4">mp4</a><br>
 <sub>A plate of the «Description de l'Égypte» comes alive: a mark is painted on a stone, the pyramid opens into thousands of floating blocks, and the camera flies without a cut through a temple's rooms (each joined to the next by a doorway in the shot) to a seed that holds a sky of its own and leaves as a new star. 3D in WebGL, drawn in charcoal on old paper; music made with ElevenLabs.</sub>
 </td>
-</tr>
-<tr>
 <td width="50%" valign="top">
 <a href="sandbox/2026-09-24-opus5-riso/"><img src="sandbox/2026-09-24-opus5-riso/render/opus5-riso.gif" alt="opus5-riso"></a><br>
 <b><a href="sandbox/2026-09-24-opus5-riso/">opus5-riso</a></b> · risograph · 28 s · <a href="sandbox/2026-09-24-opus5-riso/render/opus5-riso.mp4">mp4</a><br>
 <sub>A 1:1 replica, made as a study, of <a href="https://x.com/kevin_t_ngo/status/2099477219877978289">a risograph film by Kevin Ngo</a> (<a href="https://x.com/kevin_t_ngo">@kevin_t_ngo</a>). The original design and animation are his. Four spot inks, halftone and misregistration from a simulated press, scored tile by tile against the original by the detail gate.</sub>
 </td>
+</tr>
+<tr>
 <td width="50%" valign="top">
 <a href="sandbox/2026-09-24-what-do-you-love/"><img src="sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.gif" alt="what-do-you-love"></a><br>
 <b><a href="sandbox/2026-09-24-what-do-you-love/">what-do-you-love</a></b> · paper cutout · 28 s · <a href="sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.mp4">mp4</a><br>
 <sub>A 1:1 replica, made as a study, of <a href="https://x.com/kevin_t_ngo/status/2102437977435893771">a paper-cutout video by Kevin Ngo</a> (<a href="https://x.com/kevin_t_ngo">@kevin_t_ngo</a>). The original design and animation are his. Measured drawing by drawing until the differences only show when zooming in (skill <code>replicate</code>). His video also inspired the first saas-promo.</sub>
 </td>
+<td width="50%" valign="top"></td>
 </tr>
 </table>
 
@@ -129,7 +137,7 @@ to see its strip, files and the videos made with it.
 | [felt3d](styles/felt3d/)             | needle-felted wool puppets, raymarched, over any backdrop                                | in testing |
 | [tabletop3d](styles/tabletop3d/)     | desk objects as stop motion, raymarched: chrome, rubber, paper, a shallow depth of field | in testing |
 | [lightfield](styles/lightfield/)     | light photographed: radiance through a lens and film (bloom, halation, rays, grain)      | approved   |
-| [micrograph](styles/micrograph/)     | false-colour micrographs: one grey signal, sharp grain on soft structures, a few inks    | in testing |
+| [micrograph](styles/micrograph/)     | false-colour micrographs: one grey signal, sharp grain on soft structures, a few inks    | approved   |
 | [comic](styles/comic/)               | brush-ink outlines, flat print colours on newsprint, Ben-Day dots, balloons              | in testing |
 | [pixel-art](styles/pixel-art/)       | crisp pixels on a low-res grid, sprite maps, 10 fps loops                                | in testing |
 

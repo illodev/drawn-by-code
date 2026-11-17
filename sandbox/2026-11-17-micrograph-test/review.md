@@ -254,3 +254,13 @@ given more body, 9 ms and a lower pitch, rather than only more level).
 against the prompts, not transcribed blind. Whether the clock is the «tictac» that was
 meant, and whether it sits well with the score, only the user can tell.
 
+## User feedback, round 5 (verbatim)
+
+- «Está bien así, podemos abrir PR»
+
+Approved as it is: the clock was the «tictac» that was meant, the narrator's lines stay.
+The style goes from «in testing» to approved, the film goes on the site (first in the
+programme, with its poster) and in the README's gallery, and the pull request is opened.
+Still owed: a 1080p render (this one is 1280 × 720), and the style's place in the README
+cover's carousel, which needs the cover rendered again (lightfield is waiting for the same).
+

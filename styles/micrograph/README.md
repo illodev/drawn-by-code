@@ -11,7 +11,7 @@ edges softer than the signal's. For biology, microscopy and «scientific image»
 three measured palettes (orange on pale blue, olive and rose on lilac, red, yellow and teal
 on black).
 
-**Status:** in testing · **Skill:** [`style-micrograph`](../../.claude/skills/style-micrograph/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
+**Status:** approved · **Skill:** [`style-micrograph`](../../.claude/skills/style-micrograph/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
 
 ## Start a video in this style
 

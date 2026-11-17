@@ -1,11 +1,11 @@
 ---
 name: style-micrograph
-description: Micrograph style, in testing: an image made by an instrument and tinted afterwards — false-colour electron micrographs (virions, phages, an amoeba, organelles in serial sections, particles in a pool of stain) as one grey signal with sharp grain over soft structures, a focus that hunts, shot noise, and a colourist's few inks laid over regions with a soft brush; three measured palettes (orange on pale blue, olive and rose on lilac, red/yellow/teal on black). Use it for biology, microscopy, virology, cells, «scientific image», false colour, lab or documentary inserts, or when working with styles/micrograph/.
+description: Micrograph style: an image made by an instrument and tinted afterwards — false-colour electron micrographs (virions, phages, an amoeba, organelles in serial sections, particles in a pool of stain) as one grey signal with sharp grain over soft structures, a focus that hunts, shot noise, and a colourist's few inks laid over regions with a soft brush; three measured palettes (orange on pale blue, olive and rose on lilac, red/yellow/teal on black). Use it for biology, microscopy, virology, cells, «scientific image», false colour, lab or documentary inserts, or when working with styles/micrograph/.
 ---
 
 # Style · Micrograph
 
-Reference in testing: `sandbox/2026-11-17-micrograph-test/` (review/sheet.jpg). The second
+Approved reference: `sandbox/2026-11-17-micrograph-test/` (review/sheet.jpg). The second
 of the two «scientific» styles; the other is **lightfield**. They obey opposite physics:
 there things are light that overflows, here things are density that is tinted.
 
