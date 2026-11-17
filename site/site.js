@@ -14,6 +14,8 @@
     // first two fields of every line to copy the film: keep them first, in this form)
     const FEATURE = ['runnin-down-a-dream', '2026-11-11-runnin-down-a-dream', 'Runnin’ Down a Dream', '’90s cereal ad', 264, 'silent', ''];
     const FILMS = [
+        ['the-plan', '2026-11-17-the-plan', 'The Plan', 'blueprint', 56, 'with sound',
+            'A heist drawn on one sheet. In white, the architect’s print of a bank: three plans, a section, an axonometric, and cameras and a guard that move by themselves. In red pencil, the crew’s plan and three numbered marks that carry it out, until the building revises a line. Every gap they slip through is true: the timing is a model checked frame by frame.'],
         ['micrograph-test', '2026-11-17-micrograph-test', 'Micrograph', 'micrograph', 37.5, 'with sound',
             'One session at an electron microscope, from the largest thing to the smallest: an amoeba closes round a bacterium, one of its mitochondria goes by slice by slice, a phage lands on a bacterium and empties itself into it, virions bud from the edge of a cell. Nothing is drawn: each scene is a grey signal seen by an instrument made of code, and tinted afterwards.'],
         ['lightfield-test', '2026-11-16-lightfield-test', 'Lightfield', 'lightfield', 30.5, 'with sound',
@@ -47,6 +49,7 @@
         ['tabletop3d', 'Tabletop 3D', 'An office in miniature: a paper clip, an eraser, a stapler, photographed like stop motion.', 'wide', 1],
         ['lightfield', 'Lightfield', 'Light photographed, not drawn: radiance through a lens and film, with bloom, halation, rays and grain.', 'wide', 1],
         ['micrograph', 'Micrograph', 'An instrument’s image, tinted afterwards: one grey signal, sharp grain on soft structures, a few inks laid over it.', 'wide', 1],
+        ['blueprint', 'Blueprint', 'A drawing office’s cyanotype: white line work drafted on a folded sheet of Prussian blue, views that agree, lettering last.', 'wide', 0],
         ['comic', 'Comic', 'Brush-ink outlines with tapered ends, flat print colours on newsprint, Ben-Day dots, balloons.', 'wide', 0],
         ['70s-poster', '70s poster', 'Flat acid colours, thick outlines, concentric echoes, sunbursts and melting letters.', 'wide', 0],
         ['liquid-light', 'Liquid light', 'The oil-and-ink projections of 60s concerts: blobs that flow, merge and shift colour.', 'wide', 0],
