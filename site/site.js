@@ -14,6 +14,8 @@
     // first two fields of every line to copy the film: keep them first, in this form)
     const FEATURE = ['runnin-down-a-dream', '2026-11-11-runnin-down-a-dream', 'Runnin’ Down a Dream', '’90s cereal ad', 264, 'silent', ''];
     const FILMS = [
+        ['lightfield-test', '2026-11-16-lightfield-test', 'Lightfield', 'lightfield', 30.5, 'with sound',
+            'Five lights, from the sky to the bench: the Sun comes up over the edge of the Earth, the Moon covers it, a prism opens a white beam into its colours, red light goes through two slits one photon at a time, and a filament lights the title. Nothing is drawn: every scene is light, photographed by a camera made of code.'],
         ['pier-pressure', '2026-11-14-pier-pressure', 'Pier Pressure', 'skate toon', 32, 'with sound',
             'The opening of a cartoon that never existed, in the look of a late-’90s extreme-sports TV show: four kids chase a one-eyed gull down the pier and off its end. Nobody is seen until their name card; every character is a model sheet turned into drawings in code, moving on twos.'],
         ['red-thread', '2026-11-04-red-thread', 'The Red Thread', 'sumi-e', 68, 'with sound',
