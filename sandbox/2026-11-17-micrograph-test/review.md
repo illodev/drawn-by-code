@@ -209,3 +209,48 @@ automatic review of round 2 stands (its cuts are on the beat of the declared tem
 the key are right; they do not say whether the take is beautiful, whether the synthesised
 ending sits well on it, or whether the ticks and clicks are pleasant.
 
+## User feedback, round 4 (verbatim)
+
+- «Añade el narrador con voz grave, como en lightfield, se pueden hacer sin efectos? Solo la
+  música, con el tictac del tiempo»
+
+Translation: the narrator of the lightfield film, here too; and every sound effect out:
+only the music, with a ticking of time. Read as: a clock running through the film (and the
+tick per slice the serial sections already had), nothing else. If only the slices' ticks
+were meant, the clock is one block of `sound-design.mjs` to delete.
+
+## Round 4 (auto): narrator, and no effects
+
+**Removed:** the column's hum, the relay, knock and air at every change of magnification,
+the wash's shimmer, the vacuole's drops, the phage's taps, ratchet, snap and falling air,
+the bud's swell and pop. **Kept / added:** a clock, one tick a second, tick and tock in
+turn, on the half seconds, so every cut of the film falls on a tick (they are beats of the
+score); and the tick per slice. The clock is not ducked under the voice: it keeps time.
+
+**The narrator.** Seven lines, one per shot, written to follow the pictures as one thought
+(swallowing → the guest that stayed, the mitochondrion → things not quite alive → a machine
+with one instruction → a message → leaving in the skin of its reader → we have only just
+learned to look). Same voice and direction as lightfield (ElevenLabs v4, «Connery», `[deep
+voice] [slowly]`), two takes a line (one of the fourteen was still queued when the rest
+were mixed; its twin was good). Chosen by measuring: speech bounds, the pause inside the
+line, and the last 40 ms against the peak (all end clean, 54 dB or more under it; one take
+that starts at 0.00 s was passed over for its twin, in case its first sound is clipped).
+
+**Placement** is by the second each line's first sound is heard, against the picture and
+against the score: «Smaller still…» begins 0.2 s before the magnification changes; «copy
+me» falls as the head begins to empty; «leaves» ends where the bud pinches off (29.6 s);
+«look» comes as the title forms. Two lines were moved for the score's hits at 16.0, 20.0
+and 24.0 s: the first measurement had the voice 6 dB under the bed on «message» (the hit
+at 24.03), so that line now starts over the emptied phage and ends at 23.88, and the
+phage's line sits between the hits at 16 and 20.
+
+**The mix:** −14.8 LUFS, LRA 3.8 LU, true peak −1.5 dBFS. On stems, where the voice speaks
+it is 11.9 dB over the bed at the median (10th percentile 4.3; the windows under that are
+the quiet ends of words, and three loud ones at 17.1, 17.2 and 19.5 s within 3 dB). Every
+clock tick shows in the mix as a rise (3–7 dB for most, after the first version's 0–3 dB:
+given more body, 9 ms and a lower pitch, rather than only more level).
+
+**Said plainly:** nobody has listened to this either. What the words say was checked
+against the prompts, not transcribed blind. Whether the clock is the «tictac» that was
+meant, and whether it sits well with the score, only the user can tell.
+

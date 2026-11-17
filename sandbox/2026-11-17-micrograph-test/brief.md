@@ -35,15 +35,20 @@
   `mitochondrion · section NN/40 · 200 nm`, `virions · thin section · 200 nm`,
   `bacteriophage T4 on E. coli · 100 nm`, `virion · negative stain · 50 nm`,
   `budding · 100 nm`, `virions leaving a cell · 100 nm`.
+- **Narration (literal, English, the deep slow voice of the lightfield film; one line per
+  shot):** «Look closer. Life begins by swallowing.» · «One guest stayed. It burns in you
+  still.» · «Smaller still… things that are not quite alive.» · «A machine with one
+  instruction… copy me.» · «It carries nothing but a message.» · «It leaves… wearing the
+  skin of its reader.» · «And we have only just learned to look.» Takes in `private/voice/`.
 - **Music / rhythm:** 120 BPM in D minor (`bpm: 120`): a beat is half a second, so every
   cut is on a beat and the serial sections' eight slices a second are sixteenth notes.
   Score: a generated piece (ElevenLabs Music v2.5, take 3 of four, in `private/music/`,
   never committed) laid uncut from second 0, with a synthesised ending over its fade
-  (`music.mjs --ending`); synthesised sound design on the picture's own times
-  (`sound-design.mjs`: the column's hum, the relay and air of every change of magnification,
-  a tick per slice, the phage's taps, ratchet and snap, the bud's pop). `sh mix-sound.sh` →
-  `mix.wav`; without the private take it falls back to the fully synthesised score. No
-  narrator.
+  (`music.mjs --ending`). **No sound effects** (the user, round 4: «solo la música, con el
+  tictac del tiempo»): besides the score and the narrator there is only a clock, one tick a
+  second on the half seconds, and a tick per slice in the serial sections
+  (`sound-design.mjs`). `sh mix-sound.sh` → `mix.wav`; without the private takes it falls
+  back to the synthesised score and no narrator.
 - **Must NOT happen:** anything that reads as drawn (outlines, flat fills, a spike as a
   stick with a ball, dots on a grid); colour carrying a shape; white specks; grain sliding
   over a particle; a glow.
