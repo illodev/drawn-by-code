@@ -38,6 +38,7 @@ const STYLES = [
     ['clay 3D', 'paint:clay3d', 0, ['styles/clay3d/clay3d.js', 'sandbox/2026-09-24-clay3d-test/set.js']],
     ['lightfield', 'lightfield', 3.4, ['styles/lightfield/lightfield.js']],
     ['micrograph', 'micrograph', 3.2, ['styles/micrograph/micrograph.js']],
+    ['atlas', 'atlas', 3.0, ['styles/atlas/atlas.js', 'styles/atlas/sample.js']],
     ['risograph', 'risograph', 2.5, ['styles/risograph/riso.js']],
     ['pixel art', 'pixel-art', 3.2, ['styles/pixel-art/pixel.js']],
 ];
@@ -63,6 +64,8 @@ Motion.scene({
         { family: 'Poppins', src: 'fonts/Poppins-Bold-latin.woff2', descriptors: { weight: '700' } },
         { family: 'Lora', src: 'fonts/Lora-Medium-latin.woff2', descriptors: { weight: '500' } },
         { family: 'VT323', src: 'fonts/VT323-latin.woff2' },
+        { family: 'Garamond', src: 'fonts/EBGaramond-latin.woff2' },
+        { family: 'Garamond', src: 'fonts/EBGaramond-Italic-latin.woff2', descriptors: { style: 'italic' } },
     ],
     bpm: 120,
     shots: [[0, 6, 'Cover']],
