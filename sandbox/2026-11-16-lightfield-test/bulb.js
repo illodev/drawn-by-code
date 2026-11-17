@@ -16,6 +16,7 @@ LFT.bulb = {
 #define TITLE uA[2]
 #define KEYL uA[3]      // the studio lights
 #define SWEEP uA[4]     // a glint travelling along the title, in frame x
+#define SIGN uA[5]      // the signature under the title comes on after it
 const vec2 AXIS = vec2(658.0, 274.0);   // the bulb's axis and the centre of its sphere
 const float RS = 203.0;                 // the sphere's radius
 const vec2 FIL_A = vec2(595.0, 257.0), FIL_B = vec2(737.0, 255.0);
@@ -345,7 +346,9 @@ vec3 radiance(vec2 p) {
     // ---- the title: light, in front of everything
     vec4 t = plate(p);
     float glint = 1.0 + 2.5 * exp(-(p.x - SWEEP) * (p.x - SWEEP) / 0.004);
-    c += lin(t.rgb) * t.a * 7.0 * TITLE * glint;
+    // (the signature is the small line under the title, to the right: it has its own fade)
+    float isSign = step(p.y, -0.058) * step(-0.08, p.x);
+    c += lin(t.rgb) * t.a * 7.0 * mix(TITLE * glint, SIGN, isSign);
     return c;
 }
 `,
@@ -359,6 +362,7 @@ vec3 radiance(vec2 p) {
             Ease.out(Ease.seg(t, 2.3, 3.3)),
             0.82 + 0.18 * Ease.inOut(Ease.seg(t, 0, 2.2)),
             -1.2 + 2.4 * Ease.inOut(Ease.seg(t, 2.5, 4.1)),
+            Ease.out(Ease.seg(t, 3.25, 4.0)),
         ];
         const optics = {
             exposure: 1, toe: 0.006, bloom: 0.17, bloomWeights: [1.2, 1.8, 1.8, 0.9, 0.35, 0.12, 0.05], halation: [1, 0.5, 0.2], halationFrom: 5,
@@ -379,8 +383,10 @@ vec3 radiance(vec2 p) {
         pg.fillStyle = '#ffffff';
         pg.fillText('field', x0 + w + 6, y);
         const w2 = pg.measureText('field').width;
-        pg.font = '500 40px Lora';
+        // the signature, exactly as the user writes it
+        pg.font = '500 46px Lora';
         pg.textAlign = 'right';
-        pg.fillText('drawn by code', x0 + w + 6 + w2 - 4, y + 62);
+        pg.fillStyle = '#ffe9b0';
+        pg.fillText('illodev x Claude', x0 + w + 6 + w2 - 4, y + 66);
     },
 };

@@ -82,7 +82,7 @@ function noiseBand(seed, lowHz, highHz) {
     }
     const a = noiseBand(31, 1500, 7000), b = noiseBand(32, 1500, 7000);
     for (let i = Math.round((T0 + 2.6) * SR); i < Math.round((T0 + 6.0) * SR); i++) {
-        const u = i / SR - T0, env = smooth(seg(u, 2.6, 4.6)) * (1 - 0.35 * smooth(seg(u, 4.8, 5.8))) * (1 - smooth(seg(u, 5.9, 6.0))) * db(-23);
+        const u = i / SR - T0, env = smooth(seg(u, 2.6, 4.6)) * (1 - 0.35 * smooth(seg(u, 4.8, 5.8))) * (1 - smooth(seg(u, 5.9, 6.0))) * db(-25);
         add(i, a() * env * 5, b() * env * 5);
     }
 }

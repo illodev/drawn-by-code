@@ -23,7 +23,12 @@
     reproduced**: the title here is our own (see below), and the logo's area is masked in the
     detail gate.
 - **On-screen text (literal):** «lightfield» («light» in gold Lora, «field» in white
-  Poppins Bold) and under it «drawn by code» (Lora). Only in the bulb shot.
+  Poppins Bold) and under it the signature `illodev x Claude` (Lora; exactly so). Only in
+  the bulb shot.
+- **Narration (literal, English, a deep slow voice; one line per shot):** «Light never
+  arrives. It has always been on its way.» · «Hide the sun… and it shows you what it was
+  hiding.» · «White is every colour, keeping a secret.» · «One at a time, light still knows
+  the pattern.» · «And then… we learned to make our own.» Takes in `private/voice/`.
 - **Music / rhythm:** no beat grid (`bpm` undeclared). Score: a generated ambient piece in D
   (ElevenLabs Music v2.5, take 2 of four, in `private/music/`, never committed), laid uncut
   from second 0; a synthesised chord at totality (`music.mjs --totality`); synthesised sound

@@ -331,3 +331,41 @@ synthesised score when the private take is absent.
 Measured: RMS per second −48 −32 −26 −19 −17 −16 | −18 −20 −18 −17 −19 −16 | −20 −17 −15
 −16 −18 −23 | −26 −25 −20 −17 −14 −15 | −18 −23 −28 **−14** −23 −29 −39; integrated
 −15.5 LUFS, peak −1.5 dBFS. **Still not listened to by anyone.**
+
+## Round 9 (user) · the signature and a narrator
+
+> Lo único que falta es la marca de illodev x Claude y quizás un narrador que diga cosas muy
+> profundas con una voz grave
+
+**The signature.** `illodev x Claude`, written exactly as in the other films (the user's
+rule in runnin-down-a-dream), takes the place of «drawn by code» under the title: Lora
+46 px, a warm white, emitted through the plate like the title, with its own fade (it comes
+on at 27.75–28.5 s, after the title, and holds two seconds). It sits inside the area the
+detail gate already masks. Only the bulb's stretch was rendered again.
+
+**The narrator.** Five lines, one per shot, written for this film (English, like the
+on-screen text), each true of what is on screen:
+
+| second | line | lands on |
+|---|---|---|
+| 0.70 | Light never arrives. It has always been on its way. | the dark limb; the Sun shows at 2.4 |
+| 6.80 | Hide the sun… and it shows you what it was hiding. | «and» at 8.58: totality is 8.4 |
+| 13.60 | White is every colour, keeping a secret. | the fan opening, 13.2–16.9 |
+| 19.60 | One at a time, light still knows the pattern. | single photons, then the fingers |
+| 24.10 | And then… we learned to make our own. | spoken over the cut; «then» ends 25.02, the switch clicks 25.05, «own» meets the chord at 27.0 |
+
+Voice: ElevenLabs v4, a deep documentary voice from the library («Connery»), each line
+generated on its own with `[deep voice] [slowly]`, two takes; kept in `private/voice/`.
+Chosen by measurement: speech bounds, the pause inside each line, the level of the last
+40 ms against the peak (no take is cut off: −59 to −76 dB), and the lower-pitched take of
+each pair. Placed by the second the first sound is heard (each file starts with 0.12–0.24 s
+of air). The connector's transcription returned the script word for word with word times,
+but it also returned the bracketed tags, so it is an alignment against the prompt, not an
+independent hearing: the words are **not verified by a blind transcription**.
+
+Mix: under each line the score and the sound design come down 6 dB (0.25 s down, 0.6 s
+up; the last two lines bridged; nothing ducked after 26.9 s so the closing chord is whole).
+Measured on stems in 100 ms windows where the voice is above −26 dB: voice minus bed median
+15 dB, 10th percentile 6 dB, never under 2 dB; integrated −15.0 LUFS, peak −1.5 dBFS.
+
+Still true: **nobody has listened to any of it.**
