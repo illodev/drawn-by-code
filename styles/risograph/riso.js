@@ -12,6 +12,7 @@
 //                                                  (the drawing index); register: per-ink
 //                                                  offsets in output px; inks: re-ink the
 //                                                  plates ({ pink: 'blue' } → a colourway)
+//   Riso.press(env, { palette, order, paper, register, fibres, pitch, edge, spread })  another print
 //   press.save() / restore() / clip(fn) / each(fn) the same transform or clip on every plate
 //                                                  (a card inside a circle, in a mosaic cell)
 //
@@ -20,19 +21,23 @@
 // yellow = olive, pink + blue = purple. Whites are knockouts: erase on every plate
 // (`Riso.knock(g)` sets destination-out).
 const Riso = (() => {
-    const INKS = {
+    const INKS0 = {
         pink: { rgb: [240, 76, 183], angle: 0.26, pitch: 1 },
         yellow: { rgb: [255, 250, 40], angle: 0.0, pitch: 1 },
         blue: { rgb: [58, 146, 197], angle: 1.31, pitch: 1 },
         navy: { rgb: [32, 56, 146], angle: 0.79, pitch: 1 },
     };
-    const ORDER = ['yellow', 'pink', 'blue', 'navy'];
-    const PAPER = [241, 235, 226];
+    const ORDER0 = ['yellow', 'pink', 'blue', 'navy'];
+    const PAPER0 = [241, 235, 226];
     const tone = (v) => `rgba(0,0,0,${Math.max(0, Math.min(1, v))})`;
     const knock = (g) => { g.globalCompositeOperation = 'destination-out'; return g; };
 
     function press(env, o = {}) {
         const [W, H] = env.px, k = env.k;
+        // another print style can bring its own inks (o.palette: { name: { rgb, angle, pitch } },
+        // o.order: the printing order, the last ink on top), paper (o.paper: rgb), default
+        // register (o.register) and amount of paper fibres (o.fibres, 1 = the riso stock)
+        const INKS = o.palette ?? INKS0, ORDER = o.order ?? ORDER0, PAPER = o.paper ?? PAPER0;
         // everything measured on a 1080 × 1080 print scales with the short side, so a 16:9
         // frame at 1920 × 1080 keeps the same screen and grain as a square one at 1080
         const S1 = Math.min(W, H) / 1080;
@@ -78,7 +83,7 @@ const Riso = (() => {
         // specks. Never a confetti of coloured dots.
         const cloud = fine('cloud' + W, 48 * sc), fiber = new Float32Array(W * H);
         {
-            const fc = mk(), fg = fc.getContext('2d'), fr = Motion.rng('fibres' + W), n = Math.round(300 * (W * H) / (1080 * 1080));
+            const fc = mk(), fg = fc.getContext('2d'), fr = Motion.rng('fibres' + W), n = Math.round(300 * (o.fibres ?? 1) * (W * H) / (1080 * 1080));
             fg.lineCap = 'round';
             for (let k = 0; k < n; k++) {
                 let x = fr() * W, y = fr() * H, a = fr() * 6.28;
@@ -95,7 +100,7 @@ const Riso = (() => {
         }
         for (const ink of ORDER) { mottle[ink] = fine('mottle' + ink + W, 3.2 * sc); speck[ink] = fine('speck' + ink + W, 1.6 * sc); }
         let memoKey = null;
-        const EDGE = globalThis.RISO_EDGE ?? 1.1, SPREAD = globalThis.RISO_SPREAD ?? 0.8;
+        const EDGE = o.edge ?? globalThis.RISO_EDGE ?? 1.1, SPREAD = o.spread ?? globalThis.RISO_SPREAD ?? 0.8;
 
         return {
             W, H,
@@ -127,7 +132,7 @@ const Riso = (() => {
                         const p = (0.982 + 0.018 * grain[i] + 0.012 * (cloud[i] - 0.5)) * (1 - 0.2 * fiber[i]);
                         D[i * 4] = PAPER[0] * p; D[i * 4 + 1] = PAPER[1] * p; D[i * 4 + 2] = PAPER[2] * p; D[i * 4 + 3] = 255;
                     }
-                    const reg = po.register ?? { yellow: [2, -1], pink: [-1, 1], blue: [1, 2], navy: [0, 0] };
+                    const reg = po.register ?? o.register ?? { yellow: [2, -1], pink: [-1, 1], blue: [1, 2], navy: [0, 0] };
                     // po.inks re-inks the plates: { pink: 'blue', … } prints the pink plate in
                     // blue ink (the same drawing, a new colourway)
                     const inkOf = (plate) => (po.inks ?? {})[plate] ?? plate;
@@ -242,5 +247,5 @@ const Riso = (() => {
         gr.addColorStop(1, tone(t1));
         return gr;
     }
-    return { INKS, ORDER, PAPER, tone, knock, press, line, ring, ramp, radial };
+    return { INKS: INKS0, ORDER: ORDER0, PAPER: PAPER0, tone, knock, press, line, ring, ramp, radial };
 })();
