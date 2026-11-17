@@ -49,7 +49,9 @@ hesitate between "it reads" and "it doesn't read", **it doesn't read**.
 - **Rhythm:** cuts on the beat; visual hits (impacts, stamps, appearances) land on the
   beat too.
 - **Origin and physics:** everything that emanates (steam, smoke, sparks, liquid, papers
-  coming out of a box) is visibly born at its source and not behind or above it. Things
+  coming out of a box) is visibly born at its source and not behind or above it. What comes out
+  from behind something (a sun over a horizon, a hand from a sleeve) is never drawn in front
+  of it, not even for a frame: step through the event frame by frame. Things
   rest where they should and fall downward. Check it in a still of the instant it
   appears.
 - **Continuity:** characters and objects identical across shots and to the approved style
@@ -63,7 +65,7 @@ hesitate between "it reads" and "it doesn't read", **it doesn't read**.
   `reference.mjs compare --crop`) and hold it to the style's detail bar: separate pieces,
   organic shapes, textures that say what the material is, real hands. «It reads» is not
   enough; «it could be a frame of a finished film» is.
-- **The detail gate:** with a reference, `engine/detail.mjs` must PASS before anything is shown (CLAUDE.md → «The detail bar»); without one, crop every element at full resolution. Evident details are never left for the user to find.
+- **The detail gate:** with a reference, `engine/detail.mjs` must PASS before anything is shown (CLAUDE.md → «The detail bar»); without one, crop every element at full resolution. Evident details are never left for the user to find. `--mask x,y,w,h` leaves tiles out only for what the reference shows and the scene must not copy (a third party's logo): never for something that is hard to match.
 - **Hands and brand:** at every contact frame check each hand (right side, right view,
   never through what it holds; style skill → «Detail») and put the logo next to the
   client's SVG at the same size.

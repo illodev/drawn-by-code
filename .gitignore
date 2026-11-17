@@ -15,3 +15,6 @@ sandbox/2026-09-24-saas-promo/review/*.jpg
 references/*.mp4
 _site/
 __pycache__/
+
+# detail-gate pairs hold frames of the reference: third-party footage, never committed
+sandbox/*/review/detail*/t_*.jpg

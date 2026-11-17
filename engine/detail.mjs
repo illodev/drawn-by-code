@@ -2,7 +2,7 @@
 // flags what the eye would catch, so nobody has to point it out.
 //
 //   node engine/detail.mjs <scene.js> <reference.mp4> [--times 1,2.5 | --every 0.5]
-//                          [--grid 6] [--from s] [--to s] [--out dir]
+//                          [--grid 6] [--from s] [--to s] [--out dir] [--mask x,y,w,h[;x,y,w,h…]]
 //
 // For every instant: the scene's frame at the reference's size, split into grid × grid
 // tiles, and per tile
@@ -15,6 +15,9 @@
 // what-do-you-love, colour median 6.5, p90 24.3 at the 12 px colour scale; texture p5 0.72):
 //   colour median ≤ 8 · colour p90 ≤ 27 · tiles too clean ≤ 6 % · tiles too busy ≤ 12 %
 // (a halftone reference against itself shifted half a dot: median 3.4, p90 5.2: passes)
+// --mask leaves out the tiles whose centre falls in a box (fractions of the frame): for what
+// the reference shows and the scene must not copy (someone else's logo over the image), never
+// for something that is just hard to match. The masked boxes are listed in detail.md.
 // Output: <out>/detail.md (the verdict, then the flagged tiles), tiles.json, and one image
 // per instant (reference | ours, flagged tiles boxed: red = colour, yellow = texture).
 import fs from 'node:fs';
@@ -61,6 +64,8 @@ const R = Math.max(2, Math.round(W / 270)); // texture: blur radius ≈ 4 px at 
 // pitch) so a screen's dot phase doesn't count as a wrong colour: the reference against
 // itself shifted half a dot (5 px) scored median 12.9 at 4 px, 3.4 at 12 px
 const RC = Math.max(R, Math.round(W / (+opt('colour-blur-div', 90))));
+const masks = (opt('mask', '') || '').split(';').filter(Boolean).map((m) => m.split(',').map(Number));
+const masked = (gx, gy) => masks.some(([x, y, w, h]) => (gx + 0.5) / grid >= x && (gx + 0.5) / grid < x + w && (gy + 0.5) / grid >= y && (gy + 0.5) / grid < y + h);
 const rows = [], boxes = {}, all = [];
 let flagged = 0;
 for (const t of times) {
@@ -74,6 +79,7 @@ for (const t of times) {
     const tw = W / grid, th = H / grid;
     boxes[tt] = [];
     for (let gy = 0; gy < grid; gy++) for (let gx = 0; gx < grid; gx++) {
+        if (masked(gx, gy)) { boxes[tt].push([gx, gy, 'gray']); continue; }
         let dc = 0, ea = 0, eb = 0, n = 0;
         for (let y = Math.floor(gy * th); y < Math.floor((gy + 1) * th); y += 2) for (let x = Math.floor(gx * tw); x < Math.floor((gx + 1) * tw); x += 2) {
             const k = y * W + x;
@@ -104,7 +110,7 @@ const cs = all.map((a) => a.colour).sort((a, b) => a - b), tx = all.filter((a) =
 const clean = tx.filter((v) => v < 0.6).length / Math.max(1, tx.length), busy = tx.filter((v) => v > 1.6).length / Math.max(1, tx.length);
 const checks = [['colour median', q(cs, 0.5), 8], ['colour p90', q(cs, 0.9), 27], ['tiles too clean (%)', clean * 100, 6], ['tiles too busy (%)', busy * 100, 12]];
 const pass = checks.every(([, v, lim]) => v <= lim);
-const md = `# Detail gate · ${path.basename(path.dirname(scene))}: ${pass ? 'PASS' : 'FAIL'}\n\n${times.length} instants, ${grid}×${grid} tiles.\n\n| check | value | limit |\n|---|---|---|\n${checks.map(([n, v, l]) => `| ${n} | ${v.toFixed(1)} | ≤ ${l} ${v <= l ? '✓' : '✗'} |`).join('\n')}\n\nFlagged tiles: **${flagged}** (colour > 35, or texture outside 0.6–1.6 of the reference).\n\n| t | tile x,y | colour | texture (ours ÷ ref) | why |\n|---|---|---|---|---|\n${rows.join('\n')}\n`;
+const md = `# Detail gate · ${path.basename(path.dirname(scene))}: ${pass ? 'PASS' : 'FAIL'}\n\n${times.length} instants, ${grid}×${grid} tiles.${masks.length ? ` Masked (not compared): ${masks.map((m) => m.join(',')).join(' ; ')}.` : ''}\n\n| check | value | limit |\n|---|---|---|\n${checks.map(([n, v, l]) => `| ${n} | ${v.toFixed(1)} | ≤ ${l} ${v <= l ? '✓' : '✗'} |`).join('\n')}\n\nFlagged tiles: **${flagged}** (colour > 35, or texture outside 0.6–1.6 of the reference).\n\n| t | tile x,y | colour | texture (ours ÷ ref) | why |\n|---|---|---|---|---|\n${rows.join('\n')}\n`;
 fs.writeFileSync(path.join(out, 'detail.md'), md);
 fs.writeFileSync(path.join(out, 'tiles.json'), JSON.stringify(all));
 console.log(md.split('\n').slice(0, 11).join('\n'));
