@@ -1,6 +1,6 @@
 // lightfield-test · shot 3 · Prism: a white beam grazes a dark table into a glass prism,
-// the prism turns, and the white opens into a fan of colours across the table and round a
-// bowed sheet of paper. Our own scene, built from how the experiment really looks on a bench (brief.md):
+// the prism turns, and the white opens into a fan of colours running out across the table
+// (no screen: the table and the dust in the air are what it lands on). Our own scene, built from how the experiment really looks on a bench (brief.md):
 // the beam is seen as the streak it lays on the table and on the dust in the air, the glass
 // is seen by its edges, its sheen and the glints where light goes in and out, and the path
 // of every colour is Snell's law through the triangle, traced per frame in JS (lab.js)
@@ -32,20 +32,6 @@ const vec3 SPEC[${this.NL}] = vec3[${this.NL}](${spec});
 const float HP = 0.15;                 // the prism's height
 const float HB = 0.05;                 // the beam is a sheet this high
 const float BW = 0.010;                // and this wide (half)
-// what the fan lands on: a sheet of white paper stood on its edge and bowed into an arc,
-// hollow side to the prism (a different thing from the flat card of the Slits shot): the
-// arc's centre and radius on the table, the angles it spans, its height
-const vec2 SC = vec2(0.08, -0.63);
-const float SR = 0.75, SA0 = -0.03, SA1 = 0.92, KH = 0.24;
-// where a ray from inside the arc meets it: the distance along the ray (x) and the angle on
-// the arc (y); the distance is huge if it passes beside the sheet
-vec2 onSheet(vec2 e, vec2 d) {
-    vec2 q = e - SC;
-    float b = dot(q, d), tau = -b + sqrt(max(b * b - dot(q, q) + SR * SR, 0.0));
-    vec2 h = q + d * tau;
-    float a = atan(h.y, h.x);
-    return vec2((a > SA0 && a < SA1) ? tau : 1e4, a);
-}
 vec2 corner(int i) { return vec2(uA[12 + 2 * i], uA[13 + 2 * i]); }
 // across a beam: a core, and the little the paper spreads sideways
 float across(float d, float w) { return exp(-d * d / (w * w)) + 0.05 * exp(-abs(d) / (5.0 * w)); }
@@ -69,9 +55,8 @@ vec3 beams(vec2 T) {
         // of the fan at that distance, and as much dimmer (where the colours are pulled
         // further apart, the same light covers more table)
         float w = BW + 0.62 * gap(i) * max(al, 0.0);
-        // it stops where the sheet stands in its way
-        float stop = onSheet(e, d).x;
-        c += SPEC[i] * across(cross2(b, d), w) * (BW / w) * step(0.0, al) * step(al, stop) * step(ang, 50.0);
+        // nothing stands in its way: the fan runs out across the table until it is too thin to see
+        c += SPEC[i] * across(cross2(b, d), w) * (BW / w) * step(0.0, al) * step(ang, 50.0);
     }
     return c;
 }
@@ -94,48 +79,6 @@ vec3 radiance(vec2 p) {
     float m = motes(p, 0.045, uT, 3.0, 0.0009, 0.0026, 0.2) + 0.7 * motes(p * 1.1 + 0.4, 0.09, uT * 0.8, 4.0, 0.002, 0.005, 0.6);
     c += Bm * (0.16 * dustAir + 2.6 * m);
     float depth = t0;
-
-    // ---- the sheet: white paper bowed into an arc, the fan wrapped round its hollow side
-    {
-        // the view ray against the cylinder the sheet lies on: its far root (we look into the hollow)
-        vec2 q = CAM.xz - SC, dh = rd.xz;
-        float aa = dot(dh, dh), bb = dot(q, dh), cc = dot(q, q) - SR * SR, disc = bb * bb - aa * cc;
-        float tk = (-bb + sqrt(max(disc, 0.0))) / aa;
-        vec3 H = CAM + rd * tk;
-        vec2 hn = (H.xz - SC) / SR;                       // outward from the arc's centre
-        float ang = atan(hn.y, hn.x), s = (SA1 - ang) * SR;
-        // paper is not cut dead straight, and it leans a hair where it is bowed hardest
-        float topY = KH + 0.004 * (noise(vec2(s * 9.0, 2.0)) - 0.5) + 0.003 * sin(s * 5.0);
-        if (disc > 0.0 && tk > 0.0 && tk < depth && ang > SA0 && ang < SA1 && H.y > 0.0 && H.y < topY) {
-            vec3 I = vec3(0.0);
-            for (int i = 0; i < NL; i++) {
-                float an = uA[20 + 3 * i];
-                vec2 e = vec2(uA[18 + 3 * i], uA[19 + 3 * i]), d = vec2(cos(an), sin(an));
-                vec2 hit = onSheet(e, d);
-                // how squarely this colour meets the paper spreads it along the arc
-                vec2 hp = (e + d * hit.x - SC) / SR;
-                float w = (BW + 0.62 * gap(i) * min(hit.x, 3.0)) / max(dot(d, hp), 0.25);
-                I += SPEC[i] * exp(-pow((ang - hit.y) * SR / w, 2.0)) * (BW / w) * step(hit.x, 1e3) * step(an, 50.0);
-            }
-            float sheet = smoothstep(HB + 0.014, HB - 0.006, H.y);
-            // paper: a tooth, fibres, and the faint ripple a bowed sheet keeps
-            float tooth = 0.84 + 0.32 * noise(vec2(s, H.y) * 260.0) * noise(vec2(s, H.y) * 90.0 + 4.0) * 2.0;
-            tooth *= 0.94 + 0.12 * noise(vec2(s * 14.0, H.y * 3.0) + 7.0);
-            // the room's light comes from the left: the arc turns through it, so the sheet
-            // shades from one end to the other (that is what says it is curved)
-            float turn = 0.5 + 0.5 * dot(-hn, normalize(vec2(-0.55, -0.83)));
-            vec3 paper = vec3(0.84, 0.80, 0.70);
-            // it gives back most of what lands on it; a little climbs the sheet and a little
-            // crosses to the rest of the hollow (paper lights paper)
-            vec3 lit = I * POWER * (13.0 * sheet + 1.3 * exp(-max(H.y - HB, 0.0) / 0.075));
-            // (white paper in a blue room: it takes the room's light but stays the palest thing on the bench)
-            c = paper * tooth * (lit + ambient(H.xz) * vec3(1.55, 1.2, 0.92) * (0.7 + 4.2 * turn * turn) * (0.55 + 0.45 * H.y / KH));
-            // its cut top edge catches the room; its foot sits in its own shade
-            c += vec3(0.16, 0.24, 0.36) * AMB * 0.45 * smoothstep(0.005, 0.0, topY - H.y) * (0.4 + 1.2 * noise(vec2(s * 40.0, 3.0)));
-            c *= 0.55 + 0.45 * smoothstep(0.0, 0.02, H.y);
-            depth = tk;
-        }
-    }
 
     // ---- the prism: a block of glass standing on its triangular end
     {

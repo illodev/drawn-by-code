@@ -249,3 +249,17 @@ side to the prism: the spectrum wraps round it, the colours climb it, it shades 
 end to the other as it turns through the room's light, its top edge is not cut dead
 straight. The Slits shot keeps its flat grey card (bars want a flat screen). Only the
 prism's stretch was rendered again and spliced in.
+
+## Round 6 (user)
+
+On the bowed sheet of round 5:
+
+> Quizás sin pared?
+
+Translation: no screen at all in the Prism shot. The sheet is gone: the fan runs out across
+the table and off the frame, and what it lands on is the table's grain and the dust in the
+air. The prism is the only object on the bench, which also sets it apart from the Slits
+shot (a barrier and a card). Only the prism's stretch was rendered again and spliced in.
+
+Lesson: the answer to «the same prop twice» was to take it away, not to redesign it. A
+light that has a surface to skim does not need a screen to end on.

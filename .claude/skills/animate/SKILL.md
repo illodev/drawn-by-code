@@ -51,7 +51,7 @@ A `Time | Shot | What happens` table in the brief. Rules that have already cost 
 - **A prop is not reused across consecutive shots** unless it is the same object in the
   story. Two shots on the same set each need their own furniture: the same card at the same
   place and angle in the next shot reads as the first shot redressed («veo que has
-  reaprovechado la pared»). Change its shape, material and place, not its colour.
+  reaprovechado la pared»). Change its shape, material and place, not its colour; and ask first whether the shot needs it at all (the fix the user chose was «sin pared»: the prop removed).
 - **Cuts on the music beat.** At 120 BPM, multiples of 0.5 s. Declare `bpm` in the scene
   and `review.mjs` will warn about cuts off the beat.
 - **Nothing still for more than 1 s** except the ending: visual silence looks like a bug.
