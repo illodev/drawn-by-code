@@ -410,7 +410,7 @@ void main() {
         // letter spacing as a share of the size, or whatever spreads the word over `width`
         const sp = o.width != null && text.length > 1 ? (o.width - ws.reduce((a, b) => a + b, 0)) / (text.length - 1) : (o.spacing ?? 0) * (o.size ?? 12);
         const total = ws.reduce((a, b) => a + b, 0) + sp * (text.length - 1);
-        let cx = o.align === 'left' ? 0 : -total / 2;
+        let cx = o.align === 'left' ? 0 : o.align === 'right' ? -total : -total / 2;
         [...text].forEach((ch, i) => { g.fillText(ch, cx, (o.size ?? 12) * 0.35); cx += ws[i] + sp; });
         g.restore();
         return total;
@@ -491,40 +491,140 @@ void main() {
             house(g, x + along * Math.cos(dir) - across * Math.sin(dir), y + along * Math.sin(dir) + across * Math.cos(dir), s, dir + (rnd() - 0.5) * 0.4, o);
         }
     }
-    // A town on a radial-concentric plan: blocks of houses packed in rows along ring streets,
-    // cut by the radial streets (the roads' ends), dense at the centre and fraying at the edge.
-    // Each row starts at its own phase, so houses never line up across rings into spokes.
-    function town(g, cx, cy, R, o = {}) {
-        const rnd = Motion.rng('town-' + (o.seed ?? 1));
-        const spokes = (o.spokes ?? [0.4, 1.2, 2.0, 2.8, 3.6, 4.4, 5.2, 6.0]).slice().sort((a, b) => a - b);
-        const ring = o.ring ?? 10.6, hs0 = o.house ?? 4.1, street = o.street ?? 1.6;
-        const edgeR = (a) => R * (0.9 + 0.08 * Math.sin(a * 3 + 1.3) + 0.06 * Math.sin(a * 5 + 0.4));
-        // the town's ground: the pale of its streets and yards, under every house
-        g.beginPath();
-        for (let i = 0; i <= 64; i++) {
-            const a = (i / 64) * Math.PI * 2, rr = edgeR(a) + hs0 * 0.3;
-            i ? g.lineTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a)) : g.moveTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a));
+    // ------------------------------------------------------------------------------- towns
+    // A town as the plate draws one: its ground is the pale of its streets; on it, BLOCKS
+    // (irregular quadrilaterals, the spaces between streets), each cut into LOTS: small
+    // dark-grey quads of their own tones, each with a darker rim, with hairline gaps between
+    // them. Seen whole it is a dark mass threaded by white streets; it frays at its edge into
+    // scattered lots. A block is [x0,y0, x1,y1, x2,y2, x3,y3] (corners in turn); lots are laid
+    // on its own bilinear grid, so they follow its shape.
+    const LOT = ['#5d564e', '#655e55', '#6b645b', '#716a61', '#5a534b', '#696258'];
+    function blocks(g, list, o = {}) {
+        const lot = o.lot ?? 2.7, gap = o.gap ?? 0.45, keep = o.keep ?? (() => 1), rimW = o.rim ?? 0.32;
+        const A0 = g.globalAlpha;
+        for (const q of list) {
+            const rnd = Motion.rng('lots-' + q.seed);
+            const P = (u, v) => [
+                (1 - v) * ((1 - u) * q.c[0] + u * q.c[2]) + v * ((1 - u) * q.c[6] + u * q.c[4]),
+                (1 - v) * ((1 - u) * q.c[1] + u * q.c[3]) + v * ((1 - u) * q.c[7] + u * q.c[5]),
+            ];
+            const lu = Math.hypot(q.c[2] - q.c[0], q.c[3] - q.c[1]), lv = Math.hypot(q.c[6] - q.c[0], q.c[7] - q.c[1]);
+            const nu = Math.max(1, Math.round(lu / lot)), nv = Math.max(1, Math.round(lv / lot));
+            const gu = gap / Math.max(lu, 1e-3), gv = gap / Math.max(lv, 1e-3);
+            for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) {
+                // now and then two lots are one (a bigger house), now and then a yard is empty
+                if (rnd() < (o.empty ?? 0.03)) continue;
+                const u0 = i / nu + gu * 0.5, u1 = (i + 1) / nu - gu * 0.5, v0 = j / nv + gv * 0.5, v1 = (j + 1) / nv - gv * 0.5;
+                const c = P((u0 + u1) / 2, (v0 + v1) / 2);
+                const k = keep(c[0], c[1], q);
+                if (k <= 0 || rnd() > k) continue;
+                const a = P(u0, v0), b = P(u1, v0), cc = P(u1, v1), d = P(u0, v1);
+                // a softened quad: each corner cut by a quarter of the side, so lots read as
+                // rounded houses; a darker rim, and the lit corner (upper left) a touch lighter
+                const corners = [a, b, cc, d], R = 0.28;
+                g.beginPath();
+                for (let m = 0; m < 4; m++) {
+                    const p0 = corners[(m + 3) % 4], p1 = corners[m], p2 = corners[(m + 1) % 4];
+                    const s0 = [p1[0] + (p0[0] - p1[0]) * R, p1[1] + (p0[1] - p1[1]) * R], s1 = [p1[0] + (p2[0] - p1[0]) * R, p1[1] + (p2[1] - p1[1]) * R];
+                    m ? g.lineTo(s0[0], s0[1]) : g.moveTo(s0[0], s0[1]);
+                    g.quadraticCurveTo(p1[0], p1[1], s1[0], s1[1]);
+                }
+                g.closePath();
+                g.globalAlpha = A0;
+                g.fillStyle = LOT[Math.floor(rnd() * LOT.length)];
+                g.fill();
+                g.strokeStyle = 'rgba(40,35,30,0.55)';
+                g.lineWidth = rimW;
+                g.stroke();
+                g.globalAlpha = A0 * 0.22;
+                g.fillStyle = '#d8d0c2';
+                g.beginPath();
+                const h0 = P(u0 + (u1 - u0) * 0.18, v0 + (v1 - v0) * 0.18), h1 = P(u0 + (u1 - u0) * 0.55, v0 + (v1 - v0) * 0.18), h2 = P(u0 + (u1 - u0) * 0.18, v0 + (v1 - v0) * 0.55);
+                g.moveTo(h0[0], h0[1]); g.lineTo(h1[0], h1[1]); g.lineTo(h2[0], h2[1]); g.closePath();
+                g.fill();
+            }
         }
-        g.fillStyle = o.ground ?? '#e8e0cb';
-        g.fill();
-        const nearSpoke = (a, r, hs) => spokes.some((s) => Math.abs(((a - s + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * r < (street + hs) * 0.5);
-        for (let r0 = 3; r0 < R * 1.3; r0 += ring) {
-            const hs = hs0 * (0.72 + 0.28 * Math.min(1, r0 / 30));   // the old core is finer
-            for (let row = 0; row < 2; row++) {                      // two rows back to back
-                const rr = r0 + street * 0.5 + hs * 0.5 + row * (hs + 0.55);
-                const step = hs + 0.8, n = Math.max(5, Math.floor((2 * Math.PI * rr) / step)), ph = rnd() * Math.PI * 2;
+        g.globalAlpha = A0;
+    }
+    // Blocks of a radial town: rings cut by radial streets (the roads' ends) and by cross lanes,
+    // every corner nudged so no line runs quite straight; blocks fray beyond the edge.
+    function radialBlocks(cx, cy, R, o = {}) {
+        const rnd = Motion.rng('radial-' + (o.seed ?? 1)), out = [];
+        const spokes = (o.spokes ?? [0.4, 1.2, 2.0, 2.8, 3.6, 4.4, 5.2, 6.0]).slice().sort((a, b) => a - b);
+        const ring = o.ring ?? 9.5, street = o.street ?? 1.5, cross = o.cross ?? 12;
+        const rings = [];
+        for (let r = o.core ?? 3.5; r < R * 1.25; r += ring * (0.9 + 0.2 * rnd())) rings.push(r);
+        for (let s = 0; s < spokes.length; s++) {
+            const a0 = spokes[s], a1 = s + 1 < spokes.length ? spokes[s + 1] : spokes[0] + Math.PI * 2;
+            for (let k = 0; k + 1 < rings.length; k++) {
+                const r0 = rings[k] + street / 2, r1 = rings[k + 1] - street / 2, rm = (r0 + r1) / 2;
+                const span = (a1 - a0) * rm, n = Math.max(1, Math.round(span / cross));
                 for (let i = 0; i < n; i++) {
-                    const a = ph + (i / n) * Math.PI * 2;
-                    if (nearSpoke(a, rr, hs)) continue;
-                    // a cross lane now and then breaks a row (the blocks), more often outside
-                    if (rnd() < 0.035) continue;
-                    const e = edgeR(a), keep = rr < e ? (o.density ?? 0.97) : Math.max(0, 1 - (rr - e) / (R * 0.35)) * 0.55;
-                    if (rnd() > keep) continue;
-                    const s = hs * (0.85 + 0.3 * rnd());
-                    house(g, cx + rr * Math.cos(a), cy + rr * Math.sin(a), s, a + Math.PI / 2 + (rnd() - 0.5) * 0.1, { aspect: 0.8 + 0.35 * rnd() });
+                    const pad0 = (i === 0 ? street * 0.6 : street * 0.5) / rm, pad1 = (i === n - 1 ? street * 0.6 : street * 0.5) / rm;
+                    const b0 = a0 + ((a1 - a0) * i) / n + pad0, b1 = a0 + ((a1 - a0) * (i + 1)) / n - pad1;
+                    if (b1 <= b0) continue;
+                    const j = () => (rnd() - 0.5) * 0.9;
+                    const pt = (r, a) => [cx + (r + j()) * Math.cos(a), cy + (r + j()) * Math.sin(a)];
+                    const A = pt(r0, b0), B = pt(r0, b1), C = pt(r1, b1), D = pt(r1, b0);
+                    out.push({ c: [...A, ...B, ...C, ...D], seed: (o.seed ?? 1) * 1e4 + s * 100 + k * 7 + i, r: rm });
                 }
             }
         }
+        return out;
+    }
+    // Blocks of a real town: a jittered street grid laid along the town's own grain (the
+    // direction of its streets, a field), district by district; only where `inside` says
+    // there is built-up land do lots go down, so the town keeps its true outline.
+    function gridBlocks(x0, y0, x1, y1, angleAt, o = {}) {
+        const rnd = Motion.rng('grid-' + (o.seed ?? 1)), out = [];
+        const block = o.block ?? 12, street = o.street ?? 1.4, D = o.district ?? 64;
+        for (let dy = y0; dy < y1; dy += D) for (let dx = x0; dx < x1; dx += D) {
+            const cxD = dx + D / 2, cyD = dy + D / 2;
+            const th = angleAt(cxD, cyD) + (rnd() - 0.5) * 0.08, ca = Math.cos(th), sa = Math.sin(th);
+            const bs = block * (o.blockAt ? o.blockAt(cxD, cyD) : 1);
+            const n = Math.ceil((D * 1.6) / bs);
+            const ph = [rnd() * bs, rnd() * bs];
+            const vtx = {};
+            const V = (i, j) => {
+                const key = i + ',' + j;
+                if (!vtx[key]) {
+                    const u = i * bs - n * bs / 2 + ph[0] + (rnd() - 0.5) * bs * 0.22, v = j * bs * (o.aspect ?? 1.25) - n * bs / 2 + ph[1] + (rnd() - 0.5) * bs * 0.22;
+                    vtx[key] = [cxD + u * ca - v * sa, cyD + u * sa + v * ca];
+                }
+                return vtx[key];
+            };
+            for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+                const A = V(i, j), B = V(i + 1, j), C = V(i + 1, j + 1), Dd = V(i, j + 1);
+                const mx = (A[0] + C[0]) / 2, my = (A[1] + C[1]) / 2;
+                if (mx < dx || mx >= dx + D || my < dy || my >= dy + D) continue;     // each block to one district
+                // pull the corners in toward the centre by half a street
+                const shrink = (P) => { const vx = mx - P[0], vy = my - P[1], l = Math.hypot(vx, vy) || 1; return [P[0] + (vx / l) * street * 0.7, P[1] + (vy / l) * street * 0.7]; };
+                out.push({ c: [...shrink(A), ...shrink(B), ...shrink(C), ...shrink(Dd)], seed: Math.round(mx * 1000 + my), x: mx, y: my });
+            }
+        }
+        return out;
+    }
+    // The radial town of the plate: its pale ground, its blocks, done.
+    function town(g, cx, cy, R, o = {}) {
+        const key = [cx, cy, R, o.seed, (o.spokes ?? []).join()].join('|');
+        if (!town.cache) town.cache = new Map();
+        if (!town.cache.has(key)) town.cache.set(key, radialBlocks(cx, cy, R, o));
+        const list = town.cache.get(key);
+        const edgeR = (a) => R * (0.9 + 0.08 * Math.sin(a * 3 + 1.3) + 0.06 * Math.sin(a * 5 + 0.4));
+        const A0 = g.globalAlpha;
+        g.beginPath();
+        for (let i = 0; i <= 64; i++) {
+            const a = (i / 64) * Math.PI * 2, rr = edgeR(a) + 2;
+            i ? g.lineTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a)) : g.moveTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a));
+        }
+        g.fillStyle = o.ground ?? INK.street;
+        g.globalAlpha = A0 * 0.92;
+        g.fill();
+        g.globalAlpha = A0;
+        blocks(g, list, {
+            lot: o.lot ?? 2.7,
+            keep: (x, y) => { const r = Math.hypot(x - cx, y - cy), e = edgeR(Math.atan2(y - cy, x - cx)); return r < e ? 0.97 : Math.max(0, 1 - (r - e) / (R * 0.3)) * 0.5; },
+        });
     }
     // Fields: a patchwork of parcels on a tilted grid wherever `where(x, y)` says there is
     // plain, each a pale wash of one of the field greens and buffs with a faint edge.
@@ -616,5 +716,5 @@ void main() {
         }
         return c;
     }
-    return { along, channel, inside, SWISS, INK, load, relief, onMap, smooth, lengths, river, lake, dashed, label, neatline, scaleBar, pathOf, road, house, village, town, fields, dam };
+    return { blocks, radialBlocks, gridBlocks, along, channel, inside, SWISS, INK, load, relief, onMap, smooth, lengths, river, lake, dashed, label, neatline, scaleBar, pathOf, road, house, village, town, fields, dam };
 })();

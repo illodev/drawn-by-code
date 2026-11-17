@@ -1,0 +1,52 @@
+{
+ "z": 12,
+ "centre": [
+  -4.455,
+  36.735
+ ],
+ "size": [
+  1280,
+  720
+ ],
+ "rivers": [
+  "Río Guadalhorce",
+  "Río Guadalmedina"
+ ],
+ "origin": [
+  510671.872,
+  408742.1171341451
+ ],
+ "places": {
+  "Málaga": [
+   -4.4203,
+   36.7202
+  ],
+  "Torremolinos": [
+   -4.4995,
+   36.6243
+  ],
+  "Cártama": [
+   -4.6315,
+   36.7101
+  ],
+  "Alhaurín de la Torre": [
+   -4.5628,
+   36.6628
+  ],
+  "Rincón de la Victoria": [
+   -4.2794,
+   36.7162
+  ],
+  "Montes de Málaga": [
+   -4.3802,
+   36.821
+  ],
+  "Desembocadura del Guadalhorce": [
+   -4.456,
+   36.672
+  ]
+ },
+ "exaggeration": 1.8,
+ "tintTop": 650.0,
+ "streamArea": 900
+}
