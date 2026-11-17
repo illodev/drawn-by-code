@@ -14,6 +14,8 @@
     // first two fields of every line to copy the film: keep them first, in this form)
     const FEATURE = ['runnin-down-a-dream', '2026-11-11-runnin-down-a-dream', 'Runnin’ Down a Dream', '’90s cereal ad', 264, 'silent', ''];
     const FILMS = [
+        ['micrograph-test', '2026-11-17-micrograph-test', 'Micrograph', 'micrograph', 37.5, 'with sound',
+            'One session at an electron microscope, from the largest thing to the smallest: an amoeba closes round a bacterium, one of its mitochondria goes by slice by slice, a phage lands on a bacterium and empties itself into it, virions bud from the edge of a cell. Nothing is drawn: each scene is a grey signal seen by an instrument made of code, and tinted afterwards.'],
         ['lightfield-test', '2026-11-16-lightfield-test', 'Lightfield', 'lightfield', 30.5, 'with sound',
             'Five lights, from the sky to the bench: the Sun comes up over the edge of the Earth, the Moon covers it, a prism opens a white beam into its colours, red light goes through two slits one photon at a time, and a filament lights the title. Nothing is drawn: every scene is light, photographed by a camera made of code.'],
         ['pier-pressure', '2026-11-14-pier-pressure', 'Pier Pressure', 'skate toon', 32, 'with sound',
@@ -30,7 +32,7 @@
         ['opus5-riso', '2026-09-24-opus5-riso', 'opus5-riso', 'risograph', 28],
         ['what-do-you-love', '2026-09-24-what-do-you-love', 'what do you love?', 'paper cutout', 28],
     ];
-    const EXPERIMENTS = 17; // rows in sandbox/INDEX.md
+    const EXPERIMENTS = 18; // rows in sandbox/INDEX.md
 
     // [folder, name, look, shape of its template ('square' | 'wide'), heavy (WebGL raymarching: a smaller canvas)]
     const STYLES = [
@@ -44,6 +46,7 @@
         ['felt3d', 'Felt 3D', 'Needle-felted wool: a halo of stray fibres on every silhouette, glass-bead eyes, stitched mouths.', 'wide', 1],
         ['tabletop3d', 'Tabletop 3D', 'An office in miniature: a paper clip, an eraser, a stapler, photographed like stop motion.', 'wide', 1],
         ['lightfield', 'Lightfield', 'Light photographed, not drawn: radiance through a lens and film, with bloom, halation, rays and grain.', 'wide', 1],
+        ['micrograph', 'Micrograph', 'An instrument’s image, tinted afterwards: one grey signal, sharp grain on soft structures, a few inks laid over it.', 'wide', 1],
         ['comic', 'Comic', 'Brush-ink outlines with tapered ends, flat print colours on newsprint, Ben-Day dots, balloons.', 'wide', 0],
         ['70s-poster', '70s poster', 'Flat acid colours, thick outlines, concentric echoes, sunbursts and melting letters.', 'wide', 0],
         ['liquid-light', 'Liquid light', 'The oil-and-ink projections of 60s concerts: blobs that flow, merge and shift colour.', 'wide', 0],
