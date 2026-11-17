@@ -24,7 +24,7 @@ Motion.scene({
         const { R, vec, hAt, canal } = env.state;
         // 0–1.5 s the plate is printed: the relief comes up out of the paper, then its ink, then
         // its lettering; 1.5–2 s it holds as the reference drew it (the detail gate's instant)
-        const relief = Ease.inOut(Ease.seg(t, 0.0, 0.9)), ink = Ease.inOut(Ease.seg(t, 0.5, 1.2)), letters = Ease.inOut(Ease.seg(t, 1.0, 1.5));
+        const relief = 0.35 + 0.65 * Ease.inOut(Ease.seg(t, 0.0, 0.9)), ink = Ease.inOut(Ease.seg(t, 0.5, 1.2)), letters = Ease.inOut(Ease.seg(t, 1.0, 1.5));
         // the water's front: leaves the dam at 3.0 s, reaches the town at 8.2 s
         const u = Ease.inOut(Ease.seg(t, 3.0, 8.2));
         const front = Atlas.along(canal, u).at, dam = canal[0];

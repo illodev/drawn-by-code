@@ -11,17 +11,15 @@
 Energy per second (how much the image changes):
 
 ```
-  ▇▄██▇▄ ▅▇▃
+▃ █▅██▇▇▆▇▁ 
 0    5    10   
 ```
 
-Still stretches of 1 s or more (intended? a visual pause that looks like a glitch is a bug): 0.00 s–2.00 s, 7.50 s–9.33 s.
+Still stretches of 1 s or more (intended? a visual pause that looks like a glitch is a bug): 10.17 s–11.83 s.
 
 ## Speed
 
-Painting: 495 ms/frame cold, 518 ms warm → full render ≈ 149 s at this size.
-
-> Slow: cache static elements with `Motion.sprite` and lower the texture density.
+Painting: 335 ms/frame cold, 279 ms warm → full render ≈ 80 s at this size.
 
 ## Contact sheet
 
