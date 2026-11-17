@@ -1,6 +1,6 @@
 // Lightfield style template: a point of light heating up in a dusty dark room, the air and
 // the dust lit by it, and a title emitted as light through the same lens and film.
-const TPL_GLSL = `
+const LIGHT_GLSL = `
 #define HEAT uA[0]
 #define TITLE uA[1]
 vec3 radiance(vec2 p) {
@@ -33,7 +33,7 @@ Motion.scene({
             { family: 'Lora', src: 'fonts/Lora-Medium-latin.woff2', descriptors: { weight: '500' } }],
     shots: [[0, 4, 'Template']],
     setup(env) {
-        return { L: Lightfield.make(env).scene('tpl', TPL_GLSL) };
+        return { L: Lightfield.make(env).scene('tpl', LIGHT_GLSL) };
     },
     draw(g, t, env) {
         // a light does not switch on: it climbs, overshoots a little, settles and trembles
