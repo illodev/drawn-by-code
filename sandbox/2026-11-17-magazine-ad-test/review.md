@@ -81,3 +81,30 @@ the peel out in C-b).
 - Still off (for the next rounds): the hop of the loaves is the only action Joe's shot has
   besides a nod and a blink; the steam doubles the reference's own wisps; the end card holds
   for 1.5 s with little moving; no sound yet.
+
+## Round 3 (user) · «The animation doesn't convince me»
+
+> The animation doesn't convince me.
+
+The limited animation by pieces (loaves hopping, a head nodding, a cat's head turning on a
+pivot, all over held drawings with their holes filled in) reads as a cut-out puppet, not as
+animation: the lesson of pier-pressure again («a still drawing moved is not animation»).
+Characters move by drawings. With no drawings of Joe and the cat beyond the two panels, the
+choice of where new drawings come from goes back to the user at this first rejection, as
+**new-style** asks.
+
+The user chose **no acting characters** (over generated key poses, their own drawings, or
+poses redrawn in code). Animatic v2:
+
+- Joe and the cat are held exactly as printed: the character pieces are gone from the
+  separation, so no inpainted holes either.
+- What carries the motion now: the plates landing and lifting, the camera over the page,
+  «Fresh!» brushed on with a sweeping edge, the starbursts, the fire breathing (an orange
+  screen swelling over the oven's mouth), live steam, the night's windows going dark and its
+  stars coming out, period call-outs (a paper tag with a hand-lettered name and an arrow that
+  draws itself: «Joe · up since 4 a.m.», «Whiskers · head taster»), a ribbon «Golden crust!»,
+  the price badge spinning in like a coin, and the end card.
+- The cat's gag is told with print, not acting: its tag names it the head taster, and on the
+  end card ink paw prints walk in from the left edge to the loaf before the bite.
+- A tag measured its width before setting the letter-spacing of its second line, and the
+  text ran over its border: measure with the spacing the line is set in.

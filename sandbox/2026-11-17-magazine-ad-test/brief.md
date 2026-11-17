@@ -18,10 +18,12 @@
 - **Two threads:** the print run (blank stock → three plates → back to blank stock), and the
   cat eyeing the bread (an ear in shot 2, the whole of shot 6, the bite in shot 8). The night
   in the window (shot 3) pays off as the sun rising behind the logotype (shot 8).
-- **Characters:** Joe the baker and the cat, as drawn in `ref/C-a.png` and `ref/C-b.png`
-  (no other drawings of them exist, and none will be generated): limited animation in the
-  manner of a 1950s TV spot (held drawings, moving pieces), and cuts between the two
-  panels where the action would need new poses.
+- **Characters:** Joe the baker and the cat (Whiskers), as drawn in `ref/C-a.png` and
+  `ref/C-b.png`, **held as printed**: they do not act. Round 3, the user: «The animation
+  doesn't convince me» (pieces of the drawings moved on pivots read as a puppet), and chose
+  no acting characters over generated key poses. What moves: the press, the camera over the
+  page, the type and labels, the graphics on the page (starbursts, «Fresh!») and objects
+  drawn in code (steam, stars, the loaf, ink paw prints).
 - **References** (generated in the user's ElevenLabs flow, gpt-image-2.5-sunburst; no
   more will be generated):
   - `ref/C-a.png`, `ref/C-b.png`: the two takes of «1950s magazine advertisement» on the
@@ -35,8 +37,10 @@
   `#0e4f6a` (three inks cannot make it: it prints teal-black); round dots, the colour screens
   ≈ 2 px a cell at 1280, the black's coarser; the colour plates sit 2–4 px (at 1280) off the
   black.
-- **On-screen text (literal):** «Fresh!» (in the reference), «10¢ a loaf!», «Early Bird
-  Bakery», «Baked while you sleep!», «Mill Street · open at 6 a.m.»
+- **On-screen text (literal):** «Fresh!» (in the reference, brushed on), «Joe» / «UP SINCE
+  4 A.M.» (a tag), «Golden crust!» (a ribbon), «SOFT AS A CLOUD INSIDE», «Whiskers» / «HEAD
+  TASTER» (a tag), «!», «10¢» / «a loaf!» (a badge), «Early Bird» / «BAKERY», «Baked while
+  you sleep!», «MILL STREET · OPEN AT 6 A.M.»
 - **Voice-over (literal, a 1950s announcer):** «Before the sun comes up…» · «…while the whole
   town is fast asleep…» · «…Joe's pulling the first loaves from the oven!» · «Golden crust.
   Soft as a cloud inside.» · «Fresh every morning — just ten cents a loaf!» · «Early Bird
@@ -50,12 +54,12 @@
 
 | Time | Shot | What happens (one action) | Sound |
 |---|---|---|---|
-| 0.0–3.0 | 1 · Press run | Blank cream stock. On 0.5, 1.5 and 2.5 s the plates print one by one with a thump (turquoise, orange, the black key); each lands a few pixels off register and settles | three press thumps |
-| 3.0–6.0 | 2 · The page wakes | The starbursts spin and twinkle on the offbeats, «Fresh!» flashes on the beat, steam starts to rise in the oven, the cat's ear twitches | the jingle starts; VO 1 |
-| 6.0–9.0 | 3 · The sleeping town | The camera pushes into the window (the dots grow as it goes in): the street lamp flickers and the last lit window goes dark | VO 2 |
-| 9.0–13.0 | 4 · Joe at the oven | Back out to Joe: he draws the peel a hand's width out of the oven, the loaves slide out of the glow in a puff of steam, he blinks and his grin widens | VO 3, a whoosh |
-| 13.0–16.0 | 5 · Golden crust | Push in on the loaves until the dots are big: the score lines crackle, steam curls up, flour dust falls | crackle; VO 4 |
-| 16.0–19.0 | 6 · Somebody's watching | The cat on the flour sack: its head turns to follow the loaves, its tail swishes on every beat, a turquoise «!» starburst pops beside it | slide whistle |
-| 19.0–23.0 | 7 · Ten cents | A boomerang wipes to the second panel (`ref/C-b.png`): Joe, leaning back with the peel out of the oven, laughs; a starburst badge «10¢ a loaf!» punches in on the beat | VO 5 |
-| 23.0–28.0 | 8 · Early Bird | End card: «Early Bird Bakery» drops in letter by letter, a half sun of rays rises behind it, «Baked while you sleep!» brushes on, a loaf turns in a starburst, «Mill Street · open at 6 a.m.»; on the last word a bite vanishes from the loaf and a cat's tail whisks out of frame | VO 6; chomp |
+| 0.0–3.0 | 1 · Press run | Blank cream stock. On 0.5, 1.5 and 2.5 s the plates print one by one with a thump (turquoise, orange, the black key); each lands a few pixels off register and settles. «Fresh!» is not on them | three press thumps |
+| 3.0–6.0 | 2 · The page wakes | «Fresh!» is brushed on, left to right, then pulses on the beat; the starbursts spin and twinkle; the fire breathes and steam rises | the jingle starts; VO 1 |
+| 6.0–9.0 | 3 · The sleeping town | The camera pushes into the window (the dots grow and travel with the page): the lit windows go dark one by one, the street lamp flickers, stars come out over the roofs | VO 2 |
+| 9.0–13.0 | 4 · Joe at the oven | Back out to Joe, held as printed: a hand-lettered tag «Joe · up since 4 a.m.» pops on and its arrow draws itself to him; the camera drifts along the peel to the oven | VO 3 |
+| 13.0–16.0 | 5 · Golden crust | The push goes on into the loaves until the dots are big: a ribbon «Golden crust!» swings in, «soft as a cloud inside» is set under it, the crust crackles, flour dust falls | crackle; VO 4 |
+| 16.0–19.0 | 6 · Somebody's watching | The cat on the flour sack, held: the camera leans in on the beats, a tag «Whiskers · head taster» pops on with its arrow, a «!» starburst | slide whistle |
+| 19.0–23.0 | 7 · Ten cents | A boomerang wipes to the second panel (`ref/C-b.png`): the price badge «10¢ a loaf!» spins in like a coin and lands on the beat | VO 5 |
+| 23.0–28.0 | 8 · Early Bird | End card: the sun rises, «Early Bird» drops in letter by letter, «BAKERY», «Baked while you sleep!» brushes on, the address, a loaf in a starburst; ink paw prints walk in from the left to the loaf, and on the last word a bite is gone | VO 6; chomp |
 | 28.0–30.0 | 9 · Lift-off | The plates lift off in reverse (black, orange, turquoise) back to blank stock | three soft thumps; the jingle's button |
