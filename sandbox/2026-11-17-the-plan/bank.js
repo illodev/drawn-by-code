@@ -67,7 +67,7 @@ const Bank = (() => {
 
     // --- the times (film seconds; the clock on the sheet reads 02:14:00 at CLOCK0, in real time) ---
     const TM = {
-        CLOCK0: 20, CLOCK_AT: [2, 14, 0], CLOCK_STOP: 54.5,
+        CLOCK0: 20, CLOCK_AT: [2, 14, 0], CLOCK_STOP: 54.3,
         corner: 20.0, // the guard turns his south-west corner
         go: 26.2, // CAM 2 has passed: the marks cross
         stop: 31.0, turn: [31.6, 32.4], // the guard stops, and turns
@@ -104,7 +104,7 @@ const Bank = (() => {
         const tGrille = tAtDuct + (0 - LOBBY.grille) / 1.3, tFloor = tGrille + (LOBBY.grille - zf) / 3.4;
         const xs = STAND(i), tStand = tFloor + (xs - RISER[0]) / 2.6;
         const tAway = TM.away + 0.3 * i, back = xs - RISER[0], up = Z.roofTop + r - zf, V = 6.5;
-        const tBack = tAway + back / V, tRoof = tBack + up / V, roofRun = [RISER, [RISER[0], OFF[1]], OFF], tOff = tRoof + lengthOf(roofRun) / 5;
+        const tBack = tAway + back / V, tRoof = tBack + up / V, roofRun = [RISER, [RISER[0], OFF[1]], OFF], tOff = tRoof + lengthOf(roofRun) / 7.5;
         return {
             out, p1, tDuct, tAtDuct, tGrille, tFloor, tStand, tAway, zf, xs, tBack, tRoof, tOff, roofRun,
             a: { t0: 20.3 + 0.4 * i, v: 2.6, pts: [out, [1.5, 12.5], p1] },
@@ -127,7 +127,7 @@ const Bank = (() => {
         if (t < l.tAway) { const u = Math.min(1, (t - l.tFloor) / (l.tStand - l.tFloor)); return { x: RISER[0] + (l.xs - RISER[0]) * u, y: LOBBY.y[0] + 0.5, z: l.zf, at: 'basement' }; }
         if (t < l.tBack) { const u = (t - l.tAway) / (l.tBack - l.tAway); return { x: l.xs + (RISER[0] - l.xs) * u, y: LOBBY.y[0] + 0.5, z: l.zf, at: 'basement' }; }
         if (t < l.tRoof) { const u = (t - l.tBack) / (l.tRoof - l.tBack), z = l.zf + (Z.roofTop + r - l.zf) * u; return { x: RISER[0], y: RISER[1], z, at: 'riser' }; }
-        if (t < l.tOff) { const [x, y] = along(l.roofRun, 5 * (t - l.tRoof)); return { x, y, z: Z.roofTop + r, at: 'roof' }; }
+        if (t < l.tOff) { const [x, y] = along(l.roofRun, 7.5 * (t - l.tRoof)); return { x, y, z: Z.roofTop + r, at: 'roof' }; }
         return { x: OFF[0], y: OFF[1], z: Z.roofTop, at: 'gone' };
     }
     // the route as the pencil plans it (rev. A): in at the side door, the blind corner, the

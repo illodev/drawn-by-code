@@ -76,5 +76,27 @@ its 72 s were one framing of one plan, and the building had a single level to ro
   the pens' own weight.
 - `review.mjs`: no warnings, no still stretch of a second anywhere, every cut on the beat.
 
-**Open for the user:** the film itself; the score (waiting for their explicit go-ahead to
-use the paid service).
+## Round 4 (user) · the score
+
+> Use ElevenLabs for the soundtrack.
+
+Permission given, for the score. One take was asked for (`gen-music.mjs`: a composition plan
+at 120 BPM, heist jazz in D minor, nine sections in whole bars), 56 s, kept in `private/`.
+Nobody here has heard it: it was laid by measurement (`tools/measure-score.py`, `lay-music.sh`).
+
+- It plays at 119.74 BPM: 0.22 % faster keeps its beats on the film's half seconds to the end.
+- Its last stab is at 52.0 s of the take and its chord is gone by 53.2 s. Laid half a second
+  in, three of its section changes fall on cuts (8.5, 20.5, 36.5 s) and the stab at 52.5 s,
+  so the cut to the title block moved from 53 to 52.5 s to land on it (the marks run the
+  roof a little faster to be gone by then); the stab is echoed on the beat under the
+  lettering, to 55.6 s.
+- Its sections are not told apart by level (it builds steadily, a 4 s phrase all the way):
+  whether the «drums drop out» bar at the guard's stop happened cannot be measured from
+  level alone. To ask the user, who can hear it.
+- Mix: −16.1 LUFS integrated, true peak −1.9 dBFS, the first half second silent.
+- `review.mjs`: no warnings.
+
+The committed render stays silent: the score was made on the user's account and whether the
+repo's copy carries it is theirs to say.
+
+**Open for the user:** the cut with its score (does the music fit, does it change where the film does); whether the committed MP4 should carry it.

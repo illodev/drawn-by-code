@@ -82,5 +82,6 @@ the number of this drawing. What they came for was the plan.
 - `pencil.js`: the red drawing, a second display list on the kit's pencil layer; the marks
   are drawn every frame from `markAt`, on the plan, in the section (dashed while behind the
   wall) and in detail C.
-- Sound: a score alone, by the user's choice. Not made yet: it needs their explicit go-ahead
-  for the paid service, with what it would cost.
+- Sound: a score alone, by the user's choice, generated with their go-ahead (`gen-music.mjs`,
+  one take), measured (`tools/measure-score.py`) and laid on the film's grid (`lay-music.sh` →
+  `private/mix.wav`, which the scene points at; without it the film renders silent).

@@ -45,8 +45,8 @@ const EDIT = [
     [46.5, 48, '0412', [1440, 484, 4.2], [1444, 484, 4.4]],
     [48, 49.5, 'Back', [482, 1040, 2.6], [452, 1040, 2.6]],
     [49.5, 51, 'Up', [2600, 1040, 1.7], [2600, 830, 1.7]],
-    [51, 53, 'Out', [1792, 240, 2.4], [1760, 236, 2.4]],
-    [53, 56, 'Revision', [1412, 1180, 3.2], [1412, 1182, 3.4]],
+    [51, 52.5, 'Out', [1792, 240, 2.4], [1764, 236, 2.4]],
+    [52.5, 56, 'Revision', [1412, 1180, 3.2], [1412, 1182, 3.4]],
 ];
 // when each group is drafted: [from, to] in seconds
 const WHEN = {
@@ -59,25 +59,26 @@ const WHEN = {
     // drafted before they are shown
     'pj.down': [6, 7], 'se.cut': [6, 7], 'se.tone': [6, 7], 'se.duct': [6, 7], 'se.hall': [6, 7], 'se.lobby': [6, 7], 'se.earth': [6, 7], 'se.names': [6, 7], 'se.levels': [6, 7], 'se.title': [6, 7],
     'ex.notes': [5, 7], 'ex.legend': [5, 7], 'ex.north': [5, 6], 'ex.detail': [5, 7], 'ex.detailTitle': [6, 7], 'tb.frame': [5, 6], 'tb.text': [6, 8], 'tb.revA': [8, 8.5],
-    'tb.revB': [53.2, 54.2], 'tb.revCell': [54.0, 54.5],
+    'tb.revB': [52.8, 53.9], 'tb.revCell': [53.7, 54.2],
     // the pencil
     'r.in': [12.1, 12.9], 'r.a': [13.0, 14.0], 'r.wait': [13.9, 14.4], 'r.b': [14.5, 15.5], 'r.gap': [15.4, 15.9], 'r.store': [16.1, 16.8],
     'r.c': [17.0, 18.3], 'r.stair': [18.2, 18.8], 'r.strike': [34.5, 35.0], 'r.q': [35.0, 35.4], 'r.duct': [35.5, 36.4],
     'r.ax.down': [36.7, 38.2], 'r.boxC': [47.0, 47.5], 'r.numC': [47.4, 47.9], 'r.b.box': [47.0, 47.5], 'r.b.num': [47.4, 47.9], 'r.b.away': [48.0, 48.9],
-    'r.ax.up': [49.6, 50.8], 'r.r.out': [51.2, 52.1], 'r.r.note': [52.0, 52.4], 'r.tick': [54.6, 55.0],
+    'r.ax.up': [49.6, 50.8], 'r.r.out': [51.05, 51.8], 'r.r.note': [51.7, 52.1], 'r.tick': [54.4, 54.8],
 };
 Motion.scene({
     fps: 24,
     duration: 56,
     logical: [1600, 900],
     bpm: 120,
+    audio: { mix: 'private/mix.wav' }, // sh lay-music.sh (the score is private: without it the film renders silent)
     uses: ['styles/blueprint/blueprint.js', DIR + 'bank.js', DIR + 'plan.js', DIR + 'defences.js', DIR + 'section.js', DIR + 'levels.js', DIR + 'extras.js', DIR + 'pencil.js'],
     fonts: [{ family: 'RoutedGothic', src: 'fonts/RoutedGothic.ttf' }, { family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' }],
     shots: [[0, 2, 'Grid'], [2, 3.5, 'Stair'], [3.5, 5, 'Ground floor'], [5, 6, 'Roof'], [6, 7, 'Basement'], [7, 8.5, 'Three levels'], [8.5, 9.5, 'Camera'], [9.5, 11, 'Guard'], [11, 12, 'The night runs'],
         [12, 13, 'In'], [13, 14.5, 'Aisle'], [14.5, 16, 'Four seconds'], [16, 17, 'Store'], [17, 19, 'The plan'], [19, 20.5, 'Clock'], [20.5, 22.5, 'They are in'], [22.5, 24, 'West'], [24, 25.5, 'Blind corner'],
         [25.5, 26, 'Clock'], [26, 28.5, 'Crossing'], [28.5, 30.5, 'The door'], [30.5, 31.5, 'Safe'], [31.5, 33, 'He stops'], [33, 34.5, 'Revision B'], [34.5, 35.5, 'Struck out'], [35.5, 36.5, 'Duct'],
         [36.5, 38.5, 'Down'], [38.5, 40.5, 'Section'], [40.5, 42, 'Lobby'], [42, 43, 'The empty store'], [43, 44.5, 'The wheel'], [44.5, 45, 'A bolt'], [45, 46.5, 'It opens'], [46.5, 48, '0412'],
-        [48, 49.5, 'Back'], [49.5, 51, 'Up'], [51, 53, 'Out'], [53, 56, 'Revision']],
+        [48, 49.5, 'Back'], [49.5, 51, 'Up'], [51, 52.5, 'Out'], [52.5, 56, 'Revision']],
 
     setup(env) {
         const mk = () => Blueprint.drawing({ u: 0.62 });
