@@ -1,6 +1,6 @@
 // Micrograph style template: two particles in a pool of stain, found out of focus, pulled
 // in, and tinted by the colourist; a scale bar burned in by the instrument.
-const TPL_GLSL = `
+const SPECIMEN_GLSL = `
 #define T uA[0]
 #define STAGE vec2(uA[1], uA[2])
 #define WASH uA[3]
@@ -47,7 +47,7 @@ Motion.scene({
     fonts: [{ family: 'VT323', src: 'fonts/VT323-latin.woff2' }],
     shots: [[0, 4, 'Template']],
     setup(env) {
-        return { M: Micrograph.make(env).scene('tpl', TPL_GLSL) };
+        return { M: Micrograph.make(env).scene('tpl', SPECIMEN_GLSL) };
     },
     draw(g, t, env) {
         // the operator finds focus: far out, through it, back; then it only breathes

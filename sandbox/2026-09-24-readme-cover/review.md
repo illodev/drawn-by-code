@@ -15,7 +15,7 @@
 
 ## Round 2 (user)
 
-> «El dedo del gif del repo creo que no está bien.»
+> «I think the finger in the repo's GIF is not right.»
 
 - The 'hold' thumb lay flat across the tile's top edge with the palm above it: a mitten.
   The hand is turned so the thumb points down over the tile's face, the fingertips peek
@@ -23,7 +23,7 @@
 
 ## Round 3 (user)
 
-> «Deberían salir 4 dedos y el pulgar atrás, creo que es lo más natural.»
+> «4 fingers should show, with the thumb behind; I think that is the most natural.»
 
 - The tile is now held with PaperDetail 'wrap': the thumb behind it (part back), the back
   of the hand and the four fingers over the top of its face (part front), the forearm up to
@@ -31,8 +31,8 @@
 
 ## Round 4 (user)
 
-> «La parte de la mano no debería diferenciarse como un polígono del resto.» «Las imágenes de
-> abajo haría un carrusel que se moviera en bucle, y por cada estilo añadirlo.»
+> «The part of the hand should not stand out from the rest as a polygon.» «I would turn the
+> images at the bottom into a carousel that moves in a loop, and add each style to it.»
 
 - 'wrap' drew the back of the hand as a separate oval over the fingers: now the back of the
   hand comes first (narrow at the wrist, widening to the knuckles) and the fingers over its
@@ -47,3 +47,15 @@ One line in STYLES (`cereal ad`, its template at 3.2 s: the starburst, RADICAL! 
 its two fonts in the cover's list. With ten polaroids the last one (pixel art) no longer
 reached the frame in 6 s at 160 units a second: the carousel runs at 200 now, so every style
 still passes. `render/cover.gif` (900 px, 12 fps), `cover.jpg` (frame 76) and the MP4 re-made.
+
+## 2026-11-17 · lightfield and micrograph join the carousel
+
+Two lines in STYLES (their templates at 3.4 s and 3.2 s) and their three fonts in the cover's
+list. Both templates declared a top-level `const TPL_GLSL`: loaded into the same page, the
+second one stopped it («Identifier 'TPL_GLSL' has already been declared»), so each template's
+shader constant has a name of its own now (`LIGHT_GLSL`, `SPECIMEN_GLSL`). With twelve
+polaroids the carousel runs at 300 units a second: six places in the six seconds, so all
+twelve pass once. The README no longer says «one polaroid per style»: eighteen styles do not
+fit a six-second loop, the carousel shows a dozen. `render/cover.gif` (900 px, 12 fps),
+`cover.jpg` (frame 120: line, clay, clay 3D, lightfield, micrograph, risograph) and the MP4
+re-made; `review.mjs`: no warnings.

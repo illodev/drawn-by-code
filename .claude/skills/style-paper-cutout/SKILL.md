@@ -95,7 +95,7 @@ until a full-resolution crop of it could pass for the reference (or for a finish
   character facing the camera has her right hand on the left of the image), never
   `o.mirror` by habit: the poses are drawn as different hands (back views of a right hand,
   palm-side views of a left hand), and mirroring «the hand on the left» put the thumb on the
-  wrong side of every back view: the user saw hands «al revés». Pick the view that matches
+  wrong side of every back view: the user saw hands «backwards». Pick the view that matches
   what the camera sees: `palm` (palm to the camera: stop, whoa), `open`/`wave` (back to the
   camera), `pointBack` (POV finger, or pointing away: the back with its nail) vs `point`
   (pointing at the camera), `wrap` round a mug's body (fingers across its front, thumb
@@ -176,7 +176,7 @@ until a full-resolution crop of it could pass for the reference (or for a finish
 - 2026-09-24 · what-do-you-love · The old ban on stars and sparkles came from a client brief, not from the style; a paper-cutout reference uses both. Brand rules live in the brief, not here.
 - 2026-09-24 · what-do-you-love · The user: «every element has to go to detail». A dog of five ellipses, a ring drawn as one stroke, round hands and polygon shapes read as low effort next to a reference built piece by piece. The bar is now in «Detail».
 - 2026-09-24 · what-do-you-love · `PaperDetail.shade` returned hsla and `Paper.marker` only parses hex: every shaded piece became a brown blob. Colour helpers return hex.
-- 2026-09-24 · saas-promo · Style test rejected on detail: «las manos parecen muñones» and «5 cosas repartidas en un espacio hueco». Without a reference I stopped at «it reads»; original work is held to the same bar (see «Detail»: full sets, real hands).
+- 2026-09-24 · saas-promo · Style test rejected on detail: «the hands look like stumps» and «5 things spread around a hollow space». Without a reference I stopped at «it reads»; original work is held to the same bar (see «Detail»: full sets, real hands).
 - 2026-09-24 · saas-promo · A pile that grows: every landing squashes the item AND the pile under it (two drawings: 1.07/0.88, 0.97/1.04); items landing alone on a still pile look pasted.
 - 2026-09-24 · saas-promo · A logo shown big is re-cut at its display scale (its own sprite key per size); scaling up the small cut shows soft, fat torn edges.
 - 2026-09-24 · saas-promo · Big flat shapes (a logo cloud, a card) need layered torn volume: a darker under-layer offset down, a lighter top lobe, a highlight edge; one flat fill reads as a sticker.
@@ -187,6 +187,6 @@ until a full-resolution crop of it could pass for the reference (or for a finish
 - 2026-09-24 · saas-promo · Full-frame boards laid side by side leave gaps where torn edges meet: paint a dark base under them.
 - 2026-09-24 · saas-promo · To show a shared cached set «tidied», redraw its base pieces with the same seeds and pull the kept objects from the original sprite through a clip: the seams match exactly.
 - 2026-09-24 · saas-promo · An end card that unfolds reads best as three or four fold drawings on twos; its content lands on the beats after it opens (mark, line, button, small print).
-- 2026-09-24 · saas-promo · Animatic v1: the user saw «manos que atraviesan cosas», odd perspectives and «coge el café al revés». Root cause: `o.mirror` used as «the hand on the left of the image» while the poses are drawn as different hands. Now `o.side`, new views (palm, pointBack, wrap, edge) and the rules in «Detail».
+- 2026-09-24 · saas-promo · Animatic v1: the user saw «hands that go through things», odd perspectives and «holds the coffee the wrong way round». Root cause: `o.mirror` used as «the hand on the left of the image» while the poses are drawn as different hands. Now `o.side`, new views (palm, pointBack, wrap, edge) and the rules in «Detail».
 - 2026-09-24 · readme-cover · A card held from above with 'hold' read as a mitten: the thumb lay flat across the top edge under a big palm. The user's fix: four fingers over the front, the thumb behind (pose 'wrap', thumb = part back), from above, leaving what is printed on the card clear.
 - 2026-10-05 · promptaprompt · `kit.hand` placed each letter by measuring the text up to it, and a ligature («fi» in Patrick Hand) shrinks that run: the next letter landed on the one before and «perfil» read «perfl». Letters are now laid out by their own widths (and `textW` sums the same, so underlines end with the text).

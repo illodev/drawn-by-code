@@ -35,7 +35,10 @@ styles/<style>/
    skill's description).
 7. Add the style to the README cover's carousel: one line in `STYLES` in
    `sandbox/2026-09-24-readme-cover/scene.js` (label, folder, the second of its template to
-   show, its kits), then re-render the cover (see that folder's review.md). Add the style to the table in `README.md`, and give its folder a `README.md` and a
+   show, its kits) and the fonts its template asks for in the cover's `fonts`, then re-render
+   the cover (see that folder's review.md). The cover loads every template as a plain script
+   into one page, so a template's top-level names must be its own (`const SPECIMEN_GLSL`, not
+   a second `const TPL_GLSL`: the second one stops the page). Add the style to the table in `README.md`, and give its folder a `README.md` and a
    `strip.jpg` (`engine/strip.mjs` on the style test's render; copy another style's README).
 8. Add the style to the site: one line in `STYLES` in `site/site.js` (folder, name, its look in
    a sentence, `'square'` or `'wide'`, 1 if it is raymarched in WebGL) and its still,
@@ -70,6 +73,6 @@ Approved reference: sandbox/<experiment>/ (review/sheet.jpg)
 
 - 2026-11-14 · pier-pressure · A character style is its construction before its finish: with the reference's line weight and palette exact, a figure with the wrong build (clothes as narrow as the neck, limbs of even width, generic heads, inner lines thinner than the contour) still read as a template. Measure the build on the reference (widths against the head, lengths against the height, line weight inside and outside) and put those numbers in the kit's defaults.
 - 2026-11-14 · pier-pressure · A style after a show is the show's drawing manner only: design an original cast and place (names, silhouettes, outfits, town) with the user before drawing, and keep the reference frames out of the repo.
-- 2026-11-14 · pier-pressure round 8 · A character style cannot be designed blind in code: five rounds of authored coordinates went from «la diferencia en el nivel de calidad» to «parece que lo ha dibujado un niño» without reaching a draughtsman's polish. For characters, get the design first (the user's drawings, or concept art generated and approved by the user) and replicate it by measurement, as the **replicate** skill does for films; ask for that reference at the first rejection of a character, not the fifth. And «natural» lines are steady and even: never answer «artificial» with wobble, uneven pressure or crossed corners.
+- 2026-11-14 · pier-pressure round 8 · A character style cannot be designed blind in code: five rounds of authored coordinates went from «the difference in the level of quality» to «it looks like a child drew it» without reaching a draughtsman's polish. For characters, get the design first (the user's drawings, or concept art generated and approved by the user) and replicate it by measurement, as the **replicate** skill does for films; ask for that reference at the first rejection of a character, not the fifth. And «natural» lines are steady and even: never answer «artificial» with wobble, uneven pressure or crossed corners.
 - 2026-11-17 · micrograph-test · Write the template after the style test, from the test's own helpers: written beside it from memory, it drew spikes as clubs on sticks, the first thing the test had removed. What the test learned to draw goes into the kit (here `lumps`), and the template calls it.
 - 2026-11-17 · micrograph-test · Before designing a kit's pipeline, measure on the references how the texture relates to the colour (here: grain only in luminance, channels following the tint): it told which model was the real one (a grey signal tinted afterwards) and three different stills came out of the same kit.

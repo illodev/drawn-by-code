@@ -38,9 +38,8 @@ on the wink.
 
 ## Round 4 (user)
 
-> «El vídeo de la taza está bien, pero el humo sale fuera de la taza, no del café.»
-
-(“The mug video is fine, but the smoke comes out from outside the mug, not from the coffee.”)
+> «The mug video is fine, but the smoke comes out from outside the mug, not from the
+> coffee.»
 
 - Cause: the steam was painted **behind** the mug, with its base hidden behind the body,
   so it peeked out from behind the rim. The automatic review did not catch it because
@@ -53,10 +52,8 @@ on the wink.
 
 ## Round 5 (user)
 
-> «Mira una taza con humo real. El tuyo parecen un poco tentáculos quizás.» (with a
+> «Look at a mug with real smoke. Yours looks a bit like tentacles, maybe.» (with a
 > reference photo)
-
-(“Look at a mug with real smoke. Yours look a bit like tentacles, maybe.”)
 
 - What the real steam in the photo has and mine did not: it is born **very thin** and
   almost invisible, it **widens and blurs** as it rises, it **drifts to one side**, it

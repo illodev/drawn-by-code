@@ -15,15 +15,15 @@ the site.**
 
 ## Round 0 (user) · the brief
 
-> Quiero crear un nuevo vídeo, de dibujos estilo "Rocket Power", esta será una nueva serie de
-> vídeos de diferentes estilos de dibujitos.
+> I want to create a new video, a cartoon in the style of "Rocket Power"; this will be a new
+> series of videos in different cartoon styles.
 
-> Me gustaría discutir y que me des ideas de personajes originales y ambientación
+> I would like to discuss it and have you give me ideas for original characters and a setting
 
-> Vamos con tus ideas, lo que sí, si van a ser intros quizás lo enfocaría en inglés, con
-> nombres en inglés.
+> Let's go with your ideas. One thing, though: if they are going to be intros, I would perhaps
+> do it in English, with English names.
 
-> Importante que el nivel de detalles sea máximo
+> It is important that the level of detail is the maximum
 
 → A series of fake show openings, one per drawing style; this one in the style of the genre
 of the reference, with our own cast and town, in English. Detail first.
@@ -39,7 +39,7 @@ giant loaf shoes, tube limbs, generic heads, flat cut-out hair.
 
 ## Round 2 (user)
 
-> Mira la diferencia en el nivel de calidad
+> Look at the difference in the level of quality
 
 (with the reference frame beside the first line-up, which the user saw while it was still
 work in progress)
@@ -90,7 +90,7 @@ test, the music.
 
 ## Round 4 (user) · the model sheet
 
-> Todavía le falta muchísimo
+> It still has a very long way to go
 
 → Put the sheet beside the reference at the same figure height. What was missing was not
 finish:
@@ -157,7 +157,7 @@ level wanted before a shot is animated.
 
 ## Round 6 (user) · the key art
 
-> Los personajes siguen siendo muy muy poco cuidados, dibujos muy prematuros
+> The characters are still drawn with very, very little care: very rough, undeveloped drawings
 
 → Kit beside the reference's jumping figure at the same height showed why, and it was not
 something another pass over the puppet would fix:
@@ -188,9 +188,9 @@ this way only if the user says this is the direction.
 
 ## Round 7 (user) · Kit by hand, first pass
 
-> Está mejor siguen siendo mejorables: la ropa, las perpestivas (ejemplo zapatos), naturalidad
-> y proporción, formas (ejemplo la cara, que no sea tan geométrica), en general las líneas se
-> notan muy artificiales
+> It is better. These can still be improved: the clothes, the perspectives (the shoes, for
+> example), naturalness and proportion, the shapes (the face, for example: it should not be so
+> geometric); in general the lines look very artificial
 
 → Four things, each taken at its root:
 
@@ -219,7 +219,7 @@ folds, no trim); the hands are the chart's; the arms are even tubes.
 
 ## Round 8 (user) · Kit by hand, second pass
 
-> Todavía se sigue viendo muy poco pulido. Parece que lo ha dibujado un niño.
+> It still looks very unpolished. It looks as if a child had drawn it.
 
 → Two causes. The round-7 «hand» line was the wrong reading of «artificial»: wander, uneven
 pressure and strokes crossing at the corners are what a child's drawing looks like; the
@@ -246,7 +246,7 @@ against the sheet) for Kit, and the same for the other five.
 
 The user attached the four generated sheets of Kit:
 
-> Las 4 están muy bien
+> All 4 are very good
 
 → The design is approved. Sheet 2 is the model (`ref/kit-sheet.webp`; the other three stay in
 the uncommitted `private/`). Replicated by measurement, not by eye:
@@ -279,9 +279,9 @@ the user attaches the pick for each and it goes to `ref/<who>-sheet.webp`, then
 
 ## Round 10 (user) · image or drawing?
 
-> Pero es una imagen o un dibujo?
+> But is it an image or a drawing?
 
-> No podríamos pasarlo a código?
+> Couldn't we turn it into code?
 
 → The round-9 replica was honest vector data but a blob: thousands of anonymous polygons, the
 ink a filled stain like any colour, one rigid piece per pose. Now it is a drawing written as
@@ -315,7 +315,7 @@ sheet, not yet a rig (no elbows, no mouth shapes): a shot needs its key poses dr
 The user sent a zip with all 24 generated sheets (no picks: the choice was left to me) and,
 on Kit:
 
-> Hay cosas, como la tirita y algunos detalles que se han quedado monocromo
+> There are things, like the plaster and some details, that have come out monochrome
 
 → Picks, one per character, by the cleanest line and the clearest two poses: Kit 2 (as
 before, now from the lossless PNG), Hoagie 3, Milo 2, Pip 2, Aunt Dot 2, Captain 2
@@ -372,8 +372,8 @@ sits a little high in the jump; only Kit is split into parts.
 
 ## Round 12 (user) · go on to the first shot; the harbour's details
 
-> Vale, sigue con el primer plano animado. Una cosa, en el plano del puerto hay muchos
-> detalles que están mal
+> OK, go on with the first animated shot. One thing: in the harbour shot there are many
+> details that are wrong
 
 The user did not say which. The set alone, rendered at 2.4× and read zone by zone, gave:
 
@@ -408,14 +408,14 @@ perch drawing lifted, wings shut; no sound.
 
 ## Round 13 (user) · the harbour's perspective
 
-> Hay algunas perspectivas que están mal. Por ejemplo la palmera parece que está cerca, pero
-> es enana. El cartel de Gull Harbor creo que la perspectiva no está bien. Hay cosas como lo de
-> BAIT que parece un cartón, no tiene ni profundidad ni la pespectiva creo que sea correcta. La
-> barco de la derecha? Es de juguete? parece un barco de juguete que está de costado contra el
-> suelo. Lo que te paso en imagen no sé exactamente qué es pero la cuerda atraviesa y se
-> superpone. La tabla de la mesa creo que tampoco tiene buena perpectiva. Creo que hay más
-> cosas que o no tienen buena perspectiva o no tienen el tamaño correcto o se superponen con
-> otra capa
+> Some of the perspectives are wrong. For example, the palm tree looks as if it is close, but
+> it is a dwarf. I don't think the perspective of the Gull Harbor sign is right. There are
+> things like the BAIT one that look like a piece of cardboard: it has no depth, and I don't
+> think its perspective is correct either. The boat on the right? Is it a toy? It looks like a
+> toy boat lying on its side on the ground. What I am sending you in the image, I don't know
+> exactly what it is, but the rope goes through it and overlaps it. I don't think the table
+> top has good perspective either. I think there are more things that either don't have good
+> perspective, or are not the right size, or overlap another layer
 
 (with a crop of the foreground: the coil of rope drawn through a lobster pot)
 
@@ -460,10 +460,10 @@ a higher camera would show more sea (a choice for the user).
 
 ## Round 14 (user) · five small things in the harbour
 
-> Creo que hay unos pequeños que estám mal: El pico del bote (parece como si estuviera roto o
-> faltara por dibujar), la cuerda (parece en 2D, ek lugar de 3D), el cartel de menu se
-> superpone con la barra, la cuerda del amarre también parece 2D, el dibujo blanco del cono
-> parece como si se viera la parte de atrás del cono.
+> I think there are a few small things that are wrong: the tip of the boat (it looks as if it
+> were broken or had not been drawn yet), the rope (it looks 2D instead of 3D), the menu board
+> overlaps the counter, the mooring rope also looks 2D, and the white pattern on the cone looks
+> as if you could see the back of the cone.
 
 - **The dinghy's bow** really was not drawn: at the stem the hull's half-breadth is a power of
   a cosine that comes out −1e−17, so every point at the stem was NaN and the last plank of the
@@ -481,7 +481,7 @@ a higher camera would show more sea (a choice for the user).
 
 ## Round 15 (user) · the ropes
 
-> Creo que las cuerdas no han quedado realistas
+> I don't think the ropes have come out realistic
 
 → The round-14 rope (overlapping slanted lozenges) read as scales or a string of beads. Looked
 at what a laid rope is before drawing it again: a smooth tube of even thickness; its strands
@@ -501,7 +501,7 @@ round off where they go behind the post.
 
 ## Round 16 (user) · the coil's ends
 
-> Los bordes de la cuerda azul están mal dibujados
+> The edges of the blue rope are badly drawn
 
 (two crops of the coil's ends: an oval stuck on beside each band's square-cut end)
 
@@ -514,8 +514,8 @@ faces the camera.
 
 ## Round 17 (user) · the shot's animation
 
-> Vale, ahora mejora la animación del plano. Ten en cuenta que la animación tiene que parecer
-> realista
+> OK, now improve the shot's animation. Bear in mind that the animation has to look
+> realistic
 
 → What made it unreal: the fall lasted 1.25 s for a drop that takes 0.68 s (it floated), on an
 eased curve; the board slid in beside her and was simply there; the landing squashed the whole
@@ -552,9 +552,9 @@ change (no blink, no effort); still no sound.
 drawing; her boot in the air with no line under its sole; her sleeve broken where the arm had
 turned)
 
-> Quitando el hecho de que falta media tabla. El personaje cae en la misma posición como una
-> estatua. La manga del personaje no está bien dibujada, los zapatos no tiene el borde. El
-> personaje no tiene una animación real.
+> Leaving aside the fact that half the board is missing: the character falls in the same
+> position, like a statue. The character's sleeve is not drawn properly, and the shoes have no
+> border. The character has no real animation.
 
 → Three faults of the cut-out, fixed:
 
@@ -601,7 +601,7 @@ for one drawing and a half; no sound.
 
 ## Round 20 (user) · the drawings lose details and colours
 
-> Los recortes no están bien, pierden detalles y colores.
+> The cut-outs are not right: they lose details and colours.
 
 (four crops of the render: the standing hand with no lines between its fingers, two faces with
 no plaster on the nose, the board's wheels as flat discs.)
@@ -668,8 +668,8 @@ a drawing are compared with its source, not judged alone).
 
 ## Round 21 (user) · the gull hops with his perch, Kit stands on the rope
 
-> Un par de cosas: el pájaro salta junto a donde está reposado y el personaje queda encima de
-> la cuerda
+> A couple of things: the bird jumps together with what it is perched on, and the character
+> ends up on top of the rope
 
 Both true in the frames (crops at 3840):
 
@@ -689,7 +689,7 @@ screen, not only in depth.
 
 ## Round 22 (user) · the rest of the shots, on the song
 
-> Vale, sigue con el resto de planos sobre la canción
+> OK, go on with the rest of the shots, over the song
 
 The song (Suno, from `suno-prompt.md`; in `private/`): 120 BPM exactly, first beat at 0.05 s,
 16 bars, last hit at 30.05 s, silence from 31 s. Its words could not be transcribed here (the
@@ -742,8 +742,9 @@ they are sung at are known).
 
 ## Round 23 (user) · cardboard characters, bad camera transitions, poor cards, sets
 
-> Falta muchísimo trabajo en las animaciones de los personajes, que no parezcan cartones solidos
-> que se mueven, transiciones de cámara muy malas, rótulos pobres, y escenarios
+> The characters' animations still need a huge amount of work, so that they don't look like
+> solid pieces of cardboard moving about; very bad camera transitions, poor name cards, and the
+> sets
 
 Four faults, all true of round 22. Three are redone here; the first cannot be without drawings.
 
@@ -772,9 +773,9 @@ Four faults, all true of round 22. Three are redone here; the first cannot be wi
 
 Still off besides: Kit's own card; the harbour set itself is unchanged; no sound effects.
 
-## Round 24 (user) · «¿Seguro que no puedes acceder?»
+## Round 24 (user) · «Are you sure you can't get access?»
 
-> Seguro que no puedes acceder?
+> Are you sure you can't get access?
 
 No: it could. The download of generated images had been refused once, many rounds ago, before
 the user allowed the host on the environment's network, and it was never tried again; round 23
@@ -808,7 +809,7 @@ Lesson → `review`: a tool or a download refused once is tried again when somet
 
 ## Round 25 (user) · the other three sheets
 
-> Sí
+> Yes
 
 (to: shall I run the key-pose sheets of Hoagie, Pip and Dot, 2,598 credits with two variations
 each?) Run, downloaded, the first of each kept (`ref/hoagie-keys.png`, `pip-keys.png`,
@@ -833,11 +834,11 @@ the song's words are not matched to the pictures.
 
 ## Round 26 (user) · a still image that moves is not an animation
 
-> Me siguen pareciendo super poco animados los personajes, y el problema es que tener referencia
-> de imágenes está bien, pero tendriamos que aprender a animarlos nosotros, que una imagen quieta
-> se mueva no lo convierte en una animación. Hay problemas de timing de personajes, movimientos
-> raros y personajes que casi ni se ven en su presentación. La transiciones siguen siendo muy
-> pobres. No es el nivel de animación ni detalle que buscamos.
+> The characters still seem barely animated at all to me, and the problem is that having
+> reference images is fine, but we would have to learn to animate them ourselves: a still image
+> that moves does not become an animation. There are problems with the characters' timing, odd
+> movements, and characters you can hardly even see in their presentation. The transitions are
+> still very poor. This is not the level of animation or detail we are looking for.
 
 The fourth rejection on the same axis (22, 23, 25, 26), and the user names the cause: more
 drawings were bought each round and then moved whole (slid, hopped, squashed, swapped). That
@@ -874,7 +875,7 @@ different poses is a smear, good for one frame only; pins are placed by hand und
 
 ## Round 27 (user) · real animation, not distortion: new frames
 
-> Busco animación real, no distorsionarlo.  Quiero frames nuevos.
+> I am looking for real animation, not distorting it. I want new frames.
 
 The warp of round 26 is out (`cast/anim.js` removed; `cast/drawn.js` keeps `halo`, and its
 `warp`, `blink` and `look` options are no longer used by the film). What the user asks for is
@@ -904,8 +905,8 @@ eight drawings in two seconds is limited animation, on threes and fours in place
 ## Round 28 (user) · the frames are ours to make, with no more references
 
 > No
-> Quiero que generes tú los frames
-> Sin necesidad de usar más referencias
+> I want you to generate the frames yourself
+> Without needing to use any more references
 
 (to: is this the way, another 20–25 generated sheets?) No more sheets. The drawings there are
 (thirteen of Hoagie, five to fourteen of the others) are the references; the frames between
@@ -935,7 +936,7 @@ something): those still need a drawing, by hand in code or from a sheet.
 
 ## Round 29 (user) · every frame drawn whole, from scratch, by us
 
-> Quiero que dibujes tú cada fotograma completo desde cero
+> I want you to draw every whole frame yourself, from scratch
 
 (to: frames built from the pieces of a traced drawing, or drawn whole by hand in code? with
 the warning that drawing by hand in code is what read as a child's drawing in rounds 1–6.)
@@ -972,9 +973,9 @@ weight is one even width.
 
 ## Round 30 (user) · the same bar in Blender
 
-> Cómo crees que quedaría con Blender?
+> How do you think it would turn out with Blender?
 
-> Podemos probar
+> We can try
 
 Said before trying: better motion (bones or posed solids change in every frame, he can turn,
 the camera is real), another look (a vinyl toy in flat colour with an outline, not a '90s
@@ -1002,12 +1003,12 @@ the framing is not what the lens says.
 
 ## Round 31 (user) · no 3D, no drawings of mine: edit the code that came from the images
 
-> No me gusta el modelo 3D
+> I don't like the 3D model
 
-> Mi pregunta es: se supone que de las imágenes convertimos a código, pero no eres capaz de
-> modificar ese código para crear otros frames?
+> My question is: we are supposedly converting the images into code, but aren't you able to
+> modify that code to create other frames?
 
-> Es que tus dibujos 2D que no salen de la imagen no me gustan nada
+> It's just that I don't like your 2D drawings that don't come from the image at all
 
 Three answers in a row. The 3D test is dropped (`blender/hoagie.py` stays as the record of it).
 The hand-drawn model of round 29 is dropped too (`cast/hoagie-model.js` removed): round 29's
@@ -1036,9 +1037,9 @@ drawing's code re-shaped point by point, which is drawing by hand again.
 
 ## Round 32 (user) · badly cut again; more frames, fewer rebounds; on the right track
 
-> Veo que no está bien cortada de nuevo. Con respecto a que se vea de otra posición si es para
-> eso si podemos sacar otras imágenes. Lo que creo es que faltan más frames para que el
-> movimiento se vea con menos rebotes, pero creo que vamos bien
+> I see that it is badly cut out again. As for seeing it from another position: if it is for
+> that, then yes, we can get other images. What I think is that more frames are needed so that
+> the movement shows fewer rebounds, but I think we are on the right track
 
 (with a crop of Kit standing on the quay: white between her arm and her shorts.)
 
@@ -1069,9 +1070,10 @@ images of the turn.
 
 ## Round 33 (user) · the cut is still the same; ask for the images on another ground
 
-> Enserio? El recorte sigue igual...
+> Seriously? The cut-out is still the same...
 
-> Y si pides las imágenes con otro color de fondo y nos dejamos de gastar tokens para nada?
+> What if you ask for the images with another background colour and we stop spending tokens
+> for nothing?
 
 (with a crop of the same place: white between Kit's arm and her shirt.)
 
@@ -1094,11 +1096,11 @@ given. Not yet tested on a generated sheet.
 
 ## Round 34 (user) · «you are not able to cut it out, however many times you try»: the same images on green
 
-> Creo que no me has entendido
+> I don't think you have understood me
 
-> No ves que ni eres capaz de recortar bien???
+> Can't you see that you are not even able to cut it out properly???
 
-> Por muchas veces que lo intentes
+> However many times you try
 
 Round 33 read «ask for the images on another ground» as a rule for future sheets and went on
 patching the white ones. The user meant the images there are: get them again on a coloured
@@ -1120,7 +1122,7 @@ background to solid green, also in every gap».
 
 ## Round 35 (user) · all sixteen sheets again, on green
 
-> Rehaz las 16 hojas sobre verde
+> Redo the 16 sheets on green
 
 - **The sheets**: each white sheet was sent back to the generator as an edit («reproduce this
   image exactly; only the background becomes solid green, also in every gap»). Ten came back;
@@ -1154,7 +1156,7 @@ Not checked pose by pose at 4× against the sheets.
 
 ## Round 36 (user) · the cut is right; the other characters like Hoagie
 
-> Sí, sigue con la animación de los demás personajes
+> Yes, go on with the animation of the other characters
 
 (to: is the cut right now? then I go on with the others as in Hoagie's shot.)
 
@@ -1189,7 +1191,7 @@ Captain's poses are not cut into pieces. Not seen in motion, not heard.
 
 ## Round 37 (user) · the in-betweens, and the chase again
 
-> Sí, genera los intermedios y rehaz la persecución
+> Yes, generate the in-betweens and redo the chase
 
 Six sheets on green, one variation each (2,598 credits), each with a green sheet of the same
 character as its reference; all six came at the first try and were converted by
@@ -1222,7 +1224,7 @@ seen in motion, not heard.
 
 ## Round 38 (user) · the leap and the air
 
-> Sí, sigue con el salto y el aire
+> Yes, go on with the leap and the air
 
 (Answer to the offer at the end of round 37: the two shots after the chase still used one old
 pose each, a `jump` or a `fall` turned and slid along an arc, popping in with a bounce of size.)
@@ -1279,14 +1281,14 @@ ground's hue on a figure that has none of it).
 
 ## Round 39 (user) · colour details, Kit's shot, a 2000s look
 
-> Sí, sigue con el plano de Kit. Hay que mejorar los detalles de colores de los personajes
+> Yes, go on with Kit's shot. The colour details of the characters need improving
 
 (with three crops of the film: Milo's glasses, their red frame gone white with a black thread in
 it; Kit's face; Kit's boots, the star's white disc gone and the sole's stripe in dashes)
 
-> Son más detalles en general, he puesto solo algunos ejemplos
+> It is more details in general; I have only given a few examples
 
-> Podemos darle algún tipo de filtro para que parezca más series de los 2000?
+> Can we give it some kind of filter so that it looks more like a 2000s series?
 
 (with three frames of shows of the genre: grainy painted grounds, soft video, warm colour)
 
@@ -1366,14 +1368,14 @@ another way is no blink), skill style-skate-toon (the finish).
 
 ## Round 40 (user) · the bird takes the metal, Dot's lift, Dot floating, hems, the seal
 
-> El pajaro en su presentación se lleva parte del metal. Aunt en la primera parte hace una
-> animación antinatural. Aunt en su presentación parece que levita.
+> In his presentation the bird takes part of the metal with him. In the first part Aunt does
+> an unnatural animation. In her presentation Aunt looks as if she is levitating.
 
-> El recortedel pantalon de milo no está bien
+> The cut-out of Milo's trousers is not right
 
-> En aunt unos sí y otros no
+> On Aunt, some yes and others no
 
-> También habría que añadir nuestro sello de illodev x Claude
+> We should also add our illodev x Claude seal
 
 (with crops: the bollard after Captain leaves, its top bitten and ragged; Dot half behind the
 hatch's jamb; her sandals above a shadow on her card; Milo's shorts with no line along the hem;
@@ -1382,7 +1384,7 @@ Dot's legs without outline in one pose and her hem without it in another)
 **One cause for three of them: parts were never cut.** A pose «cut into parts» (bird / post,
 upper body / legs) gave each whole shape and each whole line to the part its CENTRE fell in. So
 the bird's part carried the bollard's metal under his feet and left a bite in the post; a hem's
-line went with the legs or with the shorts by chance («unos sí y otros no»), and painted in two
+line went with the legs or with the shorts by chance («some yes and others no»), and painted in two
 layers the one on top covered the other's line. And the legs' border was a level line, across
 hems that are never level.
 
@@ -1430,7 +1432,7 @@ replicate (cut parts along a map, not by centres).
 
 ## Round 41 (user) · the title's animation
 
-> Sí, sigue con la animación del título
+> Yes, go on with the title's animation
 
 (The title was one magenta slab with both words, popped in by a bounce of scale, plainer than
 the name cards before it; Captain appeared on it from above, and the seal was a tag below.)
@@ -1470,7 +1472,7 @@ any of it (the splash, the two slams).
 
 ## Round 42 (user) · sound effects
 
-> Sí, sigue con los efectos de sonido
+> Yes, go on with the sound effects
 
 **The effects.** The library was paper and office; this film needs a quay. Thirteen generated
 with the ElevenLabs connector (an `sfx` node, `eleven_text_to_sound_v2`, one take each, 17
@@ -1509,11 +1511,11 @@ the two seconds of sky (the song is at full there).
 
 ## Round 43 (user) · «a very, very annoying screech», and the gull
 
-> Regular los sonidos
+> The sounds are mediocre
 
-> Del segundo 7 al 9 hay un chirrio muy muy molesto
+> From second 7 to 9 there is a very, very annoying screech
 
-> EL sonido de la gaviota muy regular
+> The sound of the gull is very mediocre
 
 (Asked what was wrong with them, since I cannot hear: the answers above.)
 
@@ -1541,7 +1543,7 @@ effects in the song's silence); between 7 and 9 s the effects are 15 dB under th
 
 ## Round 44 (user) · effects only on the title
 
-> Solo dejaría los efectos de sonido del título final, creo que estropean el vídeo
+> I would keep only the sound effects of the final title; I think they spoil the video
 
 Done as said: every cue before 30 s is out (41 of 47). Left, on the title: the first board on
 the hit, the splash, the second board, the glint where the music stops, the ribbon, and
@@ -1553,7 +1555,7 @@ action compete with it.
 
 ## Round 45 (user) · perhaps only the last gull
 
-> El de la gaviota final solo, quizás
+> Only the final gull one, perhaps
 
 Done, and both versions sent to compare, since it was a «perhaps»: this one (one cue, the three
 cries at 30.82 s, in the song's own silence) and round 44's (the two boards, the splash, the
@@ -1561,13 +1563,13 @@ glint, the ribbon and the gull). `audio.json` holds this one; the other is one `
 
 ## Round 46 (user) · the gull alone
 
-> Me quedo con la de solo la gaviota
+> I'll keep the one with only the gull
 
 Settled: `audio.json` as in round 45 (one cue). Nothing else changed.
 
 ## Round 47 (user) · the cards on the sung names
 
-> Sí, sincroniza los rótulos con la letra
+> Yes, sync the name cards with the lyrics
 
 **The words, with their times** (a speech-to-text pass with word timestamps over the whole mix;
 the file stays in `private/`): 6.04 «Down at Gull Harbor, the tide's comin' in» · 10.06 «Kit's
@@ -1617,7 +1619,7 @@ for the service's one).
 
 ## Round 48 (user) · the opening is horrible
 
-> La intro hasta que sale Kit es horrible: aburrida, paneo horrible, timing, todo
+> The intro up to when Kit appears is horrible: boring, a horrible pan, the timing, everything
 
 (Round 47's opening: one camera move seven and a half seconds long, from Dot's hut along the
 quay to the sign, then a second of empty quay before Kit's board.)
@@ -1659,11 +1661,11 @@ camera move is not an event.
 
 ## Round 49 (user) · no cuts; something new for the start
 
-> Lo siento, no me gusta nada
+> I'm sorry, I don't like it at all
 
-> Aparte no hace falta perder tiempo haciendo el render completo para ver solo unos segundos.
+> Besides, there is no need to waste time doing the full render just to see a few seconds.
 
-> Los cortes son malísimos, no aportan nada, quizás hacer algo nuevo para el inicio
+> The cuts are terrible, they add nothing; perhaps do something new for the opening
 
 (Two openings thrown out in two rounds, both of them ways of FILLING seven seconds of harbour
 before anyone arrives: a move along it, then cuts of pieces of it.)
@@ -1695,10 +1697,10 @@ side-on and the stop three-quarter, a change of drawing with nothing between.
 
 ## Round 50 (user) · too slow; the gull's jump; Dot a statue; not the harbour for the start
 
-> Muy lento, aparte la gaviota mete un salto cuando no debe y aunt parece una estatua. No me
-> convence el enfoque
+> Very slow; besides, the gull jumps when it shouldn't and Aunt looks like a statue. I am not
+> convinced by the approach
 
-> No aprovecharía la escena del puerto para el inicio
+> I wouldn't use the harbour scene for the opening
 
 (On round 49's opening: Kit in at two seconds, then riding round the quay until her card.)
 
@@ -1721,10 +1723,10 @@ and one band of ground.
 The shapes are their own drawings painted flat (`put` with `sil`), so nothing is new art.
 
 **Also**: Captain jumps once in Kit's shot, when she lands (he also jumped at the clatter and,
-in round 49, as she rode past: «cuando no debe»). Kit's ride is out («muy lento»).
+in round 49, as she rode past: «when it shouldn't»). Kit's ride is out («very slow»).
 
-**Not done, and why**: «Aunt parece una estatua». She has one drawing at her hatch (sliding it
-was «antinatural», round 40; still with a blink is a statue). She needs drawings: a sheet of
+**Not done, and why**: «Aunt looks like a statue». She has one drawing at her hatch (sliding it
+was «unnatural», round 40; still with a blink is a statue). She needs drawings: a sheet of
 four of one gesture (shaking her fry basket), 433 credits. The generation was refused by the
 session's permission check, as a spend the user had not asked for; asked.
 
@@ -1733,8 +1735,9 @@ rendered alone at 1280 (67 s).
 
 ## Round 51 (user) · the mystery, a better way into the harbour, Kit down with her board
 
-> No sé si dar el misterio de no saber quien son hasta que se presenten y que la transición de
-> lo primero al puerto sea más original. Podemos hacer que Kit caiga con la tabla?
+> I wonder about giving it the mystery of not knowing who they are until they are introduced,
+> and making the transition from the first part to the harbour more original. Can we make Kit
+> come down with the board?
 
 (On round 50's cold open, which turned them to colour at the band's entry and went to the
 harbour by a whip.)
@@ -1763,7 +1766,7 @@ untouched.
 
 ## Round 52 (user) · Aunt Dot's sheet
 
-> Sí, genera la hoja de Aunt Dot
+> Yes, generate Aunt Dot's sheet
 
 One sheet, one variation (433 credits), her model sheet as reference: `ref/dot-shake.png` →
 `cast/dot-shake-drawn.js`, four frames of one loop, shaking her fry basket: `k1` low, looking
@@ -1781,7 +1784,7 @@ The break (the gull takes her chips: `serve`, then `yell`) is as it was.
 
 ## Round 53 (user) · Dot robotic; Kit left standing
 
-> Muy robótico el movimiento de Aunt, y Pit se queda un rato parada
+> Aunt's movement is very robotic, and Kit is left standing still for a while
 
 - **Dot**: four drawings looped identically on every beat (k3 k3 k4 k1 k1 k2, for four seconds)
   is a machine. Now an exposure sheet for the shot (`scene.js` `DOT_X`), nothing repeated in
@@ -1801,14 +1804,14 @@ The break (the gull takes her chips: `serve`, then `yell`) is as it was.
 
 ## Round 54 (user) · the full render
 
-> Vale, haz el render completo
+> OK, do the full render
 
 The film rendered whole with round 53's opening (424 s); `render/` updated (silent copy,
 strip, gif). `engine/review.mjs`: no warnings, no still stretch. Not seen in motion, not heard.
 
 ## Round 55 (user) · Kit's continuity into the chase
 
-> Sí, arregla la continuidad de Kit
+> Yes, fix Kit's continuity
 
 (Seen by me on round 54's contact sheet and offered: at 21 s she stood beside her board on the
 ground, as the old drop had left her; her new shot leaves her up on it, pointing.)
@@ -1823,7 +1826,7 @@ ones inside different.
 
 ## Round 56 (user) · Pip on top of Kit
 
-> Arregla que Pip no se pise con Kit
+> Fix it so that Pip and Kit don't overlap
 
 (Told to the user in round 55: as Kit set off, Pip rode through just behind her and for a
 couple of drawings they were one figure on top of another.)
@@ -1840,14 +1843,14 @@ render is due once everything is approved.
 
 ## Round 57 (user) · the clean full render
 
-> Vale, haz el render completo limpio
+> OK, do the clean full render
 
 Rendered whole from the scene (414 s, 762 frames, one encode), replacing the twice-spliced
 file; `render/` updated from it. `engine/review.mjs`: no warnings, no still stretch.
 
 ## Round 58 (user) · into the README and the site; a pull request
 
-> Sí, añádelo al README y a la web, preparamos PR
+> Yes, add it to the README and the website; let's prepare the PR
 
 (Answer to: «if you take the film as good, tell me and I add it».)
 
@@ -1863,9 +1866,9 @@ file; `render/` updated from it. `engine/review.mjs`: no warnings, no still stre
 
 ## Round 59 (user) · two pupils in one eye; pupils in the flying glasses
 
-> He mergeado, por cierto viendo el gif me he dado cuenta que tiene 2 pupilas
+> I have merged it. By the way, watching the GIF I noticed that she has 2 pupils
 
-> Y creo que a milo se le quedan las pupilas en las gafas
+> And I think Milo's pupils stay behind in his glasses
 
 (with two crops of the film: Kit's eye with two black dots; Milo's glasses in the air with a
 pupil in each lens)
@@ -1899,7 +1902,7 @@ for in a generated sheet).
 
 ## Round 60 (user) · a second pull request; the film with its song
 
-> Sí, abre el PR. Una cosa,lo podemos subir con la canción? Tecnicamente es mia
+> Yes, open the PR. One thing: can we upload it with the song? Technically it is mine
 
 The theme song was made by the user (with Suno, from the prompt in `suno-prompt.md`), so it is
 not third-party audio, and whether it goes in the repo is theirs to say. `render/pier-pressure.mp4`

@@ -1,6 +1,6 @@
 #!/bin/sh
-# micrograph-test · the soundtrack: a score, a clock, a narrator. No sound effects (the
-# user, round 4: «se pueden hacer sin efectos? Solo la música, con el tictac del tiempo»).
+# micrograph-test · the soundtrack: a score, a clock, a narrator. No sound effects (the user,
+# round 4: «Can it be done without effects? Just the music, with the ticking of time»).
 #   sh sandbox/2026-11-17-micrograph-test/mix-sound.sh        → mix.wav next to this file
 #
 # Score: a generated piece (ElevenLabs Music v2.5, 39 s, one prompt describing the film's

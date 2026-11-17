@@ -9,7 +9,7 @@
 const PyramidFilm = (() => {
     // Hermite through keys with monotone tangents (Fritsch–Butland, per coordinate): the
     // camera never stops at a key where it keeps going the same way, and never overshoots a
-    // key to come back to it (central-difference tangents did: «la cámara hace un zigzag raro»)
+    // key to come back to it (central-difference tangents did: «the camera does a weird zigzag»)
     function path(keys, t) {
         if (t <= keys[0][0]) return keys[0].slice(1);
         const n = keys.length;

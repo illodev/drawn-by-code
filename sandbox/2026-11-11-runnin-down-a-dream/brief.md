@@ -3,8 +3,8 @@
 - **Style:** cereal-ad (new: a '90s Saturday-morning TV spot on a VHS tape, played on a CRT)
 - **Format:** 1:1 (like the style reference) · 4:22 (262 s, the whole song) · 24 fps
 - **Purpose / audience:** a videoclip for «Runnin' Down a Dream» (Tom Petty, *Full Moon
-  Fever*, 1989). The user: «no es un anuncio de cereales, es un videoclip; el estilo de
-  cereal es referencia». Every detail counts from second zero.
+  Fever*, 1989). The user: «it's not a cereal ad, it's a music video; the cereal style is a
+  reference». Every detail counts from second zero.
 - **One-line idea (script v2, proposed, waiting for the user):** the Devil is the tape's
   mascot, and like every cereal mascot he never gets what he is after: Tom's name on a
   contract. Tom never notices him. Every scheme backfires on the beat, the band ends up
@@ -70,9 +70,9 @@
 
 ## Shot list
 
-The opening is built and approved as a look («se ve muy top»). The rest is script v2, to be
-approved before it is animated. The user asked for a script that is «original y divertido
-con el toque "satánico" que tiene esta gente»; the lyrics are a loose guide only.
+The opening is built and approved as a look («it looks top-notch»). The rest is script v2,
+to be approved before it is animated. The user asked for a script that is «original and fun,
+with the "satanic" touch these guys have»; the lyrics are a loose guide only.
 
 Three ideas were crossed. Kept whole: the mascot who never gets it (the Devil after a
 signature). Folded in: the possessed tape of the satanic-panic years (the rewind that

@@ -1,11 +1,11 @@
 # micrograph-test · review
 
-## User feedback (verbatim)
+## User feedback (translated from Spanish)
 
-- With three colourised micrographs (and the two stills that became lightfield): «Crees que
-  podríamos replicar estos tonos y estilos como estilos científico/biológicos? Sé que son
-  diferentes imágenes, pero es captar un poco el estilo científico».
-- After lightfield was merged: «Vamos por micrograph?»
+- With three colourised micrographs (and the two stills that became lightfield): «Do you
+  think we could replicate these tones and styles as scientific/biological styles? I know
+  they're different images, but the idea is to capture a bit of the scientific style».
+- After lightfield was merged: «Shall we go for micrograph?»
 
 Translation: build the second of the two styles proposed then, false-colour micrographs
 with the three palettes as variants, and show a style test.
@@ -86,13 +86,14 @@ out of the shader).
 **Not done / known limits.** No sound. The three shots are matched stills animated by the
 instrument's motion and a little of their own; there is no original scene yet. The gate
 passes the section at its limit (8.0) and its membranes are still smoother than the
-still's. The stills' source is not confirmed (they look like NIAID's): to credit.
+still's. The stills' source is not known: the user found them through a Google image search
+(they look like NIAID's).
 
-## User feedback, round 2 (verbatim)
+## User feedback, round 2 (translated from Spanish)
 
-- «Sí, propón ideas de escenas originales»
-- «Haz las tres recomendadas como una pieza montada, yo también propongo naegledia. Podemos
-  poner quizás algún título a cada una? o lo ves innecesario?» · «naegleria*»
+- «Yes, propose ideas for original scenes»
+- «Make the three recommended ones as one edited piece; I also propose Naegleria. Could we
+  maybe put a title on each one? Or do you think that's unnecessary?»
 - Then, with no words, three pictures of Naegleria: a living trophozoite in contrast (a
   slug-shaped cell, the nucleus as a ring, the rear full of vacuoles, a thread at the tail),
   a 3D illustration (lobed cells full of round vesicles) and a stained smear (two foamy
@@ -165,9 +166,9 @@ assumed: both first versions of the section-palette shots were diagrams, because
 membrane was drawn as a line wherever one exists. What shows is decided by the
 magnification, not by the anatomy.
 
-## User feedback, round 3 (verbatim)
+## User feedback, round 3 (translated from Spanish)
 
-- «Vamos por la música»
+- «Let's move on to the music»
 
 ## Round 3 (auto): sound
 
@@ -209,10 +210,10 @@ automatic review of round 2 stands (its cuts are on the beat of the declared tem
 the key are right; they do not say whether the take is beautiful, whether the synthesised
 ending sits well on it, or whether the ticks and clicks are pleasant.
 
-## User feedback, round 4 (verbatim)
+## User feedback, round 4 (translated from Spanish)
 
-- «Añade el narrador con voz grave, como en lightfield, se pueden hacer sin efectos? Solo la
-  música, con el tictac del tiempo»
+- «Add the narrator with a deep voice, as in lightfield. Can it be done without effects?
+  Just the music, with the ticking of time»
 
 Translation: the narrator of the lightfield film, here too; and every sound effect out:
 only the music, with a ticking of time. Read as: a clock running through the film (and the
@@ -251,14 +252,14 @@ clock tick shows in the mix as a rise (3–7 dB for most, after the first versio
 given more body, 9 ms and a lower pitch, rather than only more level).
 
 **Said plainly:** nobody has listened to this either. What the words say was checked
-against the prompts, not transcribed blind. Whether the clock is the «tictac» that was
+against the prompts, not transcribed blind. Whether the clock is the «ticking» that was
 meant, and whether it sits well with the score, only the user can tell.
 
-## User feedback, round 5 (verbatim)
+## User feedback, round 5 (translated from Spanish)
 
-- «Está bien así, podemos abrir PR»
+- «It's fine as it is, we can open the PR»
 
-Approved as it is: the clock was the «tictac» that was meant, the narrator's lines stay.
+Approved as it is: the clock was the «ticking» that was meant, the narrator's lines stay.
 The style goes from «in testing» to approved, the film goes on the site (first in the
 programme, with its poster) and in the README's gallery, and the pull request is opened.
 Still owed: a 1080p render (this one is 1280 × 720), and the style's place in the README

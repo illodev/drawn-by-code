@@ -57,15 +57,16 @@
     ];
     const WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen', 'Twenty'];
 
-    // [where it was said, what the person said (their words), what it became, the file it was written into]
+    // [where it was said, what the person said (in English: the feedback is given in Spanish and
+    // written down translated), what it became, the file it was written into]
     const NOTES = [
-        ['runnin-down-a-dream · round 11', 'Casi todos los errores son de fallos de capas',
+        ['runnin-down-a-dream · round 11', 'Almost all the errors are layering faults',
             'Layers got a review pass of their own, by reviewers who had not drawn the film: every shot at full size, every overlap cropped. Twenty-nine drawing-order faults found, twenty-five fixed before the final render.',
             '.claude/skills/review/SKILL.md'],
-        ['saas-promo · round 2', 'Sus manos cogen el café al revés',
+        ['saas-promo · round 2', 'Her hands hold the coffee the wrong way round',
             'A skill of its own for hands: a photo reference for every grip, the hand drawn by side and view, one skin, and a hand check sheet a person approves before any render.',
             '.claude/skills/hands/SKILL.md'],
-        ['red-thread · round 12', 'No entiendo en qué momento pasa todo a mal',
+        ['red-thread · round 12', 'I don’t understand at what point it all turns bad',
             'An allegorical cause shown whole from the start explains nothing. It is revealed in steps, each a readable close-up, and the whole figure only when the camera pulls back.',
             '.claude/skills/animate/SKILL.md'],
     ];
@@ -79,6 +80,8 @@
     // --- the page ------------------------------------------------------------------------------
     $('#counts').textContent = `${STYLES.length} styles · ${EXPERIMENTS} experiments · every lesson public`;
     $('#style-count').textContent = WORDS[STYLES.length] ?? String(STYLES.length);
+    const word = (n) => (WORDS[n] ?? String(n)).toLowerCase(); // the feature is a film too
+    $('#film-count').textContent = `${word(FILMS.length + 1)} films · ${word(STUDIES.length)} studies`;
 
     $('#film-list').innerHTML = FILMS.map(([id, dir, title, style, s, sound, text], i) => `
         <article class="film">
@@ -113,7 +116,7 @@
     $('#note-list').innerHTML = NOTES.map(([where, said, became, file]) => `
         <article>
           <span class="meta">${esc(where)}</span>
-          <q lang="es">${esc(said)}</q>
+          <q>${esc(said)}</q>
           <p>${esc(became)}</p>
           <a href="${GH}/blob/main/${file}">${esc(file)}</a>
         </article>`).join('');

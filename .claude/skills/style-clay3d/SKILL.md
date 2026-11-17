@@ -27,7 +27,7 @@ folds, chair, wallpaper, a panelled door).
 
 ## Style rules
 
-The user's verdict on a first, «photographed set» version: «parece más 3D que plastilina».
+The user's verdict on a first, «photographed set» version: «it looks more like 3D than plasticine».
 What makes it plasticine and not CG (from their references: a puppet on a seamless
 backdrop, pieces pressed on):
 
@@ -85,6 +85,6 @@ backdrop, pieces pressed on):
 
 ## Lessons
 
-- 2026-09-24 · clay3d-test · Round 3 (user): «el doblez de la camisa siempre muestra la misma posición» (the cuff was in the hand's frame) and no mouth at rest (buried under the face's surface). Both rules above.
+- 2026-09-24 · clay3d-test · Round 3 (user): «the fold of the shirt always shows the same position» (the cuff was in the hand's frame) and no mouth at rest (buried under the face's surface). Both rules above.
 
-- 2026-09-24 · clay3d-test · Round 1 (a photographed table-top room, perfect SDF forms, glossy eyes) read as «más 3D que plastilina». Round 2 with lumps, flat pressed-on features, matte clay and a studio backdrop is the style.
+- 2026-09-24 · clay3d-test · Round 1 (a photographed table-top room, perfect SDF forms, glossy eyes) read as «more like 3D than plasticine». Round 2 with lumps, flat pressed-on features, matte clay and a studio backdrop is the style.

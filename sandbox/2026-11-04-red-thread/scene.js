@@ -168,7 +168,7 @@ const makeShots = () => {
         if (t > 17.4 && t < 21.2) kawaraban(g, env, t);
     }
 
-    // --- 4a · The broadsheet (round 12: «no entiendo en qué momento pasa todo a mal») ------------
+    // --- 4a · The broadsheet (round 12: «I don't understand at what point it all turns bad») -----
     // One sheet comes up to the camera and fills the frame: a woodblock print headed 対岸に鬼あり
     // («there are demons on the other bank»). In its picture a neighbour across the river grows
     // horns while we read. The wind takes it, and behind it everyone already wears the mask.
@@ -518,7 +518,7 @@ const makeShots = () => {
         const r = F.writeVertical(g, env, ['敵味方に分かれる前、', '私たちは隣人だった。'], 1470, 36, 40, seg(t, 64.6, 66.9), { gap: 58 });
         F.stamp(g, env, r.left - 62, r.bottom - 26, 44, '絆', t, 67.2);
     }
-    // Round 13 («que el puente no aparezca de golpe»): the children's string is the first
+    // Round 13 («the bridge shouldn't appear all at once»): the children's string is the first
     // strand; from it the bridge is woven one strand at a time, each running out from both
     // banks and meeting in the middle with a small red flick, the deck before the rails; then
     // the hangers are tied one by one from the ends towards the middle.
@@ -565,7 +565,7 @@ function drawShot(k, g, t, env) {
     if (k === 10) Shots.endText(g, env, t);
 }
 
-// Ink-blot transitions (the user: «con mancha de tinta china en el papel, no tan brusca»).
+// Ink-blot transitions (the user: «with a blot of India ink on the paper, not so abrupt»).
 // Each cut gets a point where the drop lands (on what the next shot is about), in screen units.
 const INK_HALF = 0.6;
 // Between the two acts (adults → children) the painting goes back to blank paper and the

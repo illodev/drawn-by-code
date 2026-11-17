@@ -34,11 +34,9 @@ engulf (0:15), frame within the frame (1:04), vortex (2:31) and entering through
 
 ## Round 3 (user)
 
-> «No está mal para ser el primero. Pero me falta densidad y dinamismo. Sobre todo en esa
-> escena [la medusa, 0:15] se entiende que sea psicodélico, pero no entiendo la escena en sí.»
-
-(“Not bad for a first one. But it lacks density and dynamism. Especially in that scene
-[the jellyfish, 0:15] I get that it is psychedelic, but I don't understand the scene itself.”)
+> «Not bad for a first one. But for me it lacks density and dynamism. Above all in that
+> scene [the jellyfish, 0:15]: I understand that it is psychedelic, but I don't understand
+> the scene itself.»
 
 - **Diagnosis:** the jellyfish was a look with no action. Describing the shot in one
   sentence gives «a glowing blob floats»: nothing happens, it has no context (the void)
@@ -60,9 +58,7 @@ engulf (0:15), frame within the frame (1:04), vortex (2:31) and entering through
 
 ## Round 4 (user)
 
-> «Está muy bien.»
-
-(“It's very good.”)
+> «It's very good.»
 
 Approved. The four new styles go from «in testing» to approved, with this video as the
 reference.

@@ -4,11 +4,11 @@
   «scientific» styles the user asked for, the other being false-colour micrographs)
 - **Format:** 16:9 · 30.5 s · 24 fps (continuous motion, not on twos: this is footage)
 - **Purpose / audience:** the style test of `lightfield`, grown into a short piece. The
-  user: «Crees que podríamos replicar estos tonos y estilos como estilos
-  científico/biológicos? Sé que son diferentes imágenes, pero es captar un poco el estilo
-  científico», «Me gustaría probar la de lightfield primero», and after two rounds on the
-  two reference shots: «Lo que yo haría es añadir algunas escenas nuevas, originales
-  nuestras» → «Haz las tres que recomiendas, como una pieza montada».
+  user: «Do you think we could replicate these tones and styles as scientific/biological
+  styles? I know they're different images, but the idea is to capture a bit of the
+  scientific style», «I'd like to try the lightfield one first», and after two rounds on the
+  two reference shots: «What I would do is add some new scenes, original ones of our own»
+  → «Make the three you recommend, as one edited piece».
 - **One-line idea:** five lights, from the sky to the bench: the Sun comes up over the edge
   of the Earth, the Moon covers it, a beam of it is split by a prism, one of its colours
   goes through two slits a photon at a time, and a filament we made ourselves lights the
@@ -45,7 +45,7 @@
 |---|---|---|
 | 0–5.5 | Limb (reference) | Night side of the Earth from orbit, stars above and a few city lights drifting below. Daylight spreads along the limb from the left (the high blue air first, the low red air after); at 2.4 s the sun shows inside the band of air (never on the dark disc: it rises behind the planet) as a squashed red ember, climbs, rounds and whitens while its halo grows with it, and at 3.5 s the frame is the reference still. It keeps climbing, holding its brightness, until the cut. |
 | 5.5–12 | Eclipse (ours) | The Moon slides over the Sun (a time-lapse that slows through totality). The crescent thins and breaks into beads on the Moon's mountains; the last bead is the diamond ring; the camera opens up 70 times and the corona is there: streamers over the Sun's equator, plumes over its poles, pink prominences on the limb, stars, a planet. At 5.3 s the first bead comes back on the other side and burns the frame out: the cut. |
-| 12–18.5 | Prism (ours) | A dark bench. A shutter opens and a white beam grazes the table into a glass prism; the prism turns 11.5° and the white coming out of it opens from a narrow band into a fan of colours running out across the table and off the frame (no screen: the user's «quizás sin pared»). Dust in the air and on the table sparkles in it. |
+| 12–18.5 | Prism (ours) | A dark bench. A shutter opens and a white beam grazes the table into a glass prism; the prism turns 11.5° and the white coming out of it opens from a narrow band into a fan of colours running out across the table and off the frame (no screen: the user's «maybe without a wall»). Dust in the air and on the table sparkles in it. |
 | 18.5–24.5 | Slits (ours) | The same bench, red light, a black card with two slits. Almost nothing at first: single photons landing beyond the card, each a flash and then a dot. The source is turned up tenfold every 1.2 s; the dots gather into fingers fanning from the slits and into bars on the far card, and at last the wave itself, speckled. |
 | 24.5–30.5 | Bulb (reference) | A cold bulb in studio light. At 0.55 s the filament starts as a dull red coil, climbs through orange, overshoots and settles white-hot at 2.5 s: the coating on the glass, the wires, the stem and the brass lip light up with it. From 2.3 s the title is emitted in front, and a glint crosses it. At 4.5 s the frame is the reference still. |
 

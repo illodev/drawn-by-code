@@ -117,6 +117,19 @@ h3 { font-size: 32px; font-weight: 400; margin: 8px 0 10px; letter-spacing: -0.0
 .learn a { display: inline-block; margin-top: 14px; font-family: var(--mono); font-size: 11px; color: var(--orange); text-decoration: none; overflow-wrap: anywhere; }
 .learn a:hover { text-decoration: underline; }
 
+/* Postbay: the author's other project, shown as one card (its banner carries its own colours) */
+.pb { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--bg2); }
+.pb-pic { display: block; background: #0b0c12; border-bottom: 1px solid var(--line); }
+.pb-pic img { width: 100%; height: auto; aspect-ratio: 5 / 2; object-fit: cover; }
+.pb-in { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 48px; padding: 34px 36px 38px; align-items: start; }
+.pb-in h3 { font-size: 30px; line-height: 1.12; margin: 12px 0 14px; text-wrap: balance; }
+.pb-in p:not(.kicker) { color: var(--soft); font-size: 16px; line-height: 1.5; max-width: 30em; margin-bottom: 22px; }
+.pb-in .btns { margin-bottom: 0; }
+.pb-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 30px; }
+.pb-facts div { border-top: 1px solid var(--line); padding-top: 12px; }
+.pb-facts dt { font-size: 18px; margin-bottom: 6px; }
+.pb-facts dd { color: var(--dim); font-size: 14px; line-height: 1.5; }
+
 footer { margin-top: 84px; border-top: 1px solid var(--line); padding: 44px 0 64px; display: flex; justify-content: space-between; align-items: end; gap: 30px; }
 .big { font-size: clamp(40px, 6vw, 84px); letter-spacing: -0.02em; line-height: 0.95; }
 .start { max-width: 100%; min-width: 0; }
@@ -165,6 +178,10 @@ dialog[open] { display: grid; place-items: center; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .st-cap { flex-direction: column; gap: 2px; }
   .learn { grid-template-columns: 1fr; }
+  .pb-pic img { aspect-ratio: 4 / 3; object-position: 96% 50%; } /* the banner's words are too small here: show its screen */
+  .pb-in { grid-template-columns: 1fr; gap: 26px; padding: 22px 18px 26px; }
+  .pb-in h3 { font-size: 24px; }
+  .pb-facts { grid-template-columns: 1fr; gap: 16px; }
   .learn article, .learn article + article { padding: 22px 0; border-right: 0; border-bottom: 1px solid var(--line); }
   .learn article:last-child { border-bottom: 0; }
   footer { flex-direction: column; align-items: stretch; margin-top: 56px; }

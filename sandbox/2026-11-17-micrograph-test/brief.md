@@ -4,20 +4,21 @@
   second of the two «scientific» styles the user asked for, after lightfield)
 - **Format:** 16:9 · 37.5 s · 24 fps (the detector reads out every two frames)
 - **Purpose / audience:** the style test of `micrograph`. The user, with three colourised
-  micrographs: «Crees que podríamos replicar estos tonos y estilos como estilos
-  científico/biológicos? Sé que son diferentes imágenes, pero es captar un poco el estilo
-  científico», and once lightfield was merged: «Vamos por micrograph?». After the three
-  reference shots: «Sí, propón ideas de escenas originales» → «Haz las tres recomendadas
-  como una pieza montada, yo también propongo naegledia [Naegleria]. Podemos poner quizás
-  algún título a cada una?», and three pictures of Naegleria.
+  micrographs: «Do you think we could replicate these tones and styles as
+  scientific/biological styles? I know they're different images, but the idea is to capture
+  a bit of the scientific style», and once lightfield was merged: «Shall we go for
+  micrograph?». After the three reference shots: «Yes, propose ideas for original scenes» →
+  «Make the three recommended ones as one edited piece; I also propose Naegleria. Could we
+  maybe put a title on each one?», and three pictures of Naegleria.
 - **One-line idea:** one session at the microscope, from the largest thing to the smallest:
   an amoeba reaching round a bacterium; one of its mitochondria, slice by slice; a field of
   cut virions; a phage landing on a bacterium and emptying itself into it; one virion in
   its pool of stain; virions budding from a cell's edge; and the same virions adrift on
   black, where the title is stained matter like the rest.
 - **References** (the user's stills, kept in `private/`, never committed; all three are
-  colourised transmission electron micrographs of a coronavirus, which look like NIAID's
-  SARS-CoV-2 images: source to be confirmed with the user):
+  colourised transmission electron micrographs of a coronavirus that the user found through
+  a Google image search; their source is not known, they look like NIAID's SARS-CoV-2
+  images):
   - `section169.png`: a thin section, orange particles with dark membranes (two of them
     budding) and mauve ghosts on pale blue (cropped 47 px top and bottom to 16:9).
   - `stain169.png`: one particle, olive core, rose envelope and spikes, in a dark pool of
@@ -44,8 +45,8 @@
   cut is on a beat and the serial sections' eight slices a second are sixteenth notes.
   Score: a generated piece (ElevenLabs Music v2.5, take 3 of four, in `private/music/`,
   never committed) laid uncut from second 0, with a synthesised ending over its fade
-  (`music.mjs --ending`). **No sound effects** (the user, round 4: «solo la música, con el
-  tictac del tiempo»): besides the score and the narrator there is only a clock, one tick a
+  (`music.mjs --ending`). **No sound effects** (the user, round 4: «just the music, with the
+  ticking of time»): besides the score and the narrator there is only a clock, one tick a
   second on the half seconds, and a tick per slice in the serial sections
   (`sound-design.mjs`). `sh mix-sound.sh` → `mix.wav`; without the private takes it falls
   back to the synthesised score and no narrator.

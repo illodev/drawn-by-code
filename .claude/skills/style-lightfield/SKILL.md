@@ -59,19 +59,19 @@ so every number in the shader is one you can read off the image.
 - **A glow has structure; a smooth lobe is the mark of a fake.** Light in a coated bulb is
   a nucleus round the wire, a lobe over it, a darker ring, a side turned away that stays
   nearly black, and clouds where the coating is thin. Write the darks as carefully as the
-  light («faltan oscuros»): what is *not* lit is half of the picture.
+  light («the darks are missing»): what is *not* lit is half of the picture.
 - **Whatever rises from behind something is seen through it or not at all.** A sun behind
   a planet is masked by the height of the air it shines through, never drawn on the dark
   disc; while low it is dim, red (a low temperature) and squashed by refraction, and its
   light pools in the air before the disc shows.
 - **A flare is a soft flower, not a star.** Most of a halo is round (the lens's wide
   octaves); rays only scallop its rim: many (≈ 19), at uneven angles, of similar length,
-  low gain. Few long even arms on a moving source read as a creature («una estrella de mar
-  moviéndose»). And a source that is up **holds its brightness**: a halo that keeps growing
+  low gain. Few long even arms on a moving source read as a creature («a starfish
+  moving»). And a source that is up **holds its brightness**: a halo that keeps growing
   reads as an effect being turned up, not as a camera.
 - **Optical effects have no thresholds.** Rays, bloom and flares scale with the source from
   its first glimmer (the kit's ray `threshold` is a knee): anything that pops on at one
-  frame of a continuous event reads as a bug («¿es normal que…?»).
+  frame of a continuous event reads as a bug («is it normal that…?»).
 - **Glass is what it reflects.** A dark band at the silhouette (the unlit room), one blown
   highlight per light with a feathered inner edge and a gap to the rim, pale strips where
   walls turn, and for lumpy glass (a stem's press) a height field whose normal picks up the
@@ -226,5 +226,5 @@ Tune with numbers: sample the same named points on both images, fit profiles
   the shape, shade it along its length, and keep the noise at a few cycles per shape.
 - 2026-11-17 · lightfield-test rounds 5–6 · A beam does not need a screen to end on: if it
   has a surface to skim and dust to cross, let it run off the frame. The flat card was
-  noticed as reused from the next shot, a bowed sheet in its place was still «una pared»,
+  noticed as reused from the next shot, a bowed sheet in its place was still «a wall»,
   and the shot was best with neither. Fewer objects, each doing something with the light.

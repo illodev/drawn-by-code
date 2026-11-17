@@ -17,11 +17,10 @@ neck. `review.mjs`: no warnings.
 
 ## Style test · round 2 (user)
 
-> «Los detalles, hay que cuidar los detalles. Por ejemplo las manos parecen muñones.
-> También el entorno parece pobre, es como si en un espacio hueco se hubieran repartido
-> 5 cosas, pero se siente vacío. Esto es lo que hablaba de los detalles del vídeo de antes.»
-> (Details: the hands look like stumps; the set feels like 5 things scattered in an empty
-> space.)
+> «The details: the details have to be looked after. For example, the hands look like
+> stumps. The surroundings look poor too: it is as if 5 things had been spread around a
+> hollow space, but it feels empty. This is what I meant about the details of the earlier
+> video.»
 
 Diagnosis: with no reference to measure against I stopped at «it reads». The detail bar
 applies to original pieces too: build them against a reference (the replica's traced fist,
@@ -42,7 +41,7 @@ real photos of desks) and fill the frame in depth.
 
 ## Style test · round 4 (user)
 
-> «¡Ese es el nivel!» — the style test is approved: Laura, the paper UI, the office, the
+> «That is the level!» — the style test is approved: Laura, the paper UI, the office, the
 > hands and the titles are locked. Every block of the edit is held to this bar.
 
 ## Animatic v1 · 50 s, all blocks (auto)
@@ -61,8 +60,9 @@ real photos of desks) and fill the frame in depth.
 
 ## Animatic v1 · round 2 (user)
 
-> «Logo, me da mucho TOC porque no se parece al logo de Fube.» «Sus manos atraviesan cosas
-> y hay veces que cogen perspectivas muy raras. Sus manos cogen el café al revés.»
+> «The logo: it really sets off my OCD, because it doesn't look like Fube's logo.» «Her
+> hands go through things, and at times they take on very odd perspectives. Her hands hold
+> the coffee the wrong way round.»
 
 - Logo: the mark is now the site's SVG cloud path, sampled (three round lobes on a flat
   bottom, a separate bar); the big cloud lost its inner light/dark layers, which blurred
@@ -79,8 +79,8 @@ real photos of desks) and fill the frame in depth.
 
 ## Round 3 (user)
 
-> «El logo de Fube con wordmark de la pantalla del ordenador tiene 2 colores, y tiene que ir
-> logo y wordmark de color de Fube.»
+> «The Fube logo with its wordmark on the computer screen has 2 colours, and both the logo
+> and the wordmark have to be in Fube's colour.»
 
 - The app's sidebar (laptop screen), the phone app header (expenses) and the clay test's
   screen now draw `BRAND.lockup`: the site's logo.svg (cloud, bar and wordmark as paths), all

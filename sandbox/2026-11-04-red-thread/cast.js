@@ -207,7 +207,7 @@ const Cast = (() => {
     }
 
     // ---------------------------------------------------------------------------------------
-    // Adults (round 12: «los trazos de los personajes son muy poco currados»), drawn like the
+    // Adults (round 12: «the characters' strokes have had very little work»), drawn like the
     // reference's boatman: slender (seven heads), a crisp silhouette edged in dry brush, the
     // kimono a grey wash with darker contours, calligraphic folds and paper showing through
     // where the light catches the cloth; a sash and a crossed collar; a woven straw kasa.

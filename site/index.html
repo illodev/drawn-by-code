@@ -21,6 +21,7 @@
       <a href="#films">Films</a>
       <a href="#styles">Styles</a>
       <a href="#notes">How it learns</a>
+      <a href="#postbay">Postbay</a>
     </nav>
     <a class="gh" href="https://github.com/illodev/drawn-by-code">GitHub <span aria-hidden="true">↗</span></a>
   </div>
@@ -59,7 +60,7 @@
   <section id="films" aria-labelledby="films-title">
     <div class="head">
       <h2 id="films-title">The <em>programme</em></h2>
-      <span class="meta">four films · two studies</span>
+      <span class="meta" id="film-count">seven films · two studies</span>
     </div>
     <div id="film-list"></div>
     <div class="studies" id="study-list">
@@ -84,6 +85,36 @@
       <span class="meta">what a person said → what it became</span>
     </div>
     <div class="learn" id="note-list"></div>
+  </section>
+
+  <!-- from the same author: where a rendered film goes to be reviewed, approved and published -->
+  <section id="postbay" aria-labelledby="postbay-title">
+    <div class="head">
+      <h2 id="postbay-title">Where the films <em>go next</em></h2>
+      <span class="meta">from the same author · open source</span>
+    </div>
+    <div class="pb">
+      <a class="pb-pic" href="https://postbay.app" aria-label="Postbay, at postbay.app">
+        <img src="media/postbay.jpg" alt="Postbay’s review screen: a video with comments pinned to its timeline, an agent’s new version and a note on what changed in it." loading="lazy" width="1600" height="640">
+      </a>
+      <div class="pb-in">
+        <div>
+          <p class="kicker">Postbay · self-hosted · MIT</p>
+          <h3>A studio for everything after the render.</h3>
+          <p>A film is not finished when it is rendered: somebody has to look at it, ask for changes, agree it is ready and send it out. Postbay is where that happens, for your team and your AI agents, on your own server.</p>
+          <div class="btns">
+            <a class="btn go" href="https://postbay.app">Visit postbay.app</a>
+            <a class="btn" href="https://github.com/illodev/postbay">The code on GitHub</a>
+          </div>
+        </div>
+        <dl class="pb-facts">
+          <div><dt>On the exact frame</dt><dd>Comment on a moment or a span of a video, draw on the frame, compare two versions side by side.</dd></div>
+          <div><dt>Bound to the exact file</dt><dd>An approval belongs to one version’s files: change a byte and it no longer counts.</dd></div>
+          <div><dt>Nine networks</dt><dd>A calendar that publishes by itself, or gets everything ready for a person to post.</dd></div>
+          <div><dt>Pairs with drawn-by-code</dt><dd>It is an MCP server for Claude. A request for changes on a film from this repo becomes its next version: the agent edits the scene, renders it again and uploads it.</dd></div>
+        </dl>
+      </div>
+    </div>
   </section>
 
   <footer>

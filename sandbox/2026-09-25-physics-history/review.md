@@ -58,24 +58,24 @@ Lessons that apply to other videos go up to the matching skill (see review/SKILL
 
 ### Round 2 (user)
 
-> Notas sinceras:
-> * Se me hace repetitivo los personajes sentados
-> * Me falta mucho dinamismo
-> * Hay transiciones que no están nada cuidadas
-> * Los pesonajes parece que tienen la espalda jorobada y exageradamente desproporcional
-> * Sigo pensando que hay muchos espacios vacios y no son de los que se arreglan poniendo estanterías
+> Honest notes:
+> * The seated characters get repetitive
+> * It lacks a lot of dynamism
+> * Some transitions have had no care taken over them at all
+> * The characters look hunchbacked and exaggeratedly out of proportion
+> * I still think there are many empty spaces, and not the kind you fix by adding shelves
 >
-> Creo que el guion no está bien, se me han ocurrido cosas para que sea más dinámico:
-> Galileo observa el cielo, parecido a como ahora, pero no en la habitacíon como tal con un
-> plano más cercano, se va acercando hasta hacer zoom al planeta que es una manzana, Newton en
-> un campo con el arbol le cae la manzana en la cabeza, la coje del suelo y la lanza y se ve la
-> perspectiva alejarse del plano mientras la manzana sube hasta empezar a orbitar sobre el
-> globo terraqueo, se va conviertiendo en la bobina de Faraday se agranda la imagen de la
-> bobina (un poco psicodelico) hasta la escena de Faraday, igual, más cercana y dinámica,
-> [escena de marie y epstein], el cubo se va conviertiendo en una caja y aparecen srodinger y
-> el gato, la escena se va duplicando por cada probabilidad, gato muerto srodinger vivo, gato
-> vivo srodinger muerto, diferentes posiciones, etc así hasta hacer un mosaico de probabilidad
-> (tono irónico humor).
+> I think the script isn't right; I've thought of some things to make it more dynamic:
+> Galileo observes the sky, much as now, but not in the room as such: in a closer shot. It
+> moves in until it zooms into the planet, which is an apple. Newton is in a field with the
+> tree; the apple falls on his head, he picks it up off the ground and throws it, and the
+> view is seen pulling away from the shot while the apple rises until it starts to orbit the
+> globe. It gradually turns into Faraday's coil; the image of the coil grows (a bit
+> psychedelic) until the Faraday scene, likewise closer and more dynamic. [the Marie and
+> Einstein scene]. The cube gradually turns into a box and Schrödinger and the cat appear;
+> the scene duplicates for each probability: cat dead and Schrödinger alive, cat alive and
+> Schrödinger dead, different positions, etc., and so on until it makes a mosaic of
+> probability (ironic tone, humour).
 
 What this means:
 
@@ -92,8 +92,8 @@ What this means:
 - **The joins are one object turning into the next,** designed by hand, not cuts or
   dissolves.
 
-> (while building) Importante los detalles de las escenas, que las escenas tampoco sean
-> totalmente alejadas, y que los escenarios tengan todo lujo de detalles
+> (while building) The details of the scenes are important: the scenes shouldn't be entirely
+> distant shots either, and the sets should have a wealth of detail
 
 ### Round 3 (auto): style test of script v2, Newton's apple (dev/newton-apple, 7 s)
 
@@ -156,12 +156,12 @@ with effects: pop, boing, knock, whoosh and a reveal.
 
 ### Round 4 (user)
 
-> Lo he visto en x0.5 y hay animaciones que no están bien hechas y no cuadran a nivel tanto
-> de físicas como de timing, también los movimientos de newton son un poco ortopédicos
+> I watched it at 0.5× speed and there are animations that aren't well made and don't add up
+> in either physics or timing; Newton's movements are also a bit stiff
 >
-> La manzana cuando cae desaparece, cuando la lanza, a pesar de haber hecho el gesto de
-> lanzar, sale con retardo de la mano, cuando se aleja el zoom el escenario pierde detalles
-> (aunque en general me siguen faltando densidad de detalles)
+> The apple disappears when it falls; when he throws it, even though he has made the throwing
+> gesture, it leaves his hand late; when the zoom pulls away the set loses detail (though in
+> general I'm still missing density of detail)
 
 What changed:
 
@@ -216,10 +216,11 @@ What changed:
 
 ### Round 5 (user)
 
-> El lanzamiento se sigue viendo antinatural, es como que la lanza y sube lento y después más
-> rápido y sin sincronización es una cosa muy rara. También hay un detalle en la espalda que
-> parece que tiene como un hilo que le va de la cabeza al trasero cuando se levanta. También su
-> cuerpo al agacharse se ve muy raro, como si se plegara y tuviera unos cuadriceps larguísimos
+> The throw still looks unnatural: it's as if he throws it and it rises slowly and then
+> faster, with no synchronisation; it's a very odd thing. There's also a detail on his back:
+> he seems to have a sort of thread running from his head to his backside when he gets up.
+> His body also looks very odd when he crouches, as if it folded up and he had extremely long
+> quadriceps
 
 What changed:
 
@@ -250,9 +251,9 @@ axes. Anything that hangs (skirts, hair, straps) follows gravity, not the limb.
 
 ### Round 6 (user)
 
-> Mucho mejor, pero la manzana debería tener velocidad desde el principio, aparte debería
-> salir en diagonal sería más natural que la lanzara para arriba pero no con un angulo de 90º
-> si no un poco para delante
+> Much better, but the apple should have speed from the start; besides, it should leave on a
+> diagonal: it would be more natural for him to throw it upwards, though not at a 90° angle
+> but a little forwards
 
 What changed:
 - **The apple has its speed from the release.**
@@ -267,9 +268,9 @@ What changed:
 
 ### Round 7 (user)
 
-> El lanzamiento ahora está bien, pero tienes que corregir la dirección nueva en los demás
-> frames, la manzana va en diagonal, bien, pero de repente va para atrás xd, eso físicamente
-> no tien sentido
+> The throw is fine now, but you have to correct the new direction in the other frames: the
+> apple goes on a diagonal, good, but then it suddenly goes backwards xD; physically that
+> makes no sense
 
 The cause: the apple's horizontal offset was held in world units, so the zoom-out shrank it
 on screen. Its handover to the orbit also pulled it back towards the globe's centre.
@@ -286,7 +287,7 @@ zoom can make a correct world path read as backwards.
 
 ### Round 8 (user)
 
-> Lo doy por bueno, por ahora
+> I'll call it good, for now
 
 The Newton's apple style test (dev/newton-apple) is approved as the bar for script v2: a
 full-body rig that moves on spline channels, physics for everything that flies or falls, a
@@ -332,10 +333,11 @@ music yet).
 
 ### Round 10 (user)
 
-> Empezaría el vídeo con la primera escena de la cara cerca con el ojo del primer vídeo (me
-> gustó), que se aleje y ya se vea Galileo alejado y me gustaría que la transición de Galileo a
-> júpiter fuera más natural y la transición de la manzana falla en que las líneas de júpiter son
-> horizontales y la de la manzana vertical (quizás rotar la cámara?)
+> I would start the video with the first scene of the first video, the face up close with the
+> eye (I liked it), then have it pull away so that Galileo is seen from a distance. I'd like
+> the transition from Galileo to Jupiter to be more natural, and the apple transition fails
+> in that Jupiter's lines are horizontal and the apple's are vertical (maybe rotate the
+> camera?)
 
 What changed. Galileo is now 0–6.5 s, and Newton moves to 6.5–13.5 (the later scenes absorb
 the 1.5 s).
@@ -361,9 +363,9 @@ both images, so use a match cut on the beat instead.
 
 ### Round 11 (user)
 
-> La perspectiva de la lente está totalmente mal, tanto al principio, como cuando se mete en la
-> lente (peor todavía), antes de meterse en la lente la cámara debería rotar. La transición de
-> Jupiter-manzana tiene que ser más suave y progresiva en cuanto a color.
+> The perspective of the lens is completely wrong, both at the start and when it goes into the
+> lens (even worse); before going into the lens the camera should rotate. The Jupiter–apple
+> transition has to be smoother and more gradual in colour.
 
 What changed:
 
@@ -397,8 +399,8 @@ keeps the face, the sides and the rings consistent while the camera moves.
 
 ### Round 12 (user)
 
-> La transición de esas 2 vistas no está bien. También veo que Galileo tiene el telescopio
-> detrás de la frente
+> The transition between those 2 views isn't right. I also see that Galileo has the telescope
+> behind his forehead
 
 What changed:
 
@@ -416,10 +418,10 @@ What changed:
 
 ### Round 13 (user)
 
-> Hay mejorado un poco, esa transición sigue estando mal, ocurre muy rápido y la perspectiva
-> está mal. Las manos son horribles, no pueden estar peor hechas. Por favor, puedes prestar
-> atención a los detalles? Animación, transición, perspectivas, manos, que todo tenga sentido,
-> si dura más que dure
+> It has improved a little; that transition is still wrong: it happens very fast and the
+> perspective is wrong. The hands are horrible; they couldn't be worse made. Please, can you
+> pay attention to the details? Animation, transition, perspectives, hands: everything should
+> make sense. If it runs longer, let it run longer
 
 What changed:
 
@@ -451,9 +453,9 @@ to take a character's point of view, move the character out of the axis first.
 
 ### Round 14 (user)
 
-> Viendo las imágenes las manos están mal, el pulgar está cortado y los dedos de la otra mano
-> también. Además la mano derecha está al revés de como se tiene que agarrar algo de forma
-> natural
+> Looking at the images, the hands are wrong: the thumb is cut off, and so are the fingers of
+> the other hand. Also, the right hand is the wrong way round from how you have to grip
+> something naturally
 
 What changed:
 
@@ -473,7 +475,7 @@ or goes out of sight behind the prop; a digit never ends in the open.
 
 ### Round 15 (user)
 
-> Ahora está bien. Me he dado cuenta que en la de Newton el sol está anclado a la pantalla
+> It's fine now. I've noticed that in Newton's scene the sun is anchored to the screen
 
 What changed:
 
@@ -489,11 +491,11 @@ share of the motion, or it reads as pasted onto the screen.
 
 ### Round 16 (Faraday, and the user on the hands)
 
-> Seguimos
+> Let's carry on
 
-> Veo que la mano está fatal (Faraday), está al revés! Y además divides la mano en
-> secciones con bordes. También me he dado cuenta que Galileo tiene el dedo gordo de la mano
-> derecha como si fuera la mano izquierda. Son errores muy tontos no?
+> I see the hand is terrible (Faraday): it's the wrong way round! And on top of that you
+> divide the hand into sections with borders. I've also noticed that Galileo has the thumb of
+> his right hand as if it were the left hand. These are very silly mistakes, aren't they?
 
 What changed:
 
@@ -531,7 +533,8 @@ parts.
 
 ### Round 16b (user)
 
-> Ya te adelanto que has empeorado las manos y no te has enterado de mi revisión de antes
+> I can tell you already that you've made the hands worse and haven't taken in my earlier
+> review
 
 The grip depends on where the forearm comes from, and I had changed the whole grip instead
 of the thumb's side.
