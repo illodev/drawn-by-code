@@ -3,6 +3,8 @@
 // shots' own constants). Deterministic and licence-free, so the .wav is not committed.
 //
 //   node sandbox/2026-11-16-lightfield-test/music.mjs [out.wav]
+//   node sandbox/2026-11-16-lightfield-test/music.mjs [out.wav] --totality   only the chord
+//       at totality, to lay over a generated score that has no event there (mix-sound.sh)
 //
 //   0–5.5     Limb      a low fifth on D, a glassy high A coming in with the daylight, D minor
 //                       opening as the Sun shows (2.4 s) and climbs
@@ -27,6 +29,8 @@ const seg = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
 const smooth = (x) => x * x * (3 - 2 * x);
 const rng = (seed) => { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
 const rnd = rng(1704);
+const ONLY_TOTALITY = process.argv.includes('--totality');
+const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 
 // A pad voice: one note as two slightly detuned stacks of harmonics, one per side, each
 // breathing at its own slow rate. env(t) → 0..1 loudness, bright(t) → 0 dark … 1 open.
@@ -67,13 +71,15 @@ const arc = (a, b, c, d) => (t) => smooth(seg(t, a, b)) * (1 - smooth(seg(t, c, 
 const flat = (v) => () => v;
 
 // ---- Limb (0–5.5)
+if (!ONLY_TOTALITY) {
 for (const m of [38, 45]) pad(m, 0, 7, arc(0, 2.6, 5.2, 7), (t) => 0.1 + 0.25 * seg(t, 2.4, 5.5), -19);
 pad(81, 1.2, 6.5, arc(1.2, 3.6, 5.3, 6.5), flat(0), -33, 2);                       // the glassy high A
 pad(77, 3.3, 6.5, arc(3.3, 4.8, 5.3, 6.5), flat(0), -36, 2);
 for (const m of [50, 53, 57]) pad(m, 2.4, 6.6, arc(2.4, 5.2, 5.4, 6.6), (t) => 0.2 + 0.5 * seg(t, 2.4, 5.4), -22);
 
+}
 // ---- Eclipse (5.5–12)
-for (const m of [34, 46, 53, 62]) pad(m, 5.3, 8.7, arc(5.3, 6.6, 7.2, 8.45), flat(0.15), -22);   // B flat, breathing in
+if (!ONLY_TOTALITY) for (const m of [34, 46, 53, 62]) pad(m, 5.3, 8.7, arc(5.3, 6.6, 7.2, 8.45), flat(0.15), -22);   // B flat, breathing in
 for (const m of [38, 45, 50, 53, 57, 60, 64, 69]) {
     // totality: the ninth opens in half a second, and brightens to the cut
     pad(m, 8.35, 12.1, (t) => smooth(seg(t, 8.35, 8.95)) * (0.72 + 0.28 * seg(t, 10.6, 12)) * (1 - seg(t, 11.98, 12.06)), (t) => 0.35 + 0.6 * smooth(seg(t, 10.4, 12)), m < 50 ? -17 : -21);
@@ -82,6 +88,7 @@ bell(74, 8.42, -22, 0.4, 2.6);
 bell(81, 8.47, -26, 0.6, 2.2);
 
 // ---- Prism (12–18.5)
+if (!ONLY_TOTALITY) {
 for (const m of [41, 48, 57, 64]) pad(m, 12.3, 19.6, arc(12.3, 13.6, 18.2, 19.6), flat(0.3), -21);
 {
     // one glass note per step of the fan: low and left for the red end, high and right for the violet
@@ -110,6 +117,7 @@ for (const m of [45, 52, 55, 62]) pad(m, 20.9, 24.9, (t) => smooth(seg(t, 20.9, 
     bell(78, 26.84, -21, 0.6, 2.8);
     bell(81, 26.88, -23, 0.35, 2.6);
     bell(86, 28.0, -27, 0.7, 2.2);                 // the glint crossing it
+}
 }
 
 // ---- the room: a small Schroeder reverb on everything (four combs and two all-passes a side)
@@ -147,8 +155,8 @@ for (let i = 0; i < N; i++) {
     R[i] = (R[i] * 0.72 + wetR[i] * 0.5) * end;
     peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
 }
-const norm = db(-3) / peak;
-const out = process.argv[2] ?? path.join(path.dirname(fileURLToPath(import.meta.url)), 'out', 'music.wav');
+const norm = ONLY_TOTALITY ? 1 : db(-3) / peak;   // (the layer keeps the level it has inside the full score)
+const out = args[0] ?? path.join(path.dirname(fileURLToPath(import.meta.url)), 'out', 'music.wav');
 fs.mkdirSync(path.dirname(out), { recursive: true });
 const buf = Buffer.alloc(44 + N * 4);
 buf.write('RIFF', 0); buf.writeUInt32LE(36 + N * 4, 4); buf.write('WAVEfmt ', 8); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(2, 22);

@@ -299,3 +299,35 @@ too high), the prism was 7 dB under everything else, the slits did not grow.
 
 Not checked, and it matters: **nobody has listened to it.** Timbre, taste and whether the
 ticks are pleasant are for the user's ears.
+
+## Round 8 (user) · the generated score
+
+> Creo que ya deberías poder acceder a elevenlabs
+
+The file host is reachable now (the 403 on its bare root is the site's own answer to an
+unsigned request, not the proxy's). The signed links of round 7 had expired: fresh ones
+came from the flow's run status. All four takes are in `private/music/` (never committed).
+
+Chosen by measuring, not by ear (level per second, strongest pitch class and brightness
+per second, onsets at 50 ms):
+
+| take | shape | verdict |
+|---|---|---|
+| 1 | one slow build on a D drone to 21–23 s, gone by 27 s | no ending for the bulb |
+| 2 | D drone swelling at 3–7 s; brighter, moving harmony from 11.5 s (the arpeggio); a second section from 19 s peaking at 22–24.5 s; near-silence at 26–27 s; a chord struck at **27.00 s**, rung out by 30.5 s | **used** |
+| 3 | almost nothing until 11 s, G/B/F♯ colours | misses the limb and the eclipse |
+| 4 | one steady level from 3 to 26 s, then a fade | a bed with no shape |
+
+Take 2 is laid from second 0 **uncut**: its sections fall on the film's cuts by themselves
+(arpeggio with the prism at 12 s, the gathering section with the slits, its hush over the
+cold bulb and the switch, its closing chord on the title, which starts at 26.8 s). All four
+takes are in D throughout, so the one thing it lacks, an event at totality (it is fading
+at 8.4 s), is supplied by the synthesised D minor ninth of `music.mjs --totality`, from
+8.35 s to the cut at 12. Its closing chord, its quietest swell, is raised 5 dB (the step
+taken inside its own near-silence at 26.95 s). The synthesised sound design stays under it
+(ticks, switch, hum, the air into the cut). `mix-sound.sh` falls back to the fully
+synthesised score when the private take is absent.
+
+Measured: RMS per second −48 −32 −26 −19 −17 −16 | −18 −20 −18 −17 −19 −16 | −20 −17 −15
+−16 −18 −23 | −26 −25 −20 −17 −14 −15 | −18 −23 −28 **−14** −23 −29 −39; integrated
+−15.5 LUFS, peak −1.5 dBFS. **Still not listened to by anyone.**
