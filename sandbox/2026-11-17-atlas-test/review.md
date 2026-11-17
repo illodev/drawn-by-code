@@ -50,3 +50,10 @@ lettering; the gate moved to 1.75 s), and the camera eases out from 1.7× to 1.3
 nears the town, so it keeps moving where the frame's edge stops it. Found on the way: the
 camera clamp, with the view wider than its range, moved the whole plate 6 px (gate 7.2 →
 8.7); it now falls back to the centre.
+
+## Render
+
+`render/atlas-test.mp4` (12 s, 1920 × 1080, re-encoded `-crf 26`, no sound), `render/strip.jpg`
+(1.75, 4.5, 7, 11.5 s), `render/atlas-test.gif` (3–8.5 s, 480 × 270, 10 fps, 4.2 MB). Not yet in
+the README's gallery, the site's programme or the cover's carousel (twelve polaroids fill its
+six-second loop): those wait for the user's approval of the style.
