@@ -6,6 +6,10 @@ Motion.scene({
     fps: 24,
     duration: 37.5,
     logical: [1600, 900],
+    // the score is at 120 BPM: every cut is on a beat, and the serial sections' eight slices a
+    // second are its sixteenth notes
+    bpm: 120, beatOffset: 0,
+    audio: { mix: 'mix.wav' },
     uses: ['styles/micrograph/micrograph.js', DIR + 'virion.js', DIR + 'section.js', DIR + 'stain.js', DIR + 'budding.js', DIR + 'phage.js', DIR + 'mito.js', DIR + 'naegleria.js', DIR + 'dark.js'],
     fonts: [{ family: 'Poppins', src: 'fonts/Poppins-Bold-latin.woff2', descriptors: { weight: '700' } },
             { family: 'Lora', src: 'fonts/Lora-Medium-latin.woff2', descriptors: { weight: '500' } },

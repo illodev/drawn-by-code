@@ -35,7 +35,15 @@
   `mitochondrion · section NN/40 · 200 nm`, `virions · thin section · 200 nm`,
   `bacteriophage T4 on E. coli · 100 nm`, `virion · negative stain · 50 nm`,
   `budding · 100 nm`, `virions leaving a cell · 100 nm`.
-- **Music / rhythm:** none yet (`bpm` undeclared): silent.
+- **Music / rhythm:** 120 BPM in D minor (`bpm: 120`): a beat is half a second, so every
+  cut is on a beat and the serial sections' eight slices a second are sixteenth notes.
+  Score: a generated piece (ElevenLabs Music v2.5, take 3 of four, in `private/music/`,
+  never committed) laid uncut from second 0, with a synthesised ending over its fade
+  (`music.mjs --ending`); synthesised sound design on the picture's own times
+  (`sound-design.mjs`: the column's hum, the relay and air of every change of magnification,
+  a tick per slice, the phage's taps, ratchet and snap, the bud's pop). `sh mix-sound.sh` →
+  `mix.wav`; without the private take it falls back to the fully synthesised score. No
+  narrator.
 - **Must NOT happen:** anything that reads as drawn (outlines, flat fills, a spike as a
   stick with a ball, dots on a grid); colour carrying a shape; white specks; grain sliding
   over a particle; a glow.

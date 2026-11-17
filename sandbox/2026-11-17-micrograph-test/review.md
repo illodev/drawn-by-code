@@ -165,3 +165,47 @@ assumed: both first versions of the section-palette shots were diagrams, because
 membrane was drawn as a line wherever one exists. What shows is decided by the
 magnification, not by the anatomy.
 
+## User feedback, round 3 (verbatim)
+
+- «Vamos por la música»
+
+## Round 3 (auto): sound
+
+**The grid.** The picture already had a rhythm: cuts on half seconds and a new slice every
+eighth of a second in the serial sections. At 120 BPM those are beats and sixteenth notes,
+so the score was asked for at that tempo and `bpm: 120` is declared in the scene.
+
+**The score.** One prompt describing the film's arc second by second, four takes
+(ElevenLabs Music v2.5, 39 s each; the download host was checked before generating).
+Nobody listens here: they were chosen by measuring level per second, tempo and beat phase,
+a sixteenth-note pulse per shot, the strongest onsets against the cuts and events, pitch
+classes per shot and the last seconds.
+
+| Take | What it does | Verdict |
+|---|---|---|
+| 1 | on the grid, but one level (−17 to −14 dB) from second 0 to 32, then gone: no arc, silence under the title | no |
+| 2 | near silence for 12 s, then a hit every 4 s; drifts to C in the middle | no |
+| 3 | in D throughout, beats on the half seconds; grows as the first image forms (accents at 2.5–3.5 s, the wash), dips under the serial sections, a sixteenth pulse in the budding shot, onsets at 29.6 s (the pinch) and 31.5 s (the last cut); fades from 33 s | **used** |
+| 4 | silent to 5 s, quiet to 12 s, then one level to 36 s and a clean stop at 37 s | no (its ending was considered as a splice for take 3; not done: two takes may not sound like one piece, and nobody can check that here) |
+
+What take 3 lacks is the ending (the title comes at 35 s, in its fade): its tail is raised
+up to 7 dB from the last cut and a synthesised wide D minor with bells on the title
+(`music.mjs --ending`) is laid over it. `music.mjs` alone is the fallback score when the
+private take is not there.
+
+**The sound design** (`sound-design.mjs`) is synthesised from the shots' own constants: the
+column's hum up and down with the beam, a shimmer crossing with the wash, the contractile
+vacuole's two drops, a relay, a knock and air that rises or falls at each change of
+magnification, a tick per slice (the first measurement had them 20 dB under the score:
+raised and lengthened), the phage's four taps, the baseplate's knock, the sheath's ratchet
+and snap, the air falling as the head empties, the bud's low swell and its pop.
+
+**The mix** (`mix-sound.sh`): −15.9 LUFS integrated, LRA 5.7 LU, true peak −1.5 dBFS; no
+flat stretch on the waveform; every slice and every event shows as a rise in the mix. The
+picture was not rendered again: the sound was added to the existing video stream, so the
+automatic review of round 2 stands (its cuts are on the beat of the declared tempo).
+
+**Said plainly:** nobody has listened to this. The numbers say the levels, the timing and
+the key are right; they do not say whether the take is beautiful, whether the synthesised
+ending sits well on it, or whether the ticks and clicks are pleasant.
+
