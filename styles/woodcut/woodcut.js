@@ -153,7 +153,7 @@ const Woodcut = (() => {
                     const cx = x + r() * cell, cy = y + r() * cell, L = l0 + (l1 - l0) * r();
                     const a = o.dir(cx, cy), a2 = o.dir(cx + Math.cos(a) * L / 2, cy + Math.sin(a) * L / 2);
                     let da = a2 - a; da = Math.atan2(Math.sin(da), Math.cos(da));
-                    mark(cx, cy, a + da / 2, L, (o.bend ?? 0) + da * 0.5 + (r() - 0.5) * 0.08);
+                    mark(cx, cy, a + da / 2, L, (o.bend ?? 0) + clamp(da * 0.5, -(o.maxBend ?? 0.12), o.maxBend ?? 0.12) + (r() - 0.5) * 0.08);   // a gouge bends a little, never curls
                 }
             }
         } else {
@@ -292,7 +292,7 @@ const Woodcut = (() => {
         const keyC = mk(), ochC = mk(), out = mk();
         const kg = keyC.getContext('2d', { willReadFrequently: true }), og = ochC.getContext('2d', { willReadFrequently: true }), pg = out.getContext('2d');
         const reset = (g) => { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H); g.setTransform(k, 0, 0, k, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; };
-        const bases = new Map();
+        const bases = new Map(), planks = new Map();
 
         // fixed textures. The paper: a warm laid stock, a faint cloud, laid lines and a few
         // fibres. The ink: the roller's uneven film (low), its mottle (mid), the wood grain
@@ -361,10 +361,65 @@ const Woodcut = (() => {
                 kg.drawImage(bases.get(key), 0, 0);
                 kg.restore();
             },
+            // a plank larger than the frame (logical w × h), cut once and cached: a camera that
+            // pans across it pastes a window of it (view), so the cuts never re-run or rescale
+            plank(key, w, h, fn) {
+                if (!planks.has(key)) {
+                    const c = document.createElement('canvas');
+                    c.width = Math.ceil(w * k); c.height = Math.ceil(h * k);
+                    const pgk = c.getContext('2d');
+                    pgk.setTransform(k, 0, 0, k, 0, 0);
+                    const saved = blk.key;
+                    const sub = Object.create(blk);
+                    sub.key = pgk;
+                    sub.ink = (f) => { pgk.save(); pgk.globalCompositeOperation = 'source-over'; pgk.fillStyle = '#000'; pgk.strokeStyle = '#000'; f(pgk); pgk.restore(); };
+                    sub.cut = (f) => { pgk.save(); pgk.globalCompositeOperation = 'destination-out'; pgk.fillStyle = '#000'; pgk.strokeStyle = '#000'; f(pgk); pgk.restore(); };
+                    sub.hatch = (ho) => (ho.ink ? sub.ink : sub.cut)((g2) => hatch(g2, ho));
+                    fn(sub);
+                    planks.set(key, c);
+                    void saved;
+                }
+                return planks.get(key);
+            },
+            // paste a plank's window at logical offset (x, y) into the block (whole output px)
+            view(key, x, y) {
+                const c = planks.get(key);
+                if (!c) throw new Error('Woodcut: no plank ' + key);
+                kg.save();
+                kg.setTransform(1, 0, 0, 1, 0, 0);
+                kg.drawImage(c, -Math.round(x * k), -Math.round(y * k));
+                kg.restore();
+            },
             ink(fn) { kg.save(); kg.globalCompositeOperation = 'source-over'; kg.fillStyle = '#000'; kg.strokeStyle = '#000'; fn(kg); kg.restore(); },
             cut(fn) { kg.save(); kg.globalCompositeOperation = 'destination-out'; kg.fillStyle = '#000'; kg.strokeStyle = '#000'; fn(kg); kg.restore(); },
             hatch(ho) { (ho.ink ? blk.ink : blk.cut)((g) => hatch(g, ho)); },
             ochre(fn) { og.save(); og.globalCompositeOperation = 'source-over'; og.fillStyle = '#000'; og.strokeStyle = '#000'; fn(og); og.restore(); },
+            // the block itself, as it lies on the bench after a print (po.mode 'block'): the
+            // uncut surface wet with ink (a dull sheen), the carved wood pale with its grain and
+            // darker down the walls of each cut. Drawn like print (memoised by key).
+            printBlock(g, po = {}) {
+                if (po.key == null || po.key !== memo) {
+                    const KD = kg.getImageData(0, 0, W, H).data;
+                    const t2 = mk(), tg = t2.getContext('2d');
+                    tg.filter = `blur(${2.5 * S1}px)`; tg.drawImage(keyC, 0, 0);
+                    const BD = tg.getImageData(0, 0, W, H).data;
+                    const img = pg.createImageData(W, H), D = img.data;
+                    for (let i = 0; i < W * H; i++) {
+                        const q = i * 4, c = clamp((KD[q + 3] / 255 - 0.5 + 0.5 * (chip[i] - 0.5)) * 3 + 0.5), sh = BD[q + 3] / 255;
+                        const gr = 0.8 + 0.3 * wood[i] + 0.08 * (cloud[i] - 0.5);
+                        const wr = 198 * gr * (1 - 0.5 * sh), wg = 160 * gr * (1 - 0.52 * sh), wb = 112 * gr * (1 - 0.55 * sh);
+                        const sheen = 1 + 0.9 * Math.max(0, roller[i] - 0.55) + 0.25 * (mottle[i] - 0.5);
+                        const ir = 24 * sheen, ig = 22 * sheen, ib = 24 * sheen;
+                        D[q] = wr * (1 - c) + ir * c; D[q + 1] = wg * (1 - c) + ig * c; D[q + 2] = wb * (1 - c) + ib * c; D[q + 3] = 255;
+                    }
+                    pg.putImageData(img, 0, 0);
+                    memo = po.key;
+                }
+                g.save();
+                g.setTransform(1, 0, 0, 1, 0, 0);
+                g.drawImage(out, 0, 0);
+                g.restore();
+            },
             print(g, po = {}) {
                 if (po.key == null || po.key !== memo) {
                     const KD = kg.getImageData(0, 0, W, H).data, OD = og.getImageData(0, 0, W, H).data;

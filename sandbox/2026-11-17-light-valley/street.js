@@ -362,16 +362,18 @@
 
     // --- the shot ----------------------------------------------------------------------------
     // d: the drawing (12 a second). Everything lit by drawing d is carved and inked.
-    function draw(blk, d) {
+    // T retimes the lights for the film (drawing each comes on): { L1, …, L6, door, win(d) }
+    function draw(blk, d, T = {}) {
         blk.begin();
         blk.base('street-set', (b) => {
             b.ink((g) => g.fillRect(-10, -10, 1300, 740));
             sky(b); mountains(b); village(b); bridgeAndRiver(b); parapetAndStreet(b); streetHouses(b); bigHouse(b); poles(b);
         });
-        for (const w of WIN) if (d >= w[4]) windowOn(blk, w, d - w[4]);
-        for (const P of POOLS) { const on = P[4] === 'door' ? DOOR.d + 1 : LAMPS.find((l) => l.id === P[4]).d + 2; if (d >= on) poolOn(blk, P, d - on); }
-        for (const L of LAMPS) if (d >= L.d) lampOn(blk, L, d - L.d);
-        if (d >= DOOR.d) doorOn(blk, d - DOOR.d);
+        const on = (L) => T[L.id] ?? L.d, door = T.door ?? DOOR.d, win = T.win ?? ((x) => x);
+        for (const w of WIN) if (d >= win(w[4])) windowOn(blk, w, d - win(w[4]));
+        for (const P of POOLS) { const o = P[4] === 'door' ? door + 1 : on(LAMPS.find((l) => l.id === P[4])) + 2; if (d >= o) poolOn(blk, P, d - o); }
+        for (const L of LAMPS) if (d >= on(L)) lampOn(blk, L, d - on(L));
+        if (d >= door) doorOn(blk, d - door);
     }
 
     globalThis.Street = { draw, LAMPS, WIN, POOLS, DOOR, skyAt };

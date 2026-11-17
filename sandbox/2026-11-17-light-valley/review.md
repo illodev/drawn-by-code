@@ -84,6 +84,51 @@ reads as a printed animation without boiling the drawing. 48 ms a frame warm at 
 (skill **replicate**); measure tone softly and calibrate it in a loop; a pool of light is
 not a shape but more of the ground carved (skill **style-woodcut**).
 
+## Round 2 (auto) · the animatic of «Corriente» (75 s)
+
+The user approved the script (`brief.md`), the use of ElevenLabs for the score and the
+gouge, and the style test's colour median: «Let's go with it. Yes. Yes.»
+
+**Sound first.** Four takes of one score prompt (cello and low piano, 80 BPM, the film's
+arc described by second) and four of each effect (`private/sound/`, not committed). Take 3
+fitted the script uncut: silent until 15 s, a pulse that builds, its loudest stretch from
+43 s, a decay under the print. Its pulse is eighth notes at 79.92 BPM; trimming 0.34 s of
+its leading silence puts its bars on 15, 18, 21 s… and its strongest onsets on the switch
+(39 s) and the old woman's shot (51 s). From 39 s the cuts sit one frame late, on the
+score's own bars (its beat drifts 26–54 ms from a round 3 s grid). The silent opening is
+the river (synthesised noise, faded under the score's entry) and the gouge: one carving
+sound on each streak of the first shot, on the match, the lamp, the switch, every street
+lamp, her bulb, the title, and the sheet peeled off (`audio.json`). Effects normalised to
+a −3 dBFS peak, the takes with a clean onset chosen by measurement (no whistle band); the
+mix raised 6 dB under a limiter. Nobody has listened to it.
+
+**The film** is assembled by `scene.js` from one file per set in `film/` (the shared
+helpers in `film/lib.js`): the valley is a plank larger than the frame (`Woodcut.plank`,
+new in the kit) that the camera tilts across without re-cutting; the street is the style
+test retimed to the bars; the print is the last frame of the lit valley pressed twice, as
+paper and as the inked block (`printBlock`, new: carved wood pale with its grain, the uncut
+face wet with ink), the sheet peeled off with `Motion.quad`.
+
+What the first full pass showed, and what changed before showing it:
+- The ranges were haystacks (every cut of a flank one way, curling at the saddles): the
+  relief is now the skyline's fall line plus ridged noise for spurs, the faces turned to the
+  moon carved most, and a gouge bends but never curls (`maxBend`).
+- The river ran over the left mountain; the village was too small to read; the line of poles
+  was invisible at night (its grooves now 2 px, the wires 1.6).
+- At her window the old woman was black on black: the room behind her is now carved out from
+  the match and then the lamp, so she stands against the light.
+- The lit valley did not show the light: farms down the line with lit windows, larger lamps
+  in the village, the camera stopping where both the moon and the village are in frame, the
+  title in the dark of the sky.
+- In her room she was a speck: the shot is drawn 1.5× about her table; the bulb's light on the
+  wall is plaster carved and inked ochre, no longer a sunburst; the ochre block is cut away
+  round the oil flame, which stays paper white (the film's rule).
+
+**Still off (for the detail pass):** the people are blocky figures from a pose (fine for timing,
+not for the film: they need design references, as the workers in `ref/raising-pole.png`);
+hands are fists; the window wall is noisy; the insert of the hammer is unclear; the sheet's
+peel is a flat slab turning away, not paper curling.
+
 ## Open
 
 - The detail gate's colour median (9.4 for a limit of 8): accept it for this style with the

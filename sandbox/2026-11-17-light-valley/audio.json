@@ -1,0 +1,17 @@
+{
+  "music": "private/sound/score-3.mp3", "musicDb": -2, "musicFrom": 0.34, "duration": 75,
+  "sfxDir": "private/sound/fx",
+  "align": "onset",
+  "cues": [
+    ["river", 0, -4, "the river under the silent opening, fading as the score comes in"],
+    ["gouge-1", 0.0, -9, "the first cut"], ["gouge-3", 0.75, -10], ["gouge-4", 1.5, -10], ["gouge-1", 2.25, -10],
+    ["gouge-3", 3.0, -10], ["gouge-4", 3.75, -10], ["gouge-1", 4.5, -10, "the seventh streak and the moon"], ["gouge-3", 5.25, -11],
+    ["gouge-4", 12.75, -15, "the match"], ["gouge-3", 13.75, -12, "the oil lamp's flame"],
+    ["gouge-1", 39.792, -6, "the switch thrown: the first ochre"],
+    ["gouge-4", 42.792, -12, "street lamp 1"], ["gouge-4", 43.542, -12, "street lamp 2"], ["gouge-4", 44.292, -12, "street lamp 3"], ["gouge-4", 45.042, -12, "street lamp 4"],
+    ["gouge-1", 45.792, -8, "the near lamp"], ["gouge-3", 48.042, -8, "the door"],
+    ["gouge-1", 51.792, -8, "her bulb"],
+    ["gouge-4", 63.042, -12, "the title, carved"], ["gouge-4", 63.792, -13], ["gouge-4", 64.542, -13],
+    ["peel", 66.792, -6, "the sheet peeled off the block"]
+  ]
+}
