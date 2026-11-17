@@ -40,7 +40,12 @@ const Ad = (() => {
 
     // centripetal-ish Catmull-Rom through pts, sampled every ~step units
     function smooth(pts, step = 3) {
-        if (pts.length < 3) return pts.slice();
+        if (pts.length < 2) return pts.slice();
+        if (pts.length === 2) {
+            // a straight stroke still needs points along it, or its tapers meet in the middle
+            const [[x0, y0], [x1, y1]] = pts, n = Math.max(2, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / step));
+            return Array.from({ length: n + 1 }, (_, i) => [x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n]);
+        }
         const out = [];
         for (let i = 0; i < pts.length - 1; i++) {
             const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];

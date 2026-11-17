@@ -16,8 +16,8 @@ is the riso press with this print's inks).
 - `const press = Ad.press(env)` in `setup`; per frame `press.begin(d)`, draw on plates,
   `press.print(g, { key: d, zoom, origin })`. Plates: `orange`, `turquoise`, `black`, each `'solid'`
   or `'screen'`; only the alpha counts (`Ad.tone(v)`). A camera over the printed page passes
-  `zoom` and `origin` (output px of the page's (0, 0)): the dots grow and travel with the page
-  instead of boiling under it.
+  `zoom`, `origin` (output px of the page's (0, 0)) and `angle`: the dots grow, travel and turn
+  with the page instead of boiling under it.
 - `Ad.brush(g, pts, w, seed, o)`: a brush-ink stroke (smoothed, swelling, tapered ends).
   `Ad.starburst`, `Ad.boomerang`, `Ad.script` (Kaushan Script, slanted).
 - A reference image is used through its separation (the experiment's `tools/separate.py`):

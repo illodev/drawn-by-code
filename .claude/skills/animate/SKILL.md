@@ -68,6 +68,11 @@ A `Time | Shot | What happens` table in the brief. Rules that have already cost 
   decelerating.
 - **Every joke has to read** at normal speed and without explanation.
 - **Short climax** (2–3 s). Six seconds of climax is tiring.
+- **The camera has a language, not one move.** A slow eased push across every shot reads as
+  mechanical («the zooms and pans are also very regular», magazine-ad-test): mix hard cuts on
+  the beat, snaps that overshoot and settle on the accents, a whip pan with speed lines,
+  holds where the picture moves by itself, and a slow glide only now and then as contrast.
+  Pick each move for its moment (`track` in sandbox/2026-11-17-magazine-ad-test/scene.js).
 - **Stylize from reality:** before drawing a phenomenon or a gesture (steam, smoke, water,
   fire, cloth, a jump, a walk), look at a real reference (photo or video) and note the
   3–4 traits that make it recognizable. The style simplifies those traits, it doesn't

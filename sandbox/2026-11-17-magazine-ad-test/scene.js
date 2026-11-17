@@ -58,20 +58,75 @@ function drawPanel(press, name, moves = {}, inks) {
 
 // ---- the camera: (cx, cy) in reference pixels at the centre of the frame, z = 1 shows the
 // whole panel; it never shows past the panel's edges
-function camera(press, cx, cy, z) {
-    const hw = REF[0] / 2 / z, hh = REF[1] / 2 / z;
+function camera(press, cx, cy, z, r = 0) {
+    // a turned frame needs a little more zoom to stay inside the page
+    const c = Math.cos(Math.abs(r)), sn = Math.sin(Math.abs(r));
+    z = Math.max(z, (640 * c + 360 * sn) / 640, (640 * sn + 360 * c) / 360);
+    const hw = (640 * c + 360 * sn) / z, hh = (640 * sn + 360 * c) / z;
     cx = Math.min(REF[0] - hw, Math.max(hw, cx));
     cy = Math.min(REF[1] - hh, Math.max(hh, cy));
+    const s = 1.25 * z;
     press.each((p) => {
         p.translate(800, 450);
-        p.scale(1.25 * z, 1.25 * z);
+        p.rotate(r);
+        p.scale(s, s);
         p.translate(-cx, -cy);
     });
-    // where the page's origin lands on the frame (logical units): the screen hangs from it
-    CAM.origin = [800 - 1.25 * z * cx, 450 - 1.25 * z * cy];
+    // where the page's origin lands on the frame (logical units) and how the page is turned:
+    // the screen hangs from it
+    CAM.origin = [800 + s * (Math.cos(r) * -cx - Math.sin(r) * -cy), 450 + s * (Math.sin(r) * -cx + Math.cos(r) * -cy)];
     CAM.zoom = z;
+    CAM.angle = r;
 }
-const CAM = { origin: [0, 0], zoom: 1 };
+const CAM = { origin: [0, 0], zoom: 1, angle: 0 };
+let WHIP = null;
+// A camera track: keys { t, c: [cx, cy], z, r, ease, dur } in order. Each key is reached from
+// the state before it by its own kind of move, so the camera has a language, not one glide:
+//   cut   — on the frame, no move (a hard cut on the beat)
+//   snap  — a fast push that overshoots and settles (outBack), 0.15–0.3 s
+//   whip  — a fast pan with speed lines (see speedLines), 0.2–0.3 s
+//   glide — a slow ease, used once in a while as a contrast
+function track(t, keys) {
+    let st = { c: keys[0].c, z: keys[0].z, r: keys[0].r ?? 0 }, moving = null;
+    for (const k of keys.slice(1)) {
+        if (t < k.t) break;
+        const dur = k.ease === 'cut' ? 0 : k.dur ?? 0.25, x = dur ? clamp((t - k.t) / dur) : 1;
+        const e = k.ease === 'snap' ? outBack(x) : k.ease === 'cut' ? 1 : inOut(x);
+        const to = { c: k.c, z: k.z, r: k.r ?? 0 };
+        if (x < 1 && k.ease === 'whip') moving = { from: st.c, to: k.c, x };
+        st = { c: [lerp(st.c[0], to.c[0], e), lerp(st.c[1], to.c[1], e)], z: lerp(st.z, to.z, e), r: lerp(st.r, to.r, e) };
+    }
+    return { ...st, whip: moving };
+}
+// speed lines across the frame while the camera whips (frame space, drawn last): long thin
+// tapered strokes in black, wider streaks on the turquoise screen, along the move
+function speedLines(press, whip, envk) {
+    if (!whip) return;
+    const dx = whip.to[0] - whip.from[0], dy = whip.to[1] - whip.from[1], a = Math.atan2(dy, dx), amt = Math.sin(whip.x * Math.PI);
+    press.save();
+    press.each((p) => p.setTransform(envk, 0, 0, envk, 0, 0));
+    const K = press.plate('black'), QS = press.plate('turquoise', 'screen'), r = Motion.rng('sl' + Math.round(whip.x * 10));
+    for (let i = 0; i < 34; i++) {
+        const y = r() * 900, x = r() * 1600, L = (300 + r() * 700) * amt, w = 4 + r() * 7;
+        const p0 = [x - Math.cos(a) * L / 2, y - Math.sin(a) * L / 2], p1 = [x + Math.cos(a) * L / 2, y + Math.sin(a) * L / 2];
+        if (i % 3 === 0) { QS.fillStyle = Ad.tone(0.75); Ad.brush(QS, [p0, p1], w * 5, 'qs' + i, { taper: [0.4, 0.4] }); }
+        else { K.fillStyle = Ad.tone(1); Ad.brush(K, [p0, p1], w, 'k' + i, { taper: [0.5, 0.5] }); }
+    }
+    press.restore();
+}
+const CAMKEYS = {
+    s3: [{ t: 6, c: [215, 330], z: 2.0 }, { t: 7.25, c: [226, 318], z: 3.1, r: -0.03, ease: 'snap', dur: 0.25 }, { t: 8.25, c: [232, 296], z: 3.25, r: -0.02, ease: 'glide', dur: 0.75 }],
+    s4: [{ t: 9, c: [232, 296], z: 3.25, r: -0.02 }, { t: 9, c: [700, 300], z: 1.35, ease: 'whip', dur: 0.25 }, { t: 12, c: [1000, 335], z: 1.75, r: 0.015, ease: 'snap', dur: 0.25 }],
+    s5: [{ t: 13, c: [1090, 350], z: 2.2 }, { t: 13.5, c: [1100, 330], z: 2.75, r: 0.02, ease: 'snap', dur: 0.2 }, { t: 14.5, c: [1112, 336], z: 2.85, r: 0.02, ease: 'glide', dur: 0.5 }, { t: 15, c: [1150, 345], z: 3.9, r: 0, ease: 'cut' }],
+    s6: [{ t: 16, c: [150, 455], z: 2.3 }, { t: 16.75, c: [212, 445], z: 2.4, ease: 'snap', dur: 0.25 }, { t: 18, c: [150, 425], z: 4.2, r: -0.05, ease: 'snap', dur: 0.15 }],
+    s7: [{ t: 19.5, c: [640, 360], z: 1 }, { t: 21, c: [990, 205], z: 1.8, r: 0.02, ease: 'snap', dur: 0.25 }],
+    s8: [{ t: 23, c: [640, 360], z: 1 }, { t: 27.5, c: [1045, 560], z: 2.1, r: 0.04, ease: 'snap', dur: 0.2 }],
+};
+function cam(press, t, keys) {
+    const k = track(t, keys);
+    camera(press, k.c[0], k.c[1], k.z, k.r);
+    return k;
+}
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const seg = (t, a, b) => clamp((t - a) / (b - a));
 const inOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
@@ -284,15 +339,15 @@ function freshOn(press, t, a, b) {
     return { clip: (g) => { const x = lerp(60, 560, k); g.moveTo(0, 0); g.lineTo(x + 60, 0); g.lineTo(x - 40, 260); g.lineTo(0, 260); g.closePath(); } };
 }
 function shot2(press, t) {
-    camera(press, 640, 360, 1 + 0.03 * seg(t, 3, 6));
+    // held wide; the camera jolts with «Fresh!» on the beats
     const beat = Math.floor(t * 2) / 2, flash = hop(t, beat, 0.25) * (t >= 4.5 ? 1 : 0);
+    camera(press, 640, 360, 1 + 0.025 * flash);
     const on = freshOn(press, t, 3.0, 4.0);
     pageA(press, t, { fresh: on ?? { s: 1 + 0.06 * flash } });
     return {};
 }
 function shot3(press, t) {
-    const k = inOut(seg(t, 6, 8.5)), z = lerp(1.03, 3.0, k);
-    camera(press, lerp(640, 214, k), lerp(360, 300, k), z);
+    cam(press, t, CAMKEYS.s3);
     pageA(press, t);
     nightWindows(press, [t >= 7.0, t >= 7.5, t >= 8.0]);
     lampFlicker(press, (t > 6.6 && t < 6.75) || (t > 7.15 && t < 7.25) || (t > 8.4 && t < 8.5));
@@ -300,11 +355,10 @@ function shot3(press, t) {
     return {};
 }
 function shot4(press, t) {
-    // back out to Joe; his label is pinned on; then the camera drifts to the oven
-    const k = inOut(seg(t, 9, 9.6)), d = inOut(seg(t, 11.5, 13));
-    const z = lerp(3.0, 1.3, k) + lerp(0, 0.35, d);
-    camera(press, lerp(lerp(214, 700, k), 1000, d), lerp(lerp(300, 300, k), 340, d), z);
+    // a whip pan from the window to Joe; his label is pinned on; a snap to the oven
+    const k = cam(press, t, CAMKEYS.s4);
     pageA(press, t);
+    WHIP = k.whip;
     nightWindows(press, [1, 1, 1]);
     skyStars(press, 99, 0);
     tag(press, 845, 92, [{ text: 'Joe', font: "40px 'Kaushan Script'", h: 40 }, { text: 'UP SINCE 4 A.M.', font: "15px 'Anton'", h: 20, spacing: '2px', base: 4 }], outBack(seg(t, 10.0, 10.3)), 0.07, 'tagjoe');
@@ -326,8 +380,7 @@ function crust(press, t) {
     }
 }
 function shot5(press, t) {
-    const z = lerp(1.65, 2.9, inOut(seg(t, 13, 16)));
-    camera(press, lerp(1000, 1110, inOut(seg(t, 13, 14))), lerp(340, 360, seg(t, 13, 14)), z);
+    cam(press, t, CAMKEYS.s5);
     pageA(press, t);
     nightWindows(press, [1, 1, 1]);
     crust(press, t);
@@ -344,9 +397,9 @@ function shot5(press, t) {
     return {};
 }
 function shot6(press, t) {
-    // the cat, held as printed; the camera leans in on the beats; its label is pinned on
-    const b = Math.floor(t * 2) / 2, z = 2.75 + 0.06 * inOut(seg(t, 16, 19)) + 0.025 * hop(t, b, 0.25);
-    camera(press, 120, 470, z);
+    // the cat, held as printed, off centre; a snap to take in its label; a dramatic push on
+    // its eyes with the «!»
+    cam(press, t, CAMKEYS.s6);
     pageA(press, t);
     nightWindows(press, [1, 1, 1]);
     skyStars(press, 99, 0);
@@ -370,12 +423,12 @@ function shot7(press, t) {
     if (wipe < 1) {
         // C-a (as shot 6 left it) to the right of the boomerang's sweep, C-b behind it
         const x = lerp(-800, 1700, inOut(wipe));
-        press.save(); press.clip((g) => g.rect(x, 0, 1700 - x, 900)); press.save(); camera(press, 120, 470, 2.81); pageA(press, t); press.restore(); press.restore();
+        press.save(); press.clip((g) => g.rect(x, 0, 1700 - x, 900)); press.save(); cam(press, 18.99, CAMKEYS.s6); pageA(press, t); press.restore(); press.restore();
         press.save(); press.clip((g) => g.rect(-100, 0, x + 100, 900)); press.save(); camera(press, 640, 360, 1); drawPanel(press, 'C-b'); press.restore(); press.restore();
         boomerangWipe(press, x);
         return {};
     }
-    camera(press, 640, 360, 1 + 0.035 * seg(t, 19.5, 23));
+    cam(press, t, CAMKEYS.s7);
     drawPanel(press, 'C-b', { sb_tl: sparkle(t, 0), sb_or: sparkle(t, 1) });
     ovenGlow(press, t, OVEN_B_GLOW);
     steam(press, t, OVEN_B, [1080, 1160], 360, 80);
@@ -459,7 +512,7 @@ function endCard(press, t, inks) {
     }
 }
 function shot8(press, t) {
-    camera(press, 640, 360, 1 + 0.03 * hop(t, 27.5, 0.25));
+    cam(press, t, CAMKEYS.s8);
     endCard(press, t);
     return {};
 }
@@ -495,11 +548,12 @@ Motion.scene({
         const i = SHOTS.findIndex(([a, b]) => t >= a && t < b), idx = i < 0 ? SHOTS.length - 1 : i;
         press.begin(d);
         press.save();
-        CAM.origin = [0, 0]; CAM.zoom = 1;
+        CAM.origin = [0, 0]; CAM.zoom = 1; CAM.angle = 0; WHIP = null;
         const o = [shot1, shot2, shot3, shot4, shot5, shot6, shot7, shot8, shot9][idx](press, t) ?? {};
         press.restore();
+        speedLines(press, WHIP, env.k);
         // the screen is the page's: it scales and travels with the camera (the last camera set)
-        press.print(g, { key: d, register: o.register, zoom: CAM.zoom, origin: CAM.origin.map((v) => v * env.k) });
+        press.print(g, { key: d, register: o.register, zoom: CAM.zoom, origin: CAM.origin.map((v) => v * env.k), angle: CAM.angle });
         // animatic label (not part of the print)
         g.save();
         g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(10, 10, 330, 34);

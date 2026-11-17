@@ -8,7 +8,7 @@
 //   const g = press.plate('pink')                  a flat (solid) plate, logical units
 //   const s = press.plate('blue', 'screen')        a halftone plate (tones become dots)
 //   g.fillStyle = Riso.tone(0.6) …                 draw density: 0 no ink, 1 full ink
-//   press.print(g, { key, register, inks, zoom, origin })  prints onto g; key = memo
+//   press.print(g, { key, register, inks, zoom, origin, angle })  prints onto g; key = memo
 //                                                  (the drawing index); register: per-ink
 //                                                  offsets in output px; inks: re-ink the
 //                                                  plates ({ pink: 'blue' } → a colourway)
@@ -139,7 +139,8 @@ const Riso = (() => {
                     for (const ink of ORDER) {
                         const S = ctxs[ink + 'solid'].getImageData(0, 0, W, H).data;
                         const T = ctxs[ink + 'screen'].getImageData(0, 0, W, H).data;
-                        const I = INKS[inkOf(ink)], [ir, ig, ib] = I.rgb, ca = Math.cos(INKS[ink].angle), sa = Math.sin(INKS[ink].angle);
+                        const rot = po.angle ?? 0; // a camera turned over the page turns the screens with it
+                        const I = INKS[inkOf(ink)], [ir, ig, ib] = I.rgb, ca = Math.cos(INKS[ink].angle + rot), sa = Math.sin(INKS[ink].angle + rot);
                         const zoom = po.zoom ?? 1; // a camera moving in on the printed page: the dots grow with it
                         const [ox, oy] = (reg[ink] ?? [0, 0]).map((v) => Math.round(v * S1 * zoom));
                         const ip = I.pitch * pitch * zoom, io = ORDER.indexOf(ink) * 7919;

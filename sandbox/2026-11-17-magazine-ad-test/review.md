@@ -108,3 +108,26 @@ poses redrawn in code). Animatic v2:
   end card ink paw prints walk in from the left edge to the loaf before the bite.
 - A tag measured its width before setting the letter-spacing of its second line, and the
   text ran over its border: measure with the spacing the line is set in.
+
+## Round 4 (user) · «The zooms and pans are also very regular»
+
+> The zooms and pans are also very regular.
+
+Every shot had the same move: one eased push from start to end. The camera now has a
+language (`track`, `CAMKEYS`), and each move is chosen for its moment:
+
+- **cut** on the beat to a new framing (the window, the loaves, the crust's detail, the cat);
+- **snap**: a fast push that overshoots and settles (0.15–0.3 s), for accents: the last lit
+  house, the banner landing, the label coming into frame, the cat's dramatic close-up with
+  the «!», the price badge, the bitten loaf;
+- **whip**: a fast pan with speed lines, from the window to Joe;
+- **hold**: still frames where the page moves by itself (the wake-up, Joe's label, the end
+  card), with small jolts on «Fresh!»'s beats;
+- **glide**: a slow ease twice, as contrast.
+
+A turned frame (a few hundredths of a radian on the snaps) turns the halftone screens with it
+(`Riso.press` prints with `angle`).
+
+- `Ad.brush` with two points drew a hairline: both tapers met at the only two vertices. A
+  straight stroke is resampled along its length (the speed lines and the arrowheads were
+  invisible).
