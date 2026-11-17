@@ -9,7 +9,7 @@
         D.group('ex.notes', { overlap: 0.06 }).med().text('NOTES', nx, 88, 6.4, { track: 0.24 }).line(nx, 92, nx + 42, 92);
         const beat = Math.round(B.lengthOf(B.BEAT) / B.VG);
         ['1.  ALL DIMENSIONS IN METRES. LEVELS FROM THE BANKING HALL FLOOR.', '2.  STRONG ROOM UNDER TELLERS; ITS DOOR OPENS TO THE LOBBY. SEE B–B AND DETAIL C.',
-            '3.  CAMERAS PAN BETWEEN THE LIMITS DRAWN, AT THE REACH DRAWN.', `4.  ONE GUARD AT NIGHT. HE WALKS HIS BEAT ONCE IN ${beat} s.`, '5.  DUCT RISER FROM LOBBY TO ROOF, 900 x 900 CLEAR.']
+            '3.  CAMERAS PAN BETWEEN THE LIMITS DRAWN, AT THE REACH DRAWN.', `4.  ONE GUARD AT NIGHT. HE WALKS HIS BEAT ONCE IN ${beat} s.`, '5.  DUCT RISER FROM LOBBY TO ROOF, 900 x 900 CLEAR. CAT LADDER ON THE WEST PARAPET.']
             .forEach((s, i) => D.fine().text(s, nx, 108 + i * 12.5, 4.1, { track: 0.14 }));
         // --- legend ----------------------------------------------------------------------------
         const ly = 196;
@@ -38,23 +38,24 @@
         D.poly([cx + 0.2 * k, cy + 0.3 * k, cx + 1.22 * k, cy + 1.12 * k, cx + 1.62 * k, cy + 1.12 * k]).text('HAND WHEEL', cx + 1.24 * k, cy + 1.08 * k, 4.2);
         Blueprint.title(D.group('ex.detailTitle'), cx, cy + 1.96 * k, 'DETAIL C · STRONG ROOM DOOR', 'SCALE 1:25', { cap: 6.6 });
         // --- revisions and the title block -----------------------------------------------------------
-        const x0 = 1262, x1 = 1562, r0 = 688;
-        D.group('tb.frame', { overlap: 0.3 }).bold().rect(x0, 748, x1 - x0, 120).med();
-        for (const y of [778, 798, 822, 846]) D.line(x0, y, x1, y);
-        D.line(x0 + 150, 798, x0 + 150, 846);
+        const x0 = 1262, x1 = 1562, r0 = 1090, b0 = 1150; // the revision table, the title block under it
+        D.group('tb.frame', { overlap: 0.3 }).bold().rect(x0, b0, x1 - x0, 120).med();
+        for (const y of [30, 50, 74, 98]) D.line(x0, b0 + y, x1, b0 + y);
+        D.line(x0 + 150, b0 + 50, x0 + 150, b0 + 98);
         D.med().rect(x0, r0, x1 - x0, 48).line(x0, r0 + 16, x1, r0 + 16).line(x0, r0 + 32, x1, r0 + 32).line(x0 + 34, r0, x0 + 34, r0 + 48).line(x1 - 78, r0, x1 - 78, r0 + 48);
         D.group('tb.text', { overlap: 0.08 }).med();
-        D.text('FIRST MERIDIAN BANK', (x0 + x1) / 2, 769, 9.4, { align: 'center', track: 0.16 });
-        D.text('GROUND FLOOR PLAN AND SECTION', (x0 + x1) / 2, 791.5, 5, { align: 'center', track: 0.18 });
-        D.fine().text('DRG NO.', x0 + 9, 813.5, 4.2).med().text('0412', x0 + 52, 814, 6.4).fine().text('REV.', x0 + 159, 813.5, 4.2);
-        D.fine().text('SCALE', x0 + 9, 837.5, 4.2).med().text('1:100', x0 + 52, 838, 5.6).fine().text('DATE', x0 + 159, 837.5, 4.2).med().text('17 NOV 2026', x0 + 196, 838, 5.6);
-        D.med().text('ILLODEV x CLAUDE', (x0 + x1) / 2, 860.5, 5.6, { align: 'center', track: 0.24 });
+        D.text('FIRST MERIDIAN BANK', (x0 + x1) / 2, b0 + 21, 9.4, { align: 'center', track: 0.16 });
+        D.text('PLANS, SECTION AND AXONOMETRIC', (x0 + x1) / 2, b0 + 43.5, 5, { align: 'center', track: 0.18 });
+        D.fine().text('DRG NO.', x0 + 9, b0 + 65.5, 4.2).med().text('0412', x0 + 52, b0 + 66, 6.4).fine().text('REV.', x0 + 159, b0 + 65.5, 4.2);
+        D.fine().text('SCALE', x0 + 9, b0 + 89.5, 4.2).med().text('1:100', x0 + 52, b0 + 90, 5.6).fine().text('DATE', x0 + 159, b0 + 89.5, 4.2).med().text('17 NOV 2026', x0 + 196, b0 + 90, 5.6);
+        D.med().text('ILLODEV x CLAUDE', (x0 + x1) / 2, b0 + 112.5, 5.6, { align: 'center', track: 0.24 });
         D.fine().text('REV', x0 + 17, r0 + 11.5, 3.8, { align: 'center' }).text('DESCRIPTION', x0 + 42, r0 + 11.5, 3.8).text('DATE', x1 - 70, r0 + 11.5, 3.8);
         D.text('A', x0 + 17, r0 + 27.5, 4.4, { align: 'center' }).text('FIRST ISSUE', x0 + 42, r0 + 27.5, 4).text('03 NOV 2026', x1 - 70, r0 + 27.5, 4);
-        D.group('tb.revA').med().text('A', x0 + 196, 814, 6.4);
+        D.group('tb.revA').med().text('A', x0 + 196, b0 + 66, 6.4);
         // rev. B: lettered at the end
         D.group('tb.revB', { overlap: 0.1 }).fine().text('B', x0 + 17, r0 + 43.5, 4.4, { align: 'center' }).text("GUARD'S BEAT CHANGED", x0 + 42, r0 + 43.5, 4).text('17 NOV 2026', x1 - 70, r0 + 43.5, 4);
-        D.group('tb.revCell', { overlap: 0.3 }).med().line(x0 + 193, 811, x0 + 205, 811).text('B', x0 + 212, 814, 6.4);
-        Film.TICK = [x0 + 96, 812];
+        D.group('tb.revCell', { overlap: 0.3 }).med().line(x0 + 193, b0 + 63, x0 + 205, b0 + 63).text('B', x0 + 212, b0 + 66, 6.4);
+        Film.TICK = [x0 + 96, b0 + 64];
+        Film.BLOCK = [x0, r0, x1 - x0, b0 + 120 - r0];
     };
 })();

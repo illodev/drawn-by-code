@@ -1,7 +1,7 @@
 # the-plan
 
 - **Style:** blueprint (approved on its style test, `sandbox/2026-11-17-blueprint-test/`)
-- **Format:** 16:9 · 70 s · 24 fps
+- **Format:** 16:9 · 56 s · 24 fps (first cut: 72 s, one camera, no cuts)
 - **Purpose / audience:** the first film in the blueprint style. The user left the subject
   to us («Invent a script yourself, I like it»); to the first proposal (a ray of light
   followed from a lighthouse to a ship, `sandbox/2026-11-17-focal-plane/`) they answered:
@@ -47,22 +47,23 @@
 
 ## Shot list
 
-One sheet (the plan above, section B–B under it on the same x, detail C, notes, legend and
-title block to the right), one camera, no cuts. 72 s. Every time below comes from `bank.js`
-(the model, the guard, the cameras, the marks) and `WHEN` / `CAM` in `scene.js`; the clock on
-the sheet starts at 26 s and runs in real time (02:14:00 → 02:14:43).
+Second cut, after the user's round 3 («more rhythm, more changes of shot, more levels; it is
+a bit slow»): 56 s, 38 shots cut on the half second (120 BPM), close and wide framings of one
+sheet that now holds six drawings: roof plan, ground floor plan, basement plan, section B–B,
+an axonometric of the three levels pulled apart, and detail C. The exact edit is `EDIT` in
+`scene.js`; the clock on the sheet reads 02:14:00 at 20 s and runs in real time.
 
-| Time | Shot | What happens |
+| Time | Shots | What happens |
 |---|---|---|
-| 0–8 | The building | Close on blank cloth: the column grid, then the bank's ground floor drafts itself: walls in poché, doors with their swings, the tellers' counter, the stair, the lift, a small crossed square lettered DUCT, the note STRONG ROOM BELOW, SEE SECTION B–B. The camera widens to the whole plan. |
-| 8–15 | The night runs | The clock's box, three cameras and the guard's beat are drafted and start to move: sectors sweep the hall, the guard's mark walks the dotted round. |
-| 15–26 | The plan | The camera goes in on the west half. The red pencil rings the side door, IN, and draws the route leg by leg: up the blind aisle, WAIT, across the counter front in the 5 s CAM 2 looks away, into the store, WAIT 12 s, then NOW along the counter to the stair, ringed. The camera widens for that last leg; three numbered marks are set at the door. |
-| 26–38 | It works | The clock starts. The marks slip in as the guard turns his corner two metres away, wait in the blind corner with CAM 2's sector standing right beside them, cross when it swings off, and the sector's edge comes back to the store's door as the third goes through it. |
-| 38–46 | The building changes a line | The guard stops and turns. In white, his beat is redrawn across the hall and into the store, with its triangle: △B BEAT CHANGED; the old round fades. The pencil strikes the route to the stair, twice, and writes: ? |
-| 46–55 | Out of the plan | The pencil rings DUCT: DOWN. Projection lines drop from the plan and the camera goes down them while section B–B is set out: slabs, the hall's north wall with its doors and counter, the basement lobby, the riser as hidden lines with its cowl on the roof. The marks go down it dashed (they are behind the wall we look at), come out of the grille and drop to the lobby floor, while above the guard's mark reaches the store's door and goes in. |
-| 55–62 | Detail C | A ring and a bubble round the strong room's door send the camera across the sheet to detail C, the same door at 1:25, the three marks beside it at that scale. The hand wheel turns, eight bolts draw back, the leaf swings on its hinge; through the opening the wall of boxes is drafted row by row. The pencil rings one: 0412. |
-| 62–66 | Out | Back at the section, a red line runs from the box along the lobby, up the riser and out of the cowl: OUT. The marks follow it and leave the top of the drawing. |
-| 66–72 | The sheet | The camera pulls back to the whole sheet. Revision B is lettered in the table and in the title block; the pencil ticks DRG NO. 0412; the clock stops. Hold. |
+| 0–8.5 | Grid · Stair · Ground floor · Roof · Basement · Three levels | The building is drafted in close shots, then level by level: the ground floor, the roof (lantern light, cowl, cat ladder), the basement (plant, lobby, strong room), and the three come apart in the axonometric. |
+| 8.5–12 | Camera · Guard · The night runs | A camera's sector starts to sweep, the guard's mark is followed along his round, and the whole floor is seen running. |
+| 12–20.5 | In · Aisle · Four seconds · Store · The plan · Clock | The red pencil, a note a shot: the ring round the side door, the blind aisle, WAIT, the 4 s gap, WAIT 12 s in the store, then wide for the last leg to the stair and the three marks set at the door. The clock turns 02:14:00. |
+| 20.5–31.5 | They are in · West · Blind corner · Clock · Crossing · The door · Safe | The marks slip in as the guard turns his corner, wait with CAM 2's sector standing beside them, are followed along the counter in the gap, and the sector's edge comes back to the store's door as the third goes through. |
+| 31.5–36.5 | He stops · Revision B · Struck out · Duct | The guard stops and turns; his beat is redrawn in white, △B BEAT CHANGED; the pencil strikes the route out and writes ?; then it rings the riser: DOWN. |
+| 36.5–43 | Down · Section · Lobby · The empty store | In the axonometric the red line drops from the ground floor to the basement. In section the marks go down the riser dashed; on the basement plan they cross the lobby; above, the guard's mark walks into the empty store. |
+| 43–48 | The wheel · A bolt · It opens · 0412 | Detail C: the hand wheel turns, a bolt draws back in a macro shot, the leaf swings, the wall of boxes is drafted through the opening; the pencil rings one: 0412. |
+| 48–53 | Back · Up · Out | On the basement plan the line runs back to the riser; in the axonometric it climbs through all three levels; on the roof plan the marks cross to the cat ladder: OUT. |
+| 53–56 | Revision | The title block: revision B is lettered, the pencil ticks DRG NO. 0412, the clock has stopped. Hold. |
 
 The last beat is the film's small secret for whoever looks twice: the box they emptied has
 the number of this drawing. What they came for was the plan.
@@ -73,7 +74,9 @@ the number of this drawing. What they came for was the plan.
   second (`guardAt`, `camAngle`, `markAt`). `tools/check-plan.mjs` walks every frame and fails
   if a camera's sector ever holds a mark or the guard has one in front of him: the plan is
   true, with 2.3° to spare at the store's door.
-- `plan.js`, `defences.js`, `section.js`, `extras.js`: the white drawing (one display list);
+- `plan.js`, `defences.js`, `section.js`, `levels.js` (basement, roof, the axonometric's ties),
+  `extras.js`: the white drawings, one display list each, laid on the sheet by a translation
+  (and the three plans stacked in the axonometric by one matrix each);
   what moves by itself (sectors, the guard, the clock, the door's wheel, bolts and leaf) is
   drawn every frame on the same ink layer.
 - `pencil.js`: the red drawing, a second display list on the kit's pencil layer; the marks

@@ -15,11 +15,11 @@ const hidden = (ax, ay, bx, by) => {
 let bad = 0, closest = { cam: Infinity, guard: Infinity };
 const seen = new Map(); // who sees which mark → [first, last, where]
 const note = (who, i, t, m) => { bad++; const k = `${who} sees mark ${i + 1}`, e = seen.get(k); if (e) e[1] = t; else seen.set(k, [t, t, `${m.x.toFixed(1)}, ${m.y.toFixed(1)}`]); };
-for (let f = 0; f <= 72 * 24; f++) {
+for (let f = 0; f <= 56 * 24; f++) {
     const t = f / 24, g = guardAt(t);
     for (let i = 0; i < 3; i++) {
         const m = markAt(i, t);
-        if (t < L[i].a.t0 || m.in === 'gone' || m.in === 'section' || m.riser) continue; // not in yet; below; inside the riser
+        if (t < L[i].a.t0 || (m.at !== 'ground' && m.at !== 'store')) continue; // not in yet; in the riser, below, on the roof, gone
         for (const c of CAMS) {
             if (camSees(c, t, m.x, m.y) && !hidden(c.x, c.y, m.x, m.y)) note(c.name, i, t, m);
             const dx = m.x - c.x, dy = m.y - c.y;
@@ -35,10 +35,11 @@ for (const [k, [a, b, w]] of seen) console.log(`${k} from ${a.toFixed(2)} to ${b
 console.log(bad ? `${bad} frames with a sighting: the plan is not true.` : 'No sightings: the plan is true.');
 console.log(`closest a mark comes to a sector's edge: ${closest.cam.toFixed(1)}°; to the edge of the guard's view: ${closest.guard.toFixed(1)}°`);
 const c2 = CAMS[1];
-for (const t of [26, 30.3, 31.5, 33, 35.4, 37.6, 38]) console.log(`CAM 2 at ${t}: ${camAngle(c2, t).toFixed(1)}° (edges ${(camAngle(c2, t) - 13).toFixed(1)} … ${(camAngle(c2, t) + 13).toFixed(1)})`);
+for (const t of [20, 24, 25, 26.2, 28, 30, 30.5]) console.log(`CAM 2 at ${t}: ${camAngle(c2, t).toFixed(1)}° (edges ${(camAngle(c2, t) - 13).toFixed(1)} … ${(camAngle(c2, t) + 13).toFixed(1)})`);
+const f2 = (v) => v.toFixed(2);
 L.forEach((l, i) => {
     const door = l.b.t0 + Bank.lengthOf(l.b.pts.slice(0, 4)) / l.b.v;
-    console.log(`mark ${i + 1}: in ${l.a.t0.toFixed(2)}, at the corner ${(l.a.t0 + Bank.lengthOf(l.a.pts) / l.a.v).toFixed(2)}, crosses ${l.b.t0.toFixed(2)}, through the store's door ${door.toFixed(2)}, to the riser ${l.tDuct.toFixed(2)}, in it ${l.tAtDuct.toFixed(2)}, out of the grille ${l.tGrille.toFixed(2)}, on the floor ${l.tFloor.toFixed(2)}, at the door ${l.tStand.toFixed(2)}, away ${l.tAway.toFixed(2)}, at the riser ${l.tBack.toFixed(2)}, off the top ${l.tTop.toFixed(2)}`);
+    console.log(`mark ${i + 1}: in ${f2(l.a.t0)}, at the corner ${f2(l.a.t0 + Bank.lengthOf(l.a.pts) / l.a.v)}, crosses ${f2(l.b.t0)}, through the store's door ${f2(door)}, to the riser ${f2(l.tDuct)}, in it ${f2(l.tAtDuct)}, out of the grille ${f2(l.tGrille)}, on the floor ${f2(l.tFloor)}, at the door ${f2(l.tStand)}, away ${f2(l.tAway)}, at the riser ${f2(l.tBack)}, on the roof ${f2(l.tRoof)}, off it ${f2(l.tOff)}`);
 });
-for (const t of [8, 15, 25.2, 26, 38, 40, 46, 52.43, 53.6, 55.3]) { const g = guardAt(t); console.log(`guard at ${t}: ${g.x.toFixed(1)}, ${g.y.toFixed(1)}`); }
+for (const t of [9.6, 14.5, 20, 31, 32.4, 36.4, 40.4, 41.2, 42.4]) { const g = guardAt(t); console.log(`guard at ${t}: ${g.x.toFixed(1)}, ${g.y.toFixed(1)}`); }
 process.exit(bad ? 1 : 0);

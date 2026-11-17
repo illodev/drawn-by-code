@@ -11,7 +11,8 @@
             const q = (f, s) => [x + ux * f - uy * s, y + uy * f + ux * s];
             D.fill([...q(-3.2, -1.9), ...q(1.6, -1.9), ...q(1.6, 1.9), ...q(-3.2, 1.9)], 0.95, 6);
             D.med().poly([...q(1.6, -1.2), ...q(4.2, -2.3), ...q(4.2, 2.3), ...q(1.6, 1.2)], true);
-            D.fine().text(c.name, x - 7.5, y + (c.y > 10 ? (c.x > 20 ? -7.5 : 4.6) : 9), 3.8, { align: 'right', clear: true });
+            if (c.name === 'CAM 2') D.fine().text(c.name, x + 8.5, y + 5.2, 3.8, { clear: true });
+            else D.fine().text(c.name, x - 7.5, y + (c.y > 10 ? -7.5 : 9), 3.8, { align: 'right', clear: true });
         }
         // the guard's beat (rev. A): a dotted round with its arrows
         D.group('def.beat', { overlap: 0.1 }).pen(1.1, { dash: [0.6, 3.6], cap: 'round' }).poly(B.BEAT.map(([x, y]) => [px(x), py(y)]));
@@ -19,9 +20,9 @@
         D.fine().text("GUARD'S BEAT", px(22.9), py(B.SOUTH - 0.3), 3.8, { align: 'center', track: 0.18 });
         // rev. B: across the hall and into the store, in its cloud, with its triangle
         D.group('rev.beat', { overlap: 0.1 }).pen(1.1, { dash: [0.6, 3.6], cap: 'round' }).poly(B.BEAT_B.slice(0, 4).map(([x, y]) => [px(x), py(y)]));
-        for (const [x, y, a] of [[17, 9.4, -PI / 2], [13.2, 6.5, PI]]) Blueprint.arrow(D, px(x), py(y), a, 6.5);
+        for (const [x, y, a] of [[B.XS, 9.4, -PI / 2], [12.6, 6.5, PI]]) Blueprint.arrow(D, px(x), py(y), a, 6.5);
         D.group('rev.note', { overlap: 0.15 });
-        const tx = px(18.6), ty = py(8.25), r = 6.2;
+        const tx = px(B.XS + 1.5), ty = py(8.25), r = 6.2;
         D.med().poly([tx, ty - r, tx + r * 0.87, ty + r * 0.5, tx - r * 0.87, ty + r * 0.5], true).text('B', tx, ty + 2.9, 4.2, { align: 'center' });
         D.fine().text('BEAT CHANGED', tx + 9.5, ty + 2.4, 4, { track: 0.18 });
         // the clock's box

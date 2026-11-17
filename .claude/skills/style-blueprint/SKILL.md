@@ -74,12 +74,20 @@ Blueprint.frame(g, env, { cam: [x, y, zoom], zoomMax, paper: { folds, seed } }, 
 - **Lettering:** capitals only, Routed Gothic, tracked 0.12–0.2; cap heights on a 1280 sheet:
   title block 8.5–10.6, view titles 7.6, notes 5–6.7. Titles are underlined, the scale goes
   under them. A figure that sits on line work breaks it (`clear: true`).
+- **Edit:** a sheet is cut like any film: wide shots of a drawing against close ones (a symbol, a
+  note being pencilled, a mechanism at zoom 4–6) and shots that follow whatever moves, on a
+  beat. One camera travelling over one framing was judged slow by the user. Pass each shot's
+  part of the sheet to `paper({ view })` so a close shot keeps the cloth sharp.
+- **Levels:** a building is drawn at every level it has (roof, floors, basement), each plan in
+  the same space, and an axonometric stacks them (one matrix per level, `paint(..., { weight })`
+  to keep the lines readable when painted small).
 - **Motion:** the drawing is drafted, in a draughtsman's order: axes and ground, outlines
   from the ground up (both sides together), bands and openings, then texture (courses,
   hatching), then dimensions, then lettering. Mostly linear pen speed with a little ease;
   no bounce, no pop, nothing fades in except tone. The camera moves over the sheet on
   eased keys with a hold at each (close on where the pen starts, wider as the drawing grows,
-  the whole sheet for the lettering); it never rotates.
+  the whole sheet for the lettering) within a shot, with a slow push under every hold; it
+  never rotates.
 - **Texture:** the sheet does not move or boil; all the life is in the pen and the camera.
 - **Forbidden:** glow effects on lines, gradients of blue as «lighting», drop shadows, icons
   or emoji, lower case, a grid of graph paper (a cyanotype has none), anything in colour.
@@ -114,5 +122,6 @@ Blueprint.frame(g, env, { cam: [x, y, zoom], zoomMax, paper: { folds, seed } }, 
 - 2026-11-17 · the-plan · One accent is allowed when the film has a second hand: a red pencil over the print, approved by the user for a heist (white = the building, red = the plan). It stays a pencil: freehand rings that overshoot, dashed routes with eased corners, notes in a quick hand, never ruled, never lettered in Routed Gothic.
 - 2026-11-17 · the-plan · A small thing that carries the payoff (a 2 m door in a 32 m building) is shown the drawing's own way: a ring and a bubble round it, and a detail at a larger scale elsewhere on the sheet where it happens, with the figures beside it at that scale. Zooming until it is big enough runs off the paper's resolution and off the sheet.
 - 2026-11-17 · the-plan · People on a drawing are marks: a circle the size of a person in plan, numbered. Behind the wall a section looks at, they are dashed like any hidden edge. Keep the views in step: what moves in the plan moves in the section and in the detail from the same function.
+- 2026-11-17 · the-plan round 3 · «More rhythm, more changes of shot, more levels; it is a bit slow»: the first cut was one camera over one plan for 72 s. The second is 38 shots in 56 s on a half-second grid, three plans, a section, an axonometric and a detail, and no stretch of a second where the frame does not change. Do not promise «no cuts» for a drawing: the stillness of a sheet needs the edit more than a drawn scene does.
 - 2026-11-17 · the-plan · A film on one sheet keeps every framing inside the sheet: at zoom z the centre stays W/2z from the sides and H/2z from top and bottom (`review.mjs` reports the miss as «transparent holes»). Lay the sheet out for the framings (what must share a frame sits within W/z of each other), and paint the sheet at the largest zoom (`zoomMax`).
 - 2026-11-17 · blueprint-test · A wall cut at its windows reads as loose blocks until each opening gets its jambs (the faces carried across), a sash near the outer face and a sill; a door gets its leaf.

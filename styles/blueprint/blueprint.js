@@ -49,16 +49,18 @@ const Blueprint = (() => {
 
     // --- the sheet --------------------------------------------------------------------
     // paper(env, o) → { sheet, tooth, box }: the blue sheet and the mask that breaks the ink,
-    // painted once. o: { w, h, x, y } the sheet in logical units (defaults to the frame),
+    // painted once (the last few are kept). o: { w, h, x, y } the sheet in logical units (defaults to the frame),
     // res (pixels per logical unit, defaults to env.k), folds { x: [...], y: [...] } in
     // fractions of the sheet, wear 0..1 (edges and corners), seed.
     const sheets = new Map();
     function paper(env, o = {}) {
         const w = o.w ?? env.W, h = o.h ?? env.H, x0 = o.x ?? 0, y0 = o.y ?? 0, res = o.res ?? env.k;
         const folds = o.folds ?? { x: [0.5], y: [0.375, 0.615] }, wear = o.wear ?? 1, seed = Motion.hashStr(o.seed ?? 'sheet') & 0xffff;
-        const key = [w, h, x0, y0, res.toFixed(4), JSON.stringify(folds), wear, seed].join('|');
-        if (sheets.has(key)) return sheets.get(key);
-        const pw = Math.ceil(w * res), ph = Math.ceil(h * res);
+        // o.view [x, y, w, h]: paint only that part of the sheet (a close shot on a big sheet)
+        const [vx, vy, vw, vh] = o.view ?? [0, 0, w, h];
+        const key = [w, h, x0, y0, res.toFixed(4), JSON.stringify(folds), wear, seed, vx, vy, vw, vh].join('|');
+        if (sheets.has(key)) { const hit = sheets.get(key); sheets.delete(key); sheets.set(key, hit); return hit; } // most recent last
+        const pw = Math.ceil(vw * res), ph = Math.ceil(vh * res);
         const mk = () => { const c = document.createElement('canvas'); c.width = pw; c.height = ph; return c; };
         const sheet = mk(), tooth = mk();
         const sg = sheet.getContext('2d'), tg = tooth.getContext('2d');
@@ -66,9 +68,9 @@ const Blueprint = (() => {
         const fx = folds.x.map((f) => f * w), fy = folds.y.map((f) => f * h);
         const corners = [[0, 0, 46], [w, 0, 34], [0, h, 40], [w, h, 30]].map(([cx, cy, r], i) => [cx, cy, r * (0.7 + 0.6 * h2(i, 7, seed)) * wear]);
         for (let py = 0; py < ph; py++) {
-            const y = (py + 0.5) / res, row = py * pw * 4;
+            const y = vy + (py + 0.5) / res, row = py * pw * 4;
             for (let px = 0; px < pw; px++) {
-                const x = (px + 0.5) / res;
+                const x = vx + (px + 0.5) / res;
                 // exposure: clouds, brushed mottle (the coating went on with a brush, both ways),
                 // grain and the cloth's weave
                 const gh = vn(x / 1.15, y / 1.15, seed + 6), gm = fbm(x / 7, y / 7, seed + 7, 3);
@@ -132,8 +134,9 @@ const Blueprint = (() => {
         }
         sg.putImageData(si, 0, 0);
         tg.putImageData(ti, 0, 0);
-        const P = { sheet, tooth, box: { x: x0, y: y0, w, h } };
+        const P = { sheet, tooth, box: { x: x0 + vx, y: y0 + vy, w: vw, h: vh } };
         sheets.set(key, P);
+        while (sheets.size > (o.keep ?? 3)) sheets.delete(sheets.keys().next().value); // a film of many shots would fill the memory
         return P;
     }
 
@@ -253,7 +256,8 @@ const Blueprint = (() => {
             // Paints the list in white. reveal: (groupName) → 0..1 (how much of that group has
             // been drafted), or nothing for the finished drawing. o.tip: the wet end of a line
             // that is being drawn shows as a small dot. o.alpha: (groupName) → 0..1 dims a group
-            // (what a revision has superseded).
+            // (what a revision has superseded). o.weight thickens every line (a drawing painted
+            // small through a transform).
             paint(g, reveal, po = {}) {
                 if (!ready) {
                     for (const gr of groups.values()) {
@@ -282,7 +286,7 @@ const Blueprint = (() => {
                         if (k !== key || q < 1) {
                             flush();
                             key = k;
-                            g.lineWidth = it.w; g.globalAlpha = it.a * it.g.dim; g.lineCap = it.cap; g.lineJoin = it.cap === 'round' ? 'round' : 'miter';
+                            g.lineWidth = it.w * (po.weight ?? 1); g.globalAlpha = it.a * it.g.dim; g.lineCap = it.cap; g.lineJoin = it.cap === 'round' ? 'round' : 'miter';
                             g.setLineDash(it.dash ?? []);
                         }
                         if (!open) { g.beginPath(); open = true; }

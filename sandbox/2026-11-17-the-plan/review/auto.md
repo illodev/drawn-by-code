@@ -1,6 +1,6 @@
 # Automatic review · sandbox/2026-11-17-the-plan/scene.js
 
-960×540 px · 24 fps · 72.00 s · 1728 frames
+960×540 px · 24 fps · 56.00 s · 1344 frames · 120 BPM
 
 ## Warnings
 
@@ -11,16 +11,21 @@
 Energy per second (how much the image changes):
 
 ```
-▁▂▄▅▅▃▁▁ ▁▂▁▁▁▄▆▃▁▁▁▁▁▆▄▁▂▆▄▁▁▁▁▁▂▂▂▂▂▂▂▂▂▁▁▁▁▁▆▆▅▂▃▂▄█▅▁▂▃▂▁▁▇▇▄▄▅▇▆▂▁▁
-0    5    10   15   20   25   30   35   40   45   50   55   60   65   70   
+▄▄▅▅▄▅▅▄▅▆▇▅▅▆▇█▇▃▅▄▆▆▅▅▅▆▄▇▇▅▅▅▆▆▆▇▇▆▇▆▆▆▇▆█▅▆▇▅▆▆▅▅▄▄▄
+0    5    10   15   20   25   30   35   40   45   50   55   
 ```
 
-Still stretches of 1 s or more (intended? a visual pause that looks like a glitch is a bug): 7.33 s–9.67 s, 69.33 s–71.83 s.
+No still stretches of 1 s or more.
 
 ## Speed
 
-Painting: 563 ms/frame cold, 29 ms warm → full render ≈ 50 s at this size.
+Painting: 761 ms/frame cold, 653 ms warm → full render ≈ 877 s at this size.
+
+> Slow: cache static elements with `Motion.sprite` and lower the texture density.
 
 ## Contact sheet
 
-![sheet](sheet.jpg)
+![sheet](sheet-1.jpg)
+![sheet](sheet-2.jpg)
+![sheet](sheet-3.jpg)
+![sheet](sheet-4.jpg)

@@ -50,5 +50,31 @@ Looked at stills at 1920 of every stretch and at two whole renders tiled every 2
 Not measured: there is no reference still for this film, so no detail gate; every view was
 cropped at full size against the style's detail checklist instead.
 
+## Round 3 (user) · the first cut
+
+> Maybe I expected more rhythm, more changes of shot, more levels, and so on; it is a bit slow.
+
+What it means: the «one sheet, one camera, no cuts» rule of the script was the fault. 46 of
+its 72 s were one framing of one plan, and the building had a single level to rob. Changes:
+
+- **Cut, on a beat.** 38 shots in 56 s (the first cut had none in 72), on the half second at
+  120 BPM: wide shots of a drawing alternate with close ones (a camera's symbol, the clock,
+  a bolt at zoom 6) and with shots that follow the guard or a mark. Each pencil note gets
+  its own shot.
+- **Faster clockwork.** The plan's crossing is 4 s instead of 5 (CAM 2 pans at 11°/s), the
+  marks run at 2.6–3.5 m/s, the guard hurries once his beat changes. The checker caught the
+  third mark seen for one frame at the store's door with the first numbers; the crossing was
+  tightened until it passed (1.2° to spare).
+- **Levels.** Two more plans drawn from the same model (basement: plant, lobby, strong room
+  with its wall of boxes; roof: lantern light, cowl, cat ladder) and an axonometric that
+  stacks the three with one matrix each and pulls them apart. The way down, the way up and
+  the way out are now shots of their own: the red line through the levels in the
+  axonometric, the marks on the basement plan, on the roof plan.
+- **The kit** paints only the part of the sheet a shot shows (`paper({ view })`), so a close
+  shot at zoom 6 has the cloth at full sharpness; and a display list painted small through
+  a matrix can be thickened (`paint(..., { weight })`): the axonometric was too faint at
+  the pens' own weight.
+- `review.mjs`: no warnings, no still stretch of a second anywhere, every cut on the beat.
+
 **Open for the user:** the film itself; the score (waiting for their explicit go-ahead to
 use the paid service).
