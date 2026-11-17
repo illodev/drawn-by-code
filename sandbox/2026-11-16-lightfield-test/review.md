@@ -180,3 +180,59 @@ a pale round centre, a red halo, a ragged rim. Changes:
 
 Detail gate, Limb: PASS (colour median 0.9, p90 7.7, no flagged tile). New scenes: ideas
 proposed to the user, none built yet.
+
+## Round 4 (user) · three scenes of our own, and the cut
+
+> Haz las tres que recomiendas, como una pieza montada
+
+(after «añadir algunas escenas nuevas, originales nuestras, podemos ver ideas» and six
+proposals: eclipse, prism, double slit, match, aurora, cloud chamber; recommended and
+chosen: the first three, between the two reference shots.)
+
+Built, each from the traits of the real thing listed in `brief.md`, with no still to match:
+
+**Eclipse** (`eclipse.js`). The Sun's disc at 5200 with limb darkening, the Moon a disc
+with a ragged edge (so the thinning crescent breaks into beads by itself), a corona made of
+an even inner ring plus five streamers that narrow to points and plumes over the poles,
+combed along field lines, prominences, chromosphere, earthshine, stars, a planet. The
+camera's exposure is the animation: 0.014 for the crescent, 1 for the corona, 60 when the
+first bead returns (the frame burns out into the cut). Seen and fixed: a first corona that
+was a radial sunburst with grey bars to the frame's edge (streamers shortened: ρ⁻³ and
+steeper, fine combing kept for the poles only); prominences that were pink scribbles
+(outlines!) → filled leaning tongues, bright at the foot, which hide the corona behind
+them; a Moon shaded like a grey ball → flat and nearly black; too many stars.
+
+**Prism** (`lab.js`, `prism.js`). A bench in perspective (a table plane, a camera above and
+in front); the light is whatever skims the table. Fourteen wavelengths are traced through
+the triangle in JS every frame (Snell in, Snell out) and handed to the shader as exit
+points and angles. Seen and fixed: the violet end broke into separate rays and blobs
+(fourteen samples of a continuous spectrum) → each ray is as wide as its share of the fan
+at that distance and as much dimmer; the fan ran on behind the card → every ray stops where
+the card stands; the block read as grey slate with ruled white edges → darker, its far
+edges and its foot seen through it, edges broken and dim, the beam inside drawn where the
+view ray really meets the sheet of light (low in the block: it was a bar across the middle
+of the face); too much room light.
+
+**Slits** (`slits.js`). The intensity is the two paths added with their phases; what shows
+is what each cell of the table has collected: exponential waits to its first three
+photons, a flash on arrival, then the wave with speckle once a cell has had about eight
+hits; the source goes up ×10 every 1.2 s and the camera stops down with it. Seen and
+fixed: speckle that was one value per cell (a mosaic of squares) → smooth-edged grains; a
+barrier as long as the table; a final frame burnt flat red.
+
+**The cut.** Limb → Eclipse (the Sun up, then the Sun covered) → the eclipse's burnt-out
+frame → the bench, whose camera takes half a second to settle → the red end of the fan →
+red photons → the bulb and the title.
+
+Kit: nothing new was needed in `lightfield.js`; a shared bench (`lab.js`) stays in the
+experiment until a second film wants it.
+
+**Checks on the 30.5 s cut:** automatic review: no warnings (deterministic, no still stretch;
+859 ms a frame warm at 960). Detail gate on the two reference shots, 12 × 12: Limb (t 3.5)
+PASS, colour median 0.9, no flagged tile; Bulb (t 29, their logo masked) PASS, colour median
+7.8, p90 19.5, no flagged tile. The three new shots have no reference: checked by eye at
+full size against the style's checklist.
+
+Render: three chunks side by side (`--from/--to`, 23 to 32 minutes each on this container).
+`--to` is inclusive, so each joint had its frame twice: the chunks are joined with
+`trim=end_frame=` on all but the last (732 frames, counted).

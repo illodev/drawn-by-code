@@ -32,4 +32,4 @@ node engine/render.mjs sandbox/<exp>/scene.js --size 1920
 
 | Video | What it is |
 |---|---|
-| [lightfield-test](../../sandbox/2026-11-16-lightfield-test/) | the style test: the sun breaks over the Earth's limb; a filament heats up in a dusty bulb and lights the title (11.5 s, two shots matched to the user's reference stills) |
+| [lightfield-test](../../sandbox/2026-11-16-lightfield-test/) | the style test, grown into a short piece: five lights from the sky to the bench (the Sun over the Earth's limb, a total eclipse, a prism, two slits one photon at a time, a filament and the title; 30.5 s, the first and last shots matched to the user's reference stills) |

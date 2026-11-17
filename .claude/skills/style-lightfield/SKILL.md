@@ -141,6 +141,36 @@ so every number in the shader is one you can read off the image.
 - **Cost on this container (SwiftShader):** the limb is cheap, the bulb ≈ 0.7 s a frame
   at 960 and ≈ 3 s at 1920. Use `--size 960` stills while tuning and one full render.
 
+## Scenes without a reference (built in the style test)
+
+Write the traits of the real phenomenon in the brief first, then build each trait from its
+cause; the look follows. Three recipes, all in `sandbox/2026-11-16-lightfield-test/`:
+
+- **Exposure is an animation channel.** A camera cannot hold a sun and its corona at once:
+  `optics.exposure` 0.014 for a crescent, 1 for the corona, 60 to burn a frame out into a
+  cut. Things a million times fainter than the source need no fade-in: they are simply
+  there when the exposure reaches them (`eclipse.js`).
+- **A phenomenon made of its causes breaks up by itself.** A ragged lunar edge over a
+  thinning crescent gives the beads; a per-colour Snell trace gives white with coloured
+  edges near the prism and a fan further on, and violet being swallowed first; two paths
+  added with their phases give fingers and bars. None of those was drawn.
+- **A bench in perspective** (`lab.js`): a table plane seen by a camera in `uA[0..6]`;
+  light is what skims the table (`tableLit`: black card with grain, fibres and dust that
+  catch far more than the card), plus the same light sampled at half its height for the
+  dusty air; things standing on it are planes intersected by the view ray, nearest first.
+- **Geometry that is cheap in JS goes to the shader as uniforms** (`prism.js`: fourteen
+  wavelengths traced per frame, three floats each): `uA` holds 64 floats.
+- **A continuous spectrum from few samples:** each sample's ray is as wide as its angular
+  gap to its neighbours times the distance, and dimmer by the same factor. Discrete
+  colours are the tell of a fake rainbow.
+- **Statistics instead of fades** (`slits.js`): light arriving one quantum at a time is
+  per-cell exponential waits (`−log(hash)`), a flash on arrival, a dot after; blend to the
+  smooth field once a cell has had several hits. A speckle is a smooth-edged grain, never
+  one value per cell.
+- **Glass on a dark table** is its far edges and foot seen through it, a sheen that grows
+  at glancing angles, broken dim edge lights (a ruled bright edge is an outline), a flare
+  where light enters and leaves, and the beam inside it at the height it really travels.
+
 ## Working from a still (the detail gate)
 
 A still becomes a reference clip: pad or crop it to the scene's aspect, then
@@ -186,3 +216,10 @@ Tune with numbers: sample the same named points on both images, fit profiles
 - 2026-11-16 · lightfield-test round 3 · Judge an optical effect in motion, not on the
   match frame: a starburst that matched the still's size became «a starfish» once it rode
   up with the sun. Render three or four moments of the move side by side before showing it.
+- 2026-11-17 · lightfield-test round 4 · A cut between two exposures needs the camera to
+  act: burn the outgoing frame out (exposure × 60 over the last half second) and let the
+  incoming one settle (× 3 → 1 in half a second). An over-exposed frame shows every edge
+  light as a ruled line: keep the settle short and the edges dim.
+- 2026-11-17 · lightfield-test round 4 · Small luminous details drawn from fine noise
+  (prominences as `noise(q · 260)`) come out as scribbles, which read as outlines: fill
+  the shape, shade it along its length, and keep the noise at a few cycles per shape.

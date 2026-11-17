@@ -1,20 +1,22 @@
 // 2026-11-16-lightfield-test · style lightfield
-// The style test of «lightfield»: light photographed, on two of the user's references.
-// One file per shot (limb.js, bulb.js): each gives its GLSL and, for a local time, the
-// uniforms and the optics of the camera. This file only cuts between them.
+// «lightfield»: light photographed. Five lights, from the sky to the bench: the Sun over
+// the edge of the Earth, the Sun behind the Moon, a beam split by a prism, one colour
+// through two slits, and a filament that lights the title. The first and the last shot are
+// matched to the user's reference stills; the three in between are our own.
+// One file per shot: each gives its GLSL and, for a local time, the uniforms and the optics
+// of the camera. This file only cuts between them.
 const DIR = 'sandbox/2026-11-16-lightfield-test/';
 Motion.scene({
     fps: 24,
-    duration: 11.5,
+    duration: 30.5,
     logical: [1600, 900],
-    uses: ['styles/lightfield/lightfield.js', DIR + 'limb.js', DIR + 'bulb.js'],
+    uses: ['styles/lightfield/lightfield.js', DIR + 'limb.js', DIR + 'eclipse.js', DIR + 'lab.js', DIR + 'prism.js', DIR + 'slits.js', DIR + 'bulb.js'],
     fonts: [{ family: 'Poppins', src: 'fonts/Poppins-Bold-latin.woff2', descriptors: { weight: '700' } },
             { family: 'Lora', src: 'fonts/Lora-Medium-latin.woff2', descriptors: { weight: '500' } }],
-    shots: [[0, 5.5, 'Limb'], [5.5, 11.5, 'Bulb']],
+    shots: [[0, 5.5, 'Limb'], [5.5, 12, 'Eclipse'], [12, 18.5, 'Prism'], [18.5, 24.5, 'Slits'], [24.5, 30.5, 'Bulb']],
     setup(env) {
         const L = Lightfield.make(env);
-        L.scene('limb', LFT.limb.glsl);
-        L.scene('bulb', LFT.bulb.glsl);
+        for (const [, , name] of this.shots) L.scene(name.toLowerCase(), LFT[name.toLowerCase()].glsl);
         return { L };
     },
     draw(g, t, env) {
