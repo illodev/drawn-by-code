@@ -42,3 +42,42 @@ the magazine ad».
 
 Next: the pieces. The baker, the peel and its loaves, the cat and the graphics cut out of the
 separation as parts, and the test's action.
+
+## Round 2 (user → auto) · the script, and the animatic v1
+
+> I like it quite a lot; write a carefully crafted script and let's go with it.
+
+The script is in `brief.md`: «Fresh!», 30 s, nine shots at 120 BPM, a spot for an imaginary
+bakery (Early Bird Bakery). Two threads: the print run (the plates land one by one, and lift
+off in reverse at the end) and the cat eyeing the bread (an ear, a whole shot, the bite). The
+night in the window pays off as the sun rising behind the logotype. Joe and the cat exist
+only as the two generated panels, so the piece is limited animation, as a 1950s TV spot
+was: held drawings with moving pieces, and a cut between the two panels where the action
+would need a new pose (he is at the oven in C-a; after the close-ups he is leaning back with
+the peel out in C-b).
+
+- **Pieces cut from the separation.** `tools/separate.py` now writes each moving piece apart
+  (a polygon and a pivot, measured on 50 px grids and 10 px zooms) and fills the background
+  under it from around (normalised blurs of growing width), so a piece can move or vanish.
+  Graphics printed on paper (the starbursts, «Fresh!») are cut by their own ink and their
+  hole is filled with paper, not inpainted: a polygon that clipped the F's tail smeared
+  orange and teal across the sky.
+- **A piece over ink is opaque.** The loaves printed over the inpainted (dark) oven came out
+  black: inks multiply. Each piece knocks its own polygon out of everything under it before
+  it prints; so does every code-drawn object over another ink (the logotype's orange over its
+  own turquoise shadow, the loaf over its badge).
+- **The camera moves over a printed page:** `Riso.press` prints with `zoom`, the dots grow
+  as the camera moves in (shots 3, 5, 6).
+- **Steam is a hole in the glow, not a thing.** Cut as a piece it took the whole glow with
+  it; the glow stays in the background and live wisps of paper rise over it, clipped to the
+  oven's mouth.
+- The cut to the second panel is a boomerang wipe; the end card (sun, logotype, script,
+  address, the loaf in a starburst, the bite) is drawn in code with the kit.
+- **The screen belongs to the page.** Anchored to the output, every drawing of a camera move
+  re-laid the dots under the picture and the push-in boiled; `Riso.press` prints with `origin`
+  (where the page's (0, 0) lands) and `zoom`, so the dots travel and grow with the page.
+- Auto review: no warnings; the large jumps it lists are the push-in into the window (a fast
+  move on twos, softened to 2.5 s) and the plates landing.
+- Still off (for the next rounds): the hop of the loaves is the only action Joe's shot has
+  besides a nod and a blink; the steam doubles the reference's own wisps; the end card holds
+  for 1.5 s with little moving; no sound yet.

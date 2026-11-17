@@ -32,7 +32,7 @@ const Ad = (() => {
             palette: INKS, order: ORDER, paper: PAPER,
             pitch: o.pitch ?? 3.2,
             register: o.register ?? { orange: [-2, 1], turquoise: [2, 2], black: [0, 0] },
-            fibres: o.fibres ?? 0.6,
+            fibres: o.fibres ?? 0.25, // coated magazine stock: fewer fibres than riso paper
             // crisp little dots: the reference's screens read as dots, not as a tint
             edge: o.edge ?? 0.6, spread: o.spread ?? 0.35,
         });

@@ -8,7 +8,7 @@
 //   const g = press.plate('pink')                  a flat (solid) plate, logical units
 //   const s = press.plate('blue', 'screen')        a halftone plate (tones become dots)
 //   g.fillStyle = Riso.tone(0.6) …                 draw density: 0 no ink, 1 full ink
-//   press.print(g, { key, register, inks })        prints onto g (full frame); key = memo
+//   press.print(g, { key, register, inks, zoom, origin })  prints onto g; key = memo
 //                                                  (the drawing index); register: per-ink
 //                                                  offsets in output px; inks: re-ink the
 //                                                  plates ({ pink: 'blue' } → a colourway)
@@ -140,8 +140,12 @@ const Riso = (() => {
                         const S = ctxs[ink + 'solid'].getImageData(0, 0, W, H).data;
                         const T = ctxs[ink + 'screen'].getImageData(0, 0, W, H).data;
                         const I = INKS[inkOf(ink)], [ir, ig, ib] = I.rgb, ca = Math.cos(INKS[ink].angle), sa = Math.sin(INKS[ink].angle);
-                        const [ox, oy] = (reg[ink] ?? [0, 0]).map((v) => Math.round(v * S1));
-                        const ip = I.pitch * pitch, io = ORDER.indexOf(ink) * 7919;
+                        const zoom = po.zoom ?? 1; // a camera moving in on the printed page: the dots grow with it
+                        const [ox, oy] = (reg[ink] ?? [0, 0]).map((v) => Math.round(v * S1 * zoom));
+                        const ip = I.pitch * pitch * zoom, io = ORDER.indexOf(ink) * 7919;
+                        // po.origin: where the page's (0, 0) sits on the output (px), so the screen is
+                        // anchored to the page and travels with it under a moving camera
+                        const [X0, Y0] = po.origin ?? [0, 0];
                         for (let y = 0; y < H; y++) {
                             const sy = y - oy;
                             if (sy < 0 || sy >= H) continue;
@@ -153,7 +157,7 @@ const Riso = (() => {
                                 const tv = T[j + 3] / 255;
                                 if (tv > 0.003) {
                                     // the halftone: a dot per cell, its area = the tone
-                                    const u = (x * ca + y * sa) / ip, v = (-x * sa + y * ca) / ip;
+                                    const xx = x - X0, yy = y - Y0, u = (xx * ca + yy * sa) / ip, v = (-xx * sa + yy * ca) / ip;
                                     // each cell's dot a little off in place and size (a hash of the cell)
                                     const cu = Math.floor(u), cv = Math.floor(v), hsh = Math.sin(cu * 127.1 + cv * 311.7 + ink.length * 17.3) * 43758.5453, hj = hsh - Math.floor(hsh);
                                     const du = u - cu - 0.5 + (hj - 0.5) * 0.14, dv = v - cv - 0.5 + ((hj * 7.13) % 1 - 0.5) * 0.14;
