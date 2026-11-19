@@ -33,7 +33,7 @@ Motion.scene({
         } else if (page === 3) zoom('books', -40, -95);
         else if (page === 4) zoom('books', -50, 110);
         else if (page === 5) zoom('books', 105, 40);
-        else if (page === 6) zoom('books', -120, 20);
+        else if (page === 6) zoom('books', -138, 62, 5);
         else if (page === 7) zoom('palette', 0, -30);
         else if (page === 8) zoom('score', 0, 0);
         else if (page === 9) {

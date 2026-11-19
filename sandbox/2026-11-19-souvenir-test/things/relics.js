@@ -8,6 +8,7 @@
 //   Relics.amphora(g, { x, y, s, rot, seed })     264 × 304  Rome: a Dressel 20 oil amphora and sherds
 //   Relics.mosaic(g, { x, y, s, rot, seed })      304 × 244  Rome: a fragment of a floor mosaic, a partridge
 //   Relics.stele(g, { x, y, s, rot, seed })       172 × 262  Tartessos: a slate stele with the south-western script
+// `seed` (default: the relic's name) re-rolls the hand: jitter, wear, which stones are lost.
 // `rot` turns the object, never the light: each relic is painted once on a sheet of its own
 // with the lamp turned the other way (Souvenir.lightFor, and the shade direction to match),
 // then pasted turned; sheets are cached by seed, angle and resolution. Nothing takes time.
@@ -89,6 +90,7 @@
 //  4 a schematic warrior: a round shield with rings, a sword, a mirror with its handle
 //  5 cleavage steps and laminations of the slate; lichen in orange and grey-green rosettes
 //  6 the cut lines paler than the stone, weathered, some lost in a flaked patch
+//  7 a spear and a comb beside him; two furrows a plough dragged across; rust stains
 const Relics = (() => {
     const S = Souvenir;
     const INK = S.INK, TAU = Math.PI * 2;
@@ -1477,7 +1479,7 @@ const Relics = (() => {
             strokePts(q, S.curve([[-14, 46], [-18, 80], [-19, 110]], false, 8), 3, '#909090');
             strokePts(q, S.curve([[30, 104], [12, 116], [-10, 118]], false, 8), 3, '#808080');
             disc(q, [-22, -92], 13, '#707070');
-            disc(q, [40, -60], 9, '#505050');
+            for (const [x, y, rr] of [[38, -62, 5], [44, -57, 4], [40, -52, 3], [47, -64, 2.5]]) disc(q, [x, y], rr, '#484848');
             q.filter = 'none';
         });
         const pit = (x, y) => {
@@ -1840,8 +1842,8 @@ const Relics = (() => {
             for (let k = 0; k <= 16; k++) sc.push(onBody(-58 + Math.cos(k * 0.36) * 11, 16 + Math.sin(k * 0.36) * 9));
             S.trace(g, sc, false);
             g.stroke();
-            S.ink(g, [onBody(30, -16), onBody(31.5, -4), onBody(31, 9), onBody(32, 15)], { w: 2.2, color: '#f0dcb6', alpha: 0.5, taper: [0.6, 0.1] });
-            disc(g, onBody(32, 15.5), 1.5, 'rgba(240,220,182,0.55)');
+            S.ink(g, S.curve([onBody(29, -14), onBody(31.5, -6), onBody(30.4, 3), onBody(32.4, 10), onBody(32, 15)], false, 6), { w: 1.9, color: '#f2e2c0', alpha: 0.34, taper: [0.8, 0.1] });
+            disc(g, onBody(32, 15.4), 1.3, 'rgba(242,226,192,0.4)');
             // rootlets etched the surface while it lay in the ground
             for (let i = 0; i < 7; i++) {
                 let p = [-70 + r() * 130, 30 + r() * 70], a = r() * TAU;
@@ -2558,6 +2560,8 @@ const Relics = (() => {
             ...[15, 10, 5.2].map((rr, i) => (i < 2 ? [...circle(-34, 12, rr, 0.32, TAU - 0.32), [-34 + rr * 0.5, 12], [-34 + Math.cos(0.32) * rr, 12 + Math.sin(0.32) * rr]] : circle(-34, 12, rr))), circle(-34, 12, 1.2),
             // the mirror: a disc on a handle
             circle(27, 55, 7.4), circle(27, 55, 5.4), [[27, 62.4], [27.3, 76]], [[23.8, 76], [30.8, 76.6]],
+            // a spear over his head, its leaf-shaped point to the right
+            [[-46, -61], [-10, -63.4], [24, -65]], [[24, -65], [31, -67.6], [38.5, -65.8], [31.4, -63], [24, -65]],
             // a comb
             [[-40, -48], [-28, -49]], ...[0, 1, 2, 3, 4].map((i) => [[-39 + i * 2.6, -48], [-39.4 + i * 2.6, -41.5]]),
         ];
@@ -2642,6 +2646,7 @@ const Relics = (() => {
         helmet: relic('helmet', HM.box, paintHelmet),
         amphora: relic('amphora', { x: -132, y: -152, w: 264, h: 304 }, paintAmphora),
         mosaic: relic('mosaic', MO.box, paintMosaic),
+        stele: relic('stele', { x: -86, y: -131, w: 172, h: 262 }, paintStele),
         stele: relic('stele', { x: -86, y: -131, w: 172, h: 262 }, paintStele),
         _debug: (g) => {
             const P = mosaicPlan('mosaic'), col = { fig: '#e05050', ground: '#50a0e0', frame: '#60c060', row: '#c0c0c0', fill: '#e0e040' };

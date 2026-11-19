@@ -68,12 +68,6 @@ Motion.scene({
             put('mosaic', { x: 320, y: 620, rot: -2.6 });
             put('carambolo', { x: 760, y: 660, rot: Math.PI });
             put('murex', { x: 1060, y: 700, rot: 1.9 });
-        } else if (page === 9) {
-            g.save();
-            g.translate(800, 450);
-            g.scale(3.4, 3.4);
-            R._debug(g);
-            g.restore();
         } else {
             const sheet = Motion.layer(env, 'relics-sheet', (q) => row(q));
             Motion.drawLayer(g, env, sheet);

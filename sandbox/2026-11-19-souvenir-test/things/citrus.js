@@ -455,22 +455,20 @@ const Citrus = (() => {
                                 disc(g, x + l2[0] * 0.3, y + l2[1] * 0.3, rr * 0.36);
                             }
                         } else if (what === 'scar') {
-                            // cork: a rough grey-tan island with a darker shore, dry dabs over
-                            // it, fine cracks
-                            const ca = Math.cos(ang), sa = Math.sin(ang);
-                            const isl = S.curve(S.ellipse(p[0], p[1], 15, 6.5, 11, ang).map(([x, y], i) => [x + (S.hashI(i, v, 1, 9) - 0.5) * 6, y + (S.hashI(i, v, 2, 9) - 0.5) * 5]), true, 6);
-                            g.fillStyle = 'rgba(104,70,26,0.55)';
-                            poly(g, isl.map(([x, y]) => [x - l2[0] * 1.2, y - l2[1] * 1.2]));
-                            g.fillStyle = 'rgba(170,140,90,0.9)';
-                            poly(g, isl);
-                            for (let i = 0; i < 46; i++) {
-                                const d = (r() - 0.5) * 30, e = (r() - 0.5) * 13 * (1 - Math.abs(d) / 20), a = ang + (r() - 0.5) * 1.2, l = 1.5 + r() * 3.5, edge = Math.abs(d) / 15 + Math.abs(e) / 6.5;
-                                const x = p[0] + ca * d - sa * e, y = p[1] + sa * d + ca * e;
-                                S.dab(g, [[x - Math.cos(a) * l, y - Math.sin(a) * l], [x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 1.4 + r() * 2.2, color: edge > 0.9 ? '#7a5424' : r() < 0.5 ? '#b89a66' : '#d6c296', alpha: 0.4 + r() * 0.4, bristles: 3, seed: 'cork' + v + i, dry: 0.5 });
+                            // cork: an island of dry grey-tan dabs, darker at its shore, with
+                            // fine cracks; no outline of its own
+                            const ca = Math.cos(ang), sa = Math.sin(ang), dabs = [];
+                            for (let i = 0; i < 120; i++) {
+                                const d = (r() + r() - 1) * 17, e = (r() + r() - 1) * 7.5 * (1 - Math.abs(d) / 22);
+                                dabs.push([Math.abs(d) / 15 + Math.abs(e) / 6, p[0] + ca * d - sa * e, p[1] + sa * d + ca * e, ang + (r() - 0.5) * 1.4, 1.2 + r() * 3.2, r(), i]);
+                            }
+                            dabs.sort((p0, p1) => p1[0] - p0[0]);
+                            for (const [edge, x, y, a, l, q, i] of dabs) {
+                                S.dab(g, [[x - Math.cos(a) * l, y - Math.sin(a) * l], [x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 2 + q * 3, color: edge > 0.85 ? '#5a3c1c' : q < 0.45 ? '#8a6a3c' : q < 0.8 ? '#a88654' : '#c9aa72', alpha: 0.6 + q * 0.35, bristles: 3, seed: 'cork' + v + i, dry: 0.35 });
                             }
                             for (let i = 0; i < 4; i++) {
-                                const a = ang + (r() - 0.5) * 1.2, x = p[0] + ca * (r() - 0.5) * 18, y = p[1] + sa * (r() - 0.5) * 18, l = 2 + r() * 3.5;
-                                S.ink(g, [[x - Math.cos(a) * l, y - Math.sin(a) * l], [x + 0.5, y + 0.3], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 0.6, color: '#5a3c18', alpha: 0.6 });
+                                const a = ang + (r() - 0.5) * 1.2, k = (r() - 0.5) * 18, x = p[0] + ca * k, y = p[1] + sa * k, l = 2 + r() * 3.5;
+                                S.ink(g, [[x - Math.cos(a) * l, y - Math.sin(a) * l], [x + 0.5, y + 0.3], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 0.6, color: '#3e2a12', alpha: 0.7 });
                             }
                         } else if (what === 'split') {
                             // split: the peel has opened on the white pith
@@ -500,24 +498,25 @@ const Citrus = (() => {
             if (view === 'side') button(g, box, res, L, v, G.top);
             else if (view === 'stalk') {
                 // the button seen from above: a star in its dimple, the stalk leaving upwards
-                const star = [];
-                for (let i = 0; i < 10; i++) {
-                    const a = (i / 10) * TAU + v, rr = i % 2 ? 7.6 : 12.5 + 2 * S.hashI(i, v, 3, 5);
+                const star = [], tips = [];
+                for (let i = 0; i < 40; i++) {
+                    const a = (i / 40) * TAU + v, rr = 8.6 + (4 + 1.4 * S.hashI(Math.floor((i + 4) / 8) % 5, v, 3, 5)) * Math.pow(0.5 + 0.5 * Math.cos(5 * (a - v)), 0.8);
                     star.push([f[0] + Math.cos(a) * rr, f[1] + Math.sin(a) * rr * 0.86]);
+                    if (i % 4 === 0) tips.push(star[i]);
                 }
                 const stalk = [[f[0] - 4.4, f[1] + 2], [f[0] - 5.6, f[1] - 20], [f[0] + 1.6, f[1] - 21], [f[0] + 4.2, f[1] + 1]];
                 const cal = S.form({
                     box, res, seed: 'calyx' + v, light: L, relief: 0.7,
                     mask: (q) => {
-                        poly(q, S.curve(star, true, 5));
+                        poly(q, star);
                         poly(q, stalk);
                     },
                     ramp: TWIG_GREEN, soft: 0.9, mottle: { amp: 0.07, freq: 0.2 }, stroke: { amp: 0.08, freq: 0.2, tone: 3 },
                     over: (q) => {
                         q.lineCap = 'round';
                         for (let i = 0; i < 10; i += 2) {
-                            line(q, [[f[0] + (star[i][0] - f[0]) * 0.3, f[1] + (star[i][1] - f[1]) * 0.3], star[i]], 0.8, 'rgba(206,224,140,0.5)');
-                            line(q, [[f[0] + (star[i + 1][0] - f[0]) * 0.4, f[1] + (star[i + 1][1] - f[1]) * 0.4], star[i + 1]], 0.9, 'rgba(14,30,10,0.55)');
+                            line(q, [[f[0] + (tips[i][0] - f[0]) * 0.5, f[1] + (tips[i][1] - f[1]) * 0.5], [f[0] + (tips[i][0] - f[0]) * 0.92, f[1] + (tips[i][1] - f[1]) * 0.92]], 0.7, 'rgba(206,224,140,0.45)');
+                            line(q, [[f[0] + (tips[i + 1][0] - f[0]) * 0.45, f[1] + (tips[i + 1][1] - f[1]) * 0.45], tips[i + 1]], 0.8, 'rgba(14,30,10,0.5)');
                         }
                     },
                 });

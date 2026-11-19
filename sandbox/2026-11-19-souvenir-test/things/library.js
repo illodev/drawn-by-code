@@ -547,7 +547,21 @@ const Library = (() => {
                         strokePts(q, [P(a + d * 1.2, 1.5), P(a + d * 1.2, T - 1.5)], 0.9, rgba(M.light, 0.22));
                     }
                 }
-                // the airbrush: shade from below and from the right, a light on the lit edge
+                // the brush along the back: two or three dry strokes, lighter and darker
+                const rb = Motion.rng(B.seed + 'hand');
+                for (let i = 0; i < 4; i++) {
+                    const b = T * (0.14 + 0.72 * rb()), a0 = L * rb() * 0.4, a1 = a0 + L * (0.3 + rb() * 0.3);
+                    brushed(q, [P(a0, b), P((a0 + a1) / 2, b + (rb() - 0.5) * T * 0.06), P(a1, b + (rb() - 0.5) * T * 0.05)], { w: T * (0.1 + rb() * 0.12), color: i % 2 ? M.light : M.deep, alpha: 0.1 + rb() * 0.1, bristles: 7, seed: B.seed + 'hs' + i, dry: 0.55 });
+                }
+                // the end away from the light is duller
+                const far = P.U[0] * TOL[0] + P.U[1] * TOL[1] > 0 ? 0 : L, lg = q.createLinearGradient(...P(far, T / 2), ...P(L - far, T / 2));
+                lg.addColorStop(0, rgba(mix(M.deep, '#23204e', 0.5), 0.34));
+                lg.addColorStop(0.45, rgba(M.deep, 0));
+                lg.addColorStop(1, rgba('#ffe6b0', 0.07));
+                fillPts(q, pts, lg);
+                // the airbrush: shade from below and from the right (cooler in its depth), a warm light on the lit edge
+                S.spray(q, pts, { color: '#2c2a6a', alpha: 0.22, w: Math.min(12, T * 0.42) });
+                S.spray(q, pts, { color: '#ffdf9c', alpha: 0.2, w: Math.min(7, T * 0.26), dir: TOL });
                 S.spray(q, pts, { color: M.deep, alpha: 0.62, w: Math.min(8, T * 0.3) });
                 S.spray(q, pts, { color: mix(M.deep, INK, 0.6), alpha: 0.5, w: Math.min(3, T * 0.12) });
                 S.spray(q, pts, { color: M.light, alpha: 0.5, w: Math.min(4, T * 0.16), dir: TOL });
@@ -663,11 +677,12 @@ const Library = (() => {
                 if (tone < 0.5) fillPts(q, block, rgba('#1c1838', (0.5 - tone) * 1.3));
                 q.restore();
                 if (E.band) {
-                    const hb = P.pts([[cs - 3.4, b0 - 0.2], [cs + 0.3, b0 - 0.2], [cs + 0.3, b1 + 0.2], [cs - 3.4, b1 + 0.2]]);
+                    // the headband: silk worked over a core in two colours, turn and turn about
+                    const hw = E.bandW ?? 3.4, hb = P.pts([[cs - hw, b0 - 0.2], [cs + 0.3, b0 - 0.2], [cs + 0.3, b1 + 0.2], [cs - hw, b1 + 0.2]]);
                     fillPts(q, hb, E.band[0]);
-                    for (let b = b0; b < b1 - 0.4; b += 1.5) fillPts(q, P.pts([[cs - 3.4, b], [cs + 0.3, b + 0.3], [cs + 0.3, Math.min(b1, b + 1.05)], [cs - 3.4, Math.min(b1, b + 0.75)]]), E.band[1]);
-                    strokePts(q, [P(cs - 2.5, b0), P(cs - 2.5, b1)], 0.6, 'rgba(255,255,255,0.4)');
-                    strokePts(q, [P(cs - 0.2, b0), P(cs - 0.2, b1)], 0.8, 'rgba(20,10,30,0.42)');
+                    for (let b = b0; b < b1 - 0.4; b += 1.5) fillPts(q, P.pts([[cs - hw, b], [cs + 0.3, b + 0.3], [cs + 0.3, Math.min(b1, b + 1.05)], [cs - hw, Math.min(b1, b + 0.75)]]), E.band[1]);
+                    strokePts(q, [P(cs - hw * 0.72, b0), P(cs - hw * 0.72, b1)], hw * 0.18, 'rgba(255,255,255,0.4)');
+                    strokePts(q, [P(cs - 0.2, b0), P(cs - 0.2, b1)], hw * 0.24, 'rgba(20,10,30,0.42)');
                     strokePts(q, hb, 0.4, rgba(INK, 0.85), true);
                     if (tone < 0.5) fillPts(q, hb, rgba('#1c1838', (0.5 - tone) * 1.2));
                 }
@@ -832,7 +847,7 @@ const Library = (() => {
         },
         // sprinkled calf of the 1600s: five bands, gilt compartments, a red lettering piece
         gongora: {
-            M: MAT.calfTan, grain: GRAIN.calf(MAT.calfTan, 1), bands: [15, 99, 122, 145, 163], board: 2.8, pages: { kind: 'sprinkle', band: ['#a8322c', '#e7c35a'] },
+            M: MAT.calfTan, grain: GRAIN.calf(MAT.calfTan, 1), bands: [15, 99, 122, 145, 163], board: 2.8, pages: { kind: 'sprinkle', band: ['#a8322c', '#e7c35a'], bandW: 5, back: 8.5 },
             spinePaint(c) {
                 const { q, P, L, T, B } = c, bs = B.bands, comps = [[0, bs[0]], [bs[0], bs[1]], [bs[1], bs[2]], [bs[2], bs[3]], [bs[3], bs[4]], [bs[4], L]];
                 gilt(c, 0.34, (h) => {
@@ -924,7 +939,7 @@ const Library = (() => {
                     strokePts(q, [P(a, 4), P(a, T - 4)], 2.2, rgba('#fffbe8', 0.16));
                     for (const b of [3.3, T - 3.3]) {
                         const pp = rect(P, a - 3.2, b - 1, a + 3.2, b + 1, { r: 0.8, wob: 0.15, seed: c.seed + a + b, step: 2 });
-                        S.piece(q, pp, { fill: '#efe2c0', line: 0.6, heavy: 0.5, shade: { color: '#9c8456', alpha: 0.7, w: 1 }, cast: { blur: 0.8, dx: 0.3, dy: 0.5, color: 'rgba(60,40,20,0.5)' } });
+                        S.piece(q, pp, { fill: '#e4cfa2', line: 0.55, heavy: 0.5, ink: '#4a3524', shade: { color: '#8f7242', alpha: 0.8, w: 1.1 }, light: { color: '#fff6da', alpha: 0.7, w: 0.6 }, cast: { blur: 0.8, dx: 0.3, dy: 0.5, color: 'rgba(60,40,20,0.5)' } });
                         for (const d of [-3.5, 3.5]) disc(q, P(a + d, b), 0.5, rgba('#3a2a1c', 0.85));
                     }
                 }
@@ -1056,8 +1071,10 @@ const Library = (() => {
                 // the leather gone from the four corners and from the caps: grey board, frayed
                 const r = Motion.rng(c.seed + 'worn');
                 for (const [a, b, sa, sb] of [[0, 0, 1, 1], [L, 0, -1, 1], [0, T, 1, -1], [L, T, -1, -1]]) {
-                    const w = 5 + r() * 3.5, hh = 3.4 + r() * 2.4, pts = [[a, b], [a + sa * w, b], [a + sa * w * 0.72, b + sb * hh * 0.34], [a + sa * w * 0.4, b + sb * hh * 0.5], [a + sa * w * 0.22, b + sb * hh * 0.9], [a, b + sb * hh]];
-                    S.piece(q, P.pts(pts), { fill: '#8d8474', line: 0.5, heavy: 0.3, shade: { color: '#4a4350', alpha: 0.7, w: 2 }, light: { color: '#c9c0aa', alpha: 0.6, w: 1.2 } });
+                    const w = 7.5 + r() * 4, hh = 5 + r() * 3, pts = [[a, b], [a + sa * w, b], [a + sa * w * 0.72, b + sb * hh * 0.34], [a + sa * w * 0.4, b + sb * hh * 0.5], [a + sa * w * 0.22, b + sb * hh * 0.9], [a, b + sb * hh]];
+                    S.piece(q, P.pts(pts), { fill: '#9a907c', line: 0.6, heavy: 0.3, shade: { color: '#4a4350', alpha: 0.7, w: 2.4 }, light: { color: '#d8cfb8', alpha: 0.7, w: 1.4 } });
+                    // the board is made of pasted sheets: its layers show
+                    for (let k = 1; k < 4; k++) strokePts(q, [P(a + sa * 0.6, b + sb * hh * k * 0.22), P(a + sa * w * (0.8 - k * 0.17), b + sb * hh * k * 0.22)], 0.25, rgba('#4a4036', 0.6));
                     for (let i = 0; i < 6; i++) {
                         const u = r(), p = [a + sa * w * (1 - u) * 0.8, b + sb * hh * u * 0.8];
                         strokePts(q, [P(p[0], p[1]), P(p[0] + sa * (0.6 + r() * 1.4), p[1] + sb * (0.5 + r()))], 0.3, rgba(r() < 0.5 ? '#5a4634' : '#d8cfb8', 0.8));
@@ -1116,7 +1133,8 @@ const Library = (() => {
         print(c, '#5a221c', 0.1, (h) => {
             h.text('L. CERNUDA', { a: 40, b: T / 2, cap: 4.8, font: LORA, maxW: 48, track: 0.12 });
             h.text('OCNOS', { a: 88, b: T / 2, cap: 7, font: LORA, maxW: 36, track: 0.22 });
-            for (const a of [8, 66, 110]) h.line([[a, T / 2], [a + 4.5, T / 2]], 0.4);
+            for (const a of [7.5, 111]) h.line([[a, T / 2], [a + 4.5, T / 2]], 0.4);
+            h.dot(67, T / 2, 0.7);
             fleuron(h, L - 10, T / 2, 2.4, 5, -Math.PI / 2);
             h.line([[L - 20, 2], [L - 20, T - 2]], 0.3);
         });
@@ -1148,7 +1166,7 @@ const Library = (() => {
     // ---- the three that stand
     // a 19th-century gift binding: blue cloth blocked in gold, a horseshoe arch at the head
     SPEC.irving = {
-        M: MAT.blue, grain: GRAIN.cloth(MAT.blue, 1.25), round: 0.7, board: 3, pages: { kind: 'gilt', band: ['#a8322c', '#e7c35a'] },
+        M: MAT.blue, grain: GRAIN.cloth(MAT.blue, 1.25), round: 0.7, board: 3, pages: { kind: 'gilt', band: ['#a8322c', '#e7c35a'], bandW: 7, back: 10 },
         spinePaint(c) {
             const { P, L, T } = c, top = L - 6, Q = plane(P(top, 0), P.V, [-P.U[0], -P.U[1]]);
             blind(c, (h) => {
@@ -1433,7 +1451,7 @@ const Library = (() => {
             fill: col(tone), line: 1.9, heavy: 0.8, cast,
             detail: (q) => {
                 const cc = { q, P: C, L, T: Wd, M, seed: seed + 'cov', hi: Wd * 0.3 }, mid = L / 2, sy = 42.5, R = 13.6;
-                GRAIN.morocco(M)(q, C, L, Wd, seed + 'tg', 0.8);
+                GRAIN.morocco(M)(q, C, L, Wd, seed + 'tg', 0.45);
                 blind(cc, (h) => {
                     h.box(2.2, 2.2, L - 2.2, Wd - 2.2, 0.7);
                     for (const [a, f] of [[mid - 33, sy], [mid + 33, sy]]) h.circle(a, f, 7.6, 0.4);
@@ -1524,7 +1542,7 @@ const Library = (() => {
             const W = world(rot, 14, 208);
             // the ten that lie, from the ground up: name, left end of the spine, length, thickness, depth, yaw°, set back
             const pile = [
-                ['maimonides', -138, 182, 58, 160, 4, 0], ['gongora', -128, 174, 46, 146, 9, 5], ['arabi', -134, 172, 42, 138, 3, 2], ['seneca', -118, 152, 40, 126, 12, 7],
+                ['maimonides', -138, 182, 58, 160, 4, 0], ['gongora', -121, 174, 46, 146, 20, 5], ['arabi', -134, 172, 42, 138, 3, 2], ['seneca', -118, 152, 40, 126, 12, 7],
                 ['becquer', -114, 144, 34, 116, 6, 3], ['platero', -128, 154, 34, 120, 9, 6], ['juan', -84, 110, 26, 84, 5, 12],
                 ['alberti', -106, 140, 13, 104, 11, 6], ['cernuda', -98, 130, 12, 100, 4, 10], ['zambrano', -102, 136, 13, 102, 7, 7],
             ];

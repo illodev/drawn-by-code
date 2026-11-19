@@ -334,8 +334,8 @@ Tableau.lemons = (z0) => {
                 for (let j = 0; j < n; j++) blob(x + (r() - 0.5) * 150, y + (r() - 0.5) * 110, 22 + r() * 70, 10 + r() * 30, a + (r() - 0.5) * 0.5, `rgba(255,255,255,${al})`);
             }
         });
-        group(2.5, (blob) => {
-            for (let i = 0; i < (o.flecks ?? 60); i++) blob(box.x + r() * box.w, box.y + r() * box.h, 6 + r() * 16, 3 + r() * 9, 0.75 + (r() - 0.5), `rgba(255,255,255,${0.3 + r() * 0.5})`);
+        group(3.5, (blob) => {
+            for (let i = 0; i < (o.flecks ?? 60); i++) blob(box.x + r() * box.w, box.y + r() * box.h, 6 + r() * 12, 4 + r() * 8, 0.75 + (r() - 0.5), `rgba(255,255,255,${0.25 + r() * 0.45})`);
             for (const [x, y, rx, ry, a, al] of o.lit ?? []) blob(x, y, rx, ry, a, `rgba(255,255,255,${al})`);
         });
     };
@@ -569,10 +569,10 @@ Tableau.lemons = (z0) => {
                 P.drop(...tipOf(R1), 4, { hang: 0.5 });
                 P.drop(...tipOf(L1), 3.2, { hang: 0.4 });
                 // --- 6 · the sun comes through in patches
-                relight(g, wide, res, dapple('hero', wide, { pools: 40, suns: 48, flecks: 90, fall: 0.34,
+                relight(g, wide, res, dapple('hero', wide, { pools: 40, suns: 48, flecks: 70, fall: 0.34,
                     // the sun comes down a slant from the top left: the lemons either side of the rest and the three sprays stand in it; the far corners are in shade
                     lit: [[-230, -30, 80, 46, 0.8, 0.5], [236, -70, 70, 40, 0.8, 0.45], [60, -330, 90, 40, 0.5, 0.5], [600, -300, 90, 46, 0.7, 0.5], [-40, 300, 100, 44, 0.6, 0.45], [-520, -260, 120, 50, 0.6, 0.4], [420, 240, 110, 50, 0.7, 0.35]],
-                    dark: [[-780, 380, 260, 0.34], [780, -400, 240, 0.3], [820, 420, 230, 0.34], [-60, 440, 150, 0.2], [520, 20, 130, 0.22], [-640, 60, 150, 0.22]] }));
+                    dark: [[-780, 380, 260, 0.34], [780, -400, 240, 0.3], [820, 420, 230, 0.34], [-60, 440, 150, 0.2], [520, 20, 130, 0.22], [-640, 60, 150, 0.22]] }), { sun: 0.94, shade: 1.08 });
                 S.tooth(g, wide, { amp: 0.06 });
             },
         },
