@@ -2106,7 +2106,7 @@ const Forge = (() => {
                     return [(cx + dx - x) / s, (cy + dy - y) / s, R0];
                 });
             }
-            foliage(g, clumps, { Ls, seed, density: o.density ?? 1, leaf: o.leaf ?? 1, olives: o.olives ?? 0.02, glow: o.glow });
+            foliage(g, clumps, { Ls, seed, density: o.density ?? 1, leaf: o.leaf ?? 1, olives: o.olives ?? 0.004, glow: o.glow });
         }
         g.restore();
         return { tips };
@@ -2144,10 +2144,12 @@ const Forge = (() => {
             for (let t = 0; t < nt; t++) {
                 const a = r() * TAU, len = R * (0.4 + r() * 0.6), ox = cx + (r() - 0.5) * R * 0.4, oy = cy + (r() - 0.5) * R * 0.4;
                 const droop = 0.35;
+                all.push({ twig: true, ox, oy, a, len, droop, depth: -1 });
                 for (let k = 1; k <= 7; k++) {
-                    const u = k / 7.5, px = ox + Math.cos(a) * len * u, py = oy + Math.sin(a) * len * u + droop * len * u * u * 0.4;
+                    const u = k / 7.5 + (r() - 0.5) * 0.06, px = ox + Math.cos(a) * len * u, py = oy + Math.sin(a) * len * u + droop * len * u * u * 0.4;
                     for (const side of [-1, 1]) {
-                        const la = a + side * (0.5 + r() * 0.5) + 0.35 * droop, ll = (13 + r() * 6) * leaf * (1 - 0.3 * u);
+                        if (r() < 0.22) continue;
+                        const la = a + side * (0.25 + r() * 0.95) + 0.35 * droop + (r() - 0.5) * 0.5, ll = (11 + r() * 9) * leaf * (1 - 0.3 * u);
                         const lx = px + Math.cos(la) * ll * 0.5, ly = py + Math.sin(la) * ll * 0.5;
                         const rx = (lx - cx) / R, ry = (ly - cy) / R, rim = clamp(rx * dx + ry * dy), out = Math.hypot(rx, ry);
                         const flip = r() < 0.3; // the wind shows the silver underside
@@ -2156,9 +2158,20 @@ const Forge = (() => {
                 }
             }
             // a few olives
-            for (let i = 0; i < R * (o.olives ?? 0.02) * 10; i++) all.push({ olive: true, lx: cx + (r() - 0.5) * R * 1.2, ly: cy + (r() - 0.2) * R, depth: 0.5 });
+            for (let i = 0; i < R * (o.olives ?? 0.004) * 10; i++) all.push({ olive: true, lx: cx + (r() - 0.5) * R * 1.2, ly: cy + (r() - 0.2) * R, depth: 0.5 });
         }
         all.sort((p, q) => p.depth - q.depth);
+        // the twigs under their leaves
+        g.strokeStyle = 'rgba(30,30,34,0.85)';
+        g.lineCap = 'round';
+        for (const t of all) {
+            if (!t.twig) continue;
+            g.lineWidth = 1.6 * leaf;
+            g.beginPath();
+            g.moveTo(t.ox, t.oy);
+            g.quadraticCurveTo(t.ox + Math.cos(t.a) * t.len * 0.5, t.oy + Math.sin(t.a) * t.len * 0.5 + t.droop * t.len * 0.05, t.ox + Math.cos(t.a) * t.len * 0.95, t.oy + Math.sin(t.a) * t.len * 0.95 + t.droop * t.len * 0.36);
+            g.stroke();
+        }
         const tone = (k, flip) => {
             // dark green-grey above, silver beneath; the moon on the rim
             const base = flip ? [52, 64, 66] : [22, 32, 30];
@@ -2166,6 +2179,7 @@ const Forge = (() => {
             return base.map((v, i) => Math.round(v + (top[i] - v) * k));
         };
         for (const L of all) {
+            if (L.twig) continue;
             if (L.olive) {
                 g.fillStyle = '#1a1020';
                 g.beginPath();
@@ -2209,14 +2223,17 @@ const Forge = (() => {
     function owl(g, o = {}) {
         const { x = 0, y = 0, s = 1, seed = 'owl' } = o;
         const Ls = lightsOf(o, x, y, s, 0), amb = o.amb, res = resOf(g, s * 1.5), sd = S.seedOf(seed);
-        const body = S.curve([[0, -118], [-14, -122], [-26, -134], [-30, -112], [-34, -88], [-38, -60], [-36, -30], [-26, -8], [-10, 0], [10, 0], [26, -8], [36, -30], [38, -60], [34, -88], [30, -112], [27, -134], [14, -122]], true, 6);
+        const body = S.curve([[0, -116], [-12, -119], [-22, -128], [-31, -140], [-28, -116], [-32, -96], [-33, -70], [-30, -42], [-22, -16], [-12, -2], [-4, 6], [4, 6], [12, -2], [22, -16], [30, -42], [33, -70], [32, -96], [28, -116], [31, -140], [22, -128], [12, -119]], true, 6);
         const plum = (px, py, out) => {
-            // grey-brown, streaked and barred like the bark it sleeps against
-            mixA(hex('#8c8680'), hex('#4a4440'), 0.4 + 0.3 * noise2(px * 0.08, py * 0.08, sd), out);
-            const streak = Math.abs(Math.sin(px * 0.55 + noise2(px * 0.1, py * 0.1, sd + 1))) < 0.12 && noise2(px * 0.2, py * 0.06, sd + 2) > 0;
-            if (streak) into(out, [0.1, 0.08, 0.07], 0.75);
-            if (Math.sin(py * 1.6 + 2 * noise2(px * 0.15, py * 0.15, sd + 3)) > 0.82) into(out, [0.2, 0.17, 0.15], 0.4);
-            if (Math.sin(py * 1.6 + 2 * noise2(px * 0.15, py * 0.15, sd + 3)) < -0.9) into(out, [0.8, 0.76, 0.7], 0.25);
+            // grey bark-coloured feathers, small and overlapping: each with a dark shaft streak
+            // down its middle, a paler tip, its own tone; finer and barred on the face
+            const ww = worley(px / 4.6 + 0.3 * noise2(px * 0.05, py * 0.05, sd), py / 6.2, sd + 5);
+            const id = ww[2], dx = px / 4.6 - ww[3], dy = py / 6.2 - ww[4];
+            mixA(hex('#8a8682'), hex('#55504c'), 0.25 + 0.5 * id, out);
+            into(out, hex('#8a7458'), 0.25 * smooth(0.3, 0.9, noise2(px * 0.04, py * 0.04, sd + 1))); // a rufous cast here and there
+            if (Math.abs(dx + 0.04 * Math.sin(dy * 6)) < 0.04 + 0.05 * id && dy > -0.2 - 0.3 * id && dy < 0.2 && id > 0.5) into(out, [0.07, 0.06, 0.06], 0.75);
+            if (dy > 0.18) into(out, [0.86, 0.84, 0.8], 0.25 * smooth(0.18, 0.35, dy)); // the tips
+            if (Math.sin(py * 2.1 + px * 0.3 + 3 * noise2(px * 0.2, py * 0.2, sd + 3)) > 0.88) into(out, [0.18, 0.16, 0.15], 0.35); // fine wavy bars
         };
         const bodySp = lit({
             box: S.bbox(body, 4), res, seed, lights: Ls, amb, shape: 'round', relief: 0.8,
@@ -2227,7 +2244,7 @@ const Forge = (() => {
                 // the facial disc, paler, rimmed dark
                 const fd = Math.hypot(px / 26, (py + 96) / 22);
                 if (fd < 1) into(out, hex('#b0a492'), 0.55 * smooth(1, 0.6, fd));
-                if (Math.abs(fd - 1) < 0.08) into(out, [0.1, 0.08, 0.07], 0.7);
+                if (Math.abs(fd - 1) < 0.05 && noise2(px * 0.3, py * 0.3, sd + 9) > -0.3) into(out, [0.12, 0.1, 0.09], 0.5);
                 // the white scapular spots
                 for (const sx of [-1, 1]) for (let k = 0; k < 4; k++) if (Math.hypot(px - sx * (28 - k * 1.5), py + 66 - k * 7) < 2.4) into(out, [0.92, 0.9, 0.84], 0.9);
                 // the eyes: yellow irises, black pupils, a point of the moon in each
@@ -2249,8 +2266,8 @@ const Forge = (() => {
                 if (Math.abs(px) < 2.6 - (py + 90) * 0.25 && py > -92 && py < -82) mixA(out, [0.12, 0.1, 0.1], 0.9, out);
             },
             spec: { k: 0.3, power: 20 },
-            stroke: { amp: 0.08, freq: 0.12, tone: 7 },
-            edge: { rough: 2, freq: 0.5, amp: 0.8 },
+            stroke: { amp: 0.06, freq: 0.12, tone: 3 },
+            edge: { rough: 2, freq: 0.6, amp: 0.9 },
         });
         g.save();
         g.translate(x, y);
@@ -2877,6 +2894,11 @@ const Forge = (() => {
             albedo: (x, y, d, hh, out) => {
                 const n = noise2(x * 0.02, y * 0.02, sd + 20), f = flakeAt(x, y);
                 mixA(LIME, LIME_OLD, 0.3 + 0.3 * n, out);
+                if (rw && o.revealRock && d < rw) {
+                    // in the wall's thickness the lime gives out: the hill's own stone, worn smooth
+                    const k = smooth(rw * 0.75, rw * 0.25, d + 14 * noise2(x * 0.02, y * 0.02, sd + 31));
+                    into(out, mixA(hex('#6a5444'), hex('#3a2c26'), 0.5 + 0.5 * noise2(x * 0.06, y * 0.06, sd + 32), [0, 0, 0]), k * 0.85);
+                }
                 // a drip or a run of lime, a yellower old coat showing at the edge of a flake
                 into(out, LIME_OLD, smooth(-0.08, 0, f) * 0.6);
                 if (f > 0 && f < 0.05) into(out, hex('#c8a46a'), 0.6); // an old ochre coat under the white

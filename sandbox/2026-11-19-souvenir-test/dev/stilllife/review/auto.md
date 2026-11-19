@@ -4,7 +4,7 @@
 
 ## Warnings
 
-- **Flat frames** (a single color) at 7.17 s, 7.33 s, 7.50 s, 7.67 s, 7.83 s, 8.00 s….
+- **Flat frames** (a single color) at 7.00 s, 7.17 s, 7.33 s, 7.50 s, 7.67 s, 7.83 s….
 
 ## Motion
 
@@ -19,7 +19,7 @@ No still stretches of 1 s or more.
 
 ## Speed
 
-Painting: 5251 ms/frame cold, 5437 ms warm → full render ≈ 1093 s at this size.
+Painting: 5361 ms/frame cold, 4604 ms warm → full render ≈ 925 s at this size.
 
 > Slow: cache static elements with `Motion.sprite` and lower the texture density.
 

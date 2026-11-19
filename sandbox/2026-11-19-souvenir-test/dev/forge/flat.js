@@ -92,7 +92,7 @@ const PAGES = [
         const moon = { x: 0, y: -100, z: -1100, c: [1.3, 1.45, 1.8], r0: 1e9 };
         const sky = { dir: [0, -1, 0.4], c: [0.08, 0.1, 0.16] };
         F.oliveTree(g, { x: -380, y: 440, h: 760, moon, lights: [sky], seed: 'o1', lean: 0.3, shadowLen: 300 });
-        F.owl(g, { x: 260, y: 40, s: 1.6, moon, lights: [sky, { x: 0, y: 0, z: 900, c: [0.35, 0.18, 0.08], r0: 1e9 }] });
+        F.owl(g, { x: 260, y: 40, s: 2.4, moon, lights: [sky, { dir: [0.2, -0.4, 1], c: [0.14, 0.16, 0.24] }] });
         F.wisp(g, { x: 450, y: 300, r: 22 });
     },
 ];

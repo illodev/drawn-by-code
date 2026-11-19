@@ -5,7 +5,7 @@
 const DIR = 'sandbox/2026-11-19-souvenir-test/';
 // ---------------------------------------------------------------- edit this block
 const NAME = 'patio'; // Tableau[NAME](z0) → layers; Tableau[NAME].depth, Tableau[NAME].hole
-const USES = [DIR + 'things/fauna.js', DIR + 'things/shawl.js', DIR + 'things/citrus.js', DIR + 'things/patio.js', DIR + 'tableaux/patio.js']; // your files, in order (add any library file you reuse)
+const USES = [DIR + 'things/fauna.js', DIR + 'things/citrus.js', DIR + 'things/patio.js', DIR + 'tableaux/patio.js']; // your files, in order (add any library file you reuse)
 const FONTS = []; // { family, src } of any font you letter with (see fonts/)
 const BEFORE = { color: '#e9c9c2', hole: 125 }; // the plate you are entered through: its colour, its hole's radius
 const AFTER = '#b79a6a'; // what glows behind your own hole (the next picture's dominant colour)

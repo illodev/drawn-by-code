@@ -1,6 +1,8 @@
 // Flat sheets of picture 7 (the patio), without the rig: one layer's `paint` at a zoom about a
 // point, on a neutral ground. One page every 1/8 s (3 frames at 24 fps):
 //   PAGES[i] = [layer id (without 'patio-'), zoom, cx, cy]  (zoom 1 = film size at the reading distance)
+// As set: every layer once at the rig's own resolution (×1.12; the hall ×0.84, the plate ×0.56):
+// the console prints each one's paint time, the film's cost check.
 const DIR = 'sandbox/2026-11-19-souvenir-test/';
 const PAGES = [
     ['hall', 0.84, 0, 0], ['zaguan', 1.12, 0, 0], ['fountain', 1.12, 0, 0], ['cane', 1.12, 0, 0], ['pots', 1.12, 0, 0],
@@ -8,7 +10,7 @@ const PAGES = [
 ];
 Motion.scene({
     fps: 24, duration: PAGES.length / 8, logical: [1600, 900],
-    uses: ['styles/souvenir/souvenir.js', DIR + 'things/fauna.js', DIR + 'things/shawl.js', DIR + 'things/citrus.js', DIR + 'things/patio.js', DIR + 'tableaux/patio.js'],
+    uses: ['styles/souvenir/souvenir.js', DIR + 'things/fauna.js', DIR + 'things/citrus.js', DIR + 'things/patio.js', DIR + 'tableaux/patio.js'],
     setup(env) {
         return { layers: Tableau.patio(0), cache: new Map() };
     },

@@ -79,7 +79,9 @@ Tableau.stilllife = (z0) => {
         id: 'stilllife-' + id, z: z0 + dz, box, res, brush: false, ...o,
         paint(g) {
             paint(g);
-            S.tooth(g, box, { amp: 0.045 });
+            // the board's tooth: on the near-black of a wall or the larder it shows as white
+            // specks, so less of it there
+            S.tooth(g, box, { amp: o.tooth ?? 0.045 });
         },
     });
 
@@ -107,7 +109,7 @@ Tableau.stilllife = (z0) => {
         return pts;
     };
     const hatch = rect(-420, -290, 420, 230, 7);
-    const window_ = rect(-440, -430, 440, 262, 8);
+    const window_ = rect(-440, -430, 440, 200, 8);
 
     return [
         // ============================================================== 3 · the larder: the plate
@@ -147,7 +149,7 @@ Tableau.stilllife = (z0) => {
             g.arc(0, 0, Tableau.stilllife.hole, 0, TAU);
             g.fill();
             g.restore();
-        }, { hole: Tableau.stilllife.hole }),
+        }, { hole: Tableau.stilllife.hole, tooth: 0.015 }),
 
         // ============================================================== 3 · the larder: the window
         sheet('window', Z.s3 + 300, BODY, 0.8, (g) => {
@@ -161,23 +163,23 @@ Tableau.stilllife = (z0) => {
             St.cabbage(g, { x: 300, y: -340, s: 1.05, seed: 'win' });
             // on the sill: the cardoon laid across, its leaves towards the light, and the slice
             // of melon, the hidden half moon
-            St.cardoon(g, [430, 250], [70, 214], { seed: 'win' });
+            St.cardoon(g, [430, 198], [70, 166], { seed: 'win' });
             const sl = St.melonSlice(St.resOf(g, 1.3), 'win');
-            St.contact(g, -270, 246, 92, 9, 0.85);
+            St.contact(g, -270, 196, 92, 9, 0.85);
             // laid rind up on its cut edge, as slices are: a pale half disc rising from the
             // stone, its green rim above (mirrored top to bottom: its lighting is flat, so
             // nothing about the lamp changes)
-            S.put(g, sl, { x: -270, y: 247, sx: 1.3, sy: -1.3 });
-            for (const [x, y] of [[-170, 250], [-160, 254], [-356, 252]]) St.oval(g, x, y, 3, 1.4, 0.3, '#e8dcb0');
+            S.put(g, sl, { x: -270, y: 197, sx: 1.3, sy: -1.3 });
+            for (const [x, y] of [[-170, 198], [-160, 194], [-356, 196]]) St.oval(g, x, y, 3, 1.4, 0.3, '#e8dcb0');
             // the wall round it: a nail, a cobweb in the window's top corner
             nail(g, 640, -460, 90);
             cobweb(g, -440, -430, 80, -Math.PI, -Math.PI / 2, 'win');
             dusk(g, BODY, -700, -550, 300, 1700, 0.55);
-        }),
+        }, { tooth: 0.025 }),
         // ============================================================== 3 · hung on strings
         sheet('hung', Z.s3 + 150, BOX, 1, (g) => {
             // the melon on a ledge at the lower right, a slice gone from it, a fly at the cut
-            const G = St.ledge(g, { x0: -1260, x1: 1260, y: 262, face: 100, d: 440, seed: 'hung', chips: 10, joint: -150, lamp: lampOf(-500, -300, 1900, 0.2) });
+            const G = St.ledge(g, { x0: -1260, x1: 1260, y: 232, face: 100, d: 440, seed: 'hung', chips: 10, joint: -150, lamp: lampOf(-500, -300, 1900, 0.2) });
             const mb = St.melonBody(St.resOf(g, 1.15), 'hung'), yb = onTop(G, 0.5);
             St.castOn(g, mb, 680, yb, 1.15, { clip: G.top });
             St.contact(g, 680, yb, 160, 20);
@@ -208,20 +210,22 @@ Tableau.stilllife = (z0) => {
         }),
         // ============================================================== 3 · the offering and the candle
         sheet('vanitas', Z.s3, BOX, 1, (g) => {
-            const G = St.ledge(g, { x0: -1260, x1: 1260, y: 322, face: 110, d: 440, seed: 'van', chips: 11, joint: 260, mark: [-900, 380], lamp: lampOf(-600, -200, 1900, 0.2) });
+            const G = St.ledge(g, { x0: -1260, x1: 1260, y: 284, face: 110, d: 440, seed: 'van', chips: 11, joint: 260, mark: [-900, 380], lamp: lampOf(-600, -200, 1900, 0.2) });
             const yb = onTop(G, 0.5);
-            St.contact(g, -440, yb + 6, 190, 26, 0.7);
-            St.plate(g, { x: -440, y: yb, r: 180, flat: true, ey: yb, seed: 'van' });
+            St.contact(g, -330, yb + 6, 190, 26, 0.7);
+            St.plate(g, { x: -330, y: yb, r: 180, flat: true, ey: yb, seed: 'van' });
             const cp = St.cupSprite((yb - 8) / 1.3, St.resOf(g, 1.3), 'van');
-            St.castOn(g, cp, -370, yb - 8, 1.3, { clip: G.top, alpha: 0.5 });
-            St.put(g, cp, -370, yb - 8, 1.3);
-            St.rose(g, { x: -520, y: yb - 6, s: 1.45, seed: 'van' });
+            St.castOn(g, cp, -410, yb - 8, 1.3, { clip: G.top, alpha: 0.5 });
+            St.put(g, cp, -410, yb - 8, 1.3);
+            St.rose(g, { x: -270, y: yb - 2, s: 1.45, seed: 'van' });
             // the candle, put out a moment ago
             const G2 = G, y2 = onTop(G, 0.45);
             St.contact(g, 420, y2, 70, 10);
             const cs = St.candlestick(g, { x: 420, y: y2, wax: 200, s: 1.25, seed: 'van' });
             // the motto, dropped at the candle's foot, its end hanging over the edge
-            St.motto(g, [[372, y2 + 2], [290, y2 + 10], [220, y2 + 26], [186, 334], [180, 382]], { w: 24, size: 17, text: 'IN ICTV OCVLI' });
+            // (the path runs from the hanging end up and along to the candle, so the letters
+            // stand upright; they sit on the part that lies flat)
+            St.motto(g, [[180, 344], [186, 296], [220, y2 + 22], [290, y2 + 8], [372, y2 + 2]], { w: 24, size: 17, text: 'IN ICTV OCVLI', align: 0.92 });
             St.smoke(g, cs.wick, { h: 600, drift: -260, alpha: 0.85, seed: 'van' });
             dusk(g, BOX, -500, -300, 500, 1700, 0.4);
         }),
@@ -248,7 +252,7 @@ Tableau.stilllife = (z0) => {
             St.ristra(g, [880, -470], 470, { n: 9, s: 0.85, seed: 'hatch' });
             cobweb(g, 420, -290, 70, -Math.PI / 2, 0, 'hatch');
             dusk(g, BODY, -650, -450, 300, 1800, 0.5);
-        }),
+        }, { tooth: 0.025 }),
         // ============================================================== 2 · bread: the ledge of the kitchen
         sheet('kitchen', Z.s2 + 150, BOX, 1, (g) => {
             const G = St.ledge(g, { x0: -1200, x1: 1200, y: 210, face: 100, d: 460, seed: 'kitchen', chips: 9, joint: 700, lamp: lampOf(-500, -200, 1700, 0.25) });
@@ -344,7 +348,7 @@ Tableau.stilllife = (z0) => {
             nail(g, 640, -420, 70);
             cobweb(g, -430, -100, 90, -Math.PI, -Math.PI * 0.62, 'arch');
             dusk(g, BODY, -650, -450, 300, 1800, 0.45);
-        }),
+        }, { tooth: 0.025 }),
         // ============================================================== 1 · water: the jug and the búcaros
         sheet('jug', Z.s1 + 150, BOX, 1, (g) => {
             const G = St.ledge(g, { x0: -1260, x1: 1260, y: 236, face: 100, d: 480, seed: 'jugL', chips: 11, joint: 120, ring: [-560, 170], mark: [-1000, 280], lamp: lampOf(-600, -300, 1900, 0.2) });

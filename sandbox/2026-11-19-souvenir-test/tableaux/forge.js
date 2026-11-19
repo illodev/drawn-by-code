@@ -173,6 +173,10 @@ Tableau.forge = (z0) => {
                 F.pan(g, { x: 640, y: 250, r: 104, view: 'back', seed: 'w-pan4', ...L });
                 F.pan(g, { x: -760, y: 260, r: 96, view: 'inside', seed: 'w-pan5', ...L });
                 F.pan(g, { x: 1000, y: 170, r: 130, view: 'back', seed: 'w-pan6', ...L });
+                // higher, in the soot: two more plates and a small pan
+                F.plate(g, { x: -330, y: -470, r: 64, seed: 'pl-high1', motif: 'flower', ...L });
+                F.plate(g, { x: 330, y: -500, r: 70, seed: 'pl-high2', motif: 'granada', ...L });
+                F.pan(g, { x: -820, y: -480, r: 74, view: 'inside', seed: 'w-pan7', ...L });
                 // the cook's copper on nails between them
                 F.utensil(g, { x: -620, y: -120, kind: 'ladle', len: 260, seed: 'ladle', ...L });
                 F.utensil(g, { x: -340, y: -190, kind: 'skimmer', len: 250, seed: 'skimmer', ...L });
@@ -250,13 +254,13 @@ Tableau.forge = (z0) => {
             id: 'forge-door', z: z0 + Z.door, box: big, res: 0.9, brush: false,
             paint(g) {
                 const L = lights(Z.door, { moon: 0.4, fire: 0.6, r0: 900 });
-                const hole = [[-1300, -460], [480, -470], [520, -300], [540, 800], [-1300, 800]];
+                const hole = [[-1300, -470], [660, -480], [690, -300], [720, 800], [-1300, 800]];
                 F.cave(g, { box: big, holes: [S.curve(hole, true, 6)], reveal: 70, wash: 0.7, seed: 'door-rock', ...L,
                     soot: (x, y) => S.clamp((-y - 420) / 300 + 0.2) });
                 F.door(g, { x: -262, y: 6, h: 560, w: 330, far: 1.22, flip: true, seed: 'door', ...L });
                 // the cricket in its cage, hung from the rock above the way out
-                F.cage(g, { x: 300, y: -380, s: 1.15, seed: 'cage', ...L });
-                F.tongs(g, { x: 620, y: -380, rot: 0.05, len: 520, seed: 'door-tongs', ...L });
+                F.cage(g, { x: 330, y: -400, s: 1.15, seed: 'cage', ...L });
+                F.tongs(g, { x: 800, y: -400, rot: 0.05, len: 520, seed: 'door-tongs', ...L });
                 tooth(g, big);
             },
         },
@@ -267,12 +271,18 @@ Tableau.forge = (z0) => {
             paint(g) {
                 // the forge's light is far behind now; the moon comes in at the mouth, cold
                 const L = lights(Z.mouth, { moon: 0.7, fire: 0.36, r0: 900, extra: [{ x: 0, y: 60, z: 260, c: [0.3, 0.38, 0.62], r0: 380 }] });
-                F.cave(g, { box: big, holes: [mouth], reveal: 80, revealDepth: 220, wash: 0.85, dado: 380, seed: 'mouth', ...L,
+                F.cave(g, { box: big, holes: [mouth], reveal: 80, revealDepth: 220, revealRock: true, wash: 0.85, dado: 380, seed: 'mouth', ...L,
                     soot: (x, y) => S.clamp((-y - 300) / 400) * 0.6 });
                 F.horseshoe(g, { x: 0, y: -330, s: 0.8, rot: 0, worn: 1, seed: 'luck', ...L });
                 F.plate(g, { x: -520, y: -180, r: 74, seed: 'pl-mouth', motif: 'granada', ...L });
-                // the bridle by the door, waiting
+                // the bridle by the door, waiting; a pan and a ladle by it; tin for the fair
                 F.bridle(g, { x: 440, y: -250, s: 0.95, seed: 'bridle', ...L });
+                F.pan(g, { x: -440, y: 120, r: 70, view: 'back', seed: 'm-pan', ...L });
+                F.utensil(g, { x: -660, y: -40, kind: 'skimmer', len: 200, s: 0.9, seed: 'm-skim', ...L });
+                F.tin(g, { x: 330, y: 200, s: 1.1, n: 4, seed: 'm-tin', ...L });
+                F.horseshoe(g, { x: 640, y: 40, s: 0.55, rot: Math.PI, worn: 1, seed: 'm-shoe', ...L });
+                F.plate(g, { x: -330, y: -390, r: 60, seed: 'pl-mouth2', motif: 'bird', ...L });
+                F.pan(g, { x: 640, y: -420, r: 66, view: 'back', seed: 'm-pan2', ...L });
                 tooth(g, big);
             },
         },
@@ -303,7 +313,7 @@ Tableau.forge = (z0) => {
                 // the right tree reaches a limb in over the way, under its crown: the owl's perch
                 F.oliveTree(g, { x: 740, y: 660, h: 1200, lean: -0.25, spread: 0.8, seed: 'olive-R', shadowLen: 160, keep, ...L,
                     limbs: [{ path: [[-60, -420], [-240, -700], [-420, -860], [-560, -930]], w0: 70, w1: 26 }] });
-                F.owl(g, { x: 330, y: -213, s: 1.05, seed: 'zumaya', ...L, lights: [skyL, { x: 0, y: 0, z: 1200, c: [0.2, 0.11, 0.05], r0: 1e9 }] });
+                F.owl(g, { x: 330, y: -213, s: 1.05, seed: 'zumaya', ...L, fire: { ...L.fire, c: [0.1, 0.06, 0.03] }, lights: [skyL, { dir: [0.2, -0.4, 1], c: [0.14, 0.16, 0.24] }] });
                 F.chumbera(g, { x: -930, y: 720, h: 520, seed: 'chumbera', ...L });
                 F.agave(g, { x: 980, y: 720, s: 1.1, n: 13, len: 280, seed: 'agave', ...L });
                 tooth(g, big);
@@ -362,7 +372,6 @@ Tableau.forge = (z0) => {
             id: 'forge-sky', z: z0 + Z.sky, box: { x: -1700, y: -1050, w: 3400, h: 2100 }, res: 0.55, brush: false, far: [0.22, 0.34],
             paint(g) {
                 const box = { x: -1700, y: -1050, w: 3400, h: 2100 };
-                const k = 1000 / (Z.sky - Z.moon + 1000); // the moon's units in the sky's, at the end
                 F.sky(g, { box, mx: 0, my: 0, R: Tableau.forge.R * 1.25, n: 1600, calm: { x: -480, y: 380, w: 960, h: 380 } });
                 tooth(g, box);
             },

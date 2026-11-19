@@ -168,12 +168,6 @@ const Patio = (() => {
         S.put(g, sp.sh[key], { x: x + dx, y: y + dy, s, alpha });
         g.restore();
     }
-    // A thing painted on its own sheet, then its shadow thrown on what is there, then itself.
-    //   box in the thing's own units about its anchor; paint(q) draws it there.
-    function onSheet(g, box, s, key, paint) {
-        const res = resOf(g, s);
-        return memo ? S.sheet(box, res, paint) : null;
-    }
     function place(g, sp, x, y, s = 1, shadow = null) {
         if (shadow) castSprite(g, sp, { x, y, s, ...shadow });
         S.put(g, sp, { x, y, s });
@@ -373,6 +367,7 @@ const Patio = (() => {
         }
         // 7 · nails, rust and holes
         for (const [x, y, kind] of o.nails ?? []) nail(q, x, y, kind, sd + Math.round(x * 3 + y));
+        wallLife(q, { x: box.x, y: o.top ?? box.y, w: box.w, h: (o.floor ?? box.y + box.h) - (o.top ?? box.y) }, okAt, o.seed, o.life ?? Math.round((box.w * ((o.floor ?? 400) - (o.top ?? box.y))) / 26000));
         if (o.extra) o.extra(q, r);
         q.restore();
         // 8 · the grain of the lime: pits and specks of sand
@@ -394,6 +389,86 @@ const Patio = (() => {
         }
         S.put(g, sh);
         return sh;
+    }
+
+    // The small life of an old wall, scattered where `ok` allows: silvery snail trails and a
+    // snail, flies, a spider hanging on its thread, a wooden plug and an old screw, a square of
+    // blue tried on the lime, pencil ticks where someone measured, a moth.
+    function wallLife(q, box, ok, seed, n = 40) {
+        const r = rng('life' + seed);
+        const spot = () => {
+            for (let t = 0; t < 30; t++) {
+                const x = box.x + 40 + r() * (box.w - 80), y = box.y + 40 + r() * (box.h - 80);
+                if (ok(x, y, 20)) return [x, y];
+            }
+            return null;
+        };
+        for (let i = 0; i < n; i++) {
+            const p = spot();
+            if (!p) continue;
+            const [x, y] = p, k = i % 9;
+            if (k === 0) {
+                // a snail's trail, dried silver, wandering
+                const pts = [[x, y]];
+                let a = r() * TAU, px = x, py = y;
+                for (let m = 0; m < 26; m++) {
+                    a += (r() - 0.5) * 0.7;
+                    pts.push([(px += Math.cos(a) * 6), (py += Math.sin(a) * 6)]);
+                }
+                lineP(q, pts, 2.2, 'rgba(220,226,240,0.45)');
+                lineP(q, shift(pts, -0.6, -0.6), 0.6, 'rgba(255,255,255,0.7)');
+                if (r() < 0.5) {
+                    const e = pts[pts.length - 1];
+                    S.piece(q, S.ellipse(e[0], e[1], 5, 4.2, 16), { fill: '#b89a6a', line: 0, shade: { color: '#3a2a20', alpha: 0.5, w: 3 }, light: { color: '#fff0d0', alpha: 0.5, w: 2 } });
+                    q.lineWidth = 0.7;
+                    q.strokeStyle = 'rgba(80,56,30,0.8)';
+                    q.beginPath();
+                    for (let m = 0; m < 20; m++) q.lineTo(e[0] + Math.cos(m * 0.6) * (4 - m * 0.18), e[1] + Math.sin(m * 0.6) * (3.4 - m * 0.15));
+                    q.stroke();
+                }
+            } else if (k === 1 || k === 5) {
+                // a fly resting, wings folded back
+                disc(q, x + SD[0] * 2, y + SD[1] * 2, 2, 'rgba(60,50,80,0.3)');
+                oval(q, x, y, 2.2, 1.4, 0.4, '#2a2428');
+                oval(q, x - 2, y - 1, 2.6, 1, 0.9, 'rgba(210,214,230,0.6)');
+                oval(q, x - 2, y + 1, 2.6, 1, -0.2, 'rgba(210,214,230,0.6)');
+                disc(q, x + 2, y + 0.8, 0.9, '#6a2a24');
+            } else if (k === 2) {
+                // a spider hanging on its thread
+                const yy = y + 20 + r() * 40;
+                lineP(q, [[x, y], [x, yy]], 0.4, 'rgba(240,240,250,0.7)');
+                disc(q, x + SD[0] * 3, yy + SD[1] * 3, 2.4, 'rgba(60,50,80,0.25)');
+                disc(q, x, yy, 1.8, '#3a3034');
+                disc(q, x, yy + 2.4, 2.4, '#4a3c3c');
+                for (let m = 0; m < 4; m++) for (const sd of [-1, 1]) lineP(q, [[x, yy + 1], [x + sd * (3 + m * 0.6), yy - 2 + m * 2], [x + sd * (5 + m), yy + m * 2.4]], 0.4, '#3a3034');
+            } else if (k === 3) {
+                // a wooden plug in an old hole, and the screw that was in it, rusted
+                disc(q, x + 0.6, y + 0.7, 4.6, 'rgba(255,248,240,0.5)');
+                disc(q, x, y, 4, '#8a6a4a');
+                disc(q, x - 0.8, y - 0.8, 1.6, 'rgba(230,200,160,0.6)');
+                lineP(q, [[x - 2.5, y], [x + 2.5, y]], 0.8, 'rgba(60,40,30,0.7)');
+                S.dab(q, [[x, y + 4], [x, y + 18 + r() * 14]], { w: 3, color: '#8a5030', alpha: 0.3, bristles: 3, seed: i });
+            } else if (k === 4) {
+                // a square of blue tried on the lime, years ago, and a thumb-smear of it
+                const w = 18 + r() * 10, h = 14 + r() * 8;
+                S.dab(q, [[x, y], [x + w, y + (r() - 0.5) * 2]], { w: h, color: '#5a78b4', alpha: 0.55, bristles: 9, dry: 0.4, seed: i, taper: 0.2 });
+                oval(q, x + w + 8, y + 4, 4, 3, 0.4, 'rgba(90,120,180,0.35)');
+            } else if (k === 6) {
+                // pencil ticks where someone measured for a nail, and a cross
+                for (let m = 0; m < 3; m++) lineP(q, [[x + m * 7, y], [x + m * 7, y + 6 + (m === 1 ? 4 : 0)]], 0.6, 'rgba(70,64,80,0.55)');
+                lineP(q, [[x + 30, y - 3], [x + 36, y + 3]], 0.6, 'rgba(70,64,80,0.55)');
+                lineP(q, [[x + 36, y - 3], [x + 30, y + 3]], 0.6, 'rgba(70,64,80,0.55)');
+            } else if (k === 7) {
+                // a moth flattened against the wall for the day
+                fillP(q, [[x, y], [x - 9, y + 5], [x - 7, y + 9], [x, y + 6]], '#a89880');
+                fillP(q, [[x, y], [x + 9, y + 5], [x + 7, y + 9], [x, y + 6]], '#9a8a72');
+                lineP(q, [[x, y], [x, y + 7]], 1.2, '#6a5a4a');
+                for (const sd of [-1, 1]) lineP(q, [[x - sd * 5, y + 4], [x - sd * 7, y + 7]], 0.5, 'rgba(70,56,40,0.6)');
+            } else {
+                // an old screw hole with its crumbled rim, a stain of rust under it
+                nail(q, x, y, r() < 0.5 ? 'hole' : 'bent', S.seedOf(seed) + i);
+            }
+        }
     }
 
     // A flake: the top coats gone in an island, an older coat inside, the substrate inside that.
@@ -992,6 +1067,21 @@ const Patio = (() => {
             for (let i = 0; i <= 20; i++) mass.push((([cx, cy], w) => [cx - w * 0.5, cy])(C(i / 20), width(i / 20)));
             for (let i = 20; i >= 0; i--) mass.push((([cx, cy], w) => [cx + w * 0.5, cy])(C(i / 20), width(i / 20)));
             fillP(q, Fp(mass), '#26341c');
+            // the mass is itself loose barbs, bronze and green, falling down the train
+            {
+                const rb = Motion.rng('mass' + seed);
+                q.lineWidth = 0.7;
+                for (let i = 0; i < 1400; i++) {
+                    const t = 0.05 + rb() * 0.95, u = (rb() - 0.5), c0 = C(t), w0 = width(t), c1 = C(Math.min(1, t + 0.04));
+                    const p0 = [c0[0] + u * w0, c0[1]], p1 = [c1[0] + u * width(Math.min(1, t + 0.04)) + (rb() - 0.5) * 4, c1[1] + 4];
+                    const lit = S.clamp(0.4 + u * -0.6 * k + (rb() - 0.5) * 0.4);
+                    q.strokeStyle = css(lit > 0.5 ? mixRGB(hex('#4e6a28'), hex('#b8b05a'), (lit - 0.5) * 2) : mixRGB(hex('#18240f'), hex('#4e6a28'), lit * 2), 0.8);
+                    q.beginPath();
+                    q.moveTo(...F(p0));
+                    q.lineTo(...F(p1));
+                    q.stroke();
+                }
+            }
             for (const f of feathers) {
                 const rr = Motion.rng('feather' + seed + f.seedF);
                 const end = C(f.t), w = width(f.t);
@@ -2122,6 +2212,75 @@ const Patio = (() => {
         S.put(g, sp, { x, y });
         nail(g, x, y - rad - 6, 'nail', 31);
         lineP(g, [[x - 6, y - rad + 2], [x, y - rad - 6], [x + 6, y - rad + 2]], 1, '#5a4a3a');
+    }
+
+    // A frieze stencilled in ochre and añil under the hall's ceiling: a running band of
+    // palmettes between two ruled lines, every repeat a little off its neighbour (stencil
+    // shifted by hand), worn where the lime was washed over it.
+    function frieze(g, { x0, x1, y, h = 46, seed = 'fz' }) {
+        const r = rng('frieze' + seed);
+        lineP(g, [[x0, y], [x1, y + 2]], 3, 'rgba(200,150,70,0.75)');
+        lineP(g, [[x0, y + h], [x1, y + h + 1]], 3, 'rgba(200,150,70,0.75)');
+        for (let x = x0 + 10; x < x1; x += 44) {
+            const ox = (r() - 0.5) * 2, oy = (r() - 0.5) * 2, cx = x + 22 + ox, cy = y + h / 2 + oy;
+            // the palmette: a fan of five leaves on a scroll
+            for (let m = -2; m <= 2; m++) {
+                const a = -Math.PI / 2 + m * 0.42;
+                oval(g, cx + Math.cos(a) * 9, cy + 4 + Math.sin(a) * 9, 7, 2.6, a, `rgba(62,92,150,${0.55 + r() * 0.2})`);
+            }
+            g.lineWidth = 2;
+            g.strokeStyle = 'rgba(200,150,70,0.7)';
+            g.beginPath();
+            g.arc(cx - 11, cy + 8, 5, -0.5, 3.4);
+            g.stroke();
+            g.beginPath();
+            g.arc(cx + 11, cy + 8, 5, -0.3, 3.6);
+            g.stroke();
+            disc(g, cx, cy + 10, 2.4, 'rgba(160,60,50,0.7)');
+            // worn: lime washed over in patches
+            if (r() < 0.35) oval(g, cx + (r() - 0.5) * 20, cy + (r() - 0.5) * 12, 8 + r() * 10, 4 + r() * 6, r(), 'rgba(236,230,232,0.55)');
+        }
+    }
+    // A Fajalauza plate from Granada hung on the wall: a cream tin glaze, a pomegranate and
+    // a bird in green and blue, a dotted rim, a chip and a hairline crack, its wire hanger.
+    function plate(g, { x = 0, y = 0, r: rad = 52, seed = 'pl' } = {}) {
+        const res = resOf(g), r = rng('plate' + seed);
+        const sp = S.form({
+            box: { x: -rad - 2, y: -rad - 2, w: rad * 2 + 4, h: rad * 2 + 4 }, res, seed: S.seedOf(seed),
+            mask: (c) => disc(c, 0, 0, rad, '#fff'), inflate: 'none',
+            height: (px, py) => {
+                const d = Math.hypot(px, py) / rad;
+                return d > 0.78 ? 4 * Math.sin(((d - 0.78) / 0.22) * Math.PI) : -2 * (1 - d);
+            },
+            ramp: [[0, '#6a6070'], [0.3, '#a49aa0'], [0.5, '#d4c8bc'], [0.68, '#efe4d0'], [0.84, '#f8f0e0'], [1, '#fffcf2']], soft: 0.85,
+            spec: { amp: 0.6, power: 20, from: 0.4, to: 0.9, ragged: 0.3, color: '#ffffff' },
+            over: (c) => {
+                // the painting: a pomegranate on a twig and a bird, in the copper green and cobalt
+                const G = 'rgba(46,120,92,0.85)', B = 'rgba(40,70,150,0.85)';
+                c.lineWidth = 2;
+                c.strokeStyle = G;
+                c.beginPath();
+                c.moveTo(-30, 26);
+                c.quadraticCurveTo(-6, 6, 16, -14);
+                c.stroke();
+                for (const [lx, ly, la] of [[-18, 16, -0.4], [-4, 4, 0.9], [6, -6, -0.5]]) oval(c, lx, ly, 8, 3, la, G);
+                disc(c, 18, -18, 11, B);
+                fillP(c, [[14, -30], [18, -36], [22, -30]], B);
+                for (let m = 0; m < 9; m++) disc(c, 14 + (r() - 0.5) * 12, -18 + (r() - 0.5) * 12, 1.4, 'rgba(240,236,226,0.85)');
+                // the bird
+                oval(c, -14, -22, 9, 5, -0.2, G);
+                fillP(c, [[-22, -22], [-32, -28], [-30, -20]], G);
+                disc(c, -6, -25, 3.4, G);
+                disc(c, -5.5, -25.5, 0.9, '#2a2a2a');
+                for (let m = 0; m < 24; m++) disc(c, Math.cos((m / 24) * TAU) * rad * 0.88, Math.sin((m / 24) * TAU) * rad * 0.88, 1.6, m % 2 ? B : G);
+                lineP(c, [[rad * 0.3, rad * 0.5], [rad * 0.15, rad * 0.2], [rad * 0.2, 0]], 0.5, 'rgba(90,80,70,0.6)');
+            },
+        });
+        castSprite(g, sp, { x, y, dx: 9, dy: 11, blur: 5, alpha: 0.4, color: SHADOW });
+        S.put(g, sp, { x, y });
+        disc(g, x + rad * 0.62, y + rad * 0.62, 4, '#b07a5a'); // a chip, the red body under the glaze
+        lineP(g, [[x - 5, y - rad + 2], [x, y - rad - 8], [x + 5, y - rad + 2]], 1, '#6a6a70');
+        nail(g, x, y - rad - 8, 'nail', 51);
     }
 
     // An old iron key on a nail, its bit and bow, a loop of string through the bow.
@@ -3281,5 +3440,5 @@ const Patio = (() => {
         return sp;
     }
 
-    return { sunPatch, tray, key, skyline, dawn, tilePanel, stitchRose, stitchLeaf, well, chair, orangeTree, orange, cage, jasmine, lantern, tinaja, bench, fountain, can, peacock, ocellus, moon, column, pot, potBody, geranium, gitanilla, cinta, gleaf, ileaf, umbel, floret, stem, ceiling, wall, flake, crack, nail, archGeom, arch, voussoir, floor, sky, speck, eave, nest, madeja, dado, castSprite, place, softly, blob, memo, resOf, rng, P, SHADOW, L2, SD, throwOf, fbm, disc, oval, fillP, lineP, path, shift, mixRGB, css, canvas };
+    return { wallLife, frieze, plate, sunPatch, tray, key, skyline, dawn, tilePanel, stitchRose, stitchLeaf, well, chair, orangeTree, orange, cage, jasmine, lantern, tinaja, bench, fountain, can, peacock, ocellus, moon, column, pot, potBody, geranium, gitanilla, cinta, gleaf, ileaf, umbel, floret, stem, ceiling, wall, flake, crack, nail, archGeom, arch, voussoir, floor, sky, speck, eave, nest, madeja, dado, castSprite, place, softly, blob, memo, resOf, rng, P, SHADOW, L2, SD, throwOf, fbm, disc, oval, fillP, lineP, path, shift, mixRGB, css, canvas };
 })();

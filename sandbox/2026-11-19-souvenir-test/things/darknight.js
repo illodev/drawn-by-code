@@ -46,6 +46,104 @@
 // rolled back by their own weight · 5 a galloon of gold thread across the top, torn with the
 // rest · 6 moth holes · 7 a darn · 8 drops of wax on the cloth · 9 the weave in the light
 // · 10 the dye uneven: bluer in the folds, redder where it is worn.
+//
+// GRADAS (stepped stands of dark oak). 1 a moulded nosing on every step: fillet, ovolo,
+// cavetto · 2 the end towards the way through cut square and moulded the same way · 3 the
+// grain along the board · 4 oak's medullary flecks · 5 woodworm holes in clusters · 6 wax
+// that ran over the nosing · 7 each step hides the one behind it.
+//
+// ESCALA (the wooden ladder that goes in with the camera). 1 two rails of squared walnut with
+// eased arrises · 2 round rungs, turned · 3 the rungs' tops worn pale and smooth by feet
+// · 4 through-tenons showing their end grain on the rails, split by a wedge · 5 knots in the
+// rails · 6 a split rung bound with cord · 7 grain along each rail · 8 scratches · 9 its
+// stretches on every sheet lie on the same rays from the vanishing point, so they join
+// · 10 it ends where the narrow path of the mount begins.
+//
+// CELDA (the prison cell's wall and window, Toledo 1578). 1 courses of unequal height,
+// stones of unequal length, each its own tone and a slight swell · 2 tooling in parallel
+// strokes, a direction per stone · 3 lime mortar sunk and crumbling in the joints · 4 pits
+// and spalls · 5 voussoirs round a round-headed arch · 6 the reveal lit from beyond · 7 the
+// sockets of the bars that were sawn out, rust run down from them · 8 one bar left, bent
+// out, the rope tied to it · 9 a crack running from the arch · 10 a prisoner's tally of days
+// scratched in fives on a stone by the window. On the sill: a green-glazed inkpot with a
+// quill (he wrote there), a folded paper, a crust of bread and a sardine's tail (his ration).
+//
+// SOGA (the rope of strips of blanket and habit he let himself down by). 1 strips of brown
+// sayal and of a striped blanket, alternating · 2 twisted · 3 knotted end to end, each knot a
+// swelling · 4 two frayed ends at every knot · 5 loose fibres · 6 tied to the bent bar.
+//
+// FAROL APAGADO (a pierced tin lantern, put out). 1 a ring and a hook · 2 a cone punched in
+// rows of holes · 3 a collar · 4 a drum of four panes of horn between tin strips · 5 soot on
+// the panes, thickest at the top · 6 a candle stub seen through the horn · 7 a door with its
+// latch · 8 a dent · 9 a scratch in the soot · 10 a last thread of smoke from its vent.
+//
+// TERCIOPELO (the paso's velvet, night blue). 1 long hanging folds that catch the light only
+// at their edges (velvet) · 2 a valance gathered in small swags · 3 a band of gold
+// embroidery in relief: pomegranates between mirrored sprays of leaves, rosettes, two cords,
+// rows of beads · 4 a bullion fringe, every cord twisted and its own length · 5 worn patches
+// in the pile.
+//
+// JARRA (a paso's silver flower jar). 1 a foot with beading · 2 a gadrooned belly · 3 chased
+// leaves round the shoulder · 4 a neck and a beaded lip · 5 tarnish in the recesses.
+//
+// AZUCENA (Lilium candidum, the Madonna lily). 1 a trumpet of six tepals, three behind and
+// three in front · 2 each tepal a trough, its tip curled back · 3 green in the throat · 4 the
+// veins, faint grooves · 5 six pale filaments · 6 anthers rocking on their tips, orange with
+// pollen · 7 the style and its three-lobed stigma · 8 pollen fallen on a tepal · 9 long
+// greenish buds with the tepals' seams · 10 narrow leaves scattered up the stem.
+//
+// CLAVELES (the bed of white carnations at a paso's foot). 1 heads packed close · 2 each a
+// frilled dome of tiers of petals · 3 toothed petal edges · 4 a few still in bud · 5 grey-green
+// blades between · 6 one head gone brown.
+//
+// FAROL DE CRUZ DE GUÍA (the silver lantern on a pole that goes with the cross). 1 a hexagon of
+// glass, three panes seen · 2 silver posts · 3 a cornice and a moulding · 4 a crest of
+// pierced leaves · 5 a ribbed dome and a ball · 6 a gadrooned cone under it · 7 a candle
+// burning inside · 8 the pole sheathed in silver with knops and turned rings.
+//
+// INCENSARIO (a silver thurible). 1 three chains of links alternately flat and on edge
+// · 2 a lid pierced with flame-shaped openings in tiers · 3 coals glowing through the lowest
+// tier · 4 a gadrooned bowl · 5 a beaded join · 6 a foot · 7 smoke pouring and rolling.
+//
+// CÍRCULOS (Ibn Arabi's diagrams as pure geometry, and St John's mount, on a painted board).
+// 1 concentric circles in gold leaf, silver leaf, a double line, punched dots · 2 a planet
+// on each sphere · 3 the 28 mansions of the moon as dots · 4 twelve small stations · 5 spokes
+// between two spheres · 6 eight-pointed stars at the quarters · 7 eight circles interlaced
+// over and under · 8 the mount's flanks, its two wide paths winding and ending in a bar, the
+// narrow path straight up the middle as steps to the circles · 9 gold leaf laid in squares
+// with seams, cracked, worn to the red bole · 10 the board blue-black and cracked. No words.
+//
+// LUNA (gibbous, painted in silver leaf on the board, behind smoke): its lit part, its dark
+// limb, the seas, craters, one with rays.
+//
+// PALOMA (the white dove with the olive sprig, «la blanca palomica / al arca con el ramo se
+// ha tornado»). 1 a fan of twelve tail feathers · 2 wings raised, ten primaries longest at
+// the tip · 3 secondaries and coverts in rows · 4 every feather a vane with its rachis and
+// barbs, a parting in some · 5 a plump breast · 6 a round head · 7 a dark eye with its ring
+// · 8 the white cere over the beak · 9 an olive twig with leaves silver underneath · 10 two
+// olives.
+//
+// VIHUELA (a vihuela de mano with no one to play it: the silent music). 1 a waisted body,
+// upper bout smaller than the lower · 2 a flat spruce top with uneven grain · 3 an inlaid
+// chequer band round the edge · 4 a rose of six circles interlaced round one, cut through
+// · 5 a bridge with carved ends · 6 twelve strings in six courses, looped round the bridge
+// · 7 gut frets tied round the neck, their knots on the bass side · 8 a fingerboard of dark
+// wood · 9 the neck going out of sight to its head · 10 hung by a faded red ribbon.
+//
+// LAMPARILLAS (the hanging lamps, «¡Oh lámparas de fuego…!»): amber, red and blue glass
+// cups on three chains, the oil line, a band of enamelled dots, a brass rim, a small flame.
+//
+// CANTORAL (a choir book open for the Lamentations of Tenebrae). 1 two leaves of parchment
+// rising from the gutter · 2 four-line staves ruled in red · 3 square notes, some with stems
+// · 4 the text lines under the staves left empty, ruled in dry point (no words) · 5 an
+// initial square of blue with red pen flourishes, its letter rubbed away · 6 stains, a
+// thumbed corner · 7 the gutter's shadow · 8 brass corner pieces and bosses on the leather
+// boards · 9 the stacked edges of the leaves · 10 a drop of wax.
+//
+// POLILLA (moths at the flames). 1 forewings with two wavy cross lines · 2 a kidney spot
+// · 3 a pale subterminal line · 4 a chequered fringe · 5 veins · 6 rounder, paler hindwings
+// · 7 a furry thorax, a ringed abdomen · 8 feathered antennae · 9 grey-brown or pale kinds
+// · 10 wings open, half open or folded.
 const Night = (() => {
     const S = Souvenir, TAU = Math.PI * 2;
     const clamp = S.clamp, smooth = S.smooth, noise2 = S.noise2, hashI = S.hashI;
@@ -2297,14 +2395,14 @@ const Night = (() => {
             const rr = Math.hypot(ux, uy);
             if (rr < R0 - 0.5) return 0;
             // the board: blue-black paint, brushed, cracked into islands
-            const m = noise2(ux * 0.01, uy * 0.01, sd) * 0.04 + noise2(ux * 0.07, uy * 0.02, sd + 1) * 0.02;
+            const m = noise2(ux * 0.01, uy * 0.01, sd) * 0.04 + 0.012 * Math.sin(ux * 0.07 + Math.sin(uy * 0.02) * 3);
             q.r = 0.1 + m;
             q.g = 0.1 + m;
             q.b = 0.2 + m * 1.5;
             q.sp = 0.25;
             q.sh = 0.5;
             const crk = Math.abs(noise2(ux * 0.035, uy * 0.035, sd + 2) - 0.5);
-            q.h = (crk < 0.01 ? -1 : 0) + 0.2 * Math.sin(ux * 0.9 + noise2(ux * 0.05, uy * 0.3, sd) * 5);
+            q.h = (crk < 0.01 ? -1 : 0) + 0.2 * Math.sin(ux * 0.9 + Math.sin(uy * 0.3 + ux * 0.05) * 2.5);
             if (crk < 0.01) {
                 q.r *= 0.5;
                 q.g *= 0.5;

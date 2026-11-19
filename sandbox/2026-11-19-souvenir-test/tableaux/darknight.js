@@ -23,6 +23,22 @@
 // that its stretches on every sheet join into one ladder going in; the rings (of candles,
 // of smoke, of the circles) grow smaller in the dark behind each other.
 //
+//
+// What a second look finds (read at once / the deep one): the candles of Tenebrae are of
+// unbleached wax, one still burning / it is the inner one on the left, the first light seen;
+// an ember on one wick just put out; the instruments of the Passion embroidered on the veil,
+// the ladder among them / the veil is rent «from the top to the bottom»; a choir book open at
+// staves with no words, a moth on it; the cell's window with its bars sawn out / the tally of
+// days scratched on a stone, the inkpot and quill (he composed in that cell), bread and a
+// sardine's tail on the sill; the rope of knotted strips of blanket / the habit's brown among
+// them; the lantern put out still smoking; the silver lantern on its pole; lilies with pollen
+// fallen on a tepal; carnations, one gone brown; the thurible's coals through its lid; Ibn
+// Arabi's spheres with their planets and the 28 mansions of the moon / the mount's narrow
+// path continues the ladder up to the circles, the two wide paths end in a bar; the dove
+// carries an olive sprig (Cántico); a vihuela hung by a faded ribbon (the silent music, and
+// Narváez of Granada); the gibbous moon in silver leaf behind the smoke; twelve small lamps
+// round the innermost circle.
+//
 //   Tableau.darknight(z0) → layers; .depth (z0 to the plate); .hole (the plate's hole)
 window.Tableau = window.Tableau || {};
 Tableau.darknight = (z0) => {
@@ -172,6 +188,8 @@ Tableau.darknight = (z0) => {
             N.bar(P, [[-560, 430], [-420, 455], [-300, 470]], 10, 'barra-1');
             N.bar(P, [[330, 520], [450, 500], [560, 470]], 10, 'barra-2');
             N.haze(P, { y: -40, band: 200, seed: 'humo-celda', alpha: 0.34, n: 46 });
+            // thicker over the window: the light at the end stays veiled until the cell is passed
+            N.haze(P, { x0: -460, x1: 460, y: -10, band: 160, seed: 'humo-ventana', alpha: 0.6, n: 34, tint: '#5f5a7c' });
             N.moth(P, { x: -150, y: -210, s: 1.1, rot: 1.2, open: 0.7, seed: 'm2' });
             N.moth(P, { x: 170, y: -150, s: 0.9, rot: -2.2, open: 1, seed: 'm3', pale: true });
             P.light([{ x: 0, y: -10, z: -200, p: 2.4, r: 200, c: [1, 0.66, 0.34], air: 0.15 }, ...lightsFor('escala')], { amb: [0.15, 0.13, 0.24] });

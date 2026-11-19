@@ -120,6 +120,9 @@ Tableau.patio = (z0) => {
                 Pt.lantern(g, { x: 640, y: -360, s: 1.3, seed: 'lz' });
                 if (typeof Fauna !== 'undefined' && Fauna.gecko) Fauna.gecko(g, { x: 720, y: -250, s: 0.8, rot: -1.9, line: false, seed: 'gz' });
                 Pt.tray(g, { x: 560, y: -120, r: 66, seed: 'bandeja' });
+                Pt.frieze(g, { x0: box.x, x1: box.x + box.w, y: -600, h: 36, seed: 'zaguan' });
+                Pt.plate(g, { x: -700, y: -380, r: 50, seed: 'fajalauza' });
+                Pt.plate(g, { x: 820, y: -420, r: 40, seed: 'fajalauza2' });
                 Pt.key(g, { x: -420, y: 40, s: 1.1 });
                 // the hall is in shade, lit a little from the street behind the eye and the patio ahead
                 Pt.dawn(g, box, res, { line: [[-1200, -2000], [1200, -2000]], shade: [0.8, 0.81, 0.93] });

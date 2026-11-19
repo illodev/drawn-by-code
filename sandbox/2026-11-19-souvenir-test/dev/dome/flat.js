@@ -6,7 +6,7 @@ const DIR = 'sandbox/2026-11-19-souvenir-test/';
 const CROPS = [
     ['dome-dado', -700, -200, 2], ['dome-plaster', -330, -330, 2], ['dome-corbels', 300, -360, 2], ['dome-lattice', -330, -200, 2],
     ['dome-muqarnas-0', -260, -300, 2], ['dome-muqarnas-1', 180, -200, 2], ['dome-ribs', -200, -150, 2], ['dome-mosaic', -200, -180, 2],
-    ['dome-crown', -150, -120, 2], ['dome-mosaic', -188, -176, 6],
+    ['dome-crown', -150, -120, 2], ['dome-mosaic', -188, -176, 6], ['dome-plaster', -470, -40, 2], ['dome-dado', -560, 0, 2],
 ];
 Motion.scene({
     fps: 24, duration: 2, logical: [1600, 900],
