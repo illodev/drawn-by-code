@@ -2,6 +2,9 @@
 // «Recuerdo de Andalucía», style test: the emblem, and the dive through the guitar's mouth
 // into the lemon tree.
 const DIR = 'sandbox/2026-11-19-souvenir-test/';
+// When things happen (seconds): the star flares, the emblem has arrived, the long push ends,
+// the camera is at the mouth, it is inside the tree, the end.
+const TIMES = { flare: 1.0, arrive: 1.7, push: 5.0, mouth: 5.55, tree: 6.25, end: 10.5 };
 
 // The opening: from far away the emblem is one star among the others. It kindles, flares,
 // the night's stars rush past, and the emblem comes out of the flare. Drawn as light
@@ -71,29 +74,36 @@ function opening(g, t, env) {
 
 Motion.scene({
     fps: 24,
-    duration: 8,
+    duration: 10.5,
     logical: [1600, 900],
     uses: [
         'styles/souvenir/souvenir.js',
         DIR + 'things/citrus.js', DIR + 'things/fan.js', DIR + 'things/shawl.js',
         { src: DIR + 'things/guitar.js', optional: true }, { src: DIR + 'things/garland.js', optional: true }, { src: DIR + 'things/sky.js', optional: true },
         { src: DIR + 'things/ribbon.js', optional: true }, { src: DIR + 'things/charms.js', optional: true },
+        { src: DIR + 'things/papers.js', optional: true }, { src: DIR + 'things/wares.js', optional: true }, { src: DIR + 'things/fauna.js', optional: true },
+        { src: DIR + 'things/coins.js', optional: true }, { src: DIR + 'things/relics.js', optional: true }, { src: DIR + 'things/heirlooms.js', optional: true },
         DIR + 'tableaux/emblem.js', DIR + 'tableaux/lemons.js',
     ],
-    fonts: [{ family: 'IM Fell DW Pica SC', src: 'fonts/IMFellDWPicaSC-Regular.ttf' }],
+    fonts: [
+        { family: 'IM Fell DW Pica SC', src: 'fonts/IMFellDWPicaSC-Regular.ttf' }, { family: 'Shrikhand', src: 'fonts/Shrikhand-latin.woff2' }, { family: 'Anton', src: 'fonts/Anton-latin.woff2' },
+        { family: 'Lora', src: 'fonts/Lora-Medium-latin.woff2' }, { family: 'Titan One', src: 'fonts/TitanOne-latin.woff2' },
+    ],
     // one take: these only name its parts for the contact sheet
-    shots: [[0, 1, 'The star'], [1, 1.75, 'The flare'], [1.75, 3.4, 'The emblem'], [3.4, 4.5, 'The dive'], [4.5, 8, 'The lemon tree']],
+    shots: [[0, 1, 'The star'], [1, 1.75, 'The flare'], [1.75, 5, 'The emblem'], [5, 6.25, 'The dive'], [6.25, 10.5, 'The lemon tree']],
     setup(env) {
         const Z1 = 1000, Z2 = 2340;
         // nothing shows as a speck in the night before the star has flared
-        const layers = [...Tableau.emblem(Z1), ...Tableau.lemons(Z2)].map((l) => ({ ...l, far: l.id.startsWith('emblem') ? [0.05, 0.14] : [0.12, 0.2] }));
-        // the camera's depth and what it focuses on, as keys; eased between with their slopes
-        // the approach lingers on the mouth and its rosette before the plunge
-        const zKeys = [[0, -42000], [0.95, -38000], [1.22, -9000], [1.42, -1500], [1.66, -40], [3.4, 110], [3.92, 560], [4.6, 1330], [8, 1470]];
-        const fKeys = [[0, 1000], [4.02, 1000], [4.45, 2340], [8, 2340]];
-        // during the hold the camera looks a little below the axis (the mouth sits above the
-        // middle of the frame, the ribbon is in); it comes back onto the axis to go through
-        const yKeys = [[0, 0], [1.3, 0], [1.7, 52], [3.2, 52], [3.92, 0], [8, 0]];
+        // (the lemon tree is in the brush manner: its strokes are in its own paint)
+        const layers = [...Tableau.emblem(Z1), ...Tableau.lemons(Z2)].map((l) => (l.id.startsWith('emblem') ? { ...l, far: [0.05, 0.14] } : { ...l, far: [0.12, 0.2], brush: false }));
+        // The camera's depth, what it focuses on and how far below the axis it looks, as keys.
+        //   the star · the flare and the arrival (wide: the whole wheel of relics is in) ·
+        //   a long push over the emblem (what is at the edges leaves the frame, the eye is
+        //   led to the mouth) · the approach lingers on the rosette · the plunge · the tree
+        const T = TIMES;
+        const zKeys = [[0, -42000], [T.flare - 0.05, -38000], [T.flare + 0.22, -9000], [T.flare + 0.42, -1800], [T.arrive, -300], [T.push, 120], [T.mouth, 560], [T.tree, 1330], [T.end, 1480]];
+        const fKeys = [[0, 1000], [T.mouth + 0.1, 1000], [T.tree - 0.15, 2340], [T.end, 2340]];
+        const yKeys = [[0, 0], [T.flare + 0.3, 0], [T.arrive, 52], [T.push - 0.2, 52], [T.mouth, 0], [T.end, 0]];
         return { rig: Souvenir.rig(env, layers), zKeys, fKeys, yKeys };
     },
     draw(g, t, env) {

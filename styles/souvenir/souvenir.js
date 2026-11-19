@@ -636,6 +636,83 @@ const Souvenir = (() => {
         g.restore();
     }
 
+    // The hand in the paint. A piece painted as local colour, airbrush and contour is clean
+    // where a painter's is not: inside every fill the brush leaves strokes that follow the
+    // form, and the mix drifts warmer and cooler. This lays that over a finished layer:
+    // streaks along the layer's own edges and folds (across a flat they take the slant a
+    // right hand gives them), a slow drift of the mix, on the paint only. No edge moves:
+    // a line stays where it was drawn.
+    //   amp   how much a stroke lightens or darkens (0.07 = 7 %)
+    //   len   half the length of a stroke, in output pixels at 1920 (scaled with the output)
+    //   drift how much the mix wanders in value; warm: and in temperature
+    //   slant the angle strokes take across a flat (radians); wander: how far it strays
+    function brushwork(canvas, { amp = 0.07, len = 9, drift = 0.035, warm = 0.02, slant = -0.55, wander = 0.7, seed = 1, k = 1.2 } = {}) {
+        const w = canvas.width, h = canvas.height;
+        if (w * h < 64) return;
+        const g = canvas.getContext('2d', { willReadFrequently: true });
+        const img = g.getImageData(0, 0, w, h), px = img.data;
+        // luminance at half size, softened: the form the strokes follow
+        const hw = Math.ceil(w / 2), hh = Math.ceil(h / 2);
+        const lum = new Float32Array(hw * hh);
+        for (let y = 0; y < hh; y++) {
+            for (let x = 0; x < hw; x++) {
+                const i = (Math.min(h - 1, y * 2) * w + Math.min(w - 1, x * 2)) * 4;
+                lum[y * hw + x] = ((px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11) * px[i + 3]) / 65025;
+            }
+        }
+        boxBlur(lum, hw, hh, 2, 2);
+        // direction along the edges, kept as a doubled angle so opposite slopes agree
+        const c2 = new Float32Array(hw * hh), s2 = new Float32Array(hw * hh);
+        for (let y = 1; y < hh - 1; y++) {
+            for (let x = 1; x < hw - 1; x++) {
+                const i = y * hw + x;
+                const gx = lum[i + 1] - lum[i - 1], gy = lum[i + hw] - lum[i - hw];
+                const m = Math.hypot(gx, gy);
+                // across a flat: a slant that wanders slowly
+                const th = slant + wander * noise2(x / 140, y / 140, seed + 5);
+                const wgt = Math.min(1, m * 40);
+                // the stroke runs along the edge: perpendicular to the slope
+                const ex = m > 1e-6 ? -gy / m : 0, ey = m > 1e-6 ? gx / m : 0;
+                c2[i] = wgt * (ex * ex - ey * ey) + (1 - wgt) * Math.cos(2 * th);
+                s2[i] = wgt * (2 * ex * ey) + (1 - wgt) * Math.sin(2 * th);
+            }
+        }
+        boxBlur(c2, hw, hh, 4, 2);
+        boxBlur(s2, hw, hh, 4, 2);
+        // two grains of bristle: a fine one and a broad one
+        const L = Math.max(3, Math.round(len * (k / 1.2)));
+        const n1 = new Float32Array(w * h), n2 = new Float32Array(w * h);
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                n1[y * w + x] = hashI(x, y, 1, seed) - 0.5;
+                n2[y * w + x] = hashI(x >> 2, y >> 2, 2, seed) - 0.5;
+            }
+        }
+        const norm = 1 / (0.29 / Math.sqrt(2 * L + 1));
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const o = (y * w + x) * 4;
+                if (!px[o + 3]) continue;
+                const hi = Math.min(hh - 1, y >> 1) * hw + Math.min(hw - 1, x >> 1);
+                const a = 0.5 * Math.atan2(s2[hi], c2[hi]);
+                const dx = Math.cos(a), dy = Math.sin(a);
+                let acc1 = 0, acc2 = 0;
+                for (let t = -L; t <= L; t++) {
+                    const X = Math.max(0, Math.min(w - 1, Math.round(x + dx * t))), Y = Math.max(0, Math.min(h - 1, Math.round(y + dy * t)));
+                    acc1 += n1[Y * w + X];
+                    acc2 += n2[Y * w + X];
+                }
+                const st = Math.max(-2.2, Math.min(2.2, (acc1 / (2 * L + 1)) * norm * 0.55 + (acc2 / (2 * L + 1)) * 3.4 * 0.75));
+                const dr = noise2(x / (90 * k), y / (90 * k), seed + 9), tw = noise2(x / (150 * k), y / (150 * k), seed + 13);
+                const f = 1 + amp * st * 0.5 + drift * dr;
+                px[o] = Math.max(0, Math.min(255, px[o] * f * (1 + warm * tw)));
+                px[o + 1] = Math.max(0, Math.min(255, px[o + 1] * f));
+                px[o + 2] = Math.max(0, Math.min(255, px[o + 2] * f * (1 - warm * tw)));
+            }
+        }
+        g.putImageData(img, 0, 0);
+    }
+
     // ------------------------------------------------------------------ the dive
     // A picture is a stack of painted layers at depths z; the camera sits on the axis at
     // cam.z looking down it. A layer `D` away is drawn at its painted size (1 layer unit =
@@ -648,6 +725,8 @@ const Souvenir = (() => {
     //     res   extra paint resolution (default 1 = the output's, times `oversample`)
     //     hole  radius of a round hole about the origin: the layer is dropped once that
     //           hole is wider than the frame
+    //     brush false for a layer that already has its brushwork (the brush manner), or
+    //           { amp, len, drift, warm } to tune the hand laid over it (see `brushwork`)
     //     far   [s0, s1]: invisible while smaller than scale s0, whole from s1 (a picture
     //           that must not show as a speck before it arrives)
     //   cam: { z, focus (a depth), aperture, roll, x, y }
@@ -666,6 +745,8 @@ const Souvenir = (() => {
                 const g = c.getContext('2d');
                 g.setTransform(res, 0, 0, res, -ly.box.x * res, -ly.box.y * res);
                 ly.paint(g, res);
+                // the hand in the paint, unless the layer has its own (the brush manner does)
+                if (ly.brush !== false && (o.brush ?? true)) brushwork(c, { seed: seedOf(ly.id), k: env.k, ...(typeof ly.brush === 'object' ? ly.brush : {}) });
                 cv.set(ly.id, c);
             }
             return cv.get(ly.id);
@@ -886,5 +967,5 @@ const Souvenir = (() => {
         ctx.restore();
     }
 
-    return { hex2rgb, rgb2hex, mix, rgba, clamp, smooth, lerp, hashI, noise3, noise2, seedOf, curve, trace, bbox, xf, ellipse, pxScale, edt, boxBlur, inflate, rampFn, form, put, dab, cast, spray, piece, ink, textOn, tooth, rig, track, finish, LIGHT, lightFor, INK, SHADE_DIR };
+    return { hex2rgb, rgb2hex, mix, rgba, clamp, smooth, lerp, hashI, noise3, noise2, seedOf, curve, trace, bbox, xf, ellipse, pxScale, edt, boxBlur, inflate, rampFn, form, put, dab, cast, spray, piece, ink, textOn, tooth, brushwork, rig, track, finish, LIGHT, lightFor, INK, SHADE_DIR };
 })();
