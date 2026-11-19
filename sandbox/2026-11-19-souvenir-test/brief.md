@@ -1,7 +1,7 @@
 # souvenir-test · «Recuerdo de Andalucía»
 
 - **Style:** souvenir (new, in testing)
-- **Format:** 16:9 · 10.5 s style test (two of nine pictures; the length of the whole film does not matter, the user says) · 24 fps
+- **Format:** 16:9 · 15 s style test (two of nine pictures; the length of the whole film does not matter, the user says) · 24 fps
 - **Purpose / audience:** a style test for a new look the user asked for.
 - **The request (the user, translated):** «I want to make similar art, but not the same.
   It is only the reference for the style.» Asked what world ours should paint: «Andalusia,
@@ -71,15 +71,18 @@ references; the length does not matter. So the dive grows and alternates:
 An alternative for the order, also to debate: the dive as a descent through time, each
 picture an older layer, down to Tartessos.
 
-## Shot list (the style test: pictures 1 and 2)
+## Shot list (the style test: pictures 1 and 2; round 3: a passage)
 
-| Time | Shot | What happens |
+| Time | Stratum | What comes into view |
 |---|---|---|
-| 0.0–1.0 | The star | In a night full of stars, one kindles: it is the emblem, seen from very far. |
-| 1.0–1.7 | The flare | It flares into eight points, the other stars stream past, and the emblem rushes out of it. |
-| 1.7–5.0 | The emblem | The camera arrives wide (the whole wheel of relics is in) and pushes in for three seconds: the edges leave, the eye goes to the guitar's mouth, which glows with the orchard behind it. |
-| 5.0–6.25 | The dive | The approach lingers on the rosette; then the strings pass, the dark of the box, and the lemon tree opens. |
-| 6.25–10.5 | The lemon tree | A slow push among lemons, leaves, blossom, a goldfinch, bees, dew. |
+| 0.0–2.6 | By the candle | The night lifts on a Holy Week candle and a thurible with its smoke; a Sephardic lamp, a comb, a rosary, a hand amulet, on a bank of embroidered flowers. The camera is already going in. |
+| 2.6–4.2 | Tartessos and the sea | The Carambolo gold, a stele, a murex and its purple, a Corinthian helmet, a pomegranate, a botijo. The guitar is seen, small, at the end. |
+| 4.2–5.6 | Rome and the Goths | A Baetican amphora, a mosaic of Italica, an eagle fibula, a votive crown, a Byzantine cross, a street tile. |
+| 5.6–7.0 | Al-Andalus | An astrolabe, the fawn of Madinat al-Zahra, cut tile, the books of its poets, a palette, fino. |
+| 7.0–8.4 | The house and the fair | The poster of the 1922 Concurso de Cante Jondo, cards, castanets, a matchbox, a score, lanterns overhead. |
+| 8.4–10.6 | The guitar | The emblem proper: guitar, two painted fans, olive, carnations, swallows, the ribbon and its coins. The mouth glows with the orchard. |
+| 10.6–11.9 | The dive | The rosette, the strings, the dark of the box. |
+| 11.9–15 | The lemon tree | Full day: lemons, blossom, a goldfinch, bees, dew. |
 
 ## How it is built
 

@@ -318,3 +318,7 @@ What I saw on the first two tries and changed:
 The emblem itself keeps only what is its own (guitar, fans, wreath, carnations, ribbon
 and coins, swallows, moon); a far copy of the shawl, three times larger, keeps the night
 embroidered from the far end of the passage.
+
+`review.mjs` on the final render: no warnings, deterministic; the only large jumps outside
+cuts are at 11.33 and 11.50 s, the camera going through the mouth. 360 frames at
+1920 × 1080 in 23 minutes (the steady advance needs five to eight exposures a frame).
