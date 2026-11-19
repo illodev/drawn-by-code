@@ -123,6 +123,24 @@ library of this style, to read before painting anything like them:
   near black and the frame's median luminance was 0.33 against the reference's 0.50: deep
   in a sunny tree is green light, not darkness. Measure the frame (luminance at 5/50/95 %,
   median saturation) against the mood wanted before painting more.
+- **A picture is a passage, not a poster.** The user, of a packed emblem the camera pushed
+  in on: «it shows that there are a lot of symbols and they have been put there scattered
+  all over the paper… it is not a poster that the camera approaches, it is overlap after
+  overlap». The things of a picture are spread along the axis in strata hundreds of units
+  apart (680 in the first film), each of three sheets a little apart, each with a body (a
+  mass of flowers or foliage round the way through) and with its pieces large, lying on one
+  another, the near ones cut by the frame. Every layer has `far`, so it comes out of the
+  dark as the camera nears it: never everything at once. The last stratum (the emblem
+  proper) is seen small at the end of the tunnel from early on: it is where the passage
+  goes. Loose objects floating in depth are the same scatter with haze on it.
+- **The order of the strata means something** (in the first film depth is time and light:
+  from a candle in the dark, through the peoples who passed, to the guitar and out into
+  day), and **the entrance belongs to the subject**: the film fades up on something of
+  its own world, already going in. No device borrowed from the reference (its star, its
+  whip-in were rejected: «it says nothing to me»).
+- **A steady advance; nothing waits to be read** (about a stratum every 1.3 s). Focus a
+  stratum ahead of the camera, a small aperture: with strata this close a wide one leaves
+  everything soft.
 - **A packed picture is composed by its framings.** Work out what the first, widest
   framing shows of each layer and place every piece whole inside it; the push then
   carries the edges out and leads the eye to the hole. Nothing lies on what must be read
@@ -203,6 +221,8 @@ library of this style, to read before painting anything like them:
 - [ ] Overlaps cast shadows.
 - [ ] Each picture: one manner, one hue family, a plate, a far, a main and a near layer.
 - [ ] The frame's luminance and saturation measured against the mood (bright pictures ≈ 0.45–0.5 median).
+- [ ] It is a passage: at any instant a near stratum leaving (cut by the frame, soft), one being read, the next through its middle, and the goal small at the end.
+- [ ] Nothing that is hidden behind a nearer layer shows before that layer has faded in (a far picture's plate as a rectangle in the night).
 - [ ] The hole is on the axis and cut clean through (fill opaque before `destination-out`).
 - [ ] The camera's track is monotone; focus racks only when the camera reaches the hole.
 - [ ] Tangents and overlaps: nothing in front crosses a thing it has nothing to do with (a wing over a moon, a wing over a fruit); what is held touches what holds it (crop the contact).

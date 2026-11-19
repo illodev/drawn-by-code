@@ -250,3 +250,71 @@ What I saw on assembly, at full size, and what changed:
 - **Objects of devotion carried bands of imitation script** · → left plain; the niche
   plaque left out (no such ivory is known).
 - **The moon sat where the thurible's smoke rises** · → moved out along the fan's edge.
+
+### Round 3 (user)
+
+**The user:** «I like the quality of the details, they are quite accomplished. It does not
+matter now whether they are more or less faithful to reality: what matters now is that
+the message is there; in post-production we will review it and fine-tune it if needed.
+The cover is incredible because it has a lot of references, but there is a problem: it
+shows that there are a lot of symbols and they have been put there scattered all over the
+paper. Another thing, I don't know if you noticed it in the video I sent you: the camera
+travels and there are always elements overlapping. It is not a poster that the camera
+approaches. It is overlap after overlap. So it would be good to break it down, above all
+so that it is not seen as a drawing with a lot of references but as a passage of things
+that come into view. Things I don't like: the entrance, not at all. It says nothing to
+me; I don't think the star fits, nor that sudden zoom. I understand you took it from the
+video I gave you, but we will have to look for something softer, something that makes
+more sense in this art and in this matter of Andalusia. Let the camera go deeper, and as
+it goes deeper the overlapping elements appear; not a collage of elements put there for
+the sake of it. It is fine, it is cool, but there is not even time to see it all, and it
+does not need to go so slowly that everything is seen: it is more that it goes in depth
+and that not everything appears at once.»
+
+What it means:
+
+- **A picture is a passage, not a poster.** The emblem was a flat collage on ten planes
+  within 150 units of depth: the camera approached it. Its pieces are redistributed along
+  the axis in strata hundreds of units apart, each overlapping the next and leaving a way
+  through; each stratum comes out of the dark, is crossed and uncovers the one behind.
+- **The order means something:** depth is time and light. It starts in the dark with a
+  candle and incense, crosses Tartessos and the sea, Rome and the Goths, al-Andalus, the
+  house and the fair, and reaches the guitar; then the lemon tree in full day.
+- **The entrance** (a star, a flare, a whip-in: the reference's own device) is gone. The
+  film fades up from the night on a candle flame and the camera simply starts to go in.
+- **Speed:** a steady advance; nothing waits to be read.
+- Fidelity of the relics is left for later, as the user says.
+
+### Round 3 (auto) · a passage, not a poster
+
+Built as the user asked. Picture 1 is now `tableaux/passage.js` + `tableaux/emblem.js`:
+five strata 680 units apart and then the guitar, each stratum three sheets (far, middle,
+near) with a way through on the axis. Every layer has `far`: it comes out of the night as
+the camera nears it. The camera only goes in, at a steady pace (about 500 units a second:
+a stratum every 1.3 s), with focus a stratum ahead; it settles on the guitar for a second
+and a half and goes through the mouth. 15 s.
+
+- **The entrance:** the film fades up from the night on a Holy Week candle and a thurible
+  with its smoke, the flame warming what is near it; no star, no flare, no whip.
+- **The order:** by the candle (the three faiths) · Tartessos and the sea · Rome and the
+  Goths · al-Andalus · the house and the fair · the guitar · the lemon tree. Darkest at
+  the start (a veil of the night on the paint, lighter stratum by stratum), full day at
+  the end.
+- **The guitar is seen at the end of the tunnel** from the second stratum on: what the
+  passage goes towards.
+
+What I saw on the first two tries and changed:
+
+1. **A green rectangle in the middle of the night** (the lemon tree's plates showing
+   before the guitar that hides them had faded in) · → the tree only appears once the
+   guitar is whole.
+2. **Loose things floating in haze**: the strata were rings of small separate objects, so
+   it was the same scatter, in depth; and focus 1000 ahead with strata 680 apart left most
+   of them soft · → each stratum has a body (a wreath of the shawl's own flowers and
+   leaves round the way through), its pieces are 1.3–1.5 times larger and lie on one
+   another, the near ones cut by the frame; a smaller aperture and less veil.
+3. **A lantern hung on the axis, over the guitar's head** · → the string raised.
+
+The emblem itself keeps only what is its own (guitar, fans, wreath, carnations, ribbon
+and coins, swallows, moon); a far copy of the shawl, three times larger, keeps the night
+embroidered from the far end of the passage.
