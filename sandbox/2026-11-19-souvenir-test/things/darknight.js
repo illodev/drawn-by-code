@@ -2270,8 +2270,29 @@ const Night = (() => {
             }
             return [best, along];
         };
-        const lines = MT ? [[mountL, 7, 0], [mountR, 7, 0], [pathL, 4, 1], [pathR, 4, 1]] : [];
-        const lineBox = lines.map(([pts, w]) => S.bbox(pts, w + 4));
+        // the mount's lines drawn once as fields: gold (its flanks), silver (the wide paths and
+        // the bars across their ends)
+        const MB = { x: -1100, y: 200, w: 2200, h: 540 };
+        const drawLines = (q, list) => {
+            q.strokeStyle = '#fff';
+            q.lineCap = 'round';
+            q.lineJoin = 'round';
+            for (const [pts, w] of list) {
+                q.lineWidth = w;
+                q.beginPath();
+                q.moveTo(pts[0][0], pts[0][1]);
+                for (const p of pts.slice(1)) q.lineTo(p[0], p[1]);
+                q.stroke();
+            }
+        };
+        const goldF = MT ? S.reliefField(MB, 1.2, (q) => drawLines(q, [[mountL, 7], [mountR, 7]]), 0) : null;
+        const silverF = MT ? S.reliefField(MB, 1.2, (q) => {
+            drawLines(q, [[pathL, 4], [pathR, 4]]);
+            for (const pts of [pathL, pathR]) {
+                const end = pts[pts.length - 1], pr = pts[pts.length - 3], ex = end[0] - pr[0], ey = end[1] - pr[1], el = Math.hypot(ex, ey);
+                drawLines(q, [[[[end[0] - (ey / el) * 12, end[1] + (ex / el) * 12], [end[0] + (ey / el) * 12, end[1] - (ex / el) * 12]], 4.4]]);
+            }
+        }, 0) : null;
         P.solid(b, (ux, uy, q) => {
             const rr = Math.hypot(ux, uy);
             if (rr < R0 - 0.5) return 0;
@@ -2322,9 +2343,67 @@ const Night = (() => {
                     hit = true;
                 }
             }
+            // the rest of the diagram: a planet on each sphere, the 28 mansions of the moon as
+            // dots on one ring, twelve small stations on another, spokes between two rings,
+            // eight-pointed stars at the quarters
+            const ang = Math.atan2(uy, ux);
+            for (let k = 0; k < RINGS.length; k++) {
+                const [R] = RINGS[k];
+                if (Math.abs(rr - R) > 16) continue;
+                const pa = k * 2.39 + 0.7, px = Math.cos(pa) * R, py = Math.sin(pa) * R, pr = 7 + (k % 3) * 3;
+                const dp = Math.hypot(ux - px, uy - py);
+                if (dp < pr) {
+                    gilt(q, ux, uy, sd + k, { silver: k % 2 === 1 });
+                    q.nx = (ux - px) / pr;
+                    q.ny = (uy - py) / pr;
+                    q.nz = Math.sqrt(Math.max(0, 1 - (dp / pr) ** 2));
+                    hit = true;
+                } else if (dp < pr + 3) {
+                    q.r *= 0.5;
+                    q.g *= 0.5;
+                    q.b *= 0.5;
+                }
+            }
+            {
+                const R = RINGS[4][0] + 26, st = TAU / 28, kk = Math.round(ang / st), px = Math.cos(kk * st) * R, py = Math.sin(kk * st) * R;
+                if (Math.abs(rr - R) < 4 && Math.hypot(ux - px, uy - py) < 3.4) {
+                    gilt(q, ux, uy, sd + 3, { silver: kk % 7 === 0 });
+                    hit = true;
+                }
+                const R2 = RINGS[6][0] - 30, st2 = TAU / 12, k2 = Math.round((ang - st2 / 2) / st2), qx = Math.cos(k2 * st2 + st2 / 2) * R2, qy = Math.sin(k2 * st2 + st2 / 2) * R2;
+                const d2 = Math.abs(rr - R2) < 14 ? Math.hypot(ux - qx, uy - qy) : 99;
+                if (Math.abs(d2 - 11) < 1.6 || d2 < 2.4) {
+                    gilt(q, ux, uy, sd + 4);
+                    hit = true;
+                }
+                // spokes between the fifth and the seventh rings
+                if (rr > RINGS[4][0] + 8 && rr < RINGS[6][0] - 8 && Math.abs(Math.sin(ang * 18)) * rr < 1.3) {
+                    gilt(q, ux, uy, sd + 5, { silver: true });
+                    hit = true;
+                }
+                // eight-pointed stars at the quarters, between rings 7 and 8
+                const Rs = (RINGS[7][0] + RINGS[8][0]) / 2;
+                for (let j = 0; j < 4 && Math.abs(rr - Rs) < 22; j++) {
+                    const a = j * Math.PI / 2 + Math.PI / 4, cx = Math.cos(a) * Rs, cy = Math.sin(a) * Rs;
+                    const dx = ux - cx, dy = uy - cy, d = Math.hypot(dx, dy), aa = Math.atan2(dy, dx);
+                    const star = 20 * (0.62 + 0.38 * Math.pow(Math.abs(Math.cos(aa * 4)), 6));
+                    if (d < star) {
+                        gilt(q, ux, uy, sd + 6 + j);
+                        q.nx = Math.cos(Math.round(aa * 4 / Math.PI) * Math.PI / 4) * 0.5;
+                        q.ny = Math.sin(Math.round(aa * 4 / Math.PI) * Math.PI / 4) * 0.5;
+                        q.nz = 1;
+                        if (d < 5) {
+                            q.r = 0.5;
+                            q.g = 0.14;
+                            q.b = 0.1;
+                        }
+                        hit = true;
+                    }
+                }
+            }
             // the interlace: each ring over the next at its outer crossing, under at the inner
             let best = null;
-            for (let i = 0; i < IR.n; i++) {
+            for (let i = 0; i < IR.n && Math.abs(rr - IR.c) < IR.r + IR.w; i++) {
                 const [cx, cy] = centres[i], d = Math.abs(Math.hypot(ux - cx, uy - cy) - IR.r);
                 if (d < IR.w / 2 + 1.6) {
                     const prev = (i + IR.n - 1) % IR.n, next = (i + 1) % IR.n;
@@ -2361,23 +2440,14 @@ const Night = (() => {
                 }
             }
             // the mount and its paths
-            for (let k = 0; k < lines.length; k++) {
-                const bb = lineBox[k];
-                if (ux < bb.x || ux > bb.x + bb.w || uy < bb.y || uy > bb.y + bb.h) continue;
-                const [pts, w, kind] = lines[k];
-                const [d, along] = segDist(pts, ux, uy);
-                if (d < w / 2) {
-                    gilt(q, ux, uy, sd + 9, { silver: kind === 1 });
+            if (MT && uy > MB.y && uy < MB.y + MB.h && ux > MB.x && ux < MB.x + MB.w) {
+                if (goldF(ux, uy) > 0.5) {
+                    gilt(q, ux, uy, sd + 9);
                     hit = true;
-                }
-                // the wide paths end in a bar across them: they go nowhere
-                const end = pts[pts.length - 1], pr = pts[pts.length - 3];
-                const ex = end[0] - pr[0], ey = end[1] - pr[1], el = Math.hypot(ex, ey);
-                if (kind === 1 && Math.abs(((ux - end[0]) * ex + (uy - end[1]) * ey) / el) < 2.2 && Math.abs(((ux - end[0]) * -ey + (uy - end[1]) * ex) / el) < 12) {
+                } else if (silverF(ux, uy) > 0.5) {
                     gilt(q, ux, uy, sd + 9, { silver: true });
                     hit = true;
                 }
-                void along;
             }
             // the narrow path: two lines straight up the middle, steps between them
             if (MT && uy > R0 + 4 && Math.abs(ux) < 20) {
@@ -2407,8 +2477,8 @@ const Night = (() => {
             q.nz = 1;
             // lit where x' > k·sqrt(1 − y²) (the lit side on the right)
             const lit = smooth(-0.05, 0.05, dx - k * Math.sqrt(Math.max(0, 1 - dy * dy)));
-            const sea = smooth(0.52, 0.62, noise2(dx * 2.2 + 3, dy * 2.2, sd)) * 0.5 + smooth(0.6, 0.7, noise2(dx * 4, dy * 4, sd + 1)) * 0.3;
-            let v = lerp(0.12, 0.8 - sea * 0.35, lit) * (0.75 + 0.25 * z);
+            const sea = smooth(0.4, 0.55, noise2(dx * 1.8 + 3, dy * 1.8, sd)) * 0.75 + smooth(0.5, 0.62, noise2(dx * 3.6, dy * 3.6, sd + 1)) * 0.35;
+            let v = lerp(0.1, 0.86 - sea * 0.45, lit) * (0.75 + 0.25 * z);
             // craters
             for (let i = 0; i < 9; i++) {
                 const cx = (hashI(i, 0, 1, sd) - 0.5) * 1.5, cy = (hashI(i, 1, 1, sd) - 0.5) * 1.5, cr = 0.04 + hashI(i, 2, 1, sd) * 0.08;
@@ -2672,7 +2742,7 @@ const Night = (() => {
                 q.ny = (sg * sn) * k * 0.8;
             }
             // spruce: lines of grain along the axis, unequal, a little darker at the edges
-            const gl = Math.sin(u * 1.3 + noise2(u * 0.05, v * 0.01, sd) * 7);
+            const gl = 0.55 * Math.sin(u * 0.9 + noise2(u * 0.05, v * 0.01, sd) * 9) * smooth(0.3, 0.7, noise2(u * 0.4, v * 0.02, sd + 4));
             const tone = 0.95 + 0.07 * gl - 0.12 * smooth(40, 0, e) + 0.05 * noise2(u * 0.02, v * 0.02, sd + 1);
             q.r = 0.66 * tone;
             q.g = 0.5 * tone;
@@ -2751,6 +2821,22 @@ const Night = (() => {
                 S.ink(P.m, [a, b2], { w: 0.7 * s, color: 'rgb(140,200,40)', taper: [0, 0] });
                 // the loop round the bridge
                 S.ink(P.a, [toW(u, 92), toW(u + 1, 98), toW(u - 0.5, 99)], { w: 0.8 * s, color: '#e0d6c0' });
+            }
+        }
+        // the faded ribbon it hangs by, tied round the neck under the head, up to a nail out of sight
+        if (o.ribbon !== false) {
+            const k0 = toW(-20, -380), k1 = toW(20, -380), up = [k0[0] + 40 * s, o.hang ?? -800];
+            for (const [a, b2, ph] of [[k0, up, 0], [k1, [up[0] + 14, up[1]], 1]]) {
+                tube(P, [a, [lerp(a[0], b2[0], 0.4) + 6, lerp(a[1], b2[1], 0.4)], b2], 9 * s, (u, ac, along, q) => {
+                    const fold = Math.sin(along * 0.06 + ph * 2);
+                    q.nx += fold * 0.6;
+                    q.r = 0.52 + 0.06 * fold;
+                    q.g = 0.2;
+                    q.b = 0.2 + 0.04 * fold;
+                    q.sp = 0.3;
+                    q.sh = 0.6;
+                    q.h = Math.abs(ac) > 0.8 ? 0.4 : 0.1 * Math.sin(along * 1.8);
+                });
             }
         }
         return { toW };
@@ -3095,5 +3181,49 @@ const Night = (() => {
         }
     }
 
-    return { begin, profile, latheN, candlestick, candle, wax, smoke, flame, halo, ember, hex, lerp, silverAt, smoothBump, veil, ladder, moth, poly, steps, wall, tube, rope, bar, lantern, velvet, jar, lily, flower, farol, chain, thurible, gilt, circles, moon, feather, dove, vihuela, inmost, book, sill, haze, carnations };
+    // ------------------------------------------------------------------ a hanging lamp
+    // A little oil lamp of amber glass hanging on three chains (`top` where they gather):
+    // the cup with its oil and its floating wick, the flame (returned), a ring of brass.
+    function lamp(P, o) {
+        const { x, y, s = 1, top = -800, seed = 'lamp', glass = [0.85, 0.5, 0.18] } = o, sd = S.seedOf(seed);
+        const hook = [x, y - 70 * s];
+        chain(P, [[x, top], hook], { w: 3.4 * s, link: 7 * s, seed: seed + 'c' });
+        for (const dx of [-17, 0, 17]) chain(P, [hook, [x + dx * s, y - 8 * s]], { w: 2.6 * s, link: 5.5 * s, seed: seed + dx });
+        const R = profile([[0, 18], [3, 19], [8, 18], [16, 14], [24, 8], [28, 4], [30, 2]].map(([yy, rr]) => [yy * s, rr * s]));
+        const y0 = y - 6 * s;
+        P.solid({ x: x - 21 * s, y: y0 - 1, w: 42 * s, h: 32 * s }, (ux, uy, q) => {
+            const yy = uy - y0, rr = R(yy);
+            if (rr <= 0) return 0;
+            const sx = (ux - x) / rr;
+            if (Math.abs(sx) >= 1) return 0;
+            latheN(q, sx, (R(yy + 0.5) - R(yy - 0.5)) / 1.0);
+            q.r = glass[0];
+            q.g = glass[1];
+            q.b = glass[2];
+            q.sp = 0.9;
+            q.sh = 0.9;
+            q.tr = 1;
+            // the oil line, and a band of enamelled dots
+            if (Math.abs(yy - 6 * s) < 0.8 * s) q.r *= 0.6;
+            if (Math.abs(yy - 12 * s) < 1.4 * s && Math.sin(Math.asin(sx) * 12) > 0.4) {
+                q.r = 0.9;
+                q.g = 0.82;
+                q.b = 0.5;
+                q.tr = 0.3;
+            }
+            q.h = (hashI(Math.round(ux * 3), Math.round(uy * 3), 2, sd) - 0.5) * 0.3;
+            return clamp((rr - Math.abs(ux - x)) * P.res + 0.5);
+        });
+        // the brass rim
+        tube(P, [[x - 19 * s, y0], [x + 19 * s, y0]], 3 * s, (u, a, along, q) => {
+            q.r = 0.72;
+            q.g = 0.52;
+            q.b = 0.22;
+            q.sp = 0.9;
+            q.h = 0.5 * Math.sin(along * 1.5);
+        });
+        return { fx: x, fy: y0 - 1 };
+    }
+
+    return { begin, profile, latheN, candlestick, candle, wax, smoke, flame, halo, ember, hex, lerp, silverAt, smoothBump, veil, ladder, moth, poly, steps, wall, tube, rope, bar, lantern, velvet, jar, lily, flower, farol, chain, thurible, gilt, circles, moon, feather, dove, vihuela, inmost, book, sill, haze, carnations, lamp };
 })();

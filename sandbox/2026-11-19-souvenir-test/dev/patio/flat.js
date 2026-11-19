@@ -3,8 +3,8 @@
 //   PAGES[i] = [layer id (without 'patio-'), zoom, cx, cy]  (zoom 1 = film size at the reading distance)
 const DIR = 'sandbox/2026-11-19-souvenir-test/';
 const PAGES = [
-    ['peacocks', 1, 0, -20], ['peacocks', 2, -300, -40], ['well', 1, 0, -60], ['well', 2, 640, -220], ['orange', 1, 400, -200], ['orange', 2, 760, -420],
-    ['gallery', 0.7, 0, -40], ['hall', 0.8, 0, -60], ['fountain', 1, 0, 100], ['zaguan', 2, 560, -260],
+    ['hall', 0.84, 0, 0], ['zaguan', 1.12, 0, 0], ['fountain', 1.12, 0, 0], ['cane', 1.12, 0, 0], ['pots', 1.12, 0, 0],
+    ['well', 1.12, 0, 0], ['orange', 1.12, 0, 0], ['gallery', 1.12, 0, 0], ['peacocks', 1.12, 0, 0], ['plate', 0.56, 0, 0],
 ];
 Motion.scene({
     fps: 24, duration: PAGES.length / 8, logical: [1600, 900],

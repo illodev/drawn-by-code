@@ -6,20 +6,29 @@
 // the wall with its wallpaper, nailed up; a bottle and a glass of Málaga moscatel; the corner
 // of a newspaper (ours) whose date is the painter's birthday and whose news is the full moon
 // over the port, a guitar heard all night in the square where he was born, and a teacher who
-// paints pigeons with his son. Then (stratum 2) the instrument comes apart: its head and pegs,
-// a malagueña's score, a ladder of frets, a second sound hole that is in the wrong place,
-// the ace of coins of picture 1 torn in half. Then (stratum 3) the guitar is whole, for an
-// instant, beside the father's pigeon's wing and under the full moon on the one blue, and
-// last (the plate) its sound hole, black, into the forge's fire (picture 9).
+// paints pigeons with his son. Then (stratum 2) the instrument comes apart under the full
+// moon on the one blue, with the father's pigeon's wing beside it: its head and pegs, a
+// malagueña's score, a ladder of frets, a second sound hole in the wrong place, the ace of
+// coins of picture 1 torn in half. Then (stratum 3) the guitar is whole, for an instant, with
+// the label of picture 1's maker pasted on its top, and last (the plate) its sound hole,
+// black, into the forge's fire (picture 9).
 //
-// The guitar adds up only from one place. Its pieces lie on four depths (the neck, the
-// strings, the bridge and the curves of the bouts on s3a; the soundboard, the rosette and the
-// end of the fingerboard on s3b; the lower bouts on s2c; the sound hole on the plate), each
-// painted at the size that makes it register with the others from CSTAR, the camera position
-// at which s3a is 1000 away (focus): there they are one guitar, SG times the size of picture
-// 1's. A moment before, the near pieces are smaller and lie inside the far ones; a moment
-// after, they have slid out past them. The strings jump: s3a over the neck and down to the
-// bridge, s3b over the soundboard, the plate over the black of the hole.
+// The guitar adds up only from one place: CSTAR, the camera position at which s3a is 1000
+// away (focus). There the frame is s2c's body with its way through, and s3a, s3b and the
+// plate seen through it; each piece is painted at the size that makes it register from
+// CSTAR (K(off)): on s2c the top of the neck, the lower bout, the bridge and the strings'
+// last run (outside the way through, soft at that instant); on s3a the left upper bout and
+// the waist as planes and the strings over the end of the fingerboard; on s3b the right of
+// the soundboard, the rosette and the end of the fingerboard round its round way through;
+// on the plate the black of the sound hole. A moment before, the far pieces lie small inside
+// the near ones; a moment after, the near ones have slid out past them. The strings jump
+// plane to plane: s2c over the neck and to the bridge, s3a over the fingerboard, s3b over
+// the soundboard (with the shadows of s3a's), the plate over the black ring.
+//
+// Every sheet is composed inside the window through which the bodies in front of it ever
+// show it (s1a ±690 × 430, s1b ±800 × 520, s1c ±920 × 590, s2a ±560 × 390, s2b ±650 × 450,
+// s2c ±800 × 510, s3a ±520 × 330, s3b ±620 × 400, plate ±530 × 370): nothing is painted
+// where the camera never looks.
 //
 // Things to find (read at once / the deep one): the newspaper's date, «martes 25 de octubre»,
 // and «núm. 1.881» (his birthday and year); the Plaza de la Merced; the pigeons painted with
@@ -36,7 +45,7 @@ Tableau.planes = (z0) => {
     const BOX = P.rect(B.x, B.y, B.w, B.h);
     const PB = { x: -900, y: -620, w: 1800, h: 1240 };
     // the middle and near sheets of a stratum are only ever seen through the way through of
-    // the body before them: their windows are smaller than the frame (see the report)
+    // the body before them: their windows are smaller than the frame (see the header)
     const MB = { x: -820, y: -530, w: 1640, h: 1060 };
 
     // ---------------------------------------------------------------- helpers
@@ -49,10 +58,10 @@ Tableau.planes = (z0) => {
             const col = o.colors[Math.floor((nz * 0.6 + r() * 0.4) * o.colors.length * 0.999)];
             const t = o.tex ? o.tex(i, r, col, c) : null;
             P.plane(g, c, { color: col, seed: o.seed + i, dir: (o.dir ?? -0.7) + (r() - 0.5) * 1.3, pent: r() < 0.18 ? [10 + r() * 14, -8 + r() * 16, (r() - 0.5) * 0.08] : null, ...(t ?? {}) });
-            // a word stencilled on some, a scrap pinned on others
+            // a scrap pinned on some
             const area = Math.abs(P.area(c));
-            if (o.extras !== false && area > 14000 && r() < 0.09) P.stencil(g, ['SOL', 'MAR', 'AS', 'LA', 'DE', 'VINO', 'Ñ'][Math.floor(r() * 7)], { x: m[0], y: m[1] + 20, rot: (r() - 0.5) * 0.3, size: 44 + r() * 30, color: col === C.black || col === C.burnt || col === C.umberD ? C.bone : C.black, seed: o.seed + 's' + i, alpha: 0.75 });
-            else if (o.extras !== false && area > 12000 && r() < 0.08) P.scrap(g, { x: m[0], y: m[1], w: 70 + r() * 50, h: 50 + r() * 40, rot: (r() - 0.5) * 0.5, seed: o.seed + 'sc' + i, kind: r() < 0.6 ? 'news' : 'score', torn: [1 + Math.floor(r() * 2)], pins: r() < 0.5 ? [[-20, -14]] : [] });
+            r();
+            if (o.extras !== false && area > 12000 && r() < 0.08) P.scrap(g, { x: m[0], y: m[1], w: 70 + r() * 50, h: 50 + r() * 40, rot: (r() - 0.5) * 0.5, seed: o.seed + 'sc' + i, kind: r() < 0.6 ? 'news' : 'score', torn: [1 + Math.floor(r() * 2)], pins: r() < 0.5 ? [[-20, -14]] : [] });
             // a patch of charcoal hatching in a corner of some of them
             if (r() < (o.hatch ?? 0.4)) {
                 const v = c[Math.floor(r() * c.length)];
@@ -204,16 +213,16 @@ Tableau.planes = (z0) => {
         P.plane(g, [[176, -500], [700, -520], [720, -150], [430, -120], [228, -206]], { color: C.blue, under: C.blueD, seed: 'blue', dir: -0.5, colors: [C.blue, C.blue, P.tone(C.blue, 0.06), P.tone(C.blue, -0.08)], vary: 0.04, lines: [0, 1, 3] });
         P.moon(g, { x: 340, y: -300, r: 84, seed: 'luna' });
         P.plane(g, [[226, -246], [330, -196], [292, -128], [214, -170]], { color: C.ochre, seed: 'moonplane', dir: 0.4, lines: 'all' });
-        P.score(g, { x: -566, y: -170, s: 0.86, rot: -0.06, seed: 'malaguena' });
-        P.wing(g, { x: 560, y: -26, rot: -0.14, s: 0.7, seed: 'paloma' });
+        P.score(g, { x: -566, y: -70, s: 0.86, rot: -0.06, seed: 'malaguena' });
+        P.wing(g, { x: 566, y: -214, rot: -0.06, s: 0.5, seed: 'paloma' });
         cutOpening(g, O2, 'o2');
         S.tooth(g, B);
     }, { box: B, far: [0.16, 0.3] });
     const s2b = layer('apart-head', OFF.s2b, (g) => {
-        P.plane(g, [[300, 110], [650, 80], [660, 470], [280, 500]], { color: C.umber, seed: 'cardbed', dir: -0.3, tex: 'sand', texO: { density: 0.06 } });
-        P.plane(g, [[-730, -520], [-330, -540], [-300, -80], [-700, -40]], { color: C.ochreD, seed: 'headbed', dir: 1.1, tex: 'comb', texO: { dir: 1.2, color: C.umberD, alpha: 0.5 }, lines: [0, 2] });
-        P.head(g, { x: -500, y: -150, rot: -0.2, s: 0.84, seed: 'clavijero' });
-        P.card(g, { x: 470, y: 280, s: 1.08, rot: 0.2, tear: 0.3, seed: 'oros' });
+        P.plane(g, [[290, -96], [566, -116], [586, 236], [272, 256]], { color: C.umber, seed: 'cardbed', dir: -0.3, tex: 'sand', texO: { density: 0.06 } });
+        P.plane(g, [[-650, -500], [-262, -520], [-228, -60], [-620, -20]], { color: C.ochreD, seed: 'headbed', dir: 1.1, tex: 'comb', texO: { dir: 1.2, color: C.umberD, alpha: 0.5 }, lines: [0, 2] });
+        P.head(g, { x: -430, y: -128, rot: -0.2, s: 0.84, seed: 'clavijero' });
+        P.card(g, { x: 404, y: 60, s: 1.04, rot: 0.18, tear: 0.3, seed: 'oros' });
         S.tooth(g, MB);
     }, { far: [0.16, 0.3] });
     const s2a = layer('apart-near', OFF.s2a, (g) => {

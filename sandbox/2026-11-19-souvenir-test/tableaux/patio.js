@@ -103,6 +103,7 @@ Tableau.patio = (z0) => {
                 // a tinaja with an aspidistra in the corner, a jar of blue and white with a fern
                 Pt.tinaja(g, { x: -640, y: FLOOR, s: 1.2, seed: 'tin', plant: 'aspidistra' });
                 Pt.tinaja(g, { x: 660, y: FLOOR, s: 1.0, seed: 'orza', plant: 'fern', color: 'blue' });
+                Pt.dawn(g, box, res, { line: [[-1200, -2000], [1200, -2000]], shade: [0.8, 0.8, 0.92] });
                 S.tooth(g, box, { amp: 0.05 });
             },
         }),
@@ -118,6 +119,12 @@ Tableau.patio = (z0) => {
                 Pt.madeja(g, { x: -600, y: -200, s: 1.2, seed: 'no8do' });
                 Pt.lantern(g, { x: 640, y: -360, s: 1.3, seed: 'lz' });
                 if (typeof Fauna !== 'undefined' && Fauna.gecko) Fauna.gecko(g, { x: 720, y: -250, s: 0.8, rot: -1.9, line: false, seed: 'gz' });
+                Pt.tray(g, { x: 560, y: -120, r: 66, seed: 'bandeja' });
+                Pt.key(g, { x: -420, y: 40, s: 1.1 });
+                // the hall is in shade, lit a little from the street behind the eye and the patio ahead
+                Pt.dawn(g, box, res, { line: [[-1200, -2000], [1200, -2000]], shade: [0.8, 0.81, 0.93] });
+                // but the sun comes in at the street door behind the eye, with the cancela's shadow
+                Pt.sunPatch(g, [[-930, -560], [-600, -560], [-420, 230], [-760, 230]], { seed: 'cancela' });
                 S.tooth(g, box, { amp: 0.05 });
             },
         }),
@@ -128,6 +135,7 @@ Tableau.patio = (z0) => {
                 // pots set on the fountain's rim
                 Pt.pot(g, { x: -232, y: 300, s: 0.75, tilt: 0.3, seed: 'fr1', plant: 'geranium', flower: 'red', off: 0, umbels: 3 });
                 Pt.pot(g, { x: 236, y: 298, s: 0.7, tilt: 0.3, seed: 'fr2', plant: 'gitanilla', flower: 'magenta', off: 0, len: 70 });
+                Pt.dawn(g, box, res, { line: [[-1200, 40], [1200, 120]], seed: 'f' });
                 // big pots standing on the floor at the sides, cut by the frame
                 Pt.pot(g, { x: -600, y: 230, s: 2.0, tilt: 0.25, seed: 'fl1', plant: 'geranium', flower: 'red', color: 'clay', umbels: 6, w: 1.4, off: 0 });
                 Pt.pot(g, { x: 640, y: 250, s: 2.1, tilt: 0.25, seed: 'fl2', plant: 'gitanilla', flower: 'pink', color: 'blue', trail: 8, len: 90, w: 1.3, off: 0 });
@@ -139,6 +147,7 @@ Tableau.patio = (z0) => {
                 Pt.can(g, { x0: -470, y0: FLOOR - 4, x1: -400, y1: -470, seed: 'can' });
                 Pt.pot(g, { x: -560, y: 300, s: 1.25, tilt: 0.28, seed: 'fl3', plant: 'cinta', color: 'blue', off: 0 });
                 Pt.pot(g, { x: 470, y: 300, s: 1.3, tilt: 0.28, seed: 'fl4', plant: 'geranium', flower: 'white', color: 'blue', umbels: 4, off: 0 });
+                Pt.dawn(g, box, res, { line: [[-1200, -230], [1200, -90]], seed: 'c' });
                 S.tooth(g, box, { amp: 0.05 });
             },
         }),
@@ -154,6 +163,8 @@ Tableau.patio = (z0) => {
                 const clear = (x, y) => !(Math.abs(x) < 420 && y > -520) && Math.abs(x) < 1180;
                 potWall(g, 'pw', [[-380, -1180, 1180, 160], [-220, -1180, 1180, 170], [-60, -1180, 1180, 180], [100, -1180, 1180, 190], [240, -1180, 1180, 210]], clear);
                 if (typeof Fauna !== 'undefined' && Fauna.lizard) Fauna.lizard(g, { x: 470, y: 290, s: 0.75, rot: -0.3, line: false, seed: 'lz', pose: 0 });
+                Pt.tilePanel(g, { x: 0, y: -428, cols: 5, rows: 3, t: 34, seed: 'bucaro' });
+                Pt.dawn(g, box, res, { line: [[-1200, -250], [1200, -110]], seed: 'p' });
                 S.tooth(g, box, { amp: 0.05 });
             },
         }),
@@ -163,6 +174,7 @@ Tableau.patio = (z0) => {
                 Pt.well(g, { x: -500, y: FLOOR, s: 0.95, seed: 'pozo' });
                 Pt.pot(g, { x: -620, y: 142, s: 0.8, tilt: 0.12, seed: 'wp', plant: 'geranium', flower: 'pink', off: 0, umbels: 3 });
                 Pt.chair(g, { x: 470, y: FLOOR, s: 1.1, seed: 'silla' });
+                Pt.dawn(g, box, res, { line: [[-1200, -200], [1200, -60]], seed: 'w' });
                 S.tooth(g, box, { amp: 0.05 });
             },
         }),
@@ -170,6 +182,7 @@ Tableau.patio = (z0) => {
             paint(g, res) {
                 Pt.orangeTree(g, { x: 700, y: FLOOR, s: 0.95, seed: 'naranjo' });
                 Pt.pot(g, { x: -760, y: 300, s: 1.4, tilt: 0.28, seed: 'gp1', plant: 'cinta', color: 'white', off: 0 });
+                Pt.dawn(g, box, res, { line: [[-1200, -380], [1200, -240]], seed: 'o' });
                 S.tooth(g, box, { amp: 0.05 });
             },
         }),
@@ -219,7 +232,9 @@ Tableau.patio = (z0) => {
                 // the canary hung in the left arch, the jasmine on its wire over the right
                 Pt.cage(g, { x: -side, y: -40 - R + 6, s: 1, seed: 'canario' });
                 Pt.jasmine(g, { pts: [[680, -330], [860, -360], [1020, -330], [1190, -350]], seed: 'jz' });
+                Pt.jasmine(g, { pts: [[-560, -330], [-300, -352], [0, -334], [300, -352], [560, -330]], seed: 'jz3', density: 0.9 });
                 Pt.jasmine(g, { pts: [[-1190, -340], [-1000, -370], [-800, -330]], seed: 'jz2', density: 0.8 });
+                Pt.dawn(g, box, res, { line: [[-1200, -230], [1200, -110]], seed: 'g' });
                 S.tooth(g, box, { amp: 0.05 });
             },
         }),
@@ -232,6 +247,7 @@ Tableau.patio = (z0) => {
                 Pt.pot(g, { x: 1000, y: 150, s: 1.1, tilt: 0.16, seed: 'bp2', plant: 'geranium', flower: 'coral', color: 'blue', off: 10 });
                 Pt.peacock(g, { x: -340, y: 240, s: 1.05, seed: 'L', drop: 160 });
                 Pt.peacock(g, { x: 340, y: 240, s: 1.05, seed: 'R', flip: true, drop: 160 });
+                Pt.dawn(g, box, res, { line: [[-1200, 150], [1200, 210]], seed: 'pk', shade: [0.72, 0.74, 0.88] });
                 S.tooth(g, box, { amp: 0.05 });
             },
         }),
@@ -241,13 +257,8 @@ Tableau.patio = (z0) => {
                 const [A] = wallSheet(g, res, {
                     box: plateBox, seed: 'plate', top: -360, sky: { clouds: 9 }, flakes: 10,
                     arches: [{ R: 175, cy: -25, ext: 56, lift: 18, n: 15, k: 0.95, lobes: 9, alfiz: { pad: 24, top: 26 } }],
-                    beyond: (q) => {
-                        // far off in the haze over the wall: roofs, a palm, the tower that was a minaret
-                        q.fillStyle = 'rgba(176,160,184,0.55)';
-                        q.fillRect(-1550, -420, 3100, 70);
-                        Pt.fillP(q, [[-760, -360], [-760, -560], [-748, -560], [-748, -600], [-700, -600], [-700, -560], [-688, -560], [-688, -360]], 'rgba(170,150,176,0.6)');
-                        Pt.fillP(q, [[-735, -600], [-724, -640], [-713, -600]], 'rgba(170,150,176,0.6)');
-                    },
+                    // far off in the haze over the wall: roofs, a palm, the tower that was a minaret
+                    beyond: (q) => Pt.skyline(q, { y: -356 }),
                 });
                 Pt.moon(g, { x: 330, y: -470, r: 54 });
                 // the dark of the house inside the door
@@ -264,6 +275,23 @@ Tableau.patio = (z0) => {
                     Pt.fillP(g, [[x0, A.imp * A.k], [x1, A.imp * A.k], [x1, FLOOR * A.k], [x0, FLOOR * A.k]], '#5a3e32');
                     for (let y = A.imp; y < FLOOR * A.k; y += 22) Pt.disc(g, (x0 + x1) / 2, y, 1.6, '#c8a060');
                 }
+                // the light of the room beyond, spilling out round the way out into the dark,
+                // on the floor of the hall inside and on a lamp's chain
+                const glow = g.createRadialGradient(0, 0, Tableau.patio.hole * 0.9, 0, 0, Tableau.patio.hole * 2.1);
+                glow.addColorStop(0, 'rgba(183,154,106,0.55)');
+                glow.addColorStop(0.5, 'rgba(150,120,84,0.18)');
+                glow.addColorStop(1, 'rgba(150,120,84,0)');
+                g.save();
+                g.beginPath();
+                S.trace(g, A.back);
+                g.clip();
+                g.fillStyle = glow;
+                g.fillRect(-400, -400, 800, 800);
+                for (let i = -6; i <= 6; i++) Pt.lineP(g, [[i * 14, 150], [i * 34, FLOOR * A.k]], 1, `rgba(200,170,120,${0.25 - Math.abs(i) * 0.03})`);
+                for (let j = 0; j < 5; j++) Pt.lineP(g, [[-160, 160 + j * j * 9], [160, 160 + j * j * 9]], 1, 'rgba(200,170,120,0.18)');
+                Pt.lineP(g, [[0, A.cy - A.R + 10], [0, -150]], 1.4, 'rgba(70,56,50,0.9)');
+                g.restore();
+                Pt.dawn(g, plateBox, res, { line: [[-1550, -160], [1550, -40]], seed: 'pl' });
                 // the way out
                 g.globalCompositeOperation = 'destination-out';
                 g.fillStyle = '#000';

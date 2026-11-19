@@ -22,47 +22,61 @@
 //
 // 1 · Cut-tile dado (alicatado), Nasrid, 14th c., as in the Hall of the Two Sisters and the
 //     Comares hall of the Alhambra: shapes nibbled from glazed tiles of five colours and set
-//     face down in plaster. 1 the lazo of eight (stars of two squares, crosses between)
-//     drawn by straight strapwork in four directions; a wheel of sixteen (a star {16/6},
-//     its petals) in the panels of the corners  2 five glazes: tin white, cobalt, copper
-//     green, honey, manganese black  3 no two pieces of one glaze the same tone  4 each
-//     piece set by hand, never level: some catch the light, some do not  5 white strapwork
-//     pieced, butting at every crossing it passes under  6 crazing and pinholes  7 a chipped
-//     arris showing the buff biscuit  8 a piece gone, its print in the plaster; one put back
-//     in the wrong colour  9 grime in the joints, darker low down  10 a crowning band of
-//     stepped merlons (almenillas) on top of the dado.
+//     face down in plaster. 1 the field a lazo of eight: in every square of the lattice a
+//     wheel of eight chords run on to the square's edge and mirrored into the next (stars,
+//     their petals, the strapwork continuous); a wheel of sixteen (a {16/6} star, every
+//     chord run on to its framed panel, a star of eight at its heart) in the middle of the
+//     side walls  2 five glazes: tin white, cobalt, copper green, honey, manganese black
+//     3 no two pieces of one glaze the same tone, the glaze run thin on the arris  4 each
+//     piece set by hand, never level: some catch the light, some do not  5 the white
+//     strapwork pieced, butting with a joint at every crossing it passes under  6 crazing
+//     and pinholes  7 a chipped arris showing the buff biscuit  8 a piece gone, its print in
+//     the plaster; one put back in the wrong colour  9 grime in the joints, darker low down
+//     10 crowning the dado a band of stepped merlons (almenillas), a fillet and a chequer.
 // 2 · Plaster (yesería) of leaves, ataurique: 1 the sebka, a net of lobed lozenges, each
-//     holding a split palmette  2 palmettes all different: fingers, curl, a pine cone, a
-//     shell  3 carved deep, undercut, the ground left rough  4 polychromy in traces: blue
-//     grounds, red, gold on the relief, mostly gone  5 the knot band where the inscription
-//     would run, left to interlace (no script)  6 a crack across a panel, a repair in a
-//     whiter plaster  7 dust lying on every upper edge  8 a cornice of mouldings  9 the
-//     carver's guide lines scratched in the ground  10 a nail and a stain of rust.
+//     holding a split palmette (two half-palmettes in a lyre, two small leaves at its foot)
+//     2 palmettes all different: fingers, curl, a pine cone, a bud or a shell at the top,
+//     a finger broken off  3 carved deep, the ground left rough  4 polychromy in traces:
+//     azure grounds (red in every fourth lozenge) flaking to the plaster, gold on the relief
+//     5 the knot band where the inscription would run: a chain of interlaced rings, each
+//     over its neighbour at the top and under it at the bottom, a flower in each (no
+//     script)  6 a crack across a panel, half of it filled in a whiter plaster  7 a cornice
+//     of dentils with red between  8 a cable moulding down every corner of the room  9 a
+//     swift's nest in a corner of the cornice, straw and feathers glued with spittle, its
+//     droppings down the wall  10 grime lower on the wall.
 // 3 · Carpentry of interlaced stars (lazo), as in the ceilings of Comares and the Mudéjar
-//     armaduras: 1 straight laths (cintas) in four directions halved into each other, over
-//     and under  2 the laths with a groove down the middle (two fillets)  3 the infill
-//     panels (taujeles) of the stars, crosses and lozenges painted red, green, blue, the
-//     stars gilt  4 cedar under the paint, its grain  5 a gilt pine-cone pendant (racimo) at
-//     the corners of the opening  6 corbels (canecillos) with lobed ends round the frieze  7
-//     worm holes, cracks along the grain, a missing lath showing the board  8 paint gone
-//     where the water came in  9 nail heads  10 a swift's nest between two corbels.
-// 4 · Muqarnas (mocárabes), the dome of the Two Sisters: 1 cells in tiers, each tier
-//     corbelled out over the one below and turned half a step, so the plan is rings of
-//     zigzags (sixteen-fold)  2 every cell a small hood: dark in its back, lit at its lip
-//     3 the prisms' edges as crisp arrises  4 the sixteen windows of the drum, lattices of
-//     plaster, sky behind; the gibbous moon in one  5 traces of blue, red and gold in the
-//     hollows  6 plaster chipped at a lip, the reed core showing  7 cobweb in a cell  8 a
-//     crack running up a tier  9 bird droppings, dust on every ledge  10 a cell restored in
-//     whiter plaster.
+//     armaduras: 1 the laths over and under by turns  2 a groove down every lath between two
+//     white fillets  3 the panels painted red, green, blue, white; a gilt star of eight on
+//     red in every octagon  4 cedar under the paint, its grain  5 a gilt pendant (racimo,
+//     small muqarnas seen from below) at each corner of the octagonal opening, a moulded
+//     frame round it  6 corbels (canecillos) all round the frieze, their ends rolled and
+//     lobed, their soffits painted (a red band with a white zigzag, blue edges), a corbel
+//     down each corner  7 the boards between them white with red darts (saetinos); the beam
+//     they come out of with a running frieze of small interlace between gilt beads  8 worm
+//     holes, cracks along the grain  9 a lath gone, the board and its nails showing; paint
+//     gone where the water came in  10 a swift's nest between two corbels.
+// 4 · Muqarnas (mocárabes), the dome of the Two Sisters: 1 cells in tiers, each tier turned
+//     half a step on the one below, so the plan is rings of zigzags (48, 32 and 16 points:
+//     sixteen-fold)  2 every cell a small niche: dark in its back, bright at its lip, the
+//     half that faces the light lit; rows by turns a single pocket or two facets on a ridge
+//     3 the lips inked heavy, the cells' walls fine  4 the sixteen windows of the drum,
+//     lattices of plaster against the dawn; the gibbous moon in one, still on the night
+//     side; gilt colonnettes between them; strapwork above  5 azure, red and green in the
+//     backs of the cells, gilt on the lips  6 a lip chipped, the reed core showing  7 a
+//     cobweb in a cell  8 a crack running up each tier, hairline cracks in some cells
+//     9 soot in the back corners  10 a cell restored in whiter plaster.
 // 5 · The ribbed dome before the mihrab of Córdoba, 10th c., and its gold mosaic, laid by a
-//     master sent from Byzantium: 1 eight ribs, each from a support to the third one on, so
-//     they cross as an eight-pointed star round an octagon  2 the ribs' soffits carved and
-//     lobed, with small rosettes  3 between them gold mosaic, tesserae one by one, rows that
-//     follow the dome  4 vegetal scrolls in green, blue and red glass on the gold  5 gold
-//     tesserae set at their own tilt: some blaze, some go amber or dark  6 a few set on
-//     their backs, brown-red  7 a joint of grey lime between all  8 ONE tessera missing, its
-//     socket red with the bed's underpainting  9 the crown a scalloped shell of gold  10 at
-//     its centre a lantern open to the sky, an eight-pointed star.
+//     master sent from Byzantium: 1 eight ribs, each from a support to the third one on,
+//     so they cross as an eight-pointed star round an octagon, over and under by turns
+//     2 the ribs' soffits lobed at the edges, a gilt bead, carved rosettes on red, blue
+//     fillets, the flank away from the axis in shadow  3 between them gold mosaic,
+//     tesserae one by one in rows that follow the octagon  4 scrolls in green, blue and red
+//     glass on the gold, each bay's a little different, outlined by a row of dark
+//     tesserae as a mosaicist sets them  5 gold tesserae set at their own tilt: some blaze,
+//     some go dark  6 a few set on their backs, brown-red; a few whose skin is lost  7 grey
+//     lime in every joint  8 ONE tessera missing, its socket red with the bed's underpaint
+//     9 the crown a shell of sixteen flutes in gold mosaic  10 at its centre the lantern
+//     open to the sky, an eight-pointed star (two squares) in a moulded frame lit by dawn.
 // The air: dust in the shafts of light from the windows, a spider's thread across the way.
 //
 // API (every drawer paints whole, static, in the caller's units, origin on the axis):
@@ -934,8 +948,33 @@ const Dome = (() => {
                 });
             },
         });
+        // a crack across a panel of the left wall, half of it filled in a whiter plaster
+        {
+            const r = Motion.rng('plcrack/' + seed), pts = [];
+            let x = -h - 90, y = -150;
+            for (let k = 0; k < 60; k++) {
+                pts.push([x, y]);
+                x -= 2.2 + r() * 1.6;
+                y += 4.2 + (r() - 0.5) * 5;
+            }
+            const fill = pts.slice(28);
+            g.save();
+            g.lineCap = 'round';
+            g.lineJoin = 'round';
+            g.strokeStyle = 'rgba(246,240,226,0.95)';
+            g.lineWidth = 5.5;
+            g.beginPath();
+            S.trace(g, fill, false);
+            g.stroke();
+            g.strokeStyle = 'rgba(160,146,124,0.6)';
+            g.lineWidth = 0.6;
+            g.stroke();
+            g.restore();
+            S.ink(g, pts.slice(0, 30).map(([px, py]) => [px + 0.7, py + 0.5]), { w: 1.3, color: 'rgba(255,246,226,0.6)' });
+            S.ink(g, pts.slice(0, 30), { w: 1.4, color: '#2a1e1c', alpha: 0.9 });
+        }
         // a swift's nest in the top left corner, on the cornice
-        nest(g, { x: -h - 22, y: -h - 20, s: 1, seed: seed + 'n' });
+        nest(g, { x: -h - 26, y: -h - 24, s: 1.45, seed: seed + 'n' });
     }
     // a swift's nest: straw and feathers glued with spittle, wedged in a corner (and a
     // streak of droppings below it). In the emblem manner, lit from the axis.
@@ -994,6 +1033,13 @@ const Dome = (() => {
                 q.fillRect(-40, -40, 80, 80);
             },
         });
+        // straws sticking out past the rim, every one its own way
+        for (let k = 0; k < 46; k++) {
+            const a = r() * TAU, r0 = 18 + r() * 8, l = 8 + r() * 18, b = a + (r() - 0.5) * 0.9;
+            const p0 = [Math.cos(a) * r0 * 1.15, Math.sin(a) * r0 * 0.85], p1 = [p0[0] + Math.cos(b) * l, p0[1] + Math.sin(b) * l];
+            const lit = (Math.cos(b) * inn[0] + Math.sin(b) * inn[1]) * 0.5 + 0.5;
+            S.ink(g, [p0, [(p0[0] + p1[0]) / 2 + (r() - 0.5) * 3, (p0[1] + p1[1]) / 2 + (r() - 0.5) * 3], p1], { w: 1.4 + r() * 0.8, color: S.mix('#5a4128', '#f0d89c', clamp(0.3 + lit * 0.6)), taper: [0.2, 1] });
+        }
         // two feathers stuck in it, a dark swift's feather and a pale down
         const feather = (px, py, ang, len, dark) => {
             const c = Math.cos(ang), sn = Math.sin(ang), pts = [];
@@ -1034,11 +1080,11 @@ const Dome = (() => {
         for (const [c, w] of shafts) {
             // a wedge widening away from the axis (the light comes down past the eye)
             for (let pass = 0; pass < 3; pass++) {
-                const ww = w * (0.45 + pass * 0.3), R0 = 150, R1 = 1500;
+                const ww = w * (0.45 + pass * 0.3), R0 = 30, R1 = 900;
                 const gr = g.createLinearGradient(Math.cos(c) * R0, Math.sin(c) * R0, Math.cos(c) * R1, Math.sin(c) * R1);
                 gr.addColorStop(0, 'rgba(255,226,170,0)');
-                gr.addColorStop(0.12, `rgba(255,222,160,${0.05 - pass * 0.012})`);
-                gr.addColorStop(0.5, `rgba(255,214,150,${0.04 - pass * 0.01})`);
+                gr.addColorStop(0.12, `rgba(255,222,160,${0.1 - pass * 0.025})`);
+                gr.addColorStop(0.5, `rgba(255,214,150,${0.08 - pass * 0.02})`);
                 gr.addColorStop(1, 'rgba(255,210,150,0)');
                 g.fillStyle = gr;
                 g.beginPath();
@@ -1052,9 +1098,9 @@ const Dome = (() => {
         }
         g.restore();
         // the dust: thick in the shafts, a few motes elsewhere; some caught sharp, some soft
-        for (let k = 0; k < 2600; k++) {
-            const x = box.x + r() * box.w, y = box.y + r() * box.h, rr = Math.hypot(x, y);
-            if (rr < 175) continue;
+        for (let k = 0; k < 4200; k++) {
+            // (only what the walls' opening shows is worth a mote)
+            const ra = r() * TAU, rr = 40 + Math.pow(r(), 0.8) * 420, x = Math.cos(ra) * rr, y = Math.sin(ra) * rr;
             const sh = inShaft(x, y);
             if (r() > 0.08 + sh * 0.92) continue;
             const s = 0.5 + Math.pow(r(), 3) * 2.2, lit = 0.35 + sh * 0.65;
@@ -1245,7 +1291,7 @@ const Dome = (() => {
             },
         });
         // the swift's nest wedged between two corbels on the right
-        nest(g, { x: h + 70, y: -PITCH * 1.5, s: 0.9, seed: seed + 'n' });
+        nest(g, { x: h + 74, y: -PITCH * 1.5, s: 1.25, seed: seed + 'n' });
     }
 
     // The ceiling of interlaced stars, an octagonal ring about the opening: laths with a
@@ -1268,7 +1314,7 @@ const Dome = (() => {
                     if (O.v < 0) return;
                     const nz = noise2(x * 0.07, y * 0.07, seed), nz2 = noise2(x * 0.017, y * 0.017, seed + 1);
                     // the pendants (racimos): small gilt muqarnas seen from below
-                    for (let k = 0; k < 8; k++) {
+                    for (let k = 0; k < (O.v < 46 ? 8 : 0); k++) {
                         const dx = x - pend[k][0], dy = y - pend[k][1], rr = Math.hypot(dx, dy);
                         if (rr < 21) {
                             const a = Math.atan2(dy, dx) + k, s8 = ((a / TAU) * 8 + 80) % 1, ring = rr < 8 ? 0 : rr < 15 ? 1 : 2;
@@ -1337,25 +1383,24 @@ const Dome = (() => {
                     // the panels: stars gilt, the rest painted, cedar where the paint has gone
                     let kind = FACE[R.orbit % FACE.length], starEdge = 1e9;
                     const u = h3(R.key, seed, 3, 1);
+                    const wet = nz2 > 0.42; // where the water came in
                     if (kind === 'star') {
                         const lx = x - R.ci * T, ly = y - R.cj * T, rr = Math.hypot(lx, ly), sr = zigR(ST8, Math.atan2(ly, lx));
                         kind = rr < sr ? 'gold' : 'red';
                         starEdge = rr - sr;
                     }
-                    cedar(x, y, 0.3 + u, seed + (R.key & 63), C3);
-                    const wet = nz2 > 0.42; // where the water came in
+                    const bare = () => cedar(x, y, 0.3 + u, seed + (R.key & 63), C3);
                     if (kind === 'gold') {
                         const keep = noise2(x * 0.09, y * 0.09, R.key & 255) > (wet ? 0.35 : -0.55);
                         if (keep) {
                             lerp3(GOLD, GOLD_L, clamp(0.3 + 0.5 * u + 0.3 * nz), C3);
                             P.mt[i] = 1;
                             P.gl[i] = 0.5;
-                        }
+                        } else bare();
                     } else {
                         const keep = noise2(x * 0.06, y * 0.06, R.key & 255) > (wet ? 0.2 : -0.6);
-                        if (keep) {
-                            lerp3(PAINT[kind], kind === 'white' ? [200, 186, 160] : [20, 14, 20], 0.15 + 0.3 * u + 0.15 * nz, C3);
-                        }
+                        if (keep) lerp3(PAINT[kind], kind === 'white' ? [200, 186, 160] : [20, 14, 20], 0.15 + 0.3 * u + 0.15 * nz, C3);
+                        else bare();
                     }
                     tint(C3, [58, 40, 30], wet ? 0.25 : 0);
                     put(P, i, C3);
@@ -1389,7 +1434,7 @@ const Dome = (() => {
     ];
     function muqarnas(g, o = {}) {
         const { tier = 0, box, seed = 61 + tier } = o, TI = TIERS[tier], Z = TI.zig, n = Z.length;
-        const RW = {}, QW = {}, WL = rosettes(44, 8, 44 * 0.27);
+        const RW = {}, QW = {}, WL = rosettes(44, 8, 44 * 0.27), DW = rosettes(52, 8, 52 * 0.27);
         const win = TI.win, moonJ = win ? Math.round(((win.moon / TAU) * 16 + 16) % 16) : -1;
         const rs = new Float64Array(n), LQ0 = [0, 0, 0];
         surface(g, box, {
@@ -1515,12 +1560,31 @@ const Dome = (() => {
                             const sur = eIn > -7 && Math.abs(s) < HWD + 7 && w > apex - 7 && w < sill + 7;
                             if (!sur) {
                                 // the pier: fluted, a rosette at mid height
-                                const fl = Math.cos(s * 0.55);
-                                P.h[i] = 42 + 1.4 * fl;
-                                if (fl < -0.3 && noise2(x * 0.05, y * 0.05, seed + 4) > -0.2) tint(C3, AZURE, 0.6);
+                                // the pier: a gilt colonnette half way between two windows, twisted,
+                                // and a carved rosette over it; the rest plaster in low relief
+                                const half = (Math.PI / 16) * rho, dc = Math.abs(Math.abs(s) - half), mid = (win.r1 - win.r0) / 2;
+                                P.h[i] = 42 + 0.6 * noise2(x * 0.25, y * 0.25, seed + 5);
+                                if (dc < 4) {
+                                    const tw = Math.sin(w * 0.7 + dc);
+                                    lerp3(GOLD, GOLD_L, clamp(0.4 + 0.4 * tw), C3);
+                                    P.h[i] = 46 + 2 * Math.sqrt(1 - (dc / 4) ** 2);
+                                    P.mt[i] = 0.8;
+                                } else if (Math.hypot(dc, w - mid) < 12) {
+                                    const rr2 = Math.hypot(dc, w - mid), fa = Math.atan2(w - mid, dc) * 8;
+                                    tint(C3, RED, 0.5 * (Math.cos(fa) > 0.3 ? 1 : 0));
+                                    P.h[i] = 44 + 2 * (1 - rr2 / 12);
+                                } else {
+                                    const keep = noise2(x * 0.05, y * 0.05, seed + 4) + 0.4 * noise2(x * 0.17, y * 0.17, seed + 8);
+                                    if (keep > -0.2) tint(C3, AZURE, smooth(-0.2, -0.1, keep) * 0.75);
+                                }
                             } else {
                                 P.h[i] = 45 + 1.5 * Math.sin(clamp(-eIn / 7) * Math.PI);
                                 if (eIn > -3.5) tint(C3, GOLD, 0.55);
+                                const dc = Math.abs(Math.abs(s) - (Math.PI / 16) * rho);
+                                if (dc < 4) {
+                                    lerp3(GOLD, GOLD_L, 0.5, C3);
+                                    P.mt[i] = 0.8;
+                                }
                             }
                             tint(C3, GRIME, 0.2 * smooth(0.2, 0.8, nz2));
                             // the light from the window spilling on the plaster round it
@@ -1538,10 +1602,40 @@ const Dome = (() => {
                             const dn = Math.floor(th * rho / 7), on = ((th * rho) / 7 - dn) < 0.62;
                             hh = 44 + (on ? 2.5 : 0);
                             if (!on) tint(C3, RED, 0.6);
-                        } else {
-                            const zz = Math.abs((((th * rho) / 22 + (lip - 9) / 11) % 2) + 2) % 2;
-                            if (Math.abs(zz - 1) < 0.08) tint(C3, IVORY_D, 0.7);
-                            tint(C3, AZURE, 0.25 * smooth(0, 0.5, noise2(x * 0.03, y * 0.03, seed + 6)));
+                        } else if (win && rho > win.r1) {
+                            // above the windows: a cornice, then strapwork of eight on azure
+                            const v = rho - win.r1;
+                            if (v < 10) {
+                                const dn = Math.floor((th * rho) / 7), on = (th * rho) / 7 - dn < 0.62;
+                                hh = 44 + (on && v > 2 ? 2.5 : 0) + (v < 2 ? 1.5 : 0);
+                                if (!on && v > 2) tint(C3, RED, 0.6);
+                                tint(C3, GRIME, 0.25 * smooth(0, 1, nz2 + 0.3));
+                                put(P, i, C3);
+                                P.h[i] = hh;
+                                inkAt(P, i, v - 1, 0.6);
+                                inkAt(P, i, v - 9.5, 0.5);
+                                return;
+                            }
+                            DW.at(th * (win.r1 + 80), v, RW);
+                            strapOf(DW, RW, 2.2, 0.35, QW);
+                            if (QW.kind) {
+                                lerp3(IVORY, IVORY_D, clamp(0.2 + 0.25 * nz), C3);
+                                if (noise2(x * 0.06, y * 0.06, seed + 7) > 0.3) tint(C3, GOLD, 0.5);
+                                hh = 44 + 2.4 * smooth(0, 1, QW.edge);
+                                tint(C3, GRIME, 0.2 * smooth(0, 1, nz2 + 0.3));
+                                put(P, i, C3);
+                                P.h[i] = hh;
+                                inkAt(P, i, QW.edge - 0.3, 0.35, 0.85);
+                                return;
+                            }
+                            const u3 = h3(RW.key, seed, 8, 2), paint = RW.orbit === 0 ? RED : u3 < 0.15 ? GREENP : AZURE;
+                            lerp3(IVORY_D, IVORY, clamp(0.4 + 0.3 * nz), C3);
+                            const keep = noise2(x * 0.04, y * 0.04, seed + 13) + 0.45 * noise2(x * 0.15, y * 0.15, seed + 14);
+                            if (keep > -0.45) tint(C3, paint, smooth(-0.45, -0.33, keep) * 0.88);
+                            tint(C3, GRIME, 0.25 * smooth(0, 1, nz2 + 0.3));
+                            put(P, i, C3);
+                            P.h[i] = 43 + 0.4 * nz;
+                            return;
                         }
                         tint(C3, GRIME, 0.25 * smooth(0, 1, nz2 + 0.3));
                         put(P, i, C3);
@@ -1964,7 +2058,8 @@ const Dome = (() => {
                         // the one gone: its socket, the bed's red underpainting at the bottom
                         lerp3([138, 62, 44], [96, 44, 32], 0.5 + 0.5 * noise2(x * 0.6, y * 0.6, 3), C3);
                         put(P, i, C3);
-                        P.h[i] = -2.5;
+                        P.h[i] = -1.2;
+                        P.ex[i] = 0.7;
                         return;
                     }
                     let kind = 'gold';
@@ -2040,12 +2135,12 @@ const Dome = (() => {
                     }
                     const hh = 12 - 9 * deep * Math.sin(Math.PI * sf);
                     // tesserae in rings, within the flute
-                    const pitch = 6.4, row = Math.floor((rho - rs) / pitch), ang = th * rho, wid = 6.4, off = h3(row, 3, 1, seed) * wid;
+                    const pitch = 6.2, rr0 = rho - 120 + 0.8 * noise2(th * 30, rho * 0.02, seed), row = Math.floor(rr0 / pitch), ang = (th - Math.floor((th * 16) / TAU + 0.5) * (TAU / 16)) * rho, wid = 6.2, off = h3(row, 3, 1, seed) * wid;
                     const tt = ang + off, j = Math.floor(tt / wid);
-                    const edge = Math.min(rho - rs - row * pitch, (row + 1) * pitch - (rho - rs), tt - j * wid, (j + 1) * wid - tt, ridge - 3.2);
-                    T.id = (Math.imul(row + 5, 0x9e3779b1) ^ Math.imul(j + 99999, 0x85ebca6b)) >>> 0;
+                    const edge = Math.min(rr0 - row * pitch, (row + 1) * pitch - rr0, tt - j * wid, (j + 1) * wid - tt, ridge - 3.2, fr - 22);
+                    T.id = (Math.imul(row + 5, 0x9e3779b1) ^ Math.imul(j + 99999, 0x85ebca6b) ^ Math.imul(Math.floor((th * 16) / TAU + 0.5) + 40, 0xc2b2ae35)) >>> 0;
                     T.edge = edge;
-                    const kind = row < 2 ? 'blue' : row === 2 ? 'white' : 'gold';
+                    const kind = fr < 34 ? 'blue' : fr < 40 ? 'white' : 'gold';
                     tessPix(P, i, x, y, kind, T, seed);
                     P.h[i] += hh;
                     // the dawn on the gold nearest the lantern

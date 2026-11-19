@@ -1284,7 +1284,6 @@ const Planes = (() => {
             q.save();
             fill(q, half, 'rgba(236,228,206,0.22)');
             bristle(q, half, { dir: -1.4, alpha: 0.25 });
-            const wine = half.filter(([x, y]) => y > -96).concat([[0, -96], [-62, -96]]);
             fill(q, S.curve([[-58, -96], [0, -96], [0, -20], [-16, -26], [-46, -52]], true, 4), S.rgba('#8a5418', 0.75));
             bristle(q, S.curve([[-58, -96], [0, -96], [0, -20], [-16, -26], [-46, -52]], true, 4), { dir: 0, alpha: 0.4 });
             q.restore();
@@ -2025,20 +2024,5 @@ const Planes = (() => {
         g.stroke();
     }
 
-    // A crescent along part of a closed outline: the outline's points i0 → i1 and the same
-    // run offset inwards by w (thinning to the ends): the body's curve as a plane.
-    function crescent(outline, i0, i1, w, taper = 0.6) {
-        const n = outline.length, run = [];
-        for (let i = i0; ; i = (i + 1) % n) {
-            run.push(outline[i]);
-            if (i === i1 % n) break;
-        }
-        const c = centroid(outline), inner = run.map((p, k) => {
-            const u = k / (run.length - 1), f = 1 - taper * Math.pow(Math.abs(2 * u - 1), 2), d = Math.hypot(p[0] - c[0], p[1] - c[1]) || 1;
-            return [p[0] + ((c[0] - p[0]) / d) * w * f, p[1] + ((c[1] - p[1]) / d) * w * f];
-        });
-        return [...run, ...inner.reverse()];
-    }
-
-    return { marble, stencil, hatch, scrap, golpeador, newspaper, label, score, wallpaper, bottle, glass, wing, nail, head, stringSeg, ladder, bridge, rosette, moon, card, blackDisc, crescent, bristle, drift, GAUGE, facets, PAL, tone, shadeDir, lightDir, area, centroid, inPoly, split, clip, fill, rect, quad, walk, mark, scumble, edgeFrame, edgeTone, charcoal, ruled, comb, sand, dots, plane, tornEdge, sheetOutline, paper, type, wear };
+    return { marble, stencil, hatch, scrap, golpeador, newspaper, label, score, wallpaper, bottle, glass, wing, nail, head, stringSeg, ladder, bridge, rosette, moon, card, blackDisc, bristle, drift, GAUGE, facets, PAL, tone, shadeDir, lightDir, area, centroid, inPoly, split, clip, fill, rect, quad, walk, mark, scumble, edgeFrame, edgeTone, charcoal, ruled, comb, sand, dots, plane, tornEdge, sheetOutline, paper, type, wear };
 })();

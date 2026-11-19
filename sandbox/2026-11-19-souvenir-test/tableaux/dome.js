@@ -43,7 +43,7 @@ Tableau.dome = (z0) => {
         layer('air', 350, B(1000, 640), (g, box) => D.air(g, { box }), { brush: false }),
         // 2 · wood: the frieze of corbels, the ceiling of interlaced stars
         layer('corbels', 560, B(720, 560), (g, box) => D.corbels(g, { box, h: 300 })),
-        layer('lattice', 700, B(820, 600), (g, box) => D.lattice(g, { box, r: 270 })),
+        layer('lattice', 700, B(760, 560), (g, box) => D.lattice(g, { box, r: 270 })),
         // 3 · plaster become light: the muqarnas, three tiers
         layer('muqarnas-0', 1150, B(680, 520), (g, box) => D.muqarnas(g, { box, tier: 0 })),
         layer('muqarnas-1', 1280, B(480, 440), (g, box) => D.muqarnas(g, { box, tier: 1 })),

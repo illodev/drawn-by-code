@@ -286,7 +286,7 @@ const Still = (() => {
     function run(g, pts, w, o = {}) {
         const c = S.curve(pts, false, 8), r = Motion.rng('run' + Math.round(pts[0][0] * 7 + pts[0][1] * 3));
         // the wet track: darker, soft-edged, narrowing up to where the drop started
-        softly(g, w * 0.45, (q) => S.ink(q, c, { w: w * 1.5, color: o.wet ?? '#8a6a58', alpha: o.wa ?? 0.85, taper: [1, 0.15] }), 'multiply');
+        softly(g, w * 0.7, (q) => S.ink(q, c, { w: w * 1.8, color: o.wet ?? '#8a6a58', alpha: o.wa ?? 0.85, taper: [1, 0.15] }), 'multiply');
         // its sheen, broken, on the lit edge
         let i = 0;
         while (i < c.length - 2) {
@@ -369,7 +369,7 @@ const Still = (() => {
                 const lam = n[0] * LN[0] + n[1] * LN[1] + n[2] * LN[2];
                 const lit = Math.max(0, lam) * (o.lamp ? o.lamp(ux, uy, f) : 1) * (f.k ?? 1);
                 let tone = amb + lit * (o.gain ?? 1.05) + Math.max(0, -lam) * (o.bounce ?? 0.04);
-                tone += (o.mottle ?? 0.05) * (S.noise2(ux * 0.011, uy * 0.011, sd) * 0.6 + S.noise2(ux * 0.05, uy * 0.05, sd + 1) * 0.4) * (0.4 + lit);
+                tone += (o.mottle ?? 0.05) * (S.noise2(ux * 0.011, uy * 0.011, sd) * 0.6 + (o.fast ? 0 : S.noise2(ux * 0.05, uy * 0.05, sd + 1) * 0.4)) * (0.4 + lit);
                 tone += h0 * (o.cavity ?? 0.03) * (0.3 + lit);
                 R(clamp(tone), rgb);
                 if (o.alb) {
@@ -393,12 +393,12 @@ const Still = (() => {
         return { canvas: c, box, res };
     }
     // pores, vugs and grain of a calcarenite, in units of height
-    const grain = (x, y, sd, k = 1) => {
-        let h = 0.35 * S.noise2(x * 0.09, y * 0.09, sd) + 0.22 * S.noise2(x * 0.31, y * 0.31, sd + 1) + 0.12 * S.noise2(x * 0.9, y * 0.9, sd + 2);
+    const grain = (x, y, sd, k = 1, fast = false) => {
+        let h = 0.35 * S.noise2(x * 0.09, y * 0.09, sd) + 0.22 * S.noise2(x * 0.31, y * 0.31, sd + 1) + (fast ? 0.12 * (S.hashI(Math.floor(x), Math.floor(y), 9, sd) - 0.5) : 0.12 * S.noise2(x * 0.9, y * 0.9, sd + 2));
         // pores: cells of 7 units, a few hollow
         const cx = Math.floor(x / 7), cy = Math.floor(y / 7), hp = S.hashI(cx, cy, 5, sd);
-        if (hp < 0.16 * k) {
-            const px = (cx + 0.2 + S.hashI(cx, cy, 6, sd) * 0.6) * 7, py = (cy + 0.2 + S.hashI(cx, cy, 7, sd) * 0.6) * 7, pr = 0.7 + hp * 9;
+        if (hp < 0.07 * k) {
+            const px = (cx + 0.2 + S.hashI(cx, cy, 6, sd) * 0.6) * 7, py = (cy + 0.2 + S.hashI(cx, cy, 7, sd) * 0.6) * 7, pr = 0.5 + Math.pow(hp / (0.07 * k), 2) * 2.6;
             const d = Math.hypot(x - px, (y - py) * 1.2);
             if (d < pr) h -= 1.6 * (1 - (d / pr) * (d / pr));
         }
@@ -591,7 +591,8 @@ const Still = (() => {
         const sdw = S.seedOf('ashlarw' + seed);
         return (px0, py0) => {
             // joints laid by hand: a few units of wander
-            const x = px0 + 5 * S.noise2(py0 * 0.03, px0 * 0.002, sdw), y = py0 + 3.5 * S.noise2(px0 * 0.025, py0 * 0.002, sdw + 1);
+            // (sines, not noise: this runs for every pixel of a wall)
+            const x = px0 + 3.2 * Math.sin(py0 * 0.031 + sdw % 7) + 1.8 * Math.sin(py0 * 0.083 + px0 * 0.004), y = py0 + 2.4 * Math.sin(px0 * 0.027 + sdw % 5) + 1.2 * Math.sin(px0 * 0.091 + py0 * 0.003);
             let lo = 0, hi = rows.length - 1;
             while (lo < hi) {
                 const m = (lo + hi + 1) >> 1;
@@ -632,14 +633,13 @@ const Still = (() => {
         }
         const lamp = o.lamp ?? (() => 0.3);
         const sp = stone({
-            box, res, faces, seed: 'wall' + o.seed, ramp: o.ramp ?? RAMP.stone, lamp, amb: o.amb ?? 0.05, gain: 1, mottle: 0.06, bk: 1.2, cavity: 0.05,
+            box, res, faces, seed: 'wall' + o.seed, ramp: o.ramp ?? RAMP.stone, lamp, amb: o.amb ?? 0.05, gain: 1, mottle: 0.07, bk: 1.2, cavity: 0.05, fast: true,
             bump: (x, y, f) => {
-                let h = grain(x, y, sd, 1.4);
+                let h = grain(x, y, sd, 1.4, true);
                 if (f.kind === 'face') {
                     const b = blocks(x, y);
                     h += (b.t[0] * (x - b.cx) + b.t[1] * (y - b.cy)) * 0.4;
-                    h -= 2.2 * smooth(4.5, 0.5, b.dj) * (0.7 + 0.3 * S.noise2(x * 0.1, y * 0.1, sd + 2)) + 1.0 * smooth(12, 3, b.dj); // joint, and the arris worn round
-                    h += tooling(x, y, sd + (b.id % 7), 40) * 1.2;
+                    h -= 2.2 * smooth(4.5, 0.5, b.dj) * (0.75 + 0.25 * Math.sin(x * 0.13 + y * 0.07)) + 1.0 * smooth(12, 3, b.dj); // joint, and the arris worn round
                 } else h += tooling(x * 1.3, y, sd + 50, 30);
                 return h;
             },
@@ -771,9 +771,9 @@ const Still = (() => {
             const wetness = (x, Y) => smooth(-150, -40, Y + 26 * S.noise2(x * 0.012, Y * 0.01, sd + 3) + 0.0 * x);
             // runs of water down the belly: [x at top, y top, length]
             const runs = [];
-            for (let i = 0; i < 26; i++) {
-                const yt = -330 + r() * 260, x = (r() * 2 - 1) * (P.at(yt) * 0.8);
-                runs.push([x, yt, 30 + r() * 140, 1.4 + r() * 1.9, r()]);
+            for (let i = 0; i < 15; i++) {
+                const yt = -300 + r() * 220, x = -P.at(yt) * 0.75 + r() * P.at(yt) * 1.4;
+                runs.push([x, yt, 40 + r() * 130, 2.2 + r() * 2.2, r()]);
             }
             const ramp = S.rampFn(RAMP.clay, 0.92);
             const sp = S.form({
@@ -924,7 +924,7 @@ const Still = (() => {
                             const yy = yt + (k / 6) * len, xx = x + 2.5 * S.noise2(yy * 0.05, x, sd + 11) + (k / 6) * x * 0.06;
                             pts.push([xx, ring(yy, xx)]);
                         }
-                        if (P.at(yt + len) > Math.abs(x) + 6) run(g, pts, w, { dark: [70, 44, 26], lit: [246, 224, 190], wet: '#9a7864', beads: v < 0.5 ? [0.4] : v < 0.8 ? [0.3, 0.65] : [] });
+                        if (P.at(yt + len) > Math.abs(x) + 6) run(g, pts, w, { dark: [96, 64, 40], lit: [252, 236, 206], wet: '#b89a84', wa: 0.7, beads: v < 0.5 ? [0.4] : v < 0.8 ? [0.3, 0.65] : [] });
                     }
                     for (let i = 0; i < 90; i++) {
                         const yy = -170 + r() * 150, rr = P.at(yy), x = (r() * 2 - 1) * rr * 0.85;
@@ -1208,8 +1208,9 @@ const Still = (() => {
                     // green at the neck, the powdery bloom on the body
                     const nk = smooth(-14, -40, x);
                     toward(rgb, rgb[0] * 0.8 + 14, rgb[1] * 1.1 + 22, rgb[2] * 0.6, nk * 0.7);
-                    const bl = smooth(0.3, 0.75, tone) * (0.25 + 0.25 * S.noise2(x * 0.1, y * 0.1, sd + 2));
-                    toward(rgb, 168, 160, 178, bl * 0.5);
+                    const bl = smooth(0.4, 0.8, tone) * (0.2 + 0.2 * S.noise2(x * 0.1, y * 0.1, sd + 2));
+                    toward(rgb, 120, 112, 132, bl * 0.4);
+                    scaleRGB(rgb, 0.8, 0.78, 0.82, 1);
                 },
                 over: (g) => {
                     // ribs from the stalk to the eye, paler lines
@@ -1219,7 +1220,7 @@ const Still = (() => {
                             const u = i / 10, xx = -30 + u * 52;
                             ln.push([xx, k * 7 * Math.sin(Math.PI * (0.15 + u * 0.8)) * (1 - 0.3 * smooth(0, -30, xx))]);
                         }
-                        S.ink(g, ln, { w: 0.9, color: '#a898a8', alpha: 0.12, taper: [0.8, 0.8] });
+                        S.ink(g, ln, { w: 0.9, color: '#8a7a8a', alpha: 0.08, taper: [0.8, 0.8] });
                     }
                     // lenticels
                     for (let i = 0; i < 90; i++) disc(g, -30 + r() * 54, (r() - 0.5) * 46, 0.3 + r() * 0.35, `rgba(230,220,200,${0.25 + r() * 0.35})`);
@@ -1461,18 +1462,21 @@ const Still = (() => {
                 box, res,
                 mask: (g) => {
                     poly(g, outline);
-                    for (const sx of [-1, 1]) line(g, lug(sx), 13, '#fff');
+                    for (const sx of [-1, 1]) {
+                        line(g, lug(sx), 13, '#fff');
+                        poly(g, lug(sx), '#fff');
+                    }
                 },
                 color: (x, y, rgb) => {
                     on(x, y, q0);
                     let n = q0.n;
                     const Y = q0.Y, inBody = smooth(-10, -18, Y) * smooth(-128, -116, Y);
                     let lugH = 0;
-                    if (Math.abs(x) > 60 && Y < -64 && Y > -110) {
+                    if (Math.abs(x) > 60 && Y < -64 && Y > -110 && Math.abs(x) > P.at(Y) - 1) {
                         const [dd] = nearest(lug(Math.sign(x)), x, y);
-                        if (dd < 7) {
+                        if (dd < 7 || Math.abs(x) < 86) {
                             // a lug: a small half ring, lit as a tube
-                            const v = clamp(dd / 6.5), nn = norm3([Math.sign(x) * v * 0.8, -v * 0.3, Math.sqrt(1 - v * v)]);
+                            const v = clamp(Math.min(dd, 7) / 7) * 0.8, nn = norm3([Math.sign(x) * v * 0.8, (y + 87) / 30, Math.sqrt(1 - v * v)]);
                             n = nn;
                             lugH = 1;
                         }
@@ -1575,7 +1579,7 @@ const Still = (() => {
     }
     function pestle(g, p0, p1, o = {}) {
         const sd = S.seedOf('pestle' + (o.seed ?? 0));
-        rod(g, p0, p1, (u) => 6.5 + 1.5 * smooth(0.5, 0.05, u) + 5.5 * Math.sin(Math.PI * 0.5 * smooth(0.72, 1, u)), (n, u, v, rgb, x, y) => {
+        rod(g, p0, p1, (u) => 9 + 2 * smooth(0.5, 0.05, u) + 6 * Math.sin(Math.PI * 0.5 * smooth(0.72, 1, u)), (n, u, v, rgb, x, y) => {
             brassAt(n, rgb, { rough: 0.28 });
             toward(rgb, 50, 40, 20, 0.3 * smooth(0.2, 0.8, S.noise2(x * 0.06, y * 0.06, sd)));
             // the grip worn bright
@@ -1587,75 +1591,77 @@ const Still = (() => {
     // A head of white garlic: cloves swelling under a papery skin streaked with mauve, the
     // basal plate with its dry roots, the neck cut short with its papery wisps; and a clove
     // come loose. Seen from the side, lying as it was set down.
-    const GARLIC = [[0, '#0e0b0b'], [0.18, '#2a2224'], [0.34, '#55494a'], [0.5, '#8a7c78'], [0.64, '#b4a69e'], [0.78, '#d6cbc0'], [0.9, '#ece4d8'], [1, '#faf6ee']];
+    const GARLIC = [[0, '#0c0a08'], [0.18, '#26201a'], [0.34, '#4e4438'], [0.5, '#7e7262'], [0.64, '#a89a86'], [0.78, '#cbbfa8'], [0.9, '#e2d9c6'], [1, '#f4efe2']];
     function garlicSprite(res, seed, rot = 0) {
         return memo(`garlic@${res}/${seed}/${rot.toFixed(2)}`, () => {
             const r = Motion.rng('garlic' + seed), sd = S.seedOf('garlic' + seed), L = S.lightFor(rot, LT);
-            const W = 46 + r() * 8, H = 44 + r() * 6;
-            // half width of the head at height y (y = 0 at the base plate, up is −)
-            // a squat bulb: wide at a third of its height, the base flattened, shoulders
-            // rounding into a short neck
-            const hw = (y) => {
-                const t = -y / H;
-                if (t < 0 || t > 1.22) return 0;
-                if (t <= 0.94) {
-                    const k = t / 0.94;
-                    return W * (0.62 + 0.38 * Math.sin(Math.PI * Math.min(1, k * 1.35) * 0.5 + (k > 0.74 ? 0 : 0))) * (k > 0.45 ? Math.sqrt(Math.max(0.02, 1 - Math.pow((k - 0.45) / 0.58, 2))) : 1) * (t < 0.06 ? 0.85 + t * 2.5 : 1);
-                }
-                return W * 0.12 * (1 - 0.4 * (t - 0.94) / 0.28);
-            };
+            const W = 44 + r() * 6, H = 50 + r() * 6;
+            // the cloves seen from the side: crescents fanned round the stem, the outer ones
+            // leaning out, all meeting at the base plate (y = 0) and under the neck (y = −H)
+            const cloves = [];
+            const NC = 7;
+            for (let i = 0; i < NC; i++) {
+                const u = (i / (NC - 1)) * 2 - 1, lean = u * 0.55 + (r() - 0.5) * 0.08;
+                cloves.push({ cx: u * W * 0.62, cy: -H * 0.46, rx: W * (0.3 + 0.08 * (1 - Math.abs(u))) * (0.92 + r() * 0.16), ry: H * 0.5, a: lean, front: 1 - Math.abs(u) });
+            }
             const pts = [];
-            for (let i = 0; i <= 40; i++) {
-                const y = -(i / 40) * H * 1.25;
-                pts.push([hw(y) * (1 + 0.04 * Math.sin(i * 1.3 + sd)), y]);
-            }
-            for (let i = 40; i >= 0; i--) {
-                const y = -(i / 40) * H * 1.25;
-                pts.push([-hw(y) * (1 + 0.04 * Math.sin(i * 1.7 + sd)), y]);
-            }
-            const NC = 7, ph = r() * 0.6;
-            const box = S.bbox([...pts, [0, 14]], 10);
+            const box = { x: -W * 1.3, y: -H * 1.45, w: W * 2.6, h: H * 1.75 };
             const sp = S.form({
-                box, res, seed: 'garlic' + seed, light: L, relief: 0.95,
-                mask: (g) => poly(g, pts),
-                // the cloves: bulges between meridians that meet at the top and at the base
+                box, res, seed: 'garlic' + seed, light: L, relief: 0.9,
+                mask: (g) => {
+                    for (const c of cloves) oval(g, c.cx, c.cy, c.rx, c.ry, c.a, '#fff');
+                    // the body that holds them, the neck drawn up to a point
+                    oval(g, 0, -H * 0.45, W * 0.92, H * 0.48, 0, '#fff');
+                    poly(g, [[-W * 0.28, -H * 0.8], [-W * 0.08, -H * 1.18], [-W * 0.02, -H * 1.36], [W * 0.05, -H * 1.36], [W * 0.1, -H * 1.18], [W * 0.3, -H * 0.8]], '#fff');
+                },
+                // each clove a gentle swelling: the grooves between them read as soft creases
                 height: (x, y) => {
-                    const w = hw(y) || 1, a = Math.asin(clamp(x / w)), lobe = Math.abs(Math.cos(a * NC * 0.5 + ph));
-                    return 2.2 * Math.pow(lobe, 0.7) * smooth(-H * 0.98, -H * 0.55, y) * smooth(2, -8, y) + 0.3 * S.noise2(x * 0.3, y * 0.3, sd);
+                    let best = 0;
+                    for (const c of cloves) {
+                        const ca = Math.cos(-c.a), sa = Math.sin(-c.a), dx = x - c.cx, dy = y - c.cy;
+                        const u = (dx * ca - dy * sa) / c.rx, v = (dx * sa + dy * ca) / c.ry, q = 1 - u * u - v * v;
+                        if (q > 0) best = Math.max(best, Math.sqrt(q) * (3.5 + 2.5 * c.front));
+                    }
+                    return best + 0.25 * S.noise2(x * 0.3, y * 0.3, sd);
                 },
                 ramp: GARLIC, soft: 0.9,
-                stroke: { amp: 0.06, freq: 0.2, tone: 5 },
+                stroke: { amp: 0.05, freq: 0.2, tone: 5 },
                 mottle: { amp: 0.04, freq: 0.06 },
-                spec: { amp: 0.3, power: 14, from: 0.45, to: 0.95, ragged: 0.6, color: '#fffaf2' },
-                tint: (x, y, tone) => {},
+                spec: { amp: 0.16, power: 10, from: 0.5, to: 0.95, ragged: 0.7, color: '#fffaf2' },
+                tint: (x, y, tone, rgb) => {
+                    // the papery skin browns at the base, the neck dries to straw
+                    toward(rgb, rgb[0] * 0.78, rgb[1] * 0.7, rgb[2] * 0.58, smooth(-H * 0.18, 0, y) * 0.55);
+                    toward(rgb, rgb[0] * 0.95 + 8, rgb[1] * 0.88 + 4, rgb[2] * 0.7, smooth(-H * 0.85, -H * 1.2, y) * 0.6);
+                    toward(rgb, 130, 104, 70, smooth(0.3, 0.08, tone) * 0.35);
+                },
                 over: (g) => {
-                    // mauve streaks along the meridians, the skin's fine veins
-                    for (let k = 0; k < 26; k++) {
-                        const a = -1.4 + (k / 25) * 2.8 + (r() - 0.5) * 0.08, ln = [];
-                        for (let i = 0; i <= 14; i++) {
-                            const y = -H * 0.02 - (i / 14) * H * 1.0;
-                            ln.push([Math.sin(a) * hw(y) * 0.98, y]);
+                    // fine veins in the skin, along each clove; a few faint mauve streaks
+                    for (const c of cloves) {
+                        for (let k = 0; k < 5; k++) {
+                            const u = (k / 4) * 1.4 - 0.7, ln = [];
+                            for (let i = 0; i <= 10; i++) {
+                                const v = (i / 10) * 1.8 - 0.9, x0 = u * c.rx * Math.sqrt(Math.max(0, 1 - v * v)), y0 = v * c.ry;
+                                ln.push([c.cx + x0 * Math.cos(c.a) - y0 * Math.sin(c.a), c.cy + x0 * Math.sin(c.a) + y0 * Math.cos(c.a)]);
+                            }
+                            const mauve = r() < 0.18;
+                            S.ink(g, ln, { w: mauve ? 1.4 : 0.4, color: mauve ? '#8a5a6a' : '#5e5246', alpha: mauve ? 0.14 : 0.16, taper: [1, 1] });
                         }
-                        const purple = r() < 0.45;
-                        S.ink(g, ln, { w: purple ? 1.2 + r() * 2.4 : 0.4, color: purple ? (r() < 0.5 ? '#8a4a6a' : '#a26080') : '#7a6a62', alpha: purple ? 0.18 + r() * 0.25 : 0.25, taper: [1, 1] });
                     }
-                    // the base plate and its dry roots
-                    oval(g, 0, -2, W * 0.32, 4, 0, '#5a4a3a');
-                    for (let i = 0; i < 70; i++) {
-                        const x0 = (r() - 0.5) * W * 0.5, a = Math.PI / 2 + (r() - 0.5) * 2.2, l = 4 + r() * 9;
-                        S.ink(g, [[x0, -2], [x0 + Math.cos(a) * l * 0.5 + (r() - 0.5) * 2, -2 + Math.sin(a) * l * 0.5], [x0 + Math.cos(a) * l, -2 + Math.sin(a) * l]], { w: 0.5, color: r() < 0.5 ? '#a89480' : '#4a3a2c', alpha: 0.7, taper: [0, 0.8] });
-                    }
-                    // the neck: papery, cut short, its wisps
-                    for (let i = 0; i < 8; i++) {
-                        const x0 = (r() - 0.5) * 6;
-                        S.ink(g, [[x0, -H * 0.95], [x0 * 1.5 + (r() - 0.5) * 3, -H * 1.12], [x0 * 2 + (r() - 0.5) * 6, -H * 1.26]], { w: 0.6 + r() * 0.8, color: r() < 0.5 ? '#efe4d2' : '#8c7a68', alpha: 0.7, taper: [0.2, 1] });
-                    }
-                    // a flap of skin lifting, its edge catching the light
-                    const fx = W * 0.4, fy = -H * 0.45;
-                    poly(g, [[fx - 6, fy - 10], [fx + 4, fy - 6], [fx + 8, fy + 6], [fx - 2, fy + 4]], 'rgba(240,232,220,0.55)');
-                    S.ink(g, [[fx - 6, fy - 10], [fx + 4, fy - 6], [fx + 8, fy + 6]], { w: 0.6, color: '#fffaf0', alpha: 0.8 });
+                    // a flap of skin lifting on one clove, its torn edge catching the light
+                    const f = cloves[NC - 2];
+                    S.ink(g, [[f.cx - 4, f.cy - 14], [f.cx + 4, f.cy - 9], [f.cx + 7, f.cy - 1], [f.cx + 6, f.cy + 7]].map(([x, y]) => [x + 0.8, y + 0.8]), { w: 0.9, color: '#3a3026', alpha: 0.35, taper: [1, 1] });
+                    S.ink(g, [[f.cx - 4, f.cy - 14], [f.cx + 4, f.cy - 9], [f.cx + 7, f.cy - 1], [f.cx + 6, f.cy + 7]], { w: 0.6, color: '#fff8ea', alpha: 0.6, taper: [1, 1] });
+                    // the base plate, a dark rim
+                    S.ink(g, [[-W * 0.3, -1.5], [0, 1], [W * 0.3, -1.5]], { w: 2.4, color: '#4a3a2a', alpha: 0.7 });
                 },
             });
+            // the roots: a short tuft under the base plate, outside the skin
+            const g2 = sp.canvas.getContext('2d');
+            g2.setTransform(res, 0, 0, res, -box.x * res, -box.y * res);
+            for (let i = 0; i < 46; i++) {
+                const x0 = (r() - 0.5) * W * 0.5, a = Math.PI / 2 + (r() - 0.5) * 1.6, l = 3 + r() * 7;
+                S.ink(g2, [[x0, -1], [x0 + Math.cos(a) * l * 0.5 + (r() - 0.5) * 1.5, -1 + Math.sin(a) * l * 0.5], [x0 + Math.cos(a) * l, -1 + Math.sin(a) * l]], { w: 0.5, color: r() < 0.5 ? '#b8a48a' : '#5a4836', alpha: 0.75, taper: [0, 0.8] });
+            }
             sp.H = H;
             sp.W = W;
             return sp;
@@ -1684,7 +1690,7 @@ const Still = (() => {
                 mask: (g) => poly(g, pts), ramp: GARLIC, soft: 0.9, stroke: { amp: 0.05, freq: 0.3, tone: 5 },
                 spec: { amp: 0.35, power: 12, from: 0.5, to: 0.95, color: '#fffaf2' },
                 over: (g) => {
-                    for (let k = 0; k < 6; k++) S.ink(g, [[-14, -1 - k], [0, -3 - k * 1.6], [14, -1 - k]], { w: 0.5, color: k % 2 ? '#8a4a6a' : '#7a6a62', alpha: 0.25 });
+                    for (let k = 0; k < 6; k++) S.ink(g, [[-14, -1 - k], [0, -3 - k * 1.6], [14, -1 - k]], { w: 0.5, color: k % 2 ? '#8a5a6a' : '#6a5e52', alpha: 0.15 });
                     oval(g, -15, 0, 2.5, 2, 0, '#6a5a48');
                 },
             });
@@ -1710,7 +1716,7 @@ const Still = (() => {
             }
             const box = S.bbox([...pts, [0, -RY - 26]], 10);
             const flake = { x: -RX * 0.25 + r() * 10, y: RY * 0.05, rx: 22 + r() * 8, ry: 16 + r() * 6 };
-            const inFlake = (x, y) => Math.hypot((x - flake.x) / flake.rx, (y - flake.y) / flake.ry) + 0.25 * S.noise2(x * 0.08, y * 0.08, sd + 5);
+            const inFlake = (x, y) => Math.hypot((x - flake.x) / flake.rx, (y - flake.y) / flake.ry) + 0.45 * S.noise2(x * 0.06, y * 0.06, sd + 5) + 0.15 * S.noise2(x * 0.3, y * 0.3, sd + 7);
             const sp = S.form({
                 box, res, seed: 'onion' + seed, light: L,
                 mask: (g) => {
@@ -1728,7 +1734,7 @@ const Still = (() => {
                 spec: { amp: 0.55, power: 18, from: 0.45, to: 0.9, ragged: 0.4, color: '#fff0ec' },
                 tint: (x, y, tone, rgb) => {
                     // the papery outer skin: coppery and duller, except where it flaked off
-                    const f = inFlake(x, y), paper = smooth(0.92, 1.08, f) * (0.72 + 0.2 * S.noise2(x * 0.05, y * 0.03, sd + 2));
+                    const f = inFlake(x, y), paper = (0.35 + 0.65 * smooth(0.8, 1.2, f)) * (0.72 + 0.2 * S.noise2(x * 0.05, y * 0.03, sd + 2));
                     toward(rgb, rgb[0] * 0.8 + 30, rgb[1] * 0.75 + 18, rgb[2] * 0.5 + 8, paper);
                     // the neck dries to straw
                     toward(rgb, 170, 130, 96, smooth(-RY * 0.8, -RY * 1.05, y) * 0.7);
@@ -1741,8 +1747,8 @@ const Still = (() => {
                         const rr = 1 + 0.12 * S.noise2(Math.cos(a) * 2, Math.sin(a) * 2, sd + 6);
                         edge.push([flake.x + Math.cos(a) * flake.rx * rr, flake.y + Math.sin(a) * flake.ry * rr]);
                     }
-                    S.ink(g, edge.slice(0, 18).map(([x, y]) => [x + 0.8, y + 0.9]), { w: 1.4, color: '#2a0a14', alpha: 0.45 });
-                    S.ink(g, edge.slice(0, 18), { w: 0.8, color: '#f0c8a8', alpha: 0.7 });
+                    S.ink(g, edge.slice(2, 13).map(([x, y]) => [x + 0.8, y + 0.9]), { w: 1.2, color: '#2a0a14', alpha: 0.3, taper: [1, 1] });
+                    S.ink(g, edge.slice(2, 13), { w: 0.7, color: '#e8c0a0', alpha: 0.5, taper: [1, 1] });
                     // dry veins in the skin
                     for (let k = 0; k < 30; k++) {
                         const a = -1.3 + (k / 29) * 2.6 + (r() - 0.5) * 0.05, ln = [];
@@ -2031,7 +2037,7 @@ const Still = (() => {
         };
         // the hem is not straight: it follows the folds
         const hemY = (x) => y + dropL + fold(x, dropL) * 0.45 + 5 * S.noise2(x * 0.02, 0, sd);
-        const pts = [[x0 + 4, topY], [x1 - 4, topY], [x1 + 2, y]];
+        const pts = [[x0 + 14, topY + 6], [x0 + W * 0.3, topY - 2], [x0 + W * 0.62, topY + 4], [x1 - 30, topY - 1], [x1 - 4, topY + 9], [x1 + 6, (topY + y) / 2 + 3], [x1 + 2, y]];
         for (let i = 0; i <= 40; i++) {
             const x = x1 + 2 - ((x1 - x0 + 4) * i) / 40;
             pts.push([x, hemY(x)]);
@@ -2117,7 +2123,7 @@ const Still = (() => {
     // A quince hanging by its stalk: a lumpy golden pear, five bosses round the calyx, a
     // grey felt of down left near the stalk and in the hollows, russet freckles and a bruise,
     // the dry calyx a crown of brown sepals in its pit, a dried leaf still on the stalk.
-    const QUINCE = [[0, '#0e0902'], [0.16, '#281c05'], [0.3, '#52390a'], [0.44, '#83600f'], [0.58, '#b0881a'], [0.71, '#cfa82c'], [0.83, '#e3c552'], [0.93, '#f1dd8c'], [1, '#fbf0c6']];
+    const QUINCE = [[0, '#0e0802'], [0.16, '#261a05'], [0.3, '#4e3509'], [0.44, '#7c560e'], [0.58, '#a47818'], [0.71, '#c09428'], [0.83, '#d4ae46'], [0.93, '#e4c878'], [1, '#f2e2b0']];
     function quinceSprite(res, seed, rot = 0) {
         return memo(`quince@${res}/${seed}/${rot.toFixed(2)}`, () => {
             const r = Motion.rng('quince' + seed), sd = S.seedOf('quince' + seed);
@@ -2131,7 +2137,7 @@ const Still = (() => {
                 pts.push([c * rr * 1.0, 74 + sn * rr * (sn < 0 ? 1.32 : 0.92)]);
             }
             const box = S.bbox([...pts, [0, -6]], 12);
-            const down = (x, y) => clamp(smooth(60, 20, y) * 0.8 + 0.4 * S.noise2(x * 0.05, y * 0.05, sd + 2) - 0.15);
+            const down = (x, y) => clamp(smooth(80, 20, y) * 0.9 + 0.5 * S.noise2(x * 0.05, y * 0.05, sd + 2) - 0.1);
             return S.form({
                 box, res, seed: 'quince' + seed, light: S.lightFor(rot, LT), relief: 0.95,
                 mask: (g) => poly(g, pts),
@@ -2186,7 +2192,7 @@ const Still = (() => {
     // (x, y), knotted round it. Returns nothing; paints the string over what is there.
     function hangString(g, top, at, o = {}) {
         const mid = [(top[0] + at[0]) / 2 + (o.sway ?? 3), (top[1] + at[1]) / 2];
-        cord(g, [top, mid, [at[0], at[1] - 18], at], o.w ?? 2.4, { seed: o.seed ?? 'hs', color: o.color ?? [150, 122, 84] });
+        cord(g, [top, mid, [at[0], at[1] - 18], at], o.w ?? 3.4, { seed: o.seed ?? 'hs', color: o.color ?? [196, 166, 118] });
         // the knot and its tails
         oval(g, at[0], at[1] - 4, 5, 4, 0.3, 'rgb(60,46,30)');
         cord(g, [[at[0] - 4, at[1] - 6], [at[0] + 3, at[1] - 1], [at[0] + 5, at[1] - 8]], 2.2, { seed: 'k' + (o.seed ?? ''), color: o.color ?? [150, 122, 84] });
@@ -2239,7 +2245,7 @@ const Still = (() => {
     // spring from the stalk, its outer leaves loosened and curling out at their edges (their
     // paler undersides showing), the waxy bloom, a hole eaten by a caterpillar, water caught
     // in a leaf's fold.
-    const CABBAGE = [[0, '#030c09'], [0.16, '#0a1e15'], [0.3, '#163424'], [0.44, '#2a5036'], [0.57, '#45704a'], [0.7, '#69905e'], [0.82, '#94b282'], [0.92, '#c2d4aa'], [1, '#e6eed6']];
+    const CABBAGE = [[0, '#020a08'], [0.16, '#071a14'], [0.3, '#112e22'], [0.44, '#1f4632'], [0.57, '#356246'], [0.7, '#548060'], [0.82, '#80a084'], [0.92, '#b4c8b0'], [1, '#dde8d8']];
     function cabbageHead(res, seed) {
         return memo(`cabhead@${res}/${seed}`, () => {
             const r = Motion.rng('cab' + seed), sd = S.seedOf('cab' + seed), R = 92;
@@ -2300,11 +2306,11 @@ const Still = (() => {
             const pts = [];
             for (let i = 0; i <= 40; i++) {
                 const u = i / 40;
-                pts.push([u * len, -wid * Math.pow(Math.sin(Math.PI * Math.min(1, u * 0.95 + 0.05)), 0.7) * (1 + 0.06 * Math.sin(u * 30 + sd))]);
+                pts.push([u * len, -wid * Math.pow(Math.sin(Math.PI * Math.min(1, u * 0.95 + 0.05)), 0.7) * (1 + 0.1 * Math.sin(u * 23 + sd) + 0.05 * Math.sin(u * 61 + sd * 2))]);
             }
             for (let i = 40; i >= 0; i--) {
                 const u = i / 40;
-                pts.push([u * len, wid * 0.8 * Math.pow(Math.sin(Math.PI * Math.min(1, u * 0.95 + 0.05)), 0.7) * (1 + 0.07 * Math.sin(u * 27 + 2 + sd))]);
+                pts.push([u * len, wid * 0.8 * Math.pow(Math.sin(Math.PI * Math.min(1, u * 0.95 + 0.05)), 0.7) * (1 + 0.11 * Math.sin(u * 19 + 2 + sd) + 0.05 * Math.sin(u * 53 + sd))]);
             }
             return S.form({
                 box: S.bbox(pts, 8), res, seed: 'cl' + seed, light: S.lightFor(rot, LT), relief: 0.6,
@@ -2824,9 +2830,9 @@ const Still = (() => {
                     return [x + Math.sin(u * 20 + ph) * 6 * smooth(0.2, 0.7, u) * (1 + u * 2), y];
                 });
                 for (let i = 1; i < pts.length; i++) {
-                    const u = i / 80, w = 0.8 + 9 * Math.pow(u, 1.6) * (s2 === 0 ? 1 : 0.6);
+                    const u = i / 80, w = 1.4 + 13 * Math.pow(u, 1.5) * (s2 === 0 ? 1 : 0.6);
                     const a = (o.alpha ?? 0.6) * smooth(0, 0.04, u) * (1 - smooth(0.5, 1, u)) * (s2 === 0 ? 1 : 0.55);
-                    S.ink(q, [pts[i - 1], pts[i]], { w, color: '#b8bcc8', alpha: a, taper: [0, 0] });
+                    S.ink(q, [pts[i - 1], pts[i]], { w, color: '#c8ccd6', alpha: a, taper: [0, 0] });
                 }
             }
         });

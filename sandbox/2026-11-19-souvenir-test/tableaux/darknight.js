@@ -68,6 +68,8 @@ Tableau.darknight = (z0) => {
     const FAROL = { x: -560, y: -250, s: 1.35 };
     const THUR = { x: 452, y: -372, s: 1.15 };
     const PLATE_LAMPS = 12;
+    // the hanging lamps of the fourth stratum («¡Oh lámparas de fuego…!»)
+    const LAMPS4 = [[-170, -330, 1.2, [0.85, 0.5, 0.18]], [300, -270, 1.1, [0.7, 0.2, 0.16]], [-640, -110, 1.3, [0.85, 0.5, 0.18]], [620, -250, 1.25, [0.3, 0.42, 0.7]]];
 
     // ------------------------------------------------------------------ the flames
     // Every flame of the picture, on the sheet it stands on. A sheet is lit by the flames
@@ -79,6 +81,7 @@ Tableau.darknight = (z0) => {
         ...T3b.lit.map((c) => W('candleria', c.fx, c.fy - 22, 1.3, 46)),
         W('lilies', FAROL.x, FAROL.y - 8, 2.6, 60),
         W('thurible', THUR.x, THUR.y + 64 * THUR.s, 0.5, 30, [1, 0.35, 0.12]),
+        ...LAMPS4.map(([x, y, s]) => W('dove', x, y - 8 * s - 20, 2.2, 55)),
     ];
     const lightsFor = (sheet, o = {}) => FLAMES.map((f) => ({ ...f, z: Z[sheet] - f.zs + (f.zs === Z[sheet] ? 14 : 0), p: f.p * (o.pk ?? 1) })).filter((l) => l.z < (o.front ?? 800) && l.z > -(o.behind ?? 300));
 
@@ -110,7 +113,7 @@ Tableau.darknight = (z0) => {
             const embers = candleBank(P, T1, { wax: [0.66, 0.5, 0.28] });
             N.moth(P, { x: -170, y: -120, s: 1, rot: -0.7, open: 0.9, seed: 'm1' });
             P.light(lightsFor('tenebrae'), { amb: [0.16, 0.14, 0.27] });
-            for (const c of T1.lit) N.flame(g, c.fx, c.fy, { seed: 'tn-flame', h: 62, w: 15, R: 150, glow: 1 });
+            for (const c of T1.lit) N.flame(g, c.fx, c.fy, { seed: 'tn-flame', h: 66, w: 16, R: 230, glow: 1.25 });
             for (const w of embers) N.ember(g, w.x, w.y);
             S.tooth(g, box, { amp: 0.04 });
         }),
@@ -219,22 +222,24 @@ Tableau.darknight = (z0) => {
             N.circles(P, { box, seed: 'ibn-arabi', R0: 205 });
             N.moon(P, { x: 640, y: -350, R: 74, seed: 'luna', phase: 0.8 });
             N.smoke(P, 520, -150, { seed: 'velo-luna', h: 460, n: 16, wide: 4, still: 4, drift: 0.4, alpha: 0.6, freq: 0.007, amp: 1.5, turb: 1.2 });
-            P.light([{ x: 0, y: 0, z: -120, p: 1.6, r: 220, c: [1, 0.78, 0.44] }, ...lightsFor('circles', { front: 800 })], { amb: [0.15, 0.13, 0.26] });
+            P.light([{ x: 640, y: -360, z: 70, p: 1.3, r: 80, c: [0.62, 0.66, 0.82], air: 0.25 }, { x: 0, y: 0, z: -120, p: 1.6, r: 220, c: [1, 0.78, 0.44] }, ...lightsFor('circles', { front: 800 })], { amb: [0.15, 0.13, 0.26] });
             S.tooth(g, box, { amp: 0.04 });
         }),
         sheet('dove', Z.dove, box, (g) => {
             const P = N.begin(g);
-            N.dove(P, { x: -500, y: -250, s: 1.5, seed: 'paloma' });
-            N.vihuela(P, { x: 500, y: 250, s: 1.25, rot: 0.6, seed: 'vihuela' });
+            const lit4 = LAMPS4.map(([x, y, s, glass], i) => N.lamp(P, { x, y, s, glass, seed: 'lampara-' + i }));
+            N.dove(P, { x: -380, y: -230, s: 1.4, seed: 'paloma' });
+            N.vihuela(P, { x: 420, y: 235, s: 1.2, rot: 0.6, seed: 'vihuela' });
             N.haze(P, { y: -60, band: 160, seed: 'humo-alto', alpha: 0.22, n: 30 });
             P.light([{ x: 0, y: 0, z: -240, p: 1.4, r: 260, c: [1, 0.78, 0.44], air: 0.2 }, ...lightsFor('dove', { front: 800 })], { amb: [0.15, 0.13, 0.26] });
+            lit4.forEach((f, i) => N.flame(g, f.fx, f.fy, { seed: 'l4' + i, h: 30 * LAMPS4[i][2], w: 9 * LAMPS4[i][2], R: 70, glow: 0.7 }));
             S.tooth(g, box, { amp: 0.04 });
         }),
         // ---------------------------------------------------------------- the innermost circles
         sheet('plate', Z.plate, plateBox, (g) => {
             const P = N.begin(g);
             const lamps = N.inmost(P, { box: plateBox, seed: 'inmost', hole: Tableau.darknight.hole, lamps: PLATE_LAMPS });
-            P.light([{ x: 0, y: 0, z: 90, p: 1.5, r: 160, c: [1, 0.8, 0.5] }, ...lamps.map(([x, y]) => ({ x, y: y - 14, z: 12, p: 1.2, r: 40 }))], { amb: [0.14, 0.12, 0.24] });
+            P.light([{ x: 0, y: 0, z: 90, p: 1.5, r: 160, c: [1, 0.8, 0.5] }, ...lamps.map(([x, y]) => ({ x, y: y - 12, z: 12, p: 0.7, r: 30 }))], { amb: [0.14, 0.12, 0.24] });
             // the light that is the way out: a glow that grows towards the hole
             g.save();
             g.globalCompositeOperation = 'screen';
@@ -245,7 +250,7 @@ Tableau.darknight = (z0) => {
             g.fillStyle = gr;
             g.fillRect(-520, -520, 1040, 1040);
             g.restore();
-            lamps.forEach(([x, y], i) => N.flame(g, x, y, { seed: 'lampara' + i, h: 26, w: 8, R: 40, glow: 0.7 }));
+            lamps.forEach(([x, y], i) => N.flame(g, x, y, { seed: 'lampara' + i, h: 22, w: 7, R: 26, glow: 0.35 }));
             S.tooth(g, plateBox, { amp: 0.04 });
             g.globalCompositeOperation = 'destination-out';
             g.fillStyle = '#000';

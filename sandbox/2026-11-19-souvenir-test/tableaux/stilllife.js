@@ -113,20 +113,21 @@ Tableau.stilllife = (z0) => {
         // ============================================================== 3 · the larder: the plate
         // The window's black square: the dark of the larder, its back wall barely there, and
         // the hole (the mouth of a deeper dark) on the axis.
-        sheet('plate', Z.plate, PLATE, 0.5, (g) => {
+        sheet('plate', Z.plate, PLATE, 0.42, (g) => {
             St.wall(g, PLATE, { seed: 'plate', lamp: (x, y) => 0.02 + 0.12 * S.smooth(800, 0, Math.hypot(x + 300, y + 300)), amb: 0.02, course: 150, block: 360 });
             // an inner shelf deep in the larder, its edge barely caught by the lamp
             const G = St.ledge(g, { x0: -1750, x1: -170, y: 170, face: 50, d: 200, seed: 'plate-shelf', chips: 4, lamp: (x) => 0.12 + 0.2 * S.smooth(-200, -900, x), q: 0.8 });
-            // on it, almost lost: a jar and a búcaro
-            const jg = St.jugSprite(150 / 0.55, St.resOf(g, 0.55), 'plate');
-            St.put(g, jg, -420, 150, 0.55);
+            // on it, almost lost: a búcaro, a guess in the dark
             const bu = St.bucaroSprite('b', 150 / 1.2, St.resOf(g, 1.2), 'plate');
-            St.put(g, bu, -260, 152, 1.2);
+            g.save();
+            g.globalAlpha = 0.35;
+            St.put(g, bu, -330, 152, 1.2);
+            g.restore();
             dusk(g, PLATE, -340, 60, 0, 420, 0.9);
             // the larder is nearly black: what is on its shelf is only a guess in the dark
             g.save();
             g.globalCompositeOperation = 'source-atop';
-            g.fillStyle = 'rgba(6,4,3,0.62)';
+            g.fillStyle = 'rgba(6,4,3,0.5)';
             g.fillRect(-700, -200, 650, 420);
             g.restore();
             // the mouth of the deeper dark: a ring of worn stone round the hole
@@ -149,7 +150,7 @@ Tableau.stilllife = (z0) => {
         }, { hole: Tableau.stilllife.hole }),
 
         // ============================================================== 3 · the larder: the window
-        sheet('window', Z.s3 + 300, BODY, 0.85, (g) => {
+        sheet('window', Z.s3 + 300, BODY, 0.8, (g) => {
             St.wall(g, BODY, { seed: 'window', open: window_, d: 260, course: 150, block: 360, lamp: lampOf(-650, -500, 1500, 0.02, 0.85, 0.2), amb: 0.025, gain: 0.8 });
             const k = 1000 / 1260;
             // hung from the window's head, as the Carthusians kept them: a quince and a cabbage
@@ -161,9 +162,12 @@ Tableau.stilllife = (z0) => {
             // on the sill: the cardoon laid across, its leaves towards the light, and the slice
             // of melon, the hidden half moon
             St.cardoon(g, [430, 250], [70, 214], { seed: 'win' });
-            const sl = St.melonSlice(St.resOf(g, 1.1), 'win');
-            St.contact(g, -270, 246, 78, 8, 0.85);
-            St.put(g, sl, -270, 246 - 0.86 * 74 * 1.1 + 2, 1.1);
+            const sl = St.melonSlice(St.resOf(g, 1.3), 'win');
+            St.contact(g, -270, 246, 92, 9, 0.85);
+            // laid rind up on its cut edge, as slices are: a pale half disc rising from the
+            // stone, its green rim above (mirrored top to bottom: its lighting is flat, so
+            // nothing about the lamp changes)
+            S.put(g, sl, { x: -270, y: 247, sx: 1.3, sy: -1.3 });
             for (const [x, y] of [[-170, 250], [-160, 254], [-356, 252]]) St.oval(g, x, y, 3, 1.4, 0.3, '#e8dcb0');
             // the wall round it: a nail, a cobweb in the window's top corner
             nail(g, 640, -460, 90);
@@ -193,6 +197,10 @@ Tableau.stilllife = (z0) => {
                 g.restore();
                 S.put(g, q, { x: ax, y: ay, rot });
             }
+            // in the middle of the ledge, low: melon seeds, a curl of rind, a fallen quince leaf
+            for (const [x, y, a] of [[-60, y2 + 6, 0.3], [-40, y2 + 10, -0.5], [-20, y2 + 3, 1.1], [120, y2 + 8, 0.2]]) St.oval(g, x, y, 4.2, 2, a, '#e6d8a8');
+            S.ink(g, [[30, y2 + 14], [70, y2 + 6], [110, y2 + 12], [130, y2 + 22]], { w: 7, color: '#24401e', alpha: 0.95 });
+            S.ink(g, [[32, y2 + 11], [70, y2 + 3], [108, y2 + 9]], { w: 2.4, color: '#d8e0b0', alpha: 0.8 });
             // hung from a beam above the frame: a string of two quinces
             St.hangString(g, [-470, -800], [-470, -470], { seed: 'q2' });
             St.quince(g, { x: -470, y: -470, s: 1.15, seed: 'hq1' });
@@ -202,23 +210,24 @@ Tableau.stilllife = (z0) => {
         sheet('vanitas', Z.s3, BOX, 1, (g) => {
             const G = St.ledge(g, { x0: -1260, x1: 1260, y: 322, face: 110, d: 440, seed: 'van', chips: 11, joint: 260, mark: [-900, 380], lamp: lampOf(-600, -200, 1900, 0.2) });
             const yb = onTop(G, 0.5);
-            St.contact(g, -600, yb + 6, 190, 26, 0.7);
-            St.plate(g, { x: -600, y: yb, r: 180, flat: true, ey: yb, seed: 'van' });
+            St.contact(g, -440, yb + 6, 190, 26, 0.7);
+            St.plate(g, { x: -440, y: yb, r: 180, flat: true, ey: yb, seed: 'van' });
             const cp = St.cupSprite((yb - 8) / 1.3, St.resOf(g, 1.3), 'van');
-            St.castOn(g, cp, -520, yb - 8, 1.3, { clip: G.top, alpha: 0.5 });
-            St.put(g, cp, -520, yb - 8, 1.3);
-            St.rose(g, { x: -680, y: yb - 6, s: 1.45, seed: 'van' });
+            St.castOn(g, cp, -370, yb - 8, 1.3, { clip: G.top, alpha: 0.5 });
+            St.put(g, cp, -370, yb - 8, 1.3);
+            St.rose(g, { x: -520, y: yb - 6, s: 1.45, seed: 'van' });
             // the candle, put out a moment ago
             const G2 = G, y2 = onTop(G, 0.45);
-            St.contact(g, 470, y2, 60, 10);
-            const cs = St.candlestick(g, { x: 480, y: y2, wax: 200, s: 1.25, seed: 'van' });
-            St.motto(g, [[520, y2 + 4], [620, y2 + 12], [700, y2 + 26], [738, 330], [744, 376]], { w: 24, size: 17 });
-            St.smoke(g, cs.wick, { h: 560, drift: -230, alpha: 0.55, seed: 'van' });
+            St.contact(g, 420, y2, 70, 10);
+            const cs = St.candlestick(g, { x: 420, y: y2, wax: 200, s: 1.25, seed: 'van' });
+            // the motto, dropped at the candle's foot, its end hanging over the edge
+            St.motto(g, [[372, y2 + 2], [290, y2 + 10], [220, y2 + 26], [186, 334], [180, 382]], { w: 24, size: 17, text: 'IN ICTV OCVLI' });
+            St.smoke(g, cs.wick, { h: 600, drift: -260, alpha: 0.85, seed: 'van' });
             dusk(g, BOX, -500, -300, 500, 1700, 0.4);
         }),
 
         // ============================================================== 2 · bread: the hatch
-        sheet('hatch', Z.s2 + 300, BODY, 0.85, (g) => {
+        sheet('hatch', Z.s2 + 300, BODY, 0.8, (g) => {
             const lamp = lampOf(-600, -450, 1500, 0.02, 0.9, 0.22);
             St.wall(g, BODY, { seed: 'hatch', open: hatch, d: 220, course: 140, block: 340, lamp, amb: 0.025 });
             const G = St.ledge(g, { x0: -1300, x1: 1300, y: 250, face: 70, d: 280, seed: 'hatchshelf', chips: 8, joint: -60, lamp: lampOf(-500, -100, 1500, 0.15), q: 0.85 });
@@ -287,7 +296,7 @@ Tableau.stilllife = (z0) => {
         }),
 
         // ============================================================== 1 · water: the arch
-        sheet('arch', Z.s1 + 300, BODY, 0.85, (g) => {
+        sheet('arch', Z.s1 + 300, BODY, 0.8, (g) => {
             const lamp = lampOf(-600, -400, 1500, 0.02, 0.95, 0.24);
             St.wall(g, BODY, { seed: 'arch', open: arch, d: 220, course: 136, block: 330, lamp, amb: 0.03, salt: { y: 470, h: 260, a: 0.7 } });
             for (const side of [-1, 1]) {
@@ -310,6 +319,27 @@ Tableau.stilllife = (z0) => {
                     St.contact(g, -560, yb, 42, 5);
                     St.put(g, jg, -560, yb, 0.42);
                 }
+            }
+            // the arch's voussoirs: joints radiating from its centre, a keystone, the ring of
+            // them a hair proud of the wall (a shadow under its outer edge)
+            {
+                const R0 = 430, R1 = 545, yS = -100, rv = Motion.rng('vous');
+                const ringPts = (rr) => Array.from({ length: 49 }, (_, i) => [Math.cos(-Math.PI + (i / 48) * Math.PI) * rr, yS + Math.sin(-Math.PI + (i / 48) * Math.PI) * rr]);
+                g.save();
+                g.globalCompositeOperation = 'source-atop';
+                S.ink(g, ringPts(R1 + 2), { w: 5, color: '#020101', alpha: 0.55, taper: [0, 0] });
+                S.ink(g, ringPts(R1 - 1), { w: 1.2, color: '#5a4a38', alpha: 0.45, taper: [0, 0] });
+                for (let i = 1; i < 17; i++) {
+                    const a = -Math.PI + (i / 17) * Math.PI + (rv() - 0.5) * 0.02, c = Math.cos(a), sn = Math.sin(a);
+                    const p0 = [c * R0, yS + sn * R0], p1 = [c * R1, yS + sn * R1];
+                    S.ink(g, [p0, p1], { w: 3.4, color: '#030202', alpha: 0.75, taper: [0, 0] });
+                    S.ink(g, [[p0[0] + 1.6, p0[1] + 1.6], [p1[0] + 1.6, p1[1] + 1.6]], { w: 0.8, color: '#6a5842', alpha: 0.35 * (c < 0 ? 1 : 0.4), taper: [0, 0] });
+                }
+                // the keystone, a little longer, with the mason's date cut in it
+                St.poly(g, [[-30, yS - R0 - 2], [30, yS - R0 - 2], [38, yS - R1 - 22], [-38, yS - R1 - 22]], 'rgba(40,32,24,0.55)');
+                S.ink(g, [[-38, yS - R1 - 22], [38, yS - R1 - 22]], { w: 1.2, color: '#6a5842', alpha: 0.5 });
+                S.textOn(g, '1640', [[-26, yS - R0 - 40], [26, yS - R0 - 40]], { font: "18px 'IM Fell DW Pica SC', serif", color: 'rgba(8,6,4,0.85)', spacing: 1 });
+                g.restore();
             }
             nail(g, 640, -420, 70);
             cobweb(g, -430, -100, 90, -Math.PI, -Math.PI * 0.62, 'arch');

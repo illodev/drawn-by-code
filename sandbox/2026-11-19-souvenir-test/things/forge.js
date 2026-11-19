@@ -214,7 +214,7 @@ const Forge = (() => {
                 if (o.albedo) o.albedo(ux, uy, du, hu, out);
                 // the hand: streaks along the form's tone lines, and the marks
                 let k = 1;
-                if (sAmp) k += sAmp * (noise3(x * sF, y * sF, (nx * 0.6 + ny * 0.8 + nz) * sTone, sSeed) * 0.7 + noise3(x * sF * 2.3, y * sF * 2.3, nz * sTone * 2.1, sSeed + 3) * 0.3);
+                if (sAmp) k += sAmp * noise3(x * sF, y * sF, (nx * 0.6 + ny * 0.8 + nz) * sTone, sSeed);
                 if (marks) k += (marks[i * 4] / 255 - 0.502) * markAmp * 2;
                 let r = amb[0], gg = amb[1], b = amb[2], sr = 0, sg = 0, sb = 0;
                 for (const L of Ls) {
@@ -1507,7 +1507,13 @@ const Forge = (() => {
         const { x = 0, y = 0, s = 1, seed = 'tin', n = 5 } = o;
         const res = resOf(g, s * 1.5), sd = S.seedOf(seed), Ls = lightsOf(o, x, y, s, 0), amb = o.amb, r = Motion.rng('tin' + seed);
         const TINW = hex('#dcd8d0');
-        const ringSp = (rad, th, sq, k) => lit({
+        const ringMemo = new Map();
+        const ringSp = (rad, th, sq, k) => {
+            const key = [rad, th, sq, k].join('/');
+            if (!ringMemo.has(key)) ringMemo.set(key, ringLit(rad, th, sq, k));
+            return ringMemo.get(key);
+        };
+        const ringLit = (rad, th, sq, k) => lit({
             box: { x: -rad - th - 2, y: -rad * sq - th - 2, w: 2 * (rad + th + 2), h: 2 * (rad * sq + th + 2) }, res, seed: seed + k, lights: Ls.map((L) => L), amb, shape: 'round', relief: 1.2, metal: 1,
             mask: (q) => {
                 q.beginPath();
@@ -2307,17 +2313,18 @@ const Forge = (() => {
         const turn = (k % 7) * 0.31;
         for (let i = 0; i < 6; i++) {
             const a0 = (i / 6) * TAU + turn + (i % 2 ? 0.06 : 0), inner = i % 2 === 0;
-            const len = size * (inner ? 1 : 0.92) * (0.5 + 0.5 * open), wd = size * (inner ? 0.5 : 0.42);
+            const len = size * (inner ? 1 : 0.92) * (0.5 + 0.5 * open), wd = size * (inner ? 0.52 : 0.44);
+            const lj = len * (0.86 + 0.24 * hashI(i, k, 1, 41)); // no two lobes quite alike
             const pts = [];
             for (let j = 0; j <= 14; j++) {
-                const u = j / 14, w2 = wd * 0.5 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.08 + u * 0.97)), 0.55) * (1 - 0.25 * u);
-                pts.push([size * 0.08 + u * len, w2]);
+                const u = j / 14, w2 = wd * 0.5 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.06 + u * 0.96)), 0.36) * (1 - 0.12 * u);
+                pts.push([size * 0.08 + u * lj, w2]);
             }
             for (let j = 14; j >= 0; j--) {
-                const u = j / 14, w2 = wd * 0.5 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.08 + u * 0.97)), 0.55) * (1 - 0.25 * u);
-                pts.push([size * 0.08 + u * len, -w2]);
+                const u = j / 14, w2 = wd * 0.5 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.06 + u * 0.96)), 0.36) * (1 - 0.12 * u);
+                pts.push([size * 0.08 + u * lj, -w2]);
             }
-            lobes.push({ pts: S.xf(pts, { rot: a0 }).map(([a, b]) => [a, b * fy]), a0, len, inner });
+            lobes.push({ pts: S.xf(pts, { rot: a0 }).map(([a, b]) => [a, b * fy]), a0, len: lj, inner });
         }
         const all = lobes.flatMap((l) => l.pts);
         // which lobe a point is on (the inner three lie over the outer)
@@ -2350,7 +2357,7 @@ const Forge = (() => {
                 if (d > Math.PI) d = TAU - d;
                 // each lobe a shallow trough along its midvein, its tip curled back; the throat deep
                 const across = d / 0.5;
-                return 2.4 * across * across - 1.2 * Math.exp(-((across / 0.15) ** 2)) + 7 * Math.sin(Math.min(1, rr) * 2.6) - 5 * smooth(0.95, 1.1, rr) * (1 - open * 0.5) - 8 * smooth(0.2, 0.04, rr) + (l.inner ? 1.5 : 0);
+                return 1.1 * across * across - 0.35 * Math.exp(-((across / 0.15) ** 2)) + 7 * Math.sin(Math.min(1, rr) * 2.6) - 4 * smooth(0.95, 1.1, rr) * (1 - open * 0.5) - 8 * smooth(0.2, 0.04, rr) + (l.inner ? 1.2 : 0);
             },
             albedo: (px, py, d, hh, out) => {
                 const rr = Math.hypot(px, py / fy) / size, [l, a] = lobeAt(px, py);
@@ -2376,6 +2383,7 @@ const Forge = (() => {
                 into(out, hex('#e6b9b4'), (1 - open) * 0.55 + smooth(0.85, 1.05, rr) * 0.12);
                 into(out, hex('#d7d39a'), smooth(0.24, 0.08, rr) * 0.75); // the throat, green-yellow
                 if (rr < 0.06) mixA(out, [0.32, 0.34, 0.16], 0.85, out);
+                into(out, hex('#c9c4cc'), smooth(0.45, 0.2, rr) * 0.35); // the cup darkens towards the throat
                 if (k % 13 === 5) into(out, hex('#b08a5a'), smooth(0.8, 1.05, rr) * 0.55); // a browning edge
                 out[3] = 0.9;
             },
@@ -2442,7 +2450,7 @@ const Forge = (() => {
         const { R = 300, floor = 360, seed = 'bustle' } = o;
         const Ls = lightsOf(o, 0, 0, 1, 0).map((L) => ({ ...L, wrap: 0.55 })), amb = o.amb, res = resOf(g, 1.3), r = Motion.rng('bustle' + seed);
         // the wax is lit through: white flowers keep light in their shade
-        const wax = [amb[0] * 3.4, amb[1] * 3.4, amb[2] * 3];
+        const wax = [0.3, 0.31, 0.37];
         // leaves first: long straps from under the flowers, arching out and drooping
         for (let i = 0; i < 9; i++) {
             const a = Math.PI * (0.08 + 0.84 * (i / 8)) + (r() - 0.5) * 0.15, side = Math.cos(a) >= 0 ? -1 : 1;
@@ -2721,7 +2729,7 @@ const Forge = (() => {
         const Ls = lightsOf(o, x, y, 1, 0), sd = S.seedOf(seed);
         const pts = smoothPts([[-w / 2, 0], [-w * 0.5, -24], [-w * 0.36, -h * 0.4], [-w * 0.2, -h], [w * 0.2, -h], [w * 0.36, -h * 0.4], [w * 0.5, -24], [w / 2, 0], [0, 6]], 6);
         const sp = lit({
-            box: S.bbox(pts, 6), res: o.res ?? resOf(g) * 0.8, seed, lights: Ls, amb: o.amb, shape: 'round', relief: 0.35,
+            box: S.bbox(pts, 6), res: o.res ?? resOf(g) * 0.6, seed, lights: Ls, amb: o.amb, shape: 'round', relief: 0.35,
             mask: (q) => fillPts(q, pts),
             height: (px, py) => {
                 // courses of brick under the lime, the lip a moulding
@@ -2816,18 +2824,26 @@ const Forge = (() => {
     //   detail(g)       drawn after, at the caller's resolution (cracks, nails, tallies)
     const LIME = hex('#ece6da'), LIME_OLD = hex('#d9cdb8'), CLAY = hex('#7a4630'), CLAY_DK = hex('#4a281c'), PEBBLE = hex('#b7a48c'), ANIL = hex('#3c5fa8'), ANIL_PALE = hex('#7d9ac8');
     function cave(g, o = {}) {
-        const box = o.box, res = o.res ?? resOf(g) * 0.85, sd = S.seedOf(o.seed ?? 'cave');
+        const box = o.box, res = o.res ?? resOf(g) * 0.62, sd = S.seedOf(o.seed ?? 'cave');
         const rw = o.reveal ?? 0, rd = o.revealDepth ?? rw * 2.6, wash = o.wash ?? 0.85, rock = o.rock ?? 26;
         const Ls = lightsOf(o, 0, 0, 1, 0);
-        const flakeAt = (x, y) => fbm(x * 0.0045, y * 0.0045, 4, sd + 40) * 1.4 + 0.18 * noise2(x * 0.05, y * 0.05, sd + 41) - (wash - 0.5) * 1.9;
+        const flakeBias = (wash - 0.5) * 1.9;
+        const flakeAt = (x, y) => {
+            // a cheap first look: most of a well-washed wall is far from flaking
+            const a = noise2(x * 0.0045, y * 0.0045, sd + 40) * 0.7;
+            if (a * 1.4 + 0.75 < flakeBias) return -1;
+            return (a + fbm(x * 0.009, y * 0.009, 2, sd + 57) * 0.5) * 1.4 + 0.18 * noise2(x * 0.05, y * 0.05, sd + 41) - flakeBias;
+        };
         // pebbles in the clay, of every size, not quite round
         const pebble = (x, y) => worley((x + 6 * noise2(x * 0.08, y * 0.08, sd + 16)) / 19, (y + 6 * noise2(x * 0.08 + 4, y * 0.08, sd + 17)) / 15, sd + 11);
         // a few long cracks that wander (a warped cell edge, kept only where a slow noise allows)
         const crackAt = (x, y) => {
+            const mask = noise2(x * 0.005, y * 0.005, sd + 13);
+            if (mask < 0.3) return 0;
             const wx = x + 60 * noise2(x * 0.004, y * 0.004, sd + 14), wy = y + 60 * noise2(x * 0.004 + 9, y * 0.004, sd + 15);
             const cw = worley(wx / 210, wy / 210, sd + 12);
             const jag = 0.012 * noise2(x * 0.15, y * 0.15, sd + 18);
-            return smooth(0.022, 0.0, cw[1] - cw[0] + jag) * smooth(0.3, 0.6, noise2(x * 0.005, y * 0.005, sd + 13));
+            return smooth(0.022, 0.0, cw[1] - cw[0] + jag) * smooth(0.3, 0.6, mask);
         };
         const sp = lit({
             box, res, seed: o.seed ?? 'cave', lights: Ls, amb: o.amb ?? DARK, shape: 'none',
@@ -2838,14 +2854,14 @@ const Forge = (() => {
                 q.fill('evenodd');
             },
             height: (x, y, d) => {
-                let hh = rock * fbm(x / 300, y / 300, 3, sd) + 7 * fbm(x / 80, y / 80, 2, sd + 5);
+                let hh = rock * fbm(x / 300, y / 300, 2, sd) + 7 * noise2(x / 80, y / 80, sd + 5) * 0.6;
                 // the pick's facets, dug by hand, under the lime
                 const pk = worley(x / 24 + 0.4 * noise2(x * 0.01, y * 0.01, sd + 6), y / 34, sd + 6);
                 const flat = rw ? smooth(rw * 0.9, rw * 1.3, d) : 1;
                 hh += 2.6 * pk[0] * pk[0] * flat;
                 // the lime laid on with a broom: short streaks this way and that, coat over coat
                 const bd = 0.6 + noise2(x * 0.002, y * 0.002, sd + 8) * 0.9;
-                hh += flat * (0.55 * noise2((x * Math.cos(bd) + y * Math.sin(bd)) * 0.02, (y * Math.cos(bd) - x * Math.sin(bd)) * 0.11, sd + 7) + 0.45 * noise2(x * 0.45, y * 0.45, sd + 9) + 0.25 * noise2(x * 1.1, y * 1.1, sd + 19));
+                hh += flat * (0.55 * noise2((x * Math.cos(bd) + y * Math.sin(bd)) * 0.02, (y * Math.cos(bd) - x * Math.sin(bd)) * 0.11, sd + 7) + 0.5 * noise2(x * 0.6, y * 0.6, sd + 9));
                 // where the coats have flaked: a step down to the clay and its pebbles
                 const f = flakeAt(x, y);
                 if (f > 0) {
@@ -3063,7 +3079,7 @@ const Forge = (() => {
         }
         g.putImageData(im, 0, 0);
         // the hand in the paint: strokes that follow her forms, a slow drift of the mix
-        S.brushwork(c, { amp: 0.06, len: 7, drift: 0.02, warm: 0.015, seed: 9, k: res });
+        S.brushwork(c, { amp: 0.045, len: 4, drift: 0.02, warm: 0.015, seed: 9, k: res });
         return { canvas: c, box };
     }
     const moonCache = new Map();
