@@ -82,8 +82,8 @@ What I saw on the first assembly, at full size, and what changed:
   linger on the mouth (the guitar grows to twice its size in half a second) before the
   0.7 s plunge.
 
-`review.mjs` after this: no warnings but the two large jumps at 3.83 and 4.00 s, which are
-the dive itself. Deterministic.
+`review.mjs` on the final render: no warnings, deterministic; one large jump outside cuts,
+at 4.00 s, which is the camera going through the mouth. 192 frames at 1920 × 1080 in 3 min.
 
 Known and left for the user to judge (not evident faults, choices):
 
