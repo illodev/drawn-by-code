@@ -83,6 +83,7 @@ Motion.scene({
         { src: DIR + 'things/ribbon.js', optional: true }, { src: DIR + 'things/charms.js', optional: true },
         { src: DIR + 'things/papers.js', optional: true }, { src: DIR + 'things/wares.js', optional: true }, { src: DIR + 'things/fauna.js', optional: true },
         { src: DIR + 'things/coins.js', optional: true }, { src: DIR + 'things/relics.js', optional: true }, { src: DIR + 'things/heirlooms.js', optional: true },
+        { src: DIR + 'things/library.js', optional: true }, { src: DIR + 'things/devotion.js', optional: true },
         DIR + 'tableaux/emblem.js', DIR + 'tableaux/lemons.js',
     ],
     fonts: [

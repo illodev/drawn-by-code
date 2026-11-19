@@ -150,3 +150,19 @@ Madinat al-Zahra, Nasrid cut-tile work). Arabic script on coins and instruments 
 suggested as a Kufic texture, never written: the real legends are religious formulae.
 Three more agents (coins, relics, heirlooms). To debate with the user later: the whole
 dive as a descent through time, each picture an older layer, down to Tartessos.
+
+**The user, later:** «I would also include references to the poets, artists, religion and
+so on, that passed through, were born in or chose this land. I would make it have darker
+parts (almost mystical) and lighter parts, more abstract parts and more realistic ones,
+hidden references… I don't know if I am explaining myself well. The length of the video
+does not matter.»
+
+What it means: contrast is the structure. The film is no longer five pictures in one key
+but a longer dive that alternates dark and light, abstract and realistic, and every
+picture hides references. A script of nine pictures is proposed to the user in brief.md
+(the emblem, the lemon tree, the green dream, a tenebrist still life, the dark night, the
+dome, the patio, the guitar broken into planes, the forge and the moon). For the emblem,
+now: two more agents: the books of its poets and thinkers with their names on the spines
+and a painter's palette (library), and objects of devotion of the three faiths (a Holy
+Week candle, a thurible, a jet rosary, a Sephardic lamp, a silver hand amulet), without
+faces and without sacred text written out.

@@ -49,6 +49,28 @@
 The through-line is **the moon, waxing from picture to picture** until it is full in the forge.
 Every film ends with the signature `illodev x Claude`.
 
+## The script after the user's second round (to debate)
+
+The user: more detail at every pixel; the history of Andalusia and its civilizations;
+its poets, artists and faiths (those who were born here, passed through or chose it);
+darker, almost mystical parts and lighter ones, abstract parts and realistic ones, hidden
+references; the length does not matter. So the dive grows and alternates:
+
+| # | Picture | Light and manner | What it holds |
+|---|---|---|---|
+| 1 | **The emblem** | indigo night, dense, the emblem manner | flamenco; a string of coins, one per people who passed; a wheel of relics from Tartessos to al-Andalus; the books of its poets; objects of the three faiths |
+| 2 | **The lemon tree** | bright, realistic, brush | Machado's orchard, the blossom, a goldfinch |
+| 3 | **Green** | a dream, half abstract | the whole «Romance sonámbulo», as ghosts |
+| 4 | **The still life** | tenebrist, hyper-real | the Seville of Velázquez and Zurbarán: the water seller's jug with its drops, the pots on a ledge, Valdés Leal's candle |
+| 5 | **The dark night** | the blackest, mystical | St John of the Cross (the flame, his Mount Carmel), Ibn Arabi's circles, the candles of the small hours of Holy Week |
+| 6 | **The dome** | pure geometry, light from above | the Alhambra's muqarnas, the Byzantine gold of Córdoba's mihrab |
+| 7 | **The patio** | dawn pastels, realistic | arches, flowerpots, the confronted peacocks of Madinat al-Zahra |
+| 8 | **The guitar broken into planes** | abstract, a homage to Cubism | Málaga; the guitar of the first picture, taken apart (no existing work is copied) |
+| 9 | **The forge and the moon** | fire | «La luna vino a la fragua»; the full moon, the signature |
+
+An alternative for the order, also to debate: the dive as a descent through time, each
+picture an older layer, down to Tartessos.
+
 ## Shot list (the style test: pictures 1 and 2)
 
 | Time | Shot | What happens |
