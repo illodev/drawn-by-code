@@ -88,7 +88,7 @@ Motion.scene({
         }
         if (sec === 10 || sec === 11) {
             const q = C.stats();
-            return text([`set-up ${(st.ms / 1000).toFixed(1)} s`, ...st.per, `sprites ${q.sprites}, ${(q.px / 1e6).toFixed(1)} Mpx, ${q.mb} MB`, `layers ${st.layers.map((l) => Math.round((l.box.w * l.box.h * Math.pow(env.k * 1.12, 2) * 4) / 1048576)).join(' + ')} MB`, st.err || '']);
+            return text([`set-up ${(st.ms / 1000).toFixed(1)} s`, ...st.per, `sprites ${q.sprites}, ${(q.px / 1e6).toFixed(1)} Mpx, ${q.mb} MB`, `layers ${st.layers.map((l) => Math.round((l.box.w * l.box.h * Math.pow(env.k * 1.12 * (l.res ?? 1), 2) * 4) / 1048576)).join(' + ')} MB`, st.err || '']);
         }
         // ---- specimens at 3×, raw paint, on the tree's own shade (two tones, to judge the edges)
         g.fillStyle = '#1c3a2a';

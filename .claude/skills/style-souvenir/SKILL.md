@@ -1,6 +1,6 @@
 ---
 name: style-souvenir
-description: Souvenir style, in testing: a place told through its painted emblems, in the manner of tattoo flash, cigar-box and fruit-crate labels and holiday postcards — opaque paint modelled with light (pieces with a dark contour and airbrushed shade, still lifes in brush strokes with no line), gold, ribbons with lettering — as nested pictures that a camera dives through, each inside a hole of the one before (depth of field, an open-shutter smear, a mist filter, lifted blacks). Use it for emblems, allegories of a place or a culture, «kitsch», painted labels, studio idents, an «infinite zoom» through paintings, or when working with styles/souvenir/.
+description: Souvenir style, in testing: a place told through its painted emblems, in the manner of tattoo flash, cigar-box and fruit-crate labels and holiday postcards — opaque paint modelled with light (pieces with a dark contour and airbrushed shade, still lifes in brush strokes with no line), packed with small true things (coins, relics, labels, creatures) on a painted ground, lettering on ribbons — as nested pictures that a camera dives through, each inside a hole of the one before (depth of field, an open-shutter smear, a mist filter, lifted blacks). Use it for emblems, allegories of a place, its history or its culture, «kitsch», painted labels, studio idents, an «infinite zoom» through paintings, anything «packed with detail», or when working with styles/souvenir/.
 ---
 
 # Style · Souvenir
@@ -50,23 +50,38 @@ the motion needs, then smeared along the zoom). `S.track(keys, t)` joins camera 
 monotone cubic (it never backs up). `S.finish(ctx, env, frame, { mist, lift, vignette,
 grain })` in the scene's `post`.
 
-Each picture is a file returning its layers (`tableaux/emblem.js`, `tableaux/lemons.js` in
-the test); each group of things is a file with one global (`things/*.js`: `Fan`, `Guitar`,
-`Garland`, `Sky`, `Ribbon`, `Charms`, `Shawl`, `Citrus`). Helpers that still live in those
-files and are worth taking before writing a new one:
+**For volumes and many-part things** (lifted from the first film's painters):
 
-- a `form` sprite in the emblem manner: `sprayIn` (the airbrush in from the sprite's own
-  alpha edges, holes included) and `stamp` (a dilated ink contour, heavier towards the
-  shadow, and its cast) in `things/ribbon.js`; or paste the sprite inside `S.piece`'s
-  `detail` and the piece gives contour, heavy side and cast (`things/charms.js`);
-- turning or mirroring geometry instead of the canvas, so the light stays put: `frame(x, y,
-  rot, s)` in `things/charms.js`; `flip` in `things/sky.js` and `things/garland.js`;
-- `blob` (a soft patch of colour on existing paint) and `blade` (a leaf with a lit half, a
-  dark half and a midrib) in `things/garland.js`; `outlined` (one heavy contour shared by
-  a group of small pieces) and the feather painter in `things/sky.js`; `rope`, `tassel`,
-  `turned` (a mirrored profile lit as a round thing) in `things/charms.js`; a ribbon as an
-  extruded plan curve in `things/ribbon.js`; `layer` (paint a piece that casts or cuts a
-  hole in its own canvas) in `things/guitar.js`.
+- `S.sheet(box, res, paint)` → `{ canvas, box }`: a thing painted on its own sheet, so its
+  casts and its holes stay its own. Every object of the first film is one.
+- `S.sprayIn(sprite, res, { color, alpha, w, dir })`: the airbrush in from a sprite's own
+  alpha edges, holes included; `S.stamp(g, sprite, { lw, heavy, cast })`: its ink contour,
+  heavier towards the shadow. Together they bring a lit `form` volume back to the emblem
+  manner. Airbrush first, stamp after.
+- `S.reliefField(box, res, paint, blur)` → `height(x, y)`: a relief painted as greys with
+  canvas strokes and lit by `form` (`inflate: 'none'`): coins, chased metal, filigree, carving.
+- `S.frame(x, y, rot, s, flip)`: turn and mirror the geometry, never the canvas (`f.pts`,
+  `f.dir`, `f.sub`), so the light stays at the top left.
+- `S.brushwork(canvas, { amp, len, drift, warm, slant, wander })`: the hand in the paint:
+  strokes that follow a finished layer's own forms and a slow drift of the mix. The rig
+  lays it on every layer unless the layer says `brush: false` (the brush manner has its own).
+
+Each picture is a file returning its layers (`tableaux/emblem.js`, `tableaux/lemons.js` in
+the test); each group of things is a file with one global. The first film's files are the
+library of this style, to read before painting anything like them:
+
+| File · global | What it holds, and the trick worth taking |
+|---|---|
+| `things/guitar.js` · `Guitar` | marquetry (every tile its tone and two facets), wood grain, a bridge with tied strings |
+| `things/fan.js` · `Fan` | a miniature painted in «band space» and bent along an arc; tulle lace; pierced fretwork (`pierced`) |
+| `things/shawl.js` · `Shawl` | satin stitch thread by thread (tone from each thread's angle to the light); a packed layout by occupancy grid |
+| `things/garland.js` · `Garland` | petals as fans projected from 3D, in nested tiers; leaves with a lit and a dark half (`blade`) |
+| `things/sky.js`, `things/fauna.js` · `Sky`, `Fauna` | feathers one by one under one shared contour (`outlined`); creatures in both manners (`line: false`); water painted on what is under it (`Fauna.drop`) |
+| `things/ribbon.js` · `Ribbon` | cloth as one strip drawn from a plan; lettering fitted on a curve |
+| `things/coins.js` · `Coins` | struck reliefs from layered height fields; a stroke font; script as texture |
+| `things/relics.js`, `things/heirlooms.js` · `Relics`, `Heirlooms` | patina per pixel; cloisonné, tesserae and cut tile (a tone and two arrises per piece); exact interlace |
+| `things/charms.js`, `things/wares.js`, `things/library.js`, `things/papers.js`, `things/devotion.js` | rope and tassels, glass, tortoiseshell, books as boxes with affine faces, letterpress with its wear, flame and smoke laid on the layer after the object |
+| `things/citrus.js` · `Citrus` | the brush manner whole: fruit at every age, eight kinds of leaf with blemishes, wood as a lit tube, blossom at every stage |
 
 ## Style rules
 
@@ -74,6 +89,23 @@ files and are worth taking before writing a new one:
   with contour and airbrush. The still life: greens and one fruit colour, brush, no line.
   The reference this style comes from changes manner at every picture; that change is half
   of its charm.
+- **Packed, and worked at every pixel.** The user's bar: «packed with details, and very
+  worked at the level of every pixel». Any 300 × 300 px of the 1920 frame holds at least
+  eight distinct drawn things, and at 4× there is still drawing there (hairlines of 1–1.5
+  units, stipple, hatching, grain, wear). **Repetition is not detail:** fourteen identical
+  pleats, a row of identical scallops, a tiled motif read as a pattern fill; whatever
+  repeats varies (size, turn, tone, one missing, one mended) and carries drawing of its own.
+  The ground is never empty: it is painted (a shawl's embroidery, foliage), close in tone,
+  behind.
+- **Things to find.** Small true details that reward a second look (a fly on a label, a
+  stapled crack, a maker's mark, an ant on a branch), and references in layers: some read
+  at once, some only by who knows. Write each one down in the brief as «read at once / the
+  deep one».
+- **True to the thing.** A relic follows a real, documented type; its painter writes the
+  anatomy and ten true details at the top of the file before painting, and reports what
+  was from memory. Those licences go into the experiment's review.md. Sacred or foreign
+  script is never imitated on an object of devotion (leave the band plain); on coins and
+  instruments it is a texture of strokes, flagged for a reader of that script to check.
 - **No piece is flat.** Emblem manner: local colour, a darker and cooler tone sprayed in
   from the shadow side and from under whatever overlaps, a warmer light on the lit side, a
   small clean highlight. Brush manner: a ramp with a real form shadow (a third of every
@@ -91,6 +123,14 @@ files and are worth taking before writing a new one:
   near black and the frame's median luminance was 0.33 against the reference's 0.50: deep
   in a sunny tree is green light, not darkness. Measure the frame (luminance at 5/50/95 %,
   median saturation) against the mood wanted before painting more.
+- **A packed picture is composed by its framings.** Work out what the first, widest
+  framing shows of each layer and place every piece whole inside it; the push then
+  carries the edges out and leads the eye to the hole. Nothing lies on what must be read
+  (castanets on a poster's headline); what hangs across (lanterns, bunting) goes behind;
+  the centre is brighter and more saturated than the ring round it (a veil of the
+  ground's colour on the ring, on the paint only).
+- **Contrast between pictures is the film's structure:** dark against light, mystical
+  against plain day, abstract against realistic; one fan at dusk and one at noon.
 - **The grade lifts the blacks** (`lift` screens a dark violet-grey over the frame) and a
   mist filter spreads the lights; nothing clips. Tooth on every layer, grain on the frame.
 - **The camera never stops and never backs up:** arrive decelerating, push slowly (the
@@ -154,7 +194,10 @@ files and are worth taking before writing a new one:
 
 ## Style checklist
 
+- [ ] Density: eight drawn things in any 300 × 300 px; drawing still there at 4×; nothing that repeats is identical.
 - [ ] Every piece has modelling (crop it at 2×: no flat fill, no bare gradient).
+- [ ] Every reference is true to its source, and what was from memory is written down.
+- [ ] Every piece whole in the widest framing; nothing lying on lettering; what must be read, reads.
 - [ ] Light from the top left on every piece, turned ones included.
 - [ ] Contours with weight in the emblem manner; none, and broken edges, in the brush manner.
 - [ ] Overlaps cast shadows.
@@ -167,11 +210,14 @@ files and are worth taking before writing a new one:
 
 ## Lessons
 
-- 2026-11-19 · souvenir-test · A distance field has a crease along every ridge and light finds it (a lemon came out faceted): inflate a silhouette by solving ∇²u = −1 inside it and taking √(4u), coarse to fine: exact spheres and ellipsoids, smooth swellings for anything else.
-- 2026-11-19 · souvenir-test · Brush strokes laid over a lit form as translucent colour flatten it (pale strokes lifted the shadows, the form shadow vanished). Paint the strokes in greys on mid-grey and read them back as tone before the ramp: a stroke is then a colour of the palette, lighter or darker, and the modelling survives.
-- 2026-11-19 · souvenir-test · A hole cut with `destination-out` takes the alpha of the current `fillStyle`: after a painter that left a translucent fill, the hole was 30 % cut and the next picture showed veiled in the night's colour. Set an opaque fill before cutting.
-- 2026-11-19 · souvenir-test · Texture tiles pasted one by one leave seams (a line across the plate): lay them as a repeating pattern in pixels.
-- 2026-11-19 · souvenir-test · Anything that must register with a thing on another layer (the strings' knots on the bridge) belongs to that thing's layer: 15 units of depth is already 1.5 % of scale at the first frame and grows as the camera comes in.
-- 2026-11-19 · souvenir-test · A piece that uses `S.cast` or `destination-out` is painted in its own canvas and pasted, or its shadow and its hole land on its neighbours in the layer. And judge pieces on a transparent layer, as the picture paints them: over a filled ground every cast becomes a halo that is not in the film.
-- 2026-11-19 · souvenir-test · Composing by eye put a key 30 units from the bill that holds it: read the contact off a render (pixel → logical → the layer's own units through its scale and the camera's offset), move, crop the contact at 1:1.
+- 2026-11-19 · souvenir-test · A distance field has a crease along every ridge and light finds it (a lemon came out faceted): inflate a silhouette by solving ∇²u = −1 inside it and taking √(4u), coarse to fine.
+- 2026-11-19 · souvenir-test · Brush strokes laid over a lit form as translucent colour flatten it. Paint them in greys on mid-grey and read them back as tone before the ramp (`marks`).
+- 2026-11-19 · souvenir-test · A hole cut with `destination-out` takes the alpha of the current `fillStyle`: set an opaque fill before cutting, or the next picture shows veiled.
+- 2026-11-19 · souvenir-test · Anything that must register with a thing on another layer (knots on a bridge, a key in a bill) belongs to that thing's layer, or is placed by reading the contact off a render (pixel → logical → the layer's units) and cropping it at 1:1.
 - 2026-11-19 · souvenir-test · A fast zoom needs more than averaged instants: twelve exposures of a whip-in read as twelve ghosts. After averaging, smear the sum along the zoom by the gap between two instants.
+- 2026-11-19 · souvenir-test round 2 · «Packed with details, worked at every pixel»: the first assembly was clean pieces on a quiet ground. What closed the gap, in order of effect: the ground painted (a shawl of eleven thousand motifs), the largest pieces given a subject of their own (a landscape on each fan), a ring of small true things round the emblem, a string of coins, then brushwork inside every fill.
+- 2026-11-19 · souvenir-test round 2 · Relief (coins, chased bronze, filigree) is layers of greys blurred as float fields and lit by `form`; colouring the types by height turns them into stickers: keep the patina on everything, rub only the top of the relief, and add (blurred height − height) to the tone.
+- 2026-11-19 · souvenir-test round 2 · Before painting on something half hidden (a fan behind a guitar), paint a numbered map over it in the real picture and compose in the gaps: the first landscapes put both monuments behind the olive.
+- 2026-11-19 · souvenir-test round 2 · Cost: a `ctx.filter` blur on each of hundreds of marks costs seconds; draw the group on a sheet and blur once. Layers the lens will blur are painted at a fraction of the size (`res`). Painting in `setup` holds the page's load event (the renderer gives up past 30 s): paint on the first frame, as the rig does.
+- 2026-11-19 · souvenir-test round 2 · `S.spray` floods everything outside its polygon inside the current clip: clip to that polygon first. `S.piece` takes `{ from, to, stops }`, not a `CanvasGradient`. `form`'s `tint` runs after `spec`: a tint that replaces colour kills the sheen.
+- 2026-11-19 · souvenir-test round 2 · Strokes that imitate a script read as letters as soon as two cross: for a texture of script use strokes that spring from one foot, tails under the line and a drawn-out baseline, and still have a reader of that script look. On objects of devotion, leave the band plain.

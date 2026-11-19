@@ -200,3 +200,53 @@ open on the table. What their painters flagged, so nobody takes it for more than
   Maghrebi and later than Nasrid; the Sephardic lamp's type is debated between Spain and
   southern France.
 - **Fans:** the Generalife is to the left of the Alhambra, as seen from the Albaicín.
+
+### Round 2 (auto) · the second pass assembled
+
+Eleven agents, about an hour, one file each (their reports are distilled into the style
+skill). What came back, all at the bar on the first pass:
+
+- **The fans** as painted fans: Granada at dusk (the Sierra Nevada, the Alhambra along
+  its crest tower by tower, the Albaicín) and Seville by day (the Giralda, the Torre del
+  Oro, the Triana bridge, boats on the river), each bent along its arc across the pleats,
+  with «Recuerdo de Granada / de Sevilla» in a cartouche, tulle lace and pierced sticks.
+  One fan dark and one light.
+- **The ground** as a mantón de Manila: 11 075 embroidered motifs in satin stitch (the
+  tone of every thread from its angle to the light), verses woven into the damask.
+- **Thirteen coins** hanging from the ribbon, one per people, as struck reliefs.
+- **A wheel of relics** round the emblem: the Carambolo gold, a murex and its purple, a
+  Corinthian helmet, a Baetican amphora, a mosaic of Italica, a stele; an eagle fibula, a
+  votive crown, a Byzantine cross on gold mosaic, an astrolabe (a true stereographic
+  projection for 38° N), the fawn of Madinat al-Zahra, Nasrid cut-tile work.
+- **Papers** (the poster of the 1922 Concurso de Cante Jondo, a street tile «Calle de
+  Elvira», a lottery ticket, a stamp, a matchbox), **wares** (a botijo, fino and its glass,
+  a peineta, a biznaga, feria lanterns), **the library** (fourteen spines from Seneca and
+  Ibn Hazm to Lorca and Zambrano, a palette marked «D·V», the score of «El amor brujo»),
+  **devotion** (a Holy Week candle, a thurible, a rosary, a Sephardic lamp, a hand amulet).
+- **Creatures and water**: bees, a swallowtail, a ladybird, the ocellated lizard, a
+  gecko, a goldfinch, a snail, dew.
+- **The lemon tree** rebuilt: lemons at every age and from three sides, eight kinds of
+  leaf with their blemishes, wood with thorns and scars, blossom at every stage, ants on
+  the bough, sun dapples; six layers instead of four.
+
+The lead's part: `brushwork` (strokes that follow each finished layer's own forms, a
+drift of the mix: no edge moves), the painters' shared helpers lifted into the kit
+(`sheet`, `sprayIn`, `stamp`, `reliefField`, `frame`; checked in `dev/kit`), a fix to
+`S.dab` (it painted nothing on a path of two or three points: two painters' scuffs were
+silently empty for rounds), the film retimed to 10.5 s with a wide arrival and a 3.3 s
+push over the emblem.
+
+What I saw on assembly, at full size, and what changed:
+
+- **Half the wheel was cut by the top of the frame** (pieces placed for the guitar layer's
+  scale, not their own) · 1.75 s · → every piece re-placed whole inside what the widest
+  framing shows of its layer (x ±1100, y −567…+671).
+- **The lanterns hung in front of the crown, the palette and the comb** · → behind
+  everything else on their layer.
+- **The castanets and the stamp lay on the poster's headline** («CANTE JONDO» could not be
+  read) · → the castanets onto the score of «El amor brujo», the stamp by the ticket; the
+  poster reads from GRANADA to the date.
+- **A swallow's wing tip touched the pomegranate** (a tangent) · → the fruit moved clear.
+- **Objects of devotion carried bands of imitation script** · → left plain; the niche
+  plaque left out (no such ivory is known).
+- **The moon sat where the thurible's smoke rises** · → moved out along the fan's edge.

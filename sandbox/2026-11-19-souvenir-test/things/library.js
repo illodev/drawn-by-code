@@ -1,11 +1,11 @@
 // The emblem's library, in the emblem manner (dark contour + airbrush): the poets, thinkers
 // and painters who were born in Andalusia, passed through it or chose it, as the things they
 // left on a shelf. Global: Library. Sizes at s = 1, the anchor in the middle of each:
-//   Library.books(g, { x, y, s = 1, rot = 0, seed })     336 × 420: ten volumes lying flat, a
+//   Library.books(g, { x, y, s = 1, rot = 0, seed })     340 × 418: ten volumes lying flat, a
 //       little askew, one fallen open face down on top, three standing against them
-//   Library.palette(g, { x, y, s = 1, rot = 0, seed })   270 × 212: a painter's palette of the
+//   Library.palette(g, { x, y, s = 1, rot = 0, seed })   282 × 204: a painter's palette of the
 //       1620s with its colours, three brushes and a knife through the thumb hole, a rag
-//   Library.score(g, { x, y, s = 1, rot = 0, seed })     246 × 178: a curling sheet of music
+//   Library.score(g, { x, y, s = 1, rot = 0, seed })     244 × 184: a curling sheet of music
 // `rot` turns the object, never the light: every point is turned and then painted (flat
 // lettering is set by a local transform of the context). Each drawer paints once on a sheet
 // of its own (casts and holes must not land on the neighbours) cached by seed, angle and
@@ -25,7 +25,7 @@
 // label, a red lettering piece, the hand-inked title of a vellum binding with its laced
 // thongs and ties; (8) corners worn to the board, scuffed headcaps, wormholes, reading
 // creases, sun-faded spines; (9) a wine glass's ring, dog-ears, a chip of spine paper gone;
-// (10) every book's shadow on the one below, and the wedge of dark under a leaning one.
+// (10) every book's shadow on the one below, and the gap under one that leans.
 //
 // THE PALETTE · anatomy: a thin board of walnut, kidney-shaped, bevelled, with a thumb hole
 // near the notch; colours set along the far edge from the thumb outwards, mixtures in the
@@ -844,7 +844,7 @@ const Library = (() => {
         },
         // sprinkled calf of the 1600s: five bands, gilt compartments, a red lettering piece
         gongora: {
-            M: MAT.calfTan, grain: GRAIN.calf(MAT.calfTan, 1), bands: [15, 99, 122, 145, 163], board: 2.8, pages: { kind: 'sprinkle', band: ['#2f4f7f', '#efe6c8'], bandW: 6.4, back: 9.5 },
+            M: MAT.calfTan, grain: GRAIN.calf(MAT.calfTan, 1), bands: [14, 96, 117, 138, 154], board: 2.8, pages: { kind: 'sprinkle', band: ['#2f4f7f', '#efe6c8'], bandW: 6.4, back: 9.5 },
             spinePaint(c) {
                 const { q, P, L, T, B } = c, bs = B.bands, comps = [[0, bs[0]], [bs[0], bs[1]], [bs[1], bs[2]], [bs[2], bs[3]], [bs[3], bs[4]], [bs[4], L]];
                 gilt(c, 0.34, (h) => {
@@ -976,7 +976,7 @@ const Library = (() => {
                     for (const a of [2.2, 3.6, 5.6, L - 5.6, L - 3.6, L - 2.2]) h.line([[a, 1], [a, T - 1]], a === 3.6 || a === L - 3.6 ? 0.8 : 0.3);
                     lyre(h, 78, T / 2, 1.2);
                     // a swallow, come back
-                    h.poly([[23.6, T / 2 - 0.2], [20.4, T / 2 - 1.1], [16.6, T / 2 - 5.2], [18.4, T / 2 - 1.1], [14.2, T / 2 - 1.9], [16.6, T / 2 - 0.1], [14.2, T / 2 + 1.9], [18.4, T / 2 + 1.2], [16.9, T / 2 + 5.2], [20.6, T / 2 + 1]]);
+                    h.poly([[26, 0], [24.6, -0.9], [22.4, -1.3], [21, -3.6], [18.6, -5.8], [15.2, -6.9], [17.6, -4.2], [19.2, -1.5], [16.6, -1], [13.4, -1.6], [10.2, -3.2], [14.2, 0], [10.2, 3.2], [13.4, 1.6], [16.6, 1], [19.2, 1.5], [17.6, 4.2], [15.2, 6.9], [18.6, 5.8], [21, 3.6], [22.4, 1.3], [24.6, 0.9]].map(([x, y]) => [x - 1.5, T / 2 + y * 0.95]));
                 });
                 gilt(c, 0.12, (h) => {
                     h.text('BÉCQUER', { a: 46, b: T / 2, cap: 8.4, font: LORA, maxW: 46, track: 0.08 });
@@ -1067,21 +1067,26 @@ const Library = (() => {
                     h.text('NOCHE OSCURA', { a: 57, b: T * 0.68, cap: 7, maxW: 62, track: 0.07 });
                 });
                 B.bands.forEach((a) => band(c, a, { w: 3.4 }));
-                // the leather gone from the four corners and from the caps: grey board, frayed
-                const r = Motion.rng(c.seed + 'worn');
-                for (const [a, b, sa, sb] of [[0, 0, 1, 1], [L, 0, -1, 1], [0, T, 1, -1], [L, T, -1, -1]]) {
-                    const w = 10 + r() * 4, hh = 6.4 + r() * 2.6, pts = [[a, b], [a + sa * w, b], [a + sa * w * 0.72, b + sb * hh * 0.34], [a + sa * w * 0.4, b + sb * hh * 0.5], [a + sa * w * 0.22, b + sb * hh * 0.9], [a, b + sb * hh]];
-                    S.piece(q, P.pts(pts), { fill: '#b4a88c', line: 0.7, heavy: 0.3, shade: { color: '#4a4350', alpha: 0.7, w: 2.4 }, light: { color: '#d8cfb8', alpha: 0.7, w: 1.4 } });
-                    // the board is made of pasted sheets: its layers show
-                    for (let k = 1; k < 4; k++) strokePts(q, [P(a + sa * 0.6, b + sb * hh * k * 0.22), P(a + sa * w * (0.8 - k * 0.17), b + sb * hh * k * 0.22)], 0.25, rgba('#4a4036', 0.6));
-                    for (let i = 0; i < 6; i++) {
-                        const u = r(), p = [a + sa * w * (1 - u) * 0.8, b + sb * hh * u * 0.8];
-                        strokePts(q, [P(p[0], p[1]), P(p[0] + sa * (0.6 + r() * 1.4), p[1] + sb * (0.5 + r()))], 0.3, rgba(r() < 0.5 ? '#5a4634' : '#d8cfb8', 0.8));
-                    }
-                }
                 scuff(c, 1.2, 7, '#6a5a48');
                 scuff(c, T - 1.2, 6, '#5a4c40');
                 gloss(c, 0.22, 16, L - 16);
+            },
+            after(g, B) {
+                // the leather gone from the four corners of the back: the pasteboard shows, grey and layered, frayed at its edge
+                const q = g, P = B.spineP, L = B.L, T = B.T, r = Motion.rng(B.seed + 'worn');
+                for (const [a, b, sa, sb] of [[0, 0, 1, 1], [L, 0, -1, 1], [0, T, 1, -1], [L, T, -1, -1]]) {
+                    const w = 10 + r() * 4, hh = 6.4 + r() * 2.4, pts = [[a - sa * 0.6, b - sb * 0.6], [a + sa * w, b - sb * 0.6], [a + sa * w * 0.74, b + sb * hh * 0.3], [a + sa * w * 0.42, b + sb * hh * 0.46], [a + sa * w * 0.24, b + sb * hh * 0.86], [a - sa * 0.6, b + sb * hh]];
+                    S.piece(q, P.pts(pts), {
+                        fill: '#b9ad90', line: 1.1, heavy: 0.6, ink: '#07060e', shade: { color: '#5a5064', alpha: 0.75, w: 2.6 }, light: { color: '#e6dcc2', alpha: 0.7, w: 1.4 },
+                        detail: (qq) => {
+                            for (let k = 1; k < 5; k++) strokePts(qq, [P(a, b + sb * hh * k * 0.2), P(a + sa * w * (0.9 - k * 0.16), b + sb * hh * k * 0.2)], 0.25, rgba('#4a4036', 0.6));
+                        },
+                    });
+                    for (let i = 0; i < 6; i++) {
+                        const u = r(), p = [a + sa * w * (1 - u) * 0.8, b + sb * hh * u * 0.8];
+                        strokePts(q, [P(p[0], p[1]), P(p[0] + sa * (0.6 + r() * 1.4), p[1] + sb * (0.5 + r()))], 0.3, rgba(r() < 0.5 ? '#3a2e28' : '#e6dcc2', 0.85));
+                    }
+                }
             },
         },
     };
@@ -1537,10 +1542,10 @@ const Library = (() => {
     // middle of the whole pile.
     function books(g, o = {}) {
         sheet(g, 'books', [172, 216], o, (q, rot, seed) => {
-            const W = world(rot, 14, 208);
+            const W = world(rot, 9, 205);
             // the ten that lie, from the ground up: name, left end of the spine, length, thickness, depth, yaw°, set back
             const pile = [
-                ['maimonides', -138, 182, 58, 160, 4, 0], ['gongora', -121, 174, 46, 146, 20, 5], ['arabi', -134, 172, 42, 138, 3, 2], ['seneca', -118, 152, 40, 126, 12, 7],
+                ['maimonides', -138, 182, 58, 160, 4, 0], ['gongora', -115, 166, 46, 146, 20, 5], ['arabi', -134, 172, 42, 138, 3, 2], ['seneca', -118, 152, 40, 126, 12, 7],
                 ['becquer', -113, 144, 34, 116, 16, 3], ['platero', -128, 154, 34, 120, 9, 6], ['juan', -84, 110, 26, 84, 5, 12],
                 ['alberti', -106, 140, 13, 104, 11, 6], ['cernuda', -98, 130, 12, 100, 4, 10], ['zambrano', -102, 136, 13, 102, 7, 7],
             ];
@@ -1784,7 +1789,7 @@ const Library = (() => {
 
     function palette(g, o = {}) {
         sheet(g, 'palette', [142, 112], o, (q, rot, seed, res) => {
-            const F = (p) => rot2([p[0] - 1, p[1] - 13], rot), Fs = (pts) => pts.map(F), r = Motion.rng('palette/' + seed);
+            const F = (p) => rot2([p[0] + 3, p[1] - 14], rot), Fs = (pts) => pts.map(F), r = Motion.rng('palette/' + seed);
             const WOOD = { deep: '#190b0a', base: '#4c2b1a', light: '#94643a' };
             const OUT = S.curve([[-122, 2], [-114, -38], [-84, -68], [-36, -84], [22, -86], [72, -74], [108, -46], [122, -6], [118, 28], [104, 50], [84, 64], [62, 68], [46, 62], [37, 52], [27, 51], [16, 60], [2, 74], [-30, 83], [-72, 77], [-104, 54], [-118, 28]], true, 8);
             const HC = [66, 35], HOLE = S.ellipse(HC[0], HC[1], 17.5, 12, 30, -0.62);

@@ -1,7 +1,7 @@
 # souvenir-test · «Recuerdo de Andalucía»
 
 - **Style:** souvenir (new, in testing)
-- **Format:** 16:9 · 8 s style test (the film it tests would be about 14 s) · 24 fps
+- **Format:** 16:9 · 10.5 s style test (two of nine pictures; the length of the whole film does not matter, the user says) · 24 fps
 - **Purpose / audience:** a style test for a new look the user asked for.
 - **The request (the user, translated):** «I want to make similar art, but not the same.
   It is only the reference for the style.» Asked what world ours should paint: «Andalusia,
@@ -75,18 +75,21 @@ picture an older layer, down to Tartessos.
 
 | Time | Shot | What happens |
 |---|---|---|
-| 0.0–1.0 | The star | In the night, one star kindles: it is the emblem, seen from very far. |
-| 1.0–1.7 | The flare | The star flares and the emblem rushes out of it, smeared by its own speed. |
-| 1.7–3.4 | The emblem | The camera settles and pushes in slowly; the guitar's mouth glows with the orchard behind it. |
-| 3.4–4.5 | The dive | The camera goes through the mouth: the strings pass, the dark of the box, and the lemon tree opens. |
-| 4.5–8.0 | The lemon tree | A slow push among lemons, leaves and blossom. |
+| 0.0–1.0 | The star | In a night full of stars, one kindles: it is the emblem, seen from very far. |
+| 1.0–1.7 | The flare | It flares into eight points, the other stars stream past, and the emblem rushes out of it. |
+| 1.7–5.0 | The emblem | The camera arrives wide (the whole wheel of relics is in) and pushes in for three seconds: the edges leave, the eye goes to the guitar's mouth, which glows with the orchard behind it. |
+| 5.0–6.25 | The dive | The approach lingers on the rosette; then the strings pass, the dark of the box, and the lemon tree opens. |
+| 6.25–10.5 | The lemon tree | A slow push among lemons, leaves, blossom, a goldfinch, bees, dew. |
 
 ## How it is built
 
 - `styles/souvenir/souvenir.js`: the paint (a per-pixel form painter for the brush manner,
-  pieces with contour and airbrush for the emblem manner), the dive rig (layers at depths,
-  depth of field, motion blur by open shutter) and the lens finish.
+  pieces with contour and airbrush for the emblem manner, sheets, relief fields, brushwork
+  over every layer), the dive rig (layers at depths, depth of field, motion blur by open
+  shutter) and the lens finish.
 - `tableaux/emblem.js`, `tableaux/lemons.js`: each picture as a stack of layers.
-- `things/*.js`: one file per group of elements (fan, guitar, garland, sky, ribbon, charms,
-  shawl, citrus), painted once into sprites; only the camera moves.
-- The elements of the emblem were painted in parallel from `agent-brief.md`.
+- `things/*.js`: one file per group of elements (16 of them: guitar, fan, shawl, garland,
+  sky, fauna, ribbon, coins, relics, heirlooms, charms, wares, papers, library, devotion,
+  citrus), painted once; only the camera moves.
+- Two parallel passes painted them from `agent-brief.md`: five agents for the first
+  assembly, eleven for the detail pass. `review.md` lists the licences each painter took.

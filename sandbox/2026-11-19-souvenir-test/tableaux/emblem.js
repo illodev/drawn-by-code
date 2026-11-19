@@ -55,62 +55,61 @@ Tableau.emblem = (z0) => {
             id: 'emblem-charms', z: z0 + 75, box: wheel, brush: { amp: 0.06 },
             paint(g) {
                 const R = has('Relics') ? Relics : {}, H = has('Heirlooms') ? Heirlooms : {}, P = has('Papers') ? Papers : {}, W = has('Wares') ? Wares : {}, C = has('Charms') ? Charms : {};
-                const put = (o, name, a) => o[name] && o[name](g, a);
-                // under everything: the papers
-                put(P, 'poster', { x: -700, y: 520, s: 0.95, rot: -0.14 });
-                put(P, 'plaque', { x: 820, y: 560, s: 0.95, rot: 0.06 });
-                put(P, 'ticket', { x: 560, y: 560, s: 0.9, rot: -0.2 });
-                // the left side, going up: Tartessos, the Phoenicians, the Greeks, Rome
-                put(R, 'stele', { x: -1010, y: 520, s: 0.8, rot: 0.12 });
-                put(R, 'carambolo', { x: -905, y: 400, s: 0.92, rot: -0.12 });
-                put(R, 'murex', { x: -925, y: 170, s: 0.95, rot: 0.3 });
-                put(R, 'helmet', { x: -915, y: -90, s: 0.95, rot: -0.08 });
-                put(R, 'amphora', { x: -905, y: -410, s: 0.9, rot: -0.45 });
-                put(R, 'mosaic', { x: -500, y: -545, s: 0.78, rot: 0.07 });
-                // the top: Visigoths and Byzantines
-                put(H, 'votive', { x: 520, y: -560, s: 0.72, rot: 0 });
-                put(W, 'peineta', { x: -235, y: -560, s: 0.7, rot: -0.2 });
-                // the right side, going down: al-Andalus
-                put(H, 'astrolabe', { x: 885, y: -390, s: 0.92, rot: 0.12 });
-                put(H, 'fawn', { x: 925, y: -80, s: 0.95, rot: 0 });
-                put(H, 'alicatado', { x: 930, y: 205, s: 0.72, rot: 0.1 });
-                // the books of those who were born here, passed through or chose this land,
-                // a painter's palette, and things of the three faiths
                 const L = has('Library') ? Library : {}, D = has('Devotion') ? Devotion : {};
-                put(L, 'books', { x: 1030, y: 250, s: 0.8, rot: 0.04 });
-                put(L, 'palette', { x: 300, y: -570, s: 0.8, rot: 0.3 });
-                put(L, 'score', { x: -330, y: 600, s: 0.85, rot: -0.1 });
-                // (the niche plaque is left out: its painter knows of no Andalusi ivory like it,
-                // and the wheel only holds things that exist)
-                put(D, 'lampara', { x: -1060, y: -250, s: 0.8, rot: 0, servant: true });
-                put(D, 'incensario', { x: 740, y: -560, s: 0.75, rot: 0 });
-                put(D, 'cirio', { x: -1080, y: 120, s: 0.9, rot: 0.05 });
-                put(D, 'rosario', { x: 300, y: 590, s: 0.8, rot: 0.2 });
-                put(D, 'jamsa', { x: 1060, y: 520, s: 0.8, rot: -0.1 });
+                const put = (o, name, a) => o[name] && o[name](g, a);
+                // the fair's lanterns across the top, behind everything else on this layer
+                put(W, 'farolillos', { x: -1150, y: -668, s: 1, n: 9, len: 2300, sag: 150, seed: 'feria' });
+                // What the first, wide framing shows of this layer: x ±1100, y −567…+671. Every
+                // piece is placed whole inside it (the push then carries the edges out).
+                // under everything: the papers
+                put(P, 'poster', { x: -625, y: 525, s: 0.9, rot: -0.1 });
+                put(P, 'plaque', { x: 800, y: 585, s: 0.9, rot: 0.05 });
+                put(P, 'ticket', { x: 545, y: 575, s: 0.85, rot: -0.16 });
+                put(L, 'score', { x: -300, y: 590, s: 0.8, rot: -0.1 });
+                // the left side, going up: Tartessos, the Phoenicians, the Greeks, Rome
+                put(R, 'stele', { x: -1030, y: 452, s: 0.7, rot: 0.1 });
+                put(R, 'carambolo', { x: -905, y: 335, s: 0.88, rot: -0.12 });
+                put(R, 'murex', { x: -905, y: 150, s: 0.9, rot: 0.3 });
+                put(D, 'cirio', { x: -1035, y: 70, s: 0.8, rot: 0.04 });
+                put(R, 'helmet', { x: -925, y: -120, s: 0.9, rot: -0.08 });
+                put(D, 'lampara', { x: -965, y: -440, s: 0.74, rot: 0, servant: true });
+                put(R, 'amphora', { x: -792, y: -402, s: 0.84, rot: -0.42 });
+                put(C, 'pomegranate', { x: -640, y: -378, s: 0.85, rot: 0.25 });
+                put(R, 'mosaic', { x: -452, y: -462, s: 0.66, rot: 0.06 });
+                put(W, 'peineta', { x: -268, y: -468, s: 0.66, rot: -0.16 });
+                // the top right: a painter's palette, the Visigoths' crown, incense
+                put(L, 'palette', { x: 282, y: -472, s: 0.68, rot: 0.22 });
+                put(H, 'votive', { x: 462, y: -452, s: 0.72, rot: 0 });
+                put(D, 'incensario', { x: 592, y: -448, s: 0.66, rot: 0 });
+                // the right side, going down: al-Andalus, then the books
+                put(H, 'astrolabe', { x: 912, y: -398, s: 0.88, rot: 0.12 });
+                put(H, 'fawn', { x: 930, y: -85, s: 0.92, rot: 0 });
+                put(D, 'jamsa', { x: 1045, y: 105, s: 0.66, rot: -0.08 });
+                put(H, 'alicatado', { x: 872, y: 236, s: 0.68, rot: 0.1 });
+                put(L, 'books', { x: 985, y: 330, s: 0.78, rot: 0.03 });
                 // the bottom corners: the house and the fair
-                put(C, 'pomegranate', { x: -676, y: -322, s: 0.9, rot: 0.25 });
-                put(W, 'botijo', { x: -820, y: 600, s: 0.9, rot: 0.06 });
-                put(C, 'castanets', { x: -672, y: 372, s: 0.82, rot: -0.35 });
-                put(P, 'matchbox', { x: -470, y: 560, s: 0.85, rot: 0.3 });
-                put(P, 'stamp', { x: -555, y: 432, s: 0.9, rot: -0.18 });
-                put(W, 'fino', { x: 965, y: 440, s: 0.85, rot: 0.05 });
-                put(C, 'cards', { x: 640, y: 366, s: 0.8, rot: 0.2 });
-                put(W, 'biznaga', { x: 770, y: 250, s: 0.6, rot: 0.25 });
+                put(W, 'botijo', { x: -890, y: 568, s: 0.85, rot: 0.06 });
+                // (off the poster: they were lying on its headline) on the score of «El amor brujo»
+                put(C, 'castanets', { x: -118, y: 574, s: 0.8, rot: -0.22 });
+                put(P, 'matchbox', { x: -468, y: 548, s: 0.82, rot: 0.3 });
+                put(P, 'stamp', { x: 436, y: 606, s: 0.9, rot: 0.14 });
+                put(W, 'biznaga', { x: 1052, y: 545, s: 0.62, rot: 0.1 });
+                put(W, 'fino', { x: 958, y: 452, s: 0.82, rot: 0.04 });
+                put(C, 'cards', { x: 640, y: 372, s: 0.8, rot: 0.2 });
+                put(D, 'rosario', { x: 318, y: 548, s: 0.7, rot: 0.2 });
                 // a breath of the night over them
                 g.globalCompositeOperation = 'source-atop';
-                g.fillStyle = 'rgba(35,39,80,0.2)';
+                g.fillStyle = 'rgba(35,39,80,0.24)';
                 g.fillRect(wheel.x, wheel.y, wheel.w, wheel.h);
                 g.globalCompositeOperation = 'source-over';
                 if (has('Sky')) {
                     // the waxing moon in the one corner of sky the fans leave, and its stars
-                    Sky.moon(g, { x: 632, y: -306, r: 56, rot: -0.5, phase: 0.28 });
-                    Sky.star(g, { x: 548, y: -372, r: 13, rot: 0.2 });
-                    Sky.star(g, { x: 716, y: -226, r: 10, rot: 0.5, kind: 'silver' });
+                    Sky.moon(g, { x: 722, y: -292, r: 56, rot: -0.5, phase: 0.28 });
+                    Sky.star(g, { x: 668, y: -392, r: 12, rot: 0.2 });
+                    Sky.star(g, { x: 792, y: -212, r: 10, rot: 0.5, kind: 'silver' });
                     Sky.star(g, { x: -560, y: -392, r: 11, rot: 0.1, kind: 'silver' });
                     Sky.star(g, { x: -742, y: -196, r: 9, rot: 0.6 });
                 }
-                // the fair's lanterns across the top
-                put(W, 'farolillos', { x: -1150, y: -640, s: 1, n: 9, len: 2300, sag: 150, seed: 'feria' });
                 S.tooth(g, wheel);
             },
         },
@@ -161,7 +160,7 @@ Tableau.emblem = (z0) => {
                     if (Fauna.bee) Fauna.bee(g, { x: -292, y: 52, s: 0.95, rot: 0.6, pose: 'feed', seed: 'b1' });
                     if (Fauna.bee) Fauna.bee(g, { x: 352, y: -6, s: 0.9, rot: 2.6, pose: 'fly', seed: 'b2' });
                     if (Fauna.ladybird) Fauna.ladybird(g, { x: -428, y: 96, s: 1.1, rot: -0.9, seed: 'l1' });
-                    if (Fauna.butterfly) Fauna.butterfly(g, { x: -560, y: -250, s: 0.8, rot: 0.5, fold: 0.25, seed: 'm1' });
+                    if (Fauna.butterfly) Fauna.butterfly(g, { x: -704, y: -228, s: 0.8, rot: -0.9, fold: 0.25, seed: 'm1' });
                 }
                 S.tooth(g, frame);
             },

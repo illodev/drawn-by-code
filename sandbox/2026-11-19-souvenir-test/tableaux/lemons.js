@@ -8,8 +8,19 @@
 // air, the main layer (the only one in focus), a front layer just this side of it and a
 // near one that leaves the frame blurred. The camera arrives on the axis (the origin of
 // every layer); GAP is the darker rest a little off it, between two lemons, that the next
-// dive goes through. Coordinates are those of the main layer, whose frame at arrival is
-// 1600 × 900 about the origin; another layer `dz` behind it lines up with it at 1 / K(dz).
+// dive goes through: in the main layer nothing is painted within 131 units of the origin
+// (the free oval is about 270 wide and 370 tall about (7, −30): x −128 … 142, y −218 … 151),
+// and the layers behind are darkest there. Coordinates are those of the main layer, whose
+// frame at arrival is 1600 × 900 about the origin; another layer `dz` behind it lines up
+// with it at 1 / K(dz).
+//
+// What a second look finds (main layer unless said): a goldfinch on the twig at (−452, −108),
+// its feather below it; a bee feeding at (652, −292) and one arriving (front layer); a snail
+// and eight ants on the big bough; a ladybird at (468, 62); a web in the fork at (478, −176);
+// a swallowtail behind the leaves (middle layer); dew on both lemons by the rest and on the
+// leaves of the sprays; fallen petals, two dead leaves, a pruned stub, thorns, leaf scars.
+// The creatures and the lens drops are `Fauna`'s when that file is loaded; without it the
+// picture still has its own drops (`Citrus.drop`).
 window.Tableau = window.Tableau || {};
 Tableau.lemons = (z0) => {
     const S = Souvenir, C = Citrus;
@@ -459,7 +470,7 @@ Tableau.lemons = (z0) => {
                 // a swallowtail behind the leaves, where the main layer lets it show
                 const B = fauna('butterfly');
                 if (B) B.butterfly(g, { x: 440, y: -224, s: 1.25, rot: -0.5, fold: 0.3, line: false });
-                relight(g, wide, res, dapple('mid', wide, { pools: 26, suns: 44, flecks: 40, dark: [[gp.x, gp.y, gp.r * 1.6, 0.85]] }));
+                relight(g, wide, res, dapple('mid', wide, { pools: 26, suns: 44, flecks: 40, dark: [[gp.x, gp.y, gp.r * 1.6, 0.85]] }), { sun: 0.9, shade: 1.15 });
                 veil(g, wide, 'rgba(18,60,48,0.2)');
                 S.tooth(g, wide, { amp: 0.055 });
             },
@@ -487,6 +498,11 @@ Tableau.lemons = (z0) => {
                     // towards the sun, a few leaves with the light behind them
                     sprig(P, x, y, dir, len, 'h-edge' + x + y, { thorns: 0.2, kinds: x < -500 && y < 0 ? ['sun', 'back', 'mid', 'back', 'mid'] : undefined });
                 }
+                // the rest is closed above and below: leaves come down from the bough and up from the spray under it
+                sprig(P, -40, -236, 1.9, 110, 'gap-top-a', { kinds: ['mid', 'deep', 'sun'], gap: 34 });
+                sprig(P, 96, -226, 1.3, 100, 'gap-top-b', { kinds: ['mid', 'sun', 'deep'], gap: 34 });
+                sprig(P, 84, 312, -1.5, 120, 'gap-low-a', { kinds: ['mid', 'sun', 'deep'], gap: 34, sag: 0 });
+                sprig(P, -70, 300, -1.3, 110, 'gap-low-b', { kinds: ['deep', 'mid'], gap: 34, sag: 0 });
                 C.branch(g, A.pts, { raw: true, w0: 34, w1: 14, seed: 'bough-A', nodes: [300, 620, 980, 1270, 1560, 1900] });
                 // ants going up and down the bough
                 for (const [u, off, back] of [[0.36, -6, 0], [0.385, 3, 1], [0.41, -3, 0], [0.445, 5, 0], [0.52, -5, 1], [0.6, 2, 0], [0.63, -4, 0], [0.71, 3, 1]]) {
@@ -512,7 +528,7 @@ Tableau.lemons = (z0) => {
                 // right of the gap: one in the leaf's shadow, one behind it
                 shoot(P, { seed: 'tR2', path: [[318, -196], [342, -168], [356, -140], [362, -122]], w0: 6, w1: 5, gap: 30, kinds: ['mid', 'sun'], fruits: [{ u: 1, e: [0, 6], s: 0.86, v: 2, age: 'green', rot: 0.3 }] });
                 const TR = shoot(P, { seed: 'tR', path: [[150, -222], [172, -204], [190, -190], [200, -180]], w0: 7, w1: 6, gap: 22, from: 0.3, leafy: 0, green: [0.1, 0.7], fruits: [{ u: 1, e: [0, 22], s: 1.28, v: 9, age: 'ripe', rot: -0.18 }] });
-                // far right: an over-ripe one and a turning one behind it
+                // far right: an over-ripe one, scarred
                 shoot(P, { seed: 'tO', path: [[600, -134], [626, -70], [642, -10], [648, 30]], w0: 6.5, w1: 5.5, gap: 34, green: [0.1, 0.6], kinds: ['mid', 'sun'], thorns: 0.4,
                     fruits: [{ u: 1, e: [2, 26], s: 1.2, v: 4, age: 'over', rot: 0.06 }] });
                 // low right: one seen from above, on a twig that comes down to it
@@ -571,10 +587,10 @@ Tableau.lemons = (z0) => {
                 P.drop(...tipOf(R1), 4, { hang: 0.5 });
                 P.drop(...tipOf(L1), 3.2, { hang: 0.4 });
                 // --- 6 · the sun comes through in patches
-                relight(g, wide, res, dapple('hero', wide, { pools: 40, suns: 48, flecks: 70, fall: 0.34,
+                relight(g, wide, res, dapple('hero', wide, { pools: 40, suns: 42, flecks: 70, lift: 0.06, fall: 0.36,
                     // the sun comes down a slant from the top left: the lemons either side of the rest and the three sprays stand in it; the far corners are in shade
                     lit: [[-230, -30, 80, 46, 0.8, 0.5], [236, -70, 70, 40, 0.8, 0.45], [60, -330, 90, 40, 0.5, 0.5], [600, -300, 90, 46, 0.7, 0.5], [-40, 300, 100, 44, 0.6, 0.45], [-520, -260, 120, 50, 0.6, 0.4], [420, 240, 110, 50, 0.7, 0.35]],
-                    dark: [[-780, 380, 260, 0.34], [780, -400, 240, 0.3], [820, 420, 230, 0.34], [-60, 440, 150, 0.2], [520, 20, 130, 0.22], [-640, 60, 150, 0.22]] }), { sun: 0.94, shade: 1.08 });
+                    dark: [[-780, 380, 260, 0.34], [780, -400, 240, 0.3], [820, 420, 230, 0.34], [-60, 440, 150, 0.2], [520, 20, 130, 0.22], [-640, 60, 150, 0.22]] }), { sun: 0.9, shade: 1.2 });
                 S.tooth(g, wide, { amp: 0.06 });
             },
         },

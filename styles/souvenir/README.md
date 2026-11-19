@@ -28,10 +28,10 @@ node engine/render.mjs sandbox/<exp>/scene.js --size 1920
 | File | What it gives |
 |---|---|
 | `template.js` | a gilt seal on a crimson night and a dive through its eye into a bunch of grapes: two pictures, the two manners, one camera |
-| `souvenir.js` | `Souvenir`: the brush manner (`form`: a piece painted per pixel as a lit volume, with strokes, sheen, a broken edge; `put`, `cast`, `dab`), the emblem manner (`piece`: contour + airbrush; `spray`, `ink`, `textOn`), `tooth` (the board's grain), the dive (`rig`: layers at depths, depth of field, an open shutter; `track`: a camera track that never backs up) and the lens (`finish`: mist, lifted blacks, vignette, grain) |
+| `souvenir.js` | `Souvenir`: the brush manner (`form`: a piece painted per pixel as a lit volume, with strokes, sheen, a broken edge; `put`, `cast`, `dab`), the emblem manner (`piece`: contour + airbrush; `spray`, `ink`, `textOn`), things on their own sheet (`sheet`, `sprayIn`, `stamp`, `reliefField`, `frame`), `tooth` (the board's grain) and `brushwork` (the hand in the paint), the dive (`rig`: layers at depths, depth of field, an open shutter; `track`: a camera track that never backs up) and the lens (`finish`: mist, lifted blacks, vignette, grain) |
 
 ## Made with it
 
 | Video | What it is |
 |---|---|
-| [souvenir-test](../../sandbox/2026-11-19-souvenir-test/) | the style test: «Recuerdo de Andalucía», an emblem on an indigo night (a flamenco guitar, two fans as wings, olive, carnations, swallows, a crescent moon) and the dive through the guitar's mouth into a lemon tree |
+| [souvenir-test](../../sandbox/2026-11-19-souvenir-test/) | the style test: «Recuerdo de Andalucía». An emblem on a night embroidered like a mantón de Manila (a flamenco guitar, two painted fans, olive, carnations, swallows, a string of coins from Tartessos to the Pillars of Hercules, a wheel of relics, papers, books and creatures) and the dive through the guitar's mouth into a lemon tree. Its `things/` folder is the library of the style |

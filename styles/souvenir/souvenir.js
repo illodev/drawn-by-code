@@ -614,6 +614,108 @@ const Souvenir = (() => {
         g.restore();
     }
 
+    // ------------------------------------------------------------------ sheets and sprites
+    // Helpers the first film's painters each wrote for themselves, lifted here for the next.
+
+    // A turned frame: turn and mirror GEOMETRY, never the canvas, so the light stays where
+    // it is. f([x, y]) → the page point; f.pts(list); f.dir(v) a direction of the part on
+    // the page; f.sub(x, y, rot, s) a frame inside it (a wing on a body, a hand on a clock).
+    function frame(x, y, rot = 0, s = 1, flip = false) {
+        const c = Math.cos(rot) * s, sn = Math.sin(rot) * s, k = flip ? -1 : 1;
+        const f = (p) => [x + p[0] * k * c - p[1] * sn, y + p[0] * k * sn + p[1] * c];
+        f.pts = (a) => a.map(f);
+        f.rot = rot;
+        f.s = s;
+        f.flip = flip;
+        f.dir = (v) => [(v[0] * k * c - v[1] * sn) / s, (v[0] * k * sn + v[1] * c) / s];
+        f.sub = (px, py, r2 = 0, s2 = 1) => {
+            const o = f([px, py]);
+            return frame(o[0], o[1], rot + (flip ? -r2 : r2), s * s2, flip);
+        };
+        return f;
+    }
+
+    // A thing painted on its own sheet: its casts (`cast` only falls on paint already there)
+    // and its holes (`destination-out`) stay inside it instead of landing on its neighbours.
+    // paint(g) draws in the caller's units; returns { canvas, box } for `put`, `sprayIn`,
+    // `stamp`. Size the box generously: contours and casts need a margin.
+    function sheet(box, res, paint) {
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.ceil(box.w * res));
+        c.height = Math.max(1, Math.ceil(box.h * res));
+        const g = c.getContext('2d');
+        g.setTransform(res, 0, 0, res, -box.x * res, -box.y * res);
+        paint(g);
+        return { canvas: c, box, res };
+    }
+
+    // The airbrush for a sprite: colour sprayed in from the sprite's own alpha edges (holes
+    // included), `w` units deep, from the side `dir` points away from. What brings a lit
+    // `form` volume back to the emblem manner. res: the sprite's pixels per unit.
+    function sprayIn(sp, res, { color = INK, alpha = 0.5, w = 6, push = null, dir = SHADE_DIR } = {}) {
+        const c = sp.canvas, d = (push ?? w * 0.6) * res, pad = Math.ceil(w * res * 2 + d), BIG = 20000;
+        const inv = document.createElement('canvas');
+        inv.width = c.width + pad * 2;
+        inv.height = c.height + pad * 2;
+        const q = inv.getContext('2d');
+        q.fillStyle = '#000';
+        q.fillRect(0, 0, inv.width, inv.height);
+        q.globalCompositeOperation = 'destination-out';
+        q.drawImage(c, pad, pad);
+        const g = c.getContext('2d');
+        g.save();
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.globalCompositeOperation = 'source-atop';
+        g.shadowColor = rgba(color, alpha);
+        g.shadowBlur = w * res;
+        g.shadowOffsetX = BIG - dir[0] * d;
+        g.shadowOffsetY = -dir[1] * d;
+        g.drawImage(inv, -pad - BIG, -pad);
+        g.restore();
+    }
+
+    // The contour for a sprite: its silhouette in ink, a little larger and heavier towards
+    // the shadow, under the sprite itself; holes get their contour too. `cast` adds its
+    // shadow on the paint already under it. Airbrush first, stamp after: a spray laid over
+    // the ink turns the contour into a soft halo.
+    function stamp(G, sp, { lw = 2.2, sh = SHADE_DIR, heavy = 0.75, cast: cs = null, ink: col = INK } = {}) {
+        const b = sp.box;
+        const sil = document.createElement('canvas');
+        sil.width = sp.canvas.width;
+        sil.height = sp.canvas.height;
+        const q = sil.getContext('2d');
+        q.drawImage(sp.canvas, 0, 0);
+        q.globalCompositeOperation = 'source-in';
+        q.fillStyle = col;
+        q.fillRect(0, 0, sil.width, sil.height);
+        if (cs) cast(G, (c) => c.drawImage(sil, b.x, b.y, b.w, b.h), cs);
+        const d = lw * 0.8;
+        for (const [ox, oy] of [[0, 0], [sh[0] * lw * heavy * 0.5, sh[1] * lw * heavy * 0.5], [sh[0] * lw * heavy, sh[1] * lw * heavy]]) {
+            for (let k = 0; k < 16; k++) G.drawImage(sil, b.x + ox + Math.cos(k * 0.3927) * d, b.y + oy + Math.sin(k * 0.3927) * d, b.w, b.h);
+        }
+        G.drawImage(sp.canvas, b.x, b.y, b.w, b.h);
+    }
+
+    // A relief (a coin, chased metal, filigree, carving): paint its heights as greys with
+    // ordinary canvas strokes (white = high) and get back height(x, y) in 0..1 for `form`
+    // (`inflate: 'none'`, `height: (x, y) => relief(x, y) * depth`). Blur is in units.
+    function reliefField(box, res, paint, blur = 0) {
+        const sp = sheet(box, res, (g) => {
+            g.fillStyle = '#000';
+            g.fillRect(box.x, box.y, box.w, box.h);
+            paint(g);
+        });
+        const w = sp.canvas.width, h = sp.canvas.height;
+        const d = sp.canvas.getContext('2d').getImageData(0, 0, w, h).data;
+        const f = new Float32Array(w * h);
+        for (let i = 0; i < w * h; i++) f[i] = d[i * 4] / 255;
+        if (blur > 0) boxBlur(f, w, h, Math.max(1, Math.round(blur * res)), 2); // on floats: a blur on the 8-bit canvas terraces the light
+        return (x, y) => {
+            const X = Math.max(0, Math.min(w - 1, Math.round((x - box.x) * res))), Y = Math.max(0, Math.min(h - 1, Math.round((y - box.y) * res)));
+            return f[Y * w + X];
+        };
+    }
+
     // The tooth of the board under the paint: fine light and dark specks laid on whatever
     // is already painted in `box` (never on bare canvas). Call it last on a layer.
     const toothTiles = new Map();
@@ -978,5 +1080,5 @@ const Souvenir = (() => {
         ctx.restore();
     }
 
-    return { hex2rgb, rgb2hex, mix, rgba, clamp, smooth, lerp, hashI, noise3, noise2, seedOf, curve, trace, bbox, xf, ellipse, pxScale, edt, boxBlur, inflate, rampFn, form, put, dab, cast, spray, piece, ink, textOn, tooth, brushwork, rig, track, finish, LIGHT, lightFor, INK, SHADE_DIR };
+    return { hex2rgb, rgb2hex, mix, rgba, clamp, smooth, lerp, hashI, noise3, noise2, seedOf, curve, trace, bbox, xf, ellipse, pxScale, edt, boxBlur, inflate, rampFn, form, put, dab, cast, spray, piece, ink, textOn, frame, sheet, sprayIn, stamp, reliefField, tooth, brushwork, rig, track, finish, LIGHT, lightFor, INK, SHADE_DIR };
 })();
