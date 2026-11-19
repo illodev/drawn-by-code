@@ -1,0 +1,1311 @@
+// The emblem's library, in the emblem manner (dark contour + airbrush): the poets, thinkers
+// and painters who were born in Andalusia, passed through it or chose it, as the things they
+// left on a shelf. Global: Library. Sizes at s = 1, the anchor in the middle of each:
+//   Library.books(g, { x, y, s = 1, rot = 0, seed })     336 × 420: ten volumes lying flat, a
+//       little askew, one fallen open face down on top, three standing against them
+//   Library.palette(g, { x, y, s = 1, rot = 0, seed })   270 × 212: a painter's palette of the
+//       1620s with its colours, three brushes and a knife through the thumb hole, a rag
+//   Library.score(g, { x, y, s = 1, rot = 0, seed })     246 × 178: a curling sheet of music
+// `rot` turns the object, never the light: every point is turned and then painted (flat
+// lettering is set by a local transform of the context). Each drawer paints once on a sheet
+// of its own (casts and holes must not land on the neighbours) cached by seed, angle and
+// resolution, and pastes it. Fonts the scene must declare: 'IM Fell DW Pica SC', 'Lora',
+// 'Anton', 'Shrikhand'.
+//
+// THE BOOKS · anatomy: boards and the leather, cloth or paper over them; the spine (round on
+// a sewn book, flat on a paperback) with raised bands where the cords are; the text block
+// set back from the boards by the squares; headbands at head and tail; the joint. Seen from
+// the front and a little above: a lying book shows its spine, its upper cover and one end.
+// The ten details: (1) raised bands, lit on one side, shading the leather on the other;
+// (2) gilt tooling worn to short bright strokes with gaps, in its impression; (3) grain:
+// pores of calf, pebble of morocco, the weave of cloth, veins and follicles of vellum, the
+// fibres and foxing of paper; (4) the leaves as fine lines, a darker one between gatherings,
+// edges stained red, sprinkled, marbled, gilt or deckled; (5) headbands in two silks;
+// (6) a silk register, a pressed carnation and a paper slip between leaves; (7) a shelf
+// label, a red lettering piece, the hand-inked title of a vellum binding with its laced
+// thongs and ties; (8) corners worn to the board, scuffed headcaps, wormholes, reading
+// creases, sun-faded spines; (9) a wine glass's ring, dog-ears, a chip of spine paper gone;
+// (10) every book's shadow on the one below, and the wedge of dark under a leaning one.
+//
+// THE PALETTE · anatomy: a thin board of walnut, kidney-shaped, bevelled, with a thumb hole
+// near the notch; colours set along the far edge from the thumb outwards, mixtures in the
+// middle; brushes of hog bristle bound to the stick with waxed thread; a steel knife.
+// The ten details: (1) each dab a lit mound with its peak and the furrows of the brush that
+// pulled it; (2) gloss on the wet paint; (3) a skin of older, darker paint under each dab;
+// (4) flesh and grey mixtures smeared with a loaded brush, ridged at the edge; (5) wood
+// dark with oil, its grain, paler where the thumb rubs; (6) the bevel and the board's
+// thickness, seen in the hole too; (7) thread bindings wound turn by turn, bristles one by
+// one, paint on the tips and smudges on the sticks; (8) the knife's ground blade with a
+// wipe of paint, its bolster and pinned handle; (9) a linen rag with wiped colours, its
+// weave and frayed edge; (10) scrape marks, drips, a thumbprint, the owner's burnt mark.
+//
+// THE SCORE · anatomy: a sheet of laid paper ruled by hand with a rastrum (five nibs: the
+// five lines of a stave waver together), systems of two staves joined by a brace, clefs,
+// the time signature, bar lines, notes with stems, beams and flags, rests, slurs.
+// The ten details: (1) the rastrum's shared wobble and its blobs where it started;
+// (2) ink that thins along a stroke; (3) a triplet turn under its bracket; (4) chords in
+// the left hand, an oom-pah-pah; (5) a hairpin, a dynamic, ties; (6) a bar scratched out;
+// (7) the title in capitals, the name under it; (8) a blot with its satellites and the
+// smear of a cuff; (9) a corner rolled forward, another dog-eared, a fold across the
+// middle; (10) foxing, a stain, the laid lines of the paper.
+const Library = (() => {
+    const S = Souvenir;
+    const INK = S.INK, SD = S.SHADE_DIR, TOL = [-SD[0], -SD[1]], TAU = Math.PI * 2;
+    const mix = S.mix, rgba = S.rgba, clamp = S.clamp, smooth = S.smooth;
+    const FELL = '"IM Fell DW Pica SC", Georgia, serif', LORA = 'Lora, Georgia, serif', ANTON = 'Anton, Impact, sans-serif', SHRIK = 'Shrikhand, Georgia, serif';
+    const GOLD = { deep: '#8a5a17', base: '#d9a441', light: '#f6dc8a', glint: '#fff6cf' };
+    const SILVER = { deep: '#5d6488', base: '#b9bfd6', light: '#eef0f8', glint: '#ffffff' };
+    const PAPER = { deep: '#6b6283', base: '#d6c8a2', light: '#f5ecd2' };
+
+    // ------------------------------------------------------------------ tools
+    const cache = new Map();
+    const memo = (key, fn) => {
+        if (!cache.has(key)) {
+            if (cache.size >= 24) cache.delete(cache.keys().next().value);
+            cache.set(key, fn());
+        }
+        return cache.get(key);
+    };
+    // pixels per unit for a sheet pasted at scale s: the output's, rounded up to half steps
+    const resOf = (g, s) => Math.min(8, Math.max(1, Math.ceil(S.pxScale(g) * s * 2 - 1e-6) / 2));
+    const rot2 = (p, a) => {
+        const c = Math.cos(a), s = Math.sin(a);
+        return [p[0] * c - p[1] * s, p[0] * s + p[1] * c];
+    };
+    const fillPts = (g, pts, style) => {
+        g.beginPath();
+        S.trace(g, pts);
+        g.fillStyle = style;
+        g.fill();
+    };
+    const strokePts = (g, pts, w, style, closed = false) => {
+        g.beginPath();
+        S.trace(g, pts, closed);
+        g.lineWidth = w;
+        g.strokeStyle = style;
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        g.stroke();
+    };
+    const disc = (g, p, r, style) => {
+        g.beginPath();
+        g.arc(p[0], p[1], r, 0, TAU);
+        g.fillStyle = style;
+        g.fill();
+    };
+
+    // Everything is painted once on a sheet of its own and pasted: a cast or a hole made
+    // straight on the caller's layer would land on its neighbours. `half`: half the size of
+    // the thing unturned; paint(q, rot, seed, res) works in the thing's units about its middle.
+    function sheet(g, name, half, o, paint) {
+        const { x = 0, y = 0, s = 1, rot = 0, seed = name } = o;
+        const res = resOf(g, s), c = Math.abs(Math.cos(rot)), sn = Math.abs(Math.sin(rot));
+        const hw = Math.ceil(half[0] * c + half[1] * sn) + 8, hh = Math.ceil(half[0] * sn + half[1] * c) + 8;
+        const sp = memo(`${name}/${seed}/${rot.toFixed(3)}@${res}`, () => {
+            const box = { x: -hw, y: -hh, w: hw * 2, h: hh * 2 }, cv = document.createElement('canvas');
+            cv.width = Math.ceil(box.w * res);
+            cv.height = Math.ceil(box.h * res);
+            const q = cv.getContext('2d');
+            q.setTransform(res, 0, 0, res, -box.x * res, -box.y * res);
+            paint(q, rot, seed, res);
+            return { canvas: cv, box };
+        });
+        S.put(g, sp, { x, y, s });
+    }
+
+    // A flat face on the page: the point (a, b) of its own rectangle is O + a·U + b·V. What
+    // is drawn on the face (tooling, lines, pieces) goes through it point by point; lettering
+    // is set with `on`, which gives the context the face's own axes.
+    function plane(O, U, V) {
+        const P = (a, b) => [O[0] + a * U[0] + b * V[0], O[1] + a * U[1] + b * V[1]];
+        P.pts = (arr) => arr.map(([a, b]) => P(a, b));
+        P.O = O;
+        P.U = U;
+        P.V = V;
+        P.on = (g, fn) => {
+            g.save();
+            g.transform(U[0], U[1], V[0], V[1], O[0], O[1]);
+            fn(g);
+            g.restore();
+        };
+        // the same face from another corner, turned by r and scaled by k
+        P.sub = (a, b, r = 0, k = 1) => {
+            const c = Math.cos(r) * k, s = Math.sin(r) * k;
+            return plane(P(a, b), [U[0] * c + V[0] * s, U[1] * c + V[1] * s], [-U[0] * s + V[0] * c, -U[1] * s + V[1] * c]);
+        };
+        return P;
+    }
+    // The outline of the rectangle a0..a1 × b0..b1 of a face, cut by hand: corners eased by
+    // r, the edges a touch out of true; bump(a, b, edge) pushes an edge out (a raised band).
+    function rect(P, a0, b0, a1, b1, { r = 1, wob = 0.3, seed = 1, step = 5, bump = null } = {}) {
+        const out = [], sd = S.seedOf(seed);
+        r = Math.min(r, Math.abs(a1 - a0) / 2.2, Math.abs(b1 - b0) / 2.2);
+        const corner = (cx, cy, t0) => {
+            for (let k = 0; k <= 3; k++) out.push([cx + Math.cos(t0 + (k / 3) * Math.PI * 0.5) * r, cy + Math.sin(t0 + (k / 3) * Math.PI * 0.5) * r]);
+        };
+        const edge = (x0, y0, x1, y1, nx, ny, e) => {
+            const len = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(len / step));
+            for (let k = 1; k < n; k++) {
+                const u = k / n, x = x0 + (x1 - x0) * u, y = y0 + (y1 - y0) * u;
+                const d = wob * S.noise2(u * len * 0.13, e * 7.3, sd) + (bump ? bump(x, y, e) : 0);
+                out.push([x + nx * d, y + ny * d]);
+            }
+        };
+        corner(a0 + r, b0 + r, Math.PI);
+        edge(a0 + r, b0, a1 - r, b0, 0, -1, 0);
+        corner(a1 - r, b0 + r, -Math.PI / 2);
+        edge(a1, b0 + r, a1, b1 - r, 1, 0, 1);
+        corner(a1 - r, b1 - r, 0);
+        edge(a1 - r, b1, a0 + r, b1, 0, 1, 2);
+        corner(a0 + r, b1 - r, Math.PI / 2);
+        edge(a0, b1 - r, a0, b0 + r, -1, 0, 3);
+        return out.map(([a, b]) => P(a, b));
+    }
+    // a material's colour for how lit it is (0..1)
+    const shadeOf = (M) => (t) => (t < 0.6 ? mix(M.deep, M.base, clamp(t / 0.6)) : mix(M.base, M.light, clamp((t - 0.6) / 0.4)));
+    // soft patches of colour over a face: the dye's drift, stains, soiling
+    const blot = (q, P, L, T, seed, n, cols, a = 0.18, rad = [6, 18]) => {
+        const r = Motion.rng('blot/' + seed);
+        for (let i = 0; i < n; i++) {
+            const p = P(r() * L, r() * T), R = rad[0] + r() * (rad[1] - rad[0]), col = cols[Math.floor(r() * cols.length)];
+            const gr = q.createRadialGradient(p[0], p[1], 0, p[0], p[1], R);
+            gr.addColorStop(0, rgba(col, a * (0.5 + r() * 0.5)));
+            gr.addColorStop(1, rgba(col, 0));
+            q.fillStyle = gr;
+            q.fillRect(p[0] - R, p[1] - R, R * 2, R * 2);
+        }
+    };
+    const specks = (q, P, L, T, n, seed, fn) => {
+        const r = Motion.rng('sp/' + seed);
+        for (let i = 0; i < n; i++) fn(P(r() * L, r() * T), r);
+    };
+
+    // ------------------------------------------------------------------ pen and stamps
+    const capR = new Map();
+    // the advances of a string at 1 px, and how tall the face's capitals are
+    function measure(q, font, str) {
+        q.save();
+        q.font = `100px ${font}`;
+        if (!capR.has(font)) capR.set(font, (q.measureText('H').actualBoundingBoxAscent || 70) / 100);
+        const w = [...str].map((ch) => q.measureText(ch).width / 100);
+        q.restore();
+        return { w, cap: capR.get(font) };
+    }
+    // A pen on a face: lines, shapes and lettering in the face's own coordinates, in
+    // whatever style the context has. text(): capitals `cap` units tall centred on (a, b),
+    // condensed (down to minSx) and then shrunk to fit maxW; hand: a scribe's unevenness.
+    function pen(q, P) {
+        const h = {
+            line(pts, w = 0.6) {
+                q.beginPath();
+                S.trace(q, P.pts(pts), false);
+                q.lineWidth = w;
+                q.lineCap = 'round';
+                q.lineJoin = 'round';
+                q.stroke();
+            },
+            poly(pts) {
+                q.beginPath();
+                S.trace(q, P.pts(pts));
+                q.fill();
+            },
+            box(a0, b0, a1, b1, w = 0.6) {
+                h.line([[a0, b0], [a1, b0], [a1, b1], [a0, b1], [a0, b0]], w);
+            },
+            circle(a, b, r, w = 0.6, n = 28) {
+                const pts = [];
+                for (let i = 0; i <= n; i++) pts.push([a + Math.cos((i / n) * TAU) * r, b + Math.sin((i / n) * TAU) * r]);
+                h.line(pts, w);
+            },
+            dot(a, b, r) {
+                h.poly(S.ellipse(a, b, r, r, 10));
+            },
+            text(str, { a = 0, b = 0, cap = 8, font = FELL, maxW = 1e9, track = 0.07, sx = 1, hand = 0, align = 0.5, minSx = 0.74, skew = 0 } = {}) {
+                const m = measure(q, font, str), n = m.w.length;
+                let size = cap / m.cap;
+                const sum = m.w.reduce((s, v) => s + v, 0) + track * (n - 1);
+                if (sum * size * sx > maxW) {
+                    sx = maxW / (sum * size);
+                    if (sx < minSx) {
+                        size *= sx / minSx;
+                        sx = minSx;
+                    }
+                }
+                const W = sum * size * sx, capH = size * m.cap, r = Motion.rng('hand/' + str);
+                P.on(q, (qq) => {
+                    qq.translate(a - W * align, b + capH / 2);
+                    qq.transform(sx, 0, -skew * sx, 1, 0, 0);
+                    qq.font = `${size.toFixed(3)}px ${font}`;
+                    qq.textBaseline = 'alphabetic';
+                    let x = 0;
+                    [...str].forEach((ch, i) => {
+                        const adv = m.w[i] * size;
+                        if (hand) {
+                            qq.save();
+                            qq.translate(x + adv / 2, (r() - 0.5) * capH * 0.1 * hand);
+                            qq.rotate((r() - 0.5) * 0.13 * hand);
+                            qq.scale(1 + (r() - 0.5) * 0.1 * hand, 1 + (r() - 0.5) * 0.14 * hand);
+                            qq.fillText(ch, -adv / 2, 0);
+                            qq.restore();
+                        } else qq.fillText(ch, x, 0);
+                        x += adv + track * size;
+                    });
+                });
+                return { w: W, cap: capH, a0: a - W * align, a1: a + W * (1 - align) };
+            },
+        };
+        return h;
+    }
+    // Whatever `paint(pen, q)` draws on the face P inside box [a0, b0, a1, b1] (only its
+    // coverage counts), laid on g as gold or silver leaf in its impression, as a blind
+    // impression, or as ink, and then worn: flecks, scratches and rubbed patches taken out.
+    function stamp(g, P, box, o, paint) {
+        const { mode = 'gilt', wear = 0.22, seed = 1, color = INK, alpha = 1 } = o;
+        const corners = P.pts([[box[0], box[1]], [box[2], box[1]], [box[2], box[3]], [box[0], box[3]]]);
+        const m = g.getTransform(), k = Math.hypot(m.a, m.b);
+        let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+        for (const [x, y] of corners) {
+            const X = m.a * x + m.c * y + m.e, Y = m.b * x + m.d * y + m.f;
+            x0 = Math.min(x0, X);
+            y0 = Math.min(y0, Y);
+            x1 = Math.max(x1, X);
+            y1 = Math.max(y1, Y);
+        }
+        x0 = Math.floor(x0) - 4;
+        y0 = Math.floor(y0) - 4;
+        const w = Math.ceil(x1) + 4 - x0, hgt = Math.ceil(y1) + 4 - y0;
+        if (w < 2 || hgt < 2 || w * hgt > 3e7) return;
+        const cv = document.createElement('canvas');
+        cv.width = w;
+        cv.height = hgt;
+        const q = cv.getContext('2d');
+        q.setTransform(m.a, m.b, m.c, m.d, m.e - x0, m.f - y0);
+        q.fillStyle = q.strokeStyle = '#000';
+        paint(pen(q, P), q);
+        const bb = S.bbox(corners, 2), r = Motion.rng('stamp/' + seed), area = bb.w * bb.h;
+        const ul = Math.hypot(P.U[0], P.U[1]) || 1, ux = P.U[0] / ul, uy = P.U[1] / ul;
+        const leaf = mode === 'gilt' || mode === 'silver';
+        q.lineCap = 'round';
+        q.globalCompositeOperation = 'source-in';
+        q.fillStyle = leaf ? (mode === 'gilt' ? GOLD : SILVER).base : color;
+        q.fillRect(bb.x, bb.y, bb.w, bb.h);
+        if (leaf) {
+            // leaf catches the light in short strokes: bright ones, dull ones
+            const G = mode === 'gilt' ? GOLD : SILVER, n = Math.min(9000, Math.round(area * 0.5));
+            q.globalCompositeOperation = 'source-atop';
+            for (let i = 0; i < n; i++) {
+                const x = bb.x + r() * bb.w, y = bb.y + r() * bb.h, len = 0.8 + r() * 3.4, v = r();
+                q.strokeStyle = v < 0.4 ? G.light : v < 0.52 ? G.glint : v < 0.86 ? G.deep : mix(G.deep, INK, 0.45);
+                q.globalAlpha = 0.3 + r() * 0.55;
+                q.lineWidth = 0.3 + r() * 0.8;
+                q.beginPath();
+                q.moveTo(x, y);
+                q.lineTo(x + ux * len + (r() - 0.5) * 0.5, y + uy * len + (r() - 0.5) * 0.5);
+                q.stroke();
+            }
+            q.globalAlpha = 1;
+        }
+        if (wear > 0) {
+            q.globalCompositeOperation = 'destination-out';
+            q.fillStyle = q.strokeStyle = '#000';
+            const nf = Math.min(14000, Math.round(area * 0.32 * wear));
+            for (let i = 0; i < nf; i++) {
+                const rr = 0.14 + 0.9 * Math.pow(r(), 2.4);
+                q.globalAlpha = 0.5 + r() * 0.5;
+                q.beginPath();
+                q.ellipse(bb.x + r() * bb.w, bb.y + r() * bb.h, rr, rr * (0.4 + r() * 0.6), r() * 3.14, 0, TAU);
+                q.fill();
+            }
+            const ns = Math.round(Math.sqrt(area) * wear);
+            for (let i = 0; i < ns; i++) {
+                const x = bb.x + r() * bb.w, y = bb.y + r() * bb.h, t = r() * 3.14, len = 2 + r() * 9;
+                q.globalAlpha = 0.65;
+                q.lineWidth = 0.18 + r() * 0.3;
+                q.beginPath();
+                q.moveTo(x, y);
+                q.lineTo(x + Math.cos(t) * len, y + Math.sin(t) * len);
+                q.stroke();
+            }
+            const nr = Math.round((area / 700) * wear * 5);
+            for (let i = 0; i < nr; i++) {
+                const x = bb.x + r() * bb.w, y = bb.y + r() * bb.h, R = 2.5 + r() * 7, gr = q.createRadialGradient(x, y, 0, x, y, R);
+                gr.addColorStop(0, `rgba(0,0,0,${Math.min(0.9, 0.2 + wear * 1.2)})`);
+                gr.addColorStop(1, 'rgba(0,0,0,0)');
+                q.globalAlpha = 1;
+                q.fillStyle = gr;
+                q.fillRect(x - R, y - R, R * 2, R * 2);
+            }
+            q.globalAlpha = 1;
+        }
+        g.save();
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.globalAlpha *= alpha;
+        g.shadowBlur = 0;
+        if (leaf) {
+            // sunk in its impression: the wall towards the light is dark, the far one catches it
+            g.shadowColor = 'rgba(255,238,196,0.3)';
+            g.shadowOffsetX = SD[0] * 0.38 * k;
+            g.shadowOffsetY = SD[1] * 0.38 * k;
+            g.drawImage(cv, x0, y0);
+            g.shadowColor = 'rgba(22,8,16,0.8)';
+            g.shadowOffsetX = TOL[0] * 0.36 * k;
+            g.shadowOffsetY = TOL[1] * 0.36 * k;
+        } else if (mode === 'blind') {
+            g.shadowColor = rgba(o.lit ?? '#ffe6c0', o.litAlpha ?? 0.32);
+            g.shadowOffsetX = SD[0] * 0.5 * k;
+            g.shadowOffsetY = SD[1] * 0.5 * k;
+        }
+        g.drawImage(cv, x0, y0);
+        g.restore();
+    }
+    // on a spine (c: its context): gold, a blind impression, printer's or writer's ink
+    const tag = (c) => c.seed + '/' + (c.n = (c.n ?? 0) + 1);
+    const gilt = (c, wear, paint, P = c.P, box = [0, 0, c.L, c.T]) => stamp(c.q, P, box, { mode: 'gilt', wear, seed: tag(c) }, paint);
+    const blind = (c, paint, a = 0.62, P = c.P, box = [0, 0, c.L, c.T]) => stamp(c.q, P, box, { mode: 'blind', color: rgba(mix(c.M.deep, INK, 0.45), a), wear: 0.08, seed: tag(c) }, paint);
+    const print = (c, color, wear, paint, P = c.P, box = [0, 0, c.L, c.T]) => stamp(c.q, P, box, { mode: 'ink', color, wear, seed: tag(c) }, paint);
+
+    // ------------------------------------------------------------------ what things are made of
+    const GRAIN = {
+        // calf: a smooth skin with fine pores; `sprinkle`: the acid specks of a 17th-century binder
+        calf: (M, sprinkle = 0) => (q, P, L, T, seed, d = 1) => {
+            blot(q, P, L, T, seed, Math.ceil(((L * T) / 420) * d) + 3, [M.deep, M.light, M.deep], 0.22);
+            specks(q, P, L, T, L * T * 0.22 * d, seed + 'p', (p, r) => disc(q, p, 0.14 + r() * 0.26, rgba(r() < 0.72 ? M.deep : M.light, 0.16 + r() * 0.22)));
+            if (sprinkle) {
+                specks(q, P, L, T, L * T * 0.1 * sprinkle * d, seed + 's', (p, r) => {
+                    q.fillStyle = rgba(mix(M.deep, '#1a0c08', 0.5), 0.3 + r() * 0.4);
+                    q.beginPath();
+                    q.ellipse(p[0], p[1], 0.3 + r() * r() * 1.3, 0.25 + r() * 0.5, r() * 3.14, 0, TAU);
+                    q.fill();
+                });
+            }
+        },
+        // morocco: goatskin, a pebble of little cells, each with a light on it
+        morocco: (M) => (q, P, L, T, seed, d = 1) => {
+            blot(q, P, L, T, seed, Math.ceil(((L * T) / 600) * d) + 2, [M.deep, M.light], 0.16);
+            specks(q, P, L, T, L * T * 0.26 * d, seed + 'm', (p, r) => {
+                const rr = 0.45 + r() * 0.55, a0 = r() * TAU;
+                q.strokeStyle = rgba(M.deep, 0.28 + r() * 0.3);
+                q.lineWidth = 0.28;
+                q.beginPath();
+                q.arc(p[0], p[1], rr, a0, a0 + 2 + r() * 2.4);
+                q.stroke();
+                disc(q, [p[0] + TOL[0] * rr * 0.35, p[1] + TOL[1] * rr * 0.35], 0.13 + r() * 0.13, rgba(M.light, 0.3 + r() * 0.35));
+            });
+        },
+        // bookcloth: the weave, thread by thread, and a slub here and there
+        cloth: (M, pitch = 1.1) => (q, P, L, T, seed, d = 1) => {
+            const r = Motion.rng('cl/' + seed);
+            blot(q, P, L, T, seed, Math.ceil(((L * T) / 700) * d) + 2, [M.deep, M.light], 0.14);
+            for (let a = pitch * 0.5; a < L; a += pitch) strokePts(q, [P(a + (r() - 0.5) * 0.2, -1), P(a + (r() - 0.5) * 0.2, T + 1)], 0.26, rgba(M.deep, 0.16 + r() * 0.22));
+            for (let b = pitch * 0.5; b < T; b += pitch) strokePts(q, [P(-1, b), P(L + 1, b + (r() - 0.5) * 0.3)], 0.24, rgba(M.light, 0.1 + r() * 0.2));
+            for (let i = 0; i < ((L * T) / 90) * d; i++) {
+                const a = r() * L, b = r() * T, l = 1 + r() * 3;
+                strokePts(q, r() < 0.5 ? [P(a, b), P(a + l, b)] : [P(a, b), P(a, b + l)], 0.4, rgba(r() < 0.5 ? M.light : M.deep, 0.3));
+            }
+        },
+        // vellum: veins under the skin, follicles in drifts, the yellowing
+        vellum: (M) => (q, P, L, T, seed, d = 1) => {
+            const r = Motion.rng('ve/' + seed);
+            blot(q, P, L, T, seed, Math.ceil(((L * T) / 260) * d) + 4, ['#b08a4c', '#fffaf0', '#9c8456', '#c9a86a'], 0.22, [5, 16]);
+            for (let i = 0; i < 5 * d; i++) {
+                const pts = [];
+                let x = r() * L, y = r() * T;
+                for (let k = 0; k < 7; k++) {
+                    pts.push(P(x, y));
+                    x += 3 + r() * 5;
+                    y += (r() - 0.5) * 4;
+                }
+                S.ink(q, S.curve(pts, false, 4), { w: 0.4, color: '#8f7a52', alpha: 0.25 });
+            }
+            specks(q, P, L, T, L * T * 0.12 * d, seed + 'f', (p, rr) => disc(q, p, 0.12 + rr() * 0.2, rgba('#7a6238', 0.14 + rr() * 0.2)));
+        },
+        // paper: fibres, and the brown spots of foxing
+        paper: (M, fox = 1) => (q, P, L, T, seed, d = 1) => {
+            blot(q, P, L, T, seed, Math.ceil(((L * T) / 300) * d) + 3, [M.deep, M.light, '#a8824a'], 0.14, [4, 12]);
+            specks(q, P, L, T, L * T * 0.1 * d, seed + 'f', (p, r) => {
+                const t = r() * 3.14, l = 0.4 + r() * 1.2;
+                q.strokeStyle = rgba(r() < 0.5 ? M.deep : '#fffdf2', 0.2 + r() * 0.2);
+                q.lineWidth = 0.2;
+                q.beginPath();
+                q.moveTo(p[0], p[1]);
+                q.lineTo(p[0] + Math.cos(t) * l, p[1] + Math.sin(t) * l);
+                q.stroke();
+            });
+            if (fox) {
+                specks(q, P, L, T, L * T * 0.012 * fox * d, seed + 'x', (p, r) => {
+                    const R = 0.4 + r() * r() * 1.6;
+                    disc(q, p, R, rgba('#9a6a34', 0.12 + r() * 0.2));
+                    disc(q, p, R * 0.4, rgba('#7a4a24', 0.3));
+                });
+            }
+        },
+    };
+    const MAT = {
+        calfDark: { deep: '#22110f', base: '#5c3520', light: '#b07c42' },
+        calfTan: { deep: '#3a1f12', base: '#8e5c2c', light: '#d6a25c' },
+        morocco: { deep: '#480e20', base: '#a3292e', light: '#e06e58' },
+        vellum: { deep: '#857a92', base: '#dccfa8', light: '#f8f0d8' },
+        plum: { deep: '#22102c', base: '#5c2d5a', light: '#9a5f92' },
+        ochre: { deep: '#6a4212', base: '#c4932f', light: '#f0d070' },
+        black: { deep: '#0b0a15', base: '#2b2937', light: '#6e728e' },
+        green: { deep: '#06241f', base: '#1c5c45', light: '#52aa7c' },
+        blue: { deep: '#0f183c', base: '#27468c', light: '#6790d2' },
+        wrapper: { deep: '#5f5c70', base: '#bdb8a2', light: '#e6e2cf' },
+        cream: { deep: '#7a708c', base: '#e2d6b4', light: '#fbf4de' },
+        sea: { deep: '#55648a', base: '#b4c8cf', light: '#e4eef0' },
+        salmon: { deep: '#7c5a66', base: '#dcc0a4', light: '#f6e4cc' },
+        sage: { deep: '#5c6a70', base: '#c6ceac', light: '#eaf0d6' },
+    };
+
+    // ------------------------------------------------------------------ the pile's space
+    // The pile is seen from the front and a little above: a unit of depth sits K units up
+    // the page. x to the right, y up from the ground, z away from the viewer.
+    const K = 0.34;
+    const LGT = (() => {
+        const v = [-0.5, -0.72, 0.48], l = Math.hypot(v[0], v[1], v[2]);
+        return [v[0] / l, v[1] / l, v[2] / l];
+    })();
+    function world(rot, cx, cy) {
+        const c = Math.cos(rot), s = Math.sin(rot);
+        const pv = ([x, y, z]) => {
+            const Y = -y - z * K;
+            return [x * c - Y * s, x * s + Y * c];
+        };
+        return {
+            rot, pv,
+            pr: ([x, y, z]) => pv([x - cx, y - cy, z]),
+            // how lit a face is whose outward normal is n: the page is turned, the light is not
+            tone: ([x, y, z], amb = 0.3) => amb + (1 - amb) * Math.max(0, (x * c + y * s) * LGT[0] + (x * s - y * c) * LGT[1] - z * LGT[2]),
+            facing: ([, y, z]) => -K * y + z < -1e-6,
+        };
+    }
+    const neg = (v) => [-v[0], -v[1], -v[2]];
+    // a book lying flat: its spine `L` long from the front left corner (x0), its upper cover
+    // at height `top`, turned by `yaw` about the middle of its spine (positive: the left end shows)
+    const flat = (x0, top, z, yaw, L) => {
+        const th = (yaw * Math.PI) / 180, ua = [Math.cos(th), 0, Math.sin(th)];
+        return { ua, ub: [0, -1, 0], uc: [-Math.sin(th), 0, Math.cos(th)], o: [x0 + L / 2 - (ua[0] * L) / 2, top, z - (ua[2] * L) / 2] };
+    };
+    // a book standing on its tail, leaning `lean` to the left about its lower left edge and
+    // turned by `yaw` (positive: its right cover shows). Its spine reads upwards.
+    const upright = (xb, z, lean, yaw) => {
+        const al = (lean * Math.PI) / 180, ps = (yaw * Math.PI) / 180;
+        const ln = ([x, y, zz]) => [x * Math.cos(al) - y * Math.sin(al), x * Math.sin(al) + y * Math.cos(al), zz];
+        return { ua: ln([0, 1, 0]), ub: ln([Math.cos(ps), 0, -Math.sin(ps)]), uc: ln([Math.sin(ps), 0, Math.cos(ps)]), o: [xb, 0, z] };
+    };
+    function place(W, fr, spec) {
+        const B = { ...spec, ...fr, W };
+        B.at = (a, b, c) => W.pr([B.o[0] + B.ua[0] * a + B.ub[0] * b + B.uc[0] * c, B.o[1] + B.ua[1] * a + B.ub[1] * b + B.uc[1] * c, B.o[2] + B.ua[2] * a + B.ub[2] * b + B.uc[2] * c]);
+        const pl = (a, b, c, u, v) => plane(B.at(a, b, c), W.pv(u), W.pv(v));
+        B.spineP = pl(0, 0, 0, B.ua, B.ub);
+        B.cover0 = pl(0, 0, 0, B.ua, B.uc);
+        B.coverT = pl(0, B.T, 0, B.ua, B.uc);
+        B.end0 = pl(0, 0, 0, B.uc, B.ub);
+        B.endL = pl(B.L, 0, 0, B.uc, B.ub);
+        return B;
+    }
+    function paintBook(g, B) {
+        const W = B.W;
+        // far to near: the cover that shows, the end that shows, the spine
+        if (W.facing(neg(B.ub))) coverFace(g, B.cover0, W.tone(neg(B.ub)), B, 0);
+        if (W.facing(B.ub)) coverFace(g, B.coverT, W.tone(B.ub), B, 1);
+        if (W.facing(neg(B.ua))) edgeFace(g, B.end0, W.tone(neg(B.ua)), B, 0);
+        if (W.facing(B.ua)) edgeFace(g, B.endL, W.tone(B.ua), B, 1);
+        // the spine turns from one board to the other, and its tone with it
+        const fr = B.round ?? 0.95, tones = [];
+        for (let k = 0; k <= 8; k++) {
+            const ps = fr * (k / 4 - 1), cs = Math.cos(ps), sn = Math.sin(ps);
+            tones.push(W.tone([-B.uc[0] * cs + B.ub[0] * sn, -B.uc[1] * cs + B.ub[1] * sn, -B.uc[2] * cs + B.ub[2] * sn]));
+        }
+        spineFace(g, B.spineP, tones, B);
+        if (B.after) B.after(g, B);
+    }
+
+    // ------------------------------------------------------------------ a book's faces
+    function spineFace(g, P, tones, B) {
+        const { L, T, M } = B, col = shadeOf(M);
+        const bump = B.bands ? (a, b, e) => (e === 0 || e === 2 ? B.bands.reduce((s, ab) => s + 0.9 * Math.exp(-Math.pow((a - ab) / 2.4, 2)), 0) : 0) : null;
+        const pts = rect(P, 0, 0, L, T, { r: B.ease ?? 1.3, wob: B.wob ?? 0.3, seed: B.seed, bump, step: 3 });
+        const p0 = P(0, 0), u = P.U, v = P.V, al = (v[0] * u[0] + v[1] * u[1]) / (u[0] * u[0] + u[1] * u[1]);
+        const g1 = [p0[0] + (v[0] - al * u[0]) * T, p0[1] + (v[1] - al * u[1]) * T];
+        S.piece(g, pts, {
+            fill: { from: p0, to: g1, stops: tones.map((t, k) => [k / (tones.length - 1), col(t)]) },
+            line: B.line ?? 1.9, heavy: 0.8, ink: B.ink, cast: { blur: 5, dx: 2.5, dy: 4, color: 'rgba(16,10,34,0.62)' },
+            detail: (q) => {
+                const c = { q, P, L, T, M, B, pts, seed: B.seed, hi: (T * tones.indexOf(Math.max(...tones))) / (tones.length - 1) };
+                if (B.grain) B.grain(q, P, L, T, B.seed, 1);
+                B.spinePaint(c);
+                // the airbrush: shade from below and from the right, a light on the lit edge
+                S.spray(q, pts, { color: M.deep, alpha: 0.62, w: Math.min(8, T * 0.3) });
+                S.spray(q, pts, { color: mix(M.deep, INK, 0.6), alpha: 0.5, w: Math.min(3, T * 0.12) });
+                S.spray(q, pts, { color: M.light, alpha: 0.5, w: Math.min(4, T * 0.16), dir: TOL });
+            },
+        });
+    }
+    // A raised band across the spine at `a`: lit on the side the light is, dark on the other,
+    // and its shadow on the leather beside it. two: a pair of thin cords.
+    function band(c, a, { w = 4.6, two = false } = {}) {
+        const { q, P, T, M } = c, lit = P.U[0] * TOL[0] + P.U[1] * TOL[1] > 0 ? 1 : -1;
+        const r = Motion.rng(c.seed + 'band' + a);
+        const ridge = (a0, w0) => {
+            const lA = a0 + (lit * w0) / 2, sA = a0 - (lit * w0) / 2, far = sA - lit * (2.6 + w0 * 0.6);
+            const sh = q.createLinearGradient(...P(sA, T / 2), ...P(far, T / 2));
+            sh.addColorStop(0, rgba(mix(M.deep, INK, 0.6), 0.82));
+            sh.addColorStop(0.5, rgba(M.deep, 0.34));
+            sh.addColorStop(1, rgba(M.deep, 0));
+            fillPts(q, P.pts([[sA, -1], [far, -1], [far, T + 1], [sA, T + 1]]), sh);
+            // the leather drawn tight over the cord: a little light before it on the lit side
+            const pre = q.createLinearGradient(...P(lA, T / 2), ...P(lA + lit * 2.2, T / 2));
+            pre.addColorStop(0, rgba(M.deep, 0.4));
+            pre.addColorStop(1, rgba(M.deep, 0));
+            fillPts(q, P.pts([[lA, -1], [lA + lit * 2.2, -1], [lA + lit * 2.2, T + 1], [lA, T + 1]]), pre);
+            const gr = q.createLinearGradient(...P(lA, T / 2), ...P(sA, T / 2));
+            gr.addColorStop(0, rgba(M.light, 0.5));
+            gr.addColorStop(0.22, rgba(mix(M.light, '#fff4d8', 0.35), 0.9));
+            gr.addColorStop(0.5, rgba(M.base, 0.5));
+            gr.addColorStop(0.72, rgba(M.deep, 0.5));
+            gr.addColorStop(1, rgba(mix(M.deep, INK, 0.5), 0.85));
+            fillPts(q, P.pts([[lA, -1], [sA, -1], [sA, T + 1], [lA, T + 1]]), gr);
+            strokePts(q, [P(sA, -1), P(sA, T + 1)], 0.55, rgba(INK, 0.6));
+            strokePts(q, [P(lA, -1), P(lA, T + 1)], 0.4, rgba(mix(M.deep, INK, 0.3), 0.6));
+            // where the leather was rubbed on the cord's crown: short pale strokes
+            for (let b = 1; b < T - 1; b += 1 + r() * 2.2) {
+                const l = 0.8 + r() * 2.6, x = a0 + lit * w0 * (0.14 + r() * 0.16);
+                strokePts(q, [P(x, b), P(x, Math.min(T - 1, b + l))], 0.5, rgba(mix(M.light, '#fff4d8', 0.5), 0.35 + r() * 0.5));
+            }
+        };
+        if (two) {
+            ridge(a - 2.1, 2.9);
+            ridge(a + 2.1, 2.9);
+        } else ridge(a, w);
+    }
+    // the sheen along a leather spine, where it turns to the light: a dry stroke
+    const gloss = (c, alpha = 0.3, a0 = 3, a1 = c.L - 3) => {
+        const b = clamp(c.hi, c.T * 0.16, c.T * 0.84), n = 8, pts = [];
+        for (let i = 0; i <= n; i++) pts.push(c.P(a0 + ((a1 - a0) * i) / n, b + 0.4 * Math.sin(i * 1.7)));
+        S.dab(c.q, pts, { w: c.T * 0.11, color: c.M.light, alpha, bristles: 5, seed: c.seed + 'gl', dry: 0.6 });
+    };
+    // leather rubbed pale along an edge of the spine
+    const scuff = (c, b, n = 5, col = null) => {
+        const r = Motion.rng(c.seed + 'scuff' + b);
+        for (let i = 0; i < n; i++) {
+            const a = r() * c.L, l = 4 + r() * 12;
+            S.dab(c.q, [c.P(a, b + (r() - 0.5)), c.P(a + l / 2, b + (r() - 0.5)), c.P(a + l, b + (r() - 0.5))], { w: 1 + r() * 1.6, color: col ?? mix(c.M.light, '#d8c0a0', 0.4), alpha: 0.3 + r() * 0.3, bristles: 4, seed: c.seed + 'sc' + i + b, dry: 0.7 });
+        }
+    };
+
+    // The end of a book: the boards' edges, the leaves between them set back by the squares
+    // (fine lines, a darker one where two gatherings meet), the headband at the back.
+    function edgeFace(g, P, tone, B) {
+        const { D, T, M } = B, E = B.pages ?? {}, tb = B.board ?? 2.6, sq = B.square ?? 2.2, CM = B.coverM ?? M, col = shadeOf(CM), sd = B.seed + '/edge';
+        const r = Motion.rng(sd), cs = E.back ?? 6.5;
+        const all = rect(P, -0.3, 0, D, T, { r: 0.7, wob: 0.22, seed: sd });
+        S.piece(g, all, {
+            fill: mix(CM.deep, INK, 0.6), line: B.line ?? 1.7, heavy: 0.7, ink: B.ink, cast: { blur: 4, dx: 2, dy: 3, color: 'rgba(16,10,34,0.5)' },
+            detail: (q) => {
+                const paper = shadeOf(E.paper ?? PAPER), b0 = tb + 0.3, b1 = T - tb - 0.3, c1 = D - sq;
+                const block = P.pts([[cs, b0], [c1, b0], [c1, b1], [cs, b1]]);
+                // the back of the book: the leather over the hollow
+                fillPts(q, P.pts([[-0.3, b0], [cs, b0], [cs, b1], [-0.3, b1]]), col(tone * 0.7));
+                fillPts(q, block, paper(tone));
+                q.save();
+                q.beginPath();
+                S.trace(q, block);
+                q.clip();
+                const Pb = P.sub(cs, b0), bw = c1 - cs, bh = b1 - b0;
+                if (E.kind === 'red') fillPts(q, block, rgba('#9a3a2c', 0.62));
+                else if (E.kind === 'gilt') {
+                    const gr = q.createLinearGradient(...P(cs, b0), ...P(c1, b1));
+                    for (const [u, cc] of [[0, GOLD.light], [0.3, GOLD.base], [0.55, GOLD.glint], [0.75, GOLD.base], [1, GOLD.deep]]) gr.addColorStop(u, cc);
+                    fillPts(q, block, gr);
+                } else if (E.kind === 'sprinkle') specks(q, Pb, bw, bh, bw * bh * 1.4, sd + 'spr', (p, rr) => disc(q, p, 0.14 + rr() * 0.3, rgba(rr() < 0.8 ? '#a8322c' : '#5a1a2a', 0.45 + rr() * 0.45)));
+                else if (E.kind === 'marble') {
+                    // combed marbling: small commas of colour laid in waves
+                    const cols = ['#a13a34', '#2f4f7f', '#c79a3a', '#f3ead0', '#3d6a4f'];
+                    specks(q, Pb, bw, bh, bw * bh * 0.9, sd + 'mb', (p, rr) => {
+                        const t = Math.sin(p[0] * 0.5) + (rr() - 0.5), l = 1 + rr() * 2;
+                        q.strokeStyle = rgba(cols[Math.floor(rr() * cols.length)], 0.7 + rr() * 0.25);
+                        q.lineWidth = 0.5 + rr() * 0.8;
+                        q.lineCap = 'round';
+                        q.beginPath();
+                        q.moveTo(p[0], p[1]);
+                        q.quadraticCurveTo(p[0] + Math.cos(t) * l, p[1] + Math.sin(t) * l * 0.6, p[0] + Math.cos(t + 0.9) * l * 1.4, p[1] + Math.sin(t + 0.9) * l * 1.2);
+                        q.stroke();
+                    });
+                } else blot(q, Pb, bw, bh, sd + 'st', 4, ['#8a6234', '#fffaf0', '#6e5a48'], 0.3, [3, 9]);
+                const n = Math.max(3, Math.round(bh / (E.pitch ?? 0.85))), faint = E.kind === 'marble' || E.kind === 'gilt' ? 0.5 : 1;
+                for (let i = 0; i <= n; i++) {
+                    const b = b0 + (bh * i) / n + (r() - 0.5) * 0.22, gath = i % 7 === 3;
+                    const e0 = cs + r() * 1.2, e1 = c1 - (E.kind === 'deckle' ? r() * r() * 10 : r() * 0.7);
+                    strokePts(q, [P(e0, b), P((e0 + e1) / 2, b + (r() - 0.5) * (E.wave ?? 0.3)), P(e1, b)], gath ? 0.42 : 0.27, rgba(gath ? '#35262e' : i % 2 ? '#65524a' : '#fffaf0', (gath ? 0.7 : 0.3 + r() * 0.42) * faint));
+                }
+                if (E.kind === 'gilt') for (let i = 0; i < bw * 0.5; i++) {
+                    const cc = cs + r() * bw, b = b0 + r() * bh;
+                    strokePts(q, [P(cc, b), P(cc + 2 + r() * 5, b)], 0.3, rgba(r() < 0.6 ? GOLD.glint : GOLD.deep, 0.5));
+                }
+                // the board on the light's side shades the leaves; the far side is in the dark of the square
+                S.spray(q, block, { color: '#2a2040', alpha: 0.5, w: 2.4, dir: TOL });
+                S.spray(q, block, { color: '#2a2040', alpha: 0.35, w: 3 });
+                if (tone < 0.5) fillPts(q, block, rgba('#1c1838', (0.5 - tone) * 1.3));
+                q.restore();
+                if (E.band) {
+                    const hb = P.pts([[cs - 3.4, b0 - 0.2], [cs + 0.3, b0 - 0.2], [cs + 0.3, b1 + 0.2], [cs - 3.4, b1 + 0.2]]);
+                    fillPts(q, hb, E.band[0]);
+                    for (let b = b0; b < b1 - 0.4; b += 1.5) fillPts(q, P.pts([[cs - 3.4, b], [cs + 0.3, b + 0.3], [cs + 0.3, Math.min(b1, b + 1.05)], [cs - 3.4, Math.min(b1, b + 0.75)]]), E.band[1]);
+                    strokePts(q, [P(cs - 2.5, b0), P(cs - 2.5, b1)], 0.6, 'rgba(255,255,255,0.4)');
+                    strokePts(q, [P(cs - 0.2, b0), P(cs - 0.2, b1)], 0.8, 'rgba(20,10,30,0.42)');
+                    strokePts(q, hb, 0.4, rgba(INK, 0.85), true);
+                    if (tone < 0.5) fillPts(q, hb, rgba('#1c1838', (0.5 - tone) * 1.2));
+                }
+                if (tb >= 1.2) {
+                    for (const [ba, bb] of [[0, tb], [T - tb, T]]) {
+                        const bp = rect(P, -0.3, ba, D, bb, { r: 0.4, wob: 0.12, seed: sd + ba });
+                        S.piece(q, bp, { fill: col(tone * 0.94), line: 0.8, heavy: 0.4, ink: B.ink, light: { color: CM.light, alpha: 0.5, w: 1.1 }, shade: { color: CM.deep, alpha: 0.6, w: 1.5 } });
+                    }
+                } else {
+                    // a limp cover: just its thickness
+                    for (const b of [tb / 2, T - tb / 2]) strokePts(q, [P(-0.3, b), P(D, b)], Math.max(0.5, tb), col(tone * 0.9));
+                }
+                if (B.endPaint) B.endPaint(q, P, tone);
+            },
+        });
+    }
+
+    // The cover that shows: of a lying book its upper board, of a turned standing one its side.
+    function coverFace(g, P, tone, B, side) {
+        const { L, D } = B, M = B.coverM ?? B.M, col = shadeOf(M), sd = B.seed + '/cover' + side;
+        const pts = rect(P, 0, 0, L, D, { r: B.paperback ? 0.7 : 1.8, wob: 0.3, seed: sd });
+        S.piece(g, pts, {
+            fill: col(tone), line: B.line ?? 1.7, heavy: 0.7, ink: B.ink, cast: { blur: 5, dx: 2.5, dy: 3.5, color: 'rgba(16,10,34,0.55)' },
+            detail: (q) => {
+                const c = { q, P, L, T: D, M, B, pts, seed: sd, side };
+                if (B.coverGrain ?? B.grain) (B.coverGrain ?? B.grain)(q, P, L, D, sd, 0.6);
+                if (B.coverPaint) B.coverPaint(c);
+                S.spray(q, pts, { color: M.deep, alpha: 0.55, w: 7 });
+                S.spray(q, pts, { color: M.light, alpha: 0.45, w: 4, dir: TOL });
+            },
+        });
+    }
+
+    // ------------------------------------------------------------------ ornaments (for a pen)
+    const lens = (a, b, t, r0, r1, w) => {
+        const c = Math.cos(t), s = Math.sin(t), m = (r0 + r1) / 2;
+        return [[a + c * r0, b + s * r0], [a + c * m - s * w, b + s * m + c * w], [a + c * r1, b + s * r1], [a + c * m + s * w, b + s * m - c * w]];
+    };
+    // a binder's flower tool: petals, a centre, a dot between each two
+    function fleuron(h, a, b, R, n = 4, t0 = Math.PI / 4) {
+        for (let i = 0; i < n; i++) h.poly(S.curve(lens(a, b, t0 + (i * TAU) / n, R * 0.22, R, R * 0.2), true, 3));
+        h.dot(a, b, R * 0.17);
+        for (let i = 0; i < n; i++) {
+            const t = t0 + ((i + 0.5) * TAU) / n;
+            h.dot(a + Math.cos(t) * R * 0.62, b + Math.sin(t) * R * 0.62, R * 0.09);
+        }
+    }
+    // the eight-pointed star of two squares, as a band of two lines, a rosette in its heart
+    function star8(h, a, b, R, w = 0.55) {
+        for (const k of [1, 0.84]) {
+            for (let j = 0; j < 2; j++) {
+                const pts = [];
+                for (let i = 0; i <= 4; i++) {
+                    const t = (j * Math.PI) / 4 + (i * Math.PI) / 2;
+                    pts.push([a + Math.cos(t) * R * k, b + Math.sin(t) * R * k]);
+                }
+                h.line(pts, w * (k === 1 ? 1 : 0.6));
+            }
+        }
+        h.circle(a, b, R * 0.36, w * 0.8);
+        fleuron(h, a, b, R * 0.3, 8, 0);
+        for (let i = 0; i < 8; i++) {
+            const t = (i * Math.PI) / 4 + Math.PI / 8;
+            h.dot(a + Math.cos(t) * R * 0.52, b + Math.sin(t) * R * 0.52, R * 0.045);
+        }
+    }
+    function lyre(h, a, b, k = 1) {
+        const arm = [[1.6, 8.2], [4.6, 6.4], [6.4, 2.2], [5.8, -2.6], [4, -6.6], [4.6, -9.2], [6.2, -9.6], [6.6, -8.4]];
+        for (const sx of [-1, 1]) h.line(S.curve(arm.map(([x, y]) => [a + x * k * sx, b + y * k]), false, 5), 0.9 * k);
+        h.poly(S.ellipse(a, b + 8.6 * k, 2.6 * k, 1.5 * k, 12));
+        h.line([[a - 4.9 * k, b - 6 * k], [a + 4.9 * k, b - 6 * k]], 0.8 * k);
+        for (const x of [-2.4, -0.8, 0.8, 2.4]) h.line([[a + x * k, b - 6 * k], [a + x * 0.7 * k, b + 7.6 * k]], 0.3 * k);
+    }
+    // a scroll for blind stamping: an S with curled ends
+    const scroll = (h, a, b, k, flip = 1, w = 0.5) => h.line(S.curve([[-6, 1.2], [-7.2, -0.6], [-5.6, -2], [-3.6, -1], [0, 0], [3.6, 1], [5.6, 2], [7.2, 0.6], [6, -1.2]].map(([x, y]) => [a + x * k, b + y * k * flip]), false, 5), w);
+    // a small donkey of our own, heading right, about 27 × 21 before `k`
+    const DONKEY = {
+        body: [[3.6, 6.6], [1.6, 9], [1.2, 13], [0.5, 15.6], [2.2, 14.6], [2.7, 10.4], [4, 12], [3.6, 17.5], [3.3, 20], [5.6, 20], [5.8, 17.5], [6.8, 13.6], [10, 14.3], [14, 13.9], [15, 14.2], [15.2, 17.5], [15, 20], [17.2, 20], [17.4, 17.5], [18, 13.2], [19.5, 11], [20.6, 8.6], [21.6, 7.7], [23, 8.9], [25.6, 9.9], [26.5, 8.6], [26, 7.1], [23.5, 4.4], [23, 3.6], [23.9, -1.6], [22.2, -0.6], [21.4, 3], [20.9, 2.6], [20, -1.2], [19.1, 0.3], [19.6, 3.7], [18.4, 4.6], [15.6, 6.2], [10, 6.6], [5.5, 6]],
+        far: [[[7.4, 13.2], [7.9, 20], [9.6, 20], [9.3, 13.6]], [[12.5, 13.6], [12.8, 20], [14.3, 20], [14.3, 13.8]]],
+    };
+
+    // ------------------------------------------------------------------ the books
+    // A paper label pasted on a spine: a printed frame, a shelfmark in ink, a corner come unstuck.
+    function shelfLabel(c, a0, b0, w, hgt, lines) {
+        const { q, P } = c, sd = c.seed + 'label', pts = rect(P, a0, b0, a0 + w, b0 + hgt, { r: 0.7, wob: 0.22, seed: sd, step: 2 });
+        S.piece(q, pts, {
+            fill: '#e9dfc2', line: 0.8, heavy: 0.5, cast: { blur: 1.2, dx: 0.5, dy: 0.8, color: 'rgba(10,6,20,0.6)' },
+            detail: (qq) => {
+                blot(qq, P.sub(a0, b0), w, hgt, sd, 6, ['#b08a50', '#fffaf0', '#8a6a3a'], 0.3, [2, 7]);
+                stamp(qq, P, [a0, b0, a0 + w, b0 + hgt], { mode: 'ink', color: '#3d4f8f', wear: 0.25, seed: sd + 1 }, (h) => {
+                    h.box(a0 + 1.3, b0 + 1.3, a0 + w - 1.3, b0 + hgt - 1.3, 0.5);
+                    h.box(a0 + 2.1, b0 + 2.1, a0 + w - 2.1, b0 + hgt - 2.1, 0.2);
+                });
+                stamp(qq, P, [a0, b0, a0 + w, b0 + hgt], { mode: 'ink', color: '#2a2030', wear: 0.12, seed: sd + 2 }, (h) => {
+                    h.text(lines[0], { a: a0 + w / 2, b: b0 + hgt * 0.33, cap: 3.4, font: LORA, hand: 0.6, maxW: w - 6, skew: 0.2 });
+                    h.text(lines[1], { a: a0 + w / 2, b: b0 + hgt * 0.67, cap: 5, font: LORA, hand: 0.8, maxW: w - 6, skew: 0.2 });
+                });
+                S.spray(qq, pts, { color: '#8a6a3a', alpha: 0.55, w: 2.4 });
+            },
+        });
+        // the corner that has lifted: its underside, and the leather it left
+        const A = [a0 + w - 4, b0 + hgt], Bp = [a0 + w, b0 + hgt - 3.4];
+        fillPts(q, P.pts([[a0 + w + 0.2, b0 + hgt + 0.2], A, Bp]), rgba(c.M.deep, 0.9));
+        S.piece(q, P.pts([A, Bp, [a0 + w - 3.6, b0 + hgt - 3]]), { fill: '#fbf4dc', line: 0.6, heavy: 0.4, shade: { color: '#a08a5c', alpha: 0.6, w: 1.2 }, cast: { blur: 0.8, dx: 0.4, dy: 0.5, color: 'rgba(10,6,20,0.5)' } });
+    }
+    // the corner of a paper cover folded over: (a, b) the corner, sa and sb how far along each edge
+    function dogEar(q, P, a, b, sa, sb, under = '#f6eeda', below = '#161a36') {
+        const A = [a + sa, b], Bp = [a, b + sb], Cp = [a + sa, b + sb];
+        fillPts(q, P.pts([[a - Math.sign(sa), b - Math.sign(sb)], [a + sa * 1.02, b - Math.sign(sb)], [a - Math.sign(sa), b + sb * 1.02]]), below);
+        S.piece(q, P.pts([A, Bp, [(A[0] + Cp[0] * 2) / 3, (Bp[1] + Cp[1] * 2) / 3]]), { fill: under, line: 0.7, heavy: 0.5, shade: { color: '#9c8a6c', alpha: 0.6, w: 1.6 }, cast: { blur: 1.4, dx: 0.6, dy: 0.9, color: 'rgba(10,6,20,0.5)' } });
+    }
+
+    const SPEC = {
+        // brown calf over thick boards, double cords, blind tooling; the title a later gilding
+        maimonides: {
+            M: MAT.calfDark, grain: GRAIN.calf(MAT.calfDark), bands: [17, 47, 141, 166], board: 3.4, pages: { kind: 'red', band: ['#2f4f7f', '#e8dcb8'] },
+            spinePaint(c) {
+                const { q, P, L, T, M, B } = c, bs = B.bands, comps = [[0, bs[0]], [bs[0], bs[1]], [bs[1], bs[2]], [bs[2], bs[3]], [bs[3], L]];
+                blind(c, (h) => {
+                    comps.forEach(([a0, a1], i) => {
+                        const x0 = a0 + 3.6, x1 = a1 - 3.6;
+                        if (x1 - x0 < 5) return;
+                        h.box(x0, 4.5, x1, T - 4.5, 0.6);
+                        h.box(x0 + 1.7, 6.2, x1 - 1.7, T - 6.2, 0.3);
+                        const mx = (x0 + x1) / 2, w = (x1 - x0) / 2 - 1.7;
+                        if (i !== 2) {
+                            // a saltire and a lozenge with a flower in it: the binder's oldest pattern
+                            h.line([[x0 + 1.7, 6.2], [x1 - 1.7, T - 6.2]], 0.4);
+                            h.line([[x1 - 1.7, 6.2], [x0 + 1.7, T - 6.2]], 0.4);
+                            h.line([[mx, 6.2], [mx + w, T / 2], [mx, T - 6.2], [mx - w, T / 2], [mx, 6.2]], 0.4);
+                            fleuron(h, mx, T / 2, Math.min(3, w * 0.5));
+                            fleuron(h, mx, 12, 1.6);
+                            fleuron(h, mx, T - 12, 1.6);
+                        } else {
+                            // a rope of small dots round the title's panel, a flower in each corner
+                            for (let a = x0 + 4.4; a < x1 - 3; a += 2.6) for (const b of [8.6, T - 8.6]) h.dot(a, b, 0.42);
+                            for (const [fa, fb] of [[x0 + 6.4, 13], [x1 - 6.4, 13], [x0 + 6.4, T - 13], [x1 - 6.4, T - 13]]) fleuron(h, fa, fb, 2.1);
+                        }
+                    });
+                });
+                bs.forEach((a) => band(c, a, { two: true }));
+                const mid = (bs[1] + bs[2]) / 2, w = bs[2] - bs[1] - 26;
+                gilt(c, 0.26, (h) => {
+                    h.text('MAIMÓNIDES', { a: mid, b: T * 0.375, cap: 11, maxW: w, track: 0.06 });
+                    h.line([[mid - w * 0.42, T * 0.545], [mid - 4, T * 0.545]], 0.5);
+                    h.line([[mid + 4, T * 0.545], [mid + w * 0.42, T * 0.545]], 0.5);
+                    h.poly([[mid - 2.2, T * 0.545], [mid, T * 0.545 - 1.5], [mid + 2.2, T * 0.545], [mid, T * 0.545 + 1.5]]);
+                    h.text('GUÍA DE PERPLEJOS', { a: mid, b: T * 0.7, cap: 6.6, maxW: w + 6, track: 0.05 });
+                }, P, [bs[1] + 3, 8, bs[2] - 3, T - 8]);
+                // wormholes: the beetle came in at the tail and wandered
+                const r = Motion.rng(c.seed + 'worm');
+                for (let i = 0; i < 9; i++) {
+                    const p = P(i < 6 ? 3 + r() * 12 : bs[3] + r() * 14, 6 + r() * (T - 12)), rr = 0.35 + r() * 0.4;
+                    disc(q, [p[0] + SD[0] * 0.25, p[1] + SD[1] * 0.25], rr + 0.2, rgba(M.light, 0.5));
+                    disc(q, p, rr, '#120a0c');
+                }
+                shelfLabel(c, 21, T - 27, 22, 19, ['Est. 3', '1138']);
+                gloss(c, 0.26);
+                scuff(c, 1.6, 6);
+                scuff(c, T - 1.4, 4, '#8a6a48');
+            },
+        },
+        // sprinkled calf of the 1600s: five bands, gilt compartments, a red lettering piece
+        gongora: {
+            M: MAT.calfTan, grain: GRAIN.calf(MAT.calfTan, 1), bands: [15, 99, 122, 145, 163], board: 2.8, pages: { kind: 'sprinkle', band: ['#a8322c', '#e7c35a'] },
+            spinePaint(c) {
+                const { q, P, L, T, B } = c, bs = B.bands, comps = [[0, bs[0]], [bs[0], bs[1]], [bs[1], bs[2]], [bs[2], bs[3]], [bs[3], bs[4]], [bs[4], L]];
+                gilt(c, 0.34, (h) => {
+                    for (const a of bs) for (const d of [-3.5, 3.5]) h.line([[a + d, 1.5], [a + d, T - 1.5]], 0.5);
+                    comps.forEach(([a0, a1], i) => {
+                        const x0 = a0 + 5, x1 = a1 - 5, mx = (a0 + a1) / 2;
+                        if (i === 1 || x1 - x0 < 3) return;
+                        if (i === 0 || i === 5) {
+                            // head and tail: a roll of slanted strokes
+                            for (let b = 4; b < T - 4; b += 2.2) h.line([[mx - 1.6, b], [mx + 1.6, b + 1.4]], 0.45);
+                            return;
+                        }
+                        h.box(x0, 5, x1, T - 5, 0.5);
+                        h.box(x0 + 1.4, 6.4, x1 - 1.4, T - 6.4, 0.25);
+                        fleuron(h, mx, T / 2, 4.2);
+                        for (const [fa, fb] of [[x0 + 2.6, 8], [x1 - 2.6, 8], [x0 + 2.6, T - 8], [x1 - 2.6, T - 8]]) h.dot(fa, fb, 0.5);
+                        fleuron(h, mx, 11.5, 1.5, 4, 0);
+                        fleuron(h, mx, T - 11.5, 1.5, 4, 0);
+                    });
+                });
+                bs.forEach((a) => band(c, a, { w: 4.2 }));
+                // the lettering piece: thin red goatskin pasted in the second panel
+                const a0 = bs[0] + 5.6, a1 = bs[1] - 5.6, R = MAT.morocco, lp = rect(P, a0, 5, a1, T - 5, { r: 0.6, wob: 0.25, seed: c.seed + 'lp', step: 3 });
+                S.piece(q, lp, {
+                    fill: mix(R.base, R.deep, 0.2), line: 0.8, heavy: 0.5, shade: { color: R.deep, alpha: 0.75, w: 4 }, light: { color: R.light, alpha: 0.45, w: 2.4 }, cast: { blur: 1, dx: 0.4, dy: 0.6, color: 'rgba(20,6,10,0.6)' },
+                    detail: (qq) => {
+                        GRAIN.morocco(R)(qq, P.sub(a0, 5), a1 - a0, T - 10, c.seed + 'lpg', 0.8);
+                        stamp(qq, P, [a0, 5, a1, T - 5], { mode: 'gilt', wear: 0.2, seed: c.seed + 'lpt' }, (h) => {
+                            h.box(a0 + 1.6, 6.6, a1 - 1.6, T - 6.6, 0.5);
+                            h.box(a0 + 2.7, 7.7, a1 - 2.7, T - 7.7, 0.22);
+                            const mx = (a0 + a1) / 2;
+                            h.text('GÓNGORA', { a: mx, b: T * 0.385, cap: 9.6, maxW: a1 - a0 - 12, track: 0.08 });
+                            h.line([[mx - 16, T * 0.55], [mx + 16, T * 0.55]], 0.4);
+                            h.text('SOLEDADES', { a: mx, b: T * 0.7, cap: 7, maxW: a1 - a0 - 12, track: 0.1 });
+                        });
+                        // chipped at a corner: the calf shows
+                        fillPts(qq, P.pts([[a1 - 4.4, T - 5], [a1, T - 5], [a1, T - 8.6], [a1 - 1.6, T - 6.6]]), MAT.calfTan.base);
+                    },
+                });
+                gloss(c, 0.3);
+                scuff(c, 1.5, 7);
+                scuff(c, T - 1.3, 4, '#b08a58');
+            },
+        },
+        // red morocco, a smooth spine with a gilt border, stars in the end panels
+        arabi: {
+            M: MAT.morocco, grain: GRAIN.morocco(MAT.morocco), board: 2.6, pages: { kind: 'gilt', band: ['#1c5c45', '#e7c35a'] },
+            spinePaint(c) {
+                const { L, T } = c;
+                gilt(c, 0.24, (h) => {
+                    h.box(3.2, 3.2, L - 3.2, T - 3.2, 0.75);
+                    h.box(4.9, 4.9, L - 4.9, T - 4.9, 0.3);
+                    for (const a of [27, L - 27]) {
+                        h.line([[a - 1, 4.9], [a - 1, T - 4.9]], 0.6);
+                        h.line([[a + 1, 4.9], [a + 1, T - 4.9]], 0.3);
+                    }
+                    for (const a of [15.5, L - 15.5]) {
+                        star8(h, a, T / 2, 8.2);
+                        for (const b of [8.4, T - 8.4]) h.dot(a, b, 0.6);
+                    }
+                    for (let a = 31; a < L - 30; a += 3) for (const b of [7.4, T - 7.4]) h.dot(a, b, 0.36);
+                });
+                gilt(c, 0.14, (h) => {
+                    const mid = L / 2, w = L - 76;
+                    h.text('IBN ARABI', { a: mid, b: T * 0.3, cap: 8.8, maxW: w, track: 0.12 });
+                    h.text('EL INTÉRPRETE', { a: mid, b: T * 0.565, cap: 6, maxW: w, track: 0.09 });
+                    h.text('DE LOS DESEOS', { a: mid, b: T * 0.77, cap: 6, maxW: w, track: 0.09 });
+                });
+                gloss(c, 0.32);
+                scuff(c, 1.4, 5, '#e8a088');
+                scuff(c, T - 1.2, 3, '#c97a66');
+            },
+        },
+        // limp vellum: no boards, the title inked along the spine, the thongs laced through
+        seneca: {
+            M: MAT.vellum, grain: GRAIN.vellum(MAT.vellum), board: 1, square: 0.6, ease: 2.2, wob: 0.6, round: 0.7, pages: { kind: 'plain', wave: 1, back: 3, band: ['#d8c9a0', '#a08a5c'] },
+            spinePaint(c) {
+                const { q, P, L, T } = c, r = Motion.rng(c.seed + 'v');
+                // cockled: the skin has pulled into soft waves
+                for (let i = 0; i < 7; i++) {
+                    const a = (i + 0.3 + r() * 0.5) * (L / 7), w = 4 + r() * 6, gr = q.createLinearGradient(...P(a - w, 0), ...P(a + w, 0));
+                    gr.addColorStop(0, rgba('#8f7a52', 0));
+                    gr.addColorStop(0.5, rgba(i % 2 ? '#fffbe8' : '#74627a', i % 2 ? 0.34 : 0.22));
+                    gr.addColorStop(1, rgba('#8f7a52', 0));
+                    fillPts(q, P.pts([[a - w, 0], [a + w, 0], [a + w + 2, T], [a - w + 2, T]]), gr);
+                }
+                // the sewing supports laced through the joints: three pairs of tawed thongs
+                for (const a of [22, L / 2 + 3, L - 24]) {
+                    strokePts(q, [P(a, 4), P(a, T - 4)], 2.2, rgba('#fffbe8', 0.16));
+                    for (const b of [3.3, T - 3.3]) {
+                        const pp = rect(P, a - 3.2, b - 1, a + 3.2, b + 1, { r: 0.8, wob: 0.15, seed: c.seed + a + b, step: 2 });
+                        S.piece(q, pp, { fill: '#efe2c0', line: 0.6, heavy: 0.5, shade: { color: '#9c8456', alpha: 0.7, w: 1 }, cast: { blur: 0.8, dx: 0.3, dy: 0.5, color: 'rgba(60,40,20,0.5)' } });
+                        for (const d of [-3.5, 3.5]) disc(q, P(a + d, b), 0.5, rgba('#3a2a1c', 0.85));
+                    }
+                }
+                print(c, '#4a2f1e', 0.2, (h) => {
+                    h.text('SÉNECA', { a: L / 2, b: T * 0.34, cap: 11.5, maxW: L - 64, hand: 1, track: 0.1 });
+                    h.text('CARTAS A LUCILIO', { a: L / 2, b: T * 0.72, cap: 7, maxW: L - 40, hand: 1, track: 0.07 });
+                    h.line(S.curve([[L / 2 - 34, T * 0.54], [L / 2 - 14, T * 0.52], [L / 2, T * 0.55], [L / 2 + 14, T * 0.52], [L / 2 + 34, T * 0.54]], false, 5), 0.45);
+                    h.text('IV', { a: 10.5, b: T * 0.5, cap: 5, hand: 1 });
+                    h.line([[6.5, T * 0.5 + 4.6], [14.5, T * 0.5 + 4.2]], 0.35);
+                });
+                // a second pass of the pen where the ink took badly: darker pools in the strokes
+                print(c, '#2a1810', 0.75, (h) => {
+                    h.text('SÉNECA', { a: L / 2, b: T * 0.34, cap: 11.5, maxW: L - 64, hand: 1, track: 0.1 });
+                    h.text('CARTAS A LUCILIO', { a: L / 2, b: T * 0.72, cap: 7, maxW: L - 40, hand: 1, track: 0.07 });
+                });
+                // handled: a grey bloom where the thumb goes, dirt along the lower edge
+                blot(q, P.sub(L * 0.62, T * 0.2), 40, T * 0.6, c.seed + 'th', 5, ['#6e6474', '#8a7a62'], 0.2, [6, 12]);
+                blot(q, P.sub(0, T - 7), L, 7, c.seed + 'dirt', 14, ['#6a5a48', '#8a7a62'], 0.3, [3, 8]);
+            },
+        },
+        // Romantic publisher's cloth, plum: blind arabesques, a gilt lyre
+        becquer: {
+            M: MAT.plum, grain: GRAIN.cloth(MAT.plum), round: 0.6, board: 2.4, pages: { kind: 'marble', band: ['#a8322c', '#f1e8d0'] },
+            spinePaint(c) {
+                const { L, T } = c;
+                blind(c, (h) => {
+                    h.box(7.5, 3.4, L - 7.5, T - 3.4, 0.6);
+                    h.box(9, 4.9, L - 9, T - 4.9, 0.28);
+                    for (const [a, f] of [[19, 1], [L - 19, -1]]) {
+                        scroll(h, a, T * 0.33, 1.05, f);
+                        scroll(h, a, T * 0.67, 1.05, -f);
+                        fleuron(h, a, T / 2, 2.2, 6, 0);
+                    }
+                    for (const a of [62, 94]) for (const b of [8, T - 8]) fleuron(h, a, b, 1.5);
+                }, 0.7);
+                gilt(c, 0.22, (h) => {
+                    for (const a of [2.2, 3.6, 5.6, L - 5.6, L - 3.6, L - 2.2]) h.line([[a, 1], [a, T - 1]], a === 3.6 || a === L - 3.6 ? 0.8 : 0.3);
+                    lyre(h, 78, T / 2, 1.2);
+                });
+                gilt(c, 0.12, (h) => {
+                    h.text('BÉCQUER', { a: 46, b: T / 2, cap: 8.4, font: LORA, maxW: 46, track: 0.08 });
+                    h.text('RIMAS', { a: 110, b: T / 2, cap: 12, font: LORA, maxW: 42, track: 0.1 });
+                });
+                scuff(c, 1.3, 4, '#b79ab0');
+            },
+        },
+        // ochre cloth stamped in dark blue, the little donkey in silver
+        platero: {
+            M: MAT.ochre, grain: GRAIN.cloth(MAT.ochre, 1.2), round: 0.55, board: 2.3, pages: { kind: 'plain', band: ['#27468c', '#f1e8d0'] },
+            spinePaint(c) {
+                const { q, P, L, T } = c, NAVY = '#1c2250';
+                print(c, NAVY, 0.1, (h) => {
+                    h.box(3, 3, L - 3, T - 3, 0.7);
+                    h.box(4.6, 4.6, L - 4.6, T - 4.6, 0.25);
+                    h.line([[42, 4.6], [42, T - 4.6]], 0.4);
+                    h.text('PLATERO Y YO', { a: 97, b: T * 0.37, cap: 9.4, font: LORA, maxW: 98, track: 0.08 });
+                    h.text('J. R. JIMÉNEZ', { a: 97, b: T * 0.74, cap: 5.6, font: LORA, maxW: 80, track: 0.12 });
+                    for (const a of [50, 144]) fleuron(h, a, T * 0.74, 1.7, 5, -Math.PI / 2);
+                    // the ground he stands on, a tuft of grass, a moon
+                    h.line([[8, 26.6], [38, 26.6]], 0.4);
+                    for (const [a, l] of [[10, 2.4], [11.2, 3.2], [12.4, 2], [34.6, 2.6], [35.8, 1.8]]) h.line([[a, 26.6], [a + (a < 20 ? -0.6 : 0.6), 26.6 - l]], 0.3);
+                    h.poly(S.curve([[34, 7], [36.6, 8], [37.4, 10.6], [35.8, 9.4], [34, 9.4]], true, 4));
+                });
+                // the donkey: blocked in silver, with its dark lines
+                const k = 0.84, D = P.sub(11.5, 9.4, 0, k);
+                for (const leg of DONKEY.far) S.piece(q, D.pts(leg), { fill: mix(SILVER.base, SILVER.deep, 0.55), line: 0.5, heavy: 0.4 });
+                const body = D.pts(S.curve(DONKEY.body, true, 3));
+                S.piece(q, body, {
+                    fill: SILVER.base, line: 0.7, heavy: 0.6, ink: NAVY, shade: { color: SILVER.deep, alpha: 0.8, w: 2.6 }, light: { color: SILVER.glint, alpha: 0.85, w: 1.6 }, cast: { blur: 0.8, dx: 0.3, dy: 0.5, color: 'rgba(60,40,10,0.5)' },
+                    detail: (qq) => {
+                        // the coat: short strokes of the die, the pale muzzle and belly
+                        const r = Motion.rng(c.seed + 'coat');
+                        for (let i = 0; i < 60; i++) {
+                            const p = D(3 + r() * 20, 5 + r() * 9);
+                            strokePts(qq, [p, [p[0] + 0.5 + r() * 0.6, p[1] + 0.7 + r() * 0.6]], 0.25, rgba(r() < 0.5 ? SILVER.deep : SILVER.glint, 0.5));
+                        }
+                        disc(qq, D(25.4, 8.9), 1.3 * k, rgba('#ffffff', 0.7));
+                        fillPts(qq, D.pts(S.ellipse(11, 13.4, 5, 1.2, 12)), rgba('#ffffff', 0.5));
+                    },
+                });
+                stamp(q, D, [-1, -3, 28, 22], { mode: 'ink', color: NAVY, wear: 0.04, seed: c.seed + 'dl' }, (h) => {
+                    h.dot(23.7, 6.3, 0.5);
+                    h.line([[18.8, 4.8], [17.4, 7.6], [17, 10]], 0.35);
+                    h.line([[19.8, 5], [18.6, 7.8]], 0.3);
+                    h.line([[6.6, 13.6], [7.2, 9.4]], 0.3);
+                    h.line([[25.3, 9.5], [26, 8.9]], 0.3);
+                    h.line([[22.6, 3.2], [23.4, 0.2]], 0.25);
+                    for (const x of [3.3, 15]) h.line([[x, 19.3], [x + 2.3, 19.3]], 0.6);
+                    for (const x of [7.9, 12.8]) h.line([[x, 19.4], [x + 1.6, 19.4]], 0.5);
+                });
+                scuff(c, 1.3, 4, '#f6e6a8');
+            },
+            coverPaint(c) {
+                const { q, P, L, T } = c;
+                blind(c, (h) => {
+                    h.box(5, 5, L - 5, T - 5, 0.8);
+                    h.box(7.4, 7.4, L - 7.4, T - 7.4, 0.35);
+                    h.line([[0, 3.4], [L, 3.4]], 0.6);
+                }, 0.55);
+                // the ring a wine glass left: darker where the wine pooled, broken where it dried
+                const ring = P.sub(21, 37);
+                stamp(q, ring, [-16, -16, 16, 16], { mode: 'ink', color: 'rgba(92,22,52,0.62)', wear: 0.3, seed: c.seed + 'wine' }, (h) => {
+                    h.circle(0, 0, 12.4, 1.5);
+                    h.circle(0.5, 0.3, 11.2, 0.5);
+                    h.line(S.curve([[-12.3, 2], [-11, 6.4], [-8, 9.6], [-4, 11.8]], false, 4), 2.3);
+                    h.dot(13.6, 9, 1.1);
+                    h.dot(15.4, 11, 0.5);
+                });
+                stamp(q, ring, [-16, -16, 16, 16], { mode: 'ink', color: 'rgba(92,22,52,0.14)', wear: 0, seed: c.seed + 'wine2' }, (h) => h.poly(S.ellipse(0, 0, 12, 12, 30)));
+            },
+        },
+        // a small black devotional book, read to pieces: the corners down to the board
+        juan: {
+            M: MAT.black, ink: '#07060e', grain: GRAIN.calf(MAT.black), bands: [9, 101], board: 2, pages: { kind: 'red', band: ['#3a3340', '#8d8474'] },
+            spinePaint(c) {
+                const { q, P, L, T, B } = c;
+                gilt(c, 0.5, (h) => {
+                    for (const a of [4.4, 5.8, 13.4, L - 13.4, L - 5.8, L - 4.4]) h.line([[a, 1.2], [a, T - 1.2]], 0.4);
+                    // a star and the moon's last sliver: a dark night
+                    fleuron(h, 21.5, T / 2 - 3.4, 2.6, 8, 0);
+                    h.poly(S.curve([[19.6, T / 2 + 2], [22.4, T / 2 + 3.4], [24.6, T / 2 + 2], [22.6, T / 2 + 5.6], [20.2, T / 2 + 4.6]], true, 4));
+                    h.dot(90.5, T / 2, 0.9);
+                });
+                gilt(c, 0.2, (h) => {
+                    h.text('S. JUAN DE LA CRUZ', { a: 57, b: T * 0.3, cap: 4.8, maxW: 62, track: 0.08 });
+                    h.text('NOCHE OSCURA', { a: 57, b: T * 0.68, cap: 7, maxW: 62, track: 0.07 });
+                });
+                B.bands.forEach((a) => band(c, a, { w: 3.4 }));
+                // the leather gone from the four corners and from the caps: grey board, frayed
+                const r = Motion.rng(c.seed + 'worn');
+                for (const [a, b, sa, sb] of [[0, 0, 1, 1], [L, 0, -1, 1], [0, T, 1, -1], [L, T, -1, -1]]) {
+                    const w = 5 + r() * 3.5, hh = 3.4 + r() * 2.4, pts = [[a, b], [a + sa * w, b], [a + sa * w * 0.72, b + sb * hh * 0.34], [a + sa * w * 0.4, b + sb * hh * 0.5], [a + sa * w * 0.22, b + sb * hh * 0.9], [a, b + sb * hh]];
+                    S.piece(q, P.pts(pts), { fill: '#8d8474', line: 0.5, heavy: 0.3, shade: { color: '#4a4350', alpha: 0.7, w: 2 }, light: { color: '#c9c0aa', alpha: 0.6, w: 1.2 } });
+                    for (let i = 0; i < 6; i++) {
+                        const u = r(), p = [a + sa * w * (1 - u) * 0.8, b + sb * hh * u * 0.8];
+                        strokePts(q, [P(p[0], p[1]), P(p[0] + sa * (0.6 + r() * 1.4), p[1] + sb * (0.5 + r()))], 0.3, rgba(r() < 0.5 ? '#5a4634' : '#d8cfb8', 0.8));
+                    }
+                }
+                scuff(c, 1.2, 7, '#6a5a48');
+                scuff(c, T - 1.2, 6, '#5a4c40');
+                gloss(c, 0.22, 16, L - 16);
+            },
+        },
+    };
+
+    // A slim paperback whose spine the sun has bleached: `orig` survives at the ends, where
+    // the neighbours on the shelf shaded it, and on the covers.
+    const slim = (M, orig, letter) => ({
+        M, coverM: orig, paperback: true, board: 0.7, square: 0.3, round: 0.18, ease: 0.5, wob: 0.16, line: 1.5, grain: GRAIN.paper(M), coverGrain: GRAIN.paper(orig, 0.5),
+        pages: { kind: 'plain', back: 1, pitch: 0.7, paper: { deep: '#6b6283', base: '#cdbd92', light: '#efe3c2' } },
+        spinePaint(c) {
+            const { q, P, L, T } = c, r = Motion.rng(c.seed + 'slim');
+            for (const [a0, a1] of [[0, 9 + r() * 6], [L, L - 5 - r() * 5]]) {
+                const gr = q.createLinearGradient(...P(a0, 0), ...P(a1, 0));
+                gr.addColorStop(0, rgba(orig.base, 0.85));
+                gr.addColorStop(1, rgba(orig.base, 0));
+                fillPts(q, P.pts([[a0, 0], [a1, 0], [a1, T], [a0, T]]), gr);
+            }
+            letter(c);
+            // reading creases along the spine, white where the ink cracked
+            for (let i = 0; i < 4; i++) {
+                const b = T * (0.18 + 0.64 * r()), a = r() * L * 0.5, l = L * (0.2 + r() * 0.4);
+                strokePts(q, [P(a, b), P(a + l / 2, b + (r() - 0.5) * 0.5), P(a + l, b)], 0.3, rgba('#fffdf4', 0.5));
+                strokePts(q, [P(a, b + 0.35), P(a + l / 2, b + 0.35 + (r() - 0.5) * 0.5), P(a + l, b + 0.35)], 0.25, rgba(M.deep, 0.4));
+            }
+            // bumped ends: the paper white through the colour
+            for (let i = 0; i < 5; i++) disc(q, P(r() < 0.5 ? r() * 2 : L - r() * 2, r() * T), 0.3 + r() * 0.6, rgba('#fffdf4', 0.75));
+        },
+    });
+    // a little anchor, a leaf and a tree: the three paperbacks' devices
+    const anchor = (h, a, b, k) => {
+        h.circle(a, b - 3.2 * k, 0.9 * k, 0.4 * k, 10);
+        h.line([[a, b - 2.3 * k], [a, b + 3.4 * k]], 0.55 * k);
+        h.line([[a - 1.8 * k, b - 1.2 * k], [a + 1.8 * k, b - 1.2 * k]], 0.45 * k);
+        h.line(S.curve([[a - 3 * k, b + 1], [a - 2 * k, b + 2.8 * k], [a, b + 3.5 * k], [a + 2 * k, b + 2.8 * k], [a + 3 * k, b + 1]], false, 4), 0.5 * k);
+    };
+    SPEC.alberti = slim(MAT.sea, { deep: '#12305a', base: '#2f6f9f', light: '#7fb4d6' }, (c) => {
+        const { L, T } = c;
+        print(c, '#1c2f66', 0.1, (h) => {
+            h.text('R. ALBERTI', { a: 27, b: T / 2, cap: 5.6, font: ANTON, maxW: 34, track: 0.1 });
+            h.text('MARINERO EN TIERRA', { a: 87, b: T / 2, cap: 7, font: ANTON, maxW: 74, track: 0.09 });
+            anchor(h, L - 9.5, T / 2, 1.1);
+            for (const a of [47.5, 126.5]) h.line(S.curve([[a - 2, T / 2 + 0.6], [a - 1, T / 2 - 0.6], [a, T / 2 + 0.6], [a + 1, T / 2 - 0.6], [a + 2, T / 2 + 0.6]], false, 3), 0.35);
+            h.line([[5, 1.6], [5, T - 1.6]], 0.7);
+        });
+    });
+    SPEC.cernuda = slim(MAT.salmon, { deep: '#5a1f1c', base: '#b0503a', light: '#e59a7a' }, (c) => {
+        const { L, T } = c;
+        print(c, '#5a221c', 0.1, (h) => {
+            h.text('L. CERNUDA', { a: 40, b: T / 2, cap: 4.8, font: LORA, maxW: 48, track: 0.12 });
+            h.text('OCNOS', { a: 88, b: T / 2, cap: 7, font: LORA, maxW: 36, track: 0.22 });
+            for (const a of [8, 66, 110]) h.line([[a, T / 2], [a + 4.5, T / 2]], 0.4);
+            fleuron(h, L - 10, T / 2, 2.4, 5, -Math.PI / 2);
+            h.line([[L - 20, 2], [L - 20, T - 2]], 0.3);
+        });
+    });
+    SPEC.zambrano = slim(MAT.sage, { deep: '#1f3a2a', base: '#5f8a52', light: '#a8c88a' }, (c) => {
+        const { L, T } = c;
+        print(c, '#24402c', 0.1, (h) => {
+            h.text('M. ZAMBRANO', { a: 31, b: T / 2, cap: 5, font: LORA, maxW: 46, track: 0.1 });
+            h.text('CLAROS DEL BOSQUE', { a: 97, b: T / 2, cap: 5.6, font: LORA, maxW: 70, track: 0.08 });
+            for (const a of [3.4, L - 3.4]) h.line([[a, 1.5], [a, T - 1.5]], 0.5);
+        });
+    });
+    SPEC.zambrano.coverPaint = (c) => {
+        const { q, P, L, T } = c;
+        print(c, '#f1ecd6', 0.12, (h) => {
+            h.box(6, 6, L - 6, T - 6, 0.7);
+            h.box(8, 8, L - 8, T - 8, 0.3);
+            // a clearing: a ring of small trees
+            for (let i = 0; i < 9; i++) {
+                const a = 14 + i * 5.2 + (i % 2) * 1.5, b = 24 + (i % 3) * 5;
+                h.line([[a, b], [a, b - 5]], 0.5);
+                h.poly(S.ellipse(a, b - 7, 2.2, 3.2, 10));
+            }
+        });
+        dogEar(q, P, 0, 0, 9, 13, '#e9e4cc');
+    };
+
+    // ---- the three that stand
+    // a 19th-century gift binding: blue cloth blocked in gold, a horseshoe arch at the head
+    SPEC.irving = {
+        M: MAT.blue, grain: GRAIN.cloth(MAT.blue, 1.25), round: 0.7, board: 3, pages: { kind: 'gilt', band: ['#a8322c', '#e7c35a'] },
+        spinePaint(c) {
+            const { P, L, T } = c, top = L - 6, Q = plane(P(top, 0), P.V, [-P.U[0], -P.U[1]]);
+            blind(c, (h) => {
+                h.box(66, 3, 184, T - 3, 0.6);
+                for (let a = 70; a < 182; a += 4) for (const b of [5.6, T - 5.6]) h.dot(a, b, 0.4);
+            }, 0.6);
+            gilt(c, 0.2, (h, qq) => {
+                // head: the alfiz, the arch with its voussoirs, the columns, a lamp
+                const u = pen(qq, Q), cx = T / 2, cy = 18, R = 9.6, D2R = Math.PI / 180;
+                u.box(3.4, 0, T - 3.4, 47, 0.75);
+                u.box(5, 1.6, T - 5, 45.4, 0.3);
+                const arc = (rr, t0, t1, n = 30) => {
+                    const pts = [];
+                    for (let i = 0; i <= n; i++) pts.push([cx + Math.cos((t0 + ((t1 - t0) * i) / n) * D2R) * rr, cy + Math.sin((t0 + ((t1 - t0) * i) / n) * D2R) * rr]);
+                    return pts;
+                };
+                const inner = arc(R, 128, 412);
+                u.line(inner, 0.8);
+                u.line(arc(R + 5.4, 150, 390), 0.4);
+                for (let i = 0; i < 13; i += 1) {
+                    const t0 = 151 + i * 18.4, a = arc(R + 1.1, t0, t0 + 9.6, 3), b = arc(R + 4.6, t0, t0 + 9.6, 3);
+                    u.poly([...a, ...b.reverse()]);
+                }
+                for (const p of [inner[0], inner[inner.length - 1]]) {
+                    u.line([[p[0], p[1] + 2.6], [p[0], 41]], 1.1);
+                    u.poly([[p[0] - 2.4, p[1] - 0.2], [p[0] + 2.4, p[1] - 0.2], [p[0] + 1.6, p[1] + 2.6], [p[0] - 1.6, p[1] + 2.6]]);
+                    u.poly([[p[0] - 2.2, 41], [p[0] + 2.2, 41], [p[0] + 2.8, 43.4], [p[0] - 2.8, 43.4]]);
+                }
+                u.line([[cx, cy - R], [cx, cy - 3.6]], 0.3);
+                u.poly(S.curve([[cx, cy - 3.6], [cx + 2.2, cy - 1], [cx + 1.5, cy + 2.4], [cx, cy + 4], [cx - 1.5, cy + 2.4], [cx - 2.2, cy - 1]], true, 4));
+                u.dot(cx, cy + 5.6, 0.6);
+                for (const x of [8.4, T - 8.4]) fleuron(u, x, 5.6, 2.2);
+                for (const x of [cx - 4, cx, cx + 4]) fleuron(u, x, 36, 1.5, 4, 0);
+                // bands of fillets and pearls
+                for (const a of [6, 60, 188]) {
+                    h.line([[a, 1.2], [a, T - 1.2]], 0.8);
+                    h.line([[a + 3.6, 1.2], [a + 3.6, T - 1.2]], 0.8);
+                    for (let b = 3; b < T - 2; b += 2.4) h.dot(a + 1.8, b, 0.5);
+                }
+                star8(h, 198, T / 2, 0.1);
+            });
+            gilt(c, 0.1, (h) => {
+                h.text('CUENTOS DE LA', { a: 125, b: T * 0.3, cap: 7.4, font: LORA, maxW: 104, track: 0.1 });
+                h.text('ALHAMBRA', { a: 125, b: T * 0.67, cap: 12.4, font: LORA, maxW: 104, track: 0.08 });
+                h.text('W. IRVING', { a: 35, b: T / 2, cap: 7.2, font: LORA, maxW: 46, track: 0.1 });
+                for (const a of [68.5, 181.5]) star8(h, a + (a < 100 ? 3 : -3), T / 2, 2.6, 0.3);
+            });
+            scuff(c, 1.6, 5, '#9fb2d6');
+            scuff(c, T - 1.4, 5, '#7088b8');
+        },
+    };
+    // plain paper wrappers, 1903: the title in sepia, a modernista flower
+    SPEC.machado = {
+        M: MAT.wrapper, paperback: true, grain: GRAIN.paper(MAT.wrapper, 1.6), round: 0.25, board: 0.8, square: -1.4, ease: 0.6, wob: 0.3, line: 1.6,
+        pages: { kind: 'deckle', back: 1.4, pitch: 0.75 },
+        spinePaint(c) {
+            const { q, P, L, T, M } = c, SEP = '#4a3524', top = L - 7, Q = plane(P(top, 0), P.V, [-P.U[0], -P.U[1]]), r = Motion.rng(c.seed + 'mw');
+            print(c, SEP, 0.14, (h, qq) => {
+                h.text('SOLEDADES', { a: 118, b: T / 2, cap: 8.4, font: LORA, maxW: 80, track: 0.14 });
+                h.text('A. MACHADO', { a: 46, b: T / 2, cap: 5.6, font: LORA, maxW: 50, track: 0.12 });
+                for (const a of [14, 78, 160]) {
+                    h.line([[a, 2.6], [a, T - 2.6]], 0.5);
+                    h.line([[a + 1.5, 4.4], [a + 1.5, T - 4.4]], 0.22);
+                }
+                // head: a poppy on a whiplash stem, two leaves
+                const u = pen(qq, Q), cx = T / 2;
+                u.line(S.curve([[cx - 3.4, 36], [cx + 2.6, 30], [cx - 2.8, 22], [cx + 1.6, 15], [cx, 9.4]], false, 6), 0.55);
+                u.poly(S.curve([[cx, 9.6], [cx - 3.6, 8], [cx - 4.4, 3.6], [cx - 1.4, 5.2], [cx, 1.6], [cx + 1.4, 5.2], [cx + 4.4, 3.6], [cx + 3.6, 8]], true, 4));
+                u.poly(S.curve([[cx + 1.6, 25.6], [cx + 5.8, 23.6], [cx + 6.4, 18.6], [cx + 3, 21.6]], true, 4));
+                u.poly(S.curve([[cx - 1.8, 31.4], [cx - 6, 30], [cx - 6.4, 25.4], [cx - 3.2, 27.6]], true, 4));
+                u.line(S.curve([[cx - 3.4, 36], [cx - 6, 38.6], [cx - 3, 40.4], [cx, 38.6], [cx + 3.2, 40.4], [cx + 6, 38.4]], false, 4), 0.4);
+                // foot: the year
+                const f = pen(qq, plane(P(10.5, 0), P.V, [-P.U[0], -P.U[1]]));
+                f.text('1903', { a: cx, b: 3, cap: 3.6, font: LORA, maxW: T - 4.6, track: 0.06 });
+            });
+            // the wrapper is cracked along the joints, and a chip of it has gone at the head: the sewing shows
+            for (const b of [1.5, T - 1.5]) for (let a = r() * 8; a < L; a += 6 + r() * 16) strokePts(q, [P(a, b + (r() - 0.5) * 0.6), P(a + 2 + r() * 7, b + (r() - 0.5) * 0.6)], 0.32, rgba(r() < 0.5 ? '#fffdf4' : M.deep, 0.6));
+            const chip = [[L, 3.2], [L - 6.4, 2.6], [L - 9, 5], [L - 5.6, 6.4], [L - 7.4, 9.6], [L - 3, 11.6], [L, 11]];
+            S.piece(q, P.pts(chip), { fill: '#a89878', line: 0.6, heavy: 0.3, shade: { color: '#5a4c40', alpha: 0.7, w: 2 } });
+            for (let i = 0; i < 4; i++) strokePts(q, [P(L - 0.5, 4.4 + i * 1.9), P(L - 4.6 - (i % 2) * 2.4, 4.6 + i * 1.9)], 0.42, rgba('#efe6cc', 0.9));
+            // a tide line of damp at the foot
+            const tide = S.curve([[0, 0], [8, 2.4], [15, 7], [19, 12], [21, T]].map(([a, b]) => P(a, b)), false, 6);
+            strokePts(q, tide, 0.5, rgba('#7a6a4c', 0.5));
+            fillPts(q, [...tide, P(0, T)], rgba('#8a7a58', 0.16));
+        },
+    };
+    // a paper cover of 1928, in red and black
+    SPEC.lorca = {
+        M: MAT.cream, paperback: true, grain: GRAIN.paper(MAT.cream), round: 0.2, board: 0.8, square: 0.2, ease: 0.6, wob: 0.25, line: 1.6,
+        pages: { kind: 'plain', back: 1.2, pitch: 0.75 },
+        spinePaint(c) {
+            const { L, T } = c, RED = '#b3262c';
+            print(c, RED, 0.1, (h) => {
+                h.text('GARCÍA LORCA', { a: 46, b: T / 2, cap: 6.2, font: ANTON, maxW: 56, track: 0.1 });
+                h.poly(S.ellipse(L - 12, T / 2, 3.6, 3.6, 18));
+                for (const a of [8, 9.8]) h.line([[a, 1.6], [a, T - 1.6]], 0.6);
+            });
+            print(c, '#1a1826', 0.1, (h) => {
+                h.text('ROMANCERO GITANO', { a: 120, b: T / 2, cap: 6.6, font: ANTON, maxW: 80, track: 0.1 });
+                h.line([[82, 2], [82, T - 2]], 0.4);
+                h.line([[L - 22, 2], [L - 22, T - 2]], 0.4);
+                h.poly(S.curve([[L - 12.4, T / 2 - 3.5], [L - 9, T / 2], [L - 12.4, T / 2 + 3.5], [L - 10.6, T / 2]], true, 4));
+            });
+        },
+        coverPaint(c) {
+            // our own design: a red moon bitten by a black one, reeds, five stars; (x across from the spine, y down)
+            const { q, P, L, T: D } = c, C = plane(P(L, 0), P.V, [-P.U[0], -P.U[1]]), RED = '#b3262c', BLK = '#1a1826', r = Motion.rng(c.seed + 'lc');
+            const cc = { ...c, P: C, L: D, T: L };
+            print(cc, BLK, 0.08, (h) => {
+                h.box(5, 5, D - 5, L - 5, 1.1);
+                h.box(7.4, 7.4, D - 7.4, L - 7.4, 0.3);
+                h.text('GARCÍA LORCA', { a: D / 2, b: 19, cap: 7, font: LORA, maxW: D - 26, track: 0.16 });
+            });
+            print(cc, RED, 0.16, (h) => {
+                h.poly(S.ellipse(D / 2 + 3, 72, 32, 32, 48));
+                h.line([[16, 28.6], [D - 16, 28.6]], 0.8);
+                for (const [x, y, k] of [[20, 44, 2.6], [D - 16, 112, 2], [26, 118, 1.6], [D - 22, 40, 1.5], [D / 2 - 8, 124, 1.2]]) fleuron(h, x, y, k * 1.6, 4, 0);
+                h.text('GITANO', { a: D / 2, b: 162, cap: 19, font: SHRIK, maxW: D - 22, track: 0.02 });
+            });
+            print(cc, BLK, 0.1, (h) => {
+                // the black moon over the red one
+                const moon = [];
+                for (let i = 0; i <= 24; i++) {
+                    const t = -1.9 + (i / 24) * 3.6;
+                    moon.push([D / 2 - 9 + Math.cos(t) * 25, 66 + Math.sin(t) * 25]);
+                }
+                for (let i = 24; i >= 0; i--) {
+                    const t = -1.9 + (i / 24) * 3.6;
+                    moon.push([D / 2 - 20 + Math.cos(t) * 19, 61 + Math.sin(t) * 22]);
+                }
+                h.poly(moon);
+                // reeds on the river bank
+                for (let i = 0; i < 7; i++) {
+                    const x = 14 + i * 5.2 + r() * 2, top = 70 + r() * 22, lean = (r() - 0.3) * 9;
+                    h.line(S.curve([[x, 128], [x + lean * 0.3, (128 + top) / 2], [x + lean, top]], false, 6), 0.9);
+                    h.poly(S.curve([[x + lean, top + 1], [x + lean + 1.6, top - 5], [x + lean + 0.6, top - 11], [x + lean - 1.2, top - 5]], true, 4));
+                }
+                h.line([[10, 129], [D - 10, 129]], 1.2);
+                h.text('ROMANCERO', { a: D / 2, b: 141.5, cap: 10.5, font: SHRIK, maxW: D - 22, track: 0.02 });
+                h.text('1928', { a: D / 2, b: 179.6, cap: 4, font: LORA, track: 0.3 });
+            });
+            // handled: a crease across the corner, a soft fold down the middle, the corner turned
+            strokePts(q, [C(D - 30, 0), C(D, 34)], 0.5, rgba('#fffdf4', 0.7));
+            strokePts(q, [C(D - 29.4, 0.6), C(D - 0.4, 35)], 0.4, rgba('#6a5a48', 0.5));
+            strokePts(q, [C(D * 0.55, 0), C(D * 0.52, L)], 5, rgba('#8a7a6a', 0.1));
+            dogEar(q, C, D, L, -12, -15, '#f1e7cc');
+        },
+    };
+
+    // The books. World: x right, y up from the ground, z away; the page's origin is the
+    // middle of the whole pile.
+    function books(g, o = {}) {
+        sheet(g, 'books', [172, 214], o, (q, rot, seed) => {
+            const W = world(rot, 14, 207);
+            // the ten that lie, from the ground up: name, left end of the spine, length, thickness, depth, yaw°, set back
+            const pile = [
+                ['maimonides', -138, 182, 58, 160, 4, 0], ['gongora', -128, 174, 46, 146, 9, 5], ['arabi', -134, 172, 42, 138, 3, 2], ['seneca', -118, 152, 40, 126, 12, 7],
+                ['becquer', -114, 144, 34, 116, 6, 3], ['platero', -128, 154, 34, 120, 9, 6], ['juan', -84, 110, 26, 84, 5, 12],
+                ['alberti', -106, 140, 13, 104, 11, 6], ['cernuda', -98, 130, 12, 100, 4, 10], ['zambrano', -102, 136, 13, 102, 7, 7],
+            ];
+            const bk = {};
+            let top = 0;
+            for (const [name, x0, L, T, D, yaw, z] of pile) {
+                top += T;
+                bk[name] = place(W, flat(x0, top, z, yaw, L), { ...SPEC[name], name, seed: seed + '/' + name, L, T, D });
+            }
+            // the three that stand: where their lower left edge is, how they lean and turn
+            const stand = [['irving', 59, 0, 7, 0, 250, 36, 150], ['machado', 95.6, 4, 7, 0, 206, 15, 132], ['lorca', 115, 2, 8.6, 32, 190, 13, 108]];
+            for (const [name, xb, z, lean, yaw, L, T, D] of stand) bk[name] = place(W, upright(xb, z, lean, yaw), { ...SPEC[name], name, seed: seed + '/' + name, L, T, D });
+            for (const name of ['maimonides', 'gongora', 'arabi', 'seneca', 'becquer', 'platero', 'irving', 'machado', 'lorca', 'juan', 'alberti', 'cernuda', 'zambrano']) paintBook(q, bk[name]);
+        });
+    }
+
+    return { books };
+})();
