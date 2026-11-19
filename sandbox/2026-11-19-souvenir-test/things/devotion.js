@@ -114,6 +114,10 @@
 // ivory's grain, age cracks, a warm stain, traces of gilding and paint · 10 four pin holes
 // at the corners, a chip out of one edge.
 const Devotion = (() => {
+    // The lead's decision: on objects of devotion the bands that carry an inscription on the
+    // real thing are left plain. Strokes that imitate a sacred script can be misread, and a
+    // real verse set by code can be set wrong; an empty band is neither.
+    const SCRIPT_BANDS = false;
     const S = Souvenir;
     const INK = S.INK, SD = S.SHADE_DIR, TOL = [-SD[0], -SD[1]], TAU = Math.PI * 2;
     const clamp = S.clamp, smooth = S.smooth;
@@ -1914,7 +1918,7 @@ const Devotion = (() => {
                 wire(q, [[-78, -18.6], [78, -18.6]], 0.9, 0.7);
                 wire(q, [[-78, -7.6], [78, -7.6]], 0.9, 0.7);
                 q.lineCap = 'butt';
-                for (const st of script) strokePts(q, st, 0.72, grey(0.04));
+                for (const st of SCRIPT_BANDS ? script : []) strokePts(q, st, 0.72, grey(0.04));
                 // punches: a ring struck round a dot
                 for (const [x, y] of punches) {
                     strokePts(q, S.ellipse(x, y, 1.9, 1.9, 14), 0.62, grey(0.06), true);
@@ -2007,7 +2011,7 @@ const Devotion = (() => {
                     for (const yy of [22.6, 24.6, 48.4]) strokePts(g, [[x - 3, yy], [x + 3, yy]], 0.35, 'rgba(48,24,30,0.8)');
                     strokePts(g, [[x - 1.5, 27], [x - 1.5, 46.6]], 0.3, 'rgba(48,24,30,0.5)');
                 }
-                for (const st of script) {
+                for (const st of SCRIPT_BANDS ? script : []) {
                     strokePts(g, st, 0.42, 'rgba(34,16,26,0.85)');
                     strokePts(g, st.map(([x, y]) => [x + sh[0] * 0.42, y + sh[1] * 0.42]), 0.22, 'rgba(255,240,184,0.6)');
                 }
@@ -2504,7 +2508,7 @@ const Devotion = (() => {
                 // the border: a plain fillet, then the band of strokes between two beads of pearls
                 strokePts(q, [[-W + 3, -H + 3], [W - 3, -H + 3], [W - 3, H - 3], [-W + 3, H - 3]], 3, grey(0.7), true);
                 fillPts(q, [[-100, -128], [100, -128], [100, 108], [-100, 108]], grey(0.2));
-                for (const st of script) strokePts(q, st, 0.9, grey(0.6));
+                for (const st of SCRIPT_BANDS ? script : []) strokePts(q, st, 0.9, grey(0.6));
                 fillPts(q, [[-86, -114], [86, -114], [86, 108], [-86, 108]], grey(0.5));
                 strokePts(q, [[-86, -114], [86, -114], [86, 108], [-86, 108]], 1.6, grey(0.8), true);
                 // the alfiz: the field behind the arch lies low, the leafwork stands on it
@@ -2618,7 +2622,7 @@ const Devotion = (() => {
                     for (const lf of leaves) if (r() < 0.45) fillPts(q, lf, `rgba(214,164,70,${(0.2 + r() * 0.3).toFixed(2)})`);
                     q.restore();
                     for (const b of bosses) disc(q, b, 3.4, 'rgba(214,164,70,0.5)');
-                    for (const st of script) if (r() < 0.3) strokePts(q, st, 0.8, 'rgba(214,164,70,0.45)');
+                    for (const st of SCRIPT_BANDS ? script : []) if (r() < 0.3) strokePts(q, st, 0.8, 'rgba(214,164,70,0.45)');
                 });
             },
             after: (g, { sh, lit }) => {
@@ -2667,7 +2671,7 @@ const Devotion = (() => {
                     for (let k = -8; k <= 14; k++) for (const sg of [-1, 1]) edge([[sx * 50, 14 + k * 9.4 + 0.9], [sx * 92, 14 + k * 9.4 + sg * 42 * 1.25 + 0.9]], 0.26, 0.5);
                     g.restore();
                 }
-                for (const st of script) strokePts(g, st.map(([x, y]) => [x - sh[0] * 0.45, y - sh[1] * 0.45]), 0.3, 'rgba(52,34,48,0.7)');
+                for (const st of SCRIPT_BANDS ? script : []) strokePts(g, st.map(([x, y]) => [x - sh[0] * 0.45, y - sh[1] * 0.45]), 0.3, 'rgba(52,34,48,0.7)');
                 for (const sx of [-1, 1]) {
                     const cx = sx * (jx + 10.6);
                     // veined marble, drawn on the ivory with the point

@@ -80,8 +80,9 @@ Tableau.emblem = (z0) => {
                 put(L, 'books', { x: 1030, y: 250, s: 0.8, rot: 0.04 });
                 put(L, 'palette', { x: 300, y: -570, s: 0.8, rot: 0.3 });
                 put(L, 'score', { x: -330, y: 600, s: 0.85, rot: -0.1 });
-                put(D, 'lampara', { x: -1060, y: -250, s: 0.8, rot: 0 });
-                put(D, 'mihrab', { x: 1060, y: -230, s: 0.75, rot: 0.04 });
+                // (the niche plaque is left out: its painter knows of no Andalusi ivory like it,
+                // and the wheel only holds things that exist)
+                put(D, 'lampara', { x: -1060, y: -250, s: 0.8, rot: 0, servant: true });
                 put(D, 'incensario', { x: 740, y: -560, s: 0.75, rot: 0 });
                 put(D, 'cirio', { x: -1080, y: 120, s: 0.9, rot: 0.05 });
                 put(D, 'rosario', { x: 300, y: 590, s: 0.8, rot: 0.2 });

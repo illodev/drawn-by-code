@@ -2,11 +2,12 @@
 // ground. One page every 1/8 s (3 frames), raw paint except the last:
 //   0      all six at film size (s = 1)
 //   0.125  the gold and the murex at 2×      0.25   the helmet and the stele at 2×
-//   0.375  the amphora at 2×                 0.5    the mosaic at 2×
-//   0.625  4× crops: three bosses and a rosette · the murex's spines and lip · the helmet's eye and patina
-//   0.75   4× crops: the amphora's stamp and painted inscription · twenty tesserae and the bird's head
+//   0.375  the amphora at 2.4×               0.5    the mosaic at 2.6×
+//   0.625  4× crops: three bosses and a rosette, the cuff · the murex's spines and lip · the helmet's eye and patina
+//   0.75   4× crops: the amphora's stamp and painted inscription · the bird's head, twenty tesserae and the section · the stele
 //   0.875  turned (the light must stay at the top left)
 //   1      on a transparent sheet (as a rig layer is), with tooth and the lens finish
+// The 4× pages are slow (the mosaic is laid stone by stone and lit per pixel at 5 px a unit).
 const SV = 'sandbox/2026-11-19-souvenir-test/';
 Motion.scene({
     fps: 24, duration: 1.25, logical: [1600, 900],
