@@ -29,6 +29,29 @@
 //   craters (Tycho's rays across the south, Copernicus, Kepler, Aristarchus the brightest
 //   spot, Proclus), Plato and Grimaldi as dark floors; brighter highlands full of small
 //   craters; the limb a little darker and warmer; a halo round it in the haze.
+//
+//   The others, each with its ten details written over its drawer: the cave's surfaces
+//   (`cave`: lime coat over coat, pick facets under it, flakes down to an ochre coat and the
+//   hill's red conglomerate with river pebbles, soot, añil dado, wandering cracks, the
+//   reveal of an opening, a charcoal tally), the anvil, the hearth and its fire, the
+//   bellows, Fajalauza plates, the cauldron, the bed warmer, the cook's copper (`utensil`),
+//   tin rings and a necklace, the bridle (cabezada vaquera: cheek straps, browband with its
+//   mosquero of thongs and red tassels, noseband, snaffle and rings, brass studs and three
+//   brasses, a crescent among them), the cricket's cage (wire bars, painted tin roof worn to
+//   the metal, a door, the cricket with its long antennae and a lettuce leaf), the door
+//   (planks, old paint, battens' nails, strap hinges, latch, the cat's hole), the prickly
+//   pear (pads on pads, areoles in a lattice with glochids and spines, red tunas, a corky
+//   old pad), the agave (grey-blue leaves with hooked teeth and a black tip spine, the
+//   ghost of a neighbour's teeth printed on a leaf, a dried leaf, the flower stalk), the
+//   olive tree, the scops owl (ear tufts, facial disc with a broken dark rim, yellow eyes
+//   with the moon in them, grey feathers each with a dark shaft and a pale tip, wavy bars,
+//   the white scapular spots, the folded wing's edge), the will-o'-the-wisp, the tuberose,
+//   the ploughed ground (`furrows`) and the far hills with the palace's outline (`hills`).
+//
+// What is from memory, not checked: the seas' and craters' coordinates (close, not exact);
+// the Spanish double-horned anvil's proportions; Fajalauza's palette and motifs (blue and
+// green on white, the pomegranate, birds); the bridle's details; the palace's skyline is a
+// generic row of towers and walls, not the Alhambra's real profile.
 const Forge = (() => {
     const S = Souvenir;
     const TAU = Math.PI * 2, DEG = Math.PI / 180;

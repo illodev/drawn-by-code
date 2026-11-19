@@ -379,7 +379,7 @@ Tableau.forge = (z0) => {
     ];
 };
 // depths from z0 (the first stratum's middle sheet)
-Tableau.forge.Z = { vaultNear: -150, vault: 0, vaultWall: 150, hearthNear: 470, hearth: 620, hearthWall: 770, door: 1080, mouth: 1230, grove: 1700, groveFar: 1880, moon: 2900, sky: 3300 };
+Tableau.forge.Z = { vaultNear: -150, vault: 0, vaultWall: 150, hearthNear: 470, hearth: 620, hearthWall: 770, door: 1080, mouth: 1230, grove: 1700, groveFar: 1880, moon: 3050, sky: 3450 };
 Tableau.forge.R = 300; // the moon's radius in her layer's units
 Tableau.forge.depth = Tableau.forge.Z.moon; // z0 → the moon (the film ends on her)
 Tableau.forge.hole = 0; // no way out: the last picture

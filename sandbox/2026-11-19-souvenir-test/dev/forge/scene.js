@@ -9,7 +9,7 @@ const USES = [DIR + 'things/forge.js', DIR + 'tableaux/forge.js']; // your files
 const FONTS = []; // { family, src } of any font you letter with (see fonts/)
 const BEFORE = { color: '#0b0a0c', hole: 150 }; // the plate you are entered through: its colour, its hole's radius
 const AFTER = '#0d1026'; // what glows behind your own hole (the next picture's dominant colour)
-const DEPTH = 2900; // = Tableau[NAME].depth (kept here too: the duration must be known before the files load)
+const DEPTH = 3050; // = Tableau[NAME].depth (kept here too: the duration must be known before the files load)
 // ---------------------------------------------------------------- the film's camera
 const SPEED = 432, FOCUS = 1000, Z0 = 2000, LEAD = 1500, GAP = 700;
 Motion.scene({

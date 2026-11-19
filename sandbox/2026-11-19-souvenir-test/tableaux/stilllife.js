@@ -220,6 +220,11 @@ Tableau.stilllife = (z0) => {
             St.rose(g, { x: -270, y: yb - 2, s: 1.45, seed: 'van' });
             // the candle, put out a moment ago
             const G2 = G, y2 = onTop(G, 0.45);
+            St.scatter(g, 80, 700, onTop(G, 0.9), onTop(G, 0.1), { crumb: 8, seed: 0 }, 'van');
+            for (const [x, y] of [[520, y2 + 8], [548, y2 + 2], [300, y2 - 6]]) St.oval(g, x, y, 4, 2.2, 0, '#e8e0c8');
+            // the burnt match it was lit with
+            S.ink(g, [[560, y2 + 14], [640, y2 + 4]], { w: 3, color: '#c8a86a', alpha: 1 });
+            St.oval(g, 562, y2 + 14, 4.5, 3, 0.2, '#1a1410');
             St.contact(g, 420, y2, 70, 10);
             const cs = St.candlestick(g, { x: 420, y: y2, wax: 200, s: 1.25, seed: 'van' });
             // the motto, dropped at the candle's foot, its end hanging over the edge
@@ -262,6 +267,8 @@ Tableau.stilllife = (z0) => {
             St.castOn(g, ga, -300, yb + 6, 1.4, { clip: G.top });
             St.castOn(g, on, 330, yb - on.RY * K, K, { clip: G.top });
             for (const [x, rx] of [[-520, 112], [-300, 62], [330, 70], [470, 66]]) St.contact(g, x, yb + 4, rx, rx * 0.2);
+            St.scatter(g, -720, -120, onTop(G, 0.85), onTop(G, 0.1), { pepper: 26, cumin: 30, crumb: 10 }, 'kitchen');
+            St.scatter(g, 60, 260, onTop(G, 0.8), onTop(G, 0.2), { crumb: 12, skin: 4 }, 'kitchen2');
             St.put(g, mo, -520, yb, K);
             St.pestle(g, [-505, yb - 190], [-410, yb - 340], { seed: 'k' });
             St.put(g, ga2, -385, yb - 8, 1.3, { rot: 0.5 });
@@ -287,6 +294,15 @@ Tableau.stilllife = (z0) => {
         sheet('eggs', Z.s2, BOX, 1, (g) => {
             const G = St.ledge(g, { x0: -1260, x1: 1260, y: 330, face: 110, d: 420, seed: 'eggs', chips: 11, joint: -300, lamp: lampOf(-400, -200, 1900, 0.22) });
             St.linen(g, { x0: 380, x1: 840, y: 330, drop: 180, topY: onTop(G, 0.85), seed: 'eggs' });
+            St.scatter(g, -300, 300, onTop(G, 0.85), onTop(G, 0.1), { crumb: 20, skin: 3, seed: 4 }, 'eggs');
+            // a broken shell
+            for (const [x, a] of [[120, 0.4], [150, 2.6]]) {
+                const y = onTop(G, 0.35), pts = [];
+                for (let k = 0; k <= 10; k++) pts.push([x + Math.cos(a + (k / 10) * Math.PI) * 16, y + Math.sin(a + (k / 10) * Math.PI) * 9]);
+                St.poly(g, pts.map(([p, q]) => [p + 4, q + 3]), 'rgba(4,2,1,0.5)');
+                St.poly(g, pts, '#d8b48c');
+                S.ink(g, pts, { w: 1.2, color: '#f6ecdc', alpha: 0.8 });
+            }
             St.contact(g, 610, onTop(G, 0.45), 180, 20, 0.6);
             St.eggDish(g, { x: 610, y: onTop(G, 0.45), s: 1.2, seed: 'eggs' });
             const G2 = G;
@@ -356,6 +372,7 @@ Tableau.stilllife = (z0) => {
             St.castOn(g, jg, -560, yb, 1, { clip: G.top });
             St.contact(g, -560, yb, 110, 16);
             St.put(g, jg, -560, yb);
+            St.scatter(g, -300, 420, onTop(G, 0.9), onTop(G, 0.1), { crumb: 14, seed: 8, skin: 3, skinColor: 'rgba(120,70,90,0.8)' }, 'jug');
             // a drop fallen from the jug's foot onto the stone
             St.drop(g, -470, yb + 10, 3.4, { dark: [60, 46, 32], lit: [240, 226, 200] });
             const G2 = G, y2 = onTop(G, 0.6);
@@ -373,6 +390,8 @@ Tableau.stilllife = (z0) => {
         sheet('glass', Z.s1, BOX, 1, (g) => {
             const G = St.ledge(g, { x0: -1260, x1: 1260, y: 326, face: 110, d: 440, seed: 'glassR', chips: 11, joint: -120, lamp: lampOf(-500, -250, 1900, 0.22) });
             const yb = onTop(G, 0.55);
+            St.puddle(g, 210, yb + 14, 46, 9, 'glass');
+            St.scatter(g, -200, 760, onTop(G, 0.9), onTop(G, 0.08), { crumb: 22, seed: 10 }, 'glass');
             St.glassShadow(g, 296, yb, 1.25, { clip: G.top });
             St.contact(g, 296, yb, 76, 10, 0.6);
             St.glass(g, { x: 296, y: yb, s: 1.25, seed: 'water' });

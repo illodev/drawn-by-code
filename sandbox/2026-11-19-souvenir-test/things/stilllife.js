@@ -1199,7 +1199,8 @@ const Still = (() => {
                     // the stalk
                     line(g, [[-36, 0], [-44, -2], [-50, -1]], 5, '#fff');
                 },
-                height: (x, y) => 0.6 * Math.cos(Math.atan2(y, x + 8) * 7) * smooth(-30, 10, x) + 0.3 * S.noise2(x * 0.2, y * 0.2, sd),
+                // faint ribs running from the stalk to the eye (along x), a slow lumpiness
+                height: (x, y) => 0.35 * Math.cos(y * 0.42 + 0.6 * S.noise2(x * 0.04, 0, sd)) * smooth(-34, -10, x) * smooth(26, 10, x) + 0.5 * S.noise2(x * 0.08, y * 0.08, sd),
                 ramp: RAMP.fig, soft: 0.9,
                 stroke: { amp: 0.05, freq: 0.15, tone: 6 },
                 mottle: { amp: 0.06, freq: 0.06 },
@@ -1213,15 +1214,6 @@ const Still = (() => {
                     scaleRGB(rgb, 0.8, 0.78, 0.82, 1);
                 },
                 over: (g) => {
-                    // ribs from the stalk to the eye, paler lines
-                    for (let k = -3; k <= 3; k++) {
-                        const ln = [];
-                        for (let i = 0; i <= 10; i++) {
-                            const u = i / 10, xx = -30 + u * 52;
-                            ln.push([xx, k * 7 * Math.sin(Math.PI * (0.15 + u * 0.8)) * (1 - 0.3 * smooth(0, -30, xx))]);
-                        }
-                        S.ink(g, ln, { w: 0.9, color: '#8a7a8a', alpha: 0.08, taper: [0.8, 0.8] });
-                    }
                     // lenticels
                     for (let i = 0; i < 90; i++) disc(g, -30 + r() * 54, (r() - 0.5) * 46, 0.3 + r() * 0.35, `rgba(230,220,200,${0.25 + r() * 0.35})`);
                     // the eye
@@ -1360,7 +1352,7 @@ const Still = (() => {
             S.ink(g, pe, { w: 1, color: side < 0 ? '#9fb4ac' : '#5c6e68', alpha: 0.5 });
         }
         // the stem: a bright core and dark edges; the knop's glints
-        for (const [u, w, c, a] of [[-0.9, 0.7, '#283830', 0.6], [0.9, 0.7, '#283830', 0.6], [-0.25, 1.4, '#fafffc', 0.9], [0.45, 0.6, '#cfe0d8', 0.5]]) {
+        for (const [u, w, c, a] of [[-0.9, 0.7, '#283830', 0.5], [0.9, 0.7, '#283830', 0.5], [-0.25, 1.4, '#fafffc', 0.55], [0.45, 0.6, '#cfe0d8', 0.3]]) {
             const pts = [];
             for (let yy = -14; yy >= -76; yy -= 2) pts.push([u * P.at(yy), yy]);
             S.ink(g, pts, { w: c === '#fafffc' ? w : w, color: c, alpha: a, taper: [0.3, 0.3] });
@@ -2975,5 +2967,66 @@ const Still = (() => {
         return sp;
     }
 
-    return { ristra, fig, quince, quinceSprite, hangString, cabbage, cabbageHead, cabbageLeaf, melonBody, melonCut, melonSlice, cardoon, rose, petalSprite, cup, cupSprite, candlestick, smoke, motto, fly, mortar, mortarSprite, pestle, rod, brassAt, garlic, garlicSprite, cloveSprite, onion, onionSprite, onionHalf, eggDish, eggSprite, knife, linen, RAMP, LT, LN, SD, TL, resOf, memo, pixels, onto, put, softly, shadowOf, castOn, castWall, contact, drop, run, cord, stone, grain, tooling, ledgeGeom, ledge, ashlar, wall, profileOf, latheOutline, onLathe, nearest, metalAt, jug, jugSprite, bucaro, bucaroSprite, plate, plateSprite, figSprite, glass, glassShadow, disc, oval, poly, line, toward, scaleRGB };
+
+    // What a used ledge carries: crumbs, peppercorns and cumin from the mortar, seeds, scraps
+    // of skin, each with its small shadow. kinds: { crumb, pepper, cumin, seed, skin } counts.
+    function scatter(g, x0, x1, y0, y1, kinds, seed = 'sc') {
+        const r = Motion.rng('scatter' + seed);
+        const at = () => [x0 + r() * (x1 - x0), y0 + r() * (y1 - y0)];
+        for (let i = 0; i < (kinds.crumb ?? 0); i++) {
+            const [x, y] = at(), rr = 1 + r() * r() * 4, pts = [];
+            for (let k = 0; k < 7; k++) pts.push([x + Math.cos((k / 7) * TAU) * rr * (0.6 + r() * 0.6), y + Math.sin((k / 7) * TAU) * rr * 0.6 * (0.6 + r() * 0.6)]);
+            poly(g, pts.map(([a, b]) => [a + rr * 0.6, b + rr * 0.4]), 'rgba(6,4,2,0.5)');
+            poly(g, pts, r() < 0.5 ? '#c8a26a' : '#e2c48e');
+            disc(g, x - rr * 0.3, y - rr * 0.25, rr * 0.3, 'rgba(255,240,206,0.7)');
+        }
+        for (let i = 0; i < (kinds.pepper ?? 0); i++) {
+            const [x, y] = at(), rr = 2 + r() * 0.8;
+            oval(g, x + 1.4, y + 1, rr * 1.1, rr * 0.6, 0, 'rgba(4,2,1,0.6)');
+            disc(g, x, y, rr, '#1e1610');
+            for (let k = 0; k < 3; k++) S.ink(g, [[x - rr * 0.7, y - rr * 0.2 + k * rr * 0.4], [x + rr * 0.6, y - rr * 0.4 + k * rr * 0.4]], { w: 0.4, color: '#4a3a2c', alpha: 0.7 });
+            disc(g, x - rr * 0.35, y - rr * 0.4, rr * 0.28, 'rgba(230,214,190,0.75)');
+        }
+        for (let i = 0; i < (kinds.cumin ?? 0); i++) {
+            const [x, y] = at(), a = r() * TAU;
+            oval(g, x + 0.8, y + 0.6, 2.6, 0.9, a, 'rgba(4,2,1,0.5)');
+            oval(g, x, y, 2.6, 0.9, a, '#8a7044');
+            S.ink(g, [[x - Math.cos(a) * 2.2, y - Math.sin(a) * 2.2], [x + Math.cos(a) * 2.2, y + Math.sin(a) * 2.2]], { w: 0.35, color: '#d8c08a', alpha: 0.7 });
+        }
+        for (let i = 0; i < (kinds.seed ?? 0); i++) {
+            const [x, y] = at(), a = r() * TAU;
+            oval(g, x + 1, y + 0.8, 3.4, 1.6, a, 'rgba(4,2,1,0.45)');
+            oval(g, x, y, 3.4, 1.6, a, '#e6d8a8');
+            oval(g, x - 0.6, y - 0.5, 1.6, 0.6, a, 'rgba(255,252,236,0.8)');
+        }
+        for (let i = 0; i < (kinds.skin ?? 0); i++) {
+            const [x, y] = at(), a = r() * TAU, l = 8 + r() * 14;
+            const pts = [[x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l * 0.4 - 2], [x + Math.cos(a + 0.4) * l * 1.2, y + Math.sin(a + 0.4) * l * 0.45 + 1], [x + Math.cos(a) * l * 0.3, y + 2.5]];
+            poly(g, pts.map(([p, q]) => [p + 2, q + 1.5]), 'rgba(4,2,1,0.4)');
+            poly(g, pts, kinds.skinColor ?? 'rgba(198,150,110,0.85)');
+            S.ink(g, pts.slice(0, 3), { w: 0.5, color: '#fff2dc', alpha: 0.6 });
+        }
+    }
+    // Water spilled on the stone: the stone darker where it is wet, its edge darkest, and the
+    // lamp's window lying in it as a bright streak.
+    function puddle(g, x, y, rx, ry, seed = 'pu') {
+        const r = Motion.rng('puddle' + seed), pts = [];
+        for (let k = 0; k < 28; k++) {
+            const a = (k / 28) * TAU, rr = 1 + 0.25 * Math.sin(a * 3 + r() * 6) + 0.12 * Math.sin(a * 7 + r() * 6);
+            pts.push([x + Math.cos(a) * rx * rr, y + Math.sin(a) * ry * rr]);
+        }
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        poly(g, pts, 'rgba(30,22,14,0.42)');
+        g.lineWidth = 1.4;
+        g.strokeStyle = 'rgba(16,10,6,0.5)';
+        g.beginPath();
+        S.trace(g, pts);
+        g.stroke();
+        softly(g, 1.5, (q) => oval(q, x - rx * 0.25, y - ry * 0.1, rx * 0.4, ry * 0.18, -0.05, 'rgba(255,246,222,0.6)'));
+        g.restore();
+        for (let k = 0; k < 5; k++) drop(g, x + rx * (1.1 + r() * 0.6) * (r() < 0.5 ? -1 : 1), y + (r() - 0.5) * ry, 1.2 + r() * 1.8, { dark: [70, 58, 44], lit: [250, 240, 220], sq: 0.6 });
+    }
+
+    return { scatter, puddle, ristra, fig, quince, quinceSprite, hangString, cabbage, cabbageHead, cabbageLeaf, melonBody, melonCut, melonSlice, cardoon, rose, petalSprite, cup, cupSprite, candlestick, smoke, motto, fly, mortar, mortarSprite, pestle, rod, brassAt, garlic, garlicSprite, cloveSprite, onion, onionSprite, onionHalf, eggDish, eggSprite, knife, linen, RAMP, LT, LN, SD, TL, resOf, memo, pixels, onto, put, softly, shadowOf, castOn, castWall, contact, drop, run, cord, stone, grain, tooling, ledgeGeom, ledge, ashlar, wall, profileOf, latheOutline, onLathe, nearest, metalAt, jug, jugSprite, bucaro, bucaroSprite, plate, plateSprite, figSprite, glass, glassShadow, disc, oval, poly, line, toward, scaleRGB };
 })();
