@@ -122,6 +122,45 @@ carnation red `#cf3a3c` / `#7a1428` / `#f39a8c` · moon silver `#d9dcea` / `#8f8
 spruce `#e2b469` / `#f1d59a` / `#a8742f` · rosewood `#4a2420` · olive leaf `#5f7a45`
 above, `#b9c4a0` below.
 
+## Second pass · «packed with details» (read this if your task says «wave 2»)
+
+The user saw the first assembly and said: «I think we are on the right track. I would like
+it to be packed with details, and very worked at the level of every pixel, like the
+reference. Do it with a great deal of detail and with quality.»
+
+Look at where we stand: `/tmp/claude-0/-home-user-drawn-by-code/4bdefda1-4465-5c66-aa86-9c20f61fd010/scratchpad/recuerdo-de-andalucia-emblema.png`
+(our emblem, a full frame) and `…/scratchpad/cmp-a.jpg` (the reference, left, and ours,
+right, both at 1:1). What the side by side shows:
+
+1. **The reference has no quiet patch.** Any 150 × 150 px square of it holds several drawn
+   things: a flower with its line and three tones, a fold, a strand of hair, a stamen.
+   Ours has large areas of regular fill. **Repetition is not detail:** fourteen identical
+   pleats, a row of identical scallops or a tiled motif read as a pattern fill. Whatever
+   repeats must vary (size, turn, tone, a missing one, wear) and carry drawing of its own.
+2. **Its paint varies inside every shape:** strokes that follow the form, a warm and a
+   cool passage, a darker accent in the turn, a broken edge. A gradient plus a contour is
+   vector with an airbrush.
+3. **It is full of things to find.** Small true details that reward a second look: a
+   stitch, a chip, a label with its lettering, a fly, a thread come loose, a maker's mark.
+
+So for this pass the bar is: **crop any 300 × 300 px of your element from the 1920 render
+and count at least eight distinct drawn features in it**, and **zoom to 4×: there is still
+drawing there** (hairlines of 1–1.5 units, stipple, hatching, grain, wear), nothing is a
+bare gradient. Work from knowledge of the real thing: before painting, write down (in a
+comment at the top of your file) the anatomy and the ten small true details of each
+object, then paint every one of them.
+
+The elements of the first pass are your models of finish now: `things/guitar.js` (the
+rosette, the bridge), `things/sky.js` (the swallow), `things/garland.js` (the carnation),
+`things/ribbon.js` (the cloth and the key), `things/charms.js` (the pomegranate, the
+cards). Read at least two of them and reuse their tricks (see «Helpers» in
+`.claude/skills/style-souvenir/SKILL.md`, which also lists the lessons their painters
+left: read its «Detail» and «Lessons» sections first).
+
+Everything else in this brief still holds: the manner, the light from the top left, the
+contract (one file, one global, static drawers, deterministic, turn the geometry and not
+the canvas), no git, look at every image you make, the report.
+
 ## Report (your final message, concise)
 
 1. Files written and the global's API (every drawer's signature and the size of the thing

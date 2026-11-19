@@ -95,3 +95,58 @@ Known and left for the user to judge (not evident faults, choices):
 - The agents' good helpers (airbrush and contour for `form` sprites, turning geometry
   instead of the canvas) still live in their own files: to move into the kit before the
   next picture is painted.
+
+### Round 2 (user)
+
+**The user:** «I think we are on the right track. I would like it to be packed with
+details, and very worked at the level of every pixel, like the reference. Do it with a
+great deal of detail and with quality.»
+
+What it means, from a 1:1 side by side of the two emblems (the reference's figures and
+flowers against our fan, swallow and guitar):
+
+- **The reference has no quiet patch.** Between its figures the ground is a carpet of small
+  painted flowers and leaves, each with its line and three tones; ours has large areas of
+  regular fill: the silk of the fans (stripes), the indigo ground (a ghost of embroidery),
+  the guitar's top. Repetition is not detail.
+- **Its paint varies inside every shape** (strokes, folds, temperature); ours is clean
+  gradient plus tooth: vector with an airbrush.
+- **It is full of things to find**; ours can be taken in at once.
+
+The plan (a second parallel pass, six agents, one file each, while the lead works on the
+paint itself and the composition):
+
+1. The fans as real painted fans: a miniature landscape on each silk leaf (Granada: the
+   Alhambra under the Sierra Nevada; Seville: the Giralda and the Torre del Oro on the
+   river), blonda lace, pierced sticks, a tassel.
+2. The night's ground as a dense painted shawl (peonies, jasmine, leaves, birds), and
+   verses ghosted in it.
+3. Papers: a poster of the 1922 Concurso de Cante Jondo, a street-name tile, a lottery
+   ticket, a stamp, a matchbox.
+4. Wares: a botijo, a bottle of fino and its glass, a peineta, a biznaga of jasmine, feria
+   lanterns.
+5. Creatures and water: bees, a butterfly, a ladybird, a lizard, a gecko, a goldfinch, a
+   snail, dew drops.
+6. The lemon tree: thorns, green lemons, blemished leaves, clusters of buds, drops, and a
+   denser composition.
+
+The lead: a hand in the paint (strokes inside every fill, edges that are not ruled), the
+guitar's wear, a wider first framing so the corners hold the collage, more time on the
+emblem.
+
+**The user, a few minutes later:** «References can also be made to the history of
+Andalusia, its civilizations too: Tartessos, Phoenicians, Greeks, Carthaginians, Romans,
+Visigoths, Byzantines, Muslims, and so on.»
+
+What it becomes: (a) a string of coins hanging from the ribbon, one per people and in
+order (Carambolo gold, the tunas of Gadir and Melqart, the Barcid elephant, the plough of
+Obulco, Hadrian's Hispania with her rabbit, Leovigild's tremissis of Seville, the cross of
+Spania, a Caliphate dirham, an Almohad dinar, a square Nasrid dirham, the excelente with
+the pomegranate, the Pillars of Hercules on a piece of eight); (b) a wheel of relics round
+the emblem, oldest first (the Carambolo pectoral, a murex and its purple, the Corinthian
+helmet of the ría de Huelva, a Baetican oil amphora, a mosaic of Italica, an eagle fibula,
+a votive crown of Torredonjimeno, a Byzantine cross, an Andalusi astrolabe, the fawn of
+Madinat al-Zahra, Nasrid cut-tile work). Arabic script on coins and instruments is
+suggested as a Kufic texture, never written: the real legends are religious formulae.
+Three more agents (coins, relics, heirlooms). To debate with the user later: the whole
+dive as a descent through time, each picture an older layer, down to Tartessos.
