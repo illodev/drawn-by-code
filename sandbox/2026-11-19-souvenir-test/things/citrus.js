@@ -455,16 +455,22 @@ const Citrus = (() => {
                                 disc(g, x + l2[0] * 0.3, y + l2[1] * 0.3, rr * 0.36);
                             }
                         } else if (what === 'scar') {
-                            // cork: a rough tan island built of dry dabs, a darker shore, cracks
+                            // cork: a rough grey-tan island with a darker shore, dry dabs over
+                            // it, fine cracks
                             const ca = Math.cos(ang), sa = Math.sin(ang);
-                            for (let i = 0; i < 60; i++) {
-                                const d = (r() - 0.5) * 30, e = (r() - 0.5) * 13 * (1 - Math.abs(d) / 20), a = ang + (r() - 0.5) * 1.2, l = 1.5 + r() * 4, edge = Math.abs(d) / 15 + Math.abs(e) / 6.5;
+                            const isl = S.curve(S.ellipse(p[0], p[1], 15, 6.5, 11, ang).map(([x, y], i) => [x + (S.hashI(i, v, 1, 9) - 0.5) * 6, y + (S.hashI(i, v, 2, 9) - 0.5) * 5]), true, 6);
+                            g.fillStyle = 'rgba(104,70,26,0.55)';
+                            poly(g, isl.map(([x, y]) => [x - l2[0] * 1.2, y - l2[1] * 1.2]));
+                            g.fillStyle = 'rgba(170,140,90,0.9)';
+                            poly(g, isl);
+                            for (let i = 0; i < 46; i++) {
+                                const d = (r() - 0.5) * 30, e = (r() - 0.5) * 13 * (1 - Math.abs(d) / 20), a = ang + (r() - 0.5) * 1.2, l = 1.5 + r() * 3.5, edge = Math.abs(d) / 15 + Math.abs(e) / 6.5;
                                 const x = p[0] + ca * d - sa * e, y = p[1] + sa * d + ca * e;
-                                S.dab(g, [[x - Math.cos(a) * l, y - Math.sin(a) * l], [x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 1.6 + r() * 2.6, color: edge > 1 ? '#6e4a1e' : r() < 0.5 ? '#a8824a' : '#c6a468', alpha: 0.45 + r() * 0.4, bristles: 3, seed: 'cork' + v + i, dry: 0.5 });
+                                S.dab(g, [[x - Math.cos(a) * l, y - Math.sin(a) * l], [x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 1.4 + r() * 2.2, color: edge > 0.9 ? '#7a5424' : r() < 0.5 ? '#b89a66' : '#d6c296', alpha: 0.4 + r() * 0.4, bristles: 3, seed: 'cork' + v + i, dry: 0.5 });
                             }
-                            for (let i = 0; i < 5; i++) {
-                                const a = ang + (r() - 0.5) * 1.6, x = p[0] + (r() - 0.5) * 16, y = p[1] + (r() - 0.5) * 6, l = 2 + r() * 4;
-                                S.ink(g, [[x - Math.cos(a) * l, y - Math.sin(a) * l], [x + 0.6, y + 0.4], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 0.7, color: '#3a2410', alpha: 0.7 });
+                            for (let i = 0; i < 4; i++) {
+                                const a = ang + (r() - 0.5) * 1.2, x = p[0] + ca * (r() - 0.5) * 18, y = p[1] + sa * (r() - 0.5) * 18, l = 2 + r() * 3.5;
+                                S.ink(g, [[x - Math.cos(a) * l, y - Math.sin(a) * l], [x + 0.5, y + 0.3], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 0.6, color: '#5a3c18', alpha: 0.6 });
                             }
                         } else if (what === 'split') {
                             // split: the peel has opened on the white pith
@@ -601,8 +607,8 @@ const Citrus = (() => {
         const key = v + (small ? 's' : 'm');
         if (geoms.has(key)) return geoms.get(key);
         const r = Motion.rng('leaf' + key);
-        const L = small ? 100 + r() * 60 : 158 + r() * 90, W = L * (small ? 0.15 + r() * 0.06 : 0.2 + r() * 0.085);
-        const p = 0.66 + r() * 0.2, q = 0.7 + r() * 0.22, tp = 0.2 + r() * 0.22, kS = [0.9 + r() * 0.2, 0.9 + r() * 0.2];
+        const L = small ? 100 + r() * 60 : 152 + r() * 88, W = L * (small ? 0.16 + r() * 0.07 : 0.225 + r() * 0.085);
+        const p = 0.66 + r() * 0.2, q = 0.62 + r() * 0.2, tp = 0.1 + r() * 0.22, kS = [0.9 + r() * 0.2, 0.9 + r() * 0.2];
         const bend = (r() - 0.5) * 0.34, sway = (r() - 0.5) * 0.07;
         const fold = small ? 0.3 + r() * 0.55 : 0.14 + r() * 0.5, twist = (r() - 0.5) * 1.1;
         const lift = (r() - 0.5) * 0.6, droop = r() * 0.6;
@@ -665,7 +671,7 @@ const Citrus = (() => {
         // a point on vein k of side sd, av of the way to the margin
         const onVein = (sd, uk, av) => at(Math.min(0.985, uk + cV * Math.pow(av, 1.35) * (1 - uk * 0.55)), av, sd);
         // what happened to it
-        const cuts = [], rims = [];
+        const cuts = [];
         const clean = r() < 0.3;
         if (!clean && r() < 0.24) {
             // a bite: two or three arcs out of the margin
@@ -690,7 +696,7 @@ const Citrus = (() => {
             yellow: !clean && r() < 0.14 ? 1 + Math.floor(r() * 2) : 0,
             curl: r() < (small ? 0.26 : 0.09) ? 0.76 + r() * 0.12 : 0,
         };
-        const G = { v, L, W, bend, fold, twist, lift, droop, waves, wavy, ph, gloss, quilt, veinA, net, strokeA, grain, cV, veins, tabs, shape, B, wAt, at, onVein, pts, up, dn, pl, cuts, rims, bl, kS };
+        const G = { v, L, W, bend, fold, twist, lift, droop, waves, wavy, ph, gloss, quilt, veinA, net, strokeA, grain, cV, veins, tabs, shape, B, wAt, at, onVein, pts, up, dn, pl, cuts, bl, kS };
         geoms.set(key, G);
         return G;
     }
@@ -706,7 +712,6 @@ const Citrus = (() => {
             const r = Motion.rng('leaf-paint' + v + kind);
             const sd = S.seedOf('leaf' + v + kind);
             const l2 = light2(lk);
-            const th = G.grain[0], ct = Math.cos(th), sn = Math.sin(th);
             const glossy = under || back ? 0 : G.gloss * (kind === 'sun' ? 1 : kind === 'old' ? 0.4 : 0.85);
             const tmp = [0, 0, 0];
             const rib = under ? -1.3 : 1.6; // the midrib is a groove above and a ridge below
@@ -1649,16 +1654,16 @@ const Citrus = (() => {
         g.translate(x, y);
         g.rotate(ang);
         g.fillStyle = '#3a2c1e';
-        oval(g, 0.6, 0.8, w * 0.27, w * 0.54);
+        oval(g, 0.6, 0.8, w * 0.37, w * 0.56);
         g.fillStyle = '#d6c292';
-        oval(g, 0, 0, w * 0.24, w * 0.5);
+        oval(g, 0, 0, w * 0.34, w * 0.52);
         g.fillStyle = 'rgba(244,234,196,0.7)';
-        oval(g, -w * 0.05, -w * 0.12, w * 0.12, w * 0.26);
+        oval(g, -w * 0.07, -w * 0.12, w * 0.17, w * 0.27);
         g.strokeStyle = 'rgba(128,100,58,0.6)';
         for (const q of [0.78, 0.55, 0.32]) {
             g.lineWidth = 0.6 + r() * 0.4;
             g.beginPath();
-            g.ellipse((r() - 0.5) * 0.6, (r() - 0.5) * 0.8, w * 0.24 * q, w * 0.5 * q, 0, 0, TAU);
+            g.ellipse((r() - 0.5) * 0.6, (r() - 0.5) * 0.8, w * 0.34 * q, w * 0.52 * q, 0, 0, TAU);
             g.stroke();
         }
         g.fillStyle = '#6a5232';

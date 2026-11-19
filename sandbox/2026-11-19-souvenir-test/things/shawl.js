@@ -17,7 +17,7 @@
 //   Shawl.plan(box, opts) → { items, cells }   the seeded layout: every motif with its place
 //       (k: its kind, bx/by/br: a circle round it), and the share of the cloth it claims.
 //       Painted share at 1920: 80 % opaque floss, no bare patch wider than about 45 units;
-//       the whole 3400 × 2000 box takes about 7 s (0.6 s of it the layout).
+//       the whole 3400 × 2000 box takes about 7 s (0.3 s of it the layout).
 //
 //   One motif alone (sizes in units at s = 1; all static, lit from the top left however turned):
 //   Shawl.peony(g, { x, y, r, seed, bloom })     a peony from above, centre (x, y), radius r (30–115)
@@ -1460,19 +1460,22 @@ const Shawl = (() => {
         segs(g, reeds, SILK.jade[6], 0.9);
         // the willow
         wire(g, [T(62, 24), T(60, 6), T(57, -12)], SILK.gold[3], 1.8);
-        const strands = [];
-        for (let k = 0; k < 7; k++) {
-            let u = 57, v = -12, h = -2.6 + k * 0.42 + rnd() * 0.2;
-            for (let i = 0; i < 9; i++) {
-                const nu = u + Math.cos(h) * 4.4, nv = v + Math.sin(h) * 4.4;
+        // its strands rise a little to either side and then hang, a leaf to the left, one to the right
+        const strands = [], blades = [];
+        for (let k = 0; k < 8; k++) {
+            let u = 57, v = -12, h = -2.75 + k * 0.34 + rnd() * 0.15;
+            const down = h < -Math.PI / 2 ? -1.5 * Math.PI : Math.PI / 2, n = 7 + ((rnd() * 5) | 0);
+            for (let i = 0; i < n; i++) {
+                const nu = u + Math.cos(h) * 3.6, nv = v + Math.sin(h) * 3.6;
                 strands.push(...T(u, v), ...T(nu, nv));
-                if (i > 1) strands.push(...T(nu, nv), ...T(nu + (k % 2 ? 1.6 : -1.6), nv + 2.2));
+                if (i > 1) blades.push(...T(nu, nv), ...T(nu + (i & 1 ? 1.7 : -1.7), nv + 2.5));
                 u = nu;
                 v = nv;
-                h += (Math.PI / 2 - h) * 0.28;
+                h += (down - h) * 0.4;
             }
         }
-        segs(g, strands, SILK.jade[6], 0.75);
+        segs(g, strands, SILK.jade[5], 0.8);
+        segs(g, blades, SILK.jade[7], 0.7);
         // the bridge: stones round the arch
         const deck = [], open = [];
         for (let i = 0; i <= 24; i++) {
@@ -1515,7 +1518,7 @@ const Shawl = (() => {
 
     // ------------------------------------------------------------------ the layout
     // The finds, in the order they are dealt to the bays of the cloth.
-    const FINDS = ['peafowl', 'songbird', 'pavilion', 'songbird', 'bridge', 'dragonfly', 'songbird', 'peafowl', 'songbird', 'pavilion', 'bridge', 'songbird', 'dragonfly'];
+    const FINDS = ['peafowl', 'songbird', 'pavilion', 'songbird', 'bridge', 'dragonfly', 'songbird', 'butterfly', 'songbird', 'pavilion', 'bridge', 'songbird', 'dragonfly'];
     // what each of them takes of the cloth: discs [x, y, r]
     const FOOT = {
         songbird: (o) => {
@@ -1667,6 +1670,7 @@ const Shawl = (() => {
                 if (k === 'peafowl') Object.assign(a, { rot: (a.flip ? 1 : -1) * (rnd() * 1.5 - 0.3), pose: rnd() < 0.4 ? 1 : 0, sag: 0.25 + rnd() * 0.5 });
                 if (k === 'songbird') Object.assign(a, { rot: (rnd() - 0.5) * 0.5, s: 1.2 + rnd() * 0.45 });
                 if (k === 'dragonfly') Object.assign(a, { rot: rnd() * TAU, r: 24 + rnd() * 9 });
+                if (k === 'butterfly') Object.assign(a, { rot: rnd() * TAU, r: 22 + rnd() * 8 });
                 if (!fits(a)) continue;
                 place(a);
                 // long-tailed birds go in pairs: its mate faces it, a body's length off, looking back

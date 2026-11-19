@@ -61,7 +61,7 @@ Motion.scene({
                 box(0, 0, 900, 900, () => put('rosario', { x: 420, y: 1010, s: 4 }));
                 box(900, 0, 700, 900, () => put('rosario', { x: 1440, y: 20, s: 4 }));
             },
-            () => put('lampara', { x: 800, y: 360, s: 4 }),
+            () => put('lampara', { x: 800, y: 450, s: 4 }),
             () => put('jamsa', { x: 800, y: 420, s: 4 }),
             () => put('mihrab', { x: 800, y: 600, s: 4 }),
             () => {

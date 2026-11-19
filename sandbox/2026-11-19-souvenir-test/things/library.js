@@ -1124,8 +1124,9 @@ const Library = (() => {
     SPEC.zambrano = slim(MAT.sage, { deep: '#1f3a2a', base: '#5f8a52', light: '#a8c88a' }, (c) => {
         const { L, T } = c;
         print(c, '#24402c', 0.1, (h) => {
-            h.text('M. ZAMBRANO', { a: 31, b: T / 2, cap: 5, font: LORA, maxW: 46, track: 0.1 });
-            h.text('CLAROS DEL BOSQUE', { a: 97, b: T / 2, cap: 5.6, font: LORA, maxW: 70, track: 0.08 });
+            h.text('CLAROS DEL BOSQUE', { a: 39.5, b: T / 2, cap: 5.8, font: LORA, maxW: 66, track: 0.08 });
+            h.text('M. ZAMBRANO', { a: 110, b: T / 2, cap: 5, font: LORA, maxW: 40, track: 0.1 });
+            fleuron(h, 128.4, T / 2, 1.9, 6, 0);
             for (const a of [3.4, L - 3.4]) h.line([[a, 1.5], [a, T - 1.5]], 0.5);
         });
     });
@@ -1197,6 +1198,11 @@ const Library = (() => {
             });
             scuff(c, 1.6, 5, '#9fb2d6');
             scuff(c, T - 1.4, 5, '#7088b8');
+        },
+        after(g, B) {
+            // its silk register, come out at the head and fallen down the back
+            const p0 = B.endL(26, B.T * 0.56), dn = B.W.pv([0, -1, 0]), rt = B.W.pv([1, 0, 0]), at = (x, y) => [p0[0] + rt[0] * x + dn[0] * y, p0[1] + rt[1] * x + dn[1] * y];
+            register(g, [at(0, 0), at(-1.5, 4), at(0.5, 9.5), at(2.5, 17), at(1, 27), at(3, 36), at(1.6, 43)], 4.6, { deep: '#5a0e22', base: '#b3262c', light: '#f08a7c' }, B.seed);
         },
     };
     // plain paper wrappers, 1903: the title in sepia, a modernista flower
@@ -1426,7 +1432,7 @@ const Library = (() => {
         S.piece(g, pts, {
             fill: col(tone), line: 1.9, heavy: 0.8, cast,
             detail: (q) => {
-                const cc = { q, P: C, L, T: Wd, M, seed: seed + 'cov', hi: Wd * 0.3 }, mid = L / 2, sy = 44, R = 15.5;
+                const cc = { q, P: C, L, T: Wd, M, seed: seed + 'cov', hi: Wd * 0.3 }, mid = L / 2, sy = 42.5, R = 13.6;
                 GRAIN.morocco(M)(q, C, L, Wd, seed + 'tg', 0.8);
                 blind(cc, (h) => {
                     h.box(2.2, 2.2, L - 2.2, Wd - 2.2, 0.7);
@@ -1459,9 +1465,9 @@ const Library = (() => {
                     }
                 });
                 gilt(cc, 0.1, (h) => {
-                    h.text('IBN HAZM', { a: mid, b: 18.4, cap: 8.6, maxW: L - 46, track: 0.14 });
-                    h.text('EL COLLAR', { a: mid, b: 68.4, cap: 6.2, maxW: L - 40, track: 0.14 });
-                    h.text('DE LA PALOMA', { a: mid, b: 77, cap: 6.2, maxW: L - 40, track: 0.12 });
+                    h.text('IBN HAZM', { a: mid, b: 18.2, cap: 8.4, maxW: L - 50, track: 0.14, sx: 0.86 });
+                    h.text('EL COLLAR', { a: mid, b: 65.6, cap: 6.2, maxW: L - 44, track: 0.14, sx: 0.86 });
+                    h.text('DE LA PALOMA', { a: mid, b: 74.4, cap: 6.2, maxW: L - 44, track: 0.12, sx: 0.86 });
                 });
                 gloss(cc, 0.22, 8, L - 8);
                 scuff(cc, 1.4, 4, '#9fcfae');
@@ -1529,15 +1535,15 @@ const Library = (() => {
                 bk[name] = place(W, flat(x0, top, z, yaw, L), { ...SPEC[name], name, seed: seed + '/' + name, L, T, D });
             }
             // the three that stand: where their lower left edge is, how they lean and turn
-            const stand = [['irving', 59, 0, 7, 0, 250, 36, 150], ['machado', 95.6, 4, 7, 0, 206, 15, 132], ['lorca', 115, 2, 8.6, 32, 190, 13, 108]];
+            const stand = [['irving', 59, 0, 7, 0, 250, 36, 150], ['machado', 95.6, 4, 7, 0, 206, 15, 132], ['lorca', 115, 2, 8.6, 30, 190, 13, 108]];
             for (const [name, xb, z, lean, yaw, L, T, D] of stand) bk[name] = place(W, upright(xb, z, lean, yaw), { ...SPEC[name], name, seed: seed + '/' + name, L, T, D });
             const off = (p, dx, dy) => add2(p, W.pv([dx, -dy, 0]));
             // what is kept between the leaves
             bk.seneca.after = (g2, B) => {
                 const p0 = B.end0(30, B.T * 0.48), t1 = B.end0(B.D - 1.5, 1.4), t2 = B.end0(B.D - 1.5, B.T - 1.4);
-                register(g2, [[0, 0], [-4, 2], [-7.5, 9], [-7, 22], [-9.5, 36], [-8, 50], [-11, 62], [-9.5, 73]].map(([x, y]) => off(p0, x, y)), 5, { deep: '#0b3a2f', base: '#1f7350', light: '#6fc79a' }, B.seed);
-                thong(g2, [[0, 0], [-3, 3], [-6.5, 12], [-6, 24], [-8.4, 33]].map(([x, y]) => off(t1, x, y)), 1.9, B.seed);
-                thong(g2, [[0, 0], [-4, 2], [-8, 7], [-9, 16], [-7.5, 22]].map(([x, y]) => off(t2, x, y)), 1.9, B.seed);
+                register(g2, [[0, 0], [-4, 2], [-7.5, 9], [-7, 22], [-9.5, 36], [-8, 50], [-11, 62], [-9.5, 73]].map(([x, y]) => off(p0, x, y)), 6.2, { deep: '#0b3a2f', base: '#26865c', light: '#8fe0b4' }, B.seed);
+                thong(g2, [[0, 0], [-3, 3], [-6.5, 12], [-6, 24], [-8.4, 33]].map(([x, y]) => off(t1, x, y)), 2.5, B.seed);
+                thong(g2, [[0, 0], [-4, 2], [-8, 7], [-9, 16], [-7.5, 22]].map(([x, y]) => off(t2, x, y)), 2.5, B.seed);
             };
             bk.arabi.after = (g2, B) => {
                 // a slip of paper marking a place: it droops where it leaves the book
@@ -1630,13 +1636,13 @@ const Library = (() => {
     // ------------------------------------------------------------------ the palette
     // What a painter in Seville set out about 1620, from the thumb outwards.
     const PIG = [
-        { name: 'lead white', at: [55, -60], R: 12.4, tail: 15, flat: 0.5, peak: 0.7, scoop: 1, long: 1.12, ramp: [[0, '#5f5a78'], [0.32, '#a29caa'], [0.56, '#dcd5c6'], [0.8, '#f4eddc'], [1, '#fffbf0']], gloss: 0.5 },
-        { name: 'yellow ochre', at: [27, -68], R: 9.6, tail: 11, flat: 0.55, peak: 1, long: 1, ramp: [[0, '#4a2a12'], [0.35, '#8a5a1c'], [0.6, '#c8922e'], [0.85, '#e6b955'], [1, '#f6da8c']], gloss: 0.6 },
-        { name: 'vermilion', at: [-2, -70], R: 9.8, tail: 14, flat: 0.62, peak: 1.5, long: 0.94, ramp: [[0, '#4a0c16'], [0.35, '#8f1f1e'], [0.6, '#cf3a26'], [0.85, '#ec6a3c'], [1, '#ffab7a']], gloss: 0.75 },
+        { name: 'lead white', used: 1, at: [55, -60], R: 12.4, tail: 15, flat: 0.5, peak: 0.7, scoop: 1, long: 1.12, ramp: [[0, '#5f5a78'], [0.32, '#a29caa'], [0.56, '#dcd5c6'], [0.8, '#f4eddc'], [1, '#fffbf0']], gloss: 0.5 },
+        { name: 'yellow ochre', used: 1, at: [27, -68], R: 9.6, tail: 11, flat: 0.55, peak: 1, long: 1, ramp: [[0, '#4a2a12'], [0.35, '#8a5a1c'], [0.6, '#c8922e'], [0.85, '#e6b955'], [1, '#f6da8c']], gloss: 0.6 },
+        { name: 'vermilion', used: 1, at: [-2, -70], R: 9.8, tail: 14, flat: 0.62, peak: 1.5, long: 0.94, ramp: [[0, '#4a0c16'], [0.35, '#8f1f1e'], [0.6, '#cf3a26'], [0.85, '#ec6a3c'], [1, '#ffab7a']], gloss: 0.75 },
         { name: 'red lake', at: [-30, -67], R: 9.6, tail: 7, flat: 0.3, peak: 0.3, long: 1.2, ramp: [[0, '#1f0612'], [0.4, '#4d0c22'], [0.65, '#7e1530'], [0.88, '#a8324a'], [1, '#e08a94']], gloss: 1 },
-        { name: 'burnt earth', at: [-58, -58], R: 9.4, tail: 12, flat: 0.52, peak: 1.1, long: 1.3, ramp: [[0, '#2a0e0c'], [0.35, '#5c2414'], [0.6, '#8f4322'], [0.85, '#b86a3a'], [1, '#e0a070']], gloss: 0.6 },
-        { name: 'umber', at: [-82, -43], R: 8.6, tail: 8, flat: 0.5, peak: 0.8, long: 0.9, ramp: [[0, '#170d0c'], [0.4, '#38241a'], [0.65, '#574028'], [0.88, '#7d6444'], [1, '#b59c74']], gloss: 0.6 },
-        { name: 'bone black', at: [-99, -21], R: 8.8, tail: 10, flat: 0.46, peak: 1.2, long: 1.1, ramp: [[0, '#07060d'], [0.4, '#15131d'], [0.65, '#26242f'], [0.88, '#4a4a5e'], [1, '#a9aecb']], gloss: 0.95, glint: '#dfe6ff' },
+        { name: 'burnt earth', used: 1, at: [-58, -58], R: 9.4, tail: 12, flat: 0.52, peak: 1.1, long: 1.3, ramp: [[0, '#2a0e0c'], [0.35, '#5c2414'], [0.6, '#8f4322'], [0.85, '#b86a3a'], [1, '#e0a070']], gloss: 0.6 },
+        { name: 'umber', used: 1, at: [-82, -43], R: 8.6, tail: 8, flat: 0.5, peak: 0.8, long: 0.9, ramp: [[0, '#170d0c'], [0.4, '#38241a'], [0.65, '#574028'], [0.88, '#7d6444'], [1, '#b59c74']], gloss: 0.6 },
+        { name: 'bone black', used: 1, at: [-99, -21], R: 8.8, tail: 10, flat: 0.46, peak: 1.2, long: 1.1, ramp: [[0, '#07060d'], [0.4, '#15131d'], [0.65, '#26242f'], [0.88, '#4a4a5e'], [1, '#a9aecb']], gloss: 0.95, glint: '#dfe6ff' },
         { name: 'azurite', at: [-105, 4], R: 5.8, tail: 5, flat: 0.5, peak: 0.6, long: 1, ramp: [[0, '#0c1a3a'], [0.4, '#1c3c70'], [0.65, '#2f65a0'], [0.88, '#5c98c4'], [1, '#b4dcea']], gloss: 0.45 },
     ];
     const MIXC = [-22, 4];   // where the mixing is done
@@ -1651,7 +1657,6 @@ const Library = (() => {
         { pts: [[-67, -3], [-62, 2], [-57, 7]], w: 9, col: [205, 197, 182] },
         { pts: [[-14, 23], [0, 25], [10, 31]], w: 9, col: [150, 150, 126] },
     ];
-    const RAG = [[-131, 53], [-119, 37], [-101, 30], [-84, 38], [-66, 33], [-51, 44], [-45, 60], [-53, 74], [-41, 92], [-49, 106], [-66, 100], [-82, 109], [-100, 101], [-114, 110], [-129, 96], [-124, 78], [-134, 66]];
     const distSeg = (x, y, a, b) => {
         const dx = b[0] - a[0], dy = b[1] - a[1], u = clamp(((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1));
         return Math.hypot(x - a[0] - dx * u, y - a[1] - dy * u);
@@ -1668,7 +1673,8 @@ const Library = (() => {
             pts.push(rot2([Math.cos(t) * rr * pig.long, (Math.sin(t) * rr) / pig.long], ea));
         }
         const out = S.curve(pts, true, 3), px = Math.cos(pull), py = Math.sin(pull);
-        const pk = [(r() - 0.5) * R * 0.5 - px * R * 0.2, (r() - 0.5) * R * 0.5 - py * R * 0.2], bite = [px * R * 0.72, py * R * 0.72], bw = pig.scoop ? 0.34 : 0.14;
+        const pk = [(r() - 0.5) * R * 0.5 - px * R * 0.25, (r() - 0.5) * R * 0.5 - py * R * 0.25], bite = [px * R * 0.72, py * R * 0.72], bw = pig.scoop ? 0.34 : pig.used ? 0.14 : 0.02;
+        const c1 = [pk[0] + Math.cos(ea + 1) * R * 0.3, pk[1] + Math.sin(ea + 1) * R * 0.3], c2 = [c1[0] + Math.cos(ea + 2.2) * R * 0.24, c1[1] + Math.sin(ea + 2.2) * R * 0.24];
         const sp = S.form({
             box: even(S.bbox(out, 4)), res, light: S.lightFor(rot), ramp: pig.ramp, soft: 1, relief: pig.flat, seed: sd,
             mask: (g) => {
@@ -1678,7 +1684,10 @@ const Library = (() => {
             },
             height: (x, y, m) => {
                 const d = Math.hypot(x - pk[0], y - pk[1]), db = Math.hypot(x - bite[0], y - bite[1]), across = -x * py + y * px, ang = Math.atan2(y - pk[1], x - pk[0]);
-                const peak = pig.peak * R * 0.36 * Math.exp(-(d * d) / (R * R * 0.045)), turn = 0.55 * Math.sin(ang * 2 + d * 0.85) * Math.exp(-(d * d) / (R * R * 0.5)) * m;
+                // the lick the knife left as it lifted: a crest that curls, highest where it began
+                const sg = R * R * 0.011, d1 = distSeg(x, y, pk, c1), d2 = distSeg(x, y, c1, c2);
+                const peak = R * 0.2 * Math.exp(-(d * d) / (R * R * 0.16)) + pig.peak * R * 0.22 * Math.max(Math.exp(-(d1 * d1) / sg) * (1 - 0.35 * clamp(Math.hypot(x - pk[0], y - pk[1]) / (R * 0.3))), 0.6 * Math.exp(-(d2 * d2) / sg));
+                const turn = 0.5 * Math.sin(ang * 2 + d * 0.85) * Math.exp(-(d * d) / (R * R * 0.5)) * m;
                 return peak + turn - Math.exp(-(db * db) / (R * R * bw)) * (R * 0.32 + 0.45 * Math.sin(across * 2.5));
             },
             stroke: { amp: 0.05, freq: 0.16, tone: 6 }, mottle: { amp: pig.name === 'azurite' ? 0.12 : 0.04, freq: pig.name === 'azurite' ? 1.2 : 0.3 },
@@ -1747,65 +1756,14 @@ const Library = (() => {
         airIn(sp, res, { color: '#fff6e6', alpha: 0.4, w: 1.2, dir: [-sh[0], -sh[1]] });
         return sp;
     }
-    // The rag: old linen wrung and dropped, lit as the crumpled thing it is (sharp ridges
-    // where it was twisted, soft bellies between), its weave, and the colours wiped on it.
-    function ragSprite(seed, rot, res) {
-        const sd = S.seedOf(seed + 'rag'), out = S.curve(RAG, true, 5), r = Motion.rng(sd);
-        const stains = [[-109, 54, 11, [207, 58, 38]], [-92, 76, 12, [200, 146, 46]], [-70, 50, 9, [87, 64, 40]], [-62, 86, 10, [126, 21, 48]], [-113, 93, 8, [47, 101, 160]], [-84, 97, 9, [228, 220, 204]], [-74, 69, 7, [38, 36, 47]], [-121, 71, 8, [227, 176, 146]], [-56, 62, 6, [207, 58, 38]]];
-        const sp = S.form({
-            box: even(S.bbox(out, 5)), res, light: S.lightFor(rot), inflate: 'bevel', R: 5, profile: 'dome', relief: 0.9, seed: sd, soft: 1,
-            ramp: [[0, '#39335a'], [0.28, '#7a738c'], [0.52, '#bdb4a2'], [0.78, '#e6decb'], [1, '#fcf7e8']],
-            mask: (g) => {
-                g.beginPath();
-                S.trace(g, out);
-                g.fill();
-            },
-            height: (x, y) => {
-                const a = 1 - Math.abs(S.noise2(x * 0.05 + 3, y * 0.042, sd)), b = 1 - Math.abs(S.noise2(x * 0.105, y * 0.11 + 7, sd + 1));
-                return 8 * a * a * a + 2.6 * b * b + 4 * S.noise2(x * 0.022, y * 0.022, sd + 2);
-            },
-            marks: (g) => {
-                // the weave, thread by thread, on the bias
-                g.lineWidth = 0.3;
-                for (let k = -260; k < 260; k += 1.25) {
-                    g.strokeStyle = k % 2.5 ? '#6a6a6a' : '#9c9c9c';
-                    g.beginPath();
-                    g.moveTo(-200 + k, -60);
-                    g.lineTo(-40 + k, 130);
-                    g.stroke();
-                    g.strokeStyle = '#939393';
-                    g.beginPath();
-                    g.moveTo(-200 + k, 130);
-                    g.lineTo(-10 + k, -60);
-                    g.stroke();
-                }
-            },
-            markAmp: 0.3,
-            tint: (x, y, tone, rgb) => {
-                for (let i = 0; i < stains.length; i++) {
-                    const st = stains[i], d = Math.hypot(x - st[0], (y - st[1]) * 1.25) + 3.5 * S.noise2(x * 0.16, y * 0.16, sd + i) + 1.5 * S.noise2(x * 0.7, y * 0.3, sd + i + 30);
-                    if (d > st[2]) continue;
-                    const k = smooth(st[2], st[2] * 0.45, d) * (0.72 + 0.28 * S.noise2(x * 0.9, y * 0.25, sd + i + 60)), f = 0.42 + 0.85 * tone, c = st[3];
-                    rgb[0] += (c[0] * f - rgb[0]) * k;
-                    rgb[1] += (c[1] * f - rgb[1]) * k;
-                    rgb[2] += (c[2] * f - rgb[2]) * k;
-                }
-            },
-        });
-        const sh = rot2(SD, -rot);
-        airIn(sp, res, { color: '#4a4468', alpha: 0.6, w: 9, dir: sh });
-        airIn(sp, res, { color: '#2a2444', alpha: 0.5, w: 3, dir: sh });
-        airIn(sp, res, { color: '#fffaf0', alpha: 0.55, w: 5, dir: [-sh[0], -sh[1]] });
-        return sp;
-    }
 
     function palette(g, o = {}) {
         sheet(g, 'palette', [142, 112], o, (q, rot, seed, res) => {
-            const F = (p) => rot2(p, rot), Fs = (pts) => pts.map(F), r = Motion.rng('palette/' + seed);
+            const F = (p) => rot2([p[0] - 1, p[1] - 13], rot), Fs = (pts) => pts.map(F), r = Motion.rng('palette/' + seed);
             const WOOD = { deep: '#190b0a', base: '#4c2b1a', light: '#94643a' };
             const OUT = S.curve([[-122, 2], [-114, -38], [-84, -68], [-36, -84], [22, -86], [72, -74], [108, -46], [122, -6], [118, 28], [104, 50], [84, 64], [62, 68], [46, 62], [37, 52], [27, 51], [16, 60], [2, 74], [-30, 83], [-72, 77], [-104, 54], [-118, 28]], true, 8);
             const HC = [66, 35], HOLE = S.ellipse(HC[0], HC[1], 17.5, 12, 30, -0.62);
-            const Pw = plane(F([0, 0]), rot2([1, 0], rot), rot2([0, 1], rot));   // the board's own axes, for lettering and textures
+            const Pw = plane(F([0, 0]), rot2([1, 0], rot), rot2([0, 1], rot)), LIN = { deep: '#57507a', base: '#cfc6b2', light: '#f8f2e2' };   // the board's own axes, for lettering and textures
 
             // ---- the tools through the thumb hole: [where each passes the hole, its angle, …]
             const tool = (pass, deg) => {
@@ -1892,6 +1850,63 @@ const Library = (() => {
                 (c, over) => brush(c, tool([-2, -0.5], ANG[2]), { wood: '#3c1f18', paint: '#cf3a26', len: 92 }, over),
                 (c, over) => brush(c, tool([-6.5, -2], ANG[3]), { wood: '#b08a4e', paint: '#574028', len: 97 }, over),
             ];
+            // 0 · the rag, held under the board's near edge: a square of old linen crumpled into
+            // facets that meet at the place where it is pinned, stiff with what was wiped on it
+            const RAGO = [[-98, 22], [-122, 26], [-139, 36], [-143, 54], [-133, 66], [-127, 80], [-133, 97], [-118, 103], [-104, 101], [-86, 113], [-68, 104], [-52, 98], [-35, 105], [-29, 88], [-40, 70], [-56, 52], [-74, 36]], hub = [-97, 67];
+            const ragPts = Fs(S.curve(RAGO, true, 3));
+            S.piece(q, ragPts, {
+                fill: LIN.base, line: 1.7, heavy: 0.8,
+                detail: (cc) => {
+                    const rr = Motion.rng(seed + 'rag'), n = RAGO.length, hp = F(hub);
+                    // each facet slopes from one crease to the next: light at one, shade at the other
+                    for (let i = 0; i < n; i++) {
+                        const a = RAGO[i], b = RAGO[(i + 1) % n], fa = F(a), fb = F(b), mid = F([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]);
+                        const lit = clamp(0.5 + 0.5 * (((mid[0] - hp[0]) * TOL[0] + (mid[1] - hp[1]) * TOL[1]) / (Math.hypot(mid[0] - hp[0], mid[1] - hp[1]) || 1))), up = i % 2 === 0;
+                        const gr = cc.createLinearGradient(...(up ? fa : fb), ...(up ? fb : fa));
+                        gr.addColorStop(0, mix(LIN.base, LIN.light, 0.3 + 0.6 * lit));
+                        gr.addColorStop(0.55, mix(LIN.base, LIN.deep, 0.1 + 0.2 * (1 - lit)));
+                        gr.addColorStop(1, mix(LIN.base, LIN.deep, 0.3 + 0.36 * (1 - lit)));
+                        fillPts(cc, [hp, fa, fb], gr);
+                    }
+                    // the weave, thread by thread, on the bias
+                    const bb = S.bbox(ragPts), Pr = plane([bb.x + bb.w / 2, bb.y + bb.h / 2], rot2([1, 0], rot + 0.6), rot2([0, 1], rot + 0.6)), m = (bb.w + bb.h) * 0.75;
+                    for (let a = -m; a < m; a += 1.3) {
+                        strokePts(cc, [Pr(a, -m), Pr(a + (rr() - 0.5), m)], 0.24, rgba(LIN.deep, 0.28));
+                        strokePts(cc, [Pr(-m, a), Pr(m, a + (rr() - 0.5))], 0.24, rgba('#fffaf0', 0.26));
+                    }
+                    // what was wiped on it: a stroke of the thumb through each colour, and its stain round it
+                    for (const [x, y, col, sw, a] of [[-127, 46, '#cf3a26', 7, 0.5], [-117, 85, '#c8922e', 6.4, 1.2], [-94, 95, '#7e1530', 6, 0.3], [-66, 93, '#26242f', 5.4, 2.5], [-131, 68, '#e3b092', 5.6, 1.9], [-103, 82, '#dcd5c6', 5, 0.9], [-47, 92, '#2f65a0', 4.2, 1.4], [-113, 40, '#9c958c', 5.4, 2.8], [-80, 100, '#57402a', 4.6, 0.2], [-120, 62, '#8f4322', 4.6, 2.2]]) {
+                        fillPts(cc, S.ellipse(...F([x, y]), sw * 0.8, sw * 0.55, 14, a + rot), rgba(col, 0.38));
+                        brushed(cc, Fs([[x - Math.cos(a) * sw, y - Math.sin(a) * sw], [x + 0.6, y + 0.8], [x + Math.cos(a) * sw, y + Math.sin(a) * sw]]), { w: sw * 0.95, color: col, alpha: 0.95, bristles: 9, seed: seed + col + x, dry: 0.5 });
+                    }
+                    // the creases: every one a dark line with a light beside it, dying out before the hem
+                    for (let i = 0; i < n; i++) {
+                        const v = RAGO[i], u = 0.55 + rr() * 0.4, u0 = i % 3 === 1 ? 0.3 + rr() * 0.2 : 0, at = (k) => [hub[0] + (v[0] - hub[0]) * k, hub[1] + (v[1] - hub[1]) * k];
+                        if (i % 5 === 3) continue;
+                        const e = at(u), b = at(u0), mid = [(b[0] + e[0]) / 2 + (rr() - 0.5) * 7, (b[1] + e[1]) / 2 + (rr() - 0.5) * 7];
+                        const ln = Fs(S.curve([b, mid, e], false, 8));
+                        S.ink(cc, ln, { w: 0.8 + (i % 3) * 0.35, color: '#3c3654', alpha: 0.7, taper: [u0 ? 1 : 0, 1] });
+                        S.ink(cc, ln.map(([x, y]) => [x + TOL[0] * 1.1, y + TOL[1] * 1.1]), { w: 0.7, color: '#fffdf4', alpha: 0.45 + rr() * 0.35, taper: [u0 ? 1 : 0, 1] });
+                    }
+                    // and the small cross folds between them
+                    for (let i = 0; i < 9; i++) {
+                        const k = Math.floor(rr() * n), a = RAGO[k], b = RAGO[(k + 1) % n], ua = 0.4 + rr() * 0.45, ub = 0.4 + rr() * 0.45;
+                        const p0 = [hub[0] + (a[0] - hub[0]) * ua, hub[1] + (a[1] - hub[1]) * ua], p1 = [hub[0] + (b[0] - hub[0]) * ub, hub[1] + (b[1] - hub[1]) * ub];
+                        const ln = Fs(S.curve([p0, [(p0[0] + p1[0]) / 2 + (rr() - 0.5) * 4, (p0[1] + p1[1]) / 2 + (rr() - 0.5) * 4], p1], false, 6));
+                        S.ink(cc, ln, { w: 0.7, color: '#4a4468', alpha: 0.6 });
+                        S.ink(cc, ln.map(([x, y]) => [x + TOL[0], y + TOL[1]]), { w: 0.5, color: '#fffdf4', alpha: 0.5 });
+                    }
+                    S.spray(cc, ragPts, { color: LIN.deep, alpha: 0.7, w: 9 });
+                    S.spray(cc, ragPts, { color: '#2a2444', alpha: 0.5, w: 3 });
+                    S.spray(cc, ragPts, { color: LIN.light, alpha: 0.7, w: 5, dir: TOL });
+                },
+            });
+            // threads working loose from the hem
+            for (let i = 0; i < 22; i++) {
+                const k = 5 + Math.floor(r() * 8), a = RAGO[k], b = RAGO[k + 1], u = r(), x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u, l = 3 + r() * 5.5, t = Math.atan2(y - hub[1], x - hub[0]) + (r() - 0.5) * 1.4;
+                S.ink(q, Fs(S.curve([[x, y], [x + Math.cos(t) * l * 0.5 + (r() - 0.5) * 2.4, y + Math.sin(t) * l * 0.5 + (r() - 0.5) * 2.4], [x + Math.cos(t) * l, y + Math.sin(t) * l]], false, 4)), { w: 0.55, color: i % 3 ? '#d8cfbc' : '#8f88a0', taper: [0, 1] });
+            }
+
             // 1 · the tools: the halves under the board
             TOOLS.forEach((t) => t(q, false));
 
@@ -1988,10 +2003,14 @@ const Library = (() => {
             // thin scrapings round the mixtures, the wood showing through, and where the brush dragged each colour inwards
             MIXES.forEach((m, i) => brushed(q, Fs(m.pts.map(([x, y]) => [x + 5 - i, y + 5.5])), { w: m.w * 1.2, color: `rgb(${m.col.join(',')})`, alpha: 0.5, bristles: 12, seed: seed + 'scr' + i, dry: 0.8 }));
             PIG.forEach((pg, i) => {
-                const a = Math.atan2(MIXC[1] - pg.at[1], MIXC[0] - pg.at[0]), d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], k = (i % 2 ? 1 : -1) * 3;
-                const ln = [[pg.at[0] + d[0] * pg.R * 0.5, pg.at[1] + d[1] * pg.R * 0.5], [pg.at[0] + d[0] * (pg.R + pg.tail * 0.6) + n[0] * k, pg.at[1] + d[1] * (pg.R + pg.tail * 0.6) + n[1] * k], [pg.at[0] + d[0] * (pg.R + pg.tail * 1.4), pg.at[1] + d[1] * (pg.R + pg.tail * 1.4)]];
-                brushed(q, Fs(ln), { w: pg.R * 0.95, color: pg.ramp[2][1], alpha: 0.85, bristles: 11, seed: seed + 'pull' + i, dry: 0.75 });
-                brushed(q, Fs(ln.map(([x, y]) => [x - 0.8, y - 0.8])), { w: pg.R * 0.5, color: pg.ramp[3][1], alpha: 0.6, bristles: 5, seed: seed + 'pull2' + i, dry: 0.8 });
+                if (!pg.used) return;
+                const a = Math.atan2(MIXC[1] - pg.at[1], MIXC[0] - pg.at[0]), d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], k = (i % 2 ? 1 : -1) * (3 + pg.tail * 0.3), far = pg.R + pg.tail * 2;
+                const ln = [[pg.at[0] + d[0] * pg.R * 0.5, pg.at[1] + d[1] * pg.R * 0.5], [pg.at[0] + d[0] * far * 0.6 + n[0] * k, pg.at[1] + d[1] * far * 0.6 + n[1] * k], [pg.at[0] + d[0] * far + n[0] * k * 0.4, pg.at[1] + d[1] * far + n[1] * k * 0.4]];
+                const body = S.curve(ln, false, 8), [bl, br] = strip(body, (u) => pg.R * 0.95 * (1 - u * 0.75));
+                fillPts(q, Fs([...bl, ...br.reverse()]), rgba(pg.ramp[1][1], 0.55));
+                brushed(q, Fs(ln), { w: pg.R * 1.15, color: pg.ramp[2][1], alpha: 0.9, bristles: 22, seed: seed + 'pull' + i, dry: 0.6, taper: 0.75 });
+                brushed(q, Fs(ln.map(([x, y]) => [x - 0.8, y - 0.8])), { w: pg.R * 0.6, color: pg.ramp[3][1], alpha: 0.7, bristles: 6, seed: seed + 'pull2' + i, dry: 0.8 });
+                brushed(q, Fs(ln.map(([x, y]) => [x + 1, y + 1.2])), { w: pg.R * 0.5, color: pg.ramp[1][1], alpha: 0.6, bristles: 5, seed: seed + 'pull3' + i, dry: 0.8 });
             });
             const paintCast = { blur: 1.6, dx: 1, dy: 1.4, color: 'rgba(10,4,6,0.6)' };
             laid(q, mixSprite(seed, rot, res), F([0, 0]), rot, { lw: 0.55, heavy: 0.6, cast: paintCast, ink: '#3a1c1c' });
@@ -2010,13 +2029,6 @@ const Library = (() => {
                 const p = F([-20 + r() * 110, -40 + r() * 100]), R = 0.8 + r() * 1.6;
                 disc(q, p, R, rgba('#120808', 0.5));
                 disc(q, [p[0] + TOL[0] * R * 0.3, p[1] + TOL[1] * R * 0.3], R * 0.3, rgba('#f0c090', 0.6));
-            }
-
-            // 5 · the rag, dropped over the edge, and the threads working loose from its hem
-            laid(q, ragSprite(seed, rot, res), F([0, 0]), rot, { lw: 1.5, heavy: 0.8, cast: { blur: 3.4, dx: 2, dy: 2.8, color: 'rgba(10,6,20,0.55)' } });
-            for (let i = 0; i < 18; i++) {
-                const u = i / 17, x = -122 + u * 76 + (r() - 0.5) * 3, y = 100 + 6 * Math.sin(u * 9.4 + 1) + r() * 3, l = 3 + r() * 5, a = 1.3 + (r() - 0.5) * 1.3;
-                S.ink(q, Fs(S.curve([[x, y], [x + Math.cos(a) * l * 0.5 + (r() - 0.5) * 2, y + Math.sin(a) * l * 0.5], [x + Math.cos(a) * l, y + Math.sin(a) * l]], false, 4)), { w: 0.5, color: i % 3 ? '#d8cfbc' : '#8f88a0', taper: [0, 1] });
             }
 
             // 6 · the tools again, from the hole upwards: over the board, shading it
@@ -2051,14 +2063,14 @@ const Library = (() => {
             S.piece(q, pts, {
                 fill: { from: P(0, 0), to: P(W, H), stops: [[0, PAP.light], [0.5, mix(PAP.base, PAP.light, 0.45)], [1, PAP.base]] }, line: 2, heavy: 0.8,
                 detail: (c) => {
-                    GRAIN.paper(PAP, 1.4)(c, P, W, H, seed + 'pap', 1);
+                    GRAIN.paper(PAP, 0.45)(c, P, W, H, seed + 'pap', 1);
                     // laid paper: the wires of the mould, close together, and its chains
                     for (let a = 1; a < W; a += 2.1) strokePts(c, [P(a, 0), P(a + 0.4, H)], 0.22, rgba('#8a7650', a % 21 < 2.1 ? 0.2 : 0.08));
                     // a ring of damp, an old fold down the middle and one across
-                    const st = P(40, 132), gr = c.createRadialGradient(st[0], st[1], 13, st[0], st[1], 22);
+                    const st = P(44, 138), gr = c.createRadialGradient(st[0], st[1], 13, st[0], st[1], 22);
                     gr.addColorStop(0, rgba('#a8824a', 0));
-                    gr.addColorStop(0.75, rgba('#a8824a', 0.3));
-                    gr.addColorStop(0.9, rgba('#7a5a2c', 0.42));
+                    gr.addColorStop(0.75, rgba('#a8824a', 0.14));
+                    gr.addColorStop(0.9, rgba('#7a5a2c', 0.26));
                     gr.addColorStop(1, rgba('#a8824a', 0));
                     c.fillStyle = gr;
                     c.fillRect(st[0] - 24, st[1] - 24, 48, 48);
@@ -2067,14 +2079,6 @@ const Library = (() => {
                         strokePts(c, [P(p0[0] - 0.5, p0[1] - 0.5), P(p1[0] - 0.5, p1[1] - 0.5)], 0.4, rgba('#fffdf2', 0.8));
                         strokePts(c, [P(p0[0] + 0.4, p0[1] + 0.4), P(p1[0] + 0.4, p1[1] + 0.4)], 0.35, rgba('#6a5a48', 0.5));
                     }
-                    // the sheet lifts towards the roll: a soft shade before it
-                    const s0 = P(W - 82, 0), s1 = P(W - 30, 48 - 30 * 0.2), sg = c.createLinearGradient(...P(W - 86, 52), ...P(W - 30, 10));
-                    sg.addColorStop(0, rgba('#7a708c', 0));
-                    sg.addColorStop(0.55, rgba('#7a708c', 0.3));
-                    sg.addColorStop(0.8, rgba('#fffdf2', 0.4));
-                    sg.addColorStop(1, rgba('#7a708c', 0.2));
-                    fillPts(c, [s0, P(RA[0], 0), P(W, RB[1]), P(W, 96), s1], sg);
-
                     // ---- the writing
                     const write = (color, wear, twice) => stamp(c, P, [0, 0, W, H], { mode: 'ink', color, wear, seed: seed + color + wear }, (h) => {
                         const stave = (b0, k) => {
@@ -2161,7 +2165,7 @@ const Library = (() => {
                         };
                         if (twice) {
                             // the pen freshly dipped: only the heads and the clefs take the second, blacker pass
-                            for (const [b0, k] of [[44, 1], [107, 3]]) stave(b0, k).clef(27, GCLEF);
+                            for (const [b0, k] of [[44, 1], [106, 3]]) stave(b0, k).clef(27, GCLEF);
                             h.text('EL AMOR BRUJO', { a: W / 2 - 12, b: 15.5, cap: 8.6, font: FELL, hand: 0.8, track: 0.15, maxW: 150 });
                             return;
                         }
@@ -2173,7 +2177,7 @@ const Library = (() => {
                         h.line(S.curve([[W - 86, 36.4], [W - 66, 35.6], [W - 46, 36.6]], false, 5), 0.3);
                         const A0 = 20, A1 = 214, B0 = 46;
                         const barW = (A1 - B0) / 4;
-                        [[44, 62.5, 1], [107, 125.5, 3]].forEach(([bt, bb, k], sys) => {
+                        [[44, 73, 1], [106, 135, 3]].forEach(([bt, bb, k], sys) => {
                             const tr = stave(bt, k), bs = stave(bb, k + 1), a1 = sys ? A1 - 6 : A1;
                             tr.rule(A0, a1);
                             bs.rule(A0, a1);
@@ -2207,6 +2211,10 @@ const Library = (() => {
                                 tr.note(x(3, 0.2), 7, { open: true, dot: true });
                                 tr.tie(x(3, 0.2) + 2, a1 + 2, 7);
                                 tr.tie(x(0, 0), x(0, 2), 9.4);
+                                tr.tie(x(2, 0) + 1, x(2, 2.1) + 1, 9);
+                                // an accent on the top of the climb, dots under the left hand's chords
+                                h.line([[x(2, 2.1) - 2.2, bt - 7.4], [x(2, 2.1) + 2.4, bt - 6.2], [x(2, 2.1) - 2.2, bt - 5]], 0.4);
+                                for (const [bar, beat] of [[1, 1], [1, 2], [2, 1], [2, 2]]) h.dot(x(bar, beat), bb + 4 * GAP + 3.4, 0.5);
                                 // the left hand: a bass note and two chords, bar after bar
                                 [[1, [5, 8]], [4, [6, 8]], [5, [7, 9]], [1, [5, 8]]].forEach(([lo, ch], i) => {
                                     bs.note(x(i, 0), lo);
@@ -2234,6 +2242,9 @@ const Library = (() => {
                                 for (let i = 0; i < 11; i++) h.line([[x(2, 0) - 4 + i * 3.1, bt - 2 + (i % 2)], [x(2, 0) - 8 + i * 3.1, bt + 4 * GAP + 3 - (i % 3)]], 0.42);
                                 h.line(S.curve([[x(2, 0) - 6, bt + 6], [x(2, 0.6), bt + 4.4], [x(2, 1.3), bt + 7], [x(2, 2), bt + 5], [x(2, 2.5), bt + 6.6]], false, 5), 0.5);
                                 tr.note(x(3, 0), 5, { open: true });
+                                // a pause over it
+                                h.line(S.curve([[x(3, 0) - 4.4, bt - 3.4], [x(3, 0) - 3, bt - 6.6], [x(3, 0), bt - 7.8], [x(3, 0) + 3, bt - 6.6], [x(3, 0) + 4.4, bt - 3.4]], false, 5), 0.6);
+                                h.dot(x(3, 0), bt - 4.2, 0.6);
                                 tr.rest(x(3, 2));
                                 [[1, [5, 8]], [5, [7, 9]], [3, [5, 7]], [1, [3, 5, 8]]].forEach(([lo, ch], i) => {
                                     bs.note(x(i, 0), lo);
@@ -2253,7 +2264,7 @@ const Library = (() => {
                     write('#17101c', 0.3, true);
 
                     // the blot: where the pen was shaken; its satellites, and the cuff that went through it
-                    const bc = [190, 147], blob = [];
+                    const bc = [193, 156], blob = [];
                     S.dab(c, S.curve([P(bc[0] + 2, bc[1] + 1), P(bc[0] + 12, bc[1] + 4), P(bc[0] + 24, bc[1] + 4.6), P(bc[0] + 34, bc[1] + 8)], false, 10), { w: 6.4, color: INKC, alpha: 0.5, bristles: 9, seed: seed + 'cuff', dry: 0.8 });
                     for (let i = 0; i < 40; i++) {
                         const t = (i / 40) * TAU, spike = Math.pow(Math.max(0, Math.sin(t * 3.5 + 0.6)), 8) * 4.4 + Math.pow(Math.max(0, Math.sin(t * 2 + 2.2)), 12) * 3;
@@ -2280,9 +2291,23 @@ const Library = (() => {
                     S.spray(c, pts, { color: '#8f84a0', alpha: 0.55, w: 16 });
                     S.spray(c, pts, { color: '#5f587a', alpha: 0.4, w: 5 });
                     S.spray(c, pts, { color: '#fffdf2', alpha: 0.7, w: 10, dir: TOL });
-                    dogEar(c, P, 0, H, 13, -11, '#f6eeda', '#232749');
+                    // a teacher's blue crayon round the turn, and fingerings in pencil
+                    stamp(c, P, [0, 0, W, H], { mode: 'ink', color: 'rgba(52,84,150,0.75)', wear: 0.4, seed: seed + 'crayon' }, (h) => {
+                        h.line(S.ellipse(109, 43, 14.5, 9.4, 30, -0.12).concat(S.ellipse(109, 43, 14.5, 9.4, 30, -0.12).slice(0, 5).map(([x, y]) => [x + 1.4, y - 1.2])), 1.1);
+                        h.line([[124, 36], [130, 31.6]], 0.9);
+                    });
+                    stamp(c, P, [0, 0, W, H], { mode: 'ink', color: 'rgba(70,66,84,0.75)', wear: 0.3, seed: seed + 'pencil' }, (h) => {
+                        for (const [t, a, b] of [['2', 62, 37.6], ['1', 155, 38.6], ['3', 176.5, 36], ['2', 66, 98.6], ['4', 96, 99.8]]) h.text(t, { a, b, cap: 2.8, font: LORA, skew: 0.2, hand: 0.6 });
+                        h.line(S.curve([[196, 60], [202, 58], [200, 63], [206, 61.4]], false, 4), 0.35);
+                    });
                 },
             });
+            // the lower left corner, turned over: what was under it shows
+            q.save();
+            q.globalCompositeOperation = 'destination-out';
+            fillPts(q, P.pts([[-3, H + 4], [13.4, H + 4], [13.4, H + 0.2], [-0.2, H - 11.6], [-3, H - 11.6]]), '#000');
+            q.restore();
+            S.piece(q, P.pts([[13.4, H + 0.4], [-0.3, H - 11.6], [11.6, H - 10]]), { fill: '#f1e7c8', line: 1.6, heavy: 0.7, shade: { color: '#8f84a0', alpha: 0.7, w: 4 }, light: { color: '#fffdf2', alpha: 0.7, w: 2 }, cast: { blur: 2.6, dx: 1.6, dy: 2.2, color: 'rgba(30,22,50,0.5)' } });
             // the roll: the corner curled forward, showing the back of the sheet
             const mid = [(RA[0] + RB[0]) / 2, (RA[1] + RB[1]) / 2], nrm = [-0.72, 0.69];   // across the roll, towards the sheet
             const rollPts = S.curve([[RA[0] - 3, RA[1] - 1], [mid[0] - nrm[0] * 4.6 - 6, mid[1] - nrm[1] * 4.6 - 7], [mid[0] - nrm[0] * 5.4 + 8, mid[1] - nrm[1] * 5.4 + 9], [RB[0] + 1.6, RB[1] + 3.4], [RB[0] - 3, RB[1] + 3], [mid[0] + nrm[0] * 12 + 8, mid[1] + nrm[1] * 12 + 9], [mid[0] + nrm[0] * 13.5, mid[1] + nrm[1] * 13.5], [mid[0] + nrm[0] * 9 - 10, mid[1] + nrm[1] * 9 - 11]], true, 6);

@@ -1,5 +1,5 @@
 // Dev sheet for things/shawl.js: the mantón de Manila that is the emblem's ground.
-// Nine pages, one every 0.2 s (render with --at 0,0.21,0.42,0.63,0.84,1.05,1.26,1.47,1.68):
+// Eleven pages, one every 0.2 s (render with --at 0,0.21,0.42,0.63,0.84,1.05,1.26,1.47,1.68,1.89,2.1):
 //   0  (a) the frame's share of the plate at film size, painted as the film paints it
 //          (a plate at 1.344 px per unit, seen at the hold's scale), raw paint
 //   1  (b) the same under a dark mask where the emblem sits: what will actually show
@@ -11,17 +11,18 @@
 //   6  2×: a long-tailed bird, a pavilion, a bridge, a rose
 //   7  2×: a chrysanthemum, a half-open peony, a bough of blossom, a dragonfly or butterfly
 //   8  the cloth alone, whole: the crepe and the verses figured in it (no embroidery)
+//   9  page 6 at 4×        10  page 7 at 4×
 const SHDIR = 'sandbox/2026-11-19-souvenir-test/';
 const SHPLATE = { x: -1700, y: -1000, w: 3400, h: 2000 };
 Motion.scene({
-    fps: 24, duration: 1.9, logical: [1600, 900],
+    fps: 24, duration: 2.3, logical: [1600, 900],
     uses: ['styles/souvenir/souvenir.js', SHDIR + 'things/shawl.js'],
     fonts: [{ family: 'IM Fell DW Pica SC', src: 'fonts/IMFellDWPicaSC-Regular.ttf' }],
     setup() {
         return { cache: new Map() };
     },
     draw(g, t, env) {
-        const S = Souvenir, page = Math.min(8, Math.floor(t * 5 + 1e-6)), st = env.state;
+        const S = Souvenir, page = Math.min(10, Math.floor(t * 5 + 1e-6)), st = env.state;
         // the tableau's plate under the embroidery
         const night = (q, b) => {
             const gr = q.createRadialGradient(0, -60, 100, 0, 0, 1500);
@@ -100,11 +101,11 @@ Motion.scene({
             }
         } else if (page === 2 || page === 3) {
             four([pick(['peony'], -640, -330, 60), pick(['songbird'], 700, -380), pick(['spray'], -640, 420), { bx: 640, by: 470, k: 'lettering' }], page === 2 ? 2 : 4);
-        } else if (page === 6) {
+        } else if (page === 6 || page === 9) {
             const fowl = pick(['peafowl'], -700, 0);
-            four([{ ...fowl, dx: 0, dy: -10 }, { ...pick(['pavilion'], 0, 500), dy: -45 }, pick(['bridge'], 500, -200), pick(['rose'], 600, 300, 60)], 2);
-        } else if (page === 7) {
-            four([pick(['mum'], -300, -300, 36), { ...pick(['cup'], 300, 200, 16) }, pick(['bough'], 0, -600), pick(['dragonfly'], 400, -400)], 2);
+            four([{ ...fowl, dx: page === 9 ? 10 : 0, dy: -10 }, { ...pick(['pavilion'], 0, 500), dy: -45 }, pick(['bridge'], 500, -200), pick(['rose'], 600, 300, 60)], page === 6 ? 2 : 4);
+        } else if (page === 7 || page === 10) {
+            four([pick(['mum'], -300, -300, 36), { ...pick(['cup'], 300, 200, 16) }, pick(['bough'], 0, -600), pick(['dragonfly'], 400, -400)], page === 7 ? 2 : 4);
         } else if (page === 8) {
             const p = plate('cloth', SHPLATE, 0.6, { whole: true, tooth: false, motifs: false });
             const sc = 1600 / SHPLATE.w;

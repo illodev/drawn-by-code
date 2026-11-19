@@ -40,7 +40,7 @@ Tableau.lemons = (z0) => {
     // soft: the layer's own `res` if the lens blurs it (its sprites are then of the small class)
     // gap: the rest to keep clear, in this layer's units
     function painter(g, res, soft = 0, gap = null) {
-        const full = soft ? res / soft : res, q = soft ? 0.5 : 1, rl = Q(full, 1.5 * q), dens = soft ? 0.5 / soft : 1, P = { g, res, q, gap, soft, dens };
+        const full = soft ? res / soft : res, q = soft ? 0.5 : 1, rl = Q(full, 1.5 * q), P = { g, res, gap };
         P.clear = (x, y, pad = 0) => !gap || Math.hypot(x - gap.x, y - gap.y) > gap.r + pad;
         // a leaf whose petiole starts at the node (x, y), pointing along `rot`
         P.leaf = (x, y, rot, s, kind, pick, o = {}) => {
@@ -106,7 +106,6 @@ Tableau.lemons = (z0) => {
         // a fallen petal lying on what is there
         P.petal = (x, y, rot, v, o = {}) => {
             const sp = C.petal('loose' + v, rot, Q(full, 1.6 * q), { len: 40 + (v % 3) * 4, wid: 11.5, cup: 0.9, old: o.old ?? 0, out: o.out ?? 0 });
-            sp.rot = sp.rot ?? 0;
             C.shadow(g, sp, x, y, 1, { rot, dx: 2.5, dy: 4, alpha: 0.45, blur: 3 });
             C.put(g, sp, x, y, 1, { rot, fy: o.fy ?? 0.8 });
         };
@@ -164,7 +163,7 @@ Tableau.lemons = (z0) => {
             else if (!o.plain && r() < 0.05) kind = 'under';
             const small = kind === 'young' || kind === 'bronze';
             const ls = s * (o.leaf ?? 1) * (0.8 + r() * 0.38) * (small ? 1 : 1 - 0.22 * n.u * n.u), edge = r() < 0.1;
-            const L = { x: p.x, y: p.y, a, kind, s: ls, pick: Math.floor(r() * 97), fx: 0.64 + r() * 0.36, fy: edge ? 0.14 + r() * 0.16 : 0.5 + r() * 0.5, front: r() < 0.5 };
+            const L = { x: p.x, y: p.y, a, kind, s: ls, pick: Math.floor(r() * 97), fx: 0.64 + r() * 0.36, fy: edge ? 0.14 + r() * 0.16 : 0.56 + r() * 0.44, front: r() < 0.5 };
             if (n.leaf) leaves.push(L);
         }
         for (const l of leaves) if (!l.front) l.got = P.leaf(l.x, l.y, l.a, l.s, l.kind, l.pick, l);
@@ -456,10 +455,9 @@ Tableau.lemons = (z0) => {
                     P.stalk([[x - 8, y - 50], [x - 3, y - 22], [x, y]], 5, 6, 'mid-stalk' + v, { shade: false });
                     P.lemon(x, y, rot, s, v, { age });
                 }
-                // a snail on the bough, and a swallowtail come for the blossom
-                const sn = m1.at(m1.len * 0.74), F = fauna('snail'), B = fauna('butterfly');
-                if (F) F.snail(g, { x: sn.x - 12, y: sn.y - 34, s: 1, rot: sn.a + Math.PI, line: false, trail: 70 });
-                if (B) B.butterfly(g, { x: -640, y: -250, s: 1.7, rot: -0.6, fold: 0.35, line: false });
+                // a swallowtail behind the leaves, where the main layer lets it show
+                const B = fauna('butterfly');
+                if (B) B.butterfly(g, { x: 440, y: -224, s: 1.25, rot: -0.5, fold: 0.3, line: false });
                 relight(g, wide, res, dapple('mid', wide, { pools: 26, suns: 44, flecks: 40, dark: [[gp.x, gp.y, gp.r * 1.6, 0.85]] }));
                 veil(g, wide, 'rgba(18,60,48,0.2)');
                 S.tooth(g, wide, { amp: 0.055 });
@@ -496,8 +494,8 @@ Tableau.lemons = (z0) => {
                 C.branch(g, B.pts, { raw: true, w0: 15, w1: 9, seed: 'bough-B', green: [0.75, 1.2], nodes: [260, 520, 800] });
                 // a pruned stub on the big bough, and where leaves fell
                 const st = A.at(A.len * 0.335);
-                C.branch(g, [[st.x, st.y], [st.x + 14, st.y - 22], [st.x + 20, st.y - 38]], { w0: 15, w1: 13, seed: 'stub' });
-                C.cut(g, st.x + 21, st.y - 40, -1.2, 14, 3);
+                C.branch(g, [[st.x, st.y], [st.x + 14, st.y - 24], [st.x + 22, st.y - 42]], { w0: 20, w1: 17, seed: 'stub' });
+                C.cut(g, st.x + 24, st.y - 46, -1.05, 18, 3);
                 for (const u of [0.14, 0.22, 0.47, 0.58, 0.7, 0.83]) {
                     const p = A.at(A.len * u);
                     C.scar(g, p.x + 3, p.y - 5, p.a, 9);
@@ -557,7 +555,10 @@ Tableau.lemons = (z0) => {
                 // --- 5 · life and water
                 const web = F('web');
                 if (web) web.web(g, { x: 478, y: -176, r: 62, a0: -1.45, a1: -0.1, seed: 'fork' });
-                const bee = F('bee'), lady = F('ladybird'), finch = F('goldfinch');
+                const bee = F('bee'), lady = F('ladybird'), finch = F('goldfinch'), snail = F('snail');
+                // a snail on its way along the bough
+                const sp0 = A.at(A.len * 0.492);
+                if (snail) snail.snail(g, { x: sp0.x + 6, y: sp0.y - 32, s: 0.85, rot: sp0.a, line: false, trail: 60 });
                 if (bee) bee.bee(g, { x: 652, y: -292, s: 0.82, rot: 0.5, pose: 'feed', line: false });
                 if (lady) lady.ladybird(g, { x: 468, y: 62, s: 1.05, rot: 0.6, line: false });
                 if (finch) finch.goldfinch(g, { x: -452, y: -108, s: 2.1, flip: true, pose: 0, line: false, perch: [-520, -58, -400, 20] });
@@ -568,7 +569,10 @@ Tableau.lemons = (z0) => {
                 P.drop(...tipOf(R1), 4, { hang: 0.5 });
                 P.drop(...tipOf(L1), 3.2, { hang: 0.4 });
                 // --- 6 · the sun comes through in patches
-                relight(g, wide, res, dapple('hero', wide, { pools: 40, suns: 48, flecks: 90, fall: 0.34, lit: [[-230, -30, 80, 46, 0.8, 0.5], [236, -70, 70, 40, 0.8, 0.45], [60, -330, 90, 40, 0.5, 0.5], [600, -300, 90, 46, 0.7, 0.5], [-40, 300, 100, 44, 0.6, 0.45]] }));
+                relight(g, wide, res, dapple('hero', wide, { pools: 40, suns: 48, flecks: 90, fall: 0.34,
+                    // the sun comes down a slant from the top left: the lemons either side of the rest and the three sprays stand in it; the far corners are in shade
+                    lit: [[-230, -30, 80, 46, 0.8, 0.5], [236, -70, 70, 40, 0.8, 0.45], [60, -330, 90, 40, 0.5, 0.5], [600, -300, 90, 46, 0.7, 0.5], [-40, 300, 100, 44, 0.6, 0.45], [-520, -260, 120, 50, 0.6, 0.4], [420, 240, 110, 50, 0.7, 0.35]],
+                    dark: [[-780, 380, 260, 0.34], [780, -400, 240, 0.3], [820, 420, 230, 0.34], [-60, 440, 150, 0.2], [520, 20, 130, 0.22], [-640, 60, 150, 0.22]] }));
                 S.tooth(g, wide, { amp: 0.06 });
             },
         },

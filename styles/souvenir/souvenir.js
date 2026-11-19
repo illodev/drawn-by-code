@@ -416,6 +416,17 @@ const Souvenir = (() => {
     // gaps, so the stroke breaks up at its ends and lets the paint underneath through.
     function dab(g, pts, { w = 6, color = '#fff', alpha = 0.8, bristles = 7, seed = 1, dry = 0.35, taper = 0.6 } = {}) {
         const r = Motion.rng(seedOf(seed));
+        // the bristles lift and land between points: a path of two or three points has
+        // nowhere to do it and paints nothing, so walk it finely first
+        if (pts.length < 16 && pts.length > 1) {
+            const fine = [];
+            for (let i = 0; i < pts.length - 1; i++) {
+                const m = Math.ceil(16 / (pts.length - 1));
+                for (let k = 0; k < m; k++) fine.push([pts[i][0] + ((pts[i + 1][0] - pts[i][0]) * k) / m, pts[i][1] + ((pts[i + 1][1] - pts[i][1]) * k) / m]);
+            }
+            fine.push(pts[pts.length - 1]);
+            pts = fine;
+        }
         const n = pts.length;
         g.save();
         g.lineCap = 'round';

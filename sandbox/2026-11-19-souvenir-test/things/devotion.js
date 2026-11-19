@@ -7,7 +7,8 @@
 //   Devotion.incensario(g, { x, y, s, rot, seed })  170 × 330  a silver thurible on its chains
 //   Devotion.rosario(g, { x, y, s, rot, seed })     220 × 280  a rosary of jet beads, laid down
 //   Devotion.lampara(g, { x, y, s, rot, seed, lights, servant })  230 × 250  a brass Hanukkah
-//       lamp, Sefarad (`lights`: pans burning, from the right, default 1; `servant`: its ninth light too)
+//       lamp, Sefarad (`lights`: pans burning, from the right, default 1; `servant`: its ninth light too;
+//       237 × 224 with the servant light's bracket)
 //   Devotion.jamsa(g, { x, y, s, rot, seed })       140 × 200  a silver hand amulet, al-Andalus
 //   Devotion.mihrab(g, { x, y, s, rot, seed })      220 × 300  an ivory plaque with a prayer niche
 // (the candle's flame stands some 10 units over the top of its box, and its glow is a faint halo
@@ -1409,10 +1410,12 @@ const Devotion = (() => {
                 // smoke: out of the lantern, leaning, folding over, breaking up among the chains
                 const Fu = upright(F, [0, 47]);
                 smoke(a, Fu, [[-3, 47], [-9, 30], [-5, 8], [7, -14], [9, -40], [-4, -62], [-16, -78], [-12, -98]], { w0: 3.4, w1: 19, alpha: 0.6, seed: seed + 1, threads: 7, blur: 2 });
-                smoke(a, Fu, [[8, 47], [17, 30], [15, 10], [26, -8], [39, -20], [46, -38], [40, -52]], { w0: 2.6, w1: 14, alpha: 0.46, seed: seed + 2, ph: 2, blur: 1.8 });
-                smoke(a, Fu, [[-25, 61], [-36, 46], [-32, 26], [-44, 8], [-52, -14], [-46, -30]], { w0: 2, w1: 11, alpha: 0.4, seed: seed + 3, ph: 4 });
-                smoke(a, Fu, [[-12, -90], [-24, -104], [-38, -106], [-44, -96], [-38, -88]], { w0: 5, w1: 4, alpha: 0.2, seed: seed + 4, threads: 3 });
+                smoke(a, Fu, [[8, 47], [17, 30], [15, 10], [27, -8], [43, -22], [58, -40], [66, -62], [57, -77]], { w0: 2.6, w1: 15, alpha: 0.46, seed: seed + 2, ph: 2, blur: 1.8 });
+                smoke(a, Fu, [[-25, 61], [-36, 46], [-32, 26], [-46, 8], [-60, -13], [-70, -37], [-62, -54]], { w0: 2, w1: 12, alpha: 0.4, seed: seed + 3, ph: 4 });
+                smoke(a, Fu, [[-12, -90], [-26, -105], [-45, -109], [-57, -98], [-50, -87]], { w0: 5, w1: 4, alpha: 0.2, seed: seed + 4, threads: 3 });
                 smoke(a, Fu, [[-2, -60], [10, -76], [24, -80], [30, -70]], { w0: 5, w1: 3, alpha: 0.18, seed: seed + 5, threads: 3 });
+                smoke(a, Fu, [[57, -77], [47, -90], [35, -88], [33, -77], [41, -72]], { w0: 5, w1: 3, alpha: 0.18, seed: seed + 6, threads: 3 });
+                smoke(a, Fu, [[-62, -54], [-52, -66], [-40, -62], [-40, -52]], { w0: 4, w1: 3, alpha: 0.16, seed: seed + 7, threads: 2 });
             };
         });
     }
@@ -2086,8 +2089,11 @@ const Devotion = (() => {
 
     function lampara(g, o = {}) {
         const seed = o.seed ?? 'lampara';
-        sheet(g, o, { x: -116, y: -126, w: 232, h: 252 }, (q, F) => {
-            const res = resOf(q), cs = { blur: 3, dx: 1.8, dy: 2.8, color: 'rgba(24,10,30,0.62)' };
+        sheet(g, o, { x: -122, y: -116, w: 244, h: 232 }, (q, F0) => {
+            // (the plate's own coordinates have their origin over the arcade and take the servant
+            // light on one side only: moved and enlarged so the anchor is the middle of the lamp)
+            const K = 1.15, F = F0.sub(-10.9, 24.5, 0, K);
+            const res = resOf(q, K), cs = { blur: 3, dx: 1.8, dy: 2.8, color: 'rgba(24,10,30,0.62)' };
             const piece = (pts, o2 = {}) => S.piece(q, F.pts(pts), { fill: Au.base, line: 1.5, cast: cs, shade: [{ color: Au.deep, alpha: 0.85, w: o2.w ?? 4 }, { color: '#33203c', alpha: 0.6, w: (o2.w ?? 4) * 0.4 }], light: { color: Au.glint, alpha: 0.8, w: (o2.w ?? 4) * 0.55 }, detail: o2.detail });
             stamp(q, F, lampPlate(F.rot, res, seed), { lw: 1.7, heavy: 0.8 });
             // the bench's cheeks, and the bracket that carries the servant light
@@ -2113,8 +2119,8 @@ const Devotion = (() => {
                 // (`lights`: how many pans burn, counted from that end; `servant`: the servant light too)
                 const burn = (tip) => {
                     const Ff = upright(F, tip).sub(tip[0], tip[1]);
-                    glow(a, Ff([0, -7]), 30, 0.9);
-                    flame(a, Ff, { h: 15.5, w: 5.4, lean: -1.2, seed: seed + Math.round(tip[0]), soot: true });
+                    glow(a, Ff([0, -7 * K]), 30 * K, 0.9);
+                    flame(a, Ff, { h: 15.5 * K, w: 5.4 * K, lean: -1.2 * K, seed: seed + Math.round(tip[0]), soot: true });
                 };
                 const n = Math.max(0, Math.min(8, o.lights ?? 1));
                 for (let i = 8 - n; i < 8; i++) burn([LAMP.pans[i].tip[0], LAMP.pans[i].tip[1] - 2.2]);

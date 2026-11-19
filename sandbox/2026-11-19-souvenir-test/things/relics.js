@@ -92,7 +92,7 @@
 const Relics = (() => {
     const S = Souvenir;
     const INK = S.INK, TAU = Math.PI * 2;
-    const clamp = S.clamp, smooth = S.smooth, lerp = S.lerp, mix = S.mix, rgba = S.rgba;
+    const clamp = S.clamp, smooth = S.smooth, mix = S.mix, rgba = S.rgba;
     const cache = new Map();
     const memo = (key, fn) => {
         if (!cache.has(key)) cache.set(key, fn());
@@ -347,22 +347,6 @@ const Relics = (() => {
             g.stroke();
         }
     }
-    // a soft patch of colour on the paint already there
-    function blob(g, p, r, color, alpha = 0.5, ry = r, rot = 0) {
-        g.save();
-        g.translate(p[0], p[1]);
-        g.rotate(rot);
-        g.scale(1, ry / r);
-        const gr = g.createRadialGradient(0, 0, 0, 0, 0, r);
-        gr.addColorStop(0, rgba(color, alpha));
-        gr.addColorStop(0.55, rgba(color, alpha * 0.55));
-        gr.addColorStop(1, rgba(color, 0));
-        g.fillStyle = gr;
-        g.globalCompositeOperation = 'source-atop';
-        g.fillRect(-r, -r, r * 2, r * 2);
-        g.restore();
-    }
-
     // ------------------------------------------------------------------ fields
     // A scalar field over a box, `res` cells per unit: a relief to light, a distance, a mask.
     // Bumps are written straight into it; anything easier to draw than to write as a formula
@@ -661,7 +645,16 @@ const Relics = (() => {
         // one hemisphere of the inner row has come away
         const hemis = bosses.filter((b) => b.kind === 'hemi');
         hemis[Math.floor(hemis.length * 0.62)].kind = 'empty';
-        const dents = [{ p: [-47, 15], R: 15 }, { p: [38, -27], R: 8 }];
+        // a pellet in the bare corner of every arm
+        for (const [sx, sy] of [[1, 1], [1, -1], [-1, -1], [-1, 1]]) {
+            for (let t = 1.2; t > 0.5; t -= 0.004) {
+                if (D.lin(sx * 87 * t, sy * 57 * t) >= 13.3) {
+                    bosses.push({ p: [sx * 87 * t, sy * 57 * t], kind: 'small', r: 2.5 });
+                    break;
+                }
+            }
+        }
+        const dents = [{ p: [-37, 7], R: 13 }, { p: [40, -27], R: 8 }];
         return { out, box, D, wires, bosses, dents };
     });
 
@@ -672,9 +665,9 @@ const Relics = (() => {
             for (const w of P.wires) ropeRelief(q, w.line, w.hw);
         });
         const dentAt = (p) => P.dents.reduce((m, d) => Math.max(m, Math.exp(-Math.pow(Math.hypot(p[0] - d.p[0], p[1] - d.p[1]) / (d.R * 0.6), 2))), 0);
-        for (const b of P.bosses) raise(F, b, 1 - 0.62 * dentAt(b.p));
+        for (const b of P.bosses) raise(F, b, 1 - 0.8 * dentAt(b.p));
         // the dents themselves: the sheet pushed in
-        for (const d of P.dents) F.bump(d.p[0], d.p[1], d.R * 1.6, (dx, dy) => -2.3 * Math.exp(-(dx * dx + dy * dy) / (d.R * d.R * 0.36)), 'add');
+        for (const d of P.dents) F.bump(d.p[0], d.p[1], d.R * 1.6, (dx, dy) => -3.2 * Math.exp(-(dx * dx + dy * dy) / (d.R * d.R * 0.3)), 'add');
         const AO = F.hollows(2.2);
         const sp = S.form({
             box, res, light: K.L, seed: 'pect' + K.seed, inflate: 'bevel', R: 1.7, relief: 0.8, smooth: 0.0015,
@@ -692,6 +685,13 @@ const Relics = (() => {
                 for (const sg of [-1, 1]) strokePts(q, st.map((s) => [s.p[0] + s.n[0] * sg * (w.hw + 0.15), s.p[1] + s.n[1] * sg * (w.hw + 0.15)]), 0.4, 'rgba(60,20,8,0.5)');
             }
             for (const b of P.bosses) bossInk(q, K, b);
+            // the crease of the dent, on the side the lamp does not reach
+            for (const d of P.dents) {
+                const a0 = Math.atan2(K.tol[1], K.tol[0]), arc = [];
+                for (let k = -5; k <= 5; k++) arc.push(pol(d.R * 0.62, a0 + k * 0.16, d.p[0], d.p[1]));
+                S.ink(q, arc, { w: 0.8, color: '#4a1808', alpha: 0.6 });
+                S.ink(q, arc.map(([x, y]) => [2 * d.p[0] - x, 2 * d.p[1] - y]), { w: 0.7, color: '#fff6c8', alpha: 0.6 });
+            }
         });
         // red earth still in the low places, more of it towards the corners
         onto(sp, res, (q) => {
@@ -787,12 +787,11 @@ const Relics = (() => {
             spec: { amp: 0.8, power: 20, from: 0.5, to: 0.96, color: '#fffbe2' },
             tint: (x, y, tone, rgb) => {
                 const [u, v] = uv(x, y), cu = Math.sqrt(Math.max(0, 1 - (u * u) / (R * R)));
-                const cav = W.lin(R * Math.asin(clamp(u / R, -1, 1)), v - e * cu), a = AO.lin(R * Math.asin(clamp(u / R, -1, 1)), v - e * cu);
+                const a = AO.lin(R * Math.asin(clamp(u / R, -1, 1)), v - e * cu);
                 const k = clamp(a * 0.75) * 0.85;
                 rgb[0] += (112 - rgb[0]) * k;
                 rgb[1] += (44 - rgb[1]) * k;
                 rgb[2] += (16 - rgb[2]) * k;
-                void cav;
             },
         });
         onto(outer, res, (q) => {
@@ -900,19 +899,6 @@ const Relics = (() => {
     }
 
     // ------------------------------------------------------------------ 2 · the murex of Gadir
-    // Paints on a sheet of its own and lets it fade in from `from` (nothing) to `to` (whole):
-    // how a spine grows out of the shell without a seam (after `faded` in things/charms.js).
-    function rooted(G, K, box, from, to, paint) {
-        const sh = sheet(box, K.res);
-        paint(sh.G);
-        sh.G.globalCompositeOperation = 'destination-in';
-        const gr = sh.G.createLinearGradient(from[0], from[1], to[0], to[1]);
-        gr.addColorStop(0, 'rgba(0,0,0,0)');
-        gr.addColorStop(1, 'rgba(0,0,0,1)');
-        sh.G.fillStyle = gr;
-        sh.G.fillRect(box.x, box.y, box.w, box.h);
-        G.drawImage(sh.canvas, box.x, box.y, box.w, box.h);
-    }
     // The shell in its own coordinates: the axis along y, the apex up at (0, −64), the tip
     // of the siphonal canal at (0, 100), the aperture on the right (it is seen from below).
     const MX = (() => {
@@ -982,10 +968,17 @@ const Relics = (() => {
             },
         });
         if (front) {
-            // it stands out of the whorl towards us: its shadow lies on the shell
-            S.cast(G, (q) => fillPts(q, pts.slice(2, pts.length - 2), '#000'), { blur: 2.2, dx: K.sd[0] * 3.4, dy: K.sd[1] * 3.4, color: 'rgba(52,26,34,0.6)' });
-            rooted(G, K, S.bbox(pts, 4), ax[0], ax[3], paint);
-            S.ink(G, ax.slice(6, 13).map(([x, y]) => [x + K.tol[0] * w * 0.1, y + K.tol[1] * w * 0.1]), { w: 0.8, color: '#ffffff', alpha: 0.85 });
+            // it stands out of the whorl towards us: its shadow lies on the shell, and the
+            // shell swells a little round its foot
+            S.cast(G, (q) => fillPts(q, pts, '#000'), { blur: 2.2, dx: K.sd[0] * 3.2, dy: K.sd[1] * 3.2, color: 'rgba(52,26,34,0.6)' });
+            const foot = S.ellipse(ax[1][0], ax[1][1], w * 0.62, w * 0.4, 16, Math.atan2(F.dir(n)[1], F.dir(n)[0]));
+            G.save();
+            G.globalCompositeOperation = 'source-atop';
+            blobOn(G, ax[1], w * 0.8, '#fff6e0', 0.5);
+            strokePts(G, foot.slice(0, 9), 0.5, 'rgba(90,52,44,0.5)');
+            G.restore();
+            paint(G);
+            S.ink(G, ax.slice(5, 12).map(([x, y]) => [x + K.tol[0] * w * 0.1, y + K.tol[1] * w * 0.1]), { w: 0.8, color: '#ffffff', alpha: 0.85 });
         } else paint(G);
         if (!broken && !front) disc(G, lerpP(ax[14], ax[13], 0.2), 0.5 * F.s, 'rgba(60,30,30,0.8)');
     }
@@ -1629,6 +1622,7 @@ const Relics = (() => {
         });
         stamp(G, helmetShell(K), K, { lw: 2.4, heavy: 0.85, cast: { d: 5, blur: 5, color: 'rgba(4,6,14,0.75)' } });
     }
+    // a soft patch of colour (on a clipped or source-atop context)
     function blobOn(q, p, r, color, alpha) {
         const gr = q.createRadialGradient(p[0], p[1], 0, p[0], p[1], r);
         gr.addColorStop(0, rgba(color, alpha));
@@ -1833,6 +1827,21 @@ const Relics = (() => {
             const crack = S.curve([[44, 46], [36, 38], [33, 26], [25, 16], [23, 2], [16, -8]], false, 8).map(([x, y], i) => F([x + S.noise2(i * 0.5, 1, 6) * 1.2, y]));
             S.ink(g, crack, { w: 0.7, color: '#3a1e22', alpha: 0.85, taper: [0, 1] });
             S.ink(g, crack.map(([x, y]) => [x + K.sd[0] * 0.7, y + K.sd[1] * 0.7]), { w: 0.4, color: '#fff2d8', alpha: 0.55, taper: [0, 1] });
+            // a graffito scratched after firing, low on the belly: a tally someone kept
+            lettering('XIII', 9, (u, v) => onBody(u - 36, 74 - v), (pts) => {
+                S.ink(g, pts, { w: 0.7, color: '#fff6e2', alpha: 0.7, taper: [0.3, 0.6] });
+                S.ink(g, pts.map(([x, y]) => [x - K.sd[0] * 0.6, y - K.sd[1] * 0.6]), { w: 0.45, color: '#6a3a2c', alpha: 0.6, taper: [0.3, 0.6] });
+            }, { seed: 'graf', track: 0.3, jitter: 0.2 });
+            // the scar where another jar stood against it in the kiln, and a drip of slip
+            g.lineWidth = 1.1;
+            g.strokeStyle = 'rgba(150,96,70,0.4)';
+            g.beginPath();
+            const sc = [];
+            for (let k = 0; k <= 16; k++) sc.push(onBody(-58 + Math.cos(k * 0.36) * 11, 16 + Math.sin(k * 0.36) * 9));
+            S.trace(g, sc, false);
+            g.stroke();
+            S.ink(g, [onBody(30, -16), onBody(31.5, -4), onBody(31, 9), onBody(32, 15)], { w: 2.2, color: '#f0dcb6', alpha: 0.5, taper: [0.6, 0.1] });
+            disc(g, onBody(32, 15.5), 1.5, 'rgba(240,220,182,0.55)');
             // rootlets etched the surface while it lay in the ground
             for (let i = 0; i < 7; i++) {
                 let p = [-70 + r() * 130, 30 + r() * 70], a = r() * TAU;
@@ -1949,7 +1958,6 @@ const Relics = (() => {
     function sherd(G, K, F, face, thick, o = {}) {
         const r = Motion.rng('sherd' + (o.seed ?? 0)), pts = F.pts(face), tv = F.dir(thick), n = pts.length;
         const ctr = pts.reduce((a, p) => [a[0] + p[0] / n, a[1] + p[1] / n], [0, 0]);
-        const all = [...pts, ...pts.map(([x, y]) => [x + tv[0], y + tv[1]])];
         S.cast(G, (q) => fillPts(q, pts.map(([x, y]) => [x + tv[0], y + tv[1]]), '#000'), { blur: 4, dx: K.sd[0] * 3, dy: K.sd[1] * 3, color: 'rgba(14,8,26,0.5)' });
         // the break: a sandwich, orange skins and a grey core, full of grit
         for (let i = 0; i < n; i++) {
@@ -1997,7 +2005,6 @@ const Relics = (() => {
             const a = pts[i], b = pts[(i + 1) % n], e = [b[0] - a[0], b[1] - a[1]], out = [e[1], -e[0]], m = lerpP(a, b, 0.5), sign = (m[0] - ctr[0]) * out[0] + (m[1] - ctr[1]) * out[1] > 0 ? 1 : -1;
             if ((out[0] * tv[0] + out[1] * tv[1]) * sign > 0) strokePts(G, [lerpP(a, b, 0.08), lerpP(a, b, 0.92)], 0.5, 'rgba(255,248,228,0.55)');
         }
-        void all;
     }
 
     function paintAmphora(G, K) {
@@ -2228,6 +2235,10 @@ const Relics = (() => {
         for (const l of legs) row(l, 2.9, figStone, { len: 3, kind: 'fig' });
         for (const l of toes) row(l, 2.6, figStone, { len: 3, kind: 'fig' });
         row(twig, 2.9, figStone, { len: 3.4, kind: 'fig' });
+        // the earth under its feet: two short rows of browns and olive
+        const earth = [[B(-30, 43.6), B(-12, 42.8), B(8, 43.4), B(28, 43)], [B(-18, 47.4), B(0, 47), B(17, 47.3)]].map((l) => S.curve(l, false, 6));
+        row(earth[0], 3.4, () => [[138, 90, 52], [125, 128, 72], [201, 160, 74], [141, 138, 128], [87, 72, 58]][Math.floor(r() * 5)], { len: 3.8, kind: 'fig' });
+        row(earth[1], 3.4, () => [[201, 160, 74], [185, 179, 164], [150, 168, 104]][Math.floor(r() * 3)], { len: 3.8, kind: 'fig' });
         // shapes filled in rings from their outline inwards
         const rings = (paint, wid, col, bbx) => {
             const D = distField(bbx, 3, paint);
@@ -2245,7 +2256,7 @@ const Relics = (() => {
         // two rows of the ground follow the whole figure round
         const union = (q) => {
             fillPts(q, sil, '#fff');
-            for (const l of [...legs, ...toes, beak, twig]) strokePts(q, l, 3.6, '#fff');
+            for (const l of [...legs, ...toes, beak, twig, ...earth]) strokePts(q, l, 3.6, '#fff');
             for (const sh of [...cherries, ...leaves]) fillPts(q, sh, '#fff');
         };
         const outD = distField(figBox, 3, (q) => {
@@ -2254,9 +2265,6 @@ const Relics = (() => {
         });
         const white = (p) => STONE.white[Math.floor(r() * r() * STONE.white.length)];
         for (const lv of [2.5, 7.3]) for (const l of isolines(outD, lv).filter((l) => plen(l) > 12)) row(eased(l, 2, l[0] === l[l.length - 1]), 4.7, white, { kind: 'ground' });
-        // the earth under its feet
-        row([B(-32, 44.4), B(30, 44.4)], 4.4, () => [[138, 90, 52], [125, 128, 72], [201, 160, 74], [141, 138, 128]][Math.floor(r() * 4)], { kind: 'fig' });
-        row([B(-20, 49), B(18, 49)], 4.4, () => [[201, 160, 74], [185, 179, 164], [150, 168, 104]][Math.floor(r() * 3)], { kind: 'fig' });
 
         // ---- the frame: a fillet, a two-strand guilloche on black, a fillet
         const darkS = () => STONE.dark[Math.floor(r() * STONE.dark.length)];
@@ -2310,7 +2318,7 @@ const Relics = (() => {
             const d = Math.max(Math.abs(p[0] - fx), Math.abs(p[1] - cy));
             return d > MO.half && d < MO.half + MO.band;
         });
-        const ground = (p) => (fig(p) ? figStone(p) : inBand(p) ? darkS() : white(p));
+        const ground = (pt) => (fig(pt) ? figStone(pt) : inBand(pt) ? darkS() : white(pt));
         for (let y = box.y + 3.4, j = 0; y < box.y + box.h; y += 5.2, j++) row([[box.x + (j % 2) * 2.6 - 3, y + (r() - 0.5) * 0.4], [box.x + box.w, y + (r() - 0.5) * 0.4]], 5.2, (p) => (fig(p) || inBand(p) ? null : white(p)), { kind: 'ground' });
         for (let y = box.y + 2; y < box.y + box.h; y += 3.1) {
             for (let x = box.x + 2; x < box.x + box.w; x += 3.1) {
@@ -2553,7 +2561,7 @@ const Relics = (() => {
             // a comb
             [[-40, -48], [-28, -49]], ...[0, 1, 2, 3, 4].map((i) => [[-39 + i * 2.6, -48], [-39.4 + i * 2.6, -41.5]]),
         ];
-        const flakes = [[[36, -98], [47, -103], [58, -96], [66, -84], [64, -70], [56, -66], [50, -74], [41, -78], [33, -88]], [[-72, 60], [-60, 55], [-51, 59], [-47, 70], [-53, 80], [-63, 85], [-73, 79]], [[6, 88], [16, 83], [26, 86], [29, 93], [20, 99], [10, 97]], [[-30, -20], [-22, -24], [-16, -18], [-21, -11], [-29, -13]]].map((f) => f.map(([x, y], i) => [x + S.noise2(i * 1.9, 3, 9) * 2, y + S.noise2(i * 1.9, 8, 9) * 2]));
+        const flakes = [[[36, -98], [47, -103], [58, -96], [66, -84], [64, -70], [56, -66], [50, -74], [41, -78], [33, -88]], [[-72, 60], [-60, 55], [-51, 59], [-47, 70], [-53, 80], [-63, 85], [-73, 79]], [[6, 88], [16, 83], [26, 86], [29, 93], [20, 99], [10, 97]], [[-30, -20], [-22, -24], [-16, -18], [-21, -11], [-29, -13]]].map((f, k) => S.curve(f, true, 3).map(([x, y], i) => [x + S.noise2(i * 0.9, 3 + k, 9) * 1.6, y + S.noise2(i * 0.9, 8 + k, 9) * 1.6]));
         const cutF = Field(box, res).paint(1, (q) => {
             for (const l of cuts) strokePts(q, l, 0.9, '#fff');
             for (const l of signs) strokePts(q, l, 1.15, '#fff');
@@ -2570,7 +2578,7 @@ const Relics = (() => {
         const sp = S.form({
             box, res, light: K.L, seed: 'stele' + K.seed, inflate: 'bevel', R: 2.6, relief: 0.6, smooth: 0.002,
             mask: (q) => fillPts(q, dense, '#fff'),
-            height: (x, y) => -1.05 * cutF.at(x, y) - 0.8 * flakeF.at(x, y) + 0.1 * smooth(0.1, 0.6, S.noise2(x * 0.035, y * 0.5 + x * 0.11, 111)) + 0.9 * fbm(x * 0.022, y * 0.022, 112) + 0.12 * fbm(x * 0.4, y * 0.4, 113),
+            height: (x, y) => -1.05 * cutF.at(x, y) - 0.55 * flakeF.at(x, y) * (0.8 + 0.4 * fbm(x * 0.3, y * 0.3, 118)) + 0.1 * smooth(0.1, 0.6, S.noise2(x * 0.035, y * 0.5 + x * 0.11, 111)) + 0.9 * fbm(x * 0.022, y * 0.022, 112) + 0.12 * fbm(x * 0.4, y * 0.4, 113),
             ramp: [[0, '#000000'], [1, '#ffffff']], soft: 1,
             tint: (x, y, tone, rgb, m) => {
                 const n1 = fbm(x * 0.025, y * 0.025, 114), n2 = fbm(x * 0.12, y * 0.12, 115), lam = S.noise2(x * 0.2 + y * 0.9, y * 0.06, 116), ct = cutF.at(x, y), fl = flakeF.at(x, y);
@@ -2578,7 +2586,7 @@ const Relics = (() => {
                 const base = [92 + 26 * n1 + 10 * n2 + 8 * lam, 100 + 24 * n1 + 10 * n2 + 8 * lam, 118 + 22 * n1 + 9 * n2 + 7 * lam], RU = [146, 110, 80], FR = [70, 80, 104], CU = [188, 192, 198], SH = [22, 24, 44];
                 for (let c = 0; c < 3; c++) {
                     let v = base[c] + (RU[c] - base[c]) * rust;
-                    v += (FR[c] - v) * fl * 0.8;
+                    v += (FR[c] - v) * fl * 0.4;
                     v += (CU[c] - v) * ct * 0.75;
                     v = Math.min(255, v * f);
                     v += (SH[c] - v) * ks;
@@ -2594,7 +2602,7 @@ const Relics = (() => {
             for (const fk of flakes) {
                 for (let i = 0; i < fk.length; i++) {
                     const a = fk[i], b = fk[(i + 1) % fk.length], f = (-(b[1] - a[1]) * sd[0] + (b[0] - a[0]) * sd[1]) / (Math.hypot(b[0] - a[0], b[1] - a[1]) || 1);
-                    strokePts(q, [a, b], 0.7, f > 0 ? `rgba(14,16,34,${(0.85 * f).toFixed(2)})` : `rgba(214,222,236,${(-0.6 * f).toFixed(2)})`);
+                    strokePts(q, [a, b], 0.55, f > 0 ? `rgba(14,16,34,${(0.7 * f).toFixed(2)})` : `rgba(214,222,236,${(-0.5 * f).toFixed(2)})`);
                 }
             }
             // cleavage lines across the face
@@ -2603,7 +2611,7 @@ const Relics = (() => {
                 S.ink(q, [[x, y], [x + l * 0.5, y - l * 0.1 + (r() - 0.5) * 1.5], [x + l, y - l * 0.2]], { w: 0.4, color: r() < 0.6 ? '#1c2036' : '#dfe6f2', alpha: 0.28 });
             }
             // lichen: rosettes that grow outward in rings, orange and grey-green, with their fruits
-            for (const [x, y, rr, kind] of [[-52, -86, 9, 0], [-40, -72, 5, 1], [50, 62, 10, 1], [60, 44, 4.5, 0], [-10, 90, 6, 0], [-60, 20, 5.5, 1], [34, -40, 4, 0], [10, -92, 4.5, 1], [-28, 62, 3.4, 0], [66, -16, 3.6, 1]]) {
+            for (const [x, y, rr, kind] of [[-52, -86, 8, 0], [-41, -73, 4.6, 1], [-58, -74, 2.2, 0], [50, 62, 9, 1], [60, 46, 4.2, 0], [41, 72, 2.4, 0], [-10, 90, 5.4, 0], [-18, 97, 2, 1], [-60, 20, 5, 1], [34, -40, 3.6, 0], [10, -92, 4, 1], [-28, 62, 3, 0], [66, -16, 3.2, 1], [0, -70, 1.8, 0], [-48, 100, 2.6, 1], [22, 40, 1.8, 1]]) {
                 const col = kind ? ['#98a68a', '#5f6e5c', '#d5dcc2'] : ['#cf8f30', '#8a4f16', '#f0cc7a'], ph = r() * 9;
                 const lobe = S.curve(Array.from({ length: 13 }, (_, i) => pol(rr * (0.86 + 0.16 * Math.sin(i * 2.3 + ph) + 0.1 * r()), (i / 13) * TAU, x, y * 1 + 0)), true, 5);
                 piece(q, K, lobe, {
