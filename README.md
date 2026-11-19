@@ -181,6 +181,7 @@ to see its strip, files and the videos made with it.
 | [lightfield](styles/lightfield/)     | light photographed: radiance through a lens and film (bloom, halation, rays, grain)      | approved   |
 | [micrograph](styles/micrograph/)     | false-colour micrographs: one grey signal, sharp grain on soft structures, a few inks    | approved   |
 | [blueprint](styles/blueprint/)       | a cyanotype drafted line by line: elevations, sections, dimensions, lettering            | approved   |
+| [souvenir](styles/souvenir/)         | painted emblems a camera dives through: contour and airbrush, brush with no line, gold   | in testing |
 | [comic](styles/comic/)               | brush-ink outlines, flat print colours on newsprint, Ben-Day dots, balloons              | in testing |
 | [pixel-art](styles/pixel-art/)       | crisp pixels on a low-res grid, sprite maps, 10 fps loops                                | in testing |
 
