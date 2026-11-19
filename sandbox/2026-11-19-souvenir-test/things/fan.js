@@ -1226,11 +1226,11 @@ const Fan = (() => {
         const ALBERO = { lit: '#f6c860', base: '#e0a43c', shade: '#a8703a', deep: '#6a4234', glint: '#ffe49a' };
         const TILE = { lit: '#e08a58', shade: '#b05a40', deep: '#6a2c34', glint: '#f8b88a' };
         const GREEN = { lit: '#8fb85a', base: '#3f7f4a', shade: '#1f4f3c', deep: '#10302c', glint: '#cfe07c' };
-        const IRON = '#5a7c7c';
+        const IRON = '#456a6e';
         const qw = (X) => (X >= 250 ? 96 - (X - 250) * 0.014 : X >= 60 ? 100 : 100 - (60 - X) * 0.25); // the far bank's waterline
 
         // ---- sky: pale at the horizon, summer blue above, clouds with flat bases
-        B.box(-10, 90, W + 10, 320, B.vgrad(110, 277, [[0, '#f8eed2'], [0.12, '#e0ecdf'], [0.36, '#a9d2e8'], [0.68, '#76b0de'], [1, '#4a86c8']]));
+        B.box(-10, 90, W + 10, 320, B.vgrad(110, 277, [[0, '#f8eed2'], [0.12, '#e2ecdc'], [0.36, '#b0d2e2'], [0.68, '#82b2d8'], [1, '#5688c2']]));
         const cumulus = (cx, cy, w, h, sd) => {
             const r = Motion.rng('cum' + sd), n = Math.max(6, Math.round(w / 7)), lobes = [];
             for (let i = 0; i < n; i++) {
@@ -1261,7 +1261,14 @@ const Fan = (() => {
             B.line([[cx - w * 0.46, cy - 0.5], [cx + w * 0.5, cy - 0.5]], 1.1, 'rgba(110,128,190,0.6)', cx);
             B.line([[cx - w * 0.3, cy - 1.7], [cx + w * 0.34, cy - 1.7]], 0.5, 'rgba(240,238,230,0.5)', cx);
         };
-        for (const [cx, cy, w, h] of [[66, 214, 96, 27], [178, 246, 70, 18], [252, 194, 60, 15], [356, 238, 108, 27], [556, 246, 78, 19], [614, 192, 76, 23], [518, 200, 58, 20], [20, 168, 62, 13], [302, 152, 72, 10], [600, 146, 86, 11], [140, 170, 52, 9], [634, 258, 40, 9], [420, 262, 46, 9]]) cumulus(cx, cy, w, h, cx);
+        for (const [cx, cy, w, h] of [[66, 214, 96, 27], [178, 246, 70, 18], [252, 194, 60, 15], [356, 238, 108, 27], [578, 228, 104, 36], [622, 176, 52, 13], [520, 196, 44, 12], [20, 168, 62, 13], [302, 152, 72, 10], [600, 140, 92, 9], [140, 170, 52, 9], [420, 262, 46, 9], [508, 150, 38, 7]]) cumulus(cx, cy, w, h, cx);
+        // mares' tails, very high
+        for (const [X, Y, len] of [[430, 236, 44], [500, 262, 60], [540, 170, 36], [640, 262, 30], [110, 262, 70], [230, 262, 50], [300, 226, 40], [472, 176, 30]]) {
+            for (let k = 0; k < 4; k++) {
+                const y = Y + k * 1.5 + R(-0.4, 0.4), x = X + k * R(2, 5);
+                B.line(S.curve([[x, y], [x + len * 0.4, y + 1.2], [x + len * 0.8, y + 1.6], [x + len, y + 3.4 + R(0, 1.5)]], false, 5), R(0.4, 0.9), `rgba(255,253,246,${R(0.3, 0.6).toFixed(2)})`);
+            }
+        }
         for (const [X, Y, s] of [[404, 206, 1.7], [418, 198, 1.3], [498, 232, 1.5], [520, 214, 1.2], [536, 222, 1.6], [226, 222, 1.4], [120, 252, 1.5], [636, 232, 1.3], [470, 256, 1.1], [444, 250, 1.3]]) M.bird(X, Y, s, 'rgba(40,44,84,0.85)');
         for (const [X, Y, s] of [[484, 196, 1.1], [490, 204, 0.9], [478, 208, 1], [496, 190, 0.8], [440, 222, 0.9], [434, 214, 1], [90, 236, 1.2], [104, 244, 0.9], [150, 258, 1.1]]) M.bird(X, Y, s, 'rgba(252,250,244,0.95)'); // doves
         for (let k = 0; k < 6; k++) M.bird(590 + k * 7.5 - (k > 2 ? (k - 2) * 2 : 0), 228 + Math.abs(k - 2) * 3.2, 1.9 - Math.abs(k - 2) * 0.12, 'rgba(34,34,60,0.9)'); // storks, in their wedge
@@ -1530,12 +1537,12 @@ const Fan = (() => {
                     for (const tt of [t, 1 - t]) {
                         const gap = yd - 1.3 - archY(tt), rr = gap / 2 - 0.15, cx = lerp(x0, x1, tt);
                         if (rr < 0.45) continue;
-                        B.ring(S.ellipse(cx, archY(tt) + gap / 2, rr, rr, 12), 0.55, IRON, cx);
+                        B.ring(S.ellipse(cx, archY(tt) + gap / 2, rr, rr, 12), 0.7, IRON, cx);
                         B.line(S.ellipse(cx, archY(tt) + gap / 2, rr, rr, 12).slice(3, 7), 0.25, '#cfe4dc', cx);
                     }
                 }
                 B.line(arch.map(([x, y]) => [x, y - 0.5]), 0.5, 'rgba(30,50,60,0.8)');
-                B.line(arch, 1.15, IRON);
+                B.line(arch, 1.35, IRON);
                 B.line(arch.map(([x, y]) => [x, y + 0.35]), 0.3, '#cfe4dc');
                 // its reflection: a dark bow broken by the ripples
                 for (let k = 1; k < 20; k += 2) if (rnd() < 0.8) B.line([[arch[k][0] - 1.6, 2 * yw - arch[k][1] - 0.5], [arch[k][0] + 1.8, 2 * yw - arch[k][1] - 0.5]], 0.6, 'rgba(34,72,96,0.5)');
@@ -1571,6 +1578,28 @@ const Fan = (() => {
         }
 
         // ---- Triana: the bank at the bridge's end, painted fronts, the Capilla del Carmen
+        {
+            // Santa Ana's tower over the roofs: brick, its top clad in blue and white tiles
+            const TA = { lit: '#f0b888', base: '#d8926a', shade: '#9a5c58', deep: '#5e3448', glint: '#ffe0b8' };
+            let Xt = M.block(39, 46.5, 104, 138, TA, { side: 2.2, streaks: 3 });
+            for (let y = 108; y < 137; y += 1.3) B.line([[39, y], [46.5, y]], 0.16, S.rgba(TA.deep, 0.25), Xt);
+            for (const y of [121.5, 130]) {
+                B.box(38.4, y, 49.2, y + 1, STONE.glint, Xt);
+                B.line([[38.4, y - 0.1], [49.2, y - 0.1]], 0.35, S.rgba(TA.deep, 0.8), Xt);
+            }
+            for (const dx of [-1.7, 1.7]) M.win(42.75 + dx, 132, 1.4, 4, Xt, { sill: false, col: '#3c3458' });
+            B.dot(41.05, 134.4, 0.45, '#c9a24e', Xt);
+            B.dot(44.45, 134.4, 0.45, '#c9a24e', Xt);
+            M.win(42.75, 124, 1.3, 3, Xt, { col: '#3c3458' });
+            B.box(38.4, 138, 49.2, 139.2, STONE.glint, Xt);
+            Xt = M.block(40.4, 45.1, 139.2, 145, { ...STONE, lit: '#f6efe0' }, { X0: Xt, side: 1.2, streaks: 1, foot: 0.2 });
+            for (let k = 0; k < 4; k++) B.box(40.4 + k * 1.2, 140.4 + (k % 2) * 1.6, 41.4 + k * 1.2, 141.8 + (k % 2) * 1.6, '#3f6fae', Xt);
+            B.fill([[40, 145], [45.5, 145], [42.75, 152.5]], B.hgrad(40, 45.5, 147, [[0, '#f4efe0'], [1, '#6f94c4']], Xt), Xt);
+            for (const y of [146.4, 148.2, 150]) B.line([[40.6 + (y - 145) * 0.36, y], [44.9 - (y - 145) * 0.36, y]], 0.3, '#3f6fae', Xt);
+            B.line([[40, 145], [42.75, 152.5], [45.5, 145]], 0.38, ln(0.6), Xt);
+            B.line([[42.75, 152.5], [42.75, 155.6]], 0.3, ln(0.9), Xt);
+            B.line([[41.9, 154.4], [43.6, 154.4]], 0.3, ln(0.9), Xt);
+        }
         {
             const fronts = [['#f1b84a', '#fff4d8'], ['#f6efe0', '#e0a43c'], ['#e9a39a', '#fff4e8'], ['#a9cfe0', '#fbf6ea'], ['#f6efe0', '#3f7fae'], ['#d9794a', '#fff0d8'], ['#f3d27a', '#c8322f']];
             let k = 0;
@@ -1789,7 +1818,7 @@ const Fan = (() => {
         }
         {
             // the rowing boat: two aboard, the oars' rings on the water
-            const X0 = 118, y = 58;
+            const X0 = 78, y = 56;
             M.reflect(X0, y - 0.4, 6, () => [7, '#3a2a2a']);
             B.fill(S.curve([[X0 - 9, y + 2], [X0 - 6, y], [X0 + 6, y], [X0 + 9.4, y + 2.2], [X0 + 5, y + 1.6], [X0 - 5, y + 1.6]], true, 4), '#7a4a2e', X0);
             B.line([[X0 - 8.6, y + 1.9], [X0 - 5, y + 1.5], [X0 + 5, y + 1.5], [X0 + 9, y + 2.1]], 0.42, '#e8c890', X0);
@@ -1817,6 +1846,33 @@ const Fan = (() => {
             B.box(X0 + 5, y + 2.5, X0 + 10, y + 4.6, '#c8a060', X0);
             for (let k = 0; k < 5; k++) B.dot(X0 + 5.7 + k * 0.95, y + 4.8, 0.5, '#f0922e', X0);
             B.line([[X0 + 13, y + 2.6], [X0 + 20, qw(376) + 4]], 0.22, '#e8dcc0', X0); // its mooring rope
+        }
+        {
+            // the Sanlúcar steamer coming down from the bridge: a paddle box, a tall funnel, its smoke
+            const X0 = 126, y = 78;
+            M.reflect(X0, y - 0.4, 9, (d) => [d < 3 ? 12 : 4, d < 3 ? '#20283c' : '#f2ead6']);
+            B.fill(S.curve([[X0 - 14, y + 2.6], [X0 - 11.5, y], [X0 + 12, y], [X0 + 15.5, y + 3], [X0 + 10, y + 2.3], [X0 - 9, y + 2.2]], true, 4), '#20283c', X0);
+            B.line([[X0 - 13.4, y + 2.4], [X0 - 9, y + 2], [X0 + 10, y + 2.1], [X0 + 15, y + 2.8]], 0.45, '#f4efe4', X0);
+            B.line([[X0 - 11, y + 0.5], [X0 + 12.4, y + 0.5]], 0.35, '#c8322f', X0);
+            B.box(X0 - 8, y + 2.2, X0 + 7, y + 5, '#f6f0e2', X0);
+            for (let k = 0; k < 6; k++) B.box(X0 - 7 + k * 2.4, y + 3, X0 - 5.8 + k * 2.4, y + 4.2, '#3c4a6a', X0);
+            B.box(X0 - 8.6, y + 5, X0 + 7.6, y + 5.6, '#d9b48a', X0);
+            const pb = S.ellipse(X0 - 0.5, y + 1.6, 4.2, 4.2, 16).filter((p) => p[1] >= y + 1.5);
+            B.fill(pb, '#e8dcc8', X0);
+            B.line(pb, 0.35, ln(0.7), X0);
+            for (let k = 1; k < 6; k++) B.line([[X0 - 0.5, y + 1.7], [X0 - 0.5 + Math.cos((k / 6) * Math.PI) * 3.8, y + 1.7 + Math.sin((k / 6) * Math.PI) * 3.8]], 0.25, '#8a6a4a', X0);
+            B.box(X0 + 2.4, y + 5.6, X0 + 4.4, y + 12.4, '#1c1c2c', X0);
+            B.box(X0 + 2.4, y + 10, X0 + 4.4, y + 11.2, '#c8322f', X0);
+            B.line([[X0 + 2.5, y + 5.8], [X0 + 2.5, y + 12.2]], 0.3, '#6a6a84', X0);
+            B.line([[X0 - 6, y + 5.6], [X0 - 6, y + 10.5]], 0.3, '#4a3428', X0);
+            B.fill([[X0 - 6, y + 10.5], [X0 - 9.4, y + 10], [X0 - 6, y + 9.2]], '#c8322f', X0);
+            for (const [dx, dy, rr, a] of [[3.6, 14.4, 1.7, 0.6], [5.4, 17, 2.4, 0.5], [8.6, 19.4, 3.1, 0.4], [13, 21.4, 3.8, 0.3], [18.6, 22.6, 4.4, 0.2]]) {
+                B.dot(X0 + dx, y + dy, rr, `rgba(92,92,116,${a})`, X0);
+                B.dot(X0 + dx - 0.5, y + dy + 0.6, rr * 0.6, `rgba(238,236,240,${a * 0.8})`, X0);
+            }
+            M.fig(X0 - 3.4, y + 5.6, 2.3, '#2c3050', X0);
+            M.fig(X0 + 10, y + 2.4, 2.3, '#f4efe4', X0, { hat: '#e9d7a0' });
+            for (const rr of [17, 22, 28]) B.line([[X0 - rr, y - 1.2], [X0 - rr * 0.5, y - 2.2 - rr * 0.03], [X0 + rr * 0.3, y - 2.4 - rr * 0.03]], 0.3, 'rgba(232,248,246,0.7)', X0);
         }
         // the morning's glitter on the water under the sun's side
         for (let k = 0; k < 90; k++) {

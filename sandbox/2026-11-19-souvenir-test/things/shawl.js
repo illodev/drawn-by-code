@@ -736,7 +736,7 @@ const Shawl = (() => {
                 const P = field({ axis: Math.atan2(poly[12][1] - O[1], poly[12][0] - O[0]), zones: zonesOf(B, rnd, t * 0.03 + (rnd() - 0.5) * 0.06), cx: x, cy: y, R: r, rnd, line: 1.25 });
                 fan(g, poly, O, P);
                 if (t < 2 && r > 40 && rnd() < 0.3) fold(g, poly, O, axis, L, P, B, rnd);
-                else if (t === 0 && r > 54 && rnd() < 0.4) rims.push(poly.slice(3 + ((rnd() * 4) | 0), poly.length - 3 - ((rnd() * 4) | 0)).map((p) => [p[0] + (O[0] - p[0]) * 0.035, p[1] + (O[1] - p[1]) * 0.035]));
+                else if (t === 0 && r > 46 && rnd() < 0.6) rims.push(poly.slice(3 + ((rnd() * 4) | 0), poly.length - 3 - ((rnd() * 4) | 0)).map((p) => [p[0] + (O[0] - p[0]) * 0.035, p[1] + (O[1] - p[1]) * 0.035]));
             }
         });
         // a couched cord on some of the guard petals' edges
@@ -1130,22 +1130,22 @@ const Shawl = (() => {
             g.fillStyle = 'rgba(7,8,24,0.28)';
             traceAll(g, [G.poly], SX * 1.6, SY * 1.6);
             g.fill();
-            g.fillStyle = S.rgba(SILK.ivory[3], 0.5);
+            g.fillStyle = S.rgba(SILK.ivory[4], 0.6);
             traceAll(g, [G.poly]);
             g.fill();
-            bladeThreads(G, field({ zones: [[0.6, SILK.ivory, 0.06], [1, SILK.peri, 0.1]], cx: x, cy: y, R: r, rnd, slant: 1.1, gap: 2.6, base: 0, sheen: 0, tipZones: [[1, sk, 0.1]], tipFrom: 0.82 }), null);
-            lay(g, 0.8);
-            wire(g, G.M, SILK.ivory[7], 0.6, { void: 0 });
+            bladeThreads(G, field({ zones: [[0.6, SILK.ivory, 0.2], [1, SILK.peri, 0.2]], cx: x, cy: y, R: r, rnd, slant: 1.1, gap: 2.2, base: 0, sheen: 0, tipZones: [[1, sk, 0.16]], tipFrom: 0.8 }), null);
+            lay(g, 0.85);
+            wire(g, G.M, SILK.ivory[8], 0.7, { void: 0 });
             g.strokeStyle = VOID;
-            g.lineWidth = 0.8;
+            g.lineWidth = 1;
             traceAll(g, [G.poly]);
             g.stroke();
         }
         // the tail: a rope of rings; the thorax and the eyes in knots
         const tail = [];
         for (let i = 0; i <= 12; i++) tail.push(pol(x, y, r * 0.12 + (r * 1.35 * i) / 12, rot + Math.PI + 0.25 * Math.sin(i / 5)));
-        rope(g, tail, Math.max(1.6, r * 0.09), sk, { rnd, tone: 0.5, step: 1.9 });
-        knots(g, [x, y, Math.max(1.8, r * 0.13), ...pol(x, y, r * 0.2, rot), Math.max(1.5, r * 0.1)], sk, 0.5);
+        rope(g, tail, Math.max(2, r * 0.1), sk, { rnd, tone: 0.56, step: 1.9 });
+        knots(g, [x, y, Math.max(2.2, r * 0.13), ...pol(x, y, r * 0.2, rot), Math.max(1.8, r * 0.1)], sk, 0.56);
         knots(g, [...pol(x, y, r * 0.3, rot + 0.5), Math.max(1.1, r * 0.07), ...pol(x, y, r * 0.3, rot - 0.5), Math.max(1.1, r * 0.07)], SILK.gold, 0.66);
     }
 
@@ -1233,11 +1233,11 @@ const Shawl = (() => {
         // the head, stitched back from the bill; a cheek patch; the bill; the eye
         const hc = T(16.5, -12.5), head = S.ellipse(hc[0], hc[1], 7.9 * s, 7.3 * s, 20, T.ang(0));
         fan(g, head, T(22.6, -12.3), F([[0.42, C.face, 0], [1, C.crown, 0]], { axis: T.ang(Math.PI), full: true, cast: 2, base: 0.05, ls: 0.07 }));
-        const ck = T(15, -9.6);
-        scale(g, ck[0], ck[1], T.ang(Math.PI - 0.3), 4.6 * s, F([[1, C.face, 0.1]], { cast: 0, line: 0.7, base: 0.1 }));
+        // the stripe through the eye, from the bill to the nape
+        wire(g, S.curve([T(22.4, -13), T(19.3, -14.3), T(15, -14.6), T(11, -12.6)], false, 5), SILK.plum[1], 1.3 * s, { void: 0 });
         const sing = o.sing ?? rnd() < 0.4;
-        hatch(g, T.all(sing ? [[22.7, -11.6], [27.6, -8.6], [22.4, -9.9]] : [[22.7, -11.5], [28.2, -11], [22.5, -9.9]]), T.ang(0.3), F([[1, SILK.gold, -0.14]], { cast: 1, sheen: 0, base: 0, gap: 1.1, line: 0.9 }));
-        hatch(g, T.all([[22.6, -14.5], [30, -12.2], [22.9, -11.6]]), T.ang(0.15), F([[1, SILK.gold, 0.06]], { cast: 1, sheen: 0, base: 0, gap: 1.1, line: 0.9 }));
+        hatch(g, T.all(sing ? [[22.7, -11.6], [28.6, -7.8], [22.2, -9.4]] : [[22.7, -11.5], [29.6, -10.9], [22.4, -9.5]]), T.ang(0.3), F([[1, SILK.gold, -0.14]], { cast: 1, sheen: 0, base: 0, gap: 1.1, line: 0.9 }));
+        hatch(g, T.all([[22.4, -15], [31.6, -12.1], [22.9, -11.4]]), T.ang(0.15), F([[1, SILK.gold, 0.06]], { cast: 1, sheen: 0, base: 0, gap: 1.1, line: 0.9 }));
         eye(g, T(19.3, -13.9), 1.5 * s);
     }
 
@@ -1271,9 +1271,9 @@ const Shawl = (() => {
             const st = walk(f.pts, 2.3 * Math.max(0.8, s)), m = st.length;
             g.lineCap = 'round';
             g.lineJoin = 'round';
-            g.strokeStyle = 'rgba(7,8,24,0.3)';
-            g.lineWidth = 15 * s;
-            strokeLine(g, st.slice(4, m - 2), SX * 2, SY * 2);
+            g.strokeStyle = 'rgba(7,8,24,0.2)';
+            g.lineWidth = 14 * s;
+            if (m > 30) strokeLine(g, st.slice(Math.round(m * 0.3), m - 2), SX * 2, SY * 2);
             for (let i = 5; i < m - 6; i++) {
                 const p = st[i], q = st[i + 1], ta = Math.atan2(q[1] - p[1], q[0] - p[0]), k = i / m, bl = (7 + 7 * Math.sin(Math.PI * Math.pow(k, 0.8))) * s;
                 for (const sd of [-1, 1]) {
@@ -1440,12 +1440,20 @@ const Shawl = (() => {
         const top = (u) => 24 * (u / 59) * (u / 59);
         // the water: broken lines
         const water = [];
-        for (let k = 0; k < 9; k++) {
-            const v = 26 + k * 2.6 + rnd() * 1.4, u0 = -62 + rnd() * 60, len = 16 + rnd() * 34;
+        for (let k = 0; k < 13; k++) {
+            const v = 25 + k * 1.9 + rnd() * 1.2, u0 = -64 + rnd() * 50, len = 14 + rnd() * 30;
             water.push(...T(u0, v), ...T(u0 + len, v + (rnd() - 0.5)));
-            if (rnd() < 0.6) water.push(...T(u0 + len + 6, v), ...T(u0 + len + 14 + rnd() * 16, v));
+            if (rnd() < 0.8) water.push(...T(u0 + len + 5, v), ...T(u0 + len + 12 + rnd() * 26, v));
+            if (rnd() < 0.5) water.push(...T(u0 + len + 46, v), ...T(u0 + len + 54 + rnd() * 14, v));
         }
         segs(g, water, SILK.peri[6], 0.8);
+        segs(g, water.filter((_, i) => (i >> 2) % 3 === 0), SILK.ivory[8], 0.6);
+        const reeds = [];
+        for (let k = 0; k < 7; k++) {
+            const u = -66 + k * 2.6 + rnd() * 2, h = 9 + rnd() * 12;
+            reeds.push(...T(u, 27), ...T(u + (rnd() - 0.5) * 5, 27 - h));
+        }
+        segs(g, reeds, SILK.jade[6], 0.9);
         // the willow
         wire(g, [T(62, 24), T(60, 6), T(57, -12)], SILK.gold[3], 1.8);
         const strands = [];
@@ -1633,7 +1641,7 @@ const Shawl = (() => {
         // 0 · the hole of the dive, and what has a place of its own
         if (keepOut > 0) markDisc(0, 0, keepOut);
         const place = (a) => {
-            const it = put({ ...a, z: a.z ?? (a.k === 'butterfly' || a.k === 'dragonfly' ? 6 : a.k === 'pavilion' || a.k === 'bridge' ? 2.8 : 5), bx: a.x, by: a.y, br: (REACH[a.k] ?? 120) * (a.s ?? 1) });
+            const it = put({ ...a, z: a.z ?? (a.k === 'butterfly' || a.k === 'dragonfly' ? 6 : a.k === 'pavilion' || a.k === 'bridge' ? 4.6 : 5), bx: a.x, by: a.y, br: (REACH[a.k] ?? 120) * (a.s ?? 1) });
             for (const [mx, my, mr] of FOOT[a.k] ? FOOT[a.k](it) : [[a.x, a.y, 40]]) markDisc(mx, my, mr);
         };
         const fits = (a) => {
@@ -1654,7 +1662,7 @@ const Shawl = (() => {
                 // a long-tailed bird sits level or head up, never head down
                 if (k === 'peafowl') Object.assign(a, { rot: (a.flip ? 1 : -1) * (rnd() * 1.5 - 0.3), pose: rnd() < 0.4 ? 1 : 0, sag: 0.25 + rnd() * 0.5 });
                 if (k === 'songbird') Object.assign(a, { rot: (rnd() - 0.5) * 0.5, s: 1.2 + rnd() * 0.45 });
-                if (k === 'dragonfly') Object.assign(a, { rot: rnd() * TAU, r: 17 + rnd() * 8 });
+                if (k === 'dragonfly') Object.assign(a, { rot: rnd() * TAU, r: 24 + rnd() * 9 });
                 if (!fits(a)) continue;
                 place(a);
                 // long-tailed birds go in pairs: its mate faces it, a body's length off, looking back

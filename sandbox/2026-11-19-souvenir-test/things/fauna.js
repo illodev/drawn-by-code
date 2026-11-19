@@ -2512,8 +2512,6 @@ const Fauna = (() => {
         cast: { blur: 5, dx: 3, dy: 4.5, color: 'rgba(12,12,30,0.42)' },
     };
 
-    // @@CREATURES@@
-
     // ================================================================== water
     // One dew drop sitting on what is already painted: a lens. It is built on a copy of
     // the paint under it (magnified, darkened towards the light, lit on the far side),

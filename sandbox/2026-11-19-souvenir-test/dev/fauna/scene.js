@@ -71,7 +71,7 @@ Motion.scene({
         if (page === 0) {
             ground(NIGHT);
             ALL(true, 20);
-            Fauna.web(q, { x: 1560, y: 30, r: 150, a0: Math.PI / 2, a1: Math.PI, seed: 'corner' });
+            Fauna.web(q, { x: 1580, y: 250, r: 150, a0: Math.PI / 2, a1: Math.PI, seed: 'corner' });
             Fauna.web(q, { x: 1150, y: 760, to: [1420, 860], r: 70, seed: 'span' });
             // 3×
             Fauna.bee(q, { x: 220, y: 470, s: 3, line: true, pose: 'fly' });

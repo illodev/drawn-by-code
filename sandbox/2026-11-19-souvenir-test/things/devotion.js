@@ -732,8 +732,7 @@ const Devotion = (() => {
         const top = [];
         for (let i = 0; i <= 14; i++) top.push([shaftCX(CY0) - Math.cos((i / 14) * Math.PI) * shaftHW(CY0), CY0 - Math.sin((i / 14) * Math.PI) * RIM]);
         const box = { x: -30, y: CY0 - 8, w: 60, h: CY1 - CY0 + 16 };
-        const grey = (v) => `rgb(${Math.round(v * 255)},${Math.round(v * 255)},${Math.round(v * 255)})`;
-        const relief = memo(`shaft-pre/${seed}@${res}`, () => field(box, res, (q) => {
+        const runsUp = memo(`shaft-pre/${seed}@${res}`, () => field(box, res, (q) => {
             // every run a rounded cord: three nested passes, the taller the nearer its middle
             q.globalCompositeOperation = 'lighten';
             for (const [k, lv, bl] of [[1, 0.42, 0.5], [0.7, 0.78, 0.4], [0.4, 1, 0.35]]) {
@@ -744,7 +743,7 @@ const Devotion = (() => {
         return lathe(`shaft/${seed}`, rot, res, {
             prof, axis: shaftCX, top: top.slice(1, -1), ramp: WAX, pad: 8, under: 0,
             add: (g) => paintDrips(g, runs, 0.96, () => '#fff'),
-            bump: (xx, y) => relief(xx + shaftCX(y), y) * 2.7 + 0.1 * S.noise2(xx * 0.9, y * 0.05, 3),
+            bump: (xx, y) => runsUp(xx + shaftCX(y), y) * 2.7 + 0.1 * S.noise2(xx * 0.9, y * 0.05, 3),
             mottle: { amp: 0.03, freq: 0.03 },
             spec: { amp: 0.28, power: 22, from: 0.55, to: 0.98, color: '#fffdf2' },
             marks: (g) => {
@@ -1405,15 +1404,14 @@ const Devotion = (() => {
             ring(q, F([9.8, -139.4]), 5.2, 6, F.rot + 0.5, 1.5, Ag, 0.8);
             ring(q, F([0, -150.6]), 10.4, 10.8, F.rot, 2.7, Ag, 1);
             disc(q, F([0, -140.2]), 1.2, '#0c0c26');
-            return (a0) => {
+            return (a) => {
                 // smoke: out of the lantern, leaning, folding over, breaking up among the chains
-                const a = a0, F0 = F;
-                F = upright(F0, [0, 47]);
-                smoke(a, F, [[-3, 47], [-9, 30], [-5, 8], [7, -14], [9, -40], [-4, -62], [-16, -78], [-12, -98]], { w0: 3.4, w1: 19, alpha: 0.6, seed: seed + 1, threads: 7, blur: 2 });
-                smoke(a, F, [[8, 47], [17, 30], [15, 10], [26, -8], [39, -20], [46, -38], [40, -52]], { w0: 2.6, w1: 14, alpha: 0.46, seed: seed + 2, ph: 2, blur: 1.8 });
-                smoke(a, F, [[-25, 61], [-36, 46], [-32, 26], [-44, 8], [-52, -14], [-46, -30]], { w0: 2, w1: 11, alpha: 0.4, seed: seed + 3, ph: 4 });
-                smoke(a, F, [[-12, -90], [-24, -104], [-38, -106], [-44, -96], [-38, -88]], { w0: 5, w1: 4, alpha: 0.2, seed: seed + 4, threads: 3 });
-                smoke(a, F, [[-2, -60], [10, -76], [24, -80], [30, -70]], { w0: 5, w1: 3, alpha: 0.18, seed: seed + 5, threads: 3 });
+                const Fu = upright(F, [0, 47]);
+                smoke(a, Fu, [[-3, 47], [-9, 30], [-5, 8], [7, -14], [9, -40], [-4, -62], [-16, -78], [-12, -98]], { w0: 3.4, w1: 19, alpha: 0.6, seed: seed + 1, threads: 7, blur: 2 });
+                smoke(a, Fu, [[8, 47], [17, 30], [15, 10], [26, -8], [39, -20], [46, -38], [40, -52]], { w0: 2.6, w1: 14, alpha: 0.46, seed: seed + 2, ph: 2, blur: 1.8 });
+                smoke(a, Fu, [[-25, 61], [-36, 46], [-32, 26], [-44, 8], [-52, -14], [-46, -30]], { w0: 2, w1: 11, alpha: 0.4, seed: seed + 3, ph: 4 });
+                smoke(a, Fu, [[-12, -90], [-24, -104], [-38, -106], [-44, -96], [-38, -88]], { w0: 5, w1: 4, alpha: 0.2, seed: seed + 4, threads: 3 });
+                smoke(a, Fu, [[-2, -60], [10, -76], [24, -80], [30, -70]], { w0: 5, w1: 3, alpha: 0.18, seed: seed + 5, threads: 3 });
             };
         });
     }
