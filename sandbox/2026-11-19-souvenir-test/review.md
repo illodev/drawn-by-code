@@ -332,7 +332,7 @@ get into the guitar.
 - **The camera:** `z = −775 + 432 t`, nothing else. No ease at the start, no settling on
   the guitar, no lingering on the rosette, no acceleration into the mouth, no rise (`y`
   is zero for the whole film: the mouth is on the axis, where the camera already was) and
-  no roll. The night lifts and, at the end, comes back while the camera goes on. 13.5 s.
+  no roll. The night lifts and, at the end, comes back while the camera goes on (the last 0.9 s). 14 s.
 - **The focus:** 1000 ahead of the camera for the whole film, in place of a track that
   ran ahead, rested on the guitar and racked to the tree. Each layer's blur now depends
   only on its distance.
@@ -344,4 +344,11 @@ get into the guitar.
   full painting (the combs). (3) The blur's reduced copy keeps 3–6 px of blur and a fixed
   grid. (4) Exposures are counted against each layer's own blur (2–5 a frame, not 8).
   The same six frames now differ by a hair each.
+
+Checked on the render: the contact sheet (every stratum sharp as it passes 1000, the
+guitar on the axis, the mouth crossed at the same pace), and consecutive frames tiled at
+three places (mid-passage, through the mouth, the end). `review.mjs`: deterministic, no
+still stretches; it flags flat frames at 13.83 s, which is the film's last frames inside
+the fade back to the night, as meant. 336 frames at 1920 × 1080 in 18 minutes (23 before,
+for 360). The style's template has the same camera now and passes too.
 

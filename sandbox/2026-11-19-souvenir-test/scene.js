@@ -7,9 +7,9 @@ const DIR = 'sandbox/2026-11-19-souvenir-test/';
 // 680 apart: one every second and a half or so); FOCUS is how far ahead of the camera the
 // lens is set, for the whole film (each thing is sharp when it is that far, at the size it
 // was painted for, soft before and blurred as it goes by).
-const SPEED = 432, FOCUS = 1000, START = -775, LENGTH = 13.5;
+const SPEED = 432, FOCUS = 1000, START = -775, LENGTH = 14;
 // the night lifts in the first `lit` seconds; the last `out` seconds go back into the dark
-const TIMES = { lit: 1.6, out: 0.5 };
+const TIMES = { lit: 1.6, out: 0.9 };
 
 Motion.scene({
     fps: 24,

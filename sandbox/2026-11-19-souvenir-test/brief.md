@@ -1,7 +1,7 @@
 # souvenir-test · «Recuerdo de Andalucía»
 
 - **Style:** souvenir (new, in testing)
-- **Format:** 16:9 · 13.5 s style test (two of nine pictures; the length of the whole film does not matter, the user says) · 24 fps
+- **Format:** 16:9 · 14 s style test (two of nine pictures; the length of the whole film does not matter, the user says) · 24 fps
 - **Purpose / audience:** a style test for a new look the user asked for.
 - **The request (the user, translated):** «I want to make similar art, but not the same.
   It is only the reference for the style.» Asked what world ours should paint: «Andalusia,
@@ -85,7 +85,7 @@ focused 1000 ahead: the times below are when each stratum is that far, and sharp
 | 8.1 s | The house and the fair | The poster of the 1922 Concurso de Cante Jondo, cards, castanets, a matchbox, a score, lanterns overhead. |
 | 9.7 s | The guitar | The emblem proper: guitar, two painted fans, olive, carnations, swallows, the ribbon and its coins. The mouth, on the axis, shows the orchard. |
 | 12.0 s | (through the mouth) | The rosette, the strings, the dark of the box, at the same pace. |
-| 12.2–13 s | The lemon tree | Full day: lemons, blossom, a goldfinch, bees, dew. The night comes back over the last half second, the camera still going in. |
+| 12.2–13.1 s | The lemon tree | Full day: lemons, blossom, a goldfinch, bees, dew. The night comes back over the last second, the camera still going in. |
 
 ## How it is built
 
