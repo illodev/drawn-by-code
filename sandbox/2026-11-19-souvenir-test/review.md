@@ -322,3 +322,26 @@ embroidered from the far end of the passage.
 `review.mjs` on the final render: no warnings, deterministic; the only large jumps outside
 cuts are at 11.33 and 11.50 s, the camera going through the mouth. 360 frames at
 1920 × 1080 in 23 minutes (the steady advance needs five to eight exposures a frame).
+
+## Round 4 · one pace, on the axis, and a defocus that holds still
+
+The user, of the passage: the camera should keep the same rhythm all the time; the blurs
+flicker and are not well made; it should not pause on reaching the guitar, nor go up to
+get into the guitar.
+
+- **The camera:** `z = −775 + 432 t`, nothing else. No ease at the start, no settling on
+  the guitar, no lingering on the rosette, no acceleration into the mouth, no rise (`y`
+  is zero for the whole film: the mouth is on the axis, where the camera already was) and
+  no roll. The night lifts and, at the end, comes back while the camera goes on. 13.5 s.
+- **The focus:** 1000 ahead of the camera for the whole film, in place of a track that
+  ran ahead, rested on the guitar and racked to the tree. Each layer's blur now depends
+  only on its distance.
+- **The defocus (the kit's rig):** what flickered, found by tiling six consecutive frames
+  of a corner: frames 1–3 crisp with combs along every edge, frames 4–6 suddenly soft and
+  streaked. (1) The radial smear of the whole frame, sized by the nearest layer and
+  switched on past a threshold, is gone: each layer is softened by its own step between
+  exposures. (2) Layers are drawn from a pyramid of halves, never point-sampled from the
+  full painting (the combs). (3) The blur's reduced copy keeps 3–6 px of blur and a fixed
+  grid. (4) Exposures are counted against each layer's own blur (2–5 a frame, not 8).
+  The same six frames now differ by a hair each.
+

@@ -46,8 +46,11 @@ layer `D` (1000) away from the camera is drawn at its painted size, origin at th
 centre; nearer ones grow as `D / distance`. `rig.draw(g, t, camAt, { bg })` with
 `camAt(t) → { z, focus, aperture, roll }`: blur = aperture × |scale of the layer − scale of
 the focus plane|, and the frame is an open shutter (several instants averaged, as many as
-the motion needs, then smeared along the zoom). `S.track(keys, t)` joins camera keys with a
-monotone cubic (it never backs up). `S.finish(ctx, env, frame, { mist, lift, vignette,
+the sharpest moving thing needs; a layer that still jumps between two of them is softened
+by that step, on its own). Every layer is kept as a pyramid of halves and drawn from the
+level nearest its size on screen; blur is done on a reduced copy that sits on a fixed grid.
+The film's camera is `{ z: START + SPEED * t, focus: z + FOCUS }`: one pace, on the axis.
+`S.track(keys, t)` joins keys with a monotone cubic, for the rare value that does change. `S.finish(ctx, env, frame, { mist, lift, vignette,
 grain })` in the scene's `post`.
 
 **For volumes and many-part things** (lifted from the first film's painters):
@@ -138,9 +141,19 @@ library of this style, to read before painting anything like them:
   day), and **the entrance belongs to the subject**: the film fades up on something of
   its own world, already going in. No device borrowed from the reference (its star, its
   whip-in were rejected: «it says nothing to me»).
-- **A steady advance; nothing waits to be read** (about a stratum every 1.3 s). Focus a
-  stratum ahead of the camera, a small aperture: with strata this close a wide one leaves
-  everything soft.
+- **One pace from the first frame to the last, on the axis.** The user, of a camera that
+  eased in, settled on the guitar, rose to frame it and sped into its mouth: «the camera
+  should have the same rhythm all the time… it should not pause on reaching the guitar,
+  nor go up to get into the guitar». The depth is a straight line in time (432 units a
+  second in the first film: a stratum every second and a half), `x`, `y` and roll stay at
+  zero, and the lens is focused a fixed distance ahead for the whole film (1000: a thing
+  is sharp when it is at the size it was painted for). So every layer's blur depends only
+  on how far it is, the same for all: nothing racks, nothing breathes. No picture is held:
+  the emblem is one more stratum, in focus for less than a second like the rest, and the
+  film ends with the camera still going in (a short fade back into the night). What a
+  picture needs in order to be read is put in the painting (larger, on the axis, lit),
+  never bought with a slower camera. A small aperture: with strata this close a wide one
+  leaves everything soft.
 - **A packed picture is composed by its framings.** Work out what the first, widest
   framing shows of each layer and place every piece whole inside it; the push then
   carries the edges out and leads the eye to the hole. Nothing lies on what must be read
@@ -151,9 +164,6 @@ library of this style, to read before painting anything like them:
   against plain day, abstract against realistic; one fan at dusk and one at noon.
 - **The grade lifts the blacks** (`lift` screens a dark violet-grey over the frame) and a
   mist filter spreads the lights; nothing clips. Tooth on every layer, grain on the frame.
-- **The camera never stops and never backs up:** arrive decelerating, push slowly (the
-  picture grows a few per cent a second), accelerate into the hole. Focus stays on the
-  picture until the camera reaches it, then racks to the next.
 - **The hole is on the axis** (the layer's origin) and is cut through every layer of the
   picture behind it; what is seen through it from afar is the next picture, small, out of
   focus and glowing: a promise.
@@ -224,9 +234,9 @@ library of this style, to read before painting anything like them:
 - [ ] It is a passage: at any instant a near stratum leaving (cut by the frame, soft), one being read, the next through its middle, and the goal small at the end.
 - [ ] Nothing that is hidden behind a nearer layer shows before that layer has faded in (a far picture's plate as a rectangle in the night).
 - [ ] The hole is on the axis and cut clean through (fill opaque before `destination-out`).
-- [ ] The camera's track is monotone; focus racks only when the camera reaches the hole.
+- [ ] The camera's depth is linear in time, `x`, `y` and roll are zero, focus is a fixed distance ahead: no ease, no hold, no rack.
 - [ ] Tangents and overlaps: nothing in front crosses a thing it has nothing to do with (a wing over a moon, a wing over a fruit); what is held touches what holds it (crop the contact).
-- [ ] Rendered and watched moving: the smear has no separate ghosts, nothing pops on.
+- [ ] Rendered and watched moving, and six consecutive frames of a corner tiled side by side at 1:1: each blur grows by a hair from one frame to the next, no frame is suddenly softer or streaked, no ghosts, nothing pops on.
 
 ## Lessons
 
@@ -234,10 +244,12 @@ library of this style, to read before painting anything like them:
 - 2026-11-19 · souvenir-test · Brush strokes laid over a lit form as translucent colour flatten it. Paint them in greys on mid-grey and read them back as tone before the ramp (`marks`).
 - 2026-11-19 · souvenir-test · A hole cut with `destination-out` takes the alpha of the current `fillStyle`: set an opaque fill before cutting, or the next picture shows veiled.
 - 2026-11-19 · souvenir-test · Anything that must register with a thing on another layer (knots on a bridge, a key in a bill) belongs to that thing's layer, or is placed by reading the contact off a render (pixel → logical → the layer's units) and cropping it at 1:1.
-- 2026-11-19 · souvenir-test · A fast zoom needs more than averaged instants: twelve exposures of a whip-in read as twelve ghosts. After averaging, smear the sum along the zoom by the gap between two instants.
+- 2026-11-19 · souvenir-test · A fast zoom needs more than averaged instants: twelve exposures of a whip-in read as twelve ghosts. (The first cure, smearing the whole sum along the zoom, was wrong: see round 4.)
 - 2026-11-19 · souvenir-test round 2 · «Packed with details, worked at every pixel»: the first assembly was clean pieces on a quiet ground. What closed the gap, in order of effect: the ground painted (a shawl of eleven thousand motifs), the largest pieces given a subject of their own (a landscape on each fan), a ring of small true things round the emblem, a string of coins, then brushwork inside every fill.
 - 2026-11-19 · souvenir-test round 2 · Relief (coins, chased bronze, filigree) is layers of greys blurred as float fields and lit by `form`; colouring the types by height turns them into stickers: keep the patina on everything, rub only the top of the relief, and add (blurred height − height) to the tone.
 - 2026-11-19 · souvenir-test round 2 · Before painting on something half hidden (a fan behind a guitar), paint a numbered map over it in the real picture and compose in the gaps: the first landscapes put both monuments behind the olive.
 - 2026-11-19 · souvenir-test round 2 · Cost: a `ctx.filter` blur on each of hundreds of marks costs seconds; draw the group on a sheet and blur once. Layers the lens will blur are painted at a fraction of the size (`res`). Painting in `setup` holds the page's load event (the renderer gives up past 30 s): paint on the first frame, as the rig does.
 - 2026-11-19 · souvenir-test round 2 · `S.spray` floods everything outside its polygon inside the current clip: clip to that polygon first. `S.piece` takes `{ from, to, stops }`, not a `CanvasGradient`. `form`'s `tint` runs after `spec`: a tint that replaces colour kills the sheen.
 - 2026-11-19 · souvenir-test round 2 · Strokes that imitate a script read as letters as soon as two cross: for a texture of script use strokes that spring from one foot, tails under the line and a drawn-out baseline, and still have a reader of that script look. On objects of devotion, leave the band plain.
+- 2026-11-19 · souvenir-test round 4 · «The blurs flicker and are not well made.» Three causes, all of them a quantity that jumped between frames: (1) a smear of the whole frame along the zoom, sized by the nearest layer and switched on past a threshold, so the things in focus were streaked on some frames and not on others; (2) the blur's working copy halved at thresholds and was drawn straight from the full-size painting, point-sampled, so the paint's grain came through as combs that changed every frame; (3) the number of exposures followed the fastest layer. Now: each layer softened only by its own step between exposures, a pyramid of halves under every layer, the blur always 3–6 px of a copy on a fixed grid, and the exposures counted against each layer's own blur. Test for it with consecutive frames side by side, not with stills seconds apart.
+- 2026-11-19 · souvenir-test round 4 · A camera with keys has a rhythm of its own (it slows into each key) and a focus with keys breathes. A dive is `z = start + speed × t` and `focus = z + constant`; anything else is a decision to justify to the user first.

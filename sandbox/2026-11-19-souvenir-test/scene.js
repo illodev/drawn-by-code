@@ -2,13 +2,18 @@
 // «Recuerdo de Andalucía», style test: the emblem, and the dive through the guitar's mouth
 // into the lemon tree.
 const DIR = 'sandbox/2026-11-19-souvenir-test/';
-// When things happen (seconds): the night has lifted and the camera is under way, it frames
-// the guitar, it leaves it, it is at the mouth, it is inside the tree, the end.
-const TIMES = { lit: 1.6, guitar: 9.2, leave: 10.6, mouth: 11.2, tree: 11.9, end: 15 };
+// One camera move at one pace, on the axis, from the first frame to the last: it never slows
+// down, waits or turns towards anything. SPEED is in units of depth a second (the strata are
+// 680 apart: one every second and a half or so); FOCUS is how far ahead of the camera the
+// lens is set, for the whole film (each thing is sharp when it is that far, at the size it
+// was painted for, soft before and blurred as it goes by).
+const SPEED = 432, FOCUS = 1000, START = -775, LENGTH = 13.5;
+// the night lifts in the first `lit` seconds; the last `out` seconds go back into the dark
+const TIMES = { lit: 1.6, out: 0.5 };
 
 Motion.scene({
     fps: 24,
-    duration: 15,
+    duration: LENGTH,
     logical: [1600, 900],
     uses: [
         'styles/souvenir/souvenir.js',
@@ -25,7 +30,7 @@ Motion.scene({
         { family: 'Lora', src: 'fonts/Lora-Medium-latin.woff2' }, { family: 'Titan One', src: 'fonts/TitanOne-latin.woff2' },
     ],
     // one take: these only name its parts for the contact sheet
-    shots: [[0, 2.6, 'By the candle'], [2.6, 4.2, 'Tartessos and the sea'], [4.2, 5.6, 'Rome and the Goths'], [5.6, 7, 'Al-Andalus'], [7, 8.4, 'The house and the fair'], [8.4, 10.6, 'The guitar'], [10.6, 11.9, 'The dive'], [11.9, 15, 'The lemon tree']],
+    shots: [[0, 2.6, 'By the candle'], [2.6, 4.2, 'Tartessos and the sea'], [4.2, 5.7, 'Rome and the Goths'], [5.7, 7.3, 'Al-Andalus'], [7.3, 8.9, 'The house and the fair'], [8.9, 11.6, 'The guitar'], [11.6, 12.2, 'Through the mouth'], [12.2, LENGTH, 'The lemon tree']],
     setup(env) {
         // The first stratum is 1000 from where a camera at 0 would stand; the guitar is the
         // last one; the lemon tree is 1340 behind the guitar.
@@ -39,23 +44,15 @@ Motion.scene({
             // rectangle in the night)
             ...Tableau.lemons(ZL).map((l) => ({ ...l, far: [0.26, 0.34], brush: false })),
         ];
-        // The camera only ever goes in. It starts slowly by the candle while the night lifts,
-        // then keeps a steady pace through the strata (nothing waits to be read), settles a
-        // moment on the guitar, lingers on its rosette and goes through the mouth.
-        const T = TIMES;
-        const zKeys = [[0, -330], [T.lit, -150], [T.guitar, ZG - 1000], [T.leave, ZG - 880], [T.mouth, ZG - 440], [T.tree, ZL - 1010], [T.end, ZL - 860]];
-        // focus stays a stratum ahead of the camera, rests on the guitar, then racks to the tree
-        const fKeys = [[0, 1000], [T.lit, 1000], [T.lit + 1.2, 1300], [T.guitar, ZG], [T.mouth + 0.1, ZG], [T.tree - 0.15, ZL], [T.end, ZL]];
-        // by the guitar the camera looks a little below the axis, then comes back onto it
-        const yKeys = [[0, 0], [T.guitar - 1.2, 0], [T.guitar, 52], [T.leave - 0.2, 52], [T.mouth, 0], [T.end, 0]];
-        return { rig: Souvenir.rig(env, layers), zKeys, fKeys, yKeys };
+        return { rig: Souvenir.rig(env, layers) };
     },
     draw(g, t, env) {
         const st = env.state;
-        const cam = (t) => ({ z: Souvenir.track(st.zKeys, t), focus: Souvenir.track(st.fKeys, t), y: Souvenir.track(st.yKeys, t), aperture: 10, roll: 0.012 * Math.sin(t * 0.7) });
+        const cam = (t) => ({ z: START + SPEED * t, focus: START + SPEED * t + FOCUS, aperture: 10 });
         env.state.samples = st.rig.draw(g, t, cam, { bg: Tableau.NIGHT, maxSamples: 8, shutter: 0.36 });
         // the film fades up from the night (never from nothing: the flame is there at once)
-        const dark = 0.7 * (1 - Ease.inOut(Ease.seg(t, 0, TIMES.lit)));
+        // and goes back into it at the end, the camera still going in
+        const dark = Math.max(0.7 * (1 - Ease.inOut(Ease.seg(t, 0, TIMES.lit))), Ease.inOut(Ease.seg(t, LENGTH - TIMES.out, LENGTH)));
         if (dark > 0.004) {
             g.fillStyle = Tableau.NIGHT;
             g.globalAlpha = dark;

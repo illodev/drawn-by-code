@@ -113,13 +113,14 @@ Motion.scene({
                 },
             },
         ];
-        // the camera's depth and focus: arrive, push, go through the eye, settle
-        return { rig: S.rig(env, [...seal, ...grapes]), z: [[0, -260], [1.4, 60], [2.7, 1300], [4, 1380]], focus: [[0, 1000], [2.0, 1000], [2.6, 2340], [4, 2340]] };
+        return { rig: S.rig(env, [...seal, ...grapes]) };
     },
 
     draw(g, t, env) {
         const S = Souvenir, st = env.state;
-        st.rig.draw(g, t, (u) => ({ z: S.track(st.z, u), focus: S.track(st.focus, u), aperture: 15, roll: 0.012 * Math.sin(u * 0.8) }), { bg: '#2a0c20' });
+        // one pace, on the axis, the lens focused a fixed distance ahead: the seal is sharp
+        // as it passes that distance, then the grapes behind it
+        st.rig.draw(g, t, (u) => ({ z: -260 + 410 * u, focus: -260 + 410 * u + 1000, aperture: 15 }), { bg: '#2a0c20' });
     },
     post(ctx, t, env) {
         Souvenir.finish(ctx, env, Math.round(t * env.fps));

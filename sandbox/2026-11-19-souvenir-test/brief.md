@@ -1,7 +1,7 @@
 # souvenir-test · «Recuerdo de Andalucía»
 
 - **Style:** souvenir (new, in testing)
-- **Format:** 16:9 · 15 s style test (two of nine pictures; the length of the whole film does not matter, the user says) · 24 fps
+- **Format:** 16:9 · 13.5 s style test (two of nine pictures; the length of the whole film does not matter, the user says) · 24 fps
 - **Purpose / audience:** a style test for a new look the user asked for.
 - **The request (the user, translated):** «I want to make similar art, but not the same.
   It is only the reference for the style.» Asked what world ours should paint: «Andalusia,
@@ -71,18 +71,21 @@ references; the length does not matter. So the dive grows and alternates:
 An alternative for the order, also to debate: the dive as a descent through time, each
 picture an older layer, down to Tartessos.
 
-## Shot list (the style test: pictures 1 and 2; round 3: a passage)
+## Shot list (the style test: pictures 1 and 2; one move at one pace since round 4)
 
-| Time | Stratum | What comes into view |
+The camera goes in at 432 units a second from the first frame to the last, on the axis,
+focused 1000 ahead: the times below are when each stratum is that far, and sharp.
+
+| In focus at | Stratum | What comes into view |
 |---|---|---|
-| 0.0–2.6 | By the candle | The night lifts on a Holy Week candle and a thurible with its smoke; a Sephardic lamp, a comb, a rosary, a hand amulet, on a bank of embroidered flowers. The camera is already going in. |
-| 2.6–4.2 | Tartessos and the sea | The Carambolo gold, a stele, a murex and its purple, a Corinthian helmet, a pomegranate, a botijo. The guitar is seen, small, at the end. |
-| 4.2–5.6 | Rome and the Goths | A Baetican amphora, a mosaic of Italica, an eagle fibula, a votive crown, a Byzantine cross, a street tile. |
-| 5.6–7.0 | Al-Andalus | An astrolabe, the fawn of Madinat al-Zahra, cut tile, the books of its poets, a palette, fino. |
-| 7.0–8.4 | The house and the fair | The poster of the 1922 Concurso de Cante Jondo, cards, castanets, a matchbox, a score, lanterns overhead. |
-| 8.4–10.6 | The guitar | The emblem proper: guitar, two painted fans, olive, carnations, swallows, the ribbon and its coins. The mouth glows with the orchard. |
-| 10.6–11.9 | The dive | The rosette, the strings, the dark of the box. |
-| 11.9–15 | The lemon tree | Full day: lemons, blossom, a goldfinch, bees, dew. |
+| 1.8 s | By the candle | The night lifts on a Holy Week candle and a thurible with its smoke; a Sephardic lamp, a comb, a rosary, a hand amulet, on a bank of embroidered flowers. |
+| 3.4 s | Tartessos and the sea | The Carambolo gold, a stele, a murex and its purple, a Corinthian helmet, a pomegranate, a botijo. The guitar is seen, small, at the end. |
+| 4.9 s | Rome and the Goths | A Baetican amphora, a mosaic of Italica, an eagle fibula, a votive crown, a Byzantine cross, a street tile. |
+| 6.5 s | Al-Andalus | An astrolabe, the fawn of Madinat al-Zahra, cut tile, the books of its poets, a palette, fino. |
+| 8.1 s | The house and the fair | The poster of the 1922 Concurso de Cante Jondo, cards, castanets, a matchbox, a score, lanterns overhead. |
+| 9.7 s | The guitar | The emblem proper: guitar, two painted fans, olive, carnations, swallows, the ribbon and its coins. The mouth, on the axis, shows the orchard. |
+| 12.0 s | (through the mouth) | The rosette, the strings, the dark of the box, at the same pace. |
+| 12.2–13 s | The lemon tree | Full day: lemons, blossom, a goldfinch, bees, dew. The night comes back over the last half second, the camera still going in. |
 
 ## How it is built
 

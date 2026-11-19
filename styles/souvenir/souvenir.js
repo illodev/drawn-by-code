@@ -864,14 +864,41 @@ const Souvenir = (() => {
             }
             return cv.get(ly.id);
         };
+        // Each layer also as a pyramid of halves (every level a 2 × 2 average of the one
+        // before). A layer seen small, or blurred at a reduced size, is drawn from the level
+        // nearest its size on screen: drawn straight from the full painting it would be
+        // point-sampled, and the paint's grain would shimmer from frame to frame.
+        const mp = new Map();
+        const resOf = (ly) => env.k * over * (ly.res ?? 1);
+        const levelsOf = (ly) => {
+            if (!mp.has(ly.id)) {
+                const levels = [canvasOf(ly)];
+                while (levels.length < 7) {
+                    const p = levels[levels.length - 1];
+                    if (Math.min(p.width, p.height) < 32) break;
+                    const c = document.createElement('canvas');
+                    c.width = Math.ceil(p.width / 2);
+                    c.height = Math.ceil(p.height / 2);
+                    c.getContext('2d').drawImage(p, 0, 0, p.width, p.height, 0, 0, p.width / 2, p.height / 2);
+                    levels.push(c);
+                }
+                mp.set(ly.id, levels);
+            }
+            return mp.get(ly.id);
+        };
         const tmp = document.createElement('canvas');
         const tg = tmp.getContext('2d');
         const W = env.W, H = env.H, diag = Math.hypot(W, H) / 2;
+        // how far from the axis a layer reaches (what is off the frame does not count)
+        const reachOf = (ly) => Math.min(diag, Math.max(Math.hypot(ly.box.x, ly.box.y), Math.hypot(ly.box.x + ly.box.w, ly.box.y), Math.hypot(ly.box.x, ly.box.y + ly.box.h), Math.hypot(ly.box.x + ly.box.w, ly.box.y + ly.box.h)));
 
-        // One instant, no motion blur. g is in logical units.
-        function still(g, cam) {
+        // One instant. g is in logical units. `motion.dz` is how far the camera travels
+        // between this instant and the next one of the same exposure (see `draw`): a layer
+        // that jumps more than a pixel and a half between them is softened by that much,
+        // so the exposures never show as separate ghosts.
+        function still(g, cam, motion = null) {
             const z = cam.z, sF = D / Math.max(1, cam.focus - z), ap = cam.aperture ?? 12, roll = cam.roll ?? 0, cx = cam.x ?? 0, cy = cam.y ?? 0;
-            const k = pxScale(g);
+            const k = pxScale(g), dz = motion ? Math.abs(motion.dz) : 0;
             for (const ly of order) {
                 const d = ly.z - z;
                 if (d <= D * 0.025) continue;
@@ -885,60 +912,76 @@ const Souvenir = (() => {
                 // it fades as the camera goes through it, and (if asked) while it is still a speck
                 const fade = smooth(D * 0.03, D * 0.085, d) * (ly.alpha ?? 1) * (ly.far ? smooth(ly.far[0], ly.far[1], s) : 1);
                 if (fade <= 0.003) continue;
-                const blur = ap * Math.abs(s - sF) * (ly.blur ?? 1), bpx = blur * k;
-                const c = canvasOf(ly);
-                const place = (q) => {
+                const gap = dz > 0 && d > dz ? Math.abs(D / (d - dz / 2) - D / (d + dz / 2)) * reachOf(ly) * k : 0;
+                const bpx = Math.hypot(ap * Math.abs(s - sF) * (ly.blur ?? 1) * k, Math.max(0, gap - 1.5) * 0.5);
+                const levels = levelsOf(ly), res = resOf(ly);
+                // the level whose pixels land nearest one to one (never much smaller: bilinear
+                // sampling below about 0.6 skips pixels)
+                const place = (q, kq) => {
+                    const L = Math.max(0, Math.min(levels.length - 1, Math.floor(Math.log2(res / (s * kq)) + 0.35)));
+                    const c = levels[L], u = (1 << L) / res;
                     q.translate(W / 2, H / 2);
                     q.rotate(roll);
                     q.scale(s, s);
                     q.translate(-cx, -cy);
-                    q.drawImage(c, ly.box.x, ly.box.y, ly.box.w, ly.box.h);
+                    q.drawImage(c, ly.box.x, ly.box.y, c.width * u, c.height * u);
                 };
                 g.save();
                 g.globalAlpha = fade;
                 if (bpx < 0.5) {
-                    place(g);
+                    place(g, k);
                 } else {
-                    // blur at a reduced size: the wider the blur, the smaller the working copy
-                    const sh = Math.max(0, Math.min(4, Math.floor(Math.log2(bpx / 2.5))));
-                    const q = 1 / (1 << sh), pad = Math.ceil(bpx * 2.6);
-                    const tw = Math.ceil((env.px[0] + pad * 2) * q), th = Math.ceil((env.px[1] + pad * 2) * q);
-                    if (tmp.width !== tw || tmp.height !== th) {
-                        tmp.width = tw;
-                        tmp.height = th;
+                    // Blur at a reduced size, so that the blur is 3 to 6 pixels of the working
+                    // copy whatever its width: enough that halving the copy does not show, and
+                    // the copy sits on a fixed grid of the output (a whole number of its own
+                    // pixels of margin), so nothing shifts when the margin changes.
+                    const sh = Math.max(0, Math.min(5, Math.floor(Math.log2(bpx / 3))));
+                    const q = 1 / (1 << sh), pad = Math.ceil(bpx * q * 2.6);
+                    const tw = Math.ceil(env.px[0] * q) + pad * 2, th = Math.ceil(env.px[1] * q) + pad * 2;
+                    if (tmp.width < tw || tmp.height < th) {
+                        tmp.width = Math.max(tmp.width, tw);
+                        tmp.height = Math.max(tmp.height, th);
                     }
                     tg.setTransform(1, 0, 0, 1, 0, 0);
                     tg.filter = 'none';
                     tg.clearRect(0, 0, tw, th);
-                    tg.filter = `blur(${(bpx * q).toFixed(2)}px)`;
-                    tg.setTransform(k * q, 0, 0, k * q, pad * q, pad * q);
-                    place(tg);
+                    tg.save();
+                    tg.beginPath();
+                    tg.rect(0, 0, tw, th);
+                    tg.clip();
+                    tg.filter = `blur(${(bpx * q).toFixed(3)}px)`;
+                    tg.setTransform(k * q, 0, 0, k * q, pad, pad);
+                    place(tg, k * q);
+                    tg.restore();
                     g.imageSmoothingQuality = 'high';
-                    g.drawImage(tmp, -pad / k, -pad / k, tw / (k * q), th / (k * q));
+                    g.drawImage(tmp, 0, 0, tw, th, -pad / (k * q), -pad / (k * q), tw / (k * q), th / (k * q));
                 }
                 g.restore();
             }
         }
 
-        // A frame as a camera with an open shutter sees it: several instants averaged, as
-        // many as the fastest thing on screen needs. camAt(t) → cam.
+        // A frame as a camera with an open shutter sees it: several instants averaged.
+        // camAt(t) → cam. As many instants as the sharpest moving thing needs: between two of
+        // them nothing may jump more than a couple of pixels, or more than its own blur (what
+        // is near and far out of focus hides a wide step; what is in focus does not).
         const sub = document.createElement('canvas'), acc = document.createElement('canvas');
         function draw(g, t, camAt, { shutter = 0.5, bg = '#000', maxSamples = 12 } = {}) {
             const dt = shutter / env.fps;
-            const a = camAt(t - dt / 2), b = camAt(t + dt / 2);
-            // how far the nearest visible thing travels at the frame's edge, in pixels
-            let disp = 0;
+            const a = camAt(t - dt / 2), b = camAt(t + dt / 2), m = camAt(t);
+            const sF = D / Math.max(1, m.focus - m.z), ap = m.aperture ?? 12;
+            const slide = Math.hypot((b.x ?? 0) - (a.x ?? 0), (b.y ?? 0) - (a.y ?? 0)), turn = Math.abs((b.roll ?? 0) - (a.roll ?? 0)) * diag;
+            let need = 0;
             for (const ly of order) {
-                const da = ly.z - a.z, db = ly.z - b.z;
-                if (db <= D * 0.085 || (ly.hole && ly.hole * (D / db) > diag)) continue;
-                disp = Math.max(disp, Math.abs(D / db - D / da) * Math.min(diag, Math.hypot(ly.box.w, ly.box.h) / 2) * env.k);
+                const da = ly.z - a.z, db = ly.z - b.z, s = D / (ly.z - m.z);
+                if (Math.min(da, db) <= D * 0.085 || (ly.hole && ly.hole * s > diag) || (ly.far && s <= ly.far[0])) continue;
+                const disp = (Math.abs(D / db - D / da) * reachOf(ly) + slide * s + turn) * env.k;
+                need = Math.max(need, disp / Math.max(2, ap * Math.abs(s - sF) * (ly.blur ?? 1) * env.k));
             }
-            disp = Math.max(disp, Math.abs((b.roll ?? 0) - (a.roll ?? 0)) * diag * env.k);
-            const n = disp < 0.8 ? 1 : Math.min(maxSamples, Math.max(3, Math.ceil(disp / 7)));
+            const n = need < 0.4 ? 1 : Math.min(maxSamples, Math.max(2, Math.ceil(need)));
             if (n === 1) {
                 g.fillStyle = bg;
                 g.fillRect(0, 0, W, H);
-                still(g, camAt(t));
+                still(g, m);
                 return n;
             }
             for (const c of [sub, acc]) {
@@ -948,32 +991,18 @@ const Souvenir = (() => {
                 }
             }
             const sg = sub.getContext('2d'), ag = acc.getContext('2d');
+            const motion = { dz: (b.z - a.z) / n };
             for (let i = 0; i < n; i++) {
                 sg.setTransform(env.k, 0, 0, env.k, 0, 0);
                 sg.globalAlpha = 1;
                 sg.filter = 'none';
                 sg.fillStyle = bg;
                 sg.fillRect(0, 0, W, H);
-                still(sg, camAt(t - dt / 2 + (dt * (i + 0.5)) / n));
+                still(sg, camAt(t - dt / 2 + (dt * (i + 0.5)) / n), motion);
                 ag.globalAlpha = 1 / (i + 1);
                 ag.drawImage(sub, 0, 0);
             }
-            // between two instants the fastest things still jump several pixels: smear the
-            // sum along the zoom by that gap, or the exposures show as separate ghosts
-            const gap = disp / n;
-            if (gap > 2.5) {
-                const m = Math.min(10, Math.ceil(gap / 2.5)), rho = gap / (diag * env.k);
-                sg.setTransform(1, 0, 0, 1, 0, 0);
-                for (let j = 0; j < m; j++) {
-                    const f = 1 + rho * ((j + 0.5) / m - 0.5), w = env.px[0], h = env.px[1];
-                    sg.globalAlpha = 1 / (j + 1);
-                    sg.drawImage(acc, (w - w * f) / 2, (h - h * f) / 2, w * f, h * f);
-                }
-                sg.globalAlpha = 1;
-                g.drawImage(sub, 0, 0, W, H);
-            } else {
-                g.drawImage(acc, 0, 0, W, H);
-            }
+            g.drawImage(acc, 0, 0, W, H);
             return n;
         }
         return { still, draw, canvasOf, D };
