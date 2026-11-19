@@ -886,6 +886,12 @@ const Souvenir = (() => {
             }
             return mp.get(ly.id);
         };
+        const drop = (ly) => {
+            if (!cv.has(ly.id)) return;
+            for (const c of mp.get(ly.id) ?? [cv.get(ly.id)]) c.width = c.height = 0;
+            cv.delete(ly.id);
+            mp.delete(ly.id);
+        };
         const tmp = document.createElement('canvas');
         const tg = tmp.getContext('2d');
         const W = env.W, H = env.H, diag = Math.hypot(W, H) / 2;
@@ -901,6 +907,9 @@ const Souvenir = (() => {
             const k = pxScale(g), dz = motion ? Math.abs(motion.dz) : 0;
             for (const ly of order) {
                 const d = ly.z - z;
+                // a layer well behind the camera gives its memory back (a long film has a
+                // hundred of them); it is painted again if the film is ever run backwards
+                if (d < -D * 0.2) drop(ly);
                 if (d <= D * 0.025) continue;
                 const s = D / d;
                 if (ly.hole && ly.hole * s > diag * 1.08) continue;
