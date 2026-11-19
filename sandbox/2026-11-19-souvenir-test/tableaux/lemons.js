@@ -378,7 +378,7 @@ Tableau.lemons = (z0) => {
         {
             // the inside of the tree, closing the picture: green light, limbs, leaves in
             // masses, a few holes on the sky; darkest behind the rest where the dive goes on
-            id: 'lemons-plate', brush: false, z: z0 + 420, box: plate, res: SOFT.plate,
+            id: 'lemons-plate', brush: false, z: z0 + 420, box: plate, res: SOFT.plate, hole: Tableau.lemons.hole * 0.85,
             paint(g, res) {
                 const gp = gapAt(420), P = painter(g, res, SOFT.plate);
                 const gr = g.createLinearGradient(plate.x, plate.y, plate.x + plate.w * 0.6, plate.y + plate.h);
@@ -411,6 +411,20 @@ Tableau.lemons = (z0) => {
                 relight(g, plate, res, dapple('plate', plate, { pools: 34, suns: 40, flecks: 0, lift: 0.2, fall: 0.34, dark: [[gp.x, gp.y, gp.r * 1.9, 0.9]] }), { sun: 0.8 });
                 veil(g, plate, 'rgba(24,66,66,0.26)');
                 S.tooth(g, plate, { amp: 0.05 });
+                // the way out, on the axis, in the dark of the rest: a ragged hole among the
+                // leaves (the next picture is seen through it)
+                const rim = [];
+                for (let i = 0; i < 48; i++) {
+                    const a = (i / 48) * TAU, rr = Tableau.lemons.hole * (1 + 0.1 * S.noise2(Math.cos(a) * 2.2 + 7, Math.sin(a) * 2.2 + 3) + 0.05 * Math.sin(a * 9 + 1));
+                    rim.push([Math.cos(a) * rr, Math.sin(a) * rr]);
+                }
+                g.save();
+                g.globalCompositeOperation = 'destination-out';
+                g.fillStyle = '#000'; // opaque, whatever the last painter left
+                g.beginPath();
+                S.trace(g, S.curve(rim, true, 6));
+                g.fill();
+                g.restore();
             },
         },
         {
@@ -622,3 +636,6 @@ Tableau.lemons = (z0) => {
         },
     ];
 };
+// from the main plane to the plate, and the radius of the way out cut through the plate
+Tableau.lemons.depth = 420;
+Tableau.lemons.hole = 125;
