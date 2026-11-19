@@ -1779,11 +1779,13 @@ const Heirlooms = (() => {
                 const at = (t) => [lerp(A[0], B[0], t) + sag * Math.sin(Math.PI * t) * -Math.sin(a0), lerp(A[1], B[1], t) + sag * Math.sin(Math.PI * t) * Math.cos(a0)];
                 const cs = [];
                 for (let i = 0; i < n; i++) cs.push(at((i + 0.5) / n));
-                const skip = (i) => leaf >= 0 && i > leaf && i < leaf + 3;
+                // (a short chain carries its leaf higher up; one too short carries none)
+                const lf = leaf >= 0 && n >= 7 ? Math.min(leaf, n - 5 - ((n - 5) % 2)) : -1;
+                const skip = (i) => lf >= 0 && i > lf && i < lf + 3;
                 for (let i = 0; i < n; i += 2) if (!skip(i)) link(d, cs[i], a0 + (r() - 0.5) * 0.24, false, k);
-                if (leaf >= 0 && leaf + 3 < n) {
+                if (lf >= 0) {
                     // a leaf of sheet gold, pierced, with an eye at each end
-                    const c = lerpP(cs[leaf + 1], cs[leaf + 2], 0.5), ca = Math.cos(a0), sa = Math.sin(a0);
+                    const c = lerpP(cs[lf + 1], cs[lf + 2], 0.5), ca = Math.cos(a0), sa = Math.sin(a0);
                     const M = (u, v) => [c[0] + ca * u - sa * v, c[1] + sa * u + ca * v];
                     const pts = S.curve([M(-8, 0), M(-5.5, -2.2), M(-1, -4.4), M(3.5, -3.6), M(8, 0), M(3.5, 3.6), M(-1, 4.4), M(-5.5, 2.2)], true, 5);
                     const p = like(d);
