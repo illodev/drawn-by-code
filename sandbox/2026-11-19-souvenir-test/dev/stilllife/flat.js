@@ -64,7 +64,34 @@ const THINGS = (W) => {
         St.cabbage(q, { x: 130, y: -340 });
         St.fly(q, { x: -270, y: -230, rot: 0.6, s: 1.2 });
     };
+    // the three things of the last stratum, alone, at 2×
+    const dark = (q) => St.wall(q, { x: -420, y: -240, w: 840, h: 480 }, { seed: 'flat2', lamp: () => 0.12, open: null });
+    const focus = [
+        (q) => {
+            q.scale(2, 2);
+            dark(q);
+            St.hangString(q, [0, -260], [0, -150], { seed: 'c' });
+            St.cabbage(q, { x: 0, y: -150, s: 1, seed: 'win' });
+        },
+        (q) => {
+            q.scale(2, 2);
+            dark(q);
+            const L = St.ledge(q, { x0: -420, x1: 420, y: 170, face: 60, d: 300, seed: 'fq' });
+            St.hangString(q, [-140, -260], [-140, -150], { seed: 'q' });
+            St.quince(q, { x: -140, y: -150, s: 1.15, seed: 'win' });
+            St.fly(q, { x: -118, y: -60, rot: 0.7, s: 1.25 });
+            const sp = St.quinceSprite(St.resOf(q), 'h1', 1.45);
+            Souvenir.put(q, sp, { x: 190 + 70 * Math.sin(1.45), y: 130 - 58 - 70 * Math.cos(1.45), rot: 1.45 });
+        },
+        (q) => {
+            q.scale(2, 2);
+            dark(q);
+            St.ledge(q, { x0: -420, x1: 420, y: 150, face: 60, d: 300, seed: 'fc' });
+            St.cardoon(q, [340, 130], [-60, 92], { seed: 'win' });
+        },
+    ];
     return [
+        ...focus,
         (q) => larder(q),
         (q) => {
             q.scale(2, 2);

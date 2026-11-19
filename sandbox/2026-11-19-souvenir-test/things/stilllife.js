@@ -2119,66 +2119,85 @@ const Still = (() => {
     function quinceSprite(res, seed, rot = 0) {
         return memo(`quince@${res}/${seed}/${rot.toFixed(2)}`, () => {
             const r = Motion.rng('quince' + seed), sd = S.seedOf('quince' + seed);
-            // hanging: the stalk at the top (y = 0), the calyx at the bottom. A pear's profile:
-            // a short neck under the stalk, sloping shoulders, the body widest low down, the
-            // bottom rounded and bossed round the calyx
-            const pear = (t) => (t < 0.6 ? 0.3 + 0.7 * Math.pow(Math.sin((Math.PI / 2) * (t / 0.6)), 1.4) : Math.sqrt(Math.max(0, 1 - Math.pow((t - 0.6) / 0.4, 2))));
+            // hanging: the stalk at the top (y = 0), the calyx at the bottom. A quince is squat
+            // and lumpy: a slight neck under the stalk at most, broad shoulders, widest a little
+            // below the middle, the bottom flattened round the calyx, five bosses that bulge
+            // the outline unevenly
+            const H = 112, W = 66;
+            const prof = (t) => (t < 0.42 ? 0.26 + 0.74 * Math.pow(Math.sin((Math.PI / 2) * (t / 0.42)), 0.62) : Math.pow(Math.max(0, 1 - Math.pow((t - 0.42) / 0.58, 3.2)), 0.5));
+            const boss = (t, side) => 1 + (0.07 * Math.sin(t * 9.5 + side * 1.3 + (sd % 7)) + 0.05 * S.noise2(t * 6, side * 4, sd)) * smooth(0.12, 0.4, t);
             const right = [], left = [];
-            for (let i = 0; i <= 50; i++) {
-                const t = i / 50, y = 10 + t * 128, lump = 1 + 0.05 * S.noise2(t * 5, 1, sd) + (t > 0.75 ? 0.04 * Math.sin(t * 40) : 0);
-                right.push([58 * pear(t) * lump * (1 + 0.03 * S.noise2(t * 7, 3, sd)), y]);
-                left.push([-58 * pear(t) * lump * (1 + 0.03 * S.noise2(t * 7, 5, sd)), y]);
+            for (let i = 0; i <= 60; i++) {
+                const t = i / 60, y = 12 + t * H;
+                right.push([W * prof(t) * boss(t, 1), y]);
+                left.push([-W * prof(t) * boss(t, -1) * 0.97, y]);
             }
-            // the neck's top, rounded into the stalk's cavity
-            const pts = [[0, 4], ...right, ...left.reverse()];
+            // the shoulders round into the stalk's cavity; the calyx sits in a shallow pit
+            const pts = [[0, 9], ...right, [W * 0.18, 12 + H + 1], [0, 12 + H - 3], [-W * 0.18, 12 + H + 1], ...left.reverse()];
+            const CY = 12 + H - 2;
             const box = S.bbox([...pts, [0, -6]], 12);
-            const down = (x, y) => clamp(smooth(80, 20, y) * 0.9 + 0.5 * S.noise2(x * 0.05, y * 0.05, sd + 2) - 0.1);
+            // the grey down lies in patches, thickest round the stalk and the calyx, rubbed off
+            // where hands have taken it (two smooth glossy places)
+            const rubbed = (x, y) => Math.max(smooth(1, 0.55, Math.hypot((x + 20) / 26, (y - 62) / 22)), smooth(1, 0.6, Math.hypot((x - 30) / 18, (y - 92) / 14)));
+            const down = (x, y) => clamp((smooth(60, 18, y) * 0.7 + smooth(90, 122, y) * 0.5 + 0.55 * S.noise2(x * 0.045, y * 0.05, sd + 2) + 0.15) * (1 - rubbed(x, y)));
             return S.form({
                 box, res, seed: 'quince' + seed, light: S.lightFor(rot, LT), relief: 0.95,
                 mask: (g) => poly(g, pts),
                 height: (x, y) => {
-                    // bosses and slow lumps; the calyx pit and the stalk's cavity
-                    let h = 2.2 * S.noise2(x * 0.03, y * 0.03, sd) + 0.5 * S.noise2(x * 0.12, y * 0.12, sd + 1);
-                    h -= 9 * Math.exp(-(Math.pow(x / 10, 2) + Math.pow((y - 136) / 7, 2)));
-                    h -= 5 * Math.exp(-(Math.pow(x / 7, 2) + Math.pow((y - 4) / 8, 2)));
+                    // five bosses running down from the shoulders to the calyx, slow lumps, the
+                    // calyx's pit and the stalk's cavity
+                    const a5 = Math.atan2(x, Math.max(1, CY - y)), k = smooth(30, 66, y) * smooth(CY - 6, CY - 34, y);
+                    let h = 2.4 * k * Math.cos(a5 * 5 + 0.7) + 2.4 * S.noise2(x * 0.03, y * 0.03, sd) + 0.5 * S.noise2(x * 0.12, y * 0.12, sd + 1);
+                    h -= 8 * Math.exp(-(Math.pow(x / 13, 2) + Math.pow((y - CY) / 7, 2)));
+                    h -= 7 * Math.exp(-(Math.pow(x / 12, 2) + Math.pow((y - 12) / 9, 2)));
                     return h;
                 },
                 ramp: QUINCE, soft: 0.92,
                 stroke: { amp: 0.05, freq: 0.06, tone: 7 },
                 mottle: { amp: 0.04, freq: 0.03 },
-                spec: { amp: 0.25, power: 9, from: 0.5, to: 0.95, ragged: 0.7, color: '#fff8dc' },
+                spec: { amp: 0.32, power: 10, from: 0.5, to: 0.95, ragged: 0.7, color: '#fff8dc' },
                 tint: (x, y, tone, rgb) => {
+                    // where the down is rubbed off the skin is waxy and brighter gold
+                    toward(rgb, rgb[0] * 1.06 + 6, rgb[1] * 1.04 + 4, rgb[2] * 0.9, rubbed(x, y) * 0.6);
                     // green at the shoulders, the down a grey felt that dulls the gold
                     toward(rgb, rgb[0] * 0.78, rgb[1] * 0.92, rgb[2] * 0.5, smooth(50, 10, y) * 0.55);
                     const d = down(x, y);
-                    toward(rgb, (rgb[0] + rgb[1] + rgb[2]) / 3 + 30, (rgb[0] + rgb[1] + rgb[2]) / 3 + 26, (rgb[0] + rgb[1] + rgb[2]) / 3 + 12, d * 0.75);
+                    toward(rgb, (rgb[0] + rgb[1] + rgb[2]) / 3 + 18, (rgb[0] + rgb[1] + rgb[2]) / 3 + 18, (rgb[0] + rgb[1] + rgb[2]) / 3 + 8, d * 0.6);
                     // a soft brown bruise low on the shadow side
-                    const b = Math.hypot((x - 26) / 22, (y - 104) / 18) + 0.2 * S.noise2(x * 0.1, y * 0.1, sd + 3);
+                    const b = Math.hypot((x - 34) / 20, (y - 100) / 15) + 0.25 * S.noise2(x * 0.1, y * 0.1, sd + 3);
                     toward(rgb, rgb[0] * 0.55, rgb[1] * 0.42, rgb[2] * 0.3, smooth(1, 0.6, b) * 0.6);
                     // bounce from below, warm
                     toward(rgb, 110, 80, 30, smooth(0.3, 0.08, tone) * 0.4);
                 },
                 over: (g) => {
-                    // russet freckles
-                    for (let i = 0; i < 140; i++) {
-                        const a = r() * TAU, d = Math.sqrt(r()) * 52;
-                        disc(g, Math.cos(a) * d, 72 + Math.sin(a) * d * 1.05, 0.3 + r() * r() * 1.4, `rgba(96,58,16,${0.25 + r() * 0.4})`);
+                    // russet freckles, and a few larger scab spots
+                    for (let i = 0; i < 160; i++) {
+                        const a = r() * TAU, d = Math.sqrt(r()) * 56;
+                        disc(g, Math.cos(a) * d, 66 + Math.sin(a) * d * 0.95, 0.3 + r() * r() * 1.4, `rgba(96,58,16,${0.25 + r() * 0.4})`);
                     }
-                    // the felt of down: fine short hairs in patches
-                    for (let i = 0; i < 700; i++) {
-                        const x = (r() - 0.5) * 120, y = r() * 140;
-                        if (down(x, y) < 0.35 + r() * 0.3) continue;
+                    for (let i = 0; i < 4; i++) {
+                        const x = (r() - 0.5) * 80, y = 40 + r() * 60;
+                        oval(g, x, y, 2 + r() * 2, 1.5 + r() * 1.5, r() * 3, 'rgba(70,44,14,0.55)');
+                        disc(g, x - 0.6, y - 0.6, 0.7, 'rgba(240,210,150,0.5)');
+                    }
+                    // the felt of down: fine short hairs in patches, a pale bloom where thickest
+                    for (let i = 0; i < 900; i++) {
+                        const x = (r() - 0.5) * 132, y = 10 + r() * 120;
+                        if (down(x, y) < 0.3 + r() * 0.3) continue;
                         const a = r() * TAU;
                         S.ink(g, [[x, y], [x + Math.cos(a) * 2.2, y + Math.sin(a) * 2.2]], { w: 0.35, color: '#e6e0cc', alpha: 0.35, taper: [0.3, 0.8] });
                     }
-                    // the calyx: dry brown sepals in their pit, a few hairs of the stamens
+                    // the dried calyx: five leathery brown sepals curled in their pit, the dry
+                    // stamens a tuft between them
+                    disc(g, 0, CY, 7, 'rgba(40,24,8,0.6)');
                     for (let k = 0; k < 5; k++) {
-                        const a = (k / 5) * TAU + 0.3, tip = [Math.cos(a) * 11, 136 + Math.sin(a) * 6];
-                        poly(g, [[Math.cos(a - 0.5) * 4, 136 + Math.sin(a - 0.5) * 2.5], tip, [Math.cos(a + 0.5) * 4, 136 + Math.sin(a + 0.5) * 2.5]], '#5a3a18');
-                        S.ink(g, [[0, 136], tip], { w: 0.6, color: '#c8a070', alpha: 0.6 });
+                        const a = (k / 5) * TAU + 0.3, len = 11 + r() * 4, tip = [Math.cos(a) * len, CY + Math.sin(a) * len * 0.55], mid = [Math.cos(a + 0.25) * len * 0.6, CY + Math.sin(a + 0.25) * len * 0.36];
+                        poly(g, [[Math.cos(a - 0.45) * 4.5, CY + Math.sin(a - 0.45) * 2.6], mid, tip, [Math.cos(a + 0.45) * 4.5, CY + Math.sin(a + 0.45) * 2.6]], k % 2 ? '#5a3a18' : '#6e4a22');
+                        S.ink(g, [[0, CY], mid, tip], { w: 0.7, color: '#c8a070', alpha: 0.55, taper: [0.3, 1] });
+                        S.ink(g, [mid, tip].map(([px, py]) => [px + 0.8, py + 0.8]), { w: 0.6, color: '#1e1004', alpha: 0.6 });
                     }
-                    disc(g, 0, 136, 3, '#2a1806');
-                    for (let i = 0; i < 12; i++) S.ink(g, [[0, 136], [(r() - 0.5) * 7, 136 + (r() - 0.5) * 5]], { w: 0.35, color: '#8a6a40', alpha: 0.8 });
+                    disc(g, 0, CY, 3, '#2a1806');
+                    for (let i = 0; i < 14; i++) S.ink(g, [[0, CY], [(r() - 0.5) * 8, CY + (r() - 0.5) * 5]], { w: 0.35, color: '#8a6a40', alpha: 0.8 });
                 },
             });
         });
@@ -2200,8 +2219,10 @@ const Still = (() => {
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        line(g, [[0, 16], [-1, 4], [1, -8]], 6, '#3a2a14');
-        line(g, [[-1.5, 12], [-2, 0]], 1.4, 'rgba(200,170,120,0.6)');
+        line(g, [[0, 18], [-1, 6], [1, -6]], 7, '#3a2a14');
+        line(g, [[-1.8, 15], [-2.2, 2]], 1.6, 'rgba(200,170,120,0.6)');
+        line(g, [[1.8, 16], [2, 4]], 1, 'rgba(10,6,2,0.6)');
+        disc(g, -0.5, 9, 0.9, 'rgba(220,196,150,0.8)');
         const leaf = memo(`qleaf@${res}/${seed}`, () => {
             const pts = [];
             for (let i = 0; i <= 30; i++) {
@@ -2236,136 +2257,208 @@ const Still = (() => {
     }
 
     // ------------------------------------------------------------------ the cabbage
-    // A cabbage hanging by its stalk: a tight blue-green head veined with pale ribs that
-    // spring from the stalk, its outer leaves loosened and curling out at their edges (their
-    // paler undersides showing), the waxy bloom, a hole eaten by a caterpillar, water caught
-    // in a leaf's fold.
+    // A cabbage hung by its stalk, as the Carthusians kept them: the head upside down under
+    // the cut stalk, built of separate leaves, each its own lit sheet laid over the last and
+    // shading it. Every leaf springs from the stalk: a thick pale midrib, veins branching off
+    // it to the margin and joined by a network of veinlets, the blade quilted between them.
+    // The inner leaves wrap the head tight, blue-grey under a waxy bloom; the outer ones,
+    // older, greener and yellowing at their ruffled, torn margins, peel away from the head and
+    // curl back. Caterpillar holes with a brown lip; a drop caught in a fold.
     const CABBAGE = [[0, '#020a08'], [0.16, '#071a14'], [0.3, '#112e22'], [0.44, '#1f4632'], [0.57, '#356246'], [0.7, '#548060'], [0.82, '#80a084'], [0.92, '#b4c8b0'], [1, '#dde8d8']];
-    function cabbageHead(res, seed) {
-        return memo(`cabhead@${res}/${seed}`, () => {
-            const r = Motion.rng('cab' + seed), sd = S.seedOf('cab' + seed), R = 92;
-            const pts = [];
-            for (let i = 0; i < 90; i++) {
-                const a = (i / 90) * TAU;
-                pts.push([Math.cos(a) * R * (1 + 0.04 * S.noise2(Math.cos(a), Math.sin(a), sd)), 100 + Math.sin(a) * R * 0.94]);
-            }
-            // the ribs: from the stalk (top) down and round the head
-            const ribAt = (x, y) => {
-                const dx = x, dy = y - 6, a = Math.atan2(dx, dy);
-                return Math.abs(Math.sin(a * 6.5 + 0.8 * S.noise2(x * 0.01, y * 0.01, sd)));
+    const CAB_OLD = [[0, '#040c06'], [0.16, '#0e1e10'], [0.3, '#1c3418'], [0.44, '#2e4c26'], [0.57, '#466638'], [0.7, '#64824e'], [0.82, '#8ea070'], [0.92, '#bcc69c'], [1, '#e2e6cc']];
+    // The head is a sphere of radius R about (0, CY) under the stalk (the stalk is its pole).
+    // A leaf lies on it from the pole down a meridian at azimuth phi (0 faces the eye), Dmax
+    // wide (in azimuth) and tmax long (in polar angle); `peel` lifts its free end off the
+    // ball. Each leaf is painted as its own sheet but lit as part of the ball, plus its own
+    // midrib, quilting and curled margin.
+    const CAB = { R: 92, CY: 104 };
+    function cabLeaf(res, key, L) {
+        return memo(`cabl@${res}/${key}`, () => {
+            const r = Motion.rng('cabl' + key), sd = S.seedOf('cabl' + key), { R, CY } = CAB;
+            const { phi, Dmax, tmax, peel = 0, old = false, curl = 0, holes = 0 } = L;
+            const Rt = (t) => R * (L.rk ?? 1) * (1 + peel * smooth(tmax * 0.35, tmax, t)) * (1 + 0.025 * Math.sin(t * 3 + (sd % 5)));
+            const tears = Array.from({ length: L.tears ?? 1 }, () => [tmax * (0.45 + r() * 0.5), r() < 0.5 ? -1 : 1]);
+            const D = (t, side) => {
+                const k = clamp(t / tmax);
+                let d = Dmax * Math.pow(Math.sin(Math.PI * Math.min(0.999, 0.05 + Math.pow(k, 0.8) * 0.95)), 0.65);
+                // a ruffled margin, wavier as it goes
+                d += Dmax * (0.04 + 0.08 * k) * (Math.sin(t * 22 + side * 2 + (sd % 7)) * 0.6 + 0.6 * S.noise2(t * 9, side * 3, sd)) * smooth(0.25, 0.6, k);
+                for (const [tt, ss] of tears) if (ss === side) d -= Dmax * 0.22 * Math.max(0, 1 - Math.abs(t - tt) / 0.05);
+                return Math.max(0.02, d);
             };
-            return S.form({
-                box: S.bbox(pts, 8), res, seed: 'cab' + seed, light: LT, relief: 0.95,
-                mask: (g) => poly(g, pts),
-                height: (x, y) => {
-                    const rib = ribAt(x, y);
-                    // leaves overlap in layers: a step where each leaf's edge lies
-                    const lat = (y - 100) / R + 0.18 * S.noise2(x * 0.02, y * 0.02, sd + 1);
-                    const step = 2.2 * (lat * 3.2 - Math.floor(lat * 3.2));
-                    return 2.4 * Math.pow(1 - rib, 6) + step * smooth(-0.6, 0.1, lat) + 0.4 * S.noise2(x * 0.15, y * 0.15, sd + 2);
-                },
-                ramp: CABBAGE, soft: 0.9,
-                stroke: { amp: 0.06, freq: 0.07, tone: 6 },
-                mottle: { amp: 0.05, freq: 0.03 },
-                spec: { amp: 0.2, power: 8, from: 0.5, to: 0.95, ragged: 0.8, color: '#e8f0f0' },
-                tint: (x, y, tone, rgb) => {
-                    // the bloom: a waxy blue-grey on the lit side
-                    toward(rgb, rgb[0] * 0.9 + 16, rgb[1] * 0.95 + 18, rgb[2] * 1.1 + 26, smooth(0.45, 0.8, tone) * 0.35);
-                    // the ribs, pale
-                    const rib = ribAt(x, y);
-                    toward(rgb, 206, 220, 180, Math.pow(1 - rib, 10) * 0.6 * smooth(0.2, 0.5, tone));
-                },
-                over: (g) => {
-                    // fine veins branching off the ribs
-                    for (let i = 0; i < 70; i++) {
-                        const a = (r() - 0.5) * 2.6, rr = 20 + r() * 70, x0 = Math.sin(a) * rr, y0 = 6 + Math.cos(a) * rr, b = a + (r() < 0.5 ? 0.7 : -0.7), l = 6 + r() * 14;
-                        S.ink(g, [[x0, y0], [x0 + Math.sin(b) * l, y0 + Math.cos(b) * l]], { w: 0.5, color: '#cfe0bc', alpha: 0.25, taper: [0.3, 1] });
-                    }
-                    // a caterpillar's hole with a brown lip
-                    oval(g, -30, 150, 6, 4, 0.4, '#04100a');
-                    g.strokeStyle = 'rgba(150,120,60,0.8)';
-                    g.lineWidth = 0.8;
-                    g.beginPath();
-                    g.ellipse(-30, 150, 6, 4, 0.4, 0, TAU);
-                    g.stroke();
-                    // water caught in a leaf's fold
-                    for (const [x0, y0, rr] of [[34, 158, 3.2], [40, 162, 1.6], [-50, 118, 2]]) drop(g, x0, y0, rr, { dark: [30, 60, 40], lit: [220, 240, 220] });
-                },
-            });
-        });
-    }
-    function cabbageLeaf(res, seed, rot, len, wid) {
-        return memo(`cableaf@${res}/${seed}/${rot.toFixed(2)}`, () => {
-            const r = Motion.rng('cl' + seed), sd = S.seedOf('cl' + seed);
-            // a broad leaf: base at (0, 0), along +x, its margin frilled and curled back
+            const P = (t, ph) => {
+                const q = clamp(ph, -Math.PI / 2, Math.PI / 2), rr = Rt(t);
+                return [rr * Math.sin(t) * Math.sin(q), CY - rr * Math.cos(t)];
+            };
             const pts = [];
-            for (let i = 0; i <= 40; i++) {
-                const u = i / 40;
-                pts.push([u * len, -wid * Math.pow(Math.sin(Math.PI * Math.min(1, u * 0.95 + 0.05)), 0.7) * (1 + 0.1 * Math.sin(u * 23 + sd) + 0.05 * Math.sin(u * 61 + sd * 2))]);
+            for (let i = 0; i <= 60; i++) {
+                const t = 0.03 + (i / 60) * (tmax - 0.03);
+                pts.push(P(t, phi + D(t, 1)));
             }
-            for (let i = 40; i >= 0; i--) {
-                const u = i / 40;
-                pts.push([u * len, wid * 0.8 * Math.pow(Math.sin(Math.PI * Math.min(1, u * 0.95 + 0.05)), 0.7) * (1 + 0.11 * Math.sin(u * 19 + 2 + sd) + 0.05 * Math.sin(u * 53 + sd))]);
+            for (let i = 60; i >= 0; i--) {
+                const t = 0.03 + (i / 60) * (tmax - 0.03);
+                pts.push(P(t, phi - D(t, -1)));
             }
-            return S.form({
-                box: S.bbox(pts, 8), res, seed: 'cl' + seed, light: S.lightFor(rot, LT), relief: 0.6,
+            const ramp = S.rampFn(old ? CAB_OLD : CABBAGE, 0.9), rgb = [0, 0, 0];
+            const sp = pixels({
+                box: S.bbox(pts, 6), res,
                 mask: (g) => poly(g, pts),
-                height: (x, y) => 1.4 * Math.sin(Math.atan2(y, x - len * 0.1) * 9) * smooth(0.1, 0.5, x / len) + 0.5 * S.noise2(x * 0.1, y * 0.1, sd) - 3 * smooth(4, 0, Math.abs(y)),
-                ramp: CABBAGE, soft: 0.9,
-                stroke: { amp: 0.07, freq: 0.1, tone: 5 },
-                edge: { rough: 1.5, freq: 0.25, amp: 0.8 },
-                tint: (x, y, tone, rgb, m) => {
-                    toward(rgb, rgb[0] * 0.9 + 16, rgb[1] * 0.95 + 18, rgb[2] * 1.1 + 24, smooth(0.45, 0.8, tone) * 0.3);
-                    // the margin curls back: its pale underside shows along the edge
-                    toward(rgb, 190, 210, 170, smooth(0.12, 0.02, m) * 0.6 * smooth(0.3, 0.6, x / len));
+                color: (x, y, out) => {
+                    // back from the page to the ball: the polar angle from the height, then the
+                    // azimuth from the width there
+                    let t = Math.acos(clamp(-(y - CY) / R));
+                    t = Math.acos(clamp(-(y - CY) / Rt(t)));
+                    const rr = Rt(t), st = Math.max(0.05, Math.sin(t)), sq = clamp(x / (rr * st), -1, 1), ph = Math.asin(sq), cq = Math.cos(ph);
+                    let n = [st * sq, -Math.cos(t), st * cq];
+                    // across the leaf: u in −1…1 from the midrib to the margin
+                    const d = D(t, ph > phi ? 1 : -1), u = clamp((ph - phi) / d, -1, 1), across = (ph - phi) * rr * st;
+                    const tph = [cq, 0, -sq];
+                    // the midrib stands proud, the blade quilts between the veins, the margin
+                    // curls up away from the ball
+                    const mw = 4 + 5 * (1 - t / tmax), dh = (-2 * across / (mw * mw)) * 4 * Math.exp(-Math.pow(across / mw, 2));
+                    const quilt = 0.25 * S.noise2(x * 0.09, y * 0.09, sd) + 0.12 * S.noise2(x * 0.3, y * 0.3, sd + 1);
+                    const cu = curl * smooth(0.72, 1, Math.abs(u)) * smooth(0.3, 0.8, t / tmax) * Math.sign(u);
+                    n = norm3([n[0] - tph[0] * (dh * 0.5 - cu * 0.6) + quilt * 0.3, n[1] + quilt * 0.25, n[2] - tph[2] * (dh * 0.5 - cu * 0.6)]);
+                    const lam = n[0] * LN[0] + n[1] * LN[1] + n[2] * LN[2];
+                    let tone = 0.5 + 0.5 * lam + 0.05 * S.noise2(x * 0.04, y * 0.04, sd + 2);
+                    // under the next layer of leaves, near the stalk, the dark of the head
+                    tone -= 0.18 * smooth(0.35, 0, t / tmax);
+                    ramp(clamp(tone), out);
+                    // the waxy bloom, rubbed off the midrib
+                    const bl = smooth(0.45, 0.85, tone) * (old ? 0.2 : 0.42) * (1 - 0.7 * Math.exp(-Math.pow(across / 5, 2)));
+                    toward(out, out[0] * 0.85 + 26, out[1] * 0.9 + 30, out[2] * 1.05 + 42, bl);
+                    if (old) toward(out, out[0] * 1.22 + 24, out[1] * 1.1 + 16, out[2] * 0.6, smooth(0.65, 0.98, Math.abs(u)) * smooth(0.4, 0.9, t / tmax) * 0.6);
+                    if (curl) toward(out, 200, 214, 186, smooth(0.86, 1, Math.abs(u)) * smooth(0.4, 0.85, t / tmax) * 0.5);
+                    // the margin's broken last stroke
+                    const e = Math.abs(u);
+                    return e > 0.94 ? smooth(1.0, 0.94, e + 0.05 * S.noise2(x * 0.4, y * 0.4, sd + 3)) : 1;
                 },
                 over: (g) => {
-                    S.ink(g, S.curve([[0, 0], [len * 0.35, -3], [len * 0.7, -2], [len * 0.95, -6]], false, 6), { w: 6, color: '#b8ccaa', alpha: 0.5, taper: [0.1, 1] });
-                    S.ink(g, S.curve([[0, 3], [len * 0.4, 1], [len * 0.9, -3]], false, 6), { w: 1.5, color: '#163020', alpha: 0.35, taper: [0.1, 1] });
-                    const rv = Motion.rng('cv' + seed);
-                    for (let k = 1; k < 8; k++) {
-                        const x0 = (k / 8) * len * 0.9;
+                    const sh = SD, tl = TL;
+                    // the veins: from the midrib out to the margin, each lit on one side, shaded
+                    // on the other, branching into veinlets
+                    const nv = L.veins ?? 6;
+                    for (let k = 0; k < nv; k++) {
+                        const t0 = tmax * (0.12 + (k / nv) * 0.72 + (r() - 0.5) * 0.04);
                         for (const side of [-1, 1]) {
-                            const e = [x0 + 22 + rv() * 8, side * wid * (0.55 + rv() * 0.15)], m = [x0 + 6, side * wid * 0.3];
-                            S.ink(g, S.curve([[x0, side * 2], m, e], false, 6), { w: 1.1, color: '#b8ccaa', alpha: 0.28, taper: [0.2, 1] });
-                            S.ink(g, S.curve([m, [m[0] + 10, m[1] + side * 6], [m[0] + 14, m[1] + side * 14]], false, 4), { w: 0.6, color: '#b8ccaa', alpha: 0.2, taper: [0.2, 1] });
+                            const t1 = Math.min(tmax * 0.97, t0 + 0.12 + r() * 0.08), bend = 0.6 + r() * 0.5, vp = [];
+                            for (let j = 0; j <= 10; j++) {
+                                const u = j / 10, tt = t0 + (t1 - t0) * Math.pow(u, bend);
+                                vp.push(P(tt, phi + side * D(tt, side) * 0.92 * u));
+                            }
+                            const w = 2.6 * (1 - 0.5 * t0 / tmax);
+                            S.ink(g, vp.map(([px, py]) => [px + sh[0] * 1.2, py + sh[1] * 1.2]), { w: w * 0.9, color: '#0a1c12', alpha: 0.28, taper: [0.2, 1] });
+                            S.ink(g, vp, { w, color: old ? '#c8d0a8' : '#b8ccb6', alpha: 0.45, taper: [0.2, 1] });
+                            for (let j = 3; j < 9; j += 3) {
+                                const p = vp[j], e = P(t0 + (t1 - t0) * (j / 10) + 0.05 * (r() + 0.3), phi + side * D(t0, side) * (0.3 + r() * 0.5));
+                                S.ink(g, [p, [(p[0] + e[0]) / 2 + (r() - 0.5) * 3, (p[1] + e[1]) / 2], e], { w: 0.7, color: '#bccdb0', alpha: 0.22, taper: [0.2, 1] });
+                            }
                         }
                     }
+                    // the midrib down the meridian: thick and pale, grooved
+                    const mr = [];
+                    for (let j = 0; j <= 24; j++) mr.push(P(0.04 + (j / 24) * (tmax * 0.96 - 0.04), phi));
+                    S.ink(g, mr.map(([px, py]) => [px + sh[0] * 2.2, py + sh[1] * 2.2]), { w: 8, color: '#081a10', alpha: 0.24, taper: [0, 1] });
+                    S.ink(g, mr, { w: 8, color: old ? '#c8d0aa' : '#bccebc', alpha: 0.5, taper: [0, 1] });
+                    S.ink(g, mr.map(([px, py]) => [px + tl[0] * 1.8, py + tl[1] * 1.8]), { w: 2, color: '#f2f6ec', alpha: 0.45, taper: [0, 1] });
+                    S.ink(g, mr.map(([px, py]) => [px - tl[0] * 1.4, py - tl[1] * 1.4]), { w: 0.7, color: '#4a6a50', alpha: 0.55, taper: [0, 1] });
+                    // the bloom as dust
+                    for (let i = 0; i < 160; i++) {
+                        const tt = r() * tmax, p = P(tt, phi + (r() * 2 - 1) * D(tt, 1) * 0.9);
+                        disc(g, p[0], p[1], 0.3 + r() * 0.5, `rgba(220,232,236,${0.08 + r() * 0.12})`);
+                    }
+                    if (L.scar) {
+                        const p = P(tmax * 0.6, phi + D(tmax * 0.6, 1) * 0.4);
+                        for (let k = 0; k < 9; k++) S.ink(g, [[p[0] + k * 1.6, p[1] - 6 + Math.sin(k) * 3], [p[0] + k * 1.6 + 2, p[1] + 6 + Math.cos(k) * 3]], { w: 1.1, color: '#a8a070', alpha: 0.3 });
+                    }
                 },
+            });
+            if (holes) {
+                const q = sp.canvas.getContext('2d'), rs = sp.canvas.width / sp.box.w;
+                q.setTransform(rs, 0, 0, rs, -sp.box.x * rs, -sp.box.y * rs);
+                for (let i = 0; i < holes; i++) {
+                    const tt = tmax * (0.4 + r() * 0.45), side = r() < 0.5 ? -1 : 1, c = P(tt, phi + side * D(tt, side) * (0.3 + r() * 0.35)), rh = 3 + r() * 4.5;
+                    const hp = Array.from({ length: 11 }, (_, k) => {
+                        const a = (k / 11) * TAU, rr = rh * (0.7 + 0.5 * r());
+                        return [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr * 0.8];
+                    });
+                    q.globalCompositeOperation = 'source-atop';
+                    poly(q, hp.map(([px, py]) => [c[0] + (px - c[0]) * 1.22, c[1] + (py - c[1]) * 1.22]), 'rgba(130,110,58,0.6)');
+                    q.globalCompositeOperation = 'destination-out';
+                    poly(q, hp, '#000');
+                }
+                q.globalCompositeOperation = 'source-over';
+            }
+            return sp;
+        });
+    }
+    // the dark core of the head, seen only in the gaps between the leaves
+    function cabbageCore(res, seed) {
+        return memo(`cabcore@${res}/${seed}`, () => {
+            const pts = [];
+            for (let i = 0; i < 80; i++) {
+                const a = (i / 80) * TAU;
+                pts.push([Math.cos(a) * CAB.R * 0.98, CAB.CY + Math.sin(a) * CAB.R * 0.98]);
+            }
+            return S.form({
+                box: S.bbox(pts, 6), res, seed: 'core' + seed, light: LT, relief: 0.95,
+                mask: (g) => poly(g, pts), ramp: CABBAGE.map(([t, c]) => [t, S.mix(c, '#000000', 0.45)]), soft: 0.9,
+                stroke: { amp: 0.05, freq: 0.08, tone: 5 },
             });
         });
     }
     function cabbage(g, o = {}) {
         const { x = 0, y = 0, s = 1, seed = 'a' } = o, res = resOf(g, s);
+        const r = Motion.rng('cabbage' + seed), PI = Math.PI;
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        // the stalk, cut, with the string round it
-        rod(g, [0, -2], [0, 22], () => 9, (n, u, v, rgb) => {
-            const lam = Math.max(0, n[0] * LN[0] + n[1] * LN[1] + n[2] * LN[2]);
-            rgb[0] = 30 + 150 * lam;
-            rgb[1] = 44 + 170 * lam;
-            rgb[2] = 30 + 120 * lam;
+        // far to near: the old outer leaves at the sides, peeling away from the head; the
+        // head's own leaves wrapping it tight, from the edges in; two old leaves in front,
+        // come loose at their ends
+        const leaves = [
+            { phi: -1.36, Dmax: 0.72, tmax: 0.9 * PI, peel: 0.3, old: true, curl: 0.9, tears: 2, holes: 1, veins: 7 },
+            { phi: 1.38, Dmax: 0.7, tmax: 0.88 * PI, peel: 0.3, old: true, curl: 0.9, tears: 2, veins: 7 },
+            { phi: -0.98, Dmax: 0.66, tmax: 0.94 * PI, veins: 7 },
+            { phi: 0.94, Dmax: 0.68, tmax: 0.95 * PI, veins: 7 },
+            { phi: -0.36, Dmax: 0.62, tmax: 0.97 * PI, holes: 1, veins: 7 },
+            { phi: 0.4, Dmax: 0.6, tmax: 0.96 * PI, veins: 7 },
+            { phi: 0.02, Dmax: 0.52, tmax: 0.98 * PI, veins: 7 },
+            { phi: -0.74, Dmax: 0.64, tmax: 0.68 * PI, peel: 0.1, old: true, curl: 0.7, tears: 2, holes: 2, scar: true, veins: 6 },
+            { phi: 0.66, Dmax: 0.58, tmax: 0.6 * PI, peel: 0.12, old: true, curl: 0.7, tears: 1, holes: 1, veins: 5 },
+        ];
+        S.put(g, cabbageCore(res, seed), { x: 0, y: 0 });
+        leaves.forEach((L, i) => {
+            const lf = cabLeaf(res, seed + i, { ...L, Dmax: L.Dmax * (0.94 + r() * 0.12), rk: 0.97 + r() * 0.07 + (L.old ? 0.03 : 0) });
+            if (i > 1) {
+                // each leaf shades the ones it lies on
+                g.save();
+                g.globalCompositeOperation = 'source-atop';
+                S.put(g, shadowOf(lf, 4), { x: SD[0] * 5, y: SD[1] * 5, alpha: 0.6 });
+                g.restore();
+            }
+            S.put(g, lf, { x: 0, y: 0 });
         });
-        oval(g, 0, -2, 9, 3, 0, '#d6dcb8');
-        const head = cabbageHead(res, seed);
-        // loose outer leaves behind, curling out
-        for (const [a, len, wid, sd] of [[2.3, 150, 70, 'l1'], [0.9, 140, 64, 'l2']]) {
-            const lf = cabbageLeaf(res, seed + sd, a, len, wid);
-            S.put(g, lf, { x: 0, y: 30, rot: a });
-        }
-        S.put(g, head, { x: 0, y: 0 });
-        // and two in front, wrapping the head, their own shadows on it
-        for (const [a, len, wid, sd, ox, oy] of [[1.75, 130, 56, 'l3', -6, 34], [1.2, 118, 52, 'l4', 10, 40]]) {
-            const lf = cabbageLeaf(res, seed + sd, a, len, wid);
-            g.save();
-            g.globalCompositeOperation = 'source-atop';
-            S.put(g, shadowOf(lf, 6), { x: ox + 8, y: oy + 10, rot: a, alpha: 0.55 });
-            g.restore();
-            S.put(g, lf, { x: ox, y: oy, rot: a });
+        // water caught in a fold, a drop hanging from a leaf's end
+        drop(g, -34, 150, 3.2, { dark: [30, 60, 40], lit: [220, 240, 220] });
+        drop(g, -28, 156, 1.5, { dark: [30, 60, 40], lit: [220, 240, 220] });
+        drop(g, 46, CAB.CY + CAB.R * 0.96, 2.4, { dark: [30, 60, 40], lit: [220, 240, 220], sq: 1.4 });
+        // the stalk: cut square, pale and fibrous at its face, scars where leaves were stripped
+        rod(g, [0, -4], [0, 16], (u) => 11 - 1.5 * u, (n, u, v, out, px, py) => {
+            const lam = Math.max(0, n[0] * LN[0] + n[1] * LN[1] + n[2] * LN[2]);
+            out[0] = 34 + 150 * lam;
+            out[1] = 46 + 168 * lam;
+            out[2] = 30 + 118 * lam;
+            toward(out, 150, 140, 90, 0.25 * smooth(0.3, 0.8, S.noise2(px * 0.3, py * 0.1, 3)));
+        });
+        oval(g, 0, -4, 11, 3.6, 0, '#d8dcb8');
+        oval(g, 0, -4, 6.5, 2, 0, 'rgba(160,170,110,0.8)');
+        for (let k = 0; k < 9; k++) disc(g, Math.cos((k / 9) * TAU) * 8, -4 + Math.sin((k / 9) * TAU) * 2.6, 0.7, 'rgba(90,100,60,0.8)');
+        for (const [sx, sy] of [[-10, 10], [9, 12]]) {
+            oval(g, sx, sy, 6, 2.2, sx * 0.02, '#c4ccaa');
+            S.ink(g, [[sx - 5, sy + 1.4], [sx + 5, sy + 1.4]], { w: 0.8, color: '#3a4a30', alpha: 0.6 });
         }
         g.restore();
-        return head;
     }
 
     // ------------------------------------------------------------------ the melon
@@ -2491,37 +2584,145 @@ const Still = (() => {
     // silvery, cut square at the base (their U-shaped sections showing), spines on the edges,
     // the leaf blades deeply lobed and drooping at the tips. pts: the bunch's spine, from the
     // cut end to the leafy end.
+    // One cardoon stalk: a broad channel (a celery stalk much wider), its convex back turned
+    // up, fine parallel ribs down it that each catch the lamp, its two edges rolled in and
+    // set with small spines and the toothed remnants of the leaf blade; blanched ivory towards
+    // the base where it was cut, an earthy foot. path: from the cut base to the tip.
+    function cardoonStalk(g, path, w0, w1, o = {}) {
+        const sd = S.seedOf('cst' + (o.seed ?? 0)), r = Motion.rng('cst' + (o.seed ?? 0)), res = resOf(g, 1, 1.15);
+        const c = S.curve(path, false, 10), D = [0];
+        for (let i = 1; i < c.length; i++) D.push(D[i - 1] + Math.hypot(c[i][0] - c[i - 1][0], c[i][1] - c[i - 1][1]));
+        const LEN = D[D.length - 1], Wd = (t) => w0 + (w1 - w0) * t;
+        const nrm = (i) => {
+            const p = c[Math.max(0, i - 1)], q = c[Math.min(c.length - 1, i + 1)], l = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+            return [-(q[1] - p[1]) / l, (q[0] - p[0]) / l];
+        };
+        const L = [], R = [];
+        c.forEach((p, i) => {
+            const n = nrm(i), w = Wd(D[i] / LEN);
+            L.push([p[0] + n[0] * w, p[1] + n[1] * w]);
+            R.push([p[0] - n[0] * w, p[1] - n[1] * w]);
+        });
+        const outline = [...L, ...R.reverse()];
+        // where along it (t) and how far across (q in −1…1) a point is
+        const at = (x, y) => {
+            let best = 1e9, bt = 0, bv = 0, bn = [0, 1];
+            for (let i = 1; i < c.length; i++) {
+                const [ax, ay] = c[i - 1], [bx, by] = c[i], ex = bx - ax, ey = by - ay, l2 = ex * ex + ey * ey || 1;
+                const k = clamp(((x - ax) * ex + (y - ay) * ey) / l2), px = ax + ex * k, py = ay + ey * k, dd = (x - px) ** 2 + (y - py) ** 2;
+                if (dd < best) {
+                    best = dd;
+                    const l = Math.sqrt(l2);
+                    bn = [-ey / l, ex / l];
+                    bv = (x - px) * bn[0] + (y - py) * bn[1];
+                    bt = (D[i - 1] + k * l) / LEN;
+                }
+            }
+            return [bt, bv / Wd(bt), bn];
+        };
+        const NR = o.ribs ?? 9, RAMPC = S.rampFn([[0, '#070b08'], [0.18, '#18221a'], [0.34, '#36443a'], [0.5, '#5c6a5c'], [0.64, '#86947e'], [0.78, '#adb8a4'], [0.9, '#cfd6c6'], [1, '#eef0e6']], 0.95);
+        const sp = pixels({
+            box: S.bbox(outline, 8), res,
+            mask: (q) => poly(q, outline),
+            color: (x, y, rgb) => {
+                const [t, q0, n] = at(x, y), q = clamp(q0, -0.999, 0.999);
+                // the section: a flattened arch, the edges rolled down; the ribs on it
+                const slope = (-2.2 * q * q * q) / Math.sqrt(1 - Math.pow(Math.abs(q), 4) + 0.02) * 0.55;
+                const rib = 0.55 * Math.sin(q * NR * Math.PI + 0.3 * S.noise2(t * 12, q * 3, sd));
+                const G = slope + rib * smooth(0.98, 0.8, Math.abs(q));
+                const nn = norm3([n[0] * -G, n[1] * -G, 1]);
+                const lam = Math.max(0, nn[0] * LN[0] + nn[1] * LN[1] + nn[2] * LN[2]);
+                // the groove at the bottom of each rib holds a little dark
+                const groove = Math.pow(Math.abs(Math.cos(q * NR * Math.PI * 0.5)), 8);
+                let tone = 0.06 + lam * 0.95 - 0.1 * groove + 0.04 * S.noise2(x * 0.06, y * 0.06, sd);
+                RAMPC(clamp(tone), rgb);
+                // silvery: the crest of each rib frosted
+                toward(rgb, 232, 236, 226, smooth(0.7, 1, Math.abs(Math.sin(q * NR * Math.PI * 0.5 + 0.8))) * smooth(0.45, 0.85, tone) * 0.3);
+                // blanched towards the cut, ivory-green; an earthy foot; the leafy end greener
+                toward(rgb, rgb[0] * 1.2 + 44, rgb[1] * 1.16 + 40, rgb[2] * 0.92 + 18, smooth(0.34, 0.05, t) * 0.85);
+                toward(rgb, 96, 74, 46, smooth(0.045, 0.005, t) * 0.8);
+                toward(rgb, rgb[0] * 0.85, rgb[1] * 1.05, rgb[2] * 0.85, smooth(0.6, 1, t) * 0.4);
+                // the rolled edges: a dark lip on the shadow side, a pale one in the light
+                const edge = smooth(0.82, 0.97, Math.abs(q));
+                if (edge > 0) toward(rgb, q * (n[0] * SD[0] + n[1] * SD[1]) > 0 ? 20 : 214, q * (n[0] * SD[0] + n[1] * SD[1]) > 0 ? 26 : 220, q * (n[0] * SD[0] + n[1] * SD[1]) > 0 ? 20 : 204, edge * 0.55);
+            },
+            over: (q) => {
+                // earth on the foot, a few bruises
+                for (let i = 0; i < 40; i++) {
+                    const i0 = Math.floor(r() * c.length * 0.06), p = c[i0], n = nrm(i0), v = (r() * 2 - 1) * Wd(0) * 0.8;
+                    disc(q, p[0] + n[0] * v, p[1] + n[1] * v, 0.4 + r() * 1.2, `rgba(${r() < 0.5 ? '70,52,32' : '150,126,90'},${0.4 + r() * 0.4})`);
+                }
+                for (let i = 0; i < 3; i++) {
+                    const i0 = Math.floor((0.3 + r() * 0.6) * c.length), p = c[i0], n = nrm(i0), v = (r() * 2 - 1) * Wd(i0 / c.length) * 0.5;
+                    oval(q, p[0] + n[0] * v, p[1] + n[1] * v, 5 + r() * 4, 2 + r() * 2, Math.atan2(n[0], -n[1]), 'rgba(110,96,60,0.35)');
+                }
+            },
+        });
+        put(g, sp, 0, 0, 1);
+        // the spines along both edges, pointing out and towards the tip; the toothed remnants
+        // of the leaf blade in a few places
+        const spines = [];
+        for (let i = 2; i < c.length - 1; i++) {
+            if (D[i] / LEN < 0.18) continue;
+            for (const side of [-1, 1]) {
+                if (r() > 0.42) continue;
+                const n = nrm(i), w = Wd(D[i] / LEN), p = [c[i][0] + n[0] * w * side, c[i][1] + n[1] * w * side];
+                const tx = c[Math.min(c.length - 1, i + 1)][0] - c[i][0], ty = c[Math.min(c.length - 1, i + 1)][1] - c[i][1], tlen = Math.hypot(tx, ty) || 1, l = 3.5 + r() * 3.5;
+                spines.push([p, [p[0] + n[0] * side * l * 0.8 + (tx / tlen) * l * 0.6, p[1] + n[1] * side * l * 0.8 + (ty / tlen) * l * 0.6]]);
+            }
+        }
+        for (const [p, e] of spines) {
+            S.ink(g, [p, e].map(([x, y]) => [x + 0.6, y + 0.8]), { w: 0.9, color: '#0a0806', alpha: 0.45, taper: [0, 1] });
+            S.ink(g, [p, e], { w: 0.9, color: '#d8c890', alpha: 0.9, taper: [0, 1] });
+        }
+        for (let k = 0; k < (o.wings ?? 2); k++) {
+            const i0 = Math.floor((0.35 + r() * 0.5) * c.length), side = r() < 0.5 ? -1 : 1, n = nrm(i0), w = Wd(D[i0] / LEN);
+            const tx = c[Math.min(c.length - 1, i0 + 1)][0] - c[i0][0], ty = c[Math.min(c.length - 1, i0 + 1)][1] - c[i0][1], tlen = Math.hypot(tx, ty) || 1, ux = tx / tlen, uy = ty / tlen;
+            const fl = [], len = 26 + r() * 22;
+            for (let j = 0; j <= 10; j++) {
+                const u = j / 10, h = (5 + 9 * Math.sin(Math.PI * u)) * (j % 2 ? 0.55 : 1);
+                fl.push([c[i0][0] + n[0] * side * (w + h) + ux * u * len, c[i0][1] + n[1] * side * (w + h) + uy * u * len]);
+            }
+            const flap = [[c[i0][0] + n[0] * side * w * 0.9, c[i0][1] + n[1] * side * w * 0.9], ...fl, [c[i0][0] + n[0] * side * w * 0.9 + ux * len, c[i0][1] + n[1] * side * w * 0.9 + uy * len]];
+            poly(g, flap.map(([x, y]) => [x + SD[0] * 2, y + SD[1] * 2]), 'rgba(4,6,4,0.45)');
+            poly(g, flap, side * (n[0] * SD[0] + n[1] * SD[1]) > 0 ? '#4a5a4c' : '#8e9c88');
+            S.ink(g, fl, { w: 0.6, color: '#dfe6d2', alpha: 0.6 });
+            for (const p of fl.filter((_, j) => j % 2 === 0)) S.ink(g, [p, [p[0] + n[0] * side * 3 + ux * 2, p[1] + n[1] * side * 3 + uy * 2]], { w: 0.6, color: '#d8c890', alpha: 0.85, taper: [0, 1] });
+        }
+        // the cut: the channel's section, a pale crescent, its bundles a row of green dots,
+        // browned at the rim where it has dried
+        {
+            const p = c[0], n = nrm(0), q = c[1], ux = p[0] - q[0], uy = p[1] - q[1], ul = Math.hypot(ux, uy) || 1, w = Wd(0);
+            const cr = [], cr2 = [];
+            for (let j = 0; j <= 16; j++) {
+                const qq = (j / 16) * 2 - 1, bulge = Math.sqrt(1 - qq * qq);
+                cr.push([p[0] + n[0] * qq * w + (ux / ul) * bulge * w * 0.42, p[1] + n[1] * qq * w + (uy / ul) * bulge * w * 0.42]);
+                cr2.push([p[0] + n[0] * qq * w * 0.82 + (ux / ul) * bulge * w * 0.12, p[1] + n[1] * qq * w * 0.82 + (uy / ul) * bulge * w * 0.12]);
+            }
+            poly(g, [...cr, ...cr2.reverse()], '#dcdcb4');
+            S.ink(g, cr, { w: 1.4, color: '#8a7a4a', alpha: 0.8 });
+            for (let j = 1; j < 16; j += 2) {
+                const a = cr[j], b2 = cr2[16 - j];
+                disc(g, (a[0] * 2 + b2[0]) / 3, (a[1] * 2 + b2[1]) / 3, 1, 'rgba(80,100,60,0.85)');
+            }
+        }
+        return { tip: c[c.length - 1], dir: [(c[c.length - 1][0] - c[c.length - 4][0]), (c[c.length - 1][1] - c[c.length - 4][1])] };
+    }
     function cardoon(g, base, tip, o = {}) {
         const r = Motion.rng('cardoon' + (o.seed ?? 0)), sd = S.seedOf('cardoon' + (o.seed ?? 0));
         const ax = tip[0] - base[0], ay = tip[1] - base[1], L = Math.hypot(ax, ay), dx = ax / L, dy = ay / L, px = -dy, py = dx;
         const stalks = [];
-        for (let i = 0; i < 5; i++) stalks.push({ off: (i - 2) * 15 + (r() - 0.5) * 6, w: 11 + r() * 5, len: 0.78 + r() * 0.25, bend: (r() - 0.5) * 0.08, sd: i });
+        for (let i = 0; i < 5; i++) stalks.push({ off: (i - 2) * 22 + (r() - 0.5) * 8, w: 15 + r() * 6, len: 0.8 + r() * 0.22, bend: (r() - 0.5) * 0.1, sd: i });
         stalks.sort((a, b) => b.off - a.off);
         for (const st of stalks) {
             const p0 = [base[0] + px * st.off, base[1] + py * st.off], p1 = [base[0] + px * st.off + ax * st.len + px * st.bend * L, base[1] + py * st.off + ay * st.len + py * st.bend * L];
-            rod(g, p0, p1, (u) => st.w * (1 - 0.35 * u), (n, u, v, rgb, x, y) => {
-                // ribs along the stalk: the normal rippled across it
-                const rib = Math.sin(v * 11 + st.sd) * 0.25;
-                const nn = norm3([n[0] + px * rib, n[1] + py * rib, n[2]]);
-                const lam = Math.max(0, nn[0] * LN[0] + nn[1] * LN[1] + nn[2] * LN[2]);
-                const t = 0.08 + lam * 0.95 + 0.04 * S.noise2(x * 0.05, y * 0.05, sd + st.sd);
-                rgb[0] = 14 + 186 * t;
-                rgb[1] = 20 + 196 * t;
-                rgb[2] = 16 + 166 * t;
-                // silvery: a grey bloom on the lit ribs
-                toward(rgb, 226, 230, 220, smooth(0.6, 0.95, t) * 0.35);
-                // the cut end, browned a little
-                toward(rgb, 160, 140, 90, smooth(0.04, 0, u) * 0.6);
-            }, { q: 1 });
-            // spines along its edge
-            for (let k = 0; k < 10; k++) {
-                const u = 0.1 + r() * 0.8, side = r() < 0.5 ? -1 : 1, w = st.w * (1 - 0.35 * u);
-                const q = [p0[0] + (p1[0] - p0[0]) * u + px * side * w, p0[1] + (p1[1] - p0[1]) * u + py * side * w];
-                S.ink(g, [q, [q[0] + px * side * 5 + dx * 3, q[1] + py * side * 5 + dy * 3]], { w: 0.6, color: '#d8c890', alpha: 0.8, taper: [0, 1] });
-            }
-            // the section at the cut end: a pale U with dark fibre dots
-            oval(g, p0[0], p0[1], st.w * 0.95, st.w * 0.6, Math.atan2(dy, dx) + Math.PI / 2, '#c8cca0');
-            for (let k = 0; k < 7; k++) disc(g, p0[0] + px * (k - 3) * st.w * 0.25, p0[1] + py * (k - 3) * st.w * 0.25, 0.8, 'rgba(70,80,50,0.7)');
+            const mid = [(p0[0] + p1[0]) / 2 + px * st.bend * L * 0.8 - py * 0, (p0[1] + p1[1]) / 2 + py * st.bend * L * 0.8];
+            // its shadow on the stalks and the stone under it
+            g.save();
+            g.globalCompositeOperation = 'source-atop';
+            softly(g, 5, (q) => S.ink(q, [p0, mid, p1].map(([x, y]) => [x + SD[0] * 8, y + SD[1] * 8]), { w: st.w * 2, color: '#040302', alpha: 0.55, taper: [0, 0.4] }));
+            g.restore();
+            cardoonStalk(g, [p0, mid, p1], st.w, st.w * 0.62, { seed: (o.seed ?? 0) + '' + st.sd, ribs: 8 + st.sd % 3 });
             // the leaf at its end: lobed, drooping, silver below
             const lf = memo(`cardleaf@${resOf(g)}/${st.sd}/${o.seed}`, () => {
                 // pinnate: pairs of lobes down a broad white midrib, each lobe toothed with a
@@ -3035,5 +3236,5 @@ const Still = (() => {
         for (let k = 0; k < 5; k++) drop(g, x + rx * (1.1 + r() * 0.6) * (r() < 0.5 ? -1 : 1), y + (r() - 0.5) * ry, 1.2 + r() * 1.8, { dark: [70, 58, 44], lit: [250, 240, 220], sq: 0.6 });
     }
 
-    return { scatter, puddle, ristra, fig, quince, quinceSprite, hangString, cabbage, cabbageHead, cabbageLeaf, melonBody, melonCut, melonSlice, cardoon, rose, petalSprite, cup, cupSprite, candlestick, smoke, motto, fly, mortar, mortarSprite, pestle, rod, brassAt, garlic, garlicSprite, cloveSprite, onion, onionSprite, onionHalf, eggDish, eggSprite, knife, linen, RAMP, LT, LN, SD, TL, resOf, memo, pixels, onto, put, softly, shadowOf, castOn, castWall, contact, drop, run, cord, stone, grain, tooling, ledgeGeom, ledge, ashlar, wall, profileOf, latheOutline, onLathe, nearest, metalAt, jug, jugSprite, bucaro, bucaroSprite, plate, plateSprite, figSprite, glass, glassShadow, disc, oval, poly, line, toward, scaleRGB };
+    return { scatter, puddle, ristra, fig, quince, quinceSprite, hangString, cabbage, cabLeaf, cabbageCore, melonBody, melonCut, melonSlice, cardoon, rose, petalSprite, cup, cupSprite, candlestick, smoke, motto, fly, mortar, mortarSprite, pestle, rod, brassAt, garlic, garlicSprite, cloveSprite, onion, onionSprite, onionHalf, eggDish, eggSprite, knife, linen, RAMP, LT, LN, SD, TL, resOf, memo, pixels, onto, put, softly, shadowOf, castOn, castWall, contact, drop, run, cord, stone, grain, tooling, ledgeGeom, ledge, ashlar, wall, profileOf, latheOutline, onLathe, nearest, metalAt, jug, jugSprite, bucaro, bucaroSprite, plate, plateSprite, figSprite, glass, glassShadow, disc, oval, poly, line, toward, scaleRGB };
 })();
