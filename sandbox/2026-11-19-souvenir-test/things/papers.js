@@ -79,7 +79,7 @@
 //   9 a dent in the lid   10 the price in pencil on a corner of the label
 const Papers = (() => {
     const S = Souvenir;
-    const INK = S.INK, SD = S.SHADE_DIR, TOL = [-SD[0], -SD[1]]; // TOL: towards the light, on the page
+    const SD = S.SHADE_DIR, TOL = [-SD[0], -SD[1]]; // TOL: towards the light, on the page
     const TAU = Math.PI * 2;
     const LV = (() => {
         const L = S.LIGHT, l = Math.hypot(L[0], L[1], L[2]);
@@ -827,6 +827,13 @@ const Papers = (() => {
             ramp(clamp(0.5 + 0.62 * b), rgb);
             stops.push([u, S.rgb2hex(rgb[0], rgb[1], rgb[2])]);
         }
+        // the dusk under a flap that does not lie flat: wide and soft, all round its free edges
+        S.cast(g, (q) => {
+            q.fillStyle = '#000';
+            q.beginPath();
+            S.trace(q, flap);
+            q.fill();
+        }, { blur: lift * 0.9 * F.s, dx: SD[0] * lift * 0.4 * F.s, dy: SD[1] * lift * 0.4 * F.s, color: 'rgba(30,16,40,0.6)' });
         S.piece(g, flap, {
             fill: { from: F(foot), to: F(tip), stops }, line: o.line ?? 1.5, heavy: 0.8,
             // it stands off the sheet: `lift` is how far its shadow is thrown
@@ -1218,23 +1225,27 @@ const Papers = (() => {
             ringStain(q, 104, 222, 29, seed);
             tideStain(q, [[-214, 150], [-186, 132], [-150, 146], [-124, 176], [-84, 186], [-62, 214], [-76, 250], [-110, 262], [-128, 290], [-170, 306], [-214, 300]], 'poster' + seed);
             tideStain(q, [[150, -304], [156, -276], [180, -262], [196, -238], [214, -232], [216, -304]], 'poster2' + seed);
-            // what is printed on the back shows through, mirrored and faint
-            q.save();
-            q.scale(-1, 1);
-            q.filter = `blur(${(0.45 * res).toFixed(2)}px)`;
-            q.globalAlpha = 0.06;
-            q.fillStyle = '#4a2f3e';
-            type(q, 'PROGRAMA', { font: FACE.anton, cap: 40, y: -206, track: 0.06 });
-            for (let i = 0; i < 27; i++) {
-                const yy = -180 + i * 15.4, w = i % 9 === 8 ? 120 : 300;
-                for (let x = -w / 2; x < w / 2 - 6;) {
-                    const l = 8 + r() * 30;
-                    q.fillRect(x, yy, Math.min(l, w / 2 - x), 5);
-                    x += l + 4.5;
+            // what is printed on the back shows through, mirrored and faint (set on a sheet of
+            // its own and laid once: a blur on every word would be three hundred blurs)
+            {
+                const back = sheet(box, res), k = back.q;
+                k.scale(-1, 1);
+                k.fillStyle = '#4a2f3e';
+                type(k, 'PROGRAMA', { font: FACE.anton, cap: 40, y: -206, track: 0.06 });
+                for (let i = 0; i < 27; i++) {
+                    const yy = -180 + i * 15.4, w = i % 9 === 8 ? 120 : 300;
+                    for (let x = -w / 2; x < w / 2 - 6;) {
+                        const l = 8 + r() * 30;
+                        k.fillRect(x, yy, Math.min(l, w / 2 - x), 5);
+                        x += l + 4.5;
+                    }
                 }
+                q.save();
+                q.filter = `blur(${(0.45 * res).toFixed(2)}px)`;
+                q.globalAlpha = 0.06;
+                q.drawImage(back.c, box.x, box.y, box.w, box.h);
+                q.restore();
             }
-            q.restore();
-            q.filter = 'none';
 
             const wear = (k) => {
                 rub(k, [PFOLD.v, -300], [PFOLD.v, 300], 'pv' + seed, 1);

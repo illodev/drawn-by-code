@@ -14,7 +14,10 @@
 //                deals one find to every bay of about 500 units)
 //       verses   false: no lettering in the weave
 //   Shawl.ghost      the same drawer under its old name (the tableau calls it)
-//   Shawl.plan(box, opts) → { items }   the seeded layout: every motif with its place
+//   Shawl.plan(box, opts) → { items, cells }   the seeded layout: every motif with its place
+//       (k: its kind, bx/by/br: a circle round it), and the share of the cloth it claims.
+//       Painted share at 1920: 80 % opaque floss, no bare patch wider than about 45 units;
+//       the whole 3400 × 2000 box takes about 7 s (0.6 s of it the layout).
 //
 //   One motif alone (sizes in units at s = 1; all static, lit from the top left however turned):
 //   Shawl.peony(g, { x, y, r, seed, bloom })     a peony from above, centre (x, y), radius r (30–115)
@@ -22,12 +25,12 @@
 //   Shawl.mum(g, { x, y, r, seed, bloom })       a chrysanthemum, the same (r 14–60)
 //   Shawl.cup(g, { x, y, r, rot, seed, bloom })  a peony half open from the side: (x, y) where the
 //                                                petals leave the calyx, opening along rot, 1.9 r tall
-//   Shawl.floret(g, { x, y, r, seed, bloom, kind })   a small flower (r 5–24): 'round' | 'notched' | 'star'
+//   Shawl.floret(g, { x, y, r, seed, bloom, kind })   a small flower (r 5–32): 'round' | 'notched' | 'star'
 //   Shawl.bud(g, { x, y, r, rot, seed })         a bud, (x, y) its middle, 2 r long, tip along rot
 //   Shawl.leaf(g, { x, y, a, len, wid, bend, hue, seed })   one leaf from its base along a
 //   Shawl.fern(g, { x, y, a, len, seed }), Shawl.spray(g, { pts, seed }), Shawl.bough(g, { pts, seed })
 //   Shawl.butterfly(g, { x, y, r, rot, seed })   r: half the wingspan (14–26), head along rot
-//   Shawl.dragonfly(g, { x, y, r, rot, seed })   r: a forewing's length (16–26), head along rot
+//   Shawl.dragonfly(g, { x, y, r, rot, seed })   r: a forewing's length (24–33), head along rot
 //   Shawl.songbird(g, { x, y, s, rot, flip, seed })   (x, y) the middle of the body; at s = 1 it
 //                                                heads right and takes x −48…30, y −21…23 (with its twig)
 //   Shawl.peafowl(g, { x, y, s, rot, flip, pose, sag, seed })   (x, y) the middle of the body, 46

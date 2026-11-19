@@ -591,18 +591,20 @@ const Library = (() => {
             ridge(a + 2.1, 2.9);
         } else ridge(a, w);
     }
+    // a dry-brush stroke through a few points (Souvenir.dab wants a closely sampled line)
+    const brushed = (g, pts, o) => S.dab(g, pts.length > 2 ? S.curve(pts, false, 10) : Array.from({ length: 13 }, (_, i) => [pts[0][0] + ((pts[1][0] - pts[0][0]) * i) / 12, pts[0][1] + ((pts[1][1] - pts[0][1]) * i) / 12]), o);
     // the sheen along a leather spine, where it turns to the light: a dry stroke
     const gloss = (c, alpha = 0.3, a0 = 3, a1 = c.L - 3) => {
-        const b = clamp(c.hi, c.T * 0.16, c.T * 0.84), n = 8, pts = [];
+        const b = clamp(c.hi, c.T * 0.16, c.T * 0.84), n = 6, pts = [];
         for (let i = 0; i <= n; i++) pts.push(c.P(a0 + ((a1 - a0) * i) / n, b + 0.4 * Math.sin(i * 1.7)));
-        S.dab(c.q, pts, { w: c.T * 0.11, color: c.M.light, alpha, bristles: 5, seed: c.seed + 'gl', dry: 0.6 });
+        brushed(c.q, pts, { w: c.T * 0.11, color: c.M.light, alpha, bristles: 5, seed: c.seed + 'gl', dry: 0.6 });
     };
     // leather rubbed pale along an edge of the spine
     const scuff = (c, b, n = 5, col = null) => {
         const r = Motion.rng(c.seed + 'scuff' + b);
         for (let i = 0; i < n; i++) {
             const a = r() * c.L, l = 4 + r() * 12;
-            S.dab(c.q, [c.P(a, b + (r() - 0.5)), c.P(a + l / 2, b + (r() - 0.5)), c.P(a + l, b + (r() - 0.5))], { w: 1 + r() * 1.6, color: col ?? mix(c.M.light, '#d8c0a0', 0.4), alpha: 0.3 + r() * 0.3, bristles: 4, seed: c.seed + 'sc' + i + b, dry: 0.7 });
+            brushed(c.q, [c.P(a, b + (r() - 0.5)), c.P(a + l / 2, b + (r() - 0.5)), c.P(a + l, b + (r() - 0.5))], { w: 1 + r() * 1.6, color: col ?? mix(c.M.light, '#d8c0a0', 0.4), alpha: 0.3 + r() * 0.3, bristles: 4, seed: c.seed + 'sc' + i + b, dry: 0.7 });
         }
     };
 
@@ -1628,119 +1630,172 @@ const Library = (() => {
     // ------------------------------------------------------------------ the palette
     // What a painter in Seville set out about 1620, from the thumb outwards.
     const PIG = [
-        { name: 'lead white', at: [56, -60], R: 12.5, tail: 15, ramp: [[0, '#5f5a78'], [0.32, '#a29caa'], [0.56, '#dcd5c6'], [0.8, '#f4eddc'], [1, '#fffbf0']], gloss: 0.5 },
-        { name: 'yellow ochre', at: [27, -68], R: 10, tail: 11, ramp: [[0, '#4a2a12'], [0.35, '#8a5a1c'], [0.6, '#c8922e'], [0.85, '#e6b955'], [1, '#f6da8c']], gloss: 0.6 },
-        { name: 'vermilion', at: [-2, -70], R: 10.4, tail: 13, ramp: [[0, '#4a0c16'], [0.35, '#8f1f1e'], [0.6, '#cf3a26'], [0.85, '#ec6a3c'], [1, '#ffab7a']], gloss: 0.75 },
-        { name: 'red lake', at: [-31, -67], R: 9.4, tail: 8, ramp: [[0, '#1f0612'], [0.4, '#4d0c22'], [0.65, '#7e1530'], [0.88, '#a8324a'], [1, '#e08a94']], gloss: 1 },
-        { name: 'burnt earth', at: [-59, -58], R: 10.2, tail: 12, ramp: [[0, '#2a0e0c'], [0.35, '#5c2414'], [0.6, '#8f4322'], [0.85, '#b86a3a'], [1, '#e0a070']], gloss: 0.6 },
-        { name: 'umber', at: [-83, -43], R: 9.6, tail: 9, ramp: [[0, '#170d0c'], [0.4, '#38241a'], [0.65, '#574028'], [0.88, '#7d6444'], [1, '#b59c74']], gloss: 0.6 },
-        { name: 'bone black', at: [-100, -21], R: 9, tail: 10, ramp: [[0, '#07060d'], [0.4, '#15131d'], [0.65, '#26242f'], [0.88, '#4a4a5e'], [1, '#a9aecb']], gloss: 0.95, glint: '#dfe6ff' },
-        { name: 'azurite', at: [-106, 5], R: 6.2, tail: 5, ramp: [[0, '#0c1a3a'], [0.4, '#1c3c70'], [0.65, '#2f65a0'], [0.88, '#5c98c4'], [1, '#b4dcea']], gloss: 0.45 },
+        { name: 'lead white', at: [55, -60], R: 12.4, tail: 15, flat: 0.5, peak: 0.7, scoop: 1, long: 1.12, ramp: [[0, '#5f5a78'], [0.32, '#a29caa'], [0.56, '#dcd5c6'], [0.8, '#f4eddc'], [1, '#fffbf0']], gloss: 0.5 },
+        { name: 'yellow ochre', at: [27, -68], R: 9.6, tail: 11, flat: 0.55, peak: 1, long: 1, ramp: [[0, '#4a2a12'], [0.35, '#8a5a1c'], [0.6, '#c8922e'], [0.85, '#e6b955'], [1, '#f6da8c']], gloss: 0.6 },
+        { name: 'vermilion', at: [-2, -70], R: 9.8, tail: 14, flat: 0.62, peak: 1.5, long: 0.94, ramp: [[0, '#4a0c16'], [0.35, '#8f1f1e'], [0.6, '#cf3a26'], [0.85, '#ec6a3c'], [1, '#ffab7a']], gloss: 0.75 },
+        { name: 'red lake', at: [-30, -67], R: 9.6, tail: 7, flat: 0.3, peak: 0.3, long: 1.2, ramp: [[0, '#1f0612'], [0.4, '#4d0c22'], [0.65, '#7e1530'], [0.88, '#a8324a'], [1, '#e08a94']], gloss: 1 },
+        { name: 'burnt earth', at: [-58, -58], R: 9.4, tail: 12, flat: 0.52, peak: 1.1, long: 1.3, ramp: [[0, '#2a0e0c'], [0.35, '#5c2414'], [0.6, '#8f4322'], [0.85, '#b86a3a'], [1, '#e0a070']], gloss: 0.6 },
+        { name: 'umber', at: [-82, -43], R: 8.6, tail: 8, flat: 0.5, peak: 0.8, long: 0.9, ramp: [[0, '#170d0c'], [0.4, '#38241a'], [0.65, '#574028'], [0.88, '#7d6444'], [1, '#b59c74']], gloss: 0.6 },
+        { name: 'bone black', at: [-99, -21], R: 8.8, tail: 10, flat: 0.46, peak: 1.2, long: 1.1, ramp: [[0, '#07060d'], [0.4, '#15131d'], [0.65, '#26242f'], [0.88, '#4a4a5e'], [1, '#a9aecb']], gloss: 0.95, glint: '#dfe6ff' },
+        { name: 'azurite', at: [-105, 4], R: 5.8, tail: 5, flat: 0.5, peak: 0.6, long: 1, ramp: [[0, '#0c1a3a'], [0.4, '#1c3c70'], [0.65, '#2f65a0'], [0.88, '#5c98c4'], [1, '#b4dcea']], gloss: 0.45 },
     ];
-    const MIXC = [-22, 6];   // where the mixing is done
-    const MIXES = [   // the passes of a loaded brush: flesh tints, greys, a browner flesh
-        { pts: [[-58, -12], [-40, -4], [-20, -8], [-4, 2]], w: 17, col: [227, 176, 146] },
-        { pts: [[-46, 8], [-26, 14], [-8, 10], [8, 18]], w: 15, col: [207, 143, 114] },
-        { pts: [[-30, -24], [-14, -28], [2, -20]], w: 12, col: [241, 212, 186] },
-        { pts: [[-64, 20], [-46, 28], [-28, 26]], w: 13, col: [156, 149, 140] },
-        { pts: [[-38, 38], [-20, 36], [-4, 42]], w: 11, col: [108, 103, 104] },
-        { pts: [[8, -4], [19, 5], [24, 20]], w: 12, col: [183, 119, 90] },
-        { pts: [[-72, 0], [-63, 9]], w: 10, col: [203, 195, 180] },
+    const MIXC = [-22, 4];   // where the mixing is done
+    const MIXES = [   // the passes of a loaded brush, one over another: flesh tints, a rosier one, greys
+        { pts: [[-50, -14], [-36, -8], [-22, -10], [-8, -4]], w: 15, col: [229, 180, 150] },
+        { pts: [[-44, -1], [-28, 5], [-12, 3], [2, 9]], w: 14, col: [209, 146, 116] },
+        { pts: [[-30, -23], [-16, -25], [-4, -19]], w: 10, col: [243, 216, 190] },
+        { pts: [[-38, 11], [-24, 17], [-10, 15]], w: 12, col: [214, 128, 112] },
+        { pts: [[-6, -7], [6, 1], [12, 13]], w: 11, col: [181, 116, 88] },
+        { pts: [[-62, 14], [-48, 22], [-34, 23]], w: 12, col: [158, 151, 142] },
+        { pts: [[-46, 31], [-30, 31], [-16, 35]], w: 10, col: [106, 102, 104] },
+        { pts: [[-67, -3], [-62, 2], [-57, 7]], w: 9, col: [205, 197, 182] },
+        { pts: [[-14, 23], [0, 25], [10, 31]], w: 9, col: [150, 150, 126] },
     ];
+    const RAG = [[-131, 53], [-119, 37], [-101, 30], [-84, 38], [-66, 33], [-51, 44], [-45, 60], [-53, 74], [-41, 92], [-49, 106], [-66, 100], [-82, 109], [-100, 101], [-114, 110], [-129, 96], [-124, 78], [-134, 66]];
     const distSeg = (x, y, a, b) => {
         const dx = b[0] - a[0], dy = b[1] - a[1], u = clamp(((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1));
         return Math.hypot(x - a[0] - dx * u, y - a[1] - dy * u);
     };
 
-    // one dab of oil paint: a mound with the peak the knife left and the furrows of the brush that pulled at it
-    function dabSprite(pig, i, seed, rot, res) {
+    // One dab of oil paint: a mound set down with the knife (the peak it left as it lifted,
+    // the turn it gave the paint) and the bite the brush has been taking out of it, furrowed
+    // by the bristles.
+    function dabSprite(pig, seed, rot, res) {
         const R = pig.R, pull = Math.atan2(MIXC[1] - pig.at[1], MIXC[0] - pig.at[0]), sd = S.seedOf(seed + pig.name), r = Motion.rng(sd);
-        const p1 = r() * 9, p2 = r() * 9, pts = [], n = 44;
+        const p1 = r() * 9, p2 = r() * 9, p3 = r() * 9, ea = r() * 3.14, pts = [], n = 48;
         for (let k = 0; k < n; k++) {
-            const t = (k / n) * TAU, d = Math.atan2(Math.sin(t - pull), Math.cos(t - pull));
-            const rr = R * (1 + 0.13 * Math.sin(t * 2 + p1) + 0.08 * Math.sin(t * 5 + p2)) + pig.tail * Math.exp(-Math.pow(d / (0.26 + 0.1 * r()), 2));
-            pts.push([Math.cos(t) * rr, Math.sin(t) * rr]);
+            const t = (k / n) * TAU, rr = R * (1 + 0.15 * Math.sin(t * 2 + p1) + 0.09 * Math.sin(t * 3 + p2) + 0.05 * Math.sin(t * 7 + p3));
+            pts.push(rot2([Math.cos(t) * rr * pig.long, (Math.sin(t) * rr) / pig.long], ea));
         }
         const out = S.curve(pts, true, 3), px = Math.cos(pull), py = Math.sin(pull);
-        const pk = [-px * R * 0.3 + (r() - 0.5) * R * 0.4, -py * R * 0.3 + (r() - 0.5) * R * 0.4], scoop = i === 0 ? 1 : 0;
+        const pk = [(r() - 0.5) * R * 0.5 - px * R * 0.2, (r() - 0.5) * R * 0.5 - py * R * 0.2], bite = [px * R * 0.72, py * R * 0.72], bw = pig.scoop ? 0.34 : 0.14;
         const sp = S.form({
-            box: even(S.bbox(out, 4)), res, light: S.lightFor(rot), ramp: pig.ramp, soft: 1, relief: 0.62, seed: sd,
+            box: even(S.bbox(out, 4)), res, light: S.lightFor(rot), ramp: pig.ramp, soft: 1, relief: pig.flat, seed: sd,
             mask: (g) => {
                 g.beginPath();
                 S.trace(g, out);
                 g.fill();
             },
             height: (x, y, m) => {
-                const d = Math.hypot(x - pk[0], y - pk[1]), along = x * px + y * py, across = -x * py + y * px;
-                // the peak, the furrows the bristles left in the tail, and (in the white, half used) the knife's scoop
-                return R * 0.45 * Math.exp(-(d * d) / (R * R * 0.08)) + 0.5 * Math.sin(across * 2.2 + 1.4 * S.noise2(along * 0.2, across * 0.2, sd)) * smooth(-R * 0.2, R * 0.8, along) * m
-                    - scoop * R * 0.5 * Math.exp(-(Math.pow(x - R * 0.35, 2) + Math.pow(y - R * 0.3, 2)) / (R * R * 0.12));
+                const d = Math.hypot(x - pk[0], y - pk[1]), db = Math.hypot(x - bite[0], y - bite[1]), across = -x * py + y * px, ang = Math.atan2(y - pk[1], x - pk[0]);
+                const peak = pig.peak * R * 0.36 * Math.exp(-(d * d) / (R * R * 0.045)), turn = 0.55 * Math.sin(ang * 2 + d * 0.85) * Math.exp(-(d * d) / (R * R * 0.5)) * m;
+                return peak + turn - Math.exp(-(db * db) / (R * R * bw)) * (R * 0.32 + 0.45 * Math.sin(across * 2.5));
             },
-            stroke: { amp: 0.06, freq: 0.16, tone: 6 }, mottle: { amp: pig.name === 'azurite' ? 0.12 : 0.04, freq: pig.name === 'azurite' ? 1.2 : 0.3 },
-            spec: { amp: pig.gloss, power: 30, from: 0.5, to: 0.92, color: pig.glint ?? '#fffaf0', ragged: 0.2 },
+            stroke: { amp: 0.05, freq: 0.16, tone: 6 }, mottle: { amp: pig.name === 'azurite' ? 0.12 : 0.04, freq: pig.name === 'azurite' ? 1.2 : 0.3 },
+            spec: { amp: pig.gloss, power: 34, from: 0.5, to: 0.92, color: pig.glint ?? '#fffaf0', ragged: 0.2 },
         });
         const sh = rot2(SD, -rot);
-        airIn(sp, res, { color: pig.ramp[0][1], alpha: 0.55, w: R * 0.5, dir: sh });
-        airIn(sp, res, { color: pig.ramp[4][1], alpha: 0.4, w: R * 0.28, dir: [-sh[0], -sh[1]] });
+        airIn(sp, res, { color: pig.ramp[0][1], alpha: 0.6, w: R * 0.5, dir: sh });
+        airIn(sp, res, { color: pig.ramp[4][1], alpha: 0.4, w: R * 0.26, dir: [-sh[0], -sh[1]] });
         return sp;
     }
-    // the mixtures: a thin, ridged film of paint, its colour from the pass of the brush that laid it
+    // The mixtures: a thin film of paint with the brush's ragged ends and streaks, its colour
+    // from whichever pass of the brush lies nearest, one wet tint dragged into the next.
     function mixSprite(seed, rot, res) {
-        const sd = S.seedOf(seed + 'mix');
+        const sd = S.seedOf(seed + 'mix'), lines = MIXES.map((m) => S.curve(m.pts, false, 10));
         const colAt = (x, y, out) => {
             let sw = 0, cr = 0, cg = 0, cb = 0;
-            for (const m of MIXES) {
+            MIXES.forEach((m, k) => {
                 let d = 1e9;
                 for (let i = 1; i < m.pts.length; i++) d = Math.min(d, distSeg(x, y, m.pts[i - 1], m.pts[i]));
-                const w = Math.exp(-Math.pow(d / (m.w * 0.42), 2) * 1.6) + 1e-5;
+                d += 3.4 * S.noise2(x * 0.13, y * 0.13, sd + k) + 1.6 * S.noise2(x * 0.5, y * 0.2, sd + k + 20);
+                const w = Math.exp(-Math.pow(Math.max(0, d) / (m.w * 0.4), 2) * 1.8) + 1e-5;
                 sw += w;
                 cr += m.col[0] * w;
                 cg += m.col[1] * w;
                 cb += m.col[2] * w;
-            }
+            });
             out[0] = cr / sw;
             out[1] = cg / sw;
             out[2] = cb / sw;
         };
-        const paths = (g, k = 1) => {
-            g.lineCap = 'round';
-            g.lineJoin = 'round';
-            for (const m of MIXES) {
-                g.lineWidth = m.w * k;
-                g.beginPath();
-                S.trace(g, S.curve(m.pts.length > 2 ? m.pts : [m.pts[0], [(m.pts[0][0] + m.pts[1][0]) / 2 + 1, (m.pts[0][1] + m.pts[1][1]) / 2 - 1], m.pts[1]], false, 8), false);
-                g.stroke();
-            }
-        };
         const col = [0, 0, 0];
         const sp = S.form({
-            box: { x: -84, y: -42, w: 124, h: 96 }, res, light: S.lightFor(rot), inflate: 'bevel', R: 2.4, relief: 0.55, seed: sd, soft: 1,
+            box: { x: -80, y: -40, w: 106, h: 88 }, res, light: S.lightFor(rot), inflate: 'bevel', R: 1.5, relief: 0.5, seed: sd, soft: 1,
             ramp: [[0, '#2a2030'], [0.5, '#9a9088'], [1, '#ffffff']],
             mask: (g) => {
+                // a core, and round it the bristles' own ragged strokes
                 g.strokeStyle = '#fff';
-                paths(g);
+                g.lineCap = 'round';
+                g.lineJoin = 'round';
+                MIXES.forEach((m, i) => {
+                    g.lineWidth = m.w * 0.5;
+                    g.beginPath();
+                    S.trace(g, lines[i], false);
+                    g.stroke();
+                    S.dab(g, lines[i], { w: m.w * 1.05, color: '#fff', alpha: 1, bristles: Math.round(m.w * 1.7), seed: sd + i, dry: 0.55, taper: 0.5 });
+                });
             },
-            height: (x, y) => 0.5 * S.noise2(x * 0.5, y * 0.5, sd) + 0.3 * S.noise2(x * 1.3, y * 1.3, sd + 1),
             marks: (g) => {
                 // the bristles' streaks along each pass, lighter and darker
                 MIXES.forEach((m, i) => {
-                    const line = S.curve(m.pts.length > 2 ? m.pts : [m.pts[0], [(m.pts[0][0] + m.pts[1][0]) / 2, (m.pts[0][1] + m.pts[1][1]) / 2], m.pts[1]], false, 8);
-                    S.dab(g, line, { w: m.w * 0.9, color: '#ffffff', alpha: 0.5, bristles: 9, seed: sd + i, dry: 0.5 });
-                    S.dab(g, line.map(([x, y]) => [x + 1, y + 1.4]), { w: m.w * 0.8, color: '#000000', alpha: 0.45, bristles: 8, seed: sd + i + 50, dry: 0.6 });
+                    S.dab(g, lines[i], { w: m.w * 0.9, color: '#ffffff', alpha: 0.55, bristles: 9, seed: sd + i + 100, dry: 0.5 });
+                    S.dab(g, lines[i].map(([x, y]) => [x + 0.8, y + 1.2]), { w: m.w * 0.9, color: '#000000', alpha: 0.5, bristles: 9, seed: sd + i + 200, dry: 0.5 });
                 });
             },
-            markAmp: 0.4, spec: { amp: 0.55, power: 26, from: 0.5, to: 0.95, color: '#ffffff' },
+            markAmp: 0.42, spec: { amp: 0.6, power: 30, from: 0.55, to: 0.95, color: '#ffffff' },
             tint: (x, y, tone, rgb) => {
                 colAt(x, y, col);
-                const lum = (rgb[0] + rgb[1] + rgb[2]) / 765, k = Math.min(1.22, 0.42 + 0.98 * lum), hi = Math.max(0, lum - 0.84) * 500;
+                const lum = (rgb[0] + rgb[1] + rgb[2]) / 765, k = Math.min(1.2, 0.5 + 0.86 * lum), hi = Math.max(0, lum - 0.86) * 520;
                 rgb[0] = Math.min(255, col[0] * k + hi);
                 rgb[1] = Math.min(255, col[1] * k + hi);
                 rgb[2] = Math.min(255, col[2] * k + hi);
             },
         });
         const sh = rot2(SD, -rot);
-        airIn(sp, res, { color: '#3a1c1a', alpha: 0.5, w: 3, dir: sh });
-        airIn(sp, res, { color: '#fff6e6', alpha: 0.45, w: 1.6, dir: [-sh[0], -sh[1]] });
+        airIn(sp, res, { color: '#4a2420', alpha: 0.45, w: 2.2, dir: sh });
+        airIn(sp, res, { color: '#fff6e6', alpha: 0.4, w: 1.2, dir: [-sh[0], -sh[1]] });
+        return sp;
+    }
+    // The rag: old linen wrung and dropped, lit as the crumpled thing it is (sharp ridges
+    // where it was twisted, soft bellies between), its weave, and the colours wiped on it.
+    function ragSprite(seed, rot, res) {
+        const sd = S.seedOf(seed + 'rag'), out = S.curve(RAG, true, 5), r = Motion.rng(sd);
+        const stains = [[-109, 54, 11, [207, 58, 38]], [-92, 76, 12, [200, 146, 46]], [-70, 50, 9, [87, 64, 40]], [-62, 86, 10, [126, 21, 48]], [-113, 93, 8, [47, 101, 160]], [-84, 97, 9, [228, 220, 204]], [-74, 69, 7, [38, 36, 47]], [-121, 71, 8, [227, 176, 146]], [-56, 62, 6, [207, 58, 38]]];
+        const sp = S.form({
+            box: even(S.bbox(out, 5)), res, light: S.lightFor(rot), inflate: 'bevel', R: 5, profile: 'dome', relief: 0.9, seed: sd, soft: 1,
+            ramp: [[0, '#39335a'], [0.28, '#7a738c'], [0.52, '#bdb4a2'], [0.78, '#e6decb'], [1, '#fcf7e8']],
+            mask: (g) => {
+                g.beginPath();
+                S.trace(g, out);
+                g.fill();
+            },
+            height: (x, y) => {
+                const a = 1 - Math.abs(S.noise2(x * 0.05 + 3, y * 0.042, sd)), b = 1 - Math.abs(S.noise2(x * 0.105, y * 0.11 + 7, sd + 1));
+                return 8 * a * a * a + 2.6 * b * b + 4 * S.noise2(x * 0.022, y * 0.022, sd + 2);
+            },
+            marks: (g) => {
+                // the weave, thread by thread, on the bias
+                g.lineWidth = 0.3;
+                for (let k = -260; k < 260; k += 1.25) {
+                    g.strokeStyle = k % 2.5 ? '#6a6a6a' : '#9c9c9c';
+                    g.beginPath();
+                    g.moveTo(-200 + k, -60);
+                    g.lineTo(-40 + k, 130);
+                    g.stroke();
+                    g.strokeStyle = '#939393';
+                    g.beginPath();
+                    g.moveTo(-200 + k, 130);
+                    g.lineTo(-10 + k, -60);
+                    g.stroke();
+                }
+            },
+            markAmp: 0.3,
+            tint: (x, y, tone, rgb) => {
+                for (let i = 0; i < stains.length; i++) {
+                    const st = stains[i], d = Math.hypot(x - st[0], (y - st[1]) * 1.25) + 3.5 * S.noise2(x * 0.16, y * 0.16, sd + i) + 1.5 * S.noise2(x * 0.7, y * 0.3, sd + i + 30);
+                    if (d > st[2]) continue;
+                    const k = smooth(st[2], st[2] * 0.45, d) * (0.72 + 0.28 * S.noise2(x * 0.9, y * 0.25, sd + i + 60)), f = 0.42 + 0.85 * tone, c = st[3];
+                    rgb[0] += (c[0] * f - rgb[0]) * k;
+                    rgb[1] += (c[1] * f - rgb[1]) * k;
+                    rgb[2] += (c[2] * f - rgb[2]) * k;
+                }
+            },
+        });
+        const sh = rot2(SD, -rot);
+        airIn(sp, res, { color: '#4a4468', alpha: 0.6, w: 9, dir: sh });
+        airIn(sp, res, { color: '#2a2444', alpha: 0.5, w: 3, dir: sh });
+        airIn(sp, res, { color: '#fffaf0', alpha: 0.55, w: 5, dir: [-sh[0], -sh[1]] });
         return sp;
     }
 
@@ -1749,7 +1804,7 @@ const Library = (() => {
             const F = (p) => rot2(p, rot), Fs = (pts) => pts.map(F), r = Motion.rng('palette/' + seed);
             const WOOD = { deep: '#190b0a', base: '#4c2b1a', light: '#94643a' };
             const OUT = S.curve([[-122, 2], [-114, -38], [-84, -68], [-36, -84], [22, -86], [72, -74], [108, -46], [122, -6], [118, 28], [104, 50], [84, 64], [62, 68], [46, 62], [37, 52], [27, 51], [16, 60], [2, 74], [-30, 83], [-72, 77], [-104, 54], [-118, 28]], true, 8);
-            const HC = [66, 35], HOLE = S.ellipse(HC[0], HC[1], 14.5, 10.5, 28, -0.6);
+            const HC = [66, 35], HOLE = S.ellipse(HC[0], HC[1], 17.5, 12, 30, -0.62);
             const Pw = plane(F([0, 0]), rot2([1, 0], rot), rot2([0, 1], rot));   // the board's own axes, for lettering and textures
 
             // ---- the tools through the thumb hole: [where each passes the hole, its angle, …]
@@ -1759,33 +1814,33 @@ const Library = (() => {
             };
             const prof = (at, list) => [...list.map(([t, w]) => at(t, w)), ...list.slice().reverse().map(([t, w]) => at(t, -w))];
             const brush = (c, at, o2, over) => {
-                const cast = over ? { blur: 3, dx: 2.4, dy: 3.2, color: 'rgba(10,4,6,0.55)' } : null;
-                const hand = prof(at, [[-66, 0.4], [-65, 1.1], [-40, 1.5], [0, 1.9], [40, 2.1], [69, 1.9]]);
+                const cast = over ? { blur: 3, dx: 2.4, dy: 3.2, color: 'rgba(10,4,6,0.55)' } : null, tip = o2.len, tb = tip - 35, th = tip - 22;
+                const hand = prof(at, [[-66, 0.4], [-65, 1.1], [-40, 1.5], [0, 1.9], [tb * 0.6, 2.1], [tb + 1, 1.9]]);
                 S.piece(c, hand, {
                     fill: o2.wood, line: 1.2, heavy: 0.7, cast, shade: { color: mix(o2.wood, '#10060a', 0.75), alpha: 0.85, w: 2 }, light: { color: mix(o2.wood, '#fff0d0', 0.7), alpha: 0.7, w: 1.1 },
                     detail: (cc) => {
                         // fingered: smudges of the colours it has been in
                         const rr = Motion.rng(seed + o2.wood);
                         for (let i = 0; i < 9; i++) {
-                            const t = -50 + rr() * 110, col = [o2.paint, '#d9d2c4', '#57402a', '#cf3a26'][Math.floor(rr() * 4)];
+                            const t = -52 + rr() * (tb + 48), col = [o2.paint, '#d9d2c4', '#57402a', '#cf3a26'][Math.floor(rr() * 4)];
                             fillPts(cc, S.ellipse(...at(t, (rr() - 0.5) * 2.4), 1 + rr() * 2.2, 0.7 + rr(), 10, rr() * 3), rgba(col, 0.5 + rr() * 0.4));
                         }
-                        S.ink(cc, [at(-56, -0.5), at(0, -0.9), at(64, -0.9)], { w: 0.5, color: '#fff3d6', alpha: 0.5 });
+                        S.ink(cc, [at(-56, -0.5), at(0, -0.9), at(tb - 4, -0.9)], { w: 0.5, color: '#fff3d6', alpha: 0.5 });
                     },
                 });
                 // the binding: waxed thread, turn by turn
-                const bind = prof(at, [[68, 2.2], [70, 2.6], [79, 2.7], [81, 2.4]]);
+                const bind = prof(at, [[tb, 2.2], [tb + 2, 2.6], [tb + 11, 2.7], [tb + 13, 2.4]]);
                 S.piece(c, bind, {
                     fill: '#c9b182', line: 1, heavy: 0.6, cast, shade: { color: '#6a4a24', alpha: 0.85, w: 2.2 }, light: { color: '#fff1c8', alpha: 0.7, w: 1.2 },
                     detail: (cc) => {
-                        for (let t = 68.8; t < 81; t += 1.05) {
+                        for (let t = tb + 0.8; t < tb + 13; t += 1.05) {
                             strokePts(cc, [at(t, -3), at(t + 0.5, 3)], 0.34, rgba('#4a3018', 0.75));
                             strokePts(cc, [at(t + 0.5, -3), at(t + 1, 3)], 0.26, rgba('#fff4d4', 0.4));
                         }
                     },
                 });
                 // the bristles: hog hair, splayed with use, the colour still in them
-                const tip = o2.len, head = S.curve([at(81, 2.3), at(tip - 12, 3.4), at(tip - 3, 2.9), at(tip, 0.4), at(tip - 2.6, -2.7), at(tip - 12, -3.4), at(81, -2.3)], true, 5);
+                const head = S.curve([at(th, 2.3), at(tip - 12, 3.4), at(tip - 3, 2.9), at(tip, 0.4), at(tip - 2.6, -2.7), at(tip - 12, -3.4), at(th, -2.3)], true, 5);
                 S.piece(c, head, {
                     fill: '#d8c79c', line: 1.1, heavy: 0.6, cast, shade: { color: '#7a5a34', alpha: 0.8, w: 2.6 }, light: { color: '#fff6da', alpha: 0.6, w: 1.4 },
                     detail: (cc) => {
@@ -1796,7 +1851,7 @@ const Library = (() => {
                         fillPts(cc, [...load, at(tip + 2, 4), at(tip + 2, -4)], o2.paint);
                         for (let k = 0; k < 15; k++) {
                             const w0 = -2.1 + (k / 14) * 4.2, w1 = w0 * 1.45 + (rr() - 0.5) * 0.5;
-                            strokePts(cc, [at(81.5, w0), at(tip - 8, w1), at(tip - 0.6 - rr() * 2.5, w1 * 0.86)], 0.26, rgba(k % 3 ? '#5a4024' : '#fffbe8', 0.5));
+                            strokePts(cc, [at(th + 0.5, w0), at(tip - 8, w1), at(tip - 0.6 - rr() * 2.5, w1 * 0.86)], 0.26, rgba(k % 3 ? '#5a4024' : '#fffbe8', 0.5));
                         }
                         fillPts(cc, S.ellipse(...at(tip - 4.4, -0.9), 2.2, 1, 10, Math.atan2(at(1, 0)[1] - at(0, 0)[1], at(1, 0)[0] - at(0, 0)[0])), rgba('#fff8ea', 0.5));
                         S.spray(cc, head, { color: mix(o2.paint, '#14060a', 0.6), alpha: 0.6, w: 2 });
@@ -1806,35 +1861,36 @@ const Library = (() => {
             const knife = (c, at, over) => {
                 const cast = over ? { blur: 3, dx: 2.4, dy: 3.2, color: 'rgba(10,4,6,0.55)' } : null;
                 // the blade: ground thin, a wipe of flesh colour left on it
-                const blade = S.curve([at(57, 1.8), at(70, 3.5), at(86, 3.3), at(100, 2), at(108.5, 0.3), at(101, -1.6), at(86, -2.6), at(70, -2.8), at(57, -1.8)], true, 5);
+                const blade = S.curve([at(27, 1.8), at(38, 3.5), at(52, 3.3), at(65, 2), at(73.5, 0.3), at(66, -1.6), at(52, -2.6), at(38, -2.8), at(27, -1.8)], true, 5);
                 S.piece(c, blade, {
                     fill: '#aab3ca', line: 1.2, heavy: 0.7, cast, shade: { color: '#333a60', alpha: 0.85, w: 2.6 }, light: { color: '#f4f7ff', alpha: 0.9, w: 1.6 },
                     detail: (cc) => {
-                        S.ink(cc, [at(60, -0.9), at(84, -1.2), at(104, -0.2)], { w: 1.1, color: '#ffffff', alpha: 0.85 });
-                        S.ink(cc, [at(62, 1.7), at(84, 2), at(100, 1)], { w: 0.5, color: '#2a3158', alpha: 0.6 });
-                        S.dab(cc, [at(82, 2.4), at(92, 0.6), at(103, 0.4)], { w: 4.4, color: '#d99a7c', alpha: 0.9, bristles: 6, seed: seed + 'kn', dry: 0.5 });
-                        for (let i = 0; i < 7; i++) strokePts(cc, [at(62 + i * 5.4, -2.4), at(63.6 + i * 5.4, 2.6)], 0.2, rgba('#39406a', 0.3));
+                        S.ink(cc, [at(30, -0.9), at(52, -1.2), at(70, -0.2)], { w: 1.1, color: '#ffffff', alpha: 0.85 });
+                        S.ink(cc, [at(31, 1.7), at(52, 2), at(66, 1)], { w: 0.5, color: '#2a3158', alpha: 0.6 });
+                        brushed(cc, [at(48, 2.4), at(58, 0.6), at(69, 0.4)], { w: 4.4, color: '#d99a7c', alpha: 0.9, bristles: 6, seed: seed + 'kn', dry: 0.5 });
+                        for (let i = 0; i < 7; i++) strokePts(cc, [at(31 + i * 5, -2.4), at(32.6 + i * 5, 2.6)], 0.2, rgba('#39406a', 0.3));
                     },
                 });
                 // the bolster, of brass
-                S.piece(c, prof(at, [[50, 3.3], [52, 3.8], [56, 3.6], [58, 2.4]]), { fill: GOLD.base, line: 1, heavy: 0.6, cast, shade: { color: GOLD.deep, alpha: 0.9, w: 2.4 }, light: { color: GOLD.glint, alpha: 0.9, w: 1.2 } });
-                const hand = S.curve([at(50, 3.1), at(20, 3.5), at(-20, 3.6), at(-40, 3.2), at(-46.5, 0), at(-40, -3.2), at(-20, -3.6), at(20, -3.5), at(50, -3.1)], true, 5);
+                S.piece(c, prof(at, [[20, 3.3], [22, 3.8], [26, 3.6], [28, 2.4]]), { fill: GOLD.base, line: 1, heavy: 0.6, cast, shade: { color: GOLD.deep, alpha: 0.9, w: 2.4 }, light: { color: GOLD.glint, alpha: 0.9, w: 1.2 } });
+                const hand = S.curve([at(20, 3.1), at(-10, 3.5), at(-50, 3.6), at(-70, 3.2), at(-76.5, 0), at(-70, -3.2), at(-50, -3.6), at(-10, -3.5), at(20, -3.1)], true, 5);
                 S.piece(c, hand, {
                     fill: '#6b3a22', line: 1.2, heavy: 0.7, cast, shade: { color: '#24100c', alpha: 0.85, w: 3 }, light: { color: '#c98a56', alpha: 0.7, w: 1.6 },
                     detail: (cc) => {
-                        for (let i = 0; i < 6; i++) S.ink(cc, [at(-44, -2.6 + i), at(0, -2.9 + i * 1.1), at(48, -2.5 + i)], { w: 0.3, color: i % 2 ? '#2e150e' : '#b47848', alpha: 0.5 });
-                        for (const t of [-22, 22]) {
+                        for (let i = 0; i < 6; i++) S.ink(cc, [at(-74, -2.6 + i), at(-30, -2.9 + i * 1.1), at(18, -2.5 + i)], { w: 0.3, color: i % 2 ? '#2e150e' : '#b47848', alpha: 0.5 });
+                        for (const t of [-52, -8]) {
                             fillPts(cc, S.ellipse(...at(t, 0), 1.3, 1.3, 10), GOLD.deep);
                             fillPts(cc, S.ellipse(...at(t - 0.3, -0.3), 0.7, 0.7, 8), GOLD.light);
                         }
                     },
                 });
             };
+            const ANG = [-27, -38, -52, -66];
             const TOOLS = [
-                (c, over) => knife(c, tool([6, 4], -21), over),
-                (c, over) => brush(c, tool([2.5, 1.5], -37), { wood: '#8a5a2c', paint: '#e3b092', len: 104 }, over),
-                (c, over) => brush(c, tool([-2, -0.5], -51), { wood: '#3c1f18', paint: '#cf3a26', len: 107 }, over),
-                (c, over) => brush(c, tool([-6, -2], -66), { wood: '#b08a4e', paint: '#574028', len: 101 }, over),
+                (c, over) => knife(c, tool([6, 4.5], ANG[0]), over),
+                (c, over) => brush(c, tool([2.5, 1.5], ANG[1]), { wood: '#8a5a2c', paint: '#e3b092', len: 80 }, over),
+                (c, over) => brush(c, tool([-2, -0.5], ANG[2]), { wood: '#3c1f18', paint: '#cf3a26', len: 92 }, over),
+                (c, over) => brush(c, tool([-6.5, -2], ANG[3]), { wood: '#b08a4e', paint: '#574028', len: 97 }, over),
             ];
             // 1 · the tools: the halves under the board
             TOOLS.forEach((t) => t(q, false));
@@ -1899,7 +1955,7 @@ const Library = (() => {
                         S.spray(cc, pts, { color: '#e0a878', alpha: 0.75, w: 3.4, dir: TOL });
                         S.spray(cc, pts, { color: WOOD.light, alpha: 0.5, w: 12, dir: TOL });
                         // the owner's mark, burnt in with a hot iron
-                        stamp(cc, Pw.sub(-66, 63, 0.14), [-12, -5, 12, 5], { mode: 'ink', color: 'rgba(14,6,6,0.82)', wear: 0.3, seed: seed + 'mark' }, (h) => {
+                        stamp(cc, Pw.sub(-14, 66, 0.1), [-12, -5, 12, 5], { mode: 'ink', color: 'rgba(14,6,6,0.82)', wear: 0.3, seed: seed + 'mark' }, (h) => {
                             h.text('D·V', { a: 0, b: 0, cap: 6, font: FELL, track: 0.16 });
                             h.box(-11, -5, 11, 5, 0.5);
                         });
@@ -1929,16 +1985,24 @@ const Library = (() => {
                     },
                 });
             });
-            // thin scrapings round the mixtures, the wood showing through
-            MIXES.forEach((m, i) => {
-                const ln = S.curve(m.pts.length > 2 ? m.pts : [m.pts[0], [(m.pts[0][0] + m.pts[1][0]) / 2, (m.pts[0][1] + m.pts[1][1]) / 2 + 1], m.pts[1]], false, 6);
-                S.dab(q, Fs(ln.map(([x, y]) => [x + 4 - i, y + 6])), { w: m.w * 1.25, color: `rgb(${m.col.join(',')})`, alpha: 0.5, bristles: 12, seed: seed + 'scr' + i, dry: 0.8 });
+            // thin scrapings round the mixtures, the wood showing through, and where the brush dragged each colour inwards
+            MIXES.forEach((m, i) => brushed(q, Fs(m.pts.map(([x, y]) => [x + 5 - i, y + 5.5])), { w: m.w * 1.2, color: `rgb(${m.col.join(',')})`, alpha: 0.5, bristles: 12, seed: seed + 'scr' + i, dry: 0.8 }));
+            PIG.forEach((pg, i) => {
+                const a = Math.atan2(MIXC[1] - pg.at[1], MIXC[0] - pg.at[0]), d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], k = (i % 2 ? 1 : -1) * 3;
+                const ln = [[pg.at[0] + d[0] * pg.R * 0.5, pg.at[1] + d[1] * pg.R * 0.5], [pg.at[0] + d[0] * (pg.R + pg.tail * 0.6) + n[0] * k, pg.at[1] + d[1] * (pg.R + pg.tail * 0.6) + n[1] * k], [pg.at[0] + d[0] * (pg.R + pg.tail * 1.4), pg.at[1] + d[1] * (pg.R + pg.tail * 1.4)]];
+                brushed(q, Fs(ln), { w: pg.R * 0.95, color: pg.ramp[2][1], alpha: 0.85, bristles: 11, seed: seed + 'pull' + i, dry: 0.75 });
+                brushed(q, Fs(ln.map(([x, y]) => [x - 0.8, y - 0.8])), { w: pg.R * 0.5, color: pg.ramp[3][1], alpha: 0.6, bristles: 5, seed: seed + 'pull2' + i, dry: 0.8 });
             });
             const paintCast = { blur: 1.6, dx: 1, dy: 1.4, color: 'rgba(10,4,6,0.6)' };
-            laid(q, mixSprite(seed, rot, res), F([0, 0]), rot, { lw: 0.8, heavy: 0.6, cast: paintCast, ink: '#2a1418' });
-            PIG.forEach((pg, i) => laid(q, dabSprite(pg, i, seed, rot, res), F(pg.at), rot, { lw: 1, heavy: 0.7, cast: { ...paintCast, blur: 2.2, dx: 1.6, dy: 2.2 }, ink: mix(pg.ramp[0][1], INK, 0.5) }));
+            laid(q, mixSprite(seed, rot, res), F([0, 0]), rot, { lw: 0.55, heavy: 0.6, cast: paintCast, ink: '#3a1c1c' });
+            PIG.forEach((pg) => laid(q, dabSprite(pg, seed, rot, res), F(pg.at), rot, { lw: 1, heavy: 0.7, cast: { ...paintCast, blur: 2.2, dx: 1.6, dy: 2.2 }, ink: mix(pg.ramp[0][1], INK, 0.5) }));
+            // a second, smaller scoop beside two of them
+            for (const [i, dx, dy, k] of [[1, 12, 7, 0.5], [4, -4, 13, 0.46]]) {
+                const pg = PIG[i];
+                laid(q, dabSprite({ ...pg, name: pg.name + '2', R: pg.R * k, at: [pg.at[0] + dx, pg.at[1] + dy], peak: 1.3 }, seed, rot, res), F([pg.at[0] + dx, pg.at[1] + dy]), rot, { lw: 0.9, heavy: 0.7, cast: paintCast, ink: mix(pg.ramp[0][1], INK, 0.5) });
+            }
             // a thumbprint in vermilion at the edge, drips of oil
-            const tp = Pw.sub(88, -30, 0.5);
+            const tp = Pw.sub(92, -34, 0.5);
             stamp(q, tp, [-6, -8, 6, 8], { mode: 'ink', color: 'rgba(207,58,38,0.62)', wear: 0.35, seed: seed + 'thumb' }, (h) => {
                 for (let k = 1; k < 6; k++) h.line(S.ellipse(0, 1.2 - k * 0.2, k * 0.95, k * 1.35, 18).concat([[k * 0.95, 1.2 - k * 0.2]]), 0.42);
             });
@@ -1948,48 +2012,16 @@ const Library = (() => {
                 disc(q, [p[0] + TOL[0] * R * 0.3, p[1] + TOL[1] * R * 0.3], R * 0.3, rgba('#f0c090', 0.6));
             }
 
-            // 5 · the rag: old linen, wiped on till it is stiff with colour
-            const LIN = { deep: '#5f587a', base: '#cbc2ae', light: '#f4eedc' };
-            const fold = (pts, tone, stains) => {
-                const pp = Fs(S.curve(pts, true, 6)), bb = S.bbox(pp), rr = Motion.rng(seed + 'rag' + pts[0][0]);
-                S.piece(q, pp, {
-                    fill: mix(LIN.base, LIN.deep, tone), line: 1.6, heavy: 0.8, cast: { blur: 3.4, dx: 2, dy: 2.8, color: 'rgba(10,6,20,0.55)' },
-                    detail: (cc) => {
-                        const Pr = plane([bb.x, bb.y], rot2([1, 0], rot + 0.5), rot2([0, 1], rot + 0.5));
-                        // the weave, thread by thread
-                        for (let a = -bb.h; a < bb.w + bb.h; a += 1.3) strokePts(cc, [Pr(a, -bb.w), Pr(a + (rr() - 0.5), bb.h + bb.w)], 0.25, rgba(LIN.deep, 0.22));
-                        for (let b = -bb.w; b < bb.h + bb.w; b += 1.3) strokePts(cc, [Pr(-bb.h, b), Pr(bb.w + bb.h, b + (rr() - 0.5))], 0.25, rgba('#fffaf0', 0.2));
-                        // what was wiped on it
-                        for (const [x, y, col, w] of stains) {
-                            const p = [x, y], a = rr() * 3;
-                            S.dab(cc, Fs([[p[0] - Math.cos(a) * w, p[1] - Math.sin(a) * w], p, [p[0] + Math.cos(a + 0.4) * w, p[1] + Math.sin(a + 0.4) * w]]), { w: w * 0.9, color: col, alpha: 0.85, bristles: 8, seed: seed + col + x, dry: 0.6 });
-                            fillPts(cc, S.ellipse(...F(p), w * 0.34, w * 0.24, 10, a), rgba(col, 0.9));
-                        }
-                        S.spray(cc, pp, { color: LIN.deep, alpha: 0.75, w: 8 });
-                        S.spray(cc, pp, { color: '#2a2444', alpha: 0.45, w: 3 });
-                        S.spray(cc, pp, { color: LIN.light, alpha: 0.8, w: 5, dir: TOL });
-                    },
-                });
-                return pp;
-            };
-            const rag0 = [[-128, 42], [-113, 31], [-93, 39], [-71, 35], [-52, 47], [-41, 63], [-45, 81], [-37, 96], [-55, 105], [-77, 99], [-97, 107], [-117, 97], [-131, 81], [-125, 61]];
-            fold(rag0, 0.3, [[-108, 86, '#57402a', 9], [-62, 90, '#9c958c', 7]]);
-            fold([[-113, 31], [-93, 39], [-84, 58], [-99, 71], [-121, 63], [-126, 45]], 0.08, [[-106, 50, '#cf3a26', 8], [-96, 60, '#e3b092', 6]]);
-            fold([[-71, 35], [-52, 47], [-41, 63], [-58, 73], [-79, 61], [-84, 45]], 0, [[-62, 54, '#c8922e', 8], [-54, 62, '#26242f', 5]]);
-            fold([[-97, 73], [-77, 66], [-58, 77], [-53, 100], [-77, 99], [-97, 105], [-105, 89]], 0.16, [[-80, 84, '#7e1530', 7], [-70, 92, '#dcd5c6', 6], [-92, 92, '#2f65a0', 4]]);
-            // creases, and the frayed edge: threads that have worked loose
-            for (const ln of [[[-120, 66], [-104, 74], [-98, 86]], [[-84, 60], [-76, 66], [-60, 76]], [[-58, 78], [-50, 88], [-46, 98]]]) {
-                S.ink(q, Fs(S.curve(ln, false, 6)), { w: 1.1, color: '#3c3654', alpha: 0.7 });
-                S.ink(q, Fs(S.curve(ln.map(([x, y]) => [x - 0.9, y - 0.9]), false, 6)), { w: 0.6, color: '#fffaf0', alpha: 0.6 });
-            }
-            for (let i = 0; i < 16; i++) {
-                const u = i / 15, x = -118 + u * 78 + (r() - 0.5) * 3, y = 97 + 8 * Math.sin(u * 7) + r() * 3, l = 3 + r() * 5, a = 1.2 + (r() - 0.5) * 1.2;
+            // 5 · the rag, dropped over the edge, and the threads working loose from its hem
+            laid(q, ragSprite(seed, rot, res), F([0, 0]), rot, { lw: 1.5, heavy: 0.8, cast: { blur: 3.4, dx: 2, dy: 2.8, color: 'rgba(10,6,20,0.55)' } });
+            for (let i = 0; i < 18; i++) {
+                const u = i / 17, x = -122 + u * 76 + (r() - 0.5) * 3, y = 100 + 6 * Math.sin(u * 9.4 + 1) + r() * 3, l = 3 + r() * 5, a = 1.3 + (r() - 0.5) * 1.3;
                 S.ink(q, Fs(S.curve([[x, y], [x + Math.cos(a) * l * 0.5 + (r() - 0.5) * 2, y + Math.sin(a) * l * 0.5], [x + Math.cos(a) * l, y + Math.sin(a) * l]], false, 4)), { w: 0.5, color: i % 3 ? '#d8cfbc' : '#8f88a0', taper: [0, 1] });
             }
 
             // 6 · the tools again, from the hole upwards: over the board, shading it
             TOOLS.forEach((t, i) => {
-                const a = ([-21, -37, -51, -66][i] * Math.PI) / 180, d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], c0 = [HC[0] - d[0] * 2, HC[1] - d[1] * 2];
+                const a = (ANG[i] * Math.PI) / 180, d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], c0 = [HC[0] - d[0] * 2, HC[1] - d[1] * 2];
                 q.save();
                 q.beginPath();
                 S.trace(q, Fs([[c0[0] + n[0] * 300, c0[1] + n[1] * 300], [c0[0] - n[0] * 300, c0[1] - n[1] * 300], [c0[0] - n[0] * 300 + d[0] * 400, c0[1] - n[1] * 300 + d[1] * 400], [c0[0] + n[0] * 300 + d[0] * 400, c0[1] + n[1] * 300 + d[1] * 400]]));

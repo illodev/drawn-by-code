@@ -1696,6 +1696,7 @@ const Citrus = (() => {
     function drop(g, { x = 0, y = 0, r = 5, hang = 0, sq = 1 } = {}) {
         const lx = LN[0] / Math.hypot(LN[0], LN[1]), ly = LN[1] / Math.hypot(LN[0], LN[1]);
         g.save();
+        g.globalCompositeOperation = 'source-atop'; // it only ever lands on paint
         g.translate(x, y);
         g.scale(1, sq);
         const body = () => {
@@ -1707,9 +1708,8 @@ const Citrus = (() => {
                 g.bezierCurveTo(-r, -r * 0.7, -r * 0.2, -r * 1.1, 0, -r * (1 + hang * 1.6));
             } else g.arc(0, 0, r, 0, TAU);
         };
-        // its shadow, and the bright spill of light beyond it
+        // its shadow, away from the lamp
         g.save();
-        g.globalCompositeOperation = 'source-atop';
         g.fillStyle = 'rgba(6,24,18,0.42)';
         g.beginPath();
         g.ellipse(-lx * r * 0.42, -ly * r * 0.42, r * 1.02, r * 1.02, 0, 0, TAU);

@@ -60,7 +60,9 @@ Motion.scene({
             g.fillText(s, x, y);
         };
         const RES = env.k * 1.12; // the rig's plate resolution
-        const L = Shawl.plan(SHPLATE, {});
+        const tp = performance.now(), L = Shawl.plan(SHPLATE, {});
+        if (!st.planned) console.log(`layout: ${(performance.now() - tp).toFixed(0)} ms`);
+        st.planned = true;
         const pick = (kinds, x, y, rmin = 0) => {
             let best = null, bd = 1e9;
             for (const it of L.items) {

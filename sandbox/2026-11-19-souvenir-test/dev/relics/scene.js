@@ -57,7 +57,7 @@ Motion.scene({
             win('amphora', 20, 20, 500, 420, -8, -112);
             win('amphora', 20, 460, 500, 420, 22, -36);
             win('mosaic', 540, 20, 520, 420, -40, -22);
-            win('mosaic', 540, 460, 520, 420, 62, 62, 6);
+            win('mosaic', 540, 460, 520, 420, 62, 62);
             win('stele', 1080, 20, 500, 860, 0, 0);
         } else if (page === 7) {
             put('carambolo', { x: 200, y: 200, rot: 0.7 });

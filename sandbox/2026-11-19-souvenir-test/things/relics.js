@@ -202,6 +202,10 @@ const Relics = (() => {
         return a;
     }
 
+    // Value noise shows its lattice as soon as it is thresholded (square blotches): two
+    // octaves on turned axes hide it. For every mask of patina, crust, wear.
+    const fbm = (x, y, s) => S.noise2(x * 0.8 + y * 0.6, y * 0.8 - x * 0.6, s) * 0.6 + S.noise2((x * 0.5 - y * 0.87) * 2.1, (y * 0.5 + x * 0.87) * 2.1, s + 1) * 0.4;
+
     // ------------------------------------------------------------------ small painting tools
     const fillPts = (g, pts, style) => {
         g.beginPath();
@@ -602,7 +606,7 @@ const Relics = (() => {
     }
     const goldTint = (AO) => (x, y, tone, rgb) => {
         // red earth and deep shade in the hollows; the crests burnished paler
-        const c = AO.at(x, y), k = clamp(c * 0.55) * 0.75, kl = clamp(-c * 0.5) * 0.22;
+        const c = AO.at(x, y), k = clamp(c * 0.75) * 0.85, kl = clamp(-c * 0.5) * 0.25;
         rgb[0] += (112 - rgb[0]) * k + (255 - rgb[0]) * kl;
         rgb[1] += (44 - rgb[1]) * k + (240 - rgb[1]) * kl;
         rgb[2] += (16 - rgb[2]) * k + (170 - rgb[2]) * kl;
@@ -675,7 +679,7 @@ const Relics = (() => {
         const sp = S.form({
             box, res, light: K.L, seed: 'pect' + K.seed, inflate: 'bevel', R: 1.7, relief: 0.8, smooth: 0.0015,
             mask: (q) => fillPts(q, out, '#fff'),
-            height: (x, y) => F.at(x, y) + 0.12 * S.noise2(x * 0.35, y * 0.35, 5),
+            height: (x, y) => F.at(x, y) + 0.12 * S.noise2(x * 0.35, y * 0.35, 5) + 2.6 * fbm(x * 0.022, y * 0.022, 6),
             ramp: GOLD, soft: 1, mottle: { amp: 0.035, freq: 0.045 },
             spec: { amp: 0.8, power: 20, from: 0.5, to: 0.96, color: '#fffbe2' },
             tint: goldTint(AO),
@@ -689,9 +693,14 @@ const Relics = (() => {
             }
             for (const b of P.bosses) bossInk(q, K, b);
         });
-        sprayIn(sp, res, { color: '#6e2a10', alpha: 0.6, w: 26, dir: K.sd });
-        sprayIn(sp, res, { color: '#3a0f14', alpha: 0.5, w: 7, dir: K.sd });
-        sprayIn(sp, res, { color: '#fff4c0', alpha: 0.4, w: 16, dir: K.tol });
+        // red earth still in the low places, more of it towards the corners
+        onto(sp, res, (q) => {
+            const r = Motion.rng('earth' + K.seed);
+            for (let i = 0; i < 26; i++) blobOn(q, [box.x + r() * box.w, box.y + r() * box.h], 5 + r() * 12, r() < 0.7 ? '#8a3a12' : '#f8e7a0', r() < 0.7 ? 0.22 : 0.16);
+        });
+        sprayIn(sp, res, { color: '#7a2c0e', alpha: 0.78, w: 34, dir: K.sd });
+        sprayIn(sp, res, { color: '#3a0f14', alpha: 0.55, w: 8, dir: K.sd });
+        sprayIn(sp, res, { color: '#fff6c8', alpha: 0.5, w: 20, dir: K.tol });
         sprayIn(sp, res, { color: '#e9a23c', alpha: 0.7, w: 1.4, push: 0.5, dir: K.sd });
         return sp;
     }
@@ -779,7 +788,7 @@ const Relics = (() => {
             tint: (x, y, tone, rgb) => {
                 const [u, v] = uv(x, y), cu = Math.sqrt(Math.max(0, 1 - (u * u) / (R * R)));
                 const cav = W.lin(R * Math.asin(clamp(u / R, -1, 1)), v - e * cu), a = AO.lin(R * Math.asin(clamp(u / R, -1, 1)), v - e * cu);
-                const k = clamp(a * 0.55) * 0.75;
+                const k = clamp(a * 0.75) * 0.85;
                 rgb[0] += (112 - rgb[0]) * k;
                 rgb[1] += (44 - rgb[1]) * k;
                 rgb[2] += (16 - rgb[2]) * k;
@@ -803,8 +812,8 @@ const Relics = (() => {
             }
             scratches(q, K.seed + 'cuff', box, 30, 7);
         });
-        sprayIn(outer, res, { color: '#6e2a10', alpha: 0.7, w: 18, dir: K.sd });
-        sprayIn(outer, res, { color: '#3a0f14', alpha: 0.55, w: 6, dir: K.sd });
+        sprayIn(outer, res, { color: '#7a2c0e', alpha: 0.8, w: 22, dir: K.sd });
+        sprayIn(outer, res, { color: '#3a0f14', alpha: 0.6, w: 7, dir: K.sd });
         sprayIn(outer, res, { color: '#fff4c0', alpha: 0.45, w: 10, dir: K.tol });
         sprayIn(outer, res, { color: '#e9a23c', alpha: 0.7, w: 1.4, push: 0.5, dir: K.sd });
         stamp(G, outer, K, { lw: 2.2, cast: { d: 5, blur: 5 } });
@@ -1351,7 +1360,7 @@ const Relics = (() => {
         G.beginPath();
         S.trace(G, F.pts(MX.aperture));
         G.clip();
-        for (const [p, rr, col, a] of [[[27.5, 11], 5.5, '#7a2460', 0.75], [[26, 15.5], 4, '#5a3a9a', 0.6], [[28.5, 7.5], 3.2, '#2f7f78', 0.6], [[25, 10], 2.6, '#a8c04a', 0.75]]) blobOn(G, F(p), rr * F.s, col, a);
+        for (const [p, rr, col, a] of [[[27.5, 12], 5, '#7a2460', 0.8], [[25.5, 16], 3.6, '#6a2a7a', 0.6], [[28.6, 8.5], 2.4, '#4f8a5a', 0.5], [[27, 10.5], 1.8, '#b8c856', 0.8]]) blobOn(G, F(p), rr * F.s, col, a);
         G.restore();
         for (const [p, rr] of [[[39.4, 13.5], 1.5], [[37.6, 20], 1.05]]) {
             const c = F(p), dr = S.xf(S.curve([[0, -1.9], [0.75, -0.6], [1, 0.4], [0.6, 1.1], [0, 1.3], [-0.6, 1.1], [-1, 0.4], [-0.75, -0.6]], true, 5), { x: c[0], y: c[1], sx: rr });
@@ -1490,9 +1499,9 @@ const Relics = (() => {
             height: (x, y) => up.at(x, y) - down.at(x, y) - scored.at(x, y) - 0.45 * pit(x, y) + 0.25 * S.noise2(x * 0.09, y * 0.09, 61) + 0.1 * S.noise2(x * 0.45, y * 0.45, 62),
             ramp: [[0, '#000000'], [1, '#ffffff']], soft: 1,
             tint: (x, y, tone, rgb, m) => {
-                const w = worn.at(x, y), n1 = S.noise2(x * 0.021 + 3, y * 0.021, 41) * 0.62 + S.noise2(x * 0.06, y * 0.06, 42) * 0.38;
+                const w = worn.at(x, y), n1 = fbm(x * 0.021 + 3, y * 0.021, 41) * 0.75 + fbm(x * 0.07, y * 0.07, 42) * 0.25;
                 const bareV = n1 + w * 1.05 - 0.36, bare = smooth(0.1, 0.2, bareV), ring = smooth(0.02, 0.1, bareV) * (1 - smooth(0.12, 0.24, bareV));
-                const n2 = S.noise2(x * 0.033, y * 0.033 + 9, 43), n3 = S.noise2(x * 0.12, y * 0.12, 44), n4 = S.noise2(x * 0.6, y * 0.6, 45), p = pit(x, y), sc = scored.at(x, y);
+                const n2 = fbm(x * 0.03, y * 0.03 + 9, 43), n3 = fbm(x * 0.1, y * 0.1, 44), n4 = fbm(x * 0.42, y * 0.42, 45), p = pit(x, y), sc = scored.at(x, y);
                 const kt = smooth(-0.25, 0.3, n2), kd = smooth(0.1, 0.6, n3) * 0.6, kb = clamp(smooth(0.2, 0.7, -n3 + 0.25 * n4) * 0.6 + p * 0.7 + sc * 0.5), ks = smooth(0.35, 0.7, n4) * 0.3;
                 const B = BRZ, a = [0, 0, 0];
                 for (let c = 0; c < 3; c++) {
@@ -1557,26 +1566,13 @@ const Relics = (() => {
                 const x = -80 + r() * 170, y = -110 + r() * 220, a = 0.9 + (r() - 0.5) * 1.4, l = 3 + r() * 10, pale = r() < 0.45;
                 S.ink(q, [[x, y], [x + Math.cos(a) * l * 0.5 + (r() - 0.5), y + Math.sin(a) * l * 0.5], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 0.35 + r() * 0.3, color: pale ? '#d8c088' : '#10222a', alpha: 0.3 + r() * 0.3 });
             }
-            // sea encrustation: chalky scars of barnacles and a crust at the nape
-            for (const [x, y, rr] of [[66, 52, 2.8], [72, 44, 1.9], [58, 61, 2.2], [-56, 86, 2], [50, -30, 1.7]]) {
-                const a0 = r() * TAU;
-                q.lineCap = 'round';
-                for (let k = 0; k < 5; k++) {
-                    q.lineWidth = rr * (0.2 + r() * 0.25);
-                    q.strokeStyle = `rgba(206,208,190,${(0.35 + r() * 0.35).toFixed(2)})`;
-                    q.beginPath();
-                    q.ellipse(x, y, rr, rr * 0.86, 0.4, a0 + k * 1.26, a0 + k * 1.26 + 0.6 + r() * 0.5);
-                    q.stroke();
+            // sea encrustation: a chalky crust at the nape and in the lee of the cheek
+            for (const [x0, y0, sx, sy, n] of [[78, 80, 16, 16, 90], [-58, 88, 7, 10, 26], [52, -30, 6, 6, 16], [-20, -70, 5, 7, 12]]) {
+                for (let i = 0; i < n; i++) {
+                    const x = x0 + (r() + r() - 1) * sx, y = y0 + (r() + r() - 1) * sy, rr = 0.3 + r() * r() * 1.5;
+                    disc(q, [x + sd[0] * rr * 0.4, y + sd[1] * rr * 0.4], rr, 'rgba(14,26,34,0.45)');
+                    disc(q, [x, y], rr, r() < 0.75 ? `rgba(212,212,196,${(0.5 + r() * 0.35).toFixed(2)})` : 'rgba(150,176,160,0.6)');
                 }
-                q.lineWidth = 0.35;
-                q.strokeStyle = 'rgba(14,24,34,0.5)';
-                q.beginPath();
-                q.ellipse(x + sd[0] * 0.5, y + sd[1] * 0.5, rr * 1.2, rr * 1.04, 0.4, Math.atan2(sd[1], sd[0]) - 1.2, Math.atan2(sd[1], sd[0]) + 1.2);
-                q.stroke();
-            }
-            for (let i = 0; i < 70; i++) {
-                const x = 60 + r() * 34 + (r() - 0.5) * 10, y = 62 + r() * 34;
-                disc(q, [x, y], 0.3 + r() * 0.7, r() < 0.7 ? 'rgba(214,212,196,0.55)' : 'rgba(24,40,48,0.5)');
             }
             // the thickness of the sheet, lit, on the edges that look at the lamp
             for (const poly of [HM.open, HM.nasal]) {
@@ -1807,7 +1803,7 @@ const Relics = (() => {
             let u = 0;
             for (let i = 0; i < n && u < len; i++) {
                 const k = Math.floor(rr() * 6), h = 4.4 + rr() * 2, w = 1.6 + rr() * 2.4;
-                const st = k === 0 ? [[0, 0], [w * 0.3, h * 0.5], [w, h]] : k === 1 ? [[0, h], [w * 0.5, h * 0.2], [w, 0], [w * 1.2, h * 0.6]] : k === 2 ? [[0, h * 0.2], [w * 0.2, h], [w * 0.9, h * 0.3], [w * 1.1, h * 1.3]] : k === 3 ? [[0, h * 1.5], [w * 0.4, h * 0.4], [w * 0.3, 0]] : k === 4 ? [[0, h * 0.7], [w * 0.6, h * 0.9], [w, h * 0.3], [w * 0.4, 0], [0, h * 0.4]] : [[0, 0], [w * 0.1, h * 0.8], [w * 0.8, h]];
+                const st = k === 0 ? [[0, 0], [w * 0.3, h * 0.5], [w, h * 1.1]] : k === 1 ? [[0, h], [w * 0.5, h * 0.2], [w, 0], [w * 1.2, h * 0.6]] : k === 2 ? [[0, h * 0.2], [w * 0.2, h], [w * 0.9, h * 0.3], [w * 1.1, h * 1.5]] : k === 3 ? [[0, h * 1.7], [w * 0.4, h * 0.4], [w * 0.3, -h * 0.2]] : k === 4 ? [[0, h * 0.1], [w * 0.5, h * 1.6]] : [[0, 0], [w * 0.1, h * 0.8], [w * 0.8, h]];
                 S.ink(q, S.curve(st.map(([x, y]) => dl(u + x, h - y - 1, line)), false, 5), { w: 0.85 + rr() * 0.4, color: BLACK, taper: [0.2, 0.7] });
                 u += w + 1 + (rr() < 0.22 ? 3 : 0);
             }
@@ -2036,7 +2032,7 @@ const Relics = (() => {
                     const d = (i - 2) * 2, arc = [-1, -0.5, 0, 0.5, 1].map((u) => F([p.p[0] + w[0] * u * rr * 0.9 + p.t[0] * (d + dirn * (3 - 3 * u * u)), p.p[1] + w[1] * u * rr * 0.9 + p.t[1] * (d + dirn * (3 - 3 * u * u))]));
                     U.G.save();
                     U.G.globalCompositeOperation = 'source-atop';
-                    S.ink(U.G, S.curve(arc, false, 5), { w: 0.55, color: i % 2 ? '#7a4630' : '#fff0d6', alpha: 0.36, taper: [0.7, 0.7] });
+                    S.ink(U.G, S.curve(arc, false, 5), { w: 0.5, color: i % 2 ? '#7a4630' : '#a8663e', alpha: 0.22, taper: [0.7, 0.7] });
                     U.G.restore();
                 }
             }
@@ -2138,7 +2134,7 @@ const Relics = (() => {
                     if (!best || cur[1] - cur[0] > best[1] - best[0]) best = cur;
                 } else cur = null;
             }
-            if (!best || best[1] - best[0] < Math.min(1.6, (s1 - s0) * 0.45)) return;
+            if (!best || best[1] - best[0] < Math.min(1.5, (s1 - s0) * 0.45)) return;
             const a = at(best[0]), b = at(best[1]), mid = at((best[0] + best[1]) / 2);
             if (!near(mid.p)) return;
             const hw = wid / 2, corner = (q, sg, tg, g) => [q.p[0] + q.n[0] * sg * (hw - g) + q.t[0] * tg * g + (g ? (r() - 0.5) * 0.5 : 0), q.p[1] + q.n[1] * sg * (hw - g) + q.t[1] * tg * g + (g ? (r() - 0.5) * 0.5 : 0)];
@@ -2161,12 +2157,12 @@ const Relics = (() => {
         // ---- the figure: a red-legged partridge at a sprig of cherries. First as a painting
         // (what colour is where), from which every stone takes the nearest colour of the box.
         const bx = cx + 5, by = cy, B = (x, y) => [bx + x, by + y];
-        const sil = S.curve([[-36, -22], [-33, -28], [-26, -30.5], [-19, -28], [-15, -22], [-8, -17], [4, -18], [18, -15], [30, -9], [40, -2], [49, 8], [47, 14], [38, 12], [30, 15], [22, 21], [10, 24], [-4, 23], [-16, 18], [-25, 8], [-30, -2], [-34, -9], [-37, -14]], true, 8).map(([x, y]) => B(x, y));
+        const sil = S.curve([[-38, -22.5], [-35, -30], [-27, -33.5], [-19, -31], [-14, -24], [-8, -18], [4, -18.5], [18, -15.5], [30, -9], [40, -2], [49, 8], [47, 14], [38, 12], [30, 15], [22, 21], [10, 24], [-4, 23], [-16, 18], [-25, 8], [-31, -1], [-36, -8], [-39, -14]], true, 8).map(([x, y]) => B(x, y));
         const legs = [[[-4, 22], [-7.5, 30.5], [-7, 38]], [[9, 23], [9.8, 30.5], [9, 38]]].map((l) => S.curve(l.map(([x, y]) => B(x, y)), false, 6));
         const toes = [[[-7, 38.6], [-15.5, 40]], [[-6.4, 39], [-2, 40.6]], [[9, 38.6], [1.6, 40]], [[9.6, 39], [14, 40.6]]].map((l) => l.map(([x, y]) => B(x, y)));
-        const beak = [B(-36, -17.8), B(-44.5, -16.4)];
+        const beak = [B(-38, -18.4), B(-46, -16.6)];
         const twig = S.curve([[-59, 33], [-60.5, 20], [-61, 6], [-58, -8], [-54, -20], [-51, -27]].map(([x, y]) => B(x, y)), false, 8);
-        const cherries = [[-51.5, -17.2, 4.5], [-55.6, -3.6, 4.2]].map(([x, y, rr]) => S.ellipse(bx + x, by + y, rr, rr, 20));
+        const cherries = [[-52.6, -17.2, 4.4], [-55.8, -3.6, 4.2]].map(([x, y, rr]) => S.ellipse(bx + x, by + y, rr, rr, 20));
         const leaf = (a, b, w) => {
             const d = [b[0] - a[0], b[1] - a[1]], n = [-d[1], d[0]], l = Math.hypot(d[0], d[1]), out = [];
             for (let k = 0; k <= 10; k++) out.push([a[0] + d[0] * (k / 10) + (n[0] / l) * w * Math.sin((Math.PI * k) / 10), a[1] + d[1] * (k / 10) + (n[1] / l) * w * Math.sin((Math.PI * k) / 10)]);
@@ -2203,12 +2199,12 @@ const Relics = (() => {
         // the barred flank: cream, black, chestnut, slanting
         ['#f3efe3', '#2e2b2e', '#9c4a2c', '#f3efe3', '#2e2b2e', '#9c4a2c'].forEach((c, i) => fillPts(mq, [B(-7 + i * 5, 3.5), B(-2 + i * 5, 4.4), B(-5.4 + i * 5, 17), B(-10.4 + i * 5, 16)], c));
         // head: a grey-brown crown, the white face and throat, the black collar that breaks into streaks
-        el(-26, -25.5, 10.5, 6.5, 0, '#7e6a4a');
-        el(-27.5, -12.5, 9.2, 10, 0.2, '#f3efe3');
+        el(-27, -27.5, 11.5, 7.5, 0, '#7e6a4a');
+        el(-28.5, -13, 10, 11, 0.2, '#f3efe3');
         mq.lineCap = 'round';
-        strokePts(mq, S.curve([B(-37, -20.6), B(-30, -22.8), B(-21, -21), B(-16.8, -13), B(-19.5, -3.4), B(-28, 1.4), B(-35, -3.5)], false, 8), 3.8, '#2e2b2e');
+        strokePts(mq, S.curve([B(-39, -21.4), B(-31, -24), B(-21.5, -22.4), B(-16.4, -14), B(-19.5, -3.4), B(-28, 1.8), B(-36.5, -3)], false, 8), 3.6, '#2e2b2e');
         for (const [x, y] of [[-22, 5.5], [-15.5, 8], [-25.5, 10.5], [-11.5, 3], [-18, 13.5]]) strokePts(mq, [B(x, y), B(x + 1, y + 3.4)], 2.8, '#2e2b2e');
-        el(-29, -18.6, 3.9, 3.7, 0, '#b8432e');
+        el(-30, -18.2, 3.6, 3.4, 0, '#b8432e');
         mq.restore();
         for (const l of legs) strokePts(mq, l, 4, '#b8432e');
         for (const l of toes) strokePts(mq, l, 3.4, '#b8432e');
@@ -2225,13 +2221,13 @@ const Relics = (() => {
         };
         const figStone = (p) => stoneNear(fig(p) ?? [236, 230, 214]);
         // the eye first, a single dark stone; then the thin things, one row each
-        const eye = B(-29, -18.6);
-        mark(S.ellipse(eye[0], eye[1], 1.9, 1.9, 8));
-        cells.push({ q: [[eye[0] - 1.5, eye[1] - 1.4], [eye[0] + 1.4, eye[1] - 1.5], [eye[0] + 1.5, eye[1] + 1.4], [eye[0] - 1.4, eye[1] + 1.5]], c: [38, 34, 38], h: 1, p: eye, kind: 'fig' });
-        row(beak, 3.7, figStone, { len: 3.6, kind: 'fig' });
-        for (const l of legs) row(l, 3.2, figStone, { len: 3.4, kind: 'fig' });
-        for (const l of toes) row(l, 2.8, figStone, { len: 3.2, kind: 'fig' });
-        row(twig, 3, figStone, { len: 3.6, kind: 'fig' });
+        const eye = B(-30, -18.2);
+        mark(S.ellipse(eye[0], eye[1], 1.6, 1.6, 8));
+        cells.push({ q: [[eye[0] - 1.2, eye[1] - 1.1], [eye[0] + 1.1, eye[1] - 1.2], [eye[0] + 1.2, eye[1] + 1.1], [eye[0] - 1.1, eye[1] + 1.2]], c: [34, 30, 34], h: 1, p: eye, kind: 'fig' });
+        row(beak, 3.4, figStone, { len: 3, kind: 'fig' });
+        for (const l of legs) row(l, 2.9, figStone, { len: 3, kind: 'fig' });
+        for (const l of toes) row(l, 2.6, figStone, { len: 3, kind: 'fig' });
+        row(twig, 2.9, figStone, { len: 3.4, kind: 'fig' });
         // shapes filled in rings from their outline inwards
         const rings = (paint, wid, col, bbx) => {
             const D = distField(bbx, 3, paint);
@@ -2243,9 +2239,9 @@ const Relics = (() => {
             return D;
         };
         // the outermost ring of the bird is its drawn line: dark above, brown under the belly
-        rings((q) => fillPts(q, sil, '#fff'), 3.25, (pt, lv) => (lv < 3 ? (pt[1] > by + 14 ? [96, 70, 50] : [48, 42, 44]) : figStone(pt)), figBox);
-        for (const ch of cherries) rings((q) => fillPts(q, ch, '#fff'), 2.9, figStone, figBox);
-        for (const lf of leaves) rings((q) => fillPts(q, lf, '#fff'), 2.9, figStone, figBox);
+        rings((q) => fillPts(q, sil, '#fff'), 2.75, (pt, lv) => (lv < 2.6 ? (pt[1] > by + 14 ? [96, 70, 50] : [48, 42, 44]) : figStone(pt)), figBox);
+        for (const ch of cherries) rings((q) => fillPts(q, ch, '#fff'), 2.7, figStone, figBox);
+        for (const lf of leaves) rings((q) => fillPts(q, lf, '#fff'), 2.7, figStone, figBox);
         // two rows of the ground follow the whole figure round
         const union = (q) => {
             fillPts(q, sil, '#fff');
@@ -2318,7 +2314,7 @@ const Relics = (() => {
         for (let y = box.y + 3.4, j = 0; y < box.y + box.h; y += 5.2, j++) row([[box.x + (j % 2) * 2.6 - 3, y + (r() - 0.5) * 0.4], [box.x + box.w, y + (r() - 0.5) * 0.4]], 5.2, (p) => (fig(p) || inBand(p) ? null : white(p)), { kind: 'ground' });
         for (let y = box.y + 2; y < box.y + box.h; y += 3.1) {
             for (let x = box.x + 2; x < box.x + box.w; x += 3.1) {
-                const p = [x + (r() - 0.5) * 0.8, y + (r() - 0.5) * 0.8], e = 1.15;
+                const p = [x + (r() - 0.5) * 0.8, y + (r() - 0.5) * 0.8], e = 1.1;
                 if (!near(p) || occ(p[0], p[1]) || occ(p[0] - e, p[1] - e) || occ(p[0] + e, p[1] - e) || occ(p[0] + e, p[1] + e) || occ(p[0] - e, p[1] + e)) continue;
                 const q = [[-1.3, -1.3], [1.3, -1.3], [1.3, 1.3], [-1.3, 1.3]].map(([u, v]) => [p[0] + u + (r() - 0.5) * 0.5, p[1] + v + (r() - 0.5) * 0.5]);
                 mark([[p[0] - 1.6, p[1] - 1.6], [p[0] + 1.6, p[1] - 1.6], [p[0] + 1.6, p[1] + 1.6], [p[0] - 1.6, p[1] + 1.6]]);
@@ -2429,14 +2425,22 @@ const Relics = (() => {
         // the section at the break: what the floor is made of, seen where the slab faces us
         const side = sheet(box, res), TH = 13;
         const strata = [[13, '#857a6c'], [9.5, '#b98570'], [9, '#a87460'], [4.4, '#d9d0bc'], [2.4, '#c5bcaa'], [2.2, '#9c9484']];
-        for (let d = TH; d >= 0.4; d -= 0.4) {
-            const col = strata.filter(([lv]) => d <= lv).pop()[1], tmp = sheet(box, res);
-            tmp.G.drawImage(slab.canvas, box.x, box.y + d, box.w, box.h);
-            tmp.G.globalCompositeOperation = 'source-in';
-            tmp.G.fillStyle = mix(col, '#2a2030', 0.12 + 0.1 * S.noise2(d * 0.9, 3, 110));
-            tmp.G.fillRect(box.x, box.y, box.w, box.h);
-            side.G.drawImage(tmp.canvas, box.x, box.y, box.w, box.h);
+        const tmp = sheet(box, res);
+        let last = null;
+        for (let d = TH; d >= 0.5; d -= 0.5) {
+            const col = strata.filter(([lv]) => d <= lv).pop()[1];
+            if (col !== last) {
+                tmp.G.globalCompositeOperation = 'copy';
+                tmp.G.drawImage(slab.canvas, box.x, box.y, box.w, box.h);
+                tmp.G.globalCompositeOperation = 'source-in';
+                tmp.G.fillStyle = mix(col, '#2a2030', 0.14);
+                tmp.G.fillRect(box.x, box.y, box.w, box.h);
+                last = col;
+            }
+            side.G.globalAlpha = 0.88 + 0.12 * S.hashI(Math.round(d * 2), 1, 2, 3);
+            side.G.drawImage(tmp.canvas, box.x, box.y + d, box.w, box.h);
         }
+        side.G.globalAlpha = 1;
         const sideSp = { canvas: side.canvas, box };
         onto(sideSp, res, (q) => {
             // crushed brick in the pink nucleus, pebbles in the rudus, the stones' own sides
@@ -2469,12 +2473,168 @@ const Relics = (() => {
         }
     }
 
+    // ------------------------------------------------------------------ 6 · the stele of the south-west
+    // Signs in the manner of the south-western script: plain strokes in a box one unit high.
+    // Plausible forms of that signary, set in an order of our own: nobody can read it anyway.
+    const SIGNS = [
+        [[[0.1, 1], [0.5, 0], [0.9, 1]], [[0.3, 0.56], [0.7, 0.56]]],
+        [[[0.5, 0.08], [0.85, 0.32], [0.85, 0.7], [0.5, 0.95], [0.15, 0.7], [0.15, 0.32], [0.5, 0.08]]],
+        [[[0.5, 0], [0.5, 1]], [[0.15, 0.36], [0.5, 0], [0.85, 0.36]]],
+        [[[0.5, 0], [0.5, 1]], [[0.15, 0.34], [0.85, 0.34]], [[0.15, 0.66], [0.85, 0.66]]],
+        [[[0.15, 0], [0.5, 0.5], [0.85, 0]], [[0.5, 0.5], [0.5, 1]]],
+        [[[0.15, 1], [0.15, 0], [0.85, 1], [0.85, 0]]],
+        [[[0.5, 1], [0.5, 0.5]], [[0.5, 0.5], [0.2, 0.25], [0.5, 0], [0.8, 0.25], [0.5, 0.5]]],
+        [[[0.1, 1], [0.3, 0.1], [0.5, 0.7], [0.7, 0.1], [0.9, 1]]],
+        [[[0.8, 0], [0.2, 0.5], [0.8, 1]]],
+        [[[0.75, 0], [0.25, 0.5], [0.75, 1]], [[0.75, 0], [0.75, 1]]],
+        [[[0.5, 0], [0.5, 1]], [[0.15, 0.1], [0.2, 0.5], [0.8, 0.5], [0.85, 0.1]]],
+        [[[0.15, 0.05], [0.85, 0.95]], [[0.85, 0.05], [0.15, 0.95]]],
+        [[[0.5, 0.05], [0.9, 0.95], [0.1, 0.95], [0.5, 0.05]]],
+        [[[0.5, 0], [0.5, 1]]],
+        [[[0.25, 0], [0.25, 1]], [[0.75, 0], [0.75, 1]], [[0.25, 0.3], [0.75, 0.3]], [[0.25, 0.7], [0.75, 0.7]]],
+        [[[0.2, 1], [0.2, 0], [0.8, 0], [0.8, 0.42]]],
+        [[[0.15, 0.1], [0.85, 0.9], [0.85, 0.1], [0.15, 0.9], [0.15, 0.1]]],
+        [[[0.2, 0], [0.2, 1]], [[0.8, 0], [0.8, 1]], [[0.2, 0.5], [0.8, 0.5]]],
+        [[[0.3, 1], [0.3, 0], [0.76, 0.22], [0.3, 0.46]]],
+        [[[0.5, 0.1], [0.5, 0.9]], [[0.15, 0.5], [0.85, 0.5]]],
+    ];
+    function paintStele(G, K) {
+        const res = K.res, sd = K.sd, r = Motion.rng('stele' + K.seed), box = { x: -86, y: -131, w: 172, h: 262 };
+        // the slab: split along the cleavage, its top corner broken clean off
+        const face = [[-70, -117], [-48, -122], [-12, -124], [20, -121], [47, -113], [73, -79], [77, -30], [75, 30], [78, 80], [73, 116], [40, 122], [-10, 120], [-58, 123], [-75, 110], [-78, 50], [-74, -10], [-77, -70]].map(([x, y], i) => (i === 4 || i === 5 ? [x, y] : [x + (r() - 0.5) * 3, y + (r() - 0.5) * 3]));
+        const dense = face.flatMap((p, i) => {
+            const q = face[(i + 1) % face.length], n = i === 4 ? 1 : 5;
+            return Array.from({ length: n }, (_, k) => {
+                const m = lerpP(p, q, k / n);
+                return k ? [m[0] + S.noise2(i * 3.1 + k, 2, 7) * 0.9, m[1] + S.noise2(i * 3.1 + k, 6, 7) * 0.9] : m;
+            });
+        });
+        const tv = [4.5, 6.5], ctr = [0, 0], n = face.length;
+        // its thickness, where an edge looks at us: the leaves of the slate, one on another
+        for (let i = 0; i < n; i++) {
+            const a = face[i], b = face[(i + 1) % n], e = [b[0] - a[0], b[1] - a[1]], out = [e[1], -e[0]], m = lerpP(a, b, 0.5), sign = (m[0] - ctr[0]) * out[0] + (m[1] - ctr[1]) * out[1] > 0 ? 1 : -1;
+            if ((out[0] * tv[0] + out[1] * tv[1]) * sign <= 0) continue;
+            const quad = [a, b, [b[0] + tv[0], b[1] + tv[1]], [a[0] + tv[0], a[1] + tv[1]]], lit = clamp(0.5 + (0.5 * (out[0] * K.tol[0] + out[1] * K.tol[1]) * sign) / (Math.hypot(e[0], e[1]) || 1));
+            piece(G, K, quad, {
+                fill: mix('#343a4e', '#6a7286', lit), line: 1.8, heavy: 0.7, cast: null,
+                detail: (q) => {
+                    for (let k = 1; k < 7; k++) {
+                        const u = k / 7 + (r() - 0.5) * 0.08, p0 = lerpP(a, quad[3], u), p1 = lerpP(b, quad[2], u), c0 = r(), c1 = c0 + 0.2 + r() * 0.8;
+                        strokePts(q, [lerpP(p0, p1, c0), lerpP(p0, p1, Math.min(1, c1))], 0.45, k % 2 ? 'rgba(20,24,40,0.7)' : 'rgba(170,178,196,0.5)');
+                    }
+                    S.spray(q, quad, { color: '#1c2036', alpha: 0.5, w: 4, dir: sd });
+                },
+            });
+        }
+        // what is cut into it: the band of text between two scored lines, round the edge and
+        // turning inward at the foot; and inside it the warrior with his shield, sword and mirror
+        const path = S.curve([[58, 106], [61, 60], [62, 0], [61, -60], [58, -96], [44, -108.5], [10, -111], [-30, -110.5], [-52, -105], [-62.5, -90], [-64, -30], [-64, 40], [-62, 88], [-52, 105], [-30, 108.5], [8, 108], [28, 105], [38, 94], [40, 70], [40, 34]], false, 10), st = walk(path, 0.5);
+        const cuts = [st.map((q) => [q.p[0] + q.n[0] * 6.6, q.p[1] + q.n[1] * 6.6]), st.map((q) => [q.p[0] - q.n[0] * 6.6, q.p[1] - q.n[1] * 6.6])].map((l) => l.map(([x, y], i) => [x + S.noise2(i * 0.02, 1, 8) * 0.8, y + S.noise2(i * 0.02, 5, 8) * 0.8]));
+        const signs = [];
+        for (let sA = 7, k = 0; sA < st[st.length - 1].s - 5; k++) {
+            const sg = SIGNS[Math.floor(r() * SIGNS.length)], h = 8.6 + r() * 1.8, w = h * (0.62 + r() * 0.2), q = st[Math.round((sA + w / 2) / 0.5)], tilt = (r() - 0.5) * 0.22, c = Math.cos(tilt), sn = Math.sin(tilt);
+            for (const stroke of sg) signs.push(stroke.map(([x, y]) => {
+                const u = (x - 0.5) * w, v = (0.5 - y) * h + (r() - 0.5) * 0.3, uu = u * c - v * sn, vv = u * sn + v * c;
+                return [q.p[0] + q.t[0] * uu + q.n[0] * vv, q.p[1] + q.t[1] * uu + q.n[1] * vv];
+            }));
+            sA += w + 1.6 + r() * 1.6 + (r() < 0.1 ? 4 : 0);
+        }
+        const circle = (x, y, rr, a0 = 0, a1 = TAU) => Array.from({ length: 25 }, (_, i) => [x + Math.cos(a0 + ((a1 - a0) * i) / 24) * rr * (1 + (r() - 0.5) * 0.04), y + Math.sin(a0 + ((a1 - a0) * i) / 24) * rr]);
+        const man = [
+            circle(-6, -44, 4.6), [[-6, -39], [-6.6, -20], [-6, -3]], [[-25, -24], [-6.4, -31], [12, -25]],
+            [[-25, -24], [-29, -27.5]], [[-25, -24], [-29.6, -24]], [[-25, -24], [-28.6, -20.4]], [[12, -25], [16, -28.6]], [[12, -25], [16.6, -25]], [[12, -25], [15.6, -21.4]],
+            [[-6, -3], [-15, 25], [-19.6, 26]], [[-6, -3], [3, 25], [7.6, 26]],
+            // the sword at his side: blade, guard, pommel
+            [[18.4, -8], [20.4, 16], [23, 36], [23.8, 16], [22.2, -8.6]], [[15.4, -7.2], [25.4, -9.2]], [[20, -8.4], [19.4, -15]], [[16.8, -14.4], [19.4, -16.2], [22.2, -15.2]],
+            // the round shield with its rings and the notch cut into them
+            ...[15, 10, 5.2].map((rr, i) => (i < 2 ? [...circle(-34, 12, rr, 0.32, TAU - 0.32), [-34 + rr * 0.5, 12], [-34 + Math.cos(0.32) * rr, 12 + Math.sin(0.32) * rr]] : circle(-34, 12, rr))), circle(-34, 12, 1.2),
+            // the mirror: a disc on a handle
+            circle(27, 55, 7.4), circle(27, 55, 5.4), [[27, 62.4], [27.3, 76]], [[23.8, 76], [30.8, 76.6]],
+            // a comb
+            [[-40, -48], [-28, -49]], ...[0, 1, 2, 3, 4].map((i) => [[-39 + i * 2.6, -48], [-39.4 + i * 2.6, -41.5]]),
+        ];
+        const flakes = [[[36, -98], [47, -103], [58, -96], [66, -84], [64, -70], [56, -66], [50, -74], [41, -78], [33, -88]], [[-72, 60], [-60, 55], [-51, 59], [-47, 70], [-53, 80], [-63, 85], [-73, 79]], [[6, 88], [16, 83], [26, 86], [29, 93], [20, 99], [10, 97]], [[-30, -20], [-22, -24], [-16, -18], [-21, -11], [-29, -13]]].map((f) => f.map(([x, y], i) => [x + S.noise2(i * 1.9, 3, 9) * 2, y + S.noise2(i * 1.9, 8, 9) * 2]));
+        const cutF = Field(box, res).paint(1, (q) => {
+            for (const l of cuts) strokePts(q, l, 0.9, '#fff');
+            for (const l of signs) strokePts(q, l, 1.15, '#fff');
+            for (const l of man) strokePts(q, l, 1.35, '#fff');
+            // two furrows a plough left across it
+            strokePts(q, [[-80, 28], [-20, 8], [84, -18]], 1.1, '#b0b0b0');
+            strokePts(q, [[-80, 40], [30, 14]], 0.8, '#909090');
+            // where a flake has gone the cutting went with it
+            for (const f of flakes) fillPts(q, f, '#000');
+        }, 'set', 0.14);
+        const flakeF = Field(box, res).paint(1, (q) => {
+            for (const f of flakes) fillPts(q, f, '#fff');
+        }, 'set', 0.16);
+        const sp = S.form({
+            box, res, light: K.L, seed: 'stele' + K.seed, inflate: 'bevel', R: 2.6, relief: 0.6, smooth: 0.002,
+            mask: (q) => fillPts(q, dense, '#fff'),
+            height: (x, y) => -1.05 * cutF.at(x, y) - 0.8 * flakeF.at(x, y) + 0.1 * smooth(0.1, 0.6, S.noise2(x * 0.035, y * 0.5 + x * 0.11, 111)) + 0.9 * fbm(x * 0.022, y * 0.022, 112) + 0.12 * fbm(x * 0.4, y * 0.4, 113),
+            ramp: [[0, '#000000'], [1, '#ffffff']], soft: 1,
+            tint: (x, y, tone, rgb, m) => {
+                const n1 = fbm(x * 0.025, y * 0.025, 114), n2 = fbm(x * 0.12, y * 0.12, 115), lam = S.noise2(x * 0.2 + y * 0.9, y * 0.06, 116), ct = cutF.at(x, y), fl = flakeF.at(x, y);
+                const rust = smooth(0.12, 0.5, fbm(x * 0.04 + 7, y * 0.04, 117)) * 0.5, t = clamp(tone), f = 0.3 + 1.0 * t, ks = smooth(0.5, 0.1, t) * 0.7, kl = smooth(0.85, 1, t) * 0.3;
+                const base = [92 + 26 * n1 + 10 * n2 + 8 * lam, 100 + 24 * n1 + 10 * n2 + 8 * lam, 118 + 22 * n1 + 9 * n2 + 7 * lam], RU = [146, 110, 80], FR = [70, 80, 104], CU = [188, 192, 198], SH = [22, 24, 44];
+                for (let c = 0; c < 3; c++) {
+                    let v = base[c] + (RU[c] - base[c]) * rust;
+                    v += (FR[c] - v) * fl * 0.8;
+                    v += (CU[c] - v) * ct * 0.75;
+                    v = Math.min(255, v * f);
+                    v += (SH[c] - v) * ks;
+                    v += (255 - v) * kl;
+                    rgb[c] = v;
+                }
+                const kn = smooth(0.3, 0.06, tone) * smooth(0.06, 0.005, m) * 0.4;
+                rgb[2] += (140 - rgb[2]) * kn;
+            },
+        });
+        onto(sp, res, (q) => {
+            // the steps where flakes have lifted: a sharp edge in shade on the lamp's side
+            for (const fk of flakes) {
+                for (let i = 0; i < fk.length; i++) {
+                    const a = fk[i], b = fk[(i + 1) % fk.length], f = (-(b[1] - a[1]) * sd[0] + (b[0] - a[0]) * sd[1]) / (Math.hypot(b[0] - a[0], b[1] - a[1]) || 1);
+                    strokePts(q, [a, b], 0.7, f > 0 ? `rgba(14,16,34,${(0.85 * f).toFixed(2)})` : `rgba(214,222,236,${(-0.6 * f).toFixed(2)})`);
+                }
+            }
+            // cleavage lines across the face
+            for (let i = 0; i < 38; i++) {
+                const x = -80 + r() * 160, y = -125 + r() * 250, l = 8 + r() * 30;
+                S.ink(q, [[x, y], [x + l * 0.5, y - l * 0.1 + (r() - 0.5) * 1.5], [x + l, y - l * 0.2]], { w: 0.4, color: r() < 0.6 ? '#1c2036' : '#dfe6f2', alpha: 0.28 });
+            }
+            // lichen: rosettes that grow outward in rings, orange and grey-green, with their fruits
+            for (const [x, y, rr, kind] of [[-52, -86, 9, 0], [-40, -72, 5, 1], [50, 62, 10, 1], [60, 44, 4.5, 0], [-10, 90, 6, 0], [-60, 20, 5.5, 1], [34, -40, 4, 0], [10, -92, 4.5, 1], [-28, 62, 3.4, 0], [66, -16, 3.6, 1]]) {
+                const col = kind ? ['#98a68a', '#5f6e5c', '#d5dcc2'] : ['#cf8f30', '#8a4f16', '#f0cc7a'], ph = r() * 9;
+                const lobe = S.curve(Array.from({ length: 13 }, (_, i) => pol(rr * (0.86 + 0.16 * Math.sin(i * 2.3 + ph) + 0.1 * r()), (i / 13) * TAU, x, y * 1 + 0)), true, 5);
+                piece(q, K, lobe, {
+                    fill: col[0], line: 0.5, heavy: 0.3, ink: col[1], cast: null,
+                    shade: { color: col[1], alpha: 0.7, w: rr * 0.5 }, light: { color: col[2], alpha: 0.6, w: rr * 0.4 },
+                    detail: (g) => {
+                        for (const k of [0.72, 0.46]) strokePts(g, lobe.map(([px, py]) => [x + (px - x) * k, y + (py - y) * k]), 0.4, rgba(col[1], 0.6), true);
+                        blobOn(g, [x, y], rr * 0.4, '#6e7684', 0.7);
+                        for (let i = 0; i < rr * 1.6; i++) {
+                            const p = pol(rr * (0.25 + r() * 0.55), r() * TAU, x, y);
+                            disc(g, p, 0.45, col[1]);
+                            disc(g, [p[0] - sd[0] * 0.15, p[1] - sd[1] * 0.15], 0.22, col[2]);
+                        }
+                    },
+                });
+            }
+        });
+        sprayIn(sp, res, { color: '#1c2038', alpha: 0.7, w: 36, dir: sd });
+        sprayIn(sp, res, { color: '#12142a', alpha: 0.5, w: 7, dir: sd });
+        sprayIn(sp, res, { color: '#f0f4ff', alpha: 0.36, w: 22, dir: K.tol });
+        sprayIn(sp, res, { color: '#7a86a8', alpha: 0.7, w: 1.5, push: 0.5, dir: sd });
+        stamp(G, sp, K, { lw: 2.2, heavy: 0.5 });
+    }
+
     return {
         carambolo: relic('carambolo', { x: -118, y: -98, w: 236, h: 196 }, paintCarambolo),
         murex: relic('murex', { x: -88, y: -78, w: 176, h: 156 }, paintMurex),
         helmet: relic('helmet', HM.box, paintHelmet),
         amphora: relic('amphora', { x: -132, y: -152, w: 264, h: 304 }, paintAmphora),
         mosaic: relic('mosaic', MO.box, paintMosaic),
+        stele: relic('stele', { x: -86, y: -131, w: 172, h: 262 }, paintStele),
         _debug: (g) => {
             const P = mosaicPlan('mosaic'), col = { fig: '#e05050', ground: '#50a0e0', frame: '#60c060', row: '#c0c0c0', fill: '#e0e040' };
             for (const c of P.cells) {
