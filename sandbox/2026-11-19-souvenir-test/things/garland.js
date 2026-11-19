@@ -1,22 +1,31 @@
 // The plants of the emblem, in the emblem manner (dark contour + airbrush): an olive
 // branch built the way a shoot grows, carnations, a bud, a bunch of them. Global: Garland.
+// Everything is painted once, in the caller's units, under the house light (top left):
+// nothing here flips or turns the canvas, so turned and mirrored things keep that light.
 //
 //   Garland.olive(g, { path, seed, s = 1, olives = true, flip = false, shoots = 2 })
-//       A wreath arm along `path` (a list of points, base first, 500–700 units at s = 1):
-//       a woody stem, leaves in opposite pairs, olives on stalks from the axils. `s` scales
-//       the leaves, the stem and the fruit, not the path. For the mirror arm pass the
-//       mirrored path and `flip: true`: the same branch, mirrored, the light still at the
-//       top left.
+//       A wreath arm along `path` (a list of points, base first; made for 500–850 units at
+//       s = 1): a woody stem 13.5 thick at its cut base, leaves in opposite pairs every
+//       28–40 (55–85 long, reaching about 60 to each side of the path), olives (22 × 16) in
+//       10–14 groups on stalks from the axils, `shoots` side shoots (0–4). `s` scales the
+//       leaves, the stem and the fruit, not the path. For the mirror arm pass the mirrored
+//       path and `flip: true`: the same branch, mirrored, lit from the same side.
+//   Garland.fruit(g, { x, y, rot, s = 1, ripe = 'green' | 'turning' | 'black', v = 0 | 1 | 2 })
+//       One loose olive centred on (x, y), its tip towards `rot` (snapped to 1/16 turn).
 //   Garland.carnation(g, { x, y, r = 70, rot = 0, seed, color = 'red' | 'white',
 //                          stem = 2.5, to = null, leaves = 1 })
-//       (x, y) is the centre of the head, r its half-width. At rot = 0 the head faces up
-//       and the stem trails down, `stem` × r long below the calyx (0: no stem), or through
-//       the points of `to` (caller's units) to end at the last one.
+//       (x, y) is the middle of the head, r its half-width (the head is about 2.1 r wide
+//       and 1.5 r tall; the calyx ends 1.25 r below the middle). At rot = 0 the head faces
+//       up and the stem trails down, `stem` × r long below the calyx (0: none), or through
+//       the point(s) `to` (caller's units), ending at the last. `leaves`: how many of its
+//       two nodes carry a pair of leaves (each about 1.25 r long).
 //   Garland.bud(g, { x, y, s = 1, rot = 0, seed, stem = 75, to = null, leaves = 1 })
-//       (x, y) is the middle of the calyx; 26 × 86 units at s = 1 without its stem.
+//       (x, y) is the middle of the calyx: 26 wide, from 54 above (the tongue's tip) to 33
+//       below (its foot) at s = 1; the stem `stem` units more.
 //   Garland.spray(g, { x, y, s = 1, rot = 0, seed, flip = false, tie = true })
-//       Three carnations, a bud and their leaves, about 260 across and 330 tall at s = 1;
-//       (x, y) is the middle of the heads, the stems gather 150 below it.
+//       Three carnations (r 62, 46, 40), a bud and their leaves, about 260 across and 330
+//       tall at s = 1. (x, y) is the middle of the heads: they reach 140 above it, the stems
+//       gather in a tie 150 below it and end 185 below. `flip` mirrors the arrangement.
 const Garland = (() => {
     const S = Souvenir;
     const TAU = Math.PI * 2, DEG = Math.PI / 180;
@@ -102,14 +111,12 @@ const Garland = (() => {
     };
 
     // ------------------------------------------------------------------ a blade
-    // One leaf blade (or the stretch of one between two points of its midrib): contour,
-    // shade from the shadow side and from its base, the fold along the midrib (one half
-    // takes the light, the other loses it), the midrib itself.
-    //   lf: { mid, L, R, s }   pal: { fill, deep, light, rib, ribLight, ribW, trough }
+    // One leaf blade: contour, shade from the shadow side and from its base, the fold along
+    // the midrib (one half takes the light, the other loses it), the midrib itself.
+    //   lf: { mid, L, R, s }: the midrib and the two margins, point for point, base first
+    //   pal: { fill, deep, light, glint, rib, ribLight, ribW, trough }
     function blade(g, lf, pal, o = {}) {
-        const i0 = o.i0 ?? 0, i1 = o.i1 ?? lf.mid.length - 1;
-        const mid = lf.mid.slice(i0, i1 + 1), L = lf.L.slice(i0, i1 + 1), R = lf.R.slice(i0, i1 + 1);
-        const n = mid.length - 1, s = lf.s ?? 1;
+        const { mid, L, R } = lf, n = mid.length - 1, s = lf.s ?? 1;
         const poly = [...L, ...R.slice().reverse()];
         const len = dist(mid[0], mid[n]) || 1, ax = unit(sub(mid[n], mid[0]));
         let m = 0, wid = 0;
@@ -179,7 +186,7 @@ const Garland = (() => {
         const rb = ribbon(mid, (v) => {
             if (v >= 1) return 0;
             const q = (v - pet) / (1 - pet);
-            let b = q > 0 ? (wid / 2) * Math.pow(Math.max(0, Math.sin(Math.PI * Math.pow(q, 0.86))), 0.8) : 0;
+            const b = q > 0 ? (wid / 2) * Math.pow(Math.max(0, Math.sin(Math.PI * Math.pow(q, 0.86))), 0.8) : 0;
             const stalk = 1.55 * s * (1 - S.smooth(pet * 0.6, pet * 2.6, v));
             const wob = 0.07 * S.noise2(v * 4.2, 1.7, sd);
             return [Math.max(stalk, b * (1 + asym) * (1 + wob)), Math.max(stalk, b * (1 - asym) * (1 - wob))];
@@ -481,7 +488,7 @@ const Garland = (() => {
         },
         leaf(g, it) {
             const s = it.s;
-            const upFill = it.young ? S.mix(UPPER.fill, '#93a85e', 0.5) : S.mix(S.mix(UPPER.fill, '#55724c', it.tint * 0.6), UPPER.deep, it.back ? 0.2 : 0);
+            const upFill = it.young ? S.mix(UPPER.fill, '#93a85e', 0.5) : S.mix(S.mix(UPPER.fill, it.tint < 0.5 ? '#4f6f4c' : '#6f8440', Math.abs(it.tint - 0.5) * 1.3), UPPER.deep, it.back ? 0.2 : 0);
             const unFill = S.mix(S.mix(UNDER.fill, '#a9b89c', it.tint * 0.6), UNDER.deep, it.back ? 0.14 : 0);
             // the upper face: leathery, a dry light dragged along the lit half
             const upper = (q, b) => {
@@ -524,6 +531,8 @@ const Garland = (() => {
             S.put(g, sp, at);
         },
     };
+
+    const fruit = (g, { x = 0, y = 0, rot = Math.PI / 2, s = 1, ripe = 'green', v = 0 } = {}) => PAINT.olive(g, { x, y, rot, s, ripe, v });
 
     function olive(g, o = {}) {
         const { path, seed = 'olivo', s = 1, olives = true, flip = false, shoots = 2 } = o;
@@ -792,17 +801,17 @@ const Garland = (() => {
 
         // 1 · the stem and its leaves, behind everything
         if (to || stem > 0) {
-            const path = [[0, yb - 0.06 * r], [0, yb + 0.3 * r]];
+            const path = [[0, yb - 0.06 * r]];
             let nodes;
             if (to) {
                 const via = (Array.isArray(to[0]) ? to : [to]).map(toLocal);
-                path.push(...via);
+                path.push([0, yb + 0.3 * r], ...via);
                 nodes = [{ at: 0.34, leaves: leaves > 0 }, { at: 0.68, leaves: leaves > 1, k: 0.8 }];
             } else {
                 const bend = (rnd() - 0.5) * 0.5, len = stem * r;
-                for (let i = 1; i <= 4; i++) {
-                    const u = i / 4;
-                    path.push([Math.sin(bend * u) * len * u * 0.6, yb + 0.3 * r + len * u]);
+                for (let i = 1; i <= 5; i++) {
+                    const u = i / 5;
+                    path.push([Math.sin(bend * u) * len * u * 0.6, yb + len * u]);
                 }
                 nodes = stem >= 1.6 ? [{ at: 0.4, leaves: leaves > 0 }, { at: 0.82, leaves: leaves > 1, k: 0.75 }] : [{ at: 0.6, leaves: leaves > 0, k: 0.7 }];
             }
@@ -824,7 +833,7 @@ const Garland = (() => {
         list.sort((a, b) => a.P.tier - b.P.tier || a.z - b.z);
         const tintOf = (tone, dark, vary) => {
             const t = S.clamp(0.5 + 0.55 * tone);
-            let c = t < 0.55 ? S.mix(S.mix(pal.deep, pal.base, white ? 0.62 : 0.3), pal.base, S.smooth(0.08, 0.55, t)) : S.mix(pal.base, pal.light, S.smooth(0.55, 1.1, t) * (white ? 0.8 : 0.45));
+            let c = t < 0.55 ? S.mix(S.mix(pal.deep, pal.base, white ? 0.62 : 0.3), pal.base, S.smooth(0.08, 0.55, t)) : S.mix(pal.base, pal.light, S.smooth(0.55, 1.1, t) * (white ? 0.8 : 0.55));
             c = S.mix(c, pal.deep, dark * (white ? 0.4 : 1));
             return S.mix(c, white ? '#e6d9cf' : '#c2303e', vary * 0.25);
         };
@@ -852,7 +861,7 @@ const Garland = (() => {
                     { color: white ? S.mix(pal.deep, '#8a3350', 0.2) : pal.deep, alpha: 0.85 * pal.soft, w: Lp * 0.3, push: Lp * 0.32, dir: [-ax[0], -ax[1]] },
                     { color: pal.deep, alpha: 0.4 * pal.soft, w: r * 0.1 },
                 ],
-                light: [{ color: pal.light, alpha: 0.85 * litK, w: r * 0.09, push: r * 0.04, dir: ax }],
+                light: [{ color: pal.light, alpha: 0.95 * litK, w: r * 0.1, push: r * 0.045, dir: ax }],
                 detail: (q) => {
                     // the ruffles: every flank that turns to the lamp takes a light, the one
                     // behind it a shade; a fold line down every valley
@@ -1003,5 +1012,5 @@ const Garland = (() => {
         }
     }
 
-    return { olive, carnation, bud, spray, oliveSprite };
+    return { olive, fruit, carnation, bud, spray };
 })();

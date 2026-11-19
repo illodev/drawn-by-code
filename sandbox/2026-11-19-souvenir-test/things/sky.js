@@ -2,14 +2,27 @@
 // barn swallows as old tattoo flash draws them, a crescent moon, the eight-pointed star of
 // the Alhambra's tilework and the far sky's twinkles. Global: Sky.
 //
-//   Sky.swallow(g, { x, y, s, rot, flip, pose, seed })  wingspan ≈ 300 at s = 1, anchor mid-body
-//   Sky.moon(g, { x, y, r, rot, phase })                phase = lit fraction, 0.15 … 1
-//   Sky.star(g, { x, y, r, rot, kind })                 eight points, 'gold' or 'silver'
-//   Sky.spark(g, { x, y, r, rot, tone })                a four-ray twinkle
-//   Sky.field(g, { box, seed, n })                      small stars and sparks over a box
+//   Sky.swallow(g, { x, y, s = 1, rot = 0, flip = false, pose = 0, seed })
+//       (x, y) is the middle of the body. At s = 1 and rot = 0 the bird heads right and takes
+//       x −163 … 83 (streamer tips to bill), y −134 … 168 (wing tip to wing tip: a span of 300).
+//       rot turns it clockwise; flip mirrors the turned bird left to right, so two birds with
+//       the same rot face each other. pose 0: the glide, wings spread wide; pose 1: the turn,
+//       wings half folded back (span 214), tail fanned. seed: small differences between birds.
+//   Sky.swallowBox(g, same options)   → { x, y, w, h } it covers
+//   Sky.moon(g, { x, y, r = 90, rot = -0.5, phase = 0.28 })
+//       (x, y) the centre of the disc, r its radius. phase is the lit fraction, 0.15 … 1; at
+//       rot = 0 the lit limb is on the right (a waxing moon) and the face turns with rot.
+//       The dark of the disc shows as earthshine with a soft edge. No halo: the lens adds it.
+//   Sky.star(g, { x, y, r = 18, rot = 0, kind = 'gold' | 'silver' })   eight points, r to the tips
+//   Sky.spark(g, { x, y, r = 6, rot = 0, tone = 1 })   a four-ray twinkle, r its upright ray;
+//       under r = 2.4 a point of light; tone < 1 dims it towards the night
+//   Sky.field(g, { box: { x, y, w, h }, seed, n = 60 })   small stars and sparks, thinner
+//       towards the centre of the box
 //
 // The light stays at the top left however a piece is turned or mirrored: the swallow is
-// turned and mirrored point by point and then painted, never by turning the canvas.
+// turned and mirrored point by point and then painted, never by turning the canvas. The
+// swallow and the moon are painted once into sprites (cached by their options and by the
+// output resolution); stars and sparks are painted straight onto g.
 const Sky = (() => {
     const S = Souvenir;
     const { clamp, smooth, lerp } = S;
@@ -74,7 +87,7 @@ const Sky = (() => {
     const MEDIAN = { ...FLIGHT, base: '#1c2759', mid: '#273b7a', tip: '#213069', sheen: '#5f82cc', light: 0.88, line: 0.95, barb: 0 };
     const LESSER = { ...FLIGHT, base: '#202d64', mid: '#2b4186', tip: '#253873', sheen: '#6a8dd6', light: 0.9, line: 0.85, barb: 0, shaft: 0 };
     const TAILF = { ...FLIGHT, base: '#131943', mid: '#1c2852', tip: '#161d47', light: 0.8 };
-    const DOWN = { base: '#dccdae', mid: BIRD.cream, tip: '#f5ecd6', sheen: BIRD.creamLight, gleam: '#ffffff', deep: BIRD.creamShade, light: 0.6, line: 1.25, ink: S.INK, barb: 0.3, shaft: 0.6, pale: true };
+    const DOWN = { base: '#dccdae', mid: BIRD.cream, tip: '#f5ecd6', sheen: BIRD.creamLight, gleam: '#fffdf2', deep: BIRD.creamShade, light: 0.6, line: 1.25, ink: S.INK, barb: 0.3, shaft: 0.6, pale: true };
 
     const POSES = [
         // 0 · the glide: wings spread wide

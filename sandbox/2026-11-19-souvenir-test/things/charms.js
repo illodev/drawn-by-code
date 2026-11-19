@@ -497,8 +497,8 @@ const Charms = (() => {
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        const K = 1.05, res = resOf(g, K);
-        const F = frame(0, 0, rot, K).sub(18, 17);
+        const K = 0.98, res = resOf(g, K);
+        const F = frame(0, 0, rot, K).sub(16.5, 24.5);
         const HL = [-31, -44], HR = [22, -50], aIn = 1.0, aL = 0.2, aR = -0.36;
         const hole = (h, a, sx, up = 0) => {
             const p = rotP([sx * HOLE[0], HOLE[1] - up], a);
@@ -655,7 +655,7 @@ const Charms = (() => {
             const th = Math.atan2(TOL[1], TOL[0]) - cf.rot, arc = (r, sp) => { const a = []; for (let k = -8; k <= 8; k++) a.push(pol(r, th + (k / 8) * sp)); return cf.pts(a); };
             S.ink(q, arc(29.3, 0.62), { w: 1.1, color: '#ffd9cc', alpha: 0.85 });
             S.ink(q, arc(36.1, 0.7), { w: 0.9, color: GOLD.glint, alpha: 0.95 });
-            S.ink(q, arc(31.3, 0.9).map(([px, py]) => [px, py]), { w: 0.7, color: GOLD.glint, alpha: 0.6 });
+            S.ink(q, arc(31.3, 0.9), { w: 0.7, color: GOLD.glint, alpha: 0.6 });
         }
         for (let i = 0; i < 16; i++) {
             const p = cf(pol(27.4, (i / 16) * TAU));
@@ -744,7 +744,7 @@ const Charms = (() => {
             },
         });
         const up = [[30.6, -28.5], [31.3, -19], [30.6, -9], [29.6, -2.6]];
-        turned(q, F, [[0, -28.5], ...up, [0, -2.6]].slice(1, -1), RED, {
+        turned(q, F, up, RED, {
             raw: true,
             detail: (qq) => {
                 // set with gold: lozenges between two fine lines
@@ -940,7 +940,8 @@ const Charms = (() => {
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        const F = frame(0, 0, rot);
+        // the front card upright-ish, the other two behind it, turned -18° and +16°
+        const F = frame(0, 0, rot).sub(3.5, -9);
         card(g, F.sub(-116, 6, -0.314), 'copas', seed);
         card(g, F.sub(112, 13, 0.279), 'espadas', seed);
         card(g, F.sub(0, 0, 0.035), 'oros', seed);
@@ -1172,14 +1173,14 @@ const Charms = (() => {
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        const res = resOf(g), F = frame(0, 0, rot), out = pomOutline(seed);
+        const res = resOf(g), F = frame(0, 0, rot).sub(-2, 10.5), out = pomOutline(seed);
         const drop0 = { blur: 9, dx: 4.5, dy: 6, color: 'rgba(12,7,26,0.6)' };
 
         // the twig, cut short, and its two leaves: under the fruit
         const st = PCA + Math.PI, node = pol(PR + 3, st + 0.02);
         const twig = S.curve([pol(PR - 12, st), pol(PR + 8, st + 0.02), pol(PR + 22, st + 0.1), pol(PR + 32, st + 0.24)], false, 8);
-        leaf(g, F.sub(node[0] - 1, node[1], 2.86), 64, 21, { bend: -0.1, cast: drop0 });
-        leaf(g, F.sub(node[0] + 2, node[1] + 1, 0.24), 55, 18.5, { bend: 0.1, cast: drop0 });
+        leaf(g, F.sub(node[0] - 1, node[1], 2.74), 66, 21.5, { bend: -0.12, cast: drop0 });
+        leaf(g, F.sub(node[0] + 2, node[1] + 1, 0.08), 52, 18, { bend: 0.13, cast: drop0 });
         const tw = F.pts(band(twig, 9, 6.6));
         S.piece(g, tw, {
             fill: '#7a5230', line: 2, cast: { blur: 3, dx: 1.5, dy: 2.5, color: 'rgba(10,6,20,0.6)' }, shade: { color: '#2e1a16', alpha: 0.9, w: 4.6 }, light: { color: '#d2a868', alpha: 0.75, w: 2.8 },

@@ -129,7 +129,7 @@ Tableau.emblem = (z0) => {
         {
             id: 'emblem-front', z: z0 - 60, box: frame,
             paint(g) {
-                if (has('Ribbon')) Ribbon.draw(g, { x: 0, y: 385, s: 1, text: 'SONIDOS NEGROS', w: 900 });
+                if (has('Ribbon')) Ribbon.draw(g, { x: 0, y: 372, s: 1, text: 'SONIDOS NEGROS', w: 1060, h: 92 });
                 if (has('Sky')) {
                     Sky.swallow(g, { x: -470, y: -250, s: 0.95, rot: 0.25, pose: 0, seed: 'a' });
                     Sky.swallow(g, { x: 500, y: -200, s: 0.85, rot: -0.2, flip: true, pose: 1, seed: 'b' });
