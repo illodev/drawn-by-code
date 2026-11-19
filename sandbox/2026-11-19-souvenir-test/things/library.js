@@ -2000,5 +2000,281 @@ const Library = (() => {
         });
     }
 
-    return { books, palette };
+    // ------------------------------------------------------------------ the score
+    // Treble clef and bass clef as a pen draws them, in stave spaces (y = 0 the top line).
+    const GCLEF = [[-0.75, 5.0], [-0.5, 5.6], [0.1, 5.75], [0.5, 5.2], [0.42, 4.2], [0.2, 2.6], [0, 0.8], [-0.1, -0.6], [0.15, -1.45], [0.55, -1.55], [0.78, -0.9], [0.6, 0], [0, 0.95], [-0.7, 1.9], [-1.1, 2.9], [-0.8, 3.8], [0, 4.2], [0.9, 3.9], [1.25, 3.1], [0.95, 2.35], [0.3, 2.1], [-0.3, 2.45], [-0.45, 3.05], [-0.1, 3.45], [0.3, 3.3]];
+    const FCLEF = [[-0.85, 1.15], [-0.6, 0.5], [0.2, 0.15], [0.95, 0.7], [1.05, 1.7], [0.5, 2.8], [-0.3, 3.5], [-1.1, 4]];
+    function score(g, o = {}) {
+        sheet(g, 'score', [128, 96], o, (q, rot, seed) => {
+            const tilt = rot - 0.07, W = 232, H = 166, P = plane(rot2([-W / 2, -H / 2], tilt), rot2([1, 0], tilt), rot2([0, 1], tilt));
+            const r = Motion.rng('score/' + seed), PAP = { deep: '#6b6283', base: '#e2d5b0', light: '#fbf3da' }, INKC = '#2a1e26', GAP = 3.1;
+            // the sheet: its edges a little wavy, a nick in the left one, the top right corner gone into a roll
+            const RA = [W - 44, 0], RB = [W, 46], out = [];
+            for (let a = 0; a <= RA[0]; a += 8) out.push([a, 1.6 * Math.sin((a / W) * 4.4) - 0.6]);
+            out.push(RA, RB);
+            for (let b = RB[1] + 8; b <= H; b += 8) out.push([W + 1.4 * Math.sin((b / H) * 5), b]);
+            for (let a = W - 8; a >= 0; a -= 8) out.push([a, H + 1.8 * Math.sin((a / W) * 5.2 + 1)]);
+            for (let b = H - 8; b > 0; b -= 8) out.push(...(Math.abs(b - 102) < 4 ? [[0.4, b + 3], [3.6, b + 0.6], [0.2, b - 1.6]] : [[1.2 * Math.sin((b / H) * 6), b]]));
+            const pts = P.pts(out);
+            S.piece(q, pts, {
+                fill: { from: P(0, 0), to: P(W, H), stops: [[0, PAP.light], [0.5, mix(PAP.base, PAP.light, 0.45)], [1, PAP.base]] }, line: 2, heavy: 0.8,
+                detail: (c) => {
+                    GRAIN.paper(PAP, 1.4)(c, P, W, H, seed + 'pap', 1);
+                    // laid paper: the wires of the mould, close together, and its chains
+                    for (let a = 1; a < W; a += 2.1) strokePts(c, [P(a, 0), P(a + 0.4, H)], 0.22, rgba('#8a7650', a % 21 < 2.1 ? 0.2 : 0.08));
+                    // a ring of damp, an old fold down the middle and one across
+                    const st = P(40, 132), gr = c.createRadialGradient(st[0], st[1], 13, st[0], st[1], 22);
+                    gr.addColorStop(0, rgba('#a8824a', 0));
+                    gr.addColorStop(0.75, rgba('#a8824a', 0.3));
+                    gr.addColorStop(0.9, rgba('#7a5a2c', 0.42));
+                    gr.addColorStop(1, rgba('#a8824a', 0));
+                    c.fillStyle = gr;
+                    c.fillRect(st[0] - 24, st[1] - 24, 48, 48);
+                    for (const [p0, p1] of [[[W * 0.52, 0], [W * 0.51, H]], [[0, H * 0.53], [W, H * 0.52]]]) {
+                        strokePts(c, [P(...p0), P(...p1)], 2.4, rgba('#7a708c', 0.14));
+                        strokePts(c, [P(p0[0] - 0.5, p0[1] - 0.5), P(p1[0] - 0.5, p1[1] - 0.5)], 0.4, rgba('#fffdf2', 0.8));
+                        strokePts(c, [P(p0[0] + 0.4, p0[1] + 0.4), P(p1[0] + 0.4, p1[1] + 0.4)], 0.35, rgba('#6a5a48', 0.5));
+                    }
+                    // the sheet lifts towards the roll: a soft shade before it
+                    const s0 = P(W - 82, 0), s1 = P(W - 30, 48 - 30 * 0.2), sg = c.createLinearGradient(...P(W - 86, 52), ...P(W - 30, 10));
+                    sg.addColorStop(0, rgba('#7a708c', 0));
+                    sg.addColorStop(0.55, rgba('#7a708c', 0.3));
+                    sg.addColorStop(0.8, rgba('#fffdf2', 0.4));
+                    sg.addColorStop(1, rgba('#7a708c', 0.2));
+                    fillPts(c, [s0, P(RA[0], 0), P(W, RB[1]), P(W, 96), s1], sg);
+
+                    // ---- the writing
+                    const write = (color, wear, twice) => stamp(c, P, [0, 0, W, H], { mode: 'ink', color, wear, seed: seed + color + wear }, (h) => {
+                        const stave = (b0, k) => {
+                            const wob = (a) => 0.4 * S.noise2(a * 0.03, k * 3.7, 11) + 0.12 * S.noise2(a * 0.2, k, 12);
+                            const Y = (pos, a) => b0 + 4 * GAP - (pos * GAP) / 2 + wob(a);
+                            const st2 = {
+                                Y, b0, wob,
+                                // the rastrum's five nibs waver together and each leaves a bead where it started
+                                rule(a0, a1) {
+                                    for (let i = 0; i < 5; i++) {
+                                        const ln = [];
+                                        for (let a = a0 - (i % 2) * 0.9; a <= a1 + ((i * 7) % 5) * 0.4; a += 5) ln.push([a, b0 + i * GAP + wob(a)]);
+                                        h.line(ln, 0.34 + 0.07 * Math.sin(i * 2.1 + k));
+                                        h.dot(ln[0][0], ln[0][1], 0.44);
+                                    }
+                                },
+                                head(a, pos, open = false) {
+                                    const y = Y(pos, a), e = S.ellipse(a, y, 1.95, 1.32, 14, -0.42);
+                                    if (open) h.line([...e, e[0]], 0.6);
+                                    else h.poly(e);
+                                    for (let p = -2; p >= pos; p -= 2) h.line([[a - 3.2, Y(p, a)], [a + 3.2, Y(p, a)]], 0.4);
+                                    for (let p = 10; p <= pos; p += 2) h.line([[a - 3.2, Y(p, a)], [a + 3.2, Y(p, a)]], 0.4);
+                                },
+                                // a note alone: its head, stem and (n8) flag; dot: lengthened by half
+                                note(a, pos, { open = false, stem = true, flag = false, dot = false } = {}) {
+                                    st2.head(a, pos, open);
+                                    const up = pos < 4, x = a + (up ? 1.72 : -1.72), y = Y(pos, a), ye = y + (up ? -10.6 : 10.6);
+                                    if (stem) h.line([[x, y + (up ? -0.4 : 0.4)], [x + 0.2, ye]], 0.42);
+                                    if (flag) h.line(S.curve([[x + 0.2, ye], [x + 2.9, ye + (up ? 2.8 : -2.8)], [x + 2.3, ye + (up ? 6.4 : -6.4)]], false, 5), 0.65);
+                                    if (dot) h.dot(a + 3.6, y - (pos % 2 ? 0 : GAP * 0.28), 0.55);
+                                },
+                                // quavers under one beam; three: the triplet's figure in its bracket
+                                beamed(notes, three = false) {
+                                    const up = notes.reduce((s, n2) => s + n2[1], 0) / notes.length < 4, d = up ? -1 : 1, sx = up ? 1.72 : -1.72;
+                                    const e0 = Y(notes[0][1], notes[0][0]) + d * 10.4, e1 = Y(notes[notes.length - 1][1], notes[notes.length - 1][0]) + d * 10.4, x0 = notes[0][0] + sx, x1 = notes[notes.length - 1][0] + sx;
+                                    const yb = (x) => e0 + ((e1 - e0) * (x - x0)) / (x1 - x0 || 1);
+                                    for (const [a, pos] of notes) {
+                                        st2.head(a, pos);
+                                        h.line([[a + sx, Y(pos, a) + d * 0.4], [a + sx, yb(a + sx)]], 0.42);
+                                    }
+                                    h.poly([[x0 - 0.2, e0], [x1 + 0.2, e1], [x1 + 0.2, e1 - d * 1.35], [x0 - 0.2, e0 - d * 1.35]]);
+                                    if (three) {
+                                        const ym = (e0 + e1) / 2 + d * 3.4, xm = (x0 + x1) / 2;
+                                        h.line(S.curve([[x0 - 1, e0 + d * 1.6], [xm - 2.6, ym + d * 0.4]], false, 2).concat([[xm - 2.6, ym + d * 0.4]]), 0.3);
+                                        h.line([[xm + 2.6, ym + d * 0.4], [x1 + 1, e1 + d * 1.6]], 0.3);
+                                        h.text('3', { a: xm, b: ym, cap: 3.4, font: LORA, skew: 0.25 });
+                                    }
+                                },
+                                chord(a, ps, o2 = {}) {
+                                    ps.forEach((p) => st2.head(a, p, o2.open));
+                                    const lo = Math.min(...ps), hi = Math.max(...ps), up = (lo + hi) / 2 < 4, x = a + (up ? 1.72 : -1.72);
+                                    h.line([[x, Y(up ? lo : hi, a)], [x + 0.15, Y(up ? hi : lo, a) + (up ? -9.6 : 9.6)]], 0.42);
+                                },
+                                rest(a) {
+                                    const y = b0 + 2 * GAP + wob(a);
+                                    h.line(S.curve([[a - 0.9, y - 3.6], [a + 1, y - 1.3], [a - 0.9, y + 0.5], [a + 0.9, y + 2.2], [a - 0.6, y + 2.3], [a - 1.1, y + 3.6], [a + 0.1, y + 4.6]], false, 4), 0.8);
+                                },
+                                sharp(a, pos) {
+                                    const y = Y(pos, a);
+                                    h.line([[a - 0.8, y - 2.8], [a - 0.8, y + 3]], 0.3);
+                                    h.line([[a + 0.8, y - 3.2], [a + 0.8, y + 2.6]], 0.3);
+                                    h.line([[a - 1.9, y - 0.3], [a + 1.9, y - 1.4]], 0.8);
+                                    h.line([[a - 1.9, y + 1.6], [a + 1.9, y + 0.5]], 0.8);
+                                },
+                                bar(a, w = 0.45) {
+                                    h.line([[a, b0 + wob(a) - 0.2], [a + 0.2, b0 + 4 * GAP + wob(a) + 0.2]], w);
+                                },
+                                clef(a, pts2, w = 0.62) {
+                                    const ln = S.curve(pts2.map(([x, y]) => [a + x * GAP * 1.06, b0 + y * GAP + wob(a)]), false, 6);
+                                    h.line(ln, w);
+                                    h.line(ln.slice(Math.floor(ln.length * 0.5), Math.floor(ln.length * 0.82)), w * 1.5);
+                                    h.dot(ln[0][0], ln[0][1], 0.85);
+                                },
+                                meter(a) {
+                                    h.text('3', { a, b: b0 + GAP + wob(a), cap: GAP * 1.75, font: LORA, skew: 0.18 });
+                                    h.text('4', { a, b: b0 + 3 * GAP + wob(a), cap: GAP * 1.75, font: LORA, skew: 0.18 });
+                                },
+                                tie(a0, a1, pos, over = true) {
+                                    const y = Y(pos, a0) + (over ? -2.4 : 2.4), d = over ? -1 : 1, m = (a0 + a1) / 2;
+                                    h.poly(S.curve([[a0, y], [m, y + d * 2.6], [a1, y], [m, y + d * 1.9]], true, 6));
+                                },
+                            };
+                            return st2;
+                        };
+                        if (twice) {
+                            // the pen freshly dipped: only the heads and the clefs take the second, blacker pass
+                            for (const [b0, k] of [[44, 1], [107, 3]]) stave(b0, k).clef(27, GCLEF);
+                            h.text('EL AMOR BRUJO', { a: W / 2 - 12, b: 15.5, cap: 8.6, font: FELL, hand: 0.8, track: 0.15, maxW: 150 });
+                            return;
+                        }
+                        // a page number, the title in capitals, the name under it
+                        h.text('7', { a: 11, b: 9.5, cap: 4.2, font: LORA, skew: 0.2 });
+                        h.text('EL AMOR BRUJO', { a: W / 2 - 12, b: 15.5, cap: 8.6, font: FELL, hand: 0.8, track: 0.15, maxW: 150 });
+                        h.line(S.curve([[W / 2 - 70, 24], [W / 2 - 30, 22.6], [W / 2 - 12, 24.4], [W / 2 + 10, 22.6], [W / 2 + 46, 24]], false, 6), 0.4);
+                        h.text('M. de Falla', { a: W - 46, b: 31, cap: 5, font: LORA, skew: 0.3, hand: 0.5, align: 1, track: 0.04 });
+                        h.line(S.curve([[W - 86, 36.4], [W - 66, 35.6], [W - 46, 36.6]], false, 5), 0.3);
+                        const A0 = 20, A1 = 214, B0 = 46;
+                        const barW = (A1 - B0) / 4;
+                        [[44, 62.5, 1], [107, 125.5, 3]].forEach(([bt, bb, k], sys) => {
+                            const tr = stave(bt, k), bs = stave(bb, k + 1), a1 = sys ? A1 - 6 : A1;
+                            tr.rule(A0, a1);
+                            bs.rule(A0, a1);
+                            // the system: a line down both staves and the brace that holds them
+                            h.line([[A0, bt + tr.wob(A0)], [A0 + 0.3, bb + 4 * GAP + bs.wob(A0)]], 0.5);
+                            const mid = (bt + bb + 4 * GAP) / 2, hh = (bb + 4 * GAP - bt) / 2;
+                            h.line(S.curve([[A0 - 2, bt], [A0 - 4.2, bt + hh * 0.2], [A0 - 3.2, mid - hh * 0.2], [A0 - 5.6, mid], [A0 - 3.2, mid + hh * 0.2], [A0 - 4.2, bb + 4 * GAP - hh * 0.2], [A0 - 2, bb + 4 * GAP]], false, 6), 0.7);
+                            tr.clef(27, GCLEF);
+                            bs.clef(27.4, FCLEF, 0.75);
+                            for (const y of [0.55, 1.55]) h.dot(27.4 + 1.9 * GAP, bb + y * GAP, 0.55);
+                            if (!sys) {
+                                tr.meter(39);
+                                bs.meter(39);
+                            }
+                            for (let i = 1; i <= 4; i++) if (B0 + barW * i <= a1 + 1) {
+                                tr.bar(B0 + barW * i - (i === 4 ? 0.5 : 0));
+                                bs.bar(B0 + barW * i - (i === 4 ? 0.5 : 0));
+                            }
+                            const x = (bar, beat) => B0 + barW * bar + 7.5 + beat * 11.6;
+                            if (!sys) {
+                                // our own phrase, in three: a long note leaning on its neighbour, a triplet turn, a climb
+                                tr.note(x(0, 0), 7, { dot: true });
+                                tr.note(x(0, 1.5), 8, { flag: true });
+                                tr.note(x(0, 2), 7);
+                                tr.beamed([[x(1, 0), 6], [x(1, 0.36), 7], [x(1, 0.72), 6]], true);
+                                tr.note(x(1, 1.25), 5);
+                                tr.note(x(1, 2.1), 4);
+                                tr.note(x(2, 0), 3);
+                                tr.beamed([[x(2, 1), 4], [x(2, 1.5), 5]]);
+                                tr.note(x(2, 2.1), 6);
+                                tr.note(x(3, 0.2), 7, { open: true, dot: true });
+                                tr.tie(x(3, 0.2) + 2, a1 + 2, 7);
+                                tr.tie(x(0, 0), x(0, 2), 9.4);
+                                // the left hand: a bass note and two chords, bar after bar
+                                [[1, [5, 8]], [4, [6, 8]], [5, [7, 9]], [1, [5, 8]]].forEach(([lo, ch], i) => {
+                                    bs.note(x(i, 0), lo);
+                                    bs.chord(x(i, 1), ch);
+                                    if (i < 3) bs.chord(x(i, 2), ch);
+                                    else bs.rest(x(i, 2));
+                                });
+                                bs.sharp(x(2, 1) - 4.6, 7);
+                                // soft, and swelling
+                                h.text('p', { a: x(0, 0) - 1, b: (bt + 4 * GAP + bb) / 2 + 0.6, cap: 4.4, font: LORA, skew: 0.32 });
+                                const hy = (bt + 4 * GAP + bb) / 2 + 0.4;
+                                h.line([[x(1, 0.4) + 34, hy - 1.9], [x(1, 0.4), hy], [x(1, 0.4) + 34, hy + 1.9]], 0.32);
+                            } else {
+                                tr.note(x(0, 0), 7);
+                                tr.tie(A0 + 22, x(0, 0) - 2, 7);
+                                tr.beamed([[x(0, 1), 6], [x(0, 1.4), 5], [x(0, 1.8), 4], [x(0, 2.2), 5]]);
+                                tr.beamed([[x(1, 0), 3], [x(1, 0.36), 4], [x(1, 0.72), 3]], true);
+                                tr.sharp(x(1, 1.25) - 4.4, 2);
+                                tr.note(x(1, 1.25), 2);
+                                tr.note(x(1, 2.1), 3);
+                                // a bar thought better of: its notes, then the pen through them
+                                tr.note(x(2, 0), 5);
+                                tr.beamed([[x(2, 1), 6], [x(2, 1.5), 8]]);
+                                tr.note(x(2, 2.1), 7);
+                                for (let i = 0; i < 11; i++) h.line([[x(2, 0) - 4 + i * 3.1, bt - 2 + (i % 2)], [x(2, 0) - 8 + i * 3.1, bt + 4 * GAP + 3 - (i % 3)]], 0.42);
+                                h.line(S.curve([[x(2, 0) - 6, bt + 6], [x(2, 0.6), bt + 4.4], [x(2, 1.3), bt + 7], [x(2, 2), bt + 5], [x(2, 2.5), bt + 6.6]], false, 5), 0.5);
+                                tr.note(x(3, 0), 5, { open: true });
+                                tr.rest(x(3, 2));
+                                [[1, [5, 8]], [5, [7, 9]], [3, [5, 7]], [1, [3, 5, 8]]].forEach(([lo, ch], i) => {
+                                    bs.note(x(i, 0), lo);
+                                    bs.chord(x(i, 1), ch);
+                                    if (i !== 2) bs.chord(x(i, 2), ch, { open: i === 3 });
+                                    else bs.rest(x(i, 2));
+                                });
+                                bs.sharp(x(1, 1) - 4.6, 7);
+                                const hy = (bt + 4 * GAP + bb) / 2 + 0.4;
+                                h.line([[x(0, 0.6), hy - 1.9], [x(0, 0.6) + 30, hy], [x(0, 0.6), hy + 1.9]], 0.32);
+                                h.text('pp', { a: x(1, 0.8), b: hy + 0.2, cap: 4.4, font: LORA, skew: 0.32, track: -0.04 });
+                            }
+                        });
+                    });
+                    write('rgba(58,40,44,0.9)', 0.14, false);
+                    write(INKC, 0.55, false);
+                    write('#17101c', 0.3, true);
+
+                    // the blot: where the pen was shaken; its satellites, and the cuff that went through it
+                    const bc = [190, 147], blob = [];
+                    S.dab(c, S.curve([P(bc[0] + 2, bc[1] + 1), P(bc[0] + 12, bc[1] + 4), P(bc[0] + 24, bc[1] + 4.6), P(bc[0] + 34, bc[1] + 8)], false, 10), { w: 6.4, color: INKC, alpha: 0.5, bristles: 9, seed: seed + 'cuff', dry: 0.8 });
+                    for (let i = 0; i < 40; i++) {
+                        const t = (i / 40) * TAU, spike = Math.pow(Math.max(0, Math.sin(t * 3.5 + 0.6)), 8) * 4.4 + Math.pow(Math.max(0, Math.sin(t * 2 + 2.2)), 12) * 3;
+                        const rr = 5.6 + 1.2 * Math.sin(t * 2 + 1) + 0.6 * Math.sin(t * 5) + spike;
+                        blob.push(P(bc[0] + Math.cos(t) * rr * 1.15, bc[1] + Math.sin(t) * rr * 0.9));
+                    }
+                    fillPts(c, blob, rgba('#4a3a52', 0.35));
+                    const bp = S.curve(blob.map((p, i) => [p[0] + (P(bc[0], bc[1])[0] - p[0]) * 0.1, p[1] + (P(bc[0], bc[1])[1] - p[1]) * 0.1]), true, 2);
+                    fillPts(c, bp, '#1a1222');
+                    strokePts(c, bp, 0.5, '#0c0812', true);
+                    // still wet in the middle: a sheen
+                    const sh = P(bc[0] - 1.6, bc[1] - 1.4);
+                    fillPts(c, S.ellipse(sh[0], sh[1], 2.4, 1.1, 12, tilt - 0.5), rgba('#8f8db0', 0.55));
+                    fillPts(c, S.ellipse(sh[0] - 0.5, sh[1] - 0.2, 1, 0.45, 8, tilt - 0.5), rgba('#eef0ff', 0.8));
+                    for (let i = 0; i < 14; i++) {
+                        const t = r() * TAU, d = 8 + r() * r() * 16, rr = 0.25 + r() * r() * 1.3, p = P(bc[0] + Math.cos(t) * d, bc[1] + Math.sin(t) * d * 0.8);
+                        fillPts(c, S.ellipse(p[0], p[1], rr * 1.2, rr, 8, t), rgba('#1a1222', 0.9));
+                    }
+                    // a thumb, inky, at the edge where the sheet was held
+                    stamp(c, P.sub(9, 78, -0.3), [-5, -7, 5, 7], { mode: 'ink', color: 'rgba(42,30,38,0.4)', wear: 0.4, seed: seed + 'thumb' }, (h) => {
+                        for (let k = 1; k < 6; k++) h.line(S.ellipse(0, 1 - k * 0.2, k * 0.85, k * 1.25, 18).concat([[k * 0.85, 1 - k * 0.2]]), 0.4);
+                    });
+                    // the airbrush: the far edges in shade, the near corner in the light
+                    S.spray(c, pts, { color: '#8f84a0', alpha: 0.55, w: 16 });
+                    S.spray(c, pts, { color: '#5f587a', alpha: 0.4, w: 5 });
+                    S.spray(c, pts, { color: '#fffdf2', alpha: 0.7, w: 10, dir: TOL });
+                    dogEar(c, P, 0, H, 13, -11, '#f6eeda', '#232749');
+                },
+            });
+            // the roll: the corner curled forward, showing the back of the sheet
+            const mid = [(RA[0] + RB[0]) / 2, (RA[1] + RB[1]) / 2], nrm = [-0.72, 0.69];   // across the roll, towards the sheet
+            const rollPts = S.curve([[RA[0] - 3, RA[1] - 1], [mid[0] - nrm[0] * 4.6 - 6, mid[1] - nrm[1] * 4.6 - 7], [mid[0] - nrm[0] * 5.4 + 8, mid[1] - nrm[1] * 5.4 + 9], [RB[0] + 1.6, RB[1] + 3.4], [RB[0] - 3, RB[1] + 3], [mid[0] + nrm[0] * 12 + 8, mid[1] + nrm[1] * 12 + 9], [mid[0] + nrm[0] * 13.5, mid[1] + nrm[1] * 13.5], [mid[0] + nrm[0] * 9 - 10, mid[1] + nrm[1] * 9 - 11]], true, 6);
+            const rp = P.pts(rollPts);
+            S.piece(q, rp, {
+                fill: { from: P(mid[0] - nrm[0] * 5, mid[1] - nrm[1] * 5), to: P(mid[0] + nrm[0] * 13, mid[1] + nrm[1] * 13), stops: [[0, '#8d84a0'], [0.2, '#cbbf9e'], [0.42, '#fbf5e0'], [0.62, '#e3d7b6'], [0.85, '#a79c98'], [1, '#6f6684']] }, line: 1.9, heavy: 0.8,
+                cast: { blur: 6, dx: 3.4, dy: 5, color: 'rgba(30,22,50,0.55)' },
+                detail: (c) => {
+                    GRAIN.paper(PAP, 1)(c, P.sub(RA[0] - 10, RA[1] - 6), 66, 66, seed + 'roll', 1);
+                    // the ink of the other side, ghosting through; the lip of the roll
+                    for (let i = 0; i < 5; i++) strokePts(c, [P(RA[0] + 2 + i * 1.9, RA[1] + 8 - i * 1.6), P(RB[0] - 12 + i * 1.9, RB[1] - 2 - i * 1.6)], 0.3, rgba('#5a4a52', 0.16));
+                    S.ink(c, S.curve(P.pts([[RA[0] - 1, RA[1] + 2.4], [mid[0] + nrm[0] * 2.6, mid[1] + nrm[1] * 2.6], [RB[0] - 2.4, RB[1] + 1]]), false, 8), { w: 0.6, color: '#fffdf2', alpha: 0.9 });
+                    S.spray(c, rp, { color: '#5f587a', alpha: 0.5, w: 4 });
+                },
+            });
+            // the end of the roll: the paper's edge winds inwards
+            const eye = P(RB[0] - 1.4, RB[1] + 3.3), sp = [];
+            for (let i = 0; i <= 26; i++) {
+                const t = 0.4 + (i / 26) * 7.4, rr = 4.2 * (1 - i / 34);
+                sp.push([eye[0] + Math.cos(t + tilt) * rr * 1.25 - 3 * Math.cos(tilt + 0.76), eye[1] + Math.sin(t + tilt) * rr * 0.8 - 3 * Math.sin(tilt + 0.76)]);
+            }
+            S.ink(q, sp, { w: 0.9, color: INK, taper: [0.2, 0.8] });
+        });
+    }
+
+    return { books, palette, score };
 })();

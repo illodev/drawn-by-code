@@ -10,8 +10,8 @@
 //       lamp, Sefarad (`lights`: pans burning, from the right, default 1; `servant`: its ninth light too)
 //   Devotion.jamsa(g, { x, y, s, rot, seed })       140 × 200  a silver hand amulet, al-Andalus
 //   Devotion.mihrab(g, { x, y, s, rot, seed })      220 × 300  an ivory plaque with a prayer niche
-// (the candle's flame and its glow reach some 14 units over its box, the thurible's smoke stays
-// inside its own.) `rot` turns the object, never the light: every point goes through a frame,
+// (the candle's flame stands some 10 units over the top of its box, and its glow is a faint halo
+// 78 units in radius about the flame; the thurible's smoke stays inside its own box.) `rot` turns the object, never the light: every point goes through a frame,
 // and the lit volumes (`Souvenir.form`) are baked with `Souvenir.lightFor` and cached by angle
 // and resolution. Each object is painted on a sheet of its own and laid on the caller's layer
 // with its shadow, so its holes are real (the layer shows through them) and its inner shadows
@@ -1773,11 +1773,8 @@ const Devotion = (() => {
         for (let i = 0; i < 7; i++) {
             const cx = (i - 3) * PITCH + 0.5 * S.noise2(i * 1.7, 2, 83), jw = 6.5 + 0.3 * S.noise2(i * 2.1, 3, 84), cy = 18.6, R = 8.5, pts = [[cx - jw, 50], [cx - jw, 23.6]];
             // a horseshoe: the arc runs on past the half circle, wider than its jambs
-            const a0 = Math.PI - Math.asin((23.6 - cy) / R) + 0.0;
-            for (let k = 0; k <= 22; k++) {
-                const a = a0 + ((3 * Math.PI - 2 * (a0 - Math.PI) - a0 + Math.PI - Math.PI) * k) / 22;
-                pts.push([cx + Math.cos(a) * R, cy + Math.sin(a) * R]);
-            }
+            const b = Math.asin((23.6 - cy) / R);
+            for (let k = 0; k <= 22; k++) pts.push(pol(R, Math.PI - b + ((Math.PI + 2 * b) * k) / 22, cx, cy));
             pts.push([cx + jw, 23.6], [cx + jw, 50]);
             arches.push({ cx, jw, cy, R, pts });
             holes.push(pts);
@@ -2018,8 +2015,8 @@ const Devotion = (() => {
                 const crack = S.curve([[-86, 21], [-80, 16], [-73, 14.6], [-66, 9], [-60, 8.4], [-56, 4]], false, 5);
                 S.ink(g, crack, { w: 0.7, color: '#24101e', alpha: 0.9, taper: [0, 1] });
                 S.ink(g, crack.map(([x, y]) => [x + sh[0] * 0.6, y + sh[1] * 0.6]), { w: 0.35, color: '#ffeeb4', alpha: 0.6, taper: [0, 1] });
-                const sn = [(strip[1][1] - strip[0][1]) / 21.9, -(strip[1][0] - strip[0][0]) / 21.9];
-                strokePts(g, [-1, 1].flatMap((k2) => [0, 1].map((u) => [strip[u ? (k2 > 0 ? 1 : 0) : (k2 > 0 ? 0 : 1)][0] + sn[0] * 2.7 * k2, strip[u ? (k2 > 0 ? 1 : 0) : (k2 > 0 ? 0 : 1)][1] + sn[1] * 2.7 * k2])), 0.4, 'rgba(40,20,30,0.75)', true);
+                const sn = [(strip[1][1] - strip[0][1]) / 21.9, -(strip[1][0] - strip[0][0]) / 21.9], side = (p, k2) => [p[0] + sn[0] * 2.7 * k2, p[1] + sn[1] * 2.7 * k2];
+                strokePts(g, [side(strip[1], -1), side(strip[0], -1), side(strip[0], 1), side(strip[1], 1)], 0.4, 'rgba(40,20,30,0.75)', true);
             },
             air: airBrass(7),
         });
@@ -2404,7 +2401,7 @@ const Devotion = (() => {
     const NICHE = (() => {
         const W = 106, H = 146, C = [0, -24], RI = 46, RO = 68, SPRING = 4;
         // the horseshoe: its arc runs on below the centre, to the capitals
-        const a0 = Math.PI - Math.asin((SPRING - C[1]) / RI) + Math.PI, arc = (R, n = 60) => {
+        const arc = (R, n = 60) => {
             const b = Math.asin(Math.min(0.999, (SPRING - C[1]) / R)), pts = [];
             for (let k = 0; k <= n; k++) pts.push(pol(R, Math.PI - b + ((Math.PI + 2 * b) * k) / n, C[0], C[1]));
             return pts;
@@ -2420,7 +2417,7 @@ const Devotion = (() => {
             for (let i = 4; i >= 0; i--) pts.push(pol(RO, ao(t0 + ((t1 - t0) * i) / 4), C[0], C[1]));
             vous.push({ pts, red: k % 2 === 0, mid: pol((RI + RO) / 2, (ai((t0 + t1) / 2) + ao((t0 + t1) / 2)) / 2, C[0], C[1]), a: (ai((t0 + t1) / 2) + ao((t0 + t1) / 2)) / 2 });
         }
-        return { W, H, C, RI, RO, SPRING, inner, jx, opening, vous, arc, a0 };
+        return { W, H, C, RI, RO, SPRING, inner, jx, opening, vous, arc };
     })();
     const IVORY = [[0, '#3f3350'], [0.2, '#75606a'], [0.42, '#b39a7c'], [0.62, '#dcc9a0'], [0.82, '#f1e6c8'], [1, '#fffaea']];
 

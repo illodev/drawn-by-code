@@ -66,8 +66,8 @@
 //  4 the cathedral: a long stepped Gothic roofline, pinnacles, flying buttresses, a rose
 //  5 the Torre del Oro: twelve-sided, a second twelve-sided body, a lantern, a golden dome
 //  6 the Triana bridge: iron arches with a row of rings shrinking towards each crown
-//  7 Triana: painted fronts, the Capilla del Carmen's tiled dome at the bridge's end,
-//    bottle kilns of the potteries behind
+//  7 Triana: painted fronts under Santa Ana's tiled tower, the Capilla del Carmen's dome
+//    at the bridge's end, bottle kilns of the potteries behind, the Sanlúcar steamer
 //  8 orange trees with fruit on the quay, palms, a horse carriage, people as dots
 //  9 the river in horizontal dabs, reflections broken the same way, a lateen sail, a
 //    rowing boat with its oars' rings
@@ -1118,6 +1118,18 @@ const Fan = (() => {
                     else M.tree(X, Y, R(3.4, 5.6), C);
                 }
             }
+            // under the Alcazaba the slope is scrub: broom, agaves, the zigzag of the path up
+            B.line(S.curve([[264, 126], [238, 131], [254, 136.5], [226, 141], [246, 145.5]], false, 6), 0.7, 'rgba(232,176,124,0.6)');
+            for (let k = 0; k < 30; k++) {
+                const X = R(203, 260), Y = R(124, 146.5);
+                if (rnd() < 0.62) M.tree(X, Y, R(1.3, 2.3), { ...GREEN, lit: '#7f8650', base: '#3c5a40', glint: '#dcb868' });
+                else {
+                    for (let j = 0; j < 6; j++) {
+                        const th = 0.35 + (j / 5) * (Math.PI - 0.7), len = R(1.6, 2.8);
+                        B.line([[X, Y], [X + Math.cos(th) * len, Y + Math.sin(th) * len]], 0.4, j % 2 ? '#3f6a5c' : '#7fa890', X);
+                    }
+                }
+            }
         }
 
         // ---- the Darro in its ravine, in shadow already
@@ -1266,8 +1278,22 @@ const Fan = (() => {
                 lay(0.6, -0.5, 1.02, '#c6cee8');
                 lay(-0.8, 0.9, 0.92, '#f1ece2');
                 lay(-1.7, 1.9, 0.62, '#fffdf7');
+                // every turret turns away from the sun: a crescent of shade under its far
+                // side, and a smaller turret budding on its shoulder
+                for (const [x, y, rr] of lobes) {
+                    if (rr < 3.2) continue;
+                    const arc = [], a0 = -0.15 - r() * 0.4, a1 = a0 - 1.1 - r() * 0.5;
+                    for (let k = 0; k <= 8; k++) arc.push([x + Math.cos(lerp(a0, a1, k / 8)) * rr * 0.72, y + Math.sin(lerp(a0, a1, k / 8)) * rr * 0.66]);
+                    B.line(arc, rr * 0.2, 'rgba(150,164,214,0.42)', cx);
+                    B.line(arc.map(([px, py]) => [px - 0.5, py + 0.5]), 0.32, 'rgba(110,126,190,0.5)', cx);
+                    if (rr > 6) {
+                        const bx = x - rr * (0.1 + r() * 0.5), by = y + rr * (0.1 + r() * 0.4), br = rr * (0.3 + r() * 0.16);
+                        B.fill(S.ellipse(bx + br * 0.2, by - br * 0.22, br, br * 0.92, 12), 'rgba(178,188,226,0.6)', cx);
+                        B.fill(S.ellipse(bx, by, br, br * 0.92, 12), '#fffdf7', cx);
+                    }
+                }
                 // the brush left marks in its shadows: short level dabs
-                for (let k = 0; k < w * 0.5; k++) {
+                for (let k = 0; k < w * 0.5 + w * h * 0.03; k++) {
                     const x = cx + (r() - 0.42) * w * 0.86, y = cy + r() * h * 0.5, len = 2 + r() * 5;
                     B.line([[x, y], [x + len, y + (r() - 0.5) * 0.5]], 0.4 + r() * 0.5, r() < 0.6 ? 'rgba(124,138,196,0.4)' : 'rgba(255,253,246,0.55)', cx);
                 }

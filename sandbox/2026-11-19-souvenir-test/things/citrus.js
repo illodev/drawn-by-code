@@ -1083,7 +1083,7 @@ const Citrus = (() => {
                 // thick petals curl back at the tip and keep a crease down the middle
                 height: (x, y) => {
                     const u = x / len, yb = y - bow(u);
-                    return -cup * Math.pow(Math.max(0, u - 0.4), 2) * len * 0.85 - 1.5 * Math.exp(-(yb * yb) / 2.6) * S.smooth(len, len * 0.2, x) + 0.4 * S.noise2(x * 0.16, y * 0.3, sd);
+                    return -cup * Math.pow(Math.max(0, u - 0.4), 2) * len * 0.85 - 1.9 * Math.exp(-(yb * yb) / 2.2) * S.smooth(len, len * 0.2, x) + 0.4 * S.noise2(x * 0.16, y * 0.3, sd);
                 },
                 ramp: WHITE, soft: 0.9,
                 edge: { rough: 1.1, freq: 0.3, amp: 0.7 },
@@ -1102,6 +1102,12 @@ const Citrus = (() => {
                             S.dab(q0, st, { w: 1.4 + r() * 3.4, color: r() < 0.5 ? '#ffffff' : '#000000', alpha: 0.22 + r() * 0.36, bristles: 4, seed: 'pd' + key + i, dry: 0.5, taper: 0.8 });
                         }
                     });
+                    // and the hairs of a dry brush, sharp
+                    g.lineCap = 'round';
+                    for (let i = 0; i < 22; i++) {
+                        const y0 = (r() - 0.5) * 1.7, u0 = 0.04 + r() * 0.7, u1 = Math.min(0.98, u0 + 0.1 + r() * 0.25);
+                        line(g, [0, 0.5, 1].map((k) => [4 + (u0 + (u1 - u0) * k) * len, bow(u0 + (u1 - u0) * k) + y0 * hw(u0 + (u1 - u0) * k)]), 0.35 + r() * 0.35, r() < 0.5 ? `rgba(255,255,255,${0.14 + r() * 0.2})` : `rgba(0,0,0,${0.1 + r() * 0.16})`);
+                    }
                 },
                 spec: { amp: 0.35, power: 15, from: 0.5, to: 0.95, ragged: 0.6, color: '#fffef6' },
                 tint: (x, y, tone, rgb) => {
@@ -1115,6 +1121,20 @@ const Citrus = (() => {
                     if (old) toward(rgb, 170, 124, 76, old * S.smooth(0.62, 1, u + n * 0.25 + (Math.abs(y) / wid) * 0.25) * 0.8);
                 },
                 over: (g) => {
+                    // its thickness: a light on the margin towards the lamp, a line of shade on the other
+                    const lit = light2(lk)[1] < 0 ? -1 : 1, rim = (sg, d) => {
+                        const out = [];
+                        for (let i = 3; i <= 37; i++) out.push([4 + (i / 40) * len, bow(i / 40) + sg * (hw(i / 40) * (1 + (sg < 0 ? as : -as)) - d)]);
+                        return out;
+                    };
+                    g.lineCap = 'round';
+                    line(g, rim(lit, 0.5), 0.7, 'rgba(255,255,250,0.55)');
+                    line(g, rim(-lit, 0.4), 0.7, 'rgba(84,78,118,0.3)');
+                    // glands show through the wax
+                    for (let i = 0; i < 30; i++) {
+                        g.fillStyle = `rgba(120,128,96,${0.05 + r() * 0.09})`;
+                        disc(g, 8 + r() * len * 0.9, (r() - 0.5) * wid * 1.5, 0.3 + r() * 0.3);
+                    }
                     if (bruise) {
                         const gr = g.createRadialGradient(bruise[0], bruise[1], 0, bruise[0], bruise[1], bruise[2]);
                         gr.addColorStop(0, 'rgba(150,120,84,0.5)');
@@ -1728,12 +1748,15 @@ const Citrus = (() => {
         g.lineCap = 'round';
         g.strokeStyle = '#1c120c';
         g.lineWidth = 0.42;
-        for (const [x0, a] of [[0.6, -1.9], [0, -1.5], [-0.6, -1.1], [0.6, 1.9], [0, 1.5], [-0.6, 1.1]]) {
-            g.beginPath();
-            g.moveTo(x0, 0);
-            g.lineTo(x0 + Math.cos(a) * 1.6, Math.sin(a) * 1.9);
-            g.lineTo(x0 + Math.cos(a) * 1.6 + (a < 0 ? 1 : 1) * 0.9, Math.sin(a) * 3.3);
-            g.stroke();
+        // three pairs of legs from the thorax: forward, out, back; each with a knee
+        for (const sg of [-1, 1]) {
+            for (const [x0, kx, fx] of [[0.7, 1.5, 3.1], [0, 0.2, 0.5], [-0.7, -1.3, -3.4]]) {
+                g.beginPath();
+                g.moveTo(x0, sg * 0.4);
+                g.lineTo(x0 + kx, sg * 2.1);
+                g.lineTo(x0 + fx, sg * 3.2);
+                g.stroke();
+            }
         }
         for (const sg of [-1, 1]) {
             g.beginPath();

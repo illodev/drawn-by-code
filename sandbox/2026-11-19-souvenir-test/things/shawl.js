@@ -1591,7 +1591,7 @@ const Shawl = (() => {
             const s = o2.skip ?? 0.15, x0 = x + Math.cos(a) * len * s, y0 = y + Math.sin(a) * len * s, x1 = x + Math.cos(a) * len * 0.9, y1 = y + Math.sin(a) * len * 0.9;
             if (capFree(x0, y0, x1, y1, wid * 0.36) < need) return false;
             markCap(x0, y0, x1, y1, wid * 0.4);
-            put({ k: 'leaf', z: o2.z ?? 1, x, y, a, len, wid, bend: (rnd() - 0.5) * 0.7, bx: x + Math.cos(a) * len * 0.5, by: y + Math.sin(a) * len * 0.5, br: len * 0.62, hue: o2.hue, kind: o2.kind, shape: o2.shape });
+            put({ k: 'leaf', z: o2.z ?? 1, x, y, a, len: len * 1.05, wid: wid * 1.14, bend: (rnd() - 0.5) * 0.7, bx: x + Math.cos(a) * len * 0.5, by: y + Math.sin(a) * len * 0.5, br: len * 0.62, hue: o2.hue, kind: o2.kind, shape: o2.shape });
             return true;
         };
         const collar = (x, y, r, n, hue, k0 = 0.95, k1 = 0.5) => {
@@ -1748,7 +1748,9 @@ const Shawl = (() => {
             }
             markDisc(x, y, r * 0.93);
             collar(x, y, r, 2 + ((rnd() * 3) | 0), hue, 1.2, 0.7);
-            head(FLOWERS[(rnd() * FLOWERS.length) | 0], x, y, r, 3);
+            // the smaller ones are sometimes a wild rose: five broad petals and long stamens
+            if (r < 38 && pick > 0.74) head('floret', x, y, r * 0.86, 3, { kind: 'round' });
+            else head(FLOWERS[(rnd() * FLOWERS.length) | 0], x, y, r, 3);
         }
         // 3 · boughs of blossom, some with a bird on them
         for (let i = 0, birds = 0; i < 500; i++) {
@@ -1802,9 +1804,10 @@ const Shawl = (() => {
             }
             const back = Math.min(r * 0.8, reach(x, y, ba + Math.PI, 30)), bx = x - Math.cos(ba) * back, by = y - Math.sin(ba) * back;
             let any = false;
+            const willow = rnd() < (n === 1 ? 0.4 : 0.16); // long narrow leaves, as of bamboo or willow
             for (let q = 0; q < n; q++) {
-                const a = ba + (q - (n - 1) / 2) * (0.55 + rnd() * 0.3), len = clamp(back + reach(bx, by, a, 95) * 0.92, 14, 92);
-                any = tryLeaf(bx, by, a, len, clamp(len * 0.4, 6, r * 1.5), 0.6, { hue, skip: 0.1, kind: len < 30 ? 'smooth' : undefined, shape: n === 1 && rnd() < 0.4 ? 'lance' : undefined }) || any;
+                const a = ba + (q - (n - 1) / 2) * (willow ? 0.4 : 0.55 + rnd() * 0.3), len = clamp(back + reach(bx, by, a, 95) * 0.92, 14, 92);
+                any = tryLeaf(bx, by, a, len, clamp(len * (willow ? 0.24 : 0.4), willow ? 5 : 6, r * 1.5), 0.6, { hue, skip: 0.1, kind: willow || len < 30 ? 'smooth' : undefined, shape: willow ? 'lance' : undefined }) || any;
             }
             if (flower === null) return markDisc(x, y, r * 0.5); // the last pass: a leaf or nothing
             if (!any || flower) {

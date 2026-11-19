@@ -22,7 +22,7 @@ Motion.scene({
         if (!st.done && PICTURE && sec < 12) {
             st.done = true;
             try {
-                st.layers = Tableau.lemons(1000).map((l) => ({ ...l, far: [0.12, 0.2] }));
+                st.layers = Tableau.lemons(1000).map((l) => ({ ...l, far: [0.12, 0.2], brush: false })); // as the film maps them
                 st.rig = Souvenir.rig(env, st.layers);
                 const t0 = performance.now(); // dev only: reported at t = 10, never used by the picture
                 const prof = {};

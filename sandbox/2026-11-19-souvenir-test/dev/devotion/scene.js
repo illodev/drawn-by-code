@@ -6,7 +6,8 @@
 //   0.3  4×: the wax runs and the flame      0.4  4×: the thurible's lid and its chains
 //   0.5  4×: six beads; the cross            0.6  4×: the lamp's arcade
 //   0.7  4×: the amulet's filigree           0.8  4×: the niche
-//   0.9  turned (the light must stay at the top left), other seeds
+//   0.9  turned (the light must stay at the top left, flames and smoke must rise), other
+//        seeds, the lamp on its third night with the servant light
 //   1.0  film size on painted ground, with tooth and the lens finish
 //   1.1  4×: the candle's socket; the thurible's bowl
 const SV = 'sandbox/2026-11-19-souvenir-test/';
@@ -69,7 +70,7 @@ Motion.scene({
                 put('incensario', { x: 650, y: 280, rot: 0.3, s: 0.8 });
                 put('incensario', { x: 690, y: 700, rot: Math.PI / 2, s: 0.8, seed: 'b' });
                 put('rosario', { x: 960, y: 240, rot: 1.2, s: 0.8, seed: 'b' });
-                put('lampara', { x: 980, y: 640, rot: -0.4, s: 0.9 });
+                put('lampara', { x: 980, y: 640, rot: -0.4, s: 0.9, lights: 3, servant: true });
                 put('jamsa', { x: 1250, y: 230, rot: 0.6 });
                 put('jamsa', { x: 1460, y: 300, rot: Math.PI, seed: 'b' });
                 put('mihrab', { x: 1330, y: 650, rot: 0.25, s: 0.8 });

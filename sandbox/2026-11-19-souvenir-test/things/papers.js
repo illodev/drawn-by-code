@@ -816,7 +816,7 @@ const Papers = (() => {
             dc = -dc;
         }
         const foot = [c[0] - nn[0] * dc, c[1] - nn[1] * dc], k = o.over ?? 0.7, tip = [foot[0] - nn[0] * dc * k, foot[1] - nn[1] * dc * k];
-        const bow = o.bow ?? 1.6;
+        const bow = o.bow ?? 1.6, lift = o.lift ?? 9;
         const e1 = S.curve([p1, [(p1[0] + tip[0]) / 2 - t[0] * bow, (p1[1] + tip[1]) / 2 - t[1] * bow], tip], false, 6), e2 = S.curve([tip, [(p2[0] + tip[0]) / 2 + t[0] * bow, (p2[1] + tip[1]) / 2 + t[1] * bow], p2], false, 6);
         const flap = F.pts([...e1, ...e2.slice(1)]);
         const dP = F.dir(nn), dl = dot2(dP, [LV[0], LV[1]]);
@@ -828,7 +828,9 @@ const Papers = (() => {
             stops.push([u, S.rgb2hex(rgb[0], rgb[1], rgb[2])]);
         }
         S.piece(g, flap, {
-            fill: { from: F(foot), to: F(tip), stops }, line: o.line ?? 1.5, heavy: 0.8, cast: { blur: 6 * F.s, dx: SD[0] * 5.5 * F.s, dy: SD[1] * 6.5 * F.s, color: 'rgba(30,16,40,0.6)' },
+            fill: { from: F(foot), to: F(tip), stops }, line: o.line ?? 1.5, heavy: 0.8,
+            // it stands off the sheet: `lift` is how far its shadow is thrown
+            cast: { blur: (2.5 + lift * 0.3) * F.s, dx: SD[0] * lift * F.s, dy: SD[1] * lift * F.s, color: 'rgba(30,16,40,0.72)' },
             detail: (q) => {
                 // the back of the sheet: its tooth, the blotches of its years
                 const fb = S.bbox(flap), rr = Motion.rng('flap/' + (o.seed ?? 0));
@@ -2231,7 +2233,7 @@ const Papers = (() => {
         });
         // the dog-ear: folded flat, its back bare
         curlFlap(g, F, O.curl, {
-            over: 0.93, turn: 1.45, bow: 0.5, line: 1.1, seed: 'ticket' + seed,
+            over: 0.93, turn: 1.45, bow: 0.5, line: 1.1, lift: 2.6, seed: 'ticket' + seed,
             ramp: [[0.12, '#5c4a56'], [0.36, '#a2927c'], [0.52, '#c4b898'], [0.68, '#d9d0b2'], [0.84, '#e6dec4'], [1, '#efe8d0']],
             back: (q, { foot, tip }) => {
                 const m = F(lerpP(foot, tip, 0.5)), bb = { x: m[0] - 14, y: m[1] - 14, w: 28, h: 28 };

@@ -2,6 +2,8 @@
 // brush manner: no contour line, fruit and leaves modelled with light, blossom on top.
 // Tableau.lemons(z) → the layers of the picture, its main plane at depth z.
 //
+// Every layer is `brush: false` for the rig: the strokes are in the paint already.
+//
 // Six depths: a plate that closes the tree, a far and a middle layer stepped back in the
 // air, the main layer (the only one in focus), a front layer just this side of it and a
 // near one that leaves the frame blurred. The camera arrives on the axis (the origin of
@@ -42,6 +44,7 @@ Tableau.lemons = (z0) => {
         P.clear = (x, y, pad = 0) => !gap || Math.hypot(x - gap.x, y - gap.y) > gap.r + pad;
         // a leaf whose petiole starts at the node (x, y), pointing along `rot`
         P.leaf = (x, y, rot, s, kind, pick, o = {}) => {
+            if (gap && kind === 'back' && !P.clear(x, y, 230)) kind = 'deep'; // nothing glows around the rest
             const sp = C.leaf(leafV(kind, rot, pick), rot, rl, kind), G = sp.G, fx = o.fx ?? 1, fy = o.fy ?? 1;
             if (gap && !o.any) for (const u of [0.45, 0.75, 1]) {
                 if (!P.clear(x + Math.cos(rot) * G.L * s * fx * u, y + Math.sin(rot) * G.L * s * fx * u, u === 1 ? -14 : 0)) return null;
@@ -313,7 +316,7 @@ Tableau.lemons = (z0) => {
         {
             // the inside of the tree, closing the picture: green light, limbs, leaves in
             // masses, a few holes on the sky; darkest behind the rest where the dive goes on
-            id: 'lemons-plate', z: z0 + 420, box: plate, res: SOFT.plate,
+            id: 'lemons-plate', brush: false, z: z0 + 420, box: plate, res: SOFT.plate,
             paint(g, res) {
                 const gp = gapAt(420), P = painter(g, res, SOFT.plate);
                 const gr = g.createLinearGradient(plate.x, plate.y, plate.x + plate.w * 0.6, plate.y + plate.h);
@@ -350,7 +353,7 @@ Tableau.lemons = (z0) => {
         },
         {
             // far in the tree: a limb, boughs, leaves lit from behind, a few lemons
-            id: 'lemons-far', z: z0 + 210, box: wide, res: SOFT.far,
+            id: 'lemons-far', brush: false, z: z0 + 210, box: wide, res: SOFT.far,
             paint(g, res) {
                 const gp = gapAt(210, 30), P = painter(g, res, SOFT.far, gp);
                 const r = Motion.rng('far');
@@ -374,13 +377,13 @@ Tableau.lemons = (z0) => {
                     P.lemon(x, y, (S.hashI(v, 1, 2, 3) - 0.5) * 0.6, s, v, { age });
                 }
                 relight(g, wide, res, dapple('far', wide, { pools: 26, suns: 36, flecks: 20, dark: [[gp.x, gp.y, gp.r * 1.8, 0.9]] }), { sun: 0.9 });
-                veil(g, wide, 'rgba(30,80,66,0.22)');
+                veil(g, wide, 'rgba(22,66,54,0.3)');
                 S.tooth(g, wide, { amp: 0.05 });
             },
         },
         {
             // a step behind the main layer: almost sharp
-            id: 'lemons-mid', z: z0 + 90, box: wide,
+            id: 'lemons-mid', brush: false, z: z0 + 90, box: wide,
             paint(g, res) {
                 const gp = gapAt(90, 20), P = painter(g, res, 0, gp);
                 const r = Motion.rng('mid');
@@ -407,12 +410,12 @@ Tableau.lemons = (z0) => {
                 if (F) F.snail(g, { x: sn.x - 12, y: sn.y - 34, s: 1, rot: sn.a + Math.PI, line: false, trail: 70 });
                 if (B) B.butterfly(g, { x: -640, y: -250, s: 1.7, rot: -0.6, fold: 0.35, line: false });
                 relight(g, wide, res, dapple('mid', wide, { pools: 26, suns: 44, flecks: 40, dark: [[gp.x, gp.y, gp.r * 1.6, 0.85]] }));
-                veil(g, wide, 'rgba(30,84,66,0.1)');
+                veil(g, wide, 'rgba(18,60,48,0.2)');
                 S.tooth(g, wide, { amp: 0.055 });
             },
         },
         {
-            id: 'lemons-hero', z: z0, box: wide,
+            id: 'lemons-hero', brush: false, z: z0, box: wide,
             paint(g, res) {
                 const P = painter(g, res, 0, { ...GAP });
                 const r = Motion.rng('hero');
@@ -437,7 +440,7 @@ Tableau.lemons = (z0) => {
                 // ants going up and down the bough
                 for (const [u, off, back] of [[0.36, -6, 0], [0.385, 3, 1], [0.41, -3, 0], [0.445, 5, 0], [0.52, -5, 1], [0.6, 2, 0], [0.63, -4, 0], [0.71, 3, 1]]) {
                     const p = A.at(A.len * u);
-                    C.ant(g, { x: p.x - Math.sin(p.a) * off, y: p.y + Math.cos(p.a) * off, rot: p.a + (back ? Math.PI : 0) + (off % 2 ? 0.2 : -0.15), s: 1 });
+                    C.ant(g, { x: p.x - Math.sin(p.a) * off, y: p.y + Math.cos(p.a) * off, rot: p.a + (back ? Math.PI : 0) + (off % 2 ? 0.2 : -0.15), s: 1.35 });
                 }
                 C.branch(g, B.pts, { raw: true, w0: 15, w1: 9, seed: 'bough-B', green: [0.75, 1.2], nodes: [260, 520, 800] });
                 // a pruned stub on the big bough, and where leaves fell
@@ -503,13 +506,13 @@ Tableau.lemons = (z0) => {
                 P.drop(...tipOf(R1), 4, { hang: 0.5 });
                 P.drop(...tipOf(L1), 3.2, { hang: 0.4 });
                 // --- 6 · the sun comes through in patches
-                relight(g, wide, res, dapple('hero', wide, { pools: 34, suns: 54, flecks: 90, fall: 0.3, lit: [[-230, -30, 80, 46, 0.8, 0.5], [236, -70, 70, 40, 0.8, 0.45], [60, -330, 90, 40, 0.5, 0.5], [600, -300, 90, 46, 0.7, 0.5], [-40, 300, 100, 44, 0.6, 0.45]] }));
+                relight(g, wide, res, dapple('hero', wide, { pools: 40, suns: 48, flecks: 90, fall: 0.34, lit: [[-230, -30, 80, 46, 0.8, 0.5], [236, -70, 70, 40, 0.8, 0.45], [60, -330, 90, 40, 0.5, 0.5], [600, -300, 90, 46, 0.7, 0.5], [-40, 300, 100, 44, 0.6, 0.45]] }));
                 S.tooth(g, wide, { amp: 0.06 });
             },
         },
         {
             // just this side of the main layer: a few things at the edges, a little soft
-            id: 'lemons-front', z: z0 - 110, box: wide,
+            id: 'lemons-front', brush: false, z: z0 - 110, box: wide,
             paint(g, res) {
                 const P = painter(g, res, 0);
                 sprig(P, -420, -560, 1.2, 240, 'front-1', { kinds: ['sun', 'mid', 'sun'], tip: [[-0.6, 40, 'face', 9, 0.95], [0.4, 36, 'bud', 14, 0.95], [1.2, 30, 'round', 15, 1]] });
@@ -523,7 +526,7 @@ Tableau.lemons = (z0) => {
         },
         {
             // what the camera brushes past: leaves and a lemon at the frame's corners, blurred
-            id: 'lemons-near', z: z0 - 330, box: wide, res: SOFT.near,
+            id: 'lemons-near', brush: false, z: z0 - 330, box: wide, res: SOFT.near,
             paint(g, res) {
                 const P = painter(g, res, SOFT.near);
                 sprig(P, -900, 330, -0.5, 420, 'near-1', { kinds: ['mid', 'deep', 'mid'], plain: true, leaf: 1.15, gap: 60 });
