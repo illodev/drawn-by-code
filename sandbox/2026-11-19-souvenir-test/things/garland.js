@@ -616,7 +616,8 @@ const Garland = (() => {
         for (let j = 0; j <= m; j++) {
             const al = -P.half + (2 * P.half * (j + (j > 0 && j < m ? P.jit[j] * 0.5 : 0))) / m, q = al / P.half;
             const round = 1 - 0.13 * q * q + 0.03 * S.noise2(q * 2.1, P.k * 0.37, 11);
-            out.push([round - (j % 2 === 0 ? P.dep[j] : 0), al]);
+            // (shallower teeth at the two corners: seen edge-on, a deep one there is a thorn)
+            out.push([round - (j % 2 === 0 ? P.dep[j] * (0.3 + 0.7 * Math.min(1, Math.min(j, m - j) / 3)) : 0.04 * Math.max(0, 1 - Math.min(j, m - j) / 3)), al]);
         }
         return out;
     }
@@ -909,7 +910,7 @@ const Garland = (() => {
         // 3 · the calyx: the claws of the petals in its throat, the tube and its teeth over
         // the lowest petals, the scales at its foot
         S.piece(g, W([cr.at(180, -0.04 * r), cr.at(180, SIN + 0.03 * r), cr.at(135, SIN + 0.03 * r), cr.at(90, SIN + 0.03 * r), cr.at(45, SIN + 0.03 * r), cr.at(0, SIN + 0.03 * r), cr.at(0, -0.04 * r)]), { fill: pal.claw, line: 0, shade: { color: white ? '#5e6a58' : '#2a0616', alpha: 0.8, w: r * 0.1 } });
-        paintCrown(g, W, rot, cr, { r, lw, sinus: SIN, len: CL, tip: TIP, flare: 1.12, cast: pal.cast, under: 0.5 });
+        paintCrown(g, W, rot, cr, { r, lw, sinus: SIN, len: CL, tip: TIP, cast: pal.cast, under: 0.5 });
         const P2 = (u, v) => Wp([u * r, yb + v * r]);
         // two pairs of scales, crossed: the outer pair shows its points at the sides, the
         // inner pair laps over the front
@@ -973,7 +974,7 @@ const Garland = (() => {
         ], '#d64546', 1);
         blob(g, W([[-7, my + 8], [-7, my - 3], [7, my - 3], [7, my + 8]]), RED.deep, 0.6, 4 * s);
         // the calyx, its teeth just parting, and the scales at its foot
-        paintCrown(g, W, rot, cr, { r: 52, k: s, lw, sinus: 6, len, tip: -13, flare: 0.5, cast: 'rgba(40,6,30,0.5)' });
+        paintCrown(g, W, rot, cr, { r: 52, k: s, lw, sinus: 6, len, tip: -13, cast: 'rgba(40,6,30,0.5)' });
         const P2 = (u, v) => Wp([u, yb + v]);
         for (const sg of [-1, 1]) bract(g, pointed([P2(sg * 5, 1), P2(sg * 9.4, -7)], P2(sg * 9.8, -23), [P2(sg * 5, -11), P2(sg * 2, -2)]), [P2(sg * 5.4, -2), P2(sg * 8.4, -12), P2(sg * 9.6, -21)], lw, 52 * s, S.mix(CALYX.bract, CALYX.fill, 0.5));
         bract(g, pointed([P2(1.4, 3.6), P2(-6.6, -1.6), P2(-7.4, -9)], P2(-2.6, -24), [P2(0.4, -12), P2(2.8, -3)]), [P2(-1.6, 1), P2(-3, -10), P2(-2.7, -22)], lw, 52 * s);

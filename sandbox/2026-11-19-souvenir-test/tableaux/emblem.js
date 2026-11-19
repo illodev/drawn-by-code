@@ -46,27 +46,27 @@ Tableau.emblem = (z0) => {
             },
         },
         {
-            id: 'emblem-charms', z: z0 + 75, box: frame, blur: 1,
+            // what lies behind the emblem, seen through more air: the fruit that names Granada,
+            // castanets, cards of the Spanish deck
+            id: 'emblem-charms', z: z0 + 75, box: frame,
             paint(g) {
-                if (!has('Charms')) return;
-                Charms.castanets(g, { x: -640, y: 250, s: 1, rot: -0.3 });
-                Charms.cards(g, { x: 660, y: 250, s: 0.9, rot: 0.25 });
-                Charms.pomegranate(g, { x: -700, y: -330, s: 0.9, rot: 0.2 });
-                if (has('Ribbon') && Ribbon.key) Ribbon.key(g, { x: 700, y: -330, s: 0.9, rot: -0.7 });
-                // seen through more air than the emblem: a breath of the night over them
+                if (has('Charms')) {
+                    Charms.pomegranate(g, { x: -676, y: -322, s: 0.9, rot: 0.25 });
+                    Charms.castanets(g, { x: -672, y: 372, s: 0.82, rot: -0.35 });
+                    Charms.cards(g, { x: 640, y: 366, s: 0.8, rot: 0.2 });
+                }
+                // a breath of the night over them
                 g.globalCompositeOperation = 'source-atop';
-                g.fillStyle = 'rgba(35,39,80,0.42)';
+                g.fillStyle = 'rgba(35,39,80,0.3)';
                 g.fillRect(frame.x, frame.y, frame.w, frame.h);
                 g.globalCompositeOperation = 'source-over';
-                S.tooth(g, frame);
-            },
-        },
-        {
-            id: 'emblem-wreath', z: z0 + 55, box: frame,
-            paint(g) {
-                if (has('Garland')) {
-                    Garland.olive(g, { path: [[-150, 470], [-420, 380], [-560, 160], [-520, -110]], seed: 'left' });
-                    Garland.olive(g, { path: [[150, 470], [420, 380], [560, 160], [520, -110]], seed: 'right' });
+                if (has('Sky')) {
+                    // the waxing moon in the one corner of sky the fans leave, and its stars
+                    Sky.moon(g, { x: 632, y: -306, r: 56, rot: -0.5, phase: 0.28 });
+                    Sky.star(g, { x: 548, y: -372, r: 13, rot: 0.2 });
+                    Sky.star(g, { x: 716, y: -226, r: 10, rot: 0.5, kind: 'silver' });
+                    Sky.star(g, { x: -560, y: -392, r: 11, rot: 0.1, kind: 'silver' });
+                    Sky.star(g, { x: -742, y: -196, r: 9, rot: 0.6 });
                 }
                 S.tooth(g, frame);
             },
@@ -74,8 +74,8 @@ Tableau.emblem = (z0) => {
         {
             id: 'emblem-fans', z: z0 + 40, box: frame,
             paint(g) {
-                Fan.draw(g, { x: -150, y: 170, r: 640, a0: Math.PI * 0.94, a1: Math.PI * 1.5, n: 15, seed: 'fanL' });
-                Fan.draw(g, { x: 150, y: 170, r: 640, a0: Math.PI * 0.06, a1: -Math.PI * 0.5, n: 15, seed: 'fanR' });
+                Fan.draw(g, { x: -140, y: 190, r: 600, a0: Math.PI * 0.97, a1: Math.PI * 1.47, n: 14, seed: 'fanL' });
+                Fan.draw(g, { x: 140, y: 190, r: 600, a0: Math.PI * 0.03, a1: -Math.PI * 0.47, n: 14, seed: 'fanR' });
                 S.tooth(g, frame);
             },
         },
@@ -96,18 +96,20 @@ Tableau.emblem = (z0) => {
             },
         },
         {
+            // the wreath: two arms of olive hugging the guitar, carnations at its waist
             id: 'emblem-flowers', z: z0 + 12, box: frame,
             paint(g) {
                 if (has('Garland')) {
+                    Garland.olive(g, { path: [[-200, 440], [-395, 352], [-436, 140], [-356, -70], [-262, -214]], seed: 'left' });
+                    Garland.olive(g, { path: [[200, 440], [395, 352], [436, 140], [356, -70], [262, -214]], seed: 'right' });
                     Garland.spray(g, { x: -250, y: 120, s: 1, rot: -0.5, seed: 'L' });
                     Garland.spray(g, { x: 250, y: 120, s: 1, rot: 0.5, seed: 'R' });
                 }
-                if (has('Sky')) Sky.moon(g, { x: 330, y: -330, r: 78, rot: -0.5, phase: 0.28 });
                 S.tooth(g, frame);
             },
         },
         {
-            id: 'emblem-guitar', z: z0, box: { x: -330, y: -620, w: 660, h: 1240 }, hole: 64,
+            id: 'emblem-guitar', z: z0, box: { x: -330, y: -720, w: 660, h: 1240 }, hole: 64,
             paint(g) {
                 if (has('Guitar')) Guitar.body(g, { x: 0, y: 0, s: 1 });
                 else {
@@ -117,22 +119,33 @@ Tableau.emblem = (z0) => {
                     S.piece(g, pts, { fill: '#e2b469', line: 3, shade: { color: '#a8742f', alpha: 0.8, w: 60 } });
                     circleHole(g, 64);
                 }
-                S.tooth(g, { x: -330, y: -620, w: 660, h: 1240 });
+                S.tooth(g, { x: -330, y: -720, w: 660, h: 1240 });
             },
         },
         {
-            id: 'emblem-strings', z: z0 - 15, box: { x: -80, y: -620, w: 160, h: 940 },
+            id: 'emblem-strings', z: z0 - 15, box: { x: -80, y: -720, w: 160, h: 1000 },
             paint(g) {
                 if (has('Guitar')) Guitar.strings(g, { x: 0, y: 0, s: 1 });
             },
         },
         {
+            id: 'emblem-ribbon', z: z0 - 20, box: frame,
+            paint(g) {
+                if (has('Ribbon')) Ribbon.draw(g, { x: 0, y: 338, s: 1, text: 'SONIDOS NEGROS', w: 980, h: 88 });
+                S.tooth(g, frame);
+            },
+        },
+        {
+            // the swallows that come back («volverán las oscuras golondrinas»), one of them
+            // with a key in its bill: the key of the house that was left
             id: 'emblem-front', z: z0 - 60, box: frame,
             paint(g) {
-                if (has('Ribbon')) Ribbon.draw(g, { x: 0, y: 372, s: 1, text: 'SONIDOS NEGROS', w: 1060, h: 92 });
                 if (has('Sky')) {
-                    Sky.swallow(g, { x: -470, y: -250, s: 0.95, rot: 0.25, pose: 0, seed: 'a' });
-                    Sky.swallow(g, { x: 500, y: -200, s: 0.85, rot: -0.2, flip: true, pose: 1, seed: 'b' });
+                    // kept clear of the moon and of the pomegranate: a wing across either reads as part of it
+                    // the key hangs by its bow from the bill (the bill's tip is at about 373, −123)
+                    if (has('Ribbon')) Ribbon.key(g, { x: 374, y: -60, s: 0.5, rot: Math.PI / 2 - 0.12 });
+                    Sky.swallow(g, { x: -392, y: -176, s: 0.95, rot: 0.3, pose: 0, seed: 'a' });
+                    Sky.swallow(g, { x: 430, y: -136, s: 0.88, rot: 0.2, flip: true, pose: 1, seed: 'b' });
                 }
                 S.tooth(g, frame);
             },

@@ -542,7 +542,8 @@ const Sky = (() => {
     const sph = (lon, lat) => [Math.cos(lat * DEG) * Math.sin(lon * DEG), -Math.sin(lat * DEG), Math.cos(lat * DEG) * Math.cos(lon * DEG)];
     const SEAS = [
         [59, 17, 8.5, 1], [51, -6, 10, 0.9], [35, -15, 6.5, 0.85], [31, 8, 13, 1], [18, 28, 11, 1], [4, 13, 4.5, 0.7],
-        [-16, 33, 19, 1], [-57, 18, 20, 0.9], [-45, 0, 14, 0.8], [-62, 36, 9, 0.7], [-28, 6, 8, 0.6], [-23, -10, 7.5, 0.7],
+        [-16, 33, 19, 1], [-57, 18, 20, 1], [-45, 0, 14, 0.85], [-62, 36, 9, 0.8], [-28, 6, 8, 0.7], [-23, -10, 7.5, 0.7],
+        [-48, 31, 12, 0.85], [-38, 15, 10, 0.8], [25, 18, 6, 0.8], [42, 2, 6.5, 0.7],
         [-17, -21, 11, 0.9], [-39, -24, 7, 0.9], [-30, 57, 6, 0.6], [-12, 58, 6, 0.6], [6, 56, 6, 0.6], [24, 55, 6, 0.55],
         [86, 14, 5, 0.7], [87, -2, 5.5, 0.7], [80, 57, 4.5, 0.6], [-68, -5, 3.6, 0.9], [-9, 51, 2.6, 0.9], [57, 54, 3, 0.7], [70, -18, 4, 0.5],
     ].map(([lon, lat, rad, k]) => ({ v: sph(lon, lat), rad: rad * DEG, k }));
@@ -553,6 +554,7 @@ const Sky = (() => {
     ].map(([lon, lat, rad, kind]) => ({ v: sph(lon, lat), rad: rad * DEG, kind }));
     const MOON = [[0, '#5b5889'], [0.2, '#77749f'], [0.4, '#8f8db0'], [0.6, '#b7b7d0'], [0.8, '#d9dcea'], [1, '#eef0f5']];
     const WARM = [243, 236, 210]; // the light on the lit limb
+    const TYCHO = sph(-11, -43); // the bright crater whose rays cross the southern face
 
     function moonSprite(r, rot, phase, res) {
         const lw = clamp(r * 0.027, 1.5, 2.8);
@@ -618,20 +620,23 @@ const Sky = (() => {
                     const sphere = 0.5 + 0.44 * (X * Lh[0] + Y * Lh[1] + mz * Lh[2]);
                     tone = lerp(tone, sphere, house);
                     // the warm light is laid smoothly over the form, whatever the seas do under it
-                    const warm = lerp(smooth(0.5, 0.98, tn) * belly, smooth(0.6, 0.93, sphere), house) * (1 - lerp(0.45, 0.85, house) * sea) * 0.9;
+                    const warm = lerp(smooth(0.5, 0.98, tn) * belly, smooth(0.6, 0.93, sphere), house) * (1 - 0.45 * sea) * 0.9;
                     // towards the terminator the low sun picks out the relief
                     const rough = (1 - house) * Math.pow(1 - tn, 2.2);
                     tone += rough * (0.11 * S.noise3(mx * 20, my * 20, mz * 20, 43) + 0.06 * S.noise3(mx * 46, my * 46, mz * 46, 44));
-                    tone += pit * (1 + 1.2 * rough) - sea * lerp(0.19, 0.3, house) + grain;
+                    // Tycho's rays: pale streaks fanning out over the south
+                    const tx = mx - TYCHO[0], ty = my - TYCHO[1], td = Math.hypot(tx, ty), ta = Math.atan2(ty, tx);
+                    const rays = Math.pow(0.5 + 0.5 * Math.sin(ta * 7 + 1.3 + 1.5 * S.noise2(ta * 1.7, 3, 45)), 7) * smooth(0.045, 0.1, td) * smooth(0.5 + 0.35 * S.noise2(ta * 2.3, 7, 46), 0.1, td);
+                    tone += pit * (1 + 1.2 * rough) - sea * lerp(0.19, 0.12, house) + grain + rays * (0.03 + 0.05 * house);
                     ramp(clamp(tone), rgb);
-                    // the seas are cooler as well as darker
-                    const sc = sea * 0.28;
-                    rgb[0] += (132 - rgb[0]) * sc;
-                    rgb[1] += (130 - rgb[1]) * sc;
-                    rgb[2] += (176 - rgb[2]) * sc;
                     rgb[0] += (WARM[0] - rgb[0]) * warm;
                     rgb[1] += (WARM[1] - rgb[1]) * warm;
                     rgb[2] += (WARM[2] - rgb[2]) * warm;
+                    // the seas are cooler as well as darker, in the light too
+                    const sc = sea * lerp(0.28, 0.52, house);
+                    rgb[0] += (124 - rgb[0]) * sc;
+                    rgb[1] += (122 - rgb[1]) * sc;
+                    rgb[2] += (168 - rgb[2]) * sc;
                     lp[i * 4] = rgb[0];
                     lp[i * 4 + 1] = rgb[1];
                     lp[i * 4 + 2] = rgb[2];

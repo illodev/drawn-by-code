@@ -35,8 +35,8 @@ Motion.scene({
             win(540, 20, 500, 420, () => Sky.swallow(g, { x: 540, y: 250, s: 2, ...right }));
             Sky.moon(g, { x: 1200, y: 230, r: 130, phase: 0.15 });
             Sky.moon(g, { x: 1440, y: 230, r: 100, phase: 0.75 });
-            Sky.moon(g, { x: 190, y: 680, r: 180, phase: 0.8, rot: 0 });
-            Sky.moon(g, { x: 600, y: 680, r: 180, phase: 1, rot: 0 });
+            Sky.moon(g, { x: 190, y: 680, r: 180, phase: 0.5 });
+            Sky.moon(g, { x: 600, y: 680, r: 180, phase: 1 });
             let x = 860;
             for (const kind of ['gold', 'silver']) for (const r of [60, 36, 20]) {
                 Sky.star(g, { x: x + r, y: 560, r, kind });

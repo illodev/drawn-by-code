@@ -51,7 +51,22 @@ monotone cubic (it never backs up). `S.finish(ctx, env, frame, { mist, lift, vig
 grain })` in the scene's `post`.
 
 Each picture is a file returning its layers (`tableaux/emblem.js`, `tableaux/lemons.js` in
-the test); each group of things is a file with one global (`things/*.js`).
+the test); each group of things is a file with one global (`things/*.js`: `Fan`, `Guitar`,
+`Garland`, `Sky`, `Ribbon`, `Charms`, `Shawl`, `Citrus`). Helpers that still live in those
+files and are worth taking before writing a new one:
+
+- a `form` sprite in the emblem manner: `sprayIn` (the airbrush in from the sprite's own
+  alpha edges, holes included) and `stamp` (a dilated ink contour, heavier towards the
+  shadow, and its cast) in `things/ribbon.js`; or paste the sprite inside `S.piece`'s
+  `detail` and the piece gives contour, heavy side and cast (`things/charms.js`);
+- turning or mirroring geometry instead of the canvas, so the light stays put: `frame(x, y,
+  rot, s)` in `things/charms.js`; `flip` in `things/sky.js` and `things/garland.js`;
+- `blob` (a soft patch of colour on existing paint) and `blade` (a leaf with a lit half, a
+  dark half and a midrib) in `things/garland.js`; `outlined` (one heavy contour shared by
+  a group of small pieces) and the feather painter in `things/sky.js`; `rope`, `tassel`,
+  `turned` (a mirrored profile lit as a round thing) in `things/charms.js`; a ribbon as an
+  extruded plan curve in `things/ribbon.js`; `layer` (paint a piece that casts or cuts a
+  hole in its own canvas) in `things/guitar.js`.
 
 ## Style rules
 
@@ -92,6 +107,37 @@ the test); each group of things is a file with one global (`things/*.js`).
 
 ## Detail
 
+- **Emblem pieces that are volumes** (a key, an olive, a pomegranate): a lit `form` sprite
+  alone reads as 3D clay. Spray shade and light in from its edges and give it the ink
+  contour: that brings it back to the emblem manner.
+- **Many small pieces** (a wing's feathers, a rosette's tiles): one heavy contour shared by
+  the group and inner lines of about 1 unit; a full contour on each of sixty feathers turns
+  the wing into all line. A feather reads from three things: the shadow of the one over
+  it, a broad light from its free edge, a thin gleam where that edge faces the light.
+  Marquetry reads when every tile has its own tone and a lit and a shaded facet on a dark
+  ground. Size the motif for film size, and drop what is under about 6 units: it reads as dirt.
+- **Dark things on a dark ground** (a blue-black bird, castanets, the shadow side of a key
+  on the night): the contour is not enough. Push the lit side fully to its sheen, lay a
+  thin warm light on the lit edge or a reflected light at the shadow edge, and use an ink
+  darker than the kit's for blue-black pieces.
+- **Made by hand:** an outline built analytically (count its curvature sign changes: a
+  waist through spline points wobbled), then a seeded imperfection: eased corners, a unit
+  of jitter, one branch wider than the other. Perfect rectangles and symmetry read as vector.
+- **Joins:** a part that grows from another (teeth from a calyx tube) has no contour and no
+  hard edge at its root; a thin part narrower than twice the contour paints as a black tick
+  (widen it or start it under what it grows from); a cord entering a hole shows a dark
+  crescent of the bore.
+- **Cloth and lettering:** a ribbon is one strip drawn from a plan (split into faces where
+  it turns back, painted far to near, tone from which way each stretch faces the light),
+  with a hem that shows its thickness. Measure the font before promising a letter height:
+  wide old-style capitals need about 12 em of line at half the face's height.
+- **Flowers:** tiers of petals as nested funnels (inner ones shorter and more upright), each
+  petal lit by its own facing plus the whole head as a dome under the same lamp. White is
+  shaded lighter than expected (a lilac-grey at about 60 %), or the flower reads lavender.
+- **Highlights:** on metal or enamel a thin tapered light reads as a scratch; a short fat
+  streak with a dash under it reads as gloss. The bounce light in a shadow stays in the
+  very rim, or it lifts the whole form shadow and the sphere goes flat.
+
 - A piece of fruit: its real outline (a lemon has a nipple on a slight neck and a collar
   under the calyx: it is a profile of revolution, not an ellipse with bumps), the calyx and
   a stub of stalk as their own pieces over it, shallow pores, a form shadow, bounce light,
@@ -116,6 +162,7 @@ the test); each group of things is a file with one global (`things/*.js`).
 - [ ] The frame's luminance and saturation measured against the mood (bright pictures ≈ 0.45–0.5 median).
 - [ ] The hole is on the axis and cut clean through (fill opaque before `destination-out`).
 - [ ] The camera's track is monotone; focus racks only when the camera reaches the hole.
+- [ ] Tangents and overlaps: nothing in front crosses a thing it has nothing to do with (a wing over a moon, a wing over a fruit); what is held touches what holds it (crop the contact).
 - [ ] Rendered and watched moving: the smear has no separate ghosts, nothing pops on.
 
 ## Lessons
@@ -124,4 +171,7 @@ the test); each group of things is a file with one global (`things/*.js`).
 - 2026-11-19 · souvenir-test · Brush strokes laid over a lit form as translucent colour flatten it (pale strokes lifted the shadows, the form shadow vanished). Paint the strokes in greys on mid-grey and read them back as tone before the ramp: a stroke is then a colour of the palette, lighter or darker, and the modelling survives.
 - 2026-11-19 · souvenir-test · A hole cut with `destination-out` takes the alpha of the current `fillStyle`: after a painter that left a translucent fill, the hole was 30 % cut and the next picture showed veiled in the night's colour. Set an opaque fill before cutting.
 - 2026-11-19 · souvenir-test · Texture tiles pasted one by one leave seams (a line across the plate): lay them as a repeating pattern in pixels.
+- 2026-11-19 · souvenir-test · Anything that must register with a thing on another layer (the strings' knots on the bridge) belongs to that thing's layer: 15 units of depth is already 1.5 % of scale at the first frame and grows as the camera comes in.
+- 2026-11-19 · souvenir-test · A piece that uses `S.cast` or `destination-out` is painted in its own canvas and pasted, or its shadow and its hole land on its neighbours in the layer. And judge pieces on a transparent layer, as the picture paints them: over a filled ground every cast becomes a halo that is not in the film.
+- 2026-11-19 · souvenir-test · Composing by eye put a key 30 units from the bill that holds it: read the contact off a render (pixel → logical → the layer's own units through its scale and the camera's offset), move, crop the contact at 1:1.
 - 2026-11-19 · souvenir-test · A fast zoom needs more than averaged instants: twelve exposures of a whip-in read as twelve ghosts. After averaging, smear the sum along the zoom by the gap between two instants.

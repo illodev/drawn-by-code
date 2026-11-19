@@ -1,13 +1,15 @@
 // Charms round the emblem, in the emblem manner (dark contour + airbrush): a pair of
 // castanets on their silk cord, a fan of three cards of the Spanish deck, a pomegranate
-// split open. Global: Charms.
-//   Charms.castanets(g, { x, y, s, rot, seed })    about 230 × 200 at s = 1
-//   Charms.cards(g, { x, y, s, rot, seed })        three cards of 150 × 230: the fan is about 415 × 275
-//   Charms.pomegranate(g, { x, y, s, rot, seed })  the fruit is about 185 across, 250 tall with crown and twig
-//   Charms.aril(g, { x, y, s, rot, seed })         one loose seed, about 15 × 11
-// The anchor is the middle of each object. `rot` turns the object, never the light: the
-// geometry is turned point by point, so the sprays keep falling from the top left, and the
-// per-pixel sprites (the shells, the fruit's skin) are baked with Souvenir.lightFor.
+// split open. Global: Charms. Sizes at s = 1, the anchor in the middle of each:
+//   Charms.castanets(g, { x, y, s, rot, seed })    232 × 200
+//   Charms.cards(g, { x, y, s, rot, seed })        436 × 268 (each card 150 × 230; the ace of
+//                                                  coins in front, cups and swords behind)
+//   Charms.pomegranate(g, { x, y, s, rot, seed })  188 × 264 with crown and twig (the fruit 185)
+//   Charms.aril(g, { x, y, s, rot, seed })         16 × 11, one loose seed, its point along -x
+// `rot` turns the object, never the light: the geometry is turned point by point, so the
+// sprays keep falling from the top left, and the per-pixel sprites (the shells, the fruit's
+// skin) are baked with Souvenir.lightFor and cached by angle, resolution and seed. Paint
+// them once on a layer: nothing here takes the time.
 const Charms = (() => {
     const S = Souvenir;
     const INK = S.INK, SD = S.SHADE_DIR, TOL = [-SD[0], -SD[1]]; // TOL: towards the light, on the page
@@ -527,16 +529,10 @@ const Charms = (() => {
         const t2 = [[KN[0] + 1.2, KN[1] + 6], [-2.5, -72], [-1.5, -47], [3, -20], [5.5, 6], [5, 23]];
         run(t1);
         run(t2);
-        // the knot: three turns of the cord whipped round all of it
-        const Fk = F.sub(KN[0], KN[1], -0.12);
-        for (const [yy, rx] of [[-4.2, 6.2], [0, 6.9], [4.2, 6.4]]) {
-            S.piece(g, Fk.pts(S.ellipse(0, yy, rx, 3.1, 24)), {
-                fill: SILK.base, line: 1.4, cast: { blur: 2, dx: 0.8, dy: 1.8, color: 'rgba(20,4,20,0.6)' },
-                shade: { color: SILK.deep, alpha: 0.9, w: 4 }, light: { color: SILK.light, alpha: 0.8, w: 2.6 },
-                detail: (q) => {
-                    for (let k = -3; k <= 3; k++) S.ink(q, Fk.pts([[k * 2 - 1.2, yy - 3], [k * 2 + 1.2, yy + 3]]), { w: 0.55, color: SILK.ink, alpha: 0.55, taper: [0, 0] });
-                },
-            });
+        // the knot: three turns of the same cord whipped round all of it
+        const Fk = F.sub(KN[0], KN[1], -0.1);
+        for (const [yy, hx] of [[-4.3, 5.4], [0, 6.2], [4.3, 5.6]]) {
+            rope(g, Fk.pts(S.curve([[-hx, yy - 0.9], [-hx * 0.4, yy + 0.7], [hx * 0.4, yy + 0.9], [hx, yy - 0.5]], false, 8)), { w: w * 0.86, pitch: w * 0.62, cast: { blur: 2, dx: 0.8, dy: 1.8, color: 'rgba(20,4,20,0.6)' } });
         }
         tassel(g, F.sub(-25, 4, 0.16), { len: 50, w: 21, seed: seed + '1', cast: { blur: 4, dx: 2.5, dy: 3.5, color: 'rgba(8,4,16,0.65)' } });
         tassel(g, F.sub(5, 22, 0.02), { len: 52, w: 21, seed: seed + '2', cast: { blur: 4, dx: 2.5, dy: 3.5, color: 'rgba(8,4,16,0.65)' } });
@@ -576,10 +572,13 @@ const Charms = (() => {
                 // bounce in the shadow's rim, and the crisp gleam of polished metal
                 const side = dot2(F.dir([1, 0]), SD) >= 0 ? 1 : -1;
                 if (hw > 3 && y1 - y0 > 3) {
-                    const gl = F.pts([[-side * hw * 0.5, y0 + (y1 - y0) * 0.14], [-side * hw * 0.53, y1 - (y1 - y0) * 0.2]]);
-                    S.ink(qq, F.pts([[side * hw * 0.8, y0 + (y1 - y0) * 0.2], [side * hw * 0.82, y1 - (y1 - y0) * 0.2]]), { w: Math.max(0.6, hw * 0.1), color: C.light, alpha: 0.4 });
-                    S.ink(qq, gl, { w: Math.max(1.2, hw * 0.24), color: C.light, alpha: 0.4, taper: [0.7, 0.7] });
-                    S.ink(qq, gl, { w: Math.max(0.7, Math.min(2.2, hw * 0.1)), color: C.glint, alpha: 0.85, taper: [0.8, 0.8] });
+                    // (a streak and a short dash under it, never a hairline: that reads as a scratch)
+                    const h = y1 - y0, gw = Math.max(0.9, Math.min(3.6, hw * 0.13)), gx = -side * hw * 0.52;
+                    const streak = F.pts([[gx + side * hw * 0.03, y0 + h * 0.13], [gx, y0 + h * 0.36], [gx - side * hw * 0.02, y0 + h * 0.6]]);
+                    S.ink(qq, F.pts([[side * hw * 0.8, y0 + h * 0.2], [side * hw * 0.82, y1 - h * 0.2]]), { w: Math.max(0.6, hw * 0.1), color: C.light, alpha: 0.4 });
+                    S.ink(qq, streak, { w: gw * 2.4, color: C.light, alpha: 0.38, taper: [0.7, 0.7] });
+                    S.ink(qq, streak, { w: gw, color: C.glint, alpha: 0.9, taper: [0.5, 0.5] });
+                    if (h > 9) S.ink(qq, F.pts([[gx - side * hw * 0.02, y0 + h * 0.7], [gx - side * hw * 0.02, y0 + h * 0.82]]), { w: gw * 0.9, color: C.glint, alpha: 0.75, taper: [0.5, 0.5] });
                 }
                 if (o.detail) o.detail(qq);
             },

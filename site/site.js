@@ -50,6 +50,7 @@
         ['lightfield', 'Lightfield', 'Light photographed, not drawn: radiance through a lens and film, with bloom, halation, rays and grain.', 'wide', 1],
         ['micrograph', 'Micrograph', 'An instrument’s image, tinted afterwards: one grey signal, sharp grain on soft structures, a few inks laid over it.', 'wide', 1],
         ['blueprint', 'Blueprint', 'A drawing office’s cyanotype: white line work drafted on a folded sheet of Prussian blue, views that agree, lettering last.', 'wide', 0],
+        ['souvenir', 'Souvenir', 'Painted emblems a camera dives through: pieces with a dark contour and airbrushed shade, brush with no line, gold and lettering, each picture inside a hole of the one before.', 'wide', 1],
         ['comic', 'Comic', 'Brush-ink outlines with tapered ends, flat print colours on newsprint, Ben-Day dots, balloons.', 'wide', 0],
         ['70s-poster', '70s poster', 'Flat acid colours, thick outlines, concentric echoes, sunbursts and melting letters.', 'wide', 0],
         ['liquid-light', 'Liquid light', 'The oil-and-ink projections of 60s concerts: blobs that flow, merge and shift colour.', 'wide', 0],

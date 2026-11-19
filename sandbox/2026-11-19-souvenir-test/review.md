@@ -46,3 +46,52 @@ The rest of the emblem (guitar, olive and carnations, swallows and moon, ribbon 
 castanets, cards and a pomegranate) was painted by five agents in parallel from
 `agent-brief.md`, one file each, while the lead built the camera, the lemon tree, the fan
 and the embroidery of the night.
+
+### Round 1 (auto) · the emblem assembled
+
+The five agents came back in about 40 minutes, all at the bar on their first pass (their
+reports are summarised in the style skill): a flamenco guitar with a rosette of Granada
+marquetry and its maker's label inside the mouth; olive arms with olives in three
+ripenesses and carnations built petal by petal; two swallows of about 150 pieces each, a
+moon painted on a sphere with its real seas, eight-pointed stars; the ribbon as one strip
+of cloth with «SONIDOS NEGROS» set on its curve, an old gilt key, a horseshoe; castanets
+with their cord and tassels, three aces of the Spanish deck, a pomegranate with seventy
+arils.
+
+What I saw on the first assembly, at full size, and what changed:
+
+- **The moon sat on the fan** (its earthshine read as a dark blot on the silk) · 2.6 s ·
+  → moved to the one corner of sky the fans leave, with three stars.
+- **The ribbon was cut by the bottom of the frame** and too near (its layer was 60 in
+  front) · whole hold · → its own layer 20 in front, higher, and the camera looks 52 units
+  below the axis during the hold, coming back onto it to go through the mouth.
+- **The olive was hidden behind the fans** · → two arms hugging the guitar, in front of
+  the fans' sticks, behind the carnations at the waist.
+- **A swallow's wing lay across the moon, the other across the pomegranate** (tangents:
+  each read as part of the thing behind) · → both birds moved clear.
+- **An idea found while composing:** the key had no place of its own, so one swallow now
+  comes back with it in its bill (Bécquer's swallows return; the key of the house that
+  was left). First placed by eye it hung 30 units from the bill: read off a render, moved,
+  checked at 1:1.
+- **Flat frames at 0–0.5 s** (`review.mjs`: a single colour) · → the night has its stars
+  from the first frame; they stream outwards when the camera leaves.
+- **The flare was a stock lens flare with two long arms** · → an eight-pointed star, four
+  long rays and four short.
+- **The rosette was never seen large and sharp**: the camera crossed the last 900 units in
+  a few frames and the smear ate it · 3.8–4.0 s · → a key at 3.92 s makes the approach
+  linger on the mouth (the guitar grows to twice its size in half a second) before the
+  0.7 s plunge.
+
+`review.mjs` after this: no warnings but the two large jumps at 3.83 and 4.00 s, which are
+the dive itself. Deterministic.
+
+Known and left for the user to judge (not evident faults, choices):
+
+- No sound yet. The reference's own is not used; a score would be generated only with
+  the user's go-ahead.
+- The lemon tree's blossom is smoother than its leaves; its twigs are thin.
+- The capitals of the motto take 41 % of the ribbon's face, not the half that was asked
+  (the text is wide in this typeface); the ribbon was lengthened to 980 instead.
+- The agents' good helpers (airbrush and contour for `form` sprites, turning geometry
+  instead of the canvas) still live in their own files: to move into the kit before the
+  next picture is painted.
