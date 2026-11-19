@@ -1627,45 +1627,62 @@ const Patio = (() => {
             if (i % 2 === 0) disc(g, hx, hy + 8, 1.6, '#c8b48c');
         }
         if (cat) {
-            // the cat, asleep on the seat
+            // the cat, asleep on the seat: curled, head on its paws, tail round to its nose
+            const cy0 = -194;
             const csp = memo(`cat${seed}@${res}`, () => {
-                const body = S.curve([[-74, 0], [-70, -30], [-40, -52], [0, -60], [44, -54], [72, -32], [80, -4], [60, 8], [0, 12], [-50, 10]], true, 8);
+                const body = S.curve([[-30, -4], [-40, -40], [-10, -66], [40, -70], [80, -52], [96, -22], [86, 2], [40, 8], [0, 8]], true, 8);
+                const head = S.curve([[-96, -14], [-100, -34], [-88, -54], [-66, -60], [-44, -50], [-36, -30], [-46, -10], [-70, -4]], true, 8);
                 return S.form({
-                    box: { x: -90, y: -76, w: 182, h: 96 }, res, seed: 77,
-                    mask: (c) => fillP(c, body, '#fff'), inflate: 'round', relief: 0.8,
-                    ramp: [[0, '#4a2a1a'], [0.3, '#8a5228'], [0.5, '#c07a3a'], [0.68, '#dca060'], [0.84, '#f0c88e'], [1, '#fff0d2']], soft: 0.9,
-                    markAmp: 0.45,
+                    box: { x: -110, y: -84, w: 216, h: 100 }, res, seed: 77,
+                    mask: (c) => {
+                        fillP(c, body, '#fff');
+                        fillP(c, head, '#fff');
+                    },
+                    inflate: 'round', relief: 0.75,
+                    ramp: [[0, '#4a2616'], [0.3, '#8a4e24'], [0.5, '#bc7434'], [0.68, '#d89a58'], [0.84, '#eec48a'], [1, '#fff0d2']], soft: 0.9,
+                    markAmp: 0.42,
                     marks: (c) => {
-                        // the tabby's stripes following the curl, fur strokes
-                        for (let k = 0; k < 9; k++) {
-                            const a = -2.8 + k * 0.3;
-                            S.dab(c, [[Math.cos(a) * 30, -20 + Math.sin(a) * 26], [Math.cos(a) * 70, -20 + Math.sin(a) * 46]], { w: 7, color: '#000000', alpha: 0.5, bristles: 6, dry: 0.4, seed: k });
+                        // the tabby's stripes following the curl, the M on its brow, fur strokes
+                        for (let k = 0; k < 10; k++) {
+                            const a = -2.6 + k * 0.28, cxx = 30, cyy = -16;
+                            S.dab(c, [[cxx + Math.cos(a) * 26, cyy + Math.sin(a) * 18], [cxx + Math.cos(a) * 60, cyy + Math.sin(a) * 44]], { w: 6 + (k % 3), color: '#000000', alpha: 0.55, bristles: 6, dry: 0.4, seed: k });
                         }
-                        for (let k = 0; k < 260; k++) {
-                            const px = -80 + r() * 160, py = -60 + r() * 70, a = Math.atan2(py + 20, px) + Math.PI / 2;
-                            lineP(c, [[px, py], [px + Math.cos(a) * 4, py + Math.sin(a) * 4]], 0.7, r() < 0.5 ? '#ffffff' : '#202020');
+                        for (let k = 0; k < 3; k++) lineP(c, [[-74 + k * 8, -56], [-70 + k * 8, -44]], 2, '#000000');
+                        for (let k = 0; k < 420; k++) {
+                            const px = -100 + r() * 200, py = -76 + r() * 84, an = Math.atan2(py + 16, px - 30) + Math.PI / 2;
+                            lineP(c, [[px, py], [px + Math.cos(an) * 4, py + Math.sin(an) * 4]], 0.6, r() < 0.5 ? '#ffffff' : '#202020');
                         }
                     },
-                    edge: { rough: 1.6, freq: 0.6, amp: 0.8 },
+                    tint: (px, py, tone, rgb) => {
+                        // white on the muzzle and the chest
+                        const w = S.smooth(16, 6, Math.hypot(px + 90, py + 22)) + S.smooth(14, 4, Math.hypot(px + 40, py + 2));
+                        toward(rgb, 240 * (0.7 + 0.3 * tone), 232 * (0.7 + 0.3 * tone), 222 * (0.72 + 0.3 * tone), Math.min(1, w) * 0.85);
+                    },
+                    edge: { rough: 1.8, freq: 0.7, amp: 0.9 },
                 });
             });
-            const cy0 = -200;
-            S.cast(g, (c) => c.drawImage(csp.canvas, csp.box.x, cy0 + csp.box.y, csp.box.w, csp.box.h), { blur: 6, dx: 6, dy: 6, color: 'rgba(40,30,40,0.45)' });
+            S.cast(g, (c) => c.drawImage(csp.canvas, csp.box.x, cy0 + csp.box.y, csp.box.w, csp.box.h), { blur: 6, dx: 7, dy: 6, color: 'rgba(40,30,40,0.45)' });
+            // the tail behind, round the front of its body to its nose
+            const tail = S.curve([[88, cy0 - 6], [60, cy0 + 8], [0, cy0 + 12], [-60, cy0 + 8], [-92, cy0 + 2]], false, 8);
             S.put(g, csp, { x: 0, y: cy0 });
-            // its head tucked in at the left, an ear up, the eye shut; the tail round the front
-            S.piece(g, S.ellipse(-52, cy0 - 30, 26, 20, 24, -0.3), { fill: '#d0904c', line: 0, shade: { color: '#5a2e18', alpha: 0.5, w: 8 }, light: { color: '#fff0d0', alpha: 0.5, w: 6 } });
-            fillP(g, [[-66, cy0 - 44], [-60, cy0 - 64], [-50, cy0 - 46]], '#c8843e');
-            fillP(g, [[-62, cy0 - 46], [-59, cy0 - 58], [-54, cy0 - 47]], '#e8a8a0');
-            S.ink(g, [[-62, cy0 - 30], [-56, cy0 - 28], [-50, cy0 - 30]], { w: 1.2, color: '#3a2014', taper: [0.4, 0.4] });
-            disc(g, -73, cy0 - 25, 2, '#a86a60');
-            for (let k = 0; k < 3; k++) lineP(g, [[-70, cy0 - 22], [-92, cy0 - 24 + k * 4]], 0.4, 'rgba(255,250,240,0.8)');
-            const tail = S.curve([[70, cy0 - 4], [40, cy0 + 8], [-20, cy0 + 10], [-60, cy0 + 2]], false, 8);
-            S.ink(g, tail, { w: 15, color: '#c4823e', taper: [0, 0.5] });
-            for (let k = 2; k < tail.length - 4; k += 6) {
+            S.ink(g, shift(tail, 2, 3), { w: 15, color: 'rgba(60,30,20,0.4)', taper: [0, 0.6] });
+            S.ink(g, tail, { w: 14, color: '#c07c3c', taper: [0, 0.6] });
+            for (let k = 3; k < tail.length - 4; k += 5) {
                 const p = tail[k];
-                lineP(g, [[p[0] - 1, p[1] - 6], [p[0] + 1, p[1] + 6]], 3, 'rgba(110,56,24,0.6)');
+                lineP(g, [[p[0] - 1, p[1] - 6], [p[0] + 1.5, p[1] + 6]], 2.6, 'rgba(110,56,24,0.6)');
             }
-            S.ink(g, shift(tail, -1, -4), { w: 3, color: 'rgba(255,236,200,0.5)', taper: [0.2, 0.6] });
+            S.ink(g, shift(tail, -0.5, -4), { w: 3, color: 'rgba(255,236,200,0.5)', taper: [0.2, 0.6] });
+            // its front paw, white, under the chin; the ears; the shut eye; nose; whiskers
+            oval(g, -80, cy0 - 6, 14, 6, 0.1, '#ece4d8');
+            for (let k = 0; k < 3; k++) lineP(g, [[-90 + k * 5, cy0 - 8], [-90 + k * 5, cy0 - 3]], 0.6, 'rgba(120,100,90,0.6)');
+            for (const [ex, flipE] of [[-84, 0], [-60, 1]]) {
+                fillP(g, [[ex - 10, cy0 - 50], [ex - 4 + flipE * 4, cy0 - 74], [ex + 6, cy0 - 52]], flipE ? '#b06c34' : '#c47e3e');
+                fillP(g, [[ex - 6, cy0 - 52], [ex - 3 + flipE * 3, cy0 - 66], [ex + 3, cy0 - 53]], '#e8aaa2');
+            }
+            S.ink(g, [[-84, cy0 - 36], [-78, cy0 - 33], [-71, cy0 - 36]], { w: 1.3, color: '#3a2014', taper: [0.4, 0.4] });
+            S.ink(g, [[-62, cy0 - 38], [-57, cy0 - 36], [-52, cy0 - 38]], { w: 1.2, color: '#3a2014', taper: [0.4, 0.4] });
+            fillP(g, [[-96, cy0 - 26], [-90, cy0 - 26], [-93, cy0 - 22]], '#c8786a');
+            for (let k = 0; k < 4; k++) lineP(g, [[-92, cy0 - 21], [-118, cy0 - 26 + k * 4]], 0.4, 'rgba(255,250,240,0.85)');
         }
         g.restore();
     }

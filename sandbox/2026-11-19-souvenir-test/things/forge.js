@@ -2353,10 +2353,26 @@ const Forge = (() => {
                 return 2.4 * across * across - 1.2 * Math.exp(-((across / 0.15) ** 2)) + 7 * Math.sin(Math.min(1, rr) * 2.6) - 5 * smooth(0.95, 1.1, rr) * (1 - open * 0.5) - 8 * smooth(0.2, 0.04, rr) + (l.inner ? 1.5 : 0);
             },
             albedo: (px, py, d, hh, out) => {
-                const rr = Math.hypot(px, py / fy) / size, [l] = lobeAt(px, py);
-                // wax: white with a cream warmth, a lilac grey where it turns, faint veins
+                const rr = Math.hypot(px, py / fy) / size, [l, a] = lobeAt(px, py);
+                let dA = a - l.a0;
+                if (dA > Math.PI) dA -= TAU;
+                if (dA < -Math.PI) dA += TAU;
+                const across = dA / 0.5;
+                // wax: white with a cream warmth, a lilac grey where it turns
                 mixA(hex('#fbf7ea'), hex('#efe6d2'), 0.35 + 0.35 * noise2(px * 0.15, py * 0.15, k), out);
                 if (!l.inner) into(out, hex('#efe1d8'), 0.35); // the outer lobes rosier
+                // veins: fine lines along the lobe, the midvein a little stronger
+                const vq = Math.abs(across * 3.5 - Math.round(across * 3.5));
+                into(out, hex('#cfc6b4'), (Math.round(across * 3.5) === 0 ? 0.32 : 0.16) * smooth(0.12, 0.02, vq) * smooth(0.2, 0.4, rr));
+                // the inner lobes shade the outer ones where they lie on them
+                if (!l.inner) into(out, hex('#a8a2b4'), 0.35 * smooth(0.5, 0.15, Math.abs(Math.abs(across) - 1)) * smooth(0.25, 0.5, rr));
+                // the lobe's edge, its thickness, catches the light
+                if (d < 1.1) into(out, [1, 1, 0.97], 0.35);
+                // three anthers in the throat
+                for (let q = 0; q < 3; q++) {
+                    const aa = l.a0 * 0 + (q / 3) * TAU + k, ax = Math.cos(aa) * size * 0.1, ay = Math.sin(aa) * size * 0.1 * fy;
+                    if (Math.hypot(px - ax, py - ay) < size * 0.045) into(out, hex('#d8b040'), 0.8);
+                }
                 into(out, hex('#e6b9b4'), (1 - open) * 0.55 + smooth(0.85, 1.05, rr) * 0.12);
                 into(out, hex('#d7d39a'), smooth(0.24, 0.08, rr) * 0.75); // the throat, green-yellow
                 if (rr < 0.06) mixA(out, [0.32, 0.34, 0.16], 0.85, out);
@@ -2984,9 +3000,19 @@ const Forge = (() => {
                     if (ww[2] > 0.55 * south) continue;
                     const size = 0.12 + 0.32 * (ww[2] / 0.55);
                     if (ww[0] < size * 1.3) {
-                        const t = ww[0] / size;
-                        cr += amp * (t < 1 ? -0.45 * (1 - t) * (1 - t) + 1.3 * Math.exp(-(((t - 0.95) / 0.13) ** 2)) : 0.2 * smooth(1.3, 1, t)) * (1 - 0.75 * sea);
+                        const t = ww[0] / size, sharp = 0.08 + 0.2 * hashI(Math.floor(u), Math.floor(v), 7, sdx);
+                        cr += amp * (t < 1 ? -0.45 * (1 - t) * (1 - t) + 0.9 * Math.exp(-(((t - 0.95) / sharp) ** 2)) * (0.4 + 0.6 * smooth(-0.3, 0.6, (mx - ww[3] / sc) * -3 + (my - ww[4] / sc) * -3)) : 0.2 * smooth(1.3, 1, t)) * (1 - 0.75 * sea);
                     }
+                }
+                // small fresh craters: bright points with a halo, everywhere, fewer in the seas
+                {
+                    const sc = 70, u = mx * sc + mz * 0.3 * sc, v = my * sc + mz * 0.2 * sc, ww = worley(u, v, 59);
+                    if (ww[2] < 0.06) cr += 0.12 * smooth(0.22, 0.05, ww[0]) + 0.04 * smooth(0.5, 0.2, ww[0]);
+                }
+                // wrinkle ridges in the seas: thin, pale, wandering
+                if (sea > 0.3) {
+                    const rg = Math.abs(noise3(mx * 11 + 7, my * 11, mz * 11, 37));
+                    cr += 0.05 * smooth(0.06, 0.0, rg) * sea;
                 }
                 // the young craters and their rays: feathered, broken, fading out
                 let bright = 0;
@@ -3036,6 +3062,8 @@ const Forge = (() => {
             }
         }
         g.putImageData(im, 0, 0);
+        // the hand in the paint: strokes that follow her forms, a slow drift of the mix
+        S.brushwork(c, { amp: 0.06, len: 7, drift: 0.02, warm: 0.015, seed: 9, k: res });
         return { canvas: c, box };
     }
     const moonCache = new Map();
