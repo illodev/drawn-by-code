@@ -4,7 +4,7 @@
 //   t = 0     the film's frame, with the lens finish
 //   t = 0.5   the same, raw paint
 const SVE = 'sandbox/2026-11-19-souvenir-test/';
-const GRID = true; // true: paint a (u, v) map over each leaf, to read off what the emblem leaves in view
+const GRID = false; // true: paint a (u, v) map over each leaf, to read off what the emblem leaves in view
 Motion.scene({
     fps: 24, duration: 1, logical: [1600, 900],
     uses: [

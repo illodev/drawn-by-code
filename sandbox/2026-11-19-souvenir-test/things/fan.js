@@ -224,7 +224,7 @@ const Fan = (() => {
         path(g);
         g.clip('evenodd');
         for (const sh of [].concat(o.shade ?? [])) sprayIn(g, pts, holes, sh);
-        for (const li of [].concat(o.light ?? [])) sprayIn(g, pts, holes, { color: '#ffffff', alpha: 0.4, dir: TOL, ...li });
+        for (const li of [].concat(o.light ?? [])) sprayIn(g, pts, holes, { color: '#fffdf4', alpha: 0.4, dir: TOL, ...li });
         if (o.detail) o.detail(g);
         g.restore();
         for (const h of holes) {
@@ -349,7 +349,6 @@ const Fan = (() => {
             g.beginPath();
             S.trace(g, pts);
             g.clip();
-            fillP(g, shift(pts, TOL, rr * 0.34), S.rgba(dk, 0.0));
             strokeP(g, shift(pts, SD, -rr * 0.12), rr * 0.3, S.rgba(COL.redLight, 0.45), true);
             strokeP(g, shift(pts, SD, rr * 0.1), rr * 0.26, S.rgba(dk, 0.6), true);
             g.restore();
@@ -503,8 +502,13 @@ const Fan = (() => {
                     relief(q, S.ellipse(pc[0], pc[1], r0 * 0.95, r0 * 0.72, 10, th), { line: 0.35, depth: 0.8 });
                 }
                 const hue = ['#f3c9d6', '#bfe6d8', '#c9d3f3'][k % 3];
-                bead(q, c, 2.5, [S.mix(hue, '#8f8db0', 0.5), COL.nacre, '#ffffff'], 0.5);
+                bead(q, c, 2.5, [S.mix(hue, '#8f8db0', 0.5), COL.nacre, '#fffdf4'], 0.5);
                 strokeP(q, [[c[0] - 1.2, c[1] + 0.9], [c[0] + 0.2, c[1] + 1.5], [c[0] + 1.4, c[1] + 0.6]], 0.45, S.rgba(hue, 0.9));
+            }
+            // a dot of mother-of-pearl let into the border where the stem crosses over
+            if (u + lam / 4 < 548) {
+                const hue = ['#f3c9d6', '#bfe6d8', '#c9d3f3'][(k + 1) % 3], uu = u + lam / 4;
+                bead(q, F(uu, sgn * (profW(PROF_G, uu) - 5.6)), 1.25 + rnd() * 0.3, [S.mix(hue, '#8f8db0', 0.5), COL.nacre, '#fffdf4'], 0.4);
             }
             // a tendril off the far side of the crest
             const t0 = [u + 9, sgn * A * 0.7], tn = [];
@@ -520,7 +524,7 @@ const Fan = (() => {
             incise(q, pts, 0.45, 0.6);
         }
         for (let k = 0; k < 4; k++) incise(q, [F(16 + k * 7, -5.6), F(20 + k * 7, 0), F(16 + k * 7, 5.6)], 0.5, 0.7);
-        for (const [u, v, r] of [[74, 0, 2.2], [575.5, 0, 1.5], [62, 4.6, 1.1], [62, -4.6, 1.1]]) bead(q, F(u, v), r, u === 74 ? [S.mix('#c9d3f3', '#8f8db0', 0.5), COL.nacre, '#ffffff'] : GOLDB, 0.45);
+        for (const [u, v, r] of [[74, 0, 2.2], [575.5, 0, 1.5], [62, 4.6, 1.1], [62, -4.6, 1.1]]) bead(q, F(u, v), r, u === 74 ? [S.mix('#c9d3f3', '#8f8db0', 0.5), COL.nacre, '#fffdf4'] : GOLDB, 0.45);
     }
     function guard(g, G, a, front) {
         const F = frameOf(a), rnd = Motion.rng(`guard/${G.seed}/${front}`), tone = toner(rnd), base = tone('#ead8ae', 0.08);
@@ -539,7 +543,10 @@ const Fan = (() => {
     // P bends it onto the fan. With an anchor X0, a thing keeps its true size and stands
     // upright on the radius through X0 (a tower does not fan out towards its top).
     function band(g, amin) {
-        const P = (X, Y, X0) => {
+        // nothing a hand rules is quite straight: every point strays by a hair, the same
+        // hair for every shape that shares it, so neighbours still meet
+        const P = (X0_, Y0_, X0) => {
+            const X = X0_ + S.noise2(X0_ * 0.37, Y0_ * 0.37, 11) * 0.26, Y = Y0_ + S.noise2(X0_ * 0.37 + 40.5, Y0_ * 0.37 - 17.3, 12) * 0.26;
             const rho = R0 + Y, a = X0 === undefined ? amin + X / RM : amin + X0 / RM + (X - X0) / rho;
             return [Math.cos(a) * rho, Math.sin(a) * rho];
         };
@@ -741,6 +748,26 @@ const Fan = (() => {
         return M;
     }
 
+    // The last pass over a miniature: the marks of a small brush, a little lighter or
+    // darker than what they lie on, level across the picture (it was painted flat on a
+    // table), closer together in the sky and on the water.
+    function brushwork(g, B, W, seed) {
+        const r = Motion.rng('brush/' + seed);
+        for (let k = 0; k < 2600; k++) {
+            const X = r() * W, Y = 26 + Math.pow(r(), 0.8) * 246, len = 1 + r() * r() * 11, lean = (r() - 0.5) * 0.9, lt = r() < 0.5;
+            strokeP(g, [B.P(X, Y), B.P(X + len * 0.5, Y + lean * 0.6), B.P(X + len, Y + lean)], 0.5 + r() * 1.3, lt ? `rgba(255,250,236,${(0.02 + r() * 0.055).toFixed(3)})` : `rgba(22,18,56,${(0.02 + r() * 0.05).toFixed(3)})`);
+        }
+    }
+
+    // the painter signed it, small, in a corner: a flourish nobody can read, and a stroke under it
+    function signature(B, X, Y, col, seed) {
+        const r = Motion.rng('sign/' + seed), pts = [];
+        for (let i = 0; i <= 22; i++) pts.push([X + i * 0.95 + Math.sin(i * 1.7) * 0.5, Y + Math.sin(i * 2.3 + 1) * (i % 5 === 0 ? 2.2 : 1) * (0.6 + r() * 0.6) + (i === 0 ? 2 : 0)]);
+        B.line(S.curve(pts, false, 4), 0.34, col, X + 10);
+        B.line(S.curve([[X - 1, Y - 2.4], [X + 9, Y - 2.8], [X + 20, Y - 2.2], [X + 23.5, Y - 0.8]], false, 5), 0.3, col, X + 10);
+        B.dot(X + 25.5, Y - 2.2, 0.32, col, X + 10);
+    }
+
     // ------------------------------------------------------------------ Granada at dusk
     function granada(g, B, W) {
         const rnd = Motion.rng('fan-granada'), M = mini(g, B, rnd, 1), { R, ln, tone } = M;
@@ -748,9 +775,9 @@ const Fan = (() => {
         const STONE = { lit: '#eec79c', base: '#c99c7e', shade: '#8c6a74', deep: '#52384e', glint: '#ffe8c4' };
         const WHITE = { lit: '#f9e8d8', base: '#e4c8c4', shade: '#9a94c0', deep: '#55508a', glint: '#fff7ea' };
         const TILE = { lit: '#dc7a4e', shade: '#a24a3c', deep: '#582236', glint: '#f6ae7e' };
-        const GREEN = { lit: '#5a7e4a', base: '#25523e', shade: '#12302e', deep: '#091c26', glint: '#b4a65e' };
+        const GREEN = { lit: '#41624a', base: '#1c4038', shade: '#0e262c', deep: '#081a24', glint: '#a09456' };
         const CYP = { lit: '#4c8058', base: '#1c4638', shade: '#0d2628', deep: '#06141c' };
-        const POPLAR = { lit: '#8e9c52', base: '#4c7646', shade: '#1f463a', deep: '#0e2a2a', glint: '#dcc272' };
+        const POPLAR = { lit: '#7e8c50', base: '#426840', shade: '#1c4038', deep: '#0e2a2a', glint: '#d4b86c' };
         const SUNX = 612, SUNY = 150;
 
         // ---- the sky: gold where the sun went down (to the right, the west), rose, then the night's blue
@@ -1100,27 +1127,41 @@ const Fan = (() => {
         // ---- the Albaicín: a tumble of white cubes, from the back (small) to the front
         const ALB = { lit: '#f4e3d2', base: '#dcc6bc', shade: '#8c84a6', deep: '#4c487c', glint: '#fff4e6' };
         const things = [];
-        for (let row = 0; row < 5; row++) {
-            const yb = 98 - row * 16.5, hh = 11.5 + row * 2.4, ww = 12.5 + row * 3.2;
+        for (let row = 0; row < 6; row++) {
+            const yb = 99 - row * 14.2, hh = 9 + row * 1.9, ww = 9.5 + row * 2.5;
             for (let X = -14 + R(0, 9); X < W + 8;) {
-                const w = ww * R(0.72, 1.3), h = hh * R(0.75, 1.4), y = yb + R(-3.4, 3.4);
-                if (rnd() < 0.2) {
+                const w = ww * R(0.7, 1.35), h = hh * R(0.72, 1.45), y = yb + R(-3.4, 3.4);
+                if (rnd() < 0.24) {
                     // a carmen: a garden behind its wall, a cypress and an orange tree
-                    const gw = R(7, 12) + row;
-                    M.cypress(X + gw * 0.3, y + 2, R(11, 16) + row, CYP);
-                    M.tree(X + gw * 0.72, y + 2, R(2.8, 3.8), GREEN);
-                    for (let k = 0; k < 4; k++) B.dot(X + gw * 0.72 + R(-2.4, 2.4), y + R(3.6, 8), 0.5, '#f09a3c');
-                    M.block(X, X + gw, y, y + R(3.2, 4.4), ALB, { side: 0, streaks: 2, foot: 0.3 });
-                    B.line([[X, y + 4.4], [X + gw, y + 4.4]], 0.5, TILE.lit, X + gw / 2);
+                    const gw = R(6, 10) + row;
+                    M.cypress(X + gw * 0.3, y + 2, R(10, 15) + row, CYP);
+                    if (rnd() < 0.5) M.cypress(X + gw * 0.52, y + 2, R(7, 11) + row, CYP);
+                    M.tree(X + gw * 0.74, y + 2, R(2.6, 3.6), GREEN);
+                    for (let k = 0; k < 4; k++) B.dot(X + gw * 0.74 + R(-2.2, 2.2), y + R(3.6, 7.6), 0.48, '#f09a3c');
+                    M.block(X, X + gw, y, y + R(3, 4.2), ALB, { side: 0, streaks: 2, foot: 0.3 });
+                    B.line([[X, y + 4.2], [X + gw, y + 4.2]], 0.5, TILE.lit, X + gw / 2);
+                    M.win(X + gw * R(0.3, 0.6), y, 1.7, 2.8, X + gw / 2, { sill: false, col: '#4a3040' }); // its gate
                     if (rnd() < 0.5) for (let k = 0; k < 9; k++) B.dot(X + R(0.5, gw * 0.5), y + R(2.2, 5), R(0.4, 0.8), k % 3 ? '#c8408a' : '#e070a8'); // bougainvillea over the wall
                     X += gw * 0.9;
                     continue;
                 }
                 const hue = rnd(), wash = hue < 0.14 ? '#eac69c' : hue < 0.22 ? '#e8b6a8' : hue < 0.27 ? '#c9d2dc' : null;
                 const C = { ...ALB, lit: tone(wash ? S.mix(ALB.lit, wash, 0.7) : ALB.lit, 0.08), base: tone(wash ? S.mix(ALB.base, wash, 0.6) : ALB.base, 0.1) };
-                const hs = M.house(X, y, w, h, C, TILE, { litP: 0.2, flat: rnd() < 0.34, door: '#3c2a4a', winCol: '#342450', side: Math.min(3.6, w * R(0.12, 0.24)) });
+                const hs = M.house(X, y, w, h, C, TILE, { litP: 0.22, flat: rnd() < 0.34, door: '#3c2a4a', winCol: '#342450', side: Math.min(3.4, w * R(0.12, 0.24)), balcony: rnd() < 0.4 });
+                // a painted dado along the street, and now and then a gallery under the eaves
+                B.box(X, y, X + w, y + 1.1, S.rgba(hue > 0.6 ? '#8a7a8c' : '#b48a6a', 0.55), hs.X0);
+                if (!hs.flat && h > 11 && rnd() < 0.3) {
+                    B.box(X + 0.8, y + h - 3, X + w - 0.8, y + h - 0.7, 'rgba(52,36,80,0.8)', hs.X0);
+                    for (let x = X + 0.8; x <= X + w - 0.7; x += 1.5) B.line([[x, y + h - 3], [x, y + h - 0.7]], 0.35, C.glint, hs.X0);
+                }
                 if (row >= 1) things.push(hs);
                 X += w * R(0.84, 1.16);
+            }
+            // cypresses stand up between the roofs
+            for (let k = 0; k < 9 + row * 2; k++) {
+                const X = R(0, W);
+                if (rnd() < 0.7) M.cypress(X, yb - R(2, 9), R(9, 14) + row * 0.8, CYP);
+                else M.tree(X, yb - R(2, 8), R(2.4, 3.6), GREEN);
             }
             if (row === 1) {
                 // the mudéjar tower of a church: brick, bell openings, a tiled spire
@@ -1171,7 +1212,9 @@ const Fan = (() => {
             }
         }
         // the foreground sinks into the evening
-        B.box(-10, 20, W + 10, 104, B.vgrad(26, 104, [[0, 'rgba(30,26,84,0.38)'], [1, 'rgba(30,26,84,0.04)']]));
+        B.box(-10, 20, W + 10, 118, B.vgrad(26, 116, [[0, 'rgba(30,26,84,0.46)'], [0.8, 'rgba(30,26,84,0.14)'], [1, 'rgba(30,26,84,0)']]));
+        brushwork(g, B, W, 'granada');
+        signature(B, 13, 33, 'rgba(250,226,160,0.9)', 'granada');
     }
 
     // ------------------------------------------------------------------ Seville in the morning
@@ -1179,7 +1222,7 @@ const Fan = (() => {
         const rnd = Motion.rng('fan-sevilla'), M = mini(g, B, rnd, -1), { R, ln, tone } = M;
         const BRICK = { lit: '#f2bb84', base: '#d8905e', shade: '#96584e', deep: '#5e3244', glint: '#ffe2b4' };
         const STONE = { lit: '#f4e6c8', base: '#d9c4a0', shade: '#9a8ea6', deep: '#5c5276', glint: '#fffaf0' };
-        const WHITE = { lit: '#fbf6ea', base: '#e6dccc', shade: '#a9a8c8', deep: '#6a6894', glint: '#ffffff' };
+        const WHITE = { lit: '#fbf6ea', base: '#e6dccc', shade: '#a9a8c8', deep: '#6a6894', glint: '#fffdf4' };
         const ALBERO = { lit: '#f6c860', base: '#e0a43c', shade: '#a8703a', deep: '#6a4234', glint: '#ffe49a' };
         const TILE = { lit: '#e08a58', shade: '#b05a40', deep: '#6a2c34', glint: '#f8b88a' };
         const GREEN = { lit: '#8fb85a', base: '#3f7f4a', shade: '#1f4f3c', deep: '#10302c', glint: '#cfe07c' };
@@ -1218,9 +1261,10 @@ const Fan = (() => {
             B.line([[cx - w * 0.46, cy - 0.5], [cx + w * 0.5, cy - 0.5]], 1.1, 'rgba(110,128,190,0.6)', cx);
             B.line([[cx - w * 0.3, cy - 1.7], [cx + w * 0.34, cy - 1.7]], 0.5, 'rgba(240,238,230,0.5)', cx);
         };
-        for (const [cx, cy, w, h] of [[66, 214, 96, 27], [178, 246, 70, 18], [252, 194, 60, 15], [356, 238, 108, 27], [546, 250, 84, 21], [612, 194, 74, 21], [20, 168, 62, 13], [302, 152, 72, 10], [596, 142, 82, 10], [140, 170, 52, 9]]) cumulus(cx, cy, w, h, cx);
+        for (const [cx, cy, w, h] of [[66, 214, 96, 27], [178, 246, 70, 18], [252, 194, 60, 15], [356, 238, 108, 27], [556, 246, 78, 19], [614, 192, 76, 23], [518, 200, 58, 20], [20, 168, 62, 13], [302, 152, 72, 10], [600, 146, 86, 11], [140, 170, 52, 9], [634, 258, 40, 9], [420, 262, 46, 9]]) cumulus(cx, cy, w, h, cx);
         for (const [X, Y, s] of [[404, 206, 1.7], [418, 198, 1.3], [498, 232, 1.5], [520, 214, 1.2], [536, 222, 1.6], [226, 222, 1.4], [120, 252, 1.5], [636, 232, 1.3], [470, 256, 1.1], [444, 250, 1.3]]) M.bird(X, Y, s, 'rgba(40,44,84,0.85)');
         for (const [X, Y, s] of [[484, 196, 1.1], [490, 204, 0.9], [478, 208, 1], [496, 190, 0.8], [440, 222, 0.9], [434, 214, 1], [90, 236, 1.2], [104, 244, 0.9], [150, 258, 1.1]]) M.bird(X, Y, s, 'rgba(252,250,244,0.95)'); // doves
+        for (let k = 0; k < 6; k++) M.bird(590 + k * 7.5 - (k > 2 ? (k - 2) * 2 : 0), 228 + Math.abs(k - 2) * 3.2, 1.9 - Math.abs(k - 2) * 0.12, 'rgba(34,34,60,0.9)'); // storks, in their wedge
 
         // ---- the river, laid first: the banks are painted over it
         B.box(-10, 16, W + 10, 104, B.vgrad(24, 102, [[0, '#2c7896'], [0.5, '#4d9ab0'], [1, '#9fd0d8']]));
@@ -1230,6 +1274,12 @@ const Fan = (() => {
         }
 
         // ---- the far skyline of the town: white and ochre houses, belfries, domes, palms
+        for (let X = 240; X < W + 6;) {
+            // the roofs further in, paler with the morning's haze
+            const w = R(8, 15), h = R(15, 27), hz = (c) => S.mix(c, '#d4e4ea', 0.4);
+            M.house(X, 108, w, h, { lit: hz(WHITE.lit), base: hz(WHITE.base), shade: hz(WHITE.shade), deep: hz(WHITE.deep), glint: hz(WHITE.glint) }, { lit: hz(TILE.lit), shade: hz(TILE.shade), deep: hz(TILE.deep), glint: hz(TILE.glint) }, { roofK: 0.8, winCol: '#8a8aa8', door: '#8a8aa8' });
+            X += w * R(0.8, 1.2);
+        }
         for (let X = 244; X < W + 6;) {
             const w = R(7, 13), h = R(8, 17);
             if (X < 366 || X > 452) M.house(X, 108, w, h, rnd() < 0.3 ? { ...ALBERO, lit: '#f4d488', base: '#e2b660' } : WHITE, TILE, { roofK: 0.8, winCol: '#4a4468', shutters: rnd() < 0.5 ? '#3f7a58' : null });
@@ -1526,7 +1576,7 @@ const Fan = (() => {
             let k = 0;
             for (let X = -10; X < 58;) {
                 const w = R(9, 14), yb = qw(X + w / 2) + 4.5, h = R(15, 26) + (58 - X) * 0.12, [wall, trim] = fronts[k++ % fronts.length];
-                const C = { lit: wall, base: S.mix(wall, '#a8885a', 0.22), shade: S.mix(wall, '#6a5a8c', 0.5), deep: S.mix(wall, '#3a305c', 0.65), glint: S.mix(wall, '#ffffff', 0.4) };
+                const C = { lit: wall, base: S.mix(wall, '#a8885a', 0.22), shade: S.mix(wall, '#6a5a8c', 0.5), deep: S.mix(wall, '#3a305c', 0.65), glint: S.mix(wall, '#fffdf4', 0.4) };
                 const hs = M.house(X, yb, w, h, C, TILE, { balcony: true, winCol: '#3a3458', door: '#3a2a3a', flat: rnd() < 0.25, shutters: rnd() < 0.6 ? '#2f6a50' : '#3f5f9a' });
                 B.line([[X, yb + h * 0.5], [X + w, yb + h * 0.5]], 0.4, trim, hs.X0);
                 B.line([[X, yb + h - 0.5], [X + w, yb + h - 0.5]], 0.6, trim, hs.X0);
@@ -1649,7 +1699,7 @@ const Fan = (() => {
                     const xa = X0 + EDGE[f] * hw, xb = X0 + EDGE[f + 1] * hw, n = Math.max(1, Math.round((xb - xa) / 2.7)), w = (xb - xa) / n;
                     for (let k = 0; k < n; k++) {
                         const a = xa + k * w + w * 0.12, b = a + w * 0.76;
-                        B.fill([[a, y], [b, y], [b, y + h * 0.66], [(a + b) / 2, y + h], [a, y + h * 0.66]], S.mix(FACE[f], '#ffffff', 0.18), X0);
+                        B.fill([[a, y], [b, y], [b, y + h * 0.66], [(a + b) / 2, y + h], [a, y + h * 0.66]], S.mix(FACE[f], '#fffdf4', 0.18), X0);
                         B.line([[b, y], [b, y + h * 0.66]], 0.3, 'rgba(74,44,54,0.75)', X0);
                     }
                 }
@@ -1773,6 +1823,8 @@ const Fan = (() => {
             const X = R(40, 300), Y = R(28, 92);
             B.line([[X, Y], [X + R(1.5, 5), Y]], R(0.4, 0.8), `rgba(255,252,236,${R(0.4, 0.9).toFixed(2)})`);
         }
+        brushwork(g, B, W, 'sevilla');
+        signature(B, 612, 31.5, 'rgba(16,40,72,0.9)', 'sevilla');
     }
 
     // ------------------------------------------------------------------ the border
@@ -2027,7 +2079,7 @@ const Fan = (() => {
             const half = Math.abs(da) * (R1 + 22); // half the face's width, in units
             const Hs = 39 + rnd() * 6.5, hb = 26.5 + rnd() * 3.5;
             // (xt, h): true units across the face from its middle, and out from the leaf's edge
-            const L = (xt, h) => pol(R1 + h, am + ((xt / half) * da * (R1 + 22)) / (R1 + h) * (da > 0 ? 1 : 1));
+            const L = (xt, h) => pol(R1 + h, am + (Math.sign(da) * xt) / (R1 + h));
             const edgeH = (xt) => hb + (Hs - hb) * Math.pow(Math.max(0, Math.cos(((xt / half) * Math.PI) / 2)), 0.72);
             const kind = (j + (G.dir > 0 ? 0 : 2)) % 4, mir = rnd() < 0.5 ? 1 : -1;
             // what the net leaves open: eyes, the heart of the flower, a torn place
@@ -2060,7 +2112,7 @@ const Fan = (() => {
                         const xt = (sgn * (h - c)) / slope;
                         const on = Math.abs(xt) <= half && h <= edgeH(xt) - 0.6 && !open(xt, h);
                         if (on) {
-                            const p = L(xt, h);
+                            const p = L(xt + S.noise2(xt * 0.45 + j * 7.3, h * 0.45, 5) * 0.34, h + S.noise2(xt * 0.45 - 3.1, h * 0.45 + j * 5.7, 6) * 0.3);
                             if (pen) g.lineTo(p[0], p[1]);
                             else g.moveTo(p[0], p[1]);
                         }
@@ -2178,31 +2230,53 @@ const Fan = (() => {
     }
 
     // ------------------------------------------------------------------ rivet, cord, tassel
-    // a cord of two silk strands twisted together: every turn is lit across the cord
+    // a cord of two silk strands twisted together: every turn is its own little piece,
+    // lit across the cord as a cylinder and shaded where it dives under the next
     function cord(g, path, w) {
-        const line = S.curve(path, false, 10), h = w / 2;
-        strokeP(g, shift(line, SD, 0.8), w + 2.2, INK);
-        strokeP(g, line, w + 2, INK);
-        strokeP(g, line, w, COL.tasselDeep);
-        let acc = 0, next = 0, k = 0;
-        const pitch = w * 0.8;
+        const line = S.curve(path, false, 10), h = w / 2, st = [];
+        // walked in even steps
+        let acc = 0, next = 0;
         for (let i = 1; i < line.length; i++) {
             const a = line[i - 1], b = line[i], d = Math.hypot(b[0] - a[0], b[1] - a[1]);
             if (d < 1e-6) continue;
-            const tx = (b[0] - a[0]) / d, ty = (b[1] - a[1]) / d, nx = -ty, ny = tx;
             while (next <= acc + d) {
-                const u = (next - acc) / d, p = [lerp(a[0], b[0], u), lerp(a[1], b[1], u)], lit = nx * TOL[0] + ny * TOL[1], sl = w * 0.42;
-                const e0 = [p[0] + nx * h * 0.94 + tx * sl, p[1] + ny * h * 0.94 + ty * sl], e1 = [p[0] - nx * h * 0.94 - tx * sl, p[1] - ny * h * 0.94 - ty * sl];
-                strokeP(g, [e0, e1], pitch * 0.66, k % 2 ? COL.tassel : '#d6453c', false, 'butt');
-                const s0 = lit >= 0 ? 0.14 : 0.56, s1 = s0 + 0.3;
-                strokeP(g, [[lerp(e0[0], e1[0], s0), lerp(e0[1], e1[1], s0)], [lerp(e0[0], e1[0], s1), lerp(e0[1], e1[1], s1)]], pitch * 0.26, 'rgba(255,214,200,0.75)');
-                const d0 = lit >= 0 ? 0.74 : 0.02;
-                strokeP(g, [[lerp(e0[0], e1[0], d0), lerp(e0[1], e1[1], d0)], [lerp(e0[0], e1[0], d0 + 0.24), lerp(e0[1], e1[1], d0 + 0.24)]], pitch * 0.5, 'rgba(70,10,34,0.6)', false, 'butt');
-                next += pitch;
-                k++;
+                const u = (next - acc) / d;
+                st.push({ p: [lerp(a[0], b[0], u), lerp(a[1], b[1], u)], t: [(b[0] - a[0]) / d, (b[1] - a[1]) / d] });
+                next += 0.5;
             }
             acc += d;
         }
+        if (st.length < 4) return;
+        const total = (st.length - 1) * 0.5, at = (s) => st[Math.max(0, Math.min(st.length - 1, Math.round(s / 0.5)))];
+        const edge = (s, side, b) => {
+            const q = at(s);
+            return [q.p[0] - q.t[1] * side * b, q.p[1] + q.t[0] * side * b];
+        };
+        strokeP(g, shift(line, SD, 0.8), w + 2.2, INK);
+        strokeP(g, line, w + 2, INK);
+        strokeP(g, line, w, COL.tasselDeep);
+        const n = Math.max(2, Math.round(total / (w * 0.8))), pp = total / n, sl = w * 0.46;
+        for (let i = 0; i < n; i++) {
+            const s0 = i * pp, poly = [];
+            for (let k = 0; k <= 4; k++) poly.push(edge(Math.min(total, s0 + sl + (pp * k) / 4), 1, h + 0.1 * w * Math.sin((Math.PI * k) / 4)));
+            for (let k = 4; k >= 0; k--) poly.push(edge(Math.max(0, s0 - sl + (pp * k) / 4), -1, h + 0.1 * w * Math.sin((Math.PI * k) / 4)));
+            const m = at(s0 + pp / 2), nx = -m.t[1], ny = m.t[0], lit = nx * TOL[0] + ny * TOL[1], kk = Math.abs(lit);
+            const gr = g.createLinearGradient(m.p[0] + nx * h, m.p[1] + ny * h, m.p[0] - nx * h, m.p[1] - ny * h);
+            const stops = [[0, S.mix(COL.tassel, COL.tasselLight, 0.1 + 0.25 * kk)], [0.26, S.mix('#e0534a', COL.tasselLight, 0.25 + 0.6 * kk)], [0.58, COL.tassel], [1, S.mix(COL.tassel, COL.tasselDeep, 0.6 + 0.35 * kk)]];
+            for (const [u, c] of stops) gr.addColorStop(lit >= 0 ? u : 1 - u, c);
+            g.save();
+            g.beginPath();
+            S.trace(g, poly);
+            g.fillStyle = gr;
+            g.fill();
+            g.clip();
+            // the shade where this turn comes out from under the one before, a glint on its crown
+            strokeP(g, [edge(Math.min(total, s0 + sl), 1, h * 1.3), edge(Math.max(0, s0 - sl), -1, h * 1.3)], pp * 0.6, S.rgba(COL.tasselInk, 0.5), false, 'butt');
+            const m0 = edge(Math.min(total, s0 + pp * 0.56 + sl), 1, h), m1 = edge(Math.max(0, s0 + pp * 0.56 - sl), -1, h), [ga, gb] = lit >= 0 ? [0.16, 0.44] : [0.56, 0.84];
+            strokeP(g, [[lerp(m0[0], m1[0], ga), lerp(m0[1], m1[1], ga)], [lerp(m0[0], m1[0], gb), lerp(m0[1], m1[1], gb)]], w * 0.15, S.rgba('#ffd9cc', 0.25 + 0.5 * kk));
+            g.restore();
+        }
+        for (let i = 1; i < n; i++) strokeP(g, [edge(Math.min(total, i * pp + sl), 1, h), edge(Math.max(0, i * pp - sl), -1, h)], Math.max(0.45, w * 0.11), S.rgba(COL.tasselInk, 0.9));
     }
     // The tassel hangs along +y from (x, y): head, bound neck, ruff, skirt.
     function tassel(g, x, y, seed) {
@@ -2316,7 +2390,7 @@ const Fan = (() => {
         // the washer and the rivet's head
         S.piece(g, S.ellipse(0, 0, 11, 11, 30), {
             fill: COL.nacre, line: 1.6, cast: { blur: 4, dx: 2, dy: 3, color: 'rgba(24,16,40,0.62)' },
-            shade: { color: '#8f8db0', alpha: 0.85, w: 6 }, light: { color: '#ffffff', alpha: 0.9, w: 3 },
+            shade: { color: '#8f8db0', alpha: 0.85, w: 6 }, light: { color: '#fffdf4', alpha: 0.9, w: 3 },
             detail: (q) => {
                 // mother-of-pearl: bands of rose and sea-green that follow its growth
                 for (let k = 0; k < 6; k++) strokeP(q, S.curve([[-12, -9 + k * 3.6], [-3, -11 + k * 3.9], [5, -8 + k * 3.4], [12, -10 + k * 3.8]], false, 5), 0.9, k % 2 ? 'rgba(240,160,196,0.4)' : 'rgba(120,214,190,0.4)');

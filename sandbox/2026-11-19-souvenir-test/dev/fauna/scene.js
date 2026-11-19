@@ -1,7 +1,11 @@
-// Dev sheet for things/fauna.js. Pages, one every 0.25 s (render with --at 0,0.25,0.5 …):
-//   0  every creature at s = 1 in the emblem manner (line: true) on the indigo ground
-//   1  the same in the brush manner (line: false) over leaves; drops on a leaf and on yellow; webs
-//   2 … the creatures at 3× and 5×, both manners
+// Dev sheet for things/fauna.js. Pages, one every 0.25 s (render with --at 0,0.25,0.5 … 2.75):
+//   0  every creature at s = 1 in the emblem manner (line: true) on the indigo ground; webs; some at 3×
+//   1  the brush manner (line: false) over leaves; drops on a leaf and on yellow; a corner web
+//   2 / 3   bee, ladybird, snail at 5× (emblem / brush)
+//   4 / 5   lizard and gecko at 3×, both poses (emblem / brush, on leaves)        6  at 5×
+//   7 / 8   butterfly (fold 0, 0.25, 0.6, 1) and goldfinch (both poses, a slanted perch) at 3× (emblem / brush)
+//   9       butterfly at 7×, goldfinch at 5×
+//   10 / 11 everything turned and mirrored, with its box and its marks (feet gold, mouth rose, anchor blue)
 // Everything is painted on a transparent layer first, as the picture does, so that a
 // creature's cast lands on paint only (a leaf), never on the ground.
 const FDIR = 'sandbox/2026-11-19-souvenir-test/';

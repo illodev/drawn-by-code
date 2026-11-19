@@ -251,17 +251,19 @@ const Citrus = (() => {
 
     // The calyx seen from the side on the collar: five sepals and a stub of stalk.
     function button(g, box, res, L, v, top, k = 1) {
-        const star = [];
-        for (let i = 0; i < 10; i++) {
-            // short blunt lobes: a button, not a star
-            const a = (i / 10) * TAU + 0.2 + v, rr = (i % 2 ? 9.2 : 12.2 + 2 * S.hashI(i, v, 3, 5)) * k;
+        const star = [], tips = [];
+        for (let i = 0; i < 40; i++) {
+            // five short blunt lobes: a button, not a star
+            const a = (i / 40) * TAU + 0.2 + v, lobe = Math.pow(0.5 + 0.5 * Math.cos(5 * (a - 0.2 - v)), 0.8), rr = (9.6 + (2.9 + 1.2 * S.hashI(Math.floor((i + 4) / 8) % 5, v, 3, 5)) * lobe) * k;
             star.push([top[0] + Math.cos(a) * rr * 1.15, top[1] + 4.5 * k + Math.sin(a) * rr * 0.5]);
+            if (i % 8 === 0) tips.push(star[i]);
+            if (i % 8 === 4) tips.push(star[i]);
         }
         const stalk = [[top[0] - 3.9 * k, top[1] + 4 * k], [top[0] - 3 * k, top[1] - 10 * k], [top[0] - 3.4 * k, top[1] - 16 * k], [top[0] + 3.2 * k, top[1] - 16 * k], [top[0] + 3.1 * k, top[1] - 9 * k], [top[0] + 3.9 * k, top[1] + 4 * k]];
         const cal = S.form({
             box, res, seed: 'calyx' + v, light: L, relief: 0.8,
             mask: (q) => {
-                poly(q, S.curve(star, true, 6));
+                poly(q, star);
                 poly(q, stalk);
             },
             ramp: TWIG_GREEN, soft: 0.9, mottle: { amp: 0.07, freq: 0.2 },
@@ -270,10 +272,10 @@ const Citrus = (() => {
                 // the sepals' pale tips, the seams between them, the stalk's ridges
                 q.lineCap = 'round';
                 for (let i = 0; i < 10; i += 2) {
-                    const p = star[i], c = [top[0], top[1] + 4 * k];
-                    line(q, [[c[0] + (p[0] - c[0]) * 0.25, c[1] + (p[1] - c[1]) * 0.25], [c[0] + (p[0] - c[0]) * 0.9, c[1] + (p[1] - c[1]) * 0.9]], 0.8 * k, 'rgba(206,224,140,0.5)');
-                    const s = star[(i + 1) % 10];
-                    line(q, [[c[0] + (s[0] - c[0]) * 0.3, c[1] + (s[1] - c[1]) * 0.3], s], 0.9 * k, 'rgba(14,30,10,0.55)');
+                    const p = tips[i], c = [top[0], top[1] + 4 * k];
+                    line(q, [[c[0] + (p[0] - c[0]) * 0.45, c[1] + (p[1] - c[1]) * 0.45], [c[0] + (p[0] - c[0]) * 0.92, c[1] + (p[1] - c[1]) * 0.92]], 0.7 * k, 'rgba(206,224,140,0.45)');
+                    const s = tips[(i + 1) % 10];
+                    line(q, [[c[0] + (s[0] - c[0]) * 0.4, c[1] + (s[1] - c[1]) * 0.4], s], 0.8 * k, 'rgba(14,30,10,0.5)');
                 }
                 line(q, [[top[0] - 1.2 * k, top[1] + 2 * k], [top[0] - 1 * k, top[1] - 15 * k]], 0.9 * k, 'rgba(210,226,150,0.4)');
                 line(q, [[top[0] + 1.5 * k, top[1] + 2 * k], [top[0] + 1.3 * k, top[1] - 15 * k]], 0.8 * k, 'rgba(14,30,10,0.4)');
@@ -590,6 +592,7 @@ const Citrus = (() => {
     const SHEEN = { sun: '#eef8dc', mid: '#dcefe0', young: '#f6fbd6', bronze: '#fbe9d2', old: '#f8f4cc' };
     const UNDER_FN = S.rampFn(RAMPS.under, 0.9), MID_FN = S.rampFn(RAMPS.mid, 0.9), YOUNG_FN = S.rampFn(RAMPS.young, 0.9);
     const NT = 240;
+    const P135 = new Float32Array(257).map((_, i) => Math.pow(i / 221.7, 1.35)); // av^1.35 for av in 0 … 1.15
 
     // The drawing of leaf number v: its outline, its veins, what has happened to it.
     const geoms = new Map();
@@ -622,14 +625,19 @@ const Citrus = (() => {
         const tabs = veins.map((us) => {
             const g0 = us[1] - us[0], gn = us[us.length - 1] - us[us.length - 2];
             const ext = [us[0] - 3 * g0, us[0] - 2 * g0, us[0] - g0, ...us, us[us.length - 1] + gn, us[us.length - 1] + 2 * gn, us[us.length - 1] + 3 * gn];
-            const t = new Float32Array(NT), gap = new Float32Array(NT);
+            const t = new Float32Array(NT), gap = new Float32Array(NT), puff = new Float32Array(NT), groove = new Float32Array(NT), near = new Float32Array(NT);
             for (let i = 0, k = 0; i < NT; i++) {
                 const s = -0.4 + (i / NT) * 1.4;
                 while (k < ext.length - 2 && s > ext[k + 1]) k++;
                 t[i] = S.clamp((s - ext[k]) / (ext[k + 1] - ext[k]));
                 gap[i] = (ext[k + 1] - ext[k]) * L * 0.8;
+                // how the blade swells between two veins, the groove a vein runs in, how near a vein is
+                const dv = Math.min(t[i], 1 - t[i]) * gap[i];
+                puff[i] = Math.pow(Math.sin(Math.PI * t[i]), 0.8);
+                groove[i] = Math.exp(-(dv * dv) / 1.4);
+                near[i] = Math.exp(-dv / 2.6);
             }
-            return { t, gap };
+            return { t, gap, puff, groove, near };
         });
         const shape = (u) => (u <= 0 || u >= 1 ? 0 : W * Math.pow(Math.sin(Math.PI * Math.pow(u, p)), q) * (1 - tp * u * u));
         const B = (x) => bend * L * 4 * (x / L) * (1 - x / L) + sway * L * Math.sin((x / L) * 6.28);
@@ -702,11 +710,38 @@ const Citrus = (() => {
             const glossy = under || back ? 0 : G.gloss * (kind === 'sun' ? 1 : kind === 'old' ? 0.4 : 0.85);
             const tmp = [0, 0, 0];
             const rib = under ? -1.3 : 1.6; // the midrib is a groove above and a ridge below
-            const vt = (u, yb, sd2) => {
-                const av = Math.min(1.15, Math.abs(yb) / Math.max(1, wAt(u, sd2)));
-                const A = G.cV * Math.pow(av, 1.35); // the same curve `onVein` draws, solved for where the vein starts
-                return Math.max(0, Math.min(NT - 1, (((u - A) / (1 - 0.55 * A) + 0.4) / 1.4) * NT)) | 0;
+            // per column of pixels: the midrib's height, the blade's half-widths, the margin's wave
+            const cw = Math.ceil(box.w * res) + 2, cB = new Float32Array(cw), cW = [new Float32Array(cw), new Float32Array(cw)], cS = [new Float32Array(cw), new Float32Array(cw)];
+            for (let i = 0; i < cw; i++) {
+                const x = box.x + i / res, u = Math.min(1, x / L);
+                cB[i] = B(x);
+                for (const sd2 of [0, 1]) {
+                    cW[sd2][i] = Math.max(1, wAt(u, sd2));
+                    cS[sd2][i] = Math.sin(u * G.waves * 6.28 + G.ph[sd2]);
+                }
+            }
+            // one look at a point, shared by the height, the brush and the colour: where it is
+            // across the blade (yb, av, sd2), along it (u), and on which vein line (vs, vi)
+            let qx = NaN, qy = NaN, yb = 0, u = 0, sd2 = 0, w = 1, av = 0, vi = 0, vs = 0, wave = 0;
+            const look = (x, y) => {
+                if (x === qx && y === qy) return;
+                qx = x;
+                qy = y;
+                const c = Math.max(0, Math.min(cw - 1, Math.round((x - box.x) * res)));
+                yb = y - cB[c];
+                u = x > L ? 1 : x / L;
+                sd2 = yb < 0 ? 0 : 1;
+                w = cW[sd2][c];
+                wave = cS[sd2][c];
+                av = Math.abs(yb) / w;
+                if (av > 1.15) av = 1.15;
+                const A = G.cV * P135[(av * 221.7) | 0]; // the same curve `onVein` draws, solved for where the vein starts
+                vs = (u - A) / (1 - 0.55 * A);
+                vi = (((vs + 0.4) / 1.4) * NT) | 0;
+                if (vi < 0) vi = 0;
+                else if (vi >= NT) vi = NT - 1;
             };
+            const fq = [0, 0, 0];
             const sp = S.form({
                 box, res, seed: 'leaf' + v, light: back ? [-0.2, -0.24, 1] : S.lightFor(lk * LSTEP), inflate: 'none',
                 mask: (g) => {
@@ -716,19 +751,17 @@ const Citrus = (() => {
                     g.globalCompositeOperation = 'source-over';
                 },
                 height: (x, y) => {
-                    const yb = y - B(x);
+                    look(x, y);
                     if (x <= 0) return -0.12 * yb * yb; // the petiole, round
-                    const u = Math.min(1, x / L), sd2 = yb < 0 ? 0 : 1, side = sd2 ? 1 : -1, w = Math.max(1, wAt(u, sd2)), av = Math.min(1.15, Math.abs(yb) / w);
+                    const side = sd2 ? 1 : -1, T = tabs[sd2], a4 = av * av * av * av, du = u > 0.55 ? u - 0.55 : 0;
                     let h = G.fold * (1 + G.twist * side) * Math.abs(yb); // the trough
-                    h += G.lift * (x - L / 2) * 0.35 - G.droop * Math.pow(Math.max(0, u - 0.55), 2) * L * 0.9; // a lifted or a drooping tip
-                    h += G.wavy * w * 1.6 * av * av * Math.sin(u * G.waves * 6.28 + G.ph[sd2]); // the margin's waves
+                    h += G.lift * (x - L / 2) * 0.35 - G.droop * du * du * L * 0.9; // a lifted or a drooping tip
+                    h += G.wavy * w * 1.6 * av * av * wave; // the margin's waves
                     // the blade quilts between the veins, each vein in its groove
-                    const i = vt(u, yb, sd2), t = tabs[sd2].t[i], gap = tabs[sd2].gap[i], lim = Math.min(1, av * 4) * (1 - av * av * av * av * 0.8);
-                    h += G.quilt * gap * Math.pow(Math.sin(Math.PI * t), 0.8) * lim * (under ? -0.5 : 1);
-                    const dv = Math.min(t, 1 - t) * gap;
-                    h -= (under ? -0.45 : 0.3) * Math.exp(-(dv * dv) / 1.4) * Math.min(1, av * 5);
-                    h += w * 0.1 * av * av * av * av * (side < 0 ? 1 : -0.6); // the margin turns
-                    h -= rib * Math.exp(-(yb * yb) / 5.8) * (1 - u * 0.6); // the midrib
+                    h += G.quilt * T.gap[vi] * T.puff[vi] * Math.min(1, av * 4) * (1 - a4 * 0.8) * (under ? -0.5 : 1);
+                    h -= (under ? -0.45 : 0.3) * T.groove[vi] * Math.min(1, av * 5);
+                    h += w * 0.1 * a4 * (side < 0 ? 1 : -0.6); // the margin turns
+                    if (yb > -9 && yb < 9) h -= rib * Math.exp(-(yb * yb) / 5.8) * (1 - u * 0.6); // the midrib
                     return back ? h * 0.25 : h;
                 },
                 ramp: RAMPS[kind], soft: 0.86,
@@ -739,10 +772,17 @@ const Citrus = (() => {
                     // the brush follows the veins, out and forward from the midrib: streaks
                     // that run along the same curves the veins do, and change along them
                     field: (x, y) => {
-                        const yb = y - B(x);
-                        if (x <= 0) return [x * 0.05, yb * 0.4, 9];
-                        const u = Math.min(1, x / L), sd2 = yb < 0 ? 0 : 1, av = Math.min(1.15, Math.abs(yb) / Math.max(1, wAt(u, sd2))), A = G.cV * Math.pow(av, 1.35);
-                        return [((u - A) / (1 - 0.55 * A)) * L * G.grain[1], av * G.grain[0], sd2 ? 3.7 : 0.2];
+                        look(x, y);
+                        if (x <= 0) {
+                            fq[0] = x * 0.05;
+                            fq[1] = yb * 0.4;
+                            fq[2] = 9;
+                        } else {
+                            fq[0] = vs * L * G.grain[1];
+                            fq[1] = av * G.grain[0];
+                            fq[2] = sd2 ? 3.7 : 0.2;
+                        }
+                        return fq;
                     },
                 },
                 markAmp: back ? 1 : 0.5,
@@ -821,17 +861,15 @@ const Citrus = (() => {
                 // the sky mirrored in the leaf: a band on glossy leaves, a hint on the others
                 spec: SHEEN[kind] && glossy > 0.12 ? { amp: 0.22 + 0.6 * glossy, power: 7 + 16 * (1 - glossy), from: 0.62 - 0.12 * glossy, to: 0.92, ragged: 0.9, color: SHEEN[kind] } : null,
                 tint: (x, y, tone, rgb, m) => {
-                    const yb = y - B(x), u = x / L, sd2 = yb < 0 ? 0 : 1;
+                    look(x, y);
                     if (x <= 0) {
                         // the petiole and its wing: paler, yellower
                         toward(rgb, 150, 178, 78, back ? 0 : 0.34);
                         return;
                     }
-                    const w = Math.max(1, wAt(Math.min(1, u), sd2)), av = Math.abs(yb) / w;
                     if (kind === 'old') {
                         // yellowing between veins that stay green
-                        const i = vt(u, yb, sd2), dv = Math.min(tabs[sd2].t[i], 1 - tabs[sd2].t[i]) * tabs[sd2].gap[i];
-                        const gk = S.clamp(Math.max(Math.exp(-dv / 2.6), Math.exp(-Math.abs(yb) / 5)) * (0.8 - 0.5 * S.smooth(0.3, 0.95, u)) + 0.3 * S.noise2(x * 0.03, y * 0.05, sd + 6));
+                        const gk = S.clamp(Math.max(tabs[sd2].near[vi], Math.exp(-Math.abs(yb) / 5)) * (0.8 - 0.5 * S.smooth(0.3, 0.95, u)) + 0.3 * S.noise2(x * 0.03, y * 0.05, sd + 6));
                         MID_FN(S.clamp(tone + 0.08), tmp);
                         toward(rgb, tmp[0], tmp[1], tmp[2], gk);
                     } else if (kind === 'bronze') {

@@ -603,13 +603,13 @@ const Shawl = (() => {
         rose: { zones: [[0.3, SILK.wine, -0.1], [0.7, SILK.rose, 0], [1, SILK.rose, 0.14]], lip: SILK.coral, heart: SILK.gold, eye: SILK.jade },
         wine: { zones: [[0.34, SILK.plum, -0.12], [0.78, SILK.wine, 0.04], [1, SILK.coral, 0.1]], lip: SILK.rose, heart: SILK.gold, eye: SILK.teal },
         ivory: { zones: [[0.28, SILK.rose, -0.06], [0.6, SILK.ivory, -0.1], [1, SILK.ivory, 0.08]], lip: SILK.ivory, heart: SILK.gold, eye: SILK.jade },
-        gold: { zones: [[0.34, SILK.wine, -0.06], [0.7, SILK.gold, -0.08], [1, SILK.gold, 0.08]], lip: SILK.ivory, heart: SILK.wine, eye: SILK.teal },
+        gold: { zones: [[0.38, SILK.wine, -0.04], [0.74, SILK.gold, -0.16], [1, SILK.gold, 0]], lip: SILK.ivory, heart: SILK.wine, eye: SILK.teal },
         peri: { zones: [[0.3, SILK.wine, -0.08], [0.68, SILK.peri, -0.04], [1, SILK.ivory, 0]], lip: SILK.ivory, heart: SILK.gold, eye: SILK.rose },
         coral: { zones: [[0.3, SILK.wine, -0.08], [0.7, SILK.coral, 0], [1, SILK.ivory, -0.04]], lip: SILK.ivory, heart: SILK.gold, eye: SILK.jade },
         teal: { zones: [[0.32, SILK.plum, -0.1], [0.74, SILK.teal, 0], [1, SILK.jade, 0.14]], lip: SILK.ivory, heart: SILK.gold, eye: SILK.rose },
         plum: { zones: [[0.3, SILK.wine, -0.12], [0.72, SILK.plum, 0.02], [1, SILK.peri, 0.1]], lip: SILK.rose, heart: SILK.gold, eye: SILK.jade },
     };
-    const BLOOMS = ['rose', 'rose', 'wine', 'ivory', 'gold', 'peri', 'coral', 'rose', 'wine', 'plum', 'coral', 'peri', 'plum', 'ivory'];
+    const BLOOMS = ['rose', 'rose', 'wine', 'ivory', 'gold', 'peri', 'coral', 'rose', 'wine', 'plum', 'coral', 'peri', 'plum', 'ivory', 'wine', 'rose'];
     const SMALL = [...BLOOMS, 'teal', 'ivory', 'gold', 'teal']; // small flowers come in blue-green too
     const bloomOf = (o, rnd, list = BLOOMS) => BLOOM[o.bloom ?? list[(rnd() * list.length) | 0]];
     const zonesOf = (B, rnd, lift = 0) => B.zones.map(([u, sk, l], i) => [i === B.zones.length - 1 ? 1 : u + (rnd() - 0.5) * 0.1, sk, l + lift]);
@@ -1528,7 +1528,7 @@ const Shawl = (() => {
     const plans = new Map();
     function plan(box, o = {}) {
         const seed = o.seed ?? 'shawl', keepOut = o.keepOut ?? 140, anchors = o.anchors ?? [];
-        const key = [box.x, box.y, box.w, box.h, seed, keepOut, JSON.stringify(anchors)].join('/');
+        const key = [box.x, box.y, box.w, box.h, seed, keepOut, o.verses !== false, JSON.stringify(anchors)].join('/');
         if (plans.has(key)) return plans.get(key);
         const rnd = Motion.rng('shawl/' + seed), CELL = 8, gw = Math.ceil(box.w / CELL), gh = Math.ceil(box.h / CELL), occ = new Uint8Array(gw * gh);
         const items = [];
@@ -1615,6 +1615,21 @@ const Shawl = (() => {
         const FLOWERS = ['peony', 'rose', 'mum', 'peony', 'rose', 'mum', 'mum'];
         const head = (k, x, y, r, z, extra = {}) => put({ k, z, x, y, r, bx: x, by: y, br: r * (k === 'cup' ? 2.6 : 1.15), ...extra });
 
+        // where the verses run (the figure of the damask), cell by cell: the last pass of small
+        // leaves keeps off it, so a little more of the cloth shows inside every letter
+        let figure = null;
+        if (o.verses !== false) {
+            const c = document.createElement('canvas');
+            c.width = gw;
+            c.height = gh;
+            const q = c.getContext('2d', { willReadFrequently: true });
+            q.setTransform(1 / CELL, 0, 0, 1 / CELL, -box.x / CELL, -box.y / CELL);
+            verses(q, box, o, (line, x, y) => q.fillText(line, x, y));
+            const d = q.getImageData(0, 0, gw, gh).data;
+            figure = new Uint8Array(gw * gh);
+            for (let i = 0; i < gw * gh; i++) figure[i] = d[i * 4 + 3] > 110 ? 1 : 0;
+        }
+
         // 0 · the hole of the dive, and what has a place of its own
         if (keepOut > 0) markDisc(0, 0, keepOut);
         const place = (a) => {
@@ -1638,10 +1653,16 @@ const Shawl = (() => {
                 const a = { k, x: box.x + ((i + 0.2 + rnd() * 0.6) * box.w) / cols, y: box.y + ((j + 0.2 + rnd() * 0.6) * box.h) / rows, s: 0.88 + rnd() * 0.26, flip: rnd() < 0.5 };
                 // a long-tailed bird sits level or head up, never head down
                 if (k === 'peafowl') Object.assign(a, { rot: (a.flip ? 1 : -1) * (rnd() * 1.5 - 0.3), pose: rnd() < 0.4 ? 1 : 0, sag: 0.25 + rnd() * 0.5 });
-                if (k === 'songbird') Object.assign(a, { rot: (rnd() - 0.5) * 0.5, s: 1 + rnd() * 0.35 });
+                if (k === 'songbird') Object.assign(a, { rot: (rnd() - 0.5) * 0.5, s: 1.2 + rnd() * 0.45 });
                 if (k === 'dragonfly') Object.assign(a, { rot: rnd() * TAU, r: 17 + rnd() * 8 });
                 if (!fits(a)) continue;
                 place(a);
+                // long-tailed birds go in pairs: its mate faces it, a body's length off, looking back
+                if (k === 'peafowl') {
+                    const fa = (a.flip ? Math.PI : 0) + a.rot, d = (118 + rnd() * 40) * a.s;
+                    const m = { ...a, x: a.x + Math.cos(fa) * d + Math.sin(fa) * 30, y: a.y + Math.sin(fa) * d + 26 + rnd() * 30, flip: !a.flip, rot: -a.rot * (0.4 + rnd() * 0.5), pose: 1 - a.pose, s: a.s * (0.86 + rnd() * 0.1), sag: 0.3 + rnd() * 0.4 };
+                    if (fits(m)) place(m);
+                }
                 break;
             }
         });
@@ -1730,7 +1751,7 @@ const Shawl = (() => {
             const sit = birds < 14 && rnd() < 0.55 && Math.abs(Math.sin(ta)) < 0.6;
             if (sit) {
                 // it stands on the bough: its feet are 17.5 below its middle
-                const flip = rnd() < 0.5, s = 0.95 + rnd() * 0.3, rot = clamp(Math.cos(ta) > 0 ? ta : wrap(ta + Math.PI), -0.4, 0.4);
+                const flip = rnd() < 0.5, s = 1.1 + rnd() * 0.4, rot = clamp(Math.cos(ta) > 0 ? ta : wrap(ta + Math.PI), -0.4, 0.4);
                 const a = { k: 'songbird', x: m[0] + Math.sin(rot) * 17.5 * s, y: m[1] - Math.cos(rot) * 17.5 * s, s, rot, flip, perch: false };
                 if (fits(a)) {
                     place(a);
@@ -1787,10 +1808,10 @@ const Shawl = (() => {
         for (const thr of [40, 31, 24, 19, 15, 12, 10, 9, 9, 9, 8]) {
             for (let c = 0; c < gw * gh; c++) inside[c] = occ[c] ? 0 : 1;
             const d = S.edt(inside, gw, gh), cand = [];
-            for (let j = 1; j < gh - 1; j++) for (let i = 1; i < gw - 1; i++) {
+            for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
                 const c = j * gw + i, v = d[c];
                 if (v * CELL < thr) continue;
-                if (v >= d[c - 1] && v >= d[c + 1] && v >= d[c - gw] && v >= d[c + gw]) cand.push(c);
+                if ((i === 0 || v >= d[c - 1]) && (i === gw - 1 || v >= d[c + 1]) && (j === 0 || v >= d[c - gw]) && (j === gh - 1 || v >= d[c + gw])) cand.push(c);
             }
             cand.sort((p, q) => d[q] - d[p] || p - q);
             for (const c of cand) {
@@ -1822,7 +1843,10 @@ const Shawl = (() => {
                         markDisc(x, y, r * 0.75);
                         put({ k: 'tendril', z: 0.5, x: x - r * 0.5, y, a: rnd() * TAU, len: r * 4.5, gold: rnd() < 0.5, bx: x, by: y, br: r * 2.2 });
                     } else sprig(x, y, r, 2, hue, pick > 0.8);
-                } else if (thr === 8) sprig(x, y, r, 1, hue, null);
+                } else if (thr === 8) {
+                    if (figure && figure[c]) markDisc(x, y, r * 0.5);
+                    else sprig(x, y, r, 1, hue, null);
+                }
                 else if (pick < 0.66) sprig(x, y, r, 1, hue, false);
                 else {
                     const rr = Math.max(5.5, r * 0.78);
@@ -1916,25 +1940,26 @@ const Shawl = (() => {
             const fl = g.createPattern(floatTile(), 'repeat');
             fl.setTransform(new DOMMatrix().rotate((-TILT * 180) / Math.PI).scale(1 / k));
             verses(g, box, o, (line, x, y) => {
-                g.fillStyle = 'rgba(92,100,190,0.14)';
+                g.fillStyle = 'rgba(92,100,190,0.1)';
                 g.fillText(line, x, y);
                 g.fillStyle = fl;
-                g.globalAlpha = 0.22;
+                g.globalAlpha = 0.2;
                 g.fillText(line, x, y);
                 g.globalAlpha = 1;
             });
         }
         g.restore();
     }
-    // The figure still tells through the embroidery laid over it, as a breath of sheen.
+    // The figure still tells through the embroidery laid over it: the silk is a little
+    // glossier there (its lights lifted, its voids left dark), as a damask's figure is.
     function veil(g, box, o, win) {
         if (o.verses === false) return;
         g.save();
         g.beginPath();
         g.rect(win.x, win.y, win.w, win.h);
         g.clip();
-        g.globalCompositeOperation = 'screen';
-        g.fillStyle = 'rgba(96,108,205,0.085)';
+        g.globalCompositeOperation = 'color-dodge';
+        g.fillStyle = 'rgb(36,38,54)';
         verses(g, box, o, (line, x, y) => g.fillText(line, x, y));
         g.restore();
     }
@@ -1949,7 +1974,7 @@ const Shawl = (() => {
         const win = v ? { x: Math.max(box.x, v.x), y: Math.max(box.y, v.y), w: Math.min(box.x + box.w, v.x + v.w) - Math.max(box.x, v.x), h: Math.min(box.y + box.h, v.y + v.h) - Math.max(box.y, v.y) } : box;
         g.save();
         if (!o.bare) cloth(g, box, o, win);
-        for (const it of L.items) {
+        for (const it of o.motifs === false ? [] : L.items) {
             if (v && (it.bx + it.br < v.x || it.bx - it.br > v.x + v.w || it.by + it.br < v.y || it.by - it.br > v.y + v.h)) continue;
             PAINT[it.k](g, it);
         }

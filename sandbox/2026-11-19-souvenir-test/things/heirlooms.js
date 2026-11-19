@@ -1,18 +1,24 @@
 // Heirlooms of the peoples of Andalusia, the later half of the wheel of relics round the
 // emblem (Visigoths, Byzantines, al-Andalus), each after a real, documented object or type
 // and painted as the plate of an archaeology book would show it, in the emblem manner (dark
-// contour + airbrush). Global: Heirlooms. Sizes at s = 1, the anchor in the middle of each:
-//   Heirlooms.eagle(g, { x, y, s, rot, seed, flip })      130 × 210   Visigothic eagle fibula
-//   Heirlooms.votive(g, { x, y, s, rot, seed })           190 × 280   votive crown and its cross
-//   Heirlooms.byzantine(g, { x, y, s, rot, seed })        150 × 200   pectoral cross on gold mosaic
-//   Heirlooms.astrolabe(g, { x, y, s, rot, seed, turn, rule })  230 × 300  Andalusi astrolabe
-//   Heirlooms.fawn(g, { x, y, s, rot, seed })             200 × 240   the fawn of Madinat al-Zahra
-//   Heirlooms.alicatado(g, { x, y, s, rot, seed, w, h, period })  300 × 300 (or w × h)  Nasrid cut-tile panel
+// contour + airbrush). Global: Heirlooms. Sizes at s = 1 (paint and contour included), the
+// anchor in the middle of each:
+//   Heirlooms.eagle(g, { x, y, s, rot, seed, flip })        136 × 216   Visigothic eagle fibula, 6th c.
+//                                                           (it looks left; flip: true, right: they were worn in facing pairs)
+//   Heirlooms.votive(g, { x, y, s, rot, seed })             186 × 290   Visigothic votive crown and its cross, 7th c.
+//   Heirlooms.byzantine(g, { x, y, s, rot, seed })          162 × 212   Byzantine pectoral cross on gold mosaic, 6th–7th c.
+//   Heirlooms.astrolabe(g, { x, y, s, rot, seed, turn, rule })  230 × 304   Andalusi astrolabe, 11th c.
+//                                                           (turn: the rete's angle, rule: the rule's, in radians)
+//   Heirlooms.fawn(g, { x, y, s, rot, seed })               182 × 230   the bronze fawn of Madinat al-Zahra, 10th c.
+//   Heirlooms.alicatado(g, { x, y, s, rot, seed, w, h, period })  308 × 308 (w × h + 8; default 300 × 300)
+//                                                           Nasrid cut-tile panel, 14th c.; period: the lattice's, 88
+//   Heirlooms.SIZE                                          { name: [w, h] } of the above
 // `rot` turns the object, never the light: the geometry is turned point by point, every
 // spray keeps falling from the top left, and the one per-pixel sprite (the fawn's bronze) is
-// baked with Souvenir.lightFor and cached by angle, resolution and seed. Each drawer paints
-// on a sheet of its own (on the caller's pixel grid) and pastes it, so its shadows and cut
-// holes touch nothing else on the caller's layer. Paint them once: nothing takes the time.
+// baked with Souvenir.lightFor and cached by angle (snapped to 5°), resolution and seed. Each
+// drawer paints on a sheet of its own (on the caller's pixel grid) and pastes it, so its
+// shadows and cut holes touch nothing else on the caller's layer. Paint them once, on a
+// layer: they take 0.1–0.7 s each at film size.
 const Heirlooms = (() => {
     const S = Souvenir;
     const INK = S.INK, SD = S.SHADE_DIR, TOL = [-SD[0], -SD[1]]; // TOL: towards the light, on the page
@@ -27,9 +33,10 @@ const Heirlooms = (() => {
     // ------------------------------------------------------------------ geometry
     // A frame turns (and mirrors) a thing's own coordinates: every point goes through it and
     // the context is never rotated, so the light stays where it is.
-    function frame(rot = 0, flip = 1) {
+    function frame(rot = 0, flip = 1, ox = 0, oy = 0) {
+        // (ox, oy): the point of the thing's own drawing that sits on the anchor
         const c = Math.cos(rot), sn = Math.sin(rot);
-        const f = (p) => [p[0] * flip * c - p[1] * sn, p[0] * flip * sn + p[1] * c];
+        const f = (p) => [(p[0] - ox) * flip * c - (p[1] - oy) * sn, (p[0] - ox) * flip * sn + (p[1] - oy) * c];
         f.pts = (a) => a.map(f);
         f.rot = rot;
         f.flip = flip;
@@ -65,11 +72,6 @@ const Heirlooms = (() => {
         }
         return out;
     }
-    const plen = (pts) => {
-        let l = 0;
-        for (let i = 1; i < pts.length; i++) l += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-        return l;
-    };
     const centroid = (pts) => {
         let x = 0, y = 0;
         for (const p of pts) {
@@ -592,7 +594,7 @@ const Heirlooms = (() => {
     //   the rim.
     function eagle(g, o = {}) {
         const { x = 0, y = 0, s = 1, rot = 0, seed = 1, flip = false } = o;
-        const F = frame(rot, flip ? -1 : 1);
+        const F = frame(rot, flip ? -1 : 1, 0, 3.2);
         sheet(g, x, y, s, reach({ x: -68, y: -106, w: 136, h: 214 }, rot), (q0) => {
             let q = q0;
             const r = Motion.rng('heirloom-eagle/' + seed);
@@ -1032,16 +1034,25 @@ const Heirlooms = (() => {
                     brk.push([lerp(A[0], B[0], t) + j * ((r() - 0.5) * 16 - 5 * Math.sin(t * Math.PI)), lerp(A[1], B[1], t) + j * ((r() - 0.5) * 16 - 5 * Math.sin(t * Math.PI))]);
                 }
             }
-            const panel = F.pts([[-hw, -hh], [hw, -hh], ...brk, [-hw, hh]]);
+            // (sawn out of a wall: its three whole edges are not ruled lines either)
+            const edge = (A, B, nick) => {
+                const out = [], n = Math.max(2, Math.round(Math.hypot(B[0] - A[0], B[1] - A[1]) / 9)), nx = -(B[1] - A[1]), ny = B[0] - A[0], nl = Math.hypot(nx, ny) || 1, at = 1 + Math.floor(r() * (n - 2));
+                for (let i = 0; i < n; i++) {
+                    const t = i / n, k = i ? 0.55 * S.noise2(A[0] * 0.1 + i * 1.7, A[1] * 0.1 + B[0], 6) + (nick && i === at ? 1.6 + r() * 1.4 : 0) : 0;
+                    out.push([lerp(A[0], B[0], t) + (nx / nl) * k, lerp(A[1], B[1], t) + (ny / nl) * k]);
+                }
+                return out;
+            };
+            const rim3 = [...edge([-hw, hh], [-hw, -hh], true), ...edge([-hw, -hh], [hw, -hh], true), ...edge([hw, -hh], [hw, hh - by], false)];
+            const panel = F.pts([...rim3, ...brk, [hw - bx, hh]]);
             // the plaster bed reaches further, and crumbles
-            const bed = [[-hw, -hh], [hw, -hh]];
+            const bed = [...rim3.slice(0, -Math.max(1, Math.round((hh * 2 - by) / 9)) + 1), [hw, -hh]];
             {
                 const A = [hw, hh - by * 0.3], B = [hw - bx * 0.34, hh], n = 9;
                 for (let i = 0; i <= n; i++) {
                     const t = i / n, j = i === 0 || i === n ? 0 : 1;
                     bed.push([lerp(A[0], B[0], t) + j * ((r() - 0.5) * 9 - 3), lerp(A[1], B[1], t) + j * ((r() - 0.5) * 9 - 3)]);
                 }
-                bed.push([-hw, hh]);
             }
             const bedP = F.pts(bed);
             // ---- the slab's thickness on the sides away from the lamp
@@ -1165,7 +1176,8 @@ const Heirlooms = (() => {
     //   horse's head  8 the throne low, lobed, pierced, with a line of engraving; the shackle
     //   riveted through it, the ring through the shackle  9 brass gone brown and olive, lathe
     //   rings on the limb, bright where fingers have worn the edges, green in a few corners
-    //   10 arcs scratched on the plate by the turning rete, a dent in the rim.
+    //   10 arcs scratched on the plate by the turning rete, a dent in the rim, and a knotted
+    //   end of red silk cord left in the ring.
     // No word is written anywhere: `script` lays a rhythm of angular strokes that reads as
     // engraved Kufic and says nothing.
     const BRASS = { ink: INK, deep: '#33200f', shade: '#73501d', mid: '#bd8d2e', light: '#e6c466', glint: '#fff2ba' };
@@ -1181,10 +1193,14 @@ const Heirlooms = (() => {
                 // a tall upright with its wedge
                 const hh = h * (0.78 + r() * 0.22);
                 out.push([P(xx, 0), P(xx, hh), P(xx - h * 0.13, hh - h * 0.09)]);
-            } else if (k < 0.33) {
-                // two uprights that cross above the line
-                out.push([P(xx, 0), P(xx + wd * 0.2, h * 0.4), P(xx + wd, h * 0.88)], [P(xx + wd, 0), P(xx + wd * 0.8, h * 0.4), P(xx, h * 0.88)]);
-                xx += wd * 0.6;
+            } else if (k < 0.32) {
+                // two uprights that spring from one foot and lean apart
+                out.push([P(xx - h * 0.04, h * 0.86), P(xx + wd * 0.12, h * 0.22), P(xx + wd * 0.5, 0), P(xx + wd * 0.88, h * 0.22), P(xx + wd * 1.04, h * 0.86)]);
+                xx += wd * 0.3;
+            } else if (k < 0.37) {
+                // the line drawn out between two letters
+                xx += wd * 1.6;
+                continue;
             } else if (k < 0.52) {
                 // teeth
                 const n = 1 + Math.floor(r() * 3);
@@ -1293,6 +1309,30 @@ const Heirlooms = (() => {
             }
             main.restore();
 
+            // a cord of madder-red silk through the ring: knotted, the ends cut short and frayed
+            {
+                const RED = { ink: INK, shade: '#5e1420', mid: '#a8322c', light: '#e07a5c' };
+                const twist = (pts, w) => {
+                    wire(main, pts, w, RED, { lw: 0.8 });
+                    // the ply: short slanted marks along it
+                    for (const [px, py, tx, ty] of even(pts, 1.5)) strokeP(main, [[px - ty * w * 0.4 - tx * 0.5, py + tx * w * 0.4 - ty * 0.5], [px + ty * w * 0.4 + tx * 0.5, py - tx * w * 0.4 + ty * 0.5]], 0.3, 'rgba(60,10,20,0.55)');
+                };
+                const K = [12.4, -143.4];
+                twist(F.pts(S.curve([[9, -146.6], [13.6, -141.8], [17.6, -136], [19.4, -129.6]], false, 8)), 2);
+                twist(F.pts(S.curve([[14.6, -145.4], [18.6, -141.4], [23.4, -138.4], [26.6, -133.6]], false, 8)), 2);
+                S.piece(main, F.pts(S.ellipse(K[0], K[1], 3.3, 2.5, 14, 0.7)), {
+                    fill: RED.mid, line: 0.8, heavy: 0.7, shade: { color: RED.shade, alpha: 0.9, w: 2.4, push: 1.4 }, light: { color: RED.light, alpha: 0.8, w: 1.6, push: 1 },
+                    detail: (d) => {
+                        for (const k of [-1, 0, 1]) strokeP(d, F.pts([[K[0] - 2.5 + k * 1.3, K[1] + 2], [K[0] + 0.5 + k * 1.3, K[1] - 2.2]]), 0.3, 'rgba(60,10,20,0.6)');
+                    },
+                });
+                main.lineCap = 'round';
+                for (const [ex, ey] of [[19.4, -129.6], [26.6, -133.6]]) for (let k = 0; k < 6; k++) {
+                    const a = 1.2 + (k - 2.5) * 0.24 + (r() - 0.5) * 0.2, l = 2.4 + r() * 2.6;
+                    strokeP(main, F.pts([[ex, ey], [ex + Math.cos(a) * l * 0.5 + (r() - 0.5), ey + Math.sin(a) * l * 0.5], [ex + Math.cos(a) * l, ey + Math.sin(a) * l]]), 0.35, k % 2 ? RED.mid : RED.light);
+                }
+            }
+
             // ---- the mater with its throne, and the plate in its hollow
             const m = like(main);
             const half = [[41, -68], [40.5, -76.5], [36.5, -82], [31.5, -81.5], [31.5, -81.5], [30.5, -88], [25, -92.5], [19.5, -90], [19.5, -90], [17, -96.5], [11.5, -103.5], [5, -107.5], [0, -108.5]];
@@ -1332,6 +1372,17 @@ const Heirlooms = (() => {
             m.arc(PC[0], PC[1], RO, 0, TAU);
             m.arc(PC[0], PC[1], RI, 0, TAU, true);
             m.fill();
+            // the band of numbers holds more dirt; the rim is rubbed bright where it is held
+            m.beginPath();
+            m.arc(PC[0], PC[1], 110.2, 0, TAU);
+            m.arc(PC[0], PC[1], 101.2, 0, TAU, true);
+            m.fillStyle = 'rgba(64,40,14,0.16)';
+            m.fill();
+            for (let i = 0; i < 26; i++) {
+                const a = r() * TAU, rr = RI + 2 + r() * (RO - RI - 4);
+                glow(m, pol(PC, rr, a), 5 + r() * 12, r() < 0.5 ? '#3c2610' : r() < 0.6 ? '#5a5c26' : '#7c3a1e', 0.2 + r() * 0.22);
+            }
+            for (const [a0, a1] of [[2.4, 3.5], [4.4, 5.0], [0.6, 1.3]]) S.ink(m, arc(PC, RO - 1.6, a0 + rot, a1 + rot, 30), { w: 2.2, color: '#fff0b4', alpha: 0.4 });
             // a dent in the rim
             {
                 const d = pol(PC, RO - 2.5, 2.2 + rot);
@@ -1695,10 +1746,10 @@ const Heirlooms = (() => {
     //   image of its gold mounts upside down; a worn suspension hook.
     function votive(g, o = {}) {
         const { x = 0, y = 0, s = 1, rot = 0, seed = 1 } = o;
-        const F = frame(rot);
-        sheet(g, x, y, s, reach({ x: -97, y: -143, w: 194, h: 286 }, rot), (q) => {
+        const F = frame(rot, 1, 0, 0.5);
+        sheet(g, x, y, s, reach({ x: -99, y: -145, w: 198, h: 290 }, rot), (q) => {
             const r = Motion.rng('heirloom-votive/' + seed);
-            const RX = 74, RY = 12.5, BY = 8, TY = -23; // the hoop: rim ellipses (lower, upper)
+            const RX = 87, RY = 14, BY = 8, TY = -24; // the hoop: rim ellipses (lower, upper)
             const lit = F([-1, 0])[0] * TOL[0] + F([-1, 0])[1] * TOL[1] >= 0 ? -1 : 1; // which side of the hoop faces the lamp
             const near = (th, v) => [RX * Math.sin(th), lerp(TY, BY, v) - RY * Math.cos(th)];
             const far = (th, v) => [RX * Math.sin(th), lerp(TY, BY, v) + RY * Math.cos(th)];
@@ -1858,7 +1909,7 @@ const Heirlooms = (() => {
             }, 0.34);
 
             // ---- the cross's own chain, down through the hoop
-            const CR = [0, 92];
+            const CR = [0, 87];
             chain(q, hang, F([0, CR[1] - 39]), { sag: 0 });
 
             // ---- the cross: flared arms, stones in collets, pearls, a punched border, drops
@@ -1981,10 +2032,10 @@ const Heirlooms = (() => {
             }
             // ---- the near pendants
             {
-                const kinds = ['sapphire', 'pearl', 'leaf', 'azure', 'pearl', 'sapphire', 'lost', 'leaf'];
+                const kinds = ['sapphire', 'pearl', 'leaf', 'azure', 'pearl', 'sapphire', 'lost', 'leaf'], k0 = Math.floor(r() * 8);
                 [-80, -58, -36, -13, 13, 36, 58, 80].forEach((dg, i) => {
                     const p = near(dg * D2R, 1);
-                    pendant(q, [p[0], p[1] - 0.6], 23 + r() * 5, kinds[(i + Math.floor(r() * 3)) % kinds.length]);
+                    pendant(q, [p[0], p[1] - 0.6], 23 + r() * 5, kinds[(i + k0) % kinds.length]);
                 });
             }
         });
@@ -2010,8 +2061,8 @@ const Heirlooms = (() => {
     //   chain as close-woven chevrons, ending in a hook.
     function byzantine(g, o = {}) {
         const { x = 0, y = 0, s = 1, rot = 0, seed = 1 } = o;
-        const F = frame(rot);
-        sheet(g, x, y, s, reach({ x: -78, y: -103, w: 158, h: 208 }, rot), (main) => {
+        const F = frame(rot, 1, 2.6, 3.2);
+        sheet(g, x, y, s, reach({ x: -82, y: -108, w: 164, h: 216 }, rot), (main) => {
             const r = Motion.rng('heirloom-byzantine/' + seed);
             // ---- the patch: broken along its joints
             const rough = (ctrl, amp, stp) => {
@@ -2071,7 +2122,7 @@ const Heirlooms = (() => {
                 const ph = r() * 9;
                 for (let xx = tb.x - 3 - r() * 4; xx < tb.x + tb.w + 4;) {
                     const w = 3.7 + r() * 2.4, h = PITCH - 0.42 - r() * 0.4;
-                    const wav = (px) => 1.5 * Math.sin(px * 0.035 + j * 0.45 + ph * 0.02) + 0.9 * S.noise2(px * 0.05, j * 0.7, 3);
+                    const wav = (px) => 2.6 * Math.sin(px * 0.03 + yy * 0.022) + 2.2 * S.noise2(px * 0.022, yy * 0.022, 3) + 0.4 * S.noise2(px * 0.09, j * 0.9, 4);
                     const j4 = () => (r() - 0.5) * 0.8;
                     const loc = [[xx + j4(), yy + wav(xx) + j4()], [xx + w + j4(), yy + wav(xx + w) + j4()], [xx + w + j4(), yy + h + wav(xx + w) + j4()], [xx + j4(), yy + h + wav(xx) + j4()]];
                     const cx = xx + w / 2, cy = yy + h / 2 + wav(cx);
@@ -2322,10 +2373,10 @@ const Heirlooms = (() => {
     //   a gap  4 green patina lying in the engraving  5 remains of gilding in patches, worn
     //   off where hands and water reached  6 the mouth: a round bore with a lit lip  7 the
     //   eye an almond with a double outline and a drilled pupil; a nostril; the ear's hollow
-    //   8 hooves cloven and ringed; rings chased round the legs' tops  9 the base plate with
+    //   8 the net runs on down the legs; hooves cloven, with two chased rings above them  9 the base plate with
     //   a scribed border and holes at its corners for fixing, one with its rivet  10 casting
     //   pits, the chasing worn shallow in places, lime scale where the water ran from the mouth.
-    const BRONZE = [[0, '#0e0a14'], [0.3, '#1e141c'], [0.55, '#30201e'], [0.74, '#46311f'], [0.88, '#6b4d2a'], [0.96, '#a07c48'], [1, '#dcc494']];
+    const BRONZE = [[0, '#0e0a14'], [0.3, '#1e141c'], [0.55, '#30201e'], [0.74, '#46311f'], [0.88, '#664827'], [0.96, '#8e6a3a'], [1, '#d2b684']];
     // a scalar field painted with the canvas and read back per pixel: (x, y) → 0..1
     function fieldOf(box, res, paint, blur = 0) {
         const w = Math.max(2, Math.ceil(box.w * res)), h = Math.max(2, Math.ceil(box.h * res));
@@ -2426,14 +2477,16 @@ const Heirlooms = (() => {
         // a collar of two lines and a row of dots where the neck meets the head
         for (const u of [86.5, 90]) poly([MN(u, -23), MN(u, -10), MN(u, 0), MN(u, 10), MN(u, 23)], 0.8);
         for (let a = -18; a <= 18; a += 3) poly([MN(88.2, a), MN(88.3, a + 0.2)], 0.9);
-        // ---- the legs: chased rings at the top and above the hoof, a long leaf between, the cleft
-        for (const [x0, x1, top] of [[...FAWN.LF, 28], [...FAWN.LH, 24]]) {
-            const cx = (x0 + x1) / 2;
-            for (const yy of [44.5, 47.5, 81.5, 84.5]) poly([[x0 - 2, yy], [cx, yy + 1.4], [x1 + 2, yy]], 0.8);
+        // ---- the legs: the net runs on down them, a roundel at a time; rings above the hoof; the cleft
+        for (const [x0, x1, top, id] of [[...FAWN.LF, 28, 300], [...FAWN.LH, 24, 320]]) {
+            const cx = (x0 + x1) / 2, RL = (x1 - x0) / 2 + 0.6;
+            const ML = (u, a) => [cx + RL * Math.sin(Math.max(-1.5, Math.min(1.5, a / RL))), u];
+            clipP([[x0 - 3, 37], [x1 + 3, 37], [x1 + 3, 82], [x0 - 3, 82]], () => {
+                const rad = 6.6;
+                for (let i = 0; i < 4; i++) for (const j of [-1, 0, 1]) roundel(ML, 43.6 + i * rad * 2 + (j ? rad : 0), j * rad * 1.74, rad, 0, id + i * 3 + j);
+            });
+            for (const yy of [83, 86]) poly([[x0 - 2, yy], [cx, yy + 1.3], [x1 + 2, yy]], 0.8);
             poly([[cx - 0.4, 91.5], [cx, 99]], 0.85);
-            poly(S.curve([[cx, 79], [cx - 4.4, 65], [cx, 50], [cx + 4.4, 65]], true, 6), 0.75);
-            poly([[cx, 77.5], [cx, 52.5]], 0.55);
-            for (const yy of [58, 64, 70, 75]) for (const sx of [-1, 1]) poly([[cx, yy], [cx + sx * 2.8, yy - 3.6]], 0.5);
         }
         // ---- the head: the cheek's line, bands round the muzzle
         poly(S.curve([[-47, -75], [-53.5, -82], [-52.5, -92], [-46.5, -97.5]], false, 8), 0.75);
@@ -2507,8 +2560,8 @@ const Heirlooms = (() => {
         const res = Math.min(6, Math.max(1, Math.ceil(S.pxScale(g) * s * 2 - 1e-6) / 2));
         sheet(g, x, y, s, reach({ x: -100, y: -122, w: 198, h: 244 }, ra), (main) => {
             const r = Motion.rng('heirloom-fawn/' + seed);
-            const OX = 6; // the thing's own origin, so that its box is centred on the anchor
-            const P = (p) => F([p[0] + OX, p[1]]);
+            const OX = 10.2, OY = 1.8; // the thing's own origin, so that its box is centred on the anchor
+            const P = (p) => F([p[0] + OX, p[1] + OY]);
             const PP = (a) => a.map(P);
             const bronze = (pts, fill, o2 = {}) => S.piece(main, PP(pts), {
                 fill, line: 1.6, heavy: 0.8,
@@ -2550,7 +2603,7 @@ const Heirlooms = (() => {
             main.restore();
             // ---- far legs and far ear, stepped back
             const put = (sp, veil) => {
-                const p = like(main), o0 = F([OX, 0]);
+                const p = like(main), o0 = F([OX, OY]);
                 S.put(p, sp, { x: o0[0], y: o0[1], rot: ra });
                 return p;
             };
@@ -2572,6 +2625,18 @@ const Heirlooms = (() => {
             p.globalCompositeOperation = 'source-atop';
             // scratches and casting pits
             scuff(p, reach({ x: -100, y: -122, w: 198, h: 244 }, ra, 0), r, { n: 420, len: [1.5, 9], w: [0.2, 0.4], light: '#f2e2b4', dark: '#0c0810', alpha: [0.1, 0.32], pits: 240, pit: [0.15, 0.5] });
+            // green runs down from wherever water sat: under the collar, the ears, the muzzle's bands, the belly
+            p.lineCap = 'round';
+            for (let i = 0; i < 70; i++) {
+                const k = r(), o0 = k < 0.2 ? [-92 + r() * 46, -98 + r() * 22] : k < 0.5 ? [-66 + r() * 130, 26 + r() * 12] : k < 0.75 ? [-60 + r() * 126, -22 + r() * 30] : [(r() < 0.5 ? -44 : 47) + (r() - 0.5) * 16, 40 + r() * 46];
+                const l = 2 + r() * 9, a = P(o0), b = P([o0[0] + (r() - 0.5) * 1.2, o0[1] + l]);
+                strokeP(p, [a, b], 0.3 + r() * 0.7, `rgba(84,160,128,${0.16 + r() * 0.3})`);
+            }
+            // the head and the back were handled: rubbed to bare metal in strokes that follow the form
+            for (let i = 0; i < 40; i++) {
+                const k = r(), o0 = k < 0.5 ? [-90 + r() * 44, -98 + r() * 20] : [-50 + r() * 108, -22 + r() * 8], l = 3 + r() * 9, a = (k < 0.5 ? 0.25 : 0) + (r() - 0.5) * 0.4;
+                strokeP(p, [P(o0), P([o0[0] + Math.cos(a) * l, o0[1] + Math.sin(a) * l])], 0.25 + r() * 0.5, `rgba(${r() < 0.6 ? '226,196,140' : '20,12,20'},${0.1 + r() * 0.2})`);
+            }
             // lime scale under the mouth and down the chin
             for (let i = 0; i < 7; i++) {
                 const c = P([-96.5 + r() * 6, -78.5 + r() * 4]);
@@ -2581,7 +2646,7 @@ const Heirlooms = (() => {
             // the emblem manner over the lit volume: shade and light sprayed in from its edges
             air(p, { color: '#0e0914', alpha: 0.6, w: 9, push: 5 });
             air(p, { color: '#0e0914', alpha: 0.55, w: 2.6, push: 1.4 });
-            air(p, { color: '#e8c890', alpha: 0.4, w: 5, push: 3.2, dir: TOL });
+            air(p, { color: '#e8c890', alpha: 0.3, w: 4, push: 2.6, dir: TOL });
             // a warm light thrown back into the shadow's rim keeps the dark bronze off the night
             air(p, { color: '#9a6a3c', alpha: 0.7, w: 1.4, push: 0.5 });
             stampOn(main, p, { lw: 2, heavy: 0.85, ink: '#100c1c', cast: { blur: 3, dx: 3, dy: 3.6, color: 'rgba(8,4,10,0.7)' } });
@@ -2619,5 +2684,6 @@ const Heirlooms = (() => {
         });
     }
 
-    return { fawn, byzantine, votive, astrolabe, alicatado, eagle, cabochon, pearl, STONE, GOLD };
+    const SIZE = { eagle: [136, 216], votive: [186, 290], byzantine: [162, 212], astrolabe: [230, 304], fawn: [182, 230], alicatado: [308, 308] };
+    return { eagle, votive, byzantine, astrolabe, fawn, alicatado, SIZE };
 })();

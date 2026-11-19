@@ -1,5 +1,5 @@
 // Dev sheet for things/shawl.js: the mantón de Manila that is the emblem's ground.
-// Eight pages, one every 0.2 s (render with --at 0,0.21,0.42,0.63,0.84,1.05,1.26,1.47):
+// Nine pages, one every 0.2 s (render with --at 0,0.21,0.42,0.63,0.84,1.05,1.26,1.47,1.68):
 //   0  (a) the frame's share of the plate at film size, painted as the film paints it
 //          (a plate at 1.344 px per unit, seen at the hold's scale), raw paint
 //   1  (b) the same under a dark mask where the emblem sits: what will actually show
@@ -10,17 +10,18 @@
 //   5  page 0 through the lens' finish
 //   6  2×: a long-tailed bird, a pavilion, a bridge, a rose
 //   7  2×: a chrysanthemum, a half-open peony, a bough of blossom, a dragonfly or butterfly
+//   8  the cloth alone, whole: the crepe and the verses figured in it (no embroidery)
 const SHDIR = 'sandbox/2026-11-19-souvenir-test/';
 const SHPLATE = { x: -1700, y: -1000, w: 3400, h: 2000 };
 Motion.scene({
-    fps: 24, duration: 1.7, logical: [1600, 900],
+    fps: 24, duration: 1.9, logical: [1600, 900],
     uses: ['styles/souvenir/souvenir.js', SHDIR + 'things/shawl.js'],
     fonts: [{ family: 'IM Fell DW Pica SC', src: 'fonts/IMFellDWPicaSC-Regular.ttf' }],
     setup() {
         return { cache: new Map() };
     },
     draw(g, t, env) {
-        const S = Souvenir, page = Math.min(7, Math.floor(t * 5 + 1e-6)), st = env.state;
+        const S = Souvenir, page = Math.min(8, Math.floor(t * 5 + 1e-6)), st = env.state;
         // the tableau's plate under the embroidery
         const night = (q, b) => {
             const gr = q.createRadialGradient(0, -60, 100, 0, 0, 1500);
@@ -102,6 +103,11 @@ Motion.scene({
             four([{ ...fowl, dx: 0, dy: -10 }, { ...pick(['pavilion'], 0, 500), dy: -45 }, pick(['bridge'], 500, -200), pick(['rose'], 600, 300, 60)], 2);
         } else if (page === 7) {
             four([pick(['mum'], -300, -300, 36), { ...pick(['cup'], 300, 200, 16) }, pick(['bough'], 0, -600), pick(['dragonfly'], 400, -400)], 2);
+        } else if (page === 8) {
+            const p = plate('cloth', SHPLATE, 0.6, { whole: true, tooth: false, motifs: false });
+            const sc = 1600 / SHPLATE.w;
+            g.imageSmoothingQuality = 'high';
+            g.drawImage(p.c, 0, (900 - SHPLATE.h * sc) / 2, 1600, SHPLATE.h * sc);
         } else if (page === 4) {
             const p = plate('whole', SHPLATE, RES, { whole: true, tooth: false });
             if (!st.stats) {
@@ -120,7 +126,7 @@ Motion.scene({
                 const d = q.getImageData(0, 0, c.width, c.height).data, n = c.width * c.height, inside = new Uint8Array(n);
                 let cov = 0;
                 for (let i = 0; i < n; i++) {
-                    if (d[i * 4 + 3] > 127) cov++;
+                    if (d[i * 4 + 3] > 200) cov++;
                     else inside[i] = 1;
                 }
                 const e = S.edt(inside, c.width, c.height);

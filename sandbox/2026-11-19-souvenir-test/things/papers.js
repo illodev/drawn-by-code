@@ -6,8 +6,9 @@
 //   Papers.plaque(g, { x, y, s, rot, seed, ground })     330 × 150
 //   Papers.ticket(g, { x, y, s, rot, seed, ground })     300 × 140
 //   Papers.stamp(g, { x, y, s, rot, seed, ground })       90 × 110
-//   Papers.matchbox(g, { x, y, s, rot, seed, ground })   188 × 126 (the box 150 × 100 × 40,
-//       seen from above and a little from the front; its tray 38 out to the right)
+//   Papers.matchbox(g, { x, y, s, rot, seed, ground })   a box 150 × 100 × 40 seen from above,
+//       a little from the front and the left: its sleeve covers 163 × 106 about the anchor,
+//       the open tray reaches x = +120 and the head of a match lying on its rim x = +134
 // `ground` (0, the default: none) paints a soft shadow under the thing as paint of its own:
 // on a transparent layer `Souvenir.cast` has nothing to fall on.
 //
@@ -146,6 +147,20 @@ const Papers = (() => {
         g.fillStyle = style;
         g.fill();
     };
+    // a dry-brush stroke along a few points: the kit's `dab` wants its path walked finely
+    // (its bristles lift and land between points), so the path is resampled first
+    const dense = (pts, n = 18) => {
+        const c = pts.length > 2 ? S.curve(pts, false, 8) : pts, L = [0];
+        for (let i = 1; i < c.length; i++) L.push(L[i - 1] + dist(c[i - 1], c[i]));
+        const out = [], T = L[L.length - 1] || 1;
+        for (let k = 0, i = 1; k < n; k++) {
+            const d = (k / (n - 1)) * T;
+            while (i < c.length - 1 && L[i] < d) i++;
+            out.push(lerpP(c[i - 1], c[i], (d - L[i - 1]) / (L[i] - L[i - 1] || 1)));
+        }
+        return out;
+    };
+    const dab = (q, pts, o) => S.dab(q, dense(pts), o);
     const cutting = (q, fn) => {
         q.save();
         q.globalCompositeOperation = 'destination-out';
@@ -1223,7 +1238,7 @@ const Papers = (() => {
                 // where it rubbed against whatever it was kept with
                 for (let i = 0; i < 12; i++) {
                     const x = -190 + r() * 380, y = -280 + r() * 560, a = r() * 3, l = 20 + r() * 60;
-                    S.dab(k, [[x, y], [x + (Math.cos(a) * l) / 2, y + (Math.sin(a) * l) / 2 + (r() - 0.5) * 6], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 3 + r() * 9, color: '#000', alpha: 0.2 + r() * 0.3, bristles: 9, seed: 'scuff' + seed + i, dry: 0.7 });
+                    dab(k, [[x, y], [x + (Math.cos(a) * l) / 2, y + (Math.sin(a) * l) / 2 + (r() - 0.5) * 6], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 3 + r() * 9, color: '#000', alpha: 0.2 + r() * 0.3, bristles: 9, seed: 'scuff' + seed + i, dry: 0.7 });
                 }
             };
             // the flowers of the border, sort by sort, clockwise
@@ -1499,7 +1514,7 @@ const Papers = (() => {
             }
             for (let i = 0; i < 26; i++) {
                 const y = box.y + r() * box.h, x = box.x + r() * box.w, l = 40 + r() * 120;
-                S.dab(q, [[x, y], [x + l / 2, y + (r() - 0.5) * 3], [x + l, y + (r() - 0.5) * 4]], { w: 5 + r() * 9, color: r() < 0.5 ? '#f8f8f0' : '#cfd6de', alpha: 0.12 + r() * 0.12, bristles: 8, seed: 'glz' + seed + i, dry: 0.5 });
+                dab(q, [[x, y], [x + l / 2, y + (r() - 0.5) * 3], [x + l, y + (r() - 0.5) * 4]], { w: 5 + r() * 9, color: r() < 0.5 ? '#f8f8f0' : '#cfd6de', alpha: 0.12 + r() * 0.12, bristles: 8, seed: 'glz' + seed + i, dry: 0.5 });
             }
             lay(q, 'grain', box, 0.3, 0.3);
 
@@ -1547,7 +1562,7 @@ const Papers = (() => {
                 over: (k) => {
                     for (let i = 0; i < 700; i++) {
                         const x = box.x + r() * box.w, y = box.y + r() * box.h, a = r() * TAU, l = 2 + r() * 5;
-                        S.dab(k, [[x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 1 + r() * 1.6, color: r() < 0.55 ? '#b27a1c' : '#f6e08c', alpha: 0.3 + r() * 0.3, bristles: 4, seed: 'yl' + seed + i, dry: 0.4 });
+                        dab(k, [[x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 1 + r() * 1.6, color: r() < 0.55 ? '#b27a1c' : '#f6e08c', alpha: 0.3 + r() * 0.3, bristles: 4, seed: 'yl' + seed + i, dry: 0.4 });
                     }
                 },
             });
@@ -1640,7 +1655,18 @@ const Papers = (() => {
                     // the brush's loads: darker where strokes overlap, paler where it dragged
                     for (let i = 0; i < 1900; i++) {
                         const x = box.x + r() * box.w, y = box.y + r() * box.h, a = Math.PI / 2 + (r() - 0.5) * 1.1, l = 4 + r() * 11, dark = r() < 0.55;
-                        S.dab(k, [[x, y], [x + (Math.cos(a) * l) / 2 + (r() - 0.5), y + (Math.sin(a) * l) / 2], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 1.4 + r() * 3, color: dark ? '#0a1650' : '#7f9eea', alpha: dark ? 0.4 + r() * 0.35 : 0.3 + r() * 0.3, bristles: 5, seed: 'cb' + seed + i, dry: 0.5 });
+                        dab(k, [[x, y], [x + (Math.cos(a) * l) / 2 + (r() - 0.5), y + (Math.sin(a) * l) / 2], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 1.4 + r() * 3, color: dark ? '#0a1650' : '#7f9eea', alpha: dark ? 0.4 + r() * 0.35 : 0.3 + r() * 0.3, bristles: 5, seed: 'cb' + seed + i, dry: 0.5 });
+                    }
+                    // the bristles' own tracks down every stroke
+                    k.lineCap = 'round';
+                    for (let i = 0; i < 2600; i++) {
+                        const x = -106 + r() * 212, y = r() < 0.42 ? -32 + r() * 22 : 7 + r() * 31, l = 2 + r() * 8, dark = r() < 0.5;
+                        k.strokeStyle = dark ? `rgba(6,14,64,${(0.2 + r() * 0.3).toFixed(2)})` : `rgba(150,176,244,${(0.2 + r() * 0.3).toFixed(2)})`;
+                        k.lineWidth = 0.16 + r() * 0.22;
+                        k.beginPath();
+                        k.moveTo(x, y);
+                        k.lineTo(x + (r() - 0.5) * 0.8, y + l);
+                        k.stroke();
                     }
                     // where one stroke crossed another the pigment lies double: dark knots
                     for (let i = 0; i < 260; i++) blob(k, [-104 + r() * 208, r() < 0.5 ? -30 + r() * 19 : 9 + r() * 28], 1 + r() * 2.2, '6,14,64', 0.35 + r() * 0.35);
@@ -1791,7 +1817,7 @@ const Papers = (() => {
                 lay(q, 'grit', bb, 0.9, 0.3, 'source-over', [9, 5]);
                 for (let i = 0; i < 22; i++) {
                     const u = r(), top = r() < 0.5, x0 = -160 + u * 280, yy = (top ? -1 : 1) * (67 + r() * 4), l = 14 + r() * 40;
-                    S.dab(q, F.pts([[x0, yy], [x0 + l / 2, yy + (r() - 0.5) * 1.6], [x0 + l, yy + (r() - 0.5) * 2]]), { w: 1.6 + r() * 3, color: r() < 0.5 ? '#f3ead4' : '#8f8068', alpha: 0.3 + r() * 0.3, bristles: 5, seed: 'trowel' + seed + i, dry: 0.5 });
+                    dab(q, F.pts([[x0, yy], [x0 + l / 2, yy + (r() - 0.5) * 1.6], [x0 + l, yy + (r() - 0.5) * 2]]), { w: 1.6 + r() * 3, color: r() < 0.5 ? '#f3ead4' : '#8f8068', alpha: 0.3 + r() * 0.3, bristles: 5, seed: 'trowel' + seed + i, dry: 0.5 });
                 }
                 for (let i = 0; i < 90; i++) {
                     // grains of sand and the pits they left
@@ -1913,12 +1939,14 @@ const Papers = (() => {
     // The engraver's sphere: hairlines that follow the form and swell in the shade, as
     // crescents about a point on the lit side. The caller clips to the body.
     function hatchBall(q, cx, cy, R, o = {}) {
-        const n = o.n ?? 9, ox = cx + (o.lx ?? -0.55) * R * 0.6, oy = cy + (o.ly ?? -0.6) * R * 0.6;
+        const n = o.n ?? 9, lx = o.lx ?? -0.55, ly = o.ly ?? -0.6, off = 0.6 * Math.hypot(lx, ly), ox = cx + lx * R * 0.6, oy = cy + ly * R * 0.6;
+        // from where the form turns out of the light (`from`, in radii) to its far edge
+        const lo = o.from ?? 0.74, hi = 1 + off;
         for (let i = 0; i < n; i++) {
             const u = (i + 0.5) / n;
             q.lineWidth = (o.w0 ?? 0.2) + ((o.w1 ?? 0.7) - (o.w0 ?? 0.2)) * u * u;
             q.beginPath();
-            q.arc(ox, oy, R * ((o.from ?? 0.8) + u * (o.span ?? 1.25)), 0, TAU);
+            q.arc(ox, oy, R * (lo + u * (hi - lo)), 0, TAU);
             q.stroke();
         }
     }
@@ -1989,7 +2017,7 @@ const Papers = (() => {
         q.beginPath();
         S.trace(q, body);
         q.clip();
-        hatchBall(q, 0, 0.6, 12.2, { n: 11, w0: 0.18, w1: 0.8 });
+        hatchBall(q, 0, 0.6, 12.2, { n: 12, w0: 0.18, w1: 0.82, from: 0.8 });
         q.lineWidth = 0.28;
         for (let i = 0; i < 9; i++) {
             q.beginPath();
@@ -2043,7 +2071,7 @@ const Papers = (() => {
                 rub(k, [TFOLD, -70], [TFOLD, 70], 'tf' + seed, 0.9);
                 for (let i = 0; i < 7; i++) {
                     const x = -140 + r() * 280, y = -62 + r() * 124, a = r() * 3, l = 14 + r() * 40;
-                    S.dab(k, [[x, y], [x + (Math.cos(a) * l) / 2, y + (Math.sin(a) * l) / 2 + (r() - 0.5) * 4], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 2 + r() * 6, color: '#000', alpha: 0.2 + r() * 0.3, bristles: 8, seed: 'tscuff' + seed + i, dry: 0.7 });
+                    dab(k, [[x, y], [x + (Math.cos(a) * l) / 2, y + (Math.sin(a) * l) / 2 + (r() - 0.5) * 4], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 2 + r() * 6, color: '#000', alpha: 0.2 + r() * 0.3, bristles: 8, seed: 'tscuff' + seed + i, dry: 0.7 });
                 }
             };
             const PX = 39; // the middle of the panel right of the stub
@@ -2348,7 +2376,7 @@ const Papers = (() => {
             q.beginPath();
             S.trace(q, pts);
             q.clip();
-            hatchBall(q, c[0], c[1], 8.6, { n: 13, w0: 0.14, w1: 0.74, from: 1.02, span: 1.1 });
+            hatchBall(q, c[0], c[1], 9.4, { n: 12, w0: 0.14, w1: 0.62, from: 0.86 });
             q.lineWidth = 0.24;
             for (let j = 0; j < 8; j++) {
                 q.beginPath();
@@ -2404,7 +2432,7 @@ const Papers = (() => {
             const wear = (k) => {
                 for (let i = 0; i < 4; i++) {
                     const rr = Motion.rng('stwear/' + seed + i), x = -36 + rr() * 72, y = -46 + rr() * 92, a = rr() * 3, l = 8 + rr() * 22;
-                    S.dab(k, [[x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 2 + rr() * 4, color: '#000', alpha: 0.25 + rr() * 0.3, bristles: 7, seed: 'stw' + seed + i, dry: 0.7 });
+                    dab(k, [[x, y], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 2 + rr() * 4, color: '#000', alpha: 0.25 + rr() * 0.3, bristles: 7, seed: 'stw' + seed + i, dry: 0.7 });
                 }
                 rub(k, [20, -55], [45, -28], 'stc' + seed, 0.7);
             };
@@ -2493,8 +2521,7 @@ const Papers = (() => {
                     k.stroke();
                 }
                 arcType(k, 'GRANADA', 0, 0, 21, -Math.PI / 2, { font: FACE.anton, size: 9.8, track: 0.22 });
-                for (const a of [Math.PI / 2 - 0.62, Math.PI / 2 + 0.62]) star(k, Math.cos(a) * 25.4, Math.sin(a) * 25.4, 2.4, 5, 0.45);
-                arcType(k, '(18)', 0, 0, 29.2, Math.PI / 2, { font: FACE.anton, size: 8, track: 0.1, inside: true });
+                for (const [a, rad] of [[Math.PI / 2 - 0.5, 2.2], [Math.PI / 2, 2.9], [Math.PI / 2 + 0.5, 2.2]]) star(k, Math.cos(a) * 25.4, Math.sin(a) * 25.4, rad, 5, 0.45, a - Math.PI);
                 // the date between two bars
                 k.fillRect(-18.4, -5.4, 36.8, 0.65);
                 k.fillRect(-18.4, 4.9, 36.8, 0.65);
@@ -2568,7 +2595,7 @@ const Papers = (() => {
                 for (const [a, b] of [[[-72, -46], [72, -46]], [[72, -46], [72, 46]], [[72, 46], [-72, 46]], [[-72, 46], [-72, -46]]]) rub(k, a, b, 'lab' + seed + a, 1.5);
                 for (let i = 0; i < 9; i++) {
                     const x = -66 + r() * 132, y = -42 + r() * 84, a = r() * 3, l = 12 + r() * 40;
-                    S.dab(k, [[x, y], [x + (Math.cos(a) * l) / 2, y + (Math.sin(a) * l) / 2 + (r() - 0.5) * 4], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 2 + r() * 6, color: '#000', alpha: 0.25 + r() * 0.35, bristles: 8, seed: 'labscuff' + seed + i, dry: 0.7 });
+                    dab(k, [[x, y], [x + (Math.cos(a) * l) / 2, y + (Math.sin(a) * l) / 2 + (r() - 0.5) * 4], [x + Math.cos(a) * l, y + Math.sin(a) * l]], { w: 2 + r() * 6, color: '#000', alpha: 0.25 + r() * 0.35, bristles: 8, seed: 'labscuff' + seed + i, dry: 0.7 });
                 }
             };
             const MX = 0, MY = 4.5, MR = 20.5; // the medallion
@@ -2802,7 +2829,7 @@ const Papers = (() => {
             for (let i = 0; i < 30; i++) {
                 const x = 12 + r() * 110, y = 9 + r() * 22, a = (r() - 0.5) * 0.9 + (r() < 0.2 ? Math.PI : 0), l = 12 + r() * 38, wd = 0.9 + r() * 2.4;
                 const path = [[x, y], [x + (Math.cos(a) * l) / 2, y + (Math.sin(a) * l) / 2 + (r() - 0.5) * 1.6], [x + Math.cos(a) * l, y + Math.sin(a) * l]];
-                S.dab(q, path, { w: wd, color: r() < 0.7 ? '#f0dccb' : '#c79a86', alpha: 0.55 + r() * 0.4, bristles: 5, seed: 'strike' + seed + i, dry: 0.5 });
+                dab(q, path, { w: wd, color: r() < 0.7 ? '#f0dccb' : '#c79a86', alpha: 0.55 + r() * 0.4, bristles: 5, seed: 'strike' + seed + i, dry: 0.5 });
                 S.ink(q, [path[0], lerpP(path[0], path[1], 0.5)], { w: wd * 0.5, color: '#1a0e10', alpha: 0.6, taper: [0, 1] });
             }
             // two burns where a head flared against it
@@ -2821,7 +2848,7 @@ const Papers = (() => {
             // rubbed along its edges to the pale of the paper, and to the board at the corners
             for (let i = 0; i < 26; i++) {
                 const top = r() < 0.6, x = r() * 150, l = 4 + r() * 22, y = top ? 0.4 + r() * 1.4 : 39.6 - r() * 1.2;
-                S.dab(q, [[x, y], [x + l / 2, y + (r() - 0.5) * 0.6], [x + l, y]], { w: 0.8 + r() * 1.6, color: r() < 0.6 ? '#9eb0e0' : '#c8b88e', alpha: 0.4 + r() * 0.4, bristles: 4, seed: 'siderub' + seed + i, dry: 0.5 });
+                dab(q, [[x, y], [x + l / 2, y + (r() - 0.5) * 0.6], [x + l, y]], { w: 0.8 + r() * 1.6, color: r() < 0.6 ? '#9eb0e0' : '#c8b88e', alpha: 0.4 + r() * 0.4, bristles: 4, seed: 'siderub' + seed + i, dry: 0.5 });
             }
             for (const [cx, cy] of [[0, 0], [150, 0], [0, 40], [150, 40]]) {
                 const pts = [];
@@ -2928,11 +2955,31 @@ const Papers = (() => {
                     strokePts(q, [B(X, Y, zb + wt), B(X + l, Y + (r() - 0.5) * 2, zb + wt)], 0.25, r() < 0.5 ? 'rgba(90,70,50,0.35)' : 'rgba(255,244,214,0.35)');
                 }
                 blob(q, B(L + 12, 40, zb + wt), 9, '120,90,60', 0.25);
+                lay(q, 'grit', S.bbox(floor), 0.3, 0.2);
+                // splinters off the sticks, each with its own hair of shadow
+                for (let i = 0; i < 14; i++) {
+                    const X = L + 4 + r() * 30, Y = y0 + 6 + r() * (W - 14), a = (r() - 0.5) * 1.2, l = 1.6 + r() * 3.4, p0 = B(X, Y, zb + wt), p1 = B(X + Math.cos(a) * l, Y + Math.sin(a) * l, zb + wt);
+                    strokePts(q, [[p0[0] + SD[0] * 0.4, p0[1] + SD[1] * 0.4], [p1[0] + SD[0] * 0.4, p1[1] + SD[1] * 0.4]], 0.4, 'rgba(50,34,30,0.5)');
+                    strokePts(q, [p0, p1], 0.34, 'rgba(244,228,180,0.9)');
+                }
+                // the paper strip that holds the tray's corners, lapped onto the floor
+                const lap = [B(T1 - wt - 5.6, y0 + wt, zb + wt), B(T1 - wt, y0 + wt, zb + wt), B(T1 - wt, y1 - wt, zb + wt), B(T1 - wt - 5.6, y1 - wt, zb + wt)];
+                fillPts(q, lap, 'rgba(226,214,186,0.34)');
+                strokePts(q, [lap[0], lap[3]], 0.35, 'rgba(70,52,44,0.5)');
                 // red dust shed by the heads
                 for (let i = 0; i < 40; i++) disc(q, B(T1 - 6 - r() * r() * 26, y0 + 6 + r() * (W - 14), zb + wt), 0.15 + r() * 0.3, `rgba(170,50,40,${(0.3 + r() * 0.4).toFixed(2)})`);
             },
         });
-        S.piece(g, farIn, { fill: shadeOf(BOARD, tF - 0.1), line: 0.7, heavy: 0.3, detail: (q) => grainOn(q, farIn) });
+        S.piece(g, farIn, {
+            fill: shadeOf(BOARD, tF - 0.1), line: 0.7, heavy: 0.3,
+            detail: (q) => {
+                grainOn(q, farIn);
+                // the board is two plies: a hair of a line along the wall, and the strip's lap at its end
+                strokePts(q, [B(L - 8, y1 - wt, zb + wt + 6), B(T1 - wt, y1 - wt, zb + wt + 6.6)], 0.3, 'rgba(30,20,24,0.4)');
+                fillPts(q, Q([T1 - wt - 5.6, y1 - wt, zb + wt], [T1 - wt, y1 - wt, zb + wt], [T1 - wt, y1 - wt, zt], [T1 - wt - 5.6, y1 - wt, zt]), 'rgba(226,214,186,0.2)');
+                for (let i = 0; i < 16; i++) disc(q, B(L + r() * 34, y1 - wt, zb + wt + 2 + r() * (zt - zb - wt - 4)), 0.15 + r() * 0.3, `rgba(170,50,40,${(0.25 + r() * 0.35).toFixed(2)})`);
+            },
+        });
         S.piece(g, endIn, { fill: shadeOf(BOARD, tL), line: 0.6, heavy: 0.3, detail: (q) => grainOn(q, endIn) });
         // what the lid and the tray's own walls throw into it
         const opening = Q([L, y0 + wt, zb + wt], [T1 - wt, y0 + wt, zb + wt], [T1 - wt, y0 + wt, zt], [T1 - wt, y1 - wt, zt], [L - 8, y1 - wt, zt], [L - 8, y0 + wt, zb + wt]);

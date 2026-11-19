@@ -49,15 +49,15 @@ Motion.scene({
         } else if (page === 3) put('amphora', { x: 800, y: 450, s: 2.4 });
         else if (page === 4) put('mosaic', { x: 800, y: 450, s: 2.6 });
         else if (page === 5) {
-            win('carambolo', 20, 20, 500, 420, -52, -38);
-            win('carambolo', 20, 460, 500, 420, 60, 40);
-            win('murex', 540, 20, 520, 860, 30, -20);
-            win('helmet', 1080, 20, 500, 860, 16, 8);
+            win('carambolo', 20, 20, 500, 420, -60, -34);
+            win('carambolo', 20, 460, 500, 420, 62, 40);
+            win('murex', 540, 20, 520, 860, 26, -8);
+            win('helmet', 1080, 20, 500, 860, 14, 8);
         } else if (page === 6) {
-            win('amphora', 20, 20, 500, 420, -66, -92);
-            win('amphora', 20, 460, 500, 420, -20, -40);
-            win('mosaic', 540, 20, 520, 420, -80, 60);
-            win('mosaic', 540, 460, 520, 420, 20, -30);
+            win('amphora', 20, 20, 500, 420, -8, -112);
+            win('amphora', 20, 460, 500, 420, 22, -36);
+            win('mosaic', 540, 20, 520, 420, -40, -22);
+            win('mosaic', 540, 460, 520, 420, 62, 62, 6);
             win('stele', 1080, 20, 500, 860, 0, 0);
         } else if (page === 7) {
             put('carambolo', { x: 200, y: 200, rot: 0.7 });
@@ -68,6 +68,12 @@ Motion.scene({
             put('mosaic', { x: 320, y: 620, rot: -2.6 });
             put('carambolo', { x: 760, y: 660, rot: Math.PI });
             put('murex', { x: 1060, y: 700, rot: 1.9 });
+        } else if (page === 9) {
+            g.save();
+            g.translate(800, 450);
+            g.scale(3.4, 3.4);
+            R._debug(g);
+            g.restore();
         } else {
             const sheet = Motion.layer(env, 'relics-sheet', (q) => row(q));
             Motion.drawLayer(g, env, sheet);

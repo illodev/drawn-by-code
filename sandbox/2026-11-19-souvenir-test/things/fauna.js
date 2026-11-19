@@ -10,24 +10,34 @@
 //   line    true: the emblem manner (blue-black contour, heavier on the shadow side, and
 //           airbrush); false: the brush manner (no contour: every piece closes in its own
 //           darker tone and the silhouette's last stroke breaks up), for the lemon tree.
-//   cast    its shadow on the paint already under it (never on bare canvas): true, false or
-//           { blur, dx, dy, color } in the creature's own units.
+//   cast    its shadow on the paint already under it (never on bare canvas: paint it on the
+//           layer of the thing it sits on, or pass false on an opaque plate): true, false
+//           or { blur, dx, dy, color } in the creature's own units.
 //   s       contours grow slower than the creature (× s^0.58), so a big one is not all line.
+//   Each is painted once into a sprite, cached by its options and the output resolution.
 //
-//   Fauna.bee        46 long    pose: 'fly' | 'feed'      side view
-//   Fauna.butterfly  90 across  fold: 0 … 1               from above (0) round to its side (1)
-//   Fauna.ladybird   18 long                               from above
-//   Fauna.lizard     190 long   pose: 0 | 1, tear          from above
-//   Fauna.gecko      110 long   pose: 0 | 1                from above
-//   Fauna.goldfinch  130 long   pose: 0 | 1, perch         side view
-//   Fauna.snail      60 long    trail: units of slime      side view
-//   Fauna.box(g, name, o)    → { x, y, w, h } what it covers, in the caller's units
-//   Fauna.marks(g, name, o)  → { feet: [[x, y], …], mouth: [x, y], … } in the caller's units
+//   name       size at s = 1 (x from … to, y from … to, about the anchor)        options
+//   bee        46 long: −24 … 28, −37 … 26 (wings up, legs down)   pose: 'fly' | 'feed' (head down, wings folded: −23 … 28, −21 … 25)
+//   butterfly  92 across: −38 … 25, −46 … 46 flat                  fold: 0 flat from above … 1 closed, from her side, wings up (−38 … 27, −46 … 12); default 0.2
+//   ladybird   19 long: −10 … 11, −10 … 10 with its legs
+//   lizard     200 along its spine: −96 … 56, −43 … 39               pose: 0 an S | 1 a hook (−83 … 54, −26 … 60); tear: true («El lagarto está llorando»)
+//   gecko      113 along its spine: −57 … 40, −36 … 26              pose: 0 | 1 (−63 … 39, −29 … 38)
+//   goldfinch  133 bill to tail: −67 … 48, −46 … 46                 pose: 0 perched | 1 leaning to peck (−64 … 64, −23 … 46);
+//                                                                    look: 'back' (default: over its shoulder) | 'ahead';
+//                                                                    perch: [x0, y0, x1, y1] the twig, in the caller's units
+//                                                                    (default: level, 41.4 × s under the anchor), perchW: its thickness (4.6)
+//   snail      60 long: −32 … 33, −24 … 12.4 (the sole)             trail: units of slime behind it
+//
+//   Fauna.box(g, name, o)    → { x, y, w, h } what it covers, in the caller's units (with a margin of 6 × s)
+//   Fauna.marks(g, name, o)  → its points in the caller's units: feet [[x, y], …] and mouth [x, y] for all;
+//                              goldfinch: feet (on the perch's axis), perch [[x, y], [x, y]], eye, mouth (the bill's tip);
+//                              lizard: eye; snail: sole [[x, y], [x, y]]
 //
 // Water, painted OVER what is there (it only ever lands on existing paint):
-//   Fauna.drop(g, { x, y, r = 8, rot = 0, squash = 1 })
-//   Fauna.drops(g, { box | path, n, seed, rMin, rMax, down })
-//   Fauna.web(g, { x, y, r, seed, a0, a1, to })
+//   Fauna.drop(g, { x, y, r = 8, rot = 0, squash = 1, pear = 0, shadow = 1 })   one dew drop; squash < 1 draws it out along rot
+//   Fauna.drops(g, { box | path, n, seed, rMin, rMax, down = π/2, run = 0.3 })  → [{ x, y, r }]; the bigger ones have run
+//   Fauna.web(g, { x, y, r, seed, a0 = 0, a1 = π/2, full, to, color, alpha, dew, w = 0.4 })
+//       a fan with its hub at (x, y) from angle a0 to a1; full: a whole orb; to: [x1, y1] an orb hung between two points
 //
 // ---------------------------------------------------------------------------------------
 // What each one is, and the small true things painted on it.
@@ -327,7 +337,7 @@ const Fauna = (() => {
                 c.clip();
                 if (axis) {
                     // denser at the root and along the leading edge, a sheen down the middle
-                    const a = axis[0], b = axis[1], d = norm([b[0] - a[0], b[1] - a[1]]), len = dist(a, b);
+                    const a = axis[0], b = axis[1], d = norm([b[0] - a[0], b[1] - a[1]]);
                     soft(c, [a, mixP(a, b, 0.22)], { color: mix(tint, '#8a7a6a', 0.5), alpha: 0.45, w: wd * 0.5, blur: wd * 0.5 });
                     soft(c, [mixP(a, b, 0.3), mixP(a, b, 0.86)].map((p) => [p[0] + LIT[0] * wd * 0.1, p[1] + LIT[1] * wd * 0.1]), { color: '#ffffff', alpha: 0.5 * (q.sheen ?? 1), w: wd * 0.1, blur: wd * 0.22 });
                     soft(c, [mixP(a, b, 0.62), mixP(a, b, 0.95)].map((p) => [p[0] - d[1] * wd * 0.2, p[1] + d[0] * wd * 0.2]), { color: '#f3bfd6', alpha: 0.3 * (q.sheen ?? 1), w: wd * 0.16, blur: wd * 0.3 });
@@ -339,7 +349,6 @@ const Fauna = (() => {
                         const p0 = mixP(a, b, u0), p1 = mixP(a, b, u1);
                         hairline(c, [[p0[0] - d[1] * off, p0[1] + d[0] * off], [p1[0] - d[1] * off * 0.9, p1[1] + d[0] * off * 0.9]], 0.22, '#ffffff', 0.22);
                     }
-                    void len;
                 }
                 c.restore();
                 for (const [ln, w] of vs) S.ink(c, ln, { w: w * (line ? 1 : 0.9), color: q.vein ?? '#3a2a26', alpha: q.veinA ?? 0.85, taper: [0.05, 0.85] });
@@ -497,7 +506,7 @@ const Fauna = (() => {
     ];
 
     function beeMake(B, o) {
-        const C = BEE, k = B.k, feed = o.pose === 'feed';
+        const C = BEE, feed = o.pose === 'feed';
         const rnd = Motion.rng('bee/' + o.seed + '/' + o.pose);
         // the bee's own frame lies level; feeding tips her head down into the flower
         const tilt = feed ? 0.5 : -0.07, ct = Math.cos(tilt), st = Math.sin(tilt);
@@ -794,7 +803,7 @@ const Fauna = (() => {
         black: '#1c1a28', blackDeep: '#0a0912', blackSheen: '#7f83ad', white: '#efe7d0', whiteShade: '#9c98b4',
     };
     function ladybirdMake(B, o) {
-        const C = LADY, k = B.k, rnd = Motion.rng('ladybird/' + o.seed);
+        const C = LADY, rnd = Motion.rng('ladybird/' + o.seed);
         // ---- legs and antennae, just showing
         B.outlined(0.3, () => {
             for (const sg of [-1, 1]) {
@@ -816,7 +825,7 @@ const Fauna = (() => {
         const ely = S.curve([[4.5, 0], [4, -3.6], [1.9, -6.2], [-2, -6.95], [-6, -5.6], [-8.7, -2.7], [-9.5, 0], [-8.7, 2.7], [-6, 5.6], [-2, 6.95], [1.9, 6.2], [4, 3.6]], true, 9);
         const SPOTS = [[2.7, 0, 1.5, 1.75], [1.3, 4.25, 1.05, 1], [1.3, -4.25, 1.05, 1], [-2.2, 2.45, 1.75, 1.6], [-2.2, -2.45, 1.75, 1.6], [-5.7, 3.5, 1.3, 1.15], [-5.7, -3.5, 1.3, 1.15]]
             .map(([x, y, rx, ry]) => [x + (rnd() - 0.5) * 0.3, y + (rnd() - 0.5) * 0.2 * (y ? 1 : 0), rx * (0.94 + rnd() * 0.12), ry * (0.94 + rnd() * 0.12)]);
-        const dc = B.pt([-2.4, 0]), u = [-LIT[1], LIT[0]];
+        const dc = B.pt([-2.4, 0]);
         const pits = [];
         for (let i = 0; i < 90; i++) pits.push(B.pt([-9 + rnd() * 13, (rnd() - 0.5) * 13]));
         B.outlined(0.5, () => {
@@ -855,7 +864,6 @@ const Fauna = (() => {
                     // punctures in the lacquer
                     for (const p of pits) disc(g, p, 0.07, '#5a0c12', 0.35);
                     // gloss: a short fat streak that follows the dome, and a dash after it
-                    const h = [dc[0] + LIT[0] * 3.3, dc[1] + LIT[1] * 3.3];
                     const arc = range(-0.36, 0.36, 8).map((a) => {
                         const v = turn(LIT, a);
                         return [dc[0] + v[0] * 3.3, dc[1] + v[1] * 3.3];
@@ -864,8 +872,6 @@ const Fauna = (() => {
                     hairline(g, arc.slice(1, -1), 0.72, '#fff6ec', 0.92);
                     const v2 = turn(LIT, 0.72);
                     hairline(g, [[dc[0] + v2[0] * 3.25, dc[1] + v2[1] * 3.25], [dc[0] + turn(LIT, 0.82)[0] * 3.2, dc[1] + turn(LIT, 0.82)[1] * 3.2]], 0.5, '#fff6ec', 0.85);
-                    void h;
-                    void u;
                 },
             }, {
                 line: 0.5, ink: C.ink, rim: '#3a0810',
@@ -920,7 +926,6 @@ const Fauna = (() => {
         }, C.ink);
         B.mark('feet', [[9.9, 7.6], [9.9, -7.6], [-1.4, 10], [-1.4, -10], [-9.4, 8.2], [-9.4, -8.2]]);
         B.mark('mouth', [9.6, 0]);
-        void k;
     }
     KINDS.ladybird = { make: ladybirdMake, cast: { blur: 2.2, dx: 1.5, dy: 2, color: 'rgba(14,12,30,0.5)' } };
 
@@ -1322,7 +1327,7 @@ const Fauna = (() => {
         SP.limbs.forEach((lm, i) => limb(lm, i >= 2));
 
         // ---- the tail: whorls of keeled scales, greying to its tip
-        const tailCuts = [0.445, 0.56, 0.68, 0.8, 1], tailCol = [C.green, mix(C.green, C.tail, 0.45), mix(C.green, C.tail, 0.8), C.tail, mix(C.tail, '#7a7460', 0.6)];
+        const tailCuts = [0.445, 0.54, 0.66, 0.8, 1], tailCol = [C.green, mix(C.green, C.tail, 0.4), mix(C.green, C.tail, 0.8), C.tail, mix(C.tail, '#7a7460', 0.6)];
         const rings = [], keels = [], tblack = [];
         for (let U = 0.452 * L; U < 0.992 * L; U += 2.15) {
             const u = U / L, h = Bd.hw(u), bow = Math.min(1, h * 0.25) / L;
@@ -1332,29 +1337,22 @@ const Fauna = (() => {
                 const w = -1 + (2 * (j + 0.5)) / nk;
                 keels.push(T([at(u + 0.2 / L, w), at(u + 1.9 / L, w * 0.985)]));
                 const c = cells(U, w * h + 60, 5.2, sd);
-                if (u < 0.74 && (c.f2 - c.f1 < 0.7 || (c.id < 0.16 && c.f1 < 1.6))) tblack.push([...pt(at(u + 1.05 / L, w)), angOf(u), 0.95, (h / nk) * 0.86]);
+                if (u < 0.76 && (c.f2 - c.f1 < lerp(1.15, 0.45, smooth(0.47, 0.74, u)) || (c.id < 0.16 && c.f1 < 1.6))) tblack.push([...pt(at(u + 1.05 / L, w)), angOf(u), 0.95, (h / nk) * 0.86]);
             }
         }
-        // (tail and trunk share one contour, so no line crosses the tail's root)
-        B.outlined(0.78, () => {
-            for (let i = tailCuts.length - 2; i >= 0; i--) {
-                const u0 = tailCuts[i], u1 = Math.min(1, tailCuts[i + 1] + 0.004), n = 22;
-                const poly = [...edge(u0, u1, n, -1), ...(u1 >= 1 ? [Bd.on(L + 0.5, 0)] : []), ...edge(u1, u0, n, 1)];
-                B.piece(poly, {
-                    fill: tailCol[i], line: 0, ink: C.ink, rimA: 0,
-                    shade: [{ color: mix(tailCol[i], C.greenDark, 0.72), alpha: 0.9, w: 2.8, push: 1.5 }, { color: C.greenDark, alpha: 0.5, w: 1 }],
-                    light: { color: mix(tailCol[i], '#f2f0b4', 0.6), alpha: 0.8, w: 2.2, push: 1 },
-                });
+        // (tail and trunk are one piece: a cut across the tail's root would take the airbrush as an edge)
+        const tailPaint = (g) => {
+            // the tail greys to its tip
+            for (let i = 1; i < tailCuts.length - 1; i++) {
+                const ln = T(range(tailCuts[i], Math.min(0.995, tailCuts[i + 1] + 0.03), 16).map((u) => at(u, 0)));
+                soft(g, ln, { color: tailCol[i], alpha: 0.95, w: 2 * Bd.hw(tailCuts[i]) + 1, blur: 2.5 });
             }
-        B.add([], (g) => {
-            g.save();
-            g.globalCompositeOperation = 'source-atop';
             scaleDots(g, tblack, C.black, 0.8, 0.95);
             for (const r of rings) hairline(g, r, 0.26, C.greenDark, 0.62);
             for (const kl of keels) hairline(g, kl, 0.16, C.greenDark, 0.4);
             for (const kl of keels) hairline(g, kl.map(([x, y]) => [x + LIT[0] * 0.3, y + LIT[1] * 0.3]), 0.14, '#f0f0b8', 0.3);
-            g.restore();
-        });
+        };
+        B.outlined(0.78, () => {
 
         // ---- the trunk: green beaded with black, the blue eye-spots along the flanks
         const ocelli = [];
@@ -1389,8 +1387,8 @@ const Fauna = (() => {
                 else SC.arc.push(it);
             }
         }
-        const N = 46, uA = 0.1, uB = 0.474;
-        const trunk = [...edge(uA, uB, N, -1), ...edge(uB, uA, N, 1)];
+        const N = 110, uA = 0.1;
+        const trunk = [...edge(uA, 1, N, -1), Bd.on(L + 0.5, 0), ...edge(1, uA, N, 1)];
         const bellyL = T(edge(0.125, 0.44, 40, -0.93)), bellyR = T(edge(0.125, 0.44, 40, 0.93)), trunkS = T(trunk);
         const spots = ocelli.map(([U, V, r0]) => ({ c: pt(Bd.on(U, V)), r: r0, a: Math.atan2(pt(Bd.frame(U / L).d)[1], pt(Bd.frame(U / L).d)[0]), k: S.hashI(Math.round(U * 7), Math.round(V * 5), 2, sd) }));
         const spineLine = T(edge(0.12, 0.46, 40, 0));
@@ -1400,6 +1398,7 @@ const Fauna = (() => {
                 shade: [{ color: C.greenDeep, alpha: 0.95, w: 7.5, push: 4.4 }, { color: C.greenDark, alpha: 0.7, w: 2.6 }],
                 light: [{ color: C.greenLight, alpha: 0.85, w: 6, push: 3 }],
                 detail: (g) => {
+                    tailPaint(g);
                     // the belly's pale edge, showing along each flank
                     for (const ln of [bellyL, bellyR]) {
                         soft(g, ln, { color: C.belly, alpha: 0.6, w: 0.9, blur: 0.8 });
@@ -1700,9 +1699,9 @@ const Fauna = (() => {
                     for (const sdl of saddles) {
                         // a saddle: soft in front, a dark crisp hem behind, a pale band after it
                         const w = sdl[sdl.length - 1][0], ln = sdl.slice(0, -1), bx = (ln[2][0] - ln[0][0]), by = (ln[2][1] - ln[0][1]);
-                        soft(g, ln, { color: C.band, alpha: 0.66, w: w * 0.9, blur: w * 0.7 });
-                        soft(g, ln.map(([x, y]) => [x + bx * 0.3, y + by * 0.3]), { color: C.dark, alpha: 0.7, w: w * 0.2, blur: w * 0.22 });
-                        soft(g, ln.map(([x, y]) => [x + bx * 0.62, y + by * 0.62]), { color: C.light, alpha: 0.5, w: w * 0.26, blur: w * 0.4 });
+                        soft(g, ln, { color: C.band, alpha: 0.8, w: w * 1.0, blur: w * 0.6 });
+                        soft(g, ln.map(([x, y]) => [x + bx * 0.32, y + by * 0.32]), { color: C.dark, alpha: 0.85, w: w * 0.24, blur: w * 0.2 });
+                        soft(g, ln.map(([x, y]) => [x + bx * 0.66, y + by * 0.66]), { color: C.light, alpha: 0.6, w: w * 0.3, blur: w * 0.36 });
                     }
                     // the fold of skin along each flank
                     for (const ln of [foldL, foldR]) {
@@ -1993,6 +1992,7 @@ const Fauna = (() => {
         }
         // ---- the wings, the far pair first; from below the hindwing lies over the forewing
         order.forEach((wing, i) => {
+            if (Math.abs(wing.c) < 0.14) return; // seen edge-on: a hair, left out
             const seq = wing.under ? [FLY_FW, FLY_HW] : [FLY_HW, FLY_FW];
             for (const W of seq) B.outlined(0.62, () => paintWing(W, wing, W === FLY_HW, i === 0 && fold > 0.5), C.ink);
         });
@@ -2495,7 +2495,6 @@ const Fauna = (() => {
             B.ink(HH([[11.2, 1.8], [16, 2.1], [21, 2.3], [25.2, 2.5]]), { w: 0.5, color: C.ink, brush: '#6a5048', taper: [0.2, 0.9] });
         }, C.ink);
         B.mark('mouth', R(Hh([25.3, 2.5])));
-        void k;
     }
     KINDS.goldfinch = {
         make: goldfinchMake, defaults: { pose: 0, perch: null, perchW: 4.6, look: 'back' },
@@ -2593,13 +2592,13 @@ const Fauna = (() => {
         // darkest just inside the lit edge: the light that enters there leaves on the far side
         t.globalCompositeOperation = 'multiply';
         let gr = t.createRadialGradient(x + LIT[0] * rr * 0.6, y + LIT[1] * rr * 0.6, 0, x + LIT[0] * rr * 0.6, y + LIT[1] * rr * 0.6, rr * 1.75);
-        gr.addColorStop(0, 'rgba(70,66,80,0.86)');
-        gr.addColorStop(0.5, 'rgba(96,92,100,0.5)');
+        gr.addColorStop(0, 'rgba(70,66,80,0.8)');
+        gr.addColorStop(0.5, 'rgba(96,92,100,0.42)');
         gr.addColorStop(1, 'rgba(110,106,112,0.06)');
         t.fillStyle = gr;
         t.fillRect(x - ext, y - ext, ext * 2, ext * 2);
         // … and glows where it comes out: the paint's own colour, brighter and more saturated
-        for (const [mode, a0] of [['overlay', 0.7], ['color-dodge', 0.26], ['screen', 0.1]]) {
+        for (const [mode, a0] of [['overlay', 0.62], ['screen', 0.1]]) {
             t.globalCompositeOperation = mode;
             gr = t.createRadialGradient(x + SH[0] * rr * 0.62, y + SH[1] * rr * 0.62, 0, x + SH[0] * rr * 0.62, y + SH[1] * rr * 0.62, rr * 0.86);
             gr.addColorStop(0, `rgba(255,250,226,${a0})`);
@@ -2610,8 +2609,9 @@ const Fauna = (() => {
         }
         t.globalCompositeOperation = 'screen';
         // a bright crescent inside the far edge
-        path();
-        path(LIT[0] * rr * 0.2, LIT[1] * rr * 0.2);
+        t.beginPath();
+        S.trace(t, out);
+        S.trace(t, out.map(([px, py]) => [px + LIT[0] * rr * 0.2, py + LIT[1] * rr * 0.2]));
         t.fillStyle = 'rgba(255,253,236,0.62)';
         t.fill('evenodd');
         // a dark rim on the lit side
@@ -2744,11 +2744,10 @@ const Fauna = (() => {
         const at = (i, rr) => [hub[0] + Math.cos(radii[i].a) * rr, hub[1] + Math.sin(radii[i].a) * rr];
         // moorings: the frame threads that carry the orb
         if (to) {
-            for (const [p, back] of [[[x, y], 0], [to, 1]]) {
+            for (const p of [[x, y], to]) {
                 const ang = Math.atan2(p[1] - hub[1], p[0] - hub[0]);
                 const near = radii.map((q, i) => [Math.abs(Math.atan2(Math.sin(q.a - ang), Math.cos(q.a - ang))), i]).sort((p1, p2) => p1[0] - p2[0]).slice(0, 3);
                 for (const [, i] of near) lines.push([at(i, radii[i].len), p, 1]);
-                void back;
             }
         }
         // radii, and the frame thread from tip to tip
@@ -2775,7 +2774,7 @@ const Fauna = (() => {
                 lines.push([pA, pB, 0.8, c]);
                 if (ri > 2 && rnd() < 0.2 * dew) {
                     const u = 0.3 + rnd() * 0.4, q = [(1 - u) * (1 - u) * pA[0] + 2 * u * (1 - u) * c[0] + u * u * pB[0], (1 - u) * (1 - u) * pA[1] + 2 * u * (1 - u) * c[1] + u * u * pB[1]];
-                    beads.push([q, R * (0.006 + 0.012 * rnd() * rnd())]);
+                    beads.push([q, R * (0.007 + 0.02 * rnd() * rnd())]);
                 }
             }
         });

@@ -19,6 +19,15 @@ Motion.scene({
         g.fillRect(0, 0, 1600, 900);
         let Q = g;
         const put = (name, o) => D[name] && D[name](Q, o);
+        // one close-up kept to its own part of the page
+        const box = (x, y, w, h, fn) => {
+            Q.save();
+            Q.beginPath();
+            Q.rect(x, y, w, h);
+            Q.clip();
+            fn();
+            Q.restore();
+        };
         const row = () => {
             put('cirio', { x: 130, y: 450 });
             put('incensario', { x: 330, y: 450 });
@@ -48,8 +57,8 @@ Motion.scene({
                 put('incensario', { x: 1200, y: 760, s: 4 });
             },
             () => {
-                put('rosario', { x: 760, y: 900, s: 4 });
-                put('rosario', { x: 1330, y: 10, s: 4 });
+                box(0, 0, 900, 900, () => put('rosario', { x: 420, y: 1010, s: 4 }));
+                box(900, 0, 700, 900, () => put('rosario', { x: 1440, y: 20, s: 4 }));
             },
             () => put('lampara', { x: 800, y: 360, s: 4 }),
             () => put('jamsa', { x: 800, y: 420, s: 4 }),

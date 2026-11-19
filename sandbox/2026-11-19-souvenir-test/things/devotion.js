@@ -8,31 +8,34 @@
 //   Devotion.rosario(g, { x, y, s, rot, seed })     220 × 280  a rosary of jet beads, laid down
 //   Devotion.lampara(g, { x, y, s, rot, seed })     230 × 250  a brass Hanukkah lamp, Sefarad
 //   Devotion.jamsa(g, { x, y, s, rot, seed })       140 × 200  a silver hand amulet, al-Andalus
-//   Devotion.mihrab(g, { x, y, s, rot, seed })      220 × 300  a plaque with a prayer niche
-// `rot` turns the object, never the light: every point goes through a frame, and the lit
-// volumes (`Souvenir.form`) are baked with `Souvenir.lightFor` and cached by angle and
-// resolution. Each object is painted on a sheet of its own and laid on the caller's layer
-// with its shadow, so its holes are real (the layer shows through them) and its inner
-// shadows fall on nothing else. Flames, their glow and the smoke are laid last, as light and
-// air: they cast nothing. Paint them once on a layer: nothing here takes the time.
+//   Devotion.mihrab(g, { x, y, s, rot, seed })      220 × 300  an ivory plaque with a prayer niche
+// (the candle's flame and its glow reach some 14 units over its box, the thurible's smoke stays
+// inside its own.) `rot` turns the object, never the light: every point goes through a frame,
+// and the lit volumes (`Souvenir.form`) are baked with `Souvenir.lightFor` and cached by angle
+// and resolution. Each object is painted on a sheet of its own and laid on the caller's layer
+// with its shadow, so its holes are real (the layer shows through them) and its inner shadows
+// fall on nothing else. Flames, their glow and the smoke are laid last, as light and air: they
+// cast nothing, and they rise straight up the page however the thing is turned. Paint them
+// once on a layer: nothing here takes the time.
 //
 // What each thing is, and the small true details painted on it
 //
 // CIRIO (Holy Week in Seville: the long candle a nazareno carries, or one of a paso's
 // candelería). A hand-dipped shaft of cream wax, a little bowed and wider at the foot; a well
 // at the top with a rim that has given way on the draught's side; a wick; a flame; the foot
-// in a turned brass socket. 1 the rim's back wall glows, the wax is translucent for a hand's
-// width under the flame · 2 a pool of melted wax with the flame's reflection and bits of
-// charred wick · 3 runs down the leeward side, each a rounded cord that fans out of the
-// breach, swells where it paused and ends in a drop · 4 older runs under newer ones, one
-// that reached two thirds of the way down, single beads that broke off · 5 the wick black,
-// curled over towards the lean, a red ember at its tip · 6 the flame: a blue cup, a dark
-// cone over the wick, a pale core, an orange tongue leaning with the draught, a hair of soot
-// off its tip · 7 a chandler's oval seal pressed into the wax near the foot and two worn
-// gilt lines under it · 8 scuffs, a nick, a hairline crack, dipping lines · 9 the socket:
-// a beaded lip, an engraved cup, a gadrooned knop, a spreading foot with turned lines, dull
-// in the grooves and rubbed bright on the high points · 10 wax that ran over the lip, down
-// the cup, and set in a puddle on the foot; spatters beside it.
+// in a turned brass socket. 1 the wax is translucent for a hand's width under the flame: the
+// light is inside it · 2 a pool of melted wax with the flame's reflection and bits of charred
+// wick · 3 runs down the leeward side, each a rounded cord that fans out of the breach,
+// swells where it paused and ends in a drop with its point of light · 4 older runs under
+// newer ones, one that reached two thirds of the way down, single beads that broke off
+// · 5 the wick black, curled over towards the lean, a red ember at its tip · 6 the flame: a
+// blue cup, a dark cone over the wick, a pale core, an orange tongue leaning with the
+// draught, a hair of soot off its tip · 7 a chandler's oval seal pressed into the wax near
+// the foot and three worn gilt lines under it · 8 scuffs, a nick, a hairline crack, the long
+// hairlines of the drawing · 9 the socket: a beaded lip, a cup engraved with a band of
+// lozenges, a gadrooned knop, a spreading foot with turned lines and a roped edge · 10 wax
+// that ran over the lip, down the cup, and ended in a drop on the knop; a puddle and spatters
+// on the foot.
 //
 // INCENSARIO (a silver thurible of the Spanish baroque type). A bowl (casca) on a foot, a
 // pierced lid (cuerpo de humos) that slides up three chains, a fourth chain that lifts it,
@@ -40,67 +43,74 @@
 // chains, each ending in a jump ring on a lug of the bowl's rim, passing through a guide
 // ring on the lid's rim (the third runs behind) · 2 the fourth chain goes through the plate
 // and ends in its own smaller ring; with the lid down it hangs slack · 3 links alternately
-// seen flat and on edge, none quite like its neighbour, one mended with brass wire · 4 the
-// bowl in repoussé gadroons under a plain lip with a line of beading and a row of punches
-// · 5 the lid: two tiers of flame-shaped piercings, a drum with arched windows (the
-// lantern), a little cupola, a ball and a loop · 6 charcoal glowing through the lower
-// piercings, darkness in the lantern · 7 tarnish blue-black in every recess, the high
-// points rubbed bright, a dent in the bowl · 8 soot round the upper piercings · 9 a turned
-// foot with a beaded ring, two assay punches on the lip · 10 smoke: one ribbon out of the
-// lantern that leans, folds over and breaks into wisps among the chains.
+// seen flat and on edge, none quite like its neighbour, one mended in brass · 4 the bowl in
+// repoussé gadroons under a plain lip with a line of beading and an engraved wave · 5 the
+// lid: two tiers of flame-shaped piercings and a row of punched dots, ribs between them, a
+// drum with arched windows (the lantern), a ribbed cupola, a ball and a loop · 6 charcoal
+// glowing through the lower piercings, darkness in the lantern · 7 tarnish blue-black in
+// every recess, the high points rubbed bright, a dent in the bowl · 8 soot round the upper
+// piercings, the coals' light on the cut edges of the lower ones · 9 a turned foot engraved
+// with tongues, a roped edge, two assay punches on the lip · 10 smoke: ribbons out of the
+// lantern that lean, fold over and break into wisps among the chains.
 //
 // ROSARIO (jet, azabache, the black stone of Santiago's pilgrims; silver mounts). A loop of
 // five decades, four Paternoster beads between them, a centre piece joining the loop to the
 // pendant (one large bead, three small, one large) and the cross. 1 fifty faceted beads,
 // every one turned differently on its wire, a little unequal · 2 each bead: a ring of cut
-// facets round a table, one flashing white, one reflecting the ground · 3 a bead chipped
+// facets round a table, one flashing white, one reflecting the ground · 3 two beads chipped
 // (jet breaks like glass, in a shell), one replaced by a slightly larger one · 4 between
-// beads the eyes of the wire, two tiny rings hooked into each other · 5 Paternosters of
-// silver filigree: an open ball of wire scrolls with a line of granules, a cap at each
-// pole · 6 slack: the string kinks where it was put down, two beads touch, a stretch lies
-// straight · 7 the centre: a filigree heart of scrolls round a boss, with three rings, no
-// figure · 8 the cross with trefoil ends (botonada): a raised border, an engraved line,
-// a rosette at the crossing, rays in the angles · 9 its suspension loop and jump ring, the
-// silver worn pale on the arms' edges and black in the lines · 10 a maker's punch on the
-// back arm, pin pricks of light on every third bead.
+// beads the eyes of the wire, tiny rings hooked into each other; a short chain each side of
+// a large bead · 5 Paternosters of silver filigree: an open ball of wire scrolls with a
+// girdle of grains, a cap at each pole · 6 slack: the string wanders where it was put down,
+// beads sit a little off the line, some nearly touch · 7 the centre: an openwork heart of
+// twisted wire and scrolls round a boss, with three rings, no figure · 8 the cross with
+// trefoil ends (botonada): sunk panels with a twisted wire down each arm, every lobe turned
+// like a button, a rosette at the crossing, rays in the angles · 9 its suspension ring, the
+// silver worn pale on the high points and black in the panels · 10 a maker's punch on the
+// long arm, pin pricks of light on every third bead.
 //
 // LAMPARA (a Hanukkah lamp of the medieval Spanish type, 13th–14th century: cast bronze or
 // brass, made to hang on a wall). A flat back plate with a gable, pierced as an arcade of
 // horseshoe arches under a rose window, a row of eight small oil pans along its foot, the
-// servant light apart. 1 the hanging loop cast in one with the gable's apex · 2 the rose:
-// a ring of pierced petals round a six-lobed eye · 3 seven horseshoe arches on colonnettes
-// with their capitals and bases, every opening a real hole · 4 a narrow band between rose
-// and arcade where the real lamps carry a verse: chiselled strokes only · 5 ring-and-dot
-// punches along the borders, a chased double line following the gable · 6 eight pans in a
-// row, each a scoop with a pinched spout, no two cast alike · 7 the servant light on a
-// bracket at the right shoulder · 8 file marks across the plate, casting pits, a crack
-// mended with a riveted strip · 9 verdigris in the corners of the openings and behind the
-// pans; soot licking up the plate above every spout · 10 wicks of twisted cotton lying in
-// the spouts, burnt at the tip; oil standing in the pans; one wick lit, a small flame.
+// servant light apart. 1 the hanging loop cast in one with the gable's apex, worn bright by
+// its nail; knobs along the gable, a stepped merlon at each shoulder · 2 the rose: a ring of
+// eight pierced petals round a lobed eye, quatrefoils beside it · 3 seven horseshoe arches
+// on colonnettes with their capitals and bases, every opening a real hole · 4 a narrow band
+// between rose and arcade where the real lamps carry a verse: chiselled strokes only
+// · 5 ring-and-dot punches along the borders, a rope moulding following the gable · 6 eight
+// pans in a row, each a scoop with a pinched spout, no two cast alike · 7 the servant light
+// on a riveted bracket at the right shoulder · 8 file marks across the plate, casting pits,
+// a crack mended with a riveted strip · 9 verdigris in the corners of the openings and
+// behind the pans; soot licking up the plate above every spout, most at the first night's
+// end · 10 wicks of twisted cotton lying in the spouts, burnt at the tip; oil standing in
+// the pans; one wick lit, a small flame.
 //
 // JAMSA (a hand amulet, silver, in the manner of Nasrid jewellery: filigree, granulation,
 // cloisonné enamel). The hand of the amulet is an ornament, not anatomy: three straight
 // fingers between two thumbs that curl outwards, the same on both sides. 1 a border of
-// twisted wire round the whole outline, a plain wire inside it · 2 the field filled with
-// scrolls of flattened wire, in facing pairs · 3 granulation: lines of grains down the
-// fingers, triangles of three in the gaps, a ring of grains round the stone · 4 an
-// eight-pointed star cut clean through the palm, with a wire collar · 5 a blue cabochon in
-// a toothed collet: a window of light, a glow at its far side, a bubble · 6 cells of enamel
-// at the fingertips and the wrist (green, blue, white, a point of red), one cell empty
-// · 7 a ribbed barrel loop, a jump ring, a short chain · 8 solder shining at the joins,
-// tarnish in the ground between the wires, the wires' backs rubbed bright · 9 a small dent
-// in the thumb, one grain missing from a row · 10 three tiny drops hanging from the
-// fingertips on rings.
+// twisted wire round the whole outline, a wire panel on every finger · 2 the field filled
+// with scrolls of wire: facing pairs, S-scrolls, a vine along each thumb · 3 granulation:
+// lozenges and triangles of grains in the gaps, rosettes on the shoulders, a ring of grains
+// round the stone, a line of them over the fingers' roots · 4 an eight-pointed star cut
+// clean through the palm, with a wire collar and a rope circle · 5 a blue cabochon in a
+// toothed collet: a window of light, a glow at its far side, a bubble · 6 cells of enamel at
+// the fingertips, the thumbs and the wrist (green, blue, white, red), one cell empty, its
+// keyed floor showing · 7 a ribbed barrel loop, a jump ring, a short chain · 8 solder
+// shining at the foot of the wires, tarnish in the ground between them, their backs rubbed
+// bright · 9 a small dent in the thumb, one grain missing from a lozenge · 10 three jingles
+// hanging from the fingertips on rings.
 //
 // MIHRAB (a small ivory plaque showing a prayer niche, after the mihrab of Cordoba). A
 // horseshoe arch on two columns, in its rectangular frame (alfiz). 1 voussoirs alternately
-// red and white, the white ones carved with leaves · 2 spandrels of ataurique: split
-// palmettes on spiralling stems · 3 two bosses in the spandrels · 4 a frame band where the
-// real one carries an inscription: script-like strokes only · 5 capitals with two tiers of
-// leaves, columns of veined marble, bases · 6 inside the arch only darkness and a hanging
-// lamp on three chains · 7 the lamp's glass glowing, light catching the arch's inner edge
-// · 8 a plinth of small blind arches · 9 the ivory's grain, age cracks, a warm stain,
-// traces of gilding and paint in the hollows · 10 four pin holes at the corners.
+// red and white, the red flaking, the white ones carved with a sprig · 2 spandrels of
+// ataurique: half palmettes on spiralling stems, gilded on a blue ground · 3 a rosette in
+// each upper corner · 4 a frame band where the real one carries an inscription: script-like
+// strokes only · 5 capitals with two tiers of leaves, columns veined like marble, bases
+// · 6 inside the arch only darkness, the shell of the niche, and a hanging lamp on three
+// chains · 7 the lamp's enamelled glass glowing, its light low on the back wall · 8 a panel
+// of lattice (sebka) each side, a plinth of small blind arches, a row of pearls · 9 the
+// ivory's grain, age cracks, a warm stain, traces of gilding and paint · 10 four pin holes
+// at the corners, a chip out of one edge.
 const Devotion = (() => {
     const S = Souvenir;
     const INK = S.INK, SD = S.SHADE_DIR, TOL = [-SD[0], -SD[1]], TAU = Math.PI * 2;
@@ -629,7 +639,7 @@ const Devotion = (() => {
         // the dark cone of unburnt gas over the wick, and the blue cup the flame stands in
         fillPts(g, shape(0.3, 0.0, 0.2), 'rgba(96,82,150,0.5)');
         const b1 = F([0, -h * 0.2]), gb = g.createLinearGradient(base[0], base[1], b1[0], b1[1]);
-        for (const [u, c] of [[0, 'rgba(30,44,150,0.92)'], [0.4, 'rgba(52,80,196,0.6)'], [1, 'rgba(90,130,240,0)']]) gb.addColorStop(u, c);
+        for (const [u, c] of [[0, 'rgba(30,44,150,0.8)'], [0.4, 'rgba(52,80,196,0.42)'], [1, 'rgba(90,130,240,0)']]) gb.addColorStop(u, c);
         g.filter = 'none';
         const cup = shape(1.02, -0.03, 0.22);
         fillPts(g, cup, gb);
@@ -1306,8 +1316,17 @@ const Devotion = (() => {
                 streak(116.5, 119, 1.2, 0.8);
                 streak(147, 154, 1.1);
                 streak(139, 141.6, 1);
-                // the dent's far lip catches the light
-                S.ink(g, [[17.5, 116.4], [19, 119], [17.8, 121.6]], { w: 0.7, color: '#f6f8ff', alpha: 0.8 });
+                // the foot's engraving: tongues that fan out from the stem, each with a line down it
+                for (let i = -4; i <= 4; i++) {
+                    const lon = i * 0.33, tg = [];
+                    for (let k = 0; k <= 6; k++) {
+                        const y = 146 + k * 1.9;
+                        tg.push([P.at(y) * Math.sin(lon), y]);
+                    }
+                    S.ink(g, tg, { w: 0.5, color: '#101230', alpha: 0.7, taper: [0.6, 0.2] });
+                    S.ink(g, tg.map(([x, y]) => [x + sh[0] * 0.5, y + sh[1] * 0.3]), { w: 0.3, color: '#f6f8ff', alpha: 0.6, taper: [0.6, 0.2] });
+                }
+                for (let i = -9; i <= 9; i++) disc(g, [P.at(157.4) * Math.sin(i * 0.16), 157.4], 0.42, 'rgba(14,14,44,0.7)');
                 const r = Motion.rng('thbowl' + seed);
                 for (let i = 0; i < 36; i++) {
                     const y = 90 + r() * 72, rr = P.at(y), x = (r() - 0.5) * 2 * rr * 0.9, l = 1 + r() * 3;
@@ -2247,7 +2266,7 @@ const Devotion = (() => {
             },
             tint: (x, y, tone, rgb, m, f) => {
                 const n = S.noise2(x * 0.12, y * 0.12, 111) * 0.6 + S.noise2(x * 0.4, y * 0.4, 112) * 0.4;
-                tarnish(rgb, tone, clamp(0.02 + 0.4 * smooth(0.5, 0.2, f) + 0.3 * n - 0.3 * smooth(0.7, 0.95, f), 0, 0.85));
+                tarnish(rgb, tone, clamp(0.02 + 0.54 * smooth(0.5, 0.2, f) + 0.3 * n - 0.3 * smooth(0.7, 0.95, f), 0, 0.85));
                 // the backs of the wires are rubbed bright
                 const kb = smooth(0.62, 0.95, f) * 0.45;
                 rgb[0] += (252 - rgb[0]) * kb;
@@ -2513,6 +2532,18 @@ const Devotion = (() => {
                     }
                     fillPts(q, [[cx - 7.6, 90], [cx + 7.6, 90], [cx + 9.6, 93.4], [cx + 9.6, 96.4], [cx - 9.6, 96.4], [cx - 9.6, 93.4]], grey(0.86));
                 }
+                // a panel of lattice (sebka) each side of the niche
+                for (const sx of [-1, 1]) {
+                    const x0 = sx * 60.4, x1 = sx * 81, pn = [[x0, 14], [x1, 14], [x1, 90], [x0, 90]];
+                    fillPts(q, pn, grey(0.18));
+                    q.save();
+                    q.beginPath();
+                    S.trace(q, pn);
+                    q.clip();
+                    for (let k = -8; k <= 14; k++) for (const sg of [-1, 1]) strokePts(q, [[sx * 50, 14 + k * 9.4], [sx * 92, 14 + k * 9.4 + sg * 42 * 1.25]], 1.5, grey(0.74));
+                    q.restore();
+                    strokePts(q, pn, 1.5, grey(0.86), true);
+                }
                 // the sill, and under it a plinth of small blind arches
                 fillPts(q, [[-83, 96], [83, 96], [83, 100], [-83, 100]], grey(0.88));
                 fillPts(q, [[-83, 100], [83, 100], [83, 128], [-83, 128]], grey(0.42));
@@ -2556,10 +2587,19 @@ const Devotion = (() => {
                     q.filter = `blur(${(0.5 * res).toFixed(1)}px)`;
                     for (const lf of leaves) fillPts(q, lf.map(([x, y]) => [x + sh[0] * 1.5, y + sh[1] * 1.5]), 'rgba(52,34,60,0.5)');
                     for (const st of stems) strokePts(q, st.map(([x, y]) => [x + sh[0] * 1.3, y + sh[1] * 1.3]), 1.6, 'rgba(52,34,60,0.4)');
+                    // (the leaves and stems themselves were left in the ivory, and gilded)
+                    q.filter = 'none';
+                    q.globalCompositeOperation = 'destination-out';
+                    for (const lf of leaves) fillPts(q, lf, '#000');
+                    for (const st of stems) strokePts(q, st, 1.5, '#000');
+                    for (const b of bosses) disc(q, b, 7, '#000');
                     q.restore();
+                    // the columns are round: a shade down one flank, and they stand clear of the wall
+                    q.filter = `blur(${(0.9 * res).toFixed(1)}px)`;
+                    for (const sx of [-1, 1]) strokePts(q, [[sx * (jx + 10.6) + sh[0] * 4.6, 22], [sx * (jx + 10.6) + sh[0] * 4.6, 90]], 3.6, 'rgba(96,70,80,0.5)');
                     q.filter = `blur(${(1.4 * res).toFixed(1)}px)`;
                     // the columns and the arch stand clear of the wall
-                    for (const sx of [-1, 1]) strokePts(q, [[sx * (jx + 10.6) + sh[0] * 9, 22], [sx * (jx + 10.6) + sh[0] * 9, 94]], 5, 'rgba(70,50,70,0.4)');
+                    for (const sx of [-1, 1]) strokePts(q, [[sx * (jx + 10.6) + sh[0] * 11, 22], [sx * (jx + 10.6) + sh[0] * 11, 94]], 5, 'rgba(70,50,70,0.36)');
                     q.filter = `blur(${(1.6 * res).toFixed(1)}px)`;
                     for (let i = 0; i < 16; i++) disc(q, [(r() - 0.5) * 2 * W, (r() - 0.5) * 2 * H], 4 + r() * 10, `rgba(160,118,76,${(0.06 + r() * 0.1).toFixed(3)})`);
                 });
@@ -2588,9 +2628,10 @@ const Devotion = (() => {
                         for (const u of [-5, -1, 3]) for (const sg of [-1, 1]) strokePts(g, [P(u, 0), P(u + 2.4, sg * 2.4), P(u + 4.6, sg * 2.2)], 0.36, 'rgba(70,48,52,0.7)');
                     } else {
                         const d = [Math.cos(v.a), Math.sin(v.a)];
-                        for (let k = 0; k < 5; k++) {
-                            const u = (r() - 0.5) * 16, w2 = (r() - 0.5) * 5, c = [v.mid[0] + d[0] * u - d[1] * w2, v.mid[1] + d[1] * u + d[0] * w2];
-                            disc(g, c, 0.5 + r() * 0.9, 'rgba(238,224,190,0.5)'); // (the red has flaked)
+                        for (let k = 0; k < 9; k++) {
+                            // (the red has flaked, most along the joints)
+                            const u = (r() - 0.5) * 19, w2 = (r() < 0.6 ? (r() < 0.5 ? -1 : 1) * (2.4 + r() * 1.4) : (r() - 0.5) * 5), c = [v.mid[0] + d[0] * u - d[1] * w2, v.mid[1] + d[1] * u + d[0] * w2], rr = 0.3 + r() * 0.6;
+                            fillPts(g, [0, 1, 2, 3, 4].map((i) => pol(rr * (0.6 + r() * 0.8), (i / 5) * TAU + r(), c[0], c[1])), `rgba(240,226,194,${(0.45 + r() * 0.4).toFixed(2)})`);
                         }
                     }
                 }
@@ -2608,6 +2649,16 @@ const Devotion = (() => {
                 edge(arc(RI + 2.1), 0.36, 0.6);
                 edge([[-86, -114], [86, -114], [86, 108], [-86, 108]], 0.4, 0.7, true);
                 edge([[-83, -111], [83, -111], [83, 4], [-83, 4]], 0.36, 0.6, true);
+                for (const sx of [-1, 1]) {
+                    const x0 = sx * 60.4, x1 = sx * 81, pn = [[x0, 14], [x1, 14], [x1, 90], [x0, 90]];
+                    edge(pn, 0.36, 0.65, true);
+                    g.save();
+                    g.beginPath();
+                    S.trace(g, pn);
+                    g.clip();
+                    for (let k = -8; k <= 14; k++) for (const sg of [-1, 1]) edge([[sx * 50, 14 + k * 9.4 + 0.9], [sx * 92, 14 + k * 9.4 + sg * 42 * 1.25 + 0.9]], 0.26, 0.5);
+                    g.restore();
+                }
                 for (const st of script) strokePts(g, st.map(([x, y]) => [x - sh[0] * 0.45, y - sh[1] * 0.45]), 0.3, 'rgba(52,34,48,0.7)');
                 for (const sx of [-1, 1]) {
                     const cx = sx * (jx + 10.6);
@@ -2617,6 +2668,13 @@ const Devotion = (() => {
                         S.ink(g, vein, { w: 0.4, color: '#6a4a52', alpha: 0.55, taper: [0.6, 0.9] });
                     }
                     for (const yy of [21, 23, 88, 90, 93.4]) strokePts(g, [[cx - 7.4, yy], [cx + 7.4, yy]], 0.36, 'rgba(52,34,48,0.75)');
+                    // the capital: two tiers of leaves, each with its rib and its curled tip
+                    for (const [yy, n, len, wd] of [[SPRING + 5, 5, 6.4, 19], [SPRING + 11, 4, 7, 14.6]]) for (let k = 0; k < n; k++) {
+                        const x = cx + ((k + 0.5) / n - 0.5) * wd, lf = S.curve([[x, yy + len], [x - 2, yy + len * 0.4], [x, yy], [x + 2, yy + len * 0.4]], true, 4);
+                        strokePts(g, lf, 0.34, 'rgba(52,34,48,0.8)', true);
+                        strokePts(g, [[x, yy + len - 0.6], [x, yy + 1.4]], 0.28, 'rgba(52,34,48,0.6)');
+                        strokePts(g, [[x - 1, yy + 0.9], [x, yy + 0.2], [x + 1, yy + 0.9]], 0.4, 'rgba(255,250,232,0.85)');
+                    }
                     edge([[cx - 11.6, SPRING + 3.4], [cx + 11.6, SPRING + 3.4]], 0.4, 0.8);
                 }
                 // age cracks along the grain, a few wide enough to hold dirt

@@ -2085,9 +2085,9 @@ const Relics = (() => {
     // the ground in straight courses, each stone cut to what room is left.
     const MO = {
         box: { x: -152, y: -122, w: 304, h: 244 }, c: [-22, -8], half: 62, band: 40,
-        frag: [[-146, -104], [-120, -116], [-78, -112], [-50, -118], [-10, -114], [20, -118], [34, -103], [52, -111], [84, -116], [118, -108], [140, -92], [146, -60], [138, -30], [147, 0], [142, 34], [128, 52], [132, 76], [118, 96], [90, 104], [60, 99], [30, 106], [0, 102], [-30, 106], [-62, 100], [-86, 84], [-104, 86], [-122, 66], [-130, 42], [-146, 30], [-140, 0], [-148, -30], [-142, -70]],
+        frag: [[-140, -96], [-118, -112], [-84, -108], [-60, -117], [-22, -112], [6, -118], [22, -101], [40, -95], [50, -108], [80, -116], [104, -110], [113, -93], [134, -85], [146, -56], [137, -28], [147, 2], [141, 36], [124, 50], [133, 72], [120, 94], [94, 104], [62, 98], [34, 106], [4, 101], [-26, 106], [-52, 99], [-70, 82], [-88, 71], [-98, 51], [-118, 44], [-128, 23], [-146, 14], [-139, -12], [-148, -40], [-141, -72]],
         // lacunae: where a patch of stones has gone and the bed shows
-        gaps: [[66, 78, 9, 6], [-106, -62, 7, 5], [22, -92, 5, 4], [-60, 44, 4, 3]],
+        gaps: [[66, 78, 9, 6], [-106, -62, 7, 5], [-62, 40, 4, 3], [92, -20, 4, 5]],
     };
     const STONE = {
         white: ['#ece6d6', '#e2dbc9', '#f2eee2', '#d9d2c0', '#e8e0cc', '#cfc7b3'].map(S.hex2rgb),
@@ -2186,28 +2186,29 @@ const Relics = (() => {
             mq.ellipse(bx + x, by + y, rx, ry, rot, 0, TAU);
             mq.fill();
         };
-        fillPts(mq, sil, '#8a7a5c');
+        fillPts(mq, sil, '#57483a');
         mq.save();
         mq.beginPath();
         S.trace(mq, sil);
         mq.clip();
-        el(6, 16, 30, 11, -0.1, '#d3a65a');
-        el(4, 22, 20, 5, 0, '#e7cf96');
-        el(-18, 2, 13, 15, 0.3, '#8794a2');
-        el(8, -12, 28, 9, 0.12, '#7e6a4a');
-        el(13, -3, 18, 9.5, 0.25, '#57483a');
-        for (const [k, c] of [[0.72, '#a08a62'], [0.4, '#7e6a4a']]) el(13, -3, 18 * k, 9.5 * k, 0.25, c);
-        fillPts(mq, [B(28, -12), B(52, 6), B(50, 18), B(30, 14)], '#9c4a2c');
-        fillPts(mq, [B(38, 2), B(52, 12), B(50, 18), B(36, 13)], '#8a5a34');
-        // the barred flank: white, black, chestnut, slanting
-        ['#f3efe3', '#2e2b2e', '#9c4a2c', '#f3efe3', '#2e2b2e', '#9c4a2c', '#f3efe3'].forEach((c, i) => fillPts(mq, [B(-6 + i * 4.3, 4), B(-1.8 + i * 4.3, 4.8), B(-4.8 + i * 4.3, 16.5), B(-9 + i * 4.3, 15.6)], c));
-        // head: grey-brown crown, white face and throat, the black collar that breaks into streaks
-        el(-26, -25, 10, 6, 0, '#7e6a4a');
-        el(-27.5, -13, 8.6, 9.5, 0.2, '#f3efe3');
+        el(6, 15, 32, 12.5, -0.1, '#c9a04a');
+        el(4, 20.5, 22, 6, 0, '#dcc070');
+        el(-17, 3, 14.5, 16.5, 0.3, '#6f7886');
+        el(-17.5, 4, 9, 11, 0.3, '#8794a2');
+        el(8, -12.5, 30, 10, 0.12, '#7e6a4a');
+        el(13, -3, 19.5, 10.5, 0.25, '#57483a');
+        for (const [k, c] of [[0.76, '#a08a62'], [0.5, '#7e6a4a'], [0.24, '#c9a04a']]) el(13, -3, 19.5 * k, 10.5 * k, 0.25, c);
+        fillPts(mq, [B(27, -13), B(53, 5), B(51, 19), B(29, 15)], '#9c4a2c');
+        fillPts(mq, [B(38, 3), B(53, 12), B(51, 19), B(35, 14)], '#8a5a34');
+        // the barred flank: cream, black, chestnut, slanting
+        ['#f3efe3', '#2e2b2e', '#9c4a2c', '#f3efe3', '#2e2b2e', '#9c4a2c'].forEach((c, i) => fillPts(mq, [B(-7 + i * 5, 3.5), B(-2 + i * 5, 4.4), B(-5.4 + i * 5, 17), B(-10.4 + i * 5, 16)], c));
+        // head: a grey-brown crown, the white face and throat, the black collar that breaks into streaks
+        el(-26, -25.5, 10.5, 6.5, 0, '#7e6a4a');
+        el(-27.5, -12.5, 9.2, 10, 0.2, '#f3efe3');
         mq.lineCap = 'round';
-        strokePts(mq, S.curve([B(-37, -20.4), B(-30, -22.4), B(-21.5, -21), B(-17.6, -13), B(-20, -4), B(-28, 0.4), B(-34, -4)], false, 8), 3.4, '#2e2b2e');
-        for (const [x, y] of [[-22, 4], [-16, 7], [-25, 9], [-12, 2], [-18, 12]]) strokePts(mq, [B(x, y), B(x + 1, y + 3.4)], 2.6, '#2e2b2e');
-        el(-29, -18.6, 3.6, 3.4, 0, '#b8432e');
+        strokePts(mq, S.curve([B(-37, -20.6), B(-30, -22.8), B(-21, -21), B(-16.8, -13), B(-19.5, -3.4), B(-28, 1.4), B(-35, -3.5)], false, 8), 3.8, '#2e2b2e');
+        for (const [x, y] of [[-22, 5.5], [-15.5, 8], [-25.5, 10.5], [-11.5, 3], [-18, 13.5]]) strokePts(mq, [B(x, y), B(x + 1, y + 3.4)], 2.8, '#2e2b2e');
+        el(-29, -18.6, 3.9, 3.7, 0, '#b8432e');
         mq.restore();
         for (const l of legs) strokePts(mq, l, 4, '#b8432e');
         for (const l of toes) strokePts(mq, l, 3.4, '#b8432e');
@@ -2227,10 +2228,10 @@ const Relics = (() => {
         const eye = B(-29, -18.6);
         mark(S.ellipse(eye[0], eye[1], 1.9, 1.9, 8));
         cells.push({ q: [[eye[0] - 1.5, eye[1] - 1.4], [eye[0] + 1.4, eye[1] - 1.5], [eye[0] + 1.5, eye[1] + 1.4], [eye[0] - 1.4, eye[1] + 1.5]], c: [38, 34, 38], h: 1, p: eye, kind: 'fig' });
-        row(beak, 3.9, figStone, { len: 4.2, kind: 'fig' });
-        for (const l of legs) row(l, 3.5, figStone, { len: 3.9, kind: 'fig' });
-        for (const l of toes) row(l, 2.9, figStone, { len: 3.6, kind: 'fig' });
-        row(twig, 3.3, figStone, { len: 4, kind: 'fig' });
+        row(beak, 3.7, figStone, { len: 3.6, kind: 'fig' });
+        for (const l of legs) row(l, 3.2, figStone, { len: 3.4, kind: 'fig' });
+        for (const l of toes) row(l, 2.8, figStone, { len: 3.2, kind: 'fig' });
+        row(twig, 3, figStone, { len: 3.6, kind: 'fig' });
         // shapes filled in rings from their outline inwards
         const rings = (paint, wid, col, bbx) => {
             const D = distField(bbx, 3, paint);
@@ -2242,12 +2243,9 @@ const Relics = (() => {
             return D;
         };
         // the outermost ring of the bird is its drawn line: dark above, brown under the belly
-        rings((q) => fillPts(q, sil, '#fff'), 4.1, (pt, lv) => {
-            const c = figStone(pt);
-            return lv < 4 ? (pt[1] > by + 12 ? [138, 90, 52] : c[0] + c[1] + c[2] > 600 ? [141, 138, 128] : [52, 44, 44]) : c;
-        }, figBox);
-        for (const ch of cherries) rings((q) => fillPts(q, ch, '#fff'), 3.2, figStone, figBox);
-        for (const lf of leaves) rings((q) => fillPts(q, lf, '#fff'), 3.2, figStone, figBox);
+        rings((q) => fillPts(q, sil, '#fff'), 3.25, (pt, lv) => (lv < 3 ? (pt[1] > by + 14 ? [96, 70, 50] : [48, 42, 44]) : figStone(pt)), figBox);
+        for (const ch of cherries) rings((q) => fillPts(q, ch, '#fff'), 2.9, figStone, figBox);
+        for (const lf of leaves) rings((q) => fillPts(q, lf, '#fff'), 2.9, figStone, figBox);
         // two rows of the ground follow the whole figure round
         const union = (q) => {
             fillPts(q, sil, '#fff');
@@ -2282,7 +2280,7 @@ const Relics = (() => {
             }
             mid.unshift([fx, fy - hc]);
             mid.push([fx, fy - hc]);
-            const C = walk(mid, 0.5), total = C[C.length - 1].s, N = Math.round(total / 14.3 / 4) * 4, P = total / N, A = zone - 6 - 0.75, Ts = 4;
+            const C = walk(mid, 0.5), total = C[C.length - 1].s, N = Math.round(total / 19.6 / 4) * 4, P = total / N, A = zone - 6 - 0.75, Ts = 4;
             const at = (s) => C[((Math.round(s / 0.5) % C.length) + C.length) % C.length];
             // the eye of every loop: one pale stone
             for (let k = 0; k < N; k++) {
@@ -2338,7 +2336,7 @@ const Relics = (() => {
         }
         const mend = kept.filter((c) => c.kind === 'ground' && !c.lost && Math.hypot(c.p[0] - (cx + 34), c.p[1] - (cy - 40)) < 7);
         mend.slice(0, 3).forEach((c, i) => (c.c = tone(i ? [207, 122, 92] : [156, 74, 44], 0.05)));
-        const loose = [[-134, 80, 0.4], [-118, 98, 1.2], [-141, 101, 2.1], [-102, 108, 0.2], [-126, 113, 2.8], [-88, 99, 1.7], [36, -113, 0.6], [149, 16, 1.1], [136, 66, 2.4], [126, 106, 0.3], [-150, 14, 1.5]].map(([x, y, a], i) => ({ p: [x, y], a, c: tone(i % 4 === 1 ? STONE.dark[0] : i === 4 ? [184, 67, 46] : i === 7 ? [220, 192, 112] : STONE.white[i % 4]), w: 3.6 + r() * 1.4, h: 3.4 + r() * 1.4 }));
+        const loose = [[-120, 60, 0.4], [-104, 79, 1.2], [-133, 86, 2.1], [-86, 97, 0.2], [-113, 101, 2.8], [-141, 106, 1.7], [-96, 113, 0.9], [-128, 40, 2.2], [31, -112, 0.6], [124, -100, 1.1], [136, 62, 2.4], [130, 104, 0.3], [-150, 30, 1.5]].map(([x, y, a], i) => ({ p: [x, y], a, c: tone(i % 4 === 1 ? STONE.dark[0] : i === 4 ? [184, 67, 46] : i === 7 ? [220, 192, 112] : STONE.white[i % 4]), w: 3.6 + r() * 1.4, h: 3.4 + r() * 1.4 }));
         return { cells: kept, loose };
     });
 
@@ -2422,8 +2420,8 @@ const Relics = (() => {
                 if (h < 0.1) {
                     const a = c.q[Math.floor(h * 40)], b = lerpP(a, c.p, 0.34);
                     disc(q, lerpP(a, b, 0.4), 0.55, 'rgba(92,78,66,0.65)');
-                } else if (h > 0.972) {
-                    const a = lerpP(c.q[0], c.q[1], 0.3 + (h - 0.972) * 14), b = lerpP(c.q[3], c.q[2], 0.7 - (h - 0.972) * 14);
+                } else if (h > 0.99) {
+                    const a = lerpP(c.q[0], c.q[1], 0.3 + (h - 0.99) * 40), b = lerpP(c.q[3], c.q[2], 0.7 - (h - 0.99) * 40);
                     strokePts(q, [a, lerpP(a, b, 0.5).map((v, j) => v + (j ? 0.3 : -0.3)), b], 0.3, 'rgba(60,48,44,0.7)');
                 }
             }
@@ -2477,5 +2475,12 @@ const Relics = (() => {
         helmet: relic('helmet', HM.box, paintHelmet),
         amphora: relic('amphora', { x: -132, y: -152, w: 264, h: 304 }, paintAmphora),
         mosaic: relic('mosaic', MO.box, paintMosaic),
+        _debug: (g) => {
+            const P = mosaicPlan('mosaic'), col = { fig: '#e05050', ground: '#50a0e0', frame: '#60c060', row: '#c0c0c0', fill: '#e0e040' };
+            for (const c of P.cells) {
+                fillPts(g, c.q, col[c.kind] ?? '#fff');
+                if (c.lost) fillPts(g, c.q, 'rgba(0,0,0,0.6)');
+            }
+        },
     };
 })();

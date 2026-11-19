@@ -6,11 +6,14 @@
 //   0.375  plaque and ticket at 2×         0.5    stamp and matchbox at 2× (and at 3×)
 //   0.625  4× crops: the poster's smallest lettering · the tile glaze
 //   0.75   4× crops: the guilloche · the stamp's hatching
-//   0.875  turned (the light must stay at the top left), other seeds, one on another
+//   0.875  turned (the light must stay at the top left), other seeds, three of them with
+//          `ground` (their own shadow as paint)
 //   1      the five at film size with tooth and the lens finish
+//   1.125  4×: the poster's vignette · its torn corner     1.25  the matchbox at 6×
+//   1.375  4×: the poster's curled corner and stamp · the ticket's rubber stamp
 const PV = 'sandbox/2026-11-19-souvenir-test/';
 Motion.scene({
-    fps: 24, duration: 1.25, logical: [1600, 900],
+    fps: 24, duration: 1.5, logical: [1600, 900],
     uses: ['styles/souvenir/souvenir.js', PV + 'things/papers.js'],
     fonts: [
         { family: 'IM Fell DW Pica SC', src: 'fonts/IMFellDWPicaSC-Regular.ttf' },
@@ -74,14 +77,20 @@ Motion.scene({
                 P(q, 'plaque', { x: 800, y: 170, rot: 0.5, seed: 'c' });
                 P(q, 'plaque', { x: 1260, y: 190, rot: 3.3, seed: 'd' });
                 P(q, 'ticket', { x: 800, y: 480, rot: -1.2, seed: 'c' });
-                P(q, 'ticket', { x: 1050, y: 730, rot: 2.9, seed: 'd' });
+                P(q, 'ticket', { x: 1050, y: 730, rot: 2.9, seed: 'd', ground: 0.5 });
                 P(q, 'stamp', { x: 1000, y: 420, rot: 1.1, s: 2, seed: 'c' });
-                P(q, 'stamp', { x: 1180, y: 420, rot: -2.4, s: 2, seed: 'd' });
+                P(q, 'stamp', { x: 1180, y: 420, rot: -2.4, s: 2, seed: 'd', ground: 0.5 });
                 P(q, 'matchbox', { x: 1400, y: 470, rot: 1.6, s: 1.6, seed: 'c' });
                 P(q, 'matchbox', { x: 1400, y: 760, rot: -2.7, s: 1.6, seed: 'd' });
-                P(q, 'matchbox', { x: 720, y: 780, rot: -0.9, s: 1.6, seed: 'e' });
+                P(q, 'matchbox', { x: 720, y: 780, rot: -0.9, s: 1.6, seed: 'e', ground: 0.5 });
+            } else if (page === 9) {
+                pane(q, 0, 0, 1000, 900, (p) => P(p, 'poster', { x: 500, y: 450 - 4 * 30, s: 4 }));
+                pane(q, 1000, 0, 600, 900, (p) => P(p, 'poster', { x: 1300 - 4 * 150, y: 450 + 4 * 220, s: 4 }));
+            } else if (page === 10) {
+                pane(q, 0, 0, 1600, 900, (p) => P(p, 'matchbox', { x: 720, y: 470, s: 6 }));
             } else {
-                P(q, 'poster', { x: 400, y: 450 + 4 * 10, s: 4, rot: -0.14 });
+                pane(q, 0, 0, 800, 900, (p) => P(p, 'poster', { x: 400 + 4 * 150, y: 450 - 4 * 230, s: 4 }));
+                pane(q, 800, 0, 800, 900, (p) => P(p, 'ticket', { x: 1200 - 4 * 90, y: 450 - 4 * 14, s: 4 }));
             }
             if (page === 8) S.tooth(q, { x: 0, y: 0, w: 1600, h: 900 });
         });

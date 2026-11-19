@@ -1,7 +1,7 @@
 // Dev sheet for things/coins.js: the thirteen coins of the string. One page per second:
 //   0      at film size (r = 32): a row on the indigo ground, a row on a warm ivory strip,
 //          the string on a sagging path of 700 units, and a string under a ribbon's edge
-//   1      all thirteen at 3×
+//   1      all thirteen at 3×, each in the box Coins.box promises for it
 //   2–4    at 6× (five, five, three)
 //   5, 6   the string at 3×, its left and its right half
 //   7      page 0 with the board's tooth and the lens finish
@@ -72,6 +72,13 @@ Motion.scene({
             K.forEach((kind, i) => {
                 const row = i < 7 ? 0 : 1, col = row ? i - 7 : i, n = row ? 6 : 7;
                 const x = 800 + (col - (n - 1) / 2) * 222, y = 232 + row * 440;
+                if (page === 1) {
+                    // the box the kit promises for it
+                    const b = Coins.box(kind, 96);
+                    g.strokeStyle = 'rgba(255,255,255,0.18)';
+                    g.lineWidth = 0.6;
+                    g.strokeRect(x + b.x, y + b.y, b.w, b.h);
+                }
                 Coins.coin(g, { x, y, r: 96, kind, pierced: page === 8 });
                 label(kind, x, y + 150, page === 8 ? 'rgba(40,30,60,0.7)' : undefined);
             });

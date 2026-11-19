@@ -3,13 +3,19 @@
 // airbrush) over a low relief that is lit per pixel. Global: Coins.
 //
 //   Coins.coin(g, { x, y, r = 32, kind, rot = 0, seed, pierced = false, cast = true })
-//       one coin about `r` in radius (r is the radius of a standard coin: every kind has its
-//       own size, see SIZE below), centred on (x, y). `rot` turns the coin, never the light.
-//       `pierced` punches the hole it hangs from, straight above its centre whatever `rot`.
-//       Returns { x, y, r, eye: [x, y] } (eye: where a ring goes through it).
+//       one coin, centred on (x, y). `r` is the radius of a standard coin: every kind has
+//       its own size (Coins.size: from 0.8 for the tremissis of Spania to 1.25 for the eight
+//       reales), so a coin is about 64 × size units across at r = 32. `rot` turns the coin,
+//       never the light (at rot = 0 the square dirham stands on a corner, as it hangs).
+//       `pierced` punches the hole it hangs from, straight above its centre whatever `rot`;
+//       `cast`: its shadow on the paint already under it. Returns { x, y, r, kind, eye }
+//       (eye: the point a ring goes through: the hole, or the pendant's loop).
 //   Coins.string(g, { path, kinds = Coins.KINDS, r = 32, seed, chain = true })
-//       the coins hanging in order along `path` ([[x, y], …], left to right), each from its
-//       own jump ring on a fine chain that follows the path. Returns the coins it placed.
+//       the coins hanging in order along `path` ([[x, y], …], left to right: a ribbon's
+//       lower edge), each from its own jump ring on a fine chain that follows the path;
+//       every other one hangs a few links lower, so they lie in two tiers and overlap a
+//       little when the path is shorter than their widths (13 coins at r = 32 want about
+//       840 units). Returns [{ kind, x, y, r, rot }] as placed (x, y: each coin's centre).
 //   Coins.KINDS         the thirteen kinds, in historical order
 //   Coins.box(kind, r)  { x, y, w, h } about the coin's centre, contour included
 //   Coins.size(kind)    the kind's radius as a fraction of `r`
@@ -28,9 +34,11 @@
 //   the border runs off one side and leaves a blank lip on the other  3 a split in the edge
 //   4 high points rubbed flat and bright  5 dirt and toning in the recesses, round the letters
 //   6 border pellets of unequal size  7 letters cut with a punch: pellet or bar ends, uneven
-//   8 a weak corner where the die did not bite  9 hairline scratches and small knocks
-//   10 a punched hole off the axis, through whatever was there, with its lit bore
-//   11 a jump ring with its butt joint  12 a chain whose links lie flat and on edge by turns
+//   8 a weak corner where the die did not bite  9 hairline scratches, small knocks, pits; on
+//   struck silver and gold the die's own polishing lines and the flow lines towards the edge
+//   10 a punched hole through whatever was there, with its lit bore  11 a jump ring with its
+//   butt joint  12 a chain whose links lie flat and on edge by turns  13 a money-changer's
+//   test (a chisel cut on the shekel's edge, a crescent punch on the denarius)
 //
 // The thirteen, and what each one is built from:
 //  tartessos (c. 650 BC)  Tartessos struck no coins: a gold disc pendant in the manner of the
@@ -446,9 +454,10 @@ const Coins = (() => {
     // A flan is never a circle: an oval of its own, a slow wobble, and for flans cut with a
     // chisel a straight edge or two.
     const round = (R0, o = {}) => (rnd) => {
-        const { oval = 0.015, rough = 0.012, flats = 0, n = 144 } = o;
-        const ph = [0, 1, 2, 3].map(() => rnd() * TAU), a0 = rnd() * TAU, fl = [];
+        const { oval = 0.015, rough = 0.012, flats = 0, nicks = 0, n = 180 } = o;
+        const ph = [0, 1, 2, 3].map(() => rnd() * TAU), a0 = rnd() * TAU, fl = [], nk = [];
         for (let k = 0; k < flats; k++) fl.push([rnd() * TAU, 0.022 + rnd() * 0.03]);
+        for (let k = 0; k < nicks; k++) nk.push([rnd() * TAU, 0.014 + rnd() * 0.022, 0.025 + rnd() * 0.03]); // knocks on the edge
         const pts = [];
         for (let i = 0; i < n; i++) {
             const a = (i / n) * TAU;
@@ -456,6 +465,10 @@ const Coins = (() => {
             for (const [fa, depth] of fl) {
                 const da = wrap(a - fa);
                 if (Math.abs(da) < 1.2) r = Math.min(r, (R0 * (1 - depth)) / Math.cos(da));
+            }
+            for (const [na, depth, wd] of nk) {
+                const da = wrap(a - na) / wd;
+                r -= R0 * depth * Math.exp(-da * da);
             }
             pts.push([Math.cos(a) * r, Math.sin(a) * r]);
         }
@@ -644,6 +657,11 @@ const Coins = (() => {
                 line(q, pet, 0.46, 1, true);
             }
         });
+        // the knock one boss took, and a crease in the sheet beside it
+        L(0.3, 0.6, (q) => {
+            dot(q, boss[10][0] - 0.5, boss[10][1] + 0.4, 1, 0.2);
+            line(q, [[boss[10][0] + 2.6, boss[10][1] + 2.4], [boss[10][0] + 4.4, boss[10][1] + 4.6]], 0.3, 0.3);
+        }, true);
         // the loop: six turns of wire side by side
         L(0.5, 0.7, (q) => fillP(q, [[-3.9, -36.6], [3.9, -36.6], [3.9, -29.4], [-3.9, -29.4]], 1), false, false);
         L(0.2, 0.85, (q) => {
@@ -978,12 +996,15 @@ const Coins = (() => {
         L(0.12, 0.7, (q) => beads(q, 0, 0, 28.8, 58, 0.74, rnd));
         L(0.2, 0.6, (q) => line(q, [[-24.6, 17.3], [-6, 17.5], [10, 17.2], [25.4, 17.5]], 0.95, 1));
         L(0.18, 0.62, (q) => legend(q, 'HISPANIA', { R: 21.2, size: 5.7, lw: 1, track: 0.3, serif: 'bar', rnd, jit: 0.6 }));
+        // a break in the die: a fine raised line from the border in through the legend's end
+        L(0.07, 0.22, (q) => line(q, [pol(29.4, -0.5), pol(27, -0.47), pol(25.2, -0.53), pol(23, -0.5), pol(21.4, -0.56), pol(19.6, -0.54)], 0.3, 1));
         L(0.3, 0.8, (q) => {
             fig(q);
-            fillP(q, rock, 0.6);
-            fillP(q, [[14.2, 9], [14.4, 4.6], [16, 2.5], [19.2, 1.6], [22.4, 2.2], [23.8, 4.8], [23.2, 8.6], [19, 9.4]], 0.86);
-            fillP(q, [[20.4, 13.3], [20.8, 10.2], [23.2, 8.8], [26, 9.6], [26.4, 13.3]], 0.78);
-            fillP(q, [[11.8, 13.3], [12.2, 10], [14.6, 9.2], [17.4, 10.2], [18.2, 13.3]], 0.74);
+            fillP(q, rock, 0.55);
+            fillP(q, S.curve([[14, 9.2], [14.2, 5], [15.8, 2.6], [19, 1.5], [22.6, 2.2], [24.2, 4.8], [23.6, 8.4], [19.4, 9.8]], true, 5), 0.86);
+            fillP(q, S.curve([[20.2, 13.4], [20.6, 10.4], [23.2, 8.9], [26.2, 9.8], [26.8, 13.4]], true, 5), 0.78);
+            fillP(q, S.curve([[11.6, 13.4], [12, 10.2], [14.6, 9.2], [17.6, 10.2], [18.6, 13.4]], true, 5), 0.72);
+            for (const [x, y, r] of [[10.2, 12.6, 0.9], [19.4, 12.5, 1], [27.6, 12.7, 0.8]]) dot(q, x, y, r, 0.6);
             // the far arm, bent on the rock, and its hand
             taper(q, [[13.6, -4], [15.6, -1.6], [16.6, 0.6]], 2.5, 2.1, 0.95);
             taper(q, [[16.6, 0.6], [19.4, 0.5], [21.6, 0.9]], 2, 1.5, 0.95);
@@ -1054,6 +1075,7 @@ const Coins = (() => {
             dot(q, -14.2, 9.1, 0.26, 0.15);
             line(q, S.curve([[-19, 9.2], [-17.6, 10.6], [-18, 12.6]], false, 4), 0.26, 0.25);
             for (const [a, b] of [[[17.4, 3.4], [18.6, 6.2]], [[18.6, 6.2], [17.6, 8.8]], [[21.4, 3.4], [21, 6.6]], [[23.4, 10.6], [23, 13]], [[15, 10.8], [15.6, 13]]]) line(q, [a, b], 0.3, 0.18);
+            for (let i = 0; i < 16; i++) dot(q, 13 + rnd() * 13, 3.5 + rnd() * 9.4, 0.14 + rnd() * 0.16, 0.24);
         }, true);
     }
 
@@ -1339,27 +1361,25 @@ const Coins = (() => {
             }
         });
         // the pillars: plinth, base, shaft, capital; behind each a banner's far turn
-        L(0.3, 0.72, (q) => {
+        L(0.26, 1.3, (q) => {
             for (const sx of [-1, 1]) {
-                const x = sx * PX;
-                fillP(q, [[x - 1.75, 8.4], [x - 1.5, -7.4], [x + 1.5, -7.4], [x + 1.75, 8.4]], 1);
-                fillP(q, [[x - 3, 11.3], [x - 3, 9.9], [x - 2.3, 9.7], [x - 2.3, 8.3], [x + 2.3, 8.3], [x + 2.3, 9.7], [x + 3, 9.9], [x + 3, 11.3]], 1);
-                fillP(q, [[x - 1.6, -7.2], [x - 2.5, -8.2], [x - 2.7, -9.3], [x + 2.7, -9.3], [x + 2.5, -8.2], [x + 1.6, -7.2]], 1);
+                const x = sx * PX, b = banner(sx), e = b[b.length - 1];
+                fillP(q, [[x - 1.75, 8.4], [x - 1.5, -7.4], [x + 1.5, -7.4], [x + 1.75, 8.4]], 0.56);
+                fillP(q, [[x - 3, 11.3], [x - 3, 9.9], [x - 2.3, 9.7], [x - 2.3, 8.3], [x + 2.3, 8.3], [x + 2.3, 9.7], [x + 3, 9.9], [x + 3, 11.3]], 0.56);
+                fillP(q, [[x - 1.6, -7.2], [x - 2.5, -8.2], [x - 2.7, -9.3], [x + 2.7, -9.3], [x + 2.5, -8.2], [x + 1.6, -7.2]], 0.56);
+                // the banner across the shaft, one level plateau in front of it, its ends curling free
+                line(q, S.curve([b[0], [b[0][0] - 1.1, b[0][1] - 1.5], [b[0][0] + 0.5, b[0][1] - 2.3]], false, 4), 1.1, 0.8);
+                line(q, S.curve([e, [e[0] + 1.1, e[1] + 1.5], [e[0] - 0.5, e[1] + 2.3]], false, 4), 1.1, 0.8);
+                fillP(q, taperP(b, 3.8, 3.8), 1);
             }
         });
         L(0.9, 0.5, (q) => {
-            for (const sx of [-1, 1]) line(q, [[sx * PX, -6.6], [sx * PX, 8]], 1.5, 1);
+            // the shafts' roundness, above and below the banners
+            for (const sx of [-1, 1]) for (const [y0, y1] of [[-6.6, -3.6 - sx * 0.2], [2.4 + sx * 0.2, 8]]) line(q, [[sx * PX, y0], [sx * PX, y1]], 1.5, 1);
         });
         L(0.2, 0.62, (q) => {
-            // the banners across the shafts, their ends curling free; the pillars' crowns
-            for (const sx of [-1, 1]) {
-                const b = banner(sx);
-                fillP(q, taperP(b, 3.8, 3.8), 1);
-                line(q, S.curve([b[0], [b[0][0] - 1.1, b[0][1] - 1.5], [b[0][0] + 0.5, b[0][1] - 2.3]], false, 4), 1.1, 0.8);
-                const e = b[b.length - 1];
-                line(q, S.curve([e, [e[0] + 1.1, e[1] + 1.5], [e[0] - 0.5, e[1] + 2.3]], false, 4), 1.1, 0.8);
-                crown(q, sx * PX, -9.3, 5.4, sx < 0 ? 3 : 3.6, sx > 0);
-            }
+            // the pillars' crowns
+            for (const sx of [-1, 1]) crown(q, sx * PX, -9.3, 5.4, sx < 0 ? 3 : 3.6, sx > 0);
         });
         // the two worlds, the left over the right, under the great crown
         L(0.16, 0.34, (q) => {
@@ -1438,18 +1458,18 @@ const Coins = (() => {
     // from what height the tops are rubbed flat (`wear`: from, to), its cup, its surface.
     const SPEC = {
         tartessos: { rub: [1.3, 2.3], size: 0.95, metal: 'gold', flan: round(30, { oval: 0.006, rough: 0.005 }), loop: LOOP, eye: [0, -33.4], off: [0, 0], wear: [1.9, 2.4], rough: 0.3, grain: 0.02, scratches: 5, pits: 6, edge: [1.2, 0.5], design: dTartessos, glints: [[-13.5, -15.4, 1], [-1.6, -1.6, 0.9], [-21.5, -19.5, 1.6]] },
-        gadir: { rub: [1.5, 2.05], size: 1, metal: 'verdigris', flan: round(31, { oval: 0.03, rough: 0.022, flats: 2 }), off: [1.4, -0.8], wear: [1.6, 2.05], weak: [[14, -19, 12, 0.6]], rough: 0.5, grain: 0.07, scratches: 4, pits: 90, crack: { a: 2.5, depth: 4.6 }, edge: [2.6, 1.3], design: dGadir, glints: [[-6, -10.6, 1.4], [-8, 4.4, 1.2]] },
-        'gadir-melqart': { rub: [1.6, 2.5], size: 1, metal: 'verdigris', flan: round(31, { oval: 0.028, rough: 0.024, flats: 2 }), off: [-1.6, 0.8], wear: [2.1, 2.6], weak: [[18, 18, 11, 0.55]], rough: 0.5, grain: 0.07, scratches: 4, pits: 80, crack: { a: 5.5, depth: 4 }, edge: [2.6, 1.3], design: dMelqart, glints: [[-7.4, 2.6, 1.3], [3, -15, 1.5]] },
-        barcid: { cut: [2.3, 7], polish: 30, flow: 50, rub: [1.3, 2.3], size: 0.97, metal: 'toned', flan: round(31, { oval: 0.022, rough: 0.016 }), off: [-0.8, -1.4], wear: [2, 2.5], weak: [[-19, 16, 10, 0.5]], rough: 0.3, grain: 0.025, scratches: 9, pits: 10, crack: { a: 0.7, depth: 3.6 }, edge: [1.9, 1], design: dBarcid, glints: [[4.2, -8.6, 1.6], [-13.4, -8, 1.2]] },
-        obulco: { rub: [0.45, 0.8], size: 1.12, metal: 'brown', flan: round(32, { oval: 0.02, rough: 0.02, flats: 1 }), off: [1, 0.8], wear: [1.2, 1.5], weak: [[-20, -17, 11, 0.55]], rough: 0.55, grain: 0.07, scratches: 5, pits: 110, crack: { a: 3.6, depth: 4.4 }, edge: [3, 1.5], design: dObulco, glints: [[-2, -17.4, 1.5], [2, 12.2, 1.2]] },
-        hadrian: { punch: [-11.5, -1.5], polish: 40, flow: 60, rub: [1.0, 2.0], size: 0.88, metal: 'silver', flan: round(31, { oval: 0.035, rough: 0.014 }), off: [1.2, -0.2], wear: [1.7, 2.2], weak: [[20, -14, 9, 0.45]], rough: 0.25, grain: 0.02, scratches: 8, pits: 6, crack: { a: 4.1, depth: 3.4 }, edge: [1.8, 1], design: dHadrian, glints: [[3.4, 7.4, 1.5], [10.4, 2, 1]] },
-        leovigild: { contrast: 1.4, ao: 0.3, polish: 36, flow: 46, rub: [0.35, 0.65], size: 0.9, metal: 'pale', flan: round(31, { oval: 0.02, rough: 0.012, flats: 2 }), off: [0.7, 0.5], wear: [0.9, 1.15], weak: [[-16, 17, 12, 0.5]], cup: 2.6, rough: 0.5, grain: 0.02, scratches: 5, pits: 4, crack: { a: 1.1, depth: 3 }, edge: [1, 0.45], design: dLeovigild, glints: [[-2.6, -8.4, 0.7], [-10, 5.6, 1]] },
+        gadir: { rub: [1.5, 2.05], size: 1, metal: 'verdigris', flan: round(31, { oval: 0.03, rough: 0.022, flats: 2, nicks: 3 }), off: [1.4, -0.8], wear: [1.6, 2.05], weak: [[14, -19, 12, 0.6]], rough: 0.5, grain: 0.07, scratches: 4, pits: 90, crack: { a: 2.5, depth: 4.6 }, edge: [2.6, 1.3], design: dGadir, glints: [[-6, -10.6, 1.4], [-8, 4.4, 1.2]] },
+        'gadir-melqart': { rub: [1.6, 2.5], size: 1, metal: 'verdigris', flan: round(31, { oval: 0.028, rough: 0.024, flats: 2, nicks: 3 }), off: [-1.6, 0.8], wear: [2.1, 2.6], weak: [[18, 18, 11, 0.55]], rough: 0.5, grain: 0.07, scratches: 4, pits: 80, crack: { a: 5.5, depth: 4 }, edge: [2.6, 1.3], design: dMelqart, glints: [[-7.4, 2.6, 1.3], [3, -15, 1.5]] },
+        barcid: { cut: [2.3, 7], polish: 30, flow: 50, rub: [1.3, 2.3], size: 0.97, metal: 'toned', flan: round(31, { oval: 0.022, rough: 0.016, nicks: 2 }), off: [-0.8, -1.4], wear: [2, 2.5], weak: [[-19, 16, 10, 0.5]], rough: 0.3, grain: 0.025, scratches: 9, pits: 10, crack: { a: 0.7, depth: 3.6 }, edge: [1.9, 1], design: dBarcid, glints: [[4.2, -8.6, 1.6], [-13.4, -8, 1.2]] },
+        obulco: { rub: [0.45, 0.8], size: 1.12, metal: 'brown', flan: round(32, { oval: 0.02, rough: 0.02, flats: 1, nicks: 4 }), off: [1, 0.8], wear: [1.2, 1.5], weak: [[-20, -17, 11, 0.55]], rough: 0.55, grain: 0.07, scratches: 5, pits: 110, crack: { a: 3.6, depth: 4.4 }, edge: [3, 1.5], design: dObulco, glints: [[-2, -17.4, 1.5], [2, 12.2, 1.2]] },
+        hadrian: { punch: [-11.5, -1.5], polish: 40, flow: 60, rub: [1.0, 2.0], size: 0.88, metal: 'silver', flan: round(31, { oval: 0.035, rough: 0.014, nicks: 2 }), off: [1.2, -0.2], wear: [1.7, 2.2], weak: [[20, -14, 9, 0.45]], rough: 0.25, grain: 0.02, scratches: 8, pits: 6, crack: { a: 4.1, depth: 3.4 }, edge: [1.8, 1], design: dHadrian, glints: [[3.4, 7.4, 1.5], [10.4, 2, 1]] },
+        leovigild: { contrast: 1.4, ao: 0.3, polish: 36, flow: 46, rub: [0.35, 0.65], size: 0.9, metal: 'pale', flan: round(31, { oval: 0.02, rough: 0.012, flats: 2, nicks: 1 }), off: [0.7, 0.5], wear: [0.9, 1.15], weak: [[-16, 17, 12, 0.5]], cup: 2.6, rough: 0.5, grain: 0.02, scratches: 5, pits: 4, crack: { a: 1.1, depth: 3 }, edge: [1, 0.45], design: dLeovigild, glints: [[-2.6, -8.4, 0.7], [-10, 5.6, 1]] },
         spania: { contrast: 1.4, ao: 0.3, polish: 30, flow: 40, rub: [0.4, 0.8], size: 0.8, metal: 'pale', flan: round(31, { oval: 0.03, rough: 0.016, flats: 1 }), off: [-1, 0.9], wear: [1, 1.3], weak: [[20, -14, 11, 0.5]], cup: 1.2, rough: 0.4, grain: 0.02, scratches: 4, pits: 4, crack: { a: 2.2, depth: 2.8 }, edge: [1.1, 0.5], design: dSpania, glints: [[-1, -9, 1.3], [-7.6, -5.6, 0.8]] },
-        caliphate: { polish: 50, flow: 70, rub: [0.32, 0.66], size: 1.06, metal: 'grey', flan: round(32, { oval: 0.018, rough: 0.012 }), off: [1.3, -0.9], wear: [0.82, 1.02], weak: [[-17, -19, 14, 0.7], [22, 12, 8, 0.5]], cup: -0.6, rough: 0.9, grain: 0.03, scratches: 10, pits: 12, crack: { a: 0.3, depth: 5.4 }, edge: [0.9, 0.4], design: dCaliphate, glints: [[-14, -16, 1.6]] },
+        caliphate: { polish: 50, flow: 70, rub: [0.32, 0.66], size: 1.06, metal: 'grey', flan: round(32, { oval: 0.018, rough: 0.012, nicks: 3 }), off: [1.3, -0.9], wear: [0.82, 1.02], weak: [[-17, -19, 14, 0.7], [22, 12, 8, 0.5]], cup: -0.6, rough: 0.9, grain: 0.03, scratches: 10, pits: 12, crack: { a: 0.3, depth: 5.4 }, edge: [0.9, 0.4], design: dCaliphate, glints: [[-14, -16, 1.6]] },
         almohad: { polish: 44, flow: 60, rub: [0.34, 0.68], size: 0.94, metal: 'gold', flan: round(31, { oval: 0.006, rough: 0.005 }), off: [0.5, -0.4], wear: [0.85, 1.05], weak: [[20, 20, 9, 0.4]], rough: 0.3, grain: 0.015, scratches: 5, pits: 3, edge: [1.2, 0.55], design: dAlmohad, glints: [[-15, -15.6, 1.6], [-9, -9, 1]] },
         nasrid: { polish: 40, flow: 0, rub: [0.34, 0.7], size: 0.92, metal: 'grey', flan: square(21.6), turn: Math.PI / 4, off: [0.7, 0.5], wear: [0.9, 1.1], weak: [[-14, 13, 9, 0.45]], rough: 0.5, grain: 0.03, scratches: 7, pits: 8, holeIn: 5.4, edge: [1.1, 0.5], design: dNasrid, glints: [[-11, -11.6, 1.4]] },
-        excelente: { polish: 40, flow: 60, rub: [0.5, 1.1], size: 1.06, metal: 'gold', flan: round(31.4, { oval: 0.012, rough: 0.008 }), off: [0.5, 0.3], wear: [1.25, 1.6], weak: [[-21, 15, 9, 0.45]], rough: 0.3, grain: 0.015, scratches: 6, pits: 4, crack: { a: 5.2, depth: 2.6 }, edge: [1.2, 0.55], design: dExcelente, glints: [[-3.6, -5.6, 1.2], [-14.4, -12, 1.3]] },
-        columnario: { polish: 60, flow: 0, rub: [0.4, 1.0], size: 1.25, metal: 'silver', flan: round(31.6, { oval: 0.003, rough: 0.002 }), off: [0.1, 0.1], wear: [1.25, 1.6], rough: 0.14, grain: 0.012, scratches: 12, pits: 8, edge: [0.9, 0.5], design: dColumnario, glints: [[-13.8, -3.4, 1.3], [-4.6, -1.6, 1.3], [-21, -21.6, 2]] },
+        excelente: { polish: 40, flow: 60, rub: [0.5, 1.1], size: 1.06, metal: 'gold', flan: round(31.4, { oval: 0.012, rough: 0.008, nicks: 1 }), off: [0.5, 0.3], wear: [1.25, 1.6], weak: [[-21, 15, 9, 0.45]], rough: 0.3, grain: 0.015, scratches: 6, pits: 4, crack: { a: 5.2, depth: 2.6 }, edge: [1.2, 0.55], design: dExcelente, glints: [[-3.6, -5.6, 1.2], [-14.4, -12, 1.3]] },
+        columnario: { polish: 60, flow: 0, rub: [0.4, 1.0], size: 1.25, metal: 'silver', flan: round(31.6, { oval: 0.003, rough: 0.002, nicks: 1 }), off: [0.1, 0.1], wear: [1.25, 1.6], rough: 0.14, grain: 0.012, scratches: 12, pits: 8, edge: [0.9, 0.5], design: dColumnario, glints: [[-13.8, -3.4, 1.3], [-4.6, -1.6, 1.3], [-21, -21.6, 2]] },
     };
 
     // ------------------------------------------------------------------ striking a coin
@@ -1772,6 +1792,7 @@ const Coins = (() => {
     };
     function coin(g, o = {}) {
         const { x = 0, y = 0, r = 32, kind = 'gadir', rot = 0, seed = '', pierced = false, cast = true } = o;
+        if (!SPEC[kind]) return null;
         const s = r / 32, sp = strike(kind, Math.round(rot * 50) / 50, resOf(g, s), pierced, String(seed));
         if (cast) S.cast(g, (q) => paste(q, sp, x, y, s), { blur: 3.4 * s, dx: 1.9 * s, dy: 3 * s, color: 'rgba(16,10,36,0.6)' });
         paste(g, sp, x, y, s);
@@ -1835,8 +1856,9 @@ const Coins = (() => {
         }
     }
     function string(g, o = {}) {
-        const { path, kinds = KINDS, r = 32, seed = 'string', chain = true } = o;
-        if (!path || path.length < 2) return [];
+        const { path, r = 32, seed = 'string', chain = true } = o;
+        const kinds = (o.kinds || KINDS).filter((k) => SPEC[k]);
+        if (!path || path.length < 2 || !kinds.length) return [];
         const s = r / 32, rnd = Motion.rng('coin-string/' + seed);
         const seg = [];
         let len = 0;
