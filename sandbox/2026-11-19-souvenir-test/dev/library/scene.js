@@ -7,9 +7,11 @@
 //   8  4× · the score                        9  turned: the light must stay at the top left
 //   10 film size with tooth and the lens finish
 //   11 the four faces: every title, to check the accents
+//   12 4× · the rag and the thumb hole     13 4× · the book fallen open, its flap
+//   14 4× · the foot of the standing three  15 on a transparent sheet, as a layer paints them
 const LIB = 'sandbox/2026-11-19-souvenir-test/';
 Motion.scene({
-    fps: 12, duration: 12, logical: [1600, 900],
+    fps: 12, duration: 16, logical: [1600, 900],
     uses: ['styles/souvenir/souvenir.js', LIB + 'things/library.js'],
     fonts: [
         { family: 'IM Fell DW Pica SC', src: 'fonts/IMFellDWPicaSC-Regular.ttf' }, { family: 'Lora', src: 'fonts/Lora-Medium-latin.woff2' },
@@ -47,6 +49,18 @@ Motion.scene({
             if (has('palette')) Library.palette(g, { x: 820, y: 330 });
             if (has('score')) Library.score(g, { x: 1250, y: 520 });
             S.tooth(g, { x: 0, y: 0, w: 1600, h: 900 });
+        } else if (page === 12) zoom('palette', -20, 45);
+        else if (page === 13) zoom('books', -40, -150);
+        else if (page === 14) zoom('books', 90, 150);
+        else if (page === 15) {
+            const sheet = Motion.layer(env, 'library-sheet', (q) => {
+                Library.books(q, { x: 360, y: 450, s: 1.5, seed: 'c' });
+                Library.palette(q, { x: 900, y: 300, s: 1.5, rot: -0.2 });
+                Library.score(q, { x: 1240, y: 640, s: 1.5, rot: 0.12 });
+                Library.books(q, { x: 1420, y: 230, s: 0.5 });
+                Library.palette(q, { x: 760, y: 760, s: 0.6 });
+            });
+            Motion.drawLayer(g, env, sheet);
         } else {
             const lines = ['SÉNECA · CARTAS A LUCILIO', 'IBN HAZM · EL COLLAR DE LA PALOMA', 'MAIMÓNIDES · GUÍA DE PERPLEJOS', 'IBN ARABI · EL INTÉRPRETE DE LOS DESEOS', 'S. JUAN DE LA CRUZ · NOCHE OSCURA', 'GÓNGORA · SOLEDADES · BÉCQUER · RIMAS', 'A. MACHADO · J. R. JIMÉNEZ · PLATERO Y YO', 'GARCÍA LORCA · ROMANCERO GITANO', 'R. ALBERTI · MARINERO EN TIERRA · L. CERNUDA · OCNOS', 'M. ZAMBRANO · CLAROS DEL BOSQUE', 'W. IRVING · CUENTOS DE LA ALHAMBRA · EL AMOR BRUJO · M. de Falla'];
             const fonts = ['"IM Fell DW Pica SC"', 'Lora', 'Anton', 'Shrikhand'];

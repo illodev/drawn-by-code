@@ -646,20 +646,17 @@ const Library = (() => {
                     const gr = q.createLinearGradient(...P(cs, b0), ...P(c1, b1));
                     for (const [u, cc] of [[0, GOLD.light], [0.3, GOLD.base], [0.55, GOLD.glint], [0.75, GOLD.base], [1, GOLD.deep]]) gr.addColorStop(u, cc);
                     fillPts(q, block, gr);
-                } else if (E.kind === 'sprinkle') specks(q, Pb, bw, bh, bw * bh * 1.4, sd + 'spr', (p, rr) => disc(q, p, 0.14 + rr() * 0.3, rgba(rr() < 0.8 ? '#a8322c' : '#5a1a2a', 0.45 + rr() * 0.45)));
+                } else if (E.kind === 'sprinkle') specks(q, Pb, bw, bh, bw * bh * 0.75, sd + 'spr', (p, rr) => disc(q, p, 0.1 + rr() * rr() * 0.42, rgba(rr() < 0.8 ? '#a8322c' : '#5a1a2a', 0.4 + rr() * 0.5)));
                 else if (E.kind === 'marble') {
-                    // combed marbling: small commas of colour laid in waves
-                    const cols = ['#a13a34', '#2f4f7f', '#c79a3a', '#f3ead0', '#3d6a4f'];
-                    specks(q, Pb, bw, bh, bw * bh * 0.9, sd + 'mb', (p, rr) => {
-                        const t = Math.sin(p[0] * 0.5) + (rr() - 0.5), l = 1 + rr() * 2;
-                        q.strokeStyle = rgba(cols[Math.floor(rr() * cols.length)], 0.7 + rr() * 0.25);
-                        q.lineWidth = 0.5 + rr() * 0.8;
-                        q.lineCap = 'round';
-                        q.beginPath();
-                        q.moveTo(p[0], p[1]);
-                        q.quadraticCurveTo(p[0] + Math.cos(t) * l, p[1] + Math.sin(t) * l * 0.6, p[0] + Math.cos(t + 0.9) * l * 1.4, p[1] + Math.sin(t + 0.9) * l * 1.2);
-                        q.stroke();
-                    });
+                    // combed marbling: stripes of colour drawn into scallops by the comb, flecked with white
+                    const cols = ['#a13a34', '#2f4f7f', '#c79a3a', '#f3ead0', '#3d6a4f', '#7a2a4a'];
+                    fillPts(q, block, '#d9c9a4');
+                    for (let k = 0; k < bw / 1.15 + 8; k++) {
+                        const c0 = -5 + k * 1.15, ln = [];
+                        for (let b = -1; b <= bh + 1; b += 0.7) ln.push(Pb(c0 + 1.9 * Math.abs(Math.sin(b * 0.8 + k * 0.17)) + 0.6 * Math.sin(b * 0.27 + k), b));
+                        strokePts(q, ln, 0.85, rgba(cols[(k * 5 + Math.floor(k / 3)) % cols.length], 0.88));
+                    }
+                    specks(q, Pb, bw, bh, bw * bh * 0.2, sd + 'mb', (p, rr) => disc(q, p, 0.12 + rr() * 0.22, rgba('#fbf4dc', 0.7)));
                 } else blot(q, Pb, bw, bh, sd + 'st', 4, ['#8a6234', '#fffaf0', '#6e5a48'], 0.3, [3, 9]);
                 const n = Math.max(3, Math.round(bh / (E.pitch ?? 0.85))), faint = E.kind === 'marble' || E.kind === 'gilt' ? 0.5 : 1;
                 for (let i = 0; i <= n; i++) {
@@ -847,7 +844,7 @@ const Library = (() => {
         },
         // sprinkled calf of the 1600s: five bands, gilt compartments, a red lettering piece
         gongora: {
-            M: MAT.calfTan, grain: GRAIN.calf(MAT.calfTan, 1), bands: [15, 99, 122, 145, 163], board: 2.8, pages: { kind: 'sprinkle', band: ['#a8322c', '#e7c35a'], bandW: 5, back: 8.5 },
+            M: MAT.calfTan, grain: GRAIN.calf(MAT.calfTan, 1), bands: [15, 99, 122, 145, 163], board: 2.8, pages: { kind: 'sprinkle', band: ['#2f4f7f', '#efe6c8'], bandW: 6.4, back: 9.5 },
             spinePaint(c) {
                 const { q, P, L, T, B } = c, bs = B.bands, comps = [[0, bs[0]], [bs[0], bs[1]], [bs[1], bs[2]], [bs[2], bs[3]], [bs[3], bs[4]], [bs[4], L]];
                 gilt(c, 0.34, (h) => {
@@ -1160,7 +1157,7 @@ const Library = (() => {
                 h.line([[a - 5, 12.4], [a + 5, 12.4]], 0.4);
             }
         });
-        dogEar(q, P, 0, 0, 9, 13, '#e9e4cc');
+        dogEar(q, P, 0, 0, 9, 13, '#e9e4cc', '#5a211c');
     };
 
     // ---- the three that stand
@@ -1317,7 +1314,6 @@ const Library = (() => {
             strokePts(q, [C(D - 30, 0), C(D, 34)], 0.5, rgba('#fffdf4', 0.7));
             strokePts(q, [C(D - 29.4, 0.6), C(D - 0.4, 35)], 0.4, rgba('#6a5a48', 0.5));
             strokePts(q, [C(D * 0.55, 0), C(D * 0.52, L)], 5, rgba('#8a7a6a', 0.1));
-            dogEar(q, C, D, L, -12, -15, '#f1e7cc');
         },
     };
 
@@ -1543,7 +1539,7 @@ const Library = (() => {
             // the ten that lie, from the ground up: name, left end of the spine, length, thickness, depth, yaw°, set back
             const pile = [
                 ['maimonides', -138, 182, 58, 160, 4, 0], ['gongora', -121, 174, 46, 146, 20, 5], ['arabi', -134, 172, 42, 138, 3, 2], ['seneca', -118, 152, 40, 126, 12, 7],
-                ['becquer', -114, 144, 34, 116, 6, 3], ['platero', -128, 154, 34, 120, 9, 6], ['juan', -84, 110, 26, 84, 5, 12],
+                ['becquer', -113, 144, 34, 116, 16, 3], ['platero', -128, 154, 34, 120, 9, 6], ['juan', -84, 110, 26, 84, 5, 12],
                 ['alberti', -106, 140, 13, 104, 11, 6], ['cernuda', -98, 130, 12, 100, 4, 10], ['zambrano', -102, 136, 13, 102, 7, 7],
             ];
             const bk = {};
@@ -1579,7 +1575,16 @@ const Library = (() => {
                     },
                 });
             };
-            bk.lorca.after = (g2, B) => pressed(g2, plane(B.at(B.L, B.T * 0.5, 54), W.pv(B.uc), W.pv(neg(B.ua))), B.seed);
+            bk.lorca.after = (g2, B) => {
+                pressed(g2, plane(B.at(B.L, B.T * 0.5, 54), W.pv(B.uc), W.pv(neg(B.ua))), B.seed);
+                // the cover's lower corner, turned up: the night shows where it was
+                const C = plane(B.coverT(B.L, 0), B.coverT.V, [-B.coverT.U[0], -B.coverT.U[1]]), D = B.D, L = B.L;
+                g2.save();
+                g2.globalCompositeOperation = 'destination-out';
+                fillPts(g2, C.pts([[D + 4, L + 4], [D - 12.4, L + 4], [D - 12.4, L + 0.4], [D + 0.4, L - 15.4], [D + 4, L - 15.4]]), '#000');
+                g2.restore();
+                S.piece(g2, C.pts([[D - 12.4, L + 0.3], [D + 0.3, L - 15.4], [D - 10.6, L - 12.6]]), { fill: '#f3ead0', line: 1.5, heavy: 0.7, shade: { color: '#8f84a0', alpha: 0.7, w: 4 }, light: { color: '#fffdf2', alpha: 0.7, w: 2 }, cast: { blur: 2.4, dx: 1.4, dy: 2, color: 'rgba(30,22,50,0.5)' } });
+            };
             bk.zambrano.after = (g2, B) => tent(g2, W, { x0: -92, top, z: 54, L: 124, Wd: 90, T: 22, slope: 23, yaw: 10, seed: seed + '/hazm', edge: 54 - 8 });
             for (const name of ['maimonides', 'gongora', 'arabi', 'seneca', 'becquer', 'platero', 'irving', 'machado', 'lorca', 'juan', 'alberti', 'cernuda', 'zambrano']) paintBook(q, bk[name]);
         });
@@ -1882,8 +1887,8 @@ const Library = (() => {
                         const lit = clamp(0.5 + 0.5 * (((mid[0] - hp[0]) * TOL[0] + (mid[1] - hp[1]) * TOL[1]) / (Math.hypot(mid[0] - hp[0], mid[1] - hp[1]) || 1))), up = i % 2 === 0;
                         const gr = cc.createLinearGradient(...(up ? fa : fb), ...(up ? fb : fa));
                         gr.addColorStop(0, mix(LIN.base, LIN.light, 0.3 + 0.6 * lit));
-                        gr.addColorStop(0.55, mix(LIN.base, LIN.deep, 0.1 + 0.2 * (1 - lit)));
-                        gr.addColorStop(1, mix(LIN.base, LIN.deep, 0.3 + 0.36 * (1 - lit)));
+                        gr.addColorStop(0.5, mix(LIN.base, LIN.deep, 0.14 + 0.24 * (1 - lit)));
+                        gr.addColorStop(1, mix(LIN.base, LIN.deep, 0.42 + 0.4 * (1 - lit)));
                         fillPts(cc, [hp, fa, fb], gr);
                     }
                     // the weave, thread by thread, on the bias
@@ -1903,8 +1908,9 @@ const Library = (() => {
                         if (i % 5 === 3) continue;
                         const e = at(u), b = at(u0), mid = [(b[0] + e[0]) / 2 + (rr() - 0.5) * 7, (b[1] + e[1]) / 2 + (rr() - 0.5) * 7];
                         const ln = Fs(S.curve([b, mid, e], false, 8));
-                        S.ink(cc, ln, { w: 0.8 + (i % 3) * 0.35, color: '#3c3654', alpha: 0.7, taper: [u0 ? 1 : 0, 1] });
-                        S.ink(cc, ln.map(([x, y]) => [x + TOL[0] * 1.1, y + TOL[1] * 1.1]), { w: 0.7, color: '#fffdf4', alpha: 0.45 + rr() * 0.35, taper: [u0 ? 1 : 0, 1] });
+                        strokePts(cc, ln.map(([x, y]) => [x + SD[0] * 1.6, y + SD[1] * 1.6]), 3.4, rgba('#4a4468', 0.16));
+                        S.ink(cc, ln, { w: 0.8 + (i % 3) * 0.35, color: '#3c3654', alpha: 0.75, taper: [u0 ? 1 : 0, 1] });
+                        S.ink(cc, ln.map(([x, y]) => [x + TOL[0] * 1.1, y + TOL[1] * 1.1]), { w: 0.6, color: '#fffdf4', alpha: 0.2 + rr() * 0.3, taper: [u0 ? 1 : 0, 1] });
                     }
                     // and the small cross folds between them
                     for (let i = 0; i < 9; i++) {

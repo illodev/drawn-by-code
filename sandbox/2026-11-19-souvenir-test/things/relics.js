@@ -2647,13 +2647,5 @@ const Relics = (() => {
         amphora: relic('amphora', { x: -132, y: -152, w: 264, h: 304 }, paintAmphora),
         mosaic: relic('mosaic', MO.box, paintMosaic),
         stele: relic('stele', { x: -86, y: -131, w: 172, h: 262 }, paintStele),
-        stele: relic('stele', { x: -86, y: -131, w: 172, h: 262 }, paintStele),
-        _debug: (g) => {
-            const P = mosaicPlan('mosaic'), col = { fig: '#e05050', ground: '#50a0e0', frame: '#60c060', row: '#c0c0c0', fill: '#e0e040' };
-            for (const c of P.cells) {
-                fillPts(g, c.q, col[c.kind] ?? '#fff');
-                if (c.lost) fillPts(g, c.q, 'rgba(0,0,0,0.6)');
-            }
-        },
     };
 })();

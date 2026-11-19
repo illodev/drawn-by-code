@@ -166,3 +166,37 @@ now: two more agents: the books of its poets and thinkers with their names on th
 and a painter's palette (library), and objects of devotion of the three faiths (a Holy
 Week candle, a thurible, a jet rosary, a Sephardic lamp, a silver hand amulet), without
 faces and without sacred text written out.
+
+#### Licences taken and facts not checked (from the painters' own reports)
+
+The relics follow real, documented types, painted from knowledge and not from a source
+open on the table. What their painters flagged, so nobody takes it for more than it is:
+
+- **Carambolo:** the string's pendant is a composite of the hoard's motifs (no such disc
+  exists); on the pectoral the layout of the rows, the petal count and the tube are from
+  memory; the chain is the necklace's.
+- **Gadir:** where the crescent, the pellet and the letters sit varies by issue; the
+  Melqart head carries its club behind the neck as asked (most issues put it elsewhere).
+- **Obulco:** the name is on the reverse here (usually by the head); the Iberian signs are
+  plausible shapes, not a real legend.
+- **Leovigild, Spania:** the cross on the king's breast and the cross on steps are the
+  brief's choices, not types vouched for at that mint and denomination.
+- **Excelente:** Roman capitals (early issues are Gothic), simplified quarterings.
+- **The piece of eight:** the Pillars type was struck in the American mints (this follows
+  Mexico's), not in Andalusia; it is here for the silver that came in through Seville and
+  Cádiz, and for PLVS VLTRA.
+- **Arabic script** on the Caliphate, Almohad and Nasrid coins and on the astrolabe is a
+  texture of strokes, never text. A reader of Arabic should look at it before it is
+  published. The devotional objects carry no imitation script at all.
+- **Helmet:** the type's stock ornament, not the Huelva helmet's own. **Amphora:** the
+  stamp and the painted name are from memory. **Mosaic:** a partridge in the manner of the
+  House of the Birds, not a copy of a panel. **Stele:** a composite of the warrior stelae
+  and the later lettered ones. **Murex pendant:** a later type than early Gadir.
+- **Eagle, votive crown, Byzantine cross, astrolabe, fawn, tilework:** true to their types;
+  the cell layouts, the cross's form, the rete's plan and the fawn's proportions are the
+  painters' within the type. The votive crown hangs drops, not letters.
+- **Devotion:** the niche plaque was left out (no such Andalusi ivory is known); jet
+  rosaries belong to Santiago more than to Andalusia; silver filigree hands are more
+  Maghrebi and later than Nasrid; the Sephardic lamp's type is debated between Spain and
+  southern France.
+- **Fans:** the Generalife is to the left of the Alhambra, as seen from the Albaicín.

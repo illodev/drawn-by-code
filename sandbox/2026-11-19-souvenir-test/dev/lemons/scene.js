@@ -6,7 +6,7 @@
 //   t 10        set-up time, sprite count, canvas memory (painted on the frame)
 //   t 12 …      specimen pages at 3×: every sprite kind, raw paint (see PAGES)
 const DEV = 'sandbox/2026-11-19-souvenir-test/';
-const PROFILE = true; // dev only: time the kit's and the canvas's calls while the layers are painted
+const PROFILE = false; // dev only: time the kit's and the canvas's calls while the layers are painted
 const PICTURE = true; // false: only the specimen pages (while the sprites are being worked on)
 Motion.scene({
     fps: 24, duration: 24, logical: [1600, 900],

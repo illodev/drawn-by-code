@@ -33,7 +33,8 @@
 //     4  a bite out of the margin, a shot hole: both with a brown lip and a yellow halo
 //     5  a dry brown tip behind a dark line
 //     6  brown specks with a halo; a yellow blotch; sooty mould; scale along the midrib
-//     7  the tip curled over, showing the underside and shading the blade
+//     7  the tip curled over, showing the underside and shading the blade; a leaf folded
+//        along its midrib, one half seen edge-on
 //     8  a thin light on the margin that faces the lamp (the leaf's thickness)
 //     9  net veins between the main ones on some; none at all on the smoothest
 //     10 the petiole's narrow wing, lighter than the blade
@@ -609,7 +610,13 @@ const Citrus = (() => {
         const L = small ? 100 + r() * 60 : 152 + r() * 88, W = L * (small ? 0.16 + r() * 0.07 : 0.225 + r() * 0.085);
         const p = 0.66 + r() * 0.2, q = 0.62 + r() * 0.2, tp = 0.1 + r() * 0.22, kS = [0.9 + r() * 0.2, 0.9 + r() * 0.2];
         const bend = (r() - 0.5) * 0.34, sway = (r() - 0.5) * 0.07;
-        const fold = small ? 0.3 + r() * 0.55 : 0.14 + r() * 0.5, twist = (r() - 0.5) * 1.1;
+        let fold = small ? 0.3 + r() * 0.55 : 0.14 + r() * 0.5;
+        const twist = (r() - 0.5) * 1.1;
+        if (r() < (small ? 0.2 : 0.07)) {
+            // folded along the midrib: one half is seen almost edge-on
+            kS[r() < 0.5 ? 0 : 1] *= 0.3 + r() * 0.12;
+            fold = 0.75 + r() * 0.3;
+        }
         const lift = (r() - 0.5) * 0.6, droop = r() * 0.6;
         const waves = 1.5 + r() * 3.5, wavy = r() < 0.62 ? 0.03 + r() * 0.1 : 0.008, ph = [r() * 6.28, r() * 6.28];
         const teeth = Math.round(L / (5 + r() * 2.5)), cren = small ? 0.2 : 0.22 + r() * 0.4;

@@ -224,14 +224,15 @@ Tableau.lemons = (z0) => {
             g.quadraticCurveTo(len * 0.1 + Math.cos(a) * 3, Math.sin(a) * 4, len * 0.08 + Math.cos(a) * 5, Math.sin(a) * (5 + r() * 3));
             g.stroke();
         }
-        for (const [side, col, w] of [[-1, '#24211f', 4.4], [-1, '#3a3632', 2.2], [1, '#d8ae24', 3.6], [1, '#f2d458', 1.8]]) {
-            for (let i = 0; i < 30; i++) {
-                const u = 0.22 + (i / 30) * 0.77, wd = w * Math.pow(Math.sin(Math.PI * Math.pow(u, 0.75)), 0.7) * (0.9 + r() * 0.2);
+        for (const [side, col, w] of [[-1, '#24211f', 5], [-1, '#45403a', 2.4], [1, '#d8ae24', 4.2], [1, '#f4d860', 2]]) {
+            for (let i = 0; i < 44; i++) {
+                // barbs, a few of them parted
+                const u = 0.2 + (i / 44) * 0.79, wd = w * Math.pow(Math.sin(Math.PI * Math.pow(u, 0.75)), 0.7) * (i % 11 === 7 ? 0.55 : 0.9 + r() * 0.2);
                 g.strokeStyle = col;
-                g.lineWidth = 0.8;
+                g.lineWidth = 0.7;
                 g.beginPath();
-                g.moveTo(u * len, 0);
-                g.lineTo(u * len + wd * 0.7, side * wd);
+                g.moveTo(u * len, -0.8 * Math.sin(u * Math.PI));
+                g.quadraticCurveTo(u * len + wd * 0.3, side * wd * 0.6, u * len + wd * 0.8, side * wd);
                 g.stroke();
             }
         }
@@ -397,7 +398,7 @@ Tableau.lemons = (z0) => {
                     P.leaf(x, y, r() * TAU, 1.1 + r() * 0.5, near ? 'deep' : r() < 0.13 ? 'back' : r() < 0.62 ? 'deep' : r() < 0.9 ? 'mid' : 'sun', Math.floor(r() * 97), { fx: 0.6 + r() * 0.4, fy: 0.45 + r() * 0.55, sh: 0 });
                 }
                 relight(g, plate, res, dapple('plate', plate, { pools: 34, suns: 40, flecks: 0, lift: 0.2, fall: 0.34, dark: [[gp.x, gp.y, gp.r * 1.9, 0.9]] }), { sun: 0.8 });
-                veil(g, plate, 'rgba(26,70,58,0.26)');
+                veil(g, plate, 'rgba(24,66,66,0.26)');
                 S.tooth(g, plate, { amp: 0.05 });
             },
         },
@@ -427,7 +428,7 @@ Tableau.lemons = (z0) => {
                     P.lemon(x, y, (S.hashI(v, 1, 2, 3) - 0.5) * 0.6, s, v, { age });
                 }
                 relight(g, wide, res, dapple('far', wide, { pools: 26, suns: 36, flecks: 20, dark: [[gp.x, gp.y, gp.r * 1.8, 0.9]] }), { sun: 0.9 });
-                veil(g, wide, 'rgba(22,66,54,0.3)');
+                veil(g, wide, 'rgba(22,64,62,0.3)');
                 S.tooth(g, wide, { amp: 0.05 });
             },
         },
@@ -483,7 +484,8 @@ Tableau.lemons = (z0) => {
                 along(P, A, { seed: 'hA', every: 150, len: 200, skip: gapSkip, with: { kinds: ['sun', 'mid', 'mid', 'mid', 'deep'] } });
                 along(P, B, { seed: 'hB', every: 150, len: 190, skip: gapSkip, with: { kinds: ['sun', 'mid', 'mid', 'deep'] } });
                 for (const [x, y, dir, len] of [[1300, -560, 2.9, 300], [1300, 520, 3.6, 320], [820, 740, -2.0, 300], [80, 740, -1.4, 260], [-760, 740, -1.2, 300], [-1300, 420, -0.1, 300], [-1300, -250, 0.4, 280], [-560, -740, 1.2, 240], [330, -740, 1.7, 260], [900, -740, 2.2, 280], [1300, -160, 3.3, 260], [-1000, 740, -0.8, 280]]) {
-                    sprig(P, x, y, dir, len, 'h-edge' + x + y, { thorns: 0.2 });
+                    // towards the sun, a few leaves with the light behind them
+                    sprig(P, x, y, dir, len, 'h-edge' + x + y, { thorns: 0.2, kinds: x < -500 && y < 0 ? ['sun', 'back', 'mid', 'back', 'mid'] : undefined });
                 }
                 C.branch(g, A.pts, { raw: true, w0: 34, w1: 14, seed: 'bough-A', nodes: [300, 620, 980, 1270, 1560, 1900] });
                 // ants going up and down the bough
@@ -562,7 +564,7 @@ Tableau.lemons = (z0) => {
                 if (bee) bee.bee(g, { x: 652, y: -292, s: 0.82, rot: 0.5, pose: 'feed', line: false });
                 if (lady) lady.ladybird(g, { x: 468, y: 62, s: 1.05, rot: 0.6, line: false });
                 if (finch) finch.goldfinch(g, { x: -452, y: -108, s: 2.1, flip: true, pose: 0, line: false, perch: [-520, -58, -400, 20] });
-                feather(g, -372, 150, 0.5, 30);
+                feather(g, -376, 148, 0.5, 40);
                 for (const [sh, n] of [[K1, 2], [K2, 2], [K3, 3], [TL, 2]]) dew(P, sh, n, sh.T.len);
                 const L1 = TL.fruits[1].got, tipOf = (f) => f.at(f.sp.G.tip[0], f.sp.G.tip[1] + 3);
                 for (const [f, x, y, rad] of [[L1, -22, -50, 7], [L1, 16, 30, 4.5], [L1, -38, 52, 3], [R1, 24, 40, 6.5], [R1, -18, -44, 3.6]]) P.drop(...f.at(x, y), rad);
@@ -583,7 +585,7 @@ Tableau.lemons = (z0) => {
                 const P = painter(g, res, 0);
                 sprig(P, -420, -560, 1.2, 240, 'front-1', { kinds: ['sun', 'mid', 'sun'], tip: [[-0.6, 40, 'face', 9, 0.95], [0.4, 36, 'bud', 14, 0.95], [1.2, 30, 'round', 15, 1]] });
                 sprig(P, -900, -60, 0.3, 260, 'front-2', { kinds: ['mid', 'sun', 'mid'], tip: 'flush' });
-                sprig(P, 900, 60, 3.4, 240, 'front-4', { kinds: ['mid', 'deep', 'sun'] });
+                sprig(P, 940, -520, 2.75, 220, 'front-4', { kinds: ['mid', 'deep', 'sun'] });
                 const bee = fauna('bee');
                 if (bee) bee.bee(g, { x: -236, y: -300, s: 0.9, rot: 2.9, flip: true, pose: 'fly', line: false, cast: false });
                 relight(g, wide, res, dapple('front', wide, { pools: 10, suns: 30, flecks: 20 }));
@@ -597,7 +599,7 @@ Tableau.lemons = (z0) => {
                 const P = painter(g, res, SOFT.near);
                 sprig(P, -900, 330, -0.5, 420, 'near-1', { kinds: ['mid', 'deep', 'mid'], plain: true, leaf: 1.15, gap: 60 });
                 sprig(P, -940, -480, 0.5, 400, 'near-2', { kinds: ['mid', 'deep'], plain: true, leaf: 1.15, gap: 60 });
-                shoot(P, { seed: 'near-3', path: [[900, 120], [760, 150], [640, 190], [560, 214]], w0: 9, w1: 6, gap: 60, kinds: ['mid', 'deep'], plain: true, leaf: 1.1, fruits: [{ u: 1, e: [-6, 20], s: 1.15, v: 19, age: 'ripe', rot: 0.25 }] });
+                shoot(P, { seed: 'near-3', path: [[-900, -130], [-760, -100], [-640, -76], [-540, -64]], w0: 9, w1: 6, gap: 60, kinds: ['mid', 'deep'], plain: true, leaf: 1.1, fruits: [{ u: 1, e: [6, 20], s: 1.15, v: 19, age: 'ripe', rot: -0.2 }] });
                 veil(g, wide, 'rgba(10,40,34,0.2)');
                 S.tooth(g, wide, { amp: 0.05 });
             },
