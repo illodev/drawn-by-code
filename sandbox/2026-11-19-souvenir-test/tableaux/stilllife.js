@@ -158,7 +158,7 @@ Tableau.stilllife = (z0) => {
             // hung from the window's head, as the Carthusians kept them: a quince and a cabbage
             St.hangString(g, [-292, -356], [-292, -330], { seed: 'wq', w: 2.2 });
             St.quince(g, { x: -292, y: -330, s: 1.15, seed: 'win' });
-            St.fly(g, { x: -262, y: -196, rot: 0.7, s: 1.25 });
+            St.fly(g, { x: -270, y: -225, rot: 0.7, s: 1.25 });
             St.hangString(g, [300, -356], [300, -340], { seed: 'wc', w: 2.2 });
             St.cabbage(g, { x: 300, y: -340, s: 1.05, seed: 'win' });
             // on the sill: the cardoon laid across, its leaves towards the light, and the slice

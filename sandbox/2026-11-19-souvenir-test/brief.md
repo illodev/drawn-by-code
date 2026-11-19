@@ -1,7 +1,7 @@
 # souvenir-test · «Recuerdo de Andalucía»
 
 - **Style:** souvenir (new, in testing)
-- **Format:** 16:9 · 14 s style test (two of nine pictures; the length of the whole film does not matter, the user says) · 24 fps
+- **Format:** 16:9 · 63 s, nine pictures (the length does not matter, the user says) · 24 fps
 - **Purpose / audience:** a style test for a new look the user asked for.
 - **The request (the user, translated):** «I want to make similar art, but not the same.
   It is only the reference for the style.» Asked what world ours should paint: «Andalusia,
@@ -71,31 +71,36 @@ references; the length does not matter. So the dive grows and alternates:
 An alternative for the order, also to debate: the dive as a descent through time, each
 picture an older layer, down to Tartessos.
 
-## Shot list (the style test: pictures 1 and 2; one move at one pace since round 4)
+## Shot list (the nine pictures; one move at one pace)
 
 The camera goes in at 432 units a second from the first frame to the last, on the axis,
-focused 1000 ahead: the times below are when each stratum is that far, and sharp.
+focused 1000 ahead. A picture begins when the camera goes through the plate of the one
+before. 63 s.
 
-| In focus at | Stratum | What comes into view |
-|---|---|---|
-| 1.8 s | By the candle | The night lifts on a Holy Week candle and a thurible with its smoke; a Sephardic lamp, a comb, a rosary, a hand amulet, on a bank of embroidered flowers. |
-| 3.4 s | Tartessos and the sea | The Carambolo gold, a stele, a murex and its purple, a Corinthian helmet, a pomegranate, a botijo. The guitar is seen, small, at the end. |
-| 4.9 s | Rome and the Goths | A Baetican amphora, a mosaic of Italica, an eagle fibula, a votive crown, a Byzantine cross, a street tile. |
-| 6.5 s | Al-Andalus | An astrolabe, the fawn of Madinat al-Zahra, cut tile, the books of its poets, a palette, fino. |
-| 8.1 s | The house and the fair | The poster of the 1922 Concurso de Cante Jondo, cards, castanets, a matchbox, a score, lanterns overhead. |
-| 9.7 s | The guitar | The emblem proper: guitar, two painted fans, olive, carnations, swallows, the ribbon and its coins. The mouth, on the axis, shows the orchard. |
-| 12.0 s | (through the mouth) | The rosette, the strings, the dark of the box, at the same pace. |
-| 12.2–13.1 s | The lemon tree | Full day: lemons, blossom, a goldfinch, bees, dew. The night comes back over the last second, the camera still going in. |
+| From | Picture | The passage through it | The way out |
+|---|---|---|---|
+| 0 s | 1 · The passage and the emblem | The night lifts on a candle; five strata (by the candle, Tartessos and the sea, Rome and the Goths, al-Andalus, the house and the fair), then the guitar with its fans, olive, swallows and ribbon. | The guitar's mouth |
+| 12 s | 2 · The lemon tree | Full day: lemons, blossom, a goldfinch, bees, dew. | The dark rest between two lemons |
+| 16 s | 3 · Green | The fig tree's crown; the pass under the mountain that is a thieving cat, the ghost ship and horse; the house, its green rail and the trail of red drops; the cistern and its icicle of moon. | The cistern's mouth |
+| 22 s | 4 · The still life | On black, ledge behind ledge: the water seller's jug, the glass with a fig, mortar and garlic, eggs, búcaros, the larder's hanging quince and cabbage, a rose and a cup, the candle just snuffed. | The stone window |
+| 28 s | 5 · The dark night | The rent Lenten veil and the candles put out but one; the cell's window and the secret ladder; the candles of the small hours, lilies, a thurible; the circles in gold leaf. | The innermost circle, which is light |
+| 34 s | 6 · The dome | Looking up: cut-tile dado and stucco, the carpentry ceiling, three tiers of muqarnas and their windows, the ribs and gold mosaic of Córdoba, the shell. | The star lantern |
+| 40 s | 7 · The patio | The zaguán's arch; the fountain and the wall of blue pots; the well, the orange tree, the arcade; the two peacocks. | The door between the peacocks |
+| 47 s | 8 · The guitar in planes | The café table (bottle, glass, newspaper); the instrument apart; the guitar whole for an instant. | The sound hole |
+| 53 s | 9 · The forge and the moon | The vault and its copper; the hearth and the anvil; the cave's mouth; the olive grove and the owl; then the sky. | The full moon with her bustle of tuberoses, and under her `illodev x Claude` |
 
 ## How it is built
 
 - `styles/souvenir/souvenir.js`: the paint (a per-pixel form painter for the brush manner,
   pieces with contour and airbrush for the emblem manner, sheets, relief fields, brushwork
   over every layer), the dive rig (layers at depths, depth of field, motion blur by open
-  shutter) and the lens finish.
-- `tableaux/emblem.js`, `tableaux/lemons.js`: each picture as a stack of layers.
-- `things/*.js`: one file per group of elements (16 of them: guitar, fan, shawl, garland,
-  sky, fauna, ribbon, coins, relics, heirlooms, charms, wares, papers, library, devotion,
-  citrus), painted once; only the camera moves.
-- Two parallel passes painted them from `agent-brief.md`: five agents for the first
-  assembly, eleven for the detail pass. `review.md` lists the licences each painter took.
+  shutter, a pyramid of halves under every layer, layers freed once passed) and the lens
+  finish.
+- `tableaux/*.js`: each picture as a stack of layers (`passage` + `emblem`, `lemons`,
+  `green`, `stilllife`, `darknight`, `dome`, `patio`, `planes`, `forge`), each with its
+  `depth` and the radius of its `hole`. `scene.js` only places them along the axis.
+- `things/*.js`: one file per group of elements, painted once; only the camera moves.
+- Three parallel passes painted them: five agents for the first assembly of the emblem
+  (`agent-brief.md`), eleven for its detail pass, seven for pictures 3 to 9, one each
+  (`picture-brief.md`, with the test bench `dev/picture/scene.js`). `review.md` lists the
+  licences each painter took.

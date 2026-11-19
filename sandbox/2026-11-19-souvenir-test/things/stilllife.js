@@ -2119,15 +2119,18 @@ const Still = (() => {
     function quinceSprite(res, seed, rot = 0) {
         return memo(`quince@${res}/${seed}/${rot.toFixed(2)}`, () => {
             const r = Motion.rng('quince' + seed), sd = S.seedOf('quince' + seed);
-            // hanging: the stalk at the top (y = 0), the calyx at the bottom
-            const pts = [];
-            for (let i = 0; i < 100; i++) {
-                const a = (i / 100) * TAU, c = Math.cos(a), sn = Math.sin(a);
-                // a pear: narrow towards the stalk (sn < 0), bossed at the calyx (sn > 0)
-                const top = smooth(0.1, -1, sn), boss = sn > 0.2 ? 0.05 * Math.cos(a * 5 + 0.4) * sn : 0;
-                const rr = 60 * (1 - 0.5 * top * top) * (1 + boss + 0.05 * S.noise2(c * 2, sn * 2, sd));
-                pts.push([c * rr * 1.0, 74 + sn * rr * (sn < 0 ? 1.32 : 0.92)]);
+            // hanging: the stalk at the top (y = 0), the calyx at the bottom. A pear's profile:
+            // a short neck under the stalk, sloping shoulders, the body widest low down, the
+            // bottom rounded and bossed round the calyx
+            const pear = (t) => (t < 0.6 ? 0.3 + 0.7 * Math.pow(Math.sin((Math.PI / 2) * (t / 0.6)), 1.4) : Math.sqrt(Math.max(0, 1 - Math.pow((t - 0.6) / 0.4, 2))));
+            const right = [], left = [];
+            for (let i = 0; i <= 50; i++) {
+                const t = i / 50, y = 10 + t * 128, lump = 1 + 0.05 * S.noise2(t * 5, 1, sd) + (t > 0.75 ? 0.04 * Math.sin(t * 40) : 0);
+                right.push([58 * pear(t) * lump * (1 + 0.03 * S.noise2(t * 7, 3, sd)), y]);
+                left.push([-58 * pear(t) * lump * (1 + 0.03 * S.noise2(t * 7, 5, sd)), y]);
             }
+            // the neck's top, rounded into the stalk's cavity
+            const pts = [[0, 4], ...right, ...left.reverse()];
             const box = S.bbox([...pts, [0, -6]], 12);
             const down = (x, y) => clamp(smooth(80, 20, y) * 0.9 + 0.5 * S.noise2(x * 0.05, y * 0.05, sd + 2) - 0.1);
             return S.form({
@@ -2136,8 +2139,8 @@ const Still = (() => {
                 height: (x, y) => {
                     // bosses and slow lumps; the calyx pit and the stalk's cavity
                     let h = 2.2 * S.noise2(x * 0.03, y * 0.03, sd) + 0.5 * S.noise2(x * 0.12, y * 0.12, sd + 1);
-                    h -= 9 * Math.exp(-(Math.pow(x / 10, 2) + Math.pow((y - 128) / 7, 2)));
-                    h -= 6 * Math.exp(-(Math.pow(x / 9, 2) + Math.pow((y - 12) / 8, 2)));
+                    h -= 9 * Math.exp(-(Math.pow(x / 10, 2) + Math.pow((y - 136) / 7, 2)));
+                    h -= 5 * Math.exp(-(Math.pow(x / 7, 2) + Math.pow((y - 4) / 8, 2)));
                     return h;
                 },
                 ramp: QUINCE, soft: 0.92,
@@ -2148,7 +2151,7 @@ const Still = (() => {
                     // green at the shoulders, the down a grey felt that dulls the gold
                     toward(rgb, rgb[0] * 0.78, rgb[1] * 0.92, rgb[2] * 0.5, smooth(50, 10, y) * 0.55);
                     const d = down(x, y);
-                    toward(rgb, (rgb[0] + rgb[1] + rgb[2]) / 3 + 26, (rgb[0] + rgb[1] + rgb[2]) / 3 + 22, (rgb[0] + rgb[1] + rgb[2]) / 3 + 6, d * 0.55);
+                    toward(rgb, (rgb[0] + rgb[1] + rgb[2]) / 3 + 30, (rgb[0] + rgb[1] + rgb[2]) / 3 + 26, (rgb[0] + rgb[1] + rgb[2]) / 3 + 12, d * 0.75);
                     // a soft brown bruise low on the shadow side
                     const b = Math.hypot((x - 26) / 22, (y - 104) / 18) + 0.2 * S.noise2(x * 0.1, y * 0.1, sd + 3);
                     toward(rgb, rgb[0] * 0.55, rgb[1] * 0.42, rgb[2] * 0.3, smooth(1, 0.6, b) * 0.6);
@@ -2170,12 +2173,12 @@ const Still = (() => {
                     }
                     // the calyx: dry brown sepals in their pit, a few hairs of the stamens
                     for (let k = 0; k < 5; k++) {
-                        const a = (k / 5) * TAU + 0.3, tip = [Math.cos(a) * 11, 128 + Math.sin(a) * 6];
-                        poly(g, [[Math.cos(a - 0.5) * 4, 128 + Math.sin(a - 0.5) * 2.5], tip, [Math.cos(a + 0.5) * 4, 128 + Math.sin(a + 0.5) * 2.5]], '#5a3a18');
-                        S.ink(g, [[0, 128], tip], { w: 0.6, color: '#c8a070', alpha: 0.6 });
+                        const a = (k / 5) * TAU + 0.3, tip = [Math.cos(a) * 11, 136 + Math.sin(a) * 6];
+                        poly(g, [[Math.cos(a - 0.5) * 4, 136 + Math.sin(a - 0.5) * 2.5], tip, [Math.cos(a + 0.5) * 4, 136 + Math.sin(a + 0.5) * 2.5]], '#5a3a18');
+                        S.ink(g, [[0, 136], tip], { w: 0.6, color: '#c8a070', alpha: 0.6 });
                     }
-                    disc(g, 0, 128, 3, '#2a1806');
-                    for (let i = 0; i < 12; i++) S.ink(g, [[0, 128], [(r() - 0.5) * 7, 128 + (r() - 0.5) * 5]], { w: 0.35, color: '#8a6a40', alpha: 0.8 });
+                    disc(g, 0, 136, 3, '#2a1806');
+                    for (let i = 0; i < 12; i++) S.ink(g, [[0, 136], [(r() - 0.5) * 7, 136 + (r() - 0.5) * 5]], { w: 0.35, color: '#8a6a40', alpha: 0.8 });
                 },
             });
         });
@@ -2197,7 +2200,7 @@ const Still = (() => {
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        line(g, [[0, 14], [-1, 2], [1, -8]], 6, '#3a2a14');
+        line(g, [[0, 16], [-1, 4], [1, -8]], 6, '#3a2a14');
         line(g, [[-1.5, 12], [-2, 0]], 1.4, 'rgba(200,170,120,0.6)');
         const leaf = memo(`qleaf@${res}/${seed}`, () => {
             const pts = [];
@@ -2317,12 +2320,16 @@ const Still = (() => {
                     toward(rgb, 190, 210, 170, smooth(0.12, 0.02, m) * 0.6 * smooth(0.3, 0.6, x / len));
                 },
                 over: (g) => {
-                    S.ink(g, [[0, 0], [len * 0.5, -2], [len * 0.95, -4]], { w: 6, color: '#cfe0b8', alpha: 0.65, taper: [0.1, 1] });
-                    S.ink(g, [[0, 3], [len * 0.5, 1.5], [len * 0.9, -2]], { w: 1.5, color: '#2a4a30', alpha: 0.4, taper: [0.1, 1] });
+                    S.ink(g, S.curve([[0, 0], [len * 0.35, -3], [len * 0.7, -2], [len * 0.95, -6]], false, 6), { w: 6, color: '#b8ccaa', alpha: 0.5, taper: [0.1, 1] });
+                    S.ink(g, S.curve([[0, 3], [len * 0.4, 1], [len * 0.9, -3]], false, 6), { w: 1.5, color: '#163020', alpha: 0.35, taper: [0.1, 1] });
+                    const rv = Motion.rng('cv' + seed);
                     for (let k = 1; k < 8; k++) {
                         const x0 = (k / 8) * len * 0.9;
-                        S.ink(g, [[x0, -2], [x0 + 20, -wid * 0.7]], { w: 1.4, color: '#c8dcb0', alpha: 0.45, taper: [0.2, 1] });
-                        S.ink(g, [[x0, 2], [x0 + 18, wid * 0.55]], { w: 1.2, color: '#c8dcb0', alpha: 0.4, taper: [0.2, 1] });
+                        for (const side of [-1, 1]) {
+                            const e = [x0 + 22 + rv() * 8, side * wid * (0.55 + rv() * 0.15)], m = [x0 + 6, side * wid * 0.3];
+                            S.ink(g, S.curve([[x0, side * 2], m, e], false, 6), { w: 1.1, color: '#b8ccaa', alpha: 0.28, taper: [0.2, 1] });
+                            S.ink(g, S.curve([m, [m[0] + 10, m[1] + side * 6], [m[0] + 14, m[1] + side * 14]], false, 4), { w: 0.6, color: '#b8ccaa', alpha: 0.2, taper: [0.2, 1] });
+                        }
                     }
                 },
             });

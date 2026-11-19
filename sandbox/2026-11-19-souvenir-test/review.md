@@ -352,3 +352,57 @@ still stretches; it flags flat frames at 13.83 s, which is the film's last frame
 the fade back to the night, as meant. 336 frames at 1920 × 1080 in 18 minutes (23 before,
 for 360). The style's template has the same camera now and passes too.
 
+## Round 5 · the other seven pictures
+
+The user, after the film at one pace: «let us go on with the next layers». The script of
+nine pictures in `brief.md` was taken as proposed (dark against light, abstract against
+realistic), no people, the camera untouched.
+
+- **Seven painters in parallel, one picture each**, from `picture-brief.md` (the three
+  corrections so far as rules: packed, a passage, nothing depends on the camera) and a
+  common test bench (`dev/picture/scene.js`: the film's camera through one picture, with
+  stand-ins for the picture before and after). Each delivered `tableaux/<name>.js`,
+  `things/<name>.js` and its bench; each contact sheet was read before assembling.
+- **Assembly (`scene.js`):** every picture starts 700 behind the plate of the one before.
+  What had to be solved there:
+  1. **A hole on nothing is a blue disc.** With every layer fading in at its own distance,
+     the picture behind a hole was still in the night when the hole was read · → a
+     picture's strata come out of the night together with the plate they are seen
+     through; its own plate keeps its distance, so the picture after stays dark.
+  2. **«The innermost circle, which is light» showed a blurred blue dome** · → the gap
+     behind the dark night's hole holds five thin veils of gold light: the camera comes
+     out of the light little by little, and the dome clears.
+  3. **The moon was whole for a quarter of a second** (painted 1200 behind the last
+     olives) · → she and her sky are placed 4.8 times farther and drawn 4.8 times larger,
+     kept sharp: she barely grows while the cave and the grove go by, and the camera, at
+     its pace, has four seconds of sky with her and the signature.
+  4. **The lemon tree had no way out** · → a ragged hole in its plate, in the dark rest
+     between the two lemons.
+  5. **A film of a hundred layers** · → the rig frees a layer once the camera is well
+     past it.
+- **The signature** `illodev x Claude` in the ribbon's letter, in the moon's silver,
+  under her tuberoses; it comes up as the grove leaves the frame.
+
+### Licences and unchecked facts (the painters' own lists, kept)
+
+- **Green:** the moth's veins and the frog's iris recoloured to keep one warm colour;
+  frost on summer leaves; glass tambourines; the cistern seen straight down. Not checked:
+  whether *Graellsia isabellae* lives in Andalusia; the ship's rigging.
+- **Still life:** see the painter's notes at the top of `tableaux/stilllife.js`.
+- **Dark night:** candles in banks, not the triangular tenebrario; the veil is embroidered
+  wool (Seville's is painted linen); the circles and the mount are evocations, not copies;
+  no script anywhere. From memory: the escape by knotted blanket strips, the veil's
+  rending on Holy Wednesday.
+- **Dome:** the walls folded out flat; the muqarnas as rings of zigzags, not the real plan
+  of thousands of prisms; the stacking of three ceilings into one ascent is imaginary;
+  swifts given a cup nest; epigraphic bands filled with knots, no script. From memory:
+  the Byzantine tesserae of al-Hakam II's mihrab, the Nasrid polychromy.
+- **Patio:** the architecture compressed, the eye a metre above the floor; arch geometry,
+  peacock anatomy and Fajalauza decoration from memory; the tower is generic.
+- **Planes:** the newspaper «La Brisa», its street and its news are invented (not checked
+  that no real paper had the name); the date and number on it are the painter's birthday
+  and year; pigeon wing and peg heads from memory.
+- **Forge:** the vault lit by an invented bounce of the fire; the full moon shaded as a
+  sphere lit from the upper left; «zumaya» read as a scops owl; horse brasses on an
+  Andalusian bridle; the palace on the hill is generic; seas and craters approximate.
+
