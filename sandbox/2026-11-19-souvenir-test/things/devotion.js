@@ -6,7 +6,8 @@
 //   Devotion.cirio(g, { x, y, s, rot, seed })       90 × 420   a processional wax candle, lit
 //   Devotion.incensario(g, { x, y, s, rot, seed })  170 × 330  a silver thurible on its chains
 //   Devotion.rosario(g, { x, y, s, rot, seed })     220 × 280  a rosary of jet beads, laid down
-//   Devotion.lampara(g, { x, y, s, rot, seed })     230 × 250  a brass Hanukkah lamp, Sefarad
+//   Devotion.lampara(g, { x, y, s, rot, seed, lights, servant })  230 × 250  a brass Hanukkah
+//       lamp, Sefarad (`lights`: pans burning, from the right, default 1; `servant`: its ninth light too)
 //   Devotion.jamsa(g, { x, y, s, rot, seed })       140 × 200  a silver hand amulet, al-Andalus
 //   Devotion.mihrab(g, { x, y, s, rot, seed })      220 × 300  an ivory plaque with a prayer niche
 // (the candle's flame and its glow reach some 14 units over its box, the thurible's smoke stays
@@ -2111,10 +2112,16 @@ const Devotion = (() => {
             // the loop it hangs by wears bright where the nail rubs
             S.ink(q, F.pts(S.ellipse(0, LAMP.APEX - 9.4, 5.6, 5.9, 20).slice(11, 19)), { w: 0.9, color: '#fff6cc', alpha: 0.9 });
             return (a) => {
-                // one wick lit: the first night's light, at the right end of the row
-                const lit = LAMP.pans[7], Ff = upright(F, [lit.tip[0], lit.tip[1] - 2.2]).sub(lit.tip[0], lit.tip[1] - 2.2);
-                glow(a, Ff([0, -7]), 30, 0.9);
-                flame(a, Ff, { h: 15.5, w: 5.4, lean: -1.2, seed, soot: true });
+                // one wick lit by default: the first night's light, at the right end of the row
+                // (`lights`: how many pans burn, counted from that end; `servant`: the servant light too)
+                const burn = (tip) => {
+                    const Ff = upright(F, tip).sub(tip[0], tip[1]);
+                    glow(a, Ff([0, -7]), 30, 0.9);
+                    flame(a, Ff, { h: 15.5, w: 5.4, lean: -1.2, seed: seed + Math.round(tip[0]), soot: true });
+                };
+                const n = Math.max(0, Math.min(8, o.lights ?? 1));
+                for (let i = 8 - n; i < 8; i++) burn([LAMP.pans[i].tip[0], LAMP.pans[i].tip[1] - 2.2]);
+                if (o.servant) burn(frame(100.6, -7.4, 0.05)([LAMP.servant.tip[0], LAMP.servant.tip[1] - 2.2]));
             };
         });
     }

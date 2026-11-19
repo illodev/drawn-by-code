@@ -60,7 +60,7 @@
 //     10 the little green cup of the calyx with its teeth, on a pale pedicel
 //
 //   Water (`drop`): a dew drop is dark on the side of the lamp and bright on the far side,
-//   with a point of light and a small shadow.
+//   with a point of light and a small shadow. And ants (`ant`) on the wood: they farm the scale.
 //
 // Units: a lemon is about 190 long, a leaf 160–250 (young ones 100–160), an open flower 100
 // across, a long bud 45, a fruitlet 20–36.
@@ -857,6 +857,14 @@ const Citrus = (() => {
                             }
                         }
                     });
+                    // then the hairs of a small dry brush, sharp: short strokes along the veins
+                    for (const sd2 of [0, 1]) {
+                        const us = G.veins[sd2];
+                        for (let j = 0, m = Math.round(L * (0.3 + 0.3 * G.strokeA)); j < m; j++) {
+                            const k = Math.floor(r() * (us.length - 1)), uk = us[k] + (us[k + 1] - us[k]) * r(), a0 = 0.04 + r() * 0.8, a1 = Math.min(0.97, a0 + 0.08 + r() * 0.22);
+                            line(g, [G.onVein(sd2, uk, a0), G.onVein(sd2, uk, (a0 + a1) / 2), G.onVein(sd2, uk, a1)], 0.45 + r() * 0.5, r() < 0.55 ? `rgba(255,255,255,${0.1 + r() * 0.2})` : `rgba(0,0,0,${0.08 + r() * 0.16})`);
+                        }
+                    }
                 },
                 // the sky mirrored in the leaf: a band on glossy leaves, a hint on the others
                 spec: SHEEN[kind] && glossy > 0.12 ? { amp: 0.22 + 0.6 * glossy, power: 7 + 16 * (1 - glossy), from: 0.62 - 0.12 * glossy, to: 0.92, ragged: 0.9, color: SHEEN[kind] } : null,
@@ -1710,6 +1718,42 @@ const Citrus = (() => {
         g.restore();
     }
 
+    // An ant on the bough (they farm the scale): head, thorax, a gloss on the gaster, six
+    // legs, elbowed antennae. About 9 long at s = 1, heading along `rot`.
+    function ant(g, { x = 0, y = 0, rot = 0, s = 1 } = {}) {
+        g.save();
+        g.translate(x, y);
+        g.rotate(rot);
+        g.scale(s, s);
+        g.lineCap = 'round';
+        g.strokeStyle = '#1c120c';
+        g.lineWidth = 0.42;
+        for (const [x0, a] of [[0.6, -1.9], [0, -1.5], [-0.6, -1.1], [0.6, 1.9], [0, 1.5], [-0.6, 1.1]]) {
+            g.beginPath();
+            g.moveTo(x0, 0);
+            g.lineTo(x0 + Math.cos(a) * 1.6, Math.sin(a) * 1.9);
+            g.lineTo(x0 + Math.cos(a) * 1.6 + (a < 0 ? 1 : 1) * 0.9, Math.sin(a) * 3.3);
+            g.stroke();
+        }
+        for (const sg of [-1, 1]) {
+            g.beginPath();
+            g.moveTo(2.9, sg * 0.4);
+            g.lineTo(3.9, sg * 1.5);
+            g.lineTo(5.2, sg * 1.2);
+            g.stroke();
+        }
+        g.fillStyle = '#20140e';
+        oval(g, -2.7, 0, 2.3, 1.55);
+        oval(g, 0, 0, 1.5, 0.95);
+        oval(g, 2.5, 0, 1.25, 1.1);
+        g.restore();
+        // the gloss stays towards the lamp however the ant is turned
+        const c = Math.cos(rot), sn = Math.sin(rot), lx = LN[0] * 0.6 * s, ly = LN[1] * 0.6 * s;
+        g.fillStyle = 'rgba(214,170,130,0.75)';
+        oval(g, x - 2.7 * s * c + lx, y - 2.7 * s * sn + ly, 0.9 * s, 0.45 * s, rot);
+        disc(g, x + 2.5 * s * c + lx * 0.7, y + 2.5 * s * sn + ly * 0.7, 0.3 * s);
+    }
+
     const stats = () => ({ sprites: stat.sprites, px: stat.px, mb: Math.round((stat.px * 4) / 1048576) });
-    return { lemon, lemonShape, fruitlet, leaf, leafGeom, flower, bud, spent, petal, branch, thorn, cut, scar, drop, put, shadow, shadowOf, graded, stats, lkey, LSTEP, SHADE };
+    return { lemon, lemonShape, fruitlet, leaf, leafGeom, flower, bud, spent, petal, branch, thorn, cut, scar, ant, drop, put, shadow, shadowOf, graded, stats, lkey, LSTEP, SHADE };
 })();

@@ -3,7 +3,7 @@
 // stamp with its postmark, a matchbox. Global: Papers. Sizes at s = 1, the anchor in the
 // middle of each:
 //   Papers.poster(g, { x, y, s, rot, seed, ground })     420 × 600
-//   Papers.plaque(g, { x, y, s, rot, seed, ground })     330 × 150
+//   Papers.plaque(g, { x, y, s, rot, seed, ground })     333 × 146 (the ten tiles 322 × 127)
 //   Papers.ticket(g, { x, y, s, rot, seed, ground })     300 × 140
 //   Papers.stamp(g, { x, y, s, rot, seed, ground })       90 × 110
 //   Papers.matchbox(g, { x, y, s, rot, seed, ground })   a box 150 × 100 × 40 seen from above,
@@ -33,9 +33,11 @@
 //   3 where the folds cross the paper has worn through   4 a tear starts at the end of a
 //     fold   5 a corner tore off round its drawing pin, the fibre white in the tear
 //   6 the pins left a pale disc, a rust ring and a drip under the other corners   7 one
-//     corner curls and shows the unprinted back   8 foxing in clusters, a glass ring, fly
-//     specks   9 letterpress: solids mottle, edges take more ink, the red is a hair out of
-//     register   10 the back's print shows through, mirrored; one flower was set sideways
+//     corner curls and shows the unprinted back   8 foxing in clusters, a glass ring, a
+//     water stain with its tide line, fly specks   9 letterpress: solids mottle, edges take
+//     more ink, the red is a hair out of register   10 the back's print shows through,
+//     mirrored; in the border one flower was set sideways, one fell out, one is from
+//     another fount; the town hall's violet rubber stamp, without which no bill was posted
 //
 // PLAQUE (azulejo): ten hand-made tiles in two rows on a bed of lime mortar; white tin
 // glaze, cobalt brushwork, antimony yellow.
@@ -1522,16 +1524,16 @@ const Papers = (() => {
             // squares carries a wave with a leaf in every bay.
             const bi = 12.5, cs = 6.7; // the band's middle line (in from the edge) and half a corner square
             const runs = [[[-hx + bi + cs, -hy + bi], [hx - bi - cs, -hy + bi]], [[hx - bi, -hy + bi + cs], [hx - bi, hy - bi - cs]], [[hx - bi - cs, hy - bi], [-hx + bi + cs, hy - bi]], [[-hx + bi, hy - bi - cs], [-hx + bi, -hy + bi + cs]]];
-            const motif = (fn) => runs.forEach(([a, b], ri) => {
+            const motif = (fn) => runs.forEach(([a, b]) => {
                 const L = dist(a, b), n = Math.max(2, Math.round(L / 13.2)), hp = L / n, t = [(b[0] - a[0]) / L, (b[1] - a[1]) / L], nn = [-t[1], t[0]];
                 const at = (s, off) => [a[0] + t[0] * s + nn[0] * off, a[1] + t[1] * s + nn[1] * off];
-                fn({ L, n, hp, at, ang: Math.atan2(t[1], t[0]), ri });
+                fn({ L, n, hp, at, ang: Math.atan2(t[1], t[0]) });
             });
             const corners = [[-hx + bi, -hy + bi], [hx - bi, -hy + bi], [hx - bi, hy - bi], [-hx + bi, hy - bi]];
             const POM = 112, FLO = 123; // the pomegranates beside «CALLE DE», the florets beside the name
 
             const yellow = inked(box, res, (k) => {
-                motif(({ n, hp, at, ang, ri }) => {
+                motif(({ n, hp, at, ang }) => {
                     for (let j = 0; j < n; j++) {
                         const sg = j % 2 ? 1 : -1, p = at((j + 0.5) * hp + (r() - 0.5) * 0.8, -sg * 2.2);
                         k.save();
@@ -1544,7 +1546,6 @@ const Papers = (() => {
                         k.fill();
                         k.restore();
                     }
-                    void ri;
                 });
                 for (const [x, y] of corners) {
                     k.beginPath();
@@ -2642,11 +2643,11 @@ const Papers = (() => {
                     k.arc(sx * 61.4, sy * 36.4, 9.4, 0, TAU);
                     k.fill();
                 }
+                // (only what falls outside the field is kept of those discs: solid corners to
+                // the band; then the field's own pieces are laid again inside it)
                 cutting(k, (k2) => {
                     k2.fillRect(-61.4, -36.4, 122.8, 72.8);
                 });
-                // (the quarter fans are what is left of those discs outside the field… and
-                // the field's own pieces are laid again inside it)
                 k.beginPath();
                 k.arc(MX, MY, MR, 0, TAU);
                 k.fill();

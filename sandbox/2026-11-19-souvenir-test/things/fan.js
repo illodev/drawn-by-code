@@ -614,6 +614,12 @@ const Fan = (() => {
                 const x = R(x0 + 0.5, x1 - 0.5), ya = R(y0 + (y1 - y0) * 0.35, y1);
                 B.line([[x, ya], [x + R(-0.3, 0.3), Math.max(y0, ya - R(2.5, (y1 - y0) * 0.6))]], R(0.4, 1), rnd() < 0.6 ? S.rgba(C.deep, R(0.12, 0.28)) : S.rgba(C.glint ?? C.lit, R(0.15, 0.4)), X0);
             }
+            // a patch of newer plaster, or one where it has fallen
+            for (let k = 0; k < (o.patch ?? ((x1 - x0) * (y1 - y0) > 60 ? 2 : 1)); k++) {
+                const px = R(x0 + 0.4, x1 - 2), py = R(y0 + 1, y1 - 2), pw = Math.min(x1 - px - 0.3, R(1.2, 4)), ph = Math.min(y1 - py - 0.3, R(0.9, 3));
+                if (pw < 0.8 || ph < 0.6) continue;
+                B.fill([[px, py], [px + pw, py + R(-0.3, 0.3)], [px + pw + R(-0.4, 0.4), py + ph], [px + R(-0.3, 0.3), py + ph]], rnd() < 0.5 ? S.rgba(C.deep, R(0.1, 0.22)) : S.rgba(C.glint ?? C.lit, R(0.16, 0.34)), X0);
+            }
             B.line([[xl, y0], [xl, y1]], 0.45, S.rgba(C.glint ?? C.lit, 0.9), X0);
             B.line([[x0, y0], [x0, y1], [x1, y1], [x1, y0]], 0.5, ln(o.ink ?? 0.62), X0);
             return X0;
@@ -854,6 +860,14 @@ const Fan = (() => {
             for (let k = 0; k < 4; k++) B.line([[x + R(0.5, 3), y - R(1, 4)], [x + R(2, h * 0.5), y - R(4, h * 0.8)]], R(0.3, 0.6), 'rgba(255,246,236,0.75)');
         }
         B.line(ridge, 0.5, 'rgba(255,238,226,0.75)');
+        // rock showing through the snow, drifts lying in the hollows
+        for (let k = 0; k < 110; k++) {
+            const X = R(-4, 520), top = yAt(RIDGE, X);
+            if (top < 190) continue;
+            const Y = R(184, top - 2.5), s = R(0.8, 2.4);
+            if (rnd() < 0.5) B.fill([[X, Y], [X + s * 1.6, Y + s * 0.3], [X + s * 0.9, Y + s * 1.1]], `rgba(70,62,128,${R(0.35, 0.65).toFixed(2)})`);
+            else B.line(S.curve([[X, Y], [X + s * 1.5, Y - s * 0.5], [X + s * 3.4, Y - s * 0.4]], false, 4), R(0.4, 0.9), `rgba(255,236,226,${R(0.4, 0.8).toFixed(2)})`);
+        }
         // bare rock under the snow line, and the haze at the mountain's foot
         for (let k = 0; k < 70; k++) {
             const X = R(0, 420), top = yAt(RIDGE, X), Y = R(170, Math.max(172, top - 8));

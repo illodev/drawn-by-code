@@ -1,11 +1,12 @@
 // The night behind the emblem as a mantón de Manila: a silk shawl embroidered all over, seen
 // by moonlight. Global: Shawl.
 //
-//   Shawl.carpet(g, box, { seed = 'shawl', keepOut = 140, view = null, anchors, verses })
+//   Shawl.carpet(g, box, { seed = 'shawl', keepOut = 0, view = null, anchors, verses })
 //       Paints the whole embroidery over whatever ground is already on `g` (the tableau's
 //       indigo plate), in the caller's units, origin at the centre of the picture.
 //       box      { x, y, w, h }: what the shawl covers (the layout is seeded from it)
-//       keepOut  radius about the origin where nothing is embroidered (the hole of the dive)
+//       keepOut  radius about the origin where nothing is embroidered (0: the tableau cuts
+//                the hole of the dive itself)
 //       view     { x, y, w, h }: paint only what touches this window (dev close-ups)
 //       anchors  [{ k: 'peafowl' | 'songbird' | 'pavilion' | 'bridge' | 'butterfly' | 'dragonfly',
 //                x, y, … }]: finds with a place of their own, to show one in a pocket of
@@ -1535,7 +1536,7 @@ const Shawl = (() => {
     // sprays through the free cloth, and then whatever still fits in every hole that is left.
     const plans = new Map();
     function plan(box, o = {}) {
-        const seed = o.seed ?? 'shawl', keepOut = o.keepOut ?? 140, anchors = o.anchors ?? [];
+        const seed = o.seed ?? 'shawl', keepOut = o.keepOut ?? 0, anchors = o.anchors ?? [];
         const key = [box.x, box.y, box.w, box.h, seed, keepOut, o.verses !== false, JSON.stringify(anchors)].join('/');
         if (plans.has(key)) return plans.get(key);
         const rnd = Motion.rng('shawl/' + seed), CELL = 8, gw = Math.ceil(box.w / CELL), gh = Math.ceil(box.h / CELL), occ = new Uint8Array(gw * gh);
@@ -1948,10 +1949,10 @@ const Shawl = (() => {
             const fl = g.createPattern(floatTile(), 'repeat');
             fl.setTransform(new DOMMatrix().rotate((-TILT * 180) / Math.PI).scale(1 / k));
             verses(g, box, o, (line, x, y) => {
-                g.fillStyle = 'rgba(92,100,190,0.1)';
+                g.fillStyle = 'rgba(92,100,190,0.075)';
                 g.fillText(line, x, y);
                 g.fillStyle = fl;
-                g.globalAlpha = 0.2;
+                g.globalAlpha = 0.17;
                 g.fillText(line, x, y);
                 g.globalAlpha = 1;
             });

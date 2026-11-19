@@ -112,17 +112,12 @@ Motion.scene({
             const p = plate('whole', SHPLATE, RES, { whole: true, tooth: false });
             if (!st.stats) {
                 // the painted share of the cloth and its widest hole, off a copy on clear glass
-                // (the hole of the dive counts as painted: the tableau cuts it out)
                 const res = 0.5, c = document.createElement('canvas');
                 c.width = SHPLATE.w * res;
                 c.height = SHPLATE.h * res;
                 const q = c.getContext('2d', { willReadFrequently: true });
                 q.setTransform(res, 0, 0, res, -SHPLATE.x * res, -SHPLATE.y * res);
                 Shawl.carpet(q, SHPLATE, { bare: true });
-                q.fillStyle = '#000';
-                q.beginPath();
-                q.arc(0, 0, 150, 0, 6.3);
-                q.fill();
                 const d = q.getImageData(0, 0, c.width, c.height).data, n = c.width * c.height, inside = new Uint8Array(n);
                 let cov = 0;
                 for (let i = 0; i < n; i++) {

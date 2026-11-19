@@ -433,7 +433,12 @@ Tableau.lemons = (z0) => {
                 for (const [x, y, dir, len] of [[1300, -560, 2.9, 300], [1300, 520, 3.6, 320], [820, 740, -2.0, 300], [80, 740, -1.4, 260], [-760, 740, -1.2, 300], [-1300, 420, -0.1, 300], [-1300, -250, 0.4, 280], [-560, -740, 1.2, 240], [330, -740, 1.7, 260], [900, -740, 2.2, 280], [1300, -160, 3.3, 260], [-1000, 740, -0.8, 280]]) {
                     sprig(P, x, y, dir, len, 'h-edge' + x + y, { thorns: 0.2 });
                 }
-                C.branch(g, A.pts, { raw: true, w0: 25, w1: 13, seed: 'bough-A', nodes: [300, 620, 980, 1270, 1560, 1900] });
+                C.branch(g, A.pts, { raw: true, w0: 34, w1: 14, seed: 'bough-A', nodes: [300, 620, 980, 1270, 1560, 1900] });
+                // ants going up and down the bough
+                for (const [u, off, back] of [[0.36, -6, 0], [0.385, 3, 1], [0.41, -3, 0], [0.445, 5, 0], [0.52, -5, 1], [0.6, 2, 0], [0.63, -4, 0], [0.71, 3, 1]]) {
+                    const p = A.at(A.len * u);
+                    C.ant(g, { x: p.x - Math.sin(p.a) * off, y: p.y + Math.cos(p.a) * off, rot: p.a + (back ? Math.PI : 0) + (off % 2 ? 0.2 : -0.15), s: 1 });
+                }
                 C.branch(g, B.pts, { raw: true, w0: 15, w1: 9, seed: 'bough-B', green: [0.75, 1.2], nodes: [260, 520, 800] });
                 // a pruned stub on the big bough, and where leaves fell
                 const st = A.at(A.len * 0.335);
@@ -508,8 +513,8 @@ Tableau.lemons = (z0) => {
             paint(g, res) {
                 const P = painter(g, res, 0);
                 sprig(P, -420, -560, 1.2, 240, 'front-1', { kinds: ['sun', 'mid', 'sun'], tip: [[-0.6, 40, 'face', 9, 0.95], [0.4, 36, 'bud', 14, 0.95], [1.2, 30, 'round', 15, 1]] });
-                sprig(P, -900, -60, 0.3, 260, 'front-2', { kinds: ['sun', 'mid'], tip: 'flush' });
-                sprig(P, 900, 60, 3.4, 240, 'front-4', { kinds: ['sun', 'mid'] });
+                sprig(P, -900, -60, 0.3, 260, 'front-2', { kinds: ['mid', 'sun', 'mid'], tip: 'flush' });
+                sprig(P, 900, 60, 3.4, 240, 'front-4', { kinds: ['mid', 'deep', 'sun'] });
                 const bee = fauna('bee');
                 if (bee) bee.bee(g, { x: -236, y: -300, s: 0.9, rot: 2.9, flip: true, pose: 'fly', line: false, cast: false });
                 relight(g, wide, res, dapple('front', wide, { pools: 10, suns: 30, flecks: 20 }));
@@ -521,9 +526,10 @@ Tableau.lemons = (z0) => {
             id: 'lemons-near', z: z0 - 330, box: wide, res: SOFT.near,
             paint(g, res) {
                 const P = painter(g, res, SOFT.near);
-                sprig(P, -900, 330, -0.5, 420, 'near-1', { kinds: ['sun', 'mid'], leaf: 1.15, gap: 60 });
-                sprig(P, -940, -480, 0.5, 400, 'near-2', { kinds: ['mid', 'sun'], leaf: 1.15, gap: 60 });
-                shoot(P, { seed: 'near-3', path: [[900, 120], [760, 150], [640, 190], [560, 214]], w0: 9, w1: 6, gap: 60, kinds: ['sun', 'mid'], leaf: 1.1, fruits: [{ u: 1, e: [-6, 20], s: 1.15, v: 19, age: 'ripe', rot: 0.25 }] });
+                sprig(P, -900, 330, -0.5, 420, 'near-1', { kinds: ['mid', 'deep', 'mid'], plain: true, leaf: 1.15, gap: 60 });
+                sprig(P, -940, -480, 0.5, 400, 'near-2', { kinds: ['mid', 'deep'], plain: true, leaf: 1.15, gap: 60 });
+                shoot(P, { seed: 'near-3', path: [[900, 120], [760, 150], [640, 190], [560, 214]], w0: 9, w1: 6, gap: 60, kinds: ['mid', 'deep'], plain: true, leaf: 1.1, fruits: [{ u: 1, e: [-6, 20], s: 1.15, v: 19, age: 'ripe', rot: 0.25 }] });
+                veil(g, wide, 'rgba(10,40,34,0.2)');
                 S.tooth(g, wide, { amp: 0.05 });
             },
         },
