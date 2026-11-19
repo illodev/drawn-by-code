@@ -966,15 +966,17 @@ const Library = (() => {
                     h.box(7.5, 3.4, L - 7.5, T - 3.4, 0.6);
                     h.box(9, 4.9, L - 9, T - 4.9, 0.28);
                     for (const [a, f] of [[19, 1], [L - 19, -1]]) {
-                        scroll(h, a, T * 0.33, 1.05, f);
-                        scroll(h, a, T * 0.67, 1.05, -f);
-                        fleuron(h, a, T / 2, 2.2, 6, 0);
+                        scroll(h, a, T * 0.3, 1.05, f);
+                        scroll(h, a, T * 0.7, 1.05, -f);
+                        if (f < 0) fleuron(h, a, T / 2, 2.2, 6, 0);
                     }
                     for (const a of [62, 94]) for (const b of [8, T - 8]) fleuron(h, a, b, 1.5);
                 }, 0.7);
                 gilt(c, 0.22, (h) => {
                     for (const a of [2.2, 3.6, 5.6, L - 5.6, L - 3.6, L - 2.2]) h.line([[a, 1], [a, T - 1]], a === 3.6 || a === L - 3.6 ? 0.8 : 0.3);
                     lyre(h, 78, T / 2, 1.2);
+                    // a swallow, come back
+                    h.poly([[23.6, T / 2 - 0.2], [20.4, T / 2 - 1.1], [16.6, T / 2 - 5.2], [18.4, T / 2 - 1.1], [14.2, T / 2 - 1.9], [16.6, T / 2 - 0.1], [14.2, T / 2 + 1.9], [18.4, T / 2 + 1.2], [16.9, T / 2 + 5.2], [20.6, T / 2 + 1]]);
                 });
                 gilt(c, 0.12, (h) => {
                     h.text('BÉCQUER', { a: 46, b: T / 2, cap: 8.4, font: LORA, maxW: 46, track: 0.08 });
@@ -1068,8 +1070,8 @@ const Library = (() => {
                 // the leather gone from the four corners and from the caps: grey board, frayed
                 const r = Motion.rng(c.seed + 'worn');
                 for (const [a, b, sa, sb] of [[0, 0, 1, 1], [L, 0, -1, 1], [0, T, 1, -1], [L, T, -1, -1]]) {
-                    const w = 7.5 + r() * 4, hh = 5 + r() * 3, pts = [[a, b], [a + sa * w, b], [a + sa * w * 0.72, b + sb * hh * 0.34], [a + sa * w * 0.4, b + sb * hh * 0.5], [a + sa * w * 0.22, b + sb * hh * 0.9], [a, b + sb * hh]];
-                    S.piece(q, P.pts(pts), { fill: '#9a907c', line: 0.6, heavy: 0.3, shade: { color: '#4a4350', alpha: 0.7, w: 2.4 }, light: { color: '#d8cfb8', alpha: 0.7, w: 1.4 } });
+                    const w = 10 + r() * 4, hh = 6.4 + r() * 2.6, pts = [[a, b], [a + sa * w, b], [a + sa * w * 0.72, b + sb * hh * 0.34], [a + sa * w * 0.4, b + sb * hh * 0.5], [a + sa * w * 0.22, b + sb * hh * 0.9], [a, b + sb * hh]];
+                    S.piece(q, P.pts(pts), { fill: '#b4a88c', line: 0.7, heavy: 0.3, shade: { color: '#4a4350', alpha: 0.7, w: 2.4 }, light: { color: '#d8cfb8', alpha: 0.7, w: 1.4 } });
                     // the board is made of pasted sheets: its layers show
                     for (let k = 1; k < 4; k++) strokePts(q, [P(a + sa * 0.6, b + sb * hh * k * 0.22), P(a + sa * w * (0.8 - k * 0.17), b + sb * hh * k * 0.22)], 0.25, rgba('#4a4036', 0.6));
                     for (let i = 0; i < 6; i++) {
@@ -2103,6 +2105,11 @@ const Library = (() => {
                         strokePts(c, [P(p0[0] - 0.5, p0[1] - 0.5), P(p1[0] - 0.5, p1[1] - 0.5)], 0.4, rgba('#fffdf2', 0.8));
                         strokePts(c, [P(p0[0] + 0.4, p0[1] + 0.4), P(p1[0] + 0.4, p1[1] + 0.4)], 0.35, rgba('#6a5a48', 0.5));
                     }
+                    // the sheet buckles: two soft valleys run across it, parallel to the roll
+                    const bg = c.createLinearGradient(...P(10, H - 10), ...P(W - 30, 26));
+                    for (const [u, col, a] of [[0, '#fffdf2', 0.3], [0.2, '#7a708c', 0.2], [0.42, '#fffdf2', 0.34], [0.66, '#7a708c', 0.24], [0.86, '#fffdf2', 0.3], [1, '#7a708c', 0.3]]) bg.addColorStop(u, rgba(col, a));
+                    fillPts(c, pts, bg);
+
                     // ---- the writing
                     const write = (color, wear, twice) => stamp(c, P, [0, 0, W, H], { mode: 'ink', color, wear, seed: seed + color + wear }, (h) => {
                         const stave = (b0, k) => {
@@ -2194,7 +2201,7 @@ const Library = (() => {
                             return;
                         }
                         // a page number, the title in capitals, the name under it
-                        h.text('7', { a: 11, b: 9.5, cap: 4.2, font: LORA, skew: 0.2 });
+                        h.text('15', { a: 12, b: 9.5, cap: 4.2, font: LORA, skew: 0.2 });
                         h.text('EL AMOR BRUJO', { a: W / 2 - 12, b: 15.5, cap: 8.6, font: FELL, hand: 0.8, track: 0.15, maxW: 150 });
                         h.line(S.curve([[W / 2 - 70, 24], [W / 2 - 30, 22.6], [W / 2 - 12, 24.4], [W / 2 + 10, 22.6], [W / 2 + 46, 24]], false, 6), 0.4);
                         h.text('M. de Falla', { a: W - 46, b: 31, cap: 5, font: LORA, skew: 0.3, hand: 0.5, align: 1, track: 0.04 });

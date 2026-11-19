@@ -63,8 +63,29 @@
 //   Water (`drop`): a dew drop is dark on the side of the lamp and bright on the far side,
 //   with a point of light and a small shadow. And ants (`ant`) on the wood: they farm the scale.
 //
-// Units: a lemon is about 190 long, a leaf 160–250 (young ones 100–160), an open flower 100
-// across, a long bud 45, a fruitlet 20–36.
+// API (res: pixels per unit of the sprite, chosen by the caller for the scale it pastes at;
+// every sprite is cached by drawing, light and res, and `rot` is the angle it will be
+// pasted at). Sizes at scale 1, anchors in the sprite's own unturned frame:
+//   lemon(v, rot, res, { age: 'green' | 'turning' | 'ripe' | 'over', view: 'side' | 'tip' | 'stalk' })
+//       about 190 × 130, its middle at (0, 0), hanging along +y; `sp.top` is where the
+//       stalk joins (the end of its stub), `sp.G.tip` the nipple
+//   fruitlet(v, rot, res)          20–36 long, hanging along +y from (0, 0); `sp.top` as above
+//   leaf(v, rot, res, kind)        'sun' | 'mid' | 'deep' | 'under' | 'young' | 'bronze' | 'old' | 'back';
+//       150–240 × 70–150 (young and bronze 100–160), the joint under the blade at (0, 0),
+//       the midrib along +x, the petiole behind it (`sp.G.pl` long); `sp.G` is its drawing
+//       (`leafGeom`): `at(u, av, side)` a point on the blade, `bl`, `cuts` what happened to it
+//   flower(v, rot, res, pose)      'face' | 'tilt' | 'side' | 'half'; about 100 across;
+//       'face' and 'tilt' centred on (0, 0); 'side' and 'half' stand along −y on `sp.base`
+//   bud(v, rot, res, long)         35–46 long (17–22 if not `long`) along +x from its foot at (0, 0)
+//   spent(v, rot, res)             along −y from `sp.base`, about 30 tall
+//   petal(key, rot, res, { len, wid, cup, out, old })   along +x from (4, 0)
+//   put(g, sp, x, y, s, { rot, fx, fy, alpha })         paste at the true angle
+//   shadow(g, sp, x, y, s, { rot, fx, fy, dx, dy, alpha, blur, color })   its shadow, on paint only
+//   graded(sp, mul, veil, veilA)   the same sprite under another light (a copy)
+//   branch(g, pts, { w0, w1, taper, green, nodes, seed, stripes, shade, dens })   straight onto g
+//   thorn(g, x, y, ang, len, seed) · cut(g, x, y, ang, w, seed) · scar(g, x, y, ang, w)
+//   drop(g, { x, y, r, hang, sq }) · ant(g, { x, y, rot, s })
+//   stats() → { sprites, px, mb }  what the cache holds (the dev scene prints it)
 //
 // Light. Every sprite takes the angle it will be pasted at and bakes the house light for the
 // nearest of eight turns (`sp.rot`); paste it at its TRUE angle with `Citrus.put(g, sp, x, y,
