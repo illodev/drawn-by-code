@@ -303,7 +303,7 @@ Tableau.darknight.stratum = (z) => {
     const BANK = [];
     for (const side of [-1, 1]) {
         // in clusters, not a fence: a gap between them, unequal heights
-        for (const [i, dx] of [[0, 500], [1, 575], [2, 760], [3, 830], [4, 1010]].map((v) => v)) {
+        for (const [i, dx] of (side < 0 ? [[0, 570], [1, 640], [2, 790], [3, 860], [4, 1020]] : [[0, 500], [1, 575], [2, 760], [3, 830], [4, 1010]])) {
             const x = side * (dx + (r() - 0.5) * 30), top = [-60, -200, -150, -330, -260][i] - (side > 0 ? 40 : 0) + (r() - 0.5) * 50;
             BANK.push({ x, top, rad: 15 + r() * 4, lit: !(side > 0 && i === 2), seed: 'sb' + side + i });
         }
@@ -413,7 +413,7 @@ Tableau.darknight.stratum = (z) => {
                 if (!c.lit) embers.push(w);
             }
             // things on the body: the disc of spheres, lilies in a silver jar, the lantern put out
-            N.disc(P, { x: -440, y: -130, R: 118, seed: 'esferas' });
+            N.disc(P, { x: -395, y: -150, R: 118, seed: 'esferas' });
             const J = N.jar(P, { x: 430, y: 186, h: 160, seed: 'jarra-s' });
             for (const [k, pts, a] of [[0, [[420, 190], [404, 40], [360, -60]], -2.2], [1, [[438, 190], [480, 50], [520, -40]], -0.8], [2, [[430, 190], [440, 70], [452, 0]], -1.5]]) {
                 N.lily(P, { pts, seed: 'az-s' + k, flowers: [{ u: 0.995, a, s: 1.15, open: k === 2 ? 0.2 : 1 }, { u: 0.82, a: a + (k ? 0.9 : -0.8), s: 0.9, open: 0.1 }] });
