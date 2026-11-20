@@ -345,7 +345,7 @@ Tableau.patio.stratum = (z) => {
             Pt.moon(g, { x: -70, y: -430, r: 62 });
             Pt.jasmine(g, { pts: [[-330, -470], [-150, -400], [40, -470], [190, -520]], seed: 'smoon', density: 1.2, nails: false });
             thing(g, { x: 260, y: -560, w: 220, h: 380 }, (q) => Pt.cage(q, { x: 370, y: -470, s: 1.15, seed: 'scage', ground: false, chain: 80 }));
-            thing(g, { x: -500, y: -420, w: 160, h: 260 }, (q) => Pt.madeja(q, { x: -410, y: -380, s: 1.25, seed: 'sno8do', hung: false }));
+            thing(g, { x: -500, y: -430, w: 170, h: 270 }, (q) => Pt.madeja(q, { x: -410, y: -380, s: 1.3, seed: 'sno8do' }));
             // half sunk in the leaves: a Fajalauza plate, the brass tray; a martin's nest; the lizard
             Pt.plate(g, { x: -760, y: 300, r: 58, seed: 'sfaj', hung: false });
             Pt.tray(g, { x: 790, y: -260, r: 72, seed: 'stray', hung: false });

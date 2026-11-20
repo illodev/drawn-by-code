@@ -636,6 +636,9 @@ Tableau.lemons = (z0) => {
         },
     ];
 };
-// from the main plane to the plate, and the radius of the way out cut through the plate
+// from the main plane to the plate, and the radius of the way out cut through the plate: wider
+// than anything the gap between the lemons lets the camera see of it (the rest, ±135 × ±185 in
+// the main plane, covers ±192 × ±263 of the plate from where the tree is read), so the opening
+// is edged by leaves, never by the plate's own rim
 Tableau.lemons.depth = 420;
-Tableau.lemons.hole = 125;
+Tableau.lemons.hole = 290;

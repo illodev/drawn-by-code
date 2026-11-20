@@ -355,7 +355,7 @@ const Forge = (() => {
         const res = resOf(g, s), sd = S.seedOf(seed), rnd = Motion.rng('pan' + seed);
         const Ls = lightsOf(o, x, y, s, rot), amb = o.amb ?? DARK;
         const R = r, rb = r * (0.62 + rnd() * 0.08), cell = 8.5 + rnd() * 3, dentK = 1.2 + rnd() * 0.6;
-        const fall = rnd() * TAU, bump = rnd() < 0.6; // a dent from a fall on the rim
+        const fall = o.dentAt ?? rnd() * TAU, bump = o.dent ?? rnd() < 0.6; // a dent from a fall on the rim
         const hl = R * (0.5 + rnd() * 0.12), hw = R * 0.13, hole = hw * 0.36;
         const hx0 = 0, hy0 = -R * 0.9; // where the handle leaves the body
         const hy1 = -R - hl; // its end
@@ -411,7 +411,7 @@ const Forge = (() => {
                 q.beginPath();
                 const pts = [];
                 for (let i = 0; i < 96; i++) {
-                    const a = (i / 96) * TAU, dent = bump ? -4 * Math.exp(-((((a - fall + 9.42) % TAU) - Math.PI) ** 2) * 60) : 0;
+                    const a = (i / 96) * TAU, dent = bump ? -(o.dent ? 14 : 4) * Math.exp(-((((a - fall + 9.42) % TAU) - Math.PI) ** 2) * 60) : 0;
                     pts.push([Math.cos(a) * (R + dent), Math.sin(a) * (R + dent)]);
                 }
                 S.trace(q, pts);
@@ -458,6 +458,8 @@ const Forge = (() => {
                 }
                 // verdigris in the lip's crevice
                 into(out, VERD, smooth(R * 0.9, R * 0.98, rr) * smooth(0.2, 0.7, noise2(px * 0.09, py * 0.09, sd + 6)) * 0.6);
+                // a pan left out in the wet: verdigris in blooms across it
+                if (o.verd) into(out, VERD, o.verd * smooth(0.1, 0.55, noise2(px * 0.025, py * 0.025, sd + 16) + 0.3 * noise2(px * 0.1, py * 0.1, sd + 17)));
                 out[3] = 1 - 0.85 * (out[0] < 0.15 ? 1 : 0);
             },
             spec: { k: 1.25, power: 46, broad: 0.4, broadPow: 5 },
@@ -880,6 +882,29 @@ const Forge = (() => {
                 q.beginPath();
                 q.ellipse(cx, cy, rad, rad * (0.5 + r() * 0.4), (r() - 0.5) * 1.5, 0, TAU);
                 q.fill();
+            }
+        }, 'source-over');
+    }
+
+    // A thin wisp of smoke going up from (x, y): a ribbon that narrows and frays, lit from
+    // below by the fire it rose from, gone by `h`.
+    function wispSmoke(g, o = {}) {
+        const { x = 0, y = 0, h = 420, w = 26, lean = 0.2, seed = 'ws' } = o;
+        const r = Motion.rng('wispsmoke' + seed), pts = [];
+        for (let i = 0; i <= 30; i++) {
+            const u = i / 30;
+            pts.push([x + Math.sin(u * 5.5 + r() * 0.2) * w * 1.6 * u + lean * h * u * u, y - u * h]);
+        }
+        softSheet(g, 3, (q) => {
+            for (let i = 0; i < pts.length - 1; i++) {
+                const u = i / 30, k = Math.sin(Math.PI * Math.min(1, u * 1.4)) * (1 - u);
+                q.strokeStyle = `rgba(${Math.round(150 + 80 * (1 - u))},${Math.round(110 + 40 * (1 - u))},${Math.round(90 + 30 * (1 - u))},${0.5 * k})`;
+                q.lineWidth = w * (0.35 + u * 1.2);
+                q.lineCap = 'round';
+                q.beginPath();
+                q.moveTo(pts[i][0], pts[i][1]);
+                q.lineTo(pts[i + 1][0], pts[i + 1][1]);
+                q.stroke();
             }
         }, 'source-over');
     }
@@ -3210,5 +3235,5 @@ const Forge = (() => {
         g.drawImage(sp.canvas, x + sp.box.x, y + sp.box.y, sp.box.w, sp.box.h);
     }
 
-    return { lit, put, shadow, worley, ringWorley, fbm, cave, anvil, hammer, tongs, horseshoe, hearth, bellows, flames, sparks, smoke, softSheet, plate, cauldron, warmer, tin, paintMap, utensil, bridle, cage, brass, strap, stripOf, chumbera, agave, oliveTree, branch, foliage, owl, wisp, tuberose, floret, bustle, sky, halo, furrows, hills, timber, hood, door, toLocal, lightsOf, pan, nail, moon, FIRE, MOON, DARK, resOf };
+    return { lit, put, shadow, worley, ringWorley, fbm, cave, anvil, hammer, tongs, horseshoe, hearth, bellows, flames, sparks, smoke, wispSmoke, softSheet, plate, cauldron, warmer, tin, paintMap, utensil, bridle, cage, brass, strap, stripOf, chumbera, agave, oliveTree, branch, foliage, owl, wisp, tuberose, floret, bustle, sky, halo, furrows, hills, timber, hood, door, toLocal, lightsOf, pan, nail, moon, FIRE, MOON, DARK, resOf };
 })();

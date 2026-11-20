@@ -453,3 +453,37 @@ credits a take, 7 040 for four), **one take**. It was charged 960 credits.
 - **Not known:** whether it sounds like a flamenco guitar, whether the lifted tail hisses,
   whether the sections say what the pictures do. Nobody here has listened.
 
+## Round 7 · the worlds as strata, not pictures
+
+The user, of the film of nine pictures: «It becomes visually repetitive from the moment
+we leave the lemon trees. The images from the lemon tree on are practically the same:
+what changes is the composition, but the essence of the first part has been lost, that
+there were different layers and different elements, and it has become more like a passage
+where there is always a hole in the centre that it goes through. Could we condense, even
+if the video lasts quite a lot less, the elements that appear from about second 15 into
+layers, so that it is more like the first part in its format?»
+
+What went wrong was mine, in the brief: «a picture seen through the hole of the one
+before» seven times over is seven tunnels with a framed hole (a window, an arch, a ring, a
+door, a sound hole), however different the paint. The first part was liked for something
+else: strata of loose things lying on one another, with the way through only a gap.
+
+- **Each world is now ONE stratum of things** in the first passage's format
+  (`stratum-brief.md`): three sheets, seven to nine whole things, a body of the world's
+  own matter (fig leaves; linen and cabbage leaves; veil, velvet and candles; fragments of
+  tile, plaster and mosaic; geraniums and pots; pasted papers; copper and olive), no
+  architecture, no frame, no hole. The same seven painters recomposed their own things.
+- **The film:** first passage → guitar → lemon tree → seven strata 680 apart → the moon.
+  30.5 s (63 before). The moon is what the second passage goes to, as the guitar is for
+  the first: small between the two lemons, half her size when the last stratum goes, and
+  four seconds alone with the signature.
+- **The lemon tree's way out** was a round hole in its plate (a dark eye in the tree): it
+  is now wider than what the gap between the lemons lets the camera see, so the opening is
+  edged by leaves.
+- Sent back before assembling: the forge (a violet haze of soft copper discs: smoke taken
+  off, hard firelight, the anvil as its emblem, fewer and more varied pieces); the patio
+  (smooth peacocks, a skein that read as rubber, blotches of colour between the pots).
+- **The score** is the same take, recut by measurement (`score.sh`): its first 26.75 s,
+  joined in a softer stretch to its own last chord, which falls at 26.95 s as the
+  signature comes up. Nobody here has listened.
+

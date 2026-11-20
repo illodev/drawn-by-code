@@ -1115,6 +1115,21 @@ const Patio = (() => {
                 const dir = Math.atan2(ey - shaft[shaft.length - 3][1], ex - shaft[shaft.length - 3][0]);
                 ocellus(q, F([ex, ey]), flip ? Math.PI - dir : dir, 15 * sz, rr);
             }
+            // where the train leaves the body: the shortest coverts, their shafts and small eyes
+            {
+                const rt = Motion.rng('root' + seed);
+                for (let i = 0; i < 26; i++) {
+                    const t = 0.12 + rt() * 0.22, u = (rt() - 0.5) * 1.6, end = C(t), w = width(t);
+                    const ex = end[0] + u * w * 0.45, ey = end[1];
+                    const shaft = S.curve([[rump[0] + u * 8, rump[1] + 4], [(rump[0] + ex) / 2 + u * 6, (rump[1] + ey) / 2], [ex, ey]], false, 6);
+                    for (let m = 1; m < shaft.length; m++) {
+                        const p = shaft[m];
+                        for (const sd of [-1, 1]) lineP(q, [F(p), F([p[0] + sd * 5, p[1] + 5])], 0.6, rt() < 0.5 ? 'rgba(170,170,80,0.8)' : 'rgba(80,110,46,0.8)');
+                    }
+                    lineP(q, Fp(shaft), 0.9, 'rgba(226,212,170,0.85)');
+                    ocellus(q, F([ex, ey]), flip ? Math.PI / 2 : Math.PI / 2, 8 + rt() * 3, rt);
+                }
+            }
             // the shade the body throws on the train's root
             S.cast(q, (c) => oval(c, ...F([-60, -112]), 90, 46, 0, '#000'), { blur: 14, dx: 8 * k, dy: 16, color: 'rgba(10,20,10,0.5)' });
             // ---- the legs, their tops lost in the belly's feathers
@@ -1159,6 +1174,34 @@ const Patio = (() => {
                 },
             });
             S.put(q, body);
+            // the feathers of the neck and breast drawn one by one: small overlapping crescents,
+            // cobalt where they face the lamp, green and bronze as they turn from it
+            q.save();
+            path(q, bodyF);
+            q.clip();
+            {
+                const rs = Motion.rng('scales' + seed);
+                for (let yy = bb.y; yy < bb.y + bb.h; yy += 4.2) {
+                    for (let xx = bb.x + ((yy / 4.2) % 2) * 2.6; xx < bb.x + bb.w; xx += 5.4) {
+                        const px = xx + (rs() - 0.5) * 1.6, py = yy + (rs() - 0.5) * 1.6, [X, Y] = F([px, py]);
+                        // how far round the neck the feather lies: its edge turns from the light
+                        const turn = S.clamp((px - 40) / 70 + (py < -140 ? 0 : 0.3) + (rs() - 0.5) * 0.4);
+                        const back = py < -138 && px < 30;
+                        const c = back ? mixRGB(hex('#4a6a30'), hex('#b8a850'), rs()) : turn < 0.5 ? mixRGB(hex('#3a8ad0'), hex('#2a9a9a'), turn * 2) : mixRGB(hex('#2a9a8a'), hex('#8a8a3a'), (turn - 0.5) * 2);
+                        q.lineWidth = 1.1;
+                        q.strokeStyle = css(c, 0.75);
+                        q.beginPath();
+                        q.arc(X, Y, 2.6, 0.4, Math.PI - 0.4);
+                        q.stroke();
+                        q.lineWidth = 0.6;
+                        q.strokeStyle = 'rgba(8,12,40,0.55)';
+                        q.beginPath();
+                        q.arc(X, Y + 1.2, 2.6, 0.5, Math.PI - 0.5);
+                        q.stroke();
+                    }
+                }
+            }
+            q.restore();
             // ---- the wing, folded on the side: barred coverts, chestnut primaries
             const wingPts = S.curve([[-118, -140], [-60, -150], [0, -150], [38, -134], [34, -110], [0, -96], [-60, -92], [-122, -104], [-150, -118]], true, 6);
             const wingF = Fp(wingPts);
@@ -1172,8 +1215,8 @@ const Patio = (() => {
                         for (let i = 0; i < 9; i++) {
                             const cx = -120 + i * 18 + row * 8, cy = -140 + row * 11;
                             const [X, Y] = F([cx, cy]);
-                            c.lineWidth = 1.2;
-                            c.strokeStyle = '#2a2a2a';
+                            c.lineWidth = 2.2;
+                            c.strokeStyle = '#141414';
                             c.beginPath();
                             c.arc(X, Y, 9, 0.2, Math.PI - 0.2);
                             c.stroke();
@@ -1204,8 +1247,9 @@ const Patio = (() => {
             const head = S.curve([[86, -300], [92, -314], [104, -318], [114, -312], [121, -303], [112, -297], [100, -292], [90, -292]], true, 5);
             S.piece(q, Fp(head), { fill: '#2650a4', line: 0, shade: { color: '#0a1030', alpha: 0.6, w: 6 }, light: { color: '#8ccaea', alpha: 0.45, w: 4 } });
             // the face: a white stripe over the eye and one under it, the bare skin, the eye
-            S.ink(q, Fp([[116, -305], [108, -309], [99, -308], [92, -304]]), { w: 2.4, color: '#f4f2ea', taper: [0.6, 1] });
-            S.ink(q, Fp([[117, -300], [109, -297], [100, -297], [94, -299]]), { w: 2.2, color: '#efede4', taper: [0.6, 1] });
+            S.ink(q, Fp([[117, -306], [108, -311], [98, -310], [90, -305]]), { w: 3.6, color: '#f6f4ec', taper: [0.4, 1] });
+            S.ink(q, Fp([[118, -300], [109, -295], [99, -295], [92, -298]]), { w: 3.4, color: '#f2f0e6', taper: [0.4, 1] });
+            S.ink(q, Fp([[118, -303.5], [112, -303]]), { w: 2.4, color: '#e8e4d8', taper: [0, 0.6] });
             disc(q, ...F([109, -303]), 2.2, '#1a1410');
             disc(q, ...F([108.4, -303.8]), 0.7, '#ffffff');
             fillP(q, Fp([[119, -305], [131, -301], [119, -298]]), '#8a8078');
@@ -1216,8 +1260,9 @@ const Patio = (() => {
                 const b0 = [98 + (i / 21) * 10, -314], tip = [b0[0] + Math.cos(a) * l, b0[1] + Math.sin(a) * l];
                 lineP(q, Fp([b0, tip]), 0.55, '#33384a');
                 const tF = F(tip);
-                oval(q, tF[0], tF[1] - 1, 2.4, 4, (a + Math.PI / 2) * k, i % 3 ? '#245e98' : '#2e7e74');
-                oval(q, tF[0] - 0.6, tF[1] - 2, 1, 1.8, a, 'rgba(190,236,246,0.55)');
+                // a little fan: barbs spread from the shaft's tip, blue-green, a dark heart
+                for (let m = -3; m <= 3; m++) lineP(q, [tF, [tF[0] + Math.cos(a * k + m * 0.18 * k + (k < 0 ? Math.PI : 0)) * 6, tF[1] + Math.sin(a + m * 0.18) * 6]], 0.8, i % 3 ? '#2a68a8' : '#2e8a7a');
+                oval(q, tF[0] + Math.cos(a) * 3 * k, tF[1] + Math.sin(a) * 3, 1.4, 1.8, 0, '#16205a');
             }
         });
         // its shadow on the wall behind and the bench under it
@@ -1256,7 +1301,10 @@ const Patio = (() => {
         const top = [dx - 4, -86], knee = [dx + 3, -40], foot = [dx, 0];
         S.ink(q, [F(top), F(knee), F(foot)], { w: 9, color: '#6e6258', taper: [0, 0.25] });
         S.ink(q, [F([top[0] + 1, top[1]]), F([knee[0] + 1, knee[1]]), F([foot[0] + 1, foot[1]])], { w: 1.4, color: 'rgba(220,206,190,0.6)', taper: [0.3, 0.3] });
-        for (let i = 0; i < 6; i++) lineP(q, [F([dx - 3, -30 + i * 5]), F([dx + 3, -29 + i * 5])], 0.6, 'rgba(40,30,30,0.6)'); // scutes
+        for (let i = 0; i < 12; i++) {
+            lineP(q, [F([dx - 4, -60 + i * 5]), F([dx + 4, -58 + i * 5])], 0.9, 'rgba(36,28,28,0.75)'); // scutes
+            lineP(q, [F([dx - 3, -59 + i * 5]), F([dx + 2, -58 + i * 5])], 0.5, 'rgba(220,206,190,0.5)');
+        }
         lineP(q, [F([dx + 2, -22]), F([dx - 6, -24])], 2.2, '#4e443e'); // the spur
         for (const [tx, ty] of [[dx + 22, 3], [dx + 16, 6], [dx + 8, 6], [dx - 14, 2]]) S.ink(q, [F(foot), F([(foot[0] + tx) / 2, -1]), F([tx, ty])], { w: 3.4, color: '#6a5e54', taper: [0, 0.6] });
         void r;
@@ -2555,19 +2603,62 @@ const Patio = (() => {
             spots.push([x, y, rad]);
         }
         spots.sort((p, q) => Math.hypot(q[0], q[1] * 1.4) - Math.hypot(p[0], p[1] * 1.4));
-        // 0 · the depth of the heap: soft blotches of shaded green, flower and pot colour, so no
-        // hole shows the night; their edge on the gap is ragged like the leaves over it
-        softly(g, 10, (q) => {
-            for (let i = 0; i < 700; i++) {
-                const x = box.x + r() * box.w, y = box.y + r() * box.h, rr = 40 + r() * 90;
-                if (Math.hypot(x / gap[0], y / gap[1]) < 1.08 + rr / 500) continue;
-                const k = r();
-                q.fillStyle = k < 0.6 ? S.mix('#6e8e6c', '#94b084', r()) : k < 0.78 ? S.mix('#7a8cbc', '#9aaad4', r()) : k < 0.9 ? S.mix('#d07a80', '#eaa8a2', r()) : S.mix('#e2dce2', '#f6f0ee', r());
-                q.beginPath();
-                q.ellipse(x, y, rr, rr * (0.6 + r() * 0.4), r() * 3, 0, TAU);
-                q.fill();
+        // 0 · the depth of the heap: leaves in the shade of the heap, each drawn (a pointed blade,
+        // its lit half, its midrib), close enough that no hole shows the night; their ragged edge
+        // on the gap is the gap's edge
+        for (let i = 0; i < 3400; i++) {
+            const x = box.x + r() * box.w, y = box.y + r() * box.h;
+            if (Math.hypot(x / gap[0], y / gap[1]) < 1.06 + r() * 0.14) continue;
+            const a = r() * TAU, L = 22 + r() * 30, W = L * (0.28 + r() * 0.2), ca = Math.cos(a), sa = Math.sin(a);
+            const P = (u, v) => [x + ca * u - sa * v, y + sa * u + ca * v];
+            const base = r() < 0.86 ? S.mix('#557658', '#86a472', r()) : S.mix('#a8727e', '#cc98a0', r());
+            const half = (sd) => [P(0, 0), P(L * 0.35, sd * W), P(L * 0.75, sd * W * 0.7), P(L, 0)];
+            fillP(g, S.curve(half(-1).concat(half(1).reverse()), true, 3), base);
+            fillP(g, S.curve(half(-1).concat([P(L * 0.7, 0), P(L * 0.3, 0)]), true, 3), 'rgba(220,236,200,0.16)');
+            lineP(g, [P(0, 0), P(L * 0.92, 0)], 0.6, 'rgba(200,220,180,0.35)');
+        }
+        // fallen petals, small heads of flowers, snails, little terracotta pots with moss
+        for (let i = 0; i < 150; i++) {
+            const x = box.x + r() * box.w, y = box.y + r() * box.h;
+            if (Math.hypot(x / gap[0], y / gap[1]) < 1.15) continue;
+            const c = FLOWER[['red', 'pink', 'coral', 'white', 'magenta'][Math.floor(r() * 5)]];
+            const a = r() * TAU;
+            oval(g, x + 1.2, y + 1.6, 4.6, 2.6, a, 'rgba(40,30,50,0.3)');
+            oval(g, x, y, 4.6, 2.6, a, css(c[1]));
+            oval(g, x - 0.8, y - 0.8, 2.4, 1.2, a, css(c[2], 0.7));
+        }
+        for (let i = 0; i < 40; i++) {
+            const x = box.x + r() * box.w, y = box.y + r() * box.h;
+            if (Math.hypot(x / gap[0], y / gap[1]) < 1.15) continue;
+            umbel(g, x, y, 11 + r() * 6, ['red', 'pink', 'coral', 'white', 'magenta'][Math.floor(r() * 5)], seed + 'gu' + i, { size: 5.4, n: 9 + Math.floor(r() * 6) });
+        }
+        for (let i = 0; i < 9; i++) {
+            const x = box.x + r() * box.w, y = box.y + r() * box.h;
+            if (Math.hypot(x / gap[0], y / gap[1]) < 1.2) continue;
+            const ps = 0.42 + r() * 0.2;
+            g.save();
+            g.translate(x, y);
+            g.scale(ps, ps);
+            const G = potBody(g, { tilt: 0.25, seed: seed + 'tp' + i, color: 'clay', chips: 0.2, res: resOf(g) });
+            // moss on its rim
+            for (let m = 0; m < 30; m++) {
+                const a = r() * Math.PI;
+                disc(g, Math.cos(a) * 38, G.topY(Math.cos(a) * 38) + 3 + r() * 6, 1.6 + r() * 2.4, r() < 0.5 ? 'rgba(96,130,60,0.8)' : 'rgba(140,170,80,0.7)');
             }
-        });
+            g.restore();
+        }
+        for (let i = 0; i < 5; i++) {
+            const x = box.x + r() * box.w, y = box.y + r() * box.h;
+            if (Math.hypot(x / gap[0], y / gap[1]) < 1.2) continue;
+            S.piece(g, S.ellipse(x, y, 8, 7, 18), { fill: '#b89a6a', line: 0, shade: { color: '#3a2a20', alpha: 0.55, w: 4 }, light: { color: '#fff0d0', alpha: 0.5, w: 3 } });
+            g.lineWidth = 0.9;
+            g.strokeStyle = 'rgba(80,56,30,0.85)';
+            g.beginPath();
+            for (let m = 0; m < 22; m++) g.lineTo(x + Math.cos(m * 0.6) * (7 - m * 0.3), y + Math.sin(m * 0.6) * (6 - m * 0.26));
+            g.stroke();
+            S.ink(g, [[x - 6, y + 6], [x - 16, y + 7], [x - 22, y + 4]], { w: 4, color: '#9a8a70', taper: [0, 1] });
+            lineP(g, [[x - 20, y + 3], [x - 23, y - 3]], 0.6, '#6a5a48');
+        }
         // 1 · the shade under everything: leaves of every kind in their shade colour
         const lr = resOf(g, 1);
         for (let i = 0; i < 1500; i++) {
@@ -3004,16 +3095,24 @@ const Patio = (() => {
                         const nx = Math.cos(a) * u, ny = Math.sin(a) * u, front = Math.sqrt(Math.max(0, 1 - u * u));
                         lit.push(S.clamp(0.42 + 0.5 * (nx * L2[0] + ny * L2[1]) + 0.35 * front * 0.8 - 0.2));
                     }
-                    out.push({ pts, lit, d: r() < 0.07 ? 0.78 : 0.9 + r() * 0.2, w: 0.7 + r() * 0.7 });
+                    out.push({ pts, lit, d: r() < 0.1 ? 0.7 : 0.82 + r() * 0.34, w: 1 + r() * 0.9, dye: r() * 50 });
                 }
                 return out;
             };
             const draw = (strands, under) => {
+                // the dark between the strands first, then each strand with its own dye
+                for (const st of strands) {
+                    q.lineWidth = st.w + 1.1;
+                    q.strokeStyle = 'rgba(40,8,20,0.55)';
+                    path(q, st.pts, false);
+                    q.stroke();
+                }
                 for (const st of strands) {
                     for (let k = 1; k < st.pts.length; k++) {
                         const l = st.lit[k] * (under ? 0.75 : 1), c = mixRGB(mixRGB(base, [46, 12, 30], 0.62 * (1 - l)), [255, 196, 170], 0.36 * l * l);
+                        const d = st.d * (1 + 0.22 * S.noise2(k * 0.09, st.dye, 3));
                         q.lineWidth = st.w;
-                        q.strokeStyle = css([c[0] * st.d, c[1] * st.d, c[2] * st.d], 0.9);
+                        q.strokeStyle = css([c[0] * d, c[1] * d, c[2] * d], 0.95);
                         q.beginPath();
                         q.moveTo(st.pts[k - 1][0], st.pts[k - 1][1]);
                         q.lineTo(st.pts[k][0], st.pts[k][1]);
@@ -3032,6 +3131,14 @@ const Patio = (() => {
                 c.stroke();
             }, { blur: 3, dx: 2, dy: 3, color: 'rgba(40,10,30,0.5)' });
             draw(high, false);
+            // the waist: strands of each ring crossing into the other, seen twisting
+            for (let i = 0; i < 26; i++) {
+                const sd = i % 2 ? 1 : -1, o2 = (r() - 0.5) * 8;
+                const pts = S.curve([[sd * 12 + o2, 60], [sd * 4, 70], [-sd * 4, 82], [-sd * 14 + o2, 94]], false, 6);
+                const l = sd < 0 ? 0.75 : 0.35, c = mixRGB(mixRGB(base, [46, 12, 30], 0.6 * (1 - l)), [255, 196, 170], 0.3 * l);
+                lineP(q, pts, 2.2, 'rgba(40,8,20,0.5)');
+                lineP(q, pts, 1.2, css(c, 0.95));
+            }
             // the tie round the twist, a pale thread wound three times
             const ty = 76;
             for (let k = 0; k < 4; k++) {
@@ -3039,7 +3146,7 @@ const Patio = (() => {
             }
             lineP(q, [[5, ty + 3], [9, ty + 12], [7, ty + 18]], 0.8, '#d9c9a0');
             // flyaway fibres
-            for (let k = 0; k < 110; k++) {
+            for (let k = 0; k < 420; k++) {
                 const ring = rings[k % 2], a = r() * TAU, px = ring[0] + Math.cos(a) * (ring[2] + ring[4] * 0.5), py = ring[1] + Math.sin(a) * (ring[3] + ring[4] * 0.3);
                 const b = a + (r() - 0.5) * 1.5, l = 2 + r() * 5;
                 lineP(q, [[px, py], [px + Math.cos(b) * l, py + Math.sin(b) * l * 0.6]], 0.35, css(mixRGB(base, [255, 200, 180], 0.3), 0.6));

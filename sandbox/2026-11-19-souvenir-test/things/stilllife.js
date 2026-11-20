@@ -3434,6 +3434,35 @@ const Still = (() => {
         cord(g, c, 15 * s, { seed: 'bc' + (o.seed ?? 0), color: [150, 128, 86] });
         heads.forEach((h, j) => h.front && one(h, j));
     }
+    // A bunch of garlic: three or four heads tied by their dry stalks, the stalks meeting in
+    // a knot of cord, the heads fanned out round it. (x, y) is the knot; a the way it hangs.
+    function garlicBunch(g, x, y, a, o = {}) {
+        const r = Motion.rng('gb' + (o.seed ?? 0)), s = o.s ?? 1.2, res = resOf(g, s), n = o.n ?? 3;
+        const heads = [];
+        for (let i = 0; i < n; i++) {
+            const th = a + (i - (n - 1) / 2) * 0.62 + (r() - 0.5) * 0.15, len = (58 + r() * 14) * s;
+            heads.push({ th, len, rot: th - Math.PI / 2, sd: 'gb' + (i % 3) });
+        }
+        // the stalks, then the heads (the middle one last), then the knot over the stalks
+        for (const h of heads) {
+            const e = [x + Math.cos(h.th) * h.len * 0.55, y + Math.sin(h.th) * h.len * 0.55];
+            S.ink(g, [[x, y], e], { w: 7 * s, color: '#8a7448', alpha: 1, taper: [0.2, 0] });
+            S.ink(g, [[x - 1, y - 1], [e[0] - 1, e[1] - 1]], { w: 1.6 * s, color: '#e0cc98', alpha: 0.7 });
+        }
+        heads.sort((p, q) => Math.abs(q.th - a) - Math.abs(p.th - a));
+        for (const h of heads) {
+            const sp = garlicSprite(res, h.sd, snap8(h.rot)), H = sp.H ?? 50;
+            const bx = x + Math.cos(h.th) * (h.len + H * 0.5 * s), by = y + Math.sin(h.th) * (h.len + H * 0.5 * s);
+            g.save();
+            g.globalCompositeOperation = 'source-atop';
+            S.put(g, shadowOf(sp, 5), { x: bx + SD[0] * 9, y: by + SD[1] * 9, rot: h.rot, s, alpha: 0.7 });
+            g.restore();
+            S.put(g, sp, { x: bx, y: by, rot: h.rot, s });
+        }
+        oval(g, x, y, 9 * s, 7 * s, a, '#4a3820');
+        cord(g, [[x - 9 * s, y - 3 * s], [x, y - 7 * s], [x + 9 * s, y - 2 * s], [x + 2 * s, y + 6 * s]], 3.2 * s, { seed: 'gk' + (o.seed ?? 0), color: [176, 150, 100] });
+        cord(g, [[x + 2 * s, y + 4 * s], [x - Math.cos(a) * 30 * s + 6, y - Math.sin(a) * 30 * s], [x - Math.cos(a) * 52 * s, y - Math.sin(a) * 50 * s + 4]], 2.6 * s, { seed: 'gt' + (o.seed ?? 0), color: [176, 150, 100] });
+    }
     // A quince twig: grey-brown wood with lenticels, leaves alternate along it (some showing
     // their felted undersides), a small quince at its end now and then.
     function quinceTwig(g, p0, p1, o = {}) {
@@ -3501,10 +3530,8 @@ const Still = (() => {
                 put(g, lp, x, y, 1);
             } else if (v < 0.56) layLeaf(g, x, y, toAxis + (r() - 0.5) * 1.6, 'cabbage', 'hc' + (i % 4), rad / 120);
             else if (v < 0.68) layLeaf(g, x, y, toAxis + (r() - 0.5) * 1.4, 'cardoon', 'hd' + (i % 3), rad / 110);
-            else if (v < 0.77) {
-                const a = r() * TAU, l = rad * 2.2;
-                braid(g, [[x - Math.cos(a) * l / 2, y - Math.sin(a) * l / 2], [x, y + 10], [x + Math.cos(a) * l / 2, y + Math.sin(a) * l / 2]], { n: 8, s: 1.3, seed: 'hb' + (i % 5) });
-            } else {
+            else if (v < 0.77) garlicBunch(g, x, y, toAxis + Math.PI + (r() - 0.5) * 1.2, { n: 3 + (i % 2), s: 1.25, seed: 'hb' + i });
+            else {
                 const a = toAxis + (r() - 0.5) * 1.2, l = rad * 1.8;
                 quinceTwig(g, [x - Math.cos(a) * l / 2, y - Math.sin(a) * l / 2], [x + Math.cos(a) * l / 2, y + Math.sin(a) * l / 2], { seed: 'ht' + (i % 6), n: 4, fruit: i % 4 === 0, s: 1.1 });
             }
@@ -3563,5 +3590,5 @@ const Still = (() => {
         g.restore();
     }
 
-    return { linenPiece, looseLeaf, layLeaf, braid, quinceTwig, heap, pad, glassShadowOn, scatter, puddle, ristra, fig, quince, quinceSprite, hangString, cabbage, cabLeaf, cabbageCore, melonBody, melonCut, melonSlice, cardoon, rose, petalSprite, cup, cupSprite, candlestick, smoke, motto, fly, mortar, mortarSprite, pestle, rod, brassAt, garlic, garlicSprite, cloveSprite, onion, onionSprite, onionHalf, eggDish, eggSprite, knife, linen, RAMP, LT, LN, SD, TL, resOf, memo, pixels, onto, put, softly, shadowOf, castOn, castWall, contact, drop, run, cord, stone, grain, tooling, ledgeGeom, ledge, ashlar, wall, profileOf, latheOutline, onLathe, nearest, metalAt, jug, jugSprite, bucaro, bucaroSprite, plate, plateSprite, figSprite, glass, glassShadow, disc, oval, poly, line, toward, scaleRGB };
+    return { linenPiece, looseLeaf, layLeaf, braid, garlicBunch, quinceTwig, heap, pad, glassShadowOn, scatter, puddle, ristra, fig, quince, quinceSprite, hangString, cabbage, cabLeaf, cabbageCore, melonBody, melonCut, melonSlice, cardoon, rose, petalSprite, cup, cupSprite, candlestick, smoke, motto, fly, mortar, mortarSprite, pestle, rod, brassAt, garlic, garlicSprite, cloveSprite, onion, onionSprite, onionHalf, eggDish, eggSprite, knife, linen, RAMP, LT, LN, SD, TL, resOf, memo, pixels, onto, put, softly, shadowOf, castOn, castWall, contact, drop, run, cord, stone, grain, tooling, ledgeGeom, ledge, ashlar, wall, profileOf, latheOutline, onLathe, nearest, metalAt, jug, jugSprite, bucaro, bucaroSprite, plate, plateSprite, figSprite, glass, glassShadow, disc, oval, poly, line, toward, scaleRGB };
 })();

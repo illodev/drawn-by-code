@@ -1,30 +1,29 @@
 // 2026-11-19-souvenir-test · style souvenir
-// «Recuerdo de Andalucía», style test: the emblem, and the dive through the guitar's mouth
-// into the lemon tree.
+// «Recuerdo de Andalucía»: a passage of strata to the guitar, through its mouth into the
+// lemon tree, and a second passage of seven worlds to the full moon.
 const DIR = 'sandbox/2026-11-19-souvenir-test/';
 // One camera move at one pace, on the axis, from the first frame to the last: it never slows
-// down, waits or turns towards anything. SPEED is in units of depth a second (the strata are
-// 450 to 700 apart: one every second and a half or so); FOCUS is how far ahead of the camera
-// the lens is set, for the whole film (each thing is sharp when it is that far, at the size
-// it was painted for, soft before and blurred as it goes by).
+// down, waits or turns towards anything. SPEED is in units of depth a second; FOCUS is how
+// far ahead of the camera the lens is set, for the whole film (each thing is sharp when it
+// is that far, at the size it was painted for, soft before and blurred as it goes by).
 const SPEED = 432, FOCUS = 1000, START = -775;
-// Where things are along the axis. Picture 1 is the passage (its first stratum at Z0) and
-// the emblem at its end; picture 2 the lemon tree, 1340 behind the guitar; every picture
-// after it starts GAP behind the plate of the one before, whose hole it is first seen
-// through. [name, depth from its first stratum to its plate] (the depths are repeated here
-// because the film's length must be known before the pictures load).
-const Z0 = 1000, ZG = Z0 + 3400, ZL = ZG + 1340, GAP = 700;
-const PICTURES = [['green', 1760], ['stilllife', 1860], ['darknight', 1850], ['dome', 2100], ['patio', 2100], ['planes', 2100]];
-const ZF = PICTURES.reduce((z, [, depth]) => z + GAP + depth, ZL + 420) + GAP; // the forge, the last picture
-// The end. The forge's last sheet of things (the far olives) is GROVE behind its first; the
-// moon behind it is painted MOON times larger and that much farther off, as a moon is: it
-// barely grows while the cave and the grove go by, and once they are gone the camera,
-// still at its pace, has HOLD seconds of sky in which she goes from 0.68 to 0.9 of her
-// painted size, with the signature under her.
-const GROVE = 1880, HOLD = 4;
-const MOON_AT = (SPEED * HOLD) / (1 - 0.68 / 0.9); // how far she is when the grove has gone
-const MOON = (0.68 * MOON_AT) / 1000; // 4.8
-const LENGTH = Math.round(((ZF + GROVE + SPEED * HOLD - START) / SPEED) * 24) / 24;
+// Where things are along the axis. Two passages of strata of things, STEP apart (one every
+// second and a half), each with something at its end that is seen small from its start:
+//   the first (five strata from Z0: by the candle, Tartessos and the sea, Rome and the
+//   Goths, al-Andalus, the house and the fair) goes towards the guitar, at ZG;
+//   through the guitar's mouth, the lemon tree, at ZL;
+//   the second (seven strata from ZS, one world each) goes towards the full moon.
+const STEP = 680, Z0 = 1000, ZG = Z0 + 5 * STEP, ZL = ZG + 1340, ZS = ZL + 700;
+const WORLDS = ['green', 'stilllife', 'darknight', 'dome', 'patio', 'planes', 'forge'];
+const ZEND = ZS + (WORLDS.length - 1) * STEP + 150; // the last sheet of the last stratum
+// The moon is painted MOON times larger than her sheet and is that much farther off: she
+// is small at the start of the second passage (a fifth of her painted size), half of it when
+// the last stratum has gone, and then the camera, still at its pace, has HOLD seconds of
+// sky in which she grows to 0.9, with the signature under her.
+const HOLD = 4;
+const MOON_AT = (SPEED * HOLD) / (1 - 0.5 / 0.9); // how far she is when the last stratum has gone
+const MOON = (0.5 * MOON_AT) / 1000; // 1.94
+const LENGTH = Math.round(((ZEND + SPEED * HOLD - START) / SPEED) * 24) / 24;
 // the night lifts in the first `lit` seconds; the last `out` seconds go back into the dark
 const TIMES = { lit: 1.6, out: 0.9 };
 const at = (z) => Math.round(((z - START) / SPEED) * 100) / 100; // when the camera is at depth z
@@ -45,22 +44,18 @@ Motion.scene({
         DIR + 'things/coins.js', DIR + 'things/relics.js', DIR + 'things/heirlooms.js',
         DIR + 'things/library.js', DIR + 'things/devotion.js',
         DIR + 'tableaux/passage.js', DIR + 'tableaux/emblem.js', DIR + 'tableaux/lemons.js',
-        ...[...PICTURES.map((p) => p[0]), 'forge'].flatMap((n) => [DIR + `things/${n}.js`, DIR + `tableaux/${n}.js`]),
+        ...WORLDS.flatMap((n) => [DIR + `things/${n}.js`, DIR + `tableaux/${n}.js`]),
     ],
     fonts: [
         { family: 'IM Fell DW Pica SC', src: 'fonts/IMFellDWPicaSC-Regular.ttf' }, { family: 'Shrikhand', src: 'fonts/Shrikhand-latin.woff2' }, { family: 'Anton', src: 'fonts/Anton-latin.woff2' },
         { family: 'Lora', src: 'fonts/Lora-Medium-latin.woff2' }, { family: 'Titan One', src: 'fonts/TitanOne-latin.woff2' },
     ],
-    // one take: these only name its parts for the contact sheet (a picture begins when the
-    // camera goes through the plate of the one before)
+    // one take: these only name its parts for the contact sheet (a stratum's part begins when
+    // the one before is being crossed)
     shots: (() => {
-        const cuts = [[0, 'The passage'], [at(ZG - 1500), 'The guitar'], [at(ZG), 'The lemon tree']];
-        let z = ZL + 420;
-        for (const [name, depth] of PICTURES) {
-            cuts.push([at(z), name]);
-            z += GAP + depth;
-        }
-        cuts.push([at(z), 'forge'], [at(ZF + GROVE), 'The moon']);
+        const cuts = [[0, 'The first passage'], [at(ZG - 1500), 'The guitar'], [at(ZG), 'The lemon tree']];
+        WORLDS.forEach((name, i) => cuts.push([at(ZS + i * STEP - 1340), name]));
+        cuts.push([at(ZEND), 'The moon']);
         return cuts.map(([t, name], i) => [t, i + 1 < cuts.length ? cuts[i + 1][0] : LENGTH, name]);
     })(),
     setup(env) {
@@ -73,48 +68,21 @@ Motion.scene({
             // rectangle in the night; it is in the brush manner: its strokes are in its own paint)
             ...Tableau.lemons(ZL).map((l) => ({ ...l, far: [0.26, 0.34], brush: false })),
         ];
-        // A picture is first seen through the hole of the one before: all of it, its plate
-        // too, comes out of the night together with the plate that hole is in (never later:
-        // a hole on nothing reads as a blue disc in the middle of the picture). The picture
-        // after it does not follow: it is timed on the distance this plate would have kept
-        // on its own (`own`), so only one picture ahead is ever out of the night.
-        const behind = (plate, ls) => {
-            const [f0, f1] = plate.own ?? plate.far;
-            return ls.map(far).map((l) => ({ ...l, own: l.far, far: [Math.min(l.far[0], 1000 / (l.z - plate.z + 1000 / f0)), Math.min(l.far[1], 1000 / (l.z - plate.z + 1000 / f1))] }));
-        };
-        const plateOf = (ls) => ls.reduce((a, l) => (l.z > a.z ? l : a));
-        let z = ZL + Tableau.lemons.depth, plate = plateOf(layers);
-        for (const [name, depth] of PICTURES) {
-            const T = Tableau[name];
-            if (T.depth !== depth) throw new Error(`${name}: depth ${T.depth}, the film expects ${depth}`);
-            const ls = behind(plate, T(z + GAP));
-            layers.push(...ls);
-            // the dark night's way out is light: the gap behind its hole is full of it, in
-            // five thin veils, so the camera comes out of it little by little
-            if (name === 'darknight') {
-                const big = { x: -1800, y: -1050, w: 3600, h: 2100 }, end = plateOf(ls);
-                for (let i = 0; i < 5; i++) layers.push(...behind(end, [{
-                    id: 'light-' + i, z: end.z + 70 + i * 120, box: big, res: 0.12, brush: false,
-                    paint(g) {
-                        const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1300);
-                        gr.addColorStop(0, 'rgba(246,214,128,0.2)');
-                        gr.addColorStop(0.35, 'rgba(236,196,106,0.13)');
-                        gr.addColorStop(1, 'rgba(226,180,90,0.05)');
-                        g.fillStyle = gr;
-                        g.fillRect(big.x, big.y, big.w, big.h);
-                    },
-                }, { z: 1e9 }]).filter((l) => l.id));
-            }
-            plate = plateOf(ls);
-            z += GAP + depth;
-        }
-        // The forge; its moon and its sky are taken MOON times farther and painted that
-        // much larger (the same pixels: `res` goes down as the box goes up), kept sharp
-        // (they are too far for this lens to blur) and shown from where they were meant to.
-        const rear = (l, back, show) => {
-            const m = MOON, b = l.box;
+        // The second passage: one stratum of things for each world, in the first passage's
+        // format (three sheets, a body, a way through that is only a gap in the heap). None
+        // shows before the lemon tree that hides them is whole.
+        WORLDS.forEach((name, i) => {
+            for (const l of Tableau[name].stratum(ZS + i * STEP).map(far)) layers.push({ ...l, far: [Math.max(l.far[0], 1000 / (l.z - 3000)), Math.max(l.far[1], 1000 / (l.z - 4200))] });
+        });
+        // The moon and her sky (the forge's own, the last thing of its world): MOON times
+        // farther and painted that much larger (the same pixels: `res` goes down as the box
+        // goes up), kept sharp (they are too far for this lens to blur), and out of the night
+        // as soon as the lemon tree is: she is what the second passage goes to, as the guitar
+        // is for the first, and no gap is ever left open on nothing.
+        const rear = (l, back, show, grow = 1) => {
+            const m = MOON * grow, b = l.box, z = ZEND + MOON_AT + back * MOON;
             return {
-                ...l, z: ZF + GROVE + MOON_AT + back * m, res: (l.res ?? 1) / m, blur: 0.1, far: show,
+                ...l, z, res: (l.res ?? 1) / m, blur: 0.1, far: show.map((cam) => 1000 / (z - cam)),
                 box: { x: b.x * m, y: b.y * m, w: b.w * m, h: b.h * m },
                 paint(g, res) {
                     g.scale(m, m);
@@ -122,13 +90,10 @@ Motion.scene({
                 },
             };
         };
-        const s0 = 1000 / MOON_AT; // the moon's scale when the grove has gone
-        const forge = Tableau.forge(ZF), cave = forge.filter((l) => l.id !== 'forge-moon' && l.id !== 'forge-sky');
-        // (the cave's last sheet is not a plate: it follows the hole like the rest)
-        layers.push(...behind(plate, [...cave, { z: 1e9 }]).filter((l) => l.id));
-        layers.push(rear(forge.find((l) => l.id === 'forge-moon'), 0, [s0 * 0.76, s0 * 0.85]), rear(forge.find((l) => l.id === 'forge-sky'), 400, [s0 * 0.6, s0 * 0.7]));
+        const forge = Tableau.forge(0);
+        layers.push(rear(forge.find((l) => l.id === 'forge-moon'), 0, [ZL - 2800, ZL - 1900]), rear(forge.find((l) => l.id === 'forge-sky'), 400, [ZL - 2900, ZL - 2000], 1.3));
         // The signature, lettered under the moon in the film's own letter (the ribbon's), on
-        // her layer's scale: it comes up as the grove leaves the frame.
+        // her layer's scale: it comes up as the last stratum leaves the frame.
         const sign = { x: -520, y: 368, w: 1040, h: 130 };
         layers.push(rear({
             id: 'signature', brush: false, box: sign,
@@ -147,7 +112,7 @@ Motion.scene({
                 S.textOn(g, text, base, { font, color: '#eeeaf6', spacing: 9 });
                 S.tooth(g, sign, { amp: 0.04 });
             },
-        }, -0.2, [s0 * 0.985, s0 * 1.06]));
+        }, -0.2, [ZEND - 150, ZEND + 400]));
         return { rig: Souvenir.rig(env, layers) };
     },
     draw(g, t, env) {

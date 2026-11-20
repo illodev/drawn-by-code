@@ -126,6 +126,18 @@ library of this style, to read before painting anything like them:
   near black and the frame's median luminance was 0.33 against the reference's 0.50: deep
   in a sunny tree is green light, not darkness. Measure the frame (luminance at 5/50/95 %,
   median saturation) against the mood wanted before painting more.
+- **The film's unit is the stratum of things, not the picture with a hole.** The user, of
+  seven different pictures chained hole to hole: «the images are practically the same,
+  what changes is the composition… it has become a passage where there is always a hole
+  in the centre». A window, an arch, a ring, a door and a sound hole are the same image
+  seven times, whatever is painted round them. What was liked is «different layers and
+  different elements»: three sheets of loose, whole things lying on one another on a body
+  of their world's own matter, the way through only an irregular gap where the heap stops
+  (leaves, cloth, papers: never a drawn rim, never architecture). A world gets ONE such
+  stratum, a second and a half of film; a new world every stratum is what keeps it from
+  repeating. A framed hole is used at most once or twice in a film, for a reason (the
+  guitar's mouth), and each passage has one thing at its end that is seen small from its
+  start (the guitar, the moon).
 - **A picture is a passage, not a poster.** The user, of a packed emblem the camera pushed
   in on: «it shows that there are a lot of symbols and they have been put there scattered
   all over the paper… it is not a poster that the camera approaches, it is overlap after
@@ -259,4 +271,5 @@ library of this style, to read before painting anything like them:
 - 2026-11-19 · souvenir-test round 5 · A hole shows whatever is behind it at that moment. Fade a whole picture in, its plate too, together with the plate it is seen through (`behind` in the film's scene), time the picture after it on the distance that plate would have kept on its own (one picture ahead, never the whole chain), and if the way out is «light», fill the gap with a few thin veils of it: one veil pops as the camera crosses it, five clear little by little.
 - 2026-11-19 · souvenir-test round 5 · The last image cannot be held by a camera that never slows: put it far and paint it large (the moon 4.8 times farther and larger, `blur` near zero). A far thing keeps its size while the near strata rush by, as a moon does, and then gives seconds of slow growth for the signature.
 - 2026-11-19 · souvenir-test round 5 · Thousands of repeated pieces (tesserae, tiles, muqarnas cells, hammer dents) are painted per pixel: colours and heights on sheets, each piece's tone, tilt and wear from a hash of its index, then ONE lighting pass. Light a picture last, as a pass per layer over finished paint (a dawn line, a fire as a point light with falloff): walls, pots and plants then share one sun. The grade lifts blacks: paint the dark at 0.1–0.2 with a directional ambient, or the forms vanish.
-
+- 2026-11-20 · souvenir-test round 7 · Painters who had made whole pictures recomposed them as strata in ten to fifteen minutes each, because the things already existed as drawers: paint things as loose objects with options to drop their setting (`ground: false`, `hung: false`, no nail, no ledge), and a composition can be thrown away without losing the paint.
+- 2026-11-20 · souvenir-test round 7 · A stratum's body fails in two ways: a field of similar pieces (forty copper discs) and a soft ground between pieces (blotches of colour). It is a heap of a few kinds of piece in several sizes, each with a dark gap of shadow under it, and what shows between them is more drawn things. Smoke or haze over a stratum turns it to milk after the grade: wisps with a shape, or none.
