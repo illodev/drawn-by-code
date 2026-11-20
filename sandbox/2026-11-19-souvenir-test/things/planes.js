@@ -1266,8 +1266,23 @@ const Planes = (() => {
                 bristle(q, [[x0, y0], [x1, y0 + 6], [x1, y1], [x0, y1 + 4]], { dir: -1.57, alpha: 0.4 });
             }
             // the mouth and the base seen from above: full ellipses on a profile
-            charcoal(q, S.ellipse(0, -650, 34, 11, 40).concat([S.ellipse(0, -650, 34, 11, 40)[0]]), { w: 2.6, seed: seed + 'm' });
-            charcoal(q, S.ellipse(0, -650, 20, 6, 30).concat([S.ellipse(0, -650, 20, 6, 30)[0]]), { w: 1.6, seed: seed + 'm2' });
+            // the mouth seen from above: the lip's ring, the dark of the neck inside it
+            q.save();
+            q.fillStyle = '#100c0c';
+            q.beginPath();
+            q.ellipse(0, -650, 20, 6.5, 0, 0, TAU);
+            q.fill();
+            q.lineWidth = 2.4;
+            q.strokeStyle = S.rgba(PAL.char, 0.85);
+            q.beginPath();
+            q.ellipse(0, -650, 33, 11, 0, 0, TAU);
+            q.stroke();
+            q.lineWidth = 1.2;
+            q.strokeStyle = 'rgba(240,232,214,0.6)';
+            q.beginPath();
+            q.ellipse(0, -651, 27, 8.5, 0, Math.PI * 1.05, Math.PI * 1.75);
+            q.stroke();
+            q.restore();
             charcoal(q, S.ellipse(4, 2, 92, 24, 50).concat([S.ellipse(4, 2, 92, 24, 50)[0]]), { w: 2.8, seed: seed + 'b' });
             // the lip's ring
             ruled(q, [-32, -612], [32, -608], { w: 2.4, seed: seed + 'lip', over: [8, 22] });
@@ -2024,5 +2039,95 @@ const Planes = (() => {
         g.stroke();
     }
 
-    return { marble, stencil, hatch, scrap, golpeador, newspaper, label, score, wallpaper, bottle, glass, wing, nail, head, stringSeg, ladder, bridge, rosette, moon, card, blackDisc, bristle, drift, GAUGE, facets, PAL, tone, shadeDir, lightDir, area, centroid, inPoly, split, clip, fill, rect, quad, walk, mark, scumble, edgeFrame, edgeTone, charcoal, ruled, comb, sand, dots, plane, tornEdge, sheetOutline, paper, type, wear };
+    // ------------------------------------------------------------------ the guitar in planes
+    // The body of picture 1's guitar as a Cubist object: its soundboard cut into combed planes,
+    // the half away from the light dropped behind as a dark plane, the neck as a ladder, the
+    // rosette slipped, the sound hole a small black disc (not cut), strings, bridge, tap
+    // plate, its contour in charcoal. Anchor: the centre of the sound hole; s = 1 is picture
+    // 1's size (body 548 wide, from y −225 to +495; the neck shortened to y −560).
+    function guitarPlanes(g, o = {}) {
+        if (typeof Guitar === 'undefined') return;
+        const s = o.s ?? 1, seed = o.seed ?? 'gp', J = Guitar.JOIN * s, NT = (o.neck ?? -560) * s;
+        local(g, { x: o.x, y: o.y, rot: o.rot }, (q) => {
+            const r = Motion.rng('gp/' + seed), out = Guitar.outline(s), [dx, dy] = shadeDir(q);
+            S.cast(q, (k) => fill(k, out, '#000'), { blur: 16 * s, dx: dx * 14 * s, dy: dy * 14 * s, color: 'rgba(18,12,8,0.5)' });
+            // the shadow half, seen again a little lower and to the right
+            const half = out.filter(([x]) => x >= -0.5).map(([x, y]) => [x + 22 * s, y + 14 * s]);
+            plane(q, half, { color: PAL.umberD, seed: seed + 'half', dir: 1.4, lines: null, castD: 6 });
+            // the neck: a ladder of frets
+            const fb = (gy) => (45 + (gy - Guitar.JOIN) * (6 / 483)) * s, frets = [];
+            for (let n = 1; n <= 12; n++) {
+                const y = Guitar.fretY(n) * s;
+                if (y > NT && y < J) frets.push((y - NT) / (J - NT));
+            }
+            ladder(q, { axis: [[0, NT], [0, J + 4 * s]], half: (u) => fb((NT + (J - NT) * u) / s), frets, seed: seed + 'neck', over: 9 * s, fh: 2.6 * s, castD: 6 * s });
+            // the soundboard in combed planes
+            q.save();
+            clip(q, out);
+            const b = S.bbox(out), cells = facets(rect(b.x, b.y, b.w, b.h), { n: o.n ?? 11, seed: seed + 'f', min: 4000 * s * s });
+            cells.forEach((c, i) => {
+                const col = pick([PAL.ochreL, PAL.ochre, PAL.ochreL, PAL.ochreP, PAL.ochreD], r);
+                plane(q, c, { color: col, seed: seed + 'c' + i, dir: Math.PI / 2 + (r() - 0.5) * 0.5, tex: i % 5 === 3 ? 'sand' : 'comb', texO: { dir: Math.PI / 2 + (r() - 0.5) * 0.25, color: PAL.umber, alpha: 0.6, pitch: (2.6 + r() * 1.2) * Math.max(0.6, s), teeth: 8, knots: r() < 0.4 ? 1 : 0, density: 0.05 }, castD: 5 * s, pent: r() < 0.2 ? [10 * s, -6 * s, 0.03] : null });
+            });
+            q.restore();
+            golpeador(q, [[60 * s, 120 * s], [150 * s, 100 * s], [168 * s, 220 * s], [80 * s, 236 * s]], { seed: seed + 'g', n: 50 });
+            charcoal(q, [...out, out[0], out[1]], { w: 3.4, seed: seed + 'o' });
+            // the binding, a rim of dark wood on the shadow side
+            q.save();
+            clip(q, out);
+            S.spray(q, out, { color: PAL.burnt, alpha: 0.75, w: 10 * s, push: 4 * s, dir: [dx, dy] });
+            q.restore();
+            rosette(q, { r0: 70 * s, r1: 102 * s, seed: seed + 'ros', slip: 5 * s });
+            blackDisc(q, { r: 64 * s, seed: seed + 'hole' });
+            bridge(q, { x: 0, y: 0, s, seed: seed + 'br' });
+            for (let i = 0; i < 6; i++) stringSeg(q, [Guitar.stringX(i, NT / s) * s, NT], [Guitar.stringX(i, Guitar.SADDLE) * s, (Guitar.BRIDGE.seat - 5) * s], i, { k: Math.max(0.7, s), shadow: 4 * s });
+        });
+    }
+
+    // The body of a stratum: pieces of the collage (planes, combed wood, sand, dots, marble,
+    // wallpaper strips, torn news and music) pasted over one another at all angles, covering
+    // a box except an irregular gap about the origin where they simply stop. gap: [rx, ry].
+    // Pieces far from the axis are pasted first; the ones that make the gap's edge last.
+    function collage(g, o) {
+        const r = Motion.rng('co/' + (o.seed ?? 1)), { box } = o, [gx, gy] = o.gap ?? [430, 300];
+        const out = (x, y) => Math.hypot(x / gx, y / gy) >= 1;
+        const pieces = [];
+        const shapes = (cx, cy, size) => {
+            const a = r() * Math.PI, w = size * (0.6 + r() * 0.8), h = size * (0.5 + r() * 0.9), k = r();
+            if (k < 0.2) return S.xf([[-w / 2, -h / 2], [w / 2, -h / 3], [-w / 4, h / 2]], { x: cx, y: cy, rot: a });
+            if (k < 0.35) return S.xf([[-w, -h * 0.18], [w, -h * 0.22], [w, h * 0.2], [-w, h * 0.16]], { x: cx, y: cy, rot: [0, Math.PI / 2, 0.62, -0.62][Math.floor(r() * 4)] + (r() - 0.5) * 0.2 });
+            return quad(cx, cy, w, h, a, (r() - 0.5) * w * 0.35);
+        };
+        // the coverage grid: a piece goes where nothing is yet
+        const step = 40, cov = new Map(), key = (x, y) => Math.round(x / step) + ',' + Math.round(y / step);
+        const covered = (x, y) => cov.has(key(x, y));
+        for (let it = 0; it < 4000 && pieces.length < (o.n ?? 120); it++) {
+            const cx = box.x + r() * box.w, cy = box.y + r() * box.h;
+            if (!out(cx, cy) || covered(cx, cy)) continue;
+            const d = Math.hypot(cx / gx, cy / gy), size = (o.size ?? 300) * (0.45 + r() * 0.7) * (d < 1.5 ? 0.75 : 1);
+            const pts = shapes(cx, cy, size);
+            if (!pts.every(([x, y]) => out(x, y))) continue;
+            pieces.push({ pts, d });
+            const bb = S.bbox(pts);
+            for (let x = bb.x; x <= bb.x + bb.w; x += step / 2) for (let y = bb.y; y <= bb.y + bb.h; y += step / 2) if (inPoly(pts, x, y)) cov.set(key(x, y), 1);
+        }
+        pieces.sort((p, q) => q.d - p.d);
+        pieces.forEach(({ pts }, i) => {
+            const k = r(), c = centroid(pts), col = pick(o.colors ?? [PAL.ochre, PAL.ochreL, PAL.grey, PAL.greyL, PAL.umber, PAL.ochreD, PAL.greyD, PAL.black, PAL.ochre, PAL.grey], r);
+            const A = Math.abs(area(pts));
+            if (k < 0.07 && A > 9000) {
+                const bb = S.bbox(pts);
+                scrap(g, { x: c[0], y: c[1], w: Math.min(220, bb.w * 0.8), h: Math.min(170, bb.h * 0.8), rot: (r() - 0.5) * 1.2, seed: (o.seed ?? 1) + 'scr' + i, kind: r() < 0.6 ? 'news' : 'score', torn: [1, 2], pins: r() < 0.5 ? [[-30, -20]] : [] });
+            } else if (k < 0.12) {
+                wallpaper(g, { x: c[0], y: c[1] - 160, w: 110 + r() * 60, h: 260 + r() * 200, rot: (r() - 0.5) * 1.6, seed: (o.seed ?? 1) + 'wp' + i, torn: [2], pins: [] });
+            } else {
+                const t = col === PAL.ochre || col === PAL.ochreL || col === PAL.ochreD ? (r() < 0.6 ? 'comb' : 'sand') : col === PAL.grey || col === PAL.greyL ? (r() < 0.4 ? 'marble' : r() < 0.5 ? 'dots' : null) : r() < 0.3 ? 'sand' : null;
+                plane(g, pts, { color: col, seed: (o.seed ?? 1) + 'p' + i, dir: r() * Math.PI, tex: t, texO: t === 'comb' ? { dir: r() * Math.PI, color: PAL.umberD, alpha: 0.55, knots: r() < 0.5 ? 1 : 0 } : t === 'dots' ? { color: PAL.bone, pitch: 11 } : t === 'sand' ? { density: 0.05 } : {}, pent: r() < 0.15 ? [10, -8, 0.04] : null, castD: 8, castC: 'rgba(22,14,10,0.5)' });
+                if (r() < 0.3) hatch(g, pts, { angle: r() * 3, seed: (o.seed ?? 1) + 'h' + i, len: 50, gap: 6, color: col === PAL.black || col === PAL.umber ? '#cfc3a8' : undefined, alpha: 0.5 });
+            }
+        });
+        return pieces;
+    }
+
+    return { guitarPlanes, collage, marble, stencil, hatch, scrap, golpeador, newspaper, label, score, wallpaper, bottle, glass, wing, nail, head, stringSeg, ladder, bridge, rosette, moon, card, blackDisc, bristle, drift, GAUGE, facets, PAL, tone, shadeDir, lightDir, area, centroid, inPoly, split, clip, fill, rect, quad, walk, mark, scumble, edgeFrame, edgeTone, charcoal, ruled, comb, sand, dots, plane, tornEdge, sheetOutline, paper, type, wear };
 })();

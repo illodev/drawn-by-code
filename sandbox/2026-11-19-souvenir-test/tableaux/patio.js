@@ -309,3 +309,63 @@ Tableau.patio = (z0) => {
 };
 Tableau.patio.depth = 2100;
 Tableau.patio.hole = 140;
+
+// The patio as ONE stratum of loose things (the film's second passage, round 7): no wall,
+// arch or door; the body is the patio's flowers themselves, blue pots and their geraniums,
+// gitanillas, spider plants, jasmine and orange sprays heaped round an irregular gap, in the
+// dawn (warm from the top left, cool rose-blue shade). On it, whole and large: the fountain's
+// basin at the foot of the gap with its thread of water; the canary's cage, the skein hung as
+// an eight and the pale moon among the jasmine; then the two peacocks facing each other
+// across the gap with the well's pulley and bucket hanging between them from above; and
+// nearest, cut by the frame, the rush chair with the shawl and the cat asleep, and the tin
+// on its cane. To find: a lizard on a pot, a martin's nest, a Fajalauza plate and a brass
+// tray half sunk in the leaves.
+//   Tableau.patio.stratum(z) → three layers: 'patio-s-far' (z + 150), 'patio-s-mid' (z), 'patio-s-near' (z − 160)
+Tableau.patio.stratum = (z) => {
+    const S = Souvenir, Pt = Patio;
+    const box = { x: -1200, y: -720, w: 2400, h: 1440 };
+    // a thing on its own sheet, its shadow thrown on the paint already under it
+    const thing = (g, b, paint, shadow = { dx: 16, dy: 20, blur: 9, alpha: 0.38 }) => {
+        const sp = S.sheet(b, Pt.resOf(g), paint);
+        if (shadow) Pt.castSprite(g, sp, { ...shadow, color: Pt.SHADOW });
+        S.put(g, sp);
+    };
+    const finish = (g, seed) => {
+        Pt.dawnGlow(g, box, { seed });
+        S.tooth(g, box, { amp: 0.05 });
+    };
+    const layer = (id, dz, paint, o = {}) => ({ id: 'patio-s-' + id, z: z + dz, box, brush: false, paint, ...o });
+    return [
+        layer('far', 150, (g, res) => {
+            Pt.flowerMass(g, res, box, { seed: 'stratum', gap: [430, 300], n: 78 });
+            // the fountain's basin at the foot of the gap, its thread of water rising into it
+            thing(g, { x: -280, y: 60, w: 560, h: 420 }, (q) => Pt.fountain(q, { x: 0, y: 470, s: 1, seed: 'sf', jet: 230 }), { dx: 22, dy: 16, blur: 12, alpha: 0.4 });
+            Pt.pot(g, { x: -246, y: 372, s: 0.7, tilt: 0.3, seed: 'sfr1', plant: 'geranium', flower: 'red', off: 8, umbels: 3 });
+            // among the jasmine above: the moon, pale, almost full; the cage; the skein
+            Pt.moon(g, { x: -70, y: -430, r: 62 });
+            Pt.jasmine(g, { pts: [[-330, -470], [-150, -400], [40, -470], [190, -520]], seed: 'smoon', density: 1.2, nails: false });
+            thing(g, { x: 260, y: -560, w: 220, h: 380 }, (q) => Pt.cage(q, { x: 370, y: -470, s: 1.15, seed: 'scage', ground: false, chain: 80 }));
+            thing(g, { x: -500, y: -420, w: 160, h: 260 }, (q) => Pt.madeja(q, { x: -410, y: -380, s: 1.25, seed: 'sno8do', hung: false }));
+            // half sunk in the leaves: a Fajalauza plate, the brass tray; a martin's nest; the lizard
+            Pt.plate(g, { x: -760, y: 300, r: 58, seed: 'sfaj', hung: false });
+            Pt.tray(g, { x: 790, y: -260, r: 72, seed: 'stray', hung: false });
+            Pt.nest(g, 660, 170, S.seedOf('snest'));
+            if (typeof Fauna !== 'undefined' && Fauna.lizard) Fauna.lizard(g, { x: 560, y: 380, s: 0.8, rot: -0.5, line: false, seed: 'slz', pose: 1 });
+            finish(g, 'sfar');
+        }),
+        layer('mid', 0, (g, res) => {
+            // the two peacocks facing each other across the gap, their trains falling out of the frame
+            Pt.peacock(g, { x: -560, y: 70, s: 1.25, seed: 'sL', drop: 620 });
+            Pt.peacock(g, { x: 560, y: 70, s: 1.25, seed: 'sR', flip: true, drop: 620 });
+            // the well's pulley hanging from above the frame, its bucket between them
+            Pt.pulley(g, { x: 20, y: -590, s: 1.2, drop: 140, seed: 'spul' });
+            finish(g, 'smid');
+        }),
+        layer('near', -160, (g, res) => {
+            Pt.chair(g, { x: 720, y: 500, s: 1.65, seed: 'ssilla', ground: false });
+            Pt.can(g, { x0: -1000, y0: 820, x1: -600, y1: -260, s: 1.4, seed: 'scan', ground: false });
+            Pt.pot(g, { x: -820, y: 330, s: 1.6, tilt: 0.25, seed: 'snp', plant: 'gitanilla', flower: 'pink', color: 'blue', trail: 7, len: 110, off: 0 });
+            finish(g, 'snear');
+        }, { res: 0.8 }),
+    ];
+};

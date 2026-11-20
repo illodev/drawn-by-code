@@ -1121,7 +1121,7 @@ const Patio = (() => {
             leg(q, F, -12, k, r);
             leg(q, F, 12, k, r);
             // ---- body and neck: one lit volume, cobalt
-            const bodyPts = S.curve([[-150, -128], [-100, -150], [-40, -160], [10, -160], [34, -170], [44, -200], [50, -232], [60, -262], [74, -288], [88, -304], [100, -306], [104, -292], [94, -280], [86, -258], [80, -228], [82, -198], [92, -172], [101, -146], [97, -118], [80, -94], [40, -78], [-10, -74], [-60, -80], [-110, -94], [-142, -108]], true, 6);
+            const bodyPts = S.curve([[-150, -128], [-100, -150], [-40, -160], [10, -160], [34, -170], [42, -200], [50, -232], [60, -262], [74, -288], [88, -304], [100, -306], [104, -292], [92, -280], [80, -258], [72, -228], [74, -198], [88, -172], [100, -146], [97, -118], [80, -94], [40, -78], [-10, -74], [-60, -80], [-110, -94], [-142, -108]], true, 6);
             const bb = S.bbox(bodyPts, 6);
             const bodyF = Fp(bodyPts), bbF = S.bbox(bodyF, 6);
             const body = S.form({
@@ -1462,12 +1462,12 @@ const Patio = (() => {
     //   5 its rim rolled; 6 the wire twisted round tin and cane; 7 water dripping from it;
     //   8 a dent; 9 a leaf stuck to it; 10 its long shadow across the wall.
     // (x0, y0) the cane's foot, (x1, y1) its top, where the tin is.
-    function can(g, { x0, y0, x1, y1, s = 1, seed = 'can' }) {
+    function can(g, { x0, y0, x1, y1, s = 1, seed = 'can', ground = true }) {
         const r = rng('can' + seed), L = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / L, uy = (y1 - y0) / L, nx = -uy, ny = ux;
         const w = 9 * s;
         const P = (t, o = 0) => [x0 + (x1 - x0) * t + nx * o, y0 + (y1 - y0) * t + ny * o];
         // its shadow, long across the wall
-        softly(g, 5, (q) => lineP(q, [[x0, y0], [x1 + 70, y1 + 80]], w * 1.2, 'rgba(60,54,100,0.35)'));
+        if (ground) softly(g, 5, (q) => lineP(q, [[x0, y0], [x1 + 70, y1 + 80]], w * 1.2, 'rgba(60,54,100,0.35)'));
         const cane = [P(0, -w / 2), P(1, -w / 2 * 0.8), P(1, w / 2 * 0.8), P(0, w / 2)];
         S.piece(g, cane, { fill: '#cdbb84', line: 0, shade: { color: '#5a4a30', alpha: 0.55, w: w * 0.7, push: w * 0.3 }, light: { color: '#fff4cc', alpha: 0.6, w: w * 0.4 },
             detail: (q) => {
@@ -1644,12 +1644,12 @@ const Patio = (() => {
     //   8 the cat a ginger tabby, curled nose to tail, its tail over its paws; 9 its ear's
     //   inside pink, a whisker or two; 10 its stripes following the curl.
     // (x, y) the middle of the front feet on the floor; at s = 1 the seat is 160 wide at 185 up.
-    function chair(g, { x = 0, y = 400, s = 1, seed = 'ch', cat = true } = {}) {
+    function chair(g, { x = 0, y = 400, s = 1, seed = 'ch', cat = true, ground = true } = {}) {
         const r = rng('chair' + seed), res = resOf(g, s);
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        softly(g, 10, (q) => fillP(q, [[-90, 0], [100, 0], [190, 26], [-20, 26]], 'rgba(50,44,80,0.4)'));
+        if (ground) softly(g, 10, (q) => fillP(q, [[-90, 0], [100, 0], [190, 26], [-20, 26]], 'rgba(50,44,80,0.4)'));
         const green = '#5e7a5a', post = (x0, y0, x1, y1, w) => {
             const pts = [[x0, y0], [x1, y1]];
             S.ink(g, pts, { w: w + 1.4, color: '#2a3428', taper: [0, 0] });
@@ -1865,15 +1865,15 @@ const Patio = (() => {
     // A domed wire cage hung from a hook: brass wires, a yellow canary on its perch, a blue
     //   seed cup, a water glass, a cuttlebone, a lettuce leaf in the bars, husks on the tray.
     // (x, y) the hook it hangs from; at s = 1 it is 120 tall under a chain of 70.
-    function cage(g, { x = 0, y = 0, s = 1, seed = 'cg' } = {}) {
+    function cage(g, { x = 0, y = 0, s = 1, seed = 'cg', ground = true, chain = 0 } = {}) {
         const r = rng('cage' + seed);
         g.save();
         g.translate(x, y);
         g.scale(s, s);
         const top = 70, W = 52, base = top + 128;
         // its shadow on the wall
-        softly(g, 6, (q) => oval(q, 46, base - 40, W, 60, 0, 'rgba(40,40,80,0.3)'));
-        for (let k = 0; k < 6; k++) oval(g, 0, 8 + k * 11, 3, 5, 0, k % 2 ? '#8a7442' : '#b0965a'); // the chain
+        if (ground) softly(g, 6, (q) => oval(q, 46, base - 40, W, 60, 0, 'rgba(40,40,80,0.3)'));
+        for (let k = -Math.ceil(chain / 11); k < 6; k++) oval(g, 0, 8 + k * 11, 3, 5, 0, (k + 100) % 2 ? '#8a7442' : '#b0965a'); // the chain
         // the back half of the wires
         const brass = (pts, w = 1.1) => {
             lineP(g, pts, w, '#7a6436');
@@ -1908,12 +1908,14 @@ const Patio = (() => {
     // ------------------------------------------------------------------ jasmine on a wire
     // A wire run along the wall on nails, the jasmine (jazmín) twining on it: dark pinnate
     // leaves of five to seven leaflets, white star flowers on pink-flushed tubes, buds pink.
-    function jasmine(g, { pts, seed = 'j', density = 1 } = {}) {
+    function jasmine(g, { pts, seed = 'j', density = 1, nails = true } = {}) {
         const r = rng('jas' + seed);
         const wire = S.curve(pts, false, 10);
-        lineP(g, shift(wire, 4, 5), 1, 'rgba(50,46,90,0.3)');
-        lineP(g, wire, 1, '#4a4448');
-        for (const p of pts) nail(g, p[0], p[1], 'nail', S.seedOf(seed) + p[0]);
+        if (nails) {
+            lineP(g, shift(wire, 4, 5), 1, 'rgba(50,46,90,0.3)');
+            lineP(g, wire, 1, '#4a4448');
+        }
+        if (nails) for (const p of pts) nail(g, p[0], p[1], 'nail', S.seedOf(seed) + p[0]);
         // the vine twines round it and hangs off it
         const vine = wire.map(([px, py], i) => [px + Math.sin(i * 0.7) * 4, py + Math.cos(i * 0.7) * 4]);
         stem(g, vine, 2, 2, '#4e5e34');
@@ -2174,7 +2176,7 @@ const Patio = (() => {
     }
 
     // A brass tray hung on the wall: chased rings and an eight-pointed star, a hammered rim.
-    function tray(g, { x = 0, y = 0, r: rad = 70, seed = 'tr' } = {}) {
+    function tray(g, { x = 0, y = 0, r: rad = 70, seed = 'tr', hung = true } = {}) {
         const res = resOf(g);
         const relief = S.reliefField({ x: -rad - 2, y: -rad - 2, w: rad * 2 + 4, h: rad * 2 + 4 }, res, (q) => {
             q.strokeStyle = '#fff';
@@ -2210,8 +2212,10 @@ const Patio = (() => {
         });
         castSprite(g, sp, { x, y, dx: 10, dy: 12, blur: 6, alpha: 0.4, color: SHADOW });
         S.put(g, sp, { x, y });
-        nail(g, x, y - rad - 6, 'nail', 31);
-        lineP(g, [[x - 6, y - rad + 2], [x, y - rad - 6], [x + 6, y - rad + 2]], 1, '#5a4a3a');
+        if (hung) {
+            nail(g, x, y - rad - 6, 'nail', 31);
+            lineP(g, [[x - 6, y - rad + 2], [x, y - rad - 6], [x + 6, y - rad + 2]], 1, '#5a4a3a');
+        }
     }
 
     // A frieze stencilled in ochre and añil under the hall's ceiling: a running band of
@@ -2243,7 +2247,7 @@ const Patio = (() => {
     }
     // A Fajalauza plate from Granada hung on the wall: a cream tin glaze, a pomegranate and
     // a bird in green and blue, a dotted rim, a chip and a hairline crack, its wire hanger.
-    function plate(g, { x = 0, y = 0, r: rad = 52, seed = 'pl' } = {}) {
+    function plate(g, { x = 0, y = 0, r: rad = 52, seed = 'pl', hung = true } = {}) {
         const res = resOf(g), r = rng('plate' + seed);
         const sp = S.form({
             box: { x: -rad - 2, y: -rad - 2, w: rad * 2 + 4, h: rad * 2 + 4 }, res, seed: S.seedOf(seed),
@@ -2279,8 +2283,10 @@ const Patio = (() => {
         castSprite(g, sp, { x, y, dx: 9, dy: 11, blur: 5, alpha: 0.4, color: SHADOW });
         S.put(g, sp, { x, y });
         disc(g, x + rad * 0.62, y + rad * 0.62, 4, '#b07a5a'); // a chip, the red body under the glaze
-        lineP(g, [[x - 5, y - rad + 2], [x, y - rad - 8], [x + 5, y - rad + 2]], 1, '#6a6a70');
-        nail(g, x, y - rad - 8, 'nail', 51);
+        if (hung) {
+            lineP(g, [[x - 5, y - rad + 2], [x, y - rad - 8], [x + 5, y - rad + 2]], 1, '#6a6a70');
+            nail(g, x, y - rad - 8, 'nail', 51);
+        }
     }
 
     // An old iron key on a nail, its bit and bow, a loop of string through the bow.
@@ -2453,6 +2459,196 @@ const Patio = (() => {
             }
         }
         void r;
+    }
+
+    // ------------------------------------------------------------------ the pulley and its bucket
+    // For the stratum of loose things: the well's pulley hung from above the frame on its iron
+    // hook, the rope over its wheel, a zinc bucket hanging by its handle at the end of one
+    // fall, the other fall ending in a frayed knot. (x, y) the wheel's axle; drop: how far
+    // under it the bucket's handle hangs.
+    function pulley(g, { x = 0, y = 0, s = 1, drop = 220, seed = 'pu' } = {}) {
+        const r = rng('pulley' + seed), res = resOf(g, s);
+        g.save();
+        g.translate(x, y);
+        g.scale(s, s);
+        const iron = (pts, w = 5) => {
+            S.ink(g, shift(pts, 5, 6), { w, color: 'rgba(40,30,60,0.3)', taper: [0, 0] });
+            S.ink(g, pts, { w, color: '#2a2226', taper: [0, 0] });
+            S.ink(g, shift(pts, -1, -1), { w: w * 0.3, color: 'rgba(190,170,160,0.7)', taper: [0.2, 0.2] });
+        };
+        // the hook and its chain from above
+        for (let k = 0; k < 14; k++) oval(g, 0, -62 - k * 13, k % 2 ? 2.4 : 4, 6.5, 0, k % 2 ? '#3a3034' : '#4e4246');
+        iron(S.curve([[0, -60], [6, -48], [0, -36], [-5, -42]], false, 6), 4);
+        iron([[0, -36], [0, -30]], 4);
+        // the fork and the wheel
+        iron([[-34, 0], [-30, -32], [30, -32], [34, 0]], 3.4);
+        S.piece(g, S.ellipse(0, 0, 32, 32, 40), { fill: '#3a3236', line: 0, shade: { color: '#100c10', alpha: 0.6, w: 8 }, light: { color: '#c8b8b0', alpha: 0.5, w: 5 } });
+        oval(g, 0, 0, 22, 22, 0, '#5a4e50');
+        for (let k = 0; k < 6; k++) lineP(g, [[0, 0], [Math.cos(k * 1.047 + 0.3) * 21, Math.sin(k * 1.047 + 0.3) * 21]], 2.6, '#2a2226');
+        disc(g, 0, 0, 5, '#1a1416');
+        disc(g, -1, -1, 2, '#b8a8a0');
+        for (let k = 0; k < 6; k++) disc(g, (r() - 0.5) * 56, (r() - 0.5) * 56, 0.8 + r() * 1.4, 'rgba(160,80,40,0.8)');
+        // the rope: twisted, over the wheel and down both sides
+        const rope = (pts) => {
+            S.ink(g, shift(pts, 4, 5), { w: 5, color: 'rgba(40,30,60,0.25)', taper: [0, 0] });
+            S.ink(g, pts, { w: 4.4, color: '#a68e64', taper: [0, 0] });
+            for (let i = 1; i < pts.length; i++) {
+                const [a0, b0] = pts[i - 1], [a1, b1] = pts[i], L = Math.hypot(a1 - a0, b1 - b0);
+                for (let d = 0; d < L; d += 4) {
+                    const t = d / L, px = a0 + (a1 - a0) * t, py = b0 + (b1 - b0) * t;
+                    lineP(g, [[px - 2, py - 1.5], [px + 2, py + 1.5]], 0.8, 'rgba(70,56,40,0.7)');
+                }
+            }
+            S.ink(g, shift(pts, -1.4, 0), { w: 0.8, color: 'rgba(255,240,210,0.5)', taper: [0, 0] });
+        };
+        g.lineWidth = 4.4;
+        g.strokeStyle = '#a68e64';
+        g.beginPath();
+        g.arc(0, 0, 30, Math.PI, TAU);
+        g.stroke();
+        rope([[-31, 0], [-33, drop * 0.55]]);
+        // the frayed knot at the loose end
+        disc(g, -33, drop * 0.55 + 4, 5, '#9a8258');
+        for (let k = 0; k < 9; k++) lineP(g, [[-33, drop * 0.55 + 6], [-33 + (r() - 0.5) * 12, drop * 0.55 + 14 + r() * 10]], 0.7, '#b8a07a');
+        rope([[31, 0], [33, drop]]);
+        // the bucket hung by its handle
+        const bx = 33, by = drop + 78;
+        lineP(g, S.curve([[bx - 29, by - 46], [bx - 20, by - 82], [bx + 20, by - 82], [bx + 29, by - 46]], false, 8), 1.8, '#3a3640');
+        const pail = [[bx - 30, by - 50], [bx + 30, by - 50], [bx + 24, by], [bx - 24, by]];
+        const bsp = S.form({
+            box: { x: bx - 34, y: by - 56, w: 68, h: 60 }, res, seed: S.seedOf(seed) + 3,
+            mask: (c) => fillP(c, pail, '#fff'), inflate: 'none',
+            height: (px, py2) => {
+                const hw = 30 - ((py2 - (by - 50)) / 50) * 6;
+                return hw * Math.sqrt(Math.max(0, 1 - ((px - bx) / hw) ** 2)) - (Math.abs(py2 - by + 34) < 2 ? 1.5 : 0) - 3 * S.smooth(7, 0, Math.hypot(px - bx + 12, py2 - by + 18));
+            },
+            ramp: [[0, '#34323e'], [0.3, '#62606e'], [0.5, '#8e8c98'], [0.7, '#b8b6c0'], [0.86, '#dcdae0'], [1, '#fbfaf8']], soft: 0.85,
+            spec: { amp: 0.6, power: 20, from: 0.3, to: 0.85, ragged: 0.5, color: '#ffffff' },
+            mottle: { amp: 0.08, freq: 0.08 },
+            tint: (px, py2, tone, rgb) => toward(rgb, 130 + 50 * tone, 80 + 30 * tone, 50, S.smooth(0.3, 0.6, S.noise2(px * 0.1, py2 * 0.1, 5)) * 0.45),
+        });
+        S.put(g, bsp);
+        oval(g, bx, by - 50, 30, 6, 0, '#4a4852');
+        g.lineWidth = 1.4;
+        g.strokeStyle = '#e0dee4';
+        g.beginPath();
+        g.ellipse(bx, by - 50, 30, 6, 0, Math.PI, TAU);
+        g.stroke();
+        for (const sx of [-1, 1]) disc(g, bx + sx * 29, by - 46, 2.2, '#2a2830');
+        // a drop falling from its rim
+        oval(g, bx + 18, by + 14, 1.6, 2.6, 0, 'rgba(220,228,246,0.85)');
+        g.restore();
+    }
+
+    // ------------------------------------------------------------------ the mass of the patio's flowers
+    // The body of the stratum: blue pots and their plants heaped on one another, geranium and
+    // ivy leaves under them, sprays of orange and jasmine, round an irregular gap. Painted far
+    // from the centre first, so the pieces nearest the gap lie on top.
+    //   box, gap: [rx, ry] the gap's half-axes; keep(x, y, r): extra places to leave
+    function flowerMass(g, res, box, { seed = 'mass', gap = [430, 300], n = 76 } = {}) {
+        const r = rng('mass' + seed), C = typeof Citrus !== 'undefined' ? Citrus : null;
+        const spots = [];
+        for (let i = 0; i < 900 && spots.length < n; i++) {
+            const x = (r() * 2 - 1) * (box.w / 2 - 20), y = (r() * 2 - 1) * (box.h / 2 - 20), rad = 58 + r() * 84;
+            if (Math.hypot(x / gap[0], y / gap[1]) < 1 + rad / 380) continue;
+            if (spots.some((q) => Math.hypot(q[0] - x, q[1] - y) < (q[2] + rad) * 0.62)) continue;
+            spots.push([x, y, rad]);
+        }
+        spots.sort((p, q) => Math.hypot(q[0], q[1] * 1.4) - Math.hypot(p[0], p[1] * 1.4));
+        // 0 · the depth of the heap: soft blotches of shaded green, flower and pot colour, so no
+        // hole shows the night; their edge on the gap is ragged like the leaves over it
+        softly(g, 10, (q) => {
+            for (let i = 0; i < 700; i++) {
+                const x = box.x + r() * box.w, y = box.y + r() * box.h, rr = 40 + r() * 90;
+                if (Math.hypot(x / gap[0], y / gap[1]) < 1.08 + rr / 500) continue;
+                const k = r();
+                q.fillStyle = k < 0.6 ? S.mix('#6e8e6c', '#94b084', r()) : k < 0.78 ? S.mix('#7a8cbc', '#9aaad4', r()) : k < 0.9 ? S.mix('#d07a80', '#eaa8a2', r()) : S.mix('#e2dce2', '#f6f0ee', r());
+                q.beginPath();
+                q.ellipse(x, y, rr, rr * (0.6 + r() * 0.4), r() * 3, 0, TAU);
+                q.fill();
+            }
+        });
+        // 1 · the shade under everything: leaves of every kind in their shade colour
+        const lr = resOf(g, 1);
+        for (let i = 0; i < 1500; i++) {
+            const x = box.x + r() * box.w, y = box.y + r() * box.h;
+            if (Math.hypot(x / gap[0], y / gap[1]) < 1.04 + r() * 0.12) continue;
+            const rot = r() * TAU, sc = 0.9 + r() * 0.6;
+            const sp = r() < 0.55 ? gleaf(Math.floor(r() * 9), rot, lr, r() < 0.1 ? 'old' : 'fresh') : ileaf(Math.floor(r() * 7), rot, lr);
+            S.put(g, sp, { x, y, rot, sx: sc, sy: sc * (0.55 + r() * 0.45) });
+        }
+        // that underlayer is in the depth of the heap: cooler and darker
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        g.fillStyle = 'rgba(120,124,170,0.14)';
+        g.fillRect(box.x, box.y, box.w, box.h);
+        g.restore();
+        // 2 · the pieces of the heap
+        const plants = ['geranium', 'geranium', 'gitanilla', 'cinta', 'geranium', 'gitanilla'];
+        const flowers = ['red', 'red', 'coral', 'pink', 'white', 'magenta', 'red', 'lilac'];
+        spots.forEach(([x, y, rad], i) => {
+            const k = r();
+            if (k < 0.5) {
+                const c2 = r();
+                pot(g, { x, y: y - rad * 0.2, s: rad / 72, tilt: 0.06 + r() * 0.26, seed: seed + 'p' + i, plant: plants[Math.floor(r() * plants.length)], flower: flowers[Math.floor(r() * flowers.length)],
+                    color: c2 < 0.82 ? 'blue' : c2 < 0.9 ? 'green' : c2 < 0.95 ? 'white' : 'clay', w: 0.9 + r() * 0.5, umbels: 3 + Math.floor(r() * 3), chips: 0.3 + r() * 0.6, off: 12, shadowA: 0.42 });
+            } else if (k < 0.72) {
+                // a loose clump of geranium, leaves and umbels, out of a pot hidden below
+                const s2 = rad / 80;
+                g.save();
+                g.translate(x, y + rad * 0.4);
+                g.scale(s2, s2);
+                const o = { seed: seed + 'g' + i, res: resOf(g, 1), flower: flowers[Math.floor(r() * flowers.length)], umbels: 3 + Math.floor(r() * 3), w: 1.2 };
+                geranium(g, o, 'back');
+                geranium(g, o, 'front');
+                g.restore();
+            } else if (k < 0.84 && C) {
+                // a spray of the orange tree: leaves, one or two oranges, blossom
+                const a0 = r() * TAU, n2 = 14 + Math.floor(r() * 8), lr2 = resOf(g, 0.24);
+                const twig = [[x - Math.cos(a0) * rad, y - Math.sin(a0) * rad], [x, y], [x + Math.cos(a0) * rad * 0.9, y + Math.sin(a0) * rad * 0.9]];
+                C.branch(g, twig, { w0: 6, w1: 3, seed: 'otw' + i, green: [0.3, 1] });
+                for (let m = 0; m < n2; m++) {
+                    const t = r(), px = twig[0][0] + (twig[2][0] - twig[0][0]) * t + (r() - 0.5) * 40, py = twig[0][1] + (twig[2][1] - twig[0][1]) * t + (r() - 0.5) * 40;
+                    const rot = r() * TAU, sp = C.leaf(Math.floor(r() * 16), rot, lr2, r() < 0.4 ? 'sun' : 'mid');
+                    C.shadow(g, sp, px, py, 0.24, { rot, fx: 0.7 + r() * 0.3, fy: 0.5 + r() * 0.5, dx: 3, dy: 5, alpha: 0.4, blur: 4 });
+                    C.put(g, sp, px, py, 0.24, { rot, fx: 0.7 + r() * 0.3, fy: 0.5 + r() * 0.5 });
+                }
+                orange(g, x + (r() - 0.5) * 30, y + 16, 17 + r() * 3, r() < 0.2, resOf(g), seed + i);
+                if (r() < 0.6) orange(g, x + (r() - 0.5) * 60, y - 10 + (r() - 0.5) * 30, 15 + r() * 3, false, resOf(g), seed + i + 'b');
+                if (C.flower) for (let m = 0; m < 3; m++) C.put(g, C.flower(m + i, 0, resOf(g, 0.3), ['face', 'tilt', 'half'][m]), x + (r() - 0.5) * rad, y + (r() - 0.5) * rad, 0.3, { rot: r() * 0.6 });
+            } else if (k < 0.93) {
+                // a spray of jasmine
+                const a0 = r() * TAU;
+                jasmine(g, { pts: [[x - Math.cos(a0) * rad, y - Math.sin(a0) * rad], [x + 10, y - 10], [x + Math.cos(a0) * rad, y + Math.sin(a0) * rad]], seed: seed + 'j' + i, density: 1.3, nails: false });
+            } else {
+                const s2 = rad / 70;
+                g.save();
+                g.translate(x, y + rad * 0.3);
+                g.scale(s2, s2);
+                cinta(g, { seed: seed + 'c' + i }, 'back');
+                cinta(g, { seed: seed + 'c' + i }, 'front');
+                g.restore();
+            }
+        });
+    }
+
+    // The dawn on a stratum's sheet, on its paint only: warm and lifted from the top left,
+    // cool rose-blue towards the bottom right, a slow dapple across it.
+    function dawnGlow(g, box, { sun = [1.1, 1.05, 0.98], shade = [0.86, 0.86, 0.97], seed = 'glow' } = {}) {
+        const c = g.canvas, W = c.width, H = c.height, m = g.getTransform(), sd = S.seedOf(seed);
+        const im = g.getImageData(0, 0, W, H), px = im.data;
+        for (let j = 0, i = 0; j < H; j++) {
+            const y = (j - m.f) / m.d;
+            for (let k = 0; k < W; k++, i += 4) {
+                if (!px[i + 3]) continue;
+                const x = (k - m.e) / m.a;
+                const t = S.clamp(0.5 + (x * 0.55 + y * 0.75) / 2200 + 0.18 * S.noise2(x / 260, y / 260, sd));
+                px[i] = Math.min(255, px[i] * (sun[0] + (shade[0] - sun[0]) * t));
+                px[i + 1] = Math.min(255, px[i + 1] * (sun[1] + (shade[1] - sun[1]) * t));
+                px[i + 2] = Math.min(255, px[i + 2] * (sun[2] + (shade[2] - sun[2]) * t));
+            }
+        }
+        g.putImageData(im, 0, 0);
     }
 
     // ------------------------------------------------------------------ the floor
@@ -2786,7 +2982,7 @@ const Patio = (() => {
     // ------------------------------------------------------------------ the skein (NO8DO)
     // Hung from a nail at (x, y), about 165 long at s = 1: a hank twisted once on itself, so it
     // hangs as two rings of wool, an eight, tied at the twist.
-    function madeja(g, { x = 0, y = 0, s = 1, seed = 'm', color = '#a83a3c' } = {}) {
+    function madeja(g, { x = 0, y = 0, s = 1, seed = 'm', color = '#a83a3c', hung = true } = {}) {
         const res = resOf(g, s);
         const sp = memo(`madeja${seed}${color}@${res}`, () => S.sheet({ x: -50, y: -14, w: 100, h: 196 }, res, (q) => {
             const r = rng('madeja' + seed), base = hex(color);
@@ -2851,7 +3047,7 @@ const Patio = (() => {
         }));
         castSprite(g, sp, { x, y, s, dx: 14 * s, dy: 16 * s, blur: 5, alpha: 0.32, color: SHADOW });
         S.put(g, sp, { x, y, s });
-        nail(g, x, y - 4 * s, 'nail', 77);
+        if (hung) nail(g, x, y - 4 * s, 'nail', 77);
     }
 
     // ------------------------------------------------------------------ the azulejo dado
@@ -3440,5 +3636,5 @@ const Patio = (() => {
         return sp;
     }
 
-    return { wallLife, frieze, plate, sunPatch, tray, key, skyline, dawn, tilePanel, stitchRose, stitchLeaf, well, chair, orangeTree, orange, cage, jasmine, lantern, tinaja, bench, fountain, can, peacock, ocellus, moon, column, pot, potBody, geranium, gitanilla, cinta, gleaf, ileaf, umbel, floret, stem, ceiling, wall, flake, crack, nail, archGeom, arch, voussoir, floor, sky, speck, eave, nest, madeja, dado, castSprite, place, softly, blob, memo, resOf, rng, P, SHADOW, L2, SD, throwOf, fbm, disc, oval, fillP, lineP, path, shift, mixRGB, css, canvas };
+    return { pulley, flowerMass, dawnGlow, wallLife, frieze, plate, sunPatch, tray, key, skyline, dawn, tilePanel, stitchRose, stitchLeaf, well, chair, orangeTree, orange, cage, jasmine, lantern, tinaja, bench, fountain, can, peacock, ocellus, moon, column, pot, potBody, geranium, gitanilla, cinta, gleaf, ileaf, umbel, floret, stem, ceiling, wall, flake, crack, nail, archGeom, arch, voussoir, floor, sky, speck, eave, nest, madeja, dado, castSprite, place, softly, blob, memo, resOf, rng, P, SHADOW, L2, SD, throwOf, fbm, disc, oval, fillP, lineP, path, shift, mixRGB, css, canvas };
 })();

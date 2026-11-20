@@ -5,6 +5,7 @@
 //   t = 30 …  the layers whole, fitted to the frame
 const DIR = 'sandbox/2026-11-19-souvenir-test/';
 const ONLY = null; // a layer id to paint alone (dev: saves painting the others)
+const STRATUM = true; // true: the stratum of round 7 instead of the picture
 Motion.scene({
     fps: 1, duration: 50, logical: [1600, 900],
     uses: ['styles/souvenir/souvenir.js', DIR + 'things/green.js', { src: DIR + 'tableaux/green.js', optional: true }],
@@ -72,7 +73,7 @@ Motion.scene({
             return;
         }
         if (sec >= 10 && typeof Tableau !== 'undefined' && Tableau.green) {
-            const layers = Tableau.green(1000).filter((l) => !ONLY || l.id === ONLY);
+            const layers = (STRATUM ? Tableau.green.stratum(1000) : Tableau.green(1000)).filter((l) => !ONLY || l.id === ONLY);
             const idx = sec >= 30 ? sec - 30 : sec - 10, ly = layers[idx];
             if (!ly) return;
             if (!st.rig) st.rig = S.rig(env, layers);

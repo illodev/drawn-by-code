@@ -3019,7 +3019,7 @@ const Still = (() => {
         // the path: straight, then a sinuous rise drifting sideways
         const path = [];
         for (let i = 0; i <= 80; i++) {
-            const u = i / 80, k = smooth(0.12, 0.6, u);
+            const u = i / 80, k = smooth(0.04, 0.45, u);
             path.push([from[0] + drift * u * u + k * (14 * Math.sin(u * 13 + 1) + 22 * u * Math.sin(u * 7 + 2)), from[1] - H * u]);
         }
         softly(g, 1.2, (q) => {
@@ -3236,5 +3236,323 @@ const Still = (() => {
         for (let k = 0; k < 5; k++) drop(g, x + rx * (1.1 + r() * 0.6) * (r() < 0.5 ? -1 : 1), y + (r() - 0.5) * ry, 1.2 + r() * 1.8, { dark: [70, 58, 44], lit: [250, 240, 220], sq: 0.6 });
     }
 
-    return { scatter, puddle, ristra, fig, quince, quinceSprite, hangString, cabbage, cabLeaf, cabbageCore, melonBody, melonCut, melonSlice, cardoon, rose, petalSprite, cup, cupSprite, candlestick, smoke, motto, fly, mortar, mortarSprite, pestle, rod, brassAt, garlic, garlicSprite, cloveSprite, onion, onionSprite, onionHalf, eggDish, eggSprite, knife, linen, RAMP, LT, LN, SD, TL, resOf, memo, pixels, onto, put, softly, shadowOf, castOn, castWall, contact, drop, run, cord, stone, grain, tooling, ledgeGeom, ledge, ashlar, wall, profileOf, latheOutline, onLathe, nearest, metalAt, jug, jugSprite, bucaro, bucaroSprite, plate, plateSprite, figSprite, glass, glassShadow, disc, oval, poly, line, toward, scaleRGB };
+
+    // ================================================================== the heap (round 7)
+    // The second passage condenses the still life into one stratum of loose things lying on
+    // a heap of the larder's own matter: linen in heavy folds, cabbage and cardoon leaves,
+    // braids of garlic, quince twigs with their leaves. One hard lamp from the top left; the
+    // folds go down to brown-black.
+    const turn2 = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)];
+    const LINEN = [[0, '#0a0806'], [0.14, '#1a1611'], [0.28, '#342e26'], [0.42, '#5a5246'], [0.56, '#857c6c'], [0.7, '#aaa18e'], [0.82, '#c8bfaa'], [0.92, '#ddd6c4'], [1, '#efeadc']];
+    // A piece of linen lying in heavy folds: an irregular sheet w × h, its folds running at
+    // angle a; a hem with its stitches along one edge, sometimes a darn, a stain. Lit in the
+    // page's frame (the geometry is turned, never the canvas).
+    function linenPiece(res, key, o = {}) {
+        return memo(`linenp@${res}/${key}`, () => {
+            const r = Motion.rng('lp' + key), sd = S.seedOf('lp' + key);
+            const W = o.w ?? 300, H = o.h ?? 200, a = o.a ?? 0.3, ca = Math.cos(a), sa = Math.sin(a), RAMPL = S.rampFn(LINEN, 0.95);
+            // a cloth's outline: four sides that sag and wander between corners, one corner
+            // turned under
+            const C = [[-W / 2, -H / 2], [W / 2, -H / 2], [W / 2, H / 2], [-W / 2, H / 2]].map(([x, y], k) => [x * (0.85 + r() * 0.25) + (r() - 0.5) * W * 0.1, y * (0.8 + r() * 0.3) + (r() - 0.5) * H * 0.1]);
+            const raw = [];
+            for (let k = 0; k < 4; k++) {
+                const p0 = C[k], p1 = C[(k + 1) % 4], n = 14;
+                const sgk = (r() - 0.3) * 0.08 * (k % 2 ? H : W);
+                for (let j = 0; j < n; j++) {
+                    const u = j / n, sag = Math.sin(Math.PI * u) * sgk;
+                    const dx = p1[0] - p0[0], dy = p1[1] - p0[1], l = Math.hypot(dx, dy) || 1;
+                    const wob = 2.2 * S.noise2(u * 2.5, k, sd);
+                    raw.push([p0[0] + dx * u - (dy / l) * (sag + wob), p0[1] + dy * u + (dx / l) * (sag + wob)]);
+                }
+            }
+            const pts = S.xf(S.curve(raw.filter((_, j) => j % 2 === 0), true, 4), { rot: a });
+            // folds: ridges and troughs across the sheet, a few deep ones, crossing creases
+            // heavy linen: two or three deep folds, smaller ones riding on them
+            const F = Array.from({ length: 6 }, (_, i) => [(i < 3 ? 0.028 : 0.07) + r() * 0.03, r() * TAU, (i < 3 ? 14 : 3.5) * (0.6 + r() * 0.6), (r() - 0.5) * 0.01]);
+            const h = (x, y) => {
+                const u = x * ca + y * sa, v = -x * sa + y * ca;
+                let z = 0;
+                for (const [f, ph, A, bend] of F) z += A * Math.sin(v * f + ph + u * bend + 0.6 * S.noise2(u * 0.006, v * 0.006, sd));
+                return z + 1.2 * Math.max(0, 1 - Math.abs(u - W * 0.12) / 3) * (r ? 1 : 1);
+            };
+            const darn = o.darn ? [(r() - 0.5) * W * 0.4, (r() - 0.5) * H * 0.4] : null;
+            const stain = r() < 0.4 ? [(r() - 0.5) * W * 0.5, (r() - 0.5) * H * 0.5, 14 + r() * 18] : null;
+            const sp = pixels({
+                box: S.bbox(pts, 6), res,
+                mask: (g) => poly(g, pts),
+                color: (x, y, rgb) => {
+                    const e = 0.8, h0 = h(x, y), hx = (h(x + e, y) - h0) / e, hy = (h(x, y + e) - h0) / e;
+                    const n = norm3([-hx * 1.1, -hy * 1.1, 1]), lam = n[0] * LN[0] + n[1] * LN[1] + n[2] * LN[2];
+                    // the weave at close range, slubs in the thread
+                    const u = x * ca + y * sa, v = -x * sa + y * ca;
+                    const wv = Math.sin(u * 2.5) * Math.sin(v * 2.5 + 1.5) * 0.5 + 0.5;
+                    // white linen: whatever faces the lamp at all is pale; the folds that turn away
+                    // go down to brown-black
+                    let tone = 0.05 + Math.max(0, lam + 0.3) * (o.lit ?? 0.95) + 0.035 * (wv - 0.5) + 0.03 * S.noise2(u * 0.06, v * 1.1, sd + 3) + 0.01 * h0;
+                    RAMPL(clamp(tone), rgb);
+                    if (stain) {
+                        const q = Math.hypot(x - stain[0], (y - stain[1]) * 1.3) / stain[2] + 0.2 * S.noise2(x * 0.1, y * 0.1, sd + 5);
+                        if (q < 1.05) scaleRGB(rgb, 0.86, 0.74, 0.74, q > 0.85 ? 0.9 : 0.45);
+                    }
+                    // its edge gives up to the dark under it
+                    const d = Math.max(Math.abs(u) / (W / 2), Math.abs(v) / (H / 2));
+                    scaleRGB(rgb, 0.75, 0.72, 0.7, smooth(0.86, 1.05, d) * 0.35);
+                },
+                over: (g) => {
+                    if (o.hem) {
+                        // a turned hem along one side, its running stitches
+                        const hp = [];
+                        for (let k = 0; k <= 30; k++) {
+                            const u = -W * 0.42 + (k / 30) * W * 0.84, v = H * 0.36 + 3 * Math.sin(k * 0.7 + sd);
+                            hp.push([u * ca - v * sa, u * sa + v * ca]);
+                        }
+                        S.ink(g, hp.map(([x, y]) => [x + 1, y + 1.5]), { w: 1.4, color: '#100c08', alpha: 0.45 });
+                        S.ink(g, hp, { w: 0.8, color: '#f4efe2', alpha: 0.45 });
+                        for (let k = 1; k < 30; k += 2) S.ink(g, [hp[k], [hp[k][0] + ca * 2 - sa * 2, hp[k][1] + sa * 2 + ca * 2]], { w: 0.5, color: '#3a3428', alpha: 0.5 });
+                    }
+                    if (darn) {
+                        const [mx, my] = darn;
+                        for (let i = 0; i < 8; i++) {
+                            S.ink(g, [[mx - 6, my - 6 + i * 1.6], [mx + 6, my - 6 + i * 1.6]], { w: 0.45, color: '#ece6d6', alpha: 0.5 });
+                            S.ink(g, [[mx - 6 + i * 1.6, my - 6], [mx - 6 + i * 1.6, my + 6]], { w: 0.4, color: '#3a3428', alpha: 0.3 });
+                        }
+                    }
+                    // a loose thread
+                    const t0 = pts[Math.floor(r() * pts.length)];
+                    S.ink(g, [t0, [t0[0] + 6, t0[1] + 4], [t0[0] + 4, t0[1] + 12]], { w: 0.5, color: '#d8d0c0', alpha: 0.7 });
+                },
+            });
+            return sp;
+        });
+    }
+    // A loose leaf lying on the heap: 'cabbage' (broad, ruffled, a thick pale midrib, blue-grey
+    // bloom, older ones yellowing), 'cardoon' (pinnate, toothed, silver, its underside downy),
+    // 'quince' (oval, entire, dark glossy green above, grey felt below). Along +x from (0, 0),
+    // pasted at rot (its light baked for it).
+    function looseLeaf(res, key, rot, kind, s = 1) {
+        return memo(`lleaf@${res}/${key}/${kind}/${rot.toFixed(2)}`, () => {
+            const r = Motion.rng('ll' + key), sd = S.seedOf('ll' + key);
+            const L = (kind === 'cabbage' ? 230 : kind === 'cardoon' ? 210 : 74) * (0.85 + r() * 0.3), W = kind === 'cabbage' ? L * 0.5 : kind === 'cardoon' ? L * 0.17 : L * 0.36;
+            const old = kind === 'cabbage' && r() < 0.5, under = r() < 0.3;
+            const half = (u, side) => {
+                if (kind === 'cardoon') {
+                    const lobe = Math.pow(Math.abs(Math.sin(u * Math.PI * 4.5 + (side > 0 ? 0.5 : 0))), 0.55);
+                    return (0.18 + 0.82 * lobe) * W * Math.sin(Math.PI * Math.min(1, u * 1.05)) * (1 - 0.3 * u) + (Math.floor(u * 40) % 3 === 0 ? 2.5 : 0);
+                }
+                const base = W * Math.pow(Math.sin(Math.PI * Math.min(0.999, 0.04 + Math.pow(u, kind === 'quince' ? 0.9 : 0.75) * 0.96)), kind === 'quince' ? 0.6 : 0.75);
+                const ruf = kind === 'cabbage' ? W * (0.04 + 0.08 * u) * (Math.sin(u * L * 0.12 + side * 2 + (sd % 7)) * 0.6 + 0.5 * S.noise2(u * 7, side * 3, sd)) * smooth(0.2, 0.6, u) : 0;
+                return Math.max(1, base + ruf);
+            };
+            const pts = [];
+            for (let i = 0; i <= 70; i++) pts.push([(i / 70) * L, -half(i / 70, -1)]);
+            for (let i = 70; i >= 0; i--) pts.push([(i / 70) * L, half(i / 70, 1)]);
+            const ramp = kind === 'cabbage' ? (old ? CAB_OLD : CABBAGE) : kind === 'cardoon' ? [[0, '#060a07'], [0.2, '#141e16'], [0.38, '#2e3c30'], [0.54, '#4e5c50'], [0.68, '#738072'], [0.82, '#9ea898'], [0.93, '#c4cabe'], [1, '#e2e6dc']] : under ? [[0, '#0a0c08'], [0.2, '#232a1e'], [0.4, '#4a5444'], [0.58, '#76806c'], [0.74, '#a2aa96'], [0.88, '#c8ccbc'], [1, '#e6e8dc']] : [[0, '#030804'], [0.2, '#0a1a0c'], [0.38, '#183218'], [0.54, '#2a4c26'], [0.68, '#41683a'], [0.82, '#6a8c58'], [0.93, '#a8c08e'], [1, '#dce8c8']];
+            const sh = turn2(SD, -rot), tl = [-sh[0], -sh[1]];
+            const sp = S.form({
+                box: S.bbox(pts, 6), res, seed: 'll' + key, light: S.lightFor(rot, LT), relief: kind === 'quince' ? 0.5 : 0.4,
+                mask: (g) => poly(g, pts),
+                height: (x, y, m) => {
+                    const u = x / L;
+                    let h = (kind === 'cabbage' ? 3 : 1.6) * Math.exp(-Math.pow(y / (kind === 'quince' ? 1.6 : 4 + 4 * (1 - u)), 2));
+                    h -= (kind === 'quince' ? 1.4 : 1.2) * smooth(0, W * 0.6, Math.abs(y)) * 0.5;
+                    h += 0.9 * S.noise2(x * 0.08, y * 0.08, sd) * (kind === 'quince' ? 0.4 : 1) + (kind === 'cabbage' ? 3 : 1.4) * smooth(0.2, 0, m) * smooth(0.3, 0.7, u);
+                    return h;
+                },
+                ramp, soft: 0.9,
+                stroke: { amp: 0.06, freq: 0.1, tone: 5 },
+                mottle: { amp: 0.05, freq: 0.04 },
+                spec: kind === 'quince' && !under ? { amp: 0.5, power: 16, from: 0.5, to: 0.95, color: '#eef6e0' } : { amp: 0.15, power: 8, from: 0.5, to: 0.95, ragged: 0.8, color: '#e8f0f0' },
+                edge: { rough: 1.3, freq: 0.3, amp: 0.8 },
+                tint: (x, y, tone, rgb, m) => {
+                    if (kind === 'cabbage') toward(rgb, rgb[0] * 0.85 + 26, rgb[1] * 0.9 + 30, rgb[2] * 1.05 + 40, smooth(0.45, 0.85, tone) * (old ? 0.18 : 0.38));
+                    if (old) toward(rgb, rgb[0] * 1.2 + 24, rgb[1] * 1.08 + 16, rgb[2] * 0.6, smooth(0.25, 0.02, m) * smooth(0.3, 0.9, x / L) * 0.6);
+                    if (kind === 'cardoon' && y > 4 && Math.sin(x * 0.05 + sd) > 0.2) toward(rgb, 200, 206, 196, 0.4);
+                },
+                over: (g) => {
+                    const mw = kind === 'cabbage' ? 9 : kind === 'cardoon' ? 3.5 : 1.4;
+                    const mr = [[0, 0], [L * 0.5, 0], [L * 0.97, 0]];
+                    S.ink(g, mr.map(([x, y]) => [x + sh[0] * mw * 0.3, y + sh[1] * mw * 0.3]), { w: mw, color: '#081a10', alpha: 0.3, taper: [0, 1] });
+                    S.ink(g, mr, { w: mw, color: kind === 'quince' ? (under ? '#e0e4d4' : '#9ab486') : old ? '#c8d0aa' : '#c4d2c0', alpha: 0.7, taper: [0, 1] });
+                    const nv = kind === 'quince' ? 6 : 7;
+                    for (let k = 0; k < nv; k++) {
+                        const x0 = L * (0.08 + (k / nv) * 0.8);
+                        for (const side of [-1, 1]) {
+                            const x1 = Math.min(L * 0.97, x0 + L * (0.12 + r() * 0.06)), vp = S.curve([[x0, 0], [x0 + (x1 - x0) * 0.35, side * half(x0 / L, side) * 0.35], [x1, side * half(x1 / L, side) * 0.88]], false, 6);
+                            S.ink(g, vp.map(([x, y]) => [x + sh[0], y + sh[1]]), { w: mw * 0.28, color: '#0a1c12', alpha: 0.25, taper: [0.2, 1] });
+                            S.ink(g, vp, { w: mw * 0.3, color: kind === 'quince' ? '#a8bc94' : '#c4d2bc', alpha: 0.42, taper: [0.2, 1] });
+                            if (kind === 'cardoon') S.ink(g, [vp[vp.length - 1], [vp[vp.length - 1][0] + 3, vp[vp.length - 1][1] + side * 4]], { w: 0.6, color: '#d8c890', alpha: 0.85, taper: [0, 1] });
+                        }
+                    }
+                    if (kind === 'quince' && under) for (let i = 0; i < 120; i++) {
+                        const u = r(), x = u * L, yy = (r() * 2 - 1) * half(u, 1) * 0.9;
+                        S.ink(g, [[x, yy], [x + (r() - 0.5) * 2.5, yy + (r() - 0.5) * 2.5]], { w: 0.35, color: '#f0f0e8', alpha: 0.35 });
+                    }
+                },
+            });
+            sp.L = L;
+            return sp;
+        });
+    }
+    // a leaf laid with its shadow on what is already there
+    function layLeaf(g, x, y, rot, kind, key, s = 1) {
+        const lf = looseLeaf(resOf(g, s), key, rot, kind);
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        S.put(g, shadowOf(lf, 6), { x: x + SD[0] * 9 * s, y: y + SD[1] * 9 * s, rot, s, alpha: 0.7 });
+        g.restore();
+        S.put(g, lf, { x, y, rot, s });
+        return lf;
+    }
+    // A braid of garlic lying along pts: the plaited stalks, heads either side of it.
+    function braid(g, pts, o = {}) {
+        const r = Motion.rng('braid' + (o.seed ?? 0)), s = o.s ?? 0.85, res = resOf(g, s);
+        const c = S.curve(pts, false, 8), heads = [];
+        for (let i = 2; i < c.length - 1; i += Math.max(2, Math.round(c.length / (o.n ?? 8)))) {
+            const p = c[i], q = c[Math.min(c.length - 1, i + 1)], a = Math.atan2(q[1] - p[1], q[0] - p[0]), side = heads.length % 2 ? 1 : -1;
+            const rot = a + side * (1.2 + r() * 0.5) + Math.PI / 2;
+            heads.push({ x: p[0] - Math.sin(a) * side * 20 * s, y: p[1] + Math.cos(a) * side * 20 * s, rot, front: r() < 0.55, sd: 'b' + i });
+        }
+        const one = (h) => {
+            const sp = garlicSprite(res, (o.seed ?? 'br') + h.sd, h.rot);
+            g.save();
+            g.globalCompositeOperation = 'source-atop';
+            S.put(g, shadowOf(sp, 5), { x: h.x + SD[0] * 8, y: h.y + SD[1] * 8, rot: h.rot, s, alpha: 0.65 });
+            g.restore();
+            S.put(g, sp, { x: h.x, y: h.y, rot: h.rot, s });
+        };
+        heads.filter((h) => !h.front).forEach(one);
+        cord(g, c, 10 * s, { seed: 'bc' + (o.seed ?? 0), color: [176, 150, 100] });
+        heads.filter((h) => h.front).forEach(one);
+    }
+    // A quince twig: grey-brown wood with lenticels, leaves alternate along it (some showing
+    // their felted undersides), a small quince at its end now and then.
+    function quinceTwig(g, p0, p1, o = {}) {
+        const r = Motion.rng('qt' + (o.seed ?? 0)), s = o.s ?? 1;
+        const ax = p1[0] - p0[0], ay = p1[1] - p0[1], len = Math.hypot(ax, ay), a = Math.atan2(ay, ax);
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        softly(g, 4, (q) => S.ink(q, [p0, p1].map(([x, y]) => [x + SD[0] * 8, y + SD[1] * 8]), { w: 9 * s, color: '#040302', alpha: 0.6 }));
+        g.restore();
+        rod(g, p0, p1, (u) => (4.5 - 2 * u) * s, (n, u, v, rgb, x, y) => {
+            const lam = Math.max(0, n[0] * LN[0] + n[1] * LN[1] + n[2] * LN[2]);
+            rgb[0] = 22 + 120 * lam;
+            rgb[1] = 16 + 96 * lam;
+            rgb[2] = 12 + 72 * lam;
+            if (S.hashI(Math.floor(x / 3), Math.floor(y / 3), 4, 7) < 0.05) toward(rgb, 200, 180, 140, 0.6);
+        });
+        for (let k = 0; k < (o.n ?? 5); k++) {
+            const u = 0.15 + (k / (o.n ?? 5)) * 0.8, side = k % 2 ? 1 : -1, x = p0[0] + ax * u, y = p0[1] + ay * u;
+            layLeaf(g, x, y, a + side * (0.7 + r() * 0.5), 'quince', (o.seed ?? 'q') + k, s * (0.9 + r() * 0.3));
+        }
+        if (o.fruit) {
+            const qs = quinceSprite(resOf(g, s * 0.7), 'tw' + (o.seed ?? 0), a - Math.PI / 2);
+            S.put(g, shadowOf(qs, 5), { x: p1[0] + 10, y: p1[1] + 10, rot: a - Math.PI / 2, s: s * 0.7, alpha: 0.6 });
+            S.put(g, qs, { x: p1[0], y: p1[1], rot: a - Math.PI / 2, s: s * 0.7 });
+        }
+    }
+    // The heap: the far sheet's body. A dark linen under everything outside an irregular gap
+    // about the axis; then pieces laid from the outside in (linen, cabbage and cardoon leaves,
+    // braids, quince twigs), each shading what it lies on; then the lamp's fall across it.
+    //   gap: [rx, ry] the gap's half size;  lamp: [x, y, r] where the light is strongest
+    function heap(g, box, o = {}) {
+        const r = Motion.rng('heap' + (o.seed ?? 0)), sd = S.seedOf('heap' + (o.seed ?? 0));
+        const [GX, GY] = o.gap ?? [430, 300];
+        const out = (x, y, rad) => Math.hypot(x / GX, y / GY) >= 1 + rad / 380 + 0.08 * S.noise2(Math.atan2(y, x) * 2, 0, sd);
+        // the cloth under everything, in deep shadow: big folds, the weave barely there
+        // (painted at half a pixel per unit: it is in deep shadow and mostly covered)
+        const base = linenPiece(0.5, 'heapbase' + (o.seed ?? 0), { w: box.w * 1.5, h: box.h * 1.5, a: 0.45, lit: 0.42 });
+        g.save();
+        g.beginPath();
+        g.rect(box.x, box.y, box.w, box.h);
+        const ring = [];
+        for (let k = 0; k < 60; k++) {
+            const t = (k / 60) * TAU, rr = 1.08 + 0.18 * S.noise2(Math.cos(t) * 1.5, Math.sin(t) * 1.5, sd + 1) + 0.07 * Math.sin(t * 5 + sd);
+            ring.push([Math.cos(t) * GX * rr, Math.sin(t) * GY * rr]);
+        }
+        S.trace(g, ring);
+        g.clip('evenodd');
+        put(g, base, 0, 0, 1);
+        g.restore();
+        // the pieces, far from the axis first so those nearest the gap lie on top
+        const spots = [];
+        for (let i = 0; i < 900 && spots.length < (o.n ?? 72); i++) {
+            const x = box.x + r() * box.w, y = box.y + r() * box.h, rad = 70 + r() * 90;
+            if (!out(x, y, rad * 0.6)) continue;
+            if (spots.some((q) => Math.hypot(q[0] - x, q[1] - y) < (q[2] + rad) * 0.62)) continue;
+            spots.push([x, y, rad, r()]);
+        }
+        spots.sort((p, q) => Math.hypot(q[0] / GX, q[1] / GY) - Math.hypot(p[0] / GX, p[1] / GY));
+        spots.forEach(([x, y, rad, v], i) => {
+            const toAxis = Math.atan2(-y, -x);
+            if (v < 0.34) {
+                const lp = linenPiece(resOf(g, 1, 0.75), 'hp' + (o.seed ?? 0) + (i % 9), { w: rad * 2.4, h: rad * 1.5, a: (i % 9) * 0.7, hem: i % 3 === 0, darn: i % 7 === 0 });
+                g.save();
+                g.globalCompositeOperation = 'source-atop';
+                S.put(g, shadowOf(lp, 9), { x: x + SD[0] * 12, y: y + SD[1] * 12, alpha: 0.75 });
+                g.restore();
+                put(g, lp, x, y, 1);
+            } else if (v < 0.56) layLeaf(g, x, y, toAxis + (r() - 0.5) * 1.6, 'cabbage', 'hc' + (i % 11), rad / 120);
+            else if (v < 0.68) layLeaf(g, x, y, toAxis + (r() - 0.5) * 1.4, 'cardoon', 'hd' + (i % 7), rad / 110);
+            else if (v < 0.77) {
+                const a = r() * TAU, l = rad * 2.2;
+                braid(g, [[x - Math.cos(a) * l / 2, y - Math.sin(a) * l / 2], [x, y + 10], [x + Math.cos(a) * l / 2, y + Math.sin(a) * l / 2]], { n: 7, s: 1.05, seed: 'hb' + (i % 5) });
+            } else {
+                const a = toAxis + (r() - 0.5) * 1.2, l = rad * 1.8;
+                quinceTwig(g, [x - Math.cos(a) * l / 2, y - Math.sin(a) * l / 2], [x + Math.cos(a) * l / 2, y + Math.sin(a) * l / 2], { seed: 'ht' + (i % 6), n: 4, fruit: i % 4 === 0, s: 1.1 });
+            }
+        });
+        // the lamp: strongest up to the left, the far side and the gap's rim sinking into
+        // brown-black, on the paint only
+        const [lx, ly, lr] = o.lamp ?? [-600, -420, 1500];
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        const gr = g.createRadialGradient(lx, ly, lr * 0.15, lx, ly, lr);
+        gr.addColorStop(0, 'rgba(8,5,3,0)');
+        gr.addColorStop(1, 'rgba(8,5,3,0.72)');
+        g.fillStyle = gr;
+        g.fillRect(box.x, box.y, box.w, box.h);
+        const gg = g.createRadialGradient(0, 0, Math.min(GX, GY) * 0.9, 0, 0, Math.max(GX, GY) * 1.6);
+        gg.addColorStop(0, 'rgba(6,4,2,0.55)');
+        gg.addColorStop(1, 'rgba(6,4,2,0)');
+        g.fillStyle = gg;
+        g.fillRect(box.x, box.y, box.w, box.h);
+        g.restore();
+    }
+    // A pad of matter for a thing in a near sheet to lie on (so it has cloth under it to throw
+    // its shadow on): a fold of linen and a leaf or two.
+    function pad(g, x, y, w, h, o = {}) {
+        const lp = linenPiece(resOf(g, 1, 0.8), 'pad' + (o.seed ?? 0), { w, h, a: o.a ?? 0.15, hem: true, darn: !!o.darn });
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        S.put(g, shadowOf(lp, 10), { x: x + SD[0] * 12, y: y + SD[1] * 12, alpha: 0.7 });
+        g.restore();
+        put(g, lp, x, y, 1);
+        for (const [dx, dy, rot, kind, k] of o.leaves ?? []) layLeaf(g, x + dx, y + dy, rot, kind, 'pl' + (o.seed ?? 0) + k, 1);
+        // the lamp's fall on the pad
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        const gr = g.createRadialGradient(x - w * 0.4, y - h * 0.5, 10, x - w * 0.4, y - h * 0.5, Math.max(w, h) * 1.1);
+        gr.addColorStop(0, 'rgba(8,5,3,0)');
+        gr.addColorStop(1, 'rgba(8,5,3,0.6)');
+        g.fillStyle = gr;
+        g.fillRect(x - w, y - h, w * 2, h * 2);
+        g.restore();
+    }
+    // the goblet's silhouette as a shadow on cloth: dark at the stem, paler under the bowl,
+    // with the water's caustic in it
+    function glassShadowOn(g, x, y, s, dx, dy) {
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        g.translate(x + dx * s, y + dy * s);
+        g.scale(s, s);
+        softly(g, 5, (q) => {
+            const lo = GL.P.c.filter((p) => p[1] > -76), bo = GL.P.c.filter((p) => p[1] <= -76);
+            poly(q, [...lo, ...lo.slice().reverse().map(([rr, yy]) => [-rr, yy])], 'rgba(6,4,2,0.6)');
+            poly(q, [...bo, ...bo.slice().reverse().map(([rr, yy]) => [-rr, yy])], 'rgba(6,4,2,0.38)');
+        });
+        softly(g, 4, (q) => oval(q, 4, -130, 34, 26, 0, 'rgba(255,236,190,0.45)'));
+        g.restore();
+    }
+
+    return { linenPiece, looseLeaf, layLeaf, braid, quinceTwig, heap, pad, glassShadowOn, scatter, puddle, ristra, fig, quince, quinceSprite, hangString, cabbage, cabLeaf, cabbageCore, melonBody, melonCut, melonSlice, cardoon, rose, petalSprite, cup, cupSprite, candlestick, smoke, motto, fly, mortar, mortarSprite, pestle, rod, brassAt, garlic, garlicSprite, cloveSprite, onion, onionSprite, onionHalf, eggDish, eggSprite, knife, linen, RAMP, LT, LN, SD, TL, resOf, memo, pixels, onto, put, softly, shadowOf, castOn, castWall, contact, drop, run, cord, stone, grain, tooling, ledgeGeom, ledge, ashlar, wall, profileOf, latheOutline, onLathe, nearest, metalAt, jug, jugSprite, bucaro, bucaroSprite, plate, plateSprite, figSprite, glass, glassShadow, disc, oval, poly, line, toward, scaleRGB };
 })();

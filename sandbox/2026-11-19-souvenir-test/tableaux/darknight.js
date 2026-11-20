@@ -281,3 +281,187 @@ Tableau.darknight = (z0) => {
 };
 Tableau.darknight.depth = 1850;
 Tableau.darknight.hole = 130;
+
+// The second passage (round 7): the dark night condensed into ONE stratum of loose things,
+// in the format of the first passage. No wall, window, plate or ring: the body is the
+// violet Lenten veil and the night-blue velvet of a paso in great folds, smoke through them
+// and banks of tall candles rising from below the frame, whose flames are the only light;
+// on it, whole and large, the things of the night: the silver lantern on its pole, the
+// thurible with its coals, the dove with its sprig, the choir book (middle); one disc of Ibn
+// Arabi's spheres, lilies in a silver jar, the lantern put out, the gibbous moon behind the
+// smoke (far, on the body); the secret ladder leaning across a corner and the vihuela hung
+// by its ribbon, the largest, cut by the frame (near). Moths at the flames, one candle just
+// put out and smoking, its ember.
+//   Tableau.darknight.stratum(z) → [far (z + 150), middle (z), near (z − 160)]
+Tableau.darknight.stratum = (z) => {
+    const S = Souvenir, N = Night;
+    const box = { x: -1200, y: -720, w: 2400, h: 1440 };
+    const D = { far: 150, mid: 0, near: -160 };
+    const r = Motion.rng('darknight-stratum');
+    // ---------------------------------------------------------------- the candles
+    // banks rising from below the frame: [x, top, radius, lit], on the far and near sheets
+    const BANK = [];
+    for (const side of [-1, 1]) {
+        // in clusters, not a fence: a gap between them, unequal heights
+        for (const [i, dx] of [[0, 500], [1, 575], [2, 760], [3, 830], [4, 1010]].map((v) => v)) {
+            const x = side * (dx + (r() - 0.5) * 30), top = [-60, -200, -150, -330, -260][i] - (side > 0 ? 40 : 0) + (r() - 0.5) * 50;
+            BANK.push({ x, top, rad: 15 + r() * 4, lit: !(side > 0 && i === 2), seed: 'sb' + side + i });
+        }
+    }
+    // two short ones at the foot, on the heaped cloth, under the way through
+    for (const [x, top] of [[-300, 330], [320, 318]]) BANK.push({ x, top, rad: 13, lit: true, seed: 'sf' + x });
+    const NEAR = [{ x: -930, top: -250, rad: 22, lit: true, seed: 'nc1' }, { x: 990, top: -430, rad: 24, lit: true, seed: 'nc2' }];
+    const FAROL = { x: -600, y: -70, s: 1.55 };
+    const THUR = { x: 585, y: -470, s: 1.6 };
+    const flameOf = (c) => ({ x: c.x - 1.6, y: c.top - 8 });
+    // every flame, by sheet: [x, y, sheet, power, reach]
+    const FL = [
+        ...BANK.filter((c) => c.lit).map((c) => [flameOf(c).x, flameOf(c).y - 24, 'far', 1.8, 52]),
+        ...NEAR.map((c) => [flameOf(c).x, flameOf(c).y - 34, 'near', 2.6, 80]),
+        [FAROL.x, FAROL.y - 10, 'mid', 2.8, 70],
+        [THUR.x, THUR.y + 64 * THUR.s, 'mid', 0.7, 34, [1, 0.35, 0.12]],
+    ];
+    const lightsFor = (sheet) => FL.map(([x, y, sh, p, rr, c]) => ({ x, y, z: D[sheet] - D[sh] + (sh === sheet ? 14 : 0), p, r: rr, c }));
+    const candleAt = (P, c, o = {}) => {
+        // its socket hidden below the frame: only the shaft rises into view
+        return N.candle(P, { x: c.x, y: 760, len: 760 - c.top, r: c.rad, seed: c.seed, lit: c.lit, smokeH: 360, alpha: 0.6, wax: o.wax, runs: 3 + (c.seed.length % 3) });
+    };
+    const sheet = (id, dz, paint) => ({ id: 'darknight-s-' + id, z: z + dz, box, brush: { amp: 0.045 }, paint });
+
+    return [
+        sheet('far', D.far, (g) => {
+            const P = N.begin(g);
+            const rr = Motion.rng('drapes');
+            const wob = (a, b, n, amp, seed) => {
+                // a wavering edge from a to b
+                const pts = [];
+                for (let i = 0; i <= n; i++) {
+                    const t = i / n, nx = -(b[1] - a[1]), ny = b[0] - a[0], l = Math.hypot(nx, ny) || 1;
+                    const w = amp * (S.noise2(t * 3, S.seedOf(seed) % 97, 7) - 0.5) * 2 * Math.sin(Math.PI * t);
+                    pts.push([lerpX(a[0], b[0], t) + (nx / l) * w, lerpX(a[1], b[1], t) + (ny / l) * w]);
+                }
+                return pts;
+            };
+            function lerpX(a, b, t) { return a + (b - a) * t; }
+            // a swag: hung from above, its lower edge a curve that sags lowest at its middle
+            const swag = (x0, x1, yl, kind, seed, o = {}) => {
+                const pts = [[x0 - 40, -800], [x1 + 40, -800]];
+                for (let i = 0; i <= 16; i++) {
+                    const t = 1 - i / 16, x = x0 + (x1 - x0) * t;
+                    pts.push([x, yl - 90 * (1 - Math.sin(Math.PI * t)) + 14 * S.noise2(t * 5, S.seedOf(seed) % 97, 3)]);
+                }
+                N.drape(P, { pts: S.curve(pts, true, 4), kind, seed, dir: Math.PI / 2 + (o.tilt ?? 0), origin: [(x0 + x1) / 2, -800], len: 700, fold: o.fold ?? 64 + rr() * 30, amp: 1.1 });
+            };
+            // a fall down one side, its inner edge irregular
+            const fall = (xo, xi, y0, kind, seed, o = {}) => {
+                const inner = wob([xi, y0], [xi + (o.lean ?? 0), 800], 12, 40, seed);
+                const pts = [[xo, y0 - 60], ...inner, [xo, 820]];
+                N.drape(P, { pts: S.curve(pts, true, 3), kind, seed, dir: Math.PI / 2, origin: [xo, y0], len: 900, fold: o.fold ?? 80, amp: 1.2 });
+            };
+            // cloth heaped at the foot, folds lying across
+            const heap = (x0, x1, yt, kind, seed) => {
+                const top = [];
+                for (let i = 0; i <= 14; i++) {
+                    const t = i / 14;
+                    top.push([x0 + (x1 - x0) * t, yt + 40 * Math.sin(t * 5 + seed.length) + 24 * S.noise2(t * 4, seed.length, 5)]);
+                }
+                N.drape(P, { pts: S.curve([...top, [x1, 820], [x0, 820]], true, 3), kind, seed, dir: 0.35, origin: [x0, yt], len: 1400, fold: 120, amp: 0.75 });
+            };
+            // a tongue of cloth from far out towards the way through, ending in a hem
+            const tongue = (a, b, w0, w1, kind, seed, fold = 70) => {
+                const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+                const sdn = S.seedOf(seed) % 97, L1 = [], R1 = [];
+                for (let i = 0; i <= 14; i++) {
+                    const t = i / 14, w = (w0 + (w1 - w0) * t) / 2 * (1 + 0.18 * (S.noise2(t * 3, sdn, 1) - 0.5));
+                    const cx = a[0] + dx * t, cy = a[1] + dy * t;
+                    L1.push([cx + nx * w, cy + ny * w]);
+                    R1.push([cx - nx * w, cy - ny * w]);
+                }
+                const tip = [];
+                for (let i = 1; i < 8; i++) {
+                    const an = (i / 8) * Math.PI, rr2 = (w1 / 2) * (0.9 + 0.25 * (S.noise2(i, sdn, 2) - 0.5));
+                    tip.push([b[0] + nx * Math.cos(an) * rr2 + ux * Math.sin(an) * rr2 * 0.7, b[1] + ny * Math.cos(an) * rr2 + uy * Math.sin(an) * rr2 * 0.7]);
+                }
+                N.drape(P, { pts: S.curve([...L1, ...tip, ...R1.reverse()], true, 3), kind, seed, dir: Math.atan2(dy, dx), origin: a, len: L, fold, amp: 1.1, galloon: false });
+            };
+            // back row of swags, the moon among them, front row
+            swag(-1300, -350, -470, 'veil', 'sw1');
+            swag(-500, 260, -560, 'velvet', 'sw2');
+            swag(180, 1300, -520, 'veil', 'sw3');
+            N.moon(P, { x: 520, y: -420, R: 78, seed: 'luna', phase: 0.8 });
+            swag(-1300, -560, -150, 'velvet', 'sw4', { fold: 90 });
+            swag(-760, -60, -330, 'veil', 'sw5');
+            swag(-120, 480, -340, 'velvet', 'sw6');
+            swag(740, 1300, -120, 'velvet', 'sw7', { fold: 92 });
+            fall(-1300, -560, -260, 'veil', 'f1', { lean: -80 });
+            fall(1300, 600, -200, 'veil', 'f2', { lean: 70 });
+            fall(-1300, -800, -100, 'velvet', 'f3');
+            fall(1300, 860, -60, 'velvet', 'f4');
+            heap(-1300, -40, 300, 'veil', 'h1');
+            heap(-90, 1300, 320, 'velvet', 'h2');
+            // tongues of veil and velvet reaching in from every side: their hems are the gap's edge
+            tongue([-1250, -760], [-470, -150], 380, 230, 'velvet', 't1', 80);
+            tongue([-300, -820], [-120, -300], 300, 210, 'veil', 't2', 60);
+            tongue([520, -820], [300, -250], 340, 230, 'velvet', 't3', 72);
+            tongue([1260, -560], [520, -60], 360, 220, 'veil', 't4', 66);
+            tongue([1250, 760], [500, 190], 420, 250, 'velvet', 't5', 84);
+            tongue([-1260, 640], [-520, 150], 400, 240, 'veil', 't6', 70);
+            tongue([-200, 860], [-120, 330], 320, 230, 'velvet', 't7', 64);
+            tongue([-1300, -120], [-560, -20], 300, 200, 'velvet', 't8', 74);
+            // the candles, rising from below the frame
+            const embers = [];
+            for (const c of BANK) {
+                const w = candleAt(P, c, { wax: c.x < 0 ? [0.86, 0.8, 0.66] : [0.88, 0.83, 0.7] });
+                if (!c.lit) embers.push(w);
+            }
+            // things on the body: the disc of spheres, lilies in a silver jar, the lantern put out
+            N.disc(P, { x: -345, y: -262, R: 120, seed: 'esferas' });
+            const J = N.jar(P, { x: 430, y: 186, h: 160, seed: 'jarra-s' });
+            for (const [k, pts, a] of [[0, [[420, 190], [404, 40], [360, -60]], -2.2], [1, [[438, 190], [480, 50], [520, -40]], -0.8], [2, [[430, 190], [440, 70], [452, 0]], -1.5]]) {
+                N.lily(P, { pts, seed: 'az-s' + k, flowers: [{ u: 0.995, a, s: 1.15, open: k === 2 ? 0.2 : 1 }, { u: 0.82, a: a + (k ? 0.9 : -0.8), s: 0.9, open: 0.1 }] });
+            }
+            void J;
+            N.tube(P, [[330, -800], [330, -380]], 3.4, (u, a, along, q) => {
+                q.r = 0.2;
+                q.g = 0.19;
+                q.b = 0.2;
+                q.sp = 0.4;
+                q.h = Math.sin(along * 0.7) * 0.8;
+            });
+            const L = N.lantern(P, { x: 330, y: -380, s: 1.35, seed: 'apagado-s' });
+            N.smoke(P, L.vent[0], L.vent[1] - 4, { seed: 'apagado-s', h: 300, alpha: 0.55, drift: -0.2 });
+            // smoke through the folds
+            N.haze(P, { y: -260, band: 260, seed: 'humo-s1', alpha: 0.3, n: 40 });
+            N.haze(P, { x0: 200, x1: 900, y: -420, band: 120, seed: 'humo-luna', alpha: 0.5, n: 20 });
+            N.moth(P, { x: -560, y: -430, s: 1.1, rot: 0.5, open: 1, seed: 'sm1' });
+            N.moth(P, { x: 640, y: -240, s: 1, rot: -1.1, open: 0.7, seed: 'sm2', pale: true });
+            P.light(lightsFor('far'), { amb: [0.2, 0.17, 0.33] });
+            for (const c of BANK) if (c.lit) N.flame(g, flameOf(c).x, flameOf(c).y, { seed: c.seed, h: 44, w: 12, R: 70, glow: 0.55 });
+            for (const w of embers) N.ember(g, w.x, w.y);
+            S.tooth(g, box, { amp: 0.04 });
+        }),
+        sheet('mid', D.mid, (g) => {
+            const P = N.begin(g);
+            const F = N.farol(P, { x: FAROL.x, y: FAROL.y, s: FAROL.s, seed: 'cruz-de-guia-s', pole: 900 });
+            N.thurible(P, { x: THUR.x, y: THUR.y, s: THUR.s, seed: 'incensario-s', drift: -1.2, smokeH: 620 });
+            N.dove(P, { x: 20, y: -445, s: 1.45, seed: 'paloma-s' });
+            N.book(P, { x: 500, y: 365, w: 440, h: 290, seed: 'cantoral-s' });
+            N.moth(P, { x: 380, y: 270, s: 1.2, rot: 2.4, open: 0.3, seed: 'sm3', pale: true });
+            N.moth(P, { x: -470, y: -250, s: 1.2, rot: 0.8, open: 1, seed: 'sm4' });
+            P.light(lightsFor('mid'), { amb: [0.16, 0.14, 0.27] });
+            N.flame(g, F.fx, F.fy, { seed: 'farol-s', h: 34, w: 10, R: 80, glow: 0.8 });
+            N.halo(g, THUR.x, THUR.y + 64 * THUR.s, 50, 0.6);
+            S.tooth(g, box, { amp: 0.04 });
+        }),
+        sheet('near', D.near, (g) => {
+            const P = N.begin(g);
+            for (const c of NEAR) candleAt(P, c, { wax: [0.86, 0.8, 0.66] });
+            N.ladderObj(P, { a: [-1180, 820], b: [-640, -800], span: 150, step: 120, w: 30, seed: 'escala-s' });
+            N.vihuela(P, { x: 760, y: 190, s: 1.6, rot: 0.32, seed: 'vihuela-s', hang: -800 });
+            N.moth(P, { x: -760, y: 120, s: 1.6, rot: -0.4, open: 0.2, seed: 'sm5' });
+            P.light(lightsFor('near'), { amb: [0.15, 0.13, 0.26] });
+            for (const c of NEAR) N.flame(g, flameOf(c).x, flameOf(c).y, { seed: c.seed, h: 72, w: 19, R: 160, glow: 0.9 });
+            S.tooth(g, box, { amp: 0.04 });
+        }),
+    ];
+};

@@ -103,7 +103,18 @@ const Dome = (() => {
     // Looking up, the light is where the dome opens: towards the axis, and a little from the
     // top left. Returns [lx, ly, lz] (unit), the direction towards the light.
     const TL = [-0.62, -0.78];
+    // HOUSE: the film's house light from the top left (things lying in front of us, the
+    // stratum); LROT: the frame a painter's pattern is turned by, so a turned fragment's
+    // own shading (a muqarnas cell's lit half) still answers to the top left.
+    let HOUSE = 0, LROT = 0;
     function lightAt(x, y, out, elev = 0.62) {
+        if (HOUSE) {
+            const c = Math.cos(elev), a = Math.atan2(TL[1], TL[0]) - LROT;
+            out[0] = Math.cos(a) * c;
+            out[1] = Math.sin(a) * c;
+            out[2] = Math.sin(elev);
+            return out;
+        }
         const r = Math.hypot(x, y), w = smooth(10, 240, r);
         let lx = TL[0] * 0.5 - (r > 1e-6 ? x / r : 0) * 0.85 * w;
         let ly = TL[1] * 0.5 - (r > 1e-6 ? y / r : 0) * 0.85 * w;
@@ -159,8 +170,21 @@ const Dome = (() => {
             ex[i] = md[i * 4 + 2] / 255;
         }
         const em = new Float32Array(N);
-        const P = { W, H, N, k, x0: (X0 + 0.5 - m.e) / k, y0: (Y0 + 0.5 - m.f) / k, a, h, gl, mt, ex, em, tx: new Float32Array(N), ty: new Float32Array(N), box };
+        // a fragment: only inside its outline (clip draws it, in the caller's units), and its
+        // pattern read from the ring it was broken from (map: a point here → a point there)
+        let mask = null;
+        if (o.clip) {
+            const mc = sheetOf(null);
+            mc.fillStyle = '#fff';
+            o.clip(mc);
+            const md2 = mc.getImageData(0, 0, W, H).data;
+            mask = new Uint8Array(N);
+            for (let i = 0; i < N; i++) mask[i] = md2[i * 4 + 3] > 127 ? 1 : 0;
+        }
+        const P = { W, H, N, k, x0: (X0 + 0.5 - m.e) / k, y0: (Y0 + 0.5 - m.f) / k, a, h, gl, mt, ex, em, tx: new Float32Array(N), ty: new Float32Array(N), box, map: o.map || null, mask };
+        LROT = o.lrot ?? 0;
         if (o.pix) o.pix(P);
+        LROT = 0;
         // ---- light
         const blurOf = (src, ru) => {
             const r = Math.max(1, Math.round(ru * k));
@@ -386,11 +410,20 @@ const Dome = (() => {
     // ------------------------------------------------------------------ small tools
     // every pixel of a surface, with its point in the caller's units
     function each(P, fn) {
+        const M = P.map, K = P.mask, Q = [0, 0];
         for (let y = 0, i = 0; y < P.H; y++) {
             const uy = P.y0 + y / P.k;
-            for (let x = 0; x < P.W; x++, i++) fn(P.x0 + x / P.k, uy, i);
+            for (let x = 0; x < P.W; x++, i++) {
+                if (K && !K[i]) continue;
+                if (M) {
+                    M(P.x0 + x / P.k, uy, Q);
+                    fn(Q[0], Q[1], i);
+                } else fn(P.x0 + x / P.k, uy, i);
+            }
         }
     }
+    // a ring painter's options for a fragment of it (see `fragment`)
+    const frag = (o, opts) => (o.map ? { ...opts, map: o.map, clip: o.clip, lrot: o.lrot, env: o.env ?? (() => 1), draw: o.bare ? null : opts.draw } : opts);
     const put = (P, i, c, al = 255) => {
         const o4 = i * 4;
         P.a[o4] = c[0];
@@ -571,7 +604,7 @@ const Dome = (() => {
         const R = {}, Q = {}, W = {};
         const PAN = 165; // the wheel panel's half side
         const STAR8C = { rt: 46, rn: 46 * Math.cos(Math.PI / 4) / Math.cos(Math.PI / 8), M: 8, ph: 1 };
-        surface(g, box, {
+        surface(g, box, frag(o, {
             depth: 8, sharp: 0.45, soft: 3, swell: 0.5, ao: 10, aoK: 0.25, aoA: 0.35, cast: 6, castA: 0.45,
             env: glowEnv(300, 1300, 0.66, 1.05),
             pix(P) {
@@ -647,7 +680,7 @@ const Dome = (() => {
                     if (v < 2.2) inkAt(P, i, v - 0.9, 1.1);
                 });
             },
-        });
+        }));
     }
 
     // ================================================================== 2 · the plaster
@@ -787,7 +820,7 @@ const Dome = (() => {
         const { h = 300, box, seed = 21 } = o;
         const LA = 120, LB = 156, V0 = 72; // the sebka's lozenge (width, height), where it starts
         const Rk = {}, W = {};
-        surface(g, box, {
+        surface(g, box, frag(o, {
             depth: 9, sharp: 0.5, soft: 4, swell: 0.55, ao: 12, aoK: 0.22, aoA: 0.5, cast: 9, castA: 0.55,
             env: glowEnv(250, 1000, 0.62, 1.08),
             draw(A, Hc) {
@@ -947,9 +980,9 @@ const Dome = (() => {
                     P.h[i] = 0.5 * nz + 0.4 * hashI(Math.round(x * 2), Math.round(y * 2), 3, seed);
                 });
             },
-        });
+        }));
         // a crack across a panel of the left wall, half of it filled in a whiter plaster
-        {
+        if (!o.bare) {
             const r = Motion.rng('plcrack/' + seed), pts = [];
             let x = -h - 90, y = -150;
             for (let k = 0; k < 60; k++) {
@@ -974,13 +1007,13 @@ const Dome = (() => {
             S.ink(g, pts.slice(0, 30), { w: 1.4, color: '#2a1e1c', alpha: 0.9 });
         }
         // a swift's nest in the top left corner, on the cornice
-        nest(g, { x: -h - 26, y: -h - 24, s: 1.45, seed: seed + 'n' });
+        if (!o.bare) nest(g, { x: -h - 26, y: -h - 24, s: 1.45, seed: seed + 'n' });
     }
     // a swift's nest: straw and feathers glued with spittle, wedged in a corner (and a
     // streak of droppings below it). In the emblem manner, lit from the axis.
     function nest(g, o) {
         const { x, y, s = 1, seed = 1 } = o, r = Motion.rng('nest/' + seed);
-        const out = [x / Math.hypot(x, y), y / Math.hypot(x, y)], inn = [-out[0], -out[1]];
+        const out = HOUSE ? [S.SHADE_DIR[0], S.SHADE_DIR[1]] : [x / Math.hypot(x, y), y / Math.hypot(x, y)], inn = [-out[0], -out[1]];
         g.save();
         g.translate(x, y);
         g.scale(s, s);
@@ -1182,7 +1215,7 @@ const Dome = (() => {
         const { h = 330, box, seed = 41 } = o;
         const W = {}, R = {}, Q = {}, Fz = rosettes(38, 8, 38 * 0.27);
         const PITCH = 84, CW = 20, LEN = 150, BEAM = 214;
-        surface(g, box, {
+        surface(g, box, frag(o, {
             depth: 26, sharp: 0.5, soft: 3, swell: 0.5, ao: 16, aoK: 0.1, aoA: 0.55, cast: 30, castA: 0.62,
             env: glowEnv(250, 800, 0.62, 1.05),
             pix(P) {
@@ -1289,9 +1322,9 @@ const Dome = (() => {
                     P.h[i] = 4 - (bd < 0.06 ? 2 : 0);
                 });
             },
-        });
+        }));
         // the swift's nest wedged between two corbels on the right
-        nest(g, { x: h + 74, y: -PITCH * 1.5, s: 1.25, seed: seed + 'n' });
+        if (!o.bare) nest(g, { x: h + 74, y: -PITCH * 1.5, s: 1.25, seed: seed + 'n' });
     }
 
     // The ceiling of interlaced stars, an octagonal ring about the opening: laths with a
@@ -1305,7 +1338,7 @@ const Dome = (() => {
         const pend = [];
         const Rv = r / Math.cos(Math.PI / 8);
         for (let k = 0; k < 8; k++) pend.push([Math.cos(((k + 0.5) * TAU) / 8) * (Rv + 12), Math.sin(((k + 0.5) * TAU) / 8) * (Rv + 12)]);
-        surface(g, box, {
+        surface(g, box, frag(o, {
             depth: 24, sharp: 0.5, soft: 3, swell: 0.55, ao: 12, aoK: 0.14, aoA: 0.5, cast: 18, castA: 0.6,
             env: glowEnv(260, 820, 0.64, 1.08),
             pix(P) {
@@ -1409,7 +1442,7 @@ const Dome = (() => {
                     inkAt(P, i, starEdge, 0.45, 0.9);
                 });
             },
-        });
+        }));
     }
 
     // ================================================================== 4 · the muqarnas
@@ -1437,7 +1470,7 @@ const Dome = (() => {
         const RW = {}, QW = {}, WL = rosettes(44, 8, 44 * 0.27), DW = rosettes(52, 8, 52 * 0.27);
         const win = TI.win, moonJ = win ? Math.round(((win.moon / TAU) * 16 + 16) % 16) : -1;
         const rs = new Float64Array(n), LQ0 = [0, 0, 0];
-        surface(g, box, {
+        surface(g, box, frag(o, {
             depth: 60, sharp: 0.45, soft: 2.5, swell: 0.4, diff: 0.55, ao: 9, aoK: 0.05, aoA: 0.3, cast: 12, castA: 0.5,
             env: glowEnv(180, 640, 0.6, 1.1),
             draw(A) {
@@ -1545,7 +1578,20 @@ const Dome = (() => {
                                     P.ex[i] = 1;
                                     inkAt(P, i, QW.edge - 0.2, 0.3, 0.6);
                                 } else {
-                                    if (!a[i * 4 + 3]) put(P, i, SKY);
+                                    if (o.nightSky) {
+                                        // the night behind the lattice, the gibbous moon in it
+                                        const ms = o.nightSky, dx = x - ms.x, dy = y - ms.y, rr = Math.hypot(dx, dy);
+                                        if (rr < ms.r) {
+                                            const lit = dx > -ms.r * 0.55 * Math.sqrt(Math.max(0, 1 - (dy / ms.r) ** 2));
+                                            const sea = noise2(dx * 0.18, dy * 0.18, 5) + 0.5 * noise2(dx * 0.5, dy * 0.5, 6);
+                                            lerp3(lit ? [238, 234, 214] : [86, 88, 128], lit ? [170, 166, 160] : [70, 70, 110], clamp(sea * 0.8 + 0.1), C3);
+                                            if (lit) tint(C3, [255, 252, 240], clamp(1 - rr / ms.r) * 0.3);
+                                        } else {
+                                            lerp3([30, 40, 92], [70, 72, 128], clamp(1 - (rr - ms.r) / (ms.r * 2.4)) * 0.8, C3);
+                                            if (hashI(Math.round(x * 1.5), Math.round(y * 1.5), 2, 7) < 0.004) lerp3(C3, [255, 250, 230], 0.9, C3);
+                                        }
+                                        put(P, i, C3);
+                                    } else if (!a[i * 4 + 3]) put(P, i, SKY);
                                     a[i * 4 + 3] = 255;
                                     P.em[i] = 1;
                                     // the sky is light, not a surface: lift it so the lamp does not shade it
@@ -1698,8 +1744,9 @@ const Dome = (() => {
                     if (!inkAt(P, i, dl - 0.9, 1.0)) inkAt(P, i, ds, 0.4, 0.75);
                 });
             },
-        });
+        }));
         // a cobweb in one cell, a crack running up the tier
+        if (o.bare) return;
         const r = Motion.rng('mq/' + seed);
         const ca = -0.6 + tier * 2.1, Zc = Z[Math.min(n - 2, 1)];
         cobweb(g, Math.cos(ca) * (zigR(Zc, ca) - 6), Math.sin(ca) * (zigR(Zc, ca) - 6), 16, ca, r);
@@ -1749,7 +1796,7 @@ const Dome = (() => {
     function ribs(g, o = {}) {
         const { c = 262, hw = 25, box, seed = 71 } = o;
         const L = wheel(8, c, Math.PI / 8), R = {}, Q = {}, R2 = {}, cand = new Int32Array(8), cd = new Float64Array(8);
-        surface(g, box, {
+        surface(g, box, frag(o, {
             depth: 30, sharp: 0.45, soft: 3, swell: 0.5, ao: 10, aoK: 0.1, aoA: 0.4, cast: 20, castA: 0.6,
             env: glowEnv(200, 600, 0.68, 1.1),
             pix(P) {
@@ -1851,7 +1898,7 @@ const Dome = (() => {
                     inkAt(P, i, edge - 0.6, 0.85);
                 });
             },
-        });
+        }));
     }
 
     // The gold mosaic: rows that follow the octagon, tesserae one by one, scrolls of green,
@@ -2047,7 +2094,7 @@ const Dome = (() => {
         const map = scrollMap(r + 14, Math.ceil(Math.max(Math.abs(box.x), Math.abs(box.y), box.x + box.w, box.y + box.h)) + 10, seed);
         tessera(missing[0], missing[1], r, PITCH, WID, seed, T);
         const lostId = T.id;
-        surface(g, box, {
+        surface(g, box, frag(o, {
             depth: 6, sharp: 0.4, soft: 2, swell: 0.3, ao: 6, aoK: 0.3, aoA: 0.4, cast: 4, castA: 0.4,
             env: glowEnv(200, 560, 0.75, 1.12),
             pix(P) {
@@ -2085,7 +2132,7 @@ const Dome = (() => {
                     if (T.v < 1.6) inkAt(P, i, T.v - 0.8, 0.9);
                 });
             },
-        });
+        }));
     }
 
     // ================================================================== the crown
@@ -2167,5 +2214,393 @@ const Dome = (() => {
         g.restore();
     }
 
-    return { lightAt, surface, lines, wheel, rosettes, strapOf, glaze, dado, plaster, nest, air, corbels, lattice, muqarnas, ribs, mosaic, crown, TIERS, zigR };
+
+    // ================================================================== the stratum
+    // Round 7: the dome as ONE stratum of loose things, as a restorer's workshop or a museum
+    // store would hold the ceilings of al-Andalus: fragments lying on one another at all
+    // angles on a heap of their own matter, lit from the top left like the rest of the film.
+    // Every fragment is painted by the ring painter it was broken from (`map` takes a point of
+    // the fragment to the point of the ring it came from, `clip` is its broken outline), on a
+    // sheet of its own, then laid down with its contour and its cast shadow.
+
+    // a broken outline: the polygon's sides nibbled, `brk` of them (by index) snapped across
+    function broken(pts, seed, amp = 3, brk = []) {
+        const r = Motion.rng('brk/' + seed), out = [];
+        for (let i = 0; i < pts.length; i++) {
+            const A = pts[i], B = pts[(i + 1) % pts.length], l = Math.hypot(B[0] - A[0], B[1] - A[1]), n = Math.max(2, Math.round(l / 9));
+            const nx = -(B[1] - A[1]) / l, ny = (B[0] - A[0]) / l, big = brk.includes(i);
+            for (let k = 0; k < n; k++) {
+                const t = k / n, w = k === 0 ? 0 : big ? (r() - 0.5) * amp * 6 + Math.sin(t * Math.PI) * amp * 3 * (r() < 0.5 ? 1 : -1) : (r() - 0.5) * amp;
+                out.push([A[0] + (B[0] - A[0]) * t + nx * w, A[1] + (B[1] - A[1]) * t + ny * w]);
+            }
+        }
+        return out;
+    }
+    // A fragment laid on g at (x, y), turned by rot, scaled by s.
+    //   outline  its broken edge, in its own units (origin at its middle)
+    //   paint(q, box, o)  a ring painter, called with { map, clip, lrot, bare: true } in o
+    //   from(lx, ly, Q)   the point of the ring a point of the fragment comes from
+    //   side     its thickness, shown towards the shadow (units, before s); sideCol
+    function fragment(g, f) {
+        const { x, y, rot = 0, s = 1, outline, from, side = 0, sideCol = '#7a6a56' } = f;
+        const c = Math.cos(rot), sn = Math.sin(rot);
+        const toPage = ([lx, ly]) => [x + (lx * c - ly * sn) * s, y + (lx * sn + ly * c) * s];
+        const pts = outline.map(toPage);
+        const sd = side * s, SD = S.SHADE_DIR;
+        const bb = S.bbox([...pts, ...pts.map(([px, py]) => [px + SD[0] * sd, py + SD[1] * sd])], 8);
+        const res = S.pxScale(g), cv = document.createElement('canvas');
+        cv.width = Math.ceil(bb.w * res);
+        cv.height = Math.ceil(bb.h * res);
+        const q = cv.getContext('2d');
+        q.setTransform(res, 0, 0, res, -bb.x * res, -bb.y * res);
+        if (sd > 0) {
+            // the slab's thickness: its broken edge seen from the side, darker, a lit lip
+            for (let k = 6; k >= 1; k--) {
+                q.beginPath();
+                S.trace(q, pts.map(([px, py]) => [px + (SD[0] * sd * k) / 6, py + (SD[1] * sd * k) / 6]));
+                q.fillStyle = S.mix(sideCol, '#2a1e1a', (k / 6) * 0.45);
+                q.fill();
+            }
+        }
+        const Q = [0, 0];
+        const map = (px, py, out) => {
+            const dx = (px - x) / s, dy = (py - y) / s;
+            from(dx * c + dy * sn, -dx * sn + dy * c, out);
+        };
+        const clip = (m) => {
+            m.beginPath();
+            S.trace(m, pts);
+            m.fill();
+        };
+        f.paint(q, bb, { map, clip, lrot: rot, bare: true });
+        if (f.after) f.after(q, toPage);
+        S.stamp(g, { canvas: cv, box: bb }, { lw: 2.3, heavy: 0.8, cast: { blur: 14, dx: 10, dy: 14, color: 'rgba(36,22,14,0.55)' } });
+    }
+    const rectPts = (w, h) => [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]];
+
+    // ---- the fragments, each from its ring
+    // a panel of the dado: its crowning merlons, the chequer, the field of eights; one corner
+    // snapped off and the mortar bed showing beyond the break
+    function fDado(g, o) {
+        const W = 330, H = 260;
+        const bed = broken(rectPts(W + 14, H + 14), 'bed' + o.seed, 4, [1, 2]);
+        fragment(g, { ...o, outline: bed, side: 9, sideCol: '#8c7c64', from: (lx, ly, Q) => ((Q[0] = lx), (Q[1] = -(290 + ly + H / 2 + 30))),
+            paint: (q, box, p) => {
+                // the bed: plaster, the ridges that stood between the lost tiles
+                const L = rosettes(150, 8, 150 * 0.27), R = {}, Qs = {};
+                surface(q, box, { ...p, env: () => 1, depth: 8, cast: 6, castA: 0.4, pix(P) {
+                    each(P, (X, Y, i) => {
+                        const nz = noise2(X * 0.08, Y * 0.08, 3);
+                        lerp3(PLASTER, [150, 136, 112], clamp(0.35 + 0.35 * nz), C3);
+                        L.at(X, -Y - 290 - 58 + 75, R);
+                        strapOf(L, R, 3.2, 0.55, Qs);
+                        const ridge = Math.abs(Qs.edge) < 0.9;
+                        if (ridge) tint(C3, [236, 228, 210], 0.6);
+                        put(P, i, C3);
+                        P.h[i] = (ridge ? 1.2 : 0) + 0.5 * nz;
+                    });
+                } });
+                // the tiles, inside the break
+                const tiles = broken([[-W / 2, -H / 2], [W / 2, -H / 2], [W / 2, H * 0.05], [W * 0.1, H / 2], [-W / 2, H / 2]], 'tl' + o.seed, 1.4, [2]);
+                const cc = Math.cos(o.rot), ss = Math.sin(o.rot), s = o.s ?? 1;
+                const pg = tiles.map(([lx, ly]) => [o.x + (lx * cc - ly * ss) * s, o.y + (lx * ss + ly * cc) * s]);
+                dado(q, { box, hx: 480, hy: 290, seed: 11, ...p, clip: (m) => { m.beginPath(); S.trace(m, pg); m.fill(); } });
+            } });
+    }
+    // a length of the knot band with its cornice, broken at both ends
+    function fKnot(g, o) {
+        const L = 440;
+        fragment(g, { ...o, outline: broken(rectPts(L, 74), 'kn' + o.seed, 2.5, [1, 3]), side: 10, sideCol: '#a89878',
+            from: (lx, ly, Q) => ((Q[0] = lx + 30), (Q[1] = -(270 + ly + 37))), paint: (q, box, p) => plaster(q, { box, h: 270, ...p }) });
+    }
+    // a corbel with a stub of its beam
+    function fCorbel(g, o) {
+        const out = broken([[-21, 0], [21, 0], [21, 150], [74, 150], [74, 214], [-74, 214], [-74, 150], [-21, 150]], 'cb' + o.seed, 1.2, [3, 5]);
+        fragment(g, { ...o, outline: out.map(([a, b]) => [a, b - 107]), side: 16, sideCol: '#5a3a24',
+            from: (lx, ly, Q) => ((Q[0] = lx), (Q[1] = -(300 + ly + 107))), paint: (q, box, p) => corbels(q, { box, h: 300, ...p }) });
+    }
+    // a piece of the ceiling of stars: its border with a gilt pendant at the corner
+    function fCeiling(g, o) {
+        const out = broken([[-210, -250], [150, -270], [230, -40], [200, 260], [-180, 240], [-240, 30]], 'ce' + o.seed, 5, [1, 3, 4]);
+        fragment(g, { ...o, outline: out, side: 12, sideCol: '#4e3220',
+            from: (lx, ly, Q) => ((Q[0] = 470 + lx), (Q[1] = 150 + ly)), paint: (q, box, p) => lattice(q, { box, r: 270, ...p }) });
+    }
+    // a block of muqarnas cells: a wedge of four tiers, its back broken off
+    function fMuqarnas(g, o) {
+        const pts = [];
+        for (let k = 0; k <= 12; k++) {
+            const a = -0.4 + (k / 12) * 0.8;
+            pts.push([Math.cos(a) * 452 - 360, Math.sin(a) * 452]);
+        }
+        for (let k = 12; k >= 0; k--) {
+            const a = -0.4 + (k / 12) * 0.8;
+            pts.push([Math.cos(a) * 258 - 360, Math.sin(a) * 258]);
+        }
+        fragment(g, { ...o, outline: broken(pts, 'mq' + o.seed, 2, [12]), side: 26, sideCol: '#b8a688',
+            from: (lx, ly, Q) => ((Q[0] = 360 + lx), (Q[1] = ly)), paint: (q, box, p) => muqarnas(q, { box, tier: 1, ...p }) });
+    }
+    // a lattice window from the drum: its star grid, its surround, the gibbous moon behind
+    function fWindow(g, o) {
+        const aj = (10 * TAU) / 16, er = [Math.cos(aj), Math.sin(aj)], et = [-Math.sin(aj), Math.cos(aj)], R0 = 420;
+        const pts = [];
+        for (let k = 0; k <= 16; k++) {
+            const a = Math.PI + (k / 16) * Math.PI;
+            pts.push([Math.cos(a) * 42, -14 + Math.sin(a) * 42]);
+        }
+        pts.push([42, 58], [-42, 58]);
+        const at = (lx, ly) => [R0 * er[0] + lx * et[0] + ly * er[0], R0 * er[1] + lx * et[1] + ly * er[1]];
+        const mc = at(9, -16);
+        fragment(g, { ...o, outline: broken(pts, 'wn' + o.seed, 1.5, [17]), side: 10, sideCol: '#a89878',
+            from: (lx, ly, Q) => { const p = at(lx, ly); Q[0] = p[0]; Q[1] = p[1]; },
+            paint: (q, box, p) => muqarnas(q, { box, tier: 0, ...p, nightSky: { x: mc[0], y: mc[1], r: 21 } }) });
+    }
+    // a length of one of Córdoba's ribs, between two crossings
+    function fRib(g, o) {
+        const a0 = Math.PI / 8, n0 = [Math.cos(a0), Math.sin(a0)], d0 = [-Math.sin(a0), Math.cos(a0)], c = 262;
+        fragment(g, { ...o, outline: broken(rectPts(320, 54), 'rb' + o.seed, 2, [1, 3]), side: 18, sideCol: '#9c8a6c',
+            from: (lx, ly, Q) => ((Q[0] = c * n0[0] + (445 + lx) * d0[0] + ly * n0[0]), (Q[1] = c * n0[1] + (445 + lx) * d0[1] + ly * n0[1])),
+            paint: (q, box, p) => ribs(q, { box, ...p }) });
+    }
+    // a slab of the gold mosaic with a scroll and its border, and the one tessera missing
+    function fMosaic(g, o) {
+        fragment(g, { ...o, outline: broken(rectPts(270, 210), 'ms' + o.seed, 3, [0, 2]), side: 11, sideCol: '#7c6a54',
+            from: (lx, ly, Q) => ((Q[0] = -270 + lx), (Q[1] = -262 + ly)), paint: (q, box, p) => mosaic(q, { box, r: 215, ...p }) });
+    }
+    // a lump of plaster with the swift's nest still on it
+    function fNest(g, o) {
+        fragment(g, { ...o, outline: broken([[-80, -40], [70, -60], [96, 30], [20, 72], [-90, 50]], 'ns' + o.seed, 5, [2]), side: 14, sideCol: '#a8987c',
+            from: (lx, ly, Q) => ((Q[0] = lx + 120), (Q[1] = -(270 + ly + 150))), paint: (q, box, p) => plaster(q, { box, h: 270, ...p }),
+            after: (q, P) => {
+                const c = P([-6, -4]);
+                nest(q, { x: c[0], y: c[1], s: 1.1 * (o.s ?? 1), seed: 'st' + o.seed });
+            } });
+    }
+    // the spider on its line
+    function spider(g, x, y, s = 1, line = 60) {
+        g.save();
+        g.translate(x, y);
+        g.scale(s, s);
+        g.strokeStyle = 'rgba(250,244,230,0.7)';
+        g.lineWidth = 0.7;
+        g.beginPath();
+        g.moveTo(-line * 0.5, -line);
+        g.lineTo(0, -4);
+        g.stroke();
+        for (let side = -1; side <= 1; side += 2) {
+            for (let k = 0; k < 4; k++) {
+                const a = side * (0.5 + k * 0.42) + (side < 0 ? Math.PI : 0), kn = [Math.cos(a) * 7, Math.sin(a) * 5 - 3];
+                S.ink(g, [[0, 0], kn, [kn[0] + Math.cos(a + side * 0.9) * 8, kn[1] + 7]], { w: 1.2, taper: [0, 1], color: '#2a2024' });
+            }
+        }
+        S.piece(g, S.ellipse(0, 3, 4.4, 5.6, 16), { fill: '#6a5040', line: 1, shade: { color: '#1a1012', w: 3, alpha: 0.7 }, light: { w: 2 } });
+        S.piece(g, S.ellipse(0, -2.6, 2.8, 2.5, 12), { fill: '#7a5e4a', line: 0.9 });
+        g.fillStyle = 'rgba(255,240,210,0.85)';
+        g.beginPath();
+        g.arc(-1.3, 1.2, 0.9, 0, TAU);
+        g.fill();
+        g.restore();
+    }
+
+    // ---- the body: a heap of the dome's matter in small pieces
+    // Loose tesserae of gold (most) and of glass, chips of plaster with azure or red on them,
+    // stucco leaves broken off a panel, cut tiles of the five glazes; each piece its own
+    // size, turn and tone, lying on the others (later pieces higher), on a bed of plaster
+    // dust. Thin towards the way through, whose edge is pieces, never a line.
+    function heap(g, o = {}) {
+        const { box, seed = 101, gap = [430, 300], clusters = [] } = o;
+        const r = Motion.rng('heap/' + seed);
+        const inGap = (x, y, rad) => Math.hypot(x / gap[0], y / gap[1]) < 1 + rad / 380 + 0.12 * noise2(x * 0.006, y * 0.006, seed);
+        const pieces = [];
+        // the large pieces first: carved plaster chunks, stucco leaves, tiles
+        for (let k = 0; k < 2400 && pieces.length < 330; k++) {
+            const x = box.x + r() * box.w, y = box.y + r() * box.h, u = r();
+            const kind = u < 0.42 ? 'chunk' : u < 0.72 ? 'leaf' : 'tile';
+            const size = { chunk: 95, leaf: 150, tile: 46 }[kind] * (0.7 + r() * 0.6);
+            if (inGap(x, y, size * 0.6)) continue;
+            if (pieces.some((q) => Math.hypot(q.x - x, q.y - y) < (q.size + size) * 0.3)) continue;
+            pieces.push({ x, y, kind, size, h: 0.25 + r() * 0.5, rot: r() * TAU, u: r(), v: r() });
+        }
+        const N = o.n ?? 6500;
+        for (let k = 0; k < N * 3 && pieces.length < N; k++) {
+            let x, y;
+            const cl = r() < 0.18 && clusters.length ? clusters[Math.floor(r() * clusters.length)] : null;
+            if (cl) {
+                const a = r() * TAU, d = Math.pow(r(), 0.7) * cl[2];
+                x = cl[0] + Math.cos(a) * d;
+                y = cl[1] + Math.sin(a) * d;
+            } else {
+                x = box.x + r() * box.w;
+                y = box.y + r() * box.h;
+            }
+            const u = r(), kind = cl ? (u < 0.85 ? 'gold' : 'glass') : u < 0.55 ? 'gold' : u < 0.63 ? 'glass' : u < 0.86 ? 'chip' : 'tile';
+            const size = { gold: 8, glass: 7.5, chip: 20, tile: 22 }[kind] * (0.7 + r() * 0.6);
+            if (inGap(x, y, size)) continue;
+            pieces.push({ x, y, kind, size, h: r(), rot: r() * TAU, u: r(), v: r() });
+        }
+        pieces.sort((a, b) => a.h - b.h);
+        const GLZ = ['white', 'white', 'honey', 'green', 'blue', 'black'], GLS = ['green', 'blue', 'red', 'teal'];
+        surface(g, box, {
+            depth: 20, sharp: 0.5, soft: 2.5, swell: 0.6, ao: 8, aoK: 0.25, aoA: 0.5, cast: 9, castA: 0.6, env: () => 1,
+            draw(A, Hc, Mc) {
+                for (const p of pieces) {
+                    const grey = Math.round(70 + p.h * 170);
+                    const hs = `rgb(${grey},${grey},${grey})`;
+                    const poly = (pts, col, gl = 0, mt = 0) => {
+                        const P2 = S.xf(pts, { x: p.x, y: p.y, rot: p.rot });
+                        A.beginPath();
+                        S.trace(A, P2);
+                        A.fillStyle = col;
+                        A.fill();
+                        Hc.beginPath();
+                        S.trace(Hc, P2);
+                        Hc.fillStyle = hs;
+                        Hc.fill();
+                        Mc.beginPath();
+                        S.trace(Mc, P2);
+                        Mc.fillStyle = `rgb(${Math.round(gl * 255)},${Math.round(mt * 255)},0)`;
+                        Mc.fill();
+                    };
+                    const z = p.size;
+                    if (p.kind === 'gold' || p.kind === 'glass') {
+                        const w = z * (0.85 + p.v * 0.3), j = 0.12 * z;
+                        const sq = [[-w / 2 + p.u * j, -z / 2], [w / 2, -z / 2 + p.v * j], [w / 2 - p.v * j, z / 2], [-w / 2, z / 2 - p.u * j]];
+                        if (p.kind === 'gold') {
+                            const col = S.rgb2hex(...palAt(GOLDS, 0.25 + p.u * 0.7, [0, 0, 0]));
+                            poly(sq, p.v < 0.08 ? '#6a3020' : col, 0.6, p.v < 0.08 ? 0 : 1);
+                        } else poly(sq, S.rgb2hex(...palAt(GLASS[GLS[Math.floor(p.u * 4)]], 0.3 + p.v * 0.6, [0, 0, 0])), 0.5, 0);
+                    } else if (p.kind === 'chip') {
+                        const n = 6 + Math.floor(p.u * 4), pts = [];
+                        for (let k = 0; k < n; k++) {
+                            const a = (k / n) * TAU, rr = z * (0.55 + 0.45 * hashI(k, Math.round(p.x), Math.round(p.y), seed));
+                            pts.push([Math.cos(a) * rr, Math.sin(a) * rr * 0.75]);
+                        }
+                        poly(pts, S.rgb2hex(...lerp3(IVORY, IVORY_D, p.v * 0.5, [0, 0, 0])));
+                        if (p.u < 0.6) {
+                            // the painted face, broken across
+                            const P2 = S.xf(pts, { x: p.x, y: p.y, rot: p.rot });
+                            A.save();
+                            A.beginPath();
+                            S.trace(A, P2);
+                            A.clip();
+                            A.fillStyle = p.u < 0.25 ? S.rgb2hex(...AZURE) : p.u < 0.38 ? S.rgb2hex(...RED) : S.rgb2hex(...GOLD);
+                            A.beginPath();
+                            S.trace(A, S.xf([[-z, -z], [z * (p.v - 0.3), -z], [z * (0.4 - p.v), z], [-z, z]], { x: p.x, y: p.y, rot: p.rot + 0.4 }));
+                            A.fill();
+                            A.restore();
+                        }
+                    } else if (p.kind === 'chunk') {
+                        const n = 7 + Math.floor(p.u * 4), pts = [];
+                        for (let k = 0; k < n; k++) {
+                            const a = (k / n) * TAU, rr = z * (0.6 + 0.4 * hashI(k, Math.round(p.x), Math.round(p.y), seed + 1));
+                            pts.push([Math.cos(a) * rr * 0.62, Math.sin(a) * rr * 0.5]);
+                        }
+                        poly(pts, S.rgb2hex(...lerp3(IVORY, IVORY_D, p.v * 0.4, [0, 0, 0])));
+                        const P2 = S.xf(pts, { x: p.x, y: p.y, rot: p.rot });
+                        for (const q of [A, Hc]) {
+                            q.save();
+                            q.beginPath();
+                            S.trace(q, P2);
+                            q.clip();
+                        }
+                        // the azure ground and a palmette carved on it
+                        A.fillStyle = p.u < 0.7 ? S.rgb2hex(...AZURE) : S.rgb2hex(...RED);
+                        A.globalAlpha = 0.85;
+                        A.fillRect(p.x - z, p.y - z, z * 2, z * 2);
+                        A.globalAlpha = 1;
+                        for (const q of [A, Hc]) {
+                            q.translate(p.x, p.y);
+                            q.rotate(p.rot + Math.PI / 2);
+                            q.scale(z / 150, z / 150);
+                        }
+                        palmette(A, Hc, Motion.rng('hc/' + Math.round(p.x) + '/' + Math.round(p.y)));
+                        A.restore();
+                        Hc.restore();
+                    } else if (p.kind === 'leaf') {
+                        const sc = z / 120;
+                        for (const q of [A, Hc]) {
+                            q.save();
+                            q.translate(p.x, p.y);
+                            q.rotate(p.rot);
+                            q.scale(sc, sc);
+                        }
+                        palmette(A, Hc, Motion.rng('hl/' + Math.round(p.x) + '/' + Math.round(p.y)));
+                        A.restore();
+                        Hc.restore();
+                    } else {
+                        const glz = GLAZE[GLZ[Math.floor(p.u * GLZ.length)]], pick = Math.floor(p.v * 4);
+                        let pts;
+                        if (pick === 0) pts = rectPts(z * 0.8, z * 0.8);
+                        else if (pick === 1) pts = [[0, -z * 0.6], [z * 0.3, 0], [0, z * 0.6], [-z * 0.3, 0]];
+                        else {
+                            pts = [];
+                            const m = pick === 2 ? 8 : 6;
+                            for (let k = 0; k < m * 2; k++) {
+                                const a = (k * Math.PI) / m, rr = k & 1 ? z * 0.28 : z * 0.5;
+                                pts.push([Math.cos(a) * rr, Math.sin(a) * rr]);
+                            }
+                        }
+                        poly(pts, S.mix(glz.base, p.u < 0.5 ? glz.deep : glz.light, p.v * 0.6), 0.6, 0);
+                    }
+                }
+            },
+            pix(P) {
+                const a = P.a;
+                each(P, (x, y, i) => {
+                    const o4 = i * 4;
+                    if (a[o4 + 3] > 0) {
+                        // grain on every piece, specks in the glaze, a scratch on the gold
+                        const n = 0.06 * noise2(x * 0.5, y * 0.5, seed) + 0.05 * (hashI(Math.round(x * 2), Math.round(y * 2), 1, seed) - 0.5);
+                        a[o4] = clamp(a[o4] * (1 + n), 0, 255);
+                        a[o4 + 1] = clamp(a[o4 + 1] * (1 + n), 0, 255);
+                        a[o4 + 2] = clamp(a[o4 + 2] * (1 + n), 0, 255);
+                        if (P.mt[i] > 0) P.tx[i] += 0.5 * noise2(x * 0.35, y * 0.35, seed + 2), (P.ty[i] += 0.5 * noise2(x * 0.35, y * 0.35, seed + 3));
+                        return;
+                    }
+                    // the bed: plaster dust and grit, darker in the crevices
+                    if (inGap(x, y, 30)) return;
+                    const nz = noise2(x * 0.05, y * 0.05, seed + 4), nz2 = noise2(x * 0.3, y * 0.3, seed + 5);
+                    lerp3([196, 178, 146], [70, 56, 44], clamp(0.45 - 0.35 * nz + 0.25 * nz2), C3);
+                    if (hashI(Math.round(x * 1.2), Math.round(y * 1.2), 6, seed) < 0.05) tint(C3, [236, 214, 160], 0.6);
+                    put(P, i, C3);
+                    P.h[i] = 4 * (0.5 + 0.5 * nz);
+                });
+            },
+        });
+    }
+
+    // ---- the three sheets
+    function stratumFar(g, box) {
+        HOUSE = 1;
+        try {
+            heap(g, { box, clusters: [[470, -330, 120], [560, -180, 80], [-300, 420, 70]] });
+            fKnot(g, { x: -500, y: -360, rot: -0.34, s: 1.45, seed: 1 });
+            fMosaic(g, { x: 560, y: -340, rot: 0.2, s: 1.6, seed: 2 });
+            fDado(g, { x: -560, y: 360, rot: -0.18, s: 1.45, seed: 3 });
+            fNest(g, { x: 620, y: 380, rot: 0.3, s: 1.45, seed: 4 });
+        } finally {
+            HOUSE = 0;
+        }
+    }
+    function stratumMid(g, box) {
+        HOUSE = 1;
+        try {
+            fMuqarnas(g, { x: -660, y: -260, rot: 2.75, s: 1.7, seed: 5 });
+            fWindow(g, { x: 660, y: 70, rot: 0.14, s: 2.4, seed: 6 });
+            fRib(g, { x: 60, y: 500, rot: -0.1, s: 1.8, seed: 7 });
+            spider(g, 170, 430, 1.6, 80);
+        } finally {
+            HOUSE = 0;
+        }
+    }
+    function stratumNear(g, box) {
+        HOUSE = 1;
+        try {
+            fCeiling(g, { x: -860, y: 140, rot: 0.32, s: 1.7, seed: 8 });
+            fCorbel(g, { x: 830, y: -260, rot: -0.85, s: 3.0, seed: 9 });
+        } finally {
+            HOUSE = 0;
+        }
+    }
+
+    return { lightAt, surface, lines, wheel, rosettes, strapOf, glaze, dado, plaster, nest, air, corbels, lattice, muqarnas, ribs, mosaic, crown, TIERS, zigR, heap, fragment, stratumFar, stratumMid, stratumNear };
 })();

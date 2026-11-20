@@ -415,3 +415,90 @@ Tableau.stilllife = (z0) => {
 Tableau.stilllife.Z = { s1: 0, s2: 640, s3: 1280, plate: 1860 };
 Tableau.stilllife.depth = 1860;
 Tableau.stilllife.hole = 135;
+
+// ================================================================== the second passage (round 7)
+// The still life condensed into ONE stratum of loose things, in the format of the film's
+// first part: no ledge, wall or window. The body is the larder's own matter heaped round the
+// way through (linen in heavy folds, cabbage and cardoon leaves, braids of garlic, quince
+// twigs with their leaves) under one hard lamp from the top left, brown-black in the folds;
+// the things lie on it and glow out of its shadow, each throwing its shadow on the cloth.
+//   far   (z + 150): the heap; on it the goblet of water with its fig (right), the brass
+//                    mortar and pestle with its spilled pepper (left), the red onion and its
+//                    half and the knife (above)
+//   mid   (z):       the candle just snuffed, its smoke rising, the strip «IN ICTV OCVLI» at
+//                    its foot (left); the cup of water and the rose on pewter (right); the
+//                    dish of eggs on cabbage leaves (upper right); a quince hung from above,
+//                    the fly on it (upper left)
+//   near  (z − 160): the water seller's jug sweating, cut by the frame (left); the cabbage
+//                    hung by its stalk from above the frame (right)
+// What is read first, nearest the way through, is the goblet and the snuffed candle: water
+// and the light gone out, the two ends of the old still life.
+Tableau.stilllife.stratum = (z) => {
+    const S = Souvenir, St = Still;
+    const box = { x: -1200, y: -720, w: 2400, h: 1440 };
+    // everything here is seen a little from above, as a still life is, wherever it lies on
+    // the heap: the bodies of revolution are drawn for that eye height
+    const EY = 260;
+    const sheet = (id, dz, res, paint) => ({
+        id: 'stilllife-s-' + id, z: z + dz, box, res, brush: false,
+        paint(g) {
+            paint(g);
+            S.tooth(g, box, { amp: 0.035 });
+        },
+    });
+    return [
+        sheet('far', 150, 0.9, (g) => {
+            St.heap(g, box, { seed: 'far', gap: [430, 300], lamp: [-640, -460, 1600], n: 74 });
+            // the goblet of water with the fig, its shadow and the water's caustic on the cloth
+            St.glassShadowOn(g, 395, 215, 1.3, 40, 18);
+            St.glass(g, { x: 395, y: 215, s: 1.3, ey: EY, seed: 'stratum' });
+            // the mortar and its pestle, the pepper and cumin it spilled
+            const mo = St.mortarSprite(EY / 1.4, St.resOf(g, 1.4), 'stratum');
+            St.castWall(g, mo, -380, 250, 1.4, { dx: 34, dy: 20, blur: 10, alpha: 0.75 });
+            St.put(g, mo, -380, 250, 1.4);
+            St.pestle(g, [-370, 250 - 200], [-280, 250 - 360], { seed: 'stratum' });
+            St.scatter(g, -560, -180, 250, 300, { pepper: 22, cumin: 26, crumb: 6 }, 'sfar');
+            // the red onion and its cut half, papery skins, the knife laid across
+            const on = St.onionSprite(St.resOf(g, 1.4), 'stratum');
+            St.castWall(g, on, -120, -320, 1.4, { dx: 30, dy: 20, blur: 8, alpha: 0.7 });
+            St.put(g, on, -120, -320, 1.4);
+            St.onionHalf(g, { x: 30, y: -300, s: 1.4, seed: 'stratum' });
+            St.scatter(g, -200, 120, -260, -230, { skin: 4, skinColor: 'rgba(176,96,80,0.8)' }, 'sfar2');
+            St.knife(g, [170, -360], [400, -270], { w: 1, seed: 'stratum' });
+        }),
+        sheet('mid', 0, 1, (g) => {
+            // the candle, on its fold of linen with a cardoon leaf
+            St.pad(g, -520, 350, 420, 170, { seed: 'cand', a: 0.1, leaves: [[90, 30, 2.8, 'cardoon', 1]] });
+            const cs = St.candlestick(g, { x: -520, y: 330, wax: 200, s: 1.3, ey: EY, seed: 'stratum' });
+            St.motto(g, [[-470, 334], [-400, 338], [-350, 352], [-330, 384]], { w: 24, size: 17, text: 'IN ICTV OCVLI', align: 0.35 });
+            for (const [x, y] of [[-430, 352], [-610, 360], [-590, 348]]) St.oval(g, x, y, 4, 2.2, 0, '#e8e0c8');
+            St.smoke(g, cs.wick, { h: 640, drift: 240, alpha: 0.85, seed: 'stratum' });
+            // the cup of water and the rose on pewter, on linen
+            St.pad(g, 520, 360, 460, 180, { seed: 'cup', a: -0.12, darn: true, leaves: [[-170, 10, 0.4, 'quince', 1]] });
+            St.plate(g, { x: 520, y: 330, r: 160, flat: true, ey: EY, seed: 'stratum' });
+            const cp = St.cupSprite(EY / 1.3, St.resOf(g, 1.3), 'stratum');
+            St.castWall(g, cp, 460, 322, 1.3, { dx: 24, dy: 10, blur: 6, alpha: 0.6 });
+            St.put(g, cp, 460, 322, 1.3);
+            St.rose(g, { x: 600, y: 326, s: 1.4, seed: 'stratum' });
+            // the dish of eggs on cabbage leaves
+            St.layLeaf(g, 420, -250, -0.4, 'cabbage', 'eg1', 1.2);
+            St.layLeaf(g, 640, -230, 2.9, 'cabbage', 'eg2', 1.1);
+            St.contact(g, 520, -280, 180, 24, 0.7);
+            St.eggDish(g, { x: 520, y: -290, s: 1.25, ey: EY, seed: 'stratum' });
+            // a quince hung from above the frame, the fly on it
+            St.hangString(g, [-470, -800], [-470, -490], { seed: 'sq' });
+            St.quince(g, { x: -470, y: -490, s: 1.3, seed: 'stratum' });
+            St.fly(g, { x: -440, y: -380, rot: 0.7, s: 1.4 });
+        }),
+        sheet('near', -160, 1, (g) => {
+            // the water seller's jug on a heavy fold of linen, cut by the frame
+            St.pad(g, -700, 620, 620, 240, { seed: 'jug', a: 0.25, leaves: [[230, -10, -0.3, 'cabbage', 1], [-260, 20, 3.4, 'cardoon', 2]] });
+            const jg = St.jugSprite(EY / 1.15, St.resOf(g, 1.15), 'stratum');
+            St.castWall(g, jg, -700, 590, 1.15, { dx: 40, dy: 16, blur: 12, alpha: 0.75 });
+            St.put(g, jg, -700, 590, 1.15);
+            // the cabbage, hung by its stalk from above the frame
+            St.hangString(g, [700, -820], [700, -470], { seed: 'sc', w: 4 });
+            St.cabbage(g, { x: 700, y: -470, s: 1.35, seed: 'stratum' });
+        }),
+    ];
+};

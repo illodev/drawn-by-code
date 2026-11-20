@@ -71,3 +71,30 @@ Tableau.dome.views = [
     { id: 'dome-mosaic', x: 0, y: 0, s: 1 },
     { id: 'dome-crown', x: 0, y: 0, s: 1 },
 ];
+
+// Round 7 · The dome as ONE stratum of loose things, in the format of the film's first part:
+// the ceilings of al-Andalus broken into the fragments a restorer's workshop holds, lying on
+// one another on a heap of their own matter, lit from the top left like the rest of the film.
+//   far (z + 150): the heap (loose gold tesserae, glass, plaster chips with azure and red,
+//     stucco leaves, cut tiles of the five glazes) round an irregular gap; on it a length of
+//     the knot band (upper left), a slab of the gold mosaic with its scroll and the one
+//     tessera missing, loose tesserae spilt beside it (upper right), a panel of the dado
+//     snapped across a corner, its mortar bed showing (lower left), a lump of plaster with
+//     the swift's nest (lower right)
+//   middle (z): a block of muqarnas cells (upper left), a lattice window of the drum with the
+//     gibbous moon behind its star grid (right), a length of Córdoba's rib with the spider
+//     hanging from it (below)
+//   near (z − 160): a piece of the ceiling of stars with its gilt pendant (left) and a
+//     painted corbel with a stub of its beam (right), the largest, cut by the frame
+// Every fragment is painted by the ring painter it came from (things/dome.js, `fragment`).
+Tableau.dome.stratum = (z) => {
+    const S = Souvenir, D = Dome, box = { x: -1200, y: -720, w: 2400, h: 1440 };
+    const sheet = (id, dz, paint) => ({
+        id: 'dome-s-' + id, z: z + dz, box, brush: { amp: 0.05 },
+        paint(g) {
+            paint(g, box);
+            S.tooth(g, box, { amp: 0.05 });
+        },
+    });
+    return [sheet('far', 150, D.stratumFar), sheet('mid', 0, D.stratumMid), sheet('near', -160, D.stratumNear)];
+};

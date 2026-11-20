@@ -3323,5 +3323,255 @@ const Night = (() => {
         return { fx: x, fy: y0 - 1 };
     }
 
-    return { begin, profile, latheN, candlestick, candle, wax, smoke, flame, halo, ember, hex, lerp, silverAt, smoothBump, veil, ladder, moth, poly, steps, wall, tube, rope, bar, lantern, velvet, jar, lily, flower, farol, chain, thurible, gilt, circles, moon, feather, dove, vihuela, inmost, book, sill, haze, carnations, lamp };
+    // ------------------------------------------------------------------ a fall of cloth
+    // One piece of the stratum's body: a fall or a swag of cloth inside the outline `pts`,
+    // its folds running along `dir` (radians) and deepening towards the far end; `kind`
+    // 'veil' (violet wool, a twill, a torn or frayed edge) or 'velvet' (night blue, the
+    // pile catching the light only at the folds' edges, a band of gold galloon just inside
+    // its edge). It casts its shadow on the pieces already laid. Returns nothing.
+    function drape(P, o) {
+        const pts = o.pts, kind = o.kind ?? 'veil', sd = S.seedOf(o.seed ?? 'drape'), dir = o.dir ?? Math.PI / 2;
+        const bb = S.bbox(pts, 4), res = P.res;
+        // the outline as a mask, and blurred: how far in from the edge each pixel is
+        const W = Math.max(2, Math.ceil(bb.w * res)), H = Math.max(2, Math.ceil(bb.h * res));
+        const mk = (blur) => {
+            const c = document.createElement('canvas');
+            c.width = W;
+            c.height = H;
+            const q = c.getContext('2d', { willReadFrequently: true });
+            if (blur) q.filter = `blur(${(blur * res).toFixed(1)}px)`;
+            q.setTransform(res, 0, 0, res, -bb.x * res, -bb.y * res);
+            q.fillStyle = '#fff';
+            q.beginPath();
+            S.trace(q, pts);
+            q.fill();
+            return q.getImageData(0, 0, W, H).data;
+        };
+        const M = mk(0), MB = mk(o.band ?? 9);
+        const at = (A, ux, uy) => A[(Math.min(H - 1, Math.max(0, Math.floor((uy - bb.y) * res))) * W + Math.min(W - 1, Math.max(0, Math.floor((ux - bb.x) * res)))) * 4 + 3] / 255;
+        P.cast((g) => {
+            g.beginPath();
+            S.trace(g, pts);
+            g.fillStyle = '#000';
+            g.fill();
+        }, { blur: 26, dx: 0, dy: 10, color: 'rgba(4,2,12,0.7)' });
+        const c = Math.cos(dir), s = Math.sin(dir);
+        const L = o.len ?? 600, A0 = o.amp ?? 1, ph = (sd % 100) * 0.1, lam = o.fold ?? 70;
+        const col = kind === 'velvet' ? (o.color ?? [0.13, 0.13, 0.3]) : (o.color ?? [0.31, 0.15, 0.41]);
+        const o0 = o.origin ?? pts[0];
+        P.solid(bb, (ux, uy, q) => {
+            const m = at(M, ux, uy);
+            if (m <= 0) return 0;
+            const u = (ux - o0[0]) * c + (uy - o0[1]) * s, v = -(ux - o0[0]) * s + (uy - o0[1]) * c;
+            const k = A0 * (0.35 + 0.8 * smooth(0, L, u));
+            const bend = 22 * Math.sin(u * 0.006 + ph) + 70 * (noise2(u * 0.0025, v * 0.004, sd + 5) - 0.5);
+            const w1 = TAU / lam, w2 = TAU / (lam * 0.47);
+            const h = k * (18 * Math.sin((v + bend) * w1 + ph) + 6 * Math.sin((v + bend * 1.7) * w2 + ph * 2));
+            const dh = k * (18 * w1 * Math.cos((v + bend) * w1 + ph) + 6 * w2 * Math.cos((v + bend * 1.7) * w2 + ph * 2));
+            // the fold's slope turns the normal across the fall
+            q.nx = -dh * 0.9 * -s;
+            q.ny = -dh * 0.9 * c;
+            q.nz = 1;
+            const mb = at(MB, ux, uy);
+            // the edge rolls under
+            if (mb < 0.5) q.nz = 0.4 + mb;
+            const valley = clamp(0.5 - h / 44);
+            const n = noise2(ux * 0.03, uy * 0.03, sd) * 0.05;
+            q.r = col[0] * (1 - valley * 0.25) + n;
+            q.g = col[1] * (1 - valley * 0.2) + n * 0.6;
+            q.b = col[2] * (1 + valley * 0.1) + n;
+            if (kind === 'velvet') {
+                q.sh = 0.01;
+                q.h = (hashI(Math.round(ux * 2), Math.round(uy * 2), 1, sd) - 0.5) * 0.3;
+                // the galloon just inside the edge: gold thread in a running scroll between two cords
+                if (o.galloon !== false && mb > 0.55 && mb < 0.82) {
+                    const t = (mb - 0.55) / 0.27, along = ux * -s * 0 + (ux + uy) * 0.5;
+                    const motif = Math.sin(along * 0.25) * 0.5 + 0.5;
+                    const cord = t < 0.15 || t > 0.85;
+                    if (cord || Math.abs(t - 0.5 - 0.3 * Math.sin(along * 0.25)) < 0.12 || (motif > 0.85 && Math.abs(t - 0.5) < 0.3)) {
+                        gilt(q, ux, uy, sd, { wear: 0.5 });
+                        q.h = 0.6 + 0.3 * Math.sin((ux + uy) * 1.8);
+                    }
+                }
+            } else {
+                q.sh = 0.02;
+                q.h = 0.22 * Math.sin((ux + uy) * 2.1) + 0.14 * Math.sin(ux * 2.3) * Math.sin(uy * 2.3);
+                const wear = smooth(0.6, 0.75, noise2(ux * 0.012, uy * 0.012, sd + 2));
+                q.r += wear * 0.05;
+                q.b -= wear * 0.04;
+                if (mb < 0.3) {
+                    // a frayed, torn edge: paler, fuzzy
+                    q.r += 0.06;
+                    q.g += 0.04;
+                    q.h += (hashI(Math.round(ux * 2), Math.round(uy * 2), 4, sd) - 0.5) * 0.8;
+                }
+            }
+            return m;
+        });
+    }
+
+    // ------------------------------------------------------------------ the ladder, as a thing
+    // A wooden ladder leaning: rails from `a` (its foot) to `b` (its top), `span` apart, round
+    // rungs every `step`, through-tenons with their wedges, one rung split and bound with cord,
+    // the feet worn, a rail with a knot.
+    function ladderObj(P, o) {
+        const { a, b, span = 120, step = 92, w = 22, seed = 'escala' } = o, sd = S.seedOf(seed);
+        const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+        const WOOD = [0.42, 0.27, 0.15];
+        const rail = (k) => [[a[0] + nx * span * k, a[1] + ny * span * k], [b[0] + nx * span * k * 0.92, b[1] + ny * span * k * 0.92]];
+        const look = (kk) => (u, ac, along, q) => {
+            const gr = Math.sin(ac * 5 + along * 0.02 + noise2(along * 0.01, ac, sd + kk) * 6);
+            q.r = WOOD[0] * (0.9 + 0.12 * gr);
+            q.g = WOOD[1] * (0.9 + 0.12 * gr);
+            q.b = WOOD[2] * (0.9 + 0.1 * gr);
+            q.h = 0.35 * gr + (hashI(Math.round(along * 0.5), Math.round(ac * 6), 6, sd) - 0.5) * 0.2;
+            q.sp = 0.2;
+            q.sh = 0.35;
+            const knot = Math.hypot((along - L * 0.37) / 12, ac * 3);
+            if (kk === 1 && knot < 1.5) {
+                q.r *= 0.6 + 0.3 * knot / 1.5;
+                q.g *= 0.6 + 0.3 * knot / 1.5;
+                q.h += Math.sin(knot * 8) * 0.4;
+            }
+        };
+        // the rungs, behind the rails
+        const nr = Math.floor(L / step);
+        for (let i = 1; i < nr; i++) {
+            const t = i / nr, p0 = [a[0] + dx * t - nx * span * 0.05, a[1] + dy * t - ny * span * 0.05], k = 1 - 0.08 * t;
+            const p1 = [p0[0] + nx * span * k * 1.06, p0[1] + ny * span * k * 1.06];
+            tube(P, [p0, p1], 15, (u, ac, along, q) => {
+                const gr = Math.sin(ac * 3 + along * 0.4 + sd);
+                const wear = smooth(0.2, -0.6, ac);
+                q.r = WOOD[0] * (0.92 + 0.1 * gr) + wear * 0.14;
+                q.g = WOOD[1] * (0.92 + 0.1 * gr) + wear * 0.1;
+                q.b = WOOD[2] * (0.92 + 0.08 * gr) + wear * 0.05;
+                q.h = 0.25 * gr;
+                q.sp = 0.15 + wear * 0.3;
+                if (i === 3 && Math.abs(u - 0.35) < 0.09) {
+                    const cc = Math.sin((along + ac * 3) * 2.4);
+                    q.r = 0.5 + 0.08 * cc;
+                    q.g = 0.42 + 0.07 * cc;
+                    q.b = 0.3;
+                    q.h = 0.6 * cc;
+                }
+            });
+        }
+        tube(P, rail(0), w, look(0));
+        tube(P, rail(1), w, look(1));
+        // the tenons' ends on the rails, a wedge across each
+        for (let i = 1; i < nr; i++) {
+            const t = i / nr;
+            for (const k of [0, 1]) {
+                const r0 = rail(k), c0 = [lerp(r0[0][0], r0[1][0], t), lerp(r0[0][1], r0[1][1], t)];
+                P.solid({ x: c0[0] - 8, y: c0[1] - 8, w: 16, h: 16 }, (X, Y, q) => {
+                    const d = Math.hypot(X - c0[0], Y - c0[1]) / 6.5;
+                    if (d >= 1) return 0;
+                    q.r = WOOD[0] * 1.15;
+                    q.g = WOOD[1] * 1.1;
+                    q.b = WOOD[2];
+                    q.h = 0.3 * Math.sin(d * 12) + (Math.abs((X - c0[0]) * ux + (Y - c0[1]) * uy) < 0.8 ? -1 : 0);
+                    return clamp((1 - d) * 6.5 * P.res + 0.5);
+                });
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ the disc of circles
+    // Ibn Arabi's spheres made a thing: a disc like an astrolabe's plate, of gold and silver
+    // leaf on a dark ground, inside a beaded silver rim, with its shackle and ring at the
+    // top: concentric spheres each with its planet, a ring of interlaced circles, the 28
+    // mansions as dots, spokes, a boss in the middle. (x, y), radius R.
+    function disc(P, o) {
+        const { x, y, R = 130, seed = 'disco' } = o, sd = S.seedOf(seed);
+        // the shackle and its ring
+        tube(P, S.ellipse(x, y - R - 22, 13, 15, 22).concat([S.ellipse(x, y - R - 22, 13, 15, 22)[0]]), 5, (u, a, along, q) => {
+            silverAt(q, along, a, sd, 0.3);
+        }, { ends: false });
+        P.solid({ x: x - 16, y: y - R - 14, w: 32, h: 22 }, (ux, uy, q) => {
+            const t = (uy - (y - R - 14)) / 22, hw = 9 + t * 7;
+            if (Math.abs(ux - x) > hw) return 0;
+            q.nx = (ux - x) / hw * 0.6;
+            q.nz = 1;
+            silverAt(q, ux, uy, sd, 0.2);
+            q.h = 0.5 * Math.sin(t * 9);
+            return clamp((hw - Math.abs(ux - x)) * P.res + 0.5);
+        });
+        const k = R / 130;
+        const rings = [12, 26, 44, 62, 80, 98].map((r) => r * k);
+        const IR = { n: 6, c: 62 * k, r: 34 * k };
+        P.cast((g) => {
+            g.beginPath();
+            g.arc(x, y, R, 0, TAU);
+            g.fillStyle = '#000';
+            g.fill();
+        }, { blur: 18, dx: 0, dy: 12, color: 'rgba(4,2,12,0.75)' });
+        P.solid({ x: x - R - 2, y: y - R - 2, w: R * 2 + 4, h: R * 2 + 4 }, (ux, uy, q) => {
+            const dx = ux - x, dy = uy - y, rr = Math.hypot(dx, dy);
+            if (rr >= R) return 0;
+            const ang = Math.atan2(dy, dx);
+            // the rim: silver, beaded, a little domed
+            if (rr > R - 12 * k) {
+                const t = (rr - (R - 12 * k)) / (12 * k);
+                q.nx = (dx / rr) * (t - 0.3);
+                q.ny = (dy / rr) * (t - 0.3);
+                q.nz = 1;
+                silverAt(q, ux, uy, sd, 0.25);
+                const bead = Math.abs(t - 0.5) < 0.3 && Math.cos(ang * 60) > 0.2;
+                q.h = bead ? 0.8 : 0.2;
+                return clamp((R - rr) * P.res + 0.5);
+            }
+            // the ground: blue-black lacquer
+            q.r = 0.08;
+            q.g = 0.08;
+            q.b = 0.17;
+            q.sp = 0.45;
+            q.sh = 0.6;
+            q.h = 0.15 * Math.sin(ux * 1.1 + uy * 0.4);
+            for (let i = 0; i < rings.length; i++) {
+                const d = Math.abs(rr - rings[i]);
+                if (d < 2.6 * k) {
+                    gilt(q, ux, uy, sd + i, { silver: i % 2 === 1, wear: 0.4 });
+                    q.nx = (dx / rr) * ((rr - rings[i]) / (2.6 * k)) * 0.5;
+                    q.ny = (dy / rr) * ((rr - rings[i]) / (2.6 * k)) * 0.5;
+                }
+                // its planet
+                const pa = i * 2.2 + 0.4, px = x + Math.cos(pa) * rings[i], py = y + Math.sin(pa) * rings[i];
+                const dp = Math.hypot(ux - px, uy - py), pr = (3 + (i % 3)) * k;
+                if (dp < pr) {
+                    gilt(q, ux, uy, sd + i + 20, { silver: i % 2 === 0 });
+                    q.nx = (ux - px) / pr;
+                    q.ny = (uy - py) / pr;
+                    q.nz = Math.sqrt(Math.max(0, 1 - (dp / pr) ** 2));
+                }
+            }
+            // the 28 mansions, between the last sphere and the rim
+            const st = TAU / 28, m = Math.round(ang / st), mx = x + Math.cos(m * st) * 108 * k, my = y + Math.sin(m * st) * 108 * k;
+            if (Math.hypot(ux - mx, uy - my) < 2.4 * k) gilt(q, ux, uy, sd + 3);
+            // spokes between spheres 3 and 4
+            if (rr > 44 * k && rr < 62 * k && Math.abs(Math.sin(ang * 12)) * rr < 1.2) gilt(q, ux, uy, sd + 4, { silver: true });
+            // interlaced circles, over and under
+            for (let i = 0; i < IR.n; i++) {
+                const a = (i / IR.n) * TAU, cx = x + Math.cos(a) * IR.c, cy = y + Math.sin(a) * IR.c;
+                const d = Math.abs(Math.hypot(ux - cx, uy - cy) - IR.r);
+                if (d < 1.8 * k) {
+                    gilt(q, ux, uy, sd + 7 + i, { wear: 0.3 });
+                    if ((i + (rr > IR.c ? 1 : 0)) % 2) {
+                        q.r *= 0.7;
+                        q.g *= 0.7;
+                        q.b *= 0.7;
+                    }
+                }
+            }
+            // the boss
+            if (rr < 7 * k) {
+                gilt(q, ux, uy, sd + 9);
+                q.nx = dx / (7 * k);
+                q.ny = dy / (7 * k);
+                q.nz = Math.sqrt(Math.max(0, 1 - (rr / (7 * k)) ** 2));
+            }
+            return 1;
+        });
+    }
+
+    return { begin, profile, latheN, candlestick, candle, wax, smoke, flame, halo, ember, hex, lerp, silverAt, smoothBump, veil, ladder, moth, poly, steps, wall, tube, rope, bar, lantern, velvet, jar, lily, flower, farol, chain, thurible, gilt, circles, moon, feather, dove, vihuela, inmost, book, sill, haze, carnations, lamp, drape, ladderObj, disc };
 })();

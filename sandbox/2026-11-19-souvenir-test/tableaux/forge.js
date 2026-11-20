@@ -383,3 +383,152 @@ Tableau.forge.Z = { vaultNear: -150, vault: 0, vaultWall: 150, hearthNear: 470, 
 Tableau.forge.R = 300; // the moon's radius in her layer's units
 Tableau.forge.depth = Tableau.forge.Z.moon; // z0 → the moon (the film ends on her)
 Tableau.forge.hole = 0; // no way out: the last picture
+
+// Round 7 · the forge as ONE stratum of loose things (the second passage, in the format of
+// the first): no cave, no wall, no opening. The body is the forge's own matter heaped round
+// the way through: hammered copper (pans, basins, cauldrons) lying on one another like
+// scales, cut olive branches across them, smoke and a drift of sparks; the fire is a thing
+// on the middle sheet, low on the left (the itinerant smith's fire-pan, its coal bed and
+// flames), and everything is lit from it: warm rims against blue-black. The side of things
+// that faces the way through takes a little of the moon's cold light, from far behind it.
+//   far  (z + 150): the heap, and on it a Fajalauza plate, tin rings on a nail, tuberoses,
+//                   the scops owl on an olive limb, a will-o'-the-wisp low in the gap's edge
+//   mid  (z):       the fire-pan, the bridle with its brasses, the cricket's cage, tongs
+//                   and a hammer lying across
+//   near (z − 160): the anvil on its stump with the glowing horseshoe (a tuberose floret
+//                   fallen on its face, to find) and the bellows, both cut by the frame
+Tableau.forge.stratum = (z) => {
+    const S = Souvenir, F = Forge;
+    const box = { x: -1200, y: -720, w: 2400, h: 1440 };
+    // the fire's place on the middle sheet, and the moon far behind the way through
+    const FIRE = { x: -520, y: 250 };
+    const lightsAt = (dz, o = {}) => ({
+        // dz: this sheet's depth from the middle sheet (the fire's)
+        fire: { x: FIRE.x, y: FIRE.y - 60, z: -dz + (o.lift ?? 120), c: F.FIRE.map((v) => v * (o.fire ?? 1)), r0: o.r0 ?? 760, wrap: 0.3 },
+        moon: { x: 0, y: -20, z: -2600, c: F.MOON.map((v) => v * (o.moon ?? 0.55)), r0: 1e9, wrap: 0.35 },
+        amb: [0.03, 0.032, 0.07],
+    });
+    const gapR = (x, y, pad = 0) => Math.hypot(x / (430 + pad), y / (300 + pad));
+    const tooth = (g) => S.tooth(g, box, { amp: 0.05 });
+    return [
+        {
+            id: 'forge-s-far', z: z + 150, box, res: 0.85, brush: false,
+            paint(g) {
+                const L = lightsAt(150);
+                const r = Motion.rng('forge-heap');
+                // the dark under the heap: soot and shadow, so no chink shows the night
+                F.softSheet(g, 30, (q) => {
+                    for (let i = 0; i < 140; i++) {
+                        const x = (r() * 2 - 1) * 1250, y = (r() * 2 - 1) * 760;
+                        if (gapR(x, y) < 1.15) continue;
+                        q.fillStyle = `rgba(${22 + Math.round(r() * 16)},${12 + Math.round(r() * 8)},${10 + Math.round(r() * 8)},0.97)`;
+                        q.beginPath();
+                        q.arc(x, y, 90 + r() * 120, 0, Math.PI * 2);
+                        q.fill();
+                    }
+                }, 'source-over');
+                // the heap: copper of every kind and size, lying like scales, outermost first
+                const spots = [];
+                for (let i = 0; i < 3000 && spots.length < 96; i++) {
+                    const x = (r() * 2 - 1) * 1240, y = (r() * 2 - 1) * 750, rad = 85 + r() * r() * 150;
+                    const edge = 1 + rad / 420 + 0.2 * S.noise2(x * 0.004, y * 0.004, 5);
+                    if (gapR(x, y) < edge) continue;
+                    if (spots.some((q) => Math.hypot(q[0] - x, q[1] - y) < (q[2] + rad) * 0.42)) continue;
+                    spots.push([x, y, rad, r()]);
+                }
+                spots.sort((p, q) => gapR(q[0], q[1]) - gapR(p[0], p[1]));
+                // each piece is baked once per (kind, view, variant, the fire's direction as the
+                // piece sees it, in eighths of a turn) at a reference size, then pasted turned and
+                // scaled: the light stays true to the fire's side; the fire's fall-off and the
+                // moon's edge are laid over the whole heap afterwards, as light
+                const res = F.resOf(g) * 1.0, REF = 110, cache = new Map();
+                const baked = (kind, view, variant, bucket) => {
+                    const key = [kind, view, variant, bucket].join('/');
+                    if (!cache.has(key)) {
+                        const a = bucket * (Math.PI / 4), fire = { dir: [Math.cos(a), Math.sin(a), 0.55], c: F.FIRE, wrap: 0.3 };
+                        const bx = kind === 'cauldron' ? { x: -REF * 1.2, y: -REF * 1.5, w: REF * 2.4, h: REF * 2.3 } : { x: -REF - 20, y: -REF * 1.75, w: REF * 2 + 40, h: REF * 2.8 };
+                        cache.set(key, S.sheet(bx, res, (q) => {
+                            if (kind === 'cauldron') F.cauldron(q, { x: 0, y: 0, w: REF * 1.9, seed: 'hc' + variant + bucket, fire, amb: L.amb });
+                            else F.pan(q, { x: 0, y: 0, r: REF, rot: 0, view, sooty: variant ? 0.7 : 0.15, nail: false, seed: 'hp' + view + variant + bucket, fire, amb: L.amb });
+                        }));
+                    }
+                    return cache.get(key);
+                };
+                spots.forEach(([x, y, rad, k], i) => {
+                    if (k > 0.93) {
+                        F.utensil(g, { x: x - rad * 0.3, y: y - rad, kind: k > 0.965 ? 'skimmer' : 'ladle', len: rad * 1.6, seed: 'heap-u' + i, ...L });
+                        return;
+                    }
+                    const cauldron = k < 0.22, rot = cauldron ? (k - 0.11) * 1.2 : Math.atan2(y, x) + Math.PI / 2 + (k - 0.5) * 1.6;
+                    const toFire = Math.atan2(FIRE.y - 60 - y, FIRE.x - x) - rot;
+                    const bucket = ((Math.round(toFire / (Math.PI / 4)) % 8) + 8) % 8;
+                    const sp = baked(cauldron ? 'cauldron' : 'pan', k < 0.55 ? 'inside' : 'back', i % 2, bucket), sc = rad / REF;
+                    F.shadow(g, sp, x, y, sc, { rot, dx: 10 * sc, dy: 14 * sc, blur: 14, alpha: 0.7 });
+                    S.put(g, sp, { x, y, rot, s: sc });
+                });
+                // the fire's light falls off across the heap into blue-black
+                g.save();
+                g.globalCompositeOperation = 'source-atop';
+                const fall = g.createRadialGradient(FIRE.x, FIRE.y - 60, 200, FIRE.x, FIRE.y - 60, 1700);
+                fall.addColorStop(0, 'rgba(8,6,16,0)');
+                fall.addColorStop(0.45, 'rgba(8,6,16,0.35)');
+                fall.addColorStop(1, 'rgba(8,6,18,0.8)');
+                g.fillStyle = fall;
+                g.fillRect(box.x, box.y, box.w, box.h);
+                // and the moon, far behind the way through, lays a cold edge on what faces it
+                const cold = g.createRadialGradient(0, -20, 280, 0, -20, 760);
+                cold.addColorStop(0, 'rgba(150,175,235,0.32)');
+                cold.addColorStop(0.5, 'rgba(120,140,210,0.1)');
+                cold.addColorStop(1, 'rgba(120,140,210,0)');
+                g.globalCompositeOperation = 'source-atop';
+                g.fillStyle = cold;
+                g.globalAlpha = 0.9;
+                g.fillRect(box.x, box.y, box.w, box.h);
+                g.restore();
+                // cut olive branches across the copper, their leaves along the way's edge
+                for (let i = 0; i < 9; i++) {
+                    const a = (i / 9) * Math.PI * 2 + r() * 0.5, r0 = 1.25 + r() * 0.3;
+                    const ex = Math.cos(a) * 430 * r0 * 1.02, ey = Math.sin(a) * 300 * r0 * 1.02;
+                    const fx = Math.cos(a) * 1100, fy = Math.sin(a) * 760;
+                    const t = a + (r() < 0.5 ? 0.35 : -0.35);
+                    F.branch(g, { path: [[fx, fy], [(fx + ex) / 2 + Math.cos(t) * 60, (fy + ey) / 2 + Math.sin(t) * 60], [ex, ey]], w0: 34 + r() * 16, w1: 7, leaves: 5, R: 70 + r() * 30, seed: 'heap-b' + i, warm: 0.6, ...L });
+                }
+                // on the heap: a plate, tin on a nail, tuberoses, the owl on a limb
+                F.plate(g, { x: 390, y: -220, r: 92, seed: 's-plate', motif: 'granada', ...L });
+                F.tin(g, { x: -360, y: -330, s: 1.25, n: 5, seed: 's-tin', ...L });
+                for (let k = 0; k < 3; k++) F.tuberose(g, { path: [[560 + k * 30, 420 - k * 14], [470 + k * 20, 330 - k * 10], [400 + k * 12, 250 - k * 8], [350 + k * 10, 190 - k * 20]], size: 30, n: 6, seed: 's-nardo' + k, ...L, amb: [0.22, 0.2, 0.26] });
+                F.branch(g, { path: [[900, -640], [560, -480], [200, -400]], w0: 52, w1: 18, leaves: 2, R: 70, seed: 's-owl-limb', warm: 0.4, ...L });
+                F.owl(g, { x: 300, y: -428, s: 0.95, seed: 's-zumaya', ...L });
+                // smoke drifting across, lit from below, and sparks going up from the fire
+                F.smoke(g, { x: -300, y: -100, h: 700, w: 1500, n: 22, glow: 0.8, alpha: 0.2, seed: 's-smoke' });
+                F.wisp(g, { x: -400, y: 210, r: 16, seed: 's-wisp' });
+                tooth(g);
+            },
+        },
+        {
+            id: 'forge-s-mid', z, box, brush: false,
+            paint(g) {
+                const L = lightsAt(0);
+                F.hearth(g, { x: FIRE.x, y: FIRE.y, s: 0.95, dish: true, seed: 's-fire', flame: 300, sparkH: 760, sparkN: 70, ...L });
+                F.tongs(g, { x: FIRE.x + 70, y: FIRE.y - 40, rot: -2.0, len: 440, hot: 0.85, seed: 's-tongs', ...L });
+                F.bridle(g, { x: 560, y: -360, s: 1.15, seed: 's-bridle', ...L });
+                F.cage(g, { x: -520, y: -380, s: 1.5, seed: 's-cage', ...L });
+                F.hammer(g, { x: 520, y: 300, rot: -1.2, s: 1.1, seed: 's-hammer', ...L });
+                F.tongs(g, { x: 430, y: 220, rot: -1.75, len: 460, seed: 's-tongs2', open: 0.12, ...L });
+                F.sparks(g, { x: -200, y: -150, n: 40, h: 500, w: 900, seed: 's-drift' });
+                tooth(g);
+            },
+        },
+        {
+            id: 'forge-s-near', z: z - 160, box, res: 0.85, brush: false,
+            paint(g) {
+                const L = lightsAt(-160, { lift: 260 });
+                const an = F.anvil(g, { x: 690, y: 330, s: 1.55, seed: 's-anvil', ...L });
+                F.horseshoe(g, { x: an.hornL[0] + 46, y: an.hornL[1] + 46, s: 0.95, rot: 0.25, hot: 0.95, seed: 's-hot-shoe', ...L });
+                F.floret(g, { x: 800, y: an.face[1] - 6, size: 30, tilt: 0.45, rot: 0.3, k: 17, ...L });
+                F.bellows(g, { x: -800, y: 360, s: 1.35, seed: 's-bellows', ...L });
+                tooth(g);
+            },
+        },
+    ];
+};

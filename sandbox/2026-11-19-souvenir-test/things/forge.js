@@ -475,7 +475,7 @@ const Forge = (() => {
         shadow(g, handleSp, cl(tx) * 0.4, cl(ty) * 0.4, 1, { dx: 0, dy: 0, blur: 3, alpha: 0.6 });
         shadow(g, body, cl(tx), cl(ty), 1, { dx: 0, dy: 0, blur: 9, alpha: 0.62 });
         // the nail: driven in, its head square and lit on the fire's side
-        nail(g, { x: holeC[0], y: holeC[1] - hole * 0.6, s: 0.9, lights: Ls, amb, seed: seed + 'n', bare: true });
+        if (o.nail !== false) nail(g, { x: holeC[0], y: holeC[1] - hole * 0.6, s: 0.9, lights: Ls, amb, seed: seed + 'n', bare: true });
         put(g, handleSp, 0, 0);
         put(g, body, 0, 0);
         // the shank of the nail over the hole's top edge
@@ -905,7 +905,7 @@ const Forge = (() => {
         };
         const block = smoothPts([[-215, -20], [0, -24], [215, -18], [222, 120], [228, 300], [-228, 300], [-222, 120]], 3);
         const coalBed = smoothPts([[-170, -18], [-120, -52], [-50, -70], [30, -72], [100, -58], [168, -24], [150, -8], [-150, -8]], 5);
-        const blockSp = lit({
+        const blockSp = o.dish ? null : lit({
             box: S.bbox(block, 4), res, seed, lights: Ls, amb, shape: 'bevel', R: 10, relief: 1,
             mask: (q) => fillPts(q, block),
             height: (px, py) => {
@@ -963,7 +963,18 @@ const Forge = (() => {
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        put(g, blockSp, 0, 0);
+        if (o.dish) {
+            // the itinerant smith's forge: an iron fire-pan on three short legs, its lip
+            // burnt, the tuyere's pipe coming in at the side
+            const dish = smoothPts([[-212, -26], [-196, 4], [-150, 34], [-60, 48], [60, 48], [150, 34], [196, 4], [212, -26], [180, -16], [0, -10], [-180, -16]], 5);
+            for (const lx of [-120, 0, 120]) {
+                const leg = stripOf([[lx, 30], [lx * 1.2, 70], [lx * 1.3, 96]], (u) => 16 - u * 6);
+                put(g, ironSprite(leg, { res, seed: seed + 'leg' + lx, Ls, amb, relief: 0.7, rust: 0.6 }), 0, 0);
+            }
+            const pipe = stripOf([[-420, 30], [-300, 8], [-205, -6]], 26);
+            put(g, ironSprite(pipe, { res, seed: seed + 'pipe', Ls, amb, relief: 0.8, rust: 0.7, paint: (px, py, d, hh, out) => into(out, SOOT, smooth(-300, -210, px) * 0.6) }), 0, 0);
+            put(g, ironSprite(dish, { res, seed: seed + 'dish', Ls, amb, relief: 0.5, rust: 0.55, hot: fire ? (px, py) => 0.5 * smooth(-10, -26, py) * smooth(190, 60, Math.abs(px)) : null }), 0, 0);
+        } else put(g, blockSp, 0, 0);
         put(g, coalSp, 0, 0);
         // the tuyere's mouth on the left of the bed
         if (fire) {
@@ -973,7 +984,7 @@ const Forge = (() => {
             softSheet(g, 0.5, (q) => {
                 const r = Motion.rng('embers' + seed);
                 for (let i = 0; i < 40; i++) {
-                    const ex = (r() - 0.5) * 520, ey = 290 + r() * 30, rad = 1.5 + r() * 3.5;
+                    const ex = (r() - 0.5) * 520, ey = (o.dish ? 96 : 290) + r() * 30, rad = 1.5 + r() * 3.5;
                     q.fillStyle = r() < 0.4 ? `rgba(255,${120 + Math.round(r() * 80)},40,${0.5 + r() * 0.5})` : `rgba(120,110,104,${0.4 + r() * 0.4})`;
                     q.beginPath();
                     q.ellipse(ex, ey, rad * 1.4, rad, 0, 0, TAU);
@@ -2134,6 +2145,63 @@ const Forge = (() => {
         g.restore();
         return { tips };
     }
+    // An olive branch cut from the tree, lying or reaching: wood along `path` (w0 at its foot,
+    // w1 at its tip), grey bark in strips with lichen, a round cut at the foot, leaf clumps
+    // along its last part. leaves: how many clumps (0: bare).
+    function branch(g, o = {}) {
+        const { path, w0 = 40, w1 = 10, seed = 'branch', leaves = 4, R = 70 } = o;
+        const Ls = lightsOf(o, 0, 0, 1, 0), res = resOf(g), sd = S.seedOf(seed), r = Motion.rng('branch' + seed);
+        const P = S.curve(path, false, 10), pts = stripOf(P, (u) => lerp(w0, w1, u));
+        const e = P[P.length - 1];
+        const sp = lit({
+            box: S.bbox(pts, 6), res, seed, lights: Ls, amb: o.amb, shape: 'round', relief: 0.5,
+            mask: (q) => {
+                fillPts(q, pts);
+                q.beginPath();
+                q.arc(e[0], e[1], w1 / 2, 0, TAU);
+                q.fill();
+            },
+            height: (px, py) => {
+                const bk = worley(px / 6 + py * 0.02, py / 20 + px * 0.01, sd + 9);
+                return 2.4 * smooth(0, 0.2, bk[1] - bk[0]) + 1.2 * noise2(px * 0.05, py * 0.05, sd + 1);
+            },
+            albedo: (px, py, d, hh, out) => {
+                const bk = worley(px / 6 + py * 0.02, py / 20 + px * 0.01, sd + 9);
+                mixA(hex('#8e8a82'), hex('#3a3632'), 0.25 + 0.4 * smooth(0.15, 0, bk[1] - bk[0]) + 0.15 * noise2(px * 0.02, py * 0.05, sd + 6), out);
+                const lc = worley(px / 8, py / 8, sd + 3);
+                if (lc[2] < 0.1 && lc[0] < 0.4) into(out, hex('#a8b49a'), 0.7);
+                out[3] = 0.3;
+            },
+            spec: { k: 0.2, power: 14 },
+            stroke: { amp: 0.07, freq: 0.06, tone: 3 },
+            edge: { rough: 1.2, freq: 0.3, amp: 0.5 },
+        });
+        shadow(g, sp, 0, 0, 1, { dx: 8, dy: 12, blur: 12, alpha: 0.6 });
+        put(g, sp, 0, 0);
+        // the saw cut at its foot: pale rings
+        const f = P[0];
+        g.fillStyle = 'rgba(170,140,100,0.85)';
+        g.beginPath();
+        g.ellipse(f[0], f[1], w0 * 0.42, w0 * 0.5, 0, 0, TAU);
+        g.fill();
+        g.strokeStyle = 'rgba(90,64,40,0.6)';
+        g.lineWidth = 0.8;
+        for (const k of [0.15, 0.25, 0.35]) {
+            g.beginPath();
+            g.ellipse(f[0], f[1], w0 * k, w0 * k * 1.2, 0, 0, TAU);
+            g.stroke();
+        }
+        if (leaves) {
+            const clumps = [];
+            for (let i = 0; i < leaves; i++) {
+                const u = 0.45 + (0.55 * (i + 0.5)) / leaves, p = P[Math.min(P.length - 1, Math.round(u * (P.length - 1)))];
+                clumps.push([p[0] + (r() - 0.5) * R * 0.6, p[1] + (r() - 0.5) * R * 0.6, R * (0.7 + r() * 0.5)]);
+            }
+            foliage(g, clumps, { Ls, seed: seed + 'f', density: o.density ?? 1, leaf: o.leaf ?? 1.1, olives: o.olives ?? 0.01, glow: o.glow, warm: o.warm });
+        }
+        return P;
+    }
+
     // Leaf clumps [[cx, cy, R], …] of olive: narrow leaves in pairs, dark above, silver below.
     function foliage(g, clumps, o) {
         const { Ls, seed = 'fol', density = 1, leaf = 1 } = o;
@@ -2215,7 +2283,12 @@ const Forge = (() => {
                 continue;
             }
             const k = clamp(L.lit * 1.1 + (L.flip ? 0.15 : 0) + (L.seed - 0.5) * 0.12 + (o.glow ?? 0) * 0.2);
-            const c = tone(k, L.flip), cd = tone(k * 0.5, L.flip);
+            let c = tone(k, L.flip), cd = tone(k * 0.5, L.flip);
+            if (o.warm) {
+                // by the fire the lit edge is copper, not silver
+                const w = o.warm * L.lit;
+                c = c.map((v, i) => Math.round(v + ([235, 140, 70][i] - v) * w));
+            }
             g.save();
             g.translate(L.lx, L.ly);
             g.rotate(L.la);
@@ -3137,5 +3210,5 @@ const Forge = (() => {
         g.drawImage(sp.canvas, x + sp.box.x, y + sp.box.y, sp.box.w, sp.box.h);
     }
 
-    return { lit, put, shadow, worley, ringWorley, fbm, cave, anvil, hammer, tongs, horseshoe, hearth, bellows, flames, sparks, smoke, softSheet, plate, cauldron, warmer, tin, paintMap, utensil, bridle, cage, brass, strap, stripOf, chumbera, agave, oliveTree, foliage, owl, wisp, tuberose, floret, bustle, sky, halo, furrows, hills, timber, hood, door, toLocal, lightsOf, pan, nail, moon, FIRE, MOON, DARK, resOf };
+    return { lit, put, shadow, worley, ringWorley, fbm, cave, anvil, hammer, tongs, horseshoe, hearth, bellows, flames, sparks, smoke, softSheet, plate, cauldron, warmer, tin, paintMap, utensil, bridle, cage, brass, strap, stripOf, chumbera, agave, oliveTree, branch, foliage, owl, wisp, tuberose, floret, bustle, sky, halo, furrows, hills, timber, hood, door, toLocal, lightsOf, pan, nail, moon, FIRE, MOON, DARK, resOf };
 })();

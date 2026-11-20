@@ -40,7 +40,7 @@
 //       pozo») in its damp joints; Granada's pebble paving round it; a fig leaf floating
 //       on the water; rings where drops fall
 window.Tableau = window.Tableau || {};
-Tableau.green = (z0) => {
+Tableau.green = (z0, opt = null) => {
     const S = Souvenir, G = Green, TAU = Math.PI * 2;
     const box = { x: -1200, y: -720, w: 2400, h: 1440 };
     const plateBox = { x: -1650, y: -940, w: 3300, h: 1880 };
@@ -176,7 +176,7 @@ Tableau.green = (z0) => {
                 const lit = S.clamp(0.5 - (px / bx.w) * 0.55 - (py / bx.h) * 0.75 + (r() - 0.5) * 0.5);
                 let kind = r() < (o.under ?? 0.07) ? 'under' : r() < (o.lime ?? 0.015) ? 'lime' : lit > 0.62 ? 'moon' : lit > 0.32 ? 'shade' : 'deep';
                 if (o.kinds) kind = o.kinds(kind, px, py, r);
-                items.push({ x: px, y: py, rot: r() * TAU, s: (o.s ?? 1) * (0.7 + r() * r() * 0.9), kind, v: Math.floor(r() * (kind === 'under' || kind === 'lime' ? 2 : 4)) + (kind === 'under' ? 4 : kind === 'lime' ? 6 : 0), fx: 0.62 + r() * 0.38, fy: 0.55 + r() * 0.45 });
+                items.push({ x: px, y: py, rot: r() * TAU, s: (o.s ?? 1) * (0.7 + r() * r() * 0.9), kind, v: Math.floor(r() * (kind === 'under' || kind === 'lime' ? 2 : o.vars ?? 4)) + (kind === 'under' ? 4 : kind === 'lime' ? 6 : 0), fx: 0.62 + r() * 0.38, fy: 0.55 + r() * 0.45 });
             }
         }
         // the deep ones first, the lit ones over them
@@ -273,6 +273,258 @@ Tableau.green = (z0) => {
         return pts;
     };
     const GAP3N = blob(330, 230, 'house3n', 0.1);
+
+    // =========================================================== the stratum (round 7)
+    // The same world condensed into ONE stratum of loose things for the film's second
+    // passage (see Tableau.green.stratum below): the fig's crown as the body, agaves pushing
+    // in from the corners, and on it, whole and large, the poem's things.
+    if (opt && opt.stratum) return stratum(z0);
+    function stratum(z) {
+        const GAPS = blob(430, 300, 'stratum', 0.13);
+        // a thing laid on what is there: drawn on its own sheet, its shadow cast on the paint
+        // under it (only on paint), then the thing
+        const lay = (g, draw, o = {}) => {
+            const m = g.getTransform(), k = Math.hypot(m.a, m.b), c = canvas(g.canvas.width, g.canvas.height), q = c.getContext('2d');
+            q.setTransform(m);
+            draw(q);
+            const sil = canvas(c.width, c.height), sq = sil.getContext('2d');
+            sq.drawImage(c, 0, 0);
+            sq.globalCompositeOperation = 'source-in';
+            sq.fillStyle = o.color ?? '#010805';
+            sq.fillRect(0, 0, sil.width, sil.height);
+            g.save();
+            g.setTransform(1, 0, 0, 1, 0, 0);
+            g.globalCompositeOperation = 'source-atop';
+            g.globalAlpha = o.alpha ?? 0.6;
+            g.filter = `blur(${((o.blur ?? 14) * k).toFixed(1)}px)`;
+            g.drawImage(sil, (o.dx ?? 16) * k, (o.dy ?? 24) * k);
+            g.restore();
+            g.save();
+            g.setTransform(1, 0, 0, 1, 0, 0);
+            g.drawImage(c, 0, 0);
+            g.restore();
+        };
+        // a ghost: a dark breath behind it so its silhouette reads, then the pale thing
+        const ghost = (g, draw) => {
+            lay(g, draw, { alpha: 0.75, blur: 22, dx: 10, dy: 14 });
+            G.softly(g, 18, (q) => {
+                q.globalCompositeOperation = 'source-over';
+                draw(q);
+            });
+        };
+        // a puddle of black water on the leaves with the moon's crescent in it, drawn down
+        // into its «icicle»: a wet rim, rings, a leaf lying across its edge
+        const puddle = (g, x, y, w, h, res, r) => {
+            const pts = [];
+            for (let i = 0; i < 40; i++) {
+                const a = (i / 40) * TAU, k = 1 + 0.12 * Math.sin(a * 3 + 1) + 0.07 * Math.sin(a * 5 + 2);
+                pts.push([x + Math.cos(a) * w * 0.5 * k, y + Math.sin(a) * h * 0.5 * k]);
+            }
+            // the leaves round it darkened by the wet
+            G.softly(g, 10, (q) => {
+                q.fillStyle = 'rgba(1,8,5,0.5)';
+                G.poly(q, pts.map(([a, b]) => [x + (a - x) * 1.14, y + (b - y) * 1.2]));
+            });
+            // the water: flat and black, the sky's glow lying in its upper half, the crescent
+            // in it drawn down into a drip, rings where a drop fell, a bright meniscus
+            g.fillStyle = '#04100b';
+            G.poly(g, pts);
+            g.save();
+            g.beginPath();
+            S.trace(g, pts);
+            g.clip();
+            const sk = g.createLinearGradient(0, y - h * 0.6, 0, y + h * 0.5);
+            sk.addColorStop(0, 'rgba(120,180,158,0.38)');
+            sk.addColorStop(0.5, 'rgba(60,110,92,0.12)');
+            sk.addColorStop(1, 'rgba(0,0,0,0)');
+            g.fillStyle = sk;
+            g.fillRect(x - w, y - h, w * 2, h * 2);
+            // the leaves at its edge mirrored dark in it
+            for (let i = 0; i < 6; i++) {
+                const a = -2.6 + i * 0.5;
+                g.fillStyle = 'rgba(2,12,8,0.6)';
+                G.oval(g, x + Math.cos(a) * w * 0.48, y + Math.sin(a) * h * 0.42, 36, 16, a);
+            }
+            // the shard of moon: a thick waxing crescent, lit on its right, its lower horn
+            // drawn down into a drip, two ripples breaking it
+            {
+                const R = h * 0.34, cx = x - w * 0.1, cy = y - h * 0.08;
+                const gl = g.createRadialGradient(cx, cy, 0, cx, cy, R * 2.4);
+                gl.addColorStop(0, 'rgba(190,232,214,0.35)');
+                gl.addColorStop(1, 'rgba(190,232,214,0)');
+                g.fillStyle = gl;
+                g.fillRect(cx - R * 2.4, cy - R * 2.4, R * 4.8, R * 4.8);
+                const cr = [];
+                for (let i = 0; i <= 30; i++) {
+                    const a = -Math.PI / 2 + (i / 30) * Math.PI;
+                    cr.push([cx + Math.cos(a) * R, cy + Math.sin(a) * R * 1.25]);
+                }
+                for (let i = 30; i >= 0; i--) {
+                    const a = -Math.PI / 2 + (i / 30) * Math.PI;
+                    cr.push([cx - R * 0.15 + Math.cos(a) * R * 0.45, cy + Math.sin(a) * R * 1.2]);
+                }
+                g.save();
+                g.shadowColor = 'rgba(214,246,232,0.9)';
+                g.shadowBlur = R * 0.5 * S.pxScale(g);
+                g.fillStyle = '#e4f4ec';
+                G.poly(g, cr);
+                G.poly(g, S.curve([[cx + R * 0.05, cy + R * 1.1], [cx + R * 0.25, cy + R * 1.5], [cx + R * 0.14, cy + R * 2.2], [cx + R * 0.06, cy + R * 1.55]], true, 6));
+                g.restore();
+                g.fillStyle = 'rgba(8,24,18,0.6)';
+                g.fillRect(cx - R, cy + R * 0.25, R * 2, 1.6);
+                g.fillRect(cx - R, cy + R * 0.75, R * 2, 1.4);
+            }
+            for (const [rx, ry, n] of [[x + w * 0.22, y + h * 0.18, 3], [x - w * 0.3, y + h * 0.22, 2]]) {
+                for (let k = 0; k < n; k++) {
+                    g.strokeStyle = `rgba(170,214,196,${0.45 - k * 0.12})`;
+                    g.lineWidth = 1.3;
+                    g.beginPath();
+                    g.ellipse(rx, ry, 7 + k * 10, 3 + k * 4, 0, 0, TAU);
+                    g.stroke();
+                }
+            }
+            g.restore();
+            g.strokeStyle = 'rgba(200,236,222,0.6)';
+            g.lineWidth = 1.8;
+            g.beginPath();
+            S.trace(g, pts.slice(4, 18), false);
+            g.stroke();
+            g.strokeStyle = 'rgba(200,236,222,0.3)';
+            g.lineWidth = 1;
+            g.beginPath();
+            S.trace(g, pts.slice(22, 36), false);
+            g.stroke();
+            // a fig leaf lying across its edge, half in the water
+            const sp = G.figLeaf(3, 2.6, Q(res, 0.85), 'shade');
+            G.shadow(g, sp, x + w * 0.46, y + h * 0.05, 0.75, { rot: 2.6, dx: 8, dy: 12, alpha: 0.5, blur: 10 });
+            G.put(g, sp, x + w * 0.46, y + h * 0.05, 0.75, { rot: 2.6 });
+        };
+        const L2 = [];
+        L2.push({
+            // the body: the fig's crown, leaves of every kind lying on one another, limbs,
+            // figs, agaves pushing in at the corners; on it the ghost horse, a frost star,
+            // the moon in a puddle, a tree frog to find
+            id: 'green-s-far', z: z + 150, box, brush: false,
+            paint(g, res) {
+                const r = Motion.rng('stratum-far');
+                const gr = g.createLinearGradient(box.x, box.y, box.x + box.w * 0.6, box.y + box.h);
+                gr.addColorStop(0, '#163a2c');
+                gr.addColorStop(0.5, '#0a2018');
+                gr.addColorStop(1, '#05120d');
+                g.fillStyle = gr;
+                g.beginPath();
+                g.rect(box.x, box.y, box.w, box.h);
+                for (let i = 0; i <= 72; i++) {
+                    const th = (i / 72) * TAU, k = GAPS.f(th) * 1.3;
+                    const x = Math.cos(th) * GAPS.rx * k, y = Math.sin(th) * GAPS.ry * k;
+                    if (i) g.lineTo(x, y);
+                    else g.moveTo(x, y);
+                }
+                g.fill('evenodd');
+                G.figWood(g, [[-1260, 520], [-900, 380], [-640, 360], [-520, 420]], { w0: 64, w1: 30, seed: 'sf1', wrinkles: [[300, 60]], lichen: 0.7 });
+                G.figWood(g, [[1260, -470], [900, -400], [640, -430], [540, -520]], { w0: 56, w1: 26, seed: 'sf2', lichen: 0.7 });
+                foliage(g, res, { seed: 'stratum', gap: GAPS, pad: 150, step: 108, s: 1.1, under: 0.1, lime: 0, q: 0.85, vars: 3 });
+                // the inner edge: leaves on long petioles reaching in over the gap from all
+                // round it, overlapping, each its own size and turn
+                {
+                    const rs = Q(res, 0.85), items = [];
+                    for (let i = 0; i < 30; i++) {
+                        const th = (i / 30) * TAU + r() * 0.15, k = GAPS.f(th) * (1.22 + r() * 0.12);
+                        const jx = Math.cos(th) * (GAPS.rx * k + 60), jy = Math.sin(th) * (GAPS.ry * k + 60);
+                        const rot = th + Math.PI + (r() - 0.5) * 0.9, kind = r() < 0.18 ? 'under' : r() < 0.45 ? 'moon' : r() < 0.8 ? 'shade' : 'deep';
+                        items.push({ jx, jy, rot, kind, v: kind === 'under' ? 4 + Math.floor(r() * 2) : Math.floor(r() * 3), s: 0.8 + r() * 0.35, fx: 0.7 + r() * 0.3, fy: 0.6 + r() * 0.4 });
+                    }
+                    for (const it of items) {
+                        const sp = G.figLeaf(it.v, it.rot, rs, it.kind);
+                        G.shadow(g, sp, it.jx, it.jy, it.s, { rot: it.rot, fx: it.fx, fy: it.fy, dx: 10, dy: 15, alpha: 0.5, blur: 12 });
+                        G.put(g, sp, it.jx, it.jy, it.s, { rot: it.rot, fx: it.fx, fy: it.fy });
+                    }
+                }
+                // figs among the leaves, in pairs and threes
+                for (let i = 0; i < 16; i++) {
+                    const a = r() * TAU, d = 560 + r() * 500, x = Math.cos(a) * d * 1.3, y = Math.sin(a) * d * 0.75, rot = r() * TAU, fs = 1.1 + r() * 0.4;
+                    const sp = G.figFruit(Math.floor(r() * 5), rot, Q(res, 0.85));
+                    G.shadow(g, sp, x, y, fs, { rot, dx: 8, dy: 12, alpha: 0.55, blur: 9 });
+                    G.put(g, sp, x, y, fs, { rot });
+                }
+                // agaves pushing in at the corners
+                G.agave(g, { x: -1130, y: 820, s: 0.95, seed: 11, n: 16, dry: 2, res: Q(res, 0.8) });
+                G.agave(g, { x: 1150, y: 800, s: 0.9, seed: 12, n: 16, dry: 1, res: Q(res, 0.8) });
+                G.agave(g, { x: 1290, y: 120, s: 0.6, seed: 13, n: 12, dry: 1, res: Q(res, 0.8) });
+                relight(g, box, res, moonMap('stratum', box, { pools: 22, lights: 30, lift: 0.3, fall: 0.4, dark: [[0, 0, 520, 0.55]] }), { sun: 1.3, shade: 1.1 });
+                veil(g, box, 'rgba(10,38,32,0.14)');
+                // the things on it
+                ghost(g, (q) => G.horse(q, { x: -400, y: 60, s: 0.9, alpha: 1, seed: 2 }));
+                G.frost(g, { x: 380, y: -300, r: 100, rot: 0.2, seed: 'sfar' });
+                puddle(g, 440, 350, 400, 150, res, r);
+                G.frog(g, { x: -600, y: 360, s: 1.2, rot: -0.7 });
+                S.tooth(g, box, { amp: 0.05 });
+            },
+        });
+        L2.push({
+            // the ship on its wisp of sea, the fish of shadow, a glass tambourine, a fig limb,
+            // the moon moth on a leaf
+            id: 'green-s-mid', z, box, brush: false,
+            paint(g, res) {
+                const r = Motion.rng('stratum-mid');
+                limb(g, res, { seed: 'smid', path: [[1260, 620], [1000, 520], [780, 470], [660, 500]], w0: 44, w1: 12, figs: 0.7, kinds: ['moon', 'shade', 'moon'] });
+                // a wisp of sea, dark, its swell lit by the moon, the ship on it
+                const sx = -540, sy = -230;
+                lay(g, (q) => {
+                    G.softly(q, 16, (p) => {
+                        const sg = p.createRadialGradient(sx, sy + 110, 10, sx, sy + 110, 320);
+                        sg.addColorStop(0, 'rgba(6,22,16,0.95)');
+                        sg.addColorStop(0.7, 'rgba(8,28,20,0.85)');
+                        sg.addColorStop(1, 'rgba(8,28,20,0)');
+                        p.fillStyle = sg;
+                        p.beginPath();
+                        p.ellipse(sx, sy + 110, 320, 170, -0.04, 0, TAU);
+                        p.fill();
+                    });
+                    for (let i = 0; i < 60; i++) {
+                        const y = sy + 4 + r() * 240, x = sx - 230 + r() * 460 * (1 - Math.abs(y - sy - 110) / 260);
+                        G.line(q, [[x, y], [x + 14 + r() * 50, y + (r() - 0.5) * 2]], 1 + r(), `rgba(170,220,200,${0.15 + r() * 0.35})`);
+                    }
+                    G.ship(q, { x: sx, y: sy, s: 0.78, alpha: 1, seed: 3 });
+                }, { alpha: 0.5, blur: 18, dx: 14, dy: 20 });
+                G.softly(g, 16, (q) => G.ship(q, { x: sx, y: sy, s: 0.78, alpha: 0.35, seed: 3 }));
+                lay(g, (q) => G.fish(q, { x: 520, y: -330, s: 0.85, rot: Math.PI - 0.08, seed: 2 }), { alpha: 0.55, blur: 16 });
+                // the road of dawn the fish opens, behind it
+                G.wind(g, { x: 700, y: -420, w: 560, h: 160 }, { seed: 'sdawn', n: 14, alpha: 0.3, dir: -0.08, len: 420, w: 16, cols: ['#a6d4c0', '#cfeade', '#7fb6a0'] });
+                lay(g, (q) => G.tambourine(q, { x: 590, y: 120, r: 115, rot: -0.3, tilt: 0.35, seed: 21 }), { alpha: 0.35, blur: 10, dx: 10, dy: 14 });
+                G.moth(g, { x: -330, y: 430, s: 1.2, rot: -0.9 });
+                G.wind(g, box, { seed: 'smw', n: 16, alpha: 0.18, dir: -0.15, len: 700, w: 12, clear: (x, y) => Math.hypot(x / 520, y / 380) > 1 });
+                S.tooth(g, box, { amp: 0.05 });
+            },
+        });
+        L2.push({
+            // the largest things, cut by the frame: a length of the high railing lying across,
+            // the trail of blood on its hand-rail; a tin lantern; a big frost star
+            id: 'green-s-near', z: z - 160, box, brush: { amp: 0.06 }, res: 0.85,
+            paint(g, res) {
+                lay(g, (q) => {
+                    q.save();
+                    q.translate(-640, 470);
+                    q.rotate(-0.3);
+                    const R = G.railing(q, { x0: -520, x1: 520, top: -150, bottom: 160, seed: 'srail', pitch: 40 });
+                    const trail = [];
+                    const rr = Motion.rng('strail');
+                    for (let x = -480; x < 300; x += 40 + rr() * 50) trail.push([x, -157 + (rr() - 0.5) * 3]);
+                    G.blood(q, trail, { seed: 'srail', r: 6.5 });
+                    const b = R.bars.find((x) => x > 300) ?? 320;
+                    G.blood(q, [[b, -80], [b + 1, 20]], { seed: 'sbar', r: 4.5, run: true });
+                    q.restore();
+                }, { alpha: 0.6, blur: 20, dx: 22, dy: 32 });
+                lay(g, (q) => {
+                    G.line(q, [[660, box.y - 10], [660, -594]], 3, 'rgba(10,24,18,0.9)');
+                    G.lantern(q, { x: 660, y: -600, s: 1.75, seed: 31, turn: 0.4, shiver: 4 });
+                }, { alpha: 0.55, blur: 20, dx: 22, dy: 32 });
+                G.frost(g, { x: -760, y: -480, r: 150, rot: 0.35, seed: 'snear' });
+                S.tooth(g, box, { amp: 0.05 });
+            },
+        });
+        return L2;
+    }
 
     const L = [];
     // =========================================================== stratum 1 · the fig tree
@@ -1491,6 +1743,8 @@ Tableau.green = (z0) => {
     }
     return L;
 };
+// The stratum for the second passage: three layers, ids 'green-s-far', 'green-s-mid', 'green-s-near'.
+Tableau.green.stratum = (z) => Tableau.green(z, { stratum: true });
 Tableau.green.Z = { s1: [0, 140, 280], s2: [520, 660, 800], s3: [1040, 1180, 1320], plate: 1760 };
 Tableau.green.depth = 1760; // from z0 (the fig's nearest sheet) to the cistern
 Tableau.green.hole = 140; // the cistern's mouth, into black water

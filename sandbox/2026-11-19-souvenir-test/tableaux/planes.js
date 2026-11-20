@@ -324,3 +324,75 @@ Tableau.planes.CSTAR = 420;
 Tableau.planes.SG = 1.53;
 Tableau.planes.depth = 2100;
 Tableau.planes.hole = 150;
+
+// Round 7 · the world as ONE stratum of loose things (stratum-brief.md), in the format of the
+// film's first passage. The body (far sheet) is the papier collé itself: scumbled planes of
+// ochre, grey, umber and black, combed wood, sand, marble, dots, wallpaper strips and torn
+// news and music pasted over one another at all angles, stopping round an irregular gap.
+// On it, and on the two sheets in front, the things whole, each on a cut-out plane with its
+// shadow: far, the full moon on the one blue, the glass, the torn ace of coins, a wallpaper
+// strip with its painted nail, «CAFÉ» stencilled on a black plane; middle, the guitar's
+// body in planes (to one side, its sound hole a small black disc), the bottle with its
+// MOSCATEL label, the corner of «LA BRISA», the pigeon's wing to find; near, the head with
+// its pegs, the «MALAGUEÑA» score and the ladder of frets, cut by the frame.
+//   Tableau.planes.stratum(z) → three layers, the middle one at z
+Tableau.planes.stratum = (z) => {
+    const S = Souvenir, P = Planes, C = P.PAL;
+    const box = { x: -1200, y: -720, w: 2400, h: 1440 };
+    // a cut-out plane for a thing to lie on, with its shadow painted as paint of its own (on a
+    // transparent sheet `cast` has nothing to fall on)
+    function bed(g, pts, o = {}) {
+        const [dx, dy] = P.shadeDir(g), k = S.pxScale(g), BIG = 20000, d = o.d ?? 14;
+        g.save();
+        g.setTransform(g.getTransform().translate(-BIG, 0));
+        g.shadowColor = o.shadow ?? 'rgba(16,10,8,0.55)';
+        g.shadowBlur = (o.blur ?? 16) * k;
+        g.shadowOffsetX = BIG * k + dx * d * k;
+        g.shadowOffsetY = dy * d * k;
+        P.fill(g, pts, '#000');
+        g.restore();
+        if (o.color) P.plane(g, pts, { cast: false, seed: o.seed, dir: o.dir ?? -0.5, color: o.color, tex: o.tex, texO: o.texO, lines: o.lines, colors: o.colors });
+    }
+    const layer = (id, dz, paint) => ({ id: 'planes-s-' + id, z: z + dz, box, brush: { amp: 0.035 }, paint(g) {
+        paint(g);
+        S.tooth(g, box);
+    } });
+    return [
+        layer('far', 150, (g) => {
+            P.collage(g, { box, seed: 'stratum', gap: [430, 300], n: 130, size: 320 });
+            // the corner of «LA BRISA» at the top, its corner pinned by the painted nail
+            P.newspaper(g, { x: 70, y: -704, s: 0.8, rot: 0.05, seed: 's-brisa' });
+            P.nail(g, { x: 84, y: -690, size: 2.2, seed: 's-nail' });
+            // the one blue, and the full moon on it, to the right
+            const blue = P.quad(450, -170, 300, 250, 0.12, 22);
+            bed(g, blue, { color: C.blue, seed: 's-blue', colors: [C.blue, C.blue, P.tone(C.blue, 0.06), P.tone(C.blue, -0.08)], lines: [0, 2] });
+            P.moon(g, { x: 446, y: -176, r: 96, seed: 's-luna' });
+            // «CAFÉ» on a black plane, top left
+            bed(g, P.quad(-300, -410, 360, 124, -0.08, 14), { color: C.black, seed: 's-cafe', lines: [0, 2] });
+            P.stencil(g, 'CAFÉ', { x: -300, y: -383, rot: -0.08, size: 80, color: C.bone, seed: 's-cafe' });
+            // low down: the glass on a grey plane, the pigeon's wing to find; the torn ace of coins
+            bed(g, P.quad(70, 330, 200, 280, 0.08, 10), { color: C.greyL, seed: 's-glassbed', tex: 'marble' });
+            P.glass(g, { x: 66, y: 410, s: 1.0, seed: 's-copa' });
+            P.wing(g, { x: -170, y: 360, rot: 0.1, s: 0.44, seed: 's-paloma' });
+            P.card(g, { x: 340, y: 330, s: 1.0, rot: -0.16, tear: 0.28, seed: 's-oros' });
+        }),
+        layer('mid', 0, (g) => {
+            // the guitar's body in planes, to the left
+            bed(g, P.quad(-560, -10, 500, 760, 0.1, 30), { color: C.greyD, seed: 's-gbed', tex: 'dots', texO: { color: C.ochreL, pitch: 14 } });
+            P.guitarPlanes(g, { x: -540, y: -40, s: 0.72, rot: -0.1, seed: 's-guitar' });
+            // the bottle with its label, to the right
+            bed(g, P.quad(560, 40, 250, 660, -0.08, 12), { color: C.ochre, seed: 's-bbed', tex: 'comb', texO: { dir: 1.5, color: C.umberD, alpha: 0.55 } });
+            P.bottle(g, { x: 556, y: 340, s: 0.86, rot: -0.04, seed: 's-bot' });
+            P.label(g, { x: 548, y: 196, s: 0.58, rot: -0.06, seed: 's-moscatel', torn: [3] });
+        }),
+        layer('near', -160, (g) => {
+            bed(g, P.quad(-640, -470, 340, 600, -0.95, 30), { color: C.ochreD, seed: 's-hbed', tex: 'comb', texO: { dir: 1.1, color: C.umberD, alpha: 0.5 }, lines: [0, 2] });
+            P.head(g, { x: -440, y: -300, rot: -0.95, s: 1.45, seed: 's-clavijero' });
+            bed(g, [[440, 236], [860, 280], [830, 760], [400, 760]], { d: 8, blur: 10 });
+            P.score(g, { x: 440, y: 236, s: 1.28, rot: 0.1, seed: 's-malaguena' });
+            const frets = [];
+            for (let n = 0; n < 10; n++) frets.push(1 - Math.pow(2, -n / 12) * 0.95);
+            P.ladder(g, { axis: [[-960, 640], [-440, 340]], half: (u) => 74 - u * 10, frets, seed: 's-ladder', over: 30, fh: 6, castD: 0 });
+        }),
+    ];
+};
