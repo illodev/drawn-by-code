@@ -408,3 +408,36 @@ realistic), no people, the camera untouched.
   sphere lit from the upper left; «zumaya» read as a scops owl; horse brasses on an
   Andalusian bridle; the palace on the hill is generic; seas and craters approximate.
 
+## Round 6 · music
+
+The user, with the film rendering: «can we put music on it?» Offered: one piece per
+picture, one continuous piece, synthesised by code, or not yet; the user chose **one
+continuous piece**, and, once the price could be read (an estimate costs nothing: 1 760
+credits a take, 7 040 for four), **one take**. It was charged 960 credits.
+
+- **Generated** with the ElevenLabs connector: a `music` node, Music v2.5, 64 s,
+  instrumental. The prompt (sound only, the film's shape in seconds): «Solo flamenco
+  guitar, instrumental: one nylon-string Spanish guitar alone, no other instruments, no
+  vocals, no percussion except taps on the guitar's wood. E Phrygian. One continuous
+  63-second take whose energy evolves: it starts from silence with slow, dark, free-time
+  arpeggios over a low open string (first 9 seconds); a strong rasgueado strum around 10
+  seconds; a brief bright major-key falseta, light and quick (until 16 s); then slow and
+  mysterious, soft tremolo over sparse low notes (until 28 s); the darkest part, single
+  deep notes with long gaps and soft knocks on the wood (until 34 s); it opens into
+  flowing rising arpeggios that brighten and gather a 12-beat bulerías pulse (until
+  47 s); fragmented, dissonant, percussive, stopping and starting (until 53 s); driving,
+  heavy, hammered rhythmic strumming, intense (until 59 s); it ends on one full chord
+  left to ring out into silence. Intimate, close-miked, dry and woody, natural room
+  reverb.»
+- **Measured, not heard** (level per second and per tenth of a second): one chord at
+  second 0 that decays to −46 dBFS by second 8; the strum at 9.0–9.3 s (the guitar is in
+  focus at 9.7); a quieter stretch at 30–33 s (the dark night is 28–34); dips at 42 and
+  50 s; the last chord at 59.0 s (the grove leaves the frame at 59.0) ringing out to
+  62.9 s. It is laid from second 0 uncut.
+- **Done to it** (`score.sh`): the tail of the first chord lifted (up to +14 dB at 8 s)
+  so the passage is not near silence; −15 LUFS, peak −1.5 dBFS; cut at 63 s.
+- The take is the user's and stays out of the repo (`private/`); the committed render is
+  silent until the user says whether it should carry the music.
+- **Not known:** whether it sounds like a flamenco guitar, whether the lifted tail hisses,
+  whether the sections say what the pictures do. Nobody here has listened.
+

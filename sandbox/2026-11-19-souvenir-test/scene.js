@@ -33,6 +33,9 @@ Motion.scene({
     fps: 24,
     duration: LENGTH,
     logical: [1600, 900],
+    // the score is the user's and is not in the repo: `sh score.sh` builds it from the take in
+    // private/ (the render skips a mix that is not there)
+    audio: { mix: 'private/score.wav' },
     uses: [
         'styles/souvenir/souvenir.js',
         DIR + 'things/citrus.js', DIR + 'things/fan.js', DIR + 'things/shawl.js',
