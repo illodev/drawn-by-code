@@ -445,7 +445,7 @@ Tableau.forge.stratum = (z) => {
                 const baked = (kind, view, variant, bucket) => {
                     const key = [kind, view, variant, bucket].join('/');
                     if (!cache.has(key)) {
-                        const a = bucket * (Math.PI / 4), fire = { dir: [Math.cos(a), Math.sin(a), 0.55], c: F.FIRE, wrap: 0.3 };
+                        const a = bucket * (Math.PI / 4), fire = { dir: [Math.cos(a), Math.sin(a), 0.32], c: F.FIRE.map((v) => v * 0.62), wrap: 0.25 };
                         const bx = kind === 'cauldron' ? { x: -REF * 1.2, y: -REF * 1.5, w: REF * 2.4, h: REF * 2.3 } : { x: -REF - 20, y: -REF * 1.75, w: REF * 2 + 40, h: REF * 2.8 };
                         cache.set(key, S.sheet(bx, res, (q) => {
                             if (kind === 'cauldron') F.cauldron(q, { x: 0, y: 0, w: REF * 1.9, seed: 'hc' + variant + bucket, fire, amb: L.amb });
@@ -491,7 +491,7 @@ Tableau.forge.stratum = (z) => {
                     const ex = Math.cos(a) * 430 * r0 * 1.02, ey = Math.sin(a) * 300 * r0 * 1.02;
                     const fx = Math.cos(a) * 1100, fy = Math.sin(a) * 760;
                     const t = a + (r() < 0.5 ? 0.35 : -0.35);
-                    F.branch(g, { path: [[fx, fy], [(fx + ex) / 2 + Math.cos(t) * 60, (fy + ey) / 2 + Math.sin(t) * 60], [ex, ey]], w0: 34 + r() * 16, w1: 7, leaves: 5, R: 70 + r() * 30, seed: 'heap-b' + i, warm: 0.6, ...L });
+                    F.branch(g, { path: [[fx, fy], [(fx + ex) / 2 + Math.cos(t) * 60, (fy + ey) / 2 + Math.sin(t) * 60], [ex, ey]], w0: 34 + r() * 16, w1: 7, leaves: 5, R: 70 + r() * 30, seed: 'heap-b' + i, warm: 0.6, mass: 0.35, ...L });
                 }
                 // on the heap: a plate, tin on a nail, tuberoses, the owl on a limb
                 F.plate(g, { x: 390, y: -220, r: 92, seed: 's-plate', motif: 'granada', ...L });

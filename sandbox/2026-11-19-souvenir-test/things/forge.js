@@ -2197,7 +2197,7 @@ const Forge = (() => {
                 const u = 0.45 + (0.55 * (i + 0.5)) / leaves, p = P[Math.min(P.length - 1, Math.round(u * (P.length - 1)))];
                 clumps.push([p[0] + (r() - 0.5) * R * 0.6, p[1] + (r() - 0.5) * R * 0.6, R * (0.7 + r() * 0.5)]);
             }
-            foliage(g, clumps, { Ls, seed: seed + 'f', density: o.density ?? 1, leaf: o.leaf ?? 1.1, olives: o.olives ?? 0.01, glow: o.glow, warm: o.warm });
+            foliage(g, clumps, { Ls, seed: seed + 'f', density: o.density ?? 1, leaf: o.leaf ?? 1.1, olives: o.olives ?? 0.01, glow: o.glow, warm: o.warm, mass: o.mass });
         }
         return P;
     }
@@ -2217,7 +2217,7 @@ const Forge = (() => {
         // the dark mass behind first
         softSheet(g, 10, (q) => {
             for (const [cx, cy, R] of clumps) {
-                q.fillStyle = 'rgba(14,20,22,0.85)';
+                q.fillStyle = `rgba(14,20,22,${0.85 * (o.mass ?? 1)})`;
                 q.beginPath();
                 for (let i = 0; i < 9; i++) {
                     const a = r() * TAU, d = r() * R * 0.5;

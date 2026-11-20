@@ -330,6 +330,7 @@ Tableau.darknight.stratum = (z) => {
 
     return [
         sheet('far', D.far, (g) => {
+            let T0 = performance.now(); const tk = (w) => { console.log(w, (performance.now() - T0).toFixed(0)); T0 = performance.now(); };
             const P = N.begin(g);
             const rr = Motion.rng('drapes');
             const wob = (a, b, n, amp, seed) => {
@@ -395,8 +396,6 @@ Tableau.darknight.stratum = (z) => {
             swag(740, 1300, -120, 'velvet', 'sw7', { fold: 92 });
             fall(-1300, -560, -260, 'veil', 'f1', { lean: -80 });
             fall(1300, 600, -200, 'veil', 'f2', { lean: 70 });
-            fall(-1300, -800, -100, 'velvet', 'f3');
-            fall(1300, 860, -60, 'velvet', 'f4');
             heap(-1300, -40, 300, 'veil', 'h1');
             heap(-90, 1300, 320, 'velvet', 'h2');
             // tongues of veil and velvet reaching in from every side: their hems are the gap's edge
@@ -408,12 +407,14 @@ Tableau.darknight.stratum = (z) => {
             tongue([-1260, 640], [-520, 150], 400, 240, 'veil', 't6', 70);
             tongue([-200, 860], [-120, 330], 320, 230, 'velvet', 't7', 64);
             tongue([-1300, -120], [-560, -20], 300, 200, 'velvet', 't8', 74);
+            tk('drapes');
             // the candles, rising from below the frame
             const embers = [];
             for (const c of BANK) {
                 const w = candleAt(P, c, { wax: c.x < 0 ? [0.86, 0.8, 0.66] : [0.88, 0.83, 0.7] });
                 if (!c.lit) embers.push(w);
             }
+            tk('candles');
             // things on the body: the disc of spheres, lilies in a silver jar, the lantern put out
             N.disc(P, { x: -345, y: -262, R: 120, seed: 'esferas' });
             const J = N.jar(P, { x: 430, y: 186, h: 160, seed: 'jarra-s' });
@@ -430,12 +431,15 @@ Tableau.darknight.stratum = (z) => {
             });
             const L = N.lantern(P, { x: 330, y: -380, s: 1.35, seed: 'apagado-s' });
             N.smoke(P, L.vent[0], L.vent[1] - 4, { seed: 'apagado-s', h: 300, alpha: 0.55, drift: -0.2 });
+            tk('things');
             // smoke through the folds
             N.haze(P, { y: -260, band: 260, seed: 'humo-s1', alpha: 0.3, n: 40 });
             N.haze(P, { x0: 200, x1: 900, y: -420, band: 120, seed: 'humo-luna', alpha: 0.5, n: 20 });
             N.moth(P, { x: -560, y: -430, s: 1.1, rot: 0.5, open: 1, seed: 'sm1' });
             N.moth(P, { x: 640, y: -240, s: 1, rot: -1.1, open: 0.7, seed: 'sm2', pale: true });
+            tk('smoke');
             P.light(lightsFor('far'), { amb: [0.2, 0.17, 0.33] });
+            tk('light');
             for (const c of BANK) if (c.lit) N.flame(g, flameOf(c).x, flameOf(c).y, { seed: c.seed, h: 44, w: 12, R: 70, glow: 0.55 });
             for (const w of embers) N.ember(g, w.x, w.y);
             S.tooth(g, box, { amp: 0.04 });

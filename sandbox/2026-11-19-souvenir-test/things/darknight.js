@@ -3376,7 +3376,7 @@ const Night = (() => {
             // the edge rolls under
             if (mb < 0.5) q.nz = 0.4 + mb;
             const valley = clamp(0.5 - h / 44);
-            const n = noise2(ux * 0.03, uy * 0.03, sd) * 0.05;
+            const n = 0.025 * Math.sin(ux * 0.031 + Math.sin(uy * 0.027 + sd) * 2) * Math.sin(uy * 0.023 + sd);
             q.r = col[0] * (1 - valley * 0.25) + n;
             q.g = col[1] * (1 - valley * 0.2) + n * 0.6;
             q.b = col[2] * (1 + valley * 0.1) + n;

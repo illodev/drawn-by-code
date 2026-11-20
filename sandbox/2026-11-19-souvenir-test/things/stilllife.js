@@ -3329,7 +3329,10 @@ const Still = (() => {
     // bloom, older ones yellowing), 'cardoon' (pinnate, toothed, silver, its underside downy),
     // 'quince' (oval, entire, dark glossy green above, grey felt below). Along +x from (0, 0),
     // pasted at rot (its light baked for it).
-    function looseLeaf(res, key, rot, kind, s = 1) {
+    // (the light is baked for the nearest of eight turns; paste it at its true angle)
+    const snap8 = (a) => Math.round(a / (Math.PI / 4)) * (Math.PI / 4);
+    function looseLeaf(res, key, rot0, kind, s = 1) {
+        const rot = snap8(rot0);
         return memo(`lleaf@${res}/${key}/${kind}/${rot.toFixed(2)}`, () => {
             const r = Motion.rng('ll' + key), sd = S.seedOf('ll' + key);
             const L = (kind === 'cabbage' ? 230 : kind === 'cardoon' ? 210 : 74) * (0.85 + r() * 0.3), W = kind === 'cabbage' ? L * 0.5 : kind === 'cardoon' ? L * 0.17 : L * 0.36;
@@ -3412,17 +3415,17 @@ const Still = (() => {
             const rot = a + side * (1.2 + r() * 0.5) + Math.PI / 2;
             heads.push({ x: p[0] - Math.sin(a) * side * 20 * s, y: p[1] + Math.cos(a) * side * 20 * s, rot, front: r() < 0.55, sd: 'b' + i });
         }
-        const one = (h) => {
-            const sp = garlicSprite(res, (o.seed ?? 'br') + h.sd, h.rot);
+        const one = (h, j) => {
+            const sp = garlicSprite(res, 'br' + (j % 3), snap8(h.rot));
             g.save();
             g.globalCompositeOperation = 'source-atop';
             S.put(g, shadowOf(sp, 5), { x: h.x + SD[0] * 8, y: h.y + SD[1] * 8, rot: h.rot, s, alpha: 0.65 });
             g.restore();
             S.put(g, sp, { x: h.x, y: h.y, rot: h.rot, s });
         };
-        heads.filter((h) => !h.front).forEach(one);
+        heads.forEach((h, j) => !h.front && one(h, j));
         cord(g, c, 10 * s, { seed: 'bc' + (o.seed ?? 0), color: [176, 150, 100] });
-        heads.filter((h) => h.front).forEach(one);
+        heads.forEach((h, j) => h.front && one(h, j));
     }
     // A quince twig: grey-brown wood with lenticels, leaves alternate along it (some showing
     // their felted undersides), a small quince at its end now and then.
@@ -3442,10 +3445,10 @@ const Still = (() => {
         });
         for (let k = 0; k < (o.n ?? 5); k++) {
             const u = 0.15 + (k / (o.n ?? 5)) * 0.8, side = k % 2 ? 1 : -1, x = p0[0] + ax * u, y = p0[1] + ay * u;
-            layLeaf(g, x, y, a + side * (0.7 + r() * 0.5), 'quince', (o.seed ?? 'q') + k, s * (0.9 + r() * 0.3));
+            layLeaf(g, x, y, a + side * (0.7 + r() * 0.5), 'quince', 'q' + (k % 3), s * (0.9 + r() * 0.3));
         }
         if (o.fruit) {
-            const qs = quinceSprite(resOf(g, s * 0.7), 'tw' + (o.seed ?? 0), a - Math.PI / 2);
+            const qs = quinceSprite(resOf(g, s * 0.7), 'tw', snap8(a - Math.PI / 2));
             S.put(g, shadowOf(qs, 5), { x: p1[0] + 10, y: p1[1] + 10, rot: a - Math.PI / 2, s: s * 0.7, alpha: 0.6 });
             S.put(g, qs, { x: p1[0], y: p1[1], rot: a - Math.PI / 2, s: s * 0.7 });
         }
@@ -3492,8 +3495,8 @@ const Still = (() => {
                 S.put(g, shadowOf(lp, 9), { x: x + SD[0] * 12, y: y + SD[1] * 12, alpha: 0.75 });
                 g.restore();
                 put(g, lp, x, y, 1);
-            } else if (v < 0.56) layLeaf(g, x, y, toAxis + (r() - 0.5) * 1.6, 'cabbage', 'hc' + (i % 11), rad / 120);
-            else if (v < 0.68) layLeaf(g, x, y, toAxis + (r() - 0.5) * 1.4, 'cardoon', 'hd' + (i % 7), rad / 110);
+            } else if (v < 0.56) layLeaf(g, x, y, toAxis + (r() - 0.5) * 1.6, 'cabbage', 'hc' + (i % 4), rad / 120);
+            else if (v < 0.68) layLeaf(g, x, y, toAxis + (r() - 0.5) * 1.4, 'cardoon', 'hd' + (i % 3), rad / 110);
             else if (v < 0.77) {
                 const a = r() * TAU, l = rad * 2.2;
                 braid(g, [[x - Math.cos(a) * l / 2, y - Math.sin(a) * l / 2], [x, y + 10], [x + Math.cos(a) * l / 2, y + Math.sin(a) * l / 2]], { n: 7, s: 1.05, seed: 'hb' + (i % 5) });
