@@ -2409,7 +2409,7 @@ const Dome = (() => {
     function heap(g, o = {}) {
         const { box, seed = 101, gap = [430, 300], clusters = [] } = o;
         const r = Motion.rng('heap/' + seed);
-        const inGap = (x, y, rad) => Math.hypot(x / gap[0], y / gap[1]) < 1 + rad / 380 + 0.12 * noise2(x * 0.006, y * 0.006, seed);
+        const inGap = (x, y, rad) => Math.hypot(x / gap[0], y / gap[1]) < 1 + rad / 380 + 0.22 * noise2(x * 0.0045, y * 0.0045, seed) + 0.08 * noise2(x * 0.015, y * 0.015, seed + 1);
         const pieces = [];
         // the large pieces first: carved plaster chunks, stucco leaves, tiles
         for (let k = 0; k < 2400 && pieces.length < 330; k++) {
@@ -2433,12 +2433,12 @@ const Dome = (() => {
                 y = box.y + r() * box.h;
             }
             const u = r(), kind = cl ? (u < 0.85 ? 'gold' : 'glass') : u < 0.55 ? 'gold' : u < 0.63 ? 'glass' : u < 0.86 ? 'chip' : 'tile';
-            const size = { gold: 8, glass: 7.5, chip: 20, tile: 22 }[kind] * (0.7 + r() * 0.6);
+            const size = { gold: 10, glass: 8.5, chip: 20, tile: 22 }[kind] * (0.7 + r() * 0.6);
             if (inGap(x, y, size)) continue;
             pieces.push({ x, y, kind, size, h: r(), rot: r() * TAU, u: r(), v: r() });
         }
         pieces.sort((a, b) => a.h - b.h);
-        const GLZ = ['white', 'white', 'honey', 'green', 'blue', 'black'], GLS = ['green', 'blue', 'red', 'teal'];
+        const GLZ = ['white', 'white', 'honey', 'honey', 'green', 'blue', 'black'], GLS = ['green', 'blue', 'red', 'teal'];
         surface(g, box, {
             depth: 20, sharp: 0.5, soft: 2.5, swell: 0.6, ao: 8, aoK: 0.25, aoA: 0.5, cast: 9, castA: 0.6, env: () => 1,
             draw(A, Hc, Mc) {
@@ -2503,8 +2503,8 @@ const Dome = (() => {
                             q.clip();
                         }
                         // the azure ground and a palmette carved on it
-                        A.fillStyle = p.u < 0.7 ? S.rgb2hex(...AZURE) : S.rgb2hex(...RED);
-                        A.globalAlpha = 0.85;
+                        A.fillStyle = p.u < 0.28 ? S.rgb2hex(...AZURE) : p.u < 0.45 ? S.rgb2hex(...RED) : p.u < 0.55 ? S.rgb2hex(...GREENP) : S.rgb2hex(...lerp3(IVORY, GOLD, 0.35, [0, 0, 0]));
+                        A.globalAlpha = p.u < 0.55 ? 0.85 : 0.6;
                         A.fillRect(p.x - z, p.y - z, z * 2, z * 2);
                         A.globalAlpha = 1;
                         for (const q of [A, Hc]) {
@@ -2586,8 +2586,8 @@ const Dome = (() => {
         try {
             fMuqarnas(g, { x: -660, y: -260, rot: 2.75, s: 1.7, seed: 5 });
             fWindow(g, { x: 660, y: 70, rot: 0.14, s: 2.4, seed: 6 });
-            fRib(g, { x: 60, y: 500, rot: -0.1, s: 1.8, seed: 7 });
-            spider(g, 170, 430, 1.6, 80);
+            fRib(g, { x: 40, y: 430, rot: -0.1, s: 1.8, seed: 7 });
+            spider(g, 160, 352, 1.6, 80);
         } finally {
             HOUSE = 0;
         }
@@ -2596,7 +2596,7 @@ const Dome = (() => {
         HOUSE = 1;
         try {
             fCeiling(g, { x: -860, y: 140, rot: 0.32, s: 1.7, seed: 8 });
-            fCorbel(g, { x: 830, y: -260, rot: -0.85, s: 3.0, seed: 9 });
+            fCorbel(g, { x: 700, y: -210, rot: -0.85, s: 3.0, seed: 9 });
         } finally {
             HOUSE = 0;
         }
