@@ -3485,7 +3485,8 @@ const Still = (() => {
         spots.forEach(([x, y, rad, v], i) => {
             const toAxis = Math.atan2(-y, -x);
             if (v < 0.34) {
-                const lp = linenPiece(resOf(g, 1, 0.75), 'hp' + (o.seed ?? 0) + (i % 9), { w: rad * 2.4, h: rad * 1.5, a: (i % 9) * 0.7, hem: i % 3 === 0, darn: i % 7 === 0 });
+                const k = i % 16, rk = Motion.rng('hpk' + k);
+                const lp = linenPiece(resOf(g, 1, 0.75), 'hp' + (o.seed ?? 0) + k, { w: 230 + rk() * 200, h: 150 + rk() * 120, a: rk() * Math.PI, hem: k % 3 === 0, darn: k % 7 === 0, lit: 0.82 });
                 g.save();
                 g.globalCompositeOperation = 'source-atop';
                 S.put(g, shadowOf(lp, 9), { x: x + SD[0] * 12, y: y + SD[1] * 12, alpha: 0.75 });
@@ -3508,7 +3509,7 @@ const Still = (() => {
         g.globalCompositeOperation = 'source-atop';
         const gr = g.createRadialGradient(lx, ly, lr * 0.15, lx, ly, lr);
         gr.addColorStop(0, 'rgba(8,5,3,0)');
-        gr.addColorStop(1, 'rgba(8,5,3,0.72)');
+        gr.addColorStop(1, 'rgba(8,5,3,0.84)');
         g.fillStyle = gr;
         g.fillRect(box.x, box.y, box.w, box.h);
         const gg = g.createRadialGradient(0, 0, Math.min(GX, GY) * 0.9, 0, 0, Math.max(GX, GY) * 1.6);

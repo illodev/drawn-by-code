@@ -144,7 +144,7 @@ const THINGS = (W) => {
 };
 const ALL = (env) => {
     const pages = THINGS();
-    const layers = typeof Tableau !== 'undefined' && Tableau.stilllife ? Tableau.stilllife(0) : [];
+    const layers = typeof Tableau !== 'undefined' && Tableau.stilllife ? [...(Tableau.stilllife.stratum ? Tableau.stilllife.stratum(0) : []), ...Tableau.stilllife(0)] : [];
     for (const ly of layers) {
         pages.push((q) => {
             // the layer painted as the rig paints it, then shown at scale 1 about the axis
