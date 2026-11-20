@@ -3243,14 +3243,14 @@ const Still = (() => {
     // braids of garlic, quince twigs with their leaves. One hard lamp from the top left; the
     // folds go down to brown-black.
     const turn2 = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)];
-    const LINEN = [[0, '#0a0806'], [0.14, '#1a1611'], [0.28, '#342e26'], [0.42, '#5a5246'], [0.56, '#857c6c'], [0.7, '#aaa18e'], [0.82, '#c8bfaa'], [0.92, '#ddd6c4'], [1, '#efeadc']];
+    const LINEN = [[0, '#0a0705'], [0.14, '#1c150e'], [0.28, '#382c1f'], [0.42, '#5e4f3c'], [0.56, '#8a7a62'], [0.7, '#b0a284'], [0.82, '#cdc1a2'], [0.92, '#e2d9c0'], [1, '#f2ecda']];
     // A piece of linen lying in heavy folds: an irregular sheet w × h, its folds running at
     // angle a; a hem with its stitches along one edge, sometimes a darn, a stain. Lit in the
     // page's frame (the geometry is turned, never the canvas).
     function linenPiece(res, key, o = {}) {
         return memo(`linenp@${res}/${key}`, () => {
             const r = Motion.rng('lp' + key), sd = S.seedOf('lp' + key);
-            const W = o.w ?? 300, H = o.h ?? 200, a = o.a ?? 0.3, ca = Math.cos(a), sa = Math.sin(a), RAMPL = S.rampFn(LINEN, 0.95);
+            const W = o.w ?? 300, H = o.h ?? 200, a = o.a ?? 0.3, fa = o.fa ?? a, ca = Math.cos(fa), sa = Math.sin(fa), RAMPL = S.rampFn(LINEN, 0.95);
             // a cloth's outline: four sides that sag and wander between corners, one corner
             // turned under
             const C = [[-W / 2, -H / 2], [W / 2, -H / 2], [W / 2, H / 2], [-W / 2, H / 2]].map(([x, y], k) => [x * (0.85 + r() * 0.25) + (r() - 0.5) * W * 0.1, y * (0.8 + r() * 0.3) + (r() - 0.5) * H * 0.1]);
@@ -3277,11 +3277,15 @@ const Still = (() => {
             };
             const darn = o.darn ? [(r() - 0.5) * W * 0.4, (r() - 0.5) * H * 0.4] : null;
             const stain = r() < 0.4 ? [(r() - 0.5) * W * 0.5, (r() - 0.5) * H * 0.5, 14 + r() * 18] : null;
+            // the fold height, once per pixel (one column and row more for the slopes)
+            const bx = S.bbox(pts, 6), gw = Math.ceil(bx.w * res) + 2, gh = Math.ceil(bx.h * res) + 2, HG = new Float32Array(gw * gh);
+            for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) HG[j * gw + i] = h(bx.x + (i + 0.5) / res, bx.y + (j + 0.5) / res);
             const sp = pixels({
-                box: S.bbox(pts, 6), res,
+                box: bx, res,
                 mask: (g) => poly(g, pts),
                 color: (x, y, rgb) => {
-                    const e = 0.8, h0 = h(x, y), hx = (h(x + e, y) - h0) / e, hy = (h(x, y + e) - h0) / e;
+                    const i = Math.min(gw - 2, Math.max(0, Math.floor((x - bx.x) * res))), j = Math.min(gh - 2, Math.max(0, Math.floor((y - bx.y) * res))), k0 = j * gw + i;
+                    const h0 = HG[k0], hx = (HG[k0 + 1] - h0) * res, hy = (HG[k0 + gw] - h0) * res;
                     const n = norm3([-hx * 1.1, -hy * 1.1, 1]), lam = n[0] * LN[0] + n[1] * LN[1] + n[2] * LN[2];
                     // the weave at close range, slubs in the thread
                     const u = x * ca + y * sa, v = -x * sa + y * ca;
@@ -3412,8 +3416,11 @@ const Still = (() => {
         const c = S.curve(pts, false, 8), heads = [];
         for (let i = 2; i < c.length - 1; i += Math.max(2, Math.round(c.length / (o.n ?? 8)))) {
             const p = c[i], q = c[Math.min(c.length - 1, i + 1)], a = Math.atan2(q[1] - p[1], q[0] - p[0]), side = heads.length % 2 ? 1 : -1;
-            const rot = a + side * (1.2 + r() * 0.5) + Math.PI / 2;
-            heads.push({ x: p[0] - Math.sin(a) * side * 20 * s, y: p[1] + Math.cos(a) * side * 20 * s, rot, front: r() < 0.55, sd: 'b' + i });
+            // the head hangs out from the plait, its neck plaited into it: the sprite's up (−y,
+            // the neck) points back at the spine
+            const out = Math.atan2(Math.cos(a) * side, -Math.sin(a) * side) + (r() - 0.5) * 0.5;
+            const rot = out - Math.PI / 2;
+            heads.push({ x: p[0] - Math.sin(a) * side * 30 * s, y: p[1] + Math.cos(a) * side * 30 * s, rot, front: r() < 0.6, sd: 'b' + i });
         }
         const one = (h, j) => {
             const sp = garlicSprite(res, 'br' + (j % 3), snap8(h.rot));
@@ -3424,7 +3431,7 @@ const Still = (() => {
             S.put(g, sp, { x: h.x, y: h.y, rot: h.rot, s });
         };
         heads.forEach((h, j) => !h.front && one(h, j));
-        cord(g, c, 10 * s, { seed: 'bc' + (o.seed ?? 0), color: [176, 150, 100] });
+        cord(g, c, 15 * s, { seed: 'bc' + (o.seed ?? 0), color: [150, 128, 86] });
         heads.forEach((h, j) => h.front && one(h, j));
     }
     // A quince twig: grey-brown wood with lenticels, leaves alternate along it (some showing
@@ -3432,10 +3439,7 @@ const Still = (() => {
     function quinceTwig(g, p0, p1, o = {}) {
         const r = Motion.rng('qt' + (o.seed ?? 0)), s = o.s ?? 1;
         const ax = p1[0] - p0[0], ay = p1[1] - p0[1], len = Math.hypot(ax, ay), a = Math.atan2(ay, ax);
-        g.save();
-        g.globalCompositeOperation = 'source-atop';
-        softly(g, 4, (q) => S.ink(q, [p0, p1].map(([x, y]) => [x + SD[0] * 8, y + SD[1] * 8]), { w: 9 * s, color: '#040302', alpha: 0.6 }));
-        g.restore();
+        S.cast(g, (q) => S.ink(q, [p0, p1], { w: 9 * s, color: '#000' }), { blur: 4, dx: SD[0] * 8, dy: SD[1] * 8, color: 'rgba(4,3,2,0.6)' });
         rod(g, p0, p1, (u) => (4.5 - 2 * u) * s, (n, u, v, rgb, x, y) => {
             const lam = Math.max(0, n[0] * LN[0] + n[1] * LN[1] + n[2] * LN[2]);
             rgb[0] = 22 + 120 * lam;
@@ -3463,7 +3467,7 @@ const Still = (() => {
         const out = (x, y, rad) => Math.hypot(x / GX, y / GY) >= 1 + rad / 380 + 0.08 * S.noise2(Math.atan2(y, x) * 2, 0, sd);
         // the cloth under everything, in deep shadow: big folds, the weave barely there
         // (painted at half a pixel per unit: it is in deep shadow and mostly covered)
-        const base = linenPiece(0.5, 'heapbase' + (o.seed ?? 0), { w: box.w * 1.5, h: box.h * 1.5, a: 0.45, lit: 0.42 });
+        const base = linenPiece(0.5, 'heapbase' + (o.seed ?? 0), { w: box.w * 1.12, h: box.h * 1.16, a: 0, fa: 0.45, lit: 0.3 });
         g.save();
         g.beginPath();
         g.rect(box.x, box.y, box.w, box.h);
@@ -3489,7 +3493,7 @@ const Still = (() => {
             const toAxis = Math.atan2(-y, -x);
             if (v < 0.34) {
                 const k = i % 16, rk = Motion.rng('hpk' + k);
-                const lp = linenPiece(resOf(g, 1, 0.75), 'hp' + (o.seed ?? 0) + k, { w: 230 + rk() * 200, h: 150 + rk() * 120, a: rk() * Math.PI, hem: k % 3 === 0, darn: k % 7 === 0, lit: 0.82 });
+                const lp = linenPiece(resOf(g, 1, 0.75), 'hp' + (o.seed ?? 0) + k, { w: 230 + rk() * 200, h: 150 + rk() * 120, a: rk() * Math.PI, hem: k % 3 === 0, darn: k % 7 === 0, lit: 0.72 });
                 g.save();
                 g.globalCompositeOperation = 'source-atop';
                 S.put(g, shadowOf(lp, 9), { x: x + SD[0] * 12, y: y + SD[1] * 12, alpha: 0.75 });
@@ -3499,7 +3503,7 @@ const Still = (() => {
             else if (v < 0.68) layLeaf(g, x, y, toAxis + (r() - 0.5) * 1.4, 'cardoon', 'hd' + (i % 3), rad / 110);
             else if (v < 0.77) {
                 const a = r() * TAU, l = rad * 2.2;
-                braid(g, [[x - Math.cos(a) * l / 2, y - Math.sin(a) * l / 2], [x, y + 10], [x + Math.cos(a) * l / 2, y + Math.sin(a) * l / 2]], { n: 7, s: 1.05, seed: 'hb' + (i % 5) });
+                braid(g, [[x - Math.cos(a) * l / 2, y - Math.sin(a) * l / 2], [x, y + 10], [x + Math.cos(a) * l / 2, y + Math.sin(a) * l / 2]], { n: 8, s: 1.3, seed: 'hb' + (i % 5) });
             } else {
                 const a = toAxis + (r() - 0.5) * 1.2, l = rad * 1.8;
                 quinceTwig(g, [x - Math.cos(a) * l / 2, y - Math.sin(a) * l / 2], [x + Math.cos(a) * l / 2, y + Math.sin(a) * l / 2], { seed: 'ht' + (i % 6), n: 4, fruit: i % 4 === 0, s: 1.1 });
@@ -3511,8 +3515,9 @@ const Still = (() => {
         g.save();
         g.globalCompositeOperation = 'source-atop';
         const gr = g.createRadialGradient(lx, ly, lr * 0.15, lx, ly, lr);
-        gr.addColorStop(0, 'rgba(8,5,3,0)');
-        gr.addColorStop(1, 'rgba(8,5,3,0.84)');
+        gr.addColorStop(0, 'rgba(8,5,3,0.08)');
+        gr.addColorStop(0.45, 'rgba(8,5,3,0.5)');
+        gr.addColorStop(1, 'rgba(8,5,3,0.86)');
         g.fillStyle = gr;
         g.fillRect(box.x, box.y, box.w, box.h);
         const gg = g.createRadialGradient(0, 0, Math.min(GX, GY) * 0.9, 0, 0, Math.max(GX, GY) * 1.6);
@@ -3525,7 +3530,7 @@ const Still = (() => {
     // A pad of matter for a thing in a near sheet to lie on (so it has cloth under it to throw
     // its shadow on): a fold of linen and a leaf or two.
     function pad(g, x, y, w, h, o = {}) {
-        const lp = linenPiece(resOf(g, 1, 0.8), 'pad' + (o.seed ?? 0), { w, h, a: o.a ?? 0.15, hem: true, darn: !!o.darn });
+        const lp = linenPiece(resOf(g, 1, 0.8), 'pad' + (o.seed ?? 0), { w, h, a: o.a ?? 0.15, hem: true, darn: !!o.darn, lit: 0.85 });
         g.save();
         g.globalCompositeOperation = 'source-atop';
         S.put(g, shadowOf(lp, 10), { x: x + SD[0] * 12, y: y + SD[1] * 12, alpha: 0.7 });

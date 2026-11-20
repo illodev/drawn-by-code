@@ -497,8 +497,8 @@ Tableau.forge.stratum = (z) => {
                 F.plate(g, { x: 390, y: -220, r: 92, seed: 's-plate', motif: 'granada', ...L });
                 F.tin(g, { x: -360, y: -330, s: 1.25, n: 5, seed: 's-tin', ...L });
                 for (let k = 0; k < 3; k++) F.tuberose(g, { path: [[560 + k * 30, 420 - k * 14], [470 + k * 20, 330 - k * 10], [400 + k * 12, 250 - k * 8], [350 + k * 10, 190 - k * 20]], size: 30, n: 6, seed: 's-nardo' + k, ...L, amb: [0.22, 0.2, 0.26] });
-                F.branch(g, { path: [[900, -640], [560, -480], [200, -400]], w0: 52, w1: 18, leaves: 2, R: 70, seed: 's-owl-limb', warm: 0.4, ...L });
-                F.owl(g, { x: 300, y: -428, s: 0.95, seed: 's-zumaya', ...L });
+                F.branch(g, { path: [[900, -560], [560, -420], [200, -340]], w0: 56, w1: 20, leaves: 2, R: 70, seed: 's-owl-limb', warm: 0.4, mass: 0.35, ...L });
+                F.owl(g, { x: 330, y: -382, s: 1.3, seed: 's-zumaya', ...L, fire: { ...L.fire, c: F.FIRE.map((v) => v * 1.4) } });
                 // smoke drifting across, lit from below, and sparks going up from the fire
                 F.smoke(g, { x: -300, y: -100, h: 700, w: 1500, n: 22, glow: 0.8, alpha: 0.2, seed: 's-smoke' });
                 F.wisp(g, { x: -400, y: 210, r: 16, seed: 's-wisp' });

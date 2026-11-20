@@ -326,11 +326,10 @@ Tableau.darknight.stratum = (z) => {
         // its socket hidden below the frame: only the shaft rises into view
         return N.candle(P, { x: c.x, y: 760, len: 760 - c.top, r: c.rad, seed: c.seed, lit: c.lit, smokeH: 360, alpha: 0.6, wax: o.wax, runs: 3 + (c.seed.length % 3) });
     };
-    const sheet = (id, dz, paint) => ({ id: 'darknight-s-' + id, z: z + dz, box, brush: { amp: 0.045 }, paint });
+    const sheet = (id, dz, paint, extra = {}) => ({ id: 'darknight-s-' + id, z: z + dz, box, brush: { amp: 0.045 }, paint, ...extra });
 
     return [
         sheet('far', D.far, (g) => {
-            let T0 = performance.now(); const tk = (w) => { console.log(w, (performance.now() - T0).toFixed(0)); T0 = performance.now(); };
             const P = N.begin(g);
             const rr = Motion.rng('drapes');
             const wob = (a, b, n, amp, seed) => {
@@ -407,16 +406,14 @@ Tableau.darknight.stratum = (z) => {
             tongue([-1260, 640], [-520, 150], 400, 240, 'veil', 't6', 70);
             tongue([-200, 860], [-120, 330], 320, 230, 'velvet', 't7', 64);
             tongue([-1300, -120], [-560, -20], 300, 200, 'velvet', 't8', 74);
-            tk('drapes');
             // the candles, rising from below the frame
             const embers = [];
             for (const c of BANK) {
                 const w = candleAt(P, c, { wax: c.x < 0 ? [0.86, 0.8, 0.66] : [0.88, 0.83, 0.7] });
                 if (!c.lit) embers.push(w);
             }
-            tk('candles');
             // things on the body: the disc of spheres, lilies in a silver jar, the lantern put out
-            N.disc(P, { x: -345, y: -262, R: 120, seed: 'esferas' });
+            N.disc(P, { x: -440, y: -130, R: 118, seed: 'esferas' });
             const J = N.jar(P, { x: 430, y: 186, h: 160, seed: 'jarra-s' });
             for (const [k, pts, a] of [[0, [[420, 190], [404, 40], [360, -60]], -2.2], [1, [[438, 190], [480, 50], [520, -40]], -0.8], [2, [[430, 190], [440, 70], [452, 0]], -1.5]]) {
                 N.lily(P, { pts, seed: 'az-s' + k, flowers: [{ u: 0.995, a, s: 1.15, open: k === 2 ? 0.2 : 1 }, { u: 0.82, a: a + (k ? 0.9 : -0.8), s: 0.9, open: 0.1 }] });
@@ -431,27 +428,24 @@ Tableau.darknight.stratum = (z) => {
             });
             const L = N.lantern(P, { x: 330, y: -380, s: 1.35, seed: 'apagado-s' });
             N.smoke(P, L.vent[0], L.vent[1] - 4, { seed: 'apagado-s', h: 300, alpha: 0.55, drift: -0.2 });
-            tk('things');
             // smoke through the folds
             N.haze(P, { y: -260, band: 260, seed: 'humo-s1', alpha: 0.3, n: 40 });
             N.haze(P, { x0: 200, x1: 900, y: -420, band: 120, seed: 'humo-luna', alpha: 0.5, n: 20 });
             N.moth(P, { x: -560, y: -430, s: 1.1, rot: 0.5, open: 1, seed: 'sm1' });
             N.moth(P, { x: 640, y: -240, s: 1, rot: -1.1, open: 0.7, seed: 'sm2', pale: true });
-            tk('smoke');
             P.light(lightsFor('far'), { amb: [0.2, 0.17, 0.33] });
-            tk('light');
             for (const c of BANK) if (c.lit) N.flame(g, flameOf(c).x, flameOf(c).y, { seed: c.seed, h: 44, w: 12, R: 70, glow: 0.55 });
             for (const w of embers) N.ember(g, w.x, w.y);
             S.tooth(g, box, { amp: 0.04 });
-        }),
+        }, { res: 0.88 }), // (seen at 0.87 of its size when the middle sheet is read)
         sheet('mid', D.mid, (g) => {
             const P = N.begin(g);
             const F = N.farol(P, { x: FAROL.x, y: FAROL.y, s: FAROL.s, seed: 'cruz-de-guia-s', pole: 900 });
             N.thurible(P, { x: THUR.x, y: THUR.y, s: THUR.s, seed: 'incensario-s', drift: -1.2, smokeH: 620 });
-            N.dove(P, { x: 20, y: -445, s: 1.45, seed: 'paloma-s' });
+            N.dove(P, { x: -205, y: -410, s: 1.45, seed: 'paloma-s' });
             N.book(P, { x: 500, y: 365, w: 440, h: 290, seed: 'cantoral-s' });
             N.moth(P, { x: 380, y: 270, s: 1.2, rot: 2.4, open: 0.3, seed: 'sm3', pale: true });
-            N.moth(P, { x: -470, y: -250, s: 1.2, rot: 0.8, open: 1, seed: 'sm4' });
+            N.moth(P, { x: -520, y: -300, s: 1.2, rot: 0.8, open: 1, seed: 'sm4' });
             P.light(lightsFor('mid'), { amb: [0.16, 0.14, 0.27] });
             N.flame(g, F.fx, F.fy, { seed: 'farol-s', h: 34, w: 10, R: 80, glow: 0.8 });
             N.halo(g, THUR.x, THUR.y + 64 * THUR.s, 50, 0.6);
@@ -460,9 +454,9 @@ Tableau.darknight.stratum = (z) => {
         sheet('near', D.near, (g) => {
             const P = N.begin(g);
             for (const c of NEAR) candleAt(P, c, { wax: [0.86, 0.8, 0.66] });
-            N.ladderObj(P, { a: [-1180, 820], b: [-640, -800], span: 150, step: 120, w: 30, seed: 'escala-s' });
-            N.vihuela(P, { x: 760, y: 190, s: 1.6, rot: 0.32, seed: 'vihuela-s', hang: -800 });
-            N.moth(P, { x: -760, y: 120, s: 1.6, rot: -0.4, open: 0.2, seed: 'sm5' });
+            N.ladderObj(P, { a: [-1040, 820], b: [-480, -820], span: 150, step: 120, w: 30, seed: 'escala-s' });
+            N.vihuela(P, { x: 690, y: 175, s: 1.5, rot: 0.32, seed: 'vihuela-s', hang: -800 });
+            N.moth(P, { x: -700, y: 110, s: 1.6, rot: -0.4, open: 0.2, seed: 'sm5' });
             P.light(lightsFor('near'), { amb: [0.15, 0.13, 0.26] });
             for (const c of NEAR) N.flame(g, flameOf(c).x, flameOf(c).y, { seed: c.seed, h: 72, w: 19, R: 160, glow: 0.9 });
             S.tooth(g, box, { amp: 0.04 });

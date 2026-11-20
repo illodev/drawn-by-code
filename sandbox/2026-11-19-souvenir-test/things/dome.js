@@ -423,7 +423,18 @@ const Dome = (() => {
         }
     }
     // a ring painter's options for a fragment of it (see `fragment`)
-    const frag = (o, opts) => (o.map ? { ...opts, map: o.map, clip: o.clip, lrot: o.lrot, env: o.env ?? (() => 1), draw: o.bare ? null : opts.draw } : opts);
+    const frag = (o, opts) => (o.map ? {
+        ...opts, map: o.map, clip: o.clip, lrot: o.lrot, env: o.env ?? (() => 1),
+        // the painter's vector pass, drawn in the ring's units through the fragment's affine
+        draw: o.xf && opts.draw ? (A, Hc, Mc) => {
+            for (const q of [A, Hc, Mc]) {
+                q.save();
+                q.transform(...o.xf);
+            }
+            opts.draw(A, Hc, Mc);
+            for (const q of [A, Hc, Mc]) q.restore();
+        } : null,
+    } : opts);
     const put = (P, i, c, al = 255) => {
         const o4 = i * 4;
         P.a[o4] = c[0];
@@ -2272,7 +2283,15 @@ const Dome = (() => {
             S.trace(m, pts);
             m.fill();
         };
-        f.paint(q, bb, { map, clip, lrot: rot, bare: true });
+        // ring → page, the inverse of `map` (an affine: three points fix it)
+        const R0 = [0, 0], R1 = [0, 0], R2 = [0, 0];
+        map(0, 0, R0);
+        map(1, 0, R1);
+        map(0, 1, R2);
+        const a = R1[0] - R0[0], b = R1[1] - R0[1], cc = R2[0] - R0[0], d = R2[1] - R0[1], det = a * d - b * cc;
+        const ia = d / det, ib = -b / det, ic = -cc / det, id = a / det;
+        const xf = [ia, ib, ic, id, -(ia * R0[0] + ic * R0[1]), -(ib * R0[0] + id * R0[1])];
+        f.paint(q, bb, { map, clip, lrot: rot, bare: true, xf });
         if (f.after) f.after(q, toPage);
         S.stamp(g, { canvas: cv, box: bb }, { lw: 2.3, heavy: 0.8, cast: { blur: 14, dx: 10, dy: 14, color: 'rgba(36,22,14,0.55)' } });
     }
@@ -2372,7 +2391,7 @@ const Dome = (() => {
             from: (lx, ly, Q) => ((Q[0] = lx + 120), (Q[1] = -(270 + ly + 150))), paint: (q, box, p) => plaster(q, { box, h: 270, ...p }),
             after: (q, P) => {
                 const c = P([-6, -4]);
-                nest(q, { x: c[0], y: c[1], s: 1.1 * (o.s ?? 1), seed: 'st' + o.seed });
+                nest(q, { x: c[0], y: c[1], s: 2.1 * (o.s ?? 1), seed: 'st' + o.seed });
             } });
     }
     // the spider on its line
