@@ -70,13 +70,14 @@ Motion.scene({
             // rectangle in the night; it is in the brush manner: its strokes are in its own paint)
             ...Tableau.lemons(ZL).map((l) => ({ ...l, far: [0.26, 0.34], brush: false })),
         ];
-        // A picture is first seen through the hole of the one before: its strata come out
-        // of the night together with the plate that hole is in (never later: a hole on
-        // nothing reads as a blue disc). Its own plate keeps its distance, so the picture
-        // after it stays in the night until this one is being crossed.
+        // A picture is first seen through the hole of the one before: all of it, its plate
+        // too, comes out of the night together with the plate that hole is in (never later:
+        // a hole on nothing reads as a blue disc in the middle of the picture). The picture
+        // after it does not follow: it is timed on the distance this plate would have kept
+        // on its own (`own`), so only one picture ahead is ever out of the night.
         const behind = (plate, ls) => {
-            const last = Math.max(...ls.map((l) => l.z)), [f0, f1] = plate.far;
-            return ls.map(far).map((l) => (l.z === last ? l : { ...l, far: [Math.min(l.far[0], 1000 / (l.z - plate.z + 1000 / f0)), Math.min(l.far[1], 1000 / (l.z - plate.z + 1000 / f1))] }));
+            const [f0, f1] = plate.own ?? plate.far;
+            return ls.map(far).map((l) => ({ ...l, own: l.far, far: [Math.min(l.far[0], 1000 / (l.z - plate.z + 1000 / f0)), Math.min(l.far[1], 1000 / (l.z - plate.z + 1000 / f1))] }));
         };
         const plateOf = (ls) => ls.reduce((a, l) => (l.z > a.z ? l : a));
         let z = ZL + Tableau.lemons.depth, plate = plateOf(layers);

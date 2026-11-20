@@ -366,9 +366,11 @@ realistic), no people, the camera untouched.
 - **Assembly (`scene.js`):** every picture starts 700 behind the plate of the one before.
   What had to be solved there:
   1. **A hole on nothing is a blue disc.** With every layer fading in at its own distance,
-     the picture behind a hole was still in the night when the hole was read · → a
-     picture's strata come out of the night together with the plate they are seen
-     through; its own plate keeps its distance, so the picture after stays dark.
+     the picture behind a hole was still in the night when the hole was read, and, at
+     the second try, its plate was (a violet disc in the middle of the lemon tree, of the
+     fig, of the still life) · → a whole picture, plate included, comes out of the night
+     together with the plate it is seen through; the picture after it is timed on the
+     distance that plate would have kept on its own, so only one picture ahead is out.
   2. **«The innermost circle, which is light» showed a blurred blue dome** · → the gap
      behind the dark night's hole holds five thin veils of gold light: the camera comes
      out of the light little by little, and the dome clears.
