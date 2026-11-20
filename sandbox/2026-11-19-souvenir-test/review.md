@@ -487,3 +487,10 @@ else: strata of loose things lying on one another, with the way through only a g
   joined in a softer stretch to its own last chord, which falls at 26.95 s as the
   signature comes up. Nobody here has listened.
 
+Checked on the render (round 7): eight pieces of 4 s joined, 732 frames, 30.5 s; every
+pair of consecutive frames compared, no jump; two frames a second read as a sheet (the
+second passage is strata of things in seven lights, the moon small between the lemons and
+growing); `review.mjs` clean. Sent back once more after the first render: the still
+life's way through had a smooth oval edge (its base cloth), now cut wider and irregular
+with linen, leaves and garlic reaching in over it.
+

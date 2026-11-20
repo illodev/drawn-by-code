@@ -3268,7 +3268,7 @@ const Still = (() => {
             const pts = S.xf(S.curve(raw.filter((_, j) => j % 2 === 0), true, 4), { rot: a });
             // folds: ridges and troughs across the sheet, a few deep ones, crossing creases
             // heavy linen: two or three deep folds, smaller ones riding on them
-            const F = Array.from({ length: 6 }, (_, i) => [(i < 3 ? 0.028 : 0.07) + r() * 0.03, r() * TAU, (i < 3 ? 14 : 3.5) * (0.6 + r() * 0.6), (r() - 0.5) * 0.01]);
+            const F = Array.from({ length: 6 }, (_, i) => [((i < 3 ? 0.028 : 0.07) + r() * 0.03) * (o.ff ?? 1), r() * TAU, (i < 3 ? 14 : 3.5) * (0.6 + r() * 0.6) * (o.fold ?? 1), (r() - 0.5) * 0.01]);
             const h = (x, y) => {
                 const u = x * ca + y * sa, v = -x * sa + y * ca;
                 let z = 0;
@@ -3292,7 +3292,7 @@ const Still = (() => {
                     const wv = Math.sin(u * 2.5) * Math.sin(v * 2.5 + 1.5) * 0.5 + 0.5;
                     // white linen: whatever faces the lamp at all is pale; the folds that turn away
                     // go down to brown-black
-                    let tone = 0.05 + Math.max(0, lam + 0.3) * (o.lit ?? 0.95) + 0.035 * (wv - 0.5) + 0.03 * S.noise2(u * 0.06, v * 1.1, sd + 3) + 0.01 * h0;
+                    let tone = 0.05 + Math.max(0, lam + 0.3) * (o.lit ?? 0.95) + (o.fold != null && o.fold < 0.5 ? 0.06 : 0.035) * (wv - 0.5) + 0.03 * S.noise2(u * 0.06, v * 1.1, sd + 3) + 0.01 * h0;
                     RAMPL(clamp(tone), rgb);
                     if (stain) {
                         const q = Math.hypot(x - stain[0], (y - stain[1]) * 1.3) / stain[2] + 0.2 * S.noise2(x * 0.1, y * 0.1, sd + 5);
@@ -3501,9 +3501,10 @@ const Still = (() => {
         g.beginPath();
         g.rect(box.x, box.y, box.w, box.h);
         const ring = [];
-        for (let k = 0; k < 60; k++) {
-            const t = (k / 60) * TAU, rr = 1.08 + 0.18 * S.noise2(Math.cos(t) * 1.5, Math.sin(t) * 1.5, sd + 1) + 0.07 * Math.sin(t * 5 + sd);
-            ring.push([Math.cos(t) * GX * rr, Math.sin(t) * GY * rr]);
+        for (let k = 0; k < 90; k++) {
+            const t = (k / 90) * TAU, c = Math.cos(t), sn = Math.sin(t);
+            const rr = 1.32 + 0.24 * S.noise2(c * 1.4, sn * 1.4, sd + 1) + 0.12 * S.noise2(c * 4, sn * 4, sd + 2) + 0.06 * Math.sin(t * 7 + sd);
+            ring.push([c * GX * rr, sn * GY * rr]);
         }
         S.trace(g, ring);
         g.clip('evenodd');
@@ -3522,7 +3523,7 @@ const Still = (() => {
             const toAxis = Math.atan2(-y, -x);
             if (v < 0.34) {
                 const k = i % 16, rk = Motion.rng('hpk' + k);
-                const lp = linenPiece(resOf(g, 1, 0.75), 'hp' + (o.seed ?? 0) + k, { w: 230 + rk() * 200, h: 150 + rk() * 120, a: rk() * Math.PI, hem: k % 3 === 0, darn: k % 7 === 0, lit: 0.72 });
+                const lp = linenPiece(resOf(g, 1, 0.75), 'hp' + (o.seed ?? 0) + k, { w: 230 + rk() * 200, h: 150 + rk() * 120, a: rk() * Math.PI, hem: k % 3 === 0 || k % 4 === 1, darn: k % 7 === 0, lit: k % 4 === 1 ? 0.9 : 0.72, fold: k % 4 === 1 ? 0.25 : 1, ff: k % 4 === 1 ? 0.8 : 1 });
                 g.save();
                 g.globalCompositeOperation = 'source-atop';
                 S.put(g, shadowOf(lp, 9), { x: x + SD[0] * 12, y: y + SD[1] * 12, alpha: 0.75 });
@@ -3547,12 +3548,30 @@ const Still = (() => {
         gr.addColorStop(1, 'rgba(8,5,3,0.86)');
         g.fillStyle = gr;
         g.fillRect(box.x, box.y, box.w, box.h);
-        const gg = g.createRadialGradient(0, 0, Math.min(GX, GY) * 0.9, 0, 0, Math.max(GX, GY) * 1.6);
-        gg.addColorStop(0, 'rgba(6,4,2,0.55)');
-        gg.addColorStop(1, 'rgba(6,4,2,0)');
-        g.fillStyle = gg;
-        g.fillRect(box.x, box.y, box.w, box.h);
         g.restore();
+        // 3 · the gap's edge is made of things: pieces reaching in over it from the heap, at
+        // their own depths and angles, 60–120 units past where the cloth was cut, each lit on
+        // its own side and throwing its shadow; laid after the lamp's fall so they catch the
+        // light at the rim of the dark
+        const rim = Motion.rng('rim' + (o.seed ?? 0)), NE = o.edge ?? 16;
+        for (let k = 0; k < NE; k++) {
+            const t = ((k + 0.3 + rim() * 0.4) / NE) * TAU, c = Math.cos(t), sn = Math.sin(t);
+            const rOut = 1.18 + rim() * 0.2, reach = 60 + rim() * 60;
+            const bx = c * GX * rOut, by = sn * GY * rOut, toAxis = Math.atan2(-by, -bx) + (rim() - 0.5) * 0.7;
+            const L = Math.hypot(bx, by) - Math.hypot(c * GX, sn * GY) + reach; // from its base to past the gap's edge
+            const kind = ['linen', 'cabbage', 'linen', 'cardoon', 'twig', 'linen', 'cabbage', 'garlic'][k % 8];
+            if (kind === 'linen') {
+                const lp = linenPiece(resOf(g, 1, 0.75), 'rim' + (o.seed ?? 0) + (k % 6), { w: L * 1.4, h: 110 + rim() * 70, a: toAxis, fa: toAxis + Math.PI / 2 + (rim() - 0.5) * 0.6, hem: true, darn: k % 5 === 0, lit: 0.9, fold: 0.22, ff: 0.8 });
+                const cx = bx + Math.cos(toAxis) * L * 0.42, cy = by + Math.sin(toAxis) * L * 0.42;
+                g.save();
+                g.globalCompositeOperation = 'source-atop';
+                S.put(g, shadowOf(lp, 9), { x: cx + SD[0] * 12, y: cy + SD[1] * 12, alpha: 0.75 });
+                g.restore();
+                put(g, lp, cx, cy, 1);
+            } else if (kind === 'cabbage' || kind === 'cardoon') layLeaf(g, bx, by, toAxis, kind, 'rim' + kind + (k % 4), (L / (kind === 'cabbage' ? 230 : 210)) * (1 + rim() * 0.25));
+            else if (kind === 'twig') quinceTwig(g, [bx, by], [bx + Math.cos(toAxis) * L, by + Math.sin(toAxis) * L], { seed: 'rimt' + k, n: 4, fruit: true, s: 1.1 });
+            else garlicBunch(g, bx + Math.cos(toAxis) * L * 0.25, by + Math.sin(toAxis) * L * 0.25, toAxis, { n: 3, s: 1.3, seed: 'rimg' + k });
+        }
     }
     // A pad of matter for a thing in a near sheet to lie on (so it has cloth under it to throw
     // its shadow on): a fold of linen and a leaf or two.
