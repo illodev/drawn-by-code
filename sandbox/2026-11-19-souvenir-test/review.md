@@ -408,6 +408,18 @@ realistic), no people, the camera untouched.
   sphere lit from the upper left; «zumaya» read as a scops owl; horse brasses on an
   Andalusian bridle; the palace on the hill is generic; seas and craters approximate.
 
+### Checked on the render (round 5)
+
+- The film was rendered in sixteen pieces of 4 s (the container restarted twice during
+  whole renders; pieces on disk survive) and joined without re-encoding: 1512 frames, 63 s.
+- Every pair of consecutive frames compared (mean absolute difference at 480 px, each
+  against its six neighbours): no jump anywhere, none at the joins, none where a plate is
+  dropped or a picture comes out of the night.
+- One frame a second of the whole film read as two sheets: nine pictures, each first seen
+  through the hole of the one before, the signature legible for the last three seconds.
+- `review.mjs` on the whole scene: no warnings, deterministic, no still stretches (35
+  minutes: it samples frames out of order, and each one repaints its layers).
+
 ## Round 6 · music
 
 The user, with the film rendering: «can we put music on it?» Offered: one piece per
