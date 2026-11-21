@@ -18,7 +18,7 @@ inside videos is creative content and stays in whatever language the video needs
 | `.claude/skills/hands/` | Hands: reference first, handedness, grips, one skin, the hand check sheet before any render |
 | `.claude/skills/transitions/` | Transitions between shots and between styles (`engine/transitions.js`) |
 | `.claude/skills/replicate/` | Copying a reference video 1:1: measure, per-drawing tables, element by element, parallel agents |
-| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `gif.mjs`, `detail.mjs`, `serve.mjs` |
+| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `gif.mjs`, `detail.mjs`, `serve.mjs`, `lottie.js` (Lottie files as layers) |
 | `styles/<style>/` | Drawing kit, `template.js`, `README.md` and `strip.jpg` for each style |
 | `sandbox/` | One experiment per folder (`YYYY-MM-DD-name/`), indexed in `INDEX.md` |
 | `assets/sfx/`, `fonts/` | Freely licensed sound effects and fonts |

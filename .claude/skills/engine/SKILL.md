@@ -76,6 +76,45 @@ One file per segment in `segments/` (each adds its function to a global object, 
 style. `scene.js` only assembles: it decides which segment or which transition plays at
 each `t`. See `sandbox/2026-09-24-exquisite-corpse/`.
 
+## Lottie layers
+
+`engine/lottie.js` (in `uses`) plays Lottie `.json` and dotLottie `.lottie` files through
+dotlottie-web (LottieFiles' player: ThorVG in WASM, MIT, `@lottiefiles/dotlottie-web` in
+package.json). The WASM engine is served from node_modules, never the CDN. A layer is
+loaded in `setup` and painted at a local time:
+
+```js
+uses: ['engine/lottie.js'],
+async setup(env) { return { badge: await Lottie.load(env, DIR + 'badge.json', { w: 440 }) }; },
+draw(g, t, env) { env.state.badge.draw(g, t - 0.6, 420, 515, { anchor: [0.5, 0.5] }); },
+```
+
+`load` options: `w` / `h` in logical units (one is enough for a .json), `res` (extra
+resolution under a camera zoom), `fit` / `align`, `animationId` / `themeId` / `themeData` /
+`slots`, `interpolate: false` (whole composition frames only). The layer has
+`draw(g, tl, x, y, { anchor, loop, speed })`, `at(tl, opts)` → its canvas (for
+`Motion.quad`, masks, `Motion.layer`), `frameAt(tl)`, `frames`, `duration`, `fps`.
+
+- **Deterministic.** `setFrame` paints synchronously, so the frame is a pure function of
+  t; review.mjs's out-of-order check passes. The player ignores frames outside
+  `0 … frames − 1` (negative ones too) and keeps the last frame painted, a bug that only
+  shows when frames are painted out of order: `lottie.js` clamps, and throws if a frame
+  did not take.
+- **When it fits:** flat vector motion (icons, UI micro-interactions, badges, loaders, a
+  designer's After Effects export) in product and flat pieces. Not the hand-made styles:
+  Lottie has no paper, grain, ink or texture, and ThorVG skips most AE effects. A Lottie
+  inside a textured style still has to pass that style's «Detail» checklist. Check the
+  licence of any downloaded Lottie; hand-written ones have none to check.
+- **Writing Lottie by code:** `sandbox/2026-11-21-lottie-layer/make-lottie.mjs` is a small
+  vocabulary (shape layers, groups, ellipse, path, fill, stroke, trim path, parenting,
+  hold keys, spatial position) that writes Bodymovin 5.x JSON; ThorVG played all of it.
+- **Easing read from a Lottie.** The keyframe that starts a segment carries both handles
+  (`o` out of it, `i` into the next): `Lottie.ease(key)` = `Ease.bezier(o.x, o.y, i.x,
+  i.y)` = CSS `cubic-bezier`; AE «Easy Ease» is `cubic-bezier(.333, 0, .667, 1)`. On the
+  test card, a dot drawn by code with `Lottie.ease` on the composition's own keyframes stays
+  within 0.4 logical units of ThorVG's dot on every frame, so curves from a designer's
+  Lottie or AE file can be reused 1:1 in code (with the measuring tools of **replicate**).
+
 ## Performance
 
 - Static things (backgrounds, cutouts, textures) are painted once with `Motion.sprite` /
@@ -135,3 +174,4 @@ Chrome: looked up in `CHROME_PATH`, `/opt/pw-browsers`, and the usual Linux/macO
 - 2026-09-27 · pyramid-engraving · The same shader can differ by GPU: in GLSL ES 3.0 a fragment shader's `int`/`uint` default to `mediump` (16 bits on NVIDIA: an integer hash collapsed to a constant), and a float hash like `fract(p · 123.34 …)` amplifies a compiler's reassociation of `(i + 1) · k` into a visible jump at every noise lattice line. Declare `precision highp int`, hash lattices in integers, and check a still on each GPU you render on.
 - 2026-09-30 · external product promo · Motion blur by averaging copies: paint each pass whole into its own layer (`Motion.layer`) and composite it with alpha 1/(k+1); painted straight onto the canvas, each pass's background washes out the previous ones and objects turn half transparent. Pick the number of samples from the real displacement in pixels, at least 3 as soon as anything moves (switching from 1 to 2 samples changes the edges in one frame, a visible jump), and never let it be 1 in a formula like `i / (n − 1)`: 0/0 gives NaN and the layer silently paints nothing (an empty frame).
 - 2026-10-02 · product videos · A scaled `drawImage` with a source crop samples one pixel outside the crop (Chrome): a reused temporary canvas is cleared whole, not only the area about to be copied, or leftovers of the previous group show as a line. And `ctx.filter = 'blur()'` every frame doubled a scene's cost (105 → 47 ms for a frame): blur once into a sprite and stretch it.
+- 2026-11-21 · lottie-layer · A player that ignores an out-of-range seek and keeps its last frame (dotlottie-web outside `0 … frames − 1`) looks right when played in order and breaks only when frames are painted out of order: clamp every seek to the range the player really accepts, and check that the frame took.
