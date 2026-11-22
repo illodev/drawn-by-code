@@ -1,6 +1,6 @@
 ---
 name: after-effects
-description: Building After Effects tools from drawn-by-code — ExtendScript (.jsx) that bakes code-made motion into native AE layers, keyframes and slider-driven expressions, tested inside the user's After Effects. Use it when the user works in After Effects, asks for an AE script or rig, wants to move motion between code and AE, or when working on sandbox/2026-11-21-ae-flock-rig.
+description: Building After Effects tools from drawn-by-code — ExtendScript (.jsx) that bakes code-made motion into native AE layers, keyframes and slider-driven expressions, or builds live expression rigs, tested inside the user's After Effects. Use it when the user works in After Effects, asks for an AE script, rig or expression, wants to move motion between code and AE, or when working on sandbox/2026-11-21-ae-flock-rig or sandbox/2026-11-21-ae-field-effector.
 ---
 
 # After Effects
@@ -12,7 +12,14 @@ art-direct by hand instead of re-prompting. Code earns its place where motion fo
 rule across many elements (flocks, draw-on order, staggers, physics); hero timing and feel
 stay in the graph editor.
 
-Worked example: `sandbox/2026-11-21-ae-flock-rig/` (a flock that follows a keyed null).
+Worked examples: `sandbox/2026-11-21-ae-flock-rig/` (baked: a flock that follows a keyed
+null) and `sandbox/2026-11-21-ae-field-effector/` (live: a MoGraph-style field effector,
+all expressions).
+
+**Bake or live?** If the motion has memory (velocity, collisions, contact), simulate in the
+script and bake keys. If each frame depends only on where things are at that frame (a
+field's falloff, a stagger by distance, gears), leave live expressions: the designer can
+re-key the driver and nothing needs re-running.
 
 ## Shape of a tool
 
@@ -25,6 +32,32 @@ Worked example: `sandbox/2026-11-21-ae-flock-rig/` (a flock that follows a keyed
 | `make-demo.jsx` | Builds a demo project from nothing; with a test flag it renders, logs and saves. It is the test |
 
 Expose `build(comp, …, options)` without UI (`$.global.X_NO_UI`) so the test can call it.
+
+A **live** rig adds two pieces: `*-math.js` (ES3, ASCII) that `build.mjs` pastes, comments
+stripped, into every expression it writes, and the engine preview loads with `uses`; and a
+`test.mjs` that runs **the very expression strings** the script writes against a mock of
+AE's expression objects. The mock must behave like AE (next section), or it passes code
+that AE runs wrong.
+
+## Expressions a rig leaves behind
+
+- **`effect("X")(1)` and `transform.x` are Property objects**, not numbers. Arithmetic
+  converts them; `===`, `!==` and `if ()` don't: a checkbox Property at 0 is still truthy,
+  a dropdown Property never `=== 2`. Read every control with `.value`. A mock that hands
+  out bare numbers hides this; return objects with `valueOf` and `.value`.
+- **An expression only sees other properties after their expressions.** To move layers by
+  a rule measured at their own position, keep Position free and put the move in the Anchor
+  Point, corrected by the inverse of the layer's rotation and scale (and its parent, via
+  `parent.fromComp`): `anchor -= S⁻¹ R⁻¹ d` moves the layer by exactly `d`, pivot included.
+- Compute a shared quantity once in a **slider on the layer** (a weight 0–100) and have the
+  other channels read it: one evaluation, and the channels can't disagree.
+- Find helper layers through **Layer Controls**, not names, so renaming them is safe. But
+  deleting the layer a Layer Control points to **re-aims it at another layer**: read its
+  controls inside `try`, skip it if they're missing, and skip a layer already counted.
+- AE **switches an expression off** when it errors («Expression disabled»). A script that
+  rewrites it must also set `expressionEnabled = true`.
+- Mark the rig's expressions with a first-line comment (`// <name> effector: …`): a re-run
+  rewrites its own and leaves the designer's alone, and reports what it kept.
 
 ## ExtendScript is ES3
 
@@ -62,6 +95,18 @@ Expose `build(comp, …, options)` without UI (`$.global.X_NO_UI`) so the test c
   name prefix and keeps the controls and the values the designer set.
 - Make generated layers shy and turn on `comp.hideShyLayers`; switch off (don't delete) the
   user's source layer.
+- **`$.evalFile` doesn't put a file's top-level `var` on `$.global`.** Read the file and
+  `eval` it where you need it, or assign `$.global.X` inside the file.
+- Dropdown Menu Control: `addProperty('ADBE Dropdown Control')`, then
+  `property(1).setPropertyParameters([...])`, which invalidates the effect: re-fetch it by
+  index before naming it. Expressions read it 1-based (`.value`).
+- **A Fill effect replaces the layer**: its Opacity is the opacity of the fill, so a Fill at
+  0 % makes the layer vanish (no error, just an empty render). To blend a layer towards a
+  colour by an amount, use **Tint** (`ADBE Tint`) with Map Black To = Map White To = the
+  colour and Amount to Tint (0–100) as the amount: alpha stays. Read `maxValue` for a
+  parameter's 100 %; Fill's Opacity runs 0–1.
+- `comp.layers.addNull()` in AE 2026 puts the null's anchor at [0, 0]: read it, don't
+  assume the centre.
 
 ## Running it in the user's After Effects
 
@@ -73,10 +118,32 @@ Expose `build(comp, …, options)` without UI (`$.global.X_NO_UI`) so the test c
 - Writing files from a script needs *Allow Scripts to Write Files and Access Network*
   (`Pref_SCRIPTING_FILE_NETWORK_SECURITY` in the prefs file). Read it, never change it:
   ask the user.
-- Test mode: `app.beginSuppressDialogs()`, results to a text log, stills through the
-  render queue (`outputModule.templates` names vary per install: pick by regex, e.g.
-  `/png/i`, `/h\.?264/i`), save the `.aep` into the experiment's `out/`. Don't
-  `app.quit()` an AE the user may be using; leave the demo open for them.
+- **Look at what AE has open first** (`MainWindowTitle` shows the project path). A test
+  that opens a new project replaces the user's: ask before sending it. Call
+  `app.newProject()` *before* `app.beginSuppressDialogs()`, so unsaved work gets AE's own
+  save prompt, and let the runner close only a project the test itself saved.
+- Test mode: `app.beginSuppressDialogs()`, results to a text log, save the `.aep` into the
+  experiment's `out/`, render it afterwards with `aerender` (next point). Output module
+  template names vary per install (`outputModule.templates`; pick by regex, e.g.
+  `/h\.?264/i`). Don't `app.quit()` an AE the user may be using; leave the demo open.
+- **Render with `aerender`, not `renderQueue.render()` in the user's AE.** It runs in its own
+  process (`…\Support Files\aerender.exe -project x.aep -comp "Name" -s 0 -e <last frame>
+  -RStemplate "Best Settings" -OMtemplate "<an H.264 template's exact name>" -output
+  x.mp4`; on this install `"H.264 - Match Render Settings -  5 Mbps"`, two spaces), leaves AE
+  usable, and kept working when the GUI's render queue broke («Error Code: 3, restart After
+  Effects»). Give `-s`/`-e` (frames): without them it took the time span of an item left in
+  the saved queue. An output name already used in that queue makes it skip the render.
+- **AE's H.264 has no colour tags.** ffmpeg reads it as BT.601 and saturated colours shift
+  (a tint looked redder than it was). Decode it with `scale=in_color_matrix=bt709`, and when
+  re-encoding declare the *input* `-colorspace bt709 -color_primaries bt709 -color_trc
+  bt709 -color_range tv` as well as the output, or ffmpeg converts and bakes the shift in.
+- **Diagnostics must not raise dialogs.** An uncaught script error is a modal dialog even
+  inside `beginSuppressDialogs()`, and stringifying an AE error inside `catch` can throw
+  again. Wrap each step in its own `try`, read `e.message` inside another `try`, and write
+  the log file after every step so a stall still says where.
+- The `time` an expression sees at `valueAtTime(t)` sits on a grid of 1/61,440 s (±16 µs
+  off `t`); frame times are on the grid. A test comparing time-dependent math must use
+  AE's `time` (read it through a probe expression), not `t`.
 - While a script runs, AE's window doesn't repaint, and its H.264 output only grows at the
   end: measure CPU (`Get-Process AfterFX`.CPU twice) before calling it stuck.
 - Render cost is real: 80 precomp layers with motion blur ≈ 4 s a frame on the user's
@@ -93,3 +160,11 @@ Expose `build(comp, …, options)` without UI (`$.global.X_NO_UI`) so the test c
 - 2026-11-21 · ae-flock-rig · Orientation from velocity jitters (p95 16° a frame): cap the
   turning rate in the simulation itself (sideways acceleration ≤ speed × ω), smooth the
   heading, and trust it less when the motion is mostly towards the camera.
+- 2026-11-21 · ae-field-effector · A live rig that moves layers by a rule measured at their
+  position: keep Position free, move them through the Anchor Point corrected by their
+  rotation, scale and parent, and compute the weight once in a slider every channel reads.
+- 2026-11-21 · ae-field-effector · A mock of AE's expression objects is only a test if it
+  behaves like AE: Property objects that convert in arithmetic but fail `===`. The bare-number
+  mock passed code in which every checkbox read as on.
+- 2026-11-21 · ae-field-effector · Values right but the render empty: bisect with `aerender`
+  on saved project variants (one feature switched off each); here a Fill at 0 % hid every layer.

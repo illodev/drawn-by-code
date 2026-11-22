@@ -1,0 +1,35 @@
+Sphere field: apply 4527 ms · ({applied:91, skipped:[], kept:[], warnings:[], newField:true, fields:1, targets:91})
+Linear field: apply 3314 ms · ({applied:91, skipped:[], kept:[], warnings:[], newField:true, fields:1, targets:91})
+--- Sphere field: 95 layers, top: FX Effector | FX Field 1 | FX Field 1 Gizmo
+ok   expressions evaluate without errors (819) · 
+ok   gizmo is a guide layer parented to the field
+field null anchor [0, 0, 0]
+expression time minus requested time: -16276.0417 ns, 16276.0417 ns, -16276.0417 ns, 16276.0417 ns, -16276.0417 ns, -8138.0208 ns
+ok   weights match field-math.js (91 tiles x 6 times) · worst 0.0000013408275 (Tile 4-12 @3.4 got 19.4308200588112 want 19.4308213996387)
+ok   tiles are drawn at rest + offset/push (every 3rd tile, 3 times) · worst 0 px, largest shift 22 px
+ok   weight 0 leaves the tile exactly as it was (89 tiles at 0 s) · 
+ok   re-run keeps layers and effects · 95 -> 95 layers, 2 -> 2 effects, kept 0
+ok   a designer expression is kept and reported · Tile 1-6 > Rotation
+ok   remove takes the rig off (3 layers)
+ok   re-apply after remove
+ok   Add field: "FX Field 2" reaches every target
+weight at tile 45, 1.9 s: 23.2204 -> 23.2204 with a second (Add) field
+ok   a deleted field is skipped, not an error · 
+ok   refresh back to one field
+Tint amount: max 100, at 1.9 s 0, at 0 s 1.5
+evaluating 819 expressions: 686 ms
+--- Linear field: 95 layers, top: FX Effector | FX Field 1 | FX Field 1 Gizmo
+ok   expressions evaluate without errors (455) · 
+ok   gizmo is a guide layer parented to the field
+field null anchor [0, 0, 0]
+expression time minus requested time: -16276.0417 ns, 16276.0417 ns, -16276.0417 ns, 16276.0417 ns, -16276.0417 ns, -8138.0208 ns
+ok   weights match field-math.js (91 tiles x 6 times) · worst 0
+ok   tiles are drawn at rest + offset/push (every 3rd tile, 3 times) · worst 0 px, largest shift 0 px
+ok   weight 0 leaves the tile exactly as it was (91 tiles at 0 s) · 
+ok   re-run keeps layers and effects · 95 -> 95 layers, 1 -> 1 effects, kept 0
+ok   a designer expression is kept and reported · Tile 1-6 > Rotation
+ok   remove takes the rig off (3 layers)
+ok   re-apply after remove
+evaluating 455 expressions: 501 ms
+saved C:/Users/imben/drawn-by-code/.claude/worktrees/ae-field-effector/sandbox/2026-11-21-ae-field-effector/out/ae/field-effector-demo.aep
+all checks pass
