@@ -72,6 +72,15 @@ that AE runs wrong.
 - **ExtendScript's `sort` is not stable** (V8's is). A comparator whose ties matter must
   break them by index (`(a.f - b.f) || (a.idx - b.idx)`), or ExtendScript and Node give
   different results: a rebuild handed its spare points to other gaps, 20 px apart.
+- **ES3 reserves words that modern JS doesn't** (`short`, `long`, `int`, `char`, `float`,
+  `double`, `final`, `static`, `public`, `private`, `package`, `goto`…), **even as property
+  names**: `{ short: 'x' }` or `res.long` stops the whole script ("Illegal use of reserved
+  word"). Lint for them in `build.mjs` (see the morph fixer's), in every file AE runs.
+- A **dockable panel**: AE runs a script from `Scripts/ScriptUI Panels` with `this` = the
+  Panel. Wrap the built file as `(function (HOST) { … })(this)` and build into `HOST` when
+  `HOST instanceof Panel`, else a `palette` Window. Long reports go in a status line's
+  `helpTip`, instructions behind a `?` button (`alert`), settings in `app.settings`. A test
+  can drive it: set the controls, then `button.notify('onClick')`.
 - Testing an ES3 file in Node: load it with `new Function(src + 'return X')()`, not
   `vm.runInContext` (global lookups there are ~10× slower and skew timings).
 
@@ -182,3 +191,8 @@ that AE runs wrong.
 - 2026-11-21 · ae-morph-fixer · A cheap check inside a loop (the rebuild's tolerance) must be
   validated against a slow, exact one in Node on hostile inputs; it under-read by 15 % on
   tight bends until it looked both ways, sampled the original densely and caught folds.
+- 2026-11-22 · ae-morph-fixer · A shape that turns between keys shrinks through the middle
+  (straight lines: an F at 45° has half its area). Take the turn out of the path keys into
+  the group's Rotation, each step turning about its own fixed point (anchor and position on
+  hold keys through the step), and the shape swings on the arc a hand-made turn would take.
+  Decide "it turns" only against a plain match that is really off, or holds spin on noise.

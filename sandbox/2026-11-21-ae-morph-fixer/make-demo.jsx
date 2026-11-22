@@ -49,7 +49,7 @@
         app.beginSuppressDialogs();
         Folder(OUT).create();
     }
-    var comp = null, before = null, after = null, D = null, MFm = null, MFx = null;
+    var comp = null, before = null, after = null, D = null, MFm = null, MFx = null, turnComp = null, master = null;
     try {
         eval(readText('demo-spec.js'));     // $.evalFile would not put MD on $.global
         D = MD;
@@ -58,26 +58,39 @@
         MFx = $.global.MorphFixer;
         MFm = $.global.MorphFixerMath;
         app.beginUndoGroup('Morph Fixer demo');
-        comp = app.project.items.addComp('Morph demo', D.size[0], D.size[1], 1, D.duration, D.fps);
-        comp.layers.addSolid(rgb(D.colors.bg), 'Background', D.size[0], D.size[1], 1, D.duration).locked = true;
-        before = shapeLayer(comp, 'Before', D.before);
-        after = shapeLayer(comp, 'After', D.after);
-        marker(comp, 'Before');
-        marker(comp, 'After');
-        label(comp, 'Before', D.before[0]);
-        label(comp, 'After', D.after[0]);
-        var tFix = new Date().getTime();
-        var rep = MFx.fix(pathOf(after), { minPoints: D.minPoints });
-        note('fix (' + (new Date().getTime() - tFix) + ' ms): ' + MFx.summary(rep));
-        comp.openInViewer();
+        var built = demoComp('Morph demo', D.duration, D.shapes, D.keys, { maxPoints: D.maxPoints });
+        comp = built.comp;
+        before = built.before;
+        after = built.after;
+        // the turn demo: an F turned a quarter at a time, fixed with turn on
+        turnComp = demoComp('Turn demo', D.turn.duration, D.turn.shapes, D.turn.keys, { maxPoints: D.maxPoints, rotate: true }).comp;
+        master = app.project.items.addComp('Morph Fixer demo', D.size[0], D.size[1], 1, D.duration + D.turn.duration, D.fps);
+        master.layers.add(turnComp).startTime = D.duration;
+        master.layers.add(comp).startTime = 0;
+        master.openInViewer();
         app.endUndoGroup();
     } catch (e) {
         fails++;
         note('ERROR building the demo: ' + safe(e));
     }
 
+    // a comp with Before (the keys as drawn) and After (fixed with opts), dots and labels
+    function demoComp(name, duration, shapes, keys, opts) {
+        var c = app.project.items.addComp(name, D.size[0], D.size[1], 1, duration, D.fps);
+        c.layers.addSolid(rgb(D.colors.bg), 'Background', D.size[0], D.size[1], 1, duration).locked = true;
+        var b = shapeLayer(c, 'Before', D.before, shapes, keys), a = shapeLayer(c, 'After', D.after, shapes, keys);
+        marker(c, 'Before');
+        marker(c, 'After');
+        label(c, 'Before', D.before[0]);
+        label(c, 'After', D.after[0]);
+        var tFix = new Date().getTime();
+        var rep = MFx.fix(pathOf(a), opts);
+        note(name + ' fix (' + (new Date().getTime() - tFix) + ' ms): ' + MFx.summary(rep));
+        return { comp: c, before: b, after: a, report: rep };
+    }
+
     // a shape layer at `at` whose group "Morph" holds the keyed path and a fill
-    function shapeLayer(comp, name, at) {
+    function shapeLayer(comp, name, at, shapes, keys) {
         var L = comp.layers.addShape();
         L.name = name;
         tf(L, 'ADBE Position').setValue([at[0], at[1], 0]);
@@ -88,7 +101,7 @@
         vec().addProperty('ADBE Vector Graphic - Fill');
         vec().property(2).property('ADBE Vector Fill Color').setValue(rgb(D.colors.shape));
         var p = vec().property(1).property('ADBE Vector Shape');
-        for (var k = 0; k < D.keys.length; k++) p.setValueAtTime(D.keys[k][0], MFx.fromMF(D.shapes[D.keys[k][1]]));
+        for (var k = 0; k < keys.length; k++) p.setValueAtTime(keys[k][0], MFx.fromMF(shapes[keys[k][1]]));
         for (k = 1; k <= p.numKeys; k++) {
             p.setInterpolationTypeAtKey(k, KeyframeInterpolationType.BEZIER);
             p.setTemporalEaseAtKey(k, [new KeyframeEase(0, 33.333)], [new KeyframeEase(0, 33.333)]);
@@ -111,9 +124,14 @@
         vec().property(1).property('ADBE Vector Ellipse Size').setValue([24, 24]);
         vec().property(2).property('ADBE Vector Fill Color').setValue(rgb(D.colors.marker));
         tf(M, 'ADBE Anchor Point').setValue([0, 0, 0]);
+        // path points are in the group's space: through the group's transform, then the layer's
         tf(M, 'ADBE Position').expression = 'var L = thisComp.layer(' + '"' + of + '"' + ');\n' +
+            'var g = L.content("Morph").transform;\n' +
             'var p = L.content("Morph").content("Path 1").path.points()[0];\n' +
-            'var c = L.toComp(p);\n[c[0], c[1]];';
+            'var a = g.anchorPoint.value, o = g.position.value, s = g.scale.value[0] / 100, r = g.rotation.value * Math.PI / 180;\n' +
+            'var x = (p[0] - a[0]) * s, y = (p[1] - a[1]) * s;\n' +
+            'var c = L.toComp([o[0] + x * Math.cos(r) - y * Math.sin(r), o[1] + x * Math.sin(r) + y * Math.cos(r)]);\n' +
+            '[c[0], c[1]];';
     }
 
     function label(comp, text, x) {
@@ -162,10 +180,10 @@
         step('shapes', function () {
             var A = keyShapes(pa), B = keyShapes(pb), n = A[0].v.length, same = true, worst = 0, k;
             for (k = 0; k < A.length; k++) if (A[k].v.length !== n) same = false;
-            check('every After key has the same number of points (' + n + ')', same && n >= D.minPoints);
+            check('every After key has the same number of points (' + n + ')', same && n <= D.maxPoints);
             // the keys stored are exactly what the math computes (test.mjs proves those numbers
             // stay within 0.1 px of the drawn shapes, and that Node computes the same ones)
-            var ref = MFm.fix(B, { minPoints: D.minPoints });
+            var ref = MFm.fix(B, { maxPoints: D.maxPoints });
             for (k = 0; k < A.length; k++) worst = Math.max(worst, maxDiff(A[k], ref.paths[k]));
             // AE keeps path points as 32-bit floats: ~1e-7 of the coordinate (0.00004 px here)
             check('After Effects stores the keys the math computes (to 32-bit float)', worst < 1e-4, 'largest difference ' + worst);
@@ -199,7 +217,7 @@
         });
         step('second run', function () {
             var A = keyShapes(pa);
-            MFx.fix(pa, { minPoints: D.minPoints });
+            MFx.fix(pa, { maxPoints: D.maxPoints });
             var A2 = keyShapes(pa), worst = 0;
             for (var k = 0; k < A.length; k++) worst = Math.max(worst, maxDiff(A[k], A2[k]));
             check('a second run changes nothing', worst < 1e-6, 'largest change ' + worst);
@@ -269,6 +287,69 @@
             var t = MFx.targets(comp);
             check('selecting the layer finds its path', t.length === 1, t.length ? MFx.describe(t[0]) : 'none');
             after.selected = false;
+        });
+        step('turn', function () {
+            var ta = turnComp.layer('After'), g = ta.property('ADBE Root Vectors Group').property('Morph').property('ADBE Vector Transform Group');
+            var rot = g.property('ADBE Vector Rotation'), angles = [], k;
+            for (k = 1; k <= rot.numKeys; k++) angles.push(Math.round(rot.keyValue(k) * 100) / 100);
+            check('turn: the group Rotation is keyed with the path, 0 to 360', rot.numKeys === D.turn.keys.length && Math.abs(rot.keyValue(rot.numKeys) - 360) < 0.5, angles.join(' '));
+            // the F's top-left corner (its first point) turned about (10, 0), on the After side
+            function ideal(deg) {
+                var a = deg * Math.PI / 180, x = -90 - 10, y = -150;
+                return [D.after[0] + 10 + x * Math.cos(a) - y * Math.sin(a), D.after[1] + x * Math.sin(a) + y * Math.cos(a)];
+            }
+            var dot = tf(turnComp.layer('After start'), 'ADBE Position'), raw = tf(turnComp.layer('Before start'), 'ADBE Position');
+            var probes = [[0.5, 0], [1.0, 45], [1.5, 90], [2.5, 135], [5.5, 315], [6.0, 360]], worst = 0, at = '';
+            for (k = 0; k < probes.length; k++) {
+                var v = dot.valueAtTime(probes[k][0], false), w = ideal(probes[k][1]);
+                var d = Math.sqrt((v[0] - w[0]) * (v[0] - w[0]) + (v[1] - w[1]) * (v[1] - w[1]));
+                if (d > worst) {
+                    worst = d;
+                    at = probes[k][0] + ' s';
+                }
+            }
+            check('turn: the corner rides the arc of a real turn (keys and halfway)', worst < 0.5, 'worst ' + worst + ' px at ' + at);
+            var rv = raw.valueAtTime(1.0, false), rw = ideal(45), bw = [rv[0] - D.before[0] + D.after[0], rv[1]];
+            note('turn: halfway through the first quarter, the drawn keys put the corner ' +
+                Math.round(Math.sqrt((bw[0] - rw[0]) * (bw[0] - rw[0]) + (bw[1] - rw[1]) * (bw[1] - rw[1]))) + ' px off the arc (straight line)');
+        });
+        step('panel', function () {
+            // the real panel (a palette here), clicked through on fresh copies of Before; the
+            // controls are set directly, not through their onChange (which saves the settings)
+            var w = MFx.buildUI(null), c = w.controls, runs = [['Smooth', 0, '100'], ['Smooth, max 24', 0, '24'], ['Exact', 1, '100']];
+            check('panel: one row (mode, max, Fix, ?) and a status line', c.mode && c.max && c.fix && c.info && c.status && c.mode.items.length === 2,
+                'width ' + w.size.width + ' x ' + w.size.height + ' px');
+            for (var r = 0; r < runs.length; r++) {
+                comp.openInViewer();
+                var dup = before.duplicate();
+                dup.name = 'Panel test ' + r;
+                for (var i = 1; i <= comp.numLayers; i++) comp.layer(i).selected = false;
+                dup.selected = true;
+                c.mode.selection = runs[r][1];
+                c.max.text = runs[r][2];
+                c.fix.notify('onClick');
+                var res = w.lastResult, rep = res && res.reports[0];
+                var ok = rep && !rep.skipped && (runs[r][1] === 1 ? rep.mode === 'exact' && rep.to === 22 : rep.mode === 'smooth' && rep.to <= Number(runs[r][2]));
+                check('panel Fix (' + runs[r][0] + '): ' + c.status.text, !!ok, res ? res.detail : 'no result');
+                if (runs[r][2] === '24') check('panel: the max shows in the status', /\(max\)/.test(c.status.text), c.status.text);
+                dup.remove();
+            }
+            // turn ticked, on a copy of the turning F
+            turnComp.openInViewer();
+            var tdup = turnComp.layer('Before').duplicate();
+            tdup.name = 'Panel turn test';
+            for (i = 1; i <= turnComp.numLayers; i++) turnComp.layer(i).selected = false;
+            tdup.selected = true;
+            c.mode.selection = 0;
+            c.max.text = '100';
+            c.turn.value = true;
+            c.fix.notify('onClick');
+            var tr = w.lastResult && w.lastResult.reports[0];
+            check('panel Fix (turn): ' + c.status.text, tr && Math.abs(tr.turned - 360) < 0.5 && /turned/.test(c.status.text), w.lastResult ? w.lastResult.detail : 'no result');
+            tdup.remove();
+            c.turn.value = false;
+            check('panel: the ? text explains Smooth, Exact, Max and Turn', /Smooth/.test(MFx.info) && /Exact/.test(MFx.info) && /Max/.test(MFx.info) && /Turn/.test(MFx.info));
+            w.close();
         });
         try {
             app.project.save(new File(OUT + '/morph-fixer-demo.aep'));

@@ -72,12 +72,17 @@ function kink(P, j) {
     return Math.acos(Math.max(-1, Math.min(1, -(a[0] * b[0] + a[1] * b[1]) / (la * lb)))) * 180 / Math.PI;
 }
 
-let worstKink = 0, fellBack = 0;
+let worstKink = 0, fellBack = 0, capped = 0;
 function verify(label, keys, opt) {
     const t0 = process.hrtime.bigint();
     const r = MF.fix(keys, opt);
-    const exact = (opt && opt.mode === 'exact') || r.fellBack, tol = exact ? 0.01 : ((opt && opt.tolerance) || 0.1) + 0.005;
+    const exact = (opt && opt.mode === 'exact') || r.fellBack;
+    // exact: 0.01 (the measure's own limit on cusps); smooth: the tolerance, or, when the
+    // max points stopped it first, about the distance it reported (on wild random shapes held
+    // to few points the check reads up to ~25 % low, so AE words it "about")
+    const tol = exact ? 0.01 : r.capped ? r.deviation * 1.35 + 0.005 : ((opt && opt.tolerance) || 0.1) + 0.005;
     if (r.fellBack) fellBack++;
+    if (r.capped) capped++;
     const ms = Number(process.hrtime.bigint() - t0) / 1e6;
     const n = r.paths[0].v.length;
     let worstShape = 0, sign = 0;
@@ -95,7 +100,13 @@ function verify(label, keys, opt) {
         if (dev >= tol && process.env.DUMP) fs.writeFileSync(path.join(dir, 'out', `fail-${label.replace(/\W+/g, '-')}.json`), JSON.stringify({ keys, opt, k, dev, fellBack: r.fellBack, mode: r.mode }));
         const w = keys[0].closed ? MF.winding(P) : 0;
         if (w && sign && (!opt || opt.direction !== false)) check(`${label}: key ${k} drawn in the reference direction`, w === sign);
-        if (opt && opt.minPoints) check(`${label}: at least ${opt.minPoints} points`, P.v.length >= opt.minPoints, P.v.length);
+        if (!exact) {
+            // at most maxPoints, unless the corners alone need more (each keeps a point)
+            let corners = 1;
+            for (const K of keys) corners += MF.corners(K, MF.measure(K)).length;
+            const cap = Math.max((opt && opt.maxPoints) || 100, corners);
+            check(`${label}: key ${k} has at most ${cap} points`, P.v.length <= cap, P.v.length);
+        }
         if (!exact && !r.matched) {
             // every corner of the original is still a point, exactly where it was
             const cs = MF.corners(keys[k], MF.measure(keys[k]));
@@ -134,7 +145,7 @@ function verify(label, keys, opt) {
     const keys = MD.keys.map(([, s]) => MD.shapes[s]);
     const ex = verify('demo exact', keys, { mode: 'exact' });
     console.log(`demo, exact: points ${keys.map((k) => k.v.length).join('/')} -> ${ex.n} each, ${ex.ms.toFixed(0)} ms, worst shape change ${ex.worstShape.toExponential(1)} px`);
-    const { r, ms, worstShape, n } = verify('demo', keys, { minPoints: MD.minPoints });
+    const { r, ms, worstShape, n } = verify('demo', keys, { maxPoints: MD.maxPoints });
     console.log(`demo, smooth: -> ${n} each, ${ms.toFixed(0)} ms, worst shape change ${worstShape.toFixed(3)} px (tolerance 0.1)`);
     for (let k = 1; k < keys.length; k++) {
         const K = r.keys[k];
@@ -148,6 +159,89 @@ function verify(label, keys, opt) {
     // the star and the heart are drawn the other way round: both must be reversed
     check('demo: star reversed', r.keys[2].reversed);
     check('demo: heart reversed', r.keys[6].reversed);
+    // a max that bites: at most 24 points, short of 0.1 px, and it says how far it got
+    const c = verify('demo max 24', keys, { maxPoints: 24 });
+    check('demo max 24: at most 24 points', c.n <= 24, c.n);
+    check('demo max 24: reports the cap and the distance', c.r.capped && c.r.deviation > 0.1, `${c.r.capped} ${c.r.deviation}`);
+    console.log(`demo, max 24: ${c.n} points each, measured ${c.r.deviation.toFixed(2)} px (true worst ${c.worstShape.toFixed(2)} px)`);
+}
+
+// ---- turning: the F, turned a quarter at a time -------------------------------------------
+// What After Effects shows a fraction u (eased) into the step from key k: the local path
+// blended, turned by the Rotation, around the group's Anchor, at its Position. In a step
+// that turns about a point, anchor and position hold (hold keys); in a slide they blend.
+function shown(r, k, u) {
+    const L = MF.lerp(r.paths[k], r.paths[k + 1], u), T = r.turn, A = T.anchor[k];
+    const P0 = T.position[k], P1 = T.hold[k] ? P0 : T.position[k + 1];
+    const pos = [P0[0] + (P1[0] - P0[0]) * u, P0[1] + (P1[1] - P0[1]) * u];
+    const moved = { v: L.v.map((p) => [p[0] - A[0], p[1] - A[1]]), i: L.i, o: L.o, closed: L.closed };
+    return MF.turnPath(moved, pos, T.angles[k] + (T.angles[k + 1] - T.angles[k]) * u);
+}
+{
+    const keys = MD.turn.keys.map(([, s]) => MD.turn.shapes[s]);
+    for (const mode of ['smooth', 'exact']) {
+        const r = MF.fix(keys, { mode, rotate: true });
+        check(`turn ${mode}: the turn is taken out`, !!r.turn, JSON.stringify(r.keys.map((k) => k.turn)));
+        if (!r.turn) continue;
+        const want = MD.turn.keys.map(([, s]) => 90 * s);
+        const worstAngle = Math.max(...r.turn.angles.map((a, k) => Math.abs(a - want[k])));
+        check(`turn ${mode}: angles 0, 90, 180, 270, 360`, worstAngle < 0.5, r.turn.angles.map((a) => a.toFixed(2)).join(' '));
+        let worstLocal = 0, worstPlaced = 0;
+        for (let k = 0; k < keys.length; k++) {
+            if (k) worstLocal = Math.max(worstLocal, MF.rms(r.paths[k - 1], r.paths[k]));
+            // at each key, both ends of the steps around it show the key as drawn
+            const shapes = [];
+            if (k < keys.length - 1) shapes.push(shown(r, k, 0));
+            if (k > 0) shapes.push(shown(r, k - 1, 1));
+            for (const P of shapes) worstPlaced = Math.max(worstPlaced, MF.deviation(keys[k], P), MF.deviation(P, keys[k]));
+        }
+        check(`turn ${mode}: nothing left to deform (local keys alike)`, worstLocal < 0.5, worstLocal.toFixed(3) + ' px');
+        check(`turn ${mode}: each key shown exactly where it was drawn`, worstPlaced < (mode === 'exact' ? 0.01 : 0.105), worstPlaced.toFixed(4) + ' px');
+        // halfway through the first quarter turn: the F keeps its area (straight lines shrink it)
+        const a0 = Math.abs(MF.area(keys[0]));
+        const turnedArea = Math.abs(MF.area(shown(r, 1, 0.5)));
+        const plain = MF.fix(keys, { mode }), straightArea = Math.abs(MF.area(MF.lerp(plain.paths[1], plain.paths[2], 0.5)));
+        const raw = Math.abs(MF.area(MF.lerp(keys[1], keys[2], 0.5)));
+        check(`turn ${mode}: halfway keeps the F's area`, Math.abs(turnedArea / a0 - 1) < 0.01, (turnedArea / a0).toFixed(3));
+        if (mode === 'smooth') console.log(`turn: angles ${r.turn.angles.map((a) => a.toFixed(1)).join(' / ')}; halfway area vs drawn: turned ${(turnedArea / a0).toFixed(3)}, as drawn (straight lines) ${(raw / a0).toFixed(3)}, fixed without turn ${(straightArea / a0).toFixed(3)}`);
+        const again = MF.fix(r.paths, { mode, rotate: true });
+        check(`turn ${mode}: a second run (on the local keys) changes nothing`, again.matched, JSON.stringify(again.keys.map((k) => k.turn)));
+    }
+    // halfway, the shape shown is the F turned 45 deg (the ideal), not a squashed blend
+    {
+        const r = MF.fix(keys, { rotate: true }), plain = MF.fix(keys), ideal = MF.turnPath(MF.turnPath(MD.turn.shapes[0], [-10, 0], 0), [10, 0], 45);
+        const half = shown(r, 1, 0.5), dTurn = Math.max(MF.deviation(ideal, half), MF.deviation(half, ideal));
+        const raw = MF.lerp(keys[1], keys[2], 0.5), dRaw = Math.max(MF.deviation(ideal, raw), MF.deviation(raw, ideal));
+        const fixed = MF.lerp(plain.paths[1], plain.paths[2], 0.5), dFix = Math.max(MF.deviation(ideal, fixed), MF.deviation(fixed, ideal));
+        check('turn: halfway is the F turned 45 deg', dTurn < 0.2, dTurn.toFixed(3) + ' px');
+        console.log(`turn: halfway vs the F turned 45 deg: turned ${dTurn.toFixed(2)} px, as drawn ${dRaw.toFixed(1)} px, fixed without turn ${dFix.toFixed(1)} px`);
+    }
+    // random shapes turned by random angles about random points: the turn is recovered
+    {
+        let s2 = 777, worst = 0, found = 0;
+        const r2 = () => (s2 = (s2 * 16807) % 2147483647) / 2147483647;
+        for (let t = 0; t < 60; t++) {
+            const n = 4 + Math.floor(r2() * 8), P = { v: [], i: [], o: [], closed: true };
+            for (let k = 0; k < n; k++) {
+                const a = (k / n) * Math.PI * 2, rr = 100 + r2() * 120;
+                P.v.push([700 + rr * Math.cos(a), 500 + rr * Math.sin(a)]);
+                P.i.push([0, 0]);
+                P.o.push([0, 0]);
+            }
+            const ang = (r2() * 2 - 1) * 170, c = [r2() * 1500, r2() * 900];
+            const Q = MF.turnPath(MF.turnPath(P, c, 0, true), [c[0] + r2() * 200, c[1] + r2() * 200], ang);   // turned and moved
+            const r = MF.fix([P, Q], { rotate: true });
+            if (!r.turn) continue;
+            found++;
+            worst = Math.max(worst, Math.abs(r.turn.angles[1] - ang));
+        }
+        check('turn: random turns recovered', found >= 55 && worst < 1, `${found}/60, worst ${worst.toFixed(3)} deg`);
+        console.log(`turn: ${found} of 60 random turned shapes recovered, worst angle error ${worst.toFixed(3)} deg`);
+    }
+    // morphs that don't turn stay put with turn on: no spin made up for a circle
+    const d = MF.fix(MD.keys.map(([, s]) => MD.shapes[s]), { rotate: true });
+    console.log(`morph demo with turn on: ${d.turn ? 'angles ' + d.turn.angles.map((a) => a.toFixed(1)).join(' / ') : 'no turn'}`);
+    if (d.turn) check('turn on, circle to star: no turn invented', Math.abs(d.turn.angles[2] - d.turn.angles[1]) < 1, d.turn.angles[2] - d.turn.angles[1]);
 }
 
 // ---- random paths -------------------------------------------------------------------------
@@ -178,13 +272,13 @@ for (let trial = 0; trial < TRIALS; trial++) {
     const closed = rnd() < 0.75, nk = 2 + Math.floor(rnd() * 4), keys = [];
     for (let k = 0; k < nk; k++) keys.push(rnd() < 0.1 && k ? keys[k - 1] : randomPath(closed));
     // every 6th trial rebuilds (the full deviation measure on hundreds of points is slow)
-    const opt = trial % 6 === 0 ? { minPoints: rnd() < 0.3 ? 40 : 0 } : { mode: 'exact', minPoints: rnd() < 0.2 ? 12 + Math.floor(rnd() * 30) : 0 };
+    const opt = trial % 6 === 0 ? { maxPoints: [100, 40, 512, 24][Math.floor(rnd() * 4)] } : { mode: 'exact' };
     const { ms, worstShape, n } = verify(`random ${trial}`, keys, opt);
     worstRandom = Math.max(worstRandom, worstShape);
     slowest = Math.max(slowest, ms);
     maxPts = Math.max(maxPts, n);
 }
-console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${worstRandom.toFixed(4)} px, slowest fix ${slowest.toFixed(0)} ms (Node), up to ${maxPts} points; worst halfway kink at points smooth in both keys ${worstKink.toFixed(3)} deg; ${fellBack} rebuild(s) fell back to keeping the points`);
+console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${worstRandom.toFixed(4)} px, slowest fix ${slowest.toFixed(0)} ms (Node), up to ${maxPts} points; worst halfway kink at points smooth in both keys ${worstKink.toFixed(3)} deg; ${fellBack} rebuild(s) fell back to keeping the points, ${capped} stopped at their max (honest distance reported)`);
 
 // options off: no reversal, no start move
 {
@@ -242,7 +336,7 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
     const keys = MD.keys.map(([, s]) => MD.shapes[s]);
     let p = mockPath(keys);
     let rep = FX.fix(p);
-    check('AE half: all keys fixed', rep.keys === keys.length && rep.to >= 40, FX.summary(rep));
+    check('AE half: all keys fixed', rep.keys === keys.length && rep.to <= 100, FX.summary(rep));
     check('AE half: every key written with the same points', p.values.every((s) => s.vertices.length === rep.to));
     console.log('AE half report: ' + FX.summary(rep));
     p = mockPath(keys, { selectedKeys: [3, 4, 5] });
@@ -267,7 +361,7 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
         // the file holds AE's inputs (the Before keys) then its outputs (the After keys)
         const rows = fs.readFileSync(f, 'utf8').trim().split(/\r?\n/).map((l) => new Function('return ' + l)());
         const n = rows.length / 2, input = rows.slice(0, n), ae = rows.slice(n);
-        const node = MF.fix(input, { minPoints: MD.minPoints }).paths;
+        const node = MF.fix(input, { maxPoints: MD.maxPoints }).paths;
         let worst = 0;
         for (let k = 0; k < node.length; k++) worst = Math.max(worst, same(node[k], ae[k]));
         check('Node, fixing the keys AE held, computes what AE stored (to 32-bit float)', worst < 1e-4, worst);

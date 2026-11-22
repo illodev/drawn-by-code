@@ -207,29 +207,50 @@ var MF = (function () {
         return a / 2;
     }
 
-    // squared distances between matching points of A and B (B read from fraction off on),
-    // each around its own centre: how far the points travel relative to the shape
-    function errorAt(SA, P, M, cB, off) {
-        var e = 0, cnt = P.closed ? N : N - 1;
-        for (var j = 0; j < N; j++) {
-            var b = at(P, M, off + j / cnt);
-            var dx = (SA.pts[j][0] - SA.cx) - (b[0] - cB[0]), dy = (SA.pts[j][1] - SA.cy) - (b[1] - cB[1]);
-            e += dx * dx + dy * dy;
-        }
-        return e;
+    // Matching points a_j (of A) and b_j (of B), each around its own centre. Without turn:
+    // the sum of squared distances. With turn: the same after the rotation that best lays B
+    // onto A (2D Procrustes: theta = atan2(S', Sd), the residual |a|^2 + |b|^2 - 2 |(Sd, S')|).
+    // Returns { e, theta } (theta in radians, clockwise on screen like AE: R(theta) b ~ a).
+    function fit(sa2, sb2, sd, sc, plain, turn) {
+        if (!turn) return { e: plain, theta: 0 };
+        var e = sa2 + sb2 - 2 * Math.sqrt(sd * sd + sc * sc);
+        return { e: e > 0 ? e : 0, theta: Math.atan2(sc, sd) };
     }
 
-    // the start offset of closed path B that best matches A
-    function bestOffset(A, B) {
+    // the match of A's samples with B read from fraction off on
+    function errorAt(SA, P, M, cB, off, turn) {
+        var plain = 0, sa2 = 0, sb2 = 0, sd = 0, sc = 0, cnt = P.closed ? N : N - 1;
+        for (var j = 0; j < N; j++) {
+            var b = at(P, M, off + j / cnt);
+            var ax = SA.pts[j][0] - SA.cx, ay = SA.pts[j][1] - SA.cy, bx = b[0] - cB[0], by = b[1] - cB[1];
+            plain += (ax - bx) * (ax - bx) + (ay - by) * (ay - by);
+            sa2 += ax * ax + ay * ay;
+            sb2 += bx * bx + by * by;
+            sd += ax * bx + ay * by;
+            sc += ay * bx - ax * by;
+        }
+        return fit(sa2, sb2, sd, sc, plain, turn);
+    }
+
+    // the start offset of closed path B that best matches A (turn: allowing B to be turned):
+    // { off, err, err0 (at offset 0), theta (radians, the turn laying B onto A) }
+    function bestOffset(A, B, turn) {
         var SA = samples(A, measure(A)), MB = measure(B), SB = samples(B, MB), cB = [SB.cx, SB.cy];
-        var best = 0, bestE = -1, q, j;
+        var best = 0, bestE = -1, q, j, sa2 = 0, sb2 = 0;
+        for (j = 0; j < N; j++) {
+            sa2 += (SA.pts[j][0] - SA.cx) * (SA.pts[j][0] - SA.cx) + (SA.pts[j][1] - SA.cy) * (SA.pts[j][1] - SA.cy);
+            sb2 += (SB.pts[j][0] - SB.cx) * (SB.pts[j][0] - SB.cx) + (SB.pts[j][1] - SB.cy) * (SB.pts[j][1] - SB.cy);
+        }
         for (q = 0; q < N; q++) {        // every offset on the sample grid
-            var e = 0;
+            var plain = 0, sd = 0, sc = 0;
             for (j = 0; j < N; j++) {
                 var b = SB.pts[(j + q) % N];
-                var dx = (SA.pts[j][0] - SA.cx) - (b[0] - SB.cx), dy = (SA.pts[j][1] - SA.cy) - (b[1] - SB.cy);
-                e += dx * dx + dy * dy;
+                var ax = SA.pts[j][0] - SA.cx, ay = SA.pts[j][1] - SA.cy, bx = b[0] - SB.cx, by = b[1] - SB.cy;
+                plain += (ax - bx) * (ax - bx) + (ay - by) * (ay - by);
+                sd += ax * bx + ay * by;
+                sc += ay * bx - ax * by;
             }
+            var e = fit(sa2, sb2, sd, sc, plain, turn).e;
             if (bestE < 0 || e < bestE) {
                 bestE = e;
                 best = q;
@@ -238,34 +259,46 @@ var MF = (function () {
         // golden-section refinement between the grid neighbours
         var lo = (best - 1) / N, hi = (best + 1) / N, g = 0.6180339887;
         var x1 = hi - g * (hi - lo), x2 = lo + g * (hi - lo);
-        var f1 = errorAt(SA, B, MB, cB, x1), f2 = errorAt(SA, B, MB, cB, x2);
+        var f1 = errorAt(SA, B, MB, cB, x1, turn).e, f2 = errorAt(SA, B, MB, cB, x2, turn).e;
         for (var it = 0; it < 24; it++) {
             if (f1 < f2) {
                 hi = x2;
                 x2 = x1;
                 f2 = f1;
                 x1 = hi - g * (hi - lo);
-                f1 = errorAt(SA, B, MB, cB, x1);
+                f1 = errorAt(SA, B, MB, cB, x1, turn).e;
             } else {
                 lo = x1;
                 x1 = x2;
                 f1 = f2;
                 x2 = lo + g * (hi - lo);
-                f2 = errorAt(SA, B, MB, cB, x2);
+                f2 = errorAt(SA, B, MB, cB, x2, turn).e;
             }
         }
-        var off = (lo + hi) / 2, eOff = errorAt(SA, B, MB, cB, off);
-        if (eOff > bestE) {
+        var off = (lo + hi) / 2, r = errorAt(SA, B, MB, cB, off, turn);
+        if (r.e > bestE) {
             off = best / N;
-            eOff = bestE;
+            r = errorAt(SA, B, MB, cB, off, turn);
         }
-        return { off: off - Math.floor(off), err: eOff, err0: errorAt(SA, B, MB, cB, 0) };
+        return { off: off - Math.floor(off), err: r.e, err0: errorAt(SA, B, MB, cB, 0, turn).e, theta: r.theta, turn: !!turn };
+    }
+
+    // how closed path P should be matched to prev. With o.rotate, a match that allows a turn
+    // wins when it cuts the error by TURN_GAIN or more (a circle never "turns": no gain), and
+    // only against a plain match that is really off: over 0.5 px RMS. Two near-identical keys
+    // (a hold) otherwise "turn" on rounding noise, and a symmetric star spins a tip round.
+    var TURN_GAIN = 0.8, TURN_FLOOR = 0.25 * N;
+    function chooseOffset(prev, P, o) {
+        var plain = bestOffset(prev, P, false);
+        if (!o.rotate || plain.err <= TURN_FLOOR) return plain;
+        var turned = bestOffset(prev, P, true);
+        return turned.err < plain.err * TURN_GAIN ? turned : plain;
     }
 
     // RMS distance (px) between matching points of two keys, around their centres
     function rms(A, B) {
         var SA = samples(A, measure(A)), MB = measure(B), SB = samples(B, MB);
-        return Math.sqrt(errorAt(SA, B, MB, [SB.cx, SB.cy], 0) / N);
+        return Math.sqrt(errorAt(SA, B, MB, [SB.cx, SB.cy], 0, false).e / N);
     }
 
     function circDist(a, b) {
@@ -286,13 +319,20 @@ var MF = (function () {
         return { k: k, d: d };
     }
 
-    // where closed path P should start to follow prev: null when moving it gains under 5 %,
-    // else { off, near, nd }: the best fraction and the vertex nearest it
-    function startPlan(prev, P) {
-        var b = bestOffset(prev, P);
-        if (!(b.err < b.err0 * GAIN)) return null;
+    // where closed path P should start to follow prev: { off, near, nd, turn, theta } (near:
+    // the vertex nearest the best fraction) or, when moving the start gains under 5 %,
+    // { near: 0, nd: 0 } with the turn found at the current start
+    function startPlan(prev, P, o) {
+        var b = chooseOffset(prev, P, o);
+        if (!(b.err < b.err0 * GAIN)) return { off: 0, near: 0, nd: 0, turn: b.turn, theta: b.turn ? bestAt0(prev, P) : 0 };
         var nv = nearestVertex(P, b.off);
-        return { off: b.off, near: nv.k, nd: nv.d };
+        return { off: b.off, near: nv.k, nd: nv.d, turn: b.turn, theta: b.theta };
+    }
+
+    // the turn laying P onto prev, keeping P's start
+    function bestAt0(prev, P) {
+        var SA = samples(prev, measure(prev)), MP = measure(P), SP = samples(P, MP);
+        return errorAt(SA, P, MP, [SP.cx, SP.cy], 0, true).theta;
     }
 
     // the direction a closed path is drawn in: 1 clockwise, -1 counter-clockwise, 0 when it
@@ -306,7 +346,7 @@ var MF = (function () {
     // key P made to follow key prev: drawn in direction opt.sign (the reference key's), and
     // starting where the morph from prev travels least
     function align(prev, P, opt) {
-        var info = { reversed: false, moved: false, offset: 0 };
+        var info = { reversed: false, moved: false, offset: 0, turn: false };
         if (P.closed) {
             if (opt.direction && opt.sign) {
                 var w = winding(P);
@@ -316,18 +356,17 @@ var MF = (function () {
                 }
             }
             if (opt.start && P.v.length > 1) {
-                var plan = startPlan(prev, P);
-                if (plan) {
-                    var near = plan.near;
-                    if (plan.nd > SNAP) {
-                        P = insert(P, [plan.off]);
-                        near = nearestVertex(P, plan.off).k;
-                    }
-                    if (near > 0) {
-                        P = rotate(P, near);
-                        info.moved = true;
-                        info.offset = plan.off;
-                    }
+                var plan = startPlan(prev, P, opt);
+                info.turn = plan.turn;
+                var near = plan.near;
+                if (plan.nd > SNAP) {
+                    P = insert(P, [plan.off]);
+                    near = nearestVertex(P, plan.off).k;
+                }
+                if (near > 0) {
+                    P = rotate(P, near);
+                    info.moved = true;
+                    info.offset = plan.off;
                 }
             }
         } else if (opt.direction) {
@@ -343,16 +382,11 @@ var MF = (function () {
 
     // every key gets a point wherever any key has one (by outline fraction): same count,
     // and point j of every key at the same fraction of its own outline
-    function unify(paths, minPoints) {
+    function unify(paths) {
         var all = [], p, j, np = paths.length;
         for (p = 0; p < np; p++) {
             var fr = fractions(paths[p], measure(paths[p]));
             for (j = 0; j < fr.length; j++) all.push({ f: fr[j], p: p });
-        }
-        // at least minPoints, evenly spread (a virtual key that only adds fractions)
-        if (minPoints > 0) {
-            var mp = paths[0].closed ? minPoints : minPoints - 1;
-            for (j = 0; j < minPoints; j++) all.push({ f: mp > 0 ? j / mp : 0, p: np });
         }
         // every sort breaks ties: ExtendScript's sort is not stable, V8's is, and the two must agree
         for (j = 0; j < all.length; j++) all[j].idx = j;
@@ -528,7 +562,7 @@ var MF = (function () {
     // B's segments at their quarter points (they are short), A's long ones at every one of
     // their SUB arc-length samples (a quarter point can miss where B cuts a tight bend).
     // Cheap enough for ExtendScript.
-    function strays(A, MA, B) {
+    function strays(A, MA, B, dense) {
         var MB = measure(B), worst = 0, pass, j, q, mB = segCount(B);
         // a rebuilt segment whose handle points back against its chord is folding over a hook
         // or a bend too tight for its length: not followed (more points, or keep the originals)
@@ -543,9 +577,9 @@ var MF = (function () {
             var X = pass ? A : B, MX = pass ? MA : MB, Y = pass ? B : A, MY = pass ? MB : MA, m = segCount(X);
             if (MX.total <= 0) continue;
             for (j = 0; j < m; j++) {
-                var c = seg(X, j), n = pass ? SUB - 1 : bq.length;
+                var c = seg(X, j), n = pass || dense ? SUB - 1 : bq.length;
                 for (var i = 0; i < n; i++) {
-                    q = pass ? i + 1 : bq[i];
+                    q = pass || dense ? i + 1 : bq[i];
                     var f = (MX.start[j] + MX.cum[j][q]) / MX.total;     // the sample's own arc fraction
                     var d = Math.sqrt(near2(Y, MY, bez(c, q / SUB), f));
                     if (d > worst) worst = d;
@@ -555,16 +589,19 @@ var MF = (function () {
         return worst;
     }
 
-    // every key rebuilt with the same points; more points until each is within tol px
-    function rebuild(paths, minPoints, tol) {
+    // every key rebuilt with the same points, at most maxPoints (corners and the start always
+    // get one, so a path with more corners than that gets one per corner); more points until
+    // each key is within tol px or the cap is reached
+    function rebuild(paths, maxPoints, tol) {
         var Ms = [], p, most = 0;
         for (p = 0; p < paths.length; p++) {
             Ms.push(measure(paths[p]));
             if (paths[p].v.length > most) most = paths[p].v.length;
         }
+        var cap = Math.max(4, Math.round(maxPoints || 100));
         // start small (4 per drawn point, 16 to 64) and add points only as the tolerance needs
-        var N = Math.max(minPoints || 0, Math.min(64, Math.max(16, 4 * most))), out, worst;
-        for (var round = 0; round < 6; round++) {
+        var N = Math.min(cap, Math.min(64, Math.max(16, 4 * most))), out, worst;
+        for (var round = 0; round < 8; round++) {
             var F = layout(paths, Ms, N);
             out = [];
             worst = 0;
@@ -573,11 +610,18 @@ var MF = (function () {
                 worst = Math.max(worst, strays(paths[p], Ms[p], out[p]));
             }
             // aim at 80 % of the promise: the quick check can come in ~15 % under the truth
-            if (worst <= tol * 0.8 || N >= 512) break;
-            N = Math.min(512, Math.ceil(N * 1.6));
+            if (worst <= tol * 0.8 || N >= cap) break;
+            N = Math.min(cap, Math.ceil(N * 1.6));
         }
-        // loops or cusps it can't follow within tol: say so (fix() keeps the points instead)
-        return { paths: out, deviation: worst, failed: worst > tol * 0.8 };
+        // a fold (strays = 1e9): loops or cusps it can't follow at this density, fix() keeps
+        // the drawn points instead; otherwise short of tol only because of the cap: say how far,
+        // measured again densely (that number is shown to the designer)
+        var capped = worst > tol * 0.8 && worst < 1e9;
+        if (capped) {
+            worst = 0;
+            for (p = 0; p < paths.length; p++) worst = Math.max(worst, strays(paths[p], Ms[p], out[p], true));
+        }
+        return { paths: out, deviation: worst, failed: worst >= 1e9, capped: capped };
     }
 
     // nothing to do: same points, same direction, and no start would move
@@ -590,8 +634,9 @@ var MF = (function () {
                     if (w && w !== o.sign) return false;
                 }
                 if (o.start) {
-                    var plan = startPlan(paths[k - 1], paths[k]);     // the same decision align() takes
-                    if (plan && (plan.nd > SNAP || plan.near > 0)) return false;
+                    var plan = startPlan(paths[k - 1], paths[k], o);     // the same decision align() takes
+                    if (plan.nd > SNAP || plan.near > 0) return false;
+                    if (plan.turn) return false;      // a turn to take out of the path
                 }
             } else if (o.direction && rms(paths[k - 1], reverse(paths[k])) < rms(paths[k - 1], paths[k]) * GAIN) {
                 return false;
@@ -600,14 +645,15 @@ var MF = (function () {
         return true;
     }
 
-    // fix(paths, { mode, start, direction, minPoints, tolerance }) -> { paths, keys, matched,
-    // deviation }. mode 'smooth' (default) rebuilds the points for kink-free in-betweens, each
-    // key within `tolerance` px (0.1); 'exact' keeps every point as drawn and only adds
-    // points by splitting (at least minPoints). keys[k]: { reversed, moved, added, before,
-    // after }, before/after = RMS travel (px) from the previous key, around the centres.
-    // A path that already matches comes back untouched (matched: true).
+    // fix(paths, { mode, maxPoints, tolerance, start, direction }) -> { paths, keys, matched,
+    // mode, fellBack, deviation, capped }. mode 'smooth' (default) rebuilds the points for
+    // kink-free in-betweens, at most maxPoints (100) per key, each key within `tolerance` px
+    // (0.1) unless the cap stops it first (capped: true, deviation = how far it got); 'exact'
+    // keeps every point as drawn and only adds points by splitting (the cap doesn't apply).
+    // keys[k]: { reversed, moved, added, before, after }, before/after = RMS travel (px) from
+    // the previous key, around the centres. A path that already matches comes back untouched.
     function fix(paths, opt) {
-        var o = { mode: 'smooth', start: true, direction: true, minPoints: 0, tolerance: 0.1 }, k;
+        var o = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 }, k;
         if (opt) for (k in opt) o[k] = opt[k];
         if (paths.length < 2) throw new Error('needs two keyframes or more');
         for (k = 0; k < paths.length; k++) {
@@ -636,16 +682,120 @@ var MF = (function () {
         }
         var mode = o.mode;
         if (mode !== 'exact') {
-            res = rebuild(al, o.minPoints, o.tolerance);
-            if (res.failed) mode = 'exact';       // the shape can't be followed within tolerance
+            res = rebuild(al, o.maxPoints, o.tolerance);
+            if (res.failed) mode = 'exact';       // loops or cusps the rebuild can't follow
         }
-        if (mode === 'exact') res = { paths: unify(al, o.minPoints).paths, deviation: 0 };
+        if (mode === 'exact') res = { paths: unify(al).paths, deviation: 0, capped: false };
         for (k = 0; k < paths.length; k++) {
             keys[k].added = res.paths[k].v.length - paths[k].v.length;
             keys[k].before = k ? rms(paths[k - 1], paths[k]) : 0;
             keys[k].after = k ? rms(res.paths[k - 1], res.paths[k]) : 0;
         }
-        return { paths: res.paths, keys: keys, matched: false, deviation: res.deviation, mode: mode, fellBack: mode !== o.mode };
+        // the turn (o.rotate, closed paths, some pair turned): taken out of the keys, which come
+        // back around their centres and unturned ("local"), with the cumulative angle (degrees,
+        // clockwise like AE) and centre of each key for the group's Rotation and Position.
+        // placed = the keys where they were: turnPath(local[k], centres[k], angles[k]).
+        var turn = null, placed = null;
+        if (o.rotate && paths[0].closed) {
+            var any = false;
+            for (k = 1; k < paths.length; k++) if (keys[k].turn) any = true;
+            if (any) {
+                var angles = [0], centres = [], local = [];
+                for (k = 0; k < paths.length; k++) {
+                    var Sk = samples(res.paths[k], measure(res.paths[k]));
+                    centres.push([Sk.cx, Sk.cy]);
+                    if (k) angles.push(angles[k - 1] + (keys[k].turn ? turnFrom(res.paths[k - 1], res.paths[k]) : 0));
+                }
+                for (k = 0; k < paths.length; k++) {
+                    local.push(turnPath(res.paths[k], centres[k], -angles[k], true));
+                    keys[k].angle = angles[k];
+                    keys[k].after = k ? rms(local[k - 1], local[k]) : 0;
+                }
+                turn = pivots(angles, centres, res.paths);
+                placed = res.paths;
+                res.paths = local;
+            }
+        }
+        return {
+            paths: res.paths, keys: keys, matched: false, deviation: res.deviation, capped: !!res.capped,
+            mode: mode, fellBack: mode !== o.mode, turn: turn, placed: placed
+        };
+    }
+
+    // The group transform that shows the local keys where they were drawn and turns them the
+    // way they were turned. A step that turns (2 deg or more) turns about its fixed point q,
+    // the one point the step leaves in place ((I - R) q = c1 - R c0): anchor and position hold
+    // still through the step (hold keys) while Rotation turns, so the shape swings on an arc.
+    // A step that only slides keeps an anchor and moves its position (eased like the path).
+    // Shown at key k: position[k] + R(angles[k]) (local[k] - anchor[k]) = the key as drawn.
+    // -> { angles, anchor[k], position[k], hold[k] (the step from k turns about a point) }
+    function pivots(angles, centres, placedPaths) {
+        var K = angles.length, anchor = [], position = [], hold = [], k, size = 0;
+        for (k = 0; k < K; k++) {
+            var ar = area(placedPaths[k]);
+            size = Math.max(size, Math.sqrt(ar < 0 ? -ar : ar));
+        }
+        var A = [0, 0];
+        for (k = K - 2; k >= 0; k--) {
+            // the step from key k to key k+1, last to first so a slide can take the next anchor
+            var phi = (angles[k + 1] - angles[k]) * Math.PI / 180, q = null;
+            if (Math.abs(phi) >= 2 * Math.PI / 180) {
+                var c = Math.cos(phi), s = Math.sin(phi), c0 = centres[k], c1 = centres[k + 1];
+                var rx = c1[0] - (c0[0] * c - c0[1] * s), ry = c1[1] - (c0[0] * s + c0[1] * c);
+                var det = (1 - c) * (1 - c) + s * s;      // |I - R|
+                // (I - R)^-1 = [[1 - c, -s], [s, 1 - c]] / det
+                q = [((1 - c) * rx - s * ry) / det, (s * rx + (1 - c) * ry) / det];
+                var dq = Math.sqrt((q[0] - c0[0]) * (q[0] - c0[0]) + (q[1] - c0[1]) * (q[1] - c0[1]));
+                if (dq > 20 * size) q = null;             // nearly a slide: the point is far off
+            }
+            if (q) {
+                // the pivot in key k's local frame: R(-angle k) (q - centre k)
+                var a = -angles[k] * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), qx = q[0] - centres[k][0], qy = q[1] - centres[k][1];
+                A = [qx * ca - qy * sa, qx * sa + qy * ca];
+                anchor[k] = A;
+                position[k] = q;
+                hold[k] = true;
+            } else {
+                // a slide: keep the anchor of the step after (so the keys meet), move the position
+                anchor[k] = A;
+                hold[k] = false;
+            }
+        }
+        // positions for slides, and the last key: centre + R(angle) anchor
+        for (k = 0; k < K; k++) {
+            if (k === K - 1) {
+                anchor[k] = K > 1 ? anchor[k - 1] : [0, 0];
+                hold[k] = false;
+            }
+            if (!hold[k] || k === K - 1) {
+                var b = angles[k] * Math.PI / 180, cb = Math.cos(b), sb = Math.sin(b), Ak = anchor[k];
+                position[k] = [centres[k][0] + Ak[0] * cb - Ak[1] * sb, centres[k][1] + Ak[0] * sb + Ak[1] * cb];
+            }
+        }
+        return { angles: angles, centres: centres, anchor: anchor, position: position, hold: hold };
+    }
+
+    // the angle (degrees, clockwise on screen) that turns A onto B, their starts matching
+    function turnFrom(A, B) {
+        var SB = samples(B, measure(B)), MA = measure(A), SA = samples(A, MA);
+        return errorAt(SB, A, MA, [SA.cx, SA.cy], 0, true).theta * 180 / Math.PI;
+    }
+
+    // P turned by deg about the origin and moved by c (local -> placed), or, with toLocal,
+    // moved by -c then turned by deg (placed -> local: turnPath(P, c, -angle, true))
+    function turnPath(P, c, deg, toLocal) {
+        var a = deg * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a), R = { v: [], i: [], o: [], closed: P.closed };
+        var rot = function (x, y) { return [x * cs - y * sn, x * sn + y * cs]; };
+        for (var k = 0; k < P.v.length; k++) {
+            if (toLocal) R.v.push(rot(P.v[k][0] - c[0], P.v[k][1] - c[1]));
+            else {
+                var q = rot(P.v[k][0], P.v[k][1]);
+                R.v.push([q[0] + c[0], q[1] + c[1]]);
+            }
+            R.i.push(rot(P.i[k][0], P.i[k][1]));
+            R.o.push(rot(P.o[k][0], P.o[k][1]));
+        }
+        return R;
     }
 
     function dist2(c, t, q) {
@@ -732,7 +882,7 @@ var MF = (function () {
     return {
         fix: fix, align: align, unify: unify, rebuild: rebuild, corners: corners, insert: insert, reverse: reverse, rotate: rotate,
         measure: measure, at: at, fractions: fractions, area: area, winding: winding, rms: rms, deviation: deviation,
-        lerp: lerp, copy: copy, seg: seg, segCount: segCount, bez: bez,
+        lerp: lerp, copy: copy, seg: seg, segCount: segCount, bez: bez, turnPath: turnPath, turnFrom: turnFrom,
         // how far two paths part (px), quick two-way check (what the rebuild holds to its tolerance)
         gap: function (A, B) { return strays(A, measure(A), B); }
     };

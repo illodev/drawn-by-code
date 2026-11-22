@@ -52,3 +52,41 @@ by point with Easy Ease as smoothstep, within 0.002 px of the preview's model.
 
 **Not yet seen by the user.** Open questions for round 2: their own shapes (type outlines,
 logos), compound paths with matching sub-paths, a tolerance option in the dialog.
+
+## Round 2 · 2026-11-22 (the user's requests, then automatic + inside After Effects 2026)
+
+The user asked for: a **max** points instead of "at least" (default 100), the always-on
+options dropped, a **hyper-compact panel** with the instructions behind an info button, and
+then **coordinated motion for shapes that turn** (an F becoming an F rotated 90°).
+
+- **Max:** the rebuild grows to the max and stops; if that is short of 0.1 px it keeps the
+  result and the status says how far it got ("~0.761 px (max)", re-measured densely). On
+  wild random shapes held to few points that figure reads up to ~25 % low, so it is shown as
+  approximate; on the demo it is exact (0.76 measured, 0.76 by brute force).
+- **Panel:** one row `[Smooth ▾] max [100] [ ] turn [Fix] [?]` and a status line whose
+  tooltip holds the full report (264 × 53 px in AE); docks from `ScriptUI Panels`, floats
+  from File › Scripts; remembers its settings. Start and direction are always on.
+- **Turn:** with straight-line interpolation, an F turning 90° is halfway at half its area
+  (the corner 53 px off the arc in AE). The start search now also tries the best rotation
+  (2D Procrustes); a step counts as a turn when that cuts the error by 20 %, against a plain
+  match really off (> 0.5 px RMS: without that floor a hold "turned" on rounding noise and a
+  symmetric star spun 144°). The turn is taken out of the keys (local, unturned) into the
+  shape group's Rotation; each turning step turns about its fixed point, anchor and position
+  held through it, so the shape swings on an arc exactly as if turned by hand (the first
+  version slid the centre in a straight line: 10.7 px off the arc halfway).
+- Node: 4,269 checks. The F: angles 0/90/180/270/360 exactly, local keys alike (travel 162 →
+  0 px), halfway = the F turned 45° (0.00 px; as drawn 52.8 px off, fixed without turn 89
+  px); 60 random turned-and-moved shapes, angle recovered exactly; with turn on, the
+  five-shape morph invents no spin; a second run changes nothing.
+- **Inside After Effects** (`review/ae-log.txt`), all checks pass, after one fix: ExtendScript
+  stopped on "Illegal use of reserved word": `{ short: …, long: … }`. ES3 reserves `short`,
+  `long`, `int`, `char`, `float`, `final`… even as property names. → Renamed, and the build
+  now lints for every ES3 reserved word (make-demo.jsx too). The corner of the turning F
+  rides the arc within 0.03 px at keys and halfway; the group's Rotation is keyed 0 … 360 with
+  the path's times; the panel's Fix button works in Smooth, max 24, Exact and turn.
+- **Render** (aerender, 14.5 s, Morph then Turn): mean difference **1.1** between AE's After
+  halves and the engine preview over 10 times in both parts.
+
+**Not yet seen by the user.** Open questions for round 3: turning letters with holes
+(several paths in one group, turned together), masks (they need baked in-betweens: no
+transform of their own), and custom key speeds copied exactly to the group's keys.
