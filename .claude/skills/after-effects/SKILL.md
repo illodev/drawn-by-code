@@ -1,6 +1,6 @@
 ---
 name: after-effects
-description: Building After Effects tools from drawn-by-code — ExtendScript (.jsx) that bakes code-made motion into native AE layers, keyframes and slider-driven expressions, or builds live expression rigs, tested inside the user's After Effects. Use it when the user works in After Effects, asks for an AE script, rig or expression, wants to move motion between code and AE, or when working on sandbox/2026-11-21-ae-flock-rig or sandbox/2026-11-21-ae-field-effector.
+description: Building After Effects tools from drawn-by-code — ExtendScript (.jsx) that bakes code-made motion into native AE layers, keyframes and slider-driven expressions, or builds live expression rigs, tested inside the user's After Effects. Use it when the user works in After Effects, asks for an AE script, rig or expression, wants to move motion between code and AE, or when working on sandbox/2026-11-21-ae-flock-rig, sandbox/2026-11-21-ae-field-effector or sandbox/2026-11-21-ae-morph-fixer.
 ---
 
 # After Effects
@@ -13,8 +13,9 @@ rule across many elements (flocks, draw-on order, staggers, physics); hero timin
 stay in the graph editor.
 
 Worked examples: `sandbox/2026-11-21-ae-flock-rig/` (baked: a flock that follows a keyed
-null) and `sandbox/2026-11-21-ae-field-effector/` (live: a MoGraph-style field effector,
-all expressions).
+null), `sandbox/2026-11-21-ae-field-effector/` (live: a MoGraph-style field effector, all
+expressions) and `sandbox/2026-11-21-ae-morph-fixer/` (a one-shot fix to the designer's own
+keys: matching path points so shapes morph cleanly).
 
 **Bake or live?** If the motion has memory (velocity, collisions, contact), simulate in the
 script and bake keys. If each frame depends only on where things are at that frame (a
@@ -68,6 +69,9 @@ that AE runs wrong.
   way was 30× slower. Measured: 80 boids over 264 steps of 2 substeps = 5.5 s in AE 2026.
 - Seeded randomness that agrees bit for bit across engines: Park-Miller (`s * 16807 %
   2147483647`, exact in doubles). Avoid hashes that overflow 2^53.
+- **ExtendScript's `sort` is not stable** (V8's is). A comparator whose ties matter must
+  break them by index (`(a.f - b.f) || (a.idx - b.idx)`), or ExtendScript and Node give
+  different results: a rebuild handed its spare points to other gaps, 20 px apart.
 - Testing an ES3 file in Node: load it with `new Function(src + 'return X')()`, not
   `vm.runInContext` (global lookups there are ~10× slower and skew timings).
 
@@ -168,3 +172,13 @@ that AE runs wrong.
   mock passed code in which every checkbox read as on.
 - 2026-11-21 · ae-field-effector · Values right but the render empty: bisect with `aerender`
   on saved project variants (one feature switched off each); here a Fill at 0 % hid every layer.
+- 2026-11-21 · ae-morph-fixer · AE morphs a path by blending every vertex and handle in a
+  straight line (checked to 0.002 px), so a smooth point stays smooth halfway only if its
+  handle-length ratio matches in both keys: rebuild every key at shared outline fractions
+  with handles = arc / 3, corners pinned; keeping or splitting the drawn points can't.
+- 2026-11-21 · ae-morph-fixer · AE stores path points as 32-bit floats; on a symmetric shape
+  that rounding is enough to pick another, equally good, alignment. Compare AE with Node on
+  the keys AE actually holds, not on the values you wrote.
+- 2026-11-21 · ae-morph-fixer · A cheap check inside a loop (the rebuild's tolerance) must be
+  validated against a slow, exact one in Node on hostile inputs; it under-read by 15 % on
+  tight bends until it looked both ways, sampled the original densely and caught folds.

@@ -1,0 +1,14 @@
+fix (3043 ms): 5. After > Morph > Path 1 > Path: 10 keys, 4-10 -> 64 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.065 px of each shape.
+ok   every After key has the same number of points (64)
+ok   After Effects stores the keys the math computes (to 32-bit float) · largest difference 0.00003803359898
+ok   the rebuild measured every key within 0.1 px of its drawn shape · smooth, 0.06475487512383 px
+ok   Before is untouched · 4,4,10,10,8,8,6,6,4,4
+ok   key times, interpolation and easing unchanged
+ok   a second run changes nothing · largest change 0
+ok   AE interpolates the fixed keys point by point, eased (as the preview does) · largest difference 0.00228881835938 px at key 8 + 0.5
+ok   start dot expression evaluates (on the star's first point at 2 s) · 1400, 385 
+ok   a Mask Path is fixed too · 1. Masked > Mask 1 > Mask Path: 3 keys, 4-10 -> 64 points each, 2 reversed, 2 start points moved; points travel 163 -> 51 px around the shape; rebuilt within 0.034 px of each shape.
+ok   a path with an expression is skipped and reported · 1. Shape Layer 1 > Path 1 > Path: skipped, it has an expression.
+ok   selecting the layer finds its path · 5. After > Morph > Path 1 > Path
+saved C:/Users/imben/drawn-by-code/sandbox/2026-11-21-ae-morph-fixer/out/ae/morph-fixer-demo.aep
+all checks pass

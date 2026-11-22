@@ -1,0 +1,94 @@
+# Morph Fixer for After Effects
+
+`MorphFixer.jsx` makes a keyed path morph cleanly. After Effects morphs one keyframe's path
+into the next point by point, so keys drawn independently tear (different numbers of
+points), spin (each key starts at a different point) or turn inside out (one drawn the
+other way round). The fixer gives every keyframe the same points, the same direction and a
+start point that keeps the morph still, without changing what any key looks like, its time
+or its easing.
+
+## Set up
+
+1. A **Path** on a shape layer, or a **Mask Path**, with two keyframes or more. Rectangle,
+   Ellipse and Polystar shapes are parametric: right-click › Convert to Bezier Path first.
+2. Draw each key however you like: any number of points, either direction, any start.
+
+## Run
+
+Select the path (or its group, or the whole layer), then **File › Scripts › Run Script
+File… › MorphFixer.jsx**. To keep it in the menu, copy it to
+`…/Adobe After Effects 2026/Support Files/Scripts/`. Several paths at once work.
+
+| Option | Default | What it does |
+|---|---|---|
+| Points: **Rebuild them** | on | Every key gets points at the same places along its outline, with handles sized so in-betweens stay smooth. Each shape stays within **0.1 px** of what you drew; corners stay exact points. Usually 40–100 points per key |
+| Points: **Keep mine** | | Your points stay where they are; the fixer only adds points by splitting curves where they lie, so every key is exact. In-betweens may show small kinks where a point's handles are uneven |
+| At least … points | 0 | More points per key (0 = as many as the shapes need) |
+| Slide start points | on | Each key's start moves along its outline to where the morph from the previous key travels least, measured around each shape's centre (a morph that also moves across the screen isn't fooled) |
+| Match direction | on | Keys drawn the other way round are reversed (same outline) |
+
+With two or more keyframes selected on a path, only those are fixed. The report lists each
+path: keys, points before → after, how many were reversed or had their start moved, and how
+far points travel around the shape before → after. Undo puts everything back. Running it
+again on a fixed path leaves it alone ("already matched").
+
+## What it changes
+
+Only the path's keyframe values. Key times, interpolation, easing, hold keys, the layer and
+anything else stay as they were.
+
+## How it works
+
+- **Direction:** the signed area of each closed key; keys against the first clear one are
+  reversed (shapes with no clear direction, like a figure eight, are left alone).
+- **Start:** both shapes are sampled at 128 points from their starts; the next key's start
+  slides to the offset with the least squared distance, around each shape's centre (searched
+  on the sample grid, then refined). It moves only when that cuts the error by 5 % or more,
+  so symmetric shapes keep their starts and a second run changes nothing.
+- **Rebuild:** points go at the same fractions of every key's outline (each key's corners
+  pinned exactly, the rest spread evenly), every handle a third of the arc to its
+  neighbour. After Effects blends each handle in a straight line, so a smooth point stays
+  smooth halfway only if its two handles keep the same length ratio in both keys: shared
+  fractions guarantee it. Points are added until every key is within the tolerance; a path
+  with loops or cusps it can't follow keeps its own points instead (and says so).
+- **Keep mine:** every key gets a point wherever any key has one (by outline fraction), each
+  added by an exact bezier split.
+
+Measured on the demo: 10 keys of 4–10 points become 64 points each in 2 s inside After
+Effects; points travel 232 px around the shape on average before, 46 after; every key
+within 0.065 px of its drawing.
+
+## Limits
+
+- **One path at a time.** A compound shape (a letter with a hole) is several paths; each is
+  fixed on its own, and keys with a different number of sub-paths can't be matched.
+- Paths with an **expression**, masks with **feather points**, and keys mixing **open and
+  closed** paths are skipped and reported.
+- With only some keyframes selected, the others keep their points: morphs into them still
+  mismatch.
+- Rebuilt paths have more points, so they're harder to edit by hand: edit before fixing,
+  or choose Keep mine.
+- After Effects stores path points as 32-bit floats (about 0.00004 px at these sizes).
+
+## For the repo
+
+| File | |
+|---|---|
+| `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
+| `morph-ae.jsx` | The After Effects half: selection, dialog, reading and writing keys, report |
+| `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `MorphFixer.jsx`, with an ES3 lint |
+| `test.mjs` | 4,235 checks in Node: the demo and 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js` |
+| `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE, logs (`review/ae-log.txt`) and saves the project: the AE test |
+| `scene.js` | Engine preview of the After half, drawn the way AE interpolates the fixed keys |
+
+Testing inside After Effects (with the user's go-ahead: the demo opens a new project). Run a
+small runner script in AE (`AfterFX.exe -r runner.jsx`) that sets `$.global.MORPH_TEST_OUT`
+(a folder in `out/`) and `$.global.MORPH_DIR` (this folder), then `$.evalFile` on
+`make-demo.jsx`. Render the saved project with `aerender`, which leaves AE free:
+
+```powershell
+& "C:\Program Files\Adobe\Adobe After Effects 2026\Support Files\aerender.exe" -project out\ae\morph-fixer-demo.aep -comp "Morph demo" -s 0 -e 191 -RStemplate "Best Settings" -OMtemplate "H.264 - Match Render Settings -  5 Mbps" -output out\ae\morph-fixer-ae.mp4
+```
+
+`render/ae-morph-fixer.mp4` is that render (After Effects), re-encoded with its BT.709 tags.
