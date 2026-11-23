@@ -1114,12 +1114,13 @@ const Souvenir = (() => {
     // reaches vmax as the camera passes depth `peakAt`, and then, over the last `hold`
     // seconds, eases down at `fall` per second to land on what the flight was going to. The
     // camera rolls on its axis `turns` whole turns over the flight (a whole number: it lands
-    // level), slowly at first and faster as it goes faster (`bank` > 1 holds the roll back at
-    // the start), so that the roll is part of the speed. Everything is a table made once.
+    // level, `settle` seconds before the end), slowly at first and faster as it goes faster
+    // (`bank` > 1 holds the roll back at the start), so that the roll is part of the speed.
+    // Everything is a table made once.
     //   const F = flight({ start, v0, vmax, peakAt, hold });
     //   F.at(t) → { z, focus, aperture, roll }; F.length; F.tOf(z) (when the camera is at z);
     //   F.speed(t)
-    function flight({ start, v0, vmax, peakAt, hold, fall = 0.55, soft = 0.5, turns = 1, bank = 1.3, focus = 1000, aperture = 10, step = 1 / 480 }) {
+    function flight({ start, v0, vmax, peakAt, hold, fall = 0.55, soft = 0.5, turns = 1, bank = 1.3, settle = 1.6, focus = 1000, aperture = 10, step = 1 / 480 }) {
         const sp = (x) => (x > 30 ? x : Math.log1p(Math.exp(x)));
         const speedOf = (k, tp) => (t) => v0 * Math.exp(k * t - (k + fall) * soft * sp((t - tp) / soft));
         const run = (k, tp, until) => {
@@ -1140,7 +1141,10 @@ const Souvenir = (() => {
             const f = Math.max(0, Math.min(Z.length - 1.001, t / step)), i = Math.floor(f);
             return Z[i] + (Z[i + 1] - Z[i]) * (f - i);
         };
-        const rollAt = (z) => turns * Math.PI * 2 * Math.pow(Math.max(0, Math.min(1, (z - start) / (z1 - start))), bank);
+        // the roll is done `settle` seconds before the end, easing into level (what lands
+        // there, a signature, is read straight)
+        const zs = zAt(Math.max(0, length - settle));
+        const rollAt = (z) => turns * Math.PI * 2 * (1 - Math.pow(1 - Math.pow(Math.max(0, Math.min(1, (z - start) / (zs - start))), bank), 1.6));
         const at = (t) => {
             const z = zAt(t);
             return { z, focus: z + focus, aperture, roll: rollAt(z) };
