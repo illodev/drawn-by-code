@@ -591,3 +591,9 @@ The lemons came out of the night between the guitar 600 and 400 away, a fifth of
 at that speed; seen only through its mouth, they now come in from 2200 to 1200 away. The
 moon and her sky came out long before the guitar and filled its mouth before any lemon:
 they now come out once the camera is through it, among the lemons, as do the worlds.
+
+The user, of the film with take 5: «I'll take it as good», and «let's put it on the README
+and the website». Round 8 approved. The render in the repo now carries its score (cut by
+`score.sh 5 0`), as the other films on the site do; the film is the second on the site
+(poster: the guitar at 6.7 s) and the first in the README's gallery, and the style is
+marked approved.
