@@ -40,6 +40,16 @@
         } catch (x) {}
     }
 
+    // jobs already waiting were meant for a runner that never started (AE refused it): set them
+    // aside unrun, or an old stop job ends this runner before the new jobs
+    var stale = new Folder(DIR + '/inbox').getFiles('*.jsx');
+    for (var s = 0; s < stale.length; s++) {
+        var nm = File.decode(stale[s].name);
+        stale[s].copy(DIR + '/done/' + nm);
+        stale[s].remove();
+        write(DIR + '/done/' + nm.replace(/\.jsx$/, '') + '.status.txt', 'skipped: it was waiting before this runner started\n');
+    }
+
     var B = $.global.MMF_BRIDGE;
     if (B && B.task) {
         try {

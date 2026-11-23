@@ -64,8 +64,9 @@ path morphs between pieces that correspond (outline to outline, a hole to the ho
 it), and a piece you draw as a dot (or collapse) grows from that dot: it becomes a tiny copy
 of itself there. An O into a C: the hole closes into the dot you put inside the C.
 
-**Long fixes** (estimated over 4 s) show a progress window; hold Esc to cancel. The fix is
-worked out in full before anything is written, so cancelling changes nothing.
+**Long fixes:** hold Esc to cancel (checked for fixes estimated over 4 s; the warning before a
+fix over 10 s says so). The fix is worked out in full before anything is written, so
+cancelling changes nothing.
 
 | Control | Default | What it does |
 |---|---|---|
@@ -158,6 +159,10 @@ What it doesn't do, and why; each is also said in the report when it happens.
 - **Time:** the estimate runs high on small jobs (up to 4x) and close on long ones (within
   10 % on 15–24 s jobs). After Effects doesn't respond while a fix runs; Esc is read when the
   work checks in, so hold it.
+- **No progress bar.** A floating window a script opens stays stuck on screen for good if
+  anyone clicks After Effects while the script keeps it busy (Windows' "not responding"
+  stand-in puts it back, and no ScriptUI call removes it), so the fixer opens none while it
+  works. The warning before a long fix gives the time instead.
 - After Effects stores path points as 32-bit floats (about 0.00004 px at these sizes).
 
 ## For the repo

@@ -1652,7 +1652,7 @@ var MorphFixer = (function () {
         }
         if (seconds > 10) {
             var t = section(w, 'This fix will take about ' + Math.round(seconds) + ' seconds.');
-            para(t, 'After Effects will not respond until it is done.', n);
+            para(t, 'After Effects will not respond until it is done. Hold Esc to cancel: nothing changes.', n);
         }
         para(w, 'Fix anyway? ' + KEY + '+Z undoes it.', n);
         var bar = w.add('group');
@@ -1727,8 +1727,14 @@ var MorphFixer = (function () {
         return { groups: groups, singles: singles };
     }
 
-    // ---- progress, with Esc to cancel (nothing is written until the work is done) ----
+    // ---- Esc to cancel (nothing is written until the work is done) ----
 
+    // Read when the work checks in (every key, every round), up to about half a second apart on
+    // dense paths: holding Esc is what reliably lands. There is no progress window: a floating
+    // window a script opens stays stuck on screen for good if anyone clicks After Effects while
+    // the script keeps it busy (Windows' "not responding" stand-in puts it back; no close(),
+    // hide() or show()+close() removes it afterwards). The warning before a long fix gives the
+    // time and says how to cancel instead.
     function escPressed() {
         if (api.escape) return api.escape();
         try {
@@ -1736,55 +1742,6 @@ var MorphFixer = (function () {
         } catch (e) {
             return false;
         }
-    }
-
-    // the progress window's own title (Window.find tells it from the guide by it)
-    var PROGRESS_TITLE = NAME + ': working';
-
-    function progressWindow() {
-        var w = new Window('palette', PROGRESS_TITLE, undefined, { closeButton: false });
-        w.orientation = 'column';
-        w.alignChildren = ['fill', 'top'];
-        w.margins = 14;
-        w.spacing = 8;
-        var label = w.add('statictext', undefined, 'Working it out...');
-        label.characters = 40;
-        var bar = w.add('progressbar', undefined, 0, 100);
-        bar.preferredSize = [300, 10];
-        // Esc is read when the work checks in (every key, every round), up to about half a second
-        // apart on dense paths: holding it is what reliably lands
-        w.add('statictext', undefined, 'Hold Esc to cancel. Nothing changes until it is done.');
-        w.center();
-        w.show();
-        w.update();
-        var last = 0;
-        return {
-            step: function (text, frac) {
-                var now = new Date().getTime();
-                if (now - last > 80) {
-                    label.text = text;
-                    bar.value = Math.max(0, Math.min(100, frac * 100));
-                    w.update();
-                    last = now;
-                }
-                return escPressed();
-            },
-            // While a fix keeps After Effects busy for more than about 5 s, Windows swaps its
-            // windows for stand-ins, and when AE answers again puts each back as it was: a palette
-            // closed in that time came back on screen (ScriptUI said it was closed), with no close
-            // button. So it is closed only once AE is responsive again, by a one-shot task a moment
-            // after the fix ends, which finds it by title (nothing kept on $.global).
-            close: function () {
-                try {
-                    label.text = 'Done';
-                    bar.value = 100;
-                    w.update();
-                    app.scheduleTask("(function () { var w = Window.find('palette', '" + PROGRESS_TITLE + "'); if (w) w.close(); })()", 300, false);
-                } catch (e) {
-                    w.close();
-                }
-            }
-        };
     }
 
     // fixes the keyed paths selected in the active comp -> { status, detail, reports }: a status
@@ -1856,10 +1813,9 @@ var MorphFixer = (function () {
             }
         }
         for (i = 0; i < pg.singles.length; i++) jobs.push({ prop: pg.singles[i] });
-        // progress for jobs estimated over 4 s (the estimate runs high on small jobs)
-        var prog = (seconds > 4 || api.escape) ? (api.escape ? null : progressWindow()) : null;
+        // Esc is checked for jobs estimated over 4 s (the estimate runs high on small jobs)
         var step = function (text, f) {
-            return prog ? prog.step(text, f) : (api.escape ? api.escape() : false);
+            return (seconds > 4 || api.escape) ? escPressed() : false;
         };
         try {
             for (i = 0; i < jobs.length; i++) {
@@ -1872,11 +1828,9 @@ var MorphFixer = (function () {
                 if (step('Path ' + (i + 1) + ' of ' + jobs.length, (i + 1) / jobs.length)) throw { cancelled: true };
             }
         } catch (ec) {
-            if (prog) prog.close();
             if (ec && ec.cancelled) return { status: 'Cancelled: nothing changed', detail: 'Cancelled with Esc before anything was written.', reports: [], cancelled: true, warned: warned, seconds: seconds };
             return { status: 'Error (hover)', detail: String(ec && ec.message) + (ec && ec.line ? ' (line ' + ec.line + ')' : ''), reports: [] };
         }
-        if (prog) prog.step('Writing the keys...', 1);
         app.beginUndoGroup(NAME);
         try {
             for (i = 0; i < plans.length; i++) {
@@ -1897,12 +1851,10 @@ var MorphFixer = (function () {
                 }
             }
         } catch (e) {
-            if (prog) prog.close();
             return { status: 'Error (hover)', detail: String(e && e.message) + (e && e.line ? ' (line ' + e.line + ')' : ''), reports: reps };
         } finally {
             app.endUndoGroup();
         }
-        if (prog) prog.close();
         if (pieceLines.length) lines.push('', 'Pieces matched between keys:', pieceLines.join('\n'));
         var parts = [];
         if (fixed) parts.push('Fixed ' + fixed + ': ' + (lo === hi ? lo : lo + '-' + hi) + ' pts' + (worst ? (capped ? ', ~' : ', ') + round3(worst) + ' px' + (capped ? ' (max)' : '') : ''));
@@ -1933,14 +1885,14 @@ var MorphFixer = (function () {
         tips: [
             'Fixed paths have more points: finish drawing your keys first.',
             'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, and a piece you draw as a dot grows from that dot.',
-            'Long fixes show their progress. Hold Esc to cancel: nothing changes.',
+            'A long fix keeps After Effects busy until it is done; over 10 seconds, it asks first and says how long. Hold Esc to cancel: nothing changes.',
             'It asks first when Trim Paths, dashes, text on a path or an expression depend on where the points are, and when a fix will take more than 10 seconds.',
             'Rectangles, ellipses and stars: right-click the path > Convert To Bezier Path first.',
             'Paths with expressions and masks with feather points are left alone.',
             'Hover the status line to see what the last fix did.'
         ]
     };
-    var WRAP = 70;      // characters per line in the guide window (wrapped here, not by ScriptUI)
+    var WRAP = 80;      // characters per line in the guide window (wrapped here, not by ScriptUI): 80 keeps it under 800 px tall
 
     function guideText() {
         var s = NAME + ' ' + VERSION + '\n' + GUIDE.lead + '\n\nHow to use\n', i;

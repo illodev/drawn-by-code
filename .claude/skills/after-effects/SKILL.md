@@ -183,16 +183,20 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
 **Long jobs**
 
 - Plan, then write: work every path out first (no writes), then write it all in one undo
-  step. Then a progress window can offer to cancel, and cancelling changes nothing.
-- Progress: a `palette` with a `progressbar`, updated (`w.update()`) from a callback the math
-  calls every key and round. Read Esc with `ScriptUI.environment.keyboardState.keyName`; it
-  is only read when the work checks in, so tell users to hold it.
-- **Don't close that window while AE is still busy.** A script that keeps AE busy for more
-  than about 5 s makes Windows swap AE's windows for stand-ins. Each is put back as it was
-  when AE answers, so a palette closed in that time came back on screen with ScriptUI
-  saying it was closed. It had no close button and needed an AE restart. Give it a title of
-  its own and close it from a one-shot `app.scheduleTask` a moment after the work ends, found
-  by `Window.find('palette', title)`.
+  step. Then cancelling changes nothing.
+- Cancel with Esc: the math calls back every key and round, and
+  `ScriptUI.environment.keyboardState.keyName === 'Escape'` is read there. That is only when
+  the work checks in, so tell users to hold Esc. A test passes a stand-in for the key.
+- **Open no window while a script keeps AE busy.** If anyone clicks AE meanwhile, Windows
+  shows its "not responding" stand-in. When AE answers, Windows puts AE's windows back as
+  they were, and a palette the script had closed stays on screen for good.
+  - In AE 27, `close()`, `close()` again, `hide()`, and `show()` + `close()` all failed to
+    remove it (logged from outside for 45 s), and it had no close button. Only an AE restart
+    clears it.
+  - Without clicks, `close()` works, even after 7 s busy, so scripted tests don't show it.
+  - Give the time and the way to cancel in the question before the work instead.
+- `Window.find(type, title)` returns the first window with that title, closed ones included:
+  it can't reach a particular window among several with one title.
 
 **Language**
 
@@ -299,10 +303,15 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
     after the work was done.
   - Changing AE's theme (Preferences › Appearance) drops `app.scheduleTask` tasks: send the
     runner again after one.
+  - Start the runner **once** per AE session and stop it only at the end. The "second
+    script" refusal (cause still unknown) came mostly on a new launch right after a runner
+    had stopped itself. Each new launch is a chance for it, and only a restart clears it.
 - A panel installed in ScriptUI Panels opens from a script with
   `app.executeCommand(app.findMenuCommandId('<file name>.jsx'))` (a negative id is fine; 0
   = not found). It runs at once, and a test build's exports are there on the next line.
   Don't send the command again for a panel that is already open.
+- A job waiting in the inbox when a runner starts was meant for one AE refused: the runner
+  sets it aside unrun. An old stop job had otherwise ended the new runner before its jobs.
 - A by-hand test can't press keys into AE while a script runs: AE becomes a stand-in
   window, and the screen tool refuses to type into it (and says not to work around that).
   Test cancelling with a stand-in for the key, and leave a held Esc to a person.
@@ -432,3 +441,7 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
 - 2026-11-23 · ae-morph-fixer · Click through the real panel by hand before calling a dialog
   or a progress window done: a Fix anyway button with no handler and a window that outlived
   its close() both passed every scripted test.
+- 2026-11-23 · ae-morph-fixer · When a by-hand bug won't reproduce in scripts, list what the
+  hand did that the scripts didn't. The stuck progress window needed a click on the busy AE.
+  Two "fixes" built on a guessed cause (a timer closing it later) left 19 windows stacked
+  before an experiment with the click found it.

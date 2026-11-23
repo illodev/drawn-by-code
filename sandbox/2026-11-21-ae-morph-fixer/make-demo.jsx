@@ -533,6 +533,19 @@
                 'estimated ' + est.toFixed(1) + ' s, took ' + took.toFixed(1) + ' s, this machine at ' + MFx.speed().toFixed(2) + 'x the reference');
             mid.remove();
         });
+        step('cancel', function () {
+            // Esc while the fix is worked out (a stand-in for the key): nothing is written
+            var cd = before.duplicate(), calls = 0;
+            cd.name = 'Cancel test';
+            only(cd);
+            MFx.escape = function () {
+                return ++calls > 2;
+            };
+            var res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            MFx.escape = null;
+            check('cancel: Esc while it works cancels, and nothing changes', res.cancelled && pathOf(cd).keyValue(1).vertices.length === 4 && pathOf(cd).keyValue(3).vertices.length === 10, res.status);
+            cd.remove();
+        });
         step('on screen', function () {
             var sd = before.duplicate();
             sd.name = 'Scaled 200';

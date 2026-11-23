@@ -225,9 +225,9 @@ The user asked for everything in that section I could do. Built and tested:
 
 - **Progress, with Esc.** A fix is now planned in full (`planPath`), then written in one
   undo step, so it can be cancelled with nothing changed.
-  - Jobs estimated over 4 s show a progress window; `MF.fix` calls back every key and
-    every rebuild round.
-  - Esc is read with `ScriptUI.environment.keyboardState`, so the window says "Hold Esc".
+  - `MF.fix` calls back every key and every rebuild round; Esc is read there with
+    `ScriptUI.environment.keyboardState`, so it must be held.
+  - A progress window for jobs over 4 s was built, then removed: see the investigation below.
 - **Turning for masks**, and for paths no group can turn (sharing their group, a group
   already animated, only some keys selected).
   - The turn is written into the path as one key a frame: `MF.swing` gives exactly what the
@@ -265,14 +265,46 @@ Testing by hand in AE 27 found two bugs that no script could have found:
   way to close the dialog. → Both buttons close it in their own `onClick`. Retested: the fix
   starts and the progress window shows ("Path 1 of 3").
 - **The progress window stayed on screen after a 13 s fix**, with no close button. ScriptUI
-  reported it closed, but the window (AE's own, class `DroverLord`) was showing. While a
-  script keeps AE busy more than about 5 s, Windows swaps its windows for stand-ins and
-  later puts each back as it was. → The window now shows "Done" and is closed by a one-shot
-  `app.scheduleTask` a moment after the fix, found by its own title. **Not yet checked by
-  hand.** Clearing it took an AE restart (the test project discarded).
+  reported it closed, but the window (AE's own, class `DroverLord`) was showing. A first
+  explanation and fix (close it later with a one-shot task) were wrong: see the
+  investigation below.
 - Esc during a fix couldn't be pressed from here: a busy AE becomes a stand-in window that
   the screen tool won't type into. The cancel path is tested in Node (a progress callback
   that cancels: nothing written); the panel's own `FX.escape` stand-in and a held Esc in AE
   are not tested yet.
 - My test runner was refused once more with "second script" (AE wedged after the stuck
   window); the user restarted it through me.
+
+**The progress window, investigated** (the user chose to keep investigating):
+
+- A first test run left **19 progress windows** stacked over the comp. The delayed close
+  never worked: `Window.find('palette', title)` returns the first window with that title,
+  including ones ScriptUI has already closed, so it kept closing a stale window.
+- Experiments through the runner, with Windows' own window list (`EnumWindows`) read from
+  outside:
+  - `close()` removes a palette even after AE has been busy for 7 s, with or without label
+    changes, Esc reads, keys written while it was up, or a click handler around it.
+  - Only `visible = false` leaves one up.
+- **The cause:** I had clicked AE during the first stuck fix. Reproduced with a
+  self-contained script: a palette, AE busy for 12 s, two clicks on AE meanwhile. The palette
+  then stayed on screen through `close()` in the script, `close()` again, `hide()`, and
+  `show()` + `close()`, all logged for 45 s. Clicking a busy app makes Windows show its "not
+  responding" stand-in, and when the app answers Windows restores the windows as they were.
+  People click during long fixes, so any window the fixer opened would get stranded.
+- → **The progress window is gone.** The warning before a fix over 10 s gives the time and
+  says "Hold Esc to cancel: nothing changes"; Esc still cancels.
+  - The AE test checks cancelling with a stand-in for the key: the status says cancelled
+    and the keys are unchanged.
+  - By hand, the user clicked Fix anyway and clicked around AE during the 12 s fix. It
+    finished ("Fixed 3: 100 pts, ~1.183 px (max)") and nothing was left on screen.
+- **The guide** grew to 807 px with the new tips (over the 800 px check). Lines are now 80
+  characters: 465 × 759 px.
+- **The runner** had run a job left over from a launch AE refused. One of them was an old
+  stop job, so it stopped before the new ones. Waiting jobs are now set aside unrun when a
+  runner starts.
+- **"Second script" refusals:** they came twice more. They follow most, but not all,
+  launches right after a runner stopped itself, and they're unexplained. Starting the
+  runner once per AE session and stopping it only at the end avoided them. AE restarts
+  cleared each one; only test projects were discarded.
+- AE 27 (final build, fresh start): every check passes (demo test with cancel, real-type
+  set). Node: 4,293 + 128.
