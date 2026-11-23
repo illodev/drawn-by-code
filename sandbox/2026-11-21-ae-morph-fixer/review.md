@@ -202,3 +202,10 @@ Darkest with Accessible color contrast off, as it was. In Light the docked panel
 and the warning follow AE's colours, with headings black over AE's grey text
 (`review/guide-light.jpg`, `review/warning-light.jpg`). The theme switch also stopped the
 test runner: tasks from `app.scheduleTask` don't survive it, so its last two jobs never ran.
+
+**Left behind, and fixed:** after the Light check the runner's timer was still scheduled (the
+stop job never ran). It fired while a dialog was open, and the user got "Cannot run a script
+while a modal dialog is waiting for response". AE then refused every script, the stop job
+included, until a restart (done; AE 27 left open and empty). → `ae-bridge.jsx` stops itself
+after five idle minutes, and its header, the README and the skill say to stop it before any
+by-hand check in AE's UI.

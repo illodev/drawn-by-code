@@ -202,7 +202,13 @@ that AE runs wrong.
   `try`, and writes `<job>.status.txt`. No later test goes through `-r`, so none can hit
   the "second script" dialog. A cold `AfterFX.exe -r` (no AE running) runs the script and
   then **quits AE**: start AE first. Changing AE's theme (Preferences ›
-  Appearance) drops tasks from `app.scheduleTask`: send the runner again after it. Jobs close only an empty untitled project or one saved
+  Appearance) drops tasks from `app.scheduleTask`: send the runner again after it.
+  **Stop the runner before any by-hand check in AE's UI** (drop a stop job; the runner also
+  stops itself after five idle minutes). Its timer fires even while a modal dialog is open
+  (Preferences, the tool's own warning), and AE answers with a modal "Cannot run a script
+  while a modal dialog is waiting for response". It then stayed convinced a script was
+  running and refused everything else, including the job meant to stop it, until AE
+  restarted. A leftover runner surprised the user with that dialog after the work was done. Jobs close only an empty untitled project or one saved
   under `out/`, and tests save their projects there.
 - To click AE's own UI with computer use, bring it forward with a job that calls
   `app.activate()`: `open_application` sometimes leaves the desktop shell in front.

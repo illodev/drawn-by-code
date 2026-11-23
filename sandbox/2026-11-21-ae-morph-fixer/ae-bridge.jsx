@@ -6,7 +6,13 @@
 // out/ae/bridge/inbox for *.jsx files, oldest name first, moves each to out/ae/bridge/done and
 // runs it there; done/<name>.status.txt then says "ok" or "error: ...". Jobs never raise
 // dialogs: errors are caught and written to the status. It installs nothing; it stops when
-// AE quits, or with $.global.MMF_BRIDGE.stop().
+// AE quits, with $.global.MMF_BRIDGE.stop() (drop that as a job), or by itself after five
+// minutes without a job.
+//
+// Stop it before anyone clicks around in AE: its timer fires during a modal dialog
+// (Preferences, a script's own dialog) and AE then shows "Cannot run a script while a modal
+// dialog is waiting for response", and can stay convinced a script is running, refusing every
+// script after it ("second script"), until it restarts. A theme change also drops the timer.
 //
 // Jobs call MMF_BRIDGE.freshProject() before building anything. It only ever closes an empty
 // untitled project or a test's own (saved under this experiment's out/), without saving, and
@@ -44,6 +50,8 @@
         dir: DIR,
         root: here,
         busy: false,
+        last: new Date().getTime(),         // the last job (or the start): idle 5 min = stop
+        idleMs: 5 * 60 * 1000,
         ran: 0,
         freshProject: function () {
             var p = app.project;
@@ -57,6 +65,11 @@
         },
         tick: function () {
             if (B.busy) return;
+            if (new Date().getTime() - B.last > B.idleMs) {
+                B.stop();
+                write(DIR + '/stopped.txt', 'stopped after ' + Math.round(B.idleMs / 60000) + ' idle minutes, ' + B.ran + ' jobs run\n');
+                return;
+            }
             B.busy = true;
             try {
                 var jobs = new Folder(DIR + '/inbox').getFiles('*.jsx');
@@ -75,6 +88,7 @@
                         status = 'error: ' + safe(e);
                     }
                     B.ran++;
+                    B.last = new Date().getTime();
                     write(DIR + '/done/' + name.replace(/\.jsx$/, '') + '.status.txt', status + '\n');
                 }
             } catch (e2) {

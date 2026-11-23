@@ -150,7 +150,9 @@ a dialog), then drop a job into `out/ae/bridge/inbox/` that calls
 `$.global.MMF_BRIDGE.freshProject()` (it only closes an empty untitled project or one saved
 under `out/`), sets `$.global.MORPH_TEST_OUT` (a folder in `out/`) and `$.global.MORPH_DIR`
 (this folder), and `$.evalFile`s `make-demo.jsx`; `done/<job>.status.txt` says ok or the
-error. Render the saved project with `aerender`, which leaves AE free:
+error. Stop the runner (a job calling `$.global.MMF_BRIDGE.stop()`) before clicking around
+in AE: its timer firing during a modal dialog raises an error dialog and can leave AE refusing
+scripts until it restarts. It also stops itself after five idle minutes. Render the saved project with `aerender`, which leaves AE free:
 
 ```powershell
 & "C:\Program Files\Adobe\Adobe After Effects 2027\Support Files\aerender.exe" -project out\ae\morph-fixer-demo.aep -comp "Mask Morph Fixer demo" -s 0 -e 347 -RStemplate "Best Settings" -OMtemplate "H.264 - Match Render Settings -  5 Mbps" -output out\ae\morph-fixer-ae.mp4
