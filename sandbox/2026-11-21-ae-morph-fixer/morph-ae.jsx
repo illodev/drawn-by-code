@@ -13,7 +13,7 @@
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.9.0';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.10.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -82,76 +82,41 @@ var MorphFixer = (function () {
         return s;
     }
 
-    // ---- turning: the turn goes into the shape group's transform --------------------------
+    // The in-between keys a turn writes carry a keyframe label of their own (one of the 16 in
+    // Preferences > Labels; After Effects 22.6 and later) and are linear. A later fix finds them,
+    // removes them first and works on the keys the designer drew: fixing again redoes the turn
+    // the same way, and moving the drawn keys then fixing again retimes it.
+    var INBETWEEN_LABEL = 15;
 
-    var TF = {
-        group: 'ADBE Vector Transform Group', anchor: 'ADBE Vector Anchor', position: 'ADBE Vector Position',
-        scale: 'ADBE Vector Scale', rotation: 'ADBE Vector Rotation', skew: 'ADBE Vector Skew'
-    };
-    var GEOMETRY = { 'ADBE Vector Shape - Group': 1, 'ADBE Vector Shape - Rect': 1, 'ADBE Vector Shape - Ellipse': 1, 'ADBE Vector Shape - Star': 1, 'ADBE Vector Group': 1 };
-
-    // the shape group whose transform can carry this path's turn, or { why } it can't
-    function turnGroup(prop, allKeys) {
-        if (prop.matchName === 'ADBE Mask Shape') return { why: 'a mask has no transform of its own to turn' };
-        var holder = prop.parentProperty, list = holder && holder.parentProperty, group = list && list.parentProperty;
-        if (!group || group.matchName !== 'ADBE Vector Group') return { why: 'the path is not inside a group (select it and press ' + KEY + '+G)' };
-        var n = 0;
-        for (var i = 1; i <= list.numProperties; i++) if (GEOMETRY[list.property(i).matchName]) n++;
-        if (n !== 1) return { why: 'its group holds other shapes, which would turn with it' };
-        if (!allKeys) return { why: 'only some keyframes are selected' };
-        var t = group.property(TF.group), names = ['anchor', 'position', 'scale', 'rotation', 'skew'];
-        for (i = 0; i < names.length; i++) {
-            var p = t.property(TF[names[i]]);
-            if (p.numKeys || (p.expression && p.expressionEnabled)) return { why: 'its group\'s transform is already animated' };
+    function isInbetween(prop, k) {
+        try {
+            return prop.keyLabel(k) === INBETWEEN_LABEL &&
+                prop.keyInInterpolationType(k) === KeyframeInterpolationType.LINEAR &&
+                prop.keyOutInterpolationType(k) === KeyframeInterpolationType.LINEAR;
+        } catch (e) {
+            return false;       // no key labels (before 22.6): there are none to find
         }
-        var sc = t.property(TF.scale).value;
-        if (Math.abs(sc[0] - sc[1]) > 1e-6) return { why: 'its group is scaled unevenly' };
-        if (Math.abs(t.property(TF.skew).value) > 1e-6) return { why: 'its group is skewed' };
-        return { transform: t };
     }
 
-    // keys the group's Anchor, Position and Rotation from turn (morph-math's pivots), on top of
-    // the group's own static transform, with the path keys' times and easing; anchor and
-    // position hold through a step that turns about a point
-    function writeTurn(prop, idx, T, tr) {
-        var a0 = tr.property(TF.anchor).value, p0 = tr.property(TF.position).value, r0 = tr.property(TF.rotation).value;
-        var s0 = tr.property(TF.scale).value[0] / 100, ra = r0 * Math.PI / 180, cr = Math.cos(ra), sr = Math.sin(ra);
-        var pA = tr.property(TF.anchor), pP = tr.property(TF.position), pR = tr.property(TF.rotation), k, approx = false;
-        for (k = 0; k < idx.length; k++) {
-            var t = prop.keyTime(idx[k]), A = T.anchor[k], P = T.position[k];
-            var dx = (P[0] - a0[0]) * s0, dy = (P[1] - a0[1]) * s0;
-            pA.setValueAtTime(t, [A[0], A[1]]);
-            pP.setValueAtTime(t, [p0[0] + dx * cr - dy * sr, p0[1] + dx * sr + dy * cr]);
-            pR.setValueAtTime(t, r0 + T.angles[k]);
-        }
-        var props = [pA, pP, pR], j;
-        for (k = 0; k < idx.length; k++) {
-            var tin = prop.keyInInterpolationType(idx[k]), tout = prop.keyOutInterpolationType(idx[k]);
-            var ein = prop.keyInTemporalEase(idx[k])[0], eout = prop.keyOutTemporalEase(idx[k])[0];
-            if (ein.speed || eout.speed) approx = true;        // only Easy Ease shapes (speed 0) copy exactly
-            for (j = 0; j < props.length; j++) {
-                var p = props[j], held = j < 2;
-                var kin = held && k > 0 && T.hold[k - 1] ? KeyframeInterpolationType.HOLD : tin;
-                var kout = held && T.hold[k] ? KeyframeInterpolationType.HOLD : tout;
-                p.setInterpolationTypeAtKey(k + 1, kin, kout);
-                if (kin === KeyframeInterpolationType.BEZIER || kout === KeyframeInterpolationType.BEZIER)
-                    p.setTemporalEaseAtKey(k + 1, [new KeyframeEase(0, ein.influence)], [new KeyframeEase(0, eout.influence)]);
-                if (j < 2 && p.isSpatial) {
-                    p.setSpatialAutoBezierAtKey(k + 1, false);
-                    p.setSpatialContinuousAtKey(k + 1, false);
-                    p.setSpatialTangentsAtKey(k + 1, [0, 0], [0, 0]);
-                }
-            }
-        }
-        return approx;
-    }
-
-    // the keys a fix works on: the selected ones (two or more), else all
+    // the keys a fix works on -> { idx, drawn, strays, between }: idx = the selected drawn keys
+    // (two or more), else all drawn keys; drawn = every key but an earlier turn's in-betweens;
+    // strays = the in-betweens from idx's first key to its last, which the fix removes first;
+    // between(a, b) = only in-betweens sit between drawn keys a and b
     function keyIndices(prop) {
-        var idx = [], sel = prop.selectedKeys, k;
-        if (sel && sel.length >= 2) for (k = 0; k < sel.length; k++) idx.push(sel[k]);
-        else for (k = 1; k <= prop.numKeys; k++) idx.push(k);
-        return idx;
+        var mark = {}, drawn = [], idx = [], strays = [], sel = prop.selectedKeys, n = prop.numKeys, k;
+        for (k = 1; k <= n; k++) {
+            if (isInbetween(prop, k)) mark[k] = true;
+            else drawn.push(k);
+        }
+        if (sel && sel.length >= 2) for (k = 0; k < sel.length; k++) if (!mark[sel[k]]) idx.push(sel[k]);
+        if (idx.length < 2) idx = drawn.slice(0);
+        if (idx.length) for (k = idx[0] + 1; k < idx[idx.length - 1]; k++) if (mark[k]) strays.push(k);
+        return {
+            idx: idx, drawn: drawn, strays: strays, between: function (a, b) {
+                for (var j = a + 1; j < b; j++) if (!mark[j]) return false;
+                return true;
+            }
+        };
     }
 
     // the largest |x| or |y| of a Scale property over its value and keys, as a factor
@@ -187,21 +152,25 @@ var MorphFixer = (function () {
         }
     }
 
-    function consecutive(idx) {
-        for (var k = 1; k < idx.length; k++) if (idx[k] !== idx[k - 1] + 1) return false;
+    // the selected drawn keys follow each other (nothing but in-betweens between them)
+    function consecutive(ki) {
+        for (var k = 1; k < ki.idx.length; k++) if (!ki.between(ki.idx[k - 1], ki.idx[k])) return false;
         return true;
     }
 
-    // a turn written into the path itself, where no group transform can carry it (masks, a path
-    // sharing its group, a group already animated): the keys as drawn, then one key a frame
-    // through every turning step, each the shape swung along the arc (MF.swing) at After
-    // Effects' own eased progress between the keys (read back with valueAtTime). Those keys and
-    // the sides of the step's keys facing them are linear: the easing is in the shapes.
+    // a turn is written into the path itself, on shape layers and masks alike, so no transform
+    // (the group's, the layer's) is touched: the keys as drawn, then one key a frame through
+    // every turning step, each the shape swung along the arc (MF.swing, what a group transform
+    // turning about the step's pivot would show) at After Effects' own eased progress between
+    // the keys (read back with valueAtTime), so custom key speeds come out exactly. The
+    // in-betweens are linear and labelled (INBETWEEN_LABEL): the easing is in the shapes. The
+    // drawn keys keep their own interpolation and easing, so removing the in-betweens later
+    // gives back the timing as it was.
     // -> the number of in-between keys written
     function bakeTurn(prop, idx, r) {
         var T = r.turn, comp = prop.propertyGroup(prop.propertyDepth).containingComp, fd = comp.frameDuration, k, j;
         for (k = 0; k < idx.length; k++) prop.setValueAtKey(idx[k], fromMF(r.placed[k]));
-        var times = [], shapes = [], steps = [];
+        var times = [], shapes = [];
         for (k = 0; k + 1 < idx.length; k++) {
             if (Math.abs(T.angles[k + 1] - T.angles[k]) < 0.5) continue;
             if (prop.keyOutInterpolationType(idx[k]) === KeyframeInterpolationType.HOLD) continue;
@@ -211,7 +180,6 @@ var MorphFixer = (function () {
                 times.push(t);
                 shapes.push(fromMF(MF.swing(T, r.paths, k, u)));
             }
-            steps.push([t0, t1]);
         }
         if (!times.length) return 0;
         prop.setValuesAtTimes(times, shapes);
@@ -219,13 +187,23 @@ var MorphFixer = (function () {
         for (j = 0; j < times.length; j++) {
             var at = prop.nearestKeyIndex(times[j]);
             prop.setInterpolationTypeAtKey(at, LIN, LIN);
-        }
-        for (k = 0; k < steps.length; k++) {
-            var a = prop.nearestKeyIndex(steps[k][0]), b = prop.nearestKeyIndex(steps[k][1]);
-            prop.setInterpolationTypeAtKey(a, prop.keyInInterpolationType(a), LIN);
-            prop.setInterpolationTypeAtKey(b, LIN, prop.keyOutInterpolationType(b));
+            try {
+                prop.setLabelAtKey(at, INBETWEEN_LABEL);
+            } catch (e) {}
         }
         return times.length;
+    }
+
+    // removes an earlier turn's in-betweens (ki.strays) and gives the drawn keys' indices after
+    // that (removing keys renumbers the ones after them)
+    function clearStrays(prop, ki) {
+        if (!ki.strays.length) return ki.idx;
+        var times = [], k;
+        for (k = 0; k < ki.idx.length; k++) times.push(prop.keyTime(ki.idx[k]));
+        for (k = ki.strays.length - 1; k >= 0; k--) prop.removeKey(ki.strays[k]);
+        var now = [];
+        for (k = 0; k < times.length; k++) now.push(prop.nearestKeyIndex(times[k]));
+        return now;
     }
 
     // planPath(pathProperty, options, given, mustWrite) -> { rep, apply }: reads the keys (or
@@ -243,26 +221,19 @@ var MorphFixer = (function () {
             rep.skipped = 'it has an expression';
             return plan;
         }
-        var idx = keyIndices(prop);
+        // the drawn keys; an earlier turn's in-betweens among them are removed before writing
+        var ki = keyIndices(prop), idx = ki.idx;
         rep.scale = magnification(prop);
         o.tolerance = o.tolerance / rep.scale;
         if (idx.length < 2) {
             rep.skipped = 'fewer than two keyframes';
             return plan;
         }
-        // a turn goes into the group's Rotation where it can, else into in-between keys
-        var group = null, bake = false;
-        if (o.rotate) {
-            group = turnGroup(prop, idx.length === prop.numKeys);
-            if (group.why) {
-                if (consecutive(idx)) {
-                    bake = true;
-                    rep.bakeWhy = group.why;
-                } else {
-                    rep.noTurn = group.why + ', and the selected keys are not next to each other';
-                    o.rotate = false;
-                }
-            }
+        if (ki.strays.length) rep.removed = ki.strays.length;
+        // a turn goes into in-between keys on the path, which must sit between the fixed keys
+        if (o.rotate && !consecutive(ki)) {
+            rep.noTurn = 'the selected keys are not next to each other';
+            o.rotate = false;
         }
         var paths = [], counts = [];
         for (k = 0; k < idx.length; k++) {
@@ -285,27 +256,26 @@ var MorphFixer = (function () {
         if (r.matched) {
             rep.matched = true;
             rep.keys = idx.length;
-            if (mustWrite) {
-                // the pieces were dealt out anew: write them even though no points change
+            if (mustWrite || ki.strays.length) {
+                // the pieces were dealt out anew (write them even though no points change), or an
+                // earlier turn's in-betweens are to go (turn is off, or nothing turns now)
                 plan.apply = function () {
-                    for (var q = 0; q < idx.length; q++) prop.setValueAtKey(idx[q], fromMF(paths[q]));
+                    var at = clearStrays(prop, ki);
+                    if (mustWrite) for (var q = 0; q < at.length; q++) prop.setValueAtKey(at[q], fromMF(paths[q]));
                 };
             }
             return plan;
         }
         plan.apply = function () {
-            var q;
-            if (r.turn && bake) {
-                rep.baked = bakeTurn(prop, idx, r);
+            var at = clearStrays(prop, ki);
+            if (r.turn) {
+                rep.baked = bakeTurn(prop, at, r);
                 rep.turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
                 return;
             }
-            for (q = 0; q < idx.length; q++) prop.setValueAtKey(idx[q], fromMF(r.paths[q]));
-            if (r.turn) {
-                rep.turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
-                rep.timingApprox = writeTurn(prop, idx, r.turn, group.transform);
-            }
+            for (var q = 0; q < at.length; q++) prop.setValueAtKey(at[q], fromMF(r.paths[q]));
         };
+        rep.kept = !!r.kept;
         var lo = counts[0], hi = counts[0], rev = 0, mov = 0, b = 0, a = 0, n = 0;
         for (k = 0; k < idx.length; k++) {
             if (counts[k] < lo) lo = counts[k];
@@ -346,17 +316,19 @@ var MorphFixer = (function () {
 
     function summary(rep) {
         if (rep.skipped) return rep.label + ': skipped, ' + rep.skipped + '.';
-        if (rep.matched) return rep.label + ': already matched, left as it is.';
+        var earlier = rep.removed ? rep.removed + ' in-between keys from an earlier turn' : '';
+        if (rep.matched) return rep.label + ': already matched' + (earlier ? '; removed the ' + earlier + '.' : ', left as it is.');
         var how, turned = '';
-        if (rep.turned !== undefined && rep.baked !== undefined) {
-            turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, one a frame (' + rep.bakeWhy + ')';
+        if (rep.turned !== undefined && rep.baked) {
+            turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, one a frame' + (earlier ? ' (replacing ' + earlier + ')' : '');
         } else if (rep.turned !== undefined) {
-            turned = '; turned ' + Math.round(rep.turned) + ' deg by its group\'s Rotation' +
-                (rep.timingApprox ? ' (custom key speeds approximated: Easy Ease shapes copy exactly)' : '');
+            turned = '; turned ' + Math.round(rep.turned) + ' deg at the keys (no in-betweens: the turning steps hold, or last a frame)';
         } else if (rep.noTurn) {
             turned = '; not turned: ' + rep.noTurn;
         }
-        if (rep.fellBack) how = 'your points kept (it has loops or cusps the rebuild cannot follow)';
+        if (earlier && !rep.baked) turned += '; removed the ' + earlier;
+        if (rep.kept) how = 'points already matched, kept as they are';
+        else if (rep.fellBack) how = 'your points kept (it has loops or cusps the rebuild cannot follow)';
         else if (rep.mode === 'exact') how = 'your points kept, shapes exact';
         else if (rep.capped) how = 'rebuilt at the max: about ' + (Math.round(rep.deviation * 100) / 100) + ' px from each shape (raise max for a closer fit)';
         else how = 'rebuilt within ' + round3(rep.deviation) + ' px of each shape';
@@ -536,7 +508,7 @@ var MorphFixer = (function () {
     function estimate(list, o) {
         var ms = 0;
         for (var i = 0; i < list.length; i++) {
-            var idx = keyIndices(list[i]), pts = 0;
+            var idx = keyIndices(list[i]).idx, pts = 0;
             for (var k = 0; k < idx.length; k++) pts += list[i].keyValue(idx[k]).vertices.length;
             ms += 150 + idx.length * keyMs(pts / Math.max(1, idx.length), o);
         }
@@ -603,9 +575,11 @@ var MorphFixer = (function () {
         return p.propertyGroup(p.propertyDepth).index + ':' + s.join('.');
     }
 
+    // the drawn keys of a and b sit at the same times (an earlier turn's in-betweens don't count)
     function sameTimes(a, b) {
-        if (a.numKeys !== b.numKeys) return false;
-        for (var k = 1; k <= a.numKeys; k++) if (Math.abs(a.keyTime(k) - b.keyTime(k)) > 1e-6) return false;
+        var da = keyIndices(a).drawn, db = keyIndices(b).drawn;
+        if (da.length !== db.length) return false;
+        for (var k = 0; k < da.length; k++) if (Math.abs(a.keyTime(da[k]) - b.keyTime(db[k])) > 1e-6) return false;
         return true;
     }
 
@@ -618,7 +592,7 @@ var MorphFixer = (function () {
         for (i = 0; i < list.length; i++) {
             var p = list[i], id = null;
             try {
-                var partial = p.selectedKeys && p.selectedKeys.length >= 2 && p.selectedKeys.length < p.numKeys;
+                var kp = keyIndices(p), partial = kp.idx.length < kp.drawn.length;
                 if (!partial) {
                     if (p.matchName === 'ADBE Mask Shape') id = 'mask ' + p.propertyGroup(p.propertyDepth).index + ' ' + p.parentProperty.maskMode;
                     else if (p.parentProperty && p.parentProperty.parentProperty) id = 'shape ' + uid(p.parentProperty.parentProperty);
@@ -704,10 +678,13 @@ var MorphFixer = (function () {
         for (i = 0; i < pg.groups.length; i++) {
             g = pg.groups[i];
             try {
-                var K = g[0].numKeys, keysMF = [], res;
-                for (k = 1; k <= K; k++) {
+                // the drawn keys only: an earlier turn's in-betweens are removed by the fix
+                var drawnOf = [], keysMF = [], res;
+                for (p = 0; p < g.length; p++) drawnOf.push(keyIndices(g[p]).drawn);
+                var K = drawnOf[0].length;
+                for (k = 0; k < K; k++) {
                     var rowK = [];
-                    for (p = 0; p < g.length; p++) rowK.push(toMF(g[p].keyValue(k)));
+                    for (p = 0; p < g.length; p++) rowK.push(toMF(g[p].keyValue(drawnOf[p][k])));
                     keysMF.push(rowK);
                 }
                 res = MF.matchPieces(keysMF);
@@ -757,7 +734,7 @@ var MorphFixer = (function () {
                 reps.push(r);
                 lines.push(summary(r));
                 if (r.skipped) skipped++;
-                else if (r.matched && !jobs[i].mustWrite) matched++;
+                else if (r.matched && !jobs[i].mustWrite && !r.removed) matched++;
                 else if (r.matched) fixed++;
                 else {
                     fixed++;
@@ -798,7 +775,7 @@ var MorphFixer = (function () {
             ['Smooth', 'Redraws the points so the shape stays smooth all through the morph. Each key still looks the same (within 0.1 px) and corners stay sharp.'],
             ['Exact', 'Keeps your own points and only adds new ones. Keys stay exactly as drawn, but the morph may show small bumps.'],
             ['max', 'The most points Smooth may use per key. If the status ends in "(max)", raise it for a closer fit: big or detailed artwork, like type at 400 px, often needs 200 to 300.'],
-            ['turn', 'For shapes that rotate between keys, like an F turning onto its side: the shape swings round instead of squashing through the middle. With the path alone in a group (select it, ' + KEY + '+G), the group\'s Rotation is keyed for you; otherwise, as on masks, the turn is written into the path as one key a frame.']
+            ['turn', 'For shapes that rotate between keys, like an F turning onto its side: the shape swings round instead of squashing through the middle. The turn is written into the path as one key a frame; nothing else is keyed. To retime it, move your keys and fix again.']
         ],
         tips: [
             'Fixed paths have more points: finish drawing your keys first.',

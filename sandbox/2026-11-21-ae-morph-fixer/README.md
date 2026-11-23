@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.9.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.10.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -8,8 +8,8 @@ into the next point by point, in straight lines, so keys drawn independently tea
 numbers of points), spin (each key starts at a different point) or turn inside out (one
 drawn the other way round), and a shape that turns (an F becoming an F on its side) shrinks
 through the middle. The fixer gives every keyframe the same points, the same direction and
-a start point that keeps the morph still, and can move a turn into the shape group's
-Rotation, without changing what any key looks like, its time or its easing.
+a start point that keeps the morph still, and can write a turn into the path so the shape
+swings round, without changing what any key looks like, its time or its easing.
 
 ## Set up
 
@@ -73,20 +73,27 @@ cancelling changes nothing.
 | **Smooth** | on | Every key gets points at the same places along its outline, with handles sized so in-betweens stay smooth. Each shape stays within **0.1 px on screen** of what you drew (the scales of its groups, its layer and its parents count: a layer at 400 % is fitted 4x tighter); corners stay exact points |
 | **Exact** | | Your points stay where they are; the fixer only adds points by splitting curves where they lie, so every key is exact. In-betweens may show small kinks where a point's handles are uneven |
 | **max** | 100 | Smooth only: the most points per key. If a shape needs more to stay within 0.1 px, it stops there and the status says how close it got ("~0.76 px (max)"). Big or detailed artwork needs more: letters at 400 px landed 0.15–0.7 px off at 100; 200–300 brings them in |
-| **turn** | off | For shapes that turn between keys: points are matched as if the shape turned, and the shape swings round as a whole. With the path alone in its group, the turn goes into the group's Rotation (with its Anchor and Position); otherwise (masks, a path sharing its group, a group already animated) it is written into the path as one key a frame along the same arc. Steps that don't turn stay put |
+| **turn** | off | For shapes that turn between keys: points are matched as if the shape turned, and the shape swings round as a whole. The turn is written into the path as one key a frame along the arc, on shape layers and masks alike; no transform (group or layer) is keyed. Steps that don't turn stay put |
 
 Always on: every key is drawn in the same direction, and each key's start slides to where
 the morph from the previous key travels least. The panel remembers its settings. With two
 or more keyframes selected on a path, only those are fixed. Undo puts everything back.
-Running it again on a fixed path leaves it alone ("already matched").
+Running it again on a fixed path leaves it alone ("already matched"); on a turned path it
+writes the same in-betweens again.
+
+**Retiming a turn.** The in-between keys a turn writes carry a keyframe label of their own
+(label 15 in *Preferences › Labels*) and are linear; your own keys keep their easing. Every
+fix removes those in-betweens first and works on the keys you drew. To retime a turn, move
+your keys (the in-betweens can stay where they are) and click Fix again. To take the turn
+out, fix with turn off.
 
 ## What it changes
 
 The path's keyframe values; with pieces, which path holds which piece. With **turn**, also
-keys on the shape group's Anchor Point, Position and Rotation (at the path's key times, with
-its easing), or, where no group can carry the turn, one in-between path key a frame through
-each turning step (linear: the easing is in the shapes). Key times, interpolation, easing,
-hold keys, the layer and anything else stay as they were.
+one in-between path key a frame through each turning step (linear and labelled: the easing
+is in the shapes), replacing the ones an earlier turn wrote. Key times, interpolation,
+easing, hold keys of the keys you drew, the layer, its groups' transforms and anything else
+stay as they were.
 
 ## How it works
 
@@ -109,16 +116,18 @@ hold keys, the layer and anything else stay as they were.
 - **Turn:** the start search also tries the best rotation of the next key onto the previous
   one (2D Procrustes). A step counts as a turn only when that cuts the error by 20 % or more
   against a plain match that is really off (over 0.5 px RMS), so a circle never "turns" and
-  a hold never spins. The turn is then measured on the matched keys and taken out of them:
-  the path keys become local (unturned, around the shape's centre). Each turning step turns
-  about its fixed point (a turn plus a shift is a turn about one point), so the group's
-  Anchor and Position hold through the step (hold keys) while Rotation turns, and the shape
-  swings on an arc, as if you had turned it by hand; a step that only slides moves the
-  Position instead. At every key the shape is exactly where you drew it.
+  a hold never spins. The turn is then measured on the matched keys and taken out of them
+  (local keys: unturned, around the shape's centre). Each turning step turns about its fixed
+  point (a turn plus a shift is a turn about one point), so the shape swings on an arc, as
+  if you had turned it by hand with a group transform; a step that only slides moves.
 - **Turn, written into the path:** the keys as drawn, then a key on every frame of a turning
-  step, each the shape the group transform would show (`MF.swing`) at After Effects' own
-  eased progress between the keys, read back from the path with `valueAtTime`. An F turning
-  as a mask keeps 100 % of its area halfway (straight blending: 50 %).
+  step, each the shape that turn would show (`MF.swing`) at After Effects' own eased progress
+  between your keys, read back from the path with `valueAtTime`, so custom key speeds come
+  out exactly. At every key the shape is exactly where you drew it. An F turning keeps 100 %
+  of its area halfway (straight blending: 50 %).
+- **Fixed again:** keys that already share their points, starts and direction, and differ
+  only by a turn, are kept as they are and the turn taken out again, so the in-betweens come
+  out the same.
 - **Pieces:** each key's pieces are dealt out to the paths by the order with the least cost
   (centre distance, size, outline or hole), kept as drawn unless another cuts it by 20 %; a
   piece under 3 % of its key's largest (or under 1 px across) counts as missing and becomes a
@@ -142,14 +151,11 @@ What it doesn't do, and why; each is also said in the report when it happens.
 - **Pieces:** only sibling paths keyed at the same times are matched (one group, or a layer's
   masks of one mode: an Add outline and a Subtract hole stay apart). Open paths aren't. A
   piece is "missing" only when drawn under 3 % of the key's largest piece or under 1 px.
-- **Turn into the group:** needs the path alone in its group, a group transform that isn't
-  animated, scaled evenly and not skewed, and all the keys; otherwise the turn is written
-  into the path as keys. The group's keys copy the path's interpolation and influence;
-  custom key speeds (other than Easy Ease's 0) are approximated, and the report says so.
-  The path keys then hold the shape unturned: edit a key's shape with the group's
-  transform in mind, or Undo, edit and fix again.
 - **Turn into the path:** one key a frame through each turning step, which is more keys to
-  look at; the selected keys must be next to each other, and a Hold step doesn't turn.
+  look at; the selected keys must be next to each other, and a Hold step doesn't turn. The
+  turn's easing is in the in-betweens: retime by moving your keys and fixing again, not by
+  changing the in-betweens' easing. The fixer finds its in-betweens by their label (After
+  Effects 22.6 and later) and their linear keys: change either and they count as yours.
 - **More points:** rebuilt paths are harder to edit by hand: edit before fixing, or use Exact.
   Big or detailed artwork needs a higher max to stay within 0.1 px.
 - **On screen:** "0.1 px" is in comp pixels, after the scale of the path's groups, layer and
@@ -172,7 +178,7 @@ What it doesn't do, and why; each is also said in the report when it happens.
 | `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
 | `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the turn into the group), report |
 | `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, the release (it leaves nothing on `$.global`), and `out/test-build/Mask Morph Fixer.jsx`, the same plus the exports the tests use; with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
-| `test.mjs` | 4,293 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `test.mjs` | 4,300 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js` |
 | `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
 | `ae-bridge.jsx` | A test runner that lives in After Effects for the session: send it once with `AfterFX.exe -r`, then drop jobs into `out/ae/bridge/inbox/` |

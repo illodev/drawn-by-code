@@ -625,8 +625,9 @@ var MF = (function () {
         return { paths: out, deviation: worst, failed: worst >= 1e9, capped: capped };
     }
 
-    // nothing to do: same points, same direction, and no start would move
-    function matched(paths, o) {
+    // nothing to do: same points, same direction, and no start would move; with turns, a step
+    // that turns still counts (the keys of a path fixed before, its in-betweens removed)
+    function matched(paths, o, turns) {
         for (var k = 1; k < paths.length; k++) {
             if (paths[k].v.length !== paths[0].v.length) return false;
             if (paths[0].closed) {
@@ -637,7 +638,7 @@ var MF = (function () {
                 if (o.start) {
                     var plan = startPlan(paths[k - 1], paths[k], o);     // the same decision align() takes
                     if (plan.nd > SNAP || plan.near > 0) return false;
-                    if (plan.turn) return false;      // a turn to take out of the path
+                    if (plan.turn && !turns) return false;      // a turn to take out of the path
                 }
             } else if (o.direction && rms(paths[k - 1], reverse(paths[k])) < rms(paths[k - 1], paths[k]) * GAIN) {
                 return false;
@@ -652,7 +653,8 @@ var MF = (function () {
     // (0.1) unless the cap stops it first (capped: true, deviation = how far it got); 'exact'
     // keeps every point as drawn and only adds points by splitting (the cap doesn't apply).
     // keys[k]: { reversed, moved, added, before, after }, before/after = RMS travel (px) from
-    // the previous key, around the centres. A path that already matches comes back untouched.
+    // the previous key, around the centres. A path that already matches comes back untouched;
+    // one that matches but for a turn keeps its points (kept: true) and has the turn taken out.
     function fix(paths, opt) {
         var o = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 }, k;
         if (opt) for (k in opt) o[k] = opt[k];
@@ -679,20 +681,31 @@ var MF = (function () {
         var tick = o.progress ? function (f) {
             if (o.progress(f)) throw { cancelled: true, message: 'cancelled' };
         } : null;
-        var al = [copy(paths[0])];
-        keys.push({ reversed: false, moved: false, offset: 0 });
-        for (k = 1; k < paths.length; k++) {
-            if (tick) tick(0.3 * k / paths.length);
-            var r = align(al[k - 1], copy(paths[k]), o);
-            al.push(r.P);
-            keys.push(r.info);
+        // the same points, starts and direction, only turned (a path fixed before with turn on,
+        // its in-betweens removed): kept as they are, and the turn taken out again, so fixing
+        // twice writes the same keys
+        var kept = !!(o.rotate && paths[0].closed && matched(paths, o, true)), mode = o.mode;
+        if (kept) {
+            res = { paths: [], deviation: 0, capped: false };
+            for (k = 0; k < paths.length; k++) {
+                res.paths.push(copy(paths[k]));
+                keys.push({ reversed: false, moved: false, offset: 0, turn: k ? startPlan(paths[k - 1], paths[k], o).turn : false });
+            }
+        } else {
+            var al = [copy(paths[0])];
+            keys.push({ reversed: false, moved: false, offset: 0 });
+            for (k = 1; k < paths.length; k++) {
+                if (tick) tick(0.3 * k / paths.length);
+                var r = align(al[k - 1], copy(paths[k]), o);
+                al.push(r.P);
+                keys.push(r.info);
+            }
+            if (mode !== 'exact') {
+                res = rebuild(al, o.maxPoints, o.tolerance, tick);
+                if (res.failed) mode = 'exact';       // loops or cusps the rebuild can't follow
+            }
+            if (mode === 'exact') res = { paths: unify(al).paths, deviation: 0, capped: false };
         }
-        var mode = o.mode;
-        if (mode !== 'exact') {
-            res = rebuild(al, o.maxPoints, o.tolerance, tick);
-            if (res.failed) mode = 'exact';       // loops or cusps the rebuild can't follow
-        }
-        if (mode === 'exact') res = { paths: unify(al).paths, deviation: 0, capped: false };
         for (k = 0; k < paths.length; k++) {
             keys[k].added = res.paths[k].v.length - paths[k].v.length;
             keys[k].before = k ? rms(paths[k - 1], paths[k]) : 0;
@@ -700,7 +713,8 @@ var MF = (function () {
         }
         // the turn (o.rotate, closed paths, some pair turned): taken out of the keys, which come
         // back around their centres and unturned ("local"), with the cumulative angle (degrees,
-        // clockwise like AE) and centre of each key for the group's Rotation and Position.
+        // clockwise like AE) and centre of each key, from which the swing between keys
+        // (pivots, swing) is drawn into the path.
         // placed = the keys where they were: turnPath(local[k], centres[k], angles[k]).
         var turn = null, placed = null;
         if (o.rotate && paths[0].closed) {
@@ -725,12 +739,13 @@ var MF = (function () {
         }
         return {
             paths: res.paths, keys: keys, matched: false, deviation: res.deviation, capped: !!res.capped,
-            mode: mode, fellBack: mode !== o.mode, turn: turn, placed: placed
+            mode: mode, fellBack: mode !== o.mode, turn: turn, placed: placed, kept: kept
         };
     }
 
-    // The group transform that shows the local keys where they were drawn and turns them the
-    // way they were turned. A step that turns (2 deg or more) turns about its fixed point q,
+    // The swing, as the group transform that would show the local keys where they were drawn
+    // and turn them the way they were turned; swing() draws it into in-between path keys, so no
+    // transform is keyed. A step that turns (2 deg or more) turns about its fixed point q,
     // the one point the step leaves in place ((I - R) q = c1 - R c0): anchor and position hold
     // still through the step (hold keys) while Rotation turns, so the shape swings on an arc.
     // A step that only slides keeps an anchor and moves its position (eased like the path).
@@ -886,7 +901,7 @@ var MF = (function () {
         return R;
     }
 
-    // ---- a turn written into the path itself (masks, and paths no group transform can turn) ----
+    // ---- a turn written into the path itself (shape paths and masks alike) --------------------
 
     // the shape at progress u (0 ... 1) of the step from key k, exactly as the group transform
     // of pivots() would show it: position + R(angle) (local - anchor), the angle eased with u,

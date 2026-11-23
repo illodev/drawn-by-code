@@ -265,6 +265,12 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
 - `comp.layers.addNull()` in AE 2026 puts the null's anchor at [0, 0]: read it, don't
   assume the centre.
 - AE stores path points as 32-bit floats: compare AE with Node on the keys AE holds.
+- Keyframe labels: `prop.keyLabel(k)` and `prop.setLabelAtKey(k, 0–16)` (0 = none, 1–16 the
+  colours in Preferences › Labels), from AE 22.6. Wrap them in `try` for older versions.
+- `removeKey(k)` renumbers the keys after it: remove from the highest index down, then find
+  the keys you kept again by time (`nearestKeyIndex(t)`).
+- `setValuesAtTimes` adds keys with AE's default interpolation: set each new key's
+  interpolation (and label) afterwards, found by `nearestKeyIndex`.
 
 ## Running it in the user's After Effects
 
@@ -420,10 +426,10 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   validated against a slow, exact one in Node on hostile inputs; it under-read by 15 % on
   tight bends until it looked both ways, sampled the original densely and caught folds.
 - 2026-11-22 · ae-morph-fixer · A shape that turns between keys shrinks through the middle
-  (straight lines: an F at 45° has half its area). Take the turn out of the path keys into
-  the group's Rotation, each step turning about its own fixed point (anchor and position on
-  hold keys through the step), and the shape swings on the arc a hand-made turn would take.
-  Decide "it turns" only against a plain match that is really off, or holds spin on noise.
+  (straight lines: an F at 45° has half its area). Take the turn out of the keys and swing
+  the shape, each step turning about its own fixed point, on the arc a hand-made turn would
+  take. Decide "it turns" only against a plain match that is really off, or holds spin on
+  noise. (It first went into the group's Rotation; since round 6 it goes into the path.)
 - 2026-11-22 · ae-morph-fixer · A tool for end users installs itself: name the file the way
   the tool should be called (the Window menu shows it), give a floating run an Install button
   that copies it into the user's own ScriptUI Panels folder, and test the panel the way a user
@@ -466,11 +472,17 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   piece meets which follows the font's order, not the shape. Match the pieces between keys
   first (by centre, size, and outline or hole), and let a piece drawn as a dot grow from a
   tiny copy of itself.
-- 2026-11-23 · ae-morph-fixer · A turn where no transform can carry it (a mask, or a path
-  sharing its group) goes into the path itself, one key a frame. Time it by AE's own eased
-  progress read back from the path, and test it against what the group's transform would
-  show (equal to 1e-9 in Node). An F turning as a mask then kept 100 % of its area halfway,
-  against 50 % before.
+- 2026-11-23 · ae-morph-fixer · A turn goes into the path itself, one key a frame: masks have
+  no transform, and on shapes the user wanted no transform keyed. Time it by AE's own eased
+  progress read back from the path (custom key speeds come out exactly), and test it against
+  what a group transform would show (equal to 1e-9 in Node). An F then kept 100 % of its area
+  halfway, against 50 % before.
+- 2026-11-23 · ae-morph-fixer · Keys a tool writes for itself must be findable later, or the
+  next run takes them for the designer's: fixing a turned F again read its in-betweens as
+  drawn keys (40 to 530 points). Label them (`setLabelAtKey`) and keep them linear, and have
+  every run remove them first and work on the drawn keys. Leave the drawn keys' easing alone,
+  so removing the in-betweens gives the timing back. Then a second run writes the same keys,
+  and retiming is "move your keys, fix again".
 - 2026-11-23 · ae-morph-fixer · Click through the real panel by hand before calling a dialog
   or a progress window done: a Fix anyway button with no handler and a window that outlived
   its close() both passed every scripted test.

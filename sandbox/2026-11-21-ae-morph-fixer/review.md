@@ -309,3 +309,32 @@ Testing by hand in AE 27 found two bugs that no script could have found:
   cleared each one; only test projects were discarded.
 - AE 27 (final build, fresh start): every check passes (demo test with cancel, real-type
   set). Node: 4,293 + 128.
+
+## Round 6 · 2026-11-23 (the user's request: turn shape paths in the path, not the transform)
+
+The user asked for the mask technique on shape layer paths too, instead of keying the
+group's transform. Version **0.10.0**.
+
+- **Every turn is written into the path**, one key a frame (`MF.swing` at After Effects' own
+  eased progress). The group-transform route (`turnGroup`, `writeTurn`) is gone; no transform
+  is keyed. Custom key speeds now come out exactly (the group route approximated them).
+- **What that broke, found in Node before AE:** fixing a turned path again read the
+  in-betweens as keys the designer drew. With turn off a turning F went from 40 to 530
+  points; with turn on each frame-to-frame step counted as a new turn. Before, only masks
+  had in-betweens, so it never came up.
+  - → The in-betweens carry keyframe label 15 (`setLabelAtKey`, After Effects 22.6 and later)
+    and are linear. Every fix finds them (label and linear both), removes them first and
+    works on the drawn keys; pieces are matched on the drawn keys too.
+  - → The drawn keys keep their own interpolation and easing (the old mask route made the
+    sides facing the in-betweens linear), so removing the in-betweens gives the timing back.
+  - → `MF.fix` keeps keys that already share their points and differ only by a turn
+    (`kept`): fixed twice, the same keys and the same in-betweens.
+  - So a turn can be retimed: move the drawn keys, Fix again. Fix with turn off takes it out.
+- Node (4,300 checks): on a mock timeline the F gets 92 labelled in-betweens with the drawn
+  keys still eased; fixed again, the same 92 to 1e-9 px; with a drawn key moved from 1.5 s to
+  1.25 s, 86 and none left behind; with turn off, all removed. The art set: 128 pass.
+- The preview draws the turn with `MF.swing`; halfway through a quarter turn the F is whole at
+  45° (`out/stills/t_9.00s.png`).
+- AE: `make-demo.jsx` now checks no transform keyed, labels and easing, and a second fix;
+  `art/make-art.jsx` checks the turning letters are written into their paths. **Not yet run
+  in After Effects.**

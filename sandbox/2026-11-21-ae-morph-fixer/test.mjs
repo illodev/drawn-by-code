@@ -167,9 +167,10 @@ function verify(label, keys, opt) {
 }
 
 // ---- turning: the F, turned a quarter at a time -------------------------------------------
-// What After Effects shows a fraction u (eased) into the step from key k: the local path
-// blended, turned by the Rotation, around the group's Anchor, at its Position. In a step
-// that turns about a point, anchor and position hold (hold keys); in a slide they blend.
+// The reference for a turn: what a hand-made group turn would show a fraction u (eased) into
+// the step from key k: the local path blended, turned by the Rotation, around the group's
+// Anchor, at its Position. In a step that turns about a point, anchor and position hold; in a
+// slide they blend. The fixer writes exactly this into the path (MF.swing, one key a frame).
 function shown(r, k, u) {
     const L = MF.lerp(r.paths[k], r.paths[k + 1], u), T = r.turn, A = T.anchor[k];
     const P0 = T.position[k], P1 = T.hold[k] ? P0 : T.position[k + 1];
@@ -216,8 +217,8 @@ function shown(r, k, u) {
         check('turn: halfway is the F turned 45 deg', dTurn < 0.2, dTurn.toFixed(3) + ' px');
         console.log(`turn: halfway vs the F turned 45 deg: turned ${dTurn.toFixed(2)} px, as drawn ${dRaw.toFixed(1)} px, fixed without turn ${dFix.toFixed(1)} px`);
     }
-    // the same turn written into the path itself (masks, paths sharing a group): MF.swing is
-    // exactly what the group transform would show, and AE's eased progress reads back
+    // the turn as written into the path (shape paths and masks alike): MF.swing is exactly
+    // what the group transform would show, and AE's eased progress reads back
     {
         const r = MF.fix(keys, { rotate: true });
         let worst = 0;
@@ -234,6 +235,19 @@ function shown(r, k, u) {
         const half = MF.swing(r.turn, r.paths, 1, 0.5), ideal = MF.turnPath(MF.turnPath(MD.turn.shapes[0], [-10, 0], 0), [10, 0], 45);
         const d = Math.max(MF.deviation(ideal, half), MF.deviation(half, ideal));
         check('turn baked: the in-between halfway is the F turned 45 deg', d < 0.2, d.toFixed(3) + ' px');
+        // fixing again (the AE half removes the in-betweens first): the drawn keys as written
+        // are kept point for point, and the same turn comes out, so the same in-betweens
+        for (const mode of ['smooth', 'exact']) {
+            const first = MF.fix(keys, { mode, rotate: true }), again = MF.fix(first.placed, { mode, rotate: true });
+            let dKeys = 0, dSwing = 0;
+            for (let k = 0; k < keys.length; k++) dKeys = Math.max(dKeys, ...again.placed[k].v.map((p, j) => Math.hypot(p[0] - first.placed[k].v[j][0], p[1] - first.placed[k].v[j][1])));
+            for (let k = 0; k + 1 < keys.length; k++) {
+                const a = MF.swing(first.turn, first.paths, k, 0.4), b = MF.swing(again.turn, again.paths, k, 0.4);
+                dSwing = Math.max(dSwing, ...a.v.map((p, j) => Math.hypot(p[0] - b.v[j][0], p[1] - b.v[j][1])));
+            }
+            check(`turn baked ${mode}: fixed again, the keys are kept and the in-betweens come out the same`, again.kept && !!again.turn && dKeys === 0 && dSwing < 1e-6,
+                `kept ${again.kept}, keys moved ${dKeys}, in-betweens ${dSwing.toExponential(1)} px`);
+        }
     }
     // random shapes turned by random angles about random points: the turn is recovered
     {
@@ -380,6 +394,7 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
         Shape,
         PropertyType: { PROPERTY: 6212, INDEXED_GROUP: 6213, NAMED_GROUP: 6214 },
         PropertyValueType: { SHAPE: 6419 },
+        KeyframeInterpolationType: { LINEAR: 6612, BEZIER: 6613, HOLD: 6614 },
     };
     const src = fs.readFileSync(path.join(dir, 'out', 'test-build', 'Mask Morph Fixer.jsx'), 'utf8');
     new Function(...Object.keys(env), src)(...Object.values(env));
@@ -458,6 +473,82 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
     rep = FX.fix(p);
     check('on screen: a layer at 25 % needs fewer points', rep.scale === 0.25 && rep.deviation <= 0.1 && rep.to < 64, `${rep.to} points, ${rep.deviation.toFixed(4)} px`);
     console.log(`on screen: 400 % -> ${FX.fix(mockPath(keys, { propertyGroup: () => big })).to} points, 100 % -> 64, 25 % -> ${rep.to}`);
+
+    // the turn written into the path, on a mock timeline: labelled in-betweens one a frame, no
+    // transform; fixing again replaces them with the same; moving a drawn key and fixing again
+    // retimes the turn; fixing without turn takes them away
+    const LIN = 6612, BEZ = 6613, HOLD = 6614;
+    function mockTimeline(shapes, times, fps = 24) {
+        const layer = { name: 'Shape Layer 1', index: 1, containingComp: { frameDuration: 1 / fps } };
+        const K = shapes.map((P, k) => ({ t: times[k], v: toShape(P), inT: BEZ, outT: BEZ, label: 0 }));
+        const mix = (a, b, u) => a.map((p, j) => [p[0] + (b[j][0] - p[0]) * u, p[1] + (b[j][1] - p[1]) * u]);
+        const blend = (a, b, u) => Object.assign(new Shape(), { vertices: mix(a.vertices, b.vertices, u), inTangents: mix(a.inTangents, b.inTangents, u), outTangents: mix(a.outTangents, b.outTangents, u), closed: a.closed });
+        return {
+            name: 'Path', matchName: 'ADBE Vector Shape', propertyType: 6212, propertyValueType: 6419, propertyDepth: 1,
+            expression: '', expressionEnabled: true, selectedKeys: [], parentProperty: null, K,
+            get numKeys() { return K.length; },
+            keyTime: (k) => K[k - 1].t, keyValue: (k) => K[k - 1].v, setValueAtKey(k, s) { K[k - 1].v = s; },
+            keyLabel: (k) => K[k - 1].label, setLabelAtKey(k, l) { K[k - 1].label = l; },
+            keyInInterpolationType: (k) => K[k - 1].inT, keyOutInterpolationType: (k) => K[k - 1].outT,
+            setInterpolationTypeAtKey(k, a, b = a) { K[k - 1].inT = a; K[k - 1].outT = b; },
+            removeKey(k) { K.splice(k - 1, 1); },
+            nearestKeyIndex(t) {
+                let best = 0;
+                K.forEach((q, i) => { if (Math.abs(q.t - t) < Math.abs(K[best].t - t)) best = i; });
+                return best + 1;
+            },
+            setValuesAtTimes(ts, vs) {
+                ts.forEach((t, j) => {
+                    const q = K.find((x) => Math.abs(x.t - t) < 1e-9);
+                    if (q) q.v = vs[j];
+                    else K.push({ t, v: vs[j], inT: BEZ, outT: BEZ, label: 0 });
+                });
+                K.sort((a, b) => a.t - b.t);
+            },
+            // After Effects' blend: straight lines, the time eased unless both sides are linear
+            valueAtTime(t) {
+                if (t <= K[0].t) return K[0].v;
+                for (let k = 1; k < K.length; k++) {
+                    if (t >= K[k].t) continue;
+                    const a = K[k - 1], b = K[k];
+                    if (a.outT === HOLD) return a.v;
+                    let u = (t - a.t) / (b.t - a.t);
+                    if (!(a.outT === LIN && b.inT === LIN)) u = u * u * (3 - 2 * u);
+                    return blend(a.v, b.v, u);
+                }
+                return K[K.length - 1].v;
+            },
+            propertyGroup: () => layer,
+        };
+    }
+    {
+        const fShapes = MD.turn.keys.map(([, s]) => MD.turn.shapes[s]), fTimes = MD.turn.keys.map(([t]) => t);
+        const inside = (a, b) => Math.round((b - a) * 24) - 1;       // frames strictly between two keys
+        let want = 0;
+        for (let k = 0; k + 1 < fShapes.length; k++) if (MD.turn.keys[k][1] !== MD.turn.keys[k + 1][1]) want += inside(fTimes[k], fTimes[k + 1]);
+        const tl = mockTimeline(fShapes, fTimes);
+        const drawnK = () => tl.K.filter((q) => q.label === 0), betweenK = () => tl.K.filter((q) => q.label !== 0);
+        let r1 = FX.fix(tl, { rotate: true });
+        check('turn into the path: one labelled, linear in-between a frame through every turning step', r1.baked === want && betweenK().length === want &&
+            betweenK().every((q) => q.label === 15 && q.inT === LIN && q.outT === LIN), `${r1.baked} of ${want}; ` + FX.summary(r1));
+        check('turn into the path: the drawn keys keep their times and easing', drawnK().length === fShapes.length &&
+            drawnK().every((q, k) => q.t === fTimes[k] && q.inT === BEZ && q.outT === BEZ));
+        const snap = tl.K.map((q) => ({ t: q.t, v: q.v.vertices.map((p) => p.slice()) }));
+        let r2 = FX.fix(tl, { rotate: true }), dMax = 0;
+        tl.K.forEach((q, i) => q.v.vertices.forEach((p, j) => { dMax = Math.max(dMax, Math.hypot(p[0] - snap[i].v[j][0], p[1] - snap[i].v[j][1])); }));
+        check('turn into the path: fixing again replaces the in-betweens with the same ones', r2.removed === want && r2.baked === want && r2.kept &&
+            tl.K.length === snap.length && tl.K.every((q, i) => Math.abs(q.t - snap[i].t) < 1e-9) && dMax < 1e-9, `${dMax.toExponential(1)} px; ` + FX.summary(r2));
+        console.log('turn into the path, fixed again: ' + FX.summary(r2));
+        // retime: the drawn key at 1.5 s moved to 1.25 s, then fixed again
+        drawnK().find((q) => q.t === 1.5).t = 1.25;
+        tl.K.sort((a, b) => a.t - b.t);
+        const r3 = FX.fix(tl, { rotate: true }), want3 = want - inside(0.5, 1.5) + inside(0.5, 1.25);
+        const stale = betweenK().filter((q) => q.t > 1.25 && q.t < 2);
+        check('turn into the path: move a drawn key and fix again, the turn is retimed', r3.baked === want3 && betweenK().length === want3 && !stale.length,
+            `${r3.baked} of ${want3}, ${stale.length} left after the moved key`);
+        const r4 = FX.fix(tl);
+        check('turn into the path: fixed without turn, the in-betweens go', r4.removed === want3 && tl.K.length === fShapes.length && /removed the/.test(FX.summary(r4)), FX.summary(r4));
+    }
 }
 
 // ---- the keys After Effects stored (written by make-demo.jsx in test mode), if present ----

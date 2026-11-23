@@ -5,9 +5,9 @@
 // straight line, the time eased (Easy Ease = smoothstep); make-demo checks inside AE that it
 // really does. Two parts, like AE's "Mask Morph Fixer demo" comp:
 //   0-8 s     Morph demo: five shapes drawn with nothing in common
-//   8-14.5 s  Turn demo: an F turned a quarter at a time, fixed with turn on: the path keys
-//             are local (unturned) and the shape group's Rotation, Anchor and Position carry
-//             the turn (anchor and position hold through a step that turns about a point)
+//   8-14.5 s  Turn demo: an F turned a quarter at a time, fixed with turn on: the turn is
+//             written into the path, one key a frame, each the F swung about the step's fixed
+//             point (MF.swing); no transform is keyed
 // The orange dot rides the first point. The "Before" halves are After Effects' own business
 // (how it blends keys that don't match is what the rig avoids), so they only exist in AE's
 // render. A diagnostic, not a styled piece.
@@ -21,16 +21,6 @@ function stepAt(keys, t) {
     if (t <= keys[0][0]) return { k: 0, u: 0 };
     for (let k = 1; k < keys.length; k++) if (t < keys[k][0]) return { k: k - 1, u: smooth((t - keys[k - 1][0]) / (keys[k][0] - keys[k - 1][0])) };
     return { k: keys.length - 2, u: 1 };
-}
-
-// the group transform at a step (morph-math's pivots): local path blended, turned by the
-// rotation, around the anchor, at the position
-function turnedAt(r, k, u) {
-    const L = MF.lerp(r.paths[k], r.paths[k + 1], u), T = r.turn, A = T.anchor[k];
-    const P0 = T.position[k], P1 = T.hold[k] ? P0 : T.position[k + 1];
-    const pos = [P0[0] + (P1[0] - P0[0]) * u, P0[1] + (P1[1] - P0[1]) * u];
-    const moved = { v: L.v.map((p) => [p[0] - A[0], p[1] - A[1]]), i: L.i, o: L.o, closed: L.closed };
-    return MF.turnPath(moved, pos, T.angles[k] + (T.angles[k + 1] - T.angles[k]) * u);
 }
 
 function trace(g, P, ox, oy) {
@@ -67,7 +57,7 @@ Motion.scene({
             P = MF.lerp(env.state.morph[s.k], env.state.morph[s.k + 1], s.u);
         } else {
             const s = stepAt(MD.turn.keys, t - MD.duration);
-            P = turnedAt(env.state.turn, s.k, s.u);
+            P = MF.swing(env.state.turn.turn, env.state.turn.paths, s.k, s.u);     // what the in-between keys hold
         }
         trace(g, P, ox, oy);
         g.fillStyle = rgb(C.shape);

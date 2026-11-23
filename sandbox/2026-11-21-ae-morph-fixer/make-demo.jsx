@@ -49,7 +49,7 @@
         app.beginSuppressDialogs();
         Folder(OUT).create();
     }
-    var comp = null, before = null, after = null, D = null, MFm = null, MFx = null, turnComp = null, master = null, asked = null;
+    var comp = null, before = null, after = null, D = null, MFm = null, MFx = null, turnComp = null, turnBuilt = null, master = null, asked = null;
     try {
         eval(readText('demo-spec.js'));     // $.evalFile would not put MD on $.global
         D = MD;
@@ -69,7 +69,8 @@
         before = built.before;
         after = built.after;
         // the turn demo: an F turned a quarter at a time, fixed with turn on
-        turnComp = demoComp('Turn demo', D.turn.duration, D.turn.shapes, D.turn.keys, { maxPoints: D.maxPoints, rotate: true }).comp;
+        turnBuilt = demoComp('Turn demo', D.turn.duration, D.turn.shapes, D.turn.keys, { maxPoints: D.maxPoints, rotate: true });
+        turnComp = turnBuilt.comp;
         master = app.project.items.addComp('Mask Morph Fixer demo', D.size[0], D.size[1], 1, D.duration + D.turn.duration, D.fps);
         master.layers.add(turnComp).startTime = D.duration;
         master.layers.add(comp).startTime = 0;
@@ -296,10 +297,28 @@
             after.selected = false;
         });
         step('turn', function () {
+            // the turn is written into the path, one key a frame: no transform is keyed
             var ta = turnComp.layer('After'), g = ta.property('ADBE Root Vectors Group').property('Morph').property('ADBE Vector Transform Group');
-            var rot = g.property('ADBE Vector Rotation'), angles = [], k;
-            for (k = 1; k <= rot.numKeys; k++) angles.push(Math.round(rot.keyValue(k) * 100) / 100);
-            check('turn: the group Rotation is keyed with the path, 0 to 360', rot.numKeys === D.turn.keys.length && Math.abs(rot.keyValue(rot.numKeys) - 360) < 0.5, angles.join(' '));
+            var names = ['ADBE Vector Anchor', 'ADBE Vector Position', 'ADBE Vector Rotation', 'ADBE Vector Scale'], keyed = 0, k;
+            for (k = 0; k < names.length; k++) keyed += g.property(names[k]).numKeys;
+            names = ['ADBE Anchor Point', 'ADBE Position', 'ADBE Rotate Z', 'ADBE Scale'];
+            for (k = 0; k < names.length; k++) keyed += tf(ta, names[k]).numKeys;
+            check('turn: no transform keyed (group or layer)', keyed === 0, keyed + ' keys');
+            var tp = pathOf(ta), drawn = 0, rep = turnBuilt.report;
+            for (k = 0; k < D.turn.keys.length; k++) {
+                var at = tp.nearestKeyIndex(D.turn.keys[k][0]);
+                if (Math.abs(tp.keyTime(at) - D.turn.keys[k][0]) < 1e-6) drawn++;
+            }
+            check('turn: the drawn keys kept their times, with ' + rep.baked + ' in-between keys', drawn === D.turn.keys.length && rep.baked > 0 &&
+                tp.numKeys === D.turn.keys.length + rep.baked && Math.abs(rep.turned - 360) < 0.5, tp.numKeys + ' keys, turned ' + rep.turned);
+            // the in-betweens carry their label and are linear; the drawn keys keep Easy Ease
+            var labelled = 0, eased = 0;
+            for (k = 1; k <= tp.numKeys; k++) {
+                if (tp.keyLabel(k) === 15 && tp.keyInInterpolationType(k) === KeyframeInterpolationType.LINEAR &&
+                    tp.keyOutInterpolationType(k) === KeyframeInterpolationType.LINEAR) labelled++;
+                else if (tp.keyInInterpolationType(k) === KeyframeInterpolationType.BEZIER && Math.abs(tp.keyOutTemporalEase(k)[0].influence - 33.333) < 0.01) eased++;
+            }
+            check('turn: in-betweens labelled and linear, drawn keys still Easy Ease', labelled === rep.baked && eased === D.turn.keys.length, labelled + ' labelled, ' + eased + ' eased');
             // the F's top-left corner (its first point) turned about (10, 0), on the After side
             function ideal(deg) {
                 var a = deg * Math.PI / 180, x = -90 - 10, y = -150;
@@ -319,6 +338,12 @@
             var rv = raw.valueAtTime(1.0, false), rw = ideal(45), bw = [rv[0] - D.before[0] + D.after[0], rv[1]];
             note('turn: halfway through the first quarter, the drawn keys put the corner ' +
                 Math.round(Math.sqrt((bw[0] - rw[0]) * (bw[0] - rw[0]) + (bw[1] - rw[1]) * (bw[1] - rw[1]))) + ' px off the arc (straight line)');
+            // fixed again: the in-betweens are removed and written again, the same
+            var mid = MFx.toMF(tp.valueAtTime(1.0, false)), again = MFx.fix(tp, { maxPoints: D.maxPoints, rotate: true });
+            var mid2 = MFx.toMF(tp.valueAtTime(1.0, false)), dm = 0;
+            for (k = 0; k < mid.v.length; k++) dm = Math.max(dm, Math.abs(mid.v[k][0] - mid2.v[k][0]), Math.abs(mid.v[k][1] - mid2.v[k][1]));
+            check('turn: fixed again, the in-betweens are replaced by the same', again.removed === rep.baked && again.baked === rep.baked &&
+                tp.numKeys === D.turn.keys.length + rep.baked && dm < 0.01, MFx.summary(again) + ' · halfway moved ' + dm + ' px');
         });
         step('panel', function () {
             // the real panel (a palette here), clicked through on fresh copies of Before; the

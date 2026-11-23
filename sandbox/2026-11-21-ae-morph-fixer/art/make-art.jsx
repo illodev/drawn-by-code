@@ -107,9 +107,14 @@
                     ah += areaAt(paths[p], 0.5);
                 }
                 check(C.name + ': halfway keeps the letter\'s area (it swings, not squashes)', Math.abs(ah / a0 - 1) < 0.03, (ah / a0).toFixed(3));
-                var baked = 0;
+                // written into the paths as in-between keys; no group's Rotation is keyed
+                var baked = 0, turnedGroups = 0;
                 for (p = 0; p < res.reports.length; p++) if (res.reports[p].baked) baked += res.reports[p].baked;
-                note('     ' + (baked ? baked + ' in-between keys (pieces share the group)' : 'turned by the group\'s Rotation'));
+                for (p = 0; p < paths.length; p++) {
+                    var grp = paths[p].parentProperty.parentProperty.parentProperty;
+                    if (grp && grp.matchName === 'ADBE Vector Group' && grp.property('ADBE Vector Transform Group').property('ADBE Vector Rotation').numKeys) turnedGroups++;
+                }
+                check(C.name + ': written into the paths, no group turned', baked > 0 && turnedGroups === 0, baked + ' in-between keys, ' + turnedGroups + ' groups keyed');
             }
             rows.push('| ' + C.name + ' | ' + res.status + ' | ' + res.seconds.toFixed(1) + ' s | ' + took.toFixed(1) + ' s |');
             note('     estimated ' + res.seconds.toFixed(1) + ' s, took ' + took.toFixed(1) + ' s');
