@@ -444,3 +444,37 @@ Version **0.10.3**. The user's point holds, and more: they rarely even need the 
 - The AE test: Trim Paths, a dashed and a tapered stroke, the Stroke effect and text on a
   mask raise nothing; Zig Zag and the null following `points()[0]` are named ("2 warnings").
 - Node 4,300 + 128 pass. **Not yet run in After Effects**; the installed panel is 0.10.1.
+
+## Round 10 · 2026-11-23 (the user: "all else being equal, minimize crossovers")
+
+The user asked that, all else being equal, the fix avoid moments where the shape crosses
+itself and looks like two or more shapes. Version **0.11.0**.
+
+- **Measured first:** over 223 steps (the demo, the 20 real-type cases, 150 random blobs),
+  the fixed in-betweens crossed themselves in 4, all real type (a into e at two sizes, M into
+  W, a step of the ten-letter chain). In each, a start 1–2 % further round the outline avoided
+  it for 1–8 % more travel. Random blobs never crossed.
+- **Built:** `startPlan` checks the morph at the start it chose (64 points of each outline,
+  19 in-betweens). If it crosses, the grid starts costing at most 20 % more squared distance
+  are tried, the current one first, then the cheapest; the first that doesn't cross and whose
+  grid neighbours don't either is taken. Keys drawn crossing themselves are left alone.
+- **What went wrong on the way:**
+  - Nine in-betweens missed a into e's crossover, which lasts only around u = 0.45; and the
+    first crossing-free start sat right next to a crossing one. → 19 in-betweens, and a start
+    with crossing-free neighbours.
+  - Two random morphs no longer survived a second run: the sampled count is a little noisy,
+    so the second run chased another start. → Whether a path is already fixed now keeps the
+    current start when it crosses no more than the shorter-travel one, and doesn't skip that
+    for keys that cross themselves only at some sample spacings.
+- **End to end** (exact check on the fixed keys, 231 fixes with spiky random polygons): 8
+  crossing steps without the choice, 3 with it, none worse; 0.1 % more travel; about 14 %
+  more time in Node. The 3 left: O into C's two steps (a small twist as the C's gap opens,
+  which no start avoids and the 64-point check doesn't see) and a false alarm on a turned
+  step (its in-betweens are swung, which can't cross).
+- `review/crossover.png` (`art/crossover.mjs`): the a's tail twists into a loop and the M's
+  foot into a spike with the least-travel start; both stay clean with the start taken.
+- The report says "1 start chosen so the shape does not cross itself on the way", or names a
+  step no start untangles.
+- Node: 4,303 checks; the real-type set 148, with "in-betweens don't cross themselves" for
+  every case (O into C allowed its 2). With the choice off, that check fails exactly the four
+  type cases. **Not yet run in After Effects**; its time there isn't measured.

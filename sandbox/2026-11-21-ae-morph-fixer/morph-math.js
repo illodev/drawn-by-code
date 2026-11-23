@@ -236,7 +236,7 @@ var MF = (function () {
     // { off, err, err0 (at offset 0), theta (radians, the turn laying B onto A) }
     function bestOffset(A, B, turn) {
         var SA = samples(A, measure(A)), MB = measure(B), SB = samples(B, MB), cB = [SB.cx, SB.cy];
-        var best = 0, bestE = -1, q, j, sa2 = 0, sb2 = 0;
+        var best = 0, bestE = -1, q, j, sa2 = 0, sb2 = 0, grid = [], thetas = [];
         for (j = 0; j < N; j++) {
             sa2 += (SA.pts[j][0] - SA.cx) * (SA.pts[j][0] - SA.cx) + (SA.pts[j][1] - SA.cy) * (SA.pts[j][1] - SA.cy);
             sb2 += (SB.pts[j][0] - SB.cx) * (SB.pts[j][0] - SB.cx) + (SB.pts[j][1] - SB.cy) * (SB.pts[j][1] - SB.cy);
@@ -250,7 +250,9 @@ var MF = (function () {
                 sd += ax * bx + ay * by;
                 sc += ay * bx - ax * by;
             }
-            var e = fit(sa2, sb2, sd, sc, plain, turn).e;
+            var fq = fit(sa2, sb2, sd, sc, plain, turn), e = fq.e;
+            grid.push(e);
+            thetas.push(fq.theta);
             if (bestE < 0 || e < bestE) {
                 bestE = e;
                 best = q;
@@ -280,7 +282,10 @@ var MF = (function () {
             off = best / N;
             r = errorAt(SA, B, MB, cB, off, turn);
         }
-        return { off: off - Math.floor(off), err: r.e, err0: errorAt(SA, B, MB, cB, 0, turn).e, theta: r.theta, turn: !!turn };
+        return {
+            off: off - Math.floor(off), err: r.e, err0: errorAt(SA, B, MB, cB, 0, turn).e, theta: r.theta, turn: !!turn,
+            grid: grid, thetas: thetas, SA: SA, SB: SB
+        };
     }
 
     // how closed path P should be matched to prev. With o.rotate, a match that allows a turn
@@ -319,14 +324,137 @@ var MF = (function () {
         return { k: k, d: d };
     }
 
-    // where closed path P should start to follow prev: { off, near, nd, turn, theta } (near:
-    // the vertex nearest the best fraction) or, when moving the start gains under 5 %,
-    // { near: 0, nd: 0 } with the turn found at the current start
+    // ---- crossover: an in-between whose outline crosses itself ------------------------------
+    // A morph can pass through outlines that cross themselves: the shape pinches into two or
+    // more lobes for a few frames (real type: a into e, M into W). Among starts that travel
+    // about as little as the best one (CROSS_SLACK more squared distance at most), the fix takes
+    // one whose in-betweens don't cross. Checked on 64 points of each outline (every other
+    // sample) at 19 in-betweens: a crossover can last under a tenth of the morph (a into e:
+    // around u = 0.45 only), and nine checks missed it.
+    var XU = [];
+    for (var xu = 1; xu < 20; xu++) XU.push(xu / 20);
+    var CROSS_SLACK = 1.2, CROSS_TRIES = 12;
+
+    // do segments ab and pq cross (strictly)?
+    function crosses(a, b, p, q) {
+        var d1 = (q[0] - p[0]) * (a[1] - p[1]) - (q[1] - p[1]) * (a[0] - p[0]);
+        var d2 = (q[0] - p[0]) * (b[1] - p[1]) - (q[1] - p[1]) * (b[0] - p[0]);
+        var d3 = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+        var d4 = (b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]);
+        return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
+    }
+
+    // how many times the closed outline through pts crosses itself (up to `limit`): edges
+    // sorted by their left end, so only edges that overlap in x are compared
+    function selfCrossings(pts, limit) {
+        var n = pts.length, ed = [], i, j, c = 0;
+        for (i = 0; i < n; i++) {
+            var a = pts[i], b = pts[(i + 1) % n];
+            ed.push({ i: i, a: a, b: b, x0: Math.min(a[0], b[0]), x1: Math.max(a[0], b[0]), y0: Math.min(a[1], b[1]), y1: Math.max(a[1], b[1]) });
+        }
+        ed.sort(function (p, q) { return (p.x0 - q.x0) || (p.i - q.i); });
+        for (i = 0; i < n; i++) {
+            var e = ed[i];
+            for (j = i + 1; j < n && ed[j].x0 <= e.x1; j++) {
+                var f = ed[j], d = e.i - f.i;
+                if (d === 1 || d === -1 || d === n - 1 || d === 1 - n) continue;      // neighbours meet
+                if (f.y0 > e.y1 || f.y1 < e.y0) continue;
+                if (crosses(e.a, e.b, f.a, f.b) && ++c >= limit) return c;
+            }
+        }
+        return c;
+    }
+
+    // 64 points of b's outline read from grid offset q, around its centre, turned by theta (the
+    // turn laying it onto a), next to a's 64 around its centre: { a, b }
+    function pairPoints(b, q, theta) {
+        var A = b.SA, B = b.SB, ca = Math.cos(theta || 0), sa = Math.sin(theta || 0), pa = [], pb = [];
+        for (var j = 0; j < N; j += 2) {
+            var p = A.pts[j], r = B.pts[(j + q) % N], x = r[0] - B.cx, y = r[1] - B.cy;
+            pa.push([p[0] - A.cx, p[1] - A.cy]);
+            pb.push([x * ca - y * sa, x * sa + y * ca]);
+        }
+        return { a: pa, b: pb };
+    }
+
+    // crossings summed over the in-betweens of a morph between matched points (up to `limit`)
+    function crossover(pp, limit) {
+        var total = 0, A = pp.a, B = pp.b;
+        for (var u = 0; u < XU.length && total < limit; u++) {
+            var pts = [], w = XU[u];
+            for (var j = 0; j < A.length; j++) pts.push([A[j][0] + (B[j][0] - A[j][0]) * w, A[j][1] + (B[j][1] - A[j][1]) * w]);
+            total += selfCrossings(pts, limit - total);
+        }
+        return total;
+    }
+
+    // the start plan's grid offset q crosses over: try the grid offsets that cost at most
+    // CROSS_SLACK times the best match, the current start (0) first and then the cheapest, and
+    // take the first that doesn't cross and whose grid neighbours don't either (a start on the
+    // edge of a crossing-free run still crossed between the checked in-betweens); else the
+    // first that doesn't cross, else the one that crosses least. stay: only the current start
+    // is tried (whether a path is already fixed: a start that keeps it from crossing over
+    // counts as fine, so a second run doesn't chase sampling noise). Keys that cross themselves
+    // are left as drawn. -> { q, crossings, was (the crossings at q) }
+    function untangle(b, q, stay) {
+        function clear(k) {
+            return crossover(pairPoints(b, k, b.turn ? b.thetas[k] : 0), 1) === 0;
+        }
+        var pp = pairPoints(b, q, b.turn ? b.thetas[q] : 0), was = crossover(pp, 1000);
+        if (!was) return { q: q, crossings: 0, was: 0 };
+        // keys that cross themselves: no new start is looked for (staying put is still allowed:
+        // whether a key crosses itself can flip with the sampling)
+        // (crossings 0: drawn that way, nothing to report)
+        if (!stay && (selfCrossings(pp.a, 1) || selfCrossings(pairPoints(b, 0, 0).b, 1))) return { q: q, crossings: 0, was: was };
+        var cand = [], limitE = b.err * CROSS_SLACK, k;
+        for (k = 1; k < N && !stay; k++) if (k !== q && b.grid[k] <= limitE) cand.push(k);
+        cand.sort(function (x, y) { return (b.grid[x] - b.grid[y]) || (x - y); });
+        if (q !== 0 && b.grid[0] <= limitE) cand.unshift(0);
+        var bestQ = q, bestC = was, edge = -1;
+        for (k = 0; k < cand.length && k < CROSS_TRIES; k++) {
+            var ck = cand[k], c = crossover(pairPoints(b, ck, b.turn ? b.thetas[ck] : 0), stay ? bestC + 1 : bestC);
+            if (stay) {
+                // staying put wins a tie (the count is sampled: a little noisy)
+                if (c <= bestC) {
+                    bestC = c;
+                    bestQ = ck;
+                }
+                continue;
+            }
+            if (c === 0) {
+                if (clear((ck + 1) % N) && clear((ck + N - 1) % N)) return { q: ck, crossings: 0, was: was };
+                if (edge < 0) edge = ck;
+            } else if (c < bestC) {
+                bestC = c;
+                bestQ = ck;
+            }
+        }
+        if (edge >= 0) return { q: edge, crossings: 0, was: was };
+        return { q: bestQ, crossings: bestC, was: was };
+    }
+
+    // where closed path P should start to follow prev: { off, near, nd, turn, theta, crossings,
+    // untangled } (near: the vertex nearest the best fraction) or, when moving the start gains
+    // under 5 % and doesn't keep the morph from crossing over, { near: 0, nd: 0 } with the turn
+    // found at the current start. crossings: what the in-betweens still cross (sampled)
     function startPlan(prev, P, o) {
-        var b = chooseOffset(prev, P, o);
-        if (!(b.err < b.err0 * GAIN)) return { off: 0, near: 0, nd: 0, turn: b.turn, theta: b.turn ? bestAt0(prev, P) : 0 };
-        var nv = nearestVertex(P, b.off);
-        return { off: b.off, near: nv.k, nd: nv.d, turn: b.turn, theta: b.theta };
+        var b = chooseOffset(prev, P, o), off = 0, theta = 0;
+        if (b.err < b.err0 * GAIN) {
+            off = b.off;
+            theta = b.theta;
+        } else if (b.turn) {
+            theta = bestAt0(prev, P);
+        }
+        var q0 = Math.round(off * N) % N, x = { q: q0, crossings: 0, was: 0 };
+        if (o.crossover !== false) x = untangle(b, q0, !!o.stay);
+        var untangled = x.q !== q0;
+        if (untangled) {
+            off = x.q / N;
+            theta = b.turn ? b.thetas[x.q] : 0;
+        }
+        if (!off) return { off: 0, near: 0, nd: 0, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled };
+        var nv = nearestVertex(P, off);
+        return { off: off, near: nv.k, nd: nv.d, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled };
     }
 
     // the turn laying P onto prev, keeping P's start
@@ -358,6 +486,8 @@ var MF = (function () {
             if (opt.start && P.v.length > 1) {
                 var plan = startPlan(prev, P, opt);
                 info.turn = plan.turn;
+                info.untangled = plan.untangled;      // a start chosen so the in-betweens don't cross
+                info.crossings = plan.crossings;      // what they still cross (sampled), 0 mostly
                 var near = plan.near;
                 if (plan.nd > SNAP) {
                     P = insert(P, [plan.off]);
@@ -628,6 +758,10 @@ var MF = (function () {
     // nothing to do: same points, same direction, and no start would move; with turns, a step
     // that turns still counts (the keys of a path fixed before, its in-betweens removed)
     function matched(paths, o, turns) {
+        // the decision align() takes, but a start that keeps the morph from crossing over counts
+        // as fine without looking for another (untangle's stay)
+        var so = { stay: true }, key;
+        for (key in o) if (key !== 'stay') so[key] = o[key];
         for (var k = 1; k < paths.length; k++) {
             if (paths[k].v.length !== paths[0].v.length) return false;
             if (paths[0].closed) {
@@ -636,7 +770,7 @@ var MF = (function () {
                     if (w && w !== o.sign) return false;
                 }
                 if (o.start) {
-                    var plan = startPlan(paths[k - 1], paths[k], o);     // the same decision align() takes
+                    var plan = startPlan(paths[k - 1], paths[k], so);
                     if (plan.nd > SNAP || plan.near > 0) return false;
                     if (plan.turn && !turns) return false;      // a turn to take out of the path
                 }

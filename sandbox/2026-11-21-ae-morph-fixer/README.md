@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.10.3 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.11.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -82,7 +82,9 @@ cancelling changes nothing.
 | **turn** | off | For shapes that turn between keys: points are matched as if the shape turned, and the shape swings round as a whole. The turn is written into the path as one key a frame along the arc, on shape layers and masks alike; no transform (group or layer) is keyed. Steps that don't turn stay put |
 
 Always on: every key is drawn in the same direction, and each key's start slides to where
-the morph from the previous key travels least. The panel remembers its settings. With two
+the morph from the previous key travels least. All else being equal, it takes a start that
+keeps the shape from crossing itself on the way (pinching into lobes or twisting a knot),
+and the report says when it did. The panel remembers its settings. With two
 or more keyframes selected on a path, only those are fixed. Undo puts everything back.
 Running it again on a fixed path leaves it alone ("already matched"); on a turned path it
 writes the same in-betweens again.
@@ -109,6 +111,14 @@ stay as they were.
   slides to the offset with the least squared distance, around each shape's centre (searched
   on the sample grid, then refined). It moves only when that cuts the error by 5 % or more,
   so symmetric shapes keep their starts and a second run changes nothing.
+- **Crossover:** the morph from the previous key is checked at 19 in-betweens (64 points of
+  each outline): if one crosses itself, the starts that travel at most 20 % more (squared)
+  are tried, the current start first and then the cheapest, and the first whose in-betweens
+  don't cross, with crossing-free neighbours on the 128-step grid, is taken (a start right
+  next to a crossing one still crossed between the checked in-betweens). On the real-type set
+  that untangles a into e, M into W and a step of the ten-letter chain for 0.1 % more travel
+  (`review/crossover.png`: top, the least-travel start; below, the one taken). Keys drawn
+  crossing themselves are left alone. A step no start untangles is named in the report.
 - **Rebuild:** points go at the same fractions of every key's outline (each key's corners
   pinned exactly, the rest spread evenly), every handle a third of the arc to its
   neighbour. After Effects blends each handle in a straight line, so a smooth point stays
@@ -168,8 +178,12 @@ What it doesn't do, and why; each is also said in the report when it happens.
   parents; a 3D layer seen through a camera can look bigger than that.
 - **Warnings:** the expression check reads the comp the path is in, for up to 0.8 s; an
   expression that picks a layer by number, or sits in another comp, isn't found.
+- **Crossover:** only the start is chosen against it, within 20 % more travel; a crossover
+  that needs more, or one smaller than the 64-point check sees (O into C: a small twist as
+  the C's gap opens, which no start avoids), stays. A key drawn in between fixes those.
 - **Time:** the estimate runs high on small jobs (up to 4x) and close on long ones (within
-  10 % on 15–24 s jobs). After Effects doesn't respond while a fix runs; Esc is read when the
+  10 % on 15–24 s jobs). The crossover check made Node about 14 % slower; not yet measured
+  inside After Effects. After Effects doesn't respond while a fix runs; Esc is read when the
   work checks in, so hold it.
 - **No progress bar.** A floating window a script opens stays stuck on screen for good if
   anyone clicks After Effects while the script keeps it busy (Windows' "not responding"
@@ -184,13 +198,13 @@ What it doesn't do, and why; each is also said in the report when it happens.
 | `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
 | `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the turn into the group), report |
 | `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, the release (it leaves nothing on `$.global`), and `out/test-build/Mask Morph Fixer.jsx`, the same plus the exports the tests use; with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
-| `test.mjs` | 4,300 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `test.mjs` | 4,303 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js` |
 | `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
 | `ae-bridge.jsx` | A test runner that lives in After Effects for the session: send it once with `AfterFX.exe -ro`, then drop jobs into `out/ae/bridge/inbox/` |
 | `bench/ae-bench.jsx` | Times the fix inside AE on a grid of job sizes (`out/ae/bench.csv`): the data the time estimate is fitted to |
 | `bench/ghost-window.jsx`, `bench/window-watch.ps1` | Reproduce the window Windows strands on screen when AE is clicked while a script keeps it busy, watched from outside through Windows' own window list: why the fixer has no progress window |
-| `art/` | The real-artwork regression set. `ttf.mjs` reads letter outlines from the OFL fonts in the repo's `fonts/`; `cases.mjs` keys 20 cases the way a designer would (O into C, B into 8 pasted out of order, i into l, engraved letters of hundreds of points, a ten-key chain, turning letters, 24 px and 2000 px type); `test-art.mjs` runs them in Node (128 checks, `out/art/report.md`); `make-art.jsx` builds and fixes them inside AE through the panel's own code, plus two mask cases; `look.mjs` draws the glyphs to check the reader |
+| `art/` | The real-artwork regression set. `ttf.mjs` reads letter outlines from the OFL fonts in the repo's `fonts/`; `cases.mjs` keys 20 cases the way a designer would (O into C, B into 8 pasted out of order, i into l, engraved letters of hundreds of points, a ten-key chain, turning letters, 24 px and 2000 px type); `test-art.mjs` runs them in Node (148 checks, `out/art/report.md`; no in-between crosses itself but O into C's small twist); `crossover.mjs` draws in-betweens with and without the crossover choice; `make-art.jsx` builds and fixes them inside AE through the panel's own code, plus two mask cases; `look.mjs` draws the glyphs to check the reader |
 | `scene.js` | Engine preview of the After half, drawn the way AE interpolates the fixed keys |
 
 Testing inside After Effects (with the user's go-ahead: the demo opens a new project).

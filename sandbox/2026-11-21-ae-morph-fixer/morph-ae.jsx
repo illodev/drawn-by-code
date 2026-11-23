@@ -13,7 +13,7 @@
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.10.3';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.11.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -276,12 +276,14 @@ var MorphFixer = (function () {
             for (var q = 0; q < at.length; q++) prop.setValueAtKey(at[q], fromMF(r.paths[q]));
         };
         rep.kept = !!r.kept;
-        var lo = counts[0], hi = counts[0], rev = 0, mov = 0, b = 0, a = 0, n = 0;
+        var lo = counts[0], hi = counts[0], rev = 0, mov = 0, b = 0, a = 0, n = 0, untangled = 0, crossing = [];
         for (k = 0; k < idx.length; k++) {
             if (counts[k] < lo) lo = counts[k];
             if (counts[k] > hi) hi = counts[k];
             if (r.keys[k].reversed) rev++;
             if (r.keys[k].moved) mov++;
+            if (r.keys[k].untangled) untangled++;
+            if (r.keys[k].crossings) crossing.push(k + '-' + (k + 1));      // keys counted from 1
             if (k && r.keys[k].before > 0.001) {
                 b += r.keys[k].before;
                 a += r.keys[k].after;
@@ -293,6 +295,8 @@ var MorphFixer = (function () {
         rep.to = r.paths[0].v.length;
         rep.reversed = rev;
         rep.moved = mov;
+        rep.untangled = untangled;      // starts chosen so the shape doesn't cross itself
+        rep.crossing = crossing;        // steps that still do: no start traveling about as little avoids it
         rep.before = n ? b / n : 0;
         rep.after = n ? a / n : 0;
         rep.mode = r.mode;
@@ -333,10 +337,13 @@ var MorphFixer = (function () {
         else if (rep.capped) how = 'rebuilt at the max: about ' + (Math.round(rep.deviation * 100) / 100) + ' px from each shape (raise max for a closer fit)';
         else how = 'rebuilt within ' + round3(rep.deviation) + ' px of each shape';
         if (rep.mode !== 'exact' && !rep.fellBack && Math.abs(rep.scale - 1) > 0.005) how += ' on screen (it is scaled to ' + Math.round(rep.scale * 100) + ' %)';
+        var crossed = '';
+        if (rep.untangled) crossed += '; ' + rep.untangled + (rep.untangled > 1 ? ' starts' : ' start') + ' chosen so the shape does not cross itself on the way';
+        if (rep.crossing && rep.crossing.length) crossed += '; it still crosses itself between keys ' + rep.crossing.join(', ') + ' (no start avoids it; a key drawn in between can)';
         return rep.label + ': ' + rep.keys + ' keys, ' + rep.from + ' -> ' + rep.to + ' points each' +
             (rep.reversed ? ', ' + rep.reversed + ' reversed' : '') + (rep.moved ? ', ' + rep.moved + ' start points moved' : '') +
             (rep.before ? '; points travel ' + Math.round(rep.before) + ' -> ' + Math.round(rep.after) + ' px around the shape' : '') +
-            '; ' + how + turned + '.';
+            '; ' + how + turned + crossed + '.';
     }
 
     // ---- before a fix: what depends on the points, and how long it will take ----------------

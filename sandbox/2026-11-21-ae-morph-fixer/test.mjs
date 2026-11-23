@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CASES as ART_CASES, build as buildArt } from './art/cases.mjs';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const load = (f, name) => new Function(fs.readFileSync(path.join(dir, f), 'utf8') + `\nreturn ${name};`)();
@@ -473,6 +474,18 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
     rep = FX.fix(p);
     check('on screen: a layer at 25 % needs fewer points', rep.scale === 0.25 && rep.deviation <= 0.1 && rep.to < 64, `${rep.to} points, ${rep.deviation.toFixed(4)} px`);
     console.log(`on screen: 400 % -> ${FX.fix(mockPath(keys, { propertyGroup: () => big })).to} points, 100 % -> 64, 25 % -> ${rep.to}`);
+
+    // crossovers in the report, on real type: a into e gets a start that keeps it from pinching
+    // into lobes, and the report says so; a step no start can untangle is named
+    const artKeys = (name) => MF.matchPieces(buildArt(ART_CASES.find((c) => c.name.startsWith(name)))).keys.map((row) => row[0]);
+    rep = FX.fix(mockPath(artKeys('a into e')));
+    check('crossover: a into e gets a start chosen so it does not cross itself, and says so', rep.untangled === 1 && !rep.crossing.length &&
+        /1 start chosen so the shape does not cross itself/.test(FX.summary(rep)), FX.summary(rep));
+    const noX = FX.fix(mockPath(artKeys('a into e')), { crossover: false });
+    check('crossover: without the check, a into e keeps the start that travels least', noX.untangled === 0, FX.summary(noX));
+    console.log('crossover: ' + FX.summary(rep));
+    const said = FX.summary({ label: 'L', keys: 3, from: '4', to: '64', reversed: 0, moved: 0, untangled: 0, crossing: ['2-3'], mode: 'smooth', deviation: 0.05, scale: 1 });
+    check('crossover: a step no start untangles is named', /still crosses itself between keys 2-3 \(no start avoids it; a key drawn in between can\)/.test(said), said);
 
     // the turn written into the path, on a mock timeline: labelled in-betweens one a frame, no
     // transform; fixing again replaces them with the same; moving a drawn key and fixing again

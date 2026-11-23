@@ -15,7 +15,7 @@ const FONTS = {};
 const font = (name) => (FONTS[name] ||= loadFont(path.join(ROOT, 'fonts', name + '.ttf')));
 
 export const CASES = [
-    { name: 'O into C and back (a hole closes into a dot)', font: 'ComicNeue-Bold', keys: 'OCO', expect: { grown: 1 } },
+    { name: 'O into C and back (a hole closes into a dot)', font: 'ComicNeue-Bold', keys: 'OCO', expect: { grown: 1, crosses: 2 } },
     { name: 'B into 8 (three pieces each)', font: 'ComicNeue-Bold', keys: 'B8' },
     { name: 'B into 8, pieces pasted out of order', font: 'ComicNeue-Bold', keys: 'B8', shuffle: true, expect: { moved: true } },
     { name: 'a into e', font: 'ComicNeue-Bold', keys: 'ae' },

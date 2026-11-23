@@ -18,6 +18,47 @@ const check = (what, ok, detail) => {
     }
 };
 
+// crossovers: an in-between whose outline crosses itself (the shape pinches into lobes). Exact
+// enough: each bezier drawn as 4 chords per segment, the morph checked at 19 in-betweens, every
+// pair of chords compared. Turned paths are checked on their local keys (the swing turns the
+// whole in-between, which can't make it cross). -> steps that cross, where the keys don't
+function crossesItself(pts) {
+    const n = pts.length;
+    for (let i = 0; i < n; i++) {
+        const a = pts[i], b = pts[(i + 1) % n];
+        for (let j = i + 2; j < n; j++) {
+            if (i === 0 && j === n - 1) continue;
+            const p = pts[j], q = pts[(j + 1) % n];
+            const d1 = (q[0] - p[0]) * (a[1] - p[1]) - (q[1] - p[1]) * (a[0] - p[0]), d2 = (q[0] - p[0]) * (b[1] - p[1]) - (q[1] - p[1]) * (b[0] - p[0]);
+            const d3 = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]), d4 = (b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]);
+            if (((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0))) return true;
+        }
+    }
+    return false;
+}
+function chords(P) {
+    const out = [];
+    for (let k = 0; k < MF.segCount(P); k++) {
+        const s = MF.seg(P, k);
+        for (let t = 0; t < 4; t++) out.push(MF.bez(s, t / 4));
+    }
+    return out;
+}
+function crossingSteps(paths) {
+    let n = 0;
+    for (let k = 0; k + 1 < paths.length; k++) {
+        const A = paths[k], B = paths[k + 1];
+        if (!A.closed || crossesItself(chords(A)) || crossesItself(chords(B))) continue;
+        for (let u = 1; u < 20; u++) {
+            if (crossesItself(chords(MF.lerp(A, B, u / 20)))) {
+                n++;
+                break;
+            }
+        }
+    }
+    return n;
+}
+
 const rows = [], forAE = [];
 for (const c of CASES) {
     const keys = build(c), K = keys.length, n = keys[0].length, t0 = performance.now();
@@ -27,7 +68,7 @@ for (const c of CASES) {
         res = MF.matchPieces(keys);
         for (let p = 0; p < n; p++) {
             const col = res.keys.map((row) => row[p]);
-            fixed.push(MF.fix(col, { mode: c.mode || 'smooth', maxPoints: c.max || 100, rotate: !!c.rotate }));
+            fixed.push(MF.fix(col, { mode: c.mode || 'smooth', maxPoints: c.max || 100, rotate: !!c.rotate, crossover: !process.env.NO_CROSSOVER }));
         }
     } catch (e) {
         err = e;
@@ -57,6 +98,13 @@ for (const c of CASES) {
         if (new Set(roles).size > 1) roleFlips++;
         if (r.turn) turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
     }
+    // the morph doesn't pinch into lobes where a start traveling about as little avoids it
+    // (O into C can't help a small one: as the C's gap opens its outline twists, below what the
+    // fix's 64-point check sees; no start avoids it)
+    let crossed = 0;
+    for (let p = 0; p < n; p++) crossed += crossingSteps(fixed[p].paths);
+    const allowed = (c.expect && c.expect.crosses) || 0;
+    check(`${c.name}: in-betweens don't cross themselves${allowed ? ` (but in the ${allowed} steps no start avoids)` : ''}`, crossed <= allowed, `${crossed} steps cross`);
     check(`${c.name}: every key within 0.1 px (or the max said how close)`, honest, worst.toFixed(3));
     check(`${c.name}: outlines stay outlines, holes stay holes`, roleFlips === 0, `${roleFlips} pieces change role`);
     check(`${c.name}: points travel less around the shapes`, after <= before + 1e-6 || c.rotate, `${before.toFixed(0)} -> ${after.toFixed(0)}`);

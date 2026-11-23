@@ -534,6 +534,11 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   really does. The morph fixer warned about everything that "starts at the first point",
   without checking that the first key's start never moves. The user, testing it, got a dash
   warning on a stroke with no dashes, and doubted the rest. Six of nine warnings went.
+- 2026-11-23 · ae-morph-fixer · Measure a request on real material before building it: "avoid
+  crossovers" showed up in 4 of 223 steps, all type, each fixable by a start 1–2 % round
+  the outline. A sampled heuristic that steers a choice must also survive a second run: pick
+  with a margin (crossing-free neighbours), and let "is it already fixed?" keep the current
+  choice on a tie, or sampling noise makes a second fix change the path.
 - 2026-11-22 · ae-morph-fixer · A test harness left running in the user's AE is a bug the user
   sees: the morph fixer's runner fired during a dialog and wedged AE after the work was done.
   Stop every runner when the tests end, and give it an idle timeout in case you forget.
