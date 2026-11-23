@@ -575,3 +575,19 @@ credits (estimated at 2,200). Measured, not heard:
   comes before it); from 1.65 s in it lands on the last world.
 Both cut by `score.sh` (−16 LUFS, limiter at 4×, the film's fade at the end) and sent for
 the user to choose by ear.
+
+The user, of the two takes: «there is no guitar, only a wall of sound that keeps growing».
+A free try (the round-6 solo guitar, a whole tone down from E to the orchestra's D, laid
+over take 1): «two pieces of music mixed that don't go together». Then, with their go-ahead,
+one take of a piece asked for with the guitar as its thread (alone at first, the
+procession drum under it, a rasgueado on the mouth, faster and faster with the cornet
+answering, a last rasgueado chord ringing out; «a transparent arrangement, never a wall of
+sound»), 300 credits. Take 5 is in D, plays at one level from the first second, has its
+strongest hit at 6.70 s and stops playing at 12.75 s: laid with no offset, the hit falls
+as the guitar is in focus and the last chord rings out over the landing on the moon.
+
+The user also saw: «the moon is seen from the guitar and the lemons spawn all of a sudden».
+The lemons came out of the night between the guitar 600 and 400 away, a fifth of a second
+at that speed; seen only through its mouth, they now come in from 2200 to 1200 away. The
+moon and her sky came out long before the guitar and filled its mouth before any lemon:
+they now come out once the camera is through it, among the lemons, as do the worlds.

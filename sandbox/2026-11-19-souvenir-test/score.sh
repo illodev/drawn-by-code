@@ -4,6 +4,9 @@
 #   take 1, offset 2.27: its two swells crest at 10.00 and 15.00 s, so they land on the
 #     guitar's mouth (7.72 s) and on the last world going by at full speed (12.75 s)
 #   take 4, offset 1.65: its one hit (14.40 s) lands on the last world (12.75 s)
+#   take 5, offset 0 (the one asked for with the guitar as the thread): its strongest hit
+#     (6.70 s) falls as the guitar is in focus (6.6 s), and it stops playing at 12.75 s, as
+#     the last world goes by: its last chord rings out over the landing on the moon
 #   guitar: the round-6 solo flamenco guitar (private/score-take1.mp3, in E) laid on top,
 #     a whole tone down to the orchestra's D, from 1.34 s in: its opening chord rings as the
 #     night lifts, its strum (9.04 s in the take) falls on the guitar's mouth, and it plays
