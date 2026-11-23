@@ -18,9 +18,9 @@ Worked examples:
 - `sandbox/2026-11-21-ae-field-effector/` (live): a MoGraph-style field effector, all
   expressions.
 - `sandbox/2026-11-21-ae-morph-fixer/` (a panel people install): fixes the designer's own
-  path keys so shapes morph cleanly. It installs itself as a dockable panel, warns before
-  breaking anything and estimates long jobs. It is the reference for the "A panel people
-  install" section below.
+  path and mask keys so shapes morph cleanly, letters with holes included. It installs
+  itself as a dockable panel, warns before breaking anything, estimates long jobs and
+  cancels with Esc. It is the reference for the "A panel people install" section below.
 
 **Bake or live?** If the motion has memory (velocity, collisions, contact), simulate in the
 script and bake keys. If each frame depends only on where things are at that frame (a
@@ -37,6 +37,7 @@ re-key the driver and nothing needs re-running.
 | `scene.js` | Engine preview drawn the way the result will look: judge the motion here, it renders in seconds |
 | `make-demo.jsx` | Builds a demo project from nothing; with a test flag it checks, logs and saves. It is the AE test |
 | `test.mjs` | Node: the logic on hostile inputs, and the AE half against mock properties |
+| Real artwork (`art/` in the morph fixer) | Cases made from real material, such as letter outlines read from the repo's OFL fonts. They run in Node and, through the tool's own code, in AE. They found what made-up shapes hid |
 
 Expose `build(comp, …)` or the tool's API without UI (`$.global.X_NO_UI`) so the test can
 call it, and reset the flag afterwards: `$.global` lives all session, and a panel opened
@@ -147,6 +148,9 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   - Wrap in code, evenly so no word sits alone, and add one single-line statictext per line.
   - A text that changes later keeps its first size: measure its widest possible line up
     front (`graphics.measureString`).
+  - The AE test checks the guide's laid-out size (360–640 px wide, under 800 tall, for a
+    laptop screen). Two new tips pushed it to 807 px; wrapping at 80 characters, not 70,
+    brought it back to 465 × 759.
 - **AE doesn't draw ScriptUI fonts** (2026 and 27): `ScriptUI.newFont(…, 'BOLD', size + 3)`
   is accepted and reads back Bold / 15, but every statictext still draws as plain 12 px
   Adobe Clean (Arial too). Mark headings with the pen
@@ -171,12 +175,15 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
 - Estimate long jobs from timings measured inside AE, never from Node.
   - Fit the estimate to a bench (`bench/ae-bench.jsx` in the morph fixer).
   - Scale it to the machine with a short calibration run, done only when the job looks long.
-  - Check it against a real fix: 6.9 s estimated, 6.2 s taken.
+  - Check it against a real fix: 6.9 s estimated, 6.2 s taken. On the real-type set it ran
+    high on small jobs (4.4 s for 1.1 s) and close on long ones (24.2 s for 22.9 s). That is
+    the safe way round for a 10 s warning.
 - Ask once, in a modal dialog with Cancel as the default (`defaultElement` = Cancel), and
   only for warnings or jobs over 10 s. **Give every button an `onClick` that calls
   `w.close(n)`**: ScriptUI closes a dialog by itself only for the default and cancel
-  elements, so a third button (Fix anyway, once Cancel became the default) did nothing. Group the warnings under a short path name, one
-  plain sentence each. After the user goes ahead, count the warnings in the status line.
+  elements, so a third button (Fix anyway, once Cancel became the default) did nothing.
+  Group the warnings under a short path name, one plain sentence each. After the user goes
+  ahead, count the warnings in the status line.
 - Give each warning a code next to its sentence. The sentence quotes AE's names, which
   change with its language; tests check the code.
 
@@ -194,7 +201,12 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
     remove it (logged from outside for 45 s), and it had no close button. Only an AE restart
     clears it.
   - Without clicks, `close()` works, even after 7 s busy, so scripted tests don't show it.
+    Only `visible = false` left a window up without clicks.
+  - Any job long enough for a click is at risk: people click while they wait.
+  - Seen on Windows 11; a Mac hasn't been tried.
   - Give the time and the way to cancel in the question before the work instead.
+  - Reproduce it with `bench/ghost-window.jsx` beside `bench/window-watch.ps1` in the morph
+    fixer, before trying any new window during a long job.
 - `Window.find(type, title)` returns the first window with that title, closed ones included:
   it can't reach a particular window among several with one title.
 
@@ -293,6 +305,8 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
     script" dialog.
   - Jobs call its `freshProject()`, which only closes an empty untitled project or one
     saved under `out/`.
+  - A job already waiting when a runner starts was meant for a runner AE refused: it is set
+    aside unrun. Otherwise an old stop job ended the new runner before its own jobs.
   - **Stop it when the tests are done, and before any by-hand check in AE's UI** (drop a
     job calling `$.global.MMF_BRIDGE.stop()`; it also stops itself after five idle
     minutes). Its timer fires even while a modal dialog is open, such as Preferences or
@@ -310,15 +324,18 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   `app.executeCommand(app.findMenuCommandId('<file name>.jsx'))` (a negative id is fine; 0
   = not found). It runs at once, and a test build's exports are there on the next line.
   Don't send the command again for a panel that is already open.
-- A job waiting in the inbox when a runner starts was meant for one AE refused: the runner
-  sets it aside unrun. An old stop job had otherwise ended the new runner before its jobs.
 - A by-hand test can't press keys into AE while a script runs: AE becomes a stand-in
   window, and the screen tool refuses to type into it (and says not to work around that).
   Test cancelling with a stand-in for the key, and leave a held Esc to a person.
 - Clicking AE's own UI with computer use is the real test of a panel: Fix, its dialogs, the
-  guide, a narrow dock. Bring AE forward with a job calling `app.activate()`, because
-  `open_application` sometimes leaves the desktop shell in front. Restore anything you
-  change (a column width, the theme) and stop the runner first.
+  guide, a narrow dock.
+  - Bring AE forward with a job calling `app.activate()`: `open_application` sometimes
+    leaves the desktop shell in front, and fails while a modal is open.
+  - Restore anything you change (a column width, the theme) and stop the runner first.
+- **Ask the person to do what a user would**, for what the screen tool can't: hold Esc, and
+  click around AE during a long fix. Their clicks are what showed the stuck window.
+- A by-hand check leaves the test project with unsaved changes. Say so when handing back,
+  and that it can be closed without saving.
 
 **Diagnostics**
 
@@ -328,6 +345,11 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   stall still says where.
 - While a script runs, AE's window doesn't repaint, and its H.264 output only grows at the
   end: measure CPU (`Get-Process AfterFX`.CPU twice) before calling it stuck.
+- **ScriptUI's word on a window can be wrong.** A palette read `visible == false` while it
+  was on screen. Ask Windows from outside: the morph fixer's `bench/window-watch.ps1 -title
+  "<title>"` logs what its window list shows, with times to set beside the script's log.
+- Write "tested in AE" only for a step the AE log shows. A review note once claimed a
+  cancel test in AE that didn't exist yet.
 - The `time` an expression sees at `valueAtTime(t)` sits on a grid of 1/61,440 s (±16 µs
   off `t`); frame times are on the grid. A test comparing time-dependent math must use
   AE's `time` (read it through a probe expression), not `t`.
@@ -365,7 +387,8 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
     getAllowedAppThemes"). Those three are **properties**, not functions:
     `app.getAppTheme`, `app.getUseReducedContrast` (a boolean) and `app.getAllowedAppThemes`
     (`[light, dark, darkest]`).
-  - Everything in the morph fixer's test passes unchanged from 2026.
+  - Everything in the morph fixer's test passes unchanged from 2026. The real-type set and
+    the mask cases pass too.
 - **2026** (26.x): the version the flock rig, the field effector and morph fixer rounds 1–3
   were built and tested in.
 
@@ -438,6 +461,16 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   outlines read from the repo's OFL fonts (`art/ttf.mjs`, a 150-line TrueType reader) gave
   a 20-case regression set. It showed fonts list a letter's pieces in no order, and that big
   type needs a max of 200–300.
+- 2026-11-23 · ae-morph-fixer · A letter in AE is several paths (outline, holes, an i's dot),
+  and each path morphs to its own next key. With keys pasted from different letters, which
+  piece meets which follows the font's order, not the shape. Match the pieces between keys
+  first (by centre, size, and outline or hole), and let a piece drawn as a dot grow from a
+  tiny copy of itself.
+- 2026-11-23 · ae-morph-fixer · A turn where no transform can carry it (a mask, or a path
+  sharing its group) goes into the path itself, one key a frame. Time it by AE's own eased
+  progress read back from the path, and test it against what the group's transform would
+  show (equal to 1e-9 in Node). An F turning as a mask then kept 100 % of its area halfway,
+  against 50 % before.
 - 2026-11-23 · ae-morph-fixer · Click through the real panel by hand before calling a dialog
   or a progress window done: a Fix anyway button with no handler and a window that outlived
   its close() both passed every scripted test.

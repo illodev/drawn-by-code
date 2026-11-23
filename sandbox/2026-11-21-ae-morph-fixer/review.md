@@ -270,8 +270,8 @@ Testing by hand in AE 27 found two bugs that no script could have found:
   investigation below.
 - Esc during a fix couldn't be pressed from here: a busy AE becomes a stand-in window that
   the screen tool won't type into. The cancel path is tested in Node (a progress callback
-  that cancels: nothing written); the panel's own `FX.escape` stand-in and a held Esc in AE
-  are not tested yet.
+  that cancels: nothing written). The stand-in for the key was then tested in AE too (see
+  the investigation below); a held Esc in AE is still left to a person.
 - My test runner was refused once more with "second script" (AE wedged after the stuck
   window); the user restarted it through me.
 
@@ -286,7 +286,8 @@ Testing by hand in AE 27 found two bugs that no script could have found:
     changes, Esc reads, keys written while it was up, or a click handler around it.
   - Only `visible = false` leaves one up.
 - **The cause:** I had clicked AE during the first stuck fix. Reproduced with a
-  self-contained script: a palette, AE busy for 12 s, two clicks on AE meanwhile. The palette
+  self-contained script (`bench/ghost-window.jsx`, watched by `bench/window-watch.ps1`): a
+  palette, AE busy for 12 s, two clicks on AE meanwhile. The palette
   then stayed on screen through `close()` in the script, `close()` again, `hide()`, and
   `show()` + `close()`, all logged for 45 s. Clicking a busy app makes Windows show its "not
   responding" stand-in, and when the app answers Windows restores the windows as they were.
