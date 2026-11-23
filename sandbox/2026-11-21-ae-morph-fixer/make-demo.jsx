@@ -442,13 +442,15 @@
             var wd = before.duplicate();
             wd.name = 'Warn test';
             var list = function () { return pathOf(wd).parentProperty.parentProperty; };
+            // what measures along the path from its start (Trim Paths, a dashed stroke, a tapered
+            // one) is not asked about: the first key keeps its start. Zig Zag puts ridges on every
+            // segment, and the fix adds segments: asked about
             list().addProperty('ADBE Vector Filter - Trim');
-            // a dashed stroke (not warned about: a fix only shifts where the dashes start) and a
-            // tapered one (warned: its thin ends sit at the first point)
             list().addProperty('ADBE Vector Graphic - Stroke');
             list().property(list().numProperties).property('ADBE Vector Stroke Dashes').addProperty('ADBE Vector Stroke Dash 1');
             list().addProperty('ADBE Vector Graphic - Stroke');
             list().property(list().numProperties).property('ADBE Vector Stroke Taper').property('ADBE Vector Taper Start Length').setValue(30);
+            list().addProperty('ADBE Vector Filter - Zigzag');
             only(wd);
             MFx.ask = function (warned, seconds) {
                 asked = { warned: warned, seconds: seconds };
@@ -457,8 +459,7 @@
             asked = null;
             var res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
             var said = items(asked && asked.warned);
-            check('warn: Trim Paths and a taper after the path are named before fixing, dashes are not', !!asked && /,trim,/.test(kinds(asked.warned)) &&
-                /,taper,/.test(kinds(asked.warned)) && !/,dashes,/.test(kinds(asked.warned)) && !/dash/i.test(said), said);
+            check('warn: Zig Zag after the path is named before fixing; Trim Paths, dashes and taper are not', !!asked && kinds(asked.warned) === ',zigzag,', said);
             check('warn: Cancel changes nothing', res.cancelled && pathOf(wd).keyValue(1).vertices.length === 4, res.status);
             // a null following the path's first point (as Create Nulls From Paths makes)
             var N = comp.layers.addNull();
@@ -476,7 +477,7 @@
             };
             only(wd);
             res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
-            check('warn: Fix anyway fixes, and the status counts the warnings', res.reports.length === 1 && !res.reports[0].skipped && /3 warnings \(hover\)/.test(res.status) &&
+            check('warn: Fix anyway fixes, and the status counts the warnings', res.reports.length === 1 && !res.reports[0].skipped && /2 warnings \(hover\)/.test(res.status) &&
                 /You were warned/.test(res.detail), res.status);
             N.remove();
             wd.remove();
@@ -493,8 +494,10 @@
             var mp = S.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape');
             mp.setValueAtTime(0, a);
             mp.setValueAtTime(1, b);
+            // the Stroke effect and text on a path measure from the start, which the first key
+            // keeps: not asked about
             var w1 = MFx.needs(S.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape'), comp, []);
-            check('warn: an effect using the mask (Stroke)', /,effect,/.test(kinds([w1])), w1.items.join(' | '));
+            check('warn: nothing for the Stroke effect on the mask', w1.items.length === 0, w1.items.join(' | '));
             var T = comp.layers.addText('text on a path');
             T.property('ADBE Mask Parade').addProperty('ADBE Mask Atom');
             var tp = T.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape');
@@ -502,7 +505,7 @@
             tp.setValueAtTime(1, b);
             T.property('ADBE Text Properties').property('ADBE Text Path Options').property('ADBE Text Path').setValue(1);
             var w2 = MFx.needs(T.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape'), comp, []);
-            check('warn: text running along the mask', /,text,/.test(kinds([w2])), w2.items.join(' | '));
+            check('warn: nothing for text running along the mask', w2.items.length === 0, w2.items.join(' | '));
             var w3 = MFx.needs(pathOf(after), comp, []);
             check('warn: nothing for a plain path', w3.items.length === 0, w3.items.join(' | '));
             T.remove();

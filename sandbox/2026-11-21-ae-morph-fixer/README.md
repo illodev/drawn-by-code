@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.10.2 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.10.3 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -45,18 +45,23 @@ guide's headings follow After Effects' theme (black on Light, white on Dark and 
 
 **Before a fix it asks first** (Fix anyway / Cancel) when:
 
-- something depends on where the points are, which the fix moves: Trim Paths, a stroke's
-  taper, Zig Zag, Pucker & Bloat or Wiggle Paths after the path (in its group or any group
-  above), text running along the mask, an effect using the mask (Stroke, Vegas…), or an
-  expression in the comp that reads the points (`points()`, `pointOnPath()`…, as nulls from
-  Create Nulls From Paths do). Stroke dashes and the stroke's wave aren't asked about: a fix
-  only shifts where their pattern starts on the outline;
+- something counts the points, and the fix adds points (64 where 4 were drawn): Zig Zag
+  (ridges per segment), Pucker & Bloat (pulls every point) or Wiggle Paths (its detail goes
+  between the points) after the path, in its group or any group above; or an expression in
+  the comp that reads a point by its number (`points()`, `inTangents()`, `outTangents()`, as
+  nulls from Create Nulls From Paths do);
 - the fix will take more than 10 seconds (After Effects doesn't respond meanwhile). The
   estimate comes from the keys and their points, fitted to timings in After Effects 27
   (`bench/ae-bench.jsx`) and scaled to the machine's speed by a 0.15 s run the first time a
   long job comes up; it lands within about 2x (estimated 6.4 s, took 4.7 s).
 
 After fixing anyway, the status counts the warnings and its tooltip lists them.
+
+**Not asked about:** what measures along the path from its start, because a fix never moves
+the first key's start (the other keys' starts move to line up with it, which is what stops
+the spin). Trim Paths, stroke dashes, taper and wave, text on a mask, the Stroke and Vegas
+effects and `pointOnPath()` keep working as they did on the first key; each also has an
+offset or start setting.
 
 **Letters with holes and shapes in several pieces.** Select the group or the layer. Paths that
 belong together (siblings in one shape group, or a layer's masks of one mode, keyed at the

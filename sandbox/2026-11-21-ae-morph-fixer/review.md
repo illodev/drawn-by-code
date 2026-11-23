@@ -419,3 +419,28 @@ anyway. Version **0.10.2**.
   taper are named and nothing about dashes is. Guide, README and skill say the same.
 - Node 4,300 + 128 pass. **Not yet run in After Effects** (the user is testing in it), and
   the installed panel is still 0.10.1.
+
+## Round 9 · 2026-11-23 (the user doubts the other warnings too: "don't they all have an offset?")
+
+Version **0.10.3**. The user's point holds, and more: they rarely even need the offset.
+
+- **Checked first, in Node:** a fix never moves the first key's start: 0 px on the demo and
+  the turn demo, Smooth and Exact, with and without turn, and over 200 random shapes (2 to 5
+  keys, 3 to 11 points, either direction). The later keys' starts move to line up with the
+  first key's, which is what stops the spin.
+- So everything that measures along the path from its start keeps working as it did on the
+  first key: Trim Paths, stroke dashes, taper and wave, text on a mask, the Stroke and Vegas
+  effects, `pointOnPath()` and its kin. Each also has an offset or start setting. **No longer
+  asked about.**
+- What a fix does change is the point count (64 where 4 were drawn), and no offset helps
+  there. **Still asked about:** Zig Zag (ridges per segment), Pucker & Bloat (pulls every
+  point), Wiggle Paths (its Detail adds points between the vertices), and expressions that
+  read a point by its number (`points()`, `inTangents()`, `outTangents()`: nulls from Create
+  Nulls From Paths). Six of the nine kinds of warning are gone; the masks' checks (text on
+  it, effects using it) went entirely.
+- The dialog now opens "The fix adds points. These depend on how many there are:". The
+  guide's tip says what it asks about and that Trim Paths, dashes and text are fine (two
+  lines, as before, so the guide stays under 800 px).
+- The AE test: Trim Paths, a dashed and a tapered stroke, the Stroke effect and text on a
+  mask raise nothing; Zig Zag and the null following `points()[0]` are named ("2 warnings").
+- Node 4,300 + 128 pass. **Not yet run in After Effects**; the installed panel is 0.10.1.

@@ -1,4 +1,4 @@
-// Mask Morph Fixer 0.10.2 - gives every keyframe of a path the same points, direction
+// Mask Morph Fixer 0.10.3 - gives every keyframe of a path the same points, direction
 // and start, so shapes and masks morph cleanly in After Effects; key times and easing stay as
 // they are. Run it from File > Scripts > Run Script File..., then click ? > Install as a panel
 // to dock it (Window menu, after a restart).
@@ -1110,7 +1110,7 @@ var MF = (function () {
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.10.2';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.10.3';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -1438,16 +1438,19 @@ var MorphFixer = (function () {
 
     // ---- before a fix: what depends on the points, and how long it will take ----------------
 
-    // path operators and stroke features that work from a path's first point or per point /
-    // segment: a fix moves the first point and adds points, so their result changes
+    // What a fix changes that something else counts on. A fix never moves the first key's start
+    // (the other keys' starts move to line up with it), so nothing that measures along the path
+    // from its start is asked about: Trim Paths, a stroke's dashes, taper and wave, text on a
+    // mask, the Stroke and Vegas effects, pointOnPath() (each has an offset or start setting
+    // too). What a fix does change is how many points there are (64 where 4 were drawn), so
+    // what works per point or per segment is: these operators, and expressions that read a
+    // point by its number (nulls from Create Nulls From Paths).
     var OPERATORS = {
-        'ADBE Vector Filter - Trim': 'measures from the first point, which moves',
         'ADBE Vector Filter - Zigzag': 'puts ridges on every segment, and the fix adds segments',
         'ADBE Vector Filter - PB': 'pulls every point, and the fix adds points',
-        'ADBE Vector Filter - Roughen': 'follows the points, and the fix adds points'
+        'ADBE Vector Filter - Roughen': 'adds its detail between the points, and the fix adds points'
     };
-    var STROKES = { 'ADBE Vector Graphic - Stroke': 1, 'ADBE Vector Graphic - G-Stroke': 1 };
-    var READS = /\b(points|inTangents|outTangents|pointOnPath|tangentOnPath|normalOnPath)\s*\(/;
+    var READS = /\b(points|inTangents|outTangents)\s*\(/;
     var SKIP_SCAN = { 'ADBE Vector Materials Group': 1, 'ADBE Extrsn Options Group': 1, 'ADBE Plane Options Group': 1, 'ADBE Material Options Group': 1 };
 
     function on(p) {
@@ -1458,33 +1461,15 @@ var MorphFixer = (function () {
         }
     }
 
-    function nonzero(group, names) {
-        if (!group) return false;
-        for (var i = 0; i < names.length; i++) {
-            var p = group.property(names[i]);
-            if (p && (p.numKeys > 0 || Math.abs(p.value) > 1e-9)) return true;
-        }
-        return false;
-    }
-
     // what a fix would break, as a sentence for people and a code for tests (the sentences hold
     // AE's own names, which change with its language; the codes don't)
-    var KIND = { 'ADBE Vector Filter - Trim': 'trim', 'ADBE Vector Filter - Zigzag': 'zigzag', 'ADBE Vector Filter - PB': 'pucker', 'ADBE Vector Filter - Roughen': 'wiggle' };
+    var KIND = { 'ADBE Vector Filter - Zigzag': 'zigzag', 'ADBE Vector Filter - PB': 'pucker', 'ADBE Vector Filter - Roughen': 'wiggle' };
     function flag(out, kind, text) {
         out.push(text);
         out.kinds.push(kind);
     }
 
-    // A stroke's taper: on a closed path its thin ends sit at the first point, so moving that
-    // point moves them. Dashes and the wave are not warned about: a fix only shifts where their
-    // pattern starts on the outline, which the user judged not worth asking for (and the dash
-    // check, "the Dashes group holds Dash 1", fired on a stroke with no dashes in AE 27).
-    function strokeNeeds(stroke, out) {
-        if (nonzero(stroke.property('ADBE Vector Stroke Taper'), ['ADBE Vector Taper Start Length', 'ADBE Vector Taper End Length', 'ADBE Vector Taper StartWidthPx', 'ADBE Vector Taper EndWidthPx']))
-            flag(out, 'taper', 'the taper of ' + stroke.name + ' runs from the first point, which moves');
-    }
-
-    // what in a shape layer works on this path: operators and strokes after it in its own group
+    // what in a shape layer works on this path's points: operators after it in its own group
     // and in every group above it (AE passes a group's paths up to its parents)
     function shapeNeeds(prop, out) {
         var item = prop.parentProperty, list = item && item.parentProperty, hops = 0;
@@ -1493,7 +1478,6 @@ var MorphFixer = (function () {
                 var q = list.property(i);
                 if (!q || !on(q)) continue;
                 if (OPERATORS[q.matchName]) flag(out, KIND[q.matchName], q.name + ' ' + OPERATORS[q.matchName]);
-                else if (STROKES[q.matchName]) strokeNeeds(q, out);
             }
             if (list.matchName !== 'ADBE Vectors Group') break;     // the root list: done
             item = list.parentProperty;
@@ -1501,29 +1485,8 @@ var MorphFixer = (function () {
         }
     }
 
-    // what on a layer works on this mask: text on it, effects pointing at it (Stroke, Vegas...)
-    function maskNeeds(prop, out) {
-        var mask = prop.parentProperty, layer = prop.propertyGroup(prop.propertyDepth), index = mask.propertyIndex, i, j;
-        try {
-            var tp = layer.property('ADBE Text Properties').property('ADBE Text Path Options').property('ADBE Text Path');
-            if (tp && tp.value === index) flag(out, 'text', 'the text runs along this mask from its first point, which moves');
-        } catch (e) {}
-        var fx = layer.property('ADBE Effect Parade');
-        for (i = 1; fx && i <= fx.numProperties; i++) {
-            var e = fx.property(i);
-            if (!on(e)) continue;
-            for (j = 1; j <= e.numProperties; j++) {
-                var p = e.property(j);
-                if (p.propertyType === PropertyType.PROPERTY && p.propertyValueType === PropertyValueType.MASK_INDEX && p.value === index) {
-                    flag(out, 'effect', e.name + ' uses this mask from its first point, which moves');
-                    break;
-                }
-            }
-        }
-    }
-
-    // expressions in the comp that read a path's points by number or along it (points(),
-    // pointOnPath()...), e.g. nulls from Create Nulls From Paths; stops after `ms`
+    // expressions in the comp that read a path's points by number (points(), inTangents(),
+    // outTangents()), e.g. nulls from Create Nulls From Paths; stops after `ms`
     function readers(comp, ms) {
         var found = [], t0 = new Date().getTime();
         function walk(g, layer) {
@@ -1552,13 +1515,12 @@ var MorphFixer = (function () {
         var out = [], layer = prop.propertyGroup(prop.propertyDepth), i;
         out.kinds = [];
         try {
-            if (prop.matchName === 'ADBE Mask Shape') maskNeeds(prop, out);
-            else shapeNeeds(prop, out);
+            if (prop.matchName !== 'ADBE Mask Shape') shapeNeeds(prop, out);
         } catch (e) {}
         for (i = 0; reads && i < reads.length; i++) {
             var x = reads[i].text, nm = layer.name;
             if (reads[i].layer.index === layer.index || x.indexOf('"' + nm + '"') >= 0 || x.indexOf('\'' + nm + '\'') >= 0)
-                flag(out, 'expression', 'an expression on ' + reads[i].where + ' reads the points, which move');
+                flag(out, 'expression', 'an expression on ' + reads[i].where + ' reads points by their number, and the fix adds points');
         }
         return { label: describe(prop), items: out, kinds: out.kinds };
     }
@@ -1627,7 +1589,7 @@ var MorphFixer = (function () {
         w.spacing = 10;
         w.margins = 16;
         if (warned.length) {
-            para(w, 'The fix moves the first point and adds points. These depend on them:', n);
+            para(w, 'The fix adds points. These depend on how many there are:', n);
             for (i = 0; i < warned.length && shown < 8; i++) {
                 var s = section(w, shortLabel(warned[i].label));
                 for (j = 0; j < warned[i].items.length && shown < 8; j++, shown++) row(s, '-', warned[i].items[j], 10, n);
@@ -1877,7 +1839,7 @@ var MorphFixer = (function () {
             'Fixed paths have more points: finish drawing your keys first.',
             'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, and a piece you draw as a dot grows from that dot.',
             'A long fix keeps After Effects busy until it is done; over 10 seconds, it asks first and says how long. Hold Esc to cancel: nothing changes.',
-            'It asks first when Trim Paths, a tapered stroke, text on a path or an expression depend on where the points are, and when a fix will take more than 10 seconds.',
+            'It asks first when Zig Zag, Pucker & Bloat, Wiggle Paths or an expression count the points. Trim Paths, dashes and text on a path are fine.',
             'Rectangles, ellipses and stars: right-click the path > Convert To Bezier Path first.',
             'Paths with expressions and masks with feather points are left alone.',
             'Hover the status line to see what the last fix did.'

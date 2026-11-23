@@ -190,14 +190,19 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
 
 **Before changing someone's work**
 
-- Say what the change would break before making it.
-  - A path's first point and point count drive Trim Paths, a stroke's taper, Zig Zag,
-    Pucker & Bloat, Wiggle Paths, text on a mask, effects using a mask, and expressions that
-    read points (`points()`, `pointOnPath()`…, as nulls from Create Nulls From Paths do).
-    Internal names are under the pitfalls below.
-  - Warn only about what changes visibly. Stroke dashes and the stroke's wave only start
-    their pattern somewhere else on the outline; the user judged that not worth asking for.
-    A warning that isn't worth it teaches people to click past all of them.
+- Say what the change would break before making it, and only what it really breaks: a
+  warning that isn't worth it teaches people to click past all of them. Before adding one,
+  check what the change does to the thing warned about, on the actual output.
+  - The morph fix never moves the first key's start (0 px in every mode, and over 200 random
+    shapes). The later keys' starts move to line up with it, which is the fix. So anything
+    measured along the path from its start keeps working: Trim Paths, stroke dashes, taper
+    and wave, text on a mask, the Stroke and Vegas effects, `pointOnPath()`. Each has an
+    offset or start setting too. The user questioned these warnings, rightly.
+  - What a fix does change is the point count (64 where 4 were drawn). That breaks what works
+    per point or per segment: Zig Zag (ridges per segment), Pucker & Bloat (every point),
+    Wiggle Paths (its detail goes between the points), and expressions that read a point by
+    its number (`points()`, `inTangents()`, `outTangents()`, as nulls from Create Nulls From
+    Paths do). No offset fixes those. Internal names are under the pitfalls below.
   - Look after the path in its own group and in every group above it: AE passes a group's
     paths up to its parents.
   - Search the comp's expressions with a time budget (0.8 s), since big comps are slow to
@@ -522,8 +527,13 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   rebuild must add. Fit the estimate to an AE bench (`bench/ae-bench.jsx`), scale it per
   machine with a short calibration run, and check it against a real fix.
 - 2026-11-22 · ae-morph-fixer · A tool that changes points must say what it breaks before it
-  does: Trim Paths, a taper, text on a mask and nulls that follow points all start from the
-  first point, which a morph fix moves. Ask once, in plain words, with Cancel the default.
+  does. Ask once, in plain words, with Cancel the default. (Corrected 2026-11-23: the list
+  first included Trim Paths, dashes and text on a mask, but the fix keeps the first key's
+  start, so only what counts points needs a warning.)
+- 2026-11-23 · ae-morph-fixer · Each warning has to earn its place against what the change
+  really does. The morph fixer warned about everything that "starts at the first point",
+  without checking that the first key's start never moves. The user, testing it, got a dash
+  warning on a stroke with no dashes, and doubted the rest. Six of nine warnings went.
 - 2026-11-22 · ae-morph-fixer · A test harness left running in the user's AE is a bug the user
   sees: the morph fixer's runner fired during a dialog and wedged AE after the work was done.
   Stop every runner when the tests end, and give it an idle timeout in case you forget.
