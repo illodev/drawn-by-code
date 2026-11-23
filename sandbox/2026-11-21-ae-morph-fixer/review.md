@@ -336,5 +336,20 @@ group's transform. Version **0.10.0**.
 - The preview draws the turn with `MF.swing`; halfway through a quarter turn the F is whole at
   45° (`out/stills/t_9.00s.png`).
 - AE: `make-demo.jsx` now checks no transform keyed, labels and easing, and a second fix;
-  `art/make-art.jsx` checks the turning letters are written into their paths. **Not yet run
-  in After Effects.**
+  `art/make-art.jsx` checks the turning letters are written into their paths.
+
+**In After Effects 27** (the user's go-ahead): all pass, 45 demo checks and 53 art checks
+(`review/ae-log.txt`, `review/art-log.txt`).
+
+- The turn demo's F: 92 in-betweens, all labelled and linear, the 9 drawn keys still Easy Ease,
+  no transform keyed on the group or the layer. Its corner rides the arc of a real turn within
+  0.033 px. Fixed again: the same 92 replaced, halfway moved 0 px.
+- Real type: the turning F (87 in-betweens) and the R with its hole (58) are written into
+  their paths with no group keyed, and keep 100 % of their area halfway; the F as a mask too,
+  0.000 px from the drawn keys at each key.
+- The AE render (`aerender`, 16 s) shows it: halfway through each quarter turn the fixed F is
+  whole while the drawn keys alone squash it. `render/` (mp4, strip, gif) is redone from it.
+- Starting the runner, AE refused with "second script" though nothing ran. Its warning now
+  says how around it: launching with `-ro` (or `-so`) overrides. `AfterFX.exe -ro
+  ae-bridge.jsx` got through at once.
+- Not done: the panel installed in the user's AE is still 0.9.0.

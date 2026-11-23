@@ -181,7 +181,7 @@ What it doesn't do, and why; each is also said in the report when it happens.
 | `test.mjs` | 4,300 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js` |
 | `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
-| `ae-bridge.jsx` | A test runner that lives in After Effects for the session: send it once with `AfterFX.exe -r`, then drop jobs into `out/ae/bridge/inbox/` |
+| `ae-bridge.jsx` | A test runner that lives in After Effects for the session: send it once with `AfterFX.exe -ro`, then drop jobs into `out/ae/bridge/inbox/` |
 | `bench/ae-bench.jsx` | Times the fix inside AE on a grid of job sizes (`out/ae/bench.csv`): the data the time estimate is fitted to |
 | `bench/ghost-window.jsx`, `bench/window-watch.ps1` | Reproduce the window Windows strands on screen when AE is clicked while a script keeps it busy, watched from outside through Windows' own window list: why the fixer has no progress window |
 | `art/` | The real-artwork regression set. `ttf.mjs` reads letter outlines from the OFL fonts in the repo's `fonts/`; `cases.mjs` keys 20 cases the way a designer would (O into C, B into 8 pasted out of order, i into l, engraved letters of hundreds of points, a ten-key chain, turning letters, 24 px and 2000 px type); `test-art.mjs` runs them in Node (128 checks, `out/art/report.md`); `make-art.jsx` builds and fixes them inside AE through the panel's own code, plus two mask cases; `look.mjs` draws the glyphs to check the reader |
@@ -189,8 +189,9 @@ What it doesn't do, and why; each is also said in the report when it happens.
 
 Testing inside After Effects (with the user's go-ahead: the demo opens a new project).
 `node build.mjs` first. Open After Effects normally, send the runner once
-(`AfterFX.exe -r ae-bridge.jsx`: a second `-r` while AE thinks a script runs is refused with
-a dialog), then drop a job into `out/ae/bridge/inbox/` that calls
+(`AfterFX.exe -ro ae-bridge.jsx`: with `-r`, AE refuses a script with a "second script"
+dialog while it thinks one runs, which it sometimes does with nothing running; `-ro`
+overrides that), then drop a job into `out/ae/bridge/inbox/` that calls
 `$.global.MMF_BRIDGE.freshProject()` (it only closes an empty untitled project or one saved
 under `out/`), sets `$.global.MORPH_TEST_OUT` (a folder in `out/`) and `$.global.MORPH_DIR`
 (this folder), and `$.evalFile`s `make-demo.jsx`; `done/<job>.status.txt` says ok or the

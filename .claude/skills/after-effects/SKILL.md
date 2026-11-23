@@ -301,11 +301,15 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
 - **One script at a time.** While a script runs, or while AE thinks one does, a second `-r`
   shows a modal "Attempt was made to run a second script…" and is dropped.
   - AE can stay in that state and refuse every later `-r`, even with nothing running.
+  - **Send with `-ro` instead** (`AfterFX.exe -ro <script.jsx>`). AE 27's own warning says
+    `-ro` or `-so` overrides the refusal. On 2026-11-23 AE refused `-r` with nothing
+    running, and `-ro` then ran the runner at once, with no restart. Dismiss the warning
+    (OK) first.
   - If a runner's log never starts, look at AE before sending another.
   - Close an AE with nothing unsaved via `CloseMainWindow()`, which works when `-r` doesn't,
     and start a fresh one.
 - **Send one runner, then drop jobs** (`sandbox/2026-11-21-ae-morph-fixer/ae-bridge.jsx`).
-  - Send it once with `-r`. It polls a folder with `app.scheduleTask(…, 1000, true)`, runs
+  - Send it once with `-ro`. It polls a folder with `app.scheduleTask(…, 1000, true)`, runs
     each `*.jsx` job there with `$.evalFile` inside a `try`, and writes
     `<job>.status.txt`. Later tests never go through `-r`, so none can hit the "second
     script" dialog.
@@ -325,7 +329,8 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
     runner again after one.
   - Start the runner **once** per AE session and stop it only at the end. The "second
     script" refusal (cause still unknown) came mostly on a new launch right after a runner
-    had stopped itself. Each new launch is a chance for it, and only a restart clears it.
+    had stopped itself. Each new launch is a chance for it; `-ro` gets past it (above),
+    where before only a restart did.
 - A panel installed in ScriptUI Panels opens from a script with
   `app.executeCommand(app.findMenuCommandId('<file name>.jsx'))` (a negative id is fine; 0
   = not found). It runs at once, and a test build's exports are there on the next line.
@@ -382,7 +387,8 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
 - Look at the AE render like any other: full-resolution crops, a contact sheet, a run of
   consecutive frames through the hardest moment; commit it as `render/<name>.mp4`. Look at
   a panel the same way: screenshots of the panel, its dialogs and its guide, cropped so no
-  window title or user path ends up in the repo.
+  window title or user path ends up in the repo. Test logs too: the install check prints the
+  user's folder, so mask it (`%USERPROFILE%`, `~`) in the copy you commit.
 
 ## After Effects versions
 
@@ -483,6 +489,8 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   every run remove them first and work on the drawn keys. Leave the drawn keys' easing alone,
   so removing the in-betweens gives the timing back. Then a second run writes the same keys,
   and retiming is "move your keys, fix again".
+- 2026-11-23 · ae-morph-fixer · Read AE's dialogs to the end: the "second script" warning that
+  had cost several restarts says how around it, `-ro` (or `-so`), and `-ro` worked at once.
 - 2026-11-23 · ae-morph-fixer · Click through the real panel by hand before calling a dialog
   or a progress window done: a Fix anyway button with no handler and a window that outlived
   its close() both passed every scripted test.

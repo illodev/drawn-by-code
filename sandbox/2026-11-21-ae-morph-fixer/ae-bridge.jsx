@@ -2,7 +2,8 @@
 // don't each need `AfterFX.exe -r` (AE refuses a second -r while it thinks a script runs, with
 // a modal dialog, and sometimes keeps thinking so).
 //
-// Send it once to an open AE: AfterFX.exe -r ae-bridge.jsx. Every second it looks in
+// Send it once to an open AE: AfterFX.exe -ro ae-bridge.jsx (-ro, not -r: AE 27 then runs it
+// even when it wrongly thinks another script is running). Every second it looks in
 // out/ae/bridge/inbox for *.jsx files, oldest name first, moves each to out/ae/bridge/done and
 // runs it there; done/<name>.status.txt then says "ok" or "error: ...". Jobs never raise
 // dialogs: errors are caught and written to the status. It installs nothing; it stops when
