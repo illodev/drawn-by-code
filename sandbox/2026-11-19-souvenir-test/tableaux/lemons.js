@@ -1250,7 +1250,7 @@ Tableau.lemons.loose = (z0, o = {}) => {
                 dew(P, sh, 1, seed);
             },
         }[kind];
-        add('across-' + kind + i, dz, x, y, { leaf: 230, lemon: 260, flower: 150, buds: 130, petal: 90, twig: 340 }[kind], draw);
+        add('across-' + kind + i, dz, x, y, { leaf: 240, lemon: 330, flower: 160, buds: 140, petal: 100, twig: 350 }[kind], draw);
     });
 
     // ---------------------------------------------------------------- the lining
