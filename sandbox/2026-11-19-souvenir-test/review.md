@@ -539,3 +539,10 @@ be loose, floating.»
   Week snares and cornets, flamenco guitar as colour, a final hit and a long chord; the
   camera's speed curve will be fitted to the track (the guitar's mouth and the last world
   on its accents), not the track cut to the camera. The render is silent until then.
+
+Checked on the render (round 8): six pieces of 3 s joined, 402 frames, 16.75 s; every pair
+of consecutive frames compared, no jump. Two frames a second read as a sheet: the first
+passage and the guitar hold; in the second passage, pieces crossing the axis went by as
+blurs the size of half the frame, darker than the world in focus (at 10.4 s the dark
+night's velvet over the dome). Loose pieces now dissolve between 420 and 200 away instead
+of in their last 85 units; rendered again.

@@ -52,7 +52,8 @@ level nearest its size on screen; blur is done on a reduced copy that sits on a 
 A `loose` layer is one thing floating: the rig cuts it to its paint (its box only says where
 to paint it; paint touching the box's edge prints `souvenir: loose layer … touches its box`),
 and turns it slowly on itself, sways and drifts it, each at rates from its id
-(`loose: { spin, sway, bob, turn }` to set them). Blur works only on the part of the frame a
+(`loose: { spin, sway, bob, turn }` to set them), and dissolves between 420 and 200 away
+(`near: [0.2, 0.42]`, in D) instead of at the camera. Blur works only on the part of the frame a
 layer covers, so hundreds of small pieces cost what they cover. The film's camera is
 `S.flight({ start, v0, vmax, peakAt, hold, turns })`: on the axis, its speed growing by the
 same ratio every second up to `vmax` at depth `peakAt`, landing over the last `hold`
@@ -294,3 +295,4 @@ library of this style, to read before painting anything like them:
 - 2026-11-23 · souvenir-test round 8 · Loose pieces kept clear of the axis make every stratum a ring round an empty disc: the tunnel again, whatever floats round it. Let a fifth of the small pieces (40–150 units) cross the axis at scattered depths and make the inner edge of the rest wander with the angle; the camera flies through them (they blur and fade in their last 85 units), which is what flying through a cloud looks like.
 - 2026-11-23 · souvenir-test round 8 · A loose layer is painted when it is first seen, so pieces paint in an order that depends on the frame a render starts at: draw every random value before the paint closures run, and give each piece its own `const`s (a reassigned `let` is what a later paint sees, and the piece paints outside its box). Paint a piece that runs per-pixel passes (a shared light, reflection slices) upright on its own canvas, then lay it down, so it still works when a bench turns it.
 - 2026-11-23 · souvenir-test round 8 · A blurred working copy reused across layers must be cleared a couple of pixels past the area it is read from: smoothing samples a hair past the edge, and an earlier, larger copy left there shows as a hairline seam and makes renders differ by start frame.
+- 2026-11-23 · souvenir-test round 8 · A loose piece that faded only at the camera (in its last 85 units) crossed the frame as a blur the size of half of it, darker than the world in focus behind it (the dark night's velvet over the dome). At these speeds nothing is read nearer than about 400: dissolve loose pieces between 420 and 200 away, and let the in-focus slab carry the frame; what goes by fast is the pieces leaving its edges.

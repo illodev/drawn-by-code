@@ -973,8 +973,11 @@ const Souvenir = (() => {
                 const reach = Math.hypot(bw, bh);
                 if (!roll && !ly.loose && (bx > W / 2 || by > H / 2 || bx + bw < -W / 2 || by + bh < -H / 2)) continue;
                 if ((roll || ly.loose) && Math.hypot(bx + bw / 2, by + bh / 2) - reach * 0.58 - (ly.loose ? 20 * s : 0) > diag) continue;
-                // it fades as the camera goes through it, and (if asked) while it is still a speck
-                const fade = smooth(D * 0.03, D * 0.085, d) * (ly.alpha ?? 1) * (ly.far ? smooth(ly.far[0], ly.far[1], s) : 1);
+                // it fades as the camera goes through it, and (if asked) while it is still a speck;
+                // a loose piece goes sooner, between 420 and 200 away: nearer, it would only be
+                // a blur the size of half the frame, crossing it
+                const near = ly.near ?? (ly.loose ? [0.2, 0.42] : [0.03, 0.085]);
+                const fade = smooth(D * near[0], D * near[1], d) * (ly.alpha ?? 1) * (ly.far ? smooth(ly.far[0], ly.far[1], s) : 1);
                 if (fade <= 0.003) continue;
                 const gap = dz > 0 && d > dz ? Math.abs(D / (d - dz / 2) - D / (d + dz / 2)) * reachOf(ly) * k : 0;
                 const bpx = Math.hypot(ap * Math.abs(s - sF) * (ly.blur ?? 1) * k, Math.max(0, gap - 1.5) * 0.5);
@@ -1073,7 +1076,7 @@ const Souvenir = (() => {
             let need = 0;
             for (const ly of order) {
                 const da = ly.z - a.z, db = ly.z - b.z, s = D / (ly.z - m.z);
-                if (Math.min(da, db) <= D * 0.085 || (ly.hole && ly.hole * s > diag) || (ly.far && s <= ly.far[0])) continue;
+                if (Math.min(da, db) <= D * Math.max(0.085, (ly.near ?? (ly.loose ? [0.2] : [0]))[0]) || (ly.hole && ly.hole * s > diag) || (ly.far && s <= ly.far[0])) continue;
                 const disp = (Math.abs(D / db - D / da) * reachOf(ly) + slide * s + turn) * env.k;
                 need = Math.max(need, disp / Math.max(2, ap * Math.abs(s - sF) * (ly.blur ?? 1) * env.k));
             }
