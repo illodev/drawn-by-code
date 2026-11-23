@@ -122,8 +122,15 @@ rotation, scale, Facing) and the leader as the build samples it, compared with t
 - The test log (`out/ae-test-r3-after/ae-log.txt`): every step passes. Max rotation 10.1° a
   frame (the old bake: 10.3°), no expression errors, Turn check unchanged (41.3 % head-on,
   narrowest side view 30.0 %), a rebuild removes 81 layers and makes 85.
-- Round 2's AE numbers were measured on the misread code. The committed render
-  (`render/`, made by AE in round 2) shows the old flock too; not re-rendered this round.
+- Round 2's AE numbers were measured on the misread code, and so was its render.
+- **Re-rendered** from the fixed bake with AE 27's `aerender` (Sky comp, Best Settings, H.264,
+  54 s). `render/` (mp4, strip, gif) is redone from it, with the same formats as round 2.
+  - Side by side with round 2's render the flock still follows the same swoop and loop. At
+    1 s the two are nearly identical; later, single birds are in other places.
+  - Full-resolution crops: birds point along their path, wings in different phases, size
+    by depth, blur along the motion.
+  - 12 consecutive frames through the dive (3.3 s): no rotation snaps, nobody edge-on.
+  - The colours match AE's own file within 2 levels (BT.709 declared on the re-encode).
 
 **Dumping numbers from ExtendScript**: `toPrecision` rounds negatives to integers
 (`(-29.987654321).toPrecision(15)` is `-30`, and `-0.5` gives `-0`). The first dump looked like a
