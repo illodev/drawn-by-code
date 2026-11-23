@@ -1220,13 +1220,15 @@ const Patio = (() => {
                         oval(q, cx - ca * L * 0.08, cy - sa * L * 0.08, L * 0.2, Wd * 0.16, a, 'rgba(176,130,60,0.55)');
                     }
                     // the rim lit where the tip's edge faces the lamp
-                    const phi = Math.atan2(L2[1], L2[0]) - a;
-                    const lit = S.clamp(0.3 + 0.7 * Math.cos(Math.atan2(Math.sin(phi), Math.cos(phi))));
-                    q.lineWidth = f.reg === 'back' ? 0.9 : 0.75;
-                    q.strokeStyle = f.reg === 'back' ? `rgba(236,226,150,${(0.25 + 0.5 * lit).toFixed(2)})` : `rgba(176,226,250,${(0.2 + 0.55 * lit).toFixed(2)})`;
-                    q.beginPath();
-                    q.ellipse(cx, cy, L * 0.5, Wd * 0.5, a, Math.max(-1.5, phi - 0.9), Math.min(1.5, phi + 0.9));
-                    q.stroke();
+                    const p0 = Math.atan2(L2[1], L2[0]) - a, phi = Math.atan2(Math.sin(p0), Math.cos(p0));
+                    const lit = S.clamp(0.3 + 0.7 * Math.cos(phi)), lo = Math.max(-1.5, phi - 0.9), hi = Math.min(1.5, phi + 0.9);
+                    if (hi > lo) {
+                        q.lineWidth = f.reg === 'back' ? 0.9 : 0.75;
+                        q.strokeStyle = f.reg === 'back' ? `rgba(236,226,150,${(0.25 + 0.5 * lit).toFixed(2)})` : `rgba(176,226,250,${(0.2 + 0.55 * lit).toFixed(2)})`;
+                        q.beginPath();
+                        q.ellipse(cx, cy, L * 0.5, Wd * 0.5, a, lo, hi);
+                        q.stroke();
+                    }
                     // the shaft on the larger ones
                     if (L > 7) lineP(q, [[X, Y], [X + ca * L * 0.7, Y + sa * L * 0.7]], 0.45, 'rgba(20,30,40,0.45)');
                 }

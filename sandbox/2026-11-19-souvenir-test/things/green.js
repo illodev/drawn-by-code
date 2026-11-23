@@ -1377,6 +1377,98 @@ const Green = (() => {
     }
 
     // ------------------------------------------------------------------ ghosts in the haze
+    // One square sail in ship units, mapped by Q(u, v): head on the yard at `top` (half-width
+    // wt), foot at `bot` (half-width wb), bellied by `bel`. Anatomy painted: the head laced to
+    // the yard by robands (a small sag between each), the cloths (vertical panels, each its
+    // own tone, a seam with a lit and a dark side), a reef band with its reef points hanging,
+    // the bolt-rope round the leeches and foot, the clews pulled to points by the sheets, two
+    // buntlines down the front, the yard's shadow on the head, a patch sewn on one sail, damp
+    // streaks from the head; the light on every cloth from the surface's own normal.
+    const SAIL = S.rampFn([[0, '#0a2118'], [0.25, '#24493a'], [0.48, '#55846d'], [0.68, '#8db9a0'], [0.85, '#bfdcc8'], [1, '#e8f4ea']], 0.9);
+    function sail(q, Q, mx, top, bot, wt, wb, bel, s, sd, tier, refl) {
+        const NA = Math.max(6, Math.round((wt + wb) / 16)), NB = 12, rc = (bot - top) * 0.07, H = bot - top, Wd = wt + wb;
+        const yHead = (a) => top + 1.3 * Math.abs(Math.sin(Math.PI * a * NA));
+        const P = (a, b) => {
+            const xh = mx - wt + 2 * wt * a, xf = mx - wb + 2 * wb * a, yf = bot - rc * Math.sin(Math.PI * a);
+            return Q(xh + (xf - xh) * b + (2 * a - 1) * bel * 0.5 * Math.sin(Math.PI * b), yHead(a) + (yf - yHead(a)) * b);
+        };
+        const hgt = (a, b) => Math.pow(Math.sin(Math.PI * Math.max(0, Math.min(1, a))), 0.8) * Math.sin(Math.PI * (0.12 + 0.88 * Math.max(0, Math.min(1, b)))) * bel * 2.2;
+        const rgb = [0, 0, 0], e = 0.02;
+        const tone = (a, b, i) => {
+            const dx = (hgt(a + e, b) - hgt(a - e, b)) / (2 * e * Wd), dy = (hgt(a, b + e) - hgt(a, b - e)) / (2 * e * H);
+            const nl = Math.hypot(dx, dy, 1), lam = (-dx * LN[0] - dy * LN[1] + LN[2]) / nl;
+            let t = 0.12 + lam * 1.05 + (S.hashI(i, tier, 3, sd) - 0.5) * 0.09 + 0.05 * S.noise2(a * 3 + i, b * 5, sd);
+            t -= 0.08 * S.smooth(0.5, 0.9, S.noise2(a * NA * 0.7, b * 1.4, sd + 2)) * (1 - b); // damp streaks from the head
+            if (b < 0.06) t -= 0.18 * (1 - b / 0.06); // the yard's shadow on the head
+            return S.clamp(t, 0.02, 0.98);
+        };
+        const fill = (t, alpha = 0.92) => {
+            SAIL(t, rgb);
+            return `rgba(${rgb[0] | 0},${rgb[1] | 0},${rgb[2] | 0},${alpha})`;
+        };
+        // the cloths, row by row, each quad lit from its own normal
+        for (let i = 0; i < NA; i++) {
+            const a0 = i / NA, a1 = (i + 1) / NA;
+            for (let j = 0; j < NB; j++) {
+                const b0 = j / NB, b1 = (j + 1) / NB;
+                q.fillStyle = fill(tone((a0 + a1) / 2, (b0 + b1) / 2, i));
+                poly(q, [P(a0, b0), P(a1 + 0.004, b0), P(a1 + 0.004, b1 + 0.004), P(a0, b1 + 0.004)]);
+            }
+        }
+        const hair = (pts, w, c) => line(q, pts, w * s, c);
+        const along = (a, b0, b1, n = 10) => Array.from({ length: n + 1 }, (_, k) => P(a, b0 + ((b1 - b0) * k) / n));
+        const across = (b, a0 = 0, a1 = 1, n = 16) => Array.from({ length: n + 1 }, (_, k) => P(a0 + ((a1 - a0) * k) / n, b));
+        // seams: a dark line and a lit line beside it, every cloth
+        for (let i = 1; i < NA; i++) {
+            hair(along(i / NA, 0.02, 1), 0.8, 'rgba(8,26,18,0.4)');
+            hair(along(i / NA + 0.25 / NA / 2, 0.04, 0.98), 0.5, 'rgba(226,244,232,0.28)');
+        }
+        // a patch sewn on: a square of other cloth with its stitches
+        if (S.hashI(tier, 1, 9, sd) < 0.5) {
+            const pa = 0.2 + S.hashI(tier, 2, 9, sd) * 0.5, pb = 0.35 + S.hashI(tier, 3, 9, sd) * 0.35, da = 1.3 / NA, db = 0.16;
+            q.fillStyle = fill(tone(pa + da / 2, pb + db / 2, 99) - 0.07, 0.85);
+            poly(q, [P(pa, pb), P(pa + da, pb), P(pa + da, pb + db), P(pa, pb + db)]);
+            for (let k = 0; k <= 12; k++) {
+                const t = k / 12;
+                for (const [x, y] of [P(pa + da * t, pb + 0.01), P(pa + da * t, pb + db - 0.01), P(pa + 0.01 / NA, pb + db * t), P(pa + da - 0.01 / NA, pb + db * t)]) {
+                    q.fillStyle = 'rgba(10,30,20,0.55)';
+                    q.fillRect(x - 0.5 * s, y - 0.5 * s, 1.1 * s, 1.1 * s);
+                }
+            }
+        }
+        // the reef band (the doubled cloth across) and its reef points hanging from it
+        for (const rb of tier === 0 ? [0.15, 0.3] : [0.17]) {
+            q.fillStyle = 'rgba(214,236,222,0.35)';
+            poly(q, [...across(rb - 0.012), ...across(rb + 0.02).reverse()]);
+            hair(across(rb + 0.022), 0.9, 'rgba(8,26,18,0.45)');
+            for (let i = 0; i < NA * 2; i++) {
+                const a = (i + 0.5) / (NA * 2), [x, y] = P(a, rb + 0.005), sw = (S.hashI(i, tier, 5, sd) - 0.5) * 3;
+                q.fillStyle = 'rgba(6,20,14,0.6)';
+                q.fillRect(x - 0.7 * s, y - 0.7 * s, 1.4 * s, 1.4 * s);
+                hair([[x, y], [x + sw * 0.3 * s, y + (refl ? -4 : 4) * s], [x + sw * s, y + (refl ? -7 : 7) * s]], 0.7, 'rgba(206,232,216,0.6)');
+            }
+        }
+        // buntlines down the front, lying on the belly
+        for (const a of [0.3, 0.7]) hair(along(a, 0, 1).map(([x, y], k) => [x + (a - 0.5) * 2 * s * Math.sin((k / 10) * Math.PI), y]), 0.6, 'rgba(6,22,14,0.55)');
+        // the bolt-rope round the leeches and the foot; a light on the lit leech
+        hair([...along(0, 0, 1), ...across(1), ...along(1, 1, 0)], 1.7, 'rgba(6,20,14,0.7)');
+        hair(along(0, 0.03, 0.97).map(([x, y]) => [x + 1.4 * s, y]), 0.7, 'rgba(230,246,236,0.45)');
+        // the clews: pulled to points, the clew iron, the sheet running down
+        for (const a of [0, 1]) {
+            const [x, y] = P(a, 1);
+            q.fillStyle = 'rgba(4,16,10,0.85)';
+            disc(q, x, y, 2 * s);
+            hair([[x, y], [x + (a ? 1 : -1) * 8 * s, y + (refl ? -1 : 1) * 30 * s]], 0.7, 'rgba(8,26,18,0.55)');
+        }
+        // the yard, its arms past the sail, the footrope sagging under it
+        const ya = Q(mx - wt - 12, top - 1), yb = Q(mx + wt + 12, top - 1);
+        taper(q, [ya, Q(mx, top - 1.5), yb], 3.4 * s, 2.2 * s, 'rgba(6,20,14,0.92)');
+        hair([Q(mx - wt - 10, top - 2.4), Q(mx + wt * 0.6, top - 2.6)], 0.8, 'rgba(200,228,212,0.55)');
+        hair(Array.from({ length: 13 }, (_, k) => {
+            const t = k / 12;
+            return Q(mx - wt - 8 + (2 * wt + 16) * t, top + 4 + Math.sin(Math.PI * t) * 5);
+        }), 0.6, 'rgba(8,26,18,0.5)');
+    }
     // A two-masted ship under square sails, sitting on the sea at (x, y) (its waterline),
     // its reflection broken by the swell; about 400 long, 420 tall at s = 1.
     function ship(g, o = {}) {

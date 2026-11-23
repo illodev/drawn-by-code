@@ -582,6 +582,51 @@ const Night = (() => {
         }
         const RIM = r * 0.2, top = yT - RIM;
         const glowLen = lit ? r * 3.2 : 0;
+        // (round 8) `rich`: the candle seen close, as a loose piece. The dipping left uneven
+        // ridges round it; the wax is lit through for a hand's width under a flame; a thumb
+        // print where it was held to be lit; a hairline crack across; long scratches; specks
+        // of dust caught in the wax; a smear of soot from the flame of its neighbour.
+        const thumbD = len * (0.55 + 0.3 * rg()), thumbA = (rg() - 0.5) * 1.2, crackD = len * (0.3 + 0.35 * rg()), sootA = (rg() - 0.5) * 1.4;
+        const richWax = (q, ux, uy, s, d) => {
+            const phi = Math.asin(clamp(s, -1, 1));
+            // the dipping: ridges round the shaft, unevenly spaced, fading in and out
+            const rp = d * 0.5 + 3 * noise2(d * 0.02, 1, sd + 31);
+            q.h += 0.2 * Math.sin(rp) * smooth(0.3, 0.7, noise2(d * 0.012, 2, sd + 32));
+            // old wax blooms a little paler and cooler in patches
+            const bloom = smooth(0.62, 0.8, noise2(phi * 2, d * 0.02, sd + 33));
+            q.r += bloom * 0.04;
+            q.g += bloom * 0.04;
+            q.b += bloom * 0.06;
+            if (lit) {
+                const gl = smooth(r * 5, 0, d);
+                q.r += gl * 0.05;
+                q.b -= gl * 0.08;
+                q.tr = Math.max(q.tr, 0.75 * gl);
+            }
+            // the thumb print: whorled ridges in an oval
+            const fx = (phi - thumbA) / 0.55, fy = (d - thumbD) / (r * 1.1), fr = Math.hypot(fx, fy);
+            if (fr < 1) q.h += 0.32 * Math.sin(fr * 24 + Math.atan2(fy, fx) * 0.6) * (1 - fr * fr);
+            // a hairline crack, wandering across
+            if (Math.abs(d - crackD - r * 0.5 * Math.sin(phi * 2.2 + sd) - noise2(phi * 4, 3, sd + 34) * r * 0.6) < 0.7 && Math.abs(phi) < 1.2) {
+                q.h -= 0.9;
+                q.r *= 0.78;
+                q.g *= 0.74;
+                q.b *= 0.7;
+            }
+            // long scratches down the shaft
+            if (hashI(Math.round(phi * 30), Math.floor(d / 60), 5, sd) > 0.9 && hashI(Math.round(phi * 30), Math.floor(d / 13), 6, sd) > 0.35) q.h -= 0.35;
+            // dust caught in the wax
+            if (hashI(Math.round(ux * 1.4), Math.round(uy * 1.4), 7, sd) > 0.997) {
+                q.r *= 0.45;
+                q.g *= 0.42;
+                q.b *= 0.42;
+            }
+            // soot from a neighbour's flame, smeared on one side near the top
+            const so = smooth(r * 6, r * 1.5, d) * smooth(0.5, 0, Math.abs(phi - sootA)) * smooth(0.45, 0.7, noise2(phi * 3, d * 0.05, sd + 35));
+            q.r *= 1 - so * 0.45;
+            q.g *= 1 - so * 0.45;
+            q.b *= 1 - so * 0.4;
+        };
         P.solid({ x: x - r * 1.5, y: top - 3, w: r * 3, h: len + RIM + 6 }, (ux, uy, q) => {
             if (uy > y + 1) return 0;
             const yy = Math.max(yT, uy), rr = R(yy), cx = CX(yy);
@@ -682,6 +727,7 @@ const Night = (() => {
                     q.tr += 0.2;
                 }
             }
+            if (o.rich) richWax(q, ux, uy, s, uy - yT);
             return cov;
         });
         // the wick
