@@ -145,3 +145,54 @@ and the name **Mask Morph Fixer**.
 
 **Not yet seen by the user** in this form (the panel is installed and open in their AE).
 Still open from round 2: turning letters with holes, turning masks, custom key speeds.
+
+## Round 4 · 2026-11-22 (After Effects 27, and the user's release list)
+
+The user moved to **After Effects 27** and, from the list of what a distributable panel needs,
+chose: headings that follow the interface theme, warnings about what depends on the points,
+a warning with a time estimate for any fix over 10 s, a two-row layout when docked narrow,
+the tolerance in on-screen pixels, and a clean release build (version, no globals, duplicate
+installs). Mac and older versions wait. Version **0.9.0**.
+
+- **AE 27** (27.0 build 78): everything passes (`review/ae-log.txt`), and the release, docked
+  from the Window menu, was clicked through by hand: Fix, its warning (Cancel and Fix anyway),
+  the guide, the narrow dock (`review/warning.jpg`, `panel.jpg`, `panel-narrow.jpg`,
+  `guide.jpg`). AE 27 had already carried the installed panel over from 26.5.
+- **Theme:** AE 27 retired `app.themeColor` ("Use getAppTheme, getUseReducedContrast, and
+  getAllowedAppThemes"). They are properties, not functions: `app.getAppTheme` is `light`,
+  `dark` or `darkest` (the user's: darkest, reduced contrast on). Headings are black on
+  Light, white otherwise; the body keeps AE's own colour. Not yet looked at in Light.
+- **Warnings:** before fixing it lists what the fix would break, and asks. That means path
+  operators and stroke features after the path in its group or any group above it (Trim
+  Paths, dashes, taper, wave, Zig Zag, Pucker & Bloat, Wiggle Paths). It also covers text on
+  the mask, effects pointing at the mask (any mask picker, value type 6422), and expressions
+  in the comp that read the points (0.8 s budget). Internal names were dumped from AE 27
+  first. In AE: Trim Paths + dashes + a null following the first point gave 3 warnings, and
+  Cancel changed nothing; the Stroke effect and text on a mask were caught too.
+  The first wording ("Trim Paths 1: Trim Paths measures…") read twice. Now each warning is
+  one sentence under a short path heading.
+- **Time:** fitted to timings inside AE 27 (`bench/ae-bench.jsx`):
+  - Smooth costs about 0.17 s a key with few points, up to 2 s when it rebuilds to its max.
+  - Exact costs about a tenth of that; turn costs up to twice.
+  - A 0.15 s calibration run scales the estimate to the machine, only for jobs that look long.
+  - In AE: 12 keys of ~60 points were estimated at 22 s and asked first. 6 keys of ~16 points
+    were estimated at 6.4 s and took 4.7 s.
+- **On screen:** the tolerance is divided by the largest scale of the path's groups, layer and
+  parents. A layer at 200 % gave 103 points within 0.056 px on screen. At 400 % the max 100
+  stops it at 0.11 px, and the status says so.
+- **Narrow dock:** the row breaks into two (settings, then Fix and ?) below the width one row
+  needs, docked in AE's right column and back.
+- **Release build:** `build.mjs` writes two builds. The release leaves nothing on `$.global`
+  and the build fails if it does. A test build in `out/test-build/` adds the exports.
+  Settings now live under the tool's name. The guide shows 0.9.0. The status warns when AE
+  has two copies (user folder, AE's folder, or the old `MorphFixer.jsx`).
+- **Testing in AE:** repeated `AfterFX.exe -r` left AE refusing scripts with a modal ("a
+  second script while another script was already running", even with nothing running). That
+  happened three times. → `ae-bridge.jsx`: sent once, it polls a folder for jobs
+  (`app.scheduleTask`). After that, nothing a test does can raise that dialog. Also, a cold
+  `AfterFX.exe -r` runs the script and then quits AE.
+- **Launch checklist:** a private page that saves its own ticks (`artifact` capability). It
+  has 41 steps in six phases, marked You / Claude / Both; 11 are done.
+
+**Not yet seen by the user** in this form. Open: Mac, the Light theme by eye, real artwork,
+letters with holes, turning masks, a progress bar with Cancel.

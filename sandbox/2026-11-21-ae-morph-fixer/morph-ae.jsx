@@ -13,7 +13,7 @@
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.9.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -94,7 +94,7 @@ var MorphFixer = (function () {
     function turnGroup(prop, allKeys) {
         if (prop.matchName === 'ADBE Mask Shape') return { why: 'a mask has no transform of its own to turn' };
         var holder = prop.parentProperty, list = holder && holder.parentProperty, group = list && list.parentProperty;
-        if (!group || group.matchName !== 'ADBE Vector Group') return { why: 'the path is not inside a group (select it and press Ctrl+G)' };
+        if (!group || group.matchName !== 'ADBE Vector Group') return { why: 'the path is not inside a group (select it and press ' + KEY + '+G)' };
         var n = 0;
         for (var i = 1; i <= list.numProperties; i++) if (GEOMETRY[list.property(i).matchName]) n++;
         if (n !== 1) return { why: 'its group holds other shapes, which would turn with it' };
@@ -146,8 +146,49 @@ var MorphFixer = (function () {
         return approx;
     }
 
+    // the keys a fix works on: the selected ones (two or more), else all
+    function keyIndices(prop) {
+        var idx = [], sel = prop.selectedKeys, k;
+        if (sel && sel.length >= 2) for (k = 0; k < sel.length; k++) idx.push(sel[k]);
+        else for (k = 1; k <= prop.numKeys; k++) idx.push(k);
+        return idx;
+    }
+
+    // the largest |x| or |y| of a Scale property over its value and keys, as a factor
+    function largest(p) {
+        var m = 0, k;
+        function take(v) {
+            m = Math.max(m, Math.abs(v[0]), Math.abs(v[1]));
+        }
+        take(p.value);
+        for (k = 1; k <= p.numKeys; k++) take(p.keyValue(k));
+        return m / 100;
+    }
+
+    // how many comp pixels one unit of the path covers at most: the scales of its groups, its
+    // layer and the layer's parents (largest over their keys). The 0.1 px promise is kept on
+    // screen: a layer at 400 % gets a tolerance of 0.025 in its own units. 1 if unreadable
+    function magnification(prop) {
+        try {
+            var m = 1, q = prop.parentProperty, hops = 0;
+            while (q && hops++ < 100) {
+                if (q.matchName === 'ADBE Vector Group') m *= largest(q.property('ADBE Vector Transform Group').property('ADBE Vector Scale'));
+                q = q.parentProperty;
+            }
+            var layer = prop.propertyGroup(prop.propertyDepth);
+            hops = 0;
+            while (layer && hops++ < 100) {
+                m *= largest(layer.property('ADBE Transform Group').property('ADBE Scale'));
+                layer = layer.parent;
+            }
+            return m > 0 ? Math.min(100, Math.max(0.05, m)) : 1;
+        } catch (e) {
+            return 1;
+        }
+    }
+
     // fixPath(pathProperty, options) -> a report: { label, keys, from, to, reversed, moved,
-    // before, after, turned } or { label, skipped }
+    // before, after, turned, scale, deviation (comp pixels) } or { label, skipped }
     function fixPath(prop, opts) {
         var o = {}, k;
         for (k in DEFAULTS) o[k] = DEFAULTS[k];
@@ -157,9 +198,9 @@ var MorphFixer = (function () {
             rep.skipped = 'it has an expression';
             return rep;
         }
-        var idx = [], sel = prop.selectedKeys;
-        if (sel && sel.length >= 2) for (k = 0; k < sel.length; k++) idx.push(sel[k]);
-        else for (k = 1; k <= prop.numKeys; k++) idx.push(k);
+        var idx = keyIndices(prop);
+        rep.scale = magnification(prop);
+        o.tolerance = o.tolerance / rep.scale;
         if (idx.length < 2) {
             rep.skipped = 'fewer than two keyframes';
             return rep;
@@ -221,7 +262,8 @@ var MorphFixer = (function () {
         rep.mode = r.mode;
         rep.fellBack = r.fellBack;
         rep.capped = r.capped;
-        rep.deviation = r.deviation;
+        rep.pathDeviation = r.deviation;                // in the path's own units
+        rep.deviation = r.deviation * rep.scale;        // in comp pixels, what the status shows
         return rep;
     }
 
@@ -243,10 +285,217 @@ var MorphFixer = (function () {
         else if (rep.mode === 'exact') how = 'your points kept, shapes exact';
         else if (rep.capped) how = 'rebuilt at the max: about ' + (Math.round(rep.deviation * 100) / 100) + ' px from each shape (raise max for a closer fit)';
         else how = 'rebuilt within ' + round3(rep.deviation) + ' px of each shape';
+        if (rep.mode !== 'exact' && !rep.fellBack && Math.abs(rep.scale - 1) > 0.005) how += ' on screen (it is scaled to ' + Math.round(rep.scale * 100) + ' %)';
         return rep.label + ': ' + rep.keys + ' keys, ' + rep.from + ' -> ' + rep.to + ' points each' +
             (rep.reversed ? ', ' + rep.reversed + ' reversed' : '') + (rep.moved ? ', ' + rep.moved + ' start points moved' : '') +
             (rep.before ? '; points travel ' + Math.round(rep.before) + ' -> ' + Math.round(rep.after) + ' px around the shape' : '') +
             '; ' + how + turned + '.';
+    }
+
+    // ---- before a fix: what depends on the points, and how long it will take ----------------
+
+    // path operators and stroke features that work from a path's first point or per point /
+    // segment: a fix moves the first point and adds points, so their result changes
+    var OPERATORS = {
+        'ADBE Vector Filter - Trim': 'measures from the first point, which moves',
+        'ADBE Vector Filter - Zigzag': 'puts ridges on every segment, and the fix adds segments',
+        'ADBE Vector Filter - PB': 'pulls every point, and the fix adds points',
+        'ADBE Vector Filter - Roughen': 'follows the points, and the fix adds points'
+    };
+    var STROKES = { 'ADBE Vector Graphic - Stroke': 1, 'ADBE Vector Graphic - G-Stroke': 1 };
+    var READS = /\b(points|inTangents|outTangents|pointOnPath|tangentOnPath|normalOnPath)\s*\(/;
+    var SKIP_SCAN = { 'ADBE Vector Materials Group': 1, 'ADBE Extrsn Options Group': 1, 'ADBE Plane Options Group': 1, 'ADBE Material Options Group': 1 };
+
+    function on(p) {
+        try {
+            return p.enabled !== false;
+        } catch (e) {
+            return true;
+        }
+    }
+
+    function nonzero(group, names) {
+        if (!group) return false;
+        for (var i = 0; i < names.length; i++) {
+            var p = group.property(names[i]);
+            if (p && (p.numKeys > 0 || Math.abs(p.value) > 1e-9)) return true;
+        }
+        return false;
+    }
+
+    // a stroke's dashes, taper and wave, which all run from the first point
+    function strokeNeeds(stroke, out) {
+        var d = stroke.property('ADBE Vector Stroke Dashes');
+        if (d && d.property('ADBE Vector Stroke Dash 1')) out.push('the dashes of ' + stroke.name + ' start at the first point, which moves');
+        if (nonzero(stroke.property('ADBE Vector Stroke Taper'), ['ADBE Vector Taper Start Length', 'ADBE Vector Taper End Length', 'ADBE Vector Taper StartWidthPx', 'ADBE Vector Taper EndWidthPx']))
+            out.push('the taper of ' + stroke.name + ' runs from the first point, which moves');
+        if (nonzero(stroke.property('ADBE Vector Stroke Wave'), ['ADBE Vector Taper Wave Amount']))
+            out.push('the wave of ' + stroke.name + ' runs from the first point, which moves');
+    }
+
+    // what in a shape layer works on this path: operators and strokes after it in its own group
+    // and in every group above it (AE passes a group's paths up to its parents)
+    function shapeNeeds(prop, out) {
+        var item = prop.parentProperty, list = item && item.parentProperty, hops = 0;
+        while (item && list && hops++ < 100) {
+            for (var i = item.propertyIndex + 1; i <= list.numProperties; i++) {
+                var q = list.property(i);
+                if (!q || !on(q)) continue;
+                if (OPERATORS[q.matchName]) out.push(q.name + ' ' + OPERATORS[q.matchName]);
+                else if (STROKES[q.matchName]) strokeNeeds(q, out);
+            }
+            if (list.matchName !== 'ADBE Vectors Group') break;     // the root list: done
+            item = list.parentProperty;
+            list = item && item.parentProperty;
+        }
+    }
+
+    // what on a layer works on this mask: text on it, effects pointing at it (Stroke, Vegas...)
+    function maskNeeds(prop, out) {
+        var mask = prop.parentProperty, layer = prop.propertyGroup(prop.propertyDepth), index = mask.propertyIndex, i, j;
+        try {
+            var tp = layer.property('ADBE Text Properties').property('ADBE Text Path Options').property('ADBE Text Path');
+            if (tp && tp.value === index) out.push('the text runs along this mask from its first point, which moves');
+        } catch (e) {}
+        var fx = layer.property('ADBE Effect Parade');
+        for (i = 1; fx && i <= fx.numProperties; i++) {
+            var e = fx.property(i);
+            if (!on(e)) continue;
+            for (j = 1; j <= e.numProperties; j++) {
+                var p = e.property(j);
+                if (p.propertyType === PropertyType.PROPERTY && p.propertyValueType === PropertyValueType.MASK_INDEX && p.value === index) {
+                    out.push(e.name + ' uses this mask from its first point, which moves');
+                    break;
+                }
+            }
+        }
+    }
+
+    // expressions in the comp that read a path's points by number or along it (points(),
+    // pointOnPath()...), e.g. nulls from Create Nulls From Paths; stops after `ms`
+    function readers(comp, ms) {
+        var found = [], t0 = new Date().getTime();
+        function walk(g, layer) {
+            for (var i = 1; i <= g.numProperties; i++) {
+                var p = g.property(i);
+                if (!p) continue;
+                if (p.propertyType === PropertyType.PROPERTY) {
+                    if (p.canSetExpression && p.expressionEnabled && p.expression && READS.test(p.expression))
+                        found.push({ layer: layer, where: layer.name + ' > ' + p.name, text: p.expression });
+                } else if (!SKIP_SCAN[p.matchName]) {
+                    walk(p, layer);
+                }
+                if (new Date().getTime() - t0 > ms) throw new Error('out of time');
+            }
+        }
+        try {
+            for (var l = 1; l <= comp.numLayers; l++) walk(comp.layer(l), comp.layer(l));
+        } catch (e) {
+            found.partial = true;
+        }
+        return found;
+    }
+
+    // warnings for one path: { label, items: [...] } (items empty when nothing depends on it)
+    function needs(prop, comp, reads) {
+        var out = [], layer = prop.propertyGroup(prop.propertyDepth), i;
+        try {
+            if (prop.matchName === 'ADBE Mask Shape') maskNeeds(prop, out);
+            else shapeNeeds(prop, out);
+        } catch (e) {}
+        for (i = 0; reads && i < reads.length; i++) {
+            var x = reads[i].text, nm = layer.name;
+            if (reads[i].layer.index === layer.index || x.indexOf('"' + nm + '"') >= 0 || x.indexOf('\'' + nm + '\'') >= 0)
+                out.push('an expression on ' + reads[i].where + ' reads the points, which move');
+        }
+        return { label: describe(prop), items: out };
+    }
+
+    // milliseconds per key in After Effects 27 on the reference machine, by mode and average
+    // drawn points (fitted to bench/ae-bench.jsx: Smooth costs most when it rebuilds up to its
+    // max, Exact about a tenth, turn up to twice)
+    function keyMs(n, o) {
+        var c;
+        if (o.mode === 'exact') c = 90 + 1.5 * n;
+        else c = Math.min(2000 * Math.max(0.3, (o.maxPoints || 100) / 100), 170 + 55 * n);
+        if (o.rotate) c *= o.mode === 'exact' ? 2 : 1.25;
+        return c;
+    }
+
+    // this machine's speed against the reference one: a fixed small fix, timed once per session
+    // and only for jobs that look long (it costs about 0.15 s)
+    var CALIB_REF_MS = 160, speedFactor = 0;      // measured on the reference machine, AE 27
+    function speed() {
+        if (speedFactor) return speedFactor;
+        try {
+            var P = [], k, n;
+            for (k = 0; k < 2; k++) {
+                var v = [], ii = [], oo = [];
+                for (n = 0; n < 16; n++) {
+                    var a = k + n * Math.PI / 8, r = 150 * (1 + 0.2 * Math.sin(3 * a + k));
+                    v.push([r * Math.cos(a), r * Math.sin(a)]);
+                    ii.push([0, 0]);
+                    oo.push([0, 0]);
+                }
+                P.push({ v: v, i: ii, o: oo, closed: true });
+            }
+            var t0 = new Date().getTime();
+            MF.fix(P, { mode: 'exact' });
+            speedFactor = Math.min(5, Math.max(0.3, (new Date().getTime() - t0) / CALIB_REF_MS));
+        } catch (e) {
+            speedFactor = 1;
+        }
+        return speedFactor;
+    }
+
+    // seconds the fix of `list` will take, roughly (within about 2x)
+    function estimate(list, o) {
+        var ms = 0;
+        for (var i = 0; i < list.length; i++) {
+            var idx = keyIndices(list[i]), pts = 0;
+            for (var k = 0; k < idx.length; k++) pts += list[i].keyValue(idx[k]).vertices.length;
+            ms += 150 + idx.length * keyMs(pts / Math.max(1, idx.length), o);
+        }
+        if (ms > 4000) ms *= speed();
+        return ms / 1000;
+    }
+
+    // "Layer > Group > Path 1" for a heading: no layer number, no final "Path"
+    function shortLabel(label) {
+        return String(label).replace(/^\d+\. /, '').replace(/ > (Path|Mask Path)$/, '');
+    }
+
+    // the question before a fix with warnings or one over 10 s: true = go ahead. api.ask
+    // stands in for the dialog in tests
+    function askUser(warned, seconds) {
+        if (api.ask) return api.ask(warned, seconds);
+        var w = new Window('dialog', NAME), i, j, shown = 0, n = WRAP - 6;
+        w.orientation = 'column';
+        w.alignChildren = ['fill', 'top'];
+        w.spacing = 10;
+        w.margins = 16;
+        if (warned.length) {
+            para(w, 'The fix moves the first point and adds points. These depend on them:', n);
+            for (i = 0; i < warned.length && shown < 8; i++) {
+                var s = section(w, shortLabel(warned[i].label));
+                for (j = 0; j < warned[i].items.length && shown < 8; j++, shown++) row(s, '-', warned[i].items[j], 10, n);
+            }
+            var total = 0;
+            for (i = 0; i < warned.length; i++) total += warned[i].items.length;
+            if (total > shown) para(w, 'And ' + (total - shown) + ' more: hover the status line after the fix.', n);
+        }
+        if (seconds > 10) {
+            var t = section(w, 'This fix will take about ' + Math.round(seconds) + ' seconds.');
+            para(t, 'After Effects will not respond until it is done.', n);
+        }
+        para(w, 'Fix anyway? ' + KEY + '+Z undoes it.', n);
+        var bar = w.add('group');
+        bar.alignment = ['right', 'top'];
+        var no = bar.add('button', undefined, 'Cancel', { name: 'cancel' });
+        var yes = bar.add('button', undefined, 'Fix anyway', { name: 'ok' });
+        w.defaultElement = no;         // Enter cancels: going ahead is the deliberate click
+        w.cancelElement = no;
+        return w.show() === 1;
     }
 
     // fixes the keyed paths selected in the active comp -> { status, detail, reports }: a status
@@ -263,6 +512,27 @@ var MorphFixer = (function () {
             };
         }
         var reps = [], lines = [], fixed = 0, matched = 0, skipped = 0, worst = 0, capped = false, lo = 1e9, hi = 0, turned = 0, i;
+        // before touching anything: what depends on the points, and how long it will take
+        var o = opts || {}, warned = [], count = 0, seconds = 0;
+        try {
+            var reads = readers(comp, 800);
+            for (i = 0; i < list.length; i++) {
+                var wr = needs(list[i], comp, reads);
+                if (wr.items.length) {
+                    warned.push(wr);
+                    count += wr.items.length;
+                }
+            }
+            seconds = estimate(list, { mode: o.mode || 'smooth', maxPoints: o.maxPoints || 100, rotate: !!o.rotate });
+        } catch (e0) {}
+        var warnLines = [];
+        for (i = 0; i < warned.length; i++) for (var j = 0; j < warned[i].items.length; j++) warnLines.push('- ' + warned[i].label + ': ' + warned[i].items[j]);
+        if ((count || seconds > 10) && !askUser(warned, seconds)) {
+            return {
+                status: 'Cancelled: nothing changed', reports: [], warned: warned, seconds: seconds, cancelled: true,
+                detail: (count ? 'Depends on the points:\n' + warnLines.join('\n') + '\n' : '') + (seconds > 10 ? 'Estimated time: about ' + Math.round(seconds) + ' s.' : '')
+            };
+        }
         app.beginUndoGroup(NAME);
         try {
             for (i = 0; i < list.length; i++) {
@@ -290,7 +560,9 @@ var MorphFixer = (function () {
         if (turned) parts.push(turned + ' turned');
         if (matched) parts.push(matched + ' already matched');
         if (skipped) parts.push(skipped + ' skipped');
-        return { status: parts.join(', '), detail: lines.join('\n'), reports: reps };
+        if (count) parts.push(count + (count > 1 ? ' warnings' : ' warning') + ' (hover)');
+        if (count) lines.push('', 'You were warned, and fixed anyway (' + KEY + '+Z undoes it):', warnLines.join('\n'));
+        return { status: parts.join(', '), detail: lines.join('\n'), reports: reps, warned: warned, seconds: seconds };
     }
 
     // the guide behind ?, written for the person animating: what it does, three steps, what
@@ -310,6 +582,7 @@ var MorphFixer = (function () {
         ],
         tips: [
             'Fixed paths have more points: finish drawing your keys first.',
+            'It asks first when Trim Paths, dashes, text on a path or an expression depend on where the points are, and when a fix will take more than 10 seconds.',
             'Rectangles, ellipses and stars: right-click the path > Convert To Bezier Path first.',
             'Paths with expressions and masks with feather points are left alone.',
             'Hover the status line to see what the last fix did.'
@@ -318,7 +591,7 @@ var MorphFixer = (function () {
     var WRAP = 70;      // characters per line in the guide window (wrapped here, not by ScriptUI)
 
     function guideText() {
-        var s = NAME + '\n' + GUIDE.lead + '\n\nHow to use\n', i;
+        var s = NAME + ' ' + VERSION + '\n' + GUIDE.lead + '\n\nHow to use\n', i;
         for (i = 0; i < GUIDE.steps.length; i++) s += (i + 1) + '. ' + GUIDE.steps[i] + '\n';
         s += '\nSettings\n';
         for (i = 0; i < GUIDE.settings.length; i++) s += GUIDE.settings[i][0] + ': ' + GUIDE.settings[i][1] + '\n';
@@ -362,9 +635,31 @@ var MorphFixer = (function () {
         return prefs.exists ? new Folder(prefs.fsName + '/Scripts/ScriptUI Panels') : null;
     }
 
+    // After Effects' own ScriptUI Panels folder (installing there needs admin rights)
+    function appPanelsFolder() {
+        try {
+            var base = MAC ? Folder.appPackage.parent.fsName : Folder.appPackage.fsName;
+            return new Folder(base + '/Scripts/ScriptUI Panels');
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // every copy After Effects lists in its Window menu, in the user's folder and in AE's own
+    // (the name before 0.9 too): more than one is a duplicate to remove
+    function installedCopies() {
+        var dirs = [panelsFolder(), appPanelsFolder()], names = [FILE_NAME, 'MorphFixer.jsx'], found = [], d, n;
+        for (d = 0; d < dirs.length; d++) {
+            for (n = 0; dirs[d] && n < names.length; n++) {
+                var f = new File(dirs[d].fsName + '/' + names[n]);
+                if (f.exists) found.push(f.fsName);
+            }
+        }
+        return found;
+    }
+
     function isInstalled() {
-        var dir = panelsFolder();
-        return !!dir && new File(dir.fsName + '/' + FILE_NAME).exists;
+        return installedCopies().length > 0;
     }
 
     // what installing can answer (the guide sizes its note for the longest)
@@ -397,11 +692,27 @@ var MorphFixer = (function () {
     }
 
     // ---- the guide window (a palette: it can stay open while you work) ----
-    // headings stand out by colour: After Effects 2026 accepts a bold or larger font
-    // (graphics.font reads back Bold) but draws it as plain text; only the pen shows
+    // After Effects' interface theme: 'light', 'dark' or 'darkest' (AE 27's app.getAppTheme,
+    // a property; versions without it are dark)
+    function theme() {
+        if (api.themeOverride) return api.themeOverride;
+        try {
+            return String(app.getAppTheme || 'dark');
+        } catch (e) {
+            return 'dark';
+        }
+    }
+
+    // headings stand out by colour, black on the Light theme and white on the dark ones: After
+    // Effects accepts a bold or larger font (graphics.font reads back Bold) but draws it as
+    // plain text; only the pen shows. The body text keeps AE's own colour for the theme
+    function headingColor() {
+        return theme() === 'light' ? [0, 0, 0] : [1, 1, 1];
+    }
+
     function bold(t) {
         try {
-            t.graphics.foregroundColor = t.graphics.newPen(t.graphics.PenType.SOLID_COLOR, [1, 1, 1], 1);
+            t.graphics.foregroundColor = t.graphics.newPen(t.graphics.PenType.SOLID_COLOR, headingColor(), 1);
         } catch (e) {}
         return t;
     }
@@ -467,7 +778,10 @@ var MorphFixer = (function () {
         head.orientation = 'column';
         head.alignChildren = ['fill', 'top'];
         head.spacing = 2;
-        bold(head.add('statictext', undefined, NAME));
+        var title = head.add('group');
+        title.spacing = 6;
+        bold(title.add('statictext', undefined, NAME));
+        title.add('statictext', undefined, VERSION);
         para(head, GUIDE.lead, WRAP + 8);
         var i, s = section(w, 'How to use');
         for (i = 0; i < GUIDE.steps.length; i++) row(s, (i + 1) + '.', GUIDE.steps[i], 14, WRAP + 4);
@@ -509,7 +823,7 @@ var MorphFixer = (function () {
 
     function setting(key, fallback) {
         try {
-            return app.settings.haveSetting('MorphFixer', key) ? app.settings.getSetting('MorphFixer', key) : fallback;
+            return app.settings.haveSetting(NAME, key) ? app.settings.getSetting(NAME, key) : fallback;
         } catch (e) {
             return fallback;
         }
@@ -517,13 +831,14 @@ var MorphFixer = (function () {
 
     function save(key, value) {
         try {
-            app.settings.saveSetting('MorphFixer', key, String(value));
+            app.settings.saveSetting(NAME, key, String(value));
         } catch (e) {}
     }
 
     // the panel: an After Effects panel when the script sits in a ScriptUI Panels folder (host
-    // is a Panel: it docks), otherwise a floating palette. One row: mode, max points, turn,
-    // Fix, ?; a status line.
+    // is a Panel: it docks), otherwise a floating palette. One row (mode, max points, turn |
+    // Fix, ?), which breaks into two at the bar when the panel is docked narrower than it; a
+    // status line.
     function buildUI(host) {
         var docked = host instanceof Panel;
         var w = docked ? host : new Window('palette', NAME, undefined, { resizeable: true });
@@ -531,10 +846,18 @@ var MorphFixer = (function () {
         w.alignChildren = ['fill', 'top'];
         w.spacing = 3;
         w.margins = 5;
-        var row = w.add('group');
+        var bar = w.add('group');
+        bar.orientation = 'row';
+        bar.alignChildren = ['left', 'center'];
+        bar.spacing = 3;
+        var row = bar.add('group');
         row.orientation = 'row';
         row.alignChildren = ['left', 'center'];
         row.spacing = 3;
+        var acts = bar.add('group');
+        acts.orientation = 'row';
+        acts.alignChildren = ['left', 'center'];
+        acts.spacing = 3;
         var mode = row.add('dropdownlist', undefined, ['Smooth', 'Exact']);
         mode.selection = setting('mode', 'smooth') === 'exact' ? 1 : 0;
         mode.helpTip = 'Smooth: redraws the points so the morph stays smooth.\nExact: keeps your own points.';
@@ -545,15 +868,20 @@ var MorphFixer = (function () {
         var turnBox = row.add('checkbox', undefined, 'turn');
         turnBox.value = setting('turn', 'false') === 'true';
         turnBox.helpTip = 'For shapes that rotate between keys: they swing round instead of squashing';
-        var fixB = row.add('button', undefined, 'Fix');
+        var fixB = acts.add('button', undefined, 'Fix');
         fixB.preferredSize = [36, 22];
         fixB.helpTip = 'Fix the selected paths, or every keyed path on the selected layers';
-        var info = row.add('button', undefined, '?');
+        var info = acts.add('button', undefined, '?');
         info.preferredSize = [22, 22];
         info.helpTip = docked ? 'How to use it' : 'How to use it, and how to dock this panel';
-        var ready = docked || isInstalled();
+        var copies = installedCopies(), ready = docked || copies.length > 0;
         var status = w.add('statictext', undefined, ready ? 'Select keyed paths, then Fix' : 'Tip: click ? to dock this panel', { truncate: 'end' });
         status.helpTip = ready ? 'Hover here after a fix to see what it did' : 'Run from File > Scripts it floats; installed, it docks like any panel';
+        if (copies.length > 1) {
+            status.text = 'Installed twice (hover)';
+            status.helpTip = 'After Effects has more than one copy of this panel:\n' + copies.join('\n') +
+                '\nDelete all but one (the one in your user folder needs no admin rights to update), then restart After Effects.';
+        }
         function syncMode() {
             var smooth = mode.selection && mode.selection.index === 0;
             max.enabled = smooth;
@@ -594,12 +922,26 @@ var MorphFixer = (function () {
             guide.center();
             guide.show();
         };
-        w.controls = { mode: mode, max: max, turn: turnBox, fix: fixB, info: info, status: status };
+        w.controls = { mode: mode, max: max, turn: turnBox, fix: fixB, info: info, status: status, bar: bar };
         w.docked = docked;
         w.layout.layout(true);
-        w.onResizing = w.onResize = function () {
-            this.layout.resize();
+        // the width one row needs, measured while it is one row
+        var oneRow = bar.size.width + 12;
+        w.twoRows = false;
+        w.fitWidth = function (width) {
+            var narrow = width < oneRow;
+            if (narrow !== w.twoRows) {
+                w.twoRows = narrow;
+                bar.orientation = narrow ? 'column' : 'row';
+                bar.alignChildren = narrow ? ['left', 'top'] : ['left', 'center'];
+                w.layout.layout(true);
+            }
+            w.layout.resize();
         };
+        w.onResizing = w.onResize = function () {
+            w.fitWidth(w.size.width);
+        };
+        if (docked && w.size && w.size.width) w.fitWidth(w.size.width);
         if (!docked) {
             w.center();
             w.show();
@@ -611,7 +953,10 @@ var MorphFixer = (function () {
     var api = {
         name: NAME, fix: fixPath, fixSelection: fixSelection, targets: targets, describe: describe, summary: summary,
         buildUI: buildUI, run: buildUI, buildInfo: buildInfo, guide: GUIDE, info: guideText(), wrap: wrap,
-        install: install, isInstalled: isInstalled, panelsFolder: panelsFolder, toMF: toMF, fromMF: fromMF
+        install: install, isInstalled: isInstalled, panelsFolder: panelsFolder, toMF: toMF, fromMF: fromMF,
+        version: VERSION, magnification: magnification, needs: needs, readers: readers, estimate: estimate, keyMs: keyMs,
+        speed: speed, installedCopies: installedCopies, theme: theme, headingColor: headingColor,
+        ask: null, themeOverride: null        // test stand-ins: the question before a fix, the AE theme
     };
     return api;
 })();

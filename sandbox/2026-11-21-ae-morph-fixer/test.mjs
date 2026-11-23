@@ -315,11 +315,23 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
         PropertyType: { PROPERTY: 6212, INDEXED_GROUP: 6213, NAMED_GROUP: 6214 },
         PropertyValueType: { SHAPE: 6419 },
     };
-    const src = fs.readFileSync(path.join(dir, 'Mask Morph Fixer.jsx'), 'utf8');
+    const src = fs.readFileSync(path.join(dir, 'out', 'test-build', 'Mask Morph Fixer.jsx'), 'utf8');
     new Function(...Object.keys(env), src)(...Object.values(env));
     const FX = env.$.global.MorphFixer;
     // the guide behind ?: plain words, every setting, short lines once wrapped
-    check('guide: named Mask Morph Fixer', FX.name === 'Mask Morph Fixer' && /^Mask Morph Fixer\n/.test(FX.info));
+    check('guide: named Mask Morph Fixer, with its version', FX.name === 'Mask Morph Fixer' && /^\d+\.\d+\.\d+$/.test(FX.version) &&
+        FX.info.indexOf('Mask Morph Fixer ' + FX.version + '\n') === 0, FX.info.split('\n')[0]);
+    // headings follow After Effects' theme (AE 27: app.getAppTheme)
+    FX.themeOverride = 'light';
+    const onLight = FX.headingColor().join();
+    FX.themeOverride = 'darkest';
+    check('guide: headings black on Light, white on the dark themes', onLight === '0,0,0' && FX.headingColor().join() === '1,1,1');
+    FX.themeOverride = null;
+    // the time estimate: per key, by drawn points (fitted to After Effects 27, bench/ae-bench.jsx)
+    const ms = (n, o) => FX.keyMs(n, o);
+    check('estimate: grows with points, saturates at the max, Exact cheaper, turn dearer',
+        ms(4, {}) < ms(16, {}) && ms(16, {}) < ms(60, {}) && ms(60, {}) === ms(200, {}) && ms(60, { maxPoints: 24 }) < ms(60, {}) &&
+        ms(60, { mode: 'exact' }) < ms(60, {}) / 5 && ms(16, { rotate: true }) > ms(16, {}));
     check('guide: explains every setting', ['Smooth', 'Exact', 'max', 'turn'].every((s) => FX.guide.settings.some(([n]) => n === s)));
     check('guide: three steps', FX.guide.steps.length === 3);
     check('guide: no jargon', !/procrustes|tangent|vertex|vertices|interpolat|RMS|bezier split|fraction/i.test(FX.info), FX.info);
@@ -340,6 +352,11 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
         };
         return prop;
     }
+    // a layer at a scale: { property('ADBE Transform Group').property('ADBE Scale') }
+    const scaledLayer = (sc) => ({
+        name: 'Scaled', index: 2, parent: null,
+        property: () => ({ property: () => ({ value: [sc, sc, 100], numKeys: 0 }) }),
+    });
     const keys = MD.keys.map(([, s]) => MD.shapes[s]);
     let p = mockPath(keys);
     let rep = FX.fix(p);
@@ -359,6 +376,22 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
     p = mockPath([MD.shapes[0], Object.assign({}, MD.shapes[1], { closed: false })]);
     rep = FX.fix(p);
     check('AE half: mixed open/closed keys are skipped', /open/.test(rep.skipped || ''), FX.summary(rep));
+    // the 0.1 px promise holds on screen: a layer at 400 % is rebuilt 4x tighter in its own units
+    const big = scaledLayer(400);
+    p = mockPath(keys, { propertyGroup: () => big });
+    rep = FX.fix(p);
+    check('on screen: at 400 % the max 100 stops it, and the status says how close (in comp px)', rep.capped && rep.to === 100 &&
+        Math.abs(rep.deviation - rep.pathDeviation * 4) < 1e-9 && rep.deviation > 0.1, FX.summary(rep));
+    p = mockPath(keys, { propertyGroup: () => big });
+    rep = FX.fix(p, { maxPoints: 400 });
+    check('on screen: a layer at 400 % is fixed within 0.1 comp px (max 400)', rep.scale === 4 && rep.deviation <= 0.1 && rep.pathDeviation <= 0.025 && rep.to > 64,
+        `scale ${rep.scale}, ${rep.pathDeviation.toFixed(4)} units = ${rep.deviation.toFixed(4)} px, ${rep.to} points`);
+    check('on screen: the report says so', /on screen \(it is scaled to 400 %\)/.test(FX.summary(rep)), FX.summary(rep));
+    const small = scaledLayer(25);
+    p = mockPath(keys, { propertyGroup: () => small });
+    rep = FX.fix(p);
+    check('on screen: a layer at 25 % needs fewer points', rep.scale === 0.25 && rep.deviation <= 0.1 && rep.to < 64, `${rep.to} points, ${rep.deviation.toFixed(4)} px`);
+    console.log(`on screen: 400 % -> ${FX.fix(mockPath(keys, { propertyGroup: () => big })).to} points, 100 % -> 64, 25 % -> ${rep.to}`);
 }
 
 // ---- the keys After Effects stored (written by make-demo.jsx in test mode), if present ----

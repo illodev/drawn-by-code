@@ -1,5 +1,8 @@
 # Mask Morph Fixer for After Effects
 
+Version 0.9.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
+
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
 into the next point by point, in straight lines, so keys drawn independently tear (different
 numbers of points), spin (each key starts at a different point) or turn inside out (one
@@ -31,17 +34,32 @@ file once and click **? › Update the panel**. If After Effects blocks the copy
 ## Run
 
 ```
-[Smooth ▾] max [100] [ ] turn [Fix] [?]
-Fixed 1: 64 pts, 0.065 px
+[Smooth ▾] max [100] [ ] turn [Fix] [?]        docked narrow:  [Smooth ▾] max [100] [ ] turn
+Fixed 1: 64 pts, 0.065 px                                        [Fix] [?]
 ```
 
 Select the keyed paths (or their groups, or whole layers) and click **Fix**. The status line
 sums it up; hover it for the full report per path. **?** opens the guide: three steps, what
-each setting does in plain words, and the install button. It stays open while you work.
+each setting does in plain words, and the install button. It stays open while you work. The
+guide's headings follow After Effects' theme (black on Light, white on Dark and Darkest).
+
+**Before a fix it asks first** (Fix anyway / Cancel) when:
+
+- something depends on where the points are, which the fix moves: Trim Paths, stroke dashes,
+  taper or wave, Zig Zag, Pucker & Bloat or Wiggle Paths after the path (in its group or any
+  group above), text running along the mask, an effect using the mask (Stroke, Vegas…), or an
+  expression in the comp that reads the points (`points()`, `pointOnPath()`…, as nulls from
+  Create Nulls From Paths do);
+- the fix will take more than 10 seconds (After Effects doesn't respond meanwhile). The
+  estimate comes from the keys and their points, fitted to timings in After Effects 27
+  (`bench/ae-bench.jsx`) and scaled to the machine's speed by a 0.15 s run the first time a
+  long job comes up; it lands within about 2x (estimated 6.4 s, took 4.7 s).
+
+After fixing anyway, the status counts the warnings and its tooltip lists them.
 
 | Control | Default | What it does |
 |---|---|---|
-| **Smooth** | on | Every key gets points at the same places along its outline, with handles sized so in-betweens stay smooth. Each shape stays within **0.1 px** of what you drew; corners stay exact points |
+| **Smooth** | on | Every key gets points at the same places along its outline, with handles sized so in-betweens stay smooth. Each shape stays within **0.1 px on screen** of what you drew (the scales of its groups, its layer and its parents count: a layer at 400 % is fitted 4x tighter); corners stay exact points |
 | **Exact** | | Your points stay where they are; the fixer only adds points by splitting curves where they lie, so every key is exact. In-betweens may show small kinks where a point's handles are uneven |
 | **max** | 100 | Smooth only: the most points per key. If a shape needs more to stay within 0.1 px, it stops there and the status says how close it got ("~0.76 px (max)") |
 | **turn** | off | For shapes that turn between keys: points are matched as if the shape turned, and the turn goes into the group's Rotation (with its Anchor and Position), so the shape swings round as a whole. Steps that don't turn stay put |
@@ -107,6 +125,9 @@ within 0.065 px of its drawing.
 - On a shape layer with turn, the path keys hold the shape unturned: to edit a key's shape,
   look at it with the group's transform in mind, or Undo, edit, and fix again.
 - After Effects stores path points as 32-bit floats (about 0.00004 px at these sizes).
+- "On screen" means comp pixels: a 3D layer seen through a camera can look bigger than that.
+- The expression check reads the comp the path is in, for up to 0.8 s; an expression that
+  picks a layer by number, or sits in another comp, isn't found.
 
 ## For the repo
 
@@ -114,19 +135,25 @@ within 0.065 px of its drawing.
 |---|---|
 | `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
 | `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the turn into the group), report |
-| `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
-| `test.mjs` | 4,275 checks in Node: the guide (plain words, every setting), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, the release (it leaves nothing on `$.global`), and `out/test-build/Mask Morph Fixer.jsx`, the same plus the exports the tests use; with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
+| `test.mjs` | 4,281 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js` |
-| `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating and docked, its guide, installing into a scratch folder), logs (`review/ae-log.txt`) and saves the project: the AE test |
+| `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
+| `ae-bridge.jsx` | A test runner that lives in After Effects for the session: send it once with `AfterFX.exe -r`, then drop jobs into `out/ae/bridge/inbox/` |
+| `bench/ae-bench.jsx` | Times the fix inside AE on a grid of job sizes (`out/ae/bench.csv`): the data the time estimate is fitted to |
 | `scene.js` | Engine preview of the After half, drawn the way AE interpolates the fixed keys |
 
-Testing inside After Effects (with the user's go-ahead: the demo opens a new project). Run a
-small runner script in AE (`AfterFX.exe -r runner.jsx`) that sets `$.global.MORPH_TEST_OUT`
-(a folder in `out/`) and `$.global.MORPH_DIR` (this folder), then `$.evalFile` on
-`make-demo.jsx`. Render the saved project with `aerender`, which leaves AE free:
+Testing inside After Effects (with the user's go-ahead: the demo opens a new project).
+`node build.mjs` first. Open After Effects normally, send the runner once
+(`AfterFX.exe -r ae-bridge.jsx`: a second `-r` while AE thinks a script runs is refused with
+a dialog), then drop a job into `out/ae/bridge/inbox/` that calls
+`$.global.MMF_BRIDGE.freshProject()` (it only closes an empty untitled project or one saved
+under `out/`), sets `$.global.MORPH_TEST_OUT` (a folder in `out/`) and `$.global.MORPH_DIR`
+(this folder), and `$.evalFile`s `make-demo.jsx`; `done/<job>.status.txt` says ok or the
+error. Render the saved project with `aerender`, which leaves AE free:
 
 ```powershell
-& "C:\Program Files\Adobe\Adobe After Effects 2026\Support Files\aerender.exe" -project out\ae\morph-fixer-demo.aep -comp "Mask Morph Fixer demo" -s 0 -e 347 -RStemplate "Best Settings" -OMtemplate "H.264 - Match Render Settings -  5 Mbps" -output out\ae\morph-fixer-ae.mp4
+& "C:\Program Files\Adobe\Adobe After Effects 2027\Support Files\aerender.exe" -project out\ae\morph-fixer-demo.aep -comp "Mask Morph Fixer demo" -s 0 -e 347 -RStemplate "Best Settings" -OMtemplate "H.264 - Match Render Settings -  5 Mbps" -output out\ae\morph-fixer-ae.mp4
 ```
 
 `render/ae-morph-fixer.mp4` is that render (After Effects), re-encoded with its BT.709 tags.

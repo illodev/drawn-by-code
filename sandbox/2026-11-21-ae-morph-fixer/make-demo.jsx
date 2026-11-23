@@ -49,14 +49,19 @@
         app.beginSuppressDialogs();
         Folder(OUT).create();
     }
-    var comp = null, before = null, after = null, D = null, MFm = null, MFx = null, turnComp = null, master = null;
+    var comp = null, before = null, after = null, D = null, MFm = null, MFx = null, turnComp = null, master = null, asked = null;
     try {
         eval(readText('demo-spec.js'));     // $.evalFile would not put MD on $.global
         D = MD;
         $.global.MORPH_NO_UI = true;
-        $.evalFile(new File(here.fsName + '/Mask Morph Fixer.jsx'));
+        $.evalFile(new File(here.fsName + '/out/test-build/Mask Morph Fixer.jsx'));     // the test build (build.mjs)
         $.global.MORPH_NO_UI = false;       // $.global lives all session: a panel opened later must build
         MFx = $.global.MorphFixer;
+        // tests answer the question before a fix themselves (no dialog); the default goes ahead
+        if (OUT) MFx.ask = function (warned, seconds) {
+            asked = { warned: warned, seconds: seconds };
+            return true;
+        };
         MFm = $.global.MorphFixerMath;
         app.beginUndoGroup('Mask Morph Fixer demo');
         var built = demoComp('Morph demo', D.duration, D.shapes, D.keys, { maxPoints: D.maxPoints });
@@ -377,13 +382,172 @@
             // into a scratch folder (the real one is the user's call): created, copied whole
             var dir = new Folder(OUT + '/panels/ScriptUI Panels');
             var res = MFx.install(dir);
-            var copy = res.file ? new File(res.file) : null, src = new File(here.fsName + '/' + MFx.name + '.jsx');
+            var copy = res.file ? new File(res.file) : null, src = new File(here.fsName + '/out/test-build/' + MFx.name + '.jsx');
             check('install: copies the script as "' + MFx.name + '.jsx"', res.ok && copy && copy.exists && copy.length === src.length &&
                 File.decode(copy.name) === MFx.name + '.jsx', res.text + (copy ? ' (' + copy.length + ' of ' + src.length + ' bytes)' : ''));
             res = MFx.install(dir);
             check('install: a second install overwrites (an update)', res.ok && new File(res.file).length === src.length, res.text);
             var real = MFx.panelsFolder();
             check('install: the user panels folder is found', !!real && /After Effects[\/\\]\d+\.\d+[\/\\]Scripts[\/\\]ScriptUI Panels$/.test(real.fsName), real ? real.fsName : 'none');
+            var copies = MFx.installedCopies();
+            note('install: copies After Effects lists: ' + (copies.length ? copies.join(', ') : 'none'));
+            check('install: not installed twice', copies.length <= 1);
+        });
+
+        // ---- before a fix: warnings about what depends on the points, the time estimate ----
+        function only(L) {
+            for (var i = 1; i <= L.containingComp.numLayers; i++) L.containingComp.layer(i).selected = false;
+            L.selected = true;
+        }
+        function items(w) {
+            var s = [];
+            for (var i = 0; w && i < w.length; i++) s.push(w[i].items.join(' | '));
+            return s.join(' || ');
+        }
+        step('warnings (shape)', function () {
+            comp.openInViewer();
+            var wd = before.duplicate();
+            wd.name = 'Warn test';
+            var list = function () { return pathOf(wd).parentProperty.parentProperty; };
+            list().addProperty('ADBE Vector Filter - Trim');
+            list().addProperty('ADBE Vector Graphic - Stroke');
+            list().property(list().numProperties).property('ADBE Vector Stroke Dashes').addProperty('ADBE Vector Stroke Dash 1');
+            only(wd);
+            MFx.ask = function (warned, seconds) {
+                asked = { warned: warned, seconds: seconds };
+                return false;
+            };
+            asked = null;
+            var res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            var said = items(asked && asked.warned);
+            check('warn: Trim Paths and dashes after the path are named before fixing', !!asked && /Trim Paths/.test(said) && /dashes/.test(said), said);
+            check('warn: Cancel changes nothing', res.cancelled && pathOf(wd).keyValue(1).vertices.length === 4, res.status);
+            // a null following the path's first point (as Create Nulls From Paths makes)
+            var N = comp.layers.addNull();
+            N.name = 'Follows Warn test';
+            N.property('ADBE Transform Group').property('ADBE Position').expression =
+                'thisComp.layer("Warn test").content("Morph").content("Path 1").path.points()[0]';
+            only(wd);
+            asked = null;
+            MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            said = items(asked && asked.warned);
+            check('warn: an expression reading the points (a null from Create Nulls From Paths)', /an expression on Follows Warn test > Position reads the points/.test(said), said);
+            MFx.ask = function (warned, seconds) {
+                asked = { warned: warned, seconds: seconds };
+                return true;
+            };
+            only(wd);
+            res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            check('warn: Fix anyway fixes, and the status counts the warnings', res.reports.length === 1 && !res.reports[0].skipped && /3 warnings \(hover\)/.test(res.status) &&
+                /You were warned/.test(res.detail), res.status);
+            N.remove();
+            wd.remove();
+        });
+        step('warnings (mask)', function () {
+            var a = new Shape(), b = new Shape();
+            a.vertices = [[100, 100], [300, 100], [300, 300], [100, 300]];
+            a.closed = true;
+            b.vertices = [[200, 80], [320, 300], [80, 300]];
+            b.closed = true;
+            var S = comp.layers.addSolid([0.2, 0.2, 0.2], 'Stroke on a mask', 400, 400, 1);
+            S.property('ADBE Mask Parade').addProperty('ADBE Mask Atom');
+            S.property('ADBE Effect Parade').addProperty('ADBE Stroke');
+            var mp = S.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape');
+            mp.setValueAtTime(0, a);
+            mp.setValueAtTime(1, b);
+            var w1 = MFx.needs(S.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape'), comp, []);
+            check('warn: an effect using the mask (Stroke)', /Stroke uses this mask/.test(w1.items.join('|')), w1.items.join(' | '));
+            var T = comp.layers.addText('text on a path');
+            T.property('ADBE Mask Parade').addProperty('ADBE Mask Atom');
+            var tp = T.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape');
+            tp.setValueAtTime(0, a);
+            tp.setValueAtTime(1, b);
+            T.property('ADBE Text Properties').property('ADBE Text Path Options').property('ADBE Text Path').setValue(1);
+            var w2 = MFx.needs(T.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape'), comp, []);
+            check('warn: text running along the mask', /text runs along this mask/.test(w2.items.join('|')), w2.items.join(' | '));
+            var w3 = MFx.needs(pathOf(after), comp, []);
+            check('warn: nothing for a plain path', w3.items.length === 0, w3.items.join(' | '));
+            T.remove();
+            S.remove();
+        });
+        step('estimate', function () {
+            // keyed blobs like bench/ae-bench.jsx: K keys of about n points
+            var seed = 11;
+            function rnd() {
+                seed = (seed * 16807) % 2147483647;
+                return seed / 2147483647;
+            }
+            function blobLayer(name, K, n) {
+                var L = comp.layers.addShape();
+                L.name = name;
+                L.property('ADBE Root Vectors Group').addProperty('ADBE Vector Group');
+                L.property('ADBE Root Vectors Group').property(1).property('ADBE Vectors Group').addProperty('ADBE Vector Shape - Group');
+                var p = L.property('ADBE Root Vectors Group').property(1).property('ADBE Vectors Group').property(1).property('ADBE Vector Shape');
+                for (var k = 0; k < K; k++) {
+                    var s = new Shape(), v = [], ii = [], oo = [], m = Math.max(4, Math.round(n * (0.6 + 0.8 * rnd()))), ph = rnd() * 6;
+                    for (var j = 0; j < m; j++) {
+                        var t = ph + (j / m) * Math.PI * 2, r = 150 * (1 + 0.25 * Math.sin(3 * t + ph) + 0.1 * (rnd() - 0.5)), h = (Math.PI * 2 * r) / m / 3;
+                        v.push([r * Math.cos(t), r * Math.sin(t)]);
+                        ii.push([h * Math.sin(t), -h * Math.cos(t)]);
+                        oo.push([-h * Math.sin(t), h * Math.cos(t)]);
+                    }
+                    s.vertices = v;
+                    s.inTangents = ii;
+                    s.outTangents = oo;
+                    s.closed = true;
+                    p.setValueAtTime(k * 0.25, s);
+                }
+                return L;
+            }
+            var big = blobLayer('Big job', 12, 60);
+            only(big);
+            MFx.ask = function (warned, seconds) {
+                asked = { warned: warned, seconds: seconds };
+                return false;
+            };
+            asked = null;
+            var res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            check('estimate: a long job (12 keys of ~60 points) asks first, with the time', !!asked && asked.seconds > 10 && res.cancelled,
+                asked ? 'about ' + Math.round(asked.seconds) + ' s' : 'not asked');
+            big.remove();
+            // a mid job, estimated then timed for real: the estimate is within about 2x
+            var mid = blobLayer('Mid job', 6, 16);
+            only(mid);
+            MFx.ask = function (warned, seconds) {
+                asked = { warned: warned, seconds: seconds };
+                return true;
+            };
+            var est = MFx.estimate([mid.property('ADBE Root Vectors Group').property(1).property('ADBE Vectors Group').property(1).property('ADBE Vector Shape')], { mode: 'smooth', maxPoints: 100 });
+            var t0 = new Date().getTime();
+            res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            var took = (new Date().getTime() - t0) / 1000;
+            check('estimate: within about 2x of the real time (6 keys of ~16 points)', took / est > 0.4 && took / est < 2.5,
+                'estimated ' + est.toFixed(1) + ' s, took ' + took.toFixed(1) + ' s, this machine at ' + MFx.speed().toFixed(2) + 'x the reference');
+            mid.remove();
+        });
+        step('on screen', function () {
+            var sd = before.duplicate();
+            sd.name = 'Scaled 200';
+            sd.property('ADBE Transform Group').property('ADBE Scale').setValue([200, 200]);
+            var r = MFx.fix(pathOf(sd), { maxPoints: 200 });
+            check('on screen: a layer at 200 % is fixed within 0.1 comp px', r.scale === 2 && r.deviation <= 0.1 && r.pathDeviation <= 0.05, MFx.summary(r));
+            sd.remove();
+        });
+        step('narrow dock and theme', function () {
+            var dockWin = new Window('palette', 'narrow test', undefined, { resizeable: true });
+            var host = dockWin.add('panel');
+            host.preferredSize = [420, 90];
+            var dp = MFx.buildUI(host);
+            dockWin.layout.layout(true);
+            dockWin.show();
+            dp.fitWidth(170);
+            var c = dp.controls, two = dp.twoRows && c.bar.orientation === 'column' && c.fix.windowBounds.top > c.mode.windowBounds.top + 10;
+            dp.fitWidth(420);
+            check('panel: breaks into two rows when docked narrow, one row when wide', two && !dp.twoRows && c.bar.orientation === 'row');
+            dockWin.close();
+            var th = MFx.theme();
+            check('theme: read from After Effects (' + th + '), headings ' + (th === 'light' ? 'black' : 'white'),
+                /^(light|dark|darkest)$/.test(th) && MFx.headingColor().join() === (th === 'light' ? '0,0,0' : '1,1,1'));
         });
         try {
             app.project.save(new File(OUT + '/morph-fixer-demo.aep'));

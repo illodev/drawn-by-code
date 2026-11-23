@@ -1,5 +1,5 @@
-Morph demo fix (2153 ms): 5. After > Morph > Path 1 > Path: 10 keys, 4-10 -> 64 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.065 px of each shape.
-Turn demo fix (1890 ms): 5. After > Morph > Path 1 > Path: 9 keys, 10 -> 40 points each; points travel 162 -> 0 px around the shape; rebuilt within 0.001 px of each shape; turned 360 deg by its group's Rotation.
+Morph demo fix (2381 ms): 5. After > Morph > Path 1 > Path: 10 keys, 4-10 -> 64 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.065 px of each shape.
+Turn demo fix (1958 ms): 5. After > Morph > Path 1 > Path: 9 keys, 10 -> 40 points each; points travel 162 -> 0 px around the shape; rebuilt within 0.001 px of each shape; turned 360 deg by its group's Rotation.
 ok   every After key has the same number of points (64)
 ok   After Effects stores the keys the math computes (to 32-bit float) · largest difference 0.00003803359898
 ok   the rebuild measured every key within 0.1 px of its drawn shape · smooth, 0.06475487512383 px
@@ -22,12 +22,26 @@ ok   panel Fix (Exact): Fixed 1: 22 pts · 6. Panel test 2 > Morph > Path 1 > Pa
 ok   panel Fix (turn): Fixed 1: 40 pts, 0.001 px, 1 turned · 6. Panel turn test > Morph > Path 1 > Path: 9 keys, 10 -> 40 points each; points travel 162 -> 0 px around the shape; rebuilt within 0.001 px of each shape; turned 360 deg by its group's Rotation.
 ok   panel: floating, titled Mask Morph Fixer · Mask Morph Fixer
 ok   panel ?: the guide opens, not modal · palette
-ok   panel ?: guide size 403 x 654 px
+ok   panel ?: guide size 403 x 705 px
 ok   panel ?: an install button when floating · Update the panel
 ok   panel docked: builds into the Panel host, no window of its own · host 268 x 57
 ok   panel docked: the guide has no install button
-ok   install: copies the script as "Mask Morph Fixer.jsx" · Installed. Restart After Effects, then open Window > Mask Morph Fixer.jsx. (71747 of 71747 bytes)
+ok   install: copies the script as "Mask Morph Fixer.jsx" · Installed. Restart After Effects, then open Window > Mask Morph Fixer.jsx. (88763 of 88763 bytes)
 ok   install: a second install overwrites (an update) · Installed. Restart After Effects, then open Window > Mask Morph Fixer.jsx.
-ok   install: the user panels folder is found · C:\Users\imben\AppData\Roaming\Adobe\After Effects\26.5\Scripts\ScriptUI Panels
+ok   install: the user panels folder is found · C:\Users\imben\AppData\Roaming\Adobe\After Effects\27.0\Scripts\ScriptUI Panels
+install: copies After Effects lists: C:\Users\imben\AppData\Roaming\Adobe\After Effects\27.0\Scripts\ScriptUI Panels\Mask Morph Fixer.jsx
+ok   install: not installed twice
+ok   warn: Trim Paths and dashes after the path are named before fixing · Trim Paths 1 measures from the first point, which moves | the dashes of Stroke 1 start at the first point, which moves
+ok   warn: Cancel changes nothing · Cancelled: nothing changed
+ok   warn: an expression reading the points (a null from Create Nulls From Paths) · Trim Paths 1 measures from the first point, which moves | the dashes of Stroke 1 start at the first point, which moves | an expression on Follows Warn test > Position reads the points, which move
+ok   warn: Fix anyway fixes, and the status counts the warnings · Fixed 1: 64 pts, 0.065 px, 3 warnings (hover)
+ok   warn: an effect using the mask (Stroke) · Stroke uses this mask from its first point, which moves
+ok   warn: text running along the mask · the text runs along this mask from its first point, which moves
+ok   warn: nothing for a plain path · 
+ok   estimate: a long job (12 keys of ~60 points) asks first, with the time · about 24 s
+ok   estimate: within about 2x of the real time (6 keys of ~16 points) · estimated 6.9 s, took 6.2 s, this machine at 0.97x the reference
+ok   on screen: a layer at 200 % is fixed within 0.1 comp px · 6. Scaled 200 > Morph > Path 1 > Path: 10 keys, 4-10 -> 103 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.056 px of each shape on screen (it is scaled to 200 %).
+ok   panel: breaks into two rows when docked narrow, one row when wide
+ok   theme: read from After Effects (darkest), headings white
 saved C:/Users/imben/drawn-by-code/sandbox/2026-11-21-ae-morph-fixer/out/ae/morph-fixer-demo.aep
 all checks pass

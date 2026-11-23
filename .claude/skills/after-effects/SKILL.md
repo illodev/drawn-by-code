@@ -98,6 +98,18 @@ that AE runs wrong.
   12 px Adobe Clean (Arial too). Mark headings with the pen instead
   (`graphics.foregroundColor = graphics.newPen(PenType.SOLID_COLOR, [1, 1, 1], 1)`: white on
   the grey body text). Only a screenshot shows this.
+- **AE 27's theme:** `app.themeColor` is retired ("Use getAppTheme, getUseReducedContrast,
+  and getAllowedAppThemes"); those three are **properties**, not functions:
+  `app.getAppTheme` is `"light"`, `"dark"` or `"darkest"`. ScriptUI's own
+  `graphics.foregroundColor`/`backgroundColor` read `undefined`, so a pen you set must follow
+  `app.getAppTheme` (black on light, white otherwise); leave body text unset and AE colours it.
+- Internal names for what depends on a path's points (AE 27): operators `ADBE Vector Filter -
+  Trim`, `- Zigzag`, `- PB` (Pucker & Bloat), `- Roughen` (Wiggle Paths); a stroke's `ADBE
+  Vector Stroke Dashes` (dashes exist when it holds `ADBE Vector Stroke Dash 1`), `ADBE Vector
+  Stroke Taper` (`… Taper Start Length`, `… End Length`, `… StartWidthPx`, `… EndWidthPx`),
+  `ADBE Vector Stroke Wave` (`… Taper Wave Amount`). A mask picker in an effect or in text
+  Path Options (`ADBE Text Path`) has `propertyValueType` `PropertyValueType.MASK_INDEX`
+  (6422) and the mask's index as value. Dump a layer's tree in AE before relying on a name.
 - Testing an ES3 file in Node: load it with `new Function(src + 'return X')()`, not
   `vm.runInContext` (global lookups there are ~10× slower and skew timings).
 
@@ -184,6 +196,15 @@ that AE runs wrong.
   that state took every later `-r` the same way. If the runner's log never starts, look at
   AE before sending another: close an AE with nothing unsaved (`CloseMainWindow()`, which
   works when `-r` doesn't) and send the runner to a fresh one.
+- **Send one runner, then drop jobs** (`sandbox/2026-11-21-ae-morph-fixer/ae-bridge.jsx`):
+  open AE normally, send the bridge once with `-r`; it polls a folder with
+  `app.scheduleTask(…, 1000, true)`, runs each `*.jsx` job there with `$.evalFile` in a
+  `try`, and writes `<job>.status.txt`. No later test goes through `-r`, so none can hit
+  the "second script" dialog. A cold `AfterFX.exe -r` (no AE running) runs the script and
+  then **quits AE**: start AE first. Jobs close only an empty untitled project or one saved
+  under `out/`, and tests save their projects there.
+- To click AE's own UI with computer use, bring it forward with a job that calls
+  `app.activate()`: `open_application` sometimes leaves the desktop shell in front.
 - A panel installed in ScriptUI Panels opens from a script with
   `app.executeCommand(app.findMenuCommandId('<file name>.jsx'))` (a negative id is fine; 0
   = not found). It runs at once: the panel's `$.global` exports are there on the next line,
@@ -235,6 +256,14 @@ that AE runs wrong.
   that copies it into the user's own ScriptUI Panels folder, and test the panel the way a user
   gets it (restart, Window menu, its own Fix button), then look at it: two of three guide
   problems (height, invisible bold) only showed in a screenshot.
+- 2026-11-22 · ae-morph-fixer · Promise a time only from timings inside AE: ExtendScript ran
+  the fix about 300x slower than Node, and the same job size varies 10x with how much the
+  rebuild must add. Fit the estimate to an AE bench (`bench/ae-bench.jsx`), scale it per
+  machine with a short calibration run, and check it against a real fix (6.4 s estimated,
+  4.7 s taken).
+- 2026-11-22 · ae-morph-fixer · A tool that changes points must say what it breaks before it
+  does: Trim Paths, dashes, text on a mask and nulls that follow points all start from the
+  first point, which a morph fix moves. Ask once, in plain words, with Cancel the default.
 - 2026-11-22 · ae-flock-rig · A 2D layer that turns around by squashing its width through
   zero gives the flatness away when many turn together (a flock diving through vertical:
   38 % edge-on in one frame). Pointing up or down, mirror at once (only the wings swap
