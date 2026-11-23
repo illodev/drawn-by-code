@@ -60,7 +60,7 @@ var MorphFixer = (function () {
         }
         if (!found.length) for (i = 0; i < comp.selectedLayers.length; i++) collect(comp.selectedLayers[i], found);
         for (i = 0; i < found.length; i++) {
-            var id = describe(found[i]);
+            var id = uid(found[i]);
             if (!seen[id]) {
                 seen[id] = true;
                 out.push(found[i]);
@@ -187,30 +187,81 @@ var MorphFixer = (function () {
         }
     }
 
-    // fixPath(pathProperty, options) -> a report: { label, keys, from, to, reversed, moved,
-    // before, after, turned, scale, deviation (comp pixels) } or { label, skipped }
-    function fixPath(prop, opts) {
-        var o = {}, k;
+    function consecutive(idx) {
+        for (var k = 1; k < idx.length; k++) if (idx[k] !== idx[k - 1] + 1) return false;
+        return true;
+    }
+
+    // a turn written into the path itself, where no group transform can carry it (masks, a path
+    // sharing its group, a group already animated): the keys as drawn, then one key a frame
+    // through every turning step, each the shape swung along the arc (MF.swing) at After
+    // Effects' own eased progress between the keys (read back with valueAtTime). Those keys and
+    // the sides of the step's keys facing them are linear: the easing is in the shapes.
+    // -> the number of in-between keys written
+    function bakeTurn(prop, idx, r) {
+        var T = r.turn, comp = prop.propertyGroup(prop.propertyDepth).containingComp, fd = comp.frameDuration, k, j;
+        for (k = 0; k < idx.length; k++) prop.setValueAtKey(idx[k], fromMF(r.placed[k]));
+        var times = [], shapes = [], steps = [];
+        for (k = 0; k + 1 < idx.length; k++) {
+            if (Math.abs(T.angles[k + 1] - T.angles[k]) < 0.5) continue;
+            if (prop.keyOutInterpolationType(idx[k]) === KeyframeInterpolationType.HOLD) continue;
+            var t0 = prop.keyTime(idx[k]), t1 = prop.keyTime(idx[k + 1]);
+            for (j = 1; t0 + j * fd < t1 - fd / 2; j++) {
+                var t = t0 + j * fd, u = MF.progressOf(toMF(prop.valueAtTime(t, false)), r.placed[k], r.placed[k + 1]);
+                times.push(t);
+                shapes.push(fromMF(MF.swing(T, r.paths, k, u)));
+            }
+            steps.push([t0, t1]);
+        }
+        if (!times.length) return 0;
+        prop.setValuesAtTimes(times, shapes);
+        var LIN = KeyframeInterpolationType.LINEAR;
+        for (j = 0; j < times.length; j++) {
+            var at = prop.nearestKeyIndex(times[j]);
+            prop.setInterpolationTypeAtKey(at, LIN, LIN);
+        }
+        for (k = 0; k < steps.length; k++) {
+            var a = prop.nearestKeyIndex(steps[k][0]), b = prop.nearestKeyIndex(steps[k][1]);
+            prop.setInterpolationTypeAtKey(a, prop.keyInInterpolationType(a), LIN);
+            prop.setInterpolationTypeAtKey(b, LIN, prop.keyOutInterpolationType(b));
+        }
+        return times.length;
+    }
+
+    // planPath(pathProperty, options, given, mustWrite) -> { rep, apply }: reads the keys (or
+    // takes `given`, the keys as MF paths after the pieces were matched), works the fix out and
+    // writes nothing, so a fix can be cancelled with nothing changed; apply() writes it. The
+    // report: { label, keys, from, to, reversed, moved, before, after, turned, baked, scale,
+    // deviation (comp pixels) } or { label, skipped }. options.progress(fraction) -> true
+    // cancels (it throws { cancelled: true }).
+    function planPath(prop, opts, given, mustWrite) {
+        var o = {}, k, idle = function () {};
         for (k in DEFAULTS) o[k] = DEFAULTS[k];
         if (opts) for (k in opts) o[k] = opts[k];
-        var rep = { label: describe(prop) };
+        var rep = { label: describe(prop) }, plan = { rep: rep, apply: idle };
         if (prop.expression !== '' && prop.expressionEnabled) {
             rep.skipped = 'it has an expression';
-            return rep;
+            return plan;
         }
         var idx = keyIndices(prop);
         rep.scale = magnification(prop);
         o.tolerance = o.tolerance / rep.scale;
         if (idx.length < 2) {
             rep.skipped = 'fewer than two keyframes';
-            return rep;
+            return plan;
         }
-        var group = null;
+        // a turn goes into the group's Rotation where it can, else into in-between keys
+        var group = null, bake = false;
         if (o.rotate) {
             group = turnGroup(prop, idx.length === prop.numKeys);
             if (group.why) {
-                rep.noTurn = group.why;
-                o.rotate = false;
+                if (consecutive(idx)) {
+                    bake = true;
+                    rep.bakeWhy = group.why;
+                } else {
+                    rep.noTurn = group.why + ', and the selected keys are not next to each other';
+                    o.rotate = false;
+                }
             }
         }
         var paths = [], counts = [];
@@ -218,28 +269,43 @@ var MorphFixer = (function () {
             var s = prop.keyValue(idx[k]);
             if (s.featherSegLocs && s.featherSegLocs.length) {
                 rep.skipped = 'its mask has feather points (they belong to segments that would move)';
-                return rep;
+                return plan;
             }
-            paths.push(toMF(s));
+            paths.push(given ? given[k] : toMF(s));
             counts.push(s.vertices.length);
         }
         var r;
         try {
             r = MF.fix(paths, o);
         } catch (e) {
+            if (e && e.cancelled) throw e;
             rep.skipped = e.message;
-            return rep;
+            return plan;
         }
         if (r.matched) {
             rep.matched = true;
             rep.keys = idx.length;
-            return rep;
+            if (mustWrite) {
+                // the pieces were dealt out anew: write them even though no points change
+                plan.apply = function () {
+                    for (var q = 0; q < idx.length; q++) prop.setValueAtKey(idx[q], fromMF(paths[q]));
+                };
+            }
+            return plan;
         }
-        for (k = 0; k < idx.length; k++) prop.setValueAtKey(idx[k], fromMF(r.paths[k]));
-        if (r.turn) {
-            rep.turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
-            rep.timingApprox = writeTurn(prop, idx, r.turn, group.transform);
-        }
+        plan.apply = function () {
+            var q;
+            if (r.turn && bake) {
+                rep.baked = bakeTurn(prop, idx, r);
+                rep.turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
+                return;
+            }
+            for (q = 0; q < idx.length; q++) prop.setValueAtKey(idx[q], fromMF(r.paths[q]));
+            if (r.turn) {
+                rep.turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
+                rep.timingApprox = writeTurn(prop, idx, r.turn, group.transform);
+            }
+        };
         var lo = counts[0], hi = counts[0], rev = 0, mov = 0, b = 0, a = 0, n = 0;
         for (k = 0; k < idx.length; k++) {
             if (counts[k] < lo) lo = counts[k];
@@ -264,7 +330,14 @@ var MorphFixer = (function () {
         rep.capped = r.capped;
         rep.pathDeviation = r.deviation;                // in the path's own units
         rep.deviation = r.deviation * rep.scale;        // in comp pixels, what the status shows
-        return rep;
+        return plan;
+    }
+
+    // fixes one path at once (plan, then write) -> its report
+    function fixPath(prop, opts) {
+        var plan = planPath(prop, opts);
+        plan.apply();
+        return plan.rep;
     }
 
     function round3(x) {
@@ -275,7 +348,9 @@ var MorphFixer = (function () {
         if (rep.skipped) return rep.label + ': skipped, ' + rep.skipped + '.';
         if (rep.matched) return rep.label + ': already matched, left as it is.';
         var how, turned = '';
-        if (rep.turned !== undefined) {
+        if (rep.turned !== undefined && rep.baked !== undefined) {
+            turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, one a frame (' + rep.bakeWhy + ')';
+        } else if (rep.turned !== undefined) {
             turned = '; turned ' + Math.round(rep.turned) + ' deg by its group\'s Rotation' +
                 (rep.timingApprox ? ' (custom key speeds approximated: Easy Ease shapes copy exactly)' : '');
         } else if (rep.noTurn) {
@@ -502,9 +577,132 @@ var MorphFixer = (function () {
         bar.alignment = ['right', 'top'];
         var no = bar.add('button', undefined, 'Cancel', { name: 'cancel' });
         var yes = bar.add('button', undefined, 'Fix anyway', { name: 'ok' });
+        // each button closes the dialog itself: ScriptUI only closes it for the default and
+        // cancel elements, so with Enter on Cancel, Fix anyway needs its own handler (clicking
+        // it did nothing until it had one)
+        yes.onClick = function () {
+            w.close(1);
+        };
+        no.onClick = function () {
+            w.close(2);
+        };
         w.defaultElement = no;         // Enter cancels: going ahead is the deliberate click
         w.cancelElement = no;
         return w.show() === 1;
+    }
+
+    // ---- pieces: sibling paths that make one shape (a letter and its holes) ----
+
+    // where a property sits, by index (names repeat, and change with AE's language)
+    function uid(p) {
+        var s = [], q = p;
+        while (q && q.parentProperty) {
+            s.unshift(q.propertyIndex);
+            q = q.parentProperty;
+        }
+        return p.propertyGroup(p.propertyDepth).index + ':' + s.join('.');
+    }
+
+    function sameTimes(a, b) {
+        if (a.numKeys !== b.numKeys) return false;
+        for (var k = 1; k <= a.numKeys; k++) if (Math.abs(a.keyTime(k) - b.keyTime(k)) > 1e-6) return false;
+        return true;
+    }
+
+    // the targets as shapes in pieces: keyed paths that are siblings (in one shape group, or a
+    // layer's masks of one mode) with the same key times, all their keys in play. A path on its
+    // own is a shape of one piece. Paths with only some keys selected stay out (singles).
+    // -> { groups: [[prop, ...]], singles: [prop, ...] }
+    function pieceGroups(list) {
+        var byId = {}, ids = [], singles = [], groups = [], i, k;
+        for (i = 0; i < list.length; i++) {
+            var p = list[i], id = null;
+            try {
+                var partial = p.selectedKeys && p.selectedKeys.length >= 2 && p.selectedKeys.length < p.numKeys;
+                if (!partial) {
+                    if (p.matchName === 'ADBE Mask Shape') id = 'mask ' + p.propertyGroup(p.propertyDepth).index + ' ' + p.parentProperty.maskMode;
+                    else if (p.parentProperty && p.parentProperty.parentProperty) id = 'shape ' + uid(p.parentProperty.parentProperty);
+                }
+            } catch (e) {
+                id = null;
+            }
+            if (id === null) {
+                singles.push(p);
+                continue;
+            }
+            if (!byId[id]) {
+                byId[id] = [];
+                ids.push(id);
+            }
+            byId[id].push(p);
+        }
+        for (i = 0; i < ids.length; i++) {
+            var g = byId[ids[i]], same = true;
+            for (k = 1; same && k < g.length; k++) same = sameTimes(g[0], g[k]);
+            if (same) groups.push(g);
+            else for (k = 0; k < g.length; k++) groups.push([g[k]]);
+        }
+        return { groups: groups, singles: singles };
+    }
+
+    // ---- progress, with Esc to cancel (nothing is written until the work is done) ----
+
+    function escPressed() {
+        if (api.escape) return api.escape();
+        try {
+            return ScriptUI.environment.keyboardState.keyName === 'Escape';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // the progress window's own title (Window.find tells it from the guide by it)
+    var PROGRESS_TITLE = NAME + ': working';
+
+    function progressWindow() {
+        var w = new Window('palette', PROGRESS_TITLE, undefined, { closeButton: false });
+        w.orientation = 'column';
+        w.alignChildren = ['fill', 'top'];
+        w.margins = 14;
+        w.spacing = 8;
+        var label = w.add('statictext', undefined, 'Working it out...');
+        label.characters = 40;
+        var bar = w.add('progressbar', undefined, 0, 100);
+        bar.preferredSize = [300, 10];
+        // Esc is read when the work checks in (every key, every round), up to about half a second
+        // apart on dense paths: holding it is what reliably lands
+        w.add('statictext', undefined, 'Hold Esc to cancel. Nothing changes until it is done.');
+        w.center();
+        w.show();
+        w.update();
+        var last = 0;
+        return {
+            step: function (text, frac) {
+                var now = new Date().getTime();
+                if (now - last > 80) {
+                    label.text = text;
+                    bar.value = Math.max(0, Math.min(100, frac * 100));
+                    w.update();
+                    last = now;
+                }
+                return escPressed();
+            },
+            // While a fix keeps After Effects busy for more than about 5 s, Windows swaps its
+            // windows for stand-ins, and when AE answers again puts each back as it was: a palette
+            // closed in that time came back on screen (ScriptUI said it was closed), with no close
+            // button. So it is closed only once AE is responsive again, by a one-shot task a moment
+            // after the fix ends, which finds it by title (nothing kept on $.global).
+            close: function () {
+                try {
+                    label.text = 'Done';
+                    bar.value = 100;
+                    w.update();
+                    app.scheduleTask("(function () { var w = Window.find('palette', '" + PROGRESS_TITLE + "'); if (w) w.close(); })()", 300, false);
+                } catch (e) {
+                    w.close();
+                }
+            }
+        };
     }
 
     // fixes the keyed paths selected in the active comp -> { status, detail, reports }: a status
@@ -542,14 +740,71 @@ var MorphFixer = (function () {
                 detail: (count ? 'Depends on the points:\n' + warnLines.join('\n') + '\n' : '') + (seconds > 10 ? 'Estimated time: about ' + Math.round(seconds) + ' s.' : '')
             };
         }
+        // work it all out first, writing nothing: a shape's pieces are matched between keys,
+        // then every path is planned. Esc (with the progress shown) cancels with nothing changed
+        var jobs = [], pieceLines = [], movedN = 0, grownN = 0, plans = [], g, p, k;
+        var pg = pieceGroups(list);
+        for (i = 0; i < pg.groups.length; i++) {
+            g = pg.groups[i];
+            try {
+                var K = g[0].numKeys, keysMF = [], res;
+                for (k = 1; k <= K; k++) {
+                    var rowK = [];
+                    for (p = 0; p < g.length; p++) rowK.push(toMF(g[p].keyValue(k)));
+                    keysMF.push(rowK);
+                }
+                res = MF.matchPieces(keysMF);
+                for (p = 0; p < g.length; p++) {
+                    var given = [], changedP = false;
+                    for (k = 0; k < K; k++) {
+                        given.push(res.keys[k][p]);
+                        if (res.keys[k][p] !== keysMF[k][p]) changedP = true;
+                    }
+                    jobs.push({ prop: g[p], given: changedP ? given : null, mustWrite: changedP });
+                }
+                if (res.moved || res.grown) {
+                    movedN += res.moved;
+                    grownN += res.grown;
+                    pieceLines.push(shortLabel(describe(g[0])) + (g.length > 1 ? ' and ' + (g.length - 1) + ' more' : '') + ': ' +
+                        (res.moved ? res.moved + ' pieces dealt to the path that matches them' : '') + (res.moved && res.grown ? ', ' : '') +
+                        (res.grown ? res.grown + ' keys where a piece grows from a point' : ''));
+                }
+            } catch (eg) {
+                for (p = 0; p < g.length; p++) jobs.push({ prop: g[p] });
+            }
+        }
+        for (i = 0; i < pg.singles.length; i++) jobs.push({ prop: pg.singles[i] });
+        // progress for jobs estimated over 4 s (the estimate runs high on small jobs)
+        var prog = (seconds > 4 || api.escape) ? (api.escape ? null : progressWindow()) : null;
+        var step = function (text, f) {
+            return prog ? prog.step(text, f) : (api.escape ? api.escape() : false);
+        };
+        try {
+            for (i = 0; i < jobs.length; i++) {
+                var po = {}, key;
+                for (key in o) po[key] = o[key];
+                po.progress = function (f) {
+                    return step('Path ' + (i + 1) + ' of ' + jobs.length, (i + f) / jobs.length);
+                };
+                plans.push(planPath(jobs[i].prop, po, jobs[i].given, jobs[i].mustWrite));
+                if (step('Path ' + (i + 1) + ' of ' + jobs.length, (i + 1) / jobs.length)) throw { cancelled: true };
+            }
+        } catch (ec) {
+            if (prog) prog.close();
+            if (ec && ec.cancelled) return { status: 'Cancelled: nothing changed', detail: 'Cancelled with Esc before anything was written.', reports: [], cancelled: true, warned: warned, seconds: seconds };
+            return { status: 'Error (hover)', detail: String(ec && ec.message) + (ec && ec.line ? ' (line ' + ec.line + ')' : ''), reports: [] };
+        }
+        if (prog) prog.step('Writing the keys...', 1);
         app.beginUndoGroup(NAME);
         try {
-            for (i = 0; i < list.length; i++) {
-                var r = fixPath(list[i], opts);
+            for (i = 0; i < plans.length; i++) {
+                plans[i].apply();
+                var r = plans[i].rep;
                 reps.push(r);
                 lines.push(summary(r));
                 if (r.skipped) skipped++;
-                else if (r.matched) matched++;
+                else if (r.matched && !jobs[i].mustWrite) matched++;
+                else if (r.matched) fixed++;
                 else {
                     fixed++;
                     if (r.to < lo) lo = r.to;
@@ -560,18 +815,22 @@ var MorphFixer = (function () {
                 }
             }
         } catch (e) {
-            return { status: 'Error (hover)', detail: e.toString() + (e.line ? ' (line ' + e.line + ')' : ''), reports: reps };
+            if (prog) prog.close();
+            return { status: 'Error (hover)', detail: String(e && e.message) + (e && e.line ? ' (line ' + e.line + ')' : ''), reports: reps };
         } finally {
             app.endUndoGroup();
         }
+        if (prog) prog.close();
+        if (pieceLines.length) lines.push('', 'Pieces matched between keys:', pieceLines.join('\n'));
         var parts = [];
         if (fixed) parts.push('Fixed ' + fixed + ': ' + (lo === hi ? lo : lo + '-' + hi) + ' pts' + (worst ? (capped ? ', ~' : ', ') + round3(worst) + ' px' + (capped ? ' (max)' : '') : ''));
         if (turned) parts.push(turned + ' turned');
+        if (movedN || grownN) parts.push('pieces matched');
         if (matched) parts.push(matched + ' already matched');
         if (skipped) parts.push(skipped + ' skipped');
         if (count) parts.push(count + (count > 1 ? ' warnings' : ' warning') + ' (hover)');
         if (count) lines.push('', 'You were warned, and fixed anyway (' + KEY + '+Z undoes it):', warnLines.join('\n'));
-        return { status: parts.join(', '), detail: lines.join('\n'), reports: reps, warned: warned, seconds: seconds };
+        return { status: parts.join(', '), detail: lines.join('\n'), reports: reps, warned: warned, seconds: seconds, moved: movedN, grown: grownN };
     }
 
     // the guide behind ?, written for the person animating: what it does, three steps, what
@@ -586,11 +845,13 @@ var MorphFixer = (function () {
         settings: [
             ['Smooth', 'Redraws the points so the shape stays smooth all through the morph. Each key still looks the same (within 0.1 px) and corners stay sharp.'],
             ['Exact', 'Keeps your own points and only adds new ones. Keys stay exactly as drawn, but the morph may show small bumps.'],
-            ['max', 'The most points Smooth may use per key. If the status ends in "(max)", raise it for a closer fit.'],
-            ['turn', 'For shapes that rotate between keys, like an F turning onto its side: the shape swings round instead of squashing through the middle, and its group\'s Rotation is keyed for you. Put the path alone in a group first (select it, ' + KEY + '+G). Shape layers only.']
+            ['max', 'The most points Smooth may use per key. If the status ends in "(max)", raise it for a closer fit: big or detailed artwork, like type at 400 px, often needs 200 to 300.'],
+            ['turn', 'For shapes that rotate between keys, like an F turning onto its side: the shape swings round instead of squashing through the middle. With the path alone in a group (select it, ' + KEY + '+G), the group\'s Rotation is keyed for you; otherwise, as on masks, the turn is written into the path as one key a frame.']
         ],
         tips: [
             'Fixed paths have more points: finish drawing your keys first.',
+            'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, and a piece you draw as a dot grows from that dot.',
+            'Long fixes show their progress. Hold Esc to cancel: nothing changes.',
             'It asks first when Trim Paths, dashes, text on a path or an expression depend on where the points are, and when a fix will take more than 10 seconds.',
             'Rectangles, ellipses and stars: right-click the path > Convert To Bezier Path first.',
             'Paths with expressions and masks with feather points are left alone.',
@@ -965,7 +1226,8 @@ var MorphFixer = (function () {
         install: install, isInstalled: isInstalled, panelsFolder: panelsFolder, toMF: toMF, fromMF: fromMF,
         version: VERSION, magnification: magnification, needs: needs, readers: readers, estimate: estimate, keyMs: keyMs,
         speed: speed, installedCopies: installedCopies, theme: theme, headingColor: headingColor,
-        ask: null, themeOverride: null        // test stand-ins: the question before a fix, the AE theme
+        planPath: planPath, pieceGroups: pieceGroups, uid: uid, bakeTurn: bakeTurn,
+        ask: null, themeOverride: null, escape: null     // test stand-ins: the question before a fix, the AE theme, Esc
     };
     return api;
 })();

@@ -21,7 +21,7 @@ const RESERVED = /(\.|\b)(abstract|boolean|byte|char|debugger|double|enum|export
 
 const problems = [];
 // make-demo.jsx also runs in After Effects: linted, not joined
-for (const [file, src] of [['morph-math.js', math], ['morph-ae.jsx', ae], ['make-demo.jsx', read('make-demo.jsx')]]) {
+for (const [file, src] of [['morph-math.js', math], ['morph-ae.jsx', ae], ['make-demo.jsx', read('make-demo.jsx')], ['art/make-art.jsx', read('art/make-art.jsx')]]) {
     // a caught error joined to a string with + throws again in ExtendScript ("Object of type
     // Error found where a Number, Array, or Property is needed"), as a dialog: use e.message
     const caught = [...new Set([...src.matchAll(/catch\s*\((\w+)\)/g)].map((m) => m[1]))];
@@ -31,7 +31,7 @@ for (const [file, src] of [['morph-math.js', math], ['morph-ae.jsx', ae], ['make
         if (joined && joined.test(line.replace(/\/\/.*$/, ''))) problems.push(`${file}:${n + 1}: a caught error joined with +: ${line.trim()}`);
         // the tool finds everything by AE's internal names, which are the same in every language:
         // never by a display name ("Path 1", "Trim Paths"), which a German or Japanese AE renames
-        if (file !== 'make-demo.jsx') {
+        if (file === 'morph-math.js' || file === 'morph-ae.jsx') {      // the tool; tests name their own groups
             const raw = line.replace(/\/\/.*$/, '');
             if (/\.property\(\s*['"](?!ADBE )/.test(raw)) problems.push(`${file}:${n + 1}: a property looked up by display name (changes with AE's language): ${line.trim()}`);
             if (/\.name\s*[!=]==?/.test(raw)) problems.push(`${file}:${n + 1}: a display name compared (changes with AE's language): ${line.trim()}`);

@@ -216,6 +216,25 @@ function shown(r, k, u) {
         check('turn: halfway is the F turned 45 deg', dTurn < 0.2, dTurn.toFixed(3) + ' px');
         console.log(`turn: halfway vs the F turned 45 deg: turned ${dTurn.toFixed(2)} px, as drawn ${dRaw.toFixed(1)} px, fixed without turn ${dFix.toFixed(1)} px`);
     }
+    // the same turn written into the path itself (masks, paths sharing a group): MF.swing is
+    // exactly what the group transform would show, and AE's eased progress reads back
+    {
+        const r = MF.fix(keys, { rotate: true });
+        let worst = 0;
+        for (let k = 0; k + 1 < keys.length; k++) {
+            for (const u of [0, 0.25, 0.5, 0.75, 1]) {
+                const a = MF.swing(r.turn, r.paths, k, u), b = shown(r, k, u);
+                for (let j = 0; j < a.v.length; j++) worst = Math.max(worst, Math.hypot(a.v[j][0] - b.v[j][0], a.v[j][1] - b.v[j][1]));
+            }
+        }
+        check('turn baked: MF.swing shows what the group transform shows', worst < 1e-9, worst);
+        const A = r.placed[1], B = r.placed[2], want = [0, 0.1, 0.37, 0.5, 0.93, 1];
+        const us = want.map((u) => MF.progressOf(MF.lerp(A, B, u), A, B));
+        check('turn baked: AE\'s progress is read back from the blended path', us.every((u, j) => Math.abs(u - want[j]) < 1e-9), us.map((u) => u.toFixed(3)).join(' '));
+        const half = MF.swing(r.turn, r.paths, 1, 0.5), ideal = MF.turnPath(MF.turnPath(MD.turn.shapes[0], [-10, 0], 0), [10, 0], 45);
+        const d = Math.max(MF.deviation(ideal, half), MF.deviation(half, ideal));
+        check('turn baked: the in-between halfway is the F turned 45 deg', d < 0.2, d.toFixed(3) + ' px');
+    }
     // random shapes turned by random angles about random points: the turn is recovered
     {
         let s2 = 777, worst = 0, found = 0;
@@ -242,6 +261,53 @@ function shown(r, k, u) {
     const d = MF.fix(MD.keys.map(([, s]) => MD.shapes[s]), { rotate: true });
     console.log(`morph demo with turn on: ${d.turn ? 'angles ' + d.turn.angles.map((a) => a.toFixed(1)).join(' / ') : 'no turn'}`);
     if (d.turn) check('turn on, circle to star: no turn invented', Math.abs(d.turn.angles[2] - d.turn.angles[1]) < 1, d.turn.angles[2] - d.turn.angles[1]);
+}
+
+// ---- pieces: a letter with holes, a piece that grows from a point --------------------------
+{
+    const sq = (cx, cy, r, ccw) => {
+        const v = [[cx - r, cy - r], [cx + r, cy - r], [cx + r, cy + r], [cx - r, cy + r]];
+        if (ccw) v.reverse();
+        return { v, i: v.map(() => [0, 0]), o: v.map(() => [0, 0]), closed: true };
+    };
+    const outer = sq(0, 0, 100, false), hole = sq(0, 0, 40, true);
+    let res = MF.matchPieces([[outer, hole], [hole, outer]]);
+    check('pieces: pieces drawn in the other order are dealt back', res.moved === 2 && res.keys[1][0] === outer && res.keys[1][1] === hole, `moved ${res.moved}`);
+    res = MF.matchPieces([[outer, hole], [sq(10, 0, 100, false), sq(10, 0, 40, true)]]);
+    check('pieces: an order that already matches is kept', res.moved === 0 && res.grown === 0);
+    // O into C: the hole is a dot at the second key, so it shrinks into the dot as a tiny copy
+    res = MF.matchPieces([[outer, hole], [outer, sq(5, 5, 0.1, true)]]);
+    const gi = MF.pieceInfo(res.keys[1][1]), hi = MF.pieceInfo(hole);
+    check('pieces: a dotted piece grows from the dot, as a tiny copy of itself', res.grown === 1 && res.keys[1][1].v.length === hole.v.length &&
+        gi.size < 0.01 * hi.size && Math.hypot(gi.c[0] - 5, gi.c[1] - 5) < 0.01 && gi.sign === hi.sign, `size ${gi.size.toFixed(4)} at ${gi.c.map((x) => x.toFixed(2))}`);
+    res = MF.matchPieces([[outer, hole], [outer, sq(900, 900, 0.1, true)]]);
+    const g2 = MF.pieceInfo(res.keys[1][1]);
+    check('pieces: a dot dropped outside the shape grows from the piece\'s own place', Math.hypot(g2.c[0], g2.c[1]) < 0.01, g2.c.map((x) => x.toFixed(2)).join(', '));
+    // a B with its body and two holes in another order at the second key
+    const body = sq(0, 0, 100, false), top = sq(0, -50, 25, true), bottom = sq(0, 50, 25, true);
+    res = MF.matchPieces([[body, top, bottom], [bottom, body, top]]);
+    check('pieces: three pieces in any order', res.keys[1][0] === body && res.keys[1][1] === top && res.keys[1][2] === bottom, `moved ${res.moved}`);
+    // a lone path collapsed to a dot at one key grows from that dot
+    res = MF.matchPieces([[outer], [sq(30, 20, 0.2, false)], [outer]]);
+    const g3 = MF.pieceInfo(res.keys[1][0]);
+    check('pieces: a lone path drawn as a dot grows from where the dot is', res.grown === 1 && Math.hypot(g3.c[0] - 30, g3.c[1] - 20) < 0.01, g3.c.map((x) => x.toFixed(2)).join(', '));
+    // after matching, each property's keys fix cleanly: the grown hole keeps its points and turn
+    const fixedHole = MF.fix([hole, MF.matchPieces([[outer, hole], [outer, sq(5, 5, 0.1, true)]]).keys[1][1]]);
+    check('pieces: a hole growing from a point fixes like any path', !fixedHole.fellBack && fixedHole.paths[0].v.length === fixedHole.paths[1].v.length, fixedHole.mode);
+}
+
+// ---- progress: the fix can be cancelled while it works, before anything is written ----------
+{
+    let calls = 0, threw = null;
+    try {
+        MF.fix(MD.keys.map(([, s]) => MD.shapes[s]), { progress: () => ++calls > 3 });
+    } catch (e) {
+        threw = e;
+    }
+    check('progress: returning true cancels the fix (it throws, writes nothing)', !!threw && threw.cancelled === true && calls === 4, String(calls));
+    let fr = [];
+    MF.fix(MD.keys.map(([, s]) => MD.shapes[s]), { progress: (f) => { fr.push(f); return false; } });
+    check('progress: fractions climb from 0 towards 1', fr.length > 5 && fr.every((f, j) => f >= 0 && f <= 1 && (j === 0 || f >= fr[j - 1] - 1e-9)), `${fr.length} calls, last ${fr[fr.length - 1].toFixed(2)}`);
 }
 
 // ---- random paths -------------------------------------------------------------------------

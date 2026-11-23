@@ -599,7 +599,7 @@ var MF = (function () {
     // every key rebuilt with the same points, at most maxPoints (corners and the start always
     // get one, so a path with more corners than that gets one per corner); more points until
     // each key is within tol px or the cap is reached
-    function rebuild(paths, maxPoints, tol) {
+    function rebuild(paths, maxPoints, tol, tick) {
         var Ms = [], p, most = 0;
         for (p = 0; p < paths.length; p++) {
             Ms.push(measure(paths[p]));
@@ -613,6 +613,7 @@ var MF = (function () {
             out = [];
             worst = 0;
             for (p = 0; p < paths.length; p++) {
+                if (tick) tick(0.3 + 0.6 * (round + p / paths.length) / 8);
                 out.push(resample(paths[p], Ms[p], F));
                 worst = Math.max(worst, strays(paths[p], Ms[p], out[p]));
             }
@@ -680,16 +681,22 @@ var MF = (function () {
             }
             return { paths: res.paths, keys: keys, matched: true, deviation: 0 };
         }
+        // o.progress(fraction 0...1) is called as the work goes; returning true cancels: fix()
+        // then throws { cancelled: true } (nothing is written by the math, so nothing changes)
+        var tick = o.progress ? function (f) {
+            if (o.progress(f)) throw { cancelled: true, message: 'cancelled' };
+        } : null;
         var al = [copy(paths[0])];
         keys.push({ reversed: false, moved: false, offset: 0 });
         for (k = 1; k < paths.length; k++) {
+            if (tick) tick(0.3 * k / paths.length);
             var r = align(al[k - 1], copy(paths[k]), o);
             al.push(r.P);
             keys.push(r.info);
         }
         var mode = o.mode;
         if (mode !== 'exact') {
-            res = rebuild(al, o.maxPoints, o.tolerance);
+            res = rebuild(al, o.maxPoints, o.tolerance, tick);
             if (res.failed) mode = 'exact';       // loops or cusps the rebuild can't follow
         }
         if (mode === 'exact') res = { paths: unify(al).paths, deviation: 0, capped: false };
@@ -886,10 +893,188 @@ var MF = (function () {
         return R;
     }
 
+    // ---- a turn written into the path itself (masks, and paths no group transform can turn) ----
+
+    // the shape at progress u (0 ... 1) of the step from key k, exactly as the group transform
+    // of pivots() would show it: position + R(angle) (local - anchor), the angle eased with u,
+    // the anchor and position held through a step that turns about a point and eased like the
+    // path through a slide. Baked one key a frame, it swings on the same arc.
+    function swing(T, local, k, u) {
+        var L = lerp(local[k], local[k + 1], u), a = T.angles[k] + (T.angles[k + 1] - T.angles[k]) * u;
+        var A = T.hold[k] ? T.anchor[k] : mix2(T.anchor[k], T.anchor[k + 1], u);
+        var P = T.hold[k] ? T.position[k] : mix2(T.position[k], T.position[k + 1], u);
+        var M = { v: [], i: L.i, o: L.o, closed: L.closed };
+        for (var j = 0; j < L.v.length; j++) M.v.push([L.v[j][0] - A[0], L.v[j][1] - A[1]]);
+        return turnPath(M, P, a);
+    }
+
+    function mix2(a, b, u) {
+        return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+    }
+
+    // how far (0 ... 1) shape V sits between keys A and B (same points): After Effects' own
+    // eased progress, read back from the path it shows, least squares over every vertex and
+    // tangent. Bakes in-betweens with the timing the keys already had.
+    function progressOf(V, A, B) {
+        var num = 0, den = 0, j, c, parts = ['v', 'i', 'o'], q;
+        for (q = 0; q < 3; q++) {
+            var a = A[parts[q]], b = B[parts[q]], v = V[parts[q]];
+            for (j = 0; j < a.length; j++) {
+                for (c = 0; c < 2; c++) {
+                    var d = b[j][c] - a[j][c];
+                    num += (v[j][c] - a[j][c]) * d;
+                    den += d * d;
+                }
+            }
+        }
+        if (den < 1e-12) return 0;
+        var u = num / den;
+        return u < 0 ? 0 : u > 1 ? 1 : u;
+    }
+
+    // ---- pieces: a letter with holes, a shape in several parts ----
+
+    function pieceInfo(P) {
+        var S = samples(P, measure(P)), ar = area(P), xs = [1e9, -1e9, 1e9, -1e9];
+        for (var j = 0; j < P.v.length; j++) {
+            xs[0] = Math.min(xs[0], P.v[j][0]);
+            xs[1] = Math.max(xs[1], P.v[j][0]);
+            xs[2] = Math.min(xs[2], P.v[j][1]);
+            xs[3] = Math.max(xs[3], P.v[j][1]);
+        }
+        var diag = Math.sqrt((xs[1] - xs[0]) * (xs[1] - xs[0]) + (xs[3] - xs[2]) * (xs[3] - xs[2]));
+        return { c: [S.cx, S.cy], size: Math.sqrt(ar < 0 ? -ar : ar), sign: ar > 0 ? 1 : ar < 0 ? -1 : 0, box: xs, diag: diag };
+    }
+
+    // every order of 0 ... n-1 (n is small: a letter has at most a handful of pieces)
+    function orders(n) {
+        var out = [], cur = [], used = [];
+        function go() {
+            if (cur.length === n) {
+                out.push(cur.slice(0));
+                return;
+            }
+            for (var i = 0; i < n; i++) {
+                if (used[i]) continue;
+                used[i] = true;
+                cur.push(i);
+                go();
+                cur.pop();
+                used[i] = false;
+            }
+        }
+        go();
+        return out;
+    }
+
+    // A shape in several pieces: keys[k][p] is the path of piece p (one Path property each) at
+    // key k. Each key's pieces are dealt out to the properties so every property morphs between
+    // pieces that correspond (outline to outline, a hole to the hole nearest it), keeping the
+    // drawn order unless another cuts the cost by 20 % or more. A piece missing at a key (drawn
+    // as a dot or collapsed: under 3 % of that key's largest piece) grows from a point: it
+    // becomes a tiny copy of the same property's piece at the nearest key that has one, at the
+    // dot if the dot sits inside the shape, else at that piece's centre. Closed paths only.
+    // -> { keys, moved (pieces dealt to another property), grown (pieces that grow or shrink) }
+    function matchPieces(keys) {
+        var K = keys.length, n = keys[0].length, k, p, j;
+        for (k = 0; k < K; k++) {
+            if (keys[k].length !== n) throw new Error('keys with different numbers of pieces');
+            for (p = 0; p < n; p++) if (!keys[k][p].closed) return { keys: keys, moved: 0, grown: 0 };
+        }
+        var info = [], out = [];
+        for (k = 0; k < K; k++) {
+            var row = [], big = 0, sign = 0;
+            for (p = 0; p < n; p++) {
+                var I = pieceInfo(keys[k][p]);
+                row.push(I);
+                if (I.size > big) {
+                    big = I.size;
+                    sign = I.sign;
+                }
+            }
+            for (p = 0; p < n; p++) {
+                row[p].absent = row[p].size < 0.03 * big || row[p].diag < 1;
+                row[p].hole = !row[p].absent && row[p].sign !== 0 && row[p].sign !== sign;
+            }
+            info.push(row);
+        }
+        var all = n <= 7 ? orders(n) : null, order = [], moved = 0;
+        for (p = 0; p < n; p++) order.push(p);
+        out.push(keys[0].slice(0));
+        var prev = info[0];
+        for (k = 1; k < K; k++) {
+            var cur = info[k], S = 1e-9;
+            for (p = 0; p < n; p++) S = Math.max(S, prev[p].size, cur[p].size);
+            var cost = function (a, b) {
+                if (a.absent && b.absent) return 0;
+                if (a.absent || b.absent) return 0.3;
+                var dx = (a.c[0] - b.c[0]) / S, dy = (a.c[1] - b.c[1]) / S, ds = (a.size - b.size) / S;
+                return dx * dx + dy * dy + ds * ds + (a.hole !== b.hole ? 0.5 : 0);
+            };
+            var total = function (ord) {
+                var t = 0;
+                for (var q = 0; q < n; q++) t += cost(prev[q], cur[ord[q]]);
+                return t;
+            };
+            var best = order.slice(0), keep = total(best), bestCost = keep;
+            if (all) {
+                for (j = 0; j < all.length; j++) {
+                    var c = total(all[j]);
+                    if (c < bestCost - 1e-12) {
+                        bestCost = c;
+                        best = all[j];
+                    }
+                }
+            }
+            if (bestCost > keep * 0.8) best = order.slice(0);      // not clearly better: keep
+            var row2 = [], inf2 = [];
+            for (p = 0; p < n; p++) {
+                row2.push(keys[k][best[p]]);
+                inf2.push(cur[best[p]]);
+                if (best[p] !== p) moved++;
+            }
+            out.push(row2);
+            info[k] = inf2;
+            prev = inf2;
+        }
+        // missing pieces grow from (or shrink to) a point
+        var grown = 0;
+        for (p = 0; p < n; p++) {
+            for (k = 0; k < K; k++) {
+                if (!info[k][p].absent) continue;
+                var src = -1;
+                for (var d = 1; d < K && src < 0; d++) {
+                    if (k + d < K && !info[k + d][p].absent) src = k + d;
+                    else if (k - d >= 0 && !info[k - d][p].absent) src = k - d;
+                }
+                if (src < 0) continue;
+                var R = out[src][p], Ri = info[src][p], at = Ri.c, dot = info[k][p].c, box = null;
+                for (j = 0; j < n; j++) {
+                    if (info[k][j].absent) continue;
+                    var bx = info[k][j].box;
+                    box = box ? [Math.min(box[0], bx[0]), Math.max(box[1], bx[1]), Math.min(box[2], bx[2]), Math.max(box[3], bx[3])] : bx.slice(0);
+                }
+                // the dot where it was drawn: inside the shape's other pieces, or anywhere when
+                // the shape has no other piece at that key
+                if (!box || (dot[0] >= box[0] && dot[0] <= box[1] && dot[1] >= box[2] && dot[1] <= box[3])) at = dot;
+                var s = 0.002, T = { v: [], i: [], o: [], closed: true };
+                for (j = 0; j < R.v.length; j++) {
+                    T.v.push([at[0] + (R.v[j][0] - Ri.c[0]) * s, at[1] + (R.v[j][1] - Ri.c[1]) * s]);
+                    T.i.push([R.i[j][0] * s, R.i[j][1] * s]);
+                    T.o.push([R.o[j][0] * s, R.o[j][1] * s]);
+                }
+                out[k][p] = T;
+                grown++;
+            }
+        }
+        return { keys: out, moved: moved, grown: grown };
+    }
+
     return {
         fix: fix, align: align, unify: unify, rebuild: rebuild, corners: corners, insert: insert, reverse: reverse, rotate: rotate,
         measure: measure, at: at, fractions: fractions, area: area, winding: winding, rms: rms, deviation: deviation,
         lerp: lerp, copy: copy, seg: seg, segCount: segCount, bez: bez, turnPath: turnPath, turnFrom: turnFrom,
+        swing: swing, progressOf: progressOf, matchPieces: matchPieces, pieceInfo: pieceInfo,
         // how far two paths part (px), quick two-way check (what the rebuild holds to its tolerance)
         gap: function (A, B) { return strays(A, measure(A), B); }
     };
@@ -957,7 +1142,7 @@ var MorphFixer = (function () {
         }
         if (!found.length) for (i = 0; i < comp.selectedLayers.length; i++) collect(comp.selectedLayers[i], found);
         for (i = 0; i < found.length; i++) {
-            var id = describe(found[i]);
+            var id = uid(found[i]);
             if (!seen[id]) {
                 seen[id] = true;
                 out.push(found[i]);
@@ -1084,30 +1269,81 @@ var MorphFixer = (function () {
         }
     }
 
-    // fixPath(pathProperty, options) -> a report: { label, keys, from, to, reversed, moved,
-    // before, after, turned, scale, deviation (comp pixels) } or { label, skipped }
-    function fixPath(prop, opts) {
-        var o = {}, k;
+    function consecutive(idx) {
+        for (var k = 1; k < idx.length; k++) if (idx[k] !== idx[k - 1] + 1) return false;
+        return true;
+    }
+
+    // a turn written into the path itself, where no group transform can carry it (masks, a path
+    // sharing its group, a group already animated): the keys as drawn, then one key a frame
+    // through every turning step, each the shape swung along the arc (MF.swing) at After
+    // Effects' own eased progress between the keys (read back with valueAtTime). Those keys and
+    // the sides of the step's keys facing them are linear: the easing is in the shapes.
+    // -> the number of in-between keys written
+    function bakeTurn(prop, idx, r) {
+        var T = r.turn, comp = prop.propertyGroup(prop.propertyDepth).containingComp, fd = comp.frameDuration, k, j;
+        for (k = 0; k < idx.length; k++) prop.setValueAtKey(idx[k], fromMF(r.placed[k]));
+        var times = [], shapes = [], steps = [];
+        for (k = 0; k + 1 < idx.length; k++) {
+            if (Math.abs(T.angles[k + 1] - T.angles[k]) < 0.5) continue;
+            if (prop.keyOutInterpolationType(idx[k]) === KeyframeInterpolationType.HOLD) continue;
+            var t0 = prop.keyTime(idx[k]), t1 = prop.keyTime(idx[k + 1]);
+            for (j = 1; t0 + j * fd < t1 - fd / 2; j++) {
+                var t = t0 + j * fd, u = MF.progressOf(toMF(prop.valueAtTime(t, false)), r.placed[k], r.placed[k + 1]);
+                times.push(t);
+                shapes.push(fromMF(MF.swing(T, r.paths, k, u)));
+            }
+            steps.push([t0, t1]);
+        }
+        if (!times.length) return 0;
+        prop.setValuesAtTimes(times, shapes);
+        var LIN = KeyframeInterpolationType.LINEAR;
+        for (j = 0; j < times.length; j++) {
+            var at = prop.nearestKeyIndex(times[j]);
+            prop.setInterpolationTypeAtKey(at, LIN, LIN);
+        }
+        for (k = 0; k < steps.length; k++) {
+            var a = prop.nearestKeyIndex(steps[k][0]), b = prop.nearestKeyIndex(steps[k][1]);
+            prop.setInterpolationTypeAtKey(a, prop.keyInInterpolationType(a), LIN);
+            prop.setInterpolationTypeAtKey(b, LIN, prop.keyOutInterpolationType(b));
+        }
+        return times.length;
+    }
+
+    // planPath(pathProperty, options, given, mustWrite) -> { rep, apply }: reads the keys (or
+    // takes `given`, the keys as MF paths after the pieces were matched), works the fix out and
+    // writes nothing, so a fix can be cancelled with nothing changed; apply() writes it. The
+    // report: { label, keys, from, to, reversed, moved, before, after, turned, baked, scale,
+    // deviation (comp pixels) } or { label, skipped }. options.progress(fraction) -> true
+    // cancels (it throws { cancelled: true }).
+    function planPath(prop, opts, given, mustWrite) {
+        var o = {}, k, idle = function () {};
         for (k in DEFAULTS) o[k] = DEFAULTS[k];
         if (opts) for (k in opts) o[k] = opts[k];
-        var rep = { label: describe(prop) };
+        var rep = { label: describe(prop) }, plan = { rep: rep, apply: idle };
         if (prop.expression !== '' && prop.expressionEnabled) {
             rep.skipped = 'it has an expression';
-            return rep;
+            return plan;
         }
         var idx = keyIndices(prop);
         rep.scale = magnification(prop);
         o.tolerance = o.tolerance / rep.scale;
         if (idx.length < 2) {
             rep.skipped = 'fewer than two keyframes';
-            return rep;
+            return plan;
         }
-        var group = null;
+        // a turn goes into the group's Rotation where it can, else into in-between keys
+        var group = null, bake = false;
         if (o.rotate) {
             group = turnGroup(prop, idx.length === prop.numKeys);
             if (group.why) {
-                rep.noTurn = group.why;
-                o.rotate = false;
+                if (consecutive(idx)) {
+                    bake = true;
+                    rep.bakeWhy = group.why;
+                } else {
+                    rep.noTurn = group.why + ', and the selected keys are not next to each other';
+                    o.rotate = false;
+                }
             }
         }
         var paths = [], counts = [];
@@ -1115,28 +1351,43 @@ var MorphFixer = (function () {
             var s = prop.keyValue(idx[k]);
             if (s.featherSegLocs && s.featherSegLocs.length) {
                 rep.skipped = 'its mask has feather points (they belong to segments that would move)';
-                return rep;
+                return plan;
             }
-            paths.push(toMF(s));
+            paths.push(given ? given[k] : toMF(s));
             counts.push(s.vertices.length);
         }
         var r;
         try {
             r = MF.fix(paths, o);
         } catch (e) {
+            if (e && e.cancelled) throw e;
             rep.skipped = e.message;
-            return rep;
+            return plan;
         }
         if (r.matched) {
             rep.matched = true;
             rep.keys = idx.length;
-            return rep;
+            if (mustWrite) {
+                // the pieces were dealt out anew: write them even though no points change
+                plan.apply = function () {
+                    for (var q = 0; q < idx.length; q++) prop.setValueAtKey(idx[q], fromMF(paths[q]));
+                };
+            }
+            return plan;
         }
-        for (k = 0; k < idx.length; k++) prop.setValueAtKey(idx[k], fromMF(r.paths[k]));
-        if (r.turn) {
-            rep.turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
-            rep.timingApprox = writeTurn(prop, idx, r.turn, group.transform);
-        }
+        plan.apply = function () {
+            var q;
+            if (r.turn && bake) {
+                rep.baked = bakeTurn(prop, idx, r);
+                rep.turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
+                return;
+            }
+            for (q = 0; q < idx.length; q++) prop.setValueAtKey(idx[q], fromMF(r.paths[q]));
+            if (r.turn) {
+                rep.turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
+                rep.timingApprox = writeTurn(prop, idx, r.turn, group.transform);
+            }
+        };
         var lo = counts[0], hi = counts[0], rev = 0, mov = 0, b = 0, a = 0, n = 0;
         for (k = 0; k < idx.length; k++) {
             if (counts[k] < lo) lo = counts[k];
@@ -1161,7 +1412,14 @@ var MorphFixer = (function () {
         rep.capped = r.capped;
         rep.pathDeviation = r.deviation;                // in the path's own units
         rep.deviation = r.deviation * rep.scale;        // in comp pixels, what the status shows
-        return rep;
+        return plan;
+    }
+
+    // fixes one path at once (plan, then write) -> its report
+    function fixPath(prop, opts) {
+        var plan = planPath(prop, opts);
+        plan.apply();
+        return plan.rep;
     }
 
     function round3(x) {
@@ -1172,7 +1430,9 @@ var MorphFixer = (function () {
         if (rep.skipped) return rep.label + ': skipped, ' + rep.skipped + '.';
         if (rep.matched) return rep.label + ': already matched, left as it is.';
         var how, turned = '';
-        if (rep.turned !== undefined) {
+        if (rep.turned !== undefined && rep.baked !== undefined) {
+            turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, one a frame (' + rep.bakeWhy + ')';
+        } else if (rep.turned !== undefined) {
             turned = '; turned ' + Math.round(rep.turned) + ' deg by its group\'s Rotation' +
                 (rep.timingApprox ? ' (custom key speeds approximated: Easy Ease shapes copy exactly)' : '');
         } else if (rep.noTurn) {
@@ -1399,9 +1659,132 @@ var MorphFixer = (function () {
         bar.alignment = ['right', 'top'];
         var no = bar.add('button', undefined, 'Cancel', { name: 'cancel' });
         var yes = bar.add('button', undefined, 'Fix anyway', { name: 'ok' });
+        // each button closes the dialog itself: ScriptUI only closes it for the default and
+        // cancel elements, so with Enter on Cancel, Fix anyway needs its own handler (clicking
+        // it did nothing until it had one)
+        yes.onClick = function () {
+            w.close(1);
+        };
+        no.onClick = function () {
+            w.close(2);
+        };
         w.defaultElement = no;         // Enter cancels: going ahead is the deliberate click
         w.cancelElement = no;
         return w.show() === 1;
+    }
+
+    // ---- pieces: sibling paths that make one shape (a letter and its holes) ----
+
+    // where a property sits, by index (names repeat, and change with AE's language)
+    function uid(p) {
+        var s = [], q = p;
+        while (q && q.parentProperty) {
+            s.unshift(q.propertyIndex);
+            q = q.parentProperty;
+        }
+        return p.propertyGroup(p.propertyDepth).index + ':' + s.join('.');
+    }
+
+    function sameTimes(a, b) {
+        if (a.numKeys !== b.numKeys) return false;
+        for (var k = 1; k <= a.numKeys; k++) if (Math.abs(a.keyTime(k) - b.keyTime(k)) > 1e-6) return false;
+        return true;
+    }
+
+    // the targets as shapes in pieces: keyed paths that are siblings (in one shape group, or a
+    // layer's masks of one mode) with the same key times, all their keys in play. A path on its
+    // own is a shape of one piece. Paths with only some keys selected stay out (singles).
+    // -> { groups: [[prop, ...]], singles: [prop, ...] }
+    function pieceGroups(list) {
+        var byId = {}, ids = [], singles = [], groups = [], i, k;
+        for (i = 0; i < list.length; i++) {
+            var p = list[i], id = null;
+            try {
+                var partial = p.selectedKeys && p.selectedKeys.length >= 2 && p.selectedKeys.length < p.numKeys;
+                if (!partial) {
+                    if (p.matchName === 'ADBE Mask Shape') id = 'mask ' + p.propertyGroup(p.propertyDepth).index + ' ' + p.parentProperty.maskMode;
+                    else if (p.parentProperty && p.parentProperty.parentProperty) id = 'shape ' + uid(p.parentProperty.parentProperty);
+                }
+            } catch (e) {
+                id = null;
+            }
+            if (id === null) {
+                singles.push(p);
+                continue;
+            }
+            if (!byId[id]) {
+                byId[id] = [];
+                ids.push(id);
+            }
+            byId[id].push(p);
+        }
+        for (i = 0; i < ids.length; i++) {
+            var g = byId[ids[i]], same = true;
+            for (k = 1; same && k < g.length; k++) same = sameTimes(g[0], g[k]);
+            if (same) groups.push(g);
+            else for (k = 0; k < g.length; k++) groups.push([g[k]]);
+        }
+        return { groups: groups, singles: singles };
+    }
+
+    // ---- progress, with Esc to cancel (nothing is written until the work is done) ----
+
+    function escPressed() {
+        if (api.escape) return api.escape();
+        try {
+            return ScriptUI.environment.keyboardState.keyName === 'Escape';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // the progress window's own title (Window.find tells it from the guide by it)
+    var PROGRESS_TITLE = NAME + ': working';
+
+    function progressWindow() {
+        var w = new Window('palette', PROGRESS_TITLE, undefined, { closeButton: false });
+        w.orientation = 'column';
+        w.alignChildren = ['fill', 'top'];
+        w.margins = 14;
+        w.spacing = 8;
+        var label = w.add('statictext', undefined, 'Working it out...');
+        label.characters = 40;
+        var bar = w.add('progressbar', undefined, 0, 100);
+        bar.preferredSize = [300, 10];
+        // Esc is read when the work checks in (every key, every round), up to about half a second
+        // apart on dense paths: holding it is what reliably lands
+        w.add('statictext', undefined, 'Hold Esc to cancel. Nothing changes until it is done.');
+        w.center();
+        w.show();
+        w.update();
+        var last = 0;
+        return {
+            step: function (text, frac) {
+                var now = new Date().getTime();
+                if (now - last > 80) {
+                    label.text = text;
+                    bar.value = Math.max(0, Math.min(100, frac * 100));
+                    w.update();
+                    last = now;
+                }
+                return escPressed();
+            },
+            // While a fix keeps After Effects busy for more than about 5 s, Windows swaps its
+            // windows for stand-ins, and when AE answers again puts each back as it was: a palette
+            // closed in that time came back on screen (ScriptUI said it was closed), with no close
+            // button. So it is closed only once AE is responsive again, by a one-shot task a moment
+            // after the fix ends, which finds it by title (nothing kept on $.global).
+            close: function () {
+                try {
+                    label.text = 'Done';
+                    bar.value = 100;
+                    w.update();
+                    app.scheduleTask("(function () { var w = Window.find('palette', '" + PROGRESS_TITLE + "'); if (w) w.close(); })()", 300, false);
+                } catch (e) {
+                    w.close();
+                }
+            }
+        };
     }
 
     // fixes the keyed paths selected in the active comp -> { status, detail, reports }: a status
@@ -1439,14 +1822,71 @@ var MorphFixer = (function () {
                 detail: (count ? 'Depends on the points:\n' + warnLines.join('\n') + '\n' : '') + (seconds > 10 ? 'Estimated time: about ' + Math.round(seconds) + ' s.' : '')
             };
         }
+        // work it all out first, writing nothing: a shape's pieces are matched between keys,
+        // then every path is planned. Esc (with the progress shown) cancels with nothing changed
+        var jobs = [], pieceLines = [], movedN = 0, grownN = 0, plans = [], g, p, k;
+        var pg = pieceGroups(list);
+        for (i = 0; i < pg.groups.length; i++) {
+            g = pg.groups[i];
+            try {
+                var K = g[0].numKeys, keysMF = [], res;
+                for (k = 1; k <= K; k++) {
+                    var rowK = [];
+                    for (p = 0; p < g.length; p++) rowK.push(toMF(g[p].keyValue(k)));
+                    keysMF.push(rowK);
+                }
+                res = MF.matchPieces(keysMF);
+                for (p = 0; p < g.length; p++) {
+                    var given = [], changedP = false;
+                    for (k = 0; k < K; k++) {
+                        given.push(res.keys[k][p]);
+                        if (res.keys[k][p] !== keysMF[k][p]) changedP = true;
+                    }
+                    jobs.push({ prop: g[p], given: changedP ? given : null, mustWrite: changedP });
+                }
+                if (res.moved || res.grown) {
+                    movedN += res.moved;
+                    grownN += res.grown;
+                    pieceLines.push(shortLabel(describe(g[0])) + (g.length > 1 ? ' and ' + (g.length - 1) + ' more' : '') + ': ' +
+                        (res.moved ? res.moved + ' pieces dealt to the path that matches them' : '') + (res.moved && res.grown ? ', ' : '') +
+                        (res.grown ? res.grown + ' keys where a piece grows from a point' : ''));
+                }
+            } catch (eg) {
+                for (p = 0; p < g.length; p++) jobs.push({ prop: g[p] });
+            }
+        }
+        for (i = 0; i < pg.singles.length; i++) jobs.push({ prop: pg.singles[i] });
+        // progress for jobs estimated over 4 s (the estimate runs high on small jobs)
+        var prog = (seconds > 4 || api.escape) ? (api.escape ? null : progressWindow()) : null;
+        var step = function (text, f) {
+            return prog ? prog.step(text, f) : (api.escape ? api.escape() : false);
+        };
+        try {
+            for (i = 0; i < jobs.length; i++) {
+                var po = {}, key;
+                for (key in o) po[key] = o[key];
+                po.progress = function (f) {
+                    return step('Path ' + (i + 1) + ' of ' + jobs.length, (i + f) / jobs.length);
+                };
+                plans.push(planPath(jobs[i].prop, po, jobs[i].given, jobs[i].mustWrite));
+                if (step('Path ' + (i + 1) + ' of ' + jobs.length, (i + 1) / jobs.length)) throw { cancelled: true };
+            }
+        } catch (ec) {
+            if (prog) prog.close();
+            if (ec && ec.cancelled) return { status: 'Cancelled: nothing changed', detail: 'Cancelled with Esc before anything was written.', reports: [], cancelled: true, warned: warned, seconds: seconds };
+            return { status: 'Error (hover)', detail: String(ec && ec.message) + (ec && ec.line ? ' (line ' + ec.line + ')' : ''), reports: [] };
+        }
+        if (prog) prog.step('Writing the keys...', 1);
         app.beginUndoGroup(NAME);
         try {
-            for (i = 0; i < list.length; i++) {
-                var r = fixPath(list[i], opts);
+            for (i = 0; i < plans.length; i++) {
+                plans[i].apply();
+                var r = plans[i].rep;
                 reps.push(r);
                 lines.push(summary(r));
                 if (r.skipped) skipped++;
-                else if (r.matched) matched++;
+                else if (r.matched && !jobs[i].mustWrite) matched++;
+                else if (r.matched) fixed++;
                 else {
                     fixed++;
                     if (r.to < lo) lo = r.to;
@@ -1457,18 +1897,22 @@ var MorphFixer = (function () {
                 }
             }
         } catch (e) {
-            return { status: 'Error (hover)', detail: e.toString() + (e.line ? ' (line ' + e.line + ')' : ''), reports: reps };
+            if (prog) prog.close();
+            return { status: 'Error (hover)', detail: String(e && e.message) + (e && e.line ? ' (line ' + e.line + ')' : ''), reports: reps };
         } finally {
             app.endUndoGroup();
         }
+        if (prog) prog.close();
+        if (pieceLines.length) lines.push('', 'Pieces matched between keys:', pieceLines.join('\n'));
         var parts = [];
         if (fixed) parts.push('Fixed ' + fixed + ': ' + (lo === hi ? lo : lo + '-' + hi) + ' pts' + (worst ? (capped ? ', ~' : ', ') + round3(worst) + ' px' + (capped ? ' (max)' : '') : ''));
         if (turned) parts.push(turned + ' turned');
+        if (movedN || grownN) parts.push('pieces matched');
         if (matched) parts.push(matched + ' already matched');
         if (skipped) parts.push(skipped + ' skipped');
         if (count) parts.push(count + (count > 1 ? ' warnings' : ' warning') + ' (hover)');
         if (count) lines.push('', 'You were warned, and fixed anyway (' + KEY + '+Z undoes it):', warnLines.join('\n'));
-        return { status: parts.join(', '), detail: lines.join('\n'), reports: reps, warned: warned, seconds: seconds };
+        return { status: parts.join(', '), detail: lines.join('\n'), reports: reps, warned: warned, seconds: seconds, moved: movedN, grown: grownN };
     }
 
     // the guide behind ?, written for the person animating: what it does, three steps, what
@@ -1483,11 +1927,13 @@ var MorphFixer = (function () {
         settings: [
             ['Smooth', 'Redraws the points so the shape stays smooth all through the morph. Each key still looks the same (within 0.1 px) and corners stay sharp.'],
             ['Exact', 'Keeps your own points and only adds new ones. Keys stay exactly as drawn, but the morph may show small bumps.'],
-            ['max', 'The most points Smooth may use per key. If the status ends in "(max)", raise it for a closer fit.'],
-            ['turn', 'For shapes that rotate between keys, like an F turning onto its side: the shape swings round instead of squashing through the middle, and its group\'s Rotation is keyed for you. Put the path alone in a group first (select it, ' + KEY + '+G). Shape layers only.']
+            ['max', 'The most points Smooth may use per key. If the status ends in "(max)", raise it for a closer fit: big or detailed artwork, like type at 400 px, often needs 200 to 300.'],
+            ['turn', 'For shapes that rotate between keys, like an F turning onto its side: the shape swings round instead of squashing through the middle. With the path alone in a group (select it, ' + KEY + '+G), the group\'s Rotation is keyed for you; otherwise, as on masks, the turn is written into the path as one key a frame.']
         ],
         tips: [
             'Fixed paths have more points: finish drawing your keys first.',
+            'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, and a piece you draw as a dot grows from that dot.',
+            'Long fixes show their progress. Hold Esc to cancel: nothing changes.',
             'It asks first when Trim Paths, dashes, text on a path or an expression depend on where the points are, and when a fix will take more than 10 seconds.',
             'Rectangles, ellipses and stars: right-click the path > Convert To Bezier Path first.',
             'Paths with expressions and masks with feather points are left alone.',
@@ -1862,7 +2308,8 @@ var MorphFixer = (function () {
         install: install, isInstalled: isInstalled, panelsFolder: panelsFolder, toMF: toMF, fromMF: fromMF,
         version: VERSION, magnification: magnification, needs: needs, readers: readers, estimate: estimate, keyMs: keyMs,
         speed: speed, installedCopies: installedCopies, theme: theme, headingColor: headingColor,
-        ask: null, themeOverride: null        // test stand-ins: the question before a fix, the AE theme
+        planPath: planPath, pieceGroups: pieceGroups, uid: uid, bakeTurn: bakeTurn,
+        ask: null, themeOverride: null, escape: null     // test stand-ins: the question before a fix, the AE theme, Esc
     };
     return api;
 })();

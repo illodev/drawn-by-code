@@ -218,3 +218,61 @@ sentence, which holds AE's own (translated) names. The AE test checks the codes,
 the shape groups it makes itself ("Outline", not AE's "Path 1", which is "Pfad 1" in German).
 It passes in AE 27 (English). Not yet run in a localized AE: that takes a reinstall in
 another language, or a beta tester.
+
+## Round 5 · 2026-11-23 (the checklist's "does the right thing on real work")
+
+The user asked for everything in that section I could do. Built and tested:
+
+- **Progress, with Esc.** A fix is now planned in full (`planPath`), then written in one
+  undo step, so it can be cancelled with nothing changed.
+  - Jobs estimated over 4 s show a progress window; `MF.fix` calls back every key and
+    every rebuild round.
+  - Esc is read with `ScriptUI.environment.keyboardState`, so the window says "Hold Esc".
+- **Turning for masks**, and for paths no group can turn (sharing their group, a group
+  already animated, only some keys selected).
+  - The turn is written into the path as one key a frame: `MF.swing` gives exactly what the
+    group transform would show (a Node test compares them at 1e-9).
+  - The timing comes from After Effects' own eased progress, read back from the path
+    (`MF.progressOf`).
+  - In AE 27 an F turning as a mask got 58 in-between keys and kept 100 % of its area
+    halfway (as drawn: 50 %); at a key it sat 0.109 px from where it was drawn.
+- **Pieces: letters with holes.** Sibling paths keyed at the same times (one group, or a
+  layer's masks of one mode) are matched between keys first (`MF.matchPieces`).
+  - The cost is centre distance, size, and outline vs hole. An order other than the drawn
+    one is used only when it cuts the cost by 20 %.
+  - A piece drawn as a dot grows from it as a tiny copy of itself.
+  - In AE an O closing into a C works as Add and Subtract masks too.
+- **Real artwork.** `art/ttf.mjs` reads letter outlines from the repo's OFL fonts (checked by
+  eye: `art/look.mjs`).
+  - 20 cases keyed the way a designer would: O into C, B into 8 pasted out of order, i into
+    l, engraved letters of 120–300 points a piece, a ten-key chain, turning letters, 24 and
+    2000 px type.
+  - Node: 128 checks pass (`review/art-report.md`). AE 27, through the panel's own code plus
+    the two mask cases: all pass (`review/art-log.txt`, `review/art-times.md`).
+  - What it taught:
+    - Fonts store a letter's pieces in no particular order (an i lists its dot first), so
+      matching pieces is needed even without shuffling.
+    - At 400 px the default max of 100 often stops letters 0.15–0.7 px off: the guide now
+      says big type needs 200–300.
+    - The time estimate runs high on small jobs (4.4 s for 1.1 s) and close on long ones
+      (24.2 s for 22.9 s).
+- **Limits:** written down in the README ("Limits that stay"), each one with its reason.
+
+Testing by hand in AE 27 found two bugs that no script could have found:
+
+- **"Fix anyway" did nothing when clicked.** ScriptUI closes a dialog by itself only for its
+  default and cancel elements. With Cancel made the default in round 4, Fix anyway had no
+  way to close the dialog. → Both buttons close it in their own `onClick`. Retested: the fix
+  starts and the progress window shows ("Path 1 of 3").
+- **The progress window stayed on screen after a 13 s fix**, with no close button. ScriptUI
+  reported it closed, but the window (AE's own, class `DroverLord`) was showing. While a
+  script keeps AE busy more than about 5 s, Windows swaps its windows for stand-ins and
+  later puts each back as it was. → The window now shows "Done" and is closed by a one-shot
+  `app.scheduleTask` a moment after the fix, found by its own title. **Not yet checked by
+  hand.** Clearing it took an AE restart (the test project discarded).
+- Esc during a fix couldn't be pressed from here: a busy AE becomes a stand-in window that
+  the screen tool won't type into. The cancel path is tested in Node (a progress callback
+  that cancels: nothing written); the panel's own `FX.escape` stand-in and a held Esc in AE
+  are not tested yet.
+- My test runner was refused once more with "second script" (AE wedged after the stuck
+  window); the user restarted it through me.

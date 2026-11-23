@@ -592,7 +592,7 @@ var MF = (function () {
     // every key rebuilt with the same points, at most maxPoints (corners and the start always
     // get one, so a path with more corners than that gets one per corner); more points until
     // each key is within tol px or the cap is reached
-    function rebuild(paths, maxPoints, tol) {
+    function rebuild(paths, maxPoints, tol, tick) {
         var Ms = [], p, most = 0;
         for (p = 0; p < paths.length; p++) {
             Ms.push(measure(paths[p]));
@@ -606,6 +606,7 @@ var MF = (function () {
             out = [];
             worst = 0;
             for (p = 0; p < paths.length; p++) {
+                if (tick) tick(0.3 + 0.6 * (round + p / paths.length) / 8);
                 out.push(resample(paths[p], Ms[p], F));
                 worst = Math.max(worst, strays(paths[p], Ms[p], out[p]));
             }
@@ -673,16 +674,22 @@ var MF = (function () {
             }
             return { paths: res.paths, keys: keys, matched: true, deviation: 0 };
         }
+        // o.progress(fraction 0...1) is called as the work goes; returning true cancels: fix()
+        // then throws { cancelled: true } (nothing is written by the math, so nothing changes)
+        var tick = o.progress ? function (f) {
+            if (o.progress(f)) throw { cancelled: true, message: 'cancelled' };
+        } : null;
         var al = [copy(paths[0])];
         keys.push({ reversed: false, moved: false, offset: 0 });
         for (k = 1; k < paths.length; k++) {
+            if (tick) tick(0.3 * k / paths.length);
             var r = align(al[k - 1], copy(paths[k]), o);
             al.push(r.P);
             keys.push(r.info);
         }
         var mode = o.mode;
         if (mode !== 'exact') {
-            res = rebuild(al, o.maxPoints, o.tolerance);
+            res = rebuild(al, o.maxPoints, o.tolerance, tick);
             if (res.failed) mode = 'exact';       // loops or cusps the rebuild can't follow
         }
         if (mode === 'exact') res = { paths: unify(al).paths, deviation: 0, capped: false };
@@ -879,10 +886,188 @@ var MF = (function () {
         return R;
     }
 
+    // ---- a turn written into the path itself (masks, and paths no group transform can turn) ----
+
+    // the shape at progress u (0 ... 1) of the step from key k, exactly as the group transform
+    // of pivots() would show it: position + R(angle) (local - anchor), the angle eased with u,
+    // the anchor and position held through a step that turns about a point and eased like the
+    // path through a slide. Baked one key a frame, it swings on the same arc.
+    function swing(T, local, k, u) {
+        var L = lerp(local[k], local[k + 1], u), a = T.angles[k] + (T.angles[k + 1] - T.angles[k]) * u;
+        var A = T.hold[k] ? T.anchor[k] : mix2(T.anchor[k], T.anchor[k + 1], u);
+        var P = T.hold[k] ? T.position[k] : mix2(T.position[k], T.position[k + 1], u);
+        var M = { v: [], i: L.i, o: L.o, closed: L.closed };
+        for (var j = 0; j < L.v.length; j++) M.v.push([L.v[j][0] - A[0], L.v[j][1] - A[1]]);
+        return turnPath(M, P, a);
+    }
+
+    function mix2(a, b, u) {
+        return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+    }
+
+    // how far (0 ... 1) shape V sits between keys A and B (same points): After Effects' own
+    // eased progress, read back from the path it shows, least squares over every vertex and
+    // tangent. Bakes in-betweens with the timing the keys already had.
+    function progressOf(V, A, B) {
+        var num = 0, den = 0, j, c, parts = ['v', 'i', 'o'], q;
+        for (q = 0; q < 3; q++) {
+            var a = A[parts[q]], b = B[parts[q]], v = V[parts[q]];
+            for (j = 0; j < a.length; j++) {
+                for (c = 0; c < 2; c++) {
+                    var d = b[j][c] - a[j][c];
+                    num += (v[j][c] - a[j][c]) * d;
+                    den += d * d;
+                }
+            }
+        }
+        if (den < 1e-12) return 0;
+        var u = num / den;
+        return u < 0 ? 0 : u > 1 ? 1 : u;
+    }
+
+    // ---- pieces: a letter with holes, a shape in several parts ----
+
+    function pieceInfo(P) {
+        var S = samples(P, measure(P)), ar = area(P), xs = [1e9, -1e9, 1e9, -1e9];
+        for (var j = 0; j < P.v.length; j++) {
+            xs[0] = Math.min(xs[0], P.v[j][0]);
+            xs[1] = Math.max(xs[1], P.v[j][0]);
+            xs[2] = Math.min(xs[2], P.v[j][1]);
+            xs[3] = Math.max(xs[3], P.v[j][1]);
+        }
+        var diag = Math.sqrt((xs[1] - xs[0]) * (xs[1] - xs[0]) + (xs[3] - xs[2]) * (xs[3] - xs[2]));
+        return { c: [S.cx, S.cy], size: Math.sqrt(ar < 0 ? -ar : ar), sign: ar > 0 ? 1 : ar < 0 ? -1 : 0, box: xs, diag: diag };
+    }
+
+    // every order of 0 ... n-1 (n is small: a letter has at most a handful of pieces)
+    function orders(n) {
+        var out = [], cur = [], used = [];
+        function go() {
+            if (cur.length === n) {
+                out.push(cur.slice(0));
+                return;
+            }
+            for (var i = 0; i < n; i++) {
+                if (used[i]) continue;
+                used[i] = true;
+                cur.push(i);
+                go();
+                cur.pop();
+                used[i] = false;
+            }
+        }
+        go();
+        return out;
+    }
+
+    // A shape in several pieces: keys[k][p] is the path of piece p (one Path property each) at
+    // key k. Each key's pieces are dealt out to the properties so every property morphs between
+    // pieces that correspond (outline to outline, a hole to the hole nearest it), keeping the
+    // drawn order unless another cuts the cost by 20 % or more. A piece missing at a key (drawn
+    // as a dot or collapsed: under 3 % of that key's largest piece) grows from a point: it
+    // becomes a tiny copy of the same property's piece at the nearest key that has one, at the
+    // dot if the dot sits inside the shape, else at that piece's centre. Closed paths only.
+    // -> { keys, moved (pieces dealt to another property), grown (pieces that grow or shrink) }
+    function matchPieces(keys) {
+        var K = keys.length, n = keys[0].length, k, p, j;
+        for (k = 0; k < K; k++) {
+            if (keys[k].length !== n) throw new Error('keys with different numbers of pieces');
+            for (p = 0; p < n; p++) if (!keys[k][p].closed) return { keys: keys, moved: 0, grown: 0 };
+        }
+        var info = [], out = [];
+        for (k = 0; k < K; k++) {
+            var row = [], big = 0, sign = 0;
+            for (p = 0; p < n; p++) {
+                var I = pieceInfo(keys[k][p]);
+                row.push(I);
+                if (I.size > big) {
+                    big = I.size;
+                    sign = I.sign;
+                }
+            }
+            for (p = 0; p < n; p++) {
+                row[p].absent = row[p].size < 0.03 * big || row[p].diag < 1;
+                row[p].hole = !row[p].absent && row[p].sign !== 0 && row[p].sign !== sign;
+            }
+            info.push(row);
+        }
+        var all = n <= 7 ? orders(n) : null, order = [], moved = 0;
+        for (p = 0; p < n; p++) order.push(p);
+        out.push(keys[0].slice(0));
+        var prev = info[0];
+        for (k = 1; k < K; k++) {
+            var cur = info[k], S = 1e-9;
+            for (p = 0; p < n; p++) S = Math.max(S, prev[p].size, cur[p].size);
+            var cost = function (a, b) {
+                if (a.absent && b.absent) return 0;
+                if (a.absent || b.absent) return 0.3;
+                var dx = (a.c[0] - b.c[0]) / S, dy = (a.c[1] - b.c[1]) / S, ds = (a.size - b.size) / S;
+                return dx * dx + dy * dy + ds * ds + (a.hole !== b.hole ? 0.5 : 0);
+            };
+            var total = function (ord) {
+                var t = 0;
+                for (var q = 0; q < n; q++) t += cost(prev[q], cur[ord[q]]);
+                return t;
+            };
+            var best = order.slice(0), keep = total(best), bestCost = keep;
+            if (all) {
+                for (j = 0; j < all.length; j++) {
+                    var c = total(all[j]);
+                    if (c < bestCost - 1e-12) {
+                        bestCost = c;
+                        best = all[j];
+                    }
+                }
+            }
+            if (bestCost > keep * 0.8) best = order.slice(0);      // not clearly better: keep
+            var row2 = [], inf2 = [];
+            for (p = 0; p < n; p++) {
+                row2.push(keys[k][best[p]]);
+                inf2.push(cur[best[p]]);
+                if (best[p] !== p) moved++;
+            }
+            out.push(row2);
+            info[k] = inf2;
+            prev = inf2;
+        }
+        // missing pieces grow from (or shrink to) a point
+        var grown = 0;
+        for (p = 0; p < n; p++) {
+            for (k = 0; k < K; k++) {
+                if (!info[k][p].absent) continue;
+                var src = -1;
+                for (var d = 1; d < K && src < 0; d++) {
+                    if (k + d < K && !info[k + d][p].absent) src = k + d;
+                    else if (k - d >= 0 && !info[k - d][p].absent) src = k - d;
+                }
+                if (src < 0) continue;
+                var R = out[src][p], Ri = info[src][p], at = Ri.c, dot = info[k][p].c, box = null;
+                for (j = 0; j < n; j++) {
+                    if (info[k][j].absent) continue;
+                    var bx = info[k][j].box;
+                    box = box ? [Math.min(box[0], bx[0]), Math.max(box[1], bx[1]), Math.min(box[2], bx[2]), Math.max(box[3], bx[3])] : bx.slice(0);
+                }
+                // the dot where it was drawn: inside the shape's other pieces, or anywhere when
+                // the shape has no other piece at that key
+                if (!box || (dot[0] >= box[0] && dot[0] <= box[1] && dot[1] >= box[2] && dot[1] <= box[3])) at = dot;
+                var s = 0.002, T = { v: [], i: [], o: [], closed: true };
+                for (j = 0; j < R.v.length; j++) {
+                    T.v.push([at[0] + (R.v[j][0] - Ri.c[0]) * s, at[1] + (R.v[j][1] - Ri.c[1]) * s]);
+                    T.i.push([R.i[j][0] * s, R.i[j][1] * s]);
+                    T.o.push([R.o[j][0] * s, R.o[j][1] * s]);
+                }
+                out[k][p] = T;
+                grown++;
+            }
+        }
+        return { keys: out, moved: moved, grown: grown };
+    }
+
     return {
         fix: fix, align: align, unify: unify, rebuild: rebuild, corners: corners, insert: insert, reverse: reverse, rotate: rotate,
         measure: measure, at: at, fractions: fractions, area: area, winding: winding, rms: rms, deviation: deviation,
         lerp: lerp, copy: copy, seg: seg, segCount: segCount, bez: bez, turnPath: turnPath, turnFrom: turnFrom,
+        swing: swing, progressOf: progressOf, matchPieces: matchPieces, pieceInfo: pieceInfo,
         // how far two paths part (px), quick two-way check (what the rebuild holds to its tolerance)
         gap: function (A, B) { return strays(A, measure(A), B); }
     };

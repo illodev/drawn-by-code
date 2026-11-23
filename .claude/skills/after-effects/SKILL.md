@@ -173,10 +173,26 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   - Scale it to the machine with a short calibration run, done only when the job looks long.
   - Check it against a real fix: 6.9 s estimated, 6.2 s taken.
 - Ask once, in a modal dialog with Cancel as the default (`defaultElement` = Cancel), and
-  only for warnings or jobs over 10 s. Group the warnings under a short path name, one
+  only for warnings or jobs over 10 s. **Give every button an `onClick` that calls
+  `w.close(n)`**: ScriptUI closes a dialog by itself only for the default and cancel
+  elements, so a third button (Fix anyway, once Cancel became the default) did nothing. Group the warnings under a short path name, one
   plain sentence each. After the user goes ahead, count the warnings in the status line.
 - Give each warning a code next to its sentence. The sentence quotes AE's names, which
   change with its language; tests check the code.
+
+**Long jobs**
+
+- Plan, then write: work every path out first (no writes), then write it all in one undo
+  step. Then a progress window can offer to cancel, and cancelling changes nothing.
+- Progress: a `palette` with a `progressbar`, updated (`w.update()`) from a callback the math
+  calls every key and round. Read Esc with `ScriptUI.environment.keyboardState.keyName`; it
+  is only read when the work checks in, so tell users to hold it.
+- **Don't close that window while AE is still busy.** A script that keeps AE busy for more
+  than about 5 s makes Windows swap AE's windows for stand-ins. Each is put back as it was
+  when AE answers, so a palette closed in that time came back on screen with ScriptUI
+  saying it was closed. It had no close button and needed an AE restart. Give it a title of
+  its own and close it from a one-shot `app.scheduleTask` a moment after the work ends, found
+  by `Window.find('palette', title)`.
 
 **Language**
 
@@ -287,6 +303,9 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   `app.executeCommand(app.findMenuCommandId('<file name>.jsx'))` (a negative id is fine; 0
   = not found). It runs at once, and a test build's exports are there on the next line.
   Don't send the command again for a panel that is already open.
+- A by-hand test can't press keys into AE while a script runs: AE becomes a stand-in
+  window, and the screen tool refuses to type into it (and says not to work around that).
+  Test cancelling with a stand-in for the key, and leave a held Esc to a person.
 - Clicking AE's own UI with computer use is the real test of a panel: Fix, its dialogs, the
   guide, a narrow dock. Bring AE forward with a job calling `app.activate()`, because
   `open_application` sometimes leaves the desktop shell in front. Restore anything you
@@ -406,3 +425,10 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   "Pfad 1" in German): a tool finds properties only by internal name (the morph fixer's
   `build.mjs` fails on a lookup or comparison by display name), and a test names everything
   it builds itself and checks codes, not English words in messages that quote AE's names.
+- 2026-11-23 · ae-morph-fixer · Test on real artwork, not only on shapes you made up: letter
+  outlines read from the repo's OFL fonts (`art/ttf.mjs`, a 150-line TrueType reader) gave
+  a 20-case regression set. It showed fonts list a letter's pieces in no order, and that big
+  type needs a max of 200–300.
+- 2026-11-23 · ae-morph-fixer · Click through the real panel by hand before calling a dialog
+  or a progress window done: a Fix anyway button with no handler and a window that outlived
+  its close() both passed every scripted test.
