@@ -666,9 +666,12 @@ Tableau.green = (z0, opt = null) => {
 
         // ---------------------------------------------------------- matter
         // fall between: a spot at a depth where nothing of its size is already near
+        // The inner edge of the cloud is ragged: how near the axis the matter comes changes with
+        // the angle (270 … 460), so the middle is never a clean disc round the way through.
+        const edge = (a) => 270 + 190 * (0.5 + 0.5 * (0.6 * Math.sin(3 * a + 1.3) + 0.4 * Math.sin(7 * a + 4.1)));
         const spot = (rad, d0, d1, seed) => {
             for (let k = 0; k < 60; k++) {
-                const a = R() * TAU, d = d0 + (d1 - d0) * Math.pow(R(), 1.8), dz = -270 + R() * 540, x = Math.cos(a) * d, y = Math.sin(a) * d;
+                const a = R() * TAU, lo = Math.max(d0, edge(a)) - (d0 < 300 ? 290 - d0 : 0), d = lo + Math.max(0, d1 - lo) * Math.pow(R(), 1.8), dz = -270 + R() * 540, x = Math.cos(a) * d, y = Math.sin(a) * d;
                 if (taken.some(([X, Y, Z, rr]) => Math.abs(Z - dz) < 150 && Math.hypot(X - x, Y - y) < (rr + rad) * 0.75)) continue;
                 taken.push([x, y, dz, rad]);
                 return { x, y, dz };
@@ -676,11 +679,22 @@ Tableau.green = (z0, opt = null) => {
             const a = R() * TAU, d = d0 + (d1 - d0) * R();
             return { x: Math.cos(a) * d, y: Math.sin(a) * d, dz: -270 + R() * 540 };
         };
+        // About a fifth of the small matter is ON the axis (0 … 260 from it), one at a time
+        // through the depth of the slab: the camera flies through them, they grow, blur and fade
+        // as it passes (the rig fades a layer in its last 85 units), so the middle of the frame
+        // is a cloud the camera is inside, never an empty disc.
+        const NAX = 16;
+        let kax = 0;
+        const onAxis = (rad) => {
+            const k = kax++, dz = -265 + ((k * 7) % NAX + 0.2 + R() * 0.6) * (530 / NAX), a = R() * TAU, d = 260 * Math.sqrt(R());
+            taken.push([Math.cos(a) * d, Math.sin(a) * d, dz, rad]);
+            return { x: Math.cos(a) * d, y: Math.sin(a) * d, dz };
+        };
         // single fig leaves: every one its own drawing, light, size and turn
         const kinds = ['verd', 'verd', 'vshade', 'verd', 'vdeep', 'vunder', 'verd', 'vshade', 'lime', 'verd', 'vshade', 'vunder', 'vdeep', 'verd', 'vshade'];
         for (let i = 0; i < 32; i++) {
-            const s = 0.45 + R() * 0.38, kind = kinds[i % kinds.length], rot = R() * TAU, fx = 0.7 + R() * 0.3, fy = 0.6 + R() * 0.4, v = 20 + i;
-            const p = spot(130 * s, 280, i < 26 ? 1000 : 1450);
+            const ax = i < 6, s = ax ? 0.28 + R() * 0.16 : 0.45 + R() * 0.38, kind = kinds[i % kinds.length], rot = R() * TAU, fx = 0.7 + R() * 0.3, fy = 0.6 + R() * 0.4, v = 20 + i;
+            const p = ax ? onAxis(130 * s) : spot(130 * s, 280, i < 26 ? 1000 : 1450);
             piece('leaf' + i, p.dz, around(p.x, p.y, 360 * s + 20), (g, res) => {
                 const sp = G.figLeaf(v, rot, Q(res, 0.8), kind), off = sp.G.L * 0.42 * s * fx;
                 G.put(g, sp, p.x - Math.cos(rot) * off, p.y - Math.sin(rot) * off, s, { rot, fx, fy });
@@ -696,7 +710,7 @@ Tableau.green = (z0, opt = null) => {
         }
         // single figs, one with its broken stalk bleeding latex
         for (let i = 0; i < 7; i++) {
-            const p = spot(50, 280, 900), rot = R() * TAU, fs = 1.4 + R() * 0.6;
+            const p = i < 3 ? onAxis(50) : spot(50, 280, 900), rot = R() * TAU, fs = 1.4 + R() * 0.6;
             piece('fig' + i, p.dz, around(p.x, p.y, 150), (g, res) => {
                 const sp = G.figFruit(10 + i, rot, Q(res, 0.9));
                 G.put(g, sp, p.x, p.y, fs, { rot });
@@ -730,12 +744,12 @@ Tableau.green = (z0, opt = null) => {
         }
         // small frost stars, no two alike
         for (let i = 0; i < 6; i++) {
-            const rr = 26 + R() * 46, p = spot(rr, 290, 1000), rot = R();
+            const rr = i < 3 ? 22 + R() * 26 : 26 + R() * 46, p = i < 3 ? onAxis(rr) : spot(rr, 290, 1000), rot = R();
             piece('star' + i, p.dz, around(p.x, p.y, rr * 1.5 + 12), (g) => G.frost(g, { x: p.x, y: p.y, r: rr, rot, seed: 'lstar' + i, glow: 0.7 }));
         }
         // maidenhair fronds from the cistern's damp joints
         for (let i = 0; i < 4; i++) {
-            const p = spot(80, 290, 950), a = R() * TAU;
+            const p = i < 2 ? onAxis(80) : spot(80, 290, 950), a = R() * TAU;
             piece('fern' + i, p.dz, around(p.x, p.y, 230), (g) => {
                 const rr = Motion.rng('lfern' + i);
                 g.save();
@@ -746,7 +760,7 @@ Tableau.green = (z0, opt = null) => {
         }
         // shards of the glass tambourines: a jingle pair on its pin, broken panes
         for (let i = 0; i < 4; i++) {
-            const p = spot(60, 290, 1000), a = R() * TAU, sz = 50 + R() * 50;
+            const p = i < 2 ? onAxis(60) : spot(60, 290, 1000), a = R() * TAU, sz = i < 2 ? 36 + R() * 30 : 50 + R() * 50;
             piece('glass' + i, p.dz, around(p.x, p.y, sz * 1.6 + 20), (g) => shard(g, p.x, p.y, sz, a, i));
         }
         return out;

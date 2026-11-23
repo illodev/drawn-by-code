@@ -481,12 +481,13 @@ Tableau.passage.loose = (z0) => {
                 kind = k;
                 break;
             }
-            // most inside 950 (what the frame holds when the stratum is read), the rest (`outside`)
+            // most inside 950 (what the frame holds when the stratum is read; the near side of the
+            // slab reaches further out, since it fills the frame's corners as it comes), the rest (`outside`)
             // in an outer ring, larger, seen only small and early (and painted smaller): the
             // first stratum has the most there, since nothing in front of it fills the frame's sides
             const outer = r() < outside, q = Motion.rng(`passage-loose/${st.id}/${made}/${tries}`), it = KIND[kind](q, st, outer ? 1.4 : 1.12);
             const a = made * 2.39996 + st.turn + (r() - 0.5) * 0.5, w = r(), dz = -270 + r() * 540;
-            const Rr = outer ? 950 + 550 * w : Math.max(266 + it.rad * 0.9, 280 + 640 * Math.pow(w, 1.35));
+            const near = Math.min(1, Math.max(0, (-dz - 90) / 180)), Rr = outer ? 950 + 550 * w : Math.max(266 + it.rad * 0.9, 280 + (640 + 300 * near) * Math.pow(w, 1.35));
             const x = Math.cos(a) * Rr, y = Math.sin(a) * Rr;
             if (st.placed.some((p) => Math.abs(p.z - dz) < 60 && Math.hypot(p.x - x, p.y - y) < (p.rad + it.rad) * 0.55)) continue;
             st.placed.push({ x, y, z: dz, rad: it.rad });
@@ -509,7 +510,7 @@ Tableau.passage.loose = (z0) => {
             ['D', 'jamsa', 140, 200, 1.55, 52, 470, 6],
             ['Rb', 'key', 300, 130, 1.35, 98, 520, 0, { rot: 0.45 }],
             ['D', 'lampara', 237, 224, 1.4, 142, 520, 5, { opts: { servant: true } }],
-            ['D', 'incensario', 170, 330, 1.45, 188, 560, 1],
+            ['D', 'incensario', 170, 330, 1.32, 188, 560, 1],
             ['W', 'peineta', 206, 233, 1.5, 233, 520, 7, { rot: -0.25 }],
             ['W', 'biznaga', 132, 296, 1.4, 272, 560, 4, { rot: 0.3 }],
             ['D', 'rosario', 220, 280, 1.5, 318, 560, 2, { rot: 0.25 }],
@@ -556,9 +557,9 @@ Tableau.passage.loose = (z0) => {
         heroes(st, [
             ['H', 'votive', 186, 290, 1.6, 12, 560, 4],
             ['Co', 'coin', 180, 180, 1, 52, 470, 7, { draw: (g, x, y) => Co.coin(g, { x, y, r: 86, kind: 'hadrian', rot: 0.1, seed: 'roma-hadrian' }) }],
-            ['R', 'mosaic', 304, 244, 1.3, 95, 560, 1, { rot: 0.07 }],
+            ['R', 'mosaic', 304, 244, 1.15, 95, 560, 1, { rot: 0.07 }],
             ['H', 'byzantine', 162, 212, 1.7, 138, 500, 5, { rot: 0.06 }],
-            ['R', 'amphora', 264, 304, 1.55, 182, 600, 2, { rot: -0.42 }],
+            ['R', 'amphora', 264, 304, 1.35, 182, 600, 2, { rot: -0.42 }],
             ['Ga', 'olive', 520, 140, 1, 222, 560, 8, { draw: (g, x, y) => Ga.olive(g, { path: [[x - 230, y + 60], [x - 20, y - 30], [x + 230, y - 20]], s: 0.85, seed: 'roma-olive', shoots: 2 }) }],
             ['H', 'eagle', 136, 216, 1.8, 262, 500, 0, { rot: -0.05 }],
             ['Co', 'coin', 150, 150, 1, 300, 450, 6, { tag: '2', draw: (g, x, y) => Co.coin(g, { x, y, r: 84, kind: 'leovigild', rot: -0.2, seed: 'roma-leovigild' }) }],

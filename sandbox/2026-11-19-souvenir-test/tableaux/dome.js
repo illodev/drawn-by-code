@@ -110,7 +110,8 @@ Tableau.dome.stratum = (z) => {
 //   to find: the tessera that is missing from the slab, floating near it (its cut side shows
 //     the gold leaf between its glass base and cap); a swift's feather near the nest; the
 //     spider on its thread
-//   matter (118: 100 anywhere, denser inside, and 18 larger in an outer ring): bits broken from every ring, each from a point of its own (so no two alike):
+//   matter (118: 80 from a ragged inner edge outwards, denser inside; 20 small ones near or
+//     across the axis, which the camera flies through; 18 larger in an outer ring): bits broken from every ring, each from a point of its own (so no two alike):
 //     gold mosaic most of all, then stucco leaves with their gilding, carved plaster, single muqarnas cells, laths of the
 //     ceiling, cut tile, bits of rib and of the crown's flutes, two glass tesserae alone
 // The gold leads: most of the matter is gold mosaic, the blue pieces (the dado, the plaster's
@@ -180,10 +181,18 @@ Tableau.dome.loose = (z) => {
     };
     // the scale of each ring on the page (a tessera 8–12 units, a muqarnas cell 70–120)
     const SCALE = { mosaic: [1.4, 2.1], plaster: [1.2, 1.7], muq0: [2.0, 2.8], muq1: [1.8, 2.6], muq2: [1.8, 2.5], lattice: [1.3, 1.8], dado: [1.2, 1.6], rib: [1.4, 1.9], crown: [1.4, 2.0] };
+    // The inner edge of the cloud wanders with the angle (never a circle round an empty
+    // disc), and one piece in five, a small one, drifts near the axis or across it: the
+    // camera flies through those, and they grow, blur and fade as it passes.
+    const ph = [r() * TAU, r() * TAU, r() * TAU];
+    const edge = (deg) => {
+        const a = (deg * Math.PI) / 180;
+        return 300 + 75 * Math.sin(3 * a + ph[0]) + 45 * Math.sin(5 * a + ph[1]) + 28 * Math.sin(9 * a + ph[2]);
+    };
     for (let i = 0; i < 100; i++) {
-        const src = i === 20 || i === 47 ? 'glass' : pick();
-        const across = 56 + Math.pow(r(), 1.1) * 165;
-        const R = Math.max(272 + across / 2, 280 + Math.pow(r(), 1.3) * 1220), deg = r() * 360, dz = -280 + r() * 560, rot = r() * TAU;
+        const src = i === 20 || i === 47 ? 'glass' : pick(), near = i % 5 === 2 && src !== 'glass';
+        const across = near ? 40 + r() * 110 : 56 + Math.pow(r(), 1.1) * 165, deg = r() * 360;
+        const R = near ? Math.pow(r(), 0.75) * 260 : Math.max(edge(deg) + across * 0.3, edge(deg) + Math.pow(r(), 1.3) * 1200), dz = -280 + r() * 560, rot = r() * TAU;
         const [x, y] = at(deg, R);
         if (src === 'leaf') {
             const s = across / 100;

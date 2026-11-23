@@ -3,7 +3,7 @@
 // 260 (nothing inside), 450 and 918 (the frame's half-height and half-diagonal at 1000 away).
 const DIR = 'sandbox/2026-11-19-souvenir-test/';
 const ONLY = null; // a filter on ids while working (null: all)
-const VIEW = { x: 0, y: 0, s: 1 }; // what the frame shows: its centre and scale (1: painted size)
+const VIEW = { x: 0, y: 0, s: 0.5 }; // what the frame shows: its centre and scale (1: painted size)
 Motion.scene({
     fps: 24, duration: 1 / 24, logical: [1600, 900],
     uses: ['styles/souvenir/souvenir.js', DIR + 'things/fauna.js', DIR + 'things/citrus.js', DIR + 'things/patio.js', DIR + 'tableaux/patio.js'],

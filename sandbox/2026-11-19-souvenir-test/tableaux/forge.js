@@ -605,11 +605,11 @@ Tableau.forge.loose = (z) => {
     }
     {
         const [x, y] = at(22, 900);
-        piece('cazo', -270, x, y, 600, (g, L) => F.pan(g, { x, y: y + 80, r: 262, rot: 2.2, view: 'inside', seed: 'l-cazo', nail: false, lift: 0, ...L }), { size: 560 });
+        piece('cazo', -270, x, y, 600, (g, L) => F.pan(g, { x, y: y + 80, r: 262, rot: 2.2, view: 'inside', seed: 'l-cazo', nail: false, lift: 0, ...L }), { size: 560, res: 0.72 });
     }
     {
         const [x, y] = at(50, 760);
-        piece('cauldron', 160, x, y, 580, (g, L) => F.cauldron(g, { x, y: y + 90, w: 520, seed: 'l-cauldron', ...L }), { size: 560 });
+        piece('cauldron', 160, x, y, 580, (g, L) => F.cauldron(g, { x, y: y + 90, w: 520, seed: 'l-cauldron', ...L }), { size: 560, res: 0.72 });
     }
     {
         const [x, y] = at(78, 540);
@@ -692,21 +692,30 @@ Tableau.forge.loose = (z) => {
     const SIZE = { pot: [190, 240], choc: [200, 240], pan: [180, 250], ladle: [200, 250], skimmer: [200, 250], sheet: [160, 220], blank: [140, 200], strip: [130, 190], coal: [100, 190], charcoal: [110, 190], sparks: [170, 260], shoe: [140, 190], nails: [90, 130], rings: [160, 220], nardo: [230, 300], floret: [80, 130], olive: [220, 300], bar: [240, 320], shard: [150, 220], brass: [120, 180] };
     // order the kinds so no two of a kind come in a row (the scatter then mixes them)
     const order = KINDS.map((k, i) => [k, (i * 0.618034) % 1]).sort((a, b) => a[1] - b[1]).map((p) => p[0]);
-    // small things that may come in close to the way through
-    const INNER = new Set(['floret', 'nails', 'coal', 'brass', 'shoe', 'blank', 'charcoal']);
+    // A fifth of the matter (16 small pieces, 40–150 across: coals, sparks, florets, nails,
+    // brasses, a horseshoe, a blank, a curl) floats across the axis or close to it, at every
+    // depth of the slab: the camera flies through them (they grow, blur and fade as it
+    // passes), so the middle is never one empty disc. The rest keep outside an inner edge
+    // that wanders with the angle (a ragged edge, not a circle).
+    const AXIS = new Set(['floret', 'nails', 'coal', 'brass', 'shoe', 'blank', 'charcoal', 'sparks', 'strip']);
+    const AXIS_N = 16;
+    let onAxis = 0;
+    const edge = (a) => 300 + 105 * Math.sin(3 * a + 1.3) + 65 * Math.sin(5 * a + 0.4) + 30 * Math.sin(11 * a + 2.1);
     const heroes = out.slice();
     const placed = heroes.map((h) => ({ x: h._x, y: h._y, dz: h._dz, s: h._half }));
     const fd = (x, y) => Math.hypot(x - FIRE.x, y - FIRE.y);
     let n = 0;
     for (const kind of order) {
-        const [s0, s1] = SIZE[kind], size = s0 + (s1 - s0) * r();
+        const axis = AXIS.has(kind) && onAxis < AXIS_N && n % 2 === 1;
+        if (axis) onAxis++;
+        const [s0, s1] = axis ? [40, 150] : SIZE[kind], size = s0 + (s1 - s0) * r();
         // best of 40 candidates: the one farthest from everything already placed (blue noise on
         // the frame, so the pieces fill it evenly), denser near the inside; sparks and coals
         // keep near the fire. The depth goes round the slab in golden steps.
         let x = 0, y = 0, best = -Infinity;
         const dz = -272 + 544 * ((n * 0.618034 + 0.31) % 1);
         for (let tries = 0; tries < 40; tries++) {
-            const inner = INNER.has(kind) && n % 2 === 0, R = inner ? 275 + size * 0.5 + 120 * r() : 270 + size * 0.5 + 600 * Math.pow(r(), 1.5), a = r() * Math.PI * 2;
+            const a = r() * Math.PI * 2, R = axis ? 255 * Math.sqrt(r()) : Math.max(200, edge(a)) + size * 0.5 + 600 * Math.pow(r(), 1.5);
             const cx = Math.cos(a) * R, cy = Math.sin(a) * R;
             let score = Infinity;
             for (const p of placed) {
@@ -714,7 +723,7 @@ Tableau.forge.loose = (z) => {
                 const gap = Math.hypot(p.x - cx, p.y - cy) - (p.s + size) * 0.5 * (Math.abs(p.dz - dz) < 90 ? 1 : 0.6);
                 if (gap < score) score = gap;
             }
-            if ((kind === 'sparks' || kind === 'coal') && fd(cx, cy) > 850) score -= 400;
+            if (!axis && (kind === 'sparks' || kind === 'coal') && fd(cx, cy) > 850) score -= 400;
             if (score > best) {
                 best = score;
                 x = cx;

@@ -492,16 +492,31 @@ Tableau.darknight.loose = (z) => {
     // a piece: its depth dz, its box [x0, y0, x1, y1], draw(P) → optional after(g) painted over the lit paint
     const piece = (id, dz, b, draw, o = {}) => {
         const box = { x: b[0], y: b[1], w: b[2] - b[0], h: b[3] - b[1] };
+        const upright = (g) => {
+            const P = N.begin(g);
+            const after = draw(P);
+            P.light(lightsAt(dz, o.own), { amb: o.amb ?? AMB });
+            if (after) after(g);
+            S.tooth(g, box, { amp: 0.035 });
+        };
         out.push({
             id: 'darknight-l-' + id, z: z + dz, loose: o.loose ?? true, box, brush: { amp: 0.04 }, res: o.res,
             paint(g) {
-                const T0 = performance.now(); // TIMING
-                const P = N.begin(g);
-                const after = draw(P);
-                P.light(lightsAt(dz, o.own), { amb: o.amb ?? AMB });
-                if (after) after(g);
-                S.tooth(g, box, { amp: 0.035 });
-                console.log('TIMING ' + id + ' ' + Math.round(performance.now() - T0)); // TIMING
+                // Night's buffers need an upright transform: under a turned one (a copy of the
+                // stratum turned about the axis) paint upright on a canvas of its own, then lay it
+                const m = g.getTransform();
+                if (Math.abs(m.b) > 1e-6 || Math.abs(m.c) > 1e-6 || m.a < 0) {
+                    const res = Math.hypot(m.a, m.b), c = document.createElement('canvas');
+                    c.width = Math.ceil(box.w * res);
+                    c.height = Math.ceil(box.h * res);
+                    const q = c.getContext('2d');
+                    q.setTransform(res, 0, 0, res, -box.x * res, -box.y * res);
+                    upright(q);
+                    g.drawImage(c, box.x, box.y, box.w, box.h);
+                    c.width = c.height = 0;
+                    return;
+                }
+                upright(g);
             },
         });
     };

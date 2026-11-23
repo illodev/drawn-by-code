@@ -738,14 +738,17 @@ const Souvenir = (() => {
             toothTiles.set(key, c);
         }
         // laid as a repeating pattern in pixels (tiles pasted one by one leave seams)
+        // (over the box's footprint in pixels, whatever the transform: a turned layer too)
         const tile = toothTiles.get(key), m = g.getTransform();
+        const pts = [[box.x, box.y], [box.x + box.w, box.y], [box.x, box.y + box.h], [box.x + box.w, box.y + box.h]].map(([x, y]) => m.transformPoint(new DOMPoint(x, y)));
+        const x0 = Math.min(...pts.map((p) => p.x)), y0 = Math.min(...pts.map((p) => p.y)), x1 = Math.max(...pts.map((p) => p.x)), y1 = Math.max(...pts.map((p) => p.y));
         const pat = g.createPattern(tile, 'repeat');
         pat.setTransform(new DOMMatrix().scale(size));
         g.save();
         g.globalCompositeOperation = 'source-atop';
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.fillStyle = pat;
-        g.fillRect(m.a * box.x + m.e, m.d * box.y + m.f, m.a * box.w, m.d * box.h);
+        g.fillRect(x0, y0, x1 - x0, y1 - y0);
         g.restore();
     }
 
@@ -1023,23 +1026,25 @@ const Souvenir = (() => {
                     // Only the part of the frame the layer covers is worked on (a small piece costs
                     // what it covers, not the whole frame), on the same fixed grid.
                     const sh = Math.max(0, Math.min(5, Math.floor(Math.log2(bpx / 3))));
-                    const q = 1 / (1 << sh), pad = Math.ceil(bpx * q * 2.6);
+                    const q = 1 / (1 << sh), pad = Math.ceil(bpx * q * 3);
                     const [sx0, sy0, sx1, sy1] = onScreen();
                     const X0 = Math.max(0, sx0 * k), Y0 = Math.max(0, sy0 * k), X1 = Math.min(env.px[0], sx1 * k), Y1 = Math.min(env.px[1], sy1 * k);
-                    const spread = bpx * 2.6; // how far its blur reaches, in pixels
+                    const spread = bpx * 3; // how far its blur reaches, in pixels
                     if (sx1 * k < -spread || sy1 * k < -spread || sx0 * k > env.px[0] + spread || sy0 * k > env.px[1] + spread) {
                         g.restore();
                         continue;
                     }
                     const ix0 = Math.floor(X0 * q) - pad, iy0 = Math.floor(Y0 * q) - pad;
                     const tw = Math.max(1, Math.ceil(X1 * q) + pad - ix0), th = Math.max(1, Math.ceil(Y1 * q) + pad - iy0);
-                    if (tmp.width < tw || tmp.height < th) {
-                        tmp.width = Math.max(tmp.width, tw);
-                        tmp.height = Math.max(tmp.height, th);
+                    // (cleared two pixels wider than it is read: smoothing samples a hair past
+                    // the edge, and what an earlier, larger copy left there would show as a line)
+                    if (tmp.width < tw + 2 || tmp.height < th + 2) {
+                        tmp.width = Math.max(tmp.width, tw + 2);
+                        tmp.height = Math.max(tmp.height, th + 2);
                     }
                     tg.setTransform(1, 0, 0, 1, 0, 0);
                     tg.filter = 'none';
-                    tg.clearRect(0, 0, tw, th);
+                    tg.clearRect(0, 0, tw + 2, th + 2);
                     tg.save();
                     tg.beginPath();
                     tg.rect(0, 0, tw, th);
