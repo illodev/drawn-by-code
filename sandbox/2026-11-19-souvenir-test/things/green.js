@@ -403,6 +403,12 @@ const Green = (() => {
         shade: [[0, '#020a07'], [0.25, '#061710'], [0.45, '#0d2a1c'], [0.62, '#18402b'], [0.8, '#2b5d43'], [1, '#55876c']],
         lime: [[0, '#081509'], [0.22, '#163011'], [0.42, '#294d1a'], [0.6, '#426d25'], [0.78, '#6a953d'], [0.9, '#9dbd66'], [1, '#cfe0a0']],
         under: [[0, '#0f1f1a'], [0.3, '#28443a'], [0.55, '#4d7062'], [0.78, '#80a293'], [1, '#c3d9ce']],
+        // round 8 (the loose stratum): the same leaves GREEN under the moon, not silver. The
+        // grade (lift, mist) greys whatever is painted, so the paint carries more chroma:
+        // true greens in the body, a pale cool green (never a grey) at the top of the ramp
+        verd: [[0, '#03120a'], [0.18, '#082611'], [0.36, '#0f3c19'], [0.52, '#195624'], [0.68, '#287533'], [0.82, '#4b9a4a'], [0.93, '#83c070'], [1, '#bfe3a6']],
+        vshade: [[0, '#020b05'], [0.25, '#05190b'], [0.45, '#0b2d14'], [0.62, '#13441f'], [0.8, '#22602e'], [1, '#468a48']],
+        vunder: [[0, '#0d2214'], [0.3, '#244a2e'], [0.55, '#467a4e'], [0.78, '#7fae7c'], [1, '#c4e2b4']],
     };
     // The drawing of fig leaf number v: its outline (polar about a point in the palm), its
     // veins, what happened to it.
@@ -533,9 +539,10 @@ const Green = (() => {
     // the wind, the pale downy underside) | 'deep' (inside the tree)
     function figLeaf(v = 0, rot = 0, res = 1.5, kind = 'moon') {
         if (kind === 'deep') return graded(figLeaf(v, rot, res, 'shade'), '#6c9488', '#0a2a22', 0.12);
+        if (kind === 'vdeep') return graded(figLeaf(v, rot, res, 'vshade'), '#5e9468', '#04220c', 0.1);
         const lk = lkey(rot);
         return memo(`fig${v}/${lk}@${res}${kind}`, () => {
-            const G = figGeom(v), box = S.bbox(G.pts, 5), under = kind === 'under';
+            const G = figGeom(v), box = S.bbox(G.pts, 5), under = kind === 'under' || kind === 'vunder', vk = kind[0] === 'v';
             const rel = figRelief(G, res), r = Motion.rng('figpaint' + v + kind), sd = S.seedOf('fig' + v + kind);
             const l2 = light2(lk), cx = G.C[0], cy = G.C[1];
             const sp = S.form({
@@ -600,7 +607,8 @@ const Green = (() => {
                 },
                 tint: (x, y, tone, rgb, mm) => {
                     if (x < 6 && !G.inBlade(x, y)) {
-                        toward(rgb, 120, 150, 110, under ? 0.2 : 0.3); // the petiole, paler
+                        if (vk) toward(rgb, 118, 160, 92, under ? 0.2 : 0.3);
+                        else toward(rgb, 120, 150, 110, under ? 0.2 : 0.3); // the petiole, paler
                         return;
                     }
                     // a cool and a less cool passage in every leaf
@@ -625,7 +633,7 @@ const Green = (() => {
                     g.lineCap = 'round';
                     g.lineJoin = 'round';
                     // veins: pale, the main ones with their own shade beside them
-                    const vc = under ? '210,228,214' : kind === 'lime' ? '214,232,160' : '170,206,180';
+                    const vc = vk ? (under ? '212,236,196' : '172,220,148') : under ? '210,228,214' : kind === 'lime' ? '214,232,160' : '170,206,180';
                     const va = under ? 0.55 : 0.3;
                     for (const mv of G.mains) {
                         taper(g, mv.pts.map(([x, y]) => [x - l2[0] * 1.3, y - l2[1] * 1.3 + 0]), 5.2, 1.2, `rgba(2,14,8,${under ? 0.2 : 0.35})`);
@@ -642,12 +650,12 @@ const Green = (() => {
                     // the stiff hairs: pale specks, thicker towards the light
                     for (let i = 0; i < (under ? 900 : 520); i++) {
                         const x = box.x + r() * box.w, y = box.y + r() * box.h;
-                        g.fillStyle = `rgba(${under ? '226,238,228' : '200,226,206'},${0.1 + r() * 0.2})`;
+                        g.fillStyle = `rgba(${vk ? (under ? '226,242,214' : '196,232,176') : under ? '226,238,228' : '200,226,206'},${0.1 + r() * 0.2})`;
                         disc(g, x, y, 0.35 + r() * 0.35);
                     }
                     // the leaf's thickness: a thin light on the margin facing the lamp
                     if (!under) {
-                        g.strokeStyle = 'rgba(200,232,210,0.35)';
+                        g.strokeStyle = vk ? 'rgba(196,236,170,0.4)' : 'rgba(200,232,210,0.35)';
                         g.lineWidth = 1;
                         g.beginPath();
                         let on = false;
@@ -1397,39 +1405,15 @@ const Green = (() => {
             q.moveTo(...Q(190, -60));
             q.lineTo(...Q(290, -110));
             q.stroke();
-            // sails: three square sails a mast, each narrower than the one under it, bellied
-            // by the wind, paler at the lit edge, with their seams and their yards
+            // sails: three square sails a mast, each narrower than the one under it. A square
+            // sail is cloth cut straight: its head laced flat along the yard, its clews pulled
+            // to points by the sheets, its leeches bowed by the wind, its foot cut with a roach.
+            // The belly is in the light across it (cloth by cloth, row by row, from the surface's
+            // own normal), never in a rounded outline: a soft outline reads as a pillow.
             for (const [mx, mh] of [[60, 380], [-80, 340]]) {
                 for (let i = 0; i < 3; i++) {
                     const bot = -64 - i * mh * 0.27, top = bot - mh * 0.21, wt = 74 - i * 18, wb = 84 - i * 18, bel = 12 - i * 3;
-                    const sail = S.curve([[mx - wt, top], [mx, top - 2], [mx + wt, top], [mx + wb + bel * 0.6, (top + bot) / 2], [mx + wb, bot], [mx, bot + bel], [mx - wb, bot], [mx - wb + bel * 0.4, (top + bot) / 2]], true, 8).map(([u, v]) => Q(u, v));
-                    const gr = q.createLinearGradient(...Q(mx - wb, top), ...Q(mx + wb, bot));
-                    gr.addColorStop(0, 'rgba(214,236,226,0.7)');
-                    gr.addColorStop(0.55, 'rgba(150,194,176,0.5)');
-                    gr.addColorStop(1, 'rgba(70,116,100,0.35)');
-                    q.fillStyle = gr;
-                    poly(q, sail);
-                    q.strokeStyle = 'rgba(30,60,48,0.3)';
-                    q.lineWidth = 0.9 * s;
-                    for (let j = 1; j < 5; j++) {
-                        const ux = mx - wb + (j / 5) * wb * 2;
-                        q.beginPath();
-                        q.moveTo(...Q(mx - wt + (j / 5) * wt * 2, top + 2));
-                        q.quadraticCurveTo(...Q(ux + bel * 0.3, (top + bot) / 2 + bel * 0.5), ...Q(ux, bot + bel * 0.4));
-                        q.stroke();
-                    }
-                    // the reef band and the yard
-                    q.strokeStyle = 'rgba(40,80,64,0.35)';
-                    q.beginPath();
-                    q.moveTo(...Q(mx - wt, top + 8));
-                    q.lineTo(...Q(mx + wt, top + 8));
-                    q.stroke();
-                    q.strokeStyle = 'rgba(6,22,16,0.8)';
-                    q.lineWidth = 2.6 * s;
-                    q.beginPath();
-                    q.moveTo(...Q(mx - wt - 10, top));
-                    q.lineTo(...Q(mx + wt + 10, top));
-                    q.stroke();
+                    sail(q, Q, mx, top, bot, wt, wb, bel, s, seed * 31 + mx + i * 7, i, refl);
                 }
             }
             // jibs

@@ -722,7 +722,7 @@ const Forge = (() => {
         });
         // the stump
         const stump = smoothPts([[-120, 96], [-60, 92], [0, 91], [60, 92], [120, 96], [123, 200], [121, 330], [-122, 330], [-124, 200]], 4);
-        const stSp = lit({
+        const stSp = o.stump === false ? null : lit({
             box: S.bbox(stump, 4), res, seed: seed + 's', lights: Ls, amb, shape: 'round', relief: 0.5,
             mask: (q) => fillPts(q, stump),
             height: (px, py) => {
@@ -759,13 +759,13 @@ const Forge = (() => {
         g.fillStyle = sg;
         g.fillRect(-460, 200, 920, 260);
         g.restore();
-        put(g, stSp, 0, 0);
+        if (o.stump !== false) put(g, stSp, 0, 0);
         // the end grain of the block, seen between the feet and the bark: checks and rings
         shadow(g, bodySp, 0, 6, 1, { dx: 0, dy: 0, blur: 5, alpha: 0.7 });
         put(g, bodySp, 0, 0);
         put(g, topSp, 0, 0);
         // spikes driven in to hold the feet
-        for (const fx of [-126, 126]) nail(g, { x: fx, y: 100, s: 0.7, lights: Ls, amb, seed: seed + fx, bare: true });
+        if (o.stump !== false) for (const fx of [-126, 126]) nail(g, { x: fx, y: 100, s: 0.7, lights: Ls, amb, seed: seed + fx, bare: true });
         g.restore();
         return { face: [x - 120 * s, y - 108 * s, x + 125 * s, y - 108 * s], hornL: [x - 236 * s, y - 84 * s], hornR: [x + 222 * s, y - 90 * s] };
     }
@@ -1283,6 +1283,7 @@ const Forge = (() => {
         const L0 = Ls[0], th = L0 && L0.P ? [clamp(-L0.P[0] * 0.05, -14, 14), clamp(-L0.P[1] * 0.05, -14, 14)] : [6, 9];
         shadow(g, sp, th[0] * 1.4 + 3, th[1] * 1.4 + 6, 1, { dx: 0, dy: 0, blur: 10, alpha: 0.8 });
         put(g, sp, 0, 0);
+        if (o.hung === false) return g.restore();
         // the wire over the rim, up to its nail
         g.strokeStyle = 'rgba(40,36,40,0.9)';
         g.lineWidth = 1.4;
@@ -1333,17 +1334,19 @@ const Forge = (() => {
                 albedo: (px, py, d, hh, out) => mixA(hex('#5a3418'), hex('#24140a'), 0.4 + 0.3 * noise2(px * 0.4, py * 0.05, sd + 2), out), spec: { k: 0.5, power: 24 } });
             shadow(g, sp, 8, 10, 1, { dx: 0, dy: 0, blur: 9, alpha: 0.65 });
             // the cord over the nail
-            g.strokeStyle = '#3a2a20';
-            g.lineWidth = 2;
-            g.beginPath();
-            g.moveTo(-150, 48);
-            g.lineTo(-60, -40);
-            g.lineTo(30, -6);
-            g.stroke();
+            if (o.hung !== false) {
+                g.strokeStyle = '#3a2a20';
+                g.lineWidth = 2;
+                g.beginPath();
+                g.moveTo(-150, 48);
+                g.lineTo(-60, -40);
+                g.lineTo(30, -6);
+                g.stroke();
+            }
             put(g, hsp, 0, 0);
             put(g, sp, 0, 0);
             put(g, lsp, 0, 0);
-            nail(g, { x: -60, y: -42, s: 0.8, lights: Ls, amb, seed: seed + 'n', bare: true });
+            if (o.hung !== false) nail(g, { x: -60, y: -42, s: 0.8, lights: Ls, amb, seed: seed + 'n', bare: true });
             g.restore();
             return;
         }
@@ -1383,7 +1386,7 @@ const Forge = (() => {
         shadow(g, bsp, 6, 9, 1, { dx: 0, dy: 0, blur: 8, alpha: 0.65 });
         put(g, hsp, 0, 0);
         put(g, bsp, 0, 0);
-        nail(g, { x: 0, y: 10, s: 0.75, lights: Ls, amb, seed: seed + 'n', bare: true });
+        if (o.hung !== false) nail(g, { x: 0, y: 10, s: 0.75, lights: Ls, amb, seed: seed + 'n', bare: true });
         g.restore();
     }
 
@@ -1556,7 +1559,7 @@ const Forge = (() => {
         g.beginPath();
         g.ellipse(0, -r - hlen - 10, 7, 14, 0, 0, TAU);
         g.stroke();
-        nail(g, { x: 0, y: -r - hlen - 22, s: 0.8, lights: Ls, amb, seed: seed + 'n', bare: true });
+        if (o.hung !== false) nail(g, { x: 0, y: -r - hlen - 22, s: 0.8, lights: Ls, amb, seed: seed + 'n', bare: true });
         g.restore();
     }
 
@@ -1610,7 +1613,7 @@ const Forge = (() => {
             const sp = ringSp(5.5, 1.5, i % 2 ? 0.35 : 1, 10 + (i % 3));
             put(g, sp, px, py, 1, (i % 2) * 0.4 + (u - 0.5));
         }
-        nail(g, { x: 0, y: 0, s: 0.8, lights: Ls, amb, seed: seed + 'n', bare: true });
+        if (o.hung !== false) nail(g, { x: 0, y: 0, s: 0.8, lights: Ls, amb, seed: seed + 'n', bare: true });
         g.restore();
     }
 
@@ -1756,7 +1759,7 @@ const Forge = (() => {
         // the peg it hangs on
         const peg = smoothPts([[-10, -14], [12, -12], [14, 8], [-12, 10]], 3);
         const pegSp = lit({ box: S.bbox(peg, 3), res: resOf(g, 1), seed: seed + 'p', lights: Ls, amb, shape: 'round', relief: 1, mask: (q) => fillPts(q, peg), albedo: (px, py, d, hh, out) => mixA(WOOD, WOOD_DK, 0.5, out), spec: { k: 0.3, power: 20 } });
-        put(g, pegSp, 0, -6);
+        if (o.hung !== false) put(g, pegSp, 0, -6);
         g.restore();
     }
 
@@ -1769,12 +1772,13 @@ const Forge = (() => {
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        // the string up to its nail
+        // the string up to its nail (a short loop of it when the cage floats loose)
         g.strokeStyle = '#7a6a54';
         g.lineWidth = 1.2;
         g.beginPath();
         g.moveTo(0, 6);
-        g.lineTo(0, -60);
+        if (o.hung === false) g.bezierCurveTo(-10, -14, 14, -26, 6, -30);
+        else g.lineTo(0, -60);
         g.stroke();
         const roof = [[-46, 32], [0, 8], [46, 32], [42, 38], [-42, 38]];
         const floor = [[-44, 104], [44, 104], [46, 120], [-46, 120]];
@@ -2444,7 +2448,10 @@ const Forge = (() => {
     //   yellow, deep  4 the wax: a sheen broken by the tepals' veins  5 the buds pink  6 the
     //   green bracts at each pair  7 the stem, glaucous  8 a floret going brown at its edge
     //   9 open from the base up  10 the scent (unpaintable: the moon came for it).
-    function floretSprite(open, size, fy, Ls, amb, res, k) {
+    // cream: the round-8 tone (white wax, faintly cream, shaded warm grey): without it the
+    // shade tones are lilac and under a cold light the flower reads lavender. The moon's
+    // bustle keeps the old tone (her layer is final); everything new passes cream.
+    function floretSprite(open, size, fy, Ls, amb, res, k, cream = false) {
         // six oblong lobes with blunt tips, the outer three a little narrower, spreading from a
         // short throat; fy squashes it (seen at a slant); open < 1 cups it shut
         const lobes = [];
@@ -2504,13 +2511,13 @@ const Forge = (() => {
                 if (dA < -Math.PI) dA += TAU;
                 const across = dA / 0.5;
                 // wax: white with a cream warmth, a lilac grey where it turns
-                mixA(hex('#fbf7ea'), hex('#efe6d2'), 0.35 + 0.35 * noise2(px * 0.15, py * 0.15, k), out);
-                if (!l.inner) into(out, hex('#efe1d8'), 0.35); // the outer lobes rosier
+                mixA(hex(cream ? '#fffaee' : '#fbf7ea'), hex(cream ? '#f4ead2' : '#efe6d2'), 0.35 + 0.35 * noise2(px * 0.15, py * 0.15, k), out);
+                if (!l.inner) into(out, hex(cream ? '#f6ead6' : '#efe1d8'), 0.35); // the outer lobes rosier (creamier)
                 // veins: fine lines along the lobe, the midvein a little stronger
                 const vq = Math.abs(across * 3.5 - Math.round(across * 3.5));
-                into(out, hex('#cfc6b4'), (Math.round(across * 3.5) === 0 ? 0.32 : 0.16) * smooth(0.12, 0.02, vq) * smooth(0.2, 0.4, rr));
+                into(out, hex(cream ? '#d8cbb0' : '#cfc6b4'), (Math.round(across * 3.5) === 0 ? 0.32 : 0.16) * smooth(0.12, 0.02, vq) * smooth(0.2, 0.4, rr));
                 // the inner lobes shade the outer ones where they lie on them
-                if (!l.inner) into(out, hex('#a8a2b4'), 0.35 * smooth(0.5, 0.15, Math.abs(Math.abs(across) - 1)) * smooth(0.25, 0.5, rr));
+                if (!l.inner) into(out, hex(cream ? '#b9ac94' : '#a8a2b4'), 0.35 * smooth(0.5, 0.15, Math.abs(Math.abs(across) - 1)) * smooth(0.25, 0.5, rr));
                 // the lobe's edge, its thickness, catches the light
                 if (d < 1.1) into(out, [1, 1, 0.97], 0.35);
                 // three anthers in the throat
@@ -2521,7 +2528,7 @@ const Forge = (() => {
                 into(out, hex('#e6b9b4'), (1 - open) * 0.55 + smooth(0.85, 1.05, rr) * 0.12);
                 into(out, hex('#d7d39a'), smooth(0.24, 0.08, rr) * 0.75); // the throat, green-yellow
                 if (rr < 0.06) mixA(out, [0.32, 0.34, 0.16], 0.85, out);
-                into(out, hex('#c9c4cc'), smooth(0.45, 0.2, rr) * 0.35); // the cup darkens towards the throat
+                into(out, hex(cream ? '#d3c7ae' : '#c9c4cc'), smooth(0.45, 0.2, rr) * 0.35); // the cup darkens towards the throat
                 if (k % 13 === 5) into(out, hex('#b08a5a'), smooth(0.8, 1.05, rr) * 0.55); // a browning edge
                 out[3] = 0.9;
             },
@@ -2533,7 +2540,7 @@ const Forge = (() => {
     }
     function floret(g, o = {}) {
         const { x = 0, y = 0, size = 30, open = 1, tilt = 0.8, k = 5 } = o;
-        const Ls = lightsOf(o, x, y, 1, 0), sp = floretSprite(open, size, tilt, Ls, o.amb, resOf(g, 1.5), k);
+        const Ls = lightsOf(o, x, y, 1, 0), sp = floretSprite(open, size, tilt, Ls, o.amb, resOf(g, 1.5), k, o.cream);
         shadow(g, sp, x + 3, y + 4, 1, { dx: 0, dy: 0, blur: 4, alpha: 0.6 });
         put(g, sp, x, y, 1, o.rot ?? 0);
     }
@@ -2571,7 +2578,7 @@ const Forge = (() => {
                     continue;
                 }
                 const kk = Math.floor(r() * 1000), tilt = 0.5 + r() * 0.5;
-                const sp = floretSprite(open, size * (0.85 + r() * 0.3), tilt, Ls.map((L) => (L.P ? { ...L, P: [L.P[0] - fx, L.P[1] - fy, L.P[2]] } : L)), amb, res, kk);
+                const sp = floretSprite(open, size * (0.85 + r() * 0.3), tilt, Ls.map((L) => (L.P ? { ...L, P: [L.P[0] - fx, L.P[1] - fy, L.P[2]] } : L)), amb, res, kk, o.cream);
                 shadow(g, sp, fx + 2, fy + 3, 1, { dx: 0, dy: 0, blur: 4, alpha: 0.45, color: '#0a0c1a' });
                 put(g, sp, fx, fy, 1, 0);
                 places.push([fx, fy]);

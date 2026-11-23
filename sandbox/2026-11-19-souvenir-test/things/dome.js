@@ -106,7 +106,7 @@ const Dome = (() => {
     // HOUSE: the film's house light from the top left (things lying in front of us, the
     // stratum); LROT: the frame a painter's pattern is turned by, so a turned fragment's
     // own shading (a muqarnas cell's lit half) still answers to the top left.
-    let HOUSE = 0, LROT = 0;
+    let HOUSE = 0, LROT = 0, LOOSE = 0;
     function lightAt(x, y, out, elev = 0.62) {
         if (HOUSE) {
             const c = Math.cos(elev), a = Math.atan2(TL[1], TL[0]) - LROT;
@@ -2102,7 +2102,9 @@ const Dome = (() => {
     function mosaic(g, o = {}) {
         const { r = 200, box, seed = 81, missing = [-188, -176] } = o;
         const PITCH = 5.6, WID = 5.5, T = {};
-        const map = scrollMap(r + 14, Math.ceil(Math.max(Math.abs(box.x), Math.abs(box.y), box.x + box.w, box.y + box.h)) + 10, seed);
+        // o.ext: how far out the scrolls are drawn (a fragment's box is on the page, not on
+        // the ring: it passes the ring's own reach, so one map serves all its fragments)
+        const map = scrollMap(r + 14, o.ext ?? Math.ceil(Math.max(Math.abs(box.x), Math.abs(box.y), box.x + box.w, box.y + box.h)) + 10, seed);
         tessera(missing[0], missing[1], r, PITCH, WID, seed, T);
         const lostId = T.id;
         surface(g, box, frag(o, {
@@ -2154,7 +2156,7 @@ const Dome = (() => {
         const notch = tip * Math.cos(Math.PI / 4) / Math.cos(Math.PI / 8);
         const ZS = { rt: tip, rn: notch, M: 8, ph: 0 }, T = {};
         const ROSE = rgb('#f0c8b8');
-        surface(g, box, {
+        surface(g, box, frag(o, {
             depth: 20, sharp: 0.4, soft: 3, swell: 0.4, ao: 8, aoK: 0.2, aoA: 0.35, cast: 4, castA: 0.4,
             env: (x, y) => 0.72 + 0.45 * (1 - smooth(130, 420, Math.hypot(x, y))),
             pix(P) {
@@ -2210,7 +2212,9 @@ const Dome = (() => {
                     put(P, i, C3);
                 });
             },
-        });
+        }));
+        // a fragment keeps the lantern's edge as its own (what is inside it was never painted)
+        if (o.map) return;
         // the lantern itself: cut clean, opaque before cutting
         g.save();
         g.globalCompositeOperation = 'destination-out';
@@ -2293,7 +2297,9 @@ const Dome = (() => {
         const xf = [ia, ib, ic, id, -(ia * R0[0] + ic * R0[1]), -(ib * R0[0] + id * R0[1])];
         f.paint(q, bb, { map, clip, lrot: rot, bare: true, xf });
         if (f.after) f.after(q, toPage);
-        S.stamp(g, { canvas: cv, box: bb }, { lw: 2.3, heavy: 0.8, cast: { blur: 14, dx: 10, dy: 14, color: 'rgba(36,22,14,0.55)' } });
+        // loose (round 8): nothing under it to cast on; the dome's light over the stratum
+        if (LOOSE) domeLight(cv, bb, res);
+        S.stamp(g, { canvas: cv, box: bb }, { lw: 2.3, heavy: 0.8, cast: LOOSE ? null : { blur: 14, dx: 10, dy: 14, color: 'rgba(36,22,14,0.55)' } });
     }
     const rectPts = (w, h) => [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]];
 

@@ -1174,31 +1174,61 @@ const Patio = (() => {
                 },
             });
             S.put(q, body);
-            // the feathers of the neck and breast drawn one by one: small overlapping crescents,
-            // cobalt where they face the lamp, green and bronze as they turn from it
+            // the feathers of the neck, breast and back drawn one by one (round 8: they were
+            // crescents too small to read, and the body read smooth): each a rounded vane that
+            // lies over the one below it, its tip throwing a dark crescent on that one, a lit rim
+            // where its edge faces the lamp; small on the neck, larger on the breast, larger
+            // still on the back, where they are bronze-green scales with a dark edge. Laid from
+            // the tail and the belly towards the head, so the ones nearer the head lie on top.
             q.save();
             path(q, bodyF);
             q.clip();
             {
-                const rs = Motion.rng('scales' + seed);
-                for (let yy = bb.y; yy < bb.y + bb.h; yy += 4.2) {
-                    for (let xx = bb.x + ((yy / 4.2) % 2) * 2.6; xx < bb.x + bb.w; xx += 5.4) {
-                        const px = xx + (rs() - 0.5) * 1.6, py = yy + (rs() - 0.5) * 1.6, [X, Y] = F([px, py]);
-                        // how far round the neck the feather lies: its edge turns from the light
-                        const turn = S.clamp((px - 40) / 70 + (py < -140 ? 0 : 0.3) + (rs() - 0.5) * 0.4);
-                        const back = py < -138 && px < 30;
-                        const c = back ? mixRGB(hex('#4a6a30'), hex('#b8a850'), rs()) : turn < 0.5 ? mixRGB(hex('#3a8ad0'), hex('#2a9a9a'), turn * 2) : mixRGB(hex('#2a9a8a'), hex('#8a8a3a'), (turn - 0.5) * 2);
-                        q.lineWidth = 1.1;
-                        q.strokeStyle = css(c, 0.75);
-                        q.beginPath();
-                        q.arc(X, Y, 2.6, 0.4, Math.PI - 0.4);
-                        q.stroke();
-                        q.lineWidth = 0.6;
-                        q.strokeStyle = 'rgba(8,12,40,0.55)';
-                        q.beginPath();
-                        q.arc(X, Y + 1.2, 2.6, 0.5, Math.PI - 0.5);
-                        q.stroke();
+                const rs = Motion.rng('scales' + seed), fs = [];
+                const region = (px, py) => (py < -136 && px < 34 ? 'back' : px > 28 && py < -168 ? (px - 40 < (py + 300) * 0.25 + 30 ? 'nape' : 'neck') : 'breast');
+                const sizeOf = { back: 9, nape: 5.2, neck: 5.6, breast: 7 };
+                for (let yy = bb.y - 4; yy < bb.y + bb.h + 4; yy += 3.3) {
+                    for (let xx = bb.x - 6 + rs() * 3; xx < bb.x + bb.w + 6; ) {
+                        const reg = region(xx, yy), sz = sizeOf[reg] * (0.85 + rs() * 0.35);
+                        fs.push({ px: xx + (rs() - 0.5) * 1.6, py: yy + (rs() - 0.5) * 1.6, reg, sz, j: rs(), h: rs() });
+                        xx += sz * 0.78;
                     }
+                }
+                // tips point down the neck and the breast, back along the back
+                const dirOf = (f) => (f.reg === 'back' ? Math.PI - 0.32 : f.reg === 'breast' ? Math.PI / 2 + 0.35 : Math.PI / 2 + 0.22) + (f.j - 0.5) * 0.3;
+                fs.sort((a, b) => (a.reg === 'back') - (b.reg === 'back') || (a.reg === 'back' ? a.px - b.px : b.py - a.py));
+                for (const f of fs) {
+                    const [X, Y] = F([f.px, f.py]), a0 = dirOf(f), a = flip ? Math.PI - a0 : a0;
+                    const ca = Math.cos(a), sa = Math.sin(a), L = f.sz, Wd = f.sz * 0.84;
+                    const cx = X + ca * L * 0.42, cy = Y + sa * L * 0.42;
+                    // how far round the body the feather lies: its face turns from the light
+                    const turn = S.clamp((f.px - 40) / 70 + (f.py < -140 ? 0 : 0.3) + (f.h - 0.5) * 0.4);
+                    const col = f.reg === 'back' ? mixRGB(hex('#3e5a26'), hex('#a8963e'), f.h * 0.8)
+                        : f.reg === 'nape' ? mixRGB(hex('#3e7a52'), hex('#9aa84a'), f.h)
+                            : turn < 0.5 ? mixRGB(hex('#2f6cc6'), hex('#2a8eb4'), turn * 2) : mixRGB(hex('#2a8a9a'), hex('#6a8a42'), (turn - 0.5) * 2);
+                    // the shadow its tip throws on the feather under it
+                    oval(q, cx + ca * 1.3 + SD[0] * 0.9, cy + sa * 1.3 + SD[1] * 0.9, L * 0.5, Wd * 0.5, a, 'rgba(4,8,30,0.5)');
+                    // the vane: the body's light shows through its colour
+                    oval(q, cx, cy, L * 0.5, Wd * 0.5, a, css(col, f.reg === 'back' ? 0.7 : 0.5));
+                    if (f.reg === 'back') {
+                        // the back's scale: a dark edge round a coppery heart
+                        q.lineWidth = 1.1;
+                        q.strokeStyle = 'rgba(14,22,10,0.75)';
+                        q.beginPath();
+                        q.ellipse(cx, cy, L * 0.44, Wd * 0.44, a, -1.3, 1.3);
+                        q.stroke();
+                        oval(q, cx - ca * L * 0.08, cy - sa * L * 0.08, L * 0.2, Wd * 0.16, a, 'rgba(176,130,60,0.55)');
+                    }
+                    // the rim lit where the tip's edge faces the lamp
+                    const phi = Math.atan2(L2[1], L2[0]) - a;
+                    const lit = S.clamp(0.3 + 0.7 * Math.cos(Math.atan2(Math.sin(phi), Math.cos(phi))));
+                    q.lineWidth = f.reg === 'back' ? 0.9 : 0.75;
+                    q.strokeStyle = f.reg === 'back' ? `rgba(236,226,150,${(0.25 + 0.5 * lit).toFixed(2)})` : `rgba(176,226,250,${(0.2 + 0.55 * lit).toFixed(2)})`;
+                    q.beginPath();
+                    q.ellipse(cx, cy, L * 0.5, Wd * 0.5, a, Math.max(-1.5, phi - 0.9), Math.min(1.5, phi + 0.9));
+                    q.stroke();
+                    // the shaft on the larger ones
+                    if (L > 7) lineP(q, [[X, Y], [X + ca * L * 0.7, Y + sa * L * 0.7]], 0.45, 'rgba(20,30,40,0.45)');
                 }
             }
             q.restore();
