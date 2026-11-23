@@ -401,3 +401,21 @@ O into C cases (moved 2 vs Node 0, and 0 vs 2).
 - The panel installed in the user's AE (`ScriptUI Panels/Mask Morph Fixer.jsx`) was 0.10.0
   (109,031 bytes), still matching by size alone. The user reinstalled it from 0.10.1 (? >
   Install as a panel); the installed file is now byte for byte the 0.10.1 release.
+
+## Round 8 · 2026-11-23 (the user's own test: a dash warning on a stroke with no dashes)
+
+Testing the panel by hand, the user got "the dashes of Stroke 1 start at the first point,
+which moves" on a shape with no dashes, and said a shifted dash start isn't worth a warning
+anyway. Version **0.10.2**.
+
+- **Why it fired:** the check was "the stroke's Dashes group holds `ADBE Vector Stroke Dash
+  1`", and the AE test only ever tried a stroke *with* dashes. On the user's stroke without
+  dashes it said yes. Not looked into further: the warning is gone.
+- **What a fix does to them:** dashes don't change with the points; only where the pattern
+  starts on the outline moves. The stroke's wave is the same kind of thing (its phase starts
+  at the first point), so it goes too. The **taper** stays: on a closed path its thin ends sit
+  at the first point, and moving that point moves them visibly.
+- The AE test now adds a dashed stroke and a tapered one, and checks that Trim Paths and the
+  taper are named and nothing about dashes is. Guide, README and skill say the same.
+- Node 4,300 + 128 pass. **Not yet run in After Effects** (the user is testing in it), and
+  the installed panel is still 0.10.1.

@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.10.1 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.10.2 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -45,11 +45,12 @@ guide's headings follow After Effects' theme (black on Light, white on Dark and 
 
 **Before a fix it asks first** (Fix anyway / Cancel) when:
 
-- something depends on where the points are, which the fix moves: Trim Paths, stroke dashes,
-  taper or wave, Zig Zag, Pucker & Bloat or Wiggle Paths after the path (in its group or any
-  group above), text running along the mask, an effect using the mask (Stroke, Vegas…), or an
+- something depends on where the points are, which the fix moves: Trim Paths, a stroke's
+  taper, Zig Zag, Pucker & Bloat or Wiggle Paths after the path (in its group or any group
+  above), text running along the mask, an effect using the mask (Stroke, Vegas…), or an
   expression in the comp that reads the points (`points()`, `pointOnPath()`…, as nulls from
-  Create Nulls From Paths do);
+  Create Nulls From Paths do). Stroke dashes and the stroke's wave aren't asked about: a fix
+  only shifts where their pattern starts on the outline;
 - the fix will take more than 10 seconds (After Effects doesn't respond meanwhile). The
   estimate comes from the keys and their points, fitted to timings in After Effects 27
   (`bench/ae-bench.jsx`) and scaled to the machine's speed by a 0.15 s run the first time a

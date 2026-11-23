@@ -13,7 +13,7 @@
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.10.1';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.10.2';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -370,7 +370,6 @@ var MorphFixer = (function () {
         return false;
     }
 
-    // a stroke's dashes, taper and wave, which all run from the first point
     // what a fix would break, as a sentence for people and a code for tests (the sentences hold
     // AE's own names, which change with its language; the codes don't)
     var KIND = { 'ADBE Vector Filter - Trim': 'trim', 'ADBE Vector Filter - Zigzag': 'zigzag', 'ADBE Vector Filter - PB': 'pucker', 'ADBE Vector Filter - Roughen': 'wiggle' };
@@ -379,13 +378,13 @@ var MorphFixer = (function () {
         out.kinds.push(kind);
     }
 
+    // A stroke's taper: on a closed path its thin ends sit at the first point, so moving that
+    // point moves them. Dashes and the wave are not warned about: a fix only shifts where their
+    // pattern starts on the outline, which the user judged not worth asking for (and the dash
+    // check, "the Dashes group holds Dash 1", fired on a stroke with no dashes in AE 27).
     function strokeNeeds(stroke, out) {
-        var d = stroke.property('ADBE Vector Stroke Dashes');
-        if (d && d.property('ADBE Vector Stroke Dash 1')) flag(out, 'dashes', 'the dashes of ' + stroke.name + ' start at the first point, which moves');
         if (nonzero(stroke.property('ADBE Vector Stroke Taper'), ['ADBE Vector Taper Start Length', 'ADBE Vector Taper End Length', 'ADBE Vector Taper StartWidthPx', 'ADBE Vector Taper EndWidthPx']))
             flag(out, 'taper', 'the taper of ' + stroke.name + ' runs from the first point, which moves');
-        if (nonzero(stroke.property('ADBE Vector Stroke Wave'), ['ADBE Vector Taper Wave Amount']))
-            flag(out, 'wave', 'the wave of ' + stroke.name + ' runs from the first point, which moves');
     }
 
     // what in a shape layer works on this path: operators and strokes after it in its own group
@@ -781,7 +780,7 @@ var MorphFixer = (function () {
             'Fixed paths have more points: finish drawing your keys first.',
             'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, and a piece you draw as a dot grows from that dot.',
             'A long fix keeps After Effects busy until it is done; over 10 seconds, it asks first and says how long. Hold Esc to cancel: nothing changes.',
-            'It asks first when Trim Paths, dashes, text on a path or an expression depend on where the points are, and when a fix will take more than 10 seconds.',
+            'It asks first when Trim Paths, a tapered stroke, text on a path or an expression depend on where the points are, and when a fix will take more than 10 seconds.',
             'Rectangles, ellipses and stars: right-click the path > Convert To Bezier Path first.',
             'Paths with expressions and masks with feather points are left alone.',
             'Hover the status line to see what the last fix did.'

@@ -443,8 +443,12 @@
             wd.name = 'Warn test';
             var list = function () { return pathOf(wd).parentProperty.parentProperty; };
             list().addProperty('ADBE Vector Filter - Trim');
+            // a dashed stroke (not warned about: a fix only shifts where the dashes start) and a
+            // tapered one (warned: its thin ends sit at the first point)
             list().addProperty('ADBE Vector Graphic - Stroke');
             list().property(list().numProperties).property('ADBE Vector Stroke Dashes').addProperty('ADBE Vector Stroke Dash 1');
+            list().addProperty('ADBE Vector Graphic - Stroke');
+            list().property(list().numProperties).property('ADBE Vector Stroke Taper').property('ADBE Vector Taper Start Length').setValue(30);
             only(wd);
             MFx.ask = function (warned, seconds) {
                 asked = { warned: warned, seconds: seconds };
@@ -453,7 +457,8 @@
             asked = null;
             var res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
             var said = items(asked && asked.warned);
-            check('warn: Trim Paths and dashes after the path are named before fixing', !!asked && /,trim,/.test(kinds(asked.warned)) && /,dashes,/.test(kinds(asked.warned)), said);
+            check('warn: Trim Paths and a taper after the path are named before fixing, dashes are not', !!asked && /,trim,/.test(kinds(asked.warned)) &&
+                /,taper,/.test(kinds(asked.warned)) && !/,dashes,/.test(kinds(asked.warned)) && !/dash/i.test(said), said);
             check('warn: Cancel changes nothing', res.cancelled && pathOf(wd).keyValue(1).vertices.length === 4, res.status);
             // a null following the path's first point (as Create Nulls From Paths makes)
             var N = comp.layers.addNull();

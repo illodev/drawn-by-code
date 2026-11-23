@@ -191,10 +191,13 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
 **Before changing someone's work**
 
 - Say what the change would break before making it.
-  - A path's first point and point count drive Trim Paths, stroke dashes, taper and wave,
-    Zig Zag, Pucker & Bloat, Wiggle Paths, text on a mask, effects using a mask, and
-    expressions that read points (`points()`, `pointOnPath()`…, as nulls from Create Nulls
-    From Paths do). Internal names are under the pitfalls below.
+  - A path's first point and point count drive Trim Paths, a stroke's taper, Zig Zag,
+    Pucker & Bloat, Wiggle Paths, text on a mask, effects using a mask, and expressions that
+    read points (`points()`, `pointOnPath()`…, as nulls from Create Nulls From Paths do).
+    Internal names are under the pitfalls below.
+  - Warn only about what changes visibly. Stroke dashes and the stroke's wave only start
+    their pattern somewhere else on the outline; the user judged that not worth asking for.
+    A warning that isn't worth it teaches people to click past all of them.
   - Look after the path in its own group and in every group above it: AE passes a group's
     paths up to its parents.
   - Search the comp's expressions with a time budget (0.8 s), since big comps are slow to
@@ -291,7 +294,10 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   - Operators: `ADBE Vector Filter - Trim`, `- Zigzag`, `- PB` (Pucker & Bloat), `-
     Roughen` (Wiggle Paths).
   - A stroke (`ADBE Vector Graphic - Stroke`, or `- G-Stroke` for a gradient one) holds
-    `ADBE Vector Stroke Dashes`; dashes exist when that holds `ADBE Vector Stroke Dash 1`.
+    `ADBE Vector Stroke Dashes`. Don't read "it holds `ADBE Vector Stroke Dash 1`" as "it has
+    dashes": in AE 27 that check fired on a stroke with none (not looked into further; the
+    morph fixer stopped warning about dashes). Test any such check on a stroke without the
+    feature too.
   - Its taper is `ADBE Vector Stroke Taper` (`… Taper Start Length`, `… End Length`,
     `… StartWidthPx`, `… EndWidthPx`); its wave is `ADBE Vector Stroke Wave`
     (`… Taper Wave Amount`).
@@ -516,7 +522,7 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   rebuild must add. Fit the estimate to an AE bench (`bench/ae-bench.jsx`), scale it per
   machine with a short calibration run, and check it against a real fix.
 - 2026-11-22 · ae-morph-fixer · A tool that changes points must say what it breaks before it
-  does: Trim Paths, dashes, text on a mask and nulls that follow points all start from the
+  does: Trim Paths, a taper, text on a mask and nulls that follow points all start from the
   first point, which a morph fix moves. Ask once, in plain words, with Cancel the default.
 - 2026-11-22 · ae-morph-fixer · A test harness left running in the user's AE is a bug the user
   sees: the morph fixer's runner fired during a dialog and wedged AE after the work was done.
