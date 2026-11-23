@@ -39,7 +39,7 @@ var FlockSim = (function () {
     }
 
     function clamp(v, a, b) {
-        return v < a ? a : v > b ? b : v;
+        return v < a ? a : (v > b ? b : v);
     }
 
     function num(v, d) {
@@ -292,7 +292,7 @@ var FlockSim = (function () {
                 }
                 var nvx = vx[i] + ax[i] * dt, nvy = vy[i] + ay[i] * dt, nvz = vz[i] + az[i] * dt;
                 var s = sqrt(nvx * nvx + nvy * nvy + nvz * nvz) || 0.001;
-                var cl = s > vMax ? vMax / s : s < vMin ? vMin / s : 1;
+                var cl = s > vMax ? vMax / s : (s < vMin ? vMin / s : 1);
                 vx[i] = nvx * cl;
                 vy[i] = nvy * cl;
                 vz[i] = nvz * cl;
@@ -500,5 +500,5 @@ var FlockSim = (function () {
         };
     }
 
-    return { run: run, rng: rng, version: 1 };
+    return { run: run, rng: rng, version: 2 };     // 2: nested ?: parenthesized (ExtendScript misread them)
 })();

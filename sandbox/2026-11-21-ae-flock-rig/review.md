@@ -89,3 +89,43 @@ every turn through vertical (no squash, full width); "Turn check" comp (every bi
 Facing driven to turn level): head-on drawing in 41 % of samples, narrowest side view
 30.0 % = Turn Width; "Sky shaped" (Length 250, Width 55, Clumping 60, Scatter 12)
 evaluates; a re-run removed 81 layers and rebuilt 85.
+
+## Round 3 · 2026-11-23 (ExtendScript misread two nested `?:`; tested inside After Effects 27)
+
+The draw-on rig found that ExtendScript reads `a ? b : c ? d : e` as `(a ? b : c) ? d : e`
+(AE 27: `true ? 1 : false ? 2 : 3` is 2; V8 says 1). `flock-sim.js` had two. V8 reads them
+right, so every Node test and the engine preview ran the intended simulation while After
+Effects baked another one.
+
+- **`clamp(v, a, b)`**: below a non-zero low end it returned the high end. Measured in AE:
+  `clamp(-5, -2, 2)` gave 2 and `clamp(0.1, 0.25, 4)` gave 4. With a low end of 0 it let
+  negatives through. It caps pitch and rotation steps (±) and depth scale (0.25–4).
+- **The speed clamp**: over top speed it braked a bird to the minimum speed (a quarter of
+  the top) instead of capping it.
+- → Both parenthesized. `build.mjs` now fails on an unparenthesized nested `?:`
+  (`nestedTernary`: per line, strings blanked) and lints `make-demo.jsx` too. On the old
+  sources it flags exactly these two lines. Sim version 2, shown in `Flock.jsx`'s first line.
+
+**Inside After Effects 27** (27.0 build 78), through the morph fixer's runner: `make-demo.jsx`
+test mode with the old and the fixed build, then every bird's 192 baked keys (position,
+rotation, scale, Facing) and the leader as the build samples it, compared with the Node sim:
+
+- **Fixed build**: within 0.106 px, 0.05° and 0.03 % scale of Node, for all 80 birds × 192
+  frames.
+- **Old build**: up to 405 px from Node, with 15,347 of 15,360 bird-frames off by more than
+  1 px. It matches Node running the old code grouped the way ExtendScript reads it (within
+  0.18 px). So every flock baked in AE until now was a different flock from the preview.
+- On the demo path the speed cap fired 4 times in the old run (Node counts it), and the flock
+  diverged from there. `clamp`'s low end never fired on this path; sharper turns would hit it.
+- The ~0.1 px left is the same before and after: ExtendScript's and V8's floating point,
+  grown over 11 s of simulation. In Node alone, nudging the leader by 1e-15 moves birds 0.005 px.
+- The test log (`out/ae-test-r3-after/ae-log.txt`): every step passes. Max rotation 10.1° a
+  frame (the old bake: 10.3°), no expression errors, Turn check unchanged (41.3 % head-on,
+  narrowest side view 30.0 %), a rebuild removes 81 layers and makes 85.
+- Round 2's AE numbers were measured on the misread code. The committed render
+  (`render/`, made by AE in round 2) shows the old flock too; not re-rendered this round.
+
+**Dumping numbers from ExtendScript**: `toPrecision` rounds negatives to integers
+(`(-29.987654321).toPrecision(15)` is `-30`, and `-0.5` gives `-0`). The first dump looked like a
+mismatch until positives and negatives were compared. Format `-v` and add the sign, or use
+`String(v)`.
