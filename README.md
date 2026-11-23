@@ -57,6 +57,12 @@ how you made it too.
 <table>
 <tr>
 <td width="33%" valign="top">
+<a href="sandbox/2026-11-19-souvenir-test/"><img src="sandbox/2026-11-19-souvenir-test/render/souvenir-test.gif" width="100%" alt="Recuerdo de Andalucía"></a><br>
+<b><a href="sandbox/2026-11-19-souvenir-test/">Recuerdo de Andalucía</a></b><br>
+<sub>souvenir · 17 s · <a href="sandbox/2026-11-19-souvenir-test/render/souvenir-test.mp4">mp4</a> (with sound)</sub><br>
+<sub>A memory of Andalusia told by its painted things: the camera dives ever faster, turning, through clouds of relics, flowers and seven worlds that float loose, to the full moon.</sub>
+</td>
+<td width="33%" valign="top">
 <a href="sandbox/2026-11-17-micrograph-test/"><img src="sandbox/2026-11-17-micrograph-test/render/micrograph-test.gif" width="100%" alt="Micrograph"></a><br>
 <b><a href="sandbox/2026-11-17-micrograph-test/">Micrograph</a></b><br>
 <sub>micrograph · 37 s · <a href="sandbox/2026-11-17-micrograph-test/render/micrograph-test.mp4">mp4</a> (with sound)</sub><br>
@@ -68,14 +74,14 @@ how you made it too.
 <sub>lightfield · 30 s · <a href="sandbox/2026-11-16-lightfield-test/render/lightfield-test.mp4">mp4</a> (with sound)</sub><br>
 <sub>Five lights, from a sunrise over the edge of the Earth to a filament that lights the title. Nothing is drawn: each scene is light, photographed by a camera made of code.</sub>
 </td>
+</tr>
+<tr>
 <td width="33%" valign="top">
 <a href="sandbox/2026-11-14-pier-pressure/"><img src="sandbox/2026-11-14-pier-pressure/render/pier-pressure.gif" width="100%" alt="Pier Pressure"></a><br>
 <b><a href="sandbox/2026-11-14-pier-pressure/">Pier Pressure</a></b><br>
 <sub>skate toon · 32 s · <a href="sandbox/2026-11-14-pier-pressure/render/pier-pressure.mp4">mp4</a> (with its theme song)</sub><br>
 <sub>The opening of a cartoon that never existed: four kids chase a one-eyed gull down the pier, in the look of a late-'90s extreme-sports show, animated on twos.</sub>
 </td>
-</tr>
-<tr>
 <td width="33%" valign="top">
 <a href="sandbox/2026-11-11-runnin-down-a-dream/"><img src="sandbox/2026-11-11-runnin-down-a-dream/render/runnin-down-a-dream.gif" width="100%" alt="Runnin' Down a Dream"></a><br>
 <b><a href="sandbox/2026-11-11-runnin-down-a-dream/">Runnin' Down a Dream</a></b><br>
@@ -88,14 +94,14 @@ how you made it too.
 <sub>sumi-e · 68 s · <a href="sandbox/2026-11-04-red-thread/render/red-thread.mp4">mp4</a> (with sound)</sub><br>
 <sub>A river village splits into two banks, and a red kite carries one thread back across the water. Its title on screen is «El hilo rojo». Japanese ink on washi, every brushstroke drawn in code.</sub>
 </td>
+</tr>
+<tr>
 <td width="33%" valign="top">
 <a href="sandbox/2026-09-25-physics-history/"><img src="sandbox/2026-09-25-physics-history/render/physics-history.gif" width="100%" alt="A Brief History of Physics"></a><br>
 <b><a href="sandbox/2026-09-25-physics-history/">A Brief History of Physics</a></b><br>
 <sub>risograph · 67 s · <a href="sandbox/2026-09-25-physics-history/render/physics-history.mp4">mp4</a> (with sound)</sub><br>
 <sub>From Galileo's telescope to Schrödinger's box in one continuous chain of objects, with the same cat in every scene.</sub>
 </td>
-</tr>
-<tr>
 <td width="33%" valign="top">
 <a href="sandbox/2026-09-26-pyramid-engraving/"><img src="sandbox/2026-09-26-pyramid-engraving/render/pyramid-engraving.gif" width="100%" alt="The pyramid that makes skies"></a><br>
 <b><a href="sandbox/2026-09-26-pyramid-engraving/">The pyramid that makes skies</a></b><br>
@@ -108,6 +114,8 @@ how you made it too.
 <sub>risograph · 28 s · <a href="sandbox/2026-09-24-opus5-riso/render/opus5-riso.mp4">mp4</a> (silent)</sub><br>
 <sub>A 1:1 study of <a href="https://x.com/kevin_t_ngo/status/2099477219877978289">a risograph film by Kevin Ngo</a> (<a href="https://x.com/kevin_t_ngo">@kevin_t_ngo</a>). The original design and animation are his.</sub>
 </td>
+</tr>
+<tr>
 <td width="33%" valign="top">
 <a href="sandbox/2026-09-24-what-do-you-love/"><img src="sandbox/2026-09-24-what-do-you-love/render/what-do-you-love.gif" width="100%" alt="what-do-you-love"></a><br>
 <b><a href="sandbox/2026-09-24-what-do-you-love/">what-do-you-love</a></b><br>
@@ -123,6 +131,7 @@ how you made it too.
 <summary><b>More about each film</b></summary>
 <br>
 
+- **[Recuerdo de Andalucía](sandbox/2026-11-19-souvenir-test/):** A memory of Andalusia told by its painted things, in the manner of tattoo flash, fruit-crate labels and holiday postcards. From a candle in the dark the camera dives ever faster, rolling on its axis, through clouds of things of the peoples who passed (Tartessos and the sea, Rome and the Goths, al-Andalus, the house and the fair), through the mouth of a guitar into Machado's lemon tree, and through seven worlds (Lorca's «Romance sonámbulo» in greens, a tenebrist still life, the dark night of St John of the Cross, a dome of muqarnas and gold, a patio at dawn, a guitar in planes, a Sacromonte forge) to the full moon. A new style: every thing is painted in code, opaque paint modelled with light, and floats loose at its own depth; nine painters worked in parallel, one per world. Score by ElevenLabs Music, a flamenco guitar as its thread.
 - **[Micrograph](sandbox/2026-11-17-micrograph-test/):** One session at an electron microscope, from the largest thing to the smallest: an amoeba closes round a bacterium, one of its mitochondria goes by slice by slice, a phage lands on a bacterium and empties itself into it, virions bud from a cell and drift off on black. A new style: every scene is one grey signal seen by an instrument made of code (focus, shot noise) and tinted afterwards; three of the seven shots are matched to reference micrographs.
 - **[Lightfield](sandbox/2026-11-16-lightfield-test/):** Five lights, from the sky to the bench: the Sun comes up over the edge of the Earth, the Moon covers it and the corona opens, a prism splits a white beam into its colours, red light goes through two slits one photon at a time until the hits draw the fringes, and a filament heats up and lights the title. Nothing is drawn: each scene says how much light leaves every point and a camera made of code photographs it. The first and last shots are matched to two reference stills (the last one studies the title card of «InGenius by Veritasium»); the three in between are built from the physics, with a narrator and a score.
 - **[Pier Pressure](sandbox/2026-11-14-pier-pressure/):** The opening of a cartoon that never existed, in the look of a late-'90s extreme-sports TV show: four kids chase a one-eyed gull who has made off with Aunt Dot's chips, down the pier and off its end. It opens on the chase in black shapes, and nobody is seen until their name card. The characters are generated model sheets turned into drawings in code by measurement, and they move the way cel animation does: by changing drawing, on twos. Cut to the words of its own theme song, with a broadcast finish (painted fills, film weave, standard-definition softness).
@@ -181,6 +190,7 @@ to see its strip, files and the videos made with it.
 | [lightfield](styles/lightfield/)     | light photographed: radiance through a lens and film (bloom, halation, rays, grain)      | approved   |
 | [micrograph](styles/micrograph/)     | false-colour micrographs: one grey signal, sharp grain on soft structures, a few inks    | approved   |
 | [blueprint](styles/blueprint/)       | a cyanotype drafted line by line: elevations, sections, dimensions, lettering            | approved   |
+| [souvenir](styles/souvenir/)         | painted things floating loose in depth, a camera diving ever faster: contour, airbrush   | approved   |
 | [comic](styles/comic/)               | brush-ink outlines, flat print colours on newsprint, Ben-Day dots, balloons              | in testing |
 | [pixel-art](styles/pixel-art/)       | crisp pixels on a low-res grid, sprite maps, 10 fps loops                                | in testing |
 

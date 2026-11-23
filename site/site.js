@@ -14,6 +14,8 @@
     // first two fields of every line to copy the film: keep them first, in this form)
     const FEATURE = ['runnin-down-a-dream', '2026-11-11-runnin-down-a-dream', 'Runnin’ Down a Dream', '’90s cereal ad', 264, 'silent', ''];
     const FILMS = [
+        ['souvenir-test', '2026-11-19-souvenir-test', 'Recuerdo de Andalucía', 'souvenir', 16.75, 'with sound',
+            'A memory of Andalusia told by its painted things. From a candle in the dark the camera dives ever faster, turning as it goes, through clouds of relics, papers and flowers of the peoples who passed, through the mouth of a guitar into a lemon tree, and through seven worlds (Lorca’s green, a tenebrist still life, the dark night of St John of the Cross, a dome of gold, a patio at dawn, a guitar in planes, a forge) to the full moon. Every thing is painted in code and floats loose at its own depth.'],
         ['the-plan', '2026-11-17-the-plan', 'The Plan', 'blueprint', 56, 'with sound',
             'A heist drawn on one sheet. In white, the architect’s print of a bank: three plans, a section, an axonometric, and cameras and a guard that move by themselves. In red pencil, the crew’s plan and three numbered marks that carry it out, until the building revises a line. Every gap they slip through is true: the timing is a model checked frame by frame.'],
         ['micrograph-test', '2026-11-17-micrograph-test', 'Micrograph', 'micrograph', 37.5, 'with sound',
@@ -34,7 +36,7 @@
         ['opus5-riso', '2026-09-24-opus5-riso', 'opus5-riso', 'risograph', 28],
         ['what-do-you-love', '2026-09-24-what-do-you-love', 'what do you love?', 'paper cutout', 28],
     ];
-    const EXPERIMENTS = 18; // rows in sandbox/INDEX.md
+    const EXPERIMENTS = 22; // rows in sandbox/INDEX.md
 
     // [folder, name, look, shape of its template ('square' | 'wide'), heavy (WebGL raymarching: a smaller canvas)]
     const STYLES = [
@@ -50,6 +52,7 @@
         ['lightfield', 'Lightfield', 'Light photographed, not drawn: radiance through a lens and film, with bloom, halation, rays and grain.', 'wide', 1],
         ['micrograph', 'Micrograph', 'An instrument’s image, tinted afterwards: one grey signal, sharp grain on soft structures, a few inks laid over it.', 'wide', 1],
         ['blueprint', 'Blueprint', 'A drawing office’s cyanotype: white line work drafted on a folded sheet of Prussian blue, views that agree, lettering last.', 'wide', 0],
+        ['souvenir', 'Souvenir', 'Painted things floating loose at their own depths, a camera diving through them ever faster: pieces with a dark contour and airbrushed shade, brush with no line, gold and lettering.', 'wide', 1],
         ['comic', 'Comic', 'Brush-ink outlines with tapered ends, flat print colours on newsprint, Ben-Day dots, balloons.', 'wide', 0],
         ['70s-poster', '70s poster', 'Flat acid colours, thick outlines, concentric echoes, sunbursts and melting letters.', 'wide', 0],
         ['liquid-light', 'Liquid light', 'The oil-and-ink projections of 60s concerts: blobs that flow, merge and shift colour.', 'wide', 0],
