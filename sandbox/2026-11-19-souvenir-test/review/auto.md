@@ -12,7 +12,7 @@
 Energy per second (how much the image changes):
 
 ```
-▂▅▅▆▇▇▇██▇██▄▃▃▃▄
+▂▄▅▆▆▇▇██▇██▄▃▃▃▄
 0    5    10   15   
 ```
 
@@ -22,7 +22,7 @@ Large jumps outside cuts (can be normal in dense patterns; check whether they bo
 
 ## Speed
 
-Painting: 10637 ms/frame cold, 7099 ms warm → full render ≈ 2854 s at this size.
+Painting: 10124 ms/frame cold, 7013 ms warm → full render ≈ 2819 s at this size.
 
 > Slow: cache static elements with `Motion.sprite` and lower the texture density.
 
