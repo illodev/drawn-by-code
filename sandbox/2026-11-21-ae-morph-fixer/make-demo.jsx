@@ -104,6 +104,7 @@
         root.addProperty('ADBE Vector Group').name = 'Morph';
         var vec = function () { return L.property('ADBE Root Vectors Group').property('Morph').property('ADBE Vectors Group'); };
         vec().addProperty('ADBE Vector Shape - Group');
+        vec().property(1).name = 'Outline';     // our own name: AE's own ("Path 1") changes with its language
         vec().addProperty('ADBE Vector Graphic - Fill');
         vec().property(2).property('ADBE Vector Fill Color').setValue(rgb(D.colors.shape));
         var p = vec().property(1).property('ADBE Vector Shape');
@@ -133,7 +134,7 @@
         // path points are in the group's space: through the group's transform, then the layer's
         tf(M, 'ADBE Position').expression = 'var L = thisComp.layer(' + '"' + of + '"' + ');\n' +
             'var g = L.content("Morph").transform;\n' +
-            'var p = L.content("Morph").content("Path 1").path.points()[0];\n' +
+            'var p = L.content("Morph").content("Outline").path.points()[0];\n' +
             'var a = g.anchorPoint.value, o = g.position.value, s = g.scale.value[0] / 100, r = g.rotation.value * Math.PI / 180;\n' +
             'var x = (p[0] - a[0]) * s, y = (p[1] - a[1]) * s;\n' +
             'var c = L.toComp([o[0] + x * Math.cos(r) - y * Math.sin(r), o[1] + x * Math.sin(r) + y * Math.cos(r)]);\n' +
@@ -399,6 +400,13 @@
             for (var i = 1; i <= L.containingComp.numLayers; i++) L.containingComp.layer(i).selected = false;
             L.selected = true;
         }
+        // what the warnings found, by code: the sentences hold AE's own names, which change with
+        // its language, the codes don't
+        function kinds(w) {
+            var k = [];
+            for (var i = 0; w && i < w.length; i++) k = k.concat(w[i].kinds || []);
+            return ',' + k.join(',') + ',';
+        }
         function items(w) {
             var s = [];
             for (var i = 0; w && i < w.length; i++) s.push(w[i].items.join(' | '));
@@ -420,18 +428,18 @@
             asked = null;
             var res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
             var said = items(asked && asked.warned);
-            check('warn: Trim Paths and dashes after the path are named before fixing', !!asked && /Trim Paths/.test(said) && /dashes/.test(said), said);
+            check('warn: Trim Paths and dashes after the path are named before fixing', !!asked && /,trim,/.test(kinds(asked.warned)) && /,dashes,/.test(kinds(asked.warned)), said);
             check('warn: Cancel changes nothing', res.cancelled && pathOf(wd).keyValue(1).vertices.length === 4, res.status);
             // a null following the path's first point (as Create Nulls From Paths makes)
             var N = comp.layers.addNull();
             N.name = 'Follows Warn test';
             N.property('ADBE Transform Group').property('ADBE Position').expression =
-                'thisComp.layer("Warn test").content("Morph").content("Path 1").path.points()[0]';
+                'thisComp.layer("Warn test").content("Morph").content("Outline").path.points()[0]';
             only(wd);
             asked = null;
             MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
             said = items(asked && asked.warned);
-            check('warn: an expression reading the points (a null from Create Nulls From Paths)', /an expression on Follows Warn test > Position reads the points/.test(said), said);
+            check('warn: an expression reading the points (a null from Create Nulls From Paths)', !!asked && /,expression,/.test(kinds(asked.warned)) && said.indexOf('Follows Warn test') >= 0, said);
             MFx.ask = function (warned, seconds) {
                 asked = { warned: warned, seconds: seconds };
                 return true;
@@ -456,7 +464,7 @@
             mp.setValueAtTime(0, a);
             mp.setValueAtTime(1, b);
             var w1 = MFx.needs(S.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape'), comp, []);
-            check('warn: an effect using the mask (Stroke)', /Stroke uses this mask/.test(w1.items.join('|')), w1.items.join(' | '));
+            check('warn: an effect using the mask (Stroke)', /,effect,/.test(kinds([w1])), w1.items.join(' | '));
             var T = comp.layers.addText('text on a path');
             T.property('ADBE Mask Parade').addProperty('ADBE Mask Atom');
             var tp = T.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape');
@@ -464,7 +472,7 @@
             tp.setValueAtTime(1, b);
             T.property('ADBE Text Properties').property('ADBE Text Path Options').property('ADBE Text Path').setValue(1);
             var w2 = MFx.needs(T.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape'), comp, []);
-            check('warn: text running along the mask', /text runs along this mask/.test(w2.items.join('|')), w2.items.join(' | '));
+            check('warn: text running along the mask', /,text,/.test(kinds([w2])), w2.items.join(' | '));
             var w3 = MFx.needs(pathOf(after), comp, []);
             check('warn: nothing for a plain path', w3.items.length === 0, w3.items.join(' | '));
             T.remove();

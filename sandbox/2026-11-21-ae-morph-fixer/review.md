@@ -209,3 +209,12 @@ while a modal dialog is waiting for response". AE then refused every script, the
 included, until a restart (done; AE 27 left open and empty). → `ae-bridge.jsx` stops itself
 after five idle minutes, and its header, the README and the skill say to stop it before any
 by-hand check in AE's UI.
+
+**Ready for a non-English After Effects** (the user's go-ahead): the tool already found
+everything by AE's internal names. `build.mjs` now fails on any property looked up, or name
+compared, by display name in the tool. Each warning carries a code (`trim`, `dashes`,
+`taper`, `wave`, `zigzag`, `pucker`, `wiggle`, `text`, `effect`, `expression`) next to its
+sentence, which holds AE's own (translated) names. The AE test checks the codes, and it names
+the shape groups it makes itself ("Outline", not AE's "Path 1", which is "Pfad 1" in German).
+It passes in AE 27 (English). Not yet run in a localized AE: that takes a reinstall in
+another language, or a beta tester.

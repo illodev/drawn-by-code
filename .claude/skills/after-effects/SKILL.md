@@ -271,6 +271,10 @@ that AE runs wrong.
 - 2026-11-22 · ae-morph-fixer · A tool that changes points must say what it breaks before it
   does: Trim Paths, dashes, text on a mask and nulls that follow points all start from the
   first point, which a morph fix moves. Ask once, in plain words, with Cancel the default.
+- 2026-11-23 · ae-morph-fixer · AE's display names change with its language ("Path 1" is
+  "Pfad 1" in German): a tool finds properties only by internal name (the morph fixer's
+  `build.mjs` fails on a lookup or comparison by display name), and a test names everything
+  it builds itself and checks codes, not English words in messages that quote AE's names.
 - 2026-11-22 · ae-flock-rig · A 2D layer that turns around by squashing its width through
   zero gives the flatness away when many turn together (a flock diving through vertical:
   38 % edge-on in one frame). Pointing up or down, mirror at once (only the wings swap

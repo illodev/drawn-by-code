@@ -29,6 +29,13 @@ for (const [file, src] of [['morph-math.js', math], ['morph-ae.jsx', ae], ['make
     const joined = caught.length ? new RegExp(`['"]\\s*\\+\\s*(${names})\\b(?!\\s*\\.)|\\b(${names})\\s*\\+\\s*['"]`) : null;
     src.split('\n').forEach((line, n) => {
         if (joined && joined.test(line.replace(/\/\/.*$/, ''))) problems.push(`${file}:${n + 1}: a caught error joined with +: ${line.trim()}`);
+        // the tool finds everything by AE's internal names, which are the same in every language:
+        // never by a display name ("Path 1", "Trim Paths"), which a German or Japanese AE renames
+        if (file !== 'make-demo.jsx') {
+            const raw = line.replace(/\/\/.*$/, '');
+            if (/\.property\(\s*['"](?!ADBE )/.test(raw)) problems.push(`${file}:${n + 1}: a property looked up by display name (changes with AE's language): ${line.trim()}`);
+            if (/\.name\s*[!=]==?/.test(raw)) problems.push(`${file}:${n + 1}: a display name compared (changes with AE's language): ${line.trim()}`);
+        }
         const code = line.replace(/\/\/.*$/, '').replace(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g, "''");
         const hits = [
             [RESERVED, 'ES3 reserved word'],

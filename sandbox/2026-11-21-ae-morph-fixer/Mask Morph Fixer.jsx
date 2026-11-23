@@ -1221,13 +1221,21 @@ var MorphFixer = (function () {
     }
 
     // a stroke's dashes, taper and wave, which all run from the first point
+    // what a fix would break, as a sentence for people and a code for tests (the sentences hold
+    // AE's own names, which change with its language; the codes don't)
+    var KIND = { 'ADBE Vector Filter - Trim': 'trim', 'ADBE Vector Filter - Zigzag': 'zigzag', 'ADBE Vector Filter - PB': 'pucker', 'ADBE Vector Filter - Roughen': 'wiggle' };
+    function flag(out, kind, text) {
+        out.push(text);
+        out.kinds.push(kind);
+    }
+
     function strokeNeeds(stroke, out) {
         var d = stroke.property('ADBE Vector Stroke Dashes');
-        if (d && d.property('ADBE Vector Stroke Dash 1')) out.push('the dashes of ' + stroke.name + ' start at the first point, which moves');
+        if (d && d.property('ADBE Vector Stroke Dash 1')) flag(out, 'dashes', 'the dashes of ' + stroke.name + ' start at the first point, which moves');
         if (nonzero(stroke.property('ADBE Vector Stroke Taper'), ['ADBE Vector Taper Start Length', 'ADBE Vector Taper End Length', 'ADBE Vector Taper StartWidthPx', 'ADBE Vector Taper EndWidthPx']))
-            out.push('the taper of ' + stroke.name + ' runs from the first point, which moves');
+            flag(out, 'taper', 'the taper of ' + stroke.name + ' runs from the first point, which moves');
         if (nonzero(stroke.property('ADBE Vector Stroke Wave'), ['ADBE Vector Taper Wave Amount']))
-            out.push('the wave of ' + stroke.name + ' runs from the first point, which moves');
+            flag(out, 'wave', 'the wave of ' + stroke.name + ' runs from the first point, which moves');
     }
 
     // what in a shape layer works on this path: operators and strokes after it in its own group
@@ -1238,7 +1246,7 @@ var MorphFixer = (function () {
             for (var i = item.propertyIndex + 1; i <= list.numProperties; i++) {
                 var q = list.property(i);
                 if (!q || !on(q)) continue;
-                if (OPERATORS[q.matchName]) out.push(q.name + ' ' + OPERATORS[q.matchName]);
+                if (OPERATORS[q.matchName]) flag(out, KIND[q.matchName], q.name + ' ' + OPERATORS[q.matchName]);
                 else if (STROKES[q.matchName]) strokeNeeds(q, out);
             }
             if (list.matchName !== 'ADBE Vectors Group') break;     // the root list: done
@@ -1252,7 +1260,7 @@ var MorphFixer = (function () {
         var mask = prop.parentProperty, layer = prop.propertyGroup(prop.propertyDepth), index = mask.propertyIndex, i, j;
         try {
             var tp = layer.property('ADBE Text Properties').property('ADBE Text Path Options').property('ADBE Text Path');
-            if (tp && tp.value === index) out.push('the text runs along this mask from its first point, which moves');
+            if (tp && tp.value === index) flag(out, 'text', 'the text runs along this mask from its first point, which moves');
         } catch (e) {}
         var fx = layer.property('ADBE Effect Parade');
         for (i = 1; fx && i <= fx.numProperties; i++) {
@@ -1261,7 +1269,7 @@ var MorphFixer = (function () {
             for (j = 1; j <= e.numProperties; j++) {
                 var p = e.property(j);
                 if (p.propertyType === PropertyType.PROPERTY && p.propertyValueType === PropertyValueType.MASK_INDEX && p.value === index) {
-                    out.push(e.name + ' uses this mask from its first point, which moves');
+                    flag(out, 'effect', e.name + ' uses this mask from its first point, which moves');
                     break;
                 }
             }
@@ -1296,6 +1304,7 @@ var MorphFixer = (function () {
     // warnings for one path: { label, items: [...] } (items empty when nothing depends on it)
     function needs(prop, comp, reads) {
         var out = [], layer = prop.propertyGroup(prop.propertyDepth), i;
+        out.kinds = [];
         try {
             if (prop.matchName === 'ADBE Mask Shape') maskNeeds(prop, out);
             else shapeNeeds(prop, out);
@@ -1303,9 +1312,9 @@ var MorphFixer = (function () {
         for (i = 0; reads && i < reads.length; i++) {
             var x = reads[i].text, nm = layer.name;
             if (reads[i].layer.index === layer.index || x.indexOf('"' + nm + '"') >= 0 || x.indexOf('\'' + nm + '\'') >= 0)
-                out.push('an expression on ' + reads[i].where + ' reads the points, which move');
+                flag(out, 'expression', 'an expression on ' + reads[i].where + ' reads the points, which move');
         }
-        return { label: describe(prop), items: out };
+        return { label: describe(prop), items: out, kinds: out.kinds };
     }
 
     // milliseconds per key in After Effects 27 on the reference machine, by mode and average
