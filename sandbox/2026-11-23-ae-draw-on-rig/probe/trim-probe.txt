@@ -1,0 +1,272 @@
+ae = 27.0x78
+A.end0 = [0, 0, 0, 0]
+A.end5 = [0, 0, 15.0007524490356, 0]
+A.end10 = [0, 0, 30.0050773620605, 0]
+A.end25 = [0, 0, 75.0082550048828, 0]
+A.end40 = [0, 0, 120.013114929199, 0]
+A.end50 = [0, 0, 150.009811401367, 0]
+A.end60 = [0, 0, 180.005859375, 0]
+A.end75 = [0, 0, 225.001800537109, 0]
+A.end90 = [0, 0, 270.007171630859, 0]
+A.end100 = [0, 0, 300, 0]
+B.end0 = [0, 0, 0, 0]
+B.end5 = [0, 0, 20, 0]
+B.end10 = [0, 0, 40, 0]
+B.end25 = [0, 0, 100, 0]
+B.end40 = [0, 0, 160, 0]
+B.end50 = [0, 0, 200, 0]
+B.end60 = [0, 0, 240, 0]
+B.end75 = [0, 0, 300, 0]
+B.end90 = [0, 0, 360, 0]
+B.end100 = [0, 0, 400, 0]
+C.end0 = [0, 0, 0, 0]
+C.end5 = [0, -21.146520614624, 11.1440114974976, 21.146520614624]
+C.end10 = [0, -41.5820960998535, 23.4061965942383, 41.5820960998535]
+C.end25 = [0, -86.5472717285156, 76.0417633056641, 86.5472717285156]
+C.end40 = [0, -86.6025390625, 127.791748046875, 86.6025390625]
+C.end50 = [0, -86.6025390625, 150, 86.6025390625]
+C.end60 = [0, -86.6025390625, 172.208251953125, 128.796722412109]
+C.end75 = [0, -86.6025390625, 223.958236694336, 173.205078125]
+C.end90 = [0, -86.6025390625, 276.593811035156, 173.205078125]
+C.end100 = [0, -86.6025390625, 300, 173.205078125]
+D.end0 = [0, 0, 0, 0]
+D.end5 = [0, 0, 31.59153175354, 0]
+D.end10 = [0, 0, 58.589973449707, 9.99772262573242]
+D.end25 = [0, 0, 147.222366333008, 28.9442729949951]
+D.end40 = [0, 0, 237.19140625, 28.9442729949951]
+D.end50 = [0, 0, 251.147644042969, 84.2021560668945]
+D.end60 = [0, 0, 252.927810668945, 147.359130859375]
+D.end75 = [0, 0, 255.631469726562, 242.104339599609]
+D.end90 = [0, 0, 258.32275390625, 336.848449707031]
+D.end100 = [0, 0, 260, 400]
+E.end10 = [0, 0, 40, 0]
+E.end25 = [0, 0, 100, 0]
+E.end30 = [0, 0, 100, 20]
+E.end50 = [0, 0, 100, 100]
+E.end60 = [0, 0, 100, 100]
+E.end75 = [0, 0, 100, 100]
+E.end80 = [0, 0, 100, 100]
+E.end90 = [0, 0, 100, 100]
+M.end0 = [0, 100, 0, 0]
+M.end5 = [0, 0, 20, 0]
+M.end10 = [0, 0, 40, 0]
+M.end25 = [0, 0, 100, 0]
+M.end40 = [0, 0, 100, 100]
+M.end50 = [0, 0, 100, 100]
+M.end60 = [0, 0, 140, 100]
+M.end75 = [0, 0, 200, 100]
+M.end90 = [0, 0, 260, 100]
+M.end100 = [0, 0, 300, 100]
+MS.end10 = [0, 0, 30, 100]
+MS.end50 = [0, 0, 150, 100]
+R.end0 = [0, 0, 0, 0]
+R.end5 = [0, 100, 20.0000019073486, 0]
+R.end10 = [0, 100, 40.0000038146973, 0]
+R.end25 = [0, 100, 100, 0]
+R.end40 = [0, 100, 160.000015258789, 0]
+R.end50 = [0, 100, 200, 0]
+R.end60 = [0, 100, 240, 0]
+R.end75 = [0, 100, 300, 0]
+R.end90 = [0, 0, 300, 100]
+R.end100 = [0, 0, 300, 100]
+M3.end10 = [0, 0, 40, 0]
+M3.end20 = [0, 0, 80, 0]
+M3.end25 = [0, 0, 100, 0]
+M3.end33 = [0, 0, 100, 100]
+M3.end40 = [0, 0, 100, 100]
+M3.end50 = [0, 0, 100, 100]
+M3.end60 = [0, 0, 100, 200]
+M3.end66 = [0, 0, 100, 200]
+M3.end75 = [0, 0, 100, 200]
+M3.end90 = [0, 0, 160, 200]
+GR.end0 = [0, 0, 0, 100]
+GR.end5 = [0, 0, 20, 100]
+GR.end10 = [0, 0, 40, 100]
+GR.end25 = [0, 0, 100, 100]
+GR.end40 = [0, 0, 100, 100]
+GR.end50 = [0, 0, 100, 100]
+GR.end60 = [0, 0, 140, 100]
+GR.end75 = [0, 0, 200, 100]
+GR.end90 = [0, 0, 260, 100]
+GR.end100 = [0, 0, 300, 100]
+GRchild50.end0 = [0, 0, 0, 100]
+GRchild50.end5 = [0, 0, 17.5, 100]
+GRchild50.end10 = [0, 0, 35, 100]
+GRchild50.end25 = [0, 0, 50, 100]
+GRchild50.end40 = [0, 0, 90, 100]
+GRchild50.end50 = [0, 0, 125, 100]
+GRchild50.end60 = [0, 0, 160.000015258789, 100]
+GRchild50.end75 = [0, 0, 212.5, 100]
+GRchild50.end90 = [0, 0, 265, 100]
+GRchild50.end100 = [0, 0, 300, 100]
+xform.path = [[[0, 0], [120, 10], [60, 90]], [[0, 0], [-30, -20], [20, 0]], [[40, -30], [0, 30], [0, 0]]]
+xform.case0 = ({a:[0, 0], p:[0, 0], s:[100, 100], k:0, ka:0, r:0})
+xform.rect0 = [0, -15.2982215881348, 120, 105.298221588135]
+xform.case1 = ({a:[0, 0], p:[0, 0], s:[150, 60], k:0, ka:0, r:0})
+xform.rect1 = [0, -9.17893314361572, 180, 63.178936958313]
+xform.case2 = ({a:[0, 0], p:[0, 0], s:[100, 100], k:0, ka:0, r:30})
+xform.rect2 = [0, -0.57008677721024, 98.9230499267578, 110.880687057972]
+xform.case3 = ({a:[0, 0], p:[0, 0], s:[100, 100], k:20, ka:0, r:0})
+xform.rect3 = [0, -15.2982215881348, 116.360298156738, 105.298221588135]
+xform.case4 = ({a:[0, 0], p:[0, 0], s:[100, 100], k:20, ka:35, r:0})
+xform.rect4 = [0, -12.8525857925415, 97.0365142822266, 125.505379676819]
+xform.case5 = ({a:[10, 20], p:[100, 50], s:[100, 100], k:0, ka:0, r:0})
+xform.rect5 = [90, 14.7017784118652, 120, 105.298221588135]
+xform.case6 = ({a:[10, 20], p:[100, 50], s:[150, 60], k:25, ka:40, r:30})
+xform.rect6 = [101.658790588379, 30.582612991333, 97.6409072875977, 115.144117355347]
+xform.case7 = ({a:[-5, 7], p:[20, -30], s:[-80, 130], k:-15, ka:70, r:-50})
+xform.rect7 = [-31.5324020385742, -31.1907329559326, 102.365989685059, 122.292989730835]
+xform.nested = ({inner:{s:[150, 60], r:30, p:[40, 0]}, outer:{s:[70, 140], r:-20, k:10, ka:15}})
+xform.nestedRect = [0, 0, 0, 0]
+rename.expression = thisComp.layer("Ctrl A").effect("Speed A")(1).value + 10
+rename.enabled = true
+rename.error = 
+rename.value = 0
+tree.1 = ADBE Vector Group | Group 1
+tree.1.1 = ADBE Vector Blend Mode | Blend Mode = (new Number(1))
+tree.1.2 = ADBE Vectors Group | Contents
+tree.1.2.1 = ADBE Vector Shape - Rect | Rectangle Path 1
+tree.1.2.1.1 = ADBE Vector Shape Direction | Shape Direction = (new Number(1))
+tree.1.2.1.2 = ADBE Vector Rect Size | Size = [100, 100]
+tree.1.2.1.3 = ADBE Vector Rect Position | Position = [0, 0]
+tree.1.2.1.4 = ADBE Vector Rect Roundness | Roundness = (new Number(0))
+tree.1.2.2 = ADBE Vector Shape - Ellipse | Ellipse Path 1
+tree.1.2.2.1 = ADBE Vector Shape Direction | Shape Direction = (new Number(1))
+tree.1.2.2.2 = ADBE Vector Ellipse Size | Size = [100, 100]
+tree.1.2.2.3 = ADBE Vector Ellipse Position | Position = [0, 0]
+tree.1.2.3 = ADBE Vector Shape - Star | Polystar Path 1
+tree.1.2.3.1 = ADBE Vector Shape Direction | Shape Direction = (new Number(1))
+tree.1.2.3.2 = ADBE Vector Star Type | Type = (new Number(1))
+tree.1.2.3.3 = ADBE Vector Star Points | Points = (new Number(5))
+tree.1.2.3.4 = ADBE Vector Star Position | Position = [0, 0]
+tree.1.2.3.5 = ADBE Vector Star Rotation | Rotation = (new Number(0))
+tree.1.2.3.6 = ADBE Vector Star Inner Radius | Inner Radius = (new Number(50))
+tree.1.2.3.7 = ADBE Vector Star Outer Radius | Outer Radius = (new Number(100))
+tree.1.2.3.8 = ADBE Vector Star Inner Roundess | Inner Roundness = (new Number(0))
+tree.1.2.3.9 = ADBE Vector Star Outer Roundess | Outer Roundness = (new Number(0))
+tree.1.2.4 = ADBE Vector Graphic - Stroke | Stroke 1
+tree.1.2.4.1 = ADBE Vector Blend Mode | Blend Mode = (new Number(1))
+tree.1.2.4.2 = ADBE Vector Composite Order | Composite = (new Number(1))
+tree.1.2.4.3 = ADBE Vector Stroke Color | Color = [1, 1, 1, 1]
+tree.1.2.4.4 = ADBE Vector Stroke Opacity | Opacity = (new Number(100))
+tree.1.2.4.5 = ADBE Vector Stroke Width | Stroke Width = (new Number(2))
+tree.1.2.4.6 = ADBE Vector Stroke Line Cap | Line Cap = (new Number(1))
+tree.1.2.4.7 = ADBE Vector Stroke Line Join | Line Join = (new Number(1))
+tree.1.2.4.8 = ADBE Vector Stroke Miter Limit | Miter Limit = (new Number(4))
+tree.1.2.4.9 = ADBE Vector Stroke Dashes | Dashes
+tree.1.2.4.9.1 = ADBE Vector Stroke Dash 1 | Dash = (new Number(10))
+tree.1.2.4.9.2 = ADBE Vector Stroke Gap 1 | Gap = (new Number(10))
+tree.1.2.4.9.3 = ADBE Vector Stroke Dash 2 | Dash 2 = (new Number(10))
+tree.1.2.4.9.4 = ADBE Vector Stroke Gap 2 | Gap 2 = (new Number(10))
+tree.1.2.4.9.5 = ADBE Vector Stroke Dash 3 | Dash 3 = (new Number(10))
+tree.1.2.4.9.6 = ADBE Vector Stroke Gap 3 | Gap 3 = (new Number(10))
+tree.1.2.4.9.7 = ADBE Vector Stroke Offset | Offset = (new Number(0))
+tree.1.2.4.10 = ADBE Vector Stroke Taper | Taper
+tree.1.2.4.10.1 = ADBE Vector Taper Length Units | Length Units = (new Number(1))
+tree.1.2.4.10.2 = ADBE Vector Taper Start Length | Start Length = (new Number(0))
+tree.1.2.4.10.3 = ADBE Vector Taper End Length | End Length = (new Number(0))
+tree.1.2.4.10.4 = ADBE Vector Taper StartWidthPx | Start Length = (new Number(0))
+tree.1.2.4.10.5 = ADBE Vector Taper EndWidthPx | End Length = (new Number(0))
+tree.1.2.4.10.6 = ADBE Vector Taper Start Width | Start Width = (new Number(0))
+tree.1.2.4.10.7 = ADBE Vector Taper End Width | End Width = (new Number(0))
+tree.1.2.4.10.8 = ADBE Vector Taper Start Ease | Start Ease = (new Number(0))
+tree.1.2.4.10.9 = ADBE Vector Taper End Ease | End Ease = (new Number(0))
+tree.1.2.4.11 = ADBE Vector Stroke Wave | Wave
+tree.1.2.4.11.1 = ADBE Vector Taper Wave Amount | Amount = (new Number(0))
+tree.1.2.4.11.2 = ADBE Vector Taper Wave Units | Units = (new Number(1))
+tree.1.2.4.11.3 = ADBE Vector Taper Wavelength | Wavelength = (new Number(100))
+tree.1.2.4.11.4 = ADBE Vector Taper Wave Cycles | Cycles = (new Number(10))
+tree.1.2.4.11.5 = ADBE Vector Taper Wave Phase | Phase = (new Number(0))
+tree.1.2.5 = ADBE Vector Filter - Trim | Trim Paths 1
+tree.1.2.5.1 = ADBE Vector Trim Start | Start = (new Number(0))
+tree.1.2.5.2 = ADBE Vector Trim End | End = (new Number(100))
+tree.1.2.5.3 = ADBE Vector Trim Offset | Offset = (new Number(0))
+tree.1.2.5.4 = ADBE Vector Trim Type | Trim Multiple Shapes = (new Number(1))
+tree.1.3 = ADBE Vector Transform Group | Transform
+tree.1.3.1 = ADBE Vector Anchor | Anchor Point = [0, 0]
+tree.1.3.2 = ADBE Vector Position | Position = [0, 0]
+tree.1.3.3 = ADBE Vector Scale | Scale = [100, 100]
+tree.1.3.4 = ADBE Vector Skew | Skew = (new Number(0))
+tree.1.3.5 = ADBE Vector Skew Axis | Skew Axis = (new Number(0))
+tree.1.3.6 = ADBE Vector Rotation | Rotation = (new Number(0))
+tree.1.3.7 = ADBE Vector Group Opacity | Opacity = (new Number(100))
+tree.1.4 = ADBE Vector Materials Group | Material Options
+tree.1.4.1 = ADBE Vec3D Front RGB | Front Color = [1, 0, 0, 1]
+tree.1.4.2 = ADBE Vec3D Front Ambient | Front Ambient = (new Number(100))
+tree.1.4.3 = ADBE Vec3D Front Diffuse | Front Diffuse = (new Number(50))
+tree.1.4.4 = ADBE Vec3D Front Specular | Front Specular Intensity = (new Number(50))
+tree.1.4.5 = ADBE Vec3D Front Shininess | Front Specular Shininess = (new Number(5))
+tree.1.4.6 = ADBE Vec3D Front Metal | Front Metal = (new Number(100))
+tree.1.4.7 = ADBE Vec3D Front Reflection | Front Reflection Intensity = (new Number(0))
+tree.1.4.8 = ADBE Vec3D Front Gloss | Front Reflection Sharpness = (new Number(100))
+tree.1.4.9 = ADBE Vec3D Front Fresnel | Front Reflection Rolloff = (new Number(0))
+tree.1.4.10 = ADBE Vec3D Front Xparency | Front Transparency = (new Number(0))
+tree.1.4.11 = ADBE Vec3D Front XparRoll | Front Transparency Rolloff = (new Number(0))
+tree.1.4.12 = ADBE Vec3D Front IOR | Front Index of Refraction = (new Number(1))
+tree.1.4.13 = ADBE Vec3D Bevel RGB | Bevel Color = [1, 0, 0, 1]
+tree.1.4.14 = ADBE Vec3D Bevel Ambient | Bevel Ambient = (new Number(100))
+tree.1.4.15 = ADBE Vec3D Bevel Diffuse | Bevel Diffuse = (new Number(50))
+tree.1.4.16 = ADBE Vec3D Bevel Specular | Bevel Specular Intensity = (new Number(50))
+tree.1.4.17 = ADBE Vec3D Bevel Shininess | Bevel Specular Shininess = (new Number(5))
+tree.1.4.18 = ADBE Vec3D Bevel Metal | Bevel Metal = (new Number(100))
+tree.1.4.19 = ADBE Vec3D Bevel Reflection | Bevel Reflection Intensity = (new Number(0))
+tree.1.4.20 = ADBE Vec3D Bevel Gloss | Bevel Reflection Sharpness = (new Number(100))
+tree.1.4.21 = ADBE Vec3D Bevel Fresnel | Bevel Reflection Rolloff = (new Number(0))
+tree.1.4.22 = ADBE Vec3D Bevel Xparency | Bevel Transparency = (new Number(0))
+tree.1.4.23 = ADBE Vec3D Bevel XparRoll | Bevel Transparency Rolloff = (new Number(0))
+tree.1.4.24 = ADBE Vec3D Bevel IOR | Bevel Index of Refraction = (new Number(1))
+tree.1.4.25 = ADBE Vec3D Side RGB | Side Color = [1, 0, 0, 1]
+tree.1.4.26 = ADBE Vec3D Side Ambient | Side Ambient = (new Number(100))
+tree.1.4.27 = ADBE Vec3D Side Diffuse | Side Diffuse = (new Number(50))
+tree.1.4.28 = ADBE Vec3D Side Specular | Side Specular Intensity = (new Number(50))
+tree.1.4.29 = ADBE Vec3D Side Shininess | Side Specular Shininess = (new Number(5))
+tree.1.4.30 = ADBE Vec3D Side Metal | Side Metal = (new Number(100))
+tree.1.4.31 = ADBE Vec3D Side Reflection | Side Reflection Intensity = (new Number(0))
+tree.1.4.32 = ADBE Vec3D Side Gloss | Side Reflection Sharpness = (new Number(100))
+tree.1.4.33 = ADBE Vec3D Side Fresnel | Side Reflection Rolloff = (new Number(0))
+tree.1.4.34 = ADBE Vec3D Side Xparency | Side Transparency = (new Number(0))
+tree.1.4.35 = ADBE Vec3D Side XparRoll | Side Transparency Rolloff = (new Number(0))
+tree.1.4.36 = ADBE Vec3D Side IOR | Side Index of Refraction = (new Number(1))
+tree.1.4.37 = ADBE Vec3D Back RGB | Back Color = [1, 0, 0, 1]
+tree.1.4.38 = ADBE Vec3D Back Ambient | Back Ambient = (new Number(100))
+tree.1.4.39 = ADBE Vec3D Back Diffuse | Back Diffuse = (new Number(50))
+tree.1.4.40 = ADBE Vec3D Back Specular | Back Specular Intensity = (new Number(50))
+tree.1.4.41 = ADBE Vec3D Back Shininess | Back Specular Shininess = (new Number(5))
+tree.1.4.42 = ADBE Vec3D Back Metal | Back Metal = (new Number(100))
+tree.1.4.43 = ADBE Vec3D Back Reflection | Back Reflection Intensity = (new Number(0))
+tree.1.4.44 = ADBE Vec3D Back Gloss | Back Reflection Sharpness = (new Number(100))
+tree.1.4.45 = ADBE Vec3D Back Fresnel | Back Reflection Rolloff = (new Number(0))
+tree.1.4.46 = ADBE Vec3D Back Xparency | Back Transparency = (new Number(0))
+tree.1.4.47 = ADBE Vec3D Back XparRoll | Back Transparency Rolloff = (new Number(0))
+tree.1.4.48 = ADBE Vec3D Back IOR | Back Index of Refraction = (new Number(1))
+Q0.end0 = [100, -50, 0, 0]
+Q0.end5 = [100, -50, 0, 30.0000019073486]
+Q0.end10 = [100, -50, 0, 60.0000038146973]
+Q0.end25 = [50, -50, 50, 100]
+Q0.end40 = [-40, -50, 140, 100]
+Q0.end50 = [-100, -50, 200, 100]
+Q0.end60 = [-100, -50, 200, 100]
+Q0.end75 = [-100, -50, 200, 100]
+Q0.end90 = [-100, -50, 200, 100]
+Q0.end100 = [-100, -50, 200, 100]
+Q1.end0 = [0, -50, 0, 0]
+Q1.end5 = [0, -50, 24.1646518707275, 1.46964645385742]
+Q1.end10 = [0, -50, 47.9208221435547, 6.10420227050781]
+Q1.end25 = [0, -50, 100, 50]
+Q1.end40 = [0, -50, 100, 93.8957977294922]
+Q1.end50 = [0, -50, 100, 100]
+Q1.end60 = [-47.9208221435547, -50, 147.920822143555, 100]
+Q1.end75 = [-100, -50, 200, 100]
+Q1.end90 = [-100, -50, 200, 100]
+Q1.end100 = [-100, -50, 200, 100]
+Q2.end0 = [6.12323378646981e-15, -100, 0, 0]
+Q2.end5 = [6.12323378646981e-15, -100, 14.6946315765381, 29.7745742797852]
+Q2.end10 = [6.12323378646981e-15, -100, 29.3892631530762, 59.5491485595703]
+Q2.end25 = [6.12323378646981e-15, -100, 95.1056518554688, 92.2745761871338]
+Q2.end40 = [6.12323378646981e-15, -100, 95.1056518554688, 180.901702880859]
+Q2.end50 = [0, -100, 95.1056518554688, 180.901702880859]
+Q2.end60 = [-58.7785224914551, -100, 153.884174346924, 180.901702880859]
+Q2.end75 = [-71.3292388916016, -100, 166.43489074707, 180.901702880859]
+Q2.end90 = [-95.1056518554688, -100, 190.211303710938, 180.901702880859]
+Q2.end100 = [-95.1056518554688, -100, 190.211303710938, 180.901702880859]
+done = true

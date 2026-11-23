@@ -1,6 +1,6 @@
 ---
 name: after-effects
-description: Building After Effects tools from drawn-by-code — ExtendScript (.jsx) that bakes code-made motion into native AE layers, keyframes and slider-driven expressions, builds live expression rigs, or ships as a dockable ScriptUI panel people install, tested inside the user's After Effects (2026 and 27). Use it when the user works in After Effects, asks for an AE script, panel, rig or expression, wants to move motion between code and AE, or when working on sandbox/2026-11-21-ae-flock-rig, sandbox/2026-11-21-ae-field-effector or sandbox/2026-11-21-ae-morph-fixer.
+description: Building After Effects tools from drawn-by-code — ExtendScript (.jsx) that bakes code-made motion into native AE layers, keyframes and slider-driven expressions, builds live expression rigs, or ships as a dockable ScriptUI panel people install, tested inside the user's After Effects (2026 and 27). Use it when the user works in After Effects, asks for an AE script, panel, rig or expression, wants to move motion between code and AE, or when working on sandbox/2026-11-21-ae-flock-rig, sandbox/2026-11-21-ae-field-effector, sandbox/2026-11-21-ae-morph-fixer or sandbox/2026-11-23-ae-draw-on-rig (Trim Paths, draw-on, constant speed).
 ---
 
 # After Effects
@@ -21,6 +21,10 @@ Worked examples:
   path and mask keys so shapes morph cleanly, letters with holes included. It installs
   itself as a dockable panel, warns before breaking anything, estimates long jobs and
   cancels with Esc. It is the reference for the "A panel people install" section below.
+- `sandbox/2026-11-23-ae-draw-on-rig/` (live, a panel): Constant Speed Draw-On. Every stroke's
+  Trim Paths draws at one speed in comp pixels per second, lengths measured through AE's own
+  transforms and baked into the expressions, timing live on a controls null. The reference
+  for "Shape layers, Trim Paths and lengths" below.
 
 **Bake or live?** If the motion has memory (velocity, collisions, contact), simulate in the
 script and bake keys. If each frame depends only on where things are at that frame (a
@@ -33,10 +37,11 @@ re-key the driver and nothing needs re-running.
 |---|---|
 | `*-sim.js` / `*-math.js`, plain **ES3** | The logic. Runs unchanged in ExtendScript, Node and the engine, so the preview, the tests and the AE result are the same numbers |
 | `*-ae.jsx` | The AE half: dialog or panel, reading the comp, building layers or writing keys, expressions |
-| `build.mjs` | Joins them into **one** `.jsx` for the designer and lints it, since a syntax error in AE is only an alert. It checks ES3, reserved words, non-ASCII strings, a caught error joined with `+`, and lookups by display name |
+| `build.mjs` | Joins them into **one** `.jsx` for the designer and lints it, since a syntax error in AE is only an alert. It checks ES3, reserved words, non-ASCII strings, a caught error joined with `+`, lookups by display name, and a nested `?:` without parentheses (the draw-on rig's) |
 | `scene.js` | Engine preview drawn the way the result will look: judge the motion here, it renders in seconds |
 | `make-demo.jsx` | Builds a demo project from nothing; with a test flag it checks, logs and saves. It is the AE test |
 | `test.mjs` | Node: the logic on hostile inputs, and the AE half against mock properties |
+| `probe/` (the draw-on rig) | Measure what the tool rests on in AE before building on it, and keep the numbers (`*.txt`) as Node fixtures |
 | Real artwork (`art/` in the morph fixer) | Cases made from real material, such as letter outlines read from the repo's OFL fonts. They run in Node and, through the tool's own code, in AE. They found what made-up shapes hid |
 
 Expose `build(comp, …)` or the tool's API without UI (`$.global.X_NO_UI`) so the test can
@@ -76,6 +81,13 @@ that AE runs wrong.
 
 - No `let`/`const`, arrows, template strings, `JSON`, `Object.keys`, `Array` methods
   (`forEach`, `map`, `indexOf`…), trailing commas. `toSource()` + `eval` replace JSON.
+- **ExtendScript reads `a ? b : c ? d : e` as `(a ? b : c) ? d : e`** (AE 27: `true ? 1 :
+  false ? 2 : 3` is 2; V8 says 1). Put every `?:` nested in another's branches in
+  parentheses. It made every Slider a Checkbox in the draw-on rig's first AE run, and a
+  clamp `x < 0 ? 0 : x > 1 ? 1 : x` lets negatives through. The draw-on rig's `build.mjs`
+  lints for it (`nestedTernary`); the flock's `clamp`, the morph fixer's area `sign` and
+  its bridge's job sort still had one on 2026-11-23. Expressions on AE's default JavaScript engine
+  parse it right, the Legacy ExtendScript engine doesn't: parenthesize there too.
 - **ES3 reserves words that modern JS doesn't** (`short`, `long`, `int`, `char`, `float`,
   `double`, `final`, `static`, `public`, `private`, `package`, `goto`…), **even as property
   names**: `{ short: 'x' }` or `res.long` stops the whole script ("Illegal use of reserved
@@ -218,6 +230,37 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   - A test names everything it builds itself ("Outline", not AE's "Path 1"), including
     names used inside the expressions it writes.
 
+## Shape layers, Trim Paths and lengths
+
+Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
+`sourceRectAtTime(t, false)`, which includes trims):
+
+- **Trim Paths cuts by arc length** in the space of the group holding it (0.05 px at worst
+  on very uneven handles; the closing segment counts). A linear End is a constant speed
+  inside one path.
+- **Individually** runs through the paths top to bottom, sharing the range **by length**,
+  each path counted in its own group **before that group's transform** (a root trim over a
+  group scaled 200 % gives it its unscaled share). Simultaneously gives every path the same %.
+  A trim also cuts what a trim inside a subgroup already cut.
+- **Shape group transform**: `Position + R(rotation) · K(skew) · S(scale) · (p − Anchor)`,
+  `K = R(−axis) · [[1, −tan skew], [0, 1]] · R(axis)` (0.000 px; matchNames `ADBE Vector
+  Anchor`, `… Position`, `… Scale`, `… Skew`, `… Skew Axis`, `… Rotation`).
+- Rectangles start at the top-right corner (below it when rounded), ellipses and stars at the
+  top, clockwise. `ADBE Vector Shape Direction` 3 reverses the way (open bezier: from its last
+  point); 1 and 2 don't. Bezier paths have that property too.
+- In a box from `sourceRectAtTime`, a path the trim hasn't reached yet still adds its first
+  point.
+- **Lengths in comp pixels** (what a viewer sees): carry the path through its groups'
+  transforms, then `toComp`. For many points, one temporary text layer whose Source Text
+  expression returns `toComp` of all of them joined by commas (`valueAtTime(t, false).text`):
+  one evaluation instead of a null per point. 2D layers map affinely (three points give the
+  map); a 3D layer under AE's default camera has perspective (±6 % along a line turned 50°):
+  send every sample point.
+- A stretched or skewed group makes the visual speed depend on direction: bake a table from
+  visual fraction to trim fraction (64 steps kept it within 0.24 % of the length).
+- `trim.enabled = false` switches an operator off from a script; an expression on End
+  overrides its keys and removing the expression gives them back.
+
 ## Scripting pitfalls (each one cost a run)
 
 - **Removing the last Time Remap key turns time remapping off** and hides the property;
@@ -264,6 +307,11 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   parameter's 100 %; Fill's Opacity runs 0–1.
 - `comp.layers.addNull()` in AE 2026 puts the null's anchor at [0, 0]: read it, don't
   assume the centre.
+- **`layer.parent = p` compensates** the child's transform like the pick-whip (it stays where
+  it was). To parent with the values you set, `layer.setParentWithJump(p)`. A test that
+  parented with `=` had its layers 20 % off the spec, and blamed the tool.
+- **Renaming a layer or an effect from a script doesn't update expressions that name it**
+  (AE 27): reach helper layers through Layer Controls.
 - AE stores path points as 32-bit floats: compare AE with Node on the keys AE holds.
 - Keyframe labels: `prop.keyLabel(k)` and `prop.setLabelAtKey(k, 0–16)` (0 = none, 1–16 the
   colours in Preferences › Labels), from AE 22.6. Wrap them in `try` for older versions.
@@ -331,6 +379,13 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
     script" refusal (cause still unknown) came mostly on a new launch right after a runner
     had stopped itself. Each new launch is a chance for it; `-ro` gets past it (above),
     where before only a restart did.
+- A floating palette sent with `AfterFX.exe -ro` never showed (AE 27); run from File ›
+  Scripts › Run Script File… it floats. Test a floating panel by hand that way.
+- A job must stop when `freshProject()` refuses: two debug jobs that went on anyway left an
+  untitled project with items, which the runner then rightly refused to close for the real
+  test.
+- The runner's 5 idle minutes ran out while code was being written between jobs; the
+  draw-on rig's copy waits 20. Either way, stop it explicitly at the end.
 - A panel installed in ScriptUI Panels opens from a script with
   `app.executeCommand(app.findMenuCommandId('<file name>.jsx'))` (a negative id is fine; 0
   = not found). It runs at once, and a test build's exports are there on the next line.
@@ -498,3 +553,16 @@ The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
   hand did that the scripts didn't. The stuck progress window needed a click on the busy AE.
   Two "fixes" built on a guessed cause (a timer closing it later) left 19 windows stacked
   before an experiment with the click found it.
+- 2026-11-23 · ae-draw-on-rig · Measure what a tool rests on in AE before building on it, in
+  a probe whose numbers become Node fixtures: Trim Paths by arc length, Individually by
+  unscaled length, the group transform's order and signs, which Shape Direction reverses.
+  Two of them (the unscaled share, Direction 3) were not what habit suggests.
+- 2026-11-23 · ae-draw-on-rig · Constant speed across layers means comp pixels: measure every
+  stroke through its groups and `toComp`, bake the lengths into the expressions and keep the
+  timing live on sliders. Check it in AE itself, from the trimmed layers' boxes: 7 kinds of
+  layer (scaled, stretched, parented, skewed group, 3D) within 0.11 % of the speed.
+- 2026-11-23 · ae-draw-on-rig · A tool that passed in Node made every Slider a Checkbox in AE:
+  ExtendScript groups nested `?:` the wrong way. Lint for it, and scan the other tools when a
+  language trap turns up (three of them had it).
+- 2026-11-23 · ae-draw-on-rig · File warnings under what they change, not under each item that
+  triggers them: one Trim Paths over two groups was warned about twice, seen only by hand.
