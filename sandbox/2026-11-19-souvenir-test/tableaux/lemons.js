@@ -645,9 +645,16 @@ Tableau.lemons.hole = 290;
 
 // ------------------------------------------------------------------ round 8 · loose pieces
 // The lemon tree as a cloud of loose pieces, the door to the second passage: the camera comes
-// out of the guitar's mouth (1340 in front of z0) into it. Every piece is its own layer from
-// z0 − 300 to z0 + 450, all round the axis and never within 260 of it, densest just outside
-// that, so that what fills the guitar's mouth as the camera goes through is lemons and leaves.
+// out of the guitar's mouth (`o.guitar`, 1340 in front of z0) into it. Every piece is its own
+// layer from z0 − 300 to z0 + 450, all round the axis. About a fifth of the matter crosses the
+// axis (leaves, lemons, blossom, petals, a twig; most of it from z0 + 150 to z0 + 450): the
+// camera flies through those, and they are what fills the guitar's mouth as it goes through,
+// with only slivers of night. The rest keeps out of a core whose edge is ragged with angle
+// and depth (175–385 from the axis, `edge`), densest just outside it: never a circle.
+// Each piece comes out of the night only through the guitar's mouth: its `far` starts when the
+// guitar is 600 away (later for a piece that is still seen round the guitar's body then: it
+// fades in once the body hides it) and it is whole a third of that distance later, so the tree
+// never glows behind the emblem.
 // The brush manner (no contour); the sun comes through in patches painted into every piece
 // from one map in the stratum's coordinates (`dapple`), so all the pieces share one light;
 // what is far behind takes the tree's blue-green air.
@@ -661,8 +668,8 @@ Tableau.lemons.hole = 290;
 //            dead), leafy twigs, lemons on their stalks, open flowers, buds, fruitlets,
 //            fallen petals, thorny wood, a bee in flight, a ladybird on a leaf, ants, the
 //            finch's feather
-Tableau.lemons.loose = (z0) => {
-    const S = Souvenir, C = Citrus, TAU = Math.PI * 2;
+Tableau.lemons.loose = (z0, o = {}) => {
+    const S = Souvenir, C = Citrus, TAU = Math.PI * 2, GZ = o.guitar ?? 1340;
     const F = (name) => (typeof Fauna !== 'undefined' && typeof Fauna[name] === 'function' ? Fauna : null);
     const Q = (res, q) => Math.max(0.5, Math.round(res * q * 4) / 4);
     const canvas = (w, h) => {
@@ -952,12 +959,51 @@ Tableau.lemons.loose = (z0) => {
 
     const layers = [];
     const sq = (cx, cy, half) => ({ x: cx - half, y: cy - half, w: half * 2, h: half * 2 });
+    // The core the rest keeps out of: its edge wanders with angle (and turns slowly with depth)
+    const edge = (a, dz) => {
+        const p = a + dz / 520, n = S.noise2(Math.cos(p) * 1.4 + 3.7, Math.sin(p) * 1.4 + 8.1) + 0.5 * S.noise2(Math.cos(p) * 3.3 + 11.2, Math.sin(p) * 3.3 + 2.4);
+        return 175 + 210 * S.clamp(0.5 + 0.75 * n);
+    };
+    // When a piece may come out of the night: the guitar's body (its outline about the mouth)
+    // hides what is behind it; a piece fades in from when the guitar is 600 away, or from when
+    // the body first hides it whole if it is still seen round the guitar then.
+    const BODY = typeof Guitar !== 'undefined' && Guitar.outline ? Guitar.outline(1) : S.ellipse(0, 135, 250, 360, 48);
+    const inBody = (x, y) => {
+        let c = false;
+        for (let i = 0, j = BODY.length - 1; i < BODY.length; j = i++) {
+            const [xi, yi] = BODY[i], [xj, yj] = BODY[j];
+            if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+        }
+        return c;
+    };
+    const toEdge = (x, y) => {
+        let m = Infinity;
+        for (let i = 0, j = BODY.length - 1; i < BODY.length; j = i++) {
+            const [ax, ay] = BODY[j], [bx, by] = BODY[i], ex = bx - ax, ey = by - ay;
+            const u = S.clamp(((x - ax) * ex + (y - ay) * ey) / (ex * ex + ey * ey || 1));
+            m = Math.min(m, Math.hypot(x - ax - ex * u, y - ay - ey * u));
+        }
+        return m;
+    };
+    const farOf = (cx, cy, e, dz) => {
+        const D = GZ + dz;
+        let d1 = 70;
+        for (let d = 1800; d >= 70; d -= 10) {
+            const k = d / (d + D), x = cx * k, y = cy * k;
+            if (inBody(x, y) && toEdge(x, y) >= e * k + 6) {
+                d1 = d;
+                break;
+            }
+        }
+        const d0 = Math.max(75, Math.min(d1, 600)), dE = Math.max(66, d0 * 0.67);
+        return [1000 / (d0 + D), 1000 / (dE + D)];
+    };
     // a piece: `draw(P, g)` paints it at (cx, cy) in the stratum, in its local units (translated
     // there, never turned: the light stays where it is)
     const add = (id, dz, cx, cy, half, draw, o = {}) => {
         const box = sq(cx, cy, half);
         layers.push({
-            id: 'lemons-l-' + id, z: z0 + dz, loose: true, brush: false, box,
+            id: 'lemons-l-' + id, z: z0 + dz, loose: true, brush: false, box, far: farOf(cx, cy, half * 0.75, dz),
             paint(g, res) {
                 const P = painter(g, res);
                 g.save();
@@ -1079,7 +1125,7 @@ Tableau.lemons.loose = (z0) => {
     // ---------------------------------------------------------------- matter
     const r = Motion.rng('lemons-loose');
     const KINDS = [
-        ...Array(22).fill('leaf'), ...Array(26).fill('twig'), ...Array(14).fill('lemon'), ...Array(6).fill('petal'), ...Array(8).fill('flower'),
+        ...Array(17).fill('leaf'), ...Array(24).fill('twig'), ...Array(11).fill('lemon'), ...Array(4).fill('petal'), ...Array(6).fill('flower'),
         ...Array(5).fill('buds'), ...Array(4).fill('fruitlets'), ...Array(3).fill('thorny'), 'bee', 'bee', 'ladybird', 'ants', 'feather', 'dead', 'dead',
     ];
     for (let i = KINDS.length - 1; i > 0; i--) {
@@ -1097,12 +1143,13 @@ Tableau.lemons.loose = (z0) => {
     const LEAVES = ['sun', 'sun', 'mid', 'mid', 'mid', 'back', 'back', 'young', 'bronze', 'old', 'deep'];
     KINDS.forEach((kind, i) => {
         const dz = -300 + 750 * ((i + r()) / N), half = EXT[kind];
-        let a = i * GOLD + r() * 0.5, R = 275 + half + 1150 * Math.pow(r(), 1.25), x, y, tries = 0;
+        let a = i * GOLD + r() * 0.5, out = half * 0.85 + 1150 * Math.pow(r(), 1.25), R, x, y, tries = 0;
         do {
+            R = edge(a, dz) + out;
             x = Math.cos(a) * R;
             y = Math.sin(a) * R;
             if (clearOf(x, y, half, dz)) break;
-            R += 35;
+            out += 35;
             a += 0.15;
         } while (++tries < 40);
         placed.push({ x, y, half, dz });
@@ -1158,9 +1205,57 @@ Tableau.lemons.loose = (z0) => {
         add(kind + i, dz, x, y, EXT[kind] * 1.35 + 40, draw);
     });
 
+    // ---------------------------------------------------------------- across the axis
+    // A fifth of the matter lies across the axis, most of it deep (z0 + 150 … 450): through the
+    // guitar's mouth it is lemons and leaves; the camera flies through each one (it grows, blurs
+    // and fades in its last 85 units).
+    const rx = Motion.rng('lemons-across');
+    const ACROSS = ['leaf', 'lemon', 'leaf', 'flower', 'leaf', 'petal', 'lemon', 'leaf', 'twig', 'leaf', 'flower', 'lemon', 'petal', 'leaf', 'buds', 'leaf', 'lemon', 'petal', 'twig', 'leaf'];
+    ACROSS.forEach((kind, i) => {
+        const deep = i % 10 < 7, n = deep ? 14 : 6, j = deep ? Math.floor((i * 7) / 10) : i % 6;
+        const dz = deep ? 150 + 300 * ((j % n) + rx()) / n : -300 + 450 * ((j % n) + rx()) / n;
+        const a = rx() * TAU, rot = rx() * TAU, pick = Math.floor(rx() * 97), v = pick % 12, seed = 'ax' + i;
+        let R = 30 + 150 * Math.pow(rx(), 0.8), x = Math.cos(a) * R, y = Math.sin(a) * R, tries = 0;
+        while (!clearOf(x, y, 90, dz) && ++tries < 20) {
+            R += 25;
+            x = Math.cos(a + tries) * R;
+            y = Math.sin(a + tries) * R;
+        }
+        placed.push({ x, y, half: 90, dz });
+        const draw = {
+            leaf: (P) => {
+                const k = ['sun', 'mid', 'back', 'sun', 'young', 'mid'][pick % 6], s = 0.75 + rx() * 0.25;
+                const lf = P.leaf(-Math.cos(rot) * 90 * s, -Math.sin(rot) * 90 * s, rot, s, k, pick, { fx: 0.8 + rx() * 0.2, fy: 0.55 + rx() * 0.45, sh: 0 });
+                if (rx() < 0.5) P.drop(...lf.at(0.35 + rx() * 0.4, 0.3, rx() < 0.5 ? 0 : 1), 2.5 + rx() * 3.5);
+            },
+            lemon: (P) => {
+                P.stalk([[-8, -70], [-3, -40], [0, -22]], 5, 6, seed + 'st', { shade: false });
+                const Lm = P.lemon(0, -22, (rx() - 0.5) * 0.5, pick % 2 ? 1.12 : 1.24, v, { age: ['ripe', 'ripe', 'turning', 'ripe', 'green'][pick % 5] });
+                P.leaf(-8, -70, -2.4 + rx() * 1.2, 0.7, ['sun', 'mid'][pick % 2], pick, { fx: 0.85, fy: 0.7 });
+                P.drop(...Lm.at(-16 + rx() * 26, -24 + rx() * 40), 3 + rx() * 3);
+            },
+            flower: (P) => {
+                const hub = [-Math.cos(rot) * 30, -Math.sin(rot) * 30];
+                for (const [d, len, k, w] of [[-0.8, 40, 'face', 0], [0, 46, 'tilt', 1], [0.8, 36, 'bud', 2], [1.5, 30, 'round', 3]]) P.bloom(hub[0], hub[1], rot + d, len, k, (v % 6) * 4 + w, 1.25, { sh: 0.3 });
+            },
+            buds: (P) => {
+                for (const [d, len, k, w] of [[-0.7, 34, 'bud', 0], [0, 44, 'round', 1], [0.75, 30, 'bud', 2], [1.4, 26, 'round', 3]]) P.bloom(-Math.cos(rot) * 20, -Math.sin(rot) * 20, rot + d, len, k, (v % 5) * 4 + w, 1.2, { sh: 0.3 });
+            },
+            petal: (P) => {
+                P.petal(0, 0, rot, v % 6, { old: [0, 0.45, 0.9][pick % 3], s: 1.2 });
+                P.petal(20 * Math.cos(rot + 1.4), 20 * Math.sin(rot + 1.4), rot + 1.7, (v + 2) % 6, { old: [0.45, 0, 0.9][pick % 3], s: 1.05 });
+            },
+            twig: (P) => {
+                const len = 170, sh = sprig(P, -Math.cos(rot) * len * 0.5, -Math.sin(rot) * len * 0.5, rot, len, seed, { kinds: ['sun', 'mid', 'back', 'mid'], leaf: 0.75, thorns: 0.3, w0: 5.5, w1: 2.4 });
+                dew(P, sh, 1, seed);
+            },
+        }[kind];
+        add('across-' + kind + i, dz, x, y, { leaf: 230, lemon: 260, flower: 150, buds: 130, petal: 90, twig: 340 }[kind], draw);
+    });
+
     // ---------------------------------------------------------------- the lining
     // What fills the guitar's mouth as the camera goes through, and the frame from inside the
-    // tree: single leaves pointing in at the axis, their tips stopping 270–330 from it, and
+    // tree: single leaves pointing in at the axis, their tips stopping at the core's edge, and
     // lemons, flowers and petals just outside them, at every depth and more of them deep in
     // the tree (seen through the mouth from farther, they close the middle down).
     const rl = Motion.rng('lemons-lining'), NL = 104;
@@ -1170,14 +1265,14 @@ Tableau.lemons.loose = (z0) => {
         if (k < 6) {
             // a leaf, its tip in: the node out at R, the blade along the way in, the tip 280–330 from the axis
             const kind = ['sun', 'mid', 'back', 'sun', 'young', 'mid', 'bronze', 'deep', 'mid', 'sun'][pick % 10], rot = a + Math.PI + (rl() - 0.5) * 0.5;
-            const s = 0.66 + rl() * 0.34, fx = 0.82 + rl() * 0.18, G = C.leafGeom(leafV(kind, rot, pick), kind), L = (G.L + G.pl) * s * fx, R = 280 + L + rl() * 50;
+            const s = 0.66 + rl() * 0.34, fx = 0.82 + rl() * 0.18, G = C.leafGeom(leafV(kind, rot, pick), kind), L = (G.L + G.pl) * s * fx, R = edge(a, dz) + L + rl() * 50;
             add('lining-leaf' + i, dz, ca * (R - L / 2), sa * (R - L / 2), L * 0.8 + 70, (P) => {
                 const lf = P.leaf(ca * L / 2, sa * L / 2, rot, s, kind, pick, { fx, fy: 0.5 + rl() * 0.5, sh: 0 });
                 if (kind !== 'deep' && rl() < 0.5) P.drop(...lf.at(0.3 + rl() * 0.4, 0.3, rl() < 0.5 ? 0 : 1), 2.5 + rl() * 3.5);
             });
         } else if (k < 8) {
             // a lemon on its stalk, with a leaf
-            const R = 280 + 120 + rl() * 60, age = ['ripe', 'ripe', 'turning', 'green', 'ripe', 'over'][pick % 6];
+            const R = edge(a, dz) + 120 + rl() * 60, age = ['ripe', 'ripe', 'turning', 'green', 'ripe', 'over'][pick % 6];
             add('lining-lemon' + i, dz, ca * R, sa * R, 260, (P) => {
                 P.stalk([[-8, -70], [-3, -40], [0, -22]], 5, 6, seed + 'st', { shade: false });
                 const Lm = P.lemon(0, -22, (rl() - 0.5) * 0.5, pick % 2 ? 1 : 1.12, v, { age });
@@ -1186,11 +1281,11 @@ Tableau.lemons.loose = (z0) => {
             });
         } else if (k === 8) {
             // an open flower on its pedicel, facing any way
-            const R = 280 + 70 + rl() * 50;
+            const R = edge(a, dz) + 70 + rl() * 50;
             add('lining-flower' + i, dz, ca * R, sa * R, 150, (P) => P.bloom(-ca * 30, -sa * 30, a + (rl() - 0.5), 40, ['face', 'tilt', 'face', 'half'][pick % 4], v, 1.25, { sh: 0 }));
         } else {
             // two fallen petals turning in the air
-            const R = 280 + 50 + rl() * 40;
+            const R = edge(a, dz) + 50 + rl() * 40;
             add('lining-petals' + i, dz, ca * R, sa * R, 110, (P) => {
                 P.petal(0, 0, a + rl() * 3, v % 6, { old: [0, 0.45][pick % 2], s: 1.1 });
                 P.petal(22 * Math.cos(a + 1.5), 22 * Math.sin(a + 1.5), a + 1.5 + rl() * 2, (v + 1) % 6, { old: [0.9, 0][pick % 2], s: 1 });

@@ -520,6 +520,10 @@ Tableau.stilllife.stratum = (z) => {
 //     · 150
 //   smaller: the red onion and its half, the slice of melon (the hidden half moon), the cup
 //   of water, a búcaro; to find: a fly alone, the burnt match, the strip «IN ICTV OCVLI»
+//   the light: one hard lamp at the top left of the stratum, laid on every piece per pixel:
+//   lit sides warm cream, turned sides brown-black, far pieces only a rim of light
+//   the middle: 16 small pieces scattered across the axis at many depths (no empty disc),
+//   the rest from an inner edge that wanders with the angle
 //   matter (77 pieces, 50–270 across): linen scraps, cabbage, cardoon and quince leaves,
 //   quince twigs, heads, bunches and cloves of garlic, onion and garlic skins, figs, eggs,
 //   sherds of búcaros and of the jug, rose petals
@@ -528,19 +532,52 @@ Tableau.stilllife.loose = (z) => {
     const EY = 260; // a still life is seen a little from above: the eye height of the bodies
     const at = (deg, R) => [Math.cos(deg * D2R) * R, Math.sin(deg * D2R) * R];
     const snap = (a) => Math.round(a / Q) * Q; // sprites bake their light for eight turns
-    // the lamp: high at the top left of the stratum, the dark taking what is far from it,
-    // laid on each piece in the stratum's own coordinates (so all of them share it)
-    const LX = -700, LY = -560;
-    const lamp = (g, b) => {
-        g.save();
-        g.globalCompositeOperation = 'source-atop';
-        const gr = g.createRadialGradient(LX, LY, 300, LX, LY, 2200);
-        gr.addColorStop(0, 'rgba(8,5,3,0)');
-        gr.addColorStop(0.45, 'rgba(8,5,3,0.42)');
-        gr.addColorStop(1, 'rgba(8,5,3,0.78)');
-        g.fillStyle = gr;
-        g.fillRect(b.x, b.y, b.w, b.h);
-        g.restore();
+    // The lamp: one hard light high at the top left of the stratum (tenebrism). Laid on each
+    // finished piece per pixel, in the stratum's own coordinates, so all the pieces share it:
+    //   · across the piece, from its edge nearest the lamp to the far one: the lit side keeps
+    //     its warm cream, the turned side sinks to brown-black;
+    //   · the farther the piece is from the lamp, the earlier it sinks: far ones keep only a
+    //     rim of light on their lamp side, and lose a little more besides.
+    // The lights resist (a highlight stays a highlight) and the dark is a brown-black, never
+    // black, so the grade's lift leaves a warm night in the things.
+    const LX = -760, LY = -620, TLX = 0.67, TLY = 0.74; // TL: the way the light travels
+    const lamp = (g, cx, cy) => {
+        const c = g.canvas, w = c.width, h = c.height, im = g.getImageData(0, 0, w, h), d = im.data;
+        const m = g.getTransform().inverse();
+        // the piece's extent along the light's way (its lamp side is where p is least)
+        let p0 = Infinity, p1 = -Infinity;
+        for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) {
+            if (d[(y * w + x) * 4 + 3] < 40) continue;
+            const X = m.a * x + m.c * y + m.e, Y = m.b * x + m.d * y + m.f, p = X * TLX + Y * TLY;
+            if (p < p0) p0 = p;
+            if (p > p1) p1 = p;
+        }
+        if (!(p1 > p0)) return;
+        const far = S.smooth(350, 1750, Math.hypot(cx - LX, cy - LY));
+        // where across the piece it gives up to the dark (0 its lamp edge, 1 its far edge)
+        const t0 = 0.62 - 0.5 * far, tw = 0.32 - 0.14 * far, deep = 0.72 + 0.22 * far, base = 0.12 + 0.3 * far;
+        for (let y = 0, i = 0; y < h; y++) {
+            for (let x = 0; x < w; x++, i += 4) {
+                if (!d[i + 3]) continue;
+                const X = m.a * x + m.c * y + m.e, Y = m.b * x + m.d * y + m.f;
+                const t = (X * TLX + Y * TLY - p0) / (p1 - p0);
+                const lum = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+                let k = base + (deep - base) * S.smooth(t0 - tw, t0 + tw, t);
+                // the lights resist, the darks give way first
+                k *= 1 - 0.45 * S.smooth(0.55, 0.92, lum) * (1 - S.smooth(t0, t0 + tw * 1.5, t));
+                k = Math.min(0.96, k + 0.25 * S.smooth(0.35, 0.08, lum) * S.smooth(t0 - tw, t0, t));
+                d[i] = d[i] + (9 - d[i]) * k;
+                d[i + 1] = d[i + 1] + (6 - d[i + 1]) * k;
+                d[i + 2] = d[i + 2] + (4 - d[i + 2]) * k;
+                // the lit side's lights warm to cream
+                const lit = (1 - S.smooth(t0 - tw, t0, t)) * S.smooth(0.5, 0.85, lum) * (1 - far * 0.5);
+                if (lit > 0) {
+                    d[i] = Math.min(255, d[i] + (255 - d[i]) * 0.1 * lit);
+                    d[i + 2] = d[i + 2] * (1 - 0.1 * lit);
+                }
+            }
+        }
+        g.putImageData(im, 0, 0);
     };
     // one piece: painted at its place (cx, cy) in the stratum, its box generous
     const piece = (id, dz, [cx, cy], hw, hh, draw) => {
@@ -549,7 +586,7 @@ Tableau.stilllife.loose = (z) => {
             id: 'stilllife-l-' + id, z: z + dz, loose: true, brush: false, box,
             paint(g) {
                 draw(g, cx, cy);
-                lamp(g, box);
+                lamp(g, cx, cy);
                 S.tooth(g, box, { amp: 0.03 });
             },
         };
@@ -654,6 +691,15 @@ Tableau.stilllife.loose = (z) => {
     const order = list.map((it, j) => [it, (j * 0.618034) % 1]).sort((a, b) => a[1] - b[1]).map((p) => p[0]);
     const depths = Array.from({ length: N }, (_, j) => -275 + (550 * (((j * 37) % N) + 0.5)) / N);
     const heroes = out.map((p) => ({ x: p.box.x + p.box.w / 2, y: p.box.y + p.box.h / 2, z: p.z - z, h: Math.min(p.box.w, p.box.h) / 2 }));
+    // The middle is never one empty disc (a round tunnel is the hole the user turned down):
+    // every other small piece (cloves, skins, petals, figs, eggs, sherds: 16 of the 77) is
+    // scattered across the axis or near it, at its own depth, and the camera flies through
+    // them; the rest start from an inner edge that wanders with the angle (150 to 500).
+    const SMALL = new Set(['clove', 'oskin', 'gskin', 'fig', 'egg', 'sherd', 'petal']);
+    const inner = new Set();
+    order.forEach(([kind], j) => SMALL.has(kind) && inner.add(j));
+    [...inner].forEach((j, k) => k % 2 && inner.delete(j));
+    const edge = (a) => 330 + 110 * Math.sin(3 * a + 0.7) + 60 * Math.sin(7 * a + 2.1) + 30 * Math.sin(11 * a + 4);
     order.forEach(([kind, i], j) => {
         const sd = kind + i, rk = Motion.rng('slm' + sd);
         let x, y, dz = depths[j], R, ang;
@@ -661,7 +707,7 @@ Tableau.stilllife.loose = (z) => {
         // if it would sit right on a hero at its own depth
         for (let t = 0; t < 12; t++) {
             ang = (j * 137.508 + t * 23 + rk() * 14) * D2R;
-            R = 290 + 1050 * Math.pow(rk(), 1.7);
+            R = inner.has(j) ? 260 * Math.sqrt(rk()) : edge(ang) + (1340 - edge(ang)) * Math.pow(rk(), 1.7);
             x = Math.cos(ang) * R;
             y = Math.sin(ang) * R;
             if (!heroes.some((h) => Math.abs(h.z - dz) < 90 && Math.hypot(h.x - x, h.y - y) < h.h * 0.8)) break;
@@ -689,7 +735,7 @@ Tableau.stilllife.loose = (z) => {
             add(l * 0.5 + 150, (g, cx, cy) => St.quinceTwig(g, [cx - (Math.cos(turn) * l) / 2, cy - (Math.sin(turn) * l) / 2], [cx + (Math.cos(turn) * l) / 2, cy + (Math.sin(turn) * l) / 2], { seed: 'lt' + i, n: 3 + (i % 2), fruit: i !== 1, s: 1.2 }));
         } else if (kind === 'garlic') {
             const s = 1.5 + rk() * 0.6;
-            add(100 * s + 20, (g, cx, cy) => put(g, St.garlicSprite(St.resOf(g, s), 'lg' + i, snap(turn)), cx, cy, s, snap(turn)));
+            add(130 * s + 20, (g, cx, cy) => put(g, St.garlicSprite(St.resOf(g, s), 'lg' + i, snap(turn)), cx, cy, s, snap(turn)));
         } else if (kind === 'bunch') {
             add(200, (g, cx, cy) => St.garlicBunch(g, cx - Math.cos(turn) * 50, cy - Math.sin(turn) * 50, turn, { n: 3 + (i % 2), s: 1.4, seed: 'lb' + i }));
         } else if (kind === 'clove') {

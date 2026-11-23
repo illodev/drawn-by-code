@@ -559,13 +559,18 @@ Tableau.planes.loose = (z) => {
         if (col === C.black) return r() < 0.6 ? { tex: 'dots', texO: { color: C.ochreL, pitch: 12 + r() * 5, r: 2.4 } } : {};
         return r() < 0.4 ? { tex: 'sand', texO: { density: 0.05 } } : {};
     };
+    const INC = ['charcoal', 'grain', 'fold', 'pin', 'measure', 'drip', 'hole'];
     const WORDS = ['VINO', 'OLÉ', 'SOL', 'TINTO', 'ORO', 'DOS', 'LA', 'MAR'];
     const HEADS = ['LUNA', 'LLENA', 'PUERTO', 'BRISA', 'MÁLAGA'];
     for (let i = 0; i < N; i++) {
         const kind = kinds[i], seed = 'l-m' + i;
-        const v = Math.pow((i + r() * 0.9) / N, 2.3);
-        const sz = 85 + 115 * r(), deg = (i * 137.508 + (r() - 0.5) * 14) % 360;
-        const R = Math.max(268 + sz * 0.62, 285 + 1215 * v), [x, y] = pol(deg, R);
+        // a fifth of the matter (small pieces) crosses the axis or comes close to it, at every
+        // depth: the camera flies through them and the middle is never one empty disc; the
+        // inner edge of the rest is ragged with the angle
+        const axis = i % 5 === 2, v = Math.pow((i + r() * 0.9) / N, 2.3);
+        const sz = axis ? 40 + 110 * r() : 85 + 115 * r(), deg = (i * 137.508 + (r() - 0.5) * 14) % 360;
+        const rag = 268 + 70 * (1 + Math.sin(deg * D2R * 3 + 1.3) * Math.cos(deg * D2R * 5 + 0.4)) + 45 * (S.noise2(deg * 0.04, 1.7, 9) + 0.5);
+        const R = axis ? 255 * Math.pow(r(), 0.8) : Math.max(rag + sz * 0.5, 285 + 1215 * v), [x, y] = pol(deg, R);
         const dz = -272 + 544 * ((i * 0.6180339 + r() * 0.15) % 1), rot0 = r() * Math.PI * 2, rot = kind === 'letters' || kind === 'headline' ? (rot0 / Math.PI - 1) * 1.1 : rot0;
         let half = sz * 0.95 + 40, paint;
         const shape = pick(['shard', 'sliver', 'trap', 'penta', 'quad', 'penta', 'trap']);
@@ -574,6 +579,13 @@ Tableau.planes.loose = (z) => {
             half = Math.max(w, h) * 0.8 + 40;
             const tx = kind === 'sketch' ? {} : texFor(col), pts = P.cut(x, y, w, h, rot, shape, seed, r() < 0.25 ? 1 : -1), over = r(), hatch = r(), sub = r(), ang = r() * Math.PI, sk = pick(['news', 'score', 'ad']);
             const pent = r() < 0.2 ? [8, -6, 0.04] : null, col2 = pick(FACET.filter((c) => c !== col)), tx2 = texFor(C.grey), word = WORDS[(i * 7 + 2) % WORDS.length];
+            // something drawn on every plain plane: a charcoal line, grain, a fold, a pin, a
+            // pencilled measure, a drip, a nail hole (two or three, never the same twice)
+            const nInc = kind === 'sketch' ? 1 : kind === 'pasted' ? 1 : over < 0.4 ? 2 : 3, incs = [];
+            while (incs.length < nInc) {
+                const k = pick(kind === 'sketch' ? ['pin', 'measure', 'hole', 'fold'] : INC);
+                if (!incs.includes(k)) incs.push(k);
+            }
             paint = (g) => P.fragment(g, {
                 pts, seed, color: col, ...tx, pent,
                 on: (q) => {
@@ -586,6 +598,7 @@ Tableau.planes.loose = (z) => {
                         P.charcoal(q, o.slice(4, 56).map(([px, py]) => [px + off[0] + 9, py + off[1] - 6]), { w: 1.6, alpha: 0.55, seed: seed + 'c2' });
                         P.hatch(q, pts, { angle: 0.9, at: [x + w * 0.15, y + h * 0.1], seed: seed + 'h', len: sz * 0.4, gap: 5 });
                     } else if (hatch < 0.35) P.hatch(q, pts, { angle: ang + 0.8, at: [x - w * 0.2, y + h * 0.15], seed: seed + 'h', len: sz * 0.35, gap: 5 + hatch * 6, color: col === C.black || col === C.umber || col === C.burnt || col === C.greyD ? '#cfc3a8' : undefined, alpha: 0.55 });
+                    incs.forEach((k, j) => P.incident(q, pts, k, { seed: seed + 'i' + j, color: col }));
                 },
             });
         } else if (kind === 'news' || kind === 'score' || kind === 'ad' || kind === 'label') {

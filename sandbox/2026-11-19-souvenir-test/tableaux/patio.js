@@ -525,7 +525,7 @@ Tableau.patio.loose = (z) => {
         if (onAxis) {
             // spread over the disc by area, at every angle (its own sequence, so they do not line up)
             R = 255 * Math.sqrt((ja + 0.3 + r() * 0.4) / 16);
-            a = ja * GOLD * 1.31 + 40 + (r() - 0.5) * 30;
+            a = ja * GOLD + 40 + (r() - 0.5) * 30;
             ja++;
         } else {
             const u = (j + 0.5) / (N - 16);

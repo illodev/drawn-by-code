@@ -1585,7 +1585,7 @@ const Still = (() => {
     // come loose. Seen from the side, lying as it was set down.
     // (round 8: the first ramp was grey-brown in its half tones and the heads read grey; garlic
     // is ivory, warm in the light and a little rosy-mauve in the turn, its skin pearly)
-    const GARLIC = [[0, '#0e0806'], [0.18, '#2c1d18'], [0.34, '#5a4440'], [0.5, '#937b70'], [0.64, '#c2ab98'], [0.77, '#e0cfb8'], [0.89, '#f2e8d4'], [1, '#fdf9ee']];
+    const GARLIC = [[0, '#0e0906'], [0.18, '#2c1f17'], [0.34, '#5a4a3c'], [0.5, '#978572'], [0.64, '#c7b59c'], [0.77, '#e4d7bd'], [0.89, '#f3ebd8'], [1, '#fdfaf0']];
     function garlicSprite(res, seed, rot = 0) {
         return memo(`garlic@${res}/${seed}/${rot.toFixed(2)}`, () => {
             const r = Motion.rng('garlic' + seed), sd = S.seedOf('garlic' + seed), L = S.lightFor(rot, LT);
@@ -1599,14 +1599,16 @@ const Still = (() => {
                 cloves.push({ cx: u * W * 0.62, cy: -H * 0.46, rx: W * (0.3 + 0.08 * (1 - Math.abs(u))) * (0.92 + r() * 0.16), ry: H * 0.5, a: lean, front: 1 - Math.abs(u) });
             }
             const pts = [];
-            const box = { x: -W * 1.3, y: -H * 1.45, w: W * 2.6, h: H * 1.75 };
+            const box = { x: -W * 1.3, y: -H * 2.05, w: W * 2.6, h: H * 2.4 };
             const sp = S.form({
                 box, res, seed: 'garlic' + seed, light: L, relief: 0.9,
                 mask: (g) => {
                     for (const c of cloves) oval(g, c.cx, c.cy, c.rx, c.ry, c.a, '#fff');
                     // the body that holds them, the neck drawn up to a point
                     oval(g, 0, -H * 0.45, W * 0.92, H * 0.48, 0, '#fff');
-                    poly(g, [[-W * 0.28, -H * 0.8], [-W * 0.08, -H * 1.18], [-W * 0.02, -H * 1.36], [W * 0.05, -H * 1.36], [W * 0.1, -H * 1.18], [W * 0.3, -H * 0.8]], '#fff');
+                    // (round 8: the neck goes on into the dry papery tail, twisted, to a frayed
+                    // point: with the beard of roots at the other end it says garlic even blurred)
+                    poly(g, [[-W * 0.28, -H * 0.8], [-W * 0.09, -H * 1.18], [-W * 0.05, -H * 1.5], [-W * 0.01, -H * 1.78], [W * 0.03, -H * 1.86], [W * 0.06, -H * 1.74], [W * 0.08, -H * 1.46], [W * 0.11, -H * 1.18], [W * 0.3, -H * 0.8]], '#fff');
                 },
                 // each clove a gentle swelling: the grooves between them read as soft creases
                 height: (x, y) => {
@@ -1624,10 +1626,12 @@ const Still = (() => {
                 spec: { amp: 0.3, power: 10, from: 0.5, to: 0.95, ragged: 0.7, color: '#fffcf4' },
                 tint: (x, y, tone, rgb) => {
                     // the purple garlic of La Mancha and Andalusia: a mauve flush in the turn
-                    toward(rgb, rgb[0] * 1.02 + 6, rgb[1] * 0.86, rgb[2] * 0.98 + 6, smooth(0.25, 0.6, tone) * smooth(0.85, 0.6, tone) * 0.22);
+                    toward(rgb, rgb[0] * 1.02 + 6, rgb[1] * 0.88, rgb[2] * 0.98 + 6, smooth(0.25, 0.6, tone) * smooth(0.85, 0.6, tone) * 0.08);
                     // the papery skin browns at the base, the neck dries to straw
                     toward(rgb, rgb[0] * 0.78, rgb[1] * 0.7, rgb[2] * 0.58, smooth(-H * 0.18, 0, y) * 0.55);
                     toward(rgb, rgb[0] * 0.95 + 8, rgb[1] * 0.88 + 4, rgb[2] * 0.7, smooth(-H * 0.85, -H * 1.2, y) * 0.6);
+                    // the tail: straw, its fibres along it
+                    toward(rgb, rgb[0] * 0.9 + 20, rgb[1] * 0.82 + 14, rgb[2] * 0.6, smooth(-H * 1.2, -H * 1.45, y) * (0.5 + 0.3 * Math.sin(x * 2.2 + y * 0.3)));
                     toward(rgb, 130, 104, 70, smooth(0.3, 0.08, tone) * 0.35);
                 },
                 over: (g) => {
@@ -1639,8 +1643,8 @@ const Still = (() => {
                                 const v = (i / 10) * 1.8 - 0.9, x0 = u * c.rx * Math.sqrt(Math.max(0, 1 - v * v)), y0 = v * c.ry;
                                 ln.push([c.cx + x0 * Math.cos(c.a) - y0 * Math.sin(c.a), c.cy + x0 * Math.sin(c.a) + y0 * Math.cos(c.a)]);
                             }
-                            const mauve = r() < 0.3;
-                            S.ink(g, ln, { w: mauve ? 1.4 + r() : 0.45, color: mauve ? '#84466a' : '#6a5246', alpha: mauve ? 0.26 : 0.2, taper: [1, 1] });
+                            const mauve = r() < 0.18;
+                            S.ink(g, ln, { w: mauve ? 1.2 + r() : 0.45, color: mauve ? '#84466a' : '#6a5a46', alpha: mauve ? 0.2 : 0.2, taper: [1, 1] });
                         }
                     }
                     // a flap of skin lifting on one clove, its torn edge catching the light
@@ -1651,13 +1655,19 @@ const Still = (() => {
                     S.ink(g, [[-W * 0.3, -1.5], [0, 1], [W * 0.3, -1.5]], { w: 2.4, color: '#4a3a2a', alpha: 0.7 });
                 },
             });
-            // the roots: a short tuft under the base plate, outside the skin
+            // the basal plate, flat and buff, and the beard of roots fanning from it: clear, so
+            // the head reads by its two ends
             const g2 = sp.canvas.getContext('2d');
             g2.setTransform(res, 0, 0, res, -box.x * res, -box.y * res);
-            for (let i = 0; i < 46; i++) {
-                const x0 = (r() - 0.5) * W * 0.5, a = Math.PI / 2 + (r() - 0.5) * 1.6, l = 3 + r() * 7;
-                S.ink(g2, [[x0, -1], [x0 + Math.cos(a) * l * 0.5 + (r() - 0.5) * 1.5, -1 + Math.sin(a) * l * 0.5], [x0 + Math.cos(a) * l, -1 + Math.sin(a) * l]], { w: 0.5, color: r() < 0.5 ? '#b8a48a' : '#5a4836', alpha: 0.75, taper: [0, 0.8] });
+            oval(g2, 0, -0.5, W * 0.3, 3.2, 0, '#6e5a40');
+            oval(g2, -1, -1.2, W * 0.24, 1.6, 0, '#b8a07a');
+            for (let i = 0; i < 70; i++) {
+                const x0 = (r() - 0.5) * W * 0.5, a = Math.PI / 2 + (x0 / (W * 0.25)) * 0.7 + (r() - 0.5) * 0.9, l = 6 + r() * 12;
+                const c = r();
+                S.ink(g2, [[x0, 0.5], [x0 + Math.cos(a) * l * 0.5 + (r() - 0.5) * 2, 0.5 + Math.sin(a) * l * 0.5], [x0 + Math.cos(a) * l + (r() - 0.5) * 2, 0.5 + Math.sin(a) * l]], { w: 0.65, color: c < 0.45 ? '#d8c6a2' : c < 0.8 ? '#8a7454' : '#3e3020', alpha: 0.85, taper: [0, 0.8] });
             }
+            // the tail's frayed tip: a few split fibres
+            for (let i = 0; i < 6; i++) S.ink(g2, [[W * 0.02, -H * 1.8], [W * 0.02 + (r() - 0.5) * 8, -H * 1.8 - 4 - r() * 8]], { w: 0.5, color: '#d6c49a', alpha: 0.8, taper: [0, 1] });
             sp.H = H;
             sp.W = W;
             return sp;

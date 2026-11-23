@@ -671,7 +671,7 @@ Tableau.green = (z0, opt = null) => {
         const edge = (a) => 270 + 190 * (0.5 + 0.5 * (0.6 * Math.sin(3 * a + 1.3) + 0.4 * Math.sin(7 * a + 4.1)));
         const spot = (rad, d0, d1, seed) => {
             for (let k = 0; k < 60; k++) {
-                const a = R() * TAU, lo = Math.max(d0 - 20, edge(a)), d = lo + Math.max(0, d1 - lo) * Math.pow(R(), 1.8), dz = -270 + R() * 540, x = Math.cos(a) * d, y = Math.sin(a) * d;
+                const a = R() * TAU, lo = Math.max(d0 - 20, edge(a)), d = lo + Math.max(0, d1 - lo) * Math.pow(R(), 1.55), dz = -270 + R() * 540, x = Math.cos(a) * d, y = Math.sin(a) * d;
                 if (taken.some(([X, Y, Z, rr]) => Math.abs(Z - dz) < 150 && Math.hypot(X - x, Y - y) < (rr + rad) * 0.75)) continue;
                 taken.push([x, y, dz, rad]);
                 return { x, y, dz };
@@ -701,8 +701,8 @@ Tableau.green = (z0, opt = null) => {
             });
         }
         // fig twigs: a short shoot, two leaves, a fig, the bud
-        for (let i = 0; i < 14; i++) {
-            const p = spot(170, 300, 1000), a = R() * TAU, ts = 0.5 + R() * 0.2;
+        for (let i = 0; i < 16; i++) {
+            const p = spot(170, 300, 1050), a = R() * TAU, ts = 0.5 + R() * 0.2;
             piece('twig' + i, p.dz, around(p.x, p.y, 420), (g, res) => {
                 const path = rot2([[-120, 10], [-30, -4], [60, 6], [130, -6]], a, p.x, p.y);
                 limb(g, res, { seed: 'ltwig' + i, path, w0: 13, w1: 5, figs: 0.7, scars: 0.15, kinds: i % 3 ? ['verd', 'vshade', 'verd'] : ['vdeep', 'vunder', 'lime'], s: ts, q: 0.8 });
