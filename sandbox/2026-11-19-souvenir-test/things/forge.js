@@ -1009,7 +1009,7 @@ const Forge = (() => {
             softSheet(g, 0.5, (q) => {
                 const r = Motion.rng('embers' + seed);
                 for (let i = 0; i < 40; i++) {
-                    const ex = (r() - 0.5) * 520, ey = (o.dish ? 96 : 290) + r() * 30, rad = 1.5 + r() * 3.5;
+                    const fall = o.dish ? Math.pow(r(), 1.6) : 0, ex = (r() - 0.5) * (o.dish ? 300 * (1 - fall * 0.6) : 520), ey = o.dish ? 70 + fall * 260 : 290 + r() * 30, rad = (1.5 + r() * 3.5) * (1 - fall * 0.5);
                     q.fillStyle = r() < 0.4 ? `rgba(255,${120 + Math.round(r() * 80)},40,${0.5 + r() * 0.5})` : `rgba(120,110,104,${0.4 + r() * 0.4})`;
                     q.beginPath();
                     q.ellipse(ex, ey, rad * 1.4, rad, 0, 0, TAU);
@@ -3242,5 +3242,336 @@ const Forge = (() => {
         g.drawImage(sp.canvas, x + sp.box.x, y + sp.box.y, sp.box.w, sp.box.h);
     }
 
-    return { lit, put, shadow, worley, ringWorley, fbm, cave, anvil, hammer, tongs, horseshoe, hearth, bellows, flames, sparks, smoke, wispSmoke, softSheet, plate, cauldron, warmer, tin, paintMap, utensil, bridle, cage, brass, strap, stripOf, chumbera, agave, oliveTree, branch, foliage, owl, wisp, tuberose, floret, bustle, sky, halo, furrows, hills, timber, hood, door, toLocal, lightsOf, pan, nail, moon, FIRE, MOON, DARK, resOf };
+    // ------------------------------------------------------------------ round 8 · the matter, loose
+    // The forge's body broken into single pieces that float (Tableau.forge.loose). Each is
+    // whole, lit by the same fire (lights in the caller's units, like every drawer here).
+    //
+    //   COAL (`coal`) · lumps from the fire, two kinds. Forge coal: 1 black, glassy facets
+    //   meeting at sharp ridges  2 a glint on the facets that face the fire  3 conchoidal
+    //   breaks (shallow scoops)  4 cracks that glow where it is still alight, brightest deep in
+    //   5 the glow dull red at a crack's ends, yellow at its heart  6 white-grey ash on the
+    //   faces that have cooled  7 a clinker bead, glassy, stuck to one. Charcoal (carbón de
+    //   encina): 8 the wood's growth rings and rays still in its end  9 checks across the grain
+    //   10 a dull, velvety black, silvered where it rubbed.
+    //
+    //   COPPER SCRAP (`offcut`) · what the coppersmith cuts away and what he has not yet
+    //   raised. 'sheet': 1 two edges sheared straight, the others torn or snipped in short
+    //   cuts  2 the shear's burr, a bright line along the cut  3 a rivet hole punched, its lip
+    //   pushed out  4 planishing facets on part of it  5 the scriber's line where the next cut
+    //   was marked  6 fire-scale bands, straw and purple  7 a fingerprint of oxide  8 a corner
+    //   bent up. 'blank': 9 a disc cut for a pan, the first ring of hammer marks, its edge
+    //   filed  10 the dividers' centre-punch in the middle. 'strip': a curl of copper off the
+    //   shears, twisting so it takes the light in bands.
+    //
+    //   HORSESHOE NAILS (`hsnails`) · 1 the head a tapered wedge, its top flat and struck
+    //   2 the shank square, tapering to a bevelled point  3 the bevel on one side only (it
+    //   turns the nail outward through the wall)  4 forge-black, bright where the die bit
+    //   5 one bent where it was clinched and pulled  6 a burr at the point.
+    //
+    //   BAR (`bar`) · iron bar stock being drawn out: 1 square section with rounded arrises
+    //   2 mill scale flaking off in plates  3 hammer flats along the drawn part  4 the end
+    //   tapered to a point (or scrolled)  5 the heat: white-yellow at the end, through orange
+    //   and cherry to dull red and then black  6 scale lifting off the hot part in flakes
+    //   7 a chisel mark where the length was marked.
+
+    // A lump of coal (kind 'coal') or charcoal ('charcoal'), (x, y) its middle, r its size;
+    // heat 0 … 1: how much it is still alight.
+    function coal(g, o = {}) {
+        const { x = 0, y = 0, r = 40, rot = 0, seed = 'coal', heat = 0.5, kind = 'coal' } = o;
+        const res = resOf(g, 1.2), sd = S.seedOf(seed), rnd = Motion.rng('coal' + seed), Ls = lightsOf(o, x, y, 1, rot);
+        const n = 7 + Math.floor(rnd() * 5), pts = [], sq = 0.7 + rnd() * 0.3;
+        for (let i = 0; i < n; i++) {
+            const a = (i / n) * TAU + (rnd() - 0.5) * 0.45, rr = r * (0.72 + rnd() * 0.42);
+            pts.push([Math.cos(a) * rr, Math.sin(a) * rr * sq]);
+        }
+        const P = smoothPts(pts, 2);
+        const char = kind === 'charcoal', cell = r * (char ? 0.9 : 0.55);
+        // each facet a plane with its own tilt (forge coal); charcoal is rounder, its end ringed
+        const facet = (px, py) => {
+            const w = worley(px / cell, py / cell, sd);
+            const t1 = hashI(Math.round(w[3] * 7), Math.round(w[4] * 7), 1, sd) - 0.5, t2 = hashI(Math.round(w[3] * 7), Math.round(w[4] * 7), 2, sd) - 0.5;
+            return [w, (px - w[3] * cell) * t1 * 0.6 + (py - w[4] * cell) * t2 * 0.6];
+        };
+        const ringC = [r * (rnd() - 0.5) * 0.6, r * (rnd() - 0.5) * 0.6];
+        const sp = lit({
+            box: S.bbox(P, 3), res, seed, lights: Ls, amb: o.amb, shape: 'round', relief: char ? 0.55 : 0.42, smoothH: char ? 0.6 : 0,
+            mask: (q) => fillPts(q, P),
+            height: (px, py) => {
+                const [w, pl] = facet(px, py);
+                let hh = char ? 0.4 * noise2(px * 0.3, py * 0.3, sd + 2) : pl;
+                // the cracks, cut deep
+                const cr = w[1] - w[0];
+                hh -= (char ? 3 : 4) * smooth(0.09, 0.0, cr);
+                if (char) {
+                    const rr = Math.hypot(px - ringC[0], py - ringC[1]);
+                    hh += 0.5 * Math.sin(rr * 1.6 + 2 * noise2(px * 0.1, py * 0.1, sd + 3));
+                    // checks across the grain: radial splits
+                    const a = Math.atan2(py - ringC[1], px - ringC[0]);
+                    hh -= 2.2 * smooth(0.06, 0.0, Math.abs(Math.sin(a * 3.5 + noise2(rr * 0.05, 0, sd + 4)))) * smooth(r * 0.1, r * 0.3, rr);
+                } else {
+                    // conchoidal scoops
+                    const c = worley(px / (r * 0.3) + 3, py / (r * 0.3), sd + 5);
+                    hh += 1.4 * c[0] * c[0];
+                }
+                return hh;
+            },
+            albedo: (px, py, d, hh, out) => {
+                const [w] = facet(px, py), id = w[2], cr = w[1] - w[0];
+                if (char) mixA([0.05, 0.045, 0.05], [0.14, 0.13, 0.14], 0.3 * noise2(px * 0.2, py * 0.2, sd + 6) + 0.25, out);
+                else mixA([0.025, 0.025, 0.032], [0.075, 0.075, 0.09], id, out);
+                out[3] = char ? 0.25 : 0.6 + 0.6 * id;
+                // ash on the cooled faces: grey-white in a crust, more on the side away from the heat
+                const ash = smooth(0.15, 0.6, noise2(px * 0.08, py * 0.08, sd + 7) + 0.4 * (1 - heat)) * (char ? 0.7 : 0.5);
+                into(out, [0.62, 0.6, 0.58], ash * 0.8);
+                if (ash > 0.4) out[3] = 0.1;
+                // charcoal rubbed silver at its edge
+                if (char && d < 2.5) into(out, [0.38, 0.38, 0.4], 0.4 * smooth(0, 0.6, noise2(px * 0.3, py * 0.3, sd + 8)));
+                // a clinker bead
+                if (!char && Math.hypot(px - r * 0.3, py + r * 0.2) < r * 0.12) {
+                    mixA(out, [0.22, 0.2, 0.26], 0.8, out);
+                    out[3] = 2;
+                }
+                // alight: the cracks and the ends of the grain glow, hottest deep in
+                if (heat > 0) {
+                    // alight in patches, not along every crack: a crack glows only where the
+                    // patch is, and a few faces smoulder through the ash
+                    const live = heat * smooth(0.05, 0.55, noise2(px * 0.035, py * 0.035, sd + 9) + heat * 0.35);
+                    const crackOn = smooth(0.0, 0.4, noise2(px * 0.09, py * 0.09, sd + 10));
+                    const k = clamp(live * (smooth(0.07, 0.0, cr) * 1.15 * crackOn + (ash < 0.3 ? 0.22 * smooth(0.75, 1, hashI(Math.round(w[3] * 5), Math.round(w[4] * 5), 3, sd)) : 0)));
+                    if (k > 0.01) HOT(k, out);
+                }
+            },
+            spec: { k: char ? 0.2 : 0.75, power: char ? 12 : 60, broad: char ? 0 : 0.04, broadPow: 4 },
+            stroke: { amp: 0.05, freq: 0.12, tone: 4 },
+            edge: { rough: 0.9, freq: 0.4, amp: 0.5 },
+        });
+        g.save();
+        g.translate(x, y);
+        g.rotate(rot);
+        put(g, sp, 0, 0);
+        g.restore();
+        // a breath of glow round a live lump
+        if (heat > 0.45) {
+            softSheet(g, r * 0.25, (q) => {
+                const gr = q.createRadialGradient(x, y, 0, x, y, r * 1.5);
+                gr.addColorStop(0, `rgba(255,110,30,${0.22 * heat})`);
+                gr.addColorStop(1, 'rgba(160,40,10,0)');
+                q.fillStyle = gr;
+                q.fillRect(x - r * 1.6, y - r * 1.6, r * 3.2, r * 3.2);
+            });
+        }
+    }
+
+    // Copper scrap: kind 'sheet' | 'blank' | 'strip'. (x, y) its middle, `size` across.
+    function offcut(g, o = {}) {
+        const { x = 0, y = 0, size = 120, rot = 0, seed = 'offcut', kind = 'sheet' } = o;
+        const res = resOf(g, 1), sd = S.seedOf(seed), rnd = Motion.rng('offcut' + seed), Ls = lightsOf(o, x, y, 1, rot), R = size / 2;
+        let pts, height, extra;
+        const scale = (px, py, out) => {
+            // copper, each facet oxidised its own way, scale in bands, oxide where it was handled
+            const n1 = noise2(px * 0.03, py * 0.03, sd + 1), n2 = noise2(px * 0.12, py * 0.12, sd + 2);
+            mixA(COPPER, COPPER_HI, 0.3 + 0.3 * (n2 * 0.5 + 0.5), out);
+            into(out, OXIDE, smooth(-0.1, 0.6, n1) * 0.5);
+            const band = Math.sin((px * 0.7 + py * 0.4) * 0.07 + n1 * 3);
+            into(out, band > 0.3 ? STRAW : PURPLE, 0.28 * smooth(0.3, 0.9, Math.abs(band)) * smooth(-0.2, 0.4, noise2(px * 0.02, py * 0.02, sd + 3)));
+            if (hashI(Math.floor(px * 0.08), Math.floor(py * 0.08), 4, sd) > 0.93) into(out, VERD, 0.45 * smooth(0.2, 0.8, noise2(px * 0.3, py * 0.3, sd + 5)));
+            // fine scratches from the bench: bright hairlines
+            const sc = Math.abs(Math.sin(px * 0.9 * Math.cos(sd) + py * 0.9 * Math.sin(sd) + 4 * noise2(px * 0.01, py * 0.01, sd + 6)));
+            if (sc < 0.025 && noise2(px * 0.05, py * 0.05, sd + 7) > 0.2) into(out, COPPER_HI, 0.6);
+        };
+        if (kind === 'blank') {
+            pts = [];
+            for (let i = 0; i < 72; i++) {
+                const a = (i / 72) * TAU, rr = R * (1 + 0.012 * Math.sin(a * 23 + sd));
+                pts.push([Math.cos(a) * rr, Math.sin(a) * rr]);
+            }
+            height = (px, py) => {
+                const rr = Math.hypot(px, py), th = Math.atan2(py, px);
+                const ww = ringWorley(rr, th, 7 + (sd % 3), sd);
+                return 0.45 * (px * 0.6 - py * 0.8) * (0.5 + (sd % 7) / 10) + 1.6 * ww[0] * ww[0] * smooth(R * 0.55, R * 0.65, rr) * smooth(R * 0.92, R * 0.82, rr) + 1.2 * smooth(R * 0.96, R, rr) - 1.5 * smooth(2.2, 0.8, rr) + 0.25 * noise2(px * 0.2, py * 0.2, sd);
+            };
+            extra = (px, py, d, out) => {
+                // the filed edge, bright; the dividers' circle scribed
+                const rr = Math.hypot(px, py);
+                if (d < 1.6) into(out, COPPER_HI, 0.7);
+                if (Math.abs(rr - R * 0.6) < 0.5) into(out, [0.3, 0.16, 0.1], 0.5);
+                if (rr < 1.5) mixA(out, [0.1, 0.05, 0.03], 0.8, out);
+            };
+        } else if (kind === 'strip') {
+            // a curl: a spiral that opens, its width twisting
+            const path = [], turns = 1.2 + rnd() * 0.9, a0 = rnd() * TAU;
+            const sq = 0.65 + 0.2 * rnd();
+            for (let i = 0; i <= 140; i++) {
+                const u = i / 140, a = a0 + u * turns * TAU, rr = R * (0.25 + 0.75 * u);
+                path.push([Math.cos(a) * rr, Math.sin(a) * rr * sq]);
+            }
+            const wd = size * (0.1 + rnd() * 0.05);
+            // the twist: its seen width swells and narrows smoothly (never to nothing)
+            pts = stripOf(path, (u) => wd * (0.62 + 0.38 * Math.cos(u * turns * TAU * 0.5 + 0.6)) + 2.5);
+            const acc = path.map((p, i) => i / 60);
+            height = (px, py, d) => 1.6 * Math.min(1, d / 3) + 0.2 * noise2(px * 0.3, py * 0.3, sd);
+            extra = (px, py, d, out) => {
+                // the twist: bands of light and shade along the curl
+                const a = Math.atan2(py, px), rr = Math.hypot(px, py);
+                const tw = Math.sin(a * 2 + rr * 0.08 + sd);
+                into(out, tw > 0 ? COPPER_HI : OXIDE, 0.35 * Math.abs(tw));
+                if (d < 1.2) into(out, [1, 0.8, 0.6], 0.5); // the sheared edge
+                void acc;
+            };
+        } else {
+            // a sheet offcut: sheared straight on two sides, snipped and torn on the others
+            const a = rnd() * TAU, c = [];
+            c.push([-R, -R * (0.5 + rnd() * 0.3)], [R * (0.6 + rnd() * 0.4), -R * (0.6 + rnd() * 0.3)]); // the straight shear
+            const steps = 5 + Math.floor(rnd() * 4);
+            for (let i = 1; i < steps; i++) {
+                const u = i / steps; // the snipped edge: short cuts, each a facet
+                c.push([R * (0.7 + 0.25 * rnd()) * Math.cos(u * 1.6 - 0.6) + R * 0.2, -R * 0.6 + u * R * 1.7 + (rnd() - 0.5) * 8]);
+            }
+            c.push([-R * (0.2 + rnd() * 0.4), R * (0.8 + rnd() * 0.2)], [-R * (0.9 + rnd() * 0.1), R * (0.3 + rnd() * 0.3)]);
+            pts = c.map(([px, py]) => [px * Math.cos(a) - py * Math.sin(a), px * Math.sin(a) + py * Math.cos(a)]);
+            const hole = [R * (rnd() - 0.5) * 0.8, R * (rnd() - 0.5) * 0.8], hr = 3 + rnd() * 3;
+            const L0 = Ls[0], away = L0 && L0.P ? Math.atan2(-L0.P[1], -L0.P[0]) : rnd() * TAU;
+            const bend = rnd() < 0.5, bendDir = rnd() * TAU, cell = 7 + rnd() * 4, plan = rnd() * TAU, tilt = 0.2 + rnd() * 0.25, tiltDir = away + (rnd() - 0.5) * 2.4;
+            height = (px, py) => {
+                // a planished part, a corner bent up, the hole's lip pushed out
+                // the sheet lies tilted, so it is not a mirror held up to the fire
+                let hh = tilt * (px * Math.cos(tiltDir) + py * Math.sin(tiltDir));
+                const ww = worley(px / cell, py / cell, sd);
+                hh += 1.4 * ww[0] * ww[0] * smooth(-0.2, 0.3, Math.cos(Math.atan2(py, px) - plan));
+                if (bend) hh += 0.25 * Math.max(0, px * Math.cos(bendDir) + py * Math.sin(bendDir) - R * 0.3);
+                const hd = Math.hypot(px - hole[0], py - hole[1]);
+                hh += 1.5 * smooth(hr + 3, hr, hd);
+                return hh;
+            };
+            extra = (px, py, d, out) => {
+                if (d < 1.4) into(out, [1, 0.82, 0.62], 0.55); // the shear's burr
+                // the scriber's line for the next cut
+                const sl = px * Math.cos(plan + 1) + py * Math.sin(plan + 1) - R * 0.25;
+                if (Math.abs(sl) < 0.45) into(out, [0.85, 0.7, 0.55], 0.6);
+                // an oxide fingerprint: whorls
+                const fx = px - R * 0.1, fy = py + R * 0.25, fr = Math.hypot(fx * 1.2, fy);
+                if (fr < 9 && Math.sin(fr * 2.4 + Math.atan2(fy, fx) * 0.3) > 0.55) into(out, OXIDE, 0.35);
+            };
+            const base = pts;
+            pts = base;
+            extra.hole = [hole, hr];
+        }
+        const P = kind === 'sheet' ? pts : pts;
+        const sp = lit({
+            box: S.bbox(P, 4), res, seed, lights: Ls, amb: o.amb, shape: kind === 'strip' ? 'none' : 'bevel', R: 1.5, relief: 1, metal: 1, smoothH: kind === 'sheet' ? 0 : 0,
+            mask: (q) => {
+                q.beginPath();
+                S.trace(q, P);
+                if (extra.hole) {
+                    const [[hx, hy], hr] = extra.hole;
+                    q.moveTo(hx + hr, hy);
+                    q.arc(hx, hy, hr, 0, TAU);
+                }
+                q.fill('evenodd');
+            },
+            height,
+            albedo: (px, py, d, hh, out) => {
+                scale(px, py, out);
+                // offcuts lie about the bench: duller than a planished pan, oxide in a skin
+                if (kind !== 'strip') into(out, OXIDE, 0.28 + 0.2 * smooth(-0.4, 0.6, noise2(px * 0.015, py * 0.015, sd + 11)));
+                extra(px, py, d, out);
+                out[3] = kind === 'strip' ? 1 : 0.7;
+            },
+            spec: { k: kind === 'strip' ? 1.1 : 0.8, power: 50, broad: kind === 'strip' ? 0.22 : 0.1, broadPow: 6 },
+            stroke: { amp: 0.05, freq: 0.06, tone: 6 },
+            edge: { rough: 0.5, freq: 0.5, amp: 0.3 },
+        });
+        g.save();
+        g.translate(x, y);
+        g.rotate(rot);
+        put(g, sp, 0, 0);
+        g.restore();
+    }
+
+    // A pinch of horseshoe nails, n of them crossed about (x, y), each `len` long.
+    function hsnails(g, o = {}) {
+        const { x = 0, y = 0, len = 60, n = 3, seed = 'hsn' } = o;
+        const res = resOf(g, 1.6), rnd = Motion.rng('hsn' + seed);
+        for (let i = 0; i < n; i++) {
+            const a = rnd() * TAU, ox = (rnd() - 0.5) * len * 0.5, oy = (rnd() - 0.5) * len * 0.5, bent = i === 1 && rnd() < 0.7, L = len * (0.85 + rnd() * 0.25);
+            const hw = L * 0.11, sw = L * 0.045;
+            // along +y: the head from 0 to 0.16 L, the shank to L; a bent one kinks at 0.7 L
+            const path = [[0, 0], [0, L * 0.16], [0, L * 0.45], [bent ? L * 0.03 : 0, L * 0.7], [bent ? L * 0.2 : 0, L * (bent ? 0.9 : 1)]];
+            const pts = [[-hw, 0], [hw, 0], [sw * 1.2, L * 0.16], ...stripOf(path.slice(2), (u) => sw * 2 * (1 - u * 0.7)).slice(0, 3), [path[4][0] + 0.6, path[4][1]], ...stripOf(path.slice(2), (u) => sw * 2 * (1 - u * 0.7)).slice(3), [-sw * 1.2, L * 0.16]];
+            const Ls = lightsOf(o, x + ox, y + oy, 1, a);
+            const sp = ironSprite(pts, {
+                res, seed: seed + i, Ls, amb: o.amb, shape: 'bevel', R: 1.6, relief: 1, rust: 0.3,
+                polish: (px, py) => (py < L * 0.04 ? 0.8 : 0) + (Math.abs(px) < sw * 0.4 && py > L * 0.2 ? 0.35 : 0) + smooth(L * 0.85, L, py) * 0.4,
+                height: (px, py) => (py < L * 0.16 ? 1.2 : 0) + (py > L * 0.82 ? -1.5 * smooth(L * 0.82, L, py) * (px > 0 ? 1 : 0) : 0),
+            });
+            g.save();
+            g.translate(x + ox, y + oy);
+            g.rotate(a);
+            g.translate(0, -L / 2);
+            put(g, sp, 0, 0);
+            g.restore();
+        }
+    }
+
+    // Iron bar stock being drawn out, (x, y) its middle, `len` long, `w` thick, lying along
+    // `rot`; its end (+x) tapered and hot (`hot` 0 … 1), scrolled if `scroll`.
+    function bar(g, o = {}) {
+        const { x = 0, y = 0, len = 260, w = 16, rot = 0, seed = 'bar', hot = 0.9, scroll = false } = o;
+        const res = resOf(g, 1.2), sd = S.seedOf(seed), Ls = lightsOf(o, x, y, 1, rot), h = len / 2;
+        const path = [];
+        for (let i = 0; i <= 30; i++) {
+            const u = i / 30;
+            path.push([-h + u * len * (scroll ? 0.85 : 1), 1.5 * Math.sin(u * 3 + sd)]);
+        }
+        if (scroll) {
+            const [ex, ey] = path[path.length - 1];
+            for (let i = 1; i <= 24; i++) {
+                const a = -Math.PI / 2 + (i / 24) * Math.PI * 1.5, rr = len * 0.09 * (1 - i / 40);
+                path.push([ex + Math.cos(a) * rr, ey + len * 0.09 + Math.sin(a) * rr]);
+            }
+        }
+        const N = path.length;
+        const pts = stripOf(path, (u) => w * (u < 0.55 ? 1 : 1 - (u - 0.55) * (scroll ? 1.1 : 1.6)) + 1.5);
+        const heat = (px) => hot * smooth(-h * 0.1, h * 0.95, px);
+        const sp = ironSprite(pts, {
+            res, seed, Ls, amb: o.amb, shape: 'bevel', R: w * 0.25, relief: 1, rust: 0.35,
+            height: (px, py) => {
+                // hammer flats along the drawn part, scale plates lifting on the rest
+                const fl = px > 0 ? 0.8 * Math.abs(Math.sin(px * 0.18 + noise2(px * 0.05, 0, sd) * 2)) : 0;
+                const sc = worley(px / 9, py / 5, sd + 3);
+                return fl + (px < h * 0.2 ? 0.6 * smooth(0, 0.15, sc[1] - sc[0]) : 0);
+            },
+            paint: (px, py, d, hh, out) => {
+                // a chisel mark across where the length was marked
+                if (Math.abs(px + h * 0.55) < 0.9) mixA(out, [0.05, 0.05, 0.06], 0.8, out);
+                const k = heat(px);
+                if (k > 0.02) HOT(clamp(k * (0.85 + 0.15 * noise2(px * 0.2, py * 0.3, sd + 4))), out);
+                // flakes of scale lifting off the hot part: dark specks on the glow
+                if (k > 0.3 && hashI(Math.floor(px * 0.6), Math.floor(py * 0.6), 5, sd) > 0.93) {
+                    out[5] *= 0.3;
+                    out[6] *= 0.3;
+                    out[7] *= 0.3;
+                }
+            },
+        });
+        g.save();
+        g.translate(x, y);
+        g.rotate(rot);
+        put(g, sp, 0, 0);
+        if (hot > 0.3) {
+            // the heat haloes the hot end
+            softSheet(g, w * 0.8, (q) => {
+                const gr = q.createRadialGradient(h * 0.75, 0, 0, h * 0.75, 0, len * 0.35);
+                gr.addColorStop(0, `rgba(255,130,40,${0.35 * hot})`);
+                gr.addColorStop(1, 'rgba(180,40,10,0)');
+                q.fillStyle = gr;
+                q.fillRect(h * 0.75 - len * 0.4, -len * 0.4, len * 0.8, len * 0.8);
+            });
+        }
+        g.restore();
+        void N;
+    }
+
+
+    return { lit, put, shadow, worley, ringWorley, fbm, cave, anvil, hammer, tongs, horseshoe, hearth, bellows, flames, sparks, smoke, wispSmoke, softSheet, plate, cauldron, warmer, tin, paintMap, utensil, bridle, cage, brass, strap, stripOf, chumbera, agave, oliveTree, branch, foliage, owl, wisp, tuberose, floret, bustle, sky, halo, furrows, hills, timber, hood, door, toLocal, lightsOf, pan, nail, moon, coal, offcut, hsnails, bar, HOT, FIRE, MOON, DARK, resOf };
 })();

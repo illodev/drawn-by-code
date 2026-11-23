@@ -642,3 +642,560 @@ Tableau.lemons = (z0) => {
 // is edged by leaves, never by the plate's own rim
 Tableau.lemons.depth = 420;
 Tableau.lemons.hole = 290;
+
+// ------------------------------------------------------------------ round 8 · loose pieces
+// The lemon tree as a cloud of loose pieces, the door to the second passage: the camera comes
+// out of the guitar's mouth (1340 in front of z0) into it. Every piece is its own layer from
+// z0 − 300 to z0 + 450, all round the axis and never within 260 of it, densest just outside
+// that, so that what fills the guitar's mouth as the camera goes through is lemons and leaves.
+// The brush manner (no contour); the sun comes through in patches painted into every piece
+// from one map in the stratum's coordinates (`dapple`), so all the pieces share one light;
+// what is far behind takes the tree's blue-green air.
+//   heroes   a spur with two lemons touching (dew), an over-ripe one, one seen from below and
+//            one from above, two ripe ones under a leaf's shadow, a green and a turning one,
+//            three blossom sprays (a bee feeding on one, fruit just set on another), the
+//            goldfinch on its twig, a stretch of the big bough with its ants, the snail and
+//            a pruned stub, a forked twig holding the web, a flush of bronze leaves, the
+//            swallowtail
+//   matter   single leaves of every kind (sun, shade, backlit, young, bronze, yellowing,
+//            dead), leafy twigs, lemons on their stalks, open flowers, buds, fruitlets,
+//            fallen petals, thorny wood, a bee in flight, a ladybird on a leaf, ants, the
+//            finch's feather
+Tableau.lemons.loose = (z0) => {
+    const S = Souvenir, C = Citrus, TAU = Math.PI * 2;
+    const F = (name) => (typeof Fauna !== 'undefined' && typeof Fauna[name] === 'function' ? Fauna : null);
+    const Q = (res, q) => Math.max(0.5, Math.round(res * q * 4) / 4);
+    const canvas = (w, h) => {
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        return c;
+    };
+    const turn = (x, y, a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+    const POOL = { sun: 6, mid: 7, deep: 7, under: 2, young: 3, bronze: 2, old: 2, back: 3 };
+    const OFF = { sun: 0, mid: 10, deep: 10, under: 20, young: 30, bronze: 40, old: 50, back: 60 };
+    const leafV = (kind, rot, pick) => C.lkey(rot) * 100 + OFF[kind] + (pick % POOL[kind]);
+
+    // ---------------------------------------------------------------- the stratum's painter
+    // (the same hand as the picture's: tableaux/lemons.js above, without the rest to keep clear)
+    function painter(g, res) {
+        const rl = Q(res, 1.5), P = { g, res };
+        P.leaf = (x, y, rot, s, kind, pick, o = {}) => {
+            let sp = C.leaf(leafV(kind, rot, pick), rot, rl, kind);
+            if (o.dead) sp = C.graded(sp, '#b98a58', '#6a4a26', 0.25);
+            const G = sp.G, fx = o.fx ?? 1, fy = o.fy ?? 1;
+            const [ox, oy] = turn(G.pl * fx * s, -G.B(-G.pl) * fy * s, rot), jx = x + ox, jy = y + oy;
+            if (o.sh !== 0) C.shadow(g, sp, jx, jy, s, { rot, fx, fy, dx: (o.dx ?? 5) * s, dy: (o.dy ?? 9) * s, alpha: o.sh ?? 0.42, blur: o.blur ?? 7 });
+            C.put(g, sp, jx, jy, s, { rot, fx, fy });
+            return { sp, x: jx, y: jy, rot, s, fx, fy, at: (u, av = 0, sd = 0) => {
+                const p = G.at(u, av, sd), [px, py] = turn(p[0] * fx * s, p[1] * fy * s, rot);
+                return [jx + px, jy + py];
+            } };
+        };
+        P.lemon = (tx, ty, rot, s, v, o = {}) => {
+            const sp = C.lemon(v, rot, Q(res, 1.4 * s), o), [ox, oy] = turn(sp.top[0] * s, sp.top[1] * s, rot), x = tx - ox, y = ty - oy;
+            if (o.sh !== 0) C.shadow(g, sp, x, y, s, { rot, dx: 9 * s, dy: 15 * s, alpha: o.sh ?? 0.5, blur: 12 });
+            C.put(g, sp, x, y, s, { rot });
+            return { x, y, s, rot, sp, at: (px, py) => {
+                const [qx, qy] = turn(px * s, py * s, rot);
+                return [x + qx, y + qy];
+            } };
+        };
+        P.stalk = (pts, w0, w1, seed, o = {}) => C.branch(g, pts, { w0, w1, green: [0, 0], seed, ...o });
+        P.wood = (pts, o) => C.branch(g, pts, o);
+        P.bloom = (x, y, dir, len, kind, v, s = 1, o = {}) => {
+            const ex = x + Math.cos(dir) * len, ey = y + Math.sin(dir) * len + (kind === 'fruitlet' ? len * 0.3 : 0);
+            const bow = (o.bow ?? 0.14) * len, mx = (x + ex) / 2 - Math.sin(dir) * bow, my = (y + ey) / 2 + Math.cos(dir) * bow;
+            const end = Math.atan2(ey - my, ex - mx);
+            if (len > 2) C.branch(g, [[x, y], [mx, my], [ex, ey]], { w0: 3.1 * s, w1: (kind === 'fruitlet' ? 3 : 2.5) * s, green: [0, 0], seed: 'ped' + kind + v + Math.round(x), shadeA: 0.8 });
+            const rs = Q(res, 1.6 * s);
+            let sp, rot, px = ex, py = ey;
+            if (kind === 'bud' || kind === 'round') {
+                rot = end;
+                sp = C.bud(v, rot, rs, kind === 'bud');
+            } else if (kind === 'fruitlet') {
+                rot = o.rot ?? (end - Math.PI / 2) * 0.5;
+                sp = C.fruitlet(v, rot, rs);
+                const [ox, oy] = turn(sp.top[0] * s, sp.top[1] * s, rot);
+                px -= ox;
+                py -= oy;
+            } else if (kind === 'face') {
+                rot = o.rot ?? v * 2.4;
+                sp = C.flower(v, rot, rs, 'face');
+            } else {
+                rot = end + Math.PI / 2;
+                sp = kind === 'spent' ? C.spent(v, rot, rs) : C.flower(v, rot, rs, kind);
+                const [ox, oy] = turn(sp.base[0] * s, sp.base[1] * s, rot);
+                px -= ox;
+                py -= oy;
+            }
+            if (o.sh !== 0) C.shadow(g, sp, px, py, s, { rot, dx: 5 * s, dy: 8 * s, alpha: o.sh ?? 0.42, blur: 6 });
+            C.put(g, sp, px, py, s, { rot });
+            return { x: px, y: py, rot, s };
+        };
+        P.petal = (x, y, rot, v, o = {}) => {
+            const sp = C.petal('loose' + v, rot, Q(res, 1.6), { len: 40 + (v % 3) * 4, wid: 11.5, cup: 0.9, old: o.old ?? 0, out: o.out ?? 0 });
+            C.shadow(g, sp, x, y, 1, { rot, dx: 2.5, dy: 4, alpha: 0.45, blur: 3 });
+            C.put(g, sp, x, y, o.s ?? 1, { rot, fy: o.fy ?? 0.8 });
+        };
+        P.drop = (x, y, r, o = {}) => {
+            const Fd = F('drop');
+            if (Fd && !o.hang) Fd.drop(g, { x, y, r, ...o });
+            else C.drop(g, { x, y, r, hang: o.hang ?? 0, sq: o.squash ?? 1 });
+        };
+        return P;
+    }
+    const track = (ctrl, seg = 14) => {
+        const pts = ctrl.length > 2 ? S.curve(ctrl, false, seg) : ctrl, D = [0];
+        for (let i = 1; i < pts.length; i++) D.push(D[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+        const len = D[D.length - 1];
+        return { pts, len, at: (d) => {
+            d = Math.max(0, Math.min(len, d));
+            let i = 1;
+            while (i < pts.length - 1 && D[i] < d) i++;
+            const k = (d - D[i - 1]) / (D[i] - D[i - 1] || 1), p = pts[i - 1], q = pts[i];
+            return { x: p[0] + (q[0] - p[0]) * k, y: p[1] + (q[1] - p[1]) * k, a: Math.atan2(q[1] - p[1], q[0] - p[0]) };
+        } };
+    };
+    // a shoot the way it grows (see `shoot` in the picture above)
+    function shoot(P, o) {
+        const r = Motion.rng('lshoot' + o.seed), T = track(o.path), g = P.g, s = o.s ?? 1;
+        const nodes = [];
+        let d = (o.from ?? 0.08) * T.len, side = r() < 0.5 ? 1 : -1;
+        while (d < T.len * (o.to ?? 0.985)) {
+            nodes.push({ d, u: d / T.len, side });
+            side = r() < 0.86 ? -side : side;
+            d += (o.gap ?? 46) * s * (0.72 + r() * 0.56) * (1 - 0.42 * (d / T.len));
+        }
+        const kinds = o.kinds ?? ['sun', 'mid', 'mid', 'mid', 'deep'];
+        const leaves = [];
+        for (const n of nodes) {
+            n.leaf = r() < (o.leafy ?? 0.94);
+            const p = T.at(n.d);
+            let a = p.a + n.side * (0.5 + r() * 0.62);
+            a += (o.droop ?? 0.3) * (0.4 + r() * 0.9) * Math.sin(Math.PI / 2 - a);
+            let kind = kinds[Math.floor(r() * kinds.length)];
+            if (o.tip === 'flush' && n.u > 0.7) kind = r() < 0.55 ? 'bronze' : 'young';
+            else if (n.u > 0.88 && r() < 0.4 && !o.plain) kind = 'young';
+            else if (!o.plain && r() < 0.035) kind = 'old';
+            else if (!o.plain && r() < 0.05) kind = 'under';
+            const small = kind === 'young' || kind === 'bronze';
+            const ls = s * (o.leaf ?? 1) * (0.8 + r() * 0.38) * (small ? 1 : 1 - 0.22 * n.u * n.u), edge = r() < 0.1;
+            const L = { x: p.x, y: p.y, a, kind, s: ls, pick: Math.floor(r() * 97), fx: 0.64 + r() * 0.36, fy: edge ? 0.14 + r() * 0.16 : 0.56 + r() * 0.44, front: r() < 0.5 };
+            if (n.leaf) leaves.push(L);
+        }
+        for (const l of leaves) if (!l.front) l.got = P.leaf(l.x, l.y, l.a, l.s, l.kind, l.pick, l);
+        const fruit = (f) => {
+            const p = T.at(f.u * T.len), e = [p.x + f.e[0], p.y + f.e[1]], fs = f.s ?? 1.2;
+            const stalk = () => P.stalk([[p.x, p.y], [p.x + f.e[0] * 0.3, p.y + f.e[1] * 0.55], e], 5 * fs, 6 * fs, 'stalk' + o.seed + f.v);
+            if (f.view !== 'stalk') stalk();
+            f.got = P.lemon(e[0], e[1], f.rot ?? 0, fs, f.v, { age: f.age, view: f.view });
+            if (f.view === 'stalk') stalk();
+        };
+        for (const f of o.fruits ?? []) if (f.behind) fruit(f);
+        P.wood(T.pts, { raw: true, w0: (o.w0 ?? 7) * s, w1: (o.w1 ?? 3) * s, green: o.green ?? [0, 0], seed: 'lwood' + o.seed, nodes: nodes.map((n) => n.d), taper: o.taper });
+        for (const n of nodes) {
+            const p = T.at(n.d), w = ((o.w0 ?? 7) + ((o.w1 ?? 3) - (o.w0 ?? 7)) * n.u) * s;
+            if (!n.leaf && o.scars !== false && w > 5) C.scar(g, p.x - Math.sin(p.a) * n.side * w * 0.2, p.y + Math.cos(p.a) * n.side * w * 0.2, p.a + (n.side > 0 ? 0 : Math.PI), Math.min(11, w * 0.7));
+            if (r() < (o.thorns ?? 0)) {
+                const a = p.a + n.side * (1.15 + r() * 0.5), len = (8 + r() * r() * 22) * s;
+                C.thorn(g, p.x + Math.cos(a) * w * 0.3, p.y + Math.sin(a) * w * 0.3, a, len, o.seed + n.d);
+            }
+        }
+        for (const f of o.fruits ?? []) if (!f.behind) fruit(f);
+        for (const l of leaves) if (l.front) l.got = P.leaf(l.x, l.y, l.a, l.s, l.kind, l.pick, l);
+        if (Array.isArray(o.tip)) {
+            const e = T.at(T.len);
+            for (const [dir, len, kind, v, fs, extra] of o.tip) P.bloom(e.x, e.y, e.a + dir, len, kind, v, (fs ?? 1) * s, extra);
+        }
+        return { T, nodes, fruits: o.fruits, leaves };
+    }
+    const dew = (P, sh, n, seed) => {
+        const r = Motion.rng('ldew' + seed);
+        for (const l of sh.leaves.filter((l) => l.front && l.got).slice(0, n)) {
+            for (let i = 0, m = 1 + Math.floor(r() * 2.6); i < m; i++) P.drop(...l.got.at(0.2 + r() * 0.6, 0.15 + r() * 0.6, r() < 0.5 ? 0 : 1), 2 + r() * r() * 4.5);
+        }
+    };
+    const sprig = (P, x, y, dir, len, seed, o = {}) => {
+        const sag = (o.sag ?? 0.16) * len * Math.cos(dir), bend = (o.bend ?? 0) * len;
+        const nx = -Math.sin(dir), ny = Math.cos(dir);
+        return shoot(P, {
+            path: [[x, y], [x + Math.cos(dir) * len * 0.36 + nx * bend * 0.6, y + Math.sin(dir) * len * 0.36 + ny * bend * 0.6 + Math.abs(sag) * 0.2], [x + Math.cos(dir) * len * 0.72 + nx * bend, y + Math.sin(dir) * len * 0.72 + ny * bend + Math.abs(sag) * 0.6], [x + Math.cos(dir) * len + nx * bend * 0.8, y + Math.sin(dir) * len + ny * bend * 0.8 + Math.abs(sag)]],
+            seed, w0: 5.6, w1: 2.6, gap: 42, ...o,
+        });
+    };
+    // the finch's fallen feather: a black vane with a yellow edge, grey down at its foot
+    const feather = (g, x, y, rot, len = 30) => {
+        g.save();
+        g.translate(x, y);
+        g.rotate(rot);
+        g.lineCap = 'round';
+        const r = Motion.rng('lfeather' + x);
+        for (let i = 0; i < 12; i++) {
+            const a = (r() - 0.5) * 2.6;
+            g.strokeStyle = `rgba(206,204,208,${0.4 + r() * 0.4})`;
+            g.lineWidth = 0.5;
+            g.beginPath();
+            g.moveTo(len * 0.12 + r() * len * 0.14, 0);
+            g.quadraticCurveTo(len * 0.1 + Math.cos(a) * 3, Math.sin(a) * 4, len * 0.08 + Math.cos(a) * 5, Math.sin(a) * (5 + r() * 3));
+            g.stroke();
+        }
+        for (const [side, col, w] of [[-1, '#24211f', 5], [-1, '#45403a', 2.4], [1, '#d8ae24', 4.2], [1, '#f4d860', 2]]) {
+            for (let i = 0; i < 44; i++) {
+                const u = 0.2 + (i / 44) * 0.79, wd = w * Math.pow(Math.sin(Math.PI * Math.pow(u, 0.75)), 0.7) * (i % 11 === 7 ? 0.55 : 0.9 + r() * 0.2);
+                g.strokeStyle = col;
+                g.lineWidth = 0.7;
+                g.beginPath();
+                g.moveTo(u * len, -0.8 * Math.sin(u * Math.PI));
+                g.quadraticCurveTo(u * len + wd * 0.3, side * wd * 0.6, u * len + wd * 0.8, side * wd);
+                g.stroke();
+            }
+        }
+        g.strokeStyle = '#f0e8d0';
+        g.lineWidth = 0.75;
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.quadraticCurveTo(len * 0.5, -0.8, len, 0);
+        g.stroke();
+        g.restore();
+    };
+
+    // ---------------------------------------------------------------- the light through the tree
+    // One map of sun and shade for the whole stratum (in its units), laid on each piece's paint:
+    // pieces that float apart still stand in the same patches of sun.
+    const BIG = { x: -1800, y: -1800, w: 3600, h: 3600 };
+    function relight(g, box, res, paint, o = {}) {
+        const W = g.canvas.width, H = g.canvas.height, f = 0.25;
+        const small = canvas(Math.ceil(W * f), Math.ceil(H * f)), q = small.getContext('2d');
+        q.fillStyle = '#808080';
+        q.fillRect(0, 0, small.width, small.height);
+        q.setTransform(res * f, 0, 0, res * f, -box.x * res * f, -box.y * res * f);
+        paint(q, box);
+        const map = canvas(W, H), mq = map.getContext('2d', { willReadFrequently: true });
+        mq.imageSmoothingQuality = 'high';
+        mq.drawImage(small, 0, 0, W, H);
+        const L = mq.getImageData(0, 0, W, H).data;
+        g.save();
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        const img = g.getImageData(0, 0, W, H), px = img.data;
+        const sunK = o.sun ?? 1, shK = o.shade ?? 1;
+        for (let i = 0; i < px.length; i += 4) {
+            if (!px[i + 3]) continue;
+            const l = L[i];
+            if (l > 129) {
+                const k = ((l - 128) / 127) * sunK;
+                px[i] = Math.min(252, px[i] * (1 + 0.42 * k) + 16 * k);
+                px[i + 1] = Math.min(252, px[i + 1] * (1 + 0.36 * k) + 12 * k);
+                px[i + 2] = Math.min(246, px[i + 2] * (1 + 0.1 * k));
+            } else if (l < 127) {
+                const k = ((128 - l) / 128) * shK;
+                px[i] *= 1 - 0.52 * k;
+                px[i + 1] *= 1 - 0.38 * k;
+                px[i + 2] *= 1 - 0.27 * k;
+            }
+        }
+        g.putImageData(img, 0, 0);
+        g.restore();
+    }
+    // The map: the blobs are drawn once as a list (in the stratum's units), and each piece only
+    // draws those that touch it.
+    const SUN = (() => {
+        const r = Motion.rng('loose-dapple'), list = { pools: [], suns: [], flecks: [] }, b = BIG;
+        for (let i = 0; i < 70; i++) list.pools.push([b.x + r() * b.w, b.y + r() * b.h, 110 + r() * 220, 70 + r() * 130, r() * 3, `rgba(0,0,0,${0.16 + r() * 0.3})`]);
+        for (let i = 0; i < 130; i++) {
+            const x = b.x + r() * b.w, y = b.y + r() * b.h, a = 0.75 + (r() - 0.5) * 0.7, n = 2 + Math.floor(r() * 5), al = 0.35 + r() * 0.5;
+            for (let j = 0; j < n; j++) list.suns.push([x + (r() - 0.5) * 150, y + (r() - 0.5) * 110, 22 + r() * 70, 10 + r() * 30, a + (r() - 0.5) * 0.5, `rgba(255,255,255,${al})`]);
+        }
+        for (let i = 0; i < 200; i++) list.flecks.push([b.x + r() * b.w, b.y + r() * b.h, 6 + r() * 12, 4 + r() * 8, 0.75 + (r() - 0.5), `rgba(255,255,255,${0.25 + r() * 0.45})`]);
+        return list;
+    })();
+    const dapple = (q, box) => {
+        const m = q.getTransform();
+        const group = (blur, list) => {
+            const c = canvas(q.canvas.width, q.canvas.height), p = c.getContext('2d');
+            p.setTransform(m);
+            for (const [x, y, rx, ry, a, col] of list) {
+                const R = Math.max(rx, ry) + blur * 3;
+                if (x + R < box.x || x - R > box.x + box.w || y + R < box.y || y - R > box.y + box.h) continue;
+                p.fillStyle = col;
+                p.beginPath();
+                p.ellipse(x, y, rx, ry, a, 0, TAU);
+                p.fill();
+            }
+            q.save();
+            q.setTransform(1, 0, 0, 1, 0, 0);
+            q.filter = `blur(${(blur * m.a).toFixed(2)}px)`;
+            q.drawImage(c, 0, 0);
+            q.restore();
+        };
+        // the tree is lighter towards the sun (the top left of the stratum)
+        const gr = q.createLinearGradient(-1300, -1300, 1300, 1300);
+        gr.addColorStop(0, 'rgba(255,255,255,0.16)');
+        gr.addColorStop(0.5, 'rgba(128,128,128,0)');
+        gr.addColorStop(1, 'rgba(0,0,0,0.24)');
+        q.fillStyle = gr;
+        q.fillRect(box.x, box.y, box.w, box.h);
+        group(22, SUN.pools);
+        group(7, SUN.suns);
+        group(3.5, SUN.flecks);
+    };
+    // air between the eye and what is deep in the tree: its paint drifts to the tree's blue-green
+    const air = (g, box, dz) => {
+        const k = S.clamp((dz - 60) / 390);
+        if (k <= 0) return;
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        g.fillStyle = `rgba(22,64,62,${(0.3 * k).toFixed(3)})`;
+        g.fillRect(box.x, box.y, box.w, box.h);
+        g.restore();
+    };
+
+    const layers = [];
+    const sq = (cx, cy, half) => ({ x: cx - half, y: cy - half, w: half * 2, h: half * 2 });
+    // a piece: `draw(P, g)` paints it at (cx, cy) in the stratum, in its local units (translated
+    // there, never turned: the light stays where it is)
+    const add = (id, dz, cx, cy, half, draw, o = {}) => {
+        const box = sq(cx, cy, half);
+        layers.push({
+            id: 'lemons-l-' + id, z: z0 + dz, loose: true, brush: false, box,
+            paint(g, res) {
+                const P = painter(g, res);
+                g.save();
+                g.translate(cx, cy);
+                draw(P, g);
+                g.restore();
+                relight(g, box, res, dapple, { sun: o.sun ?? 0.9, shade: 1.1 });
+                air(g, box, dz);
+                S.tooth(g, box, { amp: 0.05 });
+            },
+        });
+        return { x: cx, y: cy, half, dz };
+    };
+
+    // ---------------------------------------------------------------- heroes
+    const heroes = [];
+    // a spur with two lemons touching, the turning one behind the ripe one, dew on them
+    heroes.push(add('spur', -150, -500, -330, 400, (P) => {
+        const T = shoot(P, { seed: 'tL', path: [[-110, -120], [-70, -62], [-8, 0], [36, 36]], w0: 8, w1: 6, gap: 36, green: [0.1, 0.7], kinds: ['sun', 'mid', 'sun'], thorns: 0.4,
+            fruits: [{ u: 0.42, e: [-38, 36], s: 1.12, v: 1, age: 'turning', rot: -0.25, behind: true }, { u: 1, e: [8, 26], s: 1.32, v: 3, age: 'ripe', rot: 0.12 }] });
+        sprig(P, -110, -120, -2.4, 150, 'spur-back', { kinds: ['mid', 'sun', 'deep'], w0: 7, w1: 4 });
+        dew(P, T, 2, 'spur');
+        const L1 = T.fruits[1].got, tip = (f) => f.at(f.sp.G.tip[0], f.sp.G.tip[1] + 3);
+        for (const [x, y, rad] of [[-22, -50, 7], [16, 30, 4.5], [-38, 52, 3]]) P.drop(...L1.at(x, y), rad);
+        P.drop(...tip(L1), 3.2, { hang: 0.4 });
+    }));
+    // the over-ripe one, scarred, on its twig
+    heroes.push(add('over', 40, 640, 220, 340, (P) => {
+        shoot(P, { seed: 'tO', path: [[-30, -150], [-4, -86], [12, -26], [18, 14]], w0: 7, w1: 5.5, gap: 34, green: [0.1, 0.6], kinds: ['mid', 'sun', 'deep'], thorns: 0.4,
+            fruits: [{ u: 1, e: [2, 26], s: 1.3, v: 4, age: 'over', rot: 0.06 }] });
+    }));
+    // a lemon seen from below, its nipple at the eye
+    heroes.push(add('below', 260, -180, 560, 320, (P) => {
+        shoot(P, { seed: 'tT1', path: [[-90, -110], [-50, -60], [-12, -20], [0, 0]], w0: 7, w1: 5.5, gap: 32, green: [0.2, 0.8], kinds: ['sun', 'mid', 'back'], fruits: [{ u: 1, e: [0, 8], s: 1.3, v: 6, view: 'tip', rot: 0.1 }] });
+    }));
+    // one seen from above, the button in its dimple
+    heroes.push(add('above', -40, 340, -480, 320, (P) => {
+        shoot(P, { seed: 'tS', path: [[90, -110], [56, -60], [20, -20], [0, 2]], w0: 7, w1: 5, gap: 34, to: 0.7, kinds: ['sun', 'mid'], fruits: [{ u: 1, e: [-4, 12], s: 1.25, v: 7, view: 'stalk', rot: -0.1 }] });
+    }));
+    // two ripe ones under a leaf whose shadow lies across the nearer
+    heroes.push(add('pair', -270, 420, 420, 340, (P, g) => {
+        const T = shoot(P, { seed: 'tR', path: [[-40, -80], [-14, -50], [6, -30], [18, -16]], w0: 7.5, w1: 6, gap: 22, from: 0.3, leafy: 0, green: [0.1, 0.7],
+            fruits: [{ u: 0.35, e: [-56, 30], s: 1.1, v: 5, age: 'ripe', rot: 0.2, behind: true }, { u: 1, e: [0, 22], s: 1.32, v: 9, age: 'ripe', rot: -0.18 }] });
+        const sp = C.leaf(leafV('sun', 0.95, 2), 0.95, Q(P.res, 1.5), 'sun');
+        C.shadow(g, sp, -20, -56, 1.12, { rot: 0.95, fx: 0.9, dx: 26, dy: 34, alpha: 0.5, blur: 11 });
+        const lf = P.leaf(-34, -66, 0.95, 1.12, 'sun', 2, { fx: 0.9, sh: 0 });
+        P.drop(...lf.at(0.42, 0.4, 1), 5);
+        P.drop(...lf.at(0.6, 0.3, 0), 3);
+        const R1 = T.fruits[1].got;
+        for (const [x, y, rad] of [[24, 40, 6.5], [-18, -44, 3.6]]) P.drop(...R1.at(x, y), rad);
+    }));
+    // a green one and a turning one on one twig
+    heroes.push(add('greens', 400, 760, -420, 330, (P) => {
+        shoot(P, { seed: 'tG', path: [[-120, -90], [-70, -50], [-20, -4], [10, 24]], w0: 7, w1: 5, gap: 30, leafy: 0.8, kinds: ['mid', 'sun', 'deep'],
+            fruits: [{ u: 0.5, e: [-10, 34], s: 1.05, v: 10, age: 'green', rot: 0.05, behind: true }, { u: 1, e: [0, 8], s: 1.12, v: 8, age: 'turning', rot: -0.2 }] });
+    }));
+    // blossom: a spray of every stage, with dew
+    heroes.push(add('blossom', 120, 80, -660, 330, (P) => {
+        const K = shoot(P, { seed: 'k1', path: [[-100, 50], [-46, -8], [28, -40], [102, -20]], w0: 6, w1: 3.4, gap: 38, kinds: ['sun', 'mid', 'young'], thorns: 0.3,
+            tip: [[-1.9, 34, 'bud', 1, 1], [-1.2, 46, 'tilt', 1, 0.95], [-0.5, 30, 'round', 2, 1], [0.1, 54, 'face', 0, 1], [0.75, 40, 'half', 3, 0.95], [1.5, 36, 'bud', 4, 0.9], [2.3, 24, 'round', 5, 1]] });
+        dew(P, K, 2, 'k1');
+    }));
+    // blossom with a bee feeding on it
+    heroes.push(add('blossom-bee', -220, 700, -120, 330, (P, g) => {
+        const K = shoot(P, { seed: 'k2', path: [[-66, 70], [-40, 4], [6, -42], [64, -58]], w0: 6.5, w1: 3.4, gap: 40, kinds: ['sun', 'mid', 'sun'], thorns: 0.3,
+            tip: [[-2.2, 30, 'round', 6, 1], [-1.4, 50, 'side', 2, 0.95], [-0.7, 38, 'bud', 7, 1], [0.0, 58, 'face', 5, 1.02], [0.8, 44, 'tilt', 4, 0.95], [1.5, 40, 'bud', 8, 0.95], [2.1, 30, 'spent', 1, 1]] });
+        dew(P, K, 2, 'k2');
+        if (F('bee')) Fauna.bee(g, { x: 116, y: -50, s: 0.9, rot: 0.5, pose: 'feed', line: false });
+    }));
+    // blossom going over: spent flowers and fruit just set
+    heroes.push(add('fruitset', 300, -700, 300, 350, (P) => {
+        const K = shoot(P, { seed: 'k3', path: [[-154, 84], [-54, 2], [58, -48], [158, -54]], w0: 7, w1: 3.6, gap: 40, green: [0.05, 0.4], kinds: ['sun', 'mid', 'sun', 'mid'], thorns: 0.35,
+            tip: [[-2.1, 34, 'spent', 2, 1], [-1.35, 52, 'face', 3, 1], [-0.6, 40, 'bud', 9, 1], [0.1, 62, 'side', 1, 1], [0.7, 30, 'round', 10, 1], [1.2, 56, 'tilt', 6, 1], [1.9, 44, 'half', 2, 0.95], [2.6, 30, 'fruitlet', 1, 1.1], [3.1, 26, 'fruitlet', 2, 1]] });
+        dew(P, K, 3, 'k3');
+    }));
+    // the goldfinch on its twig, looking back over its shoulder
+    heroes.push(add('goldfinch', -60, -720, -40, 380, (P, g) => {
+        shoot(P, { seed: 'perch', path: [[-190, 60], [-80, 26], [40, 8], [170, -40]], w0: 8, w1: 3.4, gap: 44, kinds: ['sun', 'mid', 'mid', 'back'], thorns: 0.3, tip: 'flush' });
+        if (F('goldfinch')) Fauna.goldfinch(g, { x: -12, y: -58, s: 2.1, flip: true, pose: 0, line: false, perch: [-80, 26, 40, 8] });
+    }));
+    // a stretch of the big bough: ants going up and down, the snail on its way, a pruned stub
+    heroes.push(add('bough', 180, 120, 780, 560, (P, g) => {
+        const A = track([[-300, 60], [-150, 20], [0, -8], [150, -20], [300, -64]]);
+        for (const [u, dir] of [[0.12, -1.9], [0.3, 1.5], [0.55, -1.4], [0.7, 1.8], [0.9, -1.2]]) {
+            const p = A.at(A.len * u);
+            sprig(P, p.x, p.y, p.a + dir, 150 + (u * 100) % 50, 'bough-s' + u, { thorns: 0.25, kinds: ['sun', 'mid', 'mid', 'deep'] });
+        }
+        C.branch(g, A.pts, { raw: true, w0: 32, w1: 20, seed: 'bough-L', nodes: [120, 300, 470] });
+        const st = A.at(A.len * 0.38);
+        C.branch(g, [[st.x, st.y], [st.x + 14, st.y - 24], [st.x + 22, st.y - 42]], { w0: 20, w1: 17, seed: 'lstub' });
+        C.cut(g, st.x + 24, st.y - 46, -1.05, 18, 3);
+        for (const u of [0.18, 0.5, 0.64, 0.82]) {
+            const p = A.at(A.len * u);
+            C.scar(g, p.x + 3, p.y - 5, p.a, 9);
+        }
+        for (const [u, off, back] of [[0.08, -6, 0], [0.13, 3, 1], [0.2, -3, 0], [0.26, 5, 0], [0.6, -5, 1], [0.7, 2, 0], [0.74, -4, 0], [0.86, 3, 1]]) {
+            const p = A.at(A.len * u);
+            C.ant(g, { x: p.x - Math.sin(p.a) * off, y: p.y + Math.cos(p.a) * off, rot: p.a + (back ? Math.PI : 0) + (off % 2 ? 0.2 : -0.15), s: 1.35 });
+        }
+        const sp0 = A.at(A.len * 0.47);
+        if (F('snail')) Fauna.snail(g, { x: sp0.x + 6, y: sp0.y - 30, s: 0.9, rot: sp0.a, line: false, trail: 60 });
+    }));
+    // a forked twig holding the web, dew strung on it
+    heroes.push(add('web', 220, 860, 120, 400, (P, g) => {
+        P.wood([[0, 120], [-2, 60], [0, 0]], { w0: 10, w1: 8, seed: 'fork0' });
+        sprig(P, 0, 0, -2.25, 170, 'fork-l', { w0: 7, w1: 3, kinds: ['mid', 'sun', 'deep'] });
+        sprig(P, 0, 0, -0.75, 170, 'fork-r', { w0: 7, w1: 3, kinds: ['mid', 'back', 'sun'] });
+        if (F('web')) Fauna.web(g, { x: 0, y: 0, r: 110, a0: -2.2, a1: -0.8, seed: 'lfork' });
+    }));
+    // a flush of young growth, bronze and limp
+    heroes.push(add('flush', 100, -900, 600, 380, (P) => {
+        sprig(P, -120, 110, -0.75, 280, 'flush', { kinds: ['mid', 'sun'], tip: 'flush', w0: 6, w1: 2.4 });
+    }));
+    // the swallowtail, wings half open
+    heroes.push(add('swallowtail', -250, -380, 620, 140, (P, g) => {
+        if (F('butterfly')) Fauna.butterfly(g, { x: 0, y: 0, s: 1.7, rot: -0.5, fold: 0.3, line: false });
+    }));
+
+    // ---------------------------------------------------------------- matter
+    const r = Motion.rng('lemons-loose');
+    const KINDS = [
+        ...Array(22).fill('leaf'), ...Array(26).fill('twig'), ...Array(14).fill('lemon'), ...Array(6).fill('petal'), ...Array(8).fill('flower'),
+        ...Array(5).fill('buds'), ...Array(4).fill('fruitlets'), ...Array(3).fill('thorny'), 'bee', 'bee', 'ladybird', 'ants', 'feather', 'dead', 'dead',
+    ];
+    for (let i = KINDS.length - 1; i > 0; i--) {
+        const j = Math.floor(r() * (i + 1));
+        [KINDS[i], KINDS[j]] = [KINDS[j], KINDS[i]];
+    }
+    // how far each kind's paint reaches from its place
+    const EXT = { leaf: 150, twig: 250, lemon: 190, petal: 40, flower: 75, buds: 80, fruitlets: 75, thorny: 200, bee: 40, ladybird: 180, ants: 240, feather: 40, dead: 150 };
+    const placed = heroes.slice();
+    const clearOf = (x, y, half, dz) => {
+        for (const p of placed) if (Math.abs(p.dz - dz) < 80 && Math.hypot(p.x - x, p.y - y) < (p.half + half) * 0.6) return false;
+        return true;
+    };
+    const N = KINDS.length, GOLD = Math.PI * (3 - Math.sqrt(5));
+    const LEAVES = ['sun', 'sun', 'mid', 'mid', 'mid', 'back', 'back', 'young', 'bronze', 'old', 'deep'];
+    KINDS.forEach((kind, i) => {
+        const dz = -300 + 750 * ((i + r()) / N), half = EXT[kind];
+        let a = i * GOLD + r() * 0.5, R = 275 + half + 1150 * Math.pow(r(), 1.25), x, y, tries = 0;
+        do {
+            x = Math.cos(a) * R;
+            y = Math.sin(a) * R;
+            if (clearOf(x, y, half, dz)) break;
+            R += 35;
+            a += 0.15;
+        } while (++tries < 40);
+        placed.push({ x, y, half, dz });
+        // sprites come from small pools (a lemon, a flower, a petal is painted once per variant, light and size)
+        const rot = r() * TAU, pick = Math.floor(r() * 97), v = pick % 12, seed = 'lm' + i;
+        const draw = {
+            leaf: (P) => {
+                const kind = LEAVES[pick % LEAVES.length], s = 0.72 + r() * 0.25;
+                const lf = P.leaf(-Math.cos(rot) * 40 * s, -Math.sin(rot) * 40 * s, rot, s, kind, pick, { fx: 0.75 + r() * 0.25, fy: 0.55 + r() * 0.45, sh: 0 });
+                if (kind === 'sun' || kind === 'mid') P.drop(...lf.at(0.35 + r() * 0.4, 0.3, r() < 0.5 ? 0 : 1), 2.5 + r() * 3.5);
+            },
+            dead: (P) => P.leaf(-Math.cos(rot) * 80, -Math.sin(rot) * 80, rot, 0.8, 'old', pick, { dead: true, fx: 0.8, fy: 0.5 + r() * 0.4, sh: 0 }),
+            twig: (P) => {
+                const len = 120 + r() * 60, sh = sprig(P, -Math.cos(rot) * len * 0.5, -Math.sin(rot) * len * 0.5, rot, len, seed, { kinds: [LEAVES[pick % LEAVES.length], 'mid', 'sun', 'mid'], leaf: 0.72, thorns: 0.3, w0: 5, w1: 2.4, tip: r() < 0.25 ? 'flush' : undefined });
+                if (r() < 0.4) dew(P, sh, 1, seed);
+            },
+            lemon: (P) => {
+                const age = ['ripe', 'ripe', 'ripe', 'turning', 'green', 'over', 'ripe', 'turning'][pick % 8], s = [1, 1.12, 1.24][pick % 3];
+                P.stalk([[-8, -60], [-3, -34], [0, -14]], 5, 6, seed + 'st', { shade: false });
+                const L = P.lemon(0, -14, (r() - 0.5) * 0.5, s, v, { age });
+                if (r() < 0.5) P.leaf(-8, -60, -2.2 + r() * 0.6, 0.72, ['sun', 'mid'][pick % 2], pick, { fx: 0.8, fy: 0.7 });
+                if (r() < 0.6) P.drop(...L.at(-20 + r() * 30, -30 + r() * 50), 3 + r() * 3.5);
+            },
+            petal: (P) => {
+                P.petal(0, 0, rot, v % 6, { old: [0, 0.45, 0.9][pick % 3], s: 1.1 });
+                if (r() < 0.5) P.petal(16, 10, rot + 1.6, (v + 1) % 6, { old: [0.45, 0, 0.9][pick % 3], s: 0.95 });
+            },
+            flower: (P) => P.bloom(-Math.cos(rot) * 34, -Math.sin(rot) * 34, rot, 40, ['face', 'tilt', 'side', 'half', 'face'][pick % 5], v, 1.2, { sh: 0 }),
+            buds: (P) => {
+                for (const [d, len, k, w] of [[-0.7, 34, 'bud', 0], [0, 44, 'round', 1], [0.75, 30, 'bud', 2], [1.4, 26, 'round', 3]]) P.bloom(-Math.cos(rot) * 20, -Math.sin(rot) * 20, rot + d, len, k, (v % 5) * 4 + w, 1.15, { sh: 0.3 });
+            },
+            fruitlets: (P) => {
+                for (const [d, len, k, w] of [[-0.6, 30, 'fruitlet', 0], [0.2, 36, 'spent', 1], [0.9, 28, 'fruitlet', 2]]) P.bloom(-Math.cos(rot) * 20, -Math.sin(rot) * 20, rot + d, len, k, (v % 4) * 3 + w, 1.2, { sh: 0.3 });
+            },
+            thorny: (P, g) => {
+                const sh = shoot(P, { seed, path: [[-Math.cos(rot) * 90, -Math.sin(rot) * 90], [-Math.cos(rot) * 30, -Math.sin(rot) * 30 + 8], [Math.cos(rot) * 30, Math.sin(rot) * 30 + 6], [Math.cos(rot) * 90, Math.sin(rot) * 90]], w0: 11, w1: 7, gap: 40, leafy: 0.3, leaf: 0.7, thorns: 0.9, kinds: ['old', 'mid'] });
+                C.cut(g, sh.T.pts[0][0], sh.T.pts[0][1], rot + Math.PI, 11, i);
+            },
+            bee: (P, g) => F('bee') && Fauna.bee(g, { x: 0, y: 0, s: 1.15, rot: rot, flip: rot > Math.PI, pose: 'fly', line: false, cast: false }),
+            ladybird: (P, g) => {
+                const lf = P.leaf(-Math.cos(rot) * 80, -Math.sin(rot) * 80, rot, 0.8, 'sun', pick, { fx: 0.9, fy: 0.8, sh: 0 });
+                if (F('ladybird')) Fauna.ladybird(g, { x: lf.at(0.5, 0)[0], y: lf.at(0.5, 0)[1], s: 1.2, rot: rot + 0.4, line: false });
+            },
+            ants: (P, g) => {
+                const sh = sprig(P, -Math.cos(rot) * 80, -Math.sin(rot) * 80, rot, 160, seed, { kinds: ['mid', 'sun'], leaf: 0.72, w0: 8, w1: 4, leafy: 0.5 });
+                for (const u of [0.2, 0.34, 0.5, 0.66]) {
+                    const p = sh.T.at(sh.T.len * u);
+                    C.ant(g, { x: p.x, y: p.y + (u > 0.4 ? -2 : 2), rot: p.a + (u === 0.34 ? Math.PI : 0), s: 1.35 });
+                }
+            },
+            feather: (P, g) => feather(g, -20, 0, rot, 44),
+        }[kind];
+        add(kind + i, dz, x, y, EXT[kind] * 1.35 + 40, draw);
+    });
+
+    // ---------------------------------------------------------------- the lining
+    // What fills the guitar's mouth as the camera goes through, and the frame from inside the
+    // tree: single leaves pointing in at the axis, their tips stopping 270–330 from it, and
+    // lemons, flowers and petals just outside them, at every depth and more of them deep in
+    // the tree (seen through the mouth from farther, they close the middle down).
+    const rl = Motion.rng('lemons-lining'), NL = 104;
+    for (let i = 0; i < NL; i++) {
+        const dz = -300 + 750 * Math.pow((i + rl()) / NL, 0.7), a = i * GOLD * 1.0007 + 0.9 + rl() * 0.3, ca = Math.cos(a), sa = Math.sin(a);
+        const k = i % 10, pick = Math.floor(rl() * 97), v = pick % 12, seed = 'ln' + i;
+        if (k < 6) {
+            // a leaf, its tip in: the node out at R, the blade along the way in, the tip 280–330 from the axis
+            const kind = ['sun', 'mid', 'back', 'sun', 'young', 'mid', 'bronze', 'deep', 'mid', 'sun'][pick % 10], rot = a + Math.PI + (rl() - 0.5) * 0.5;
+            const s = 0.66 + rl() * 0.34, fx = 0.82 + rl() * 0.18, G = C.leafGeom(leafV(kind, rot, pick), kind), L = (G.L + G.pl) * s * fx, R = 280 + L + rl() * 50;
+            add('lining-leaf' + i, dz, ca * (R - L / 2), sa * (R - L / 2), L * 0.8 + 70, (P) => {
+                const lf = P.leaf(ca * L / 2, sa * L / 2, rot, s, kind, pick, { fx, fy: 0.5 + rl() * 0.5, sh: 0 });
+                if (kind !== 'deep' && rl() < 0.5) P.drop(...lf.at(0.3 + rl() * 0.4, 0.3, rl() < 0.5 ? 0 : 1), 2.5 + rl() * 3.5);
+            });
+        } else if (k < 8) {
+            // a lemon on its stalk, with a leaf
+            const R = 280 + 120 + rl() * 60, age = ['ripe', 'ripe', 'turning', 'green', 'ripe', 'over'][pick % 6];
+            add('lining-lemon' + i, dz, ca * R, sa * R, 260, (P) => {
+                P.stalk([[-8, -70], [-3, -40], [0, -22]], 5, 6, seed + 'st', { shade: false });
+                const Lm = P.lemon(0, -22, (rl() - 0.5) * 0.5, pick % 2 ? 1 : 1.12, v, { age });
+                P.leaf(-8, -70, a + Math.PI * (0.5 + rl()), 0.6, 'sun', pick, { fx: 0.85, fy: 0.7 });
+                P.drop(...Lm.at(-16 + rl() * 26, -24 + rl() * 40), 3 + rl() * 3);
+            });
+        } else if (k === 8) {
+            // an open flower on its pedicel, facing any way
+            const R = 280 + 70 + rl() * 50;
+            add('lining-flower' + i, dz, ca * R, sa * R, 150, (P) => P.bloom(-ca * 30, -sa * 30, a + (rl() - 0.5), 40, ['face', 'tilt', 'face', 'half'][pick % 4], v, 1.25, { sh: 0 }));
+        } else {
+            // two fallen petals turning in the air
+            const R = 280 + 50 + rl() * 40;
+            add('lining-petals' + i, dz, ca * R, sa * R, 110, (P) => {
+                P.petal(0, 0, a + rl() * 3, v % 6, { old: [0, 0.45][pick % 2], s: 1.1 });
+                P.petal(22 * Math.cos(a + 1.5), 22 * Math.sin(a + 1.5), a + 1.5 + rl() * 2, (v + 1) % 6, { old: [0.9, 0][pick % 2], s: 1 });
+            });
+        }
+    }
+    return layers;
+};

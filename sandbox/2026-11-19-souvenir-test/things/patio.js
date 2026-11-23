@@ -1042,7 +1042,8 @@ const Patio = (() => {
         const res = resOf(g, s), k = flip ? -1 : 1, r = rng('pea' + seed), sd = S.seedOf('pea' + seed);
         const F = (p) => [p[0] * k, p[1]];
         const Fp = (pts) => pts.map(F);
-        const box = { x: -400, y: -380, w: 800, h: drop + 60 + 380 };
+        // (round 8: wide enough that the train's far end is not cut by the sheet)
+        const box = { x: -470, y: -380, w: 940, h: drop + 90 + 380 };
         const sp = S.sheet(box, res, (q) => {
             const light = flip ? [-S.LIGHT[0] * -1, S.LIGHT[1], S.LIGHT[2]] : S.LIGHT;
             void light;
@@ -1234,6 +1235,38 @@ const Patio = (() => {
                 }
             }
             q.restore();
+            // the silhouette is feathers too: a row of tips standing out of the body's edge
+            // (breast, belly and back), each the colour of the feathers there
+            {
+                const re = Motion.rng('edge' + seed), cx0 = bb.x + bb.w / 2, cy0 = bb.y + bb.h / 2;
+                for (let i = 0; i < bodyPts.length; i += 1 + Math.floor(re() * 3)) {
+                    const [px, py] = bodyPts[i], [qx, qy] = bodyPts[(i + 1) % bodyPts.length];
+                    if (py < -262 || re() < 0.2) continue; // the head and the throat stay clean; a gap here and there
+                    let nx = qy - py, ny = -(qx - px);
+                    const nl = Math.hypot(nx, ny) || 1;
+                    nx /= nl;
+                    ny /= nl;
+                    if (nx * (px - cx0) + ny * (py - cy0) < 0) {
+                        nx = -nx;
+                        ny = -ny;
+                    }
+                    const reg = py < -136 && px < 34 ? 'back' : px > 28 && py < -168 ? 'neck' : 'breast';
+                    const L = (reg === 'back' ? 8 : reg === 'neck' ? 5 : 6.5) * (0.7 + re() * 0.6), Wd = L * (0.55 + re() * 0.2), sink = 1.5 + re() * 2.5;
+                    const d0 = reg === 'back' ? [-0.95, 0.3] : [0.25, 0.97], dx = d0[0] * 0.55 + nx * 0.45, dy = d0[1] * 0.55 + ny * 0.45;
+                    const a0 = Math.atan2(dy, dx) + (re() - 0.5) * 0.5, [X, Y] = F([px - nx * sink, py - ny * sink]), a = flip ? Math.PI - a0 : a0;
+                    const ca = Math.cos(a), sa = Math.sin(a), cx = X + ca * L * 0.42, cy = Y + sa * L * 0.42;
+                    const col = reg === 'back' ? mixRGB(hex('#2e4620'), hex('#7a7a34'), re()) : reg === 'neck' ? mixRGB(hex('#1e4a8a'), hex('#2a7a8a'), re()) : mixRGB(hex('#14306e'), hex('#24509a'), re());
+                    oval(q, cx, cy, L * 0.5, Wd * 0.5, a, css(col, 0.8 + re() * 0.15));
+                    const p0 = Math.atan2(L2[1], L2[0]) - a, phi = Math.atan2(Math.sin(p0), Math.cos(p0)), lo = Math.max(-1.5, phi - 0.9), hi = Math.min(1.5, phi + 0.9);
+                    if (hi > lo) {
+                        q.lineWidth = 0.7;
+                        q.strokeStyle = reg === 'back' ? 'rgba(220,210,140,0.55)' : 'rgba(150,206,240,0.5)';
+                        q.beginPath();
+                        q.ellipse(cx, cy, L * 0.5, Wd * 0.5, a, lo, hi);
+                        q.stroke();
+                    }
+                }
+            }
             // ---- the wing, folded on the side: barred coverts, chestnut primaries
             const wingPts = S.curve([[-118, -140], [-60, -150], [0, -150], [38, -134], [34, -110], [0, -96], [-60, -92], [-122, -104], [-150, -118]], true, 6);
             const wingF = Fp(wingPts);
@@ -2084,12 +2117,12 @@ const Patio = (() => {
     // ------------------------------------------------------------------ the tinaja and the aspidistra
     // A big earthenware jar (tinaja), its belly incised with bands, an aspidistra in it: broad
     // dark leaves on long stalks, one split, one yellow; a jar of blue and white with a fern.
-    function tinaja(g, { x = 0, y = 400, s = 1, seed = 't', plant = 'aspidistra', color = 'clay' } = {}) {
+    function tinaja(g, { x = 0, y = 400, s = 1, seed = 't', plant = 'aspidistra', color = 'clay', ground = true } = {}) {
         const r = rng('tin' + seed), res = resOf(g, s);
         g.save();
         g.translate(x, y);
         g.scale(s, s);
-        softly(g, 10, (q) => oval(q, 50, -4, 150, 20, 0, 'rgba(40,36,70,0.45)'));
+        if (ground) softly(g, 10, (q) => oval(q, 50, -4, 150, 20, 0, 'rgba(40,36,70,0.45)'));
         const prof = (t) => 60 + 70 * Math.sin(Math.PI * Math.pow(t, 0.8)) - 10 * t; // half-width along its height
         const Hh = 300, pts = [];
         for (let k = 0; k <= 30; k++) pts.push([prof(k / 30), -k * (Hh / 30)]);
@@ -2546,13 +2579,13 @@ const Patio = (() => {
     // hook, the rope over its wheel, a zinc bucket hanging by its handle at the end of one
     // fall, the other fall ending in a frayed knot. (x, y) the wheel's axle; drop: how far
     // under it the bucket's handle hangs.
-    function pulley(g, { x = 0, y = 0, s = 1, drop = 220, seed = 'pu' } = {}) {
+    function pulley(g, { x = 0, y = 0, s = 1, drop = 220, seed = 'pu', ground = true } = {}) {
         const r = rng('pulley' + seed), res = resOf(g, s);
         g.save();
         g.translate(x, y);
         g.scale(s, s);
         const iron = (pts, w = 5) => {
-            S.ink(g, shift(pts, 5, 6), { w, color: 'rgba(40,30,60,0.3)', taper: [0, 0] });
+            if (ground) S.ink(g, shift(pts, 5, 6), { w, color: 'rgba(40,30,60,0.3)', taper: [0, 0] });
             S.ink(g, pts, { w, color: '#2a2226', taper: [0, 0] });
             S.ink(g, shift(pts, -1, -1), { w: w * 0.3, color: 'rgba(190,170,160,0.7)', taper: [0.2, 0.2] });
         };
@@ -2570,7 +2603,7 @@ const Patio = (() => {
         for (let k = 0; k < 6; k++) disc(g, (r() - 0.5) * 56, (r() - 0.5) * 56, 0.8 + r() * 1.4, 'rgba(160,80,40,0.8)');
         // the rope: twisted, over the wheel and down both sides
         const rope = (pts) => {
-            S.ink(g, shift(pts, 4, 5), { w: 5, color: 'rgba(40,30,60,0.25)', taper: [0, 0] });
+            if (ground) S.ink(g, shift(pts, 4, 5), { w: 5, color: 'rgba(40,30,60,0.25)', taper: [0, 0] });
             S.ink(g, pts, { w: 4.4, color: '#a68e64', taper: [0, 0] });
             for (let i = 1; i < pts.length; i++) {
                 const [a0, b0] = pts[i - 1], [a1, b1] = pts[i], L = Math.hypot(a1 - a0, b1 - b0);
@@ -3107,22 +3140,28 @@ const Patio = (() => {
     // hangs as two rings of wool, an eight, tied at the twist.
     function madeja(g, { x = 0, y = 0, s = 1, seed = 'm', color = '#a83a3c', hung = true } = {}) {
         const res = resOf(g, s);
-        const sp = memo(`madeja${seed}${color}@${res}`, () => S.sheet({ x: -50, y: -14, w: 100, h: 196 }, res, (q) => {
+        // (round 8) the outline was one smooth ellipse per ring: now every strand runs its own
+        // course (a little wider or narrower, slack at the bottom of its loop, wandering), some
+        // stand proud of the band and a few hang loose below it, so the edge is strands.
+        const sp = memo(`madeja${seed}${color}@${res}`, () => S.sheet({ x: -68, y: -22, w: 136, h: 252 }, res, (q) => {
             const r = rng('madeja' + seed), base = hex(color);
             // the two rings: centre, half-width, half-height, the band's thickness
             const rings = [[0, 36, 17, 38, 15], [1.5, 124, 24, 50, 19]];
             const strandsOf = (ring, i0) => {
                 const [cx, cy, rx, ry, bw] = ring, out = [];
-                for (let i = 0; i < 70; i++) {
+                for (let i = 0; i < 104; i++) {
                     const ph = r() * TAU, rate = 2.2 + r() * 0.8, pts = [], lit = [];
+                    const sc = 1 + (r() - 0.5) * 0.14, slack = r() < 0.08 ? 6 + r() * 12 : r() * r() * 5, proud = r() < 0.14 ? 1.3 + r() * 0.5 : 1, wob = 0.6 + r() * 2.2, sdw = r() * 50;
                     for (let k = 0; k <= 90; k++) {
                         const a = -Math.PI / 2 + (k / 90) * TAU; // from the top, round
                         // the strands spiral round the band: the hank's own twist
                         const u = Math.sin(ph + (k / 90) * TAU * rate);
                         const pinch = 1 - 0.55 * Math.pow(Math.max(0, Math.sin(a)), 8) * (i0 ? 0 : 1) - 0.5 * Math.pow(Math.max(0, -Math.sin(a)), 8) * (i0 ? 1 : 0);
-                        const ex = rx * pinch + u * bw * 0.5, ey = ry + u * bw * 0.5 * 0.6;
-                        const px = cx + Math.cos(a) * ex, py = cy + Math.sin(a) * ey;
-                        pts.push([px + Math.sin(k * 0.9 + i) * 0.35 + S.noise2(k * 0.15, i, 3) * 1.4, py + S.noise2(k * 0.15, i, 4) * 1.2]);
+                        // slack: the strand's loop hangs lower where it is not pinched
+                        const sag = slack * Math.pow(Math.max(0, Math.sin(a)), 2) * (i0 ? 1 : 0.4);
+                        const ex = rx * pinch * sc + u * bw * 0.5 * proud, ey = ry * sc + u * bw * 0.5 * 0.6 * proud;
+                        const px = cx + Math.cos(a) * ex, py = cy + Math.sin(a) * ey + sag;
+                        pts.push([px + Math.sin(k * 0.9 + i) * 0.35 + S.noise2(k * 0.15, i, 3) * 1.4 + wob * S.noise2(k * 0.05, sdw, 7), py + S.noise2(k * 0.15, i, 4) * 1.2 + wob * S.noise2(k * 0.05, sdw, 8)]);
                         // the band is round in section: lit where it faces the top left
                         const nx = Math.cos(a) * u, ny = Math.sin(a) * u, front = Math.sqrt(Math.max(0, 1 - u * u));
                         lit.push(S.clamp(0.42 + 0.5 * (nx * L2[0] + ny * L2[1]) + 0.35 * front * 0.8 - 0.2));
@@ -3177,11 +3216,17 @@ const Patio = (() => {
                 lineP(q, [[-7, ty - 3 + k * 1.6], [0, ty - 2.2 + k * 1.6], [7, ty - 3 + k * 1.6]], 1.1, k % 2 ? '#efe2c0' : '#c4ae86');
             }
             lineP(q, [[5, ty + 3], [9, ty + 12], [7, ty + 18]], 0.8, '#d9c9a0');
-            // flyaway fibres
-            for (let k = 0; k < 420; k++) {
+            // flyaway fibres: short crimped hairs off the outer strands, lit or in shade
+            for (let k = 0; k < 520; k++) {
                 const ring = rings[k % 2], a = r() * TAU, px = ring[0] + Math.cos(a) * (ring[2] + ring[4] * 0.5), py = ring[1] + Math.sin(a) * (ring[3] + ring[4] * 0.3);
-                const b = a + (r() - 0.5) * 1.5, l = 2 + r() * 5;
-                lineP(q, [[px, py], [px + Math.cos(b) * l, py + Math.sin(b) * l * 0.6]], 0.35, css(mixRGB(base, [255, 200, 180], 0.3), 0.6));
+                const b = a + (r() - 0.5) * 1.5, l = 2 + r() * 7, lt = Math.cos(a) * L2[0] + Math.sin(a) * L2[1];
+                lineP(q, [[px, py], [px + Math.cos(b) * l * 0.5 + (r() - 0.5), py + Math.sin(b) * l * 0.3], [px + Math.cos(b) * l, py + Math.sin(b) * l * 0.6]], 0.45, css(mixRGB(base, lt > 0 ? [255, 206, 186] : [60, 16, 34], 0.35), 0.65));
+            }
+            // the two cut ends of the hank's tie, and a strand come loose at the bottom
+            for (let k = 0; k < 3; k++) {
+                const x0 = (r() - 0.5) * 30, pts = S.curve([[x0, 170], [x0 + (r() - 0.5) * 16, 186 + r() * 8], [x0 + (r() - 0.5) * 30, 196 + r() * 14]], false, 8);
+                lineP(q, pts, 2.2, 'rgba(40,8,20,0.5)');
+                lineP(q, pts, 1.3, css(mixRGB(base, [255, 196, 170], 0.15 + k * 0.1), 0.95));
             }
         }));
         castSprite(g, sp, { x, y, s, dx: 14 * s, dy: 16 * s, blur: 5, alpha: 0.32, color: SHADOW });
@@ -3775,5 +3820,408 @@ const Patio = (() => {
         return sp;
     }
 
-    return { pulley, flowerMass, dawnGlow, wallLife, frieze, plate, sunPatch, tray, key, skyline, dawn, tilePanel, stitchRose, stitchLeaf, well, chair, orangeTree, orange, cage, jasmine, lantern, tinaja, bench, fountain, can, peacock, ocellus, moon, column, pot, potBody, geranium, gitanilla, cinta, gleaf, ileaf, umbel, floret, stem, ceiling, wall, flake, crack, nail, archGeom, arch, voussoir, floor, sky, speck, eave, nest, madeja, dado, castSprite, place, softly, blob, memo, resOf, rng, P, SHADOW, L2, SD, throwOf, fbm, disc, oval, fillP, lineP, path, shift, mixRGB, css, canvas };
+    // ================================================================== round 8 · loose pieces
+    // The patio as loose floating pieces (Tableau.patio.loose): what lay as a heap on a sheet
+    // comes apart into single flowers, leaves, feathers, tiles and shards, each its own layer.
+    //
+    // A FALLEN TRAIN FEATHER (`trainFeather`) · a covert of the peacock's train.
+    //   1 the quill bare and horn-coloured, a dark pith line down it; 2 the downy afterfeather
+    //   at its foot, grey and loose; 3 the barbs are not hooked into a vane: each stands apart,
+    //   so what is behind shows between them; 4 they curve towards the tip; 5 gold-green where
+    //   they face the light, dark bronze where they turn from it; 6 the eye's rings (violet-blue
+    //   heart with its notch, turquoise, bronze, gold-green); 7 a fringe of longer barbs round
+    //   the eye; 8 a barb or two broken off; 9 the shaft bowed; 10 a gap where the barbs parted.
+    //   eye: false is a «sword» from the train's edge: no eye, its barbs long on one side.
+    // ONE AZULEJO (`tile`) · a cuerda seca tile fallen out of the dado.
+    //   1 the star's quarters at its corners (it makes a whole star only with its neighbours);
+    //   2 the manganese line round every field; 3 the glaze pooled darker along that line;
+    //   4 pinholes in the white; 5 crazing; 6 a gloss at its own angle; 7 a chipped corner with
+    //   the red body showing; 8 mortar still on its back edge; 9 the biscuit's thickness on the
+    //   side away from the light; 10 its square made by hand: corners eased, sides not true.
+    // A SHERD (`sherd`) · a piece of a blue-painted pot, broken.
+    //   1 the wall curved (lit on one side, turning into shade); 2 the rolled rim on some;
+    //   3 the blue paint flaked off to the clay in islands; 4 the break's red section on the
+    //   shadow side; 5 its edges straight-ish, as terracotta breaks; 6 the paint's brushmarks;
+    //   7 lime splashed on it; 8 a dark ring of old water at the rim; 9 a chip in the break;
+    //   10 a few grains of soil caught on it.
+    // A GERANIUM STALK (`sprig`) · an umbel broken off with its leaves.
+    //   1 the stalk jointed, a stipule at the node; 2 the umbel with florets open, in bud and
+    //   spent; 3 one to three leaves on their petioles, each its own zone and crenate margin;
+    //   4 the broken end of the stalk pale and green inside; 5 a bud cluster on some.
+
+    // The dawn on one loose piece's paint, in the stratum's own coordinates whatever transform
+    // it was painted under (turned or not), so the pieces share one light: warm and lifted
+    // towards the top left of the stratum, cool rose-blue towards its bottom right.
+    function dawnOn(g, { sun = [1.1, 1.05, 0.98], shade = [0.84, 0.85, 0.98], seed = 'glow', spread = 2600 } = {}) {
+        const c = g.canvas, W = c.width, H = c.height, inv = g.getTransform().inverse(), sd = S.seedOf(seed);
+        const im = g.getImageData(0, 0, W, H), px = im.data;
+        for (let j = 0, i = 0; j < H; j++) {
+            for (let k = 0; k < W; k++, i += 4) {
+                if (!px[i + 3]) continue;
+                const x = inv.a * (k + 0.5) + inv.c * (j + 0.5) + inv.e, y = inv.b * (k + 0.5) + inv.d * (j + 0.5) + inv.f;
+                const t = S.clamp(0.5 + (x * 0.55 + y * 0.75) / spread + 0.16 * S.noise2(x / 300, y / 300, sd));
+                px[i] = Math.min(255, px[i] * (sun[0] + (shade[0] - sun[0]) * t));
+                px[i + 1] = Math.min(255, px[i + 1] * (sun[1] + (shade[1] - sun[1]) * t));
+                px[i + 2] = Math.min(255, px[i + 2] * (sun[2] + (shade[2] - sun[2]) * t));
+            }
+        }
+        g.putImageData(im, 0, 0);
+    }
+
+    function trainFeather(g, { x = 0, y = 0, len = 180, rot = 0, bend = 0.12, seed = 'tf', eye = true } = {}) {
+        const r = rng('tfea' + seed), ca = Math.cos(rot), sa = Math.sin(rot);
+        const Wp = (u, v) => [x + ca * u - sa * v, y + sa * u + ca * v];
+        const sh = (t) => [(t - 0.5) * len, bend * len * 2 * t * (1 - t)];
+        const gap = r() < 0.6 ? [0.32 + r() * 0.3, r() < 0.5 ? -1 : 1] : null, tEnd = eye ? 0.95 : 1;
+        g.save();
+        g.lineCap = 'round';
+        for (let t = 0.03; t < tEnd; t += 1.15 / len) {
+            const [u, v] = sh(t), [u2, v2] = sh(t + 0.01), ta = Math.atan2(v2 - v, u2 - u);
+            for (const side of [-1, 1]) {
+                if (gap && side === gap[1] && Math.abs(t - gap[0]) < 0.03) continue;
+                if (r() < 0.05) continue; // broken off
+                const down = t < 0.2;
+                const nearEye = eye ? S.smooth(0.58, 0.82, t) : 0;
+                let bl = len * (down ? 0.06 + r() * 0.07 : 0.05 + 0.06 * nearEye + r() * 0.03);
+                if (!eye) bl *= (side > 0 ? 1.7 : 0.8) * (0.7 + t * 0.6);
+                const ba = ta + side * (down ? 0.9 + r() * 0.7 : 0.5 + r() * 0.3);
+                const mx = u + Math.cos(ba) * bl * 0.55, my = v + Math.sin(ba) * bl * 0.55;
+                const ea = ba - side * (down ? 0.1 : 0.4), ex = mx + Math.cos(ea) * bl * 0.5, ey = my + Math.sin(ea) * bl * 0.5 + (down ? bl * 0.2 : 0);
+                const wa = ba + rot, lit = S.clamp(0.45 + 0.4 * (Math.cos(wa) * L2[0] + Math.sin(wa) * L2[1]) + (r() - 0.5) * 0.3);
+                const c = down ? mixRGB(hex('#5e5a50'), hex('#cfc6b0'), lit) : lit > 0.5 ? mixRGB(hex('#6a7a2e'), hex('#dccb70'), (lit - 0.5) * 2) : mixRGB(hex('#1c2a14'), hex('#6a7a2e'), lit * 2);
+                g.lineWidth = down ? 0.55 : 0.8;
+                g.strokeStyle = css(c, down ? 0.65 : 0.9);
+                const p0 = Wp(u, v), p1 = Wp(mx, my), p2 = Wp(ex, ey);
+                g.beginPath();
+                g.moveTo(p0[0], p0[1]);
+                g.quadraticCurveTo(p1[0], p1[1], p2[0], p2[1]);
+                g.stroke();
+                // barbules: a glint on the lit ones
+                if (!down && lit > 0.7 && r() < 0.4) lineP(g, [p1, p2], 0.4, 'rgba(255,246,200,0.6)');
+            }
+        }
+        // the shaft: horn, a pith line, lit on the side towards the light
+        const shaft = [];
+        for (let i = 0; i <= 24; i++) shaft.push(Wp(...sh((i / 24) * (eye ? 0.9 : 0.99))));
+        const w = Math.max(1.3, len * 0.012);
+        S.ink(g, shift(shaft, SD[0] * 0.8, SD[1] * 0.8), { w: w + 0.6, color: 'rgba(40,36,30,0.45)', taper: [0, 1] });
+        S.ink(g, shaft, { w, color: '#d8ccaa', taper: [0, 1] });
+        S.ink(g, shift(shaft, L2[0] * w * 0.25, L2[1] * w * 0.25), { w: w * 0.35, color: 'rgba(255,252,236,0.8)', taper: [0.1, 1] });
+        S.ink(g, shaft.slice(0, 6), { w: w * 0.3, color: 'rgba(120,100,70,0.6)', taper: [0, 0] });
+        // the eye
+        if (eye) {
+            const [u, v] = sh(0.9), [u0, v0] = sh(0.86);
+            ocellus(g, Wp(u + len * 0.02, v), rot + Math.atan2(v - v0, u - u0), len * 0.075, r);
+        }
+        g.restore();
+    }
+
+    function tile(g, { x = 0, y = 0, t = 110, rot = 0, seed = 'tl', kind = 'star' } = {}) {
+        const r = rng('tile' + seed), ca = Math.cos(rot), sa = Math.sin(rot), hw = t / 2, th = t * 0.08;
+        const Wp = ([u, v]) => [x + ca * u - sa * v, y + sa * u + ca * v];
+        const BLUE = '#3d5c94', GREEN = '#3c7660', HONEY = '#c99a42', MANG = '#3e2e36', WHITE = '#efe6d3';
+        // a square made by hand: corners eased, sides not quite true, one corner chipped
+        const cs = [[-hw, -hw], [hw, -hw], [hw, hw], [-hw, hw]].map(([u, v]) => [u + (r() - 0.5) * t * 0.025, v + (r() - 0.5) * t * 0.025]);
+        const chip = Math.floor(r() * 4), out = [];
+        for (let i = 0; i < 4; i++) {
+            const p = cs[i], a = cs[(i + 3) % 4], b = cs[(i + 1) % 4], e = t * (i === chip ? 0.1 : 0.025);
+            const to = (q, d) => {
+                const L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+                return [p[0] + ((q[0] - p[0]) / L) * d, p[1] + ((q[1] - p[1]) / L) * d];
+            };
+            out.push(to(a, e));
+            if (i === chip) {
+                // the chip: a ragged bite
+                const m = [(to(a, e)[0] + to(b, e)[0]) / 2, (to(a, e)[1] + to(b, e)[1]) / 2];
+                out.push([m[0] + (p[0] - m[0]) * 0.2 + (r() - 0.5) * 3, m[1] + (p[1] - m[1]) * 0.2 + (r() - 0.5) * 3]);
+            } else out.push([p[0] - Math.sign(p[0]) * e * 0.25, p[1] - Math.sign(p[1]) * e * 0.25]);
+            out.push(to(b, e));
+            // the side: not quite straight
+            const q = to(b, Math.hypot(b[0] - p[0], b[1] - p[1]) / 2);
+            out.push([q[0] + (r() - 0.5) * t * 0.012, q[1] + (r() - 0.5) * t * 0.012]);
+        }
+        const face = out.map(Wp);
+        // the biscuit's thickness, on the side away from the light, and mortar on it
+        for (let i = 6; i >= 1; i--) fillP(g, shift(face, SD[0] * th * (i / 6), SD[1] * th * (i / 6)), S.mix('#6e3424', '#b8684a', 1 - i / 6));
+        for (let i = 0; i < 7; i++) {
+            const k = Math.floor(r() * face.length), p = face[k];
+            oval(g, p[0] + SD[0] * th * 0.6, p[1] + SD[1] * th * 0.6, 2 + r() * 5, 1.5 + r() * 2.5, r() * 3, r() < 0.5 ? 'rgba(196,184,164,0.9)' : 'rgba(160,148,130,0.85)');
+        }
+        g.save();
+        path(g, face);
+        g.clip();
+        g.save();
+        g.translate(x, y);
+        g.rotate(rot);
+        g.fillStyle = S.mix(WHITE, '#e4d8bc', r());
+        g.fillRect(-hw * 1.2, -hw * 1.2, t * 1.2, t * 1.2);
+        const field = (pts, fill) => {
+            fillP(g, pts, fill);
+            lineP(g, [...pts, pts[0]], t * 0.05, 'rgba(30,20,40,0.16)'); // the glaze pooled along the line
+            lineP(g, [...pts, pts[0]], Math.max(1, t * 0.014), MANG);
+        };
+        if (kind === 'border') {
+            field([[-hw * 1.1, hw * 0.62], [hw * 1.1, hw * 0.62], [hw * 1.1, hw * 1.1], [-hw * 1.1, hw * 1.1]], BLUE);
+            field([[-hw * 1.1, -hw * 1.1], [hw * 1.1, -hw * 1.1], [hw * 1.1, -hw * 0.72], [-hw * 1.1, -hw * 0.72]], GREEN);
+            for (const cx of [-hw * 0.5, hw * 0.5]) {
+                g.lineWidth = t * 0.09;
+                g.strokeStyle = MANG;
+                g.beginPath();
+                g.arc(cx, 0, t * 0.22, 0, TAU);
+                g.stroke();
+                g.lineWidth = t * 0.065;
+                g.strokeStyle = HONEY;
+                g.stroke();
+                field(S.ellipse(cx, 0, t * 0.08, t * 0.08, 12), GREEN);
+            }
+        } else if (kind === 'swap') {
+            field([[-hw * 1.1, -hw * 1.1], [hw * 1.1, -hw * 1.1], [hw * 1.1, hw * 1.1], [-hw * 1.1, hw * 1.1]], '#d9c78c');
+            const ros = [];
+            for (let m = 0; m < 16; m++) ros.push([Math.cos((m / 16) * TAU) * t * (m % 2 ? 0.2 : 0.34), Math.sin((m / 16) * TAU) * t * (m % 2 ? 0.2 : 0.34)]);
+            field(ros, '#6d8fb4');
+            field(S.ellipse(0, 0, t * 0.1, t * 0.1, 14), WHITE);
+        } else {
+            for (const [cx, cy] of [[-hw, -hw], [hw, -hw], [-hw, hw], [hw, hw]]) {
+                const star = [];
+                for (let m = 0; m < 16; m++) {
+                    const a = (m / 16) * TAU, rr = m % 2 ? t * 0.3 : t * 0.5;
+                    star.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]);
+                }
+                field(star, BLUE);
+                field(S.ellipse(cx, cy, t * 0.16, t * 0.16, 14), HONEY);
+            }
+            field([[0, -t * 0.3], [t * 0.12, 0], [0, t * 0.3], [-t * 0.12, 0]], GREEN);
+            field([[-t * 0.3, 0], [0, -t * 0.12], [t * 0.3, 0], [0, t * 0.12]], GREEN);
+            field(S.ellipse(0, 0, t * 0.05, t * 0.05, 10), HONEY);
+        }
+        // the honey bled a little into the white; pinholes; crazing
+        for (let i = 0; i < 6; i++) oval(g, (r() - 0.5) * t, (r() - 0.5) * t, 2 + r() * 4, 1 + r() * 2, r() * 3, 'rgba(201,154,66,0.18)');
+        for (let i = 0; i < 26; i++) disc(g, (r() - 0.5) * t, (r() - 0.5) * t, 0.4 + r() * 0.6, 'rgba(70,56,50,0.55)');
+        g.lineWidth = 0.4;
+        g.strokeStyle = 'rgba(80,70,60,0.35)';
+        for (let m = 0; m < 9; m++) {
+            g.beginPath();
+            let px = (r() - 0.5) * t, py = (r() - 0.5) * t;
+            g.moveTo(px, py);
+            for (let n2 = 0; n2 < 5; n2++) g.lineTo((px += (r() - 0.5) * t * 0.18), (py += (r() - 0.5) * t * 0.18));
+            g.stroke();
+        }
+        g.restore();
+        // the glaze's gloss at the tile's own angle, towards the light; a cooler side away
+        const gx = x - L2[0] * t * (0.1 + r() * 0.2), gy = y - L2[1] * t * (0.1 + r() * 0.2);
+        const gl = g.createRadialGradient(gx, gy, 0, gx, gy, t * 0.6);
+        gl.addColorStop(0, `rgba(255,250,244,${(0.3 + r() * 0.25).toFixed(2)})`);
+        gl.addColorStop(1, 'rgba(255,250,244,0)');
+        g.fillStyle = gl;
+        g.fillRect(x - t, y - t, t * 2, t * 2);
+        const sg = g.createLinearGradient(x + L2[0] * t * 0.6, y + L2[1] * t * 0.6, x - L2[0] * t * 0.6, y - L2[1] * t * 0.6);
+        sg.addColorStop(0, 'rgba(60,56,110,0.22)');
+        sg.addColorStop(1, 'rgba(60,56,110,0)');
+        g.fillStyle = sg;
+        g.fillRect(x - t, y - t, t * 2, t * 2);
+        // the chipped corner: the glaze gone, the red body, a pale lip
+        const cp = Wp(cs[chip]), cc = [cp[0] + (x - cp[0]) * 0.13, cp[1] + (y - cp[1]) * 0.13];
+        const bite = blob(cc[0], cc[1], t * 0.09, t * 0.065, seed + 'chip', 14, 0.45, rot + chip);
+        fillP(g, bite, '#b46a4c');
+        lineP(g, [...bite, bite[0]], 0.8, 'rgba(250,240,224,0.7)');
+        for (let i = 0; i < 5; i++) disc(g, cc[0] + (r() - 0.5) * t * 0.1, cc[1] + (r() - 0.5) * t * 0.08, 0.6 + r(), 'rgba(90,40,30,0.6)');
+        g.restore();
+        // the glaze's arris lit where it faces the light
+        for (let i = 0; i < face.length; i++) {
+            const p = face[i], q = face[(i + 1) % face.length], nx = q[1] - p[1], ny = p[0] - q[0], nl = Math.hypot(nx, ny) || 1;
+            const d = -(nx * L2[0] + ny * L2[1]) / nl;
+            if (d > 0.2) lineP(g, [p, q], 1.1, `rgba(255,250,240,${(0.7 * d).toFixed(2)})`);
+        }
+    }
+
+    function sherd(g, { x = 0, y = 0, s = 1, rot = 0, seed = 'sh', color = 'blue', rim = true } = {}) {
+        const r = rng('sherd' + seed), ca = Math.cos(rot), sa = Math.sin(rot);
+        const Wp = ([u, v]) => [x + (ca * u - sa * v) * s, y + (sa * u + ca * v) * s];
+        // the outline: a few straight-ish breaks, the rim (if any) along the top
+        const n = 6 + Math.floor(r() * 3), loc = [];
+        for (let i = 0; i < n; i++) {
+            const a = (i / n) * TAU + (r() - 0.5) * 0.5;
+            loc.push([Math.cos(a) * (34 + r() * 12), Math.sin(a) * (22 + r() * 9)]);
+        }
+        if (rim) for (const p of loc) if (p[1] < -8) p[1] = -24 - Math.abs(p[0]) * 0.04;
+        const jag = [];
+        for (let i = 0; i < n; i++) {
+            const p = loc[i], q = loc[(i + 1) % n];
+            jag.push(p);
+            for (let m = 1; m < 3; m++) jag.push([p[0] + (q[0] - p[0]) * (m / 3) + (r() - 0.5) * 2.5, p[1] + (q[1] - p[1]) * (m / 3) + (r() - 0.5) * 2.5]);
+        }
+        const face = jag.map(Wp), th = 5 * s;
+        // the break's section: red clay, on the shadow side
+        for (let i = 5; i >= 1; i--) fillP(g, shift(face, SD[0] * th * (i / 5), SD[1] * th * (i / 5)), S.mix('#5a2416', '#b4603e', 1 - i / 5));
+        const ramp = POT[color] ?? POT.blue;
+        S.piece(g, face, {
+            fill: { from: Wp([-46, 0]), to: Wp([46, 0]), stops: [[0, ramp[4][1]], [0.35, ramp[5][1]], [0.7, ramp[3][1]], [1, ramp[1][1]]] }, line: 0,
+            shade: { color: ramp[0][1], alpha: 0.45, w: 12 * s }, light: { color: ramp[6][1], alpha: 0.35, w: 6 * s },
+            detail: (q) => {
+                // the paint's brush marks across the curve
+                for (let i = 0; i < 14; i++) {
+                    const v = -22 + r() * 44;
+                    S.dab(q, [Wp([-50, v]), Wp([0, v + (r() - 0.5) * 4]), Wp([50, v + (r() - 0.5) * 6])], { w: (3 + r() * 5) * s, color: r() < 0.5 ? '#ffffff' : '#0a0a20', alpha: 0.08, bristles: 5, seed: S.seedOf(seed) + i });
+                }
+                // the paint flaked to the clay in islands, each with a lit lip
+                for (let i = 0; i < 4 + Math.floor(r() * 4); i++) {
+                    const c = Wp([(r() - 0.5) * 70, (r() - 0.5) * 36]), b = blob(c[0], c[1], (3 + r() * 7) * s, (2 + r() * 4) * s, seed + 'fl' + i, 12, 0.45, r() * 3);
+                    fillP(q, b, S.mix('#c47a56', '#e0a07e', r()));
+                    lineP(q, [...b.slice(0, 7)], 0.7, 'rgba(255,240,220,0.7)');
+                    lineP(q, [...b.slice(6)], 0.7, 'rgba(30,20,40,0.5)');
+                }
+                // lime splashed on it; a water ring; soil grains
+                for (let i = 0; i < 6; i++) disc(q, ...Wp([(r() - 0.5) * 70, (r() - 0.5) * 36]), (0.6 + r() * 1.8) * s, 'rgba(246,242,234,0.8)');
+                if (rim) {
+                    const top = [Wp([-60, -21]), Wp([0, -22]), Wp([60, -21])];
+                    lineP(q, top, 6 * s, 'rgba(255,255,255,0.16)');
+                    lineP(q, shift(top, 0, 5 * s), 1.4 * s, 'rgba(10,10,30,0.35)');
+                    lineP(q, shift(top, 0, 9 * s), 3 * s, 'rgba(60,50,40,0.18)');
+                }
+                for (let i = 0; i < 8; i++) disc(q, ...Wp([(r() - 0.5) * 60, 10 + r() * 14]), (0.5 + r()) * s, 'rgba(70,50,36,0.8)');
+            },
+        });
+        // a light on the arris of the breaks that face the light
+        for (let i = 0; i < face.length; i++) {
+            const p = face[i], q = face[(i + 1) % face.length], nx = q[1] - p[1], ny = p[0] - q[0], nl = Math.hypot(nx, ny) || 1;
+            const d = -(nx * L2[0] + ny * L2[1]) / nl;
+            if (d > 0.25) lineP(g, [p, q], 0.9, `rgba(255,236,220,${(0.6 * d).toFixed(2)})`);
+        }
+    }
+
+    function sprig(g, { x = 0, y = 0, s = 1, rot = 0, seed = 'sp', flower = 'red', leaves = 2 } = {}) {
+        const r = rng('sprig' + seed), ca = Math.cos(rot), sa = Math.sin(rot), res = resOf(g, s * 1.1);
+        g.save();
+        g.translate(x, y);
+        g.scale(s, s);
+        // the stalk from its broken foot (u = −60) to the umbel (u = 50), bowed
+        const Wp = (u, v) => [ca * u - sa * v, sa * u + ca * v];
+        const bow = (r() - 0.5) * 24, stalk = [Wp(-60, 0), Wp(-5, bow), Wp(44, bow * 0.3)];
+        const node = Wp(-30, bow * 0.5);
+        // the leaves on their petioles from the node
+        const ls = [];
+        for (let i = 0; i < leaves; i++) {
+            const side = i % 2 ? 1 : -1, la = rot + Math.PI + side * (0.9 + r() * 0.7), d = 30 + r() * 16;
+            ls.push({ x: node[0] + Math.cos(la) * d, y: node[1] + Math.sin(la) * d, rot: la + Math.PI / 2 + (r() - 0.5) * 0.8, s: 1.05 + r() * 0.35, sy: 0.6 + r() * 0.4, v: Math.floor(r() * 9), kind: r() < 0.15 ? 'old' : r() < 0.25 ? 'young' : 'fresh' });
+        }
+        for (const l of ls) stem(g, [node, [(node[0] + l.x) / 2 + (r() - 0.5) * 6, (node[1] + l.y) / 2 + (r() - 0.5) * 6], [l.x, l.y]], 2.2, 1.6, '#5e7a3a');
+        for (const l of ls) {
+            const sp = gleaf(l.v, l.rot, res, l.kind);
+            castSprite(g, sp, { x: l.x, y: l.y, s: l.s, dx: 4, dy: 6, blur: 4, alpha: 0.35, color: '#14261a' });
+            S.put(g, sp, { x: l.x, y: l.y, rot: l.rot, sx: l.s, sy: l.s * l.sy });
+        }
+        stem(g, stalk, 3.4, 2.4, '#62803e');
+        // the node: a swelling and a papery stipule
+        disc(g, node[0], node[1], 3, '#6e7a40');
+        fillP(g, [[node[0] - 2, node[1]], [node[0] + 6, node[1] - 3], [node[0] + 3, node[1] + 4]], 'rgba(204,184,140,0.9)');
+        // the broken foot: pale, green inside
+        const f = stalk[0];
+        oval(g, f[0], f[1], 2.2, 1.6, rot, '#c8d8a0');
+        disc(g, f[0], f[1], 0.9, '#7a9a4a');
+        // the umbel, or a bud cluster in its sheath
+        const top = stalk[2];
+        if (r() < 0.82) umbel(g, top[0], top[1], 22 + r() * 6, flower, seed + 'u', { spent: r() < 0.3 ? 0.35 : 0.06, buds: 0.14 });
+        else {
+            for (let k = 0; k < 8; k++) {
+                const ba = rot + (r() - 0.5) * 2, bl = 9 + r() * 7;
+                stem(g, [top, [top[0] + Math.cos(ba) * bl * 0.6, top[1] + Math.sin(ba) * bl * 0.6], [top[0] + Math.cos(ba) * bl, top[1] + Math.sin(ba) * bl]], 1, 0.8, '#5e7a3a');
+                oval(g, top[0] + Math.cos(ba) * bl, top[1] + Math.sin(ba) * bl, 2.8, 4.2, ba + 1.57, '#557c36');
+                oval(g, top[0] + Math.cos(ba) * bl * 1.08, top[1] + Math.sin(ba) * bl * 1.08, 1.7, 2.3, ba + 1.57, css(FLOWER[flower][1]));
+            }
+        }
+        g.restore();
+    }
+
+    // Fallen petals of one geranium, curled a little, each with its veins and its lit half.
+    function petals(g, { x = 0, y = 0, s = 1, seed = 'pe', flower = 'red', n = 7 } = {}) {
+        const r = rng('petals' + seed), [dk, md, lt] = FLOWER[flower];
+        for (let i = 0; i < n; i++) {
+            const a = r() * TAU, d = Math.sqrt(r()) * 30 * s, px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * 0.8;
+            const pa = r() * TAU, L = (11 + r() * 4) * s, Wd = (8 + r() * 3) * s, curl = 0.55 + r() * 0.45;
+            const ca2 = Math.cos(pa), sa2 = Math.sin(pa), P2 = (u, v) => [px + ca2 * u - sa2 * v * curl, py + sa2 * u + ca2 * v * curl];
+            const shape = [];
+            for (let k = 0; k <= 20; k++) {
+                const t = (k / 20) * TAU, u = Math.cos(t), v = Math.sin(t);
+                // obovate: narrow at the claw (u = −1), broad and notched at the tip
+                const w = (0.35 + 0.65 * ((u + 1) / 2)) * (1 - 0.12 * Math.exp(-((t - 0) ** 2) * 20));
+                shape.push(P2(u * L * 0.5, v * Wd * 0.5 * w));
+            }
+            const lit = S.clamp(0.5 + 0.4 * (Math.cos(pa + 1.57) * L2[0] + Math.sin(pa + 1.57) * L2[1]) + (r() - 0.5) * 0.3);
+            fillP(g, shape, css(lit < 0.5 ? mixRGB(dk, md, lit * 2) : mixRGB(md, lt, (lit - 0.5) * 1.6)));
+            // the lit half and the curl's shade
+            fillP(g, shape.slice(0, 11), css(mixRGB(md, lt, 0.5), 0.35));
+            fillP(g, shape.slice(10), css(dk, 0.3));
+            for (const dv of [-0.25, 0, 0.25]) lineP(g, [P2(-L * 0.45, 0), P2(L * 0.42, dv * Wd)], 0.5 * s, css(mixRGB(dk, [40, 10, 30], 0.3), 0.45));
+            lineP(g, shape.slice(2, 9), 0.6 * s, css(lt, 0.6));
+        }
+    }
+
+    // A FLAKE OF LIME WASH (`limeFlake`) fallen from the wall: a century of coats in its edge.
+    //   1 the top coat never white: rose where the dawn falls on it, straw where it is thin;
+    //   2 the broad brush's crossing arcs in it; 3 in the broken edge, the coats under it:
+    //   white, ochre, white, blue, white, then the grey render; 4 sand pits and specks; 5 a
+    //   hairline crack; 6 on some, a nail hole with its rust tear; 7 a drip of lime run down;
+    //   8 the edge lit where it faces the light; 9 an older blue ghosting through a thin patch;
+    //   10 its outline broken in short straight breaks, not round.
+    function limeFlake(g, { x = 0, y = 0, s = 1, rot = 0, seed = 'lf' } = {}) {
+        // the outline: a few main breaks, each broken again (short straight runs, a notch, a
+        // spur), so it never reads as a polygon
+        const r = rng('lime' + seed), n = 6 + Math.floor(r() * 3), main = [], loc = [];
+        for (let i = 0; i < n; i++) {
+            const a = (i / n) * TAU + (r() - 0.5) * 0.7, k = 0.55 + r() * 0.6;
+            main.push([Math.cos(a) * 44 * k, Math.sin(a) * 30 * k]);
+        }
+        for (let i = 0; i < n; i++) {
+            const p = main[i], q = main[(i + 1) % n], m = 2 + Math.floor(r() * 3), nx = -(q[1] - p[1]), ny = q[0] - p[0], nl = Math.hypot(nx, ny) || 1;
+            loc.push(p);
+            for (let k = 1; k <= m; k++) {
+                const t = (k + (r() - 0.5) * 0.6) / (m + 1), d = (r() - 0.5) * 9 - (r() < 0.2 ? 7 : 0);
+                loc.push([p[0] + (q[0] - p[0]) * t + (nx / nl) * d, p[1] + (q[1] - p[1]) * t + (ny / nl) * d]);
+            }
+        }
+        const ca = Math.cos(rot), sa = Math.sin(rot), Wp = ([u, v]) => [x + (ca * u - sa * v) * s, y + (sa * u + ca * v) * s];
+        const face = loc.map(Wp), th = 7 * s;
+        const coats = ['#77706a', '#ece6da', '#9fb0cc', '#f2ece2', '#d2b47a', '#f4eee6'];
+        for (let i = coats.length; i >= 1; i--) fillP(g, shift(face, SD[0] * th * (i / coats.length), SD[1] * th * (i / coats.length)), coats[coats.length - i]);
+        g.save();
+        path(g, face);
+        g.clip();
+        const top = S.mix('#f1ddd2', '#efe1bf', r());
+        fillP(g, face, top);
+        // the brush's arcs, crossing, in the paler and the warmer lime
+        for (let i = 0; i < 16; i++) {
+            const cx = x + (r() - 0.5) * 120 * s, cy = y + (r() - 0.5) * 80 * s, rr = (40 + r() * 60) * s, a0 = r() * TAU;
+            const arc = [];
+            for (let k = 0; k <= 8; k++) arc.push([cx + Math.cos(a0 + k * 0.12) * rr, cy + Math.sin(a0 + k * 0.12) * rr]);
+            S.dab(g, arc, { w: (5 + r() * 8) * s, color: ['#ffffff', '#e6c8c0', '#e8d8a8', '#c8d0e4'][i % 4], alpha: 0.18, bristles: 7, seed: S.seedOf(seed) + i, dry: 0.4 });
+        }
+        // a thin patch where the older blue shows
+        if (r() < 0.6) fillP(g, blob(x + (r() - 0.5) * 40 * s, y + (r() - 0.5) * 20 * s, 12 * s, 7 * s, seed + 'g', 14, 0.5, r() * 3), 'rgba(150,170,206,0.35)');
+        // pits and specks of the sand in it
+        for (let i = 0; i < 50 * s; i++) disc(g, x + (r() - 0.5) * 90 * s, y + (r() - 0.5) * 60 * s, (0.3 + r() * 0.7) * s, r() < 0.6 ? 'rgba(90,80,90,0.45)' : 'rgba(255,255,255,0.7)');
+        // a hairline crack
+        {
+            let px = x + (r() - 0.5) * 50 * s, py = y + (r() - 0.5) * 30 * s;
+            const pts = [[px, py]];
+            for (let k = 0; k < 6; k++) pts.push([(px += (r() - 0.3) * 10 * s), (py += (r() - 0.5) * 7 * s)]);
+            lineP(g, pts, 0.7, 'rgba(70,60,70,0.6)');
+            lineP(g, shift(pts, -0.6, -0.6), 0.5, 'rgba(255,255,255,0.5)');
+        }
+        // a nail hole with its rust tear
+        if (r() < 0.35) {
+            const hx = x + (r() - 0.5) * 30 * s, hy = y - 6 * s;
+            S.dab(g, [[hx, hy], [hx + 0.5 * s, hy + 12 * s], [hx - 0.5 * s, hy + 26 * s]], { w: 3 * s, color: '#9a5a30', alpha: 0.45, bristles: 4, seed: S.seedOf(seed) + 40, taper: 0.8 });
+            disc(g, hx, hy, 2 * s, '#3a2a28');
+        }
+        // the shade on the side away from the light, the dawn on the other
+        S.spray(g, face, { color: '#6a6a9a', alpha: 0.28, w: 16 * s });
+        g.restore();
+        for (let i = 0; i < face.length; i++) {
+            const p = face[i], q = face[(i + 1) % face.length], nx = q[1] - p[1], ny = p[0] - q[0], nl = Math.hypot(nx, ny) || 1;
+            const d = -(nx * L2[0] + ny * L2[1]) / nl;
+            if (d > 0.2) lineP(g, [p, q], 1, `rgba(255,248,240,${(0.8 * d).toFixed(2)})`);
+        }
+    }
+
+    return { dawnOn, limeFlake, trainFeather, tile, sherd, sprig, petals, POT, FLOWER, pulley, flowerMass, dawnGlow, wallLife, frieze, plate, sunPatch, tray, key, skyline, dawn, tilePanel, stitchRose, stitchLeaf, well, chair, orangeTree, orange, cage, jasmine, lantern, tinaja, bench, fountain, can, peacock, ocellus, moon, column, pot, potBody, geranium, gitanilla, cinta, gleaf, ileaf, umbel, floret, stem, ceiling, wall, flake, crack, nail, archGeom, arch, voussoir, floor, sky, speck, eave, nest, madeja, dado, castSprite, place, softly, blob, memo, resOf, rng, P, SHADOW, L2, SD, throwOf, fbm, disc, oval, fillP, lineP, path, shift, mixRGB, css, canvas };
 })();

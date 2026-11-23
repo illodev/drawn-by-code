@@ -463,3 +463,290 @@ Tableau.darknight.stratum = (z) => {
         }),
     ];
 };
+
+// Round 8: the dark night as LOOSE pieces, each its own layer floating at its own depth in
+// z ± 280, all round the axis, lit only by the flames among them (every piece is lit in its
+// own paint by every flame of the stratum, in stratum coordinates and depth, so the pieces
+// share one light: what floats near a candle glows warm, the rest is drawing in the dark).
+//   heroes (16): the silver lantern on its pole, the thurible and its smoke, the dove with
+//     its sprig, the secret ladder, the vihuela with its head and bow, Ibn Arabi's disc of
+//     spheres, the tin lantern put out and smoking, lilies in a silver jar, the choir book,
+//     three hanging lamps of amber, red and blue glass («¡oh lámparas de fuego!»), a tall
+//     candle burning in its silver candlestick, a tall candle of tiniebla wax just put out
+//     (its ember, its smoke), a fall of the paso's velvet with galloon and fringe, a rag of
+//     the violet veil, torn.
+//   to find: three moths (one on the book), a dove's feather fallen, the ember.
+//   matter (67): candle stubs lit and put out (ivory, unbleached, tiniebla, white wax) each
+//     on its puddle, scraps of velvet and of the veil, single lilies and buds, carnations,
+//     white feathers, olive sprigs, flakes of gold leaf and eight-pointed stars from the
+//     diagram, balls of rolled wax, tears of incense on charcoal, lengths of broken chain.
+//   Tableau.darknight.loose(z) → one layer per piece
+Tableau.darknight.loose = (z) => {
+    const S = Souvenir, N = Night, TAU = Math.PI * 2;
+    const A = (deg, R) => [Math.cos((deg * Math.PI) / 180) * R, Math.sin((deg * Math.PI) / 180) * R];
+    const AMB = [0.21, 0.18, 0.35];
+    // every flame of the stratum: { id, x, y, dz, p, r, c }
+    const FL = [];
+    const lightsAt = (dz, own) => FL.filter((l) => Math.abs(dz - l.dz) < 640).map((l) => ({ x: l.x, y: l.y, z: l.id === own ? 14 : dz - l.dz, p: l.p, r: l.r, c: l.c }));
+    const out = [];
+    // a piece: its depth dz, its box [x0, y0, x1, y1], draw(P) → optional after(g) painted over the lit paint
+    const piece = (id, dz, b, draw, o = {}) => {
+        const box = { x: b[0], y: b[1], w: b[2] - b[0], h: b[3] - b[1] };
+        out.push({
+            id: 'darknight-l-' + id, z: z + dz, loose: o.loose ?? true, box, brush: { amp: 0.04 }, res: o.res,
+            paint(g) {
+                const T0 = performance.now(); // TIMING
+                const P = N.begin(g);
+                const after = draw(P);
+                P.light(lightsAt(dz, o.own), { amb: o.amb ?? AMB });
+                if (after) after(g);
+                S.tooth(g, box, { amp: 0.035 });
+                console.log('TIMING ' + id + ' ' + Math.round(performance.now() - T0)); // TIMING
+            },
+        });
+    };
+    const around = (x, y, rx, ry = rx, up = ry, down = ry) => [x - rx, y - up, x + rx, y + down];
+
+    // ================================================================ the heroes
+    // the silver lantern of the cruz de guía, burning, on a length of its pole
+    {
+        const [x, y] = A(202, 560), s = 1.65, dz = -40;
+        FL.push({ id: 'farol', x, y: y - 8 * s - 10, dz, p: 2.8, r: 100 });
+        piece('farol', dz, around(x, y, 170, 170, 300, 480), (P) => {
+            const F = N.farol(P, { x, y, s, seed: 'cruz-de-guia-l', pole: 250 });
+            return (g) => N.flame(g, F.fx, F.fy, { seed: 'farol-l', h: 34, w: 10, R: 90, glow: 0.85 });
+        }, { own: 'farol' });
+    }
+    // the thurible, its three chains gathered in a ring, its smoke rolling
+    {
+        const [x, y] = A(-45, 610), s = 1.65, dz = 30;
+        FL.push({ id: 'turibulo', x, y: y + 64 * s, dz, p: 0.9, r: 36, c: [1, 0.35, 0.12] });
+        piece('turibulo', dz, around(x, y, 400, 400, 560, 340), (P) => {
+            N.thurible(P, { x, y, s, seed: 'incensario-l', hang: y - 240, smokeH: 300, drift: -0.7, smokeA: 0.42, smokeW: 1.6 });
+            N.tube(P, S.ellipse(x, y - 252, 12, 14, 22).concat([S.ellipse(x, y - 252, 12, 14, 22)[0]]), 5, (u, a, along, q) => N.silverAt(q, along, a, 77, 0.25), { ends: false });
+            return (g) => N.halo(g, x, y + 64 * s, 52, 0.55);
+        }, { own: 'turibulo' });
+    }
+    // the dove with the olive sprig, whole, its feet tucked
+    {
+        const [x, y] = A(-100, 480), s = 1.85, dz = -170;
+        piece('paloma', dz, around(x, y, 400, 400, 380, 200), (P) => {
+            N.dove(P, { x, y, s, seed: 'paloma-l', fine: true });
+            N.doveFeet(P, { x, y, s });
+        });
+    }
+    // the secret ladder, a stretch of it, across the ring
+    {
+        const [cx, cy] = A(150, 770), dz = -250, d = (240 * Math.PI) / 180, L = 360;
+        const a = [cx - Math.cos(d) * L, cy - Math.sin(d) * L], b = [cx + Math.cos(d) * L, cy + Math.sin(d) * L];
+        piece('escala', dz, [Math.min(a[0], b[0]) - 200, Math.min(a[1], b[1]) - 200, Math.max(a[0], b[0]) + 200, Math.max(a[1], b[1]) + 200], (P) => {
+            N.ladderObj(P, { a, b, span: 150, step: 118, w: 30, seed: 'escala-l' });
+        });
+    }
+    // the vihuela with no one to play it, its head, the faded bow
+    {
+        const [x, y] = A(28, 720), s = 1.0, rot = 2.25, dz = -110;
+        const c = Math.cos(rot), sn = Math.sin(rot), W = (u, v) => [x + (u * c - v * sn) * s, y + (u * sn + v * c) * s];
+        const pts = [W(-125, -160), W(125, -160), W(-125, 165), W(125, 165), W(-70, -540), W(70, -540), W(-75, -230), W(75, -230)];
+        const bb = S.bbox(pts, 40);
+        piece('vihuela', dz, [bb.x, bb.y, bb.x + bb.w, bb.y + bb.h], (P) => {
+            N.vihuelaHead(P, { x, y, s, rot, seed: 'vihuela-l' });
+            N.vihuela(P, { x, y, s, rot, seed: 'vihuela-l', ribbon: false });
+            N.vihuelaTie(P, { x, y, s, rot, seed: 'vihuela-l' });
+        });
+    }
+    // Ibn Arabi's spheres, a disc
+    {
+        const [x, y] = A(245, 450), dz = 220, R = 165;
+        piece('esferas', dz, around(x, y, R + 60, R + 60, R + 90, R + 70), (P) => {
+            N.disc(P, { x, y, R, seed: 'esferas-l' });
+        });
+    }
+    // the tin lantern put out, its last smoke
+    {
+        const [x, y] = A(5, 450), s = 1.9, dz = 170;
+        piece('farol-apagado', dz, around(x, y, 240, 240, 360, 360), (P) => {
+            N.tube(P, [[x, y - 40], [x + 4, y - 14], [x, y + 2]], 3, (u, a, along, q) => {
+                q.r = 0.22;
+                q.g = 0.2;
+                q.b = 0.2;
+                q.sp = 0.5;
+                q.h = Math.sin(along * 0.8) * 0.6;
+            });
+            const L = N.lantern(P, { x, y, s, seed: 'apagado-l' });
+            N.smoke(P, L.vent[0], L.vent[1] - 4, { seed: 'apagado-l', h: 260, alpha: 0.55, drift: -0.2 });
+        });
+    }
+    // lilies in a silver jar («entre las azucenas olvidado»)
+    {
+        const [x, y] = A(95, 470), dz = 70;
+        piece('azucenas', dz, around(x, y, 320, 320, 380, 220), (P) => {
+            N.jar(P, { x, y, h: 170, seed: 'jarra-l' });
+            for (const [k, pts, a] of [[0, [[x - 8, y + 6], [x - 30, y - 120], [x - 90, y - 220]], -2.3], [1, [[x + 8, y + 6], [x + 50, y - 110], [x + 100, y - 190]], -0.8], [2, [[x, y + 6], [x + 6, y - 120], [x + 12, y - 250]], -1.5]]) {
+                N.lily(P, { pts, seed: 'az-l' + k, flowers: [{ u: 0.995, a, s: 1.4, open: k === 2 ? 0.25 : 1 }, { u: 0.8, a: a + (k ? 0.9 : -0.8), s: 1.05, open: 0.1 }] });
+            }
+        });
+    }
+    // the choir book open at the Lamentations, a moth on it
+    {
+        const [x, y] = A(66, 880), dz = 250;
+        piece('cantoral', dz, around(x, y, 320, 260), (P) => {
+            N.book(P, { x, y, w: 460, h: 310, seed: 'cantoral-l' });
+            N.moth(P, { x: x + 90, y: y - 50, s: 1.2, rot: 2.4, open: 0.35, seed: 'lm1', pale: true });
+        }, { loose: { turn: 0.35 } });
+    }
+    // three hanging lamps of coloured glass on their chains
+    for (const [k, deg, R, dz, s, glass] of [[0, -66, 330, -215, 1.7, [0.85, 0.5, 0.18]], [1, 222, 860, -130, 1.9, [0.7, 0.2, 0.16]], [2, 290, 420, 260, 1.6, [0.3, 0.42, 0.7]]]) {
+        const [x, y] = A(deg, R), id = 'lampara-' + k;
+        FL.push({ id, x, y: y - 6 * s - 20, dz, p: 2.4, r: 85 });
+        piece(id, dz, around(x, y, 140, 140, 270, 130), (P) => {
+            const F = N.lamp(P, { x, y, s, top: y - 200, glass, seed: 'lampara-l' + k });
+            N.tube(P, S.ellipse(x, y - 208, 8, 9, 18).concat([S.ellipse(x, y - 208, 8, 9, 18)[0]]), 3.6, (u, a, along, q) => {
+                q.r = 0.7;
+                q.g = 0.5;
+                q.b = 0.22;
+                q.sp = 0.9;
+                q.h = 0.5 * Math.sin(along * 1.5);
+            }, { ends: false });
+            if (k === 0) N.moth(P, { x: x + 34, y: y - 60, s: 0.9, rot: -0.8, open: 1, seed: 'lm2' });
+            return (g) => N.flame(g, F.fx, F.fy, { seed: 'l8' + k, h: 30 * s * 0.8, w: 9 * s * 0.8, R: 70, glow: 0.75 });
+        }, { own: id });
+    }
+    // a tall candle burning in its chased silver candlestick
+    {
+        const [x, y] = A(115, 880), dz = -200, r = 24, len = 300, y0 = y + 40;
+        FL.push({ id: 'cirio', x, y: y0 - len - 34, dz, p: 2.8, r: 120 });
+        piece('cirio', dz, [x - 200, y0 - len - 230, x + 200, y0 + 200], (P) => {
+            N.candlestick(P, { x, y: y0, rc: r, h: 170, seed: 'cs-l' });
+            const f = N.candle(P, { x, y: y0 + 2, len, r, seed: 'cirio-l', lit: true, rich: true, bend: 0, runs: 9, wax: [0.88, 0.83, 0.7] });
+            return (g) => N.flame(g, f.x, f.y, { seed: 'cirio-l', h: 72, w: 19, R: 150, glow: 0.9 });
+        }, { own: 'cirio' });
+    }
+    // a tall candle of tiniebla wax just put out: its ember, its smoke
+    {
+        const [x, y] = A(272, 870), dz = 140, r = 22, len = 330, y0 = y + 60;
+        piece('cirio-apagado', dz, [x - 220, y0 - len - 400, x + 220, y0 + 200], (P) => {
+            N.candlestick(P, { x, y: y0, rc: r, h: 160, seed: 'cs-l2' });
+            const w = N.candle(P, { x, y: y0 + 2, len, r, seed: 'tiniebla-l', lit: false, rich: true, bend: 0, runs: 7, smokeH: 340, smokeA: 0.6, drift: 0.2, wax: [0.46, 0.27, 0.16] });
+            return (g) => N.ember(g, w.x, w.y);
+        });
+    }
+    // a fall of the paso's velvet, its galloon and fringe
+    {
+        const [x, y] = A(178, 960), dz = 150;
+        const o = { x, y, w: 720, h: 620, rot: 1.35, kind: 'velvet', seed: 'palio-l', gather: 0.72, sway: 0.2, wax: 1 };
+        piece('terciopelo', dz, N.cloth.box(o), (P) => {
+            N.cloth(P, o);
+        });
+    }
+    // a rag of the violet Lenten veil, torn
+    {
+        const [x, y] = A(330, 930), dz = -260;
+        const o = { x, y, w: 660, h: 560, rot: -0.7, kind: 'veil', seed: 'velo-l', gather: 0.62, sway: -0.22 };
+        piece('velo', dz, N.cloth.box(o), (P) => {
+            N.cloth(P, o);
+        });
+    }
+    // to find: a moth alone, a dove's feather fallen
+    {
+        const [x, y] = A(-160, 330), dz = 40;
+        piece('polilla', dz, around(x, y, 60), (P) => N.moth(P, { x, y, s: 1.4, rot: 0.6, open: 1, seed: 'lm3' }));
+        const [fx, fy] = A(70, 320);
+        piece('pluma-paloma', -60, around(fx, fy, 90), (P) => {
+            N.plume(P, { x: fx - 50, y: fy + 10, dir: -0.3, len: 105, seed: 'pluma-paloma' });
+        });
+    }
+
+    // ================================================================ the matter
+    const r = Motion.rng('darknight-loose-matter');
+    // candles first: some float just in front of each large hero, so a flame lights it
+    const WAX = [[0.88, 0.83, 0.7], [0.82, 0.68, 0.4], [0.46, 0.27, 0.16], [0.92, 0.9, 0.84]];
+    const stub = (id, x, y, dz, o = {}) => {
+        const len = o.len ?? 60 + r() * 170, rad = 9 + r() * 8, lit = o.lit ?? r() < 0.78, wax = WAX[Math.floor(r() * 4)], fallen = !lit && r() < 0.4;
+        const base = y + len / 2, runs = 3 + Math.floor(r() * 4), smokeH = 140 + r() * 120, emb = r() < 0.3, sd = 's' + id;
+        if (lit) FL.push({ id, x: x - 1.6, y: base - len - 26, dz, p: 1.9, r: 105 });
+        piece(id, dz, [x - 90, base - len - (lit ? 120 : 280), x + 90, base + 40], (P) => {
+            N.pool(P, { x, y: base, R: rad * 2.3, seed: sd, col: wax.map((v) => v * 0.97) });
+            const f = N.candle(P, { x, y: base, len, r: rad, seed: sd, lit, rich: true, runs, wax, smoke: !fallen, smokeH, smokeA: 0.45 });
+            return lit ? (g) => N.flame(g, f.x, f.y, { seed: sd, h: 34 + rad, w: 9 + rad * 0.3, R: 50, glow: 0.6 }) : f.ember || emb ? (g) => N.ember(g, f.x, f.y) : null;
+        }, { own: id, loose: fallen ? { turn: (r() < 0.5 ? -1 : 1) * (1.1 + r() * 0.5) } : true });
+    };
+    for (const [k, deg, R, dz] of [[0, 170, 820, 90], [1, 186, 1000, 70], [2, 326, 800, -280], [3, 340, 960, -280], [4, 140, 640, -280], [5, 18, 640, -190], [6, 36, 820, -170], [7, 238, 520, 150], [8, 74, 800, 190], [9, 100, 380, 20], [10, 200, 470, -80], [11, 290, 860, 90]]) {
+        const [x, y] = A(deg, R);
+        stub('cerca-' + k, x, y, Math.max(-275, dz), { lit: true, len: 90 + r() * 120 });
+    }
+    const KINDS = [];
+    const add = (k, n) => {
+        for (let i = 0; i < n; i++) KINDS.push(k);
+    };
+    add('stub', 7);
+    add('velvet', 16);
+    add('veil', 14);
+    add('lily', 9);
+    add('carnation', 6);
+    add('feather', 5);
+    add('olive', 4);
+    add('flake', 2);
+    add('star', 2);
+    add('ball', 2);
+    add('incense', 1);
+    // shuffled, so neighbours differ
+    for (let i = KINDS.length - 1; i > 0; i--) {
+        const j = Math.floor(r() * (i + 1));
+        [KINDS[i], KINDS[j]] = [KINDS[j], KINDS[i]];
+    }
+    KINDS.forEach((kind, i) => {
+        // round the axis, denser inside; depths all through the slab
+        const ang = ((i * 137.5 + r() * 40) % 360), R = 275 + 1000 * Math.pow(r(), 2.6), [x, y] = A(ang, R), dz = -270 + ((i * 0.618 + r() * 0.2) % 1) * 540;
+        const id = kind + '-' + i, sd = 'm' + i;
+        if (kind === 'stub') {
+            stub(id, x, y, dz);
+        } else if (kind === 'velvet' || kind === 'veil') {
+            const w = 170 + r() * 140, h = 150 + r() * 130, rot = r() * TAU, gather = 0.45 + r() * 0.35, gal = r() < 0.55, fr = r() < 0.6, sway = (r() - 0.5) * 0.5;
+            const o = { x, y, w, h, rot, kind, seed: sd, gather, sway, galloon: gal ? undefined : false, fringe: kind === 'velvet' ? fr : false };
+            piece(id, dz, N.cloth.box(o), (P) => {
+                N.cloth(P, o);
+            });
+        } else if (kind === 'lily') {
+            const a = -Math.PI / 2 + (r() - 0.5) * 1.4, L = 100 + r() * 90, bend = (r() - 0.5) * 40, open = r() < 0.7 ? 1 : 0.15, fa = a + (r() - 0.5) * 0.6, fs = 0.9 + r() * 0.4;
+            const pts = [[x - Math.cos(a) * L * 0.5, y - Math.sin(a) * L * 0.5], [x + bend * 0.5, y], [x + Math.cos(a) * L * 0.5, y + Math.sin(a) * L * 0.5]];
+            piece(id, dz, around(x, y, L * 0.7 + 180), (P) => {
+                N.lily(P, { pts, seed: sd, flowers: [{ u: 0.995, a: fa, s: fs, open }] });
+            });
+        } else if (kind === 'carnation') {
+            const max = 4 + Math.floor(r() * 4), cr = 17 + r() * 5;
+            piece(id, dz, around(x, y, 140), (P) => {
+                N.carnations(P, { box: { x: x - 50, y: y - 34, w: 100, h: 68 }, seed: sd, n: 90, max, r: cr, inside: () => true });
+            });
+        } else if (kind === 'feather') {
+            const dir = r() * TAU, len = 60 + r() * 50, fb = 0.06 + r() * 0.12, fa = 0.2 + r() * 0.3;
+            piece(id, dz, around(x, y, len + 40), (P) => {
+                N.plume(P, { x: x - Math.cos(dir) * len * 0.5, y: y - Math.sin(dir) * len * 0.5, dir, len, bend: fb, wid: len * (0.12 + fa * 0.2), seed: sd });
+            });
+        } else if (kind === 'olive') {
+            const L = 100 + r() * 60, rot = r() * TAU;
+            piece(id, dz, around(x, y, L + 70), (P) => {
+                N.sprig(P, { x: x - Math.cos(rot) * L * 0.5, y: y - Math.sin(rot) * L * 0.5, L, rot, seed: sd });
+            });
+        } else if (kind === 'flake') {
+            const Rr = 28 + r() * 24, rot = r() * TAU;
+            piece(id, dz, around(x, y, Rr * 1.6 + 20), (P) => N.flake(P, { x, y, R: Rr, rot, seed: sd }));
+        } else if (kind === 'star') {
+            const Rr = 28 + r() * 18, rot = r();
+            piece(id, dz, around(x, y, Rr + 30), (P) => N.star(P, { x, y, R: Rr, rot, seed: sd }));
+        } else if (kind === 'ball') {
+            const Rr = 20 + r() * 12;
+            piece(id, dz, around(x, y, Rr * 1.5 + 20), (P) => N.waxBall(P, { x, y, R: Rr, seed: sd }));
+        } else if (kind === 'incense') {
+            const s = 1 + r() * 0.5;
+            piece(id, dz, around(x, y, 50 * s + 20), (P) => N.incense(P, { x, y, s, seed: sd }));
+        } else if (kind === 'chain') {
+            const a = r() * TAU, L = 70 + r() * 50;
+            const pts = [[x - Math.cos(a) * L * 0.5, y - Math.sin(a) * L * 0.5], [x + Math.sin(a) * 12, y - Math.cos(a) * 12], [x + Math.cos(a) * L * 0.5, y + Math.sin(a) * L * 0.5]];
+            piece(id, dz, around(x, y, L * 0.6 + 40), (P) => {
+                N.chain(P, pts, { w: 5, link: 9.5, seed: sd });
+            });
+        }
+    });
+    return out;
+};

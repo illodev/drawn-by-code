@@ -502,3 +502,215 @@ Tableau.stilllife.stratum = (z) => {
         }),
     ];
 };
+
+// ================================================================== loose (round 8)
+// The still life comes off its sheets: every thing floats on its own at its own depth, in
+// the lamp's light out of the dark, and the heap is broken into its pieces. Composed in
+// rings round the axis (the frame rolls: there is no up), near things close to the axis and
+// far ones out, so the frame is full at every depth; consecutive heroes round the ring at
+// different depths, so they slide over each other.
+//   heroes (angle round the axis · distance from it · depth):
+//     the water seller's jug 122° · 480 · −255 (near, cut by the frame) · a cloth of white
+//     linen with its drawn-thread hem 290° · 500 · −205 · the goblet of water with its fig
+//     205° · 420 · −120 · the cabbage 250° · 600 · −60 · the quince with its fly 160° · 600
+//     · −10 · the brass mortar and pestle 15° · 580 · 40 · the candle just put out, its smoke
+//     228° · 760 · 90 · eggs in their Triana dish 95° · 660 · 130 · the cut melon with its
+//     fly 335° · 760 · 175 · a braid of garlic 145° · 900 · 210 · the cardoon 55° · 860 · 230
+//     · the pewter plate 270° · 900 · 265 · the knife 310° · 400 · 60 · the rose 190° · 900
+//     · 150
+//   smaller: the red onion and its half, the slice of melon (the hidden half moon), the cup
+//   of water, a búcaro; to find: a fly alone, the burnt match, the strip «IN ICTV OCVLI»
+//   matter (77 pieces, 50–270 across): linen scraps, cabbage, cardoon and quince leaves,
+//   quince twigs, heads, bunches and cloves of garlic, onion and garlic skins, figs, eggs,
+//   sherds of búcaros and of the jug, rose petals
+Tableau.stilllife.loose = (z) => {
+    const S = Souvenir, St = Still, TAU = Math.PI * 2, D2R = Math.PI / 180, Q = Math.PI / 4;
+    const EY = 260; // a still life is seen a little from above: the eye height of the bodies
+    const at = (deg, R) => [Math.cos(deg * D2R) * R, Math.sin(deg * D2R) * R];
+    const snap = (a) => Math.round(a / Q) * Q; // sprites bake their light for eight turns
+    // the lamp: high at the top left of the stratum, the dark taking what is far from it,
+    // laid on each piece in the stratum's own coordinates (so all of them share it)
+    const LX = -700, LY = -560;
+    const lamp = (g, b) => {
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        const gr = g.createRadialGradient(LX, LY, 300, LX, LY, 2200);
+        gr.addColorStop(0, 'rgba(8,5,3,0)');
+        gr.addColorStop(0.45, 'rgba(8,5,3,0.42)');
+        gr.addColorStop(1, 'rgba(8,5,3,0.78)');
+        g.fillStyle = gr;
+        g.fillRect(b.x, b.y, b.w, b.h);
+        g.restore();
+    };
+    // one piece: painted at its place (cx, cy) in the stratum, its box generous
+    const piece = (id, dz, [cx, cy], hw, hh, draw) => {
+        const box = { x: cx - hw, y: cy - hh, w: hw * 2, h: hh * 2 };
+        return {
+            id: 'stilllife-l-' + id, z: z + dz, loose: true, brush: false, box,
+            paint(g) {
+                draw(g, cx, cy);
+                lamp(g, box);
+                S.tooth(g, box, { amp: 0.03 });
+            },
+        };
+    };
+    const put = (g, sp, x, y, s = 1, rot = 0) => S.put(g, sp, { x, y, s, rot });
+    const out = [];
+
+    // ------------------------------------------------------------------ the heroes
+    out.push(piece('jug', -255, at(122, 480), 300, 340, (g, x, y) => {
+        const s = 0.95, jg = St.jugSprite(EY / s, St.resOf(g, s), 'loose');
+        put(g, jg, x, y + 300 * s, s);
+    }));
+    out.push(piece('cloth', -205, at(290, 500), 400, 400, (g, x, y) => {
+        put(g, St.cloth(St.resOf(g), 'hero', { w: 520, h: 400, a: 0.5, pinch: 0.5, tilt: 0.7, folds: 4, creased: 2, depth: 1.3, mark: true, stain: true, crease: true }), x, y);
+    }));
+    out.push(piece('glass', -120, at(205, 420), 200, 290, (g, x, y) => {
+        const s = 1.9;
+        // the dark seen through the glass: the water and the fig glow in it
+        St.glassBack(g, x, y + 122 * s, s);
+        St.glass(g, { x, y: y + 122 * s, s, ey: EY, seed: 'loose' });
+    }));
+    out.push(piece('cabbage', -60, at(250, 600), 340, 360, (g, x, y) => {
+        const s = 1.55;
+        St.hangString(g, [x + 6, y - 150 * s], [x, y - 104 * s], { seed: 'lc', w: 3.6 });
+        St.cabbage(g, { x, y: y - 104 * s, s, seed: 'loose' });
+    }));
+    out.push(piece('quince', -10, at(160, 600), 220, 240, (g, x, y) => {
+        const s = 1.9;
+        St.quince(g, { x, y: y - 70 * s, s, seed: 'loose' });
+        St.fly(g, { x: x + 30, y: y + 24, rot: 0.9, s: 1.7 });
+    }));
+    out.push(piece('mortar', 40, at(15, 580), 260, 340, (g, x, y) => {
+        const s = 1.6, yb = y + 110 * s, mo = St.mortarSprite(EY / s, St.resOf(g, s), 'loose');
+        put(g, mo, x, yb, s);
+        St.pestle(g, [x + 11, yb - 229], [x + 114, yb - 411], { seed: 'loose' });
+    }));
+    out.push(piece('candle', 90, at(228, 760), 560, 940, (g, x, y) => {
+        const s = 1.45, yb = y + 240 * s;
+        const cs = St.candlestick(g, { x, y: yb, wax: 210, s, ey: EY, seed: 'loose' });
+        St.smoke(g, cs.wick, { h: 560, drift: 200, alpha: 0.85, seed: 'loose' });
+    }));
+    out.push(piece('eggs', 130, at(95, 660), 320, 220, (g, x, y) => {
+        St.eggDish(g, { x, y: y + 70, s: 1.6, ey: EY, seed: 'loose' });
+    }));
+    out.push(piece('melon', 175, at(335, 760), 300, 240, (g, x, y) => {
+        const s = 1.4, yb = y + 96 * s, mb = St.melonBody(St.resOf(g, s), 'loose');
+        put(g, mb, x, yb, s);
+        St.melonCut(g, x + 73, yb - 209, 68, 56, St.resOf(g), 'loose');
+        St.fly(g, { x: x + 12, y: yb - 204, rot: 2.2, s: 1.5 });
+    }));
+    out.push(piece('braid', 210, at(145, 900), 400, 360, (g, x, y) => {
+        St.braid(g, [[x - 270, y - 170], [x - 90, y - 70], [x + 70, y + 40], [x + 260, y + 160]], { n: 10, s: 1.3, seed: 'loose', plait: true });
+    }));
+    out.push(piece('cardoon', 230, at(55, 860), 640, 560, (g, x, y) => {
+        St.cardoon(g, [x - 300, y + 140], [x + 300, y - 140], { seed: 'loose' });
+    }));
+    out.push(piece('plate', 265, at(270, 900), 280, 230, (g, x, y) => {
+        St.plate(g, { x, y, r: 210, flat: true, ey: 640, seed: 'loose' });
+    }));
+    out.push(piece('knife', 60, at(310, 400), 280, 260, (g, x, y) => {
+        St.knife(g, [x - 200, y + 130], [x + 190, y - 120], { w: 1.3, seed: 'loose' });
+    }));
+    out.push(piece('rose', 150, at(190, 900), 320, 260, (g, x, y) => {
+        St.rose(g, { x: x - 70, y, s: 2, seed: 'loose' });
+    }));
+    // smaller things
+    out.push(piece('onion', -165, at(40, 400), 170, 170, (g, x, y) => {
+        const s = 1.8, on = St.onionSprite(St.resOf(g, s), 'loose');
+        put(g, on, x, y, s);
+    }));
+    out.push(piece('onionhalf', 170, at(65, 540), 150, 150, (g, x, y) => St.onionHalf(g, { x, y, s: 1.9, seed: 'loose' })));
+    out.push(piece('slice', -230, at(350, 440), 180, 150, (g, x, y) => {
+        // the slice of melon, its flat face a pale half moon
+        put(g, St.melonSlice(St.resOf(g, 1.8), 'loose'), x, y - 36, 1.8);
+    }));
+    out.push(piece('cup', -60, at(75, 440), 200, 180, (g, x, y) => {
+        const s = 1.8, cp = St.cupSprite(EY / s, St.resOf(g, s), 'loose');
+        put(g, cp, x, y + 60 * s, s);
+    }));
+    out.push(piece('bucaro', 200, at(262, 400), 150, 170, (g, x, y) => {
+        const s = 1.6, bu = St.bucaroSprite('b', EY / s, St.resOf(g, s), 'loose');
+        put(g, bu, x, y + 55 * s, s);
+    }));
+    // to find: a fly alone, the burnt match, the strip with the motto
+    out.push(piece('fly', -270, at(20, 300), 50, 50, (g, x, y) => St.fly(g, { x, y, rot: -0.6, s: 2.4 })));
+    out.push(piece('match', 120, at(100, 300), 80, 80, (g, x, y) => St.match(g, [x - 50, y + 22], [x + 45, y - 20])));
+    out.push(piece('motto', -100, at(235, 330), 160, 100, (g, x, y) => {
+        St.motto(g, [[x - 120, y + 34], [x - 55, y + 4], [x + 20, y - 6], [x + 85, y + 6], [x + 120, y + 34]], { w: 26, size: 18, text: 'IN ICTV OCVLI', align: 0.5 });
+    }));
+
+    // ------------------------------------------------------------------ the matter
+    // The heap broken up: each piece its own kind, size, turn and tone, never one repeated.
+    // Placed round the ring by the golden angle (so every angle is covered), denser near the
+    // axis, its depth from a stepped run (so neighbours round the ring are at different depths).
+    const KINDS = [
+        ['cloth', 12], ['cabbage', 9], ['cardoon', 6], ['qleaf', 6], ['twig', 4], ['garlic', 6], ['bunch', 3], ['clove', 4],
+        ['oskin', 5], ['gskin', 3], ['fig', 4], ['egg', 3], ['sherd', 8], ['petal', 4],
+    ];
+    const list = [];
+    for (const [k, n] of KINDS) for (let i = 0; i < n; i++) list.push([k, i]);
+    const N = list.length;
+    const order = list.map((it, j) => [it, (j * 0.618034) % 1]).sort((a, b) => a[1] - b[1]).map((p) => p[0]);
+    const depths = Array.from({ length: N }, (_, j) => -275 + (550 * (((j * 37) % N) + 0.5)) / N);
+    const heroes = out.map((p) => ({ x: p.box.x + p.box.w / 2, y: p.box.y + p.box.h / 2, z: p.z - z, h: Math.min(p.box.w, p.box.h) / 2 }));
+    order.forEach(([kind, i], j) => {
+        const sd = kind + i, rk = Motion.rng('slm' + sd);
+        let x, y, dz = depths[j], R, ang;
+        // its place: round the ring at the golden angle, nearer the axis more often; moved on
+        // if it would sit right on a hero at its own depth
+        for (let t = 0; t < 12; t++) {
+            ang = (j * 137.508 + t * 23 + rk() * 14) * D2R;
+            R = 290 + 1050 * Math.pow(rk(), 1.7);
+            x = Math.cos(ang) * R;
+            y = Math.sin(ang) * R;
+            if (!heroes.some((h) => Math.abs(h.z - dz) < 90 && Math.hypot(h.x - x, h.y - y) < h.h * 0.8)) break;
+        }
+        const toAxis = Math.atan2(-y, -x), turn = toAxis + (rk() - 0.5) * 2.4;
+        const add = (half, draw, hh = half) => out.push(piece('m-' + sd, dz, [x, y], half, hh, draw));
+        // a sprite laid from its base along rot, centred on (cx, cy)
+        const along = (g, sp, L, cx, cy, rot, s) => put(g, sp, cx - Math.cos(rot) * L * s * 0.5, cy - Math.sin(rot) * L * s * 0.5, s, rot);
+        if (kind === 'cloth') {
+            // napkins hanging from a gathered corner (their hems wave with the folds), and torn
+            // strips twisting along their length
+            const strip = i % 3 === 2, w = strip ? 230 + rk() * 70 : 160 + rk() * 110, h = strip ? 50 + rk() * 25 : 120 + rk() * 90;
+            const o = strip
+                ? { w, h, a: rk() * TAU, pinch: 0.1, tilt: 1.1, folds: 2, depth: 0.9, hem: false, vainica: false, fray: true, lit: 0.95 }
+                : { w, h, a: rk() * TAU, pinch: 0.45 + rk() * 0.3, tilt: 0.7 + rk() * 0.4, folds: 3, depth: 0.7 + rk() * 0.5, hem: true, vainica: i % 3 === 0, fray: i % 2 === 0, darn: i % 4 === 1, stain: i % 5 === 3, mark: i === 7, crease: i === 4, lit: 0.9 + rk() * 0.1 };
+            add(Math.hypot(w, h) * 0.55 + 50, (g, cx, cy) => put(g, St.cloth(St.resOf(g), 'm' + i, o), cx, cy));
+        } else if (kind === 'cabbage' || kind === 'cardoon' || kind === 'qleaf') {
+            const k = kind === 'qleaf' ? 'quince' : kind, s = kind === 'qleaf' ? 1.4 + rk() * 0.8 : 0.62 + rk() * 0.3, L = (kind === 'qleaf' ? 74 : kind === 'cabbage' ? 230 : 210) * 1.15;
+            add(L * s * 0.62 + 30, (g, cx, cy) => {
+                const lf = St.looseLeaf(St.resOf(g, s), 'lm' + sd, turn, k);
+                along(g, lf, lf.L, cx, cy, turn, s);
+            });
+        } else if (kind === 'twig') {
+            const l = 170 + rk() * 80;
+            add(l * 0.5 + 150, (g, cx, cy) => St.quinceTwig(g, [cx - (Math.cos(turn) * l) / 2, cy - (Math.sin(turn) * l) / 2], [cx + (Math.cos(turn) * l) / 2, cy + (Math.sin(turn) * l) / 2], { seed: 'lt' + i, n: 3 + (i % 2), fruit: i !== 1, s: 1.2 }));
+        } else if (kind === 'garlic') {
+            const s = 1.5 + rk() * 0.6;
+            add(100 * s + 20, (g, cx, cy) => put(g, St.garlicSprite(St.resOf(g, s), 'lg' + i, snap(turn)), cx, cy, s, snap(turn)));
+        } else if (kind === 'bunch') {
+            add(200, (g, cx, cy) => St.garlicBunch(g, cx - Math.cos(turn) * 50, cy - Math.sin(turn) * 50, turn, { n: 3 + (i % 2), s: 1.4, seed: 'lb' + i }));
+        } else if (kind === 'clove') {
+            const s = 1.8 + rk() * 0.6;
+            add(22 * s + 20, (g, cx, cy) => put(g, St.cloveSprite(St.resOf(g, s), 'lv' + i, snap(turn)), cx, cy, s, snap(turn)));
+        } else if (kind === 'oskin' || kind === 'gskin') {
+            const L = 70 + rk() * 50;
+            add(L * 0.75 + 20, (g, cx, cy) => put(g, St.skinFlake(St.resOf(g), 'lk' + sd, turn, kind === 'oskin' ? 'onion' : 'garlic', L), cx, cy, 1, snap(turn)));
+        } else if (kind === 'fig') {
+            const s = 1.6 + rk() * 0.5;
+            add(55 * s + 24, (g, cx, cy) => put(g, St.figSprite(St.resOf(g, s), 'lf' + i, snap(turn)), cx, cy, s, snap(turn)));
+        } else if (kind === 'egg') {
+            const s = 1.4 + rk() * 0.4;
+            add(45 * s + 20, (g, cx, cy) => put(g, St.eggSprite(St.resOf(g, s), 'le' + i, snap(turn), i === 1 ? 'white' : 'brown'), cx, cy, s, snap(turn)));
+        } else if (kind === 'sherd') {
+            const L = 70 + rk() * 70;
+            add(L * 0.75 + 20, (g, cx, cy) => put(g, St.sherd(St.resOf(g), 'ls' + i, turn, i < 4 ? 'white' : 'clay', L), cx, cy, 1, snap(turn)));
+        } else if (kind === 'petal') {
+            const len = 44 + rk() * 18, s = 1.6 + rk() * 0.4;
+            add(len * s * 0.9 + 20, (g, cx, cy) => put(g, St.petalSprite(St.resOf(g, s), 'lp' + i, snap(turn), len, len * 0.8, 0.35), cx, cy, s, snap(turn)));
+        }
+    });
+    return out;
+};

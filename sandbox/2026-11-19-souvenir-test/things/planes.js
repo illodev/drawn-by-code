@@ -1327,132 +1327,218 @@ const Planes = (() => {
     // ------------------------------------------------------------------ the pigeon's wing
     // A rock dove's right wing spread, seen from above, 420 × 240 at s = 1: the wrist at the
     // anchor, the hand and its primaries out to the right, the arm and its secondaries to
-    // the left of it.
+    // the left of it. No two feathers alike: each one's place, length, width, turn, the bend
+    // of its shaft and its tone come from the seed; the tips are rounded and fringed paler;
+    // the two black bars are a dark mark of its own on each feather (a jagged band, never a
+    // rule); a primary in moult (short and darker, new), a split vane, a covert out of place,
+    // one missing; scapulars over the shoulder, the marginal coverts over the bone of the
+    // leading edge; one dark contour round the whole group, hairlines inside.
     function wing(g, o = {}) {
         const seed = o.seed ?? 'wing';
         local(g, o, (q) => {
-            const r = Motion.rng('wi/' + seed), [dx, dy] = shadeDir(q);
-            const COV = '#adb0b4', SEC = '#999da3', PRI = '#6f727a', PRID = '#3f4148', BAR = '#1f1e23';
-            // a feather from base b along angle a, length l, width w; outer vane narrower;
-            // notch: the outer vane steps in at 60 %
-            const feather = (b, a, l, w, notch = false) => {
-                const c = Math.cos(a), s = Math.sin(a), out = [], inn = [];
-                for (let k = 0; k <= 12; k++) {
-                    const u = k / 12, tip = Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, u - 0.72) / 0.28, 2)));
-                    const wo = w * 0.36 * tip * (notch && u > 0.6 ? 0.62 : 1) * Math.min(1, 0.4 + u * 3), wi = w * 0.64 * tip * Math.min(1, 0.4 + u * 3);
-                    out.push([b[0] + c * l * u + s * wo, b[1] + s * l * u - c * wo]);
-                    inn.push([b[0] + c * l * u - s * wi, b[1] + s * l * u + c * wi]);
+            const r = Motion.rng('wi/' + seed), [dx, dy] = shadeDir(q), j = (a) => (r() - 0.5) * 2 * a;
+            const COV = '#9ea4af', SEC = '#8a909b', PRI = '#666b75', PRID = '#2b2d34', BAR = '#1c1b22', LES = '#8e94a0';
+            // a feather from base b along angle a, length l, width w; the shaft bends by `bend`
+            // over its length; the outer vane is `outer` of the width; round: 0 pointed … 1 broad;
+            // notch: the outer vane steps in past 0.58 (the emarginated outer primaries)
+            const feather = (b, a, l, w, f = {}) => {
+                const N = 16, bend = f.bend ?? 0.08, outer = f.outer ?? 0.36, round = f.round ?? 0.5, ts = 1 - 0.16 - 0.26 * round;
+                const sh = [], dirs = [];
+                let x = b[0], y = b[1];
+                for (let k = 0; k <= N; k++) {
+                    const an = a + bend * (k / N) * (k / N);
+                    sh.push([x, y]);
+                    dirs.push(an);
+                    x += (Math.cos(an) * l) / N;
+                    y += (Math.sin(an) * l) / N;
                 }
-                return { pts: [...out, ...inn.reverse()], shaft: [[b[0], b[1]], [b[0] + c * l * 0.97, b[1] + s * l * 0.97]], c, s, b, l, w };
+                const out = [], inn = [];
+                for (let k = 0; k <= N; k++) {
+                    const u = k / N, an = dirs[k], nx = Math.sin(an), ny = -Math.cos(an);
+                    const tip = u <= ts ? 1 : Math.sqrt(Math.max(0, 1 - Math.pow((u - ts) / (1 - ts), 2))), base = Math.min(1, 0.35 + u * 2.6);
+                    const wo = w * outer * tip * base * (f.notch && u > 0.58 ? 0.6 : 1), wi = w * (1 - outer) * tip * base;
+                    out.push([sh[k][0] + nx * wo, sh[k][1] + ny * wo]);
+                    inn.push([sh[k][0] - nx * wi, sh[k][1] - ny * wi]);
+                }
+                return { pts: S.curve([...out, ...inn.slice().reverse()], true, 2), out, inn, shaft: sh, dirs, b, a, l, w };
             };
-            const paintF = (F, col0, o2 = {}) => {
-                const col = tone(col0, (r() - 0.5) * 0.08);
-                S.cast(q, (k) => fill(k, F.pts, '#000'), { blur: 3.5, dx: dx * 2.6, dy: dy * 2.6, color: 'rgba(20,18,26,0.55)' });
-                q.save();
-                clip(q, F.pts);
-                fill(q, F.pts, col);
-                // a darker inner vane, a lighter free edge facing the light
-                if (o2.flat) {
-                    // a feather of the arm: one surface with its neighbours, darker to the tip,
-                    // a hair of light along the free edge
-                    const tp = [F.b[0] + F.c * F.l, F.b[1] + F.s * F.l], gr = q.createLinearGradient(F.b[0], F.b[1], tp[0], tp[1]);
-                    gr.addColorStop(0, S.rgba(tone(col, 0.12), 0.6));
-                    gr.addColorStop(0.6, S.rgba(col, 0));
-                    gr.addColorStop(1, S.rgba(tone(col, -0.25), 0.7));
-                    q.fillStyle = gr;
-                    q.fillRect(F.b[0] - F.l, F.b[1] - F.l, F.l * 2, F.l * 2);
-                    S.spray(q, F.pts, { color: tone(col, 0.35), alpha: 0.35, w: 3, push: 1.5, dir: [-dx, -dy] });
-                } else {
-                    S.spray(q, F.pts, { color: tone(col, -0.4), alpha: 0.6, w: F.w * 0.4, push: F.w * 0.25, dir: [dx, dy] });
-                    S.spray(q, F.pts, { color: tone(col, 0.45), alpha: 0.5, w: F.w * 0.3, push: F.w * 0.2, dir: [-dx, -dy] });
-                }
-                if (o2.bar) {
-                    const [u0, u1] = o2.bar, p0 = [F.b[0] + F.c * F.l * u0, F.b[1] + F.s * F.l * u0];
-                    q.translate(p0[0], p0[1]);
-                    q.rotate(Math.atan2(F.s, F.c));
-                    q.fillStyle = BAR;
-                    q.globalAlpha = 0.9;
-                    q.fillRect(0, -F.w, F.l * (u1 - u0), F.w * 2);
-                }
-                q.restore();
-                q.save();
-                clip(q, F.pts);
-                if (o2.tipD) {
-                    const tp = [F.b[0] + F.c * F.l, F.b[1] + F.s * F.l], gr = q.createRadialGradient(tp[0], tp[1], 0, tp[0], tp[1], F.l * o2.tipD);
-                    gr.addColorStop(0, S.rgba(PRID, 0.95));
-                    gr.addColorStop(1, S.rgba(PRID, 0));
-                    q.fillStyle = gr;
-                    q.fillRect(tp[0] - F.l, tp[1] - F.l, F.l * 2, F.l * 2);
-                }
-                // barbs: hairlines leaning out from the shaft
-                q.lineWidth = 0.4;
-                for (let k = 0; k < (F.l > 70 ? F.l / 3.5 : 0); k++) {
-                    const u = 0.1 + (k * 3.5) / F.l, px = F.b[0] + F.c * F.l * u, py = F.b[1] + F.s * F.l * u, side = k % 2 ? 1 : -1, bl = F.w * 0.55;
-                    q.strokeStyle = r() < 0.5 ? 'rgba(255,255,255,0.12)' : 'rgba(10,10,20,0.14)';
-                    q.beginPath();
-                    q.moveTo(px, py);
-                    q.lineTo(px + F.c * bl * 0.55 + side * -F.s * bl, py + F.s * bl * 0.55 + side * F.c * bl);
-                    q.stroke();
-                }
-                q.restore();
-                // the shaft, pale, and the vane's thin contour
-                if (F.l > 70) S.ink(q, F.shaft, { w: Math.max(0.8, F.w * 0.06), color: '#e6e3dc', alpha: 0.6, taper: [0.2, 1] });
-                q.strokeStyle = 'rgba(24,22,30,0.3)';
-                q.lineWidth = 0.55;
-                q.beginPath();
-                S.trace(q, F.pts);
-                q.stroke();
-            };
-            // The leading edge, from the shoulder (left) through the wrist (0, -10) to the
-            // end of the hand; rows of feathers are laid along it, `d` units behind it.
+            const list = [];
+            const add = (F, col, f2 = {}) => list.push({ F, col, f2 });
+            // The leading edge, from the shoulder (left) through the wrist (0, -10) to the end of
+            // the hand; rows of feathers are laid along it, `d` units behind it.
             const LE = S.curve([[-250, -4], [-170, -14], [-90, -17], [0, -10], [62, 6], [118, 30]], false, 10);
             const at = (t, d) => {
-                const f = t * (LE.length - 1), i0 = Math.min(LE.length - 2, Math.floor(f)), u = f - i0, a = LE[i0], b = LE[i0 + 1];
+                const f = Math.max(0, Math.min(1, t)) * (LE.length - 1), i0 = Math.min(LE.length - 2, Math.floor(f)), u = f - i0, a = LE[i0], b = LE[i0 + 1];
                 const p = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u], tl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
                 const nx = -(b[1] - a[1]) / tl, ny = (b[0] - a[0]) / tl; // behind the edge (+y)
                 return { p: [p[0] + nx * d, p[1] + ny * d], a: Math.atan2(ny, nx) };
             };
             const tW = 0.61; // the wrist's place along the edge
-            // primaries: P10 (outermost, under) first, P1 last
+            // primaries: P10 (outermost, under) first, P1 last; P5 is in moult (short, new)
             for (let k = 9; k >= 0; k--) {
-                const u = k / 9, t = tW + u * (1 - tW) * 0.92, { p } = at(t, 22);
-                const a = 1.08 - u * 0.92, l = 168 + 62 * Math.sin(Math.min(1, u * 1.15) * 1.45), w = 31 - u * 5;
-                paintF(feather(p, a, l, w, k >= 6), S.mix(PRI, PRID, 0.15 + u * 0.35), { tipD: 0.4 + u * 0.15 });
+                const u = k / 9, t = tW + u * (1 - tW) * 0.92 + j(0.008), { p } = at(t, 22 + j(3));
+                const a = 1.08 - u * 0.92 + j(0.035), moult = k === 4, l = (168 + 62 * Math.sin(Math.min(1, u * 1.15) * 1.45)) * (1 + j(0.05)) * (moult ? 0.7 : 1), w = (31 - u * 5) * (1 + j(0.07));
+                add(feather(p, a, l, w, { notch: k >= 6, bend: 0.12 + j(0.05), round: 0.35 + r() * 0.3, outer: 0.3 + r() * 0.08 }), S.mix(PRI, PRID, 0.15 + u * 0.35 + (moult ? 0.2 : 0)), { tipD: 0.38 + u * 0.15 + j(0.06), split: k === 7 ? 0.52 : 0, wear: k === 8 });
             }
-            // secondaries: from the wrist (S1) to the elbow, the inner ones over the outer
+            // secondaries: from the wrist (S1) to the elbow, the inner ones over the outer; the
+            // black bar near the tip; S6 with a split vane
             for (let k = 0; k < 11; k++) {
-                const t = tW - 0.02 - k * 0.05, { p, a } = at(t, 58);
-                paintF(feather(p, a + 0.12 + k * 0.035, 124 - k * 1.5 + (k % 3) * 3, 33), S.mix(SEC, PRI, 0.25 - k * 0.015), { bar: k > 1 ? [0.64, 0.8] : null, flat: true });
+                const t = tW - 0.02 - k * 0.05 + j(0.006), { p, a } = at(t, 58 + j(3) + Math.sin(k * 0.9) * 2);
+                const b0 = 0.62 + j(0.04);
+                add(feather(p, a + 0.1 + k * 0.05 + j(0.04), (126 - k * 2.6 - Math.pow(k / 10, 2) * 10) * (1 + j(0.05)), 33 * (1 + j(0.06)), { bend: 0.05 + j(0.04), round: 0.45 + r() * 0.35 }), S.mix(SEC, PRI, 0.3 - k * 0.02), { bar: k > 1 ? [b0, b0 + 0.15 + j(0.03)] : null, flat: true, split: k === 6 ? 0.45 : 0 });
             }
-            // tertials, broad, by the body
+            // tertials, broad, by the body, the first two barred
             for (let k = 0; k < 3; k++) {
-                const { p, a } = at(0.04 + k * 0.035, 50);
-                paintF(feather(p, a + 0.45 - k * 0.08, 120 - k * 8, 42), tone(SEC, 0.04 - k * 0.05), { bar: k < 2 ? [0.6, 0.76] : null, flat: true });
+                const { p, a } = at(0.04 + k * 0.035 + j(0.006), 50 + j(3));
+                add(feather(p, a + 0.72 - k * 0.1 + j(0.04), (112 - k * 10) * (1 + j(0.05)), 42 * (1 + j(0.06)), { bend: -0.08 + j(0.04), round: 0.7 }), tone(SEC, 0.08 - k * 0.04), { bar: k < 2 ? [0.58 + j(0.03), 0.74 + j(0.03)] : null, flat: true });
+            }
+            // scapulars over the shoulder, so the wing does not end in a cut
+            for (let k = 0; k < 4; k++) {
+                const { p, a } = at(0.005 + k * 0.022, 26 + k * 6 + j(3));
+                add(feather(p, a + 1.05 - k * 0.12 + j(0.05), (80 - k * 6) * (1 + j(0.06)), 40 * (1 + j(0.06)), { bend: -0.1, round: 0.9, outer: 0.45 }), tone(COV, 0.02 + j(0.04)), { flat: true });
             }
             // primary coverts over the bases of the primaries
             for (let k = 7; k >= 0; k--) {
-                const u = k / 7, { p } = at(tW + u * (1 - tW) * 0.85, 10);
-                paintF(feather(p, 1.0 - u * 0.75, 70 - u * 8, 24), S.mix(COV, PRI, 0.3));
+                const u = k / 7, { p } = at(tW + u * (1 - tW) * 0.85 + j(0.008), 10 + j(2));
+                add(feather(p, 1.0 - u * 0.75 + j(0.05), (70 - u * 8) * (1 + j(0.07)), 24 * (1 + j(0.08)), { bend: 0.08, round: 0.55 }), S.mix(COV, PRI, 0.3 + j(0.08)));
             }
-            // greater coverts, the first black bar across their tips
+            // greater coverts, the first black bar across their tips; one out of place
             for (let k = 0; k < 12; k++) {
-                const t = tW - 0.01 - k * 0.048, { p, a } = at(t, 22);
-                paintF(feather(p, a + 0.1 + k * 0.03, 56 + (k % 2) * 4, 30), COV, { bar: k > 1 ? [0.66, 0.98] : null, flat: true });
+                const t = tW - 0.01 - k * 0.048 + j(0.007), { p, a } = at(t, 22 + j(2.5) + Math.sin(k * 1.3) * 2), lift = k === 7 ? 0.2 : 0;
+                const b0 = 0.62 + j(0.05);
+                add(feather(p, a + 0.1 + k * 0.03 + j(0.05) + lift, (56 + (k % 2) * 4) * (1 + j(0.07)), 30 * (1 + j(0.07)), { round: 0.75 + r() * 0.2 }), COV, { bar: k > 1 ? [b0, 0.98] : null, flat: true, dt: lift ? 0.04 : 0 });
             }
-            // median coverts, then the lesser ones in rows to the edge, each smaller
-            for (const [d, len, w, n, col] of [[8, 34, 24, 15, tone(COV, 0.04)], [-2, 24, 19, 19, tone(COV, 0.08)], [-9, 16, 14, 24, tone(COV, 0.12)]]) {
+            // median coverts, then the lesser ones in rows towards the edge, each smaller; the
+            // rows waver and one median covert is missing
+            for (const [d, len, w, n, col, row] of [[8, 34, 24, 15, tone(COV, 0.05), 0], [-2, 24, 19, 19, S.mix(COV, LES, 0.5), 1], [-9, 16, 14, 24, LES, 2]]) {
+                const ph = r() * 6;
                 for (let k = 0; k < n; k++) {
-                    const t = 0.02 + (k / (n - 1)) * (tW + 0.02) + (k % 2) * 0.008, { p, a } = at(t, d);
-                    paintF(feather(p, a + 0.15, len * (0.9 + (k % 3) * 0.07), w), col, { flat: true });
+                    if (row === 0 && k === 9) continue;
+                    const t = 0.02 + ((k + j(0.3)) / (n - 1)) * (tW + 0.02), { p, a } = at(t, d + Math.sin(k * 0.8 + ph) * 2.2 + j(1.5));
+                    add(feather(p, a + 0.15 + j(0.12), len * (0.88 + r() * 0.22), w * (0.9 + r() * 0.2), { round: 0.85, bend: j(0.1) }), tone(col, j(0.04)), { flat: true });
                 }
             }
             // the alula at the wrist, lying forward along the edge
             for (let k = 0; k < 3; k++) {
                 const { p } = at(tW + 0.01 + k * 0.012, -2 + k * 3);
-                paintF(feather(p, 0.38 + k * 0.1, 52 - k * 9, 15), PRID);
+                add(feather(p, 0.38 + k * 0.1 + j(0.04), (52 - k * 9) * (1 + j(0.05)), 15, { bend: 0.1, round: 0.3 }), tone(PRID, 0.1 + j(0.05)));
             }
-            // the leading edge: the wing's bone under the skin, a ruled line that overruns
-            charcoal(q, S.curve([[-280, -14], [-170, -22], [-90, -25], [0, -18], [62, -2], [150, 34]], false, 6), { w: 2.8, seed: seed + 'le' });
+            // the marginal coverts: tiny, over the bone of the leading edge
+            const marg = [];
+            for (let k = 0; k < 30; k++) {
+                const t = 0.01 + ((k + j(0.35)) / 29) * (tW + 0.05), { p, a } = at(t, -15 + j(1.5));
+                marg.push({ F: feather(p, a + 0.2 + j(0.15), 13 * (0.85 + r() * 0.3), 12 * (0.85 + r() * 0.3), { round: 0.95 }), col: tone(LES, 0.04 + j(0.06)), f2: { flat: true, small: true } });
+            }
+            // one dark contour round the whole group: every outline stroked heavy under all the
+            // paint, so only the outside of the union keeps it (heavier towards the shadow)
+            q.save();
+            q.lineJoin = 'round';
+            for (const [ox, oy, lw, al] of [[0, 0, 3.2, 0.85], [dx * 1.2, dy * 1.2, 3.4, 0.7]]) {
+                q.strokeStyle = S.rgba('#15141b', al);
+                q.lineWidth = lw;
+                for (const { F } of [...list, ...marg]) {
+                    q.beginPath();
+                    S.trace(q, F.pts.map(([x, y]) => [x + ox, y + oy]));
+                    q.stroke();
+                }
+            }
+            q.restore();
+            const paintF = ({ F, col: col0, f2 }) => {
+                const col = tone(col0, j(0.06) + (f2.dt ?? 0)), N = F.out.length - 1;
+                S.cast(q, (k) => fill(k, F.pts, '#000'), { blur: f2.small ? 2 : 3.5, dx: dx * (f2.small ? 1.5 : 2.4), dy: dy * (f2.small ? 1.5 : 2.4), color: 'rgba(18,16,26,0.5)' });
+                q.save();
+                clip(q, F.pts);
+                fill(q, F.pts, col);
+                const tp = F.shaft[N];
+                if (f2.flat) {
+                    // a feather of the arm: lighter where it comes out from under the one above,
+                    // darker to the tip
+                    const gr = q.createLinearGradient(F.b[0], F.b[1], tp[0], tp[1]);
+                    gr.addColorStop(0, S.rgba(tone(col, 0.06), 0.4));
+                    gr.addColorStop(0.55 + j(0.1), S.rgba(col, 0));
+                    gr.addColorStop(1, S.rgba(tone(col, -0.22), 0.6));
+                    q.fillStyle = gr;
+                    q.fillRect(F.b[0] - F.l, F.b[1] - F.l, F.l * 2, F.l * 2);
+                    S.spray(q, F.pts, { color: tone(col, -0.3), alpha: 0.3, w: F.w * 0.3, push: F.w * 0.15, dir: [dx, dy] });
+                    S.spray(q, F.pts, { color: tone(col, 0.3), alpha: 0.28, w: 3, push: 1.5, dir: [-dx, -dy] });
+                } else {
+                    S.spray(q, F.pts, { color: tone(col, -0.4), alpha: 0.55, w: F.w * 0.4, push: F.w * 0.25, dir: [dx, dy] });
+                    S.spray(q, F.pts, { color: tone(col, 0.4), alpha: 0.35, w: F.w * 0.3, push: F.w * 0.2, dir: [-dx, -dy] });
+                }
+                if (f2.tipD) {
+                    const gr = q.createRadialGradient(tp[0], tp[1], 0, tp[0], tp[1], F.l * f2.tipD);
+                    gr.addColorStop(0, S.rgba(PRID, 0.95));
+                    gr.addColorStop(1, S.rgba(PRID, 0));
+                    q.fillStyle = gr;
+                    q.fillRect(tp[0] - F.l, tp[1] - F.l, F.l * 2, F.l * 2);
+                }
+                // the bar: a dark mark of its own, its two ends at their own places on the vanes
+                if (f2.bar) {
+                    const [u0, u1] = f2.bar, sl = j(0.07), P = (arr, u, push) => {
+                        const k = Math.max(0, Math.min(N, Math.round(u * N))), s = F.shaft[k], p = arr[k];
+                        return [p[0] + (p[0] - s[0]) * push, p[1] + (p[1] - s[1]) * push];
+                    };
+                    const M = [P(F.out, u0 + sl, 0.6), P(F.out, Math.min(1, u1 + sl * 0.5 + j(0.03)), 0.6), P(F.inn, Math.min(1, u1 - sl + j(0.03)), 0.6), P(F.inn, u0 - sl, 0.6)];
+                    fill(q, S.curve(M.map(([x, y]) => [x + j(1.5), y + j(1.5)]), true, 4), S.rgba(BAR, 0.45));
+                    fill(q, S.curve(M, true, 4), S.rgba(BAR, 0.82 + j(0.08)));
+                    // the barbs show through its far edge, grey in the black
+                    q.strokeStyle = S.rgba(col, 0.35);
+                    q.lineWidth = 0.5;
+                    for (let k = 0; k < 6; k++) {
+                        const a0 = P(F.inn, u1 - sl - 0.02 * k, 0), a1 = P(F.out, u1 + sl * 0.5 - 0.02 * k, 0);
+                        q.beginPath();
+                        q.moveTo(a0[0], a0[1]);
+                        q.lineTo(a1[0], a1[1]);
+                        q.stroke();
+                    }
+                }
+                // barbs: hairlines from the shaft out to the vane's edge, leaning to the tip,
+                // spaced unevenly
+                if (F.l > 40) {
+                    q.lineWidth = 0.42;
+                    for (let u = 0.1 + r() * 0.03; u < 0.95; u += (2.6 + r() * 2.4) / F.l) {
+                        const k = Math.min(N, Math.round(u * N)), k2 = Math.min(N, k + 1), s = F.shaft[k];
+                        for (const arr of [F.out, F.inn]) {
+                            if (r() < 0.25) continue;
+                            const e = arr[k2];
+                            q.strokeStyle = r() < 0.5 ? 'rgba(255,255,255,0.13)' : 'rgba(10,10,22,0.16)';
+                            q.beginPath();
+                            q.moveTo(s[0], s[1]);
+                            q.quadraticCurveTo((s[0] + e[0]) / 2 + (e[1] - s[1]) * 0.12, (s[1] + e[1]) / 2 - (e[0] - s[0]) * 0.12, e[0], e[1]);
+                            q.stroke();
+                        }
+                    }
+                }
+                // a split in the vane: the barbs parted, a dark cleft with a light lip
+                if (f2.split) {
+                    const k = Math.round(f2.split * N), e = F.inn[k], s = F.shaft[Math.max(0, k - 2)], m = [s[0] + (e[0] - s[0]) * 0.35, s[1] + (e[1] - s[1]) * 0.35];
+                    S.ink(q, [e, m], { w: 1.6, color: tone(col, -0.55), alpha: 0.85, taper: [0.2, 1] });
+                    S.ink(q, [[e[0] - dx, e[1] - dy], [m[0] - dx, m[1] - dy]], { w: 0.7, color: tone(col, 0.5), alpha: 0.6, taper: [0.2, 1] });
+                }
+                bristle(q, F.pts, { dir: F.a + 0.5, v: 1, alpha: 0.22, size: 0.45 });
+                q.restore();
+                // the paler fringe at the tip; a worn tip has lost a few barbs
+                const tip = [...F.out.slice(Math.round(N * 0.8)), ...F.inn.slice(Math.round(N * 0.8)).reverse()];
+                S.ink(q, tip, { w: f2.small ? 0.7 : 1.1, color: '#eceef2', alpha: f2.tipD ? 0.25 : 0.42, taper: [1, 1] });
+                if (f2.wear) for (let k = 0; k < 3; k++) {
+                    const p = F.inn[N - 1 - k];
+                    q.fillStyle = 'rgba(24,22,32,0.8)';
+                    q.beginPath();
+                    q.arc(p[0], p[1], 1.6 + r(), 0, TAU);
+                    q.fill();
+                }
+                // the shaft, pale, curved with the feather; the vane's hairline contour
+                if (F.l > 50) S.ink(q, F.shaft.slice(0, N), { w: Math.max(0.7, F.w * 0.055), color: '#e8e6e0', alpha: 0.55, taper: [0.25, 1] });
+                q.strokeStyle = 'rgba(22,20,30,0.3)';
+                q.lineWidth = 0.55;
+                q.beginPath();
+                S.trace(q, F.pts);
+                q.stroke();
+            };
+            list.forEach(paintF);
+            // the bone of the leading edge, a charcoal line, and the marginal coverts over it
+            charcoal(q, S.curve([[-262, -14], [-170, -24], [-90, -27], [-20, -22], [14, -16]], false, 6), { w: 2.8, seed: seed + 'le' });
+            marg.forEach(paintF);
         });
     }
 
@@ -2129,5 +2215,297 @@ const Planes = (() => {
         return pieces;
     }
 
-    return { guitarPlanes, collage, marble, stencil, hatch, scrap, golpeador, newspaper, label, score, wallpaper, bottle, glass, wing, nail, head, stringSeg, ladder, bridge, rosette, moon, card, blackDisc, bristle, drift, GAUGE, facets, PAL, tone, shadeDir, lightDir, area, centroid, inPoly, split, clip, fill, rect, quad, walk, mark, scumble, edgeFrame, edgeTone, charcoal, ruled, comb, sand, dots, plane, tornEdge, sheetOutline, paper, type, wear };
+    // ------------------------------------------------------------------ loose pieces (round 8)
+    // The collage broken up (Tableau.planes.loose): every piece floats on its own, so every
+    // piece is a whole thing. A fragment is a cut card of painted board: its face (a plane of
+    // paint, with whatever was painted or pasted on it there, cut with it) and its thickness,
+    // a sliver of raw board on the side away from the light, with a hair of light along the
+    // cuts that face it. No halo, no ground: it stands off the night by its contour, its light
+    // and its depth. Ten true details of a cut fragment of a papier collé: 1 the board's
+    // thickness shows on one side, layered card with a paler core   2 the cut is straight with
+    // the knife's small steps, or broken where it was torn   3 a hair of light on the cuts
+    // facing the lamp   4 the plane's own scumble, ground showing where the brush ran dry
+    // 5 a second plane across a corner, its shadow on the first   6 charcoal lines that stop
+    // at the cut   7 a strip of paper pasted over the cut, its edge lifting   8 sand in the
+    // paint here and there   9 hatching in one corner   10 a pinhole or a nail hole.
+
+    // the board's thickness under a polygon: the side faces on the shadow side
+    function thick(g, pts, o = {}) {
+        const [dx, dy] = shadeDir(g), d = o.d ?? 3.4, ox = dx * d, oy = dy * d, col = o.color ?? '#2e241d';
+        fill(g, pts.map(([x, y]) => [x + ox, y + oy]), col);
+        for (let i = 0; i < pts.length; i++) {
+            const a = pts[i], b = pts[(i + 1) % pts.length];
+            fill(g, [a, b, [b[0] + ox, b[1] + oy], [a[0] + ox, a[1] + oy]], col);
+        }
+        // the card's layers: a paler core along the middle of the side
+        g.save();
+        g.strokeStyle = o.core ?? 'rgba(150,126,92,0.55)';
+        g.lineWidth = Math.max(0.5, d * 0.22);
+        g.beginPath();
+        S.trace(g, pts.map(([x, y]) => [x + ox * 0.55, y + oy * 0.55]));
+        g.stroke();
+        g.restore();
+    }
+    // a hair of light along the cuts that face the light (inside the polygon)
+    function cutLight(g, pts, o = {}) {
+        const [lx, ly] = lightDir(g);
+        g.save();
+        clip(g, pts);
+        g.lineWidth = o.w ?? 1.3;
+        for (let i = 0; i < pts.length; i++) {
+            const { a, b, n } = edgeFrame(pts, i), f = -(n[0] * lx + n[1] * ly);
+            if (f < 0.15) continue;
+            g.strokeStyle = `rgba(255,246,222,${((o.alpha ?? 0.5) * f).toFixed(2)})`;
+            g.beginPath();
+            g.moveTo(a[0] + n[0] * 0.7, a[1] + n[1] * 0.7);
+            g.lineTo(b[0] + n[0] * 0.7, b[1] + n[1] * 0.7);
+            g.stroke();
+        }
+        g.restore();
+    }
+    // A polygon cut by hand: corners eased, edges with the knife's small steps, one edge torn
+    // (torn: index or -1). n corners about (cx, cy), w × h, turned by rot; shape: 'shard',
+    // 'sliver', 'trap', 'penta', 'quad'.
+    function cut(cx, cy, w, h, rot, shape, seed, torn = -1) {
+        const r = Motion.rng('cut/' + seed), J = (a) => (r() - 0.5) * 2 * a;
+        let c;
+        if (shape === 'shard') c = [[-0.5, 0.42 + J(0.1)], [J(0.25), -0.5], [0.5, 0.2 + J(0.2)]];
+        else if (shape === 'sliver') c = [[-0.5, -0.12], [0.5, -0.5 + J(0.1)], [0.46, 0.04], [-0.48, 0.5]];
+        else if (shape === 'trap') c = [[-0.32 + J(0.08), -0.5], [0.3 + J(0.08), -0.5], [0.5, 0.5], [-0.5, 0.5]];
+        else if (shape === 'penta') c = [[-0.5, -0.16], [-0.1, -0.5], [0.5, -0.36 + J(0.1)], [0.36, 0.5], [-0.42, 0.42]];
+        else c = [[-0.5 + J(0.05), -0.5], [0.5, -0.5 + J(0.08)], [0.5 + J(0.05), 0.5], [-0.5, 0.5 + J(0.08)]];
+        const pts = S.xf(c.map(([x, y]) => [x * w + J(w * 0.03), y * h + J(h * 0.03)]), { x: cx, y: cy, rot });
+        const out = (torn >= 0 ? sheetOutline(pts, [torn % pts.length], seed, Math.min(w, h) * 0.05) : sheetOutline(pts, [], seed)).pts;
+        out.corners = pts; // the straight cut, for the edges' light and the contour
+        return out;
+    }
+    // A fragment: o.pts (its cut), color, tex/texO (as `plane`), lines, on(g, r) for what
+    // lies on it there (clipped to the cut), thick (the board, units).
+    function fragment(g, o) {
+        const seed = o.seed ?? 'frag', r = Motion.rng('fr/' + seed), pts = o.pts;
+        const cs = pts.corners ?? pts, col = o.color ?? PAL.ochre, nE = cs.length;
+        if (o.thick !== 0) thick(g, pts, { d: o.thick ?? 3.4, color: o.edge });
+        plane(g, pts, { color: col, colors: o.colors, under: o.under, seed, dir: o.dir ?? r() * Math.PI, tex: o.tex, texO: o.texO, lines: null, shade: null, light: null, cast: false, pent: o.pent });
+        // the tilt and the contour on the straight cut (its corners), stopped by the real cut
+        g.save();
+        clip(g, pts);
+        if (o.tones !== false) {
+            const sdv = S.SHADE_DIR;
+            let sh = 0, li = 0, best = -9, worst = 9;
+            for (let i = 0; i < nE; i++) {
+                const { n, L } = edgeFrame(cs, i), f = -(n[0] * sdv[0] + n[1] * sdv[1]) + (r() - 0.5) * 0.5;
+                if (L < 20) continue;
+                if (f > best) [best, sh] = [f, i];
+                if (f < worst) [worst, li] = [f, i];
+            }
+            edgeTone(g, cs, sh, { w: o.shadeW ?? 60, color: PAL.umberD, alpha: 0.55, seed });
+            edgeTone(g, cs, li, { w: o.lightW ?? 30, color: tone(col, 0.55), alpha: 0.4, seed: seed + 'l' });
+        }
+        const lines = o.lines === undefined ? 'some' : o.lines;
+        for (let i = 0; i < nE && lines; i++) {
+            if (!(lines === 'all' || (Array.isArray(lines) && lines.includes(i)) || (lines === 'some' && r() < 0.6))) continue;
+            ruled(g, cs[i], cs[(i + 1) % nE], { w: o.lw ?? 3.2, alpha: 0.9, seed: seed + 'e' + i, over: [0, 30] });
+        }
+        g.restore();
+        if (o.on) {
+            g.save();
+            clip(g, pts);
+            o.on(g, r);
+            g.restore();
+        }
+        cutLight(g, pts);
+    }
+    // a strip of a second plane laid across a fragment (call inside its clip): the line through
+    // p at angle a; the side n points to is painted, with its shadow on the first
+    function overPlane(g, poly, p, a, o = {}) {
+        const n = [Math.cos(a + Math.PI / 2), Math.sin(a + Math.PI / 2)];
+        const big = S.bbox(poly, 40), box = rect(big.x, big.y, big.w, big.h);
+        const [A] = split(box, p, n);
+        if (A.length < 3) return;
+        plane(g, A, { color: o.color ?? PAL.grey, seed: o.seed, dir: o.dir ?? a, tex: o.tex, texO: o.texO, lines: null, castD: 6, colors: o.colors });
+        const t = [Math.cos(a), Math.sin(a)];
+        ruled(g, [p[0] - t[0] * 900, p[1] - t[1] * 900], [p[0] + t[0] * 900, p[1] + t[1] * 900], { w: 2.8, seed: (o.seed ?? 1) + 'cut', over: [0, 0] });
+    }
+    // The light of the stratum over a piece, in the stratum's own units (source-atop): the
+    // middle round the axis a little warmer and lighter, the far ring dropped into umber, a
+    // slope of light from the top left across the whole.
+    function glow(g, box) {
+        g.save();
+        g.globalCompositeOperation = 'source-atop';
+        const rg = g.createRadialGradient(0, 0, 0, 0, 0, 1700);
+        rg.addColorStop(0.15, 'rgba(255,226,170,0.13)');
+        rg.addColorStop(0.36, 'rgba(255,226,170,0.04)');
+        rg.addColorStop(0.55, 'rgba(30,22,26,0)');
+        rg.addColorStop(0.8, 'rgba(30,22,26,0.26)');
+        rg.addColorStop(1, 'rgba(30,22,26,0.42)');
+        g.fillStyle = rg;
+        g.fillRect(box.x, box.y, box.w, box.h);
+        const lg = g.createLinearGradient(-1300, -900, 1300, 900);
+        lg.addColorStop(0, 'rgba(255,238,200,0.09)');
+        lg.addColorStop(0.5, 'rgba(255,238,200,0)');
+        lg.addColorStop(1, 'rgba(22,18,30,0.14)');
+        g.fillStyle = lg;
+        g.fillRect(box.x, box.y, box.w, box.h);
+        g.restore();
+    }
+    // A piece of the guitar's side: a run of picture 1's outline (from f0 to f1 of its length,
+    // scaled by s about the sound hole, placed at x, y turned rot), cut w deep towards the
+    // inside, combed, with the binding and the purfling along the curve.
+    function rim(g, o) {
+        const s = o.s ?? 1, out = Guitar.outline(s), n = out.length, i0 = Math.floor(o.f0 * n), i1 = Math.floor(o.f1 * n);
+        const run = [];
+        for (let i = i0; i <= i1; i++) run.push(out[i % n]);
+        const c = [0, 135 * s], w = o.w ?? 46;
+        const inner = run.map((p, k) => {
+            const u = k / (run.length - 1), f = 1 - 0.55 * Math.pow(Math.abs(2 * u - 1), 3), d = Math.hypot(p[0] - c[0], p[1] - c[1]) || 1;
+            return [p[0] + ((c[0] - p[0]) / d) * w * f, p[1] + ((c[1] - p[1]) / d) * w * f];
+        });
+        const m = centroid(run), poly0 = [...run, ...inner.reverse()].map(([x, y]) => [x - m[0], y - m[1]]);
+        const pts = S.xf(poly0, { x: o.x, y: o.y, rot: o.rot ?? 0 }), edge = S.xf(run.map(([x, y]) => [x - m[0], y - m[1]]), { x: o.x, y: o.y, rot: o.rot ?? 0 });
+        fragment(g, {
+            pts, seed: o.seed, color: o.color ?? PAL.ochre, colors: [PAL.ochreL, PAL.ochre, PAL.ochre, PAL.ochreD], dir: (o.rot ?? 0) + 1.57, tex: 'comb', texO: { dir: (o.rot ?? 0) + Math.PI / 2, color: PAL.umber, alpha: 0.55, pitch: 2.8, knots: 0 }, lines: null, tones: false,
+            on: (q) => {
+                // the binding: a dark rim of wood, and the purfling's hairlines inside it
+                S.ink(q, edge, { w: 9, color: PAL.burnt, taper: [0, 0] });
+                S.ink(q, edge, { w: 2.4, color: '#e9dcbc', alpha: 0.8, taper: [0, 0] });
+                const sh = edge.map(([x, y], k) => {
+                    const p = pts[k], qq = pts[pts.length - 1 - k] ?? p;
+                    return [x + (qq[0] - x) * 0.18, y + (qq[1] - y) * 0.18];
+                });
+                S.ink(q, sh, { w: 1, color: PAL.black, alpha: 0.7, taper: [0, 0] });
+            },
+        });
+        charcoal(g, edge, { w: 3, seed: o.seed + 'c' });
+    }
+    // One feather fallen from the wing: a curved shaft with its bare quill, two vanes (the outer
+    // narrower), barbs, a split, a paler fringe; kind 'primary' (slate, dark tip) or 'covert'.
+    function quill(g, o) {
+        const seed = o.seed ?? 'quill', r = Motion.rng('qu/' + seed), [dx, dy] = shadeDir(g);
+        const l = o.l ?? 120, w = o.w ?? 20, a = o.a ?? 0, bend = o.bend ?? 0.25, N = 18, prim = o.kind !== 'covert';
+        const sh = [];
+        let x = o.x, y = o.y;
+        for (let k = 0; k <= N; k++) {
+            const an = a + bend * (k / N) * (k / N);
+            sh.push([x, y, an]);
+            x += (Math.cos(an) * l) / N;
+            y += (Math.sin(an) * l) / N;
+        }
+        const q0 = 0.22, out = [], inn = [];
+        for (let k = 0; k <= N; k++) {
+            const u = k / N, [px, py, an] = sh[k], nx = Math.sin(an), ny = -Math.cos(an), v = Math.max(0, (u - q0) / (1 - q0));
+            const tip = v < 0.75 ? 1 : Math.sqrt(Math.max(0, 1 - Math.pow((v - 0.75) / 0.25, 2))), base = Math.min(1, v * 4);
+            out.push([px + nx * w * 0.32 * tip * base * (prim && v > 0.55 ? 0.7 : 1), py + ny * w * 0.32 * tip * base * (prim && v > 0.55 ? 0.7 : 1)]);
+            inn.push([px - nx * w * 0.68 * tip * base, py - ny * w * 0.68 * tip * base]);
+        }
+        const pts = S.curve([...out.slice(Math.floor(q0 * N)), ...inn.slice(Math.floor(q0 * N)).reverse()], true, 2);
+        const col = o.color ?? (prim ? '#6a6f79' : '#a2a8b2');
+        g.save();
+        g.lineJoin = 'round';
+        g.strokeStyle = 'rgba(21,20,27,0.85)';
+        g.lineWidth = 2.6;
+        g.beginPath();
+        S.trace(g, pts);
+        g.stroke();
+        g.restore();
+        g.save();
+        clip(g, pts);
+        fill(g, pts, col);
+        S.spray(g, pts, { color: tone(col, -0.4), alpha: 0.5, w: w * 0.4, push: w * 0.25, dir: [dx, dy] });
+        S.spray(g, pts, { color: tone(col, 0.42), alpha: 0.4, w: w * 0.3, push: w * 0.2, dir: [-dx, -dy] });
+        const tp = sh[N];
+        const gr = g.createRadialGradient(tp[0], tp[1], 0, tp[0], tp[1], l * (prim ? 0.45 : 0.2));
+        gr.addColorStop(0, S.rgba(prim ? '#25262c' : '#4a4d55', prim ? 0.9 : 0.5));
+        gr.addColorStop(1, 'rgba(37,38,44,0)');
+        g.fillStyle = gr;
+        g.fillRect(tp[0] - l, tp[1] - l, l * 2, l * 2);
+        if (o.bar) {
+            const k0 = Math.round(N * 0.66), k1 = Math.round(N * 0.82);
+            fill(g, [out[k0], out[k1], inn[k1 + 1] ?? inn[k1], inn[k0 - 1]].map(([px, py], i) => [px + (i < 2 ? 1 : -1) * 3 * Math.sin(sh[k0][2]), py - (i < 2 ? 1 : -1) * 3 * Math.cos(sh[k0][2])]), 'rgba(24,23,30,0.88)');
+        }
+        g.lineWidth = 0.45;
+        for (let k = Math.floor(q0 * N) + 1; k < N - 1; k++) {
+            for (let t = 0; t < 1; t += 0.34) {
+                const s0 = sh[k], s1 = sh[k + 1], px = s0[0] + (s1[0] - s0[0]) * t, py = s0[1] + (s1[1] - s0[1]) * t;
+                for (const arr of [out, inn]) {
+                    const e = arr[Math.min(N, k + 2)];
+                    g.strokeStyle = r() < 0.5 ? 'rgba(255,255,255,0.15)' : 'rgba(12,12,22,0.18)';
+                    g.beginPath();
+                    g.moveTo(px, py);
+                    g.quadraticCurveTo((px + e[0]) / 2 + (e[1] - py) * 0.1, (py + e[1]) / 2 - (e[0] - px) * 0.1, e[0], e[1]);
+                    g.stroke();
+                }
+            }
+        }
+        // the split: barbs parted on the inner vane
+        const ks = Math.floor(N * (0.5 + r() * 0.2)), e = inn[ks], s0 = sh[ks - 2];
+        S.ink(g, [e, [s0[0] + (e[0] - s0[0]) * 0.3, s0[1] + (e[1] - s0[1]) * 0.3]], { w: 1.5, color: '#202128', alpha: 0.85, taper: [0.2, 1] });
+        bristle(g, pts, { dir: a + 0.5, v: 1, alpha: 0.22, size: 0.45 });
+        g.restore();
+        S.ink(g, [...out.slice(N - 3), ...inn.slice(N - 3).reverse()], { w: 1, color: '#eceef2', alpha: 0.4, taper: [1, 1] });
+        // the bare quill and the shaft, horn-pale, a hair of light
+        S.ink(g, sh.slice(0, N).map(([px, py]) => [px, py]), { w: Math.max(1, w * 0.08), color: '#d9d2c2', alpha: 0.9, taper: [0.9, 0.2] });
+        S.ink(g, sh.slice(0, Math.floor(q0 * N) + 1).map(([px, py]) => [px - dx * 0.8, py - dy * 0.8]), { w: 0.7, color: '#fffaf0', alpha: 0.7, taper: [0.5, 0.5] });
+    }
+    // One tuning peg off the head: a turned shaft, its collar and a pear-shaped knob, seen
+    // from the side; the string's hole drilled through the shaft. Anchor: the shaft's end.
+    function peg(g, o) {
+        const seed = o.seed ?? 'peg';
+        local(g, o, (q) => {
+            const shaft = [[0, -5.5], [66, -7], [66, 7], [0, 5.5]];
+            thick(q, shaft, { d: 2 });
+            plane(q, shaft, { color: PAL.ochre, dir: 0, seed: seed + 'sh', lines: 'all', over: [0, 3], shade: null, light: null, cast: false, top: 0.05 });
+            q.fillStyle = '#1a120e';
+            q.beginPath();
+            q.arc(18, 0, 2.6, 0, TAU);
+            q.fill();
+            const col = [[66, -10.5], [78, -12.5], [78, 12.5], [66, 10.5]];
+            plane(q, col, { color: PAL.ochreD, dir: 1.57, seed: seed + 'co', lines: 'all', over: [0, 2], shade: null, light: null, castD: 4 });
+            const knob = S.curve([[78, -12], [96, -19], [118, -15], [124, 0], [118, 15], [96, 19], [78, 12]], true, 5);
+            thick(q, knob, { d: 2.4 });
+            plane(q, knob, { color: PAL.ochreL, dir: 0.2, seed: seed + 'kn', lines: null, castD: 5, shadeW: 18, lightW: 12, tex: 'comb', texO: { dir: 0.05, color: PAL.umber, alpha: 0.4, pitch: 2.2, knots: 0 } });
+            charcoal(q, [...knob, knob[0]], { w: 2.2, seed: seed + 'knc' });
+            // wear: the thumb's polish on the knob, a nick
+            q.fillStyle = 'rgba(255,244,214,0.35)';
+            q.beginPath();
+            q.ellipse(104, -6, 9, 4, -0.2, 0, TAU);
+            q.fill();
+            q.fillStyle = 'rgba(40,24,14,0.7)';
+            q.fillRect(112, 7, 3, 1.6);
+        });
+    }
+    // A broken string, curled: the bass wound with its fine slant, the treble a smooth nylon;
+    // one end with its loop as it was tied at the bridge, the other frayed where it broke.
+    function coil(g, o) {
+        const seed = o.seed ?? 'coil', r = Motion.rng('coil/' + seed), i = o.i ?? 1, R = o.r ?? 30, cx = o.x, cy = o.y;
+        const pts = [];
+        for (let k = 0; k <= 120; k++) {
+            const t = k / 120, a = (o.a ?? 0) + t * TAU * 2.3, rr = R * (0.55 + 0.45 * t) * (1 + 0.06 * Math.sin(t * 17 + r() * 0.3));
+            pts.push([cx + Math.cos(a) * rr * 1.15, cy + Math.sin(a) * rr * 0.8 + t * 10]);
+        }
+        const tail = [pts[pts.length - 1], [pts[pts.length - 1][0] + 30 + r() * 20, pts[pts.length - 1][1] + 16 + r() * 10]];
+        for (let k = 0; k < pts.length - 1; k++) stringSeg(g, pts[k], pts[k + 1], i, { k: o.k ?? 1.3 });
+        stringSeg(g, tail[0], tail[1], i, { k: o.k ?? 1.3 });
+        // the loop at the start, the frayed end
+        S.ink(g, S.ellipse(pts[0][0] - 5, pts[0][1], 6, 4, 14).concat([S.ellipse(pts[0][0] - 5, pts[0][1], 6, 4, 14)[0]]), { w: 2, color: '#d8d0bc', taper: [0, 0] });
+        for (let k = 0; k < 4; k++) S.ink(g, [tail[1], [tail[1][0] + 4 + r() * 5, tail[1][1] + (r() - 0.5) * 7]], { w: 0.6, color: '#d8d0bc', taper: [1, 0.2] });
+    }
+    // Lettering cut out of the newspaper's headline: a scrap of newsprint with big capitals,
+    // their tops or feet cut off by the scissors.
+    function headline(g, o) {
+        const seed = o.seed ?? 'hl', w = o.w ?? 150, h = o.h ?? 64;
+        local(g, o, (q) => {
+            const corners = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]];
+            thick(q, corners, { d: 1.2, color: '#3a3024' });
+            paper(q, {
+                corners, torn: o.torn ?? [1], seed, stock: PAL.news, amp: 4, paste: 1, fox: 10,
+                print: (p) => {
+                    type(p, o.text ?? 'LUNA', o.dx ?? 0, h * 0.3 + (o.dy ?? 0), { font: o.font ?? ANTON, size: o.size ?? h * 0.95, align: 'center', spacing: 2 });
+                    if (o.sub) type(p, o.sub, 0, -h * 0.3, { font: FELL, size: 8, align: 'center', spacing: 1.4 });
+                    wear(p, { x: -w / 2, y: -h / 2, w, h }, { seed, stock: PAL.news, every: 26 });
+                },
+            });
+        });
+    }
+
+    return { thick, cutLight, cut, fragment, overPlane, glow, rim, quill, peg, coil, headline, guitarPlanes, collage, marble, stencil, hatch, scrap, golpeador, newspaper, label, score, wallpaper, bottle, glass, wing, nail, head, stringSeg, ladder, bridge, rosette, moon, card, blackDisc, bristle, drift, GAUGE, facets, PAL, tone, shadeDir, lightDir, area, centroid, inPoly, split, clip, fill, rect, quad, walk, mark, scumble, edgeFrame, edgeTone, charcoal, ruled, comb, sand, dots, plane, tornEdge, sheetOutline, paper, type, wear };
 })();

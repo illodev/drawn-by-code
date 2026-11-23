@@ -1288,7 +1288,19 @@ const Green = (() => {
         }
         pass('rgba(2,16,10,0.45)', 1.25, 0, R * 0.025, R * 0.035); // its shadow: the crystal has a thickness
         pass('rgba(150,206,188,0.55)', 1.6, glow ? R * 0.08 : 0);
-        pass('rgba(232,246,240,0.95)', 1, 0);
+        pass('rgba(226,244,236,0.9)', 1, 0);
+        // each arm is a prism: a ridge down its middle, the side away from the moon a shade
+        // cooler, glints of ice along it, a frozen bead here and there
+        for (const A of arms) {
+            const c = Math.cos(A.a), sn = Math.sin(A.a), nx = -sn, ny = c, sh = nx * -0.6 + ny * -0.66 > 0 ? -1 : 1;
+            taper(g, [[x + c * R * 0.16 + nx * sh * R * 0.012, y + sn * R * 0.16 + ny * sh * R * 0.012], [x + c * A.len * 0.92 + nx * sh * R * 0.004, y + sn * A.len * 0.92 + ny * sh * R * 0.004]], R * 0.028, R * 0.006, 'rgba(120,176,158,0.42)');
+            line(g, [[x + c * R * 0.17, y + sn * R * 0.17], [x + c * A.len * 0.95, y + sn * A.len * 0.95]], Math.max(0.4, R * 0.007), 'rgba(250,255,253,0.75)');
+            for (let i = 0; i < 4; i++) {
+                const u = (0.2 + rr() * 0.75) * A.len;
+                g.fillStyle = `rgba(255,255,255,${0.5 + rr() * 0.5})`;
+                disc(g, x + c * u + nx * (rr() - 0.5) * R * 0.05, y + sn * u + ny * (rr() - 0.5) * R * 0.05, Math.max(0.4, R * (0.008 + rr() * 0.012)));
+            }
+        }
         // ridges on the plate, and glints where the facets face the moon
         g.strokeStyle = 'rgba(120,170,150,0.7)';
         g.lineWidth = Math.max(0.4, R * 0.008);
@@ -1318,8 +1330,14 @@ const Green = (() => {
         g.save();
         g.globalAlpha *= alpha;
         softly(g, 3, (q) => {
-            q.fillStyle = 'rgba(3,14,10,0.92)';
+            // the body dark but modelled: a moonlit back, a black belly
+            const bg = q.createLinearGradient(...P(0, -112), ...P(0, 76));
+            bg.addColorStop(0, 'rgba(34,66,54,0.95)');
+            bg.addColorStop(0.35, 'rgba(10,28,20,0.94)');
+            bg.addColorStop(1, 'rgba(2,8,5,0.95)');
+            q.fillStyle = bg;
             poly(q, body);
+            q.fillStyle = 'rgba(3,14,10,0.92)';
             poly(q, tail);
             // fins: the spiny dorsal, the soft dorsal, the anal, the pelvic, the pectoral
             const fin = (base, out, col) => {
@@ -1341,20 +1359,33 @@ const Green = (() => {
             const a = -0.9 + i * 0.22, b = P(-170, -6 + i * 2), t = P(-170 + Math.cos(Math.PI + a * 0.4) * 70, -6 + Math.sin(a) * 90);
             line(g, [b, t], 1 * s, 'rgba(110,160,140,0.3)');
         }
-        // the scales: rows of small arcs, silver where the moon catches them
+        // the scales: rows that follow the body, smaller towards the head and the tail, each
+        // its own tone (silver where the moon catches the back, lost in the dark of the
+        // belly), some missing, a few turned to the light as a fleck; a broad sheen along the
+        // upper flank where the body turns
         g.save();
         g.beginPath();
         S.trace(g, body);
         g.clip();
-        for (let row = -6; row <= 5; row++) {
-            for (let col = -9; col <= 9; col++) {
-                const u = col * 19 + (row % 2) * 9.5, v = row * 13 + u * 0.06;
-                const p = P(u, v), lit = S.smooth(-90, -20, v) * (0.35 + 0.65 * r());
-                g.strokeStyle = `rgba(${150 + lit * 80},${200 + lit * 40},${180 + lit * 50},${0.1 + lit * 0.32})`;
-                g.lineWidth = 1 * s;
+        softly(g, 10, (q) => {
+            q.fillStyle = 'rgba(120,176,150,0.16)';
+            poly(q, S.curve([[170, -40], [80, -80], [-40, -82], [-140, -30], [-60, -56], [60, -56]], true, 8).map(([u, v]) => P(u, v)));
+        });
+        for (let row = -7; row <= 6; row++) {
+            for (let col = -11; col <= 11; col++) {
+                const u = col * 16 + (row % 2 ? 8 : 0) + (r() - 0.5) * 3, v = row * 11 + u * 0.05 + (r() - 0.5) * 2;
+                const taperU = 1 - Math.pow(Math.abs(u - 20) / 200, 2);
+                if (taperU <= 0.15 || r() < 0.14) continue;
+                const p = P(u, v), lit = S.smooth(-10, -95, v) * (0.4 + 0.6 * r()), sz = (5.5 + 3 * taperU) * s;
+                g.strokeStyle = `rgba(${110 + lit * 120},${160 + lit * 80},${140 + lit * 90},${(0.16 + lit * 0.4 + r() * 0.1).toFixed(3)})`;
+                g.lineWidth = (0.6 + r() * 0.7) * s;
                 g.beginPath();
-                g.arc(p[0], p[1], 8 * s, rot + Math.PI * 0.5, rot + Math.PI * 1.5);
+                g.arc(p[0], p[1], sz, rot + Math.PI * (0.55 + r() * 0.1), rot + Math.PI * (1.4 + r() * 0.1));
                 g.stroke();
+                if (r() < 0.05 + lit * 0.12) {
+                    g.fillStyle = `rgba(214,240,228,${0.3 + r() * 0.4})`;
+                    disc(g, p[0] - Math.cos(rot) * sz * 0.5, p[1] - Math.sin(rot) * sz * 0.5, sz * 0.35);
+                }
             }
         }
         // the lateral line, the gill cover, a cool light along the back
@@ -1397,23 +1428,25 @@ const Green = (() => {
         const tone = (a, b, i) => {
             const dx = (hgt(a + e, b) - hgt(a - e, b)) / (2 * e * Wd), dy = (hgt(a, b + e) - hgt(a, b - e)) / (2 * e * H);
             const nl = Math.hypot(dx, dy, 1), lam = (-dx * LN[0] - dy * LN[1] + LN[2]) / nl;
-            let t = 0.12 + lam * 1.05 + (S.hashI(i, tier, 3, sd) - 0.5) * 0.09 + 0.05 * S.noise2(a * 3 + i, b * 5, sd);
-            t -= 0.08 * S.smooth(0.5, 0.9, S.noise2(a * NA * 0.7, b * 1.4, sd + 2)) * (1 - b); // damp streaks from the head
-            if (b < 0.06) t -= 0.18 * (1 - b / 0.06); // the yard's shadow on the head
+            let t = 0.2 + lam * 1.35 + (S.hashI(i, tier, 3, sd) - 0.5) * 0.06 + 0.04 * S.noise2(a * 3 + i, b * 5, sd);
+            t -= 0.07 * S.smooth(0.5, 0.9, S.noise2(a * NA * 0.7, b * 1.4, sd + 2)) * (1 - b); // damp streaks from the head
+            t -= 0.16 * S.smooth(0.1, 0, b); // the yard's shadow on the head
             return S.clamp(t, 0.02, 0.98);
         };
         const fill = (t, alpha = 0.92) => {
             SAIL(t, rgb);
             return `rgba(${rgb[0] | 0},${rgb[1] | 0},${rgb[2] | 0},${alpha})`;
         };
-        // the cloths, row by row, each quad lit from its own normal
+        // the cloths: each a strip from head to foot, its tone down it from the surface's own
+        // normal (a gradient along the strip), a step of tone from one cloth to the next
         for (let i = 0; i < NA; i++) {
-            const a0 = i / NA, a1 = (i + 1) / NA;
-            for (let j = 0; j < NB; j++) {
-                const b0 = j / NB, b1 = (j + 1) / NB;
-                q.fillStyle = fill(tone((a0 + a1) / 2, (b0 + b1) / 2, i));
-                poly(q, [P(a0, b0), P(a1 + 0.004, b0), P(a1 + 0.004, b1 + 0.004), P(a0, b1 + 0.004)]);
-            }
+            const a0 = i / NA, a1 = (i + 1) / NA, am = (a0 + a1) / 2, side = [];
+            for (let j = 0; j <= NB; j++) side.push(P(a0, j / NB));
+            for (let j = NB; j >= 0; j--) side.push(P(a1 + 0.003, j / NB));
+            const g0 = P(am, 0), g1 = P(am, 1), gr = q.createLinearGradient(g0[0], g0[1], g1[0], g1[1]);
+            for (let j = 0; j <= 6; j++) gr.addColorStop(j / 6, fill(tone(am, j / 6, i)));
+            q.fillStyle = gr;
+            poly(q, side);
         }
         const hair = (pts, w, c) => line(q, pts, w * s, c);
         const along = (a, b0, b1, n = 10) => Array.from({ length: n + 1 }, (_, k) => P(a, b0 + ((b1 - b0) * k) / n));
@@ -1509,9 +1542,23 @@ const Green = (() => {
                 }
             }
             // jibs
+            // jibs: staysails set on the stays, lit at the luff, darker to the leech, their
+            // cloths running square to the leech, a little hollow cut in the foot
             for (let i = 0; i < 2; i++) {
-                q.fillStyle = 'rgba(180,214,200,0.55)';
-                poly(q, [Q(60, -300 + i * 60), Q(280 - i * 40, -104 + i * 18), Q(170 - i * 20, -80 + i * 10)]);
+                const A = [60, -300 + i * 60], B = [280 - i * 40, -104 + i * 18], C = [170 - i * 20, -80 + i * 10];
+                const foot = bowed(B, C, -0.06, 8), pts = [A, ...foot];
+                const gr = q.createLinearGradient(...Q((A[0] + B[0]) / 2, (A[1] + B[1]) / 2), ...Q(C[0] - 30, C[1] - 60));
+                gr.addColorStop(0, 'rgba(226,242,230,0.9)');
+                gr.addColorStop(0.5, 'rgba(150,192,170,0.85)');
+                gr.addColorStop(1, 'rgba(60,100,84,0.85)');
+                q.fillStyle = gr;
+                poly(q, pts.map(([u, v]) => Q(u, v)));
+                for (let k = 1; k < 6; k++) {
+                    const t = k / 6, la = [A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t], lc = [A[0] + (C[0] - A[0]) * t, A[1] + (C[1] - A[1]) * t];
+                    line(q, [Q(...la), Q(lc[0] + (la[0] - lc[0]) * 0.02, lc[1])], 0.6 * s, 'rgba(10,30,20,0.3)');
+                }
+                line(q, [A, B].map(([u, v]) => Q(u, v)), 1.2 * s, 'rgba(6,20,14,0.7)');
+                line(q, [A, C].map(([u, v]) => Q(u, v)), 1.4 * s, 'rgba(6,20,14,0.6)');
             }
             // rigging: shrouds and stays, hairlines
             q.strokeStyle = 'rgba(16,40,30,0.6)';
@@ -1535,6 +1582,43 @@ const Green = (() => {
         };
         g.save();
         g.globalAlpha *= alpha;
+        if (o.sea) {
+            // its own tongue of sea (a loose piece has no sea under it): black-green water
+            // thinning to points at both ends, the sky's glow on its far half, the swell in
+            // short moonlit strokes, longer and brighter in the moon's path, a few crests
+            const sea = [];
+            for (let i = 0; i <= 48; i++) {
+                const t = i / 48, u = -330 + 680 * t, th = Math.pow(Math.sin(Math.PI * t), 0.7);
+                sea.push([u, -10 * th + 3 * Math.sin(t * 17 + seed)]);
+            }
+            for (let i = 48; i >= 0; i--) {
+                const t = i / 48, u = -330 + 680 * t, th = Math.pow(Math.sin(Math.PI * t), 0.9);
+                sea.push([u, (64 + 26 * Math.sin(t * 3 + seed)) * th + 4 * Math.sin(t * 23)]);
+            }
+            const SP = sea.map(([u, v]) => P(u, v));
+            softly(g, 5 * s, (q) => {
+                const gr = q.createLinearGradient(...P(0, -10), ...P(0, 90));
+                gr.addColorStop(0, '#1d4a3a');
+                gr.addColorStop(0.3, '#0b2a1e');
+                gr.addColorStop(1, '#03110b');
+                q.fillStyle = gr;
+                poly(q, SP);
+            });
+            g.save();
+            g.beginPath();
+            S.trace(g, SP);
+            g.clip();
+            for (let i = 0; i < 150; i++) {
+                const v = r() * 80, path = Math.exp(-Math.pow((r() * 680 - 340 - 40) / 140, 2)), u = -320 + r() * 650, l = (6 + r() * 26) * (1 + path);
+                const a = (0.1 + r() * 0.3) * (0.4 + path) * (1 - v / 110);
+                line(g, [P(u, v), P(u + l * 0.5, v - 1.2 - r()), P(u + l, v)], (0.7 + r() * 1.3) * s, `rgba(${150 + r() * 60},${200 + r() * 40},${170 + r() * 40},${a.toFixed(3)})`);
+            }
+            for (let i = 0; i < 14; i++) {
+                const u = -260 + r() * 540, v = 6 + r() * 50;
+                line(g, [P(u, v), P(u + 4 + r() * 8, v - 2)], 1.4 * s, 'rgba(232,248,240,0.7)');
+            }
+            g.restore();
+        }
         softly(g, 1.2, (q) => paint(q, false));
         // the reflection, broken into slices by the swell
         const sh = canvas(g.canvas.width, g.canvas.height), q = sh.getContext('2d');
@@ -1544,6 +1628,7 @@ const Green = (() => {
         g.save();
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.globalAlpha *= 0.45;
+        if (o.sea) g.globalCompositeOperation = 'source-atop';
         const y0 = m.d * y + m.f, H = 360 * s * kx;
         for (let yy = 0; yy < H; yy += Math.max(2, 4 * s * kx)) {
             const off = Math.sin(yy * 0.13 + seed) * 6 * s * kx * (0.3 + yy / H) + (r() - 0.5) * 4 * s * kx;
@@ -1557,19 +1642,53 @@ const Green = (() => {
     function horse(g, o = {}) {
         const { x = 0, y = 0, s = 1, seed = 1, alpha = 0.8, flip = false, wind = -1 } = o, r = Motion.rng('horse' + seed), k = flip ? -1 : 1;
         const P = (u, v) => [x + u * s * k, y + v * s];
-        const outline = S.curve([
+        const OUT = [
             [92, -176], [70, -204], [40, -214], [0, -206], [-40, -204], [-78, -212], [-104, -196], [-112, -168], // back, croup
             [-106, -132], [-96, -110], [-104, -78], [-110, -46], [-104, -22], [-100, 0], [-86, 0], [-88, -24], [-84, -52], [-78, -82], [-66, -110], // hind leg (far one behind)
             [-50, -120], [-10, -114], [30, -116], [52, -120], // belly
             [56, -96], [58, -54], [60, -22], [62, 0], [76, 0], [74, -24], [74, -58], [78, -100], [82, -130], // foreleg
             [96, -150], [108, -186], [118, -222], [136, -250], [150, -256], [168, -236], [184, -212], [190, -198], [180, -190], [164, -196], [144, -214], [126, -206], [112, -178], [104, -160],
-        ], true, 6).map(([u, v]) => P(u, v));
-        const far = [
-            S.curve([[-74, -110], [-82, -76], [-76, -48], [-70, -22], [-68, 0], [-56, 0], [-60, -24], [-62, -56], [-56, -100]], true, 6),
-            S.curve([[44, -120], [40, -84], [36, -50], [34, -22], [32, 0], [44, 0], [46, -22], [50, -56], [58, -110]], true, 6),
-        ].map((p) => p.map(([u, v]) => P(u, v)));
+        ];
+        const FAR = [
+            [[-74, -110], [-82, -76], [-76, -48], [-70, -22], [-68, 0], [-56, 0], [-60, -24], [-62, -56], [-56, -100]],
+            [[44, -120], [40, -84], [36, -50], [34, -22], [32, 0], [44, 0], [46, -22], [50, -56], [58, -110]],
+        ];
+        const outline = S.curve(OUT, true, 6).map(([u, v]) => P(u, v));
+        const far = FAR.map((f) => S.curve(f, true, 6).map(([u, v]) => P(u, v)));
         g.save();
         g.globalAlpha *= alpha;
+        if (o.form) {
+            // round 8: the ghost as a lit volume in the brush manner (a body that turns from the
+            // moon: barrel, haunch, shoulder, the neck's crest), the far legs a step back in shade
+            const res = Math.max(0.75, Math.round(S.pxScale(g) * s * 4) / 4), mk = (key, pts, ramp, marks) => memo(`horse${seed}${key}@${res}`, () => S.form({
+                box: S.bbox(pts.flat(), 12), res, seed: 'horse' + seed + key, light: S.LIGHT, relief: 0.38,
+                mask: (q) => pts.forEach((p) => poly(q, S.curve(p, true, 6))), ramp, soft: 0.9,
+                mottle: { amp: 0.09, freq: 0.02 }, stroke: { amp: 0.05, freq: 0.05, tone: 6 }, edge: { rough: 1.6, freq: 0.25, amp: 0.8 }, marks,
+            }));
+            const HORSE = [[0, '#0b2219'], [0.25, '#204636'], [0.45, '#467664'], [0.62, '#73a490'], [0.78, '#a5cbb9'], [0.9, '#cde6da'], [1, '#eef8f2']];
+            const farSp = mk('far', FAR, HORSE.map(([t, c]) => [t, S.mix(c, '#06140e', 0.45)]));
+            const bodySp = mk('body', [OUT], HORSE, (q) => {
+                const rr = Motion.rng('horsemarks' + seed);
+                // the muscles under the coat: the shoulder's blade, the barrel's ribs, the
+                // haunch, the gaskin, the crest of the neck, the jaw; dapples on the croup
+                const groups = [[[-100, -186], [-80, -150], [-86, -118]], [[-60, -196], [-30, -170], [-40, -130]], [[74, -170], [86, -142], [78, -118]], [[100, -192], [124, -224], [146, -246]], [[-30, -162], [10, -150], [40, -152]], [[-20, -150], [10, -140], [36, -142]], [[150, -232], [170, -214], [180, -204]], [[-96, -110], [-92, -70], [-100, -30]], [[64, -110], [66, -70], [68, -30]]];
+                for (const [i, gp] of groups.entries()) {
+                    S.dab(q, S.curve(gp, false, 6), { w: 6 + rr() * 6, color: '#000', alpha: 0.28, bristles: 5, seed: 'hm' + i, dry: 0.5, taper: 0.7 });
+                    S.dab(q, S.curve(gp, false, 6).map(([u, v]) => [u - 4, v - 5]), { w: 4 + rr() * 4, color: '#fff', alpha: 0.22, bristles: 5, seed: 'hl' + i, dry: 0.5, taper: 0.7 });
+                }
+                for (let i = 0; i < 26; i++) {
+                    const u = -100 + rr() * 90, v = -205 + rr() * 50;
+                    q.fillStyle = `rgba(255,255,255,${0.1 + rr() * 0.14})`;
+                    oval(q, u, v, 3 + rr() * 5, 2 + rr() * 3, rr() * 3);
+                }
+                for (let i = 0; i < 90; i++) {
+                    const u = -110 + rr() * 290, v = -250 + rr() * 140, a = -0.2 + (rr() - 0.5) * 0.6;
+                    line(q, [[u, v], [u + Math.cos(a) * 8, v + Math.sin(a) * 8]], 0.7, rr() < 0.5 ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)');
+                }
+            });
+            put(g, farSp, x, y, s, { fx: k });
+            put(g, bodySp, x, y, s, { fx: k });
+        } else {
         softly(g, 1.6, (q) => {
             q.fillStyle = 'rgba(120,168,150,0.55)';
             for (const f of far) poly(q, f);
@@ -1600,6 +1719,7 @@ const Green = (() => {
             line(g, S.curve(seg, false, 6).map(([u, v]) => P(u, v)), 1.4 * s, 'rgba(40,84,66,0.4)');
         }
         g.restore();
+        }
         g.fillStyle = 'rgba(6,20,14,0.85)';
         disc(g, ...P(158, -238), 3.2 * s);
         oval(g, ...P(185, -204), 2.4 * s, 1.6 * s, 0.5);

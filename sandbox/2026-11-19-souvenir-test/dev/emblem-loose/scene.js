@@ -26,6 +26,20 @@ Motion.scene({
     fonts: FONTS,
     setup(env) {
         const layers = [...Tableau.emblem.loose(Z0), ...Tableau.lemons.loose(Z0 + GAP)].map((l) => ({ far: [0.2, 0.36], ...l }));
+        // paint seconds: every piece over 1 s, and the running total of each stratum
+        const cost = { emblem: 0, lemons: 0 };
+        for (const l of layers) {
+            const paint = l.paint, side = l.id.startsWith('emblem') ? 'emblem' : 'lemons';
+            l.paint = (g, res) => {
+                const t0 = performance.now();
+                paint(g, res);
+                const dt = (performance.now() - t0) / 1000;
+                cost[side] += dt;
+                if (dt > 1) console.log(`paint ${l.id} ${dt.toFixed(2)} s`);
+                console.log(`paint-total ${side} ${cost[side].toFixed(1)} s`);
+            };
+        }
+        console.log(`pieces: emblem ${layers.filter((l) => l.id.startsWith('emblem')).length}, lemons ${layers.filter((l) => l.id.startsWith('lemons')).length}`);
         return { rig: Souvenir.rig(env, layers) };
     },
     draw(g, t, env) {

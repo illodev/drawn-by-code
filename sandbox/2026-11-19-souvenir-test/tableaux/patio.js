@@ -369,3 +369,287 @@ Tableau.patio.stratum = (z) => {
         }, { res: 0.8 }),
     ];
 };
+
+// The patio as LOOSE pieces (round 8): every thing its own layer floating at its own depth in
+// the slab z ± 280, turning slowly; no sheet, no ground, no wall. All of it in the dawn light
+// (Patio.dawnOn: one light field over the stratum, warm from the top left, rose-blue shade
+// towards the bottom right, painted into each piece in the stratum's own coordinates).
+//   Heroes, in a ring 420–900 from the axis, all round: the two peacocks confronted across the
+//   axis (now feathered), the skein of NO8DO (now strands), the fountain's basin with its thread
+//   of water, the canary's cage on its chain, the rush chair with the shawl and the cat asleep,
+//   the tin on its cane, the well's pulley with its bucket, a blue pot of red geranium, a blue
+//   pot of gitanillas trailing, the tinaja with its aspidistra, a bough of the orange tree.
+//   To find: the ocellated lizard, the wall gecko, a snail.
+//   The matter (the round-7 heap broken up): geranium stalks with their umbels and leaves,
+//   loose geranium leaves, trailing gitanilla stems, spider-plant tufts, jasmine sprays,
+//   orange sprays and fallen oranges, sprays of azahar, the peacock's fallen train feathers,
+//   azulejos fallen out of the dado, sherds of blue pots, petals, small clay pots with moss,
+//   the Fajalauza plate and the brass tray.
+//   Tableau.patio.loose(z) → one layer per piece: ids 'patio-l-<what>'
+Tableau.patio.loose = (z) => {
+    const S = Souvenir, Pt = Patio, C = typeof Citrus !== 'undefined' ? Citrus : null, TAU = Math.PI * 2;
+    const deg = Math.PI / 180;
+    const at = (R, a) => [Math.cos(a * deg) * R, Math.sin(a * deg) * R];
+    const out = [];
+    // a piece: painted about (cx, cy) inside a square of half-side `half`, then lit by the dawn
+    const piece = (id, dz, cx, cy, half, draw, o = {}) => out.push({
+        id: 'patio-l-' + id, z: z + dz, loose: o.loose ?? true, brush: false, res: o.res,
+        box: { x: cx - (o.hw ?? half), y: cy - (o.hh ?? half), w: (o.hw ?? half) * 2, h: (o.hh ?? half) * 2 },
+        paint(g, res) {
+            draw(g, res);
+            Pt.dawnOn(g, { seed: 'loose' });
+            g.save();
+            g.setTransform(1, 0, 0, 1, 0, 0);
+            S.tooth(g, { x: 0, y: 0, w: g.canvas.width, h: g.canvas.height }, { amp: 0.045 });
+            g.restore();
+        },
+    });
+
+    // ================================================================ the heroes
+    {
+        // the peacocks, confronted across the axis: the left one faces right, the right one left
+        const s = 1.12, drop = 190;
+        const [xl, yl] = at(580, 186), [xr, yr] = at(610, 354);
+        piece('peacock-l', 230, xl, yl, 0, (g) => Pt.peacock(g, { x: xl + 130 * s, y: yl + 70 * s, s, seed: 'lL', drop }), { hw: 380, hh: 340 });
+        piece('peacock-r', -40, xr, yr, 0, (g) => Pt.peacock(g, { x: xr - 130 * s, y: yr + 70 * s, s, seed: 'lR', flip: true, drop }), { hw: 380, hh: 340 });
+    }
+    {
+        const [x, y] = at(430, 268), s = 1.9;
+        piece('skein', 120, x, y, 0, (g) => Pt.madeja(g, { x, y: y - 104 * s, s, seed: 'lno8do', hung: false }), { hw: 160, hh: 270 });
+    }
+    {
+        const [x, y] = at(650, 96), s = 0.82;
+        piece('fountain', -190, x, y, 0, (g) => Pt.fountain(g, { x, y: y + 200 * s, s, seed: 'lf', jet: 230 }), { hw: 250, hh: 290 });
+    }
+    {
+        const [x, y] = at(570, 296), s = 1.6;
+        piece('cage', 260, x, y, 0, (g) => Pt.cage(g, { x, y: y - 70 * s, s, seed: 'lcage', ground: false, chain: 60 }), { hw: 140, hh: 260 });
+    }
+    {
+        const [x, y] = at(770, 50), s = 1.2;
+        piece('chair', -260, x, y, 0, (g) => Pt.chair(g, { x, y: y + 195 * s, s, seed: 'lsilla', ground: false }), { hw: 200, hh: 300 });
+    }
+    {
+        // the tin on its cane: laid across the radius, so it never crosses the axis
+        const [x, y] = at(820, 228), ta = (228 + 90) * deg, L = 300;
+        const x0 = x - Math.cos(ta) * L, y0 = y - Math.sin(ta) * L, x1 = x + Math.cos(ta) * L, y1 = y + Math.sin(ta) * L;
+        piece('can', -110, x, y, 0, (g) => Pt.can(g, { x0, y0, x1, y1, s: 1.3, seed: 'lcan', ground: false }), { hw: 360, hh: 360 });
+    }
+    {
+        const [x, y] = at(540, 140), s = 1.15;
+        piece('pulley', 40, x, y, 0, (g) => Pt.pulley(g, { x: x - 10 * s, y: y - 40 * s, s, drop: 110, seed: 'lpul', ground: false }), { hw: 170, hh: 400 });
+    }
+    {
+        const [x, y] = at(440, 30), s = 2.1;
+        piece('pot-red', 170, x, y, 0, (g) => Pt.pot(g, { x, y: y + 50 * s, s, tilt: 0.22, seed: 'lpr', plant: 'geranium', flower: 'red', color: 'blue', umbels: 5, w: 1.3, off: 0 }), { hw: 330, hh: 420 });
+    }
+    {
+        const [x, y] = at(440, 128), s = 1.9;
+        piece('pot-pink', -230, x, y, 0, (g) => Pt.pot(g, { x, y: y - 40 * s, s, tilt: -0.12, seed: 'lpp', plant: 'gitanilla', flower: 'pink', color: 'blue', trail: 7, len: 120, w: 1.2, off: 0, ring: true }), { hw: 330, hh: 420 });
+    }
+    {
+        const [x, y] = at(880, 298), s = 0.85;
+        piece('tinaja', 10, x, y, 0, (g) => Pt.tinaja(g, { x, y: y + 200 * s, s, seed: 'ltin', plant: 'aspidistra', ground: false }), { hw: 330, hh: 420 }, );
+    }
+    if (C) {
+        // a bough of the orange tree: a limb with its leaves, oranges at every ripeness, azahar
+        const [x, y] = at(700, 250), a0 = (250 + 90) * deg + 0.25;
+        piece('bough', -150, x, y, 330, (g, res) => {
+            const r = Motion.rng('patio-bough'), L = 250;
+            const twig = [[x - Math.cos(a0) * L, y - Math.sin(a0) * L], [x + 20, y + 10], [x + Math.cos(a0) * L, y + Math.sin(a0) * L]];
+            C.branch(g, twig, { w0: 14, w1: 6, seed: 'lbough', green: [0.45, 1] });
+            const lr = Pt.resOf(g, 0.4);
+            for (let m = 0; m < 30; m++) {
+                const t = r(), px = twig[0][0] + (twig[2][0] - twig[0][0]) * t + (r() - 0.5) * 120, py = twig[0][1] + (twig[2][1] - twig[0][1]) * t + (r() - 0.5) * 120;
+                const rot = r() * TAU, sp = C.leaf(Math.floor(r() * 16), rot, lr, ['sun', 'mid', 'mid', 'young', 'old'][Math.floor(r() * 5)]);
+                const fx = 0.7 + r() * 0.3, fy = 0.5 + r() * 0.5;
+                C.shadow(g, sp, px, py, 0.42, { rot, fx, fy, dx: 5, dy: 8, alpha: 0.4, blur: 5 });
+                C.put(g, sp, px, py, 0.42, { rot, fx, fy });
+            }
+            Pt.orange(g, x - 60, y + 40, 32, false, Pt.resOf(g), 'lb1');
+            Pt.orange(g, x + 70, y - 20, 30, false, Pt.resOf(g), 'lb2');
+            Pt.orange(g, x + 150, y + 70, 24, true, Pt.resOf(g), 'lb3');
+            for (let m = 0; m < 5; m++) C.put(g, C.flower(m, 0, Pt.resOf(g, 0.5), ['face', 'tilt', 'half', 'face', 'side'][m]), x - 160 + m * 70 + (r() - 0.5) * 30, y - 70 + (r() - 0.5) * 80, 0.5, { rot: (r() - 0.5) * 0.6 });
+        });
+    }
+    {
+        const [x, y] = at(560, 75), s = 1.7;
+        piece('pot-white', 90, x, y, 0, (g) => Pt.pot(g, { x, y: y + 40 * s, s, tilt: 0.3, seed: 'lpw', plant: 'geranium', flower: 'white', color: 'green', umbels: 4, w: 1.2, off: 0 }), { hw: 280, hh: 380 });
+    }
+    {
+        // the jasmine off its wire: a long vine in flower, laid round the axis
+        const [x, y] = at(470, 335), a0 = (335 + 90) * deg;
+        piece('jasmine', -200, x, y, 0, (g) => {
+            g.save();
+            g.translate(x, y);
+            g.scale(1.6, 1.6);
+            const pts = [];
+            for (let k = 0; k <= 4; k++) {
+                const t = k / 4 - 0.5;
+                pts.push([Math.cos(a0) * t * 300 - Math.sin(a0) * 40 * Math.sin(k * 1.7), Math.sin(a0) * t * 300 + Math.cos(a0) * 40 * Math.sin(k * 1.7)]);
+            }
+            Pt.jasmine(g, { pts, seed: 'ljas', density: 1.8, nails: false });
+            g.restore();
+        }, { hw: 380, hh: 380 });
+    }
+    // ================================================================ to find
+    {
+        // (each with its own const: a paint runs later, and must not see a reassigned x, y)
+        if (typeof Fauna !== 'undefined') {
+            const [x1, y1] = at(345, 98), [x2, y2] = at(335, 302), [x3, y3] = at(390, 202);
+            piece('lizard', 275, x1, y1, 130, (g) => Fauna.lizard(g, { x: x1, y: y1, s: 0.75, rot: 0.6, line: false, seed: 'llz', pose: 0 }));
+            piece('gecko', -275, x2, y2, 90, (g) => Fauna.gecko(g, { x: x2, y: y2, s: 0.85, rot: -2.4, line: false, seed: 'lgz', pose: 1 }));
+            piece('snail', 80, x3, y3, 70, (g) => Fauna.snail(g, { x: x3, y: y3, s: 1.3, rot: 0.3, line: false, seed: 'lsn' }));
+        }
+    }
+
+    // ================================================================ the matter
+    const r = Motion.rng('patio-loose-matter');
+    const kinds = ['sprig', 'lime', 'feather', 'bluepot', 'tile', 'jasmine', 'orange', 'clump', 'gitanilla', 'sherd', 'petals', 'feather', 'cinta', 'bluepot', 'leafy', 'blossom', 'tile', 'sprig', 'fruit', 'lime', 'feather', 'potlet', 'jasmine', 'clump', 'bluepot', 'gitanilla'];
+    const flowers = ['red', 'red', 'coral', 'pink', 'white', 'magenta', 'red', 'lilac'];
+    const tileKinds = ['star', 'star', 'border', 'swap'];
+    const N = 80, GOLD = 137.508;
+    // what must read whole: no matter in front of it (centre, radius, depth)
+    const clear = [[...at(430, 268), 260, 120], [...at(560, 196), 230, 230], [...at(590, 344), 230, -40], [...at(570, 296), 150, 260]];
+    const blocked = (x, y, dz, half) => clear.some(([cx, cy, rad, hz]) => dz < hz && Math.hypot(x - cx, y - cy) < rad + half * 0.5);
+    for (let i = 0; i < N; i++) {
+        const kind = i === 11 ? 'plate' : i === 37 ? 'tray' : kinds[i % kinds.length];
+        const u = (i + 0.5) / N, R = 285 + 1215 * Math.pow((u * 0.85 + r() * 0.15), 2), dz = -275 + 550 * ((i * 0.618034 + 0.27) % 1);
+        let a = i * GOLD + (r() - 0.5) * 20;
+        for (let k = 1; k < 12 && blocked(...at(R, a), dz, 120); k++) a += (k % 2 ? 1 : -1) * k * 14;
+        const [x, y] = at(R, a);
+        const res = R > 1000 ? 0.6 : R > 700 ? 0.8 : undefined, id = kind + i, rot = r() * TAU, seed = 'lm' + i;
+        const fl = flowers[Math.floor(r() * flowers.length)], k1 = r(), k2 = r(), k3 = r(); // drawn here, never inside a paint
+        if (kind === 'sprig') {
+            const s = 1.7 + r() * 0.8;
+            piece(id, dz, x, y, 140 * s, (g) => Pt.sprig(g, { x, y, s, rot, seed, flower: fl, leaves: 1 + Math.floor(k1 * 3) }), { res });
+        } else if (kind === 'leafy') {
+            // a shoot of geranium leaves on their petioles, no flower
+            const s = 1.8 + r() * 0.6;
+            piece(id, dz, x, y, 70 * s, (g, rs) => {
+                const lr = Pt.resOf(g, s * 1.1), rr = Motion.rng('patio-leafy' + i), n = 3 + Math.floor(rr() * 3);
+                g.save();
+                g.translate(x, y);
+                g.scale(s, s);
+                const ls = [];
+                for (let k = 0; k < n; k++) {
+                    const la = rot + (k / n) * 2.4 + rr() * 0.4, d = 16 + rr() * 12;
+                    ls.push({ x: Math.cos(la) * d, y: Math.sin(la) * d, rot: la + Math.PI / 2 + (rr() - 0.5) * 0.8, s: 0.9 + rr() * 0.4, sy: 0.55 + rr() * 0.45, v: Math.floor(rr() * 9), kind: rr() < 0.15 ? 'old' : rr() < 0.3 ? 'young' : 'fresh' });
+                }
+                for (const l of ls) Pt.stem(g, [[0, 0], [l.x * 0.5 + (rr() - 0.5) * 5, l.y * 0.5], [l.x, l.y]], 2, 1.4, '#5e7a3a');
+                Pt.stem(g, [[0, 0], [-Math.cos(rot) * 14, -Math.sin(rot) * 14 + 4], [-Math.cos(rot) * 26, -Math.sin(rot) * 26]], 3, 2.4, '#62803e');
+                for (const l of ls) {
+                    const sp = Pt.gleaf(l.v, l.rot, lr, l.kind);
+                    Pt.castSprite(g, sp, { x: l.x, y: l.y, s: l.s, dx: 4, dy: 6, blur: 4, alpha: 0.35, color: '#14261a' });
+                    S.put(g, sp, { x: l.x, y: l.y, rot: l.rot, sx: l.s, sy: l.s * l.sy });
+                }
+                g.restore();
+            }, { res });
+        } else if (kind === 'feather') {
+            const len = 170 + r() * 80, eye = r() < 0.75;
+            piece(id, dz, x, y, len * 0.75, (g) => Pt.trainFeather(g, { x, y, len, rot, seed, eye, bend: (k1 - 0.5) * 0.4 }), { res });
+        } else if (kind === 'tile') {
+            const t = 90 + r() * 50;
+            piece(id, dz, x, y, t, (g) => Pt.tile(g, { x, y, t, rot, seed, kind: tileKinds[i % 4] }), { res });
+        } else if (kind === 'jasmine') {
+            const s = 1.8 + r() * 0.6, L = 60;
+            piece(id, dz, x, y, 120 * s, (g) => {
+                g.save();
+                g.translate(x, y);
+                g.scale(s, s);
+                Pt.jasmine(g, { pts: [[-Math.cos(rot) * L, -Math.sin(rot) * L], [6, -6], [Math.cos(rot) * L, Math.sin(rot) * L]], seed, density: 1.4, nails: false });
+                g.restore();
+            }, { res });
+        } else if (kind === 'orange' && C) {
+            piece(id, dz, x, y, 200, (g) => {
+                const rr = Motion.rng('patio-ospray' + i), rad = 70 + rr() * 30, lr2 = Pt.resOf(g, 0.32);
+                const twig = [[x - Math.cos(rot) * rad, y - Math.sin(rot) * rad], [x, y], [x + Math.cos(rot) * rad * 0.9, y + Math.sin(rot) * rad * 0.9]];
+                C.branch(g, twig, { w0: 6, w1: 3, seed: 'lotw' + i, green: [0.3, 1] });
+                for (let m = 0; m < 11 + Math.floor(rr() * 6); m++) {
+                    const t = rr(), px = twig[0][0] + (twig[2][0] - twig[0][0]) * t + (rr() - 0.5) * 50, py = twig[0][1] + (twig[2][1] - twig[0][1]) * t + (rr() - 0.5) * 50;
+                    const lrot = rr() * TAU, sp = C.leaf(Math.floor(rr() * 16), lrot, lr2, rr() < 0.4 ? 'sun' : 'mid');
+                    const fx = 0.7 + rr() * 0.3, fy = 0.5 + rr() * 0.5;
+                    C.shadow(g, sp, px, py, 0.3, { rot: lrot, fx, fy, dx: 3, dy: 5, alpha: 0.4, blur: 4 });
+                    C.put(g, sp, px, py, 0.3, { rot: lrot, fx, fy });
+                }
+                Pt.orange(g, x + (rr() - 0.5) * 30, y + 14, 20 + rr() * 4, rr() < 0.2, Pt.resOf(g), 'lo' + i);
+            }, { res });
+        } else if (kind === 'fruit') {
+            piece(id, dz, x, y, 70, (g) => Pt.orange(g, x, y, 28 + k1 * 6, k2 < 0.25, Pt.resOf(g), 'lf' + i), { res });
+        } else if (kind === 'blossom' && C) {
+            // a spray of azahar: a green twig with flowers open, half open and in bud
+            piece(id, dz, x, y, 130, (g) => {
+                const rr = Motion.rng('patio-azahar' + i), tw = [[x - Math.cos(rot) * 70, y - Math.sin(rot) * 70], [x, y + 6], [x + Math.cos(rot) * 60, y + Math.sin(rot) * 60]];
+                C.branch(g, tw, { w0: 4, w1: 2.4, seed: 'laz' + i, green: [0, 1] });
+                const lr2 = Pt.resOf(g, 0.3);
+                for (let m = 0; m < 4; m++) {
+                    const t = 0.2 + m * 0.2, px = tw[0][0] + (tw[2][0] - tw[0][0]) * t + (rr() - 0.5) * 30, py = tw[0][1] + (tw[2][1] - tw[0][1]) * t + (rr() - 0.5) * 30, lrot = rr() * TAU;
+                    C.put(g, C.leaf(Math.floor(rr() * 16), lrot, lr2, 'young'), px, py, 0.26, { rot: lrot, fy: 0.6 + rr() * 0.4 });
+                }
+                for (let m = 0; m < 4; m++) C.put(g, C.flower(m + i, 0, Pt.resOf(g, 0.45), ['face', 'tilt', 'half', 'side'][m]), x - 50 + m * 34 + (rr() - 0.5) * 16, y - 10 + (rr() - 0.5) * 40, 0.42, { rot: (rr() - 0.5) * 0.8 });
+            }, { res });
+        } else if (kind === 'gitanilla') {
+            const s = 1.8 + r() * 0.5;
+            piece(id, dz, x, y, 130 * s, (g) => {
+                g.save();
+                g.translate(x, y - 50 * s);
+                g.scale(s, s);
+                Pt.gitanilla(g, { seed, res: Pt.resOf(g, s), flower: fl, trail: 1, len: 120 }, 'front');
+                g.restore();
+            }, { res });
+        } else if (kind === 'cinta') {
+            const s = 1.6 + r() * 0.5;
+            piece(id, dz, x, y, 110 * s, (g) => {
+                g.save();
+                g.translate(x, y + 30 * s);
+                g.scale(s, s);
+                Pt.cinta(g, { seed }, 'back');
+                g.restore();
+            }, { res });
+        } else if (kind === 'sherd') {
+            const s = 1.5 + r() * 0.9;
+            piece(id, dz, x, y, 60 * s, (g) => Pt.sherd(g, { x, y, s, rot, seed, color: k1 < 0.8 ? 'blue' : k1 < 0.9 ? 'green' : 'clay', rim: k2 < 0.6 }), { res });
+        } else if (kind === 'petals') {
+            const s = 2.8 + r() * 0.8;
+            piece(id, dz, x, y, 50 * s, (g) => Pt.petals(g, { x, y, s, seed, flower: fl, n: 6 + Math.floor(k1 * 4) }), { res });
+        } else if (kind === 'potlet') {
+            const ps = 1 + r() * 0.3;
+            piece(id, dz, x, y, 80 * ps, (g) => {
+                const rr = Motion.rng('patio-potlet' + i);
+                g.save();
+                g.translate(x, y - 36 * ps);
+                g.scale(ps, ps);
+                const G = Pt.potBody(g, { tilt: 0.28, seed, color: 'clay', chips: 0.3, res: Pt.resOf(g, ps) });
+                for (let m = 0; m < 40; m++) {
+                    const aa = rr() * Math.PI;
+                    Pt.disc(g, Math.cos(aa) * 36, G.topY(Math.cos(aa) * 36) + 2 + rr() * 6, 1.4 + rr() * 2.4, rr() < 0.5 ? 'rgba(96,130,60,0.85)' : 'rgba(140,170,80,0.75)');
+                }
+                g.restore();
+            }, { res });
+        } else if (kind === 'lime') {
+            const s = 0.9 + r() * 0.8;
+            piece(id, dz, x, y, 70 * s, (g) => Pt.limeFlake(g, { x, y, s, rot, seed }), { res });
+        } else if (kind === 'bluepot') {
+            // a small blue pot with its plant, hung in its iron ring, as the walls had them
+            const s = 1.15 + r() * 0.5, plant = k2 < 0.55 ? 'geranium' : k2 < 0.85 ? 'gitanilla' : 'cinta';
+            piece(id, dz, x, y, 0, (g) => Pt.pot(g, { x, y: y - 20 * s, s, tilt: 0.1 + k3 * 0.25, seed, plant, flower: fl, color: k1 < 0.8 ? 'blue' : k1 < 0.9 ? 'green' : 'white', ring: k3 < 0.6, umbels: 3 + Math.floor(k1 * 3), w: 0.9 + k2 * 0.4, off: 0, len: 80 }), { res, hw: 160 * s, hh: 240 * s });
+        } else if (kind === 'clump') {
+            // a mound of geranium with its umbels, out of its pot
+            const s = 1.3 + r() * 0.5;
+            piece(id, dz, x, y, 150 * s, (g) => {
+                g.save();
+                g.translate(x, y + 40 * s);
+                g.scale(s, s);
+                const o = { seed, res: Pt.resOf(g, s), flower: fl, umbels: 2 + Math.floor(k1 * 3), w: 1.1 };
+                Pt.geranium(g, o, 'back');
+                Pt.geranium(g, o, 'front');
+                g.restore();
+            }, { res });
+        } else if (kind === 'plate') {
+            piece(id, dz, x, y, 80, (g) => Pt.plate(g, { x, y, r: 62, seed: 'lfaj', hung: false }), { res });
+        } else if (kind === 'tray') {
+            piece(id, dz, x, y, 95, (g) => Pt.tray(g, { x, y, r: 76, seed: 'ltray', hung: false }), { res });
+        }
+    }
+    return out;
+};

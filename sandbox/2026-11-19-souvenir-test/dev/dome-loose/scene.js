@@ -46,4 +46,4 @@ Motion.scene({
     },
 });
 // When is your stratum's depth z0 1000 ahead of the camera? t = (LEAD − 1000 + (z0 − Z0)) / SPEED:
-// with SPEED 1000, 0.70 s for the stratum's middle depth (Z0).
+// with SPEED 1300 (this bench), 0.54 s for the stratum's middle depth (Z0); 0.70 s puts it 790 ahead.

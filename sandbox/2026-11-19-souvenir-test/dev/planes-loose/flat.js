@@ -4,11 +4,15 @@
 //   ['fn', name, s]      a drawer called straight (FN below), scale s
 const DIR = 'sandbox/2026-11-19-souvenir-test/';
 const VIEWS = [
-    ['fn', 'wing', 1],
     ['map', 0.3],
+    ['map', 1, 330, -330],
+    ['map', 1, -420, 380],
+    ['map', 1, 500, 380],
+    ['map', 1, -560, -300],
+    ['fn', 'wing', 1],
 ];
 const FN = {
-    wing: (g) => Planes.wing(g, { x: 0, y: 0, s: 1.6, seed: 'paloma' }),
+    wing: (g) => Planes.wing(g, { x: 20, y: -170, s: 1.55, seed: 'paloma' }),
 };
 Motion.scene({
     fps: 24,
@@ -32,6 +36,7 @@ Motion.scene({
             FN[v[1]](g);
         } else if (v[0] === 'map') {
             g.scale(v[1], v[1]);
+            g.translate(-(v[2] ?? 0), -(v[3] ?? 0));
             for (const ly of env.state.layers.slice().sort((a, b) => b.z - a.z)) {
                 const c = env.state.rig.canvasOf(ly), b = ly.trimmed ?? ly.box;
                 g.drawImage(c, b.x, b.y, b.w, b.h);

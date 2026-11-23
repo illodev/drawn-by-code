@@ -98,3 +98,117 @@ Tableau.dome.stratum = (z) => {
     });
     return [sheet('far', 150, D.stratumFar), sheet('mid', 0, D.stratumMid), sheet('near', -160, D.stratumNear)];
 };
+
+// Round 8 · The dome LOOSE: no sheets, no heap, no ring. Every thing of the dome floats on its
+// own at its own depth in z ± 280, all round the axis, turning slowly on itself (the rig).
+//   heroes (12, 250–650 across, 330–950 from the axis, every angle, every depth): the slab of
+//     gold mosaic with its scroll and the one tessera missing, a second slab from the border,
+//     a wedge of the crown's gold flutes with the lantern's frame, a block of muqarnas cells,
+//     a wedge of the pendant tier, a second wedge of the crown, a length of Córdoba's rib with the spider hanging from it, a corbel, a piece of the ceiling of
+//     stars with its gilt pendant, the knot band, a panel of the cut-tile dado, the swift's
+//     nest on its lump of plaster
+//   to find: the tessera that is missing from the slab, floating near it (its cut side shows
+//     the gold leaf between its glass base and cap); a swift's feather near the nest; the
+//     spider on its thread
+//   matter (118: 100 anywhere, denser inside, and 18 larger in an outer ring): bits broken from every ring, each from a point of its own (so no two alike):
+//     gold mosaic most of all, then stucco leaves with their gilding, carved plaster, single muqarnas cells, laths of the
+//     ceiling, cut tile, bits of rib and of the crown's flutes, two glass tesserae alone
+// The gold leads: most of the matter is gold mosaic, the blue pieces (the dado, the plaster's
+// azure) are few and far out, and `Dome.domeLight` takes the blues down a step and lays the
+// crown's gold glow over everything near the axis.
+Tableau.dome.loose = (z) => {
+    const S = Souvenir, L = Dome.loose, TAU = Math.PI * 2;
+    const at = (deg, R) => [Math.cos((deg * Math.PI) / 180) * R, Math.sin((deg * Math.PI) / 180) * R];
+    const piece = (id, dz, kind, o, half) => {
+        const box = { x: o.x - half, y: o.y - half, w: half * 2, h: half * 2 };
+        return {
+            id: 'dome-l-' + id, z: z + dz, loose: true, box, brush: { amp: 0.05 },
+            paint(g) {
+                L[kind](g, o);
+                S.tooth(g, box, { amp: 0.05 });
+            },
+        };
+    };
+    // the heroes: [id, kind, angle°, R, dz, s, rot, local half-size, extra options]
+    const HEROES = [
+        ['mosaic', 'mosaic', 332, 470, 230, 1.6, 0.2, 215, { seed: 2 }],
+        ['mosaic-border', 'mosaic', 168, 430, -150, 1.35, -0.5, 215, { seed: 12, at: [262, -60], outline: [[-120, -80], [110, -95], [130, 70], [-30, 100], [-125, 60]] }],
+        ['crown', 'crown', 272, 440, 120, 1.6, 0.4, 185, { seed: 13, ang: -0.2 }],
+        ['muqarnas', 'muqarnas', 208, 590, -30, 1.45, 2.75, 250, { seed: 5 }],
+        ['crown-2', 'crown', 24, 600, 165, 1.75, -2.2, 185, { seed: 14, ang: 1.1, span: 0.74, reach: 345 }],
+        ['rib', 'rib', 104, 700, -200, 1.6, -0.15, 200, { seed: 7, spider: [70, 27] }],
+        ['knot', 'knot', 248, 840, 70, 1.3, -0.34, 262, { seed: 1 }],
+        ['dado', 'dado', 150, 960, -262, 1.0, -0.18, 262, { seed: 3 }],
+        ['ceiling', 'ceiling', 302, 840, -255, 1.0, 0.32, 375, { seed: 8 }],
+        ['corbel', 'corbel', 62, 780, -110, 2.1, -0.85, 165, { seed: 9 }],
+        ['nest', 'nest', 124, 520, 30, 1.6, 0.3, 140, { seed: 4 }],
+        ['muqarnas-pendant', 'bit', 352, 690, -90, 2.0, 1.2, 140, { seed: 31, src: 'muq2', at: [0, -330], rad: 105, el: 0.8 }],
+    ];
+    const out = HEROES.map(([id, kind, deg, R, dz, s, rot, half, o]) => {
+        const [x, y] = at(deg, R);
+        return piece(id, dz, kind, { x, y, rot, s, ...o }, half * s + 40);
+    });
+    // the things to find
+    {
+        const [x, y] = at(318, 335);
+        out.push(piece('tessera', 182, 'tessera', { x, y, rot: 0.5, s: 1.15, kind: 'gold', seed: 1 }, 90));
+        const [fx, fy] = at(134, 372);
+        out.push(piece('feather', -230, 'feather', { x: fx, y: fy, rot: -0.9, s: 1.05, seed: 1 }, 110));
+    }
+    // the matter: bits of every ring, each from a point of its own, at every depth
+    const r = Motion.rng('dome-loose');
+    const KINDS = [['mosaic', 22], ['leaf', 10], ['plaster', 7], ['muq0', 4], ['muq1', 6], ['muq2', 5], ['lattice', 4], ['dado', 3], ['rib', 3], ['crown', 4]];
+    const pick = () => {
+        let u = r() * KINDS.reduce((a, k) => a + k[1], 0);
+        for (const [k, w] of KINDS) if ((u -= w) < 0) return k;
+        return 'mosaic';
+    };
+    // where in each ring a bit can come from (ring units)
+    const FROM = {
+        mosaic: () => at(r() * 360, 250 + r() * 380),
+        plaster: () => [(r() - 0.5) * 440, -(270 + 90 + r() * 240)],
+        muq0: () => at(r() * 360, 300 + r() * 120),
+        muq1: () => at(r() * 360, 280 + r() * 150),
+        muq2: () => at(r() * 360, 260 + r() * 180),
+        lattice: () => at(r() * 360, 320 + r() * 200),
+        dado: () => [(r() - 0.5) * 760, -(290 + 70 + r() * 200)],
+        rib: () => {
+            const a0 = Math.PI / 8, t = 300 + r() * 340;
+            return [262 * Math.cos(a0) - t * Math.sin(a0), 262 * Math.sin(a0) + t * Math.cos(a0)];
+        },
+        crown: () => at(r() * 360, 210 + r() * 110),
+    };
+    // the scale of each ring on the page (a tessera 8–12 units, a muqarnas cell 70–120)
+    const SCALE = { mosaic: [1.4, 2.1], plaster: [1.2, 1.7], muq0: [2.0, 2.8], muq1: [1.8, 2.6], muq2: [1.8, 2.5], lattice: [1.3, 1.8], dado: [1.2, 1.6], rib: [1.4, 1.9], crown: [1.4, 2.0] };
+    for (let i = 0; i < 100; i++) {
+        const src = i === 20 || i === 47 ? 'glass' : pick();
+        const across = 56 + Math.pow(r(), 1.1) * 165;
+        const R = Math.max(272 + across / 2, 280 + Math.pow(r(), 1.3) * 1220), deg = r() * 360, dz = -280 + r() * 560, rot = r() * TAU;
+        const [x, y] = at(deg, R);
+        if (src === 'leaf') {
+            const s = across / 100;
+            out.push(piece('leaf' + i, dz, 'leaf', { x, y, rot, s, seed: i }, 95 * s + 30));
+            continue;
+        }
+        if (src === 'glass') {
+            out.push(piece('glass' + i, dz, 'tessera', { x, y, rot, s: 0.95 + r() * 0.3, kind: i === 20 ? 'green' : 'red', seed: 10 + i }, 80));
+            continue;
+        }
+        const sc = SCALE[src], s = sc[0] + r() * (sc[1] - sc[0]), rad = across / 2 / s / 0.9;
+        out.push(piece('bit' + i, dz, 'bit', { x, y, rot, s, src, at: FROM[src](), rad, seed: 100 + i, thick: 0.8 + r() * 0.5 }, rad * s * 1.15 + 60));
+    }
+    // and an outer ring of larger bits, one every twenty degrees, so that the frame's edges
+    // are never bare night as it turns (seen early and small, beyond the heroes)
+    for (let j = 0; j < 18; j++) {
+        const src = ['mosaic', 'leaf', 'mosaic', 'plaster', 'mosaic', 'muq1', 'crown', 'mosaic', 'leaf'][j % 9], across = 150 + r() * 80;
+        const [x, y] = at(j * 20 + (r() - 0.5) * 12, 720 + r() * 360), dz = -40 + r() * 320, rot = r() * TAU;
+        if (src === 'leaf') {
+            const s = across / 100;
+            out.push(piece('outer' + j, dz, 'leaf', { x, y, rot, s, seed: 200 + j }, 95 * s + 30));
+            continue;
+        }
+        const sc = SCALE[src], s = sc[0] + r() * (sc[1] - sc[0]), rad = across / 2 / s / 0.9;
+        out.push(piece('outer' + j, dz, 'bit', { x, y, rot, s, src, at: FROM[src](), rad, seed: 300 + j, thick: 0.8 + r() * 0.5 }, rad * s * 1.15 + 60));
+    }
+    return out;
+};

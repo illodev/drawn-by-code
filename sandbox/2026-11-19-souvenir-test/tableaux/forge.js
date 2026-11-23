@@ -539,3 +539,280 @@ Tableau.forge.stratum = (z) => {
         },
     ];
 };
+
+// Round 8 · the forge as LOOSE pieces (the last world: the camera at its fastest, and right
+// after it the full moon). Every thing its own layer, floating at its own depth in z ± 280,
+// composed in rings round the axis (nothing within 260 of it), all of them lit by ONE fire:
+// the fire-pan, itself one of the pieces (low left of the axis, at the slab's middle depth),
+// is a point light in the stratum's own units, so every piece takes its light from where
+// the fire really is (a piece beside it raked, one across the ring faint, one in front of it
+// lit from behind: a rim), with a cold breath of the moon from far down the axis on the side
+// of each piece that faces the way through, and blue-black where neither reaches.
+//
+//   heroes (14), going round: the Fajalauza plate (0°), the chocolate pot, the big hung
+//   cauldron, a hammer, the bed warmer, the cricket's cage, THE FIRE-PAN, a pair of tongs,
+//   the bellows (its nozzle turned to the fire), the scops owl on a cut olive limb, the
+//   bridle with its brasses, the tin rings and necklace, the anvil (a tuberose floret fallen
+//   on its face, to find), a big tinned pan; to find: a will-o'-the-wisp far out, the
+//   cricket in its cage, the moon's crescent on the bridle, a horseshoe nail bent where it
+//   was clinched.
+//   matter (77): the forge's body broken up: copper (pans of every size and face, a ladle, a
+//   skimmer, sheet offcuts, raised blanks, curls off the shears), coals and charcoal alight,
+//   sparks, horseshoes (new, worn, hot), pinches of nails, hot bar stock, shards of a
+//   Fajalauza plate, tin rings, horse brasses on their straps, tuberose spikes and single
+//   florets (white wax, faintly cream: no longer lavender), cut olive sprigs.
+Tableau.forge.loose = (z) => {
+    const S = Souvenir, F = Forge, DEG = Math.PI / 180;
+    const at = (deg, R) => [Math.cos(deg * DEG) * R, Math.sin(deg * DEG) * R];
+    // the fire: the fire-pan's flame (its coal bed at FP, the flame's heart above it)
+    const FP = at(152, 640), FIRE = { x: FP[0] - 10, y: FP[1] - 110, dz: 20 };
+    const AMB = [0.016, 0.018, 0.05];
+    const LIFT = 260; // the fire stands a little in front of the slab: the near pieces are raked, not black
+    // `white`: for glaze, tin and wax, the fire's light a little paler, as a painter keeps a
+    // white thing white in firelight (cream, not copper)
+    const PALE = [1.7, 1.52, 1.3];
+    const lightsAt = (dz, o = {}) => ({
+        fire: { x: FIRE.x, y: FIRE.y, z: dz - FIRE.dz + LIFT, c: F.FIRE.map((v, i) => (v + ((o.white ?? 0) * (PALE[i] - v))) * (o.fire ?? 1.08)), r0: o.r0 ?? 1050, wrap: 0.12 },
+        moon: { x: 0, y: 0, z: dz - 2600, c: F.MOON.map((v) => v * (o.moon ?? 0.5)), r0: 1e9, wrap: 0.28 },
+        amb: o.amb ?? AMB,
+    });
+    // turn a drawer that paints upright by `a` about (cx, cy): the lights go the other way
+    const turn = (g, cx, cy, a, L, draw) => {
+        const c = Math.cos(-a), s = Math.sin(-a);
+        const rp = (Lt) => (!Lt ? Lt : Lt.dir ? { ...Lt, dir: [Lt.dir[0] * c - Lt.dir[1] * s, Lt.dir[0] * s + Lt.dir[1] * c, Lt.dir[2]] } : { ...Lt, x: cx + (Lt.x - cx) * c - (Lt.y - cy) * s, y: cy + (Lt.x - cx) * s + (Lt.y - cy) * c });
+        g.save();
+        g.translate(cx, cy);
+        g.rotate(a);
+        g.translate(-cx, -cy);
+        draw({ ...L, fire: rp(L.fire), moon: rp(L.moon) });
+        g.restore();
+    };
+    const out = [];
+    // one layer: its middle (x, y), a generous half-size, depth offset dz
+    const piece = (id, dz, x, y, half, draw, o = {}) => out.push({
+        id: 'forge-l-' + id, z: z + dz, loose: o.loose ?? true, brush: false, res: o.res,
+        box: { x: x - half, y: y - half, w: half * 2, h: half * 2 },
+        paint: (g) => draw(g, lightsAt(dz, o.light)),
+        _r: Math.hypot(x, y), _x: x, _y: y, _dz: dz, _half: o.size ?? half * 0.7,
+    });
+
+    // ================================================================= the heroes
+    // going round from the plate (0°): the fire at 152°, the anvil and the bellows on either
+    // side of it (a forge's own order), the white things (plate, tin, warmer) across from it
+    {
+        const [x, y] = at(0, 520);
+        piece('plate', 250, x, y, 330, (g, L) => F.plate(g, { x, y, r: 230, seed: 'l-plate', motif: 'granada', hung: false, ...L }), { size: 460, light: { white: 0.5 } });
+    }
+    {
+        const [x, y] = at(22, 900);
+        piece('cazo', -270, x, y, 600, (g, L) => F.pan(g, { x, y: y + 80, r: 262, rot: 2.2, view: 'inside', seed: 'l-cazo', nail: false, lift: 0, ...L }), { size: 560 });
+    }
+    {
+        const [x, y] = at(50, 760);
+        piece('cauldron', 160, x, y, 580, (g, L) => F.cauldron(g, { x, y: y + 90, w: 520, seed: 'l-cauldron', ...L }), { size: 560 });
+    }
+    {
+        const [x, y] = at(78, 540);
+        piece('hammer', 50, x, y, 440, (g, L) => F.hammer(g, { x: x + 90, y: y - 180, rot: -0.55, s: 1.95, seed: 'l-hammer', ...L }), { size: 480 });
+    }
+    {
+        const [x, y] = at(104, 900);
+        piece('chocolatera', -150, x, y, 500, (g, L) => turn(g, x, y, 0.4, L, (Lr) => F.utensil(g, { x: x + 60, y: y - 205, kind: 'chocolatera', s: 2.5, hung: false, seed: 'l-choc', ...Lr })), { size: 500 });
+    }
+    {
+        // the bellows, lying as it would on the floor by the fire, its nozzle towards it
+        const [x, y] = at(124, 760);
+        piece('bellows', -60, x, y, 760, (g, L) => turn(g, x, y, -0.3, L, (Lr) => F.bellows(g, { x: x - 150, y, s: 1.3, seed: 'l-bellows', ...Lr })), { size: 660, res: 0.9 });
+    }
+    // the fire-pan: coals, flame, sparks; the light of the whole stratum
+    piece('fire', FIRE.dz, FP[0], FP[1] - 120, 800, (g, L) => {
+        F.hearth(g, { x: FP[0], y: FP[1], s: 1.45, dish: true, seed: 'l-fire', flame: 420, sparkH: 520, sparkN: 80, ...L, fire: { ...L.fire, z: 160 } });
+        F.wispSmoke(g, { x: FP[0] - 30, y: FP[1] - 330, h: 300, w: 16, lean: -0.3, seed: 'l-w1' });
+    }, { size: 680 });
+    {
+        // the anvil beside the fire (a tuberose floret fallen on its face, to find)
+        const [x, y] = at(184, 800);
+        piece('anvil', -130, x, y, 480, (g, L) => turn(g, x, y, 0.12, L, (Lr) => {
+            const an = F.anvil(g, { x, y: y + 30, s: 1.42, stump: false, seed: 'l-anvil', ...Lr });
+            F.floret(g, { x: an.face[0] + 175, y: an.face[1] + 2, size: 28, tilt: 0.42, rot: 0.3, k: 17, cream: true, ...Lr, amb: [0.2, 0.18, 0.16] });
+        }), { size: 640 });
+    }
+    {
+        const [x, y] = at(212, 560);
+        piece('cage', -210, x, y, 520, (g, L) => turn(g, x, y, 0.35, L, (Lr) => F.cage(g, { x, y: y - 200, s: 3.4, seed: 'l-cage', hung: false, ...Lr })), { size: 420 });
+    }
+    {
+        const [x, y] = at(236, 880);
+        piece('tongs', 230, x, y, 480, (g, L) => F.tongs(g, { x: x + 30, y: y - 320, rot: -0.35, len: 680, open: 0.035, seed: 'l-tongs', ...L }), { size: 500 });
+    }
+    {
+        const [x, y] = at(260, 660);
+        piece('owl', 110, x, y, 540, (g, L) => {
+            F.branch(g, { path: [[x - 330, y + 130], [x - 60, y + 96], [x + 180, y + 120], [x + 320, y + 50]], w0: 50, w1: 12, leaves: 5, R: 90, leaf: 1.5, density: 0.9, seed: 'l-owl-limb', warm: 0.85, mass: 0.2, ...L });
+            F.owl(g, { x: x - 40, y: y + 92, s: 3.2, seed: 'l-zumaya', ...L, fire: { ...L.fire, c: F.FIRE.map((v) => v * 1.9) } });
+        }, { size: 600 });
+    }
+    {
+        const [x, y] = at(286, 780);
+        piece('bridle', -240, x, y, 560, (g, L) => turn(g, x, y, 0.25, L, (Lr) => F.bridle(g, { x, y: y - 370, s: 1.6, seed: 'l-bridle', hung: false, ...Lr })), { size: 560 });
+    }
+    {
+        const [x, y] = at(310, 470);
+        piece('tin', 190, x, y, 400, (g, L) => F.tin(g, { x: x - 40, y: y - 170, s: 2.6, n: 5, seed: 'l-tin', hung: false, ...L }), { size: 420, light: { white: 0.55, moon: 1.1 } });
+    }
+    {
+        // the bed warmer, turned so its handle runs out from the axis
+        const [x, y] = at(336, 860);
+        piece('warmer', -20, x, y, 880, (g, L) => turn(g, x, y, Math.atan2(y, x) - Math.PI / 2 + 0.25, L, (Lr) => F.warmer(g, { x, y: y + 150, r: 168, hlen: 420, seed: 'l-warmer', hung: false, ...Lr })), { size: 640, res: 0.85 });
+    }
+    // to find: the will-o'-the-wisp, far out on the dark side, cold
+    {
+        const [x, y] = at(205, 1250);
+        piece('wisp', 270, x, y, 160, (g) => F.wisp(g, { x, y, r: 20, seed: 'l-wisp' }), { size: 60 });
+    }
+
+    // ================================================================= the matter
+    const r = Motion.rng('forge-loose-matter');
+    // kinds and how many (80): copper 23, coals 13, sparks 6, horseshoes 5, nails 3, tin 4,
+    // tuberoses 10, olive 6, hot bars 2, shards 5, brasses 3
+    const KINDS = [
+        ...Array(6).fill('pan'), 'ladle', 'ladle', 'skimmer', 'skimmer', 'pot', 'pot', 'choc', ...Array(5).fill('sheet'), 'blank', 'blank', 'strip', 'strip', 'strip',
+        ...Array(9).fill('coal'), ...Array(4).fill('charcoal'),
+        ...Array(6).fill('sparks'),
+        ...Array(5).fill('shoe'),
+        ...Array(3).fill('nails'),
+        ...Array(4).fill('rings'),
+        ...Array(6).fill('nardo'), ...Array(4).fill('floret'),
+        ...Array(6).fill('olive'),
+        ...Array(2).fill('bar'),
+        ...Array(5).fill('shard'),
+        ...Array(3).fill('brass'),
+    ];
+    // sizes in units across
+    const SIZE = { pot: [190, 240], choc: [200, 240], pan: [180, 250], ladle: [200, 250], skimmer: [200, 250], sheet: [160, 220], blank: [140, 200], strip: [130, 190], coal: [100, 190], charcoal: [110, 190], sparks: [170, 260], shoe: [140, 190], nails: [90, 130], rings: [160, 220], nardo: [230, 300], floret: [80, 130], olive: [220, 300], bar: [240, 320], shard: [150, 220], brass: [120, 180] };
+    // order the kinds so no two of a kind come in a row (the scatter then mixes them)
+    const order = KINDS.map((k, i) => [k, (i * 0.618034) % 1]).sort((a, b) => a[1] - b[1]).map((p) => p[0]);
+    // small things that may come in close to the way through
+    const INNER = new Set(['floret', 'nails', 'coal', 'brass', 'shoe', 'blank', 'charcoal']);
+    const heroes = out.slice();
+    const placed = heroes.map((h) => ({ x: h._x, y: h._y, dz: h._dz, s: h._half }));
+    const fd = (x, y) => Math.hypot(x - FIRE.x, y - FIRE.y);
+    let n = 0;
+    for (const kind of order) {
+        const [s0, s1] = SIZE[kind], size = s0 + (s1 - s0) * r();
+        // best of 40 candidates: the one farthest from everything already placed (blue noise on
+        // the frame, so the pieces fill it evenly), denser near the inside; sparks and coals
+        // keep near the fire. The depth goes round the slab in golden steps.
+        let x = 0, y = 0, best = -Infinity;
+        const dz = -272 + 544 * ((n * 0.618034 + 0.31) % 1);
+        for (let tries = 0; tries < 40; tries++) {
+            const inner = INNER.has(kind) && n % 2 === 0, R = inner ? 275 + size * 0.5 + 120 * r() : 270 + size * 0.5 + 600 * Math.pow(r(), 1.5), a = r() * Math.PI * 2;
+            const cx = Math.cos(a) * R, cy = Math.sin(a) * R;
+            let score = Infinity;
+            for (const p of placed) {
+                // apart on the frame, and a little more for things at nearly the same depth
+                const gap = Math.hypot(p.x - cx, p.y - cy) - (p.s + size) * 0.5 * (Math.abs(p.dz - dz) < 90 ? 1 : 0.6);
+                if (gap < score) score = gap;
+            }
+            if ((kind === 'sparks' || kind === 'coal') && fd(cx, cy) > 850) score -= 400;
+            if (score > best) {
+                best = score;
+                x = cx;
+                y = cy;
+            }
+        }
+        placed.push({ x, y, dz, s: size });
+        const id = kind + n++, seed = 'lm-' + id, rot = r() * Math.PI * 2, rr = r(), heat = S.clamp(1.1 - fd(x, y) / 800) * (0.6 + 0.4 * rr);
+        const half = size * 0.95 + 40;
+        if (kind === 'pan') {
+            const view = n % 7 === 0 ? 'back' : 'inside', rad = size * (n % 7 === 0 ? 0.32 : 0.4);
+            piece(id, dz, x, y, size + 60, (g, L) => F.pan(g, { x, y: y + rad * 0.4, r: rad, rot, view, seed, nail: false, lift: 0, sooty: 0.2 + rr * 0.7, verd: n % 5 === 2 ? 0.7 : 0, dent: n % 4 === 1 ? true : undefined, ...L }), { size });
+        } else if (kind === 'pot') {
+            // a small cauldron off its hook, on its side as it floats
+            piece(id, dz, x, y, size + 80, (g, L) => turn(g, x, y, rot, L, (Lr) => F.cauldron(g, { x, y: y + size * 0.12, w: size * 0.8, seed, ...Lr })), { size });
+        } else if (kind === 'choc') {
+            piece(id, dz, x, y, size + 80, (g, L) => turn(g, x, y, rot, L, (Lr) => F.utensil(g, { x: x + size * 0.1, y: y - size * 0.35, kind: 'chocolatera', s: size / 200, hung: false, seed, ...Lr })), { size });
+        } else if (kind === 'ladle' || kind === 'skimmer') {
+            piece(id, dz, x, y, size + 60, (g, L) => turn(g, x, y, rot, L, (Lr) => F.utensil(g, { x, y: y - size * 0.55, kind, len: size * 0.55, s: 0.9, hung: false, seed, ...Lr })), { size });
+        } else if (kind === 'sheet' || kind === 'blank' || kind === 'strip') {
+            piece(id, dz, x, y, half, (g, L) => F.offcut(g, { x, y, size, rot, kind, seed, ...L }), { size });
+        } else if (kind === 'coal' || kind === 'charcoal') {
+            piece(id, dz, x, y, half, (g, L) => F.coal(g, { x, y, r: size * 0.5, rot, kind, seed, heat, ...L }), { size });
+        } else if (kind === 'sparks') {
+            // sparks flying off the fire: their streaks run away from it
+            piece(id, dz, x, y, size + 60, (g) => turn(g, x, y, Math.atan2(y - FIRE.y, x - FIRE.x) + Math.PI / 2, {}, () => F.sparks(g, { x, y: y + size * 0.4, n: 10 + Math.round(rr * 16), h: size * 0.8, w: size * 0.6, seed })), { size: size * 0.6 });
+        } else if (kind === 'shoe') {
+            const hot = n % 3 === 0 ? 0.9 : 0, worn = n % 3 === 1 ? 1 : 0;
+            piece(id, dz, x, y, half, (g, L) => F.horseshoe(g, { x, y, s: size / 150, rot, hot, worn, seed, ...L }), { size });
+        } else if (kind === 'nails') {
+            piece(id, dz, x, y, half, (g, L) => F.hsnails(g, { x, y, len: size * 0.8, n: 2 + (n % 3), seed, ...L }), { size });
+        } else if (kind === 'rings') {
+            piece(id, dz, x, y, size + 60, (g, L) => turn(g, x, y, rot, L, (Lr) => F.tin(g, { x, y: y - size * 0.45, s: size / 220, n: 1 + (n % 3), seed, hung: false, ...Lr })), { size, light: { white: 0.55, moon: 1.1 } });
+        } else if (kind === 'nardo') {
+            const len = size, a = rot, bend = (rr - 0.5) * 1.2;
+            const path = [0, 0.33, 0.66, 1].map((u) => [x + Math.cos(a + bend * u) * (u - 0.5) * len, y + Math.sin(a + bend * u) * (u - 0.5) * len]);
+            piece(id, dz, x, y, size + 70, (g, L) => F.tuberose(g, { path, size: 22 + rr * 8, n: 4 + (n % 4), seed, cream: true, ...L, amb: [0.2, 0.18, 0.15] }), { size, light: { white: 0.4 } });
+        } else if (kind === 'floret') {
+            piece(id, dz, x, y, half, (g, L) => F.floret(g, { x, y, size: size * 0.55, tilt: 0.45 + rr * 0.5, rot, k: 100 + n * 7, open: rr < 0.25 ? 0.6 : 1, cream: true, ...L, amb: [0.2, 0.18, 0.15] }), { size, light: { white: 0.4 } });
+        } else if (kind === 'olive') {
+            const len = size, a = rot;
+            const path = [[x - Math.cos(a) * len * 0.5, y - Math.sin(a) * len * 0.5], [x + Math.cos(a + 0.3) * len * 0.05, y + Math.sin(a + 0.3) * len * 0.05], [x + Math.cos(a) * len * 0.5, y + Math.sin(a) * len * 0.5]];
+            piece(id, dz, x, y, size + 60, (g, L) => F.branch(g, { path, w0: 12, w1: 4, leaves: 3 + (n % 2), R: 56, leaf: 1.15, density: 0.8, seed, warm: 0.85, mass: 0.15, ...L }), { size });
+        } else if (kind === 'bar') {
+            piece(id, dz, x, y, size * 0.75 + 50, (g, L) => F.bar(g, { x, y, len: size, w: 13 + rr * 6, rot, hot: 0.5 + 0.5 * heat, scroll: n % 2 === 0, seed, ...L }), { size });
+        } else if (kind === 'shard') {
+            // a shard of a Fajalauza plate: a wedge of the rim, broken across the well
+            const pr = size * 1.1, a0 = rot, span = 0.7 + rr * 0.6;
+            const pts = [[x + Math.cos(a0 + span * 0.5) * pr * 0.18, y + Math.sin(a0 + span * 0.5) * pr * 0.18]];
+            for (let i = 0; i <= 10; i++) pts.push([x + Math.cos(a0 + (i / 10) * span) * pr * 1.05, y + Math.sin(a0 + (i / 10) * span) * pr * 1.05]);
+            pts.push([x + Math.cos(a0 + span * 0.8) * pr * 0.45, y + Math.sin(a0 + span * 0.8) * pr * 0.45]);
+            // the breaks: jagged
+            const breaks = [];
+            const jag = (p, q, k) => {
+                const o2 = [p];
+                for (let i = 1; i < 6; i++) {
+                    const u = i / 6, h = S.noise2(u * 3, k, S.seedOf(seed)) * 7;
+                    o2.push([p[0] + (q[0] - p[0]) * u - (q[1] - p[1]) / Math.hypot(q[0] - p[0], q[1] - p[1]) * h, p[1] + (q[1] - p[1]) * u + (q[0] - p[0]) / Math.hypot(q[0] - p[0], q[1] - p[1]) * h]);
+                }
+                o2.push(q);
+                return o2;
+            };
+            const rim = pts.slice(1, 12), inner = [pts[12], pts[0]];
+            const b1 = jag(rim[rim.length - 1], inner[0], 1), b2 = jag(inner[0], inner[1], 2), b3 = jag(inner[1], rim[0], 3);
+            breaks.push(b1, b2, b3);
+            const poly = [...rim, ...b1.slice(1), ...b2.slice(1), ...b3.slice(1, -1)];
+            // the plate it came from: its middle where the wedge's apex points
+            const cx = x, cy = y;
+            piece(id, dz, x, y, pr * 1.3 + 40, (g, L) => {
+                g.save();
+                g.beginPath();
+                S.trace(g, poly);
+                g.clip();
+                F.plate(g, { x: cx, y: cy, r: pr, seed, motif: ['granada', 'bird', 'flower'][n % 3], hung: false, ...L });
+                g.restore();
+                // the break: the red body showing its thickness, lit on the fire's side
+                g.lineJoin = 'round';
+                for (const b of breaks) {
+                    g.strokeStyle = 'rgba(150,72,44,0.95)';
+                    g.lineWidth = 3.2;
+                    g.beginPath();
+                    S.trace(g, b, false);
+                    g.stroke();
+                    g.strokeStyle = 'rgba(214,140,96,0.55)';
+                    g.lineWidth = 1;
+                    g.stroke();
+                }
+            }, { size, light: { white: 0.5 } });
+        } else if (kind === 'brass') {
+            // a horse brass on its leather tab
+            const a = rot, len = size * 0.9, br = size * 0.24;
+            const p0 = [x - Math.cos(a) * len * 0.5, y - Math.sin(a) * len * 0.5], p1 = [x + Math.cos(a) * len * 0.2, y + Math.sin(a) * len * 0.2];
+            piece(id, dz, x, y, half, (g, L) => {
+                const Ls = F.lightsOf(L, 0, 0, 1, 0);
+                F.strap(g, S.curve([p0, [(p0[0] + p1[0]) / 2 + 6, (p0[1] + p1[1]) / 2], p1], false, 8), br * 0.9, { Ls, amb: L.amb, seed: seed + 's', studs: br * 1.3 });
+                F.brass(g, { x: x + Math.cos(a) * len * 0.35, y: y + Math.sin(a) * len * 0.35, r: br, kind: ['crescent', 'sun', 'sun'][n % 3], Ls, amb: L.amb, seed });
+            }, { size });
+        }
+    }
+    return out;
+};

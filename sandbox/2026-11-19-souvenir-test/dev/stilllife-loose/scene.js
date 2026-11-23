@@ -34,7 +34,9 @@ Motion.scene({
                 },
             };
         };
-        const layers = [...T(Z0), ...T(Z0).map((l) => turned(l, Math.PI, 1)), ...T(Z0).map((l) => turned(l, Math.PI / 2, 2))].map((l) => ({ far: [0.2, 0.36], ...l }));
+        // paint seconds of each piece of the stratum itself (not its copies), logged once
+        const timed = (l) => ({ ...l, paint(g, res) { const t0 = performance.now(); l.paint(g, res); const ms = performance.now() - t0; (window.__paint = window.__paint || []).push([l.id, ms]); if (ms > 1500) console.log('slow piece', l.id, Math.round(ms), 'ms'); } });
+        const layers = [...T(Z0).map(timed), ...T(Z0).map((l) => turned(l, Math.PI, 1)), ...T(Z0).map((l) => turned(l, Math.PI / 2, 2))].map((l) => ({ far: [0.2, 0.36], ...l }));
         return { rig: Souvenir.rig(env, layers) };
     },
     draw(g, t, env) {
@@ -42,6 +44,11 @@ Motion.scene({
         env.state.samples = env.state.rig.draw(g, t, cam, { bg: '#1b1e3d', maxSamples: 8, shutter: 0.36 });
     },
     post(ctx, t, env) {
+        if (window.__paint && !window.__told) {
+            window.__told = true;
+            const P = window.__paint, sum = P.reduce((a, p) => a + p[1], 0), top = P.slice().sort((a, b) => b[1] - a[1]).slice(0, 6);
+            console.log(`stratum painted: ${P.length} pieces, ${(sum / 1000).toFixed(1)} s; slowest ${top.map(([i, m]) => i.replace('stilllife-l-', '') + ' ' + (m / 1000).toFixed(2)).join(', ')}`);
+        }
         Souvenir.finish(ctx, env, Math.round(t * env.fps));
     },
 });

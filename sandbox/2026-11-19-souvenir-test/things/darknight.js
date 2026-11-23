@@ -586,7 +586,7 @@ const Night = (() => {
         // ridges round it; the wax is lit through for a hand's width under a flame; a thumb
         // print where it was held to be lit; a hairline crack across; long scratches; specks
         // of dust caught in the wax; a smear of soot from the flame of its neighbour.
-        const thumbD = len * (0.55 + 0.3 * rg()), thumbA = (rg() - 0.5) * 1.2, crackD = len * (0.3 + 0.35 * rg()), sootA = (rg() - 0.5) * 1.4;
+        const rq = Motion.rng('candle-rich' + seed), thumbD = len * (0.55 + 0.3 * rq()), thumbA = (rq() - 0.5) * 1.2, crackD = len * (0.3 + 0.35 * rq()), sootA = (rq() - 0.5) * 1.4;
         const richWax = (q, ux, uy, s, d) => {
             const phi = Math.asin(clamp(s, -1, 1));
             // the dipping: ridges round the shaft, unevenly spaced, fading in and out
@@ -605,7 +605,7 @@ const Night = (() => {
             }
             // the thumb print: whorled ridges in an oval
             const fx = (phi - thumbA) / 0.55, fy = (d - thumbD) / (r * 1.1), fr = Math.hypot(fx, fy);
-            if (fr < 1) q.h += 0.32 * Math.sin(fr * 24 + Math.atan2(fy, fx) * 0.6) * (1 - fr * fr);
+            if (fr < 1) q.h += 0.15 * Math.sin(fr * 26 + Math.atan2(fy, fx) * 0.6) * (1 - fr * fr);
             // a hairline crack, wandering across
             if (Math.abs(d - crackD - r * 0.5 * Math.sin(phi * 2.2 + sd) - noise2(phi * 4, 3, sd + 34) * r * 0.6) < 0.7 && Math.abs(phi) < 1.2) {
                 q.h -= 0.9;
@@ -614,7 +614,7 @@ const Night = (() => {
                 q.b *= 0.7;
             }
             // long scratches down the shaft
-            if (hashI(Math.round(phi * 30), Math.floor(d / 60), 5, sd) > 0.9 && hashI(Math.round(phi * 30), Math.floor(d / 13), 6, sd) > 0.35) q.h -= 0.35;
+            if (hashI(Math.round(phi * 30), Math.floor(d / 60), 5, sd) > 0.965 && hashI(Math.round(phi * 30), Math.floor(d / 13), 6, sd) > 0.35) q.h -= 0.3;
             // dust caught in the wax
             if (hashI(Math.round(ux * 1.4), Math.round(uy * 1.4), 7, sd) > 0.997) {
                 q.r *= 0.45;
@@ -2333,7 +2333,7 @@ const Night = (() => {
             return clamp((rr - Math.abs(ux - x)) * P.res + 0.5);
         });
         // smoke from the piercings: thick, rolling
-        for (const [k, dx] of [[0, -14], [1, 8], [2, 22]]) smoke(P, x + dx * s, y + 40 * s, { seed: seed + 'smoke' + k, h: o.smokeH ?? 700, n: 22, wide: 3.2, still: 10, drift: o.drift ?? -0.9, alpha: 0.75, freq: 0.008, amp: 1.6, turb: 1.4, tint: '#c4c0d8' });
+        for (const [k, dx] of [[0, -14], [1, 8], [2, 22]]) smoke(P, x + dx * s, y + 40 * s, { seed: seed + 'smoke' + k, h: o.smokeH ?? 700, n: 22, wide: o.smokeW ?? 3.2, still: 10, drift: o.drift ?? -0.9, alpha: o.smokeA ?? 0.75, freq: 0.008, amp: 1.6, turb: 1.4, tint: '#c4c0d8' });
         return { coals: [x, y + 64 * s] };
     }
 
@@ -2740,6 +2740,19 @@ const Night = (() => {
             q.g = 0.89 * tone;
             q.b = 0.86 * tone;
             q.h = 0.3 * Math.sin((lx * 0.9 - Math.abs(ly) * 0.5)) + (hashI(Math.round(ux * 2), Math.round(uy * 2), 1, sd) - 0.5) * 0.3;
+            if (o.fine) {
+                // (round 8) small contour feathers in overlapping rows, smaller towards the head,
+                // each with its rounded free edge lit and a shade under it, its own tone
+                const cs = 6.5 - 2.5 * t, row = Math.floor(ly / cs), off = (row % 2) * 0.5;
+                const col = Math.floor(lx / cs + off), fx = lx / cs + off - col - 0.5, fy = ly / cs - row;
+                const hv = hashI(col, row, 5, sd);
+                const edge = Math.hypot(fx * 1.1, (fy - 0.2) * 0.9);
+                q.h = 0.55 * smooth(0.62, 0.3, edge) - 0.35 * smooth(0.45, 0.62, edge) * smooth(0.8, 0.62, edge) + (hashI(Math.round(ux * 2.5), Math.round(uy * 2.5), 1, sd) - 0.5) * 0.25;
+                const k2 = 0.95 + 0.06 * (hv - 0.5);
+                q.r *= k2;
+                q.g *= k2;
+                q.b *= k2 * (1 + 0.02 * hv);
+            }
             q.tr = 0.3;
             return clamp((1 - Math.abs(v)) * hw * s * P.res + 0.5);
         });
@@ -3620,4 +3633,794 @@ const Night = (() => {
     }
 
     return { begin, profile, latheN, candlestick, candle, wax, smoke, flame, halo, ember, hex, lerp, silverAt, smoothBump, veil, ladder, moth, poly, steps, wall, tube, rope, bar, lantern, velvet, jar, lily, flower, farol, chain, thurible, gilt, circles, moon, feather, dove, vihuela, inmost, book, sill, haze, carnations, lamp, drape, ladderObj, disc };
+})();
+
+// ---------------------------------------------------------------------- round 8 · loose pieces
+// What the loose stratum (Tableau.darknight.loose) needs and the picture and the stratum do not:
+// every thing whole, on its own, seen from any side. Added to Night.
+//
+// TERCIOPELO, loose (a scrap of the paso's night-blue velvet). It read as glossy plastic:
+// smooth folds lit like satin, bright on the crests. Velvet is the other way round: where the
+// pile faces you it swallows the light (dark, and darker the more squarely it faces), where
+// the cloth turns away the pile stands on end and glows; so the light sits on the FLANKS of
+// a fold, never on its crest. 1 deep folds, gathered towards the top · 2 the pile's grain:
+// a sheen broken pixel by pixel, never a smooth band · 3 crushed patches where it was folded
+// away, the nap laid the other way, paler and streaked · 4 bald spots on the crests showing
+// the weave · 5 a band of gold galloon at the top hem, thread laid in a running scroll
+// between two cords · 6 a bullion fringe at the lower hem, every cord its own length, twisted
+// · 7 drops of wax fallen on it from the candles (they shine) · 8 lint · 9 the dye uneven,
+// redder where worn · 10 a cut edge, the backing's weave showing.
+// VELO, loose (a rag of the violet Lenten veil): 1 wool twill, the diagonal in the light
+// · 2 shallower, softer folds · 3 one edge torn along the weave, stepped · 4 weft threads
+// hanging from the tear · 5 moth holes · 6 a darn · 7 the galloon torn with it · 8 wax drops.
+// CERA (the wax that is everywhere in the small hours): a puddle set round the foot of a stub;
+// a ball of wax of many candles rolled together (the «bola de cera» children make from what
+// drips in a procession: layers of white, ivory, tiniebla brown, red).
+// INCIENSO: tears of frankincense, amber and translucent, one dusted white, a crumb of charcoal.
+// PAN DE ORO: a flake of gold leaf come off the board of circles, curled, cracked, its edge
+// torn; an eight-pointed star from the diagram's quarters.
+// OLIVO: a sprig from the dove's beak, leaves dark above and silver beneath, two olives.
+// The vihuela's head (it was cut by the frame): a flat head of dark wood with a notched top,
+// twelve pegs in two rows, the strings wound on them, the ribbon tied in a bow below it.
+// The dove's feet, coral, tucked under the body in flight.
+(() => {
+    const S = Souvenir, N = Night, TAU = Math.PI * 2;
+    const clamp = S.clamp, smooth = S.smooth, noise2 = S.noise2, hashI = S.hashI, lerp = (a, b, t) => a + (b - a) * t;
+
+    // ------------------------------------------------------------------ a scrap of cloth
+    // (x, y) its middle, w × h, turned by rot (radians, its top towards −y when 0); kind
+    // 'velvet' or 'veil'; gather (0..0.6): how much narrower its top is; folds; galloon: false
+    // to leave it off; fringe: false. Returns toW(u, v) (local → layer units).
+    function cloth(P, o) {
+        const { x, y, w = 300, h = 240, rot = 0, kind = 'velvet', seed = 'cloth' } = o;
+        const sd = S.seedOf(seed), r = Motion.rng('cloth' + seed);
+        const c = Math.cos(rot), sn = Math.sin(rot);
+        const toL = (ux, uy) => {
+            const dx = ux - x, dy = uy - y;
+            return [dx * c + dy * sn, -dx * sn + dy * c];
+        };
+        const toW = (u, v) => [x + u * c - v * sn, y + u * sn + v * c];
+        // a floating drapery: gathered at its top (pinched when gather → 1), falling open to the
+        // hem, its middle line swaying in an S
+        const velvet = kind === 'velvet', gather = o.gather ?? 0.75, nF = o.folds ?? Math.max(2, Math.round(w / (velvet ? 105 : 85)));
+        const lam = w / nF, ph = r() * TAU, depth = o.depth ?? (velvet ? 22 : 15), sway = o.sway ?? (r() - 0.5) * 0.5;
+        const T = (v) => clamp((v + h / 2) / h);
+        const mid = (v) => sway * w * Math.sin(T(v) * Math.PI) * (0.6 + 0.4 * Math.sin(T(v) * 5 + ph));
+        const half = (v) => (w / 2) * (1 - gather * Math.pow(1 - T(v), 1.6)) * (1 + 0.05 * Math.sin(v * 0.03 + ph) + 0.04 * Math.sin(v * 0.071 + ph * 2));
+        const fh = (u0, v) => {
+            const u = u0 - mid(v), t = T(v), uf = (u * (w / 2)) / half(v);
+            // the phase runs unevenly across, so folds come in unequal widths; small creases ride on them
+            const p = (uf * TAU) / lam + ph + 0.5 * Math.sin(v * 0.012 + ph) + 2.4 * (noise2(uf * 0.009, v * 0.005, sd) - 0.5) + 0.6 * Math.sin(uf * 0.021 + ph * 3);
+            const crease = 0.18 * Math.sin(uf * 0.31 + v * 0.02 + ph) * smooth(0.4, 0.7, noise2(uf * 0.02, v * 0.01, sd + 9));
+            return depth * (0.35 + 0.65 * t) * (0.7 * Math.sin(p) + 0.22 * Math.sin(2.1 * p + 1.3) + crease);
+        };
+        // the fold field tabulated every 2 units (it is smooth), with its slopes, and the hem per unit
+        const sw0 = Math.abs(sway) * w + 12, GU0 = -w / 2 - sw0 - 4, GV0 = -h / 2 - 34, GS = 2;
+        const GW_ = Math.ceil((w + 2 * sw0 + 8) / GS) + 2, GH_ = Math.ceil((h + 110) / GS) + 2;
+        const FH = new Float32Array(GW_ * GH_);
+        for (let j = 0; j < GH_; j++) for (let i = 0; i < GW_; i++) FH[j * GW_ + i] = fh(GU0 + i * GS, GV0 + j * GS);
+        const fhAt = (u, v) => {
+            const fi = clamp((u - GU0) / GS, 0, GW_ - 1.001), fj = clamp((v - GV0) / GS, 0, GH_ - 1.001), i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, k = j * GW_ + i;
+            return (FH[k] * (1 - a) + FH[k + 1] * a) * (1 - b) + (FH[k + GW_] * (1 - a) + FH[k + GW_ + 1] * a) * b;
+        };
+        const top = (u) => -h / 2 + 4 * Math.sin(u * 0.05 + ph) + 3 * noise2(u * 0.04, 1, sd + 1);
+        // the lower edge: the hem hangs lower where a fold comes forward; a torn one steps along the weave
+        const tearS = o.torn ?? !velvet;
+        const botRaw = (u) => {
+            let b = h / 2 + 0.5 * fh(u, h / 2);
+            if (tearS) {
+                const j = (noise2(u * 0.025, 2, sd + 2) - 0.5) * 70 + (noise2(u * 0.11, 3, sd + 3) - 0.5) * 16;
+                b += j - (((j % 5) + 5) % 5);
+            }
+            return b;
+        };
+        const BT0 = -w / 2 - Math.abs(sway) * w - 20, BT = new Float32Array(Math.ceil(w + 2 * Math.abs(sway) * w + 40) + 2);
+        for (let i = 0; i < BT.length; i++) BT[i] = botRaw(BT0 + i);
+        const bot = (u) => {
+            const f = clamp(u - BT0, 0, BT.length - 1.001), i = Math.floor(f);
+            return BT[i] + (BT[i + 1] - BT[i]) * (f - i);
+        };
+        const GW = o.galloon === false || (o.galloon === undefined && !velvet) ? 0 : o.galloonW ?? (velvet ? 22 : 16);
+        const sw = Math.abs(sway) * w + 12;
+        const box = S.bbox([toW(-w / 2 - sw, -h / 2 - 30), toW(w / 2 + sw, -h / 2 - 30), toW(w / 2 + sw, h / 2 + 70), toW(-w / 2 - sw, h / 2 + 70)], 6);
+        const COL = o.color ?? (velvet ? [0.085, 0.085, 0.25] : [0.3, 0.14, 0.41]);
+        // moth holes and a darn (the veil), wax drops (both), in local units
+        const holes = velvet ? [] : [0, 1, 2].slice(0, 1 + Math.floor(r() * 2.5)).map(() => [(r() - 0.5) * w * 0.6, (r() - 0.3) * h * 0.6, 2.5 + r() * 4]);
+        const darn = velvet ? null : [(r() - 0.5) * w * 0.5, (r() - 0.5) * h * 0.4, 14 + r() * 10, 9 + r() * 6];
+        const drops = [0, 1, 2].slice(0, Math.floor(r() * 3) + (o.wax ?? 0)).map(() => [(r() - 0.5) * w * 0.7, (r() - 0.3) * h * 0.6, 3 + r() * 5, r()]);
+        P.solid(box, (ux, uy, q) => {
+            const [u, v] = toL(ux, uy);
+            const hw = half(v), tp = top(u), bt = bot(u);
+            const e = Math.min(hw - Math.abs(u - mid(v)), v - tp, bt - v);
+            if (e <= -1) return 0;
+            for (const [hx, hy, hr] of holes) {
+                const d = Math.hypot(u - hx, (v - hy) * 1.3) / (hr * (1 + 0.35 * Math.sin(Math.atan2(v - hy, u - hx) * 5 + hx)));
+                if (d < 1) return 0;
+                if (d < 1.5) {
+                    q.r = 0.38;
+                }
+            }
+            const H = fhAt(u, v), dhu = (fhAt(u + 1.5, v) - fhAt(u - 1.5, v)) / 3, dhv = (fhAt(u, v + 1.5) - fhAt(u, v - 1.5)) / 3;
+            let nlx = -dhu * (velvet ? 1 : 0.8), nly = -dhv * 0.5;
+            const nzl = 1 / Math.hypot(nlx, nly, 1);
+            // the pile, grain by grain
+            const g1 = hashI(Math.round(ux * 1.3), Math.round(uy * 1.3), 1, sd) - 0.5, g2 = hashI(Math.round(ux * 1.3), Math.round(uy * 1.3), 2, sd) - 0.5;
+            let a = 1;
+            q.r = COL[0];
+            q.g = COL[1];
+            q.b = COL[2];
+            const valley = clamp(0.5 - H / (depth * 1.6));
+            if (velvet) {
+                nlx += g1 * 0.35;
+                nly += g2 * 0.35;
+                // face-on pile swallows the light
+                a = (0.62 + 0.75 * (1 - nzl)) * (1 + 0.2 * g1);
+                // crushed patches: the nap laid the other way, paler, streaked along the crush
+                const cr = smooth(0.6, 0.72, noise2(u * 0.011, v * 0.017, sd + 3));
+                if (cr > 0) {
+                    const st = noise2(u * 0.09 + v * 0.03, v * 0.006, sd + 4) - 0.5;
+                    a *= 1 + cr * (0.55 + 0.9 * st);
+                    nlx += cr * 1.2 * st;
+                }
+                q.sh = 0.01;
+                q.h = g1 * 0.4;
+                // bald on the crests: the backing's weave shows
+                const bald = smooth(0.62, 0.9, H / depth) * smooth(0.58, 0.7, noise2(u * 0.03, v * 0.03, sd + 5));
+                if (bald > 0) {
+                    q.r = lerp(q.r, 0.22, bald);
+                    q.g = lerp(q.g, 0.2, bald);
+                    q.b = lerp(q.b, 0.3, bald);
+                    q.h += bald * 0.5 * Math.sin(u * 3.1) * Math.sin(v * 3.1);
+                    if (bald > 0.5) q.sh = 0.06;
+                }
+            } else {
+                // wool twill: the diagonal, a looser cross weave, the dye uneven
+                q.h = 0.24 * Math.sin((u + v) * 2.1) + 0.12 * Math.sin(u * 2.4) * Math.sin(v * 2.4) + g1 * 0.3;
+                q.sh = 0.06;
+                a = 0.9 + 0.12 * g1;
+                q.b += valley * 0.05;
+            }
+            const dye = noise2(u * 0.02, v * 0.02, sd + 6);
+            q.r = (q.r + 0.03 * smooth(0.55, 0.8, dye)) * a;
+            q.g *= a;
+            q.b = (q.b - 0.02 * smooth(0.55, 0.8, dye)) * a;
+            // the galloon along the top hem
+            const bv = (bt - v - 3 - (velvet ? 4 : 0)) / (GW || 1);
+            if (GW && bv > 0 && bv < 1) {
+                const torn = !velvet && noise2(u * 0.02, 9, sd + 7) > 0.62;
+                const cord = bv < 0.15 || bv > 0.85;
+                const sc = 0.5 + 0.3 * Math.sin((u * TAU) / 44 + ph);
+                const scroll = Math.abs(bv - sc) < 0.1;
+                const lp = (((u + 11 + ph * 7) % 44) + 44) % 44, leaf = Math.hypot((lp - 22) / 7, (bv - 0.5 + 0.3 * Math.sin(((u - lp + 22) * TAU) / 44 + ph)) / 0.16) < 1;
+                const dot = Math.abs(bv - 0.5) < 0.12 && Math.hypot(((((u + ph * 7) % 22) + 22) % 22) - 11, 0) < 2.2 && !scroll;
+                if (!torn && (cord || scroll || leaf || dot)) {
+                    const lay = cord ? Math.sin(u * 1.5 + bv * 30) : Math.sin(ux * 0.9 + uy * 1.7);
+                    q.r = 0.8 - 0.2 * lay * 0.5;
+                    q.g = 0.58 - 0.15 * lay * 0.5;
+                    q.b = 0.26 - 0.08 * lay * 0.5;
+                    if (hashI(Math.round(u * 0.3), Math.round(bv * 6), 8, sd) > 0.85) {
+                        q.r *= 0.7;
+                        q.g *= 0.62;
+                        q.b *= 0.55;
+                    }
+                    q.sp = 0.8;
+                    q.sh = 0.45;
+                    q.h = 0.7 + 0.3 * lay;
+                    nlx *= 0.5;
+                } else if (velvet) {
+                    // the padding under the embroidery shows between
+                    q.h += 0.3;
+                }
+            }
+            // the darn: threads across and along, a little off the violet
+            if (darn) {
+                const [dx, dy, dw, dh] = darn;
+                if (Math.abs(u - dx) < dw && Math.abs(v - dy) < dh) {
+                    const wv = (Math.sin((u - dx) * 2.4) > 0) !== (Math.sin((v - dy) * 2.4) > 0);
+                    q.r = wv ? 0.34 : 0.27;
+                    q.g = wv ? 0.17 : 0.13;
+                    q.b = wv ? 0.38 : 0.36;
+                    q.h = wv ? 0.6 : -0.2;
+                }
+            }
+            // drops of wax
+            for (const [wx, wy, wr, wk] of drops) {
+                const d = Math.hypot(u - wx, (v - wy) * (1.2 + wk * 0.5)) / (wr * (1 + 0.2 * Math.sin(Math.atan2(v - wy, u - wx) * 3 + wk * 9)));
+                if (d < 1) {
+                    q.r = 0.86;
+                    q.g = 0.8;
+                    q.b = 0.64;
+                    q.sp = 0.55;
+                    q.sh = 0.6;
+                    q.tr = 0.3;
+                    q.h = Math.sqrt(1 - d * d) * 1.2;
+                    nlx = (u - wx) / wr;
+                    nly = (v - wy) / wr;
+                }
+            }
+            // the edge rolls under a little
+            const roll = smooth(4, 0, e);
+            q.r *= 1 - roll * 0.35;
+            q.g *= 1 - roll * 0.35;
+            q.b *= 1 - roll * 0.3;
+            q.nx = nlx * c - nly * sn;
+            q.ny = nlx * sn + nly * c;
+            q.nz = 1;
+            return clamp(e * P.res + 0.5);
+        });
+        // the bullion fringe under the hem (velvet), or weft threads hanging from the tear (veil)
+        const fringe = o.fringe ?? velvet;
+        if (fringe) {
+            for (let u = mid(h / 2) - half(h / 2) + 3; u < mid(h / 2) + half(h / 2) - 2; u += 5 + r() * 1.6) {
+                const b0 = bot(u) - 3, len = 24 + r() * 14, sway = (r() - 0.5) * 4;
+                if (r() < 0.04) continue; // one gone
+                N.tube(P, [toW(u, b0), toW(u + sway * 0.4, b0 + len * 0.5), toW(u + sway, b0 + len)], 4.4, (t, ac, along, q) => {
+                    const tw = Math.sin(along * 1.6 + ac * 2.6);
+                    q.r = 0.74 + 0.08 * tw;
+                    q.g = 0.54 + 0.06 * tw;
+                    q.b = 0.24;
+                    q.h = 0.8 * tw;
+                    q.sp = 0.7;
+                    q.sh = 0.5;
+                });
+            }
+            // the fringe's header: a woven band over the cords' tops
+            N.tube(P, Array.from({ length: 13 }, (_, i) => {
+                const u = mid(h / 2) - half(h / 2) + 1 + ((half(h / 2) * 2 - 2) * i) / 12;
+                return toW(u, bot(u) - 2);
+            }), 7, (t, ac, along, q) => {
+                const ch = Math.sin(along * 0.9) * Math.sin(ac * 6);
+                q.r = 0.66 + 0.1 * ch;
+                q.g = 0.48 + 0.07 * ch;
+                q.b = 0.2;
+                q.h = 0.6 * ch;
+                q.sp = 0.6;
+                q.sh = 0.45;
+            });
+        } else if (tearS) {
+            for (let u = mid(h / 2) - half(h / 2) + 2; u < mid(h / 2) + half(h / 2) - 2; u += 3 + r() * 5) {
+                const b0 = bot(u) - 1.5, len = 4 + r() * r() * 22, cur = (r() - 0.5) * 6;
+                N.tube(P, [toW(u, b0), toW(u + cur * 0.3, b0 + len * 0.6), toW(u + cur, b0 + len)], 1.3, (t, ac, along, q) => {
+                    q.r = 0.36;
+                    q.g = 0.2;
+                    q.b = 0.44;
+                    q.sh = 0.06;
+                    q.h = 0.3 * Math.sin(along * 2);
+                }, { ends: false });
+            }
+        }
+        // the gathered top: a gold cord bound round it twice, its ends in a tassel (velvet)
+        if (velvet && gather > 0.6 && o.cord !== false) {
+            const v0 = -h / 2 + 10, hw0 = half(v0) + 3, m0 = mid(v0);
+            for (const dv of [0, 7]) {
+                N.tube(P, [toW(m0 - hw0, v0 + dv + 2), toW(m0, v0 + dv + 4), toW(m0 + hw0, v0 + dv + 1)], 5.2, (t, ac, along, q) => {
+                    const tw = Math.sin(along * 1.3 + ac * 2.4);
+                    q.r = 0.78 + 0.08 * tw;
+                    q.g = 0.57 + 0.06 * tw;
+                    q.b = 0.25;
+                    q.h = 0.9 * tw;
+                    q.sp = 0.75;
+                    q.sh = 0.5;
+                });
+            }
+            const k0 = toW(m0 + hw0, v0 + 4), k1 = toW(m0 + hw0 + 14, v0 + 26), k2 = toW(m0 + hw0 + 10, v0 + 44);
+            N.tube(P, [k0, k1, k2], 4.4, (t, ac, along, q) => {
+                const tw = Math.sin(along * 1.3 + ac * 2.4);
+                q.r = 0.76 + 0.08 * tw;
+                q.g = 0.55 + 0.06 * tw;
+                q.b = 0.24;
+                q.h = 0.9 * tw;
+                q.sp = 0.7;
+            });
+            // the tassel: a knob, then threads
+            for (let i = 0; i < 14; i++) {
+                const a = (i / 13 - 0.5) * 0.7, L = 22 + r() * 8;
+                const t0 = toW(m0 + hw0 + 10 + Math.sin(a) * 4, v0 + 50), t1 = toW(m0 + hw0 + 10 + Math.sin(a) * (L * 0.45), v0 + 50 + L);
+                N.tube(P, [t0, t1], 2, (t, ac, along, q) => {
+                    q.r = 0.72 + 0.1 * Math.sin(i * 2.1);
+                    q.g = 0.52 + 0.06 * Math.sin(i * 2.1);
+                    q.b = 0.22;
+                    q.h = 0.4 * Math.sin(along * 1.1);
+                    q.sp = 0.6;
+                });
+            }
+            P.solid({ x: k2[0] - 12, y: k2[1] - 12, w: 24, h: 24 }, (ux, uy, q) => {
+                const d = Math.hypot(ux - k2[0], uy - k2[1] - 3) / 8;
+                if (d >= 1) return 0;
+                q.nx = (ux - k2[0]) / 8;
+                q.ny = (uy - k2[1] - 3) / 8;
+                q.nz = Math.sqrt(1 - d * d);
+                q.r = 0.74;
+                q.g = 0.54;
+                q.b = 0.24;
+                q.h = 0.5 * Math.sin(Math.atan2(uy - k2[1], ux - k2[0]) * 9);
+                q.sp = 0.7;
+                return clamp((1 - d) * 8 * P.res + 0.5);
+            });
+        }
+        // lint on the velvet
+        if (velvet) {
+            for (let i = 0; i < 3; i++) {
+                const u = (r() - 0.5) * w * 0.7, v = (r() - 0.5) * h * 0.6, a = r() * TAU, L = 6 + r() * 9;
+                N.tube(P, [toW(u, v), toW(u + Math.cos(a) * L * 0.5 + 1.5, v + Math.sin(a) * L * 0.5), toW(u + Math.cos(a + 0.6) * L, v + Math.sin(a + 0.6) * L)], 0.9, (t, ac, along, q) => {
+                    q.r = 0.62;
+                    q.g = 0.6;
+                    q.b = 0.64;
+                    q.tr = 0.2;
+                }, { ends: false });
+            }
+        }
+        return toW;
+    }
+
+    // ------------------------------------------------------------------ wax
+    // the puddle set round a stub's foot: (x, y) the candle's foot, R its half-width
+    function pool(P, o) {
+        const { x, y, R = 30, seed = 'pool', col = [0.86, 0.8, 0.66] } = o, sd = S.seedOf(seed), ry = R * 0.4;
+        P.solid({ x: x - R * 1.4, y: y - ry * 1.6, w: R * 2.8, h: ry * 3.4 }, (ux, uy, q) => {
+            const dx = (ux - x) / R, dy = (uy - y - ry * 0.2) / ry, a = Math.atan2(dy, dx), d = Math.hypot(dx, dy);
+            const edge = 1 + 0.2 * (noise2(Math.cos(a) * 1.6, Math.sin(a) * 1.6, sd) - 0.5) * 2 + 0.1 * Math.sin(a * 5 + sd) + 0.12 * Math.max(0, Math.sin(a * 3 + sd * 0.7)) * (dy > 0 ? 1 : 0);
+            if (d >= edge) return 0;
+            const t = d / edge;
+            q.nx = dx * 0.5 * t;
+            q.ny = -0.45 + dy * 0.35;
+            q.nz = 1;
+            const n = noise2(ux * 0.08, uy * 0.08, sd + 1) * 0.05;
+            q.r = col[0] + n;
+            q.g = col[1] + n;
+            q.b = col[2] + n;
+            // ridges where it set in rings, a skin, a few specks of soot
+            q.h = 0.35 * Math.sin(t * 16 + noise2(a * 2, t * 3, sd + 2) * 4) + 0.6 * smooth(1, 0.85, t);
+            if (hashI(Math.round(ux * 1.3), Math.round(uy * 1.3), 3, sd) > 0.993) {
+                q.r *= 0.4;
+                q.g *= 0.4;
+                q.b *= 0.4;
+            }
+            q.sp = 0.45;
+            q.sh = 0.55;
+            q.tr = 0.25;
+            return clamp((edge - d) * ry * P.res + 0.5);
+        });
+    }
+    // a ball of wax rolled from many candles: (x, y), radius R
+    function waxBall(P, o) {
+        const { x, y, R = 24, seed = 'bola' } = o, sd = S.seedOf(seed);
+        const COLS = [[0.9, 0.86, 0.74], [0.86, 0.72, 0.42], [0.42, 0.24, 0.14], [0.62, 0.16, 0.12], [0.92, 0.9, 0.84]];
+        P.solid({ x: x - R * 1.4, y: y - R * 1.4, w: R * 2.8, h: R * 2.8 }, (ux, uy, q) => {
+            const dx = (ux - x) / R, dy = (uy - y) / R, a = Math.atan2(dy, dx), d = Math.hypot(dx, dy);
+            const edge = 1 + 0.1 * (noise2(Math.cos(a) * 2, Math.sin(a) * 2, sd) - 0.5) * 2 + 0.04 * Math.sin(a * 7 + sd);
+            if (d >= edge) return 0;
+            const t = d / edge, nz = Math.sqrt(Math.max(0, 1 - t * t));
+            q.nx = dx / edge;
+            q.ny = dy / edge;
+            q.nz = nz;
+            // the layers, smeared round as it was rolled
+            const sw = noise2(ux * 0.06 + Math.sin(uy * 0.09) * 1.5, uy * 0.06, sd + 1) * 5 + a * 0.6;
+            const k = ((Math.floor(sw) % 5) + 5) % 5, f = sw - Math.floor(sw);
+            const c0 = COLS[k], c1 = COLS[(k + 1) % 5], m = smooth(0.8, 1, f);
+            q.r = lerp(c0[0], c1[0], m);
+            q.g = lerp(c0[1], c1[1], m);
+            q.b = lerp(c0[2], c1[2], m);
+            q.h = 0.5 * Math.sin(sw * TAU) * 0.3 + (noise2(ux * 0.4, uy * 0.4, sd + 2) - 0.5) * 0.5;
+            q.sp = 0.4;
+            q.sh = 0.5;
+            q.tr = 0.25;
+            return clamp((edge - d) * R * P.res + 0.5);
+        });
+    }
+
+    // ------------------------------------------------------------------ incense
+    function incense(P, o) {
+        const { x, y, s = 1, seed = 'incienso' } = o, r = Motion.rng('incense' + seed), sd = S.seedOf(seed);
+        // a crumb of charcoal under them
+        const cx = x + (r() - 0.5) * 10 * s, cy = y + 8 * s;
+        P.solid({ x: cx - 16 * s, y: cy - 10 * s, w: 32 * s, h: 20 * s }, (ux, uy, q) => {
+            const dx = (ux - cx) / (13 * s), dy = (uy - cy) / (7 * s), d = Math.max(Math.abs(dx) * 0.9 + Math.abs(dy) * 0.25, Math.abs(dy)) + 0.08 * noise2(ux * 0.3, uy * 0.3, sd);
+            if (d >= 1) return 0;
+            q.r = 0.06;
+            q.g = 0.055;
+            q.b = 0.06;
+            q.nx = dx * 0.4;
+            q.ny = dy * 0.6 - 0.3;
+            q.h = (hashI(Math.round(ux * 1.5), Math.round(uy * 1.5), 1, sd) - 0.5) * 0.9;
+            // it was lit: a rim of ash and a red seam
+            if (d > 0.82) {
+                q.r = 0.42;
+                q.g = 0.4;
+                q.b = 0.4;
+            }
+            if (Math.abs(dy - 0.3 * Math.sin(dx * 4 + sd)) < 0.08) {
+                q.r = 0.9;
+                q.g = 0.3;
+                q.b = 0.08;
+                q.tr = 1;
+            }
+            return clamp((1 - d) * 7 * s * P.res + 0.5);
+        });
+        for (let i = 0; i < 7; i++) {
+            const tx = x + (r() - 0.5) * 34 * s, ty = y + (r() - 0.6) * 22 * s, tr = (4 + r() * 5) * s, el = 0.7 + r() * 0.5, dusted = i === 3;
+            P.solid({ x: tx - tr * 1.6, y: ty - tr * 1.6, w: tr * 3.2, h: tr * 3.2 }, (ux, uy, q) => {
+                const dx = (ux - tx) / tr, dy = (uy - ty) / (tr * el), a = Math.atan2(dy, dx), d = Math.hypot(dx, dy);
+                const edge = 1 + 0.18 * Math.sin(a * 3 + i) + 0.1 * Math.sin(a * 5 + i * 2);
+                if (d >= edge) return 0;
+                const t = d / edge;
+                q.nx = dx * 0.9;
+                q.ny = dy * 0.9;
+                q.nz = Math.sqrt(Math.max(0.05, 1 - t * t));
+                const n = noise2(ux * 0.5, uy * 0.5, sd + i);
+                q.r = dusted ? 0.86 : 0.82 + n * 0.08;
+                q.g = dusted ? 0.8 : 0.56 + n * 0.08;
+                q.b = dusted ? 0.66 : 0.2 + n * 0.05;
+                q.sp = dusted ? 0.1 : 0.7;
+                q.sh = 0.7;
+                q.tr = dusted ? 0.2 : 0.8;
+                q.h = (n - 0.5) * 0.8;
+                return clamp((edge - d) * tr * P.res + 0.5);
+            });
+        }
+    }
+
+    // ------------------------------------------------------------------ gold leaf
+    // a flake come off the board of circles: (x, y), size R, curl (its normal leans across it)
+    function flake(P, o) {
+        const { x, y, R = 30, seed = 'oro', rot = 0 } = o, sd = S.seedOf(seed), r = Motion.rng('flake' + seed);
+        const n = 7 + Math.floor(r() * 4), pts = [];
+        for (let i = 0; i < n; i++) {
+            const a = rot + (i / n) * TAU + (r() - 0.5) * 0.5, rr = R * (0.55 + r() * 0.5);
+            pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.8]);
+        }
+        const outline = S.curve(pts, true, 3).map(([px, py], i) => [px + (hashI(i, 1, 2, sd) - 0.5) * 3, py + (hashI(i, 3, 4, sd) - 0.5) * 3]);
+        const c = document.createElement('canvas');
+        const bb = S.bbox(outline, 2), res = 2, W = Math.ceil(bb.w * res), H = Math.ceil(bb.h * res);
+        c.width = W;
+        c.height = H;
+        const g = c.getContext('2d', { willReadFrequently: true });
+        g.setTransform(res, 0, 0, res, -bb.x * res, -bb.y * res);
+        g.fillStyle = '#fff';
+        g.beginPath();
+        S.trace(g, outline);
+        g.fill();
+        const M = g.getImageData(0, 0, W, H).data;
+        const at = (ux, uy) => M[(Math.min(H - 1, Math.max(0, Math.floor((uy - bb.y) * res))) * W + Math.min(W - 1, Math.max(0, Math.floor((ux - bb.x) * res)))) * 4 + 3] / 255;
+        const ca = Math.cos(rot + 0.8), sa = Math.sin(rot + 0.8);
+        P.solid(bb, (ux, uy, q) => {
+            const m = at(ux, uy);
+            if (m <= 0) return 0;
+            const along = ((ux - x) * ca + (uy - y) * sa) / R;
+            // curled: the normal turns along it, a crinkle across
+            q.nx = ca * along * 0.9 + 0.15 * Math.sin(ux * 0.7 + sd);
+            q.ny = sa * along * 0.9 + 0.15 * Math.sin(uy * 0.6);
+            q.nz = 1;
+            N.gilt(q, ux * 2.2, uy * 2.2, sd, { wear: 0.6 });
+            q.h += 0.3 * Math.sin((ux - x) * 1.3 + (uy - y) * 0.4) * Math.sin((uy - y) * 1.1);
+            return m;
+        });
+    }
+    // an eight-pointed star of the diagram (two squares), gilt and bevelled
+    function star(P, o) {
+        const { x, y, R = 30, rot = 0, seed = 'estrella' } = o, sd = S.seedOf(seed);
+        P.solid({ x: x - R - 2, y: y - R - 2, w: R * 2 + 4, h: R * 2 + 4 }, (ux, uy, q) => {
+            const dx = ux - x, dy = uy - y;
+            let best = -1e9, nx = 0, ny = 0;
+            // the star as the union of two squares: distance inside each, the nearer edge's normal
+            for (const a0 of [rot, rot + Math.PI / 4]) {
+                let m = 1e9, mx = 0, my = 0;
+                for (let k = 0; k < 4; k++) {
+                    const a = a0 + (k * Math.PI) / 2, ex = Math.cos(a), ey = Math.sin(a), dd = R * 0.7071 - (dx * ex + dy * ey);
+                    if (dd < m) {
+                        m = dd;
+                        mx = ex;
+                        my = ey;
+                    }
+                }
+                if (m > best) {
+                    best = m;
+                    nx = mx;
+                    ny = my;
+                }
+            }
+            if (best <= 0) return 0;
+            const bev = smooth(5, 0, best);
+            q.nx = nx * bev * 0.8;
+            q.ny = ny * bev * 0.8;
+            q.nz = 1;
+            N.gilt(q, ux * 2, uy * 2, sd, { wear: 0.4 });
+            // a punched dot in the middle, a ring of punches
+            const d = Math.hypot(dx, dy);
+            if (d < 3.2 || (Math.abs(d - R * 0.42) < 1.3 && Math.cos(Math.atan2(dy, dx) * 16) > 0.3)) {
+                q.h -= 0.9;
+                q.r *= 0.7;
+                q.g *= 0.66;
+            }
+            return clamp(best * P.res + 0.5);
+        });
+    }
+
+    // ------------------------------------------------------------------ an olive sprig
+    function sprig(P, o) {
+        const { x, y, L = 110, rot = 0, seed = 'olivo' } = o, r = Motion.rng('sprig' + seed), sd = S.seedOf(seed);
+        const c = Math.cos(rot), sn = Math.sin(rot), W = (u, v) => [x + u * c - v * sn, y + u * sn + v * c];
+        const tw = [W(0, 0), W(L * 0.5, -L * 0.06), W(L, L * 0.02)];
+        N.tube(P, tw, (u) => 3.4 - u * 1.8, (u, a, along, q) => {
+            q.r = 0.36;
+            q.g = 0.31;
+            q.b = 0.22;
+            q.h = 0.3 * Math.sin(along * 0.6) + (hashI(Math.round(along), 1, 2, sd) > 0.9 ? 0.6 : 0);
+            q.sp = 0.2;
+        });
+        const n = 6 + Math.floor(r() * 3);
+        for (let i = 0; i < n; i++) {
+            const t = 0.12 + (i / n) * 0.85, base = W(L * t, -L * 0.04 * Math.sin(t * Math.PI)), side = i % 2 ? 1 : -1;
+            const a = rot + side * (0.55 + r() * 0.4) + (r() - 0.5) * 0.3, len = L * (0.26 + r() * 0.1), tip = [base[0] + Math.cos(a) * len, base[1] + Math.sin(a) * len];
+            const under = r() < 0.4, mid = [lerp(base[0], tip[0], 0.5) - Math.sin(a) * side * 2, lerp(base[1], tip[1], 0.5) + Math.cos(a) * side * 2];
+            N.tube(P, [base, mid, tip], (u) => len * 0.2 * Math.sin(Math.PI * Math.pow(u, 0.75)) + 0.6, (u, ac, along, q) => {
+                q.r = under ? 0.58 : 0.24;
+                q.g = under ? 0.62 : 0.33;
+                q.b = under ? 0.52 : 0.2;
+                q.h = Math.abs(ac) < 0.1 ? -0.6 : 0.15 * Math.sin(ac * 6);
+                q.sp = under ? 0.1 : 0.45;
+                q.sh = 0.6;
+            });
+        }
+        for (const t of [0.45, 0.75].slice(0, 1 + (r() < 0.6 ? 1 : 0))) {
+            const p = W(L * t + 3, 10 + r() * 3);
+            P.solid({ x: p[0] - 9, y: p[1] - 9, w: 18, h: 18 }, (ux, uy, q) => {
+                const dx = (ux - p[0]) / 5.5, dy = (uy - p[1]) / 7.5, d = Math.hypot(dx, dy);
+                if (d >= 1) return 0;
+                q.nx = dx;
+                q.ny = dy;
+                q.nz = Math.sqrt(1 - d * d);
+                q.r = 0.2;
+                q.g = 0.24;
+                q.b = 0.13;
+                q.sp = 0.8;
+                q.sh = 0.8;
+                q.h = (hashI(Math.round(ux * 2), Math.round(uy * 2), 3, sd) - 0.5) * 0.4;
+                return clamp((1 - d) * 5 * P.res + 0.5);
+            });
+        }
+    }
+
+    // ------------------------------------------------------------------ the vihuela's head
+    // To be painted BEFORE Night.vihuela(P, { …, ribbon: false }) with the same x, y, s, rot.
+    function vihuelaHead(P, o) {
+        const { x, y, s = 1, rot = 0, seed = 'vihuela' } = o, sd = S.seedOf(seed);
+        const c = Math.cos(rot), sn = Math.sin(rot);
+        const toW = (u, v) => [x + (u * c - v * sn) * s, y + (u * sn + v * c) * s];
+        const toL = (ux, uy) => {
+            const dx = (ux - x) / s, dy = (uy - y) / s;
+            return [dx * c + dy * sn, -dx * sn + dy * c];
+        };
+        const V0 = -412, V1 = -512;
+        const bb = S.bbox([toW(-45, V0), toW(45, V0), toW(45, V1 - 10), toW(-45, V1 - 10)], 8);
+        const half = (v) => {
+            const t = (V0 - v) / (V0 - V1);
+            return 21 + 9 * Math.sin(Math.PI * Math.min(1, t * 1.2)) * 0.8 + t * 6;
+        };
+        const pegs = [];
+        for (let k = 0; k < 6; k++) for (const side of [-1, 1]) pegs.push([side * 11, V0 - 22 - k * 13 + (side > 0 ? 6 : 0)]);
+        P.solid(bb, (ux, uy, q) => {
+            const [u, v] = toL(ux, uy);
+            if (v > V0 + 4) return 0;
+            const t = (V0 - v) / (V0 - V1), hw = half(v);
+            // the top: a notch in the middle, two lobes
+            const topV = V1 + 6 * Math.abs(Math.sin((u / 30) * Math.PI)) - 10 * Math.max(0, 1 - Math.abs(u) / 7);
+            const e = Math.min(hw - Math.abs(u), v - topV);
+            if (e <= 0 || t < -0.05) return 0;
+            q.r = 0.17;
+            q.g = 0.1;
+            q.b = 0.06;
+            q.h = 0.3 * Math.sin(u * 0.8 + noise2(u * 0.05, v * 0.02, sd) * 6);
+            q.sp = 0.35;
+            q.sh = 0.55;
+            if (e < 3) {
+                const sg = Math.sign(u);
+                q.nx = sg * c * (1 - e / 3) * 0.7;
+                q.ny = sg * sn * (1 - e / 3) * 0.7;
+            }
+            // the nut: a bar of bone across where the head begins
+            if (Math.abs(v - V0 + 4) < 2.6) {
+                q.r = 0.8;
+                q.g = 0.74;
+                q.b = 0.6;
+                q.h = 0.8;
+                q.sp = 0.4;
+            }
+            // the pegs' ends through the head, the string wound round each
+            for (const [pu, pv] of pegs) {
+                const d = Math.hypot(u - pu, v - pv);
+                if (d < 4.2) {
+                    q.r = d < 2.2 ? 0.3 : 0.62;
+                    q.g = d < 2.2 ? 0.2 : 0.55;
+                    q.b = d < 2.2 ? 0.12 : 0.4;
+                    q.h = d < 2.2 ? 0.6 : 0.4 * Math.sin(d * 5);
+                    q.sp = 0.45;
+                }
+            }
+            return clamp(e * s * P.res + 0.5);
+        });
+        // the peg heads behind, showing at the sides: flat ovals of boxwood
+        for (const [pu, pv] of pegs) {
+            const side = Math.sign(pu), a = toW(pu + side * 18, pv), b = toW(pu + side * 34, pv - 2);
+            N.tube(P, [toW(pu + side * 10, pv), a, b], (u) => (u < 0.3 ? 5 : 5 + 8 * Math.sqrt(Math.sin((Math.PI * (u - 0.3)) / 0.7) + 0.0)) * s, (u, ac, along, q) => {
+                q.r = 0.5;
+                q.g = 0.36;
+                q.b = 0.2;
+                q.h = 0.4 * Math.sin(along * 0.3);
+                q.sp = 0.3;
+            });
+        }
+        return { toW, pegs };
+    }
+    // the strings from the nut to their pegs, and the ribbon in a bow below the head; AFTER the vihuela
+    function vihuelaTie(P, o) {
+        const { x, y, s = 1, rot = 0, seed = 'vihuela' } = o, r = Motion.rng('tie' + seed);
+        const c = Math.cos(rot), sn = Math.sin(rot);
+        const toW = (u, v) => [x + (u * c - v * sn) * s, y + (u * sn + v * c) * s];
+        for (let k = 0; k < 6; k++) {
+            for (const [d, side] of [[-1.3, -1], [1.3, 1]]) {
+                const u = ((k - 2.5) * 6.4 + d) * 0.78, pv = -412 - 22 - (5 - Math.abs(k - 2.5) - 0.5) * 13 + (side > 0 ? 6 : 0);
+                S.ink(P.a, [toW(u, -420), toW(side * 11, pv)], { w: 0.7 * s, color: k < 3 ? '#d8cfb8' : '#c2b28a', taper: [0, 0] });
+            }
+        }
+        // the bow: two loops and two tails, faded red silk, frayed at the ends
+        const knot = toW(0, -372);
+        const look = (ph) => (u, ac, along, q) => {
+            const fold = Math.sin(along * 0.08 + ph * 2);
+            q.nx += fold * 0.6;
+            q.r = 0.54 + 0.07 * fold;
+            q.g = 0.2 + 0.02 * fold;
+            q.b = 0.21 + 0.04 * fold;
+            q.sp = 0.3;
+            q.sh = 0.6;
+            q.nx *= 0.35;
+            q.ny *= 0.35;
+            q.h = Math.abs(ac) > 0.85 ? 0.4 : 0.06 * Math.sin(along * 0.9 + ac * 3);
+        };
+        for (const side of [-1, 1]) {
+            N.tube(P, [knot, toW(side * 40, -398), toW(side * 62, -372), toW(side * 40, -352), knot], 13 * s, look(side), { ends: false });
+            N.tube(P, [knot, toW(side * 18, -330), toW(side * 10 + (r() - 0.5) * 20, -290), toW(side * 30, -250 - r() * 30)], 12 * s, look(side + 2));
+        }
+        P.solid({ x: knot[0] - 10 * s, y: knot[1] - 10 * s, w: 20 * s, h: 20 * s }, (ux, uy, q) => {
+            const d = Math.hypot(ux - knot[0], uy - knot[1]) / (7 * s);
+            if (d >= 1) return 0;
+            q.nx = (ux - knot[0]) / (7 * s);
+            q.ny = (uy - knot[1]) / (7 * s);
+            q.nz = Math.sqrt(1 - d * d);
+            q.r = 0.5;
+            q.g = 0.18;
+            q.b = 0.19;
+            q.sh = 0.6;
+            q.h = 0.4 * Math.sin(Math.atan2(uy - knot[1], ux - knot[0]) * 5);
+            return clamp((1 - d) * 7 * s * P.res + 0.5);
+        });
+    }
+
+    // ------------------------------------------------------------------ a fallen feather
+    // A white contour feather from the dove: the quill (calamus) bare and translucent at the
+    // base, a downy tuft just above it, then the rachis curving to the tip; the vane narrower
+    // on the leading side, its tip rounded; barbs slanting to the tip, each a hairline; two
+    // or three splits where barbs have parted; the inner edge softer. (x, y) its base, `dir`
+    // the way it points, `len` long.
+    function plume(P, o) {
+        const { x, y, dir = 0, len = 80, seed = 'pluma' } = o, sd = S.seedOf(seed), r = Motion.rng('plume' + seed);
+        const c = Math.cos(dir), sn = Math.sin(dir), bend = o.bend ?? 0.12, wid = o.wid ?? len * 0.17;
+        const W = (u, v) => [x + u * c - v * sn, y + u * sn + v * c];
+        const toL = (ux, uy) => {
+            const dx = ux - x, dy = uy - y;
+            return [dx * c + dy * sn, -dx * sn + dy * c];
+        };
+        const ax = (t) => bend * len * t * t; // the rachis' offset across
+        const CAL = 0.16, DOWN = 0.28;
+        const vane = (t, side) => {
+            if (t < CAL) return 0;
+            const k = (t - CAL) / (1 - CAL);
+            const base = wid * (side > 0 ? 0.62 : 1) * Math.pow(Math.sin(Math.PI * Math.min(1, 0.12 + k * 0.95)), 0.55);
+            return base * (k > 0.8 ? Math.sqrt(Math.max(0, 1 - ((k - 0.8) / 0.22) ** 2)) * 0.6 + 0.4 * (1 - (k - 0.8) / 0.2) : 1);
+        };
+        const splits = [0, 1, 2].map(() => [0.4 + r() * 0.45, r() < 0.5 ? 1 : -1, 0.3 + r() * 0.5]);
+        const bb = S.bbox([W(-4, -wid * 1.4), W(len + 4, -wid * 1.4), W(len + 4, wid * 1.4 + bend * len), W(-4, wid * 1.4 + bend * len)], 4);
+        P.solid(bb, (ux, uy, q) => {
+            const [u, v0] = toL(ux, uy);
+            const t = u / len;
+            if (t < 0 || t > 1.02) return 0;
+            const v = v0 - ax(t), side = v > 0 ? 1 : -1, av = Math.abs(v);
+            const shaft = (1.8 - t * 1.3) * (len / 80);
+            q.r = 0.9;
+            q.g = 0.89;
+            q.b = 0.86;
+            q.tr = 0.4;
+            // the bare quill, horn-coloured and translucent
+            if (t < CAL) {
+                const sw = shaft * 1.5;
+                if (av > sw) return 0;
+                q.r = 0.74;
+                q.g = 0.7;
+                q.b = 0.6;
+                q.tr = 0.8;
+                q.sp = 0.5;
+                q.sh = 0.7;
+                q.nx = (-sn * v) / sw;
+                q.ny = (c * v) / sw;
+                q.nz = Math.sqrt(Math.max(0, 1 - (v / sw) ** 2));
+                return clamp((sw - av) * P.res + 0.5) * clamp(u * P.res + 0.5);
+            }
+            let wv = vane(t, side);
+            // the down at the base: loose, fluffy, wider than the vane there
+            const dn = smooth(DOWN, CAL, t);
+            if (dn > 0) wv = Math.max(wv, wid * 0.9 * dn * (0.7 + 0.3 * Math.sin(v * 0.9 + t * 40)));
+            // splits: a notch where the barbs have parted
+            for (const [st, ss, sdp] of splits) {
+                const along = t - st - (av / len) * 0.9;
+                if (side === ss && Math.abs(along) < 0.012 && av > wv * (1 - sdp)) return 0;
+            }
+            if (av >= wv && av > shaft) return 0;
+            // the rachis: a lit ridge
+            if (av < shaft) {
+                q.nx = (-sn * v) / shaft * 0.8;
+                q.ny = (c * v) / shaft * 0.8;
+                q.r = 0.95;
+                q.g = 0.94;
+                q.b = 0.9;
+                q.h = 0.8;
+                q.sp = 0.25;
+                return 1;
+            }
+            // barbs slanting to the tip: a ripple across them, each its own tone
+            const bp = u * 1.6 - av * 1.9;
+            const barb = Math.sin(bp + noise2(u * 0.05, av * 0.1, sd) * 3);
+            const bi = hashI(Math.floor(bp / TAU), side, 3, sd);
+            const k = 0.94 + 0.05 * barb - 0.08 * Math.pow(av / (wv || 1), 3) + 0.04 * (bi - 0.5);
+            q.r = 0.9 * k;
+            q.g = 0.89 * k;
+            q.b = 0.86 * k;
+            q.h = 0.3 * barb;
+            // the vane curves: lit along one side of the shaft, the other in its own shade
+            q.nx = -sn * side * 0.25;
+            q.ny = c * side * 0.25;
+            if (dn > 0.2) {
+                q.h = (hashI(Math.round(ux * 2), Math.round(uy * 2), 4, sd) - 0.5) * 0.8;
+                q.tr = 0.6;
+            }
+            // the edge frays into separate barb tips
+            const edge = wv - av;
+            return clamp(edge * P.res + 0.5) * (edge < 2.5 ? 0.6 + 0.4 * Math.max(0, barb) : 1);
+        });
+    }
+
+    // ------------------------------------------------------------------ the dove's feet
+    // tucked under the body in flight; (x, y, s, flip) as given to Night.dove
+    function doveFeet(P, o) {
+        const { x, y, s = 1 } = o, flip = o.flip ? -1 : 1;
+        const F = (px, py) => [x + px * s * flip, y + py * s];
+        for (const [fx, fy, k] of [[-14, 22, 0], [-4, 25, 1]]) {
+            const knee = F(fx, fy), ank = F(fx - 14, fy + 7);
+            N.tube(P, [knee, ank], 5 * s, (u, a, along, q) => {
+                q.r = 0.78;
+                q.g = 0.36;
+                q.b = 0.34;
+                q.h = 0.15 * Math.sin(along * 3.2);
+                q.sp = 0.3;
+            });
+            for (const [da, L] of [[-0.5, 12], [0, 15], [0.45, 11]]) {
+                const a = (flip > 0 ? Math.PI : 0) + flip * (0.35 + da) + k * 0.1, tip = [ank[0] + Math.cos(a) * L * s, ank[1] + Math.sin(a) * L * s * 0.6 + 3 * s];
+                N.tube(P, [ank, [lerp(ank[0], tip[0], 0.5), lerp(ank[1], tip[1], 0.5) + 2 * s], tip], (u) => (3.6 - u * 2) * s, (u, ac, along, q) => {
+                    q.r = u > 0.85 ? 0.2 : 0.8;
+                    q.g = u > 0.85 ? 0.16 : 0.38;
+                    q.b = u > 0.85 ? 0.16 : 0.36;
+                    q.h = 0.12 * Math.sin(along * 3.4);
+                    q.sp = u > 0.85 ? 0.6 : 0.3;
+                });
+            }
+        }
+    }
+
+    // the box a cloth needs (its sway, its fringe and the tassel included)
+    cloth.box = (o) => {
+        const w = o.w ?? 300, h = o.h ?? 240, sw = Math.abs(o.sway ?? 0.25) * w + 20, c = Math.cos(o.rot ?? 0), sn = Math.sin(o.rot ?? 0);
+        const pts = [[-w / 2 - sw - 40, -h / 2 - 40], [w / 2 + sw + 40, -h / 2 - 40], [w / 2 + sw + 40, h / 2 + 80], [-w / 2 - sw - 40, h / 2 + 80]].map(([u, v]) => [o.x + u * c - v * sn, o.y + u * sn + v * c]);
+        const b = S.bbox(pts, 0);
+        return [b.x, b.y, b.x + b.w, b.y + b.h];
+    };
+    Object.assign(Night, { cloth, pool, waxBall, incense, flake, star, sprig, vihuelaHead, vihuelaTie, doveFeet, plume });
 })();

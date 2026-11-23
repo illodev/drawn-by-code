@@ -526,6 +526,528 @@ Tableau.green = (z0, opt = null) => {
         return L2;
     }
 
+    // =========================================================== the loose stratum (round 8)
+    // The same world come off its sheets: every thing its own layer, floating at its own depth
+    // in the slab z − 280 … z + 280, turning slowly, nothing holding it (see
+    // Tableau.green.loose below). Composed in rings round the axis, because the frame rolls:
+    //   heroes (330 … 950 from the axis, all round, each at its own depth)
+    //     the fig's limb with its leaves and figs and the tree frog on it · a second limb, a
+    //     fig gone soft and the moon moth on its wood · the ghost ship on its tongue of sea ·
+    //     the ghost horse on its crag of the thieving-cat mountain, agaves bristling on it ·
+    //     an agave rosette · the prickly pear with its fruit · a tin lantern on its hook · a
+    //     glass tambourine, cracked · the big frost star · the fish of shadow with the road of
+    //     dawn behind it · the moon's icicle · a length of the high railing's hand-rail torn
+    //     off, the trail of blood along it (the one warm colour) and a gecko on it
+    //   matter (280 … 1500, denser inside): single fig leaves of every light (moonlit, in
+    //     shade, deep, turned to their pale undersides, young), fig twigs, single figs, agave
+    //     leaves broken off (blue, green, dry), prickly-pear pads, small frost stars,
+    //     maidenhair fronds from the cistern, shards of the glass tambourines
+    // The moon is one light field over the whole slab, in stratum units, painted into every
+    // piece per pixel: the pieces share it as they drift.
+    if (opt && opt.loose) return loose(z0);
+    function loose(z) {
+        const out = [], R = Motion.rng('green-loose');
+        // ---------------------------------------------------------- one moon for all
+        // > 0: in the moonlight (lifted, greener, cooler); < 0: in a pool of shade
+        const field = (x, y) => S.clamp(-((x * 0.55 + y * 0.83) / 1500) * 0.55 + 0.42 * S.noise2(x / 560 + 7, y / 560, 41) + 0.22 * S.noise2(x / 210, y / 210 + 3, 42), -1, 1);
+        const shine = (c, bx, res, k = 1) => {
+            const W = c.width, H = c.height, q = c.getContext('2d', { willReadFrequently: true }), img = q.getImageData(0, 0, W, H), px = img.data;
+            const st = 8, gw = Math.ceil(W / st) + 2, gh = Math.ceil(H / st) + 2, F = new Float32Array(gw * gh);
+            for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) F[j * gw + i] = field(bx.x + (i * st) / res, bx.y + (j * st) / res) * k;
+            for (let y = 0; y < H; y++) {
+                const fy = y / st, j = Math.floor(fy), v = fy - j;
+                for (let x = 0; x < W; x++) {
+                    const o = (y * W + x) * 4;
+                    if (!px[o + 3]) continue;
+                    const fx = x / st, i = Math.floor(fx), u = fx - i, a = F[j * gw + i], b = F[j * gw + i + 1], c2 = F[(j + 1) * gw + i], d = F[(j + 1) * gw + i + 1];
+                    const f = (a + (b - a) * u) * (1 - v) + (c2 + (d - c2) * u) * v;
+                    if (f > 0) {
+                        px[o] = Math.min(250, px[o] * (1 + 0.16 * f) + 3 * f);
+                        px[o + 1] = Math.min(252, px[o + 1] * (1 + 0.34 * f) + 12 * f);
+                        px[o + 2] = Math.min(248, px[o + 2] * (1 + 0.2 * f) + 6 * f);
+                    } else {
+                        px[o] *= 1 + 0.55 * f;
+                        px[o + 1] *= 1 + 0.42 * f;
+                        px[o + 2] *= 1 + 0.38 * f;
+                    }
+                }
+            }
+            q.putImageData(img, 0, 0);
+        };
+        // a piece: painted flat in stratum units on its own canvas, the moon laid on it, then
+        // pasted (so a copy turned by the bench, or anything, still gets the same paint)
+        const piece = (id, dz, bx, draw, o = {}) => {
+            out.push({
+                id: 'green-l-' + id, z: z + dz, loose: o.float ?? true, box: bx, res: o.res, brush: o.brush ?? false,
+                paint(g, res) {
+                    const c = canvas(bx.w * res, bx.h * res), q = c.getContext('2d');
+                    q.setTransform(res, 0, 0, res, -bx.x * res, -bx.y * res);
+                    draw(q, res);
+                    if (o.shine !== 0) shine(c, bx, res, o.shine ?? 1);
+                    g.drawImage(c, bx.x, bx.y, bx.w, bx.h);
+                    c.width = c.height = 0;
+                },
+            });
+        };
+        const around = (x, y, hw, hh = hw) => ({ x: x - hw, y: y - hh, w: hw * 2, h: hh * 2 });
+        const polar = (deg, d) => [Math.cos((deg * Math.PI) / 180) * d, Math.sin((deg * Math.PI) / 180) * d];
+        const rot2 = (pts, a, cx, cy) => pts.map(([u, v]) => [cx + u * Math.cos(a) - v * Math.sin(a), cy + u * Math.sin(a) + v * Math.cos(a)]);
+        const taken = []; // [x, y, dz, radius] of what is placed, so the matter falls between
+
+        // ---------------------------------------------------------- heroes
+        const hero = (id, deg, d, dz, rad, bx, draw, o) => {
+            const [x, y] = polar(deg, d);
+            taken.push([x, y, dz, rad]);
+            piece(id, dz, bx(x, y), (g, res) => draw(g, res, x, y), o);
+        };
+        // 1 · the fig's limb: wood with its stipule rings, leaves at the nodes, figs in the
+        // axils, the bud at its tip, and the tree frog on the wood
+        hero('limb', 0, 600, -190, 320, (x, y) => around(x, y, 720), (g, res, x, y) => {
+            const path = rot2([[-280, 70], [-110, 20], [60, -10], [250, -80]], -0.25, x, y);
+            const W = limb(g, res, { seed: 'loose1', path, w0: 34, w1: 10, figs: 0.7, scars: 0.15, kinds: ['verd', 'vshade', 'verd', 'vunder'], q: 1 });
+            const p = W.at(W.total * 0.36);
+            G.frog(g, { x: p.x + Math.sin(p.a) * p.w * 0.3, y: p.y - Math.cos(p.a) * p.w * 0.3 - 8, s: 1.15, rot: p.a + 0.15 });
+        });
+        // 2 · a second limb, thinner, the moon moth resting on its wood
+        hero('limb2', 333, 440, 250, 240, (x, y) => around(x, y, 520), (g, res, x, y) => {
+            const path = rot2([[-200, 40], [-60, 0], [90, -30], [200, -10]], 0.9, x, y);
+            const W = limb(g, res, { seed: 'loose2', path, w0: 22, w1: 8, figs: 0.9, scars: 0.3, kinds: ['vshade', 'verd', 'lime'], q: 1 });
+            const p = W.at(W.total * 0.55);
+            G.moth(g, { x: p.x, y: p.y, s: 1.25, rot: p.a - 1.3 });
+        });
+        // 2b · a heavy bough, near and large (the frame cuts it), leaves of every light
+        hero('bough', 200, 900, -270, 360, (x, y) => around(x, y, 820), (g, res, x, y) => {
+            const path = rot2([[-360, 60], [-150, 20], [60, -30], [300, -40], [400, -110]], 0.5, x, y);
+            limb(g, res, { seed: 'loose3', path, w0: 46, w1: 12, figs: 0.6, scars: 0.12, kinds: ['verd', 'vshade', 'vdeep', 'verd', 'vunder'], s: 1.1, q: 0.9 });
+        });
+        // 3 · the ghost ship on its own tongue of sea, its reflection broken by the swell
+        hero('ship', 62, 600, 200, 300, (x, y) => ({ x: x - 420, y: y - 500, w: 840, h: 660 }), (g, res, x, y) => {
+            G.ship(g, { x: x - 10, y: y + 80, s: 1.02, alpha: 0.95, seed: 3, sea: true });
+        }, { brush: { amp: 0.05 } });
+        // 4 · the ghost horse on a crag of the mountain, agaves bristling on it
+        hero('horse', 272, 560, -230, 260, (x, y) => around(x, y, 360), (g, res, x, y) => crag(g, res, x, y), { brush: { amp: 0.05 } });
+        // 5 · an agave rosette, the heart clasped, dry leaves at its foot
+        hero('agave', 125, 760, -250, 360, (x, y) => around(x, y, 620), (g, res, x, y) => {
+            G.agave(g, { x, y: y + 180, s: 0.9, seed: 31, n: 18, dry: 3, res: Q(res, 0.9) });
+        });
+        // 6 · the prickly pear with its fruit on the top rims
+        hero('opuntia', 305, 800, 100, 340, (x, y) => around(x, y, 680), (g, res, x, y) => {
+            G.opuntia(g, { x, y: y + 180, s: 0.9, seed: 6, n: 9, res: Q(res, 0.9) });
+        });
+        // 7 · a tin lantern on its hook and a twist of wire
+        hero('lantern', 95, 460, -40, 220, (x, y) => ({ x: x - 200, y: y - 340, w: 400, h: 760 }), (g, res, x, y) => {
+            const top = y - 250;
+            G.line(g, S.curve([[x - 18, top - 70], [x - 30, top - 46], [x - 8, top - 30], [x, top - 6]], false, 8), 2.6, 'rgba(10,26,18,0.9)');
+            G.line(g, S.curve([[x - 19, top - 71], [x - 31, top - 47]], false, 4), 0.9, 'rgba(190,220,206,0.6)');
+            G.lantern(g, { x, y: top, s: 1.45, seed: 31, turn: 0.4, shiver: 0 });
+            tinWear(g, { x: x - 130, y: top - 80, w: 260, h: 560 });
+        }, { brush: { amp: 0.08 } });
+        // 8 · a glass tambourine, struck and cracked
+        hero('pandero', 152, 420, 240, 180, (x, y) => around(x, y, 300), (g, res, x, y) => {
+            G.tambourine(g, { x, y, r: 150, rot: -0.35, tilt: 0.3, seed: 21 });
+        }, { brush: { amp: 0.04 } });
+        // 9 · the big frost star
+        hero('frost', 215, 380, 150, 150, (x, y) => around(x, y, 240), (g, res, x, y) => {
+            G.frost(g, { x, y, r: 140, rot: 0.3, seed: 'lbig' });
+        });
+        // 10 · the fish of shadow and the road of dawn it opens behind it
+        hero('fish', 185, 620, 60, 280, (x, y) => around(x, y, 620, 460), (g, res, x, y) => {
+            const a = Math.PI + 0.2;
+            G.wind(g, { x: x + 60, y: y - 50, w: 220, h: 110 }, { seed: 'ldawn', n: 18, alpha: 0.34, dir: a - Math.PI, len: 200, w: 13, cols: ['#a6d4b0', '#d2ecd0', '#7fb68c'] });
+            G.fish(g, { x, y, s: 1.1, rot: a, seed: 2 });
+        }, { brush: { amp: 0.04 } });
+        // 11 · the moon's icicle: the thick crescent drawn down into a drip
+        hero('icicle', 32, 380, -100, 150, (x, y) => around(x, y, 240, 300), (g, res, x, y) => {
+            moonIcicle(g, x, y - 60, 70);
+        });
+        // 12 · the hand-rail of the high railing, torn off with two scrolls and a stub of bar,
+        // the trail of blood along it, water beading under it, a gecko on it
+        hero('rail', 242, 700, -20, 300, (x, y) => around(x, y, 420), (g, res, x, y) => handrail(g, x, y, -0.35));
+
+        // ---------------------------------------------------------- matter
+        // fall between: a spot at a depth where nothing of its size is already near
+        const spot = (rad, d0, d1, seed) => {
+            for (let k = 0; k < 60; k++) {
+                const a = R() * TAU, d = d0 + (d1 - d0) * Math.pow(R(), 1.8), dz = -270 + R() * 540, x = Math.cos(a) * d, y = Math.sin(a) * d;
+                if (taken.some(([X, Y, Z, rr]) => Math.abs(Z - dz) < 150 && Math.hypot(X - x, Y - y) < (rr + rad) * 0.75)) continue;
+                taken.push([x, y, dz, rad]);
+                return { x, y, dz };
+            }
+            const a = R() * TAU, d = d0 + (d1 - d0) * R();
+            return { x: Math.cos(a) * d, y: Math.sin(a) * d, dz: -270 + R() * 540 };
+        };
+        // single fig leaves: every one its own drawing, light, size and turn
+        const kinds = ['verd', 'verd', 'vshade', 'verd', 'vdeep', 'vunder', 'verd', 'vshade', 'lime', 'verd', 'vshade', 'vunder', 'vdeep', 'verd', 'vshade'];
+        for (let i = 0; i < 32; i++) {
+            const s = 0.45 + R() * 0.38, kind = kinds[i % kinds.length], rot = R() * TAU, fx = 0.7 + R() * 0.3, fy = 0.6 + R() * 0.4, v = 20 + i;
+            const p = spot(130 * s, 280, i < 26 ? 1000 : 1450);
+            piece('leaf' + i, p.dz, around(p.x, p.y, 360 * s + 20), (g, res) => {
+                const sp = G.figLeaf(v, rot, Q(res, 0.8), kind), off = sp.G.L * 0.42 * s * fx;
+                G.put(g, sp, p.x - Math.cos(rot) * off, p.y - Math.sin(rot) * off, s, { rot, fx, fy });
+            });
+        }
+        // fig twigs: a short shoot, two leaves, a fig, the bud
+        for (let i = 0; i < 14; i++) {
+            const p = spot(170, 300, 1000), a = R() * TAU, ts = 0.5 + R() * 0.2;
+            piece('twig' + i, p.dz, around(p.x, p.y, 420), (g, res) => {
+                const path = rot2([[-120, 10], [-30, -4], [60, 6], [130, -6]], a, p.x, p.y);
+                limb(g, res, { seed: 'ltwig' + i, path, w0: 13, w1: 5, figs: 0.7, scars: 0.15, kinds: i % 3 ? ['verd', 'vshade', 'verd'] : ['vdeep', 'vunder', 'lime'], s: ts, q: 0.8 });
+            });
+        }
+        // single figs, one with its broken stalk bleeding latex
+        for (let i = 0; i < 7; i++) {
+            const p = spot(50, 280, 900), rot = R() * TAU, fs = 1.4 + R() * 0.6;
+            piece('fig' + i, p.dz, around(p.x, p.y, 150), (g, res) => {
+                const sp = G.figFruit(10 + i, rot, Q(res, 0.9));
+                G.put(g, sp, p.x, p.y, fs, { rot });
+                if (i === 1) {
+                    const c = Math.cos(rot), sn = Math.sin(rot), tx = sp.top[0] * fs, ty = sp.top[1] * fs;
+                    G.latex(g, p.x + tx * c - ty * sn, p.y + tx * sn + ty * c, 3.2);
+                    G.latex(g, p.x + tx * c - (ty + 9) * sn + 3, p.y + tx * sn + (ty + 9) * c, 2.2);
+                }
+            });
+        }
+        // agave leaves broken off the mountain: blue, green, one dry and split
+        const agk = ['blue', 'green', 'dry', 'blue', 'blue', 'dry', 'green'];
+        for (let i = 0; i < 7; i++) {
+            const len = 240 + R() * 160, wid = 50 + R() * 30, rot = R() * TAU, p = spot(len * 0.45, 340, i < 5 ? 1000 : 1400);
+            piece('agleaf' + i, p.dz, around(p.x, p.y, len * 0.62 + 40), (g, res) => {
+                const sp = G.agaveLeaf(40 + i, rot, Q(res, 0.85), agk[i], len, wid);
+                G.put(g, sp, p.x - Math.cos(rot) * len * 0.5, p.y - Math.sin(rot) * len * 0.5, 1, { rot });
+            });
+        }
+        // prickly-pear pads, a young one, one with a fruit on its rim
+        for (let i = 0; i < 5; i++) {
+            const w = 140 + R() * 70, h = w * (0.68 + R() * 0.1), rot = R() * TAU, p = spot(w * 0.55, 320, i < 3 ? 1000 : 1400);
+            piece('pad' + i, p.dz, around(p.x, p.y, w * 0.75 + 40), (g, res) => {
+                const sp = G.padSprite(50 + i, rot, Q(res, 0.85), Math.round(w / 10) * 10, Math.round(h / 10) * 10, i === 2);
+                G.put(g, sp, p.x, p.y, 1, { rot });
+                if (i === 4) {
+                    const fsp = G.padSprite(60, rot, Q(res, 0.85), 54, 40, true);
+                    G.put(g, fsp, p.x + Math.cos(rot) * (w * 0.5 + 18), p.y + Math.sin(rot) * (w * 0.5 + 18), 1, { rot });
+                }
+            });
+        }
+        // small frost stars, no two alike
+        for (let i = 0; i < 6; i++) {
+            const rr = 26 + R() * 46, p = spot(rr, 290, 1000), rot = R();
+            piece('star' + i, p.dz, around(p.x, p.y, rr * 1.5 + 12), (g) => G.frost(g, { x: p.x, y: p.y, r: rr, rot, seed: 'lstar' + i, glow: 0.7 }));
+        }
+        // maidenhair fronds from the cistern's damp joints
+        for (let i = 0; i < 4; i++) {
+            const p = spot(80, 290, 950), a = R() * TAU;
+            piece('fern' + i, p.dz, around(p.x, p.y, 230), (g) => {
+                const rr = Motion.rng('lfern' + i);
+                g.save();
+                g.translate(p.x, p.y);
+                fern(g, a, 70, rr);
+                g.restore();
+            }, { brush: { amp: 0.05 } });
+        }
+        // shards of the glass tambourines: a jingle pair on its pin, broken panes
+        for (let i = 0; i < 4; i++) {
+            const p = spot(60, 290, 1000), a = R() * TAU, sz = 50 + R() * 50;
+            piece('glass' + i, p.dz, around(p.x, p.y, sz * 1.6 + 20), (g) => shard(g, p.x, p.y, sz, a, i));
+        }
+        return out;
+
+        // ---------------------------------------------------------- drawers for the pieces
+        // a crag of the thieving-cat mountain: rock in facets, cracks, lichen, grass, two
+        // agaves bristling, and the ghost horse standing on it
+        function crag(g, res, x, y) {
+            const r = Motion.rng('lcrag'), top = y + 90;
+            // the crest: a summit to the right, a saddle where the horse stands, the rock broken
+            // off below in a sharp underside (a piece of the mountain, not a ground)
+            const crest = [];
+            for (let i = 0; i <= 20; i++) {
+                const t = i / 20, u = -220 + 450 * t;
+                crest.push([u, -8 * Math.sin(t * Math.PI) - 34 * Math.exp(-Math.pow((t - 0.86) / 0.07, 2)) - 12 * Math.exp(-Math.pow((t - 0.08) / 0.06, 2)) + (r() - 0.5) * 7]);
+            }
+            const under = [[232, 18], [200, 52], [176, 60], [150, 98], [102, 112], [70, 150], [34, 168], [6, 150], [-30, 160], [-62, 128], [-110, 118], [-150, 84], [-182, 70], [-222, 22]];
+            const outline = [...crest, ...under].map(([u, v]) => [u + (r() - 0.5) * 3, v]);
+            const RAMP = [[0, '#05100b'], [0.22, '#10251b'], [0.42, '#22412f'], [0.58, '#3a5e47'], [0.72, '#5d8269'], [0.86, '#8fb096'], [1, '#c9dcc6']];
+            const sp = G.memo('lcrag@' + res, () => S.form({
+                box: S.bbox(outline, 8), res: Q(res, 1), seed: 'lcrag', light: S.LIGHT, relief: 0.55,
+                mask: (q) => G.poly(q, outline), ramp: RAMP, soft: 0.85,
+                height: (u, v) => 6 * S.noise2(u * 0.02, v * 0.03, 5) + 3 * S.noise2(u * 0.08, v * 0.06, 6) + 2.4 * Math.abs(S.noise2(u * 0.015 + v * 0.01, v * 0.05, 7)),
+                mottle: { amp: 0.1, freq: 0.02 }, stroke: { amp: 0.05, freq: 0.05, tone: 6 },
+                edge: { rough: 2, freq: 0.25, amp: 1 },
+                marks: (q) => {
+                    // bedding planes tilted with the mountain, joints across them, the brush's mix
+                    for (let i = 0; i < 9; i++) {
+                        const v0 = 12 + i * 17 + (r() - 0.5) * 6, pts = [];
+                        for (let k = 0; k <= 12; k++) pts.push([-230 + k * 40, v0 + k * 2.2 + (r() - 0.5) * 4]);
+                        S.dab(q, pts, { w: 3 + r() * 4, color: '#000', alpha: 0.35 + r() * 0.2, bristles: 4, seed: 'lcb' + i, dry: 0.5, taper: 0.6 });
+                        S.dab(q, pts.map(([u, v]) => [u, v - 3]), { w: 2 + r() * 3, color: '#fff', alpha: 0.18 + r() * 0.15, bristles: 4, seed: 'lcl' + i, dry: 0.6, taper: 0.6 });
+                    }
+                    for (let i = 0; i < 14; i++) {
+                        let u = -200 + r() * 400, v = r() * 60;
+                        const pts = [[u, v]];
+                        for (let k = 0; k < 4; k++) pts.push([(u += (r() - 0.5) * 14), (v += 8 + r() * 12)]);
+                        S.dab(q, pts, { w: 2 + r() * 2, color: '#000', alpha: 0.5, bristles: 3, seed: 'lcj' + i, dry: 0.3, taper: 0.5 });
+                    }
+                    for (let i = 0; i < 40; i++) S.dab(q, [[-210 + r() * 420, r() * 140], [-210 + r() * 420, r() * 140]].map(([u, v], k, a) => (k ? [a[0][0] + (u - a[0][0]) * 0.08, a[0][1] + (v - a[0][1]) * 0.05] : [u, v])), { w: 6 + r() * 10, color: r() < 0.5 ? '#fff' : '#000', alpha: 0.12 + r() * 0.12, bristles: 6, seed: 'lcm' + i, dry: 0.5, taper: 0.8 });
+                },
+                tint: (u, v, tone, rgb) => {
+                    // lichen in crusts on the lit faces, moss in the shade
+                    const li = S.smooth(0.35, 0.6, S.noise2(u * 0.05 + 3, v * 0.05, 11)) * S.smooth(0.45, 0.7, tone);
+                    if (li > 0) G.toward(rgb, 170 + 50 * tone, 186 + 40 * tone, 140 + 30 * tone, li * 0.45);
+                    const mo = S.smooth(0.3, 0.6, S.noise2(u * 0.04, v * 0.06 + 5, 12)) * S.smooth(0.5, 0.2, tone);
+                    if (mo > 0) G.toward(rgb, 30, 74, 34, mo * 0.6);
+                },
+                over: (q) => {
+                    for (let i = 0; i < 50; i++) {
+                        q.fillStyle = `rgba(${170 + r() * 50},${196 + r() * 40},${150 + r() * 40},${0.25 + r() * 0.4})`;
+                        G.disc(q, -200 + r() * 400, r() * 120, 0.8 + r() * 2.2);
+                    }
+                },
+            }));
+            G.put(g, sp, x, top, 1, { rot: 0 });
+            // the agaves bristling on its back, behind and beside the horse
+            G.agave(g, { x: x - 160, y: top + 2, s: 0.22, seed: 41, n: 13, dry: 1, res: Q(res, 1.1) });
+            G.agave(g, { x: x + 186, y: top - 30, s: 0.17, seed: 42, n: 12, dry: 1, res: Q(res, 1.1) });
+            // the horse, a ghost but solid enough to stand on it, mane in the wind
+            G.horse(g, { x: x - 30, y: top - 4, s: 0.95, alpha: 1, seed: 2, form: true });
+            // grass at its hooves, blown the same way as its mane; stones
+            for (let i = 0; i < 80; i++) {
+                const t = r(), bx = x - 215 + 440 * t, by = top + crest[Math.round(t * 20)][1] + 3, l = 7 + r() * 18, a = -Math.PI / 2 - 0.45 - r() * 0.5;
+                G.taper(g, [[bx, by], [bx + Math.cos(a) * l * 0.5, by + Math.sin(a) * l * 0.5], [bx + Math.cos(a) * l, by + Math.sin(a) * l]], 2.2, 0.3, r() < 0.4 ? '#24502c' : r() < 0.6 ? '#4f8a4c' : '#8cbc7e');
+            }
+        }
+        // the hand-rail torn off the high railing: the flat rail, its stub of bar and two
+        // scrolls under it, both ends broken, the blood along its top, beads of water under it
+        function handrail(g, x, y, a) {
+            const r = Motion.rng('lrail');
+            g.save();
+            g.translate(x, y);
+            g.rotate(a);
+            // a C-scroll: a spiral that runs out into a tail
+            const scroll = (cx, cy, r0, sg, a0) => {
+                const p = [];
+                for (let k = 0; k <= 28; k++) {
+                    const t = k / 28, rr = r0 * (1 - 0.62 * t), th = a0 + sg * t * TAU * 1.15;
+                    p.push([cx + Math.cos(th) * rr, cy + Math.sin(th) * rr]);
+                }
+                return p.reverse();
+            };
+            const bars = [-150, -40, 110];
+            bars.forEach((bx, i) => {
+                const len = 150 + r() * 60, bend = i === 2 ? 26 : (r() - 0.5) * 6;
+                G.bar(g, [[bx, 8], [bx + bend * 0.2, len * 0.5], [bx + bend, len]], 8, 'lrb' + i, { twist: i === 1 ? 0.55 : 0 });
+                // the snapped end: a bright raw face of iron
+                g.fillStyle = 'rgba(176,196,184,0.85)';
+                G.oval(g, bx + bend, len + 1, 4.5, 2.2, 0.1);
+            });
+            for (const [cx, sg, a0] of [[-96, 1, 0.4], [30, -1, 2.6]]) {
+                G.bar(g, scroll(cx, 52, 30, sg, a0), 5, 'lrs' + cx, { raw: false, shadeA: 0.7 });
+                g.fillStyle = '#0e2219';
+                g.fillRect(cx - 4, 20, 8, 11);
+                g.fillStyle = 'rgba(120,170,146,0.6)';
+                g.fillRect(cx - 4, 20, 8, 2);
+            }
+            G.bar(g, [[-260, 26], [260, 26]], 6.5, 'lrr', {});
+            const hand = G.bar(g, [[-280, 0], [-100, -1], [100, 0], [280, 3]], 17, 'lrh', { shadeA: 1.3 });
+            // the snapped ends of the rails: jagged, the fibre of the iron
+            for (const [ex, ey, w] of [[-282, 0, 9], [281, 3, 9], [-262, 26, 4], [262, 26, 4]]) {
+                g.fillStyle = 'rgba(150,176,164,0.8)';
+                G.poly(g, [[ex, ey - w], [ex + (ex > 0 ? 4 : -4), ey - w * 0.4], [ex + (ex > 0 ? -1 : 1), ey], [ex + (ex > 0 ? 5 : -5), ey + w * 0.5], [ex, ey + w]]);
+            }
+            // flat top worn bright by hands
+            g.fillStyle = 'rgba(150,200,176,0.45)';
+            g.fillRect(-280, -7.5, 560, 2.4);
+            for (let xx = -270; xx < 270; xx += 6 + r() * 30) {
+                g.fillStyle = `rgba(190,226,210,${0.15 + r() * 0.35})`;
+                g.fillRect(xx, -7.5, 3 + r() * 20, 1.4);
+            }
+            // the trail of blood: drops along the top, one run down a bar where a hand held
+            const trail = [];
+            for (let xx = -250; xx < 200; xx += 34 + r() * 40) trail.push([xx, -7 + (r() - 0.5) * 3]);
+            G.blood(g, trail, { seed: 'lrail', r: 6 });
+            G.blood(g, [[-40, 40], [-39, 100]], { seed: 'lbar', r: 3.6, run: true });
+            for (let i = 0; i < 16; i++) G.drop(g, -260 + r() * 520, 9 + 1.6 + r() * 2, 1.6 + r() * r() * 3.2, r() < 0.3 ? 0.8 : 0.2);
+            for (let i = 0; i < 8; i++) G.drop(g, -250 + r() * 500, 30 + r() * 2, 1.3 + r() * 2, 0.6);
+            // the gecko, clinging under the rail by the left scroll
+            gecko(g, -190, 40, 0.95, 0.25);
+            g.restore();
+        }
+        // the wear of soldered tin, laid on the lantern's paint only: brushed streaks down the
+        // sheet, dents (a dark and a lit lip), solder run along the seams, spots of verdigris
+        // and of rust where the rain stood, a thumb-polished patch
+        function tinWear(g, bx) {
+            const r = Motion.rng('ltin');
+            g.save();
+            g.globalCompositeOperation = 'source-atop';
+            for (let i = 0; i < 260; i++) {
+                const x = bx.x + r() * bx.w, y = bx.y + r() * bx.h, l = 10 + r() * 40;
+                G.line(g, [[x, y], [x + (r() - 0.5) * 2, y + l]], 0.5 + r() * 0.6, r() < 0.5 ? `rgba(240,250,246,${0.05 + r() * 0.1})` : `rgba(0,10,6,${0.06 + r() * 0.12})`);
+            }
+            for (let i = 0; i < 9; i++) {
+                const x = bx.x + bx.w * (0.2 + r() * 0.6), y = bx.y + bx.h * (0.2 + r() * 0.7), rd = 4 + r() * 9;
+                g.fillStyle = 'rgba(0,10,6,0.22)';
+                G.oval(g, x + rd * 0.25, y + rd * 0.3, rd, rd * 0.7, r());
+                g.fillStyle = 'rgba(236,248,242,0.2)';
+                G.oval(g, x - rd * 0.3, y - rd * 0.3, rd * 0.6, rd * 0.35, r());
+            }
+            for (let i = 0; i < 70; i++) {
+                const x = bx.x + r() * bx.w, y = bx.y + bx.h * (0.3 + r() * 0.7), rust = r() < 0.35;
+                g.fillStyle = rust ? `rgba(70,52,34,${0.25 + r() * 0.3})` : `rgba(${60 + r() * 40},${150 + r() * 50},${120 + r() * 40},${0.25 + r() * 0.35})`;
+                G.oval(g, x, y, 1 + r() * 3.5, 0.8 + r() * 2.2, r() * 3);
+            }
+            g.restore();
+        }
+        // the moon's icicle, loose: the thick waxing crescent as ice, its seas showing through
+        // as pale grey-green shadows, frozen cracks, its lower horn drawn down into a drip with a
+        // drop at its point, a cold halo; no water under it (it is the moon taken off the cistern)
+        function moonIcicle(g, x, y, Rm) {
+            const r = Motion.rng('lmoon'), shape = [];
+            for (let i = 0; i <= 48; i++) {
+                const a = -Math.PI / 2 + (i / 48) * Math.PI;
+                shape.push([x + Math.cos(a) * Rm, y + Math.sin(a) * Rm * 1.3]);
+            }
+            // the drip: the lower horn running down
+            shape.push([x + Rm * 0.02, y + Rm * 1.42], [x + Rm * 0.1, y + Rm * 1.75], [x + Rm * 0.06, y + Rm * 2.35], [x - Rm * 0.02, y + Rm * 1.8], [x - Rm * 0.08, y + Rm * 1.34]);
+            for (let i = 48; i >= 0; i--) {
+                const a = -Math.PI / 2 + (i / 48) * Math.PI;
+                shape.push([x - Rm * 0.16 + Math.cos(a) * Rm * 0.46, y + Math.sin(a) * Rm * 1.26]);
+            }
+            const halo = g.createRadialGradient(x + Rm * 0.3, y, Rm * 0.4, x + Rm * 0.3, y, Rm * 2.4);
+            halo.addColorStop(0, 'rgba(196,236,212,0.32)');
+            halo.addColorStop(0.5, 'rgba(150,210,180,0.1)');
+            halo.addColorStop(1, 'rgba(150,210,180,0)');
+            g.fillStyle = halo;
+            G.disc(g, x + Rm * 0.3, y, Rm * 2.4);
+            g.save();
+            g.shadowColor = 'rgba(214,248,230,0.85)';
+            g.shadowBlur = Rm * 0.35 * S.pxScale(g);
+            const body = g.createLinearGradient(x - Rm * 0.2, y - Rm, x + Rm, y + Rm * 1.5);
+            body.addColorStop(0, '#f2fbf4');
+            body.addColorStop(0.45, '#d4ecdc');
+            body.addColorStop(1, '#93c2a8');
+            g.fillStyle = body;
+            G.poly(g, shape);
+            g.restore();
+            g.save();
+            g.beginPath();
+            S.trace(g, shape);
+            g.clip();
+            // the seas, soft, where the ice is thicker
+            G.softly(g, 4, (q) => {
+                for (const [u, v, rx, ry, al] of [[0.62, -0.5, 0.2, 0.26, 0.3], [0.78, 0.1, 0.16, 0.3, 0.26], [0.55, 0.55, 0.22, 0.2, 0.22], [0.86, -0.1, 0.08, 0.12, 0.3], [0.4, -0.95, 0.1, 0.08, 0.2]]) {
+                    q.fillStyle = `rgba(96,140,118,${al})`;
+                    G.oval(q, x + u * Rm, y + v * Rm, rx * Rm, ry * Rm, 0.3);
+                }
+            });
+            // the terminator: the inner edge a little shaded, the ice thick and cold there
+            G.softly(g, 6, (q) => {
+                q.strokeStyle = 'rgba(70,120,96,0.35)';
+                q.lineWidth = Rm * 0.12;
+                q.beginPath();
+                for (let i = 0; i <= 30; i++) {
+                    const a = -Math.PI / 2 + (i / 30) * Math.PI, px = x - Rm * 0.16 + Math.cos(a) * Rm * 0.46, py = y + Math.sin(a) * Rm * 1.26;
+                    if (i) q.lineTo(px, py);
+                    else q.moveTo(px, py);
+                }
+                q.stroke();
+            });
+            // craters: rims lit on the side away from the moon's own light, small pits
+            for (let i = 0; i < 16; i++) {
+                const a = -1.3 + r() * 2.6, d = Rm * (0.6 + r() * 0.35), cx = x + Math.cos(a) * d, cy = y + Math.sin(a) * d * 1.28, cr = 1.5 + r() * 4.5;
+                g.strokeStyle = 'rgba(90,136,112,0.45)';
+                g.lineWidth = 0.9;
+                g.beginPath();
+                g.arc(cx, cy, cr, 0.6, 3.4);
+                g.stroke();
+                g.strokeStyle = 'rgba(255,255,255,0.6)';
+                g.beginPath();
+                g.arc(cx, cy, cr, 3.6, 6.1);
+                g.stroke();
+            }
+            // frozen cracks, and the grain of the ice along the drip
+            for (let i = 0; i < 6; i++) {
+                let a = -1.2 + r() * 2.4, px = x + Math.cos(a) * Rm * 0.98, py = y + Math.sin(a) * Rm * 1.27;
+                const pts = [[px, py]];
+                for (let k = 0; k < 5; k++) pts.push([(px -= 4 + r() * 6), (py += (r() - 0.5) * 9)]);
+                G.line(g, pts, 0.8, 'rgba(255,255,255,0.75)');
+                G.line(g, pts.map(([u, v]) => [u + 0.8, v + 0.9]), 0.6, 'rgba(70,116,94,0.5)');
+            }
+            for (let k = 0; k < 7; k++) G.line(g, [[x + Rm * (0.0 + k * 0.012), y + Rm * (1.3 + k * 0.05)], [x + Rm * (0.05 + k * 0.006), y + Rm * (1.7 + k * 0.08)]], 0.6, `rgba(${k % 2 ? '255,255,255' : '80,130,104'},0.5)`);
+            g.restore();
+            // the drop at the point of the drip, about to fall
+            G.drop(g, x + Rm * 0.07, y + Rm * 2.47, 4.6, 0.9);
+            // its lit rim
+            G.line(g, shape.slice(2, 40), 1.2, 'rgba(255,255,255,0.85)');
+        }
+        // a shard of a glass tambourine: a broken pane with a lit edge and a crack, or a jingle
+        // pair on its pin
+        function shard(g, x, y, sz, a, i) {
+            const r = Motion.rng('lshard' + i);
+            g.save();
+            g.translate(x, y);
+            g.rotate(a);
+            if (i % 2) {
+                // two jingles on a pin: discs of glass domed, a rim of light, the pin through
+                for (const [ox, oy] of [[-sz * 0.12, 0], [sz * 0.12, sz * 0.06]]) {
+                    const rr = sz * 0.42;
+                    g.fillStyle = 'rgba(2,12,8,0.35)';
+                    G.oval(g, ox + 3, oy + 4, rr, rr * 0.55);
+                    g.fillStyle = 'rgba(150,214,184,0.22)';
+                    G.oval(g, ox, oy, rr, rr * 0.55);
+                    g.strokeStyle = 'rgba(226,248,236,0.85)';
+                    g.lineWidth = 1.6;
+                    g.beginPath();
+                    g.ellipse(ox, oy, rr, rr * 0.55, 0, Math.PI * 0.9, Math.PI * 1.75);
+                    g.stroke();
+                    g.strokeStyle = 'rgba(40,90,70,0.6)';
+                    g.lineWidth = 1;
+                    g.beginPath();
+                    g.ellipse(ox, oy, rr, rr * 0.55, 0, Math.PI * 1.9, Math.PI * 2.8);
+                    g.stroke();
+                    g.strokeStyle = 'rgba(220,246,232,0.5)';
+                    g.beginPath();
+                    g.ellipse(ox, oy, rr * 0.45, rr * 0.25, 0, Math.PI, Math.PI * 1.6);
+                    g.stroke();
+                    g.fillStyle = 'rgba(244,252,248,0.95)';
+                    G.oval(g, ox - rr * 0.35, oy - rr * 0.22, rr * 0.12, rr * 0.05, -0.3);
+                }
+                G.line(g, [[0, -sz * 0.36], [sz * 0.02, sz * 0.4]], 2.2, 'rgba(8,24,16,0.9)');
+                G.line(g, [[-0.8, -sz * 0.36], [-0.6, sz * 0.38]], 0.7, 'rgba(200,226,212,0.7)');
+            } else {
+                const pts = [];
+                const n = 5 + Math.floor(r() * 3);
+                for (let k = 0; k < n; k++) {
+                    const t = (k / n) * TAU + (r() - 0.5) * 0.6, d = sz * (0.35 + r() * 0.65);
+                    pts.push([Math.cos(t) * d, Math.sin(t) * d * 0.7]);
+                }
+                g.fillStyle = 'rgba(2,12,8,0.3)';
+                G.poly(g, pts.map(([u, v]) => [u + 4, v + 5]));
+                const gr = g.createLinearGradient(-sz, -sz, sz, sz);
+                gr.addColorStop(0, 'rgba(206,240,222,0.42)');
+                gr.addColorStop(0.5, 'rgba(110,180,150,0.16)');
+                gr.addColorStop(1, 'rgba(40,100,76,0.3)');
+                g.fillStyle = gr;
+                G.poly(g, pts);
+                // the edges: the broken face of the glass, bright where it faces the moon
+                for (let k = 0; k < n; k++) {
+                    const p = pts[k], q = pts[(k + 1) % n], nx = q[1] - p[1], ny = -(q[0] - p[0]), nl = Math.hypot(nx, ny) || 1;
+                    const lit = -(nx / nl) * 0.6 - (ny / nl) * 0.66;
+                    G.line(g, [p, q], lit > 0 ? 2 : 1.2, lit > 0 ? `rgba(236,252,244,${0.5 + lit * 0.45})` : 'rgba(20,60,44,0.7)');
+                }
+                // conchoidal ripples near a break, a crack across, a speck of light
+                for (let k = 0; k < 3; k++) {
+                    g.strokeStyle = `rgba(220,246,234,${0.35 - k * 0.08})`;
+                    g.lineWidth = 0.8;
+                    g.beginPath();
+                    g.arc(pts[0][0], pts[0][1], 6 + k * 6, Math.PI * 0.6, Math.PI * 1.3);
+                    g.stroke();
+                }
+                G.line(g, [pts[1], [(pts[1][0] + pts[3][0]) * 0.4, (pts[1][1] + pts[3][1]) * 0.45], [(pts[1][0] + pts[3][0]) * 0.5 + 3, (pts[1][1] + pts[3][1]) * 0.5]], 0.8, 'rgba(230,250,240,0.6)');
+                g.fillStyle = 'rgba(250,255,252,0.9)';
+                G.disc(g, pts[2][0] * 0.4, pts[2][1] * 0.4, 1.6);
+            }
+            g.restore();
+        }
+    }
+
     const L = [];
     // =========================================================== stratum 1 · the fig tree
     L.push({
@@ -1745,6 +2267,8 @@ Tableau.green = (z0, opt = null) => {
 };
 // The stratum for the second passage: three layers, ids 'green-s-far', 'green-s-mid', 'green-s-near'.
 Tableau.green.stratum = (z) => Tableau.green(z, { stratum: true });
+// The loose stratum (round 8): one floating layer per piece, ids 'green-l-…', in z ± 280.
+Tableau.green.loose = (z) => Tableau.green(z, { loose: true });
 Tableau.green.Z = { s1: [0, 140, 280], s2: [520, 660, 800], s3: [1040, 1180, 1320], plate: 1760 };
 Tableau.green.depth = 1760; // from z0 (the fig's nearest sheet) to the cistern
 Tableau.green.hole = 140; // the cistern's mouth, into black water

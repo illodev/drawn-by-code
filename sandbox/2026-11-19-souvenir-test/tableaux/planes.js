@@ -396,3 +396,287 @@ Tableau.planes.stratum = (z) => {
         }),
     ];
 };
+
+// Round 8 · the world as LOOSE floating pieces (loose-brief.md): the papier collé taken off
+// its sheets, every piece a thing of its own at its own depth in z ± 280, all round the
+// axis, turning and drifting on its own. The heroes, one each, 330–930 from the axis and
+// spread over every angle (clockwise from the right): the torn ace of coins; the bottle of
+// moscatel with its label on its combed plane; the «MALAGUEÑA» score; a broken piece of the
+// guitar's top with its rosette; the glass on its marble plane; «CAFÉ» stencilled on black;
+// the father's pigeon's wing; the guitar's body in planes; the bridge with its tied strings
+// on a sliver of the top; the corner of «LA BRISA» with the painted nail through it; the
+// fingerboard as a ladder with its strings; the full moon on the one blue; the head with its
+// pegs; a strip of wallpaper, nailed. Three small things to find: a fallen primary feather,
+// a peg come off the head, a broken string curled up. The matter (the far sheet's collage
+// of round 7) broken into 62 fragments: cut planes of every colour of the world, combed,
+// sanded, marbled, dotted and hatched, each a card with its thickness; scraps of the news,
+// the score, the labels and the wallpaper; letters cut out of the headline and stencilled;
+// frets, pieces of the guitar's side with their binding, rosette arcs, strings across a
+// plank, sound holes drawn twice, shards of the blue, coverts fallen from the wing.
+//   Tableau.planes.loose(z) → one layer per piece, z − 280 … z + 280
+Tableau.planes.loose = (z) => {
+    const S = Souvenir, P = Planes, C = P.PAL, D2R = Math.PI / 180;
+    const pol = (deg, R) => [Math.cos(deg * D2R) * R, Math.sin(deg * D2R) * R];
+    const rotP = (x, y, rot) => [x * Math.cos(rot) - y * Math.sin(rot), x * Math.sin(rot) + y * Math.cos(rot)];
+    const piece = (id, dz, cx, cy, hw, hh, paint, o = {}) => {
+        const box = { x: cx - hw, y: cy - hh, w: hw * 2, h: hh * 2 };
+        return { id: 'planes-l-' + id, z: z + dz, loose: o.loose ?? true, box, brush: { amp: 0.035 }, paint(g) {
+            paint(g);
+            P.glow(g, box);
+            S.tooth(g, box);
+        } };
+    };
+    const L = [];
+    // ---------------------------------------------------------------- heroes
+    const hero = (id, deg, R, dz, hw, hh, paint) => {
+        const [x, y] = pol(deg, R);
+        L.push(piece(id, dz, x, y, hw, hh, (g) => paint(g, x, y)));
+    };
+    hero('card', 10, 460, -40, 330, 330, (g, x, y) => P.card(g, { x, y, s: 1.6, rot: 0.28, tear: 0.26, seed: 'l-oros' }));
+    hero('bottle', 36, 700, 210, 400, 500, (g, x, y) => {
+        const rot = -0.22, at = (lx, ly) => {
+            const [u, v] = rotP(lx, ly, rot);
+            return [x + u, y + v];
+        };
+        const [fx, fy] = at(60, -40);
+        P.fragment(g, { pts: P.cut(fx, fy, 290, 470, rot + 0.06, 'trap', 'l-bbed', 3), seed: 'l-bbed', color: C.ochre, tex: 'comb', texO: { dir: rot + 1.5, color: C.umberD, alpha: 0.55, knots: 1 }, lines: [0, 1] });
+        const [bx, by] = at(-12, 270);
+        P.bottle(g, { x: bx, y: by, s: 0.9, rot, seed: 'l-bot' });
+        const [lx, ly] = at(-14, 80);
+        P.label(g, { x: lx, y: ly, s: 0.64, rot: rot - 0.05, seed: 'l-moscatel', torn: [3] });
+    });
+    hero('score', 61, 760, 120, 380, 380, (g, x, y) => {
+        const s = 1.05, rot = 0.14, [u, v] = rotP(-160 * s, -210 * s, rot);
+        P.score(g, { x: x + u, y: y + v, s, rot, seed: 'l-malaguena' });
+    });
+    hero('rosette', 87, 500, -150, 330, 300, (g, x, y) => {
+        // a broken piece of the top: an arc of the rosette, the edge of the sound hole
+        const pts = P.cut(x, y, 390, 300, -0.3, 'penta', 'l-top', 2), c = [x - 90, y + 90];
+        P.fragment(g, {
+            pts, seed: 'l-top', color: C.ochreL, colors: [C.ochreL, C.ochreP, C.ochreL, C.ochre], dir: 1.4, tex: 'comb', texO: { dir: 1.5, color: C.umber, alpha: 0.5, pitch: 2.6, knots: 1 }, lines: [1, 3],
+            on: (q) => {
+                P.rosette(q, { cx: c[0], cy: c[1], r0: 96, r1: 142, seed: 'l-rosa', slip: 7 });
+                P.blackDisc(q, { x: c[0], y: c[1], r: 89, seed: 'l-boca' });
+                for (let i = 0; i < 6; i++) P.stringSeg(q, [c[0] - 46 + i * 15, c[1] - 360], [c[0] - 38 + i * 14, c[1] + 360], i, { shadow: 4, k: 1.2 });
+            },
+        });
+    });
+    hero('glass', 113, 580, 30, 320, 360, (g, x, y) => {
+        P.fragment(g, { pts: P.cut(x + 36, y + 10, 280, 440, 0.1, 'penta', 'l-gbed'), seed: 'l-gbed', color: C.greyL, tex: 'marble', lines: [0, 2, 3] });
+        P.glass(g, { x: x - 6, y: y - 22, s: 1.5, rot: 0.06, seed: 'l-copa' });
+    });
+    hero('cafe', 139, 860, -110, 360, 260, (g, x, y) => {
+        const rot = -0.5, pts = P.cut(x, y, 500, 180, rot, 'quad', 'l-cafe', 2);
+        P.fragment(g, { pts, seed: 'l-cafe', color: C.black, tex: 'dots', texO: { color: C.ochreL, pitch: 15, r: 2.6 }, lines: [0], on: (q) => P.overPlane(q, pts, [x + rotP(130, 0, rot)[0], y + rotP(130, 0, rot)[1]], rot + 1.3, { color: C.ochreD, seed: 'l-cafe2', tex: 'sand' }) });
+        const [u, v] = rotP(-40, 40, rot);
+        P.stencil(g, 'CAFÉ', { x: x + u, y: y + v, rot, size: 114, color: C.bone, seed: 'l-cafe' });
+    });
+    hero('wing', 164, 650, 170, 500, 400, (g, x, y) => P.wing(g, { x: x + 24, y: y - 110, s: 1.2, rot: -0.28, seed: 'l-paloma' }));
+    hero('guitar', 194, 660, -10, 500, 520, (g, x, y) => P.guitarPlanes(g, { x, y, s: 0.78, rot: 0.42, neck: -330, seed: 'l-guitar' }));
+    hero('bridge', 218, 880, 250, 330, 260, (g, x, y) => {
+        const rot = 0.55, pts = P.cut(x, y, 440, 160, rot, 'sliver', 'l-br', 3);
+        P.fragment(g, {
+            pts, seed: 'l-br', color: C.ochre, colors: [C.ochreL, C.ochre, C.ochreP], dir: rot, tex: 'comb', texO: { dir: rot, color: C.umber, alpha: 0.55, pitch: 2.4 }, lines: [0],
+            on: (q) => {
+                q.save();
+                q.translate(x, y);
+                q.rotate(rot - Math.PI / 2);
+                q.scale(1.2, 1.2);
+                q.translate(0, -262);
+                for (let i = 0; i < 6; i++) P.stringSeg(q, [Guitar.stringX(i, Guitar.SADDLE), 0], [Guitar.stringX(i, Guitar.SADDLE) * 0.9, 252], i, { shadow: 3 });
+                P.bridge(q, { x: 0, y: 0, s: 1, seed: 'l-puente' });
+                q.restore();
+            },
+        });
+    });
+    hero('news', 242, 760, -240, 380, 380, (g, x, y) => {
+        const s = 0.86, rot = -0.14, [u, v] = rotP(-215 * s, -280 * s, rot);
+        P.newspaper(g, { x: x + u, y: y + v, s, rot, seed: 'l-brisa' });
+        const [nx, ny] = rotP(14 * s, 16 * s, rot);
+        P.nail(g, { x: x + u + nx + 2, y: y + v + ny + 4, size: 1.5, seed: 'l-nail' });
+    });
+    hero('neck', 268, 480, 100, 400, 240, (g, x, y) => {
+        // the fingerboard as a ladder, lying across the radius, its strings over it
+        const t = [Math.cos(177 * D2R), Math.sin(177 * D2R)], n = [-t[1], t[0]], Lh = 320;
+        const A = [x - t[0] * Lh, y - t[1] * Lh], B = [x + t[0] * Lh, y + t[1] * Lh], hw = (u) => 36 + u * 7;
+        const frets = [];
+        for (let k = 0; k < 9; k++) frets.push(1 - Math.pow(2, -k / 12) * 0.96 + 0.02);
+        const P2 = (u, v) => [A[0] + (B[0] - A[0]) * u + n[0] * v, A[1] + (B[1] - A[1]) * u + n[1] * v];
+        g.save();
+        P.clip(g, [P2(-0.01, -50), P2(1.01, -50), P2(1.01, 50), P2(-0.01, 50)]);
+        P.thick(g, [P2(0, -hw(0)), P2(0, hw(0)), P2(1, hw(1)), P2(1, -hw(1))], { d: 4 });
+        P.ladder(g, { axis: [A, B], half: hw, frets, seed: 'l-ladder', over: 10, fh: 4, castD: 5 });
+        // the nut at its end, bone, with its notches
+        P.plane(g, [P2(-0.004, -hw(0) - 1), P2(0.02, -hw(0) - 1), P2(0.02, hw(0) + 1), P2(-0.004, hw(0) + 1)], { color: C.bone, seed: 'l-nut', lines: 'all', over: [0, 1], shade: null, light: null, cast: false });
+        for (let i = 0; i < 6; i++) P.stringSeg(g, P2(0.005, (i - 2.5) * 11.5), P2(1, (i - 2.5) * 13), i, { shadow: 4, k: 1.3 });
+        g.restore();
+    });
+    hero('moon', 294, 760, 60, 330, 310, (g, x, y) => {
+        const pts = P.cut(x, y, 410, 350, 0.2, 'penta', 'l-blue', 4);
+        P.fragment(g, { pts, seed: 'l-blue', color: C.blue, under: C.blueD, colors: [C.blue, C.blue, P.tone(C.blue, 0.06), P.tone(C.blue, -0.08)], lines: [0, 2], edge: '#1c2436', on: (q) => P.overPlane(q, pts, [x + 90, y + 135], 0.5, { color: C.ochre, seed: 'l-mplane', tex: 'comb', texO: { dir: 0.4, color: C.umberD, alpha: 0.5 } }) });
+        P.moon(g, { x: x - 22, y: y - 20, r: 118, seed: 'l-luna' });
+    });
+    hero('head', 320, 580, -190, 380, 380, (g, x, y) => {
+        const rot = 0.62, [u, v] = rotP(0, 150 * 1.05, rot);
+        P.head(g, { x: x + u, y: y + v, rot, s: 1.05, seed: 'l-clavijero' });
+    });
+    hero('wallpaper', 345, 900, -70, 420, 420, (g, x, y) => {
+        const rot = 1.35 + 0.08, [u, v] = rotP(0, -310, rot);
+        P.wallpaper(g, { x: x + u, y: y + v, w: 170, h: 620, rot, seed: 'l-wp', torn: [2], pins: [] });
+        const [nx, ny] = rotP(-30, 34, rot);
+        P.nail(g, { x: x + u + nx, y: y + v + ny, size: 1.6, seed: 'l-nail2' });
+    });
+    // ---------------------------------------------------------------- things to find
+    {
+        const [x, y] = pol(228, 340);
+        L.push(piece('feather', -270, x, y, 150, 150, (g) => P.quill(g, { x: x - 50, y: y - 30, a: 0.55, l: 128, w: 22, bend: 0.3, seed: 'l-quill' })));
+    }
+    {
+        const [x, y] = pol(44, 340);
+        L.push(piece('peg', 20, x, y, 110, 110, (g) => P.peg(g, { x: x - 55, y: y + 10, rot: -0.3, s: 0.9, seed: 'l-peg' })));
+    }
+    {
+        const [x, y] = pol(302, 330);
+        L.push(piece('string', 200, x, y, 110, 110, (g) => P.coil(g, { x, y, r: 30, i: 1, a: 0.7, seed: 'l-coil' })));
+    }
+    // ---------------------------------------------------------------- the matter
+    const r = Motion.rng('planes-loose-matter');
+    const pick = (list) => list[Math.floor(r() * list.length) % list.length];
+    const kinds = [
+        ...Array(31).fill('facet'), ...Array(9).fill('pasted'), 'news', 'news', 'score', 'score', 'ad', 'label', 'wall', 'wall', 'news',
+        'letters', 'letters', 'letters', 'headline', 'headline', 'frets', 'frets', 'frets', 'rim', 'rim', 'rim', 'strings', 'strings', 'strings',
+        'arc', 'arc', 'blue', 'blue', 'blue', 'disc', 'disc', 'covert', 'covert', 'covert', 'sketch', 'sketch', 'rim', 'strings', 'headline', 'letters',
+    ];
+    for (let i = kinds.length - 1; i > 0; i--) {
+        const k = Math.floor(r() * (i + 1));
+        [kinds[i], kinds[k]] = [kinds[k], kinds[i]];
+    }
+    const N = kinds.length;
+    const FACET = [C.ochre, C.ochreL, C.ochreD, C.ochre, C.grey, C.greyL, C.greyC, C.greyD, C.umber, C.burnt, C.black, C.grey, C.ochreL];
+    const texFor = (col) => {
+        if (col === C.ochre || col === C.ochreL || col === C.ochreD) return r() < 0.65 ? { tex: 'comb', texO: { dir: r() * Math.PI, color: C.umberD, alpha: 0.55, knots: r() < 0.4 ? 1 : 0, pitch: 2.6 + r() * 1.2 } } : { tex: 'sand', texO: { density: 0.05 } };
+        if (col === C.grey || col === C.greyL || col === C.greyC) return r() < 0.4 ? { tex: 'marble' } : r() < 0.5 ? { tex: 'dots', texO: { color: C.bone, pitch: 10 + r() * 5 } } : {};
+        if (col === C.black) return r() < 0.6 ? { tex: 'dots', texO: { color: C.ochreL, pitch: 12 + r() * 5, r: 2.4 } } : {};
+        return r() < 0.4 ? { tex: 'sand', texO: { density: 0.05 } } : {};
+    };
+    const WORDS = ['VINO', 'OLÉ', 'SOL', 'TINTO', 'ORO', 'DOS', 'LA', 'MAR'];
+    const HEADS = ['LUNA', 'LLENA', 'PUERTO', 'BRISA', 'MÁLAGA'];
+    for (let i = 0; i < N; i++) {
+        const kind = kinds[i], seed = 'l-m' + i;
+        const v = Math.pow((i + r() * 0.9) / N, 2.3);
+        const sz = 85 + 115 * r(), deg = (i * 137.508 + (r() - 0.5) * 14) % 360;
+        const R = Math.max(268 + sz * 0.62, 285 + 1215 * v), [x, y] = pol(deg, R);
+        const dz = -272 + 544 * ((i * 0.6180339 + r() * 0.15) % 1), rot0 = r() * Math.PI * 2, rot = kind === 'letters' || kind === 'headline' ? (rot0 / Math.PI - 1) * 1.1 : rot0;
+        let half = sz * 0.95 + 40, paint;
+        const shape = pick(['shard', 'sliver', 'trap', 'penta', 'quad', 'penta', 'trap']);
+        if (kind === 'facet' || kind === 'pasted' || kind === 'sketch') {
+            const col = kind === 'sketch' ? pick([C.bone, C.greyL, C.ochreP]) : pick(FACET), w = sz * (0.85 + r() * 0.5), h = sz * (0.55 + r() * 0.55);
+            half = Math.max(w, h) * 0.8 + 40;
+            const tx = kind === 'sketch' ? {} : texFor(col), pts = P.cut(x, y, w, h, rot, shape, seed, r() < 0.25 ? 1 : -1), over = r(), hatch = r(), sub = r(), ang = r() * Math.PI, sk = pick(['news', 'score', 'ad']);
+            const pent = r() < 0.2 ? [8, -6, 0.04] : null, col2 = pick(FACET.filter((c) => c !== col)), tx2 = texFor(C.grey), word = WORDS[(i * 7 + 2) % WORDS.length];
+            paint = (g) => P.fragment(g, {
+                pts, seed, color: col, ...tx, pent,
+                on: (q) => {
+                    if (over < 0.4) P.overPlane(q, pts, [x + Math.cos(ang) * w * 0.22, y + Math.sin(ang) * h * 0.22], ang, { color: col2, seed: seed + 'o', ...tx2 });
+                    if (kind === 'pasted') P.scrap(q, { x: x + Math.cos(ang) * w * 0.25, y: y + Math.sin(ang) * h * 0.2, w: w * 0.6, h: h * 0.55, rot: rot + (sub - 0.5) * 0.8, seed: seed + 'p', kind: sk, word, torn: [1, 2], pins: sub < 0.5 ? [[-w * 0.2, -h * 0.15]] : [] });
+                    if (kind === 'sketch') {
+                        // a charcoal study of the guitar's curve, drawn twice, and its hatching
+                        const o = Guitar.outline(sz / 520), off = [x - (o[20][0] ?? 0), y - (o[20][1] ?? 0)];
+                        P.charcoal(q, o.slice(0, 60).map(([px, py]) => [px + off[0], py + off[1]]), { w: 2.6, seed: seed + 'c1' });
+                        P.charcoal(q, o.slice(4, 56).map(([px, py]) => [px + off[0] + 9, py + off[1] - 6]), { w: 1.6, alpha: 0.55, seed: seed + 'c2' });
+                        P.hatch(q, pts, { angle: 0.9, at: [x + w * 0.15, y + h * 0.1], seed: seed + 'h', len: sz * 0.4, gap: 5 });
+                    } else if (hatch < 0.35) P.hatch(q, pts, { angle: ang + 0.8, at: [x - w * 0.2, y + h * 0.15], seed: seed + 'h', len: sz * 0.35, gap: 5 + hatch * 6, color: col === C.black || col === C.umber || col === C.burnt || col === C.greyD ? '#cfc3a8' : undefined, alpha: 0.55 });
+                },
+            });
+        } else if (kind === 'news' || kind === 'score' || kind === 'ad' || kind === 'label') {
+            const w = sz * (0.9 + r() * 0.3), h = sz * (0.6 + r() * 0.3), word = WORDS[(i * 3) % WORDS.length], pins = r() < 0.5 ? [[-w * 0.3, -h * 0.25]] : [];
+            half = Math.max(w, h) * 0.75 + 30;
+            paint = (g) => {
+                P.thick(g, S.xf([[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]], { x, y, rot }), { d: 1.2, color: '#3b3125', core: 'rgba(0,0,0,0)' });
+                P.scrap(g, { x, y, w, h, rot, seed, kind, word, torn: [1, 2], pins });
+            };
+        } else if (kind === 'wall') {
+            const w = sz * 0.55, h = sz * 1.5, [u, v] = rotP(0, -h / 2, rot);
+            half = h * 0.6 + 30;
+            paint = (g) => P.wallpaper(g, { x: x + u, y: y + v, w, h, rot, seed, torn: [0, 2], pins: [] });
+        } else if (kind === 'letters') {
+            const col = pick([C.black, C.ochreD, C.greyD, C.burnt, C.bone]), word = WORDS[(i * 5 + 1) % WORDS.length], w = sz * (1.1 + r() * 0.3), h = sz * 0.55, pts = P.cut(x, y, w, h, rot, 'quad', seed, r() < 0.5 ? 1 : -1), tx = texFor(col);
+            half = w * 0.6 + 40;
+            paint = (g) => {
+                P.fragment(g, { pts, seed, color: col, ...tx, lines: [0, 2] });
+                const [u, v] = rotP(0, h * 0.2, rot);
+                P.stencil(g, word, { x: x + u, y: y + v, rot, size: Math.min(h * 0.6, (w * 0.8) / (word.length * 0.6)), color: col === C.bone ? C.black : C.bone, seed: seed + 'st' });
+            };
+        } else if (kind === 'headline') {
+            const w = sz * 1.1, h = sz * 0.44, text = pick(HEADS), hdx = (r() - 0.5) * w * 0.4, hdy = (r() - 0.5) * h * 0.3;
+            half = w * 0.6 + 30;
+            paint = (g) => P.headline(g, { x, y, rot, w, h, text, dx: hdx, dy: hdy, seed, torn: [1] });
+        } else if (kind === 'frets') {
+            const Lh = sz * 0.7, t = [Math.cos(rot), Math.sin(rot)], n = [-t[1], t[0]], hw = sz * 0.22, f0 = r() * 0.2, strung = [0, 1, 2, 3, 4, 5].map(() => r() < 0.7);
+            const A = [x - t[0] * Lh, y - t[1] * Lh], B = [x + t[0] * Lh, y + t[1] * Lh], P2 = (u, vv) => [A[0] + (B[0] - A[0]) * u + n[0] * vv, A[1] + (B[1] - A[1]) * u + n[1] * vv];
+            half = Lh + 40;
+            paint = (g) => {
+                g.save();
+                P.clip(g, [P2(0, -hw - 18), P2(1, -hw - 18), P2(1, hw + 18), P2(0, hw + 18)]);
+                P.thick(g, [P2(0, -hw), P2(0, hw), P2(1, hw), P2(1, -hw)], { d: 3.5 });
+                P.ladder(g, { axis: [A, B], half: () => hw, frets: [0.2 + f0, 0.48 + f0 * 0.7, 0.72 + f0 * 0.3].filter((u) => u < 0.97), seed, over: 8, fh: 3.4, castD: 4 });
+                for (let k = 0; k < 6; k++) if (strung[k]) P.stringSeg(g, P2(0, (k - 2.5) * hw * 0.3), P2(1, (k - 2.5) * hw * 0.3), k, { shadow: 3, k: 0.9 });
+                g.restore();
+            };
+        } else if (kind === 'rim') {
+            const s = sz / 260, f0 = r(), f1 = f0 + 0.09 + r() * 0.06;
+            half = sz * 1.1 + 50;
+            paint = (g) => P.rim(g, { x, y, s, rot, f0, f1, w: 26 + sz * 0.15, seed });
+        } else if (kind === 'strings') {
+            const w = sz * 1.2, h = sz * 0.5, pts = P.cut(x, y, w, h, rot, 'sliver', seed), n0 = 2 + Math.floor(r() * 4), col = pick([C.ochreL, C.ochre, C.greyD, C.black]), tx = texFor(col);
+            half = w * 0.6 + 40;
+            paint = (g) => P.fragment(g, {
+                pts, seed, color: col, ...tx, lines: [1],
+                on: (q) => {
+                    const t = [Math.cos(rot + 0.15), Math.sin(rot + 0.15)], nn = [-t[1], t[0]];
+                    for (let k = 0; k < n0; k++) {
+                        const o = (k - (n0 - 1) / 2) * 11, c = [x + nn[0] * o, y + nn[1] * o];
+                        P.stringSeg(q, [c[0] - t[0] * w, c[1] - t[1] * w], [c[0] + t[0] * w, c[1] + t[1] * w], (k + i) % 6, { shadow: 4, k: 1.2 });
+                    }
+                },
+            });
+        } else if (kind === 'arc') {
+            const rr = sz * 0.75, span = 0.9 + r() * 0.5, a0 = rot, cxy = [x - Math.cos(a0 + span / 2) * rr, y - Math.sin(a0 + span / 2) * rr];
+            const ring = [];
+            for (let k = 0; k <= 12; k++) ring.push([cxy[0] + Math.cos(a0 + (span * k) / 12) * (rr + 28), cxy[1] + Math.sin(a0 + (span * k) / 12) * (rr + 28)]);
+            for (let k = 12; k >= 0; k--) ring.push([cxy[0] + Math.cos(a0 + (span * k) / 12) * (rr * 0.62 - 12), cxy[1] + Math.sin(a0 + (span * k) / 12) * (rr * 0.62 - 12)]);
+            half = rr + 70;
+            paint = (g) => P.fragment(g, {
+                pts: ring, seed, color: C.ochreL, colors: [C.ochreL, C.ochreP, C.ochre], tex: 'comb', texO: { dir: a0 + 1.6, color: C.umber, alpha: 0.5, pitch: 2.5 }, lines: [12, 25],
+                on: (q) => P.rosette(q, { cx: cxy[0], cy: cxy[1], r0: rr * 0.68, r1: rr, seed: seed + 'r', slip: 5 }),
+            });
+        } else if (kind === 'blue') {
+            const w = sz * (0.8 + r() * 0.4), h = sz * (0.6 + r() * 0.4), pts = P.cut(x, y, w, h, rot, shape, seed), moon = r() < 0.4;
+            half = Math.max(w, h) * 0.8 + 40;
+            paint = (g) => P.fragment(g, {
+                pts, seed, color: C.blue, under: C.blueD, colors: [C.blue, P.tone(C.blue, 0.05), P.tone(C.blue, -0.08)], edge: '#1c2436', lines: 'some',
+                on: (q) => {
+                    if (moon) P.moon(q, { x: x + w * 0.42, y: y - h * 0.2, r: sz * 0.45, seed: seed + 'moon' });
+                    else P.hatch(q, pts, { angle: rot + 0.7, seed: seed + 'h', len: sz * 0.3, gap: 6, color: '#a9b6cc', alpha: 0.4 });
+                },
+            });
+        } else if (kind === 'disc') {
+            const w = sz * 1.1, h = sz * 0.95, pts = P.cut(x, y, w, h, rot, 'penta', seed), col = pick([C.ochre, C.ochreL, C.greyL]), tx = texFor(col);
+            half = w * 0.8 + 40;
+            paint = (g) => P.fragment(g, {
+                pts, seed, color: col, ...tx, lines: 'some',
+                on: (q) => {
+                    P.blackDisc(q, { x: x - w * 0.08, y, r: sz * 0.26, seed: seed + 'd' });
+                    const ci = S.ellipse(x + sz * 0.06, y - sz * 0.05, sz * 0.34, sz * 0.34, 60);
+                    P.charcoal(q, [...ci.slice(6), ci[0]], { w: 2.2, alpha: 0.8, seed: seed + 'ci' });
+                },
+            });
+        } else if (kind === 'covert') {
+            half = sz * 0.8 + 40;
+            const l = sz * 0.85, bar = r() < 0.5;
+            paint = (g) => P.quill(g, { x: x - Math.cos(rot) * l * 0.5, y: y - Math.sin(rot) * l * 0.5, a: rot, l, w: l * 0.36, bend: 0.2, kind: 'covert', bar, seed });
+        }
+        L.push(piece('m' + i + '-' + kind, dz, x, y, half, half, paint));
+    }
+    return L;
+};

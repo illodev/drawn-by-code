@@ -35,6 +35,18 @@ Motion.scene({
             };
         };
         const layers = [...T(Z0), ...T(Z0).map((l) => turned(l, Math.PI, 1)), ...T(Z0).map((l) => turned(l, Math.PI / 2, 2))].map((l) => ({ far: [0.2, 0.36], ...l }));
+        // (patio bench) log what each piece costs to paint
+        let total = 0;
+        for (const l of layers) {
+            const p = l.paint;
+            l.paint = (g, res) => {
+                const t0 = performance.now();
+                p(g, res);
+                const ms = performance.now() - t0;
+                total += ms;
+                if (ms > 400 || !l.id.includes('again')) console.log(`paint ${l.id} ${ms.toFixed(0)} ms (total ${(total / 1000).toFixed(1)} s)`);
+            };
+        }
         return { rig: Souvenir.rig(env, layers) };
     },
     draw(g, t, env) {
