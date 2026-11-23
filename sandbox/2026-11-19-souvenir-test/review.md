@@ -556,3 +556,22 @@ change), nor from any shorter history tried (0 → 5.6; 11.2; 16.7; 0 → 11.2 �
 identical to the fresh frame); it needs that long run of heavy frames, which points at the
 browser moving canvases between GPU and CPU under memory pressure. Below what can be seen,
 and the film's six pieces, each started fresh, join without a jump. Left open.
+
+### The score (round 8)
+
+The user, of the Suno tracks they made with the proposed prompt: «none of them convinces me»,
+because they «sounded like a generic trailer», «did not fit the picture» and were «too
+overloaded». With their go-ahead, four takes of one ElevenLabs piece (20 s, timed in the
+prompt: a distant procession snare, a string ostinato that keeps speeding up under a solo
+cornet's saeta, one rasgueado at 8 s, a big chord at 13 s, the chord held and fading),
+asked «restrained and clear rather than a generic trailer: few voices». Charged 1,200
+credits (estimated at 2,200). Measured, not heard:
+- takes 2 and 3 are loud from the first second to the fade (−14 to −17 dB every half
+  second): no build, the «overloaded» the user did not want. Out.
+- take 1 rises from silence in two swells that crest at 10.00 and 15.00 s, 5.00 s apart;
+  the guitar's mouth and the last world are 5.03 s apart in the film. From 2.27 s into the
+  take they land on both (7.70 and 12.70 s).
+- take 4 rises from silence in one long build to one clean hit at 14.40 s (6 dB over what
+  comes before it); from 1.65 s in it lands on the last world.
+Both cut by `score.sh` (−16 LUFS, limiter at 4×, the film's fade at the end) and sent for
+the user to choose by ear.
