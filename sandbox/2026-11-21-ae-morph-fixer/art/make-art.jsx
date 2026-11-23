@@ -99,6 +99,10 @@
             check(C.name + ': every piece has the same points in every key', allSame);
             if (C.expect.grown) check(C.name + ': ' + C.expect.grown + ' keys where a piece grows from a point', res.grown === C.expect.grown, String(res.grown));
             if (C.expect.moved) check(C.name + ': pieces pasted out of order dealt back', res.moved > 0, String(res.moved));
+            // the same matching as Node: round 7 found AE matching O into C by size alone (the hole
+            // became the C) while every check above passed
+            check(C.name + ': pieces matched as in Node', res.moved === C.node.moved && res.grown === C.node.grown,
+                'moved ' + res.moved + ' (Node ' + C.node.moved + '), grown ' + res.grown + ' (Node ' + C.node.grown + ')');
             if (C.rotate) {
                 // turned: halfway between the first two keys the letter keeps its area
                 var a0 = 0, ah = 0;

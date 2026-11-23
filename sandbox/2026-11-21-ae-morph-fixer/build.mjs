@@ -19,9 +19,29 @@ const ae = read('morph-ae.jsx');
 // "Illegal use of reserved word"
 const RESERVED = /(\.|\b)(abstract|boolean|byte|char|debugger|double|enum|export|extends|final|float|goto|implements|import|int|interface|long|native|package|private|protected|public|short|static|super|synchronized|throws|transient|volatile)\b/;
 
+// ExtendScript reads a ? b : c ? d : e as (a ? b : c) ? d : e (measured in AE 27: true ? 1 :
+// false ? 2 : 3 is 2; V8 says 1): a ?: nested in another's branches must be in parentheses.
+// Per line, strings blanked. Round 7 found three here (the area sign, progressOf's clamp, the
+// bridge's job sort).
+function nestedTernary(code) {
+    const open = [];     // per bracket depth: 0 none, 1 after ?, 2 after its :
+    let depth = 0;
+    open[0] = 0;
+    for (const ch of code) {
+        if ('([{'.includes(ch)) open[++depth] = 0;
+        else if (')]}'.includes(ch)) depth = Math.max(0, depth - 1);
+        else if (ch === ',' || ch === ';') open[depth] = 0;
+        else if (ch === '?') {
+            if (open[depth] === 2) return true;
+            open[depth] = 1;
+        } else if (ch === ':' && open[depth] === 1) open[depth] = 2;
+    }
+    return false;
+}
+
 const problems = [];
-// make-demo.jsx also runs in After Effects: linted, not joined
-for (const [file, src] of [['morph-math.js', math], ['morph-ae.jsx', ae], ['make-demo.jsx', read('make-demo.jsx')], ['art/make-art.jsx', read('art/make-art.jsx')]]) {
+// make-demo.jsx, art/make-art.jsx and ae-bridge.jsx also run in After Effects: linted, not joined
+for (const [file, src] of [['morph-math.js', math], ['morph-ae.jsx', ae], ['make-demo.jsx', read('make-demo.jsx')], ['art/make-art.jsx', read('art/make-art.jsx')], ['ae-bridge.jsx', read('ae-bridge.jsx')]]) {
     // a caught error joined to a string with + throws again in ExtendScript ("Object of type
     // Error found where a Number, Array, or Property is needed"), as a dialog: use e.message
     const caught = [...new Set([...src.matchAll(/catch\s*\((\w+)\)/g)].map((m) => m[1]))];
@@ -47,6 +67,7 @@ for (const [file, src] of [['morph-math.js', math], ['morph-ae.jsx', ae], ['make
             [/,\s*[}\]]/, 'trailing comma'],
         ];
         for (const [re, what] of hits) if (re.test(code)) problems.push(`${file}:${n + 1}: ${what}: ${line.trim()}`);
+        if (nestedTernary(code)) problems.push(`${file}:${n + 1}: nested ?: without parentheses (ExtendScript groups it the wrong way): ${line.trim()}`);
         // Array indexOf is ES5; String indexOf is fine, so only flag it in the math
         if (file === 'morph-math.js' && /\.indexOf\(/.test(code)) problems.push(`${file}:${n + 1}: indexOf: ${line.trim()}`);
     });

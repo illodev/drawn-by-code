@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.10.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.10.1 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path

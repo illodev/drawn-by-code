@@ -353,3 +353,51 @@ group's transform. Version **0.10.0**.
   says how around it: launching with `-ro` (or `-so`) overrides. `AfterFX.exe -ro
   ae-bridge.jsx` got through at once.
 - Not done: the panel installed in the user's AE is still 0.9.0.
+
+## Round 7 · 2026-11-23 (ExtendScript misread three nested `?:`; tested inside After Effects 27)
+
+The draw-on rig found that ExtendScript reads `a ? b : c ? d : e` as `(a ? b : c) ? d : e`
+(AE 27: `true ? 1 : false ? 2 : 3` is 2; V8 says 1). Three of them ran here, and Node read
+all three right. Version **0.10.1**.
+
+- **The area sign** (`pieceInfo`): `ar > 0 ? 1 : ar < 0 ? -1 : 0` was -1 for every piece in
+  AE, so no piece was ever a hole and pieces were matched by centre and size alone.
+- **`progressOf`'s clamp to 0..1** let negatives through (a path read back before its key:
+  -0.5, not 0). It times the turn's in-betweens; drawn keys don't overshoot, so no case
+  here hit it.
+- **The runner's job sort** (`ae-bridge.jsx`): it returned 1 for any two different names, and
+  ExtendScript's sort then kept the order `getFiles` gave. That is name order on NTFS, so jobs
+  never actually ran out of order.
+- → All parenthesized. `build.mjs` now fails on an unparenthesized nested `?:` (`nestedTernary`,
+  per line, strings blanked) and lints `ae-bridge.jsx` too. On the old sources it flags
+  exactly these three lines.
+
+**What it did to real type, measured in AE 27** (27.0 build 78): `MF.matchPieces` on the 20
+real-type cases with the 0.10.0 build and the 0.10.1 build. AE 0.10.1 matches Node in all 20
+(order, moved, grown, signs). AE 0.10.0 matches Node running the old code grouped the way
+ExtendScript reads it, also in all 20, so the misread was the whole difference. Matching changed
+in 2 of 20 cases, both an O closing into a C:
+
+- *O into C and back*: the O's hole (149 px) is nearer the C (146 px) in size than its outline
+  (219 px). With no holes seen, **0.10.0 turned the O's hole into the C and shrank the outline
+  to a dot**. 0.10.1 morphs outline to outline and closes the hole into a dot, as Node always did.
+- *Engraved O into C, Exact*: the same, with the font listing the hole first.
+- `progressOf` now gives 0, 1 and 0.5 for -0.5, 1.5 and 0.5; 0.10.0 gave -0.5, 1 and 0.5.
+
+**Why the AE art test passed anyway:** it checked that the hole grew from a point (the grown
+count, right either way), never which piece went where. → `art/test-art.mjs` writes Node's
+`moved` and `grown` into `cases.js`, and `art/make-art.jsx` checks AE gets the same
+("pieces matched as in Node"). Run on the 0.10.0 build, the new check fails exactly the two
+O into C cases (moved 2 vs Node 0, and 0 vs 2).
+
+**In After Effects 27**, through the fixed runner (its jobs ran in name order):
+
+- `make-demo.jsx` test mode: all 45 checks pass, as in round 6 (`review/ae-log.txt`).
+- `art/make-art.jsx`: all 73 checks pass, round 6's 53 plus "matched as in Node" for each of
+  the 20 cases (`review/art-log.txt`). Every status is as in round 6 but one: *Engraved O
+  into C, Exact* now has 329 points, not 307. Exact gives a path a point wherever any of its
+  keys has one, and the O's outline is now paired with the C's outline instead of with its hole.
+- Node: 4,300 + 128 checks pass, unchanged.
+- The panel installed in the user's AE (`ScriptUI Panels/Mask Morph Fixer.jsx`, 109,031
+  bytes) is 0.10.0 and still matches by size alone. Update it with ? > Install as a panel
+  from 0.10.1, then restart AE.

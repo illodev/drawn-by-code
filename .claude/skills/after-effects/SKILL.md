@@ -37,7 +37,7 @@ re-key the driver and nothing needs re-running.
 |---|---|
 | `*-sim.js` / `*-math.js`, plain **ES3** | The logic. Runs unchanged in ExtendScript, Node and the engine, so the preview, the tests and the AE result are the same numbers |
 | `*-ae.jsx` | The AE half: dialog or panel, reading the comp, building layers or writing keys, expressions |
-| `build.mjs` | Joins them into **one** `.jsx` for the designer and lints it, since a syntax error in AE is only an alert. It checks ES3, reserved words, non-ASCII strings, a caught error joined with `+`, lookups by display name, and a nested `?:` without parentheses (the draw-on rig's) |
+| `build.mjs` | Joins them into **one** `.jsx` for the designer and lints it, since a syntax error in AE is only an alert. It checks ES3, reserved words, non-ASCII strings, a caught error joined with `+`, lookups by display name, and a nested `?:` without parentheses (all but the field effector's) |
 | `scene.js` | Engine preview drawn the way the result will look: judge the motion here, it renders in seconds |
 | `make-demo.jsx` | Builds a demo project from nothing; with a test flag it checks, logs and saves. It is the AE test |
 | `test.mjs` | Node: the logic on hostile inputs, and the AE half against mock properties |
@@ -84,10 +84,17 @@ that AE runs wrong.
 - **ExtendScript reads `a ? b : c ? d : e` as `(a ? b : c) ? d : e`** (AE 27: `true ? 1 :
   false ? 2 : 3` is 2; V8 says 1). Put every `?:` nested in another's branches in
   parentheses. It made every Slider a Checkbox in the draw-on rig's first AE run, and a
-  clamp `x < 0 ? 0 : x > 1 ? 1 : x` lets negatives through. The draw-on rig's `build.mjs`
-  lints for it (`nestedTernary`); the flock's `clamp`, the morph fixer's area `sign` and
-  its bridge's job sort still had one on 2026-11-23. Expressions on AE's default JavaScript engine
-  parse it right, the Legacy ExtendScript engine doesn't: parenthesize there too.
+  clamp `x < 0 ? 0 : x > 1 ? 1 : x` lets negatives through. The flock's, the morph fixer's
+  and the draw-on rig's `build.mjs` lint for it (`nestedTernary`), the test scripts and the
+  runner included. The field effector has none in code AE runs, but its build doesn't lint
+  for it. Fixed on 2026-11-23 in the flock (its `clamp` and speed cap: every bake until then was a different
+  flock from the preview, up to 405 px apart) and the morph fixer (its area `sign` was -1 for
+  every piece, so no hole was seen and an O into C turned its hole into the C). Expressions on
+  AE's default JavaScript engine parse it right, the Legacy ExtendScript engine doesn't:
+  parenthesize there too.
+- **`toPrecision` rounds negative numbers to integers** in ExtendScript (AE 27:
+  `(-29.987654321).toPrecision(15)` is `-30`, `-0.5` gives `-0`); positives are fine. Write
+  numbers out with `String(v)`, or format `-v` and add the sign.
 - **ES3 reserves words that modern JS doesn't** (`short`, `long`, `int`, `char`, `float`,
   `double`, `final`, `static`, `public`, `private`, `package`, `goto`…), **even as property
   names**: `{ short: 'x' }` or `res.long` stops the whole script ("Illegal use of reserved
@@ -109,6 +116,14 @@ that AE runs wrong.
   `eval` it where you need it, or assign `$.global.X` inside the file.
 - Testing an ES3 file in Node: load it with `new Function(src + 'return X')()`, not
   `vm.runInContext` (global lookups there are ~10× slower and skew timings).
+- **Node passing doesn't mean AE runs the same code.** The same source can parse differently
+  (the nested `?:`), so the AE test must compare what AE decided with Node on the same input,
+  not only check that it ran. Dump the result (every baked key, or the matching order) and
+  diff it with Node in full. The flock's and the morph fixer's AE checks passed while AE got
+  different results, because they checked counts and plausible values. The morph fixer's
+  `art/make-art.jsx` now checks its matching against Node's numbers.
+  - Then run Node on the old code grouped the way ExtendScript reads it (`(a ? b : c) ? d :
+    e`). If AE's old result matches that, the parse was the whole cause.
 
 ## A panel people install
 
@@ -566,3 +581,13 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   language trap turns up (three of them had it).
 - 2026-11-23 · ae-draw-on-rig · File warnings under what they change, not under each item that
   triggers them: one Trim Paths over two groups was warned about twice, seen only by hand.
+- 2026-11-23 · ae-flock-rig · Two misread `?:` (a clamp and the speed cap) made every AE bake
+  a different flock from the preview for two rounds, up to 405 px apart, and every AE check
+  passed: they checked that values were plausible, not equal to Node's. Dumping all baked keys
+  and comparing them with the Node sim on the leader AE sampled found it. Since the fix: 0.1 px.
+- 2026-11-23 · ae-morph-fixer · The misread area sign was -1 for every piece, so AE saw no
+  holes. An O into C then turned its hole into the C and shrank the outline to a dot, in the
+  released 0.10.0. Node did it right, and the AE art test passed because it only counted
+  grown pieces. `make-art.jsx` now checks the matching against Node's numbers. Fixed in 0.10.1.
+- 2026-11-23 · ae-flock-rig · ExtendScript's `toPrecision` rounds negative numbers to integers:
+  the first AE dump looked like a mismatch until positives and negatives were compared.

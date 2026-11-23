@@ -65,7 +65,9 @@ for (const c of CASES) {
     if (c.expect && c.expect.turned) check(`${c.name}: turned ${c.expect.turned} deg`, turned !== null && Math.abs(turned - c.expect.turned) < 1, String(turned));
     const capped = fixed.some((r) => r.capped), fell = fixed.some((r) => r.fellBack);
     rows.push(`| ${c.name} | ${c.font.replace(/-.*/, '')} | ${K} | ${n} | ${keys[0].map((P) => P.v.length).join('/')} → ${pts.join('/')} | ${capped ? '~' + near.toFixed(2) + ' (max)' : fell ? 'kept points' : worst.toFixed(3)} | ${res.moved} / ${res.grown} | ${before.toFixed(0)} → ${after.toFixed(0)} | ${turned === null ? '' : turned.toFixed(0) + '°'} | ${ms.toFixed(0)} |`);
-    forAE.push({ name: c.name, keys, mode: c.mode || 'smooth', max: c.max || 100, rotate: !!c.rotate, expect: c.expect || {} });
+    // node: how Node matched the pieces, for make-art.jsx to compare (ExtendScript once read the
+    // area sign wrong and matched O into C by size alone: the hole became the C)
+    forAE.push({ name: c.name, keys, mode: c.mode || 'smooth', max: c.max || 100, rotate: !!c.rotate, expect: c.expect || {}, node: { moved: res.moved, grown: res.grown } });
 }
 
 fs.mkdirSync(path.join(dir, 'out', 'art'), { recursive: true });

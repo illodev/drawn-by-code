@@ -1,4 +1,4 @@
-// Mask Morph Fixer 0.10.0 - gives every keyframe of a path the same points, direction
+// Mask Morph Fixer 0.10.1 - gives every keyframe of a path the same points, direction
 // and start, so shapes and masks morph cleanly in After Effects; key times and easing stay as
 // they are. Run it from File > Scripts > Run Script File..., then click ? > Install as a panel
 // to dock it (Window menu, after a restart).
@@ -944,7 +944,7 @@ var MF = (function () {
         }
         if (den < 1e-12) return 0;
         var u = num / den;
-        return u < 0 ? 0 : u > 1 ? 1 : u;
+        return u < 0 ? 0 : (u > 1 ? 1 : u);
     }
 
     // ---- pieces: a letter with holes, a shape in several parts ----
@@ -958,7 +958,7 @@ var MF = (function () {
             xs[3] = Math.max(xs[3], P.v[j][1]);
         }
         var diag = Math.sqrt((xs[1] - xs[0]) * (xs[1] - xs[0]) + (xs[3] - xs[2]) * (xs[3] - xs[2]));
-        return { c: [S.cx, S.cy], size: Math.sqrt(ar < 0 ? -ar : ar), sign: ar > 0 ? 1 : ar < 0 ? -1 : 0, box: xs, diag: diag };
+        return { c: [S.cx, S.cy], size: Math.sqrt(ar < 0 ? -ar : ar), sign: ar > 0 ? 1 : (ar < 0 ? -1 : 0), box: xs, diag: diag };
     }
 
     // every order of 0 ... n-1 (n is small: a letter has at most a handful of pieces)
@@ -1110,7 +1110,7 @@ var MF = (function () {
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.10.0';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.10.1';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
