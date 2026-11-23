@@ -7,11 +7,16 @@
 //   var r = FlockSim.run({ leaderX: [...], leaderY: [...], fps: 24, count: 80, seed: 7 });
 //   r.birds[i].x[f], .y[f], .z[f]       position per frame (comp px; z > 0 = farther away)
 //   r.birds[i].rot[f]                   rotation in degrees (AE: clockwise, y down)
-//   r.birds[i].sx[f], .sy[f]            scale in % (sx < 0 = mirrored to face the other way)
+//   r.birds[i].face[f]                  -1 … 1: horizontal scale factor (< 0 mirrored; through 0
+//                                       while turning around level)
+//   r.birds[i].up[f]                    1 | -1: vertical scale sign (-1 = upside down, the other
+//                                       of two equivalent poses, chosen so rotation stays smooth)
+//   r.birds[i].sx[f], .sy[f]            the resulting scale in %, depth included
 //   r.birds[i].ds[f]                    depth scale (1 = on the leader's plane)
 //   r.birds[i].phase[f]                 flap phase in cycles, ever increasing
 //   r.birds[i].size, .offset            per-bird randoms: size in [-1, 1], phase offset in [0, 1)
 //   r.center.x[f], r.center.y[f]        centroid of the flock
+//   r.center.radius[f], .heading[f]     its RMS size (px) and axis of travel (degrees; period 180)
 //   r.order                             bird indices, nearest (on average) first = top layer
 //
 // leaderX/leaderY are the leader's comp-space position sampled once per frame from the
@@ -302,7 +307,13 @@ var FlockSim = (function () {
 
         var birds = [];
         for (i = 0; i < N; i++) {
-            birds.push({ x: [], y: [], z: [], vx: [], vy: [], vz: [], size: rand() * 2 - 1, offset: rand(), rate: 1 + 0.12 * (rand() * 2 - 1) });
+            birds.push({
+                x: [], y: [], z: [], vx: [], vy: [], vz: [],
+                size: rand() * 2 - 1, offset: rand(), rate: 1 + 0.12 * (rand() * 2 - 1),
+                // turn-arounds differ per bird (0.3-0.5 s, triggered at 15-35 % of sideways
+                // speed), so a flock that reverses never goes edge-on all in the same frame
+                flip: 0.3 + 0.2 * rand(), hyst: 0.15 + 0.2 * rand()
+            });
         }
         function record(f) {
             for (i = 0; i < N; i++) {
@@ -332,7 +343,6 @@ var FlockSim = (function () {
         }
 
         // Orientation, facing, depth scale and flap phase, from the smoothed velocities.
-        var flipRate = 2 / 0.3;                                 // a full turn-around (-1 → 1) takes 0.3 s
         var maxTurn = 240;                                      // pitch: at most 240°/s (10° a frame at 24 fps)
         var cx = [], cy = [];
         for (f = 0; f < F; f++) {
@@ -342,24 +352,19 @@ var FlockSim = (function () {
         for (i = 0; i < N; i++) {
             var B = birds[i];
             B.rot = [];
+            B.face = [];
+            B.up = [];
             B.sx = [];
             B.sy = [];
             B.ds = [];
             B.phase = [];
+            var flipRate = 2 / B.flip;                          // a full turn-around (-1 → 1) in B.flip s
             var face = B.vx[0] < 0 ? -1 : 1, target = face, ph = B.offset, pitch = 0;
+            var rot = 0, side = 1;                              // side: which of the two equivalent poses
             for (f = 0; f < F; f++) {
                 var hx = B.vx[f], hy = B.vy[f], hz = B.vz[f];
                 var hxy = sqrt(hx * hx + hy * hy);
                 var h3 = sqrt(hx * hx + hy * hy + hz * hz) || 1;
-                if (hxy > 1e-6) {
-                    var h = hx / hxy;
-                    if (h > 0.25) target = 1;
-                    else if (h < -0.25) target = -1;
-                }
-                if (f > 0) {
-                    if (face < target) face = Math.min(target, face + flipRate * dtF);
-                    else if (face > target) face = Math.max(target, face - flipRate * dtF);
-                }
                 // Pitch follows the screen-space heading, trusted less when the bird flies
                 // mostly toward or away from the camera, and never faster than maxTurn.
                 var pt = (Math.atan2(hy, Math.abs(hx)) * 180) / Math.PI;
@@ -368,11 +373,61 @@ var FlockSim = (function () {
                     var dp = (pt - pitch) * clamp((2 * hxy) / h3, 0, 1);
                     pitch += clamp(dp, -maxTurn * dtF, maxTurn * dtF);
                 }
+                // Which way it should face. Steep, it flips as its heading crosses vertical
+                // (a small margin against flicker), so the flip never jumps the rotation;
+                // level, it waits until 15-35 % of its speed is sideways (per bird).
+                if (hxy > 1e-6) {
+                    var h = hx / hxy, hy0 = Math.abs(pitch) > 55 ? 0.05 : B.hyst;
+                    if (h > hy0) target = 1;
+                    else if (h < -hy0) target = -1;
+                }
+                // Turning around. Pointing up or down (|pitch| > 55°), mirroring only swaps
+                // which side the wings are on: it happens at once. Level turns, towards or
+                // away from the camera, squash through the turn (where the Turn Width floor
+                // and the head-on drawing come in), faster the steeper the bird. (Round 1
+                // squashed every flip: a flock diving through vertical went edge-on together,
+                // 38 % of the birds in one frame.)
+                if (f > 0) {
+                    // instant only from a settled pose: a squash already under way finishes
+                    // (faster when steep), or snapping mid-way would jump the rotation
+                    if (Math.abs(pitch) > 55 && Math.abs(face) === 1) face = target;
+                    else {
+                        var rate = flipRate / Math.max(0.12, Math.cos((pitch * Math.PI) / 180));
+                        if (face < target) face = Math.min(target, face + rate * dtF);
+                        else if (face > target) face = Math.max(target, face - rate * dtF);
+                    }
+                }
+                // Two poses draw the same bird: (rotation r, mirrored by face) and (r + 180°,
+                // mirrored by -face, upside down). Keep the one whose rotation is closest to
+                // the last frame's, so an instant flip never spins the layer (AE interpolates
+                // rotation between keys, and motion blur would smear the spin).
+                var rN = face * pitch;
+                if (f === 0) {
+                    rot = rN;
+                    side = 1;
+                } else {
+                    var ra = rN, rb = rN + 180;
+                    while (ra - rot > 180) ra -= 360;
+                    while (ra - rot < -180) ra += 360;
+                    while (rb - rot > 180) rb -= 360;
+                    while (rb - rot < -180) rb += 360;
+                    var keep = side === 1 ? ra : rb, other = side === 1 ? rb : ra, prev = rot;
+                    if (Math.abs(other - rot) + 1 < Math.abs(keep - rot)) {
+                        side = -side;
+                        rot = other;
+                    } else rot = keep;
+                    // and never faster than 600°/s (25° a frame at 24 fps): when a flip
+                    // catches up with a heading the pitch filter was lagging, it turns
+                    // over a few frames instead of snapping
+                    rot = prev + clamp(rot - prev, -600 * dtF, 600 * dtF);
+                }
                 var dsc = clamp(Math.pow(2, -B.z[f] / zUnit), 0.25, 4);
-                B.rot[f] = face * pitch;
+                B.rot[f] = rot;
+                B.face[f] = face * side;                        // signed width: < 0 = mirrored
+                B.up[f] = side;                                 // -1 = drawn upside down (back flipped)
                 B.ds[f] = dsc;
-                B.sy[f] = 100 * dsc;
-                B.sx[f] = 100 * dsc * face * faces;
+                B.sy[f] = 100 * dsc * side;
+                B.sx[f] = 100 * dsc * face * side * faces;
                 // flap: faster climbing, slower (gliding) diving
                 var climb = -hy / h3;
                 var mod = climb > 0 ? 1 + 0.5 * glide * climb : 1 - 0.75 * glide * -climb;
@@ -393,12 +448,54 @@ var FlockSim = (function () {
         order.sort(function (a, b) {
             return meanZ[a] - meanZ[b] || a - b;
         });
+
+        // For the live shape controls: the flock's size (RMS distance from the centroid, on
+        // screen) and its heading (the axis of the centroid's travel, smoothed both ways over
+        // ~0.4 s).
+        var rad = [], hd = [], hvx = [], hvy = [];
+        for (f = 0; f < F; f++) {
+            var s2 = 0;
+            for (i = 0; i < N; i++) {
+                var ddx = birds[i].x[f] - cx[f], ddy = birds[i].y[f] - cy[f];
+                s2 += ddx * ddx + ddy * ddy;
+            }
+            rad[f] = sqrt(s2 / N);
+            var fa2 = f > 0 ? f - 1 : f, fb2 = f < F - 1 ? f + 1 : f;
+            hvx[f] = fb2 === fa2 ? 0 : (cx[fb2] - cx[fa2]) / ((fb2 - fa2) * dtF);
+            hvy[f] = fb2 === fa2 ? 0 : (cy[fb2] - cy[fa2]) / ((fb2 - fa2) * dtF);
+        }
+        var aH = 1 - Math.exp(-dtF / 0.4);
+        for (f = 1; f < F; f++) {
+            hvx[f] += (hvx[f - 1] - hvx[f]) * (1 - aH);
+            hvy[f] += (hvy[f - 1] - hvy[f]) * (1 - aH);
+        }
+        for (f = F - 2; f >= 0; f--) {
+            hvx[f] += (hvx[f + 1] - hvx[f]) * (1 - aH);
+            hvy[f] += (hvy[f + 1] - hvy[f]) * (1 - aH);
+        }
+        // The shape controls stretch along an axis, and an axis has no front: a flock that
+        // reverses keeps its axis. So the heading is unwrapped with a period of 180°, trusted
+        // in proportion to the flock's speed, and turns at most 240°/s.
+        var prevA = null;
+        for (f = 0; f < F; f++) {
+            var hs = sqrt(hvx[f] * hvx[f] + hvy[f] * hvy[f]);
+            var ang = (Math.atan2(hvy[f], hvx[f]) * 180) / Math.PI;
+            if (prevA === null) prevA = ang;
+            else {
+                var dA = ang - prevA;
+                while (dA > 90) dA -= 180;
+                while (dA < -90) dA += 180;
+                dA *= clamp(hs / (0.3 * cruise), 0, 1);
+                prevA += clamp(dA, -240 * dtF, 240 * dtF);
+            }
+            hd[f] = prevA;
+        }
         return {
             frames: F,
             fps: fps,
             birds: birds,
             order: order,
-            center: { x: cx, y: cy },
+            center: { x: cx, y: cy, radius: rad, heading: hd },
             stats: { cruise: cruise, vMin: vMin, vMax: vMax, leaderMax: vLmax, steps: steps + (F - 1) * sub }
         };
     }

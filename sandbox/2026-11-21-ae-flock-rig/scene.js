@@ -1,13 +1,18 @@
 // 2026-11-21-ae-flock-rig · preview of the flock that Flock.jsx bakes into After Effects.
 //
 // Runs flock-sim.js (the same file Flock.jsx carries) on a leader path, then draws every bird
-// the way the After Effects rig shows it: baked position / rotation / scale, plus the
-// expressions' defaults (Spread 100, Bird Size 100, Size Variation 20, Perspective 100,
-// Orient 100, Flap Speed 100, Flap Desync 100), in layer order (a 2D comp does not re-sort).
+// the way the After Effects rig shows it, through flock-math.js (the same functions its
+// expressions run) with the Controls below, in layer order (a 2D comp does not re-sort).
+// The bird has a turn drawing (a head-on view), as the demo precomp does.
 // A diagnostic, not a styled piece: it checks how the flock moves before baking it in AE.
 const DIR = 'sandbox/2026-11-21-ae-flock-rig/';
 const FPS = 24, DUR = 8;
 const CYCLE = 0.5;                       // flap cycle of the bird precomp (s)
+// the Controls layer's defaults (flock-ae.jsx CONTROLS)
+const CTL = {
+    spread: 100, length: 100, width: 100, angle: 0, clump: 0, scatter: 0, scatterSpeed: 0.5, scatterSeed: 1,
+    size: 100, sizeVar: 20, persp: 100, orient: 100, turnWidth: 30, headOn: 60, flapSpeed: 100, desync: 100,
+};
 
 // Leader: a keyed null in AE; here a Catmull-Rom path through timed points.
 const KEYS = [
@@ -23,10 +28,11 @@ function leaderAt(t) {
     return [cr(p0[1], p1[1], p2[1], p3[1]), cr(p0[2], p1[2], p2[2], p3[2])];
 }
 
-// Bird drawn facing right, centred on the body; ~34 px wingspan at 100 %.
-function bird(g, phase) {
+const INK = '#1d2330';
+// Side view, facing right, centred on the body; ~34 px wingspan at 100 %.
+function birdSide(g, phase) {
     const a = Math.sin(phase * Math.PI * 2);          // +1 wings up, -1 wings down
-    g.fillStyle = '#1d2330';
+    g.fillStyle = INK;
     g.beginPath();
     g.ellipse(0, 0, 11, 3.4, 0, 0, Math.PI * 2);       // body
     g.fill();
@@ -47,11 +53,28 @@ function bird(g, phase) {
     g.closePath();
     g.fill();
 }
+// Head-on view (the turn drawing): body end-on, both wings spread, same flap.
+function birdHeadOn(g, phase) {
+    const a = Math.sin(phase * Math.PI * 2);
+    g.fillStyle = INK;
+    g.beginPath();
+    g.ellipse(0, 0, 3.6, 4.4, 0, 0, Math.PI * 2);
+    g.fill();
+    for (const s of [-1, 1]) {
+        const tipX = s * (19 - 4 * Math.abs(a)), tipY = -13 * a;
+        g.beginPath();
+        g.moveTo(s * 2.5, -1.8);
+        g.quadraticCurveTo(s * 10, tipY * 0.5 - 2, tipX, tipY);
+        g.quadraticCurveTo(s * 9, tipY * 0.4 + 1.5, s * 2.5, 1.6);
+        g.closePath();
+        g.fill();
+    }
+}
 
 Motion.scene({
     fps: FPS, duration: DUR,
     logical: [1920, 1080],
-    uses: [DIR + 'flock-sim.js'],
+    uses: [DIR + 'flock-sim.js', DIR + 'flock-math.js'],
     shots: [[0, DUR, 'Flock preview']],
     setup(env) {
         const LEAD = 0.4, LX = [], LY = [];
@@ -86,21 +109,20 @@ Motion.scene({
         g.arc(LX[f], LY[f], 9, 0, Math.PI * 2);
         g.stroke();
 
-        // the expressions' defaults
-        const spread = 1, size = 1, sizeVar = 0.2, persp = 1, orient = 1, flapSpeed = 1, desync = 1;
-        const cx = sim.center.x[f], cy = sim.center.y[f];
+        // every bird through the expressions' math (scatter left out: it needs AE's wiggle)
+        const C = CTL, cx = sim.center.x[f], cy = sim.center.y[f];
         for (let n = sim.order.length - 1; n >= 0; n--) {   // bottom layer first, like AE
             const b = sim.birds[sim.order[n]];
-            const x = cx + (b.x[f] - cx) * spread, y = cy + (b.y[f] - cy) * spread;
-            const k = size * (1 + sizeVar * b.size) * Math.pow(b.ds[f], persp);
-            const mirror = b.sx[f] / b.sy[f];          // -1 … 1, passes through 0 as it turns
-            let ph = (b.phase[f] - b.offset) * flapSpeed + b.offset * desync;
-            ph -= Math.floor(ph);
+            const o = flockShape(b.x[f] - cx, b.y[f] - cy, sim.center.radius[f], sim.center.heading[f], C.spread, C.length, C.width, C.angle, C.clump);
+            const fac = flockFacing(b.face[f], 1, C.turnWidth / 100, C.headOn / 100, true);
+            const s = flockSize(b.ds[f], C.persp, C.size, C.sizeVar, b.size) / 100;
+            const sc = flockScale(fac, s, b.up[f]);
+            const ph = flockCycle(b.phase[f], b.offset, C.flapSpeed, C.desync);
             g.save();
-            g.translate(x, y);
-            g.rotate((b.rot[f] * orient * Math.PI) / 180);
-            g.scale(mirror * k, k);
-            bird(g, ph);
+            g.translate(cx + o[0], cy + o[1]);
+            g.rotate((flockOrient(b.rot[f], C.orient) * Math.PI) / 180);
+            g.scale(sc[0], sc[1]);
+            (fac[1] ? birdHeadOn : birdSide)(g, ph);
             g.restore();
         }
     },

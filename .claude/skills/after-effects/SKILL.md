@@ -196,3 +196,17 @@ that AE runs wrong.
   the group's Rotation, each step turning about its own fixed point (anchor and position on
   hold keys through the step), and the shape swings on the arc a hand-made turn would take.
   Decide "it turns" only against a plain match that is really off, or holds spin on noise.
+- 2026-11-22 · ae-flock-rig · A 2D layer that turns around by squashing its width through
+  zero gives the flatness away when many turn together (a flock diving through vertical:
+  38 % edge-on in one frame). Pointing up or down, mirror at once (only the wings swap
+  side); squash only level turns, floored by a Turn Width slider, with an optional head-on
+  drawing (a `turn` marker in the precomp) for the middle of the turn.
+- 2026-11-22 · ae-flock-rig · Mirrored by −1 at rotation −p and flipped upside down at
+  180° − p draw the same layer: bake whichever keeps rotation continuous, and cap the step
+  per frame (25°), or AE interpolates a 160° spin between keys and motion blur smears it.
+- 2026-11-22 · ae-flock-rig · Controls that read a group's direction (stretch along travel)
+  need an axis (period 180°), held and rate-limited when the group slows; as a direction it
+  jumped 99° in a frame when the flock reversed.
+- 2026-11-22 · ae-flock-rig · Slider names can carry the explanation ("Clumping (+ core, -
+  even)", ≤ 28 characters, AE took all 16); a re-run renames the previous round's names in
+  place so the designer's values survive the upgrade.

@@ -1,11 +1,12 @@
-// flock-ae.jsx · the After Effects half of Flock.jsx (build.mjs joins it with flock-sim.js).
+// flock-ae.jsx · the After Effects half of Flock.jsx (build.mjs joins it with flock-sim.js
+// and pastes flock-math.js into the expressions).
 //
 // In the active comp: one bird layer (a precomp holding one flap cycle in its work area, or
 // any footage) and one leader layer (a keyed null). Bakes the comp's work area into
-// <name> Bird 001…N: native layers with position, rotation, scale and a "Flap Phase" slider
-// keyed every frame, and light expressions that read the sliders on <name> Controls, so the
-// look is art-directed live. Re-running replaces the birds and keeps the Controls (and the
-// values you set on them).
+// <name> Bird 001…N: native layers with position, rotation, scale and "Facing" / "Flap
+// Phase" sliders keyed every frame, and expressions that read the sliders on <name>
+// Controls, so the shape and look are art-directed live. Re-running replaces the birds and
+// keeps the Controls (and the values you set on them).
 //
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach.
 var FlockRig = (function () {
@@ -16,18 +17,30 @@ var FlockRig = (function () {
         scale: 'ADBE Scale',
         timeRemap: 'ADBE Time Remapping',
         effects: 'ADBE Effect Parade',
-        slider: 'ADBE Slider Control'
+        slider: 'ADBE Slider Control',
+        angle: 'ADBE Angle Control'
     };
-    // live controls: name, default value
+    // Live controls on "<name> Controls", in panel order. The names explain themselves in
+    // the Effect Controls panel; `old` is the round-1 name, renamed in place (value kept).
     var CONTROLS = [
-        ['Spread', 100],
-        ['Bird Size', 100],
-        ['Size Variation', 20],
-        ['Perspective', 100],
-        ['Orient', 100],
-        ['Flap Speed', 100],
-        ['Flap Desync', 100]
+        { key: 'spread', name: 'Spread % (flock size)', value: 100, old: 'Spread' },
+        { key: 'length', name: 'Length % (along travel)', value: 100 },
+        { key: 'width', name: 'Width % (across travel)', value: 100 },
+        { key: 'angle', name: 'Shape Angle (0 = travel)', value: 0, angle: true },
+        { key: 'clump', name: 'Clumping (+ core, - even)', value: 0 },
+        { key: 'scatter', name: 'Scatter px (per bird)', value: 0 },
+        { key: 'scatterSpeed', name: 'Scatter Speed (0 = still)', value: 0.5 },
+        { key: 'scatterSeed', name: 'Scatter Seed', value: 1 },
+        { key: 'size', name: 'Bird Size %', value: 100, old: 'Bird Size' },
+        { key: 'sizeVar', name: 'Size Variation % (+/-)', value: 20, old: 'Size Variation' },
+        { key: 'persp', name: 'Perspective % (depth size)', value: 100, old: 'Perspective' },
+        { key: 'orient', name: 'Orient % (0 = always level)', value: 100, old: 'Orient' },
+        { key: 'turnWidth', name: 'Turn Width % (0 = edge-on)', value: 30 },
+        { key: 'headOn', name: 'Head-On % (turn drawing)', value: 60 },
+        { key: 'flapSpeed', name: 'Flap Speed %', value: 100, old: 'Flap Speed' },
+        { key: 'desync', name: 'Flap Desync % (0 = unison)', value: 100, old: 'Flap Desync' }
     ];
+    var FLOCK_MATH = ''; // build.mjs puts flock-math.js here (comments stripped)
     var DEFAULTS = {
         name: 'Flock',
         count: 80,
@@ -98,6 +111,20 @@ var FlockRig = (function () {
         return { x: X, y: Y };
     }
 
+    // A turn drawing: a composition marker in the bird precomp whose comment contains
+    // "turn", at the start of a head-on flap cycle (the marker's duration = that cycle's
+    // length; 0 = as long as the side-view cycle).
+    function turnOf(layer, cyc) {
+        var s = layer.source;
+        if (!cyc || !(s instanceof CompItem) || !s.markerProperty) return null;
+        var mk = s.markerProperty;
+        for (var i = 1; i <= mk.numKeys; i++) {
+            var v = mk.keyValue(i);
+            if (/turn/i.test(v.comment)) return { start: mk.keyTime(i), length: v.duration > 0 ? v.duration : cyc.length };
+        }
+        return null;
+    }
+
     function ensureControls(comp, name, above) {
         var c = findLayer(comp, name + ' Controls');
         if (!c) {
@@ -106,15 +133,70 @@ var FlockRig = (function () {
             c.label = 2;
             c.moveBefore(above);
         }
-        for (var i = 0; i < CONTROLS.length; i++) {
-            var fx = c.property(MN.effects);
-            if (!fx.property(CONTROLS[i][0])) {
-                var e = fx.addProperty(MN.slider);
-                e.name = CONTROLS[i][0];
-                e.property(1).setValue(CONTROLS[i][1]);
+        var i, C, fx, e;
+        for (i = 0; i < CONTROLS.length; i++) {
+            C = CONTROLS[i];
+            fx = c.property(MN.effects);
+            if (fx.property(C.name)) continue;
+            if (C.old && fx.property(C.old)) {
+                fx.property(C.old).name = C.name; // a round-1 rig: keep the value
+                continue;
             }
+            e = fx.addProperty(C.angle ? MN.angle : MN.slider);
+            e.name = C.name;
+            c.property(MN.effects).property(C.name).property(1).setValue(C.value);
+        }
+        for (i = 0; i < CONTROLS.length; i++) {
+            e = c.property(MN.effects).property(CONTROLS[i].name);
+            if (e.propertyIndex !== i + 1) e.moveTo(i + 1);
         }
         return c;
+    }
+
+    // The expressions a bird carries, as strings (test.mjs runs these very strings).
+    // k: { name, id (bird number), faces (1 | -1), size (-1 … 1), offset (0 … 1),
+    //      cycle: { start, length } | null, turn: { start, length } | null }
+    function expressions(k) {
+        var N = {}, i;
+        for (i = 0; i < CONTROLS.length; i++) N[CONTROLS[i].key] = 'v(' + q(CONTROLS[i].name) + ')';
+        var ctl = 'var c = thisComp.layer(' + q(k.name + ' Controls') + ');\n' +
+            'function v(n) { return c.effect(n)(1).value; }\n';
+        var head = FLOCK_MATH + '\n' + ctl;
+        var face = 'flockFacing(effect("Facing")(1).value, ' + k.faces + ', ' + N.turnWidth + ' / 100, ' +
+            N.headOn + ' / 100, ' + (k.turn ? 'true' : 'false') + ')';
+        var out = {};
+        out.position = '// Flock rig: position (shape and scatter)\n' + head +
+            'var M = thisComp.layer(' + q(k.name + ' Center') + ');\n' +
+            'var m = M.transform.position.value;\n' +
+            'var o = flockShape(value[0] - m[0], value[1] - m[1], M.effect("Radius")(1).value, M.effect("Heading")(1).value, ' +
+            N.spread + ', ' + N.length + ', ' + N.width + ', ' + N.angle + ', ' + N.clump + ');\n' +
+            'var p = [m[0] + o[0], m[1] + o[1]];\n' +
+            'var amt = ' + N.scatter + ';\n' +
+            'if (amt > 0) {\n' +
+            '    var spd = ' + N.scatterSpeed + ';\n' +
+            '    seedRandom(Math.round(' + N.scatterSeed + ') * 1013 + ' + k.id + ', spd <= 0);\n' +
+            '    var w = spd > 0 ? sub(wiggle(spd, amt), value) : [random(-amt, amt), random(-amt, amt)];\n' +
+            '    p = [p[0] + w[0], p[1] + w[1]];\n' +
+            '}\n' +
+            'p;';
+        out.rotation = '// Flock rig: rotation\n' + head + 'flockOrient(value, ' + N.orient + ');';
+        out.scale = '// Flock rig: scale (size, depth, turning)\n' + head +
+            'var f = ' + face + ';\n' +
+            'var s = flockSize(Math.max(Math.abs(value[1]), 0.001) / 100, ' + N.persp + ', ' + N.size + ', ' + N.sizeVar + ', ' + k.size.toFixed(4) + ');\n' +
+            'flockScale(f, s, value[1] < 0 ? -1 : 1);';
+        if (k.cycle) {
+            out.timeRemap = '// Flock rig: time remap (flap cycle, head-on drawing)\n' + head +
+                'var f = ' + face + ';\n' +
+                'var q = flockCycle(effect("Flap Phase")(1).value, ' + k.offset.toFixed(4) + ', ' + N.flapSpeed + ', ' + N.desync + ');\n' +
+                (k.turn ? 'f[1] ? ' + k.turn.start + ' + q * ' + k.turn.length + ' : ' : '') +
+                k.cycle.start + ' + q * ' + k.cycle.length + ';';
+        }
+        return out;
+    }
+
+    function addKeyedSlider(layer, name, times, values) {
+        layer.property(MN.effects).addProperty(MN.slider).name = name;
+        layer.property(MN.effects).property(name).property(1).setValuesAtTimes(times, values);
     }
 
     function readSettings(controls) {
@@ -175,6 +257,8 @@ var FlockRig = (function () {
         // sampled past the work area by the lead, so the flock aims ahead to the very end
         var L = sampleLeader(comp, leader, t0, F + Math.ceil(Math.max(0, o.lead) * fps) + 1, fps);
         var cyc = cycleOf(bird);
+        var turn = turnOf(bird, cyc);
+        report.turnDrawing = turn ? turn.start + ' + ' + turn.length + ' s' : 'none';
 
         say(0.02, 'Simulating ' + o.count + ' birds');
         var sim = FlockSim.run({
@@ -188,25 +272,26 @@ var FlockRig = (function () {
         clock = new Date().getTime();
 
         var controls = ensureControls(comp, o.name, bird);
-        var C = q(o.name + ' Controls');
         var kt = keyTimes(t0, F, fps, Math.max(1, Math.round(o.keyStep)));
         var times = kt.times, idx = kt.idx, n, f, j;
 
-        // centroid, for Spread
+        // the flock's centre, size and heading: what the shape controls work around
         var center = comp.layers.addNull(comp.duration);
         center.name = o.name + ' Center';
-        var cv = [];
-        for (j = 0; j < idx.length; j++) cv.push([sim.center.x[idx[j]], sim.center.y[idx[j]], 0]);
+        var cv = [], cr = [], ch = [];
+        for (j = 0; j < idx.length; j++) {
+            cv.push([sim.center.x[idx[j]], sim.center.y[idx[j]], 0]);
+            cr.push(sim.center.radius[idx[j]]);
+            ch.push(sim.center.heading[idx[j]]);
+        }
         setKeys(tf(center, MN.position), times, cv);
+        addKeyedSlider(center, 'Radius', times, cr);
+        addKeyedSlider(center, 'Heading', times, ch);
         center.moveAfter(controls);
         center.guideLayer = true;
         center.enabled = false;
         center.shy = true;
 
-        var exprPos = 'var c = thisComp.layer(' + C + ');\n' +
-            'var m = thisComp.layer(' + q(o.name + ' Center') + ').transform.position;\n' +
-            'm + (value - m) * c.effect("Spread")(1) / 100;';
-        var exprRot = 'value * thisComp.layer(' + C + ').effect("Orient")(1) / 100;';
         for (n = 0; n < sim.order.length; n++) {
             var i = sim.order[n], b = sim.birds[i];
             var dup = bird.duplicate();
@@ -223,39 +308,29 @@ var FlockRig = (function () {
                 dup.inPoint = t0;
                 dup.outPoint = t1;
             }
-            var P = [], Rt = [], S = [], Ph = [];
+            var P = [], Rt = [], S = [], Fc = [], Ph = [];
             for (j = 0; j < idx.length; j++) {
                 f = idx[j];
                 P.push([b.x[f], b.y[f], 0]);
                 Rt.push(b.rot[f]);
-                S.push([b.sx[f], b.sy[f], 100]);
+                S.push([100 * b.ds[f], 100 * b.ds[f] * b.up[f], 100]); // depth and the upside-down pose; facing is its own slider
+                Fc.push(b.face[f]);
                 Ph.push(b.phase[f]);
             }
             var pos = tf(dup, MN.position), rot = tf(dup, MN.rotation), sc = tf(dup, MN.scale);
             setKeys(pos, times, P);
             setKeys(rot, times, Rt);
             setKeys(sc, times, S);
-            pos.expression = exprPos;
-            rot.expression = exprRot;
-            sc.expression = 'var c = thisComp.layer(' + C + ');\n' +
-                'var r = ' + b.size.toFixed(4) + ';  // this bird\'s size, -1 … 1\n' +
-                'var k = c.effect("Bird Size")(1) / 100 * (1 + c.effect("Size Variation")(1) / 100 * r);\n' +
-                'var d = Math.max(Math.abs(value[1]), 0.001);   // depth scale × 100 (baked)\n' +
-                'var s = Math.pow(d / 100, c.effect("Perspective")(1) / 100) * k * 100;\n' +
-                '[value[0] / d * s, s];';
-            if (cyc) {
-                var fx = dup.property(MN.effects).addProperty(MN.slider);
-                fx.name = 'Flap Phase';
-                fx.property(1).setValuesAtTimes(times, Ph);
-                // keep the two keys AE adds: removing the last Time Remap key turns
-                // time remapping off and hides the property; the expression overrides them
-                var tr = dup.property(MN.timeRemap);
-                tr.expression = 'var c = thisComp.layer(' + C + ');\n' +
-                    'var R = ' + b.offset.toFixed(4) + ';  // this bird\'s phase offset (cycles)\n' +
-                    'var p = (effect("Flap Phase")(1) - R) * c.effect("Flap Speed")(1) / 100 + R * c.effect("Flap Desync")(1) / 100;\n' +
-                    'p = p - Math.floor(p);\n' +
-                    cyc.start + ' + p * ' + cyc.length + ';';
-            }
+            addKeyedSlider(dup, 'Facing', times, Fc);
+            if (cyc) addKeyedSlider(dup, 'Flap Phase', times, Ph);
+            var ex = expressions({ name: o.name, id: n + 1, faces: o.faces === -1 ? -1 : 1, size: b.size, offset: b.offset, cycle: cyc, turn: turn });
+            // re-fetched: adding effects invalidates references to the layer's properties
+            tf(dup, MN.position).expression = ex.position;
+            tf(dup, MN.rotation).expression = ex.rotation;
+            tf(dup, MN.scale).expression = ex.scale;
+            // keep the two keys AE adds: removing the last Time Remap key turns time
+            // remapping off and hides the property; the expression overrides them
+            if (cyc) dup.property(MN.timeRemap).expression = ex.timeRemap;
             dup.motionBlur = true;
             dup.shy = true;
             if (n % 4 === 0) say(0.4 + 0.6 * (n / sim.order.length), 'Baking bird ' + (n + 1) + ' of ' + sim.order.length);
@@ -326,8 +401,18 @@ var FlockRig = (function () {
         r3.add('statictext', undefined, 'The bird in its precomp faces:').preferredSize.width = 300;
         var ddFaces = r3.add('dropdownlist', undefined, ['Right', 'Left']);
         ddFaces.selection = s.faces === -1 ? 1 : 0;
+        var turnInfo = pl.add('statictext', undefined, '', { multiline: true });
+        turnInfo.preferredSize = [530, 32];
+        ddBird.onChange = function () {
+            var L = ddBird.selection ? comp.layer(ddBird.selection.index + 1) : null;
+            var cy = L && isBirdSource(L) ? cycleOf(L) : null, tn = L && cy ? turnOf(L, cy) : null;
+            turnInfo.text = tn ?
+                'Turn drawing found (marker "turn" at ' + tn.start + ' s): birds show it head-on while turning.' :
+                'No turn drawing: turning birds squash sideways. For a head-on view, add a head-on flap cycle to the precomp and a composition marker named "turn" at its start.';
+        };
         if (g.bird) ddBird.selection = g.bird.index - 1;
         if (g.leader) ddLeader.selection = g.leader.index - 1;
+        ddBird.onChange();
 
         var ps = w.add('panel', undefined, 'Simulation (re-run to change)');
         ps.alignChildren = 'left';
@@ -402,6 +487,7 @@ var FlockRig = (function () {
             pw.close();
             alert('Flock: ' + rep.birds + ' birds over ' + rep.frames + ' frames (simulation ' +
                 (rep.simMs / 1000).toFixed(1) + ' s, baking ' + (rep.bakeMs / 1000).toFixed(1) + ' s).\n' +
+                'Turn drawing: ' + rep.turnDrawing + '.\n' +
                 'Shy layers are hidden: toggle "Hide shy layers" to see them.');
         } catch (e) {
             pw.close();
@@ -411,7 +497,7 @@ var FlockRig = (function () {
         }
     }
 
-    return { build: build, run: run, defaults: DEFAULTS, controls: CONTROLS };
+    return { build: build, run: run, defaults: DEFAULTS, controls: CONTROLS, expressions: expressions, math: FLOCK_MATH };
 })();
 
 if (!$.global.FLOCK_NO_UI) FlockRig.run();
