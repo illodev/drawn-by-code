@@ -1039,15 +1039,16 @@ const Souvenir = (() => {
                     }
                     const ix0 = Math.floor(X0 * q) - pad, iy0 = Math.floor(Y0 * q) - pad;
                     const tw = Math.max(1, Math.ceil(X1 * q) + pad - ix0), th = Math.max(1, Math.ceil(Y1 * q) + pad - iy0);
-                    // (cleared two pixels wider than it is read: smoothing samples a hair past
-                    // the edge, and what an earlier, larger copy left there would show as a line)
-                    if (tmp.width < tw + 2 || tmp.height < th + 2) {
-                        tmp.width = Math.max(tmp.width, tw + 2);
-                        tmp.height = Math.max(tmp.height, th + 2);
+                    // (cleared four pixels wider than it is read: high-quality smoothing samples
+                    // past the edge, and what an earlier, larger copy left there would show as a
+                    // line, or make a frame depend on what was painted before it)
+                    if (tmp.width < tw + 4 || tmp.height < th + 4) {
+                        tmp.width = Math.max(tmp.width, tw + 4);
+                        tmp.height = Math.max(tmp.height, th + 4);
                     }
                     tg.setTransform(1, 0, 0, 1, 0, 0);
                     tg.filter = 'none';
-                    tg.clearRect(0, 0, tw + 2, th + 2);
+                    tg.clearRect(0, 0, tw + 4, th + 4);
                     tg.save();
                     tg.beginPath();
                     tg.rect(0, 0, tw, th);

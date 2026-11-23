@@ -546,3 +546,13 @@ passage and the guitar hold; in the second passage, pieces crossing the axis wen
 blurs the size of half the frame, darker than the world in focus (at 10.4 s the dark
 night's velvet over the dome). Loose pieces now dissolve between 420 and 200 away instead
 of in their last 85 units; rendered again.
+
+`review.mjs` on the second render: two warnings. «Flat frame» at 16.67 s is the last frame,
+gone back into the night on purpose. «Non-deterministic» at 3.33 s: the frame painted
+after the review's own sequence (0, 5.6, 11.2, 16.7 twice) differs from the same frame
+painted fresh by one level in a few hundred pixels of the small far pieces at the centre
+(PSNR 76.5 dB). It does not come from the blur copy (cleared four pixels wide now: no
+change), nor from any shorter history tried (0 → 5.6; 11.2; 16.7; 0 → 11.2 → 0: all
+identical to the fresh frame); it needs that long run of heavy frames, which points at the
+browser moving canvases between GPU and CPU under memory pressure. Below what can be seen,
+and the film's six pieces, each started fresh, join without a jump. Left open.
