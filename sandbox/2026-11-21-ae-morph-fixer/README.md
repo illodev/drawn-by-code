@@ -1,6 +1,6 @@
-# Morph Fixer for After Effects
+# Mask Morph Fixer for After Effects
 
-`MorphFixer.jsx` makes a keyed path morph cleanly. After Effects morphs one keyframe's path
+`Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
 into the next point by point, in straight lines, so keys drawn independently tear (different
 numbers of points), spin (each key starts at a different point) or turn inside out (one
 drawn the other way round), and a shape that turns (an F becoming an F on its side) shrinks
@@ -14,12 +14,21 @@ Rotation, without changing what any key looks like, its time or its easing.
    Ellipse and Polystar shapes are parametric: right-click › Convert to Bezier Path first.
 2. Draw each key however you like: any number of points, either direction, any start.
 
-## Run
+## Install (a dockable panel)
 
-A small panel. **Dock it:** copy `MorphFixer.jsx` to
-`…/Adobe After Effects 2026/Support Files/Scripts/ScriptUI Panels/`, restart After Effects
-and open it from the **Window** menu. Or run it once from **File › Scripts › Run Script
-File…** (a floating panel).
+1. **File › Scripts › Run Script File…** and pick `Mask Morph Fixer.jsx`: the panel opens
+   floating, with the tip "click ? to dock this panel".
+2. Click **?**, then **Install as a panel**. It copies itself into your own ScriptUI Panels
+   folder (`%APPDATA%\Adobe\After Effects\<version>\Scripts\ScriptUI Panels`, or
+   `~/Library/Preferences/Adobe/After Effects/<version>/…` on a Mac): no admin rights.
+3. Restart After Effects and open **Window › Mask Morph Fixer.jsx**. It is a panel like any
+   other: drag its tab to dock it, and it comes back with your workspace.
+
+**File › Scripts › Install ScriptUI Panel…** does the same by hand. To update, run the new
+file once and click **? › Update the panel**. If After Effects blocks the copy, turn on
+*Preferences › Scripting & Expressions › Allow Scripts to Write Files and Access Network*.
+
+## Run
 
 ```
 [Smooth ▾] max [100] [ ] turn [Fix] [?]
@@ -27,7 +36,8 @@ Fixed 1: 64 pts, 0.065 px
 ```
 
 Select the keyed paths (or their groups, or whole layers) and click **Fix**. The status line
-sums it up; hover it for the full report per path. **?** shows the instructions.
+sums it up; hover it for the full report per path. **?** opens the guide: three steps, what
+each setting does in plain words, and the install button. It stays open while you work.
 
 | Control | Default | What it does |
 |---|---|---|
@@ -103,11 +113,11 @@ within 0.065 px of its drawing.
 | File | |
 |---|---|
 | `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
-| `morph-ae.jsx` | The After Effects half: the compact panel, selection, reading and writing keys (and the turn into the group), report |
-| `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `MorphFixer.jsx`, with an ES3 lint |
-| `test.mjs` | 4,269 checks in Node: the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the turn into the group), report |
+| `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
+| `test.mjs` | 4,275 checks in Node: the guide (plain words, every setting), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js` |
-| `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE, logs (`review/ae-log.txt`) and saves the project: the AE test |
+| `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating and docked, its guide, installing into a scratch folder), logs (`review/ae-log.txt`) and saves the project: the AE test |
 | `scene.js` | Engine preview of the After half, drawn the way AE interpolates the fixed keys |
 
 Testing inside After Effects (with the user's go-ahead: the demo opens a new project). Run a
@@ -116,7 +126,7 @@ small runner script in AE (`AfterFX.exe -r runner.jsx`) that sets `$.global.MORP
 `make-demo.jsx`. Render the saved project with `aerender`, which leaves AE free:
 
 ```powershell
-& "C:\Program Files\Adobe\Adobe After Effects 2026\Support Files\aerender.exe" -project out\ae\morph-fixer-demo.aep -comp "Morph Fixer demo" -s 0 -e 347 -RStemplate "Best Settings" -OMtemplate "H.264 - Match Render Settings -  5 Mbps" -output out\ae\morph-fixer-ae.mp4
+& "C:\Program Files\Adobe\Adobe After Effects 2026\Support Files\aerender.exe" -project out\ae\morph-fixer-demo.aep -comp "Mask Morph Fixer demo" -s 0 -e 347 -RStemplate "Best Settings" -OMtemplate "H.264 - Match Render Settings -  5 Mbps" -output out\ae\morph-fixer-ae.mp4
 ```
 
 `render/ae-morph-fixer.mp4` is that render (After Effects), re-encoded with its BT.709 tags.

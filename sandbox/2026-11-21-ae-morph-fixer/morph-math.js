@@ -1,4 +1,4 @@
-// morph-math.js - the morph fixer's math, plain ES3: runs in ExtendScript (MorphFixer.jsx),
+// morph-math.js - the morph fixer's math, plain ES3: runs in ExtendScript ("Mask Morph Fixer.jsx"),
 // Node (test.mjs) and the engine preview (scene.js).
 //
 // A path is { v: [[x, y], ...], i: [[dx, dy], ...], o: [[dx, dy], ...], closed: bool }, like

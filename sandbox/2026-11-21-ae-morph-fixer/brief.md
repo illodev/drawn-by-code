@@ -7,7 +7,7 @@
   count (which point goes where), After Effects keeps the look (the designer's shapes,
   keyframe timing and easing are untouched).
 - **One-line idea:** select a keyed Path (shape layer path or mask) and run
-  `MorphFixer.jsx`: every keyframe gets the same number of points, the same direction and a
+  `MorphFixer.jsx` (renamed `Mask Morph Fixer.jsx` in round 3): every keyframe gets the same number of points, the same direction and a
   start point that keeps the morph from twisting, so shapes flow into each other instead of
   tearing, spinning or turning inside out. Every key's shape stays exactly as drawn.
 - **References:** what goes wrong in AE: keys with different vertex counts, a first vertex

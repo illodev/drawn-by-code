@@ -79,8 +79,25 @@ that AE runs wrong.
 - A **dockable panel**: AE runs a script from `Scripts/ScriptUI Panels` with `this` = the
   Panel. Wrap the built file as `(function (HOST) { … })(this)` and build into `HOST` when
   `HOST instanceof Panel`, else a `palette` Window. Long reports go in a status line's
-  `helpTip`, instructions behind a `?` button (`alert`), settings in `app.settings`. A test
-  can drive it: set the controls, then `button.notify('onClick')`.
+  `helpTip`, a guide behind a `?` button (a `palette`, not `alert`: it stays open while the
+  user works), settings in `app.settings`. A test can drive it: set the controls, then
+  `button.notify('onClick')`; build into `win.add('panel')` to take the docked path.
+- **Installing it needs no admin rights:** copy the script into the user's own
+  `%APPDATA%\Adobe\After Effects\<major.minor>\Scripts\ScriptUI Panels\` (macOS
+  `~/Library/Preferences/Adobe/After Effects/<major.minor>/…`; `<major.minor>` from
+  `app.version`), the folder File › Scripts › Install ScriptUI Panel… uses. Give a floating
+  run an Install button (`File($.fileName).copy(dest)`). AE reads the folder at launch only:
+  restart, then the file name (with `.jsx`) is the Window menu entry, so name the file the way
+  the tool should be called.
+- **ScriptUI doesn't wrap text reliably:** a `multiline` statictext re-wraps at a width of its
+  own and the guide came out 351 × 986 px instead of ~420 × 650. Wrap in code and add one
+  single-line statictext per line; a text that changes later needs its widest line measured
+  up front (`graphics.measureString`), since it keeps its first size.
+- **AE 2026 doesn't draw ScriptUI fonts:** `graphics.font = ScriptUI.newFont(…, 'BOLD',
+  size + 3)` is accepted and reads back Bold / 15, but every statictext still draws as plain
+  12 px Adobe Clean (Arial too). Mark headings with the pen instead
+  (`graphics.foregroundColor = graphics.newPen(PenType.SOLID_COLOR, [1, 1, 1], 1)`: white on
+  the grey body text). Only a screenshot shows this.
 - Testing an ES3 file in Node: load it with `new Function(src + 'return X')()`, not
   `vm.runInContext` (global lookups there are ~10× slower and skew timings).
 
@@ -153,7 +170,24 @@ that AE runs wrong.
 - **Diagnostics must not raise dialogs.** An uncaught script error is a modal dialog even
   inside `beginSuppressDialogs()`, and stringifying an AE error inside `catch` can throw
   again. Wrap each step in its own `try`, read `e.message` inside another `try`, and write
-  the log file after every step so a stall still says where.
+  the log file after every step so a stall still says where. `'ERROR ' + e` in a catch is
+  the usual culprit ("Object of type Error found where a Number, Array, or Property is
+  needed", reported at the catch's line): it hit two throwaway runners in two days, so the
+  morph fixer's `build.mjs` now lints for a caught error joined with `+`. Runners too.
+- **Other sessions use the same AE.** `AfterFX.exe -r` hands the script to whatever AE is
+  running or starting, another Claude session's included, and two sessions launching at
+  once got two AE processes, one of them windowless. Check `Get-Process AfterFX` and the
+  other sessions first, agree who goes first, and never start or stop an AE instance you
+  didn't launch.
+- **One script at a time.** While a script runs (or AE thinks one does), a second `-r`
+  shows a modal "Attempt was made to run a second script…" and is dropped; an AE stuck in
+  that state took every later `-r` the same way. If the runner's log never starts, look at
+  AE before sending another: close an AE with nothing unsaved (`CloseMainWindow()`, which
+  works when `-r` doesn't) and send the runner to a fresh one.
+- A panel installed in ScriptUI Panels opens from a script with
+  `app.executeCommand(app.findMenuCommandId('<file name>.jsx'))` (a negative id is fine; 0
+  = not found). It runs at once: the panel's `$.global` exports are there on the next line,
+  so a runner can drive the real docked panel. Don't send it again for an open panel.
 - The `time` an expression sees at `valueAtTime(t)` sits on a grid of 1/61,440 s (±16 µs
   off `t`); frame times are on the grid. A test comparing time-dependent math must use
   AE's `time` (read it through a probe expression), not `t`.
@@ -196,6 +230,11 @@ that AE runs wrong.
   the group's Rotation, each step turning about its own fixed point (anchor and position on
   hold keys through the step), and the shape swings on the arc a hand-made turn would take.
   Decide "it turns" only against a plain match that is really off, or holds spin on noise.
+- 2026-11-22 · ae-morph-fixer · A tool for end users installs itself: name the file the way
+  the tool should be called (the Window menu shows it), give a floating run an Install button
+  that copies it into the user's own ScriptUI Panels folder, and test the panel the way a user
+  gets it (restart, Window menu, its own Fix button), then look at it: two of three guide
+  problems (height, invisible bold) only showed in a screenshot.
 - 2026-11-22 · ae-flock-rig · A 2D layer that turns around by squashing its width through
   zero gives the flatness away when many turn together (a flock diving through vertical:
   38 % edge-on in one frame). Pointing up or down, mirror at once (only the wings swap

@@ -1,9 +1,9 @@
 // 2026-11-21-ae-morph-fixer · preview of the "After" halves of the demo make-demo.jsx builds.
 //
-// The demo's keys (demo-spec.js), fixed by morph-math.js (the code MorphFixer.jsx carries),
+// The demo's keys (demo-spec.js), fixed by morph-math.js (the code "Mask Morph Fixer.jsx" carries),
 // drawn the way After Effects interpolates them: every vertex and tangent of the path in a
 // straight line, the time eased (Easy Ease = smoothstep); make-demo checks inside AE that it
-// really does. Two parts, like AE's "Morph Fixer demo" comp:
+// really does. Two parts, like AE's "Mask Morph Fixer demo" comp:
 //   0-8 s     Morph demo: five shapes drawn with nothing in common
 //   8-14.5 s  Turn demo: an F turned a quarter at a time, fixed with turn on: the path keys
 //             are local (unturned) and the shape group's Rotation, Anchor and Position carry

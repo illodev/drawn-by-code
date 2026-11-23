@@ -315,9 +315,16 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
         PropertyType: { PROPERTY: 6212, INDEXED_GROUP: 6213, NAMED_GROUP: 6214 },
         PropertyValueType: { SHAPE: 6419 },
     };
-    const src = fs.readFileSync(path.join(dir, 'MorphFixer.jsx'), 'utf8');
+    const src = fs.readFileSync(path.join(dir, 'Mask Morph Fixer.jsx'), 'utf8');
     new Function(...Object.keys(env), src)(...Object.values(env));
     const FX = env.$.global.MorphFixer;
+    // the guide behind ?: plain words, every setting, short lines once wrapped
+    check('guide: named Mask Morph Fixer', FX.name === 'Mask Morph Fixer' && /^Mask Morph Fixer\n/.test(FX.info));
+    check('guide: explains every setting', ['Smooth', 'Exact', 'max', 'turn'].every((s) => FX.guide.settings.some(([n]) => n === s)));
+    check('guide: three steps', FX.guide.steps.length === 3);
+    check('guide: no jargon', !/procrustes|tangent|vertex|vertices|interpolat|RMS|bezier split|fraction/i.test(FX.info), FX.info);
+    const wrapped = FX.wrap(FX.guide.settings[3][1], 58);
+    check('guide: wrap keeps every word and the width', wrapped.join(' ') === FX.guide.settings[3][1] && wrapped.every((l) => l.length <= 58), wrapped.join(' | '));
     const toShape = (P) => Object.assign(new Shape(), { vertices: P.v, inTangents: P.i, outTangents: P.o, closed: P.closed });
     function mockPath(keys, extra = {}) {
         const layer = { name: 'Shape Layer 1', index: 1 };

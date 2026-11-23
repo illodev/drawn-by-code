@@ -1,0 +1,11 @@
+﻿new project: true
+Window menu command for "Mask Morph Fixer.jsx": -524347
+comp ready: 4 and 5 points
+panel already open
+panel after the menu command: a Panel (dockable)
+docked flag true, status "Select keyed paths, then Fix", size 621 x 415
+Fix: "Fixed 1: 24 pts, 0.001 px"
+report: 1. Square to pentagon > Group 1 > Path 1 > Path: 2 keys, 4-5 -> 24 points each, 1 reversed, 1 start points moved; points travel 136 -> 21 px around the shape; rebuilt within 0.001 px of each shape.
+keys now 24 and 24 points
+guide: palette, 420 x 638, install button: false
+done

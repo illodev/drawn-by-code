@@ -90,3 +90,58 @@ then **coordinated motion for shapes that turn** (an F becoming an F rotated 90�
 **Not yet seen by the user.** Open questions for round 3: turning letters with holes
 (several paths in one group, turned together), masks (they need baked in-betweens: no
 transform of their own), and custom key speeds copied exactly to the group's keys.
+
+## Round 3 · 2026-11-22 (the user's requests: dockable, a friendlier guide, a new name)
+
+The user liked round 2 and asked for a panel that docks, guide text an end user can follow,
+and the name **Mask Morph Fixer**.
+
+- **Name:** the file is `Mask Morph Fixer.jsx`, because AE's Window menu shows the file name.
+  The palette, the undo step and the guide carry the name too. Internal names stay as they were.
+- **Docking:** the panel already docked when the script sat in a ScriptUI Panels folder,
+  but nothing got it there short of copying into Program Files. Run floating, it now says
+  "Tip: click ? to dock this panel", and the guide's **Install as a panel** copies the script
+  into the user's own `%APPDATA%\Adobe\After Effects\26.5\Scripts\ScriptUI Panels` (no admin
+  rights; the folder AE's own Install ScriptUI Panel… uses). Once installed, the button
+  updates the copy. A blocked copy says which preference to turn on.
+- **Guide:** a small palette (it stays open while you work) instead of an `alert`.
+  - Layout: a one-line lead, three steps, each setting in plain words, four tips, then the
+    dock section.
+  - Content: no jargon (the Node test bans the words), Ctrl or Cmd per platform.
+  - Wording: Smooth = "redraws the points so the shape stays smooth all through the morph",
+    turn = "swings round instead of squashing through the middle".
+  - Tooltips: rewritten the same way.
+- **The guide came out 351 × 986 px** the first time in AE: a `multiline` statictext
+  re-wraps at a width of its own. → Text wrapped in code, one single-line statictext per
+  line, lines evened out so no word sits alone; the install note is sized up front for its
+  longest message (`measureString`). Now 403 × 654 floating, 391 × 638 docked.
+- **Headings didn't stand out** (screenshot): AE 2026 accepts a bold or larger font
+  (`graphics.font` reads back Bold, size 15) and draws it as plain 12 px text, Arial
+  included. Only the pen colour shows → title, headings and setting names in white
+  (`review/guide.jpg`).
+- A throwaway AE runner showed a modal "Object of type Error found where a Number, Array, or
+  Property is needed" (at its catch: `'ERROR ' + e`). It was already in the skill and still
+  happened, so `build.mjs` now lints every file AE runs for a caught error joined with `+`.
+- Node: 4,275 checks pass. AE (`review/ae-log.txt`): all checks pass, including:
+  - The palette guide opens and is not modal.
+  - The panel builds into a Panel host (the docked path) without an install button.
+  - Install writes the whole file into a scratch folder, and a second install overwrites it.
+  - The user's panels folder is found.
+- **Docked, for real** (`review/dock-log.txt`, `review/panel.jpg`):
+  - The real install put the panel in the user's folder. After a restart, AE lists it as
+    *Window › Mask Morph Fixer.jsx*.
+  - Opened from the menu by script (`executeCommand(findMenuCommandId(…))`), it is a Panel
+    with its own tab, "Mask Morph Fixer" with its ≡ menu, and it comes back with the workspace.
+  - Its Fix button, clicked on a square keyed into a pentagon drawn the other way, gave
+    24 points each, the pentagon reversed and its start moved (travel 136 → 21 px).
+  - Its guide has no install button.
+- Running it, two snags of the test harness, not the tool (both in the skill now):
+  - The test script added a Fill after fetching the Path, which invalidates the Path ("Object
+    is invalid").
+  - An AE that thought a script was still running refused every later script with a modal.
+    Closing it through its window and starting fresh cleared it.
+- A Claude session working on the flock rig was testing in the same AE at the same time;
+  we agreed it would go first.
+
+**Not yet seen by the user** in this form (the panel is installed and open in their AE).
+Still open from round 2: turning letters with holes, turning masks, custom key speeds.

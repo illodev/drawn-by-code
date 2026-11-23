@@ -1,8 +1,8 @@
-// make-demo.jsx - builds the Morph Fixer demo in After Effects (demo-spec.js, the morph that
+// make-demo.jsx - builds the Mask Morph Fixer demo in After Effects (demo-spec.js, the morph that
 // scene.js previews): "Morph demo", 8 s, the same keyed path twice, "Before" as drawn and
-// "After" fixed by MorphFixer.jsx, each with an orange dot on its first point.
+// "After" fixed by "Mask Morph Fixer.jsx", each with an orange dot on its first point.
 //
-// Run it from File > Scripts > Run Script File... with MorphFixer.jsx and demo-spec.js next
+// Run it from File > Scripts > Run Script File... with "Mask Morph Fixer.jsx" and demo-spec.js next
 // to it. It opens a new project: if the current one has unsaved changes, After Effects asks
 // first (cancel and nothing happens).
 //
@@ -54,17 +54,18 @@
         eval(readText('demo-spec.js'));     // $.evalFile would not put MD on $.global
         D = MD;
         $.global.MORPH_NO_UI = true;
-        $.evalFile(new File(here.fsName + '/MorphFixer.jsx'));
+        $.evalFile(new File(here.fsName + '/Mask Morph Fixer.jsx'));
+        $.global.MORPH_NO_UI = false;       // $.global lives all session: a panel opened later must build
         MFx = $.global.MorphFixer;
         MFm = $.global.MorphFixerMath;
-        app.beginUndoGroup('Morph Fixer demo');
+        app.beginUndoGroup('Mask Morph Fixer demo');
         var built = demoComp('Morph demo', D.duration, D.shapes, D.keys, { maxPoints: D.maxPoints });
         comp = built.comp;
         before = built.before;
         after = built.after;
         // the turn demo: an F turned a quarter at a time, fixed with turn on
         turnComp = demoComp('Turn demo', D.turn.duration, D.turn.shapes, D.turn.keys, { maxPoints: D.maxPoints, rotate: true }).comp;
-        master = app.project.items.addComp('Morph Fixer demo', D.size[0], D.size[1], 1, D.duration + D.turn.duration, D.fps);
+        master = app.project.items.addComp('Mask Morph Fixer demo', D.size[0], D.size[1], 1, D.duration + D.turn.duration, D.fps);
         master.layers.add(turnComp).startTime = D.duration;
         master.layers.add(comp).startTime = 0;
         master.openInViewer();
@@ -348,8 +349,41 @@
             check('panel Fix (turn): ' + c.status.text, tr && Math.abs(tr.turned - 360) < 0.5 && /turned/.test(c.status.text), w.lastResult ? w.lastResult.detail : 'no result');
             tdup.remove();
             c.turn.value = false;
-            check('panel: the ? text explains Smooth, Exact, Max and Turn', /Smooth/.test(MFx.info) && /Exact/.test(MFx.info) && /Max/.test(MFx.info) && /Turn/.test(MFx.info));
+            check('panel: floating, titled ' + MFx.name, !w.docked && w.text === MFx.name, w.text);
+            // ? opens the guide (a palette, never modal), with the install button when floating
+            c.info.notify('onClick');
+            var g = w.guide;
+            check('panel ?: the guide opens, not modal', g && g.visible && g.type === 'palette', g ? g.type : 'none');
+            if (g) {
+                check('panel ?: guide size ' + g.size.width + ' x ' + g.size.height + ' px', g.size.width > 360 && g.size.width < 640 && g.size.height < 800);
+                check('panel ?: an install button when floating', !!g.controls.install, g.controls.install ? g.controls.install.text : 'none');
+                g.close();
+            }
             w.close();
+            // the docked path: the same panel built into a Panel host (what ScriptUI Panels passes)
+            var dockWin = new Window('palette', 'dock test', undefined, { resizeable: true });
+            var host = dockWin.add('panel');
+            host.preferredSize = [300, 70];
+            var dp = MFx.buildUI(host);
+            dockWin.layout.layout(true);
+            dockWin.show();
+            check('panel docked: builds into the Panel host, no window of its own', dp === host && dp.docked && !!dp.controls.fix, 'host ' + host.size.width + ' x ' + host.size.height);
+            dp.controls.info.notify('onClick');
+            check('panel docked: the guide has no install button', dp.guide && !dp.guide.controls.install);
+            if (dp.guide) dp.guide.close();
+            dockWin.close();
+        });
+        step('install', function () {
+            // into a scratch folder (the real one is the user's call): created, copied whole
+            var dir = new Folder(OUT + '/panels/ScriptUI Panels');
+            var res = MFx.install(dir);
+            var copy = res.file ? new File(res.file) : null, src = new File(here.fsName + '/' + MFx.name + '.jsx');
+            check('install: copies the script as "' + MFx.name + '.jsx"', res.ok && copy && copy.exists && copy.length === src.length &&
+                File.decode(copy.name) === MFx.name + '.jsx', res.text + (copy ? ' (' + copy.length + ' of ' + src.length + ' bytes)' : ''));
+            res = MFx.install(dir);
+            check('install: a second install overwrites (an update)', res.ok && new File(res.file).length === src.length, res.text);
+            var real = MFx.panelsFolder();
+            check('install: the user panels folder is found', !!real && /After Effects[\/\\]\d+\.\d+[\/\\]Scripts[\/\\]ScriptUI Panels$/.test(real.fsName), real ? real.fsName : 'none');
         });
         try {
             app.project.save(new File(OUT + '/morph-fixer-demo.aep'));
