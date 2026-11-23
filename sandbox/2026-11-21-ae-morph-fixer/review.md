@@ -398,6 +398,6 @@ O into C cases (moved 2 vs Node 0, and 0 vs 2).
   into C, Exact* now has 329 points, not 307. Exact gives a path a point wherever any of its
   keys has one, and the O's outline is now paired with the C's outline instead of with its hole.
 - Node: 4,300 + 128 checks pass, unchanged.
-- The panel installed in the user's AE (`ScriptUI Panels/Mask Morph Fixer.jsx`, 109,031
-  bytes) is 0.10.0 and still matches by size alone. Update it with ? > Install as a panel
-  from 0.10.1, then restart AE.
+- The panel installed in the user's AE (`ScriptUI Panels/Mask Morph Fixer.jsx`) was 0.10.0
+  (109,031 bytes), still matching by size alone. The user reinstalled it from 0.10.1 (? >
+  Install as a panel); the installed file is now byte for byte the 0.10.1 release.
