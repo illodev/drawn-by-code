@@ -380,7 +380,7 @@ Tableau.patio.stratum = (z) => {
 //   the tin on its cane, the well's pulley with its bucket, a blue pot of red geranium, a blue
 //   pot of gitanillas trailing, the tinaja with its aspidistra, a bough of the orange tree.
 //   To find: the ocellated lizard, the wall gecko, a snail.
-//   The matter (the round-7 heap broken up): geranium stalks with their umbels and leaves,
+//   The matter (the round-7 heap broken up; a fifth of it small and strewn across the axis): geranium stalks with their umbels and leaves,
 //   loose geranium leaves, trailing gitanilla stems, spider-plant tufts, jasmine sprays,
 //   orange sprays and fallen oranges, sprays of azahar, the peacock's fallen train feathers,
 //   azulejos fallen out of the dado, sherds of blue pots, petals, small clay pots with moss,
@@ -512,15 +512,64 @@ Tableau.patio.loose = (z) => {
     // what must read whole: no matter in front of it (centre, radius, depth)
     const clear = [[...at(430, 268), 260, 120], [...at(560, 196), 230, 230], [...at(590, 344), 230, -40], [...at(570, 296), 150, 260]];
     const blocked = (x, y, dz, half) => clear.some(([cx, cy, rad, hz]) => dz < hz && Math.hypot(x - cx, y - cy) < rad + half * 0.5);
-    for (let i = 0; i < N; i++) {
-        const kind = i === 11 ? 'plate' : i === 37 ? 'tray' : kinds[i % kinds.length];
-        const u = (i + 0.5) / N, R = 285 + 1215 * Math.pow((u * 0.85 + r() * 0.15), 2), dz = -275 + 550 * ((i * 0.618034 + 0.27) % 1);
-        let a = i * GOLD + (r() - 0.5) * 20;
-        for (let k = 1; k < 12 && blocked(...at(R, a), dz, 120); k++) a += (k % 2 ? 1 : -1) * k * 14;
+    // The inner edge of the cloud is ragged, not a circle: it comes in and goes out with the
+    // angle. And a fifth of the matter is small things (40–150 across) strewn across the axis
+    // itself at every depth of the slab, which the camera flies through: so the centre is
+    // never one empty disc, never the round dark tunnel of round 7.
+    const inner = (a) => 280 + 60 * (1 + Math.sin(3 * a * deg + 1.3)) + 35 * (1 + Math.sin(7 * a * deg + 0.4));
+    const axisKinds = ['petals', 'fruit', 'lime', 'tile', 'feather', 'umbel', 'sherd', 'leaf'];
+    for (let i = 0, j = 0, ja = 0; i < N; i++) {
+        const onAxis = i % 5 === 2, kind = onAxis ? 'axis-' + axisKinds[ja % axisKinds.length] : i === 11 ? 'plate' : i === 38 ? 'tray' : kinds[i % kinds.length];
+        const dz = -275 + 550 * ((i * 0.618034 + 0.27) % 1);
+        let a = i * GOLD + (r() - 0.5) * 20, R;
+        if (onAxis) {
+            // spread over the disc by area, at every angle (its own sequence, so they do not line up)
+            R = 255 * Math.sqrt((ja + 0.3 + r() * 0.4) / 16);
+            a = ja * GOLD * 1.31 + 40 + (r() - 0.5) * 30;
+            ja++;
+        } else {
+            const u = (j + 0.5) / (N - 16);
+            j++;
+            R = inner(a) + (1500 - inner(a)) * Math.pow(u * 0.85 + r() * 0.15, 2);
+        }
+        for (let k = 1; k < 12 && blocked(...at(R, a), dz, onAxis ? 60 : 120); k++) a += (k % 2 ? 1 : -1) * k * 14;
         const [x, y] = at(R, a);
         const res = R > 1000 ? 0.6 : R > 700 ? 0.8 : undefined, id = kind + i, rot = r() * TAU, seed = 'lm' + i;
         const fl = flowers[Math.floor(r() * flowers.length)], k1 = r(), k2 = r(), k3 = r(); // drawn here, never inside a paint
-        if (kind === 'sprig') {
+        if (kind === 'axis-petals') {
+            const s = 1.5 + k1 * 0.6;
+            piece(id, dz, x, y, 50 * s, (g) => Pt.petals(g, { x, y, s, seed, flower: fl, n: 4 + Math.floor(k2 * 3) }));
+        } else if (kind === 'axis-fruit') {
+            piece(id, dz, x, y, 50, (g) => Pt.orange(g, x, y, 20 + k1 * 6, k2 < 0.25, Pt.resOf(g), 'la' + i));
+        } else if (kind === 'axis-lime') {
+            const s = 0.55 + k1 * 0.4;
+            piece(id, dz, x, y, 70 * s, (g) => Pt.limeFlake(g, { x, y, s, rot, seed }));
+        } else if (kind === 'axis-tile') {
+            const t = 55 + k1 * 25;
+            piece(id, dz, x, y, t, (g) => Pt.tile(g, { x, y, t, rot, seed, kind: tileKinds[Math.floor(k2 * 4)] }));
+        } else if (kind === 'axis-feather') {
+            const len = 110 + k1 * 40;
+            piece(id, dz, x, y, len * 0.75, (g) => Pt.trainFeather(g, { x, y, len, rot, seed, eye: k2 < 0.7, bend: (k3 - 0.5) * 0.4 }));
+        } else if (kind === 'axis-umbel') {
+            // one umbel broken off on its stub of stalk
+            piece(id, dz, x, y, 70, (g) => {
+                const sx = x - Math.cos(rot) * 34, sy = y - Math.sin(rot) * 34;
+                Pt.stem(g, [[sx, sy], [(sx + x) / 2 + (k2 - 0.5) * 8, (sy + y) / 2], [x, y]], 2.6, 2, '#62803e');
+                Pt.umbel(g, x, y, 20 + k1 * 6, fl, seed + 'u', { spent: k3 < 0.3 ? 0.3 : 0.06 });
+            });
+        } else if (kind === 'axis-sherd') {
+            const s = 0.9 + k1 * 0.4;
+            piece(id, dz, x, y, 60 * s, (g) => Pt.sherd(g, { x, y, s, rot, seed, color: k2 < 0.8 ? 'blue' : 'clay', rim: k3 < 0.5 }));
+        } else if (kind === 'axis-leaf') {
+            // one geranium leaf, fallen, with its petiole
+            const s = 2.6 + k1 * 0.9;
+            piece(id, dz, x, y, 42 * s, (g) => {
+                const sp = Pt.gleaf(Math.floor(k2 * 9), rot, Pt.resOf(g, s), k3 < 0.2 ? 'old' : k3 < 0.35 ? 'young' : 'fresh');
+                const px = x + Math.cos(rot + Math.PI / 2) * 30 * s, py = y + Math.sin(rot + Math.PI / 2) * 30 * s;
+                Pt.stem(g, [[x, y], [(x + px) / 2 + 3, (y + py) / 2], [px, py]], 1.8, 1.3, '#5e7a3a');
+                S.put(g, sp, { x, y, rot, sx: s, sy: s * (0.6 + k1 * 0.35) });
+            });
+        } else if (kind === 'sprig') {
             const s = 1.7 + r() * 0.8;
             piece(id, dz, x, y, 140 * s, (g) => Pt.sprig(g, { x, y, s, rot, seed, flower: fl, leaves: 1 + Math.floor(k1 * 3) }), { res });
         } else if (kind === 'leafy') {

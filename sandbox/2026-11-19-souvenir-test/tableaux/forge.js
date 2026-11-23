@@ -542,7 +542,9 @@ Tableau.forge.stratum = (z) => {
 
 // Round 8 · the forge as LOOSE pieces (the last world: the camera at its fastest, and right
 // after it the full moon). Every thing its own layer, floating at its own depth in z ± 280,
-// composed in rings round the axis (nothing within 260 of it), all of them lit by ONE fire:
+// composed round the axis (the heroes outside 440, the matter outside an inner edge that wanders
+// with the angle, and a fifth of it, small, across the axis itself: the camera flies through a
+// cloud, never down a tunnel), all of them lit by ONE fire:
 // the fire-pan, itself one of the pieces (low left of the axis, at the slab's middle depth),
 // is a point light in the stratum's own units, so every piece takes its light from where
 // the fire really is (a piece beside it raked, one across the ring faint, one in front of it

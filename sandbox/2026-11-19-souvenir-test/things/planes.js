@@ -2348,6 +2348,129 @@ const Planes = (() => {
         g.fillRect(box.x, box.y, box.w, box.h);
         g.restore();
     }
+    // Something drawn on a plain plane, so no plane is only paint (call inside its clip): the
+    // kinds 'charcoal' (a ruled line and a shorter one beside it), 'grain' (a patch of combed
+    // wood), 'fold' (a crease: a light and a dark hair, one side a shade lower), 'pin' (a brass
+    // drawing pin with its shadow), 'measure' (a pencilled measure with ticks and its figure),
+    // 'drip' (a run of paint with its bead), 'hole' (a nail hole with a rust halo).
+    function incident(g, pts, kind, o = {}) {
+        const seed = o.seed ?? 'inc', r = Motion.rng('in/' + seed), b = S.bbox(pts), c = centroid(pts), [dx, dy] = shadeDir(g), [lx, ly] = [-dx, -dy];
+        const at = [c[0] + (r() - 0.5) * b.w * 0.45, c[1] + (r() - 0.5) * b.h * 0.45], a = r() * Math.PI, ca = Math.cos(a), sa = Math.sin(a), L = Math.max(b.w, b.h);
+        const col = o.color ?? PAL.ochre, dark = luminanceOf(col) < 0.3;
+        if (kind === 'charcoal') {
+            ruled(g, [at[0] - ca * L, at[1] - sa * L], [at[0] + ca * L, at[1] + sa * L], { w: 2.4 + r(), seed: seed + 'c1', over: [0, 0], color: dark ? '#d6cab0' : undefined, alpha: dark ? 0.6 : 0.85 });
+            const off = 7 + r() * 8;
+            ruled(g, [at[0] - sa * off - ca * L * 0.25, at[1] + ca * off - sa * L * 0.25], [at[0] - sa * off + ca * L * 0.2, at[1] + ca * off + sa * L * 0.2], { w: 1.4, seed: seed + 'c2', over: [0, 0], alpha: 0.55, color: dark ? '#d6cab0' : undefined });
+        } else if (kind === 'grain') {
+            const w = L * (0.35 + r() * 0.2), h = L * (0.18 + r() * 0.12), patch = quad(at[0], at[1], w, h, a, w * 0.15);
+            plane(g, patch, { color: pick([PAL.ochreL, PAL.ochre, PAL.ochreD], r), seed: seed + 'g', dir: a, tex: 'comb', texO: { dir: a + (r() - 0.5) * 0.2, color: PAL.umberD, alpha: 0.6, pitch: 2.2 + r(), knots: r() < 0.5 ? 1 : 0 }, lines: [0, 2], over: [0, 6], castD: 4, shadeW: 20, lightW: 12 });
+        } else if (kind === 'fold') {
+            const n = [-sa, ca], P0 = [at[0] - ca * L, at[1] - sa * L], P1 = [at[0] + ca * L, at[1] + sa * L], side = n[0] * dx + n[1] * dy > 0 ? 1 : -1;
+            fill(g, [P0, P1, [P1[0] + n[0] * side * L, P1[1] + n[1] * side * L], [P0[0] + n[0] * side * L, P0[1] + n[1] * side * L]], 'rgba(24,16,12,0.1)');
+            g.save();
+            g.lineCap = 'round';
+            g.strokeStyle = 'rgba(255,246,222,0.45)';
+            g.lineWidth = 1.3;
+            g.beginPath();
+            g.moveTo(P0[0] - n[0] * side * 0.8, P0[1] - n[1] * side * 0.8);
+            g.lineTo(P1[0] - n[0] * side * 0.8, P1[1] - n[1] * side * 0.8);
+            g.stroke();
+            g.strokeStyle = 'rgba(30,20,14,0.4)';
+            g.lineWidth = 1.6;
+            g.beginPath();
+            g.moveTo(P0[0] + n[0] * side * 1.2, P0[1] + n[1] * side * 1.2);
+            g.lineTo(P1[0] + n[0] * side * 1.2, P1[1] + n[1] * side * 1.2);
+            g.stroke();
+            g.restore();
+        } else if (kind === 'pin') {
+            const R = 6 + r() * 2.5, [x, y] = at;
+            S.cast(g, (q) => {
+                q.fillStyle = '#000';
+                q.beginPath();
+                q.arc(x, y, R, 0, TAU);
+                q.fill();
+            }, { blur: 3, dx: dx * 3.5, dy: dy * 3.5, color: 'rgba(20,12,8,0.6)' });
+            const brass = r() < 0.6, base = brass ? '#b08a3e' : '#8e3a2c';
+            g.fillStyle = tone(base, -0.3);
+            g.beginPath();
+            g.arc(x, y, R, 0, TAU);
+            g.fill();
+            g.fillStyle = base;
+            g.beginPath();
+            g.arc(x + lx * 0.8, y + ly * 0.8, R * 0.82, 0, TAU);
+            g.fill();
+            g.fillStyle = tone(base, 0.35);
+            g.beginPath();
+            g.arc(x + lx * 1.8, y + ly * 1.8, R * 0.45, 0, TAU);
+            g.fill();
+            g.fillStyle = 'rgba(255,250,232,0.9)';
+            g.beginPath();
+            g.ellipse(x + lx * R * 0.45, y + ly * R * 0.45, R * 0.22, R * 0.12, Math.atan2(ly, lx) + 1.57, 0, TAU);
+            g.fill();
+            g.strokeStyle = 'rgba(20,12,8,0.6)';
+            g.lineWidth = 0.7;
+            g.beginPath();
+            g.arc(x, y, R, 0, TAU);
+            g.stroke();
+        } else if (kind === 'measure') {
+            const len = L * (0.4 + r() * 0.25), p0 = [at[0] - (ca * len) / 2, at[1] - (sa * len) / 2], p1 = [at[0] + (ca * len) / 2, at[1] + (sa * len) / 2], n = [-sa, ca];
+            const lead = dark ? 'rgba(220,214,200,0.6)' : 'rgba(58,54,56,0.7)';
+            g.save();
+            g.strokeStyle = lead;
+            g.lineWidth = 0.8;
+            g.beginPath();
+            g.moveTo(p0[0], p0[1]);
+            g.lineTo(p1[0], p1[1]);
+            for (const p of [p0, p1]) {
+                g.moveTo(p[0] - n[0] * 6, p[1] - n[1] * 6);
+                g.lineTo(p[0] + n[0] * 6, p[1] + n[1] * 6);
+            }
+            const ticks = 3 + Math.floor(r() * 4);
+            for (let k = 1; k < ticks; k++) {
+                const u = k / ticks, p = [p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u];
+                g.moveTo(p[0], p[1]);
+                g.lineTo(p[0] + n[0] * 3, p[1] + n[1] * 3);
+            }
+            g.stroke();
+            g.translate(at[0] - n[0] * 8, at[1] - n[1] * 8);
+            g.rotate(a > Math.PI / 2 ? a - Math.PI : a);
+            g.font = `italic 10px ${LORA}`;
+            g.fillStyle = lead;
+            g.textAlign = 'center';
+            g.fillText(pick(['12', '7,5', '30', '18', '4½', '22,5', '9'], r), 0, 0);
+            g.restore();
+        } else if (kind === 'drip') {
+            const [x, y] = at, len = 18 + r() * 40, w = 2.4 + r() * 2.4, dc = o.drip ?? tone(col, dark ? 0.3 : -0.28);
+            fill(g, [[x - w * 0.6, y], [x + w * 0.6, y], [x + w * 0.35, y + len], [x - w * 0.35, y + len]], dc);
+            fill(g, S.ellipse(x, y + len + w * 0.3, w * 0.62, w * 0.8, 16), dc);
+            g.fillStyle = 'rgba(255,248,228,0.5)';
+            g.fillRect(x - w * 0.3, y + 2, 0.8, len * 0.8);
+            g.beginPath();
+            g.arc(x - w * 0.2, y + len, w * 0.18, 0, TAU);
+            g.fill();
+            S.cast(g, (q) => fill(q, [[x - w * 0.5, y], [x + w * 0.5, y], [x + w * 0.3, y + len], [x - w * 0.3, y + len]], '#000'), { blur: 1.5, dx: dx * 1.2, dy: dy * 1.2, color: 'rgba(20,12,8,0.35)' });
+        } else if (kind === 'hole') {
+            const [x, y] = at, hg = g.createRadialGradient(x, y, 0, x, y, 10);
+            hg.addColorStop(0, 'rgba(120,58,22,0.55)');
+            hg.addColorStop(1, 'rgba(120,58,22,0)');
+            g.fillStyle = hg;
+            g.fillRect(x - 10, y - 10, 20, 20);
+            g.fillStyle = '#140d0b';
+            g.beginPath();
+            g.ellipse(x, y, 2.2, 1.7, a, 0, TAU);
+            g.fill();
+            g.strokeStyle = 'rgba(255,246,226,0.55)';
+            g.lineWidth = 0.6;
+            g.beginPath();
+            g.arc(x, y, 2.8, Math.atan2(ly, lx) - 1.1, Math.atan2(ly, lx) + 1.1);
+            g.stroke();
+        }
+    }
+    const luminanceOf = (hex) => {
+        const n = parseInt(hex.slice(1), 16);
+        return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+    };
+
     // A piece of the guitar's side: a run of picture 1's outline (from f0 to f1 of its length,
     // scaled by s about the sound hole, placed at x, y turned rot), cut w deep towards the
     // inside, combed, with the binding and the purfling along the curve.
@@ -2507,5 +2630,5 @@ const Planes = (() => {
         });
     }
 
-    return { thick, cutLight, cut, fragment, overPlane, glow, rim, quill, peg, coil, headline, guitarPlanes, collage, marble, stencil, hatch, scrap, golpeador, newspaper, label, score, wallpaper, bottle, glass, wing, nail, head, stringSeg, ladder, bridge, rosette, moon, card, blackDisc, bristle, drift, GAUGE, facets, PAL, tone, shadeDir, lightDir, area, centroid, inPoly, split, clip, fill, rect, quad, walk, mark, scumble, edgeFrame, edgeTone, charcoal, ruled, comb, sand, dots, plane, tornEdge, sheetOutline, paper, type, wear };
+    return { thick, cutLight, cut, fragment, overPlane, incident, glow, rim, quill, peg, coil, headline, guitarPlanes, collage, marble, stencil, hatch, scrap, golpeador, newspaper, label, score, wallpaper, bottle, glass, wing, nail, head, stringSeg, ladder, bridge, rosette, moon, card, blackDisc, bristle, drift, GAUGE, facets, PAL, tone, shadeDir, lightDir, area, centroid, inPoly, split, clip, fill, rect, quad, walk, mark, scumble, edgeFrame, edgeTone, charcoal, ruled, comb, sand, dots, plane, tornEdge, sheetOutline, paper, type, wear };
 })();
