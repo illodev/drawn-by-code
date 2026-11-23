@@ -671,7 +671,7 @@ Tableau.green = (z0, opt = null) => {
         const edge = (a) => 270 + 190 * (0.5 + 0.5 * (0.6 * Math.sin(3 * a + 1.3) + 0.4 * Math.sin(7 * a + 4.1)));
         const spot = (rad, d0, d1, seed) => {
             for (let k = 0; k < 60; k++) {
-                const a = R() * TAU, lo = Math.max(d0, edge(a)) - (d0 < 300 ? 290 - d0 : 0), d = lo + Math.max(0, d1 - lo) * Math.pow(R(), 1.8), dz = -270 + R() * 540, x = Math.cos(a) * d, y = Math.sin(a) * d;
+                const a = R() * TAU, lo = Math.max(d0 - 20, edge(a)), d = lo + Math.max(0, d1 - lo) * Math.pow(R(), 1.8), dz = -270 + R() * 540, x = Math.cos(a) * d, y = Math.sin(a) * d;
                 if (taken.some(([X, Y, Z, rr]) => Math.abs(Z - dz) < 150 && Math.hypot(X - x, Y - y) < (rr + rad) * 0.75)) continue;
                 taken.push([x, y, dz, rad]);
                 return { x, y, dz };

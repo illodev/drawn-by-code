@@ -476,7 +476,8 @@ Tableau.darknight.stratum = (z) => {
 //     (its ember, its smoke), a fall of the paso's velvet with galloon and fringe, a rag of
 //     the violet veil, torn.
 //   to find: three moths (one on the book), a dove's feather fallen, the ember.
-//   matter (67): candle stubs lit and put out (ivory, unbleached, tiniebla, white wax) each
+//   matter (80, 16 of the small ones on and about the axis, the camera flies through them;
+//     the rest from an inner edge that wanders with the angle): candle stubs lit and put out (ivory, unbleached, tiniebla, white wax) each
 //     on its puddle, scraps of velvet and of the veil, single lilies and buds, carnations,
 //     white feathers, olive sprigs, flakes of gold leaf and eight-pointed stars from the
 //     diagram, balls of rolled wax, tears of incense on charcoal, lengths of broken chain.
@@ -710,12 +711,24 @@ Tableau.darknight.loose = (z) => {
         const j = Math.floor(r() * (i + 1));
         [KINDS[i], KINDS[j]] = [KINDS[j], KINDS[i]];
     }
+    // A fifth of the matter (small pieces) floats on and about the axis, at every depth, so
+    // the camera flies through them and the middle is never one empty disc; the rest starts
+    // at an inner edge that wanders with the angle (ragged, never a circle).
+    const SMALL = ['feather', 'olive', 'flake', 'star', 'ball', 'incense', 'carnation'], INNER = new Set();
+    KINDS.forEach((k, i) => {
+        if (SMALL.includes(k) && INNER.size < 14) INNER.add(i);
+    });
+    KINDS.forEach((k, i) => {
+        if (k === 'stub' && INNER.size < 16) INNER.add(i);
+    });
     KINDS.forEach((kind, i) => {
         // round the axis, denser inside; depths all through the slab
-        const ang = ((i * 137.5 + r() * 40) % 360), R = 275 + 1000 * Math.pow(r(), 2.6), [x, y] = A(ang, R), dz = -270 + ((i * 0.618 + r() * 0.2) % 1) * 540;
+        const ang = (i * 137.5 + r() * 40) % 360, u = r(), a = (ang * Math.PI) / 180;
+        const rin = 265 + 190 * S.noise2(Math.cos(a) * 1.5 + 4, Math.sin(a) * 1.5 + 4, 41);
+        const R = INNER.has(i) ? 250 * Math.sqrt(u) : rin + 1000 * Math.pow(u, 2.6), [x, y] = A(ang, R), dz = -270 + ((i * 0.618 + r() * 0.2) % 1) * 540;
         const id = kind + '-' + i, sd = 'm' + i;
         if (kind === 'stub') {
-            stub(id, x, y, dz);
+            stub(id, x, y, dz, INNER.has(i) ? { len: 60 + u * 50 } : {});
         } else if (kind === 'velvet' || kind === 'veil') {
             const w = 170 + r() * 140, h = 150 + r() * 130, rot = r() * TAU, gather = 0.45 + r() * 0.35, gal = r() < 0.55, fr = r() < 0.6, sway = (r() - 0.5) * 0.5;
             const o = { x, y, w, h, rot, kind, seed: sd, gather, sway, galloon: gal ? undefined : false, fringe: kind === 'velvet' ? fr : false };

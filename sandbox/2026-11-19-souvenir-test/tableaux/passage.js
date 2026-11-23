@@ -472,22 +472,43 @@ Tableau.passage.loose = (z0) => {
     };
     // `n` pieces of matter from `menu` ({ kind: weight }), placed by golden angle all round the
     // axis, denser inside, through the slab's depth, never piled on another at its depth.
-    function matter(st, n, menu, outside = 0.1) {
-        const r = Motion.rng('passage-loose/' + st.id), kinds = Object.entries(menu), total = kinds.reduce((a, [, w]) => a + w, 0);
+    // The inner edge of the heap is ragged (its radius wanders with the angle), so no stratum is
+    // a ring round an empty disc; and a fifth of the pieces, small ones (40–150 units) from
+    // `cloud`, are scattered across the axis itself, at every depth of the slab: the camera
+    // flies through them (they grow, blur and fade as it passes), as through a cloud of things.
+    // Their sizes are scaled (CLOUD) so that each stays small.
+    const CLOUD = { bloom: 0.42, florets: 0.7, bud: 0.8, fly: 0.9, coin: 0.72, arils: 0.8, olives: 0.9, star: 0.85, tile: 0.55, carnation: 0.55, gbud: 0.6, spray: 0.55 };
+    function matter(st, n, menu, outside = 0.1, cloud = { bloom: 3, florets: 3, bud: 2, fly: 1 }) {
+        const r = Motion.rng('passage-loose/' + st.id), choose = (m) => {
+            const kinds = Object.entries(m);
+            let u = r() * kinds.reduce((a, [, w]) => a + w, 0);
+            for (const [k, w] of kinds) if ((u -= w) < 0) return k;
+            return kinds[0][0];
+        };
+        // the heap's inner edge: about 300 from the axis, in and out with the angle
+        const ph = [r() * TAU, r() * TAU, r() * TAU], edge = (a) => Math.max(262, 300 + 62 * Math.sin(3 * a + ph[0]) + 40 * Math.sin(5 * a + ph[1]) + 26 * Math.sin(9 * a + ph[2]));
+        const inside = Math.round(n / 5);
         let made = 0;
         for (let tries = 0; made < n && tries < n * 30; tries++) {
-            let u = r() * total, kind = kinds[0][0];
-            for (const [k, w] of kinds) if ((u -= w) < 0) {
-                kind = k;
-                break;
+            const id = `passage-loose/${st.id}/${made}/${tries}`;
+            if (made < inside) {
+                // the cloud on the axis
+                const kind = choose(cloud), it = KIND[kind](Motion.rng(id), st, CLOUD[kind] ?? 0.6);
+                const a = r() * TAU, Rr = 250 * Math.sqrt(r()), dz = -265 + r() * 530, x = Math.cos(a) * Rr, y = Math.sin(a) * Rr;
+                if (it.rad > 80 || st.placed.some((p) => Math.abs(p.z - dz) < 90 && Math.hypot(p.x - x, p.y - y) < (p.rad + it.rad) * 0.9)) continue;
+                st.placed.push({ x, y, z: dz, rad: it.rad });
+                add(st, 'cloud-' + kind + made, dz, x, y, it.rad * 1.45 + 26, (g) => it.paint(g, x, y));
+                made++;
+                continue;
             }
-            // most inside 950 (what the frame holds when the stratum is read; the near side of the
-            // slab reaches further out, since it fills the frame's corners as it comes), the rest (`outside`)
-            // in an outer ring, larger, seen only small and early (and painted smaller): the
-            // first stratum has the most there, since nothing in front of it fills the frame's sides
-            const outer = r() < outside, q = Motion.rng(`passage-loose/${st.id}/${made}/${tries}`), it = KIND[kind](q, st, outer ? 1.4 : 1.12);
-            const a = made * 2.39996 + st.turn + (r() - 0.5) * 0.5, w = r(), dz = -270 + r() * 540;
-            const near = Math.min(1, Math.max(0, (-dz - 90) / 180)), Rr = outer ? 950 + 550 * w : Math.max(266 + it.rad * 0.9, 280 + (640 + 300 * near) * Math.pow(w, 1.35));
+            // most of the rest inside 950 (what the frame holds when the stratum is read; the near
+            // side of the slab reaches further out, since it fills the frame's corners as it
+            // comes), the rest (`outside`) in an outer ring, larger, seen only small and early (and
+            // painted smaller): the first stratum has the most there, since nothing in front of
+            // it fills the frame's sides
+            const kind = choose(menu), outer = r() < outside, it = KIND[kind](Motion.rng(id), st, outer ? 1.4 : 1.12);
+            const a = made * 2.39996 + st.turn + (r() - 0.5) * 0.5, w = r(), dz = -270 + r() * 540, e = edge(a);
+            const near = Math.min(1, Math.max(0, (-dz - 90) / 180)), Rr = outer ? 950 + 550 * w : Math.max(e + it.rad * 0.75, e + (620 + 300 * near) * Math.pow(w, 1.35));
             const x = Math.cos(a) * Rr, y = Math.sin(a) * Rr;
             if (st.placed.some((p) => Math.abs(p.z - dz) < 60 && Math.hypot(p.x - x, p.y - y) < (p.rad + it.rad) * 0.55)) continue;
             st.placed.push({ x, y, z: dz, rad: it.rad });
@@ -547,7 +568,7 @@ Tableau.passage.loose = (z0) => {
         ]);
         find(st, 'butterfly', 84, 330, -268, 90, (g, x, y) => F.butterfly(g, { x, y, s: 1.3, rot: -0.9, fold: 0.25, seed: 'm1', cast: false }));
         find(st, 'snail', 300, 330, 150, 70, (g, x, y) => F.snail(g, { x, y, s: 1.4, rot: 0.3, seed: 'mar-snail' }));
-        matter(st, 96, { bloom: 32, cup: 7, spray: 5, leaves: 7, fern: 4, florets: 6, bud: 4, fly: 3, coin: 8, arils: 4 });
+        matter(st, 96, { bloom: 32, cup: 7, spray: 5, leaves: 7, fern: 4, florets: 6, bud: 4, fly: 3, coin: 8, arils: 4 }, 0.1, { bloom: 2, florets: 2, bud: 2, fly: 2, coin: 3, arils: 3 });
     }
     // ---------------------------------------------------------------- 2 · Rome and the Goths
     // Oil, a floor, garnets, a crown, Byzantium's gold; flowers in coral and gold, olive sprigs
@@ -569,7 +590,7 @@ Tableau.passage.loose = (z0) => {
         ]);
         find(st, 'lizard', 115, 340, 262, 130, (g, x, y) => F.lizard(g, { x, y, s: 0.85, rot: 0.6, seed: 'roma-lizard' }));
         find(st, 'bee', 320, 300, -262, 76, (g, x, y) => F.bee(g, { x, y, s: 1.3, rot: -0.3, seed: 'roma-bee' }));
-        matter(st, 96, { bloom: 30, cup: 7, spray: 4, leaves: 6, florets: 5, bud: 4, olive: 8, olives: 4, coin: 7, fly: 2 });
+        matter(st, 96, { bloom: 30, cup: 7, spray: 4, leaves: 6, florets: 5, bud: 4, olive: 8, olives: 4, coin: 7, fly: 2 }, 0.1, { bloom: 2, florets: 2, bud: 2, coin: 3, olives: 3, fly: 1 });
     }
     // ---------------------------------------------------------------- 3 · al-Andalus
     // The stars' instrument, the caliph's fawn, cut tile, the books; flowers in teal and gold,
@@ -591,7 +612,7 @@ Tableau.passage.loose = (z0) => {
         ]);
         find(st, 'gecko', 40, 330, -265, 100, (g, x, y) => F.gecko(g, { x, y, s: 1.3, rot: 2.4, seed: 'g1' }));
         find(st, 'goldfinch', 260, 330, 262, 120, (g, x, y) => F.goldfinch(g, { x, y, s: 1.05, rot: 0, seed: 'andalus-finch' }));
-        matter(st, 96, { bloom: 30, cup: 6, spray: 5, bough: 3, leaves: 6, florets: 6, bud: 4, tile: 10, star: 5, coin: 5 });
+        matter(st, 96, { bloom: 30, cup: 6, spray: 5, bough: 3, leaves: 6, florets: 6, bud: 4, tile: 10, star: 5, coin: 5 }, 0.1, { bloom: 2, florets: 2, bud: 1, star: 3, coin: 2, tile: 2 });
     }
     // ---------------------------------------------------------------- 4 · the house and the fair
     // Papers, cards, castanets, lanterns; flowers in the fair's reds and pinks, carnations.
@@ -614,7 +635,7 @@ Tableau.passage.loose = (z0) => {
         ]);
         find(st, 'horseshoe', 160, 330, 262, 80, (g, x, y) => Rb.horseshoe(g, { x, y, s: 0.8, rot: 0.5 }));
         find(st, 'bee', 290, 300, -262, 76, (g, x, y) => F.bee(g, { x, y, s: 1.3, rot: 0.8, seed: 'feria-bee' }));
-        matter(st, 96, { bloom: 28, cup: 7, spray: 5, leaves: 6, florets: 7, bud: 4, carnation: 14, gbud: 4, fly: 3 });
+        matter(st, 96, { bloom: 28, cup: 7, spray: 5, leaves: 6, florets: 7, bud: 4, carnation: 14, gbud: 4, fly: 3 }, 0.1, { bloom: 2, florets: 2, bud: 2, carnation: 3, gbud: 2, fly: 2 });
     }
     return layers;
 };
