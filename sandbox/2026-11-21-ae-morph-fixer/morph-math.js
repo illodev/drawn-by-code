@@ -185,16 +185,16 @@ var MF = (function () {
         return R;
     }
 
-    // N points evenly spaced along the outline (from its start), and their mean
-    function samples(P, M) {
-        var pts = [], cx = 0, cy = 0, cnt = P.closed ? N : N - 1;
-        for (var j = 0; j < N; j++) {
+    // N points (or count) evenly spaced along the outline (from its start), and their mean
+    function samples(P, M, count) {
+        var n = count || N, pts = [], cx = 0, cy = 0, cnt = P.closed ? n : n - 1;
+        for (var j = 0; j < n; j++) {
             var p = at(P, M, j / cnt);
             pts.push(p);
             cx += p[0];
             cy += p[1];
         }
-        return { pts: pts, cx: cx / N, cy: cy / N };
+        return { pts: pts, cx: cx / n, cy: cy / n };
     }
 
     // signed area (positive = clockwise on screen, y down)
@@ -433,17 +433,233 @@ var MF = (function () {
         return { q: bestQ, crossings: bestC, was: was };
     }
 
+    // ---- symmetry: a morph between shapes that share a mirror axis, kept symmetric -----------
+    // When both keys are mirror-symmetric about axes of the same direction, reading the next key
+    // from the start that sits as far from its pole (where the axis meets the outline) as the
+    // previous key's start sits from its own makes every point move as the mirror of its
+    // partner. Least travel otherwise picks one of two mirror-image swirls on a tie (a star into
+    // the same star turned 36 deg, a plus into an x): 79-89 % asymmetric, where the symmetric
+    // match cost 3-4 % more travel. Rotational symmetry needs nothing: any start keeps it.
+    // o.symmetry: undefined = taken when it costs at most SYM_SLACK times the best match's
+    // (squared) error, 'force' = taken whatever it costs, false = never (tests).
+    var SYM_TOL = 0.02;                     // mirror-symmetric: matches its mirror within 2 % of its size (RMS)
+    var SYM_TOL_LOOSE = 0.04;               // with the sym option: 4 % (hand-drawn shapes, a little uneven)
+    var SYM_ANGLE = 2 * Math.PI / 180;      // two keys' axes are the same within 2 deg
+    var SYM_SLACK = 1.2;
+
+    // the point at fractional sample index x of a closed sample loop (between samples: linear)
+    function sampleAt(pts, x) {
+        var n = pts.length, i = Math.floor(x), f = x - i;
+        var a = pts[((i % n) + n) % n], b = pts[(((i + 1) % n) + n) % n];
+        return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+    }
+
+    // RMS distance, over the shape's size, between samples S and their mirror about the line
+    // through S's centre at angle phi, sample j paired with the point at index 2p - j (p: the pole)
+    function mirrorError(S, phi, p) {
+        var cs = Math.cos(2 * phi), sn = Math.sin(2 * phi), e = 0, n = S.pts.length;
+        for (var j = 0; j < n; j++) {
+            var a = S.pts[j], b = sampleAt(S.pts, 2 * p - j), dx = b[0] - S.cx, dy = b[1] - S.cy;
+            var rx = S.cx + dx * cs + dy * sn - a[0], ry = S.cy + dx * sn - dy * cs - a[1];
+            e += rx * rx + ry * ry;
+        }
+        return Math.sqrt(e / n) / S.size;
+    }
+
+    // where the line through S's centre at angle phi crosses the outline (sample indices), and
+    // which of those works best as the pole of a mirror at phi: { p, e } (e Infinity: none)
+    // near: only the crossing nearest that sample index is tried (refining an axis: the pole
+    // moves only a little with the angle)
+    function poleAt(S, phi, near) {
+        var n = S.pts.length, sn = Math.sin(phi), cs = Math.cos(phi), d = [], best = { p: 0, e: Infinity }, j, ps = [];
+        for (j = 0; j < n; j++) d.push(-(S.pts[j][0] - S.cx) * sn + (S.pts[j][1] - S.cy) * cs);
+        for (j = 0; j < n; j++) {
+            var d0 = d[j], d1 = d[(j + 1) % n];
+            if ((d0 <= 0) !== (d1 <= 0)) ps.push(j + d0 / (d0 - d1));
+        }
+        if (near !== undefined && ps.length > 1) {
+            var k0 = 0, gap = n;
+            for (j = 0; j < ps.length; j++) {
+                var g = Math.abs(ps[j] - near) % n;
+                if (Math.min(g, n - g) < gap) {
+                    gap = Math.min(g, n - g);
+                    k0 = j;
+                }
+            }
+            ps = [ps[k0]];
+        }
+        for (j = 0; j < ps.length; j++) {
+            var e = mirrorError(S, phi, ps[j]);
+            if (e < best.e) best = { p: ps[j], e: e };
+        }
+        return best;
+    }
+
+    // S with its size (RMS distance of the samples from their centre)
+    function sized(S) {
+        if (S.size === undefined) {
+            var r = 0;
+            for (var j = 0; j < S.pts.length; j++) r += (S.pts[j][0] - S.cx) * (S.pts[j][0] - S.cx) + (S.pts[j][1] - S.cy) * (S.pts[j][1] - S.cy);
+            S.size = Math.sqrt(r / S.pts.length) || 1;
+        }
+        return S;
+    }
+
+    // the mirror axes of a closed outline's samples: 'round' (a circle: every axis), or
+    // [{ phi (radians, 0..pi), pole (fraction of the outline from its start), e }]. Quick (every
+    // fix): the principal axes (a mirror axis always is one); for a shape with no main direction
+    // (a regular polygon, a star, a plus) the directions to every point locally farthest from or
+    // nearest to the centre (the plus's upright axis runs through the middle of an arm's end, a
+    // local nearest, not one of the strong ones), at most 24; within SYM_TOL. thorough (the sym
+    // option): also every angle in 2 deg steps, within SYM_TOL_LOOSE (hand-drawn shapes, a
+    // little uneven). Each candidate refined by small turns of the angle.
+    function mirrorAxes(S, thorough) {
+        sized(S);
+        var tol = thorough ? SYM_TOL_LOOSE : SYM_TOL, apart = (thorough ? 0.9 : 3) * Math.PI / 180;
+        var n = S.pts.length, sxx = 0, syy = 0, sxy = 0, r = [], j, cand = [], out = [];
+        for (j = 0; j < n; j++) {
+            var dx = S.pts[j][0] - S.cx, dy = S.pts[j][1] - S.cy;
+            sxx += dx * dx;
+            syy += dy * dy;
+            sxy += dx * dy;
+            r.push(Math.sqrt(dx * dx + dy * dy));
+        }
+        var rmin = r[0], rmax = r[0];
+        for (j = 1; j < n; j++) {
+            if (r[j] < rmin) rmin = r[j];
+            if (r[j] > rmax) rmax = r[j];
+        }
+        if (rmax - rmin < 0.01 * S.size) return 'round';
+        var half = (sxx - syy) / 2, dd = Math.sqrt(half * half + sxy * sxy), mean = (sxx + syy) / 2;
+        var t = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+        S.principal = mean - dd < 0.95 * (mean + dd) ? t : null;       // null: no main direction
+        // candidate directions, each kept once (a tip and the opposite valley give one axis)
+        function add(a) {
+            for (var q = 0; q < cand.length; q++) if (angleGap(cand[q], a) < apart) return;
+            cand.push(a);
+        }
+        if (S.principal !== null) {
+            add(t);
+            add(t + Math.PI / 2);
+        } else {
+            for (j = 0; j < n && cand.length < 24; j++) {
+                var rp = r[(j + n - 1) % n], rn = r[(j + 1) % n];
+                if ((r[j] >= rp && r[j] > rn) || (r[j] <= rp && r[j] < rn)) add(Math.atan2(S.pts[j][1] - S.cy, S.pts[j][0] - S.cx));
+            }
+        }
+        var sweepFrom = cand.length;
+        if (thorough) for (j = 0; j < 90; j++) add(j * 2 * Math.PI / 180);
+        // a quarter of the samples screens the candidates (the sweep's 90 angles, mostly)
+        var coarse = S;
+        if (n >= 128) {
+            coarse = { pts: [], cx: S.cx, cy: S.cy, size: S.size };
+            for (j = 0; j < n; j += 4) coarse.pts.push(S.pts[j]);
+        }
+        for (var c = 0; c < cand.length; c++) {
+            // a sweep angle is within 1 deg of any axis: a stricter screen, finer first steps
+            var sweep = c >= sweepFrom, phi = cand[c], step = (sweep ? 0.5 : 1) * Math.PI / 180, near = false;
+            // an axis already found close by: the same one
+            for (var f = 0; f < out.length && !near; f++) near = angleGap(out[f].phi, phi) < 4 * Math.PI / 180;
+            if (near) continue;
+            // far from a mirror: not worth refining (a corner between samples puts its candidate a
+            // few degrees off: the plus's diagonal started 3.3 deg off, at 9.9 %)
+            var pc = poleAt(coarse, phi);
+            if (pc.e > (sweep ? 2.5 * tol : Math.max(4 * tol, 0.15))) continue;
+            var pa = poleAt(S, phi, pc.p * (n / coarse.pts.length));
+            for (var it = 0; it < 16 && step > 0.02 * Math.PI / 180; it++) {
+                var lo = poleAt(S, phi - step, pa.p), hi = poleAt(S, phi + step, pa.p);
+                if (lo.e < pa.e && lo.e <= hi.e) {
+                    phi -= step;
+                    pa = lo;
+                } else if (hi.e < pa.e) {
+                    phi += step;
+                    pa = hi;
+                } else {
+                    step /= 2;
+                }
+            }
+            if (pa.e > tol) continue;
+            phi = phi - Math.floor(phi / Math.PI) * Math.PI;
+            // within 4 deg of one found: the same axis, the better of the two kept (a rounded
+            // square's error rises slowly near its axes, and 42 deg passed the loose test too)
+            var dup = -1;
+            for (var k = 0; k < out.length && dup < 0; k++) if (angleGap(out[k].phi, phi) < 4 * Math.PI / 180) dup = k;
+            if (dup < 0) out.push({ phi: phi, pole: pa.p / n, e: pa.e });
+            else if (pa.e < out[dup].e) out[dup] = { phi: phi, pole: pa.p / n, e: pa.e };
+        }
+        return out;
+    }
+
+    // how far apart two axis directions are (radians, mod pi)
+    function angleGap(a, b) {
+        var d = Math.abs(a - b) % Math.PI;
+        return d > Math.PI / 2 ? Math.PI - d : d;
+    }
+
+    // the starts of P (fractions from its current start) that make the morph from b.SA (the
+    // previous key's samples) mirror-symmetric, cheapest first: [{ off, e }] (e: squared match
+    // error, as b.grid). Empty when the keys share no mirror axis, or both are round.
+    // thorough (the sym option): twice the samples, every angle tried, a looser tolerance
+    function symmetricStarts(b, prev, P, M, thorough) {
+        var SA = thorough ? samples(prev, measure(prev), 2 * N) : b.SA, SB = thorough ? samples(P, M, 2 * N) : b.SB;
+        var axA = mirrorAxes(SA, thorough), pairs = [], i, j, out = [];
+        if (axA !== 'round' && !axA.length) return out;       // the previous key has no mirror axis
+        var axB = mirrorAxes(SB, thorough);
+        if (axA === 'round' && axB === 'round') return out;
+        if (axA === 'round' || axB === 'round') {
+            var axes = axA === 'round' ? axB : axA, roundS = sized(axA === 'round' ? SA : SB);
+            for (i = 0; i < axes.length; i++) {
+                var pr = poleAt(roundS, axes[i].phi), pole = { phi: axes[i].phi, pole: pr.p / roundS.pts.length };
+                pairs.push(axA === 'round' ? [pole, axes[i]] : [axes[i], pole]);
+            }
+        } else {
+            for (i = 0; i < axA.length; i++) for (j = 0; j < axB.length; j++) if (angleGap(axA[i].phi, axB[j].phi) < SYM_ANGLE) pairs.push([axA[i], axB[j]]);
+        }
+        var cB = [b.SB.cx, b.SB.cy];
+        for (i = 0; i < pairs.length; i++) {
+            for (var h = 0; h < 2; h++) {
+                var off = pairs[i][1].pole - pairs[i][0].pole + h / 2;
+                off = off - Math.floor(off);
+                var dupe = false;
+                for (j = 0; j < out.length && !dupe; j++) dupe = circDist(out[j].off, off) < 0.25 / N;
+                if (!dupe) out.push({ off: off, e: errorAt(b.SA, P, M, cB, off, false).e });
+            }
+        }
+        out.sort(function (x, y) { return (x.e - y.e) || (x.off - y.off); });
+        return out;
+    }
+
     // where closed path P should start to follow prev: { off, near, nd, turn, theta, crossings,
-    // untangled } (near: the vertex nearest the best fraction) or, when moving the start gains
-    // under 5 % and doesn't keep the morph from crossing over, { near: 0, nd: 0 } with the turn
-    // found at the current start. crossings: what the in-betweens still cross (sampled)
+    // untangled, symmetric } (near: the vertex nearest the best fraction) or, when moving the
+    // start gains under 5 % and neither keeps the morph symmetric nor from crossing over,
+    // { near: 0, nd: 0 } with the turn found at the current start. In order: no crossover, then
+    // symmetry, then least travel. crossings: what the in-betweens still cross (sampled)
     function startPlan(prev, P, o) {
-        var b = chooseOffset(prev, P, o), off = 0, theta = 0;
+        var b = chooseOffset(prev, P, o), off = 0, theta = 0, symmetric = false;
         if (b.err < b.err0 * GAIN) {
             off = b.off;
             theta = b.theta;
         } else if (b.turn) {
             theta = bestAt0(prev, P);
+        }
+        // symmetry (steps that turn are swung whole instead, which doesn't swirl)
+        if (o.symmetry !== false && !b.turn) {
+            var force = o.symmetry === 'force', ss = symmetricStarts(b, prev, P, measure(P), force), cap = force ? Infinity : b.err * SYM_SLACK, near = null, stay = null, s;
+            for (s = 0; s < ss.length; s++) {
+                if (!near && circDist(ss[s].off, off) < 2 / N) near = ss[s];
+                if (!stay && circDist(ss[s].off, 0) < 0.5 / N) stay = ss[s];
+            }
+            if (near) {
+                // already symmetric (the poles found are within 2 grid steps): left exactly as it
+                // is (snapping onto them moved a hold's start: 0.04 px of travel)
+            } else if (ss.length) {
+                // the current start when it is symmetric and the cheapest symmetric one isn't 5 % cheaper
+                var pick = stay && !(ss[0].e < stay.e * GAIN) ? stay : ss[0];
+                if (pick.e <= cap) {
+                    off = pick === stay ? 0 : pick.off;
+                    symmetric = true;
+                }
+            }
         }
         var q0 = Math.round(off * N) % N, x = { q: q0, crossings: 0, was: 0 };
         if (o.crossover !== false) x = untangle(b, q0, !!o.stay);
@@ -451,10 +667,11 @@ var MF = (function () {
         if (untangled) {
             off = x.q / N;
             theta = b.turn ? b.thetas[x.q] : 0;
+            symmetric = false;
         }
-        if (!off) return { off: 0, near: 0, nd: 0, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled };
+        if (!off) return { off: 0, near: 0, nd: 0, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled, symmetric: symmetric };
         var nv = nearestVertex(P, off);
-        return { off: off, near: nv.k, nd: nv.d, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled };
+        return { off: off, near: nv.k, nd: nv.d, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled, symmetric: symmetric };
     }
 
     // the turn laying P onto prev, keeping P's start
@@ -488,6 +705,7 @@ var MF = (function () {
                 info.turn = plan.turn;
                 info.untangled = plan.untangled;      // a start chosen so the in-betweens don't cross
                 info.crossings = plan.crossings;      // what they still cross (sampled), 0 mostly
+                info.symmetric = plan.symmetric;      // a start chosen so the morph stays mirror-symmetric
                 var near = plan.near;
                 if (plan.nd > SNAP) {
                     P = insert(P, [plan.off]);
@@ -1217,6 +1435,8 @@ var MF = (function () {
         measure: measure, at: at, fractions: fractions, area: area, winding: winding, rms: rms, deviation: deviation,
         lerp: lerp, copy: copy, seg: seg, segCount: segCount, bez: bez, turnPath: turnPath, turnFrom: turnFrom,
         swing: swing, progressOf: progressOf, matchPieces: matchPieces, pieceInfo: pieceInfo,
+        // a closed path's mirror axes: 'round' or [{ phi (radians), pole (fraction), e }] (tests)
+        mirrorAxes: function (P, thorough) { return mirrorAxes(samples(P, measure(P), thorough ? 2 * N : N), thorough); },
         // how far two paths part (px), quick two-way check (what the rebuild holds to its tolerance)
         gap: function (A, B) { return strays(A, measure(A), B); }
     };

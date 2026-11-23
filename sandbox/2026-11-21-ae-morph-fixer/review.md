@@ -478,3 +478,48 @@ itself and looks like two or more shapes. Version **0.11.0**.
 - Node: 4,303 checks; the real-type set 148, with "in-betweens don't cross themselves" for
   every case (O into C allowed its 2). With the choice off, that check fails exactly the four
   type cases. **Not yet run in After Effects**; its time there isn't measured.
+
+## Round 11 · 2026-11-23 (the user: symmetry first, as a tie-breaker plus an option)
+
+The user asked whether the fix can favour graceful, symmetric movement over least travel,
+maybe as an option; chose a tie-breaker that's always on plus a checkbox (**sym**) that forces
+it; then asked for a quick test by default and a thorough one with the box ticked, with
+dynamic time warping planned for later. Version **0.12.0**.
+
+- **Measured first** (round 10's probe): where both keys share a mirror axis, today's fix
+  already moved symmetrically (the demo, i into l: 0.0 %). Least travel and symmetry part
+  only on a tie between two mirror-image swirls: a star into itself turned 36 deg (79 %
+  asymmetric) and a plus into an x (89 %), where the symmetric match costs 4 % and 3 % more.
+  The leftover crossings of round 10 leave at most 0.03 % of the shape unfilled.
+- **Built:** `mirrorAxes` finds a key's axes (principal axes, or the directions to local
+  radius extremes for shapes with no main direction; refined by small turns; within 2 % of
+  its size; a circle is round). `symmetricStarts` gives the next key's starts that sit as far
+  from its pole as the previous key's does. `startPlan`: no crossover, then symmetry (within
+  20 % more squared travel, or always with **sym**), then least travel; a step that turns is
+  left to the swing. **sym**: every angle in 2 deg steps, twice the samples, within 4 %.
+- **What went wrong on the way:**
+  - "The in-between has a mirror axis" passed a swirl: a thin star swirling stays a symmetric
+    shape whose axes turn (18 -> 27 -> 36 deg). → Tests ask that the keys' shared axis is kept.
+  - Forcing switched an already symmetric morph to a costlier symmetric one (81.9 px for
+    56.8): the "already symmetric" match was too strict and "stay put" beat a cheaper start.
+    → Already symmetric within 2 grid steps counts; staying put needs the cheapest symmetric
+    start not to be 5 % cheaper.
+  - Snapping onto the symmetric start moved a hold's start (0.04 px of travel). → No snap.
+  - Speed-ups that dropped the plus's diagonal axes: only the strong radius extremes (its
+    upright axis runs through a weak one), and an 8 % first screen (its diagonal's candidate
+    started 3.3 deg off, at 9.9 %). → All local extremes, 24 at most; a 15 % screen.
+  - The thorough test found false axes 2-3 deg from a rounded square's true ones. → Refine to
+    convergence, and an axis within 4 deg of one found is the same one.
+- **Time** (Node, the demo, warm): 7.6 ms without symmetry, 9.7 with the quick test, 27.8
+  with **sym** (from 95 before screening the sweep on a quarter of the samples). Counted into
+  the estimate at ExtendScript's ~300x: +90 and +700 ms a key, not yet benched in AE.
+- `review/symmetry.png` (`art/symmetry.mjs`): the star and the plus swirl lopsided with least
+  travel and pulse evenly with symmetry; the thin plus rotates with least travel (graceful in
+  its own way), so it's left to **sym**.
+- **The T case:** a T into an upside-down T can't be both symmetric and crossing-free with
+  evenly spread points (its bar ends and stem swap places). It needs corner-to-corner
+  matching: README "Next: corner-to-corner matching (dynamic time warping)" is the plan.
+- Node 4,351 checks; the real-type set 148, unchanged. The AE test gains a symmetry step (AE's
+  own in-betweens keep the upright axis; the thin plus only with sym) and checks the panel's
+  **sym** box. **Not yet run in After Effects.** The guide is one line longer (27 lines,
+  measured 743 px at 26).

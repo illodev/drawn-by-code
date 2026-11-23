@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.11.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.12.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -34,8 +34,8 @@ file once and click **? › Update the panel**. If After Effects blocks the copy
 ## Run
 
 ```
-[Smooth ▾] max [100] [ ] turn [Fix] [?]        docked narrow:  [Smooth ▾] max [100] [ ] turn
-Fixed 1: 64 pts, 0.065 px                                        [Fix] [?]
+[Smooth ▾] max [100] [ ] turn [ ] sym [Fix] [?]    docked narrow:  [Smooth ▾] max [100] [ ] turn [ ] sym
+Fixed 1: 64 pts, 0.065 px                                            [Fix] [?]
 ```
 
 Select the keyed paths (or their groups, or whole layers) and click **Fix**. The status line
@@ -80,11 +80,13 @@ cancelling changes nothing.
 | **Exact** | | Your points stay where they are; the fixer only adds points by splitting curves where they lie, so every key is exact. In-betweens may show small kinks where a point's handles are uneven |
 | **max** | 100 | Smooth only: the most points per key. If a shape needs more to stay within 0.1 px, it stops there and the status says how close it got ("~0.76 px (max)"). Big or detailed artwork needs more: letters at 400 px landed 0.15–0.7 px off at 100; 200–300 brings them in |
 | **turn** | off | For shapes that turn between keys: points are matched as if the shape turned, and the shape swings round as a whole. The turn is written into the path as one key a frame along the arc, on shape layers and masks alike; no transform (group or layer) is keyed. Steps that don't turn stay put |
+| **sym** | off | Symmetry first. Shapes that share a mirror axis (a star into itself turned, a plus into an x, a heart into a circle) morph symmetrically, each side mirroring the other, even when another match travels less, and a more thorough test finds axes in shapes drawn a little unevenly. Off, symmetry still wins whenever it costs about the same (up to 20 % more squared travel) |
 
 Always on: every key is drawn in the same direction, and each key's start slides to where
 the morph from the previous key travels least. All else being equal, it takes a start that
 keeps the shape from crossing itself on the way (pinching into lobes or twisting a knot),
-and the report says when it did. The panel remembers its settings. With two
+then one that keeps it mirror-symmetric when both keys share a mirror axis, and the report
+says when it did either. The panel remembers its settings. With two
 or more keyframes selected on a path, only those are fixed. Undo puts everything back.
 Running it again on a fixed path leaves it alone ("already matched"); on a turned path it
 writes the same in-betweens again.
@@ -119,6 +121,19 @@ stay as they were.
   that untangles a into e, M into W and a step of the ten-letter chain for 0.1 % more travel
   (`review/crossover.png`: top, the least-travel start; below, the one taken). Keys drawn
   crossing themselves are left alone. A step no start untangles is named in the report.
+- **Symmetry:** each key's mirror axes are found from its samples. Quick (every fix): the
+  principal axes, or for a shape with no main direction (a star, a plus, a regular polygon)
+  the directions to every point locally nearest to or farthest from its centre (24 at most),
+  each refined by small turns and kept if the shape matches its mirror within 2 % of its size;
+  a circle is "round" (every axis). Thorough (**sym**): also every angle in 2 deg steps, twice
+  the samples, within 4 % (a hand-drawn star the quick test misses). When both keys have
+  axes of the same direction, the next key's start is read so that it sits as far from its
+  pole (where the axis meets the outline) as the previous key's start sits from its own:
+  then every point moves as the mirror of its partner. Least travel picks one of two
+  mirror-image swirls on a tie; the symmetric match cost 3–4 % more on a star turned 36 deg
+  and a plus into an x (`review/symmetry.png`). Rotational symmetry needs nothing: any start
+  keeps it. Order: no crossover, then symmetry, then least travel. A step that turns is
+  swung whole instead, which doesn't swirl.
 - **Rebuild:** points go at the same fractions of every key's outline (each key's corners
   pinned exactly, the rest spread evenly), every handle a third of the arc to its
   neighbour. After Effects blends each handle in a straight line, so a smooth point stays
@@ -181,15 +196,48 @@ What it doesn't do, and why; each is also said in the report when it happens.
 - **Crossover:** only the start is chosen against it, within 20 % more travel; a crossover
   that needs more, or one smaller than the 64-point check sees (O into C: a small twist as
   the C's gap opens, which no start avoids), stays. A key drawn in between fixes those.
+- **Symmetry:** only the start is chosen for it: points are still spread evenly along both
+  outlines, so a morph whose symmetric version would need them spread unevenly (a T into an
+  upside-down T: the bar ends would have to slide down onto the bar ends while the stem folds
+  away, but evenly spread they swap places with the stem and cross) stays as it is, and no
+  crossover outranks symmetry. Shapes whose axes point different ways (a T into a T turned
+  90 deg) can't share one. See "Next: corner-to-corner matching" below.
 - **Time:** the estimate runs high on small jobs (up to 4x) and close on long ones (within
-  10 % on 15–24 s jobs). The crossover check made Node about 14 % slower; not yet measured
-  inside After Effects. After Effects doesn't respond while a fix runs; Esc is read when the
+  10 % on 15–24 s jobs). The crossover and quick symmetry checks add a fixed cost per key
+  (about 0.3 ms in Node), the thorough one (sym) more (about 2.2 ms): counted into the
+  estimate at ExtendScript's ~300x (90 and 700 ms a key), not yet benched inside After
+  Effects. After Effects doesn't respond while a fix runs; Esc is read when the
   work checks in, so hold it.
 - **No progress bar.** A floating window a script opens stays stuck on screen for good if
   anyone clicks After Effects while the script keeps it busy (Windows' "not responding"
   stand-in puts it back, and no ScriptUI call removes it), so the fixer opens none while it
   works. The warning before a long fix gives the time instead.
 - After Effects stores path points as 32-bit floats (about 0.00004 px at these sizes).
+
+## Next: corner-to-corner matching (dynamic time warping)
+
+Planned, not built. Today the fixer chooses only where each key starts and then spreads the
+points evenly along both outlines. Matching features instead (a corner to a corner, a bar
+end to a bar end) and stretching the stretches between them would let morphs move the way
+a person would draw them: a T into an upside-down T whose bar slides down while the old
+stem folds into it and the new one grows, symmetric and without crossing, where even
+spreading crosses. Dynamic time warping finds that pairing: the cheapest monotone path
+through a table of "point i of one outline against point j of the other", which keeps the
+outline's order and lets either side wait while the other catches up.
+
+What it needs:
+
+- **The cost:** travel, plus a price for stretching (or the morph slides points along
+  straight edges for nothing) and for crossing over; corners paired with corners cheap.
+- **Chains of keys:** every key needs the same number of points. Pick them on the first key
+  and carry them through each step's pairing, so key 3's points come from key 2's, which
+  come from key 1's; the rebuild then lays points at each key's own fractions instead of
+  shared ones, and the handle ratios that keep in-betweens smooth need checking again.
+- **Time in After Effects:** a full table is 128 x 128 per start, too slow in ExtendScript.
+  A band around today's even match, tried only from the few best starts, keeps it near the
+  current cost.
+- **Tests:** the T and the upside-down T (symmetric, no crossover), the demo and the
+  real-type set (no worse travel, no new crossings), and a second run changing nothing.
 
 ## For the repo
 
@@ -198,13 +246,13 @@ What it doesn't do, and why; each is also said in the report when it happens.
 | `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
 | `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the turn into the group), report |
 | `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, the release (it leaves nothing on `$.global`), and `out/test-build/Mask Morph Fixer.jsx`, the same plus the exports the tests use; with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
-| `test.mjs` | 4,303 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `test.mjs` | 4,351 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js` |
 | `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
 | `ae-bridge.jsx` | A test runner that lives in After Effects for the session: send it once with `AfterFX.exe -ro`, then drop jobs into `out/ae/bridge/inbox/` |
 | `bench/ae-bench.jsx` | Times the fix inside AE on a grid of job sizes (`out/ae/bench.csv`): the data the time estimate is fitted to |
 | `bench/ghost-window.jsx`, `bench/window-watch.ps1` | Reproduce the window Windows strands on screen when AE is clicked while a script keeps it busy, watched from outside through Windows' own window list: why the fixer has no progress window |
-| `art/` | The real-artwork regression set. `ttf.mjs` reads letter outlines from the OFL fonts in the repo's `fonts/`; `cases.mjs` keys 20 cases the way a designer would (O into C, B into 8 pasted out of order, i into l, engraved letters of hundreds of points, a ten-key chain, turning letters, 24 px and 2000 px type); `test-art.mjs` runs them in Node (148 checks, `out/art/report.md`; no in-between crosses itself but O into C's small twist); `crossover.mjs` draws in-betweens with and without the crossover choice; `make-art.jsx` builds and fixes them inside AE through the panel's own code, plus two mask cases; `look.mjs` draws the glyphs to check the reader |
+| `art/` | The real-artwork regression set (and `symmetry.mjs`: built shapes that share a mirror axis, least travel against symmetric). `ttf.mjs` reads letter outlines from the OFL fonts in the repo's `fonts/`; `cases.mjs` keys 20 cases the way a designer would (O into C, B into 8 pasted out of order, i into l, engraved letters of hundreds of points, a ten-key chain, turning letters, 24 px and 2000 px type); `test-art.mjs` runs them in Node (148 checks, `out/art/report.md`; no in-between crosses itself but O into C's small twist); `crossover.mjs` draws in-betweens with and without the crossover choice; `make-art.jsx` builds and fixes them inside AE through the panel's own code, plus two mask cases; `look.mjs` draws the glyphs to check the reader |
 | `scene.js` | Engine preview of the After half, drawn the way AE interpolates the fixed keys |
 
 Testing inside After Effects (with the user's go-ahead: the demo opens a new project).

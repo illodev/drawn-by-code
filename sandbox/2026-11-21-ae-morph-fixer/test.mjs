@@ -380,6 +380,63 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
     check('mixed open/closed keys refused', threw);
 }
 
+// ---- symmetry: shapes sharing a mirror axis morph mirror-symmetrically ----------------------
+// Symmetric motion keeps the keys' shared axis in every in-between; a swirl keeps the shape
+// symmetric but turns its axes (a thin star: 18 -> 27 -> 36 deg), so the test asks for the axis.
+const polyPath = (pts) => ({ v: pts, i: pts.map(() => [0, 0]), o: pts.map(() => [0, 0]), closed: true });
+const turnPts = (pts, d) => { const a = d * Math.PI / 180; return pts.map(([x, y]) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)]); };
+const starPts = (n, R, r, rot) => { const p = []; for (let k = 0; k < 2 * n; k++) { const a = (rot - 90 + k * 180 / n) * Math.PI / 180, rr = k % 2 ? r : R; p.push([rr * Math.cos(a), rr * Math.sin(a)]); } return p; };
+const plusPts = (w, L, rot) => turnPts([[-w, -L], [w, -L], [w, -w], [L, -w], [L, w], [w, w], [w, L], [-w, L], [-w, w], [-L, w], [-L, -w], [-w, -w]], rot);
+// every in-between checked keeps a mirror axis at deg
+function keepsAxis(r, deg) {
+    const P = r.placed || r.paths;
+    return [0.2, 0.4, 0.6, 0.8].every((u) => {
+        const ax = MF.mirrorAxes(MF.lerp(P[0], P[1], u));
+        return ax === 'round' || ax.some((a) => { const d = Math.abs(a.phi * 180 / Math.PI - deg) % 180; return Math.min(d, 180 - d) < 2; });
+    });
+}
+{
+    // the axis finder
+    const star = polyPath(starPts(5, 150, 60, 0)), ax = MF.mirrorAxes(star).map((a) => Math.round(a.phi * 180 / Math.PI)).sort((a, b) => a - b);
+    check('symmetry: a star\'s five mirror axes found', ax.join() === '18,54,90,126,162', ax.join());
+    check('symmetry: a circle is round, a heart has one axis', MF.mirrorAxes(MD.shapes[0]) === 'round' && MF.mirrorAxes(MD.shapes[3]).length === 1, JSON.stringify(MF.mirrorAxes(MD.shapes[3])));
+    // a star drawn by hand (each point off by up to 3 % and 2 px): the quick test (every fix)
+    // finds no axis, the thorough one (sym ticked) finds its upright one
+    let s3 = 7;
+    const r3 = () => (s3 = (s3 * 16807) % 2147483647) / 2147483647, wob = [];
+    for (let k = 0; k < 10; k++) {
+        const a = (-90 + k * 36) * Math.PI / 180, rr = (k % 2 ? 60 : 150) * (1 + (r3() - 0.5) * 0.06);
+        wob.push([rr * Math.cos(a) + (r3() - 0.5) * 4, rr * Math.sin(a) + (r3() - 0.5) * 4]);
+    }
+    const quickW = MF.mirrorAxes(polyPath(wob)), thoroughW = MF.mirrorAxes(polyPath(wob), true);
+    check('symmetry: a hand-drawn star: no axis quick, its upright one thorough (sym)', quickW.length === 0 && thoroughW.some((a) => Math.abs(a.phi * 180 / Math.PI - 90) < 2),
+        thoroughW.map((a) => (a.phi * 180 / Math.PI).toFixed(1)).join('/'));
+    // the thorough test finds no false axes near the true ones (a rounded square's rise slowly)
+    const rsq = MF.mirrorAxes(MD.shapes[2], true).map((a) => Math.round(a.phi * 180 / Math.PI) % 180).sort((a, b) => a - b);
+    check('symmetry: a rounded square has exactly its four axes, thorough too', rsq.join() === '0,45,90,135', rsq.join());
+    const cases = [
+        ['star into the same star turned 36 deg', [star, polyPath(starPts(5, 150, 60, 36))], 1.1],
+        ['plus into x', [polyPath(plusPts(30, 140, 0)), polyPath(plusPts(30, 140, 45))], 1.1],
+    ];
+    for (const [name, keys, most] of cases) {
+        const least = MF.fix(keys, { symmetry: false }), r = verify('symmetry ' + name, keys, {}).r;
+        check(`symmetry: ${name}: least travel swirls (its axis turns)`, !keepsAxis(least, 90));
+        check(`symmetry: ${name}: kept mirror-symmetric about the shared axis, and said`, keepsAxis(r, 90) && r.keys[1].symmetric);
+        check(`symmetry: ${name}: for little more travel`, r.keys[1].after <= least.keys[1].after * most, `${least.keys[1].after.toFixed(1)} -> ${r.keys[1].after.toFixed(1)} px`);
+        console.log(`symmetry: ${name}: travel ${least.keys[1].after.toFixed(1)} -> ${r.keys[1].after.toFixed(1)} px, mirror-symmetric`);
+    }
+    // costlier: the default keeps least travel, the option (sym) takes symmetry anyway
+    const plus20 = [polyPath(plusPts(20, 150, 0)), polyPath(plusPts(20, 150, 45))];
+    const dflt = MF.fix(plus20, {}), forced = verify('symmetry forced', plus20, { symmetry: 'force' }).r;
+    check('symmetry: when it costs more than about the same, only the option takes it', !dflt.keys[1].symmetric && !keepsAxis(dflt, 90) && forced.keys[1].symmetric && keepsAxis(forced, 90),
+        `${dflt.keys[1].after.toFixed(1)} -> ${forced.keys[1].after.toFixed(1)} px`);
+    // already symmetric: left as least travel found it, nothing reported
+    const sp = MF.fix([star, polyPath(starPts(5, 110, 110 * Math.cos(Math.PI / 5), 36))], {});
+    check('symmetry: a morph already symmetric is left alone', keepsAxis(sp, 90) && !sp.keys[1].symmetric);
+    const demo = MF.fix(MD.keys.map(([, s]) => MD.shapes[s]), { maxPoints: MD.maxPoints });
+    check('symmetry: the demo (all sharing the upright axis) is mirror-symmetric throughout', demo.paths.every((P, k) => !k || keepsAxis({ paths: [demo.paths[k - 1], P] }, 90)));
+}
+
 // ---- the After Effects half, against a mock path property ---------------------------------
 {
     class Shape {
@@ -414,7 +471,7 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
     check('estimate: grows with points, saturates at the max, Exact cheaper, turn dearer',
         ms(4, {}) < ms(16, {}) && ms(16, {}) < ms(60, {}) && ms(60, {}) === ms(200, {}) && ms(60, { maxPoints: 24 }) < ms(60, {}) &&
         ms(60, { mode: 'exact' }) < ms(60, {}) / 5 && ms(16, { rotate: true }) > ms(16, {}));
-    check('guide: explains every setting', ['Smooth', 'Exact', 'max', 'turn'].every((s) => FX.guide.settings.some(([n]) => n === s)));
+    check('guide: explains every setting', ['Smooth', 'Exact', 'max', 'turn', 'sym'].every((s) => FX.guide.settings.some(([n]) => n === s)));
     check('guide: three steps', FX.guide.steps.length === 3);
     check('guide: no jargon', !/procrustes|tangent|vertex|vertices|interpolat|RMS|bezier split|fraction/i.test(FX.info), FX.info);
     const wrapped = FX.wrap(FX.guide.settings[3][1], 58);
@@ -484,6 +541,11 @@ console.log(`${TRIALS} random morphs (1 in 6 rebuilt): worst shape change ${wors
     const noX = FX.fix(mockPath(artKeys('a into e')), { crossover: false });
     check('crossover: without the check, a into e keeps the start that travels least', noX.untangled === 0, FX.summary(noX));
     console.log('crossover: ' + FX.summary(rep));
+    // symmetry in the report, and the panel's option passed through
+    rep = FX.fix(mockPath([polyPath(starPts(5, 150, 60, 0)), polyPath(starPts(5, 150, 60, 36))]));
+    check('symmetry: the report says a start was chosen so it morphs symmetrically', rep.symmetric === 1 && /1 start chosen so it morphs symmetrically/.test(FX.summary(rep)), FX.summary(rep));
+    const p20 = [polyPath(plusPts(20, 150, 0)), polyPath(plusPts(20, 150, 45))];
+    check('symmetry: the option forces it (sym ticked)', FX.fix(mockPath(p20)).symmetric === 0 && FX.fix(mockPath(p20), { symmetry: 'force' }).symmetric === 1);
     const said = FX.summary({ label: 'L', keys: 3, from: '4', to: '64', reversed: 0, moved: 0, untangled: 0, crossing: ['2-3'], mode: 'smooth', deviation: 0.05, scale: 1 });
     check('crossover: a step no start untangles is named', /still crosses itself between keys 2-3 \(no start avoids it; a key drawn in between can\)/.test(said), said);
 

@@ -345,11 +345,58 @@
             check('turn: fixed again, the in-betweens are replaced by the same', again.removed === rep.baked && again.baked === rep.baked &&
                 tp.numKeys === D.turn.keys.length + rep.baked && dm < 0.01, MFx.summary(again) + ' · halfway moved ' + dm + ' px');
         });
+        step('symmetry', function () {
+            // a star into itself turned 36 deg: least travel swirls one way, the fix keeps the morph
+            // mirror-symmetric about the upright axis both keys share; a plus into an x with thin
+            // arms costs more than about the same, so only the sym option takes it
+            function starV(rot) {
+                var v = [];
+                for (var k = 0; k < 10; k++) {
+                    var a = (rot - 90 + k * 36) * Math.PI / 180, rr = k % 2 ? 60 : 150;
+                    v.push([200 + rr * Math.cos(a), 200 + rr * Math.sin(a)]);
+                }
+                return v;
+            }
+            function plusV(rot) {
+                var base = [[-20, -150], [20, -150], [20, -20], [150, -20], [150, 20], [20, 20], [20, 150], [-20, 150], [-20, 20], [-150, 20], [-150, -20], [-20, -20]];
+                var a = rot * Math.PI / 180, v = [];
+                for (var k = 0; k < base.length; k++) v.push([200 + base[k][0] * Math.cos(a) - base[k][1] * Math.sin(a), 200 + base[k][0] * Math.sin(a) + base[k][1] * Math.cos(a)]);
+                return v;
+            }
+            var sc = app.project.items.addComp('Symmetry test', 400, 400, 1, 2, 24);
+            function keyed(a, b) {
+                var L = sc.layers.addShape();
+                L.property('ADBE Root Vectors Group').addProperty('ADBE Vector Shape - Group');
+                var p = L.property('ADBE Root Vectors Group').property(1).property('ADBE Vector Shape');
+                var s0 = new Shape(), s1 = new Shape();
+                s0.vertices = a;
+                s0.closed = true;
+                s1.vertices = b;
+                s1.closed = true;
+                p.setValueAtTime(0, s0);
+                p.setValueAtTime(1, s1);
+                return p;
+            }
+            // After Effects' own in-betweens keep a mirror axis at 90 deg
+            function upright(p) {
+                for (var i = 1; i < 5; i++) {
+                    var ax = MFm.mirrorAxes(MFx.toMF(p.valueAtTime(i * 0.2, false))), has = ax === 'round';
+                    for (var j = 0; !has && j < ax.length; j++) has = Math.abs(ax[j].phi * 180 / Math.PI - 90) < 2;
+                    if (!has) return false;
+                }
+                return true;
+            }
+            var p1 = keyed(starV(0), starV(36)), r1 = MFx.fix(p1, { maxPoints: 100 });
+            check('symmetry: a star into itself turned 36 deg morphs mirror-symmetrically', r1.symmetric === 1 && upright(p1), MFx.summary(r1));
+            var p2 = keyed(plusV(0), plusV(45)), r2 = MFx.fix(p2, { maxPoints: 100 });
+            var p3 = keyed(plusV(0), plusV(45)), r3 = MFx.fix(p3, { maxPoints: 100, symmetry: 'force' });
+            check('symmetry: a thin plus into an x: only the sym option makes it symmetric', r2.symmetric === 0 && !upright(p2) && r3.symmetric === 1 && upright(p3), MFx.summary(r3));
+        });
         step('panel', function () {
             // the real panel (a palette here), clicked through on fresh copies of Before; the
             // controls are set directly, not through their onChange (which saves the settings)
             var w = MFx.buildUI(null), c = w.controls, runs = [['Smooth', 0, '100'], ['Smooth, max 24', 0, '24'], ['Exact', 1, '100']];
-            check('panel: one row (mode, max, Fix, ?) and a status line', c.mode && c.max && c.fix && c.info && c.status && c.mode.items.length === 2,
+            check('panel: one row (mode, max, turn, sym, Fix, ?) and a status line', c.mode && c.max && c.turn && c.sym && c.fix && c.info && c.status && c.mode.items.length === 2,
                 'width ' + w.size.width + ' x ' + w.size.height + ' px');
             for (var r = 0; r < runs.length; r++) {
                 comp.openInViewer();

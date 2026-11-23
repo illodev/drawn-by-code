@@ -539,6 +539,18 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   the outline. A sampled heuristic that steers a choice must also survive a second run: pick
   with a margin (crossing-free neighbours), and let "is it already fixed?" keep the current
   choice on a tie, or sampling noise makes a second fix change the path.
+- 2026-11-23 · ae-morph-fixer · Test the motion you want, not a shape property that looks like
+  it. "The in-between is mirror-symmetric" passed a swirl: a thin star swirling stays a
+  symmetric shape whose axes turn. Symmetric motion keeps the keys' shared axis in every
+  in-between, and the test asks for that axis.
+- 2026-11-23 · ae-morph-fixer · Split an expensive detector into tiers by intent: a quick, strict
+  test on every fix (here 25 % more time), a thorough, looser one when the user asks for the
+  feature (3.6x). Then check each speed-up against the cases it might drop: two of them lost
+  a plus's axes before a test caught it.
+- 2026-11-23 · ae-morph-fixer · What a start choice can't do is a limit to write down, with the
+  way past it. Evenly spread points can't make a T into an upside-down T symmetric without
+  crossing; corner-to-corner matching (dynamic time warping) can, and it's planned in the
+  morph fixer's README rather than half-built.
 - 2026-11-22 · ae-morph-fixer · A test harness left running in the user's AE is a bug the user
   sees: the morph fixer's runner fired during a dialog and wedged AE after the work was done.
   Stop every runner when the tests end, and give it an idle timeout in case you forget.
