@@ -652,9 +652,9 @@ Tableau.lemons.hole = 290;
 // with only slivers of night. The rest keeps out of a core whose edge is ragged with angle
 // and depth (175–385 from the axis, `edge`), densest just outside it: never a circle.
 // Each piece comes out of the night only through the guitar's mouth: its `far` starts when the
-// guitar is 600 away (later for a piece that is still seen round the guitar's body then: it
-// fades in once the body hides it) and it is whole a third of that distance later, so the tree
-// never glows behind the emblem.
+// guitar is 2200 away (later for a piece that is still seen round the guitar's body then: it
+// fades in once the body hides it) and it is whole at 0.55 of that distance, so the tree never
+// glows behind the emblem and never pops in.
 // The brush manner (no contour); the sun comes through in patches painted into every piece
 // from one map in the stratum's coordinates (`dapple`), so all the pieces share one light;
 // what is far behind takes the tree's blue-green air.
@@ -988,14 +988,17 @@ Tableau.lemons.loose = (z0, o = {}) => {
     const farOf = (cx, cy, e, dz) => {
         const D = GZ + dz;
         let d1 = 70;
-        for (let d = 1800; d >= 70; d -= 10) {
+        for (let d = 2400; d >= 70; d -= 10) {
             const k = d / (d + D), x = cx * k, y = cy * k;
             if (inBody(x, y) && toEdge(x, y) >= e * k + 6) {
                 d1 = d;
                 break;
             }
         }
-        const d0 = Math.max(75, Math.min(d1, 600)), dE = Math.max(66, d0 * 0.67);
+        // (round 8, the user: «the lemons spawn all of a sudden»: from 600 to 400 the whole
+        // mouthful came in within a fifth of a second; seen only through the mouth, a piece
+        // can come out of the night from far off and slowly: from 2200 to 1200)
+        const d0 = Math.max(75, Math.min(d1, 2200)), dE = Math.max(66, d0 * 0.55);
         return [1000 / (d0 + D), 1000 / (dE + D)];
     };
     // a piece: `draw(P, g)` paints it at (cx, cy) in the stratum, in its local units (translated

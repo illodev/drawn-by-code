@@ -80,15 +80,14 @@ Motion.scene({
             ...piecesOf(Tableau.emblem, ZG).map((l) => (l.loose ? far(l) : { far: [0.16, 0.3], ...l })),
             ...piecesOf(Tableau.lemons, ZL).map((l) => ({ ...far(l), brush: false })),
         ];
-        // The second passage: one slab of loose things for each world. None shows before the
-        // camera is past the guitar (seen through its mouth, the lemons are what fills it).
+        // The second passage: one slab of loose things for each world. None comes out of the
+        // night before the camera is at the guitar's mouth (through it, only the lemons).
         WORLDS.forEach((name, i) => {
-            for (const l of piecesOf(Tableau[name], ZS + i * STEP).map(far)) layers.push({ ...l, far: [Math.max(l.far[0], 1000 / (l.z - ZG + 600)), Math.max(l.far[1], 1000 / (l.z - ZG - 300))] });
+            for (const l of piecesOf(Tableau[name], ZS + i * STEP).map(far)) layers.push({ ...l, far: [Math.max(l.far[0], 1000 / (l.z - ZG)), Math.max(l.far[1], 1000 / (l.z - ZG - 900))] });
         });
         // The moon and her sky (the forge's own, the last thing of its world): MOON times
         // farther and painted that much larger (the same pixels: `res` goes down as the box
-        // goes up), kept sharp (they are too far for this lens to blur), out of the night as
-        // soon as the lemon tree is. The sky has no edges: it thins into the night all round
+        // goes up), kept sharp (they are too far for this lens to blur). The sky has no edges: it thins into the night all round
         // (a rectangle of sky would be a frame, and the camera rolls).
         const { away, m: MOON } = moon();
         const rear = (l, back, show, grow = 1, fade = null) => {
@@ -116,7 +115,9 @@ Motion.scene({
             };
         };
         const forge = Tableau.forge(0);
-        layers.push(rear(forge.find((l) => l.id === 'forge-moon'), 0, [ZL - 2800, ZL - 1900]), rear(forge.find((l) => l.id === 'forge-sky'), 400, [ZL - 2900, ZL - 2000], 1.6, 0.55));
+        // (she comes out once the camera is through the guitar, among the lemons: seen through
+        // the guitar's mouth before them, she was the user's «the moon shows from the guitar»)
+        layers.push(rear(forge.find((l) => l.id === 'forge-moon'), 0, [ZG + 100, ZG + 900]), rear(forge.find((l) => l.id === 'forge-sky'), 400, [ZG, ZG + 900], 1.6, 0.55));
         // The signature, lettered under the moon in the film's own letter (the ribbon's), on
         // her layer's scale: it comes up as the last world leaves the frame, and the roll ends
         // level, so it lands straight.
