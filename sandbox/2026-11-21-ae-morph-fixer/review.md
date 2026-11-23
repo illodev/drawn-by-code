@@ -161,7 +161,7 @@ installs). Mac and older versions wait. Version **0.9.0**.
 - **Theme:** AE 27 retired `app.themeColor` ("Use getAppTheme, getUseReducedContrast, and
   getAllowedAppThemes"). They are properties, not functions: `app.getAppTheme` is `light`,
   `dark` or `darkest` (the user's: darkest, reduced contrast on). Headings are black on
-  Light, white otherwise; the body keeps AE's own colour. Not yet looked at in Light.
+  Light, white otherwise; the body keeps AE's own colour. Looked at in Light below.
 - **Warnings:** before fixing it lists what the fix would break, and asks. That means path
   operators and stroke features after the path in its group or any group above it (Trim
   Paths, dashes, taper, wave, Zig Zag, Pucker & Bloat, Wiggle Paths). It also covers text on
@@ -194,5 +194,11 @@ installs). Mac and older versions wait. Version **0.9.0**.
 - **Launch checklist:** a private page that saves its own ticks (`artifact` capability). It
   has 41 steps in six phases, marked You / Claude / Both; 11 are done.
 
-**Not yet seen by the user** in this form. Open: Mac, the Light theme by eye, real artwork,
+**Not yet seen by the user** in this form. Open: Mac, real artwork,
 letters with holes, turning masks, a progress bar with Cancel.
+
+**Light theme, looked at** (the user's go-ahead): AE 27 switched to Light, then back to
+Darkest with Accessible color contrast off, as it was. In Light the docked panel, the guide
+and the warning follow AE's colours, with headings black over AE's grey text
+(`review/guide-light.jpg`, `review/warning-light.jpg`). The theme switch also stopped the
+test runner: tasks from `app.scheduleTask` don't survive it, so its last two jobs never ran.

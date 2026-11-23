@@ -201,7 +201,8 @@ that AE runs wrong.
   `app.scheduleTask(…, 1000, true)`, runs each `*.jsx` job there with `$.evalFile` in a
   `try`, and writes `<job>.status.txt`. No later test goes through `-r`, so none can hit
   the "second script" dialog. A cold `AfterFX.exe -r` (no AE running) runs the script and
-  then **quits AE**: start AE first. Jobs close only an empty untitled project or one saved
+  then **quits AE**: start AE first. Changing AE's theme (Preferences ›
+  Appearance) drops tasks from `app.scheduleTask`: send the runner again after it. Jobs close only an empty untitled project or one saved
   under `out/`, and tests save their projects there.
 - To click AE's own UI with computer use, bring it forward with a job that calls
   `app.activate()`: `open_application` sometimes leaves the desktop shell in front.
