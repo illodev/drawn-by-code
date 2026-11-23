@@ -849,15 +849,52 @@ const Souvenir = (() => {
         const D = o.D ?? 1000, over = o.oversample ?? 1.12;
         const order = layers.slice().sort((a, b) => b.z - a.z);
         const cv = new Map();
+        // A loose piece (`loose`) is cut to its paint: its box only says where to paint it,
+        // and what it covers on screen is what it painted (with two pixels of margin).
+        const trim = (ly, c, res) => {
+            const w = c.width, h = c.height, d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+            let x0 = w, y0 = h, x1 = -1, y1 = -1;
+            for (let y = 0; y < h; y++) {
+                const row = y * w * 4;
+                for (let x = 0; x < w; x++) {
+                    if (d[row + x * 4 + 3] > 2) {
+                        if (x < x0) x0 = x;
+                        if (x > x1) x1 = x;
+                        if (y < y0) y0 = y;
+                        y1 = y;
+                    }
+                }
+            }
+            if (x1 < 0) {
+                ly.trimmed = { x: ly.box.x, y: ly.box.y, w: 1 / res, h: 1 / res };
+                const e = document.createElement('canvas');
+                e.width = e.height = 1;
+                return e;
+            }
+            // paint that reaches the box's edge was cut by it: the box is too small
+            if (x0 === 0 || y0 === 0 || x1 === w - 1 || y1 === h - 1) console.warn(`souvenir: loose layer ${ly.id} touches its box (widen it)`);
+            x0 = Math.max(0, x0 - 2);
+            y0 = Math.max(0, y0 - 2);
+            x1 = Math.min(w - 1, x1 + 2);
+            y1 = Math.min(h - 1, y1 + 2);
+            const o = document.createElement('canvas');
+            o.width = x1 - x0 + 1;
+            o.height = y1 - y0 + 1;
+            o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+            c.width = c.height = 0;
+            ly.trimmed = { x: ly.box.x + x0 / res, y: ly.box.y + y0 / res, w: o.width / res, h: o.height / res };
+            return o;
+        };
         const canvasOf = (ly) => {
             if (!cv.has(ly.id)) {
                 const res = env.k * over * (ly.res ?? 1);
-                const c = document.createElement('canvas');
+                let c = document.createElement('canvas');
                 c.width = Math.max(1, Math.ceil(ly.box.w * res));
                 c.height = Math.max(1, Math.ceil(ly.box.h * res));
                 const g = c.getContext('2d');
                 g.setTransform(res, 0, 0, res, -ly.box.x * res, -ly.box.y * res);
                 ly.paint(g, res);
+                if (ly.loose) c = trim(ly, c, res);
                 // the hand in the paint, unless the layer has its own (the brush manner does)
                 if (ly.brush !== false && (o.brush ?? true)) brushwork(c, { seed: seedOf(ly.id), k: env.k, ...(typeof ly.brush === 'object' ? ly.brush : {}) });
                 cv.set(ly.id, c);
@@ -895,6 +932,21 @@ const Souvenir = (() => {
         const tmp = document.createElement('canvas');
         const tg = tmp.getContext('2d');
         const W = env.W, H = env.H, diag = Math.hypot(W, H) / 2;
+        // A loose piece floats: it turns slowly on itself, sways and drifts a little, each at
+        // its own rates (from its id), about the middle of its paint. `loose` may be true or
+        // { spin (rad/s), sway (rad), bob (units), turn (a fixed angle) } to set any of them.
+        const poseOf = (ly, t) => {
+            if (!ly.loose) return null;
+            const f = typeof ly.loose === 'object' ? ly.loose : {}, sd = seedOf(ly.id), h = (i) => hashI(i, 7, 3, sd), TAU = Math.PI * 2;
+            const spin = f.spin ?? (h(1) < 0.5 ? -1 : 1) * (0.03 + 0.06 * h(2));
+            const sway = f.sway ?? 0.03 + 0.05 * h(3), bob = f.bob ?? 5 + 10 * h(4);
+            const a = (f.turn ?? 0) + spin * t + sway * Math.sin((TAU * t) / (5 + 4 * h(5)) + TAU * h(8));
+            const bb = ly.trimmed ?? ly.box;
+            return {
+                a, dx: bob * Math.sin((TAU * t) / (6 + 5 * h(6)) + TAU * h(9)), dy: bob * 0.8 * Math.cos((TAU * t) / (7 + 5 * h(7)) + TAU * h(10)),
+                px: bb.x + bb.w / 2, py: bb.y + bb.h / 2,
+            };
+        };
         // how far from the axis a layer reaches (what is off the frame does not count)
         const reachOf = (ly) => Math.min(diag, Math.max(Math.hypot(ly.box.x, ly.box.y), Math.hypot(ly.box.x + ly.box.w, ly.box.y), Math.hypot(ly.box.x, ly.box.y + ly.box.h), Math.hypot(ly.box.x + ly.box.w, ly.box.y + ly.box.h)));
 
@@ -916,14 +968,14 @@ const Souvenir = (() => {
                 // is any of it in the frame?
                 const bx = (ly.box.x - cx) * s, by = (ly.box.y - cy) * s, bw = ly.box.w * s, bh = ly.box.h * s;
                 const reach = Math.hypot(bw, bh);
-                if (!roll && (bx > W / 2 || by > H / 2 || bx + bw < -W / 2 || by + bh < -H / 2)) continue;
-                if (roll && Math.hypot(bx + bw / 2, by + bh / 2) - reach / 2 > diag) continue;
+                if (!roll && !ly.loose && (bx > W / 2 || by > H / 2 || bx + bw < -W / 2 || by + bh < -H / 2)) continue;
+                if ((roll || ly.loose) && Math.hypot(bx + bw / 2, by + bh / 2) - reach * 0.58 - (ly.loose ? 20 * s : 0) > diag) continue;
                 // it fades as the camera goes through it, and (if asked) while it is still a speck
                 const fade = smooth(D * 0.03, D * 0.085, d) * (ly.alpha ?? 1) * (ly.far ? smooth(ly.far[0], ly.far[1], s) : 1);
                 if (fade <= 0.003) continue;
                 const gap = dz > 0 && d > dz ? Math.abs(D / (d - dz / 2) - D / (d + dz / 2)) * reachOf(ly) * k : 0;
                 const bpx = Math.hypot(ap * Math.abs(s - sF) * (ly.blur ?? 1) * k, Math.max(0, gap - 1.5) * 0.5);
-                const levels = levelsOf(ly), res = resOf(ly);
+                const levels = levelsOf(ly), res = resOf(ly), bb = ly.trimmed ?? ly.box, pose = poseOf(ly, cam.t ?? 0);
                 // the level whose pixels land nearest one to one (never much smaller: bilinear
                 // sampling below about 0.6 skips pixels)
                 const place = (q, kq) => {
@@ -933,7 +985,31 @@ const Souvenir = (() => {
                     q.rotate(roll);
                     q.scale(s, s);
                     q.translate(-cx, -cy);
-                    q.drawImage(c, ly.box.x, ly.box.y, c.width * u, c.height * u);
+                    if (pose) {
+                        q.translate(pose.px + pose.dx, pose.py + pose.dy);
+                        q.rotate(pose.a);
+                        q.translate(-pose.px, -pose.py);
+                    }
+                    q.drawImage(c, bb.x, bb.y, c.width * u, c.height * u);
+                };
+                // where it lands on the frame, in logical units (its four corners carried through
+                // its own pose, the camera's scale and the roll)
+                const onScreen = () => {
+                    const cr = Math.cos(roll), sr = Math.sin(roll), ca = pose ? Math.cos(pose.a) : 1, sa = pose ? Math.sin(pose.a) : 0;
+                    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+                    for (const [X, Y] of [[bb.x, bb.y], [bb.x + bb.w, bb.y], [bb.x, bb.y + bb.h], [bb.x + bb.w, bb.y + bb.h]]) {
+                        let x = X, y = Y;
+                        if (pose) {
+                            x = pose.px + pose.dx + ca * (X - pose.px) - sa * (Y - pose.py);
+                            y = pose.py + pose.dy + sa * (X - pose.px) + ca * (Y - pose.py);
+                        }
+                        const u = (x - cx) * s, v = (y - cy) * s, sx = W / 2 + cr * u - sr * v, sy = H / 2 + sr * u + cr * v;
+                        x0 = Math.min(x0, sx);
+                        y0 = Math.min(y0, sy);
+                        x1 = Math.max(x1, sx);
+                        y1 = Math.max(y1, sy);
+                    }
+                    return [x0, y0, x1, y1];
                 };
                 g.save();
                 g.globalAlpha = fade;
@@ -944,9 +1020,19 @@ const Souvenir = (() => {
                     // copy whatever its width: enough that halving the copy does not show, and
                     // the copy sits on a fixed grid of the output (a whole number of its own
                     // pixels of margin), so nothing shifts when the margin changes.
+                    // Only the part of the frame the layer covers is worked on (a small piece costs
+                    // what it covers, not the whole frame), on the same fixed grid.
                     const sh = Math.max(0, Math.min(5, Math.floor(Math.log2(bpx / 3))));
                     const q = 1 / (1 << sh), pad = Math.ceil(bpx * q * 2.6);
-                    const tw = Math.ceil(env.px[0] * q) + pad * 2, th = Math.ceil(env.px[1] * q) + pad * 2;
+                    const [sx0, sy0, sx1, sy1] = onScreen();
+                    const X0 = Math.max(0, sx0 * k), Y0 = Math.max(0, sy0 * k), X1 = Math.min(env.px[0], sx1 * k), Y1 = Math.min(env.px[1], sy1 * k);
+                    const spread = bpx * 2.6; // how far its blur reaches, in pixels
+                    if (sx1 * k < -spread || sy1 * k < -spread || sx0 * k > env.px[0] + spread || sy0 * k > env.px[1] + spread) {
+                        g.restore();
+                        continue;
+                    }
+                    const ix0 = Math.floor(X0 * q) - pad, iy0 = Math.floor(Y0 * q) - pad;
+                    const tw = Math.max(1, Math.ceil(X1 * q) + pad - ix0), th = Math.max(1, Math.ceil(Y1 * q) + pad - iy0);
                     if (tmp.width < tw || tmp.height < th) {
                         tmp.width = Math.max(tmp.width, tw);
                         tmp.height = Math.max(tmp.height, th);
@@ -959,11 +1045,11 @@ const Souvenir = (() => {
                     tg.rect(0, 0, tw, th);
                     tg.clip();
                     tg.filter = `blur(${(bpx * q).toFixed(3)}px)`;
-                    tg.setTransform(k * q, 0, 0, k * q, pad, pad);
+                    tg.setTransform(k * q, 0, 0, k * q, -ix0, -iy0);
                     place(tg, k * q);
                     tg.restore();
                     g.imageSmoothingQuality = 'high';
-                    g.drawImage(tmp, 0, 0, tw, th, -pad / (k * q), -pad / (k * q), tw / (k * q), th / (k * q));
+                    g.drawImage(tmp, 0, 0, tw, th, ix0 / (k * q), iy0 / (k * q), tw / (k * q), th / (k * q));
                 }
                 g.restore();
             }
@@ -990,7 +1076,7 @@ const Souvenir = (() => {
             if (n === 1) {
                 g.fillStyle = bg;
                 g.fillRect(0, 0, W, H);
-                still(g, m);
+                still(g, { ...m, t });
                 return n;
             }
             for (const c of [sub, acc]) {
@@ -1007,7 +1093,8 @@ const Souvenir = (() => {
                 sg.filter = 'none';
                 sg.fillStyle = bg;
                 sg.fillRect(0, 0, W, H);
-                still(sg, camAt(t - dt / 2 + (dt * (i + 0.5)) / n), motion);
+                const ti = t - dt / 2 + (dt * (i + 0.5)) / n;
+                still(sg, { ...camAt(ti), t: ti }, motion);
                 ag.globalAlpha = 1 / (i + 1);
                 ag.drawImage(sub, 0, 0);
             }
@@ -1015,6 +1102,56 @@ const Souvenir = (() => {
             return n;
         }
         return { still, draw, canvasOf, D };
+    }
+
+    // A flight down the axis that keeps gathering speed and turning. The speed grows by the
+    // same ratio every second from v0 (so every stretch feels quicker than the one before),
+    // reaches vmax as the camera passes depth `peakAt`, and then, over the last `hold`
+    // seconds, eases down at `fall` per second to land on what the flight was going to. The
+    // camera rolls on its axis `turns` whole turns over the flight (a whole number: it lands
+    // level), slowly at first and faster as it goes faster (`bank` > 1 holds the roll back at
+    // the start), so that the roll is part of the speed. Everything is a table made once.
+    //   const F = flight({ start, v0, vmax, peakAt, hold });
+    //   F.at(t) → { z, focus, aperture, roll }; F.length; F.tOf(z) (when the camera is at z);
+    //   F.speed(t)
+    function flight({ start, v0, vmax, peakAt, hold, fall = 0.55, soft = 0.5, turns = 1, bank = 1.3, focus = 1000, aperture = 10, step = 1 / 480 }) {
+        const sp = (x) => (x > 30 ? x : Math.log1p(Math.exp(x)));
+        const speedOf = (k, tp) => (t) => v0 * Math.exp(k * t - (k + fall) * soft * sp((t - tp) / soft));
+        const run = (k, tp, until) => {
+            const v = speedOf(k, tp), z = [start];
+            for (let i = 1; i * step <= until + step; i++) z.push(z[i - 1] + ((v((i - 1) * step) + v(i * step)) / 2) * step);
+            return z;
+        };
+        // the rise that brings the camera to peakAt just as it reaches vmax
+        let lo = 1e-4, hi = 5;
+        for (let it = 0; it < 60; it++) {
+            const k = (lo + hi) / 2, tp = Math.log(vmax / v0) / k, z = run(k, tp, tp);
+            if (z[Math.round(tp / step)] > peakAt) lo = k;
+            else hi = k;
+        }
+        const k = (lo + hi) / 2, tp = Math.log(vmax / v0) / k, length = tp + hold;
+        const Z = run(k, tp, length), speed = speedOf(k, tp), z1 = Z[Z.length - 1];
+        const zAt = (t) => {
+            const f = Math.max(0, Math.min(Z.length - 1.001, t / step)), i = Math.floor(f);
+            return Z[i] + (Z[i + 1] - Z[i]) * (f - i);
+        };
+        const rollAt = (z) => turns * Math.PI * 2 * Math.pow(Math.max(0, Math.min(1, (z - start) / (z1 - start))), bank);
+        const at = (t) => {
+            const z = zAt(t);
+            return { z, focus: z + focus, aperture, roll: rollAt(z) };
+        };
+        const tOf = (z) => {
+            let a = 0, b = Z.length - 1;
+            if (z <= Z[0]) return 0;
+            if (z >= Z[b]) return b * step;
+            while (b - a > 1) {
+                const m = (a + b) >> 1;
+                if (Z[m] < z) a = m;
+                else b = m;
+            }
+            return (a + (z - Z[a]) / (Z[b] - Z[a])) * step;
+        };
+        return { at, tOf, zAt, speed, length, peak: tp, end: z1 };
     }
 
     // A camera track: keys [[t, v], …] joined by a monotone cubic (it never overshoots a key,
@@ -1118,5 +1255,5 @@ const Souvenir = (() => {
         ctx.restore();
     }
 
-    return { hex2rgb, rgb2hex, mix, rgba, clamp, smooth, lerp, hashI, noise3, noise2, seedOf, curve, trace, bbox, xf, ellipse, pxScale, edt, boxBlur, inflate, rampFn, form, put, dab, cast, spray, piece, ink, textOn, frame, sheet, sprayIn, stamp, reliefField, tooth, brushwork, rig, track, finish, LIGHT, lightFor, INK, SHADE_DIR };
+    return { hex2rgb, rgb2hex, mix, rgba, clamp, smooth, lerp, hashI, noise3, noise2, seedOf, curve, trace, bbox, xf, ellipse, pxScale, edt, boxBlur, inflate, rampFn, form, put, dab, cast, spray, piece, ink, textOn, frame, sheet, sprayIn, stamp, reliefField, tooth, brushwork, rig, flight, track, finish, LIGHT, lightFor, INK, SHADE_DIR };
 })();

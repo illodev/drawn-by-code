@@ -41,7 +41,7 @@ side (`S.spray`), `line` is the contour (blue-black `S.INK`, heavier on the shad
 `cast` its shadow on the pieces under it. `S.ink` a brush-pen line; `S.textOn` lettering
 along a curve; `S.tooth(g, box)` the board's grain, last, on each layer.
 
-**The dive: `S.rig(env, layers)`** with `layers: [{ id, z, box, paint(g, res), hole? }]`. A
+**The dive: `S.rig(env, layers)`** with `layers: [{ id, z, box, paint(g, res), hole?, loose? }]`. A
 layer `D` (1000) away from the camera is drawn at its painted size, origin at the frame's
 centre; nearer ones grow as `D / distance`. `rig.draw(g, t, camAt, { bg })` with
 `camAt(t) → { z, focus, aperture, roll }`: blur = aperture × |scale of the layer − scale of
@@ -49,7 +49,15 @@ the focus plane|, and the frame is an open shutter (several instants averaged, a
 the sharpest moving thing needs; a layer that still jumps between two of them is softened
 by that step, on its own). Every layer is kept as a pyramid of halves and drawn from the
 level nearest its size on screen; blur is done on a reduced copy that sits on a fixed grid.
-The film's camera is `{ z: START + SPEED * t, focus: z + FOCUS }`: one pace, on the axis.
+A `loose` layer is one thing floating: the rig cuts it to its paint (its box only says where
+to paint it; paint touching the box's edge prints `souvenir: loose layer … touches its box`),
+and turns it slowly on itself, sways and drifts it, each at rates from its id
+(`loose: { spin, sway, bob, turn }` to set them). Blur works only on the part of the frame a
+layer covers, so hundreds of small pieces cost what they cover. The film's camera is
+`S.flight({ start, v0, vmax, peakAt, hold, turns })`: on the axis, its speed growing by the
+same ratio every second up to `vmax` at depth `peakAt`, landing over the last `hold`
+seconds, rolling whole `turns` over the flight (more as it goes faster) and landing level;
+`F.at` is the `camAt`, `F.length` the duration, `F.tOf(z)` when it is at a depth.
 `S.track(keys, t)` joins keys with a monotone cubic, for the rare value that does change. `S.finish(ctx, env, frame, { mist, lift, vignette,
 grain })` in the scene's `post`.
 
@@ -131,13 +139,22 @@ library of this style, to read before painting anything like them:
   what changes is the composition… it has become a passage where there is always a hole
   in the centre». A window, an arch, a ring, a door and a sound hole are the same image
   seven times, whatever is painted round them. What was liked is «different layers and
-  different elements»: three sheets of loose, whole things lying on one another on a body
-  of their world's own matter, the way through only an irregular gap where the heap stops
-  (leaves, cloth, papers: never a drawn rim, never architecture). A world gets ONE such
-  stratum, a second and a half of film; a new world every stratum is what keeps it from
-  repeating. A framed hole is used at most once or twice in a film, for a reason (the
-  guitar's mouth), and each passage has one thing at its end that is seen small from its
-  start (the guitar, the moon).
+  different elements»: whole things of a world at many depths, overlapping, the way through
+  only where they thin out (never a drawn rim, never architecture). A world gets ONE
+  stratum; a new world every stratum is what keeps it from repeating. A framed hole is
+  used at most once or twice in a film, for a reason (the guitar's mouth), and each
+  passage has one thing at its end that is seen small from its start (the guitar, the moon).
+- **Every thing loose, floating; nothing tied to a sheet.** The user, of strata painted as
+  three sheets with things on them and a body of matter: «maybe the pieces shouldn't be
+  tied to frames; instead each one should be loose, floating». A sheet is a rectangle, and
+  a rolling camera shows it as one. Every thing is its own `loose` layer at its own depth
+  (a stratum is a slab ± 280 deep): 8–14 heroes and 40–80 pieces of the world's matter (the
+  body broken into single flowers, sprigs, scraps, shards, sparks), all round the axis
+  (the frame turns: compose in rings, not in a landscape), whole from any side, no cast
+  shadow on a ground that is not there. Their number fills the frame, the night only in
+  slivers. A light field over the whole stratum is still painted into each piece in world
+  coordinates, so the pieces share one light. Only the thing the camera goes through (the
+  guitar) stays still and on the axis.
 - **A picture is a passage, not a poster.** The user, of a packed emblem the camera pushed
   in on: «it shows that there are a lot of symbols and they have been put there scattered
   all over the paper… it is not a poster that the camera approaches, it is overlap after
@@ -153,19 +170,19 @@ library of this style, to read before painting anything like them:
   day), and **the entrance belongs to the subject**: the film fades up on something of
   its own world, already going in. No device borrowed from the reference (its star, its
   whip-in were rejected: «it says nothing to me»).
-- **One pace from the first frame to the last, on the axis.** The user, of a camera that
-  eased in, settled on the guitar, rose to frame it and sped into its mouth: «the camera
-  should have the same rhythm all the time… it should not pause on reaching the guitar,
-  nor go up to get into the guitar». The depth is a straight line in time (432 units a
-  second in the first film: a stratum every second and a half), `x`, `y` and roll stay at
-  zero, and the lens is focused a fixed distance ahead for the whole film (1000: a thing
-  is sharp when it is at the size it was painted for). So every layer's blur depends only
-  on how far it is, the same for all: nothing racks, nothing breathes. No picture is held:
-  the emblem is one more stratum, in focus for less than a second like the rest, and the
-  film ends with the camera still going in (a short fade back into the night). What a
-  picture needs in order to be read is put in the painting (larger, on the axis, lit),
-  never bought with a slower camera. A small aperture: with strata this close a wide one
-  leaves everything soft.
+- **On the axis, never pausing, gathering speed and turning.** Round 4: «the camera should
+  have the same rhythm all the time… it should not pause on reaching the guitar, nor go up
+  to get into the guitar». Round 8, of that constant pace (a stratum every second and a
+  half, 30 s): «the camera keeps increasing its speed and keeps turning, because the pace
+  is very slow». So: `x` and `y` stay at zero, nothing is ever held or eased into, the
+  speed only grows (by the same ratio every second: 430 → 1700 units a second in the first
+  film, a stratum every 1.5 s at the start and every 0.4 s by the end) and the camera rolls
+  on its axis, one whole turn, faster as it goes faster (`S.flight`). The one slowing is the
+  landing on the last image, which is the end. The lens is focused a fixed distance ahead
+  for the whole film (1000: a thing is sharp at the size it was painted for), so every
+  layer's blur depends only on how far it is. What a picture needs in order to be read is
+  put in the painting (larger, near the axis, lit), never bought with a slower camera. A
+  small aperture: with strata this close a wide one leaves everything soft.
 - **A packed picture is composed by its framings.** Work out what the first, widest
   framing shows of each layer and place every piece whole inside it; the push then
   carries the edges out and leads the eye to the hole. Nothing lies on what must be read
@@ -246,7 +263,8 @@ library of this style, to read before painting anything like them:
 - [ ] It is a passage: at any instant a near stratum leaving (cut by the frame, soft), one being read, the next through its middle, and the goal small at the end.
 - [ ] Nothing that is hidden behind a nearer layer shows before that layer has faded in (a far picture's plate as a rectangle in the night).
 - [ ] The hole is on the axis and cut clean through (fill opaque before `destination-out`).
-- [ ] The camera's depth is linear in time, `x`, `y` and roll are zero, focus is a fixed distance ahead: no ease, no hold, no rack.
+- [ ] The camera stays on the axis (`x`, `y` zero), its speed only grows until the landing, it rolls whole turns and lands level, focus is a fixed distance ahead: no hold, no rack.
+- [ ] No rectangle anywhere: every piece `loose` and whole, no sheet, ground or sky with an edge (a sky thins into the night all round); no «touches its box» line in the render.
 - [ ] Tangents and overlaps: nothing in front crosses a thing it has nothing to do with (a wing over a moon, a wing over a fruit); what is held touches what holds it (crop the contact).
 - [ ] Rendered and watched moving, and six consecutive frames of a corner tiled side by side at 1:1: each blur grows by a hair from one frame to the next, no frame is suddenly softer or streaked, no ghosts, nothing pops on.
 
