@@ -494,3 +494,48 @@ growing); `review.mjs` clean. Sent back once more after the first render: the st
 life's way through had a smooth oval edge (its base cloth), now cut wider and irregular
 with linen, leaves and garlic reaching in over it.
 
+
+## Round 8 · a flight that gathers speed and turns, every thing loose
+
+The user, of round 7: «I want to change the soundtrack and the timing so that the camera
+keeps increasing its speed and keeps turning, because the pace is very slow», and, a
+moment later: «And maybe the pieces shouldn't be tied to frames; instead each one should
+be loose, floating.»
+
+- **The camera** (`Souvenir.flight`, new in the kit): on the axis, its speed growing by the
+  same ratio every second, from 430 to 1700 units a second as the last world goes by (a
+  stratum every 1.5 s at the start, every 0.4–0.5 s by the forge), then a 4 s landing on
+  the moon. It rolls one whole turn on its axis, slowly at first (3° a second), up to 40°
+  a second in the second passage, and settles level 1.6 s before the end so the signature
+  is read straight. 16.75 s (30.5 before). This reverses round 4's «one pace» in its
+  letter, not in its spirit: still on the axis, still never held, never rising.
+- **Every thing loose** (`loose-brief.md`, the rig's new `loose` layers): no sheets, no
+  bodies of matter, no box painted to its edges. Each world is a slab ± 280 deep of 8–16
+  heroes and 80–110 pieces of its own matter (single flowers, leaves, scraps of cloth,
+  shards, coins, sparks), each its own layer, cut to its paint, turning slowly, swaying
+  and drifting on its own. A light field over each world is painted into every piece in
+  world coordinates, so they still share one light. Nine painters, one per world, plus the
+  first passage and the guitar with the lemon tree. 1,200-odd layers in the film.
+- **Corrected while they worked:** with nothing allowed within 260 of the axis, every
+  stratum became a ring round an empty disc, the tunnel of round 7 again (two painters
+  saw it before I did). A fifth of each world's small pieces now cross the axis at
+  scattered depths, and the inner edge of the rest wanders with the angle: the camera
+  flies through things, as through a cloud. The lemons fill the guitar's mouth.
+- **The guitar** is the one thing that does not float: it stays on the axis and only turns
+  with the camera, and the camera still goes through its mouth into the lemon tree, whose
+  pieces come out of the night only behind it.
+- **Fixed on the way:** the green's leaves green, not silver, and its sails cloth; the
+  still life lit out of the dark by one lamp, its linen cloth (absolute wavelengths for the
+  folds), its garlic ivory; the dark night's candles, velvet, dove and vihuela; the dome's
+  gold leading the blue (`Dome.domeLight`); the patio's peacocks feathered and its skein in
+  strands; the planes' wing rewritten and something drawn on every plain plane; the
+  forge's tuberoses white wax and its copper never repeated.
+- **The kit:** a blurred layer is worked only over the part of the frame it covers (a small
+  piece costs what it covers), and its working copy is cleared past the edge it is read to
+  (smoothing sampled stale pixels there: hairline seams, and a «non-deterministic» flag in
+  the review); the paper's grain follows a turned layer.
+- **The score:** the user is making it with Suno. The proposed prompt asks for rhythmic
+  acceleration at a fixed tempo (an ostinato that subdivides, a Shepard-tone riser), Holy
+  Week snares and cornets, flamenco guitar as colour, a final hit and a long chord; the
+  camera's speed curve will be fitted to the track (the guitar's mouth and the last world
+  on its accents), not the track cut to the camera. The render is silent until then.

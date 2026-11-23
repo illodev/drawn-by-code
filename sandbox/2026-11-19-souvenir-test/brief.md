@@ -71,27 +71,28 @@ references; the length does not matter. So the dive grows and alternates:
 An alternative for the order, also to debate: the dive as a descent through time, each
 picture an older layer, down to Tartessos.
 
-## Shot list (two passages; one move at one pace)
+## Shot list (two passages; one flight that keeps gathering speed and turning)
 
-The camera goes in at 432 units a second from the first frame to the last, on the axis,
-focused 1000 ahead. 30.5 s. Since round 7 the seven worlds after the lemon tree are no
-longer pictures with a hole each: each is one stratum of loose things, as in the first
-passage.
+Since round 8 the camera does not keep one pace: it starts at 430 units a second and its
+speed grows by the same ratio every second up to 1700 as the last world goes by, then it
+lands on the moon in the last 4 s. It rolls one whole turn on its axis over the flight,
+faster as it goes faster, and is level again by 14.8 s. Every thing floats loose at its
+own depth: nothing is painted on a sheet any more. 16.75 s.
 
 | In focus at | What | What comes into view |
 |---|---|---|
-| 1.8–8.1 s | The first passage, five strata | By the candle · Tartessos and the sea · Rome and the Goths · al-Andalus · the house and the fair. The guitar is seen, small, at the end. |
-| 9.7 s | The guitar | The emblem: guitar, two painted fans, olive, carnations, swallows, the ribbon and its coins. |
-| 12.0 s | (through its mouth) | |
-| 12.2–13 s | The lemon tree | Full day: lemons, blossom, a goldfinch. Between two lemons, small, the moon. |
-| 14.4 s | Green | On the fig's crown: the ghost ship and horse, the fish of shadow, frost stars, a tin lantern, the green rail and its red drops, a glass tambourine, the icicle of moon in a puddle. |
-| 16.0 s | The still life | On linen and cabbage leaves: the water seller's jug, the glass with a fig, mortar, onion, eggs, the hung quince and cabbage, the snuffed candle, the cup and the rose. |
-| 17.5 s | The dark night | On violet veil and velvet, by candles: the ladder, the silver lantern, the thurible, lilies, the dove, the vihuela, the disc of the spheres. |
-| 19.1 s | The dome | A heap of fragments: cut tile, a block of muqarnas, the knot band, a corbel, a piece of the ceiling of stars, a rib, gold mosaic, a lattice window. |
-| 20.7 s | The patio | On geraniums, jasmine and blue pots: the two peacocks, the fountain, the cage, the chair with the shawl and the cat, the skein, the well's bucket. |
-| 22.3 s | The planes | On pasted papers: the guitar in planes, the bottle, the newspaper, the score, the ace of coins, the pigeon's wing, a white moon on the one blue. |
-| 23.8 s | The forge | On hammered copper and olive, by the fire: the anvil and the hot horseshoe, the fire-pan, the bellows, the bridle, the owl, tuberoses. |
-| 26.5–30.5 s | The moon | Alone in the sky with her bustle of tuberoses, and under her `illodev x Claude`. The night comes back over the last second. |
+| 1.6–5.8 s | The first passage, five strata | By the candle (1.6) · Tartessos and the sea (2.9) · Rome and the Goths (4.0) · al-Andalus (5.0) · the house and the fair (5.8). The guitar is seen, small, at the end. |
+| 6.6 s | The guitar | The emblem: the guitar still on the axis, and loose round it two painted fans, olive, carnations, swallows, the ribbon and its coins, the lizard, the peafowl. |
+| 7.7 s | (through its mouth) | The lemons fill the mouth. |
+| 8.1 s | The lemon tree | Full day: boughs, lemons, blossom, a goldfinch, bees, the snail. |
+| 8.7 s | Green | The fig's leaves and limbs, the ghost ship and horse, the fish of shadow, frost stars, the tin lantern, the torn rail, the glass tambourine, the moon icicle. |
+| 9.3 s | The still life | Out of the dark by one lamp: the jug, the linen, the goblet with its fig, the hung cabbage, the quince, the mortar, the candle just put out, the eggs, the melon, garlic, cardoon. |
+| 9.9 s | The dark night | Lit only by their own flames: the silver lantern, the thurible, the dove, the ladder, the vihuela, Ibn Arabi's disc, lamps of coloured glass, lilies, candles, velvet and veil. |
+| 10.4 s | The dome | Gold mosaic, flutes of the crown, muqarnas, Córdoba's rib, the knot band, the ceiling of stars, a corbel, the swift's nest, cut tile. |
+| 10.9 s | The patio | The two peacocks, the skein, the fountain, the cage, the chair with shawl and cat, pots of geraniums, the tinaja, the pulley and bucket, azulejos. |
+| 11.4 s | The planes | The guitar in planes, the torn ace of coins, the bottle, the score, the glass, «CAFÉ», the pigeon's wing, the moon on the one blue. |
+| 11.9 s | The forge | By the fire-pan: the anvil, the hammer, the cauldron, the bellows, the bridle, the owl, copper, coals, sparks, tuberoses. |
+| 12.75–16.75 s | The moon | The camera lands on her with her bustle of tuberoses, the roll settling level, and under her `illodev x Claude`. The night comes back over the last second. |
 
 ## How it is built
 
@@ -102,13 +103,15 @@ passage.
   finish.
 - `tableaux/*.js`: `passage` + `emblem`, `lemons`, and one file per world (`green`,
   `stilllife`, `darknight`, `dome`, `patio`, `planes`, `forge`). Each world has two forms:
-  `Tableau.<name>.stratum(z)`, the three sheets of things the film uses since round 7,
-  and `Tableau.<name>(z0)`, the whole picture with its hole that round 5 used (kept: its
-  things are the stratum's, and `forge` still gives the moon and the sky). `scene.js`
-  only places them along the axis.
+  `Tableau.<name>.loose(z)`, one floating layer per thing, which the film uses since
+  round 8; `Tableau.<name>.stratum(z)`, the three sheets of round 7; and
+  `Tableau.<name>(z0)`, the whole picture with its hole of round 5 (kept: their things are
+  the same drawers, and `forge` still gives the moon and the sky). `scene.js` only places
+  them along the axis and flies the camera (`Souvenir.flight`).
 - `things/*.js`: one file per group of elements, painted once; only the camera moves.
 - Three parallel passes painted them: five agents for the first assembly of the emblem
   (`agent-brief.md`), eleven for its detail pass, seven for pictures 3 to 9, one each
   (`picture-brief.md`, with the test bench `dev/picture/scene.js`), and the same seven
-  again to recompose each world as a stratum (`stratum-brief.md`, `dev/stratum/scene.js`). `review.md` lists the
-  licences each painter took.
+  again to recompose each world as a stratum (`stratum-brief.md`, `dev/stratum/scene.js`),
+  and nine to take every world off its sheets as loose floating pieces (`loose-brief.md`,
+  `dev/loose/scene.js`). `review.md` lists the licences each painter took.
