@@ -123,6 +123,25 @@ const Causeway = (() => {
             }
         }
 
+        // the median's planting: low clipped shrubs in two rows, their tops lit by the lamps
+        for (let zs = Math.floor(Math.min(zFar, zc + 260) / 2.2) * 2.2; zs >= zNear + 0.5; zs -= 2.2) {
+            const R = Motion.rng('shrub' + Math.round(zs / 2.2));
+            for (const xs of [MEDIAN[0] + 0.9, MEDIAN[1] - 0.9]) {
+                const hgt = 0.55 + R() * 0.35, wid = 0.9 + R() * 0.5, zz = zs + R() * 0.8;
+                const b = cam.p([xs + (R() - 0.5) * 0.4, y(zz) + 0.18, zz]); if (b[2] < 0.8) continue;
+                const s = cam.f / b[2], lit = lampLight(zz);
+                const dark = fogged(Neon.mix('#0f2a24', '#1c1530', 0.4), zz, zc), top = fogged(Neon.mix('#2a5a40', '#ff9a7a', lit * 0.5), zz, zc);
+                g.fillStyle = Neon.css(dark);
+                g.beginPath();
+                for (let j = 0; j <= 10; j++) { const a = Math.PI + (j / 10) * Math.PI; const r = 1 + 0.12 * Math.sin(j * 2.7 + zz); g.lineTo(b[0] + Math.cos(a) * wid * 0.5 * s * r, b[1] + Math.sin(a) * hgt * s * r); }
+                g.closePath(); g.fill();
+                if (s > 6) {
+                    // leaf clusters catching the lamp on the top of the shrub
+                    g.fillStyle = Neon.css(top, 0.3 + lit * 0.45);
+                    for (let j = 0; j < 7; j++) { const a = Math.PI * (1.2 + 0.6 * R()), r = 0.75 + 0.2 * R(); const px = b[0] + Math.cos(a) * wid * 0.5 * s * r, py = b[1] + Math.sin(a) * hgt * s * r; g.beginPath(); g.ellipse(px, py, 0.07 * s, 0.04 * s, a, 0, Math.PI * 2); g.fill(); }
+                }
+            }
+        }
         // 5 · lamps, palms and traffic: the scene sorts them with our car
         for (let k = kFar; k >= kNear - 1; k--) {
             const zl = lampZ(k); if (zl < zc + 0.6 || zl > zFar) continue;
@@ -167,10 +186,20 @@ const Causeway = (() => {
                 if (top[2] < 2 || top[0] < -80 || top[0] > cam.W + 80 || top[1] > cam.H) continue;
                 const len = mir[1] - top[1]; if (len < 2) continue;
                 const s = cam.f / top[2], col = fogged(lampCol(fx), zl, zc);
-                for (let i = 0; i < 10; i++) {
-                    const u = (i + 0.5) / 10, yy = top[1] + len * u * 1.4, wob = Math.sin(i * 2.3 + T * 3 + k) * 0.5 * s;
-                    const w = (0.2 + (1 - u) * 0.5) * s * (0.6 + 0.8 * Math.abs(Math.sin(i * 7.1 + k))), a = 0.5 * (1 - u) ** 1.3;
-                    for (const c of [g, L]) { c.fillStyle = Neon.css(col, c === L ? a * 0.5 : a); c.beginPath(); c.ellipse(top[0] + wob, yy, w / 2, Math.max(0.6, len * 0.022), 0, 0, Math.PI * 2); c.fill(); }
+                // a soft column of the lamp's colour under it, then glints on the swell: thin
+                // horizontal strokes, wider and sparser towards the viewer, swaying with the water
+                const L0 = top[1], L1 = top[1] + len * 1.5;
+                const gr = g.createLinearGradient(0, L0, 0, L1);
+                gr.addColorStop(0, Neon.css(col, 0.22)); gr.addColorStop(1, Neon.css(col, 0));
+                g.fillStyle = gr; g.fillRect(top[0] - 0.35 * s, L0, 0.7 * s, L1 - L0);
+                const n = 22;
+                for (let i = 0; i < n; i++) {
+                    const u = (i + 0.5) / n, yy = L0 + (L1 - L0) * u * u * 0.9 + (L1 - L0) * 0.1 * u;
+                    const ph = Math.sin(i * 12.9 + k * 3.7) * 43758.5 % 1;
+                    if (Math.abs(ph) < 0.25) continue;                       // gaps between glints
+                    const wob = Math.sin(i * 2.3 + T * 2.6 + k) * (0.25 + u) * 0.5 * s;
+                    const w = (0.5 + u * 1.6) * s * (0.5 + Math.abs(ph)), a = 0.55 * (1 - u) ** 1.1;
+                    for (const c of [g, L]) { c.fillStyle = Neon.css(col, c === L ? a * 0.45 : a); c.fillRect(top[0] - w / 2 + wob, yy, w, Math.max(0.7, 0.03 * s * (1 + u))); }
                 }
             }
         }
@@ -201,7 +230,7 @@ const Causeway = (() => {
         };
         for (let k = kFar; k >= kNear - 1; k--) {
             const zl = lampZ(k); if (zl < zNear + 1 || zl > zFar) continue;
-            for (const h of heads(zl)) streak(h[0], y(zl) + 0.01, zl, LAMP_H * 0.9, fogged(lampCol(fx), zl, zc), 0.55, 0.26);
+            for (const h of heads(zl)) streak(h[0], y(zl) + 0.01, zl, LAMP_H * 1.3, fogged(lampCol(fx), zl, zc), 0.32, 0.24);
         }
         for (const c of traffic(T)) {
             if (c.z < zNear + 2 || c.z > zFar) continue;
@@ -248,8 +277,18 @@ const Causeway = (() => {
         // trunk: a tapered band with a slight swell low down
         const pts = [];
         for (let i = 0; i <= 10; i++) { const u = i / 10, p = cam.p([x + lean * u * u, yb + H * 0.86 * u, z]); const w = (0.32 + 0.1 * Math.sin(u * Math.PI * 0.8) - 0.12 * u) * (cam.f / p[2]); pts.push([p[0], p[1], w]); }
-        g.fillStyle = Neon.css(trunk);
+        // round: dark on the side away from the lamps, lit on the other, airbrushed across
+        const tg = g.createLinearGradient(pts[0][0] - pts[0][2], 0, pts[0][0] + pts[0][2], 0);
+        tg.addColorStop(0, Neon.css(Neon.mix(trunk, '#0c0820', 0.55))); tg.addColorStop(0.55, Neon.css(trunk)); tg.addColorStop(0.85, Neon.css(Neon.mix(trunk, '#e8b0d0', 0.35))); tg.addColorStop(1, Neon.css(Neon.mix(trunk, '#0c0820', 0.2)));
+        g.fillStyle = tg;
         g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p[0] - p[2], p[1]) : g.moveTo(p[0] - p[2], p[1]))); for (let i = pts.length - 1; i >= 0; i--) g.lineTo(pts[i][0] + pts[i][2], pts[i][1]); g.fill();
+        // the uplight at its foot washes the trunk with pink-white light, strongest low down
+        const up = fogged(Neon.mix(P.pink, '#ffffff', 0.35), z, zc);
+        const ug = g.createLinearGradient(0, pts[0][1], 0, pts[7][1]);
+        ug.addColorStop(0, Neon.css(up, 0.55)); ug.addColorStop(1, Neon.css(up, 0));
+        g.fillStyle = ug;
+        g.beginPath(); for (let i = 0; i <= 7; i++) g.lineTo(pts[i][0] + pts[i][2] * 0.15, pts[i][1]); for (let i = 7; i >= 0; i--) g.lineTo(pts[i][0] + pts[i][2] * 0.95, pts[i][1]); g.fill();
+        if (base[2] > 0.8) N.glint(g, L, base[0] + 0.25 * sb, base[1] - 0.05 * sb, Math.min(40, Math.max(1.5, 0.35 * sb)), up, { alpha: 0.8, halo: 1 });
         // rings on the trunk
         g.strokeStyle = Neon.css(dark, 0.5); g.lineWidth = Math.max(0.5, 0.015 * s);
         for (let i = 1; i < 10; i++) { const p = pts[i]; g.beginPath(); g.moveTo(p[0] - p[2], p[1]); g.lineTo(p[0] + p[2], p[1] + 0.02 * s); g.stroke(); }

@@ -22,3 +22,38 @@ Done:
 Open (asked): 16:9 and the whole song; permission to generate the two characters' design
 sheets (about 433 credits a sheet, 4–6 sheets); words on screen (the title only, or also
 neon signs).
+
+## Round 1 · the style test (0:59–1:07), first render
+
+The user, translated: «Yes, the whole song, in pieces, and we review as we go»; «yes» to the
+character sheets; on words on screen: «I'd have to see it».
+
+Done:
+- **Cast sheets:** six generated sheets (three of her, three of him, gpt-image-2.5-sunburst
+  at 2K, 275 credits each, 1,650 in all), asked on a pure green ground; they came back with
+  a transparent ground (alpha), so no keying is needed. Kept in `private/ref/` until the user
+  picks; `review/cast-*-options.jpg` shows them.
+- **The style:** `styles/retro-neon/neon.js` (camera, light layer and bloom, tubes, glints,
+  reflections, rim, the trip's toolkit) and `.claude/skills/style-retro-neon/` (in testing).
+- **The style test** (`scene.js`, four shots on the bar lines of bars 29–32):
+  A over the trunk behind the two of them, a lamp over them on every beat; B a fixed camera
+  beside the causeway, the car coming in and drawing away towards downtown; C the crest in the
+  bar without bass, a crane rising, the lamps dimming, then an in-breath; D the drop at 1:05
+  («baby» lands on it): a flash, tracers from every light, halos, colour swinging pink to cyan,
+  the city breathing on the kick, the deck and the bay turning into a grid of light.
+- **Parallel agents:** the car (`props/car.js`) and the far world (`set/skyline.js`: sky,
+  ~330 towers, a waterfront of Art Deco hotels with neon, a marina, the bay, the port and the
+  cruise ship), from one brief (`briefs/style-test.md`). Both came back at the bar.
+- **The causeway** (`set/causeway.js`): a planted median with shrubs and uplit royal palms,
+  lamps every V × beat metres, neon tubes on both parapets, wet streaks on the asphalt, glints
+  on the water, piers.
+- **Faults found and fixed before showing:** light glowing through the car and the deck (two
+  bloom passes, the car erasing the light behind it); tail lights burning to white; a sticker
+  outline round the couple (rims on the picture only, thin); hue turning through green; lamp
+  reflections as dots; a giant halo on the nearest lamp; the trip's grid over the car. Frame
+  cost 310 → 210 ms at 1920 (bloom summed at low resolution).
+
+Automatic review: no warnings, no state between frames; 222 ms a frame warm at 960.
+
+Known and left: the couple costs ~40 ms a frame; shot A hides most of downtown behind the
+hump (the crest is the reveal); the far world is ~70–90 ms in A and D.

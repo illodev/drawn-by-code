@@ -8,12 +8,23 @@
 // port to the right of the road (a cruise ship lit deck by deck, gantry cranes, containers),
 // and the bay, which mirrors all of it and draws it out into long streaks broken by the swell.
 //
-// How it is painted: everything goes into two offscreen canvases (the picture and its light)
-// seen by the camera with its roll taken out, so that the water can mirror and smear the
-// city in plain rows and columns; the result is put on the frame turned by the roll. Every
-// building is painted once per scale (a sprite pair, or three with its neon) and placed by
-// projecting three of its corners. Sizes in metres: x right, y up, z ahead; the bay at
-// y = Causeway.WATER. Nothing but water and boats nearer than ~400 m (the causeway's room).
+// How it is painted: straight onto the frame (g) and its light (L), in the camera's
+// coordinates with its roll taken out and turned back by a transform, so the water can
+// mirror and smear the city in plain rows and columns. Every building is painted once per
+// scale (picture, light and neon sprites); the whole far shore is then one flat painting
+// (an impostor) made from a reference eye near the camera, and the low sky with its clouds
+// another; both are laid on the frame in strips through the real projection and repainted
+// only when the camera moves to another bucket (a few times a shot). What changes from frame
+// to frame (windows switching on the beat, the crown's colour, beacons, cars on the drive,
+// the ship's bulbs, boats, stars, the plane, searchlights, the swell) is drawn over them. The
+// bay is built at half resolution (its colour, the city mirrored, streaks under every light
+// broken by the swell) and laid once, leaving out what the causeway's deck covers.
+// Sizes in metres: x right, y up, z ahead; the bay at y = Causeway.WATER. Nothing but water
+// and boats nearer than ~400 m (the causeway's room).
+//
+//   Skyline.world(g, L, N, cam, T, fx, env) → { horizon }   (before the causeway; the scene
+//       blooms L after). fx: { hold, trip, kick, hue, breathe, star } from the scene.
+//   Skyline.crownColour(T, fx) → [r, g, b]: the landmark's crown, one colour per bar.
 // Global: Skyline.
 const Skyline = (() => {
     const P = Neon.PAL;
@@ -23,6 +34,16 @@ const Skyline = (() => {
     const fract = (x) => x - Math.floor(x);
     const hash = (n) => fract(Math.sin(n * 127.1 + 311.7) * 43758.5453);
     const TAU = Math.PI * 2;
+    // a pastel at night: the same hue, kept saturated, much darker (mixing with black greys it)
+    function nightOf(c, light = 0.56, satK = 0.95) {
+        let [r, g, b] = (typeof c === 'string' ? hex(c) : c).map((v) => v / 255);
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+        let h = 0, sat = d ? (l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn)) : 0;
+        if (d) h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        const L = l * light, Sa = Math.min(1, sat * satK + 0.12), q = L < 0.5 ? L * (1 + Sa) : L + Sa - L * Sa, p = 2 * L - q;
+        const f = (t) => { t = ((t % 6) + 6) % 6 / 6; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+        return [f(h + 2) * 255, f(h) * 255, f(h - 2) * 255];
+    }
     const HAZE = hex('#6a2c72');                          // the city's haze, far things fade into it
     let WL = -4.5;                                       // the bay's surface (Causeway.WATER)
 
@@ -63,14 +84,14 @@ const Skyline = (() => {
         if (S && S.k === env.k && S.PW === env.px[0]) return S;
         const k = env.k, M = Math.ceil(90 * k), PW = env.px[0], PH = env.px[1];
         const OW = PW + 2 * M, OH = PH + 2 * M;
-        const neon = mkC(OW, OH);
+        const neon = mkC(Math.ceil(OW / 2), Math.ceil(OH / 2));
         const half = [Math.ceil(OW / 2), Math.ceil(OH / 2)];
         S = {
             k, M, PW, PH, OW, OH, m: M / k,
-            neon, nx: neon.getContext('2d'), Bn: [k, 0, 0, k, M, M],
+            neon, nx: neon.getContext('2d'), Bn: [k / 2, 0, 0, k / 2, M / 2, M / 2],
             band: mkC(OW, 8), bandL: mkC(OW, 8), bandP: mkC(OW, 8),       // the city above the water
-            pyr: [], prof: mkC(half[0], 1), profB: mkC(half[0], 1),      // the light's column profile
-            streak: mkC(half[0], half[1]), streak2: mkC(half[0], half[1]), mask: mkC(half[0], half[1]),
+            pyr: [], prof: mkC(half[0], 1), profB: mkC(half[0], 1), prof4: mkC(half[0], 4),   // the light's column profile
+            mask: mkC(half[0], half[1]),
             W: mkC(half[0], half[1]), WL: mkC(half[0], half[1]),
             ship: mkC(8, 8), shipL: mkC(8, 8),
         };
@@ -144,7 +165,7 @@ const Skyline = (() => {
         sand: { top: '#3a2c55', mid: '#4a3660', bot: '#74406a', side: '#241a40', line: '#8a6a96' },
         land: { top: '#1e1a4c', mid: '#28225e', bot: '#4e2a66', side: '#141034', line: '#5a56aa' },
     };
-    const WARM = ['#ffd08a', '#ffe2b0', '#ffbd7a', '#fff0d0', '#ffc890'], COOL = ['#d8f4ff', '#bfe8ff', '#e8fbff'], TINT = ['#ffc2ee', '#a8f0ff', '#ffd6a0'];
+    const WARM = ['#ffb84d', '#ffc86e', '#ff9f4a', '#ffd88f', '#ffab5e'], COOL = ['#8fe3ff', '#b5ecff', '#9fd8ff'], TINT = ['#ff7ac8', '#5ff0ff', '#ffd06a'];
     const NEONS = [P.pink, P.cyan, P.violet, P.aqua, P.magenta, '#ff6a3d'];
 
     function build() {
@@ -216,37 +237,19 @@ const Skyline = (() => {
 
         // --- the sky -------------------------------------------------------------------------
         const SR = Motion.rng('stars-85'), stars = [];
-        for (let i = 0; i < 1100; i++) {
-            const az = -2.0 + 3.8 * SR(), el = 0.025 + 1.15 * Math.pow(SR(), 0.75);
-            const mag = Math.pow(SR(), 3.2);
-            stars.push({ d: [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)], el, r: 0.45 + mag * 1.7, a: 0.25 + 0.75 * mag, col: ['#ffffff', '#fff6fb', '#d8e4ff', '#ffd8f0', '#fff0d0'][Math.floor(SR() * 5)], tw: 1 + SR() * 4, ph: SR() * TAU, spark: mag > 0.55 && SR() < 0.6 });
+        for (let i = 0; i < 1500; i++) {
+            const az = -2.0 + 3.8 * SR(), el = 0.025 + 1.15 * Math.pow(SR(), 0.65);
+            const mag = Math.pow(SR(), 2.6);
+            stars.push({ d: [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)], el, r: 0.55 + mag * 1.8, a: 0.35 + 0.65 * mag, col: ['#ffffff', '#fff6fb', '#d8e4ff', '#ffd8f0', '#fff0d0'][Math.floor(SR() * 5)], tw: 1 + SR() * 4, ph: SR() * TAU, spark: mag > 0.55 && SR() < 0.6 });
         }
-        const CR = Motion.rng('clouds-85'), puffs = [];
-        // banks of low cloud over the city, lit from below; thin streaks higher up
-        const bank = (az0, az1, el0, thick, n, size, dist, kind) => {
-            for (let i = 0; i < n; i++) {
-                const u = (i + CR() * 0.8) / n, az = az0 + (az1 - az0) * u;
-                const edge = Math.sin(Math.PI * u) ** 0.6;
-                const rows = kind === 'streak' ? 1 : 1 + Math.floor(CR() * 3 * edge);
-                for (let r = 0; r < rows; r++) {
-                    const rx = size * (0.6 + CR() * 0.9) * (kind === 'streak' ? 3.5 : 1);
-                    const el = el0 + (r * 0.45 + CR() * 0.4) * thick * edge + Math.sin(az * 7 + CR()) * thick * 0.25;
-                    puffs.push({ az, el, rx, ry: rx * (kind === 'streak' ? 0.09 : 0.32 + CR() * 0.12), kind, dist, v: CR() });
-                }
-            }
-        };
-        bank(-1.35, 1.15, 0.010, 0.014, 70, 0.022, 9, 'bank');       // the low bank behind the city
-        bank(-0.9, 0.95, 0.040, 0.018, 34, 0.026, 7, 'bank');        // broken cloud above it
-        bank(-1.2, 1.1, 0.075, 0.03, 16, 0.05, 6, 'streak');         // long thin streaks
-        bank(-0.7, 0.8, 0.15, 0.05, 8, 0.07, 5, 'streak');
-        puffs.sort((a, b) => b.el - a.el);                            // tops first: the lit undersides overlap them
-
         // searchlights: two beams from downtown roofs
+        // searchlights on two roofs downtown
+        const roof = (t, du) => ({ x: t.x - t.w / 2 + du * t.w, y: t.O[1] + t.h0 + 1.5, z: t.z - 1 });
         const beams = [
-            { x: 120, y: WL + 150, z: 2600, az: -0.35, amp: 0.45, w: 0.33, ph: 0.4, col: '#c9b8ff' },
-            { x: 610, y: WL + 175, z: 2780, az: 0.25, amp: 0.5, w: 0.27, ph: 2.6, col: '#ffbfe6' },
+            { ...roof(towers[6], 0.5), az: -0.2, amp: 0.45, w: 0.33, ph: 0.4, col: '#c9b8ff' },
+            { ...roof(towers[16], 0.5), az: 0.25, amp: 0.5, w: 0.27, ph: 2.6, col: '#ffbfe6' },
         ];
-        return { back, front, marina, stars, puffs, beams };
+        return { back, front, marina, stars, beams };
     }
 
     // ---- a tower: geometry, its live windows, its beacons, its painter --------------------
@@ -268,7 +271,7 @@ const Skyline = (() => {
         t.ph = r() * TAU;
         // windows that switch on and off with the music, and a few TVs
         t.live = [];
-        const nl = 3 + Math.floor(r() * 5);
+        const nl = t.fog < 0.42 ? 2 + Math.floor(r() * 3) : 0;
         for (let i = 0; i < nl; i++) t.live.push({ f: 1 + Math.floor(r() * (t.nf - 1)), c: Math.floor(r() * t.nc), per: 2 + Math.floor(r() * 7), ph: Math.floor(r() * 16), tv: r() < 0.25, col: t.warm ? WARM[i % WARM.length] : COOL[i % COOL.length] });
         t.liveBand = t.office && r() < 0.5 ? { f: 2 + Math.floor(r() * (t.nf - 3)), per: 4 * (1 + Math.floor(r() * 3)), ph: Math.floor(r() * 8) } : null;
         // aircraft warning lights
@@ -319,7 +322,7 @@ const Skyline = (() => {
                 const y = -(2 + f * t.fp + t.fp * 0.55), x = Math.min(x0, x1) + c * cw + cw * 0.2;
                 const colr = t.warm ? WARM[Math.floor(r() * 5)] : COOL[Math.floor(r() * 3)];
                 pc.fillStyle = F(mix(colr, pal.side, 0.35), -0.2); pc.fillRect(x, y, Math.max(cw * 0.55, 0.7 * px), Math.max(t.fp * 0.45, 0.7 * px));
-                lc.fillStyle = css(hex(colr), 0.45 * (1 - fog * 0.6)); lc.fillRect(x, y, Math.max(cw * 0.55, 0.7 * px), Math.max(t.fp * 0.45, 0.7 * px));
+                lc.fillStyle = css(hex(colr), 0.2 * (1 - fog * 0.6)); lc.fillRect(x, y, Math.max(cw * 0.55, 0.7 * px), Math.max(t.fp * 0.45, 0.7 * px));
             }
             pc.restore();
         }
@@ -340,7 +343,7 @@ const Skyline = (() => {
         if (t.type === 'glass' || t.type === 'landmark') {
             // a sheen of sky sliding down the glass, then mullions
             const sh = pc.createLinearGradient(0, -h0, w, -h0 * 0.4);
-            sh.addColorStop(0, 'rgba(180,150,255,0)'); sh.addColorStop(0.45, 'rgba(200,160,255,0.16)'); sh.addColorStop(0.6, 'rgba(255,150,220,0.08)'); sh.addColorStop(1, 'rgba(180,150,255,0)');
+            sh.addColorStop(0, 'rgba(150,120,255,0)'); sh.addColorStop(0.45, 'rgba(160,120,255,0.12)'); sh.addColorStop(0.6, 'rgba(255,110,200,0.07)'); sh.addColorStop(1, 'rgba(150,120,255,0)');
             pc.fillStyle = sh; pc.fillRect(0, -h0, w, h0);
             if (t.cp * s > 1.6) { pc.fillStyle = lineC; for (let x = t.cp; x < w - 0.1; x += t.cp) pc.fillRect(x - 0.1, -h0, Math.max(0.2, 0.5 * px), h0); }
             if (t.type === 'landmark') { pc.fillStyle = css(mix(hex(pal.line), HAZE, fog), 0.45); for (const x of [w * 0.2, w * 0.5, w * 0.8]) pc.fillRect(x - 0.8, -h0, 1.6, h0); }
@@ -366,7 +369,7 @@ const Skyline = (() => {
                     const colr = r() < 0.08 ? TINT[Math.floor(r() * 3)] : t.office ? rowCol : (t.warm ? WARM[Math.floor(r() * 5)] : COOL[Math.floor(r() * 3)]);
                     const a = 0.65 + r() * 0.35;
                     pc.fillStyle = css(mix(hex(colr), HAZE, fog * 0.7), a); pc.fillRect(xx, yy, wW, hH);
-                    lc.fillStyle = css(hex(colr), a * (0.75 - fog * 0.55)); lc.fillRect(xx, yy, wW, hH);
+                    lc.fillStyle = css(hex(colr), a * (0.32 - fog * 0.22)); lc.fillRect(xx, yy, wW, hH);
                 } else if (t.type === 'glass' || t.type === 'landmark') {
                     pc.fillStyle = 'rgba(130,110,220,0.10)'; pc.fillRect(xx, yy, wW, hH);
                 } else {
@@ -471,7 +474,7 @@ const Skyline = (() => {
         it.bl = bl;
         it.v1 = Math.max(30, ...bl.map((b) => b.h + (b.fin ? 14 : 4))) + 4;
         // palms along the promenade, lamps along the drive
-        it.palms = []; for (let u = r() * 8; u < len; u += 7 + r() * 13) it.palms.push({ u, h: 10 + r() * 7, lean: (r() - 0.5) * 0.25, coco: r() < 0.3, seed: r() * 1e6 });
+        it.palms = []; for (let u = r() * 8; u < len; u += 6 + r() * 11) it.palms.push({ u, h: 13 + r() * 8, lean: (r() - 0.5) * 0.25, coco: r() < 0.3, seed: r() * 1e6 });
         it.lamps = []; for (let u = 6 + r() * 4; u < len; u += 26) it.lamps.push(u);
         it.cars = []; for (let i = 0; i < 2 + Math.floor(r() * 3); i++) it.cars.push({ u: r() * len, v: 8 + r() * 6, dir: r() < 0.5 ? 1 : -1 });
         it.fog = clamp((Math.hypot(it.x, it.z) - 1900) / 3000, 0, 0.4);
@@ -520,10 +523,10 @@ const Skyline = (() => {
                 // the bandshell: a white half-dome with arcs of neon
                 const cx = u + w / 2, rx = w / 2, ry = h;
                 const gr = pc.createRadialGradient(cx, 0, 0, cx, 0, rx);
-                gr.addColorStop(0, F('#ffd6e8')); gr.addColorStop(0.6, F('#c8a8e0')); gr.addColorStop(1, F('#7a5a9a'));
+                gr.addColorStop(0, F('#d8a8d8')); gr.addColorStop(0.6, F('#8a68b0')); gr.addColorStop(1, F('#4a3470'));
                 pc.fillStyle = gr; pc.beginPath(); pc.ellipse(cx, 0, rx, ry, 0, Math.PI, 0); pc.fill();
                 for (let i = 0; i < 4; i++) { const q = 1 - i * 0.2; const pts = []; for (let a = 0; a <= 24; a++) { const an = Math.PI + (a / 24) * Math.PI; pts.push([cx + Math.cos(an) * rx * q, Math.sin(an) * ry * q]); } tubeM(nc, s, pts, [P.pink, P.cyan, P.violet, P.aqua][i], 0.45, false, na); }
-                lc.fillStyle = css(hex('#ffb0d8'), 0.3); lc.beginPath(); lc.ellipse(cx, 0, rx * 0.5, ry * 0.45, 0, Math.PI, 0); lc.fill();
+                lc.fillStyle = css(hex('#ff90c8'), 0.15); lc.beginPath(); lc.ellipse(cx, 0, rx * 0.5, ry * 0.45, 0, Math.PI, 0); lc.fill();
                 continue;
             }
             if (b.kind === 'market') {
@@ -536,8 +539,8 @@ const Skyline = (() => {
                 continue;
             }
             // hotels and MiMo blocks: a pastel facade at night, warm below, its neon
-            const night = mix(b.col, '#22163e', b.kind === 'mimo' ? 0.5 : 0.4);
-            vfill(pc, u, -h, w, 0, [F(mix(night, '#1e1440', 0.25)), F(night), F(mix(night, '#ffb08a', 0.38))]);
+            const night = mix(nightOf(b.col, b.kind === 'mimo' ? 0.5 : 0.56, 0.5), '#3a1e58', 0.18);
+            vfill(pc, u, -h, w, 0, [F(mix(night, '#140c30', 0.35)), F(night), F(mix(night, '#ff9a6a', 0.32))]);
             // a rounded corner: a turning gradient and speed lines
             if (b.corner) {
                 const cw = Math.min(6, w * 0.18), x0 = b.corner < 0 ? u : u + w - cw;
@@ -551,15 +554,15 @@ const Skyline = (() => {
             const cols = Math.max(2, Math.floor(w / 3.4));
             for (let f = 0; f < nf; f++) {
                 const y = -(4.5 + f * fp + fp);
-                pc.fillStyle = css(mix(mix(b.col, '#ffffff', 0.35), HAZE, fog), 0.6); pc.fillRect(u, y, w, Math.max(0.25, 0.6 * px));
+                pc.fillStyle = css(mix(b.col, HAZE, fog), 0.55); pc.fillRect(u, y, w, Math.max(0.25, 0.6 * px));
                 pc.fillStyle = 'rgba(16,8,36,0.35)'; pc.fillRect(u, y + Math.max(0.25, 0.6 * px), w, Math.max(0.3, 0.6 * px));
                 for (let c = 0; c < cols; c++) {
                     if (b.fin && Math.abs(u + (c + 0.5) * w / cols - (u + w / 2)) < 2.4) continue;
                     const x = u + c * w / cols + w / cols * 0.22, ww = w / cols * 0.56, wy = y + fp * 0.32, wh = fp * 0.5;
-                    if (r() < 0.42) {
-                        const colr = r() < 0.15 ? TINT[Math.floor(r() * 3)] : WARM[Math.floor(r() * 5)];
+                    if (r() < 0.32) {
+                        const colr = r() < 0.18 ? TINT[Math.floor(r() * 3)] : WARM[Math.floor(r() * 5)];
                         pc.fillStyle = css(mix(hex(colr), HAZE, fog * 0.6)); pc.fillRect(x, wy, Math.max(ww, 0.7 * px), Math.max(wh, 0.7 * px));
-                        lc.fillStyle = css(hex(colr), 0.7 * na); lc.fillRect(x, wy, Math.max(ww, 0.7 * px), Math.max(wh, 0.7 * px));
+                        lc.fillStyle = css(hex(colr), 0.32 * na); lc.fillRect(x, wy, Math.max(ww, 0.7 * px), Math.max(wh, 0.7 * px));
                     } else { pc.fillStyle = 'rgba(14,8,34,0.55)'; pc.fillRect(x, wy, Math.max(ww, 0.7 * px), Math.max(wh, 0.7 * px)); }
                 }
                 if (b.kind === 'mimo') { pc.fillStyle = css(mix(hex('#f4ecd8'), HAZE, fog + 0.2), 0.5); pc.fillRect(u - 0.8, y + fp - 0.5, w + 1.6, Math.max(0.35, 0.7 * px)); }
@@ -567,7 +570,7 @@ const Skyline = (() => {
             // the lit ground floor: a terrace with columns and an awning
             const tc = WARM[Math.floor(r() * 5)];
             pc.fillStyle = css(mix(hex(tc), HAZE, fog * 0.5), 0.85); pc.fillRect(u + 0.5, -4, w - 1, 3.4);
-            lc.fillStyle = css(hex(tc), 0.55 * na); lc.fillRect(u + 0.5, -4, w - 1, 3.4);
+            lc.fillStyle = css(hex(tc), 0.28 * na); lc.fillRect(u + 0.5, -4, w - 1, 3.4);
             pc.fillStyle = 'rgba(30,14,40,0.8)'; for (let x = u + 2; x < u + w - 1; x += 4) pc.fillRect(x, -4, Math.max(0.4, 0.6 * px), 4);
             const aw = [b.nA, '#ffffff'];
             for (let x = u + 0.5, i = 0; x < u + w - 0.5; x += 1.6, i++) { pc.fillStyle = css(mix(hex(aw[i % 2]), HAZE, fog + 0.25), 0.8); pc.fillRect(x, -4.9, 1.6, 0.9); }
@@ -576,14 +579,18 @@ const Skyline = (() => {
             if (steps === 2) { pts.push([cx - w * 0.3, -h], [cx - w * 0.3, -h - 1.6], [cx - w * 0.16, -h - 1.6], [cx - w * 0.16, -h - 3.2], [cx + w * 0.16, -h - 3.2], [cx + w * 0.16, -h - 1.6], [cx + w * 0.3, -h - 1.6], [cx + w * 0.3, -h]); }
             pts.push([u + w, -h]);
             pc.fillStyle = F(mix(night, '#2a1a50', 0.2)); pc.beginPath(); pts.forEach((p, i) => (i ? pc.lineTo(p[0], p[1]) : pc.moveTo(p[0], p[1]))); pc.lineTo(u + w, -h + 0.5); pc.lineTo(u, -h + 0.5); pc.fill();
-            tubeM(nc, s, pts, b.nA, 0.45, false, na);
-            tubeM(nc, s, [[u + 0.4, -h + 2.2], [u + w - 0.4, -h + 2.2]], b.nB, 0.3, false, na * 0.85);
+            tubeM(nc, s, pts, b.nA, 0.6, false, na);
+            if (s > 1.1) {
+                tubeM(nc, s, [[u + 0.3, -5], [u + 0.3, -h + 0.3]], b.nA, 0.45, false, na * 0.9);
+                tubeM(nc, s, [[u + w - 0.3, -5], [u + w - 0.3, -h + 0.3]], b.nA, 0.45, false, na * 0.9);
+            }
+            tubeM(nc, s, [[u + 0.4, -h + 2.2], [u + w - 0.4, -h + 2.2]], b.nB, 0.35, false, na * 0.85);
             if (b.kind === 'hotel' && h > 22) tubeM(nc, s, [[u + 0.4, -6.2], [u + w - 0.4, -6.2]], b.nB, 0.3, false, na * 0.7);
             // the fin: a pylon above the roof with a vertical blade of neon (no letters)
             if (b.fin) {
                 const fw = Math.min(4.6, w * 0.14), fh = 8 + (b.seed % 7), top = -h - 3.2 - fh;
-                vfill(pc, cx - fw / 2, top, fw, -h + 2, [F(mix(b.col, '#ffffff', 0.2)), F(night)]);
-                tubeM(nc, s, [[cx - fw / 2, -h + 1], [cx - fw / 2, top], [cx + fw / 2, top], [cx + fw / 2, -h + 1]], b.nA, 0.4, false, na);
+                vfill(pc, cx - fw / 2, top, fw, -h + 2, [F(mix(night, '#ffffff', 0.12)), F(mix(night, '#140c30', 0.2))]);
+                tubeM(nc, s, [[cx - fw / 2, -h + 1], [cx - fw / 2, top], [cx + fw / 2, top], [cx + fw / 2, -h + 1]], b.nA, 0.5, false, na);
                 const bx = cx, by0 = top + 1.6, by1 = -h + 1;
                 if (b.sign === 0) for (let y = by0; y < by1 - 1; y += 2.4) tubeM(nc, s, [[bx - fw * 0.3, y + 1.2], [bx, y], [bx + fw * 0.3, y + 1.2]], b.nB, 0.32, false, na);
                 else if (b.sign === 1) for (let y = by0 + 1; y < by1 - 1; y += 2.6) { const pts2 = []; for (let a = 0; a <= 12; a++) pts2.push([bx + Math.cos(a / 12 * TAU) * fw * 0.28, y + Math.sin(a / 12 * TAU) * 0.9]); tubeM(nc, s, pts2, b.nB, 0.3, false, na); }
@@ -599,9 +606,9 @@ const Skyline = (() => {
         }
         // the drive, the promenade and the seawall
         vfill(pc, 0, -1.2, it.len, 0.2, [F('#3a2448'), F('#5a3050')]);
-        pc.fillStyle = F('#c89070'); pc.fillRect(0, -0.1, it.len, Math.max(0.25, 0.5 * px));
+        pc.fillStyle = F('#a86a68'); pc.fillRect(0, -0.1, it.len, Math.max(0.25, 0.5 * px));
         vfill(pc, 0, 0, it.len, 1.6, [F('#3a2440'), F('#1a1028')]);
-        for (let x = 1; x < it.len; x += 3) { lc.fillStyle = css(hex('#ffc890'), 0.4 * na); lc.fillRect(x, -0.15, Math.max(0.3, 0.7 * px), Math.max(0.3, 0.7 * px)); }
+        for (let x = 1; x < it.len; x += 3) { lc.fillStyle = css(hex('#ffb070'), 0.25 * na); lc.fillRect(x, -0.15, Math.max(0.3, 0.7 * px), Math.max(0.3, 0.7 * px)); }
         // palms, then lamps over the drive
         for (const p of it.palms) palmM(pc, s, p.u, p.h, p.lean, p.coco, p.seed, true);
         for (const u of it.lamps) {
@@ -629,7 +636,7 @@ const Skyline = (() => {
                     if (r() > 0.22) continue;
                     const c = WARM[Math.floor(r() * 5)];
                     pc.fillStyle = css(mix(hex(c), HAZE, fog * 0.6)); pc.fillRect(x, y, Math.max(1.4, 0.8 * px), Math.max(1.2, 0.8 * px));
-                    lc.fillStyle = css(hex(c), 0.55 * (1 - fog * 0.6)); lc.fillRect(x, y, Math.max(1.4, 0.8 * px), Math.max(1.2, 0.8 * px));
+                    lc.fillStyle = css(hex(c), 0.35 * (1 - fog * 0.6)); lc.fillRect(x, y, Math.max(1.4, 0.8 * px), Math.max(1.2, 0.8 * px));
                 }
                 u += w + r() * 10;
             }
@@ -658,12 +665,17 @@ const Skyline = (() => {
             for (const b of it.boats.sort((a, c) => a.row - c.row)) {
                 const y = b.row ? -0.6 : 0.1, u = b.u + (b.row ? 2 : 0);
                 // the hull (white, a dark boot stripe), the cabin
-                pc.fillStyle = '#d8d0ec'; pc.beginPath(); pc.moveTo(u, y - 1.6); pc.lineTo(u + b.l, y - 1.8); pc.lineTo(u + b.l - 1.5, y); pc.lineTo(u + 0.6, y); pc.closePath(); pc.fill();
+                const hg = pc.createLinearGradient(0, y - 1.8, 0, y); hg.addColorStop(0, ['#c4b6e0', '#d0bce0', '#b8b0dc', '#d4b8d4'][Math.floor(b.u) % 4]); hg.addColorStop(1, '#6a5a94');
+                pc.fillStyle = hg; pc.beginPath(); pc.moveTo(u, y - 1.6); pc.lineTo(u + b.l, y - 1.8); pc.lineTo(u + b.l - 1.5, y); pc.lineTo(u + 0.6, y); pc.closePath(); pc.fill();
                 pc.fillStyle = 'rgba(40,24,80,0.6)'; pc.fillRect(u + 0.6, y - 0.4, b.l - 2, Math.max(0.2, 0.5 * px));
-                if (b.cab) { pc.fillStyle = '#c8bce0'; pc.fillRect(u + b.l * 0.25, y - 3, b.l * 0.4, 1.4); pc.fillStyle = '#ffd9a0'; pc.fillRect(u + b.l * 0.3, y - 2.6, b.l * 0.28, Math.max(0.4, 0.6 * px)); lc.fillStyle = css(hex('#ffcf8a'), 0.55); lc.fillRect(u + b.l * 0.3, y - 2.6, b.l * 0.28, Math.max(0.4, 0.6 * px)); }
+                if (b.cab) { pc.fillStyle = '#9a8cc0'; pc.fillRect(u + b.l * 0.25, y - 3, b.l * 0.4, 1.4); pc.fillStyle = '#ffd9a0'; pc.fillRect(u + b.l * 0.3, y - 2.6, b.l * 0.28, Math.max(0.4, 0.6 * px)); lc.fillStyle = css(hex('#ffcf8a'), 0.55); lc.fillRect(u + b.l * 0.3, y - 2.6, b.l * 0.28, Math.max(0.4, 0.6 * px)); }
                 if (b.sail) {
-                    pc.strokeStyle = '#b8b0d0'; pc.lineWidth = Math.max(0.12, 0.5 * px); pc.beginPath(); pc.moveTo(u + b.l * 0.42, y - 1.6); pc.lineTo(u + b.l * 0.42, y - 1.6 - b.mast); pc.stroke();
-                    pc.strokeStyle = 'rgba(200,190,230,0.35)'; pc.beginPath(); pc.moveTo(u + b.l * 0.42, y - 1.6 - b.mast); pc.lineTo(u + b.l - 0.5, y - 1.8); pc.moveTo(u + b.l * 0.42, y - 1.6 - b.mast); pc.lineTo(u + 0.5, y - 1.6); pc.stroke();
+                    const mx = u + b.l * 0.42, mt = y - 1.6 - b.mast;
+                    pc.strokeStyle = '#241838'; pc.lineWidth = Math.max(0.22, 1.1 * px); pc.beginPath(); pc.moveTo(mx, y - 1.6); pc.lineTo(mx, mt); pc.stroke();
+                    pc.strokeStyle = 'rgba(255,190,220,0.6)'; pc.lineWidth = Math.max(0.08, 0.5 * px); pc.beginPath(); pc.moveTo(mx + 0.1, y - 1.6); pc.lineTo(mx + 0.1, mt); pc.stroke();
+                    // the stays and the furled sail on its boom
+                    pc.strokeStyle = 'rgba(40,26,64,0.55)'; pc.lineWidth = Math.max(0.05, 0.5 * px); pc.beginPath(); pc.moveTo(mx, mt); pc.lineTo(u + b.l - 0.5, y - 1.8); pc.moveTo(mx, mt); pc.lineTo(u + 0.5, y - 1.6); pc.stroke();
+                    pc.fillStyle = '#6a5a8e'; pc.fillRect(mx - b.l * 0.32, y - 3.2, b.l * 0.32, Math.max(0.35, 0.9 * px));
                     // the anchor light at the masthead
                     lc.globalAlpha = 0.9; lc.drawImage(glowSprite('#e8f4ff'), u + b.l * 0.42 - 1.6, y - 1.6 - b.mast - 1.6, 3.2, 3.2); lc.globalAlpha = 1;
                     pc.fillStyle = '#ffffff'; pc.fillRect(u + b.l * 0.42 - 0.25, y - 1.8 - b.mast, Math.max(0.5, px), Math.max(0.5, px));
@@ -731,30 +743,39 @@ const Skyline = (() => {
     const SINK = mkC(1, 1).getContext('2d');             // swallows a pass meant for one layer only
 
     // the sky: gradient by elevation, the glow over the city, stars, moon, clouds, plane
+    // the sky's gradient by elevation and the glows over the city (painted into the sky
+    // painting, see skyPlane), and what changes: the hold's glow, stars, moon, plane
+    const SKYSTOPS = [[0, '#c23f74'], [1.2, '#a8336f'], [3.5, '#82286f'], [7, '#5a1e6c'], [12, '#3a1762'], [20, '#24114e'], [30, '#170b3b'], [44, '#0e0829'], [62, '#08061c']];
+    const GLOWS = [
+        [DOWNTOWN, 0.8, 0.14, [[0, '#ffb070', 0.85], [0.14, '#ff8a68', 0.66], [0.34, '#f0567e', 0.42], [0.66, '#b0347a', 0.16], [1, '#a0306e', 0]], 0.85],
+        [[-1100, 0, 2350], 0.35, 0.07, [[0, '#ff9a7a', 0.5], [0.4, '#e0508a', 0.25], [1, '#a0306e', 0]], 1],
+        [[1600, 0, 2400], 0.3, 0.06, [[0, '#ff7ab0', 0.4], [1, '#a0306e', 0]], 1],
+    ];
+    // an elliptical glow (upper half) as a cached sprite
+    function glowEllipse(stopsG) {
+        const key = 'sky' + JSON.stringify(stopsG);
+        if (!GLOW.has(key)) {
+            const sp = mkC(512, 130), g2 = sp.getContext('2d'), gr2 = g2.createRadialGradient(256, 128, 0, 256, 128, 256);
+            for (const [u, col, al] of stopsG) gr2.addColorStop(u, rgba(col, al));
+            g2.setTransform(1, 0, 0, 0.5, 0, 64); g2.fillStyle = gr2; g2.fillRect(0, -128, 512, 260); GLOW.set(key, sp);
+        }
+        return GLOW.get(key);
+    }
     function sky(V, T, fx) {
         const px = S.px, lx = S.lx, m = S.m, hold = fx.hold ?? 0;
-        const W = V.W + 2 * m;
+        // the high sky: the gradient by elevation, straight onto the frame
         const yAt = (deg) => V.cy - V.f * Math.tan(deg * Math.PI / 180 - V.pitch);
-        const stops = [[0, '#c23f74'], [1.2, '#a8336f'], [3.5, '#82286f'], [7, '#5a1e6c'], [12, '#3a1762'], [20, '#24114e'], [30, '#170b3b'], [44, '#0e0829'], [62, '#08061c']];
-        const y0 = yAt(62), y1 = yAt(0) + 1;
-        const gr = px.createLinearGradient(0, y0, 0, y1);
-        for (const [d, c] of stops) gr.addColorStop(1 - d / 62, css(mix(c, '#ff6a9a', hold * 0.14 * Math.max(0, 1 - d / 20))));
-        px.fillStyle = gr; px.fillRect(-m, -m, W, Math.max(0, V.yh + 3 + m));
-        // the glow over the city: orange at its heart, magenta round it (rises in the hold)
-        const glowAt = (P3, rx, ry, stopsG, a) => {
-            const c = V.dir(nrm([P3[0] - V.pos[0], 0, P3[2] - V.pos[2]])); if (!c) return;
-            px.save(); px.translate(c[0], V.yh); px.scale(1, ry / rx);
-            const g2 = px.createRadialGradient(0, 0, 0, 0, 0, rx);
-            for (const [u, col, al] of stopsG) g2.addColorStop(u, rgba(col, al * a));
-            px.fillStyle = g2; px.fillRect(-rx, -rx, 2 * rx, rx + 2);
-            px.restore();
-        };
-        const up = 1 + hold * 0.5;
-        glowAt(DOWNTOWN, V.f * 0.8 * (1 + hold * 0.1), V.f * 0.14 * up, [[0, '#ffb070', 0.85], [0.14, '#ff8a68', 0.66], [0.34, '#f0567e', 0.42], [0.66, '#b0347a', 0.16], [1, '#a0306e', 0]], Math.min(1, 0.85 * up));
-        glowAt([-1100, 0, 2350], V.f * 0.35, V.f * 0.07, [[0, '#ff9a7a', 0.5], [0.4, '#e0508a', 0.25], [1, '#a0306e', 0]], 1);
-        glowAt([1600, 0, 2400], V.f * 0.3, V.f * 0.06, [[0, '#ff7ab0', 0.4], [1, '#a0306e', 0]], 1);
+        const y0 = yAt(62), y1 = yAt(0) + 1, gr = px.createLinearGradient(0, y0, 0, y1);
+        for (const [d, c] of SKYSTOPS) gr.addColorStop(1 - d / 62, c);
+        px.fillStyle = gr; px.fillRect(-m, -m, V.W + 2 * m, Math.max(0, V.yh + 3 + m));
+        clouds(V, T, fx);                                   // the low sky painting: gradient, glows, clouds
+        // in the hold the glow over the city rises a little
+        if (hold > 0) {
+            const [P3, rx, ry, stopsG] = GLOWS[0], c = V.dir(nrm([P3[0] - V.pos[0], 0, P3[2] - V.pos[2]]));
+            if (c) { px.globalAlpha = 0.45 * hold; px.drawImage(glowEllipse(stopsG), c[0] - V.f * rx * 1.1, V.yh - V.f * ry * 1.5, 2 * V.f * rx * 1.1, V.f * ry * 1.5 * 130 / 128); px.globalAlpha = 1; }
+        }
         // stars: dimmer in the glow; a few sparkle; in the hold they stop twinkling
-        const tw = T - 1.4 * (fx.holdT ?? 0);
+        const tw = T - (fx.holdT ?? 0);
         for (const st of WORLD.stars) {
             const q = V.dir(st.d); if (!q) continue;
             if (q[0] < -m || q[0] > V.W + m || q[1] < -m || q[1] > V.yh) continue;
@@ -766,7 +787,6 @@ const Skyline = (() => {
             else { px.beginPath(); px.arc(q[0], q[1], st.r * 0.62, 0, TAU); px.fill(); }
             if (st.spark) sparkle(lx, q[0], q[1], st.r * (5 + 4 * (fx.star ?? 0)), a * 0.7, 0.0);
         }
-        clouds(V, T, fx);
         moon(V, T, fx);
         plane(V, T, fx);
     }
@@ -776,15 +796,15 @@ const Skyline = (() => {
     let MOONSPR = null;
     function moon(V, T, fx) {
         const q = V.dir(MOON); if (!q) return;
-        const r = V.f * 0.024;
+        const r = V.f * 0.028;
         if (!MOONSPR) {
             const N = 256, c = mkC(N, N), g = c.getContext('2d'), R = N * 0.42, cx = N / 2;
             // earthshine: the dark disc, faintly lit, with its seas
             const e = g.createRadialGradient(cx - R * 0.2, cx - R * 0.2, R * 0.1, cx, cx, R);
-            e.addColorStop(0, '#4a3c7a'); e.addColorStop(1, '#2a2050');
+            e.addColorStop(0, 'rgba(34,22,70,0.92)'); e.addColorStop(1, 'rgba(24,14,52,0.9)');
             g.fillStyle = e; g.beginPath(); g.arc(cx, cx, R, 0, TAU); g.fill();
             const mr = Motion.rng('maria');
-            for (let i = 0; i < 9; i++) { g.fillStyle = 'rgba(20,14,50,0.35)'; g.beginPath(); g.ellipse(cx + (mr() - 0.5) * R * 1.1, cx + (mr() - 0.5) * R * 1.1, R * (0.1 + mr() * 0.18), R * (0.08 + mr() * 0.14), mr() * 3, 0, TAU); g.fill(); }
+            for (let i = 0; i < 9; i++) { g.fillStyle = 'rgba(46,32,90,0.4)'; g.beginPath(); g.ellipse(cx + (mr() - 0.5) * R * 1.1, cx + (mr() - 0.5) * R * 1.1, R * (0.1 + mr() * 0.18), R * (0.08 + mr() * 0.14), mr() * 3, 0, TAU); g.fill(); }
             // the lit crescent: the disc minus a disc moved up and left
             const lit = mkC(N, N), l = lit.getContext('2d');
             const lg = l.createLinearGradient(cx + R, cx + R, cx - R * 0.2, cx - R * 0.2);
@@ -792,97 +812,178 @@ const Skyline = (() => {
             l.fillStyle = lg; l.beginPath(); l.arc(cx, cx, R, 0, TAU); l.fill();
             for (let i = 0; i < 7; i++) { l.fillStyle = 'rgba(190,150,170,0.35)'; l.beginPath(); l.ellipse(cx + R * (0.3 + mr() * 0.5), cx + R * (0.1 + mr() * 0.6), R * 0.08, R * 0.12, mr() * 3, 0, TAU); l.fill(); }
             l.globalCompositeOperation = 'destination-out';
-            l.beginPath(); l.arc(cx - R * 0.42, cx - R * 0.3, R * 0.96, 0, TAU); l.fill();
+            l.beginPath(); l.arc(cx - R * 0.36, cx - R * 0.26, R * 0.95, 0, TAU); l.fill();
             l.globalCompositeOperation = 'destination-in'; l.beginPath(); l.arc(cx, cx, R, 0, TAU); l.fill();
             g.drawImage(lit, 0, 0);
             MOONSPR = { c, lit, N, R };
         }
         const sc = r / MOONSPR.R, sz = MOONSPR.N * sc;
-        glow(S.lx, q[0], q[1], r * 5, '#b8a0ff', 0.32);
-        glow(S.px, q[0], q[1], r * 7, '#9a70e0', 0.18);
+        glow(S.px, q[0], q[1], r * 6, '#8a60d0', 0.12);
+        glow(S.lx, q[0] + r * 0.4, q[1] + r * 0.3, r * 2.6, '#d0b0ff', 0.1);
         S.px.drawImage(MOONSPR.c, q[0] - sz / 2, q[1] - sz / 2, sz, sz);
-        S.lx.globalAlpha = 0.8; S.lx.drawImage(MOONSPR.lit, q[0] - sz / 2, q[1] - sz / 2, sz, sz); S.lx.globalAlpha = 1;
+        S.lx.globalAlpha = 0.3; S.lx.drawImage(MOONSPR.lit, q[0] - sz / 2, q[1] - sz / 2, sz, sz); S.lx.globalAlpha = 1;
         WORLD.moonAt = q; WORLD.moonR = r;
     }
 
-    // banks of low cloud, lit pink and orange from below by the city: painted once into a
-    // panorama (azimuth × elevation) and laid on the sky in strips through the projection
-    const PUFF = {};
-    function puffSprite(kind) {
-        if (PUFF[kind]) return PUFF[kind];
-        const W = 192, H = 96, c = mkC(W, H), g = c.getContext('2d');
-        // a lumpy cloud: overlapping soft lobes over a flatter base
-        const R = Motion.rng('puff' + kind), streak = kind === 1;
-        g.save(); g.translate(W / 2, H * 0.62);
-        const n = streak ? 5 : 9;
-        for (let i = 0; i < n; i++) {
-            const x = (R() - 0.5) * W * (streak ? 0.75 : 0.62), up = streak ? R() * 0.15 : Math.pow(R(), 0.7) * 0.55;
-            const rr = H * (streak ? 0.14 : 0.16 + R() * 0.16) * (1 - Math.abs(x) / W * 0.9);
-            const y = -up * H * 0.5 + rr * 0.4;
-            const gr = g.createRadialGradient(x, y, 0, x, y, rr * 1.5);
-            gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.6, 'rgba(255,255,255,0.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-            g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, rr * 1.5 * (streak ? 3 : 1.5), rr * 1.5, 0, 0, TAU); g.fill();
-        }
-        g.restore();
-        // the base is flat: fade the mask out below it
-        g.globalCompositeOperation = 'destination-out';
-        const fb = g.createLinearGradient(0, H * 0.66, 0, H * 0.8); fb.addColorStop(0, 'rgba(0,0,0,0)'); fb.addColorStop(1, 'rgba(0,0,0,1)');
-        g.fillStyle = fb; g.fillRect(0, H * 0.66, W, H * 0.34);
-        const body = mkC(W, H), b = body.getContext('2d'), lit = mkC(W, H), l = lit.getContext('2d');
-        b.drawImage(c, 0, 0); b.globalCompositeOperation = 'source-in';
-        const bg = b.createLinearGradient(0, H * 0.1, 0, H * 0.78); bg.addColorStop(0, 'rgba(70,40,120,0.55)'); bg.addColorStop(0.55, 'rgba(110,50,130,0.85)'); bg.addColorStop(1, 'rgba(150,60,130,1)');
-        b.fillStyle = bg; b.fillRect(0, 0, W, H);
-        l.drawImage(c, 0, 0); l.globalCompositeOperation = 'source-in';
-        const lg = l.createLinearGradient(0, H * 0.3, 0, H * 0.78); lg.addColorStop(0, 'rgba(255,255,255,0)'); lg.addColorStop(0.65, 'rgba(255,255,255,0.55)'); lg.addColorStop(1, 'rgba(255,255,255,1)');
-        l.fillStyle = lg; l.fillRect(0, 0, W, H);
-        const tint = (col) => { const t = mkC(W, H), x = t.getContext('2d'); x.drawImage(lit, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = col; x.fillRect(0, 0, W, H); return t; };
-        PUFF[kind] = { body, orange: tint('#ffa468'), pink: tint('#ff5a9c'), mauve: tint('#c0508e'), W, H };
-        return PUFF[kind];
+    // ---- reference cameras for the flat paintings (clouds, city) -------------------------
+    // A painting is made from a reference eye E looking along a quantized yaw and pitch, on a
+    // plane facing that eye at distance D; laid back through the real camera it is then
+    // almost an affine map (a few wide strips do), whatever the shot's yaw and tilt.
+    const Q_ANG = 0.08;
+    function refCam(E, yaw, pitch, fr) {
+        const F = [Math.cos(pitch) * Math.sin(yaw), Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw)];
+        const R = nrm([F[2], 0, -F[0]]), U = cross(F, R);
+        const p = (Q) => { const d = [Q[0] - E[0], Q[1] - E[1], Q[2] - E[2]], z = dot(F, d); return [fr * dot(R, d) / z, -fr * dot(U, d) / z, z]; };
+        // the plane's point under painting pixel (u, v) (centred coordinates)
+        const at = (u, v, D) => [E[0] + D * (F[0] + R[0] * u / fr - U[0] * v / fr), E[1] + D * (F[1] + R[1] * u / fr - U[1] * v / fr), E[2] + D * (F[2] + R[2] * u / fr - U[2] * v / fr)];
+        return { E, yaw, pitch, fr, F, R, U, p, at };
     }
-    const CPANO = new Map();
-    const CP = { az0: -1.55, az1: 1.35, el0: -0.004, el1: 0.27 };
-    function cloudPano(fr) {
-        if (CPANO.has(fr)) return CPANO.get(fr);
-        const w = Math.ceil((CP.az1 - CP.az0) * fr), h = Math.ceil((CP.el1 - CP.el0) * fr);
-        const body = mkC(w, h), lit = mkC(w, h), bx = body.getContext('2d'), lx = lit.getContext('2d');
-        const cAz = 0.115;                                  // downtown, from the causeway
-        for (const p of WORLD.puffs) {
-            const u = (p.az - CP.az0) * fr, v = (CP.el1 - p.el) * fr, rx = p.rx * fr, ry = p.ry * fr;
-            const sp = puffSprite(p.kind === 'streak' ? 1 : Math.floor(p.v * 3) + 2);
-            const near = Math.exp(-(((p.az - cAz) / 0.6) ** 2)), hi = sstep(0.0, 0.14, p.el);
-            bx.globalAlpha = p.kind === 'streak' ? 0.55 : 0.9; bx.drawImage(sp.body, u - rx, v - ry, 2 * rx, 2 * ry);
-            lx.globalAlpha = Math.min(1, (0.3 + 0.7 * near) * (1 - hi * 0.45) * (p.kind === 'streak' ? 0.9 : 0.8));
-            lx.drawImage(near > 0.55 ? sp.orange : sp.pink, u - rx, v - ry, 2 * rx, 2 * ry);
-            bx.globalAlpha = (1 - near) * 0.45; bx.drawImage(sp.mauve, u - rx, v - ry, 2 * rx, 2 * ry);
+    // the strips of a painting (canvas w × h, centred offset ou, ov, plane distance D) on V
+    function paintingStrips(V, rc, w, h, ou, ov, D, swPx) {
+        const out = [], sw = Math.max(12, Math.round(swPx * rc.fr / V.f));
+        for (let ua = 0; ua < w; ua += sw) {
+            const ub = Math.min(w, ua + sw);
+            const TL = V.p(rc.at(ua - ou, -ov, D)), TR = V.p(rc.at(ub - ou, -ov, D)), BL = V.p(rc.at(ua - ou, h - ov, D));
+            if (TL[2] < 50 || TR[2] < 50 || BL[2] < 50) continue;
+            if (Math.max(TL[0], TR[0], BL[0]) < -S.m - 8 || Math.min(TL[0], TR[0], BL[0]) > V.W + S.m + 8) continue;
+            out.push({ ua, ub, A: stripMap(TL, TR, BL, ua, ub, h) });
         }
-        const pano = { w, h, body, lit, fr };
-        CPANO.set(fr, pano);
-        return pano;
+        return out;
+    }
+    const qAng = (a) => Math.round(a / Q_ANG) * Q_ANG;
+
+    // ---- clouds: one painting on a plane 8 km ahead, painted once per pixel density from a
+    // reference eye and laid on the sky in strips like the city: a low bank behind the
+    // skyline lit orange and pink from below by the city, broken cloud above it, thin
+    // streaks higher up that catch the glow on their undersides
+    const CLOUD = { Z: 8000, E: [5, 8, 100] };
+    const CPLANE = new Map();
+    function cloudPlane(fr, yaw, pitch) {
+        const key = [fr, yaw, pitch].join();
+        if (CPLANE.has(key)) return CPLANE.get(key);
+        if (CPLANE.size >= 3) CPLANE.delete(CPLANE.keys().next().value);
+        const E = CLOUD.E, R = Motion.rng('clouds-85'), rc = refCam(E, yaw, pitch, fr);
+        const D = (CLOUD.Z - E[2]) / Math.cos(yaw);
+        // world (x, y) on the cloud deck z = 8 km → painting pixels; and the painting's extent
+        const pr = (x, y) => rc.p([x, y, CLOUD.Z]);
+        const ext = [-0.98, 0.98].map((da) => Math.tan(da) * fr), u0 = Math.floor(ext[0]), u1 = Math.ceil(ext[1]);
+        const v0 = Math.floor(-fr * Math.tan(0.3 - pitch)), v1 = Math.ceil(-fr * Math.tan(-0.035 - pitch));
+        const w = u1 - u0, h = v1 - v0, pic = mkC(w, h), lit = mkC(Math.ceil(w / 2), Math.ceil(h / 2));
+        const pc = pic.getContext('2d'), lc = lit.getContext('2d');
+        // the gradient by elevation, column by column (its bands bow toward the horizon at the sides)
+        const vOf = (az, el) => rc.p([E[0] + Math.cos(el) * Math.sin(az) * 1e5, E[1] + Math.sin(el) * 1e5, E[2] + Math.cos(el) * Math.cos(az) * 1e5])[1] - v0;
+        for (let cu = 0; cu < w; cu += 24) {
+            const az = yaw + Math.atan((cu + 12 + u0) / fr), y0 = vOf(az, 62 * Math.PI / 180), y1 = vOf(az, 0);
+            const gr = pc.createLinearGradient(0, y0, 0, y1);
+            for (const [d, c] of SKYSTOPS) gr.addColorStop(1 - d / 62, c);
+            pc.fillStyle = gr; pc.fillRect(cu, 0, 24, h);
+        }
+        // the glows over the city and over the two ends of the shore
+        for (const [P3, rx, ry, stopsG, a] of GLOWS) {
+            const az = Math.atan2(P3[0] - E[0], P3[2] - E[2]), q = rc.p([E[0] + Math.sin(az) * 1e5, E[1], E[2] + Math.cos(az) * 1e5]);
+            const cu = q[0] - u0, cv = q[1] - v0;
+            pc.globalAlpha = a; pc.drawImage(glowEllipse(stopsG), cu - fr * rx, cv - fr * ry, 2 * fr * rx, fr * ry * 130 / 128); pc.globalAlpha = 1;
+        }
+        const U = (x, y = 300) => pr(x, y)[0] - 0 , Vv = (y, x = 0) => pr(x, y)[1];
+        const cityU = pr(DOWNTOWN[0] / DOWNTOWN[2] * CLOUD.Z, 300)[0] - u0;      // downtown's column
+        const near = (u) => Math.exp(-(((u - cityU) / (fr * 0.55)) ** 2));
+        // one bank: lumps (world x, base y, radius) → a soft mask → body + lit underside
+        const bank = (lumps, top, base, rimA) => {
+            lumps = lumps.map(([x, y, r]) => { const q = pr(x, y), q2 = pr(x, y + r * 0.62), rr = fr * r / q[2]; return [q[0] - u0, q[1] - v0, q2[1] - v0, rr]; }).filter(([u, , , rr]) => u > -rr * 2 && u < w + rr * 2);
+            if (!lumps.length) return;
+            const bt = Math.max(0, Math.floor(Math.min(...lumps.map(([, vb, , rr]) => vb - rr * 2.3))) - 4), bb = Math.min(h, Math.ceil(Math.max(...lumps.map(([, vb]) => vb))) + 6), bh = bb - bt;
+            if (bh < 2) return;
+            const m = mkC(w, bh), mx = m.getContext('2d');
+            mx.fillStyle = '#fff';
+            for (const [u, vb, vc, rr] of lumps) { mx.beginPath(); mx.ellipse(u, vc - bt, rr * 1.25, rr, 0, 0, TAU); mx.fill(); }
+            // a flat base: cut what hangs below each lump's base line
+            mx.globalCompositeOperation = 'destination-out';
+            for (const [u, vb, vc, rr] of lumps) mx.fillRect(u - rr * 1.3, vb - bt + 0.5, rr * 2.6, rr * 2);
+            const soft = mkC(w, bh), sx = soft.getContext('2d'); sx.filter = `blur(${Math.max(0.6, fr / 1100).toFixed(2)}px)`; sx.drawImage(m, 0, 0); sx.filter = 'none';
+            // the body: dusk violet above, mauve toward the base
+            const body = mkC(w, bh), bx = body.getContext('2d');
+            bx.drawImage(soft, 0, 0); bx.globalCompositeOperation = 'source-in';
+            const g = bx.createLinearGradient(0, 0, 0, bh); g.addColorStop(0, top); g.addColorStop(0.7, base); g.addColorStop(1, base);
+            bx.fillStyle = g; bx.fillRect(0, 0, w, bh);
+            // the lit underside: the mask minus itself lifted, warm over the city, pink beyond
+            const rim = mkC(w, bh), rx = rim.getContext('2d'), lift = Math.max(1, fr * 40 / CLOUD.Z);
+            rx.drawImage(soft, 0, 0); rx.globalCompositeOperation = 'destination-out'; rx.drawImage(soft, 0, -lift); rx.drawImage(soft, 0, -lift * 0.5);
+            rx.globalCompositeOperation = 'source-in';
+            const gr = rx.createLinearGradient(0, 0, w, 0);
+            for (let i = 0; i <= 24; i++) { const u = i / 24 * w, n = near(u); gr.addColorStop(i / 24, css(mix(mix('#c0508e', '#ff5a9c', Math.min(1, n * 2.5)), '#ffa060', n), rimA * (0.45 + 0.55 * n))); }
+            rx.fillStyle = gr; rx.fillRect(0, 0, w, bh);
+            bx.globalCompositeOperation = 'source-over'; bx.drawImage(rim, 0, 0);
+            // a softer warm wash under the whole bank near the city
+            const wash = mkC(w, bh), wx = wash.getContext('2d'); wx.drawImage(soft, 0, 0); wx.globalCompositeOperation = 'source-in';
+            const gv = wx.createLinearGradient(0, 0, 0, bh); gv.addColorStop(0, 'rgba(255,120,150,0)'); gv.addColorStop(1, `rgba(255,140,120,${0.55 * rimA})`);
+            wx.fillStyle = gv; wx.fillRect(0, 0, w, bh); wx.globalCompositeOperation = 'destination-in';
+            const gh = wx.createLinearGradient(0, 0, w, 0); for (let i = 0; i <= 12; i++) gh.addColorStop(i / 12, `rgba(0,0,0,${near(i / 12 * w)})`); wx.fillStyle = gh; wx.fillRect(0, 0, w, bh);
+            bx.drawImage(wash, 0, 0);
+            // away from the city the bank thins into the haze
+            bx.globalCompositeOperation = 'destination-in';
+            const ga = bx.createLinearGradient(0, 0, w, 0); for (let i = 0; i <= 16; i++) ga.addColorStop(i / 16, `rgba(0,0,0,${0.3 + 0.7 * Math.sqrt(near(i / 16 * w))})`);
+            bx.fillStyle = ga; bx.fillRect(0, 0, w, bh); bx.globalCompositeOperation = 'source-over';
+            pc.drawImage(body, 0, bt);
+            lc.globalAlpha = 0.5; lc.drawImage(rim, 0, bt / 2, w / 2, bh / 2); lc.globalAlpha = 1;
+        };
+        const noise = (seed, x) => Motion.noise1(seed, x);
+        // the low bank: long, lumpy, broken in places, right behind the skyline
+        const low = [];
+        for (let x = -22000; x < 10500; x += 45 + R() * 50) {
+            if (noise('lowgap', x / 2600) < -0.45) continue;
+            const r = 55 + 110 * Math.abs(noise('lowr', x / 700)) + R() * 50;
+            low.push([x, 170 + 70 * noise('lowy', x / 3000), r]);
+        }
+        bank(low, 'rgba(60,30,96,0.55)', 'rgba(128,46,112,0.92)', 1);
+        // broken cloud above it
+        const mid = [];
+        for (let x = -15000; x < 9000; x += 70 + R() * 90) {
+            if (noise('midgap', x / 1800) < 0.05) continue;
+            const r = 70 + 160 * Math.abs(noise('midr', x / 900)) + R() * 60;
+            mid.push([x, 640 + 180 * noise('midy', x / 2500), r]);
+        }
+        bank(mid, 'rgba(52,26,90,0.4)', 'rgba(104,40,110,0.8)', 0.8);
+        // thin wisps higher up, gathered over the glow: each a few short lenses, offset and
+        // fading, with a lit lower edge
+        for (let i = 0; i < 11; i++) {
+            const cx = 900 + (R() - 0.5) * 17000, cy = 1000 + R() * 1600, n0 = 3 + Math.floor(R() * 4), tilt = (R() - 0.5) * 0.05;
+            for (let j = 0; j < n0; j++) {
+                const x = cx + (j - n0 / 2) * (600 + R() * 700), y = cy + (j - n0 / 2) * tilt * 900 + (R() - 0.5) * 90;
+                const len = 300 + R() * 1100, th = 14 + R() * 46;
+                const q = pr(x, y), u = q[0] - u0, v = q[1] - v0, lu = fr * len / q[2], tv = fr * th / q[2], n = near(u);
+                if (u < -lu || u > w + lu || v < -tv) continue;
+                const a = (0.3 + 0.7 * n) * (0.35 + 0.65 * Math.sin(Math.PI * (j + 0.5) / n0)) * (0.5 + 0.5 * R());
+                const g = pc.createLinearGradient(0, v - tv, 0, v + tv), core = mix(mix('#b04a96', '#ff5a9c', Math.min(1, n * 2)), '#ffa060', n * 0.8);
+                g.addColorStop(0, 'rgba(90,40,120,0)'); g.addColorStop(0.45, `rgba(120,50,130,${0.18 * a})`); g.addColorStop(0.72, css(core, 0.42 * a)); g.addColorStop(1, css(core, 0));
+                pc.save(); pc.translate(u, v); pc.rotate(tilt * (0.5 + R())); pc.translate(-u, -v);
+                pc.fillStyle = g; pc.beginPath(); pc.ellipse(u, v, lu, tv, 0, 0, TAU); pc.fill(); pc.restore();
+            }
+        }
+        // its top fades into the sky's gradient, painted under it every frame
+        pc.globalCompositeOperation = 'destination-in';
+        const fz = pc.createLinearGradient(0, 0, 0, h * 0.3); fz.addColorStop(0, 'rgba(0,0,0,0)'); fz.addColorStop(1, 'rgba(0,0,0,1)');
+        pc.fillStyle = fz; pc.fillRect(0, 0, w, h); pc.globalCompositeOperation = 'source-over';
+        const pl = { w, h, pic, lit, fr, ou: -u0, ov: -v0, D, rc };
+        CPLANE.set(key, pl);
+        return pl;
     }
     function clouds(V, T, fx) {
-        const fr = fBucket(V.f * S.k), pano = cloudPano(fr);
-        const drift = (T - 58.9 - (fx.holdT ?? 0)) * 0.0011;
-        const dirOf = (u, v) => { const az = CP.az0 + u / fr + drift, el = CP.el1 - v / fr; return [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)]; };
-        const sw = Math.max(16, Math.round(70 * fr / V.f));
-        const litA = Math.min(1, 0.85 + 0.15 * (fx.hold ?? 0));
-        for (let ua = 0; ua < pano.w; ua += sw) {
-            const ub = Math.min(pano.w, ua + sw);
-            const TL = V.dir(dirOf(ua, 0)), TR = V.dir(dirOf(ub, 0)), BL = V.dir(dirOf(ua, pano.h));
-            if (!TL || !TR || !BL) continue;
-            if (Math.max(TL[0], TR[0]) < -S.m - 4 || Math.min(TL[0], TR[0]) > V.W + S.m + 4) continue;
-            const A = stripMap(TL, TR, BL, ua, ub, pano.h), x1 = Math.min(pano.w, ub + 2);
-            place(S.px, A);
-            S.px.globalAlpha = 1; S.px.drawImage(pano.body, ua, 0, x1 - ua, pano.h, ua, 0, x1 - ua, pano.h);
-            S.px.globalAlpha = litA; S.px.drawImage(pano.lit, ua, 0, x1 - ua, pano.h, ua, 0, x1 - ua, pano.h);
-            place(S.lx, A); S.lx.globalAlpha = 0.1; S.lx.drawImage(pano.lit, ua, 0, x1 - ua, pano.h, ua, 0, x1 - ua, pano.h);
+        const pl = cloudPlane(fBucket(V.f * S.k) / 2, qAng(V.yaw), qAng(V.pitch));
+        const glowA = 0.18 + 0.12 * (fx.hold ?? 0);
+        for (const { ua, ub, A } of paintingStrips(V, pl.rc, pl.w, pl.h, pl.ou, pl.ov, pl.D, 120)) {
+            const x1 = Math.min(pl.w, ub + 1);
+            place(S.px, A); S.px.drawImage(pl.pic, ua, 0, x1 - ua, pl.h, ua, 0, x1 - ua, pl.h);
+            // their glow on the light, only where the city lights them
+            const um = (ua + ub) / 2 - pl.ou, az = Math.atan(um / pl.fr) + pl.rc.yaw;
+            if (Math.abs(az - 0.115) < 0.75) { place(S.lx, A); S.lx.globalAlpha = glowA; S.lx.drawImage(pl.lit, ua / 2, 0, (x1 - ua) / 2, pl.h / 2, ua, 0, x1 - ua, pl.h); S.lx.globalAlpha = 1; }
         }
-        S.px.globalAlpha = 1; S.lx.globalAlpha = 1;
         logical(S.px); logical(S.lx);
     }
 
-    // a plane on its way in: white strobes, a red beacon, red and green wing lights
+    // a plane on its way in over the right of the sky: white strobes, a red beacon, red and
+    // green wing lights, a landing light
     function plane(V, T, fx) {
-        const t = T - 58.9, x = -900 + t * 72, y = 620 - t * 3, z = 4000;
+        const t = T - 58.9, x = 650 + t * 70, y = 760 - t * 4, z = 3800;
         const c = V.p([x, y, z]); if (c[2] < 1) return;
         const s = V.f / c[2], px = S.px, lx = S.lx;
         const wing = 18 * s, len = 22 * s;
@@ -893,125 +994,124 @@ const Skyline = (() => {
         px.strokeStyle = 'rgba(255,150,170,0.5)'; px.lineWidth = Math.max(0.5, 0.6 * s); px.beginPath(); px.moveTo(c[0] - len, c[1] + 1.4 * s); px.lineTo(c[0] + len, c[1] + 0.9 * s); px.stroke();
         const strobe = fract(T * 0.83) < 0.05 || (fract(T * 0.83) > 0.12 && fract(T * 0.83) < 0.16);
         const beacon = 0.5 + 0.5 * Math.cos(T * TAU * 1.0);
-        glow(lx, c[0] - wing * 0.3, c[1] - 0.4 * s, Math.max(3, 3 * s), P.red, 0.9);
-        glow(lx, c[0] + wing * 0.25, c[1] + 0.7 * s, Math.max(3, 3 * s), '#4aff8a', 0.9);
-        glow(lx, c[0], c[1] - 1.2 * s, Math.max(3.5, 3.5 * s), P.red, beacon);
-        glow(lx, c[0] + len, c[1], Math.max(4, 4 * s), '#fff4e0', 0.85);
+        glow(lx, c[0] - wing * 0.3, c[1] - 0.4 * s, Math.max(4, 3 * s), P.red, 0.9);
+        glow(lx, c[0] + wing * 0.25, c[1] + 0.7 * s, Math.max(4, 3 * s), '#4aff8a', 0.9);
+        glow(lx, c[0], c[1] - 1.2 * s, Math.max(4.5, 3.5 * s), P.red, beacon);
+        // the landing light, ahead of it
+        glow(lx, c[0] + len, c[1] + 0.3 * s, Math.max(6, 5 * s), '#fff4e0', 0.95);
+        sparkle(lx, c[0] + len, c[1] + 0.3 * s, Math.max(9, 7 * s), 0.55);
         if (strobe) sparkle(lx, c[0] - wing * 0.3, c[1] - 0.4 * s, 14, 1);
     }
 
-    // ---- the city as impostors ----------------------------------------------------------
-    // Two flat paintings on planes across the bay (the towers and far shores at 2.6 km, the
-    // waterfront at 1.96 km), painted from a reference eye near the camera and laid on the
-    // frame in narrow strips through the real projection. The eye (to 10 m across, 6 m up,
-    // 40 m along) and the pixel density are quantized from the camera, so the same frame
-    // always gets the same painting; parallax stays under a pixel. Overlays (windows on the
-    // beat, the crown, beacons, cars) go through the same strips so they sit on it exactly.
+    // ---- the city as an impostor --------------------------------------------------------
+    // One flat painting of the whole far shore (the far shores and towers, the haze at their
+    // feet, then the waterfront in front), painted from a reference eye near the camera onto
+    // a plane 2.2 km out and laid on the frame in strips through the real projection. The eye
+    // (to 10 m across, 6 m up, 40 m along), the yaw and pitch (to 0.08 rad) and the pixel
+    // density are quantized from the camera, so the same frame always gets the same painting;
+    // seen from the real eye the parallax between 1.9 and 3.5 km stays under a pixel. What is
+    // nearer hides the light of what is behind it in the painting itself. Overlays (windows
+    // on the beat, the crown, beacons, cars) go through the same strips so they sit on it.
+    // In the trip the neon is kept apart (back and waterfront), to be turned and pulsed.
     const IMP = new Map();
-    const LAYERS = [['back', 2600], ['front', 1960]];
+    const IMPZ = 2200;
     function impostor(V, trip) {
         const ex = Math.round(V.pos[0] / 10) * 10, ey = Math.round(V.pos[1] / 6) * 6, ez = Math.round(V.pos[2] / 40) * 40;
-        const fr = fBucket(V.f * S.k);
-        const key = [ex, ey, ez, fr, trip ? 1 : 0].join();
+        const fr = fBucket(V.f * S.k), yaw = qAng(V.yaw), pitch = qAng(V.pitch);
+        const key = [ex, ey, ez, fr, yaw, pitch, trip ? 1 : 0].join();
         if (IMP.has(key)) return IMP.get(key);
         if (IMP.size >= 2) IMP.delete(IMP.keys().next().value);
-        const imp = { E: [ex, ey, ez], fr, trip, layers: [] };
-        const ref = (Q) => { const z = Q[2] - ez; return [fr * (Q[0] - ex) / z, -fr * (Q[1] - ey) / z, z]; };
-        for (const [name, Z] of LAYERS) {
-            const list = name === 'back' ? WORLD.back : WORLD.front;
-            const entries = [];
-            let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
-            for (const it of list) {
-                const az = Math.atan2(it.O[0] - ex, it.O[2] - ez);
-                if (az < -1.3 || az > 1.0) continue;
-                const O = it.O, Lx = Math.max(10, it.u1 - it.u0), Ly = Math.max(10, it.v1);
-                const A = ref(O), B = ref([O[0] + it.ex[0] * Lx, O[1], O[2] + it.ex[2] * Lx]), C = ref([O[0], O[1] + Ly, O[2]]);
-                const F = { a: (B[0] - A[0]) / Lx, b: (B[1] - A[1]) / Lx, c: -(C[0] - A[0]) / Ly, d: -(C[1] - A[1]) / Ly, e: A[0], f: A[1] };
-                for (const [u, v] of [[it.u0, 2], [it.u1, 2], [it.u0, -it.v1], [it.u1, -it.v1]]) {
-                    const x = F.e + F.a * u + F.c * v, y = F.f + F.b * u + F.d * v;
-                    u0 = Math.min(u0, x); u1 = Math.max(u1, x); v0 = Math.min(v0, y); v1 = Math.max(v1, y);
-                }
-                entries.push({ it, F });
+        const rc = refCam([ex, ey, ez], yaw, pitch, fr), ref = rc.p;
+        const entries = [];
+        let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+        for (const [front, list] of [[false, WORLD.back], [true, WORLD.front]]) for (const it of list) {
+            const az = Math.atan2(it.O[0] - ex, it.O[2] - ez);
+            if (Math.abs(az - yaw) > 1.0) continue;
+            const O = it.O, Lx = Math.max(10, it.u1 - it.u0), Ly = Math.max(10, it.v1);
+            const A = ref(O), B = ref([O[0] + it.ex[0] * Lx, O[1], O[2] + it.ex[2] * Lx]), C = ref([O[0], O[1] + Ly, O[2]]);
+            const F = { a: (B[0] - A[0]) / Lx, b: (B[1] - A[1]) / Lx, c: -(C[0] - A[0]) / Ly, d: -(C[1] - A[1]) / Ly, e: A[0], f: A[1] };
+            for (const [u, v] of [[it.u0, 2], [it.u1, 2], [it.u0, -it.v1], [it.u1, -it.v1]]) {
+                const x = F.e + F.a * u + F.c * v, y = F.f + F.b * u + F.d * v;
+                u0 = Math.min(u0, x); u1 = Math.max(u1, x); v0 = Math.min(v0, y); v1 = Math.max(v1, y);
             }
-            const ou = -Math.floor(u0) + 3, ov = -Math.floor(v0) + 3, w = Math.ceil(u1 - u0) + 6, h = Math.ceil(v1 - v0) + 6;
-            const mk2 = () => { const c = mkC(w, h); return [c, c.getContext('2d')]; };
-            const [pic, pc] = mk2(), [lit, lc] = mk2(), [neon, nc] = trip ? mk2() : [null, null];
-            lc.globalCompositeOperation = 'lighter';
-            for (const en of entries) {
-                const F = en.F; F.e += ou; F.f += ov;
-                const sp = sprite(en.it, bucket(Math.hypot(F.a, F.b)));
-                const put = (ctx, img, a = 1) => { ctx.setTransform(F.a, F.b, F.c, F.d, F.e, F.f); ctx.globalAlpha = a; ctx.drawImage(img, sp.ox, -sp.oy, sp.mw, sp.mh); };
-                put(pc, sp.pic); put(lc, sp.lit);
-                if (sp.neon) { if (trip) put(nc, sp.neon); else { put(pc, sp.neon, 0.6); put(lc, sp.neon, 1); } }
-            }
-            for (const c of [pc, lc, nc]) if (c) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; }
-            const D = Z - ez;
-            imp.layers.push({ name, Z, D, pic, lit, neon, w, h, ou, ov, entries, vg: ov - fr * (WL + 2.5 - ey) / D });
+            entries.push({ it, F, front });
         }
+        const ou = -Math.floor(u0) + 3, ov = -Math.floor(v0) + 3, w = Math.ceil(u1 - u0) + 6, h = Math.ceil(v1 - v0) + 6;
+        const mk2 = () => { const c = mkC(w, h); return [c, c.getContext('2d')]; };
+        const [pic, pc] = mk2(), [lit, lc] = mk2(), [neonB, nb] = trip ? mk2() : [null, null], [neonF, nf] = trip ? mk2() : [null, null];
+        for (const c of [lc, nb, nf]) if (c) c.globalCompositeOperation = 'lighter';
+        let hazeDone = false;
+        for (const en of entries) {
+            if (en.front && !hazeDone) { hazeDone = true; paintHaze(pc, lc, rc, ou, ov); }
+            const F = en.F; F.e += ou; F.f += ov;
+            const sp = sprite(en.it, bucket(Math.hypot(F.a, F.b)));
+            const put = (ctx, img, a = 1) => { ctx.setTransform(F.a, F.b, F.c, F.d, F.e, F.f); ctx.globalAlpha = a; ctx.drawImage(img, sp.ox, -sp.oy, sp.mw, sp.mh); };
+            // what is nearer hides the light of what is behind it
+            for (const c of [lc, nb, nf]) if (c) { c.globalCompositeOperation = 'destination-out'; put(c, sp.pic); c.globalCompositeOperation = 'lighter'; }
+            put(pc, sp.pic); put(lc, sp.lit);
+            const nl = en.front ? 0.7 : 1;
+            if (sp.neon) { if (trip) { put(en.front ? nf : nb, sp.neon, nl); put(pc, sp.neon, 0.45); } else { put(pc, sp.neon, 0.6); put(lc, sp.neon, nl); } }
+        }
+        for (const c of [pc, lc, nb, nf]) if (c) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; }
+        const D = (IMPZ - ez) / Math.max(0.5, rc.F[2]);
+        const G = rc.p([ex + Math.sin(yaw) * (1960 - ez), WL + 1.6, 1960]);      // the shore's ground line
+        const imp = { E: [ex, ey, ez], fr, trip, rc, pic, lit, neonB, neonF, w, h, ou, ov, D, entries, vg: ov + G[1] };
         IMP.set(key, imp);
         return imp;
     }
+    // the haze at street level over the feet of the towers, painted into the city painting
+    function paintHaze(pc, lc, rc, ou, ov) {
+        const az = Math.atan2(DOWNTOWN[0] - rc.E[0], DOWNTOWN[2] - rc.E[2]), far = 1e6;
+        const q = rc.p([rc.E[0] + Math.sin(az) * far, rc.E[1], rc.E[2] + Math.cos(az) * far]);
+        const g0 = rc.p([DOWNTOWN[0], WL + 2.5, 2600]);
+        const cx = q[0] + ou, cy = g0[1] + ov + 2, rx = rc.fr * 1.1, ry = rc.fr * 0.022;
+        for (const [ctx, stops] of [[pc, [[0, 'rgba(255,140,120,0.42)'], [0.35, 'rgba(240,90,140,0.26)'], [1, 'rgba(160,50,120,0)']]], [lc, [[0, 'rgba(255,130,110,0.04)'], [1, 'rgba(255,120,140,0)']]]]) {
+            ctx.save(); ctx.setTransform(1, 0, 0, ry / rx, cx, cy); ctx.globalAlpha = 1;
+            const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); for (const [u, c] of stops) gr.addColorStop(u, c);
+            ctx.fillStyle = gr; ctx.fillRect(-rx, -rx, 2 * rx, rx); ctx.restore();
+        }
+    }
 
-    // the strips of an impostor's layer as seen by V (with the trip's breathing)
-    function strips(V, imp, L, T, fx) {
-        const { fr, E } = imp, D = L.D;
-        const P3 = (u, v) => [E[0] + (u - L.ou) / fr * D, E[1] - (v - L.ov) / fr * D, E[2] + D];
-        const sw = Math.max(12, Math.round(56 * fr / V.f)), out = [];
-        const br = (fx.breathe ?? 0) * 2.4;
-        for (let ua = 0; ua < L.w; ua += sw) {
-            const ub = Math.min(L.w, ua + sw);
-            const TL = V.p(P3(ua, 0)), TR = V.p(P3(ub, 0)), BL = V.p(P3(ua, L.h));
-            if (TL[2] < 50 || TR[2] < 50) continue;
-            if (Math.max(TL[0], TR[0], BL[0]) < -S.m - 8 || Math.min(TL[0], TR[0], BL[0]) > V.W + S.m + 8) continue;
-            const A = stripMap(TL, TR, BL, ua, ub, L.h);
-            if (br > 0 && L.name === 'back') {
-                // the city breathes: every strip stretches up from the ground on its own phase
-                const sx = (TL[0] + TR[0]) / 2, st = 1 + br * (0.55 + 0.45 * Math.sin(T * 3.1 + sx * 0.011)) * (0.7 + 0.3 * Math.sin(sx * 0.031 - T * 2));
-                A.e += A.c * L.vg * (1 - st); A.f += A.d * L.vg * (1 - st); A.c *= st; A.d *= st;
-            }
-            out.push({ ua, ub, A });
+    // the strips of the city painting as seen by V (with the trip's breathing)
+    function strips(V, imp, T, fx) {
+        const br = (fx.breathe ?? 0) * 3.6;
+        const out = paintingStrips(V, imp.rc, imp.w, imp.h, imp.ou, imp.ov, imp.D, 110);
+        if (br > 0) for (const { A, ua, ub } of out) {
+            // the city breathes: every strip stretches up from the shore on its own phase
+            const sx = A.e + A.a * (ua + ub) / 2 + A.c * imp.vg, st = 1 + br * (0.55 + 0.45 * Math.sin(T * 3.1 + sx * 0.0045)) * (0.75 + 0.25 * Math.sin(sx * 0.009 - T * 2));
+            A.e += A.c * imp.vg * (1 - st); A.f += A.d * imp.vg * (1 - st); A.c *= st; A.d *= st;
         }
         return out;
     }
 
-    // the city through its impostors, with the overlays; returns the top of the city (y)
+    // the city through its impostor, with the overlays; returns the top of the city (y)
     function city(V, T, fx, neonTo) {
         const trip = (fx.trip ?? 0) > 0;
         if (V.f * S.k > 1900) return cityDirect(V, T, fx, neonTo);   // long lenses: every item itself
         const imp = impostor(V, trip);
         const px = S.px, lx = S.lx, kick = fx.kick ?? 0;
         let top = V.yh;
-        for (const L of imp.layers) {
-            const st = strips(V, imp, L, T, fx);
-            L.st = st;
-            for (const { ua, ub, A } of st) {
-                const x1 = Math.min(L.w, ub + 2), sw = x1 - ua;
-                place(px, A); px.drawImage(L.pic, ua, 0, sw, L.h, ua, 0, sw, L.h);
-                place(lx, A); lx.drawImage(L.lit, ua, 0, sw, L.h, ua, 0, sw, L.h);
-                if (L.neon) {
-                    const nt = neonTo.x;
-                    place(nt, A);
-                    const na = L.name === 'front' ? 0.85 + 0.7 * kick : 1;
-                    nt.globalAlpha = Math.min(1, na); nt.drawImage(L.neon, ua, 0, sw, L.h, ua, 0, sw, L.h);
-                    if (na > 1) { nt.globalAlpha = na - 1; nt.drawImage(L.neon, ua, 0, sw, L.h, ua, 0, sw, L.h); }
-                    nt.globalAlpha = 1;
-                    if (!neonTo.sep) { place(px, A); px.globalAlpha = 0.6; px.drawImage(L.neon, ua, 0, sw, L.h, ua, 0, sw, L.h); px.globalAlpha = 1; }
-                }
-                top = Math.min(top, A.f, A.f + A.b * (ub - ua));
+        const st = strips(V, imp, T, fx);
+        for (const { ua, ub, A } of st) {
+            const x1 = Math.min(imp.w, ub + 2), sw = x1 - ua;
+            place(px, A); px.drawImage(imp.pic, ua, 0, sw, imp.h, ua, 0, sw, imp.h);
+            place(lx, A); lx.drawImage(imp.lit, ua, 0, sw, imp.h, ua, 0, sw, imp.h);
+            if (imp.neonB) {
+                const nt = neonTo.x;
+                place(nt, A); nt.drawImage(imp.neonB, ua, 0, sw, imp.h, ua, 0, sw, imp.h);
+                // the waterfront's neon pulses on the kick (the tubes' glass on the picture is in pic)
+                nt.globalAlpha = 0.6 + 0.4 * kick; nt.drawImage(imp.neonF, ua, 0, sw, imp.h, ua, 0, sw, imp.h); nt.globalAlpha = 1;
             }
-            logical(px); logical(lx);
-            if (L.name === 'back') haze(V, fx);
+            top = Math.min(top, A.f, A.f + A.b * (ub - ua));
         }
+        logical(px); logical(lx);
+        if ((fx.hold ?? 0) > 0) haze(V, fx, 0.6 * fx.hold);       // in the hold the haze swells a little
         // overlays, through the strip under each item
-        for (const L of imp.layers) {
-            if (!L.st.length) continue;
-            const s0 = L.st[0].ua, swd = L.st.length > 1 ? L.st[1].ua - L.st[0].ua : L.w;
-            for (const en of L.entries) {
-                const it = en.it; if (it.kind !== 'tower' && !(it.kind === 'block' && it.cars.length)) continue;
-                const uc = en.F.e + en.F.a * (it.u0 + it.u1) / 2;
-                const si = L.st.find((q) => uc >= q.ua && uc < q.ub); if (!si) continue;
-                dynamic(it, compose(si.A, en.F), V, T, fx);
-            }
+        if (st.length) for (const en of imp.entries) {
+            const it = en.it; if (it.kind !== 'tower' && !(it.kind === 'block' && it.cars.length)) continue;
+            const uc = en.F.e + en.F.a * (it.u0 + it.u1) / 2;
+            const si = st.find((q) => uc >= q.ua && uc < q.ub); if (!si) continue;
+            dynamic(it, compose(si.A, en.F), V, T, fx);
         }
         logical(px); logical(lx);
         if (neonTo.sep) logical(neonTo.x);
@@ -1019,18 +1119,20 @@ const Skyline = (() => {
     }
 
     // the haze at street level, over the feet of the towers
-    function haze(V, fx) {
+    function haze(V, fx, a = 1) {
         const px = S.px, lx = S.lx;
         const c = V.dir(nrm([DOWNTOWN[0] - V.pos[0], 0, DOWNTOWN[2] - V.pos[2]])); if (!c) return;
         const rx = V.f * 1.1, ry = V.f * 0.022 * (1 + (fx.hold ?? 0) * 0.5);
+        px.globalAlpha = lx.globalAlpha = a;
         px.save(); px.translate(c[0], V.yh + 3); px.scale(1, ry / rx);
         const gr = px.createRadialGradient(0, 0, 0, 0, 0, rx);
         gr.addColorStop(0, 'rgba(255,140,120,0.42)'); gr.addColorStop(0.35, 'rgba(240,90,140,0.26)'); gr.addColorStop(1, 'rgba(160,50,120,0)');
         px.fillStyle = gr; px.fillRect(-rx, -rx, 2 * rx, rx); px.restore();
         lx.save(); lx.translate(c[0], V.yh + 3); lx.scale(1, ry / rx);
         const gl = lx.createRadialGradient(0, 0, 0, 0, 0, rx);
-        gl.addColorStop(0, `rgba(255,130,110,${0.07 + 0.05 * (fx.hold ?? 0)})`); gl.addColorStop(1, 'rgba(255,120,140,0)');
+        gl.addColorStop(0, `rgba(255,130,110,${0.04 + 0.04 * (fx.hold ?? 0)})`); gl.addColorStop(1, 'rgba(255,120,140,0)');
         lx.fillStyle = gl; lx.fillRect(-rx, -rx, 2 * rx, rx); lx.restore();
+        px.globalAlpha = lx.globalAlpha = 1;
     }
 
     // the city item by item (close-ups, and the reference the impostors are checked against)
@@ -1043,12 +1145,13 @@ const Skyline = (() => {
             if (!visible(it, F, V)) return;
             if (br > 0 && it.kind === 'tower') { const b = br * 2.4 * (0.55 + 0.45 * Math.sin(T * 3.1 + it.ph)); F.c *= (1 + b); F.d *= (1 + b); }
             const sp = sprite(it, bucket(k * Math.hypot(F.a, F.b)));
+            for (const c of neonTo.sep ? [lx, neonTo.x] : [lx]) { place(c, F); c.globalCompositeOperation = 'destination-out'; c.drawImage(sp.pic, sp.ox, -sp.oy, sp.mw, sp.mh); c.globalCompositeOperation = 'lighter'; }
             place(px, F); px.drawImage(sp.pic, sp.ox, -sp.oy, sp.mw, sp.mh);
             place(lx, F); lx.drawImage(sp.lit, sp.ox, -sp.oy, sp.mw, sp.mh);
             if (sp.neon) {
-                const na = front ? 0.85 + 0.7 * kick : 1;
+                const na = front ? 0.6 + 0.4 * kick : 1;
                 place(neonTo.x, F); neonTo.x.globalAlpha = Math.min(1, na); neonTo.x.drawImage(sp.neon, sp.ox, -sp.oy, sp.mw, sp.mh); neonTo.x.globalAlpha = 1;
-                if (!neonTo.sep) { place(px, F); px.globalAlpha = 0.6; px.drawImage(sp.neon, sp.ox, -sp.oy, sp.mw, sp.mh); px.globalAlpha = 1; }
+                place(px, F); px.globalAlpha = neonTo.sep ? 0.45 : 0.6; px.drawImage(sp.neon, sp.ox, -sp.oy, sp.mw, sp.mh); px.globalAlpha = 1;
             }
             top = Math.min(top, F.f + F.d * -it.v1);
             dynamic(it, F, V, T, fx);
@@ -1067,6 +1170,8 @@ const Skyline = (() => {
         const px = S.px, lx = S.lx;
         const beat = Math.floor(Song.beatAt(T));
         if (it.kind === 'tower') {
+            if (!it.live.length && !it.liveBand && !it.beacons.length && it.type !== 'landmark') return;
+            const sx = F.e + F.a * it.w / 2; if (sx < -S.m || sx > V.W + S.m) return;
             place(px, F); place(lx, F);
             const fog = it.fog, ww = it.cp * (it.type === 'glass' ? 0.78 : 0.56), wh = it.fp * (it.office ? 0.62 : 0.5);
             const minW = 0.75 / (S.k * Math.hypot(F.a, F.b));
@@ -1078,26 +1183,31 @@ const Skyline = (() => {
                 const x = (it.w - it.nc * it.cp) / 2 + L.c * it.cp + (it.cp - ww) / 2, y = -(2 + L.f * it.fp + it.fp * 0.3 + wh);
                 const colr = L.tv ? '#8ab8ff' : L.col;
                 px.fillStyle = css(mix(hex(colr), HAZE, fog * 0.7), a); px.fillRect(x, y, Math.max(ww, minW), Math.max(wh, minW));
-                lx.fillStyle = css(hex(colr), a * (0.8 - fog * 0.5)); lx.fillRect(x, y, Math.max(ww, minW), Math.max(wh, minW));
+                lx.fillStyle = css(hex(colr), a * (0.4 - fog * 0.25)); lx.fillRect(x, y, Math.max(ww, minW), Math.max(wh, minW));
             }
             if (it.liveBand) {
                 const lb = it.liveBand, on = Math.floor((beat + lb.ph) / lb.per) % 2 === 0;
                 if (on) {
-                    const y = -(2 + lb.f * it.fp + it.fp * 0.3 + wh), colr = it.warm ? '#ffe0b0' : '#d8f4ff';
+                    const y = -(2 + lb.f * it.fp + it.fp * 0.3 + wh), colr = it.warm ? '#ffc870' : '#a8e8ff';
                     px.fillStyle = css(mix(hex(colr), HAZE, fog * 0.7), 0.85); px.fillRect(0.8, y, it.w - 1.6, Math.max(wh, minW));
-                    lx.fillStyle = css(hex(colr), 0.75 - fog * 0.45); lx.fillRect(0.8, y, it.w - 1.6, Math.max(wh, minW));
+                    lx.fillStyle = css(hex(colr), 0.35 - fog * 0.2); lx.fillRect(0.8, y, it.w - 1.6, Math.max(wh, minW));
                 }
             }
             if (it.type === 'landmark' && it.tiers) {
                 // the crown, floodlit in the bar's colour, its edges in tubes
                 const C = crownColour(T, fx), barT = (T - Song.bar0) / (4 * Song.beat), flash = Math.exp(-fract(barT) * 8 * 4 * Song.beat);
+                const Ch = '#' + C.map((v) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join(''), sc = S.k * Math.hypot(F.a, F.b);
                 for (const [x, y, w, h] of it.tiers) {
-                    for (const [ctx, a] of [[px, 0.85], [lx, 0.75 + 0.25 * flash]]) {
+                    // floodlit from below: the colour strong at the foot of each setback, fading up
+                    for (const [ctx, a] of [[px, 0.9], [lx, 0.4 + 0.2 * flash]]) {
                         const gr = ctx.createLinearGradient(0, y + h, 0, y);
-                        gr.addColorStop(0, css(mix(C, [255, 255, 255], 0.25 + 0.3 * flash), a)); gr.addColorStop(1, css(C, a * 0.25));
+                        gr.addColorStop(0, css(mix(C, [255, 255, 255], 0.08 + 0.12 * flash), a)); gr.addColorStop(0.6, css(C, a * 0.5)); gr.addColorStop(1, css(mix(C, [40, 20, 80], 0.5), a * 0.25));
                         ctx.fillStyle = gr; ctx.fillRect(x, y, w, h);
                     }
-                    tubeM(lx, S.k * Math.hypot(F.a, F.b), [[x - 0.3, y + h], [x + w + 0.3, y + h]], '#' + C.map((v) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join(''), 0.7);
+                    // Deco ribs across the setback
+                    px.fillStyle = 'rgba(30,16,60,0.45)'; for (let rx = x + 1.6; rx < x + w - 0.8; rx += 2.4) px.fillRect(rx, y + h * 0.15, 0.7, h * 0.85);
+                    tubeM(lx, sc, [[x - 0.3, y + h], [x + w + 0.3, y + h]], Ch, 0.7);
+                    tubeM(lx, sc, [[x, y + h], [x, y], [x + w, y], [x + w, y + h]], Ch, 0.35, false, 0.6);
                 }
             }
             // aircraft warning lights: a slow red blink
@@ -1139,7 +1249,7 @@ const Skyline = (() => {
 
     // the light above the water averaged down each column (with the ship's), then curved so
     // the bright columns stand out: the profile of the streaks
-    function profile(yA, yB, box) {
+    function profile(yA, yB, box, boost = 1) {
         const k = S.k, Y1 = Math.round(Math.max(yA, -S.m) * k), Y0 = Math.round(yB * k);
         const h = Math.max(2, Y0 - Y1), w = S.prof.width;
         unrollBand(S.bandP, S.lx.canvas, Y1, h);
@@ -1154,15 +1264,26 @@ const Skyline = (() => {
             dx.drawImage(src, 0, sy, sw, sh, 0, 0, w, nh);
             src = dst; sy = 0; sw = w; sh = nh; lvl++;
         }
-        const im = src.getContext('2d').getImageData(0, 0, w, 1), d = im.data;
-        const gain = h / (11 * k);
+        // read the row back from a small canvas made for reading (no stall on the big ones)
+        if (!S.rd) { S.rd = mkC(w, 1); S.rdx = S.rd.getContext('2d', { willReadFrequently: true }); }
+        S.rdx.globalCompositeOperation = 'copy'; S.rdx.drawImage(src, 0, 0, w, 1, 0, 0, w, 1);
+        const im = S.rdx.getImageData(0, 0, w, 1), d = im.data;
+        const gain = h / (46 * k);
         for (let i = 0; i < d.length; i += 4) {
             const a = d[i + 3] / 255, r = d[i] * a, g = d[i + 1] * a, b = d[i + 2] * a, mx = Math.max(r, g, b, 1);
-            const I = Math.min(1, Math.pow(Math.min(1, mx / 255 * gain), 1.35) * 1.1);
+            const I = Math.min(1, Math.pow(Math.min(1, mx / 255 * gain), 1.35) * 1.1 * boost);
             // push the colour away from grey so the streaks keep their neon
-            const avg = (r + g + b) / 3, sat = 1.5;
+            const avg = (r + g + b) / 3, sat = 2.1;
             const R = clamp(avg + (r - avg) * sat, 0, mx), G = clamp(avg + (g - avg) * sat, 0, mx), B = clamp(avg + (b - avg) * sat, 0, mx);
             d[i] = R / mx * 255 * I; d[i + 1] = G / mx * 255 * I; d[i + 2] = B / mx * 255 * I; d[i + 3] = 255;
+        }
+        if (WORLD.moonAt) {
+            // the moon's own path, poured into the same streaks
+            const mx = (S.M + WORLD.moonAt[0] * k) / 2, mw = Math.max(2, WORLD.moonR * k * 0.7);
+            for (let x = Math.max(0, Math.floor(mx - mw)); x < Math.min(w, Math.ceil(mx + mw)); x++) {
+                const u = 1 - Math.abs(x - mx) / mw, i = x * 4, add = 150 * u * u;
+                d[i] = Math.min(255, d[i] + add * 0.9); d[i + 1] = Math.min(255, d[i + 1] + add * 0.85); d[i + 2] = Math.min(255, d[i + 2] + add);
+            }
         }
         S.prof.getContext('2d').putImageData(im, 0, 0);
         // a blurred copy: the streaks widen nearer the viewer
@@ -1171,18 +1292,23 @@ const Skyline = (() => {
         pb.globalCompositeOperation = 'lighter';
         for (const [dx, a] of [[-4, 0.3], [-2, 0.4], [2, 0.4], [4, 0.3], [-7, 0.12], [7, 0.12]]) { pb.globalAlpha = a; pb.drawImage(S.prof, dx, 0); }
         pb.globalAlpha = 1;
+        const p4 = S.prof4.getContext('2d');
+        p4.setTransform(1, 0, 0, 1, 0, 0); p4.globalCompositeOperation = 'copy'; p4.globalAlpha = 1;
+        p4.drawImage(S.prof, 0, 0); p4.globalCompositeOperation = 'source-over'; p4.drawImage(S.prof, 0, 1);
+        p4.drawImage(S.prof, 0, 2); p4.globalAlpha = 0.5; p4.drawImage(S.profB, 0, 2);
+        p4.globalAlpha = 1; p4.drawImage(S.profB, 0, 3); p4.globalAlpha = 0.3; p4.drawImage(S.prof, 0, 3); p4.globalAlpha = 1;
     }
 
     // the crests of the swell flow toward the camera: rows at depths d0·q^(j − Φ)
-    const CREST = { d0: 6, q: 1.022 };
+    const CREST = { d0: 6, q: 1.03 };
     const flowPhase = (V, T) => (V.pos[0] * V.Fh[0] + V.pos[2] * V.Fh[2]) / (100 * Math.log(CREST.q)) + (T - 58.9) * 0.9;
 
     function water(V, yS, T, fx, box) {
         const k = S.k, M = S.M, hw = S.W.width, hh = S.W.height, calm = fx.hold ?? 0;
         let Y0d = Math.round(yS * k); if ((Y0d + M) % 2) Y0d++;
         const Y0 = (Y0d + M) / 2, HH = Math.max(1, hh - Y0);                // the shore, in half pixels
-        const w = S.W.getContext('2d'), wl = S.WL.getContext('2d'), st = S.streak.getContext('2d'), s2 = S.streak2.getContext('2d'), mk = S.mask.getContext('2d');
-        for (const c of [w, wl, st, s2, mk]) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; c.filter = 'none'; c.clearRect(0, Y0 - 2, hw, hh - Y0 + 2); }
+        const w = S.W.getContext('2d'), wl = S.WL.getContext('2d'), mk = S.mask.getContext('2d');
+        for (const c of [w, wl, mk]) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; c.filter = 'none'; c.clearRect(0, 0, hw, hh); }
         const half = (c) => c.setTransform(k / 2, 0, 0, k / 2, M / 2, M / 2);       // logical → half px
         const yAt = (depth) => (M + V.rowAt(depth) * k) / 2;
         const at = (y) => clamp((y - Y0) / HH, 0.01, 0.99);
@@ -1190,7 +1316,7 @@ const Skyline = (() => {
         half(w);
         const m = S.m, gr = w.createLinearGradient(0, yS, 0, V.H + m);
         const yOf = (depth) => clamp((V.rowAt(depth) - yS) / (V.H + m - yS), 0, 1);
-        gr.addColorStop(0, '#5e2266'); gr.addColorStop(yOf(900), '#43195c'); gr.addColorStop(yOf(250), '#2a134d'); gr.addColorStop(yOf(70), '#1c0f3e'); gr.addColorStop(1, '#150c34');
+        gr.addColorStop(0, '#5e2266'); gr.addColorStop(yOf(900), '#43195c'); gr.addColorStop(yOf(250), '#2a134d'); gr.addColorStop(yOf(70), '#1e1042'); gr.addColorStop(1, '#190e3a');
         w.fillStyle = gr; w.fillRect(-m, yS, V.W + 2 * m, V.H + m - yS + 4);
         const c = V.dir(nrm([DOWNTOWN[0] - V.pos[0], 0, DOWNTOWN[2] - V.pos[2]]));
         if (c) {
@@ -1203,8 +1329,8 @@ const Skyline = (() => {
         // 2 · the city mirrored, rows rippling sideways (calmer in the hold)
         const Hs = S.bandH, B0 = S.bandY0;
         if (Hs > 2) {
-            const rows = 72, stretch = 1.35, amp = 3.4 * k * (1 - 0.75 * calm);
-            for (const [ctx, band, al, op] of [[w, S.band, 0.6, 'source-over'], [wl, S.bandL, 0.4, 'lighter']]) {
+            const stretch = 1.35, amp = 3.4 * k * (1 - 0.75 * calm);
+            for (const [ctx, band, al, op, rows] of [[w, S.band, 0.6, 'source-over', 32], [wl, S.bandL, 0.25, 'lighter', 16]]) {
                 ctx.setTransform(0.5, 0, 0, 0.5, M / 2, M / 2); ctx.globalCompositeOperation = op;
                 for (let i = 0; i < rows; i++) {
                     const a = i / rows, b = (i + 1) / rows;
@@ -1217,24 +1343,13 @@ const Skyline = (() => {
                 ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
             }
         }
-        // 3 · the streaks: the profile drawn down the water, sharp under the shore, wider nearer
-        st.drawImage(S.prof, 0, 0, hw, 1, 0, Y0, hw, HH);
-        if (WORLD.moonAt) {
-            const mx = (M + WORLD.moonAt[0] * k) / 2, mw = WORLD.moonR * k * 0.8;
-            const gm = st.createLinearGradient(mx - mw, 0, mx + mw, 0); gm.addColorStop(0, 'rgba(220,200,255,0)'); gm.addColorStop(0.5, 'rgba(240,225,255,0.55)'); gm.addColorStop(1, 'rgba(220,200,255,0)');
-            st.globalCompositeOperation = 'lighter'; st.fillStyle = gm; st.fillRect(mx - mw, Y0, 2 * mw, HH); st.globalCompositeOperation = 'source-over';
-        }
-        st.globalCompositeOperation = 'destination-in';
-        let g = st.createLinearGradient(0, Y0, 0, hh); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(at(yAt(300)), 'rgba(0,0,0,0.75)'); g.addColorStop(at(yAt(60)), 'rgba(0,0,0,0.3)'); g.addColorStop(1, 'rgba(0,0,0,0.12)');
-        st.fillStyle = g; st.fillRect(0, Y0, hw, HH);
-        s2.drawImage(S.profB, 0, 0, hw, 1, 0, Y0, hw, HH);
-        s2.globalCompositeOperation = 'destination-in';
-        g = s2.createLinearGradient(0, Y0, 0, hh); g.addColorStop(0, 'rgba(0,0,0,0.3)'); g.addColorStop(at(yAt(250)), 'rgba(0,0,0,0.8)'); g.addColorStop(1, 'rgba(0,0,0,0.35)');
-        s2.fillStyle = g; s2.fillRect(0, Y0, hw, HH);
-        for (const [ctx, a] of [[w, 0.22], [wl, 0.06]]) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a; ctx.drawImage(S.streak2, 0, Y0, hw, HH, 0, Y0, hw, HH); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
-        st.globalCompositeOperation = 'lighter'; st.globalAlpha = 0.6; st.drawImage(S.streak2, 0, 0); st.globalAlpha = 1;
-        // the swell: rows of crests, each broken into dashes (glassier in the hold)
+        // 3 · the streaks. The swell's crests are painted as dashes whose alpha already holds
+        // the falloff toward the viewer; the profile is then poured into them (source-in),
+        // and a blurred profile adds the unbroken glow; the lot goes on the water and its light.
         const f = V.f, yaw = V.yaw, { d0, q } = CREST;
+        // the glints' strength down the water: held back right under the shore, where the
+        // swell's rows crowd together and would sum to white, strongest a little nearer
+        const fall = (y) => { const u = (y - Y0) / HH; return u < 0.12 ? 0.5 + u * 2.4 : Math.max(0.24, 0.79 * Math.exp(-(u - 0.12) * 1.7)); };
         const Phi = flowPhase(V, T), jF = Math.floor(Phi);
         mk.fillStyle = '#fff';
         const jMax = Math.ceil(Math.log(2400 / d0) / Math.log(q) + Phi);
@@ -1242,33 +1357,47 @@ const Skyline = (() => {
             const depth = d0 * q ** (j - Phi);
             if (depth < 3) break;
             const y = yAt(depth); if (y < Y0) continue; if (y > hh + 2) break;
-            const yn = yAt(depth / q), th = Math.max(0.5, (yn - y) * (0.4 + 0.2 * hash(j * 3.1)) * (1 - calm * 0.3));
-            const R = Motion.rng('crest' + j);
-            const lw = 2.2 + R() * 3.5, gw = (2 + R() * 7) * (1 - calm * 0.7);
-            const Lp = f * lw / depth / 2, G = f * gw / depth / 2;            // half pixels
+            const yn = yAt(depth / q);
+            if (yn - y < 0.9) {
+                // crests closer than a pixel merge: a glittering band, one rect per crest
+                mk.globalAlpha = (0.45 + 0.25 * Math.sin(T * 1.7 + j * 2.3)) * fall(y); mk.fillRect(0, y, hw, yn - y + 0.05); continue;
+            }
+            const th = Math.max(0.5, (yn - y) * (0.4 + 0.2 * hash(j * 3.1)) * (1 - calm * 0.3));
+            const R = Motion.rng('crest' + j), fo = fall(y);
+            const near = clamp(1 - (y - Y0) / HH, 0, 1), lw = 2.2 + R() * 3.5, gw = (1.2 + R() * 5 + 3 * (1 - near)) * (1 - calm * 0.7);
+            let Lp = f * lw / depth / 2, G = f * gw / depth / 2;              // half pixels
             const flick = 0.55 + 0.45 * Math.sin(T * (1.3 + R() * 2) + j);
-            if (Lp + G < 2.4) { mk.globalAlpha = 0.4 + 0.3 * flick; mk.fillRect(0, y, hw, th); continue; }
+            if (Lp + G < 10) { const k2 = 10 / (Lp + G); Lp *= k2; G *= k2; }  // never a whole line: glints at least this coarse
             const per = Lp + G, drift = (R() - 0.5) * 8 * (T - 58) * (1 - calm * 0.8) / depth * f / 2;
             const off = ((R() * per + drift + yaw * f / 2) % per + per) % per;
             let i = 0;
             for (let x = -off - per; x < hw + per; x += per, i++) {
                 const len = Lp * (0.55 + 0.9 * hash(j * 17.3 + i * 3.7)), a = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(T * (2 + hash(i + j) * 3) + i * 1.3 + j));
-                mk.globalAlpha = a * (0.7 + 0.3 * flick); mk.fillRect(x + G * hash(i * 7.7 + j), y, len, th);
+                mk.globalAlpha = a * (0.7 + 0.3 * flick) * fo; mk.fillRect(x + G * hash(i * 7.7 + j), y, len, th);
             }
         }
         mk.globalAlpha = 1;
-        st.globalCompositeOperation = 'destination-in'; st.drawImage(S.mask, 0, 0); st.globalCompositeOperation = 'source-over';
-        const pulse = 1 + 0.5 * (fx.kick ?? 0) * (fx.trip ?? 0);
-        for (const [ctx, a] of [[w, 1.0 * pulse], [wl, 0.5 * pulse]]) {
-            ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'lighter';
-            for (let r = a; r > 0.01; r -= 1) { ctx.globalAlpha = Math.min(1, r); ctx.drawImage(S.streak, 0, Y0, hw, HH, 0, Y0, hw, HH); }
+        // the colour poured into the glints: the sharp profile under the shore, the blurred one
+        // nearer; four rows (sharp, sharp, half and half, mostly blurred) stretched down the
+        // water cross-fade by themselves
+        mk.globalCompositeOperation = 'source-in'; mk.drawImage(S.prof4, 0, 0, hw, 4, 0, Y0, hw, HH);
+        mk.globalCompositeOperation = 'lighter';
+        // the unbroken glow: eight bands that meet exactly, following a smooth falloff
+        for (let i = 0, ya = Math.round(Y0); i < 8; i++) {
+            const yb = i === 7 ? hh : Math.round(Y0 + HH * ((i + 1) / 8) ** 1.6), um = (((i + 0.5) / 8) ** 1.6);
+            mk.globalAlpha = 0.26 * Math.min(1, um * 6) * Math.exp(-um * 2.0); if (yb > ya) mk.drawImage(S.profB, 0, 0, hw, 1, 0, ya, hw, yb - ya); ya = yb;
+        }
+        mk.globalAlpha = 1; mk.globalCompositeOperation = 'source-over';
+        for (const [ctx, a] of [[w, 1], [wl, 0.4]]) {               // (the 1.25× and the kick's pulse are in the profile)
+            ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a;
+            ctx.drawImage(S.mask, 0, Y0, hw, HH, 0, Y0, hw, HH);
             ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
         }
         // 4 · the sheen of the sky on the crests, everywhere on the bay
         half(w); swell(w, V, yS, T, fx);
         // 5 · the ship's reflection, rows mirrored under its waterline
         if (box) {
-            const X = box.x0 * k, Yb = box.y0 * k, WLp = box.wl * k, Hb = WLp - Yb, rows = 34, cl = 1 - 0.75 * calm;
+            const X = box.x0 * k, Yb = box.y0 * k, WLp = box.wl * k, Hb = WLp - Yb, rows = 24, cl = 1 - 0.75 * calm;
             for (const [ctx, src, al, op] of [[w, S.ship, 0.6, 'source-over'], [wl, S.shipL, 0.55, 'lighter']]) {
                 ctx.setTransform(0.5, 0, 0, 0.5, M / 2, M / 2); ctx.globalCompositeOperation = op;
                 for (let i = 0; i < rows; i++) {
@@ -1280,18 +1409,48 @@ const Skyline = (() => {
                 ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
             }
         }
-        // 6 · onto the frame
+        // 6 · onto the frame, leaving out what the causeway's deck will cover
+        const spans = fx.noDeck ? [[Y0 * 2 - M, hh * 2 - M, -M, S.OW - M]] : deckSpans(V, Y0 * 2 - M, hh * 2 - M);
+        // under the deck: a flat dark fill, so the seams between the deck's slices never open on nothing
+        if (!fx.noDeck) { S.px.save(); devR(S.px); S.px.fillStyle = '#211731'; S.px.fillRect(-M, Y0 * 2 - M, S.OW, (hh - Y0) * 2); S.px.restore(); }
         for (const [ctx, src, op] of [[S.px, S.W, 'source-over'], [S.lx, S.WL, 'lighter']]) {
-            ctx.save(); devR(ctx); ctx.globalCompositeOperation = op; ctx.globalAlpha = 1;
-            ctx.drawImage(src, 0, Y0, hw, HH, -M, Y0 * 2 - M, hw * 2, HH * 2);
+            ctx.save(); devR(ctx); ctx.globalCompositeOperation = op; ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = src === S.W;   // the light only feeds the bloom: nearest is enough
+            for (const [ya, yb, xa, xb] of spans) {
+                const sy = (ya + M) / 2, sh = (yb - ya) / 2, sx = (xa + M) / 2, sw2 = (xb - xa) / 2;
+                if (sh > 0 && sw2 > 0) ctx.drawImage(src, sx, sy, sw2, sh, xa, ya, xb - xa, yb - ya);
+            }
             ctx.restore();
         }
+    }
+
+    // the parts of the water's rows (unrolled pixels, from ya to yb) that the causeway's deck
+    // does not cover: [ya, yb, xa, xb] spans. The deck runs along z between x = −9.6 and 7.9;
+    // its outline is narrowed by a metre each side to stay on the safe side.
+    function deckSpans(V, ya, yb) {
+        const k = S.k, M = S.M, x0 = -M, x1 = S.OW - M, zc = V.pos[2];
+        const ys = [], edge = (x) => { const pts = []; for (let i = 0; i <= 48; i++) { const z = zc + 2 + i * i * 0.4; const q = V.p([x, Causeway.y(z) - 1.4, z]); if (q[2] > 1) pts.push([q[0] * k, q[1] * k]); } return pts; };
+        const Lf = edge(-8.6), Rt = edge(6.9);
+        // the deck's x-range at a row: between the two edges where they cross it
+        const at = (pts, y) => { for (let i = 1; i < pts.length; i++) { const [xa2, ya2] = pts[i - 1], [xb2, yb2] = pts[i]; if ((ya2 - y) * (yb2 - y) <= 0 && ya2 !== yb2) return xa2 + (xb2 - xa2) * (y - ya2) / (yb2 - ya2); } return null; };
+        const out = [], n = 12;
+        const ev = (y) => Math.round((y + M) / 2) * 2 - M;              // rows that fall on whole half pixels
+        for (let i = 0; i < n; i++) {
+            const a = ev(ya + (yb - ya) * i / n), b = ev(ya + (yb - ya) * (i + 1) / n);
+            if (b <= a) continue;
+            const xs = [a, b, (a + b) / 2].map((y) => [at(Lf, y), at(Rt, y)]);
+            if (xs.some(([l, r]) => l === null || r === null) || V.camH > 40) { out.push([a, b, x0, x1]); continue; }
+            const l = Math.max(...xs.map((p) => Math.min(p[0], p[1]))), r = Math.min(...xs.map((p) => Math.max(p[0], p[1])));
+            if (r - l < 8) { out.push([a, b, x0, x1]); continue; }
+            if (l > x0) out.push([a, b, x0, Math.ceil(l) + 2]);
+            if (r < x1) out.push([a, b, Math.floor(r) - 2, x1]);
+        }
+        return out;
     }
 
     // the sheen of the sky on the crests: short coloured strokes (logical units on ctx)
     function swell(ctx, V, yS, T, fx) {
         const calm = fx.hold ?? 0, f = V.f, Phi = flowPhase(V, T) * Math.log(CREST.q), mn = 2 / S.k;
-        for (let i = 0; i < 220; i++) {
+        for (let i = 0; i < 170; i++) {
             const R = Motion.rng('sw' + i);
             const depth = 12 * Math.pow(160, fract(R() - Phi / Math.log(160)));
             const y = V.rowAt(depth); if (y < yS + 1 || y > V.H + S.m) continue;
@@ -1299,7 +1458,7 @@ const Skyline = (() => {
             const col = depth > 500 ? ['#ff9ac0', '#ffb08a', '#e070b0'] : depth > 120 ? ['#c070d0', '#ff7ab8', '#8a7aff'] : ['#7a8aff', '#b070e0', '#4ad8ff'];
             for (let j = 0; j < n; j++) {
                 const ang = (R() - 0.5) * 2.8, x = V.cx + f * Math.tan(clamp(ang - V.yaw, -1.4, 1.4)) + Math.sin(T * 0.7 + i + j) * 2;
-                const len = f * (2 + R() * 7) / depth * (1 + calm), th = Math.max(mn * 0.5, f * 0.12 / depth);
+                const len = f * (0.8 + R() * 2.4) / depth * (1 + calm), th = Math.max(mn * 0.5, f * 0.09 / depth);
                 ctx.fillStyle = rgba(col[j % 3], (0.12 + 0.2 * R()) * (1 - calm * 0.5));
                 ctx.fillRect(x, y + Math.sin(T * 1.3 + i * 2.1 + j) * th, len, th);
             }
@@ -1322,7 +1481,7 @@ const Skyline = (() => {
         poly(pc, hull);
         const a0 = pr(shipPt(0.5, 16)), a1 = pr(shipPt(0.5, 0));
         let gr = pc.createLinearGradient(0, a0[1], 0, a1[1]);
-        gr.addColorStop(0, '#e8e2f6'); gr.addColorStop(0.55, '#b8acd8'); gr.addColorStop(0.8, '#7a6aa8'); gr.addColorStop(0.81, '#263064'); gr.addColorStop(1, '#1a1a48');
+        gr.addColorStop(0, '#cfc6ea'); gr.addColorStop(0.5, '#9a8cc4'); gr.addColorStop(0.8, '#5e4e8e'); gr.addColorStop(0.81, '#22285a'); gr.addColorStop(1, '#161640');
         pc.fillStyle = gr; pc.fill();
         // the hull's sheen: the city's glow on the white plates, warm toward the bow
         const b0 = pr(shipPt(0, 8)), b1 = pr(shipPt(1, 8));
@@ -1334,7 +1493,7 @@ const Skyline = (() => {
             const q = pr(shipPt(u, y));
             const c = hash(i + y * 9) < 0.85 ? '#ffd9a0' : '#bfe8ff';
             pc.fillStyle = c; pc.fillRect(q[0] - 0.5 * s, q[1] - 0.45 * s, Math.max(0.8, 0.9 * s), Math.max(0.7, 0.8 * s));
-            lc.fillStyle = rgba(c, 0.75); lc.fillRect(q[0] - 0.5 * s, q[1] - 0.45 * s, Math.max(0.8, 0.9 * s), Math.max(0.7, 0.8 * s));
+            lc.fillStyle = rgba(c, 0.35); lc.fillRect(q[0] - 0.5 * s, q[1] - 0.45 * s, Math.max(0.8, 0.9 * s), Math.max(0.7, 0.8 * s));
         }
         // the superstructure: decks stepping back fore and aft, each a band of cabins
         const decks = 8;
@@ -1344,7 +1503,7 @@ const Skyline = (() => {
             const q = [shipPt(ua, y0, 2), shipPt(ub, y0, 2), shipPt(ub - 0.006, y1, 2), shipPt(ua + 0.004, y1, 2)];
             poly(pc, q);
             const t0 = pr(shipPt(0.5, y1)), t1 = pr(shipPt(0.5, y0));
-            gr = pc.createLinearGradient(0, t0[1], 0, t1[1]); gr.addColorStop(0, dk % 2 ? '#f2eefc' : '#dcd4f0'); gr.addColorStop(1, '#a89cc8');
+            gr = pc.createLinearGradient(0, t0[1], 0, t1[1]); gr.addColorStop(0, dk % 2 ? '#ddd4f2' : '#c8bee6'); gr.addColorStop(1, '#8a7cb4');
             pc.fillStyle = gr; pc.fill();
             // the balcony shadow line, then the lit windows
             pc.strokeStyle = 'rgba(40,30,80,0.55)'; pc.lineWidth = Math.max(0.5, 0.7 * s); lineU(pc, ua, ub, y0 + 0.9, 2); pc.stroke();
@@ -1355,7 +1514,7 @@ const Skyline = (() => {
                 const qq = pr(shipPt(u, y0 + 1.5, 2));
                 const c = hv > 0.93 ? P.cyan : hv > 0.87 ? '#ffb0d8' : WARM[Math.floor(hv * 50) % 5];
                 pc.fillStyle = c; pc.fillRect(qq[0] - 0.9 * s, qq[1] - 0.5 * s, Math.max(0.8, 1.8 * s), Math.max(0.6, 1.0 * s));
-                lc.fillStyle = rgba(c, 0.8); lc.fillRect(qq[0] - 0.9 * s, qq[1] - 0.5 * s, Math.max(0.8, 1.8 * s), Math.max(0.6, 1.0 * s));
+                lc.fillStyle = rgba(c, 0.38); lc.fillRect(qq[0] - 0.9 * s, qq[1] - 0.5 * s, Math.max(0.8, 1.8 * s), Math.max(0.6, 1.0 * s));
             }
             // the bridge: a dark band of windows across the front of the top decks
             if (dk === 6) { pc.fillStyle = '#20204a'; poly(pc, [shipPt(ub - 0.05, y0 + 0.8, 2), shipPt(ub - 0.006, y0 + 0.8, 2), shipPt(ub - 0.006, y0 + 2.2, 2), shipPt(ub - 0.05, y0 + 2.2, 2)]); pc.fill(); }
@@ -1459,15 +1618,42 @@ const Skyline = (() => {
         const wl = V.p(shipPt(0.5, 0))[1];
         return { x0, y0, x1, y1, wl };
     }
+    // the ship as a flat item (1.15 km away, 18 m deep): painted once per scale, from the side
+    let SHIPIT = null;
+    function shipItem() {
+        if (SHIPIT) return SHIPIT;
+        const O = shipPt(0, 0), B = shipPt(1, 0), len = Math.hypot(B[0] - O[0], B[2] - O[2]);
+        const ex = [(B[0] - O[0]) / len, 0, (B[2] - O[2]) / len];
+        SHIPIT = { id: 'ship', kind: 'ship', O, ex, u0: -6, u1: len + 6, v1: 58, neon: false };
+        SHIPIT.paint = (pc, lc, nc, s) => {
+            const u0 = SHIPIT.u0, v1 = SHIPIT.v1;
+            const pr = (Q) => { const d = [Q[0] - O[0], Q[2] - O[2]]; return [1 + (d[0] * ex[0] + d[1] * ex[2] - u0) * s, 1 + (v1 - (Q[1] - O[1])) * s]; };
+            for (const c of [pc, lc]) c.setTransform(1, 0, 0, 1, 0, 0);
+            paintShip(pc, lc, pr, s, 0, {});
+        };
+        return SHIPIT;
+    }
     function ship(V, T, fx) {
         const box = shipBox(V); if (!box) return null;
+        const it = shipItem(), F = frameOf(it, V); if (!F) return null;
         const k = S.k, w = Math.ceil((box.x1 - box.x0) * k), h = Math.ceil((box.y1 - box.y0) * k);
         if (S.ship.width < w || S.ship.height < h) { for (const c of [S.ship, S.shipL]) { c.width = Math.max(c.width, w); c.height = Math.max(c.height, h); } }
         const sc = S.ship.getContext('2d'), sl = S.shipL.getContext('2d');
-        for (const c of [sc, sl]) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; c.clearRect(0, 0, S.ship.width, S.ship.height); c.setTransform(k, 0, 0, k, -box.x0 * k, -box.y0 * k); }
-        sl.globalCompositeOperation = 'lighter';
-        const s = V.f / V.p(shipPt(0.5, 0))[2];
-        paintShip(sc, sl, V.p, s, T, fx);
+        const sp = sprite(it, bucket(k * Math.hypot(F.a, F.b)));
+        for (const [c, img] of [[sc, sp.pic], [sl, sp.lit]]) {
+            c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; c.clearRect(0, 0, S.ship.width, S.ship.height);
+            c.setTransform(k * F.a, k * F.b, k * F.c, k * F.d, k * (F.e - box.x0), k * (F.f - box.y0));
+            c.drawImage(img, sp.ox, -sp.oy, sp.mw, sp.mh);
+        }
+        // the strings of bulbs twinkle
+        sl.setTransform(k, 0, 0, k, -box.x0 * k, -box.y0 * k); sl.globalCompositeOperation = 'lighter';
+        const bow = shipPt(1.0, 16), mast = shipPt(0.7, 50, 6), fun = shipPt(0.32, 52, 6), stern = shipPt(-0.005, 15);
+        let bi = 0; const s = Math.hypot(F.a, F.b);
+        for (const [A, B] of [[bow, mast], [mast, fun], [fun, stern]]) for (let i = 0; i <= 22; i += 2, bi++) {
+            const tw = Math.sin(T * 5 + bi * 2.7); if (tw < 0.4) continue;
+            const u = i / 22, q = V.p([A[0] + (B[0] - A[0]) * u, A[1] + (B[1] - A[1]) * u - Math.sin(u * Math.PI) * 2.5, A[2] + (B[2] - A[2]) * u]);
+            glow(sl, q[0], q[1], Math.max(1.5, 1.4 * s), [P.yellow, P.pink, P.cyan, '#ffffff'][bi % 4], (tw - 0.4) * 1.2);
+        }
         box.w = w; box.h = h;
         return box;
     }
@@ -1480,8 +1666,8 @@ const Skyline = (() => {
 
     // small boats on the bay: hulls, cabins, running lights, wakes, their reflections
     const BOATS = [
-        { x: 60, z: 430, v: 15, kind: 'speed' }, { x: -260, z: 720, v: 3, kind: 'sail' }, { x: 120, z: 900, v: 2.5, kind: 'party' },
-        { x: -520, z: 1350, v: 4, kind: 'tour' }, { x: -1250, z: 1550, v: -2, kind: 'fish' }, { x: -70, z: 1050, v: -18, kind: 'speed' },
+        { x: 160, z: 430, v: 15, kind: 'speed' }, { x: -260, z: 720, v: 3, kind: 'sail' }, { x: 120, z: 900, v: 2.5, kind: 'party' },
+        { x: -520, z: 1350, v: 4, kind: 'tour' }, { x: -1250, z: 1550, v: -2, kind: 'fish' }, { x: -200, z: 1050, v: -18, kind: 'speed' },
         { x: 1500, z: 1250, v: -3, kind: 'tour' }, { x: 260, z: 640, v: 6, kind: 'sail' },
     ];
     function boats(V, T, fx) {
@@ -1509,14 +1695,20 @@ const Skyline = (() => {
             }
             // the hull and cabin
             const hh = (b.kind === 'tour' ? 3 : 1.6) * s, ch = (b.kind === 'tour' ? 3 : b.kind === 'party' ? 3.2 : 1.6) * s;
-            px.fillStyle = b.kind === 'fish' ? '#3a3050' : '#e6e0f6';
+            const hg = px.createLinearGradient(0, c[1] - hh * 1.15, 0, c[1]);
+            if (b.kind === 'fish') { hg.addColorStop(0, '#4a3a62'); hg.addColorStop(1, '#241a3a'); } else { hg.addColorStop(0, '#c8bce4'); hg.addColorStop(0.55, '#9888c0'); hg.addColorStop(1, '#4e4080'); }
+            px.fillStyle = hg;
             px.beginPath(); px.moveTo(stern[0], stern[1] - hh); px.lineTo(bow[0] + dir * 0.6 * s, bow[1] - hh * 1.15); px.lineTo(bow[0] - dir * 1.5 * s, bow[1]); px.lineTo(stern[0], stern[1]); px.fill();
-            px.fillStyle = 'rgba(40,30,90,0.5)'; px.fillRect(Math.min(stern[0], bow[0]), c[1] - hh * 0.35, Math.abs(bow[0] - stern[0]), Math.max(0.5, hh * 0.18));
+            px.fillStyle = 'rgba(30,20,70,0.6)'; px.fillRect(Math.min(stern[0], bow[0]), c[1] - hh * 0.35, Math.abs(bow[0] - stern[0]), Math.max(0.5, hh * 0.16));
+            px.fillStyle = 'rgba(255,200,230,0.5)'; px.fillRect(Math.min(stern[0], bow[0]), c[1] - hh, Math.abs(bow[0] - stern[0]), Math.max(0.5, hh * 0.08));
             const cab0 = V.p([x - dir * len * 0.3, WL, z]), cab1 = V.p([x + dir * len * 0.15, WL, z]);
-            px.fillStyle = '#cfc6ea'; px.fillRect(Math.min(cab0[0], cab1[0]), c[1] - hh - ch, Math.abs(cab1[0] - cab0[0]), ch);
+            const cx0 = Math.min(cab0[0], cab1[0]), cw = Math.abs(cab1[0] - cab0[0]);
+            const cg = px.createLinearGradient(0, c[1] - hh - ch, 0, c[1] - hh); cg.addColorStop(0, '#b4a6d8'); cg.addColorStop(1, '#7a6aa8');
+            px.fillStyle = cg; px.fillRect(cx0, c[1] - hh - ch, cw, ch);
+            px.fillStyle = 'rgba(24,16,52,0.75)'; px.fillRect(cx0 + cw * 0.08, c[1] - hh - ch * 0.78, cw * 0.84, Math.max(0.6, ch * 0.32));
             if (b.kind === 'tour' || b.kind === 'party') {
                 const n = b.kind === 'tour' ? 9 : 6;
-                for (let i = 0; i < n; i++) { const qx = Math.min(cab0[0], cab1[0]) + (i + 0.3) / n * Math.abs(cab1[0] - cab0[0]); px.fillStyle = '#ffd9a0'; px.fillRect(qx, c[1] - hh - ch * 0.75, Math.max(0.8, 1.2 * s), Math.max(0.6, 0.9 * s)); lx.fillStyle = rgba('#ffcf8a', 0.8); lx.fillRect(qx, c[1] - hh - ch * 0.75, Math.max(0.8, 1.2 * s), Math.max(0.6, 0.9 * s)); }
+                for (let i = 0; i < n; i++) { const qx = cx0 + (i + 0.3) / n * cw; px.fillStyle = '#ffc070'; px.fillRect(qx, c[1] - hh - ch * 0.75, Math.max(0.8, 1.2 * s), Math.max(0.6, 0.9 * s)); lx.fillStyle = rgba('#ffb060', 0.5); lx.fillRect(qx, c[1] - hh - ch * 0.75, Math.max(0.8, 1.2 * s), Math.max(0.6, 0.9 * s)); }
             }
             if (b.kind === 'party') {
                 // strings of pink and cyan bulbs over the deck, a glow on the water
@@ -1544,7 +1736,7 @@ const Skyline = (() => {
 
     // two searchlights sweeping from downtown
     function searchlights(V, T, fx) {
-        const px = S.px, lx = S.lx, ht = T - 58.9 - 1.6 * (fx.holdT ?? 0);
+        const px = S.px, lx = S.lx, ht = T - 58.9 - (fx.holdT ?? 0);
         for (const b of WORLD.beams) {
             const az = b.az + b.amp * Math.sin(ht * b.w + b.ph), el = 1.02 + 0.12 * Math.sin(ht * b.w * 0.7 + b.ph * 2);
             const D = [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)];
@@ -1578,51 +1770,52 @@ const Skyline = (() => {
         const V = unroll(cam);
         turn(V.roll);
         fx = { ...fx, holdT: holdTime(T) };
-        const TM = (window.__skyT = {}); let tm = performance.now();
-        const lap = (n) => { if (window.__skyFlush) { g.getImageData(0, 0, 1, 1); L.getImageData(0, 0, 1, 1); } const t2 = performance.now(); TM[n] = (TM[n] || 0) + (t2 - tm); tm = t2; };
         g.save(); L.save();
         S.px = g; S.lx = L;
+        WORLD.moonAt = null;                            // set again by moon() when it is in view
         const px = g, lx = L, nx = S.nx;
         px.globalCompositeOperation = 'source-over'; lx.globalCompositeOperation = 'lighter';
         logical(px); logical(lx);
         // 1 · the sky
-        sky(V, T, fx); lap('sky');
+        sky(V, T, fx);
         logical(px); logical(lx);
         // 2 · the land under the city (a dark strip down to the shore), then the city
         const yShore = V.p([DOWNTOWN[0], WL, zs(DOWNTOWN[0])])[1];
-        px.fillStyle = '#1e1232'; px.fillRect(-S.m, V.yh - 1, V.W + 2 * S.m, yShore - V.yh + 2);
+        px.fillStyle = '#1e1232'; px.fillRect(-S.m, V.yh - 1, V.W + 2 * S.m, yShore - V.yh + 1 + 3 / S.k);
         const sep = Math.abs(fx.hue ?? 0) > 0.5 || (fx.trip ?? 0) > 0;
-        if (sep) { nx.setTransform(1, 0, 0, 1, 0, 0); nx.globalCompositeOperation = 'source-over'; nx.globalAlpha = 1; nx.clearRect(0, 0, S.OW, S.OH); }
+        if (sep) { nx.setTransform(1, 0, 0, 1, 0, 0); nx.globalCompositeOperation = 'source-over'; nx.globalAlpha = 1; nx.clearRect(0, 0, S.neon.width, S.neon.height); nx.globalCompositeOperation = 'lighter'; }
         const neonTo = sep ? { x: nx, sep: true } : { x: lx, sep: false };
-        let top = city(V, T, fx, neonTo); lap('city');
+        let top = city(V, T, fx, neonTo);
         top = Math.max(-S.m, Math.min(top, V.yh - 4));
         logical(px); logical(lx);
         if (sep) {
-            // the trip turns the neon round the colour wheel: the light takes the turned colour,
-            // the tubes' glass on the picture keeps a dimmer copy
-            const Y1 = clamp(Math.floor(S.M + top * S.k) - 4, 0, S.OH), Y0 = clamp(Math.ceil(S.M + yShore * S.k) + 30, 0, S.OH);
-            for (const [ctx, a, op, filt] of [[px, 0.55, 'source-over', 'none'], [lx, 1, 'lighter', `hue-rotate(${(fx.hue ?? 0).toFixed(1)}deg)`]]) {
-                ctx.save(); devR(ctx); ctx.globalCompositeOperation = op; ctx.globalAlpha = a; ctx.filter = filt;
-                ctx.drawImage(S.neon, 0, Y1, S.OW, Y0 - Y1, -S.M, Y1 - S.M, S.OW, Y0 - Y1); ctx.restore();
-            }
+            // the trip turns the neon round the colour wheel: its light takes the turned colour
+            // (the glass of the tubes on the picture keeps a dim copy of the old one)
+            const hw = S.neon.width, Y1 = clamp(Math.floor((S.M + top * S.k) / 2) - 3, 0, S.neon.height), Y0 = clamp(Math.ceil((S.M + yShore * S.k) / 2) + 16, 0, S.neon.height);
+            // the filter runs on a canvas the size of the band only
+            const nb = S.neonBand || (S.neonBand = mkC(hw, 8)); if (nb.height < Y0 - Y1) nb.height = Y0 - Y1 + 8;
+            const nbx = nb.getContext('2d'); nbx.setTransform(1, 0, 0, 1, 0, 0); nbx.globalCompositeOperation = 'copy';
+            nbx.filter = `hue-rotate(${(fx.hue ?? 0).toFixed(1)}deg) saturate(1.2)`; nbx.drawImage(S.neon, 0, Y1, hw, Y0 - Y1, 0, 0, hw, Y0 - Y1); nbx.filter = 'none'; nbx.globalCompositeOperation = 'source-over';
+            lx.save(); devR(lx); lx.globalCompositeOperation = 'lighter';
+            lx.drawImage(nb, 0, 0, hw, Y0 - Y1, -S.M, Y1 * 2 - S.M, hw * 2, (Y0 - Y1) * 2); lx.restore();
         }
-        lap('hue');
+       
         // 3 · the bay: what lies on it lights it first (the marina, the port, the ship)
         copyBand(yShore, top);
         S.px = SINK; drawItem(WORLD.marina, V); logical(lx); port(V, T, fx); S.px = g;
         logical(px); logical(lx);
         const box = ship(V, T, fx);
-        lap('port');
-        profile(top, Math.max(yShore + 2, box ? box.wl : 0), box); lap('profile');
-        water(V, yShore, T, fx, box); lap('water');
+       
+        profile(top, Math.max(yShore + 2, box ? box.wl : 0), box, 1.25 * (1 + 0.35 * (fx.kick ?? 0) * (fx.trip ?? 0)));
+        water(V, yShore, T, fx, box);
         logical(px); logical(lx);
         // then their pictures over the water, the ship last
         S.lx = SINK; drawItem(WORLD.marina, V); logical(px); port(V, T, fx); S.lx = L;
         if (box) layShip(box);
         logical(px); logical(lx);
-        boats(V, T, fx); lap('boats');
+        boats(V, T, fx);
         // 4 · searchlights over everything in the sky
-        searchlights(V, T, fx); lap('beams');
+        searchlights(V, T, fx);
         g.restore(); L.restore();
         S.px = S.lx = null;
         return { horizon: V.cy + (V.yh - V.cy) / Math.cos(V.roll) };

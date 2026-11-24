@@ -20,12 +20,10 @@ Motion.scene({
         const close = closeUp(t, env);
         const tf = close ? close.tf : t;
         const T = Song.B(29) + tf;
-        const fx = effects(tf, T);
+        const fx = effects(tf, T); if (close && !close.causeway) fx.noDeck = true;
         const cam = close ? close.cam : shotCam(shotIndex(t), t, T, env);
         const L = N.light();
-        const t0 = performance.now();
         Skyline.world(g, L, N, cam, T, fx, env);
-        const ms = performance.now() - t0;
         if (!close || close.causeway) Causeway.water(g, L, N, cam, T, fx);
         N.bloom(g, L, { strength: 0.9 + fx.trip * 0.25 + fx.hold * 0.25 });
         if (!close || close.causeway) {
@@ -36,7 +34,6 @@ Motion.scene({
             for (const it of items) it.draw();
             N.bloom(g, L2, { strength: 0.9 });
         }
-        if (window.DBC_SKYMS !== false) { g.save(); g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(0, 0, 1100, 26); g.fillStyle = '#fff'; g.font = '15px monospace'; g.fillText(`world ${ms.toFixed(1)} ms · ` + Object.entries(window.__skyT || {}).map(([k, v]) => k + ' ' + v.toFixed(1)).join(' '), 8, 18); g.restore(); }
     },
 
     post(ctx, t, env) { env.state.N.grain(ctx, t, { amount: 0.08, vignette: 0.5 }); },
@@ -56,6 +53,9 @@ function closeUp(t, env) {
     if (t < 10.0) return look([2, 6, 60], [500, 5, 1880], 5200, 3.0);            // waterfront right
     if (t < 10.5) return look([2, 6, 60], [520, 20, 1200], 3200, 3.0);           // the port: ship and cranes
     if (t < 11.0) return look([2, 6, 60], [300, 90, 2600], 4200, 7.2);           // the core in the trip
+    if (t >= 12.5 && t < 12.75) return look([2, 6, 60], [300, 200, 2450], 9000, 1.0);  // the landmark's crown, bar 29
+    if (t >= 12.75) return look([2, 6, 60], [300, 200, 2450], 9000, 3.0);           // the crown, bar 30
+    if (t >= 12.0 && t < 12.5) return look([2, 6, 60], [-640, 0, 1830], 9000, 3.0);  // the marina
     if (t < 11.5) return look([2, 6, 60], [-200, -4, 600], 2600, 3.0);           // the bay: boats, streaks
     if (t < 12.0) return { cam: shotCam(1, 3.0, Song.B(29) + 3.0, env), tf: 7.3, causeway: true };   // B in the trip
     return { cam: shotCam(2, 5.2, Song.B(29) + 5.2, env), tf: 5.2, causeway: true };                  // C, held
