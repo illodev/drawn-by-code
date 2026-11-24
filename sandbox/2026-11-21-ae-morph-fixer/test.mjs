@@ -76,7 +76,7 @@ function kink(P, j) {
 let worstKink = 0, fellBack = 0, capped = 0;
 function verify(label, keys, opt) {
     const t0 = process.hrtime.bigint();
-    const r = MF.fix(keys, opt);
+    let r = MF.fix(keys, opt);
     const exact = (opt && opt.mode === 'exact') || r.fellBack;
     // exact: 0.01 (the measure's own limit on cusps); smooth: the tolerance, or, when the
     // max points stopped it first, about the distance it reported (on wild random shapes held
@@ -85,6 +85,8 @@ function verify(label, keys, opt) {
     if (r.fellBack) fellBack++;
     if (r.capped) capped++;
     const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+    // with a turn, r.paths are the keys unturned around their centres: check the keys as placed
+    if (r.placed) r = Object.assign({}, r, { paths: r.placed });
     const n = r.paths[0].v.length;
     let worstShape = 0, sign = 0;
     if (keys[0].closed) for (const P of r.paths) if (!sign) sign = MF.winding(P);
@@ -133,9 +135,9 @@ function verify(label, keys, opt) {
         }
     }
     // a second run changes nothing
-    const again = MF.fix(r.paths, opt);
+    const again = MF.fix(r.paths, opt), againP = again.placed || again.paths;
     let drift = 0;
-    for (let k = 0; k < keys.length; k++) drift = Math.max(drift, same(r.paths[k], again.paths[k]));
+    for (let k = 0; k < keys.length; k++) drift = Math.max(drift, same(r.paths[k], againP[k]));
     check(`${label}: a second run changes nothing`, drift < 1e-9, drift);
     if (drift >= 1e-9 && process.env.DUMP) fs.writeFileSync(path.join(dir, 'out', 'fail-rerun-' + label.replace(/[^a-z0-9]+/gi, '-') + '.json'), JSON.stringify({ keys, opt }));
     return { r, ms, worstShape, n };
@@ -437,6 +439,38 @@ function keepsAxis(r, deg) {
     check('symmetry: the demo (all sharing the upright axis) is mirror-symmetric throughout', demo.paths.every((P, k) => !k || keepsAxis({ paths: [demo.paths[k - 1], P] }, 90)));
 }
 
+// ---- keys drawn as a turn of the previous one (Free Transform: the same points, turned) ----
+// The fix used to throw the drawn pairing away: a star turned a tip stood still (least travel
+// is no motion for a shape the turn maps onto itself), a gear turned half a tooth pulsed.
+{
+    const travel = (A, B) => A.v.reduce((t, p, k) => t + Math.hypot(p[0] - B.v[k][0], p[1] - B.v[k][1]), 0) / A.v.length;
+    const area = (P) => Math.abs(MF.area(P));
+    const starDrawn = [polyPath(starPts(5, 150, 60, 0)), polyPath(turnPts(starPts(5, 150, 60, 0), 72))];
+    const gearDrawn = [0, 18, 36].map((d) => polyPath(turnPts(starPts(10, 150, 120, 0), d)));
+    const fDrawn = [MD.turn.shapes[0], MD.turn.shapes[1]];
+    // turn off: kept as drawn (the star by a turn least travel would erase, the gear by a small one)
+    let r = verify('drawn turn: star, turn off', starDrawn, {}).r;
+    check('drawn turn: a star turned a tip keeps turning (turn off: as drawn)', travel(r.paths[0], r.paths[1]) > 100 && r.keys[1].keptDrawn && Math.round(r.keys[1].drawn) === 72,
+        `${travel(r.paths[0], r.paths[1]).toFixed(0)} px`);
+    r = verify('drawn turn: gear, turn off', gearDrawn, {}).r;
+    check('drawn turn: a gear turned half a tooth a key turns, not pulses (turn off)', r.keys.slice(1).every((k) => k.keptDrawn) && travel(r.paths[0], r.paths[1]) > 40 && !r.keys[1].symmetric,
+        `${travel(r.paths[0], r.paths[1]).toFixed(1)} px`);
+    // turn on: swung by the drawn angle, whole all the way
+    verify('drawn turn: star, turn on', starDrawn, { rotate: true });
+    r = MF.fix(starDrawn, { rotate: true });        // r.paths: the keys unturned, as MF.swing takes them
+    check('drawn turn: with turn, the star swings 72 deg and keeps its area', r.turn && Math.abs(r.turn.angles[1] - 72) < 0.5 &&
+        Math.abs(area(MF.swing(r.turn, r.paths, 0, 0.5)) / area(starDrawn[0]) - 1) < 0.01, r.turn && r.turn.angles.join('/'));
+    r = verify('drawn turn: gear, turn on', gearDrawn, { rotate: true }).r;
+    check('drawn turn: with turn, the gear swings 18 deg a key', r.turn && r.turn.angles.every((a, k) => Math.abs(a - 18 * k) < 0.5), r.turn && r.turn.angles.join('/'));
+    // a big turn of a shape it doesn't map onto itself (the F at 90 deg): least travel, turn suggested
+    r = MF.fix(fDrawn, {});
+    check('drawn turn: an F turned 90 deg, turn off, takes least travel (blended as drawn it halves)', !r.keys[1].keptDrawn && Math.round(r.keys[1].drawn) === 90 &&
+        area(MF.lerp(r.paths[0], r.paths[1], 0.5)) / area(fDrawn[0]) > 0.9);
+    // a key only moved (not turned) is not a drawn turn; nor one with a point nudged
+    const moved = polyPath(starPts(5, 150, 60, 0).map(([x, y]) => [x + 40, y + 10])), nudged = polyPath(turnPts(starPts(5, 150, 60, 0), 72).map((p, k) => (k ? p : [p[0] + 8, p[1]])));
+    check('drawn turn: a moved key, or a turned one with a point nudged, is no drawn turn', !MF.fix([starDrawn[0], moved], {}).keys[1].drawn && !MF.fix([starDrawn[0], nudged], {}).keys[1].drawn);
+}
+
 // ---- the After Effects half, against a mock path property ---------------------------------
 {
     class Shape {
@@ -546,6 +580,12 @@ function keepsAxis(r, deg) {
     check('symmetry: the report says a start was chosen so it morphs symmetrically', rep.symmetric === 1 && /1 start chosen so it morphs symmetrically/.test(FX.summary(rep)), FX.summary(rep));
     const p20 = [polyPath(plusPts(20, 150, 0)), polyPath(plusPts(20, 150, 45))];
     check('symmetry: the option forces it (sym ticked)', FX.fix(mockPath(p20)).symmetric === 0 && FX.fix(mockPath(p20), { symmetry: 'force' }).symmetric === 1);
+    // keys drawn as a turn, in the report (turn off)
+    rep = FX.fix(mockPath([polyPath(starPts(5, 150, 60, 0)), polyPath(turnPts(starPts(5, 150, 60, 0), 72))]));
+    check('drawn turn: the report says it was kept, and that turn would swing it', /drawn as a 72 deg turn, kept that way \(tick turn to swing it without shrinking/.test(FX.summary(rep)), FX.summary(rep));
+    rep = FX.fix(mockPath([MD.turn.shapes[0], MD.turn.shapes[1]]));
+    check('drawn turn: the report suggests turn for an F turned 90 deg', /drawn as a 90 deg turn: tick turn to swing it/.test(FX.summary(rep)), FX.summary(rep));
+    console.log('drawn turn: ' + FX.summary(rep));
     const said = FX.summary({ label: 'L', keys: 3, from: '4', to: '64', reversed: 0, moved: 0, untangled: 0, crossing: ['2-3'], mode: 'smooth', deviation: 0.05, scale: 1 });
     check('crossover: a step no start untangles is named', /still crosses itself between keys 2-3 \(no start avoids it; a key drawn in between can\)/.test(said), said);
 

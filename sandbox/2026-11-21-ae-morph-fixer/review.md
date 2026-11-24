@@ -523,3 +523,29 @@ dynamic time warping planned for later. Version **0.12.0**.
   own in-betweens keep the upright axis; the thin plus only with sym) and checks the panel's
   **sym** box. **Not yet run in After Effects.** The guide is one line longer (27 lines,
   measured 743 px at 26).
+
+## Round 12 · 2026-11-23 (a turn drawn with Free Transform was thrown away)
+
+Asked what still looks bad where a simple fix exists, probes found this first: a key drawn
+as a turn of the previous one (Free Transform: the same points, turned) lost its turn. Least
+travel ignores the drawn pairing, and for a shape the turn maps onto itself that is no motion:
+a star turned a tip stood still (its points had travelled 123 px, after the fix 0), even with
+turn ticked; a gear turned half a tooth pulsed (17 px) instead of turning (42 px), which round
+11's symmetry made the choice. The user said fix it. Version **0.12.1**.
+
+- `drawnTurn` finds it: points and handles turned by one angle (scaled evenly, if at all),
+  point for point, within 0.5 px (or 0.2 % of the size); 1 deg or more.
+- The drawn pairing is kept, the key's start moved as far as the previous key's did. With
+  turn: swung by the drawn angle (the star 72 deg, the gear 18 a key, the F 90; each 100 % of
+  its area halfway). Without: kept when least travel would erase the motion (under a quarter
+  of it), costs about the same, or the turn is 30 deg or less (straight blending shrinks by
+  cos(deg / 2)); the F at 90 deg keeps least travel (93 % of its area halfway; as drawn, 50 %).
+  The report says what happened and suggests turn ("drawn as a 72 deg turn, kept that way
+  (tick turn to swing it without shrinking through the middle)").
+- "Already matched" and the "kept" path of a second run carry the drawn turn, so fixing again
+  changes nothing and the report still suggests turn.
+- `verify()` in test.mjs now checks the keys as placed when there is a turn (its unturned
+  local keys failed the shape and corner checks).
+- Node 4,408 checks (the star, the gear and the F, turn off and on, second runs, a moved key
+  and a nudged point not taken for drawn turns, the report lines); real-type set 148. The AE
+  test gains a "drawn turn" step. **Not yet run in After Effects.**

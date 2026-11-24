@@ -13,7 +13,7 @@
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.12.0';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.12.1';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -253,6 +253,22 @@ var MorphFixer = (function () {
             rep.skipped = e.message;
             return plan;
         }
+        // keys drawn as a turn of the previous one (Free Transform), turn off: the largest such turn
+        // kept as drawn, and the largest left to least travel (the report suggests turn)
+        if (!o.rotate) {
+            var dKept = 0, dLeft = 0;
+            for (k = 1; k < r.keys.length; k++) {
+                var dg = r.keys[k].drawn || 0;
+                if (!dg) continue;
+                if (r.keys[k].keptDrawn) {
+                    if (Math.abs(dg) > Math.abs(dKept)) dKept = dg;
+                } else if (Math.abs(dg) > Math.abs(dLeft)) {
+                    dLeft = dg;
+                }
+            }
+            rep.drawnKept = dKept;
+            rep.drawnLeft = dLeft;
+        }
         if (r.matched) {
             rep.matched = true;
             rep.keys = idx.length;
@@ -320,10 +336,19 @@ var MorphFixer = (function () {
         return Math.ceil(x * 1000) / 1000;
     }
 
+    // keys drawn as a turn, turn off: kept as drawn (a big turn shrinks through the middle), or
+    // left to least travel; either way turn would swing them
+    function drawnNote(rep) {
+        var s = '', kept = Math.round(Math.abs(rep.drawnKept || 0)), left = Math.round(Math.abs(rep.drawnLeft || 0));
+        if (kept) s += '; drawn as a ' + kept + ' deg turn, kept that way' + (kept > 30 ? ' (tick turn to swing it without shrinking through the middle)' : '');
+        if (left) s += '; drawn as a ' + left + ' deg turn: tick turn to swing it (without, its points take the shortest way)';
+        return s;
+    }
+
     function summary(rep) {
         if (rep.skipped) return rep.label + ': skipped, ' + rep.skipped + '.';
         var earlier = rep.removed ? rep.removed + ' in-between keys from an earlier turn' : '';
-        if (rep.matched) return rep.label + ': already matched' + (earlier ? '; removed the ' + earlier + '.' : ', left as it is.');
+        if (rep.matched) return rep.label + ': already matched' + (earlier ? '; removed the ' + earlier : ', left as it is') + drawnNote(rep) + '.';
         var how, turned = '';
         if (rep.turned !== undefined && rep.baked) {
             turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, one a frame' + (earlier ? ' (replacing ' + earlier + ')' : '');
@@ -346,7 +371,7 @@ var MorphFixer = (function () {
         return rep.label + ': ' + rep.keys + ' keys, ' + rep.from + ' -> ' + rep.to + ' points each' +
             (rep.reversed ? ', ' + rep.reversed + ' reversed' : '') + (rep.moved ? ', ' + rep.moved + ' start points moved' : '') +
             (rep.before ? '; points travel ' + Math.round(rep.before) + ' -> ' + Math.round(rep.after) + ' px around the shape' : '') +
-            '; ' + how + turned + crossed + '.';
+            '; ' + how + turned + crossed + drawnNote(rep) + '.';
     }
 
     // ---- before a fix: what depends on the points, and how long it will take ----------------

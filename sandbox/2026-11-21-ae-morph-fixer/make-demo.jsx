@@ -392,6 +392,42 @@
             var p3 = keyed(plusV(0), plusV(45)), r3 = MFx.fix(p3, { maxPoints: 100, symmetry: 'force' });
             check('symmetry: a thin plus into an x: only the sym option makes it symmetric', r2.symmetric === 0 && !upright(p2) && r3.symmetric === 1 && upright(p3), MFx.summary(r3));
         });
+        step('drawn turn', function () {
+            // a star turned a tip by Free Transform (point k to point k turned 72 deg): the fix
+            // keeps that turn (it used to stand the star still); with turn, it swings it whole
+            function starAt(rot) {
+                var v = [];
+                for (var k = 0; k < 10; k++) {
+                    var a = (-90 + k * 36) * Math.PI / 180, rr = k % 2 ? 60 : 150, b = rot * Math.PI / 180;
+                    var x = rr * Math.cos(a), y = rr * Math.sin(a);
+                    v.push([200 + x * Math.cos(b) - y * Math.sin(b), 200 + x * Math.sin(b) + y * Math.cos(b)]);
+                }
+                return v;
+            }
+            var dc = app.project.items.addComp('Drawn turn test', 400, 400, 1, 2, 24);
+            function keyed() {
+                var L = dc.layers.addShape();
+                L.property('ADBE Root Vectors Group').addProperty('ADBE Vector Shape - Group');
+                var p = L.property('ADBE Root Vectors Group').property(1).property('ADBE Vector Shape');
+                var s0 = new Shape(), s1 = new Shape();
+                s0.vertices = starAt(0);
+                s0.closed = true;
+                s1.vertices = starAt(72);
+                s1.closed = true;
+                p.setValueAtTime(0, s0);
+                p.setValueAtTime(1, s1);
+                return p;
+            }
+            var area0 = Math.abs(MFm.area(MFx.toMF(keyed().keyValue(1))));
+            var p1 = keyed(), r1 = MFx.fix(p1, { maxPoints: 100 });
+            var v0 = p1.keyValue(1).vertices[0], v1 = p1.keyValue(2).vertices[0];
+            check('drawn turn: turn off, the star keeps turning (its first point travels a tip)', Math.round(r1.drawnKept) === 72 &&
+                Math.sqrt((v1[0] - v0[0]) * (v1[0] - v0[0]) + (v1[1] - v0[1]) * (v1[1] - v0[1])) > 100, MFx.summary(r1));
+            var p2 = keyed(), r2 = MFx.fix(p2, { maxPoints: 100, rotate: true });
+            var half = Math.abs(MFm.area(MFx.toMF(p2.valueAtTime(0.5, false)))) / area0;
+            check('drawn turn: with turn, it swings 72 deg and stays whole halfway', r2.baked > 0 && Math.abs(r2.turned - 72) < 0.5 && Math.abs(half - 1) < 0.02,
+                MFx.summary(r2) + ' · halfway ' + Math.round(half * 100) + ' % of its area');
+        });
         step('panel', function () {
             // the real panel (a palette here), clicked through on fresh copies of Before; the
             // controls are set directly, not through their onChange (which saves the settings)

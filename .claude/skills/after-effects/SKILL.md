@@ -551,6 +551,12 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   way past it. Evenly spread points can't make a T into an upside-down T symmetric without
   crossing; corner-to-corner matching (dynamic time warping) can, and it's planned in the
   morph fixer's README rather than half-built.
+- 2026-11-23 · ae-morph-fixer · What the designer drew is evidence of intent: don't optimise it
+  away. Keys made with Free Transform pair point k with point k turned; least travel ignored
+  that, so a star turned a tip stood still and a gear pulsed. Before replacing a pairing,
+  check whether the keys are an exact transform of each other point for point, and keep it.
+  Probe "what still looks bad" with shapes built the way designers build them (Free
+  Transform, duplicate and turn), not only drawn independently.
 - 2026-11-22 · ae-morph-fixer · A test harness left running in the user's AE is a bug the user
   sees: the morph fixer's runner fired during a dialog and wedged AE after the work was done.
   Stop every runner when the tests end, and give it an idle timeout in case you forget.

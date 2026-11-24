@@ -629,12 +629,99 @@ var MF = (function () {
         return out;
     }
 
+    // ---- a key drawn as a turn of the previous one (Free Transform: the same points, turned) --
+    // B's points and handles are A's turned by one angle (and scaled evenly, if at all), point
+    // for point: the designer animated a turn. Least travel throws that pairing away, and for a
+    // shape the turn maps onto itself (a star turned a tip, a gear a tooth) it leaves no motion
+    // at all, or a pulse. -> { deg } (the drawn turn, clockwise on screen like AE) or null
+    var DRAWN_SMALL = 30;       // deg: without turn, a drawn turn up to this is kept as drawn
+    function drawnTurn(A, B) {
+        var n = A.v.length, k;
+        if (!A.closed || n !== B.v.length || n < 3) return null;
+        var ca = [0, 0], cb = [0, 0];
+        for (k = 0; k < n; k++) {
+            ca[0] += A.v[k][0] / n;
+            ca[1] += A.v[k][1] / n;
+            cb[0] += B.v[k][0] / n;
+            cb[1] += B.v[k][1] / n;
+        }
+        // vertices around their centres, and both handles, as vector pairs (a, b)
+        var pairs = [];
+        for (k = 0; k < n; k++) {
+            pairs.push([A.v[k][0] - ca[0], A.v[k][1] - ca[1], B.v[k][0] - cb[0], B.v[k][1] - cb[1]]);
+            pairs.push([A.i[k][0], A.i[k][1], B.i[k][0], B.i[k][1]]);
+            pairs.push([A.o[k][0], A.o[k][1], B.o[k][0], B.o[k][1]]);
+        }
+        var sd = 0, sc = 0, aa = 0, j;
+        for (j = 0; j < pairs.length; j++) {
+            var q = pairs[j];
+            sd += q[0] * q[2] + q[1] * q[3];
+            sc += q[0] * q[3] - q[1] * q[2];
+            aa += q[0] * q[0] + q[1] * q[1];
+        }
+        if (aa <= 0) return null;
+        var th = Math.atan2(sc, sd), s = Math.sqrt(sd * sd + sc * sc) / aa, cs = s * Math.cos(th), sn = s * Math.sin(th), e = 0;
+        for (j = 0; j < pairs.length; j++) {
+            var p = pairs[j], rx = p[0] * cs - p[1] * sn - p[2], ry = p[0] * sn + p[1] * cs - p[3];
+            e += rx * rx + ry * ry;
+        }
+        var size = Math.sqrt(aa / pairs.length);
+        if (Math.sqrt(e / pairs.length) > Math.max(0.5, 0.002 * size)) return null;
+        var deg = th * 180 / Math.PI;
+        return Math.abs(deg) < 1 ? null : { deg: deg };
+    }
+
+    // o for one step: the drawn turn into this key and how far the previous key's start moved
+    // (a fraction of its outline), so the drawn pairing can be kept
+    function pairOpts(o, drawn, shift) {
+        if (!drawn) return o;
+        var p = {}, key;
+        for (key in o) p[key] = o[key];
+        p.drawn = drawn;
+        p.drawnShift = shift || 0;
+        return p;
+    }
+
+    // where closed path P should start to follow prev (startPlanAll, plus o.drawn): a key drawn
+    // as a turn keeps the drawn pairing (its start moved as far as the previous key's did): with
+    // turn, swung by the drawn angle; without, when least travel would erase the motion (under a
+    // quarter of the drawn travel) or costs about the same (within GAIN). Otherwise the usual
+    // plan, marked with the drawn turn so the report can suggest turn. -> the plan, with drawn
+    // (deg, or 0) and keptDrawn
+    function startPlan(prev, P, o) {
+        if (o.drawn) {
+            var dOff = o.drawnShift || 0, keepIt = !!o.rotate;
+            if (!keepIt) {
+                // a small turn barely shrinks blended straight (by cos(deg / 2): 1.2 % at 18 deg),
+                // and it is what was drawn (a gear turned half a tooth pulsed instead: less travel)
+                keepIt = Math.abs(o.drawn.deg) <= DRAWN_SMALL;
+            }
+            if (!keepIt) {
+                var bD = bestOffset(prev, P, false), eD = errorAt(bD.SA, P, measure(P), [bD.SB.cx, bD.SB.cy], dOff, false).e;
+                keepIt = eD * GAIN <= bD.err || bD.err < 0.0625 * eD;
+            }
+            if (keepIt) {
+                var dp = { off: dOff, near: 0, nd: 0, turn: !!o.rotate, theta: 0, crossings: 0, untangled: false, symmetric: false, drawn: o.drawn.deg, keptDrawn: true };
+                if (dOff) {
+                    var nvD = nearestVertex(P, dOff);
+                    dp.near = nvD.k;
+                    dp.nd = nvD.d;
+                }
+                return dp;
+            }
+        }
+        var plan = startPlanAll(prev, P, o);
+        plan.drawn = o.drawn ? o.drawn.deg : 0;
+        plan.keptDrawn = false;
+        return plan;
+    }
+
     // where closed path P should start to follow prev: { off, near, nd, turn, theta, crossings,
     // untangled, symmetric } (near: the vertex nearest the best fraction) or, when moving the
     // start gains under 5 % and neither keeps the morph symmetric nor from crossing over,
     // { near: 0, nd: 0 } with the turn found at the current start. In order: no crossover, then
     // symmetry, then least travel. crossings: what the in-betweens still cross (sampled)
-    function startPlan(prev, P, o) {
+    function startPlanAll(prev, P, o) {
         var b = chooseOffset(prev, P, o), off = 0, theta = 0, symmetric = false;
         if (b.err < b.err0 * GAIN) {
             off = b.off;
@@ -706,6 +793,8 @@ var MF = (function () {
                 info.untangled = plan.untangled;      // a start chosen so the in-betweens don't cross
                 info.crossings = plan.crossings;      // what they still cross (sampled), 0 mostly
                 info.symmetric = plan.symmetric;      // a start chosen so the morph stays mirror-symmetric
+                info.drawn = plan.drawn;              // drawn as a turn of the previous key (deg), 0 if not
+                info.keptDrawn = plan.keptDrawn;      // ... and that pairing kept
                 var near = plan.near;
                 if (plan.nd > SNAP) {
                     P = insert(P, [plan.off]);
@@ -975,7 +1064,7 @@ var MF = (function () {
 
     // nothing to do: same points, same direction, and no start would move; with turns, a step
     // that turns still counts (the keys of a path fixed before, its in-betweens removed)
-    function matched(paths, o, turns) {
+    function matched(paths, o, turns, drawn) {
         // the decision align() takes, but a start that keeps the morph from crossing over counts
         // as fine without looking for another (untangle's stay)
         var so = { stay: true }, key;
@@ -988,7 +1077,7 @@ var MF = (function () {
                     if (w && w !== o.sign) return false;
                 }
                 if (o.start) {
-                    var plan = startPlan(paths[k - 1], paths[k], so);
+                    var plan = startPlan(paths[k - 1], paths[k], pairOpts(so, drawn && drawn[k], 0));
                     if (plan.nd > SNAP || plan.near > 0) return false;
                     if (plan.turn && !turns) return false;      // a turn to take out of the path
                 }
@@ -1018,12 +1107,16 @@ var MF = (function () {
         // the reference direction: the first key that has a clear one
         o.sign = 0;
         if (paths[0].closed) for (k = 0; k < paths.length && !o.sign; k++) o.sign = winding(paths[k]);
+        // keys drawn as a turn of the previous one (point for point)
+        var drawn = [null];
+        for (k = 1; k < paths.length; k++) drawn.push(drawnTurn(paths[k - 1], paths[k]));
         var keys = [], res;
-        if (matched(paths, o)) {
+        if (matched(paths, o, false, drawn)) {
             res = { paths: [], deviation: 0 };
             for (k = 0; k < paths.length; k++) {
                 res.paths.push(copy(paths[k]));
-                keys.push({ reversed: false, moved: false, added: 0, before: k ? rms(paths[k - 1], paths[k]) : 0 });
+                // drawn as a turn (and left as drawn): the report can suggest turn
+                keys.push({ reversed: false, moved: false, added: 0, before: k ? rms(paths[k - 1], paths[k]) : 0, drawn: drawn[k] ? drawn[k].deg : 0, keptDrawn: !!drawn[k] });
                 keys[k].after = keys[k].before;
             }
             return { paths: res.paths, keys: keys, matched: true, deviation: 0 };
@@ -1036,21 +1129,24 @@ var MF = (function () {
         // the same points, starts and direction, only turned (a path fixed before with turn on,
         // its in-betweens removed): kept as they are, and the turn taken out again, so fixing
         // twice writes the same keys
-        var kept = !!(o.rotate && paths[0].closed && matched(paths, o, true)), mode = o.mode;
+        var kept = !!(o.rotate && paths[0].closed && matched(paths, o, true, drawn)), mode = o.mode;
         if (kept) {
             res = { paths: [], deviation: 0, capped: false };
             for (k = 0; k < paths.length; k++) {
                 res.paths.push(copy(paths[k]));
-                keys.push({ reversed: false, moved: false, offset: 0, turn: k ? startPlan(paths[k - 1], paths[k], o).turn : false });
+                var kp = k ? startPlan(paths[k - 1], paths[k], pairOpts(o, drawn[k], 0)) : null;
+                keys.push({ reversed: false, moved: false, offset: 0, turn: kp ? kp.turn : false, drawn: kp ? kp.drawn : 0, keptDrawn: kp ? kp.keptDrawn : false });
             }
         } else {
-            var al = [copy(paths[0])];
+            var al = [copy(paths[0])], shift = [0];
             keys.push({ reversed: false, moved: false, offset: 0 });
             for (k = 1; k < paths.length; k++) {
                 if (tick) tick(0.3 * k / paths.length);
-                var r = align(al[k - 1], copy(paths[k]), o);
+                // a key drawn as a turn keeps its pairing: its start moves as far as the previous one's did
+                var r = align(al[k - 1], copy(paths[k]), pairOpts(o, drawn[k], shift[k - 1]));
                 al.push(r.P);
                 keys.push(r.info);
+                shift.push(r.info.moved ? r.info.offset : 0);
             }
             if (mode !== 'exact') {
                 res = rebuild(al, o.maxPoints, o.tolerance, tick);

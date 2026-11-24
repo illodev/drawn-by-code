@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.12.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.12.1 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -79,14 +79,17 @@ cancelling changes nothing.
 | **Smooth** | on | Every key gets points at the same places along its outline, with handles sized so in-betweens stay smooth. Each shape stays within **0.1 px on screen** of what you drew (the scales of its groups, its layer and its parents count: a layer at 400 % is fitted 4x tighter); corners stay exact points |
 | **Exact** | | Your points stay where they are; the fixer only adds points by splitting curves where they lie, so every key is exact. In-betweens may show small kinks where a point's handles are uneven |
 | **max** | 100 | Smooth only: the most points per key. If a shape needs more to stay within 0.1 px, it stops there and the status says how close it got ("~0.76 px (max)"). Big or detailed artwork needs more: letters at 400 px landed 0.15–0.7 px off at 100; 200–300 brings them in |
-| **turn** | off | For shapes that turn between keys: points are matched as if the shape turned, and the shape swings round as a whole. The turn is written into the path as one key a frame along the arc, on shape layers and masks alike; no transform (group or layer) is keyed. Steps that don't turn stay put |
+| **turn** | off | For shapes that turn between keys: points are matched as if the shape turned, and the shape swings round as a whole. The turn is written into the path as one key a frame along the arc, on shape layers and masks alike; no transform (group or layer) is keyed. Steps that don't turn stay put. A key you turned with Free Transform swings by the angle you drew |
 | **sym** | off | Symmetry first. Shapes that share a mirror axis (a star into itself turned, a plus into an x, a heart into a circle) morph symmetrically, each side mirroring the other, even when another match travels less, and a more thorough test finds axes in shapes drawn a little unevenly. Off, symmetry still wins whenever it costs about the same (up to 20 % more squared travel) |
 
 Always on: every key is drawn in the same direction, and each key's start slides to where
 the morph from the previous key travels least. All else being equal, it takes a start that
 keeps the shape from crossing itself on the way (pinching into lobes or twisting a knot),
 then one that keeps it mirror-symmetric when both keys share a mirror axis, and the report
-says when it did either. The panel remembers its settings. With two
+says when it did either. A key you turned with Free Transform (the same points, turned) keeps
+the turn you drew: a star turned a tip turns, a gear turned half a tooth turns rather than
+pulsing; with turn off, a big drawn turn shrinks through the middle, and the report says so
+and suggests turn. The panel remembers its settings. With two
 or more keyframes selected on a path, only those are fixed. Undo puts everything back.
 Running it again on a fixed path leaves it alone ("already matched"); on a turned path it
 writes the same in-betweens again.
@@ -156,6 +159,15 @@ stay as they were.
   between your keys, read back from the path with `valueAtTime`, so custom key speeds come
   out exactly. At every key the shape is exactly where you drew it. An F turning keeps 100 %
   of its area halfway (straight blending: 50 %).
+- **Drawn turns:** a key whose points and handles are the previous key's turned by one angle
+  (and scaled evenly, if at all), point for point, within 0.5 px, is a turn you drew. That
+  pairing is kept, its start moved as far as the previous key's: least travel threw it away,
+  and for a shape the turn maps onto itself that was no motion at all (a star turned a tip
+  stood still) or a pulse (a gear turned half a tooth). With **turn**, it swings by the drawn
+  angle. Without, it's kept when least travel would erase the motion, costs about the same,
+  or the turn is 30 deg or less (blended straight, a turn shrinks the shape by cos(deg / 2):
+  1.2 % at 18 deg); a bigger turn of a shape it doesn't map onto itself (an F at 90 deg, which
+  blended as drawn halves) takes least travel, and the report suggests turn either way.
 - **Fixed again:** keys that already share their points, starts and direction, and differ
   only by a turn, are kept as they are and the turn taken out again, so the in-betweens come
   out the same.
@@ -196,6 +208,9 @@ What it doesn't do, and why; each is also said in the report when it happens.
 - **Crossover:** only the start is chosen against it, within 20 % more travel; a crossover
   that needs more, or one smaller than the 64-point check sees (O into C: a small twist as
   the C's gap opens, which no start avoids), stays. A key drawn in between fixes those.
+- **Drawn turns** are found point for point: a turned key with a point nudged afterwards, or
+  drawn again from scratch at an angle, is an ordinary morph (least travel, or turn's own
+  detection).
 - **Symmetry:** only the start is chosen for it: points are still spread evenly along both
   outlines, so a morph whose symmetric version would need them spread unevenly (a T into an
   upside-down T: the bar ends would have to slide down onto the bar ends while the stem folds
@@ -246,7 +261,7 @@ What it needs:
 | `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
 | `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the turn into the group), report |
 | `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, the release (it leaves nothing on `$.global`), and `out/test-build/Mask Morph Fixer.jsx`, the same plus the exports the tests use; with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
-| `test.mjs` | 4,351 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `test.mjs` | 4,408 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js` |
 | `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
 | `ae-bridge.jsx` | A test runner that lives in After Effects for the session: send it once with `AfterFX.exe -ro`, then drop jobs into `out/ae/bridge/inbox/` |
