@@ -47,8 +47,14 @@ const Drawn = (() => {
         // the moon: cream, an ink ring, a salmon shadow
         const m = cam.p([2600, 1400, 7000]);
         if (m[2] > 1) {
-            Ink.shape(g, circ(m[0], m[1], 26, 18), P.cream, { w: 3, seed: 'moon', d });
-            g.save(); g.globalAlpha = 0.6; g.fillStyle = P.salmon; g.beginPath(); g.arc(m[0] + 7, m[1] + 5, 15, 0, Math.PI * 2); g.fill(); g.restore();
+            // a crescent: the cream disc, its dark side cut by a disc of the night it stands in,
+            // an ink line round the lit edge only, two strokes of salmon on the lit side
+            const r = 24, ox = 11, oy = -6;
+            g.save(); g.fillStyle = P.cream; g.beginPath(); g.arc(m[0], m[1], r, 0, Math.PI * 2); g.fill();
+            g.fillStyle = P.deep; g.beginPath(); g.arc(m[0] + ox, m[1] + oy, r * 0.88, 0, Math.PI * 2); g.fill(); g.restore();
+            const arc = []; for (let i = 0; i <= 14; i++) { const a = Math.PI * 0.55 + (i / 14) * Math.PI * 1.15; arc.push([m[0] + Math.cos(a) * r, m[1] + Math.sin(a) * r]); }
+            Ink.brush(g, arc, { w: 3, seed: 'moon', d, taper: 0.35 });
+            Ink.hatch(g, [m[0] - r * 0.75, m[1] - r * 0.3], [m[0] - r * 0.55, m[1] + r * 0.55], { count: 2, len: 8, w: 2, col: P.salmon, seed: 77, d, n: [1, 0] });
         }
     }
     const circ = (x, y, r, n) => { const o = []; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; o.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); } return o; };
@@ -164,7 +170,27 @@ const Drawn = (() => {
         const C = Causeway, zc = cam.pos[2], zFar = zc + 700, zNear = zc + 0.4;
         const y = C.y, items = [];
         const zs = []; for (let z = zNear; z < zFar; z += Math.max(2, (z - zc) * 0.06)) zs.push(z); zs.push(zFar);
-        const edge = (x, dy = 0) => zs.map((z) => cam.p([x, y(z) + dy, z])).filter((p) => p[2] > 0.3).map((p) => [p[0], p[1]]);
+        // the deck hides itself beyond its crest: walking a line from near to far, once its
+        // screen height drops back below the highest point reached so far, the rest is behind
+        // the hump (cut there, at the crossing)
+        const visible = (P) => {
+            const out = []; let minY = Infinity;
+            for (const p of P) {
+                if (p[1] <= minY + 0.4 || !out.length) { out.push(p); minY = Math.min(minY, p[1]); continue; }
+                break;
+            }
+            return out;
+        };
+        const edge = (x, dy = 0) => visible(zs.map((z) => cam.p([x, y(z) + dy, z])).filter((p) => p[2] > 0.3).map((p) => [p[0], p[1]]));
+        // the crest's silhouette on screen (the deck's own line along the median) and the depth
+        // from which things stand behind it: they are drawn only above that line
+        const mid = zs.map((z) => [z, cam.p([-2.4, y(z) + 0.2, z])]).filter(([, p]) => p[2] > 0.3);
+        let crestY = Infinity, zHide = Infinity;
+        for (const [z, p] of mid) { if (p[1] <= crestY + 0.4) crestY = Math.min(crestY, p[1]); else { zHide = z; break; } }
+        const behind = (z, f) => () => {
+            if (z < zHide) return f();
+            g.save(); g.beginPath(); g.rect(-200, -400, cam.W + 400, crestY + 400); g.clip(); f(); g.restore();
+        };
         const band = (xa, xb, dy, fill, o = {}) => { const A = edge(xa, dy), B = edge(xb, dy); if (A.length < 2 || B.length < 2) return; Ink.shape(g, A.concat(B.reverse()), fill, { w: o.w ?? 0, seed: o.seed ?? 'band' + xa, d, jit: 0 }); };
         // the deck's side slabs (seen from outside), the deck, the median
         if (cam.pos[0] > 7.9) band(7.9, 7.9, -1.3, null);
@@ -231,11 +257,11 @@ const Drawn = (() => {
         // lamps, palms, traffic
         for (let k = kN + 60; k >= kN - 1; k--) {
             const zl = C.lampZ(k); if (zl < zc + 0.6 || zl > zFar) continue;
-            items.push({ z: zl, draw: () => lamp(g, L, cam, zl, d, fx) });
+            items.push({ z: zl, draw: behind(zl, () => lamp(g, L, cam, zl, d, fx)) });
             const zp = zl + Song.beat * C.V / 2;
-            if (zp < zFar && zp > zc + 1) items.push({ z: zp, draw: () => palm(g, L, cam, -2.4 + (k % 2 ? 0.5 : -0.5), zp, k, T, d, fx) });
+            if (zp < zFar && zp > zc + 1) items.push({ z: zp, draw: behind(zp, () => palm(g, L, cam, -2.4 + (k % 2 ? 0.5 : -0.5), zp, k, T, d, fx)) });
         }
-        for (const t of C.traffic(T)) if (t.z > zc + 2 && t.z < zFar) items.push({ z: t.z, draw: () => car(g, L, cam, t, d, fx) });
+        for (const t of C.traffic(T)) if (t.z > zc + 2 && t.z < zFar) items.push({ z: t.z, draw: behind(t.z, () => car(g, L, cam, t, d, fx)) });
         return items;
     }
 
