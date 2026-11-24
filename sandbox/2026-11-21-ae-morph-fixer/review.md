@@ -549,3 +549,21 @@ turn ticked; a gear turned half a tooth pulsed (17 px) instead of turning (42 px
 - Node 4,408 checks (the star, the gear and the F, turn off and on, second runs, a moved key
   and a nudged point not taken for drawn turns, the report lines); real-type set 148. The AE
   test gains a "drawn turn" step. **Not yet run in After Effects.**
+
+**In After Effects 27** (the user's go-ahead; 0.10.3 -> 0.12.1, rounds 10-12 at once). The
+Flock Rig session had AE with its test project open; it was asked first, said AE was free and
+its saved test project could be closed, and was told when AE was free again.
+
+- Demo test: 49 of 49 (`review/ae-log.txt`). Symmetry: the star into itself turned 36 deg
+  morphs symmetrically, the thin plus only with sym. Drawn turn: turn off, the star keeps its
+  72 deg turn ("drawn as a 72 deg turn, kept that way ..."); with turn, it swings 72 deg in 23
+  in-between keys, 100 % of its area halfway. The panel row with sym 316 x 53 px; the guide
+  465 x 759 px. Warnings: Zig Zag and the point-reading null named; Trim Paths, dashes,
+  taper, the Stroke effect and text on a mask not.
+- Real-type set: 73 of 73 (`review/art-log.txt`).
+- **Found and fixed:** the time estimate said 25.1 s for a fix that took 7.3 s. Its machine
+  calibration (a small fix timed against 160 ms measured on the reference machine) now ran the
+  crossover and symmetry checks the reference didn't, so this machine read 3.28x slower than
+  it is. → The calibration fix runs without them. Rerun: 14.7 s estimated, 7.6 s taken (the
+  test's "within 2x" passes; it still runs high).
+- The panel installed in the user's AE 27 is now 0.12.1, byte for byte the release.

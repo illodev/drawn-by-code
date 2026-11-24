@@ -379,6 +379,9 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
     `-ro` or `-so` overrides the refusal. On 2026-11-23 AE refused `-r` with nothing
     running, and `-ro` then ran the runner at once, with no restart. Dismiss the warning
     (OK) first.
+- **Write job scripts with the Write tool, not a Bash heredoc:** the Bash tool halved a
+  backslash even inside a quoted heredoc (`/\\/g` arrived as `/\/g`), and AE stopped the job
+  at "Expected: )". Paths in a job: `File.absoluteURI` already has forward slashes.
   - If a runner's log never starts, look at AE before sending another.
   - Close an AE with nothing unsaved via `CloseMainWindow()`, which works when `-r` doesn't,
     and start a fresh one.
@@ -557,6 +560,10 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   check whether the keys are an exact transform of each other point for point, and keep it.
   Probe "what still looks bad" with shapes built the way designers build them (Free
   Transform, duplicate and turn), not only drawn independently.
+- 2026-11-23 · ae-morph-fixer · A calibration must run what its reference ran. The time
+  estimate scales by a small fix timed against 160 ms measured once; new checks inside that fix
+  made the machine read 3.28x slower and the estimate 3.4x high (25 s for 7.3). Pin the
+  calibration's options, and rerun the estimate test in AE after adding work to the fix.
 - 2026-11-22 · ae-morph-fixer · A test harness left running in the user's AE is a bug the user
   sees: the morph fixer's runner fired during a dialog and wedged AE after the work was done.
   Stop every runner when the tests end, and give it an idle timeout in case you forget.

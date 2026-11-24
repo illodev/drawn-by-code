@@ -2040,8 +2040,10 @@ var MorphFixer = (function () {
                 }
                 P.push({ v: v, i: ii, o: oo, closed: true });
             }
+            // as the reference was measured: without the crossover and symmetry checks (0.11),
+            // which made this machine read 3.28x slower than it is (estimated 25 s, took 7.3)
             var t0 = new Date().getTime();
-            MF.fix(P, { mode: 'exact' });
+            MF.fix(P, { mode: 'exact', crossover: false, symmetry: false });
             speedFactor = Math.min(5, Math.max(0.3, (new Date().getTime() - t0) / CALIB_REF_MS));
         } catch (e) {
             speedFactor = 1;

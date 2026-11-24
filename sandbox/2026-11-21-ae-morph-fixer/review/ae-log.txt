@@ -1,5 +1,5 @@
-Morph demo fix (2517 ms): 5. After > Morph > Outline > Path: 10 keys, 4-10 -> 64 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.065 px of each shape.
-Turn demo fix (3430 ms): 5. After > Morph > Outline > Path: 9 keys, 10 -> 10 points each; points travel 162 -> 0 px around the shape; points already matched, kept as they are; turned 360 deg in 92 in-between keys, one a frame.
+Morph demo fix (3582 ms): 5. After > Morph > Outline > Path: 10 keys, 4-10 -> 64 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.065 px of each shape.
+Turn demo fix (3689 ms): 5. After > Morph > Outline > Path: 9 keys, 10 -> 10 points each; points travel 162 -> 0 px around the shape; points already matched, kept as they are; turned 360 deg in 92 in-between keys, one a frame.
 ok   every After key has the same number of points (64)
 ok   After Effects stores the keys the math computes (to 32-bit float) · largest difference 0.00003803359898
 ok   the rebuild measured every key within 0.1 px of its drawn shape · smooth, 0.06475487512383 px
@@ -17,7 +17,11 @@ ok   turn: in-betweens labelled and linear, drawn keys still Easy Ease · 92 lab
 ok   turn: the corner rides the arc of a real turn (keys and halfway) · worst 0.03315405632303 px at 1 s
 turn: halfway through the first quarter, the drawn keys put the corner 53 px off the arc (straight line)
 ok   turn: fixed again, the in-betweens are replaced by the same · 5. After > Morph > Outline > Path: 9 keys, 10 -> 10 points each; points travel 162 -> 0 px around the shape; points already matched, kept as they are; turned 360 deg in 92 in-between keys, one a frame (replacing 92 in-between keys from an earlier turn). · halfway moved 0 px
-ok   panel: one row (mode, max, Fix, ?) and a status line · width 264 x 53 px
+ok   symmetry: a star into itself turned 36 deg morphs mirror-symmetrically · 1. Shape Layer 1 > Path 1 > Path: 2 keys, 10 -> 40 points each, 1 start points moved; points travel 65 -> 57 px around the shape; rebuilt within 0.001 px of each shape; 1 start chosen so it morphs symmetrically (the shapes share a mirror axis); drawn as a 36 deg turn: tick turn to swing it (without, its points take the shortest way).
+ok   symmetry: a thin plus into an x: only the sym option makes it symmetric · 1. Shape Layer 3 > Path 1 > Path: 2 keys, 12 -> 52 points each, 1 start points moved; points travel 80 -> 84 px around the shape; rebuilt within 0.001 px of each shape; 1 start chosen so it morphs symmetrically (the shapes share a mirror axis); drawn as a 45 deg turn: tick turn to swing it (without, its points take the shortest way).
+ok   drawn turn: turn off, the star keeps turning (its first point travels a tip) · 1. Shape Layer 2 > Path 1 > Path: already matched, left as it is; drawn as a 72 deg turn, kept that way (tick turn to swing it without shrinking through the middle).
+ok   drawn turn: with turn, it swings 72 deg and stays whole halfway · 1. Shape Layer 3 > Path 1 > Path: 2 keys, 10 -> 10 points each; points travel 124 -> 0 px around the shape; points already matched, kept as they are; turned 72 deg in 23 in-between keys, one a frame. · halfway 100 % of its area
+ok   panel: one row (mode, max, turn, sym, Fix, ?) and a status line · width 316 x 53 px
 ok   panel Fix (Smooth): Fixed 1: 64 pts, 0.065 px · 6. Panel test 0 > Morph > Outline > Path: 10 keys, 4-10 -> 64 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.065 px of each shape.
 ok   panel Fix (Smooth, max 24): Fixed 1: 24 pts, ~0.761 px (max) · 6. Panel test 1 > Morph > Outline > Path: 10 keys, 4-10 -> 24 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt at the max: about 0.76 px from each shape (raise max for a closer fit).
 ok   panel: the max shows in the status · Fixed 1: 24 pts, ~0.761 px (max)
@@ -25,24 +29,24 @@ ok   panel Fix (Exact): Fixed 1: 22 pts · 6. Panel test 2 > Morph > Outline > P
 ok   panel Fix (turn): Fixed 1: 10 pts, 1 turned · 6. Panel turn test > Morph > Outline > Path: 9 keys, 10 -> 10 points each; points travel 162 -> 0 px around the shape; points already matched, kept as they are; turned 360 deg in 92 in-between keys, one a frame.
 ok   panel: floating, titled Mask Morph Fixer · Mask Morph Fixer
 ok   panel ?: the guide opens, not modal · palette
-ok   panel ?: guide size 465 x 743 px
+ok   panel ?: guide size 465 x 759 px
 ok   panel ?: an install button when floating · Update the panel
-ok   panel docked: builds into the Panel host, no window of its own · host 268 x 57
+ok   panel docked: builds into the Panel host, no window of its own · host 320 x 57
 ok   panel docked: the guide has no install button
-ok   install: copies the script as "Mask Morph Fixer.jsx" · Installed. Restart After Effects, then open Window > Mask Morph Fixer.jsx. (109139 of 109139 bytes)
+ok   install: copies the script as "Mask Morph Fixer.jsx" · Installed. Restart After Effects, then open Window > Mask Morph Fixer.jsx. (135314 of 135314 bytes)
 ok   install: a second install overwrites (an update) · Installed. Restart After Effects, then open Window > Mask Morph Fixer.jsx.
 ok   install: the user panels folder is found · %USERPROFILE%\AppData\Roaming\Adobe\After Effects\27.0\Scripts\ScriptUI Panels
 install: copies After Effects lists: %USERPROFILE%\AppData\Roaming\Adobe\After Effects\27.0\Scripts\ScriptUI Panels\Mask Morph Fixer.jsx
 ok   install: not installed twice
-ok   warn: Trim Paths and dashes after the path are named before fixing · Trim Paths 1 measures from the first point, which moves | the dashes of Stroke 1 start at the first point, which moves
+ok   warn: Zig Zag after the path is named before fixing; Trim Paths, dashes and taper are not · Zig Zag 1 puts ridges on every segment, and the fix adds segments
 ok   warn: Cancel changes nothing · Cancelled: nothing changed
-ok   warn: an expression reading the points (a null from Create Nulls From Paths) · Trim Paths 1 measures from the first point, which moves | the dashes of Stroke 1 start at the first point, which moves | an expression on Follows Warn test > Position reads the points, which move
-ok   warn: Fix anyway fixes, and the status counts the warnings · Fixed 1: 64 pts, 0.065 px, 3 warnings (hover)
-ok   warn: an effect using the mask (Stroke) · Stroke uses this mask from its first point, which moves
-ok   warn: text running along the mask · the text runs along this mask from its first point, which moves
+ok   warn: an expression reading the points (a null from Create Nulls From Paths) · Zig Zag 1 puts ridges on every segment, and the fix adds segments | an expression on Follows Warn test > Position reads points by their number, and the fix adds points
+ok   warn: Fix anyway fixes, and the status counts the warnings · Fixed 1: 64 pts, 0.065 px, 2 warnings (hover)
+ok   warn: nothing for the Stroke effect on the mask · 
+ok   warn: nothing for text running along the mask · 
 ok   warn: nothing for a plain path · 
-ok   estimate: a long job (12 keys of ~60 points) asks first, with the time · about 43 s
-ok   estimate: within about 2x of the real time (6 keys of ~16 points) · estimated 12.7 s, took 5.9 s, this machine at 1.79x the reference
+ok   estimate: a long job (12 keys of ~60 points) asks first, with the time · about 48 s
+ok   estimate: within about 2x of the real time (6 keys of ~16 points) · estimated 14.7 s, took 7.6 s, this machine at 1.92x the reference
 ok   cancel: Esc while it works cancels, and nothing changes · Cancelled: nothing changed
 ok   on screen: a layer at 200 % is fixed within 0.1 comp px · 6. Scaled 200 > Morph > Outline > Path: 10 keys, 4-10 -> 103 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.056 px of each shape on screen (it is scaled to 200 %).
 ok   panel: breaks into two rows when docked narrow, one row when wide
