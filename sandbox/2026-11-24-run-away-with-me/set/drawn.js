@@ -339,7 +339,7 @@ const Drawn = (() => {
             if (zz < zNear + 0.6) continue;
             const z = zz; put(z, () => shrub(g, cam, x, z, sc, seed, d, fx));
         }
-        for (const t of C.traffic(T)) if (t.z > zc + 2 && t.z < zFar) put(t.z, () => car(g, L, cam, t, d, fx));
+        for (const t of C.traffic(T)) if (t.z > zc + 2 && t.z < zFar) { const zz = t.z; (zz - 2.3 >= zSplit ? farItems : nearItems).push({ z: zz, draw: () => car(g, L, cam, t, d, fx) }); }
         if (fx.trip > 0) for (let zh = Math.ceil((zc + 4) / 22) * 22; zh < zc + 260; zh += 22) { const z = zh; put(z, () => hoop(g, L, cam, z, d, fx)); }
         const lastEdge = (x, dy = 0) => zs.map((z) => cam.p([x, y(z) + dy, z])).filter((p) => p[2] > 0.3).map((p) => [p[0], p[1]]);
         return {

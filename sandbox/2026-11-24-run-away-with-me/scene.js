@@ -137,7 +137,8 @@ function drawDrawn(g, t, env) {
         g.drawImage(carPic, 0, 0, env.W, env.H);
         Ink.occlude(L);
     } };
-    (pose.z >= cw.zSplit ? cw.farItems : cw.nearItems).push(carItem);
+    // the car is 4.3 m long: it belongs to the far piece only when all of it is past the crest
+    (pose.z - 2.3 >= cw.zSplit ? cw.farItems : cw.nearItems).push(carItem);
     const paint = (list) => { for (const it of list) if (it.depth === undefined) it.depth = cam.view([0, Causeway.y(it.z), it.z])[2]; list.sort((a, b) => b.depth - a.depth); for (const it of list) it.draw(); };
     cw.far(); paint(cw.farItems);
     cw.near(); paint(cw.nearItems);

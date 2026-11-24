@@ -37,17 +37,15 @@ const Ink = (() => {
     // smooth noise along a stroke: n(seed, x) in −1..1, continuous in x, a new curve per drawing
     function noise(seed, x, d) { const i = Math.floor(x), f = x - i; return sm(hsh(seed, i, d) * 2 - 1, hsh(seed, i + 1, d) * 2 - 1, f); }
 
-    // resample a polyline every `step` px
+    // resample a polyline every `step` px, keeping every corner of the original (a step that
+    // skipped a corner cut it, and small shapes got a diagonal tick there)
     function resample(pts, step, closed) {
         const P = closed ? pts.concat([pts[0]]) : pts, out = [P[0]];
-        let carry = 0;
         for (let i = 1; i < P.length; i++) {
             const [x0, y0] = P[i - 1], [x1, y1] = P[i], L = Math.hypot(x1 - x0, y1 - y0);
-            let s = step - carry;
-            while (s <= L) { const u = s / L; out.push([x0 + (x1 - x0) * u, y0 + (y1 - y0) * u]); s += step; }
-            carry = L - (s - step);
+            const n = Math.max(1, Math.round(L / step));
+            for (let k = 1; k <= n; k++) out.push([x0 + ((x1 - x0) * k) / n, y0 + ((y1 - y0) * k) / n]);
         }
-        if (!closed) out.push(P[P.length - 1]);
         return out;
     }
 
@@ -61,7 +59,9 @@ const Ink = (() => {
         if (o.closed) len += Math.hypot(pts[0][0] - pts[pts.length - 1][0], pts[0][1] - pts[pts.length - 1][1]);
         if (len < 0.5) return;
         const step = o.step ?? Math.max(2, Math.min(10, len / 12));
-        let P = resample(pts, step, !!o.closed);
+        let src = pts;
+        if (o.closed && pts.length > 2) { const m = [(pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2]; src = [m].concat(pts.slice(1), [pts[0]]); }
+        let P = resample(src, step, !!o.closed);
         if (o.closed) { const over = Math.max(1, Math.round((o.over ?? 0.06) * P.length)); P = P.concat(P.slice(1, over + 1)); }
         const n = P.length; if (n < 2) return;
         const wob = o.wob ?? Math.min(2.2, 0.6 + w * 0.25), taper = o.taper ?? 0.18;

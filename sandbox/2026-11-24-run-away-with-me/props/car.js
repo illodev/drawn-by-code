@@ -11,12 +11,19 @@
 // what faces forward, a magenta from behind. The lamps themselves slide over the hood and the
 // deck as soft reflections. Thin highlight lines run along the shoulders, the crease, the
 // tail's edge and the bumpers; the chrome glints.
+// In the drawn manner (light.drawn, styles/retro-neon/ink.js) the same model is painted as
+// flat inks with a brush line: one ink per part by material and facing (never by the lamp or
+// the view), the silhouette inked at a weight set by the car's size on screen, light laid on as
+// strokes (the lamps sweep over the deck and hood as gold and salmon strokes), an opaque shadow
+// under the car, the tail lights' reflections as brush dashes, the plate lettered by hand.
 // Global: Car.
 //   Car.draw(g, L, N, cam, pose, light, people)
 //       pose  { x, y, z, pitch }        world metres, pitch > 0 = nose up
-//       light { lamp, hue, power, city, lamps? }   lamp 0..1 (peaks on the beat), hue: degrees
-//             the trip turns the colours, power ≥ 1 in the trip, city: the rims' strength,
-//             lamps: optional world points of the lamp heads overhead (else read from Causeway)
+//       light { lamp, hue, power, city, lamps?, drawn?, d? }   lamp 0..1 (peaks on the beat),
+//             hue: degrees the trip turns the colours (airbrush only), power ≥ 1 in the trip,
+//             city: the rims' strength, lamps: optional world points of the lamp heads overhead
+//             (else read from Causeway), drawn: the drawn manner, d: its drawing index (12 a
+//             second: the only per-drawing seed)
 //       people(g, L): paints the two of them; called after the cockpit's floor and cushions,
 //             before the seat backs and the rear deck as seen from behind (before the near door,
 //             the hood and the windshield as seen from the side or the front)
@@ -193,11 +200,30 @@ const Car = (() => {
     // at F.w (about 6 px over the trunk, 4–5 px in the chase, ~1 px far away), the lines inside
     // the body at half that, the details thinner still
     const lineIn = (F, k = 0.5) => Math.max(1, k * F.w);
+    // a polyline's length in px, and the brush's resampling step for it: Ink.brush resamples
+    // every len/12 px (up to 10), which cuts every corner of a small shape into a chamfer (a
+    // diagonal tick at each corner of the tail-light cells and the plate); a short step keeps them
+    const plen = (q, closed) => { let l = 0; for (let i = 1; i < q.length; i++) l += Math.hypot(q[i][0] - q[i - 1][0], q[i][1] - q[i - 1][1]); if (closed && q.length > 2) l += Math.hypot(q[0][0] - q[q.length - 1][0], q[0][1] - q[q.length - 1][1]); return l; };
+    const stepFor = (q, closed) => clamp(plen(q, closed) / 60, 1.2, 4);
+    // Ink.shape's fill, then its line drawn here with that short step, begun half-way along the
+    // longest edge (a closed stroke wraps from its last point to its second: begun on a corner it
+    // cut a chord across it)
+    function shapeD(g, q, fill, o = {}) {
+        if (q.length >= 3) {
+            let bi = 0, bl = -1;
+            for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length], l = Math.hypot(b[0] - a[0], b[1] - a[1]); if (l > bl) { bl = l; bi = i; } }
+            const a = q[bi], b = q[(bi + 1) % q.length];
+            q = [[(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]].concat(q.slice(bi + 1), q.slice(0, bi + 1));
+        }
+        const w = o.w ?? 3;
+        Ink.shape(g, q, fill, { ...o, w: 0 });
+        if (w > 0) Ink.brush(g, q, { w, col: o.ink ?? K.ink, seed: typeof o.seed === 'number' ? o.seed : 1, d: o.d ?? 0, closed: true, wob: o.wob, step: stepFor(q, true) });
+    }
     // an ink line along a 3D polyline at k × the silhouette's weight
     function edge3(g, F, pts, k = 1, col = null, o = {}) {
         const q = pts.map((p) => F.pr(p)).filter((p) => p[2] >= 0.35).map((p) => [p[0], p[1]]);
         if (q.length < 2) return;
-        Ink.brush(g, q, { w: Math.max(1, k * F.w), col: col ?? K.ink, seed: o.seed ?? ((q.length * 9173 + Math.round(q[0][0] * 7 + q[0][1] * 3)) | 0), d: DR, taper: o.taper ?? 0.06, wob: o.wob, closed: o.closed });
+        Ink.brush(g, q, { w: Math.max(1, k * F.w), col: col ?? K.ink, seed: o.seed ?? ((q.length * 9173 + Math.round(q[0][0] * 7 + q[0][1] * 3)) | 0), d: DR, taper: o.taper ?? 0.06, wob: o.wob, closed: o.closed, step: stepFor(q, o.closed) * 1.5 });
     }
 
     // --- painting helpers -----------------------------------------------------------------
@@ -234,7 +260,7 @@ const Car = (() => {
             if (typeof style !== 'string') return q;
             if (alphaOf(style) < 0.6) return q;
             if (c === LCUR) { c.fillStyle = style; Neon.path(c, q); c.fill(); return q; }   // light: flat, no line
-            Ink.shape(c, q, posterCss(style), { w: wk > 0 ? Math.max(1, wk * F.w) : 0, seed: (q.length * 7919 + Math.round(q[0][0] * 3)) | 0, d: DR, jit: 0.6 });
+            shapeD(c, q, posterCss(style), { w: wk > 0 ? Math.max(1, wk * F.w) : 0, seed: (q.length * 7919 + Math.round(q[0][0] * 3)) | 0, d: DR, jit: 0.6 });
             return q;
         }
         c.fillStyle = style; Neon.path(c, q); c.fill(); return q;
@@ -344,7 +370,7 @@ const Car = (() => {
             const a = clamp(1.5 / (1 + (dist / 11) ** 2), 0, 1) * (0.45 + 0.55 * Math.min(1, F.lamp));
             if (a < 0.15) continue;
             const sc = F.sc(Pm), seed = 8100 + Math.round(W0[2] * 3 + W0[0] * 7);
-            const n0 = 2 + Math.round(4 * a), half = (0.22 + 0.2 * a) * size;
+            const n0 = 3 + Math.round(4 * a), half = (0.2 + 0.2 * a) * size;
             g.save(); Neon.path(g, q); g.clip();
             for (let i = 0; i < n0; i++) {
                 const u = (i + 0.5) / n0 - 0.5, h0 = hh(seed, i, DR), h1 = hh(seed + 1, i, DR), h2 = hh(seed + 2, i, DR);
@@ -354,7 +380,7 @@ const Car = (() => {
                 const A = F.pr([cx - l, y(cz), cz]), B = F.pr([cx + l, y(z1), z1]);
                 if (A[2] < 0.35 || B[2] < 0.35) continue;
                 Ink.brush(g, [[A[0], A[1]], [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2 - 0.004 * sc], [B[0], B[1]]], {
-                    w: Math.max(1.2, (0.022 + 0.012 * a) * sc * (0.7 + 0.5 * h1)), col: [K.gold, K.salmon, K.orange, K.gold, K.salmon][i % 5],
+                    w: clamp((0.009 + 0.007 * a) * sc * (0.75 + 0.5 * h1), 1.2, 1.2 * F.w), col: [K.gold, K.salmon, K.orange, K.gold, K.salmon][i % 5],
                     seed: seed * 13 + i, d: DR, taper: 0.4, wob: 0.6,
                 });
             }
@@ -442,7 +468,7 @@ const Car = (() => {
         for (const [cx, cz, a0] of [[hw - r, hl - r, 0], [-(hw - r), hl - r, Math.PI / 2], [-(hw - r), -(hl - r), Math.PI], [hw - r, -(hl - r), Math.PI * 1.5]])
             for (let i = 0; i <= 4; i++) { const a = a0 + (i / 4) * (Math.PI / 2); o.push([cx + Math.cos(a) * r, 0.004, cz + Math.sin(a) * r]); }
         const q = F.poly(o);
-        if (q) Ink.shape(g, q, K.ink, { w: Math.max(1.5, 1.3 * F.w), ink: K.ink, seed: 5101, d: DR, jit: 1.2 });
+        if (q) shapeD(g, q, K.ink, { w: Math.max(1.5, 1.3 * F.w), ink: K.ink, seed: 5101, d: DR, jit: 1.2 });
         const C = F.C;
         if (C[2] < ZT) for (const x of [-0.56, 0, 0.56]) streakD(g, F, [x, 0.8, ZT - 0.08], x ? [K.red, K.pink, K.red, K.salmon] : [K.magenta, K.pink], x ? 0.3 : 0.16);
         if (C[2] > ZN) for (const x of [-0.6, 0.6]) streakD(g, F, [x, 0.76, ZN + 0.08], [K.cream, K.gold], 0.26);
@@ -461,7 +487,7 @@ const Car = (() => {
             const cx = p[0] + ux * d - uz * off, cz = p[2] + uz * d + ux * off;
             const A = F.pr([cx - uz * half, 0.008, cz + ux * half]), B = F.pr([cx + uz * half, 0.008, cz - ux * half]);
             if (A[2] < 0.35 || B[2] < 0.35) continue;
-            const t0 = F.pr([cx, 0.008, cz]), t1 = F.pr([cx + ux * 0.06, 0.008, cz + uz * 0.06]);
+            const t0 = F.pr([cx, 0.008, cz]), t1 = F.pr([cx + ux * 0.09, 0.008, cz + uz * 0.09]);
             const th = clamp(Math.hypot(t1[0] - t0[0], t1[1] - t0[1]), 1.2, Math.max(1.6, F.w));
             Ink.brush(g, [[A[0], A[1]], [B[0], B[1]]], { w: th, col: cols[i % cols.length], seed: seed * 7 + i, d: DR, taper: 0.35, wob: 0.4 });
         }
@@ -531,7 +557,7 @@ const Car = (() => {
     // groove, a hub, a stroke of light on the lip
     function wheelD(g, F, s, Wh, hull, faceOut) {
         const cx = s * Wh.x, lw = lineIn(F), seed = 7300 + (s > 0 ? 50 : 0) + (Wh.z > 0 ? 7 : 0);
-        Ink.shape(g, hull, K.deep, { w: lw, seed, d: DR, jit: 0.5 });
+        shapeD(g, hull, K.deep, { w: lw, seed, d: DR, jit: 0.5 });
         const xo = cx + s * Wh.w / 2;
         if (!faceOut) {
             // seen end-on: the tread's top catches the sky
@@ -545,13 +571,13 @@ const Car = (() => {
         const E = (u, v) => [o[0] + a[0] * u + b[0] * v, o[1] + a[1] * u + b[1] * v];
         const ell = (r, n = 22, c0 = 0, c1 = Math.PI * 2) => { const out = []; for (let i = 0; i < n; i++) { const t = c0 + ((c1 - c0) * i) / (c1 - c0 >= Math.PI * 2 - 1e-6 ? n : n - 1); out.push(E(Math.cos(t) * r, Math.sin(t) * r)); } return out; };
         const k = RIM / R, rpx = Math.hypot(b[0], b[1]);
-        Ink.shape(g, ell(0.985, 26), K.deep, { w: lw, seed: seed + 1, d: DR, jit: 0.4 });
+        shapeD(g, ell(0.985, 26), K.deep, { w: lw, seed: seed + 1, d: DR, jit: 0.4 });
         Ink.brush(g, ell(0.9, 9, Math.PI * 0.3, Math.PI * 0.75), { w: Math.max(1, 0.05 * rpx), col: K.violet, seed: seed + 2, d: DR, taper: 0.4 });
-        Ink.shape(g, ell(k, 22), K.light, { w: lw, seed: seed + 3, d: DR, jit: 0.3 });
-        Ink.brush(g, ell(k * 0.6, 18), { w: Math.max(1, k * 0.3 * rpx), col: K.purple, seed: seed + 4, d: DR, closed: true, taper: 0, wob: 0.3 });
+        shapeD(g, ell(k, 22), K.light, { w: lw, seed: seed + 3, d: DR, jit: 0.3 });
+        Ink.brush(g, ell(k * 0.6, 18), { w: Math.max(1, k * 0.3 * rpx), col: K.grape, seed: seed + 4, d: DR, closed: true, taper: 0, wob: 0.3 });
         Ink.brush(g, ell(k * 0.86, 8, Math.PI * 0.15, Math.PI * 0.7), { w: Math.max(1, 0.06 * k * rpx), col: K.cream, seed: seed + 5, d: DR, taper: 0.45 });
         Ink.brush(g, ell(k * 0.8, 6, Math.PI * 1.15, Math.PI * 1.5), { w: Math.max(1, 0.05 * k * rpx), col: K.cyan, seed: seed + 6, d: DR, taper: 0.45 });
-        Ink.shape(g, ell(k * 0.24, 12), K.pink, { w: Math.max(1, 0.4 * F.w), seed: seed + 7, d: DR, jit: 0.2 });
+        shapeD(g, ell(k * 0.24, 12), K.pink, { w: Math.max(1, 0.4 * F.w), seed: seed + 7, d: DR, jit: 0.2 });
     }
     function convex(P0) {
         const Q = P0.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -610,7 +636,7 @@ const Car = (() => {
             // the horizon reflected just above the crease: hot pink where the ray goes on to the city
             // the airbrush down the door: the sky's violet deepening towards the crease
             const zm = clamp(C[2], -1.2, 1.2), a0 = F.pr(onUp(s, zm, 0.12)), a1 = F.pr(onUp(s, zm, 0.7));
-            if (a0[2] > 0.35 && a1[2] > 0.35 && Math.hypot(a1[0] - a0[0], a1[1] - a0[1]) > 1) {
+            if (!DRAWN && a0[2] > 0.35 && a1[2] > 0.35 && Math.hypot(a1[0] - a0[0], a1[1] - a0[1]) > 1) {
                 const vg = g.createLinearGradient(a0[0], a0[1], a1[0], a1[1]), vc = envAt(F, 0.16, 0);
                 vg.addColorStop(0, css(vc, 0)); vg.addColorStop(1, css(vc, 0.3));
                 fill(g, F, bandOutline(s, onUp, ZT + 0.01, ZN - 0.03, 0.12, 0.7, 22), vg);
@@ -653,10 +679,10 @@ const Car = (() => {
     function sideLight(g, F, s) {
         const seed = 5300 + (s > 0 ? 1 : 0), n = 9;
         for (let i = 0; i < n; i++) {
-            const z = ZT + 0.3 + ((ZN - ZT - 0.6) * (i + 0.2 + 0.6 * hh(seed, i, DR))) / n;
-            const l = 0.18 + 0.3 * hh(seed + 1, i, DR);
+            const z = ZT + 0.3 + ((ZN - ZT - 0.6) * (i + 0.2 + 0.6 * hh(seed, i, 0))) / n;
+            const l = 0.18 + 0.3 * hh(seed + 1, i, 0);
             const a = onUp(s, z, 0.06), b = onUp(s, z - 0.08, Math.min(0.75, 0.06 + l));
-            edge3(g, F, [a, lerp3(a, b, 0.5), b], 0.3 + 0.15 * hh(seed + 2, i, DR), i % 3 === 2 ? K.pink : K.light, { seed: seed * 17 + i, taper: 0.45 });
+            edge3(g, F, [a, lerp3(a, b, 0.5), b], 0.3 + 0.15 * hh(seed + 2, i, 0), i % 3 === 2 ? K.pink : K.light, { seed: seed * 17 + i, taper: 0.45 });
         }
         for (const [z0, z1] of [[0.25, 1.3], [-1.6, -0.9]]) edge3(g, F, along(z0, z1, 6).map((z) => onUp(s, z, 0.9)), 0.3, K.cyan, { seed: seed + Math.round(z0 * 10), taper: 0.35 });
     }
@@ -681,7 +707,8 @@ const Car = (() => {
         for (const z of [0.74, -0.84]) {
             const pts = along(0, 1, 4).map((u) => onUp(s, z, u)).concat(along(0, 1, 4).map((u) => onLo(s, z, u)));
             line3(g, F, pts, dark, px(F, 0.008, pts[3]));
-            line3(g, F, pts.map((p) => [p[0], p[1], p[2] + (z > 0 ? -0.012 : 0.012)]), hi, px(F, 0.004, pts[3]));
+            // drawn: the gap is an ink line; its lit lip only above the crease, where the sky falls
+            line3(g, F, (DRAWN ? pts.slice(0, 4) : pts).map((p) => [p[0], p[1], p[2] + (z > 0 ? -0.012 : 0.012)]), hi, px(F, 0.004, pts[3]));
         }
         fill(g, F, bandOutline(s, onUp, -0.74, -0.56, 0.2, 0.3, 2), 'rgba(12,6,24,0.85)');
         line3(g, F, along(-0.74, -0.56, 2).map((z) => onUp(s, z, 0.31)), hi, px(F, 0.004, onUp(s, -0.65, 0.3)));
@@ -705,6 +732,7 @@ const Car = (() => {
     // the shoulders' rim: magenta from behind, cyan from the city ahead, along both shoulders
     function shoulderRim(g, L, F, s, z0, z1) {
         const zz = along(z0, z1, Math.max(2, Math.round((z1 - z0) / 0.2)));
+        if (DRAWN) { edge3(g, F, zz.map((z) => shoulder(s, z)), 1, null, { seed: 5700 + s + Math.round(z0 * 10) }); rimD(g, F, s, z0, z1); return; }
         const cols = [[0, F.magenta, 0.95], [0.42, mix(F.pink, [255, 235, 250], 0.45), 0.7], [1, F.cyan, 0.95]];
         const p = shoulder(s, (z0 + z1) / 2);
         for (const i of outs(F)) {
@@ -713,8 +741,35 @@ const Car = (() => {
             line3(c, F, zz.map((z) => shoulder(s, z)), st, px(F, i ? 0.014 : 0.009, p, 0.7));
         }
     }
+    // drawn: the shoulders' rim as broken brush strokes just inside the ink line, magenta towards
+    // the tail (the night behind), cyan towards the nose (the city ahead)
+    function rimD(g, F, s, z0, z1) {
+        const n = Math.max(1, Math.round((z1 - z0) / 0.7)), seed = 5500 + (s > 0 ? 1 : 0) + Math.round(z0 * 10);
+        for (let i = 0; i < n; i++) {
+            const a = z0 + ((z1 - z0) * (i + 0.08 + 0.1 * hh(seed, i, 0))) / n, b = z0 + ((z1 - z0) * (i + 0.8 + 0.12 * hh(seed + 1, i, 0))) / n;
+            const zm = (a + b) / 2, col = zm < 0.7 ? K.light : K.cyan;
+            edge3(g, F, along(a, b, 5).map((z) => [s * (xb(z) - 0.035), yb(z) + 0.012, z]), 0.4, col, { seed: seed * 7 + i, taper: 0.3 });
+        }
+    }
+    // drawn: a top's roll to the shoulders as a second, deeper ink along both sides (a hard cel
+    // edge, no line), a few long strokes of pale light down the crown, the shoulders inked at full
+    // weight with their rims inside
+    function crownD(g, F, z0, z1) {
+        const zz = along(z0, z1, 10);
+        for (const s of [-1, 1]) {
+            const o = zz.map((z) => shoulder(s, z)).concat(zz.slice().reverse().map((z) => [s * (xb(z) - 0.17), yb(z) + 0.011, z]));
+            fill(g, F, o, K.magenta, 0);
+        }
+        const seed = 5600 + Math.round(z0 * 10);
+        for (let i = 0; i < 3; i++) {
+            const x = [-0.2, 0.06, 0.3][i] + (hh(seed, i, 0) - 0.5) * 0.06;            // in the same places every drawing (only the brush boils)
+            const a = z0 + (z1 - z0) * (0.08 + 0.3 * hh(seed + 1, i, 0)), b = a + (z1 - z0) * (0.3 + 0.25 * hh(seed + 2, i, 0));
+            edge3(g, F, along(a, Math.min(z1 - 0.05, b), 6).map((z) => [x, yb(z) + 0.013, z]), 0.8, i === 1 ? K.cream : K.light, { seed: seed * 11 + i, taper: 0.45 });
+        }
+    }
     // crowned tops: darker where they roll over to the shoulders, a pale streak down the middle
     function crown(g, F, z0, z1) {
+        if (DRAWN) return crownD(g, F, z0, z1);
         for (const s of [-1, 1]) {
             const zz = along(z0, z1, 8);
             const o = zz.map((z) => shoulder(s, z)).concat(zz.slice().reverse().map((z) => [s * (xb(z) - 0.16), yb(z) + 0.01, z]));
@@ -737,6 +792,7 @@ const Car = (() => {
         if (!q) return;
         crown(g, F, Z_WS + 0.1, ZN - 0.02);
         lampGlints(g, L, F, q, [0, yb(1.4), 1.4], topN(1.4), 1.1);
+        if (DRAWN) { lampStrokes(g, F, q, [0, yb(1.4), 1.4], topN(1.4), [Z_WS, ZN], 1.1); edge3(g, F, along(-xb(ZN), xb(ZN), 8).map((x) => [x, yb(ZN) + 0.004, ZN]), 1, null, { seed: 5800 }); }
         // the lid's seam and a pair of slim vents ahead of the windshield
         const seam = [[-0.56, 0.94], [-0.6, 1.92], [-0.45, 2.04], [0.45, 2.04], [0.6, 1.92], [0.56, 0.94]].map(([x, z]) => [x, yb(z) + 0.013, z]);
         line3(g, F, seam, 'rgba(26,14,56,0.55)', px(F, 0.006, seam[2]));
@@ -748,7 +804,10 @@ const Car = (() => {
         // the cowl: a black strip at the windshield's foot, the wipers parked on it
         const cowl = [[-0.74, 0.889, Z_WS], [0.74, 0.889, Z_WS], [0.74, yb(0.92) + 0.014, 0.92], [-0.74, yb(0.92) + 0.014, 0.92]];
         fill(g, F, cowl, grad(g, F, [{ p: [0, 0.89, 0.86], n: topN(0.86) }, { p: [0, 0.89, 0.86], n: topN(0.86) }], MAT.black));
-        for (const x of [-0.5, 0.12]) line3(g, F, [[x - 0.02, 0.895, 0.86], [x + 0.5, 0.893, 0.84]], 'rgba(150,140,190,0.6)', px(F, 0.007, [x, 0.9, 0.85]));
+        for (const x of [-0.5, 0.12]) {
+            if (DRAWN) { edge3(g, F, [[x - 0.02, 0.897, 0.86], [x + 0.5, 0.895, 0.84]], 0.45, null, { seed: 5810 + Math.round(x * 10) }); edge3(g, F, [[x + 0.04, 0.905, 0.858], [x + 0.4, 0.903, 0.843]], 0.2, K.violet, { seed: 5820 + Math.round(x * 10), taper: 0.4 }); continue; }
+            line3(g, F, [[x - 0.02, 0.895, 0.86], [x + 0.5, 0.893, 0.84]], 'rgba(150,140,190,0.6)', px(F, 0.007, [x, 0.9, 0.85]));
+        }
         shoulderRim(g, L, F, -1, Z_WS, ZN); shoulderRim(g, L, F, 1, Z_WS, ZN);
     }
     function deck(g, L, F) {
@@ -757,8 +816,9 @@ const Car = (() => {
         const q = fill(g, F, o, grad(g, F, topStops(ZT, Z_CK).concat([{ p: [0, yb(Z_CK) + 0.01, Z_CK], n: topN(Z_CK) }]), MAT.paint));
         if (!q) return;
         crown(g, F, ZT + 0.03, Z_CK);
-        // the seats behind the two of them, mirrored dimly in the gloss near the cockpit
-        if (F.C[2] < Z_CK && F.C[1] > yb(Z_CK)) {
+        // the seats behind the two of them, mirrored dimly in the gloss near the cockpit (not in
+        // the drawn manner: soft reflections are the airbrush's)
+        if (!DRAWN && F.C[2] < Z_CK && F.C[1] > yb(Z_CK)) {
             g.save(); Neon.path(g, q); g.clip();
             const h = yb(Z_CK) + 0.01, mir = (p) => [p[0], 2 * h - p[1], p[2]];
             const uy = nrm([0, 0.56, -0.18]);
@@ -776,12 +836,14 @@ const Car = (() => {
             g.restore();
         }
         lampGlints(g, L, F, q, [0, yb(-1.7), -1.7], topN(-1.7), 0.9);
+        if (DRAWN) lampStrokes(g, F, q, [0, yb(-1.7), -1.7], topN(-1.7), [ZT, Z_CK], 1);
         // the lid's seam
         const seam = [[-0.66, -1.38], [-0.7, -1.95], [-0.62, -2.03], [0.62, -2.03], [0.7, -1.95], [0.66, -1.38], [-0.66, -1.38]].map(([x, z]) => [x, yb(z) + 0.012, z]);
         line3(g, F, seam, 'rgba(26,14,56,0.5)', px(F, 0.006, seam[2]));
         line3(g, F, seam.map((p) => [p[0], p[1], p[2] + 0.012]), 'rgba(240,230,255,0.22)', px(F, 0.004, seam[2]));
         // the ducktail's crest: a crisp line of light across the tail, magenta from behind
-        const lip = along(-0.84, 0.84, 8).map((x) => [x, yb(ZT) + 0.004, ZT + 0.015]);
+        if (DRAWN) edge3(g, F, along(-xb(ZT), xb(ZT), 8).map((x) => [x, yb(ZT) + 0.004, ZT]), 1, null, { seed: 5830 });
+        const lip = along(-0.84, 0.84, 8).map((x) => [x, yb(ZT) + 0.004, ZT + (DRAWN ? 0.05 : 0.015)]);
         for (const i of outs(F)) line3(i ? L : g, F, lip, css(mix(F.magenta, [255, 220, 255], i ? 0 : 0.35), i ? 0.3 * F.city : 0.9), px(F, i ? 0.014 : 0.009, lip[4], 0.7));
         shoulderRim(g, L, F, -1, ZT, Z_CK); shoulderRim(g, L, F, 1, ZT, Z_CK);
     }
@@ -791,6 +853,13 @@ const Car = (() => {
         const o = zz.map((z) => [-0.78, yb(z) + 0.012, z]).concat(zz.slice().reverse().map((z) => [0.78, yb(z) + 0.012, z]));
         const top = (z) => [0, yb(z) + 0.05, z];
         fill(g, F, o, grad(g, F, [{ p: [-0.78, yb(-1.15), -1.15], n: [-0.5, 0.86, 0] }, { p: top(-1.15), n: [0, 1, 0] }, { p: [0.78, yb(-1.15), -1.15], n: [0.5, 0.86, 0] }], MAT.vinyl));
+        if (DRAWN) {
+            const crest = along(-0.62, 0.62, 8).map((x) => [x, yb(-1.15) + 0.045 * (1 - (x / 0.78) ** 2), -1.16]);
+            edge3(g, F, crest.slice(0, 5), 0.4, K.violet, { seed: 5840, taper: 0.4 });
+            edge3(g, F, crest.slice(4), 0.3, K.purple, { seed: 5841, taper: 0.4 });
+            edge3(g, F, along(-0.7, 0.7, 10).map((x) => [x, yb(Z_CK) + 0.016, Z_CK - 0.035]), 0.22, K.grape, { seed: 5842, taper: 0.1 });
+            return;
+        }
         // the padding's crown and its welt, stitched
         const crest = along(-0.7, 0.7, 8).map((x) => [x, yb(-1.15) + 0.045 * (1 - (x / 0.78) ** 2), -1.16]);
         line3(g, F, crest, css(mix(envAt(F, 0.3, 0.5), [255, 255, 255], 0.3), 0.32), px(F, 0.02, crest[4]));
@@ -823,6 +892,12 @@ const Car = (() => {
             fill(g, F, pts, css(shade(F, pts[0], n, MAT.black)));
             if (n[2] < 0) {
                 const gl = [[x0 + s * 0.015, y0 + 0.014, z0 - 0.002], [x1 - s * 0.012, y0 + 0.022, z0 - 0.002], [x1 - s * 0.012, y1 - 0.012, z0 - 0.002], [x0 + s * 0.015, y1 - 0.02, z0 - 0.002]];
+                if (DRAWN) {
+                    // the glass: a flat royal blue with a stroke of the sky across it
+                    fill(g, F, gl, K.royal, 0.3);
+                    edge3(g, F, [lerp3(gl[3], gl[0], 0.25), lerp3(gl[2], gl[1], 0.55)], 0.3, K.cyan, { seed: 5900 + s, taper: 0.45 });
+                    continue;
+                }
                 const a = F.pr(gl[3]), b = F.pr(gl[0]);
                 const gg = g.createLinearGradient(a[0], a[1], b[0], b[1]);
                 gg.addColorStop(0, css(envAt(F, 0.3, -1))); gg.addColorStop(0.55, css(envAt(F, 0.04, -1))); gg.addColorStop(1, css(envAt(F, -0.05, -1)));
@@ -834,6 +909,13 @@ const Car = (() => {
         { const t = F.pr([x1 - s * 0.01, y1 - 0.01, z0]); if (t[2] > 0.5) glintAt(g, L, F, t, 0.02, mix(F.cyan, [255, 255, 255], 0.5), 0.3 + 0.3 * Math.min(1, F.lamp)); }
     }
     function glintAt(g, L, F, t, m, col, a) {
+        if (DRAWN) {
+            // no lens star in the drawn manner: a small hand-drawn sparkle, two crossed strokes
+            const r = clamp(1.1 * m * F.cam.f / t[2], 2.5, 7), seed = 5950 + Math.round(t[0]);
+            Ink.brush(g, [[t[0] - r, t[1]], [t[0] + r, t[1]]], { w: Math.max(1, r * 0.3), col: K.cream, seed, d: DR, taper: 0.5, wob: 0.2 });
+            Ink.brush(g, [[t[0], t[1] - r * 0.75], [t[0], t[1] + r * 0.75]], { w: Math.max(1, r * 0.26), col: K.cream, seed: seed + 1, d: DR, taper: 0.5, wob: 0.2 });
+            return;
+        }
         const r = Math.max(1.2, m * F.cam.f / t[2]);
         for (const i of outs(F)) {
             const c = i ? L : g;
@@ -864,6 +946,12 @@ const Car = (() => {
                 if (k === 'front') { headlamp(g, L, F, s, Fr); continue; }
                 fill(g, F, pts, grad(g, F, [{ p: lerp3(pts[0], pts[1], 0.5), n }, { p: lerp3(pts[2], pts[3], 0.5), n }], MAT.paint));
             }
+            if (DRAWN && visible(F, B[0], [0, 0.08, -1])) {
+                // the lid's top edge catches the sky (a stroke under the ink line), a shut line across the back
+                const dn = (p, d) => [p[0], p[1] - d, p[2] - 0.004];
+                edge3(g, F, [dn(lerp3(B[3], B[2], 0.12), 0.016), dn(lerp3(B[3], B[2], 0.7), 0.014)], 0.35, K.light, { seed: 6100 + s, taper: 0.4 });
+                edge3(g, F, [dn(lerp3(B[0], B[3], 0.4), 0), dn(lerp3(B[1], B[2], 0.4), 0)], 0.22, null, { seed: 6110 + s, taper: 0.2 });
+            }
             // the city on the pod's front edge, the deck's shut line round its foot
             line3(g, F, [Fr[3], Fr[2]], css(F.cyan, 0.85), px(F, 0.007, Fr[2]));
             line3(g, F, [B[3], B[2]], css(mix(F.magenta, [255, 255, 255], 0.3), 0.55), px(F, 0.005, B[2]));
@@ -875,6 +963,13 @@ const Car = (() => {
         const lx0 = s * 0.43, lx1 = s * 0.75, ly0 = Fr[0][1] + 0.03, ly1 = 0.815, z = 1.795;
         const lens = [[lx0, ly0, z], [lx1, ly0, z], [lx1, ly1, z], [lx0, ly1, z]];
         const q = F.poly(lens); if (!q) return;
+        if (DRAWN) {
+            // a flat cream lens with its ink line, two ribs; its light on L
+            fill(g, F, lens, K.cream, 0.3);
+            for (const k of [1, 2]) { const y = ly0 + ((ly1 - ly0) * k) / 3; edge3(g, F, [[lx0 + s * 0.03, y, z + 0.002], [lx1 - s * 0.03, y, z + 0.002]], 0.18, K.gold, { seed: 6120 + k + s, taper: 0.2 }); }
+            if (F.lit) { L.fillStyle = css(F.head, 0.75 * F.power); Neon.path(L, q); L.fill(); }
+            return;
+        }
         const c = F.pr([(lx0 + lx1) / 2, (ly0 + ly1) / 2, z]), r = 0.2 * F.sc(lens[0]);
         for (const i of outs(F)) {
             const cc = i ? L : g;
@@ -891,7 +986,37 @@ const Car = (() => {
     // --- the windshield ---------------------------------------------------------------------
     const WS = { b: 0.745, t: 0.645, yb: 0.889, yt: 1.19, zb: Z_WS, zt: 0.3 };
     const WS_N = nrm([0, WS.zb - WS.zt, WS.yt - WS.yb]);
+    // drawn: the glass is not filled (it is drawn by a few strokes of what it reflects), the frame
+    // is an ink brush with a pale stroke on it, the header's top lit cyan only from outside. The
+    // glass is a little lower and more raked than the airbrush's (top 1.16 m at z 0.23 instead of
+    // 1.19 m at 0.3): seen over the trunk, the airbrush's header ran from one head exactly to the
+    // top of the other (a tangent: a bar floating between them), and raising it only moved the
+    // tangent to his head and her hair's side. Now it crosses his head well below its top and
+    // runs on into her hair, with the mirror hung from it between them
+    const WSD = { yt: 1.162, zt: 0.23 };
+    function windshieldD(g, L, F, front) {
+        const yt = WSD.yt, zt = WSD.zt, dy = yt - WS.yt, dz = zt - WS.zt;
+        const glass = [[-WS.b, WS.yb, WS.zb], [WS.b, WS.yb, WS.zb], [WS.t, yt, zt], [-WS.t, yt, zt]];
+        if (!F.poly(glass)) return;
+        const s0 = F.sc([0, yt, zt]);
+        // the sheen: two or three diagonal strokes, fainter (fewer, thinner) seen from inside
+        for (const [u0, col, k] of front ? [[0.16, K.light, 0.4], [0.24, K.cyan, 0.25], [0.68, K.light, 0.3]] : [[0.2, K.light, 0.22], [0.66, K.cyan, 0.18]]) {
+            const a = lerp3(glass[0], glass[1], u0), b = lerp3(glass[3], glass[2], u0 + 0.12);
+            edge3(g, F, [lerp3(a, b, 0.18), lerp3(a, b, 0.55)], k, col, { seed: 6200 + Math.round(u0 * 100), taper: 0.45 });
+        }
+        const frame = [[-0.765, 0.885, Z_WS + 0.005], [-0.66, 1.205 + dy, WS.zt - 0.01 + dz], [0.66, 1.205 + dy, WS.zt - 0.01 + dz], [0.765, 0.885, Z_WS + 0.005]];
+        const q = frame.map((p) => F.pr(p)); if (q.some((p) => p[2] < 0.35)) return;
+        Ink.brush(g, q.map((p) => [p[0], p[1]]), { w: Math.max(1.4, Math.min(1.2 * F.w, 0.034 * s0)), col: K.ink, seed: 6210, d: DR, taper: 0.08 });
+        Ink.brush(g, q.map((p) => [p[0], p[1]]), { w: Math.max(0.9, Math.min(0.45 * F.w, 0.012 * s0)), col: K.light, seed: 6211, d: DR, taper: 0.25 });
+        if (front) edge3(g, F, [[-0.6, 1.216 + dy, WS.zt - 0.012 + dz], [0.6, 1.216 + dy, WS.zt - 0.012 + dz]], 0.35, K.cyan, { seed: 6212, taper: 0.3 });
+        // the mirror inside, hung from the header
+        const m = [[-0.11, 1.105 + dy, 0.34 + dz], [0.11, 1.105 + dy, 0.34 + dz], [0.11, 1.165 + dy, 0.325 + dz], [-0.11, 1.165 + dy, 0.325 + dz]];
+        edge3(g, F, [[0, 1.19 + dy, 0.31 + dz], [0, 1.15 + dy, 0.33 + dz]], 0.5, null, { seed: 6213 });
+        fill(g, F, m, K.ink, 0.3);
+        if (!front) { fill(g, F, [[-0.095, 1.115 + dy, 0.337 + dz], [0.095, 1.115 + dy, 0.337 + dz], [0.095, 1.155 + dy, 0.325 + dz], [-0.095, 1.155 + dy, 0.325 + dz]], K.indigo, 0); edge3(g, F, [[-0.07, 1.148 + dy, 0.325 + dz], [0.02, 1.15 + dy, 0.324 + dz]], 0.2, K.cyan, { seed: 6214, taper: 0.4 }); }
+    }
     function windshield(g, L, F, front) {
+        if (DRAWN) return windshieldD(g, L, F, front);
         const glass = [[-WS.b, WS.yb, WS.zb], [WS.b, WS.yb, WS.zb], [WS.t, WS.yt, WS.zt], [-WS.t, WS.yt, WS.zt]];
         const q = F.poly(glass); if (!q) return;
         // the glass: the sky it reflects (strong from outside, faint from inside), the dash's
@@ -954,7 +1079,11 @@ const Car = (() => {
     function interior(g, L, F, behind) {
         const C = F.C;
         // floor: a dark wine carpet
-        fill(g, F, [[-XC, FLOOR, Z_CK], [XC, FLOOR, Z_CK], [XC, FLOOR, Z_WS], [-XC, FLOOR, Z_WS]], '#1a0816');
+        fill(g, F, [[-XC, FLOOR, Z_CK], [XC, FLOOR, Z_CK], [XC, FLOOR, Z_WS], [-XC, FLOOR, Z_WS]], DRAWN ? K.grape : '#1a0816');
+        // the toe board: the floor turns up under the dash to the firewall, so the road never
+        // shows through under the dash between the seats
+        fill(g, F, [[-XC, FLOOR, 0.5], [XC, FLOOR, 0.5], [XC, 0.56, Z_WS - 0.02], [-XC, 0.56, Z_WS - 0.02]], DRAWN ? K.grape : '#1a0816', 0.3);
+        fill(g, F, [[-XC, 0.55, Z_WS - 0.02], [XC, 0.55, Z_WS - 0.02], [XC, 0.88, Z_WS - 0.02], [-XC, 0.88, Z_WS - 0.02]], DRAWN ? K.ink : '#120a1c', 0);
         // the bulkhead behind the seats
         if (C[2] > Z_CK) fill(g, F, [[-XC, FLOOR, Z_CK], [XC, FLOOR, Z_CK], [XC, yb(Z_CK), Z_CK], [-XC, yb(Z_CK), Z_CK]], grad(g, F, [{ p: [0, 0.4, Z_CK], n: [0, 0, 1] }, { p: [0, 0.9, Z_CK], n: [0, 0.3, 1] }], MAT.trim));
         // the doors' inner panels: red leather pad over a dark lower half, an armrest, a chrome pull
@@ -969,7 +1098,51 @@ const Car = (() => {
             line3(g, F, [[s * (XC - 0.005), 0.72, 0.25], [s * (XC - 0.005), 0.72, 0.4]], css(mix(envAt(F, 0.2, 0), [255, 255, 255], 0.5), 0.8), px(F, 0.012, [s * XC, 0.7, 0.3]));
         }
     }
+    // drawn: a dash with things on it, each inked: a deep top with a stroke of sky on its lip, a
+    // grape face, the binnacle's hood over two big dials and two small (inked discs with glow
+    // strokes of cyan and mint, orange needles), the radio (an inked box, a mint display, pink
+    // keys), two vents, a row of switches, the glovebox's shut line and its catch
+    function dashD(g, F) {
+        const top = [[-XC, 0.875, Z_WS], [XC, 0.875, Z_WS], [XC, 0.865, 0.52], [-XC, 0.865, 0.52]];
+        const face = [[-XC, 0.865, 0.52], [XC, 0.865, 0.52], [XC, 0.52, 0.46], [-XC, 0.52, 0.46]];
+        fill(g, F, top, K.deep, 0.4);
+        if (F.C[2] >= 0.5) return;
+        fill(g, F, face, K.grape, 0.4);
+        const fz = (y) => 0.46 + ((y - 0.52) * 0.06) / 0.345 - 0.004, ey = nrm([0, 0.345, 0.06]);
+        const P = (x, y, r = 0, a = 0) => [x + Math.cos(a) * r, y + Math.sin(a) * r * ey[1], fz(y) + Math.sin(a) * r * ey[2]];
+        const arc = (x, y, r, a0, a1, n = 12) => along(a0, a1, n).map((a) => P(x, y, r, a));
+        const box = (x0, x1, y0, y1) => [P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1)];
+        const sd = 6300;
+        edge3(g, F, [P(-XC + 0.06, 0.858), P(XC - 0.08, 0.858)], 0.3, K.violet, { seed: sd, taper: 0.3 });
+        // the binnacle: an inked hood over the dials, its lip lit
+        fill(g, F, [P(-0.73, 0.64), P(-0.12, 0.64), P(-0.1, 0.8), P(-0.16, 0.855), P(-0.69, 0.855), P(-0.75, 0.8)], K.ink, 0.3);
+        edge3(g, F, [P(-0.68, 0.845), P(-0.17, 0.845)], 0.25, K.purple, { seed: sd + 1, taper: 0.3 });
+        for (const [x, y, r, col, an, i] of [[-0.52, 0.752, 0.062, K.cyan, 0.3, 0], [-0.33, 0.752, 0.062, K.cyan, 0.7, 1], [-0.645, 0.7, 0.032, K.mint, 0.5, 2], [-0.205, 0.7, 0.032, K.mint, 0.2, 3]]) {
+            fill(g, F, arc(x, y, r, 0, Math.PI * 2, 16).slice(0, 16), K.deep, 0.22);
+            edge3(g, F, arc(x, y, r * 0.74, -Math.PI * 0.25, Math.PI * 1.25, 14), r > 0.05 ? 0.28 : 0.2, col, { seed: sd + 10 + i, taper: 0.15 });
+            edge3(g, F, [P(x, y), P(x, y, r * 0.62, Math.PI * an)], 0.2, K.orange, { seed: sd + 20 + i, taper: 0.3 });
+        }
+        // the radio in the centre stack
+        fill(g, F, box(-0.11, 0.07, 0.645, 0.725), K.ink, 0.25);
+        edge3(g, F, [P(-0.085, 0.703), P(0.0, 0.703)], 0.3, K.mint, { seed: sd + 30, taper: 0.1 });
+        for (let i = 0; i < 4; i++) edge3(g, F, [P(-0.085 + i * 0.04, 0.665), P(-0.07 + i * 0.04, 0.665)], 0.25, i % 2 ? K.pink : K.light, { seed: sd + 31 + i, taper: 0.2 });
+        // two vents, slatted
+        for (const [x0, x1] of [[0.1, 0.28], [0.44, 0.64]]) {
+            fill(g, F, box(x0, x1, 0.765, 0.825), K.ink, 0.25);
+            for (const y of [0.784, 0.806]) edge3(g, F, [P(x0 + 0.02, y), P(x1 - 0.02, y)], 0.15, K.purple, { seed: sd + 40 + Math.round(x0 * 100 + y * 1000), taper: 0.1 });
+        }
+        // a row of switches under them
+        for (let i = 0; i < 4; i++) {
+            const x = 0.12 + i * 0.05;
+            fill(g, F, box(x, x + 0.03, 0.69, 0.725), K.ink, 0.15);
+            edge3(g, F, [P(x + 0.009, 0.712), P(x + 0.021, 0.712)], 0.2, i % 2 ? K.cyan : K.pink, { seed: sd + 50 + i, taper: 0.2 });
+        }
+        // the glovebox: its shut line and catch
+        edge3(g, F, [P(0.3, 0.57), P(0.68, 0.57), P(0.68, 0.665), P(0.3, 0.665), P(0.3, 0.57)], 0.22, null, { seed: sd + 60, taper: 0.02 });
+        edge3(g, F, [P(0.45, 0.645), P(0.53, 0.645)], 0.25, K.light, { seed: sd + 61, taper: 0.3 });
+    }
     function dash(g, L, F) {
+        if (DRAWN) return dashD(g, F);
         // the dash top under the windshield and its face towards the seats
         const top = [[-XC, 0.875, Z_WS], [XC, 0.875, Z_WS], [XC, 0.865, 0.52], [-XC, 0.865, 0.52]];
         const face = [[-XC, 0.865, 0.52], [XC, 0.865, 0.52], [XC, 0.52, 0.46], [-XC, 0.52, 0.46]];
@@ -992,15 +1165,45 @@ const Car = (() => {
         }
     }
     function console_(g, F) {
+        if (DRAWN) {
+            // black trim in ink (a deep navy there read as the road showing through), its edges lit
+            // violet, a plum gaiter round the lever
+            fill(g, F, [[-0.11, 0.42, -0.6], [0.11, 0.42, -0.6], [0.11, 0.48, 0.45], [-0.11, 0.48, 0.45]], K.ink, 0.4);
+            for (const x of [-0.095, 0.095]) edge3(g, F, [[x, 0.43, -0.5], [x, 0.478, 0.4]], 0.25, K.violet, { seed: 6440 + (x > 0 ? 1 : 0), taper: 0.3 });
+            const gt = []; for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; gt.push([Math.cos(a) * 0.06, 0.462, 0.04 + Math.sin(a) * 0.08]); }
+            fill(g, F, gt, K.plum, 0.3);
+        } else
         fill(g, F, [[-0.11, 0.42, -0.6], [0.11, 0.42, -0.6], [0.11, 0.48, 0.45], [-0.11, 0.48, 0.45]], grad(g, F, [{ p: [0, 0.42, -0.5], n: [0, 1, 0] }, { p: [0, 0.48, 0.4], n: [0, 1, 0] }], MAT.trim));
         line3(g, F, [[0, 0.46, 0.05], [0, 0.64, 0.0]], '#0c0814', px(F, 0.02, [0, 0.55, 0]));
         const k = F.pr([0, 0.65, 0.0]);
+        if (DRAWN) {
+            // the gear knob: a plum ball with its ink line and a stroke of light
+            if (k[2] <= 0.35) return;
+            const r = Math.max(1.5, 0.032 * F.sc([0, 0.65, 0])), o = []; for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; o.push([k[0] + Math.cos(a) * r, k[1] + Math.sin(a) * r * 0.92]); }
+            shapeD(g, o, K.plum, { w: lineIn(F, 0.35), seed: 6400, d: DR, jit: 0.3 });
+            Ink.brush(g, [[k[0] - r * 0.55, k[1] - r * 0.15], [k[0] - r * 0.2, k[1] - r * 0.55]], { w: Math.max(1, r * 0.3), col: K.pink, seed: 6401, d: DR, taper: 0.4 });
+            return;
+        }
         if (k[2] > 0.35) { const r = Math.max(1, 0.03 * F.sc([0, 0.65, 0])); g.fillStyle = css(mix(envAt(F, 0.3, 0), [255, 255, 255], 0.5)); g.beginPath(); g.arc(k[0], k[1], r, 0, Math.PI * 2); g.fill(); }
     }
     function wheelS(g, F) {
         // the steering wheel on the left: a black leather rim, three spokes, raked towards him
         const c = [-0.42, 0.8, 0.22], u = [1, 0, 0], v = nrm([0, 0.87, 0.5]), r = 0.185;
         const ring = along(0, Math.PI * 2, 24).map((a) => [c[0] + u[0] * Math.cos(a) * r, c[1] + v[1] * Math.sin(a) * r, c[2] + v[2] * Math.sin(a) * r]);
+        if (DRAWN) {
+            // drawn: an inked ring as thick as the rim, its top lit violet with a fleck of pink,
+            // three inked spokes into a hub, the column
+            const sc = F.sc(c), rw = clamp(0.034 * sc, 1.5, 12), Q = (p) => { const q = F.pr(p); return [q[0], q[1]]; };
+            if (F.pr(c)[2] < 0.35) return;
+            Ink.brush(g, [Q([c[0], c[1] - 0.05, c[2] + 0.2]), Q(c)], { w: clamp(0.05 * sc, 1.5, 14), col: K.ink, seed: 6410, d: DR, taper: 0.05 });
+            for (const a of [0, Math.PI, Math.PI * 1.5]) Ink.brush(g, [Q(c), Q([c[0] + Math.cos(a) * r, c[1] + v[1] * Math.sin(a) * r, c[2] + v[2] * Math.sin(a) * r])], { w: rw * 0.7, col: K.ink, seed: 6411 + Math.round(a), d: DR, taper: 0.1 });
+            const hub = along(0, Math.PI * 2, 12).slice(0, 12).map((a) => Q([c[0] + Math.cos(a) * 0.045, c[1] + v[1] * Math.sin(a) * 0.045, c[2] + v[2] * Math.sin(a) * 0.045]));
+            shapeD(g, hub, K.grape, { w: Math.max(1, rw * 0.35), seed: 6415, d: DR, jit: 0.2 });
+            Ink.brush(g, ring.slice(0, 24).map(Q), { w: rw, col: K.ink, seed: 6416, d: DR, closed: true, taper: 0, wob: 0.4 });
+            Ink.brush(g, ring.slice(4, 11).map(Q), { w: Math.max(1, rw * 0.32), col: K.violet, seed: 6417, d: DR, taper: 0.4 });
+            Ink.brush(g, ring.slice(15, 18).map(Q), { w: Math.max(1, rw * 0.25), col: K.pink, seed: 6418, d: DR, taper: 0.4 });
+            return;
+        }
         line3(g, F, [[c[0], c[1] - 0.05, c[2] + 0.2], c], '#0b0714', px(F, 0.05, c));
         line3(g, F, ring, '#0d0816', px(F, 0.032, c));
         line3(g, F, ring.slice(4, 10), css(mix(envAt(F, 0.3, 0), [180, 160, 220], 0.4), 0.6), px(F, 0.008, c));
@@ -1010,6 +1213,15 @@ const Car = (() => {
         const x = st.x, y = st.y;
         const top = [[x - 0.24, y - 0.01, -0.68], [x + 0.24, y - 0.01, -0.68], [x + 0.24, y + 0.02, -0.08], [x - 0.24, y + 0.02, -0.08]];
         fill(g, F, top, grad(g, F, [{ p: [x, y, -0.65], n: [0, 1, 0] }, { p: [x, y + 0.02, -0.1], n: [0, 1, 0.2] }], MAT.leather));
+        if (DRAWN) {
+            // the bolsters' seams in grape, a stroke of salmon light on each roll, the front face
+            for (const dx of [-0.17, 0.17]) {
+                edge3(g, F, [[x + dx, y + 0.03, -0.64], [x + dx, y + 0.05, -0.12]], 0.3, K.grape, { seed: 6420 + Math.round((x + dx) * 100), taper: 0.15 });
+                edge3(g, F, [[x + dx * 1.25, y + 0.045, -0.55], [x + dx * 1.25, y + 0.055, -0.3]], 0.3, K.salmon, { seed: 6430 + Math.round((x + dx) * 100), taper: 0.45 });
+            }
+            if (F.C[2] > -0.08) fill(g, F, [[x - 0.24, 0.28, -0.06], [x + 0.24, 0.28, -0.06], [x + 0.24, y + 0.02, -0.08], [x - 0.24, y + 0.02, -0.08]], K.grape, 0.4);
+            return;
+        }
         for (const dx of [-0.17, 0.17]) line3(g, F, [[x + dx, y + 0.03, -0.66], [x + dx, y + 0.05, -0.1]], css(shade(F, [x + dx, y, -0.4], [Math.sign(dx) * -0.4, 0.9, 0], MAT.leather)), px(F, 0.07, [x, y, -0.4]));
         if (F.C[2] > -0.08) fill(g, F, [[x - 0.24, 0.28, -0.06], [x + 0.24, 0.28, -0.06], [x + 0.24, y + 0.02, -0.08], [x - 0.24, y + 0.02, -0.08]], css(shade(F, [x, 0.4, -0.07], [0, 0, 1], MAT.leather)));
     }
@@ -1025,7 +1237,31 @@ const Car = (() => {
     const hullOf = (F, ...outlines) => { const pts = []; for (const o of outlines) for (const p of o) { const q = F.pr(p); if (q[2] < 0.35) return null; pts.push([q[0], q[1]]); } return convex(pts); };
     // a padded leather part: a rear and a front outline (rounded rects) joined by a roll; the
     // silhouette is the hull of both, the roll lit from above, the face towards the camera on top
-    function pad(g, F, rear, front, nF, top, bottom) {
+    // drawn: the roll a flat grape with its ink line, the face towards the camera plum with its
+    // own line, strokes of salmon and pink light laid down from the top roll
+    function padD(g, F, rear, front, nF, seed) {
+        const hull = hullOf(F, rear, front); if (!hull) return null;
+        const showFront = visible(F, front[0], nF);
+        const face = showFront ? front : rear;
+        const q = F.poly(face); if (!q) return null;
+        const lw = lineIn(F, 0.5);
+        shapeD(g, hull, K.grape, { w: lw, seed, d: DR, jit: 0.4 });
+        shapeD(g, q, K.plum, { w: Math.max(1, lw * 0.6), seed: seed + 1, d: DR, jit: 0.4 });
+        // the top roll: rrect points 4 and 5 are the ends of the straight top edge
+        const n4 = (face.length / 4 - 1) | 0, a3 = face[n4], b3 = face[n4 + 1];
+        const A = F.pr(a3), B = F.pr(b3), Cc = F.pr(lerp3(face[0], face[2 * (n4 + 1)], 0.5));
+        if (A[2] > 0.35 && B[2] > 0.35) {
+            const ex = B[0] - A[0], ey = B[1] - A[1], el = Math.hypot(ex, ey) || 1;
+            let nx = -ey / el, ny = ex / el; const mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2;
+            if ((Cc[0] - mx) * nx + (Cc[1] - my) * ny < 0) { nx = -nx; ny = -ny; }       // into the face
+            const ln = Math.hypot(Cc[0] - mx, Cc[1] - my);
+            Ink.hatch(g, [A[0] + nx * lw, A[1] + ny * lw], [B[0] + nx * lw, B[1] + ny * lw], { n: [nx, ny], count: 4, len: Math.max(3, ln * 0.32), w: Math.max(1, lw * 0.8), col: K.salmon, seed: seed + 2, d: DR, ang: 0.7 });
+            Ink.hatch(g, [A[0] + nx * lw, A[1] + ny * lw], [B[0] + nx * lw, B[1] + ny * lw], { n: [nx, ny], count: 2, len: Math.max(2, ln * 0.22), w: Math.max(1, lw * 0.6), col: K.pink, seed: seed + 3, d: DR, ang: 0.5 });
+        }
+        return { showFront, face };
+    }
+    function pad(g, F, rear, front, nF, top, bottom, seed = 6500) {
+        if (DRAWN) return padD(g, F, rear, front, nF, seed);
         const hull = hullOf(F, rear, front); if (!hull) return null;
         const t = F.pr(top), b = F.pr(bottom);
         const gr = g.createLinearGradient(t[0], t[1], b[0], b[1]);
@@ -1046,7 +1282,7 @@ const Car = (() => {
         const off = (c, d) => [c[0] + nF[0] * d, c[1] + nF[1] * d, c[2] + nF[2] * d];
         const cR = [x, 0.73, -0.85], cF = off(cR, T);
         const rear = rrect(cR, ux, uy, 0.255, 0.29, 0.1, 0.03), front = rrect(cF, ux, uy, 0.245, 0.285, 0.09, 0.03);
-        const r = pad(g, F, rear, front, nF, off([x, 1.02, -0.94], T * 0.5), [x, 0.46, -0.76]);
+        const r = pad(g, F, rear, front, nF, off([x, 1.02, -0.94], T * 0.5), [x, 0.46, -0.76], 6500 + (x > 0 ? 10 : 0));
         if (!r) return;
         const w = (k) => Math.max(0.5, k * F.sc(cR));
         if (r.showFront) {
@@ -1065,7 +1301,8 @@ const Car = (() => {
         // the headrest: a low pad set into the top of the back, behind the neck and well under the head
         const hc = [x, 1.055, -0.955], hF = off(hc, 0.085);
         const hR = rrect(hc, ux, uy, 0.13, 0.062, 0.058, 0.04), hFr = rrect(hF, ux, uy, 0.125, 0.06, 0.055, 0.04);
-        pad(g, F, hR, hFr, nF, off([x, 1.12, -0.975], 0.04), [x, 1.0, -0.94]);
+        pad(g, F, hR, hFr, nF, off([x, 1.12, -0.975], 0.04), [x, 1.0, -0.94], 6520 + (x > 0 ? 10 : 0));
+        if (DRAWN) return;                     // the drawn pads carry their light as strokes
         // the rims on the tops: magenta from behind (cyan from the front), warmed by the lamp
         const rimCol = mix(F.C[2] < -0.8 ? F.magenta : F.cyan, F.warm, Math.min(0.6, F.lamp * 0.5));
         for (const i of outs(F)) {
@@ -1076,7 +1313,99 @@ const Car = (() => {
     }
 
     // --- the tail: a black louvered panel, the ribbed strip of tail lights, the bumper ------
+    // hand lettering for the plate: strokes in a box 1 high (y up), advance in heights
+    const GLYPH = {
+        R: [[[0, 0], [0, 1], [0.38, 1], [0.55, 0.9], [0.57, 0.74], [0.45, 0.57], [0.03, 0.54]], [[0.25, 0.55], [0.6, 0]]],
+        U: [[[0, 1], [0, 0.28], [0.1, 0.06], [0.3, 0], [0.5, 0.06], [0.6, 0.28], [0.6, 1]]],
+        N: [[[0, 0], [0, 1], [0.6, 0], [0.6, 1]]],
+        8: [[[0.3, 0.56], [0.09, 0.68], [0.08, 0.88], [0.3, 1], [0.52, 0.88], [0.51, 0.68], [0.3, 0.56], [0.04, 0.38], [0.04, 0.13], [0.3, 0], [0.56, 0.13], [0.56, 0.38], [0.3, 0.56]]],
+        5: [[[0.56, 1], [0.08, 1], [0.04, 0.56], [0.3, 0.62], [0.52, 0.5], [0.58, 0.28], [0.46, 0.06], [0.24, 0], [0.02, 0.1]]],
+    };
+    // drawn: the tail as flat inks, each piece with its ink line: a deep louvered panel (ink slats,
+    // each lip lit violet, magenta near the lights), the strip of lights as cells of flat red and
+    // magenta (amber at the ends, the reverse cells an unlit plum), each inked, with a stroke of
+    // light; the plate a flat cream card with an ink line, lettered by hand; the bumper, its
+    // rubbing strip, the exhaust tips inked. Only what emits goes on L: the lit cells, the plate lamp
+    function tailD(g, L, F) {
+        const s = F.sc([0, 0.7, ZT]), zl = ZT - 0.004, P = (x, y, z = zl) => { const q = F.pr([x, y, z]); return [q[0], q[1]]; };
+        const panel = [[-xb(ZT), yb(ZT), ZT], [xb(ZT), yb(ZT), ZT], [xc(ZT), yc(ZT), ZT], [XS + 0.02, 0.45, ZT + 0.02], [-XS - 0.02, 0.45, ZT + 0.02], [-xc(ZT), yc(ZT), ZT]];
+        if (!fill(g, F, panel, K.deep, 1)) return;
+        const Y0 = 0.73, Y1 = 0.868, X = 0.835, sd = 7000;
+        // the louvers
+        const slats = [0.955, 0.92, 0.895, 0.69, 0.655, 0.62, 0.585, 0.55, 0.515, 0.48];
+        slats.forEach((y, j) => {
+            const near = Math.max(0, 1 - Math.min(Math.abs(y - Y0), Math.abs(y - Y1)) / 0.12);
+            const xs = y < 0.67 ? [[-X + 0.02, -0.21], [0.21, X - 0.02]] : [[-X + 0.01, X - 0.01]];
+            xs.forEach(([a, b], k) => {
+                Ink.brush(g, [P(a, y - 0.009), P(b, y - 0.009)], { w: Math.max(1, Math.min(0.5 * F.w, 0.013 * s)), col: K.ink, seed: sd + j * 7 + k, d: DR, taper: 0.06 });
+                Ink.brush(g, [P(a + 0.04, y - 0.001), P(b - 0.04, y - 0.001)], { w: Math.max(0.9, Math.min(0.3 * F.w, 0.006 * s)), col: near > 0.35 ? K.magenta : K.violet, seed: sd + 100 + j * 7 + k, d: DR, taper: 0.35 });
+            });
+        });
+        // the strip: an inked housing, then the cells
+        fill(g, F, [[-X - 0.01, Y0 - 0.012, zl + 0.001], [X + 0.01, Y0 - 0.012, zl + 0.001], [X + 0.01, Y1 + 0.012, zl + 0.001], [-X - 0.01, Y1 + 0.012, zl + 0.001]], K.ink, 0.3);
+        const cells = [];
+        for (const sg of [-1, 1]) {
+            const xs = [0.835, 0.75, 0.64, 0.53, 0.42, 0.31, 0.215].map((x) => x * sg);
+            for (let i = 0; i < xs.length - 1; i++) cells.push([Math.min(xs[i], xs[i + 1]), Math.max(xs[i], xs[i + 1]), i === 0 ? 'amber' : i === xs.length - 2 ? 'reverse' : 'red']);
+        }
+        for (let i = 0; i < 4; i++) cells.push([-0.2 + i * 0.1, -0.2 + (i + 1) * 0.1, 'centre']);
+        const INK = { red: K.red, centre: K.magenta, amber: K.orange, reverse: K.plum };
+        const HI = { red: K.pink, centre: K.light, amber: K.gold, reverse: K.purple };
+        const gap = 0.007, lw = Math.max(1, Math.min(0.35 * F.w, 0.012 * s));
+        cells.forEach(([x0, x1, kind], i) => {
+            const cell = [[x0 + gap, Y0, zl], [x1 - gap, Y0, zl], [x1 - gap, Y1, zl], [x0 + gap, Y1, zl]];
+            const cq = F.poly(cell); if (!cq) return;
+            shapeD(g, cq, INK[kind], { w: lw, seed: sd + 300 + i, d: DR, jit: 0.3 });
+            // a stroke of light high in the cell, the glass's rib across it
+            Ink.brush(g, [P(x0 + gap + 0.02, Y1 - 0.03), P(x1 - gap - 0.025, Y1 - 0.028)], { w: Math.max(0.9, 0.3 * lw + 0.006 * s * 0.4), col: HI[kind], seed: sd + 340 + i, d: DR, taper: 0.4 });
+            if (kind !== 'amber') Ink.brush(g, [P(x0 + gap + 0.01, Y0 + 0.045), P(x1 - gap - 0.01, Y0 + 0.045)], { w: Math.max(0.8, 0.5 * lw), col: kind === 'reverse' ? K.grape : K.plum, seed: sd + 380 + i, d: DR, taper: 0.1 });
+            if (kind !== 'reverse' && F.lit) { L.fillStyle = css(hex(INK[kind]), (kind === 'amber' ? 0.06 : kind === 'centre' ? 0.2 : 0.42) * F.power); Neon.path(L, cq); L.fill(); }
+        });
+        // the plate in its recess, lettered by hand; the plate lamp, a small stroke over it
+        fill(g, F, [[-0.19, 0.505, zl + 0.01], [0.19, 0.505, zl + 0.01], [0.19, 0.695, zl + 0.01], [-0.19, 0.695, zl + 0.01]], K.ink, 0.3);
+        const pl = [[-0.152, 0.522, zl - 0.002], [0.152, 0.522, zl - 0.002], [0.152, 0.674, zl - 0.002], [-0.152, 0.674, zl - 0.002]];
+        if (fill(g, F, pl, K.cream, 0.3)) {
+            const M = (x, y) => P(x / 1000, 0.6 + y / 1000, zl - 0.003);        // millimetres on the plate
+            if (0.304 * s > 40) {
+                const h = 48, adv = 0.84, text = 'RUN 85', wd = (text.length - 1) * adv * h + 0.62 * h - 0.39 * h;
+                let x0 = -wd / 2;
+                for (const ch of text) {
+                    if (ch === ' ') { x0 += 0.45 * h; continue; }
+                    GLYPH[ch].forEach((st, k) => Ink.brush(g, st.map(([u, v]) => M(x0 + u * h, -30 + v * h)), { w: Math.max(1, 0.0075 * s), col: K.indigo, seed: sd + 500 + ch.charCodeAt(0) * 3 + k, d: DR, taper: 0.12, wob: 0.25, step: 1.2 }));
+                    x0 += adv * h;
+                }
+                // the state's name above as a line of small handwriting, the orange below
+                const sq = []; for (let i = 0; i <= 20; i++) sq.push(M(-62 + i * 6.2, 46 + (i % 2 ? 4 : -3) + (i % 5 === 0 ? 2 : 0)));
+                Ink.brush(g, sq, { w: Math.max(0.8, 0.0035 * s), col: K.magenta, seed: sd + 600, d: DR, taper: 0.1, wob: 0.3 });
+                const dot = []; for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; dot.push(M(Math.cos(a) * 8, -55 + Math.sin(a) * 6)); }
+                shapeD(g, dot, K.orange, { w: 0, seed: sd + 601, d: DR, jit: 0.3 });
+            } else Ink.brush(g, [M(-90, 0), M(90, 2)], { w: Math.max(1, 0.03 * s), col: K.indigo, seed: sd + 602, d: DR, taper: 0.3 });
+            const lamp = [P(-0.08, 0.688), P(0.08, 0.688)];
+            Ink.brush(g, lamp, { w: Math.max(1, 0.01 * s), col: K.cream, seed: sd + 603, d: DR, taper: 0.3 });
+            if (F.lit) { L.save(); L.strokeStyle = 'rgba(255,236,246,0.5)'; L.lineWidth = Math.max(1, 0.01 * s); L.lineCap = 'round'; L.beginPath(); L.moveTo(lamp[0][0], lamp[0][1]); L.lineTo(lamp[1][0], lamp[1][1]); L.stroke(); L.restore(); }
+        }
+        // the bumper: deep urethane inked at full weight, its top lit, a magenta lip, the rubbing strip
+        const zb = ZT - 0.065;
+        fill(g, F, [[-0.905, 0.22, zb], [0.905, 0.22, zb], [0.905, 0.45, zb + 0.01], [-0.905, 0.45, zb + 0.01]], K.deep, 1);
+        if (F.C[1] > 0.46) fill(g, F, [[-0.905, 0.452, zb + 0.01], [0.905, 0.452, zb + 0.01], [0.9, 0.452, ZT + 0.03], [-0.9, 0.452, ZT + 0.03]], K.indigo, 0.5);
+        Ink.brush(g, [P(-0.86, 0.438, zb), P(0.86, 0.438, zb)], { w: Math.max(1, Math.min(0.35 * F.w, 0.008 * s)), col: K.magenta, seed: sd + 700, d: DR, taper: 0.2 });
+        fill(g, F, [[-0.9, 0.318, zb - 0.002], [0.9, 0.318, zb - 0.002], [0.9, 0.362, zb - 0.0015], [-0.9, 0.362, zb - 0.0015]], K.ink, 0.2);
+        Ink.brush(g, [P(-0.8, 0.358, zb - 0.003), P(0.8, 0.358, zb - 0.003)], { w: Math.max(0.8, Math.min(0.25 * F.w, 0.005 * s)), col: K.violet, seed: sd + 701, d: DR, taper: 0.3 });
+        Ink.brush(g, [P(-0.7, 0.245, zb - 0.002), P(0.7, 0.245, zb - 0.002)], { w: Math.max(0.8, Math.min(0.25 * F.w, 0.005 * s)), col: K.plum, seed: sd + 702, d: DR, taper: 0.4 });
+        // the lower lip and the two exhaust tips under it
+        fill(g, F, [[-0.7, 0.15, ZT - 0.02], [0.7, 0.15, ZT - 0.02], [0.75, 0.22, zb], [-0.75, 0.22, zb]], K.ink, 0.5);
+        for (const x of [-0.36, 0.36]) {
+            const c = F.pr([x, 0.185, zb + 0.005]); if (c[2] < 0.35) continue;
+            const r = 0.038 * F.sc([x, 0.185, zb]), ell = (rx, ry, cy = 0, n = 14) => { const o = []; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; o.push([c[0] + Math.cos(a) * rx, c[1] + cy + Math.sin(a) * ry]); } return o; };
+            shapeD(g, ell(r * 1.25, r * 0.85, -r * 0.1), K.deep, { w: lineIn(F, 0.35), seed: sd + 800 + (x > 0 ? 1 : 0), d: DR, jit: 0.3 });
+            shapeD(g, ell(r * 0.8, r * 0.48, -r * 0.05), K.ink, { w: 0, seed: sd + 810 + (x > 0 ? 1 : 0), d: DR, jit: 0.2 });
+            const arcP = (a0, a1, rx, ry) => { const o = []; for (let i = 0; i <= 6; i++) { const a = a0 + ((a1 - a0) * i) / 6; o.push([c[0] + Math.cos(a) * rx, c[1] - r * 0.1 + Math.sin(a) * ry]); } return o; };
+            Ink.brush(g, arcP(Math.PI * 1.12, Math.PI * 1.88, r * 1.05, r * 0.68), { w: Math.max(0.9, r * 0.2), col: K.light, seed: sd + 820 + (x > 0 ? 1 : 0), d: DR, taper: 0.4 });
+            Ink.brush(g, arcP(Math.PI * 0.2, Math.PI * 0.8, r * 1.05, r * 0.66), { w: Math.max(0.9, r * 0.18), col: K.red, seed: sd + 830 + (x > 0 ? 1 : 0), d: DR, taper: 0.4 });
+        }
+    }
     function tail(g, L, F) {
+        if (DRAWN) return tailD(g, L, F);
         const s = F.sc([0, 0.7, ZT]);
         const panel = [[-xb(ZT), yb(ZT), ZT], [xb(ZT), yb(ZT), ZT], [xc(ZT), yc(ZT), ZT], [XS + 0.02, 0.45, ZT + 0.02], [-XS - 0.02, 0.45, ZT + 0.02], [-xc(ZT), yc(ZT), ZT]];
         const q = fill(g, F, panel, grad(g, F, [{ p: [0, 0.97, ZT], n: nrm([0, 0.3, -1]) }, { p: [0, 0.72, ZT], n: [0, 0, -1] }, { p: [0, 0.48, ZT], n: nrm([0, -0.2, -1]) }], MAT.black));
@@ -1174,7 +1503,7 @@ const Car = (() => {
             if (s * F.C[0] < 0.9) continue;
             for (const [z0, z1] of [[ZT - 0.065, WHEELS[1].z - ARCH - 0.02], [WHEELS[0].z + ARCH + 0.02, ZN + 0.05]]) {
                 const o = [[s * 0.905, 0.22, z0], [s * 0.905, 0.22, z1], [s * 0.905, 0.45 + (z1 > 0 ? 0.01 : 0), z1], [s * 0.905, 0.45 + (z1 > 0 ? 0.01 : 0), z0]];
-                fill(g, F, o, grad(g, F, [{ p: [s * 0.9, 0.44, z0], n: [s, 0.3, 0] }, { p: [s * 0.9, 0.25, z0], n: [s, -0.3, 0] }], MAT.black));
+                fill(g, F, o, grad(g, F, [{ p: [s * 0.9, 0.44, z0], n: [s, 0.3, 0] }, { p: [s * 0.9, 0.25, z0], n: [s, -0.3, 0] }], MAT.black), 0.8);
                 line3(g, F, [[s * 0.906, 0.448, z0], [s * 0.906, 0.448, z1]], 'rgba(170,140,220,0.45)', px(F, 0.006, [s * 0.9, 0.45, (z0 + z1) / 2]));
             }
         }
@@ -1184,13 +1513,13 @@ const Car = (() => {
     function nose(g, L, F) {
         const s = F.sc([0, 0.45, ZN]);
         const face = [[-xb(ZN), yb(ZN), ZN], [xb(ZN), yb(ZN), ZN], [xc(ZN), yc(ZN), ZN], [0.8, 0.47, ZN - 0.01], [-0.8, 0.47, ZN - 0.01], [-xc(ZN), yc(ZN), ZN]];
-        fill(g, F, face, grad(g, F, [{ p: [0, 0.57, ZN], n: nrm([0, 0.5, 1]) }, { p: [0, 0.48, ZN], n: nrm([0, -0.1, 1]) }], MAT.paint));
+        fill(g, F, face, grad(g, F, [{ p: [0, 0.57, ZN], n: nrm([0, 0.5, 1]) }, { p: [0, 0.48, ZN], n: nrm([0, -0.1, 1]) }], MAT.paint), 1);
         const zb = ZN + 0.05;
-        fill(g, F, [[-0.84, 0.21, zb - 0.02], [0.84, 0.21, zb - 0.02], [0.84, 0.47, zb], [-0.84, 0.47, zb]], grad(g, F, [{ p: [0, 0.46, zb], n: nrm([0, 0.3, 1]) }, { p: [0, 0.23, zb], n: nrm([0, -0.3, 1]) }], MAT.black));
+        fill(g, F, [[-0.84, 0.21, zb - 0.02], [0.84, 0.21, zb - 0.02], [0.84, 0.47, zb], [-0.84, 0.47, zb]], grad(g, F, [{ p: [0, 0.46, zb], n: nrm([0, 0.3, 1]) }, { p: [0, 0.23, zb], n: nrm([0, -0.3, 1]) }], MAT.black), 1);
         if (F.C[1] > 0.47) fill(g, F, [[-0.84, 0.472, zb], [0.84, 0.472, zb], [0.8, 0.472, ZN - 0.01], [-0.8, 0.472, ZN - 0.01]], css(shade(F, [0, 0.47, zb], [0, 1, 0], MAT.black)));
         fill(g, F, [[-0.48, 0.29, zb + 0.001], [0.48, 0.29, zb + 0.001], [0.48, 0.355, zb + 0.001], [-0.48, 0.355, zb + 0.001]], '#040208');
         line3(g, F, [[-0.46, 0.322, zb + 0.002], [0.46, 0.322, zb + 0.002]], 'rgba(120,100,170,0.5)', Math.max(0.5, 0.006 * s));
-        for (const i of outs(F)) {
+        for (const i of outsE(F)) {
             const c = i ? L : g;
             for (const sg of [-1, 1]) fill(c, F, [[sg * 0.56, 0.39, zb + 0.002], [sg * 0.77, 0.39, zb + 0.002], [sg * 0.77, 0.44, zb + 0.002], [sg * 0.56, 0.44, zb + 0.002]], css(i ? F.amber : mix(F.amber, [255, 230, 190], 0.35), i ? 0.45 * F.power : 1));
             // the wedge's leading edge, lit by the city
