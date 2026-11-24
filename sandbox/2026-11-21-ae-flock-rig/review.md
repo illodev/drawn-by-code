@@ -283,3 +283,30 @@ have repeated the test (a new project) instead of building the demo.
 - Inside AE 27, in the user's session: cleared the leftover flags. Then loaded the new
   Flock.jsx with the flag set: no dialog, the flag back to false. No project touched.
 - Not yet run inside AE: `make-demo.jsx`'s own clean-up (the next AE test logs it).
+
+## Round 7 · 2026-11-24 (user feedback: the warning shows with no change; a more readable colour)
+
+The user re-ran Flock.jsx (seed 9, spacing 65) with the leader unchanged, and the orange
+warning still showed. They asked whether the seed caused it. It doesn't: the check reads only
+the leader. Measured read-only in their project, comp Sky:
+
+- At the 192 baked keys, the leader matched the stored path exactly (0 px).
+- At the check's 49 sample times, between keys, the gap was up to 3.1 px, at the loop
+  (3.3 s). Between keys AE blends the stored path in a straight line, which cuts a fast
+  curve's corners. The 2 px threshold turned that into a false "moved". The demo path's
+  slower loop stayed under it (0.7 px), so round 5's test never saw it.
+
+**Fixes**
+
+- The check compares the leader with the stored path **at the baked keys only** (up to
+  200, read with `key(i).time` / `.value`), where the comparison is exact.
+- **Readable text:** bold yellow (Arial Bold 30) with a 6 px near-black outline, instead of
+  plain orange. One frame rendered in AE (`saveFrameToPng`, from a temporary comp, removed
+  afterwards): readable over the light sky and over the birds.
+- `test.mjs` (2,909 checks) adds the case: a 100 px circle at 1,000 px/s, unchanged. It
+  differs by 2.2 px between keys and the check stays hidden; moved 5 px, it shows.
+- Inside AE 27, on the user's Sky data (a temporary copy, removed): the new expressions
+  read 0 px (hidden), and 5 px after nudging a key (shown). 8 ms an evaluation, viewer only.
+- Existing check layers keep the old expression until Flock.jsx is re-run in their comp.
+- `saveFrameToPng` writes its file only after the script that asked for it has ended:
+  a script that waits for the file, or removes the comp first, gets nothing.

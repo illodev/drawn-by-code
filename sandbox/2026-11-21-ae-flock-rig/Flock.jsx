@@ -743,8 +743,10 @@ var FlockRig = (function () {
             'flockMean(function (t) { return [S.valueAtTime(t), 0]; }, time, W, ' + T + ')[0];';
         if (k.leader) {
             // The leader check (a guide text layer): how far the leader now is from the path the
-            // flock was simulated on, sampled over the bake. The birds are baked keys, so a
-            // moved leader needs a re-run; this says so in the viewer instead of nothing.
+            // flock was simulated on. The birds are baked keys, so a moved leader needs a re-run;
+            // this says so in the viewer instead of nothing. Compared at the baked keys only
+            // (up to 200 of them), where the stored path is exact: between keys it is a straight
+            // blend that cuts a fast curve's corners by a few px, a false "moved" (seen: 3.1 px).
             var chk = 'function flockLeaderOff() {\n' +
                 '    var L, P;\n' +
                 '    try {\n' +
@@ -753,11 +755,12 @@ var FlockRig = (function () {
                 '    } catch (e) {\n' +
                 '        return -1;\n' +
                 '    }\n' +
-                '    var d = 0, i, t, a, b;\n' +
-                '    for (i = 0; i <= 48; i++) {\n' +
-                '        t = ' + k.t0 + ' + ' + (k.t1 - k.t0) + ' * i / 48;\n' +
+                '    var n = P.numKeys, step = Math.max(1, Math.ceil(n / 200)), d = 0, i, key, t, a, b;\n' +
+                '    for (i = 1; i <= n; i += step) {\n' +
+                '        key = P.key(i);\n' +
+                '        t = key.time;\n' +
                 '        a = L.toComp(L.anchorPoint.valueAtTime(t), t);\n' +
-                '        b = P.valueAtTime(t);\n' +
+                '        b = key.value;\n' +
                 '        d = Math.max(d, Math.sqrt((a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1])));\n' +
                 '    }\n' +
                 '    return d;\n' +
@@ -769,7 +772,7 @@ var FlockRig = (function () {
                 q(k.name + ': the leader has moved since the bake (up to ') + ' + Math.round(d) + ' +
                 q(' px). The birds still fly the old path: re-run Flock.jsx in this comp.') + ';';
         }
-        out.position ='// Flock rig: position (shape and scatter)\n' + head +
+        out.position = '// Flock rig: position (shape and scatter)\n' + head +
             'var M = thisComp.layer(' + q(k.name + ' Center') + ');\n' +
             'var m = M.transform.position.value;\n' +
             'var sp = ' + N.spread + ', ln = ' + N.length + ', wd = ' + N.width + ', cl = ' + N.clump + ';\n' +
@@ -803,6 +806,25 @@ var FlockRig = (function () {
                 k.cycle.start + ' + q * ' + k.cycle.length + ';';
         }
         return out;
+    }
+
+    // The leader check's look: bold yellow with a thick near-black outline, readable over a
+    // light sky, a dark one or the birds (orange without an outline was hard to read).
+    function styleCheck(layer) {
+        var tdp = layer.property('ADBE Text Properties').property('ADBE Text Document'), td = tdp.value;
+        try {
+            td.font = 'Arial-BoldMT';
+        } catch (e) {}
+        td.fontSize = 30;
+        td.applyFill = true;
+        td.fillColor = [1, 0.86, 0.2];
+        td.applyStroke = true;
+        td.strokeColor = [0.06, 0.06, 0.08];
+        td.strokeWidth = 6;
+        td.strokeOverFill = false;
+        td.justification = ParagraphJustification.LEFT_JUSTIFY;
+        tdp.setValue(td);
+        tf(layer, MN.position).setValue([40, 60]);
     }
 
     function addKeyedPoint(layer, name, times, values) {
@@ -989,14 +1011,7 @@ var FlockRig = (function () {
         // so moving the leader needs a re-run.
         var ck = comp.layers.addText(o.name);
         ck.name = o.name + ' Leader Check';
-        var tdp = ck.property('ADBE Text Properties').property('ADBE Text Document'), td = tdp.value;
-        td.fontSize = 28;
-        td.applyFill = true;
-        td.fillColor = [1, 0.42, 0.1];
-        td.applyStroke = false;
-        td.justification = ParagraphJustification.LEFT_JUSTIFY;
-        tdp.setValue(td);
-        tf(ck, MN.position).setValue([40, 56]);
+        styleCheck(ck);
         ck.property('ADBE Text Properties').property('ADBE Text Document').expression = cex.checkText;
         tf(ck, 'ADBE Opacity').expression = cex.checkOpacity;
         ck.guideLayer = true;
@@ -1163,7 +1178,7 @@ var FlockRig = (function () {
         }
     }
 
-    return { build: build, run: run, defaults: DEFAULTS, controls: CONTROLS, expressions: expressions, math: FLOCK_MATH };
+    return { build: build, run: run, defaults: DEFAULTS, controls: CONTROLS, expressions: expressions, styleCheck: styleCheck, math: FLOCK_MATH };
 })();
 
 // FLOCK_NO_UI: a test loads the script without the dialog. $.global outlives the script in

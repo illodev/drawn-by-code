@@ -39,6 +39,7 @@ ok($.global.FLOCK_NO_UI === false, 'loading Flock.jsx uses up FLOCK_NO_UI');
 // numbers (arithmetic converts them, === does not); .value gives the number. A keyed
 // property is given as a function of time; it answers valueAtTime too.
 const prop = (v, time) => {
+    if (v && v.numKeys !== undefined) return v;          // a keyed property given whole (keys, valueAtTime)
     if (typeof v === 'function') return { value: v(time), valueAtTime: (t) => v(t) };
     return Array.isArray(v) ? Object.assign([...v], { value: [...v] }) : { value: v, valueOf: () => v };
 };
@@ -215,7 +216,20 @@ ok(near(M.flockCycle(3.62, 0.62, 100, 0), 0), 'Desync 0: every bird in unison');
         anchorPoint: { value: [0, 0], valueAtTime: () => [0, 0] },
         toComp: (p, t) => { const q = path(t); return [q[0] + p[0], q[1] + p[1], 0]; },
     });
-    const center = { pos: [0, 0], fx: { 'Leader Path': baked } };
+    // Leader Path as AE holds it: a key a frame, a straight blend between keys
+    const keyedPath = (path) => {
+        const n = Math.round((BAKE.t1 - BAKE.t0) / BAKE.dt) + 1, T = (i) => BAKE.t0 + (i - 1) * BAKE.dt;
+        return {
+            numKeys: n,
+            key: (i) => ({ time: T(i), value: path(T(i)) }),
+            valueAtTime: (t) => {
+                const u = Math.min(n - 1, Math.max(0, (t - BAKE.t0) / BAKE.dt)), j = Math.min(n - 2, Math.floor(u)), w = u - j;
+                const a = path(T(j + 1)), b = path(T(j + 2));
+                return [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w];
+            },
+        };
+    };
+    let center = { pos: [0, 0], fx: { 'Leader Path': keyedPath(baked) } };
     const check = (others) => [evalExpr(ex.checkOpacity, { center, others, value: 100 }), evalExpr(ex.checkText, { center, others, value: '' })];
     const same = check({ Leader: leaderLayer(baked) });
     ok(same[0] === 0, 'leader check hidden while the leader matches the bake');
@@ -226,6 +240,19 @@ ok(near(M.flockCycle(3.62, 0.62, 100, 0), 0), 'Desync 0: every bird in unison');
     ok(tiny[0] === 0, 'a 1 px difference is not a moved leader');
     const gone = check({});
     ok(gone[0] === 100 && /can't find the leader "Leader"/.test(gone[1]), `leader check shows a missing leader (${gone[1]})`);
+    // the user's false alarm: a fast, tight leader (a 100 px circle at 1,000 px/s) unchanged since
+    // the bake. Between keys the stored path cuts the corners by ~2.2 px; at the keys it is exact.
+    const loop = (t) => [960 + 100 * Math.cos(10 * t), 540 + 100 * Math.sin(10 * t)];
+    let between = 0;
+    for (let i = 0; i <= 48; i++) {
+        const t = BAKE.t0 + ((BAKE.t1 - BAKE.t0) * i) / 48, a = loop(t), b = keyedPath(loop).valueAtTime(t);
+        between = Math.max(between, Math.hypot(a[0] - b[0], a[1] - b[1]));
+    }
+    center = { pos: [0, 0], fx: { 'Leader Path': keyedPath(loop) } };
+    const fast = check({ Leader: leaderLayer(loop) });
+    ok(between > 2 && fast[0] === 0, `a fast, unchanged leader is not "moved" (between keys it differs by ${between.toFixed(1)} px)`);
+    const fastMoved = check({ Leader: leaderLayer((t) => [loop(t)[0] + 5, loop(t)[1]]) });
+    ok(fastMoved[0] === 100, 'a fast leader moved 5 px is');
     console.log(`leader check: ${moved[1]}`);
 }
 

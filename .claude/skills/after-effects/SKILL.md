@@ -663,3 +663,10 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   dialog and did nothing, silently, right after a fix they wanted to try. A tool must use up
   its test flag (read it into a local, set it back to false) and a test script must clear
   its settings as it starts. Check `$.global` read-only when a tool "does nothing".
+- 2026-11-24 · ae-flock-rig · Compare against baked data only at its keys. Between keys AE
+  blends the stored values in a straight line, which cuts a fast curve's corners. A "has the
+  leader moved?" check sampling between keys raised a false 3 px alarm on an unchanged
+  path. Read `key(i).time` and `key(i).value` and compare there, where it is exact.
+- 2026-11-24 · ae-flock-rig · `CompItem.saveFrameToPng(t, file)` (AE 27) writes the PNG after
+  the script that called it ends. Waiting for the file inside the script, or removing the
+  comp first, gets nothing. Render from one script, clean up from a second one.
