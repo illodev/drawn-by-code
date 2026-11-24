@@ -13,6 +13,7 @@ const CTL = {
     spread: 100, length: 100, width: 100, angle: 0, clump: 0, scatter: 0, scatterSpeed: 0.5, scatterSeed: 1,
     size: 100, sizeVar: 20, persp: 100, orient: 100, turnWidth: 30, headOn: 60, flapSpeed: 100, desync: 100,
 };
+const SHAPE_BUDGET = 0.35;               // flock-ae.jsx: the most the shape may add to a bird's speed (× cruise)
 
 // Leader: a keyed null in AE; here a Catmull-Rom path through timed points.
 const KEYS = [
@@ -111,9 +112,19 @@ Motion.scene({
 
         // every bird through the expressions' math (scatter left out: it needs AE's wiggle)
         const C = CTL, cx = sim.center.x[f], cy = sim.center.y[f];
+        // the running sums read like AE reads keys: linear between frames
+        const T1 = (sim.frames - 1) / FPS, DT = 1 / FPS;
+        const keyed = (X, Y) => (tt) => {
+            const u = Math.min(sim.frames - 1, Math.max(0, tt * FPS)), k = Math.min(sim.frames - 2, Math.floor(u)), w = u - k;
+            return [X[k] + (X[k + 1] - X[k]) * w, Y[k] + (Y[k + 1] - Y[k]) * w];
+        };
+        const W = Math.max(2 * DT, flockWindow(C.spread, C.length, C.width, C.clump, sim.center.radiusRef, SHAPE_BUDGET * sim.stats.cruise));
+        const A = flockMean(keyed(sim.center.axisX, sim.center.axisY), f / FPS, W, 0, T1, DT);
+        const R = flockMean(keyed(sim.center.radiusSum, sim.center.radiusSum), f / FPS, W, 0, T1, DT)[0];
         for (let n = sim.order.length - 1; n >= 0; n--) {   // bottom layer first, like AE
             const b = sim.birds[sim.order[n]];
-            const o = flockShape(b.x[f] - cx, b.y[f] - cy, sim.center.radius[f], sim.center.heading[f], C.spread, C.length, C.width, C.angle, C.clump);
+            const d = flockMean(keyed(b.sumX, b.sumY), f / FPS, W, 0, T1, DT);
+            const o = flockShape(d[0], d[1], b.x[f] - cx, b.y[f] - cy, A[0], A[1], R, C.spread, C.length, C.width, C.angle, C.clump);
             const fac = flockFacing(b.face[f], 1, C.turnWidth / 100, C.headOn / 100, true);
             const s = flockSize(b.ds[f], C.persp, C.size, C.sizeVar, b.size) / 100;
             const sc = flockScale(fac, s, b.up[f]);

@@ -76,6 +76,15 @@ that AE runs wrong.
   rewrites its own and leaves the designer's alone, and reports what it kept.
 - Slider names can carry the explanation (≤ 28 characters); a re-run renames the previous
   round's names in place so the designer's values survive the upgrade.
+- **A control that moves baked layers also changes their speed.** Scaling offsets around
+  a centre scales how fast the layers move relative to it. Turning a stretched shape moves
+  its tips at r × ω. To keep motion physical, apply the control to a **mean over a window**,
+  with the window long enough that the added speed stays under a budget: a mean over W
+  moves at most 2r / W. Keep the fast part (value − mean) as baked. For any live W, bake a
+  **running sum** (∫ dt) as a keyed slider or Point Control. The mean is then
+  `(S(t + W/2) − S(t − W/2)) / W`, two `valueAtTime` calls, carried on past the bake at
+  the end's rate. At the default controls this must leave the bake exactly as it is: test
+  it.
 
 ## ExtendScript is ES3
 
@@ -637,3 +646,10 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   grown pieces. `make-art.jsx` now checks the matching against Node's numbers. Fixed in 0.10.1.
 - 2026-11-23 · ae-flock-rig · ExtendScript's `toPrecision` rounds negative numbers to integers:
   the first AE dump looked like a mismatch until positives and negatives were compared.
+- 2026-11-23 · ae-flock-rig · "Edge birds fly unreasonably fast when the flock is spread":
+  live shape controls scaled every bird's offset around the centre and turned a stretched
+  shape with the heading. The relative speeds scaled with them, and the tips swung round
+  like a spinning top: up to 9× the flock's speed. Fixed by working on means over a
+  speed-budgeted window, read from baked running sums: never more than 1.6×. Also, the sim
+  let birds fly from 0.4× to 1.6× cruise, so turns spun the formation. A ±12 % band around
+  the flock's mean speed gives the parallel-path turns real flocks make.

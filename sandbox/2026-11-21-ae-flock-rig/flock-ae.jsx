@@ -18,6 +18,7 @@ var FlockRig = (function () {
         timeRemap: 'ADBE Time Remapping',
         effects: 'ADBE Effect Parade',
         slider: 'ADBE Slider Control',
+        point: 'ADBE Point Control',
         angle: 'ADBE Angle Control'
     };
     // Live controls on "<name> Controls", in panel order. The names explain themselves in
@@ -41,6 +42,9 @@ var FlockRig = (function () {
         { key: 'desync', name: 'Flap Desync % (0 = unison)', value: 100, old: 'Flap Desync' }
     ];
     var FLOCK_MATH = ''; // build.mjs puts flock-math.js here (comments stripped)
+    // The most the live controls may add to a bird's speed, as a share of the flock's
+    // cruising speed: the shape controls, then the scatter on top.
+    var SHAPE_BUDGET = 0.35, SCATTER_BUDGET = 0.1;
     var DEFAULTS = {
         name: 'Flock',
         count: 80,
@@ -155,7 +159,9 @@ var FlockRig = (function () {
 
     // The expressions a bird carries, as strings (test.mjs runs these very strings).
     // k: { name, id (bird number), faces (1 | -1), size (-1 … 1), offset (0 … 1),
-    //      cycle: { start, length } | null, turn: { start, length } | null }
+    //      cycle: { start, length } | null, turn: { start, length } | null,
+    //      t0, t1: first and last baked key (s), dt: one frame (s), radius: the flock's
+    //      typical RMS radius (px), cruise: its cruising speed (px/s) }
     function expressions(k) {
         var N = {}, i;
         for (i = 0; i < CONTROLS.length; i++) N[CONTROLS[i].key] = 'v(' + q(CONTROLS[i].name) + ')';
@@ -164,16 +170,35 @@ var FlockRig = (function () {
         var head = FLOCK_MATH + '\n' + ctl;
         var face = 'flockFacing(effect("Facing")(1).value, ' + k.faces + ', ' + N.turnWidth + ' / 100, ' +
             N.headOn + ' / 100, ' + (k.turn ? 'true' : 'false') + ')';
-        var out = {};
+        var out = {}, T = k.t0 + ', ' + k.t1 + ', ' + k.dt;
+        // On Flock Center, once a frame for the whole flock: the window the shape works over
+        // (long enough to keep birds at flying speed), and the flock's mean axis of travel
+        // and mean radius over it, from the baked running sums.
+        out.window = '// Flock rig: shape window (s)\n' + head +
+            'Math.max(' + 2 * k.dt + ', flockWindow(' + N.spread + ', ' + N.length + ', ' + N.width + ', ' + N.clump + ', ' +
+            k.radius + ', ' + SHAPE_BUDGET * k.cruise + '));';
+        out.axis = '// Flock rig: mean axis of travel over the shape window\n' + head +
+            'var W = effect("Shape Window")(1).value, S = effect("Axis Sum")(1);\n' +
+            'flockMean(function (t) { return S.valueAtTime(t); }, time, W, ' + T + ');';
+        out.radius = '// Flock rig: mean radius over the shape window\n' + head +
+            'var W = effect("Shape Window")(1).value, S = effect("Radius Sum")(1);\n' +
+            'flockMean(function (t) { return [S.valueAtTime(t), 0]; }, time, W, ' + T + ')[0];';
         out.position = '// Flock rig: position (shape and scatter)\n' + head +
             'var M = thisComp.layer(' + q(k.name + ' Center') + ');\n' +
             'var m = M.transform.position.value;\n' +
-            'var o = flockShape(value[0] - m[0], value[1] - m[1], M.effect("Radius")(1).value, M.effect("Heading")(1).value, ' +
-            N.spread + ', ' + N.length + ', ' + N.width + ', ' + N.angle + ', ' + N.clump + ');\n' +
-            'var p = [m[0] + o[0], m[1] + o[1]];\n' +
+            'var sp = ' + N.spread + ', ln = ' + N.length + ', wd = ' + N.width + ', cl = ' + N.clump + ';\n' +
+            'var p = [value[0], value[1]];\n' +
+            'if (sp != 100 || ln != 100 || wd != 100 || cl != 0) {\n' +
+            '    // the shape works on this bird\'s mean offset over the window (Flock Center)\n' +
+            '    var W = M.effect("Shape Window")(1).value, A = M.effect("Shape Axis")(1).value, OS = effect("Offset Sum")(1);\n' +
+            '    var d = flockMean(function (t) { return OS.valueAtTime(t); }, time, W, ' + T + ');\n' +
+            '    var o = flockShape(d[0], d[1], value[0] - m[0], value[1] - m[1], A[0], A[1], M.effect("Shape Radius")(1).value, ' +
+            'sp, ln, wd, ' + N.angle + ', cl);\n' +
+            '    p = [m[0] + o[0], m[1] + o[1]];\n' +
+            '}\n' +
             'var amt = ' + N.scatter + ';\n' +
             'if (amt > 0) {\n' +
-            '    var spd = ' + N.scatterSpeed + ';\n' +
+            '    var spd = flockScatterSpeed(' + N.scatterSpeed + ', amt, ' + SCATTER_BUDGET * k.cruise + ');\n' +
             '    seedRandom(Math.round(' + N.scatterSeed + ') * 1013 + ' + k.id + ', spd <= 0);\n' +
             '    var w = spd > 0 ? sub(wiggle(spd, amt), value) : [random(-amt, amt), random(-amt, amt)];\n' +
             '    p = [p[0] + w[0], p[1] + w[1]];\n' +
@@ -192,6 +217,11 @@ var FlockRig = (function () {
                 k.cycle.start + ' + q * ' + k.cycle.length + ';';
         }
         return out;
+    }
+
+    function addKeyedPoint(layer, name, times, values) {
+        layer.property(MN.effects).addProperty(MN.point).name = name;
+        layer.property(MN.effects).property(name).property(1).setValuesAtTimes(times, values);
     }
 
     function addKeyedSlider(layer, name, times, values) {
@@ -278,15 +308,34 @@ var FlockRig = (function () {
         // the flock's centre, size and heading: what the shape controls work around
         var center = comp.layers.addNull(comp.duration);
         center.name = o.name + ' Center';
-        var cv = [], cr = [], ch = [];
+        var cv = [], cr = [], ch = [], ca = [], cs = [];
         for (j = 0; j < idx.length; j++) {
             cv.push([sim.center.x[idx[j]], sim.center.y[idx[j]], 0]);
             cr.push(sim.center.radius[idx[j]]);
             ch.push(sim.center.heading[idx[j]]);
+            ca.push([sim.center.axisX[idx[j]], sim.center.axisY[idx[j]]]);
+            cs.push(sim.center.radiusSum[idx[j]]);
         }
         setKeys(tf(center, MN.position), times, cv);
         addKeyedSlider(center, 'Radius', times, cr);
         addKeyedSlider(center, 'Heading', times, ch);
+        // running sums: the expressions read the flock's mean axis of travel and mean radius
+        // over any window
+        addKeyedPoint(center, 'Axis Sum', times, ca);
+        addKeyedSlider(center, 'Radius Sum', times, cs);
+        // computed once a frame for every bird to read
+        var kf = {
+            name: o.name, id: 0, faces: 1, size: 0, offset: 0, cycle: null, turn: null,
+            t0: times[0], t1: times[times.length - 1], dt: 1 / fps,
+            radius: Math.round(sim.center.radiusRef * 100) / 100, cruise: Math.round(sim.stats.cruise)
+        };
+        var cex = expressions(kf);
+        center.property(MN.effects).addProperty(MN.slider).name = 'Shape Window';
+        center.property(MN.effects).addProperty(MN.point).name = 'Shape Axis';
+        center.property(MN.effects).addProperty(MN.slider).name = 'Shape Radius';
+        center.property(MN.effects).property('Shape Window').property(1).expression = cex.window;
+        center.property(MN.effects).property('Shape Axis').property(1).expression = cex.axis;
+        center.property(MN.effects).property('Shape Radius').property(1).expression = cex.radius;
         center.moveAfter(controls);
         center.guideLayer = true;
         center.enabled = false;
@@ -308,7 +357,7 @@ var FlockRig = (function () {
                 dup.inPoint = t0;
                 dup.outPoint = t1;
             }
-            var P = [], Rt = [], S = [], Fc = [], Ph = [];
+            var P = [], Rt = [], S = [], Fc = [], Ph = [], Os = [];
             for (j = 0; j < idx.length; j++) {
                 f = idx[j];
                 P.push([b.x[f], b.y[f], 0]);
@@ -316,6 +365,7 @@ var FlockRig = (function () {
                 S.push([100 * b.ds[f], 100 * b.ds[f] * b.up[f], 100]); // depth and the upside-down pose; facing is its own slider
                 Fc.push(b.face[f]);
                 Ph.push(b.phase[f]);
+                Os.push([b.sumX[f], b.sumY[f]]);
             }
             var pos = tf(dup, MN.position), rot = tf(dup, MN.rotation), sc = tf(dup, MN.scale);
             setKeys(pos, times, P);
@@ -323,7 +373,13 @@ var FlockRig = (function () {
             setKeys(sc, times, S);
             addKeyedSlider(dup, 'Facing', times, Fc);
             if (cyc) addKeyedSlider(dup, 'Flap Phase', times, Ph);
-            var ex = expressions({ name: o.name, id: n + 1, faces: o.faces === -1 ? -1 : 1, size: b.size, offset: b.offset, cycle: cyc, turn: turn });
+            // a running sum: its mean offset from the centre over any window
+            addKeyedPoint(dup, 'Offset Sum', times, Os);
+            var ex = expressions({
+                name: o.name, id: n + 1, faces: o.faces === -1 ? -1 : 1, size: b.size, offset: b.offset, cycle: cyc, turn: turn,
+                t0: times[0], t1: times[times.length - 1], dt: 1 / fps,
+                radius: Math.round(sim.center.radiusRef * 100) / 100, cruise: Math.round(sim.stats.cruise)
+            });
             // re-fetched: adding effects invalidates references to the layer's properties
             tf(dup, MN.position).expression = ex.position;
             tf(dup, MN.rotation).expression = ex.rotation;

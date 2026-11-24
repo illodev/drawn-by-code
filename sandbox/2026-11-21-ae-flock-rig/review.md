@@ -136,3 +136,91 @@ rotation, scale, Facing) and the leader as the build samples it, compared with t
 (`(-29.987654321).toPrecision(15)` is `-30`, and `-0.5` gives `-0`). The first dump looked like a
 mismatch until positives and negatives were compared. Format `-v` and add the sign, or use
 `String(v)`.
+
+## Round 4 · 2026-11-23 (user feedback: edge birds too fast when the flock is spread; Node, inside After Effects 27)
+
+The user: "when the flock is spread, birds at the edge of the flock fly unreasonably fast
+(like how the edge of a spinning top moves faster than the center)."
+
+**Measured first** (Node, the demo path; a bird's speed / the flock's mean speed that frame):
+
+| Controls | p99, round 2 | max, round 2 | p99, round 4 | max, round 4 |
+|---|---|---|---|---|
+| Defaults | 1.44 | 1.76 | 1.19 | 1.29 |
+| Spread 200 | 1.95 | 2.59 | 1.34 | 1.63 |
+| Spread 300 | 2.48 | 3.42 | 1.32 | 1.61 |
+| Length 250, Width 55 | 2.82 | 5.18 | 1.23 | 1.36 |
+| Sky shaped (+ Clumping 60) | 3.20 | 6.40 | 1.21 | 1.33 |
+| Spread 200, Length 250, Width 55 | 4.88 | 9.40 | 1.25 | 1.41 |
+
+Three causes, worst first:
+
+1. **The stretched shape turned with the heading.** `flockShape` rotated the Length / Width
+   axis with the flock's heading (up to 240°/s), so a long flock's tips swung round at r × ω:
+   the spinning top.
+2. **Spread scaled relative speeds.** Scaling every offset around the centre by s scales how
+   fast birds move inside the flock by s. The formation's own spin was p95 92°/s.
+3. **The simulation let birds fly at 0.4–1.6× cruise.** In a turn the outer birds raced round
+   and the formation spun, even at the default controls (p5–p95 of speed within a frame:
+   0.70–1.29× the mean).
+
+**Fixes**
+
+- **Speed band (sim).** Every bird keeps within ±12 % of the flock's mean speed at each step,
+  inside the global min/max. A turning flock then turns on parallel paths, as real flocks
+  do. Within a frame: 0.86–1.14× (p1–p99). Formation spin p95 92 → 45°/s. Leader
+  tracking unchanged; the flock is a little tighter (RMS radius 104 → 85 px).
+- **Shape on means (expressions).** The shape works on each bird's mean offset over a window
+  W, and on the flock's mean axis of travel (a doubled-angle vector, so an axis has no front)
+  and mean radius over the same W. The bird's quicker motion around its mean is kept as
+  simulated. A mean over W moves at most 2r / W, so W is chosen from the live controls to
+  keep what the shape adds under 0.35× cruise (`flockWindow`). Clumping magnifies radial
+  motion (1 + k) times more; the first version missed that and Clumping 150 added 0.48×.
+  The stretch fades where the mean axis is short (below 0.5), so a flock that keeps turning
+  or stops goes round instead of swinging. At the default controls there is no window, and
+  the flock is exactly the simulated one (the expression returns the baked value).
+- **Running sums.** For any live W, the bake adds running sums (∫ dt): `Offset Sum` on every
+  bird (a Point Control), `Axis Sum` and `Radius Sum` on Flock Center. A mean over W is then
+  two `valueAtTime` calls, carried on past the bake at the end's own rate. Flock Center
+  computes `Shape Window`, `Shape Axis` and `Shape Radius` once a frame for every bird to
+  read. Computed per bird, the 8 s Sky comp rendered in 100 s against 54 s in round 3.
+- **Scatter Speed** is capped so a bird never wanders faster than 0.1× cruise.
+  AE's `wiggle(freq, amt)` was measured inside AE 27 at up to 3.3 × freq × amt px/s
+  (median 1.0, p99 2.9). The cap assumes 4.
+
+**Price:** a big or long shape reshapes and turns slowly (Length 250 / Width 55: a window of
+about 10 s, so the stream keeps its overall direction through the loop). Spread 300 comes
+out at 2.9×, because each bird's quick moves stay at their real size.
+
+**Tests.** `test.mjs` (2,901 checks) runs the expression strings, Flock Center's and the
+bird's, on a mock of AE. Through them it runs 20 birds of the demo flock for ten shape
+settings: the shape adds at most 0.27× cruise (p99 ≤ 0.21), and at the defaults
+nothing. It also checks the speed band, the controls' meaning (the axis has no front, the
+stretch fades on a short axis), the window, and the sums carried on past the bake.
+
+**Inside After Effects 27** (`make-demo.jsx` test mode, then `check-ae.mjs`, new):
+
+- `make-demo.jsx` now writes `ae-dump.json`: the leader as AE sampled it, plus every bird's
+  baked and final position and running sums, for three comps (Sky at Spread 80; Sky spread
+  at Spread 300; Sky stretched at Length 250, Width 55, Angle 30, Clumping 60).
+- `check-ae.mjs` runs the simulation in Node on that leader, and the expression math in
+  Node on AE's own keys.
+  - Simulation: within 0.0014 px; sums within 0.0006.
+  - Flock Center's window, axis and radius match Node.
+  - Final positions: within 0.003 px in all three comps.
+- Read back inside AE:
+  - At the default controls, birds move 0 px off the bake.
+  - Spread 300 adds at most 0.26× cruise to a bird's speed (p99 0.18).
+  - Sky shaped, with Scatter 12, adds at most 0.08×.
+  - Fastest bird: 1.46× the flock's mean speed.
+- No expression errors. Turn check is unchanged (41.3 % head-on, narrowest side view
+  30.0 %). A rebuild removes 81 layers and makes 85.
+- Build time: 24 s in a fresh AE session (sim 9.5 s, bake 15 s), 44 s in the next run in the
+  same session. AE slows as a session goes on: the same 80 sliders took 1.7 s, then 3.4 s.
+  A Point Control bakes like two sliders.
+- **Looked at** (aerender, AE 27):
+  - Contact sheets of Sky spread and Sky shaped.
+  - Six consecutive frames of the Spread 300 flock in its dive: edge birds blur no longer
+    than core birds, and every nose points along its path.
+  - The shaped stream keeps its overall direction through the loop. Birds in the dive cross
+    it sideways, a wide front going down, rather than the shape spinning.

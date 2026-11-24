@@ -17,6 +17,12 @@
 //   r.birds[i].size, .offset            per-bird randoms: size in [-1, 1], phase offset in [0, 1)
 //   r.center.x[f], r.center.y[f]        centroid of the flock
 //   r.center.radius[f], .heading[f]     its RMS size (px) and axis of travel (degrees; period 180)
+//   r.center.radiusRef                  its typical (median) RMS size (px)
+//   r.center.radiusSum[f]               running sum (∫ dt) of its RMS size
+//   r.center.axisX[f], .axisY[f]        running sums (∫ dt) of its axis of travel as a doubled-angle
+//                                       vector (cos 2h, sin 2h), shortened when it barely moves
+//   r.birds[i].sumX[f], .sumY[f]        running sums (∫ dt) of the bird's offset from the centre
+//                                       (the live shape controls average both over a window)
 //   r.order                             bird indices, nearest (on average) first = top layer
 //
 // leaderX/leaderY are the leader's comp-space position sampled once per frame from the
@@ -118,6 +124,7 @@ var FlockSim = (function () {
         // never hover: a still leader makes them circle it).
         var cruise = Math.max(vLmax, S * 6);
         var vMax = cruise * 1.6, vMin = cruise * 0.4;
+        var band = clamp(num(o.speedBand, 0.12), 0, 1);           // ± share of the flock's mean speed
         var aMax = cruise * 3.2;
         var sepR = S, percR = S * 2.5, cell = percR, percR2 = percR * percR;
         var Tf = 6 * Math.pow(0.1, follow);                     // follow spring period: 6 s loose, 1.9 s at 50, 0.6 s tight
@@ -194,6 +201,13 @@ var FlockSim = (function () {
         var next = [], cellOf = [], head = [];
         function step(t) {
             leaderAt(t + lead, L);
+            // birds of a flock fly at nearly the same speed: this step's band around the
+            // flock's mean speed (a turning flock then turns on parallel paths, like real
+            // ones, instead of spinning with its outer birds racing round)
+            var mS = 0;
+            for (i = 0; i < N; i++) mS += sqrt(vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i]);
+            mS /= N;
+            var lo = Math.max(vMin, mS * (1 - band)), hi = Math.min(vMax, mS * (1 + band));
             var mnx = px[0], mny = py[0], mnz = pz[0], mxx = mnx, mxy = mny, mxz = mnz;
             for (i = 1; i < N; i++) {
                 if (px[i] < mnx) mnx = px[i];
@@ -292,7 +306,7 @@ var FlockSim = (function () {
                 }
                 var nvx = vx[i] + ax[i] * dt, nvy = vy[i] + ay[i] * dt, nvz = vz[i] + az[i] * dt;
                 var s = sqrt(nvx * nvx + nvy * nvy + nvz * nvz) || 0.001;
-                var cl = s > vMax ? vMax / s : (s < vMin ? vMin / s : 1);
+                var cl = s > hi ? hi / s : (s < lo ? lo / s : 1);
                 vx[i] = nvx * cl;
                 vy[i] = nvy * cl;
                 vz[i] = nvz * cl;
@@ -490,15 +504,50 @@ var FlockSim = (function () {
             }
             hd[f] = prevA;
         }
+        // Running sums (trapezoids), so an expression gets the mean over any window from two
+        // samples: the axis of travel as a doubled-angle vector (an axis has no front),
+        // trusted like the heading; the flock's radius; and each bird's offset from the centre.
+        var axX = [0], axY = [0], rSum = [0], ux0 = 0, uy0 = 0;
+        for (f = 0; f < F; f++) {
+            var tr = clamp(sqrt(hvx[f] * hvx[f] + hvy[f] * hvy[f]) / (0.3 * cruise), 0, 1);
+            var h2 = 2 * Math.atan2(hvy[f], hvx[f]);
+            var ux = tr * Math.cos(h2), uy = tr * Math.sin(h2);
+            if (f > 0) {
+                axX[f] = axX[f - 1] + ((ux0 + ux) / 2) * dtF;
+                axY[f] = axY[f - 1] + ((uy0 + uy) / 2) * dtF;
+                rSum[f] = rSum[f - 1] + ((rad[f - 1] + rad[f]) / 2) * dtF;
+            }
+            ux0 = ux;
+            uy0 = uy;
+        }
+        for (i = 0; i < N; i++) {
+            var Bs = birds[i], ox0 = 0, oy0 = 0;
+            Bs.sumX = [0];
+            Bs.sumY = [0];
+            for (f = 0; f < F; f++) {
+                var ox = Bs.x[f] - cx[f], oy = Bs.y[f] - cy[f];
+                if (f > 0) {
+                    Bs.sumX[f] = Bs.sumX[f - 1] + ((ox0 + ox) / 2) * dtF;
+                    Bs.sumY[f] = Bs.sumY[f - 1] + ((oy0 + oy) / 2) * dtF;
+                }
+                ox0 = ox;
+                oy0 = oy;
+            }
+        }
+        var rs = rad.slice(0);
+        rs.sort(function (a, b) {
+            return a - b;
+        });
         return {
             frames: F,
             fps: fps,
             birds: birds,
             order: order,
-            center: { x: cx, y: cy, radius: rad, heading: hd },
+            center: { x: cx, y: cy, radius: rad, heading: hd, radiusRef: rs[floor(F / 2)], radiusSum: rSum, axisX: axX, axisY: axY },
             stats: { cruise: cruise, vMin: vMin, vMax: vMax, leaderMax: vLmax, steps: steps + (F - 1) * sub }
         };
     }
 
-    return { run: run, rng: rng, version: 2 };     // 2: nested ?: parenthesized (ExtendScript misread them)
+    // 2: nested ?: parenthesized (ExtendScript misread them); 3: speed band, running sums
+    return { run: run, rng: rng, version: 3 };
 })();

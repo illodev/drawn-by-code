@@ -7,9 +7,11 @@
 //
 // Test mode (used by the repo to check the script without a person at the keyboard): set
 // $.global.FLOCK_TEST_OUT to a folder before running it. It opens a new project, also builds
-// "Sky shaped" (the shape controls pushed) and a round-1 Controls layer to migrate, writes
-// ae-log.txt after every step and saves flock-demo.aep there; the runner renders it with
-// aerender. It quits After Effects only if $.global.FLOCK_TEST_QUIT is set.
+// "Sky shaped" and "Sky spread" (the shape controls pushed), "Turn check" and a round-1
+// Controls layer to migrate, reads bird speeds back from AE, writes ae-log.txt after every
+// step, ae-dump.json for check-ae.mjs (AE's numbers against Node's) and saves
+// flock-demo.aep there; the runner renders it with aerender. It quits After Effects only if
+// $.global.FLOCK_TEST_QUIT is set.
 (function () {
     var OUT = $.global.FLOCK_TEST_OUT || null;
     var here = $.global.FLOCK_DIR ? new Folder($.global.FLOCK_DIR) : File($.fileName).parent;
@@ -97,7 +99,7 @@
     app.beginSuppressDialogs();
     app.beginUndoGroup('Flock demo');
     var proj = app.project, INK = [0.11, 0.14, 0.19];
-    var birdComp, comp, birdLayer, leader, shaped;
+    var birdComp, comp, birdLayer, leader, shaped, rep;
     var ok = step('bird precomp', function () {
         // Bird: side view facing right in the work area (0-0.5 s), head-on view after it
         // (0.5-1 s) marked "turn"; wings keyed up, level, down, level, up.
@@ -183,12 +185,79 @@
         $.global.FLOCK_NO_UI = true;
         $.evalFile(new File(here.fsName + '/Flock.jsx'));
         var t = new Date().getTime();
-        var rep = $.global.FlockRig.build(comp, birdLayer, leader, { name: 'Flock', count: 80, spacing: 45, seed: 7 });
+        rep = $.global.FlockRig.build(comp, birdLayer, leader, { name: 'Flock', count: 80, spacing: 45, seed: 7 });
         note('build: ' + rep.toSource() + ' total ' + (new Date().getTime() - t) + ' ms');
         comp.openInViewer();
     });
 
+    // Bird speeds in a comp, read back from AE: every 4th bird, every frame. extra = how much
+    // the live controls add to a bird's speed (final vs baked position) × cruise; ratio = a
+    // bird's speed / the sampled flock's mean baked speed that frame.
+    function pct(a, p) {
+        a.sort(function (x, y) {
+            return x - y;
+        });
+        return a[Math.min(a.length - 1, Math.floor(p * a.length))];
+    }
+    function speeds(c, label) {
+        var L = [], n, f, i, extra = [], ratio = [], maxMove = 0;
+        for (n = 1; n <= c.numLayers; n++) if (c.layer(n).name.indexOf('Flock Bird ') === 0 && (L.length === 0 || n % 4 === 0)) L.push(c.layer(n).property('ADBE Transform Group').property('ADBE Position'));
+        var pre = [], post = [];
+        for (i = 0; i < L.length; i++) {
+            pre.push([]);
+            post.push([]);
+            for (f = 0; f < 192; f++) {
+                var a = L[i].valueAtTime(f / 24, true), b = L[i].valueAtTime(f / 24, false);
+                pre[i].push(a);
+                post[i].push(b);
+                maxMove = Math.max(maxMove, Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
+            }
+            if (L[i].expressionError) throw new Error(label + ': ' + L[i].expressionError);
+        }
+        for (f = 1; f < 191; f++) {
+            var mean = 0, v = [], s = [];
+            for (i = 0; i < L.length; i++) {
+                var sx = (pre[i][f + 1][0] - pre[i][f - 1][0]) * 12, sy = (pre[i][f + 1][1] - pre[i][f - 1][1]) * 12;
+                var vx = (post[i][f + 1][0] - post[i][f - 1][0]) * 12, vy = (post[i][f + 1][1] - post[i][f - 1][1]) * 12;
+                mean += Math.sqrt(sx * sx + sy * sy) / L.length;
+                v.push(Math.sqrt(vx * vx + vy * vy));
+                extra.push(Math.sqrt((vx - sx) * (vx - sx) + (vy - sy) * (vy - sy)) / rep.cruise);
+            }
+            for (i = 0; i < v.length; i++) ratio.push(v[i] / mean);
+        }
+        note(label + ' (' + L.length + ' birds, every frame): speed added by the controls p99 ' + q(pct(extra, 0.99)) + ', max ' + q(pct(extra, 1)) +
+            ' x cruise; bird / flock speed p99 ' + q(pct(ratio, 0.99)) + ', max ' + q(pct(ratio, 1)) + '; largest move off the baked path ' + q(maxMove) + ' px');
+    }
+
     if (ok && OUT) {
+        step('defaults are the simulation', function () {
+            // the round-1 migration above left Spread at 80: a copy at the true defaults
+            var dc = comp.duplicate();
+            dc.name = 'Sky defaults';
+            dc.layer('Flock Controls').property('ADBE Effect Parade').property('Spread % (flock size)').property(1).setValue(100);
+            speeds(dc, 'Sky defaults (Spread 100)');
+            dc.remove();
+            speeds(comp, 'Sky (Spread 80, migrated)');
+        });
+        step('wiggle speed', function () {
+            // how fast AE's wiggle(freq, amt) moves, per freq x amt (Scatter's speed cap uses it)
+            var tmp = comp.layers.addNull(comp.duration), p = tmp.property('ADBE Transform Group').property('ADBE Position'), sp = [], f;
+            p.expression = 'wiggle(2, 50)';
+            var prev = p.valueAtTime(0, false);
+            for (f = 1; f <= 4800; f++) {
+                var cur = p.valueAtTime(f / 240, false);
+                sp.push(Math.sqrt((cur[0] - prev[0]) * (cur[0] - prev[0]) + (cur[1] - prev[1]) * (cur[1] - prev[1])) * 240 / (2 * 50));
+                prev = cur;
+            }
+            tmp.remove();
+            note('wiggle(2, 50) over 20 s: speed / (freq x amt) median ' + q(pct(sp, 0.5)) + ', p99 ' + q(pct(sp, 0.99)) + ', max ' + q(pct(sp, 1)));
+        });
+        step('spread comp', function () {
+            var sc = comp.duplicate();
+            sc.name = 'Sky spread';
+            sc.layer('Flock Controls').property('ADBE Effect Parade').property('Spread % (flock size)').property(1).setValue(300);
+            speeds(sc, 'Sky spread (Spread 300)');
+        });
         step('controls', function () {
             var fx = comp.layer('Flock Controls').property('ADBE Effect Parade'), names = [];
             for (var i = 1; i <= fx.numProperties; i++) names.push(fx.property(i).name + ' = ' + q(fx.property(i).property(1).value));
@@ -239,6 +308,10 @@
             for (var i = 0; i < set.length; i++) fx.property(set[i][0]).property(1).setValue(set[i][1]);
             var b = shaped.layer('Flock Bird 001').property('ADBE Transform Group').property('ADBE Position');
             note('shaped: bird 001 position@3s ' + q(b.valueAtTime(3, false)) + (b.expressionError ? ', EXPRESSION ERROR: ' + b.expressionError : ', expression ok'));
+            var cfx = shaped.layer('Flock Center').property('ADBE Effect Parade'), names = [];
+            for (var j = 1; j <= cfx.numProperties; j++) names.push(cfx.property(j).name + ' (' + cfx.property(j).property(1).numKeys + ' keys)');
+            note('Flock Center effects: ' + names.join(', ') + '; bird 001: ' + shaped.layer('Flock Bird 001').property('ADBE Effect Parade').numProperties + ' effects');
+            speeds(shaped, 'Sky shaped (Length 250, Width 55, Clumping 60, Scatter 12 at 0.7)');
         });
         step('turn check comp', function () {
             // the demo path turns every bird through vertical (instant flips); here each
@@ -269,6 +342,74 @@
         step('rebuild', function () {
             var rep2 = $.global.FlockRig.build(comp, birdLayer, leader, { name: 'Flock', count: 80, spacing: 45, seed: 7 });
             note('rebuild: removed ' + rep2.removed + ', layers now ' + comp.numLayers + ', turn drawing ' + rep2.turnDrawing);
+        });
+        step('dump for check-ae.mjs', function () {
+            // Everything AE baked and computed, for check-ae.mjs to compare with Node's own
+            // numbers: plausible is not enough (a misread ?: once baked a different flock for
+            // two rounds while every check here passed). Numbers through String(): ExtendScript's
+            // toPrecision rounds negatives to integers.
+            var t0 = new Date().getTime(), F = 192, f, n, i, parts = [];
+            function arr(a) {
+                var s = [];
+                for (var j = 0; j < a.length; j++) s.push(a[j] instanceof Array ? arr(a[j]) : String(a[j]));
+                return '[' + s.join(',') + ']';
+            }
+            function str(s) {
+                return '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n') + '"';
+            }
+            var lp = leader.property('ADBE Transform Group').property('ADBE Position'), LS = [];
+            for (f = 0; f < F + 11; f++) LS.push(lp.valueAtTime(f / 24, false).slice(0, 2));
+            parts.push('"leader":' + arr(LS));
+            var stretched = comp.duplicate();
+            stretched.name = 'Sky stretched';
+            var sfx = stretched.layer('Flock Controls').property('ADBE Effect Parade');
+            var set = [['Length % (along travel)', 250], ['Width % (across travel)', 55], ['Clumping (+ core, - even)', 60], ['Shape Angle (0 = travel)', 30]];
+            for (i = 0; i < set.length; i++) sfx.property(set[i][0]).property(1).setValue(set[i][1]);
+            var list = [comp];
+            for (i = 1; i <= app.project.numItems; i++) if (app.project.item(i).name === 'Sky spread') list.push(app.project.item(i));
+            list.push(stretched);
+            var cj = [], dumped = [];
+            for (i = 0; i < list.length; i++) dumped.push(list[i].name);
+            for (var c = 0; c < list.length; c++) {
+                var C = list[c], fx = C.layer('Flock Controls').property('ADBE Effect Parade'), ctl = [];
+                for (i = 1; i <= fx.numProperties; i++) ctl.push(str(fx.property(i).name) + ':' + String(fx.property(i).property(1).value));
+                var ctr = C.layer('Flock Center'), cp = ctr.property('ADBE Transform Group').property('ADBE Position'), cfx = ctr.property('ADBE Effect Parade');
+                var CP = [], CR = [], CA = [], SH = [];
+                var sw = cfx.property('Shape Window').property(1), sa = cfx.property('Shape Axis').property(1), sr = cfx.property('Shape Radius').property(1);
+                for (f = 0; f < F; f++) {
+                    CP.push(cp.valueAtTime(f / 24, true).slice(0, 2));
+                    CR.push(cfx.property('Radius Sum').property(1).valueAtTime(f / 24, true));
+                    CA.push(cfx.property('Axis Sum').property(1).valueAtTime(f / 24, true).slice(0, 2));
+                    var ax = sa.valueAtTime(f / 24, false);
+                    SH.push([sw.valueAtTime(f / 24, false), ax[0], ax[1], sr.valueAtTime(f / 24, false)]);
+                }
+                if (sw.expressionError || sa.expressionError || sr.expressionError) throw new Error(C.name + ' Flock Center: ' + (sw.expressionError || sa.expressionError || sr.expressionError));
+                var birds = [], expr = '';
+                for (n = 1; n <= C.numLayers; n++) {
+                    var B = C.layer(n);
+                    if (B.name.indexOf('Flock Bird ') !== 0) continue;
+                    var bp = B.property('ADBE Transform Group').property('ADBE Position'), os = B.property('ADBE Effect Parade').property('Offset Sum').property(1);
+                    var pre = [], post = [], sum = [];
+                    for (f = 0; f < F; f++) {
+                        pre.push(bp.valueAtTime(f / 24, true).slice(0, 2));
+                        post.push(bp.valueAtTime(f / 24, false).slice(0, 2));
+                        sum.push(os.valueAtTime(f / 24, true).slice(0, 2));
+                    }
+                    if (!expr) expr = bp.expression;
+                    birds.push('{"name":' + str(B.name) + ',"pre":' + arr(pre) + ',"post":' + arr(post) + ',"sum":' + arr(sum) + '}');
+                }
+                cj.push('{"name":' + str(C.name) + ',"controls":{' + ctl.join(',') + '},"center":' + arr(CP) + ',"radiusSum":' + arr(CR) +
+                    ',"axisSum":' + arr(CA) + ',"shape":' + arr(SH) + ',"windowExpression":' + str(sw.expression) +
+                    ',"expression":' + str(expr) + ',"birds":[' + birds.join(',') + ']}');
+            }
+            parts.push('"comps":[' + cj.join(',') + ']');
+            stretched.remove();
+            var file = new File(OUT + '/ae-dump.json');
+            file.encoding = 'UTF-8';
+            file.open('w');
+            file.write('{' + parts.join(',') + '}');
+            file.close();
+            note('dump: ' + dumped.length + ' comps (' + dumped.join(', ') + ') -> ae-dump.json, ' + (new Date().getTime() - t0) + ' ms');
         });
     }
     app.endUndoGroup();

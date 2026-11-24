@@ -53,8 +53,10 @@ values you set on it; the dialog remembers the last settings.
   keyed Position, Rotation, Scale and `Facing` / `Flap Phase` sliders, and Time Remap
   driven by an expression.
 - `Flock Center`: a disabled guide null holding the flock's centre, with keyed `Radius`
-  (its size) and `Heading` (its axis of travel) sliders, which the shape controls work
-  around.
+  (its size) and `Heading` (its axis of travel) sliders, plus `Axis Sum` and `Radius Sum`:
+  running sums the shape controls read to average over time (see *How it moves*). Its
+  `Shape Window`, `Shape Axis` and `Shape Radius` work those averages out once a frame for
+  every bird. Each bird also carries an `Offset Sum`. Leave these alone.
 - `Flock Controls`: the live sliders. No re-run needed for these; their names say what
   they do in the Effect Controls panel:
 
@@ -67,7 +69,7 @@ values you set on it; the dialog remembers the last settings.
 | Shape Angle (0 = travel) | 0° | Turns the Length / Width axis away from the direction of travel (e.g. 45° = a diagonal sheet) |
 | Clumping (+ core, - even) | 0 | Above 0: a denser core with stragglers on the edges; below 0: birds evened out across the flock. Type values outside the slider, -90 … 300 |
 | Scatter px (per bird) | 0 | Each bird wanders this far from its place in the flock, its own way |
-| Scatter Speed (0 = still) | 0.5 | Wanders per second; 0 = a fixed random offset per bird |
+| Scatter Speed (0 = still) | 0.5 | Wanders per second; 0 = a fixed random offset per bird. Capped for big Scatter amounts, so a bird never wanders faster than a tenth of the flock's speed |
 | Scatter Seed | 1 | Another random arrangement of the scatter |
 | **The birds** | | |
 | Bird Size % | 100 | Overall size of the birds |
@@ -83,6 +85,13 @@ Controls left by a round-1 build (`Spread`, `Orient`…) are renamed in place on
 their values kept. For a different flock rather than a different shape, change **Seed** in
 the dialog and re-run.
 
+The shape controls never make birds fly faster than birds fly (*How it moves* says how).
+The price: a big or long flock reshapes and turns its shape slowly. A long stream on a
+winding path keeps roughly the direction of its overall travel rather than swinging round
+each bend, which is what real flocks do too. A large Spread also comes out a little smaller
+than the number (Spread 300 ≈ 2.9×), because birds keep their own quick moves at their
+real size.
+
 The original bird layer is switched off and kept as the template for the next run.
 
 ## How it moves
@@ -91,7 +100,26 @@ Each bird is steered by its neighbours (keep a gap, match their heading, stay wi
 pulled towards the leader by a damped spring that leaves the flock room to breathe, and
 nudged by slow turbulence. It runs in 3D: depth becomes scale (Perspective) and the layer
 order. Birds have a top speed, a minimum speed (they never hover: a still leader makes the
-flock circle it) and a minimum turning radius.
+flock circle it) and a minimum turning radius. Within a flock they fly at nearly the same
+speed (±12 % of the flock's mean). So a turning flock turns the way real ones do, each bird
+on a parallel path. It doesn't spin like a top with its outer birds racing round.
+
+**Shape without speed.** Scaling a bird's distance from the centre also scales how fast it
+moves relative to the centre. Swinging a long flock round with its heading moves its tips
+faster the longer it is. Done directly, either sends edge birds racing (in round 2, up to
+6× the flock's speed in the "Sky shaped" demo). So the shape controls work on each bird's
+**mean** offset over a window of time, and on the flock's mean axis of travel over the same
+window. The window is long enough that the shape never adds more than about a third of the
+flock's cruising speed. Each bird's quicker moves around its mean are kept as simulated.
+The bigger or longer the shape, the longer the window. At the default controls there is
+no window, and the flock is exactly the simulated one. Measured on the demo path:
+
+| Controls | Fastest bird / flock speed, round 2 | Round 3 |
+|---|---|---|
+| Defaults | 1.76 | 1.29 |
+| Spread 300 | 3.42 | 1.61 |
+| Length 250, Width 55 | 5.18 | 1.36 |
+| Spread 200, Length 250, Width 55 | 9.40 | 1.41 |
 
 Turning around, the 2D layer has to fake a 3D move:
 
@@ -124,5 +152,6 @@ Turning around, the 2D layer has to fake a 3D move:
 | `flock-ae.jsx` | The After Effects half: dialog, sampling, layers, expressions |
 | `build.mjs` | `node sandbox/2026-11-21-ae-flock-rig/build.mjs` → `Flock.jsx`, with an ES3 lint |
 | `test.mjs` | Runs the very expression strings against a mock of AE and checks the simulation's poses |
-| `make-demo.jsx` | Builds a demo project (bird precomp with a turn drawing, leader, flock). With `$.global.FLOCK_TEST_OUT` set it logs every step and saves the project for `aerender`: the test |
+| `make-demo.jsx` | Builds a demo project (bird precomp with a turn drawing, leader, flock). With `$.global.FLOCK_TEST_OUT` set it logs every step, reads bird speeds back from AE, writes `ae-dump.json` and saves the project for `aerender`: the test |
+| `check-ae.mjs` | `node …/check-ae.mjs <test folder>`: compares that dump with Node running the same code (the simulation on AE's leader, the expressions on AE's keys) |
 | `scene.js` | Engine preview of the same simulation, drawn through `flock-math.js` the way the rig shows it |

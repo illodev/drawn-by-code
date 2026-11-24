@@ -2,27 +2,89 @@
 // comments stripped, into every expression Flock.jsx writes; the engine preview loads it
 // with `uses`; test.mjs runs both against each other. Plain ES3 and ASCII only.
 
-// Shape of the flock. (ox, oy): a bird's offset from the flock's centre (px); R: the
-// flock's RMS radius; hd: its heading (degrees). Returns the new offset.
-//   spread: % overall size        len / wid: % along / across the shape axis
-//   ang: shape axis vs heading (degrees; 0 = along the direction of travel)
-//   clump: % pull towards the core; > 0 = dense core with stragglers, < 0 = evened out
-function flockShape(ox, oy, R, hd, spread, len, wid, ang, clump) {
+// Shape of the flock, without speeding birds up. The shape controls move each bird away
+// from where the simulation put it. Applied to its offset of the moment, a bigger or longer
+// flock would also multiply how fast birds move inside it, and a long flock turning with its
+// heading would swing its tips round like a spinning top: edge birds far faster than the
+// rest. So the shape works on each bird's MEAN offset over a window of W seconds (and on
+// the flock's mean axis of travel over the same window), long enough that what it adds
+// stays under a speed budget; the bird's quicker motion around that mean is kept as
+// simulated, so at the default controls the flock is exactly the simulated one.
+
+// The clumping factor at distance r from the centre (R: the flock's RMS radius).
+function flockClump(r, R, clump) {
     var k = clump / 100;
     if (k < -0.9) k = -0.9;
     if (k > 3) k = 3;
-    var r = Math.sqrt(ox * ox + oy * oy);
-    if (k !== 0 && r > 0.000001 && R > 0.000001) {
-        var f = Math.pow(r / R, k);
-        if (f < 0.15) f = 0.15;
-        if (f > 3) f = 3;
-        ox = ox * f;
-        oy = oy * f;
+    if (k === 0 || r < 0.000001 || R < 0.000001) return 1;
+    var f = Math.pow(r / R, k);
+    return f < 0.15 ? 0.15 : (f > 3 ? 3 : f);
+}
+
+// The window (s). Rref: the flock's typical RMS radius (px); budget: the most the shape may
+// add to a bird's speed (px/s). A bird's mean offset moves at most 2 r / W (it can cross
+// the flock, edge to edge, once per window), so W grows with how much the controls
+// magnify that motion (e: along, across and, with clumping, outwards, where moving
+// in or out is magnified (1 + k) times more) and with how much they stretch along a
+// turning axis (ea).
+function flockWindow(spread, len, wid, clump, Rref, budget) {
+    var rTip = 2 * Rref, sp = spread / 100, e = 0, ea = 0, j, f, g, a, b, fr, k = clump / 100;
+    if (k < -0.9) k = -0.9;
+    if (k > 3) k = 3;
+    for (j = 1; j <= 4; j++) {
+        fr = j / 4;
+        f = flockClump(fr * rTip, Rref, clump);
+        g = f > 0.15 && f < 3 ? f * (1 + k) : f;   // the radial stretch (where not capped)
+        a = Math.max(Math.abs((sp * len * f) / 100 - 1), Math.abs((sp * len * g) / 100 - 1)) * fr;
+        b = Math.max(Math.abs((sp * wid * f) / 100 - 1), Math.abs((sp * wid * g) / 100 - 1)) * fr;
+        if (a > e) e = a;
+        if (b > e) e = b;
+        a = ((sp * Math.abs(len - wid)) / 200) * f * fr;
+        if (a > ea) ea = a;
     }
-    var a = ((hd + ang) * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
-    var u = ((ox * c + oy * s) * len) / 100, v = ((-ox * s + oy * c) * wid) / 100;
-    var sp = spread / 100;
-    return [(u * c - v * s) * sp, (u * s + v * c) * sp];
+    if (budget <= 0) return 60;
+    var W = (2 * rTip * (e + ea / 0.5)) / budget;
+    return W > 60 ? 60 : W;
+}
+
+// A running sum at time t, read through get(t) (keys from t0 to t1, one every dt or more),
+// carried on past both ends at the end's own rate: a window may reach outside the bake.
+function flockSumAt(get, t, t0, t1, dt) {
+    var tc = t < t0 ? t0 : (t > t1 ? t1 : t), a = get(tc);
+    if (tc === t) return [a[0], a[1]];
+    var e = tc === t0 ? get(t0 + dt) : get(t1 - dt), k = (t - tc) / dt;
+    if (tc === t0) return [a[0] + (e[0] - a[0]) * k, a[1] + (e[1] - a[1]) * k];
+    return [a[0] + (a[0] - e[0]) * k, a[1] + (a[1] - e[1]) * k];
+}
+
+// The mean over [t - W/2, t + W/2] of what a running sum adds up.
+function flockMean(get, t, W, t0, t1, dt) {
+    var a = flockSumAt(get, t - W / 2, t0, t1, dt), b = flockSumAt(get, t + W / 2, t0, t1, dt);
+    return [(b[0] - a[0]) / W, (b[1] - a[1]) / W];
+}
+
+// The new offset of a bird from the centre. (mx, my): its mean offset over the window;
+// (dx, dy): its offset now; (ax, ay): the mean axis of travel (doubled-angle vector, length
+// <= 1; it shortens where the flock turns or slows, and the stretch fades with it below 0.5);
+// R: the flock's mean RMS radius over the window. Controls in %, ang in degrees:
+//   spread: overall size        len / wid: along / across the axis of travel
+//   ang: shape axis vs travel   clump: > 0 = dense core with stragglers, < 0 = evened out
+function flockShape(mx, my, dx, dy, ax, ay, R, spread, len, wid, ang, clump) {
+    var f = flockClump(Math.sqrt(mx * mx + my * my), R, clump);
+    var n = Math.sqrt(ax * ax + ay * ay), g = n > 0.5 ? n : 0.5;
+    var a2 = (ang * Math.PI) / 90, c = Math.cos(a2), s = Math.sin(a2);
+    var bx = (ax * c - ay * s) / g, by = (ax * s + ay * c) / g;
+    var sp = (spread / 100) * f, m = (len + wid) / 200, d = (len - wid) / 200;
+    var u = mx * (m + d * bx) + my * d * by, v = mx * d * by + my * (m - d * bx);
+    return [u * sp + dx - mx, v * sp + dy - my];
+}
+
+// Scatter's wiggles per second, capped so a bird never wanders faster than budget px/s.
+// AE's wiggle(freq, amt) moves at up to 3.3 * freq * amt px/s (measured in After Effects
+// 2027 over 20 s: median 1.0, p99 2.9); 4 leaves a margin.
+function flockScatterSpeed(spd, amt, budget) {
+    var cap = budget / (4 * amt);
+    return spd < cap ? spd : cap;
 }
 
 // Turning around. face: -1 ... 1 (baked; passes through 0 mid-turn); faces: 1 if the bird
