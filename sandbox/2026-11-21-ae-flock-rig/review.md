@@ -310,3 +310,60 @@ the leader. Measured read-only in their project, comp Sky:
 - Existing check layers keep the old expression until Flock.jsx is re-run in their comp.
 - `saveFrameToPng` writes its file only after the script that asked for it has ended:
   a script that waits for the file, or removes the comp first, gets nothing.
+
+## Round 8 · 2026-11-24 (user request: see the leader, and roughly the flock, before re-running)
+
+"It would be nice if at least the leader was visible for live-rendering, so that I could see
+its path before running the script again. Significantly better if a shape layer could
+provide a rough estimate of how the flock would appear around the leader."
+
+**`Flock Preview`**, a guide shape layer, never rendered:
+
+- **Always:** the leader's path over the work area (yellow on a dark line) and the leader
+  now (a yellow dot). After Effects: 5 ms a frame.
+- **While the leader check shows:** a guess at the new flock.
+  - The centre comes from `FlockSim.guess`.
+  - Each baked bird's place in its flock is moved there and scaled.
+  - A ring marks twice the flock's radius.
+  - The guess is worked out once a frame on a 3D Point effect (`Flock Estimate`: x, y, size
+    factor), and the 80 dots and the ring read it.
+
+**How the guess was chosen** (measured, Node, six paths incl. the user's Sky edit):
+
+1. **Baked flock moved by the leader's change:** poor. Even a pure shift of the path missed
+   by 93 px rms: the turbulence depends on absolute position, and the cruise speed depends
+   on the path.
+2. **Spring and smoothing models on the leader:** 0.9–2× the flock radius off (rms).
+3. **The exact live re-run.** The simulation is causal, so running `FlockSim.run` in an
+   expression up to the current frame gives exactly the re-run's flock (Node: within
+   1e-14 px). Inside AE 27 it took 17 s a frame at 0.5 s and 47 s at 7.9 s.
+   - A 2M-iteration loop: 5 s in an expression, 0.5 s in ExtendScript, 16 ms in Node.
+   - **AE's expressions run plain code ~300× slower than V8.** Heavy code can't live in
+     an expression.
+4. **One "average bird"** with the flock's own follow force (dead zone included), the same
+   seeded turbulence and the speed and turn limits, no neighbours (`FlockSim.guess`, in
+   flock-sim.js so it shares the constants).
+   - About one radius off (rms), but 74–92 % of the real birds fall within twice the radius.
+   - Size: the flock grows with the leader's top speed above ~13 spacings a second
+     (exponent 0.8), within ~10 % on the six paths.
+
+**Tests.**
+- `test.mjs` (2,918 checks): the guess expression equals `FlockSim.guess` at that frame,
+  with the size factor; 74–82 % of three re-runs inside the ring; dots, ring, line and
+  leader dot.
+- **Inside AE 27** (`make-demo.jsx`, `out/ae-test-r8`):
+  - The guess costs 20–32 ms a frame.
+  - After the re-run, 93 % of 320 bird samples fell inside the ring, the centre 50–134 px
+    off (ring radius 249 px).
+  - Shown only in the moved copy.
+  - No expression errors; no flags left in the session.
+- **Looked at** (aerender of "Preview look", the guides made renderable, next to the re-run
+  at the same frames):
+  - The path line, the leader dot, the guess dots and the ring read over the sky and the
+    birds.
+  - At 0.5, 2, 4 and 7 s the guess sits on the re-run's flock and the ring contains it.
+
+**Incident.** One of my launcher scripts was written through the shell, which collapsed its
+doubled backslashes. After Effects showed the user a modal "Unterminated string constant"
+alert. A syntax error stops the whole script before any line runs, so nothing changed.
+Launchers are now written as files directly and parsed in Node before they are sent.

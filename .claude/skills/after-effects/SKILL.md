@@ -670,3 +670,13 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
 - 2026-11-24 · ae-flock-rig · `CompItem.saveFrameToPng(t, file)` (AE 27) writes the PNG after
   the script that called it ends. Waiting for the file inside the script, or removing the
   comp first, gets nothing. Render from one script, clean up from a second one.
+- 2026-11-24 · ae-flock-rig · After Effects' expressions run plain code ~300× slower than V8
+  (AE 27: a 2M-iteration loop took 5 s in an expression, 0.5 s in ExtendScript, 16 ms in
+  Node). An exact live re-run of the flock in an expression took 17–47 s a frame. Measure a
+  loop inside AE before putting heavy code in an expression: keep expressions to tens of
+  thousands of operations a frame (the flock guess: one average bird, 20–30 ms). And print
+  the value a benchmark returns, because one that came back in 0 ms hadn't run.
+- 2026-11-24 · ae-flock-rig · Never write a script for AE through a shell heredoc: the shell
+  collapsed `\` in a regex, and AE showed the user a modal "Unterminated string constant".
+  Write the file directly, and parse every script in Node (`new Function(src)`) before
+  sending it. A syntax error is a dialog no try/catch can stop.

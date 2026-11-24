@@ -548,6 +548,80 @@ var FlockSim = (function () {
         };
     }
 
+    // A rough guess at where the flock's centre goes, cheap enough for an expression (After
+    // Effects' expressions run plain loops ~300x slower than V8: the full simulation took 5-47 s
+    // a frame there). One "average bird" with the flock's own follow force, turbulence and
+    // limits, no neighbours, on the leader's plane. Measured against full simulations on six
+    // paths: about one flock radius off (rms), and 80-90 % of the birds within twice the
+    // radius of it. Returns { x: [], y: [] } per frame and the cruise speed.
+    function guess(o) {
+        var LX = o.leaderX, LY = o.leaderY, FL = LX.length;
+        var F = Math.min(FL, Math.max(1, Math.round(num(o.frames, FL))));
+        var fps = num(o.fps, 24), lead = Math.max(0, num(o.lead, 0));
+        var N = Math.max(1, Math.round(num(o.count, 80))), S = Math.max(2, num(o.spacing, 40));
+        var follow = clamp(num(o.follow, 50), 0, 100) / 100, turb = clamp(num(o.turbulence, 40), 0, 100) / 100;
+        var preroll = Math.max(0, num(o.preroll, 3)), sub = 2, dtF = 1 / fps, dt = dtF / sub, f, k;
+        var LVX = [], LVY = [], vLmax = 0;
+        for (f = 0; f < FL; f++) {
+            var fa = f > 0 ? f - 1 : f, fb = f < FL - 1 ? f + 1 : f;
+            LVX[f] = fb === fa ? 0 : (LX[fb] - LX[fa]) / ((fb - fa) * dtF);
+            LVY[f] = fb === fa ? 0 : (LY[fb] - LY[fa]) / ((fb - fa) * dtF);
+            var sp = sqrt(LVX[f] * LVX[f] + LVY[f] * LVY[f]);
+            if (sp > vLmax) vLmax = sp;
+        }
+        // the simulation's constants and its turbulence (the same seeded waves, drawn first)
+        var cruise = Math.max(vLmax, S * 6), vMax = cruise * 1.6, vMin = cruise * 0.4, aMax = cruise * 3.2;
+        var wf = TAU / (6 * Math.pow(0.1, follow)), kf = wf * wf, df = 0.6 * wf, R = S * Math.pow(N, 1 / 3) * 0.9;
+        var kTurb = turb * cruise * 2.6, waves = makeWaves(rng(num(o.seed, 1) * 7919 + 13), S * 5, S * 14);
+        function at(tau) {
+            if (tau <= 0) return [LX[0] + LVX[0] * tau, LY[0] + LVY[0] * tau, LVX[0], LVY[0]];
+            var u = tau * fps, j = floor(u);
+            if (j >= FL - 1) return [LX[FL - 1], LY[FL - 1], LVX[FL - 1], LVY[FL - 1]];
+            var w = u - j;
+            return [LX[j] + (LX[j + 1] - LX[j]) * w, LY[j] + (LY[j + 1] - LY[j]) * w, LVX[j] + (LVX[j + 1] - LVX[j]) * w, LVY[j] + (LVY[j + 1] - LVY[j]) * w];
+        }
+        var t = -Math.round(preroll * fps) * dtF, L = at(t), x = L[0], y = L[1], vx = L[2], vy = L[3];
+        if (sqrt(vx * vx + vy * vy) < vMin) {
+            vx = vMin;
+            vy = 0;
+        }
+        function step() {
+            L = at(t + lead);
+            var ex = L[0] - x, ey = L[1] - y, ed = sqrt(ex * ex + ey * ey) || 0.001;
+            var ek = ed > R ? (kf * (ed - R + R * 0.1)) / ed : kf * 0.1;
+            var ax = ex * ek + (L[2] - vx) * df + kTurb * wave(waves[0], x, y, 0, t);
+            var ay = ey * ek + (L[3] - vy) * df + kTurb * wave(waves[1], x, y, 0, t);
+            var am = sqrt(ax * ax + ay * ay);
+            if (am > aMax) {
+                ax *= aMax / am;
+                ay *= aMax / am;
+            }
+            var v2 = vx * vx + vy * vy || 1e-6, par = (ax * vx + ay * vy) / v2, lx = ax - par * vx, ly = ay - par * vy;
+            var lm = sqrt(lx * lx + ly * ly), lc = sqrt(v2) * Math.PI;
+            if (lm > lc) {
+                ax = par * vx + (lx * lc) / lm;
+                ay = par * vy + (ly * lc) / lm;
+            }
+            var nvx = vx + ax * dt, nvy = vy + ay * dt, s = sqrt(nvx * nvx + nvy * nvy) || 0.001;
+            var cl = s > vMax ? vMax / s : (s < vMin ? vMin / s : 1);
+            vx = nvx * cl;
+            vy = nvy * cl;
+            x += vx * dt;
+            y += vy * dt;
+            t += dt;
+        }
+        var steps = Math.round(preroll * fps) * sub, outX = [], outY = [];
+        for (k = 0; k < steps; k++) step();
+        outX.push(x);
+        outY.push(y);
+        for (f = 1; f < F; f++) {
+            for (k = 0; k < sub; k++) step();
+            outX.push(x);
+            outY.push(y);
+        }
+        return { x: outX, y: outY, cruise: cruise };
+    }
+
     // 2: nested ?: parenthesized (ExtendScript misread them); 3: speed band, running sums
-    return { run: run, rng: rng, version: 3 };
+    return { run: run, guess: guess, rng: rng, version: 3 };
 })();

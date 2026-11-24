@@ -69,8 +69,19 @@ if (problems.length) {
 // what goes into the expressions: no comments, no blank lines
 const MATH = math.split('\n').map((l) => l.replace(/\s*\/\/.*$/, '')).filter((l) => l.trim()).join('\n');
 new Function(MATH); // syntax check
+// the simulation too, for the preview's live re-run (one expression, viewer only)
+const SIM = sim.split('\n').map((l) => l.replace(/\s*\/\/.*$/, '')).filter((l) => l.trim()).join('\n');
+if (/[^\x00-\x7f]/.test(SIM)) {
+    console.error('build: flock-sim.js has non-ASCII code outside comments (it goes into an expression)');
+    process.exit(1);
+}
+if (typeof new Function(SIM + '\nreturn FlockSim;')().run !== 'function') {
+    console.error('build: flock-sim.js without its comments does not define FlockSim.run');
+    process.exit(1);
+}
 const body = ae
     .replace("var FLOCK_MATH = '';", 'var FLOCK_MATH = ' + JSON.stringify(MATH) + ';')
+    .replace("var FLOCK_SIM = '';", 'var FLOCK_SIM = ' + JSON.stringify(SIM) + ';')
     .replace('var FLOCK_SKIP_UI =', '$.global.FlockRig = FlockRig;\nvar FLOCK_SKIP_UI =');
 if (body.indexOf('$.global.FlockRig = FlockRig;') < 0) {
     console.error('build: the run block (var FLOCK_SKIP_UI) was not found in flock-ae.jsx');

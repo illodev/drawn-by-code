@@ -84,6 +84,8 @@ function evalExpr(code, { ctl, center, bird, value, time = 1, others = {} }) {
         random: (a, b) => a + (b - a) * rnd(),
         wiggle: (f, a) => value.map((v, i) => v + a * Math.sin(time * f * 6.2832 + seed + i)),
         sub: (a, b) => a.map((v, i) => v - b[i]),
+        createPath: (points) => ({ points: () => points, pts: points }),
+        content: (n) => (others.content ? others.content(n) : undefined),
         Math,
     };
     return run(ctx, code);
@@ -254,6 +256,56 @@ ok(near(M.flockCycle(3.62, 0.62, 100, 0), 0), 'Desync 0: every bird in unison');
     const fastMoved = check({ Leader: leaderLayer((t) => [loop(t)[0] + 5, loop(t)[1]]) });
     ok(fastMoved[0] === 100, 'a fast leader moved 5 px is');
     console.log(`leader check: ${moved[1]}`);
+}
+
+// ---- the preview: the leader's path, the leader, and a rough guess at the new flock -----
+{
+    const fps = 24, F = 192, LEAD = 0.4, samples = F + Math.ceil(LEAD * fps) + 1;
+    const settings = { count: 80, spacing: 45, follow: 50, lead: LEAD, turbulence: 40, glide: 50, seed: 7, preroll: 3, faces: 1, cycle: 0.5 };
+    const catmull = (KEYS) => (t) => {
+        let j = 0;
+        while (j < KEYS.length - 2 && t > KEYS[j + 1][0]) j++;
+        const p0 = KEYS[Math.max(0, j - 1)], p1 = KEYS[j], p2 = KEYS[j + 1], p3 = KEYS[Math.min(KEYS.length - 1, j + 2)];
+        const u = Math.min(1, Math.max(0, (t - p1[0]) / (p2[0] - p1[0])));
+        const cr = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * u + (2 * a - 5 * b + 4 * c - d) * u * u + (-a + 3 * b - 3 * c + d) * u * u * u);
+        return [cr(p0[1], p1[1], p2[1], p3[1]), cr(p0[2], p1[2], p2[2], p3[2])];
+    };
+    const samplesOf = (at) => { const X = [], Y = []; for (let f = 0; f < samples; f++) { const p = at(f / fps); X.push(p[0]); Y.push(p[1]); } return { X, Y }; };
+    const K0 = [[0, -160, 640], [1.2, 420, 520], [2.4, 900, 300], [3.3, 1180, 420], [4.1, 1010, 640], [4.9, 760, 520], [5.8, 1040, 330], [6.8, 1500, 380], [8.0, 2100, 260]];
+    const s0 = samplesOf(catmull(K0)), baked = FlockSim.run({ leaderX: s0.X, leaderY: s0.Y, frames: F, fps, ...settings });
+    const k = { name: NAME, id: 0, faces: 1, size: 0, offset: 0, cycle: null, turn: null, t0: 0, t1: (F - 1) / fps, dt: 1 / fps,
+        radius: Math.round(baked.center.radiusRef * 100) / 100, cruise: Math.round(baked.stats.cruise), leader: 'Leader', sim: { ...settings, frames: F, samples, fps } };
+    const ex = RIG.expressions(k);
+    // the user's case: the first key pulled 590 px left
+    const moved = catmull(K0.map((key, i) => (i === 0 ? [0, -750, 775] : key)));
+    const Leader = { anchorPoint: { value: [0, 0], valueAtTime: () => [0, 0] }, toComp: (p, t) => { const q = moved(t); return [q[0], q[1], 0]; } };
+    const run = (code, op, time, fx = {}) => evalExpr(code, { ctl: controls({}), center: { pos: [0, 0], fx: {} }, bird: fx, value: [0, 0, 0], time,
+        others: { Leader, [NAME + ' Leader Check']: { transform: { opacity: { value: op } } } } });
+    ok(near(run(ex.previewGuess, 0, 3), [-10000, -10000, 1]), 'preview: no guess while the leader matches the bake');
+    const s1 = samplesOf(moved), g = FlockSim.guess({ leaderX: s1.X, leaderY: s1.Y, frames: F, fps, ...settings });
+    const t0 = Date.now(), e = run(ex.previewGuess, 100, 3);
+    const sz = Math.pow(Math.max(g.cruise, 13 * 45) / Math.max(k.cruise, 13 * 45), 0.8);
+    ok(near(e, [g.x[72], g.y[72], sz], 1e-9), 'preview: the expression gives FlockSim.guess at that frame, and the size change');
+    console.log('preview: one guess ' + (Date.now() - t0) + ' ms in Node (After Effects: ~300x)');
+    // how good the guess is: real birds of the re-run inside the ring (twice the estimated radius)
+    for (const [label, at] of [['first key moved', moved], ['the demo path', catmull(K0)], ['a fast zigzag', catmull([[0, -100, 200], [2, 1900, 500], [4, 100, 800], [6, 1900, 900], [8, 200, 500]])]]) {
+        const sm = samplesOf(at), real = FlockSim.run({ leaderX: sm.X, leaderY: sm.Y, frames: F, fps, ...settings });
+        const gg = FlockSim.guess({ leaderX: sm.X, leaderY: sm.Y, frames: F, fps, ...settings });
+        const ring = 2 * k.radius * Math.pow(Math.max(gg.cruise, 13 * 45) / Math.max(k.cruise, 13 * 45), 0.8);
+        let inside = 0, n = 0;
+        for (let f = 0; f < F; f += 4) for (const bb of real.birds) { n++; if (Math.hypot(bb.x[f] - gg.x[f], bb.y[f] - gg.y[f]) <= ring) inside++; }
+        console.log('preview, ' + label + ': ' + Math.round((100 * inside) / n) + ' % of the re-run birds inside the ring');
+        ok(inside / n > 0.7, 'preview, ' + label + ': most of the re-run flock falls inside the ring');
+    }
+    // a dot: its bird's place in the baked flock, moved to the guess and scaled
+    const est = [500, 400, 1.5];
+    const dotOthers = { [NAME + ' Bird 007']: { transform: { position: { value: [130, 220] } } } };
+    const dot = evalExpr(ex.previewDot(6, NAME + ' Bird 007'), { center: { pos: [100, 200], fx: {} }, bird: { 'Flock Estimate': est }, value: [0, 0], others: dotOthers });
+    ok(near(dot, [500 + 30 * 1.5, 400 + 20 * 1.5]), 'preview: a dot keeps its bird\'s place, scaled, around the guess');
+    ok(near(evalExpr(ex.previewRingSize, { center: { pos: [0, 0], fx: {} }, bird: { 'Flock Estimate': est }, value: [0, 0] }), [6 * k.radius, 6 * k.radius]), 'preview: the ring is twice the estimated radius');
+    const line = run(ex.previewPath, 0, 0).pts;
+    ok(line.length >= F && near(line[0], moved(0)) && near(line[line.length - 1], moved((F - 1) / fps)), "preview: the line is the leader's whole path over the bake");
+    ok(near(run(ex.previewLeader, 0, 2.5), moved(2.5)), 'preview: the dot is the leader now');
 }
 
 // ---- simulation: turn-arounds are staggered ---------------------------------------------

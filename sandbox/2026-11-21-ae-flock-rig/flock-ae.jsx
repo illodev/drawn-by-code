@@ -42,6 +42,7 @@ var FlockRig = (function () {
         { key: 'desync', name: 'Flap Desync % (0 = unison)', value: 100, old: 'Flap Desync' }
     ];
     var FLOCK_MATH = ''; // build.mjs puts flock-math.js here (comments stripped)
+    var FLOCK_SIM = '';  // and flock-sim.js here: the preview re-runs the simulation live
     // The most the live controls may add to a bird's speed, as a share of the flock's
     // cruising speed: the shape controls, then the scatter on top.
     var SHAPE_BUDGET = 0.35, SCATTER_BUDGET = 0.1;
@@ -161,7 +162,9 @@ var FlockRig = (function () {
     // k: { name, id (bird number), faces (1 | -1), size (-1 … 1), offset (0 … 1),
     //      cycle: { start, length } | null, turn: { start, length } | null,
     //      t0, t1: first and last baked key (s), dt: one frame (s), radius: the flock's
-    //      typical RMS radius (px), cruise: its cruising speed (px/s), leader: its name }
+    //      typical RMS radius (px), cruise: its cruising speed (px/s), leader: its name,
+    //      sim: the simulation settings (count, spacing, follow, lead, turbulence, glide,
+    //      seed, preroll, faces, cycle) plus frames, samples (leader samples) and fps }
     function expressions(k) {
         var N = {}, i;
         for (i = 0; i < CONTROLS.length; i++) N[CONTROLS[i].key] = 'v(' + q(CONTROLS[i].name) + ')';
@@ -213,6 +216,60 @@ var FlockRig = (function () {
                 q(k.name + ': can\'t find the leader "' + k.leader + '". Re-run Flock.jsx.') + ' : ' +
                 q(k.name + ': the leader has moved since the bake (up to ') + ' + Math.round(d) + ' +
                 q(' px). The birds still fly the old path: re-run Flock.jsx in this comp.') + ';';
+        }
+        if (k.leader && k.sim) {
+            // The preview (a guide shape layer): the leader's path and where it is now, always;
+            // and, while the leader differs from the bake, a rough guess at the new flock: the
+            // baked formation placed around FlockSim.guess (one "average bird"), scaled by the
+            // flock's size change with the leader's top speed, inside a ring of twice its
+            // radius. Running the whole simulation here would be exact (it is causal) but After
+            // Effects' expressions are ~300x slower than V8: 5-47 s a frame, measured.
+            var s = k.sim, every = Math.max(1, Math.ceil(s.frames / 400));
+            var at = 'var LL = thisComp.layer(' + q(k.leader) + ');\n' +
+                'function leaderAt(t) { var a = LL.toComp(LL.anchorPoint.valueAtTime(t), t); return [a[0], a[1]]; }\n';
+            out.previewPath = '// Flock rig: preview, the leader\'s path over the bake\n' + at +
+                'var pts = [], i;\n' +
+                'for (i = 0; i < ' + s.frames + '; i += ' + every + ') pts.push(leaderAt(' + k.t0 + ' + i / ' + s.fps + '));\n' +
+                'pts.push(leaderAt(' + k.t0 + ' + ' + (s.frames - 1) + ' / ' + s.fps + '));\n' +
+                'createPath(pts, [], [], false);';
+            out.previewLeader = '// Flock rig: preview, the leader now\n' + at + 'leaderAt(time);';
+            // on the preview layer's "Flock Estimate" (a 3D point): [x, y, size factor], once a
+            // frame; off-screen while the leader matches the bake
+            out.previewGuess = '// Flock rig: preview, a rough guess at the new flock (only while the leader has moved)\n' +
+                FLOCK_SIM + '\n' + at +
+                'var est = [-10000, -10000, 1];\n' +
+                'if (thisComp.layer(' + q(k.name + ' Leader Check') + ').transform.opacity.value > 0) {\n' +
+                '    var X = [], Y = [], f, a;\n' +
+                '    for (f = 0; f < ' + s.samples + '; f++) {\n' +
+                '        a = leaderAt(' + k.t0 + ' + f / ' + s.fps + ');\n' +
+                '        X.push(a[0]);\n' +
+                '        Y.push(a[1]);\n' +
+                '    }\n' +
+                '    var fr = Math.round((time - ' + k.t0 + ') * ' + s.fps + ');\n' +
+                '    if (fr < 0) fr = 0;\n' +
+                '    if (fr > ' + (s.frames - 1) + ') fr = ' + (s.frames - 1) + ';\n' +
+                '    var g = FlockSim.guess({ leaderX: X, leaderY: Y, frames: fr + 1, lead: ' + s.lead + ', fps: ' + s.fps +
+                ', count: ' + s.count + ', spacing: ' + s.spacing + ', follow: ' + s.follow + ', turbulence: ' + s.turbulence +
+                ', seed: ' + s.seed + ', preroll: ' + s.preroll + ' });\n' +
+                '    // the flock grows with the leader\'s top speed, above about 13 gaps a second\n' +
+                '    var sz = Math.pow(Math.max(g.cruise, ' + 13 * s.spacing + ') / ' + Math.max(k.cruise, 13 * s.spacing) + ', 0.8);\n' +
+                '    est = [g.x[fr], g.y[fr], sz];\n' +
+                '}\n' +
+                'est;';
+            // each dot: a baked bird's place in its flock (as the controls show it), moved to
+            // the guess and scaled
+            out.previewDot = function (i, bird) {
+                return '// Flock rig: preview bird ' + (i + 1) + '\n' +
+                    'var e = effect("Flock Estimate")(1).value;\n' +
+                    'var b = thisComp.layer(' + q(bird) + ').transform.position.value;\n' +
+                    'var c = thisComp.layer(' + q(k.name + ' Center') + ').transform.position.value;\n' +
+                    '[e[0] + (b[0] - c[0]) * e[2], e[1] + (b[1] - c[1]) * e[2]];';
+            };
+            out.previewRingAt = '// Flock rig: preview, the guess\'s centre\nvar e = effect("Flock Estimate")(1).value;\n[e[0], e[1]];';
+            out.previewRingSize = '// Flock rig: preview, a ring twice the flock\'s radius (most of the birds inside)\n' +
+                'var e = effect("Flock Estimate")(1).value;\n[' + 4 * k.radius + ' * e[2], ' + 4 * k.radius + ' * e[2]];';
+            out.previewShow = '// Flock rig: preview, shown while the leader differs from the bake\n' +
+                'thisComp.layer(' + q(k.name + ' Leader Check') + ').transform.opacity.value;';
         }
         out.position = '// Flock rig: position (shape and scatter)\n' + head +
             'var M = thisComp.layer(' + q(k.name + ' Center') + ');\n' +
@@ -269,6 +326,85 @@ var FlockRig = (function () {
         tf(layer, MN.position).setValue([40, 60]);
     }
 
+    // The preview: a guide shape layer (viewer only, never rendered) with the leader's path
+    // and the leader as it is now, and, while the leader differs from the bake, a dot for each
+    // bird of the flock a re-run would bake. Returns what it built, for the report.
+    var YELLOW = [1, 0.86, 0.2], INK = [0.06, 0.06, 0.08];
+    function addPreview(comp, name, ex, count) {
+        var lay = comp.layers.addShape();
+        lay.name = name + ' Preview';
+        tf(lay, MN.position).setValue([0, 0]);
+        tf(lay, 'ADBE Anchor Point').setValue([0, 0]);
+        var root = lay.property('ADBE Root Vectors Group'), i;
+        function group(parent, gname) {
+            parent.addProperty('ADBE Vector Group').name = gname;
+            return parent.property(gname);
+        }
+        function items(g) {
+            return g.property('ADBE Vectors Group');
+        }
+        function paint(g, fill, strokeW) {
+            if (fill) items(g).addProperty('ADBE Vector Graphic - Fill').property('ADBE Vector Fill Color').setValue(fill);
+            if (strokeW) {
+                var st = items(g).addProperty('ADBE Vector Graphic - Stroke');
+                st.property('ADBE Vector Stroke Color').setValue(INK);
+                st.property('ADBE Vector Stroke Width').setValue(strokeW);
+            }
+        }
+        // the leader's path: yellow over a dark line, readable on any sky
+        var gp = group(root, 'Leader Path');
+        items(gp).addProperty('ADBE Vector Shape - Group').name = 'Path';
+        items(root.property('Leader Path')).property('Path').property('ADBE Vector Shape').expression = ex.previewPath;
+        gp = root.property('Leader Path');
+        var top = items(gp).addProperty('ADBE Vector Graphic - Stroke');
+        top.property('ADBE Vector Stroke Color').setValue(YELLOW);
+        top.property('ADBE Vector Stroke Width').setValue(2);
+        paint(root.property('Leader Path'), null, 5);
+        // the leader now
+        var gl = group(root, 'Leader');
+        items(gl).addProperty('ADBE Vector Shape - Ellipse').name = 'Dot';
+        gl = root.property('Leader');
+        items(gl).property('Dot').property('ADBE Vector Ellipse Size').setValue([18, 18]);
+        items(gl).property('Dot').property('ADBE Vector Ellipse Position').expression = ex.previewLeader;
+        paint(root.property('Leader'), YELLOW, 3);
+        // the rough guess at the new flock: worked out once a frame on a 3D point effect, then
+        // a ring and one dot per baked bird read it
+        lay.property(MN.effects).addProperty('ADBE Point3D Control').name = 'Flock Estimate';
+        lay.property(MN.effects).property('Flock Estimate').property(1).expression = ex.previewGuess;
+        root = lay.property('ADBE Root Vectors Group');
+        var gr = group(root, 'Flock Zone');
+        items(gr).addProperty('ADBE Vector Shape - Ellipse').name = 'Ring';
+        gr = root.property('Flock Zone');
+        items(gr).property('Ring').property('ADBE Vector Ellipse Position').expression = ex.previewRingAt;
+        items(gr).property('Ring').property('ADBE Vector Ellipse Size').expression = ex.previewRingSize;
+        var ring = items(root.property('Flock Zone')).addProperty('ADBE Vector Graphic - Stroke');
+        ring.property('ADBE Vector Stroke Color').setValue(YELLOW);
+        ring.property('ADBE Vector Stroke Width').setValue(2);
+        paint(root.property('Flock Zone'), null, 5);
+        root.property('Flock Zone').property('ADBE Vector Transform Group').property('ADBE Vector Group Opacity').expression = ex.previewShow;
+        var ge = group(root, 'Flock Estimate');
+        for (i = 0; i < count; i++) {
+            ge = root.property('Flock Estimate');
+            var el = items(ge).addProperty('ADBE Vector Shape - Ellipse');
+            el.name = 'Bird ' + (i + 1);
+            ge = root.property('Flock Estimate');
+            items(ge).property('Bird ' + (i + 1)).property('ADBE Vector Ellipse Size').setValue([9, 9]);
+            items(ge).property('Bird ' + (i + 1)).property('ADBE Vector Ellipse Position').expression = ex.previewDot(i, name + ' Bird ' + pad(i + 1, 3));
+        }
+        paint(root.property('Flock Estimate'), YELLOW, 1.5);
+        root.property('Flock Estimate').property('ADBE Vector Transform Group').property('ADBE Vector Group Opacity').expression = ex.previewShow;
+        // the first group in the list draws on top: the leader, then its path, then the guess
+        root.property('Leader').moveTo(1);
+        lay.guideLayer = true;
+        lay.label = 2;
+        lay.locked = true;
+        var engine = '';
+        try {
+            engine = String(app.project.expressionEngine);
+        } catch (e) {}
+        return lay.name + (engine && engine !== 'javascript-1.0' ? ' (the flock estimate needs Project Settings > Expressions > JavaScript; it is ' + engine + ')' : '');
+    }
+
     function addKeyedPoint(layer, name, times, values) {
         layer.property(MN.effects).addProperty(MN.point).name = name;
         layer.property(MN.effects).property(name).property(1).setValuesAtTimes(times, values);
@@ -293,7 +429,7 @@ var FlockRig = (function () {
         var bird = name + ' Bird ', n = 0;
         for (var i = comp.numLayers; i >= 1; i--) {
             var l = comp.layer(i);
-            if (l.name.indexOf(bird) === 0 || l.name === name + ' Center' || l.name === name + ' Leader Check') {
+            if (l.name.indexOf(bird) === 0 || l.name === name + ' Center' || l.name === name + ' Leader Check' || l.name === name + ' Preview') {
                 l.locked = false;
                 l.remove();
                 n++;
@@ -381,7 +517,12 @@ var FlockRig = (function () {
             name: o.name, id: 0, faces: 1, size: 0, offset: 0, cycle: null, turn: null,
             t0: times[0], t1: times[times.length - 1], dt: 1 / fps,
             radius: Math.round(sim.center.radiusRef * 100) / 100, cruise: Math.round(sim.stats.cruise),
-            leader: leader.name
+            leader: leader.name,
+            sim: {
+                count: o.count, spacing: o.spacing, follow: o.follow, lead: o.lead, turbulence: o.turbulence,
+                glide: o.glide, seed: o.seed, preroll: o.preroll, faces: o.faces, cycle: cyc ? cyc.length : 0.5,
+                frames: F, samples: L.x.length, fps: fps
+            }
         };
         var cex = expressions(kf);
         center.property(MN.effects).addProperty(MN.slider).name = 'Shape Window';
@@ -458,8 +599,10 @@ var FlockRig = (function () {
         tf(ck, 'ADBE Opacity').expression = cex.checkOpacity;
         ck.guideLayer = true;
         ck.label = 2;
-        ck.locked = true;
         report.leaderCheck = ck.name;
+        report.preview = addPreview(comp, o.name, cex, sim.order.length);
+        ck.moveToBeginning(); // a locked layer can't be moved: lock it after
+        ck.locked = true;
 
         var saved = {};
         for (k in DEFAULTS) saved[k] = o[k];

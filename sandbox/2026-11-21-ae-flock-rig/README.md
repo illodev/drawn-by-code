@@ -49,8 +49,25 @@ values you set on it; the dialog remembers the last settings.
 **Changed the leader? Re-run.** The birds are a baked simulation, so moving, re-timing or
 re-shaping the leader's path changes nothing until you run Flock.jsx again *in that comp*.
 That includes a copy of the comp: its birds are the original's keys. While the two differ,
-an orange line at the top of the viewer says so and by how much (`Flock Leader Check`, a
+a yellow line at the top of the viewer says so and by how much (`Flock Leader Check`, a
 guide layer: never rendered).
+
+**See roughly where the new flock goes before re-running.** `Flock Preview` (a guide layer:
+in the viewer and RAM previews, never in renders) always draws the leader's path over the
+work area, and the leader as a yellow dot. While the leader differs from the bake, it also
+shows a rough guess at the new flock:
+- **Centre:** one "average bird" flying the new path with the flock's own follow,
+  turbulence and limits.
+- **Dots:** the baked flock's formation around that centre, resized for the new path's
+  speed.
+- **Ring:** twice the flock's radius.
+
+On the demo's moved leader, 93 % of the re-run's birds fell inside the ring, and the guess's
+centre was 50–135 px from the real one. It is a guide for blocking the path. The exact flock
+needs the re-run: running the whole simulation in an expression would be exact, but it took
+5–47 s a frame (After Effects runs expression code about 300× slower than a browser does).
+The guess costs 20–30 ms a frame, and only while the leader has moved. It uses the
+settings of the last run. Turn the layer's eye off to hide it.
 
 ## What you get
 
@@ -66,6 +83,9 @@ guide layer: never rendered).
   `Offset Sum`. Leave these alone.
 - `Flock Leader Check`: the guide text line that appears when the leader has moved since
   the bake.
+- `Flock Preview`: the guide shape layer with the leader's path, the leader, and (while the
+  leader has moved) the rough guess at the new flock; its `Flock Estimate` effect holds the
+  guess (x, y, size factor).
 - `Flock Controls`: the live sliders. No re-run needed for these; their names say what
   they do in the Effect Controls panel:
 

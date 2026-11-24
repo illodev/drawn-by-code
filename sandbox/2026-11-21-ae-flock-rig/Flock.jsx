@@ -552,8 +552,82 @@ var FlockSim = (function () {
         };
     }
 
+    // A rough guess at where the flock's centre goes, cheap enough for an expression (After
+    // Effects' expressions run plain loops ~300x slower than V8: the full simulation took 5-47 s
+    // a frame there). One "average bird" with the flock's own follow force, turbulence and
+    // limits, no neighbours, on the leader's plane. Measured against full simulations on six
+    // paths: about one flock radius off (rms), and 80-90 % of the birds within twice the
+    // radius of it. Returns { x: [], y: [] } per frame and the cruise speed.
+    function guess(o) {
+        var LX = o.leaderX, LY = o.leaderY, FL = LX.length;
+        var F = Math.min(FL, Math.max(1, Math.round(num(o.frames, FL))));
+        var fps = num(o.fps, 24), lead = Math.max(0, num(o.lead, 0));
+        var N = Math.max(1, Math.round(num(o.count, 80))), S = Math.max(2, num(o.spacing, 40));
+        var follow = clamp(num(o.follow, 50), 0, 100) / 100, turb = clamp(num(o.turbulence, 40), 0, 100) / 100;
+        var preroll = Math.max(0, num(o.preroll, 3)), sub = 2, dtF = 1 / fps, dt = dtF / sub, f, k;
+        var LVX = [], LVY = [], vLmax = 0;
+        for (f = 0; f < FL; f++) {
+            var fa = f > 0 ? f - 1 : f, fb = f < FL - 1 ? f + 1 : f;
+            LVX[f] = fb === fa ? 0 : (LX[fb] - LX[fa]) / ((fb - fa) * dtF);
+            LVY[f] = fb === fa ? 0 : (LY[fb] - LY[fa]) / ((fb - fa) * dtF);
+            var sp = sqrt(LVX[f] * LVX[f] + LVY[f] * LVY[f]);
+            if (sp > vLmax) vLmax = sp;
+        }
+        // the simulation's constants and its turbulence (the same seeded waves, drawn first)
+        var cruise = Math.max(vLmax, S * 6), vMax = cruise * 1.6, vMin = cruise * 0.4, aMax = cruise * 3.2;
+        var wf = TAU / (6 * Math.pow(0.1, follow)), kf = wf * wf, df = 0.6 * wf, R = S * Math.pow(N, 1 / 3) * 0.9;
+        var kTurb = turb * cruise * 2.6, waves = makeWaves(rng(num(o.seed, 1) * 7919 + 13), S * 5, S * 14);
+        function at(tau) {
+            if (tau <= 0) return [LX[0] + LVX[0] * tau, LY[0] + LVY[0] * tau, LVX[0], LVY[0]];
+            var u = tau * fps, j = floor(u);
+            if (j >= FL - 1) return [LX[FL - 1], LY[FL - 1], LVX[FL - 1], LVY[FL - 1]];
+            var w = u - j;
+            return [LX[j] + (LX[j + 1] - LX[j]) * w, LY[j] + (LY[j + 1] - LY[j]) * w, LVX[j] + (LVX[j + 1] - LVX[j]) * w, LVY[j] + (LVY[j + 1] - LVY[j]) * w];
+        }
+        var t = -Math.round(preroll * fps) * dtF, L = at(t), x = L[0], y = L[1], vx = L[2], vy = L[3];
+        if (sqrt(vx * vx + vy * vy) < vMin) {
+            vx = vMin;
+            vy = 0;
+        }
+        function step() {
+            L = at(t + lead);
+            var ex = L[0] - x, ey = L[1] - y, ed = sqrt(ex * ex + ey * ey) || 0.001;
+            var ek = ed > R ? (kf * (ed - R + R * 0.1)) / ed : kf * 0.1;
+            var ax = ex * ek + (L[2] - vx) * df + kTurb * wave(waves[0], x, y, 0, t);
+            var ay = ey * ek + (L[3] - vy) * df + kTurb * wave(waves[1], x, y, 0, t);
+            var am = sqrt(ax * ax + ay * ay);
+            if (am > aMax) {
+                ax *= aMax / am;
+                ay *= aMax / am;
+            }
+            var v2 = vx * vx + vy * vy || 1e-6, par = (ax * vx + ay * vy) / v2, lx = ax - par * vx, ly = ay - par * vy;
+            var lm = sqrt(lx * lx + ly * ly), lc = sqrt(v2) * Math.PI;
+            if (lm > lc) {
+                ax = par * vx + (lx * lc) / lm;
+                ay = par * vy + (ly * lc) / lm;
+            }
+            var nvx = vx + ax * dt, nvy = vy + ay * dt, s = sqrt(nvx * nvx + nvy * nvy) || 0.001;
+            var cl = s > vMax ? vMax / s : (s < vMin ? vMin / s : 1);
+            vx = nvx * cl;
+            vy = nvy * cl;
+            x += vx * dt;
+            y += vy * dt;
+            t += dt;
+        }
+        var steps = Math.round(preroll * fps) * sub, outX = [], outY = [];
+        for (k = 0; k < steps; k++) step();
+        outX.push(x);
+        outY.push(y);
+        for (f = 1; f < F; f++) {
+            for (k = 0; k < sub; k++) step();
+            outX.push(x);
+            outY.push(y);
+        }
+        return { x: outX, y: outY, cruise: cruise };
+    }
+
     // 2: nested ?: parenthesized (ExtendScript misread them); 3: speed band, running sums
-    return { run: run, rng: rng, version: 3 };
+    return { run: run, guess: guess, rng: rng, version: 3 };
 })();
 
 // flock-ae.jsx · the After Effects half of Flock.jsx (build.mjs joins it with flock-sim.js
@@ -600,6 +674,7 @@ var FlockRig = (function () {
         { key: 'desync', name: 'Flap Desync % (0 = unison)', value: 100, old: 'Flap Desync' }
     ];
     var FLOCK_MATH = "function flockClump(r, R, clump) {\n    var k = clump / 100;\n    if (k < -0.9) k = -0.9;\n    if (k > 3) k = 3;\n    if (k === 0 || r < 0.000001 || R < 0.000001) return 1;\n    var f = Math.pow(r / R, k);\n    return f < 0.15 ? 0.15 : (f > 3 ? 3 : f);\n}\nfunction flockWindow(spread, len, wid, clump, Rref, budget) {\n    var rTip = 2 * Rref, sp = spread / 100, e = 0, ea = 0, j, f, g, a, b, fr, k = clump / 100;\n    if (k < -0.9) k = -0.9;\n    if (k > 3) k = 3;\n    for (j = 1; j <= 4; j++) {\n        fr = j / 4;\n        f = flockClump(fr * rTip, Rref, clump);\n        g = f > 0.15 && f < 3 ? f * (1 + k) : f;\n        a = Math.max(Math.abs((sp * len * f) / 100 - 1), Math.abs((sp * len * g) / 100 - 1)) * fr;\n        b = Math.max(Math.abs((sp * wid * f) / 100 - 1), Math.abs((sp * wid * g) / 100 - 1)) * fr;\n        if (a > e) e = a;\n        if (b > e) e = b;\n        a = ((sp * Math.abs(len - wid)) / 200) * f * fr;\n        if (a > ea) ea = a;\n    }\n    if (budget <= 0) return 60;\n    var W = (2 * rTip * (e + ea / 0.5)) / budget;\n    return W > 60 ? 60 : W;\n}\nfunction flockSumAt(get, t, t0, t1, dt) {\n    var tc = t < t0 ? t0 : (t > t1 ? t1 : t), a = get(tc);\n    if (tc === t) return [a[0], a[1]];\n    var e = tc === t0 ? get(t0 + dt) : get(t1 - dt), k = (t - tc) / dt;\n    if (tc === t0) return [a[0] + (e[0] - a[0]) * k, a[1] + (e[1] - a[1]) * k];\n    return [a[0] + (a[0] - e[0]) * k, a[1] + (a[1] - e[1]) * k];\n}\nfunction flockMean(get, t, W, t0, t1, dt) {\n    var a = flockSumAt(get, t - W / 2, t0, t1, dt), b = flockSumAt(get, t + W / 2, t0, t1, dt);\n    return [(b[0] - a[0]) / W, (b[1] - a[1]) / W];\n}\nfunction flockShape(mx, my, dx, dy, ax, ay, R, spread, len, wid, ang, clump) {\n    var f = flockClump(Math.sqrt(mx * mx + my * my), R, clump);\n    var n = Math.sqrt(ax * ax + ay * ay), g = n > 0.5 ? n : 0.5;\n    var a2 = (ang * Math.PI) / 90, c = Math.cos(a2), s = Math.sin(a2);\n    var bx = (ax * c - ay * s) / g, by = (ax * s + ay * c) / g;\n    var sp = (spread / 100) * f, m = (len + wid) / 200, d = (len - wid) / 200;\n    var u = mx * (m + d * bx) + my * d * by, v = mx * d * by + my * (m - d * bx);\n    return [u * sp + dx - mx, v * sp + dy - my];\n}\nfunction flockScatterSpeed(spd, amt, budget) {\n    var cap = budget / (4 * amt);\n    return spd < cap ? spd : cap;\n}\nfunction flockFacing(face, faces, minW, headOn, hasTurn) {\n    var w = Math.abs(face), sg = face < 0 ? -1 : 1;\n    if (minW < 0) minW = 0;\n    if (minW > 1) minW = 1;\n    if (hasTurn && headOn > 0) {\n        if (headOn >= 1) return w >= 1 ? [sg * faces, 0] : [1, 1];\n        if (w < headOn) return [1, 1];\n        w = (w - headOn) / (1 - headOn);\n    }\n    return [sg * faces * (minW + (1 - minW) * w), 0];\n}\nfunction flockSize(d, persp, size, sizeVar, r) {\n    return Math.pow(d, persp / 100) * (size / 100) * (1 + (sizeVar / 100) * r) * 100;\n}\nfunction flockScale(fac, s, up) {\n    return fac[1] ? [up * s, up * s] : [fac[0] * s, up * s];\n}\nfunction flockOrient(rot, orient) {\n    var level = Math.round(rot / 180) * 180;\n    return level + ((rot - level) * orient) / 100;\n}\nfunction flockCycle(p, R, speed, desync) {\n    var q = ((p - R) * speed) / 100 + (R * desync) / 100;\n    return q - Math.floor(q);\n}"; // build.mjs puts flock-math.js here (comments stripped)
+    var FLOCK_SIM = "var FlockSim = (function () {\n    var TAU = Math.PI * 2;\n    var sqrt = Math.sqrt, floor = Math.floor, sin = Math.sin;\n    function rng(seed) {\n        var s = (floor(Math.abs(seed)) % 2147483646) + 1;\n        return function () {\n            s = (s * 16807) % 2147483647;\n            return (s - 1) / 2147483646;\n        };\n    }\n    function clamp(v, a, b) {\n        return v < a ? a : (v > b ? b : v);\n    }\n    function num(v, d) {\n        return typeof v === 'number' && !isNaN(v) ? v : d;\n    }\n    function makeWaves(rand, lambdaMin, lambdaMax) {\n        var axes = [], a, k, dx, dy, dz, len, lam, per;\n        for (a = 0; a < 3; a++) {\n            var w = [];\n            for (k = 0; k < 4; k++) {\n                dx = rand() * 2 - 1;\n                dy = rand() * 2 - 1;\n                dz = rand() * 2 - 1;\n                len = sqrt(dx * dx + dy * dy + dz * dz) || 1;\n                lam = lambdaMin + (lambdaMax - lambdaMin) * rand();\n                per = 2 + 3 * rand();\n                w.push({\n                    kx: (dx / len) * (TAU / lam),\n                    ky: (dy / len) * (TAU / lam),\n                    kz: (dz / len) * (TAU / lam),\n                    w: TAU / per,\n                    ph: TAU * rand()\n                });\n            }\n            axes.push(w);\n        }\n        return axes;\n    }\n    function wave(ws, x, y, z, t) {\n        var s = 0, i, q;\n        for (i = 0; i < ws.length; i++) {\n            q = ws[i];\n            s += sin(q.kx * x + q.ky * y + q.kz * z + q.w * t + q.ph);\n        }\n        return s * 0.5;\n    }\n    function run(o) {\n        var LX = o.leaderX, LY = o.leaderY;\n        var FL = LX.length;\n        if (!FL || LY.length !== FL) throw new Error('FlockSim: leaderX and leaderY need the same, non-zero length');\n        var F = Math.min(FL, Math.max(1, Math.round(num(o.frames, FL))));\n        var fps = num(o.fps, 24);\n        var lead = Math.max(0, num(o.lead, 0));\n        var N = Math.max(1, Math.round(num(o.count, 80)));\n        var S = Math.max(2, num(o.spacing, 40));\n        var follow = clamp(num(o.follow, 50), 0, 100) / 100;\n        var turb = clamp(num(o.turbulence, 40), 0, 100) / 100;\n        var glide = clamp(num(o.glide, 50), 0, 100) / 100;\n        var preroll = Math.max(0, num(o.preroll, 3));\n        var sub = Math.max(1, Math.round(num(o.substeps, 2)));\n        var cycle = Math.max(1 / fps, num(o.cycle, 0.5));\n        var faces = o.faces === -1 ? -1 : 1;\n        var zUnit = S * Math.max(0.5, num(o.depthUnit, 5));\n        var rand = rng(num(o.seed, 1) * 7919 + 13);\n        var dtF = 1 / fps, dt = dtF / sub;\n        var f, i, j;\n        var LVX = [], LVY = [], vLmax = 0;\n        for (f = 0; f < FL; f++) {\n            var fa = f > 0 ? f - 1 : f, fb = f < FL - 1 ? f + 1 : f;\n            var span = (fb - fa) * dtF || dtF;\n            LVX[f] = fb === fa ? 0 : (LX[fb] - LX[fa]) / span;\n            LVY[f] = fb === fa ? 0 : (LY[fb] - LY[fa]) / span;\n            var sp = sqrt(LVX[f] * LVX[f] + LVY[f] * LVY[f]);\n            if (sp > vLmax) vLmax = sp;\n        }\n        var cruise = Math.max(vLmax, S * 6);\n        var vMax = cruise * 1.6, vMin = cruise * 0.4;\n        var band = clamp(num(o.speedBand, 0.12), 0, 1);\n        var aMax = cruise * 3.2;\n        var sepR = S, percR = S * 2.5, cell = percR, percR2 = percR * percR;\n        var Tf = 6 * Math.pow(0.1, follow);\n        var wf = TAU / Tf, kf = wf * wf, df = 0.6 * wf;\n        var R = S * Math.pow(N, 1 / 3) * 0.9;\n        var kSep = cruise * 10, tAli = 0.5, kCoh = 1.2;\n        var kTurb = turb * cruise * 2.6;\n        var waves = makeWaves(rand, S * 5, S * 14);\n        var tauV = 0.12;\n        var wMax = Math.PI;\n        function leaderAt(tau, out) {\n            if (tau <= 0) {\n                out[0] = LX[0] + LVX[0] * tau;\n                out[1] = LY[0] + LVY[0] * tau;\n                out[2] = LVX[0];\n                out[3] = LVY[0];\n                return;\n            }\n            var u = tau * fps, k = floor(u);\n            if (k >= FL - 1) {\n                out[0] = LX[FL - 1];\n                out[1] = LY[FL - 1];\n                out[2] = LVX[FL - 1];\n                out[3] = LVY[FL - 1];\n                return;\n            }\n            var w = u - k;\n            out[0] = LX[k] + (LX[k + 1] - LX[k]) * w;\n            out[1] = LY[k] + (LY[k + 1] - LY[k]) * w;\n            out[2] = LVX[k] + (LVX[k + 1] - LVX[k]) * w;\n            out[3] = LVY[k] + (LVY[k + 1] - LVY[k]) * w;\n        }\n        var px = [], py = [], pz = [], vx = [], vy = [], vz = [], sx = [], sy = [], sz = [];\n        var L = [0, 0, 0, 0];\n        var steps = Math.round(preroll * fps) * sub;\n        var t0 = -steps * dt;\n        leaderAt(t0, L);\n        var r0 = S * Math.pow(N, 1 / 3) * 0.75;\n        for (i = 0; i < N; i++) {\n            var ux, uy, uz, uu;\n            do {\n                ux = rand() * 2 - 1;\n                uy = rand() * 2 - 1;\n                uz = rand() * 2 - 1;\n                uu = ux * ux + uy * uy + uz * uz;\n            } while (uu > 1);\n            px[i] = L[0] + ux * r0;\n            py[i] = L[1] + uy * r0;\n            pz[i] = uz * r0;\n            vx[i] = L[2] + (rand() * 2 - 1) * cruise * 0.3;\n            vy[i] = L[3] + (rand() * 2 - 1) * cruise * 0.3;\n            vz[i] = (rand() * 2 - 1) * cruise * 0.2;\n            var s0 = sqrt(vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i]);\n            if (s0 < vMin) {\n                var ang = TAU * rand();\n                vx[i] = Math.cos(ang) * vMin;\n                vy[i] = Math.sin(ang) * vMin;\n            }\n            sx[i] = vx[i];\n            sy[i] = vy[i];\n            sz[i] = vz[i];\n        }\n        var ax = [], ay = [], az = [];\n        var aSm = 1 - Math.exp(-dt / tauV);\n        var next = [], cellOf = [], head = [];\n        function step(t) {\n            leaderAt(t + lead, L);\n            var mS = 0;\n            for (i = 0; i < N; i++) mS += sqrt(vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i]);\n            mS /= N;\n            var lo = Math.max(vMin, mS * (1 - band)), hi = Math.min(vMax, mS * (1 + band));\n            var mnx = px[0], mny = py[0], mnz = pz[0], mxx = mnx, mxy = mny, mxz = mnz;\n            for (i = 1; i < N; i++) {\n                if (px[i] < mnx) mnx = px[i];\n                else if (px[i] > mxx) mxx = px[i];\n                if (py[i] < mny) mny = py[i];\n                else if (py[i] > mxy) mxy = py[i];\n                if (pz[i] < mnz) mnz = pz[i];\n                else if (pz[i] > mxz) mxz = pz[i];\n            }\n            var ext = Math.max(mxx - mnx, mxy - mny, mxz - mnz);\n            var cs = Math.max(cell, ext / 15.5);\n            var nx = floor((mxx - mnx) / cs) + 1, ny = floor((mxy - mny) / cs) + 1, nz = floor((mxz - mnz) / cs) + 1;\n            var nxy = nx * ny, nc = nxy * nz, c, gx, gy, gz, ci, cj, ck;\n            for (c = 0; c < nc; c++) head[c] = -1;\n            for (i = 0; i < N; i++) {\n                c = floor((px[i] - mnx) / cs) + floor((py[i] - mny) / cs) * nx + floor((pz[i] - mnz) / cs) * nxy;\n                cellOf[i] = c;\n                next[i] = head[c];\n                head[c] = i;\n            }\n            for (i = 0; i < N; i++) {\n                var xi = px[i], yi = py[i], zi = pz[i];\n                c = cellOf[i];\n                gz = floor(c / nxy);\n                gy = floor((c - gz * nxy) / nx);\n                gx = c - gz * nxy - gy * nx;\n                var sepX = 0, sepY = 0, sepZ = 0, aliX = 0, aliY = 0, aliZ = 0, cohX = 0, cohY = 0, cohZ = 0, wsum = 0;\n                for (ck = gz > 0 ? gz - 1 : 0; ck <= gz + 1 && ck < nz; ck++) {\n                    for (cj = gy > 0 ? gy - 1 : 0; cj <= gy + 1 && cj < ny; cj++) {\n                        for (ci = gx > 0 ? gx - 1 : 0; ci <= gx + 1 && ci < nx; ci++) {\n                            for (j = head[ci + cj * nx + ck * nxy]; j !== -1; j = next[j]) {\n                                if (j === i) continue;\n                                var dx = xi - px[j], dy = yi - py[j], dz = zi - pz[j];\n                                var d2 = dx * dx + dy * dy + dz * dz;\n                                if (d2 >= percR2) continue;\n                                var d = sqrt(d2) || 0.001;\n                                var w = 1 - d / percR;\n                                aliX += vx[j] * w;\n                                aliY += vy[j] * w;\n                                aliZ += vz[j] * w;\n                                cohX += px[j] * w;\n                                cohY += py[j] * w;\n                                cohZ += pz[j] * w;\n                                wsum += w;\n                                if (d < sepR) {\n                                    var q = (1 - d / sepR) / d;\n                                    sepX += dx * q;\n                                    sepY += dy * q;\n                                    sepZ += dz * q;\n                                }\n                            }\n                        }\n                    }\n                }\n                var ex = L[0] - xi, ey = L[1] - yi, ez = 0 - zi;\n                var ed = sqrt(ex * ex + ey * ey + ez * ez) || 0.001;\n                var ek = ed > R ? (kf * (ed - R + R * 0.1)) / ed : kf * 0.1;\n                var fx = ex * ek + (L[2] - vx[i]) * df;\n                var fy = ey * ek + (L[3] - vy[i]) * df;\n                var fz = ez * ek + (0 - vz[i]) * df;\n                var mx = fx + sepX * kSep, my = fy + sepY * kSep, mz = fz + sepZ * kSep;\n                if (wsum > 0) {\n                    mx += (aliX / wsum - vx[i]) / tAli + (cohX / wsum - xi) * kCoh;\n                    my += (aliY / wsum - vy[i]) / tAli + (cohY / wsum - yi) * kCoh;\n                    mz += (aliZ / wsum - vz[i]) / tAli + (cohZ / wsum - zi) * kCoh;\n                }\n                if (kTurb > 0) {\n                    mx += kTurb * wave(waves[0], xi, yi, zi, t);\n                    my += kTurb * wave(waves[1], xi, yi, zi, t);\n                    mz += kTurb * wave(waves[2], xi, yi, zi, t);\n                }\n                var am = sqrt(mx * mx + my * my + mz * mz);\n                if (am > aMax) {\n                    mx *= aMax / am;\n                    my *= aMax / am;\n                    mz *= aMax / am;\n                }\n                ax[i] = mx;\n                ay[i] = my;\n                az[i] = mz;\n            }\n            for (i = 0; i < N; i++) {\n                var v2 = vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i] || 1e-6;\n                var par = (ax[i] * vx[i] + ay[i] * vy[i] + az[i] * vz[i]) / v2;\n                var lx = ax[i] - par * vx[i], ly = ay[i] - par * vy[i], lz = az[i] - par * vz[i];\n                var lm = sqrt(lx * lx + ly * ly + lz * lz), lcap = sqrt(v2) * wMax;\n                if (lm > lcap) {\n                    ax[i] = par * vx[i] + (lx * lcap) / lm;\n                    ay[i] = par * vy[i] + (ly * lcap) / lm;\n                    az[i] = par * vz[i] + (lz * lcap) / lm;\n                }\n                var nvx = vx[i] + ax[i] * dt, nvy = vy[i] + ay[i] * dt, nvz = vz[i] + az[i] * dt;\n                var s = sqrt(nvx * nvx + nvy * nvy + nvz * nvz) || 0.001;\n                var cl = s > hi ? hi / s : (s < lo ? lo / s : 1);\n                vx[i] = nvx * cl;\n                vy[i] = nvy * cl;\n                vz[i] = nvz * cl;\n                px[i] += vx[i] * dt;\n                py[i] += vy[i] * dt;\n                pz[i] += vz[i] * dt;\n                sx[i] += (vx[i] - sx[i]) * aSm;\n                sy[i] += (vy[i] - sy[i]) * aSm;\n                sz[i] += (vz[i] - sz[i]) * aSm;\n            }\n        }\n        var birds = [];\n        for (i = 0; i < N; i++) {\n            birds.push({\n                x: [], y: [], z: [], vx: [], vy: [], vz: [],\n                size: rand() * 2 - 1, offset: rand(), rate: 1 + 0.12 * (rand() * 2 - 1),\n                flip: 0.3 + 0.2 * rand(), hyst: 0.15 + 0.2 * rand()\n            });\n        }\n        function record(f) {\n            for (i = 0; i < N; i++) {\n                var b = birds[i];\n                b.x[f] = px[i];\n                b.y[f] = py[i];\n                b.z[f] = pz[i];\n                b.vx[f] = sx[i];\n                b.vy[f] = sy[i];\n                b.vz[f] = sz[i];\n            }\n        }\n        var st, t = t0;\n        for (st = 0; st < steps; st++) {\n            step(t);\n            t += dt;\n        }\n        record(0);\n        for (f = 1; f < F; f++) {\n            for (st = 0; st < sub; st++) {\n                step(t);\n                t += dt;\n            }\n            record(f);\n            if (o.progress && f % 10 === 0) o.progress(f / F);\n        }\n        var maxTurn = 240;\n        var cx = [], cy = [];\n        for (f = 0; f < F; f++) {\n            cx[f] = 0;\n            cy[f] = 0;\n        }\n        for (i = 0; i < N; i++) {\n            var B = birds[i];\n            B.rot = [];\n            B.face = [];\n            B.up = [];\n            B.sx = [];\n            B.sy = [];\n            B.ds = [];\n            B.phase = [];\n            var flipRate = 2 / B.flip;\n            var face = B.vx[0] < 0 ? -1 : 1, target = face, ph = B.offset, pitch = 0;\n            var rot = 0, side = 1;\n            for (f = 0; f < F; f++) {\n                var hx = B.vx[f], hy = B.vy[f], hz = B.vz[f];\n                var hxy = sqrt(hx * hx + hy * hy);\n                var h3 = sqrt(hx * hx + hy * hy + hz * hz) || 1;\n                var pt = (Math.atan2(hy, Math.abs(hx)) * 180) / Math.PI;\n                if (f === 0) pitch = pt;\n                else {\n                    var dp = (pt - pitch) * clamp((2 * hxy) / h3, 0, 1);\n                    pitch += clamp(dp, -maxTurn * dtF, maxTurn * dtF);\n                }\n                if (hxy > 1e-6) {\n                    var h = hx / hxy, hy0 = Math.abs(pitch) > 55 ? 0.05 : B.hyst;\n                    if (h > hy0) target = 1;\n                    else if (h < -hy0) target = -1;\n                }\n                if (f > 0) {\n                    if (Math.abs(pitch) > 55 && Math.abs(face) === 1) face = target;\n                    else {\n                        var rate = flipRate / Math.max(0.12, Math.cos((pitch * Math.PI) / 180));\n                        if (face < target) face = Math.min(target, face + rate * dtF);\n                        else if (face > target) face = Math.max(target, face - rate * dtF);\n                    }\n                }\n                var rN = face * pitch;\n                if (f === 0) {\n                    rot = rN;\n                    side = 1;\n                } else {\n                    var ra = rN, rb = rN + 180;\n                    while (ra - rot > 180) ra -= 360;\n                    while (ra - rot < -180) ra += 360;\n                    while (rb - rot > 180) rb -= 360;\n                    while (rb - rot < -180) rb += 360;\n                    var keep = side === 1 ? ra : rb, other = side === 1 ? rb : ra, prev = rot;\n                    if (Math.abs(other - rot) + 1 < Math.abs(keep - rot)) {\n                        side = -side;\n                        rot = other;\n                    } else rot = keep;\n                    rot = prev + clamp(rot - prev, -600 * dtF, 600 * dtF);\n                }\n                var dsc = clamp(Math.pow(2, -B.z[f] / zUnit), 0.25, 4);\n                B.rot[f] = rot;\n                B.face[f] = face * side;\n                B.up[f] = side;\n                B.ds[f] = dsc;\n                B.sy[f] = 100 * dsc * side;\n                B.sx[f] = 100 * dsc * face * side * faces;\n                var climb = -hy / h3;\n                var mod = climb > 0 ? 1 + 0.5 * glide * climb : 1 - 0.75 * glide * -climb;\n                if (f > 0) ph += (B.rate * mod * dtF) / cycle;\n                B.phase[f] = ph;\n                cx[f] += B.x[f] / N;\n                cy[f] += B.y[f] / N;\n            }\n        }\n        var order = [], meanZ = [];\n        for (i = 0; i < N; i++) {\n            var zs = 0;\n            for (f = 0; f < F; f++) zs += birds[i].z[f];\n            meanZ[i] = zs / F;\n            order.push(i);\n        }\n        order.sort(function (a, b) {\n            return meanZ[a] - meanZ[b] || a - b;\n        });\n        var rad = [], hd = [], hvx = [], hvy = [];\n        for (f = 0; f < F; f++) {\n            var s2 = 0;\n            for (i = 0; i < N; i++) {\n                var ddx = birds[i].x[f] - cx[f], ddy = birds[i].y[f] - cy[f];\n                s2 += ddx * ddx + ddy * ddy;\n            }\n            rad[f] = sqrt(s2 / N);\n            var fa2 = f > 0 ? f - 1 : f, fb2 = f < F - 1 ? f + 1 : f;\n            hvx[f] = fb2 === fa2 ? 0 : (cx[fb2] - cx[fa2]) / ((fb2 - fa2) * dtF);\n            hvy[f] = fb2 === fa2 ? 0 : (cy[fb2] - cy[fa2]) / ((fb2 - fa2) * dtF);\n        }\n        var aH = 1 - Math.exp(-dtF / 0.4);\n        for (f = 1; f < F; f++) {\n            hvx[f] += (hvx[f - 1] - hvx[f]) * (1 - aH);\n            hvy[f] += (hvy[f - 1] - hvy[f]) * (1 - aH);\n        }\n        for (f = F - 2; f >= 0; f--) {\n            hvx[f] += (hvx[f + 1] - hvx[f]) * (1 - aH);\n            hvy[f] += (hvy[f + 1] - hvy[f]) * (1 - aH);\n        }\n        var prevA = null;\n        for (f = 0; f < F; f++) {\n            var hs = sqrt(hvx[f] * hvx[f] + hvy[f] * hvy[f]);\n            var ang = (Math.atan2(hvy[f], hvx[f]) * 180) / Math.PI;\n            if (prevA === null) prevA = ang;\n            else {\n                var dA = ang - prevA;\n                while (dA > 90) dA -= 180;\n                while (dA < -90) dA += 180;\n                dA *= clamp(hs / (0.3 * cruise), 0, 1);\n                prevA += clamp(dA, -240 * dtF, 240 * dtF);\n            }\n            hd[f] = prevA;\n        }\n        var axX = [0], axY = [0], rSum = [0], ux0 = 0, uy0 = 0;\n        for (f = 0; f < F; f++) {\n            var tr = clamp(sqrt(hvx[f] * hvx[f] + hvy[f] * hvy[f]) / (0.3 * cruise), 0, 1);\n            var h2 = 2 * Math.atan2(hvy[f], hvx[f]);\n            var ux = tr * Math.cos(h2), uy = tr * Math.sin(h2);\n            if (f > 0) {\n                axX[f] = axX[f - 1] + ((ux0 + ux) / 2) * dtF;\n                axY[f] = axY[f - 1] + ((uy0 + uy) / 2) * dtF;\n                rSum[f] = rSum[f - 1] + ((rad[f - 1] + rad[f]) / 2) * dtF;\n            }\n            ux0 = ux;\n            uy0 = uy;\n        }\n        for (i = 0; i < N; i++) {\n            var Bs = birds[i], ox0 = 0, oy0 = 0;\n            Bs.sumX = [0];\n            Bs.sumY = [0];\n            for (f = 0; f < F; f++) {\n                var ox = Bs.x[f] - cx[f], oy = Bs.y[f] - cy[f];\n                if (f > 0) {\n                    Bs.sumX[f] = Bs.sumX[f - 1] + ((ox0 + ox) / 2) * dtF;\n                    Bs.sumY[f] = Bs.sumY[f - 1] + ((oy0 + oy) / 2) * dtF;\n                }\n                ox0 = ox;\n                oy0 = oy;\n            }\n        }\n        var rs = rad.slice(0);\n        rs.sort(function (a, b) {\n            return a - b;\n        });\n        return {\n            frames: F,\n            fps: fps,\n            birds: birds,\n            order: order,\n            center: { x: cx, y: cy, radius: rad, heading: hd, radiusRef: rs[floor(F / 2)], radiusSum: rSum, axisX: axX, axisY: axY },\n            stats: { cruise: cruise, vMin: vMin, vMax: vMax, leaderMax: vLmax, steps: steps + (F - 1) * sub }\n        };\n    }\n    function guess(o) {\n        var LX = o.leaderX, LY = o.leaderY, FL = LX.length;\n        var F = Math.min(FL, Math.max(1, Math.round(num(o.frames, FL))));\n        var fps = num(o.fps, 24), lead = Math.max(0, num(o.lead, 0));\n        var N = Math.max(1, Math.round(num(o.count, 80))), S = Math.max(2, num(o.spacing, 40));\n        var follow = clamp(num(o.follow, 50), 0, 100) / 100, turb = clamp(num(o.turbulence, 40), 0, 100) / 100;\n        var preroll = Math.max(0, num(o.preroll, 3)), sub = 2, dtF = 1 / fps, dt = dtF / sub, f, k;\n        var LVX = [], LVY = [], vLmax = 0;\n        for (f = 0; f < FL; f++) {\n            var fa = f > 0 ? f - 1 : f, fb = f < FL - 1 ? f + 1 : f;\n            LVX[f] = fb === fa ? 0 : (LX[fb] - LX[fa]) / ((fb - fa) * dtF);\n            LVY[f] = fb === fa ? 0 : (LY[fb] - LY[fa]) / ((fb - fa) * dtF);\n            var sp = sqrt(LVX[f] * LVX[f] + LVY[f] * LVY[f]);\n            if (sp > vLmax) vLmax = sp;\n        }\n        var cruise = Math.max(vLmax, S * 6), vMax = cruise * 1.6, vMin = cruise * 0.4, aMax = cruise * 3.2;\n        var wf = TAU / (6 * Math.pow(0.1, follow)), kf = wf * wf, df = 0.6 * wf, R = S * Math.pow(N, 1 / 3) * 0.9;\n        var kTurb = turb * cruise * 2.6, waves = makeWaves(rng(num(o.seed, 1) * 7919 + 13), S * 5, S * 14);\n        function at(tau) {\n            if (tau <= 0) return [LX[0] + LVX[0] * tau, LY[0] + LVY[0] * tau, LVX[0], LVY[0]];\n            var u = tau * fps, j = floor(u);\n            if (j >= FL - 1) return [LX[FL - 1], LY[FL - 1], LVX[FL - 1], LVY[FL - 1]];\n            var w = u - j;\n            return [LX[j] + (LX[j + 1] - LX[j]) * w, LY[j] + (LY[j + 1] - LY[j]) * w, LVX[j] + (LVX[j + 1] - LVX[j]) * w, LVY[j] + (LVY[j + 1] - LVY[j]) * w];\n        }\n        var t = -Math.round(preroll * fps) * dtF, L = at(t), x = L[0], y = L[1], vx = L[2], vy = L[3];\n        if (sqrt(vx * vx + vy * vy) < vMin) {\n            vx = vMin;\n            vy = 0;\n        }\n        function step() {\n            L = at(t + lead);\n            var ex = L[0] - x, ey = L[1] - y, ed = sqrt(ex * ex + ey * ey) || 0.001;\n            var ek = ed > R ? (kf * (ed - R + R * 0.1)) / ed : kf * 0.1;\n            var ax = ex * ek + (L[2] - vx) * df + kTurb * wave(waves[0], x, y, 0, t);\n            var ay = ey * ek + (L[3] - vy) * df + kTurb * wave(waves[1], x, y, 0, t);\n            var am = sqrt(ax * ax + ay * ay);\n            if (am > aMax) {\n                ax *= aMax / am;\n                ay *= aMax / am;\n            }\n            var v2 = vx * vx + vy * vy || 1e-6, par = (ax * vx + ay * vy) / v2, lx = ax - par * vx, ly = ay - par * vy;\n            var lm = sqrt(lx * lx + ly * ly), lc = sqrt(v2) * Math.PI;\n            if (lm > lc) {\n                ax = par * vx + (lx * lc) / lm;\n                ay = par * vy + (ly * lc) / lm;\n            }\n            var nvx = vx + ax * dt, nvy = vy + ay * dt, s = sqrt(nvx * nvx + nvy * nvy) || 0.001;\n            var cl = s > vMax ? vMax / s : (s < vMin ? vMin / s : 1);\n            vx = nvx * cl;\n            vy = nvy * cl;\n            x += vx * dt;\n            y += vy * dt;\n            t += dt;\n        }\n        var steps = Math.round(preroll * fps) * sub, outX = [], outY = [];\n        for (k = 0; k < steps; k++) step();\n        outX.push(x);\n        outY.push(y);\n        for (f = 1; f < F; f++) {\n            for (k = 0; k < sub; k++) step();\n            outX.push(x);\n            outY.push(y);\n        }\n        return { x: outX, y: outY, cruise: cruise };\n    }\n    return { run: run, guess: guess, rng: rng, version: 3 };\n})();";  // and flock-sim.js here: the preview re-runs the simulation live
     // The most the live controls may add to a bird's speed, as a share of the flock's
     // cruising speed: the shape controls, then the scatter on top.
     var SHAPE_BUDGET = 0.35, SCATTER_BUDGET = 0.1;
@@ -719,7 +794,9 @@ var FlockRig = (function () {
     // k: { name, id (bird number), faces (1 | -1), size (-1 … 1), offset (0 … 1),
     //      cycle: { start, length } | null, turn: { start, length } | null,
     //      t0, t1: first and last baked key (s), dt: one frame (s), radius: the flock's
-    //      typical RMS radius (px), cruise: its cruising speed (px/s), leader: its name }
+    //      typical RMS radius (px), cruise: its cruising speed (px/s), leader: its name,
+    //      sim: the simulation settings (count, spacing, follow, lead, turbulence, glide,
+    //      seed, preroll, faces, cycle) plus frames, samples (leader samples) and fps }
     function expressions(k) {
         var N = {}, i;
         for (i = 0; i < CONTROLS.length; i++) N[CONTROLS[i].key] = 'v(' + q(CONTROLS[i].name) + ')';
@@ -771,6 +848,60 @@ var FlockRig = (function () {
                 q(k.name + ': can\'t find the leader "' + k.leader + '". Re-run Flock.jsx.') + ' : ' +
                 q(k.name + ': the leader has moved since the bake (up to ') + ' + Math.round(d) + ' +
                 q(' px). The birds still fly the old path: re-run Flock.jsx in this comp.') + ';';
+        }
+        if (k.leader && k.sim) {
+            // The preview (a guide shape layer): the leader's path and where it is now, always;
+            // and, while the leader differs from the bake, a rough guess at the new flock: the
+            // baked formation placed around FlockSim.guess (one "average bird"), scaled by the
+            // flock's size change with the leader's top speed, inside a ring of twice its
+            // radius. Running the whole simulation here would be exact (it is causal) but After
+            // Effects' expressions are ~300x slower than V8: 5-47 s a frame, measured.
+            var s = k.sim, every = Math.max(1, Math.ceil(s.frames / 400));
+            var at = 'var LL = thisComp.layer(' + q(k.leader) + ');\n' +
+                'function leaderAt(t) { var a = LL.toComp(LL.anchorPoint.valueAtTime(t), t); return [a[0], a[1]]; }\n';
+            out.previewPath = '// Flock rig: preview, the leader\'s path over the bake\n' + at +
+                'var pts = [], i;\n' +
+                'for (i = 0; i < ' + s.frames + '; i += ' + every + ') pts.push(leaderAt(' + k.t0 + ' + i / ' + s.fps + '));\n' +
+                'pts.push(leaderAt(' + k.t0 + ' + ' + (s.frames - 1) + ' / ' + s.fps + '));\n' +
+                'createPath(pts, [], [], false);';
+            out.previewLeader = '// Flock rig: preview, the leader now\n' + at + 'leaderAt(time);';
+            // on the preview layer's "Flock Estimate" (a 3D point): [x, y, size factor], once a
+            // frame; off-screen while the leader matches the bake
+            out.previewGuess = '// Flock rig: preview, a rough guess at the new flock (only while the leader has moved)\n' +
+                FLOCK_SIM + '\n' + at +
+                'var est = [-10000, -10000, 1];\n' +
+                'if (thisComp.layer(' + q(k.name + ' Leader Check') + ').transform.opacity.value > 0) {\n' +
+                '    var X = [], Y = [], f, a;\n' +
+                '    for (f = 0; f < ' + s.samples + '; f++) {\n' +
+                '        a = leaderAt(' + k.t0 + ' + f / ' + s.fps + ');\n' +
+                '        X.push(a[0]);\n' +
+                '        Y.push(a[1]);\n' +
+                '    }\n' +
+                '    var fr = Math.round((time - ' + k.t0 + ') * ' + s.fps + ');\n' +
+                '    if (fr < 0) fr = 0;\n' +
+                '    if (fr > ' + (s.frames - 1) + ') fr = ' + (s.frames - 1) + ';\n' +
+                '    var g = FlockSim.guess({ leaderX: X, leaderY: Y, frames: fr + 1, lead: ' + s.lead + ', fps: ' + s.fps +
+                ', count: ' + s.count + ', spacing: ' + s.spacing + ', follow: ' + s.follow + ', turbulence: ' + s.turbulence +
+                ', seed: ' + s.seed + ', preroll: ' + s.preroll + ' });\n' +
+                '    // the flock grows with the leader\'s top speed, above about 13 gaps a second\n' +
+                '    var sz = Math.pow(Math.max(g.cruise, ' + 13 * s.spacing + ') / ' + Math.max(k.cruise, 13 * s.spacing) + ', 0.8);\n' +
+                '    est = [g.x[fr], g.y[fr], sz];\n' +
+                '}\n' +
+                'est;';
+            // each dot: a baked bird's place in its flock (as the controls show it), moved to
+            // the guess and scaled
+            out.previewDot = function (i, bird) {
+                return '// Flock rig: preview bird ' + (i + 1) + '\n' +
+                    'var e = effect("Flock Estimate")(1).value;\n' +
+                    'var b = thisComp.layer(' + q(bird) + ').transform.position.value;\n' +
+                    'var c = thisComp.layer(' + q(k.name + ' Center') + ').transform.position.value;\n' +
+                    '[e[0] + (b[0] - c[0]) * e[2], e[1] + (b[1] - c[1]) * e[2]];';
+            };
+            out.previewRingAt = '// Flock rig: preview, the guess\'s centre\nvar e = effect("Flock Estimate")(1).value;\n[e[0], e[1]];';
+            out.previewRingSize = '// Flock rig: preview, a ring twice the flock\'s radius (most of the birds inside)\n' +
+                'var e = effect("Flock Estimate")(1).value;\n[' + 4 * k.radius + ' * e[2], ' + 4 * k.radius + ' * e[2]];';
+            out.previewShow = '// Flock rig: preview, shown while the leader differs from the bake\n' +
+                'thisComp.layer(' + q(k.name + ' Leader Check') + ').transform.opacity.value;';
         }
         out.position = '// Flock rig: position (shape and scatter)\n' + head +
             'var M = thisComp.layer(' + q(k.name + ' Center') + ');\n' +
@@ -827,6 +958,85 @@ var FlockRig = (function () {
         tf(layer, MN.position).setValue([40, 60]);
     }
 
+    // The preview: a guide shape layer (viewer only, never rendered) with the leader's path
+    // and the leader as it is now, and, while the leader differs from the bake, a dot for each
+    // bird of the flock a re-run would bake. Returns what it built, for the report.
+    var YELLOW = [1, 0.86, 0.2], INK = [0.06, 0.06, 0.08];
+    function addPreview(comp, name, ex, count) {
+        var lay = comp.layers.addShape();
+        lay.name = name + ' Preview';
+        tf(lay, MN.position).setValue([0, 0]);
+        tf(lay, 'ADBE Anchor Point').setValue([0, 0]);
+        var root = lay.property('ADBE Root Vectors Group'), i;
+        function group(parent, gname) {
+            parent.addProperty('ADBE Vector Group').name = gname;
+            return parent.property(gname);
+        }
+        function items(g) {
+            return g.property('ADBE Vectors Group');
+        }
+        function paint(g, fill, strokeW) {
+            if (fill) items(g).addProperty('ADBE Vector Graphic - Fill').property('ADBE Vector Fill Color').setValue(fill);
+            if (strokeW) {
+                var st = items(g).addProperty('ADBE Vector Graphic - Stroke');
+                st.property('ADBE Vector Stroke Color').setValue(INK);
+                st.property('ADBE Vector Stroke Width').setValue(strokeW);
+            }
+        }
+        // the leader's path: yellow over a dark line, readable on any sky
+        var gp = group(root, 'Leader Path');
+        items(gp).addProperty('ADBE Vector Shape - Group').name = 'Path';
+        items(root.property('Leader Path')).property('Path').property('ADBE Vector Shape').expression = ex.previewPath;
+        gp = root.property('Leader Path');
+        var top = items(gp).addProperty('ADBE Vector Graphic - Stroke');
+        top.property('ADBE Vector Stroke Color').setValue(YELLOW);
+        top.property('ADBE Vector Stroke Width').setValue(2);
+        paint(root.property('Leader Path'), null, 5);
+        // the leader now
+        var gl = group(root, 'Leader');
+        items(gl).addProperty('ADBE Vector Shape - Ellipse').name = 'Dot';
+        gl = root.property('Leader');
+        items(gl).property('Dot').property('ADBE Vector Ellipse Size').setValue([18, 18]);
+        items(gl).property('Dot').property('ADBE Vector Ellipse Position').expression = ex.previewLeader;
+        paint(root.property('Leader'), YELLOW, 3);
+        // the rough guess at the new flock: worked out once a frame on a 3D point effect, then
+        // a ring and one dot per baked bird read it
+        lay.property(MN.effects).addProperty('ADBE Point3D Control').name = 'Flock Estimate';
+        lay.property(MN.effects).property('Flock Estimate').property(1).expression = ex.previewGuess;
+        root = lay.property('ADBE Root Vectors Group');
+        var gr = group(root, 'Flock Zone');
+        items(gr).addProperty('ADBE Vector Shape - Ellipse').name = 'Ring';
+        gr = root.property('Flock Zone');
+        items(gr).property('Ring').property('ADBE Vector Ellipse Position').expression = ex.previewRingAt;
+        items(gr).property('Ring').property('ADBE Vector Ellipse Size').expression = ex.previewRingSize;
+        var ring = items(root.property('Flock Zone')).addProperty('ADBE Vector Graphic - Stroke');
+        ring.property('ADBE Vector Stroke Color').setValue(YELLOW);
+        ring.property('ADBE Vector Stroke Width').setValue(2);
+        paint(root.property('Flock Zone'), null, 5);
+        root.property('Flock Zone').property('ADBE Vector Transform Group').property('ADBE Vector Group Opacity').expression = ex.previewShow;
+        var ge = group(root, 'Flock Estimate');
+        for (i = 0; i < count; i++) {
+            ge = root.property('Flock Estimate');
+            var el = items(ge).addProperty('ADBE Vector Shape - Ellipse');
+            el.name = 'Bird ' + (i + 1);
+            ge = root.property('Flock Estimate');
+            items(ge).property('Bird ' + (i + 1)).property('ADBE Vector Ellipse Size').setValue([9, 9]);
+            items(ge).property('Bird ' + (i + 1)).property('ADBE Vector Ellipse Position').expression = ex.previewDot(i, name + ' Bird ' + pad(i + 1, 3));
+        }
+        paint(root.property('Flock Estimate'), YELLOW, 1.5);
+        root.property('Flock Estimate').property('ADBE Vector Transform Group').property('ADBE Vector Group Opacity').expression = ex.previewShow;
+        // the first group in the list draws on top: the leader, then its path, then the guess
+        root.property('Leader').moveTo(1);
+        lay.guideLayer = true;
+        lay.label = 2;
+        lay.locked = true;
+        var engine = '';
+        try {
+            engine = String(app.project.expressionEngine);
+        } catch (e) {}
+        return lay.name + (engine && engine !== 'javascript-1.0' ? ' (the flock estimate needs Project Settings > Expressions > JavaScript; it is ' + engine + ')' : '');
+    }
+
     function addKeyedPoint(layer, name, times, values) {
         layer.property(MN.effects).addProperty(MN.point).name = name;
         layer.property(MN.effects).property(name).property(1).setValuesAtTimes(times, values);
@@ -851,7 +1061,7 @@ var FlockRig = (function () {
         var bird = name + ' Bird ', n = 0;
         for (var i = comp.numLayers; i >= 1; i--) {
             var l = comp.layer(i);
-            if (l.name.indexOf(bird) === 0 || l.name === name + ' Center' || l.name === name + ' Leader Check') {
+            if (l.name.indexOf(bird) === 0 || l.name === name + ' Center' || l.name === name + ' Leader Check' || l.name === name + ' Preview') {
                 l.locked = false;
                 l.remove();
                 n++;
@@ -939,7 +1149,12 @@ var FlockRig = (function () {
             name: o.name, id: 0, faces: 1, size: 0, offset: 0, cycle: null, turn: null,
             t0: times[0], t1: times[times.length - 1], dt: 1 / fps,
             radius: Math.round(sim.center.radiusRef * 100) / 100, cruise: Math.round(sim.stats.cruise),
-            leader: leader.name
+            leader: leader.name,
+            sim: {
+                count: o.count, spacing: o.spacing, follow: o.follow, lead: o.lead, turbulence: o.turbulence,
+                glide: o.glide, seed: o.seed, preroll: o.preroll, faces: o.faces, cycle: cyc ? cyc.length : 0.5,
+                frames: F, samples: L.x.length, fps: fps
+            }
         };
         var cex = expressions(kf);
         center.property(MN.effects).addProperty(MN.slider).name = 'Shape Window';
@@ -1016,8 +1231,10 @@ var FlockRig = (function () {
         tf(ck, 'ADBE Opacity').expression = cex.checkOpacity;
         ck.guideLayer = true;
         ck.label = 2;
-        ck.locked = true;
         report.leaderCheck = ck.name;
+        report.preview = addPreview(comp, o.name, cex, sim.order.length);
+        ck.moveToBeginning(); // a locked layer can't be moved: lock it after
+        ck.locked = true;
 
         var saved = {};
         for (k in DEFAULTS) saved[k] = o[k];

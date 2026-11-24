@@ -367,8 +367,45 @@
                 return 'opacity ' + op.valueAtTime(0, false) + (op.valueAtTime(0, false) > 0 ? ', "' + tx.valueAtTime(0, false).text + '"' : '');
             }
             note('leader moved (first key by -590, +135): flock starts ' + q(startGap(lm)) + ' px from the leader; leader check ' + check(lm) + '; in Sky: ' + check(comp));
+            // The preview's rough guess (centre and size), read before re-running
+            var pv = lm.layer('Flock Preview'), PT = [0.5, 2, 4, 7.9], est = [], ms = [];
+            var guess = pv.property('ADBE Effect Parade').property('Flock Estimate').property(1);
+            var shown = pv.property('ADBE Root Vectors Group').property('Flock Estimate').property('ADBE Vector Transform Group').property('ADBE Vector Group Opacity');
+            var ringSize = pv.property('ADBE Root Vectors Group').property('Flock Zone').property('ADBE Vectors Group').property('Ring').property('ADBE Vector Ellipse Size');
+            for (var j = 0; j < PT.length; j++) {
+                var c0 = new Date().getTime();
+                est.push([guess.valueAtTime(PT[j], false), ringSize.valueAtTime(PT[j], false)[0] / 2]);
+                ms.push(new Date().getTime() - c0);
+            }
+            if (guess.expressionError) throw new Error('preview: ' + guess.expressionError);
+            var dot1 = pv.property('ADBE Root Vectors Group').property('Flock Estimate').property('ADBE Vectors Group').property('Bird 1').property('ADBE Vector Ellipse Position');
+            if (dot1.expressionError) throw new Error('preview dot: ' + dot1.expressionError);
+            note('preview before the re-run: guess at 2 s ' + q(est[1][0]) + ', ring radius ' + q(est[1][1]) + ' px, shown at opacity ' + shown.valueAtTime(1, false) + ' (Sky: ' +
+                comp.layer('Flock Preview').property('ADBE Root Vectors Group').property('Flock Estimate').property('ADBE Vector Transform Group').property('ADBE Vector Group Opacity').valueAtTime(1, false) +
+                '); ' + ms.join(', ') + ' ms at ' + PT.join(', ') + ' s');
+            // a copy to look at: the guides made renderable (aerender leaves guide layers out)
+            var look = lm.duplicate();
+            look.name = 'Preview look';
+            var lnames = ['Flock Preview', 'Flock Leader Check'];
+            for (j = 0; j < lnames.length; j++) {
+                look.layer(lnames[j]).locked = false;
+                look.layer(lnames[j]).guideLayer = false;
+            }
             var t = new Date().getTime();
             $.global.FlockRig.build(lm, lm.layer('Bird'), lm.layer('Leader'), { name: 'Flock', count: 80, spacing: 45, seed: 7 });
+            // the guess against the flock the re-run baked: birds inside the ring, centre off by
+            var inside = 0, cnt = 0, offs = [];
+            for (j = 0; j < PT.length; j++) {
+                var g = est[j][0], ctr = lm.layer('Flock Center').property('ADBE Transform Group').property('ADBE Position').valueAtTime(PT[j], true);
+                offs.push(q(Math.sqrt(Math.pow(ctr[0] - g[0], 2) + Math.pow(ctr[1] - g[1], 2))));
+                for (var n2 = 1; n2 <= lm.numLayers; n2++) {
+                    if (lm.layer(n2).name.indexOf('Flock Bird ') !== 0) continue;
+                    var bp = lm.layer(n2).property('ADBE Transform Group').property('ADBE Position').valueAtTime(PT[j], false);
+                    cnt++;
+                    if (Math.sqrt(Math.pow(bp[0] - g[0], 2) + Math.pow(bp[1] - g[1], 2)) <= est[j][1]) inside++;
+                }
+            }
+            note('preview vs the re-run: ' + Math.round((100 * inside) / cnt) + ' % of ' + cnt + ' birds inside the ring; guessed centre off by ' + offs.join(', ') + ' px at ' + PT.join(', ') + ' s');
             note('re-run in "Leader moved" (' + (new Date().getTime() - t) + ' ms): flock starts ' + q(startGap(lm)) + ' px from the leader (Sky: ' +
                 q((function () {
                     var p = comp.layer('Flock Center').property('ADBE Transform Group').property('ADBE Position').valueAtTime(0, true);
