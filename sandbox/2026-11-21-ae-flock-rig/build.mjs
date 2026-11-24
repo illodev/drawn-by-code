@@ -71,7 +71,11 @@ const MATH = math.split('\n').map((l) => l.replace(/\s*\/\/.*$/, '')).filter((l)
 new Function(MATH); // syntax check
 const body = ae
     .replace("var FLOCK_MATH = '';", 'var FLOCK_MATH = ' + JSON.stringify(MATH) + ';')
-    .replace('if (!$.global.FLOCK_NO_UI) FlockRig.run();', '$.global.FlockRig = FlockRig;\nif (!$.global.FLOCK_NO_UI) FlockRig.run();');
+    .replace('var FLOCK_SKIP_UI =', '$.global.FlockRig = FlockRig;\nvar FLOCK_SKIP_UI =');
+if (body.indexOf('$.global.FlockRig = FlockRig;') < 0) {
+    console.error('build: the run block (var FLOCK_SKIP_UI) was not found in flock-ae.jsx');
+    process.exit(1);
+}
 if (body.indexOf('var FLOCK_MATH = "') < 0) {
     console.error('build: the FLOCK_MATH placeholder was not found in flock-ae.jsx');
     process.exit(1);

@@ -608,4 +608,9 @@ var FlockRig = (function () {
     return { build: build, run: run, defaults: DEFAULTS, controls: CONTROLS, expressions: expressions, math: FLOCK_MATH };
 })();
 
-if (!$.global.FLOCK_NO_UI) FlockRig.run();
+// FLOCK_NO_UI: a test loads the script without the dialog. $.global outlives the script in
+// an AE session, so the flag is used up here: one left behind by a test must not silently
+// stop the user's own next run (it did once).
+var FLOCK_SKIP_UI = $.global.FLOCK_NO_UI === true;
+$.global.FLOCK_NO_UI = false;
+if (!FLOCK_SKIP_UI) FlockRig.run();

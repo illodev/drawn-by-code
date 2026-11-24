@@ -25,6 +25,16 @@ const ok = (cond, what) => {
 };
 const near = (a, b, eps = 1e-6) => (Array.isArray(a) ? a.every((x, i) => Math.abs(x - b[i]) <= eps) : Math.abs(a - b) <= eps);
 
+// ---- the test flag is used up: one left in an AE session must not stop the user's run ----
+ok($.global.FLOCK_NO_UI === false, 'loading Flock.jsx uses up FLOCK_NO_UI');
+{
+    let alerted = '';
+    const again = { global: $.global };       // the same session: the flag is now false
+    const app = { project: { activeItem: null } };
+    new Function('$', 'app', 'alert', 'CompItem', fs.readFileSync(path.join(dir, 'Flock.jsx'), 'utf8'))(again, app, (m) => (alerted = m), function CompItem() {});
+    ok(/open the composition/.test(alerted), `the next load in the same session runs the tool (it asked for a comp: "${alerted}")`);
+}
+
 // ---- a mock of AE: like AE, effect("X")(1) and transform.x are Property objects, not
 // numbers (arithmetic converts them, === does not); .value gives the number. A keyed
 // property is given as a function of time; it answers valueAtTime too.

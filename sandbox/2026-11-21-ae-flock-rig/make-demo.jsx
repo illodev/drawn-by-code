@@ -13,8 +13,13 @@
 // flock-demo.aep there; the runner renders it with aerender. It quits After Effects only if
 // $.global.FLOCK_TEST_QUIT is set.
 (function () {
-    var OUT = $.global.FLOCK_TEST_OUT || null;
+    var OUT = $.global.FLOCK_TEST_OUT || null, QUIT = !!$.global.FLOCK_TEST_QUIT;
     var here = $.global.FLOCK_DIR ? new Folder($.global.FLOCK_DIR) : File($.fileName).parent;
+    // $.global outlives this script in the AE session: cleared at once, so a later run by
+    // hand builds the demo instead of repeating the test
+    $.global.FLOCK_TEST_OUT = null;
+    $.global.FLOCK_TEST_QUIT = null;
+    $.global.FLOCK_DIR = null;
     var log = [];
     function flush() {
         if (!OUT) return;
@@ -444,11 +449,12 @@
     app.endSuppressDialogs(false);
 
     if (OUT) {
+        note('flags left in the AE session: FLOCK_NO_UI ' + $.global.FLOCK_NO_UI + ', FLOCK_TEST_OUT ' + $.global.FLOCK_TEST_OUT + ', FLOCK_DIR ' + $.global.FLOCK_DIR);
         step('save', function () {
             app.project.save(new File(OUT + '/flock-demo.aep'));
             note('saved ' + OUT + '/flock-demo.aep');
         });
-        if ($.global.FLOCK_TEST_QUIT) app.quit();
+        if (QUIT) app.quit();
     } else if (log.length) {
         alert(log.join('\n'));
     }

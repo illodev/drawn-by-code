@@ -263,3 +263,23 @@ read before and after a re-run there, and how far the flock starts from the lead
 - `check-ae.mjs`: unchanged (sim within 0.0014 px, final positions within 0.003 px).
 - The check's text and opacity were read back as values. The line itself wasn't seen in
   the viewer: aerender leaves guide layers out.
+
+## Round 6 · 2026-11-24 (user feedback: "I ran Flock.jsx and nothing changed")
+
+The user moved the leader's keys in `out/ae-test-r5/flock-demo.aep` (comp Sky, the active
+item), then ran Flock.jsx: no dialog, nothing rebuilt. The leader check was doing its job
+("moved since the bake (up to 530 px)"). A read-only look at the session's `$.global`
+found the cause: **my test runner had left `FLOCK_NO_UI = true`** (plus `FLOCK_TEST_OUT`,
+`FLOCK_DIR`). Globals outlive a script in an AE session, so the user's own run of Flock.jsx
+loaded the code and skipped its dialog, silently. Running `make-demo.jsx` by hand would also
+have repeated the test (a new project) instead of building the demo.
+
+- Flock.jsx now uses the flag up: it reads `FLOCK_NO_UI === true` into a local and sets it
+  back to false before deciding, so a flag left behind can only ever skip the run it was set
+  for. `make-demo.jsx` reads its test settings into locals and clears them at once, and its
+  log now lists the flags left at the end.
+- `test.mjs` (2,907 checks): loading uses the flag up, and the next load in the same
+  session runs the tool (it asks for a comp).
+- Inside AE 27, in the user's session: cleared the leftover flags. Then loaded the new
+  Flock.jsx with the flag set: no dialog, the flag back to false. No project touched.
+- Not yet run inside AE: `make-demo.jsx`'s own clean-up (the next AE test logs it).

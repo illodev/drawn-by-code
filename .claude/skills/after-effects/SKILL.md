@@ -658,3 +658,8 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   away, which looked like a bug. Bake the input too (the leader's path on a Point Control),
   and add a guide text layer whose expressions compare it with the live input. It shows
   "re-run in this comp" and by how much, and is never rendered.
+- 2026-11-24 · ae-flock-rig · Test flags on `$.global` outlive the script in the user's AE
+  session. My runner left `FLOCK_NO_UI = true`, so the user's own run of Flock.jsx skipped its
+  dialog and did nothing, silently, right after a fix they wanted to try. A tool must use up
+  its test flag (read it into a local, set it back to false) and a test script must clear
+  its settings as it starts. Check `$.global` read-only when a tool "does nothing".
