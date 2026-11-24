@@ -226,7 +226,8 @@ const Causeway = (() => {
             g.strokeStyle = body; g.lineWidth = Math.max(1, 0.1 * s); g.lineCap = 'round';
             g.beginPath(); g.moveTo(top[0], top[1]); g.quadraticCurveTo(mid[0], mid[1], end[0], end[1]); g.stroke();
             // the head: a hood, then its glass
-            const hp = cam.p(h), hs = cam.f / hp[2];
+            const hp = cam.p(h); if (hp[2] < 0.5) continue;
+            const hs = cam.f / hp[2];
             const hood = [[h[0] - dir * 0.35, h[1] + 0.12, z], [h[0] + dir * 0.45, h[1] + 0.05, z], [h[0] + dir * 0.4, h[1] - 0.06, z], [h[0] - dir * 0.35, h[1] - 0.04, z]].map(cam.p);
             g.fillStyle = Neon.css(fogged('#3a2e52', z, zc)); Neon.path(g, hood); g.fill();
             const col = fogged(lampCol(fx), z, zc);
