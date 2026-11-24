@@ -1,0 +1,78 @@
+// The two of them, from their model sheets (generated and approved by the user: ref/), cut
+// at the shoulders where a car's seat hides the rest. The sheets are flat colour on a clear
+// ground; here they are darkened into the night and lit at their edges by the lamps above
+// (warm) and the city ahead (cyan), so the drawing stays theirs and the light is the film's.
+// Global: Couple.
+const Couple = (() => {
+    const DIR = 'sandbox/2026-11-24-run-away-with-me/';
+    // which variant of each sheet (to be set to the user's pick)
+    const PICK = { her: 'her-1', him: 'him-1' };
+    // per sheet: the four figures' boxes [x0, x1, top, bottom] in sheet pixels (measured from
+    // the alpha), the height they stand in metres
+    const BOX = {
+        'her-1': [[111, 468, 13, 1097], [614, 952, 12, 1098], [1098, 1364, 18, 1098], [1569, 1924, 13, 1095]],
+        'her-2': [[140, 515, 12, 1088], [624, 968, 12, 1090], [1096, 1344, 16, 1089], [1534, 1904, 12, 1088]],
+        'her-3': [[172, 517, 11, 1088], [615, 934, 13, 1094], [1092, 1340, 14, 1089], [1520, 1865, 14, 1090]],
+        'him-1': [[148, 525, 24, 1116], [629, 986, 25, 1124], [1146, 1346, 24, 1118], [1506, 1886, 24, 1112]],
+        'him-2': [[137, 514, 17, 1111], [609, 971, 18, 1123], [1126, 1330, 18, 1117], [1498, 1879, 18, 1107]],
+        'him-3': [[122, 500, 16, 1108], [605, 958, 14, 1123], [1120, 1323, 19, 1113], [1525, 1903, 16, 1101]],
+    };
+    const HEIGHT = { her: 1.74, him: 1.83 };   // on the sheet: she in heels
+    const SEATED = { her: 1.36, him: 1.42 };   // top of the head above the car's floor line (local y)
+    const img = {};
+
+    async function load() {
+        for (const who of ['her', 'him']) {
+            const id = PICK[who];
+            img[who] = (await Neon.image(DIR + 'ref/' + id + '.png')) ?? (await Neon.image(DIR + 'private/ref/' + id + '.png'));
+        }
+        return !!(img.her && img.him);
+    }
+
+    // one of them, from behind (view 3 of the sheet), cut `cut` metres down from the top of
+    // the head, standing in the car at local (x, z); lights: { lamp, city, hue }
+    function back(g, L, N, cam, pose, who, x, z, light, o = {}) {
+        const src = img[who]; if (!src) return;
+        const id = PICK[who], [X0, X1, TOP, bot] = BOX[id][o.view ?? 3];
+        // the crop cut once out of the 2048 px sheet into its own small canvas
+        const ck = who + (o.view ?? 3);
+        if (!crops[ck]) { const c = document.createElement('canvas'); c.width = X1 - X0; c.height = bot - TOP; c.getContext('2d').drawImage(src, X0, TOP, c.width, c.height, 0, 0, c.width, c.height); crops[ck] = c; }
+        const im = crops[ck], x0 = 0, x1 = X1 - X0, top = 0;
+        const pxm = (bot - TOP) / HEIGHT[who], cut = o.cut ?? 0.62;
+        const sw = x1 - x0, sh = cut * pxm;
+        const headTop = Car.W(pose, [x, SEATED[who] + (o.lift ?? 0), z]);
+        const p = cam.p(headTop); if (p[2] < 0.3) return;
+        const s = cam.f / p[2];                       // logical px per metre at that depth
+        const w = (sw / pxm) * s, h = cut * s;
+        const sway = (o.sway ?? 0) * s;
+        const box = [p[0] - w / 2 + sway, p[1], w, h];
+        // the wind: hair streams back over a convertible at 90 km/h; the cut-out is drawn in rows
+        // with a sideways ripple that grows towards the ends of the hair (her) or barely (him),
+        // into its own canvas, which is then tinted and rimmed
+        const k = cam.W ? (N.k ?? 1) : 1;
+        const cw = Math.max(2, Math.ceil(w * k) + 24), ch = Math.max(2, Math.ceil(h * k) + 2);
+        const cv = (buf[who] ??= document.createElement('canvas'));
+        if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+        const G = cv.getContext('2d'); G.setTransform(1, 0, 0, 1, 0, 0); G.clearRect(0, 0, cw, ch);
+        const amp = (o.wind ?? (who === 'her' ? 0.02 : 0.005)) * s * k, rows = 48, TT = o.T ?? 0;
+        for (let i = 0; i < rows; i++) {
+            const v = i / rows, dy = sh / rows;
+            const off = amp * Math.pow(v, 1.3) * Math.sin(v * 6 - TT * 11 + (who === 'her' ? 0 : 2)) + amp * 0.35 * Math.sin(TT * 5.3 + v * 3);
+            G.drawImage(im, x0, top + dy * i, sw, dy + 0.6, 12 + off, (ch * i) / rows, cw - 24, ch / rows + 0.6);
+        }
+        const bx = [box[0] - 12 / k, box[1], cw / k, ch / k];
+        // into the night: violet over the whole figure, deeper as the lamp leaves
+        N.tint(g, cv, 0, 0, cw, ch, bx, '#1a1040', 0.55 - (light.lamp ?? 0) * 0.25);
+        // rims, thin and on the picture only (on the light layer they bloom into a sticker's
+        // outline): the lamp from above (warm), the city ahead (cyan), on the upper half
+        const warm = light.hue ? Neon.shift(Neon.PAL.sodium, light.hue) : Neon.hex('#ffb47a');
+        const cyan = light.hue ? Neon.shift(Neon.PAL.cyan, light.hue) : Neon.hex(Neon.PAL.cyan);
+        N.rim(g, null, cv, 0, 0, cw, ch * 0.55, [bx[0], bx[1], bx[2], bx[3] * 0.55], [
+            { dx: 0, dy: -0.008 * s, col: warm, a: Math.min(0.9, 0.1 + (light.lamp ?? 0) * 0.8) },
+            { dx: (who === 'her' ? 0.006 : -0.006) * s, dy: -0.006 * s, col: cyan, a: 0.45 * (light.city ?? 1) },
+        ]);
+    }
+    const buf = {}, crops = {};
+
+    return { load, back, PICK, img };
+})();
