@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.12.2 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.13.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -70,6 +70,16 @@ path morphs between pieces that correspond (outline to outline, a hole to the ho
 it), and a piece you draw as a dot (or collapse) grows from that dot: it becomes a tiny copy
 of itself there. An O into a C: the hole closes into the dot you put inside the C.
 
+**Holes stay inside their letter.** A hole is its own path, and After Effects' fill paints
+any part of it the outline no longer surrounds: a dark blob. So a hole that closes while its
+letter opens (O into C) is gone before the C opens round it; one that opens while its letter
+closes (C into e) starts growing once the e is shut; and one that stays a hole but would
+stray outside halfway (b into e, R into 6) shrinks there just enough, easing in and out of
+it (`review/holes.png`: top, After Effects as it was; below, the fix). Written like a turn:
+in-between keys on the hole's path, one a frame on the comp's frames, labelled, at the
+outline's own eased progress; fixing again redoes them. Over 656 letter pairs in three
+fonts, 91 holes strayed (14 %); none shows after the fix.
+
 **Long fixes:** hold Esc to cancel (checked for fixes estimated over 4 s; the warning before a
 fix over 10 s says so). The fix is worked out in full before anything is written, so
 cancelling changes nothing.
@@ -104,7 +114,8 @@ out, fix with turn off.
 
 The path's keyframe values; with pieces, which path holds which piece. With **turn**, also
 one in-between path key a frame through each turning step (linear and labelled: the easing
-is in the shapes), replacing the ones an earlier turn wrote. Key times, interpolation,
+is in the shapes), replacing the ones an earlier fix wrote; likewise on a hole kept inside
+its letter, through the steps where it closes, opens or would stray. Key times, interpolation,
 easing, hold keys of the keys you drew, the layer, its groups' transforms and anything else
 stay as they were.
 
@@ -175,6 +186,17 @@ stay as they were.
   (centre distance, size, outline or hole), kept as drawn unless another cuts it by 20 %; a
   piece under 3 % of its key's largest (or under 1 px across) counts as missing and becomes a
   0.2 % copy of the same path's piece at the nearest key that has one.
+- **Holes:** after the pieces are fixed, each step a hole closes, opens or stays a hole in
+  is checked against the outlines' in-betweens (every point of the hole a pixel inside, by
+  non-zero winding). Closing: the latest outline progress `by` it can be gone by, the hole
+  at `min(1, u / by)` (opening is the same played backwards); checked at 12 steps and where
+  it is 16, 8, 4, 2 and 1 px across (its last pixels sit by its dot, which the outline may
+  leave first), then 4x as finely. Staying: looked for at 15 in-betweens; where it strays, the
+  largest scale about its centre that fits, under tents of slope 4 a morph (steeper only by a
+  key), checked again a quarter of the way between them; a hole that wraps round its own
+  centre (an @'s) closes up there instead. In After Effects the hole's in-betweens sit on the
+  comp's frames: keys a script set at 1.9 s sit between frames, and a frame drawn between two
+  in-betweens showed a blend of the hole's last dot and its first grown key, outside its letter.
 - **Plan, then write:** every path is worked out first (cancellable), then all keys are
   written in one undo step.
 
@@ -194,12 +216,12 @@ What it doesn't do, and why; each is also said in the report when it happens.
 - **Pieces:** only sibling paths keyed at the same times are matched (one group, or a layer's
   masks of one mode: an Add outline and a Subtract hole stay apart). Open paths aren't. A
   piece is "missing" only when drawn under 3 % of the key's largest piece or under 1 px.
-- **Holes that close or appear** while their letter opens or closes (O into C, C into e):
-  the hole is its own path, so it is still shrinking toward its dot (or growing from it)
-  when the outline no longer surrounds it, and After Effects' non-zero fill paints it: a dark
-  blob in the counter for a few frames. Letters that keep their holes (a, e, o, d, q; A, D,
-  O, P, R; B, 8) morph without it. Not handled yet: the simple way out is to close such a
-  hole before its outline opens (its own extra key partway), and to open one after.
+- **Holes kept inside** only shrink, close or wait: they never move. A hole whose centre
+  strays out of its letter has to close up there and come back (R into 6, b into e in Comic
+  Neue, the engraved @ into &: the counter fills for a few frames), where moving it along
+  inside would keep it open. A step that turns is left alone (no letter with holes there
+  needed it), and so is a Hold step. Masks of different modes (an Add outline, a Subtract
+  hole) aren't pieces: a Subtract hole outside its outline subtracts nothing, so it can't show.
 - **Turn into the path:** one key a frame through each turning step, which is more keys to
   look at; the selected keys must be next to each other, and a Hold step doesn't turn. The
   turn's easing is in the in-betweens: retime by moving your keys and fixing again, not by
@@ -227,8 +249,11 @@ What it doesn't do, and why; each is also said in the report when it happens.
   10 % on 15–24 s jobs). The crossover and quick symmetry checks add a fixed cost per key
   (about 0.3 ms in Node), the thorough one (sym) more (about 2.2 ms): counted into the
   estimate at ExtendScript's ~300x (90 and 700 ms a key), not yet benched inside After
-  Effects. After Effects doesn't respond while a fix runs; Esc is read when the
-  work checks in, so hold it.
+  Effects. Keeping holes inside isn't in the estimate: in After Effects 27
+  (`bench/holes-bench.jsx`) 0.2–0.8 s a letter when no hole needs anything, 0.3–0.6 s for a
+  closing one, and 1–4 s for one that strays (the ten-letter chain: 5.5 s on top of 16 s).
+  After Effects doesn't respond while a fix runs; Esc is read when the work checks in, so
+  hold it.
 - **No progress bar.** A floating window a script opens stays stuck on screen for good if
   anyone clicks After Effects while the script keeps it busy (Windows' "not responding"
   stand-in puts it back, and no ScriptUI call removes it), so the fixer opens none while it
@@ -265,16 +290,17 @@ What it needs:
 | File | |
 |---|---|
 | `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
-| `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the turn into the group), report |
+| `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the in-betweens of a turn or of a hole kept inside), report |
 | `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, the release (it leaves nothing on `$.global`), and `out/test-build/Mask Morph Fixer.jsx`, the same plus the exports the tests use; with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
-| `test.mjs` | 4,408 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `test.mjs` | 4,432 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), holes kept inside (O into C closing, C into O and C into e opening, b into e and R into 6 shrinking, letters that keep their holes left alone, a second fix the same; on mock timelines: in-betweens on the hole, inside at every frame, on the comp's frames when the keys aren't, fixed again the same), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js`: the morph, the turn, and the symmetry chain (a star, the star turned 36 deg, a plus, an x, the star, all sharing the upright axis, each drawn anew) |
-| `demo-letters.js` | The letters part, a, e, o, d, q in Comic Neue Bold, written by `art/demo-letters.mjs` from the repo's fonts (plain ES3 for AE) |
-| `make-demo.jsx` | Builds the demo project in four parts: Morph, Turn, Symmetry (left: the fix without its symmetry rule, least travel; right: the fix) and Letters (left as typed, right fixed through the panel's own path), each Before / After, in one 31.5 s comp. With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
+| `demo-letters.js` | The letters part, a, e, b, c, d in Comic Neue Bold (a into e: a crossover avoided; e into b: the hole shrinks; b into c: it closes; c into d: it opens), written by `art/demo-letters.mjs` from the repo's fonts (plain ES3 for AE) |
+| `make-demo.jsx` | Builds the demo project in four parts: Morph, Turn, Symmetry (left: the fix without its symmetry rule, least travel; right: the fix) and Letters (left as typed, right fixed through the panel's own path, its holes kept inside, checked in every frame), each Before / After, in one 31.5 s comp. With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
 | `ae-bridge.jsx` | A test runner that lives in After Effects for the session: send it once with `AfterFX.exe -ro`, then drop jobs into `out/ae/bridge/inbox/` |
 | `bench/ae-bench.jsx` | Times the fix inside AE on a grid of job sizes (`out/ae/bench.csv`): the data the time estimate is fitted to |
+| `bench/holes-bench.jsx` | Times keeping holes inside apart from the fix, inside AE, on the real-type set (`out/ae/holes-bench.md`) |
 | `bench/ghost-window.jsx`, `bench/window-watch.ps1` | Reproduce the window Windows strands on screen when AE is clicked while a script keeps it busy, watched from outside through Windows' own window list: why the fixer has no progress window |
-| `art/` | The real-artwork regression set (and `symmetry.mjs`: built shapes that share a mirror axis, least travel against symmetric). `ttf.mjs` reads letter outlines from the OFL fonts in the repo's `fonts/`; `cases.mjs` keys 20 cases the way a designer would (O into C, B into 8 pasted out of order, i into l, engraved letters of hundreds of points, a ten-key chain, turning letters, 24 px and 2000 px type); `test-art.mjs` runs them in Node (148 checks, `out/art/report.md`; no in-between crosses itself but O into C's small twist); `crossover.mjs` draws in-betweens with and without the crossover choice; `make-art.jsx` builds and fixes them inside AE through the panel's own code, plus two mask cases; `look.mjs` draws the glyphs to check the reader |
+| `art/` | The real-artwork regression set (and `symmetry.mjs`: built shapes that share a mirror axis, least travel against symmetric). `ttf.mjs` reads letter outlines from the OFL fonts in the repo's `fonts/`; `cases.mjs` keys 20 cases the way a designer would (O into C, B into 8 pasted out of order, i into l, engraved letters of hundreds of points, a ten-key chain, turning letters, 24 px and 2000 px type); `test-art.mjs` runs them in Node (186 checks, `out/art/report.md`; no in-between crosses itself but O into C's small twist; no hole shows outside its letter); `crossover.mjs` draws in-betweens with and without the crossover choice; `holes.mjs` draws letters whose holes close, open or stray, as AE drew them and as the fix keeps them (`review/holes.png`); `make-art.jsx` builds and fixes them inside AE through the panel's own code (no hole outside its letter in AE's own frames), plus two mask cases; `look.mjs` draws the glyphs to check the reader |
 | `scene.js` | Engine preview of the After half of all four parts, drawn the way AE interpolates the fixed keys |
 
 Testing inside After Effects (with the user's go-ahead: the demo opens a new project).

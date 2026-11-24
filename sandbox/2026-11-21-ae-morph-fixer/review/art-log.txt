@@ -1,91 +1,129 @@
-ok   O into C and back (a hole closes into a dot): fixed · Fixed 2: 100 pts, ~0.148 px (max), pieces matched
+ok   O into C and back (a hole closes into a dot): fixed · Fixed 2: 100 pts, ~0.148 px (max), pieces matched, 2 holes kept inside
 ok   O into C and back (a hole closes into a dot): every piece has the same points in every key
 ok   O into C and back (a hole closes into a dot): 1 keys where a piece grows from a point · 1
 ok   O into C and back (a hole closes into a dot): pieces matched as in Node · moved 0 (Node 0), grown 1 (Node 1)
-     estimated 21.0 s, took 3.7 s
+ok   O into C and back (a hole closes into a dot): holes kept inside as in Node · 2 (Node 2)
+ok   O into C and back (a hole closes into a dot): no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 17.7 s, took 5.8 s
 ok   B into 8 (three pieces each): fixed · Fixed 3: 32-100 pts, 0.054 px
 ok   B into 8 (three pieces each): every piece has the same points in every key
 ok   B into 8 (three pieces each): pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
-     estimated 17.6 s, took 1.8 s
+ok   B into 8 (three pieces each): holes kept inside as in Node · 0 (Node 0)
+ok   B into 8 (three pieces each): no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 14.8 s, took 3.1 s
 ok   B into 8, pieces pasted out of order: fixed · Fixed 3: 32-100 pts, 0.054 px, pieces matched
 ok   B into 8, pieces pasted out of order: every piece has the same points in every key
 ok   B into 8, pieces pasted out of order: pieces pasted out of order dealt back · 2
 ok   B into 8, pieces pasted out of order: pieces matched as in Node · moved 2 (Node 2), grown 0 (Node 0)
-     estimated 17.6 s, took 1.4 s
+ok   B into 8, pieces pasted out of order: holes kept inside as in Node · 0 (Node 0)
+ok   B into 8, pieces pasted out of order: no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 14.8 s, took 3.0 s
 ok   a into e: fixed · Fixed 2: 36-100 pts, 0.037 px
 ok   a into e: every piece has the same points in every key
 ok   a into e: pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
-     estimated 13.4 s, took 1.3 s
+ok   a into e: holes kept inside as in Node · 0 (Node 0)
+ok   a into e: no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 11.3 s, took 2.3 s
 ok   A into R: fixed · Fixed 2: 93-100 pts, ~0.478 px (max)
 ok   A into R: every piece has the same points in every key
 ok   A into R: pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
-     estimated 14.2 s, took 2.6 s
-ok   g into s (the hole closes): fixed · Fixed 2: 100 pts, ~0.194 px (max), pieces matched
+ok   A into R: holes kept inside as in Node · 0 (Node 0)
+ok   A into R: no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 11.9 s, took 3.7 s
+ok   g into s (the hole closes): fixed · Fixed 2: 100 pts, ~0.194 px (max), pieces matched, 1 hole kept inside
 ok   g into s (the hole closes): every piece has the same points in every key
 ok   g into s (the hole closes): 1 keys where a piece grows from a point · 1
 ok   g into s (the hole closes): pieces matched as in Node · moved 0 (Node 0), grown 1 (Node 1)
-     estimated 15.1 s, took 3.0 s
+ok   g into s (the hole closes): holes kept inside as in Node · 1 (Node 1)
+ok   g into s (the hole closes): no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 12.7 s, took 3.2 s
 ok   P into D into Q: fixed · Fixed 2: 100 pts, ~0.7 px (max)
 ok   P into D into Q: every piece has the same points in every key
 ok   P into D into Q: pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
-     estimated 21.9 s, took 5.0 s
+ok   P into D into Q: holes kept inside as in Node · 0 (Node 0)
+ok   P into D into Q: no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 18.4 s, took 6.0 s
 ok   i into l (the dot shrinks away): fixed · Fixed 2: 100 pts, 0.041 px, pieces matched
 ok   i into l (the dot shrinks away): every piece has the same points in every key
 ok   i into l (the dot shrinks away): 1 keys where a piece grows from a point · 1
 ok   i into l (the dot shrinks away): pieces matched as in Node · moved 2 (Node 2), grown 1 (Node 1)
-     estimated 3.7 s, took 1.1 s
+ok   i into l (the dot shrinks away): holes kept inside as in Node · 0 (Node 0)
+ok   i into l (the dot shrinks away): no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 3.7 s, took 1.4 s
 ok   & into $ (pieces of different kinds): fixed · Fixed 3: 28-100 pts, ~0.159 px (max)
 ok   & into $ (pieces of different kinds): every piece has the same points in every key
 ok   & into $ (pieces of different kinds): pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
-     estimated 22.4 s, took 3.2 s
+ok   & into $ (pieces of different kinds): holes kept inside as in Node · 0 (Node 0)
+ok   & into $ (pieces of different kinds): no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 18.9 s, took 4.4 s
 ok   M into W (one piece, many corners): fixed · Fixed 1: 100 pts, ~0.353 px (max)
 ok   M into W (one piece, many corners): every piece has the same points in every key
 ok   M into W (one piece, many corners): pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
-     estimated 14.0 s, took 3.1 s
+ok   M into W (one piece, many corners): holes kept inside as in Node · 0 (Node 0)
+ok   M into W (one piece, many corners): no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 11.8 s, took 3.2 s
 ok   Bold italic O into Q: fixed · Fixed 2: 64 pts, 0.035 px
 ok   Bold italic O into Q: every piece has the same points in every key
 ok   Bold italic O into Q: pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
-     estimated 16.7 s, took 1.1 s
-ok   A chain of ten letters: fixed · Fixed 2: 44-100 pts, ~0.192 px (max), pieces matched
+ok   Bold italic O into Q: holes kept inside as in Node · 0 (Node 0)
+ok   Bold italic O into Q: no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 14.0 s, took 2.0 s
+ok   A chain of ten letters: fixed · Fixed 2: 44-100 pts, ~0.192 px (max), pieces matched, 7 holes kept inside
 ok   A chain of ten letters: every piece has the same points in every key
 ok   A chain of ten letters: pieces matched as in Node · moved 0 (Node 0), grown 2 (Node 2)
-     estimated 59.6 s, took 16.6 s
+ok   A chain of ten letters: holes kept inside as in Node · 7 (Node 7)
+ok   A chain of ten letters: no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 50.2 s, took 25.0 s
 ok   Engraved R into K (hundreds of points): fixed · Fixed 2: 402 pts, pieces matched
 ok   Engraved R into K (hundreds of points): every piece has the same points in every key
 ok   Engraved R into K (hundreds of points): pieces matched as in Node · moved 2 (Node 2), grown 1 (Node 1)
-     estimated 28.1 s, took 1.8 s
-ok   Engraved @ into & (hundreds of points): fixed · Fixed 3: 100-397 pts, ~0.173 px (max), pieces matched
+ok   Engraved R into K (hundreds of points): holes kept inside as in Node · 0 (Node 0)
+ok   Engraved R into K (hundreds of points): no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 23.7 s, took 4.8 s
+ok   Engraved @ into & (hundreds of points): fixed · Fixed 3: 100-397 pts, ~0.173 px (max), pieces matched, 2 holes kept inside
 ok   Engraved @ into & (hundreds of points): every piece has the same points in every key
 ok   Engraved @ into & (hundreds of points): pieces matched as in Node · moved 3 (Node 3), grown 1 (Node 1)
-     estimated 42.1 s, took 7.9 s
+ok   Engraved @ into & (hundreds of points): holes kept inside as in Node · 2 (Node 2)
+ok   Engraved @ into & (hundreds of points): no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 35.5 s, took 20.9 s
 ok   Engraved 8 into B, max 300: fixed · Fixed 3: 264-300 pts, ~0.197 px (max)
 ok   Engraved 8 into B, max 300: every piece has the same points in every key
 ok   Engraved 8 into B, max 300: pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
-     estimated 88.4 s, took 25.5 s
-ok   Engraved O into C, Exact: fixed · Fixed 2: 321 pts, pieces matched
+ok   Engraved 8 into B, max 300: holes kept inside as in Node · 0 (Node 0)
+ok   Engraved 8 into B, max 300: no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 74.4 s, took 20.0 s
+ok   Engraved O into C, Exact: fixed · Fixed 2: 321 pts, pieces matched, 1 hole kept inside
 ok   Engraved O into C, Exact: every piece has the same points in every key
 ok   Engraved O into C, Exact: pieces matched as in Node · moved 2 (Node 2), grown 1 (Node 1)
-     estimated 1.9 s, took 1.7 s
+ok   Engraved O into C, Exact: holes kept inside as in Node · 1 (Node 1)
+ok   Engraved O into C, Exact: no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 1.9 s, took 8.8 s
 ok   An F turning a quarter at a time: fixed · Fixed 1: 21 pts, 1 turned
 ok   An F turning a quarter at a time: every piece has the same points in every key
 ok   An F turning a quarter at a time: pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
+ok   An F turning a quarter at a time: holes kept inside as in Node · 0 (Node 0)
 ok   An F turning a quarter at a time: halfway keeps the letter's area (it swings, not squashes) · 1.000
 ok   An F turning a quarter at a time: written into the paths, no group turned · 87 in-between keys, 0 groups keyed
-     estimated 23.1 s, took 2.0 s
+     estimated 19.5 s, took 2.6 s
 ok   An R that turns and moves: fixed · Fixed 2: 6-21 pts, 2 turned
 ok   An R that turns and moves: every piece has the same points in every key
 ok   An R that turns and moves: pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
+ok   An R that turns and moves: holes kept inside as in Node · 0 (Node 0)
 ok   An R that turns and moves: halfway keeps the letter's area (it swings, not squashes) · 1.000
 ok   An R that turns and moves: written into the paths, no group turned · 58 in-between keys, 0 groups keyed
-     estimated 16.9 s, took 0.8 s
+     estimated 14.3 s, took 3.8 s
 ok   Tiny type: a into e at 24 px: fixed · Fixed 2: 36-64 pts, 0.006 px
 ok   Tiny type: a into e at 24 px: every piece has the same points in every key
 ok   Tiny type: a into e at 24 px: pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
-     estimated 13.4 s, took 1.0 s
+ok   Tiny type: a into e at 24 px: holes kept inside as in Node · 0 (Node 0)
+ok   Tiny type: a into e at 24 px: no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 11.3 s, took 2.1 s
 ok   Huge type: S into 5 at 2000 px: fixed · Fixed 1: 100 pts, ~0.999 px (max)
 ok   Huge type: S into 5 at 2000 px: every piece has the same points in every key
 ok   Huge type: S into 5 at 2000 px: pieces matched as in Node · moved 0 (Node 0), grown 0 (Node 0)
-     estimated 14.0 s, took 2.4 s
+ok   Huge type: S into 5 at 2000 px: holes kept inside as in Node · 0 (Node 0)
+ok   Huge type: S into 5 at 2000 px: no hole shows outside its letter in any frame · 0 % of a hole
+     estimated 11.8 s, took 2.7 s
 ok   masks O into C: both masks fixed, the same points in every key · Fixed 2: 100 pts, ~0.148 px (max), pieces matched
 ok   masks O into C: the hole (a Subtract mask, its own piece) grows from the dot · 1
 ok   mask turning: written as in-between keys · 58 keys; Fixed 1: 21 pts, 1 turned

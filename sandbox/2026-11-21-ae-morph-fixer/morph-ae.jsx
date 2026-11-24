@@ -13,7 +13,7 @@
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.12.2';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.13.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -82,10 +82,11 @@ var MorphFixer = (function () {
         return s;
     }
 
-    // The in-between keys a turn writes carry a keyframe label of their own (one of the 16 in
-    // Preferences > Labels; After Effects 22.6 and later) and are linear. A later fix finds them,
-    // removes them first and works on the keys the designer drew: fixing again redoes the turn
-    // the same way, and moving the drawn keys then fixing again retimes it.
+    // The in-between keys a fix writes (a turn; a hole that closes or opens on its own clock)
+    // carry a keyframe label of their own (one of the 16 in Preferences > Labels; After Effects
+    // 22.6 and later) and are linear. A later fix finds them, removes them first and works on
+    // the keys the designer drew: fixing again redoes them the same way, and moving the drawn
+    // keys then fixing again retimes them.
     var INBETWEEN_LABEL = 15;
 
     function isInbetween(prop, k) {
@@ -168,29 +169,75 @@ var MorphFixer = (function () {
     // gives back the timing as it was.
     // -> the number of in-between keys written
     function bakeTurn(prop, idx, r) {
-        var T = r.turn, comp = prop.propertyGroup(prop.propertyDepth).containingComp, fd = comp.frameDuration, k, j;
+        var T = r.turn, k, j;
         for (k = 0; k < idx.length; k++) prop.setValueAtKey(idx[k], fromMF(r.placed[k]));
         var times = [], shapes = [];
         for (k = 0; k + 1 < idx.length; k++) {
             if (Math.abs(T.angles[k + 1] - T.angles[k]) < 0.5) continue;
             if (prop.keyOutInterpolationType(idx[k]) === KeyframeInterpolationType.HOLD) continue;
-            var t0 = prop.keyTime(idx[k]), t1 = prop.keyTime(idx[k + 1]);
-            for (j = 1; t0 + j * fd < t1 - fd / 2; j++) {
-                var t = t0 + j * fd, u = MF.progressOf(toMF(prop.valueAtTime(t, false)), r.placed[k], r.placed[k + 1]);
+            var fr = framesBetween(prop, prop.keyTime(idx[k]), prop.keyTime(idx[k + 1]));
+            for (j = 0; j < fr.length; j++) {
+                var t = fr[j], u = MF.progressOf(toMF(prop.valueAtTime(t, false)), r.placed[k], r.placed[k + 1]);
                 times.push(t);
                 shapes.push(fromMF(MF.swing(T, r.paths, k, u)));
             }
         }
-        if (!times.length) return 0;
+        writeInbetweens(prop, times, shapes);
+        return times.length;
+    }
+
+    // the comp's frames strictly between two key times: in-betweens sit on frames, or a frame
+    // drawn between two of them (keys a script set at 1.9 s sit between frames at 24 fps) shows
+    // a blend of both. Round 14: a hole's last dot key and its first grown one, blended, put the
+    // hole outside its letter
+    function framesBetween(prop, t0, t1) {
+        var fd = prop.propertyGroup(prop.propertyDepth).containingComp.frameDuration, out = [];
+        for (var f = Math.floor(t0 / fd + 1e-3) + 1; f * fd < t1 - fd * 1e-3; f++) out.push(f * fd);
+        return out;
+    }
+
+    // in-between keys at these times: linear, labelled (INBETWEEN_LABEL)
+    function writeInbetweens(prop, times, shapes) {
+        if (!times.length) return;
         prop.setValuesAtTimes(times, shapes);
         var LIN = KeyframeInterpolationType.LINEAR;
-        for (j = 0; j < times.length; j++) {
+        for (var j = 0; j < times.length; j++) {
             var at = prop.nearestKeyIndex(times[j]);
             prop.setInterpolationTypeAtKey(at, LIN, LIN);
             try {
                 prop.setLabelAtKey(at, INBETWEEN_LABEL);
             } catch (e) {}
         }
+    }
+
+    // A hole kept inside its letter (MF.holeTiming): AE's fill would paint whatever part of it
+    // the outline no longer surrounds. One closing while its letter opens runs on its own clock:
+    // one key a frame from the step's first key until it is a dot; one opening, from the last
+    // frame it is still one; one that strays, shrunk where it would, every frame of the step.
+    // Each frame from the outline's own eased progress, read back from the outline as After
+    // Effects shows it (so it is written first). In-betweens like a turn's: a later fix removes
+    // and redoes them. H, O: the hole's and the outline's paths at the drawn keys, as written.
+    // -> the number of keys written
+    function bakeHole(prop, H, outline, O, t) {
+        var kh = keyIndices(prop).drawn, ko = keyIndices(outline).drawn, k = t.step, HOLD = KeyframeInterpolationType.HOLD;
+        if (k + 1 >= kh.length || k + 1 >= ko.length) return 0;
+        if (prop.keyOutInterpolationType(kh[k]) === HOLD || outline.keyOutInterpolationType(ko[k]) === HOLD) return 0;
+        var fr = framesBetween(prop, prop.keyTime(kh[k]), prop.keyTime(kh[k + 1])), times = [], shapes = [], wait = -1;
+        for (var j = 0; j < fr.length; j++) {
+            var at = fr[j], u = MF.progressOf(toMF(outline.valueAtTime(at, false)), O[k], O[k + 1]), h = MF.holeProgress(t, u);
+            if (t.closes === false && h <= 0) {
+                wait = at;
+                continue;
+            }
+            if (wait >= 0 && !times.length) {
+                times.push(wait);
+                shapes.push(fromMF(H[k]));
+            }
+            times.push(at);
+            shapes.push(fromMF(MF.holeAt(t, H[k], H[k + 1], u)));
+            if (t.closes === true && h >= 1) break;
+        }
+        writeInbetweens(prop, times, shapes);
         return times.length;
     }
 
@@ -269,6 +316,9 @@ var MorphFixer = (function () {
             rep.drawnKept = dKept;
             rep.drawnLeft = dLeft;
         }
+        // the keys as they will stand (a hole timed against its outline reads them)
+        plan.paths = r.matched ? paths : (r.turn ? r.placed : r.paths);
+        plan.turn = r.matched ? null : (r.turn || null);
         if (r.matched) {
             rep.matched = true;
             rep.keys = idx.length;
@@ -347,8 +397,12 @@ var MorphFixer = (function () {
 
     function summary(rep) {
         if (rep.skipped) return rep.label + ': skipped, ' + rep.skipped + '.';
-        var earlier = rep.removed ? rep.removed + ' in-between keys from an earlier turn' : '';
-        if (rep.matched) return rep.label + ': already matched' + (earlier ? '; removed the ' + earlier : ', left as it is') + drawnNote(rep) + '.';
+        var earlier = rep.removed ? rep.removed + ' in-between keys from an earlier fix' : '';
+        var hole = rep.holeKeys ? '; the hole ' + rep.holeNote + ', in ' + rep.holeKeys + ' in-between keys' : '';
+        if (rep.matched) {
+            if (hole) return rep.label + ': already matched' + hole + (earlier ? ' (replacing ' + earlier + ')' : '') + drawnNote(rep) + '.';
+            return rep.label + ': already matched' + (earlier ? '; removed the ' + earlier : ', left as it is') + drawnNote(rep) + '.';
+        }
         var how, turned = '';
         if (rep.turned !== undefined && rep.baked) {
             turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, one a frame' + (earlier ? ' (replacing ' + earlier + ')' : '');
@@ -357,7 +411,9 @@ var MorphFixer = (function () {
         } else if (rep.noTurn) {
             turned = '; not turned: ' + rep.noTurn;
         }
-        if (earlier && !rep.baked) turned += '; removed the ' + earlier;
+        if (earlier && !rep.baked && !hole) turned += '; removed the ' + earlier;
+        else if (earlier && hole) hole += ' (replacing ' + earlier + ')';
+        turned += hole;
         if (rep.kept) how = 'points already matched, kept as they are';
         else if (rep.fellBack) how = 'your points kept (it has loops or cusps the rebuild cannot follow)';
         else if (rep.mode === 'exact') how = 'your points kept, shapes exact';
@@ -649,7 +705,7 @@ var MorphFixer = (function () {
                     'Rectangle, Ellipse and Polystar shapes: right-click > Convert to Bezier Path first.'
             };
         }
-        var reps = [], lines = [], fixed = 0, matched = 0, skipped = 0, worst = 0, capped = false, lo = 1e9, hi = 0, turned = 0, i;
+        var reps = [], lines = [], fixed = 0, matched = 0, skipped = 0, worst = 0, capped = false, lo = 1e9, hi = 0, turned = 0, holesN = 0, i;
         // before touching anything: what depends on the points, and how long it will take
         var o = opts || {}, warned = [], count = 0, seconds = 0;
         try {
@@ -673,7 +729,7 @@ var MorphFixer = (function () {
         }
         // work it all out first, writing nothing: a shape's pieces are matched between keys,
         // then every path is planned. Esc (with the progress shown) cancels with nothing changed
-        var jobs = [], pieceLines = [], movedN = 0, grownN = 0, plans = [], g, p, k;
+        var jobs = [], pieceLines = [], movedN = 0, grownN = 0, plans = [], shapes = [], g, p, k;
         var pg = pieceGroups(list);
         for (i = 0; i < pg.groups.length; i++) {
             g = pg.groups[i];
@@ -688,6 +744,7 @@ var MorphFixer = (function () {
                     keysMF.push(rowK);
                 }
                 res = MF.matchPieces(keysMF);
+                var first = jobs.length;
                 for (p = 0; p < g.length; p++) {
                     var given = [], changedP = false;
                     for (k = 0; k < K; k++) {
@@ -696,6 +753,7 @@ var MorphFixer = (function () {
                     }
                     jobs.push({ prop: g[p], given: changedP ? given : null, mustWrite: changedP });
                 }
+                if (g.length > 1 && res.roles) shapes.push({ first: first, n: g.length, roles: res.roles });
                 if (res.moved || res.grown) {
                     movedN += res.moved;
                     grownN += res.grown;
@@ -722,6 +780,7 @@ var MorphFixer = (function () {
                 plans.push(planPath(jobs[i].prop, po, jobs[i].given, jobs[i].mustWrite));
                 if (step('Path ' + (i + 1) + ' of ' + jobs.length, (i + 1) / jobs.length)) throw { cancelled: true };
             }
+            var timed = holesToTime(shapes, plans);
         } catch (ec) {
             if (ec && ec.cancelled) return { status: 'Cancelled: nothing changed', detail: 'Cancelled with Esc before anything was written.', reports: [], cancelled: true, warned: warned, seconds: seconds };
             return { status: 'Error (hover)', detail: String(ec && ec.message) + (ec && ec.line ? ' (line ' + ec.line + ')' : ''), reports: [] };
@@ -745,6 +804,15 @@ var MorphFixer = (function () {
                     if (r.turned !== undefined) turned++;
                 }
             }
+            // holes on their own clock, once every outline is written
+            for (i = 0; i < timed.length; i++) {
+                var tm = timed[i], hr = plans[tm.hole].rep, nk = bakeHole(jobs[tm.hole].prop, tm.H, jobs[tm.outline].prop, tm.O, tm.t);
+                if (!nk) continue;
+                holesN++;
+                hr.holeKeys = (hr.holeKeys || 0) + nk;
+                hr.holeNote = (hr.holeNote ? hr.holeNote + ', ' : '') + holeNote(tm.t);
+                lines[tm.hole] = summary(hr);
+            }
         } catch (e) {
             return { status: 'Error (hover)', detail: String(e && e.message) + (e && e.line ? ' (line ' + e.line + ')' : ''), reports: reps };
         } finally {
@@ -755,11 +823,60 @@ var MorphFixer = (function () {
         if (fixed) parts.push('Fixed ' + fixed + ': ' + (lo === hi ? lo : lo + '-' + hi) + ' pts' + (worst ? (capped ? ', ~' : ', ') + round3(worst) + ' px' + (capped ? ' (max)' : '') : ''));
         if (turned) parts.push(turned + ' turned');
         if (movedN || grownN) parts.push('pieces matched');
+        if (holesN) parts.push(holesN + (holesN > 1 ? ' holes' : ' hole') + ' kept inside');
         if (matched) parts.push(matched + ' already matched');
         if (skipped) parts.push(skipped + ' skipped');
         if (count) parts.push(count + (count > 1 ? ' warnings' : ' warning') + ' (hover)');
         if (count) lines.push('', 'You were warned, and fixed anyway (' + KEY + '+Z undoes it):', warnLines.join('\n'));
-        return { status: parts.join(', '), detail: lines.join('\n'), reports: reps, warned: warned, seconds: seconds, moved: movedN, grown: grownN };
+        return { status: parts.join(', '), detail: lines.join('\n'), reports: reps, warned: warned, seconds: seconds, moved: movedN, grown: grownN, holes: holesN };
+    }
+
+    // what a timed hole does, for the report
+    function holeNote(t) {
+        var from = ' of the morph from key ' + (t.step + 1);
+        if (t.dip) return 'shrinks to ' + Math.round(t.low * 100) + ' % of its size during the morph from key ' + (t.step + 1) + ', where it would stray outside the outline';
+        return t.closes ? 'closes by ' + Math.round(t.by * 100) + ' %' + from + ', before the outline opens round it'
+            : 'opens from ' + Math.round(t.from * 100) + ' %' + from + ', once the outline closes round it';
+    }
+
+    // the holes to put on their own clock (MF.holeTiming), worked out before anything is written:
+    // per shape in pieces, each piece's keys as planned. Each against the outline that moves most
+    // in that step (its progress times the hole); not in a step that turns (the turn's in-betweens
+    // hold the swing) or where a piece was skipped. -> [{ hole, outline (job indices), t, H, O }]
+    function holesToTime(shapes, plans) {
+        var out = [], s, p, j, q;
+        for (s = 0; s < shapes.length; s++) {
+            var S = shapes[s], fixedP = [], ok = true;
+            for (p = 0; p < S.n; p++) {
+                var pl = plans[S.first + p];
+                if (!pl || !pl.paths || pl.paths.length !== S.roles.length) ok = false;
+                else fixedP.push(pl.paths);
+            }
+            if (!ok) continue;
+            // a step that turns is left alone (worked out by nothing: its in-betweens hold the swing)
+            var skip = [];
+            for (k = 0; k + 1 < S.roles.length; k++) for (p = 0; p < S.n; p++) if (turnsAt(plans[S.first + p], k)) skip[k] = true;
+            var T = MF.holeTiming(fixedP, S.roles, skip);
+            for (j = 0; j < T.length; j++) {
+                var k = T[j].step, best = -1, most = -1;
+                for (q = 0; q < S.n; q++) {
+                    if (q === T[j].piece || S.roles[k][q] === -1 || S.roles[k + 1][q] === -1 || (!S.roles[k][q] && !S.roles[k + 1][q])) continue;
+                    var A = fixedP[q][k], B = fixedP[q][k + 1], d = 0;
+                    for (var v = 0; v < A.v.length; v++) d += Math.abs(B.v[v][0] - A.v[v][0]) + Math.abs(B.v[v][1] - A.v[v][1]);
+                    if (d > most) {
+                        most = d;
+                        best = q;
+                    }
+                }
+                if (best < 0) continue;
+                out.push({ hole: S.first + T[j].piece, outline: S.first + best, t: T[j], H: fixedP[T[j].piece], O: fixedP[best] });
+            }
+        }
+        return out;
+    }
+
+    function turnsAt(plan, k) {
+        return !!(plan.turn && Math.abs(plan.turn.angles[k + 1] - plan.turn.angles[k]) >= 0.5);
     }
 
     // the guide behind ?, written for the person animating: what it does, three steps, what
@@ -780,7 +897,7 @@ var MorphFixer = (function () {
         ],
         tips: [
             'Fixed paths have more points: finish drawing your keys first.',
-            'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, and a piece you draw as a dot grows from that dot.',
+            'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, a piece you draw as a dot grows from that dot, and holes stay inside their letter.',
             'A long fix keeps After Effects busy until it is done; over 10 seconds, it asks first and says how long. Hold Esc to cancel: nothing changes.',
             'It asks first when Zig Zag, Pucker & Bloat, Wiggle Paths or an expression count the points. Trim Paths, dashes and text on a path are fine.',
             'Left alone: paths with expressions, masks with feather points, and rectangles, ellipses and stars (right-click > Convert To Bezier Path first).',
@@ -1162,7 +1279,7 @@ var MorphFixer = (function () {
         install: install, isInstalled: isInstalled, panelsFolder: panelsFolder, toMF: toMF, fromMF: fromMF,
         version: VERSION, magnification: magnification, needs: needs, readers: readers, estimate: estimate, keyMs: keyMs,
         speed: speed, installedCopies: installedCopies, theme: theme, headingColor: headingColor,
-        planPath: planPath, pieceGroups: pieceGroups, uid: uid, bakeTurn: bakeTurn,
+        planPath: planPath, pieceGroups: pieceGroups, uid: uid, bakeTurn: bakeTurn, bakeHole: bakeHole, holesToTime: holesToTime,
         ask: null, themeOverride: null, escape: null     // test stand-ins: the question before a fix, the AE theme, Esc
     };
     return api;

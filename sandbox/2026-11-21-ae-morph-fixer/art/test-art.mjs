@@ -111,11 +111,36 @@ for (const c of CASES) {
     if (c.expect && c.expect.grown) check(`${c.name}: ${c.expect.grown} keys where a piece grows from a point`, res.grown === c.expect.grown, String(res.grown));
     if (c.expect && c.expect.moved) check(`${c.name}: pieces pasted out of order are dealt back`, res.moved > 0, String(res.moved));
     if (c.expect && c.expect.turned) check(`${c.name}: turned ${c.expect.turned} deg`, turned !== null && Math.abs(turned - c.expect.turned) < 1, String(turned));
+    // holes kept inside (MF.holeTiming): one that closes or opens while its letter opens or
+    // closes keeps its own clock, one that would stray halfway shrinks there, and no hole shows
+    // outside its outline at any of 39 in-betweens a step (AE's fill would paint it: a dark
+    // blob). Turned cases are left out: the panel leaves a turning step's holes alone.
+    const T = c.rotate ? [] : MF.holeTiming(fixed.map((r) => r.paths), res.roles);
+    if (!c.rotate) {
+        let shown = 0, where = '';
+        for (let k = 0; k + 1 < K; k++) {
+            for (let j = 1; j < 40; j++) {
+                const u = j / 40, outl = [];
+                fixed.forEach((r, p) => { if (res.roles[k][p] !== -1 && res.roles[k + 1][p] !== -1 && (res.roles[k][p] || res.roles[k + 1][p])) outl.push(MF.lerp(r.paths[k], r.paths[k + 1], u)); });
+                fixed.forEach((r, p) => {
+                    if (res.roles[k][p] !== -1 && res.roles[k + 1][p] !== -1) return;
+                    const t = T.find((e) => e.piece === p && e.step === k), o = MF.holeOutside(t ? MF.holeAt(t, r.paths[k], r.paths[k + 1], u) : MF.lerp(r.paths[k], r.paths[k + 1], u), outl);
+                    if (o > shown) {
+                        shown = o;
+                        where = `step ${k + 1}, piece ${p + 1}, u ${u.toFixed(3)}`;
+                    }
+                });
+            }
+        }
+        check(`${c.name}: no hole shows outside its outline`, shown === 0, `${(shown * 100).toFixed(1)} % of a hole at ${where}`);
+    }
+    check(`${c.name}: ${(c.expect && c.expect.timed) || 0} holes kept inside (on their own clock, or shrunk)`, T.length === ((c.expect && c.expect.timed) || 0),
+        JSON.stringify(T.map((t) => [t.step, t.dip ? 'shrinks ' + t.low.toFixed(2) : t.closes ? 'by ' + t.by.toFixed(2) : 'from ' + t.from.toFixed(2)])));
     const capped = fixed.some((r) => r.capped), fell = fixed.some((r) => r.fellBack);
     rows.push(`| ${c.name} | ${c.font.replace(/-.*/, '')} | ${K} | ${n} | ${keys[0].map((P) => P.v.length).join('/')} → ${pts.join('/')} | ${capped ? '~' + near.toFixed(2) + ' (max)' : fell ? 'kept points' : worst.toFixed(3)} | ${res.moved} / ${res.grown} | ${before.toFixed(0)} → ${after.toFixed(0)} | ${turned === null ? '' : turned.toFixed(0) + '°'} | ${ms.toFixed(0)} |`);
     // node: how Node matched the pieces, for make-art.jsx to compare (ExtendScript once read the
     // area sign wrong and matched O into C by size alone: the hole became the C)
-    forAE.push({ name: c.name, keys, mode: c.mode || 'smooth', max: c.max || 100, rotate: !!c.rotate, expect: c.expect || {}, node: { moved: res.moved, grown: res.grown } });
+    forAE.push({ name: c.name, keys, mode: c.mode || 'smooth', max: c.max || 100, rotate: !!c.rotate, expect: c.expect || {}, node: { moved: res.moved, grown: res.grown, timed: T.length } });
 }
 
 fs.mkdirSync(path.join(dir, 'out', 'art'), { recursive: true });

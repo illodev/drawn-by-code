@@ -3,8 +3,9 @@
 // designer keys them), builds every case as a shape layer (one group, one Path per piece, a
 // fill), plus two mask cases (an O closing into a C as Add and Subtract masks; an F turning as
 // a mask), fixes each through the panel's own fixSelection, and checks what AE then holds:
-// every piece the same points in every key, the pieces matched as in Node, turns swung (the
-// area halfway stays the letter's area), and the time against the estimate. Logs to
+// every piece the same points in every key, the pieces matched as in Node, holes kept inside
+// as in Node (no hole outside its letter in AE's own frames), turns swung (the area halfway
+// stays the letter's area), and the time against the estimate. Logs to
 // out/ae/art-log.txt and saves out/ae/art.aep.
 //
 // Needs the test build (node build.mjs) and $.global.MORPH_DIR (this experiment's folder);
@@ -77,6 +78,23 @@
         for (var k = 2; k <= path.numKeys; k++) if (path.keyValue(k).vertices.length !== n) return false;
         return true;
     }
+    // the most of any hole lying outside its outlines at time t, in AE's own values (a hole: a
+    // piece drawn the other way round from the largest; under a pixel across, none)
+    function holeShows(paths, t) {
+        var P = [], I = [], big = 0, outl = [], holes = [], w = 0, j;
+        for (j = 0; j < paths.length; j++) {
+            P.push(FX.toMF(paths[j].valueAtTime(t, false)));
+            I.push(MF.pieceInfo(P[j]));
+            if (I[j].size > I[big].size) big = j;
+        }
+        for (j = 0; j < P.length; j++) {
+            if (I[j].diag < 1) continue;
+            if (I[j].sign !== 0 && I[j].sign !== I[big].sign) holes.push(P[j]);
+            else outl.push(P[j]);
+        }
+        for (j = 0; j < holes.length; j++) w = Math.max(w, MF.holeOutside(holes[j], outl));
+        return w;
+    }
     function areaAt(path, t) {
         return Math.abs(MF.area(FX.toMF(path.valueAtTime(t, false))));
     }
@@ -103,6 +121,20 @@
             // became the C) while every check above passed
             check(C.name + ': pieces matched as in Node', res.moved === C.node.moved && res.grown === C.node.grown,
                 'moved ' + res.moved + ' (Node ' + C.node.moved + '), grown ' + res.grown + ' (Node ' + C.node.grown + ')');
+            // holes kept inside: as many as Node keeps, and in AE's own frames (every other one)
+            // no hole outside its letter
+            check(C.name + ': holes kept inside as in Node', (res.holes || 0) === C.node.timed, (res.holes || 0) + ' (Node ' + C.node.timed + ')');
+            if (!C.rotate) {
+                var worst = 0, wat = 0;
+                for (var f = 1; f < (C.keys.length - 1) * 30; f += 2) {
+                    var w = holeShows(paths, f / 30);
+                    if (w > worst) {
+                        worst = w;
+                        wat = f / 30;
+                    }
+                }
+                check(C.name + ': no hole shows outside its letter in any frame', worst === 0, Math.round(worst * 100) + ' % of a hole' + (worst ? ' at ' + wat.toFixed(2) + ' s' : ''));
+            }
             if (C.rotate) {
                 // turned: halfway between the first two keys the letter keeps its area
                 var a0 = 0, ah = 0;

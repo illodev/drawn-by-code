@@ -311,6 +311,75 @@ function shown(r, k, u) {
     // after matching, each property's keys fix cleanly: the grown hole keeps its points and turn
     const fixedHole = MF.fix([hole, MF.matchPieces([[outer, hole], [outer, sq(5, 5, 0.1, true)]]).keys[1][1]]);
     check('pieces: a hole growing from a point fixes like any path', !fixedHole.fellBack && fixedHole.paths[0].v.length === fixedHole.paths[1].v.length, fixedHole.mode);
+    check('pieces: roles per key (1 outline, -1 hole, 0 missing)', JSON.stringify(MF.matchPieces([[outer, hole], [outer, sq(5, 5, 0.1, true)]]).roles) === '[[1,-1],[1,0]]');
+    // a hole shrinking inside an outline that stays put never shows: no clock of its own
+    const still = MF.matchPieces([[outer, hole], [outer, sq(5, 5, 0.1, true)]]);
+    const stillFixed = [0, 1].map((p) => MF.fix(still.keys.map((row) => row[p])).paths);
+    check('holes: a hole closing inside an outline that stays put keeps the morph\'s clock', MF.holeTiming(stillFixed, still.roles).length === 0);
+}
+
+// ---- holes kept inside: one closing while its letter opens (O into C) or opening while it
+// closes (C into e) on a clock of its own; one straying outside halfway (b into e) shrunk
+// there. AE's fill paints any part of a hole outside its outline ----
+{
+    const letters = (font, keys) => {
+        const res = MF.matchPieces(buildArt({ font, keys }));
+        const fixed = res.keys[0].map((_, p) => MF.fix(res.keys.map((row) => row[p]), { maxPoints: 100 }).paths);
+        return { res, fixed, T: MF.holeTiming(fixed, res.roles) };
+    };
+    // the most of any hole's outline outside the outlines, over 40 in-betweens a step, each hole
+    // on its clock (T) or on the morph's (T = [])
+    const shows = ({ res, fixed }, T) => {
+        let worst = 0;
+        for (let k = 0; k + 1 < res.roles.length; k++) {
+            for (let j = 1; j < 40; j++) {
+                const u = j / 40, outl = [];
+                fixed.forEach((F, p) => { if (res.roles[k][p] !== -1 && res.roles[k + 1][p] !== -1 && (res.roles[k][p] || res.roles[k + 1][p])) outl.push(MF.lerp(F[k], F[k + 1], u)); });
+                fixed.forEach((F, p) => {
+                    if (res.roles[k][p] !== -1 && res.roles[k + 1][p] !== -1) return;
+                    const t = T.find((e) => e.piece === p && e.step === k);
+                    worst = Math.max(worst, MF.holeOutside(t ? MF.holeAt(t, F[k], F[k + 1], u) : MF.lerp(F[k], F[k + 1], u), outl));
+                });
+            }
+        }
+        return worst;
+    };
+    const oc = letters('ComicNeue-Bold', 'OC');
+    check('holes: O into C, the hole closes on its own clock', oc.T.length === 1 && oc.T[0].closes && oc.T[0].step === 0 && oc.T[0].by > 0.5 && oc.T[0].by < 0.8, JSON.stringify(oc.T));
+    check('holes: O into C on the morph\'s clock shows the hole outside the C (what AE did)', shows(oc, []) > 0.3, shows(oc, []).toFixed(2));
+    check('holes: O into C on its own clock, the hole never shows', shows(oc, oc.T) === 0, shows(oc, oc.T).toFixed(3));
+    const co = letters('ComicNeue-Bold', 'CO');
+    check('holes: C into O, the hole opens on its own clock: O into C played backwards', co.T.length === 1 && !co.T[0].closes && Math.abs(co.T[0].from - (1 - oc.T[0].by)) < 0.01 && shows(co, co.T) === 0,
+        JSON.stringify(co.T));
+    const ce = letters('ComicNeue-Bold', 'Ce');
+    check('holes: C into e, the hole only opens once the e is nearly shut', ce.T.length === 1 && ce.T[0].from > 0.6 && shows(ce, ce.T) === 0, JSON.stringify(ce.T));
+    const chain = letters('ComicNeue-Bold', 'aeocd');
+    check('holes: a e o c d, the o\'s hole closes and the d\'s opens, neither shows', chain.T.length === 2 && chain.T[0].step === 2 && chain.T[0].closes &&
+        chain.T[1].step === 3 && !chain.T[1].closes && shows(chain, chain.T) === 0, JSON.stringify(chain.T));
+    const keep = letters('ComicNeue-Bold', 'aeodq');
+    check('holes: letters that keep their holes keep the morph\'s clock', keep.T.length === 0 && shows(keep, []) === 0);
+    const gs = letters('PatrickHand-Regular', 'gs'), eng = letters('IMFellDWPicaSC-Regular', 'OC');
+    check('holes: g into s and an engraved O into C, timed and never showing', gs.T.length === 1 && eng.T.length === 1 && shows(gs, gs.T) === 0 && shows(eng, eng.T) === 0,
+        JSON.stringify([gs.T, eng.T]));
+    // fixing the fixed keys again times the hole the same (what a second Fix in AE does)
+    const again = MF.matchPieces(oc.res.keys.map((row, k) => row.map((_, p) => oc.fixed[p][k])));
+    const againFixed = again.keys[0].map((_, p) => MF.fix(again.keys.map((row) => row[p]), { maxPoints: 100 }).paths);
+    const T2 = MF.holeTiming(againFixed, again.roles);
+    check('holes: a second fix times the hole the same', T2.length === 1 && Math.abs(T2[0].by - oc.T[0].by) < 0.005, JSON.stringify(T2));
+    check('holes: the clock (closing: gone by `by`; opening: starts at `from`)', MF.holeProgress({ closes: true, by: 0.6 }, 0.3) === 0.5 && MF.holeProgress({ closes: true, by: 0.6 }, 0.7) === 1 &&
+        MF.holeProgress({ closes: false, from: 0.6 }, 0.5) === 0 && Math.abs(MF.holeProgress({ closes: false, from: 0.6 }, 0.8) - 0.5) < 1e-12);
+    // a hole that stays a hole but strays outside halfway shrinks there, easing in and out
+    const be = letters('ComicNeue-Bold', 'be'), r6 = letters('PatrickHand-Regular', 'R6');
+    check('holes: b into e strays on the morph\'s clock (what AE did)', shows(be, []) > 0.1, shows(be, []).toFixed(2));
+    check('holes: b into e, the hole shrinks where it would stray, and never shows', be.T.length === 1 && be.T[0].dip && be.T[0].low < 1 && shows(be, be.T) === 0, JSON.stringify(be.T.map((t) => t.low)));
+    check('holes: R into 6, the same', r6.T.length === 1 && r6.T[0].dip && shows(r6, r6.T) === 0, JSON.stringify(r6.T.map((t) => t.low)));
+    const dip = be.T[0].dip, F = be.fixed[be.T[0].piece];
+    check('holes: a shrinking hole is itself at both keys', same(MF.holeAt(be.T[0], F[0], F[1], 0), F[0]) < 1e-9 && same(MF.holeAt(be.T[0], F[0], F[1], 1), F[1]) < 1e-9);
+    let steep = 0;
+    for (let j = 1; j < dip.length; j++) steep = Math.max(steep, Math.abs(dip[j] - dip[j - 1]) * (dip.length - 1));
+    check('holes: it eases in and out of it (no jump between in-betweens)', dip[0] === 1 && dip[dip.length - 1] === 1 && steep <= 4 + 1e-9, `steepest ${steep.toFixed(2)} a morph`);
+    console.log(`holes: b into e shrinks to ${(be.T[0].low * 100).toFixed(0)} %, R into 6 to ${(r6.T[0].low * 100).toFixed(0)} %`);
+    console.log(`holes: O into C gone by ${(oc.T[0].by * 100).toFixed(0)} %, C into e opens from ${(ce.T[0].from * 100).toFixed(0)} %, g into s by ${(gs.T[0].by * 100).toFixed(0)} %`);
 }
 
 // ---- progress: the fix can be cancelled while it works, before anything is written ----------
@@ -663,6 +732,85 @@ function keepsAxis(r, deg) {
             `${r3.baked} of ${want3}, ${stale.length} left after the moved key`);
         const r4 = FX.fix(tl);
         check('turn into the path: fixed without turn, the in-betweens go', r4.removed === want3 && tl.K.length === fShapes.length && /removed the/.test(FX.summary(r4)), FX.summary(r4));
+    }
+    // a hole on its own clock, on mock timelines: o into c into d, outline and hole each a Path,
+    // through the steps fixSelection takes (pieces matched, every path planned, the holes timed,
+    // the paths written, then the holes' in-betweens)
+    {
+        const keys = buildArt({ font: 'ComicNeue-Bold', keys: 'ocd' }), times = [12 / 24, 45 / 24, 78 / 24];     // keys on frames, as AE puts them
+        const tls = [0, 1].map((p) => mockTimeline(keys.map((row) => row[p]), times));
+        const fixPieces = () => {
+            const drawn = tls.map((tl) => tl.K.filter((q) => q.label === 0));
+            const now = drawn[0].map((_, k) => tls.map((_, p) => FX.toMF(drawn[p][k].v)));
+            const res = MF.matchPieces(now);
+            const plans = tls.map((tl, p) => {
+                const given = res.keys.map((row) => row[p]), changed = given.some((P, k) => P !== now[k][p]);
+                return FX.planPath(tl, { maxPoints: 100 }, changed ? given : null, changed);
+            });
+            const timed = FX.holesToTime([{ first: 0, n: 2, roles: res.roles }], plans);
+            plans.forEach((pl) => pl.apply());
+            let written = 0;
+            for (const tm of timed) {
+                const nk = FX.bakeHole(tls[tm.hole], tm.H, tls[tm.outline], tm.O, tm.t);
+                written += nk;
+                plans[tm.hole].rep.holeKeys = (plans[tm.hole].rep.holeKeys || 0) + nk;
+                plans[tm.hole].rep.holeNote = 'closes early';
+            }
+            return { timed, written, plans };
+        };
+        const holeTl = () => tls.find((tl) => tl.K.some((q) => q.label !== 0)) || tls[1];
+        const a = fixPieces(), hTl = holeTl(), oTl = tls.find((tl) => tl !== hTl);
+        const between = () => hTl.K.filter((q) => q.label !== 0);
+        // every frame from the first key to the last: no part of the hole outside the outline
+        let worst = 0, before = 0;
+        for (let f = 12; f <= 78; f++) {
+            const t = f / 24;
+            worst = Math.max(worst, MF.holeOutside(FX.toMF(hTl.valueAtTime(t)), [FX.toMF(oTl.valueAtTime(t))]));
+        }
+        check('holes in AE: o into c into d, the hole closes then opens on in-betweens of its own', a.timed.length === 2 && a.written > 10 &&
+            between().every((q) => q.label === 15 && q.inT === LIN && q.outT === LIN) && oTl.K.every((q) => q.label === 0), `${a.timed.length} timed, ${a.written} keys`);
+        check('holes in AE: at every frame the hole stays inside the outline', worst === 0, worst.toFixed(3));
+        check('holes in AE: the drawn keys keep their times and easing', hTl.K.filter((q) => q.label === 0).every((q, k) => q.t === times[k] && q.inT === BEZ && q.outT === BEZ));
+        check('holes in AE: the report says what the hole does', /the hole closes early, in \d+ in-between keys/.test(FX.summary(a.plans[tls.indexOf(hTl)].rep)), FX.summary(a.plans[tls.indexOf(hTl)].rep));
+        const snap = hTl.K.map((q) => ({ t: q.t, v: q.v.vertices.map((p) => p.slice()) }));
+        const b = fixPieces();
+        let dMax = 0;
+        hTl.K.forEach((q, i) => q.v.vertices.forEach((p, j) => { dMax = Math.max(dMax, Math.hypot(p[0] - snap[i].v[j][0], p[1] - snap[i].v[j][1])); }));
+        check('holes in AE: fixing again replaces the in-betweens with the same ones', b.written === a.written && hTl.K.length === snap.length &&
+            hTl.K.every((q, i) => Math.abs(q.t - snap[i].t) < 1e-9) && dMax < 1e-6, `${b.written} vs ${a.written} keys, ${dMax.toExponential(1)} px`);
+        console.log(`holes in AE: o into c into d, ${a.written} in-between keys on the hole; fixed again: ${FX.summary(b.plans[tls.indexOf(hTl)].rep)}`);
+        // keys a script set between frames (1.9 s at 24 fps): the in-betweens sit on the comp's
+        // frames, so no frame shows a blend of two of them (round 14: one showed the d's hole
+        // half grown outside the c, a blend of its last dot key and its first grown one)
+        {
+            const ot = [0.5, 1.9, 3.3], ols = [0, 1].map((p) => mockTimeline(keys.map((row) => row[p]), ot));
+            const ores = MF.matchPieces(keys);
+            const oplans = ols.map((tl, p) => FX.planPath(tl, { maxPoints: 100 }, ores.keys.map((row) => row[p]), true));
+            const otimed = FX.holesToTime([{ first: 0, n: 2, roles: ores.roles }], oplans);
+            oplans.forEach((pl) => pl.apply());
+            otimed.forEach((tm) => FX.bakeHole(ols[tm.hole], tm.H, ols[tm.outline], tm.O, tm.t));
+            const hh = ols[otimed[0].hole], oo = ols[otimed[0].outline];
+            let ow = 0, onGrid = hh.K.filter((q) => q.label !== 0).every((q) => Math.abs(q.t * 24 - Math.round(q.t * 24)) < 1e-6);
+            for (let f = 12; f <= 79; f++) ow = Math.max(ow, MF.holeOutside(FX.toMF(hh.valueAtTime(f / 24)), [FX.toMF(oo.valueAtTime(f / 24))]));
+            check('holes in AE: keys between frames, the in-betweens sit on frames and no frame shows the hole outside', otimed.length === 2 && onGrid && ow === 0, `${ow.toFixed(3)} outside`);
+        }
+        // b into e: the hole stays a hole but would stray; shrunk, every frame of the step
+        const bk = buildArt({ font: 'ComicNeue-Bold', keys: 'be' }), bt = [12 / 24, 45 / 24];
+        const bls = [0, 1].map((p) => mockTimeline(bk.map((row) => row[p]), bt));
+        const bres = MF.matchPieces(bk);
+        const bplans = bls.map((tl, p) => FX.planPath(tl, { maxPoints: 100 }, bres.keys.map((row) => row[p]), true));
+        const btimed = FX.holesToTime([{ first: 0, n: 2, roles: bres.roles }], bplans);
+        bplans.forEach((pl) => pl.apply());
+        const bn = btimed.length ? FX.bakeHole(bls[btimed[0].hole], btimed[0].H, bls[btimed[0].outline], btimed[0].O, btimed[0].t) : 0;
+        let bworst = 0;
+        if (btimed.length) {
+            for (let f = 12; f <= 45; f++) {
+                const hb = FX.toMF(bls[btimed[0].hole].valueAtTime(f / 24)), ob = FX.toMF(bls[btimed[0].outline].valueAtTime(f / 24));
+                bworst = Math.max(bworst, MF.holeOutside(hb, [ob]));
+            }
+        }
+        check('holes in AE: b into e, the straying hole is shrunk on every frame of the step and stays inside', btimed.length === 1 && btimed[0].t.dip && bn === 32 && bworst === 0,
+            `${btimed.length} timed, ${bn} keys, ${bworst.toFixed(3)} outside`);
     }
 }
 

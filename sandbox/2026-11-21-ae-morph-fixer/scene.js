@@ -11,9 +11,10 @@
 //   14.5-23 s   Symmetry demo: a star, the star turned 36 deg, a plus, an x, the star, all
 //               sharing the upright axis, each drawn anew: every step mirror-symmetric (AE's
 //               left half: the same fix without its symmetry rule, which swirls two steps)
-//   23-31.5 s   Letters demo: a, e, o, d, b in Comic Neue Bold, an outline and a hole each,
-//               pieces matched between keys, max 200 (a into e: a start chosen against a
-//               crossover)
+//   23-31.5 s   Letters demo: a, e, b, c, d in Comic Neue Bold, pieces matched between keys,
+//               max 200, each hole kept inside its letter: a into e, a start chosen against a
+//               crossover; e into b, the hole shrinks where it would stray; b into c, it closes
+//               before the c opens; c into d, it opens once the d is shut
 // The orange dot rides the first point (not on the letters). The "Before" halves are After Effects' own business
 // (how it blends keys that don't match is what the rig avoids), so they only exist in AE's
 // render. A diagnostic, not a styled piece.
@@ -57,14 +58,16 @@ Motion.scene({
         const keys = MD.keys.map(([, s]) => MD.shapes[s]);
         const turnKeys = MD.turn.keys.map(([, s]) => MD.turn.shapes[s]);
         const symKeys = MD.sym.keys.map(([, s]) => MD.sym.shapes[s]);
-        // letters: pieces matched between keys, then each piece's path fixed
-        const rows = ML.keys.map(([, s]) => ML.shapes[s]), dealt = MF.matchPieces(rows).keys;
-        const letters = rows[0].map((_, p) => MF.fix(dealt.map((row) => row[p]), { maxPoints: ML.maxPoints }).paths);
+        // letters: pieces matched between keys, each piece's path fixed, the holes kept inside
+        // (what the panel bakes into in-between keys, at AE's eased progress: here the same u)
+        const rows = ML.keys.map(([, s]) => ML.shapes[s]), dealt = MF.matchPieces(rows);
+        const letters = rows[0].map((_, p) => MF.fix(dealt.keys.map((row) => row[p]), { maxPoints: ML.maxPoints }).paths);
+        const holes = MF.holeTiming(letters, dealt.roles);
         return {
             morph: MF.fix(keys, { maxPoints: MD.maxPoints }).paths,
             turn: MF.fix(turnKeys, { maxPoints: MD.maxPoints, rotate: true }),
             sym: MF.fix(symKeys, { maxPoints: MD.maxPoints }).paths,
-            letters,
+            letters, holes,
         };
     },
     draw(g, t, env) {
@@ -84,7 +87,10 @@ Motion.scene({
             labels = ['Least travel', 'Symmetric'];
         } else {
             const s = stepAt(ML.keys, t - T_LET);
-            pieces = S.letters.map((L) => MF.lerp(L[s.k], L[s.k + 1], s.u));
+            pieces = S.letters.map((L, p) => {
+                const h = S.holes.find((e) => e.piece === p && e.step === s.k);
+                return h ? MF.holeAt(h, L[s.k], L[s.k + 1], s.u) : MF.lerp(L[s.k], L[s.k + 1], s.u);
+            });
         }
         g.beginPath();
         for (const P of pieces) trace(g, P, ox, oy, true);

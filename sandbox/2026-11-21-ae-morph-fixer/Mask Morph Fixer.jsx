@@ -1,4 +1,4 @@
-// Mask Morph Fixer 0.12.2 - gives every keyframe of a path the same points, direction
+// Mask Morph Fixer 0.13.0 - gives every keyframe of a path the same points, direction
 // and start, so shapes and masks morph cleanly in After Effects; key times and easing stay as
 // they are. Run it from File > Scripts > Run Script File..., then click ? > Install as a panel
 // to dock it (Window menu, after a restart).
@@ -668,6 +668,9 @@ var MF = (function () {
         }
         if (aa <= 0) return null;
         var th = Math.atan2(sc, sd), s = Math.sqrt(sd * sd + sc * sc) / aa, cs = s * Math.cos(th), sn = s * Math.sin(th), e = 0;
+        // a turn keeps about its size: a piece shrunk to a dot (or grown from one) fits any
+        // angle within half a pixel
+        if (s < 0.1 || s > 10) return null;
         for (j = 0; j < pairs.length; j++) {
             var p = pairs[j], rx = p[0] * cs - p[1] * sn - p[2], ry = p[0] * sn + p[1] * cs - p[3];
             e += rx * rx + ry * ry;
@@ -1439,12 +1442,13 @@ var MF = (function () {
     // as a dot or collapsed: under 3 % of that key's largest piece) grows from a point: it
     // becomes a tiny copy of the same property's piece at the nearest key that has one, at the
     // dot if the dot sits inside the shape, else at that piece's centre. Closed paths only.
-    // -> { keys, moved (pieces dealt to another property), grown (pieces that grow or shrink) }
+    // -> { keys, moved (pieces dealt to another property), grown (pieces that grow or shrink),
+    // roles (roles[k][p]: 1 an outline, -1 a hole, 0 missing at that key; null for open paths) }
     function matchPieces(keys) {
         var K = keys.length, n = keys[0].length, k, p, j;
         for (k = 0; k < K; k++) {
             if (keys[k].length !== n) throw new Error('keys with different numbers of pieces');
-            for (p = 0; p < n; p++) if (!keys[k][p].closed) return { keys: keys, moved: 0, grown: 0 };
+            for (p = 0; p < n; p++) if (!keys[k][p].closed) return { keys: keys, moved: 0, grown: 0, roles: null };
         }
         var info = [], out = [];
         for (k = 0; k < K; k++) {
@@ -1532,7 +1536,313 @@ var MF = (function () {
                 grown++;
             }
         }
-        return { keys: out, moved: moved, grown: grown };
+        var roles = [];
+        for (k = 0; k < K; k++) {
+            roles.push([]);
+            for (p = 0; p < n; p++) roles[k].push(info[k][p].absent ? 0 : (info[k][p].hole ? -1 : 1));
+        }
+        return { keys: out, moved: moved, grown: grown, roles: roles };
+    }
+
+    // ---- holes kept inside their letter ----
+    //
+    // A hole is its own path, drawn the other way round: where the outline no longer surrounds
+    // it, After Effects' non-zero fill paints it, a dark blob. A hole closing into its dot while
+    // the letter opens (O into C) is still shrinking when the C's gap opens over it; one growing
+    // while the letter closes (C into e) starts before the e's counter is shut. Such a hole
+    // keeps its own clock against the outline's progress u: closing, it is gone by u = by (its
+    // progress min(1, u / by)); opening, it starts at u = from (max(0, (u - from) / (1 - from))).
+    // by is the latest (from the earliest) that keeps every point of the hole a pixel inside the
+    // outlines at every in-between; a hole under a pixel across counts as gone. A hole that stays
+    // a hole but strays outside halfway (b into e) shrinks there instead (dipFor).
+    // fixed[p][k]: piece p's fixed path at key k (the same points in every key); roles from
+    // matchPieces; skip[k] true leaves step k alone. -> [{ piece, step, closes: true, by } or { ..., closes: false, from } or
+    // { piece, step, dip, low (its smallest scale) }], only where the hole as After Effects
+    // would draw it shows outside its outline. MF.holeAt gives the hole at any u.
+
+    // The geometry below runs many times a fix: in ExtendScript, made objects cost far more than
+    // arithmetic (round 14: path and point objects made B into 8 take 22 s instead of 2), so it
+    // works on flat arrays of numbers.
+
+    // the outline of the path at u between A and B (same points), per chords a segment, scaled
+    // by s about (cx, cy): appended to xs, ys
+    function poly(A, B, u, per, s, cx, cy, xs, ys) {
+        var n = A.v.length, k, t;
+        for (k = 0; k < n; k++) {
+            var k1 = (k + 1) % n, Av = A.v[k], Bv = B.v[k], Aw = A.v[k1], Bw = B.v[k1];
+            var ax = Av[0] + (Bv[0] - Av[0]) * u, ay = Av[1] + (Bv[1] - Av[1]) * u;
+            var dx = Aw[0] + (Bw[0] - Aw[0]) * u, dy = Aw[1] + (Bw[1] - Aw[1]) * u;
+            var bx = ax + A.o[k][0] + (B.o[k][0] - A.o[k][0]) * u, by = ay + A.o[k][1] + (B.o[k][1] - A.o[k][1]) * u;
+            var ex = dx + A.i[k1][0] + (B.i[k1][0] - A.i[k1][0]) * u, ey = dy + A.i[k1][1] + (B.i[k1][1] - A.i[k1][1]) * u;
+            for (t = 0; t < per; t++) {
+                var q = t / per, r = 1 - q, w0 = r * r * r, w1 = 3 * r * r * q, w2 = 3 * r * q * q, w3 = q * q * q;
+                xs.push(cx + (w0 * ax + w1 * bx + w2 * ex + w3 * dx - cx) * s);
+                ys.push(cy + (w0 * ay + w1 * by + w2 * ey + w3 * dy - cy) * s);
+            }
+        }
+    }
+
+    // the outlines O0[q] morphing into O1[q], at u: their edges (4 chords a segment) filed in
+    // bands by height, for many point-inside tests
+    function region(O0, O1, u) {
+        var X = [], Y = [], NX = [], q, j, b;
+        for (q = 0; q < O0.length; q++) {
+            var s0 = X.length;
+            poly(O0[q], O1[q], u, 4, 1, 0, 0, X, Y);
+            for (j = s0; j < X.length; j++) NX.push(j + 1 < X.length ? j + 1 : s0);
+        }
+        var y0 = 1e9, y1 = -1e9;
+        for (j = 0; j < Y.length; j++) {
+            if (Y[j] < y0) y0 = Y[j];
+            if (Y[j] > y1) y1 = Y[j];
+        }
+        var NB = 32, h = (y1 - y0) / NB || 1, bands = [];
+        for (b = 0; b < NB; b++) bands.push([]);
+        for (j = 0; j < X.length; j++) {
+            var ya = Y[j], yb = Y[NX[j]], lo = Math.floor(((ya < yb ? ya : yb) - y0) / h), hi = Math.floor(((ya < yb ? yb : ya) - y0) / h);
+            if (lo < 0) lo = 0;
+            if (hi > NB - 1) hi = NB - 1;
+            for (b = lo; b <= hi; b++) bands[b].push(j);
+        }
+        return { X: X, Y: Y, NX: NX, y0: y0, h: h, NB: NB, bands: bands };
+    }
+
+    // non-zero winding: inside the region's outlines
+    function inRegion(R, x, y) {
+        var b = Math.floor((y - R.y0) / R.h);
+        if (b < 0 || b >= R.NB) return false;
+        var L = R.bands[b], X = R.X, Y = R.Y, NX = R.NX, w = 0;
+        for (var m = 0; m < L.length; m++) {
+            var j = L[m], k = NX[j], ya = Y[j], yb = Y[k];
+            if ((ya <= y) !== (yb <= y) && X[j] + (y - ya) / (yb - ya) * (X[k] - X[j]) < x) w += yb > ya ? 1 : -1;
+        }
+        return w !== 0;
+    }
+
+    // the points (X, Y) scaled by s about (cx, cy) all inside region R, each pushed pad px
+    // further from (cx, cy) first
+    function holeIn(X, Y, R, s, cx, cy, pad) {
+        for (var j = 0; j < X.length; j++) {
+            var dx = X[j] - cx, dy = Y[j] - cy, d = Math.sqrt(dx * dx + dy * dy) || 1, f = s + pad / d;
+            if (!inRegion(R, cx + dx * f, cy + dy * f)) return false;
+        }
+        return true;
+    }
+
+    // a path's vertex box diagonal; the mean of its vertices (at u between A and B)
+    function diagOf(P) {
+        var x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+        for (var j = 0; j < P.v.length; j++) {
+            x0 = Math.min(x0, P.v[j][0]);
+            x1 = Math.max(x1, P.v[j][0]);
+            y0 = Math.min(y0, P.v[j][1]);
+            y1 = Math.max(y1, P.v[j][1]);
+        }
+        return Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+    }
+    function centreAt(A, B, u) {
+        var c = [0, 0], n = A.v.length;
+        for (var j = 0; j < n; j++) {
+            c[0] += (A.v[j][0] + (B.v[j][0] - A.v[j][0]) * u) / n;
+            c[1] += (A.v[j][1] + (B.v[j][1] - A.v[j][1]) * u) / n;
+        }
+        return c;
+    }
+    function centre(P) {
+        return centreAt(P, P, 0);
+    }
+
+    // P scaled by s about c (handles too)
+    function scaled(P, s, c) {
+        var R = { v: [], i: [], o: [], closed: P.closed };
+        for (var j = 0; j < P.v.length; j++) {
+            R.v.push([c[0] + (P.v[j][0] - c[0]) * s, c[1] + (P.v[j][1] - c[1]) * s]);
+            R.i.push([P.i[j][0] * s, P.i[j][1] * s]);
+            R.o.push([P.o[j][0] * s, P.o[j][1] * s]);
+        }
+        return R;
+    }
+
+    // the latest outline progress by which a hole shrinking from H0 to its dot H1 must be gone
+    // (1: it never shows; 0: it shows even at the key) while outlines O0[q] morph into O1[q]
+    function closeBy(H0, H1, O0, O1) {
+        var span = diagOf(H0), r = span > 0 ? diagOf(H1) / span : 0, z = centre(H1), j;
+        // the in-betweens checked: 12 steps of the hole's progress, then where it is 16, 8, 4, 2
+        // and 1 px across (its last few pixels sit by the dot, which the outline may leave first)
+        var STEPS = 12, PAD = 1, hs = [];
+        for (j = 1; j < STEPS; j++) hs.push(j / STEPS);
+        for (var m = 16; m >= 1; m /= 2) {
+            var hm = (1 - m / span) / (1 - r);
+            if (hm > hs[hs.length - 1] && hm < 1) hs.push(hm);
+        }
+        // the hole at progress h inside the outlines at u, a pixel to spare (each point pushed a
+        // pixel away from the dot it shrinks into); under a pixel across it is gone
+        function fits(h, u) {
+            if (span * (1 - h * (1 - r)) < 1) return true;
+            var X = [], Y = [];
+            poly(H0, H1, h, 2, 1, 0, 0, X, Y);
+            return holeIn(X, Y, region(O0, O1, u), 1, z[0], z[1], PAD);
+        }
+        // late in-betweens first: that is where an outline opens
+        function ok(by) {
+            for (var s = hs.length - 1; s >= 0; s--) if (!fits(hs[s], by * hs[s])) return false;
+            return true;
+        }
+        if (!fits(0, 0)) return 0;
+        if (ok(1)) return 1;
+        var lo = 0, hi = 1;
+        for (var it = 0; it < 7; it++) {
+            var mid = (lo + hi) / 2;
+            if (ok(mid)) lo = mid;
+            else hi = mid;
+        }
+        // checked again four times as finely: a little earlier where it strays in between
+        for (it = 0; it < 20 && lo > 0; it++) {
+            var fine = true;
+            for (j = 4 * STEPS - 1; j >= 1 && fine; j--) if (j % 4 && !fits(j / (4 * STEPS), lo * j / (4 * STEPS))) fine = false;
+            if (fine) break;
+            lo *= 0.95;
+        }
+        return lo;
+    }
+
+    // A hole that stays a hole can still stray outside its letter halfway (b into e, e into 6:
+    // its points and the outline's go in straight lines of their own). It shrinks about its
+    // centre just enough to stay inside, a pixel to spare, easing in and out of it: its scale is
+    // the lowest of tents (slope DIP_SLOPE a whole morph, steeper only where a key is closer)
+    // standing on what each in-between needs, checked again between them. -> its scale at
+    // u = j / DIP (1 at both keys), or null when it never strays. A hole outside its outline at
+    // a key was drawn that way and is left alone.
+    var DIP = 16, DIP_SLOPE = 4;
+    function dipFor(H0, H1, O0, O1) {
+        var span = Math.max(diagOf(H0), diagOf(H1)), PAD = 1, j, i;
+        // the hole's outline at u (2 points a segment), its centre, and the outlines' region
+        function at(u) {
+            var X = [], Y = [], c = centreAt(H0, H1, u);
+            poly(H0, H1, u, 2, 1, 0, 0, X, Y);
+            return { X: X, Y: Y, cx: c[0], cy: c[1], R: region(O0, O1, u) };
+        }
+        function fitsAt(A, s, pad) {
+            return span * s < 1 || holeIn(A.X, A.Y, A.R, s, A.cx, A.cy, pad);
+        }
+        // the largest scale (0 ... 1) that keeps the hole at u inside
+        function need(A) {
+            if (fitsAt(A, 1, PAD)) return 1;
+            var lo = 0, hi = 1;
+            for (var it = 0; it < 6; it++) {
+                var m = (lo + hi) / 2;
+                if (fitsAt(A, m, PAD)) lo = m;
+                else hi = m;
+            }
+            return lo;
+        }
+        // only a hole that does stray (no pixel to spare asked: small type would shrink for
+        // nothing), looked for at DIP - 1 in-betweens (over the letter pairs of four fonts, 15
+        // missed none of 127 strays; 7 missed one). Each measured once: in ExtendScript that is
+        // what costs (round 14: 31 of them made a shrinking hole take 3 s)
+        var nd = [], any = false, As = [];
+        for (j = 1; j < DIP; j++) {
+            As[j] = at(j / DIP);
+            if (!any && !fitsAt(As[j], 1, 0)) any = true;
+        }
+        if (!any) return null;
+        for (j = 0; j <= DIP; j++) nd.push(j === 0 || j === DIP ? 1 : need(As[j]));
+        var sig, subA = [], subNeed = [];
+        for (var round = 0; round < 6; round++) {
+            sig = [];
+            for (j = 0; j <= DIP; j++) {
+                var s = 1;
+                for (i = 1; i < DIP; i++) {
+                    if (nd[i] >= 1) continue;
+                    var edge = Math.min(i, DIP - i) / DIP, slope = Math.max(DIP_SLOPE, (1 - nd[i]) / edge);
+                    s = Math.min(s, nd[i] + slope * Math.abs(j - i) / DIP);
+                }
+                sig.push(s);
+            }
+            // between the grid's in-betweens (a quarter, half and three quarters of the way):
+            // where it still strays, what it needs there joins in. A hole that wraps round its
+            // own centre (an @'s) can fit whole and stray when smaller: there it closes up
+            // (each in-between measured once, kept for the next round)
+            var more = false;
+            for (j = 0; j < DIP; j++) {
+                if (sig[j] >= 1 && sig[j + 1] >= 1 && nd[j] >= 1 && nd[j + 1] >= 1 && j > 0 && j + 1 < DIP) continue;
+                for (var f = 1; f < 4; f++) {
+                    var key = 4 * j + f, sm = sig[j] + (sig[j + 1] - sig[j]) * f / 4;
+                    if (!subA[key]) subA[key] = at((j + f / 4) / DIP);
+                    if (fitsAt(subA[key], sm, PAD)) continue;
+                    if (subNeed[key] === undefined) subNeed[key] = need(subA[key]);
+                    var nm = subNeed[key];
+                    nm = nm >= sm ? 0 : nm * 0.97;
+                    if (j > 0 && nm < nd[j]) nd[j] = nm;
+                    if (j + 1 < DIP && nm < nd[j + 1]) nd[j + 1] = nm;
+                    more = true;
+                }
+            }
+            if (!more) break;
+        }
+        return sig;
+    }
+
+    function dipAt(sig, u) {
+        var x = Math.max(0, Math.min(1, u)) * DIP, i = Math.min(DIP - 1, Math.floor(x));
+        return sig[i] + (sig[i + 1] - sig[i]) * (x - i);
+    }
+
+    // the hole at outline progress u, on its own clock or shrunk to stay inside
+    function holeAt(t, A, B, u) {
+        if (!t.dip) return lerp(A, B, holeProgress(t, u));
+        var L = lerp(A, B, u), s = dipAt(t.dip, u);
+        return s >= 1 ? L : scaled(L, s, centre(L));
+    }
+
+    function holeTiming(fixed, roles, skip) {
+        var out = [], n = fixed.length, p, q, k;
+        if (!roles || !n) return out;
+        for (k = 0; k + 1 < roles.length; k++) {
+            if (skip && skip[k]) continue;      // steps left alone (the panel's turning ones)
+            for (p = 0; p < n; p++) {
+                var a = roles[k][p], b = roles[k + 1][p];
+                if (!((a === -1 && b === 0) || (a === 0 && b === -1) || (a === -1 && b === -1))) continue;
+                var O0 = [], O1 = [];
+                for (q = 0; q < n; q++) {
+                    if (q === p || roles[k][q] === -1 || roles[k + 1][q] === -1 || (!roles[k][q] && !roles[k + 1][q])) continue;
+                    O0.push(fixed[q][k]);
+                    O1.push(fixed[q][k + 1]);
+                }
+                if (!O0.length) continue;
+                if (a === -1 && b === -1) {
+                    var sig = dipFor(fixed[p][k], fixed[p][k + 1], O0, O1), low = 1;
+                    if (!sig) continue;
+                    for (q = 0; q < sig.length; q++) low = Math.min(low, sig[q]);
+                    out.push({ piece: p, step: k, dip: sig, low: low });
+                } else if (a === -1) {
+                    var by = closeBy(fixed[p][k], fixed[p][k + 1], O0, O1);
+                    if (by > 0 && by < 1) out.push({ piece: p, step: k, closes: true, by: by });
+                } else {
+                    // opening is closing played backwards
+                    var back = closeBy(fixed[p][k + 1], fixed[p][k], O1, O0);
+                    if (back > 0 && back < 1) out.push({ piece: p, step: k, closes: false, from: 1 - back });
+                }
+            }
+        }
+        return out;
+    }
+
+    // a timed hole's own progress at outline progress u (0 ... 1)
+    function holeProgress(t, u) {
+        if (t.dip) return u;
+        if (t.closes) return u >= t.by ? 1 : u / t.by;
+        return u <= t.from ? 0 : (u - t.from) / (1 - t.from);
+    }
+
+    // the share of hole H's outline (sampled) lying outside the outlines: what AE's fill would
+    // paint. 0 for a hole under a pixel across (tests: Node, and AE's own frames)
+    function holeOutside(H, outlines) {
+        if (diagOf(H) < 1) return 0;
+        var R = region(outlines, outlines, 0), X = [], Y = [], out = 0;
+        poly(H, H, 0, 3, 1, 0, 0, X, Y);
+        for (var j = 0; j < X.length; j++) if (!inRegion(R, X[j], Y[j])) out++;
+        return X.length ? out / X.length : 0;
     }
 
     return {
@@ -1540,6 +1850,7 @@ var MF = (function () {
         measure: measure, at: at, fractions: fractions, area: area, winding: winding, rms: rms, deviation: deviation,
         lerp: lerp, copy: copy, seg: seg, segCount: segCount, bez: bez, turnPath: turnPath, turnFrom: turnFrom,
         swing: swing, progressOf: progressOf, matchPieces: matchPieces, pieceInfo: pieceInfo,
+        holeTiming: holeTiming, holeProgress: holeProgress, holeAt: holeAt, holeOutside: holeOutside,
         // a closed path's mirror axes: 'round' or [{ phi (radians), pole (fraction), e }] (tests)
         mirrorAxes: function (P, thorough) { return mirrorAxes(samples(P, measure(P), thorough ? 2 * N : N), thorough); },
         // how far two paths part (px), quick two-way check (what the rebuild holds to its tolerance)
@@ -1562,7 +1873,7 @@ var MF = (function () {
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.12.2';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.13.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -1631,10 +1942,11 @@ var MorphFixer = (function () {
         return s;
     }
 
-    // The in-between keys a turn writes carry a keyframe label of their own (one of the 16 in
-    // Preferences > Labels; After Effects 22.6 and later) and are linear. A later fix finds them,
-    // removes them first and works on the keys the designer drew: fixing again redoes the turn
-    // the same way, and moving the drawn keys then fixing again retimes it.
+    // The in-between keys a fix writes (a turn; a hole that closes or opens on its own clock)
+    // carry a keyframe label of their own (one of the 16 in Preferences > Labels; After Effects
+    // 22.6 and later) and are linear. A later fix finds them, removes them first and works on
+    // the keys the designer drew: fixing again redoes them the same way, and moving the drawn
+    // keys then fixing again retimes them.
     var INBETWEEN_LABEL = 15;
 
     function isInbetween(prop, k) {
@@ -1717,29 +2029,75 @@ var MorphFixer = (function () {
     // gives back the timing as it was.
     // -> the number of in-between keys written
     function bakeTurn(prop, idx, r) {
-        var T = r.turn, comp = prop.propertyGroup(prop.propertyDepth).containingComp, fd = comp.frameDuration, k, j;
+        var T = r.turn, k, j;
         for (k = 0; k < idx.length; k++) prop.setValueAtKey(idx[k], fromMF(r.placed[k]));
         var times = [], shapes = [];
         for (k = 0; k + 1 < idx.length; k++) {
             if (Math.abs(T.angles[k + 1] - T.angles[k]) < 0.5) continue;
             if (prop.keyOutInterpolationType(idx[k]) === KeyframeInterpolationType.HOLD) continue;
-            var t0 = prop.keyTime(idx[k]), t1 = prop.keyTime(idx[k + 1]);
-            for (j = 1; t0 + j * fd < t1 - fd / 2; j++) {
-                var t = t0 + j * fd, u = MF.progressOf(toMF(prop.valueAtTime(t, false)), r.placed[k], r.placed[k + 1]);
+            var fr = framesBetween(prop, prop.keyTime(idx[k]), prop.keyTime(idx[k + 1]));
+            for (j = 0; j < fr.length; j++) {
+                var t = fr[j], u = MF.progressOf(toMF(prop.valueAtTime(t, false)), r.placed[k], r.placed[k + 1]);
                 times.push(t);
                 shapes.push(fromMF(MF.swing(T, r.paths, k, u)));
             }
         }
-        if (!times.length) return 0;
+        writeInbetweens(prop, times, shapes);
+        return times.length;
+    }
+
+    // the comp's frames strictly between two key times: in-betweens sit on frames, or a frame
+    // drawn between two of them (keys a script set at 1.9 s sit between frames at 24 fps) shows
+    // a blend of both. Round 14: a hole's last dot key and its first grown one, blended, put the
+    // hole outside its letter
+    function framesBetween(prop, t0, t1) {
+        var fd = prop.propertyGroup(prop.propertyDepth).containingComp.frameDuration, out = [];
+        for (var f = Math.floor(t0 / fd + 1e-3) + 1; f * fd < t1 - fd * 1e-3; f++) out.push(f * fd);
+        return out;
+    }
+
+    // in-between keys at these times: linear, labelled (INBETWEEN_LABEL)
+    function writeInbetweens(prop, times, shapes) {
+        if (!times.length) return;
         prop.setValuesAtTimes(times, shapes);
         var LIN = KeyframeInterpolationType.LINEAR;
-        for (j = 0; j < times.length; j++) {
+        for (var j = 0; j < times.length; j++) {
             var at = prop.nearestKeyIndex(times[j]);
             prop.setInterpolationTypeAtKey(at, LIN, LIN);
             try {
                 prop.setLabelAtKey(at, INBETWEEN_LABEL);
             } catch (e) {}
         }
+    }
+
+    // A hole kept inside its letter (MF.holeTiming): AE's fill would paint whatever part of it
+    // the outline no longer surrounds. One closing while its letter opens runs on its own clock:
+    // one key a frame from the step's first key until it is a dot; one opening, from the last
+    // frame it is still one; one that strays, shrunk where it would, every frame of the step.
+    // Each frame from the outline's own eased progress, read back from the outline as After
+    // Effects shows it (so it is written first). In-betweens like a turn's: a later fix removes
+    // and redoes them. H, O: the hole's and the outline's paths at the drawn keys, as written.
+    // -> the number of keys written
+    function bakeHole(prop, H, outline, O, t) {
+        var kh = keyIndices(prop).drawn, ko = keyIndices(outline).drawn, k = t.step, HOLD = KeyframeInterpolationType.HOLD;
+        if (k + 1 >= kh.length || k + 1 >= ko.length) return 0;
+        if (prop.keyOutInterpolationType(kh[k]) === HOLD || outline.keyOutInterpolationType(ko[k]) === HOLD) return 0;
+        var fr = framesBetween(prop, prop.keyTime(kh[k]), prop.keyTime(kh[k + 1])), times = [], shapes = [], wait = -1;
+        for (var j = 0; j < fr.length; j++) {
+            var at = fr[j], u = MF.progressOf(toMF(outline.valueAtTime(at, false)), O[k], O[k + 1]), h = MF.holeProgress(t, u);
+            if (t.closes === false && h <= 0) {
+                wait = at;
+                continue;
+            }
+            if (wait >= 0 && !times.length) {
+                times.push(wait);
+                shapes.push(fromMF(H[k]));
+            }
+            times.push(at);
+            shapes.push(fromMF(MF.holeAt(t, H[k], H[k + 1], u)));
+            if (t.closes === true && h >= 1) break;
+        }
+        writeInbetweens(prop, times, shapes);
         return times.length;
     }
 
@@ -1818,6 +2176,9 @@ var MorphFixer = (function () {
             rep.drawnKept = dKept;
             rep.drawnLeft = dLeft;
         }
+        // the keys as they will stand (a hole timed against its outline reads them)
+        plan.paths = r.matched ? paths : (r.turn ? r.placed : r.paths);
+        plan.turn = r.matched ? null : (r.turn || null);
         if (r.matched) {
             rep.matched = true;
             rep.keys = idx.length;
@@ -1896,8 +2257,12 @@ var MorphFixer = (function () {
 
     function summary(rep) {
         if (rep.skipped) return rep.label + ': skipped, ' + rep.skipped + '.';
-        var earlier = rep.removed ? rep.removed + ' in-between keys from an earlier turn' : '';
-        if (rep.matched) return rep.label + ': already matched' + (earlier ? '; removed the ' + earlier : ', left as it is') + drawnNote(rep) + '.';
+        var earlier = rep.removed ? rep.removed + ' in-between keys from an earlier fix' : '';
+        var hole = rep.holeKeys ? '; the hole ' + rep.holeNote + ', in ' + rep.holeKeys + ' in-between keys' : '';
+        if (rep.matched) {
+            if (hole) return rep.label + ': already matched' + hole + (earlier ? ' (replacing ' + earlier + ')' : '') + drawnNote(rep) + '.';
+            return rep.label + ': already matched' + (earlier ? '; removed the ' + earlier : ', left as it is') + drawnNote(rep) + '.';
+        }
         var how, turned = '';
         if (rep.turned !== undefined && rep.baked) {
             turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, one a frame' + (earlier ? ' (replacing ' + earlier + ')' : '');
@@ -1906,7 +2271,9 @@ var MorphFixer = (function () {
         } else if (rep.noTurn) {
             turned = '; not turned: ' + rep.noTurn;
         }
-        if (earlier && !rep.baked) turned += '; removed the ' + earlier;
+        if (earlier && !rep.baked && !hole) turned += '; removed the ' + earlier;
+        else if (earlier && hole) hole += ' (replacing ' + earlier + ')';
+        turned += hole;
         if (rep.kept) how = 'points already matched, kept as they are';
         else if (rep.fellBack) how = 'your points kept (it has loops or cusps the rebuild cannot follow)';
         else if (rep.mode === 'exact') how = 'your points kept, shapes exact';
@@ -2198,7 +2565,7 @@ var MorphFixer = (function () {
                     'Rectangle, Ellipse and Polystar shapes: right-click > Convert to Bezier Path first.'
             };
         }
-        var reps = [], lines = [], fixed = 0, matched = 0, skipped = 0, worst = 0, capped = false, lo = 1e9, hi = 0, turned = 0, i;
+        var reps = [], lines = [], fixed = 0, matched = 0, skipped = 0, worst = 0, capped = false, lo = 1e9, hi = 0, turned = 0, holesN = 0, i;
         // before touching anything: what depends on the points, and how long it will take
         var o = opts || {}, warned = [], count = 0, seconds = 0;
         try {
@@ -2222,7 +2589,7 @@ var MorphFixer = (function () {
         }
         // work it all out first, writing nothing: a shape's pieces are matched between keys,
         // then every path is planned. Esc (with the progress shown) cancels with nothing changed
-        var jobs = [], pieceLines = [], movedN = 0, grownN = 0, plans = [], g, p, k;
+        var jobs = [], pieceLines = [], movedN = 0, grownN = 0, plans = [], shapes = [], g, p, k;
         var pg = pieceGroups(list);
         for (i = 0; i < pg.groups.length; i++) {
             g = pg.groups[i];
@@ -2237,6 +2604,7 @@ var MorphFixer = (function () {
                     keysMF.push(rowK);
                 }
                 res = MF.matchPieces(keysMF);
+                var first = jobs.length;
                 for (p = 0; p < g.length; p++) {
                     var given = [], changedP = false;
                     for (k = 0; k < K; k++) {
@@ -2245,6 +2613,7 @@ var MorphFixer = (function () {
                     }
                     jobs.push({ prop: g[p], given: changedP ? given : null, mustWrite: changedP });
                 }
+                if (g.length > 1 && res.roles) shapes.push({ first: first, n: g.length, roles: res.roles });
                 if (res.moved || res.grown) {
                     movedN += res.moved;
                     grownN += res.grown;
@@ -2271,6 +2640,7 @@ var MorphFixer = (function () {
                 plans.push(planPath(jobs[i].prop, po, jobs[i].given, jobs[i].mustWrite));
                 if (step('Path ' + (i + 1) + ' of ' + jobs.length, (i + 1) / jobs.length)) throw { cancelled: true };
             }
+            var timed = holesToTime(shapes, plans);
         } catch (ec) {
             if (ec && ec.cancelled) return { status: 'Cancelled: nothing changed', detail: 'Cancelled with Esc before anything was written.', reports: [], cancelled: true, warned: warned, seconds: seconds };
             return { status: 'Error (hover)', detail: String(ec && ec.message) + (ec && ec.line ? ' (line ' + ec.line + ')' : ''), reports: [] };
@@ -2294,6 +2664,15 @@ var MorphFixer = (function () {
                     if (r.turned !== undefined) turned++;
                 }
             }
+            // holes on their own clock, once every outline is written
+            for (i = 0; i < timed.length; i++) {
+                var tm = timed[i], hr = plans[tm.hole].rep, nk = bakeHole(jobs[tm.hole].prop, tm.H, jobs[tm.outline].prop, tm.O, tm.t);
+                if (!nk) continue;
+                holesN++;
+                hr.holeKeys = (hr.holeKeys || 0) + nk;
+                hr.holeNote = (hr.holeNote ? hr.holeNote + ', ' : '') + holeNote(tm.t);
+                lines[tm.hole] = summary(hr);
+            }
         } catch (e) {
             return { status: 'Error (hover)', detail: String(e && e.message) + (e && e.line ? ' (line ' + e.line + ')' : ''), reports: reps };
         } finally {
@@ -2304,11 +2683,60 @@ var MorphFixer = (function () {
         if (fixed) parts.push('Fixed ' + fixed + ': ' + (lo === hi ? lo : lo + '-' + hi) + ' pts' + (worst ? (capped ? ', ~' : ', ') + round3(worst) + ' px' + (capped ? ' (max)' : '') : ''));
         if (turned) parts.push(turned + ' turned');
         if (movedN || grownN) parts.push('pieces matched');
+        if (holesN) parts.push(holesN + (holesN > 1 ? ' holes' : ' hole') + ' kept inside');
         if (matched) parts.push(matched + ' already matched');
         if (skipped) parts.push(skipped + ' skipped');
         if (count) parts.push(count + (count > 1 ? ' warnings' : ' warning') + ' (hover)');
         if (count) lines.push('', 'You were warned, and fixed anyway (' + KEY + '+Z undoes it):', warnLines.join('\n'));
-        return { status: parts.join(', '), detail: lines.join('\n'), reports: reps, warned: warned, seconds: seconds, moved: movedN, grown: grownN };
+        return { status: parts.join(', '), detail: lines.join('\n'), reports: reps, warned: warned, seconds: seconds, moved: movedN, grown: grownN, holes: holesN };
+    }
+
+    // what a timed hole does, for the report
+    function holeNote(t) {
+        var from = ' of the morph from key ' + (t.step + 1);
+        if (t.dip) return 'shrinks to ' + Math.round(t.low * 100) + ' % of its size during the morph from key ' + (t.step + 1) + ', where it would stray outside the outline';
+        return t.closes ? 'closes by ' + Math.round(t.by * 100) + ' %' + from + ', before the outline opens round it'
+            : 'opens from ' + Math.round(t.from * 100) + ' %' + from + ', once the outline closes round it';
+    }
+
+    // the holes to put on their own clock (MF.holeTiming), worked out before anything is written:
+    // per shape in pieces, each piece's keys as planned. Each against the outline that moves most
+    // in that step (its progress times the hole); not in a step that turns (the turn's in-betweens
+    // hold the swing) or where a piece was skipped. -> [{ hole, outline (job indices), t, H, O }]
+    function holesToTime(shapes, plans) {
+        var out = [], s, p, j, q;
+        for (s = 0; s < shapes.length; s++) {
+            var S = shapes[s], fixedP = [], ok = true;
+            for (p = 0; p < S.n; p++) {
+                var pl = plans[S.first + p];
+                if (!pl || !pl.paths || pl.paths.length !== S.roles.length) ok = false;
+                else fixedP.push(pl.paths);
+            }
+            if (!ok) continue;
+            // a step that turns is left alone (worked out by nothing: its in-betweens hold the swing)
+            var skip = [];
+            for (k = 0; k + 1 < S.roles.length; k++) for (p = 0; p < S.n; p++) if (turnsAt(plans[S.first + p], k)) skip[k] = true;
+            var T = MF.holeTiming(fixedP, S.roles, skip);
+            for (j = 0; j < T.length; j++) {
+                var k = T[j].step, best = -1, most = -1;
+                for (q = 0; q < S.n; q++) {
+                    if (q === T[j].piece || S.roles[k][q] === -1 || S.roles[k + 1][q] === -1 || (!S.roles[k][q] && !S.roles[k + 1][q])) continue;
+                    var A = fixedP[q][k], B = fixedP[q][k + 1], d = 0;
+                    for (var v = 0; v < A.v.length; v++) d += Math.abs(B.v[v][0] - A.v[v][0]) + Math.abs(B.v[v][1] - A.v[v][1]);
+                    if (d > most) {
+                        most = d;
+                        best = q;
+                    }
+                }
+                if (best < 0) continue;
+                out.push({ hole: S.first + T[j].piece, outline: S.first + best, t: T[j], H: fixedP[T[j].piece], O: fixedP[best] });
+            }
+        }
+        return out;
+    }
+
+    function turnsAt(plan, k) {
+        return !!(plan.turn && Math.abs(plan.turn.angles[k + 1] - plan.turn.angles[k]) >= 0.5);
     }
 
     // the guide behind ?, written for the person animating: what it does, three steps, what
@@ -2329,7 +2757,7 @@ var MorphFixer = (function () {
         ],
         tips: [
             'Fixed paths have more points: finish drawing your keys first.',
-            'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, and a piece you draw as a dot grows from that dot.',
+            'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, a piece you draw as a dot grows from that dot, and holes stay inside their letter.',
             'A long fix keeps After Effects busy until it is done; over 10 seconds, it asks first and says how long. Hold Esc to cancel: nothing changes.',
             'It asks first when Zig Zag, Pucker & Bloat, Wiggle Paths or an expression count the points. Trim Paths, dashes and text on a path are fine.',
             'Left alone: paths with expressions, masks with feather points, and rectangles, ellipses and stars (right-click > Convert To Bezier Path first).',
@@ -2711,7 +3139,7 @@ var MorphFixer = (function () {
         install: install, isInstalled: isInstalled, panelsFolder: panelsFolder, toMF: toMF, fromMF: fromMF,
         version: VERSION, magnification: magnification, needs: needs, readers: readers, estimate: estimate, keyMs: keyMs,
         speed: speed, installedCopies: installedCopies, theme: theme, headingColor: headingColor,
-        planPath: planPath, pieceGroups: pieceGroups, uid: uid, bakeTurn: bakeTurn,
+        planPath: planPath, pieceGroups: pieceGroups, uid: uid, bakeTurn: bakeTurn, bakeHole: bakeHole, holesToTime: holesToTime,
         ask: null, themeOverride: null, escape: null     // test stand-ins: the question before a fix, the AE theme, Esc
     };
     return api;

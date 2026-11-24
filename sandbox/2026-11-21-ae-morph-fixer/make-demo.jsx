@@ -78,7 +78,7 @@
         // rule (least travel), right, the fix
         symBuilt = demoComp('Symmetry demo', D.sym.duration, D.sym.shapes, D.sym.keys, { maxPoints: D.maxPoints },
             { labels: ['Least travel', 'Symmetric'], beforeOpts: { maxPoints: D.maxPoints, symmetry: false } });
-        // the letters demo: a, e, o, d, q (an outline and a hole each), fixed through the panel's path
+        // the letters demo: a, e, b, c, d (holes kept inside), fixed through the panel's path
         letBuilt = lettersComp('Letters demo', LT);
         var parts = [comp, turnComp, symBuilt.comp, letBuilt.comp], total = 0, pi;
         for (pi = 0; pi < parts.length; pi++) total += parts[pi].duration;
@@ -149,6 +149,25 @@
             }
         }
         return G;
+    }
+
+    // the most of any hole lying outside its outlines at time t, in AE's own values (a hole: a
+    // piece drawn the other way round from the largest; under a pixel across, none): what the
+    // fill paints as a blob
+    function holeShows(paths, t) {
+        var P = [], I = [], big = 0, outl = [], holes = [], w = 0, j;
+        for (j = 0; j < paths.length; j++) {
+            P.push(MFx.toMF(paths[j].valueAtTime(t, false)));
+            I.push(MFm.pieceInfo(P[j]));
+            if (I[j].size > I[big].size) big = j;
+        }
+        for (j = 0; j < P.length; j++) {
+            if (I[j].diag < 1) continue;
+            if (I[j].sign !== 0 && I[j].sign !== I[big].sign) holes.push(P[j]);
+            else outl.push(P[j]);
+        }
+        for (j = 0; j < holes.length; j++) w = Math.max(w, MFm.holeOutside(holes[j], outl));
+        return w;
     }
 
     function piecePaths(G) {
@@ -476,7 +495,7 @@
                 'right ' + right.kept + '/' + right.steps + ', left ' + left.kept + '/' + left.steps);
         });
         step('letters demo', function () {
-            // a, e, o, d, q: the After letter's pieces all share their points in every key, and a
+            // a, e, b, c, d: the After letter's pieces all share their points in every key, and a
             // into e got a start chosen against a crossover
             var ps = piecePaths(letBuilt.after), same = true, k;
             for (var i = 0; i < ps.length; i++) for (k = 2; k <= ps[i].numKeys; k++) if (ps[i].keyValue(k).vertices.length !== ps[i].keyValue(1).vertices.length) same = false;
@@ -484,6 +503,19 @@
             for (k = 0; k < reps.length; k++) untangled += reps[k].untangled || 0;
             check('letters demo: fixed, every piece the same points in every key, a crossover avoided', /Fixed/.test(letBuilt.result.status) && same && untangled >= 1,
                 letBuilt.result.status + ' · ' + untangled + ' start(s) chosen against a crossover');
+            // the hole kept inside, in AE's own frames: shrunk (e into b), closed before the c
+            // opens (b into c), opened once the d is shut (c into d); left as typed, it shows
+            var fps = letBuilt.comp.frameRate, worst = 0, at = 0, f;
+            for (f = 1; f < LT.duration * fps; f++) {
+                var w = holeShows(ps, f / fps);
+                if (w > worst) {
+                    worst = w;
+                    at = f / fps;
+                }
+            }
+            check('letters demo: 3 holes kept inside (shrunk, closed, opened), none shows outside its letter in any frame',
+                letBuilt.result.holes === 3 && /3 holes kept inside/.test(letBuilt.result.status) && worst === 0,
+                letBuilt.result.holes + ' holes; ' + Math.round(worst * 100) + ' % of a hole outside' + (worst ? ' at ' + at.toFixed(2) + ' s' : ''));
         });
         step('drawn turn', function () {
             // a star turned a tip by Free Transform (point k to point k turned 72 deg): the fix

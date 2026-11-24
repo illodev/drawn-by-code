@@ -600,3 +600,46 @@ each Before / After in AE (`make-demo.jsx`) and the After half in the preview (`
   including "every step on the right keeps the upright axis, the left swirls some" (right 4/4,
   left 2/4) and the letters fixed with a crossover avoided. Rendered with aerender (756
   frames, 26 s); `render/` (mp4, strip, gif) redone from it.
+
+## Round 14 · 2026-11-24 (the user: "Yes, fix them", the hole blobs)
+
+A letter's hole is its own path, and AE's non-zero fill paints any part of it the outline no
+longer surrounds. 0.13.0 keeps every hole inside its letter (`MF.holeTiming`, baked by the
+panel as labelled in-betweens on the hole's path, like a turn):
+
+- **Closing** (O into C, b into c): gone by the latest outline progress that keeps every point
+  a pixel inside (O into C: 62-68 % of the morph). **Opening** (C into e, c into d): the same
+  played backwards (C into e only grows from 67-83 %, once the e is nearly shut).
+- **Found on the way: holes that stay holes stray too.** Over 656 letter pairs in Comic Neue,
+  Patrick Hand and Bangers whose holes all stay holes, 91 (14 %) showed a hole outside its
+  letter halfway: b into e 30 % of the hole, e into 6 31 %, R into 6 27 %. → Such a hole
+  shrinks about its centre just enough (a pixel to spare), under tents of slope 4 a morph so
+  it eases in and out. After: none of the 656 shows (checked at 80 in-betweens a pair). b
+  into e shrinks to 56 %; R into 6 and b into e in some fonts close up halfway (the hole's
+  centre strays out), which reads as the counter filling for a few frames, not a blob.
+  - The engraved @ into &: its hole wraps round its own centre, so it fit whole and strayed
+    when smaller. → Where shrinking doesn't help, it closes up there.
+- **`review/holes.png`**: five letter pairs, After Effects as it was (blobs ringed) and the fix.
+- **The demo's letters** are now a, e, b, c, d: each step shows one thing (a into e a start
+  against a crossover, e into b the hole shrinking, b into c closing, c into d opening). The
+  AE test checks AE's own value at every frame of the letters part: no hole outside.
+- **Found in AE: in-betweens between frames.** The demo's keys sit at 1.9 s, between frames at
+  24 fps; the hole's in-betweens were spaced a frame from the key, so every rendered frame
+  fell between two of them, and one showed a blend of the hole's last dot and its first grown
+  key, outside the c (100 % of a hole at 6.75 s). → In-betweens (holes and turns) sit on the
+  comp's own frames. A Node mock with keys off the frame grid now guards it.
+- **Found in AE: the cost.** The first build made B into 8 take 22 s instead of 2 with no
+  hole to fix (Node: 2 ms). The geometry made a point array per bezier sample and an object
+  per path; ExtendScript pays far more for that than for arithmetic. → Flat arrays of numbers,
+  a look at 15 in-betweens before any work (over the four fonts' pairs that missed none of
+  127 strays; 7 missed one), each in-between measured once, turning steps skipped. In AE 27
+  (`review/holes-bench.md`): 0.2-0.8 s a letter when nothing needs doing, 0.3-0.6 s a closing
+  hole, 1-4 s a straying one (the ten-letter chain 5.5 s on 16 s). Not in the time estimate yet.
+- Also fixed: a piece shrunk to a dot (or grown from one) counted as a turn you drew (any angle
+  fits a dot within half a pixel), so O into C's hole turned 7 deg while closing. Drawn turns
+  now keep about their size (scale 0.1-10).
+- Tests: Node 4,432 (holes: closing, opening, shrinking, kept, fixed again the same, mock
+  timelines on and off the frame grid); real type 186 (no hole outside its letter at 39
+  in-betweens a step; holes kept inside per case). **In After Effects 27:** real type 111/111
+  (holes kept inside as in Node; none outside its letter in AE's own frames), demo 52/52
+  (`review/ae-log.txt`). Rendered with aerender (756 frames, 17 s); `render/` redone.

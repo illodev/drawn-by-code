@@ -295,6 +295,15 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
 
 ## Scripting pitfalls (each one cost a run)
 
+- **Objects cost far more than arithmetic in ExtendScript.** Geometry that made a point array
+  per bezier sample and a path object per in-between ran a check ~7000x slower than Node (B
+  into 8: 22 s for a check Node did in 2 ms), where the morph fix itself runs ~300x. In hot
+  loops, keep coordinates in flat arrays of numbers, evaluate curves inline, and measure each
+  sample once. Time new math inside AE apart from the rest (`bench/holes-bench.jsx`).
+- **Keys a script writes one a frame go on the comp's frames** (`k * frameDuration`), not at
+  `keyTime + j * frameDuration`: a key a script set at 1.9 s sits between frames at 24 fps,
+  and then every rendered frame shows a blend of two in-betweens (a hole's last dot and its
+  first grown key, blended, sat outside its letter).
 - **Removing the last Time Remap key turns time remapping off** and hides the property;
   setting its expression then fails («the property or a parent property is hidden»). Keep
   the two keys AE adds; the expression overrides them.
@@ -575,9 +584,14 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   calibration's options, and rerun the estimate test in AE after adding work to the fix.
 - 2026-11-24 · ae-morph-fixer · A letter's hole is its own path, and AE's non-zero fill paints
   any part of it the outline no longer surrounds: a hole that closes (or opens) while its
-  letter opens (O into C) is a dark blob in the counter for a few frames. Pick demo morphs by
-  measuring (cells filled by a hole's winding alone, over the in-betweens), not by name: every
-  chain whose letters keep their holes had none.
+  letter opens (O into C) is a dark blob in the counter for a few frames. Measure, not by name:
+  "letters that keep their holes have none" held for the five chains tried, but a scan of 656
+  pairs found 14 % of such holes straying halfway (b into e, R into 6). Scan a family of
+  cases before writing a limit or a rule down. (Fixed in round 14: such holes close early,
+  open late or shrink, baked as in-betweens; none of the 656 shows.)
+- 2026-11-24 · ae-morph-fixer · Check a rendered property in AE's own values at every frame,
+  not only the keys the tool wrote: the hole check on `valueAtTime` per frame caught the
+  in-betweens sitting between frames, which every Node test (keys on the frame grid) passed.
 - 2026-11-24 · ae-morph-fixer · Demo a choice against its alternative, side by side: the
   symmetry part puts the fix without its symmetry rule on the left. Building it found a step
   the fix left a little lopsided (a start "near enough" to symmetric), which no test had.
