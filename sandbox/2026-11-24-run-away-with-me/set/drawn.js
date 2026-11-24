@@ -240,59 +240,61 @@ const Drawn = (() => {
     }
 
     // --- the causeway --------------------------------------------------------------------------
-    // returns { items, last }: items (lamps, palms, shrubs, traffic, hoops) for the scene to
-    // sort with the car; last: what stands between a camera beside the deck and everything on it
+    // The deck is painted in two pieces, the far one (beyond the crest) first with everything
+    // standing on it, then the near one with its own standing things: the near deck covers what
+    // the hump hides, from any camera, and (with Ink.occlude) the light of it too.
+    // Returns { far, farItems, near, nearItems, last, zSplit }: the scene adds the car to the
+    // list its z falls in, paints far(), the far items sorted, near(), the near items sorted,
+    // then last() (the near parapet, when the camera stands beside the deck).
     function causeway(g, L, cam, T, d, fx) {
         const zc = cam.pos[2], zFar = zc + 700, zNear = zc + 0.4;
-        const y = C.y, items = [];
+        const y = C.y;
         const outside = cam.pos[0] > 7.9;
         const zs = []; for (let z = zNear; z < zFar; z += Math.max(2, (z - zc) * 0.05)) zs.push(z); zs.push(zFar);
-        // the deck hides itself beyond its crest
-        const visible = (Pts) => { const out = []; let minY = Infinity; for (const p of Pts) { if (!out.length || p[1] <= minY + 0.4) { out.push(p); minY = Math.min(minY, p[1]); } else break; } return out; };
-        const edge = (x, dy = 0, upTo = zFar) => visible(zs.filter((z) => z <= upTo).map((z) => cam.p([x, y(z) + dy, z])).filter((p) => p[2] > 0.3).map((p) => [p[0], p[1]]));
-        const mid = zs.map((z) => [z, cam.p([-2.4, y(z) + 0.2, z])]).filter(([, p]) => p[2] > 0.3);
-        let crestY = Infinity, zHide = Infinity;
-        for (const [z, p] of mid) { if (p[1] <= crestY + 0.4) crestY = Math.min(crestY, p[1]); else { zHide = z; break; } }
-        if (outside) zHide = Infinity;               // from beside the deck its top hides nothing
-        const behind = (z, f) => () => { if (z < zHide) return f(); g.save(); g.beginPath(); g.rect(-300, -600, cam.W + 600, crestY + 600); g.clip(); f(); g.restore(); };
-        const strip = (xa, xb, dy = 0) => { const A = edge(xa, dy), B = edge(xb, dy); return A.length > 1 && B.length > 1 ? A.concat(B.reverse()) : null; };
-        const carriage = [strip(-11.8, -4.4), strip(-0.4, 7.4)];
+        let zSplit = zs[0], yMax = -1e9; for (const z of zs) if (y(z) > yMax + 1e-6) { yMax = y(z); zSplit = z; }
+        if (zSplit <= zNear + 0.5) zSplit = zNear;                       // past the crest: one piece
         const kN = Math.floor(((zNear + 0.5) / C.V + C.T0 - Song.bar0) / Song.beat) - 1;
 
-        // 1 · the slab's outer face (from beside), the asphalt, the median
-        if (outside) { const A = edge(7.9, 0), B = edge(7.9, -1.3); if (A.length > 1) Ink.shape(g, A.concat(B.reverse()), P.royal, { w: 3, seed: 'slabR', d, jit: 0 }); }
-        for (const q of carriage) if (q) Ink.shape(g, q, '#1a0670', { w: 0, seed: 'asph', d, jit: 0 });
-        const med = strip(-4.4, -0.4, 0.18);
-        if (med) Ink.shape(g, med, P.plum, { w: 2.4, seed: 'median', d, jit: 0 });
-        // 2 · on the asphalt (clipped to it): pools of lamp light, wet reflections, paint
-        g.save(); g.beginPath(); for (const q of carriage) if (q) { q.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); } g.clip();
-        for (let k = kN + 50; k >= kN; k--) {
-            const zl = C.lampZ(k); if (zl < zNear - 6 || zl > Math.min(zHide, zc + 260)) continue;
-            for (const xl of [1.7, -6.5]) for (const [rz, col] of [[1, P.indigo], [0.6, '#4a10c8']]) {
-                const pts = []; for (let i = 0; i < 48; i++) { const a = (i / 48) * Math.PI * 2, wob = 1 + 0.05 * Math.sin(i * 1.3 + k); pts.push([xl + Math.cos(a) * 3.4 * rz * wob, y(zl) + 0.02, zl + Math.sin(a) * 6 * rz * wob]); }
-                const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: 0, seed: k * 5 + rz * 10, d, jit: 0 });
-            }
-            // wet reflection of the lamp head: broken strokes from its foot towards the viewer
-            for (const xh of [1.7, -6.5]) {
-                for (let j = 0; j < 6; j++) {
+        function deck(zA, zB) {
+            if (zB - zA < 0.2) return;
+            const zr = zs.filter((z) => z > zA && z < zB); zr.unshift(zA); zr.push(zB);
+            const edge = (x, dy = 0) => zr.map((z) => cam.p([x, y(z) + dy, z])).filter((p) => p[2] > 0.3).map((p) => [p[0], p[1]]);
+            const strip = (xa, xb, dy = 0) => { const A = edge(xa, dy), B = edge(xb, dy); return A.length > 1 && B.length > 1 ? A.concat(B.reverse()) : null; };
+            const inR = (z) => z >= zA && z <= zB;
+            const carriage = [strip(-11.8, -4.4), strip(-0.4, 7.4)];
+            // the slab's outer face (from beside), the asphalt, the median
+            if (outside) { const A = edge(7.9, 0), B = edge(7.9, -1.3); if (A.length > 1) Ink.shape(g, A.concat(B.reverse()), P.royal, { w: 3, seed: 'slabR', d, jit: 0 }); }
+            for (const q of carriage) if (q) Ink.shape(g, q, '#1a0670', { w: 0, seed: 'asph', d, jit: 0 });
+            const med = strip(-4.4, -0.4, 0.18);
+            if (med) { Ink.shape(g, med, P.plum, { w: 0, seed: 'median', d, jit: 0 }); for (const xx of [-4.4, -0.4]) { const E = edge(xx, 0.18); if (E.length > 1) Ink.brush(g, E, { w: 2.4, seed: 'kerb' + xx + zA, d, taper: 0.02 }); } }
+            // on the asphalt (clipped to it): pools of lamp light, wet reflections, paint
+            g.save(); g.beginPath(); for (const q of carriage) if (q) { q.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); } g.clip();
+            for (let k = kN + 50; k >= kN; k--) {
+                const zl = C.lampZ(k); if (!inR(zl) || zl > zc + 260 || zl < zNear - 6) continue;
+                for (const xl of [1.7, -6.5]) for (const [rz, col] of [[1, P.indigo], [0.6, '#4a10c8']]) {
+                    const pts = []; for (let i = 0; i < 48; i++) { const an = (i / 48) * Math.PI * 2, wob = 1 + 0.05 * Math.sin(i * 1.3 + k); pts.push([xl + Math.cos(an) * 3.4 * rz * wob, y(zl) + 0.02, zl + Math.sin(an) * 6 * rz * wob]); }
+                    const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: 0, seed: k * 5 + rz * 10, d, jit: 0 });
+                }
+                for (const xh of [1.7, -6.5]) for (let j = 0; j < 6; j++) {
                     const zz = zl - 0.6 - j * 1.1; if (zz < zNear + 0.3) break;
                     const p = cam.p([xh + (Ink.hsh(k, j, 0) - 0.5) * 0.4, y(zz) + 0.01, zz]); if (p[2] < 0.5) continue;
                     const s = cam.f / p[2], wdt = Math.min(90, (0.35 + j * 0.12) * s);
                     Ink.brush(g, [[p[0] - wdt / 2, p[1]], [p[0] + wdt / 2, p[1] + 0.5]], { w: cap(0.07 * s, 1, 7), col: j % 2 ? P.orange : P.gold, seed: k * 13 + j, d, taper: 0.45, alpha: 0.85 * (1 - j / 7) / (1 + (zl - zc) / 80), light: true });
                 }
             }
+            const paint = '#b8a2e8', gold = '#e8b04a';
+            for (let zd = Math.floor(Math.min(zB, zc + 260) / 12) * 12; zd >= zA - 3; zd -= 12) {
+                const z0 = Math.max(zd, zA, zNear), z1 = Math.min(zd + 3, zB); if (z1 <= z0) continue;
+                for (const xx of [3.7, -8.1]) { const q = Neon.poly(cam, [[xx - 0.08, y(z0) + 0.01, z0], [xx + 0.08, y(z0) + 0.01, z0], [xx + 0.08, y(z1) + 0.01, z1], [xx - 0.08, y(z1) + 0.01, z1]]); if (q) Ink.shape(g, q, paint, { w: 0, seed: Math.round(zd * 3 + xx), d, jit: 0.6, light: true }); }
+            }
+            for (const [xx, col] of [[-0.6, gold], [7.1, paint], [-4.2, gold], [-11.5, paint]]) { const q = strip(xx - 0.06, xx + 0.06, 0.01); if (q) Ink.shape(g, q, col, { w: 0, seed: 'line' + xx, d, jit: 0, light: true }); }
+            if (fx.onDeck) fx.onDeck(zA, zB);
+            g.restore();
+            // the parapets seen from the deck: their face, their cap, the tube seated on it
+            for (const side of outside ? [-1] : [-1, 1]) parapet(side, edge, zA, zB);
         }
-        // the paint: dashes and edge lines as flat quads in perspective, a pale lilac, not glare
-        const paint = '#b8a2e8', gold = '#e8b04a';
-        for (let zd = Math.floor(Math.min(zFar, zc + 260) / 12) * 12; zd >= zNear - 3; zd -= 12) {
-            const z0 = Math.max(zd, zNear), z1 = zd + 3; if (z1 <= z0 || z0 > zHide) continue;
-            for (const xx of [3.7, -8.1]) { const q = Neon.poly(cam, [[xx - 0.08, y(z0) + 0.01, z0], [xx + 0.08, y(z0) + 0.01, z0], [xx + 0.08, y(z1) + 0.01, z1], [xx - 0.08, y(z1) + 0.01, z1]]); if (q) Ink.shape(g, q, paint, { w: 0, seed: Math.round(zd * 3 + xx), d, jit: 0.6, light: true }); }
-        }
-        for (const [xx, col] of [[-0.6, gold], [7.1, paint], [-4.2, gold], [-11.5, paint]]) { const q = strip(xx - 0.06, xx + 0.06, 0.01); if (q) Ink.shape(g, q, col, { w: 0, seed: 'line' + xx, d, jit: 0, light: true }); }
-        if (fx.onDeck) fx.onDeck(zHide);
-        g.restore();
-        // 3 · the parapets seen from the deck: their inner face, their cap, the tube on it
-        const parapet = (side) => {
+
+        function parapet(side, edge, zA, zB) {
             const right = side > 0, inner = right ? 7.4 : -11.8, outer = right ? 7.9 : -12.3, h = 1.05;
             const face = right ? P.purple : P.violet, capC = right ? P.magenta : '#9a3ae8';
             const neon = tone(right ? P.pink : P.cyan, fx);
@@ -301,48 +303,49 @@ const Drawn = (() => {
             const A = edge(fx0, right && outside ? -1.3 : 0), B = edge(fx0, h);
             if (A.length > 1 && B.length > 1) {
                 Ink.shape(g, A.concat(B.slice().reverse()), right && outside ? P.royal : face, { w: 0, seed: 'par' + side, d, jit: 0 });
-                Ink.brush(g, A, { w: 3, seed: 'parA' + side, d, taper: 0.03 });
-                // where a lamp stands, its light falls on the face as strokes
+                Ink.brush(g, A, { w: 3, seed: 'parA' + side + zA, d, taper: 0.03 });
                 for (let k = kN + 24; k >= kN; k--) {
-                    const zl = C.lampZ(k); if (zl < zc + 2 || zl > Math.min(zHide, zc + 160)) continue;
+                    const zl = C.lampZ(k); if (zl < Math.max(zA, zc + 2) || zl > Math.min(zB, zc + 160)) continue;
                     const a = cam.p([fx0, y(zl) + 0.85, zl - 3]), b = cam.p([fx0, y(zl) + 0.85, zl + 3]); if (a[2] < 0.5 || b[2] < 0.5) continue;
                     const s = cam.f / a[2];
                     Ink.hatch(g, [a[0], a[1]], [b[0], b[1]], { count: 5, len: Math.min(55, 0.5 * s), w: cap(0.05 * s, 1, 5), col: right ? P.salmon : P.pink, seed: k * 41 + side, d, n: [0, 1], ang: 0.2 });
                 }
-                // joints every 6 m
-                for (let zj = Math.ceil((zc + 2) / 6) * 6; zj < Math.min(zHide, zc + 120); zj += 6) {
+                for (let zj = Math.ceil(Math.max(zA, zc + 2) / 6) * 6; zj < Math.min(zB, zc + 120); zj += 6) {
                     const a = cam.p([fx0, y(zj) + 0.05, zj]), b = cam.p([fx0, y(zj) + h - 0.05, zj]); if (a[2] < 0.5) continue;
                     Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.03 * cam.f / a[2], 1, 3), seed: 'j' + zj + side, d, taper: 0.2, alpha: 0.6 });
                 }
             }
-            // the cap and the tube seated on it
             const T0 = edge(inner, h), T1 = edge(outer, h);
-            if (T0.length > 1 && T1.length > 1) { Ink.shape(g, T0.concat(T1.slice().reverse()), capC, { w: 0, seed: 'cap' + side, d, jit: 0 }); Ink.brush(g, right === !outside ? T0 : T1, { w: 3, seed: 'capI' + side, d, taper: 0.03 }); }
+            if (T0.length > 1 && T1.length > 1) { Ink.shape(g, T0.concat(T1.slice().reverse()), capC, { w: 0, seed: 'cap' + side, d, jit: 0 }); Ink.brush(g, right === !outside ? T0 : T1, { w: 3, seed: 'capI' + side + zA, d, taper: 0.03 }); }
             const TT = edge((inner + outer) / 2, h + 0.06);
             if (TT.length > 1) {
                 const core = mix(neon.startsWith('#') ? hex(neon) : [255, 120, 220], [255, 255, 255], 0.4);
                 for (const c of [g, L]) { c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = neon; c.lineWidth = c === L ? 5 : 4; c.beginPath(); TT.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.stroke(); if (c === g) { c.strokeStyle = css(core); c.lineWidth = 1.3; c.stroke(); } c.restore(); }
             }
-        };
-        parapet(-1);
-        if (!outside) parapet(1);
+        }
 
-        // 4 · the standing things, for the scene to sort
+        // the standing things, into the far or the near list by where they stand
+        const farItems = [], nearItems = [];
+        const put = (z, draw) => (z >= zSplit ? farItems : nearItems).push({ z, draw });
         for (let k = kN + 60; k >= kN - 1; k--) {
             const zl = C.lampZ(k); if (zl < zc + 0.6 || zl > zFar) continue;
-            items.push({ z: zl, draw: behind(zl, () => lamp(g, L, cam, zl, d, fx)) });
+            put(zl, () => lamp(g, L, cam, zl, d, fx));
             const zp = zl + Song.beat * C.V * 0.38, xp = -2.4 + (k % 2 ? 0.9 : -0.9);
-            if (zp < zFar && zp > zc + 1) items.push({ z: zp, draw: behind(zp, () => palm(g, L, cam, xp, zp, k, T, d, fx)) });
+            if (zp < zFar && zp > zc + 1) put(zp, () => palm(g, L, cam, xp, zp, k, T, d, fx));
         }
         const Rs = Motion.rng('shrubs');
         for (let i = 0, zz = 0; zz < zc + 220; i++) {
             zz += 1.6 + Rs() * 1.8; const x = Rs() < 0.5 ? -3.5 + Rs() * 0.5 : -1.3 - Rs() * 0.5, sc = 0.8 + Rs() * 0.5, seed = i;
             if (zz < zNear + 0.6) continue;
-            const z = zz; items.push({ z, draw: behind(z, () => shrub(g, cam, x, z, sc, seed, d, fx)) });
+            const z = zz; put(z, () => shrub(g, cam, x, z, sc, seed, d, fx));
         }
-        for (const t of C.traffic(T)) if (t.z > zc + 2 && t.z < zFar) items.push({ z: t.z, draw: behind(t.z, () => car(g, L, cam, t, d, fx)) });
-        if (fx.trip > 0) for (let zh = Math.ceil((zc + 4) / 22) * 22; zh < zc + 260; zh += 22) { const z = zh; items.push({ z, draw: behind(z, () => hoop(g, L, cam, z, d, fx)) }); }
-        return { items, last: outside ? () => parapet(1) : null, zHide };
+        for (const t of C.traffic(T)) if (t.z > zc + 2 && t.z < zFar) put(t.z, () => car(g, L, cam, t, d, fx));
+        if (fx.trip > 0) for (let zh = Math.ceil((zc + 4) / 22) * 22; zh < zc + 260; zh += 22) { const z = zh; put(z, () => hoop(g, L, cam, z, d, fx)); }
+        const lastEdge = (x, dy = 0) => zs.map((z) => cam.p([x, y(z) + dy, z])).filter((p) => p[2] > 0.3).map((p) => [p[0], p[1]]);
+        return {
+            far: () => deck(zSplit, zFar), farItems, near: () => deck(zNear, zSplit), nearItems, zSplit,
+            last: outside ? () => parapet(1, lastEdge, zNear, zFar) : null,
+        };
     }
 
     function lamp(g, L, cam, z, d, fx) {

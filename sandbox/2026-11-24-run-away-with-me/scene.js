@@ -98,7 +98,7 @@ function drawDrawn(g, t, env) {
     const { N } = env.state;
     const tq = Math.floor(t * 12 + 1e-6) / 12, d = Ink.boil(t);      // drawings on twos
     const T = Song.B(29) + tq;
-    const shot = shotIndex(t);
+    const shot = shotIndex(tq + 1 / 24);                           // a cut lands on the nearest drawing
     const fx = effects(tq, T);
     const cz = Causeway.carZ(T), cy = Causeway.y(cz), pitch = Math.atan(Causeway.slope(cz));
     const pose = { x: Causeway.LANE, y: cy, z: cz, pitch };
@@ -117,10 +117,10 @@ function drawDrawn(g, t, env) {
     L = N.light();
     Ink.occlude(L);
     if (fx.trip > 0) N.trails(L, (c, Tp) => Causeway.lights(c, N, shotCam(shotIndex(Tp - Song.B(29)), Tp - Song.B(29), Tp, env), Tp, fx), T, { n: 5, dt: 1.5 / 24, decay: 0.6, amount: 0.5 * fx.trip });
-    const { items, last } = Drawn.causeway(g, L, cam, T, d, { ...fx, onDeck: fx.grid > 0 ? (zHide) => inkGrid(g, L, cam, T, d, fx, 'deck', zHide) : null });
+    const cw = Drawn.causeway(g, L, cam, T, d, { ...fx, onDeck: fx.grid > 0 ? (zA, zB) => inkGrid(g, L, cam, T, d, fx, 'deck', zA, zB) : null });
     const lamp = Causeway.lampLight(cz + 1.0);
     const light = { lamp: lamp * fx.lampPower, hue: fx.hue, power: 1, city: 1, drawn: true, d };
-    items.push({ z: pose.z, depth: cam.view([pose.x, pose.y + 0.6, pose.z])[2], draw: () => {
+    const carItem = { z: pose.z, depth: cam.view([pose.x, pose.y + 0.6, pose.z])[2], draw: () => {
         // the car on its own layer with its own light: it erases the light behind it, then adds its own
         Ink.occlude(null);
         const carL = Motion.layer(env, 'carLight', () => {});
@@ -136,11 +136,12 @@ function drawDrawn(g, t, env) {
         L.restore();
         g.drawImage(carPic, 0, 0, env.W, env.H);
         Ink.occlude(L);
-    } });
-    for (const it of items) if (it.depth === undefined) it.depth = cam.view([0, Causeway.y(it.z), it.z])[2];
-    items.sort((a, b) => b.depth - a.depth);
-    for (const it of items) it.draw();
-    if (last) last();
+    } };
+    (pose.z >= cw.zSplit ? cw.farItems : cw.nearItems).push(carItem);
+    const paint = (list) => { for (const it of list) if (it.depth === undefined) it.depth = cam.view([0, Causeway.y(it.z), it.z])[2]; list.sort((a, b) => b.depth - a.depth); for (const it of list) it.draw(); };
+    cw.far(); paint(cw.farItems);
+    cw.near(); paint(cw.nearItems);
+    if (cw.last) cw.last();
     Ink.occlude(null);
     N.bloom(g, L, { strength: 0.35 + fx.trip * 0.15, core: 0.5 });
     if (fx.flash > 0) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(255,120,220,${fx.flash})`; g.fillRect(0, 0, env.W, env.H); g.restore(); }
@@ -148,7 +149,7 @@ function drawDrawn(g, t, env) {
 
 // the trip's grid in ink: brush lines on the deck (clipped to the asphalt by the caller, the
 // median left bare, nothing past the crest) and on the bay
-function inkGrid(g, L, cam, T, d, fx, part, zHide = Infinity) {
+function inkGrid(g, L, cam, T, d, fx, part, zA = 0, zB = Infinity) {
     const a = fx.grid * (0.5 + 0.5 * fx.kick), zc = cam.pos[2], P = Ink.PAL;
     const cyan = fx.hue ? Neon.css(Neon.shift(P.cyan, fx.hue)) : P.cyan, mag = fx.hue ? Neon.css(Neon.shift(P.magenta, -fx.hue)) : P.magenta;
     const line = (pts, col, w, al, seed) => {
@@ -157,9 +158,9 @@ function inkGrid(g, L, cam, T, d, fx, part, zHide = Infinity) {
         L.save(); L.globalAlpha = al * 0.45; L.strokeStyle = col; L.lineWidth = w * 1.6; L.beginPath(); Q.forEach((p, i) => (i ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); L.stroke(); L.restore();
     };
     if (part === 'deck') {
-        const zEnd = Math.min(zc + 300, zHide);
-        for (let x = -11; x <= 7; x += 2.25) { if (x > -4.6 && x < -0.2) continue; const pts = []; for (let z = zc + 1.5; z < zEnd; z += 12) pts.push([x, Causeway.y(z) + 0.03, z]); line(pts, cyan, 2.2, a, 800 + Math.round(x * 4)); }
-        for (let z = Math.ceil((zc + 1.5) / 6) * 6; z < Math.min(zc + 240, zHide); z += 6) {
+        const z0 = Math.max(zc + 1.5, zA), zEnd = Math.min(zc + 300, zB);
+        for (let x = -11; x <= 7; x += 2.25) { if (x > -4.6 && x < -0.2) continue; const pts = []; for (let z = z0; z < zEnd; z += 12) pts.push([x, Causeway.y(z) + 0.03, z]); pts.push([x, Causeway.y(zEnd) + 0.03, zEnd]); line(pts, cyan, 2.2, a, 800 + Math.round(x * 4)); }
+        for (let z = Math.ceil(z0 / 6) * 6; z < Math.min(zc + 240, zB); z += 6) {
             const yy = Causeway.y(z) + 0.03, w = Math.min(4, Math.max(1.2, 90 / (z - zc + 10))), f = a * Math.max(0, 1 - (z - zc) / 260);
             line([[-11.8, yy, z], [-4.4, yy, z]], mag, w, f, 900 + z); line([[-0.4, yy, z], [7.4, yy, z]], mag, w, f, 950 + z);
         }
