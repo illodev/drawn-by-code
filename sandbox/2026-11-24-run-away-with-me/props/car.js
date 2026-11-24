@@ -97,7 +97,7 @@ const Car = (() => {
         const Wp = (p) => [pose.x + p[0], pose.y + p[1] * c + p[2] * s, pose.z + p[2] * c - p[1] * s];
         const d = [cam.pos[0] - pose.x, cam.pos[1] - pose.y, cam.pos[2] - pose.z];
         const C = [d[0], d[1] * c - d[2] * s, d[1] * s + d[2] * c];
-        const hue = light.hue ?? 0;
+        const hue = light.drawn ? 0 : light.hue ?? 0;           // drawn: the car keeps its inks through the trip
         const sh = (h, k = 1) => (hue ? Neon.shift(h, hue * k) : hex(h));
         const F = {
             cam, pose, C, Wp, cp: c, sp: s, hue,
@@ -114,6 +114,9 @@ const Car = (() => {
         };
         F.sc = (p) => cam.f / Math.max(0.05, F.depth(p));
         F.lamps = lampsNear(pose, light);
+        // the drawn manner's ink line, by the car's size on screen (px per metre at its middle)
+        F.S = cam.f / Math.max(0.5, F.depth([0, 0.6, 0]));
+        F.w = clamp(0.02 * F.S, 1.1, 6.5);
         return F;
     }
     function envAt(F, e, zf) {
@@ -126,6 +129,7 @@ const Car = (() => {
     }
     // the colour of material m at local point p with normal n, seen from the camera
     function shade(F, p, n0, m) {
+        if (DRAWN) return hex(dInk(m, n0));                     // one ink per part: no lamp, no view
         const v = nrm(sub(F.C, p)), n = nrm(n0);
         let nv = dot(n, v), N = n;
         if (nv < 0) { N = [-n[0], -n[1], -n[2]]; nv = -nv; }
@@ -140,10 +144,33 @@ const Car = (() => {
     }
 
     // --- the drawn manner (light.drawn): flat inks from the reference's palette, a brush line ---
-    let DRAWN = false, DR = 0;
+    // Each part keeps ONE ink, chosen by its material and which way it faces (never by the lamp
+    // or the view, which made the inks flip across a threshold on every half beat): a white car
+    // at night in this palette is pink on top, magenta on the upper sides, violet below the
+    // crease, purple on the faces fore and aft. The passing lamp is laid on as strokes of gold
+    // and salmon that sweep over the deck and the hood, never as a change of ink.
+    let DRAWN = false, DR = 0, LCUR = null;
+    const K = {
+        ink: '#0b0230', deep: '#0e0558', indigo: '#200887', royal: '#3a10c8', violet: '#7407f0', purple: '#ad19b0',
+        plum: '#7a1581', grape: '#420859', magenta: '#e106d3', salmon: '#f45a7f', pink: '#ff8ad8', light: '#ffc8ee',
+        cream: '#ffe6f6', orange: '#f9a03a', gold: '#ffd25a', cyan: '#67deef', red: '#ff3050', mint: '#7dffc8',
+    };
+    const KSET = new Set(Object.values(K).map((h) => hex(h).join(',')));
+    function dInk(m, n0) {
+        const n = nrm(n0), up = n[1];
+        if (m === MAT.paint) return up > 0.55 ? K.pink : Math.abs(n[2]) > 0.75 ? K.purple : up > -0.05 ? K.magenta : K.violet;
+        if (m === MAT.metal) return up > 0.2 ? K.light : K.pink;
+        if (m === MAT.leather) return up > 0.5 ? K.plum : K.grape;
+        if (m === MAT.black) return up > 0.5 ? K.indigo : up < -0.5 ? K.ink : K.deep;
+        if (m === MAT.vinyl) return up > 0.5 ? K.deep : K.ink;
+        return up > 0.5 ? K.deep : K.grape;                     // trim: the dash, the console, the bulkhead
+    }
+    // a small deterministic noise (seed, i, drawing) → 0..1
+    const hh = (a, b, c) => { let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(c | 0, 2147483647); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
     const POSTER = ['#0b0230', '#0e0558', '#200887', '#3a10c8', '#7407f0', '#ad19b0', '#7a1581', '#e106d3', '#f45a7f', '#ff8ad8', '#ffc8ee', '#f9a03a', '#ffd25a', '#67deef', '#ff3050', '#420859'].map(hex);
     const RED = POSTER[14];
     function posterize(c) {
+        if (KSET.has(c.map(Math.round).join(','))) return c;    // already one of the car's inks
         // push saturation and pick the nearest ink of the palette
         const m = (c[0] + c[1] + c[2]) / 3, k = 1.6;
         const s = [m + (c[0] - m) * k, m + (c[1] - m) * k, m + (c[2] - m) * k].map((v) => clamp(v * 0.92, 0, 255));
@@ -153,14 +180,25 @@ const Car = (() => {
             if (q === RED && !reallyRed) continue; const d = 2 * (s[0] - q[0]) ** 2 + 4 * (s[1] - q[1]) ** 2 + 3 * (s[2] - q[2]) ** 2; if (d < bd) { bd = d; best = q; } }
         return best;
     }
-    const posterCss = (col, a = 1) => {
+    // the nearest ink, opaque (the drawn manner has no translucent overlays)
+    const posterCss = (col) => {
         if (typeof col !== 'string') return col;
         const m = col.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/);
-        if (m) return css(posterize([+m[1], +m[2], +m[3]]), (m[4] !== undefined ? +m[4] : 1) * a);
-        if (col[0] === '#') return css(posterize(hex(col)), a);
+        if (m) return css(posterize([+m[1], +m[2], +m[3]]));
+        if (col[0] === '#') return css(posterize(hex(col)));
         return col;
     };
-    const inkW = (q) => { let per = 0; for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length]; per += Math.hypot(b[0] - a[0], b[1] - a[1]); } return clamp(per / 150, 1.1, 4.2); };
+    const alphaOf = (col) => { const am = typeof col === 'string' && col.match(/rgba\([^)]*,\s*([\d.]+)\)/); return am ? +am[1] : 1; };
+    // the ink line, one rule by the car's size on screen (F.w, set in frame()): the silhouette
+    // at F.w (about 6 px over the trunk, 4–5 px in the chase, ~1 px far away), the lines inside
+    // the body at half that, the details thinner still
+    const lineIn = (F, k = 0.5) => Math.max(1, k * F.w);
+    // an ink line along a 3D polyline at k × the silhouette's weight
+    function edge3(g, F, pts, k = 1, col = null, o = {}) {
+        const q = pts.map((p) => F.pr(p)).filter((p) => p[2] >= 0.35).map((p) => [p[0], p[1]]);
+        if (q.length < 2) return;
+        Ink.brush(g, q, { w: Math.max(1, k * F.w), col: col ?? K.ink, seed: o.seed ?? ((q.length * 9173 + Math.round(q[0][0] * 7 + q[0][1] * 3)) | 0), d: DR, taper: o.taper ?? 0.06, wob: o.wob, closed: o.closed });
+    }
 
     // --- painting helpers -----------------------------------------------------------------
     // an airbrushed fill: the outline (local points) filled with a gradient laid along the
@@ -187,14 +225,16 @@ const Car = (() => {
         for (const [q, col] of v) gr.addColorStop(clamp(((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2, 0, 1), css(col, alpha));
         return gr;
     }
-    function fill(c, F, outline, style) {
+    // wk (drawn only): the ink line's weight as a multiple of the silhouette's (0 = no line)
+    function fill(c, F, outline, style, wk = 0.5) {
         const q = F.poly(outline); if (!q) return null;
         if (DRAWN) {
             // the airbrush's translucent overlays and gradients have no place in the drawn manner:
             // only the opaque pieces are painted, flat, each with its ink line
             if (typeof style !== 'string') return q;
-            const am = style.match(/rgba\([^)]*,\s*([\d.]+)\)/); if (am && +am[1] < 0.6) return q;
-            Ink.shape(c, q, posterCss(style), { w: inkW(q), seed: (q.length * 7919 + Math.round(q[0][0] * 3)) | 0, d: DR, jit: 0.6 });
+            if (alphaOf(style) < 0.6) return q;
+            if (c === LCUR) { c.fillStyle = style; Neon.path(c, q); c.fill(); return q; }   // light: flat, no line
+            Ink.shape(c, q, posterCss(style), { w: wk > 0 ? Math.max(1, wk * F.w) : 0, seed: (q.length * 7919 + Math.round(q[0][0] * 3)) | 0, d: DR, jit: 0.6 });
             return q;
         }
         c.fillStyle = style; Neon.path(c, q); c.fill(); return q;
@@ -204,7 +244,8 @@ const Car = (() => {
         if (DRAWN) {
             const q = pts.map((p) => F.pr(p)).filter((p) => p[2] >= 0.35).map((p) => [p[0], p[1]]);
             if (q.length < 2) return;
-            const col = typeof style === 'string' ? posterCss(style) : Ink.PAL.cyan;
+            if (typeof style === 'string' && alphaOf(style) < 0.3) return;     // the airbrush's faint hairlines
+            const col = typeof style === 'string' ? posterCss(style) : K.cyan;
             Ink.brush(c, q, { w: Math.min(5, Math.max(1, w * 1.15)), col, seed: (q.length * 104729 + Math.round(q[0][1] * 5)) | 0, d: DR, taper: 0.25 });
             return;
         }
@@ -215,7 +256,10 @@ const Car = (() => {
     }
     const px = (F, m, p, min = 0.5) => Math.max(min, m * F.sc(p));
     const visible = (F, p, n) => dot(sub(F.C, p), n) > 0;
-    const outs = (F) => (F.lit ? [0, 1] : [0]);   // 0: the picture, 1: the light (only after the people)
+    // 0: the picture, 1: the light (only after the people). Reflections and rims go on the light
+    // only in the airbrush; what emits (outsE) goes on it in both manners
+    const outs = (F) => (F.lit && !DRAWN ? [0, 1] : [0]);
+    const outsE = (F) => (F.lit ? [0, 1] : [0]);
 
     // a gradient along a whole line of the body (for rims): colours from the tail to the nose
     function lineGrad(c, F, p0, p1, cols) {
@@ -281,10 +325,46 @@ const Car = (() => {
             }
         }
     }
+    // the drawn manner's lamp: where a lamp overhead is mirrored in a top (plane p0, n), a few
+    // strokes of gold, salmon and orange laid across the car, clipped to its outline q. They
+    // sweep along the top as the car drives under the lamps, and swell with the lamp's own light
+    // (light.lamp, on the beat)
+    function lampStrokes(g, F, q, p0, n, zr, size = 1) {
+        if (!q || !F.lamps.length) return;
+        for (const W0 of F.lamps) {
+            const Lp = toLocal(F, W0), dl = dot(sub(Lp, p0), n);
+            if (dl <= 0) continue;
+            const V = sub(Lp, [2 * dl * n[0], 2 * dl * n[1], 2 * dl * n[2]]);
+            const dv = sub(V, F.C), den = dot(dv, n); if (Math.abs(den) < 1e-6) continue;
+            const t = dot(sub(p0, F.C), n) / den; if (t <= 0 || t >= 1) continue;
+            const Pm = [F.C[0] + dv[0] * t, F.C[1] + dv[1] * t, F.C[2] + dv[2] * t];
+            if (Pm[2] < zr[0] - 0.3 || Pm[2] > zr[1] + 0.3 || Math.abs(Pm[0]) > 1.1) continue;
+            const s = F.pr(Pm); if (s[2] < 0.35) continue;
+            const dist = Math.hypot(Lp[0] - Pm[0], Lp[1] - Pm[1], Lp[2] - Pm[2]);
+            const a = clamp(1.5 / (1 + (dist / 11) ** 2), 0, 1) * (0.45 + 0.55 * Math.min(1, F.lamp));
+            if (a < 0.15) continue;
+            const sc = F.sc(Pm), seed = 8100 + Math.round(W0[2] * 3 + W0[0] * 7);
+            const n0 = 2 + Math.round(4 * a), half = (0.22 + 0.2 * a) * size;
+            g.save(); Neon.path(g, q); g.clip();
+            for (let i = 0; i < n0; i++) {
+                const u = (i + 0.5) / n0 - 0.5, h0 = hh(seed, i, DR), h1 = hh(seed + 1, i, DR), h2 = hh(seed + 2, i, DR);
+                const cz = Pm[2] + u * 0.32 * size + (h0 - 0.5) * 0.08, cx = Pm[0] + (h1 - 0.5) * 0.25;
+                const l = half * (0.55 + 0.6 * h2) * (1 - Math.abs(u) * 0.8);
+                const z1 = cz + 0.03 * (h0 - 0.5), y = (z) => yb(z) + 0.014;     // on the top's own curve
+                const A = F.pr([cx - l, y(cz), cz]), B = F.pr([cx + l, y(z1), z1]);
+                if (A[2] < 0.35 || B[2] < 0.35) continue;
+                Ink.brush(g, [[A[0], A[1]], [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2 - 0.004 * sc], [B[0], B[1]]], {
+                    w: Math.max(1.2, (0.022 + 0.012 * a) * sc * (0.7 + 0.5 * h1)), col: [K.gold, K.salmon, K.orange, K.gold, K.salmon][i % 5],
+                    seed: seed * 13 + i, d: DR, taper: 0.4, wob: 0.6,
+                });
+            }
+            g.restore();
+        }
+    }
 
     // ==========================================================================================
     function draw(g, L, N, cam, pose, light = {}, people = null) {
-        DRAWN = !!light.drawn; DR = light.d ?? 0;
+        DRAWN = !!light.drawn; DR = light.d ?? 0; LCUR = L;
         const F = frame(cam, pose, light), C = F.C;
         g.save(); L.save();
         ground(g, L, F);
@@ -313,6 +393,7 @@ const Car = (() => {
 
     // --- the ground: a contact shadow, the lights on the wet road ---------------------------
     function ground(g, L, F) {
+        if (DRAWN) return groundD(g, F);
         // the car's shadow: soft rings of dark under it
         for (const [ex, ez, a] of [[0.32, 0.38, 0.16], [0.16, 0.2, 0.22], [0.02, 0.05, 0.32]]) {
             const o = [[-0.9 - ex, 0.004, -2.15 - ez], [0.9 + ex, 0.004, -2.15 - ez], [0.9 + ex, 0.004, 2.15 + ez], [-0.9 - ex, 0.004, 2.15 + ez]];
@@ -354,6 +435,37 @@ const Car = (() => {
             }
         }
     }
+    // drawn: one opaque flat shadow under the car (0.15 m wider than the body all round, its
+    // edge brushed) so the car sits on the road, and the lights on the wet road as brush dashes
+    function groundD(g, F) {
+        const hw = 0.9 + 0.15, hl = 2.15 + 0.15, r = 0.42, o = [];
+        for (const [cx, cz, a0] of [[hw - r, hl - r, 0], [-(hw - r), hl - r, Math.PI / 2], [-(hw - r), -(hl - r), Math.PI], [hw - r, -(hl - r), Math.PI * 1.5]])
+            for (let i = 0; i <= 4; i++) { const a = a0 + (i / 4) * (Math.PI / 2); o.push([cx + Math.cos(a) * r, 0.004, cz + Math.sin(a) * r]); }
+        const q = F.poly(o);
+        if (q) Ink.shape(g, q, K.ink, { w: Math.max(1.5, 1.3 * F.w), ink: K.ink, seed: 5101, d: DR, jit: 1.2 });
+        const C = F.C;
+        if (C[2] < ZT) for (const x of [-0.56, 0, 0.56]) streakD(g, F, [x, 0.8, ZT - 0.08], x ? [K.red, K.pink, K.red, K.salmon] : [K.magenta, K.pink], x ? 0.3 : 0.16);
+        if (C[2] > ZN) for (const x of [-0.6, 0.6]) streakD(g, F, [x, 0.76, ZN + 0.08], [K.cream, K.gold], 0.26);
+    }
+    // a light at local p mirrored in the wet road: short broken dashes across the line from under
+    // it towards the camera, widening towards the viewer, within ~3 m of road
+    function streakD(g, F, p, cols, w) {
+        const C = F.C, dx = C[0] - p[0], dz = C[2] - p[2], D = Math.hypot(dx, dz); if (D < 0.6) return;
+        const ux = dx / D, uz = dz / D, len = Math.min(D * 0.75, 3);
+        const seed = 6007 + Math.round(p[0] * 100) + (p[2] > 0 ? 500 : 0), n = 8;
+        for (let i = 0; i < n; i++) {
+            if (hh(seed + 9, i, DR) < 0.18) continue;                                // broken
+            const u = (i + 0.25 + 0.5 * hh(seed, i, DR)) / n, d = 0.15 + (len - 0.15) * u;
+            const half = w * (0.3 + 0.8 * u) * (0.75 + 0.5 * hh(seed + 1, i, DR));
+            const off = (hh(seed + 3, i, DR) - 0.5) * w * 0.35;
+            const cx = p[0] + ux * d - uz * off, cz = p[2] + uz * d + ux * off;
+            const A = F.pr([cx - uz * half, 0.008, cz + ux * half]), B = F.pr([cx + uz * half, 0.008, cz - ux * half]);
+            if (A[2] < 0.35 || B[2] < 0.35) continue;
+            const t0 = F.pr([cx, 0.008, cz]), t1 = F.pr([cx + ux * 0.06, 0.008, cz + uz * 0.06]);
+            const th = clamp(Math.hypot(t1[0] - t0[0], t1[1] - t0[1]), 1.2, Math.max(1.6, F.w));
+            Ink.brush(g, [[A[0], A[1]], [B[0], B[1]]], { w: th, col: cols[i % cols.length], seed: seed * 7 + i, d: DR, taper: 0.35, wob: 0.4 });
+        }
+    }
 
     // --- wheels ------------------------------------------------------------------------------
     function wheelOrder(F) {
@@ -371,6 +483,7 @@ const Car = (() => {
         const pts = [];
         for (const xx of [cx - Wh.w / 2, cx + Wh.w / 2]) for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2; const q = F.pr([xx, R + Math.sin(a) * R, Wh.z + Math.cos(a) * R]); pts.push([q[0], q[1]]); }
         const hull = convex(pts);
+        if (DRAWN) return wheelD(g, F, s, Wh, hull, faceOut);
         g.fillStyle = '#100b18'; Neon.path(g, hull); g.fill();
         // the tread seen end-on: a faint sheen of the sky across the top of the tyre
         g.save(); Neon.path(g, hull); g.clip();
@@ -412,6 +525,33 @@ const Car = (() => {
         g.fillStyle = css(mix(metal, [30, 20, 50], 0.4)); g.beginPath(); g.arc(0, 0, k * 0.26, 0, Math.PI * 2); g.fill();
         g.fillStyle = css(mix(metal, [255, 255, 255], 0.45)); g.beginPath(); g.arc(0, 0, k * 0.15, 0, Math.PI * 2); g.fill();
         g.restore();
+    }
+    // drawn: the tyre a flat deep ink with its line and a stroke of sky on the tread; the outer
+    // face an inked sidewall, a pale flat-faced alloy whose dial of holes the spin smears into a
+    // groove, a hub, a stroke of light on the lip
+    function wheelD(g, F, s, Wh, hull, faceOut) {
+        const cx = s * Wh.x, lw = lineIn(F), seed = 7300 + (s > 0 ? 50 : 0) + (Wh.z > 0 ? 7 : 0);
+        Ink.shape(g, hull, K.deep, { w: lw, seed, d: DR, jit: 0.5 });
+        const xo = cx + s * Wh.w / 2;
+        if (!faceOut) {
+            // seen end-on: the tread's top catches the sky
+            const arc = []; for (let i = 0; i <= 6; i++) { const a = Math.PI * (0.3 + 0.4 * i / 6); arc.push([cx + s * Wh.w * 0.2, R + Math.sin(a) * R * 0.97, Wh.z + Math.cos(a) * R * 0.97]); }
+            edge3(g, F, arc, 0.35, K.violet, { taper: 0.4 });
+            return;
+        }
+        const o = F.pr([xo, R, Wh.z]), ey = F.pr([xo, 2 * R, Wh.z]), ez = F.pr([xo, R, Wh.z + R]);
+        const a = [ez[0] - o[0], ez[1] - o[1]], b = [ey[0] - o[0], ey[1] - o[1]];
+        if (Math.abs(a[0] * b[1] - a[1] * b[0]) < 4) return;
+        const E = (u, v) => [o[0] + a[0] * u + b[0] * v, o[1] + a[1] * u + b[1] * v];
+        const ell = (r, n = 22, c0 = 0, c1 = Math.PI * 2) => { const out = []; for (let i = 0; i < n; i++) { const t = c0 + ((c1 - c0) * i) / (c1 - c0 >= Math.PI * 2 - 1e-6 ? n : n - 1); out.push(E(Math.cos(t) * r, Math.sin(t) * r)); } return out; };
+        const k = RIM / R, rpx = Math.hypot(b[0], b[1]);
+        Ink.shape(g, ell(0.985, 26), K.deep, { w: lw, seed: seed + 1, d: DR, jit: 0.4 });
+        Ink.brush(g, ell(0.9, 9, Math.PI * 0.3, Math.PI * 0.75), { w: Math.max(1, 0.05 * rpx), col: K.violet, seed: seed + 2, d: DR, taper: 0.4 });
+        Ink.shape(g, ell(k, 22), K.light, { w: lw, seed: seed + 3, d: DR, jit: 0.3 });
+        Ink.brush(g, ell(k * 0.6, 18), { w: Math.max(1, k * 0.3 * rpx), col: K.purple, seed: seed + 4, d: DR, closed: true, taper: 0, wob: 0.3 });
+        Ink.brush(g, ell(k * 0.86, 8, Math.PI * 0.15, Math.PI * 0.7), { w: Math.max(1, 0.06 * k * rpx), col: K.cream, seed: seed + 5, d: DR, taper: 0.45 });
+        Ink.brush(g, ell(k * 0.8, 6, Math.PI * 1.15, Math.PI * 1.5), { w: Math.max(1, 0.05 * k * rpx), col: K.cyan, seed: seed + 6, d: DR, taper: 0.45 });
+        Ink.shape(g, ell(k * 0.24, 12), K.pink, { w: Math.max(1, 0.4 * F.w), seed: seed + 7, d: DR, jit: 0.2 });
     }
     function convex(P0) {
         const Q = P0.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -483,7 +623,17 @@ const Car = (() => {
         const zz = along(ZT + 0.03, ZN - 0.06, 22);
         line3(g, F, zz.map((z) => onUp(s, z, 0.985)), css(mix(F.hz[1], [255, 255, 255], 0.55), 0.75), px(F, 0.007, crease(s, 0), 0.6));
         pinstripe(g, F, s);
+        if (DRAWN) {
+            // the silhouette against the road: the sill (broken by the arches) at full weight
+            if (loVis) edge3(g, F, along(ZT + 0.01, ZN - 0.01, 30).map((z) => sill(s, z)), 1, null, { seed: 5200 + s });
+            // the shoulder catches the sky: a few strokes of light just under it
+            if (upVis) sideLight(g, F, s);
+        }
         g.restore();
+        if (DRAWN) {
+            if (upVis) edge3(g, F, along(ZT, ZN, 26).map((z) => shoulder(s, z)), 1, null, { seed: 5210 + s });
+            for (const z of [ZT, ZN]) edge3(g, F, [shoulder(s, z), crease(s, z), sill(s, z)], 0.8, null, { seed: 5220 + s + (z > 0 ? 3 : 0) });
+        }
         // wheel-arch lips: the top of each arch catches the sky
         for (const W of WHEELS) {
             const lip = []; for (let i = 2; i <= 14; i++) { const a = Math.asin((YS - R) / ARCH) + ((Math.PI - 2 * Math.asin((YS - R) / ARCH)) * i) / 16; lip.push([s * 0.895, R + Math.sin(a) * (ARCH + 0.008), W.z + Math.cos(a) * (ARCH + 0.008)]); }
@@ -496,12 +646,29 @@ const Car = (() => {
     }
     function marker(g, L, F, s, z0, z1, f, u0, u1, col, a) {
         const o = bandOutline(s, f, z0, z1, u0, u1, 2);
-        for (const i of outs(F)) { const c = i ? L : g; fill(c, F, o, css(i ? col : mix(col, [255, 230, 200], 0.25), i ? a * 0.6 : 1)); }
+        for (const i of outsE(F)) { const c = i ? L : g; fill(c, F, o, css(i ? col : mix(col, [255, 230, 200], 0.25), i ? a * 0.6 : 1), 0.25); }
+    }
+    // drawn: strokes of light pink laid down the upper side from the shoulder, and two of cyan
+    // along the crease (the city's light), thinning out towards the tail
+    function sideLight(g, F, s) {
+        const seed = 5300 + (s > 0 ? 1 : 0), n = 9;
+        for (let i = 0; i < n; i++) {
+            const z = ZT + 0.3 + ((ZN - ZT - 0.6) * (i + 0.2 + 0.6 * hh(seed, i, DR))) / n;
+            const l = 0.18 + 0.3 * hh(seed + 1, i, DR);
+            const a = onUp(s, z, 0.06), b = onUp(s, z - 0.08, Math.min(0.75, 0.06 + l));
+            edge3(g, F, [a, lerp3(a, b, 0.5), b], 0.3 + 0.15 * hh(seed + 2, i, DR), i % 3 === 2 ? K.pink : K.light, { seed: seed * 17 + i, taper: 0.45 });
+        }
+        for (const [z0, z1] of [[0.25, 1.3], [-1.6, -0.9]]) edge3(g, F, along(z0, z1, 6).map((z) => onUp(s, z, 0.9)), 0.3, K.cyan, { seed: seed + Math.round(z0 * 10), taper: 0.35 });
     }
     function pinstripe(g, F, s) {
         // pink over teal, a hair apart, from the nose to the tail
         const zz = along(ZT + 0.06, ZN - 0.12, 24);
         const off = (z, d) => { const c = crease(s, z), sh = shoulder(s, z), v = nrm(sub(sh, c)); return [c[0] + v[0] * d, c[1] + v[1] * d, c[2]]; };
+        if (DRAWN) {
+            // two brush lines, pink over cyan (fills this thin would be all ink line)
+            for (const [d, col] of [[0.04, K.pink], [0.024, K.cyan]]) edge3(g, F, zz.map((z) => off(z, d)), 0.28, col, { seed: 5400 + (s > 0 ? 1 : 0) + Math.round(d * 1000), taper: 0.04 });
+            return;
+        }
         const lit = 0.55 + 0.35 * Math.min(1, F.lamp);
         for (const [d0, d1, col] of [[0.034, 0.046, F.pink], [0.018, 0.03, F.teal]]) {
             const o = zz.map((z) => off(z, d0)).concat(zz.slice().reverse().map((z) => off(z, d1)));
