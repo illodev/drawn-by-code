@@ -89,3 +89,40 @@ loose strokes of cyan, red and orange, buildings drawn with the same line).
   nearest-ink match (red only for real reds); gaps between sky bands (each band reaches the
   horizon); strokes of light on a near parapet ballooning (capped). Review: no warnings,
   100 ms a frame warm at 960.
+
+## Round 3 (user) · «better, but many details and overlaps need refining: pixel perfection»
+
+The user, translated: «Better, although many details and overlaps need refining. We have to
+go to pixel perfection.»
+
+→ An adversarial audit: 33 stills at 1920 (every 0.25 s), four reviewers who had drawn
+nothing, one per shot, each cutting every frame into 480×360 tiles and reading them at 100 %.
+About 80 faults, most of them shared:
+- **Light through everything:** the drawn path had dropped the 3D path's occlusion; tubes,
+  glints and the grid glowed across the car, the heads, palms and poles. Now the far world
+  blooms first, and while the near world is painted every opaque Ink shape or stroke erases
+  the light layer where it lies (`Ink.occlude`); the car still erases from its own layer.
+- **The hump:** things beyond the crest drawn over the near deck (a V of tubes, cars on the
+  water). Cutting each line at its first dip failed from the crane (the far road reappears).
+  The deck is now two pieces, far (beyond the crest) then near, each with its standing
+  things; a car is in the far piece only when all of it is past the crest.
+- **The city:** laid with a bilinear quad, 10–35 px off its true projection, so its crown
+  floated and its reflections missed it: now 96 exact strips, and the crown and reflections
+  line up. Painted at screen scale, windows as two-floor bars.
+- **Teleporting:** stars re-scattered every drawing (a skipped random draw), falling bars
+  snapped back up, strokes of light re-placed every drawing (confetti): positions belong to
+  the seed, the drawing only boils the line; sky things are fixed directions in the world.
+- **Reflections where they cannot be:** lamp streaks 9 m long through the median, the car
+  and the water: now broken strokes on the asphalt only.
+- **Missing pieces:** parapet caps (the tube floated over water), the slot of water between
+  the near parapet and the slab in shot B, the pier and tube reflections, a hole in the
+  cockpit floor, the car's shadow, lamp bases.
+- **Order:** shrubs drawn before every palm and pole: now sorted with them.
+- **The car** (a parallel agent): its inks strobed on the beat (posterized from the lit
+  shade): one ink per part now, the lamp laid on as strokes; seats, dash, tail, plate and
+  wheels drawn; line weight by size.
+- **The cast:** heads cut flat by the crop, fragments of the neighbouring views, his black
+  hair a blob: recut with a margin, one connected piece, dark fills as hair.
+- **The trip:** the screen-space rings crossed the car: hoops now stand in the world.
+- **Shot B's camera** raised (the two tubes crossed in an X at the crest).
+Then a second audit by two new reviewers on the corrected frames.
