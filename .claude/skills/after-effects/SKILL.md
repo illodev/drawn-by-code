@@ -653,3 +653,8 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   speed-budgeted window, read from baked running sums: never more than 1.6×. Also, the sim
   let birds fly from 0.4× to 1.6× cruise, so turns spun the formation. A ±12 % band around
   the flock's mean speed gives the parallel-path turns real flocks make.
+- 2026-11-24 · ae-flock-rig · A baked rig must say when what it was baked from has changed.
+  The user moved the leader's first key in a duplicated comp and the flock stayed 580 px
+  away, which looked like a bug. Bake the input too (the leader's path on a Point Control),
+  and add a guide text layer whose expressions compare it with the live input. It shows
+  "re-run in this comp" and by how much, and is never rendered.

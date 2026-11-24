@@ -161,7 +161,7 @@ var FlockRig = (function () {
     // k: { name, id (bird number), faces (1 | -1), size (-1 … 1), offset (0 … 1),
     //      cycle: { start, length } | null, turn: { start, length } | null,
     //      t0, t1: first and last baked key (s), dt: one frame (s), radius: the flock's
-    //      typical RMS radius (px), cruise: its cruising speed (px/s) }
+    //      typical RMS radius (px), cruise: its cruising speed (px/s), leader: its name }
     function expressions(k) {
         var N = {}, i;
         for (i = 0; i < CONTROLS.length; i++) N[CONTROLS[i].key] = 'v(' + q(CONTROLS[i].name) + ')';
@@ -183,7 +183,35 @@ var FlockRig = (function () {
         out.radius = '// Flock rig: mean radius over the shape window\n' + head +
             'var W = effect("Shape Window")(1).value, S = effect("Radius Sum")(1);\n' +
             'flockMean(function (t) { return [S.valueAtTime(t), 0]; }, time, W, ' + T + ')[0];';
-        out.position = '// Flock rig: position (shape and scatter)\n' + head +
+        if (k.leader) {
+            // The leader check (a guide text layer): how far the leader now is from the path the
+            // flock was simulated on, sampled over the bake. The birds are baked keys, so a
+            // moved leader needs a re-run; this says so in the viewer instead of nothing.
+            var chk = 'function flockLeaderOff() {\n' +
+                '    var L, P;\n' +
+                '    try {\n' +
+                '        L = thisComp.layer(' + q(k.leader) + ');\n' +
+                '        P = thisComp.layer(' + q(k.name + ' Center') + ').effect("Leader Path")(1);\n' +
+                '    } catch (e) {\n' +
+                '        return -1;\n' +
+                '    }\n' +
+                '    var d = 0, i, t, a, b;\n' +
+                '    for (i = 0; i <= 48; i++) {\n' +
+                '        t = ' + k.t0 + ' + ' + (k.t1 - k.t0) + ' * i / 48;\n' +
+                '        a = L.toComp(L.anchorPoint.valueAtTime(t), t);\n' +
+                '        b = P.valueAtTime(t);\n' +
+                '        d = Math.max(d, Math.sqrt((a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1])));\n' +
+                '    }\n' +
+                '    return d;\n' +
+                '}\n' +
+                'var d = flockLeaderOff();\n';
+            out.checkOpacity = '// Flock rig: leader check\n' + chk + '(d < 0 || d > 2) ? 100 : 0;';
+            out.checkText = '// Flock rig: leader check\n' + chk + 'd < 0 ? ' +
+                q(k.name + ': can\'t find the leader "' + k.leader + '". Re-run Flock.jsx.') + ' : ' +
+                q(k.name + ': the leader has moved since the bake (up to ') + ' + Math.round(d) + ' +
+                q(' px). The birds still fly the old path: re-run Flock.jsx in this comp.') + ';';
+        }
+        out.position ='// Flock rig: position (shape and scatter)\n' + head +
             'var M = thisComp.layer(' + q(k.name + ' Center') + ');\n' +
             'var m = M.transform.position.value;\n' +
             'var sp = ' + N.spread + ', ln = ' + N.length + ', wd = ' + N.width + ', cl = ' + N.clump + ';\n' +
@@ -243,7 +271,7 @@ var FlockRig = (function () {
         var bird = name + ' Bird ', n = 0;
         for (var i = comp.numLayers; i >= 1; i--) {
             var l = comp.layer(i);
-            if (l.name.indexOf(bird) === 0 || l.name === name + ' Center') {
+            if (l.name.indexOf(bird) === 0 || l.name === name + ' Center' || l.name === name + ' Leader Check') {
                 l.locked = false;
                 l.remove();
                 n++;
@@ -308,13 +336,14 @@ var FlockRig = (function () {
         // the flock's centre, size and heading: what the shape controls work around
         var center = comp.layers.addNull(comp.duration);
         center.name = o.name + ' Center';
-        var cv = [], cr = [], ch = [], ca = [], cs = [];
+        var cv = [], cr = [], ch = [], ca = [], cs = [], lpath = [];
         for (j = 0; j < idx.length; j++) {
             cv.push([sim.center.x[idx[j]], sim.center.y[idx[j]], 0]);
             cr.push(sim.center.radius[idx[j]]);
             ch.push(sim.center.heading[idx[j]]);
             ca.push([sim.center.axisX[idx[j]], sim.center.axisY[idx[j]]]);
             cs.push(sim.center.radiusSum[idx[j]]);
+            lpath.push([L.x[idx[j]], L.y[idx[j]]]);
         }
         setKeys(tf(center, MN.position), times, cv);
         addKeyedSlider(center, 'Radius', times, cr);
@@ -323,11 +352,14 @@ var FlockRig = (function () {
         // over any window
         addKeyedPoint(center, 'Axis Sum', times, ca);
         addKeyedSlider(center, 'Radius Sum', times, cs);
+        // the leader's path as simulated, for the leader check
+        addKeyedPoint(center, 'Leader Path', times, lpath);
         // computed once a frame for every bird to read
         var kf = {
             name: o.name, id: 0, faces: 1, size: 0, offset: 0, cycle: null, turn: null,
             t0: times[0], t1: times[times.length - 1], dt: 1 / fps,
-            radius: Math.round(sim.center.radiusRef * 100) / 100, cruise: Math.round(sim.stats.cruise)
+            radius: Math.round(sim.center.radiusRef * 100) / 100, cruise: Math.round(sim.stats.cruise),
+            leader: leader.name
         };
         var cex = expressions(kf);
         center.property(MN.effects).addProperty(MN.slider).name = 'Shape Window';
@@ -393,6 +425,26 @@ var FlockRig = (function () {
         }
         bird.enabled = false; // the original stays as the template for the next build
         comp.hideShyLayers = true;
+
+        // A guide line at the top of the viewer (never rendered) that appears when the leader
+        // no longer matches the path the flock was simulated on: the birds are baked keys,
+        // so moving the leader needs a re-run.
+        var ck = comp.layers.addText(o.name);
+        ck.name = o.name + ' Leader Check';
+        var tdp = ck.property('ADBE Text Properties').property('ADBE Text Document'), td = tdp.value;
+        td.fontSize = 28;
+        td.applyFill = true;
+        td.fillColor = [1, 0.42, 0.1];
+        td.applyStroke = false;
+        td.justification = ParagraphJustification.LEFT_JUSTIFY;
+        tdp.setValue(td);
+        tf(ck, MN.position).setValue([40, 56]);
+        ck.property('ADBE Text Properties').property('ADBE Text Document').expression = cex.checkText;
+        tf(ck, 'ADBE Opacity').expression = cex.checkOpacity;
+        ck.guideLayer = true;
+        ck.label = 2;
+        ck.locked = true;
+        report.leaderCheck = ck.name;
 
         var saved = {};
         for (k in DEFAULTS) saved[k] = o[k];

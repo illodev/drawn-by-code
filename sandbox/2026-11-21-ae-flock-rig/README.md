@@ -46,6 +46,12 @@ Select the bird layer and the leader (optional, it pre-fills the dialog), then
 Running it again replaces that flock's birds and keeps its `Controls` layer and the
 values you set on it; the dialog remembers the last settings.
 
+**Changed the leader? Re-run.** The birds are a baked simulation, so moving, re-timing or
+re-shaping the leader's path changes nothing until you run Flock.jsx again *in that comp*.
+That includes a copy of the comp: its birds are the original's keys. While the two differ,
+an orange line at the top of the viewer says so and by how much (`Flock Leader Check`, a
+guide layer: never rendered).
+
 ## What you get
 
 - `Flock Bird 001 … N`: duplicates of your bird layer, **shy** (the comp's "Hide shy
@@ -56,7 +62,10 @@ values you set on it; the dialog remembers the last settings.
   (its size) and `Heading` (its axis of travel) sliders, plus `Axis Sum` and `Radius Sum`:
   running sums the shape controls read to average over time (see *How it moves*). Its
   `Shape Window`, `Shape Axis` and `Shape Radius` work those averages out once a frame for
-  every bird. Each bird also carries an `Offset Sum`. Leave these alone.
+  every bird. `Leader Path` is the leader's path as simulated. Each bird also carries an
+  `Offset Sum`. Leave these alone.
+- `Flock Leader Check`: the guide text line that appears when the leader has moved since
+  the bake.
 - `Flock Controls`: the live sliders. No re-run needed for these; their names say what
   they do in the Effect Controls panel:
 

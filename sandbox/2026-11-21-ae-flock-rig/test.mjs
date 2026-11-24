@@ -50,7 +50,7 @@ function controls(over) {
 }
 // run an expression the way AE does: the value of its last statement
 const run = new Function('__ctx', '__code', 'with (__ctx) { return eval(__code); }');
-function evalExpr(code, { ctl, center, bird, value, time = 1 }) {
+function evalExpr(code, { ctl, center, bird, value, time = 1, others = {} }) {
     let seed = 0, timeless = false, n = 0;
     const rnd = () => {
         const x = Math.sin(seed * 12.9898 + (timeless ? 0 : time * 78.233) + ++n * 37.719) * 43758.5453;
@@ -59,7 +59,15 @@ function evalExpr(code, { ctl, center, bird, value, time = 1 }) {
     const ctx = {
         value: prop(value).value ?? value,
         time,
-        thisComp: { layer: (n) => (n === NAME + ' Controls' ? layer(ctl, null, time) : n === NAME + ' Center' ? layer(center.fx, center.pos, time) : null) },
+        // like AE, a layer that isn't there is an error, not null
+        thisComp: {
+            layer: (n) => {
+                if (n === NAME + ' Controls') return layer(ctl, null, time);
+                if (n === NAME + ' Center') return layer(center.fx, center.pos, time);
+                if (n in others) return others[n];
+                throw new Error(`Layer "${n}" not found`);
+            },
+        },
         effect: (n) => () => prop(bird[n], time),
         seedRandom: (s, tl) => ((seed = s), (timeless = !!tl), (n = 0)),
         random: (a, b) => a + (b - a) * rnd(),
@@ -187,6 +195,29 @@ ok(near(M.flockOrient(30, 0), 0) && near(M.flockOrient(190, 0), 180) && near(M.f
 ok(near(M.flockOrient(397, 100), 397), 'Orient 100 = as simulated');
 ok(near(M.flockCycle(3.62, 0.62, 100, 100), 0.62), 'defaults: the baked phase');
 ok(near(M.flockCycle(3.62, 0.62, 100, 0), 0), 'Desync 0: every bird in unison');
+
+// ---- the leader check: the viewer says so when the leader no longer matches the bake ----
+{
+    const k = { name: NAME, id: 0, faces: 1, size: 0, offset: 0, cycle: null, turn: null, ...BAKE, leader: 'Leader' };
+    const ex = RIG.expressions(k);
+    const baked = (t) => [300 + 200 * t, 500 - 40 * Math.sin(t)];             // the path the sim saw
+    const leaderLayer = (path) => ({
+        anchorPoint: { value: [0, 0], valueAtTime: () => [0, 0] },
+        toComp: (p, t) => { const q = path(t); return [q[0] + p[0], q[1] + p[1], 0]; },
+    });
+    const center = { pos: [0, 0], fx: { 'Leader Path': baked } };
+    const check = (others) => [evalExpr(ex.checkOpacity, { center, others, value: 100 }), evalExpr(ex.checkText, { center, others, value: '' })];
+    const same = check({ Leader: leaderLayer(baked) });
+    ok(same[0] === 0, 'leader check hidden while the leader matches the bake');
+    // the first key moved 300 px left, blending back into the old path by 2 s (what the user did)
+    const moved = check({ Leader: leaderLayer((t) => { const p = baked(t), w = Math.max(0, 1 - t / 2); return [p[0] - 300 * w, p[1]]; }) });
+    ok(moved[0] === 100 && /moved since the bake \(up to 300 px\)/.test(moved[1]), `leader check shows a moved leader (${moved[1]})`);
+    const tiny = check({ Leader: leaderLayer((t) => [baked(t)[0] + 1, baked(t)[1]]) });
+    ok(tiny[0] === 0, 'a 1 px difference is not a moved leader');
+    const gone = check({});
+    ok(gone[0] === 100 && /can't find the leader "Leader"/.test(gone[1]), `leader check shows a missing leader (${gone[1]})`);
+    console.log(`leader check: ${moved[1]}`);
+}
 
 // ---- simulation: turn-arounds are staggered ---------------------------------------------
 const fps = 24, FR = 8 * fps;

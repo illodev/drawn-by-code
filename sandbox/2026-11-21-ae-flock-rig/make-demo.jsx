@@ -343,6 +343,34 @@
             var rep2 = $.global.FlockRig.build(comp, birdLayer, leader, { name: 'Flock', count: 80, spacing: 45, seed: 7 });
             note('rebuild: removed ' + rep2.removed + ', layers now ' + comp.numLayers + ', turn drawing ' + rep2.turnDrawing);
         });
+        step('leader moved', function () {
+            // The user's case: the leader's first key moved in a copy of the comp. The baked
+            // flock stays put, so the leader check must show; a re-run in that comp must start
+            // the flock at the new leader, and the check go away.
+            var lm = comp.duplicate();
+            lm.name = 'Leader moved';
+            var lp = lm.layer('Leader').property('ADBE Transform Group').property('ADBE Position');
+            var k1 = lp.keyValue(1);
+            lp.setValueAtKey(1, [k1[0] - 590, k1[1] + 135, 0]);
+            function startGap(c) {
+                var p = c.layer('Flock Center').property('ADBE Transform Group').property('ADBE Position').valueAtTime(0, true), l = lp.valueAtTime(0.4, false);
+                return Math.sqrt((p[0] - l[0]) * (p[0] - l[0]) + (p[1] - l[1]) * (p[1] - l[1]));
+            }
+            function check(c) {
+                var L = c.layer('Flock Leader Check'), op = L.property('ADBE Transform Group').property('ADBE Opacity'), tx = L.property('ADBE Text Properties').property('ADBE Text Document');
+                if (op.expressionError || tx.expressionError) throw new Error(c.name + ' leader check: ' + (op.expressionError || tx.expressionError));
+                return 'opacity ' + op.valueAtTime(0, false) + (op.valueAtTime(0, false) > 0 ? ', "' + tx.valueAtTime(0, false).text + '"' : '');
+            }
+            note('leader moved (first key by -590, +135): flock starts ' + q(startGap(lm)) + ' px from the leader; leader check ' + check(lm) + '; in Sky: ' + check(comp));
+            var t = new Date().getTime();
+            $.global.FlockRig.build(lm, lm.layer('Bird'), lm.layer('Leader'), { name: 'Flock', count: 80, spacing: 45, seed: 7 });
+            note('re-run in "Leader moved" (' + (new Date().getTime() - t) + ' ms): flock starts ' + q(startGap(lm)) + ' px from the leader (Sky: ' +
+                q((function () {
+                    var p = comp.layer('Flock Center').property('ADBE Transform Group').property('ADBE Position').valueAtTime(0, true);
+                    var l = comp.layer('Leader').property('ADBE Transform Group').property('ADBE Position').valueAtTime(0.4, false);
+                    return Math.sqrt((p[0] - l[0]) * (p[0] - l[0]) + (p[1] - l[1]) * (p[1] - l[1]));
+                })()) + ' px); leader check ' + check(lm));
+        });
         step('dump for check-ae.mjs', function () {
             // Everything AE baked and computed, for check-ae.mjs to compare with Node's own
             // numbers: plausible is not enough (a misread ?: once baked a different flock for

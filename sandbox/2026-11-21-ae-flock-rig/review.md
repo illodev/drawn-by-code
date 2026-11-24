@@ -224,3 +224,42 @@ stretch fades on a short axis), the window, and the sums carried on past the bak
     than core birds, and every nose points along its path.
   - The shaped stream keeps its overall direction through the loop. Birds in the dive cross
     it sideways, a wide front going down, rather than the shape spinning.
+
+## Round 5 · 2026-11-24 (user feedback: the flock ignores a moved leader)
+
+The user: "even if I move the starting positions for the leader null, the flock starting
+position remains the same."
+
+**Looked at first** (a read-only script in the user's open AE project, a recovered copy of the
+demo): in "Sky shaped" the Leader's first key had moved from (−160, 640) to (−748, 776), and
+that comp's flock still started at the centre baked before, (38, 672): 580 px from the leader.
+Nothing was broken. The birds are baked keys, so a leader edit needs a re-run of
+Flock.jsx in that comp, and nothing in the comp said so. A duplicated comp makes it easier
+to miss: its birds are the original's keys.
+
+**Fix: the rig says so.** The bake stores the leader's path as simulated (`Leader Path` on
+Flock Center). A guide text layer, `Flock Leader Check` (never rendered), samples the
+leader's comp position at 49 times over the bake. When it is more than 2 px off anywhere, or
+the leader can't be found, the layer shows at the top of the viewer: "Flock: the leader has
+moved since the bake (up to N px)… re-run Flock.jsx in this comp." A re-run removes it with
+the birds. The README says the same under *Run*.
+
+**Tests.** `test.mjs` (2,905 checks) runs the check's expressions on a mock in which a missing
+layer is an error, as in AE. It covers an unchanged leader (hidden), the first key moved
+300 px (shown, "up to 300 px"), a 1 px difference (hidden) and a missing leader (shown).
+`make-demo.jsx` adds the user's case in AE: a copy of Sky with the first key moved, the check
+read before and after a re-run there, and how far the flock starts from the leader.
+
+**Inside After Effects 27** (`make-demo.jsx` test mode, `out/ae-test-r5`):
+
+- Leader's first key moved by (−590, +135) in a copy of Sky: the check shows ("moved since
+  the bake (up to 605 px)"); in Sky it stays hidden.
+- A re-run in that copy (71 s, in an AE session already slowed by earlier builds) starts the
+  flock at the new leader, and the check goes. The centre starts 194 px from the leader's
+  lead point (Sky: 66 px). That is normal: the moved leader starts twice as fast, and the
+  flock is bigger, about 170 px RMS radius, with the leader at its edge. Node on the same
+  move: 103 px.
+- No expression errors; a rebuild now removes 82 layers (the check is one).
+- `check-ae.mjs`: unchanged (sim within 0.0014 px, final positions within 0.003 px).
+- The check's text and opacity were read back as values. The line itself wasn't seen in
+  the viewer: aerender leaves guide layers out.
