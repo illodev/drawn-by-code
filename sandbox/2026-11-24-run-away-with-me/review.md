@@ -57,3 +57,35 @@ Automatic review: no warnings, no state between frames; 222 ms a frame warm at 9
 
 Known and left: the couple costs ~40 ms a frame; shot A hides most of downtown behind the
 hump (the crest is the reveal); the far world is ~70–90 ms in A and D.
+
+## Round 2 (user) · «something more homemade, this drawn style, not a 3D render»
+
+The user, translated: «Maybe I was looking for something more homemade, maybe this drawn
+style, not a 3D render», with one of their references: a hand-drawn digital illustration of
+a woman in a neon street (flat neon inks, a thick dark brush line, highlights laid on as
+loose strokes of cyan, red and orange, buildings drawn with the same line).
+
+→ Same world, cameras and timing; a new way of painting:
+- Measured the reference's palette (k-means, 14 clusters): magenta #e106d3 18 %, navy
+  #0f0138 15 %, salmon #f45a7f 10 %, deep blue #0e0558, violet #7407f0, blue #0f0ff1, indigo
+  #200887, purple #ad19b0, plum #7a1581, cyan #67deef, with orange and gold accents.
+- `styles/retro-neon/ink.js`: a brush stroke that tapers, varies its pressure and wobbles,
+  with a new wobble on every drawing (12 a second: the line boils on twos); flat shapes with
+  that line; loose strokes of light along an edge; patches of strokes.
+- `tools/neonize.py`: the cast sheets repainted in the reference's inks per material (skin
+  magenta → salmon → orange, white cloth violet → magenta, hair indigo), chosen against each
+  material's median tone on a softened light (the sheets are a flat tone plus one shadow; a
+  range mapping turned everything orange, a raw one made stubble into speckle), and the
+  sheet's line thickened into ink. `ref/neon/`.
+- `set/drawn.js`: the sky as brushed bands with stars and the reference's falling bars, the
+  city as one drawn panorama laid through the camera, the bay as horizontal strokes under the
+  lit columns of the city, the causeway with inked parapets, neon tubes, pools of lamp light
+  in two flat tones, shrubs, palms in ink with strokes of light, lamps.
+- The car (`props/car.js`) in a drawn mode: each opaque piece posterized to the palette and
+  inked; the airbrush's translucent overlays, gradients and soft reflections dropped.
+- The whole scene drawn on twos (time held for two frames), bloom kept only for the neon.
+- Faults found before showing: a near lane dash drawn as a brush of its near width (a white
+  blob: paint on the ground is a flat quad in perspective); every white turned red by the
+  nearest-ink match (red only for real reds); gaps between sky bands (each band reaches the
+  horizon); strokes of light on a near parapet ballooning (capped). Review: no warnings,
+  100 ms a frame warm at 960.

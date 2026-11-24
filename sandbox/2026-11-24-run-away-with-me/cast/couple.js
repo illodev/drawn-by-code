@@ -23,6 +23,10 @@ const Couple = (() => {
 
     async function load() {
         for (const who of ['her', 'him']) {
+            // the drawn manner: the sheet's views repainted by tools/neonize.py
+            neon[who + '-back'] = await Neon.image(DIR + 'ref/neon/' + PICK[who] + '-back.png') ?? await Neon.image(DIR + 'private/neon/' + PICK[who] + '-back.png');
+        }
+        for (const who of ['her', 'him']) {
             const id = PICK[who];
             img[who] = (await Neon.image(DIR + 'ref/' + id + '.png')) ?? (await Neon.image(DIR + 'private/ref/' + id + '.png'));
         }
@@ -72,7 +76,35 @@ const Couple = (() => {
             { dx: (who === 'her' ? 0.006 : -0.006) * s, dy: -0.006 * s, col: cyan, a: 0.45 * (light.city ?? 1) },
         ]);
     }
-    const buf = {}, crops = {};
+    const buf = {}, crops = {}, neon = {};
 
-    return { load, back, PICK, img };
+    // the drawn manner: the repainted cut-out (already in the reference's inks, with its ink
+    // line), drawn in rows that sway with the wind, and loose strokes of light laid on the hair
+    // and the shoulders, new on every drawing (d)
+    function backDrawn(g, cam, pose, who, x, z, light, o = {}) {
+        const im = neon[who + '-back']; if (!im) return;
+        const pxm = im.height / HEIGHT[who], cut = o.cut ?? 0.62, sh = cut * pxm, sw = im.width;
+        const p = cam.p(Car.W(pose, [x, SEATED[who] + (o.lift ?? 0), z])); if (p[2] < 0.3) return;
+        const s = cam.f / p[2], w = (sw / pxm) * s, h = cut * s, d = o.d ?? 0;
+        const bx = p[0] - w / 2 + (o.sway ?? 0) * s, by = p[1];
+        const amp = (o.wind ?? (who === 'her' ? 0.02 : 0.005)) * s, rows = 40, TT = o.T ?? 0;
+        for (let i = 0; i < rows; i++) {
+            const v = i / rows, dy = sh / rows;
+            const off = amp * Math.pow(v, 1.3) * Math.sin(v * 6 - TT * 11 + (who === 'her' ? 0 : 2)) + amp * 0.35 * Math.sin(TT * 5.3 + v * 3);
+            g.drawImage(im, 0, dy * i, sw, dy + 0.6, bx + off, by + (h * i) / rows, w, h / rows + 0.6);
+        }
+        // strokes of light: cyan and red on the hair (her), on the shoulder seams (him)
+        const P = Ink.PAL, seed = who === 'her' ? 4101 : 4202;
+        if (who === 'her') {
+            Ink.strokes(g, bx + w * 0.18, by + h * 0.06, w * 0.64, h * 0.42, { ang: Math.PI * 0.5 + 0.25, count: 9, len: h * 0.22, w: Math.max(1, s * 0.012), cols: [P.cyan, P.red, P.cyan, P.pink], seed, d });
+        } else {
+            Ink.strokes(g, bx + w * 0.3, by + h * 0.03, w * 0.4, h * 0.2, { ang: Math.PI * 0.5 + 0.4, count: 5, len: h * 0.12, w: Math.max(1, s * 0.01), cols: [P.cyan, P.violet], seed, d });
+            Ink.hatch(g, [bx + w * 0.12, by + h * 0.62], [bx + w * 0.42, by + h * 0.5], { count: 4, len: h * 0.1, w: Math.max(1, s * 0.01), col: P.cyan, seed: seed + 9, d });
+        }
+        // the lamp passing on the beat: a warm stroke across the top of the head
+        if ((light.lamp ?? 0) > 0.3) Ink.hatch(g, [bx + w * 0.3, by + h * 0.04], [bx + w * 0.7, by + h * 0.04], { count: 4, len: h * 0.07, w: Math.max(1, s * 0.012), col: P.gold, seed: seed + 3, d, n: [0, 1], alpha: Math.min(1, light.lamp) });
+    }
+
+
+    return { load, back, backDrawn, PICK, img };
 })();

@@ -139,10 +139,34 @@ const Car = (() => {
         return mix(d, envAt(F, e, r[2]), k);
     }
 
+    // --- the drawn manner (light.drawn): flat inks from the reference's palette, a brush line ---
+    let DRAWN = false, DR = 0;
+    const POSTER = ['#0b0230', '#0e0558', '#200887', '#3a10c8', '#7407f0', '#ad19b0', '#7a1581', '#e106d3', '#f45a7f', '#ff8ad8', '#ffc8ee', '#f9a03a', '#ffd25a', '#67deef', '#ff3050', '#420859'].map(hex);
+    const RED = POSTER[14];
+    function posterize(c) {
+        // push saturation and pick the nearest ink of the palette
+        const m = (c[0] + c[1] + c[2]) / 3, k = 1.6;
+        const s = [m + (c[0] - m) * k, m + (c[1] - m) * k, m + (c[2] - m) * k].map((v) => clamp(v * 0.92, 0, 255));
+        let best = POSTER[0], bd = 1e9;
+        const reallyRed = c[0] > 150 && c[0] > 2.2 * c[1] && c[0] > 2.2 * c[2];
+        for (const q of POSTER) {
+            if (q === RED && !reallyRed) continue; const d = 2 * (s[0] - q[0]) ** 2 + 4 * (s[1] - q[1]) ** 2 + 3 * (s[2] - q[2]) ** 2; if (d < bd) { bd = d; best = q; } }
+        return best;
+    }
+    const posterCss = (col, a = 1) => {
+        if (typeof col !== 'string') return col;
+        const m = col.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/);
+        if (m) return css(posterize([+m[1], +m[2], +m[3]]), (m[4] !== undefined ? +m[4] : 1) * a);
+        if (col[0] === '#') return css(posterize(hex(col)), a);
+        return col;
+    };
+    const inkW = (q) => { let per = 0; for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length]; per += Math.hypot(b[0] - a[0], b[1] - a[1]); } return clamp(per / 150, 1.1, 4.2); };
+
     // --- painting helpers -----------------------------------------------------------------
     // an airbrushed fill: the outline (local points) filled with a gradient laid along the
     // screen from the first to the last stop; stops: [{ p, n, m? }]
     function grad(c, F, stops, m, alpha = 1) {
+        if (DRAWN) { const st = stops[Math.floor(stops.length / 2)]; return css(posterize(shade(F, st.p, st.n, st.m ?? m)), alpha); }
         const pts = [];
         for (const st of stops) { const q = F.pr(st.p); if (q[2] > 0.35) pts.push([st, q]); }
         if (pts.length < 2) { const st = pts[0]?.[0] ?? stops[0]; return css(shade(F, st.p, st.n, st.m ?? m), alpha); }
@@ -154,6 +178,7 @@ const Car = (() => {
     }
     // the same with explicit colours: pts [[p, colour]]
     function gradC(c, F, pts, alpha = 1) {
+        if (DRAWN) return css(posterize(pts[Math.floor(pts.length / 2)][1]), alpha);
         const v = pts.map(([p, col]) => [F.pr(p), col]).filter(([q]) => q[2] > 0.35);
         if (v.length < 2) return css(pts[0][1], alpha);
         const a = v[0][0], b = v[v.length - 1][0], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
@@ -164,10 +189,25 @@ const Car = (() => {
     }
     function fill(c, F, outline, style) {
         const q = F.poly(outline); if (!q) return null;
+        if (DRAWN) {
+            // the airbrush's translucent overlays and gradients have no place in the drawn manner:
+            // only the opaque pieces are painted, flat, each with its ink line
+            if (typeof style !== 'string') return q;
+            const am = style.match(/rgba\([^)]*,\s*([\d.]+)\)/); if (am && +am[1] < 0.6) return q;
+            Ink.shape(c, q, posterCss(style), { w: inkW(q), seed: (q.length * 7919 + Math.round(q[0][0] * 3)) | 0, d: DR, jit: 0.6 });
+            return q;
+        }
         c.fillStyle = style; Neon.path(c, q); c.fill(); return q;
     }
     // a 3D polyline stroked (points behind the camera break it)
     function line3(c, F, pts, style, w, cap = 'round') {
+        if (DRAWN) {
+            const q = pts.map((p) => F.pr(p)).filter((p) => p[2] >= 0.35).map((p) => [p[0], p[1]]);
+            if (q.length < 2) return;
+            const col = typeof style === 'string' ? posterCss(style) : Ink.PAL.cyan;
+            Ink.brush(c, q, { w: Math.min(5, Math.max(1, w * 1.15)), col, seed: (q.length * 104729 + Math.round(q[0][1] * 5)) | 0, d: DR, taper: 0.25 });
+            return;
+        }
         c.beginPath(); let on = false, n = 0;
         for (const p of pts) { const q = F.pr(p); if (q[2] < 0.35) { on = false; continue; } if (on) c.lineTo(q[0], q[1]); else c.moveTo(q[0], q[1]); on = true; n++; }
         if (n < 2) return;
@@ -211,6 +251,7 @@ const Car = (() => {
     }
     // the lamps mirrored in a glossy face (plane p0, n), as soft warm smears clipped to its outline q
     function lampGlints(c, L, F, q, p0, n, size = 1) {
+        if (DRAWN) return;                               // the drawn manner lays light as strokes, not reflections
         if (!q || !F.lamps.length) return;
         const col = F.warm;
         for (const W0 of F.lamps) {
@@ -243,6 +284,7 @@ const Car = (() => {
 
     // ==========================================================================================
     function draw(g, L, N, cam, pose, light = {}, people = null) {
+        DRAWN = !!light.drawn; DR = light.d ?? 0;
         const F = frame(cam, pose, light), C = F.C;
         g.save(); L.save();
         ground(g, L, F);

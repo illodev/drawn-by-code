@@ -4,14 +4,14 @@
 
 ## Warnings
 
-- **Errors in the page** (2): Failed to load resource: the server responded with a status of 404 (Not Found)
+- None.
 
 ## Motion
 
 Energy per second (how much the image changes):
 
 ```
-▅▅▅▅▇▇█▇ 
+▆▆▅▄▇▆█▇ 
 0    5    
 ```
 
@@ -19,7 +19,7 @@ No still stretches of 1 s or more.
 
 ## Speed
 
-Painting: 467 ms/frame cold, 222 ms warm → full render ≈ 43 s at this size.
+Painting: 114 ms/frame cold, 111 ms warm → full render ≈ 22 s at this size.
 
 ## Contact sheet
 
