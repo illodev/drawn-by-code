@@ -83,28 +83,40 @@ const Couple = (() => {
     // and the shoulders, new on every drawing (d)
     function backDrawn(g, cam, pose, who, x, z, light, o = {}) {
         const im = neon[who + '-back']; if (!im) return;
-        const pxm = im.height / HEIGHT[who], cut = o.cut ?? 0.62, sh = cut * pxm, sw = im.width;
+        const M = 12;                                        // tools/neonize.py's margin round the figure
+        const pxm = (im.height - 2 * M) / HEIGHT[who], cut = o.cut ?? 0.62, sh = cut * pxm + M, sw = im.width;
         const p = cam.p(Car.W(pose, [x, SEATED[who] + (o.lift ?? 0), z])); if (p[2] < 0.3) return;
-        const s = cam.f / p[2], w = (sw / pxm) * s, h = cut * s, d = o.d ?? 0;
-        const bx = p[0] - w / 2 + (o.sway ?? 0) * s, by = p[1];
-        const amp = (o.wind ?? (who === 'her' ? 0.02 : 0.005)) * s, rows = 40, TT = o.T ?? 0;
+        const s = cam.f / p[2], w = (sw / pxm) * s, h = (sh / pxm) * s, d = o.d ?? 0, TT = o.T ?? 0;
+        const bx = p[0] - w / 2 + (o.sway ?? 0) * s, by = p[1] - (M / pxm) * s;
+        // into its own buffer at output resolution: rows that sway with the wind (the hair only,
+        // fading out before the shoulders, so the jacket keeps a clean edge), then the strokes
+        // of light laid on with source-atop so they never leave the figure
+        const k = Neon.last ? Neon.last.k : 1, pad = 16;
+        const cw = Math.max(2, Math.ceil(w * k) + 2 * pad), ch = Math.max(2, Math.ceil(h * k) + 2);
+        const cv = (dbuf[who] ??= document.createElement('canvas'));
+        if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+        const G = cv.getContext('2d'); G.setTransform(1, 0, 0, 1, 0, 0); G.globalCompositeOperation = 'source-over'; G.globalAlpha = 1; G.clearRect(0, 0, cw, ch);
+        const amp = (o.wind ?? (who === 'her' ? 0.016 : 0.004)) * s * k, rows = 72;
         for (let i = 0; i < rows; i++) {
-            const v = i / rows, dy = sh / rows;
-            const off = amp * Math.pow(v, 1.3) * Math.sin(v * 6 - TT * 11 + (who === 'her' ? 0 : 2)) + amp * 0.35 * Math.sin(TT * 5.3 + v * 3);
-            g.drawImage(im, 0, dy * i, sw, dy + 0.6, bx + off, by + (h * i) / rows, w, h / rows + 0.6);
+            const v = i / rows, dy = sh / rows, wgt = v < 0.45 ? 1 : Math.max(0, 1 - (v - 0.45) / 0.3);
+            const off = wgt * (amp * Math.pow(v + 0.1, 1.2) * Math.sin(v * 6 - TT * 11 + (who === 'her' ? 0 : 2)) + amp * 0.35 * Math.sin(TT * 5.3 + v * 3));
+            G.drawImage(im, 0, dy * i, sw, dy + 0.6, pad + off, (ch * i) / rows, cw - 2 * pad, ch / rows + 0.6);
         }
-        // strokes of light: cyan and red on the hair (her), on the shoulder seams (him)
-        const P = Ink.PAL, seed = who === 'her' ? 4101 : 4202;
+        G.globalCompositeOperation = 'source-atop';
+        G.setTransform(k, 0, 0, k, 0, 0);
+        const Pp = Ink.PAL, seed = who === 'her' ? 4101 : 4202, W = cw / k, Hh = ch / k, pd = pad / k;
         if (who === 'her') {
-            Ink.strokes(g, bx + w * 0.18, by + h * 0.06, w * 0.64, h * 0.42, { ang: Math.PI * 0.5 + 0.25, count: 9, len: h * 0.22, w: Math.max(1, s * 0.012), cols: [P.cyan, P.red, P.cyan, P.pink], seed, d });
+            Ink.strokes(G, pd + (W - 2 * pd) * 0.15, Hh * 0.04, (W - 2 * pd) * 0.7, Hh * 0.5, { ang: Math.PI * 0.5 + 0.2, spread: 0.7, count: 14, len: Hh * 0.2, w: Math.max(1, s * 0.012), cols: [Pp.cyan, Pp.red, Pp.cyan, Pp.pink], seed, d });
         } else {
-            Ink.strokes(g, bx + w * 0.3, by + h * 0.03, w * 0.4, h * 0.2, { ang: Math.PI * 0.5 + 0.4, count: 5, len: h * 0.12, w: Math.max(1, s * 0.01), cols: [P.cyan, P.violet], seed, d });
-            Ink.hatch(g, [bx + w * 0.12, by + h * 0.62], [bx + w * 0.42, by + h * 0.5], { count: 4, len: h * 0.1, w: Math.max(1, s * 0.01), col: P.cyan, seed: seed + 9, d });
+            Ink.strokes(G, pd + (W - 2 * pd) * 0.3, Hh * 0.03, (W - 2 * pd) * 0.4, Hh * 0.22, { ang: Math.PI * 0.5 + 0.3, spread: 0.8, count: 9, len: Hh * 0.1, w: Math.max(1, s * 0.011), cols: [Pp.cyan, Pp.violet, Pp.cyan], seed, d });
+            Ink.hatch(G, [pd + (W - 2 * pd) * 0.12, Hh * 0.62], [pd + (W - 2 * pd) * 0.42, Hh * 0.5], { count: 4, len: Hh * 0.1, w: Math.max(1, s * 0.01), col: Pp.cyan, seed: seed + 9, d });
         }
-        // the lamp passing on the beat: a warm stroke across the top of the head
-        if ((light.lamp ?? 0) > 0.3) Ink.hatch(g, [bx + w * 0.3, by + h * 0.04], [bx + w * 0.7, by + h * 0.04], { count: 4, len: h * 0.07, w: Math.max(1, s * 0.012), col: P.gold, seed: seed + 3, d, n: [0, 1], alpha: Math.min(1, light.lamp) });
+        // the lamp passing on the beat: warm strokes across the crown of the head
+        const lamp = Math.min(1, light.lamp ?? 0);
+        if (lamp > 0.3) Ink.strokes(G, pd + (W - 2 * pd) * 0.3, Hh * 0.02, (W - 2 * pd) * 0.4, Hh * 0.06, { ang: 0.15, spread: 0.4, count: 5, len: (W - 2 * pd) * 0.18, w: Math.max(1, s * 0.012), cols: [Pp.gold, Pp.orange], seed: seed + 3, d });
+        g.drawImage(cv, 0, 0, cw, ch, bx - pd, by, cw / k, ch / k);
     }
-
+    const dbuf = {};
 
     return { load, back, backDrawn, PICK, img };
 })();

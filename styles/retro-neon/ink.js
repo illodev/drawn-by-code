@@ -110,9 +110,10 @@ const Ink = (() => {
         const ex = b[0] - a[0], ey = b[1] - a[1], el = Math.hypot(ex, ey) || 1;
         const n = o.n ?? [-ey / el, ex / el];
         for (let i = 0; i < count; i++) {
-            const u = (i + 0.2 + hsh(seed, i, d) * 0.6) / count;
+            // where each stroke lies belongs to the seed; the drawing (d) only makes its line boil
+            const u = (i + 0.2 + hsh(seed, i, 0) * 0.6) / count;
             const x = a[0] + ex * u, y = a[1] + ey * u;
-            const l = len * (0.5 + hsh(seed + 3, i, d) * 0.7), inset = len * 0.15 * hsh(seed + 5, i, d);
+            const l = len * (0.5 + hsh(seed + 3, i, 0) * 0.7), inset = len * 0.15 * hsh(seed + 5, i, 0);
             const ang = o.ang ?? 0.35;              // strokes lean along the edge a little
             const dx = n[0] * Math.cos(ang) + (ex / el) * Math.sin(ang), dy = n[1] * Math.cos(ang) + (ey / el) * Math.sin(ang);
             const x0 = x + n[0] * inset, y0 = y + n[1] * inset;
@@ -124,13 +125,14 @@ const Ink = (() => {
     // o: { ang, count, len, w, cols, seed, d, alpha, clip(pts) }
     function strokes(g, x, y, w, h, o = {}) {
         const seed = typeof o.seed === 'number' ? o.seed : sHash(o.seed ?? 'p'), d = o.d ?? 0;
-        const count = o.count ?? 12, len = o.len ?? 20, ang = o.ang ?? 0, cols = o.cols ?? [PAL.cyan];
-        const cx = Math.cos(ang), cy = Math.sin(ang);
+        const count = o.count ?? 12, len = o.len ?? 20, ang0 = o.ang ?? 0, cols = o.cols ?? [PAL.cyan];
         for (let i = 0; i < count; i++) {
-            const px = x + hsh(seed, i, d) * w, py = y + hsh(seed + 1, i, d) * h, l = len * (0.5 + hsh(seed + 2, i, d));
-            const bend = (hsh(seed + 4, i, d) - 0.5) * l * 0.2;
+            const ang = ang0 + (o.spread ?? 0) * (hsh(seed + 9, i, 0) - 0.5);
+            const cx = Math.cos(ang), cy = Math.sin(ang);
+            const px = x + hsh(seed, i, 0) * w, py = y + hsh(seed + 1, i, 0) * h, l = len * (0.5 + hsh(seed + 2, i, 0));
+            const bend = (hsh(seed + 4, i, 0) - 0.5) * l * 0.2 + (hsh(seed + 6, i, d) - 0.5) * l * 0.04;
             brush(g, [[px, py], [px + cx * l * 0.5 - cy * bend, py + cy * l * 0.5 + cx * bend], [px + cx * l, py + cy * l]],
-                { w: (o.w ?? 1.6) * (0.7 + hsh(seed + 3, i, d) * 0.6), col: cols[i % cols.length], seed: seed + i * 31, d, taper: 0.4, wob: 0.5, alpha: o.alpha ?? 1 });
+                { w: (o.w ?? 1.6) * (0.7 + hsh(seed + 3, i, 0) * 0.6), col: cols[i % cols.length], seed: seed + i * 31, d, taper: 0.4, wob: 0.5, alpha: o.alpha ?? 1 });
         }
     }
 

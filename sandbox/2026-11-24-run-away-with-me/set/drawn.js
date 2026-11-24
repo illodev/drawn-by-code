@@ -1,340 +1,451 @@
 // The causeway, the bay and the city in the drawn manner of the user's reference (styles/
 // retro-neon/ink.js): flat neon inks, a thick boiling brush line, light laid on as strokes.
 // The geometry is Causeway's (metres, the same camera); only the painting differs.
+// Round 3 (the audit of every shot at 100 %): things are where the camera says they are
+// (the city laid in exact strips, stars and bars fixed in the sky), opaque things hide the
+// light behind them (Ink.occlude, set by the scene), the deck hides what lies beyond its crest,
+// reflections lie only where their surface is, and every plane carries strokes.
 // Global: Drawn.
 const Drawn = (() => {
     const P = Ink.PAL;
     const hex = Neon.hex, css = Neon.css, mix = Neon.mix;
-    const R0 = (s) => Motion.rng(s);
+    const C = Causeway;
+    const tone = (c, fx, k = 1) => (fx.hue ? css(Neon.shift(c, fx.hue * k)) : c);
+    const cap = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    // a line weight by screen size: about 2.2 px for a thing ~100 px across, 6 px at most
+    const lw = (s, m = 0.05) => cap(m * s, 1.2, 6);
 
-    // --- the sky: hard bands of ink from night to plum, stars, rain of light ---------------
+    // a direction in the sky (azimuth a, elevation e; 0,0 = straight down the road) through the camera
+    const skyP = (cam, a, e) => { const r = 20000; return cam.p([cam.pos[0] + Math.sin(a) * Math.cos(e) * r, cam.pos[1] + Math.sin(e) * r, cam.pos[2] + Math.cos(a) * Math.cos(e) * r]); };
+
+    // --- the sky -------------------------------------------------------------------------------
+    const BANDS = ['#04022e', '#0f0138', '#18065e', '#260a8c', '#3c0ca8', '#6a1290', '#a8189e'];
     function sky(g, cam, T, d, fx, env, horizon) {
-        const bands = [P.night, P.navy, P.deep, P.indigo, P.grape, P.plum, P.purple];
-        const top = -60, h = horizon - top;
-        // band edges sit closer together towards the horizon (the glow gathers there)
+        const bands = BANDS.map((c) => tone(c, fx, 0.4));
+        const top = -80, h = horizon - top;
         const edges = bands.map((_, i) => top + h * (1 - Math.pow(1 - i / bands.length, 1.7)));
         for (let i = 0; i < bands.length; i++) {
-            // every band reaches down to the horizon: the next one paints over it, so no wave can open a gap
-            const y0 = edges[i], y1 = horizon + 4;
+            const y0 = edges[i], y1 = horizon + 6;
             g.fillStyle = bands[i];
-            // the band's top edge wavers like a brush pass
-            g.beginPath(); g.moveTo(-60, y1 + 2); g.lineTo(-60, y0);
-            for (let x = -60; x <= env.W + 60; x += 40) g.lineTo(x, y0 + Ink.noise(900 + i, x / 140, 0) * 5);
-            g.lineTo(env.W + 60, y1 + 2); g.closePath(); g.fill();
+            g.beginPath(); g.moveTo(-80, y1); g.lineTo(-80, y0);
+            for (let x = -80; x <= env.W + 80; x += 30) g.lineTo(x, y0 + Ink.noise(900 + i, x / 160, 0) * 6 + Ink.noise(950 + i, x / 45, 0) * 2);
+            g.lineTo(env.W + 80, y1); g.closePath(); g.fill();
         }
-        // a few dry strokes of the next band's ink inside each band: the sky is brushed, not filled
-        for (let i = 1; i < bands.length; i++) {
-            const y0 = edges[i], y1 = i + 1 < bands.length ? edges[i + 1] : horizon;
-            Ink.strokes(g, -40, y0 + 2, env.W + 80, Math.max(4, (y1 - y0) * 0.8), { ang: 0, count: 10, len: 160, w: 3, cols: [bands[i - 1]], seed: 300 + i, d: 0, alpha: 0.5 });
+        // dry strokes of the lighter band below, dragged into each band: the sky is brushed
+        for (let i = 0; i + 1 < bands.length; i++) {
+            const y0 = edges[i], y1 = edges[i + 1];
+            Ink.strokes(g, -60, y0 + (y1 - y0) * 0.45, env.W + 120, (y1 - y0) * 0.5, { ang: 0, count: 7, len: 220, w: 5, cols: [bands[i + 1]], seed: 300 + i, d, alpha: 0.55 });
         }
-        // the hold makes the horizon band swell
-        if (fx.hold > 0) { g.save(); g.globalAlpha = 0.35 * fx.hold; g.fillStyle = P.magenta; g.fillRect(-60, horizon - h * 0.12, env.W + 120, h * 0.12 + 4); g.restore(); }
-        // stars: small four-point crosses, some twinkling on twos
-        const R = R0('ink-stars');
-        for (let i = 0; i < 90; i++) {
-            const x = R() * env.W, y = top + 40 + Math.pow(R(), 1.6) * (h * 0.7), s = 1.5 + R() * 3.5, on = Ink.hsh(i, 3, d) > 0.15;
-            if (!on) continue;
-            g.strokeStyle = R() < 0.3 ? P.cyan : P.cream; g.lineWidth = Math.max(1, s * 0.35); g.lineCap = 'round';
-            g.beginPath(); g.moveTo(x - s, y); g.lineTo(x + s, y); g.moveTo(x, y - s); g.lineTo(x, y + s); g.stroke();
+        if (fx.hold > 0) { g.save(); g.globalAlpha = 0.3 * fx.hold; g.fillStyle = P.magenta; g.fillRect(-80, edges[bands.length - 1], env.W + 160, horizon - edges[bands.length - 1] + 6); g.restore(); }
+        // stars, fixed in the sky (they move with the camera), twinkling in size on twos
+        const R = Motion.rng('ink-stars');
+        for (let i = 0; i < 110; i++) {
+            const a = (R() * 2 - 1) * 1.3, e = 0.03 + Math.pow(R(), 1.4) * 0.55, s0 = 1.5 + R() * 3.2, cyan = R() < 0.3;
+            const p = skyP(cam, a, e); if (p[2] < 1 || p[1] > horizon - 8) continue;
+            const s = s0 * (0.55 + 0.55 * Ink.hsh(i, 7, d));
+            g.strokeStyle = cyan ? P.cyan : P.cream; g.lineWidth = Math.max(1, s * 0.35); g.lineCap = 'round';
+            g.beginPath(); g.moveTo(p[0] - s, p[1]); g.lineTo(p[0] + s, p[1]); g.moveTo(p[0], p[1] - s); g.lineTo(p[0], p[1] + s); g.stroke();
         }
-        // the reference's falling bars of light, high in the sky
-        const R2 = R0('ink-rain');
-        for (let i = 0; i < 7; i++) {
-            const x = R2() * env.W, len = 30 + R2() * 60, y = top + R2() * h * 0.22 + ((T * (40 + R2() * 40)) % 60);
-            g.save(); g.globalAlpha = 0.4; g.fillStyle = R2() < 0.5 ? P.violet : P.purple;
-            g.beginPath(); g.roundRect(x, y, 10 + R2() * 8, len, 6); g.fill(); g.restore();
+        // the trip's sparkles: big eight-point stars fixed in the sky, swelling on the kick
+        if (fx.trip > 0) {
+            const R3 = Motion.rng('trip-stars');
+            for (let i = 0; i < 22; i++) {
+                const a = (R3() * 2 - 1) * 1.1, e = 0.06 + R3() * 0.4, r0 = 5 + R3() * 9, col = [P.cyan, P.pink, P.gold, P.cream][i % 4];
+                const p = skyP(cam, a, e); if (p[2] < 1 || p[1] > horizon - 12) continue;
+                const r = r0 * fx.trip * (0.6 + 0.5 * fx.kick + 0.25 * Ink.hsh(i, 5, d));
+                g.save(); g.fillStyle = col; g.beginPath();
+                for (let j = 0; j < 8; j++) { const an = (j / 8) * Math.PI * 2 + i, rr = j % 2 ? r * 0.28 : r; g.lineTo(p[0] + Math.cos(an) * rr, p[1] + Math.sin(an) * rr); }
+                g.closePath(); g.fill(); g.restore();
+            }
         }
-        // the moon: cream, an ink ring, a salmon shadow
-        const m = cam.p([2600, 1400, 7000]);
-        if (m[2] > 1) {
-            // a crescent: the cream disc, its dark side cut by a disc of the night it stands in,
-            // an ink line round the lit edge only, two strokes of salmon on the lit side
-            const r = 24, ox = 11, oy = -6;
-            g.save(); g.fillStyle = P.cream; g.beginPath(); g.arc(m[0], m[1], r, 0, Math.PI * 2); g.fill();
-            g.fillStyle = P.deep; g.beginPath(); g.arc(m[0] + ox, m[1] + oy, r * 0.88, 0, Math.PI * 2); g.fill(); g.restore();
-            const arc = []; for (let i = 0; i <= 14; i++) { const a = Math.PI * 0.55 + (i / 14) * Math.PI * 1.15; arc.push([m[0] + Math.cos(a) * r, m[1] + Math.sin(a) * r]); }
-            Ink.brush(g, arc, { w: 3, seed: 'moon', d, taper: 0.35 });
-            Ink.hatch(g, [m[0] - r * 0.75, m[1] - r * 0.3], [m[0] - r * 0.55, m[1] + r * 0.55], { count: 2, len: 8, w: 2, col: P.salmon, seed: 77, d, n: [1, 0] });
+        // the reference's falling bars: fixed directions, falling slowly through a band of sky,
+        // appearing and leaving by their length (no jump back)
+        const R2 = Motion.rng('ink-rain');
+        for (let i = 0; i < 8; i++) {
+            const a = (R2() * 2 - 1) * 1.1, v = 0.008 + R2() * 0.008, ph = R2(), len = 0.03 + R2() * 0.035, col = R2() < 0.5 ? P.violet : P.purple, wdt = 9 + R2() * 7;
+            const span = 0.5, u = ((T * v / span + ph) % 1 + 1) % 1, eTop = 0.62 - u * span;
+            const p0 = skyP(cam, a, eTop), p1 = skyP(cam, a, eTop - len); if (p0[2] < 1) continue;
+            const fade = Math.min(1, u * 6, (1 - u) * 6);
+            g.save(); g.globalAlpha = 0.9 * fade; g.fillStyle = tone(col, fx, 0.5);
+            g.beginPath(); g.roundRect(p0[0] - wdt / 2, p0[1], wdt, Math.max(8, p1[1] - p0[1]), wdt / 2); g.fill(); g.restore();
+        }
+        // the moon: a crescent shape (no disc cut by a guessed sky colour), inked on its lit edge
+        const m = skyP(cam, 0.62, 0.3);
+        if (m[2] > 1 && m[1] < horizon - 40) {
+            const r = 24, cres = [];
+            for (let i = 0; i <= 20; i++) { const an = Math.PI * 0.42 + (i / 20) * Math.PI * 1.16; cres.push([m[0] + Math.cos(an) * r, m[1] + Math.sin(an) * r]); }
+            for (let i = 20; i >= 0; i--) { const an = Math.PI * 0.42 + (i / 20) * Math.PI * 1.16; cres.push([m[0] + 9 + Math.cos(an) * r * 0.86, m[1] - 4 + Math.sin(an) * r * 0.86]); }
+            Ink.shape(g, cres, P.cream, { w: 2.6, seed: 'moon', d, jit: 0.4 });
+            Ink.hatch(g, [m[0] - r * 0.72, m[1] - r * 0.25], [m[0] - r * 0.6, m[1] + r * 0.5], { count: 2, len: 7, w: 2, col: P.salmon, seed: 77, d, n: [1, 0] });
         }
     }
-    const circ = (x, y, r, n) => { const o = []; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; o.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); } return o; };
 
-    // --- the city: one drawn panorama painted once, laid through the camera ----------------
-    // It is a billboard in the world (z = 2600, x −2600 … 2600, from the water up 300 m).
-    const PAN = { z: 2600, x0: -2600, x1: 2600, y0: -4.5, y1: 300, pxm: 1.6 };
+    // --- the city: one drawn panorama, laid through the camera in exact strips ------------------
+    const PAN = { z: 2600, x0: -2600, x1: 2600, y0: -4.5, y1: 300, pxm: 0.62 };
     let pano = null, panoCols = null;
+    const LANDMARK = { x: 300, h: 240, w: 46 };
     function buildPano() {
         const W = Math.round((PAN.x1 - PAN.x0) * PAN.pxm), H = Math.round((PAN.y1 - PAN.y0) * PAN.pxm);
         const c = document.createElement('canvas'); c.width = W; c.height = H;
-        const g = c.getContext('2d'), R = R0('ink-city');
+        const g = c.getContext('2d'), R = Motion.rng('ink-city');
         const X = (x) => (x - PAN.x0) * PAN.pxm, Y = (y) => H - (y - PAN.y0) * PAN.pxm;
         const towers = [];
-        for (let i = 0; i < 90; i++) {
+        for (let i = 0; i < 80; i++) {
             const x = (R() * 2 - 1) * 2200 + 200, centre = Math.exp(-(((x - 250) / 700) ** 2));
-            towers.push({ x, w: 20 + R() * 45, h: 30 + centre * (70 + R() * 150) + R() * 25, kind: Math.floor(R() * 5), r: R() });
+            towers.push({ x, w: 22 + R() * 45, h: 30 + centre * (70 + R() * 140) + R() * 25, kind: Math.floor(R() * 4), r: R() });
         }
-        towers.push({ x: 300, w: 46, h: 240, kind: 9, r: 0.5 });             // the landmark
+        towers.push({ ...LANDMARK, kind: 9, r: 0.5 });
         towers.sort((a, b) => a.h - b.h);
-        const bodies = [P.indigo, P.royal, P.violet, P.plum, P.grape, P.deep];
+        const bodies = ['#260a8c', P.royal, P.violet, P.plum, '#3c0ca8', P.indigo];
         const wins = [P.orange, P.gold, P.salmon, P.cyan, P.pink];
+        const tops = new Float32Array(W).fill(H);
         for (const t of towers) {
-            const x0 = X(t.x - t.w / 2), x1 = X(t.x + t.w / 2), yb = Y(0), yt = Y(t.h);
+            const x0 = X(t.x - t.w / 2), x1 = X(t.x + t.w / 2), yb = Y(0), yt = Y(t.h), tw = x1 - x0;
             const body = t.kind === 9 ? P.purple : bodies[Math.floor(t.r * bodies.length)];
-            const pts = [[x0, yb], [x0, yt], [x1, yt], [x1, yb]];
-            if (t.kind === 1 || t.kind === 9) { const s = (x1 - x0) * 0.22; pts.splice(2, 0, [x0 + s, yt - s * 0.9], [x1 - s, yt - s * 0.9]); pts[1] = [x0, yt]; }
-            if (t.kind === 2) pts.splice(2, 0, [(x0 + x1) / 2, yt - (x1 - x0) * 0.6]);
-            Ink.shape(g, pts, body, { w: 2.2, seed: Math.round(t.x * 7), jit: 0.6 });
-            // a lit side
-            g.save(); g.globalAlpha = 0.35; g.fillStyle = t.r < 0.5 ? P.magenta : P.blue; g.fillRect(x1 - (x1 - x0) * 0.25, yt + 2, (x1 - x0) * 0.22, yb - yt - 2); g.restore();
-            // windows: little flat inks, by floors
-            const fl = 3.6 * PAN.pxm, cols = Math.max(2, Math.round(t.w / 5)), cw = (x1 - x0) / cols;
-            const wc = wins[Math.floor(t.r * 997) % wins.length];
-            for (let y = yt + fl; y < yb - fl * 0.5; y += fl) for (let k = 0; k < cols; k++) {
-                if (R() > 0.38) continue;
+            let pts = [[x0, yb], [x0, yt], [x1, yt], [x1, yb]];
+            if (t.kind === 1 || t.kind === 9) { const st = tw * 0.22; pts = [[x0, yb], [x0, yt], [x0 + st, yt], [x0 + st, yt - st], [x1 - st, yt - st], [x1 - st, yt], [x1, yt], [x1, yb]]; }
+            if (t.kind === 2) pts = [[x0, yb], [x0, yt], [(x0 + x1) / 2, yt - tw * 0.55], [x1, yt], [x1, yb]];
+            Ink.shape(g, pts, body, { w: 2.4, seed: Math.round(t.x * 7), jit: 0.4 });
+            // the side the city's glow lights: a band of a brighter ink
+            g.fillStyle = t.r < 0.5 ? P.magenta : P.blue; g.fillRect(x1 - tw * 0.24, yt + 2, tw * 0.2, yb - yt - 3);
+            // windows as bars of light two floors tall, a few per row
+            const fl = 7.2 * PAN.pxm, cols = Math.max(2, Math.round(t.w / 9)), cw = tw / cols, wc = wins[Math.floor(t.r * 997) % wins.length];
+            for (let y = yt + fl * 0.6; y < yb - fl * 0.5; y += fl) for (let k = 0; k < cols; k++) {
+                if (R() > 0.42) continue;
                 g.fillStyle = R() < 0.8 ? wc : wins[Math.floor(R() * wins.length)];
-                g.fillRect(x0 + k * cw + cw * 0.2, y, cw * 0.55, fl * 0.45);
+                g.fillRect(x0 + k * cw + cw * 0.22, y, Math.max(1.5, cw * 0.5), Math.max(1.5, fl * 0.42));
             }
-            // neon on the crowns
-            if (t.kind === 1 || t.kind === 9 || t.r > 0.8) {
-                g.strokeStyle = t.r < 0.4 ? P.cyan : P.pink; g.lineWidth = 2;
-                g.beginPath(); g.moveTo(x0 + 2, yt + 3); g.lineTo(x1 - 2, yt + 3); g.stroke();
-            }
+            if (t.kind === 1 || t.kind === 9 || t.r > 0.78) { g.strokeStyle = t.r < 0.4 ? P.cyan : P.pink; g.lineWidth = 2; g.beginPath(); g.moveTo(x0 + 2, yt + 2); g.lineTo(x1 - 2, yt + 2); g.stroke(); }
+            for (let x = Math.max(0, Math.floor(x0)); x < Math.min(W, Math.ceil(x1)); x++) tops[x] = Math.min(tops[x], t.kind === 2 ? yt - tw * 0.3 : yt);
         }
         // the waterfront: low hotels in salmon and magenta with orange windows, palms between
-        for (let x = -2400; x < 2400; x += 40 + R() * 50) {
+        for (let x = -2400; x < 2400; x += 45 + R() * 55) {
             const w = 30 + R() * 40, h = 14 + R() * 24, x0 = X(x), x1 = X(x + w), yb = Y(0), yt = Y(h);
-            Ink.shape(g, [[x0, yb], [x0, yt], [x1, yt], [x1, yb]], R() < 0.5 ? P.salmon : P.magenta, { w: 2, seed: Math.round(x), jit: 0.5 });
-            for (let y = yt + 4; y < yb - 3; y += 6) for (let xx = x0 + 3; xx < x1 - 4; xx += 6) if (R() < 0.5) { g.fillStyle = R() < 0.7 ? P.orange : P.gold; g.fillRect(xx, y, 3, 2.5); }
+            Ink.shape(g, [[x0, yb], [x0, yt], [x1, yt], [x1, yb]], R() < 0.5 ? P.salmon : P.magenta, { w: 2, seed: Math.round(x), jit: 0.3 });
+            for (let y = yt + 3; y < yb - 2; y += 4.5) for (let xx = x0 + 2; xx < x1 - 3; xx += 4.5) if (R() < 0.5) { g.fillStyle = R() < 0.7 ? P.orange : P.gold; g.fillRect(xx, y, 2.2, 2); }
             g.strokeStyle = R() < 0.5 ? P.cyan : P.pink; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x0, yt + 1); g.lineTo(x1, yt + 1); g.stroke();
-            if (R() < 0.5) {   // a palm
-                const px = x1 + 6, py = yb, ph = 16 + R() * 10;
-                Ink.brush(g, [[px, py], [px + 2, py - ph * 0.5], [px + 1, py - ph]], { w: 2, seed: Math.round(x * 3) });
-                for (let f = 0; f < 6; f++) { const a = Math.PI * (1.05 + f * 0.18); Ink.brush(g, [[px + 1, py - ph], [px + 1 + Math.cos(a) * 9, py - ph + Math.sin(a) * 4 + 3], [px + 1 + Math.cos(a) * 14, py - ph + 6]], { w: 1.6, seed: Math.round(x * 3 + f) }); }
-            }
+            for (let xx = Math.max(0, Math.floor(x0)); xx < Math.min(W, Math.ceil(x1)); xx++) tops[xx] = Math.min(tops[xx], yt);
         }
-        // the shore line, an ink stroke
-        Ink.brush(g, [[0, Y(0)], [W * 0.5, Y(0) + 1], [W, Y(0)]], { w: 3, seed: 'shore' });
-        // per column: the colour the bay will reflect
-        const im = g.getImageData(0, Math.round(Y(60)), W, Math.round(Y(0) - Y(60))).data, cw = 8;
+        Ink.brush(g, [[0, Y(0)], [W * 0.5, Y(0) + 0.5], [W, Y(0)]], { w: 2.5, seed: 'shore' });
+        // per column of 6 px: the colour of the lights the bay will mirror and how tall they stand
+        const im = g.getImageData(0, 0, W, Math.round(Y(0))).data, cw = 6;
         panoCols = [];
         for (let x = 0; x < W; x += cw) {
-            let r = 0, gg = 0, b = 0, n = 0, lit = 0;
-            for (let y = 0; y < Y(0) - Y(60) - 1; y += 3) for (let k = 0; k < cw && x + k < W; k += 2) {
-                const i = ((y | 0) * W + x + k) * 4; if (im[i + 3] < 10) continue;
-                const l = im[i] + im[i + 1] + im[i + 2]; if (l > 380) { r += im[i]; gg += im[i + 1]; b += im[i + 2]; n++; } lit++;
+            let r = 0, gg = 0, b = 0, n = 0;
+            for (let y = 0; y < Math.round(Y(0)) - 1; y += 2) for (let k = 0; k < cw && x + k < W; k += 2) {
+                const i = (y * W + x + k) * 4; if (im[i + 3] < 10) continue;
+                if (im[i] + im[i + 1] + im[i + 2] > 380) { r += im[i]; gg += im[i + 1]; b += im[i + 2]; n++; }
             }
-            panoCols.push(n ? [r / n, gg / n, b / n, n / Math.max(1, lit)] : null);
+            let top = H; for (let k = 0; k < cw && x + k < W; k++) top = Math.min(top, tops[x + k]);
+            panoCols.push(n ? { col: [r / n, gg / n, b / n], lit: Math.min(1, n / 30), h: (Y(0) - top) / PAN.pxm } : null);
         }
         pano = c;
     }
+    // world x of the panorama → its screen strip through the real projection
     function city(g, cam, T, d, fx, env) {
         if (!pano) buildPano();
-        const tl = cam.p([PAN.x0, PAN.y1, PAN.z]), tr = cam.p([PAN.x1, PAN.y1, PAN.z]), br = cam.p([PAN.x1, PAN.y0, PAN.z]), bl = cam.p([PAN.x0, PAN.y0, PAN.z]);
-        if (tl[2] < 10) return;
-        Motion.quad(g, pano, [tl, tr, br, bl], 4);
-        // the landmark's crown: its colour changes on every bar (the film's lights)
+        const N = 96, H = pano.height, sw = pano.width / N;
+        for (let i = 0; i < N; i++) {
+            const xa = PAN.x0 + (i * sw) / PAN.pxm, xb = PAN.x0 + ((i + 1) * sw) / PAN.pxm;
+            const P00 = cam.p([xa, PAN.y1, PAN.z]), P10 = cam.p([xb, PAN.y1, PAN.z]), P01 = cam.p([xa, PAN.y0, PAN.z]);
+            if (P00[2] < 10 || Math.max(P00[0], P10[0]) < -20 || Math.min(P00[0], P10[0]) > env.W + 20) continue;
+            // breathing: the strip swells from the waterline on the kick, each on its own phase
+            const b = 1 + (fx.breathe ?? 0) * (0.5 + 0.5 * Math.sin(i * 1.7 + T * 6.3));
+            const cx = (P00[0] - P01[0]) * b, cy = (P00[1] - P01[1]) * b;
+            g.save();
+            g.transform((P10[0] - P00[0]) / sw, (P10[1] - P00[1]) / sw, -cx / H, -cy / H, P01[0] + cx, P01[1] + cy);
+            g.drawImage(pano, i * sw, 0, sw + 1, H, 0, 0, sw + 1, H);
+            g.restore();
+        }
+        // the landmark's crown, recoloured on every bar (the film's lights)
         const crown = Skyline.crownColour ? Skyline.crownColour(T, fx) : hex(P.pink);
-        const c0 = cam.p([300 - 18, 240 + 4, PAN.z]), c1 = cam.p([300 + 18, 240 + 4, PAN.z]);
-        g.strokeStyle = css(crown); g.lineWidth = 3; g.beginPath(); g.moveTo(c0[0], c0[1]); g.lineTo(c1[0], c1[1]); g.stroke();
-        return { bl, br };
+        const st = LANDMARK.w * 0.22;
+        const c0 = cam.p([LANDMARK.x - LANDMARK.w / 2 + st, LANDMARK.h + st, PAN.z]), c1 = cam.p([LANDMARK.x + LANDMARK.w / 2 - st, LANDMARK.h + st, PAN.z]);
+        if (c0[2] > 10) { g.strokeStyle = css(crown); g.lineWidth = 3; g.beginPath(); g.moveTo(c0[0], c0[1]); g.lineTo(c1[0], c1[1]); g.stroke(); }
     }
 
-    // --- the bay: flat deep blue, the city laid on it as horizontal strokes -----------------
+    // --- the bay ------------------------------------------------------------------------------
     function bay(g, L, cam, T, d, fx, env, horizon) {
-        g.fillStyle = P.deep; g.fillRect(-60, horizon, env.W + 120, env.H - horizon + 60);
-        // a darker band nearer the viewer, edged by a wavering line
-        const y2 = horizon + (env.H - horizon) * 0.35;
-        g.fillStyle = P.navy; g.beginPath(); g.moveTo(-60, env.H + 60);
-        for (let x = -60; x <= env.W + 60; x += 40) g.lineTo(x, y2 + Ink.noise(55, x / 120, d) * 6);
-        g.lineTo(env.W + 60, env.H + 60); g.closePath(); g.fill();
+        g.fillStyle = '#18065e'; g.fillRect(-80, horizon, env.W + 160, env.H - horizon + 80);
+        for (const [f, col, seed] of [[0.28, P.deep, 55], [0.6, P.navy, 56]]) {
+            const y2 = horizon + (env.H - horizon) * f;
+            g.fillStyle = col; g.beginPath(); g.moveTo(-80, env.H + 80);
+            for (let x = -80; x <= env.W + 80; x += 30) g.lineTo(x, y2 + Ink.noise(seed, x / 260, 0) * 22 + Ink.noise(seed + 9, x / 70, 0) * 5);
+            g.lineTo(env.W + 80, env.H + 80); g.closePath(); g.fill();
+        }
         if (!panoCols) return;
-        // reflections: for each lit column of the city, a few dashes under it
-        const W = pano.width, cw = 8;
-        for (let i = 0; i < panoCols.length; i += 1) {
-            const c = panoCols[i]; if (!c || c[3] < 0.02) continue;
-            const xw = PAN.x0 + ((i * cw + cw / 2) / PAN.pxm);
-            const p = cam.p([xw, Causeway.WATER, PAN.z]); if (p[2] < 10 || p[0] < -40 || p[0] > env.W + 40) continue;
-            const n = Math.round(2 + c[3] * 10);
+        // the city mirrored: under each lit column a broken stack of horizontal strokes, as long
+        // as the column stands tall on screen, rows jittered per column, fading with depth
+        const cw = 6;
+        for (let i = 0; i < panoCols.length; i++) {
+            const c = panoCols[i]; if (!c || c.lit < 0.04) continue;
+            const xw = PAN.x0 + (i * cw + cw / 2) / PAN.pxm;
+            const base = cam.p([xw, C.WATER, PAN.z]), top = cam.p([xw, C.WATER + c.h, PAN.z]);
+            if (base[2] < 10 || base[0] < -40 || base[0] > env.W + 40) continue;
+            const len = Math.min(env.H - horizon, (base[1] - top[1]) * 1.3 + 8), n = Math.round(2 + c.lit * 9);
             for (let k = 0; k < n; k++) {
-                const u = (k + 0.5) / n, yy = horizon + 2 + Math.pow(u, 1.6) * (env.H - horizon) * 0.55;
-                const sway = Ink.noise(i * 7 + k, T * 0.8, 0) * 6;
-                const len = (6 + 14 * u) * (0.6 + Ink.hsh(i, k, d) * 0.8);
-                Ink.brush(g, [[p[0] - len / 2 + sway, yy], [p[0] + len / 2 + sway, yy + 0.5]], { w: 1.6 + 2 * u, col: css(c, 0.9), seed: i * 31 + k, d, taper: 0.4, wob: 0.4, alpha: 0.85 * (1 - u * 0.5) });
+                const u = (k + 0.3 + 0.6 * Ink.hsh(i, k, 0)) / n, yy = base[1] + 2 + u * len;
+                const sway = Ink.noise(i * 7 + k, T * 0.8, 0) * 5;
+                const l = (4 + 10 * u) * (0.5 + Ink.hsh(i + 3, k, 0));
+                Ink.brush(g, [[base[0] - l / 2 + sway, yy], [base[0] + l / 2 + sway, yy + 0.5]], { w: 1.4 + 1.6 * u, col: css(c.col), seed: i * 31 + k, d, taper: 0.4, wob: 0.4, alpha: 0.9 * (1 - u * 0.6) });
             }
+        }
+        // the water nearer: loose strokes of the sky's colours on the swell, everywhere
+        const R = Motion.rng('swell-ink');
+        for (let i = 0; i < 90; i++) {
+            const a = (R() * 2 - 1) * 1.2, dist = 60 + Math.pow(R(), 1.5) * 1600, ph = R(), col = [P.violet, P.purple, P.magenta, P.royal, P.salmon][i % 5];
+            const p = cam.p([cam.pos[0] + Math.sin(a) * dist + Math.sin(T * 0.7 + ph * 6) * 2, C.WATER, cam.pos[2] + Math.cos(a) * dist]);
+            if (p[2] < 3 || p[1] < horizon + 2 || p[1] > env.H + 10) continue;
+            const l = Math.min(70, 9000 / dist + 4);
+            Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0] + l / 2, p[1] + 0.5]], { w: Math.min(4, 1 + 300 / dist), col, seed: 5000 + i, d, taper: 0.45, wob: 0.4, alpha: 0.75 });
         }
     }
 
-    // --- the causeway ------------------------------------------------------------------------
-    // returns the items (lamps, palms, traffic) for the scene to sort with the car
-    function causeway(g, L, N, cam, T, d, fx) {
-        const C = Causeway, zc = cam.pos[2], zFar = zc + 700, zNear = zc + 0.4;
-        const y = C.y, items = [];
-        const zs = []; for (let z = zNear; z < zFar; z += Math.max(2, (z - zc) * 0.06)) zs.push(z); zs.push(zFar);
-        // the deck hides itself beyond its crest: walking a line from near to far, once its
-        // screen height drops back below the highest point reached so far, the rest is behind
-        // the hump (cut there, at the crossing)
-        const visible = (P) => {
-            const out = []; let minY = Infinity;
-            for (const p of P) {
-                if (p[1] <= minY + 0.4 || !out.length) { out.push(p); minY = Math.min(minY, p[1]); continue; }
-                break;
+    // --- under the deck, seen from beside it: reflections, then piers ---------------------------
+    function underDeck(g, L, cam, T, d, fx) {
+        const zc = cam.pos[2];
+        if (cam.pos[0] < 8) return;
+        const kN = Math.floor(((zc + 0.5) / C.V + C.T0 - Song.bar0) / Song.beat);
+        // the lamps' reflections: stacks of gold strokes straight under each head
+        for (let k = kN + 34; k >= kN; k--) {
+            const zl = C.lampZ(k); if (zl < zc + 2) continue;
+            for (const xh of [1.7, -6.5]) {
+                const top = cam.p([xh, C.WATER, zl]), mir = cam.p([xh, 2 * C.WATER - (C.y(zl) + 10), zl]); if (top[2] < 2 || top[0] < -60 || top[0] > cam.W + 60) continue;
+                const s = cam.f / top[2], len = Math.max(10, mir[1] - top[1]);
+                for (let j = 0; j < 7; j++) {
+                    const u = (j + 0.4 * Ink.hsh(k, j, 0) + 0.3) / 7, yy = top[1] + len * u * u, w = (0.6 + u * 1.6) * s * (0.5 + Ink.hsh(k, j + 9, 0));
+                    Ink.brush(g, [[top[0] - w / 2, yy], [top[0] + w / 2, yy + 0.5]], { w: Math.max(1, 0.12 * s * (1 + u)), col: j % 2 ? P.orange : P.gold, seed: k * 17 + j, d, taper: 0.4, alpha: 0.85 * (1 - u * 0.6), light: true });
+                }
             }
-            return out;
-        };
-        const edge = (x, dy = 0) => visible(zs.map((z) => cam.p([x, y(z) + dy, z])).filter((p) => p[2] > 0.3).map((p) => [p[0], p[1]]));
-        // the crest's silhouette on screen (the deck's own line along the median) and the depth
-        // from which things stand behind it: they are drawn only above that line
+        }
+        // the near tube mirrored: a broken pink line under the deck
+        const tc = tone(P.pink, fx);
+        for (let z = Math.floor((zc + 400) / 5) * 5; z >= zc + 3; z -= 5) {
+            if (Ink.hsh(z, 1, 0) < 0.3) continue;
+            const ht = C.y(z) + 1.08, a = cam.p([7.9, 2 * C.WATER - ht, z]), b = cam.p([7.9, 2 * C.WATER - ht, z + 4]); if (a[2] < 2) continue;
+            const wob = Math.sin(z * 0.7 + T * 2.5) * 3;
+            Ink.brush(g, [[a[0] + wob, a[1]], [b[0] + wob, b[1]]], { w: 2.4, col: tc, seed: 3000 + z, d, taper: 0.3, alpha: 0.75, light: true });
+        }
+        // the piers: their reflection first (darker, broken), then the pier itself
+        for (let z = Math.floor((zc + 400) / 24) * 24; z >= zc - 24; z -= 24) {
+            const a = cam.p([7.0, C.WATER, z]), b = cam.p([7.0, C.y(z) - 1.3, z]), r = cam.p([7.0, 2 * C.WATER - (C.y(z) - 1.3), z]); if (a[2] < 1) continue;
+            const s = cam.f / a[2], hw = 0.8 * s;
+            for (let j = 0; j < 5; j++) {
+                const u0 = j / 5, u1 = u0 + 0.13, y0 = a[1] + (r[1] - a[1]) * u0, y1 = a[1] + (r[1] - a[1]) * u1, off = Math.sin(j * 2.1 + T * 2 + z) * 0.15 * s;
+                Ink.shape(g, [[a[0] - hw + off, y0], [a[0] + hw + off, y0], [a[0] + hw * 0.9 + off, y1], [a[0] - hw * 0.9 + off, y1]], '#1a0450', { w: 0, seed: z * 3 + j, d, jit: 0.5 });
+            }
+            Ink.shape(g, [[a[0] - hw, a[1]], [b[0] - hw, b[1]], [b[0] + hw, b[1]], [a[0] + hw, a[1]]], P.royal, { w: lw(s, 0.12), seed: z, d, jit: 0 });
+            Ink.hatch(g, [b[0] + hw * 0.6, b[1] + 2], [a[0] + hw * 0.6, a[1] - 2], { count: 3, len: Math.min(30, 0.5 * s), w: lw(s, 0.06), col: P.pink, seed: z + 7, d, n: [-1, 0], ang: 1.2 });
+        }
+    }
+
+    // --- the causeway --------------------------------------------------------------------------
+    // returns { items, last }: items (lamps, palms, shrubs, traffic, hoops) for the scene to
+    // sort with the car; last: what stands between a camera beside the deck and everything on it
+    function causeway(g, L, cam, T, d, fx) {
+        const zc = cam.pos[2], zFar = zc + 700, zNear = zc + 0.4;
+        const y = C.y, items = [];
+        const outside = cam.pos[0] > 7.9;
+        const zs = []; for (let z = zNear; z < zFar; z += Math.max(2, (z - zc) * 0.05)) zs.push(z); zs.push(zFar);
+        // the deck hides itself beyond its crest
+        const visible = (Pts) => { const out = []; let minY = Infinity; for (const p of Pts) { if (!out.length || p[1] <= minY + 0.4) { out.push(p); minY = Math.min(minY, p[1]); } else break; } return out; };
+        const edge = (x, dy = 0, upTo = zFar) => visible(zs.filter((z) => z <= upTo).map((z) => cam.p([x, y(z) + dy, z])).filter((p) => p[2] > 0.3).map((p) => [p[0], p[1]]));
         const mid = zs.map((z) => [z, cam.p([-2.4, y(z) + 0.2, z])]).filter(([, p]) => p[2] > 0.3);
         let crestY = Infinity, zHide = Infinity;
         for (const [z, p] of mid) { if (p[1] <= crestY + 0.4) crestY = Math.min(crestY, p[1]); else { zHide = z; break; } }
-        const behind = (z, f) => () => {
-            if (z < zHide) return f();
-            g.save(); g.beginPath(); g.rect(-200, -400, cam.W + 400, crestY + 400); g.clip(); f(); g.restore();
-        };
-        const band = (xa, xb, dy, fill, o = {}) => { const A = edge(xa, dy), B = edge(xb, dy); if (A.length < 2 || B.length < 2) return; Ink.shape(g, A.concat(B.reverse()), fill, { w: o.w ?? 0, seed: o.seed ?? 'band' + xa, d, jit: 0 }); };
-        // the deck's side slabs (seen from outside), the deck, the median
-        if (cam.pos[0] > 7.9) band(7.9, 7.9, -1.3, null);
-        { const A = edge(7.9, 0), B = edge(7.9, -1.3); if (A.length > 1) Ink.shape(g, A.concat(B.reverse()), P.indigo, { w: 2.5, seed: 'slabR', d, jit: 0 }); }
-        { const A = edge(-12.3, 0), B = edge(-12.3, -1.3); if (A.length > 1 && cam.pos[0] < -12.3) Ink.shape(g, A.concat(B.reverse()), P.indigo, { w: 2.5, seed: 'slabL', d, jit: 0 }); }
-        band(-11.8, 7.4, 0, P.deep);
-        band(-4.4, -0.4, 0.18, P.grape, { w: 2, seed: 'median' });
-        // pools of lamp light on the asphalt: two flat tones, ellipses on the road under each lamp
+        if (outside) zHide = Infinity;               // from beside the deck its top hides nothing
+        const behind = (z, f) => () => { if (z < zHide) return f(); g.save(); g.beginPath(); g.rect(-300, -600, cam.W + 600, crestY + 600); g.clip(); f(); g.restore(); };
+        const strip = (xa, xb, dy = 0) => { const A = edge(xa, dy), B = edge(xb, dy); return A.length > 1 && B.length > 1 ? A.concat(B.reverse()) : null; };
+        const carriage = [strip(-11.8, -4.4), strip(-0.4, 7.4)];
         const kN = Math.floor(((zNear + 0.5) / C.V + C.T0 - Song.bar0) / Song.beat) - 1;
-        for (let k = kN + 60; k >= kN; k--) {
-            const zl = C.lampZ(k); if (zl < zNear || zl > zc + 300) continue;
-            for (const [xl, rx] of [[1.7, 3.4], [-6.5, 3.4]]) {
-                const pool = (rz, col) => { const pts = []; for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; pts.push(cam.p([xl + Math.cos(a) * rx * rz, y(zl) + 0.02, zl + Math.sin(a) * 6 * rz])); } if (pts.some((p) => p[2] < 0.3)) return; g.fillStyle = col; Neon.path(g, pts); g.fill(); };
-                pool(1, P.indigo); pool(0.55, P.royal);
+
+        // 1 · the slab's outer face (from beside), the asphalt, the median
+        if (outside) { const A = edge(7.9, 0), B = edge(7.9, -1.3); if (A.length > 1) Ink.shape(g, A.concat(B.reverse()), P.royal, { w: 3, seed: 'slabR', d, jit: 0 }); }
+        for (const q of carriage) if (q) Ink.shape(g, q, '#1a0670', { w: 0, seed: 'asph', d, jit: 0 });
+        const med = strip(-4.4, -0.4, 0.18);
+        if (med) Ink.shape(g, med, P.plum, { w: 2.4, seed: 'median', d, jit: 0 });
+        // 2 · on the asphalt (clipped to it): pools of lamp light, wet reflections, paint
+        g.save(); g.beginPath(); for (const q of carriage) if (q) { q.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); } g.clip();
+        for (let k = kN + 50; k >= kN; k--) {
+            const zl = C.lampZ(k); if (zl < zNear - 6 || zl > Math.min(zHide, zc + 260)) continue;
+            for (const xl of [1.7, -6.5]) for (const [rz, col] of [[1, P.indigo], [0.6, '#4a10c8']]) {
+                const pts = []; for (let i = 0; i < 48; i++) { const a = (i / 48) * Math.PI * 2, wob = 1 + 0.05 * Math.sin(i * 1.3 + k); pts.push([xl + Math.cos(a) * 3.4 * rz * wob, y(zl) + 0.02, zl + Math.sin(a) * 6 * rz * wob]); }
+                const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: 0, seed: k * 5 + rz * 10, d, jit: 0 });
             }
-        }
-        // lane lines: brush dashes in cream and gold
-        for (let zd = Math.floor(Math.min(zFar, zc + 260) / 12) * 12; zd >= zNear - 3; zd -= 12) {
-            // paint on the road is a flat quad in perspective (a brush of its near width would balloon)
-            for (const xx of [3.7, -8.1]) { const z0 = Math.max(zd, zNear), q = Neon.poly(cam, [[xx - 0.08, y(z0) + 0.01, z0], [xx + 0.08, y(z0) + 0.01, z0], [xx + 0.08, y(zd + 3) + 0.01, zd + 3], [xx - 0.08, y(zd + 3) + 0.01, zd + 3]]); if (q) Ink.shape(g, q, P.cream, { w: 0, seed: Math.round(zd * 3 + xx), d, jit: 0.8 }); }
-        }
-        for (const [xx, col] of [[-0.15, P.gold], [7.1, P.cream], [-4.65, P.gold], [-11.5, P.cream]]) { const A = edge(xx, 0.01); if (A.length > 1) Ink.brush(g, A, { w: 2.2, col, seed: 'edge' + xx, d, taper: 0.02, wob: 0.6 }); }
-        // wet streaks under the lamps: a few vertical brush strokes of gold
-        for (let k = kN + 40; k >= kN; k--) {
-            const zl = C.lampZ(k); if (zl < zNear + 1 || zl > zc + 200) continue;
+            // wet reflection of the lamp head: broken strokes from its foot towards the viewer
             for (const xh of [1.7, -6.5]) {
-                const a = cam.p([xh, y(zl), zl]), b = cam.p([xh, y(zl) - 9, zl]); if (a[2] < 1 || b[2] < 1) continue;
-                const s = cam.f / a[2];
-                for (let j = 0; j < 3; j++) Ink.brush(g, [[a[0] + (j - 1) * 0.15 * s, a[1]], [a[0] + (j - 1) * 0.1 * s, a[1] + (b[1] - a[1]) * (0.5 + 0.2 * j)]], { w: Math.max(1, 0.12 * s), col: j === 1 ? P.gold : P.orange, seed: k * 11 + j, d, taper: 0.5, alpha: 0.75 });
-            }
-        }
-        // the median's shrubs: ink blobs with a few strokes of light on top
-        for (let zz = Math.floor(Math.min(zFar, zc + 200) / 2.4) * 2.4; zz >= zNear + 0.5; zz -= 2.4) {
-            for (const xs of [-3.5, -1.3]) {
-                const b = cam.p([xs, y(zz) + 0.18, zz]); if (b[2] < 0.8) continue;
-                const s = cam.f / b[2], r = 0.55 * s, hgt = 0.7 * s, pts = [];
-                for (let j = 0; j <= 9; j++) { const a = Math.PI + (j / 9) * Math.PI; pts.push([b[0] + Math.cos(a) * r * (1 + 0.12 * Math.sin(j * 2.3 + zz)), b[1] + Math.sin(a) * hgt]); }
-                Ink.shape(g, pts, P.grape, { w: Math.max(1, 0.06 * s), seed: Math.round(zz * 10 + xs * 3), d, jit: 0.5 });
-                if (s > 25) Ink.hatch(g, [b[0] - r * 0.6, b[1] - hgt * 0.8], [b[0] + r * 0.6, b[1] - hgt * 0.8], { count: 3, len: 0.25 * s, w: Math.max(1, 0.035 * s), col: P.mint, seed: Math.round(zz * 7), d, n: [0, 1] });
-            }
-        }
-        // the parapets: flat strips with ink, and their neon tubes
-        for (const [x0, x1, face, neon] of [[7.4, 7.9, P.plum, P.pink], [-12.3, -11.8, P.violet, P.cyan]]) {
-            const inner = x0 > 0 ? x0 : x1;
-            const A = edge(inner, 0), B = edge(inner, 1.05);
-            if (A.length > 1) {
-                Ink.shape(g, A.concat(B.slice().reverse()), face, { w: 0, seed: 'par' + x0, d, jit: 0 });
-                Ink.brush(g, A, { w: 3.2, seed: 'parA' + x0, d, taper: 0.03 });
-                Ink.brush(g, B, { w: 3.6, seed: 'parB' + x0, d, taper: 0.03 });
-                // where a lamp stands, its light falls on the face as a handful of strokes
-                for (let k = kN + 24; k >= kN; k--) {
-                    const zl = C.lampZ(k); if (zl < zc + 2 || zl > zc + 160) continue;
-                    const a = cam.p([inner, y(zl) + 0.85, zl - 3]), b = cam.p([inner, y(zl) + 0.85, zl + 3]); if (a[2] < 0.5 || b[2] < 0.5) continue;
-                    const s = cam.f / a[2];
-                    Ink.hatch(g, [a[0], a[1]], [b[0], b[1]], { count: 4, len: Math.min(55, 0.55 * s), w: Math.min(5, Math.max(1, 0.06 * s)), col: x0 > 0 ? P.salmon : P.pink, seed: k * 41 + (x0 > 0 ? 1 : 2), d, n: [0, 1], ang: 0.2, alpha: 0.8 });
+                for (let j = 0; j < 6; j++) {
+                    const zz = zl - 0.6 - j * 1.1; if (zz < zNear + 0.3) break;
+                    const p = cam.p([xh + (Ink.hsh(k, j, 0) - 0.5) * 0.4, y(zz) + 0.01, zz]); if (p[2] < 0.5) continue;
+                    const s = cam.f / p[2], wdt = Math.min(90, (0.35 + j * 0.12) * s);
+                    Ink.brush(g, [[p[0] - wdt / 2, p[1]], [p[0] + wdt / 2, p[1] + 0.5]], { w: cap(0.07 * s, 1, 7), col: j % 2 ? P.orange : P.gold, seed: k * 13 + j, d, taper: 0.45, alpha: 0.85 * (1 - j / 7) / (1 + (zl - zc) / 80), light: true });
                 }
             }
-            const T1 = edge((x0 + x1) / 2, 1.13);
-            if (T1.length > 1) {
-                const col = fx.hue ? css(Neon.shift(neon, fx.hue)) : neon;
-                for (const c of [g, L]) { c.save(); c.strokeStyle = col; c.lineWidth = c === L ? 7 : 4; c.lineCap = 'round'; c.beginPath(); T1.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.stroke(); c.strokeStyle = P.cream; c.lineWidth = 1.4; c.stroke(); c.restore(); }
-            }
         }
-        // lamps, palms, traffic
+        // the paint: dashes and edge lines as flat quads in perspective, a pale lilac, not glare
+        const paint = '#b8a2e8', gold = '#e8b04a';
+        for (let zd = Math.floor(Math.min(zFar, zc + 260) / 12) * 12; zd >= zNear - 3; zd -= 12) {
+            const z0 = Math.max(zd, zNear), z1 = zd + 3; if (z1 <= z0 || z0 > zHide) continue;
+            for (const xx of [3.7, -8.1]) { const q = Neon.poly(cam, [[xx - 0.08, y(z0) + 0.01, z0], [xx + 0.08, y(z0) + 0.01, z0], [xx + 0.08, y(z1) + 0.01, z1], [xx - 0.08, y(z1) + 0.01, z1]]); if (q) Ink.shape(g, q, paint, { w: 0, seed: Math.round(zd * 3 + xx), d, jit: 0.6, light: true }); }
+        }
+        for (const [xx, col] of [[-0.6, gold], [7.1, paint], [-4.2, gold], [-11.5, paint]]) { const q = strip(xx - 0.06, xx + 0.06, 0.01); if (q) Ink.shape(g, q, col, { w: 0, seed: 'line' + xx, d, jit: 0, light: true }); }
+        if (fx.onDeck) fx.onDeck(zHide);
+        g.restore();
+        // 3 · the parapets seen from the deck: their inner face, their cap, the tube on it
+        const parapet = (side) => {
+            const right = side > 0, inner = right ? 7.4 : -11.8, outer = right ? 7.9 : -12.3, h = 1.05;
+            const face = right ? P.purple : P.violet, capC = right ? P.magenta : '#9a3ae8';
+            const neon = tone(right ? P.pink : P.cyan, fx);
+            const seen = right ? cam.pos[0] < inner : cam.pos[0] > inner;
+            const fx0 = seen ? inner : outer;
+            const A = edge(fx0, right && outside ? -1.3 : 0), B = edge(fx0, h);
+            if (A.length > 1 && B.length > 1) {
+                Ink.shape(g, A.concat(B.slice().reverse()), right && outside ? P.royal : face, { w: 0, seed: 'par' + side, d, jit: 0 });
+                Ink.brush(g, A, { w: 3, seed: 'parA' + side, d, taper: 0.03 });
+                // where a lamp stands, its light falls on the face as strokes
+                for (let k = kN + 24; k >= kN; k--) {
+                    const zl = C.lampZ(k); if (zl < zc + 2 || zl > Math.min(zHide, zc + 160)) continue;
+                    const a = cam.p([fx0, y(zl) + 0.85, zl - 3]), b = cam.p([fx0, y(zl) + 0.85, zl + 3]); if (a[2] < 0.5 || b[2] < 0.5) continue;
+                    const s = cam.f / a[2];
+                    Ink.hatch(g, [a[0], a[1]], [b[0], b[1]], { count: 5, len: Math.min(55, 0.5 * s), w: cap(0.05 * s, 1, 5), col: right ? P.salmon : P.pink, seed: k * 41 + side, d, n: [0, 1], ang: 0.2 });
+                }
+                // joints every 6 m
+                for (let zj = Math.ceil((zc + 2) / 6) * 6; zj < Math.min(zHide, zc + 120); zj += 6) {
+                    const a = cam.p([fx0, y(zj) + 0.05, zj]), b = cam.p([fx0, y(zj) + h - 0.05, zj]); if (a[2] < 0.5) continue;
+                    Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.03 * cam.f / a[2], 1, 3), seed: 'j' + zj + side, d, taper: 0.2, alpha: 0.6 });
+                }
+            }
+            // the cap and the tube seated on it
+            const T0 = edge(inner, h), T1 = edge(outer, h);
+            if (T0.length > 1 && T1.length > 1) { Ink.shape(g, T0.concat(T1.slice().reverse()), capC, { w: 0, seed: 'cap' + side, d, jit: 0 }); Ink.brush(g, right === !outside ? T0 : T1, { w: 3, seed: 'capI' + side, d, taper: 0.03 }); }
+            const TT = edge((inner + outer) / 2, h + 0.06);
+            if (TT.length > 1) {
+                const core = mix(neon.startsWith('#') ? hex(neon) : [255, 120, 220], [255, 255, 255], 0.4);
+                for (const c of [g, L]) { c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = neon; c.lineWidth = c === L ? 5 : 4; c.beginPath(); TT.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.stroke(); if (c === g) { c.strokeStyle = css(core); c.lineWidth = 1.3; c.stroke(); } c.restore(); }
+            }
+        };
+        parapet(-1);
+        if (!outside) parapet(1);
+
+        // 4 · the standing things, for the scene to sort
         for (let k = kN + 60; k >= kN - 1; k--) {
             const zl = C.lampZ(k); if (zl < zc + 0.6 || zl > zFar) continue;
             items.push({ z: zl, draw: behind(zl, () => lamp(g, L, cam, zl, d, fx)) });
-            const zp = zl + Song.beat * C.V / 2;
-            if (zp < zFar && zp > zc + 1) items.push({ z: zp, draw: behind(zp, () => palm(g, L, cam, -2.4 + (k % 2 ? 0.5 : -0.5), zp, k, T, d, fx)) });
+            const zp = zl + Song.beat * C.V * 0.38, xp = -2.4 + (k % 2 ? 0.9 : -0.9);
+            if (zp < zFar && zp > zc + 1) items.push({ z: zp, draw: behind(zp, () => palm(g, L, cam, xp, zp, k, T, d, fx)) });
+        }
+        const Rs = Motion.rng('shrubs');
+        for (let i = 0, zz = 0; zz < zc + 220; i++) {
+            zz += 1.6 + Rs() * 1.8; const x = Rs() < 0.5 ? -3.5 + Rs() * 0.5 : -1.3 - Rs() * 0.5, sc = 0.8 + Rs() * 0.5, seed = i;
+            if (zz < zNear + 0.6) continue;
+            const z = zz; items.push({ z, draw: behind(z, () => shrub(g, cam, x, z, sc, seed, d, fx)) });
         }
         for (const t of C.traffic(T)) if (t.z > zc + 2 && t.z < zFar) items.push({ z: t.z, draw: behind(t.z, () => car(g, L, cam, t, d, fx)) });
-        return items;
+        if (fx.trip > 0) for (let zh = Math.ceil((zc + 4) / 22) * 22; zh < zc + 260; zh += 22) { const z = zh; items.push({ z, draw: behind(z, () => hoop(g, L, cam, z, d, fx)) }); }
+        return { items, last: outside ? () => parapet(1) : null, zHide };
     }
 
     function lamp(g, L, cam, z, d, fx) {
-        const y = Causeway.y(z), base = cam.p([-2.4, y + 0.2, z]), top = cam.p([-2.4, y + 10.6, z]);
+        const yb = C.y(z), base = cam.p([-2.4, yb + 0.2, z]), top = cam.p([-2.4, yb + 10.6, z]);
         if (top[2] < 0.5) return;
-        const s = cam.f / top[2];
-        Ink.brush(g, [[base[0], base[1]], [top[0], top[1]]], { w: Math.max(1.4, 0.2 * s), col: P.ink, seed: Math.round(z * 13), d, taper: 0.05 });
+        const s = cam.f / top[2], lit = tone(P.violet, fx, 0.5);
+        // a base plate, the mast, its lit edge
+        const bp = cam.p([-2.4, yb + 0.35, z]), bs = cam.f / Math.max(0.5, bp[2]);
+        Ink.shape(g, [[bp[0] - 0.3 * bs, base[1]], [bp[0] - 0.25 * bs, bp[1]], [bp[0] + 0.25 * bs, bp[1]], [bp[0] + 0.3 * bs, base[1]]], P.indigo, { w: lw(bs, 0.04), seed: Math.round(z * 11), d });
+        Ink.brush(g, [[base[0], base[1]], [top[0], top[1]]], { w: cap(0.2 * s, 1.6, 9), col: P.ink, seed: Math.round(z * 13), d, taper: 0.04 });
+        Ink.brush(g, [[base[0] + 0.06 * s, base[1]], [top[0] + 0.05 * s, top[1]]], { w: cap(0.05 * s, 1, 3), col: lit, seed: Math.round(z * 14), d, taper: 0.3 });
         for (const dir of [1, -1]) {
-            const hx = -2.4 + dir * 4.1, mid = cam.p([-2.4 + dir * 1.6, y + 10.8, z]), end = cam.p([hx, y + 10.1, z]);
+            const hx = -2.4 + dir * 4.1, mid = cam.p([-2.4 + dir * 1.6, yb + 10.8, z]), end = cam.p([hx, yb + 10.1, z]);
             if (end[2] < 0.5) continue;
-            Ink.brush(g, [[top[0], top[1]], [mid[0], mid[1]], [end[0], end[1]]], { w: Math.max(1.2, 0.1 * s), col: P.ink, seed: Math.round(z * 17 + dir), d, taper: 0.1 });
-            const hs = cam.f / end[2], hw = 0.45 * hs, hh = 0.14 * hs;
-            const col = fx.lampCol ? css(fx.lampCol) : P.gold;
-            Ink.shape(g, [[end[0] - hw, end[1] - hh * 0.4], [end[0] + hw, end[1] - hh * 0.4], [end[0] + hw * 0.8, end[1] + hh], [end[0] - hw * 0.8, end[1] + hh]], col, { w: Math.max(1, 0.05 * hs), seed: Math.round(z * 19 + dir), d, jit: 0.4 });
-            Neon.last.glint(null, L, end[0], end[1] + hh * 0.3, Math.min(70, Math.max(3, 0.7 * hs)) * (fx.lampPower ?? 1), fx.lampCol ?? hex(P.orange), { lightOnly: true, alpha: 0.55, halo: fx.halo ?? 1, star: fx.star ?? 0, rays: 4 });
+            Ink.brush(g, [[top[0], top[1]], [mid[0], mid[1]], [end[0], end[1]]], { w: cap(0.1 * s, 1.4, 6), col: P.ink, seed: Math.round(z * 17 + dir), d, taper: 0.1 });
+            Ink.brush(g, [[top[0], top[1] - 0.06 * s], [mid[0], mid[1] - 0.06 * s], [end[0], end[1] - 0.05 * s]], { w: cap(0.035 * s, 1, 2.5), col: lit, seed: Math.round(z * 19 + dir), d, taper: 0.3 });
+            const hs = cam.f / end[2], hw = 0.45 * hs, hh = 0.14 * hs, col = fx.lampCol ? css(fx.lampCol) : P.gold;
+            Ink.shape(g, [[end[0] - hw, end[1] - hh * 0.4], [end[0] + hw, end[1] - hh * 0.4], [end[0] + hw * 0.8, end[1] + hh], [end[0] - hw * 0.8, end[1] + hh]], col, { w: lw(hs, 0.05), seed: Math.round(z * 23 + dir), d, jit: 0.4 });
+            Neon.last.glint(null, L, end[0], end[1] + hh * 0.3, Math.min(60, Math.max(3, 0.6 * hs)) * (fx.lampPower ?? 1), fx.lampCol ?? hex(P.orange), { lightOnly: true, alpha: 0.55, halo: fx.halo ?? 1, star: fx.star ?? 0, rays: 4 });
         }
     }
 
     function palm(g, L, cam, x, z, seed, T, d, fx) {
-        const y = Causeway.y(z) + 0.18, R = Motion.rng('palm' + seed), H = 12 + R() * 3, lean = (R() - 0.5) * 0.6;
-        const base = cam.p([x, y, z]), top = cam.p([x + lean, y + H, z]); if (top[2] < 0.6) return;
+        const yb = C.y(z) + 0.18, R = Motion.rng('palm' + seed), H = 12 + R() * 3, lean = (R() - 0.5) * 0.6;
+        const base = cam.p([x, yb, z]), top = cam.p([x + lean, yb + H, z]); if (top[2] < 0.6) return;
         const s = cam.f / top[2], sb = cam.f / base[2];
-        // trunk: a tapered flat plum shape with ink and the uplight as strokes of salmon
-        const tw0 = 0.32 * sb, tw1 = 0.2 * s;
-        const trunk = [[base[0] - tw0, base[1]], [top[0] - tw1, top[1]], [top[0] + tw1, top[1]], [base[0] + tw0, base[1]]];
-        Ink.shape(g, trunk, P.plum, { w: Math.max(1.2, 0.07 * s), seed: seed * 7 + 1, d, jit: 0.6 });
-        Ink.hatch(g, [base[0] + tw0 * 0.4, base[1] - 0.3 * sb], [top[0] + tw1 * 0.4, top[1] + (base[1] - top[1]) * 0.45], { count: 6, len: Math.max(3, 0.35 * s), w: Math.max(1, 0.05 * s), col: P.salmon, seed: seed * 3, d, n: [1, 0], ang: 1.2 });
-        // fronds: brush strokes arching out and down, with a few strokes of cyan light
-        const n = 12, sway = Math.sin(T * 1.6 + seed) * 0.05;
+        // the trunk: purple, ringed, a cyan rim on the city side and the uplight's salmon on the other
+        const pts = []; for (let i = 0; i <= 8; i++) { const u = i / 8, p = cam.p([x + lean * u * u, yb + H * 0.88 * u, z]), w = (0.3 + 0.06 * Math.sin(u * 2.4) - 0.1 * u) * cam.f / p[2]; pts.push([p[0], p[1], w]); }
+        const outline = pts.map((p) => [p[0] - p[2], p[1]]).concat(pts.slice().reverse().map((p) => [p[0] + p[2], p[1]]));
+        Ink.shape(g, outline, P.purple, { w: lw(s, 0.06), seed: seed * 7 + 1, d, jit: 0.5 });
+        for (let i = 1; i < 8; i++) { const p = pts[i]; Ink.brush(g, [[p[0] - p[2] * 0.8, p[1]], [p[0] + p[2] * 0.8, p[1] + p[2] * 0.12]], { w: cap(0.03 * s, 0.8, 2.5), seed: seed * 13 + i, d, taper: 0.4, alpha: 0.7 }); }
+        Ink.brush(g, pts.slice(1, 8).map((p) => [p[0] - p[2] * 0.62, p[1]]), { w: cap(0.05 * s, 1, 4), col: tone(P.cyan, fx), seed: seed * 17, d, taper: 0.3 });
+        Ink.hatch(g, [pts[0][0] + pts[0][2] * 0.4, pts[0][1] - 4], [pts[6][0] + pts[6][2] * 0.4, pts[6][1]], { count: 7, len: cap(0.3 * s, 3, 26), w: cap(0.045 * s, 1, 4), col: P.salmon, seed: seed * 3, d, n: [1, 0], ang: 1.2 });
+        // the crown: fronds as leaf shapes (plum with ink) arching out and down, lit at the top
+        const n = 15, sway = Math.sin(T * 1.6 + seed) * 0.05;
+        const fr = [];
         for (let i = 0; i < n; i++) {
-            const an = (i / n) * Math.PI * 2 + R() * 0.25, dx = Math.cos(an), dz = Math.sin(an), len = 3.6 + R() * 1.2, arch = 0.9 + R() * 0.6;
-            const P0 = [x + lean, y + H, z];
-            const pt = (u) => cam.p([P0[0] + dx * len * u, P0[1] + arch * Math.sin(u * Math.PI * 0.8) - u * u * (1.6 + sway * 10 * dx), P0[2] + dz * len * u * 0.9]);
+            const an = (i / n) * Math.PI * 2 + R() * 0.25, dx = Math.cos(an), dz = Math.sin(an), len = 3.4 + R() * 1.2, arch = 0.9 + R() * 0.6;
+            fr.push({ an, dx, dz, len, arch, depth: dz });
+        }
+        fr.sort((a, b) => b.depth - a.depth);                 // far fronds first
+        const P0 = [x + lean, yb + H, z];
+        for (const f of fr) {
+            const pt = (u) => cam.p([P0[0] + f.dx * f.len * u, P0[1] + f.arch * Math.sin(u * Math.PI * 0.7) - u * u * (2.4 + sway * 10 * f.dx), P0[2] + f.dz * f.len * u * 0.9]);
             const rib = []; for (let j = 0; j <= 8; j++) rib.push(pt(j / 8));
             if (rib.some((p) => p[2] < 0.5)) continue;
-            const r2 = rib.map((p) => [p[0], p[1]]);
-            Ink.brush(g, r2, { w: Math.max(1.4, 0.16 * s), col: P.ink, seed: seed * 101 + i, d, taper: 0.3 });
-            // leaflets as short ink ticks hanging from the rib
-            for (let j = 2; j <= 8; j += 1) { const p = r2[j], ll = (1 - j / 10) * 0.9 * s; Ink.brush(g, [[p[0], p[1]], [p[0] + dx * ll * 0.3, p[1] + ll]], { w: Math.max(1, 0.07 * s), col: P.ink, seed: seed * 997 + i * 13 + j, d, taper: 0.5, wob: 0.4 }); }
-            if (i % 3 === 0) Ink.brush(g, r2.slice(1, 5).map((p) => [p[0], p[1] - 0.05 * s]), { w: Math.max(1, 0.05 * s), col: i % 2 ? P.cyan : P.pink, seed: seed * 31 + i, d, taper: 0.4 });
+            const width = (j) => (0.26 * Math.sin((j / 8) * Math.PI * 0.95 + 0.1)) * cam.f / rib[j][2];
+            const up = rib.map((p, j) => [p[0], p[1] - width(j) * 0.35]), dn = rib.map((p, j) => [p[0] + f.dx * width(j) * 0.2, p[1] + width(j) * 0.8]);
+            Ink.shape(g, up.concat(dn.reverse()), f.depth > 0 ? P.grape : P.plum, { w: lw(s, 0.05), seed: seed * 101 + Math.round(f.an * 10), d, jit: 0.5 });
+            // serrated leaflet ends along the lower edge
+            for (let j = 2; j <= 8; j++) { const p = rib[j], ll = width(j) * 1.1; Ink.brush(g, [[p[0], p[1] + width(j) * 0.4], [p[0] + f.dx * ll * 0.3, p[1] + ll]], { w: cap(0.04 * s, 1, 3), seed: seed * 997 + Math.round(f.an * 10) * 13 + j, d, taper: 0.5, wob: 0.4 }); }
+            Ink.brush(g, rib.slice(1, 6).map((p, j) => [p[0], p[1] - width(j + 1) * 0.3]), { w: cap(0.04 * s, 1, 3.5), col: f.dx > 0 ? tone(P.pink, fx) : tone(P.cyan, fx), seed: seed * 31 + Math.round(f.an * 10), d, taper: 0.4 });
         }
     }
 
+    // a clipped shrub: three or four round lobes side by side, the middle ones taller, a
+    // violet ink, light strokes on its top
+    function shrub(g, cam, x, z, sc, seed, d, fx) {
+        const b = cam.p([x, C.y(z) + 0.18, z]); if (b[2] < 0.8) return;
+        const s = cam.f / b[2], R = Motion.rng('shrub' + seed), lobes = 3 + Math.floor(R() * 2);
+        const w = 0.62 * sc * s, pts = [[b[0] + w, b[1]], [b[0] - w, b[1]]];
+        for (let i = 0; i < lobes; i++) {
+            const cx = b[0] - w + (2 * w * (i + 0.5)) / lobes, r = (w / lobes) * (1.25 + 0.25 * R());
+            const lift = (0.35 + 0.45 * Math.sin(((i + 0.5) / lobes) * Math.PI)) * w * 0.9;
+            for (let j = 0; j <= 8; j++) { const a = Math.PI * (1 + j / 8); pts.push([cx + Math.cos(a) * r, b[1] - lift + Math.sin(a) * r * 0.85]); }
+        }
+        pts.splice(1, 0); pts.push([b[0] + w, b[1]]);
+        const body = [[b[0] - w, b[1]]].concat(pts.slice(2)).concat([[b[0] + w, b[1]]]);
+        Ink.shape(g, body, seed % 2 ? '#4a10c8' : P.royal, { w: lw(s, 0.035), seed: 7000 + seed, d, jit: 0.4 });
+        if (s > 18) Ink.hatch(g, [b[0] - w * 0.55, b[1] - w * 1.05], [b[0] + w * 0.55, b[1] - w * 1.1], { count: 4, len: cap(0.16 * s, 3, 16), w: cap(0.03 * s, 1, 3), col: seed % 3 ? tone(P.cyan, fx) : P.pink, seed: 7100 + seed, d, n: [0, -1], ang: 0.5 });
+    }
+
+    // the oncoming and leading traffic: a minimal drawn car
     function car(g, L, cam, t, d, fx) {
-        const y = Causeway.y(t.z), p = cam.p([t.x, y + 0.6, t.z]); if (p[2] < 2) return;
-        const s = cam.f / p[2];
-        Ink.shape(g, [[p[0] - 0.9 * s, p[1] + 0.4 * s], [p[0] - 0.9 * s, p[1] - 0.3 * s], [p[0] - 0.6 * s, p[1] - 0.75 * s], [p[0] + 0.6 * s, p[1] - 0.75 * s], [p[0] + 0.9 * s, p[1] - 0.3 * s], [p[0] + 0.9 * s, p[1] + 0.4 * s]], P.indigo, { w: Math.max(1, 0.06 * s), seed: Math.round(t.z), d });
+        const yb = C.y(t.z), p = cam.p([t.x, yb + 0.55, t.z]); if (p[2] < 2) return;
+        const s = cam.f / p[2], bw = 0.9 * s;
+        // tyres, body, cabin with its windscreen, bumper
+        for (const dx of [-0.7, 0.7]) Ink.shape(g, [[p[0] + dx * s - 0.14 * s, p[1] + 0.25 * s], [p[0] + dx * s + 0.14 * s, p[1] + 0.25 * s], [p[0] + dx * s + 0.14 * s, p[1] + 0.55 * s], [p[0] + dx * s - 0.14 * s, p[1] + 0.55 * s]], P.ink, { w: 0, seed: Math.round(t.z * 3 + dx * 10), d });
+        Ink.shape(g, [[p[0] - bw, p[1] + 0.35 * s], [p[0] - bw, p[1] - 0.1 * s], [p[0] - bw * 0.95, p[1] - 0.25 * s], [p[0] + bw * 0.95, p[1] - 0.25 * s], [p[0] + bw, p[1] - 0.1 * s], [p[0] + bw, p[1] + 0.35 * s]], t.dir > 0 ? P.violet : P.royal, { w: lw(s, 0.05), seed: Math.round(t.z * 5), d });
+        Ink.shape(g, [[p[0] - bw * 0.72, p[1] - 0.25 * s], [p[0] - bw * 0.55, p[1] - 0.62 * s], [p[0] + bw * 0.55, p[1] - 0.62 * s], [p[0] + bw * 0.72, p[1] - 0.25 * s]], P.indigo, { w: lw(s, 0.045), seed: Math.round(t.z * 7), d });
+        Ink.shape(g, [[p[0] - bw * 0.6, p[1] - 0.28 * s], [p[0] - bw * 0.48, p[1] - 0.56 * s], [p[0] + bw * 0.48, p[1] - 0.56 * s], [p[0] + bw * 0.6, p[1] - 0.28 * s]], P.cyan, { w: 0, seed: Math.round(t.z * 9), d, alpha: 0.55 });
+        Ink.shape(g, [[p[0] - bw, p[1] + 0.2 * s], [p[0] + bw, p[1] + 0.2 * s], [p[0] + bw, p[1] + 0.33 * s], [p[0] - bw, p[1] + 0.33 * s]], P.ink, { w: 0, seed: Math.round(t.z * 11), d });
         const col = t.dir > 0 ? P.red : P.cream;
-        for (const dx of [-0.6, 0.6]) { g.fillStyle = col; g.fillRect(p[0] + dx * s - 0.15 * s, p[1] - 0.15 * s, 0.3 * s, 0.14 * s); Neon.last.glint(null, L, p[0] + dx * s, p[1] - 0.08 * s, Math.max(2, 0.35 * s), hex(col), { lightOnly: true, alpha: 0.6, halo: fx.halo ?? 1 }); }
+        for (const dx of [-0.62, 0.62]) {
+            const lx = p[0] + dx * s, ly = p[1] + 0.03 * s;
+            Ink.shape(g, [[lx - 0.15 * s, ly - 0.06 * s], [lx + 0.15 * s, ly - 0.06 * s], [lx + 0.15 * s, ly + 0.07 * s], [lx - 0.15 * s, ly + 0.07 * s]], col, { w: lw(s, 0.02), seed: Math.round(t.z * 13 + dx * 7), d });
+            Neon.last.glint(null, L, lx, ly, Math.max(2, 0.3 * s), hex(col), { lightOnly: true, alpha: 0.55, halo: fx.halo ?? 1 });
+        }
     }
 
-    // the water under the causeway: piers as ink columns, lamps as stacks of gold strokes
-    function underDeck(g, L, cam, T, d, fx) {
-        const C = Causeway, zc = cam.pos[2];
-        if (cam.pos[0] < 8) return;
-        for (let z = Math.floor((zc + 400) / 24) * 24; z >= zc - 24; z -= 24) {
-            const a = cam.p([7.0, C.WATER, z]), b = cam.p([7.0, C.y(z) - 1.3, z]); if (a[2] < 1) continue;
-            const s = cam.f / a[2];
-            Ink.shape(g, [[a[0] - 0.8 * s, a[1]], [b[0] - 0.8 * s, b[1]], [b[0] + 0.8 * s, b[1]], [a[0] + 0.8 * s, a[1]]], P.grape, { w: Math.max(1, 0.1 * s), seed: z, d, jit: 0 });
-        }
-        const kN = Math.floor(((zc + 0.5) / C.V + C.T0 - Song.bar0) / Song.beat);
-        for (let k = kN + 34; k >= kN; k--) {
-            const zl = C.lampZ(k); if (zl < zc + 2) continue;
-            for (const xh of [1.7, -6.5]) {
-                const top = cam.p([xh, C.WATER, zl]); if (top[2] < 2 || top[0] < -60 || top[0] > cam.W + 60) continue;
-                const s = cam.f / top[2], len = 18 * s;
-                for (let j = 0; j < 7; j++) {
-                    const u = (j + 0.5) / 7, yy = top[1] + len * u * u, w = (0.6 + u * 1.6) * s * (0.5 + Ink.hsh(k, j, d));
-                    Ink.brush(g, [[top[0] - w / 2, yy], [top[0] + w / 2, yy + 0.5]], { w: Math.max(1, 0.12 * s * (1 + u)), col: j % 2 ? P.orange : P.gold, seed: k * 17 + j, d, taper: 0.4, alpha: 0.85 * (1 - u * 0.6) });
-                }
-            }
-        }
+    // the trip's hoops: rings of light standing over the road every 22 m, fixed in the world
+    // (the car drives through them), each a closed brush ring with its glow
+    function hoop(g, L, cam, z, d, fx) {
+        const yb = C.y(z), cx = -2.2, cy = yb + 3.5, r = 10.5, pts = [];
+        for (let i = 0; i < 48; i++) { const a = (i / 48) * Math.PI * 2; pts.push(cam.p([cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.62, z])); }
+        if (pts.some((p) => p[2] < 0.6)) return;
+        // only the part above the deck (below it is hidden by the deck itself)
+        const yDeck = cam.p([cx, yb, z])[1], q = pts.map((p) => [p[0], Math.min(p[1], yDeck + 2)]);
+        const col = tone(Math.round(z / 22) % 2 ? P.magenta : P.cyan, fx), s = cam.f / pts[0][2];
+        const a = fx.trip * Math.min(1, (z - cam.pos[2] - 4) / 20) * Math.max(0, 1 - (z - cam.pos[2]) / 260);
+        if (a <= 0.02) return;
+        Ink.brush(g, q, { w: cap(0.16 * s, 1.5, 9), col, seed: 8000 + Math.round(z), d, closed: true, alpha: a, light: true });
+        L.save(); L.globalAlpha = a * 0.7; L.strokeStyle = col; L.lineWidth = cap(0.3 * s, 2, 14); L.beginPath(); q.forEach((p, i) => (i ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); L.closePath(); L.stroke(); L.restore();
     }
 
     return { sky, city, bay, causeway, underDeck };

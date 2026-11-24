@@ -14,7 +14,29 @@ from PIL import Image
 
 src, box, out = sys.argv[1], sys.argv[2], sys.argv[3]
 x0, x1, y0, y1 = map(int, box.split(','))
-im = np.array(Image.open(src).convert('RGBA')).astype(np.float32)[y0:y1 + 1, x0:x1 + 1]
+full = np.array(Image.open(src).convert('RGBA')).astype(np.float32)
+M = 12                                                  # margin: the crown of the head is not cut flat
+x0, y0 = max(0, x0 - M), max(0, y0 - M); x1, y1 = min(full.shape[1] - 1, x1 + M), min(full.shape[0] - 1, y1 + M)
+im = full[y0:y1 + 1, x0:x1 + 1].copy()
+# keep only the largest connected piece of the figure (a box from a sheet catches the edges of
+# the neighbouring views)
+solid0 = im[..., 3] > 100
+lab = np.zeros(solid0.shape, np.int32); cur = 0; sizes = {}
+for sy, sx in zip(*np.nonzero(solid0)):
+    if lab[sy, sx]: continue
+    cur += 1; stack = [(sy, sx)]; lab[sy, sx] = cur; n = 0
+    while stack:
+        yy, xx = stack.pop(); n += 1
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            ny, nx = yy + dy, xx + dx
+            if 0 <= ny < lab.shape[0] and 0 <= nx < lab.shape[1] and solid0[ny, nx] and not lab[ny, nx]:
+                lab[ny, nx] = cur; stack.append((ny, nx))
+    sizes[cur] = n
+keep = max(sizes, key=sizes.get)
+grow = lab == keep
+for _ in range(2):                                       # with its soft edge
+    grow = grow | np.roll(grow, 1, 0) | np.roll(grow, -1, 0) | np.roll(grow, 1, 1) | np.roll(grow, -1, 1)
+im[~grow] = 0
 rgb, a = im[..., :3] / 255, im[..., 3] / 255
 H = lambda h: np.array([int(h[i:i + 2], 16) for i in (1, 3, 5)], np.float32) / 255
 INK = H('#0b0230')
@@ -39,6 +61,15 @@ r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
 d = mx - mn + 1e-6
 hue = np.where(mx == r, ((g - b) / d) % 6, np.where(mx == g, (b - r) / d + 2, (r - g) / d + 4)) * 60
 ink = (L < 0.16) | ((L < 0.3) & (S < 0.35) & (hue > 240))
+# a dark area wider than a line (its interior after a 3 px erosion) is a dark fill (black hair),
+# painted in the hair inks; only its rim stays ink
+er = ink.copy()
+for _ in range(3):
+    er = er & np.roll(er, 1, 0) & np.roll(er, -1, 0) & np.roll(er, 1, 1) & np.roll(er, -1, 1)
+darkFill = er.copy()
+for _ in range(2):
+    darkFill = darkFill | (np.roll(darkFill, 1, 0) & ink) | (np.roll(darkFill, -1, 0) & ink) | (np.roll(darkFill, 1, 1) & ink) | (np.roll(darkFill, -1, 1) & ink)
+ink = ink & ~darkFill
 cls = np.full(L.shape, 'other', object)
 cls[(hue >= 4) & (hue < 42) & (S > 0.22) & (L >= 0.25)] = 'skin'
 cls[(S < 0.16) & (L >= 0.55)] = 'white'
@@ -46,11 +77,15 @@ cls[((hue >= 300) | (hue < 8)) & (S > 0.35) & (L >= 0.3)] = 'pink'
 cls[(hue >= 40) & (hue < 62) & (S > 0.55) & (L >= 0.45)] = 'gold'
 cls[(L < 0.42) & ~ink & ((hue < 40) | (hue > 330))] = 'hair'          # auburn and black hair, brows
 cls[(L < 0.32) & ~ink & (S < 0.45)] = 'hair'
+cls[darkFill] = 'hair'
 # prints on his shirt: keep their hue family as neon
 teal = (hue >= 150) & (hue < 200) & (S > 0.3)
 yell = (hue >= 45) & (hue < 70) & (S > 0.4) & (L >= 0.55)
 out_rgb = np.zeros_like(rgb)
 lift = float(sys.argv[sys.argv.index('--light') + 1]) if '--light' in sys.argv else 1.0
+# --white magenta: white cloth in the magenta inks (her jacket), so it parts from her violet hair
+if '--white' in sys.argv and sys.argv[sys.argv.index('--white') + 1] == 'magenta':
+    RAMPS['white'] = [H('#4a0a8a'), H('#ad19b0'), H('#e106d3'), H('#ff6ad0'), H('#ffb0e8')]
 for name, ramp in RAMPS.items():
     m = cls == name
     if not m.any(): continue

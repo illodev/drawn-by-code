@@ -100,61 +100,73 @@ function drawDrawn(g, t, env) {
     const T = Song.B(29) + tq;
     const shot = shotIndex(t);
     const fx = effects(tq, T);
-    const L = N.light();
     const cz = Causeway.carZ(T), cy = Causeway.y(cz), pitch = Math.atan(Causeway.slope(cz));
     const pose = { x: Causeway.LANE, y: cy, z: cz, pitch };
     const cam = shotCam(shot, tq, T, env);
     const horizon = cam.p([0, Causeway.WATER, 9000])[1];
+    // the far world, with its own light, bloomed before anything near is painted over it
+    Ink.occlude(null);
+    let L = N.light();
     Drawn.sky(g, cam, T, d, fx, env, horizon);
     Drawn.city(g, cam, T, d, fx, env);
     Drawn.bay(g, L, cam, T, d, fx, env, horizon);
     Drawn.underDeck(g, L, cam, T, d, fx);
     if (fx.grid > 0) inkGrid(g, L, cam, T, d, fx, 'water');
-    const items = Drawn.causeway(g, L, N, cam, T, d, { ...fx });
-    if (fx.grid > 0) inkGrid(g, L, cam, T, d, fx, 'deck');
+    N.bloom(g, L, { strength: 0.35 + fx.trip * 0.15 + fx.hold * 0.15, core: 0.5 });
+    // the near world: every opaque thing painted from here on hides the light behind it
+    L = N.light();
+    Ink.occlude(L);
+    if (fx.trip > 0) N.trails(L, (c, Tp) => Causeway.lights(c, N, shotCam(shotIndex(Tp - Song.B(29)), Tp - Song.B(29), Tp, env), Tp, fx), T, { n: 5, dt: 1.5 / 24, decay: 0.6, amount: 0.5 * fx.trip });
+    const { items, last } = Drawn.causeway(g, L, cam, T, d, { ...fx, onDeck: fx.grid > 0 ? (zHide) => inkGrid(g, L, cam, T, d, fx, 'deck', zHide) : null });
     const lamp = Causeway.lampLight(cz + 1.0);
     const light = { lamp: lamp * fx.lampPower, hue: fx.hue, power: 1, city: 1, drawn: true, d };
     items.push({ z: pose.z, depth: cam.view([pose.x, pose.y + 0.6, pose.z])[2], draw: () => {
-        Car.draw(g, L, N, cam, pose, light, (gg) => {
+        // the car on its own layer with its own light: it erases the light behind it, then adds its own
+        Ink.occlude(null);
+        const carL = Motion.layer(env, 'carLight', () => {});
+        const cl = carL.getContext('2d'); cl.setTransform(env.k, 0, 0, env.k, 0, 0); cl.globalCompositeOperation = 'lighter';
+        const carPic = Motion.layer(env, 'carPic', (c) => Car.draw(c, cl, N, cam, pose, light, (gg) => {
             const sway = Math.sin(T * 7.3) * 0.006;
             Couple.backDrawn(gg, cam, pose, 'him', -0.42, -0.52, light, { sway: -sway, T, d });
             Couple.backDrawn(gg, cam, pose, 'her', 0.42, -0.52, light, { sway, T, d });
-        });
+        }));
+        L.save(); L.setTransform(1, 0, 0, 1, 0, 0);
+        L.globalCompositeOperation = 'destination-out'; L.drawImage(carPic, 0, 0);
+        L.globalCompositeOperation = 'lighter'; L.drawImage(carL, 0, 0);
+        L.restore();
+        g.drawImage(carPic, 0, 0, env.W, env.H);
+        Ink.occlude(L);
     } });
     for (const it of items) if (it.depth === undefined) it.depth = cam.view([0, Causeway.y(it.z), it.z])[2];
     items.sort((a, b) => b.depth - a.depth);
     for (const it of items) it.draw();
-    // the trip, drawn: sparkles as little ink-edged stars, forms as brush rings
-    if (fx.trip > 0) {
-        const vp = cam.p([Causeway.LANE, Causeway.y(cz + 300) + 3, cz + 300]);
-        const R = Motion.rng('trip-stars' + d);
-        for (let i = 0; i < 26; i++) {
-            const x = R() * env.W, y = R() * horizon, r = 4 + R() * 10, col = [Ink.PAL.cyan, Ink.PAL.pink, Ink.PAL.gold, Ink.PAL.cream][i % 4];
-            g.save(); g.fillStyle = col; g.beginPath();
-            for (let j = 0; j < 8; j++) { const a = (j / 8) * Math.PI * 2, rr = j % 2 ? r * 0.3 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
-            g.fill(); g.restore();
-        }
-        for (let i = 0; i < 6; i++) {
-            const u = ((i + (tq - 6.05) * 2.4) % 6) / 6, rr = 1100 * Math.pow(u, 2);
-            const pts = []; for (let j = 0; j <= 8; j++) { const a = (j / 8) * Math.PI * 2 + tq * 0.4; pts.push([vp[0] + Math.cos(a) * rr, vp[1] + Math.sin(a) * rr * 0.6]); }
-            Ink.brush(g, pts, { w: 2 + 4 * u, col: i % 2 ? Ink.PAL.magenta : Ink.PAL.cyan, seed: 700 + i, d, alpha: 0.7 * u * fx.trip, taper: 0.05 });
-        }
-    }
-    N.bloom(g, L, { strength: 0.45 + fx.trip * 0.2, core: 0.6 });
+    if (last) last();
+    Ink.occlude(null);
+    N.bloom(g, L, { strength: 0.35 + fx.trip * 0.15, core: 0.5 });
     if (fx.flash > 0) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(255,120,220,${fx.flash})`; g.fillRect(0, 0, env.W, env.H); g.restore(); }
 }
 
-// the trip's grid in ink: brush lines on the deck and on the bay
-function inkGrid(g, L, cam, T, d, fx, part) {
+// the trip's grid in ink: brush lines on the deck (clipped to the asphalt by the caller, the
+// median left bare, nothing past the crest) and on the bay
+function inkGrid(g, L, cam, T, d, fx, part, zHide = Infinity) {
     const a = fx.grid * (0.5 + 0.5 * fx.kick), zc = cam.pos[2], P = Ink.PAL;
-    const line = (pts, col, w, al, seed) => { const Q = pts.map(cam.p); if (Q.some((p) => p[2] < 0.6)) return; Ink.brush(g, Q.map((p) => [p[0], p[1]]), { w, col, seed, d, alpha: al, taper: 0.05, wob: 1 }); L.save(); L.globalAlpha = al * 0.5; L.strokeStyle = col; L.lineWidth = w * 2; L.beginPath(); Q.forEach((p, i) => (i ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); L.stroke(); L.restore(); };
+    const cyan = fx.hue ? Neon.css(Neon.shift(P.cyan, fx.hue)) : P.cyan, mag = fx.hue ? Neon.css(Neon.shift(P.magenta, -fx.hue)) : P.magenta;
+    const line = (pts, col, w, al, seed) => {
+        const Q = pts.map(cam.p).filter((p) => p[2] > 0.6); if (Q.length < 2) return;
+        Ink.brush(g, Q.map((p) => [p[0], p[1]]), { w, col, seed, d, alpha: al, taper: 0.05, wob: 1, light: true });
+        L.save(); L.globalAlpha = al * 0.45; L.strokeStyle = col; L.lineWidth = w * 1.6; L.beginPath(); Q.forEach((p, i) => (i ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); L.stroke(); L.restore();
+    };
     if (part === 'deck') {
-        for (let x = -11; x <= 7; x += 2.25) { const pts = []; for (let z = zc + 1.5; z < zc + 300; z += 15) pts.push([x, Causeway.y(z) + 0.03, z]); line(pts, P.cyan, 2.4, a, 800 + Math.round(x * 4)); }
-        for (let z = Math.ceil((zc + 1.5) / 6) * 6; z < zc + 240; z += 6) { const yy = Causeway.y(z) + 0.03; line([[-11.8, yy, z], [7.4, yy, z]], P.magenta, Math.max(1.2, 120 / (z - zc + 10)), a * Math.max(0, 1 - (z - zc) / 260), 900 + z); }
+        const zEnd = Math.min(zc + 300, zHide);
+        for (let x = -11; x <= 7; x += 2.25) { if (x > -4.6 && x < -0.2) continue; const pts = []; for (let z = zc + 1.5; z < zEnd; z += 12) pts.push([x, Causeway.y(z) + 0.03, z]); line(pts, cyan, 2.2, a, 800 + Math.round(x * 4)); }
+        for (let z = Math.ceil((zc + 1.5) / 6) * 6; z < Math.min(zc + 240, zHide); z += 6) {
+            const yy = Causeway.y(z) + 0.03, w = Math.min(4, Math.max(1.2, 90 / (z - zc + 10))), f = a * Math.max(0, 1 - (z - zc) / 260);
+            line([[-11.8, yy, z], [-4.4, yy, z]], mag, w, f, 900 + z); line([[-0.4, yy, z], [7.4, yy, z]], mag, w, f, 950 + z);
+        }
         return;
     }
-    for (let x = -600; x <= 600; x += 40) { if (Math.abs(x) < 20) continue; line([[x, Causeway.WATER, zc + 30], [x, Causeway.WATER, zc + 1400]], P.cyan, 1.6, a * 0.6, 1000 + x); }
-    for (let z = Math.ceil((zc + 30) / 40) * 40; z < zc + 1400; z += 40) { const f = Math.max(0, 1 - (z - zc) / 1400); line([[-600, Causeway.WATER, z], [-20, Causeway.WATER, z]], P.magenta, 1.6, a * 0.6 * f, 1100 + z); line([[20, Causeway.WATER, z], [600, Causeway.WATER, z]], P.magenta, 1.6, a * 0.6 * f, 1200 + z); }
+    for (let x = -600; x <= 600; x += 40) { if (Math.abs(x) < 20) continue; line([[x, Causeway.WATER, zc + 30], [x, Causeway.WATER, zc + 1400]], cyan, 1.6, a * 0.6, 1000 + x); }
+    for (let z = Math.ceil((zc + 30) / 40) * 40; z < zc + 1400; z += 40) { const f = Math.max(0, 1 - (z - zc) / 1400); line([[-600, Causeway.WATER, z], [-20, Causeway.WATER, z]], mag, 1.6, a * 0.6 * f, 1100 + z); line([[20, Causeway.WATER, z], [600, Causeway.WATER, z]], mag, 1.6, a * 0.6 * f, 1200 + z); }
 }
 
 // what the music does to the picture at t: the hold (no bass), the drop, the trip
@@ -233,7 +245,7 @@ function shotCam(shot, t, T, env) {
         // streaks in the water, the city; the car comes in from the left and draws away
         const zc = Causeway.carZ(61.4) - 3;
         const follow = Ease.inOut(Ease.seg(t, 2.6, 4.0334));
-        return Neon.camera({ ...base, pos: [14, Causeway.y(zc) + 3.2, zc], yaw: -0.34 + follow * 0.12, pitch: -0.035, roll: 0.0, f: 1000 });
+        return Neon.camera({ ...base, pos: [14, Causeway.y(zc) + 5.6, zc], yaw: -0.34 + follow * 0.12, pitch: -0.06, roll: 0.0, f: 1000 });
     }
     if (shot === 2) {
         // the crest: from behind and low the camera rises and lets the car draw away, the city opening up
