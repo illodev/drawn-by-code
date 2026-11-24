@@ -1,14 +1,20 @@
 // 2026-11-21-ae-morph-fixer · preview of the "After" halves of the demo make-demo.jsx builds.
 //
-// The demo's keys (demo-spec.js), fixed by morph-math.js (the code "Mask Morph Fixer.jsx" carries),
-// drawn the way After Effects interpolates them: every vertex and tangent of the path in a
-// straight line, the time eased (Easy Ease = smoothstep); make-demo checks inside AE that it
-// really does. Two parts, like AE's "Mask Morph Fixer demo" comp:
-//   0-8 s     Morph demo: five shapes drawn with nothing in common
-//   8-14.5 s  Turn demo: an F turned a quarter at a time, fixed with turn on: the turn is
-//             written into the path, one key a frame, each the F swung about the step's fixed
-//             point (MF.swing); no transform is keyed
-// The orange dot rides the first point. The "Before" halves are After Effects' own business
+// The demo's keys (demo-spec.js, demo-letters.js), fixed by morph-math.js (the code "Mask Morph
+// Fixer.jsx" carries), drawn the way After Effects interpolates them: every vertex and tangent
+// of the path in a straight line, the time eased (Easy Ease = smoothstep); make-demo checks
+// inside AE that it really does. Four parts, like AE's "Mask Morph Fixer demo" comp:
+//   0-8 s       Morph demo: five shapes drawn with nothing in common
+//   8-14.5 s    Turn demo: an F turned a quarter at a time, fixed with turn on: the turn is
+//               written into the path, one key a frame, each the F swung about the step's fixed
+//               point (MF.swing); no transform is keyed
+//   14.5-23 s   Symmetry demo: a star, the star turned 36 deg, a plus, an x, the star, all
+//               sharing the upright axis, each drawn anew: every step mirror-symmetric (AE's
+//               left half: the same fix without its symmetry rule, which swirls two steps)
+//   23-31.5 s   Letters demo: a, e, o, d, b in Comic Neue Bold, an outline and a hole each,
+//               pieces matched between keys, max 200 (a into e: a start chosen against a
+//               crossover)
+// The orange dot rides the first point (not on the letters). The "Before" halves are After Effects' own business
 // (how it blends keys that don't match is what the rig avoids), so they only exist in AE's
 // render. A diagnostic, not a styled piece.
 const DIR = 'sandbox/2026-11-21-ae-morph-fixer/';
@@ -23,9 +29,10 @@ function stepAt(keys, t) {
     return { k: keys.length - 2, u: 1 };
 }
 
-function trace(g, P, ox, oy) {
+// P's outline as a subpath of the current path (more pieces: one fill, holes by their direction)
+function trace(g, P, ox, oy, keep) {
     const n = P.v.length;
-    g.beginPath();
+    if (!keep) g.beginPath();
     g.moveTo(ox + P.v[0][0], oy + P.v[0][1]);
     for (let k = 0; k < (P.closed ? n : n - 1); k++) {
         const c = MF.seg(P, k);
@@ -34,42 +41,66 @@ function trace(g, P, ox, oy) {
     if (P.closed) g.closePath();
 }
 
+// where each part starts: morph, turn, symmetry, letters (the specs load after this file runs:
+// setup checks these against them)
+const T_TURN = 8, T_SYM = 14.5, T_LET = 23, T_END = 31.5;
+
 Motion.scene({
-    fps: 24, duration: 14.5,
+    fps: 24, duration: T_END,
     logical: [1920, 1080],
-    uses: [DIR + 'morph-math.js', DIR + 'demo-spec.js'],
-    shots: [[0, 8, 'Morph (After)'], [8, 14.5, 'Turn (After)']],
+    uses: [DIR + 'morph-math.js', DIR + 'demo-spec.js', DIR + 'demo-letters.js'],
+    shots: [[0, T_TURN, 'Morph (After)'], [T_TURN, T_SYM, 'Turn (After)'], [T_SYM, T_LET, 'Symmetry (Symmetric)'], [T_LET, T_END, 'Letters (After)']],
     setup() {
+        const ends = [MD.duration, MD.duration + MD.turn.duration, MD.duration + MD.turn.duration + MD.sym.duration];
+        ends.push(ends[2] + ML.duration);
+        if ([T_TURN, T_SYM, T_LET, T_END].some((t, i) => Math.abs(t - ends[i]) > 1e-6)) throw new Error('scene.js part times differ from the specs: ' + ends.join(', '));
         const keys = MD.keys.map(([, s]) => MD.shapes[s]);
         const turnKeys = MD.turn.keys.map(([, s]) => MD.turn.shapes[s]);
+        const symKeys = MD.sym.keys.map(([, s]) => MD.sym.shapes[s]);
+        // letters: pieces matched between keys, then each piece's path fixed
+        const rows = ML.keys.map(([, s]) => ML.shapes[s]), dealt = MF.matchPieces(rows).keys;
+        const letters = rows[0].map((_, p) => MF.fix(dealt.map((row) => row[p]), { maxPoints: ML.maxPoints }).paths);
         return {
             morph: MF.fix(keys, { maxPoints: MD.maxPoints }).paths,
             turn: MF.fix(turnKeys, { maxPoints: MD.maxPoints, rotate: true }),
+            sym: MF.fix(symKeys, { maxPoints: MD.maxPoints }).paths,
+            letters,
         };
     },
     draw(g, t, env) {
-        const C = MD.colors, [ox, oy] = MD.after;
+        const C = MD.colors, [ox, oy] = MD.after, S = env.state;
         g.fillStyle = rgb(C.bg);
         g.fillRect(0, 0, env.W, env.H);
-        let P;
-        if (t < MD.duration) {
+        let pieces, labels = ['Before', 'After'];
+        if (t < T_TURN) {
             const s = stepAt(MD.keys, t);
-            P = MF.lerp(env.state.morph[s.k], env.state.morph[s.k + 1], s.u);
+            pieces = [MF.lerp(S.morph[s.k], S.morph[s.k + 1], s.u)];
+        } else if (t < T_SYM) {
+            const s = stepAt(MD.turn.keys, t - T_TURN);
+            pieces = [MF.swing(S.turn.turn, S.turn.paths, s.k, s.u)];     // what the in-between keys hold
+        } else if (t < T_LET) {
+            const s = stepAt(MD.sym.keys, t - T_SYM);
+            pieces = [MF.lerp(S.sym[s.k], S.sym[s.k + 1], s.u)];
+            labels = ['Least travel', 'Symmetric'];
         } else {
-            const s = stepAt(MD.turn.keys, t - MD.duration);
-            P = MF.swing(env.state.turn.turn, env.state.turn.paths, s.k, s.u);     // what the in-between keys hold
+            const s = stepAt(ML.keys, t - T_LET);
+            pieces = S.letters.map((L) => MF.lerp(L[s.k], L[s.k + 1], s.u));
         }
-        trace(g, P, ox, oy);
+        g.beginPath();
+        for (const P of pieces) trace(g, P, ox, oy, true);
         g.fillStyle = rgb(C.shape);
         g.fill();
-        g.beginPath();
-        g.arc(ox + P.v[0][0], oy + P.v[0][1], 12, 0, Math.PI * 2);
-        g.fillStyle = rgb(C.marker);
-        g.fill();
+        if (t < T_LET) {
+            const P = pieces[0];
+            g.beginPath();
+            g.arc(ox + P.v[0][0], oy + P.v[0][1], 12, 0, Math.PI * 2);
+            g.fillStyle = rgb(C.marker);
+            g.fill();
+        }
         g.font = 'bold 46px Arial, sans-serif';
         g.textAlign = 'center';
         g.fillStyle = rgb(C.label);
-        g.fillText('Before', MD.before[0], MD.labelY);
-        g.fillText('After', MD.after[0], MD.labelY);
+        g.fillText(labels[0], MD.before[0], MD.labelY);
+        g.fillText(labels[1], MD.after[0], MD.labelY);
     },
 });

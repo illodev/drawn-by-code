@@ -737,8 +737,10 @@ var MF = (function () {
                 if (!stay && circDist(ss[s].off, 0) < 0.5 / N) stay = ss[s];
             }
             if (near) {
-                // already symmetric (the poles found are within 2 grid steps): left exactly as it
-                // is (snapping onto them moved a hold's start: 0.04 px of travel)
+                // nearly symmetric already (within 2 grid steps): onto the symmetric start exactly
+                // (a star into a plus was left 0.27 % of its outline off: a little lopsided),
+                // unless only a hair away (a hold's identical keys: that moved its start 0.04 px)
+                if (circDist(near.off, off) > 0.25 / N) off = circDist(near.off, 0) < 0.5 / N ? 0 : near.off;
             } else if (ss.length) {
                 // the current start when it is symmetric and the cheapest symmetric one isn't 5 % cheaper
                 var pick = stay && !(ss[0].e < stay.e * GAIN) ? stay : ss[0];

@@ -1,4 +1,4 @@
-// Mask Morph Fixer 0.12.1 - gives every keyframe of a path the same points, direction
+// Mask Morph Fixer 0.12.2 - gives every keyframe of a path the same points, direction
 // and start, so shapes and masks morph cleanly in After Effects; key times and easing stay as
 // they are. Run it from File > Scripts > Run Script File..., then click ? > Install as a panel
 // to dock it (Window menu, after a restart).
@@ -744,8 +744,10 @@ var MF = (function () {
                 if (!stay && circDist(ss[s].off, 0) < 0.5 / N) stay = ss[s];
             }
             if (near) {
-                // already symmetric (the poles found are within 2 grid steps): left exactly as it
-                // is (snapping onto them moved a hold's start: 0.04 px of travel)
+                // nearly symmetric already (within 2 grid steps): onto the symmetric start exactly
+                // (a star into a plus was left 0.27 % of its outline off: a little lopsided),
+                // unless only a hair away (a hold's identical keys: that moved its start 0.04 px)
+                if (circDist(near.off, off) > 0.25 / N) off = circDist(near.off, 0) < 0.5 / N ? 0 : near.off;
             } else if (ss.length) {
                 // the current start when it is symmetric and the cheapest symmetric one isn't 5 % cheaper
                 var pick = stay && !(ss[0].e < stay.e * GAIN) ? stay : ss[0];
@@ -1560,7 +1562,7 @@ var MF = (function () {
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.12.1';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.12.2';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };

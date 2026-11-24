@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.12.1 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.12.2 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -194,6 +194,12 @@ What it doesn't do, and why; each is also said in the report when it happens.
 - **Pieces:** only sibling paths keyed at the same times are matched (one group, or a layer's
   masks of one mode: an Add outline and a Subtract hole stay apart). Open paths aren't. A
   piece is "missing" only when drawn under 3 % of the key's largest piece or under 1 px.
+- **Holes that close or appear** while their letter opens or closes (O into C, C into e):
+  the hole is its own path, so it is still shrinking toward its dot (or growing from it)
+  when the outline no longer surrounds it, and After Effects' non-zero fill paints it: a dark
+  blob in the counter for a few frames. Letters that keep their holes (a, e, o, d, q; A, D,
+  O, P, R; B, 8) morph without it. Not handled yet: the simple way out is to close such a
+  hole before its outline opens (its own extra key partway), and to open one after.
 - **Turn into the path:** one key a frame through each turning step, which is more keys to
   look at; the selected keys must be next to each other, and a Hold step doesn't turn. The
   turn's easing is in the in-betweens: retime by moving your keys and fixing again, not by
@@ -262,13 +268,14 @@ What it needs:
 | `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the turn into the group), report |
 | `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, the release (it leaves nothing on `$.global`), and `out/test-build/Mask Morph Fixer.jsx`, the same plus the exports the tests use; with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
 | `test.mjs` | 4,408 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
-| `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js` |
-| `make-demo.jsx` | Builds the demo project (Before / After). With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
+| `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js`: the morph, the turn, and the symmetry chain (a star, the star turned 36 deg, a plus, an x, the star, all sharing the upright axis, each drawn anew) |
+| `demo-letters.js` | The letters part, a, e, o, d, q in Comic Neue Bold, written by `art/demo-letters.mjs` from the repo's fonts (plain ES3 for AE) |
+| `make-demo.jsx` | Builds the demo project in four parts: Morph, Turn, Symmetry (left: the fix without its symmetry rule, least travel; right: the fix) and Letters (left as typed, right fixed through the panel's own path), each Before / After, in one 31.5 s comp. With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
 | `ae-bridge.jsx` | A test runner that lives in After Effects for the session: send it once with `AfterFX.exe -ro`, then drop jobs into `out/ae/bridge/inbox/` |
 | `bench/ae-bench.jsx` | Times the fix inside AE on a grid of job sizes (`out/ae/bench.csv`): the data the time estimate is fitted to |
 | `bench/ghost-window.jsx`, `bench/window-watch.ps1` | Reproduce the window Windows strands on screen when AE is clicked while a script keeps it busy, watched from outside through Windows' own window list: why the fixer has no progress window |
 | `art/` | The real-artwork regression set (and `symmetry.mjs`: built shapes that share a mirror axis, least travel against symmetric). `ttf.mjs` reads letter outlines from the OFL fonts in the repo's `fonts/`; `cases.mjs` keys 20 cases the way a designer would (O into C, B into 8 pasted out of order, i into l, engraved letters of hundreds of points, a ten-key chain, turning letters, 24 px and 2000 px type); `test-art.mjs` runs them in Node (148 checks, `out/art/report.md`; no in-between crosses itself but O into C's small twist); `crossover.mjs` draws in-betweens with and without the crossover choice; `make-art.jsx` builds and fixes them inside AE through the panel's own code, plus two mask cases; `look.mjs` draws the glyphs to check the reader |
-| `scene.js` | Engine preview of the After half, drawn the way AE interpolates the fixed keys |
+| `scene.js` | Engine preview of the After half of all four parts, drawn the way AE interpolates the fixed keys |
 
 Testing inside After Effects (with the user's go-ahead: the demo opens a new project).
 `node build.mjs` first. Open After Effects normally, send the runner once
@@ -283,7 +290,7 @@ in AE: its timer firing during a modal dialog raises an error dialog and can lea
 scripts until it restarts. It also stops itself after five idle minutes. Render the saved project with `aerender`, which leaves AE free:
 
 ```powershell
-& "C:\Program Files\Adobe\Adobe After Effects 2027\Support Files\aerender.exe" -project out\ae\morph-fixer-demo.aep -comp "Mask Morph Fixer demo" -s 0 -e 347 -RStemplate "Best Settings" -OMtemplate "H.264 - Match Render Settings -  5 Mbps" -output out\ae\morph-fixer-ae.mp4
+& "C:\Program Files\Adobe\Adobe After Effects 2027\Support Files\aerender.exe" -project out\ae\morph-fixer-demo.aep -comp "Mask Morph Fixer demo" -s 0 -e 755 -RStemplate "Best Settings" -OMtemplate "H.264 - Match Render Settings -  5 Mbps" -output out\ae\morph-fixer-ae.mp4
 ```
 
 `render/ae-morph-fixer.mp4` is that render (After Effects), re-encoded with its BT.709 tags.

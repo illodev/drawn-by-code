@@ -567,3 +567,36 @@ its saved test project could be closed, and was told when AE was free again.
   it is. → The calibration fix runs without them. Rerun: 14.7 s estimated, 7.6 s taken (the
   test's "within 2x" passes; it still runs high).
 - The panel installed in the user's AE 27 is now 0.12.1, byte for byte the release.
+
+## Round 13 · 2026-11-24 (the user: demos for symmetry and a few letter transforms)
+
+The demo grows from two parts to four (31.5 s): Morph, Turn, **Symmetry** and **Letters**,
+each Before / After in AE (`make-demo.jsx`) and the After half in the preview (`scene.js`).
+
+- **Symmetry** (`demo-spec.js`, `MD.sym`): a star, the star turned 36 deg, a plus, an x and the
+  star again, all sharing the upright axis, each drawn anew (its own start and direction, so
+  none is a Free Transform turn of the last). Left, "Least travel" (the fix without its
+  symmetry rule); right, "Symmetric" (the fix). Least travel swirls two of the four steps.
+  - Found on the way: the star-turned-36 into plus step came out a little lopsided with the
+    fix. Least travel put the plus's start 0.27 % of its outline from the symmetric start, and
+    round 11's "within 2 grid steps counts as symmetric" left it there. → Snap onto the exact
+    symmetric start, unless only a hair away (under a quarter step, a hold's identical keys).
+    Now every step keeps the axis for 1 % more travel than least travel; a second run
+    changes nothing; Node 4,408 + 148 unchanged.
+- **Letters** (`demo-letters.js`, written by `art/demo-letters.mjs` from the repo's fonts):
+  a, e, o, d, q in Comic Neue Bold at 560 px, max 200; left as typed, right fixed through the
+  panel's own path (pieces matched, every path fixed). a into e gets a start chosen against a
+  crossover.
+  - Tried first: O, C, e, a, 8. Halfway through O into C the O's hole was still shrinking
+    toward its dot after the outline had opened, and AE's non-zero fill painted it: a dark
+    blob in the C's counter. C into e did the same growing. Measured on candidate chains
+    (cells filled by a hole's winding alone): every chain whose letters keep their holes
+    (aeodb, ADOPR, ARDOQ, B8) had none; M into W in this font twists (6.7 %). d into b split
+    its stem into two humps halfway (symmetric, not pretty); d into q slides the bowl up.
+  - → Written down as a limit ("Holes that close or appear"), with the simple way out: close
+    such a hole before its outline opens.
+- **In After Effects 27** (the user approved closing the demo project unsaved; a second,
+  windowless AE 2026 with a Japanese untitled project was left alone): the demo test 51/51,
+  including "every step on the right keeps the upright axis, the left swirls some" (right 4/4,
+  left 2/4) and the letters fixed with a crossover avoided. Rendered with aerender (756
+  frames, 26 s); `render/` (mp4, strip, gif) redone from it.

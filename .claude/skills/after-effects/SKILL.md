@@ -573,6 +573,14 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   estimate scales by a small fix timed against 160 ms measured once; new checks inside that fix
   made the machine read 3.28x slower and the estimate 3.4x high (25 s for 7.3). Pin the
   calibration's options, and rerun the estimate test in AE after adding work to the fix.
+- 2026-11-24 · ae-morph-fixer · A letter's hole is its own path, and AE's non-zero fill paints
+  any part of it the outline no longer surrounds: a hole that closes (or opens) while its
+  letter opens (O into C) is a dark blob in the counter for a few frames. Pick demo morphs by
+  measuring (cells filled by a hole's winding alone, over the in-betweens), not by name: every
+  chain whose letters keep their holes had none.
+- 2026-11-24 · ae-morph-fixer · Demo a choice against its alternative, side by side: the
+  symmetry part puts the fix without its symmetry rule on the left. Building it found a step
+  the fix left a little lopsided (a start "near enough" to symmetric), which no test had.
 - 2026-11-22 · ae-morph-fixer · A test harness left running in the user's AE is a bug the user
   sees: the morph fixer's runner fired during a dialog and wedged AE after the work was done.
   Stop every runner when the tests end, and give it an idle timeout in case you forget.

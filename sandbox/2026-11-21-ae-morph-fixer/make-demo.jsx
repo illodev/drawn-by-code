@@ -50,9 +50,12 @@
         Folder(OUT).create();
     }
     var comp = null, before = null, after = null, D = null, MFm = null, MFx = null, turnComp = null, turnBuilt = null, master = null, asked = null;
+    var LT = null, symBuilt = null, letBuilt = null;
     try {
         eval(readText('demo-spec.js'));     // $.evalFile would not put MD on $.global
         D = MD;
+        eval(readText('demo-letters.js'));  // the letters (art/demo-letters.mjs writes it)
+        LT = ML;
         $.global.MORPH_NO_UI = true;
         $.evalFile(new File(here.fsName + '/out/test-build/Mask Morph Fixer.jsx'));     // the test build (build.mjs)
         $.global.MORPH_NO_UI = false;       // $.global lives all session: a panel opened later must build
@@ -71,9 +74,20 @@
         // the turn demo: an F turned a quarter at a time, fixed with turn on
         turnBuilt = demoComp('Turn demo', D.turn.duration, D.turn.shapes, D.turn.keys, { maxPoints: D.maxPoints, rotate: true });
         turnComp = turnBuilt.comp;
-        master = app.project.items.addComp('Mask Morph Fixer demo', D.size[0], D.size[1], 1, D.duration + D.turn.duration, D.fps);
-        master.layers.add(turnComp).startTime = D.duration;
-        master.layers.add(comp).startTime = 0;
+        // the symmetry demo: shapes sharing the upright axis; left, the fix without its symmetry
+        // rule (least travel), right, the fix
+        symBuilt = demoComp('Symmetry demo', D.sym.duration, D.sym.shapes, D.sym.keys, { maxPoints: D.maxPoints },
+            { labels: ['Least travel', 'Symmetric'], beforeOpts: { maxPoints: D.maxPoints, symmetry: false } });
+        // the letters demo: a, e, o, d, q (an outline and a hole each), fixed through the panel's path
+        letBuilt = lettersComp('Letters demo', LT);
+        var parts = [comp, turnComp, symBuilt.comp, letBuilt.comp], total = 0, pi;
+        for (pi = 0; pi < parts.length; pi++) total += parts[pi].duration;
+        master = app.project.items.addComp('Mask Morph Fixer demo', D.size[0], D.size[1], 1, total, D.fps);
+        for (pi = parts.length - 1; pi >= 0; pi--) {
+            var startAt = 0;
+            for (var pj = 0; pj < pi; pj++) startAt += parts[pj].duration;
+            master.layers.add(parts[pi]).startTime = startAt;
+        }
         master.openInViewer();
         app.endUndoGroup();
     } catch (e) {
@@ -81,19 +95,66 @@
         note('ERROR building the demo: ' + safe(e));
     }
 
-    // a comp with Before (the keys as drawn) and After (fixed with opts), dots and labels
-    function demoComp(name, duration, shapes, keys, opts) {
+    // a comp with Before (the keys as drawn) and After (fixed with opts), dots and labels.
+    // extra: { labels: [left, right], beforeOpts: fix the left one too, with these }
+    function demoComp(name, duration, shapes, keys, opts, extra) {
+        var x = extra || {}, labels = x.labels || ['Before', 'After'];
         var c = app.project.items.addComp(name, D.size[0], D.size[1], 1, duration, D.fps);
         c.layers.addSolid(rgb(D.colors.bg), 'Background', D.size[0], D.size[1], 1, duration).locked = true;
         var b = shapeLayer(c, 'Before', D.before, shapes, keys), a = shapeLayer(c, 'After', D.after, shapes, keys);
         marker(c, 'Before');
         marker(c, 'After');
+        label(c, labels[0], D.before[0]);
+        label(c, labels[1], D.after[0]);
+        var tFix = new Date().getTime();
+        var rep = MFx.fix(pathOf(a), opts), repB = x.beforeOpts ? MFx.fix(pathOf(b), x.beforeOpts) : null;
+        note(name + ' fix (' + (new Date().getTime() - tFix) + ' ms): ' + MFx.summary(rep) + (repB ? ' | left: ' + MFx.summary(repB) : ''));
+        return { comp: c, before: b, after: a, report: rep, beforeReport: repB };
+    }
+
+    // a comp with Before (the letters as typed: each key's pieces in the font's order) and After
+    // (selected and fixed the way the panel does: pieces matched between keys, every path fixed)
+    function lettersComp(name, L) {
+        var c = app.project.items.addComp(name, D.size[0], D.size[1], 1, L.duration, D.fps);
+        c.layers.addSolid(rgb(D.colors.bg), 'Background', D.size[0], D.size[1], 1, L.duration).locked = true;
+        var b = glyphLayer(c, 'Before', D.before, L), a = glyphLayer(c, 'After', D.after, L), i;
         label(c, 'Before', D.before[0]);
         label(c, 'After', D.after[0]);
-        var tFix = new Date().getTime();
-        var rep = MFx.fix(pathOf(a), opts);
-        note(name + ' fix (' + (new Date().getTime() - tFix) + ' ms): ' + MFx.summary(rep));
-        return { comp: c, before: b, after: a, report: rep };
+        c.openInViewer();
+        for (i = 1; i <= c.numLayers; i++) c.layer(i).selected = false;
+        a.selected = true;
+        var tFix = new Date().getTime(), res = MFx.fixSelection({ mode: 'smooth', maxPoints: L.maxPoints });
+        a.selected = false;
+        note(name + ' fix (' + (new Date().getTime() - tFix) + ' ms): ' + res.status + ' | ' + res.detail.split('\n').join(' | '));
+        return { comp: c, before: b, after: a, result: res };
+    }
+
+    // a shape layer at `at` whose group "Letter" holds one keyed path per piece and a fill
+    function glyphLayer(comp, name, at, L) {
+        var G = comp.layers.addShape(), n = L.shapes[0].length, p, k;
+        G.name = name;
+        tf(G, 'ADBE Position').setValue([at[0], at[1], 0]);
+        G.property('ADBE Root Vectors Group').addProperty('ADBE Vector Group').name = 'Letter';
+        var list = function () { return G.property('ADBE Root Vectors Group').property('Letter').property('ADBE Vectors Group'); };
+        for (p = 0; p < n; p++) list().addProperty('ADBE Vector Shape - Group');
+        list().addProperty('ADBE Vector Graphic - Fill');
+        list().property(n + 1).property('ADBE Vector Fill Color').setValue(rgb(D.colors.shape));
+        for (p = 0; p < n; p++) {
+            list().property(p + 1).name = 'Piece ' + (p + 1);
+            var path = list().property(p + 1).property('ADBE Vector Shape');
+            for (k = 0; k < L.keys.length; k++) path.setValueAtTime(L.keys[k][0], MFx.fromMF(L.shapes[L.keys[k][1]][p]));
+            for (k = 1; k <= path.numKeys; k++) {
+                path.setInterpolationTypeAtKey(k, KeyframeInterpolationType.BEZIER);
+                path.setTemporalEaseAtKey(k, [new KeyframeEase(0, 33.333)], [new KeyframeEase(0, 33.333)]);
+            }
+        }
+        return G;
+    }
+
+    function piecePaths(G) {
+        var list = G.property('ADBE Root Vectors Group').property('Letter').property('ADBE Vectors Group'), out = [];
+        for (var i = 1; i <= list.numProperties; i++) if (list.property(i).matchName === 'ADBE Vector Shape - Group') out.push(list.property(i).property('ADBE Vector Shape'));
+        return out;
     }
 
     // a shape layer at `at` whose group "Morph" holds the keyed path and a fill
@@ -391,6 +452,38 @@
             var p2 = keyed(plusV(0), plusV(45)), r2 = MFx.fix(p2, { maxPoints: 100 });
             var p3 = keyed(plusV(0), plusV(45)), r3 = MFx.fix(p3, { maxPoints: 100, symmetry: 'force' });
             check('symmetry: a thin plus into an x: only the sym option makes it symmetric', r2.symmetric === 0 && !upright(p2) && r3.symmetric === 1 && upright(p3), MFx.summary(r3));
+        });
+        step('symmetry demo', function () {
+            // the right half (the fix) keeps the shared upright axis through every step; the left
+            // half (without its symmetry rule) swirls at least one
+            function stepsKeeping(L) {
+                var p = pathOf(L), kept = 0, steps = 0, k;
+                for (k = 1; k < p.numKeys; k++) {
+                    if (p.keyTime(k + 1) - p.keyTime(k) < 0.6) continue;       // a hold
+                    steps++;
+                    var ok = true;
+                    for (var u = 1; u < 5; u++) {
+                        var t = p.keyTime(k) + (p.keyTime(k + 1) - p.keyTime(k)) * u / 5, ax = MFm.mirrorAxes(MFx.toMF(p.valueAtTime(t, false))), has = ax === 'round';
+                        for (var j = 0; !has && j < ax.length; j++) has = Math.abs(ax[j].phi * 180 / Math.PI - 90) < 2;
+                        if (!has) ok = false;
+                    }
+                    if (ok) kept++;
+                }
+                return { kept: kept, steps: steps };
+            }
+            var right = stepsKeeping(symBuilt.after), left = stepsKeeping(symBuilt.before);
+            check('symmetry demo: every step on the right keeps the upright axis, the left swirls some', right.steps === 4 && right.kept === 4 && left.kept < 4,
+                'right ' + right.kept + '/' + right.steps + ', left ' + left.kept + '/' + left.steps);
+        });
+        step('letters demo', function () {
+            // a, e, o, d, q: the After letter's pieces all share their points in every key, and a
+            // into e got a start chosen against a crossover
+            var ps = piecePaths(letBuilt.after), same = true, k;
+            for (var i = 0; i < ps.length; i++) for (k = 2; k <= ps[i].numKeys; k++) if (ps[i].keyValue(k).vertices.length !== ps[i].keyValue(1).vertices.length) same = false;
+            var untangled = 0, reps = letBuilt.result.reports || [];
+            for (k = 0; k < reps.length; k++) untangled += reps[k].untangled || 0;
+            check('letters demo: fixed, every piece the same points in every key, a crossover avoided', /Fixed/.test(letBuilt.result.status) && same && untangled >= 1,
+                letBuilt.result.status + ' · ' + untangled + ' start(s) chosen against a crossover');
         });
         step('drawn turn', function () {
             // a star turned a tip by Free Transform (point k to point k turned 72 deg): the fix

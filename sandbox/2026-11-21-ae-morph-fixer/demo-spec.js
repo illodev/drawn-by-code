@@ -77,6 +77,33 @@ var MD = (function () {
         return path(v, i, o);
     }
 
+    // a plus with arms 2w wide reaching L from the centre (12 sharp points, clockwise from the
+    // top arm's left corner)
+    function plus(w, L) {
+        var v = [[-w, -L], [w, -L], [w, -w], [L, -w], [L, w], [w, w], [w, L], [-w, L], [-w, w], [-L, w], [-L, -w], [-w, -w]];
+        var i = [], o = [];
+        for (var k = 0; k < v.length; k++) {
+            i.push([0, 0]);
+            o.push([0, 0]);
+        }
+        return path(v, i, o);
+    }
+
+    // P drawn from point s, the other way round if back (keeping s as the start): how a designer
+    // who draws each key anew ends up with starts and directions that don't line up
+    function drawnFrom(P, s, back) {
+        var R = rot(P, s);
+        if (!back) return R;
+        var n = R.v.length, B = { v: [], i: [], o: [], closed: true };
+        for (var k = 0; k < n; k++) {
+            var j = (n - k) % n;
+            B.v.push(R.v[j]);
+            B.i.push(R.o[j]);
+            B.o.push(R.i[j]);
+        }
+        return B;
+    }
+
     // P turned by deg (clockwise on screen) about (cx, cy), the way AE's free transform turns a
     // path: same points, same order, same start
     function turned(P, deg, cx, cy) {
@@ -103,8 +130,25 @@ var MD = (function () {
         fKeys.push([s * (fHold + fMorph), s]);
         if (s < 4) fKeys.push([s * (fHold + fMorph) + fHold, s]);
     }
+    // the symmetry demo: shapes that all share the upright mirror axis, each drawn anew (its own
+    // start and direction): a star, the star turned 36 deg (tip down), a plus, an x, the star
+    // again. Least travel swirls some steps one way; the fix keeps every step mirror-symmetric
+    var sShapes = [
+        star(205, 86, -90),
+        drawnFrom(star(205, 86, 18), 3, true),
+        drawnFrom(plus(48, 200), 4, true),
+        drawnFrom(turned(plus(48, 200), 45, 0, 0), 7, false),
+        drawnFrom(star(205, 86, -90), 6, true)
+    ];
+    var sKeys = [], sHold = 0.5, sMorph = 1.4;
+    for (s = 0; s < sShapes.length; s++) {
+        sKeys.push([s * (sHold + sMorph), s]);
+        if (s < sShapes.length - 1) sKeys.push([s * (sHold + sMorph) + sHold, s]);
+    }
     return {
         fps: 24, duration: 8, size: [1920, 1080],
+        // symmetry: 8.5 s, "Least travel" (the fix without its symmetry rule) against the fix
+        sym: { duration: 8.5, shapes: sShapes, keys: sKeys },
         before: [520, 590], after: [1400, 590], labelY: 170, maxPoints: 100,
         shapes: shapes, keys: keys,                       // keys: [time, shape index], Easy Ease
         // the turn demo: 6.5 s, "Before" as drawn (each key the F turned by free transform),
