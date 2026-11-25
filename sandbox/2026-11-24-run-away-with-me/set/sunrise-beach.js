@@ -189,6 +189,8 @@ const SunriseSet = (() => {
         const W0 = ['#8a3a9e', '#6a2a9a', '#4e2298', '#3a1c94', '#2e2092', '#262a96'], W1 = ['#b866a8', '#8e46a2', '#6a329e', '#4e269a', '#3a2a9a', '#2e3a9e'];
         const bands = E0.map((_, i) => mx(mix(W0[i], W1[i], u), mix(E0[i], E1[i], u), fe));
         g.save(); g.translate(lv.cx, lv.cy); g.rotate(lv.ang);
+        // nothing of the water above the horizon (a bent stroke poked into the sky as a «^»)
+        g.beginPath(); g.rect(-Wd, -0.5, Wd * 2, env.H * 3); g.clip();
         g.fillStyle = bands[0]; g.fillRect(-Wd, 0, Wd * 2, env.H * 3);
         for (let i = 0; i < SEA_D.length; i++) {
             const y = (cam.f * h) / SEA_D[i];

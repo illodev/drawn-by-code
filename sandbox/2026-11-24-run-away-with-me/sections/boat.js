@@ -1,4 +1,4 @@
-// uses: props/boat-speedboat.js, sections/boat.js
+// uses: props/boat-speedboat.js (load it before this file)
 // Section · the bridge, 2:43–3:18 (bars 81–98): the speedboat across Biscayne Bay at night
 // (bridge A), the comedown at sea as the night pales over the Atlantic and what they touch
 // turns gold (bridge B), the horizon burning brighter on every beat (the build) and the sun's
@@ -253,7 +253,7 @@
         const gr = fx.goldSea, bc = ps ? [ps.x, ps.z] : [0, 0], cx = cam.pos[0], cz = cam.pos[2];
         const cols = [P.violet, P.purple, P.magenta, P.royal, P.salmon];
         let inner = 0;
-        for (const [cs, rr, ring] of [[1.8, 22, 0], [5, 70, 1], [18, 320, 2], [70, 1700, 3]]) {
+        for (const [cs, rr, ring] of [[2.1, 22, 0], [5.5, 70, 1], [20, 320, 2], [100, 1700, 3]]) {
             for (let ix = Math.floor((cx - rr) / cs); ix <= Math.ceil((cx + rr) / cs); ix++) for (let iz = Math.floor((cz - rr) / cs); iz <= Math.ceil((cz + rr) / cs); iz++) {
                 const h1 = Ink.hsh(ix, iz, ring), h2 = Ink.hsh(iz + 77, ix, ring), h3 = Ink.hsh(ix + 5, iz + 9, ring);
                 const gx = (ix + h1) * cs, gz = (iz + h2) * cs, dd = Math.hypot(gx - cx, gz - cz);

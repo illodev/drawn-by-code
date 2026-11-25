@@ -2,11 +2,14 @@
 // placeholder card where a section is not built yet, the signature at the end.
 const DIR = 'sandbox/2026-11-24-run-away-with-me/';
 const NAMES = ['opening', 'escape', 'drive', 'clouds', 'night', 'boat', 'sunrise'];
+// each section's own files (its first line, «// uses: …»), loaded before the sections
+const EXTRA = ['props/opening-figures.js', 'set/opening-street.js', 'set/opening-party.js'];
 Motion.scene({
     fps: 24,
     duration: 253.5,
     logical: [1920, 1080],
     uses: ['styles/retro-neon/neon.js', 'styles/retro-neon/ink.js', DIR + 'song.js', DIR + 'set/causeway.js', DIR + 'set/skyline.js', DIR + 'props/car.js', DIR + 'cast/couple.js', DIR + 'set/drawn.js', DIR + 'film.js', DIR + 'sections/registry.js']
+        .concat(EXTRA.map((f) => ({ src: DIR + f, optional: true })))
         .concat(NAMES.map((n) => ({ src: DIR + 'sections/' + n + '.js', optional: true }))),
     fonts: [{ family: 'Shrikhand', src: 'fonts/Shrikhand-latin.woff2' }],
     bpm: 119, beatOffset: 0.415,

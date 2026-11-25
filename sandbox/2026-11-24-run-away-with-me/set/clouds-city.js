@@ -482,7 +482,7 @@ const CloudsCity = (() => {
     // --- palms, lamps, cars, signals -------------------------------------------------------------
     function palm(g, L, cam, x, z, seed, T, d, fx) {
         const R = Motion.rng('cpalm' + seed), Hh = 9 + R() * 4, lean = (R() - 0.5) * 0.8, leanZ = (R() - 0.5) * 0.6;
-        const top = cam.p([x + lean, Hh, z + leanZ]); if (top[2] < 0.6) return;
+        const top = cam.p([x + lean, Hh, z + leanZ]); if (top[2] < 4) return;     // a crown at the lens: left out
         const s = cam.f / top[2];
         const side = cam.pos[1] < Hh + 30;
         if (s < 3) {
@@ -509,7 +509,7 @@ const CloudsCity = (() => {
         for (const f of fr) {
             const pt = (u) => cam.p([P0[0] + f.dx * f.len * u, P0[1] + f.arch * Math.sin(u * Math.PI * 0.7) - u * u * (2.2 + sway * 10 * f.dx), P0[2] + f.dz * f.len * u]);
             const rib = []; for (let j = 0; j <= 6; j++) rib.push(pt(j / 6));
-            if (rib.some((p) => p[2] < 0.5)) continue;
+            if (rib.some((p) => p[2] < 2 || Math.abs(p[0] - cam.W / 2) > 4000 || Math.abs(p[1] - cam.H / 2) > 4000)) continue;
             const width = (j) => 0.28 * Math.sin((j / 6) * Math.PI * 0.95 + 0.1) * cam.f / rib[j][2];
             const up = rib.map((p, j) => [p[0], p[1] - width(j) * 0.45]), dn = rib.map((p, j) => [p[0], p[1] + width(j) * 0.7]);
             const near = f.dx * toCam[0] + f.dz * toCam[1] > 0;
@@ -519,7 +519,7 @@ const CloudsCity = (() => {
     }
 
     function lamp(g, L, cam, x, z, dir, d, fx) {
-        const top = cam.p([x, 8.6, z]), base = cam.p([x, 0, z]); if (top[2] < 0.6 || base[2] < 0.6) return;
+        const top = cam.p([x, 8.6, z]), base = cam.p([x, 0, z]); if (top[2] < 2.5 || base[2] < 2.5) return;
         const s = cam.f / top[2], pw = fx.lampPower ?? 1;
         if (s > 3 && cam.pos[1] < 60) {
             const w0 = 0.1 * cam.f / base[2], w1 = 0.06 * s;
@@ -594,6 +594,7 @@ const CloudsCity = (() => {
     // --- one frame of the city ---------------------------------------------------------------------
     function draw(g, L, cam, T, d, fx, env, extra = []) {
         const pl = build(), c = cam.pos, high = c[1] > 40;
+        // window.__cprof = {} (tools only) collects ms per kind of thing painted
         const PR = window.__cprof, tm = (k, f) => { if (!PR) return f(); const t0 = performance.now(); f(); PR[k] = (PR[k] ?? 0) + performance.now() - t0; };
         tm('ground', () => ground(g, L, cam, T, d, fx, env, pl));
         tm('glow', () => streetGlow(g, L, cam, T, d, fx, env));
