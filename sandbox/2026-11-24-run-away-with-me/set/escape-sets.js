@@ -45,6 +45,20 @@ const EscapeSet = (() => {
             }
         }
     }
+    // a world segment cut at 0.5 m in front of the camera and to a few screens' width, as screen
+    // points (or null): a line running behind the camera would project to millions of pixels
+    function clipSeg(cam, A, B) {
+        const a = cam.view(A), b = cam.view(B), n = 0.5;
+        if (a[2] < n && b[2] < n) return null;
+        const cut = (p, q) => { const u = (n - p[2]) / (q[2] - p[2]); return [p[0] + (q[0] - p[0]) * u, p[1] + (q[1] - p[1]) * u, n]; };
+        let p = a[2] < n ? cut(a, b) : a, q = b[2] < n ? cut(b, a) : b;
+        const pr = (v) => [cam.W / 2 + (cam.f * v[0]) / v[2], cam.H / 2 - (cam.f * v[1]) / v[2]];
+        let P0 = pr(p), P1 = pr(q);
+        // keep within 3 screens of the frame: shorten towards the nearer end
+        const lim = 3 * cam.W, far = (P) => Math.abs(P[0] - cam.W / 2) > lim || Math.abs(P[1] - cam.H / 2) > lim;
+        for (let k = 0; k < 30 && (far(P0) || far(P1)); k++) { const m = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2, (p[2] + q[2]) / 2]; if (far(P1)) { q = m; P1 = pr(q); } else { p = m; P0 = pr(p); } }
+        return [P0, P1];
+    }
     // a point on a wall: base A→B (x, z), u metres along, v up
     const wall = (A, B) => { const dx = B[0] - A[0], dz = B[1] - A[1], l = Math.hypot(dx, dz); return { len: l, at: (u, v) => [A[0] + (dx * u) / l, v, A[1] + (dz * u) / l] }; };
     const rect = (Wl, u0, u1, v0, v1) => [Wl.at(u0, v0), Wl.at(u1, v0), Wl.at(u1, v1), Wl.at(u0, v1)];
@@ -835,15 +849,14 @@ const EscapeSet = (() => {
         const zc = cam.pos[2], zA = zc - 220, zB = zc + 420;
         // the sea beyond the park and the beach: a navy band to the horizon, the moon's path
         const seaQ = Neon.poly(cam, [[-14, -0.3, zA], [-14, -0.3, zB], [-3000, -0.3, zB + 2000], [-3000, -0.3, zA - 2000]]);
-        const SK = window.__escSkip2 ?? '';
-        if (seaQ && !SK.includes('S')) { Ink.shape(g, seaQ, '#18065e', { w: 0 }); g.save(); Neon.path(g, seaQ); g.clip(); const R = Motion.rng('esc-sea'); for (let i = 0; i < 70; i++) { const p = cam.p([-20 - Math.pow(R(), 1.6) * 900, -0.3, zc - 300 + R() * 900]); if (p[2] < 2) continue; const l = Math.min(60, 6000 / p[2] + 4); Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0] + l / 2, p[1] + 0.5]], { w: Math.min(4, 1 + 200 / p[2]), col: [P.violet, P.purple, P.royal, P.salmon][i % 4], seed: 2000 + i, d, taper: 0.45, alpha: 0.7 }); } g.restore(); }
+        if (seaQ) { Ink.shape(g, seaQ, '#18065e', { w: 0 }); g.save(); Neon.path(g, seaQ); g.clip(); const R = Motion.rng('esc-sea'); for (let i = 0; i < 70; i++) { const p = cam.p([-20 - Math.pow(R(), 1.6) * 900, -0.3, zc - 300 + R() * 900]); if (p[2] < 2) continue; const l = Math.min(60, 6000 / p[2] + 4); Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0] + l / 2, p[1] + 0.5]], { w: Math.min(4, 1 + 200 / p[2]), col: [P.violet, P.purple, P.royal, P.salmon][i % 4], seed: 2000 + i, d, taper: 0.45, alpha: 0.7 }); } g.restore(); }
         face(g, cam, [[-14, -0.25, zA], [-14, -0.25, zB], [-4, 0, zB], [-4, 0, zA]], '#0e0558', { w: 0 });
         face(g, cam, [[-4, 0, zA], [-4, 0, zB], [4, 0, zB], [4, 0, zA]], '#1a0670', { w: 0 });
         face(g, cam, [[4, 0.15, zA], [4, 0.15, zB], [7.5, 0.15, zB], [7.5, 0.15, zA]], '#3c0ca8', { w: 0 });
         face(g, cam, [[4, 0, zA], [4, 0, zB], [4, 0.15, zB], [4, 0.15, zA]], P.indigo, { w: 0 });
         // the road's paint, kerb lines, the pools of lamp light and their gold streaks on the asphalt
         for (let z = Math.floor(zA / 9) * 9; z < zB; z += 9) { const q = Neon.poly(cam, [[-0.08, 0.005, z], [0.08, 0.005, z], [0.08, 0.005, z + 3.5], [-0.08, 0.005, z + 3.5]]); if (q) Ink.shape(g, q, '#e8b04a', { w: 0, light: true, jit: 0 }); }
-        if (!SK.includes('K')) for (const x of [4, -4]) { const a = cam.p([x, x > 0 ? 0.15 : 0.0, Math.max(zA, zc + 0.5)]), b = cam.p([x, x > 0 ? 0.15 : 0, zB]); if (a[2] > 0.3) Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: 2.5, seed: 'kerb' + x, d, taper: 0.01 }); }
+        for (const x of [4, -4]) { const q = clipSeg(cam, [x, x > 0 ? 0.15 : 0.0, zA], [x, x > 0 ? 0.15 : 0, zB]); if (q) Ink.brush(g, q, { w: 2.5, seed: 'kerb' + x, d, taper: 0.01 }); }
         for (const z of LAMPS) {
             if (z < zc - 30 || z > zc + 200) continue;
             for (const [rz, col] of [[1, P.indigo], [0.6, '#4a10c8']]) { const pts = []; for (let i = 0; i < 40; i++) { const an = (i / 40) * Math.PI * 2; pts.push([LAMP_X + 2.6 + Math.cos(an) * 2.8 * rz, 0.004, z + Math.sin(an) * 5 * rz]); } const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: 0, jit: 0 }); }
@@ -852,8 +865,8 @@ const EscapeSet = (() => {
         // what stands: hotels, palms, lamps, sorted far to near, with the scene's own items
         const items = [];
         if (!extra.noHotels) for (const b of HOTELS) { if (b.z1 < zc - 200 || b.z0 > zc + 400) continue; const zn = cam.pos[2] < b.z0 ? b.z0 : cam.pos[2] > b.z1 ? b.z1 : cam.pos[2]; items.push({ depth: Math.hypot(7.5 - cam.pos[0], zn - cam.pos[2]) + (b.ours ? -0.01 : 0), draw: () => hotel(g, L, cam, T, d, fx, b) }); }
-        if (!SK.includes('P')) for (let z = -300, i = 0; z < 560; z += 11, i++) { if (z < zc - 40 || z > zc + 260) continue; const x = -7 - (i % 3) * 1.6; items.push({ depth: cam.view([x, 5, z])[2], draw: () => palm(g, L, cam, x, z, i, T, d, fx) }); }
-        if (!SK.includes('L')) for (const z of LAMPS) { if (z < zc - 30 || z > zc + 240) continue; items.push({ depth: cam.view([LAMP_X, 3, z])[2], draw: () => lamp(g, L, cam, z, d, fx) }); }
+        for (let z = -300, i = 0; z < 560; z += 11, i++) { if (z < zc - 40 || z > zc + 260) continue; const x = -7 - (i % 3) * 1.6; items.push({ depth: cam.view([x, 5, z])[2], draw: () => palm(g, L, cam, x, z, i, T, d, fx) }); }
+        for (const z of LAMPS) { if (z < zc - 30 || z > zc + 240) continue; items.push({ depth: cam.view([LAMP_X, 3, z])[2], draw: () => lamp(g, L, cam, z, d, fx) }); }
         for (const it of extra.items ?? []) items.push(it);
         items.filter((it) => it.depth > 0.3).sort((a, b) => b.depth - a.depth).forEach((it) => it.draw());
     }

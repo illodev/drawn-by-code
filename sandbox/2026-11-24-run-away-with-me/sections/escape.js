@@ -201,12 +201,11 @@
         Ink.occlude(L);
         const light = carLight(CAR0, d);
         const carItem = { depth: cam.view([CAR0.x, 0.6, CAR0.z])[2], draw: () => carOn(g, L, env, N, cam, CAR0, light, (gg) => couple(gg, cam, CAR0, light, T, d, 'back')) };
-        const sk = window.__escSkip ?? '';
-        if (!sk.includes('s')) S.street(g, L, cam, T, d, fx, env, { noHotels: true, items: sk.includes('c') ? [] : [carItem] });
-        if (!sk.includes('h')) for (const b of [0, 1]) S.hotel(g, L, cam, T, d, fx, b ? { z0: 42, z1: 64, h: 15, col: P.violet, neon: P.pink, tower: false, seed: 4242 } : { z0: 0, z1: 30, h: 13, col: P.salmon, neon: P.cyan, tower: true, seed: 77, ours: true });
-        if (!sk.includes('g')) S.gate(g, L, cam, T, d, fx);
-        if (!sk.includes('f')) S.courtyardFloor(g, L, cam, T, d, fx);
-        if (!sk.includes('t')) S.courtyardThings(g, L, cam, T, d, fx).filter((it) => it.depth > 0.3).sort((a, b) => b.depth - a.depth).forEach((it) => it.draw());
+        S.street(g, L, cam, T, d, fx, env, { noHotels: true, items: [carItem] });
+        for (const b of [0, 1]) S.hotel(g, L, cam, T, d, fx, b ? { z0: 42, z1: 64, h: 15, col: P.violet, neon: P.pink, tower: false, seed: 4242 } : { z0: 0, z1: 30, h: 13, col: P.salmon, neon: P.cyan, tower: true, seed: 77, ours: true });
+        S.gate(g, L, cam, T, d, fx);
+        S.courtyardFloor(g, L, cam, T, d, fx);
+        S.courtyardThings(g, L, cam, T, d, fx).filter((it) => it.depth > 0.3).sort((a, b) => b.depth - a.depth).forEach((it) => it.draw());
         const x = walkX(T), bt = Song.beatAt(T);
         for (const [who, z, ph] of [['her', 37.95, 0.5], ['him', 37.25, 0]]) {
             const lift = 0.035 * Math.abs(Math.sin(Math.PI * (bt + ph))), side = 0.015 * Math.sin(Math.PI * (bt + ph));
