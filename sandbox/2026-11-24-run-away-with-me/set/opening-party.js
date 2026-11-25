@@ -73,7 +73,7 @@
             band(2.6, 5.4, '#0f0138', 31 + z); band(2.15, 2.6, '#3c0ca8', 32 + z); band(1.95, 2.15, '#a8189e', 33 + z); band(0.8, 1.95, '#140548', 34 + z);
             for (let i = 0; i < 9; i++) { const zz = z - 1.1 + i * 0.27, y = 1.95 + Ink.hsh(z, i, 3) * 0.12, p = cam.p([xw - 0.02, y, zz]); if (p[2] > 0.5) { const r = cap(0.025 * cam.f / p[2], 1, 4); g.fillStyle = [P.gold, P.pink, P.cyan][i % 3]; g.fillRect(p[0] - r / 2, p[1] - r, r, r * 1.6); } }
             for (let i = 0; i < 6; i++) { const y = 1.85 - i * 0.16, a = cam.p([xw - 0.02, y, z + 0.1 - 0.15 - i * 0.05]), b = cam.p([xw - 0.02, y, z + 0.1 + 0.15 + i * 0.05]); if (a[2] > 0.5) Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.03 * cam.f / a[2], 1, 3), col: P.cream, seed: 35 + z * 10 + i, d, taper: 0.4, alpha: 0.8, light: true }); }
-            const mo = cam.p([xw - 0.02, 3.3, z + 0.1]); if (mo[2] > 0.5) { const r = 0.14 * cam.f / mo[2]; Ink.shape(g, [[mo[0] - r, mo[1]], [mo[0], mo[1] - r], [mo[0] + r * 0.3, mo[1] - r * 0.6], [mo[0] - r * 0.3, mo[1]], [mo[0] + r * 0.3, mo[1] + r * 0.6], [mo[0], mo[1] + r]], P.cream, { w: 0, seed: 36 + z, d, light: true }); }
+            const mo = cam.p([xw - 0.02, 3.3, z + 0.1]); if (mo[2] > 0.5) { const r = 0.13 * cam.f / mo[2], cr = []; for (let i = 0; i <= 12; i++) { const a = Math.PI * 0.5 + (i / 12) * Math.PI; cr.push([mo[0] + Math.cos(a) * r, mo[1] + Math.sin(a) * r]); } for (let i = 12; i >= 0; i--) { const a = Math.PI * 0.5 + (i / 12) * Math.PI; cr.push([mo[0] + r * 0.35 + Math.cos(a) * r * 0.8, mo[1] + Math.sin(a) * r * 0.9]); } Ink.shape(g, cr, P.cream, { w: 0, seed: 36 + z, d, light: true }); }
             g.restore();
             // the mullions: two uprights and three bars, the arch's own ribs
             const bar = (A, B2, k) => { const a = cam.p(A), b = cam.p(B2); if (a[2] > 0.5 && b[2] > 0.5) Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.06 * cam.f / a[2], 1.2, 5), col: '#2a0c66', seed: 37 + z * 10 + k, d, taper: 0.05 }); };
@@ -234,6 +234,7 @@
     function frame(g, env, N, T, d, cam, o = {}) {
         const lt = lights(T, o.energy ?? 1);
         Ink.occlude(null);
+        g.fillStyle = '#0b0230'; g.fillRect(0, 0, env.W, env.H);
         let L = N.light();
         room(g, L, cam, T, d, lt, env);
         spots(g, L, cam, T, lt, d, o.rays);

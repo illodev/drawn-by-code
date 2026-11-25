@@ -73,7 +73,7 @@
         const rim = T >= B(97) ? io(seg(T, B(97), B(97) + 0.45)) : 0;
         // the gold: from where they stand, over the boat, then out over the sea
         const goldBoat = io(seg(T, 184.25, 186.8));
-        const goldSea = T > 185.1 ? (T - 185.1) * 24 : 0;             // the front's radius, metres
+        const goldSea = T > 185.1 ? (T - 185.1) * 9.5 : 0;             // the front's radius, metres
         return { T, kick, mid, high, trip, hue, dawn, burn, rim, goldBoat, goldSea, halo: 1 + trip * (0.4 + kick * 0.6), star: trip * 0.5 };
     }
 
@@ -156,9 +156,9 @@
         // clouds: long low banks fixed in the sky, plum at night, their undersides catching the dawn
         const RC = Motion.rng('boat-clouds');
         for (let i = 0; i < 12; i++) {
-            const a = SUN_A + (RC() * 2 - 1) * (i < 5 ? 0.45 : 1.5), e = 0.03 + RC() * 0.1, wA = 0.06 + RC() * 0.14, hE = 0.006 + RC() * 0.012, ph = RC();
-            const pts = [], n = 18;
-            for (let j = 0; j <= n; j++) { const u = j / n, aa = a - wA / 2 + wA * u, bump = Math.sin(u * Math.PI) * (0.55 + 0.45 * Math.abs(Math.sin(u * 9 + ph * 7))); pts.push(skyP(cam, aa, e + hE * bump)); }
+            const a = SUN_A + (RC() * 2 - 1) * (i < 3 ? 0.35 : 1.5), e = (i < 3 ? 0.05 + i * 0.035 : 0.03 + RC() * 0.1) + RC() * 0.01, wA = (i < 3 ? 0.22 : 0.1) + RC() * 0.16, hE = 0.005 + RC() * 0.008, ph = RC();
+            const pts = [], n = 26;
+            for (let j = 0; j <= n; j++) { const u = j / n, aa = a - wA / 2 + wA * u, bump = Math.sqrt(Math.max(0, 1 - Math.abs(2 * u - 1) ** 3)) * (0.45 + 0.55 * Math.abs(Math.sin(u * 11 + ph * 7))); pts.push(skyP(cam, aa, e + hE * bump)); }
             const under = []; for (let j = n; j >= 0; j--) { const u = j / n, aa = a - wA / 2 + wA * u; under.push(skyP(cam, aa, e - hE * 0.15 * Math.sin(u * Math.PI))); }
             const all = pts.concat(under); if (all.some((p) => p[2] < 1)) continue;
             const dc = fx.dawn * toward(a);
@@ -281,7 +281,7 @@
                 const p = cam.p([gx + Math.sin(T * 0.7 + h3 * 6) * 1.2, WATER, gz]);
                 if (p[2] < 2 || p[1] < lv.cy + 2 || p[1] > env.H + 10 || p[0] < -80 || p[0] > env.W + 80) continue;
                 const l = Math.min(110, 9000 / dd + 4);
-                const gd = gr > 0 ? gr - Math.hypot(gx - bc[0], gz - bc[1]) : -1, inGold = gd > 0 && gd < 28 && h1 < 0.75;
+                const gd = gr > 0 ? gr - Math.hypot(gx - bc[0], gz - bc[1]) : -1, inGold = gd > 0 && gd < 14 && h1 < 0.75;
                 const ci = Math.floor(h3 * 997) % 5;
                 const col = inGold ? [P.gold, P.orange, P.gold, '#ffe6c8', P.orange][ci] : (dw > 0.3 && ci === 3 ? P.salmon : cols[ci]);
                 Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0] + l / 2, p[1] + 0.5]], { w: Math.min(4.5, 1 + 300 / dd), col, seed: 5000 + ((ix * 131 + iz * 17 + ring) & 0xffff), d, taper: 0.45, wob: 0.4, alpha: inGold ? 0.95 : 0.85, light: true });
@@ -340,22 +340,22 @@
     // lower third of the night shots), rippling sideways
     function glitter(g, L, cam, T, d, fx, env) {
         const lights = [], R = Motion.rng('boat-glitter'), cols = [P.orange, P.gold, P.salmon, P.cyan, P.pink, P.gold];
-        for (let i = 0; i < 40; i++) { const u = R(), x = -1900 + 4200 * (u < 0.6 ? 0.42 + (R() - 0.5) * 0.5 : u); lights.push([x, 2600, cols[i % 6], 1000 + i]); }
+        for (let i = 0; i < 64; i++) { const u = R(), x = -1900 + 4200 * (u < 0.6 ? 0.42 + (R() - 0.5) * 0.5 : u); lights.push([x, 2600, cols[i % 6], 1000 + i]); }
         for (let k = -32; k < 150; k += 3) lights.push([-2.4, 12.6 * k + 3, P.gold, 2000 + k]);
         const C0 = [cam.pos[0], cam.pos[2]];
         for (const [lx, lz, col, key] of lights) {
             if (lz > 1900 && lz < 2500) continue;
             const foot = cam.p([lx, WATER, lz]); if (foot[2] < 5 || foot[0] < -150 || foot[0] > env.W + 150) continue;
-            const D = Math.hypot(lx - C0[0], lz - C0[1]), n = 9, dMin = Math.max(8, D * 0.02), ux = (lx - C0[0]) / D, uz = (lz - C0[1]) / D;
+            const D = Math.hypot(lx - C0[0], lz - C0[1]), n = 12, dMin = Math.max(8, D * 0.02), ux = (lx - C0[0]) / D, uz = (lz - C0[1]) / D;
             for (let k = 0; k < n; k++) {
                 const dk = D * Math.pow(dMin / D, (k + 0.5 * Ink.hsh(key, k, 0)) / n) * 0.985, near = 1 - dk / D;
-                if (Ink.hsh(key, k + 20, 0) < 0.25 + 0.45 * near) continue;
+                if (Ink.hsh(key, k + 20, 0) < 0.15 + 0.3 * near) continue;
                 const sway = Ink.noise(key * 3 + k, T * 0.9, 0) * (0.4 + dk * 0.004), hw = (0.5 + dk * 0.011) * (0.6 + 0.8 * Ink.hsh(key, k + 40, 0));
                 const cx = C0[0] + ux * dk - uz * sway, cz = C0[1] + uz * dk + ux * sway;
                 const A = cam.p([cx + uz * hw, WATER, cz - ux * hw]), Bq = cam.p([cx - uz * hw, WATER, cz + ux * hw]);
                 if (A[2] < 2 || Bq[2] < 2 || A[1] > env.H + 10) continue;
                 const s = cam.f / A[2];
-                Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1] + 0.5]], { w: cap(0.12 * s, 1, 4.5), col, seed: key * 13 + k, d, taper: 0.4, wob: 0.5, alpha: 0.85 * (1 - near * 0.5), light: true });
+                Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1] + 0.5]], { w: cap(0.14 * s, 1.2, 5), col, seed: key * 13 + k, d, taper: 0.4, wob: 0.5, alpha: 0.9 * (1 - near * 0.35), light: true });
             }
         }
     }
@@ -436,14 +436,14 @@
     function goldSea(g, L, cam, ps, d, fx) {
         if (fx.goldSea <= 0) return;
         for (let j = 0; j < 8; j++) {
-            const r = fx.goldSea - j * 11; if (r < 4 || r > 900) continue;
-            const nArc = 7, a0 = Ink.hsh(j, 1, 0) * 6, al = (1 - j / 9) * cap(1 - r / 650, 0.3, 1);
+            const r = fx.goldSea - j * 8; if (r < 3 || r > 900) continue;
+            const nArc = 8, a0 = Ink.hsh(j, 1, 0) * 6, al = (1 - j / 10) * cap(1 - r / 650, 0.5, 1);
             for (let i = 0; i < nArc; i++) {
-                const span = (0.3 + 0.45 * Ink.hsh(j, i + 5, 0)) * (Math.PI * 2 / nArc), st = a0 + (i * Math.PI * 2) / nArc;
+                const span = (0.45 + 0.4 * Ink.hsh(j, i + 5, 0)) * (Math.PI * 2 / nArc), st = a0 + (i * Math.PI * 2) / nArc;
                 const n = Math.min(26, Math.max(5, Math.round((span * r) / 2.5))), run = [];
                 const flush = () => {
                     if (run.length > 1) {
-                        const s = cam.f / run[0][2], w = cap(0.22 * s, 1.2, 7), q = run.map((p) => [p[0], p[1]]);
+                        const s = cam.f / run[0][2], w = cap(0.3 * s, 1.6, 8), q = run.map((p) => [p[0], p[1]]);
                         Ink.brush(g, q, { w, col: j === 0 ? '#ffe6c8' : (i + j) % 2 ? P.gold : P.orange, seed: 1400 + j * 50 + i, d, taper: 0.35, wob: 0.8, alpha: al, light: true });
                         if (j < 2) { L.save(); L.globalAlpha = 0.4 * al; L.strokeStyle = P.gold; L.lineWidth = w * 2; L.lineCap = 'round'; Neon.path(L, q, false); L.stroke(); L.restore(); }
                     }
@@ -498,9 +498,9 @@
             }
             case 1: { // on a pole off the starboard bow, a long lens looking aft over the foredeck: the two of
                 // them from the waist up behind the windscreen, spray over the bow, the city behind
-                const W = BoatSpeedboat.W, p = W(ps, [1.25 + 0.1 * k, BoatSpeedboat.deckY(6.0) + 0.8 + 0.04 * k, 6.0 - 0.3 * k]), t = W(ps, [-0.05, 1.78, -0.7]);
+                const W = BoatSpeedboat.W, p = W(ps, [1.05 + 0.08 * k, BoatSpeedboat.deckY(4.6) + 0.5 + 0.03 * k, 4.7 - 0.25 * k]), t = W(ps, [-0.05, 1.7, -0.7]);
                 const dx = t[0] - p[0], dy = t[1] - p[1], dz = t[2] - p[2];
-                return Neon.camera({ ...base, pos: p, yaw: Math.atan2(dx, dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)) + 0.035, roll: ps.roll * 0.8, f: 1750 + 80 * k });
+                return Neon.camera({ ...base, pos: p, yaw: Math.atan2(dx, dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)) - 0.03, roll: ps.roll * 0.8, f: 1550 + 80 * k });
             }
             case 2: { // a drone flying backwards ahead of the boat: the wake fans out behind it towards the city
                 const pos = [ps.x + 7 - 4 * k, WATER + 24 - 8 * k, ps.z - 30 + 6 * k];

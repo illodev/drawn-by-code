@@ -157,7 +157,7 @@
         }
         // the street lamps' light on the facade: a fan of warm strokes up the wall from each lamp
         for (let li = 0; li < 26; li++) {
-            const lx = -150 + li * 13 + 6; if (lx < h.x0 + 3.6 || lx > xr - 3.6 || s < 8) continue;
+            const lx = -150 + li * 13 + 6; if (lx < h.x0 + 3.6 || lx > xr - 3.6 || s < 16) continue;
             for (let j = 0; j < 7; j++) {
                 const a = -Math.PI / 2 + (j - 3) * 0.32, r0 = 0.6, r1 = 1.6 + Ink.hsh(li, j, 6) * 1.6, P0 = cam.p([lx + Math.cos(a) * r0, 4.6 - Math.sin(a) * r0, zl - 0.03]), P1 = cam.p([lx + Math.cos(a) * r1, 4.6 - Math.sin(a) * r1, zl - 0.03]);
                 Ink.brush(g, [[P0[0], P0[1]], [P1[0], P1[1]]], { w: cap(0.06 * s, 1, 3.5), col: j % 2 ? P.gold : P.cream, seed: sd + 700 + li * 9 + j, d, taper: 0.6, alpha: 0.55, light: true });
@@ -175,19 +175,19 @@
                 if (h.party && f === h.floors && fx.beatCol && T >= 0.43) col = (i + Math.floor(Song.beatAt(T))) % 3 ? fx.beatCol : '#1a0a4a';
                 if (xb > xr - 0.3) continue;
                 // the frame round the window (a lighter reveal), the glass, a sill
-                if (s > 9) quad([[xa - 0.12, y0 - 0.12, zl], [xa - 0.12, y1 + 0.1, zl], [xb + 0.12, y1 + 0.1, zl], [xb + 0.12, y0 - 0.12, zl]], css(mix(trim, body, 0.3)), { k: 90 + f * 40 + i, w: 0, jit: 0 });
-                const dark0 = col === '#1a0a4a', q = quad([[xa, y0, zl], [xa, y1, zl], [xb, y1, zl], [xb, y0, zl]], col, { k: 100 + f * 40 + i, w: s > 14 ? lw(s, 0.035) : 0, light: !dark0 });
+                if (s > 20) quad([[xa - 0.12, y0 - 0.12, zl], [xa - 0.12, y1 + 0.1, zl], [xb + 0.12, y1 + 0.1, zl], [xb + 0.12, y0 - 0.12, zl]], css(mix(trim, body, 0.3)), { k: 90 + f * 40 + i, w: 0, jit: 0 });
+                const dark0 = col === '#1a0a4a', q = quad([[xa, y0, zl], [xa, y1, zl], [xb, y1, zl], [xb, y0, zl]], col, { k: 100 + f * 40 + i, w: s > 22 ? lw(s, 0.035) : 0, light: !dark0 });
                 if (!q) continue;
                 if (!dark0 && s > 16) { L.save(); L.globalAlpha = 0.35; L.fillStyle = col; L.beginPath(); q.forEach((p, j) => (j ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); L.closePath(); L.fill(); L.restore(); }
-                if (s < 11) continue;
+                if (s < 18) continue;
                 const W2 = (u, v) => { const p = cam.p([xa + (xb - xa) * u, y0 + (y1 - y0) * v, zl - 0.01]); return [p[0], p[1]]; }, r2 = Ink.hsh(h.seed * 37 + f, i, 8);
                 if (!dark0 && r2 < 0.35) for (let j = 1; j < 6; j++) Ink.brush(g, [W2(0.04, j / 6), W2(0.96, j / 6)], { w: cap(0.025 * s, 0.8, 2.2), col: css(mix(col, '#3a1050', 0.45)), seed: sd + f * 50 + i * 7 + j, d, taper: 0.1, wob: 0.2 });
                 else if (!dark0 && r2 < 0.65) { Ink.shape(g, [W2(0, 0), W2(0, 1), W2(0.3, 1), W2(0.22, 0.5), W2(0.28, 0)], r2 < 0.5 ? P.salmon : P.plum, { w: 0, seed: sd + 800 + f * 40 + i, d, jit: 0.3 }); Ink.shape(g, [W2(1, 0), W2(1, 1), W2(0.7, 1), W2(0.78, 0.5), W2(0.72, 0)], r2 < 0.5 ? P.salmon : P.plum, { w: 0, seed: sd + 900 + f * 40 + i, d, jit: 0.3 }); }
                 else if (!dark0 && r2 < 0.75 && s > 20) { const c = W2(0.45, 0.55), ss = cam.f / cam.view([xa, y0, zl])[2]; OpeningFigures.draw(g, c[0], c[1] + 0.8 * ss, ss, { pose: 'stand', look: OpeningFigures.look(h.seed * 50 + f * 9 + i), seed: h.seed * 50 + f * 9 + i, d, rim: 0, flip: false }); }
                 // mullion and transom in the dark ink, a sill in the trim
                 Ink.brush(g, [W2(0.5, 0), W2(0.5, 1)], { w: lw(s, 0.03), seed: sd + f * 7 + i, d, taper: 0.1 });
-                if (s > 18) Ink.brush(g, [W2(0, 0.72), W2(1, 0.72)], { w: lw(s, 0.025), seed: sd + f * 9 + i, d, taper: 0.1 });
-                quad([[xa - 0.15, y0 - 0.16, zl - 0.05], [xb + 0.15, y0 - 0.16, zl - 0.05], [xb + 0.15, y0 - 0.04, zl - 0.05], [xa - 0.15, y0 - 0.04, zl - 0.05]], trim, { w: 0, k: 950 + f * 40 + i, jit: 0 });
+                if (s > 30) Ink.brush(g, [W2(0, 0.72), W2(1, 0.72)], { w: lw(s, 0.025), seed: sd + f * 9 + i, d, taper: 0.1 });
+                if (s > 22) quad([[xa - 0.15, y0 - 0.16, zl - 0.05], [xb + 0.15, y0 - 0.16, zl - 0.05], [xb + 0.15, y0 - 0.04, zl - 0.05], [xa - 0.15, y0 - 0.04, zl - 0.05]], trim, { w: 0, k: 950 + f * 40 + i, jit: 0 });
             }
             // the eyebrow: the shadow it throws on the wall, its underside, its edge in the trim
             const ye = y1 + 0.3;
@@ -279,6 +279,17 @@
                 Ink.shape(g, q, '#0b0230', { w: 1.4, ink: '#5a3aa0', seed: 'mh' + mx, d, jit: 0.2 });
                 const c = cam.p([mx, 0.012, mz]); if (c[2] > 1) { const r = 0.36 * cam.f / c[2]; Ink.brush(g, [[c[0] - r * 0.6, c[1] - r * 0.05], [c[0] + r * 0.2, c[1] - r * 0.12]], { w: cap(0.02 * cam.f / c[2], 1, 2.5), col: P.pink, seed: 'mhl' + mx, d, taper: 0.4, light: true }); }
             }
+            // the wet sheen: loose strokes of the sky's colours lying along the road, fixed in the world
+            { const SC = ['#3c0ca8', P.royal, '#5a2aa8', P.violet], paths = SC.map(() => []);
+              for (let gx = Math.floor((cam.pos[0] - 70) / 2.2) * 2.2; gx < cam.pos[0] + 90; gx += 2.2) for (let gz = 13.0; gz < 25.3; gz += 0.8) {
+                const ci = Math.round(gx * 10), cj = Math.round(gz * 10); if (Ink.hsh(ci, cj, 21) < 0.45) continue;
+                const x = gx + Ink.hsh(ci, cj, 22) * 2, z = gz + Ink.hsh(ci, cj, 23) * 0.6, ln = 1.2 + Ink.hsh(ci, cj, 24) * 2.5;
+                const a = cam.p([x, 0.012, z]), b = cam.p([x + ln, 0.012, z]); if (a[2] < 1 || b[2] < 1 || Math.max(a[0], b[0]) < -20 || Math.min(a[0], b[0]) > env.W + 20) continue;
+                paths[(ci + cj) & 3].push([a[0], a[1], b[0], b[1], cap(0.05 * cam.f / a[2], 1, 5)]);
+              }
+              g.save(); g.lineCap = 'round'; g.globalAlpha = 0.75;
+              paths.forEach((ps, i) => { g.strokeStyle = SC[i]; for (const [x0, y0, x1, y1, w] of ps) { g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); } });
+              g.restore(); }
             // the reflections: from the foot of each light straight down the wet road, stretched,
             // broken into dashes that waver (cheap canvas strokes; the far ones are a few pixels)
             const streak = (src, col, wm, a, seed) => {
@@ -480,6 +491,7 @@
         const fx = Film.effects(T);
         const sc = o.skyCam ?? cam, horizon = sc.p([sc.pos[0], 0, sc.pos[2] + 9000])[1];
         Ink.occlude(null);
+        g.fillStyle = '#120440'; g.fillRect(0, 0, env.W, env.H);           // under everything: no seam between strips lets the canvas through
         let L = N.light();
         Drawn.sky(g, sc, T, d, fx, env, horizon);
         Drawn.city(g, sc, T, d, fx, env);

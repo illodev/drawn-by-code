@@ -216,8 +216,8 @@
             }
             if (shot === 0) for (const [x, z, sc, sd] of [[-3.6, -46.2, 1.2, 801], [-2.2, -45.4, 0.8, 802], [3.9, -45.8, 1.1, 803], [5.2, -44.6, 0.9, 804]]) list.push({ depth: c.view([x, 0.5, z])[2], draw: () => set.grass(g, c, x, z, sc, sd, T, d, set.facing(c)) });
             // the sea oats they run behind
-            if (shot === 1) for (let i = 0; i < 46; i += i % 4 === 3 ? 2 : 1) {
-                const x = 8.4 + Ink.hsh(i, 1, 0) * 2.8, z = -22 + i * 0.5 + Ink.hsh(i, 2, 0) * 0.4, sc = 0.7 + Ink.hsh(i, 3, 0) * 0.45;
+            if (shot === 1) for (let i = 0; i < 46; i += 2) {
+                const x = 8.4 + Ink.hsh(i, 1, 0) * 2.8, z = -22 + i * 0.5 + Ink.hsh(i, 2, 0) * 0.6, sc = 0.8 + Ink.hsh(i, 3, 0) * 0.45;
                 list.push({ depth: c.view([x, 0.5, z])[2], draw: () => set.grass(g, c, x, z, sc, 700 + i, T, d, set.facing(c)) });
             }
             list.sort((a, b) => b.depth - a.depth);

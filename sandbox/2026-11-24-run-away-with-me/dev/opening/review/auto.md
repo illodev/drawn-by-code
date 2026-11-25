@@ -4,7 +4,7 @@
 
 ## Warnings
 
-- **Transparent holes** (the empty canvas shows through: a background that doesn't cover the camera, or nothing painted) at 0.00 s (0.8 %), 0.17 s (0.8 %), 0.33 s (0.8 %), 0.50 s (0.8 %), 0.67 s (0.8 %), 0.83 s (0.8 %)….
+- None.
 
 ## Motion
 
@@ -21,7 +21,7 @@ Large jumps outside cuts (can be normal in dense patterns; check whether they bo
 
 ## Speed
 
-Painting: 291 ms/frame cold, 298 ms warm → full render ≈ 176 s at this size.
+Painting: 151 ms/frame cold, 133 ms warm → full render ≈ 79 s at this size.
 
 ## Contact sheet
 

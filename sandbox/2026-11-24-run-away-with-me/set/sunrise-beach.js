@@ -218,6 +218,22 @@ const SunriseSet = (() => {
         }
     }
 
+    // marks along a row (x = j·dx at depth z) keep only every stride-th, the stride doubling while
+    // two kept neighbours would sit closer than `target` px on screen (rows seen end-on included)
+    function keep(cam, j, dx, y, z, target) {
+        const sE = cam.f / (Math.hypot(j * dx - cam.pos[0], z - cam.pos[2], cam.pos[1] - y) + 0.05);
+        let st = Math.pow(2, Math.max(0, Math.floor(Math.log2(Math.max(1, target / (dx * sE))))));
+        if (((j % st) + st) % st) return false;
+        const j0 = j - (((j % st) + st) % st), a = cam.p([j0 * dx, y, z]);
+        if (a[2] < 0.3) return true;
+        for (let it = 0; it < 6; it++) {
+            const b = cam.p([(j0 + st) * dx, y, z]);
+            if (b[2] < 0.3 || Math.hypot(b[0] - a[0], b[1] - a[1]) >= target) break;
+            st *= 2; if (((j % st) + st) % st) return false;
+        }
+        return true;
+    }
+
     // --- the sea -------------------------------------------------------------------------
     // bands by distance (haze), swell strokes fixed on the water, the sun's glitter path as
     // world-fixed glints lit only where the sun's reflection reaches the camera
@@ -256,8 +272,8 @@ const SunriseSet = (() => {
             for (let xs = -600; xs <= 600; xs += 25) { const p = cam.p([xs, 0, z]); if (p[2] > 1 && p[0] > -150 && p[0] < env.W + 150 && p[1] < env.H + 20) { x0 = Math.min(x0, xs - 25); x1 = Math.max(x1, xs + 25); } }
             if (x0 > x1) continue;
             for (let j = Math.floor(x0 / dx); j <= Math.ceil(x1 / dx); j++) {
-                const sE = cam.f / (Math.hypot(j * dx - cam.pos[0], z - cam.pos[2], cam.pos[1]) + 0.1), stride = Math.pow(2, Math.max(0, Math.floor(Math.log2(Math.max(1, 9 / (dx * sE))))));
-                if (((j % stride) + stride) % stride) continue;
+                if (!keep(cam, j, dx, 0, z, 9)) continue;
+                const stride = 1;
                 const x = j * dx + (H(k, j, 21) - 0.5) * dx * 0.7 + Math.sin(T * 0.7 + j * 0.9 + k) * 0.15 * dx;
                 const p = cam.p([x, 0, z + (H(k, j, 22) - 0.5) * 0.5]); if (p[2] < 1.2 || p[0] < -60 || p[0] > env.W + 60 || p[1] > env.H + 6) continue;
                 const s = cam.f / p[2];
@@ -355,7 +371,8 @@ const SunriseSet = (() => {
             if (fq) Ink.shape(g, fq, mx('#2a1a8e', '#3a3aa8', dawn(T)), { w: 0, seed: 4500 + n, d, jit: 0, alpha: 0.8 });
             for (let i = 0; i + 1 < pts.length; i++) {
                 const a = pts[i], b = pts[i + 1]; if (a[2] < 0.5 || b[2] < 0.5) continue;
-                if (H(i, n, 15) < 0.75) { const s = cam.f / a[2], off = cap(0.12 * s, 1.5, 10); Ink.brush(g, [[a[0], a[1] + off], [b[0], b[1] + off]], { w: cap(0.035 * s, 1, 4), col: P.ink, seed: 4650 + n * 61 + i, d, taper: 0.3, wob: 0.6, alpha: 0.75, light: true }); }
+                if (Math.max(a[0], b[0]) < -40 || Math.min(a[0], b[0]) > env.W + 40 || Math.max(a[1], b[1]) > env.H + 20 || Math.hypot(b[0] - a[0], b[1] - a[1]) < 1.5) continue;
+                if (H(i, n, 15) < 0.75 && cam.f / a[2] > 6) { const s = cam.f / a[2], off = cap(0.12 * s, 1.5, 10); Ink.brush(g, [[a[0], a[1] + off], [b[0], b[1] + off]], { w: cap(0.035 * s, 1, 4), col: P.ink, seed: 4650 + n * 61 + i, d, taper: 0.3, wob: 0.6, alpha: 0.75, light: true }); }
                 if (H(i, n, 13) < 0.3 - brk * 0.25) continue;
                 const s = cam.f / a[2];
                 Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap((0.07 + 0.12 * brk) * s, 1, 9), col: H(i, n, 14) < 0.25 ? '#ffc8e0' : '#fff3f8', seed: 4600 + n * 61 + i, d, taper: 0.25, wob: 0.8, light: true });
@@ -381,8 +398,8 @@ const SunriseSet = (() => {
         const cx = cam.pos[0], cz = cam.pos[2];
         for (let i = Math.floor((cx - 44) / 2.5); i <= Math.ceil((cx + 44) / 2.5); i++) for (let j = -33; j < 0; j++) {
             const c0 = cam.p([i * 2.5 + 1.25, 0, j * 2.5 + 1.25]); if (c0[2] < 0.4 || c0[2] > 55 || c0[0] < -120 || c0[0] > env.W + 120 || c0[1] > env.H + 60) continue;
-            const s0 = cam.f / c0[2], nk = s0 < 12 ? 0 : s0 < 30 ? 1 : Math.min(10, Math.round(s0 / 22));
-            if (j < -2 && s0 >= 9) for (let k = 0; k < (s0 < 30 ? 1 : Math.min(8, Math.round(s0 / 28))); k++) {
+            const s0 = cam.f / c0[2], nk = s0 < 12 ? 0 : s0 < 30 ? 1 : Math.min(6, Math.round(s0 / 30));
+            if (j < -2 && s0 >= 9) for (let k = 0; k < (s0 < 30 ? 1 : Math.min(4, Math.round(s0 / 40))); k++) {
                 const x = i * 2.5 + H(i, j, 70 + k) * 2.5, z = j * 2.5 + H(i, j, 80 + k) * 2.5, l = 0.8 + 1.2 * H(i, j, 90 + k), pts = [];
                 for (let q = 0; q <= 4; q++) pts.push(cam.p([x - l / 2 + (l * q) / 4, 0.01, z + 0.06 * Math.sin(q * 1.7 + k)]));
                 if (pts.some((p) => p[2] < 0.4)) continue;
@@ -407,8 +424,8 @@ const SunriseSet = (() => {
             let x0 = Infinity, x1 = -Infinity;
             for (let xs = xr[0]; xs <= xr[1]; xs += Math.max(2, (xr[1] - xr[0]) / 40)) { const p = cam.p([xs, 0, z]); if (p[2] > 0.5 && p[0] > -100 && p[0] < env.W + 100 && p[1] < env.H + 10) { x0 = Math.min(x0, xs - 4); x1 = Math.max(x1, xs + 4); } }
             for (let j = Math.floor(x0 / dx); j <= Math.ceil(x1 / dx) && x0 < x1; j++) {
-                const sE = cam.f / (Math.hypot(j * dx - cx, z - cz, cam.pos[1]) + 0.05), stride = Math.pow(2, Math.max(0, Math.floor(Math.log2(Math.max(1, 45 / (dx * sE))))));
-                if (((j % stride) + stride) % stride) continue;
+                if (!keep(cam, j, dx, 0, z, 55)) continue;
+                const sE = cam.f / (Math.hypot(j * dx - cx, z - cz, cam.pos[1]) + 0.05), stride = Math.pow(2, Math.max(0, Math.floor(Math.log2(Math.max(1, 55 / (dx * sE))))));
                 const x = j * dx + (H(r, j, 31) - 0.5) * dx * 0.8, p = cam.p([x, 0.004, z + (H(r, j, 32) - 0.5) * 0.3]);
                 if (p[2] < 0.5 || p[0] < -60 || p[0] > env.W + 60 || p[1] > env.H + 6) continue;
                 const s = cam.f / p[2];

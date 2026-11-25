@@ -192,22 +192,27 @@ const BoatSpeedboat = (() => {
         });
 
         const order = (a, b) => a.rank - b.rank || b.depth - a.depth;
-        back.sort(order); for (const it of back) it.fn();
-        if (o.inside) o.inside(g);
-        front.sort(order); for (const it of front) it.fn();
-
-        // the lights (emitters: on the picture as a dot, the glow on the light layer)
-        if (L && N) {
+        // the lights (emitters: on the picture as a dot, the glow on the light layer); a light that
+        // lies beyond the two of them is painted before them, so they hide it
+        const cz0 = o.coupleZ ?? [-1.4, -0.2];
+        const lights = (beyond) => { if (!L || !N) return;
             const lit = o.lights ?? 1;
             const lt = [[[-1.0, deckY(3.3) + 0.05, 3.3], P.red, -1], [[1.0, deckY(3.3) + 0.05, 3.3], P.mint, 1], [[0, deckY(-5.4) + 1.0, -5.4], '#ffe6f6', 0]];
             for (const [p, col, sd] of lt) {
+                const isBeyond = (c[2] > cz0[1] && p[2] < cz0[0]) || (c[2] < cz0[0] && p[2] > cz0[1]);
+                if (isBeyond !== beyond) continue;
                 const q = cam.p(W(ps, p)); if (q[2] < 3) continue;
                 if (sd && c[0] * sd < -0.3) continue;            // a side light is seen only from its side and ahead
                 const r = (sd ? cap(0.5 * s, 4, 40) : cap(0.22 * s, 3, 14)) * lit;
                 N.glint(null, L, q[0], q[1], r, col, { lightOnly: true, alpha: 0.9 * lit, halo: o.halo ?? 1 });
                 g.fillStyle = col; g.beginPath(); g.arc(q[0], q[1], cap(0.06 * s, 1.2, 5), 0, Math.PI * 2); g.fill();
             }
-        }
+        };
+        back.sort(order); for (const it of back) it.fn();
+        lights(true);
+        if (o.inside) o.inside(g);
+        front.sort(order); for (const it of front) it.fn();
+        lights(false);
         return { s, c };
     }
 
@@ -333,11 +338,13 @@ const BoatSpeedboat = (() => {
         const items = [
             { za: -3.2, zb: -2.5, f: () => { box(-0.92, 0.92, -3.2, -2.5, yf, yf + 0.42, P.plum, P.salmon, 7320); box(-0.92, 0.92, -3.2, -3.0, yf + 0.42, yd(-3.1) - 0.04, P.plum, P.salmon, 7330); } },
             { za: -2.15, zb: -1.85, f: () => { for (const sx of [-1, 1]) box(sx * 0.7, sx * 0.2, -2.15, -1.85, yf + 0.3, yf + 0.95, P.plum, P.salmon, 7340 + sx * 5); } },
-            { za: 0.0, zb: 0.4, f: () => console_(g, ps, cam, c, s, lw, d, proj, yf, box, L) },
         ];
         items.sort((a, b) => Math.abs(c[2] - (b.za + b.zb) / 2) - Math.abs(c[2] - (a.za + a.zb) / 2));
         for (const it of items) if (between(it.za, it.zb) === (which === 'front')) it.f();
         g.restore();
+        // the dash console rises above the coaming under the windscreen, so it is not clipped to the
+        // hole: what of it lies under the deck is covered by the deck pieces painted after it
+        if (between(0.0, 0.4) === (which === 'front')) console_(g, ps, cam, c, s, lw, d, proj, yf, box, L);
         if (which === 'back') {
             Ink.brush(g, qh, { w: lw * 0.8, seed: 7390, d, closed: true });
         }
@@ -345,7 +352,7 @@ const BoatSpeedboat = (() => {
     // the dash console under the windscreen: its aft face carries the gauges and the wheel, a
     // chrome grab rail along its top
     function console_(g, ps, cam, c, s, lw, d, proj, yf, box, L) {
-        const yt = deckY(0.2) - 0.03;
+        const yt = deckY(0.2) + 0.2;
         box(-0.92, 0.92, 0.0, 0.4, yf, yt, P.grape, P.ink, 7400);
         if (c[2] < 0) {
             for (let i = 0; i < 6; i++) {
@@ -450,7 +457,7 @@ const BoatSpeedboat = (() => {
             }
             // the sheet's edge: a long curved stroke from the chine outwards and back
             const arc = []; for (let j = 0; j <= 8; j++) { const a = j / 8 * 0.7; arc.push(W(ps, [sd * (at(CB, 2.4) + 4.5 * a), 0.15 + 3.2 * k * a - 4.9 * a * a, 2.4 - 0.32 * v * a])); }
-            const Q = arc.map(cam.p); if (Q.every((p) => p[2] > 0.5)) { const s = cam.f / Q[0][2]; Ink.brush(g, Q.map((p) => [p[0], p[1]]), { w: cap(0.09 * s, 1, 8), col: P.cream, seed: 8400 + sd, d, taper: 0.35, alpha: 0.75 * k, light: true }); }
+            const Q = arc.map(cam.p); if (Q.every((p) => p[2] > 4)) { const s = cam.f / Q[0][2]; Ink.brush(g, Q.map((p) => [p[0], p[1]]), { w: cap(0.09 * s, 1, 8), col: P.cream, seed: 8400 + sd, d, taper: 0.35, alpha: 0.75 * k, light: true }); }
         }
         if (part === 'over') {
             // green water over the bow: as she slams, sheets of droplets thrown up off the stem
