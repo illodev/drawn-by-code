@@ -174,3 +174,24 @@ approved causeway world, reused for the whole of bars 23–49 (52.4 s), no new s
 - The set is drawn forwards only (the deck from the camera's z on), so every camera looks
   ahead; shots from the front (their faces) need the causeway drawn in both directions first.
 - The cast's front views are repainted too (`ref/neon/*-front.png`) for later.
+
+## Round 6 · the whole song, in sections, by parallel agents
+
+The user, translated: «Actually I don't care about the agents; the point is to spend that
+10 %; for what we've done we've hardly spent anything really.» → the rest of the song is
+built at once by six agents, one per stretch, on one contract:
+
+- `sections/README.md`: a section is an IIFE that registers `Sections.<name> = { from, to,
+  shots, setup, draw(g, env, T, d) }` in song seconds on bar lines; its setup's result lives
+  in `env.state.sec.<name>`; its extra files are listed on its first line.
+- `full.js` plays every registered section by song second (a card where one is missing) with
+  the whole song; `drive.js` became the dev scene of `sections/drive.js`.
+- `briefs/sections.md`: the brief every agent shares (the user's words, the files to read,
+  the cast's limits: four standing views only, nothing explicit, one pill and its effect;
+  the bar; what each may touch).
+- The cast can stand anywhere: `Couple.standing(g, cam, who, feet, o)` with views front,
+  three-quarter, side and back (the side views repainted by `tools/neonize.py`).
+- Sections: opening (0:00–0:25, Ocean Drive and the party), escape (0:25–0:47, the pill, the
+  bag, the car), drive (0:47–1:39, done), clouds (1:39–2:12, the high over the city), night
+  (2:12–2:44, the night together by ellipsis), boat (2:44–3:18, the speedboat and the
+  comedown), sunrise (3:18–4:13, the sun out of the sea, the title, the signature).
