@@ -24,7 +24,7 @@ const Couple = (() => {
     async function load() {
         for (const who of ['her', 'him']) {
             // the drawn manner: the sheet's views repainted by tools/neonize.py
-            for (const v of ['back', 'front']) neon[who + '-' + v] = await Neon.image(DIR + 'ref/neon/' + PICK[who] + '-' + v + '.png') ?? await Neon.image(DIR + 'private/neon/' + PICK[who] + '-' + v + '.png');
+            for (const v of ['back', 'front', 'tq', 'side']) neon[who + '-' + v] = await Neon.image(DIR + 'ref/neon/' + PICK[who] + '-' + v + '.png') ?? await Neon.image(DIR + 'private/neon/' + PICK[who] + '-' + v + '.png');
         }
         for (const who of ['her', 'him']) {
             const id = PICK[who];
@@ -82,10 +82,19 @@ const Couple = (() => {
     // line), drawn in rows that sway with the wind, and loose strokes of light laid on the hair
     // and the shoulders, new on every drawing (d)
     function backDrawn(g, cam, pose, who, x, z, light, o = {}) {
+        return drawAt(g, cam, who, Car.W(pose, [x, SEATED[who] + (o.lift ?? 0), z]), light, o);
+    }
+    // one of them standing with the soles at world point `feet` (metres): the whole figure by
+    // default (o.cut in metres from the top of the head), o.view 'front' | 'tq' | 'side' | 'back',
+    // o.flip to face the other way, o.lean (radians), o.sway, o.wind, o.T, o.d as for the car
+    function standing(g, cam, who, feet, o = {}) {
+        return drawAt(g, cam, who, [feet[0], feet[1] + HEIGHT[who], feet[2]], o.light ?? {}, { cut: HEIGHT[who] + 0.02, wind: 0.004, ...o });
+    }
+    function drawAt(g, cam, who, head, light, o = {}) {
         const im = neon[who + '-' + (o.view ?? 'back')]; if (!im) return;
         const M = 12;                                        // tools/neonize.py's margin round the figure
-        const pxm = (im.height - 2 * M) / HEIGHT[who], cut = o.cut ?? 0.62, sh = cut * pxm + M, sw = im.width;
-        const p = cam.p(Car.W(pose, [x, SEATED[who] + (o.lift ?? 0), z])); if (p[2] < 0.3) return;
+        const pxm = (im.height - 2 * M) / HEIGHT[who], cut = o.cut ?? 0.62, sh = Math.min(im.height, cut * pxm + M), sw = im.width;
+        const p = cam.p(head); if (p[2] < 0.3) return;
         const s = cam.f / p[2], w = (sw / pxm) * s, h = (sh / pxm) * s, d = o.d ?? 0, TT = o.T ?? 0;
         const bx = p[0] - w / 2 + (o.sway ?? 0) * s, by = p[1] - (M / pxm) * s;
         // into its own buffer at output resolution: rows that sway with the wind (the hair only,
@@ -115,10 +124,11 @@ const Couple = (() => {
             Ink.hatch(G, [pd + (W - 2 * pd) * 0.12, Hh * 0.62], [pd + (W - 2 * pd) * 0.42, Hh * 0.5], { count: 4, len: Hh * 0.1, w: Math.max(1, s * 0.01), col: Pp.cyan, seed: seed + 9, d });
         }
         // leaning (o.lean, radians, + = towards screen right): turned about the foot of the cut
-        if (o.lean) { const px = bx + w / 2, py = by + h; g.save(); g.translate(px, py); g.rotate(o.lean); g.drawImage(cv, 0, 0, cw, ch, bx - pd - px, by - py, cw / k, ch / k); g.restore(); }
-        else g.drawImage(cv, 0, 0, cw, ch, bx - pd, by, cw / k, ch / k);
+        const px = bx + w / 2, py = by + h;
+        g.save(); g.translate(px, py); if (o.lean) g.rotate(o.lean); if (o.flip) g.scale(-1, 1);
+        g.drawImage(cv, 0, 0, cw, ch, bx - pd - px, by - py, cw / k, ch / k); g.restore();
     }
     const dbuf = {};
 
-    return { load, back, backDrawn, drawn: backDrawn, PICK, img };
+    return { load, back, backDrawn, drawn: backDrawn, standing, drawAt, HEIGHT, PICK, img };
 })();
