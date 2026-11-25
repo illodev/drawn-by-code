@@ -11,9 +11,9 @@
 //   14.5-23 s   Symmetry demo: a star, the star turned 36 deg, a plus, an x, the star, all
 //               sharing the upright axis, each drawn anew: every step mirror-symmetric (AE's
 //               left half: the same fix without its symmetry rule, which swirls two steps)
-//   23-31.5 s   Letters demo: q, e, b, c, d in Comic Neue Bold, pieces matched between keys,
-//               max 200, each hole kept inside its letter with a margin: q into e, it blends;
-//               e into b, it shrinks away and grows again in its new place; b into c, it
+//   23-31.5 s   Letters demo: q, g, b, c, d in Comic Neue Bold, pieces matched between keys,
+//               max 200, each hole kept inside its letter with a margin: q into g, it blends;
+//               g into b, it shrinks away and grows again in its new place; b into c, it
 //               shrinks away before the c opens; c into d, it grows once the d is shut
 // The orange dot rides the first point (not on the letters). The "Before" halves are After Effects' own business
 // (how it blends keys that don't match is what the rig avoids), so they only exist in AE's

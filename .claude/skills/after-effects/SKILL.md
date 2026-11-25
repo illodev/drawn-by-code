@@ -789,3 +789,9 @@ that shrinks away and grows again. `morph-ae.jsx` (`isInbetween`, `bakeTurn`, `b
   through the turn it stands, so a second Fix redraws it there, at the time and easing the
   animator gave it. Untouched keys come back the same, so the tool never needs to know which
   ones were moved.
+- 2026-11-25 · ae-morph-fixer · A grid hashed by a distance taken from the data needs a floor:
+  a 2-point key had no neck at all (~1e-16), its cell numbers passed 2^53, and `gx++` stopped
+  changing `gx`: the test suite hung for 10 minutes on one random shape. Count cells from the
+  data's own corner and skip the check when the scale is degenerate. And a choice made on
+  samples (a start that keeps clear) can still go wrong between them on the rebuilt path:
+  check the final paths of any step it moved, and undo the move if they cross.

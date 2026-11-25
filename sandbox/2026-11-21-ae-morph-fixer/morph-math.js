@@ -366,15 +366,79 @@ var MF = (function () {
     }
 
     // 64 points of b's outline read from grid offset q, around its centre, turned by theta (the
-    // turn laying it onto a), next to a's 64 around its centre: { a, b }
-    function pairPoints(b, q, theta) {
+    // turn laying it onto a), next to a's 64 around its centre: { a, b }. every 1: all 128
+    function pairPoints(b, q, theta, every) {
         var A = b.SA, B = b.SB, ca = Math.cos(theta || 0), sa = Math.sin(theta || 0), pa = [], pb = [];
-        for (var j = 0; j < N; j += 2) {
+        for (var j = 0; j < N; j += every || 2) {
             var p = A.pts[j], r = B.pts[(j + q) % N], x = r[0] - B.cx, y = r[1] - B.cy;
             pa.push([p[0] - A.cx, p[1] - A.cy]);
             pb.push([x * ca - y * sa, x * sa + y * ca]);
         }
         return { a: pa, b: pb };
+    }
+
+    // ---- near-touching: an in-between whose outline nearly meets itself --------------------
+    // An outline that only just misses itself reads as one about to break into two (the user:
+    // "animation that only barely escapes overlap is also unsatisfying"). Its neck is the least
+    // distance between two of its 64 points at least NECK_GAP apart round the outline; a morph
+    // pinches when an in-between's neck drops under NECK_MU of the thinner key's (the keys' own
+    // narrow parts, a stroke or a gap, set the scale). Grid-hashed by that distance, so each
+    // in-between costs about its 64 points.
+    var NECK_GAP = 4, NECK_MU = 0.5;
+
+    // the least distance between points of the closed loop pts at least NECK_GAP apart (exact)
+    function neckOf(pts) {
+        var n = pts.length, m = Infinity, i, j;
+        for (i = 0; i < n; i++) {
+            for (j = i + NECK_GAP; j < n; j++) {
+                if (n - (j - i) < NECK_GAP) continue;
+                var dx = pts[i][0] - pts[j][0], dy = pts[i][1] - pts[j][1], d = dx * dx + dy * dy;
+                if (d < m) m = d;
+            }
+        }
+        return Math.sqrt(m);
+    }
+
+    // do two points of pts at least NECK_GAP apart come within thr of each other? (Cells counted
+    // from the loop's own corner: a cell number past 2^53 can't be stepped through, and a key with
+    // no neck at all, a 2-point loop, once made thr ~1e-16 and the loop below never ended.)
+    function nearlyMeets(pts, thr) {
+        var n = pts.length, cells = {}, t2 = thr * thr, i, x0 = Infinity, y0 = Infinity;
+        for (i = 0; i < n; i++) {
+            if (pts[i][0] < x0) x0 = pts[i][0];
+            if (pts[i][1] < y0) y0 = pts[i][1];
+        }
+        for (i = 0; i < n; i++) {
+            var cx = Math.floor((pts[i][0] - x0) / thr), cy = Math.floor((pts[i][1] - y0) / thr);
+            if (cx > 1e9 || cy > 1e9) return false;
+            for (var gx = cx - 1; gx <= cx + 1; gx++) {
+                for (var gy = cy - 1; gy <= cy + 1; gy++) {
+                    var list = cells[gx + ',' + gy];
+                    if (!list) continue;
+                    for (var k = 0; k < list.length; k++) {
+                        var j = list[k], g = i - j;
+                        if (g < NECK_GAP || n - g < NECK_GAP) continue;
+                        var dx = pts[i][0] - pts[j][0], dy = pts[i][1] - pts[j][1];
+                        if (dx * dx + dy * dy < t2) return true;
+                    }
+                }
+            }
+            var key = cx + ',' + cy;
+            (cells[key] || (cells[key] = [])).push(i);
+        }
+        return false;
+    }
+
+    // does the morph between matched points pp pinch (any in-between's neck under thr)?
+    function pinches(pp, thr) {
+        if (!(thr > 1e-3)) return false;        // keys that already touch themselves: nothing to keep
+        var A = pp.a, B = pp.b;
+        for (var u = 0; u < XU.length; u++) {
+            var pts = [], w = XU[u];
+            for (var j = 0; j < A.length; j++) pts.push([A[j][0] + (B[j][0] - A[j][0]) * w, A[j][1] + (B[j][1] - A[j][1]) * w]);
+            if (nearlyMeets(pts, thr)) return true;
+        }
+        return false;
     }
 
     // crossings summed over the in-betweens of a morph between matched points (up to `limit`)
@@ -388,20 +452,43 @@ var MF = (function () {
         return total;
     }
 
-    // the start plan's grid offset q crosses over: try the grid offsets that cost at most
-    // CROSS_SLACK times the best match, the current start (0) first and then the cheapest, and
-    // take the first that doesn't cross and whose grid neighbours don't either (a start on the
-    // edge of a crossing-free run still crossed between the checked in-betweens); else the
-    // first that doesn't cross, else the one that crosses least. stay: only the current start
-    // is tried (whether a path is already fixed: a start that keeps it from crossing over
-    // counts as fine, so a second run doesn't chase sampling noise). Keys that cross themselves
-    // are left as drawn. -> { q, crossings, was (the crossings at q) }
-    function untangle(b, q, stay) {
+    // the start plan's grid offset q crosses over, or pinches (comes within NECK_MU of the
+    // keys' thinnest part): try the grid offsets that cost at most CROSS_SLACK times the best
+    // match, the current start (0) first and then the cheapest, and take the first that neither
+    // crosses nor pinches and whose grid neighbours don't either (a start on the edge of a clear
+    // run still crossed between the checked in-betweens); else the first that doesn't cross
+    // (when q crosses: a start that only pinches is kept as it is), else the one that crosses
+    // least. stay: only the current start is tried (whether a path is already fixed: a start
+    // that keeps it from crossing over counts as fine, so a second run doesn't chase sampling
+    // noise). Keys that cross themselves are left as drawn.
+    // -> { q, crossings, was (the crossings at q), pinched (q pinched and this one doesn't) }
+    function untangle(b, q, stay, neck) {
+        var pp = pairPoints(b, q, b.turn ? b.thetas[q] : 0), was = crossover(pp, 1000);
+        // the keys' necks (a cyclic shift of B's samples doesn't change its own); neck false: off
+        var thr = neck === false ? 0 : NECK_MU * Math.min(neckOf(pp.a), neckOf(pairPoints(b, 0, 0).b));
+        function bad(k) {
+            var p = pairPoints(b, k, b.turn ? b.thetas[k] : 0);
+            return crossover(p, 1) > 0 || pinches(p, thr);
+        }
         function clear(k) {
             return crossover(pairPoints(b, k, b.turn ? b.thetas[k] : 0), 1) === 0;
         }
-        var pp = pairPoints(b, q, b.turn ? b.thetas[q] : 0), was = crossover(pp, 1000);
-        if (!was) return { q: q, crossings: 0, was: 0 };
+        if (!was) {
+            // no crossing: only a pinch is worth a new start, and only one that is clear of both
+            if (stay || !pinches(pp, thr)) return { q: q, crossings: 0, was: 0 };
+            var limit0 = b.err * CROSS_SLACK, c0 = [], j0;
+            for (j0 = 0; j0 < N; j0++) if (j0 !== q && b.grid[j0] <= limit0) c0.push(j0);
+            c0.sort(function (x, y) { return (b.grid[x] - b.grid[y]) || (x - y); });
+            if (q !== 0 && b.grid[0] <= limit0) c0.unshift(0);
+            // (a new start must not trade the pinch for a small twist the 64-point check misses:
+            // & into $ did, so it is checked again on all 128 points)
+            for (j0 = 0; j0 < c0.length && j0 < CROSS_TRIES; j0++) {
+                var cj = c0[j0];
+                if (bad(cj) || bad((cj + 1) % N) || bad((cj + N - 1) % N)) continue;
+                if (crossover(pairPoints(b, cj, b.turn ? b.thetas[cj] : 0, 1), 1) === 0) return { q: cj, crossings: 0, was: 0, pinched: true };
+            }
+            return { q: q, crossings: 0, was: 0 };
+        }
         // keys that cross themselves: no new start is looked for (staying put is still allowed:
         // whether a key crosses itself can flip with the sampling)
         // (crossings 0: drawn that way, nothing to report)
@@ -422,7 +509,7 @@ var MF = (function () {
                 continue;
             }
             if (c === 0) {
-                if (clear((ck + 1) % N) && clear((ck + N - 1) % N)) return { q: ck, crossings: 0, was: was };
+                if (clear((ck + 1) % N) && clear((ck + N - 1) % N) && !pinches(pairPoints(b, ck, b.turn ? b.thetas[ck] : 0), thr)) return { q: ck, crossings: 0, was: was };
                 if (edge < 0) edge = ck;
             } else if (c < bestC) {
                 bestC = c;
@@ -781,16 +868,16 @@ var MF = (function () {
             }
         }
         var q0 = Math.round(off * N) % N, x = { q: q0, crossings: 0, was: 0 };
-        if (o.crossover !== false) x = untangle(b, q0, !!o.stay);
-        var untangled = x.q !== q0;
+        if (o.crossover !== false) x = untangle(b, q0, !!o.stay, o.neck);
+        var untangled = x.q !== q0, unpinched = !!x.pinched;
         if (untangled) {
             off = x.q / N;
             theta = b.turn ? b.thetas[x.q] : 0;
             symmetric = false;
         }
-        if (!off) return { off: 0, near: 0, nd: 0, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled, symmetric: symmetric };
+        if (!off) return { off: 0, near: 0, nd: 0, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled, unpinched: unpinched, symmetric: symmetric };
         var nv = nearestVertex(P, off);
-        return { off: off, near: nv.k, nd: nv.d, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled, symmetric: symmetric };
+        return { off: off, near: nv.k, nd: nv.d, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled, unpinched: unpinched, symmetric: symmetric };
     }
 
     // the turn laying P onto prev, keeping P's start
@@ -822,7 +909,8 @@ var MF = (function () {
             if (opt.start && P.v.length > 1) {
                 var plan = startPlan(prev, P, opt);
                 info.turn = plan.turn;
-                info.untangled = plan.untangled;      // a start chosen so the in-betweens don't cross
+                info.untangled = plan.untangled;      // a start chosen so the in-betweens don't cross (or nearly touch)
+                info.unpinched = plan.unpinched;      // ... nearly touch, where the first choice only did that
                 info.crossings = plan.crossings;      // what they still cross (sampled), 0 mostly
                 info.symmetric = plan.symmetric;      // a start chosen so the morph stays mirror-symmetric
                 info.drawn = plan.drawn;              // drawn as a turn of the previous key (deg), 0 if not
@@ -1128,7 +1216,34 @@ var MF = (function () {
     // keys[k]: { reversed, moved, added, before, after }, before/after = RMS travel (px) from
     // the previous key, around the centres. A path that already matches comes back untouched;
     // one that matches but for a turn keeps its points (kept: true) and has the turn taken out.
+    // A start moved off a pinch is chosen on samples; the rebuilt path can still twist a little
+    // where they don't look (& into $: crossing itself at 45 % of the morph, between samples).
+    // So the final paths of such a step are checked for crossings (4 chords a segment, the 19
+    // in-betweens), and if one crosses the fix is done again without the pinch rule.
     function fix(paths, opt) {
+        var r = fixOnce(paths, opt);
+        if (opt && opt.neck === false) return r;
+        for (var k = 1; k < r.keys.length; k++) {
+            if (!r.keys[k].unpinched) continue;
+            var A = r.paths[k - 1], B = r.paths[k];
+            for (var u = 0; u < XU.length; u++) {
+                var L = lerp(A, B, XU[u]), pts = [];
+                for (var g = 0; g < segCount(L); g++) {
+                    var c = seg(L, g);
+                    for (var t = 0; t < 4; t++) pts.push(bez(c, t / 4));
+                }
+                if (selfCrossings(pts, 1)) {
+                    var o2 = {}, key;
+                    if (opt) for (key in opt) o2[key] = opt[key];
+                    o2.neck = false;
+                    return fixOnce(paths, o2);
+                }
+            }
+        }
+        return r;
+    }
+
+    function fixOnce(paths, opt) {
         var o = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 }, k;
         if (opt) for (k in opt) o[k] = opt[k];
         if (paths.length < 2) throw new Error('needs two keyframes or more');

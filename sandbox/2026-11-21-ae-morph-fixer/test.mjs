@@ -398,7 +398,7 @@ function shown(r, k, u) {
     // the demo's letters: one of each
     const rows = ML.keys.filter((key, k) => k === 0 || key[1] !== ML.keys[k - 1][1]).map(([, s]) => ML.shapes[s]), dres = MF.matchPieces(rows);
     const dfixed = dres.keys[0].map((_, p) => MF.fix(dres.keys.map((row) => row[p]), { maxPoints: ML.maxPoints }).paths), demo = { res: dres, fixed: dfixed, T: MF.holeTiming(dfixed, dres.roles) };
-    check('holes: the demo\'s q e b c d blends, swaps, shrinks away and grows: one of each, none showing, half the clearance kept', kinds(demo) === 'blend swap close open' && shows(demo, demo.T) === 0 && margin(demo, demo.T) >= 0.45,
+    check('holes: the demo\'s q g b c d blends, swaps, shrinks away and grows: one of each, none showing, half the clearance kept', kinds(demo) === 'blend swap close open' && shows(demo, demo.T) === 0 && margin(demo, demo.T) >= 0.45,
         kinds(demo) + ', margin ' + margin(demo, demo.T).toFixed(2));
     // a family: Comic Neue's letters with a hole, each into each
     let famShows = 0, famMargin = Infinity, famSwaps = 0, famN = 0;
@@ -440,6 +440,55 @@ function shown(r, k, u) {
     const T2 = MF.holeTiming(againFixed, again.roles);
     check('holes: a second fix plans the hole the same', T2.length === 1 && T2[0].kind === oc.T[0].kind && Math.abs(T2[0].a - oc.T[0].a) < 0.01, JSON.stringify(T2.map((e) => [e.kind, e.a])));
     console.log(`holes: O into C gone by ${(oc.T[0].a * 100).toFixed(0)} %, C into e grows from ${(ce.T[0].b * 100).toFixed(0)} %, b into e swaps ${(be.T[0].a * 100).toFixed(0)}-${(be.T[0].b * 100).toFixed(0)} %; Comic Neue pairs: ${famSwaps} of ${famN} swap, least margin ${(famMargin * 100).toFixed(0)} %`);
+}
+
+// ---- near-touching: an outline that comes within half its thinnest drawn part of itself ----
+// The start is chosen against it as against a crossing, where one travelling about as little
+// keeps clear; the rebuilt path is checked again (a start that is clear on samples can twist
+// between them: & into $). Measured here independently: 96 samples, parts 6 apart.
+{
+    const outline = (font, keys) => {
+        const res = MF.matchPieces(buildArt({ font, keys }));
+        const p = res.keys[0].findIndex((_, q) => res.roles.every((r) => r[q] === 1));
+        return res.keys.map((row) => row[p]);
+    };
+    const neck = (P) => {
+        const M = MF.measure(P), sm = [];
+        for (let j = 0; j < 96; j++) sm.push(MF.at(P, M, j / 96));
+        let m = Infinity;
+        for (let i = 0; i < 96; i++) for (let j = i + 6; j < 96; j++) if (96 - (j - i) >= 6) m = Math.min(m, Math.hypot(sm[i][0] - sm[j][0], sm[i][1] - sm[j][1]));
+        return m;
+    };
+    const ratio = (A, B) => {
+        let least = Infinity;
+        for (let q = 1; q < 40; q++) least = Math.min(least, neck(MF.lerp(A, B, q / 40)));
+        return least / Math.min(neck(A), neck(B));
+    };
+    const chordsCross = (A, B) => {
+        for (let q = 1; q < 20; q++) {
+            const L = MF.lerp(A, B, q / 20), pts = [];
+            for (let k = 0; k < MF.segCount(L); k++) { const c = MF.seg(L, k); for (let t = 0; t < 4; t++) pts.push(MF.bez(c, t / 4)); }
+            const n = pts.length;
+            for (let i = 0; i < n; i++) for (let j = i + 2; j < n; j++) {
+                if (i === 0 && j === n - 1) continue;
+                const a = pts[i], b = pts[(i + 1) % n], p = pts[j], r = pts[(j + 1) % n];
+                const d1 = (r[0] - p[0]) * (a[1] - p[1]) - (r[1] - p[1]) * (a[0] - p[0]), d2 = (r[0] - p[0]) * (b[1] - p[1]) - (r[1] - p[1]) * (b[0] - p[0]);
+                const d3 = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]), d4 = (b[0] - a[0]) * (r[1] - a[1]) - (b[1] - a[1]) * (r[0] - a[0]);
+                if (((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0))) return true;
+            }
+        }
+        return false;
+    };
+    const vh = outline('ComicNeue-Bold', 'vh'), on = MF.fix(vh), off = MF.fix(vh, { neck: false });
+    const rOn = ratio(on.paths[0], on.paths[1]), rOff = ratio(off.paths[0], off.paths[1]);
+    check('near-touching: v into h keeps half its thinnest part clear where the start chosen against crossings did not', rOff < 0.5 && rOn >= 0.5 && on.keys[1].untangled,
+        `${(rOff * 100).toFixed(0)} % -> ${(rOn * 100).toFixed(0)} %`);
+    check('near-touching: and the travel stays about the same (within 20 % squared)', on.keys[1].after <= off.keys[1].after * Math.sqrt(1.2) + 1e-9, `${off.keys[1].after.toFixed(1)} -> ${on.keys[1].after.toFixed(1)} px`);
+    const again = MF.fix(on.paths);
+    check('near-touching: fixing the fixed v into h again changes nothing', again.matched === true);
+    const amp = outline('PatrickHand-Regular', '&$'), ar = MF.fix(amp);
+    check('near-touching: & into $ keeps its start (the clear one twists between the samples), and doesn\'t cross', !ar.keys[1].unpinched && !chordsCross(ar.paths[0], ar.paths[1]));
+    console.log(`near-touching: v into h ${(rOff * 100).toFixed(0)} % -> ${(rOn * 100).toFixed(0)} % of its thinnest part`);
 }
 
 // ---- progress: the fix can be cancelled while it works, before anything is written ----------
@@ -718,6 +767,8 @@ function keepsAxis(r, deg) {
     console.log('drawn turn: ' + FX.summary(rep));
     const said = FX.summary({ label: 'L', keys: 3, from: '4', to: '64', reversed: 0, moved: 0, untangled: 0, crossing: ['2-3'], mode: 'smooth', deviation: 0.05, scale: 1 });
     check('crossover: a step no start untangles is named', /still crosses itself between keys 2-3 \(no start avoids it; a key drawn in between can\)/.test(said), said);
+    const said2 = FX.summary({ label: 'L', keys: 2, from: '20', to: '64', reversed: 0, moved: 1, untangled: 2, unpinched: 1, crossing: [], mode: 'smooth', deviation: 0.05, scale: 1 });
+    check('near-touching: the report tells a start chosen against crossing from one chosen to keep clear', /1 start chosen so the shape does not cross itself/.test(said2) && /1 start chosen so the shape keeps clear of itself/.test(said2), said2);
 
     // the turn written into the path, on a mock timeline: labelled in-betweens one a frame, no
     // transform; fixing again replaces them with the same; moving a drawn key and fixing again

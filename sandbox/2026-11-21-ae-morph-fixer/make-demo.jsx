@@ -78,7 +78,7 @@
         // rule (least travel), right, the fix
         symBuilt = demoComp('Symmetry demo', D.sym.duration, D.sym.shapes, D.sym.keys, { maxPoints: D.maxPoints },
             { labels: ['Least travel', 'Symmetric'], beforeOpts: { maxPoints: D.maxPoints, symmetry: false } });
-        // the letters demo: q, e, b, c, d (holes kept inside), fixed through the panel's path
+        // the letters demo: q, g, b, c, d (holes kept inside), fixed through the panel's path
         letBuilt = lettersComp('Letters demo', LT);
         var parts = [comp, turnComp, symBuilt.comp, letBuilt.comp], total = 0, pi;
         for (pi = 0; pi < parts.length; pi++) total += parts[pi].duration;
@@ -495,7 +495,7 @@
                 'right ' + right.kept + '/' + right.steps + ', left ' + left.kept + '/' + left.steps);
         });
         step('letters demo', function () {
-            // q, e, b, c, d: the After letter's pieces all share their points in every key, and a
+            // q, g, b, c, d: the After letter's pieces all share their points in every key, and a
             // start was chosen against a crossover
             var ps = piecePaths(letBuilt.after), same = true, k;
             for (var i = 0; i < ps.length; i++) for (k = 2; k <= ps[i].numKeys; k++) if (ps[i].keyValue(k).vertices.length !== ps[i].keyValue(1).vertices.length) same = false;
@@ -503,8 +503,8 @@
             for (k = 0; k < reps.length; k++) untangled += reps[k].untangled || 0;
             check('letters demo: fixed, every piece the same points in every key, a crossover avoided', /Fixed/.test(letBuilt.result.status) && same && untangled >= 1,
                 letBuilt.result.status + ' · ' + untangled + ' start(s) chosen against a crossover');
-            // the hole kept inside, in AE's own frames: swapped (e into b), closed before the c
-            // opens (b into c), opened once the d is shut (c into d); q into e blends
+            // the hole kept inside, in AE's own frames: swapped (g into b), closed before the c
+            // opens (b into c), opened once the d is shut (c into d); q into g blends
             var fps = letBuilt.comp.frameRate, worst = 0, at = 0, f;
             for (f = 1; f < LT.duration * fps; f++) {
                 var w = holeShows(ps, f / fps);

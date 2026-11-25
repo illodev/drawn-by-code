@@ -1,7 +1,7 @@
-// demo-letters.mjs - writes ../demo-letters.js, the letters section of the demo: q, e, b, c and d
+// demo-letters.mjs - writes ../demo-letters.js, the letters section of the demo: q, g, b, c and d
 // in Comic Neue Bold (read from the repo's fonts/ by ttf.mjs), each centred on its own box. Each
-// step shows one thing the fix does with a letter's hole: q into e, it blends (it keeps its
-// margin; a start chosen against a crossover); e into b, blended it would come too close to the
+// step shows one thing the fix does with a letter's hole: q into g, it blends (it keeps its
+// margin; a start chosen against a crossover); g into b, blended it would come too close to the
 // edge, so it shrinks away and grows again in its new place; b into c, it shrinks away before
 // the c opens; c into d, it grows once the d has closed round it. (AE's non-zero fill paints
 // any part of a hole outside its outline: a dark blob.) The c has no hole: its key gets a dot.
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { loadFont, charPaths } from './ttf.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url)), dir = path.join(here, '..');
-const FONT = 'ComicNeue-Bold', CHARS = 'qebcd', SIZE = 560, HOLD = 0.5, MORPH = 1.4;
+const FONT = 'ComicNeue-Bold', CHARS = 'qgbcd', SIZE = 560, HOLD = 0.5, MORPH = 1.4;
 const font = loadFont(path.join(dir, '..', '..', 'fonts', FONT + '.ttf'));
 const r3 = (x) => Math.round(x * 1000) / 1000;
 const round = (P) => ({ v: P.v.map((p) => p.map(r3)), i: P.i.map((p) => p.map(r3)), o: P.o.map((p) => p.map(r3)), closed: true });

@@ -773,3 +773,35 @@ second Fix, as hole keys already were.
   Effects 27**: the demo 56/56 (the dragged turn key stays at its frame with 60 %, all 20 kept;
   the two hole-key checks; the status line without the bogus count; the time estimate 21.8 s
   for 20.7). The runner ran only while the user had handed AE over, and stopped after.
+
+## Round 19 · 2026-11-25 (the user: "please continue with your recommendations")
+
+Round 15 measured that an outline often comes close to touching itself on the way (the
+user: "animation that only barely escapes overlap is also unsatisfying") and that another
+start opens up about 1 in 10 of those. This round takes that 1 in 10.
+
+- **0.18.0, near-touching**: an in-between's neck is the least distance between two of its 64
+  points at least 4 apart round the outline; a morph pinches when that drops under half the
+  thinner key's (`NECK_MU`, the hole margin's half). `untangle` treats a pinch like a crossing:
+  among starts travelling about as little (CROSS_SLACK), it takes one that neither crosses nor
+  pinches, with neighbours that don't either, crossing nowhere on all 128 samples; a start that
+  only pinches is never traded for one that crosses. Grid-hashed by the threshold, so an
+  in-between costs about its 64 points.
+  - **Found: a hang.** A random test key with 2 points has no neck (thr ~1e-16): cell numbers
+    past 2^53 made `gx++` a no-op, and the loop never ended (the Node test ran 10+ minutes).
+    → Cells counted from the loop's own corner, and no pinch check when the keys already touch.
+  - **Found: a twist between samples.** & into $'s clear start (63 % → 96 % of its thinnest
+    part) crossed itself in the rebuilt path at 45 % of the morph, where no sample looked.
+    → `fix` checks the final paths of any step moved off a pinch (4 chords a segment, 19
+    in-betweens) and, if one crosses, is done again without the pinch rule. & into $ keeps its
+    start.
+  - Results: v into h 44 % → 69 %, W into k 56 % → 77 %, a into e 71 % → 74 %, m into N 32 % →
+    37 % (still pinching: no start helps), for under 1 % more travel. The report says "chosen so
+    the shape keeps clear of itself" apart from "does not cross itself".
+- **The demo letters** became q, g, b, c, d: q into e's outline now starts elsewhere (46 % →
+  58 %), and its hole then swaps rather than blends; q into g blends, so the demo still shows
+  one of each (blend, swap, close, open).
+- Tests: Node 4,447 (v into h kept clear, & into $ not traded for a twist, a second fix the
+  same, the report); real type 186. **In After Effects 27** (handed over, AE in front, progress
+  every minute): demo 56/56, real type 111/111, fix times no slower than round 18's (& into $
+  4.7 → 5.7 s: fixed twice). Rendered with aerender; `render/` redone.
