@@ -69,6 +69,7 @@ const Drawn = (() => {
         for (let i = 0; i < 8; i++) {
             let a = (R2() * 2 - 1) * 1.1; const v = 0.008 + R2() * 0.008, ph = R2(), len = 0.03 + R2() * 0.035, col = R2() < 0.5 ? P.violet : P.purple, wdt = 9 + R2() * 7;
             if (Math.abs(a - MOON[0]) < 0.14) a += a < MOON[0] ? -0.16 : 0.16;
+            if (Math.abs(a) < 0.3) a = a < 0 ? a - 0.3 : a + 0.3;                // not over the road and its palms
             const span2 = 0.5, u = ((T * v / span2 + ph) % 1 + 1) % 1, eTop = 0.62 - u * span2;
             const p0 = skyP(cam, a, eTop), p1 = skyP(cam, a, eTop - len); if (p0[2] < 1) continue;
             const fade = Math.min(1, u * 6, (1 - u) * 6);
@@ -86,7 +87,7 @@ const Drawn = (() => {
     }
 
     // --- the city: one drawn panorama, laid through the camera in exact strips ------------------
-    const PAN = { z: 2600, x0: -2600, x1: 2600, y0: -4.5, y1: 300, pxm: 0.62 };
+    const PAN = { z: 2600, x0: -4200, x1: 3000, y0: -4.5, y1: 300, pxm: 0.62 };
     let pano = null, panoCols = null;
     const LANDMARK = { x: 300, h: 240, w: 46 };
     function buildPano() {
@@ -124,7 +125,7 @@ const Drawn = (() => {
             for (let x = Math.max(0, Math.floor(x0)); x < Math.min(W, Math.ceil(x1)); x++) tops[x] = Math.min(tops[x], t.kind === 2 ? yt - tw * 0.3 : yt);
         }
         // the waterfront: low hotels in salmon and magenta with orange windows, palms between
-        for (let x = -2400; x < 2400; x += 45 + R() * 55) {
+        for (let x = -4000; x < 2800; x += 45 + R() * 55) {
             const w = 30 + R() * 40, h = 14 + R() * 24, x0 = X(x), x1 = X(x + w), yb = Y(0), yt = Y(h);
             Ink.shape(g, [[x0, yb], [x0, yt], [x1, yt], [x1, yb]], R() < 0.5 ? P.salmon : P.magenta, { w: 2, seed: Math.round(x), jit: 0.3 });
             for (let y = yt + 3; y < yb - 2; y += 4.5) for (let xx = x0 + 2; xx < x1 - 3; xx += 4.5) if (R() < 0.5) { g.fillStyle = R() < 0.7 ? P.orange : P.gold; g.fillRect(xx, y, 2.2, 2); }
@@ -177,8 +178,9 @@ const Drawn = (() => {
         for (const [f, col, seed] of [[0.28, P.deep, 55], [0.6, P.navy, 56]]) {
             const y2 = (env.H - lv.cy) * f;
             g.fillStyle = col; g.beginPath(); g.moveTo(-Wd, env.H * 2);
-            for (let x = -Wd; x <= Wd; x += 30) g.lineTo(x, y2 + Ink.noise(seed, x / 260, 0) * 22 + Ink.noise(seed + 9, x / 70, 0) * 5);
+            for (let x = -Wd; x <= Wd; x += 24) g.lineTo(x, y2 + Ink.noise(seed, x / 420, 0) * 46 + Ink.noise(seed + 9, x / 90, 0) * 12 + Ink.noise(seed + 19, x / 25, 0) * 4);
             g.lineTo(Wd, env.H * 2); g.closePath(); g.fill();
+            Ink.strokes(g, -Wd, y2 - 60, Wd * 2, 70, { ang: 0, count: 26, len: 140, w: 4, cols: [col], seed: seed * 7, d, alpha: 0.8 });
         }
         g.restore();
         if (!panoCols) return;
@@ -228,8 +230,8 @@ const Drawn = (() => {
         }
         // the near tube mirrored: a broken pink line under the deck
         const tc = tone(P.pink, fx);
-        for (let z = Math.floor((zc + 400) / 5) * 5; z >= zc + 3; z -= 5) {
-            if (Ink.hsh(z, 1, 0) < 0.3) continue;
+        for (let z = Math.floor((zc + 400) / 3) * 3; z >= zc + 3; z -= 3) {
+            if (Ink.hsh(z, 1, 0) < 0.15) continue;
             const ht = C.y(z) + 1.08, a = cam.p([7.9, 2 * C.WATER - ht, z]), b = cam.p([7.9, 2 * C.WATER - ht, z + 4]); if (a[2] < 2) continue;
             const wob = Math.sin(z * 0.7 + T * 2.5) * 3;
             Ink.brush(g, [[a[0] + wob, a[1]], [b[0] + wob, b[1]]], { w: 2.4, col: tc, seed: 3000 + z, d, taper: 0.3, alpha: 0.75, light: true });
@@ -238,9 +240,9 @@ const Drawn = (() => {
         for (let z = Math.floor((zc + 400) / 24) * 24; z >= zc - 24; z -= 24) {
             const a = cam.p([7.0, C.WATER, z]), b = cam.p([7.0, C.y(z) - 1.3, z]), r = cam.p([7.0, 2 * C.WATER - (C.y(z) - 1.3), z]); if (a[2] < 1) continue;
             const s = cam.f / a[2], hw = 0.8 * s;
-            for (let j = 0; j < 5; j++) {
-                const u0 = j / 5, u1 = u0 + 0.13, y0 = a[1] + (r[1] - a[1]) * u0, y1 = a[1] + (r[1] - a[1]) * u1, off = Math.sin(j * 2.1 + T * 2 + z) * 0.15 * s;
-                Ink.shape(g, [[a[0] - hw + off, y0], [a[0] + hw + off, y0], [a[0] + hw * 0.9 + off, y1], [a[0] - hw * 0.9 + off, y1]], '#1a0450', { w: 0, seed: z * 3 + j, d, jit: 0.5 });
+            for (let j = 0; j < 12; j++) {
+                const u = (j + 0.5) / 12, yy = a[1] + (r[1] - a[1]) * u, off = Math.sin(j * 2.1 + T * 2.2 + z) * (0.1 + u * 0.35) * s, ww = hw * (1.1 + 0.5 * Math.abs(Math.sin(j * 3.7 + z)));
+                Ink.brush(g, [[a[0] - ww + off, yy], [a[0] + ww + off, yy + 0.5]], { w: cap(0.12 * s * (1 - u * 0.4), 1, 8), col: '#1a0450', seed: z * 3 + j, d, taper: 0.35, alpha: 0.9 });
             }
             Ink.shape(g, [[a[0] - hw, a[1]], [b[0] - hw, b[1]], [b[0] + hw, b[1]], [a[0] + hw, a[1]]], P.royal, { w: lw(s, 0.12), seed: z, d, jit: 0 });
             Ink.hatch(g, [b[0] + hw * 0.6, b[1] + 2], [a[0] + hw * 0.6, a[1] - 2], { count: 3, len: Math.min(30, 0.5 * s), w: lw(s, 0.06), col: P.pink, seed: z + 7, d, n: [-1, 0], ang: 1.2 });
@@ -255,7 +257,7 @@ const Drawn = (() => {
     // list its z falls in, paints far(), the far items sorted, near(), the near items sorted,
     // then last() (the near parapet, when the camera stands beside the deck).
     function causeway(g, L, cam, T, d, fx) {
-        const zc = cam.pos[2], zFar = zc + 700, zNear = zc + 0.4;
+        const zc = cam.pos[2], zFar = Math.max(zc + 700, PAN.z - 680), zNear = zc + 0.4;
         const y = C.y;
         const outside = cam.pos[0] > 7.9;
         const zs = []; for (let z = zNear; z < zFar; z += Math.max(2, (z - zc) * 0.05)) zs.push(z); zs.push(zFar);
@@ -278,7 +280,7 @@ const Drawn = (() => {
             for (let k = kN + 50; k >= kN; k--) {
                 const zl = C.lampZ(k); if (zl + 6 < zA || zl - 6 > zB || zl > zc + 260 || zl < zNear - 6) continue;
                 for (const xl of [1.7, -6.5]) for (const [rz, col] of [[1, P.indigo], [0.6, '#4a10c8']]) {
-                    const pts = []; for (let i = 0; i < 64; i++) { const an = (i / 64) * Math.PI * 2, wob = 1 + 0.05 * Math.sin(i * 1.3 + k); pts.push([xl + Math.cos(an) * 3.4 * rz * wob, 0, Math.max(zc + 1.5, zl + Math.sin(an) * 6 * rz * wob)]); }
+                    const pts = []; for (let i = 0; i < 64; i++) { const an = (i / 64) * Math.PI * 2, wob = 1 + 0.05 * Math.sin(i * 1.3 + k); pts.push([xl + Math.cos(an) * 3.4 * rz * wob, 0, outside ? zl + Math.sin(an) * 6 * rz * wob : Math.max(zc + 1.5, zl + Math.sin(an) * 6 * rz * wob)]); }
                     for (const q of pts) q[1] = y(q[2]) + 0.02;
                     const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: 0, seed: k * 5 + rz * 10, d, jit: 0 });
                 }
@@ -301,7 +303,12 @@ const Drawn = (() => {
             // the raised median, after what lies on the asphalt: its kerb faces, its top, the kerb lines
             for (const xx of [-4.4, -0.4]) { const A = edge(xx, 0), B = edge(xx, 0.18); if (A.length > 1 && B.length > 1) Ink.shape(g, A.concat(B.slice().reverse()), P.grape, { w: 0, seed: 'kf' + xx, d, jit: 0 }); }
             const med = strip(-4.4, -0.4, 0.18);
-            if (med) { Ink.shape(g, med, P.plum, { w: 0, seed: 'median', d, jit: 0 }); for (const xx of [-4.4, -0.4]) { const E = edge(xx, 0.18); if (E.length > 1) Ink.brush(g, E, { w: 2.4, seed: 'kerb' + xx, d, taper: 0.02 }); } }
+            if (med) { Ink.shape(g, med, P.plum, { w: 0, seed: 'median', d, jit: 0 });
+                for (let zg = Math.ceil(Math.max(zA, zc + 1) / 2.6) * 2.6; zg < Math.min(zB, zc + 90); zg += 2.6) {
+                    const xg = -4.0 + 3.2 * Ink.hsh(Math.round(zg * 10), 1, 0), pg = cam.p([xg, y(zg) + 0.19, zg]); if (pg[2] < 0.8) continue;
+                    const sg = cam.f / pg[2], lg = cap(0.25 * sg, 3, 26);
+                    Ink.brush(g, [[pg[0] - lg / 2, pg[1]], [pg[0] + lg / 2, pg[1] - lg * 0.08]], { w: cap(0.025 * sg, 0.8, 3), col: C.lampLight(zg) > 0.4 ? P.salmon : P.purple, seed: Math.round(zg * 13), d, taper: 0.5 });
+                } for (const xx of [-4.4, -0.4]) { const E = edge(xx, 0.18); if (E.length > 1) Ink.brush(g, E, { w: 2.4, seed: 'kerb' + xx, d, taper: 0.02 }); } }
             // the parapets seen from the deck: their face, their cap, the tube seated on it
             for (const side of outside ? [-1] : [-1, 1]) parapet(side, edge, zA, zB);
         }
@@ -314,7 +321,8 @@ const Drawn = (() => {
             const fx0 = seen ? inner : outer;
             const A = edge(fx0, right && outside ? -1.3 : 0), B = edge(fx0, h);
             if (A.length > 1 && B.length > 1) {
-                Ink.shape(g, A.concat(B.slice().reverse()), right && outside ? P.royal : face, { w: 0, seed: 'par' + side, d, jit: 0 });
+                Ink.shape(g, A.concat(B.slice().reverse()), right && outside ? P.violet : face, { w: 0, seed: 'par' + side, d, jit: 0 });
+                if (right && outside) { const D0 = edge(fx0, 0); if (D0.length > 1) Ink.brush(g, D0, { w: 3, seed: 'deckline' + zA, d, taper: 0.02 }); }
                 Ink.brush(g, A, { w: 3, seed: 'parA' + side + zA, d, taper: 0.03 });
                 // light along the whole face: strokes every 5 m, warmer where a lamp stands
                 for (let zh = Math.ceil(Math.max(zA, zc + 2) / 5) * 5; zh < Math.min(zB, zc + 160); zh += 5) {
@@ -399,13 +407,13 @@ const Drawn = (() => {
         // salmon on the other (strokes only while they can be seen as strokes)
         const pts = []; for (let i = 0; i <= 9; i++) { const u = i / 9, p = cam.p([x + lean * u * u, yb + H * 0.9 * u, z]), w = (0.3 + 0.06 * Math.sin(u * 2.4) - 0.1 * u) * cam.f / p[2]; pts.push([p[0], p[1], w]); }
         const outline = pts.map((p) => [p[0] - p[2], p[1]]).concat(pts.slice().reverse().map((p) => [p[0] + p[2], p[1]]));
-        Ink.shape(g, outline, P.purple, { w: lw(s, 0.06), seed: seed * 7 + 1, d, jit: 0.5 });
+        Ink.shape(g, outline, P.purple, { w: s > 7 ? lw(s, 0.06) : 0, seed: seed * 7 + 1, d, jit: s > 7 ? 0.5 : 0 });
         if (s > 10) for (let i = 1; i < 9; i++) { const p = pts[i]; Ink.brush(g, [[p[0] - p[2] * 0.8, p[1]], [p[0] + p[2] * 0.8, p[1] + p[2] * 0.12]], { w: cap(0.03 * s, 0.8, 2.5), seed: seed * 13 + i, d, taper: 0.4, alpha: 0.7 }); }
-        Ink.brush(g, pts.slice(1, 9).map((p) => [p[0] - p[2] * 0.62, p[1]]), { w: cap(0.05 * s, 1, 4), col: tone(P.cyan, fx), seed: seed * 17, d, taper: 0.3 });
+        if (s > 5) Ink.brush(g, pts.slice(0, 10).map((p) => [p[0] - p[2] * 0.62, p[1]]), { w: cap(0.05 * s, 1, 4), col: tone(P.cyan, fx), seed: seed * 17, d, taper: 0.3 });
         if (s > 14) Ink.hatch(g, [pts[0][0] + pts[0][2] * 0.4, pts[0][1] - 4], [pts[6][0] + pts[6][2] * 0.4, pts[6][1]], { count: s > 40 ? 7 : 4, len: cap(0.3 * s, 3, 26), w: cap(0.045 * s, 1, 4), col: P.salmon, seed: seed * 3, d, n: [1, 0], ang: 1.2 });
         // the crownshaft: a smooth green-violet column from the trunk's top to the crown
         const c0 = cam.p([x + lean, yb + H * 0.9, z]), c1 = cam.p([x + lean, yb + H, z]), cwd = 0.23 * cam.f / c0[2];
-        Ink.shape(g, [[c0[0] - cwd, c0[1]], [c1[0] - cwd * 0.8, c1[1]], [c1[0] + cwd * 0.8, c1[1]], [c0[0] + cwd, c0[1]]], '#2a5a7a', { w: lw(s, 0.05), seed: seed * 9, d, jit: 0.4 });
+        Ink.shape(g, [[c0[0] - cwd, c0[1]], [c1[0] - cwd * 0.8, c1[1]], [c1[0] + cwd * 0.8, c1[1]], [c0[0] + cwd, c0[1]]], '#2a5a7a', { w: s > 7 ? lw(s, 0.05) : 0, seed: seed * 9, d, jit: 0.4 });
         // fronds as leaf shapes springing from the crown, far ones first
         const n = 15, sway = Math.sin(T * 1.6 + seed) * 0.05, fr = [];
         for (let i = 0; i < n; i++) { const an = (i / n) * Math.PI * 2 + R() * 0.25; fr.push({ an, dx: Math.cos(an), dz: Math.sin(an), len: 3.4 + R() * 1.2, arch: 0.9 + R() * 0.6 }); }
@@ -417,9 +425,9 @@ const Drawn = (() => {
             if (rib.some((p) => p[2] < 0.5)) continue;
             const width = (j) => (0.26 * Math.sin((j / 8) * Math.PI * 0.95 + 0.1)) * cam.f / rib[j][2];
             const up = rib.map((p, j) => [p[0], p[1] - width(j) * 0.35]), dn = rib.map((p, j) => [p[0] + f.dx * width(j) * 0.2, p[1] + width(j) * 0.8]);
-            Ink.shape(g, up.concat(dn.reverse()), f.dz > 0 ? P.grape : P.plum, { w: lw(s, 0.05), seed: seed * 101 + Math.round(f.an * 10), d, jit: 0.5 });
+            Ink.shape(g, up.concat(dn.reverse()), f.dz > 0 ? P.grape : P.plum, { w: s > 9 ? lw(s, 0.05) : 0, seed: seed * 101 + Math.round(f.an * 10), d, jit: s > 9 ? 0.5 : 0 });
             if (s > 12) for (let j = 2; j <= 8; j++) { const p = rib[j], ll = width(j) * 1.1; Ink.brush(g, [[p[0], p[1] + width(j) * 0.4], [p[0] + f.dx * ll * 0.3, p[1] + ll]], { w: cap(0.04 * s, 1, 3), seed: seed * 997 + Math.round(f.an * 10) * 13 + j, d, taper: 0.5, wob: 0.4 }); }
-            Ink.brush(g, rib.slice(1, 6).map((p, j) => [p[0], p[1] - width(j + 1) * 0.3]), { w: cap(0.04 * s, 1, 3.5), col: f.dx > 0 ? tone(P.pink, fx) : tone(P.cyan, fx), seed: seed * 31 + Math.round(f.an * 10), d, taper: 0.4 });
+            if (s > 6) Ink.brush(g, rib.slice(1, 6).map((p, j) => [p[0], p[1] - width(j + 1) * 0.3]), { w: cap(0.04 * s, 1, 3.5), col: f.dx > 0 ? tone(P.pink, fx) : tone(P.cyan, fx), seed: seed * 31 + Math.round(f.an * 10), d, taper: 0.4 });
         }
     }
 
@@ -431,10 +439,18 @@ const Drawn = (() => {
         const w = 0.62 * sc * s, L0 = [];
         for (let i = 0; i < lobes; i++) { const cx = -w + (2 * w * (i + 0.5)) / lobes, r = (w / lobes) * (1.25 + 0.25 * R()), lift = (0.35 + 0.45 * Math.sin(((i + 0.5) / lobes) * Math.PI)) * w * 0.9; L0.push([cx, r, lift]); }
         const top = (dx) => { let best = 0; for (const [cx, r, lift] of L0) { const u = (dx - cx) / r; if (Math.abs(u) < 1) best = Math.max(best, lift + Math.sqrt(1 - u * u) * r * 0.85); } return best; };
-        const pts = [[b[0] - w, b[1]]];
+        // the sides bulge out in two lobes each, the base tucks in: a clump, not a box
+        const pts = [[b[0] - w * 0.82, b[1]]];
+        for (let i = 0; i <= 6; i++) { const t = i / 6, a = Math.PI * (0.5 + t * 0.5); pts.push([b[0] - w * 0.82 + Math.cos(a) * w * 0.25 * (1 + 0.3 * Math.sin(t * Math.PI * 2 + seed)), b[1] - top(-w) * t * 0.9 - Math.sin(a) * 2]); }
         for (let i = 0; i <= 24; i++) { const dx = -w + (2 * w * i) / 24; pts.push([b[0] + dx, b[1] - Math.max(2, top(dx))]); }
-        pts.push([b[0] + w, b[1]]);
-        Ink.shape(g, pts, seed % 2 ? '#4a10c8' : P.royal, { w: lw(s, 0.035), seed: 7000 + seed, d, jit: 0.4 });
+        for (let i = 0; i <= 6; i++) { const t = 1 - i / 6, a = Math.PI * (0.5 - t * 0.5); pts.push([b[0] + w * 0.82 + Math.cos(a) * w * 0.25 * (1 + 0.3 * Math.sin(t * Math.PI * 2 + seed * 3)), b[1] - top(w) * t * 0.9]); }
+        pts.push([b[0] + w * 0.82, b[1]]);
+        const body = seed % 2 ? '#4a10c8' : P.royal;
+        Ink.shape(g, pts, body, { w: lw(s, 0.035), seed: 7000 + seed, d, jit: 0.4 });
+        if (s > 14) {
+            Ink.shape(g, [[b[0] - w * 0.8, b[1]], [b[0] - w * 0.7, b[1] - w * 0.25], [b[0] + w * 0.7, b[1] - w * 0.22], [b[0] + w * 0.8, b[1]]], '#1a0670', { w: 0, seed: 7200 + seed, d, jit: 0.5 });
+            for (let i = 0; i < 5; i++) { const cx = b[0] + (Ink.hsh(seed, i, 0) - 0.5) * w * 1.3, cy = b[1] - top(cx - b[0]) * (0.45 + 0.3 * Ink.hsh(seed, i + 9, 0)), r = cap(0.07 * s, 2, 10); Ink.brush(g, [[cx - r, cy + r * 0.4], [cx, cy - r * 0.3], [cx + r, cy + r * 0.4]], { w: cap(0.02 * s, 0.8, 2), seed: 7300 + seed * 11 + i, d, taper: 0.4, alpha: 0.8 }); }
+        }
         if (s > 18) for (let i = 0; i < 4; i++) {
             const dx = -w * 0.6 + (1.2 * w * (i + 0.5)) / 4, ty = b[1] - top(dx) + cap(0.05 * s, 2, 8), l = cap(0.14 * s, 3, 14);
             Ink.brush(g, [[b[0] + dx - l * 0.5, ty + l * 0.15], [b[0] + dx + l * 0.5, ty]], { w: cap(0.03 * s, 1, 3), col: seed % 3 ? tone(P.cyan, fx) : P.pink, seed: 7100 + seed * 7 + i, d, taper: 0.5 });

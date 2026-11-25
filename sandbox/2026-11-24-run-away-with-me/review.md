@@ -126,3 +126,28 @@ About 80 faults, most of them shared:
 - **The trip:** the screen-space rings crossed the car: hoops now stand in the world.
 - **Shot B's camera** raised (the two tubes crossed in an X at the crest).
 Then a second audit by two new reviewers on the corrected frames.
+
+## Round 4 · the second audit (two new reviewers, A+B and C+D)
+
+About 45 faults left after round 3, all fixed before showing:
+- the dutch tilt of shot D tilted the world but not the sky and the bay (the city floated on a
+  band of sky): sky and bay are now drawn in the camera's rolled frame, the sky's bands at
+  fixed elevations (the crane no longer squashed them);
+- palm crowns floated over flat-cut trunks: the trunk runs into a crownshaft and the crown;
+  far crowns are flat silhouettes without ink (they had turned into a black shelf);
+- the trip's hoops crossed the parapets and ended in a flat bar: arcs inside the parapets,
+  only above the deck;
+- the far tube was 4 px at any distance (a glowing V on her head at the crest): tubes and the
+  grid's lines are as wide as they are at their distance;
+- pools cut by a straight seam at the crest split: drawn in both pieces; near pools cut in
+  the world; the median painted after the asphalt's contents, with its kerb faces;
+- shrubs: spikes from overlapping lobes, then planter boxes: one envelope with bulging sides,
+  a dark base and leaf clusters, light strokes lying on top;
+- muddy translucent reflections: opaque palette strokes; pier reflections as broken strokes,
+  not a film strip; the bay's band edges ragged and brushed;
+- masts as hairlines beside a wide base plate: real thickness, lit edge on the edge;
+- traffic as two boxes through the camera; the causeway now runs to the shore; the
+  panorama reaches further left; falling bars kept off the road's column and the moon;
+- the cast: a gold halo on both heads (removed), her strokes of light along the fall of the
+  hair, the hair's inner lines in a hair ink, a stray piece of her shoulder (cut higher).
+Review: no warnings; 137 ms a frame warm at 960.

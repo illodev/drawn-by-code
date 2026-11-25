@@ -127,8 +127,8 @@ function drawDrawn(g, t, env) {
         const cl = carL.getContext('2d'); cl.setTransform(env.k, 0, 0, env.k, 0, 0); cl.globalCompositeOperation = 'lighter';
         const carPic = Motion.layer(env, 'carPic', (c) => Car.draw(c, cl, N, cam, pose, light, (gg) => {
             const sway = Math.sin(T * 7.3) * 0.006;
-            Couple.backDrawn(gg, cam, pose, 'him', -0.42, -0.52, light, { sway: -sway, T, d });
-            Couple.backDrawn(gg, cam, pose, 'her', 0.42, -0.52, light, { sway, T, d });
+            Couple.backDrawn(gg, cam, pose, 'him', -0.42, -0.52, light, { sway: -sway, T, d, cut: 0.48 });
+            Couple.backDrawn(gg, cam, pose, 'her', 0.42, -0.52, light, { sway, T, d, cut: 0.46 });
         }));
         L.save(); L.setTransform(1, 0, 0, 1, 0, 0);
         L.globalCompositeOperation = 'destination-out'; L.drawImage(carPic, 0, 0);
