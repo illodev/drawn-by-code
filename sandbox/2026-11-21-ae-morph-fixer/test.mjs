@@ -813,6 +813,21 @@ function keepsAxis(r, deg) {
         const fsnap = tf.K.map((q) => q.t), f2 = FX.fix(tf, { rotate: true, turnKeys: 'few' });
         check('turn, few keys: fixing again finds them and writes the same', f2.removed === f1.baked && f2.baked === f1.baked && tf.K.length === fsnap.length && tf.K.every((q, i) => Math.abs(q.t - fsnap[i]) < 1e-9), `removed ${f2.removed}`);
         console.log(`turn, few keys: ${f1.baked} in-between keys (a key a frame: ${want}), least area ${(leastA * 100).toFixed(1)} %`);
+        // the animator drags the third key 2 frames later and eases it by hand (auto-bezier off,
+        // 60 %): a second Fix keeps both, redraws it as the same share of the turn, and says so
+        const third = () => fewK()[2], was = third().v.vertices.map((p) => p.slice()), tDrag = third().t + 2 / 24;
+        third().t = tDrag;
+        third().auto = false;
+        third().easeObj = [[{ speed: 0, influence: 60 }], [{ speed: 0, influence: 60 }]];
+        tf.K.sort((p, q) => p.t - q.t);
+        const f3 = FX.fix(tf, { rotate: true, turnKeys: 'few' }), moved = fewK().find((q) => Math.abs(q.t - tDrag) < 1e-9);
+        let dv = Infinity;
+        if (moved) dv = Math.max(...moved.v.vertices.map((p, j) => Math.hypot(p[0] - was[j][0], p[1] - was[j][1])));
+        check('turn, few keys: a key dragged and eased by hand keeps its time and easing through a Fix, redrawn as the same share of the turn', !!moved && moved.auto === false &&
+            moved.easeObj[0][0].influence === 60 && dv < 0.05 && f3.keptTurn === f1.baked && /kept where they were/.test(FX.summary(f3)), `moved by ${dv.toFixed(3)} px; ` + FX.summary(f3));
+        // and a third Fix changes nothing
+        const f4 = FX.fix(tf, { rotate: true, turnKeys: 'few' });
+        check('turn, few keys: fixing yet again keeps them all where they are', f4.keptTurn === f1.baked && fewK().some((q) => Math.abs(q.t - tDrag) < 1e-9), String(f4.keptTurn));
     }
     // a hole on its own clock, on mock timelines: o into c into d, outline and hole each a Path,
     // through the steps fixSelection takes (pieces matched, every path planned, the holes timed,

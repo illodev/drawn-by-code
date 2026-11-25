@@ -1,4 +1,4 @@
-// Mask Morph Fixer 0.16.0 - gives every keyframe of a path the same points, direction
+// Mask Morph Fixer 0.17.0 - gives every keyframe of a path the same points, direction
 // and start, so shapes and masks morph cleanly in After Effects; key times and easing stay as
 // they are. Run it from File > Scripts > Run Script File..., then click ? > Install as a panel
 // to dock it (Window menu, after a restart).
@@ -679,6 +679,33 @@ var MF = (function () {
         if (Math.sqrt(e / pairs.length) > Math.max(0.5, 0.002 * size)) return null;
         var deg = th * 180 / Math.PI;
         return Math.abs(deg) < 1 ? null : { deg: deg };
+    }
+
+    // the angle (deg) that best turns A onto B, point for point (vertices about their centres, and
+    // the handles), whether or not B is exactly a turned A: a turn's in-between keys are turned
+    // copies blended a little. The sign is AE's (clockwise on screen); the panel only ever divides
+    // two of these, so it doesn't matter. 0 when the paths don't share their points.
+    function turnBetween(A, B) {
+        var n = A.v.length, k;
+        if (n !== B.v.length || n < 2) return 0;
+        var ca = [0, 0], cb = [0, 0];
+        for (k = 0; k < n; k++) {
+            ca[0] += A.v[k][0] / n;
+            ca[1] += A.v[k][1] / n;
+            cb[0] += B.v[k][0] / n;
+            cb[1] += B.v[k][1] / n;
+        }
+        var sd = 0, sc = 0;
+        function add(ax, ay, bx, by) {
+            sd += ax * bx + ay * by;
+            sc += ax * by - ay * bx;
+        }
+        for (k = 0; k < n; k++) {
+            add(A.v[k][0] - ca[0], A.v[k][1] - ca[1], B.v[k][0] - cb[0], B.v[k][1] - cb[1]);
+            add(A.i[k][0], A.i[k][1], B.i[k][0], B.i[k][1]);
+            add(A.o[k][0], A.o[k][1], B.o[k][0], B.o[k][1]);
+        }
+        return Math.atan2(sc, sd) * 180 / Math.PI;
     }
 
     // o for one step: the drawn turn into this key and how far the previous key's start moved
@@ -1924,7 +1951,7 @@ var MF = (function () {
         lerp: lerp, copy: copy, seg: seg, segCount: segCount, bez: bez, turnPath: turnPath, turnFrom: turnFrom,
         swing: swing, progressOf: progressOf, matchPieces: matchPieces, pieceInfo: pieceInfo,
         holeTiming: holeTiming, holePhase: holePhase, holeAt: holeAt, holeOutside: holeOutside, holeGone: holeGone,
-        holeKeyed: holeKeyed, holeKeeps: holeKeeps, isClosed: isClosed,
+        holeKeyed: holeKeyed, holeKeeps: holeKeeps, isClosed: isClosed, turnBetween: turnBetween,
         // a closed path's mirror axes: 'round' or [{ phi (radians), pole (fraction), e }] (tests)
         mirrorAxes: function (P, thorough) { return mirrorAxes(samples(P, measure(P), thorough ? 2 * N : N), thorough); },
         // how far two paths part (px), quick two-way check (what the rebuild holds to its tolerance)
@@ -1947,7 +1974,7 @@ var MF = (function () {
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.16.0';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.17.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -2023,19 +2050,11 @@ var MorphFixer = (function () {
     // keys then fixing again retimes them.
     var INBETWEEN_LABEL = 15;
 
-    // the fixer's own key: labelled, and linear (a turn's or a hole's, a key a frame), a hole
-    // closed to nothing (a hole on a key or two) or auto-bezier (a turn on a few keys)
+    // the fixer's own key: by its label alone (round 18: a turn key the animator re-eased lost
+    // its auto-bezier and would have read as drawn). To make one yours, change its label
     function isInbetween(prop, k) {
         try {
-            if (prop.keyLabel(k) !== INBETWEEN_LABEL) return false;
-            var LIN = KeyframeInterpolationType.LINEAR;
-            if (prop.keyInInterpolationType(k) === LIN && prop.keyOutInterpolationType(k) === LIN) return true;
-            if (MF.isClosed(toMF(prop.keyValue(k)))) return true;
-            try {
-                return !!prop.keyTemporalAutoBezier(k);
-            } catch (e1) {
-                return false;
-            }
+            return prop.keyLabel(k) === INBETWEEN_LABEL;
         } catch (e) {
             return false;       // no key labels (before 22.6): there are none to find
         }
@@ -2116,14 +2135,27 @@ var MorphFixer = (function () {
     // shape a little: every 15 deg, 1.5 px off the true arc on the demo's F and 98 % of its area
     // at worst (a key a frame: 0.1 px, 99.9 %).
     // -> the number of in-between keys written
+    // kept (few keys only): the keys a step already had (turnKeysOf, read before the fix removed
+    // them). Where the animator may have dragged or re-eased them, they are written back at their
+    // own times with their own interpolation and easing, each redrawn as the turn at the share of
+    // the step it stood for (keptFractions), so a retimed turn stays retimed; rep.keptTurn counts
+    // them. A step whose kept keys can't be read, or no longer sit inside it, gets the fixer's own.
     var TURN_EVERY = 15;
-    function bakeTurn(prop, idx, r, few) {
-        var T = r.turn, k, j;
+    function bakeTurn(prop, idx, r, few, kept, rep) {
+        var T = r.turn, k, j, keep = [];
         for (k = 0; k < idx.length; k++) prop.setValueAtKey(idx[k], fromMF(r.placed[k]));
         var times = [], shapes = [];
         for (k = 0; k + 1 < idx.length; k++) {
             if (Math.abs(T.angles[k + 1] - T.angles[k]) < 0.5) continue;
             if (prop.keyOutInterpolationType(idx[k]) === KeyframeInterpolationType.HOLD) continue;
+            if (few && kept && kept[k] && kept[k].keys.length) {
+                var s = keptFractions(kept[k]), t0 = prop.keyTime(idx[k]), t1 = prop.keyTime(idx[k + 1]), inside = true;
+                for (j = 0; j < kept[k].keys.length; j++) if (!(kept[k].keys[j].t > t0 + 1e-6 && kept[k].keys[j].t < t1 - 1e-6)) inside = false;
+                if (s && inside) {
+                    for (j = 0; j < s.length; j++) keep.push({ e: kept[k].keys[j], P: MF.swing(T, r.paths, k, s[j]) });
+                    continue;
+                }
+            }
             var fr = framesBetween(prop, prop.keyTime(idx[k]), prop.keyTime(idx[k + 1])), us = [];
             for (j = 0; j < fr.length; j++) us.push(MF.progressOf(toMF(prop.valueAtTime(fr[j], false)), r.placed[k], r.placed[k + 1]));
             var pick = [];
@@ -2147,7 +2179,75 @@ var MorphFixer = (function () {
             }
         }
         writeInbetweens(prop, times, shapes, few);
-        return times.length;
+        // the kept keys, back where the animator left them, as they left them
+        if (keep.length) {
+            var kt = [], kv = [];
+            for (j = 0; j < keep.length; j++) {
+                kt.push(keep[j].e.t);
+                kv.push(fromMF(keep[j].P));
+            }
+            prop.setValuesAtTimes(kt, kv);
+            for (j = 0; j < keep.length; j++) {
+                var at = prop.nearestKeyIndex(kt[j]), e = keep[j].e;
+                prop.setInterpolationTypeAtKey(at, e.inT, e.outT);
+                try {
+                    if (e.inE) prop.setTemporalEaseAtKey(at, e.inE, e.outE);
+                    if (e.cont !== undefined) prop.setTemporalContinuousAtKey(at, e.cont);
+                    if (e.auto !== undefined) prop.setTemporalAutoBezierAtKey(at, e.auto);
+                } catch (x) {}
+                try {
+                    prop.setLabelAtKey(at, INBETWEEN_LABEL);
+                } catch (x2) {}
+            }
+        }
+        if (rep) rep.keptTurn = keep.length;
+        return times.length + keep.length;
+    }
+
+    // the in-between keys between each pair of the drawn keys idx, before a fix removes them:
+    // their times, values, interpolation and easing, and the drawn keys' values either side
+    // (as they stand, before the fix writes its own) -> [{ from, to, keys: [...] }] a step
+    function turnKeysOf(prop, idx) {
+        var out = [], k, q;
+        for (k = 0; k + 1 < idx.length; k++) {
+            var S = { from: toMF(prop.keyValue(idx[k])), to: toMF(prop.keyValue(idx[k + 1])), keys: [] };
+            for (q = idx[k] + 1; q < idx[k + 1]; q++) {
+                if (!isInbetween(prop, q)) continue;
+                var e = { t: prop.keyTime(q), v: toMF(prop.keyValue(q)), inT: prop.keyInInterpolationType(q), outT: prop.keyOutInterpolationType(q) };
+                try {
+                    e.inE = prop.keyInTemporalEase(q);
+                    e.outE = prop.keyOutTemporalEase(q);
+                    e.auto = prop.keyTemporalAutoBezier(q);
+                    e.cont = prop.keyTemporalContinuous(q);
+                } catch (x) {}
+                S.keys.push(e);
+            }
+            out.push(S);
+        }
+        return out;
+    }
+
+    // how far through its step each kept turn key was (0 ... 1), read from the keys themselves:
+    // the angle from the step's first key to each, against the angle to its last, measured key to
+    // key (each a small turn, so a step of more than half a turn reads right). null when they
+    // can't be read so (points that don't match, a key back to front)
+    function keptFractions(S) {
+        var acc = 0, prev = S.from, cum = [], j;
+        for (j = 0; j < S.keys.length; j++) {
+            if (S.keys[j].v.v.length !== prev.v.length) return null;
+            acc += MF.turnBetween(prev, S.keys[j].v);
+            cum.push(acc);
+            prev = S.keys[j].v;
+        }
+        if (S.to.v.length !== prev.v.length) return null;
+        acc += MF.turnBetween(prev, S.to);
+        if (Math.abs(acc) < 1) return null;
+        var s = [];
+        for (j = 0; j < cum.length; j++) {
+            s.push(cum[j] / acc);
+            if (!(s[j] > 0.002 && s[j] < 0.998) || (j && s[j] <= s[j - 1])) return null;
+        }
+        return s;
     }
 
     // the comp's frames strictly between two key times: in-betweens sit on frames, or a frame
@@ -2427,9 +2527,11 @@ var MorphFixer = (function () {
             return plan;
         }
         plan.apply = function () {
+            // a few-key turn's keys, as the animator left them, read before they are removed
+            var keptTurn = r.turn && o.turnKeys === 'few' && ki.strays.length ? turnKeysOf(prop, ki.idx) : null;
             var at = clearStrays(prop, ki);
             if (r.turn) {
-                rep.baked = bakeTurn(prop, at, r, o.turnKeys === 'few');
+                rep.baked = bakeTurn(prop, at, r, o.turnKeys === 'few', keptTurn, rep);
                 rep.fewKeys = o.turnKeys === 'few';
                 rep.turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
                 return;
@@ -2500,7 +2602,7 @@ var MorphFixer = (function () {
         }
         var how, turned = '';
         if (rep.turned !== undefined && rep.baked) {
-            turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, ' + (rep.fewKeys ? 'about one every 15 deg (drag them to retime)' : 'one a frame') + (earlier ? ' (replacing ' + earlier + ')' : '');
+            turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, ' + (rep.fewKeys ? (rep.keptTurn ? rep.keptTurn + ' of them kept where they were (drag them to retime)' : 'about one every 15 deg (drag them to retime)') : 'one a frame') + (earlier ? ' (replacing ' + earlier + ')' : '');
         } else if (rep.turned !== undefined) {
             turned = '; turned ' + Math.round(rep.turned) + ' deg at the keys (no in-betweens: the turning steps hold, or last a frame)';
         } else if (rep.noTurn) {
@@ -2938,7 +3040,7 @@ var MorphFixer = (function () {
         }, of = ' of the morph from key ' + (t.step + 1), s;
         if (t.keptTiming) {
             s = t.kind === 'close' ? 'shrinks away' : (t.kind === 'open' ? 'grows' : 'shrinks away and grows again in its new place');
-            return s + of.replace(' of the', ' in the') + ' on your timing (its keys kept)';
+            return s + of.replace(' of the', ' in the') + ', its keys kept where they were';
         }
         if (t.kind === 'close') s = 'shrinks away over the first ' + pc(t.a) + of + ', before the letter opens';
         else if (t.kind === 'open') s = 'grows over the last ' + pc(1 - t.b) + of + ', once the letter has closed round it';

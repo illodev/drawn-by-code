@@ -674,6 +674,33 @@ var MF = (function () {
         return Math.abs(deg) < 1 ? null : { deg: deg };
     }
 
+    // the angle (deg) that best turns A onto B, point for point (vertices about their centres, and
+    // the handles), whether or not B is exactly a turned A: a turn's in-between keys are turned
+    // copies blended a little. The sign is AE's (clockwise on screen); the panel only ever divides
+    // two of these, so it doesn't matter. 0 when the paths don't share their points.
+    function turnBetween(A, B) {
+        var n = A.v.length, k;
+        if (n !== B.v.length || n < 2) return 0;
+        var ca = [0, 0], cb = [0, 0];
+        for (k = 0; k < n; k++) {
+            ca[0] += A.v[k][0] / n;
+            ca[1] += A.v[k][1] / n;
+            cb[0] += B.v[k][0] / n;
+            cb[1] += B.v[k][1] / n;
+        }
+        var sd = 0, sc = 0;
+        function add(ax, ay, bx, by) {
+            sd += ax * bx + ay * by;
+            sc += ax * by - ay * bx;
+        }
+        for (k = 0; k < n; k++) {
+            add(A.v[k][0] - ca[0], A.v[k][1] - ca[1], B.v[k][0] - cb[0], B.v[k][1] - cb[1]);
+            add(A.i[k][0], A.i[k][1], B.i[k][0], B.i[k][1]);
+            add(A.o[k][0], A.o[k][1], B.o[k][0], B.o[k][1]);
+        }
+        return Math.atan2(sc, sd) * 180 / Math.PI;
+    }
+
     // o for one step: the drawn turn into this key and how far the previous key's start moved
     // (a fraction of its outline), so the drawn pairing can be kept
     function pairOpts(o, drawn, shift) {
@@ -1917,7 +1944,7 @@ var MF = (function () {
         lerp: lerp, copy: copy, seg: seg, segCount: segCount, bez: bez, turnPath: turnPath, turnFrom: turnFrom,
         swing: swing, progressOf: progressOf, matchPieces: matchPieces, pieceInfo: pieceInfo,
         holeTiming: holeTiming, holePhase: holePhase, holeAt: holeAt, holeOutside: holeOutside, holeGone: holeGone,
-        holeKeyed: holeKeyed, holeKeeps: holeKeeps, isClosed: isClosed,
+        holeKeyed: holeKeyed, holeKeeps: holeKeeps, isClosed: isClosed, turnBetween: turnBetween,
         // a closed path's mirror axes: 'round' or [{ phi (radians), pole (fraction), e }] (tests)
         mirrorAxes: function (P, thorough) { return mirrorAxes(samples(P, measure(P), thorough ? 2 * N : N), thorough); },
         // how far two paths part (px), quick two-way check (what the rebuild holds to its tolerance)

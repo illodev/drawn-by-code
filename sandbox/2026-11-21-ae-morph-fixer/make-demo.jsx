@@ -557,7 +557,7 @@
             var kr = fixDup(), g1 = goneKey(piecePaths(ldup));
             var keptEase = g1 ? g1.path.keyInTemporalEase(g1.k)[0].influence : 0;
             check('letters demo: a hole key dragged 2 frames and re-eased keeps its time and easing through a second Fix',
-                g0 && g1 && Math.abs(g1.t - moved) < 1e-4 && Math.abs(keptEase - 70) < 0.01 && /on your timing/.test(kr.detail),
+                g0 && g1 && Math.abs(g1.t - moved) < 1e-4 && Math.abs(keptEase - 70) < 0.01 && /kept where they were/.test(kr.detail),
                 (g1 ? 'at frame ' + Math.round(g1.t / lfd) + ' (dragged to ' + Math.round(moved / lfd) + '), influence ' + keptEase : 'no key') + ' · ' + kr.status);
             if (g1) dragTo(g1, LT.keys[6][0] - lfd, 33.333);
             var kr2 = fixDup(), g2 = goneKey(piecePaths(ldup));
@@ -653,6 +653,29 @@
             check('panel Fix (turn, few keys): about a key every 15 deg, auto-bezier, the F 97 % of its area or more at every frame',
                 ftr && Math.abs(ftr.turned - 360) < 0.5 && ftr.baked > 0 && tr && ftr.baked < tr.baked / 3 && fLab === ftr.baked && fAuto === fLab && fMin > 0.97,
                 (ftr ? ftr.baked : 0) + ' keys (a key a frame: ' + (tr ? tr.baked : 0) + '), ' + fAuto + ' auto-bezier, least area ' + Math.round(fMin * 1000) / 10 + ' %');
+            // the animator drags the third turn key 2 frames later and eases it by hand: a second
+            // Fix keeps it there, with its easing, redrawn as the same share of the turn
+            var tk = -1, seen = 0;
+            for (fk = 1; fk <= fpath.numKeys && tk < 0; fk++) if (fpath.keyLabel(fk) === 15 && ++seen === 3) tk = fk;
+            var tdrag = tk > 0 ? fpath.keyTime(tk) + 2 * turnComp.frameDuration : -1;
+            if (tk > 0) {
+                var tval = fpath.keyValue(tk);
+                fpath.removeKey(tk);
+                fpath.setValueAtTime(tdrag, tval);
+                var tnk = fpath.nearestKeyIndex(tdrag);
+                fpath.setInterpolationTypeAtKey(tnk, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
+                fpath.setTemporalEaseAtKey(tnk, [new KeyframeEase(0, 60)], [new KeyframeEase(0, 60)]);
+                fpath.setLabelAtKey(tnk, 15);
+            }
+            turnComp.openInViewer();
+            for (i = 1; i <= turnComp.numLayers; i++) turnComp.layer(i).selected = false;
+            fdup.selected = true;
+            c.fix.notify('onClick');
+            var kr3 = w.lastResult && w.lastResult.reports[0], kk = tdrag > 0 ? fpath.nearestKeyIndex(tdrag) : 0;
+            var kInf = kk ? fpath.keyInTemporalEase(kk)[0].influence : 0;
+            check('panel Fix (turn, few keys) again: a turn key dragged 2 frames and eased by hand stays there with its easing',
+                kk && Math.abs(fpath.keyTime(kk) - tdrag) < 1e-4 && Math.abs(kInf - 60) < 0.01 && kr3 && kr3.keptTurn === ftr.baked,
+                'key at ' + (kk ? Math.round(fpath.keyTime(kk) / turnComp.frameDuration) : '?') + ' (dragged to ' + Math.round(tdrag / turnComp.frameDuration) + '), influence ' + kInf + ', kept ' + (kr3 ? kr3.keptTurn : '?') + ' · ' + c.status.text);
             fdup.remove();
             c.turn.selection = 0;
             check('panel: floating, titled ' + MFx.name, !w.docked && w.text === MFx.name, w.text);

@@ -751,3 +751,25 @@ kept through a second Fix.
 - Tests: Node 4,440 (few-key turns: 5 a quarter turn, auto-bezier, 97 % area, fixed again
   the same; kept hole timing and retiming on mock timelines); real type 186. AE: real type
   111/111, demo 54/55 as above. `render/` unchanged (the demo itself didn't change).
+
+## Round 18 · 2026-11-25 (the user: "continue with your recommendation")
+
+The last open piece of round 16's recommendation: turn keys the animator moves kept through a
+second Fix, as hole keys already were.
+
+- **0.17.0**: before a few-key turn's keys are removed, each step's are read (times, values,
+  interpolation, easing, auto-bezier). Each key's share of the turn is read from the keys
+  themselves: the angle from the step's first key to it, key to key (`MF.turnBetween`, 2D
+  Procrustes over vertices and handles), against the angle to the step's last key. They are
+  written back at their own times with their own easing, each redrawn as the turn at that
+  share, so a turn the animator retimed stays retimed, also when a letter is redrawn. A step
+  whose keys can't be read so (points that don't match, a key back to front) or no longer
+  sit inside it gets the fixer's own. A turn a key a frame is still redone.
+- **The fixer knows its keys by label alone** now: a turn key the animator re-eased loses
+  auto-bezier and would have read as a drawn key. To make one yours, change its label.
+- The report says "kept where they were" (they may be untouched), for turns and holes.
+- Tests: Node 4,442 (a key dragged 2 frames and eased by hand at 60 % keeps both, redrawn
+  within 0.05 px of where it was; a third Fix changes nothing); real type 186. **In After
+  Effects 27**: the demo 56/56 (the dragged turn key stays at its frame with 60 %, all 20 kept;
+  the two hole-key checks; the status line without the bogus count; the time estimate 21.8 s
+  for 20.7). The runner ran only while the user had handed AE over, and stopped after.
