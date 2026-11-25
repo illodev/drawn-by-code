@@ -3,7 +3,7 @@
 const DIR = 'sandbox/2026-11-24-run-away-with-me/';
 const NAMES = ['opening', 'escape', 'drive', 'clouds', 'night', 'boat', 'sunrise'];
 // each section's own files (its first line, «// uses: …»), loaded before the sections
-const EXTRA = ['props/opening-figures.js', 'set/opening-street.js', 'set/opening-party.js', 'set/sunrise-beach.js', 'props/boat-speedboat.js', 'set/clouds-city.js', 'set/escape-sets.js'];
+const EXTRA = ['props/opening-figures.js', 'set/opening-street.js', 'set/opening-party.js', 'set/sunrise-beach.js', 'props/boat-speedboat.js', 'set/clouds-life.js', 'set/clouds-city.js', 'set/escape-sets.js'];
 Motion.scene({
     fps: 24,
     duration: 253.5,

@@ -107,7 +107,7 @@ const CloudsCity = (() => {
         // cars parked along the park-side kerb, away from where the camera follows theirs
         for (let z = LAND.z0 + 10; z < LAND.z1 - 10; z += 7 + R() * 5) if ((z < 120 || z > 275) && R() < 0.45) parked.push({ x: 4.75, z, dir: 1, col: [P.violet, P.royal, P.plum, P.indigo][Math.floor(R() * 4)] });
         // a car at the kerb outside the laundromat
-        parked.push({ x: -192.4, z: 141, dir: 1, col: P.royal });
+        parked.push({ x: -192.4, z: 141, dir: 1, col: P.royal }, { x: -192.4, z: 128.6, dir: 1, col: P.plum });
         // people walking: Ocean Drive's two sidewalks, the park's walkway, Washington Avenue
         const walkers = [];
         for (let i = 0; i < 60; i++) {
@@ -189,6 +189,19 @@ const CloudsCity = (() => {
         if (land) Ink.shape(g, land, '#150560', { w: 0, seed: 'land', d, jit: 0 });
         // the park and the sand
         for (const [xa, xb, col] of [[9, 70, '#2c0a5c'], [70, SHORE, '#3a1068']]) { const q = quad(cam, [[xa, 0.01, LAND.z0], [xb, 0.01, LAND.z0], [xb, 0.01, LAND.z1], [xa, 0.01, LAND.z1]]); if (q) Ink.shape(g, q, col, { w: 0, seed: 'park' + xa, d, jit: 0 }); }
+        // the sand's ripples and the park's grass: short strokes along the shore, batched into a
+        // few paths (thousands of them from above), lighter where the hotels' light falls
+        {
+            const zA = Math.max(LAND.z0, c[2] - (high ? 1400 : 260)), zB = Math.min(LAND.z1, c[2] + (high ? 1700 : 420)), st = high ? 9 : 4;
+            const sm = cam.f / Math.max(30, Math.abs(c[1]) + 40);
+            const batch = (col, wpx, fn) => { g.save(); g.strokeStyle = col; g.lineWidth = wpx; g.lineCap = 'round'; g.beginPath(); fn(); g.stroke(); g.restore(); };
+            const seg = (x, z, dz, dx = 0) => { const A = cam.p([x, 0.02, z]), Bq = cam.p([x + dx, 0.02, z + dz]); if (A[2] < 2 || Bq[2] < 2) return; if (Math.max(A[0], Bq[0]) < -20 || Math.min(A[0], Bq[0]) > env.W + 20 || Math.max(A[1], Bq[1]) < -20 || Math.min(A[1], Bq[1]) > env.H + 20) return; g.moveTo(A[0], A[1]); g.lineTo(Bq[0], Bq[1]); };
+            batch('#5c1c86', cap(0.35 * sm, 1, 3), () => { for (let x = 74; x < SHORE - 2; x += st * 0.9) for (let z = Math.floor(zA / 14) * 14; z < zB; z += 14) if (H(x | 0, z | 0, 1) < 0.7) seg(x + Math.sin(z / 23) * 1.5, z, 8 + 4 * H(x | 0, z | 0, 2), 0.6); });
+            batch('#8a3a9a', cap(0.25 * sm, 0.8, 2.5), () => { for (let x = 77; x < SHORE - 2; x += st * 1.7) for (let z = Math.floor(zA / 20) * 20 + 7; z < zB; z += 20) if (H(x | 0, z | 0, 3) < 0.55) seg(x + Math.sin(z / 17) * 1.2, z, 5, 0.4); });
+            batch('#45127a', cap(0.3 * sm, 1, 3), () => { for (let x = 12; x < 68; x += st) for (let z = Math.floor(zA / 9) * 9; z < zB; z += 9) if (H(x | 0, z | 0, 4) < 0.5) { const xx = x + H(x | 0, z | 0, 5) * st, zz = z + H(x | 0, z | 0, 6) * 6; seg(xx, zz, 0.3, 0.9); } });
+            // the surf: three lines of foam, broken, the far ones thinner
+            for (const [xo, col, wm] of [[1.5, P.cream, 0.6], [5.5, P.pink, 0.45], [11, '#b8a2e8', 0.35]]) batch(col, cap(wm * sm, 1, 4), () => { for (let z = Math.floor(zA / 11) * 11; z < zB; z += 11) if (H(z | 0, xo * 10, 7) < 0.72) seg(SHORE + xo + Math.sin(z / 40 + T * 0.6 + xo) * 1.2, z, 6 + 4 * H(z | 0, xo, 8), 0.3); });
+        }
         // the surf: broken strokes of foam along the shore
         for (let z = Math.floor((c[2] - 900) / 18) * 18; z < c[2] + 900; z += 18) {
             if (z < LAND.z0 || z > LAND.z1) continue;
@@ -205,8 +218,8 @@ const CloudsCity = (() => {
             if (Math.max(A[0], Bq[0]) < -30 || Math.min(A[0], Bq[0]) > env.W + 30 || Math.max(A[1], Bq[1]) < -30 || Math.min(A[1], Bq[1]) > env.H + 30) continue;
             Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1]]], { w: cap(2.6 * s, 1, 30), col: '#5a2a9a', seed: 6400 + z, d, taper: 0.02, wob: 0.4 });
             if (z % 40 === 0) { const l = cam.p([xw(z) + 2, 3.5, z]); dot(g, L, l[0], l[1], cap(0.4 * s, 0.8, 5), P.pink, 0.9 * (fx.lampPower ?? 1)); }
-            if (z % 160 === 0) {
-                const hx = 112, cols = [P.aqua, P.pink, P.gold, P.salmon], col = cols[((z / 160) % 4 + 4) % 4];
+            if (z % 120 === 0) {
+                const hx = 112, cols = [P.aqua, P.pink, P.gold, P.salmon], col = cols[((z / 120) % 4 + 4) % 4];
                 const top = quad(cam, [[hx - 2, 3, z - 2], [hx + 2, 3, z - 2], [hx + 2, 3, z + 2], [hx - 2, 3, z + 2]]);
                 const fr = cam.pos[0] > hx + 2 ? quad(cam, [[hx + 2, 1.2, z - 2], [hx + 2, 1.2, z + 2], [hx + 2, 3, z + 2], [hx + 2, 3, z - 2]]) : null;
                 if (fr) Ink.shape(g, fr, col, { w: s > 2 ? lw(s, 0.08) : 0, seed: 6600 + z, d, jit: 0.3 });
@@ -245,6 +258,7 @@ const CloudsCity = (() => {
                 }
                 const q = quad(cam, [[0, 0.04, a - 4.1], [6, 0.04, a - 4.1], [6, 0.04, a - 3.75], [0, 0.04, a - 3.75]]); if (q) Ink.shape(g, q, '#d8c8f8', { w: 0, seed: 'stop' + a, d, jit: 0.4, light: true });
             }
+            roadLife(g, L, cam, T, d, fx, env, pl);
             // pools of lamp light on Ocean Drive: two flat tones under each lamp
             for (let k = -3; k < 8; k++) {
                 const zl = lampZ(c[2]) + k * 28;
@@ -254,6 +268,48 @@ const CloudsCity = (() => {
                 }
             }
         }
+    }
+
+    // the road the camera is on (Ocean Drive or Washington Avenue), wet: under every light near it
+    // a column of broken vertical strokes of its colour, as long as the light stands high;
+    // manholes, arrows in the lanes, Washington's centre line
+    function roadLife(g, L, cam, T, d, fx, env, pl) {
+        const c = cam.pos, wash = Math.abs(c[0] + 185) < 30, xa = wash ? -193.6 : -5.7, xb = wash ? -176.4 : 5.7, xc = (xa + xb) / 2;
+        const z0 = c[2] - 70, z1 = c[2] + 260;
+        const road = quad(cam, [[xa, 0.03, z0], [xb, 0.03, z0], [xb, 0.03, z1], [xa, 0.03, z1]]); if (!road) return;
+        const src = [];
+        if (wash) {
+            src.push([-197, 6.6, 117, P.red, 0.7], [-197, 6.6, 123, P.pink, 0.6], [-197, 3.9, 139, P.aqua, 0.5], [-197, 1.8, 112.5, P.orange, 0.9], [-197, 1.8, 117.5, P.gold, 0.9], [-197, 1.8, 122.5, P.orange, 0.9], [-197, 1.8, 127, P.gold, 0.8], [-197, 2.2, 135, P.cyan, 0.8], [-197, 2.2, 143, P.cyan, 0.8]);
+            for (let z = Math.floor((c[2] - 80) / 30) * 30 + 15; z < c[2] + 220; z += 30) for (const sd of [-1, 1]) src.push([-185 + sd * 9, 8.5, z, P.gold, 0.3]);
+        } else {
+            for (const b of pl.B) if (b.kind === 'deco' && b.z1 > z0 && b.z0 < z1) { const zc = (b.z0 + b.z1) / 2, len = b.z1 - b.z0; src.push([-10, 1.6, zc - len * 0.18, P.gold, 0.6], [-10, 1.6, zc + len * 0.18, P.orange, 0.6], [-10, b.h + 1.3, zc + 0.7, b.ours ? P.pink : b.tube, 0.35], [-10, b.h - 0.35, b.z0 + 2, b.tube, 0.2]); }
+            for (let k = -3; k < 10; k++) src.push([5.8, 8.5, lampZ(c[2]) + k * 28, P.gold, 0.35]);
+        }
+        g.save(); Neon.path(g, road); g.clip();
+        for (const [xs, ys, zs, col, wm] of src) {
+            if (zs < z0 || zs > z1) continue;
+            const xr = cap(xs, xa + 0.4, xb - 0.4), G = cam.p([xr, 0.03, zs]), M = cam.p([xr, -ys * 0.9, zs]); if (G[2] < 1.5) continue;
+            const sc = cam.f / G[2], len = Math.min(env.H - G[1] + 30, Math.max(0, M[1] - G[1])); if (len < 3) continue;
+            const n = 4, w = cap(wm * sc, 1.6, 22);
+            for (let i = 0; i < n; i++) {
+                const u0 = (i + 0.1 * H(zs | 0, i, 0)) / n, u1 = u0 + (0.6 + 0.3 * H(zs | 0, i, 1)) / n, wob = Math.sin(i * 2.3 + T * 3 + zs) * w * 0.4;
+                Ink.brush(g, [[G[0] + wob, G[1] + len * u0], [G[0] - wob * 0.5, G[1] + len * u1]], { w: w * (1 - u0 * 0.4), col, seed: (zs | 0) * 13 + i + (xs | 0), d, taper: 0.35, wob: 0.5, alpha: 0.85 * (1 - u0 * 0.5), light: true });
+            }
+        }
+        // manholes and the arrows painted in the lanes
+        for (let z = Math.floor(z0 / 40) * 40 + 12; z < z1; z += 40) {
+            const xm = xc + (Math.round(z / 40) % 2 ? 1.75 : -1.75), pts = []; for (let i = 0; i < 14; i++) { const an = i / 14 * Math.PI * 2; pts.push([xm + Math.cos(an) * 0.36, 0.035, z + Math.sin(an) * 0.36]); }
+            const q = quad(cam, pts); if (!q) continue;
+            const sc = cam.f / Math.max(1, cam.view([xm, 0, z])[2]);
+            Ink.shape(g, q, '#0e0440', { w: lw(sc, 0.04), ink: '#4a2aa0', seed: z, d, jit: 0.3 });
+        }
+        for (let z = Math.floor(z0 / 55) * 55 + 30; z < z1; z += 55) for (const dir of [1, -1]) {
+            const x = xc + dir * (wash ? 4.5 : 1.75), zz = z + (dir < 0 ? 20 : 0), t = dir * 2.4, hd = dir * 3.4;
+            const a = quad(cam, [[x - 0.12, 0.035, zz], [x + 0.12, 0.035, zz], [x + 0.12, 0.035, zz + t], [x - 0.12, 0.035, zz + t]]), hq = quad(cam, [[x - 0.45, 0.035, zz + t], [x + 0.45, 0.035, zz + t], [x, 0.035, zz + hd]]);
+            for (const q of [a, hq]) if (q) Ink.shape(g, q, '#d8c8f8', { w: 0, seed: Math.round(zz * 3 + dir), d, jit: 0.4, light: true });
+        }
+        if (wash) for (let z = Math.floor(z0 / 9) * 9; z < z1; z += 9) { if (STREETS.some(([a, b]) => z > a - 5 && z < b + 1)) continue; const q = quad(cam, [[xc - 0.08, 0.04, z], [xc + 0.08, 0.04, z], [xc + 0.08, 0.04, z + 3], [xc - 0.08, 0.04, z + 3]]); if (q) Ink.shape(g, q, '#e8b04a', { w: 0, seed: z + 7, d, jit: 0.5, light: true }); }
+        g.restore();
     }
 
     function poolDraw(g, L, cam, pool, y, d, env) {
@@ -308,7 +364,22 @@ const CloudsCity = (() => {
             const front = face === 'E' && (b.kind === 'deco' || b.kind === 'diner' || b.kind === 'laundry');
             const col = front ? b.wall : css(mix(b.wall, '#04022e', 1 - k));
             const seed = b.seed * 5 + face.charCodeAt(0);
-            if (front && s > 5) { Ink.shape(g, q, col, { w, seed, d, jit }); facade(g, L, cam, b, T, d, fx, s); }
+            if (front && s > 5) {
+                Ink.shape(g, q, col, { w, seed, d, jit });
+                const A = cam.p(pts[0]), D = cam.p(pts[3]), C3 = cam.p(pts[2]);
+                if (s < 14 && A[2] > 2 && D[2] > 2 && C3[2] > 2) CloudsLife.wall(g, null, q, [A[0], A[1]], [D[0], D[1]], [C3[0], C3[1]], Math.hypot(pts[1][0] - pts[0][0], pts[1][2] - pts[0][2]), h - y0, b.v, 'stucco', b.uOff, 9);
+                else if (s >= 14) {
+                    const lt = css(mix(b.wall, '#ffffff', 0.22)), dk = css(mix(b.wall, '#1a0450', 0.32)), len = b.z1 - b.z0;
+                    g.save(); Neon.path(g, q); g.clip();
+                    for (let i = 0; i < 70; i++) {
+                        const u = b.z0 + H(b.seed, i, 11) * len, yy = y0 + H(b.seed, i, 12) * (h - y0), l = 0.6 + H(b.seed, i, 13) * 1.4, vert = i % 3 !== 0;
+                        const A2 = cam.p([b.x1 + 0.03, yy, u]), B2 = cam.p(vert ? [b.x1 + 0.03, yy + l, u + 0.05] : [b.x1 + 0.03, yy + 0.05, u + l]); if (A2[2] < 1 || B2[2] < 1) continue;
+                        Ink.brush(g, [[A2[0], A2[1]], [B2[0], B2[1]]], { w: cap(0.035 * cam.f / A2[2], 1, 4), col: i % 2 ? lt : dk, seed: b.seed * 13 + i, d, taper: 0.45, wob: 0.6 });
+                    }
+                    g.restore();
+                }
+                facade(g, L, cam, b, T, d, fx, s);
+            }
             else {
                 // a far wall: its windows and texture from the cached patterns, laid through the camera
                 const wm = (pts[0][0] + pts[2][0]) / 2, wz = (pts[0][2] + pts[2][2]) / 2, ws = cam.f / Math.max(1, dist(cam, wm, (y0 + h) / 2, wz));
@@ -316,7 +387,7 @@ const CloudsCity = (() => {
                 const len = Math.hypot(pts[1][0] - pts[0][0], pts[1][2] - pts[0][2]);
                 if (ws < 9 && A[2] > 2 && D[2] > 2 && C3[2] > 2 && B1[2] > 2) {
                     Ink.shape(g, q, col, { w: 0, seed, d, jit: 0 });
-                    if (ws > 0.5) CloudsLife.wall(g, L, q, [A[0], A[1]], [D[0], D[1]], [C3[0], C3[1]], len, h - y0, b.v, b.style, b.uOff + (face === 'N' || face === 'W' ? 6.8 : 0), ws);
+                    if (ws > 0.9) CloudsLife.wall(g, L, q, [A[0], A[1]], [D[0], D[1]], [C3[0], C3[1]], len, h - y0, b.v, b.style, b.uOff + (face === 'N' || face === 'W' ? 6.8 : 0), ws);
                     if (w) Ink.brush(g, q, { w, seed, d, closed: true });
                 } else { Ink.shape(g, q, col, { w, seed, d, jit }); windows(g, L, cam, b, face, pts, s, d, fx); }
             }
@@ -335,7 +406,7 @@ const CloudsCity = (() => {
         // a neon tube along the roof's edge facing the street (or the hotel's front)
         if (b.tube || b.kind === 'deco') {
             const yy = h - 0.35, e = b.kind === 'deco' ? [[x1 + 0.05, yy, z0], [x1 + 0.05, yy, z1]] : (H(b.seed, 4, 0) < 0.5 ? [[x0, yy + 0.4, z0 - 0.05], [x1, yy + 0.4, z0 - 0.05]] : [[x1 + 0.05, yy + 0.4, z0], [x1 + 0.05, yy + 0.4, z1]]);
-            const facing = e[0][0] === e[1][0] ? c[0] > x1 || c[1] > h : c[2] < z0 || c[1] > h;
+            const facing = e[0][0] === e[1][0] ? c[0] > x1 : c[2] < z0 || c[1] > h;
             if (facing) tube(g, L, cam, e[0], e[1], b.tube ?? P.cyan, 0.12, s, b.seed, d, fx);
         }
     }
@@ -666,7 +737,7 @@ const CloudsCity = (() => {
             else boxCar(g, cam, t, s, d);
         }
         const r = cap(0.22 * s, 0.7, 6), trail = fx.trail ?? 0;
-        if (s < 2) { const h = at(1.8, 0, 0.7), tl = at(-1.8, 0, 0.75); dot(g, L, h[0], h[1], r, P.cream, 0.9); dot(g, L, tl[0], tl[1], r * 0.8, P.red, 0.9); return; }
+        if (s < 3.5) { const h = at(1.8, 0, 0.7), tl = at(-1.8, 0, 0.75); dot(g, L, h[0], h[1], r, P.cream, 0.9); dot(g, L, tl[0], tl[1], r * 0.8, P.red, 0.9); return; }
         for (const v of [-0.6, 0.6]) {
             const h = at(2.2, v, 0.7), tl = at(-2.2, v, 0.75);
             const seenFront = (cam.pos[0] - t.x) * ax + (cam.pos[2] - t.z) * az > 0;
@@ -684,6 +755,17 @@ const CloudsCity = (() => {
             const x0 = x - hx, x1 = x + hx, z0 = z - hz, z1 = z + hz;
             const faces = [[[[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]], cam.pos[1] > y1, 1], [[[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]], cam.pos[2] < z0, 0.75], [[[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], cam.pos[2] > z1, 0.75], [[[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]], cam.pos[0] < x0, 0.6], [[[x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0]], cam.pos[0] > x1, 0.6]];
             for (const [pts, seen, k] of faces) { if (!seen) continue; const q = quad(cam, pts); if (q) Ink.shape(g, q, css(mix(col, '#04022e', 1 - k)), { w: lw(s, 0.04), seed: Math.round(z * 5 + k * 100 + y0 * 10 + x), d, jit: 0.3 }); }
+        }
+        // the wheels on the side the camera sees, the cabin's glass a strip of reflected sky
+        if (s > 8) {
+            const sideX = cam.pos[0] > x ? 1 : -1, along = t.dx ? 0 : 1;
+            for (const u of [-1.35, 1.35]) {
+                const wc = along ? [x + sideX * 0.92, 0.32, z + u] : [x + u, 0.32, z + sideX * 0.92], c0 = cam.p(wc); if (c0[2] < 1) continue;
+                const r = 0.32 * cam.f / c0[2], pts = []; for (let i = 0; i < 12; i++) { const an = i / 12 * Math.PI * 2; pts.push([c0[0] + Math.cos(an) * r * (along ? Math.min(1, Math.abs(cam.pos[0] - x) / Math.max(1, c0[2])) + 0.25 : 1), c0[1] + Math.sin(an) * r]); }
+                Ink.shape(g, pts, '#0e0430', { w: lw(s, 0.03), seed: Math.round(z * 9 + u * 10), d, jit: 0.2 });
+            }
+            const gl = along ? [[x + sideX * 0.62, 1.02, z - 0.55], [x + sideX * 0.62, 1.02, z + 0.55], [x + sideX * 0.62, 1.32, z + 0.4], [x + sideX * 0.62, 1.32, z - 0.4]] : null;
+            if (gl) { const q = quad(cam, gl); if (q) Ink.shape(g, q, '#7a5ad0', { w: lw(s, 0.02), seed: Math.round(z * 11), d, jit: 0.2, light: true }); }
         }
     }
 
@@ -724,7 +806,9 @@ const CloudsCity = (() => {
             if (!visible(cam, cx, b.h / 2, cz, r, env)) continue;
             // sort by the nearest point of the footprint (a wide hotel beside the camera)
             const nx = cap(c[0], b.x0, b.x1), nz = cap(c[2], b.z0, b.z1);
-            items.push({ k: b.kind, depth: high ? dist(cam, cx, b.h, cz) : dist(cam, nx, Math.min(c[1], b.h), nz) + 0.5, draw: () => building(g, L, cam, b, T, d, fx, env) });
+            // the roof the camera stands over is the floor of everything: painted first
+            const under = c[0] > b.x0 && c[0] < b.x1 && c[2] > b.z0 && c[2] < b.z1 && c[1] > b.h;
+            items.push({ k: b.kind, depth: under ? 1e7 : high ? dist(cam, cx, b.h, cz) : dist(cam, nx, Math.min(c[1], b.h), nz) + 0.5, draw: () => building(g, L, cam, b, T, d, fx, env) });
         }
         for (const p of pl.palms) { if (!visible(cam, p.x, 6, p.z, 9, env)) continue; if (dist(cam, p.x, 0, p.z) > (high ? 1400 : 700)) continue; put(p.x, 10, p.z, () => palm(g, L, cam, p.x, p.z, p.seed, T, d, fx), 'palm'); }
         for (let z = Math.floor((LAND.z0) / 28) * 28 + 6; z < LAND.z1; z += 28) { if (!visible(cam, 7.4, 4, z, 6, env)) continue; if (high && dist(cam, 7.4, 0, z) > 1500) continue; put(7.4, 4, z, () => lamp(g, L, cam, 7.4, z, -1, d, fx), 'lamp'); }
@@ -740,9 +824,94 @@ const CloudsCity = (() => {
                 put(cx, 5, zc, () => { const s = cam.f / Math.max(1, dist(cam, cx, 5, zc)); if (s < 0.5) return; const r = cap(0.5 * s, 0.8, 3.5); for (const [ox, oz, st] of [[-7, -7, sig.ns], [7, 7, sig.ns], [7, -7, sig.ew], [-7, 7, sig.ew]]) { const p = cam.p([cx + ox, 5.5, zc + oz]); dot(g, L, p[0], p[1], r, SIG[st], 0.95); } });
             }
         } else if (Math.abs(c[2] - 200) < 260 && c[0] > -40) put(2, 5, 207.5, () => odSignalDraw(g, L, cam, T, d, fx), 'signal');
+        // passers-by, walking on twos
+        if (c[1] < 80) for (const w of pl.walkers) {
+            const z = w.z0 + w.dir * w.v * (T - 99); if (dist(cam, w.x, 1, z) > 260 || !visible(cam, w.x, 0.9, z, 1.2, env)) continue;
+            put(w.x, 0.9, z, () => { const f = cam.p([w.x, 0, z]); if (f[2] < 2) return; const sc = cam.f / f[2], vx = w.x - c[0], vz = z - c[2], side = Math.abs(vx) / Math.max(0.1, Math.hypot(vx, vz)); CloudsLife.walker(g, f[0], f[1], sc, T * 7.2 + w.seed, side, w.rim, w.seed, d, { shirt: w.shirt }); }, 'people');
+        }
+        // outside the diner: a newspaper box and a payphone
+        if (Math.abs(c[0] + 186) < 40 && Math.abs(c[2] - 125) < 120) {
+            put(-195.4, 0.6, 125.6, () => streetBox(g, cam, -195.4, 125.6, 0.5, 0.45, 1.1, P.blue, P.cyan, d), 'shop');
+            put(-195.6, 1, 112.4, () => payphone(g, L, cam, -195.6, 112.4, d), 'shop');
+        }
+        // their roof: a water tank, an air conditioner with its fan, a vent, a sun lounger with a
+        // towel, string lights on posts along the parapet
+        const ours = pl.B.find((b) => b.ours);
+        if (ours && dist(cam, -20, ours.h, 240) < 140 && c[1] > ours.h) roofLife(g, L, cam, ours, T, d, fx, put);
         for (const e of extra) items.push({ k: 'extra', depth: e.depth ?? dist(cam, e.x, e.y, e.z), draw: e.draw });
         items.sort((a, b) => b.depth - a.depth);
         for (const it of items) tm(it.k ?? 'other', it.draw);
+    }
+
+    function streetBox(g, cam, x, z, w, dp, hh, col, lit, d) {
+        const s = cam.f / Math.max(1, cam.view([x, hh / 2, z])[2]);
+        const front = quad(cam, [[x + dp / 2, 0, z - w / 2], [x + dp / 2, 0, z + w / 2], [x + dp / 2, hh, z + w / 2], [x + dp / 2, hh, z - w / 2]]);
+        const top = cam.pos[1] > hh ? quad(cam, [[x - dp / 2, hh, z - w / 2], [x + dp / 2, hh, z - w / 2], [x + dp / 2, hh, z + w / 2], [x - dp / 2, hh, z + w / 2]]) : null;
+        const sideS = cam.pos[2] < z - w / 2 ? quad(cam, [[x - dp / 2, 0, z - w / 2], [x + dp / 2, 0, z - w / 2], [x + dp / 2, hh, z - w / 2], [x - dp / 2, hh, z - w / 2]]) : null;
+        if (sideS) Ink.shape(g, sideS, css(mix(col, '#04022e', 0.4)), { w: lw(s, 0.03), seed: Math.round(z * 7 + 1), d, jit: 0.3 });
+        if (front) Ink.shape(g, front, col, { w: lw(s, 0.03), seed: Math.round(z * 7 + 2), d, jit: 0.3 });
+        if (top) Ink.shape(g, top, css(mix(col, '#ffffff', 0.2)), { w: lw(s, 0.03), seed: Math.round(z * 7 + 3), d, jit: 0.3 });
+        const win = quad(cam, [[x + dp / 2 + 0.01, hh * 0.55, z - w * 0.35], [x + dp / 2 + 0.01, hh * 0.55, z + w * 0.35], [x + dp / 2 + 0.01, hh * 0.85, z + w * 0.35], [x + dp / 2 + 0.01, hh * 0.85, z - w * 0.35]]);
+        if (win) Ink.shape(g, win, lit, { w: lw(s, 0.02), seed: Math.round(z * 7 + 4), d, jit: 0.2, light: true });
+    }
+    function payphone(g, L, cam, x, z, d) {
+        const b0 = cam.p([x, 0, z]), t0 = cam.p([x, 2.0, z]); if (b0[2] < 1.5) return;
+        const s = cam.f / b0[2];
+        Ink.brush(g, [[b0[0], b0[1]], [t0[0], t0[1]]], { w: cap(0.1 * s, 1.5, 8), col: '#2a0a50', seed: Math.round(z * 3), d, taper: 0.05 });
+        streetBox(g, cam, x, z, 0.75, 0.5, 0.01, '#2a0a50', P.cyan, d);
+        const box = quad(cam, [[x + 0.26, 1.1, z - 0.35], [x + 0.26, 1.1, z + 0.35], [x + 0.26, 2.05, z + 0.35], [x + 0.26, 2.05, z - 0.35]]);
+        if (box) Ink.shape(g, box, P.royal, { w: lw(s, 0.03), seed: Math.round(z * 3 + 1), d, jit: 0.3 });
+        const pnl = quad(cam, [[x + 0.27, 1.85, z - 0.3], [x + 0.27, 1.85, z + 0.3], [x + 0.27, 2.0, z + 0.3], [x + 0.27, 2.0, z - 0.3]]);
+        if (pnl) { Ink.shape(g, pnl, P.cream, { w: 0, seed: Math.round(z * 3 + 2), d, jit: 0.2, light: true }); L.save(); L.globalAlpha = 0.6; L.fillStyle = P.cream; Neon.path(L, pnl); L.fill(); L.restore(); }
+        const hs = cam.p([x + 0.3, 1.45, z - 0.15]), hr = 0.09 * s; Ink.shape(g, [[hs[0] - hr, hs[1] - hr * 2], [hs[0] + hr, hs[1] - hr * 2], [hs[0] + hr, hs[1] + hr * 2], [hs[0] - hr, hs[1] + hr * 2]], '#14052e', { w: lw(s, 0.02), seed: Math.round(z * 3 + 3), d, jit: 0.2 });
+    }
+    function roofLife(g, L, cam, b, T, d, fx, put) {
+        const h = b.h, c = cam.pos;
+        const at = (x, y, z) => cam.p([x, y, z]);
+        const sAt = (x, y, z) => cam.f / Math.max(0.5, cam.view([x, y, z])[2]);
+        // the roof's tar seams and gravel close to the camera, painted with the roof itself
+        put(-20, h, b.z0 - 200, () => {
+            for (let z = Math.ceil(Math.max(b.z0 + 1, c[2] - 2) / 1.2) * 1.2; z < b.z1 - 0.6; z += 1.2) {
+                const A = at(b.x0 + 0.8, h + 0.01, z), Bq = at(b.x1 - 0.8, h + 0.01, z); if (A[2] < 0.6 || Bq[2] < 0.6) continue;
+                Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1]]], { w: cap(0.025 * sAt(-16, h, z), 0.8, 3), col: '#3a1690', seed: Math.round(z * 10), d, taper: 0.05, wob: 0.8 });
+            }
+            for (let i = 0; i < 70; i++) { const x = b.x0 + 1 + H(i, 1, 0) * (b.x1 - b.x0 - 2), z = Math.max(b.z0 + 1, c[2] + 0.8) + H(i, 2, 0) * 9; if (z > b.z1 - 0.5) continue; const p = at(x, h + 0.01, z); if (p[2] < 0.6) continue; const sc = cam.f / p[2], l = cap(0.08 * sc, 1, 10); Ink.brush(g, [[p[0] - l, p[1]], [p[0] + l, p[1] + 0.5]], { w: cap(0.02 * sc, 0.8, 2.5), col: i % 3 ? '#4a2aa0' : P.purple, seed: 6900 + i, d, taper: 0.4 }); }
+            // a puddle with the sign's pink in it
+            const pq = quad(cam, [[-17.4, h + 0.012, 247.6], [-16.0, h + 0.012, 247.4], [-15.8, h + 0.012, 248.3], [-17.5, h + 0.012, 248.4]]);
+            if (pq) { Ink.shape(g, pq, '#2a0c6e', { w: 0, seed: 'puddle', d, jit: 0.4 }); const A = at(-17.0, h + 0.013, 247.9), Bq = at(-16.2, h + 0.013, 247.9); Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1]]], { w: cap(0.04 * sAt(-16.6, h, 248), 1, 3), col: P.pink, seed: 6990, d, taper: 0.4, light: true }); }
+        }, 'roof');
+        // the water tank on legs, the air conditioner, the vent
+        put(-21.5, h + 2, 252, () => tank(g, cam, -21.5, 252, h, 1.4, 2.4, 777, d, sAt(-21.5, h + 2, 252)), 'roof');
+        put(-18.6, h + 0.6, 249.9, () => {
+            const x0 = -19.4, x1 = -17.8, z0 = 249.2, z1 = 250.6, hh = 1.1, s = sAt(-18.6, h + 0.6, 249.9);
+            for (const [pts, col] of [[[[x0, h, z0], [x1, h, z0], [x1, h + hh, z0], [x0, h + hh, z0]], '#3a1488'], [[[x1, h, z0], [x1, h, z1], [x1, h + hh, z1], [x1, h + hh, z0]], '#2a0c6e'], [[[x0, h + hh, z0], [x1, h + hh, z0], [x1, h + hh, z1], [x0, h + hh, z1]], '#5a2aa8']]) { if (pts[0][0] === x1 && pts[1][0] === x1 && c[0] < x1) continue; const q = quad(cam, pts); if (q) Ink.shape(g, q, col, { w: lw(s, 0.03), seed: Math.round(pts[0][2] * 7 + pts[0][0]), d, jit: 0.3 }); }
+            for (let j = 0; j < 5; j++) { const A = at(x0 + 0.2, h + 0.2 + j * 0.18, z0 - 0.01), Bq = at(x1 - 0.2, h + 0.2 + j * 0.18, z0 - 0.01); Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1]]], { w: cap(0.02 * s, 0.8, 2), seed: 7400 + j, d, taper: 0.1 }); }
+            const fc = at(-18.6, h + hh + 0.01, 249.9), fr = 0.5 * sAt(-18.6, h + hh, 249.9), ry = fr * 0.35, ring = []; for (let i = 0; i < 16; i++) { const an = i / 16 * Math.PI * 2; ring.push([fc[0] + Math.cos(an) * fr, fc[1] + Math.sin(an) * ry]); }
+            Ink.shape(g, ring, '#1a0640', { w: lw(s, 0.03), seed: 7410, d, jit: 0.2 });
+            for (let j = 0; j < 3; j++) { const an = T * 14 + j * 2.09; Ink.brush(g, [[fc[0], fc[1]], [fc[0] + Math.cos(an) * fr * 0.85, fc[1] + Math.sin(an) * ry * 0.85]], { w: cap(0.06 * s, 1, 4), col: '#6a3ab0', seed: 7420 + j, d, taper: 0.4 }); }
+        }, 'roof');
+        put(-13.4, h + 0.6, 249.4, () => { const a = at(-13.4, h, 249.4), t = at(-13.4, h + 1.1, 249.4), s = sAt(-13.4, h + 0.5, 249.4), r = 0.16 * s; Ink.shape(g, [[a[0] - r, a[1]], [t[0] - r, t[1]], [t[0] + r, t[1]], [a[0] + r, a[1]]], '#4a1a8a', { w: lw(s, 0.03), seed: 7500, d, jit: 0.2 }); Ink.shape(g, [[t[0] - r * 1.8, t[1]], [t[0] - r * 1.2, t[1] - r * 1.4], [t[0] + r * 1.2, t[1] - r * 1.4], [t[0] + r * 1.8, t[1]]], '#6a3ab0', { w: lw(s, 0.03), seed: 7501, d, jit: 0.2 }); }, 'roof');
+        // the sun lounger, its back raised, a striped towel over it
+        put(-12.2, h + 0.4, 251.4, () => {
+            const s = sAt(-12.2, h + 0.4, 251.4), xa = -12.6, xb = -11.85;
+            for (const [x, z] of [[xa, 250.5], [xb, 250.5], [xa, 252.0], [xb, 252.0]]) { const A = at(x, h, z), Bq = at(x, h + 0.35, z); Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1]]], { w: cap(0.035 * s, 1, 3), col: P.cream, seed: Math.round(x * 10 + z), d, taper: 0.1 }); }
+            const seat = quad(cam, [[xa, h + 0.35, 250.4], [xb, h + 0.35, 250.4], [xb, h + 0.35, 252.1], [xa, h + 0.35, 252.1]]);
+            const back = quad(cam, [[xa, h + 0.35, 252.1], [xb, h + 0.35, 252.1], [xb, h + 1.0, 252.6], [xa, h + 1.0, 252.6]]);
+            if (back) Ink.shape(g, back, P.aqua, { w: lw(s, 0.03), seed: 7600, d, jit: 0.3 });
+            if (seat) Ink.shape(g, seat, P.aqua, { w: lw(s, 0.03), seed: 7601, d, jit: 0.3 });
+            for (let j = 0; j < 4; j++) { const z = 250.6 + j * 0.35, A = at(xa + 0.05, h + 0.37, z), Bq = at(xb - 0.05, h + 0.37, z); Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1]]], { w: cap(0.06 * s, 1, 5), col: j % 2 ? P.pink : P.cream, seed: 7610 + j, d, taper: 0.1, light: true }); }
+        }, 'roof');
+        // string lights: posts at the parapet's corners, the wire sagging between, bulbs on twos
+        const posts = [[b.x0 + 0.6, b.z1 - 0.5], [b.x1 - 0.6, b.z1 - 0.5], [b.x1 - 0.6, b.z0 + 3]];
+        for (const [px, pz] of posts) put(px, h + 1.3, pz, () => { const A = at(px, h, pz), Bq = at(px, h + 2.7, pz); if (A[2] < 0.6) return; Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1]]], { w: cap(0.05 * sAt(px, h + 1, pz), 1, 5), col: '#2a0a50', seed: Math.round(px * 7 + pz), d, taper: 0.05 }); }, 'roof');
+        for (let k = 0; k + 1 < posts.length; k++) {
+            const [ax, az] = posts[k], [bx, bz] = posts[k + 1];
+            put((ax + bx) / 2, h + 2.3, (az + bz) / 2, () => {
+                const pts = []; for (let i = 0; i <= 24; i++) { const u = i / 24, p = at(ax + (bx - ax) * u, h + 2.6 - Math.sin(u * Math.PI) * 0.6, az + (bz - az) * u); if (p[2] < 0.6) return; pts.push(p); }
+                Ink.brush(g, pts.map((p) => [p[0], p[1]]), { w: 1.4, col: '#1a0640', seed: 7700 + k, d, taper: 0.02, wob: 0.3 });
+                for (let i = 1; i < 24; i += 2) { const p = pts[i], sc = cam.f / p[2], col = [P.gold, P.pink, P.cyan, P.orange][(i >> 1) % 4], on = H(i, k, Math.floor(Song.beatAt(T))) > 0.12; dot(g, on ? L : null, p[0], p[1] + 0.12 * sc, cap(0.06 * sc, 1.2, 6), col, on ? 1 : 0.5); }
+            }, 'roof');
+        }
     }
 
     // --- the clouds ----------------------------------------------------------------------------------
@@ -829,5 +998,5 @@ const CloudsCity = (() => {
         }
     }
 
-    return { build, draw, clouds, forms, signal, lampsNear, lampLight, LANE, HOTEL, STOP, SHOPS, odSignal };
+    return { build, draw, clouds: (...a) => CloudsLife.clouds(...a), forms, signal, lampsNear, lampLight, LANE, HOTEL, STOP, SHOPS, odSignal };
 })();

@@ -5,7 +5,7 @@ Motion.scene({
     fps: 24,
     duration: LEN,
     logical: [1920, 1080],
-    uses: ['styles/retro-neon/neon.js', 'styles/retro-neon/ink.js', DIR + 'song.js', DIR + 'set/causeway.js', DIR + 'set/skyline.js', DIR + 'props/car.js', DIR + 'cast/couple.js', DIR + 'set/drawn.js', DIR + 'film.js', DIR + 'sections/registry.js', DIR + 'set/clouds-city.js', DIR + 'sections/clouds.js'],
+    uses: ['styles/retro-neon/neon.js', 'styles/retro-neon/ink.js', DIR + 'song.js', DIR + 'set/causeway.js', DIR + 'set/skyline.js', DIR + 'props/car.js', DIR + 'cast/couple.js', DIR + 'set/drawn.js', DIR + 'film.js', DIR + 'sections/registry.js', DIR + 'set/clouds-life.js', DIR + 'set/clouds-city.js', DIR + 'sections/clouds.js'],
     fonts: [{ family: 'Shrikhand', src: 'fonts/Shrikhand-latin.woff2' }],
     bpm: 119, beatOffset: 0,
     audio: { mix: '../../private/clouds.wav' },

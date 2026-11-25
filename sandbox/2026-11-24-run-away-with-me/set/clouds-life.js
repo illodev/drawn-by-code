@@ -35,8 +35,9 @@ const CloudsLife = (() => {
         // stucco: loose strokes a shade lighter and darker, the slab lines between floors
         Ink.strokes(g, 0, 0, W, Hh, { ang: Math.PI / 2, spread: 0.2, count: 260, len: 26, w: 1.6, cols: ['rgba(255,170,230,0.16)', 'rgba(10,2,40,0.22)'], seed: 7700 + v, d: 0 });
         Ink.strokes(g, 0, 0, W, Hh, { ang: 0, spread: 0.1, count: 140, len: 34, w: 1.4, cols: ['rgba(255,190,240,0.14)', 'rgba(10,2,40,0.2)'], seed: 7800 + v, d: 0 });
-        for (let f = 1; f < FLOORS; f++) { g.fillStyle = 'rgba(10,2,40,0.35)'; g.fillRect(0, Y(f * FH) - 1, W, 2); g.fillStyle = 'rgba(255,180,240,0.18)'; g.fillRect(0, Y(f * FH) + 1, W, 1); }
+        if (style !== 'stucco') for (let f = 1; f < FLOORS; f++) { g.fillStyle = 'rgba(10,2,40,0.35)'; g.fillRect(0, Y(f * FH) - 1, W, 2); g.fillStyle = 'rgba(255,180,240,0.18)'; g.fillRect(0, Y(f * FH) + 1, W, 1); }
         if (style === 'deco') { for (let k = 2; k < COLS; k += 5) { g.fillStyle = 'rgba(255,190,240,0.22)'; g.fillRect(X(k * CW - 0.25), 0, X(0.5), Hh); g.fillStyle = 'rgba(10,2,40,0.35)'; g.fillRect(X(k * CW + 0.25), 0, 2, Hh); } }
+        if (style === 'stucco') { const t = { c, l, W, Hh }; TEX.set(key, t); return t; }    // texture alone, for walls with drawn windows
         for (let f = 0; f < FLOORS; f++) for (let k = 0; k < COLS; k++) {
             const p = pane(v, k, f), x0 = X(k * CW + CW * 0.22), x1 = X(k * CW + CW * 0.78), y0 = Y(f * FH + 2.5), y1 = Y(f * FH + 1.0);
             const port = style === 'deco' && k % 5 === 4;
@@ -181,15 +182,15 @@ const CloudsLife = (() => {
         const h = (o.h ?? 1.7) * s, sw = Math.sin(phase) * 0.28 * s * side, lift = Math.abs(Math.cos(phase)) * 0.02 * s;
         const head = [fx, fy - h * 0.93 - lift], hr = h * 0.065;
         const sh = h * 0.12, hip = fy - h * 0.5 - lift, top = fy - h * 0.8 - lift;
-        const body = [[fx - sh, top], [fx + sh, top], [fx + sh * 0.75, hip], [fx - sh * 0.75, hip]];
-        const legs = [[[fx - sh * 0.45, hip], [fx - sh * 0.1, hip], [fx + sw * 0.5 + sh * 0.05, fy], [fx + sw * 0.5 - sh * 0.3, fy]], [[fx + sh * 0.1, hip], [fx + sh * 0.45, hip], [fx - sw * 0.5 + sh * 0.3, fy], [fx - sw * 0.5 - sh * 0.05, fy]]];
+        const body = [[fx - sh * 0.7, top - h * 0.02], [fx + sh * 0.7, top - h * 0.02], [fx + sh * 1.05, top + h * 0.03], [fx + sh * 0.82, hip + h * 0.02], [fx - sh * 0.82, hip + h * 0.02], [fx - sh * 1.05, top + h * 0.03]];
+        const legs = [[[fx - sh * 0.72, hip], [fx + sh * 0.02, hip], [fx + sw * 0.5 + sh * 0.12, fy - h * 0.03], [fx + sw * 0.5 + sh * 0.3, fy], [fx + sw * 0.5 - sh * 0.4, fy], [fx + sw * 0.5 - sh * 0.36, fy - h * 0.03]], [[fx - sh * 0.02, hip], [fx + sh * 0.72, hip], [fx - sw * 0.5 + sh * 0.36, fy - h * 0.03], [fx - sw * 0.5 + sh * 0.4, fy], [fx - sw * 0.5 - sh * 0.3, fy], [fx - sw * 0.5 - sh * 0.12, fy - h * 0.03]]];
         const col = o.col ?? '#1a0640', lw = cap(0.03 * s, 0.8, 2.5);
         for (const q of legs) Ink.shape(g, q, col, { w: s > 30 ? lw : 0, seed: seed + 3, d, jit: 0.3 });
         Ink.shape(g, body, o.shirt ?? col, { w: s > 30 ? lw : 0, seed: seed + 1, d, jit: 0.3 });
         const hp = []; for (let i = 0; i < 10; i++) { const an = i / 10 * Math.PI * 2; hp.push([head[0] + Math.cos(an) * hr, head[1] + Math.sin(an) * hr * 1.15]); }
         Ink.shape(g, hp, col, { w: s > 30 ? lw : 0, seed: seed + 2, d, jit: 0.2 });
         // arms swinging against the legs
-        for (const sg of [-1, 1]) Ink.brush(g, [[fx + sg * sh * 0.95, top + h * 0.02], [fx + sg * sh + sw * -0.3 * sg * sg, top + h * 0.2], [fx + sg * sh * 0.9 - sw * 0.45, hip + h * 0.02]], { w: cap(0.07 * s, 1, 8), col, seed: seed + 5 + sg, d, taper: 0.3 });
+        for (const sg of [-1, 1]) Ink.brush(g, [[fx + sg * sh * 0.95, top + h * 0.02], [fx + sg * sh + sw * -0.3 * sg * sg, top + h * 0.2], [fx + sg * sh * 0.9 - sw * 0.45, hip + h * 0.02]], { w: cap(0.09 * s, 1, 10), col, seed: seed + 5 + sg, d, taper: 0.25 });
         if (rim && s > 8) Ink.brush(g, [[head[0] + hr * 0.7, head[1] - hr * 0.6], [fx + sh, top + h * 0.03], [fx + sh * 0.8, hip]], { w: cap(0.025 * s, 1, 3), col: rim, seed: seed + 9, d, taper: 0.4 });
     }
 

@@ -1,4 +1,4 @@
-// uses: set/clouds-city.js
+// uses: set/clouds-life.js, set/clouds-city.js
 // Section · up in the clouds, 1:39–2:11 (bars 49–65): verse 2 (the high: they rise over Miami
 // Beach, the streets a grid of light, clouds lit from below, the city that never sleeps), pre-
 // chorus 2 (back down on Ocean Drive's neon in the car: the kiss at a red light) and the bar
@@ -68,10 +68,10 @@
             case 1: // straight down over the grid, turning
                 return mk({ pos: [-250 + u * 30, 440 - u * 20, 40 + u * 40], yaw: 0.12 + u * 0.14, pitch: -Math.PI / 2 + 0.015, roll: 0, f: 1000, Y0: 0, down: true }, env);
             case 2: { // across Washington Avenue, sliding past the diner and the laundromat
-                return mk({ pos: [-186.5, 1.3, 113 + u * 13], yaw: -Math.PI / 2 + 0.1, pitch: 0.1, roll: 0, f: 1150, Y0: -Math.PI / 2 }, env);
+                return mk({ pos: [-188.6, 1.55, 112.5 + u * 13], yaw: -Math.PI / 2 + 0.1, pitch: 0.08, roll: 0, f: 1050, Y0: -Math.PI / 2 }, env);
             }
             case 3: { // on their roof, behind the two of them, pushing in
-                return mk({ pos: [-15.6, C().HOTEL.h + 1.62, 245.6 + e * 1.4], yaw: 0.02, pitch: -0.05, roll: 0, f: 1200, Y0: 0 }, env);
+                return mk({ pos: [-15.6, C().HOTEL.h + 1.62, 245.6 + e * 1.4], yaw: 0.02, pitch: -0.03, roll: 0, f: 1200, Y0: 0 }, env);
             }
             case 4: { // pulling back and up, the roof and the two of them shrinking into the city
                 return mk({ pos: [-15.6 - e * 20, C().HOTEL.h + 1.62 + e * 125, 247 - e * 120], yaw: 0.02 + e * 0.06, pitch: -0.035 - e * 0.5, roll: 0.01 * e, f: 1150 - e * 250, Y0: 0 }, env);
@@ -81,9 +81,9 @@
                 return mk({ pos: [60 - k * 56, 130 - k * 124, ps.z - 60 + k * 45], yaw: -0.55 + k * 0.5, pitch: -0.75 + k * 0.68, roll: 0.03 * Math.sin(u * Math.PI), f: 900, Y0: 0 }, env);
             }
             case 6: // ahead of the car, low, looking back at the two of them, the car gaining
-                return mk({ pos: [C().LANE + 0.85, 1.12, ps.z + 10.5 - 4.2 * e], yaw: Math.PI + 0.07, pitch: 0.01, roll: 0, f: 1000, Y0: Math.PI }, env);
+                return mk({ pos: [C().LANE + 0.5, 1.2, ps.z + 5.6 - 1.3 * e], yaw: Math.PI + 0.06, pitch: 0.0, roll: 0, f: 1450, Y0: Math.PI }, env);
             case 7: // beside the car on the park side, tracking with it, the hotels behind
-                return mk({ pos: [C().LANE + 8.2 - e * 1.2, 1.45, ps.z + 0.2], yaw: -Math.PI / 2, pitch: 0.0, roll: 0, f: 1000, Y0: -Math.PI / 2 }, env);
+                return mk({ pos: [C().LANE + 5.0 - e * 0.4, 1.75, ps.z + 0.75], yaw: -Math.PI / 2 - 0.2, pitch: -0.03, roll: 0, f: 1300, Y0: -Math.PI / 2 }, env);
             case 8: // stopped at the red light: from the park side behind them, up the strip
                 return mk({ pos: [6.4 - e * 0.5, 2.55, C().STOP - 5.8 + e * 0.9], yaw: -0.66 + e * 0.04, pitch: 0.0, roll: 0, f: 1100, Y0: 0 }, env);
             case 9: // the green: the car pulls away up Ocean Drive, the camera rising
