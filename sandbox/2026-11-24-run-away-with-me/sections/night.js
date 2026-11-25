@@ -653,11 +653,18 @@
             const rib = []; for (let j = 0; j <= 10; j++) rib.push(cam.p(pt(j / 10)));
             if (rib.some((p) => p[2] < 0.5)) continue;
             const s = cam.f / rib[5][2];
-            const width = (j) => 0.2 * R * Math.sin(Math.min(1, (j / 10) * 1.1) * Math.PI) * cam.f / rib[j][2];
+            const width = (j) => 0.045 * R * Math.sin(Math.min(1, (j / 10) * 1.1) * Math.PI) * cam.f / rib[j][2] + 1, leaf = (j) => 0.2 * R * Math.sin(Math.min(1, (j / 10) * 1.05) * Math.PI) * cam.f / rib[j][2];
             const tan = (j) => { const a = rib[Math.max(0, j - 1)], b = rib[Math.min(10, j + 1)], tx = b[0] - a[0], ty = b[1] - a[1], l = Math.hypot(tx, ty) || 1; return [tx / l, ty / l]; };
             const side = (k) => rib.map((p, j) => { const t = tan(j); return [p[0] - t[1] * width(j) * k, p[1] + t[0] * width(j) * k]; });
             Ink.shape(g, side(1).concat(side(-1).reverse()), f.lower ? P.grape : P.plum, { w: lw(s, 0.025), seed: seed * 101 + Math.round(f.a * 10), d, jit: 0.5 });
-            for (let j = 2; j < 10; j++) for (const k of [-1, 1]) { const p = rib[j], t = tan(j), l = width(j) * 1.05; Ink.brush(g, [[p[0], p[1]], [p[0] + (-t[1] * k * 0.85 + t[0] * 0.5) * l, p[1] + (t[0] * k * 0.85 + t[1] * 0.5) * l]], { w: cap(0.02 * s, 1, 3), col: '#22052e', seed: seed * 97 + j * 7 + k + Math.round(f.a * 10) * 31, d, taper: 0.6, wob: 0.3 }); }
+            // the leaflets: outlined strokes springing off both sides of the rib, leaning to the tip
+            const lc = f.lower ? P.grape : P.plum;
+            for (let j = 1; j < 10; j++) for (const k of [-1, 1]) {
+                const p = rib[j], t = tan(j), l = leaf(j), lp = [[p[0], p[1]], [p[0] + (-t[1] * k * 0.8 + t[0] * 0.55) * l * 0.5, p[1] + (t[0] * k * 0.8 + t[1] * 0.55) * l * 0.5 + l * 0.04], [p[0] + (-t[1] * k * 0.75 + t[0] * 0.65) * l, p[1] + (t[0] * k * 0.75 + t[1] * 0.65) * l + l * 0.12]];
+                const sdl = seed * 97 + j * 7 + k + Math.round(f.a * 10) * 31, w = cap(0.035 * s * (1.1 - j / 12), 1.5, 9);
+                Ink.brush(g, lp, { w: w + 2.4, col: P.ink, seed: sdl, d, taper: 0.55, wob: 0.3 });
+                Ink.brush(g, lp, { w, col: lc, seed: sdl + 1, d, taper: 0.6, wob: 0.3 });
+            }
             Ink.brush(g, rib.slice(0, 9), { w: cap(0.025 * s, 1, 3.5), col: Math.cos(f.a) > 0 ? P.pink : P.cyan, seed: seed * 31 + Math.round(f.a * 10), d, taper: 0.3 });
         }
         const cp = cam.p(c); if (cp[2] < 0.5) return;
@@ -669,7 +676,7 @@
     // seen from their window: a pool 9 × 4.8 m at the foot of the hotel, its lamps under water,
     // loungers, palms; the two of them under the cyan water
     const PL = { x0: -4.5, x1: 4.5, z0: -2.4, z1: 2.4, r: 0.9 };
-    const PALMS = [[-4.3, 3.5, 31], [4.4, -3.4, 32]];          // pygmy palms in planters at two corners
+    const PALMS = [[-5.05, 1.0, 31], [5.05, -0.9, 32]];         // pygmy palms in planters either side of the pool
     const rrect = (x0, x1, z0, z1, r, y, n = 5) => { const o = []; const c = [[x1 - r, z1 - r, 0], [x0 + r, z1 - r, 0.5], [x0 + r, z0 + r, 1], [x1 - r, z0 + r, 1.5]]; for (const [cx, cz, a0] of c) for (let i = 0; i <= n; i++) { const a = (a0 + (i / n) * 0.5) * Math.PI; o.push([cx + Math.cos(a) * r, y, cz + Math.sin(a) * r]); } return o; };
     function pool(g, L, cam, T, d, fx, env) {
         const lit = 1 - fx.black;
@@ -738,7 +745,7 @@
             if (i === 1 && flip > 0) quad(g, cam, [[x - 0.2, 0.36, zc - 0.3], [x + 0.35, 0.36, zc - 0.2], [x + 0.3, 0.36, zc + 0.3], [x - 0.25, 0.36, zc + 0.25]], P.aqua, { w: lw(s, 0.01), seed: sd + 8, d });
         }
         // palms at the corners, their crowns nearer the camera than the water
-        for (const [x, z, sd] of PALMS) { box(g, cam, x - 0.45, x + 0.45, 0, 0.5, z - 0.45, z + 0.45, P.salmon, 1700 + sd, d, { cols: { top: '#3a1050' } }); crownTop(g, cam, [x, 3.4, z], 2.0, sd, T, d); }
+        for (const [x, z, sd] of PALMS) { box(g, cam, x - 0.3, x + 0.3, 0, 0.5, z - 0.3, z + 0.3, P.salmon, 1700 + sd, d, { cols: { top: '#3a1050' } }); crownTop(g, cam, [x, 2.4, z], 2.2, sd, T, d); }
         // the surface: glints of the hotel's neon in short cream and pink strokes
         g.save(); Neon.path(g, wq); g.clip();
         for (let i = 0; i < 18; i++) { const x = PL.x0 + 0.3 + Ink.hsh(i, 21, 0) * 8.4, z = PL.z0 + 0.2 + Ink.hsh(i, 22, 0) * 4.4, p = cam.p([x + 0.1 * Math.sin(T + i), 0.03, z]), l = cap(0.25 * s, 6, 40); Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0] + l / 2, p[1] + 1]], { w: cap(0.03 * s, 1.2, 4), col: i % 3 ? P.cream : P.pink, seed: 1600 + i, d, taper: 0.45, alpha: 0.8 * lit + 0.2, light: true }); }

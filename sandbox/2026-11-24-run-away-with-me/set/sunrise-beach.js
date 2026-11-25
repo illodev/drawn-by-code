@@ -61,7 +61,7 @@ const SunriseSet = (() => {
     const WEST1 = ['#4a2490', '#7a3aa6', '#b05aae', '#e488b6', '#f8a8be', '#b090c0'];
     function sky(g, L, cam, T, d, env) {
         const u = dawn(T), fe = facing(cam), lv = level(cam), Wd = env.W * 2;
-        const cols = SKY_E.map((_, i) => mx(mix(WEST0[i], WEST1[i], u), mix(EAST0[i], EAST1[i], u), fe));
+        const colA = SKY_E.map((_, i) => mix(mix(WEST0[i], WEST1[i], u), mix(EAST0[i], EAST1[i], u), fe)), cols = colA.map((c) => css(c));
         const e = sunE(T), sp = skyP(cam, 0, e), R0 = SUN_R * cam.f;
         // where the sun is in the camera's rolled frame (for the glow laid along the bands)
         const ca = Math.cos(-lv.ang), sa = Math.sin(-lv.ang);
@@ -84,15 +84,15 @@ const SunriseSet = (() => {
         for (let i = 1; i < cols.length; i++) {
             const yt = edges[i], yb = i + 1 < cols.length ? edges[i + 1] : 4, hgt = Math.abs(yb - yt);
             if (hgt < 3) continue;
-            const rows = Math.max(1, Math.min(3, Math.round(hgt / 30))), eb = SKY_E[i], ea = i + 1 < cols.length ? SKY_E[i + 1] : 0;
+            const rows = Math.max(1, Math.min(2, Math.round(hgt / 34))), eb = SKY_E[i], ea = i + 1 < cols.length ? SKY_E[i + 1] : 0;
             for (let r = 0; r < rows; r++) for (let j = Math.floor((yaw - half) / dA); j <= Math.ceil((yaw + half) / dA); j++) {
                 const az = j * dA + (H(i, r * 97 + j, 1) - 0.5) * dA * 0.6, el = ea + (eb - ea) * (r + 0.25 + 0.5 * H(i, r * 97 + j, 2)) / rows;
                 const p = skyP(cam, az, el); if (p[2] < 1) continue;
                 const xs = (p[0] - lv.cx) * ca - (p[1] - lv.cy) * sa, y = (p[0] - lv.cx) * sa + (p[1] - lv.cy) * ca;
                 let dz = Math.abs(((az + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI) / SUN_R;
-                const k = (5 - i) / 5, gw = lift * Math.max(0, 1 - dz / (3 + 6 * k)) * (0.55 + 0.45 * k);
+                const k = i / 5, gw = lift * Math.max(0, 1 - dz / (1.5 + 7 * k * k)) * (0.4 + 0.6 * k);
                 const l = dA * cam.f * (1.2 + 1.1 * H(i, r * 97 + j, 3));
-                let col = H(i, r * 97 + j, 4) < 0.5 ? cols[i] : cols[i - 1];
+                const hh = H(i, r * 97 + j, 4); let col = hh < 0.35 ? css(mix(colA[i], '#ffb0d8', 0.22 + 0.2 * (1 - fe))) : hh < 0.7 ? cols[i - 1] : css(mix(colA[i], colA[Math.min(colA.length - 1, i + 1)], 0.6));
                 if (gw > 0.08) col = css(GLOW[Math.min(3, Math.floor(gw * 4.2))]);
                 Ink.brush(g, [[xs - l / 2, y], [xs, y - 1.5 + 3 * H(i, j, 5)], [xs + l / 2, y]], { w: cap((hgt / rows) * 0.6, 3, 18), col, seed: 1300 + i * 131 + r * 37 + j, d, taper: 0.35, wob: 1.2, alpha: gw > 0.08 ? 0.95 : 0.75, light: true });
             }
@@ -106,12 +106,12 @@ const SunriseSet = (() => {
         }
         g.restore();
         // the last stars, high in the west, going out as the light comes; one lasts
-        const sa = (1 - fe) * (1 - Ease.inOut(Ease.seg(T, 198, 214)));
+        const sAl = (1 - fe) * (1 - Ease.inOut(Ease.seg(T, 198, 214)));
         if (1 - fe > 0.3) {
             const R = Motion.rng('sunrise-stars');
             for (let i = 0; i < 70; i++) {
                 const a = Math.PI + (R() * 2 - 1) * 1.4, e2 = 0.12 + Math.pow(R(), 1.2) * 0.6, s0 = 1.4 + R() * 2.6;
-                const al = i === 0 ? (1 - fe) * (1 - Ease.inOut(Ease.seg(T, 222, 236))) : sa;
+                const al = i === 0 ? (1 - fe) * (1 - Ease.inOut(Ease.seg(T, 222, 236))) : sAl;
                 if (al < 0.02) continue;
                 const p = skyP(cam, i === 0 ? Math.PI + 0.32 : a, i === 0 ? 0.3 : e2); if (p[2] < 1 || p[0] < -10 || p[0] > env.W + 10 || p[1] < -10) continue;
                 const sz = (i === 0 ? 6 : s0) * (0.6 + 0.5 * H(i, 7, d));
@@ -245,17 +245,22 @@ const SunriseSet = (() => {
         const SE = ['#f8a08a', '#ff8ab0', '#c86aa8', '#ffd0a0', '#9a4aa8', '#f06a96'], SW = ['#e88ab8', '#b070c0', '#7a5ab8', '#f0a0c0', '#5a6ad0', '#c890d0'];
         const scol = SE.map((c, i) => mx(SW[i], c, fe));
         g.lineCap = 'round';
-        for (let k = 1; k <= 120; k++) {
-            const z = 0.75 * Math.pow(k, 1.45), dx = 1.1 + 0.04 * z;
+        const rowZ = (k) => (k <= 60 ? 0.35 * k : 21 + 0.75 * Math.pow(k - 60, 1.45));
+        for (let k = 1; k <= 160; k++) {
+            const z = rowZ(k), dx = 1.1 + 0.04 * z;
+            // rows closer than a few pixels on screen keep only every 2nd, 4th… (by their own gap)
+            const pa = cam.p([cam.pos[0], 0, z]), pb = cam.p([cam.pos[0], 0, rowZ(k + 1)]);
+            if (pa[2] > 1 && pb[2] > 1) { const gap = Math.abs(pa[1] - pb[1]), st = Math.pow(2, Math.max(0, Math.floor(Math.log2(Math.max(1, 6 / Math.max(0.01, gap)))))); if (k % st) continue; }
             // find the stretch of this row in view, coarsely
             let x0 = Infinity, x1 = -Infinity;
             for (let xs = -600; xs <= 600; xs += 25) { const p = cam.p([xs, 0, z]); if (p[2] > 1 && p[0] > -150 && p[0] < env.W + 150 && p[1] < env.H + 20) { x0 = Math.min(x0, xs - 25); x1 = Math.max(x1, xs + 25); } }
             if (x0 > x1) continue;
             for (let j = Math.floor(x0 / dx); j <= Math.ceil(x1 / dx); j++) {
+                const sE = cam.f / (Math.hypot(j * dx - cam.pos[0], z - cam.pos[2], cam.pos[1]) + 0.1), stride = Math.pow(2, Math.max(0, Math.floor(Math.log2(Math.max(1, 9 / (dx * sE))))));
+                if (((j % stride) + stride) % stride) continue;
                 const x = j * dx + (H(k, j, 21) - 0.5) * dx * 0.7 + Math.sin(T * 0.7 + j * 0.9 + k) * 0.15 * dx;
                 const p = cam.p([x, 0, z + (H(k, j, 22) - 0.5) * 0.5]); if (p[2] < 1.2 || p[0] < -60 || p[0] > env.W + 60 || p[1] > env.H + 6) continue;
-                const s = cam.f / p[2], stride = Math.pow(2, Math.max(0, Math.floor(Math.log2(Math.max(1, 9 / (dx * s))))));
-                if (((j % stride) + stride) % stride) continue;
+                const s = cam.f / p[2];
                 const l = cap(dx * (0.5 + 0.6 * H(k, j, 23)) * s * Math.sqrt(stride), 2, 160), w = cap(0.07 * s, 1, 5), h = H(k, j, 24);
                 if (h < 0.22) { g.globalAlpha = 0.6; g.strokeStyle = '#2a0a60'; g.lineWidth = w * 1.1; g.beginPath(); g.moveTo(p[0] - l * 0.4, p[1] + w); g.lineTo(p[0] + l * 0.4, p[1] + w); g.stroke(); }
                 const col = scol[Math.floor(H(k, j, 25) * scol.length)];
@@ -265,6 +270,7 @@ const SunriseSet = (() => {
         }
         g.globalAlpha = 1;
         glitter(g, L, cam, T, d, env);
+        sailboat(g, cam, T, d, env, fe);
     }
     function glitter(g, L, cam, T, d, env) {
         const e = sunE(T); if (e < -SUN_R) return;
@@ -313,7 +319,12 @@ const SunriseSet = (() => {
             }
             const q = Neon.poly(cam, edge.concat(base.slice().reverse()));
             const u = dawn(T);
-            if (q) Ink.shape(g, q, mx('#f0a0c0', '#ffc8b0', u), { w: 0, seed: 4100 + n, d, jit: 0, alpha: sw.back ? 0.75 : 0.9, light: true });
+            if (q) Ink.shape(g, q, mx('#d888b8', '#f6b0a8', u), { w: 0, seed: 4100 + n, d, jit: 0, alpha: sw.back ? 0.75 : 0.9, light: true });
+            for (let i = 0; i < 46; i++) {
+                const x = xr[0] + (xr[1] - xr[0]) * H(i, n, 16), zz = -sw.run * 0.95 * H(i, n, 17) + 0.3, p = cam.p([x, 0.016, zz]); if (p[2] < 0.5) continue;
+                const s = cam.f / p[2], l = cap((0.5 + 0.8 * H(i, n, 18)) * s * 0.5, 3, 220);
+                Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0] + l / 2, p[1] + 0.4]], { w: cap(0.035 * s, 1, 8), col: ['#ffd27a', '#fff0f6', '#ff9ac8', '#c890d0', '#ffe0b0'][i % 5], seed: 4150 + n * 53 + i, d, taper: 0.45, wob: 0.6, alpha: 0.85, light: true });
+            }
             // the foam: a lacy brushed edge and broken strokes behind it
             const E = edge.map((p) => cam.p(p)).filter((p) => p[2] > 0.4);
             for (let i = 0; i + 1 < E.length; i += 2) {
@@ -370,13 +381,56 @@ const SunriseSet = (() => {
         const cx = cam.pos[0], cz = cam.pos[2];
         for (let i = Math.floor((cx - 44) / 2.5); i <= Math.ceil((cx + 44) / 2.5); i++) for (let j = -33; j < 0; j++) {
             const c0 = cam.p([i * 2.5 + 1.25, 0, j * 2.5 + 1.25]); if (c0[2] < 0.4 || c0[2] > 55 || c0[0] < -120 || c0[0] > env.W + 120 || c0[1] > env.H + 60) continue;
-            const s0 = cam.f / c0[2], nk = s0 < 12 ? 0 : s0 < 30 ? 1 : 3;
+            const s0 = cam.f / c0[2], nk = s0 < 12 ? 0 : s0 < 30 ? 1 : Math.min(10, Math.round(s0 / 22));
+            if (j < -2 && s0 >= 9) for (let k = 0; k < (s0 < 30 ? 1 : Math.min(8, Math.round(s0 / 28))); k++) {
+                const x = i * 2.5 + H(i, j, 70 + k) * 2.5, z = j * 2.5 + H(i, j, 80 + k) * 2.5, l = 0.8 + 1.2 * H(i, j, 90 + k), pts = [];
+                for (let q = 0; q <= 4; q++) pts.push(cam.p([x - l / 2 + (l * q) / 4, 0.01, z + 0.06 * Math.sin(q * 1.7 + k)]));
+                if (pts.some((p) => p[2] < 0.4)) continue;
+                const s = cam.f / pts[2][2];
+                Ink.brush(g, pts.map((p) => [p[0], p[1]]), { w: cap(0.025 * s, 1, 4), col: mx('#d87a8a', '#7a2a7e', fe), seed: 4750 + i * 37 + j * 11 + k, d, taper: 0.5, alpha: 0.7 });
+                if (s > 25) Ink.brush(g, pts.slice(0, 3).map((p) => [p[0], p[1] - cap(0.03 * s, 1, 4)]), { w: cap(0.018 * s, 1, 3), col: mx('#fff0d0', '#ffc46a', fe), seed: 4760 + i * 37 + j * 11 + k, d, taper: 0.5, alpha: 0.75 });
+            }
             for (let k = 0; k < nk; k++) {
                 const x = i * 2.5 + H(i, j, 30 + k) * 2.5, z = j * 2.5 + H(i, j, 40 + k) * 2.5, kk = H(i, j, 50 + k);
                 const p = cam.p([x, 0.01, z]); if (p[2] < 0.4 || p[0] < -30 || p[0] > env.W + 30 || p[1] > env.H + 20) continue;
                 const s = cam.f / p[2], l = cap((0.22 + H(i, j, 60 + k) * 0.35) * s, 2, 70);
                 const col = z > -5.5 ? (kk < 0.5 ? '#ffb0c8' : '#f8d07a') : kk < 0.35 ? mx('#ffe0b0', '#f08aa8', fe) : kk < 0.7 ? mx('#e07a8a', '#8a2a8a', fe) : mx('#fff1d0', '#ffc46a', fe);
                 Ink.brush(g, [[p[0] - l / 2, p[1] + l * 0.03], [p[0], p[1] - l * 0.04], [p[0] + l / 2, p[1] + l * 0.02]], { w: cap(0.03 * s, 1, 5), col, seed: 4700 + i * 131 + j * 7 + k, d, taper: 0.45, alpha: 0.8 });
+            }
+        }
+        const WE = ['#ffd27a', '#f8a08a', '#ff8ab0', '#fff0b0', '#e06aa0'], WW = ['#f0a0c0', '#c890d0', '#9a6ac0', '#ffd0e0', '#7a5ab8'];
+        const wcol = WE.map((c, i) => mx(WW[i], c, fe));
+        g.lineCap = 'round';
+        for (let r = 0; r < 39; r++) {
+            const z = -5.35 + r * 0.15, dx = 0.2;
+            { const pa = cam.p([cx, 0, z]), pb = cam.p([cx, 0, z + 0.15]); if (pa[2] > 0.3 && pb[2] > 0.3) { const gap = Math.abs(pa[1] - pb[1]), st = Math.pow(2, Math.max(0, Math.floor(Math.log2(Math.max(1, 9 / Math.max(0.01, gap)))))); if (r % st) continue; } }
+            let x0 = Infinity, x1 = -Infinity;
+            for (let xs = xr[0]; xs <= xr[1]; xs += Math.max(2, (xr[1] - xr[0]) / 40)) { const p = cam.p([xs, 0, z]); if (p[2] > 0.5 && p[0] > -100 && p[0] < env.W + 100 && p[1] < env.H + 10) { x0 = Math.min(x0, xs - 4); x1 = Math.max(x1, xs + 4); } }
+            for (let j = Math.floor(x0 / dx); j <= Math.ceil(x1 / dx) && x0 < x1; j++) {
+                const sE = cam.f / (Math.hypot(j * dx - cx, z - cz, cam.pos[1]) + 0.05), stride = Math.pow(2, Math.max(0, Math.floor(Math.log2(Math.max(1, 45 / (dx * sE))))));
+                if (((j % stride) + stride) % stride) continue;
+                const x = j * dx + (H(r, j, 31) - 0.5) * dx * 0.8, p = cam.p([x, 0.004, z + (H(r, j, 32) - 0.5) * 0.3]);
+                if (p[2] < 0.5 || p[0] < -60 || p[0] > env.W + 60 || p[1] > env.H + 6) continue;
+                const s = cam.f / p[2];
+                const l = cap(dx * (0.5 + 0.6 * H(r, j, 33)) * s * stride * 0.7, 2, 200), w = cap(0.05 * s, 1, 6), col = wcol[Math.floor(H(r, j, 34) * wcol.length)];
+                if (l < 22) { g.globalAlpha = 0.8; g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(p[0] - l / 2, p[1]); g.lineTo(p[0] + l / 2, p[1]); g.stroke(); g.globalAlpha = 1; }
+                else Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0], p[1] - w * 0.2], [p[0] + l / 2, p[1]]], { w, col, seed: 4850 + r * 991 + j, d, taper: 0.45, wob: 0.5, alpha: 0.8, light: true });
+            }
+        }
+        for (let j = Math.floor((cx - 40) / 1.1); j <= Math.ceil((cx + 40) / 1.1); j++) {
+            const x = j * 1.1 + H(j, 1, 41) * 0.8, z = -5.45 + (H(j, 2, 41) - 0.5) * 0.35, p = cam.p([x, 0.01, z]);
+            if (p[2] < 0.5 || p[2] > 45 || p[0] < -60 || p[0] > env.W + 60 || p[1] > env.H + 10) continue;
+            const s = cam.f / p[2];
+            if (H(j, 3, 41) < 0.55) {   // a strand of weed, wavy, dark plum with an olive edge
+                const l = 0.35 + 0.7 * H(j, 4, 41), pts = [];
+                for (let q = 0; q <= 5; q++) pts.push(cam.p([x - l / 2 + (l * q) / 5, 0.012, z + 0.07 * Math.sin(q * 2.1 + j)]));
+                Ink.brush(g, pts.map((p) => [p[0], p[1]]), { w: cap(0.045 * s, 1.2, 7), col: '#3a0f4a', seed: 4950 + j, d, taper: 0.3 });
+                if (s > 40) Ink.brush(g, pts.slice(1, 4).map((p) => [p[0], p[1] - cap(0.015 * s, 1, 3)]), { w: cap(0.012 * s, 1, 3), col: '#9a8a3a', seed: 4960 + j, d, taper: 0.4 });
+            } else if (s > 14) {        // a shell: a small fan, ribbed
+                const r0 = cap(0.035 * s, 2, 22), c0 = H(j, 5, 41) < 0.5 ? '#ffe6f0' : '#ffc8a8', pts = [[p[0], p[1] + r0 * 0.2]];
+                for (let q = 0; q <= 8; q++) { const an = Math.PI * (1.1 + 0.8 * q / 8); pts.push([p[0] + Math.cos(an) * r0, p[1] + Math.sin(an) * r0 * 0.55]); }
+                Ink.shape(g, pts, c0, { w: cap(0.006 * s, 1, 2.5), seed: 4970 + j, d, jit: 0.2 });
+                if (s > 40) for (let q = 1; q < 4; q++) { const an = Math.PI * (1.1 + 0.8 * q / 4); Ink.brush(g, [[p[0], p[1] + r0 * 0.1], [p[0] + Math.cos(an) * r0 * 0.85, p[1] + Math.sin(an) * r0 * 0.47]], { w: 1, col: '#c06a8a', seed: 4980 + j * 7 + q, d, taper: 0.3 }); }
             }
         }
         // the sun in the wet sand: a broken column of gold under it
@@ -394,7 +448,8 @@ const SunriseSet = (() => {
             const p = cam.p([fp[0], 0.01, fp[1]]); if (p[2] < 0.6 || p[2] > 40) continue;
             const s = cam.f / p[2];
             const q = []; for (let i = 0; i < 14; i++) { const an = (i / 14) * Math.PI * 2; q.push([fp[0] + Math.cos(an) * 0.055, 0.01, fp[1] + Math.sin(an) * 0.13]); }
-            const qq = Neon.poly(cam, q); if (qq) Ink.shape(g, qq, mx('#c0607e', '#5a1a72', fe), { w: 0, seed: 4900, d, jit: 0 });
+            const wetp = fp[1] > -5.5, qq = Neon.poly(cam, q);
+            if (qq) Ink.shape(g, qq, wetp ? mx('#e8a0c8', '#c86aa0', fe) : mx('#c0607e', '#5a1a72', fe), { w: wetp && s > 20 ? cap(0.012 * s, 1, 2.5) : 0, ink: '#4a1060', seed: 4900, d, jit: 0 });
             if (s > 30) { const a = cam.p([fp[0] - 0.05, 0.01, fp[1] + 0.1]), b = cam.p([fp[0] + 0.05, 0.01, fp[1] + 0.1]); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.02 * s, 1, 3), col: fe > 0.5 ? '#ffc46a' : '#fff1d0', seed: 4901, d, taper: 0.4, alpha: 0.8 }); }
         }
         swash(g, cam, T, d, env, xr);
@@ -571,7 +626,12 @@ const SunriseSet = (() => {
         box(g, cam, x - 1.25, x + 1.25, 1.95, 4.1, z - 1.1, z + 1.1, C, d, { seed: Math.round(x * 13) });
         // the window to the sea and a stripe round the cabin
         const wq = fq(cam, x - 0.9, 2.9, x + 0.9, 3.7, z + 1.11);
-        if (wq && cam.pos[2] > z + 1.1) Ink.shape(g, wq, fe > 0.5 ? '#2a0a50' : '#3a1470', { w: lw(s, 0.04), seed: Math.round(x * 17), d, jit: 0.2 });
+        if (wq && cam.pos[2] > z + 1.1) {
+            Ink.shape(g, wq, fe > 0.5 ? '#2a0a50' : '#3a1470', { w: lw(s, 0.04), seed: Math.round(x * 17), d, jit: 0.2 });
+            if (s > 12) for (let k = 1; k < 5; k++) { const a2 = cam.p([x - 0.88, 3.7 - k * 0.16, z + 1.12]), b2 = cam.p([x + 0.88, 3.7 - k * 0.16, z + 1.12]); Ink.brush(g, [[a2[0], a2[1]], [b2[0], b2[1]]], { w: cap(0.04 * s, 1, 3), col: T2.top, seed: Math.round(x * 17) + k, d, taper: 0.05 }); }
+        }
+        const dq = fq(cam, x - 0.45, 1.95, x + 0.45, 3.75, z - 1.11);
+        if (dq && cam.pos[2] < z - 1.1) { Ink.shape(g, dq, T2.back, { w: lw(s, 0.04), seed: Math.round(x * 17) + 9, d, jit: 0.2 }); const kn = cam.p([x + 0.3, 2.8, z - 1.12]); g.fillStyle = '#ffc46a'; g.beginPath(); g.arc(kn[0], kn[1], Math.max(1, 0.04 * s), 0, 7); g.fill(); }
         const st = fq(cam, x - 1.25, 2.35, x + 1.25, 2.6, z + 1.11);
         if (st && cam.pos[2] > z + 1.1) Ink.shape(g, st, sh(H0.stripe, fe * 0.5), { w: 0, seed: Math.round(x * 19), d, jit: 0 });
         const sb = fq(cam, x - 1.25, 2.35, x + 1.25, 2.6, z - 1.11);
@@ -610,8 +670,8 @@ const SunriseSet = (() => {
     function grass(g, cam, x, z, sc, seed, T, d, fe) {
         const b = cam.p([x, 0, z]); if (b[2] < 1.2) return;
         const s = cam.f / b[2]; if (b[0] < -s * 1.5 || b[0] > cam.W + s * 1.5) return;
-        if (s * sc < 3) return;
-        const n = s * sc < 25 ? 6 : 13, dark = mx('#8a3a7a', '#24083e', fe), mid = mx('#2a6a7a', '#3a0f58', fe), light = fe > 0.5 ? '#ffc46a' : '#ffe08a';
+        if (s * sc < 7) return;
+        const n = s * sc < 25 ? 6 : 10, dark = mx('#8a3a7a', '#24083e', fe), mid = mx('#2a6a7a', '#3a0f58', fe), light = fe > 0.5 ? '#ffc46a' : '#ffe08a';
         for (let i = 0; i < n; i++) {
             const leaf = i % 3 !== 0, hgt = sc * (leaf ? 0.35 + 0.35 * H(seed, i, 1) : 0.7 + 0.5 * H(seed, i, 1));
             const side = H(seed, i, 2) - 0.5, lean = side * (leaf ? 1.6 : 0.4) + Math.sin(T * 1.7 + seed + i * 0.7) * 0.05, dx = side * 0.25 * sc;
@@ -632,7 +692,7 @@ const SunriseSet = (() => {
     function shoes(g, cam, T, d, at, drift, wet = 0) {
         const [sx, sz] = at, ink = P.ink;
         // a profile (u along the shoe, v up) placed at (x, z) turned by ang; lying: on its side
-        const place = (x, z, ang, lying) => (u, v) => { const ca = Math.cos(ang), sa = Math.sin(ang); return lying ? cam.p([x + u * ca - v * sa, 0.012 + 0.0 * v, z + u * sa + v * ca]) : cam.p([x + u * ca, v, z + u * sa]); };
+        const place = (x, z, ang, lying) => (u, v) => { const ca = Math.cos(ang), sa = Math.sin(ang); return lying ? cam.p([x + u * ca, 0.008 + v * 0.5, z + u * sa + v * 0.85]) : cam.p([x + u * ca, v, z + u * sa]); };
         const shp = (W, pts, col, seed, wInk) => { const q = pts.map(([u, v]) => W(u, v)); if (q.some((p) => p[2] < 0.3)) return null; const s = cam.f / q[0][2]; Ink.shape(g, q.map((p) => [p[0], p[1]]), col, { w: wInk ?? cap(0.006 * s, 1.2, 5), seed, d, jit: 0.25 }); return s; };
         const line = (W, pts, col, w, seed, taper = 0.15) => { const q = pts.map(([u, v]) => W(u, v)); if (q.some((p) => p[2] < 0.3)) return; Ink.brush(g, q.map((p) => [p[0], p[1]]), { w, col, seed, d, taper }); };
         const gold = '#ffc04a', goldD = '#e8782a', goldL = '#fff1b0';
@@ -653,23 +713,58 @@ const SunriseSet = (() => {
         }
         heel(place(sx + 0.06, sz, 0.3, false), 9101);
         heel(place(sx - 0.18 + drift * 0.12, sz + 0.14 + drift, 2.5 + drift * 0.7, true), 9111);
-        // his loafers: sole, heel block, the upper with its collar, the lining, the moc seam, the strap
-        const UP = [[0.0, 0.014], [0.0, 0.03], [0.02, 0.046], [0.06, 0.058], [0.12, 0.064], [0.16, 0.062], [0.2, 0.056], [0.245, 0.058], [0.28, 0.068], [0.286, 0.02], [0.28, 0.012]];
-        const SO = [[0.0, 0.016], [0.004, 0.003], [0.03, 0.0], [0.255, 0.0], [0.286, 0.002], [0.287, 0.016], [0.03, 0.015]];
-        for (const [lx, lz, ang, sd] of [[-0.62, -0.2, 0.25, 9121], [-0.48, 0.02, -0.12, 9131]]) {
-            const W = place(sx + lx, sz + lz, ang, false);
-            const s = shp(W, UP, '#5a2ad8', sd); if (!s) continue;
-            shp(W, SO, '#2a0a60', sd + 1);
-            shp(W, [[0.225, 0.0], [0.287, 0.002], [0.287, 0.02], [0.225, 0.02]], '#1a0450', sd + 2);
-            line(W, [[0.16, 0.061], [0.2, 0.055], [0.245, 0.057], [0.279, 0.066]], '#1a0450', cap(0.009 * s, 1.5, 7), sd + 3);
-            const w = cap(0.0035 * s, 1, 3);
-            for (let k = 0; k < 6; k++) { const u0 = 0.022 + k * 0.019; line(W, [[u0, 0.046 + k * 0.0028], [u0 + 0.011, 0.048 + k * 0.0028]], '#c49af0', w, sd + 10 + k, 0.3); }
-            line(W, [[0.125, 0.064], [0.13, 0.04], [0.16, 0.036], [0.165, 0.062]], ink, cap(0.005 * s, 1.2, 4), sd + 4);
-            line(W, [[0.135, 0.05], [0.155, 0.05]], '#1a0450', cap(0.006 * s, 1.2, 4), sd + 5);
-            line(W, [[0.01, 0.034], [0.04, 0.052], [0.09, 0.06]], '#ffc46a', cap(0.004 * s, 1, 3), sd + 6, 0.5);
+        // his loafers: one upright (the top seen a little from above: the vamp, the penny strap
+        // with its slot, the dark opening and its lining; the side wall, the sole, the heel), one
+        // fallen on its side showing its sole
+        const hw = (u) => 0.036 + 0.016 * Math.sin(Math.min(1, u / 0.09) * Math.PI / 2) - 0.012 * Math.exp(-(((u - 0.17) / 0.05) ** 2)) - 0.012 * cap((u - 0.22) / 0.065, 0, 1);
+        const outline = (n = 16) => { const L0 = [], R0 = []; for (let i = 0; i <= n; i++) { const u = 0.285 * i / n, w = hw(u) * (i === 0 || i === n ? 0.55 : 1); L0.push([u, -w]); R0.push([u, w]); } return L0.concat(R0.reverse()); };
+        const at3 = (x, z, ang) => (u, w, v) => { const ca = Math.cos(ang), sa = Math.sin(ang); return cam.p([x + u * ca - w * sa, v, z + u * sa + w * ca]); };
+        const poly3 = (W, pts, v, col, seed, wInk) => { const q = pts.map(([u, w]) => W(u, w, v)); if (q.some((p) => p[2] < 0.3)) return null; const s = cam.f / q[0][2]; Ink.shape(g, q.map((p) => [p[0], p[1]]), col, { w: wInk ?? cap(0.006 * s, 1.2, 4), seed, d, jit: 0.2 }); return s; };
+        {   // upright
+            const x = sx - 0.6, z = sz - 0.12, ang = 0.35, W = at3(x, z, ang), ca = Math.cos(ang), sa = Math.sin(ang);
+            const side = Math.sign((cam.pos[0] - x) * -sa + (cam.pos[2] - z) * ca) || 1, ol = outline();
+            // the side wall facing the camera: from the sole up to the top line
+            const wall = []; for (let i = 0; i <= 16; i++) { const u = 0.285 * i / 16; wall.push(W(u, side * hw(u), 0.0)); }
+            for (let i = 16; i >= 0; i--) { const u = 0.285 * i / 16, v = 0.03 + 0.03 * Math.sin(Math.min(1, u / 0.12) * Math.PI / 2) - (u > 0.15 && u < 0.27 ? 0.004 : 0); wall.push(W(u, side * hw(u) * 0.97, v)); }
+            const s = cam.f / wall[0][2];
+            poly3(W, ol, 0.0, '#1a0450', 9121, 0);                          // the sole's edge, a dark rim at the ground
+            Ink.shape(g, wall.map((p) => [p[0], p[1]]), '#4a1ab8', { w: cap(0.006 * s, 1.2, 4), seed: 9122, d, jit: 0.2 });
+            const top = []; for (let i = 0; i <= 16; i++) { const u = 0.285 * i / 16, v = 0.03 + 0.03 * Math.sin(Math.min(1, u / 0.12) * Math.PI / 2); top.push([u, hw(u) * 0.97, v]); }
+            const topPts = top.map(([u, w, v]) => W(u, -w, v)).concat(top.slice().reverse().map(([u, w, v]) => W(u, w, v)));
+            Ink.shape(g, topPts.map((p) => [p[0], p[1]]), '#8a5af0', { w: cap(0.006 * s, 1.2, 4), seed: 9123, d, jit: 0.2 });
+            // the opening and its lining, the strap and its slot
+            const op = []; for (let i = 0; i <= 12; i++) { const an = Math.PI * 2 * i / 12; op.push(W(0.222 + Math.cos(an) * 0.05, Math.sin(an) * 0.024, 0.058)); }
+            Ink.shape(g, op.map((p) => [p[0], p[1]]), '#140338', { w: cap(0.005 * s, 1.2, 3), seed: 9124, d, jit: 0.2 });
+            const ln = []; for (let i = 0; i <= 8; i++) { const an = Math.PI * (0.5 + i / 8); ln.push(W(0.222 + Math.cos(an) * 0.04, Math.sin(an) * 0.018, 0.052)); }
+            Ink.shape(g, ln.map((p) => [p[0], p[1]]), '#c49af0', { w: 0, seed: 9125, d, jit: 0.2 });
+            const st = [W(0.125, -hw(0.125), 0.06), W(0.15, -hw(0.15), 0.06), W(0.15, hw(0.15), 0.06), W(0.125, hw(0.125), 0.06)];
+            Ink.shape(g, st.map((p) => [p[0], p[1]]), '#3a10a8', { w: cap(0.005 * s, 1.2, 3), seed: 9126, d, jit: 0.2 });
+            const sl = [W(0.132, -0.012, 0.061), W(0.143, -0.012, 0.061), W(0.143, 0.012, 0.061), W(0.132, 0.012, 0.061)];
+            Ink.shape(g, sl.map((p) => [p[0], p[1]]), '#0b0230', { w: 0, seed: 9127, d, jit: 0 });
+            // the moc seam and a highlight on the toe
+            const seam = []; for (let i = 0; i <= 8; i++) { const an = Math.PI * (0.5 + i / 8); seam.push(W(0.07 + Math.cos(an) * 0.055, Math.sin(an) * 0.03, 0.058)); }
+            Ink.brush(g, seam.map((p) => [p[0], p[1]]), { w: cap(0.003 * s, 1, 2), col: '#c49af0', seed: 9128, d, taper: 0.2 });
+            const h0 = W(0.02, -0.01, 0.05), h1 = W(0.06, -0.015, 0.058);
+            Ink.brush(g, [[h0[0], h0[1]], [h1[0], h1[1]]], { w: cap(0.006 * s, 1.2, 4), col: '#ffc46a', seed: 9129, d, taper: 0.4 });
+        }
+        {   // fallen on its side: the sole toward the camera, the tread and the heel block on it
+            const x = sx - 0.38, z = sz + 0.08, ang = -0.25, ca = Math.cos(ang), sa = Math.sin(ang);
+            const W = (u, w, v) => cam.p([x + u * ca, 0.055 + w * 0.95, z + u * sa - 0.02 - v]);
+            const sole = outline().map(([u, w]) => W(u, w, 0));
+            if (!sole.some((p) => p[2] < 0.3)) {
+                const s = cam.f / sole[0][2];
+                const up = outline().map(([u, w]) => W(u, w * 0.9 + 0.012, -0.03));
+                Ink.shape(g, up.map((p) => [p[0], p[1]]), '#4a1ab8', { w: cap(0.006 * s, 1.2, 4), seed: 9131, d, jit: 0.2 });
+                Ink.shape(g, sole.map((p) => [p[0], p[1]]), '#2a0a60', { w: cap(0.006 * s, 1.2, 4), seed: 9132, d, jit: 0.2 });
+                const hb = [W(0.215, -hw(0.215) * 0.9, 0), W(0.282, -0.02, 0), W(0.282, 0.02, 0), W(0.215, hw(0.215) * 0.9, 0)];
+                Ink.shape(g, hb.map((p) => [p[0], p[1]]), '#1a0450', { w: cap(0.004 * s, 1, 3), seed: 9133, d, jit: 0.2 });
+                for (let k = 0; k < 6; k++) { const u = 0.03 + k * 0.028, a2 = W(u, -hw(u) * 0.6, 0), b2 = W(u + 0.01, hw(u) * 0.6, 0); Ink.brush(g, [[a2[0], a2[1]], [b2[0], b2[1]]], { w: cap(0.003 * s, 1, 2), col: '#7a4ad0', seed: 9134 + k, d, taper: 0.3 }); }
+                const t0 = W(0.02, -0.03, 0), t1 = W(0.12, -0.045, 0);
+                Ink.brush(g, [[t0[0], t0[1]], [t1[0], t1[1]]], { w: cap(0.004 * s, 1, 3), col: '#ffc46a', seed: 9140, d, taper: 0.4 });
+            }
         }
         // the swash running round them: foam along their feet, a film of water over the soles
-        if (wet > 0.02) for (const [ux, uz, sd] of [[0.06, 0, 1], [-0.18 + drift * 0.12, 0.14 + drift, 2], [-0.62, -0.2, 3], [-0.48, 0.02, 4]]) {
+        if (wet > 0.02) for (const [ux, uz, sd] of [[0.06, 0, 1], [-0.18 + drift * 0.12, 0.14 + drift, 2], [-0.6, -0.12, 3], [-0.38, 0.08, 4]]) {
             for (let k = 0; k < 5; k++) {
                 const x0 = sx + ux - 0.04 + k * 0.07, z0 = sz + uz + (H(sd, k, 1) - 0.5) * 0.12 - 0.03;
                 const a = cam.p([x0, 0.006, z0]), b = cam.p([x0 + 0.08 + 0.05 * H(sd, k, d), 0.006, z0 + 0.03]); if (a[2] < 0.3) continue;
@@ -678,6 +773,102 @@ const SunriseSet = (() => {
             }
         }
     }
+
+    // --- life on the beach ---------------------------------------------------------------
+    // the fishing pier: a deck on piles from the sand out to sea, rails, lamps, a shed at its end
+    const PIER = { x: -75, z0: -30, z1: 220, seg: 7.5 };
+    function pierSeg(g, cam, k, d, fe) {
+        const za = PIER.z0 + k * PIER.seg, zb = za + PIER.seg, x0 = PIER.x - 2, x1 = PIER.x + 2;
+        const c = cam.p([PIER.x, 2, za + PIER.seg / 2]); if (c[2] < 1) return;
+        const s = cam.f / c[2]; if (c[0] < -10 * s - 40 || c[0] > cam.W + 10 * s + 40) return;
+        const dk = (cl, kk) => css(mix(cl, '#1e0640', kk));
+        const wood = { front: dk('#b06a9a', 0.2 + fe * 0.55), side: dk('#8a4a90', 0.25 + fe * 0.5), back: dk('#8a4a90', 0.5), top: dk('#c88aa8', 0.15 + fe * 0.45), under: dk('#5a2a70', 0.4) };
+        const pile = { front: dk('#6a3a80', 0.3 + fe * 0.4), side: dk('#5a2a70', 0.35 + fe * 0.4), back: dk('#5a2a70', 0.5), top: dk('#6a3a80', 0.3) };
+        const bed = () => 0;
+        if (s < 16) {
+            // far: the deck as one face and its piles as strokes
+            const q = Neon.poly(cam, [[x0, 3.6, za], [x0, 4.0, za], [x0, 4.0, zb], [x0, 3.6, zb]]); if (q) Ink.shape(g, q, wood.side, { w: 0, seed: 9700 + k, d, jit: 0 });
+            const q2 = Neon.poly(cam, [[x0, 4.0, za], [x1, 4.0, za], [x1, 4.0, zb], [x0, 4.0, zb]]); if (q2) Ink.shape(g, q2, wood.top, { w: 0, seed: 9750 + k, d, jit: 0 });
+            for (const xx of [x0 + 0.4, x1 - 0.4]) { const a2 = cam.p([xx, bed(za), za]), b2 = cam.p([xx, 3.6, za]); if (a2[2] > 1) Ink.brush(g, [[a2[0], a2[1]], [b2[0], b2[1]]], { w: cap(0.35 * s, 1, 4), col: pile.side, seed: 9800 + k, d, taper: 0.05 }); }
+            const r0 = cam.p([x0, 4.9, za]), r1 = cam.p([x0, 4.9, zb]); if (r0[2] > 1 && r1[2] > 1) Ink.brush(g, [[r0[0], r0[1]], [r1[0], r1[1]]], { w: 1, col: P.ink, seed: 9850 + k, d, taper: 0, alpha: 0.8 });
+            return;
+        }
+        for (const xx of [x0 + 0.4, x1 - 0.4]) box(g, cam, xx - 0.2, xx + 0.2, bed(za) - 0.3, 3.6, za - 0.2, za + 0.2, pile, d, { seed: 9900 + k * 3 + (xx > PIER.x ? 1 : 0) });
+        box(g, cam, x0 + 0.4, x1 - 0.4, 3.2, 3.4, za - 0.15, za + 0.15, pile, d, { seed: 9950 + k });
+        box(g, cam, x0, x1, 3.6, 4.0, za, zb, wood, d, { seed: 10000 + k });
+        for (const xx of [x0 + 0.1, x1 - 0.1]) {
+            const a2 = cam.p([xx, 4.0, za]), b2 = cam.p([xx, 5.0, za]), r0 = cam.p([xx, 4.95, za]), r1 = cam.p([xx, 4.95, zb]);
+            if (a2[2] > 1) Ink.brush(g, [[a2[0], a2[1]], [b2[0], b2[1]]], { w: cap(0.12 * s, 1, 6), col: wood.side, seed: 10050 + k, d, taper: 0.05 });
+            if (r0[2] > 1 && r1[2] > 1) { Ink.brush(g, [[r0[0], r0[1]], [r1[0], r1[1]]], { w: cap(0.1 * s, 1, 5), col: P.ink, seed: 10100 + k, d, taper: 0.02 }); if (s > 12) Ink.brush(g, [[r0[0], r0[1] - 1.5], [r1[0], r1[1] - 1.5]], { w: cap(0.04 * s, 1, 2), col: fe > 0.5 ? '#ffc46a' : '#fff1b0', seed: 10150 + k, d, taper: 0.2 }); }
+        }
+        if (k % 4 === 2) { const a2 = cam.p([x1 - 0.1, 4.0, za]), b2 = cam.p([x1 - 0.1, 7.2, za]); if (a2[2] > 1) { Ink.brush(g, [[a2[0], a2[1]], [b2[0], b2[1]]], { w: cap(0.1 * s, 1, 5), col: P.ink, seed: 10200 + k, d, taper: 0.05 }); Ink.shape(g, [[b2[0] - 0.25 * s, b2[1]], [b2[0] + 0.25 * s, b2[1]], [b2[0] + 0.18 * s, b2[1] + 0.45 * s], [b2[0] - 0.18 * s, b2[1] + 0.45 * s]], '#ffe0b0', { w: cap(0.05 * s, 1, 3), seed: 10250 + k, d }); } }
+        if (zb >= PIER.z1) box(g, cam, x0 + 0.3, x1 - 0.3, 4.0, 7.0, zb - 6, zb, { front: dk('#ff9ad0', 0.2 + fe * 0.5), side: dk('#e070b0', 0.3 + fe * 0.4), back: dk('#e070b0', 0.5), top: dk('#7fe0c0', 0.2 + fe * 0.4) }, d, { seed: 10300 });
+    }
+    // a sailboat far out, drifting north: a hull, a mast, a mainsail and a jib
+    function sailboat(g, cam, T, d, env, fe) {
+        const x = 150 + 0.4 * (T - 198), z = 900, c = cam.p([x, 5, z]); if (c[2] < 10 || c[0] < -60 || c[0] > env.W + 60) return;
+        const s = cam.f / c[2], P3 = (dx, y) => { const p = cam.p([x + dx, y, z]); return [p[0], p[1]]; };
+        const sail = fe > 0.5 ? '#5a2a80' : '#fff0f6', hull = fe > 0.5 ? '#2a0a48' : '#f8f0ff';
+        Ink.shape(g, [P3(-4.2, 1.1), P3(4.4, 1.1), P3(3.2, 0.1), P3(-3.6, 0.1)], hull, { w: cap(0.1 * s, 1, 2), seed: 10400, d, jit: 0.2 });
+        Ink.shape(g, [P3(0, 1.4), P3(0, 12.5), P3(-3.6, 1.6)], sail, { w: cap(0.08 * s, 1, 2), seed: 10401, d, jit: 0.2 });
+        Ink.shape(g, [P3(0.4, 1.5), P3(0.4, 10.5), P3(3.8, 1.6)], sail, { w: cap(0.08 * s, 1, 2), seed: 10402, d, jit: 0.2 });
+        if (fe > 0.5) Ink.brush(g, [P3(0.05, 12.4), P3(-3.4, 1.8)], { w: cap(0.08 * s, 1, 2), col: '#ffc65e', seed: 10403, d, taper: 0.3 });
+    }
+    // a closed beach umbrella stuck in the sand: pole, a furled striped canopy, a finial
+    const UMB = ['#ff8ad8', '#7fe0c0', '#ffd27a', '#8ed7f2', '#f45a7f'];
+    function umbrella(g, cam, x, z, i, d, fe) {
+        const a = cam.p([x, 0, z]), b = cam.p([x, 2.55, z]); if (a[2] < 1.5 || b[2] < 1.5) return;
+        const s = cam.f / a[2]; if (a[0] < -40 || a[0] > cam.W + 40 || s < 2) return;
+        const lean = (H(i, 1, 0) - 0.5) * 0.15, top = [b[0] + lean * 2.55 * s, b[1]];
+        Ink.brush(g, [[a[0], a[1]], top], { w: cap(0.05 * s, 1, 5), col: mx('#e8d0f0', '#2a0a48', fe), seed: 10500 + i, d, taper: 0.05 });
+        const ax = (v) => [a[0] + (top[0] - a[0]) * v, a[1] + (top[1] - a[1]) * v], rr = (v) => 0.17 * s * Math.sin(Math.PI * Math.pow((v - 0.5) / 0.47, 0.8)), L0 = [], R0 = [];
+        for (let k = 0; k <= 10; k++) { const v = 0.5 + 0.47 * k / 10, p = ax(v), r = k === 10 ? 0 : rr(v); L0.push([p[0] - r, p[1]]); R0.push([p[0] + r, p[1]]); }
+        const c1 = UMB[i % UMB.length], c2 = '#fff0f6', dark = (c) => mx(c, '#24083e', fe * 0.75);
+        Ink.shape(g, L0.concat(R0.reverse()), dark(c1), { w: cap(0.03 * s, 1, 3), seed: 10550 + i, d, jit: 0.3 });
+        for (let k = 1; k < 10; k += 3) { const v = 0.5 + 0.47 * k / 10, v2 = 0.5 + 0.47 * (k + 1.2) / 10, p = ax(v), q = ax(v2), r = rr(v), r2 = rr(v2); Ink.shape(g, [[p[0] - r * 0.95, p[1]], [p[0] + r * 0.95, p[1]], [q[0] + r2 * 0.95, q[1]], [q[0] - r2 * 0.95, q[1]]], dark(c2), { w: 0, seed: 10600 + i * 7 + k, d, jit: 0 }); }
+        if (s > 25) Ink.brush(g, [ax(0.58), ax(0.9)].map((p, k) => [p[0] + (fe > 0.5 ? 1 : -1) * rr(0.58 + k * 0.32) * 0.6, p[1]]), { w: cap(0.02 * s, 1, 3), col: fe > 0.5 ? '#ffc46a' : '#fff1b0', seed: 10650 + i, d, taper: 0.4 });
+    }
+    // gulls standing on the wet sand, pecking on twos; silhouettes when backlit
+    function gull(g, cam, x, z, dir, i, T, d, fe) {
+        const c = cam.p([x, 0.15, z]); if (c[2] < 0.8) return;
+        const s = cam.f / c[2]; if (c[0] < -40 || c[0] > cam.W + 40 || s < 25) return;
+        const peck = H(i, Math.floor(T * 2.5), 7) < 0.25 ? 1 : 0, Q = (lx, ly) => { const p = cam.p([x + lx * dir, ly, z]); return [p[0], p[1]]; };
+        const body = fe > 0.5 ? '#6a4a8e' : '#fff4fa', wing = fe > 0.5 ? '#3a1a60' : '#a898c8', w = cap(0.012 * s, 1, 3);
+        Ink.brush(g, [Q(-0.01, 0.11), Q(-0.02, 0.0)], { w, col: '#e8783a', seed: 10700 + i, d, taper: 0.1 });
+        Ink.brush(g, [Q(0.03, 0.11), Q(0.04, 0.0)], { w, col: '#e8783a', seed: 10701 + i, d, taper: 0.1 });
+        const bd = []; for (let k = 0; k < 14; k++) { const an = (k / 14) * Math.PI * 2; bd.push(Q(0.01 + Math.cos(an) * 0.13, 0.17 + Math.sin(an) * 0.055 - Math.cos(an) * 0.02)); }
+        Ink.shape(g, bd, body, { w, seed: 10710 + i, d, jit: 0.2 });
+        Ink.shape(g, [Q(-0.1, 0.2), Q(0.08, 0.215), Q(0.02, 0.165), Q(-0.2, 0.17), Q(-0.22, 0.19)], wing, { w, seed: 10720 + i, d, jit: 0.2 });
+        const hy = 0.25 - peck * 0.09, hx = 0.13 + peck * 0.04, hd = []; for (let k = 0; k < 10; k++) { const an = (k / 10) * Math.PI * 2; hd.push(Q(hx + Math.cos(an) * 0.04, hy + Math.sin(an) * 0.035)); }
+        Ink.brush(g, [Q(0.09, 0.19), Q(hx, hy)], { w: cap(0.06 * s, 1.5, 12), col: body, seed: 10730 + i, d, taper: 0 });
+        Ink.shape(g, hd, body, { w, seed: 10740 + i, d, jit: 0.2 });
+        Ink.shape(g, [Q(hx + 0.03, hy + 0.005), Q(hx + 0.085, hy - 0.012 - peck * 0.02), Q(hx + 0.03, hy - 0.012)], '#ffc04a', { w: cap(0.006 * s, 1, 2), seed: 10750 + i, d, jit: 0 });
+        if (fe > 0.5 && s > 40) Ink.brush(g, [Q(-0.12, 0.215), Q(0.06, 0.232), Q(hx - 0.02, hy + 0.04), Q(hx + 0.03, hy + 0.03)], { w: cap(0.016 * s, 1.2, 5), col: '#ffd27a', seed: 10760 + i, d, taper: 0.3 });
+    }
+    // a jogger and a dog along the waterline, drawn on twos (a run cycle of six drawings)
+    function jogger(g, cam, T, d, fe) {
+        const x = 7 - 3.3 * (T - 227), z = -3.2, c = cam.p([x, 0.9, z]); if (c[2] < 2) return;
+        const s = cam.f / c[2]; if (c[0] < -60 || c[0] > cam.W + 60 || s < 3) return;
+        const dir = -1, ph = (Math.floor(T * 12) % 6) / 6 * Math.PI * 2, Q = (lx, ly, dz = 0) => { const p = cam.p([x + lx * dir, ly, z + dz]); return [p[0], p[1]]; };
+        const sil = fe > 0.5, skin = sil ? '#2a0a48' : '#f45a7f', shirt = sil ? '#2a0a48' : '#67deef', shorts = sil ? '#1a0440' : '#0f0138', w = cap(0.11 * s, 1.5, 12);
+        const leg = (p, sd) => { const kx = 0.18 * Math.sin(p), fx = 0.38 * Math.sin(p) - 0.05, fy = 0.05 + 0.2 * Math.max(0, -Math.cos(p)); Ink.brush(g, [Q(0, 0.88), Q(kx + 0.06, 0.48), Q(fx, fy)], { w, col: skin, seed: 10800 + sd, d, taper: 0.1 }); };
+        const arm = (p, sd) => { Ink.brush(g, [Q(0.02, 1.42), Q(-0.2 * Math.sin(p), 1.18), Q(-0.2 * Math.sin(p) + 0.18, 1.05)], { w: w * 0.8, col: skin, seed: 10810 + sd, d, taper: 0.1 }); };
+        leg(ph + Math.PI, 1); arm(ph, 1);
+        Ink.shape(g, [Q(-0.13, 0.86), Q(0.13, 0.86), Q(0.15, 1.45), Q(-0.12, 1.47)], shirt, { w: cap(0.02 * s, 1, 3), seed: 10820, d, jit: 0.3 });
+        Ink.shape(g, [Q(-0.13, 0.7), Q(0.14, 0.7), Q(0.13, 0.9), Q(-0.13, 0.9)], shorts, { w: cap(0.02 * s, 1, 3), seed: 10821, d, jit: 0.3 });
+        leg(ph, 2); arm(ph + Math.PI, 2);
+        const hd = []; for (let k = 0; k < 10; k++) { const an = (k / 10) * Math.PI * 2; hd.push(Q(0.06 + Math.cos(an) * 0.1, 1.6 + Math.sin(an) * 0.11)); }
+        Ink.shape(g, hd, skin, { w: cap(0.02 * s, 1, 3), seed: 10822, d, jit: 0.3 });
+        if (sil) Ink.brush(g, [Q(0.0, 1.71), Q(0.14, 1.62), Q(0.16, 1.4)], { w: cap(0.03 * s, 1, 3), col: '#ffc65e', seed: 10823, d, taper: 0.3 });
+        // the dog, a step ahead nearer the water
+        const dx = x - 1.4, dz = -2.5, D = (lx, ly) => { const p = cam.p([dx + lx * dir, ly, dz]); return [p[0], p[1]]; }, dc = sil ? '#24083e' : '#ffd27a';
+        for (const [lx, o2] of [[0.22, 0], [-0.22, Math.PI]]) { const a2 = ph * 1.3 + o2; Ink.brush(g, [D(lx, 0.36), D(lx + 0.12 * Math.sin(a2), 0.02 + 0.06 * Math.max(0, Math.cos(a2)))], { w: w * 0.6, col: dc, seed: 10830 + Math.round(lx * 10), d, taper: 0.1 }); }
+        const bd = []; for (let k = 0; k < 12; k++) { const an = (k / 12) * Math.PI * 2; bd.push(D(Math.cos(an) * 0.3, 0.42 + Math.sin(an) * 0.1)); }
+        Ink.shape(g, bd, dc, { w: cap(0.02 * s, 1, 3), seed: 10840, d, jit: 0.3 });
+        Ink.shape(g, [D(0.24, 0.48), D(0.42, 0.62), D(0.52, 0.56), D(0.44, 0.46), D(0.3, 0.42)], dc, { w: cap(0.02 * s, 1, 3), seed: 10841, d, jit: 0.3 });
+        Ink.brush(g, [D(-0.28, 0.46), D(-0.42, 0.56 + 0.06 * Math.sin(ph * 2))], { w: w * 0.5, col: dc, seed: 10842, d, taper: 0.5 });
+    }
+    const GULLS = [[5.6, -6.1, 1], [6.5, -6.7, -1], [7.6, -6.0, 1], [-6.2, -6.4, -1], [-7.4, -5.8, 1], [1.5, -2.4, 1], [2.3, -1.6, -1], [-1.6, -1.9, 1], [14, -5.2, -1], [-16, -5.6, 1]];
 
     // the standing things of the world, as items to sort with the cast: { depth, draw }
     function items(g, L, cam, T, d, env) {
@@ -692,6 +883,11 @@ const SunriseSet = (() => {
             if (i % 3 === 0) { const x2 = x + 5, z2 = -58 + H(i, 3, 0) * 6; out.push({ depth: dist(x2, 5, z2), draw: () => palm(g, cam, x2, z2, i + 150, T, d, fe) }); }
         }
         for (const H0 of HUTS) out.push({ depth: dist(H0.x, 3, H0.z), draw: () => hut(g, L, cam, H0, T, d, fe) });
+        for (let k = 0; k * PIER.seg + PIER.z0 < PIER.z1; k++) { const zm = PIER.z0 + (k + 0.5) * PIER.seg; out.push({ depth: dist(PIER.x, 2, zm), draw: () => pierSeg(g, cam, k, d, fe) }); }
+        for (let i = -8; i <= 8; i++) { if (Math.abs(i) < 2 || i === -3) continue; const x = i * 5 + (H(i, 1, 9) - 0.5) * 1.5, z = -30 + (H(i, 2, 9) - 0.5) * 2; out.push({ depth: dist(x, 1.5, z), draw: () => umbrella(g, cam, x, z, i + 20, d, fe) }); }
+        for (let i = -10; i <= 10; i++) { const x = i * 6 + (H(i, 3, 9) - 0.5) * 2, z = -68 + (H(i, 4, 9) - 0.5) * 2; out.push({ depth: dist(x, 1.5, z), draw: () => umbrella(g, cam, x, z, i + 50, d, fe) }); }
+        GULLS.forEach(([x, z, dir], i) => out.push({ depth: dist(x, 0.2, z), draw: () => gull(g, cam, x, z, dir, i, T, d, fe) }));
+        { const jx = 7 - 3.3 * (T - 227); out.push({ depth: dist(jx, 0.9, -3.2), draw: () => jogger(g, cam, T, d, fe) }); }
         // sea oats along the dune line, and clumps on the open sand
         for (let i = -200; i <= 200; i++) {
             const x = i * 1.5 + (H(i, 5, 0) - 0.5) * 1.2, z = (i % 2 ? -53 : -60) + (H(i, 6, 0) - 0.5) * 4;

@@ -74,7 +74,7 @@
         // the gold: from where they stand, over the boat, then out over the sea
         const goldBoat = io(seg(T, 184.25, 186.8));
         const goldSea = T > 185.1 ? (T - 185.1) * 24 : 0;             // the front's radius, metres
-        return { kick, mid, high, trip, hue, dawn, burn, rim, goldBoat, goldSea, halo: 1 + trip * (0.4 + kick * 0.6), star: trip * 0.5 };
+        return { T, kick, mid, high, trip, hue, dawn, burn, rim, goldBoat, goldSea, halo: 1 + trip * (0.4 + kick * 0.6), star: trip * 0.5 };
     }
 
     // --- the sky -------------------------------------------------------------------------------
@@ -111,21 +111,32 @@
             }
         }
         g.restore();
-        // the glow over the sunrise point: nested flat lenses of ink (magenta, salmon, orange,
-        // gold) laid on as the night pales; the burn of the build widens and brightens them
+        // the glow over the sunrise point: the sky's own layers, laid as horizontal bands of flat ink
+        // with brushed, ragged edges, warmer and thinner towards the sun; some sit on the
+        // horizon, some float as streaks above it. The burn of the build widens and lifts them.
         const sp = skyP(cam, SUN_A, 0);
         if (fx.dawn > 0.02 && sp[2] > 1) {
             const gl = fx.dawn + fx.burn * 0.6, f = cam.f / 1000;
-            const lens = [[P.purple, 700, 0.2], [P.magenta, 500, 0.17], [P.salmon, 340, 0.15], [P.orange, 215, 0.13], [P.gold, 125, 0.12], ['#ffe6c8', 65, 0.1]];
+            // [ink, half-width, bottom, top (px at f 1000, up is negative), order of arrival]
+            const bands = [[P.purple, 1150, 4, -150, 0], [P.magenta, 980, -128, -170, 1], [P.magenta, 900, 4, -92, 1], [P.salmon, 720, -66, -84, 2],
+                [P.salmon, 640, 4, -52, 2], [P.orange, 470, -34, -44, 3], [P.orange, 420, 4, -27, 3], [P.gold, 260, 4, -13, 4], ['#ffe6c8', 120, 4, -6, 5]];
             g.save(); g.translate(sp[0], sp[1]); g.rotate(lv.ang);
-            for (let i = 0; i < lens.length; i++) {
-                const [col, rx0, ry0] = lens[i], a = cap(gl * 1.25 - i * 0.24, 0, 1) * (i < 2 ? 0.85 : 1) * (i >= 4 ? 1 - 0.85 * fx.rim : 1); if (a <= 0) continue;
-                const rx = rx0 * f * (0.6 + 0.4 * Math.min(1, gl) + 0.3 * fx.burn), ry = rx * ry0 * (1 + fx.burn * 0.5);
-                // a lens of flat ink with a ragged, brushed top that boils a little
-                const q = []; for (let j = 0; j <= 48; j++) { const u = j / 48, an = Math.PI * u; q.push([-Math.cos(an) * rx, -Math.sin(an) * ry * (1 + 0.14 * Ink.noise(50 + i, u * 7, 0) + 0.05 * Ink.noise(60 + i, u * 19, d)) - 1.5 * Ink.noise(70 + i, u * 30, d)]); }
-                q.push([rx, 4], [-rx, 4]);
+            for (let i = 0; i < bands.length; i++) {
+                const [col, W0, yb0, yt0, o] = bands[i], a = cap(gl * 1.3 - o * 0.22, 0, 1) * (o >= 4 ? 1 - 0.85 * fx.rim : 1); if (a <= 0) continue;
+                const Wd = W0 * f * (0.55 + 0.45 * Math.min(1, gl) + 0.25 * fx.burn), lift = 1 + fx.burn * 0.35;
+                const yt = yt0 * f * lift, yb = yb0 > 0 ? yb0 : yb0 * f * lift, mid = (yt + yb) / 2, floating = yb0 <= 0;
+                const top = [], bot = [];
+                for (let j = 0; j <= 40; j++) {
+                    const u = j / 40, x = -Wd + 2 * Wd * u, t = Math.sqrt(Math.max(0, 1 - Math.abs(2 * u - 1) ** 3));
+                    const rag = 4 * f * Ink.noise(600 + i, u * 14, 0) + 1.2 * Ink.noise(610 + i, u * 40, d);
+                    const yT = (floating ? mid + (yt - mid) * t : yb + (yt - yb) * t * (0.85 + 0.15 * Ink.noise(620 + i, u * 5, 0))) + rag;
+                    top.push([x, yT]); bot.push([x, floating ? mid + (yb - mid) * t - rag * 0.5 : yb]);
+                }
+                const q = top.concat(bot.reverse());
                 g.globalAlpha = a; g.fillStyle = col; Neon.path(g, q); g.fill();
-                Ink.strokes(g, -rx * 0.85, -ry * 0.95, rx * 1.7, ry * 0.6, { ang: 0, count: 7, len: rx * 0.3, w: 3.5, cols: [col], seed: 620 + i, d, alpha: 0.7 * a });
+                // the brushed edge: the band's own ink dragged along its top, then a few loose strokes
+                Ink.brush(g, top.filter((p, j) => j % 2 === 0), { w: 3 * f + 1, col, seed: 630 + i, d, taper: 0.35, wob: 2, alpha: a });
+                Ink.strokes(g, -Wd * 0.85, yt - 3, Wd * 1.7, Math.max(4, (yb - yt) * 0.35), { ang: 0, count: 6, len: Wd * 0.28, w: 3, cols: [col], seed: 650 + i, d, alpha: 0.75 * a });
             }
             g.globalAlpha = 1;
             // the burning horizon: a seam of light along the sea, on the light layer too
@@ -144,18 +155,25 @@
         }
         // clouds: long low banks fixed in the sky, plum at night, their undersides catching the dawn
         const RC = Motion.rng('boat-clouds');
-        for (let i = 0; i < 9; i++) {
-            const a = SUN_A + (RC() * 2 - 1) * 1.5, e = 0.025 + RC() * 0.09, wA = 0.08 + RC() * 0.16, hE = 0.006 + RC() * 0.012, ph = RC();
+        for (let i = 0; i < 12; i++) {
+            const a = SUN_A + (RC() * 2 - 1) * (i < 5 ? 0.45 : 1.5), e = 0.03 + RC() * 0.1, wA = 0.06 + RC() * 0.14, hE = 0.006 + RC() * 0.012, ph = RC();
             const pts = [], n = 18;
             for (let j = 0; j <= n; j++) { const u = j / n, aa = a - wA / 2 + wA * u, bump = Math.sin(u * Math.PI) * (0.55 + 0.45 * Math.abs(Math.sin(u * 9 + ph * 7))); pts.push(skyP(cam, aa, e + hE * bump)); }
             const under = []; for (let j = n; j >= 0; j--) { const u = j / n, aa = a - wA / 2 + wA * u; under.push(skyP(cam, aa, e - hE * 0.15 * Math.sin(u * Math.PI))); }
             const all = pts.concat(under); if (all.some((p) => p[2] < 1)) continue;
             const dc = fx.dawn * toward(a);
             const body = dc > 0 ? css(mix(P.grape, P.plum, cap(dc * 1.4, 0, 1))) : P.grape;
-            Ink.shape(g, all.map((p) => [p[0], p[1]]), tone(body, fx, 0.4), { w: 2, seed: 660 + i, d, jit: 0.3 });
-            const rimCol = dc > 0.25 ? (dc > 0.6 ? P.gold : P.salmon) : P.violet;
-            Ink.brush(g, under.map((p) => [p[0], p[1] - 1.5]), { w: 2.4 + dc * 2, col: rimCol, seed: 680 + i, d, taper: 0.3, alpha: 0.9, light: true });
-            if (dc > 0.45) { L.save(); L.globalAlpha = (dc - 0.45) * 0.6; L.strokeStyle = P.salmon; L.lineWidth = 4; Neon.path(L, under.map((p) => [p[0], p[1] - 2]), false); L.stroke(); L.restore(); }
+            Ink.shape(g, all.map((p) => [p[0], p[1]]), tone(body, fx, 0.4), { w: 2.6, seed: 660 + i, d, jit: 0.3 });
+            // lit from below: a rim of the dawn's ink just inside the underside, a second paler one
+            // under it, and strokes of light up into the cloud's belly
+            const U = under.map((p) => [p[0], p[1] - 2.5]);
+            const rimCol = dc > 0.25 ? (dc > 0.55 ? P.gold : P.salmon) : P.violet;
+            Ink.brush(g, U, { w: 3 + dc * 4, col: rimCol, seed: 680 + i, d, taper: 0.3, alpha: 0.95, light: true });
+            if (dc > 0.4) {
+                Ink.brush(g, U.map((p) => [p[0], p[1] - 4 - dc * 3]).slice(3, -3), { w: 1.6 + dc * 1.5, col: dc > 0.6 ? '#fff0c8' : P.orange, seed: 690 + i, d, taper: 0.4, alpha: 0.9, light: true });
+                for (let k = 2; k < U.length - 2; k += 3) Ink.brush(g, [[U[k][0], U[k][1] - 2], [U[k][0] + 6, U[k][1] - 7 - 6 * dc]], { w: 1.6, col: P.salmon, seed: 700 + i * 20 + k, d, taper: 0.4, alpha: 0.8, light: true });
+                L.save(); L.globalAlpha = (dc - 0.4) * 0.7; L.strokeStyle = dc > 0.6 ? P.gold : P.salmon; L.lineWidth = 5; Neon.path(L, U, false); L.stroke(); L.restore();
+            }
         }
         // stars (the whole sky), going out as the night pales
         const sa = 1 - cap(fx.dawn * 1.6, 0, 1), horizon = lv.cy;
@@ -263,7 +281,7 @@
                 const p = cam.p([gx + Math.sin(T * 0.7 + h3 * 6) * 1.2, WATER, gz]);
                 if (p[2] < 2 || p[1] < lv.cy + 2 || p[1] > env.H + 10 || p[0] < -80 || p[0] > env.W + 80) continue;
                 const l = Math.min(110, 9000 / dd + 4);
-                const inGold = gr > 0 && Math.hypot(gx - bc[0], gz - bc[1]) < gr;
+                const gd = gr > 0 ? gr - Math.hypot(gx - bc[0], gz - bc[1]) : -1, inGold = gd > 0 && gd < 28 && h1 < 0.75;
                 const ci = Math.floor(h3 * 997) % 5;
                 const col = inGold ? [P.gold, P.orange, P.gold, '#ffe6c8', P.orange][ci] : (dw > 0.3 && ci === 3 ? P.salmon : cols[ci]);
                 Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0] + l / 2, p[1] + 0.5]], { w: Math.min(4.5, 1 + 300 / dd), col, seed: 5000 + ((ix * 131 + iz * 17 + ring) & 0xffff), d, taper: 0.45, wob: 0.4, alpha: inGold ? 0.95 : 0.85, light: true });
@@ -314,6 +332,31 @@
             if (s > 0.5) Ink.brush(g, [[base[0], base[1]], [head[0], head[1]]], { w: cap(0.25 * s, 0.8, 4), col: P.ink, seed: 790 + (z | 0), d, taper: 0.05 });
             N.glint(null, L, head[0], head[1], cap(1.6 * s, 3, 26), tone(P.gold, fx), { lightOnly: true, alpha: 0.95, halo: fx.halo, star: fx.star, rays: 4 });
             g.fillStyle = P.cream; g.beginPath(); g.arc(head[0], head[1], cap(0.3 * s, 1, 5), 0, Math.PI * 2); g.fill();
+        }
+    }
+
+    // the bay's broken reflections of the far lights: from each light's foot on the water a path of
+    // short strokes lying across it, spreading and thinning as it comes towards the camera (the
+    // lower third of the night shots), rippling sideways
+    function glitter(g, L, cam, T, d, fx, env) {
+        const lights = [], R = Motion.rng('boat-glitter'), cols = [P.orange, P.gold, P.salmon, P.cyan, P.pink, P.gold];
+        for (let i = 0; i < 40; i++) { const u = R(), x = -1900 + 4200 * (u < 0.6 ? 0.42 + (R() - 0.5) * 0.5 : u); lights.push([x, 2600, cols[i % 6], 1000 + i]); }
+        for (let k = -32; k < 150; k += 3) lights.push([-2.4, 12.6 * k + 3, P.gold, 2000 + k]);
+        const C0 = [cam.pos[0], cam.pos[2]];
+        for (const [lx, lz, col, key] of lights) {
+            if (lz > 1900 && lz < 2500) continue;
+            const foot = cam.p([lx, WATER, lz]); if (foot[2] < 5 || foot[0] < -150 || foot[0] > env.W + 150) continue;
+            const D = Math.hypot(lx - C0[0], lz - C0[1]), n = 9, dMin = Math.max(8, D * 0.02), ux = (lx - C0[0]) / D, uz = (lz - C0[1]) / D;
+            for (let k = 0; k < n; k++) {
+                const dk = D * Math.pow(dMin / D, (k + 0.5 * Ink.hsh(key, k, 0)) / n) * 0.985, near = 1 - dk / D;
+                if (Ink.hsh(key, k + 20, 0) < 0.25 + 0.45 * near) continue;
+                const sway = Ink.noise(key * 3 + k, T * 0.9, 0) * (0.4 + dk * 0.004), hw = (0.5 + dk * 0.011) * (0.6 + 0.8 * Ink.hsh(key, k + 40, 0));
+                const cx = C0[0] + ux * dk - uz * sway, cz = C0[1] + uz * dk + ux * sway;
+                const A = cam.p([cx + uz * hw, WATER, cz - ux * hw]), Bq = cam.p([cx - uz * hw, WATER, cz + ux * hw]);
+                if (A[2] < 2 || Bq[2] < 2 || A[1] > env.H + 10) continue;
+                const s = cam.f / A[2];
+                Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1] + 0.5]], { w: cap(0.12 * s, 1, 4.5), col, seed: key * 13 + k, d, taper: 0.4, wob: 0.5, alpha: 0.85 * (1 - near * 0.5), light: true });
+            }
         }
     }
 
@@ -370,6 +413,9 @@
                 if (Math.max(A[0], Bp[0]) < -30 || Math.min(A[0], Bp[0]) > cam.W + 30 || Math.max(A[1], Bp[1]) < 0 || Math.min(A[1], Bp[1]) > cam.H + 30) return;
                 const s2 = cam.f / A[2], sl = Math.hypot(Bp[0] - A[0], Bp[1] - A[1]), mx = 70;
                 if (sl > mx) { const m = [(A[0] + Bp[0]) / 2, (A[1] + Bp[1]) / 2], f = mx / sl / 2; A[0] = m[0] - (Bp[0] - A[0]) * f; A[1] = m[1] - (Bp[1] - A[1]) * f; Bp[0] = m[0] * 2 - A[0]; Bp[1] = m[1] * 2 - A[1]; }
+                // foam lies on the water: never steeper on screen than a gentle slope
+                { const m = [(A[0] + Bp[0]) / 2, (A[1] + Bp[1]) / 2]; let vx = Bp[0] - A[0], vy = Bp[1] - A[1]; const vl = Math.hypot(vx, vy);
+                  if (Math.abs(vy) > 0.35 * Math.abs(vx)) { const hx = Math.max(Math.abs(vx), vl * 0.6) * (vx < 0 ? -1 : 1); vy = Math.sign(vy) * 0.35 * Math.abs(hx); vx = hx; A[0] = m[0] - vx / 2; A[1] = m[1] - vy / 2; Bp[0] = m[0] + vx / 2; Bp[1] = m[1] + vy / 2; } }
                 Ink.brush(g, [[A[0], A[1]], [Bp[0], Bp[1]]], { w: cap(w * s2, 0.8, 9), col, seed: sd, d, taper: 0.4, wob: 0.5, alpha: a, light: true });
             };
             // the foam down the middle: churned, widening with age
@@ -384,45 +430,31 @@
         }
     }
 
-    // --- the gold: strokes of gold light spreading from where they stand ------------------------
-    const GOLD_SRC = [0.1, 0, -0.8];                         // between the two of them, at the helm
-    function goldBoat(g, L, cam, ps, d, fx) {
-        if (fx.goldBoat <= 0) return;
-        const W = BoatSpeedboat.W, r = fx.goldBoat * 10, R = Motion.rng('boat-gold'), c = BoatSpeedboat.local(ps, cam.pos);
-        const at = BoatSpeedboat.at, SB = BoatSpeedboat.SB, SH = BoatSpeedboat.SH, CB = BoatSpeedboat.CB, CH = BoatSpeedboat.CH;
-        for (let i = 0; i < 150; i++) {
-            const kind = R(), z = -5.8 + R() * 11.6, u = R(), len = 0.3 + R() * 0.6, ang = (R() - 0.5) * 0.5;
-            let p, q;
-            if (kind < 0.45) {         // on the deck (not over the cockpit's hole)
-                const x = (u * 2 - 1) * at(SB, z) * 0.95; if (z > -3.2 && z < 0.4 && Math.abs(x) < 0.95) continue; if (c[1] < at(SH, z)) continue;
-                p = [x, at(SH, z) + 0.01, z]; q = [x + Math.sin(ang) * len, at(SH, z + len) + 0.01, z + Math.cos(ang) * len];
-            } else {                   // down a topside, on the side we see
-                const sd = c[0] > 0 ? 1 : -1, f = 0.08 + u * 0.8, z2 = z + len;
-                const pt = (zz, ff) => { const a = [sd * at(SB, zz), at(SH, zz), zz], b = [sd * at(CB, zz), at(CH, zz), zz]; return [a[0] + (b[0] - a[0]) * ff + sd * 0.01, a[1] + (b[1] - a[1]) * ff, zz]; };
-                p = pt(z, f); q = pt(z2, f + ang * 0.2);
-            }
-            const dd = Math.hypot(p[0] - GOLD_SRC[0], p[2] - GOLD_SRC[2]); if (dd > r) continue;
-            const A = cam.p(W(ps, p)), Bq = cam.p(W(ps, q)); if (A[2] < 0.5) continue;
-            const s = cam.f / A[2], fresh = cap((r - dd) / 2, 0, 1);
-            const col = [P.gold, P.orange, '#ffe6c8', P.gold][i % 4];
-            Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1]]], { w: cap(0.04 * s, 1, 6), col, seed: 1200 + i, d, taper: 0.4, alpha: 0.95 * fresh, light: true });
-            L.save(); L.globalAlpha = 0.45 * fresh; L.strokeStyle = P.gold; L.lineWidth = cap(0.1 * s, 2, 12); L.lineCap = 'round'; L.beginPath(); L.moveTo(A[0], A[1]); L.lineTo(Bq[0], Bq[1]); L.stroke(); L.restore();
-        }
-    }
+    // --- the gold: the boat's own inks turn gold from where they stand (props/boat-speedboat.js),
+    // and rings of gold run out over the sea
     // the gold on the water: rings of broken gold strokes running out from the boat
     function goldSea(g, L, cam, ps, d, fx) {
         if (fx.goldSea <= 0) return;
-        for (let j = 0; j < 10; j++) {
-            const r = fx.goldSea - j * 9; if (r < 4 || r > 900) continue;
-            const n = Math.round(cap(r * 1.4, 18, 120)), a0 = Ink.hsh(j, 1, 0) * 6;
-            for (let i = 0; i < n; i++) {
-                if (Ink.hsh(j * 131 + Math.round(r / 9), i, 0) < 0.35) continue;
-                const an = a0 + (i / n) * Math.PI * 2, an2 = an + (Math.PI * 2 / n) * 0.6;
-                const A = cam.p([ps.x + Math.sin(an) * r, WATER + 0.02, ps.z + Math.cos(an) * r]), Bq = cam.p([ps.x + Math.sin(an2) * r, WATER + 0.02, ps.z + Math.cos(an2) * r]);
-                if (A[2] < 1 || Bq[2] < 1 || Math.max(A[0], Bq[0]) < -20 || Math.min(A[0], Bq[0]) > cam.W + 20 || Math.min(A[1], Bq[1]) > cam.H + 10) continue;
-                const s = cam.f / A[2], al = (1 - j / 10) * cap(1 - r / 600, 0.25, 1);
-                Ink.brush(g, [[A[0], A[1]], [Bq[0], Bq[1]]], { w: cap(0.22 * s, 1, 7), col: j === 0 ? '#ffe6c8' : (i % 2 ? P.gold : P.orange), seed: 1400 + j * 200 + i, d, taper: 0.35, alpha: al, light: true });
-                if (j < 2) { L.save(); L.globalAlpha = 0.4 * al; L.strokeStyle = P.gold; L.lineWidth = cap(0.4 * s, 2, 10); L.beginPath(); L.moveTo(A[0], A[1]); L.lineTo(Bq[0], Bq[1]); L.stroke(); L.restore(); }
+        for (let j = 0; j < 8; j++) {
+            const r = fx.goldSea - j * 11; if (r < 4 || r > 900) continue;
+            const nArc = 7, a0 = Ink.hsh(j, 1, 0) * 6, al = (1 - j / 9) * cap(1 - r / 650, 0.3, 1);
+            for (let i = 0; i < nArc; i++) {
+                const span = (0.3 + 0.45 * Ink.hsh(j, i + 5, 0)) * (Math.PI * 2 / nArc), st = a0 + (i * Math.PI * 2) / nArc;
+                const n = Math.min(26, Math.max(5, Math.round((span * r) / 2.5))), run = [];
+                const flush = () => {
+                    if (run.length > 1) {
+                        const s = cam.f / run[0][2], w = cap(0.22 * s, 1.2, 7), q = run.map((p) => [p[0], p[1]]);
+                        Ink.brush(g, q, { w, col: j === 0 ? '#ffe6c8' : (i + j) % 2 ? P.gold : P.orange, seed: 1400 + j * 50 + i, d, taper: 0.35, wob: 0.8, alpha: al, light: true });
+                        if (j < 2) { L.save(); L.globalAlpha = 0.4 * al; L.strokeStyle = P.gold; L.lineWidth = w * 2; L.lineCap = 'round'; Neon.path(L, q, false); L.stroke(); L.restore(); }
+                    }
+                    run.length = 0;
+                };
+                for (let k = 0; k <= n; k++) {
+                    const an = st + (span * k) / n, rr = r * (1 + 0.012 * Ink.noise(j * 9 + i, k * 0.7, 0)) + Math.sin(fx.T * 1.3 + an * 5) * 0.4;
+                    const p = cam.p([ps.x + Math.sin(an) * rr, WATER + 0.02, ps.z + Math.cos(an) * rr]);
+                    if (p[2] < 1.5 || p[0] < -300 || p[0] > cam.W + 300 || p[1] > cam.H + 50) flush(); else run.push(p);
+                }
+                flush();
             }
         }
     }
@@ -450,9 +482,7 @@
             const h = cam.p([it.feet[0], it.feet[1] + 1.3, it.feet[2]]), hf = cam.p([it.feet[0] + it.f[0] * 0.5, it.feet[1] + 1.3, it.feet[2] + it.f[1] * 0.5]);
             const right = hf[0] > h[0] ? 1 : -1, native = NATIVE[it.who][view];
             const lean = Math.atan2(b[0] - a[0], a[1] - b[1]) + (T < TB ? 0.025 * Song.env('kick', T) * Math.sin(T * 4.1 + (it.who === 'her' ? 0 : 1.3)) : 0);
-            const keep = [Ink.strokes, Ink.hatch];
-            if (view !== 'back') { Ink.strokes = () => {}; Ink.hatch = () => {}; }
-            try { Couple.standing(g, cam, it.who, it.feet, { view, flip: native ? native !== right : false, lean, T, d, wind: (it.who === 'her' ? 0.02 : 0.005) * (0.25 + 0.75 * v), sway: Math.sin(T * 1.7 + (it.who === 'her' ? 0 : 1)) * 0.004 }); } finally { [Ink.strokes, Ink.hatch] = keep; }
+            Couple.standing(g, cam, it.who, it.feet, { view, flip: native ? native !== right : false, lean, T, d, wind: (it.who === 'her' ? 0.02 : 0.005) * (0.25 + 0.75 * v), sway: Math.sin(T * 1.7 + (it.who === 'her' ? 0 : 1)) * 0.004 });
         }
     }
 
@@ -466,9 +496,11 @@
                 const yaw = Math.atan2(ps.x - cx, ps.z - cz) + 0.1 + 0.08 * k;
                 return Neon.camera({ ...base, pos, yaw, pitch: -0.03, roll: 0.015 * Math.sin(T * 1.9), f: 1000 });
             }
-            case 1: { // low over the foredeck looking aft: the two of them hold on behind the windscreen, the city falling away
-                const p = BoatSpeedboat.W(ps, [0.05, BoatSpeedboat.deckY(2.0) + 0.42 + k * 0.08, 2.3 - k * 0.7]);
-                return Neon.camera({ ...base, pos: p, yaw: ps.yaw + Math.PI + 0.02, pitch: -ps.pitch + 0.1, roll: -ps.roll * 0.8, f: 900 });
+            case 1: { // on a pole off the starboard bow, a long lens looking aft over the foredeck: the two of
+                // them from the waist up behind the windscreen, spray over the bow, the city behind
+                const W = BoatSpeedboat.W, p = W(ps, [1.25 + 0.1 * k, BoatSpeedboat.deckY(6.0) + 0.8 + 0.04 * k, 6.0 - 0.3 * k]), t = W(ps, [-0.05, 1.78, -0.7]);
+                const dx = t[0] - p[0], dy = t[1] - p[1], dz = t[2] - p[2];
+                return Neon.camera({ ...base, pos: p, yaw: Math.atan2(dx, dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)) + 0.035, roll: ps.roll * 0.8, f: 1750 + 80 * k });
             }
             case 2: { // a drone flying backwards ahead of the boat: the wake fans out behind it towards the city
                 const pos = [ps.x + 7 - 4 * k, WATER + 24 - 8 * k, ps.z - 30 + 6 * k];
@@ -517,6 +549,7 @@
         sunRim(g, L, cam, T, d, fx, env);
         if (A) Drawn.city(g, cam, T, d, { breathe: 0 }, env);
         sea(g, L, cam, T, d, fx, env, ps);
+        if (A) glitter(g, L, cam, T, d, fx, env);
         if (A) causeway(g, L, cam, T, d, fx, N); else freighter(g, L, cam, T, d, fx, N);
         gulls(g, cam, T, d, fx, ps);
         N.bloom(g, L, { strength: 0.4 + fx.burn * 0.25 + fx.rim * 0.2, core: 0.55 });
@@ -529,13 +562,13 @@
         Ink.occlude(L);
         const c = BoatSpeedboat.local(ps, cam.pos);
         if (c[2] > -6) BoatSpeedboat.spray(g, cam, ps, T, d, ps.v, 'tail');
-        BoatSpeedboat.draw(g, { cam, ps, d, T, L, N, dawn: fx.dawn, halo: fx.halo, inside: (gg) => {
+        BoatSpeedboat.draw(g, { cam, ps, d, T, L, N, dawn: fx.dawn, halo: fx.halo, gold: fx.goldBoat > 0 ? { x: 0.1, z: -0.8, r: fx.goldBoat * 9 } : null, coupleZ: [-1.45, -0.15], inside: (gg) => {
             // on its own layer, so they hide the light behind them
             const lay = Motion.layer(env, 'boatCouple', (cc) => couple(cc, cam, ps, T, d, shot));
             L.save(); L.setTransform(1, 0, 0, 1, 0, 0); L.globalCompositeOperation = 'destination-out'; L.drawImage(lay, 0, 0); L.restore();
             gg.save(); gg.setTransform(1, 0, 0, 1, 0, 0); gg.drawImage(lay, 0, 0); gg.restore();
         } });
-        goldBoat(g, L, cam, ps, d, fx);
+        BoatSpeedboat.spray(g, cam, ps, T, d, ps.v, 'over');
         BoatSpeedboat.spray(g, cam, ps, T, d, ps.v, 'bow');
         waterline(g, cam, ps, T, d);
         if (c[2] <= -6) BoatSpeedboat.spray(g, cam, ps, T, d, ps.v, 'tail');

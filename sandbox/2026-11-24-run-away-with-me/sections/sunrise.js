@@ -27,8 +27,8 @@
     // down to the water, shoes off, wading out, standing in the gold
     function zOf(T) {
         if (T < B(100)) return -14;
-        if (T < 205.9) { const u = seg(T, B(100) + 0.15, 205.9); return -14 + 9.8 * (u < 0.15 ? u * u / 0.3 : u - 0.075) / 0.925; }
-        if (T < B(105)) return -4.2 + 1.2 * io(seg(T, 205.9, B(105)));
+        if (T < 205.4) { const u = seg(T, B(100) + 0.1, 205.4); return -14 + 10.6 * (u < 0.1 ? u * u / 0.2 : u - 0.05) / 0.95; }
+        if (T < B(105)) return -3.4 + 0.4 * io(seg(T, 205.4, B(105)));
         if (T < 216.0) return -3.0 + 6.6 * io(seg(T, B(105), 216.0));
         if (T < B(114)) return 3.6 + 1.8 * io(seg(T, 216.0, B(114)));
         return 5.4 + 1.6 * io(seg(T, B(114), END));
@@ -37,7 +37,7 @@
     const SHOES = [0.15, -3.85];
     // footprints from where they stood to where they kicked their shoes off
     function prints(T) {
-        const z = Math.min(zOf(T), -4.6), out = [];
+        const z = Math.min(zOf(T), -3.3), out = [];
         // the way they came down the beach in the dark, to where they stood for the sun
         for (const who of ['him', 'her']) for (let k = 0, zz = -64; zz < -14.6; k++, zz += 0.72) out.push([XOF[who] * 0.8 + 0.25 * Math.sin(zz * 0.09) + (k % 2 ? 0.1 : -0.1), zz + (who === 'her' ? 0.3 : 0)]);
         if (z <= -13.9) return out;
@@ -97,12 +97,12 @@
     function couple(g, L, env, cam, T, d, st) {
         const fe = S().facing(cam), z = zOf(T), dep = S().depthAt(z);
         const who2 = ['him', 'her'].sort((a, b) => cam.view([XOF[b], 1, z])[2] - cam.view([XOF[a], 1, z])[2]);
-        const runPh = st.run ? (T - B(100)) * 2.6 * Math.PI : 0, running = st.run && T < 205.9;
+        const runPh = st.run ? (T - B(100)) * 3 * Math.PI : 0, running = st.run && T < 205.4;
         const F = Motion.layer(env, 'sunriseFig', (c) => {
             for (const who of who2) {
-                const ph = runPh + (who === 'her' ? 1.7 : 0), bob = running ? Math.abs(Math.sin(ph)) * 0.05 : 0;
-                const dz = st.view === 'side' && who === 'him' ? 0.95 : 0;
-                Couple.standing(c, cam, who, [XOF[who], -dep + bob, z + dz], { view: st.view, lean: running ? 0.07 : 0, sway: Math.sin(T * 1.3 + (who === 'her' ? 1 : 0)) * 0.01, T, d, cut: Couple.HEIGHT[who] - dep + (dep > 0 ? 0.04 : 0.02), wind: who === 'her' ? 0.008 : 0.003 });
+                const ph = runPh + (who === 'her' ? 1.7 : 0), bob = running ? Math.abs(Math.sin(ph)) * 0.07 : 0;
+                const dz = st.view === 'side' && who === 'him' ? 1.5 : 0;
+                Couple.standing(c, cam, who, [XOF[who], -dep + bob, z + dz], { view: st.view, flip: st.view === 'side' && who === 'him', lean: running ? 0.1 : 0, sway: Math.sin(T * 1.3 + (who === 'her' ? 1 : 0)) * 0.01, T, d, cut: Couple.HEIGHT[who] - dep + (dep > 0 ? 0.04 : 0.02), wind: who === 'her' ? 0.008 : 0.003 });
             }
         });
         const k = env.k, sil = Math.min(0.9, fe * 0.95);
@@ -125,9 +125,13 @@
         g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(F, 0, 0); g.globalAlpha = 0.5 + 0.5 * fe; g.drawImage(Rm, 0, 0); g.restore();
         // where the water holds them: rings of foam round each waterline; on the wet sand, foam at the ankles
         for (const who of who2) {
-            const x = XOF[who], zz = z + (st.view === 'side' && who === 'him' ? 0.95 : 0);
+            const x = XOF[who], zz = z + (st.view === 'side' && who === 'him' ? 1.5 : 0);
             const c = cam.p([x, 0, zz]); if (c[2] < 0.5) continue;
             const s = cam.f / c[2];
+            if (running) for (let k = 0; k < 4; k++) {
+                const h = Ink.hsh(k, d, who === 'her' ? 3 : 4), a0 = cam.p([x, 0.05, zz - 0.15]), a1 = cam.p([x, 0.12 + 0.25 * h, zz - 0.4 - 0.5 * h]);
+                Ink.brush(g, [[a0[0], a0[1]], [a1[0], a1[1]]], { w: Math.max(1, Math.min(4, 0.025 * s)), col: k % 2 ? '#ffd6a0' : '#f8a0a0', seed: 9450 + k + (who === 'her' ? 9 : 0), d, taper: 0.6, alpha: 0.85 });
+            }
             if (dep > 0.05 || (zz > -2.6 && T >= B(105))) {
                 for (const [r, a, sd] of [[0.26, 1, 0], [0.48, 0.65, 1]]) {
                     const pts = []; for (let i = 0; i <= 22; i++) { const an = Math.PI * (i / 22); pts.push(cam.p([x + Math.cos(an) * r * (1 + 0.1 * Math.sin(T * 3 + i)), 0.01, zz - Math.sin(an) * r * 0.6])); }
@@ -212,8 +216,8 @@
             }
             if (shot === 0) for (const [x, z, sc, sd] of [[-3.6, -46.2, 1.2, 801], [-2.2, -45.4, 0.8, 802], [3.9, -45.8, 1.1, 803], [5.2, -44.6, 0.9, 804]]) list.push({ depth: c.view([x, 0.5, z])[2], draw: () => set.grass(g, c, x, z, sc, sd, T, d, set.facing(c)) });
             // the sea oats they run behind
-            if (shot === 1) for (let i = 0; i < 46; i++) {
-                const x = 6.2 + Ink.hsh(i, 1, 0) * 3.4, z = -22 + i * 0.52 + Ink.hsh(i, 2, 0) * 0.4, sc = 0.75 + Ink.hsh(i, 3, 0) * 0.5;
+            if (shot === 1) for (let i = 0; i < 46; i += i % 4 === 3 ? 2 : 1) {
+                const x = 8.4 + Ink.hsh(i, 1, 0) * 2.8, z = -22 + i * 0.5 + Ink.hsh(i, 2, 0) * 0.4, sc = 0.7 + Ink.hsh(i, 3, 0) * 0.45;
                 list.push({ depth: c.view([x, 0.5, z])[2], draw: () => set.grass(g, c, x, z, sc, 700 + i, T, d, set.facing(c)) });
             }
             list.sort((a, b) => b.depth - a.depth);

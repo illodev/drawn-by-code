@@ -204,13 +204,26 @@
             items.push({ depth: p[2], draw: () => {
                 const dn = c.bar ? { name: Ink.hsh(c.seed, Math.floor(Song.beatAt(T) / 4), 1) < 0.5 ? 'drink' : 'stand', kick: 0 } : c.dj ? { name: lt.bi % 4 === 0 && lt.energy > 0 ? 'upR' : 'elbows', kick: lt.hit > 0.5 ? 1 : 0 } : OpeningFigures.dance(c.seed, T, lt.energy > 0 ? c.every : 2);
                 const haze = cap((p[2] - 7) / 22, 0, 0.5);
-                OpeningFigures.draw(g, p[0], p[1], s, { pose: dn.name, kick: lt.energy > 0 ? dn.kick : 0, look: OpeningFigures.look(c.seed), flip: c.flip, seed: c.seed, d, rim: (o.rimA ?? 1) * (0.75 + 0.25 * lt.hit), cols, haze, air });
+                OpeningFigures.draw(g, p[0], p[1], s, { crowd: true, pose: dn.name, kick: lt.energy > 0 ? dn.kick : 0, look: OpeningFigures.look(c.seed), flip: c.flip, seed: c.seed, d, rim: (o.rimA ?? 1) * (0.75 + 0.25 * lt.hit), cols, haze, air });
             } });
         }
         if (o.her) items.push({ depth: cam.view([HER[0], 1.5, HER[2]])[2], draw: () => {
+            // her drawing on its own layer: laid on the picture, cut out of the light behind her,
+            // then rimmed by the room: the edge of her silhouette that faces each side, cyan from
+            // the left, the beat's colour from the right (on the picture only: no strokes on her face)
             const opt = { view: o.her.view, cut: o.her.cut ?? 1.05, T, d, wind: 0.002 };
-            Couple.standing(g, cam, 'her', HER, opt);
-            L.save(); L.globalCompositeOperation = 'destination-out'; Couple.standing(L, cam, 'her', HER, opt); L.restore();
+            const lay = Motion.layer(env, 'opening-her', (c) => Couple.standing(c, cam, 'her', HER, opt));
+            g.drawImage(lay, 0, 0, env.W, env.H);
+            L.save(); L.setTransform(1, 0, 0, 1, 0, 0); L.globalCompositeOperation = 'destination-out'; L.drawImage(lay, 0, 0); L.restore();
+            const k = env.k, w = Math.max(2, 3.2 * k), rim = Motion.layer(env, 'opening-her-rim', () => {}), R = rim.getContext('2d');
+            g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+            for (const [dx, col, a] of [[w, P.cyan, 0.85], [-w, lt.energy > 0 ? lt.col : P.magenta, 0.7]]) {
+                R.setTransform(1, 0, 0, 1, 0, 0); R.globalCompositeOperation = 'source-over'; R.clearRect(0, 0, rim.width, rim.height);
+                R.drawImage(lay, 0, 0); R.globalCompositeOperation = 'destination-out'; R.drawImage(lay, dx, -w * 0.4);
+                R.globalCompositeOperation = 'source-in'; R.fillStyle = col; R.fillRect(0, 0, rim.width, rim.height);
+                g.globalAlpha = a * (0.8 + 0.2 * lt.hit); g.drawImage(rim, 0, 0);
+            }
+            g.restore();
         } });
         items.sort((a, b) => b.depth - a.depth);
         for (const it of items) it.draw();

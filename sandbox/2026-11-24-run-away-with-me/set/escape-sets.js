@@ -343,25 +343,30 @@ const EscapeSet = (() => {
     // lights it (a brighter face, a glint)
     const PILL = [0.0, 0.19];
     function pill(g, L, cam, d, fx, sweeps) {
-        const [x0, z0] = PILL, r = 0.0045, th = 0.0035, n = 28;
+        const [x0, z0] = PILL, r = 0.0045, th = 0.0029, n = 28;
         const ring = (y, rr = r) => Array.from({ length: n }, (_, k) => [x0 + Math.cos((k / n) * Math.PI * 2) * rr, y, z0 + Math.sin((k / n) * Math.PI * 2) * rr]);
         const pc = cam.p([x0, th, z0]), s = cam.f / pc[2], l = lit(sweeps, x0, z0, 0.006);
         // its shadow on the counter, then its side band, then the face
-        const sh = Neon.poly(cam, ring(0.0004, r * 1.18).map((p) => [p[0] + 0.0012, p[1], p[2] + 0.0016]));
+        const sh = Neon.poly(cam, ring(0.0004, r * 1.06).map((p) => [p[0] + 0.0008, p[1], p[2] + 0.0009]));
         if (sh) Ink.shape(g, sh, P.ink, { w: 0, seed: 71, d, jit: 0.6 });
         const bot = ring(0.0006).map(cam.p), topR = ring(th).map(cam.p);
-        const side = []; let iMin = 0, iMax = 0; bot.forEach((p, i) => { if (p[0] < bot[iMin][0]) iMin = i; if (p[0] > bot[iMax][0]) iMax = i; });
-        const front = []; for (let i = iMin; ; i = (i + n - 1) % n) { front.push(i); if (i === iMax) break; }
-        side.push(...front.map((i) => [bot[i][0], bot[i][1]])); side.push(...front.slice().reverse().map((i) => [topR[i][0], topR[i][1]]));
+        let iMin = 0, iMax = 0; bot.forEach((p, i) => { if (p[0] < bot[iMin][0]) iMin = i; if (p[0] > bot[iMax][0]) iMax = i; });
+        const walk = (dir) => { const out = []; for (let i = iMin; ; i = (i + dir + n) % n) { out.push(i); if (i === iMax) break; } return out; };
+        const mean = (ids) => ids.reduce((m, i) => m + bot[i][1], 0) / ids.length;
+        const near = mean(walk(1)) > mean(walk(-1)) ? walk(1) : walk(-1);      // the half of the rim nearer the camera
+        const side = near.map((i) => [bot[i][0], bot[i][1]]).concat(near.slice().reverse().map((i) => [topR[i][0], topR[i][1]]));
         Ink.shape(g, side, l > 0.2 ? P.salmon : '#c84a9a', { w: lw(s, 0.0016), seed: 72, d, jit: 0.4 });
         const faceQ = ring(th + 0.0006, r * 0.97).map(cam.p).map((p) => [p[0], p[1]]);
         Ink.shape(g, faceQ, l > 0.2 ? P.cream : P.pink, { w: lw(s, 0.0016), seed: 73, d, jit: 0.4 });
-        // the score line, and a bevel stroke on its near rim
+        // the score line across the face, the light on its near edge and a stroke of light on the face
         const a = cam.p([x0 - r * 0.8, th + 0.0007, z0 + 0.0005]), b = cam.p([x0 + r * 0.8, th + 0.0007, z0 - 0.0005]);
         Ink.brush(g, [[a[0], a[1]], [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 0.5], [b[0], b[1]]], { w: cap(0.0009 * s, 1.4, 5), col: '#8a2a8a', seed: 74, d, taper: 0.2 });
-        const nearRim = front.slice(Math.floor(front.length * 0.2), Math.ceil(front.length * 0.8)).map((i) => { const p = cam.p([x0 + Math.cos((i / n) * Math.PI * 2) * r * 0.85, th + 0.0006, z0 + Math.sin((i / n) * Math.PI * 2) * r * 0.85]); return [p[0], p[1]]; });
-        Ink.brush(g, nearRim, { w: cap(0.0006 * s, 1, 4), col: l > 0.2 ? P.gold : P.salmon, seed: 75, d, taper: 0.4, light: true });
-        Ink.hatch(g, faceQ[Math.floor(n * 0.6)], faceQ[Math.floor(n * 0.85)], { count: 3, len: cap(0.0025 * s, 4, 30), w: cap(0.0006 * s, 1, 4), col: P.cream, seed: 76, d, n: [0.3, 0.95] });
+        const rimN = near.slice(Math.floor(near.length * 0.2), Math.ceil(near.length * 0.8)).map((i) => { const p = cam.p([x0 + Math.cos((i / n) * Math.PI * 2) * r * 0.86, th + 0.0006, z0 + Math.sin((i / n) * Math.PI * 2) * r * 0.86]); return [p[0], p[1]]; });
+        Ink.brush(g, rimN, { w: cap(0.0006 * s, 1, 4), col: l > 0.2 ? P.gold : P.salmon, seed: 75, d, taper: 0.4, light: true });
+        const f0 = cam.p([x0 - r * 0.55, th + 0.0007, z0 - r * 0.35]), f1 = cam.p([x0 - r * 0.1, th + 0.0007, z0 - r * 0.55]);
+        Ink.brush(g, [[f0[0], f0[1]], [f1[0], f1[1]]], { w: cap(0.0007 * s, 1, 5), col: P.cream, seed: 76, d, taper: 0.45, light: true });
+        const sideL = [bot[near[Math.floor(near.length * 0.3)]], topR[near[Math.floor(near.length * 0.3)]]];
+        Ink.brush(g, [[sideL[0][0], sideL[0][1] - 2], [sideL[1][0], sideL[1][1] + 2]], { w: cap(0.0005 * s, 1, 3), col: P.pink, seed: 77, d, taper: 0.4, light: true, alpha: 0.8 });
         if (l > 0.05) { const p = cam.p([x0 - r * 0.4, th + 0.001, z0 - r * 0.3]); glint(L, p[0], p[1], cap(0.004 * s, 4, 40), P.cream, { alpha: 0.7 * l, halo: fx.halo, star: 0.6 * l + fx.star, rays: 4, rot: 0.4 }); }
     }
     // the glass: a tumbler (8 cm across, 9.5 cm tall) on a paper coaster, a pink drink with ice,

@@ -94,6 +94,16 @@
         const tone = (c) => (o.haze ? Neon.css(Neon.mix(c, o.air ?? '#4a2a8a', o.haze)) : c);
         const col = tone(lk.body), ccol = lk.cloth ? tone(lk.cloth) : col;
         const seed = o.seed ?? 1, d = o.d ?? 0, far = s < 30, px = s * k, jit = far ? 0 : 0.4;
+        // tiny (a few dozen pixels): one body shape with the legs as a split, a head, one stroke of light
+        if (s < 16 && !o.crowd) {
+            const body = [S([-sw * 0.9, 1.4]), S([-sw, 1.3]), S([-hw, 0.95]), S(pz.fL), S([0, 0.75]), S(pz.fR), S([hw, 0.95]), S([sw, 1.3]), S([sw * 0.9, 1.4])];
+            Ink.shape(g, body, col, { w: 0, seed: seed * 7, d, jit: 0 });
+            for (const [e, h] of [[pz.eL, pz.hL], [pz.eR, pz.hR]]) Ink.brush(g, [S([0, 1.38]), S(e), S(h)].map((p, i) => (i ? p : [p[0] + (h[0] < 0 ? -1 : 1) * fl * sw * px * 0.8, p[1]])), { w: Math.max(1, 0.1 * px), col, seed: seed * 9 + (h[0] < 0 ? 1 : 2), d, taper: 0.05, wob: 0.1 });
+            const Hc = S([0, 1.62]), hr = 0.11 * px * (lk.hair === 1 ? 1.4 : 1);
+            Ink.shape(g, ell(Hc[0], Hc[1], hr * 0.9, hr * 1.1, 10), col, { w: 0, seed: seed * 11, d, jit: 0 });
+            if ((o.rim ?? 1) > 0.02) Ink.brush(g, [[Hc[0] - hr * 0.9, Hc[1] + hr * 0.3], [Hc[0] - hr * 0.6, Hc[1] - hr * 0.9]], { w: 1, col: (o.cols ?? [P.cyan])[0], seed: seed * 3, d, taper: 0.4, light: true });
+            return;
+        }
         const fill = (pts, c, sd) => Ink.shape(g, pts, c, { w: 0, seed: seed * 7 + sd, d, jit });
         const sL = [-sw + 0.05, 1.39], sR = [sw - 0.05, 1.39];
         // legs (not on far figures, not when sitting behind a table)

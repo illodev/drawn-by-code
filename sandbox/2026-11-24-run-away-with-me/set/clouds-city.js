@@ -430,6 +430,9 @@ const CloudsCity = (() => {
         face([P3(0, z0), P3(0, z1), P3(0.6, z1), P3(0.6, z0)], P.purple, { w: lw(s, 0.03) });
         // chrome: horizontal strokes of the neon it reflects
         for (const [yy, col] of [[0.15, P.cyan], [0.32, P.pink], [0.48, P.cream]]) { const A = cam.p(P3(yy, z0 + 0.3, 0.07)), B = cam.p(P3(yy, z1 - 0.3, 0.07)); Ink.brush(g, [[A[0], A[1]], [B[0], B[1]]], { w: cap(0.05 * s, 1, 3), col, seed: b.seed + Math.round(yy * 100), d, taper: 0.1, light: true }); }
+        // the upper wall: three bands of the diner's chrome trim, a cornice of cyan neon
+        for (const [yy, col] of [[3.2, P.salmon], [3.75, P.magenta], [4.3, P.salmon]]) face([P3(yy, z0 + 0.2, 0.02), P3(yy, z1 - 0.2, 0.02), P3(yy + 0.22, z1 - 0.2, 0.02), P3(yy + 0.22, z0 + 0.2, 0.02)], col, { w: lw(s, 0.02) });
+        tube(g, L, cam, P3(h - 0.15, z0 + 0.2, 0.05), P3(h - 0.15, z1 - 0.2, 0.05), P.cyan, 0.09, s, b.seed + 503, d, fx);
         const win = face([P3(0.65, wa), P3(0.65, wb), P3(2.75, wb), P3(2.75, wa)], P.orange, { light: true });
         if (win) { L.save(); L.globalAlpha = 0.5; L.fillStyle = P.orange; Neon.path(L, win); L.fill(); L.restore(); }
         // inside, on the window's plane: the back wall's warm top, a menu board, the counter, stools
@@ -681,7 +684,7 @@ const CloudsCity = (() => {
         for (const e of E) {
             // the lit side first, then the body pushed towards the dark side, leaving a crescent
             g.fillStyle = lit; g.beginPath(); g.ellipse(e.x, e.y, e.rx, e.ry, 0, 0, Math.PI * 2); g.fill();
-            const k = below ? 0.75 : -0.55;
+            const k = below ? 0.45 : -0.55;
             g.fillStyle = top; g.beginPath(); g.ellipse(e.x + e.ux * k, e.y + e.uy * k, e.rx * 0.97, e.ry * 0.95, 0, 0, Math.PI * 2); g.fill();
         }
         // strokes: the city's warm light on the undersides, the moon's cyan on the tops

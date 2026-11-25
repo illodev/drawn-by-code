@@ -113,6 +113,7 @@
     function party(g, env, N, T, d, fx, cam, shot, sec) {
         const tc = ct(T);
         Ink.occlude(null);
+        g.fillStyle = P.ink; g.fillRect(-10, -10, env.W + 20, env.H + 20);
         let L = N.light();
         S.room(g, L, cam, T, tc, d, fx);
         S.spots(g, L, cam, tc, fx, { d });
@@ -145,6 +146,7 @@
     }
 
     function room(g, env, N, T, d, fx, cam, shot) {
+        g.fillStyle = '#260a8c'; g.fillRect(-10, -10, env.W + 20, env.H + 20);
         const L = N.light();
         Ink.occlude(L);
         S.hotelRoom(g, L, cam, T, d, fx);

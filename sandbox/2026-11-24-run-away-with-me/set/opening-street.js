@@ -14,6 +14,12 @@
     const Z = { wall: 3.5, parkKerb: 12.5, kerb: 25.5, face: 30, back: 46 };
     const BEAT = Song.beat;
 
+    // is any of these world points on (or near) the screen, in front of the camera?
+    function seen(cam, pts, m = 80) {
+        let l = false, r = false, u = false, inF = false;
+        for (const p of pts) { const q = cam.p(p); if (q[2] < 0.5) continue; inF = true; if (q[0] > -m) l = true; if (q[0] < cam.W + m) r = true; if (q[1] < cam.H + m) u = true; }
+        return inF && l && r && u;
+    }
     // --- the hotels -----------------------------------------------------------------------------
     const BODY = [
         ['#f45a7f', '#ffb0c8', P.plum],   // salmon, a pink trim
@@ -99,6 +105,7 @@
     function hotel(g, L, cam, h, T, d, fx) {
         const zf = Z.face, zb = Z.back, [body, trim, dark] = h.col, cx = (h.x0 + h.x1) / 2;
         const c0 = cam.p([cx, h.h / 2, zf]); if (c0[2] < 1) return;
+        if (!seen(cam, [[h.x0, 0, zf], [h.x1, 0, zf], [h.x0, h.finH + 1, zf], [h.x1, h.finH + 1, zf], [h.x0, 0, zb], [h.x1, 0, zb]])) return;
         const s = cam.f / c0[2], W = lw(s, 0.07), sd = h.seed * 1000;
         const quad = (pts, col, o = {}) => { const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: o.w ?? W, seed: sd + (o.k ?? 0), d, jit: o.jit ?? 0.5, light: o.light }); return q; };
         const shade = css(mix(body, '#1a0450', 0.45));
@@ -230,13 +237,29 @@
         for (let i = 0; i < 26; i++) {
             const lx = PARK_LAMP(i); for (const [r, col] of [[3.2, '#3a1290'], [1.8, '#5a1aa8']]) { const pts = []; for (let j = 0; j < 20; j++) { const a = (j / 20) * Math.PI * 2; pts.push([lx + Math.cos(a) * r * 1.3, 0.115, Z.parkKerb - 1.6 + Math.sin(a) * r * 0.8]); } const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: 0, seed: 'pp' + i + r, d, jit: 0 }); }
         }
-        { const Rg = Motion.rng('opening-grass');
-          for (let i = 0; i < 260; i++) {
-            const x = -200 + Rg() * 440, z = Z.wall + 0.4 + Rg() * 5.2, ln = 0.25 + Rg() * 0.3, c = [P.plum, P.purple, '#4a1a9a', P.grape][i % 4];
-            const a = cam.p([x, 0.11, z]); if (a[2] < 0.8 || a[0] < -30 || a[0] > env.W + 30) continue;
-            const b = cam.p([x + ln, 0.11, z + 0.05]), sw = cam.f / a[2];
-            Ink.brush(g, [[a[0], a[1]], [b[0], b[1] - 0.02 * sw]], { w: cap(0.035 * sw, 1, 4), col: c, seed: 'gr' + i, d, taper: 0.5, wob: 0.4, alpha: 0.85 });
-          } }
+        // grass in loose strokes on a grid fixed in the world, only round the camera when it stands in the park
+        if (cam.pos[2] < Z.parkKerb) {
+            const GC = [P.plum, P.purple, '#5a2aa8', P.grape, P.salmon], paths = GC.map(() => []);
+            for (let gx = Math.floor(cam.pos[0] - 14); gx < cam.pos[0] + 14; gx += 0.55) for (let gz = Z.wall + 0.5; gz < Z.parkKerb - 0.3; gz += gz < 7 ? 0.35 : 0.7) {
+                const ci = Math.round(gx * 10), cj = Math.round(gz * 10), x = gx + Ink.hsh(ci, cj, 1) * 0.9, z = gz + Ink.hsh(ci, cj, 2) * 0.7;
+                if (z > Z.parkKerb - 3.2 && z < Z.parkKerb - 1.0) continue;
+                const a = cam.p([x, 0.11, z]); if (a[2] < 0.8 || a[0] < -30 || a[0] > env.W + 30 || a[1] > env.H + 10) continue;
+                const ln = 0.25 + Ink.hsh(ci, cj, 3) * 0.35, b = cam.p([x + ln, 0.11, z + 0.06]), sw = cam.f / a[2], j = (Ink.hsh(ci, cj, d % 4 + 10) - 0.5) * 0.02 * sw;
+                paths[(ci + cj) % 5].push([a[0], a[1], (a[0] + b[0]) / 2 + j, (a[1] + b[1]) / 2 - 0.05 * sw, b[0], b[1], cap(0.03 * sw, 1, 4)]);
+            }
+            g.save(); g.lineCap = 'round'; g.globalAlpha = 0.85;
+            paths.forEach((ps, i) => { g.strokeStyle = GC[i]; for (const [x0, y0, x1, y1, x2, y2, w] of ps) { g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x1, y1, x2, y2); g.stroke(); } });
+            g.restore();
+        }
+        // a clipped hedge along the park's walk: lumps with a dark base, leaf ticks, light on top
+        for (let hx = Math.floor((cam.pos[0] - 40) / 1.6) * 1.6; hx < cam.pos[0] + 60; hx += 1.6) {
+            const z = Z.parkKerb - 3.5, b = cam.p([hx, 0.11, z]), t = cam.p([hx, 0.9, z]); if (b[2] < 1 || b[0] < -80 || b[0] > env.W + 80) continue;
+            const sw = cam.f / b[2], w = 0.95 * sw, hh = b[1] - t[1], pts = [[b[0] - w, b[1]]];
+            for (let i = 0; i <= 12; i++) { const u = i / 12, a = Math.PI * (1 - u); pts.push([b[0] + Math.cos(a) * w, b[1] - hh * (0.25 + 0.75 * Math.sin(a)) - Math.sin(u * Math.PI * 4 + hx) * hh * 0.1]); }
+            pts.push([b[0] + w, b[1]]);
+            Ink.shape(g, pts, Math.round(hx / 1.6) % 2 ? P.royal : '#4a10c8', { w: lw(sw, 0.03), seed: 'hg' + hx, d, jit: 0.4 });
+            if (sw > 20) for (let i = 0; i < 4; i++) { const u = (i + 0.5) / 4, x = b[0] - w * 0.7 + w * 1.4 * u, y = b[1] - hh * (0.75 + 0.2 * Math.sin(u * Math.PI)); Ink.brush(g, [[x - 0.12 * sw, y + 0.03 * sw], [x + 0.12 * sw, y]], { w: cap(0.03 * sw, 1, 3), col: i % 2 ? P.cyan : P.pink, seed: 'hl' + hx + i, d, taper: 0.5, light: true }); }
+        }
         // the park's coral wall along the beach
         { const pts = xs.map((x) => [x, 0.9, Z.wall]).concat(xs.slice().reverse().map((x) => [x, -0.4, Z.wall])); const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, P.plum, { w: 2.4, seed: 'pwall', d, jit: 0 }); }
         strip(Z.kerb, Z.face, 0, '#1a0670', 'under');                     // the road runs on under the kerb
@@ -273,6 +296,7 @@
             let sd = 1;
             for (const t of TUBES) { const on = lit(t, T); if (on <= 0) continue; const n = Math.min(4, t.pts.length + 1); for (let i = 0; i < n; i++) { const u = (i + 0.5) / n, k = Math.min(t.pts.length - 2, Math.floor(u * (t.pts.length - 1))), f = u * (t.pts.length - 1) - k, A = t.pts[k], B2 = t.pts[k + 1]; streak([A[0] + (B2[0] - A[0]) * f, A[1] + (B2[1] - A[1]) * f, A[2]], t.col, 0.12, 0.65 * on, sd++); } }
             for (const h of H) {
+                if (Math.abs((h.x0 + h.x1) / 2 - cam.pos[0]) > 170) continue;
                 const cw = (h.x1 - h.x0 - 2) / h.cols, xr = h.x1 - (h.kind === 3 ? 2.6 : 0);
                 for (let f = 1; f <= h.floors; f++) for (let i = 0; i < h.cols; i++) {
                     const xm = h.x0 + 1 + i * cw + cw * 0.5, r = Ink.hsh(h.seed * 31 + f, i, 4); if (r >= 0.62 || xm > xr - 0.6) continue;
@@ -303,6 +327,7 @@
     function palm(g, cam, x, yb, z, seed, T, d) {
         const R = Motion.rng('opalm' + seed), H = 9 + R() * 4, lean = (R() - 0.5) * 1.2;
         const top = cam.p([x + lean, yb + H, z]); if (top[2] < 0.6) return;
+        if (!seen(cam, [[x - 5, yb, z], [x + 5, yb, z], [x - 5, yb + H + 2, z], [x + 5, yb + H + 2, z]])) return;
         const s = cam.f / top[2];
         const pts = []; for (let i = 0; i <= 9; i++) { const u = i / 9, p = cam.p([x + lean * u * u, yb + H * 0.9 * u, z]), w = (0.26 + 0.05 * Math.sin(u * 2.4) - 0.09 * u) * cam.f / p[2]; pts.push([p[0], p[1], w]); }
         const outline = pts.map((p) => [p[0] - p[2], p[1]]).concat(pts.slice().reverse().map((p) => [p[0] + p[2], p[1]]));
@@ -332,6 +357,7 @@
     function car(g, L, cam, c, d) {
         const { x, z, dir, col } = c, Lh = 2.45, Wh = 0.92;
         const pc = cam.p([x, 0.7, z]); if (pc[2] < 1.5) return;
+        if (!seen(cam, [[x - Lh, 0, z - Wh], [x + Lh, 0, z + Wh], [x - Lh, 1.5, z + Wh], [x + Lh, 1.5, z - Wh]])) return;
         const s = cam.f / pc[2], W = lw(s, 0.035);
         const fx0 = x - Lh, fx1 = x + Lh;
         const boxes = [
@@ -429,7 +455,7 @@
         return CAFES;
     }
     function cafe(g, L, cam, c, T, d) {
-        const pc = cam.p([c.x, 0.75, c.z]); if (pc[2] < 1.5) return;
+        const pc = cam.p([c.x, 0.75, c.z]); if (pc[2] < 1.5 || !seen(cam, [[c.x - 1.3, 0, c.z], [c.x + 1.3, 0, c.z], [c.x - 1.3, 2.5, c.z], [c.x + 1.3, 2.5, c.z]])) return;
         const s = cam.f / pc[2], W = lw(s, 0.035), ring = (r, y, n = 16) => { const o = []; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; o.push([c.x + Math.cos(a) * r, y, c.z + Math.sin(a) * r]); } return o; };
         // the people behind the table, the table, the people in front of it
         const sitter = (dz, k) => { const p = cam.p([c.x + (k ? 0.12 : -0.15), 0.15, c.z + dz]); if (p[2] < 1) return; const b = Math.floor(Song.beatAt(T) / 2 + k * 2 + c.seed); OpeningFigures.draw(g, p[0], p[1], cam.f / p[2], { pose: Ink.hsh(c.seed, b + k, 4) < 0.35 ? 'sitDrink' : 'sit', look: OpeningFigures.look(700 + c.seed * 2 + k), seed: 700 + c.seed * 2 + k, d, rim: 1, flip: k === 1 }); };
@@ -488,7 +514,7 @@
     const PARK_LAMP = (i) => -150 + i * 13;
     // a street lamp of the period on the hotels' kerb: a post, a globe
     function lampPost(g, L, cam, x, z, d) {
-        const b = cam.p([x, 0.15, z]), t = cam.p([x, 4.4, z]); if (t[2] < 1) return;
+        const b = cam.p([x, 0.15, z]), t = cam.p([x, 4.4, z]); if (t[2] < 1 || t[0] < -60 || t[0] > cam.W + 60) return;
         const s = cam.f / t[2];
         Ink.shape(g, [[b[0] - 0.07 * s, b[1]], [t[0] - 0.05 * s, t[1]], [t[0] + 0.05 * s, t[1]], [b[0] + 0.07 * s, b[1]]], '#1a0450', { w: lw(s, 0.03), seed: Math.round(x * 3), d, jit: 0.3 });
         const r = 0.22 * s, pts = []; for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; pts.push([t[0] + Math.cos(a) * r, t[1] - r + Math.sin(a) * r]); }
