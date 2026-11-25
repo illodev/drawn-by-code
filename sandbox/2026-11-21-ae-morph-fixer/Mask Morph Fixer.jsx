@@ -1,4 +1,4 @@
-// Mask Morph Fixer 0.13.0 - gives every keyframe of a path the same points, direction
+// Mask Morph Fixer 0.14.0 - gives every keyframe of a path the same points, direction
 // and start, so shapes and masks morph cleanly in After Effects; key times and easing stay as
 // they are. Run it from File > Scripts > Run Script File..., then click ? > Install as a panel
 // to dock it (Window menu, after a restart).
@@ -1547,18 +1547,24 @@ var MF = (function () {
     // ---- holes kept inside their letter ----
     //
     // A hole is its own path, drawn the other way round: where the outline no longer surrounds
-    // it, After Effects' non-zero fill paints it, a dark blob. A hole closing into its dot while
-    // the letter opens (O into C) is still shrinking when the C's gap opens over it; one growing
-    // while the letter closes (C into e) starts before the e's counter is shut. Such a hole
-    // keeps its own clock against the outline's progress u: closing, it is gone by u = by (its
-    // progress min(1, u / by)); opening, it starts at u = from (max(0, (u - from) / (1 - from))).
-    // by is the latest (from the earliest) that keeps every point of the hole a pixel inside the
-    // outlines at every in-between; a hole under a pixel across counts as gone. A hole that stays
-    // a hole but strays outside halfway (b into e) shrinks there instead (dipFor).
+    // it, After Effects' non-zero fill paints it, a dark blob. Blending a hole point by point
+    // does that when it closes while its letter opens (O into C), opens while it closes (C into
+    // e), or stays a hole but strays across the letter (b into e). And a hole that only just
+    // stays inside reads as one about to break out. So a hole keeps a good margin (HOLE_MU: at
+    // least half the clearance it has at its keys) or it doesn't morph at all: it shrinks to
+    // nothing over the first HOLE_SWAP of the outline's progress, then, after a short pause
+    // while the letter changes most, grows into its new shape where that one sits over the
+    // last HOLE_SWAP. A hole that closes for good only shrinks, staggered ahead of the letter
+    // (gone by HOLE_CLOSE: the O's hole before it turns into a C); one that opens only grows,
+    // once the letter is all but done (from HOLE_OPEN). It shrinks to and grows from its pole
+    // (the point farthest inside it) and rides along with the outline's centre; a window is
+    // shortened only as far as the margin needs.
     // fixed[p][k]: piece p's fixed path at key k (the same points in every key); roles from
-    // matchPieces; skip[k] true leaves step k alone. -> [{ piece, step, closes: true, by } or { ..., closes: false, from } or
-    // { piece, step, dip, low (its smallest scale) }], only where the hole as After Effects
-    // would draw it shows outside its outline. MF.holeAt gives the hole at any u.
+    // matchPieces; skip[k] true leaves step k alone. -> [{ piece, step, kind ('close', 'open'
+    // or 'swap'), a (gone by), b (grows from), pa, pb (poles), dco (the outline's centre moves
+    // by it over the step) }], only for holes that don't keep their margin when blended.
+    // MF.holeAt gives the hole at any u.
+    var HOLE_MU = 0.5, HOLE_CLOSE = 0.3, HOLE_OPEN = 0.7, HOLE_SWAP = 0.4;
 
     // The geometry below runs many times a fix: in ExtendScript, made objects cost far more than
     // arithmetic (round 14: path and point objects made B into 8 take 22 s instead of 2), so it
@@ -1619,12 +1625,13 @@ var MF = (function () {
         return w !== 0;
     }
 
-    // the points (X, Y) scaled by s about (cx, cy) all inside region R, each pushed pad px
-    // further from (cx, cy) first
-    function holeIn(X, Y, R, s, cx, cy, pad) {
+    // the points (X, Y) scaled by s about (cx, cy), moved by (tx, ty), all inside region R, each
+    // pushed pad px further from the centre first
+    function holeIn(X, Y, R, s, cx, cy, pad, tx, ty) {
+        var ox = cx + (tx || 0), oy = cy + (ty || 0);
         for (var j = 0; j < X.length; j++) {
             var dx = X[j] - cx, dy = Y[j] - cy, d = Math.sqrt(dx * dx + dy * dy) || 1, f = s + pad / d;
-            if (!inRegion(R, cx + dx * f, cy + dy * f)) return false;
+            if (!inRegion(R, ox + dx * f, oy + dy * f)) return false;
         }
         return true;
     }
@@ -1652,151 +1659,131 @@ var MF = (function () {
         return centreAt(P, P, 0);
     }
 
-    // P scaled by s about c (handles too)
-    function scaled(P, s, c) {
+    // P scaled by s about c (handles too), then moved by (tx, ty)
+    function scaled(P, s, c, tx, ty) {
         var R = { v: [], i: [], o: [], closed: P.closed };
+        tx = tx || 0;
+        ty = ty || 0;
         for (var j = 0; j < P.v.length; j++) {
-            R.v.push([c[0] + (P.v[j][0] - c[0]) * s, c[1] + (P.v[j][1] - c[1]) * s]);
+            R.v.push([c[0] + tx + (P.v[j][0] - c[0]) * s, c[1] + ty + (P.v[j][1] - c[1]) * s]);
             R.i.push([P.i[j][0] * s, P.i[j][1] * s]);
             R.o.push([P.o[j][0] * s, P.o[j][1] * s]);
         }
         return R;
     }
 
-    // the latest outline progress by which a hole shrinking from H0 to its dot H1 must be gone
-    // (1: it never shows; 0: it shows even at the key) while outlines O0[q] morph into O1[q]
-    function closeBy(H0, H1, O0, O1) {
-        var span = diagOf(H0), r = span > 0 ? diagOf(H1) / span : 0, z = centre(H1), j;
-        // the in-betweens checked: 12 steps of the hole's progress, then where it is 16, 8, 4, 2
-        // and 1 px across (its last few pixels sit by the dot, which the outline may leave first)
-        var STEPS = 12, PAD = 1, hs = [];
-        for (j = 1; j < STEPS; j++) hs.push(j / STEPS);
-        for (var m = 16; m >= 1; m /= 2) {
-            var hm = (1 - m / span) / (1 - r);
-            if (hm > hs[hs.length - 1] && hm < 1) hs.push(hm);
+    // the pole of a closed path: the point inside it farthest from its outline (where a hole
+    // closes to and opens from), on a 10 x 10 grid, then twice on finer ones around the best
+    function pole(P) {
+        var X = [], Y = [], j, i;
+        poly(P, P, 0, 3, 1, 0, 0, X, Y);
+        var R = region([P], [P], 0), x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+        for (j = 0; j < X.length; j++) {
+            x0 = Math.min(x0, X[j]);
+            x1 = Math.max(x1, X[j]);
+            y0 = Math.min(y0, Y[j]);
+            y1 = Math.max(y1, Y[j]);
         }
-        // the hole at progress h inside the outlines at u, a pixel to spare (each point pushed a
-        // pixel away from the dot it shrinks into); under a pixel across it is gone
-        function fits(h, u) {
-            if (span * (1 - h * (1 - r)) < 1) return true;
-            var X = [], Y = [];
-            poly(H0, H1, h, 2, 1, 0, 0, X, Y);
-            return holeIn(X, Y, region(O0, O1, u), 1, z[0], z[1], PAD);
+        // the distance from (x, y) to the outline, 0 outside it
+        function depth(x, y) {
+            if (!inRegion(R, x, y)) return 0;
+            var m = 1e18;
+            for (var e = 0; e < X.length; e++) {
+                var e1 = (e + 1) % X.length, ax = X[e], ay = Y[e], bx = X[e1] - ax, by = Y[e1] - ay, L = bx * bx + by * by;
+                var t = L > 0 ? ((x - ax) * bx + (y - ay) * by) / L : 0;
+                t = t < 0 ? 0 : (t > 1 ? 1 : t);
+                var qx = ax + bx * t - x, qy = ay + by * t - y, d2 = qx * qx + qy * qy;
+                if (d2 < m) m = d2;
+            }
+            return Math.sqrt(m);
         }
-        // late in-betweens first: that is where an outline opens
-        function ok(by) {
-            for (var s = hs.length - 1; s >= 0; s--) if (!fits(hs[s], by * hs[s])) return false;
+        var best = [(x0 + x1) / 2, (y0 + y1) / 2], bd = depth(best[0], best[1]), sx = (x1 - x0) / 10, sy = (y1 - y0) / 10;
+        for (j = 0; j < 10; j++) {
+            for (i = 0; i < 10; i++) {
+                var gx = x0 + (i + 0.5) * sx, gy = y0 + (j + 0.5) * sy, gd = depth(gx, gy);
+                if (gd > bd) {
+                    bd = gd;
+                    best = [gx, gy];
+                }
+            }
+        }
+        for (var round = 0; round < 2; round++) {
+            sx /= 3;
+            sy /= 3;
+            var c0 = best;
+            for (j = -2; j <= 2; j++) {
+                for (i = -2; i <= 2; i++) {
+                    var hx = c0[0] + i * sx, hy = c0[1] + j * sy, hd = depth(hx, hy);
+                    if (hd > bd) {
+                        bd = hd;
+                        best = [hx, hy];
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
+    // a path with every point at c: a hole closed to nothing (After Effects draws no area)
+    function closedAt(P, c) {
+        var R = { v: [], i: [], o: [], closed: P.closed };
+        for (var j = 0; j < P.v.length; j++) {
+            R.v.push([c[0], c[1]]);
+            R.i.push([0, 0]);
+            R.o.push([0, 0]);
+        }
+        return R;
+    }
+
+    function smooth(x) {
+        x = x < 0 ? 0 : (x > 1 ? 1 : x);
+        return x * x * (3 - 2 * x);
+    }
+
+    // a hole at a key, against the outlines there: its points, pole, size and clearance (the
+    // largest pad from its pole that still fits inside: about the thickness of ink round it)
+    function holeAtKey(H, O) {
+        var X = [], Y = [];
+        poly(H, H, 0, 2, 1, 0, 0, X, Y);
+        var p = pole(H), span = diagOf(H), R = region(O, O, 0), lo = 0, hi = span;
+        if (!holeIn(X, Y, R, 1, p[0], p[1], 0)) return { X: X, Y: Y, p: p, span: span, clear: 0 };
+        for (var it = 0; it < 8; it++) {
+            var m = (lo + hi) / 2;
+            if (holeIn(X, Y, R, 1, p[0], p[1], m)) lo = m;
+            else hi = m;
+        }
+        return { X: X, Y: Y, p: p, span: span, clear: lo };
+    }
+
+    // The longest window (up to pref of the outline's progress) over which hole K (at its key,
+    // from O0's side) can shrink to nothing about its pole, riding with the outline's centre
+    // (dco over the whole step), and stay inside the outlines morphing from O0 to O1 with pad
+    // to spare. Checked at 10 steps of the window, then twice as finely.
+    function shrinkWindow(K, O0, O1, dco, pad, pref) {
+        function fits(a, n) {
+            for (var j = 1; j <= n; j++) {
+                var u = a * j / n, s = 1 - smooth(j / n);
+                if (K.span * s < 1) continue;
+                if (!holeIn(K.X, K.Y, region(O0, O1, u), s, K.p[0], K.p[1], pad, dco[0] * u, dco[1] * u)) return false;
+            }
             return true;
         }
-        if (!fits(0, 0)) return 0;
-        if (ok(1)) return 1;
-        var lo = 0, hi = 1;
-        for (var it = 0; it < 7; it++) {
-            var mid = (lo + hi) / 2;
-            if (ok(mid)) lo = mid;
-            else hi = mid;
-        }
-        // checked again four times as finely: a little earlier where it strays in between
-        for (it = 0; it < 20 && lo > 0; it++) {
-            var fine = true;
-            for (j = 4 * STEPS - 1; j >= 1 && fine; j--) if (j % 4 && !fits(j / (4 * STEPS), lo * j / (4 * STEPS))) fine = false;
-            if (fine) break;
-            lo *= 0.95;
-        }
-        return lo;
-    }
-
-    // A hole that stays a hole can still stray outside its letter halfway (b into e, e into 6:
-    // its points and the outline's go in straight lines of their own). It shrinks about its
-    // centre just enough to stay inside, a pixel to spare, easing in and out of it: its scale is
-    // the lowest of tents (slope DIP_SLOPE a whole morph, steeper only where a key is closer)
-    // standing on what each in-between needs, checked again between them. -> its scale at
-    // u = j / DIP (1 at both keys), or null when it never strays. A hole outside its outline at
-    // a key was drawn that way and is left alone.
-    var DIP = 16, DIP_SLOPE = 4;
-    function dipFor(H0, H1, O0, O1) {
-        var span = Math.max(diagOf(H0), diagOf(H1)), PAD = 1, j, i;
-        // the hole's outline at u (2 points a segment), its centre, and the outlines' region
-        function at(u) {
-            var X = [], Y = [], c = centreAt(H0, H1, u);
-            poly(H0, H1, u, 2, 1, 0, 0, X, Y);
-            return { X: X, Y: Y, cx: c[0], cy: c[1], R: region(O0, O1, u) };
-        }
-        function fitsAt(A, s, pad) {
-            return span * s < 1 || holeIn(A.X, A.Y, A.R, s, A.cx, A.cy, pad);
-        }
-        // the largest scale (0 ... 1) that keeps the hole at u inside
-        function need(A) {
-            if (fitsAt(A, 1, PAD)) return 1;
-            var lo = 0, hi = 1;
+        var a = pref;
+        if (!fits(a, 10)) {
+            var lo = 0, hi = pref;
             for (var it = 0; it < 6; it++) {
                 var m = (lo + hi) / 2;
-                if (fitsAt(A, m, PAD)) lo = m;
+                if (fits(m, 10)) lo = m;
                 else hi = m;
             }
-            return lo;
+            a = lo;
         }
-        // only a hole that does stray (no pixel to spare asked: small type would shrink for
-        // nothing), looked for at DIP - 1 in-betweens (over the letter pairs of four fonts, 15
-        // missed none of 127 strays; 7 missed one). Each measured once: in ExtendScript that is
-        // what costs (round 14: 31 of them made a shrinking hole take 3 s)
-        var nd = [], any = false, As = [];
-        for (j = 1; j < DIP; j++) {
-            As[j] = at(j / DIP);
-            if (!any && !fitsAt(As[j], 1, 0)) any = true;
-        }
-        if (!any) return null;
-        for (j = 0; j <= DIP; j++) nd.push(j === 0 || j === DIP ? 1 : need(As[j]));
-        var sig, subA = [], subNeed = [];
-        for (var round = 0; round < 6; round++) {
-            sig = [];
-            for (j = 0; j <= DIP; j++) {
-                var s = 1;
-                for (i = 1; i < DIP; i++) {
-                    if (nd[i] >= 1) continue;
-                    var edge = Math.min(i, DIP - i) / DIP, slope = Math.max(DIP_SLOPE, (1 - nd[i]) / edge);
-                    s = Math.min(s, nd[i] + slope * Math.abs(j - i) / DIP);
-                }
-                sig.push(s);
-            }
-            // between the grid's in-betweens (a quarter, half and three quarters of the way):
-            // where it still strays, what it needs there joins in. A hole that wraps round its
-            // own centre (an @'s) can fit whole and stray when smaller: there it closes up
-            // (each in-between measured once, kept for the next round)
-            var more = false;
-            for (j = 0; j < DIP; j++) {
-                if (sig[j] >= 1 && sig[j + 1] >= 1 && nd[j] >= 1 && nd[j + 1] >= 1 && j > 0 && j + 1 < DIP) continue;
-                for (var f = 1; f < 4; f++) {
-                    var key = 4 * j + f, sm = sig[j] + (sig[j + 1] - sig[j]) * f / 4;
-                    if (!subA[key]) subA[key] = at((j + f / 4) / DIP);
-                    if (fitsAt(subA[key], sm, PAD)) continue;
-                    if (subNeed[key] === undefined) subNeed[key] = need(subA[key]);
-                    var nm = subNeed[key];
-                    nm = nm >= sm ? 0 : nm * 0.97;
-                    if (j > 0 && nm < nd[j]) nd[j] = nm;
-                    if (j + 1 < DIP && nm < nd[j + 1]) nd[j + 1] = nm;
-                    more = true;
-                }
-            }
-            if (!more) break;
-        }
-        return sig;
-    }
-
-    function dipAt(sig, u) {
-        var x = Math.max(0, Math.min(1, u)) * DIP, i = Math.min(DIP - 1, Math.floor(x));
-        return sig[i] + (sig[i + 1] - sig[i]) * (x - i);
-    }
-
-    // the hole at outline progress u, on its own clock or shrunk to stay inside
-    function holeAt(t, A, B, u) {
-        if (!t.dip) return lerp(A, B, holeProgress(t, u));
-        var L = lerp(A, B, u), s = dipAt(t.dip, u);
-        return s >= 1 ? L : scaled(L, s, centre(L));
+        for (var k = 0; k < 6 && a > 0.02 && !fits(a, 20); k++) a *= 0.85;
+        return Math.max(a, 0.02);
     }
 
     function holeTiming(fixed, roles, skip) {
-        var out = [], n = fixed.length, p, q, k;
+        var out = [], n = fixed.length, p, q, k, cache = {};
         if (!roles || !n) return out;
         for (k = 0; k + 1 < roles.length; k++) {
             if (skip && skip[k]) continue;      // steps left alone (the panel's turning ones)
@@ -1810,29 +1797,63 @@ var MF = (function () {
                     O1.push(fixed[q][k + 1]);
                 }
                 if (!O0.length) continue;
-                if (a === -1 && b === -1) {
-                    var sig = dipFor(fixed[p][k], fixed[p][k + 1], O0, O1), low = 1;
-                    if (!sig) continue;
-                    for (q = 0; q < sig.length; q++) low = Math.min(low, sig[q]);
-                    out.push({ piece: p, step: k, dip: sig, low: low });
-                } else if (a === -1) {
-                    var by = closeBy(fixed[p][k], fixed[p][k + 1], O0, O1);
-                    if (by > 0 && by < 1) out.push({ piece: p, step: k, closes: true, by: by });
-                } else {
-                    // opening is closing played backwards
-                    var back = closeBy(fixed[p][k + 1], fixed[p][k], O1, O0);
-                    if (back > 0 && back < 1) out.push({ piece: p, step: k, closes: false, from: 1 - back });
+                var A = fixed[p][k], B = fixed[p][k + 1], c0 = [0, 0], c1 = [0, 0], cnt = 0, j;
+                // the outlines' centre (their points' mean: it moves in a straight line too)
+                for (q = 0; q < O0.length; q++) {
+                    for (j = 0; j < O0[q].v.length; j++) {
+                        c0[0] += O0[q].v[j][0];
+                        c0[1] += O0[q].v[j][1];
+                        c1[0] += O1[q].v[j][0];
+                        c1[1] += O1[q].v[j][1];
+                        cnt++;
+                    }
                 }
+                var dco = [(c1[0] - c0[0]) / cnt, (c1[1] - c0[1]) / cnt], back = [-dco[0], -dco[1]];
+                var KA = a === -1 ? (cache[p + ':' + k] || (cache[p + ':' + k] = holeAtKey(A, O0))) : null;
+                var KB = b === -1 ? (cache[p + ':' + (k + 1)] || (cache[p + ':' + (k + 1)] = holeAtKey(B, O1))) : null;
+                if ((KA && !KA.clear) || (KB && !KB.clear)) continue;      // drawn outside its outline: left alone
+                if (KA && KB && blendKeeps(A, B, O0, O1, KA, KB)) continue;
+                var e = { piece: p, step: k, kind: KA && KB ? 'swap' : (KA ? 'close' : 'open'), a: 0, b: 1, dco: dco };
+                if (KA) {
+                    e.pa = KA.p;
+                    e.a = shrinkWindow(KA, O0, O1, dco, Math.max(1, HOLE_MU * KA.clear), KB ? HOLE_SWAP : HOLE_CLOSE);
+                }
+                if (KB) {
+                    // growing is shrinking played backwards
+                    e.pb = KB.p;
+                    e.b = 1 - shrinkWindow(KB, O1, O0, back, Math.max(1, HOLE_MU * KB.clear), KA ? HOLE_SWAP : 1 - HOLE_OPEN);
+                }
+                out.push(e);
             }
         }
         return out;
     }
 
-    // a timed hole's own progress at outline progress u (0 ... 1)
-    function holeProgress(t, u) {
-        if (t.dip) return u;
-        if (t.closes) return u >= t.by ? 1 : u / t.by;
-        return u <= t.from ? 0 : (u - t.from) / (1 - t.from);
+    // blended point by point, the hole keeps at least HOLE_MU of its keys' clearance (from its
+    // pole, moving in a straight line between theirs) at 15 in-betweens
+    function blendKeeps(A, B, O0, O1, KA, KB) {
+        for (var j = 1; j < 16; j++) {
+            var u = j / 16, X = [], Y = [], px = KA.p[0] + (KB.p[0] - KA.p[0]) * u, py = KA.p[1] + (KB.p[1] - KA.p[1]) * u;
+            poly(A, B, u, 2, 1, 0, 0, X, Y);
+            var pad = Math.max(1, HOLE_MU * (KA.clear + (KB.clear - KA.clear) * u));
+            if (!holeIn(X, Y, region(O0, O1, u), 1, px, py, pad)) return false;
+        }
+        return true;
+    }
+
+    // the hole at outline progress u: shrinking (u < a), closed (a to b), growing (u > b)
+    function holeAt(t, A, B, u) {
+        if (u <= 0) return A;
+        if (u >= 1) return B;
+        if (u < t.a) return scaled(A, 1 - smooth(u / t.a), t.pa, t.dco[0] * u, t.dco[1] * u);
+        if (u > t.b) return scaled(B, smooth((u - t.b) / (1 - t.b)), t.pb, t.dco[0] * (u - 1), t.dco[1] * (u - 1));
+        var side = t.kind === 'close' || (t.kind === 'swap' && u < (t.a + t.b) / 2);
+        return side ? closedAt(A, [t.pa[0] + t.dco[0] * u, t.pa[1] + t.dco[1] * u]) : closedAt(B, [t.pb[0] + t.dco[0] * (u - 1), t.pb[1] + t.dco[1] * (u - 1)]);
+    }
+
+    // where a timed hole is at u: 'shrink', 'gone' or 'grow'
+    function holePhase(t, u) {
+        return u < t.a ? 'shrink' : (u > t.b ? 'grow' : 'gone');
     }
 
     // the share of hole H's outline (sampled) lying outside the outlines: what AE's fill would
@@ -1850,7 +1871,7 @@ var MF = (function () {
         measure: measure, at: at, fractions: fractions, area: area, winding: winding, rms: rms, deviation: deviation,
         lerp: lerp, copy: copy, seg: seg, segCount: segCount, bez: bez, turnPath: turnPath, turnFrom: turnFrom,
         swing: swing, progressOf: progressOf, matchPieces: matchPieces, pieceInfo: pieceInfo,
-        holeTiming: holeTiming, holeProgress: holeProgress, holeAt: holeAt, holeOutside: holeOutside,
+        holeTiming: holeTiming, holePhase: holePhase, holeAt: holeAt, holeOutside: holeOutside,
         // a closed path's mirror axes: 'round' or [{ phi (radians), pole (fraction), e }] (tests)
         mirrorAxes: function (P, thorough) { return mirrorAxes(samples(P, measure(P), thorough ? 2 * N : N), thorough); },
         // how far two paths part (px), quick two-way check (what the rebuild holds to its tolerance)
@@ -1873,7 +1894,7 @@ var MF = (function () {
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.13.0';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.14.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -2070,32 +2091,27 @@ var MorphFixer = (function () {
         }
     }
 
-    // A hole kept inside its letter (MF.holeTiming): AE's fill would paint whatever part of it
-    // the outline no longer surrounds. One closing while its letter opens runs on its own clock:
-    // one key a frame from the step's first key until it is a dot; one opening, from the last
-    // frame it is still one; one that strays, shrunk where it would, every frame of the step.
-    // Each frame from the outline's own eased progress, read back from the outline as After
-    // Effects shows it (so it is written first). In-betweens like a turn's: a later fix removes
-    // and redoes them. H, O: the hole's and the outline's paths at the drawn keys, as written.
-    // -> the number of keys written
+    // A hole kept inside its letter (MF.holeTiming): it shrinks to nothing over the start of the
+    // step and/or grows into its new shape over the end, one key a frame, each frame at the
+    // outline's own eased progress, read back from the outline as After Effects shows it (so it
+    // is written first). In-betweens like a turn's: a later fix removes and redoes them. H, O:
+    // the hole's and the outline's paths at the drawn keys, as written. -> the number of keys
+    // written
     function bakeHole(prop, H, outline, O, t) {
         var kh = keyIndices(prop).drawn, ko = keyIndices(outline).drawn, k = t.step, HOLD = KeyframeInterpolationType.HOLD;
         if (k + 1 >= kh.length || k + 1 >= ko.length) return 0;
         if (prop.keyOutInterpolationType(kh[k]) === HOLD || outline.keyOutInterpolationType(ko[k]) === HOLD) return 0;
-        var fr = framesBetween(prop, prop.keyTime(kh[k]), prop.keyTime(kh[k + 1])), times = [], shapes = [], wait = -1;
-        for (var j = 0; j < fr.length; j++) {
-            var at = fr[j], u = MF.progressOf(toMF(outline.valueAtTime(at, false)), O[k], O[k + 1]), h = MF.holeProgress(t, u);
-            if (t.closes === false && h <= 0) {
-                wait = at;
-                continue;
-            }
-            if (wait >= 0 && !times.length) {
-                times.push(wait);
-                shapes.push(fromMF(H[k]));
-            }
-            times.push(at);
-            shapes.push(fromMF(MF.holeAt(t, H[k], H[k + 1], u)));
-            if (t.closes === true && h >= 1) break;
+        var fr = framesBetween(prop, prop.keyTime(kh[k]), prop.keyTime(kh[k + 1])), times = [], shapes = [], us = [], ph = [], j;
+        for (j = 0; j < fr.length; j++) {
+            us.push(MF.progressOf(toMF(outline.valueAtTime(fr[j], false)), O[k], O[k + 1]));
+            ph.push(MF.holePhase(t, us[j]));
+        }
+        // every frame it shrinks or grows; while it is closed, only the frame it closes on and
+        // the one before it grows (between them it is nothing, wherever it is)
+        for (j = 0; j < fr.length; j++) {
+            if (ph[j] === 'gone' && !(j > 0 && ph[j - 1] === 'shrink') && !(j + 1 < fr.length && ph[j + 1] === 'grow')) continue;
+            times.push(fr[j]);
+            shapes.push(fromMF(MF.holeAt(t, H[k], H[k + 1], us[j])));
         }
         writeInbetweens(prop, times, shapes);
         return times.length;
@@ -2693,10 +2709,12 @@ var MorphFixer = (function () {
 
     // what a timed hole does, for the report
     function holeNote(t) {
-        var from = ' of the morph from key ' + (t.step + 1);
-        if (t.dip) return 'shrinks to ' + Math.round(t.low * 100) + ' % of its size during the morph from key ' + (t.step + 1) + ', where it would stray outside the outline';
-        return t.closes ? 'closes by ' + Math.round(t.by * 100) + ' %' + from + ', before the outline opens round it'
-            : 'opens from ' + Math.round(t.from * 100) + ' %' + from + ', once the outline closes round it';
+        var pc = function (x) {
+            return Math.round(x * 100) + ' %';
+        }, of = ' of the morph from key ' + (t.step + 1);
+        if (t.kind === 'close') return 'shrinks away over the first ' + pc(t.a) + of + ', before the letter opens';
+        if (t.kind === 'open') return 'grows over the last ' + pc(1 - t.b) + of + ', once the letter has closed round it';
+        return 'shrinks away over the first ' + pc(t.a) + of + ' and grows again in its new place over the last ' + pc(1 - t.b) + ' (blended, it would come too close to the edge)';
     }
 
     // the holes to put on their own clock (MF.holeTiming), worked out before anything is written:

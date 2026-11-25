@@ -643,3 +643,44 @@ panel as labelled in-betweens on the hole's path, like a turn):
   in-betweens a step; holes kept inside per case). **In After Effects 27:** real type 111/111
   (holes kept inside as in Node; none outside its letter in AE's own frames), demo 52/52
   (`review/ae-log.txt`). Rendered with aerender (756 frames, 17 s); `render/` redone.
+
+## Round 15 · 2026-11-25 (the user: shrink, teleport, regrow; a stagger; an appreciable margin)
+
+The user: a hole "shrinking to zero, teleporting, then expanding again to form the second
+letter's hole after an optional pause at the appropriate moment" looks far more graceful, and
+staggered it can take the o's hole away before the o starts becoming a c. And "animation that
+only barely escapes overlap is also unsatisfying": round 14 kept holes a pixel inside, closed
+them as late as they could, and shrank straying ones "just enough".
+
+- **0.14.0's holes** (`MF.holeTiming`, baked as before): a hole blends only if, at 15
+  in-betweens, it keeps a pad of half the clearance it has at its keys (pushed out from its
+  pole, the point farthest inside it). Otherwise it **swaps**: shrinks to nothing over the
+  first 40 % of the outline's progress (`1 - smoothstep`), is nothing for a short pause while
+  the letter changes most, and grows into its new shape over the last 40 %, carried along
+  with the outlines' centre. A hole that **closes** shrinks away over the first 30 % (the
+  stagger: gone before the O has really turned into a C); one that **opens** grows over the
+  last 30 %. Each window is shortened only as far as the half-clearance pad needs. In AE the
+  in-betweens are keys on frames while it shrinks or grows, and two keys of nothing while it
+  is closed.
+  - The pause: first 30 % / 70 % for swaps too; a into e then sat solid from 30 % to 70 %
+    (`review/holes.png`), heavy for a hole that only came a bit close. → 40 % / 60 % for swaps,
+    30 % / 70 % kept for closing and opening, where the stagger is the point.
+- **Measured** over 661 letter morphs in three fonts (scan with true distances): 439 holes
+  blend, 230 swap, 5 close, 5 open; none shows outside its letter; every hole keeps at least
+  52 % of its key clearance (round 14 kept a pixel). 42 Comic Neue pairs are in `test.mjs`.
+- **Outlines nearly touching themselves**, the same complaint for the letter's own outline:
+  measured, not changed. Of 122 outline morphs between unlike letters, 82 pinch to under half
+  their thinnest drawn part (u into 5, n into u to 0 %); a start within the travel allowed
+  opens up 8 of them, any start 19. In the demo, e into b 28 % (49 % possible), b into c 37 %
+  (50 %), c into d 1 % (the c's gap has to close to make the d's bowl). Written down as a
+  limit; corner-to-corner matching is the way to most of them.
+- **The demo's letters** are q, e, b, c, d: q into e blends, e into b swaps, b into c shrinks
+  away, c into d grows.
+- **Cost in AE 27** (`review/holes-bench.md`): 0.1-0.6 s a letter of up to 100 points; about
+  1-3 s for engraved letters of 300-400 points and the ten-letter chain (2.6 s on 28 s). The
+  pole is found on a 10 x 10 grid then refined, once per hole and key.
+- Tests: Node 4,433 (hole kinds, windows, eased shrink and grow, nothing drawn while closed,
+  half the clearance kept by true distance, the demo one of each, 42 pairs, a second fix the
+  same, mock timelines); real type 186. **In After Effects 27:** real type 111/111, demo 52/52
+  (`review/ae-log.txt`), no hole outside its letter in any frame. Rendered with aerender;
+  `render/` redone. The user's panel is still 0.13.0.

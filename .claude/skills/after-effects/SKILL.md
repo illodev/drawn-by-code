@@ -589,6 +589,14 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   pairs found 14 % of such holes straying halfway (b into e, R into 6). Scan a family of
   cases before writing a limit or a rule down. (Fixed in round 14: such holes close early,
   open late or shrink, baked as in-betweens; none of the 656 shows.)
+- 2026-11-25 · ae-morph-fixer · "Inside by a pixel" is a bug the user sees: a hole that only
+  just stays inside its letter, closing as late as it can or shrinking "just enough", reads as
+  one about to break out. Keep a margin relative to the drawing (half the ink a hole has round
+  it at its keys), and when a blend can't keep it, change technique rather than squeeze: the
+  user's own suggestion, shrink to nothing, pause, regrow in the new place, staggered ahead of
+  the letter for a hole that closes (the O's hole gone before the O turns into a C), looked far
+  better than any minimal fix. Measure the margin by true distance in the tests, not by the
+  same pad the fix uses.
 - 2026-11-24 · ae-morph-fixer · Check a rendered property in AE's own values at every frame,
   not only the keys the tool wrote: the hole check on `valueAtTime` per frame caught the
   in-betweens sitting between frames, which every Node test (keys on the frame grid) passed.

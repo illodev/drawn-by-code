@@ -13,7 +13,7 @@
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.13.0';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.14.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -210,32 +210,27 @@ var MorphFixer = (function () {
         }
     }
 
-    // A hole kept inside its letter (MF.holeTiming): AE's fill would paint whatever part of it
-    // the outline no longer surrounds. One closing while its letter opens runs on its own clock:
-    // one key a frame from the step's first key until it is a dot; one opening, from the last
-    // frame it is still one; one that strays, shrunk where it would, every frame of the step.
-    // Each frame from the outline's own eased progress, read back from the outline as After
-    // Effects shows it (so it is written first). In-betweens like a turn's: a later fix removes
-    // and redoes them. H, O: the hole's and the outline's paths at the drawn keys, as written.
-    // -> the number of keys written
+    // A hole kept inside its letter (MF.holeTiming): it shrinks to nothing over the start of the
+    // step and/or grows into its new shape over the end, one key a frame, each frame at the
+    // outline's own eased progress, read back from the outline as After Effects shows it (so it
+    // is written first). In-betweens like a turn's: a later fix removes and redoes them. H, O:
+    // the hole's and the outline's paths at the drawn keys, as written. -> the number of keys
+    // written
     function bakeHole(prop, H, outline, O, t) {
         var kh = keyIndices(prop).drawn, ko = keyIndices(outline).drawn, k = t.step, HOLD = KeyframeInterpolationType.HOLD;
         if (k + 1 >= kh.length || k + 1 >= ko.length) return 0;
         if (prop.keyOutInterpolationType(kh[k]) === HOLD || outline.keyOutInterpolationType(ko[k]) === HOLD) return 0;
-        var fr = framesBetween(prop, prop.keyTime(kh[k]), prop.keyTime(kh[k + 1])), times = [], shapes = [], wait = -1;
-        for (var j = 0; j < fr.length; j++) {
-            var at = fr[j], u = MF.progressOf(toMF(outline.valueAtTime(at, false)), O[k], O[k + 1]), h = MF.holeProgress(t, u);
-            if (t.closes === false && h <= 0) {
-                wait = at;
-                continue;
-            }
-            if (wait >= 0 && !times.length) {
-                times.push(wait);
-                shapes.push(fromMF(H[k]));
-            }
-            times.push(at);
-            shapes.push(fromMF(MF.holeAt(t, H[k], H[k + 1], u)));
-            if (t.closes === true && h >= 1) break;
+        var fr = framesBetween(prop, prop.keyTime(kh[k]), prop.keyTime(kh[k + 1])), times = [], shapes = [], us = [], ph = [], j;
+        for (j = 0; j < fr.length; j++) {
+            us.push(MF.progressOf(toMF(outline.valueAtTime(fr[j], false)), O[k], O[k + 1]));
+            ph.push(MF.holePhase(t, us[j]));
+        }
+        // every frame it shrinks or grows; while it is closed, only the frame it closes on and
+        // the one before it grows (between them it is nothing, wherever it is)
+        for (j = 0; j < fr.length; j++) {
+            if (ph[j] === 'gone' && !(j > 0 && ph[j - 1] === 'shrink') && !(j + 1 < fr.length && ph[j + 1] === 'grow')) continue;
+            times.push(fr[j]);
+            shapes.push(fromMF(MF.holeAt(t, H[k], H[k + 1], us[j])));
         }
         writeInbetweens(prop, times, shapes);
         return times.length;
@@ -833,10 +828,12 @@ var MorphFixer = (function () {
 
     // what a timed hole does, for the report
     function holeNote(t) {
-        var from = ' of the morph from key ' + (t.step + 1);
-        if (t.dip) return 'shrinks to ' + Math.round(t.low * 100) + ' % of its size during the morph from key ' + (t.step + 1) + ', where it would stray outside the outline';
-        return t.closes ? 'closes by ' + Math.round(t.by * 100) + ' %' + from + ', before the outline opens round it'
-            : 'opens from ' + Math.round(t.from * 100) + ' %' + from + ', once the outline closes round it';
+        var pc = function (x) {
+            return Math.round(x * 100) + ' %';
+        }, of = ' of the morph from key ' + (t.step + 1);
+        if (t.kind === 'close') return 'shrinks away over the first ' + pc(t.a) + of + ', before the letter opens';
+        if (t.kind === 'open') return 'grows over the last ' + pc(1 - t.b) + of + ', once the letter has closed round it';
+        return 'shrinks away over the first ' + pc(t.a) + of + ' and grows again in its new place over the last ' + pc(1 - t.b) + ' (blended, it would come too close to the edge)';
     }
 
     // the holes to put on their own clock (MF.holeTiming), worked out before anything is written:

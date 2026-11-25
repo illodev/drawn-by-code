@@ -1,7 +1,8 @@
 // holes.mjs - letters whose holes close, open or stray, as After Effects draws them on the
 // morph's own clock (top row of each pair: non-zero fill, so a hole outside its outline is a
-// dark blob, ringed in orange) and as the fix keeps them inside (below: a closing hole gone
-// before the letter opens, an opening one started once it is shut, a straying one shrunk).
+// dark blob, ringed in orange) and as the fix keeps them inside (below: a closing hole shrinks
+// away over the start of the morph, an opening one grows over its end, a straying one does
+// both, closed in between).
 // Seven moments a morph. To out/art/holes.png.
 //   node sandbox/2026-11-21-ae-morph-fixer/art/holes.mjs
 import fs from 'node:fs';
@@ -25,16 +26,18 @@ const CASES = [
     ['O into C: the hole closes', 'ComicNeue-Bold', 'OC'],
     ['C into e: the hole opens', 'ComicNeue-Bold', 'Ce'],
     ['b into e: the hole strays', 'ComicNeue-Bold', 'be'],
+    ['a into e: the hole morphs', 'ComicNeue-Bold', 'ae'],
     ['R into 6: the hole strays', 'PatrickHand-Regular', 'R6'],
     ['d into e: the hole strays a little', 'PatrickHand-Regular', 'de'],
 ];
-const US = [0, 0.2, 0.35, 0.5, 0.65, 0.8, 1], CELL = 170, S = 0.36;
+const US = [0, 0.1, 0.2, 0.35, 0.5, 0.65, 0.8, 0.9, 1], CELL = 150, S = 0.32;
 let body = '', y = 0;
 for (const [name, font, keys] of CASES) {
     const res = MF.matchPieces(build({ font, keys, size: 400 }));
     const fixed = res.keys[0].map((_, p) => MF.fix(res.keys.map((row) => row[p]), { maxPoints: 100 }).paths);
     const T = MF.holeTiming(fixed, res.roles);
-    const note = T.map((t) => t.dip ? `shrinks to ${Math.round(t.low * 100)} %` : t.closes ? `gone by ${Math.round(t.by * 100)} %` : `opens from ${Math.round(t.from * 100)} %`).join(', ');
+    const pc = (x) => Math.round(x * 100) + ' %';
+    const note = T.map((t) => t.kind === 'close' ? `closes by ${pc(t.a)}` : t.kind === 'open' ? `opens from ${pc(t.b)}` : `closes by ${pc(t.a)}, opens again from ${pc(t.b)}`).join(', ');
     for (const [label, own] of [['on the morph\'s clock (After Effects as it was)', false], [`kept inside: ${note || 'nothing to do'}`, true]]) {
         body += `<text x="8" y="${y + 18}" font-size="15" font-family="sans-serif">${name} · ${label}</text>`;
         US.forEach((u, j) => {

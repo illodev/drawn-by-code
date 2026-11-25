@@ -312,74 +312,111 @@ function shown(r, k, u) {
     const fixedHole = MF.fix([hole, MF.matchPieces([[outer, hole], [outer, sq(5, 5, 0.1, true)]]).keys[1][1]]);
     check('pieces: a hole growing from a point fixes like any path', !fixedHole.fellBack && fixedHole.paths[0].v.length === fixedHole.paths[1].v.length, fixedHole.mode);
     check('pieces: roles per key (1 outline, -1 hole, 0 missing)', JSON.stringify(MF.matchPieces([[outer, hole], [outer, sq(5, 5, 0.1, true)]]).roles) === '[[1,-1],[1,0]]');
-    // a hole shrinking inside an outline that stays put never shows: no clock of its own
+    // a hole closing inside an outline that stays put still shrinks away early (staggered), over
+    // the whole first 30 %: nothing shortens it
     const still = MF.matchPieces([[outer, hole], [outer, sq(5, 5, 0.1, true)]]);
-    const stillFixed = [0, 1].map((p) => MF.fix(still.keys.map((row) => row[p])).paths);
-    check('holes: a hole closing inside an outline that stays put keeps the morph\'s clock', MF.holeTiming(stillFixed, still.roles).length === 0);
+    const stillFixed = [0, 1].map((p) => MF.fix(still.keys.map((row) => row[p])).paths), stillT = MF.holeTiming(stillFixed, still.roles);
+    check('holes: a hole closing inside an outline that stays put shrinks away over the first 30 %', stillT.length === 1 && stillT[0].kind === 'close' && Math.abs(stillT[0].a - 0.3) < 1e-9,
+        JSON.stringify(stillT.map((t) => [t.kind, t.a])));
 }
 
-// ---- holes kept inside: one closing while its letter opens (O into C) or opening while it
-// closes (C into e) on a clock of its own; one straying outside halfway (b into e) shrunk
-// there. AE's fill paints any part of a hole outside its outline ----
+// ---- holes kept inside their letter, with a margin: a hole that keeps at least half its
+// clearance blends; one that would come closer, or stray, shrinks away over the start of the
+// step and grows again in its new place over the end (swap); one that closes for good shrinks
+// away early (O into C: before the C opens), one that opens grows late (C into e). AE's fill
+// paints any part of a hole outside its outline ----
 {
+    const ML = load('demo-letters.js', 'ML');
     const letters = (font, keys) => {
         const res = MF.matchPieces(buildArt({ font, keys }));
         const fixed = res.keys[0].map((_, p) => MF.fix(res.keys.map((row) => row[p]), { maxPoints: 100 }).paths);
         return { res, fixed, T: MF.holeTiming(fixed, res.roles) };
     };
+    const outlinesAt = ({ res, fixed }, k, p, u) => fixed.filter((_, q) => q !== p && res.roles[k][q] !== -1 && res.roles[k + 1][q] !== -1 && (res.roles[k][q] || res.roles[k + 1][q])).map((G) => MF.lerp(G[k], G[k + 1], u));
+    const holeAtU = (L, T, k, p, u) => {
+        const t = T.find((e) => e.piece === p && e.step === k), F = L.fixed[p];
+        return t ? MF.holeAt(t, F[k], F[k + 1], u) : MF.lerp(F[k], F[k + 1], u);
+    };
+    const isHole = (L, k, p) => L.res.roles[k][p] === -1 || L.res.roles[k + 1][p] === -1;
     // the most of any hole's outline outside the outlines, over 40 in-betweens a step, each hole
-    // on its clock (T) or on the morph's (T = [])
-    const shows = ({ res, fixed }, T) => {
+    // as the fix keeps it (T) or blended (T = [])
+    const shows = (L, T) => {
         let worst = 0;
-        for (let k = 0; k + 1 < res.roles.length; k++) {
-            for (let j = 1; j < 40; j++) {
-                const u = j / 40, outl = [];
-                fixed.forEach((F, p) => { if (res.roles[k][p] !== -1 && res.roles[k + 1][p] !== -1 && (res.roles[k][p] || res.roles[k + 1][p])) outl.push(MF.lerp(F[k], F[k + 1], u)); });
-                fixed.forEach((F, p) => {
-                    if (res.roles[k][p] !== -1 && res.roles[k + 1][p] !== -1) return;
-                    const t = T.find((e) => e.piece === p && e.step === k);
-                    worst = Math.max(worst, MF.holeOutside(t ? MF.holeAt(t, F[k], F[k + 1], u) : MF.lerp(F[k], F[k + 1], u), outl));
-                });
-            }
-        }
+        for (let k = 0; k + 1 < L.res.roles.length; k++) for (let j = 1; j < 40; j++) L.fixed.forEach((_, p) => {
+            if (isHole(L, k, p)) worst = Math.max(worst, MF.holeOutside(holeAtU(L, T, k, p, j / 40), outlinesAt(L, k, p, j / 40)));
+        });
         return worst;
     };
+    // the least distance from a hole to the outlines' edges (true distance, 0 if outside)
+    const pts = (P, per) => { const o = []; for (let k = 0; k < MF.segCount(P); k++) { const c = MF.seg(P, k); for (let t = 0; t < per; t++) o.push(MF.bez(c, t / per)); } return o; };
+    const clearance = (H, outl) => {
+        if (MF.pieceInfo(H).diag < 1) return Infinity;
+        if (MF.holeOutside(H, outl) > 0) return 0;
+        const edges = outl.flatMap((O) => { const p = pts(O, 6); return p.map((a, i) => [a, p[(i + 1) % p.length]]); });
+        let m = Infinity;
+        for (const [x, y] of pts(H, 3)) for (const [a, b] of edges) {
+            const bx = b[0] - a[0], by = b[1] - a[1], L2 = bx * bx + by * by, t = Math.max(0, Math.min(1, L2 > 0 ? ((x - a[0]) * bx + (y - a[1]) * by) / L2 : 0));
+            m = Math.min(m, Math.hypot(a[0] + bx * t - x, a[1] + by * t - y));
+        }
+        return m;
+    };
+    // the least clearance a hole keeps over 40 in-betweens, as a share of the least it has at
+    // its keys (1 when nothing comes closer)
+    const margin = (L, T) => {
+        let worst = Infinity;
+        for (let k = 0; k + 1 < L.res.roles.length; k++) L.fixed.forEach((F, p) => {
+            if (!isHole(L, k, p)) return;
+            const ref = Math.min(L.res.roles[k][p] === -1 ? clearance(F[k], outlinesAt(L, k, p, 0)) : Infinity, L.res.roles[k + 1][p] === -1 ? clearance(F[k + 1], outlinesAt(L, k, p, 1)) : Infinity);
+            for (let j = 1; j < 40; j++) worst = Math.min(worst, clearance(holeAtU(L, T, k, p, j / 40), outlinesAt(L, k, p, j / 40)) / ref);
+        });
+        return worst;
+    };
+    const kinds = (L) => L.res.roles.slice(1).map((_, k) => { const t = L.T.find((e) => e.step === k); return t ? t.kind : 'blend'; }).join(' ');
     const oc = letters('ComicNeue-Bold', 'OC');
-    check('holes: O into C, the hole closes on its own clock', oc.T.length === 1 && oc.T[0].closes && oc.T[0].step === 0 && oc.T[0].by > 0.5 && oc.T[0].by < 0.8, JSON.stringify(oc.T));
-    check('holes: O into C on the morph\'s clock shows the hole outside the C (what AE did)', shows(oc, []) > 0.3, shows(oc, []).toFixed(2));
-    check('holes: O into C on its own clock, the hole never shows', shows(oc, oc.T) === 0, shows(oc, oc.T).toFixed(3));
-    const co = letters('ComicNeue-Bold', 'CO');
-    check('holes: C into O, the hole opens on its own clock: O into C played backwards', co.T.length === 1 && !co.T[0].closes && Math.abs(co.T[0].from - (1 - oc.T[0].by)) < 0.01 && shows(co, co.T) === 0,
-        JSON.stringify(co.T));
-    const ce = letters('ComicNeue-Bold', 'Ce');
-    check('holes: C into e, the hole only opens once the e is nearly shut', ce.T.length === 1 && ce.T[0].from > 0.6 && shows(ce, ce.T) === 0, JSON.stringify(ce.T));
-    const chain = letters('ComicNeue-Bold', 'aeocd');
-    check('holes: a e o c d, the o\'s hole closes and the d\'s opens, neither shows', chain.T.length === 2 && chain.T[0].step === 2 && chain.T[0].closes &&
-        chain.T[1].step === 3 && !chain.T[1].closes && shows(chain, chain.T) === 0, JSON.stringify(chain.T));
-    const keep = letters('ComicNeue-Bold', 'aeodq');
-    check('holes: letters that keep their holes keep the morph\'s clock', keep.T.length === 0 && shows(keep, []) === 0);
+    check('holes: O into C, the hole shrinks away early, staggered ahead of the letter (gone by 30 %)', oc.T.length === 1 && oc.T[0].kind === 'close' && oc.T[0].a <= 0.3 && oc.T[0].a > 0.1, JSON.stringify(oc.T.map((t) => [t.kind, t.a])));
+    check('holes: O into C blended shows the hole outside the C (what AE did)', shows(oc, []) > 0.3, shows(oc, []).toFixed(2));
+    check('holes: O into C as the fix keeps it, the hole never shows, with half its clearance to spare', shows(oc, oc.T) === 0 && margin(oc, oc.T) >= 0.45, margin(oc, oc.T).toFixed(2));
+    const co = letters('ComicNeue-Bold', 'CO'), ce = letters('ComicNeue-Bold', 'Ce');
+    check('holes: C into O, the hole grows late: O into C played backwards', co.T.length === 1 && co.T[0].kind === 'open' && Math.abs(co.T[0].b - (1 - oc.T[0].a)) < 0.02 && shows(co, co.T) === 0, JSON.stringify(co.T.map((t) => [t.kind, t.b])));
+    check('holes: C into e, the hole grows once the e is shut (from 70 %)', ce.T.length === 1 && ce.T[0].kind === 'open' && ce.T[0].b >= 0.7 && shows(ce, ce.T) === 0 && margin(ce, ce.T) >= 0.45, JSON.stringify(ce.T.map((t) => [t.kind, t.b])));
+    const be = letters('ComicNeue-Bold', 'be'), r6 = letters('PatrickHand-Regular', 'R6');
+    check('holes: b into e strays when blended (what AE did)', shows(be, []) > 0.1, shows(be, []).toFixed(2));
+    check('holes: b into e swaps: shrinks away over the start, grows again over the end, a pause between', be.T.length === 1 && be.T[0].kind === 'swap' && be.T[0].a <= 0.4 && be.T[0].b >= 0.6 &&
+        shows(be, be.T) === 0 && margin(be, be.T) >= 0.45, JSON.stringify(be.T.map((t) => [t.kind, t.a, t.b])) + ' margin ' + margin(be, be.T).toFixed(2));
+    check('holes: R into 6, the same', r6.T.length === 1 && r6.T[0].kind === 'swap' && shows(r6, r6.T) === 0 && margin(r6, r6.T) >= 0.45, margin(r6, r6.T).toFixed(2));
+    const t = be.T[0], F = be.fixed[t.piece], area = (P) => Math.abs(MF.area(P));
+    check('holes: a swapping hole is itself at both keys', same(MF.holeAt(t, F[0], F[1], 0), F[0]) < 1e-9 && same(MF.holeAt(t, F[0], F[1], 1), F[1]) < 1e-9);
+    const half = MF.holeAt(t, F[0], F[1], t.a / 2), mid = MF.holeAt(t, F[0], F[1], (t.a + t.b) / 2), grow = MF.holeAt(t, F[0], F[1], (t.b + 1) / 2);
+    check('holes: it eases out of its shape (half size halfway through the shrink), is nothing between, and eases into the next', Math.abs(Math.sqrt(area(half) / area(F[0])) - 0.5) < 0.01 &&
+        mid.v.every((v) => v[0] === mid.v[0][0] && v[1] === mid.v[0][1]) && Math.abs(Math.sqrt(area(grow) / area(F[1])) - 0.5) < 0.01,
+        `${Math.sqrt(area(half) / area(F[0])).toFixed(3)}, ${Math.sqrt(area(grow) / area(F[1])).toFixed(3)}`);
+    check('holes: phases (shrink, gone, grow)', MF.holePhase(t, t.a / 2) === 'shrink' && MF.holePhase(t, (t.a + t.b) / 2) === 'gone' && MF.holePhase(t, (t.b + 1) / 2) === 'grow');
+    const qo = letters('ComicNeue-Bold', 'qo');
+    check('holes: q into o keeps half its clearance blended: it blends', qo.T.length === 0 && shows(qo, []) === 0 && margin(qo, []) >= 0.5, margin(qo, []).toFixed(2));
     const gs = letters('PatrickHand-Regular', 'gs'), eng = letters('IMFellDWPicaSC-Regular', 'OC');
-    check('holes: g into s and an engraved O into C, timed and never showing', gs.T.length === 1 && eng.T.length === 1 && shows(gs, gs.T) === 0 && shows(eng, eng.T) === 0,
-        JSON.stringify([gs.T, eng.T]));
-    // fixing the fixed keys again times the hole the same (what a second Fix in AE does)
+    check('holes: g into s and an engraved O into C shrink away, never showing', gs.T.length === 1 && gs.T[0].kind === 'close' && eng.T.length === 1 && eng.T[0].kind === 'close' && shows(gs, gs.T) === 0 && shows(eng, eng.T) === 0);
+    // the demo's letters: one of each
+    const rows = ML.keys.filter((key, k) => k === 0 || key[1] !== ML.keys[k - 1][1]).map(([, s]) => ML.shapes[s]), dres = MF.matchPieces(rows);
+    const dfixed = dres.keys[0].map((_, p) => MF.fix(dres.keys.map((row) => row[p]), { maxPoints: ML.maxPoints }).paths), demo = { res: dres, fixed: dfixed, T: MF.holeTiming(dfixed, dres.roles) };
+    check('holes: the demo\'s q e b c d blends, swaps, shrinks away and grows: one of each, none showing, half the clearance kept', kinds(demo) === 'blend swap close open' && shows(demo, demo.T) === 0 && margin(demo, demo.T) >= 0.45,
+        kinds(demo) + ', margin ' + margin(demo, demo.T).toFixed(2));
+    // a family: Comic Neue's letters with a hole, each into each
+    let famShows = 0, famMargin = Infinity, famSwaps = 0, famN = 0;
+    for (const a of 'abdeopq') for (const b of 'abdeopq') {
+        if (a === b) continue;
+        const L = letters('ComicNeue-Bold', a + b);
+        famN++;
+        famShows = Math.max(famShows, shows(L, L.T));
+        famMargin = Math.min(famMargin, margin(L, L.T));
+        famSwaps += L.T.length;
+    }
+    check('holes: 42 Comic Neue letter pairs with holes: none shows, every hole keeps half its clearance', famShows === 0 && famMargin >= 0.45, `${famSwaps} swaps, least margin ${famMargin.toFixed(2)}`);
+    // fixing the fixed keys again plans the hole the same (what a second Fix in AE does)
     const again = MF.matchPieces(oc.res.keys.map((row, k) => row.map((_, p) => oc.fixed[p][k])));
     const againFixed = again.keys[0].map((_, p) => MF.fix(again.keys.map((row) => row[p]), { maxPoints: 100 }).paths);
     const T2 = MF.holeTiming(againFixed, again.roles);
-    check('holes: a second fix times the hole the same', T2.length === 1 && Math.abs(T2[0].by - oc.T[0].by) < 0.005, JSON.stringify(T2));
-    check('holes: the clock (closing: gone by `by`; opening: starts at `from`)', MF.holeProgress({ closes: true, by: 0.6 }, 0.3) === 0.5 && MF.holeProgress({ closes: true, by: 0.6 }, 0.7) === 1 &&
-        MF.holeProgress({ closes: false, from: 0.6 }, 0.5) === 0 && Math.abs(MF.holeProgress({ closes: false, from: 0.6 }, 0.8) - 0.5) < 1e-12);
-    // a hole that stays a hole but strays outside halfway shrinks there, easing in and out
-    const be = letters('ComicNeue-Bold', 'be'), r6 = letters('PatrickHand-Regular', 'R6');
-    check('holes: b into e strays on the morph\'s clock (what AE did)', shows(be, []) > 0.1, shows(be, []).toFixed(2));
-    check('holes: b into e, the hole shrinks where it would stray, and never shows', be.T.length === 1 && be.T[0].dip && be.T[0].low < 1 && shows(be, be.T) === 0, JSON.stringify(be.T.map((t) => t.low)));
-    check('holes: R into 6, the same', r6.T.length === 1 && r6.T[0].dip && shows(r6, r6.T) === 0, JSON.stringify(r6.T.map((t) => t.low)));
-    const dip = be.T[0].dip, F = be.fixed[be.T[0].piece];
-    check('holes: a shrinking hole is itself at both keys', same(MF.holeAt(be.T[0], F[0], F[1], 0), F[0]) < 1e-9 && same(MF.holeAt(be.T[0], F[0], F[1], 1), F[1]) < 1e-9);
-    let steep = 0;
-    for (let j = 1; j < dip.length; j++) steep = Math.max(steep, Math.abs(dip[j] - dip[j - 1]) * (dip.length - 1));
-    check('holes: it eases in and out of it (no jump between in-betweens)', dip[0] === 1 && dip[dip.length - 1] === 1 && steep <= 4 + 1e-9, `steepest ${steep.toFixed(2)} a morph`);
-    console.log(`holes: b into e shrinks to ${(be.T[0].low * 100).toFixed(0)} %, R into 6 to ${(r6.T[0].low * 100).toFixed(0)} %`);
-    console.log(`holes: O into C gone by ${(oc.T[0].by * 100).toFixed(0)} %, C into e opens from ${(ce.T[0].from * 100).toFixed(0)} %, g into s by ${(gs.T[0].by * 100).toFixed(0)} %`);
+    check('holes: a second fix plans the hole the same', T2.length === 1 && T2[0].kind === oc.T[0].kind && Math.abs(T2[0].a - oc.T[0].a) < 0.01, JSON.stringify(T2.map((e) => [e.kind, e.a])));
+    console.log(`holes: O into C gone by ${(oc.T[0].a * 100).toFixed(0)} %, C into e grows from ${(ce.T[0].b * 100).toFixed(0)} %, b into e swaps ${(be.T[0].a * 100).toFixed(0)}-${(be.T[0].b * 100).toFixed(0)} %; Comic Neue pairs: ${famSwaps} of ${famN} swap, least margin ${(famMargin * 100).toFixed(0)} %`);
 }
 
 // ---- progress: the fix can be cancelled while it works, before anything is written ----------
@@ -794,7 +831,8 @@ function keepsAxis(r, deg) {
             for (let f = 12; f <= 79; f++) ow = Math.max(ow, MF.holeOutside(FX.toMF(hh.valueAtTime(f / 24)), [FX.toMF(oo.valueAtTime(f / 24))]));
             check('holes in AE: keys between frames, the in-betweens sit on frames and no frame shows the hole outside', otimed.length === 2 && onGrid && ow === 0, `${ow.toFixed(3)} outside`);
         }
-        // b into e: the hole stays a hole but would stray; shrunk, every frame of the step
+        // b into e: the hole stays a hole but would stray: it swaps, shrinking away and growing
+        // again, closed between (two keys there, nothing drawn)
         const bk = buildArt({ font: 'ComicNeue-Bold', keys: 'be' }), bt = [12 / 24, 45 / 24];
         const bls = [0, 1].map((p) => mockTimeline(bk.map((row) => row[p]), bt));
         const bres = MF.matchPieces(bk);
@@ -809,8 +847,9 @@ function keepsAxis(r, deg) {
                 bworst = Math.max(bworst, MF.holeOutside(hb, [ob]));
             }
         }
-        check('holes in AE: b into e, the straying hole is shrunk on every frame of the step and stays inside', btimed.length === 1 && btimed[0].t.dip && bn === 32 && bworst === 0,
-            `${btimed.length} timed, ${bn} keys, ${bworst.toFixed(3)} outside`);
+        const midArea = btimed.length ? Math.abs(MF.area(FX.toMF(bls[btimed[0].hole].valueAtTime(28.5 / 24)))) : 1;
+        check('holes in AE: b into e swaps: in-betweens while it shrinks and grows, nothing drawn between, inside at every frame', btimed.length === 1 && btimed[0].t.kind === 'swap' &&
+            bn > 8 && bn < 32 && midArea < 1e-6 && bworst === 0, `${btimed.length} timed, ${bn} keys, area halfway ${midArea.toExponential(1)}, ${bworst.toFixed(3)} outside`);
     }
 }
 

@@ -111,10 +111,10 @@ for (const c of CASES) {
     if (c.expect && c.expect.grown) check(`${c.name}: ${c.expect.grown} keys where a piece grows from a point`, res.grown === c.expect.grown, String(res.grown));
     if (c.expect && c.expect.moved) check(`${c.name}: pieces pasted out of order are dealt back`, res.moved > 0, String(res.moved));
     if (c.expect && c.expect.turned) check(`${c.name}: turned ${c.expect.turned} deg`, turned !== null && Math.abs(turned - c.expect.turned) < 1, String(turned));
-    // holes kept inside (MF.holeTiming): one that closes or opens while its letter opens or
-    // closes keeps its own clock, one that would stray halfway shrinks there, and no hole shows
-    // outside its outline at any of 39 in-betweens a step (AE's fill would paint it: a dark
-    // blob). Turned cases are left out: the panel leaves a turning step's holes alone.
+    // holes kept inside (MF.holeTiming): one that closes shrinks away early, one that opens grows
+    // late, one that would come too close to the edge blended swaps, and no hole shows outside
+    // its outline at any of 39 in-betweens a step (AE's fill would paint it: a dark blob).
+    // Turned cases are left out: the panel leaves a turning step's holes alone.
     const T = c.rotate ? [] : MF.holeTiming(fixed.map((r) => r.paths), res.roles);
     if (!c.rotate) {
         let shown = 0, where = '';
@@ -134,8 +134,8 @@ for (const c of CASES) {
         }
         check(`${c.name}: no hole shows outside its outline`, shown === 0, `${(shown * 100).toFixed(1)} % of a hole at ${where}`);
     }
-    check(`${c.name}: ${(c.expect && c.expect.timed) || 0} holes kept inside (on their own clock, or shrunk)`, T.length === ((c.expect && c.expect.timed) || 0),
-        JSON.stringify(T.map((t) => [t.step, t.dip ? 'shrinks ' + t.low.toFixed(2) : t.closes ? 'by ' + t.by.toFixed(2) : 'from ' + t.from.toFixed(2)])));
+    check(`${c.name}: ${(c.expect && c.expect.timed) || 0} holes kept inside (shrunk away, grown or swapped)`, T.length === ((c.expect && c.expect.timed) || 0),
+        JSON.stringify(T.map((t) => [t.step, t.kind, t.a.toFixed(2), t.b.toFixed(2)])));
     const capped = fixed.some((r) => r.capped), fell = fixed.some((r) => r.fellBack);
     rows.push(`| ${c.name} | ${c.font.replace(/-.*/, '')} | ${K} | ${n} | ${keys[0].map((P) => P.v.length).join('/')} → ${pts.join('/')} | ${capped ? '~' + near.toFixed(2) + ' (max)' : fell ? 'kept points' : worst.toFixed(3)} | ${res.moved} / ${res.grown} | ${before.toFixed(0)} → ${after.toFixed(0)} | ${turned === null ? '' : turned.toFixed(0) + '°'} | ${ms.toFixed(0)} |`);
     // node: how Node matched the pieces, for make-art.jsx to compare (ExtendScript once read the

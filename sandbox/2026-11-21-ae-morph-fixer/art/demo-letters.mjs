@@ -1,10 +1,10 @@
-// demo-letters.mjs - writes ../demo-letters.js, the letters section of the demo: a, e, b, c and d
+// demo-letters.mjs - writes ../demo-letters.js, the letters section of the demo: q, e, b, c and d
 // in Comic Neue Bold (read from the repo's fonts/ by ttf.mjs), each centred on its own box. Each
-// step shows one thing the fix does with a letter's pieces: a into e, a start chosen against a
-// crossover; e into b, the hole shrinks where it would stray outside the letter; b into c, the
-// hole closes before the c opens round it; c into d, it opens once the d has closed round it.
-// (AE's non-zero fill paints any part of a hole outside its outline: a dark blob.) The c has
-// no hole: its key gets a dot at its centre, which the hole closes into and grows from.
+// step shows one thing the fix does with a letter's hole: q into e, it blends (it keeps its
+// margin; a start chosen against a crossover); e into b, blended it would come too close to the
+// edge, so it shrinks away and grows again in its new place; b into c, it shrinks away before
+// the c opens; c into d, it grows once the d has closed round it. (AE's non-zero fill paints
+// any part of a hole outside its outline: a dark blob.) The c has no hole: its key gets a dot.
 // make-demo.jsx (After Effects) and scene.js (the preview) both load the file: plain ES3, `var ML`.
 //   node sandbox/2026-11-21-ae-morph-fixer/art/demo-letters.mjs
 import fs from 'node:fs';
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { loadFont, charPaths } from './ttf.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url)), dir = path.join(here, '..');
-const FONT = 'ComicNeue-Bold', CHARS = 'aebcd', SIZE = 560, HOLD = 0.5, MORPH = 1.4;
+const FONT = 'ComicNeue-Bold', CHARS = 'qebcd', SIZE = 560, HOLD = 0.5, MORPH = 1.4;
 const font = loadFont(path.join(dir, '..', '..', 'fonts', FONT + '.ttf'));
 const r3 = (x) => Math.round(x * 1000) / 1000;
 const round = (P) => ({ v: P.v.map((p) => p.map(r3)), i: P.i.map((p) => p.map(r3)), o: P.o.map((p) => p.map(r3)), closed: true });
