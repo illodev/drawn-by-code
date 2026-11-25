@@ -195,3 +195,26 @@ built at once by six agents, one per stretch, on one contract:
   bag, the car), drive (0:47–1:39, done), clouds (1:39–2:12, the high over the city), night
   (2:12–2:44, the night together by ellipsis), boat (2:44–3:18, the speedboat and the
   comedown), sunrise (3:18–4:13, the sun out of the sea, the title, the signature).
+
+### Round 6 · what came back, and the second passes
+
+Every section's first pass came back below the causeway's bar in the same ways: large flat
+areas (sea, sand, road, roof, sky bands), empty lower thirds, figures as stiff mannequins or
+robots, clouds as saucers, glows as concentric puddles, gold laid as dashes, light strokes
+across the faces. Each got a numbered fix list from 1920 crops and a second pass:
+- opening: the wet street mirrors every light; hotels with frames, eyebrows and their
+  shadows, awnings, cafés; walkers, couples, dogs; a softer crowd (heads with hair, one
+  shape per limb, far dancers as heads and raised arms); tall windows onto the night.
+- escape: the opening's ballroom and Ocean Drive carry on (no second party room); a drawn
+  still life with the pill; the bag on a real bed with the blinds' light bent over it.
+- clouds: clouds lobed top and bottom in three inks; the roof, the diner and the laundromat
+  lived in; wet streets with reflections and passers-by; far walls with cached textures.
+- night: the room lived in (dresser, mirror, TV, door ajar, rug, the shirt draped), wider
+  profiles (the sheet's pixels at ~1.2×), a Deco hotel.
+- boat: the two of them waist-up behind a windscreen; the gold spreads as the hull's own
+  ink; the dawn in brushed bands.
+- sunrise: the sky in brushed bands fixed in azimuth; sea, swash and sand laid with strokes;
+  a pier, a sailboat, gulls, a jogger and a dog.
+- the cast (shared): its strokes of light only on the back view.
+On screen as text, for the user to see: the invented hotel names (MOONGLOW, CORAL, PARADISO
+and others), DINER, OPEN 24 HRS, LAUNDROMAT, HOTEL; the title and the signature.

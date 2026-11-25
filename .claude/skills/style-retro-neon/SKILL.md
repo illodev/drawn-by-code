@@ -103,3 +103,30 @@ one», «very Miami».
   resolution and laying it with one frame-sized draw took the frame from 310 to 210 ms at
   1920; a full-frame `overlay` blend for grain and a frame-sized chromatic split were the
   next most expensive things (replaced by a translucent noise tile and a fringe on the glow).
+- 2026-11-25 · run-away-with-me round 6 · **Geometry behind the camera explodes the brush.**
+  A floor, a line or a polygon whose far end lies behind the camera projects millions of
+  pixels long; `Ink.brush` then walks every resampled point (frames of 10–40 s). Clip every
+  segment at the near plane and every polygon to the frame before brushing it, and give no
+  outline to a floor much larger than the screen.
+- 2026-11-25 · run-away-with-me round 6 · **Large areas carry strokes, never a flat ink.** A
+  flat sea, sand, road, roof or sky band reads as the «empty synthwave plain» the user
+  rejected: lay water as broken rows of strokes in the sky's mirrored colours (swell lines in
+  perspective, glitter paths from every light), wet ground as a mirror of what is above it,
+  dry ground with ripples and marks, roads with each tube and window mirrored as broken
+  vertical strokes. The lower third of a frame is where it shows first.
+- 2026-11-25 · run-away-with-me round 6 · **A glow is bands, not domes.** Concentric blobs
+  round a sun or a dawn read as puddles with wobbly edges; lay the sky as horizontal bands
+  with brushed ragged edges, warmer and thinner towards the light, fixed in azimuth so they
+  stay put when the camera turns. Clouds are lobed top *and* bottom (scalloped tops over a
+  flat ellipse read as saucers), in three inks with a lit underside and a broken ink line.
+- 2026-11-25 · run-away-with-me round 6 · **Gold (or any change of state) spreads as ink.**
+  Dashes laid over a hull read as a glitch or scanlines; turn the object's own fills to the
+  new inks from a point outwards with a brushed front edge, and let the light strokes follow
+  its form (sheer, chine, stripe).
+- 2026-11-25 · run-away-with-me round 6 · **The cast from a sheet: light by view.** Strokes
+  of light placed for the back view cross the face on the front, three-quarter and side
+  views; `Couple` lays them on the back view only. A close shot draws a sheet's pixels at no
+  more than ~1.3× (2.7× read soft and blocky at 1920): frame wider rather than closer.
+- 2026-11-25 · run-away-with-me round 6 · **`Drawn.sky` only works for cameras looking along
+  +z**: a section with cameras turned elsewhere needs its own sky (or turns the sky's camera
+  so the skyline stays ahead, at the price of the moon moving between shots).
