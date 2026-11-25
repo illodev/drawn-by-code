@@ -4,24 +4,24 @@
 
 ## Warnings
 
-- **Transparent holes** (the empty canvas shows through: a background that doesn't cover the camera, or nothing painted) at 3.00 s (0.3 %), 9.17 s (0.3 %), 10.50 s (0.3 %), 12.17 s (0.8 %), 12.33 s (0.8 %), 12.50 s (0.8 %)….
+- None.
 
 ## Motion
 
 Energy per second (how much the image changes):
 
 ```
-▃▃▆▄▄▃▅▃█▆▇▇▅▄▄▄▇▆▆▄▅▃ 
+▃▃▄▃▄▃▅▄█▆▆▆▅▃▅▄▆▅▆▅▅▃ 
 0    5    10   15   20   
 ```
 
 No still stretches of 1 s or more.
 
-Large jumps outside cuts (can be normal in dense patterns; check whether they bother): 8.17 s, 10.17 s, 16.17 s, 18.17 s, 20.17 s.
+Large jumps outside cuts (can be normal in dense patterns; check whether they bother): 8.17 s, 12.17 s, 14.17 s, 16.17 s, 18.17 s, 20.17 s.
 
 ## Speed
 
-Painting: 73 ms/frame cold, 51 ms warm → full render ≈ 27 s at this size.
+Painting: 172 ms/frame cold, 139 ms warm → full render ≈ 74 s at this size.
 
 ## Contact sheet
 
