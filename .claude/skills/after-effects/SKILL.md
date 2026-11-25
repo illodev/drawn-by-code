@@ -116,6 +116,12 @@ that AE runs wrong.
   object keyed by big numbers converts every key to a string: a neighbour grid built that
   way was 30× slower. Measured: 80 boids over 264 steps of 2 substeps = 5.5 s in AE 2026;
   the morph fixer ran about 300× slower than in Node.
+- **Made objects cost far more than arithmetic.** Geometry that made a point array per bezier
+  sample and a path object per in-between ran ~7000× slower than Node (B into 8: 22 s for a
+  check Node did in 2 ms), where the rest of the morph fix runs ~300×. In hot loops keep
+  coordinates in flat arrays of numbers, evaluate curves inline, and measure each sample
+  once. Time new math inside AE apart from the rest (the morph fixer's
+  `bench/holes-bench.jsx`): the Node timing said nothing about it.
 - Seeded randomness that agrees bit for bit across engines: Park-Miller (`s * 16807 %
   2147483647`, exact in doubles). Avoid hashes that overflow 2^53.
 - **ExtendScript's `sort` is not stable** (V8's is). A comparator whose ties matter must
@@ -293,31 +299,56 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
 - `trim.enabled = false` switches an operator off from a script; an expression on End
   overrides its keys and removing the expression gives them back.
 
+## Keys a tool writes for the animator
+
+The morph fixer writes keys of its own between the designer's: a turn swung round, a hole
+that shrinks away and grows again. `morph-ae.jsx` (`isInbetween`, `bakeTurn`, `bakeHole`,
+`turnKeysOf`, `holeKeysOf`) does all of this; copy from it.
+
+- **Label them, and know them by the label alone.** `prop.setLabelAtKey(k, 15)` and
+  `prop.keyLabel(k)` (0 = none, 1–16 the colours in Preferences › Labels; AE 22.6 and
+  later, so wrap them in `try`). Every run removes its own keys between the drawn ones
+  first and works on the drawn keys: a second run then writes the same keys, and never reads
+  its own in-betweens as drawn (a turning F once went from 40 to 530 points that way).
+  Requiring an interpolation as well broke when the animator re-eased a key (it lost
+  auto-bezier and read as drawn). Tell users: change the label and the key is yours.
+- **Leave the drawn keys' easing alone**, so removing the in-betweens gives the timing back.
+- **Put them on the comp's frames** (`k * frameDuration`), not at `keyTime + j *
+  frameDuration`. A key a script set at 1.9 s sits between frames at 24 fps, and every
+  rendered frame then showed a blend of two in-betweens (a hole's last dot and its first
+  grown key, blended, sat outside its letter).
+- **Fewer keys are the version an animator can tweak.** Before writing a key a frame, work
+  out what After Effects' straight-line blend between two keys already gives:
+  - A shape blended with a key of nothing (every point at one place, no handles: AE draws
+    nothing) is the shape scaled, exactly. A hole that shrinks away needs one key where it is
+    gone, eased like Easy Ease (`new KeyframeEase(0, 33.333)`), not 25: dragging that key
+    retimes it.
+  - Two turned copies blended squash in between. A turn needs a key about every 15 deg (98 %
+    of the area at worst, 1.5 px off the arc on a 180 px letter; one key a quarter turn
+    keeps 85 %), auto-bezier and continuous in time (`setTemporalAutoBezierAtKey`,
+    `setTemporalContinuousAtKey`: they work on path keys) so the speed runs through them.
+  - Read the result back in AE frame by frame (`valueAtTime`) and check what matters (no
+    hole outside its letter), falling back to a key a frame only where a frame misses.
+  - Where both are worth having, let the user choose (the morph fixer's turn list: a key
+    every frame, the smoothest; or few keys, to retime).
+- **Keep what the animator changed.** Before removing the tool's keys, read them: times,
+  values, `keyIn/OutInterpolationType`, `keyIn/OutTemporalEase` (the arrays go straight
+  back into `setTemporalEaseAtKey`), `keyTemporalAutoBezier`, `keyTemporalContinuous`.
+  Write them back at their own times with their own easing and redraw only their values.
+  - Read what each key stood for from the keys themselves: keys carry no notes. A turn key's
+    share of its turn is the angle from the step's first key to it, measured key to key (so
+    a step of more than half a turn reads right), over the angle to the step's last key.
+  - Untouched keys come back the same, so the tool needn't know which ones were moved.
+  - Check the result (a hole is kept only if it still doesn't show) and redo what can't be
+    kept (keys no longer inside their step, points that no longer match). Say which in the
+    report: "kept where they were", "retimed".
+- `removeKey(k)` renumbers the keys after it: remove from the highest index down, then find
+  the keys you kept again by time (`nearestKeyIndex(t)`).
+- `setValuesAtTimes` adds keys with AE's default interpolation: set each new key's
+  interpolation, ease and label afterwards, found by `nearestKeyIndex`.
+
 ## Scripting pitfalls (each one cost a run)
 
-- **Objects cost far more than arithmetic in ExtendScript.** Geometry that made a point array
-  per bezier sample and a path object per in-between ran a check ~7000x slower than Node (B
-  into 8: 22 s for a check Node did in 2 ms), where the morph fix itself runs ~300x. In hot
-  loops, keep coordinates in flat arrays of numbers, evaluate curves inline, and measure each
-  sample once. Time new math inside AE apart from the rest (`bench/holes-bench.jsx`).
-- **Jobs not picked up within seconds mean the runner's timer is dead** (it survived the send
-  but stopped firing, cause unknown). Take the jobs out of the inbox and send a fresh runner
-  (it cancels the old task); never leave jobs queued for a dead runner while the user works in
-  AE: when it wakes during one of their dialogs, AE shows them "Cannot run a script while a
-  modal dialog is waiting for response" (round 17). Run tests only when the user has handed
-  AE over, and stop the runner as soon as they are done.
-- **Fix works on the active comp**: a test that fixes a layer in another comp must open that
-  comp first (`comp.openInViewer()`); without it the fix ran elsewhere, changed nothing, and
-  two checks failed for a reason that had nothing to do with the code.
-- **Windows throttles After Effects in the background.** With another app in front (File
-  Explorer), a test sat 15 minutes at 0.04 of a core, AE "responding", no dialog; brought
-  forward, it finished in a minute, and a timed check read 230 s for a 7 s fix. A stall with
-  low CPU and no dialog is throttling, not a hang: bring AE forward (ask first) and rerun
-  timing checks with it in front.
-- **Keys a script writes one a frame go on the comp's frames** (`k * frameDuration`), not at
-  `keyTime + j * frameDuration`: a key a script set at 1.9 s sits between frames at 24 fps,
-  and then every rendered frame shows a blend of two in-betweens (a hole's last dot and its
-  first grown key, blended, sat outside its letter).
 - **Removing the last Time Remap key turns time remapping off** and hides the property;
   setting its expression then fails («the property or a parent property is hidden»). Keep
   the two keys AE adds; the expression overrides them.
@@ -371,14 +402,34 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
 - **Renaming a layer or an effect from a script doesn't update expressions that name it**
   (AE 27): reach helper layers through Layer Controls.
 - AE stores path points as 32-bit floats: compare AE with Node on the keys AE holds.
-- Keyframe labels: `prop.keyLabel(k)` and `prop.setLabelAtKey(k, 0–16)` (0 = none, 1–16 the
-  colours in Preferences › Labels), from AE 22.6. Wrap them in `try` for older versions.
-- `removeKey(k)` renumbers the keys after it: remove from the highest index down, then find
-  the keys you kept again by time (`nearestKeyIndex(t)`).
-- `setValuesAtTimes` adds keys with AE's default interpolation: set each new key's
-  interpolation (and label) afterwards, found by `nearestKeyIndex`.
 
 ## Running it in the user's After Effects
+
+**When the user works in the same After Effects** (the morph fixer, rounds 14–18)
+
+- Tests take AE over for minutes: ask every time, and send nothing until the user has handed
+  it over. If their project has items, the runner's `freshProject()` refuses it (rightly):
+  ask them to save or close it; never close it for them.
+- **Check for an open dialog before sending anything.** A modal disables AE's main window:
+  list AE's top-level windows (`EnumWindows`, `IsWindowEnabled`). A script arriving then,
+  or a runner's tick, shows the user "Cannot run a script while a modal dialog is waiting for
+  response".
+- **Keep AE in front while a test runs** (`open_application`). Windows throttles a
+  background app: with File Explorer in front, a test sat 15 minutes at 0.04 of a core, AE
+  "responding", no dialog; brought forward it finished in a minute, and a timed check read
+  230 s for a 7 s fix. A stall with low CPU and no dialog is throttling, not a hang. A
+  window titled "(Not Responding)" may be Windows' stand-in (process `dwm`), not AE.
+- **Say what is happening at least every minute** of a long wait: poll in short steps and
+  report AE's CPU. A silent ten-minute wait looked like nothing was happening, and the user
+  stopped it twice.
+- **Jobs not picked up within seconds mean the runner's timer is dead** (it survived the send
+  but stopped firing; cause unknown). Take the jobs out and send a fresh runner (it cancels the
+  old task). Never leave jobs queued for a dead runner: one woke during the user's own dialog
+  and showed them the modal error.
+- A test that runs the tool on a layer in another comp must open that comp first
+  (`comp.openInViewer()`): the tool works on `app.project.activeItem`. Without it the fix ran
+  elsewhere, changed nothing, and two checks failed for a reason that wasn't in the code.
+- Stop the runner the moment the tests end, and say that AE is the user's again.
 
 **Before sending anything**
 
@@ -565,6 +616,23 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   does. Ask once, in plain words, with Cancel the default. (Corrected 2026-11-23: the list
   first included Trim Paths, dashes and text on a mask, but the fix keeps the first key's
   start, so only what counts points needs a warning.)
+- 2026-11-22 · ae-morph-fixer · A test harness left running in the user's AE is a bug the user
+  sees: the morph fixer's runner fired during a dialog and wedged AE after the work was done.
+  Stop every runner when the tests end, and give it an idle timeout in case you forget.
+- 2026-11-22 · ae-flock-rig · A 2D layer that turns around by squashing its width through
+  zero gives the flatness away when many turn together (a flock diving through vertical:
+  38 % edge-on in one frame). Pointing up or down, mirror at once (only the wings swap
+  side); squash only level turns, floored by a Turn Width slider, with an optional head-on
+  drawing (a `turn` marker in the precomp) for the middle of the turn.
+- 2026-11-22 · ae-flock-rig · Mirrored by −1 at rotation −p and flipped upside down at
+  180° − p draw the same layer: bake whichever keeps rotation continuous, and cap the step
+  per frame (25°), or AE interpolates a 160° spin between keys and motion blur smears it.
+- 2026-11-22 · ae-flock-rig · Controls that read a group's direction (stretch along travel)
+  need an axis (period 180°), held and rate-limited when the group slows; as a direction it
+  jumped 99° in a frame when the flock reversed.
+- 2026-11-22 · ae-flock-rig · Slider names can carry the explanation ("Clumping (+ core, -
+  even)", ≤ 28 characters, AE took all 16); a re-run renames the previous round's names in
+  place so the designer's values survive the upgrade.
 - 2026-11-23 · ae-morph-fixer · Each warning has to earn its place against what the change
   really does. The morph fixer warned about everything that "starts at the first point",
   without checking that the first key's start never moves. The user, testing it, got a dash
@@ -596,50 +664,6 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   estimate scales by a small fix timed against 160 ms measured once; new checks inside that fix
   made the machine read 3.28x slower and the estimate 3.4x high (25 s for 7.3). Pin the
   calibration's options, and rerun the estimate test in AE after adding work to the fix.
-- 2026-11-24 · ae-morph-fixer · A letter's hole is its own path, and AE's non-zero fill paints
-  any part of it the outline no longer surrounds: a hole that closes (or opens) while its
-  letter opens (O into C) is a dark blob in the counter for a few frames. Measure, not by name:
-  "letters that keep their holes have none" held for the five chains tried, but a scan of 656
-  pairs found 14 % of such holes straying halfway (b into e, R into 6). Scan a family of
-  cases before writing a limit or a rule down. (Fixed in round 14: such holes close early,
-  open late or shrink, baked as in-betweens; none of the 656 shows.)
-- 2026-11-25 · ae-morph-fixer · Before writing a key a frame, ask what the blend between two
-  keys already gives: a key of nothing blended with a shape scales it exactly, so a hole that
-  shrinks away needs one key (eased), not 25, and the animator can drag it; a turn needs a key
-  every ~15 deg (the blend of two turned copies squashes). Fewer keys are the tweakable
-  version: write the phase boundaries, read every other frame back, and fall back to a key a
-  frame only where a frame misses the margin.
-- 2026-11-25 · ae-morph-fixer · "Inside by a pixel" is a bug the user sees: a hole that only
-  just stays inside its letter, closing as late as it can or shrinking "just enough", reads as
-  one about to break out. Keep a margin relative to the drawing (half the ink a hole has round
-  it at its keys), and when a blend can't keep it, change technique rather than squeeze: the
-  user's own suggestion, shrink to nothing, pause, regrow in the new place, staggered ahead of
-  the letter for a hole that closes (the O's hole gone before the O turns into a C), looked far
-  better than any minimal fix. Measure the margin by true distance in the tests, not by the
-  same pad the fix uses.
-- 2026-11-24 · ae-morph-fixer · Check a rendered property in AE's own values at every frame,
-  not only the keys the tool wrote: the hole check on `valueAtTime` per frame caught the
-  in-betweens sitting between frames, which every Node test (keys on the frame grid) passed.
-- 2026-11-24 · ae-morph-fixer · Demo a choice against its alternative, side by side: the
-  symmetry part puts the fix without its symmetry rule on the left. Building it found a step
-  the fix left a little lopsided (a start "near enough" to symmetric), which no test had.
-- 2026-11-22 · ae-morph-fixer · A test harness left running in the user's AE is a bug the user
-  sees: the morph fixer's runner fired during a dialog and wedged AE after the work was done.
-  Stop every runner when the tests end, and give it an idle timeout in case you forget.
-- 2026-11-22 · ae-flock-rig · A 2D layer that turns around by squashing its width through
-  zero gives the flatness away when many turn together (a flock diving through vertical:
-  38 % edge-on in one frame). Pointing up or down, mirror at once (only the wings swap
-  side); squash only level turns, floored by a Turn Width slider, with an optional head-on
-  drawing (a `turn` marker in the precomp) for the middle of the turn.
-- 2026-11-22 · ae-flock-rig · Mirrored by −1 at rotation −p and flipped upside down at
-  180° − p draw the same layer: bake whichever keeps rotation continuous, and cap the step
-  per frame (25°), or AE interpolates a 160° spin between keys and motion blur smears it.
-- 2026-11-22 · ae-flock-rig · Controls that read a group's direction (stretch along travel)
-  need an axis (period 180°), held and rate-limited when the group slows; as a direction it
-  jumped 99° in a frame when the flock reversed.
-- 2026-11-22 · ae-flock-rig · Slider names can carry the explanation ("Clumping (+ core, -
-  even)", ≤ 28 characters, AE took all 16); a re-run renames the previous round's names in
-  place so the designer's values survive the upgrade.
 - 2026-11-23 · ae-morph-fixer · AE's display names change with its language ("Path 1" is
   "Pfad 1" in German): a tool finds properties only by internal name (the morph fixer's
   `build.mjs` fails on a lookup or comparison by display name), and a test names everything
@@ -660,10 +684,9 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   halfway, against 50 % before.
 - 2026-11-23 · ae-morph-fixer · Keys a tool writes for itself must be findable later, or the
   next run takes them for the designer's: fixing a turned F again read its in-betweens as
-  drawn keys (40 to 530 points). Label them (`setLabelAtKey`) and keep them linear, and have
-  every run remove them first and work on the drawn keys. Leave the drawn keys' easing alone,
-  so removing the in-betweens gives the timing back. Then a second run writes the same keys,
-  and retiming is "move your keys, fix again".
+  drawn keys (40 to 530 points). Label them (`setLabelAtKey`) and have every run remove them
+  first and work on the drawn keys. (Then also "and linear"; since round 18 the label alone,
+  and keys the animator moved are kept: see "Keys a tool writes for the animator".)
 - 2026-11-23 · ae-morph-fixer · Read AE's dialogs to the end: the "second script" warning that
   had cost several restarts says how around it, `-ro` (or `-so`), and `-ro` worked at once.
 - 2026-11-23 · ae-morph-fixer · Click through the real panel by hand before calling a dialog
@@ -703,6 +726,19 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   speed-budgeted window, read from baked running sums: never more than 1.6×. Also, the sim
   let birds fly from 0.4× to 1.6× cruise, so turns spun the formation. A ±12 % band around
   the flock's mean speed gives the parallel-path turns real flocks make.
+- 2026-11-24 · ae-morph-fixer · A letter's hole is its own path, and AE's non-zero fill paints
+  any part of it the outline no longer surrounds: a hole that closes (or opens) while its
+  letter opens (O into C) is a dark blob in the counter for a few frames. Measure, not by name:
+  "letters that keep their holes have none" held for the five chains tried, but a scan of 656
+  pairs found 14 % of such holes straying halfway (b into e, R into 6). Scan a family of
+  cases before writing a limit or a rule down. (Fixed in round 14: such holes close early,
+  open late or shrink, baked as in-betweens; none of the 656 shows.)
+- 2026-11-24 · ae-morph-fixer · Check a rendered property in AE's own values at every frame,
+  not only the keys the tool wrote: the hole check on `valueAtTime` per frame caught the
+  in-betweens sitting between frames, which every Node test (keys on the frame grid) passed.
+- 2026-11-24 · ae-morph-fixer · Demo a choice against its alternative, side by side: the
+  symmetry part puts the fix without its symmetry rule on the left. Building it found a step
+  the fix left a little lopsided (a start "near enough" to symmetric), which no test had.
 - 2026-11-24 · ae-flock-rig · A baked rig must say when what it was baked from has changed.
   The user moved the leader's first key in a duplicated comp and the flock stayed 580 px
   away, which looked like a bug. Bake the input too (the leader's path on a Point Control),
@@ -730,3 +766,26 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   collapsed `\` in a regex, and AE showed the user a modal "Unterminated string constant".
   Write the file directly, and parse every script in Node (`new Function(src)`) before
   sending it. A syntax error is a dialog no try/catch can stop.
+- 2026-11-25 · ae-morph-fixer · Before writing a key a frame, ask what the blend between two
+  keys already gives: a key of nothing blended with a shape scales it exactly, so a hole that
+  shrinks away needs one key (eased), not 25, and the animator can drag it; a turn needs a key
+  every ~15 deg (the blend of two turned copies squashes). Fewer keys are the tweakable
+  version: write the phase boundaries, read every other frame back, and fall back to a key a
+  frame only where a frame misses the margin.
+- 2026-11-25 · ae-morph-fixer · "Inside by a pixel" is a bug the user sees: a hole that only
+  just stays inside its letter, closing as late as it can or shrinking "just enough", reads as
+  one about to break out. Keep a margin relative to the drawing (half the ink a hole has round
+  it at its keys), and when a blend can't keep it, change technique rather than squeeze: the
+  user's own suggestion, shrink to nothing, pause, regrow in the new place, staggered ahead of
+  the letter for a hole that closes (the O's hole gone before the O turns into a C), looked far
+  better than any minimal fix. Measure the margin by true distance in the tests, not by the
+  same pad the fix uses.
+- 2026-11-25 · ae-morph-fixer · The user works in the same After Effects as the tests. A runner
+  left with jobs queued (its timer dead) woke during their dialog and showed them a modal
+  error, and a silent ten-minute wait made them stop a test twice. Hand-over first, AE in
+  front, progress every minute, the runner stopped at the end.
+- 2026-11-25 · ae-morph-fixer · Read what the animator meant from what they left, not from a
+  record of what the tool wrote: AE keys carry no notes, but a turn key's angle says how far
+  through the turn it stands, so a second Fix redraws it there, at the time and easing the
+  animator gave it. Untouched keys come back the same, so the tool never needs to know which
+  ones were moved.
