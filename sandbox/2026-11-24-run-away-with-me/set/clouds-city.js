@@ -44,7 +44,12 @@ const CloudsCity = (() => {
         const zs = [[LAND.z0, STREETS[0][0]]]; for (let i = 0; i + 1 < STREETS.length; i++) zs.push([STREETS[i][1], STREETS[i + 1][0]]); zs.push([STREETS[STREETS.length - 1][1], LAND.z1]);
         const pads = []; for (const [xa, xb] of xs) for (const [za, zb] of zs) pads.push({ xa, xb, za, zb });
         let ni = 0;
-        const add = (b) => { b.seed = B.length * 7 + 11; b.lit = 0.25 + 0.3 * H(b.seed, 1, 0); B.push(b); return b; };
+        const add = (b) => {
+            b.seed = B.length * 7 + 11; b.lit = 0.25 + 0.3 * H(b.seed, 1, 0);
+            b.v = b.seed % 4; b.style = b.kind === 'deco' || H(b.seed, 2, 0) < 0.45 ? 'deco' : 'plain'; b.uOff = (b.seed % 5) * 3.4;
+            if (b.kind !== 'diner' && b.kind !== 'laundry' && b.kind !== 'step') { const r = H(b.seed, 3, 0); b.tank = r < 0.22; b.antenna = r > 0.85; b.roofSign = H(b.seed, 8, 0) < (b.kind === 'tower' ? 0.3 : 0.05) ? Math.floor(H(b.seed, 9, 0) * 3) : -1; }
+            B.push(b); return b;
+        };
         for (const p of pads) {
             if (p.xb === -6) {
                 // the Ocean Drive block: one row of hotels fronting the park, pools in the yards
@@ -85,6 +90,8 @@ const CloudsCity = (() => {
                     const ix = 0.8 + R() * 2, iz = 0.5 + R() * 1.5;
                     const b = add({ x0: ra + ix, x1: rb - ix, z0: z0 + iz, z1: z1 - iz - (yard ? 9 : 0), h: tower ? 28 + R() * 45 : 6 + R() * 8, kind: tower ? 'tower' : 'block', wall: WALL[Math.floor(R() * WALL.length)], roof: ROOF[Math.floor(R() * ROOF.length)] });
                     if (b.z1 - b.z0 < 5) { b.z1 = z1 - iz; }
+                    // a stepped top (an Art Deco set-back) on a quarter of the low blocks
+                    if (!tower && b.h > 8 && R() < 0.28) { const wx = (b.x1 - b.x0) * 0.25, wz = (b.z1 - b.z0) * 0.25; add({ x0: b.x0 + wx, x1: b.x1 - wx, z0: b.z0 + wz, z1: b.z1 - wz, base: b.h, h: b.h + 2.4 + R() * 2, kind: 'step', wall: b.wall, roof: b.roof }); b.stepped = true; }
                     if (R() < 0.22) b.tube = TUBE[Math.floor(R() * TUBE.length)];
                     if (tower && R() < 0.5) pools.push({ x0: b.x0 + 3, x1: Math.min(b.x1 - 3, b.x0 + 14), z0: b.z0 + 3, z1: Math.min(b.z1 - 3, b.z0 + 9), y: b.h + 0.05, seed: b.seed });
                     if (yard) { pools.push({ x0: b.x0 + 2, x1: Math.min(b.x1 - 2, b.x0 + 12), z0: b.z1 + 2, z1: b.z1 + 7, seed: b.seed }); palms.push({ x: b.x1 - 2, z: b.z1 + 4.5, seed: b.seed }); }
@@ -95,7 +102,20 @@ const CloudsCity = (() => {
         // Washington's sidewalks
         for (let z = LAND.z0 + 20; z < LAND.z1 - 20; z += 13) { palms.push({ x: 11.5 + (R() - 0.5) * 0.8, z: z + (R() - 0.5) * 3, seed: Math.round(z * 3) }); if (R() < 0.7) palms.push({ x: 20 + R() * 40, z: z + R() * 10, seed: Math.round(z * 5) + 1 }); }
         for (const [c, w] of [[-75, 16], [-185, 18]]) for (let z = LAND.z0 + 15; z < LAND.z1; z += 22) for (const sd of [-1, 1]) { const zz = z + (sd > 0 ? 11 : 0); if (STREETS.some(([a, b]) => zz > a - 4 && zz < b + 4)) continue; if (c === -185 && sd < 0 && zz > SHOPS.diner[0] - 6 && zz < SHOPS.laundry[1] + 6) continue; palms.push({ x: c + sd * (w / 2 + 1.6), z: zz, seed: Math.round(zz * 7 + c) }); }
-        PLAN = { B, palms, pools, parked, pads };
+        // the hotel north of theirs stays low (the view from their roof)
+        for (const b of B) if (b.kind === 'deco' && b.z0 > HOTEL.z1 - 1 && b.z0 < HOTEL.z1 + 40) b.h = Math.min(b.h, 10.5);
+        // cars parked along the park-side kerb, away from where the camera follows theirs
+        for (let z = LAND.z0 + 10; z < LAND.z1 - 10; z += 7 + R() * 5) if ((z < 120 || z > 275) && R() < 0.45) parked.push({ x: 4.75, z, dir: 1, col: [P.violet, P.royal, P.plum, P.indigo][Math.floor(R() * 4)] });
+        // a car at the kerb outside the laundromat
+        parked.push({ x: -192.4, z: 141, dir: 1, col: P.royal });
+        // people walking: Ocean Drive's two sidewalks, the park's walkway, Washington Avenue
+        const walkers = [];
+        for (let i = 0; i < 60; i++) {
+            const side = R(), x = side < 0.4 ? -8.2 + R() * 1.2 : side < 0.75 ? 6.9 + R() * 1.2 : 36 + R() * 4, z0 = -150 + R() * 650;
+            walkers.push({ x, z0, dir: R() < 0.5 ? 1 : -1, v: 1.1 + R() * 0.5, seed: 300 + i * 7, shirt: ['#3a0c70', '#5a1060', '#2a1a80', '#4a0a50', '#1e0a5a'][i % 5], rim: i % 3 ? P.cyan : P.pink, walk: side >= 0.75 });
+        }
+        for (let i = 0; i < 14; i++) walkers.push({ x: R() < 0.5 ? -195.6 : -174.8, z0: 80 + R() * 90, dir: R() < 0.5 ? 1 : -1, v: 1.0 + R() * 0.4, seed: 900 + i * 7, shirt: ['#3a0c70', '#5a1060', '#2a1a80'][i % 3], rim: i % 2 ? P.pink : P.cyan });
+        PLAN = { B, palms, pools, parked, pads, walkers };
         return PLAN;
     }
 
@@ -275,21 +295,31 @@ const CloudsCity = (() => {
 
     // --- the buildings -------------------------------------------------------------------------------
     function building(g, L, cam, b, T, d, fx, env) {
-        const { x0, x1, z0, z1, h } = b, c = cam.pos;
-        const s = cam.f / Math.max(1, dist(cam, (x0 + x1) / 2, h / 2, (z0 + z1) / 2));
+        const { x0, x1, z0, z1, h } = b, c = cam.pos, y0 = b.base ?? 0;
+        const s = cam.f / Math.max(1, dist(cam, (x0 + x1) / 2, (y0 + h) / 2, (z0 + z1) / 2));
         const fine = s > 2.2, jit = fine ? 0.5 : 0, w = fine ? lw(s, 0.035) : 0;
         const walls = [];
-        if (c[0] < x0) walls.push(['W', [[x0, 0, z1], [x0, 0, z0], [x0, h, z0], [x0, h, z1]], 0.55]);
-        if (c[0] > x1) walls.push(['E', [[x1, 0, z0], [x1, 0, z1], [x1, h, z1], [x1, h, z0]], 0.9]);
-        if (c[2] < z0) walls.push(['S', [[x0, 0, z0], [x1, 0, z0], [x1, h, z0], [x0, h, z0]], 0.75]);
-        if (c[2] > z1) walls.push(['N', [[x1, 0, z1], [x0, 0, z1], [x0, h, z1], [x1, h, z1]], 0.65]);
+        if (c[0] < x0) walls.push(['W', [[x0, y0, z1], [x0, y0, z0], [x0, h, z0], [x0, h, z1]], 0.55]);
+        if (c[0] > x1) walls.push(['E', [[x1, y0, z0], [x1, y0, z1], [x1, h, z1], [x1, h, z0]], 0.9]);
+        if (c[2] < z0) walls.push(['S', [[x0, y0, z0], [x1, y0, z0], [x1, h, z0], [x0, h, z0]], 0.75]);
+        if (c[2] > z1) walls.push(['N', [[x1, y0, z1], [x0, y0, z1], [x0, h, z1], [x1, h, z1]], 0.65]);
         for (const [face, pts, k] of walls) {
             const q = quad(cam, pts); if (!q) continue;
             const front = face === 'E' && (b.kind === 'deco' || b.kind === 'diner' || b.kind === 'laundry');
             const col = front ? b.wall : css(mix(b.wall, '#04022e', 1 - k));
-            Ink.shape(g, q, col, { w, seed: b.seed * 5 + face.charCodeAt(0), d, jit });
-            if (front && s > 5) facade(g, L, cam, b, T, d, fx, s);
-            else windows(g, L, cam, b, face, pts, s, d, fx);
+            const seed = b.seed * 5 + face.charCodeAt(0);
+            if (front && s > 5) { Ink.shape(g, q, col, { w, seed, d, jit }); facade(g, L, cam, b, T, d, fx, s); }
+            else {
+                // a far wall: its windows and texture from the cached patterns, laid through the camera
+                const wm = (pts[0][0] + pts[2][0]) / 2, wz = (pts[0][2] + pts[2][2]) / 2, ws = cam.f / Math.max(1, dist(cam, wm, (y0 + h) / 2, wz));
+                const A = cam.p(pts[0]), D = cam.p(pts[3]), C3 = cam.p(pts[2]), B1 = cam.p(pts[1]);
+                const len = Math.hypot(pts[1][0] - pts[0][0], pts[1][2] - pts[0][2]);
+                if (ws < 9 && A[2] > 2 && D[2] > 2 && C3[2] > 2 && B1[2] > 2) {
+                    Ink.shape(g, q, col, { w: 0, seed, d, jit: 0 });
+                    if (ws > 0.5) CloudsLife.wall(g, L, q, [A[0], A[1]], [D[0], D[1]], [C3[0], C3[1]], len, h - y0, b.v, b.style, b.uOff + (face === 'N' || face === 'W' ? 6.8 : 0), ws);
+                    if (w) Ink.brush(g, q, { w, seed, d, closed: true });
+                } else { Ink.shape(g, q, col, { w, seed, d, jit }); windows(g, L, cam, b, face, pts, s, d, fx); }
+            }
             // the light the street throws on the wall's foot: strokes of the lamps' gold
             if (s > 6 && !front) { const A = cam.p(pts[0]), B = cam.p(pts[1]); Ink.hatch(g, [A[0], A[1]], [B[0], B[1]], { count: 4, len: cap(0.6 * s, 4, 30), w: cap(0.05 * s, 1, 3), col: face === 'E' ? P.pink : P.salmon, seed: b.seed + face.charCodeAt(0), d, n: [0, -1], ang: 0.3 }); }
         }
@@ -322,16 +352,25 @@ const CloudsCity = (() => {
         const [p0, p1] = pts, len = Math.hypot(p1[0] - p0[0], p1[2] - p0[2]); if (len < 3) return;
         const ux = (p1[0] - p0[0]) / len, uz = (p1[2] - p0[2]) / len, off = 0.04;
         const nx = face === 'E' ? off : face === 'W' ? -off : 0, nz = face === 'N' ? off : face === 'S' ? -off : 0;
-        const floors = Math.max(1, Math.floor((b.h - 0.8) / 3.2)), cols = Math.max(1, Math.floor(len / 3.4)), cw = len / cols;
+        const y0 = b.base ?? 0, floors = Math.max(1, Math.floor((b.h - y0 - 0.8) / 3.2)), cols = Math.max(1, Math.floor(len / 3.4)), cw = len / cols;
+        const k0 = Math.round((b.uOff + (face === 'N' || face === 'W' ? 6.8 : 0)) / 3.4);
         for (let f = 0; f < floors; f++) for (let k = 0; k < cols; k++) {
-            const r = H(b.seed, f * 37 + k + face.charCodeAt(0) * 131, 0), lit = r < b.lit;
+            const pn = CloudsLife.pane(b.v, (k + k0) % 16, f + Math.round(y0 / 3.2)), lit = pn.lit;
             if (!lit && s < 5) continue;
-            const ya = f * 3.2 + 1.1, yb = ya + 1.4, ua = k * cw + cw * 0.22, ub = ua + cw * 0.56;
+            const ya = y0 + f * 3.2 + 1.1, yb = ya + 1.4, ua = k * cw + cw * 0.22, ub = ua + cw * 0.56;
             const P4 = [[p0[0] + ux * ua + nx, ya, p0[2] + uz * ua + nz], [p0[0] + ux * ub + nx, ya, p0[2] + uz * ub + nz], [p0[0] + ux * ub + nx, yb, p0[2] + uz * ub + nz], [p0[0] + ux * ua + nx, yb, p0[2] + uz * ua + nz]];
             const q = quad(cam, P4); if (!q) continue;
-            const col = lit ? WARM[Math.floor(H(b.seed, f * 7 + k, 5) * WARM.length)] : '#120540';
+            const col = lit ? pn.col : '#120540';
             Ink.shape(g, q, col, { w: s > 14 ? lw(s, 0.02) : 0, seed: b.seed * 31 + f * 7 + k, d, jit: s > 14 ? 0.4 : 0, light: lit });
-            if (lit && s > 2) { L.save(); L.globalAlpha = 0.45; L.fillStyle = col; Neon.path(L, q); L.fill(); L.restore(); }
+            // a TV's blue flickers on the light layer, drawing by drawing
+            if (lit && s > 2) { L.save(); L.globalAlpha = pn.kind === 'tv' ? 0.25 + 0.5 * H(b.seed + k, f, d) : 0.45; L.fillStyle = col; Neon.path(L, q); L.fill(); L.restore(); }
+            if (lit && s > 9) {
+                const at = (u, v) => { const uu = ua + (ub - ua) * u, yy = ya + (yb - ya) * v; return cam.p([p0[0] + ux * uu + nx * 1.5, yy, p0[2] + uz * uu + nz * 1.5]); };
+                if (pn.kind === 'blinds') for (let j = 1; j < 5; j++) { const A = at(0, j / 5), Bb = at(1, j / 5); Ink.brush(g, [[A[0], A[1]], [Bb[0], Bb[1]]], { w: cap(0.04 * s, 1, 2.5), col: css(mix(col, '#2a0a50', 0.55)), seed: b.seed + f * 50 + k * 5 + j, d, taper: 0.1, wob: 0.3, light: true }); }
+                if (pn.kind === 'curtains') for (const [u0, u1] of [[0, 0.3], [0.7, 1]]) { const qq = [at(u0, 0), at(u1, 0), at(u1, 1), at(u0, 1)].map((p) => [p[0], p[1]]); Ink.shape(g, qq, (k + f) % 2 ? P.red : P.magenta, { w: lw(s, 0.015), seed: b.seed + f * 9 + k, d, jit: 0.3 }); }
+                if (pn.kind === 'figure') { const hc = at(0.5, 0.62), sh = at(0.5, 0.3), r = 0.17 * s; const hp = []; for (let i = 0; i < 9; i++) { const an = i / 9 * Math.PI * 2; hp.push([hc[0] + Math.cos(an) * r, hc[1] + Math.sin(an) * r * 1.15]); } Ink.shape(g, hp, '#2a0a50', { w: 0, seed: b.seed + f + k * 3, d, jit: 0.2 }); const bl = at(0.25, 0), br = at(0.75, 0); Ink.shape(g, [[bl[0], bl[1]], [sh[0] - r * 1.4, sh[1]], [sh[0] + r * 1.4, sh[1]], [br[0], br[1]]], '#2a0a50', { w: 0, seed: b.seed + f + k * 5, d, jit: 0.2 }); }
+                if (pn.kind === 'tv') { const qq = [at(0.3, 0.2), at(0.7, 0.2), at(0.7, 0.5), at(0.3, 0.5)].map((p) => [p[0], p[1]]); Ink.shape(g, qq, '#c8ecff', { w: 0, seed: b.seed + k, d, jit: 0.2, light: true }); }
+            }
             if (!lit && s > 14) { const A = cam.p(P4[3]), B = cam.p(P4[2]); Ink.brush(g, [[A[0], A[1] + 2], [B[0], B[1] + 2]], { w: cap(0.04 * s, 1, 2.5), col: P.violet, seed: b.seed + f * 3 + k, d, taper: 0.4, light: true }); }
         }
     }
@@ -348,10 +387,45 @@ const CloudsCity = (() => {
             const sideS = cam.pos[2] < cz - r ? quad(cam, [[cx - r, h, cz - r], [cx + r, h, cz - r], [cx + r, h + hh, cz - r], [cx - r, h + hh, cz - r]]) : null;
             const sideE = cam.pos[0] > cx + r ? quad(cam, [[cx + r, h, cz - r], [cx + r, h, cz + r], [cx + r, h + hh, cz + r], [cx + r, h + hh, cz - r]]) : null;
             const sideW = cam.pos[0] < cx - r ? quad(cam, [[cx - r, h, cz + r], [cx - r, h, cz - r], [cx - r, h + hh, cz - r], [cx - r, h + hh, cz + r]]) : null;
-            for (const q of [sideS, sideE, sideW]) if (q) Ink.shape(g, q, '#2a0c6e', { w: s > 3 ? lw(s, 0.04) : 0, seed: b.seed + i * 3, d, jit: 0.3 });
-            if (top) Ink.shape(g, top, '#5a2aa8', { w: s > 3 ? lw(s, 0.04) : 0, seed: b.seed + i * 3 + 1, d, jit: 0.3 });
+            if (s > 2.5) for (const q of [sideS, sideE, sideW]) if (q) Ink.shape(g, q, '#2a0c6e', { w: s > 3 ? lw(s, 0.04) : 0, seed: b.seed + i * 3, d, jit: 0.3 });
+            if (top) Ink.shape(g, top, '#5a2aa8', { w: s > 3 ? lw(s, 0.04) : 0, seed: b.seed + i * 3 + 1, d, jit: s > 3 ? 0.3 : 0 });
+            if (top && s > 4) { const cc = cam.p([cx, h + hh + 0.02, cz]), rr = r * 0.6 * cam.f / cc[2], an = T * 9 + i; Ink.brush(g, [[cc[0] - Math.cos(an) * rr, cc[1] - Math.sin(an) * rr * 0.6], [cc[0] + Math.cos(an) * rr, cc[1] + Math.sin(an) * rr * 0.6]], { w: cap(0.1 * s, 1, 4), seed: b.seed + i * 7, d, taper: 0.2 }); }
         }
+        // a water tank on legs
+        if (b.tank && !b.ours) tank(g, cam, x0 + 3, z1 - 3, h, 1.5, 2.4, b.seed, d, s);
+        // an antenna with its red light, blinking on the beat
+        if (b.antenna) { const a = cam.p([x1 - 2, h, z0 + 2]), t = cam.p([x1 - 2, h + 6, z0 + 2]); if (a[2] > 1) { Ink.brush(g, [[a[0], a[1]], [t[0], t[1]]], { w: cap(0.06 * s, 0.8, 3), seed: b.seed + 33, d, taper: 0.1 }); if (Math.floor(Song.beatAt(T) * 2) % 2 === 0) dot(g, L, t[0], t[1], cap(0.25 * s, 1, 4), P.red, 1); } }
+        // a lit sign standing on the roof: a cocktail glass, a palm or a star in neon tubes
+        if (b.roofSign >= 0) roofSign(g, L, cam, b, s, d, fx);
         for (const pool of build().pools) if (pool.y && pool.seed === b.seed) poolDraw(g, L, cam, pool, pool.y, d, { W: cam.W, H: cam.H });
+    }
+
+    function tank(g, cam, x, z, h, r, th, seed, d, s) {
+        const b0 = cam.p([x, h + 1.4, z]), t0 = cam.p([x, h + 1.4 + th, z]); if (b0[2] < 2) return;
+        const k = cam.f / b0[2], rw = r * k, el = cap((cam.pos[1] - h - 2) / Math.max(1, b0[2]), 0, 1);
+        if (s > 3) for (const dx of [-0.8, 0.8]) { const a = cam.p([x + dx, h, z + 0.6]), bb = cam.p([x + dx, h + 1.4, z + 0.6]); Ink.brush(g, [[a[0], a[1]], [bb[0], bb[1]]], { w: cap(0.08 * k, 1, 4), seed: seed + dx * 10, d, taper: 0.1 }); }
+        Ink.shape(g, [[b0[0] - rw, b0[1]], [t0[0] - rw, t0[1]], [t0[0] + rw, t0[1]], [b0[0] + rw, b0[1]]], '#4a1a8a', { w: s > 3 ? lw(k, 0.04) : 0, seed: seed + 41, d, jit: 0.3 });
+        const ry = rw * (0.15 + 0.85 * el), cap0 = []; for (let i = 0; i < 14; i++) { const an = i / 14 * Math.PI * 2; cap0.push([t0[0] + Math.cos(an) * rw, t0[1] + Math.sin(an) * ry]); }
+        Ink.shape(g, cap0, '#6a3ab0', { w: s > 3 ? lw(k, 0.04) : 0, seed: seed + 42, d, jit: 0.3 });
+        if (s > 3) for (const v of [0.3, 0.65]) { const yy = b0[1] + (t0[1] - b0[1]) * v; Ink.brush(g, [[b0[0] - rw, yy], [b0[0], yy + ry * 0.4], [b0[0] + rw, yy]], { w: cap(0.04 * k, 0.8, 2.5), seed: seed + v * 100, d, taper: 0.1 }); }
+        if (s > 3) Ink.brush(g, [[b0[0] + rw * 0.6, b0[1] - 2], [t0[0] + rw * 0.6, t0[1] + 2]], { w: cap(0.06 * k, 1, 3), col: P.pink, seed: seed + 43, d, taper: 0.3 });
+    }
+    const PICTO = [
+        [[[-0.5, 0.95], [0.5, 0.95], [0, 0.45], [-0.5, 0.95]], [[0, 0.45], [0, 0.15]], [[-0.28, 0.1], [0.28, 0.1]], [[0.18, 0.8], [0.32, 0.72], [0.22, 0.62], [0.12, 0.7], [0.18, 0.8]]],
+        [[[0.05, 0.08], [0.0, 0.4], [-0.08, 0.78]], [[-0.08, 0.78], [-0.5, 0.62]], [[-0.08, 0.78], [0.42, 0.7]], [[-0.08, 0.78], [-0.3, 0.98]], [[-0.08, 0.78], [0.25, 0.95]]],
+        [[[0, 0.98], [0.12, 0.62], [0.48, 0.6], [0.2, 0.4], [0.3, 0.05], [0, 0.26], [-0.3, 0.05], [-0.2, 0.4], [-0.48, 0.6], [-0.12, 0.62], [0, 0.98]]],
+    ];
+    function roofSign(g, L, cam, b, s, d, fx) {
+        const { x0, x1, z0, h } = b, xc = (x0 + x1) / 2, zf = z0 + 1.2, w = Math.min(8, (x1 - x0) * 0.6), hh = w * 0.55, y0 = h + 1.2;
+        if (cam.pos[2] > zf) return;
+        const q = quad(cam, [[xc - w / 2, y0, zf], [xc + w / 2, y0, zf], [xc + w / 2, y0 + hh, zf], [xc - w / 2, y0 + hh, zf]]); if (!q) return;
+        for (const dx of [-0.35, 0.35]) { const a = cam.p([xc + dx * w, h, zf + 0.3]), bb = cam.p([xc + dx * w, y0, zf]); Ink.brush(g, [[a[0], a[1]], [bb[0], bb[1]]], { w: cap(0.1 * s, 1, 4), seed: b.seed + dx * 10, d, taper: 0.1 }); }
+        Ink.shape(g, q, '#24083e', { w: s > 2 ? lw(s, 0.04) : 0, seed: b.seed + 51, d, jit: 0.3 });
+        const col = [P.cyan, P.pink, P.gold][b.roofSign], on = (fx.lampPower ?? 1);
+        for (const line of PICTO[b.roofSign]) for (let i = 0; i + 1 < line.length; i++) {
+            const P0 = line[i], P1 = line[i + 1];
+            tube(g, L, cam, [xc + P0[0] * w * 0.8, y0 + 0.1 + P0[1] * hh * 0.85, zf - 0.05], [xc + P1[0] * w * 0.8, y0 + 0.1 + P1[1] * hh * 0.85, zf - 0.05], col, 0.12 * on, s, b.seed + i, d, fx);
+        }
     }
 
     // an Art Deco hotel's front (and the diner's, the laundromat's): eyebrows over the windows,
@@ -435,18 +509,51 @@ const CloudsCity = (() => {
         tube(g, L, cam, P3(h - 0.15, z0 + 0.2, 0.05), P3(h - 0.15, z1 - 0.2, 0.05), P.cyan, 0.09, s, b.seed + 503, d, fx);
         const win = face([P3(0.65, wa), P3(0.65, wb), P3(2.75, wb), P3(2.75, wa)], P.orange, { light: true });
         if (win) { L.save(); L.globalAlpha = 0.5; L.fillStyle = P.orange; Neon.path(L, win); L.fill(); L.restore(); }
+        g.save(); if (win) { Neon.path(g, win); g.clip(); }           // the inside stays behind the glass
         // inside, on the window's plane: the back wall's warm top, a menu board, the counter, stools
         face([P3(1.9, wa + 0.05, 0.03), P3(1.9, wb - 0.05, 0.03), P3(2.7, wb - 0.05, 0.03), P3(2.7, wa + 0.05, 0.03)], P.gold, { w: 0, light: true });
         face([P3(2.0, wa + 3, 0.04), P3(2.0, wa + 7, 0.04), P3(2.55, wa + 7, 0.04), P3(2.55, wa + 3, 0.04)], '#2a0a50', { w: lw(s, 0.02) });
         for (let i = 0; i < 4; i++) { const A = cam.p(P3(2.42 - i * 0.12, wa + 3.3, 0.05)), B = cam.p(P3(2.42 - i * 0.12, wa + 6.2 - i * 0.5, 0.05)); Ink.brush(g, [[A[0], A[1]], [B[0], B[1]]], { w: cap(0.03 * s, 1, 2), col: P.cream, seed: b.seed + 300 + i, d, taper: 0.3, light: true }); }
-        face([P3(0.65, wa + 0.05, 0.04), P3(0.65, wb - 0.05, 0.04), P3(1.12, wb - 0.05, 0.04), P3(1.12, wa + 0.05, 0.04)], P.plum, { w: lw(s, 0.02) });
-        face([P3(1.12, wa + 0.05, 0.045), P3(1.12, wb - 0.05, 0.045), P3(1.2, wb - 0.05, 0.045), P3(1.2, wa + 0.05, 0.045)], P.cream, { w: 0, light: true });
+        const ce = wa + 10.4;                                  // the counter's end; booths beyond it
+        // the pass to the kitchen in the back wall, the cook behind it in a white cap
+        face([P3(1.35, wa + 7.6, 0.03), P3(1.35, wa + 9.8, 0.03), P3(1.88, wa + 9.8, 0.03), P3(1.88, wa + 7.6, 0.03)], '#b04a28', { w: lw(s, 0.02) });
+        { const hc = cam.p(P3(1.66, wa + 8.5, 0.035)), r = 0.12 * s, hp = []; for (let i = 0; i < 10; i++) { const an = i / 10 * Math.PI * 2; hp.push([hc[0] + Math.cos(an) * r, hc[1] + Math.sin(an) * r * 1.15]); }
+          const sh0 = cam.p(P3(1.36, wa + 8.15, 0.035)), sh1 = cam.p(P3(1.36, wa + 8.85, 0.035)), nk = cam.p(P3(1.5, wa + 8.5, 0.035));
+          Ink.shape(g, [[sh0[0], sh0[1]], [nk[0] - r * 1.6, nk[1]], [nk[0] + r * 1.6, nk[1]], [sh1[0], sh1[1]]], '#3a0a40', { w: 0, seed: b.seed + 610, d, jit: 0.3 });
+          Ink.shape(g, hp, '#3a0a40', { w: 0, seed: b.seed + 611, d, jit: 0.2 });
+          const ht = cam.p(P3(1.95, wa + 8.5, 0.036)); Ink.shape(g, [[hc[0] - r * 0.9, hc[1] - r * 0.7], [ht[0] - r * 1.2, ht[1]], [ht[0] + r * 1.2, ht[1]], [hc[0] + r * 0.9, hc[1] - r * 0.7]], P.cream, { w: lw(s, 0.015), seed: b.seed + 612, d, jit: 0.3, light: true });
+          const pl = cam.p(P3(1.38, wa + 9.3, 0.036)); Ink.brush(g, [[pl[0] - r * 1.5, pl[1]], [pl[0] + r * 1.5, pl[1]]], { w: cap(0.05 * s, 1, 3), col: P.cream, seed: b.seed + 613, d, taper: 0.2, light: true }); }
+        // the waitress behind the counter with the coffee pot, pouring towards a stool
+        { const ft = cam.p(P3(0, wa + 4.6, 0.035)), sw = cam.f / ft[2];
+          CloudsLife.walker(g, ft[0], ft[1], sw, 0, 0, P.pink, b.seed + 620, d, { col: '#3a0a40', shirt: '#5a1060', h: 1.66 });
+          const sh = cam.p(P3(1.38, wa + 4.75, 0.036)), hand = cam.p(P3(1.25, wa + 5.35, 0.036)), r = 0.11 * sw;
+          Ink.brush(g, [[sh[0], sh[1]], [hand[0], hand[1]]], { w: cap(0.07 * sw, 1, 6), col: '#3a0a40', seed: b.seed + 621, d, taper: 0.2 });
+          Ink.shape(g, [[hand[0] - r * 0.4, hand[1] - r], [hand[0] + r * 1.6, hand[1] - r], [hand[0] + r * 1.8, hand[1] + r * 1.2], [hand[0] - r * 0.2, hand[1] + r * 1.2]], '#2a0a30', { w: lw(sw, 0.015), seed: b.seed + 622, d, jit: 0.2 });
+          Ink.brush(g, [[hand[0] + r * 0.2, hand[1] - r * 0.5], [hand[0] + r * 0.4, hand[1] + r * 0.8]], { w: cap(0.03 * sw, 1, 2), col: P.cream, seed: b.seed + 623, d, taper: 0.3, light: true });
+          const pour = cam.p(P3(1.1, wa + 5.55, 0.036)); Ink.brush(g, [[hand[0] + r * 1.7, hand[1] + r * 1.1], [pour[0], pour[1]]], { w: cap(0.02 * sw, 1, 2), col: '#7a3a20', seed: b.seed + 624, d, taper: 0.1 }); }
+        // two customers in a booth by the window, facing each other over a table
+        for (const [zb, flip] of [[ce + 1.0, 1], [ce + 3.6, -1]]) {
+            face([P3(0.65, zb - 0.2, 0.034), P3(0.65, zb + 0.2, 0.034), P3(1.45, zb + 0.2, 0.034), P3(1.45, zb - 0.2, 0.034)], P.red, { w: lw(s, 0.02) });
+            const hc = cam.p(P3(1.38, zb + flip * 0.55, 0.035)), r = 0.12 * s, hp = []; for (let i = 0; i < 10; i++) { const an = i / 10 * Math.PI * 2; hp.push([hc[0] + Math.cos(an) * r, hc[1] + Math.sin(an) * r * 1.15]); }
+            const s0 = cam.p(P3(0.95, zb + flip * 0.3, 0.035)), s1 = cam.p(P3(0.95, zb + flip * 0.85, 0.035)), nk = cam.p(P3(1.2, zb + flip * 0.55, 0.035));
+            Ink.shape(g, [[s0[0], s0[1]], [nk[0] - r * 1.5, nk[1]], [nk[0] + r * 1.5, nk[1]], [s1[0], s1[1]]], flip > 0 ? '#2a1a60' : '#4a0a50', { w: 0, seed: b.seed + 630 + flip, d, jit: 0.3 });
+            Ink.shape(g, hp, '#2a0a40', { w: 0, seed: b.seed + 632 + flip, d, jit: 0.2 });
+            Ink.brush(g, [[hc[0] + flip * r * 0.6, hc[1] - r * 0.8], [hc[0] + flip * r * 1.0, hc[1] + r * 0.2]], { w: cap(0.025 * s, 1, 2.5), col: flip > 0 ? P.cyan : P.pink, seed: b.seed + 634 + flip, d, taper: 0.4 });
+        }
+        face([P3(0.92, ce + 1.75, 0.036), P3(0.92, ce + 2.85, 0.036), P3(1.0, ce + 2.85, 0.036), P3(1.0, ce + 1.75, 0.036)], P.cream, { w: lw(s, 0.015), light: true });
+        for (const zc of [ce + 2.0, ce + 2.55]) face([P3(1.0, zc, 0.037), P3(1.0, zc + 0.14, 0.037), P3(1.12, zc + 0.15, 0.037), P3(1.12, zc - 0.01, 0.037)], P.cream, { w: lw(s, 0.015) });
+        face([P3(0.65, wa + 0.05, 0.04), P3(0.65, ce, 0.04), P3(1.12, ce, 0.04), P3(1.12, wa + 0.05, 0.04)], P.plum, { w: lw(s, 0.02) });
+        face([P3(1.12, wa + 0.05, 0.045), P3(1.12, ce, 0.045), P3(1.2, ce, 0.045), P3(1.2, wa + 0.05, 0.045)], P.cream, { w: 0, light: true });
+        // the pie case on the counter: a glass box, wedges of pie on two shelves
+        face([P3(1.2, wa + 6.7, 0.046), P3(1.2, wa + 7.7, 0.046), P3(1.75, wa + 7.7, 0.046), P3(1.75, wa + 6.7, 0.046)], '#bfefff', { w: lw(s, 0.02), light: true });
+        for (const [yy, zz] of [[1.25, wa + 6.85], [1.25, wa + 7.25], [1.5, wa + 7.0]]) { const a = cam.p(P3(yy, zz, 0.047)), bq = cam.p(P3(yy, zz + 0.3, 0.047)), t = cam.p(P3(yy + 0.16, zz + 0.05, 0.047)); Ink.shape(g, [[a[0], a[1]], [bq[0], bq[1]], [t[0], t[1]]], [P.gold, P.salmon, P.orange][Math.round(zz * 3) % 3], { w: lw(s, 0.015), seed: b.seed + Math.round(zz * 31 + yy * 7), d, jit: 0.2 }); }
         // a coffee pot and cups on the counter, the steam rising
-        for (let i = 0; i < 3; i++) { const z = wa + 2 + i * 4.3, cup = face([P3(1.2, z, 0.05), P3(1.2, z + 0.22, 0.05), P3(1.42, z + 0.25, 0.05), P3(1.42, z - 0.03, 0.05)], P.cream, { w: lw(s, 0.02) }); const st = [0, 1, 2].map((j) => cam.p(P3(1.5 + j * 0.18, z + 0.1 + 0.06 * Math.sin(T * 3 + j * 1.3 + i), 0.05))); if (cup) Ink.brush(g, st.map((p) => [p[0], p[1]]), { w: cap(0.03 * s, 1, 2), col: P.pink, seed: b.seed + 400 + i, d, taper: 0.5, alpha: 0.8, light: true }); }
+        for (let i = 0; i < 2; i++) { const z = wa + 2 + i * 6.3, cup = face([P3(1.2, z, 0.05), P3(1.2, z + 0.22, 0.05), P3(1.42, z + 0.25, 0.05), P3(1.42, z - 0.03, 0.05)], P.cream, { w: lw(s, 0.02) }); const st = [0, 1, 2].map((j) => cam.p(P3(1.5 + j * 0.18, z + 0.1 + 0.06 * Math.sin(T * 3 + j * 1.3 + i), 0.05))); if (cup) Ink.brush(g, st.map((p) => [p[0], p[1]]), { w: cap(0.03 * s, 1, 2), col: P.pink, seed: b.seed + 400 + i, d, taper: 0.5, alpha: 0.8, light: true }); }
         // stools: red seats on chrome posts below the counter's lip
-        for (let z = wa + 1; z < wb - 0.5; z += 1.5) { const c0 = cam.p(P3(0.75, z, 0.06)), r = 0.28 * s; Ink.shape(g, [[c0[0] - r, c0[1]], [c0[0] - r * 0.85, c0[1] - r * 0.4], [c0[0] + r * 0.85, c0[1] - r * 0.4], [c0[0] + r, c0[1]], [c0[0] + r * 0.6, c0[1] + r * 0.25], [c0[0] - r * 0.6, c0[1] + r * 0.25]], P.red, { w: lw(s, 0.02), seed: b.seed + Math.round(z * 7), d, jit: 0.3 }); }
+        for (let z = wa + 1; z < ce - 0.3; z += 1.5) { const c0 = cam.p(P3(0.75, z, 0.06)), r = 0.28 * s; Ink.shape(g, [[c0[0] - r, c0[1]], [c0[0] - r * 0.85, c0[1] - r * 0.4], [c0[0] + r * 0.85, c0[1] - r * 0.4], [c0[0] + r, c0[1]], [c0[0] + r * 0.6, c0[1] + r * 0.25], [c0[0] - r * 0.6, c0[1] + r * 0.25]], P.red, { w: lw(s, 0.02), seed: b.seed + Math.round(z * 7), d, jit: 0.3 }); }
         // pendant lamps
         for (let z = wa + 1.5; z < wb - 0.5; z += 3) { const top = cam.p(P3(2.75, z, 0.05)), lo = cam.p(P3(2.2, z, 0.05)); Ink.brush(g, [[top[0], top[1]], [lo[0], lo[1]]], { w: cap(0.02 * s, 1, 2), seed: b.seed + Math.round(z * 9), d, taper: 0 }); const r = 0.22 * s; Ink.shape(g, [[lo[0] - r, lo[1] + r * 0.6], [lo[0] - r * 0.4, lo[1]], [lo[0] + r * 0.4, lo[1]], [lo[0] + r, lo[1] + r * 0.6]], P.gold, { w: lw(s, 0.02), seed: b.seed + Math.round(z * 11), d, jit: 0.3, light: true }); dot(null, L, lo[0], lo[1] + r * 0.6, r * 0.8, P.gold, 0.8); }
+        g.restore();
         // mullions and the door
         for (let z = wa; z <= wb + 0.01; z += (wb - wa) / 6) { const A = cam.p(P3(0.65, z, 0.08)), B = cam.p(P3(2.75, z, 0.08)); Ink.brush(g, [[A[0], A[1]], [B[0], B[1]]], { w: lw(s, 0.05), col: '#d8c8f8', seed: b.seed + Math.round(z * 5), d, taper: 0.02 }); }
         const door = face([P3(0.05, z1 - 3.4, 0.06), P3(0.05, z1 - 2.2, 0.06), P3(2.3, z1 - 2.2, 0.06), P3(2.3, z1 - 3.4, 0.06)], P.salmon, { light: true });
@@ -465,6 +572,7 @@ const CloudsCity = (() => {
         const { z0, z1, h } = b, wa = z0 + 0.8, wb = z1 - 0.8;
         const win = face([P3(0.5, wa), P3(0.5, wb), P3(3.2, wb), P3(3.2, wa)], '#8ff0ff', { light: true });
         if (win) { L.save(); L.globalAlpha = 0.35; L.fillStyle = P.cyan; Neon.path(L, win); L.fill(); L.restore(); }
+        g.save(); if (win) { Neon.path(g, win); g.clip(); }
         face([P3(2.5, wa + 0.05, 0.03), P3(2.5, wb - 0.05, 0.03), P3(3.15, wb - 0.05, 0.03), P3(3.15, wa + 0.05, 0.03)], P.cyan, { w: 0, light: true });
         const spin = Song.beatAt(T) * Math.PI * 0.5 + T * 5;
         for (const [ya, size] of [[0.55, 0.95], [1.65, 0.8]]) for (let z = wa + 0.3; z + size < wb - 0.2; z += size + 0.12) {
@@ -475,9 +583,17 @@ const CloudsCity = (() => {
             Ink.shape(g, drum, P.navy, { w: 0, seed: b.seed + Math.round(z * 17 + ya), d, jit: 0.2 });
             if (r > 4) for (let j = 0; j < 3; j++) { const an = spin * (ya < 1 ? 1 : -0.6) + j * 2.1 + z; Ink.brush(g, [[c0[0] + Math.cos(an) * r * 0.2, c0[1] + Math.sin(an) * r * 0.2], [c0[0] + Math.cos(an + 0.9) * r * 0.6, c0[1] + Math.sin(an + 0.9) * r * 0.6]], { w: cap(r * 0.22, 1, 5), col: [P.pink, P.gold, P.cyan][j], seed: b.seed + j + Math.round(z * 3), d, taper: 0.3, light: true }); }
         }
+        // somebody folding at the table in front of the machines, a basket at her feet
+        { const zf = wa + (wb - wa) * 0.62, ft = cam.p(P3(0, zf, 0.06)), sw = cam.f / ft[2];
+          face([P3(0.82, zf - 0.9, 0.055), P3(0.82, zf + 0.9, 0.055), P3(0.9, zf + 0.9, 0.055), P3(0.9, zf - 0.9, 0.055)], '#e8e0ff', { w: lw(s, 0.02) });
+          CloudsLife.walker(g, ft[0], ft[1], sw, 0.3, 0.2, P.cyan, b.seed + 700, d, { col: '#2a0a50', shirt: '#4a1a80', h: 1.62 });
+          const a = cam.p(P3(1.2, zf - 0.45, 0.062)), c2 = cam.p(P3(1.2, zf + 0.45, 0.062)), lo = cam.p(P3(0.92, zf + 0.5, 0.062)), lo0 = cam.p(P3(0.92, zf - 0.5, 0.062));
+          Ink.shape(g, [[a[0], a[1]], [c2[0], c2[1]], [lo[0], lo[1]], [lo0[0], lo0[1]]], P.pink, { w: lw(sw, 0.015), seed: b.seed + 701, d, jit: 0.4 });
+          const bk = cam.p(P3(0.0, zf - 1.3, 0.062)), bt = cam.p(P3(0.45, zf - 1.3, 0.062)), r = 0.3 * sw; Ink.shape(g, [[bk[0] - r, bk[1]], [bt[0] - r * 1.2, bt[1]], [bt[0] + r * 1.2, bt[1]], [bk[0] + r, bk[1]]], P.gold, { w: lw(sw, 0.02), seed: b.seed + 702, d, jit: 0.3 }); }
         // the clock at four
         const cc = cam.p(P3(2.85, wb - 1.2, 0.05)), cu = cam.p(P3(2.85, wb - 0.2, 0.05)), R = Math.abs(cu[0] - cc[0]) * 0.28;
         if (R > 3) { const pts = []; for (let i = 0; i < 20; i++) { const an = (i / 20) * Math.PI * 2; pts.push([cc[0] + Math.cos(an) * R, cc[1] + Math.sin(an) * R]); } Ink.shape(g, pts, P.cream, { w: lw(s, 0.025), seed: b.seed + 900, d, jit: 0.2 }); const hA = (4 / 12) * Math.PI * 2 - Math.PI / 2; Ink.brush(g, [[cc[0], cc[1]], [cc[0] + Math.cos(hA) * R * 0.55, cc[1] + Math.sin(hA) * R * 0.55]], { w: cap(R * 0.16, 1, 4), seed: b.seed + 901, d, taper: 0.2 }); Ink.brush(g, [[cc[0], cc[1]], [cc[0], cc[1] - R * 0.82]], { w: cap(R * 0.1, 1, 3), seed: b.seed + 902, d, taper: 0.2 }); }
+        g.restore();
         for (let z = wa; z <= wb + 0.01; z += (wb - wa) / 4) { const A = cam.p(P3(0.5, z, 0.08)), B = cam.p(P3(3.2, z, 0.08)); Ink.brush(g, [[A[0], A[1]], [B[0], B[1]]], { w: lw(s, 0.05), col: P.ink, seed: b.seed + Math.round(z * 5), d, taper: 0.02 }); }
         sign(g, L, cam, b.x1 + 0.1, 3.55, (z0 + z1) / 2, 'LAUNDROMAT', 0.62, P.aqua, z1 - z0 - 1.5, fx, 1);
     }
@@ -505,7 +621,7 @@ const CloudsCity = (() => {
             if (s > 6) Ink.brush(g, pts.map((p) => [p[0] - p[2] * 0.6, p[1]]), { w: cap(0.05 * s, 1, 4), col: P.cyan, seed: seed * 17, d, taper: 0.3 });
             if (s > 12) Ink.hatch(g, [pts[0][0] + pts[0][2] * 0.4, pts[0][1] - 4], [pts[6][0] + pts[6][2] * 0.4, pts[6][1]], { count: 4, len: cap(0.3 * s, 3, 26), w: cap(0.045 * s, 1, 4), col: P.salmon, seed: seed * 3, d, n: [1, 0], ang: 1.2 });
         }
-        const n = s > 4 ? 13 : 7, sway = Math.sin(T * 1.6 + seed) * 0.05, P0 = [x + lean, Hh, z + leanZ], fr = [];
+        const mid = s < 9, n = mid ? 8 : 13, sway = Math.sin(T * 1.6 + seed) * 0.05, P0 = [x + lean, Hh, z + leanZ], fr = [];
         for (let i = 0; i < n; i++) { const an = (i / n) * Math.PI * 2 + R() * 0.3; fr.push({ an, dx: Math.cos(an), dz: Math.sin(an), len: 3.2 + R() * 1.2, arch: 0.8 + R() * 0.6 }); }
         const toCam = [cam.pos[0] - P0[0], cam.pos[2] - P0[2]];
         fr.sort((a, b) => (a.dx * toCam[0] + a.dz * toCam[1]) - (b.dx * toCam[0] + b.dz * toCam[1]));
@@ -516,8 +632,8 @@ const CloudsCity = (() => {
             const width = (j) => 0.28 * Math.sin((j / 6) * Math.PI * 0.95 + 0.1) * cam.f / rib[j][2];
             const up = rib.map((p, j) => [p[0], p[1] - width(j) * 0.45]), dn = rib.map((p, j) => [p[0], p[1] + width(j) * 0.7]);
             const near = f.dx * toCam[0] + f.dz * toCam[1] > 0;
-            Ink.shape(g, up.concat(dn.reverse()), near ? P.plum : P.grape, { w: s > 6 ? lw(s, 0.05) : s > 2 ? 1 : 0, seed: seed * 101 + Math.round(f.an * 10), d, jit: s > 6 ? 0.5 : 0 });
-            if (s > 2.5) Ink.brush(g, rib.slice(1, 5).map((p, j) => [p[0], p[1] - width(j + 1) * 0.3]), { w: cap(0.04 * s, 0.8, 3.5), col: f.dx > 0 ? P.pink : P.cyan, seed: seed * 31 + Math.round(f.an * 10), d, taper: 0.4 });
+            Ink.shape(g, up.concat(dn.reverse()), near ? P.plum : P.grape, { w: mid ? 0 : lw(s, 0.05), seed: seed * 101 + Math.round(f.an * 10), d, jit: mid ? 0 : 0.5 });
+            if (!mid || near) Ink.brush(g, rib.slice(1, 5).map((p, j) => [p[0], p[1] - width(j + 1) * 0.3]), { w: cap(0.04 * s, 0.8, 3.5), col: f.dx > 0 ? P.pink : P.cyan, seed: seed * 31 + Math.round(f.an * 10), d, taper: 0.4 });
         }
     }
 
@@ -546,7 +662,7 @@ const CloudsCity = (() => {
         const at = (u, v, y = 0.7) => cam.p([t.x + ax * u + px * v, y, t.z + az * u + pz * v]);
         if (s > 1.4) {
             const body = [at(-2.15, -0.9, 0.9), at(2.15, -0.9, 0.9), at(2.15, 0.9, 0.9), at(-2.15, 0.9, 0.9)];
-            if (cam.pos[1] > 25) Ink.shape(g, body.map((p) => [p[0], p[1]]), t.col, { w: s > 4 ? lw(s, 0.06) : 0, seed: t.seed, d, jit: 0.3 });
+            if (cam.pos[1] > 25 || s < 5) Ink.shape(g, body.map((p) => [p[0], p[1]]), t.col, { w: s > 4 ? lw(s, 0.06) : 0, seed: t.seed, d, jit: s > 4 ? 0.3 : 0 });
             else boxCar(g, cam, t, s, d);
         }
         const r = cap(0.22 * s, 0.7, 6), trail = fx.trail ?? 0;
