@@ -19,34 +19,39 @@ const Drawn = (() => {
     const skyP = (cam, a, e) => { const r = 20000; return cam.p([cam.pos[0] + Math.sin(a) * Math.cos(e) * r, cam.pos[1] + Math.sin(e) * r, cam.pos[2] + Math.cos(a) * Math.cos(e) * r]); };
 
     // --- the sky -------------------------------------------------------------------------------
+    // The bands sit at fixed elevations above the horizon (they do not squash when the camera
+    // tilts) and the whole sky and bay are drawn in the camera's rolled frame: a frame rotated
+    // about the horizon's centre by the horizon's own slant on screen.
     const BANDS = ['#04022e', '#0f0138', '#18065e', '#260a8c', '#3c0ca8', '#6a1290', '#a8189e'];
+    const BAND_E = [0.75, 0.42, 0.26, 0.16, 0.095, 0.05, 0.02];          // radians above the horizon
+    const level = (cam) => { const a = skyP(cam, -0.6, 0), b = skyP(cam, 0.6, 0), c = skyP(cam, 0, 0); return { ang: Math.atan2(b[1] - a[1], b[0] - a[0]), cx: c[0], cy: c[1] }; };
+    const span = (cam, e) => { const p = skyP(cam, 0, e), c = skyP(cam, 0, 0); return Math.hypot(p[0] - c[0], p[1] - c[1]) * (p[1] < c[1] ? 1 : -1); };
     function sky(g, cam, T, d, fx, env, horizon) {
-        const bands = BANDS.map((c) => tone(c, fx, 0.4));
-        const top = -80, h = horizon - top;
-        const edges = bands.map((_, i) => top + h * (1 - Math.pow(1 - i / bands.length, 1.7)));
+        const bands = BANDS.map((c) => tone(c, fx, 0.4)), lv = level(cam), Wd = env.W * 1.6;
+        g.save(); g.translate(lv.cx, lv.cy); g.rotate(lv.ang);
+        const top = -env.H * 2;
         for (let i = 0; i < bands.length; i++) {
-            const y0 = edges[i], y1 = horizon + 6;
+            const y0 = i === 0 ? top : -span(cam, BAND_E[i]);
             g.fillStyle = bands[i];
-            g.beginPath(); g.moveTo(-80, y1); g.lineTo(-80, y0);
-            for (let x = -80; x <= env.W + 80; x += 30) g.lineTo(x, y0 + Ink.noise(900 + i, x / 160, 0) * 6 + Ink.noise(950 + i, x / 45, 0) * 2);
-            g.lineTo(env.W + 80, y1); g.closePath(); g.fill();
+            g.beginPath(); g.moveTo(-Wd, 6); g.lineTo(-Wd, y0);
+            for (let x = -Wd; x <= Wd; x += 30) g.lineTo(x, y0 + Ink.noise(900 + i, x / 160, 0) * 6 + Ink.noise(950 + i, x / 45, 0) * 2);
+            g.lineTo(Wd, 6); g.closePath(); g.fill();
+            if (i > 0) {
+                const y1 = i + 1 < bands.length ? -span(cam, BAND_E[i + 1]) : 0;
+                Ink.strokes(g, -Wd, y0 - (y0 - (i > 1 ? -span(cam, BAND_E[i - 1]) : y0 - 60)) * 0.45, Wd * 2, Math.max(4, Math.abs(y1 - y0) * 0.5), { ang: 0, count: 10, len: 220, w: 5, cols: [bands[i]], seed: 300 + i, d, alpha: 0.55 });
+            }
         }
-        // dry strokes of the lighter band below, dragged into each band: the sky is brushed
-        for (let i = 0; i + 1 < bands.length; i++) {
-            const y0 = edges[i], y1 = edges[i + 1];
-            Ink.strokes(g, -60, y0 + (y1 - y0) * 0.45, env.W + 120, (y1 - y0) * 0.5, { ang: 0, count: 7, len: 220, w: 5, cols: [bands[i + 1]], seed: 300 + i, d, alpha: 0.55 });
-        }
-        if (fx.hold > 0) { g.save(); g.globalAlpha = 0.3 * fx.hold; g.fillStyle = P.magenta; g.fillRect(-80, edges[bands.length - 1], env.W + 160, horizon - edges[bands.length - 1] + 6); g.restore(); }
+        if (fx.hold > 0) { const yh = -span(cam, BAND_E[bands.length - 1]); g.globalAlpha = 0.3 * fx.hold; g.fillStyle = P.magenta; g.fillRect(-Wd, yh, Wd * 2, -yh + 6); g.globalAlpha = 1; }
+        g.restore();
         // stars, fixed in the sky (they move with the camera), twinkling in size on twos
         const R = Motion.rng('ink-stars');
         for (let i = 0; i < 110; i++) {
             const a = (R() * 2 - 1) * 1.3, e = 0.03 + Math.pow(R(), 1.4) * 0.55, s0 = 1.5 + R() * 3.2, cyan = R() < 0.3;
             const p = skyP(cam, a, e); if (p[2] < 1 || p[1] > horizon - 8) continue;
-            const s = s0 * (0.55 + 0.55 * Ink.hsh(i, 7, d));
-            g.strokeStyle = cyan ? P.cyan : P.cream; g.lineWidth = Math.max(1, s * 0.35); g.lineCap = 'round';
-            g.beginPath(); g.moveTo(p[0] - s, p[1]); g.lineTo(p[0] + s, p[1]); g.moveTo(p[0], p[1] - s); g.lineTo(p[0], p[1] + s); g.stroke();
+            const sz = s0 * (0.55 + 0.55 * Ink.hsh(i, 7, d));
+            g.strokeStyle = cyan ? P.cyan : P.cream; g.lineWidth = Math.max(1, sz * 0.35); g.lineCap = 'round';
+            g.beginPath(); g.moveTo(p[0] - sz, p[1]); g.lineTo(p[0] + sz, p[1]); g.moveTo(p[0], p[1] - sz); g.lineTo(p[0], p[1] + sz); g.stroke();
         }
-        // the trip's sparkles: big eight-point stars fixed in the sky, swelling on the kick
         if (fx.trip > 0) {
             const R3 = Motion.rng('trip-stars');
             for (let i = 0; i < 22; i++) {
@@ -58,25 +63,25 @@ const Drawn = (() => {
                 g.closePath(); g.fill(); g.restore();
             }
         }
-        // the reference's falling bars: fixed directions, falling slowly through a band of sky,
-        // appearing and leaving by their length (no jump back)
+        // the falling bars: fixed directions (none near the moon), falling slowly, fading in and out
+        const MOON = [0.5, 0.2];
         const R2 = Motion.rng('ink-rain');
         for (let i = 0; i < 8; i++) {
-            const a = (R2() * 2 - 1) * 1.1, v = 0.008 + R2() * 0.008, ph = R2(), len = 0.03 + R2() * 0.035, col = R2() < 0.5 ? P.violet : P.purple, wdt = 9 + R2() * 7;
-            const span = 0.5, u = ((T * v / span + ph) % 1 + 1) % 1, eTop = 0.62 - u * span;
+            let a = (R2() * 2 - 1) * 1.1; const v = 0.008 + R2() * 0.008, ph = R2(), len = 0.03 + R2() * 0.035, col = R2() < 0.5 ? P.violet : P.purple, wdt = 9 + R2() * 7;
+            if (Math.abs(a - MOON[0]) < 0.14) a += a < MOON[0] ? -0.16 : 0.16;
+            const span2 = 0.5, u = ((T * v / span2 + ph) % 1 + 1) % 1, eTop = 0.62 - u * span2;
             const p0 = skyP(cam, a, eTop), p1 = skyP(cam, a, eTop - len); if (p0[2] < 1) continue;
             const fade = Math.min(1, u * 6, (1 - u) * 6);
             g.save(); g.globalAlpha = 0.9 * fade; g.fillStyle = tone(col, fx, 0.5);
             g.beginPath(); g.roundRect(p0[0] - wdt / 2, p0[1], wdt, Math.max(8, p1[1] - p0[1]), wdt / 2); g.fill(); g.restore();
         }
-        // the moon: a crescent shape (no disc cut by a guessed sky colour), inked on its lit edge
-        const m = skyP(cam, 0.62, 0.3);
-        if (m[2] > 1 && m[1] < horizon - 40) {
+        // the moon: a crescent, inked on its lit edge
+        const m = skyP(cam, MOON[0], MOON[1]);
+        if (m[2] > 1 && m[1] < horizon - 40 && m[1] > 30) {
             const r = 24, cres = [];
             for (let i = 0; i <= 20; i++) { const an = Math.PI * 0.42 + (i / 20) * Math.PI * 1.16; cres.push([m[0] + Math.cos(an) * r, m[1] + Math.sin(an) * r]); }
             for (let i = 20; i >= 0; i--) { const an = Math.PI * 0.42 + (i / 20) * Math.PI * 1.16; cres.push([m[0] + 9 + Math.cos(an) * r * 0.86, m[1] - 4 + Math.sin(an) * r * 0.86]); }
             Ink.shape(g, cres, P.cream, { w: 2.6, seed: 'moon', d, jit: 0.4 });
-            Ink.hatch(g, [m[0] - r * 0.72, m[1] - r * 0.25], [m[0] - r * 0.6, m[1] + r * 0.5], { count: 2, len: 7, w: 2, col: P.salmon, seed: 77, d, n: [1, 0] });
         }
     }
 
@@ -166,13 +171,16 @@ const Drawn = (() => {
 
     // --- the bay ------------------------------------------------------------------------------
     function bay(g, L, cam, T, d, fx, env, horizon) {
-        g.fillStyle = '#18065e'; g.fillRect(-80, horizon, env.W + 160, env.H - horizon + 80);
+        const lv = level(cam), Wd = env.W * 1.6;
+        g.save(); g.translate(lv.cx, lv.cy); g.rotate(lv.ang);
+        g.fillStyle = '#18065e'; g.fillRect(-Wd, 0, Wd * 2, env.H * 2);
         for (const [f, col, seed] of [[0.28, P.deep, 55], [0.6, P.navy, 56]]) {
-            const y2 = horizon + (env.H - horizon) * f;
-            g.fillStyle = col; g.beginPath(); g.moveTo(-80, env.H + 80);
-            for (let x = -80; x <= env.W + 80; x += 30) g.lineTo(x, y2 + Ink.noise(seed, x / 260, 0) * 22 + Ink.noise(seed + 9, x / 70, 0) * 5);
-            g.lineTo(env.W + 80, env.H + 80); g.closePath(); g.fill();
+            const y2 = (env.H - lv.cy) * f;
+            g.fillStyle = col; g.beginPath(); g.moveTo(-Wd, env.H * 2);
+            for (let x = -Wd; x <= Wd; x += 30) g.lineTo(x, y2 + Ink.noise(seed, x / 260, 0) * 22 + Ink.noise(seed + 9, x / 70, 0) * 5);
+            g.lineTo(Wd, env.H * 2); g.closePath(); g.fill();
         }
+        g.restore();
         if (!panoCols) return;
         // the city mirrored: under each lit column a broken stack of horizontal strokes, as long
         // as the column stands tall on screen, rows jittered per column, fading with depth
@@ -192,8 +200,8 @@ const Drawn = (() => {
         }
         // the water nearer: loose strokes of the sky's colours on the swell, everywhere
         const R = Motion.rng('swell-ink');
-        for (let i = 0; i < 90; i++) {
-            const a = (R() * 2 - 1) * 1.2, dist = 60 + Math.pow(R(), 1.5) * 1600, ph = R(), col = [P.violet, P.purple, P.magenta, P.royal, P.salmon][i % 5];
+        for (let i = 0; i < 170; i++) {
+            const a = (R() * 2 - 1) * 1.2, dist = 25 + Math.pow(R(), 1.8) * 1600, ph = R(), col = [P.violet, P.purple, P.magenta, P.royal, P.salmon][i % 5];
             const p = cam.p([cam.pos[0] + Math.sin(a) * dist + Math.sin(T * 0.7 + ph * 6) * 2, C.WATER, cam.pos[2] + Math.cos(a) * dist]);
             if (p[2] < 3 || p[1] < horizon + 2 || p[1] > env.H + 10) continue;
             const l = Math.min(70, 9000 / dist + 4);
@@ -265,21 +273,21 @@ const Drawn = (() => {
             // the slab's outer face (from beside), the asphalt, the median
             if (outside) { const A = edge(7.9, 0), B = edge(7.9, -1.3); if (A.length > 1) Ink.shape(g, A.concat(B.reverse()), P.royal, { w: 3, seed: 'slabR', d, jit: 0 }); }
             for (const q of carriage) if (q) Ink.shape(g, q, '#1a0670', { w: 0, seed: 'asph', d, jit: 0 });
-            const med = strip(-4.4, -0.4, 0.18);
-            if (med) { Ink.shape(g, med, P.plum, { w: 0, seed: 'median', d, jit: 0 }); for (const xx of [-4.4, -0.4]) { const E = edge(xx, 0.18); if (E.length > 1) Ink.brush(g, E, { w: 2.4, seed: 'kerb' + xx + zA, d, taper: 0.02 }); } }
             // on the asphalt (clipped to it): pools of lamp light, wet reflections, paint
             g.save(); g.beginPath(); for (const q of carriage) if (q) { q.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); } g.clip();
             for (let k = kN + 50; k >= kN; k--) {
-                const zl = C.lampZ(k); if (!inR(zl) || zl > zc + 260 || zl < zNear - 6) continue;
+                const zl = C.lampZ(k); if (zl + 6 < zA || zl - 6 > zB || zl > zc + 260 || zl < zNear - 6) continue;
                 for (const xl of [1.7, -6.5]) for (const [rz, col] of [[1, P.indigo], [0.6, '#4a10c8']]) {
-                    const pts = []; for (let i = 0; i < 48; i++) { const an = (i / 48) * Math.PI * 2, wob = 1 + 0.05 * Math.sin(i * 1.3 + k); pts.push([xl + Math.cos(an) * 3.4 * rz * wob, y(zl) + 0.02, zl + Math.sin(an) * 6 * rz * wob]); }
+                    const pts = []; for (let i = 0; i < 64; i++) { const an = (i / 64) * Math.PI * 2, wob = 1 + 0.05 * Math.sin(i * 1.3 + k); pts.push([xl + Math.cos(an) * 3.4 * rz * wob, 0, Math.max(zc + 1.5, zl + Math.sin(an) * 6 * rz * wob)]); }
+                    for (const q of pts) q[1] = y(q[2]) + 0.02;
                     const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: 0, seed: k * 5 + rz * 10, d, jit: 0 });
                 }
+                if (zl - zc > 150) continue;
                 for (const xh of [1.7, -6.5]) for (let j = 0; j < 6; j++) {
-                    const zz = zl - 0.6 - j * 1.1; if (zz < zNear + 0.3) break;
+                    const zz = zl - 0.6 - j * 1.1; if (zz < zNear + 0.3 || zz < zA - 1 || zz > zB + 1) continue;
                     const p = cam.p([xh + (Ink.hsh(k, j, 0) - 0.5) * 0.4, y(zz) + 0.01, zz]); if (p[2] < 0.5) continue;
-                    const s = cam.f / p[2], wdt = Math.min(90, (0.35 + j * 0.12) * s);
-                    Ink.brush(g, [[p[0] - wdt / 2, p[1]], [p[0] + wdt / 2, p[1] + 0.5]], { w: cap(0.07 * s, 1, 7), col: j % 2 ? P.orange : P.gold, seed: k * 13 + j, d, taper: 0.45, alpha: 0.85 * (1 - j / 7) / (1 + (zl - zc) / 80), light: true });
+                    const s = cam.f / p[2], wdt = Math.min(90, (0.3 + j * 0.1) * s * (1 - j / 9));
+                    Ink.brush(g, [[p[0] - wdt / 2, p[1]], [p[0] + wdt / 2, p[1] + 0.5]], { w: cap(0.06 * s * (1 - j / 9), 1, 6), col: [P.gold, P.orange, P.salmon][j % 3], seed: k * 13 + j, d, taper: 0.45, light: true });
                 }
             }
             const paint = '#b8a2e8', gold = '#e8b04a';
@@ -288,8 +296,12 @@ const Drawn = (() => {
                 for (const xx of [3.7, -8.1]) { const q = Neon.poly(cam, [[xx - 0.08, y(z0) + 0.01, z0], [xx + 0.08, y(z0) + 0.01, z0], [xx + 0.08, y(z1) + 0.01, z1], [xx - 0.08, y(z1) + 0.01, z1]]); if (q) Ink.shape(g, q, paint, { w: 0, seed: Math.round(zd * 3 + xx), d, jit: 0.6, light: true }); }
             }
             for (const [xx, col] of [[-0.6, gold], [7.1, paint], [-4.2, gold], [-11.5, paint]]) { const q = strip(xx - 0.06, xx + 0.06, 0.01); if (q) Ink.shape(g, q, col, { w: 0, seed: 'line' + xx, d, jit: 0, light: true }); }
-            if (fx.onDeck) fx.onDeck(zA, zB);
+            if (fx.onDeck) fx.onDeck(zA, zB, (c) => { c.beginPath(); for (const q of carriage) if (q) { q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath(); } c.clip(); });
             g.restore();
+            // the raised median, after what lies on the asphalt: its kerb faces, its top, the kerb lines
+            for (const xx of [-4.4, -0.4]) { const A = edge(xx, 0), B = edge(xx, 0.18); if (A.length > 1 && B.length > 1) Ink.shape(g, A.concat(B.slice().reverse()), P.grape, { w: 0, seed: 'kf' + xx, d, jit: 0 }); }
+            const med = strip(-4.4, -0.4, 0.18);
+            if (med) { Ink.shape(g, med, P.plum, { w: 0, seed: 'median', d, jit: 0 }); for (const xx of [-4.4, -0.4]) { const E = edge(xx, 0.18); if (E.length > 1) Ink.brush(g, E, { w: 2.4, seed: 'kerb' + xx, d, taper: 0.02 }); } }
             // the parapets seen from the deck: their face, their cap, the tube seated on it
             for (const side of outside ? [-1] : [-1, 1]) parapet(side, edge, zA, zB);
         }
@@ -304,11 +316,12 @@ const Drawn = (() => {
             if (A.length > 1 && B.length > 1) {
                 Ink.shape(g, A.concat(B.slice().reverse()), right && outside ? P.royal : face, { w: 0, seed: 'par' + side, d, jit: 0 });
                 Ink.brush(g, A, { w: 3, seed: 'parA' + side + zA, d, taper: 0.03 });
-                for (let k = kN + 24; k >= kN; k--) {
-                    const zl = C.lampZ(k); if (zl < Math.max(zA, zc + 2) || zl > Math.min(zB, zc + 160)) continue;
-                    const a = cam.p([fx0, y(zl) + 0.85, zl - 3]), b = cam.p([fx0, y(zl) + 0.85, zl + 3]); if (a[2] < 0.5 || b[2] < 0.5) continue;
-                    const s = cam.f / a[2];
-                    Ink.hatch(g, [a[0], a[1]], [b[0], b[1]], { count: 5, len: Math.min(55, 0.5 * s), w: cap(0.05 * s, 1, 5), col: right ? P.salmon : P.pink, seed: k * 41 + side, d, n: [0, 1], ang: 0.2 });
+                // light along the whole face: strokes every 5 m, warmer where a lamp stands
+                for (let zh = Math.ceil(Math.max(zA, zc + 2) / 5) * 5; zh < Math.min(zB, zc + 160); zh += 5) {
+                    const a = cam.p([fx0, y(zh) + 0.85, zh - 2.2]), b = cam.p([fx0, y(zh) + 0.85, zh + 2.2]); if (a[2] < 0.5 || b[2] < 0.5) continue;
+                    const s = cam.f / a[2], lit = C.lampLight(zh);
+                    if (s < 8) continue;
+                    Ink.hatch(g, [a[0], a[1]], [b[0], b[1]], { count: 2 + Math.round(lit * 3), len: Math.min(50, 0.45 * s), w: cap(0.045 * s, 1, 4.5), col: lit > 0.4 ? (right ? P.salmon : P.pink) : (right ? P.pink : P.cyan), seed: Math.round(zh * 7) + side, d, n: [0, 1], ang: 0.2 });
                 }
                 for (let zj = Math.ceil(Math.max(zA, zc + 2) / 6) * 6; zj < Math.min(zB, zc + 120); zj += 6) {
                     const a = cam.p([fx0, y(zj) + 0.05, zj]), b = cam.p([fx0, y(zj) + h - 0.05, zj]); if (a[2] < 0.5) continue;
@@ -317,10 +330,14 @@ const Drawn = (() => {
             }
             const T0 = edge(inner, h), T1 = edge(outer, h);
             if (T0.length > 1 && T1.length > 1) { Ink.shape(g, T0.concat(T1.slice().reverse()), capC, { w: 0, seed: 'cap' + side, d, jit: 0 }); Ink.brush(g, right === !outside ? T0 : T1, { w: 3, seed: 'capI' + side + zA, d, taper: 0.03 }); }
-            const TT = edge((inner + outer) / 2, h + 0.06);
-            if (TT.length > 1) {
-                const core = mix(neon.startsWith('#') ? hex(neon) : [255, 120, 220], [255, 255, 255], 0.4);
-                for (const c of [g, L]) { c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = neon; c.lineWidth = c === L ? 5 : 4; c.beginPath(); TT.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.stroke(); if (c === g) { c.strokeStyle = css(core); c.lineWidth = 1.3; c.stroke(); } c.restore(); }
+            // the tube: segment by segment, as wide as a 9 cm tube at its distance (1 px far away)
+            const core = css(mix(neon.startsWith('#') ? hex(neon) : [255, 120, 220], [255, 255, 255], 0.4));
+            const xt = (inner + outer) / 2, zt = [];
+            for (const z of zs) if (z >= zA && z <= zB) zt.push(z);
+            for (let i = 0; i + 1 < zt.length; i++) {
+                const a = cam.p([xt, y(zt[i]) + h + 0.06, zt[i]]), b = cam.p([xt, y(zt[i + 1]) + h + 0.06, zt[i + 1]]); if (a[2] < 0.3 || b[2] < 0.3) continue;
+                const wd = cap(0.09 * cam.f / a[2], 0.9, 6);
+                for (const c of [g, L]) { c.save(); c.lineCap = 'round'; c.strokeStyle = neon; c.lineWidth = c === L ? wd * 1.4 : wd; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); if (c === g && wd > 2) { c.strokeStyle = core; c.lineWidth = wd * 0.32; c.stroke(); } c.restore(); }
             }
         }
 
@@ -351,42 +368,48 @@ const Drawn = (() => {
     function lamp(g, L, cam, z, d, fx) {
         const yb = C.y(z), base = cam.p([-2.4, yb + 0.2, z]), top = cam.p([-2.4, yb + 10.6, z]);
         if (top[2] < 0.5) return;
-        const s = cam.f / top[2], lit = tone(P.violet, fx, 0.5);
-        // a base plate, the mast, its lit edge
-        const bp = cam.p([-2.4, yb + 0.35, z]), bs = cam.f / Math.max(0.5, bp[2]);
-        Ink.shape(g, [[bp[0] - 0.3 * bs, base[1]], [bp[0] - 0.25 * bs, bp[1]], [bp[0] + 0.25 * bs, bp[1]], [bp[0] + 0.3 * bs, base[1]]], P.indigo, { w: lw(bs, 0.04), seed: Math.round(z * 11), d });
-        Ink.brush(g, [[base[0], base[1]], [top[0], top[1]]], { w: cap(0.2 * s, 1.6, 9), col: P.ink, seed: Math.round(z * 13), d, taper: 0.04 });
-        Ink.brush(g, [[base[0] + 0.06 * s, base[1]], [top[0] + 0.05 * s, top[1]]], { w: cap(0.05 * s, 1, 3), col: lit, seed: Math.round(z * 14), d, taper: 0.3 });
+        const s = cam.f / top[2], sB = cam.f / Math.max(0.5, base[2]), lit = tone(P.violet, fx, 0.5);
+        // a base plate, a mast 0.24 m thick at the foot and 0.14 at the top, its lit edge on its edge
+        const bp = cam.p([-2.4, yb + 0.5, z]);
+        Ink.shape(g, [[base[0] - 0.3 * sB, base[1]], [bp[0] - 0.22 * sB, bp[1]], [bp[0] + 0.22 * sB, bp[1]], [base[0] + 0.3 * sB, base[1]]], P.indigo, { w: lw(sB, 0.04), seed: Math.round(z * 11), d });
+        const w0 = 0.12 * sB, w1 = 0.07 * s;
+        Ink.shape(g, [[bp[0] - w0, bp[1]], [top[0] - w1, top[1]], [top[0] + w1, top[1]], [bp[0] + w0, bp[1]]], '#1a0450', { w: lw(s, 0.03), seed: Math.round(z * 13), d, jit: 0.3 });
+        Ink.brush(g, [[bp[0] + w0 * 0.5, bp[1]], [top[0] + w1 * 0.5, top[1]]], { w: cap(Math.min(w0, w1) * 0.5, 1, 6), col: lit, seed: Math.round(z * 14), d, taper: 0.3 });
         for (const dir of [1, -1]) {
             const hx = -2.4 + dir * 4.1, mid = cam.p([-2.4 + dir * 1.6, yb + 10.8, z]), end = cam.p([hx, yb + 10.1, z]);
             if (end[2] < 0.5) continue;
-            Ink.brush(g, [[top[0], top[1]], [mid[0], mid[1]], [end[0], end[1]]], { w: cap(0.1 * s, 1.4, 6), col: P.ink, seed: Math.round(z * 17 + dir), d, taper: 0.1 });
-            Ink.brush(g, [[top[0], top[1] - 0.06 * s], [mid[0], mid[1] - 0.06 * s], [end[0], end[1] - 0.05 * s]], { w: cap(0.035 * s, 1, 2.5), col: lit, seed: Math.round(z * 19 + dir), d, taper: 0.3 });
-            const hs = cam.f / end[2], hw = 0.45 * hs, hh = 0.14 * hs, col = fx.lampCol ? css(fx.lampCol) : P.gold;
+            const aw = cap(0.09 * s, 1.4, 14);
+            Ink.brush(g, [[top[0], top[1]], [mid[0], mid[1]], [end[0], end[1]]], { w: aw, col: P.ink, seed: Math.round(z * 17 + dir), d, taper: 0.1 });
+            Ink.brush(g, [[top[0], top[1] - aw * 0.3], [mid[0], mid[1] - aw * 0.3], [end[0], end[1] - aw * 0.25]], { w: cap(aw * 0.35, 1, 5), col: lit, seed: Math.round(z * 19 + dir), d, taper: 0.3 });
+            const hs = cam.f / end[2], hw = 0.45 * hs, hh = 0.14 * hs;
+            const col = fx.lampCol ? css(fx.lampCol) : css(mix(P.gold, P.orange, 1 - Math.min(1, fx.lampPower ?? 1)));
             Ink.shape(g, [[end[0] - hw, end[1] - hh * 0.4], [end[0] + hw, end[1] - hh * 0.4], [end[0] + hw * 0.8, end[1] + hh], [end[0] - hw * 0.8, end[1] + hh]], col, { w: lw(hs, 0.05), seed: Math.round(z * 23 + dir), d, jit: 0.4 });
-            Neon.last.glint(null, L, end[0], end[1] + hh * 0.3, Math.min(60, Math.max(3, 0.6 * hs)) * (fx.lampPower ?? 1), fx.lampCol ?? hex(P.orange), { lightOnly: true, alpha: 0.55, halo: fx.halo ?? 1, star: fx.star ?? 0, rays: 4 });
+            Neon.last.glint(null, L, end[0], end[1] + hh * 0.3, Math.min(60, Math.max(3, 0.6 * hs)) * (fx.lampPower ?? 1), fx.lampCol ?? hex(P.orange), { lightOnly: true, alpha: 0.55, halo: fx.halo ?? 1, star: 0 });
+            // the star, drawn: four tapered strokes of light round the head when the lamps swell
+            const st = (fx.star ?? 0) * Math.min(1, hs / 25);
+            if (st > 0.05) for (let r = 0; r < 4; r++) { const an = r * Math.PI / 2 + 0.3, len = st * Math.min(90, 1.2 * hs); Ink.brush(L, [[end[0], end[1] + hh * 0.3], [end[0] + Math.cos(an) * len, end[1] + hh * 0.3 + Math.sin(an) * len]], { w: cap(0.06 * hs, 1, 4), col: css(fx.lampCol ?? hex(P.gold)), seed: Math.round(z * 29 + r + dir * 7), d, taper: 0.9, light: true }); }
         }
     }
 
     function palm(g, L, cam, x, z, seed, T, d, fx) {
         const yb = C.y(z) + 0.18, R = Motion.rng('palm' + seed), H = 12 + R() * 3, lean = (R() - 0.5) * 0.6;
         const base = cam.p([x, yb, z]), top = cam.p([x + lean, yb + H, z]); if (top[2] < 0.6) return;
-        const s = cam.f / top[2], sb = cam.f / base[2];
-        // the trunk: purple, ringed, a cyan rim on the city side and the uplight's salmon on the other
-        const pts = []; for (let i = 0; i <= 8; i++) { const u = i / 8, p = cam.p([x + lean * u * u, yb + H * 0.88 * u, z]), w = (0.3 + 0.06 * Math.sin(u * 2.4) - 0.1 * u) * cam.f / p[2]; pts.push([p[0], p[1], w]); }
+        const s = cam.f / top[2];
+        // the trunk runs to the crown: purple, ringed, a cyan rim on the city side, the uplight's
+        // salmon on the other (strokes only while they can be seen as strokes)
+        const pts = []; for (let i = 0; i <= 9; i++) { const u = i / 9, p = cam.p([x + lean * u * u, yb + H * 0.9 * u, z]), w = (0.3 + 0.06 * Math.sin(u * 2.4) - 0.1 * u) * cam.f / p[2]; pts.push([p[0], p[1], w]); }
         const outline = pts.map((p) => [p[0] - p[2], p[1]]).concat(pts.slice().reverse().map((p) => [p[0] + p[2], p[1]]));
         Ink.shape(g, outline, P.purple, { w: lw(s, 0.06), seed: seed * 7 + 1, d, jit: 0.5 });
-        for (let i = 1; i < 8; i++) { const p = pts[i]; Ink.brush(g, [[p[0] - p[2] * 0.8, p[1]], [p[0] + p[2] * 0.8, p[1] + p[2] * 0.12]], { w: cap(0.03 * s, 0.8, 2.5), seed: seed * 13 + i, d, taper: 0.4, alpha: 0.7 }); }
-        Ink.brush(g, pts.slice(1, 8).map((p) => [p[0] - p[2] * 0.62, p[1]]), { w: cap(0.05 * s, 1, 4), col: tone(P.cyan, fx), seed: seed * 17, d, taper: 0.3 });
-        Ink.hatch(g, [pts[0][0] + pts[0][2] * 0.4, pts[0][1] - 4], [pts[6][0] + pts[6][2] * 0.4, pts[6][1]], { count: 7, len: cap(0.3 * s, 3, 26), w: cap(0.045 * s, 1, 4), col: P.salmon, seed: seed * 3, d, n: [1, 0], ang: 1.2 });
-        // the crown: fronds as leaf shapes (plum with ink) arching out and down, lit at the top
-        const n = 15, sway = Math.sin(T * 1.6 + seed) * 0.05;
-        const fr = [];
-        for (let i = 0; i < n; i++) {
-            const an = (i / n) * Math.PI * 2 + R() * 0.25, dx = Math.cos(an), dz = Math.sin(an), len = 3.4 + R() * 1.2, arch = 0.9 + R() * 0.6;
-            fr.push({ an, dx, dz, len, arch, depth: dz });
-        }
-        fr.sort((a, b) => b.depth - a.depth);                 // far fronds first
+        if (s > 10) for (let i = 1; i < 9; i++) { const p = pts[i]; Ink.brush(g, [[p[0] - p[2] * 0.8, p[1]], [p[0] + p[2] * 0.8, p[1] + p[2] * 0.12]], { w: cap(0.03 * s, 0.8, 2.5), seed: seed * 13 + i, d, taper: 0.4, alpha: 0.7 }); }
+        Ink.brush(g, pts.slice(1, 9).map((p) => [p[0] - p[2] * 0.62, p[1]]), { w: cap(0.05 * s, 1, 4), col: tone(P.cyan, fx), seed: seed * 17, d, taper: 0.3 });
+        if (s > 14) Ink.hatch(g, [pts[0][0] + pts[0][2] * 0.4, pts[0][1] - 4], [pts[6][0] + pts[6][2] * 0.4, pts[6][1]], { count: s > 40 ? 7 : 4, len: cap(0.3 * s, 3, 26), w: cap(0.045 * s, 1, 4), col: P.salmon, seed: seed * 3, d, n: [1, 0], ang: 1.2 });
+        // the crownshaft: a smooth green-violet column from the trunk's top to the crown
+        const c0 = cam.p([x + lean, yb + H * 0.9, z]), c1 = cam.p([x + lean, yb + H, z]), cwd = 0.23 * cam.f / c0[2];
+        Ink.shape(g, [[c0[0] - cwd, c0[1]], [c1[0] - cwd * 0.8, c1[1]], [c1[0] + cwd * 0.8, c1[1]], [c0[0] + cwd, c0[1]]], '#2a5a7a', { w: lw(s, 0.05), seed: seed * 9, d, jit: 0.4 });
+        // fronds as leaf shapes springing from the crown, far ones first
+        const n = 15, sway = Math.sin(T * 1.6 + seed) * 0.05, fr = [];
+        for (let i = 0; i < n; i++) { const an = (i / n) * Math.PI * 2 + R() * 0.25; fr.push({ an, dx: Math.cos(an), dz: Math.sin(an), len: 3.4 + R() * 1.2, arch: 0.9 + R() * 0.6 }); }
+        fr.sort((a, b) => b.dz - a.dz);
         const P0 = [x + lean, yb + H, z];
         for (const f of fr) {
             const pt = (u) => cam.p([P0[0] + f.dx * f.len * u, P0[1] + f.arch * Math.sin(u * Math.PI * 0.7) - u * u * (2.4 + sway * 10 * f.dx), P0[2] + f.dz * f.len * u * 0.9]);
@@ -394,61 +417,71 @@ const Drawn = (() => {
             if (rib.some((p) => p[2] < 0.5)) continue;
             const width = (j) => (0.26 * Math.sin((j / 8) * Math.PI * 0.95 + 0.1)) * cam.f / rib[j][2];
             const up = rib.map((p, j) => [p[0], p[1] - width(j) * 0.35]), dn = rib.map((p, j) => [p[0] + f.dx * width(j) * 0.2, p[1] + width(j) * 0.8]);
-            Ink.shape(g, up.concat(dn.reverse()), f.depth > 0 ? P.grape : P.plum, { w: lw(s, 0.05), seed: seed * 101 + Math.round(f.an * 10), d, jit: 0.5 });
-            // serrated leaflet ends along the lower edge
-            for (let j = 2; j <= 8; j++) { const p = rib[j], ll = width(j) * 1.1; Ink.brush(g, [[p[0], p[1] + width(j) * 0.4], [p[0] + f.dx * ll * 0.3, p[1] + ll]], { w: cap(0.04 * s, 1, 3), seed: seed * 997 + Math.round(f.an * 10) * 13 + j, d, taper: 0.5, wob: 0.4 }); }
+            Ink.shape(g, up.concat(dn.reverse()), f.dz > 0 ? P.grape : P.plum, { w: lw(s, 0.05), seed: seed * 101 + Math.round(f.an * 10), d, jit: 0.5 });
+            if (s > 12) for (let j = 2; j <= 8; j++) { const p = rib[j], ll = width(j) * 1.1; Ink.brush(g, [[p[0], p[1] + width(j) * 0.4], [p[0] + f.dx * ll * 0.3, p[1] + ll]], { w: cap(0.04 * s, 1, 3), seed: seed * 997 + Math.round(f.an * 10) * 13 + j, d, taper: 0.5, wob: 0.4 }); }
             Ink.brush(g, rib.slice(1, 6).map((p, j) => [p[0], p[1] - width(j + 1) * 0.3]), { w: cap(0.04 * s, 1, 3.5), col: f.dx > 0 ? tone(P.pink, fx) : tone(P.cyan, fx), seed: seed * 31 + Math.round(f.an * 10), d, taper: 0.4 });
         }
     }
 
-    // a clipped shrub: three or four round lobes side by side, the middle ones taller, a
-    // violet ink, light strokes on its top
+    // a clipped shrub: the upper envelope of three or four round lobes (one clean outline), a
+    // violet ink, light strokes lying on its top
     function shrub(g, cam, x, z, sc, seed, d, fx) {
         const b = cam.p([x, C.y(z) + 0.18, z]); if (b[2] < 0.8) return;
         const s = cam.f / b[2], R = Motion.rng('shrub' + seed), lobes = 3 + Math.floor(R() * 2);
-        const w = 0.62 * sc * s, pts = [[b[0] + w, b[1]], [b[0] - w, b[1]]];
-        for (let i = 0; i < lobes; i++) {
-            const cx = b[0] - w + (2 * w * (i + 0.5)) / lobes, r = (w / lobes) * (1.25 + 0.25 * R());
-            const lift = (0.35 + 0.45 * Math.sin(((i + 0.5) / lobes) * Math.PI)) * w * 0.9;
-            for (let j = 0; j <= 8; j++) { const a = Math.PI * (1 + j / 8); pts.push([cx + Math.cos(a) * r, b[1] - lift + Math.sin(a) * r * 0.85]); }
+        const w = 0.62 * sc * s, L0 = [];
+        for (let i = 0; i < lobes; i++) { const cx = -w + (2 * w * (i + 0.5)) / lobes, r = (w / lobes) * (1.25 + 0.25 * R()), lift = (0.35 + 0.45 * Math.sin(((i + 0.5) / lobes) * Math.PI)) * w * 0.9; L0.push([cx, r, lift]); }
+        const top = (dx) => { let best = 0; for (const [cx, r, lift] of L0) { const u = (dx - cx) / r; if (Math.abs(u) < 1) best = Math.max(best, lift + Math.sqrt(1 - u * u) * r * 0.85); } return best; };
+        const pts = [[b[0] - w, b[1]]];
+        for (let i = 0; i <= 24; i++) { const dx = -w + (2 * w * i) / 24; pts.push([b[0] + dx, b[1] - Math.max(2, top(dx))]); }
+        pts.push([b[0] + w, b[1]]);
+        Ink.shape(g, pts, seed % 2 ? '#4a10c8' : P.royal, { w: lw(s, 0.035), seed: 7000 + seed, d, jit: 0.4 });
+        if (s > 18) for (let i = 0; i < 4; i++) {
+            const dx = -w * 0.6 + (1.2 * w * (i + 0.5)) / 4, ty = b[1] - top(dx) + cap(0.05 * s, 2, 8), l = cap(0.14 * s, 3, 14);
+            Ink.brush(g, [[b[0] + dx - l * 0.5, ty + l * 0.15], [b[0] + dx + l * 0.5, ty]], { w: cap(0.03 * s, 1, 3), col: seed % 3 ? tone(P.cyan, fx) : P.pink, seed: 7100 + seed * 7 + i, d, taper: 0.5 });
         }
-        pts.splice(1, 0); pts.push([b[0] + w, b[1]]);
-        const body = [[b[0] - w, b[1]]].concat(pts.slice(2)).concat([[b[0] + w, b[1]]]);
-        Ink.shape(g, body, seed % 2 ? '#4a10c8' : P.royal, { w: lw(s, 0.035), seed: 7000 + seed, d, jit: 0.4 });
-        if (s > 18) Ink.hatch(g, [b[0] - w * 0.55, b[1] - w * 1.05], [b[0] + w * 0.55, b[1] - w * 1.1], { count: 4, len: cap(0.16 * s, 3, 16), w: cap(0.03 * s, 1, 3), col: seed % 3 ? tone(P.cyan, fx) : P.pink, seed: 7100 + seed, d, n: [0, -1], ang: 0.5 });
     }
 
-    // the oncoming and leading traffic: a minimal drawn car
+    // the traffic: a small car as two boxes through the camera (body and cabin), faces that
+    // face the camera drawn far to near, lights on its tail or nose
     function car(g, L, cam, t, d, fx) {
-        const yb = C.y(t.z), p = cam.p([t.x, yb + 0.55, t.z]); if (p[2] < 2) return;
-        const s = cam.f / p[2], bw = 0.9 * s;
-        // tyres, body, cabin with its windscreen, bumper
-        for (const dx of [-0.7, 0.7]) Ink.shape(g, [[p[0] + dx * s - 0.14 * s, p[1] + 0.25 * s], [p[0] + dx * s + 0.14 * s, p[1] + 0.25 * s], [p[0] + dx * s + 0.14 * s, p[1] + 0.55 * s], [p[0] + dx * s - 0.14 * s, p[1] + 0.55 * s]], P.ink, { w: 0, seed: Math.round(t.z * 3 + dx * 10), d });
-        Ink.shape(g, [[p[0] - bw, p[1] + 0.35 * s], [p[0] - bw, p[1] - 0.1 * s], [p[0] - bw * 0.95, p[1] - 0.25 * s], [p[0] + bw * 0.95, p[1] - 0.25 * s], [p[0] + bw, p[1] - 0.1 * s], [p[0] + bw, p[1] + 0.35 * s]], t.dir > 0 ? P.violet : P.royal, { w: lw(s, 0.05), seed: Math.round(t.z * 5), d });
-        Ink.shape(g, [[p[0] - bw * 0.72, p[1] - 0.25 * s], [p[0] - bw * 0.55, p[1] - 0.62 * s], [p[0] + bw * 0.55, p[1] - 0.62 * s], [p[0] + bw * 0.72, p[1] - 0.25 * s]], P.indigo, { w: lw(s, 0.045), seed: Math.round(t.z * 7), d });
-        Ink.shape(g, [[p[0] - bw * 0.6, p[1] - 0.28 * s], [p[0] - bw * 0.48, p[1] - 0.56 * s], [p[0] + bw * 0.48, p[1] - 0.56 * s], [p[0] + bw * 0.6, p[1] - 0.28 * s]], P.cyan, { w: 0, seed: Math.round(t.z * 9), d, alpha: 0.55 });
-        Ink.shape(g, [[p[0] - bw, p[1] + 0.2 * s], [p[0] + bw, p[1] + 0.2 * s], [p[0] + bw, p[1] + 0.33 * s], [p[0] - bw, p[1] + 0.33 * s]], P.ink, { w: 0, seed: Math.round(t.z * 11), d });
-        const col = t.dir > 0 ? P.red : P.cream;
+        const yb = C.y(t.z), x = t.x, z = t.z, dir = t.dir;
+        const pc = cam.p([x, yb + 0.6, z]); if (pc[2] < 2) return;
+        const s = cam.f / pc[2];
+        const boxes = [[x - 0.9, x + 0.9, yb + 0.25, yb + 0.95, z - 2.15, z + 2.15, dir > 0 ? P.violet : P.royal], [x - 0.75, x + 0.75, yb + 0.95, yb + 1.4, z - 1.0 * dir - 0.3, z + 1.0 * dir - 0.3, P.indigo]];
+        for (const [x0, x1, y0, y1, za, zb, col] of boxes) {
+            const z0 = Math.min(za, zb), z1 = Math.max(za, zb);
+            const faces = [
+                [[[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]], [0, 1, 0], 1.0],
+                [[[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]], [0, 0, -1], 0.75],
+                [[[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], [0, 0, 1], 0.75],
+                [[[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]], [-1, 0, 0], 0.6],
+                [[[x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0]], [1, 0, 0], 0.6],
+            ].filter(([pts, n]) => { const c = pts[0]; return (cam.pos[0] - c[0]) * n[0] + (cam.pos[1] - c[1]) * n[1] + (cam.pos[2] - c[2]) * n[2] > 0; });
+            for (const [pts, , k] of faces) { const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, css(mix(col, '#04022e', 1 - k)), { w: lw(s, 0.04), seed: Math.round(z * 5 + k * 100 + y0 * 10), d, jit: 0.3 }); }
+        }
+        // lights on the face turned to us
+        const zf = dir > 0 ? z - 2.16 : z + 2.16, seen = dir > 0 ? cam.pos[2] < zf : cam.pos[2] > zf;
+        if (!seen) return;
+        const col = dir > 0 ? P.red : P.cream;
         for (const dx of [-0.62, 0.62]) {
-            const lx = p[0] + dx * s, ly = p[1] + 0.03 * s;
-            Ink.shape(g, [[lx - 0.15 * s, ly - 0.06 * s], [lx + 0.15 * s, ly - 0.06 * s], [lx + 0.15 * s, ly + 0.07 * s], [lx - 0.15 * s, ly + 0.07 * s]], col, { w: lw(s, 0.02), seed: Math.round(t.z * 13 + dx * 7), d });
-            Neon.last.glint(null, L, lx, ly, Math.max(2, 0.3 * s), hex(col), { lightOnly: true, alpha: 0.55, halo: fx.halo ?? 1 });
+            const q = Neon.poly(cam, [[x + dx - 0.18, yb + 0.6, zf], [x + dx + 0.18, yb + 0.6, zf], [x + dx + 0.18, yb + 0.75, zf], [x + dx - 0.18, yb + 0.75, zf]]); if (!q) continue;
+            Ink.shape(g, q, col, { w: lw(s, 0.02), seed: Math.round(z * 13 + dx * 7), d, light: true });
+            const c = cam.p([x + dx, yb + 0.68, zf]);
+            Neon.last.glint(null, L, c[0], c[1], Math.max(2, 0.35 * s) * (dir < 0 ? 1.5 : 1), hex(col), { lightOnly: true, alpha: 0.6, halo: fx.halo ?? 1 });
         }
     }
 
-    // the trip's hoops: rings of light standing over the road every 22 m, fixed in the world
-    // (the car drives through them), each a closed brush ring with its glow
+    // the trip's hoops: arcs of light standing over the road every 22 m, inside the parapets,
+    // fixed in the world (the car drives through them); only the part above the deck exists
     function hoop(g, L, cam, z, d, fx) {
-        const yb = C.y(z), cx = -2.2, cy = yb + 3.5, r = 10.5, pts = [];
-        for (let i = 0; i < 48; i++) { const a = (i / 48) * Math.PI * 2; pts.push(cam.p([cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.62, z])); }
+        const yb = C.y(z), cx = -2.2, cy = yb + 1.2, r = 8.6, pts = [];
+        for (let i = 0; i <= 48; i++) { const a = Math.PI * (i / 48); pts.push(cam.p([cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.85, z])); }
         if (pts.some((p) => p[2] < 0.6)) return;
-        // only the part above the deck (below it is hidden by the deck itself)
-        const yDeck = cam.p([cx, yb, z])[1], q = pts.map((p) => [p[0], Math.min(p[1], yDeck + 2)]);
-        const col = tone(Math.round(z / 22) % 2 ? P.magenta : P.cyan, fx), s = cam.f / pts[0][2];
+        const q = pts.map((p) => [p[0], p[1]]), col = tone(Math.round(z / 22) % 2 ? P.magenta : P.cyan, fx), s = cam.f / pts[0][2];
         const a = fx.trip * Math.min(1, (z - cam.pos[2] - 4) / 20) * Math.max(0, 1 - (z - cam.pos[2]) / 260);
         if (a <= 0.02) return;
-        Ink.brush(g, q, { w: cap(0.16 * s, 1.5, 9), col, seed: 8000 + Math.round(z), d, closed: true, alpha: a, light: true });
-        L.save(); L.globalAlpha = a * 0.7; L.strokeStyle = col; L.lineWidth = cap(0.3 * s, 2, 14); L.beginPath(); q.forEach((p, i) => (i ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); L.closePath(); L.stroke(); L.restore();
+        Ink.brush(g, q, { w: cap(0.16 * s, 1.5, 9), col, seed: 8000 + Math.round(z), d, alpha: a, taper: 0.08, light: true });
+        L.save(); L.globalAlpha = a * 0.7; L.strokeStyle = col; L.lineWidth = cap(0.3 * s, 2, 14); L.lineCap = 'round'; L.beginPath(); q.forEach((p, i) => (i ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); L.stroke(); L.restore();
     }
 
     return { sky, city, bay, causeway, underDeck };

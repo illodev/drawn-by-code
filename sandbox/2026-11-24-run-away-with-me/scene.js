@@ -116,8 +116,8 @@ function drawDrawn(g, t, env) {
     // the near world: every opaque thing painted from here on hides the light behind it
     L = N.light();
     Ink.occlude(L);
-    if (fx.trip > 0) N.trails(L, (c, Tp) => Causeway.lights(c, N, shotCam(shotIndex(Tp - Song.B(29)), Tp - Song.B(29), Tp, env), Tp, fx), T, { n: 5, dt: 1.5 / 24, decay: 0.6, amount: 0.5 * fx.trip });
-    const cw = Drawn.causeway(g, L, cam, T, d, { ...fx, onDeck: fx.grid > 0 ? (zA, zB) => inkGrid(g, L, cam, T, d, fx, 'deck', zA, zB) : null });
+    if (fx.trip > 0) N.trails(L, (c, Tp) => Causeway.lights(c, N, shotCam(shotIndex(Tp - Song.B(29)), Tp - Song.B(29), Tp, env), Tp, fx), T, { n: 6, dt: 1.5 / 24, decay: 0.72, amount: 0.9 * fx.trip });
+    const cw = Drawn.causeway(g, L, cam, T, d, { ...fx, onDeck: fx.grid > 0 ? (zA, zB, clip) => inkGrid(g, L, cam, T, d, fx, 'deck', zA, zB, clip) : null });
     const lamp = Causeway.lampLight(cz + 1.0);
     const light = { lamp: lamp * fx.lampPower, hue: fx.hue, power: 1, city: 1, drawn: true, d };
     const carItem = { z: pose.z, depth: cam.view([pose.x, pose.y + 0.6, pose.z])[2], draw: () => {
@@ -150,25 +150,32 @@ function drawDrawn(g, t, env) {
 
 // the trip's grid in ink: brush lines on the deck (clipped to the asphalt by the caller, the
 // median left bare, nothing past the crest) and on the bay
-function inkGrid(g, L, cam, T, d, fx, part, zA = 0, zB = Infinity) {
+function inkGrid(g, L, cam, T, d, fx, part, zA = 0, zB = Infinity, clip = null) {
     const a = fx.grid * (0.5 + 0.5 * fx.kick), zc = cam.pos[2], P = Ink.PAL;
     const cyan = fx.hue ? Neon.css(Neon.shift(P.cyan, fx.hue)) : P.cyan, mag = fx.hue ? Neon.css(Neon.shift(P.magenta, -fx.hue)) : P.magenta;
-    const line = (pts, col, w, al, seed) => {
-        const Q = pts.map(cam.p).filter((p) => p[2] > 0.6); if (Q.length < 2) return;
-        Ink.brush(g, Q.map((p) => [p[0], p[1]]), { w, col, seed, d, alpha: al, taper: 0.05, wob: 1, light: true });
-        L.save(); L.globalAlpha = al * 0.45; L.strokeStyle = col; L.lineWidth = w * 1.6; L.beginPath(); Q.forEach((p, i) => (i ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); L.stroke(); L.restore();
+    // a line of light on the ground, segment by segment, as wide as a 10 cm line at its distance
+    const line = (pts, col, al, seed) => {
+        const Q = pts.map(cam.p);
+        L.save(); if (clip) clip(L);
+        for (let i = 0; i + 1 < Q.length; i++) {
+            const p = Q[i], q = Q[i + 1]; if (p[2] < 0.6 || q[2] < 0.6) continue;
+            const w = Math.min(8, Math.max(1.2, 0.1 * cam.f / p[2]));
+            Ink.brush(g, [[p[0], p[1]], [q[0], q[1]]], { w, col, seed: seed * 31 + i, d, alpha: al, taper: 0.02, wob: 0.6, light: true });
+            L.globalAlpha = al * 0.45; L.strokeStyle = col; L.lineWidth = w * 1.8; L.lineCap = 'round'; L.beginPath(); L.moveTo(p[0], p[1]); L.lineTo(q[0], q[1]); L.stroke();
+        }
+        L.restore();
     };
     if (part === 'deck') {
         const z0 = Math.max(zc + 1.5, zA), zEnd = Math.min(zc + 300, zB);
-        for (let x = -11; x <= 7; x += 2.25) { if (x > -4.6 && x < -0.2) continue; const pts = []; for (let z = z0; z < zEnd; z += 12) pts.push([x, Causeway.y(z) + 0.03, z]); pts.push([x, Causeway.y(zEnd) + 0.03, zEnd]); line(pts, cyan, 2.2, a, 800 + Math.round(x * 4)); }
+        for (let x = -11; x <= 7; x += 2.25) { if (x > -4.6 && x < -0.2) continue; const pts = []; for (let z = z0; z < zEnd; z += 6) pts.push([x, Causeway.y(z) + 0.03, z]); pts.push([x, Causeway.y(zEnd) + 0.03, zEnd]); line(pts, cyan, a, 800 + Math.round(x * 4)); }
         for (let z = Math.ceil(z0 / 6) * 6; z < Math.min(zc + 240, zB); z += 6) {
-            const yy = Causeway.y(z) + 0.03, w = Math.min(4, Math.max(1.2, 90 / (z - zc + 10))), f = a * Math.max(0, 1 - (z - zc) / 260);
-            line([[-11.8, yy, z], [-4.4, yy, z]], mag, w, f, 900 + z); line([[-0.4, yy, z], [7.4, yy, z]], mag, w, f, 950 + z);
+            const yy = Causeway.y(z) + 0.03, f = a * Math.max(0, 1 - (z - zc) / 260);
+            line([[-11.8, yy, z], [-8, yy, z], [-4.4, yy, z]], mag, f, 900 + z); line([[-0.4, yy, z], [3.5, yy, z], [7.4, yy, z]], mag, f, 950 + z);
         }
         return;
     }
-    for (let x = -600; x <= 600; x += 40) { if (Math.abs(x) < 20) continue; line([[x, Causeway.WATER, zc + 30], [x, Causeway.WATER, zc + 1400]], cyan, 1.6, a * 0.6, 1000 + x); }
-    for (let z = Math.ceil((zc + 30) / 40) * 40; z < zc + 1400; z += 40) { const f = Math.max(0, 1 - (z - zc) / 1400); line([[-600, Causeway.WATER, z], [-20, Causeway.WATER, z]], mag, 1.6, a * 0.6 * f, 1100 + z); line([[20, Causeway.WATER, z], [600, Causeway.WATER, z]], mag, 1.6, a * 0.6 * f, 1200 + z); }
+    for (let x = -600; x <= 600; x += 40) { if (Math.abs(x) < 20) continue; const pts = []; for (let z = zc + 30; z <= zc + 1400; z += 120) pts.push([x, Causeway.WATER, z]); line(pts, cyan, a * 0.6, 1000 + x); }
+    for (let z = Math.ceil((zc + 30) / 40) * 40; z < zc + 1400; z += 40) { const f = Math.max(0, 1 - (z - zc) / 1400); line([[-600, Causeway.WATER, z], [-20, Causeway.WATER, z]], mag, a * 0.6 * f, 1100 + z); line([[20, Causeway.WATER, z], [600, Causeway.WATER, z]], mag, a * 0.6 * f, 1200 + z); }
 }
 
 // what the music does to the picture at t: the hold (no bass), the drop, the trip

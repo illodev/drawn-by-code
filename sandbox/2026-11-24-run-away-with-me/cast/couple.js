@@ -111,9 +111,6 @@ const Couple = (() => {
             Ink.strokes(G, pd + (W - 2 * pd) * 0.3, Hh * 0.03, (W - 2 * pd) * 0.4, Hh * 0.22, { ang: Math.PI * 0.5 + 0.3, spread: 0.8, count: 9, len: Hh * 0.1, w: Math.max(1, s * 0.011), cols: [Pp.cyan, Pp.violet, Pp.cyan], seed, d });
             Ink.hatch(G, [pd + (W - 2 * pd) * 0.12, Hh * 0.62], [pd + (W - 2 * pd) * 0.42, Hh * 0.5], { count: 4, len: Hh * 0.1, w: Math.max(1, s * 0.01), col: Pp.cyan, seed: seed + 9, d });
         }
-        // the lamp passing on the beat: warm strokes across the crown of the head
-        const lamp = Math.min(1, light.lamp ?? 0);
-        if (lamp > 0.3) Ink.strokes(G, pd + (W - 2 * pd) * 0.3, Hh * 0.02, (W - 2 * pd) * 0.4, Hh * 0.06, { ang: 0.15, spread: 0.4, count: 5, len: (W - 2 * pd) * 0.18, w: Math.max(1, s * 0.012), cols: [Pp.gold, Pp.orange], seed: seed + 3, d });
         g.drawImage(cv, 0, 0, cw, ch, bx - pd, by, cw / k, ch / k);
     }
     const dbuf = {};

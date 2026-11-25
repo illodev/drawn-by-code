@@ -102,6 +102,15 @@ for dy in (-2, -1, 0, 1, 2):
         if dx * dx + dy * dy <= 5:
             thick |= np.roll(np.roll(ink_m, dy, 0), dx, 1)
 out_rgb[thick] = INK
+# the line work inside the hair (curls, strands) in a dark hair ink rather than the contour's
+# near-black: at film size near-black curls read as specks of dirt
+hairm = (cls == 'hair')
+near = np.zeros_like(hairm, dtype=np.float32)
+for dy in range(-3, 4):
+    for dx in range(-3, 4): near += np.roll(np.roll(hairm, dy, 0), dx, 1)
+inside = (a > 0.5)
+for _ in range(5): inside = inside & np.roll(inside, 1, 0) & np.roll(inside, -1, 0) & np.roll(inside, 1, 1) & np.roll(inside, -1, 1)
+out_rgb[thick & (near > 18) & inside] = H('#2a0c96')
 # an outer contour of ink round the whole figure, 3 px
 solid = a > 0.5
 grow = solid.copy()

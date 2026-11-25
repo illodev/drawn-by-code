@@ -65,7 +65,7 @@ const Neon = (() => {
             return [x3, y2 === y2 ? y3 : 0, z2];
         }
         const p = (P) => { const [X, Y, Z] = view(P); const z = Math.max(Z, 0.01); return [cx0 + f * X / z, cy0 - f * Y / z, Z]; };
-        return { p, view, f, W, H, pos: o.pos, near: 0.3 };
+        return { p, view, f, W, H, pos: o.pos, near: 0.3, roll: o.roll || 0 };
     }
     // a polygon in the world, clipped against the near plane, as screen points (or null)
     function poly(cam, pts) {
