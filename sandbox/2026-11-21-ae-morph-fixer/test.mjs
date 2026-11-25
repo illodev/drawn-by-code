@@ -411,6 +411,29 @@ function shown(r, k, u) {
         famSwaps += L.T.length;
     }
     check('holes: 42 Comic Neue letter pairs with holes: none shows, every hole keeps half its clearance', famShows === 0 && famMargin >= 0.45, `${famSwaps} swaps, least margin ${famMargin.toFixed(2)}`);
+    // as the panel writes it: a key or two of nothing, eased (Easy Ease, here smoothstep, both
+    // for the drawn keys' timing and the hole's segments); at a share tau of the step's time
+    const smooth = (x) => x * x * (3 - 2 * x);
+    const keyedShows = (L) => {
+        let worst = 0, least = Infinity;
+        for (let k = 0; k + 1 < L.res.roles.length; k++) L.fixed.forEach((F, p) => {
+            const t = L.T.find((e) => e.piece === p && e.step === k);
+            if (!t) return;
+            const ref = Math.min(t.kind !== 'open' ? clearance(F[k], outlinesAt(L, k, p, 0)) : Infinity, t.kind !== 'close' ? clearance(F[k + 1], outlinesAt(L, k, p, 1)) : Infinity);
+            for (let j = 1; j < 40; j++) {
+                const tau = j / 40, H = MF.holeKeyed(t, F[k], F[k + 1], tau, smooth), O = outlinesAt(L, k, p, smooth(tau));
+                worst = Math.max(worst, MF.holeOutside(H, O));
+                least = Math.min(least, clearance(H, O) / ref);
+            }
+        });
+        return { worst, least };
+    };
+    const kd = keyedShows(demo), kb = keyedShows(be), ko = keyedShows(oc), kr = keyedShows(r6);
+    check('holes: written as eased keys, the demo, b into e, O into C and R into 6 still keep half their clearance', [kd, kb, ko, kr].every((x) => x.worst === 0 && x.least >= 0.45),
+        [kd, kb, ko, kr].map((x) => x.least.toFixed(2)).join(', '));
+    const gkey = MF.holeKeyed(t, F[0], F[1], 0.5, smooth);
+    check('holes: eased keys: the hole itself at the drawn keys, nothing between its two keys', same(MF.holeKeyed(t, F[0], F[1], 0, smooth), F[0]) < 1e-9 && same(MF.holeKeyed(t, F[0], F[1], 1, smooth), F[1]) < 1e-9 &&
+        MF.isClosed(gkey) && !MF.isClosed(F[0]));
     // fixing the fixed keys again plans the hole the same (what a second Fix in AE does)
     const again = MF.matchPieces(oc.res.keys.map((row, k) => row.map((_, p) => oc.fixed[p][k])));
     const againFixed = again.keys[0].map((_, p) => MF.fix(again.keys.map((row) => row[p]), { maxPoints: 100 }).paths);
@@ -593,6 +616,7 @@ function keepsAxis(r, deg) {
         PropertyType: { PROPERTY: 6212, INDEXED_GROUP: 6213, NAMED_GROUP: 6214 },
         PropertyValueType: { SHAPE: 6419 },
         KeyframeInterpolationType: { LINEAR: 6612, BEZIER: 6613, HOLD: 6614 },
+        KeyframeEase: function (speed, influence) { this.speed = speed; this.influence = influence; },
     };
     const src = fs.readFileSync(path.join(dir, 'out', 'test-build', 'Mask Morph Fixer.jsx'), 'utf8');
     new Function(...Object.keys(env), src)(...Object.values(env));
@@ -712,6 +736,7 @@ function keepsAxis(r, deg) {
             keyLabel: (k) => K[k - 1].label, setLabelAtKey(k, l) { K[k - 1].label = l; },
             keyInInterpolationType: (k) => K[k - 1].inT, keyOutInterpolationType: (k) => K[k - 1].outT,
             setInterpolationTypeAtKey(k, a, b = a) { K[k - 1].inT = a; K[k - 1].outT = b; },
+            setTemporalEaseAtKey(k, i, o) { K[k - 1].ease = [i[0].influence, o[0].influence]; },
             removeKey(k) { K.splice(k - 1, 1); },
             nearestKeyIndex(t) {
                 let best = 0;
@@ -804,8 +829,12 @@ function keepsAxis(r, deg) {
             const t = f / 24;
             worst = Math.max(worst, MF.holeOutside(FX.toMF(hTl.valueAtTime(t)), [FX.toMF(oTl.valueAtTime(t))]));
         }
-        check('holes in AE: o into c into d, the hole closes then opens on in-betweens of its own', a.timed.length === 2 && a.written > 10 &&
-            between().every((q) => q.label === 15 && q.inT === LIN && q.outT === LIN) && oTl.K.every((q) => q.label === 0), `${a.timed.length} timed, ${a.written} keys`);
+        // o into c: one key of nothing where the o's hole is gone, eased into; c into d: one where
+        // the d's starts to grow, eased out of
+        const bk2 = between();
+        check('holes in AE: o into c into d, the hole shrinks away and grows again on one labelled key each, eased where it moves', a.timed.length === 2 && a.written === 2 &&
+            bk2.length === 2 && bk2.every((q) => q.label === 15 && MF.isClosed(FX.toMF(q.v))) && bk2[0].inT === BEZ && bk2[0].outT === LIN && bk2[1].inT === LIN && bk2[1].outT === BEZ &&
+            bk2.every((q) => q.ease && q.ease[0] === 33.333) && oTl.K.every((q) => q.label === 0), `${a.timed.length} timed, ${a.written} keys`);
         check('holes in AE: at every frame the hole stays inside the outline', worst === 0, worst.toFixed(3));
         check('holes in AE: the drawn keys keep their times and easing', hTl.K.filter((q) => q.label === 0).every((q, k) => q.t === times[k] && q.inT === BEZ && q.outT === BEZ));
         check('holes in AE: the report says what the hole does', /the hole closes early, in \d+ in-between keys/.test(FX.summary(a.plans[tls.indexOf(hTl)].rep)), FX.summary(a.plans[tls.indexOf(hTl)].rep));
@@ -848,8 +877,17 @@ function keepsAxis(r, deg) {
             }
         }
         const midArea = btimed.length ? Math.abs(MF.area(FX.toMF(bls[btimed[0].hole].valueAtTime(28.5 / 24)))) : 1;
-        check('holes in AE: b into e swaps: in-betweens while it shrinks and grows, nothing drawn between, inside at every frame', btimed.length === 1 && btimed[0].t.kind === 'swap' &&
-            bn > 8 && bn < 32 && midArea < 1e-6 && bworst === 0, `${btimed.length} timed, ${bn} keys, area halfway ${midArea.toExponential(1)}, ${bworst.toFixed(3)} outside`);
+        check('holes in AE: b into e swaps on two keys of nothing (gone, then grows), nothing drawn between, inside at every frame', btimed.length === 1 && btimed[0].t.kind === 'swap' &&
+            bn === 2 && midArea < 1e-6 && bworst === 0, `${btimed.length} timed, ${bn} keys, area halfway ${midArea.toExponential(1)}, ${bworst.toFixed(3)} outside`);
+        // a key a frame still there when asked for (or when a frame of the few keys falls short)
+        const pls = [0, 1].map((p) => mockTimeline(bk.map((row) => row[p]), bt));
+        const pplans = pls.map((tl, p) => FX.planPath(tl, { maxPoints: 100 }, bres.keys.map((row) => row[p]), true));
+        const ptimed = FX.holesToTime([{ first: 0, n: 2, roles: bres.roles }], pplans);
+        pplans.forEach((pl) => pl.apply());
+        const pn = FX.bakeHole(pls[ptimed[0].hole], ptimed[0].H, pls[ptimed[0].outline], ptimed[0].O, ptimed[0].t, null, true);
+        let pworst = 0;
+        for (let f = 12; f <= 45; f++) pworst = Math.max(pworst, MF.holeOutside(FX.toMF(pls[ptimed[0].hole].valueAtTime(f / 24)), [FX.toMF(pls[ptimed[0].outline].valueAtTime(f / 24))]));
+        check('holes in AE: a key a frame when asked for, inside at every frame', pn > 8 && pworst === 0, `${pn} keys`);
     }
 }
 

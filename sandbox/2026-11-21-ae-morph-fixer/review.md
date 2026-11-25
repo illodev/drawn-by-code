@@ -684,3 +684,33 @@ them as late as they could, and shrank straying ones "just enough".
   same, mock timelines); real type 186. **In After Effects 27:** real type 111/111, demo 52/52
   (`review/ae-log.txt`), no hole outside its letter in any frame. Rendered with aerender;
   `render/` redone. The user's panel is still 0.13.0.
+
+## Round 16 · 2026-11-25 (the user: evaluate a low cap on keys, so the animation can be tweaked; "holes first")
+
+Evaluated first (measured): the only keys the fixer adds are its in-betweens, a key a frame.
+A turn written into the path needs keys because a blend between two turned copies squashes
+(the demo F, 90 deg: 1 key 85 % of its area, 3 keys 96 %, 7 keys 99 %, a key a frame 99.9 %).
+A hole doesn't: a blend between a shape and a key of nothing scales it, exactly. 16 timed
+holes, written as their phase boundaries with Easy Ease, took 1.7 keys a step instead of
+about 25 and kept 96 % of their clearance (a key a frame: 89 %).
+
+- **0.15.0 writes holes as a key or two:** a key of nothing where the hole is gone (eased in),
+  one where it starts to grow (eased out), linear between them (the pause); on frames, where
+  the outline's progress read back from AE reaches the window's ends; labelled. Dragging them
+  retimes the stagger and the pause. Every other frame of the result (and those next to the
+  keys) is read back and checked with the plan's margin (`MF.holeKeeps`); a hole that falls
+  short is written a key a frame instead. The fixer knows these keys by label plus a value
+  closed to a point (they are not linear). The preview draws them (`MF.holeKeyed`).
+- In AE 27: the demo's three holes on 4 keys; the real-type set's 17 holes on 24 keys (the
+  ten-letter chain 7 on 10), none falling back, none showing outside its letter in any frame.
+- **Found in AE: a stalled test.** The demo test sat 15 minutes with After Effects responsive
+  and nearly idle (0.04 of a core): the user had File Explorer in front, and Windows throttles
+  a background app. Brought forward, it finished in a minute, with one failure: the time
+  estimate (a 7 s fix took 230 s). Rerun with AE in front: 52/52. → Keep AE in front for
+  timed tests; a stall with low CPU and no dialog is throttling, not a hang.
+- Not done (the user chose holes first): fewer keys for turns (a key every ~15 deg), and keeping
+  the animator's retimed hole keys through a second Fix (today it resets them).
+- Tests: Node 4,436 (eased hole keys keep half the clearance on the demo, b into e, O into C
+  and R into 6; mock timelines: one key each, eased where the hole moves, a key a frame when
+  asked); real type 186. **In After Effects 27:** real type 111/111, demo 52/52; the guide with
+  its longer tip 461 x 791 px. `render/` redone.

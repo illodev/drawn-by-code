@@ -300,6 +300,11 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   into 8: 22 s for a check Node did in 2 ms), where the morph fix itself runs ~300x. In hot
   loops, keep coordinates in flat arrays of numbers, evaluate curves inline, and measure each
   sample once. Time new math inside AE apart from the rest (`bench/holes-bench.jsx`).
+- **Windows throttles After Effects in the background.** With another app in front (File
+  Explorer), a test sat 15 minutes at 0.04 of a core, AE "responding", no dialog; brought
+  forward, it finished in a minute, and a timed check read 230 s for a 7 s fix. A stall with
+  low CPU and no dialog is throttling, not a hang: bring AE forward (ask first) and rerun
+  timing checks with it in front.
 - **Keys a script writes one a frame go on the comp's frames** (`k * frameDuration`), not at
   `keyTime + j * frameDuration`: a key a script set at 1.9 s sits between frames at 24 fps,
   and then every rendered frame shows a blend of two in-betweens (a hole's last dot and its
@@ -589,6 +594,12 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   pairs found 14 % of such holes straying halfway (b into e, R into 6). Scan a family of
   cases before writing a limit or a rule down. (Fixed in round 14: such holes close early,
   open late or shrink, baked as in-betweens; none of the 656 shows.)
+- 2026-11-25 · ae-morph-fixer · Before writing a key a frame, ask what the blend between two
+  keys already gives: a key of nothing blended with a shape scales it exactly, so a hole that
+  shrinks away needs one key (eased), not 25, and the animator can drag it; a turn needs a key
+  every ~15 deg (the blend of two turned copies squashes). Fewer keys are the tweakable
+  version: write the phase boundaries, read every other frame back, and fall back to a key a
+  frame only where a frame misses the margin.
 - 2026-11-25 · ae-morph-fixer · "Inside by a pixel" is a bug the user sees: a hole that only
   just stays inside its letter, closing as late as it can or shrinking "just enough", reads as
   one about to break out. Keep a margin relative to the drawing (half the ink a hole has round

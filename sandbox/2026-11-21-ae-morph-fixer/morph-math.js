@@ -1555,8 +1555,9 @@ var MF = (function () {
     // fixed[p][k]: piece p's fixed path at key k (the same points in every key); roles from
     // matchPieces; skip[k] true leaves step k alone. -> [{ piece, step, kind ('close', 'open'
     // or 'swap'), a (gone by), b (grows from), pa, pb (poles), dco (the outline's centre moves
-    // by it over the step) }], only for holes that don't keep their margin when blended.
-    // MF.holeAt gives the hole at any u.
+    // by it over the step), ca, cb (its clearance at the keys) }], only for holes that don't
+    // keep their margin when blended. MF.holeAt gives the hole at any u as planned; the panel
+    // writes it as a key or two (MF.holeKeyed: the same, timed by eased keys).
     var HOLE_MU = 0.5, HOLE_CLOSE = 0.3, HOLE_OPEN = 0.7, HOLE_SWAP = 0.4;
 
     // The geometry below runs many times a fix: in ExtendScript, made objects cost far more than
@@ -1806,7 +1807,7 @@ var MF = (function () {
                 var KB = b === -1 ? (cache[p + ':' + (k + 1)] || (cache[p + ':' + (k + 1)] = holeAtKey(B, O1))) : null;
                 if ((KA && !KA.clear) || (KB && !KB.clear)) continue;      // drawn outside its outline: left alone
                 if (KA && KB && blendKeeps(A, B, O0, O1, KA, KB)) continue;
-                var e = { piece: p, step: k, kind: KA && KB ? 'swap' : (KA ? 'close' : 'open'), a: 0, b: 1, dco: dco };
+                var e = { piece: p, step: k, kind: KA && KB ? 'swap' : (KA ? 'close' : 'open'), a: 0, b: 1, dco: dco, ca: KA ? KA.clear : 0, cb: KB ? KB.clear : 0 };
                 if (KA) {
                     e.pa = KA.p;
                     e.a = shrinkWindow(KA, O0, O1, dco, Math.max(1, HOLE_MU * KA.clear), KB ? HOLE_SWAP : HOLE_CLOSE);
@@ -1849,6 +1850,57 @@ var MF = (function () {
         return u < t.a ? 'shrink' : (u > t.b ? 'grow' : 'gone');
     }
 
+    // the hole closed to nothing at outline progress u, on A's side (where it shrank to) or B's
+    // (where it will grow from): the value of the key the panel writes there
+    function holeGone(t, P, u, side) {
+        return side === 'a' ? closedAt(P, [t.pa[0] + t.dco[0] * u, t.pa[1] + t.dco[1] * u]) : closedAt(P, [t.pb[0] + t.dco[0] * (u - 1), t.pb[1] + t.dco[1] * (u - 1)]);
+    }
+
+    // the hole as the panel writes it, at a share tau of the step's time: a key of nothing where
+    // the outline's progress reaches a (gone) and one where it reaches b (grows from), the hole
+    // blended into and out of them, each segment eased by ease (the drawn keys' timing, mapping
+    // the share of time to progress: Easy Ease in After Effects). Blending a shape with a key of
+    // nothing scales it, so only the timing differs from MF.holeAt. For the preview and tests.
+    function holeKeyed(t, A, B, tau, ease) {
+        if (tau <= 0) return A;
+        if (tau >= 1) return B;
+        function inv(y) {
+            var lo = 0, hi = 1;
+            for (var i = 0; i < 40; i++) {
+                var m = (lo + hi) / 2;
+                if (ease(m) < y) lo = m;
+                else hi = m;
+            }
+            return (lo + hi) / 2;
+        }
+        var ta = t.kind === 'open' ? 0 : inv(t.a), tb = t.kind === 'close' ? 1 : inv(t.b);
+        var gA = t.kind === 'open' ? null : holeGone(t, A, t.a, 'a'), gB = t.kind === 'close' ? null : holeGone(t, B, t.b, 'b');
+        if (gA && tau < ta) return lerp(A, gA, ease(tau / ta));
+        if (gB && tau > tb) return lerp(gB, B, ease((tau - tb) / (1 - tb)));
+        if (!gB) return gA;
+        if (!gA) return gB;
+        return tb > ta ? lerp(gA, gB, (tau - ta) / (tb - ta)) : gB;
+    }
+
+    // a path closed to a point (every point at one place, no handles): a hole key of nothing
+    function isClosed(P) {
+        for (var j = 0; j < P.v.length; j++) {
+            if (Math.abs(P.v[j][0] - P.v[0][0]) > 1e-6 || Math.abs(P.v[j][1] - P.v[0][1]) > 1e-6) return false;
+            if (P.i[j][0] || P.i[j][1] || P.o[j][0] || P.o[j][1]) return false;
+        }
+        return P.v.length > 0;
+    }
+
+    // hole H (as After Effects shows it at a frame) inside the outlines with the margin the plan
+    // keeps (HOLE_MU of clear, its clearance at its key), pushed out from its centre; a hole under
+    // a pixel across is gone
+    function holeKeeps(H, outlines, clear) {
+        if (diagOf(H) < 1) return true;
+        var X = [], Y = [], c = centre(H);
+        poly(H, H, 0, 2, 1, 0, 0, X, Y);
+        return holeIn(X, Y, region(outlines, outlines, 0), 1, c[0], c[1], Math.max(1, HOLE_MU * clear));
+    }
+
     // the share of hole H's outline (sampled) lying outside the outlines: what AE's fill would
     // paint. 0 for a hole under a pixel across (tests: Node, and AE's own frames)
     function holeOutside(H, outlines) {
@@ -1864,7 +1916,8 @@ var MF = (function () {
         measure: measure, at: at, fractions: fractions, area: area, winding: winding, rms: rms, deviation: deviation,
         lerp: lerp, copy: copy, seg: seg, segCount: segCount, bez: bez, turnPath: turnPath, turnFrom: turnFrom,
         swing: swing, progressOf: progressOf, matchPieces: matchPieces, pieceInfo: pieceInfo,
-        holeTiming: holeTiming, holePhase: holePhase, holeAt: holeAt, holeOutside: holeOutside,
+        holeTiming: holeTiming, holePhase: holePhase, holeAt: holeAt, holeOutside: holeOutside, holeGone: holeGone,
+        holeKeyed: holeKeyed, holeKeeps: holeKeeps, isClosed: isClosed,
         // a closed path's mirror axes: 'round' or [{ phi (radians), pole (fraction), e }] (tests)
         mirrorAxes: function (P, thorough) { return mirrorAxes(samples(P, measure(P), thorough ? 2 * N : N), thorough); },
         // how far two paths part (px), quick two-way check (what the rebuild holds to its tolerance)

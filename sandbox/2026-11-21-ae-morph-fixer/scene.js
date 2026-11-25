@@ -25,9 +25,13 @@ const rgb = (c) => `rgb(${c.join(',')})`;
 
 // the step and eased progress at time t over keys [[time, ...], ...]
 function stepAt(keys, t) {
-    if (t <= keys[0][0]) return { k: 0, u: 0 };
-    for (let k = 1; k < keys.length; k++) if (t < keys[k][0]) return { k: k - 1, u: smooth((t - keys[k - 1][0]) / (keys[k][0] - keys[k - 1][0])) };
-    return { k: keys.length - 2, u: 1 };
+    if (t <= keys[0][0]) return { k: 0, u: 0, tau: 0 };
+    for (let k = 1; k < keys.length; k++) {
+        if (t >= keys[k][0]) continue;
+        const tau = (t - keys[k - 1][0]) / (keys[k][0] - keys[k - 1][0]);
+        return { k: k - 1, u: smooth(tau), tau };
+    }
+    return { k: keys.length - 2, u: 1, tau: 1 };
 }
 
 // P's outline as a subpath of the current path (more pieces: one fill, holes by their direction)
@@ -59,7 +63,8 @@ Motion.scene({
         const turnKeys = MD.turn.keys.map(([, s]) => MD.turn.shapes[s]);
         const symKeys = MD.sym.keys.map(([, s]) => MD.sym.shapes[s]);
         // letters: pieces matched between keys, each piece's path fixed, the holes kept inside
-        // (what the panel bakes into in-between keys, at AE's eased progress: here the same u)
+        // (written by the panel as a key or two of nothing, eased: MF.holeKeyed, Easy Ease here
+        // smoothstep)
         const rows = ML.keys.map(([, s]) => ML.shapes[s]), dealt = MF.matchPieces(rows);
         const letters = rows[0].map((_, p) => MF.fix(dealt.keys.map((row) => row[p]), { maxPoints: ML.maxPoints }).paths);
         const holes = MF.holeTiming(letters, dealt.roles);
@@ -89,7 +94,7 @@ Motion.scene({
             const s = stepAt(ML.keys, t - T_LET);
             pieces = S.letters.map((L, p) => {
                 const h = S.holes.find((e) => e.piece === p && e.step === s.k);
-                return h ? MF.holeAt(h, L[s.k], L[s.k + 1], s.u) : MF.lerp(L[s.k], L[s.k + 1], s.u);
+                return h ? MF.holeKeyed(h, L[s.k], L[s.k + 1], s.tau, smooth) : MF.lerp(L[s.k], L[s.k + 1], s.u);
             });
         }
         g.beginPath();

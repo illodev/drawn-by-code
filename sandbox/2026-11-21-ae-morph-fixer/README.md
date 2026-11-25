@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.14.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.15.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -81,11 +81,20 @@ staggered ahead of the letter: the O's hole is gone before the O has really star
 into a C. One that opens grows over the last 30 %, once the new letter has closed round it
 (C into e). A window is shortened only as far as the margin needs. Each hole shrinks to and
 grows from the point farthest inside it, and rides along when the letter moves
-(`review/holes.png`: top, After Effects as it was; below, the fix). Written like a turn:
-in-between keys on the hole's path, on the comp's frames, labelled, at the outline's own
-eased progress; fixing again redoes them. Over 661 letter morphs in three fonts, no hole
-shows and every hole keeps at least half its ink (52 % at the closest, true distance); a
-third of the holes that stay holes swap rather than blend.
+(`review/holes.png`: top, After Effects as it was; below, the fix). Over 661 letter morphs
+in three fonts, no hole shows and every hole keeps at least half its ink (52 % at the
+closest, true distance); a third of the holes that stay holes swap rather than blend.
+
+**Holes are a key or two you can drag.** A hole that shrinks away gets one key on its path:
+the moment it is gone (a path closed to a point, so nothing is drawn). One that grows gets
+one: the moment it starts. A swap gets both, and the gap between them is the pause. They
+sit on frames, are eased like Easy Ease where the hole moves, and carry the in-between label
+(label 15). Drag the gone key to change when the O's hole disappears; drag the two apart or
+together for a longer or shorter pause; change their easing in the Graph Editor. (Blending a
+shape with a key of nothing scales it, so the hole keeps its shape whatever the timing.)
+Before writing them, the fixer checks every other frame the keys would show against the
+outlines, with the same margin; where one falls short, that hole is written a key a frame
+instead. A Fix run again resets them: change their label first to keep your timing.
 
 **Long fixes:** hold Esc to cancel (checked for fixes estimated over 4 s; the warning before a
 fix over 10 s says so). The fix is worked out in full before anything is written, so
@@ -121,8 +130,8 @@ out, fix with turn off.
 
 The path's keyframe values; with pieces, which path holds which piece. With **turn**, also
 one in-between path key a frame through each turning step (linear and labelled: the easing
-is in the shapes), replacing the ones an earlier fix wrote; likewise on a hole that shrinks
-away, grows or swaps. Key times, interpolation,
+is in the shapes), replacing the ones an earlier fix wrote; on a hole that shrinks away,
+grows or swaps, a key or two of nothing (eased, labelled the same). Key times, interpolation,
 easing, hold keys of the keys you drew, the layer, its groups' transforms and anything else
 stay as they were.
 
@@ -202,9 +211,17 @@ stay as they were.
   window from the start, grows over one to the end, each carried along with the outlines'
   centre, and is nothing between (every point at one place). The windows start at 40 % for a
   swap, 30 % for a close or an open, and are shortened (halving, then checked twice as
-  finely) until the hole keeps its half-clearance pad all through. In After Effects the
-  in-betweens sit on the comp's frames: keys a script set at 1.9 s sit between frames, and a
-  frame drawn between two in-betweens showed a blend of two of them, outside its letter.
+  finely) until the hole keeps its half-clearance pad all through. Written as keys of nothing
+  (`MF.holeGone`) on the frames where the outline's progress, read back from After Effects,
+  reaches the window's end: eased in (the gone key) or out (the grow key), linear across the
+  pause. Every other frame of the result (and the frames next to the keys) is read back and
+  checked with the plan's pad (`MF.holeKeeps`); a hole that falls short anywhere is written
+  a key a frame. Measured before building it: 16 timed holes took 1.7 keys a step instead of
+  about 25, and kept 96 % of their clearance at the closest (a key a frame: 89 %). The fixer
+  knows its own keys by their label and either linear interpolation (turns) or a value closed
+  to a point (holes). In After Effects every key sits on the comp's frames: keys a script set
+  at 1.9 s sit between frames, and a frame drawn between two in-betweens showed a blend of
+  two of them, outside its letter.
 - **Plan, then write:** every path is worked out first (cancellable), then all keys are
   written in one undo step.
 
@@ -239,7 +256,12 @@ What it doesn't do, and why; each is also said in the report when it happens.
   look at; the selected keys must be next to each other, and a Hold step doesn't turn. The
   turn's easing is in the in-betweens: retime by moving your keys and fixing again, not by
   changing the in-betweens' easing. The fixer finds its in-betweens by their label (After
-  Effects 22.6 and later) and their linear keys: change either and they count as yours.
+  Effects 22.6 and later) and their linear keys (a hole's: a value closed to a point): change
+  the label and they count as yours.
+- **Hole keys you retimed** are reset by the next Fix (it removes its labelled keys and plans
+  them again); keeping the animator's timing is planned next. A hole key relabelled to keep
+  it becomes a key you drew, and the hole's path then has more keys than its letter's other
+  paths, so its pieces are no longer matched together.
 - **More points:** rebuilt paths are harder to edit by hand: edit before fixing, or use Exact.
   Big or detailed artwork needs a higher max to stay within 0.1 px.
 - **On screen:** "0.1 px" is in comp pixels, after the scale of the path's groups, layer and
@@ -305,7 +327,7 @@ What it needs:
 | `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
 | `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the in-betweens of a turn or of a hole kept inside), report |
 | `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, the release (it leaves nothing on `$.global`), and `out/test-build/Mask Morph Fixer.jsx`, the same plus the exports the tests use; with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
-| `test.mjs` | 4,433 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), holes kept well inside (O into C shrinking away by 30 %, C into O and C into e growing from 70 %, b into e and R into 6 swapping, q into o blending, the demo's q e b c d one of each, 42 Comic Neue pairs, every hole keeping half its clearance by true distance, a second fix the same; on mock timelines: in-betweens on the hole, inside at every frame, nothing drawn while a swap is closed, on the comp's frames when the keys aren't, fixed again the same), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `test.mjs` | 4,436 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), holes kept well inside (O into C shrinking away by 30 %, C into O and C into e growing from 70 %, b into e and R into 6 swapping, q into o blending, the demo's q e b c d one of each, 42 Comic Neue pairs, every hole keeping half its clearance by true distance, a second fix the same; written as eased keys and still keeping half the clearance; on mock timelines: one key of nothing where the hole is gone and one where it starts to grow, eased where it moves, inside at every frame, a key a frame when asked for, on the comp's frames when the drawn keys aren't, fixed again the same), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js`: the morph, the turn, and the symmetry chain (a star, the star turned 36 deg, a plus, an x, the star, all sharing the upright axis, each drawn anew) |
 | `demo-letters.js` | The letters part, q, e, b, c, d in Comic Neue Bold (q into e: the hole blends; e into b: it swaps; b into c: it shrinks away; c into d: it grows), written by `art/demo-letters.mjs` from the repo's fonts (plain ES3 for AE) |
 | `make-demo.jsx` | Builds the demo project in four parts: Morph, Turn, Symmetry (left: the fix without its symmetry rule, least travel; right: the fix) and Letters (left as typed, right fixed through the panel's own path, its holes kept inside, checked in every frame), each Before / After, in one 31.5 s comp. With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |

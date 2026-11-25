@@ -124,6 +124,10 @@
             // holes kept inside: as many as Node keeps, and in AE's own frames (every other one)
             // no hole outside its letter
             check(C.name + ': holes kept inside as in Node', (res.holes || 0) === C.node.timed, (res.holes || 0) + ' (Node ' + C.node.timed + ')');
+            // written as a key or two each (more only where a frame of those fell short of the margin)
+            var hk = 0;
+            for (p = 0; p < res.reports.length; p++) hk += res.reports[p].holeKeys || 0;
+            if (res.holes) note('     ' + res.holes + ' holes on ' + hk + ' keys' + (hk > 2 * res.holes ? ' (some a key a frame: a frame of the few keys fell short)' : ''));
             if (!C.rotate) {
                 var worst = 0, wat = 0;
                 for (var f = 1; f < (C.keys.length - 1) * 30; f += 2) {

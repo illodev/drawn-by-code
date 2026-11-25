@@ -1,7 +1,7 @@
-Morph demo fix (7494 ms): 5. After > Morph > Outline > Path: 10 keys, 4-10 -> 64 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.065 px of each shape.
-Turn demo fix (12410 ms): 5. After > Morph > Outline > Path: 9 keys, 10 -> 10 points each; points travel 162 -> 0 px around the shape; points already matched, kept as they are; turned 360 deg in 92 in-between keys, one a frame.
-Symmetry demo fix (16548 ms): 5. After > Morph > Outline > Path: 9 keys, 10-12 -> 53 points each, 5 reversed, 5 start points moved; points travel 215 -> 72 px around the shape; rebuilt within 0.001 px of each shape; 2 starts chosen so it morphs symmetrically (the shapes share a mirror axis). | left: 6. Before > Morph > Outline > Path: 9 keys, 10-12 -> 88 points each, 5 reversed, 7 start points moved; points travel 215 -> 71 px around the shape; rebuilt within 0.001 px of each shape.
-Letters demo fix (39175 ms): Fixed 2: 44-165 pts, 0.061 px, pieces matched, 3 holes kept inside | 3. After > Letter > Piece 1 > Path: 9 keys, 19-29 -> 165 points each, 7 start points moved; points travel 115 -> 95 px around the shape; rebuilt within 0.052 px of each shape; 3 starts chosen so the shape does not cross itself on the way; it still crosses itself between keys 6-7 (no start avoids it; a key drawn in between can). | 3. After > Letter > Piece 2 > Path: 9 keys, 4-10 -> 44 points each, 5 start points moved; points travel 70 -> 46 px around the shape; rebuilt within 0.061 px of each shape; the hole shrinks away over the first 40 % of the morph from key 4 and grows again in its new place over the last 40 % (blended, it would come too close to the edge), shrinks away over the first 30 % of the morph from key 6, before the letter opens, grows over the last 30 % of the morph from key 8, once the letter has closed round it, in 58 in-between keys. |  | Pieces matched between keys: | After > Letter > Piece 1 and 1 more: 2 keys where a piece grows from a point
+Morph demo fix (4364 ms): 5. After > Morph > Outline > Path: 10 keys, 4-10 -> 64 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.065 px of each shape.
+Turn demo fix (4156 ms): 5. After > Morph > Outline > Path: 9 keys, 10 -> 10 points each; points travel 162 -> 0 px around the shape; points already matched, kept as they are; turned 360 deg in 92 in-between keys, one a frame.
+Symmetry demo fix (7753 ms): 5. After > Morph > Outline > Path: 9 keys, 10-12 -> 53 points each, 5 reversed, 5 start points moved; points travel 215 -> 72 px around the shape; rebuilt within 0.001 px of each shape; 2 starts chosen so it morphs symmetrically (the shapes share a mirror axis). | left: 6. Before > Morph > Outline > Path: 9 keys, 10-12 -> 88 points each, 5 reversed, 7 start points moved; points travel 215 -> 71 px around the shape; rebuilt within 0.001 px of each shape.
+Letters demo fix (14197 ms): Fixed 2: 44-165 pts, 0.061 px, pieces matched, 3 holes kept inside | 3. After > Letter > Piece 1 > Path: 9 keys, 19-29 -> 165 points each, 7 start points moved; points travel 115 -> 95 px around the shape; rebuilt within 0.052 px of each shape; 3 starts chosen so the shape does not cross itself on the way; it still crosses itself between keys 6-7 (no start avoids it; a key drawn in between can). | 3. After > Letter > Piece 2 > Path: 9 keys, 4-10 -> 44 points each, 5 start points moved; points travel 70 -> 46 px around the shape; rebuilt within 0.061 px of each shape; the hole shrinks away over the first 40 % of the morph from key 4 and grows again in its new place over the last 40 % (blended, it would come too close to the edge), shrinks away over the first 30 % of the morph from key 6, before the letter opens, grows over the last 30 % of the morph from key 8, once the letter has closed round it, in 4 in-between keys. |  | Pieces matched between keys: | After > Letter > Piece 1 and 1 more: 2 keys where a piece grows from a point
 ok   every After key has the same number of points (64)
 ok   After Effects stores the keys the math computes (to 32-bit float) · largest difference 0.00003803359898
 ok   the rebuild measured every key within 0.1 px of its drawn shape · smooth, 0.06475487512383 px
@@ -23,7 +23,7 @@ ok   symmetry: a star into itself turned 36 deg morphs mirror-symmetrically · 1
 ok   symmetry: a thin plus into an x: only the sym option makes it symmetric · 1. Shape Layer 3 > Path 1 > Path: 2 keys, 12 -> 52 points each, 1 start points moved; points travel 80 -> 84 px around the shape; rebuilt within 0.001 px of each shape; 1 start chosen so it morphs symmetrically (the shapes share a mirror axis); drawn as a 45 deg turn: tick turn to swing it (without, its points take the shortest way).
 ok   symmetry demo: every step on the right keeps the upright axis, the left swirls some · right 4/4, left 2/4
 ok   letters demo: fixed, every piece the same points in every key, a crossover avoided · Fixed 2: 44-165 pts, 0.061 px, pieces matched, 3 holes kept inside · 3 start(s) chosen against a crossover
-ok   letters demo: 3 holes kept inside (swapped, closed, opened), none shows outside its letter in any frame · 3 holes; 0 % of a hole outside
+ok   letters demo: 3 holes kept inside (swapped, closed, opened) on 4 keys, none shows outside its letter in any frame · 3 holes on 4 keys; 0 % of a hole outside
 ok   drawn turn: turn off, the star keeps turning (its first point travels a tip) · 1. Shape Layer 2 > Path 1 > Path: already matched, left as it is; drawn as a 72 deg turn, kept that way (tick turn to swing it without shrinking through the middle).
 ok   drawn turn: with turn, it swings 72 deg and stays whole halfway · 1. Shape Layer 3 > Path 1 > Path: 2 keys, 10 -> 10 points each; points travel 124 -> 0 px around the shape; points already matched, kept as they are; turned 72 deg in 23 in-between keys, one a frame. · halfway 100 % of its area
 ok   panel: one row (mode, max, turn, sym, Fix, ?) and a status line · width 316 x 53 px
@@ -34,11 +34,11 @@ ok   panel Fix (Exact): Fixed 1: 22 pts · 6. Panel test 2 > Morph > Outline > P
 ok   panel Fix (turn): Fixed 1: 10 pts, 1 turned · 6. Panel turn test > Morph > Outline > Path: 9 keys, 10 -> 10 points each; points travel 162 -> 0 px around the shape; points already matched, kept as they are; turned 360 deg in 92 in-between keys, one a frame.
 ok   panel: floating, titled Mask Morph Fixer · Mask Morph Fixer
 ok   panel ?: the guide opens, not modal · palette
-ok   panel ?: guide size 461 x 775 px
+ok   panel ?: guide size 461 x 791 px
 ok   panel ?: an install button when floating · Update the panel
 ok   panel docked: builds into the Panel host, no window of its own · host 320 x 57
 ok   panel docked: the guide has no install button
-ok   install: copies the script as "Mask Morph Fixer.jsx" · Installed. Restart After Effects, then open Window > Mask Morph Fixer.jsx. (158414 of 158414 bytes)
+ok   install: copies the script as "Mask Morph Fixer.jsx" · Installed. Restart After Effects, then open Window > Mask Morph Fixer.jsx. (165239 of 165239 bytes)
 ok   install: a second install overwrites (an update) · Installed. Restart After Effects, then open Window > Mask Morph Fixer.jsx.
 ok   install: the user panels folder is found · %USERPROFILE%\AppData\Roaming\Adobe\After Effects\27.0\Scripts\ScriptUI Panels
 install: copies After Effects lists: %USERPROFILE%\AppData\Roaming\Adobe\After Effects\27.0\Scripts\ScriptUI Panels\Mask Morph Fixer.jsx
@@ -50,8 +50,8 @@ ok   warn: Fix anyway fixes, and the status counts the warnings · Fixed 1: 64 p
 ok   warn: nothing for the Stroke effect on the mask · 
 ok   warn: nothing for text running along the mask · 
 ok   warn: nothing for a plain path · 
-ok   estimate: a long job (12 keys of ~60 points) asks first, with the time · about 70 s
-ok   estimate: within about 2x of the real time (6 keys of ~16 points) · estimated 21.3 s, took 40.0 s, this machine at 2.79x the reference
+ok   estimate: a long job (12 keys of ~60 points) asks first, with the time · about 25 s
+ok   estimate: within about 2x of the real time (6 keys of ~16 points) · estimated 7.5 s, took 6.7 s, this machine at 0.98x the reference
 ok   cancel: Esc while it works cancels, and nothing changes · Cancelled: nothing changed
 ok   on screen: a layer at 200 % is fixed within 0.1 comp px · 6. Scaled 200 > Morph > Outline > Path: 10 keys, 4-10 -> 103 points each, 4 reversed, 8 start points moved; points travel 232 -> 46 px around the shape; rebuilt within 0.056 px of each shape on screen (it is scaled to 200 %).
 ok   panel: breaks into two rows when docked narrow, one row when wide

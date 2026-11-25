@@ -513,9 +513,13 @@
                     at = f / fps;
                 }
             }
-            check('letters demo: 3 holes kept inside (swapped, closed, opened), none shows outside its letter in any frame',
-                letBuilt.result.holes === 3 && /3 holes kept inside/.test(letBuilt.result.status) && worst === 0,
-                letBuilt.result.holes + ' holes; ' + Math.round(worst * 100) + ' % of a hole outside' + (worst ? ' at ' + at.toFixed(2) + ' s' : ''));
+            // written as a key or two each (the swap's gone and grow keys, one for the close, one for
+            // the open), not a key a frame
+            var holeKeys = 0;
+            for (k = 0; k < reps.length; k++) holeKeys += reps[k].holeKeys || 0;
+            check('letters demo: 3 holes kept inside (swapped, closed, opened) on 4 keys, none shows outside its letter in any frame',
+                letBuilt.result.holes === 3 && /3 holes kept inside/.test(letBuilt.result.status) && holeKeys === 4 && worst === 0,
+                letBuilt.result.holes + ' holes on ' + holeKeys + ' keys; ' + Math.round(worst * 100) + ' % of a hole outside' + (worst ? ' at ' + at.toFixed(2) + ' s' : ''));
         });
         step('drawn turn', function () {
             // a star turned a tip by Free Transform (point k to point k turned 72 deg): the fix
