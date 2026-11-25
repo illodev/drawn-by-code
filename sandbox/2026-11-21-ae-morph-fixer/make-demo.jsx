@@ -520,6 +520,50 @@
             check('letters demo: 3 holes kept inside (swapped, closed, opened) on 4 keys, none shows outside its letter in any frame',
                 letBuilt.result.holes === 3 && /3 holes kept inside/.test(letBuilt.result.status) && holeKeys === 4 && worst === 0,
                 letBuilt.result.holes + ' holes on ' + holeKeys + ' keys; ' + Math.round(worst * 100) + ' % of a hole outside' + (worst ? ' at ' + at.toFixed(2) + ' s' : ''));
+            // the animator drags b into c's gone key 2 frames earlier and eases it harder (on a copy):
+            // a second Fix keeps both; dragged where the hole would show, the Fix retimes it
+            var ldup = letBuilt.after.duplicate(), lfd = letBuilt.comp.frameDuration;
+            ldup.name = 'Retimed hole test';
+            function goneKey(paths) {
+                for (var p = 0; p < paths.length; p++) {
+                    for (var q = 1; q <= paths[p].numKeys; q++) {
+                        var tq = paths[p].keyTime(q);
+                        if (tq > LT.keys[5][0] + 1e-6 && tq < LT.keys[6][0] - 1e-6 && MFm.isClosed(MFx.toMF(paths[p].keyValue(q)))) return { path: paths[p], k: q, t: tq };
+                    }
+                }
+                return null;
+            }
+            function dragTo(g, time, influence) {
+                var v = g.path.keyValue(g.k), inT = g.path.keyInInterpolationType(g.k), outT = g.path.keyOutInterpolationType(g.k);
+                g.path.removeKey(g.k);
+                g.path.setValueAtTime(time, v);
+                var nk = g.path.nearestKeyIndex(time);
+                g.path.setTemporalEaseAtKey(nk, [new KeyframeEase(0, influence)], [new KeyframeEase(0, influence)]);
+                g.path.setInterpolationTypeAtKey(nk, inT, outT);
+                g.path.setLabelAtKey(nk, 15);
+            }
+            function fixDup() {
+                // Fix works on the active comp: open this one first (round 17: without it, the
+                // second Fix ran on another comp and both checks failed with nothing fixed)
+                letBuilt.comp.openInViewer();
+                for (var j = 1; j <= letBuilt.comp.numLayers; j++) letBuilt.comp.layer(j).selected = false;
+                ldup.selected = true;
+                var r = MFx.fixSelection({ mode: 'smooth', maxPoints: LT.maxPoints });
+                ldup.selected = false;
+                return r;
+            }
+            var g0 = goneKey(piecePaths(ldup)), moved = g0 ? Math.round(g0.t / lfd - 2) * lfd : 0;
+            if (g0) dragTo(g0, moved, 70);
+            var kr = fixDup(), g1 = goneKey(piecePaths(ldup));
+            var keptEase = g1 ? g1.path.keyInTemporalEase(g1.k)[0].influence : 0;
+            check('letters demo: a hole key dragged 2 frames and re-eased keeps its time and easing through a second Fix',
+                g0 && g1 && Math.abs(g1.t - moved) < 1e-4 && Math.abs(keptEase - 70) < 0.01 && /on your timing/.test(kr.detail),
+                (g1 ? 'at frame ' + Math.round(g1.t / lfd) + ' (dragged to ' + Math.round(moved / lfd) + '), influence ' + keptEase : 'no key') + ' · ' + kr.status);
+            if (g1) dragTo(g1, LT.keys[6][0] - lfd, 33.333);
+            var kr2 = fixDup(), g2 = goneKey(piecePaths(ldup));
+            check('letters demo: dragged where the hole would show outside its letter, the Fix retimes it and says so',
+                g2 && g2.t < LT.keys[6][0] - lfd - 1e-4 && /retimed/.test(kr2.detail), (g2 ? 'at frame ' + Math.round(g2.t / lfd) : 'no key') + ' · ' + kr2.status);
+            ldup.remove();
         });
         step('drawn turn', function () {
             // a star turned a tip by Free Transform (point k to point k turned 72 deg): the fix
@@ -586,12 +630,31 @@
             tdup.selected = true;
             c.mode.selection = 0;
             c.max.text = '100';
-            c.turn.value = true;
+            c.turn.selection = 1;
             c.fix.notify('onClick');
             var tr = w.lastResult && w.lastResult.reports[0];
             check('panel Fix (turn): ' + c.status.text, tr && Math.abs(tr.turned - 360) < 0.5 && /turned/.test(c.status.text), w.lastResult ? w.lastResult.detail : 'no result');
             tdup.remove();
-            c.turn.value = false;
+            // turn, few keys: a key about every 15 deg, auto-bezier in time, labelled, the F kept
+            // whole between them (AE blends two turned copies there)
+            var fdup = turnComp.layer('Before').duplicate();
+            fdup.name = 'Panel turn few keys test';
+            for (i = 1; i <= turnComp.numLayers; i++) turnComp.layer(i).selected = false;
+            fdup.selected = true;
+            c.turn.selection = 2;
+            c.fix.notify('onClick');
+            var ftr = w.lastResult && w.lastResult.reports[0], fpath = pathOf(fdup), fLab = 0, fAuto = 0, fMin = 1, fa0 = Math.abs(MFm.area(MFx.toMF(fpath.keyValue(1))));
+            for (var fk = 1; fk <= fpath.numKeys; fk++) {
+                if (fpath.keyLabel(fk) !== 15) continue;
+                fLab++;
+                if (fpath.keyTemporalAutoBezier(fk)) fAuto++;
+            }
+            for (var ff = 0; ff <= turnComp.duration * turnComp.frameRate; ff++) fMin = Math.min(fMin, Math.abs(MFm.area(MFx.toMF(fpath.valueAtTime(ff / turnComp.frameRate, false)))) / fa0);
+            check('panel Fix (turn, few keys): about a key every 15 deg, auto-bezier, the F 97 % of its area or more at every frame',
+                ftr && Math.abs(ftr.turned - 360) < 0.5 && ftr.baked > 0 && tr && ftr.baked < tr.baked / 3 && fLab === ftr.baked && fAuto === fLab && fMin > 0.97,
+                (ftr ? ftr.baked : 0) + ' keys (a key a frame: ' + (tr ? tr.baked : 0) + '), ' + fAuto + ' auto-bezier, least area ' + Math.round(fMin * 1000) / 10 + ' %');
+            fdup.remove();
+            c.turn.selection = 0;
             check('panel: floating, titled ' + MFx.name, !w.docked && w.text === MFx.name, w.text);
             // ? opens the guide (a palette, never modal), with the install button when floating
             c.info.notify('onClick');

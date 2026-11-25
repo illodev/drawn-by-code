@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.15.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.16.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -34,8 +34,8 @@ file once and click **? › Update the panel**. If After Effects blocks the copy
 ## Run
 
 ```
-[Smooth ▾] max [100] [ ] turn [ ] sym [Fix] [?]    docked narrow:  [Smooth ▾] max [100] [ ] turn [ ] sym
-Fixed 1: 64 pts, 0.065 px                                            [Fix] [?]
+[Smooth ▾] max [100] [no turn ▾] [ ] sym [Fix] [?]    docked narrow:  [Smooth ▾] max [100] [no turn ▾] [ ] sym
+Fixed 1: 64 pts, 0.065 px                                               [Fix] [?]
 ```
 
 Select the keyed paths (or their groups, or whole layers) and click **Fix**. The status line
@@ -94,7 +94,9 @@ together for a longer or shorter pause; change their easing in the Graph Editor.
 shape with a key of nothing scales it, so the hole keeps its shape whatever the timing.)
 Before writing them, the fixer checks every other frame the keys would show against the
 outlines, with the same margin; where one falls short, that hole is written a key a frame
-instead. A Fix run again resets them: change their label first to keep your timing.
+instead. **A Fix run again keeps them where you put them**, with your easing, and only
+redraws them (where the hole is and what it closes to), as long as your timing doesn't let
+the hole show outside its letter; if it would, that hole is retimed, and the report says so.
 
 **Long fixes:** hold Esc to cancel (checked for fixes estimated over 4 s; the warning before a
 fix over 10 s says so). The fix is worked out in full before anything is written, so
@@ -105,7 +107,7 @@ cancelling changes nothing.
 | **Smooth** | on | Every key gets points at the same places along its outline, with handles sized so in-betweens stay smooth. Each shape stays within **0.1 px on screen** of what you drew (the scales of its groups, its layer and its parents count: a layer at 400 % is fitted 4x tighter); corners stay exact points |
 | **Exact** | | Your points stay where they are; the fixer only adds points by splitting curves where they lie, so every key is exact. In-betweens may show small kinks where a point's handles are uneven |
 | **max** | 100 | Smooth only: the most points per key. If a shape needs more to stay within 0.1 px, it stops there and the status says how close it got ("~0.76 px (max)"). Big or detailed artwork needs more: letters at 400 px landed 0.15–0.7 px off at 100; 200–300 brings them in |
-| **turn** | off | For shapes that turn between keys: points are matched as if the shape turned, and the shape swings round as a whole. The turn is written into the path as one key a frame along the arc, on shape layers and masks alike; no transform (group or layer) is keyed. Steps that don't turn stay put. A key you turned with Free Transform swings by the angle you drew |
+| **turn** | no turn | For shapes that turn between keys: points are matched as if the shape turned, and the shape swings round as a whole, written into the path, on shape layers and masks alike; no transform (group or layer) is keyed. **turn**: a key every frame along the arc, the smoothest. **turn, few keys**: a key about every 15 deg (5 in a quarter turn), auto-bezier in time so the speed runs smoothly through them; drag them to retime the turn. Between them After Effects blends two turned copies, which shrinks the shape a little (the demo's F: 98 % of its area at worst, 1.5 px off the arc). Steps that don't turn stay put. A key you turned with Free Transform swings by the angle you drew |
 | **sym** | off | Symmetry first. Shapes that share a mirror axis (a star into itself turned, a plus into an x, a heart into a circle) morph symmetrically, each side mirroring the other, even when another match travels less, and a more thorough test finds axes in shapes drawn a little unevenly. Off, symmetry still wins whenever it costs about the same (up to 20 % more squared travel) |
 
 Always on: every key is drawn in the same direction, and each key's start slides to where
@@ -121,10 +123,11 @@ Running it again on a fixed path leaves it alone ("already matched"); on a turne
 writes the same in-betweens again.
 
 **Retiming a turn.** The in-between keys a turn writes carry a keyframe label of their own
-(label 15 in *Preferences › Labels*) and are linear; your own keys keep their easing. Every
-fix removes those in-betweens first and works on the keys you drew. To retime a turn, move
-your keys (the in-betweens can stay where they are) and click Fix again. To take the turn
-out, fix with turn off.
+(label 15 in *Preferences › Labels*), linear (a key every frame) or auto-bezier (few keys);
+your own keys keep their easing. Every fix removes those in-betweens first and works on the
+keys you drew. With few keys, drag them to retime within a step; to retime a whole step,
+move your own keys and click Fix again (it redoes the in-betweens). To take the turn out,
+fix with no turn.
 
 ## What it changes
 
@@ -252,15 +255,15 @@ What it doesn't do, and why; each is also said in the report when it happens.
   thinnest drawn part (u into 5, n into u), and the demo's c into d to 1 % (the c's gap has to
   close up to become the d's bowl). Another start within the travel allowed opens up only 1 in
   10 of those (any start: 1 in 4). Corner-to-corner matching (below) is the way to most.
-- **Turn into the path:** one key a frame through each turning step, which is more keys to
-  look at; the selected keys must be next to each other, and a Hold step doesn't turn. The
-  turn's easing is in the in-betweens: retime by moving your keys and fixing again, not by
-  changing the in-betweens' easing. The fixer finds its in-betweens by their label (After
-  Effects 22.6 and later) and their linear keys (a hole's: a value closed to a point): change
-  the label and they count as yours.
-- **Hole keys you retimed** are reset by the next Fix (it removes its labelled keys and plans
-  them again); keeping the animator's timing is planned next. A hole key relabelled to keep
-  it becomes a key you drew, and the hole's path then has more keys than its letter's other
+- **Turn into the path:** a key a frame (turn) or one about every 15 deg (turn, few keys)
+  through each turning step; the selected keys must be next to each other, and a Hold step
+  doesn't turn. A second Fix redoes a turn's in-betweens: turn keys you dragged go back where
+  the fixer puts them (only hole keys keep your timing). The fixer finds its in-betweens by
+  their label (After Effects 22.6 and later) and their kind: linear, auto-bezier (a few-key
+  turn's) or a value closed to a point (a hole's); change the label and they count as yours.
+- **Hole keys you retimed** are kept through a Fix only while the hole still closes or opens
+  the same way (one key for a close or an open, two for a swap); a key relabelled to keep it
+  becomes a key you drew, and the hole's path then has more keys than its letter's other
   paths, so its pieces are no longer matched together.
 - **More points:** rebuilt paths are harder to edit by hand: edit before fixing, or use Exact.
   Big or detailed artwork needs a higher max to stay within 0.1 px.
@@ -327,7 +330,7 @@ What it needs:
 | `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
 | `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the in-betweens of a turn or of a hole kept inside), report |
 | `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, the release (it leaves nothing on `$.global`), and `out/test-build/Mask Morph Fixer.jsx`, the same plus the exports the tests use; with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
-| `test.mjs` | 4,436 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), holes kept well inside (O into C shrinking away by 30 %, C into O and C into e growing from 70 %, b into e and R into 6 swapping, q into o blending, the demo's q e b c d one of each, 42 Comic Neue pairs, every hole keeping half its clearance by true distance, a second fix the same; written as eased keys and still keeping half the clearance; on mock timelines: one key of nothing where the hole is gone and one where it starts to grow, eased where it moves, inside at every frame, a key a frame when asked for, on the comp's frames when the drawn keys aren't, fixed again the same), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `test.mjs` | 4,440 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), holes kept well inside (O into C shrinking away by 30 %, C into O and C into e growing from 70 %, b into e and R into 6 swapping, q into o blending, the demo's q e b c d one of each, 42 Comic Neue pairs, every hole keeping half its clearance by true distance, a second fix the same; written as eased keys and still keeping half the clearance; on mock timelines: one key of nothing where the hole is gone and one where it starts to grow, eased where it moves, inside at every frame, a key a frame when asked for, on the comp's frames when the drawn keys aren't, fixed again the same, a gone key dragged and re-eased kept through a Fix, dragged where the hole would show retimed), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out; few keys: 5 a quarter turn, auto-bezier, the F 97 % of its area or more at every frame, fixed again the same), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js`: the morph, the turn, and the symmetry chain (a star, the star turned 36 deg, a plus, an x, the star, all sharing the upright axis, each drawn anew) |
 | `demo-letters.js` | The letters part, q, e, b, c, d in Comic Neue Bold (q into e: the hole blends; e into b: it swaps; b into c: it shrinks away; c into d: it grows), written by `art/demo-letters.mjs` from the repo's fonts (plain ES3 for AE) |
 | `make-demo.jsx` | Builds the demo project in four parts: Morph, Turn, Symmetry (left: the fix without its symmetry rule, least travel; right: the fix) and Letters (left as typed, right fixed through the panel's own path, its holes kept inside, checked in every frame), each Before / After, in one 31.5 s comp. With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |

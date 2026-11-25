@@ -13,7 +13,7 @@
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.15.0';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.16.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -89,14 +89,19 @@ var MorphFixer = (function () {
     // keys then fixing again retimes them.
     var INBETWEEN_LABEL = 15;
 
-    // the fixer's own key: labelled, and linear (a turn's, a hole's a frame) or a hole closed to
-    // nothing (eased: a hole written as a few keys)
+    // the fixer's own key: labelled, and linear (a turn's or a hole's, a key a frame), a hole
+    // closed to nothing (a hole on a key or two) or auto-bezier (a turn on a few keys)
     function isInbetween(prop, k) {
         try {
             if (prop.keyLabel(k) !== INBETWEEN_LABEL) return false;
             var LIN = KeyframeInterpolationType.LINEAR;
             if (prop.keyInInterpolationType(k) === LIN && prop.keyOutInterpolationType(k) === LIN) return true;
-            return MF.isClosed(toMF(prop.keyValue(k)));
+            if (MF.isClosed(toMF(prop.keyValue(k)))) return true;
+            try {
+                return !!prop.keyTemporalAutoBezier(k);
+            } catch (e1) {
+                return false;
+            }
         } catch (e) {
             return false;       // no key labels (before 22.6): there are none to find
         }
@@ -170,22 +175,44 @@ var MorphFixer = (function () {
     // in-betweens are linear and labelled (INBETWEEN_LABEL): the easing is in the shapes. The
     // drawn keys keep their own interpolation and easing, so removing the in-betweens later
     // gives back the timing as it was.
+    // With few (the panel's "turn, few keys"), only a key about every TURN_EVERY degrees: each on
+    // the frame whose progress is nearest an even share of the turn, the shape exact there, and
+    // auto-bezier in time, so the speed runs smoothly through them and they can be dragged to
+    // retime the turn. Between them After Effects blends two turned copies, which shrinks the
+    // shape a little: every 15 deg, 1.5 px off the true arc on the demo's F and 98 % of its area
+    // at worst (a key a frame: 0.1 px, 99.9 %).
     // -> the number of in-between keys written
-    function bakeTurn(prop, idx, r) {
+    var TURN_EVERY = 15;
+    function bakeTurn(prop, idx, r, few) {
         var T = r.turn, k, j;
         for (k = 0; k < idx.length; k++) prop.setValueAtKey(idx[k], fromMF(r.placed[k]));
         var times = [], shapes = [];
         for (k = 0; k + 1 < idx.length; k++) {
             if (Math.abs(T.angles[k + 1] - T.angles[k]) < 0.5) continue;
             if (prop.keyOutInterpolationType(idx[k]) === KeyframeInterpolationType.HOLD) continue;
-            var fr = framesBetween(prop, prop.keyTime(idx[k]), prop.keyTime(idx[k + 1]));
-            for (j = 0; j < fr.length; j++) {
-                var t = fr[j], u = MF.progressOf(toMF(prop.valueAtTime(t, false)), r.placed[k], r.placed[k + 1]);
-                times.push(t);
-                shapes.push(fromMF(MF.swing(T, r.paths, k, u)));
+            var fr = framesBetween(prop, prop.keyTime(idx[k]), prop.keyTime(idx[k + 1])), us = [];
+            for (j = 0; j < fr.length; j++) us.push(MF.progressOf(toMF(prop.valueAtTime(fr[j], false)), r.placed[k], r.placed[k + 1]));
+            var pick = [];
+            if (few) {
+                // (a quarter turn measured at 90.3 deg still gets a key every 15)
+                var n = Math.ceil(Math.abs(T.angles[k + 1] - T.angles[k]) / TURN_EVERY - 0.05) - 1, last = -1;
+                for (var i = 1; i <= n; i++) {
+                    var want = i / (n + 1), best = -1;
+                    for (j = last + 1; j < fr.length; j++) if (best < 0 || Math.abs(us[j] - want) < Math.abs(us[best] - want)) best = j;
+                    if (best >= 0 && best !== last) {
+                        pick.push(best);
+                        last = best;
+                    }
+                }
+            } else {
+                for (j = 0; j < fr.length; j++) pick.push(j);
+            }
+            for (j = 0; j < pick.length; j++) {
+                times.push(fr[pick[j]]);
+                shapes.push(fromMF(MF.swing(T, r.paths, k, us[pick[j]])));
             }
         }
-        writeInbetweens(prop, times, shapes);
+        writeInbetweens(prop, times, shapes, few);
         return times.length;
     }
 
@@ -199,14 +226,21 @@ var MorphFixer = (function () {
         return out;
     }
 
-    // in-between keys at these times: linear, labelled (INBETWEEN_LABEL)
-    function writeInbetweens(prop, times, shapes) {
+    // in-between keys at these times, labelled (INBETWEEN_LABEL): linear, or with smooth
+    // (auto-bezier, continuous) timing through them
+    function writeInbetweens(prop, times, shapes, smooth) {
         if (!times.length) return;
         prop.setValuesAtTimes(times, shapes);
-        var LIN = KeyframeInterpolationType.LINEAR;
+        var LIN = KeyframeInterpolationType.LINEAR, BEZ = KeyframeInterpolationType.BEZIER;
         for (var j = 0; j < times.length; j++) {
             var at = prop.nearestKeyIndex(times[j]);
-            prop.setInterpolationTypeAtKey(at, LIN, LIN);
+            if (smooth) {
+                prop.setInterpolationTypeAtKey(at, BEZ, BEZ);
+                prop.setTemporalContinuousAtKey(at, true);
+                prop.setTemporalAutoBezierAtKey(at, true);
+            } else {
+                prop.setInterpolationTypeAtKey(at, LIN, LIN);
+            }
             try {
                 prop.setLabelAtKey(at, INBETWEEN_LABEL);
             } catch (e) {}
@@ -225,7 +259,7 @@ var MorphFixer = (function () {
     // (MF.holeKeeps); if one falls short, the hole is written a key a frame instead (perFrame
     // forces that). Labelled in-betweens: a later fix removes and redoes them. H, O: the hole's
     // and the outline's paths at the drawn keys. -> the number of keys written
-    function bakeHole(prop, H, outline, O, t, OL, perFrame) {
+    function bakeHole(prop, H, outline, O, t, OL, perFrame, kept) {
         var kh = keyIndices(prop).drawn, ko = keyIndices(outline).drawn, k = t.step, HOLD = KeyframeInterpolationType.HOLD;
         if (k + 1 >= kh.length || k + 1 >= ko.length) return 0;
         if (prop.keyOutInterpolationType(kh[k]) === HOLD || outline.keyOutInterpolationType(ko[k]) === HOLD) return 0;
@@ -236,7 +270,7 @@ var MorphFixer = (function () {
             ph.push(MF.holePhase(t, us[j]));
         }
         if (!perFrame) {
-            var n = fewHoleKeys(prop, H, t, fr, us, OL || [outline]);
+            var n = fewHoleKeys(prop, H, t, fr, us, OL || [outline], kept);
             if (n) return n;
         }
         // every frame it shrinks or grows; while it is closed, only the frame it closes on and
@@ -251,9 +285,20 @@ var MorphFixer = (function () {
     }
 
     // the few-key hole (bakeHole): writes it, checks it, and takes it back if a frame falls
-    // short of the margin -> the number of keys written, 0 if taken back
-    function fewHoleKeys(prop, H, t, fr, us, OL) {
+    // short of the margin. kept: the timing of hole keys the step already had (holeKeysOf),
+    // which are then used as they are (the animator may have dragged them or changed their
+    // easing) as long as the hole doesn't show outside its letter; if it would, the fixer's own
+    // timing is used and t.retimed says so -> the number of keys written, 0 if taken back
+    function fewHoleKeys(prop, H, t, fr, us, OL, kept) {
         var k = t.step, ia = -1, ib = -1, j;
+        if (kept && kept.length === (t.kind === 'swap' ? 2 : 1)) {
+            var n = fewHoleKeysAt(prop, H, t, fr, us, OL, kept);
+            if (n) {
+                t.keptTiming = true;
+                return n;
+            }
+            t.retimed = true;
+        }
         if (t.kind !== 'open') {
             for (j = 0; j < fr.length && ia < 0; j++) if (us[j] >= t.a) ia = j;
             if (ia < 0) ia = fr.length - 1;
@@ -294,6 +339,62 @@ var MorphFixer = (function () {
             var outl = [];
             for (q = 0; q < OL.length; q++) outl.push(toMF(OL[q].valueAtTime(fr[j], false)));
             ok = MF.holeKeeps(toMF(prop.valueAtTime(fr[j], false)), outl, shrinking ? t.ca : t.cb);
+        }
+        if (ok) return times.length;
+        for (q = times.length - 1; q >= 0; q--) prop.removeKey(prop.nearestKeyIndex(times[q]));
+        return 0;
+    }
+
+    // the hole keys a step already has, before a fix removes them: their times, interpolation and
+    // easing, in time order ([] if none). Read before anything is written
+    function holeKeysOf(prop, step) {
+        var ki = keyIndices(prop), d = ki.drawn, out = [];
+        if (step + 1 >= d.length) return out;
+        for (var k = d[step] + 1; k < d[step + 1]; k++) {
+            if (!MF.isClosed(toMF(prop.keyValue(k)))) continue;
+            out.push({
+                t: prop.keyTime(k), inT: prop.keyInInterpolationType(k), outT: prop.keyOutInterpolationType(k),
+                inE: prop.keyInTemporalEase(k), outE: prop.keyOutTemporalEase(k)
+            });
+        }
+        return out;
+    }
+
+    // the hole written on the kept keys' times and easing (fewHoleKeys): the values redrawn for
+    // the plan (nothing, at the hole's pole as it moves with the letter), then every other frame
+    // checked: it must not show outside its letter (the animator's timing may come closer than
+    // the fixer's margin). -> the number of keys written, 0 (and none left) if it would show
+    function fewHoleKeysAt(prop, H, t, fr, us, OL, kept) {
+        var k = t.step, t0 = prop.keyTime(keyIndices(prop).drawn[k]), t1 = prop.keyTime(keyIndices(prop).drawn[k + 1]), q, j;
+        for (q = 0; q < kept.length; q++) if (!(kept[q].t > t0 + 1e-6 && kept[q].t < t1 - 1e-6)) return 0;
+        // the outline's progress at each kept key: read where it falls among the frames
+        function uAt(time) {
+            for (var i = 0; i < fr.length; i++) if (Math.abs(fr[i] - time) < 1e-6) return us[i];
+            return MF.progressOf(toMF(OL[0].valueAtTime(time, false)), toMF(OL[0].valueAtTime(t0, false)), toMF(OL[0].valueAtTime(t1, false)));
+        }
+        var times = [], vals = [];
+        for (q = 0; q < kept.length; q++) {
+            var side = t.kind === 'open' || (t.kind === 'swap' && q === 1) ? 'b' : 'a';
+            times.push(kept[q].t);
+            vals.push(fromMF(MF.holeGone(t, side === 'a' ? H[k] : H[k + 1], uAt(kept[q].t), side)));
+        }
+        prop.setValuesAtTimes(times, vals);
+        for (q = 0; q < kept.length; q++) {
+            var at = prop.nearestKeyIndex(times[q]);
+            try {
+                prop.setTemporalEaseAtKey(at, kept[q].inE, kept[q].outE);
+            } catch (e1) {}
+            prop.setInterpolationTypeAtKey(at, kept[q].inT, kept[q].outT);
+            try {
+                prop.setLabelAtKey(at, INBETWEEN_LABEL);
+            } catch (e2) {}
+        }
+        var ok = true, ta = t.kind === 'open' ? t0 : times[0], tb = t.kind === 'close' ? t1 : times[times.length - 1];
+        for (j = 0; j < fr.length && ok; j++) {
+            if (!(fr[j] < ta || fr[j] > tb) || j % 2) continue;
+            var outl = [];
+            for (q = 0; q < OL.length; q++) outl.push(toMF(OL[q].valueAtTime(fr[j], false)));
+            ok = MF.holeKeeps(toMF(prop.valueAtTime(fr[j], false)), outl, 0);
         }
         if (ok) return times.length;
         for (q = times.length - 1; q >= 0; q--) prop.removeKey(prop.nearestKeyIndex(times[q]));
@@ -394,7 +495,8 @@ var MorphFixer = (function () {
         plan.apply = function () {
             var at = clearStrays(prop, ki);
             if (r.turn) {
-                rep.baked = bakeTurn(prop, at, r);
+                rep.baked = bakeTurn(prop, at, r, o.turnKeys === 'few');
+                rep.fewKeys = o.turnKeys === 'few';
                 rep.turned = r.turn.angles[r.turn.angles.length - 1] - r.turn.angles[0];
                 return;
             }
@@ -464,7 +566,7 @@ var MorphFixer = (function () {
         }
         var how, turned = '';
         if (rep.turned !== undefined && rep.baked) {
-            turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, one a frame' + (earlier ? ' (replacing ' + earlier + ')' : '');
+            turned = '; turned ' + Math.round(rep.turned) + ' deg in ' + rep.baked + ' in-between keys, ' + (rep.fewKeys ? 'about one every 15 deg (drag them to retime)' : 'one a frame') + (earlier ? ' (replacing ' + earlier + ')' : '');
         } else if (rep.turned !== undefined) {
             turned = '; turned ' + Math.round(rep.turned) + ' deg at the keys (no in-betweens: the turning steps hold, or last a frame)';
         } else if (rep.noTurn) {
@@ -840,6 +942,7 @@ var MorphFixer = (function () {
                 if (step('Path ' + (i + 1) + ' of ' + jobs.length, (i + 1) / jobs.length)) throw { cancelled: true };
             }
             var timed = holesToTime(shapes, plans);
+            for (i = 0; i < timed.length; i++) timed[i].kept = holeKeysOf(jobs[timed[i].hole].prop, timed[i].t.step);
         } catch (ec) {
             if (ec && ec.cancelled) return { status: 'Cancelled: nothing changed', detail: 'Cancelled with Esc before anything was written.', reports: [], cancelled: true, warned: warned, seconds: seconds };
             return { status: 'Error (hover)', detail: String(ec && ec.message) + (ec && ec.line ? ' (line ' + ec.line + ')' : ''), reports: [] };
@@ -867,7 +970,7 @@ var MorphFixer = (function () {
             for (i = 0; i < timed.length; i++) {
                 var tm = timed[i], hr = plans[tm.hole].rep, olp = [];
                 for (var oi = 0; oi < tm.outlines.length; oi++) olp.push(jobs[tm.outlines[oi]].prop);
-                var nk = bakeHole(jobs[tm.hole].prop, tm.H, jobs[tm.outline].prop, tm.O, tm.t, olp);
+                var nk = bakeHole(jobs[tm.hole].prop, tm.H, jobs[tm.outline].prop, tm.O, tm.t, olp, false, tm.kept);
                 if (!nk) continue;
                 holesN++;
                 hr.holeKeys = (hr.holeKeys || 0) + nk;
@@ -881,7 +984,9 @@ var MorphFixer = (function () {
         }
         if (pieceLines.length) lines.push('', 'Pieces matched between keys:', pieceLines.join('\n'));
         var parts = [];
-        if (fixed) parts.push('Fixed ' + fixed + ': ' + (lo === hi ? lo : lo + '-' + hi) + ' pts' + (worst ? (capped ? ', ~' : ', ') + round3(worst) + ' px' + (capped ? ' (max)' : '') : ''));
+        // (paths written with no new points, only their pieces or holes redone, have no count:
+        // round 17's second fix of a letter read "Fixed 1: 1000000000-0 pts")
+        if (fixed) parts.push('Fixed ' + fixed + (lo <= hi ? ': ' + (lo === hi ? lo : lo + '-' + hi) + ' pts' : '') + (worst ? (capped ? ', ~' : ', ') + round3(worst) + ' px' + (capped ? ' (max)' : '') : ''));
         if (turned) parts.push(turned + ' turned');
         if (movedN || grownN) parts.push('pieces matched');
         if (holesN) parts.push(holesN + (holesN > 1 ? ' holes' : ' hole') + ' kept inside');
@@ -896,10 +1001,15 @@ var MorphFixer = (function () {
     function holeNote(t) {
         var pc = function (x) {
             return Math.round(x * 100) + ' %';
-        }, of = ' of the morph from key ' + (t.step + 1);
-        if (t.kind === 'close') return 'shrinks away over the first ' + pc(t.a) + of + ', before the letter opens';
-        if (t.kind === 'open') return 'grows over the last ' + pc(1 - t.b) + of + ', once the letter has closed round it';
-        return 'shrinks away over the first ' + pc(t.a) + of + ' and grows again in its new place over the last ' + pc(1 - t.b) + ' (blended, it would come too close to the edge)';
+        }, of = ' of the morph from key ' + (t.step + 1), s;
+        if (t.keptTiming) {
+            s = t.kind === 'close' ? 'shrinks away' : (t.kind === 'open' ? 'grows' : 'shrinks away and grows again in its new place');
+            return s + of.replace(' of the', ' in the') + ' on your timing (its keys kept)';
+        }
+        if (t.kind === 'close') s = 'shrinks away over the first ' + pc(t.a) + of + ', before the letter opens';
+        else if (t.kind === 'open') s = 'grows over the last ' + pc(1 - t.b) + of + ', once the letter has closed round it';
+        else s = 'shrinks away over the first ' + pc(t.a) + of + ' and grows again in its new place over the last ' + pc(1 - t.b) + ' (blended, it would come too close to the edge)';
+        return s + (t.retimed ? ' (retimed: on your keys\' timing it would show outside its letter)' : '');
     }
 
     // the holes to put on their own clock (MF.holeTiming), worked out before anything is written:
@@ -957,12 +1067,12 @@ var MorphFixer = (function () {
             ['Smooth', 'Redraws the points so the shape stays smooth all through the morph. Each key still looks the same (within 0.1 px) and corners stay sharp.'],
             ['Exact', 'Keeps your own points and only adds new ones. Keys stay exactly as drawn, but the morph may show small bumps.'],
             ['max', 'The most points Smooth may use per key. If the status ends in "(max)", raise it for a closer fit: big or detailed artwork, like type at 400 px, often needs 200 to 300.'],
-            ['turn', 'For shapes that rotate between keys, like an F turning onto its side: they swing round instead of squashing. Written into the path, one key a frame; to retime, move your keys and fix again.'],
+            ['turn', 'For shapes that rotate between keys (an F turning onto its side): they swing round instead of squashing. "turn" writes a key every frame, the smoothest; "turn, few keys" one about every 15 deg, easy to retime.'],
             ['sym', 'Shapes that share a mirror axis morph symmetrically, each side mirroring the other, even if it costs more travel. Off: only when it costs about the same.']
         ],
         tips: [
             'Fixed paths have more points: finish drawing your keys first.',
-            'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, a piece you draw as a dot grows from that dot, and a hole stays well inside its letter: where it closes, opens or would come too close, it shrinks away and regrows on a key or two you can drag.',
+            'Letters with holes, shapes in several pieces: select the group or the layer. The pieces are matched between keys, a piece you draw as a dot grows from that dot, and holes stay well inside: they shrink away and regrow on a key or two you can drag.',
             'A long fix keeps After Effects busy until it is done; over 10 seconds, it asks first and says how long. Hold Esc to cancel: nothing changes.',
             'It asks first when Zig Zag, Pucker & Bloat, Wiggle Paths or an expression count the points. Trim Paths, dashes and text on a path are fine.',
             'Left alone: paths with expressions, masks with feather points, and rectangles, ellipses and stars (right-click > Convert To Bezier Path first).',
@@ -1246,9 +1356,10 @@ var MorphFixer = (function () {
         var max = row.add('edittext', undefined, setting('max', '100'));
         max.characters = 3;
         max.helpTip = 'The most points Smooth may use per key';
-        var turnBox = row.add('checkbox', undefined, 'turn');
-        turnBox.value = setting('turn', 'false') === 'true';
-        turnBox.helpTip = 'For shapes that rotate between keys: they swing round instead of squashing';
+        var turnBox = row.add('dropdownlist', undefined, ['no turn', 'turn', 'turn, few keys']), turnSet = setting('turn', 'false');
+        turnBox.selection = turnSet === 'few' ? 2 : (turnSet === 'true' ? 1 : 0);
+        turnBox.helpTip = 'For shapes that rotate between keys: they swing round instead of squashing.\n' +
+            'turn: a key every frame, the smoothest. turn, few keys: a key about every 15 deg, easy to retime.';
         var symBox = row.add('checkbox', undefined, 'sym');
         symBox.value = setting('symmetry', 'false') === 'true';
         symBox.helpTip = 'Symmetry first: shapes that share a mirror axis morph symmetrically even when it costs more travel.\n' +
@@ -1277,8 +1388,8 @@ var MorphFixer = (function () {
             syncMode();
             save('mode', mode.selection.index === 1 ? 'exact' : 'smooth');
         };
-        turnBox.onClick = function () {
-            save('turn', turnBox.value);
+        turnBox.onChange = function () {
+            save('turn', turnBox.selection.index === 2 ? 'few' : (turnBox.selection.index === 1 ? 'true' : 'false'));
         };
         symBox.onClick = function () {
             save('symmetry', symBox.value);
@@ -1291,7 +1402,7 @@ var MorphFixer = (function () {
         };
         fixB.onClick = function () {
             var n = Math.round(Number(max.text));
-            var res = fixSelection({ mode: mode.selection.index === 1 ? 'exact' : 'smooth', maxPoints: n >= 4 ? n : 100, rotate: turnBox.value, symmetry: symBox.value ? 'force' : undefined });
+            var res = fixSelection({ mode: mode.selection.index === 1 ? 'exact' : 'smooth', maxPoints: n >= 4 ? n : 100, rotate: turnBox.selection.index > 0, turnKeys: turnBox.selection.index === 2 ? 'few' : 'frame', symmetry: symBox.value ? 'force' : undefined });
             status.text = res.status;
             status.helpTip = res.detail;
             w.lastResult = res;
@@ -1344,7 +1455,7 @@ var MorphFixer = (function () {
         install: install, isInstalled: isInstalled, panelsFolder: panelsFolder, toMF: toMF, fromMF: fromMF,
         version: VERSION, magnification: magnification, needs: needs, readers: readers, estimate: estimate, keyMs: keyMs,
         speed: speed, installedCopies: installedCopies, theme: theme, headingColor: headingColor,
-        planPath: planPath, pieceGroups: pieceGroups, uid: uid, bakeTurn: bakeTurn, bakeHole: bakeHole, holesToTime: holesToTime,
+        planPath: planPath, pieceGroups: pieceGroups, uid: uid, bakeTurn: bakeTurn, bakeHole: bakeHole, holesToTime: holesToTime, holeKeysOf: holeKeysOf, holeNoteFor: holeNote,
         ask: null, themeOverride: null, escape: null     // test stand-ins: the question before a fix, the AE theme, Esc
     };
     return api;

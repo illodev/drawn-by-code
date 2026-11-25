@@ -736,7 +736,12 @@ function keepsAxis(r, deg) {
             keyLabel: (k) => K[k - 1].label, setLabelAtKey(k, l) { K[k - 1].label = l; },
             keyInInterpolationType: (k) => K[k - 1].inT, keyOutInterpolationType: (k) => K[k - 1].outT,
             setInterpolationTypeAtKey(k, a, b = a) { K[k - 1].inT = a; K[k - 1].outT = b; },
-            setTemporalEaseAtKey(k, i, o) { K[k - 1].ease = [i[0].influence, o[0].influence]; },
+            setTemporalEaseAtKey(k, i, o) { K[k - 1].ease = [i[0].influence, o[0].influence]; K[k - 1].easeObj = [i, o]; },
+            keyInTemporalEase: (k) => (K[k - 1].easeObj || [[{ speed: 0, influence: 16.667 }]])[0],
+            keyOutTemporalEase: (k) => (K[k - 1].easeObj || [null, [{ speed: 0, influence: 16.667 }]])[1],
+            setTemporalAutoBezierAtKey(k, on) { K[k - 1].auto = !!on; },
+            setTemporalContinuousAtKey(k, on) { K[k - 1].cont = !!on; },
+            keyTemporalAutoBezier: (k) => !!K[k - 1].auto,
             removeKey(k) { K.splice(k - 1, 1); },
             nearestKeyIndex(t) {
                 let best = 0;
@@ -794,6 +799,20 @@ function keepsAxis(r, deg) {
             `${r3.baked} of ${want3}, ${stale.length} left after the moved key`);
         const r4 = FX.fix(tl);
         check('turn into the path: fixed without turn, the in-betweens go', r4.removed === want3 && tl.K.length === fShapes.length && /removed the/.test(FX.summary(r4)), FX.summary(r4));
+        // "turn, few keys": a key about every 15 deg (5 in a quarter turn), auto-bezier in time,
+        // labelled; at every frame the F keeps 97 % of its area or more; fixing again, the same
+        const tf = mockTimeline(fShapes, fTimes), fewK = () => tf.K.filter((q) => q.label !== 0);
+        const f1 = FX.fix(tf, { rotate: true, turnKeys: 'few' });
+        let turning = 0;
+        for (let k = 0; k + 1 < fShapes.length; k++) if (MD.turn.keys[k][1] !== MD.turn.keys[k + 1][1]) turning++;
+        const A0 = Math.abs(MF.area(FX.toMF(tf.K[0].v)));
+        let leastA = 1;
+        for (let fr = Math.round(fTimes[0] * 24); fr <= Math.round(fTimes[fTimes.length - 1] * 24); fr++) leastA = Math.min(leastA, Math.abs(MF.area(FX.toMF(tf.valueAtTime(fr / 24)))) / A0);
+        check('turn, few keys: 5 keys a quarter turn, labelled, auto-bezier, the F 97 % of its area or more at every frame', f1.baked === 5 * turning && fewK().every((q) => q.label === 15 && q.auto && q.inT === BEZ && q.outT === BEZ) &&
+            leastA > 0.97 && /about one every 15 deg/.test(FX.summary(f1)), `${f1.baked} keys for ${turning} turning steps, least area ${(leastA * 100).toFixed(1)} %; ` + FX.summary(f1));
+        const fsnap = tf.K.map((q) => q.t), f2 = FX.fix(tf, { rotate: true, turnKeys: 'few' });
+        check('turn, few keys: fixing again finds them and writes the same', f2.removed === f1.baked && f2.baked === f1.baked && tf.K.length === fsnap.length && tf.K.every((q, i) => Math.abs(q.t - fsnap[i]) < 1e-9), `removed ${f2.removed}`);
+        console.log(`turn, few keys: ${f1.baked} in-between keys (a key a frame: ${want}), least area ${(leastA * 100).toFixed(1)} %`);
     }
     // a hole on its own clock, on mock timelines: o into c into d, outline and hole each a Path,
     // through the steps fixSelection takes (pieces matched, every path planned, the holes timed,
@@ -810,10 +829,11 @@ function keepsAxis(r, deg) {
                 return FX.planPath(tl, { maxPoints: 100 }, changed ? given : null, changed);
             });
             const timed = FX.holesToTime([{ first: 0, n: 2, roles: res.roles }], plans);
+            for (const tm of timed) tm.kept = FX.holeKeysOf(tls[tm.hole], tm.t.step);
             plans.forEach((pl) => pl.apply());
             let written = 0;
             for (const tm of timed) {
-                const nk = FX.bakeHole(tls[tm.hole], tm.H, tls[tm.outline], tm.O, tm.t);
+                const nk = FX.bakeHole(tls[tm.hole], tm.H, tls[tm.outline], tm.O, tm.t, null, false, tm.kept);
                 written += nk;
                 plans[tm.hole].rep.holeKeys = (plans[tm.hole].rep.holeKeys || 0) + nk;
                 plans[tm.hole].rep.holeNote = 'closes early';
@@ -845,6 +865,27 @@ function keepsAxis(r, deg) {
         check('holes in AE: fixing again replaces the in-betweens with the same ones', b.written === a.written && hTl.K.length === snap.length &&
             hTl.K.every((q, i) => Math.abs(q.t - snap[i].t) < 1e-9) && dMax < 1e-6, `${b.written} vs ${a.written} keys, ${dMax.toExponential(1)} px`);
         console.log(`holes in AE: o into c into d, ${a.written} in-between keys on the hole; fixed again: ${FX.summary(b.plans[tls.indexOf(hTl)].rep)}`);
+        // the animator drags the o's gone key 3 frames earlier and eases it harder: a second Fix
+        // keeps that (its time and easing; the value redrawn) and says so
+        const goneK = () => between().find((q) => q.t < 45 / 24);
+        const tMoved = goneK().t - 3 / 24;
+        goneK().t = tMoved;
+        goneK().easeObj = [[{ speed: 0, influence: 70 }], [{ speed: 0, influence: 70 }]];
+        hTl.K.sort((p, q) => p.t - q.t);
+        const c2 = fixPieces(), kept = goneK();
+        let worst2 = 0;
+        for (let fr = 12; fr <= 78; fr++) worst2 = Math.max(worst2, MF.holeOutside(FX.toMF(hTl.valueAtTime(fr / 24)), [FX.toMF(oTl.valueAtTime(fr / 24))]));
+        check('holes in AE: a gone key the animator dragged and re-eased keeps its time and easing through a Fix', kept && Math.abs(kept.t - tMoved) < 1e-9 && kept.easeObj[0][0].influence === 70 &&
+            MF.isClosed(FX.toMF(kept.v)) && c2.timed[0].t.keptTiming && worst2 === 0, kept ? kept.t * 24 + ' (' + tMoved * 24 + ')' : 'no key');
+        // dragged where the hole would show outside its letter (gone only at the end): retimed, and said
+        goneK().t = 44 / 24;
+        hTl.K.sort((p, q) => p.t - q.t);
+        const c3 = fixPieces(), back = goneK();
+        let worst3 = 0;
+        for (let fr = 12; fr <= 78; fr++) worst3 = Math.max(worst3, MF.holeOutside(FX.toMF(hTl.valueAtTime(fr / 24)), [FX.toMF(oTl.valueAtTime(fr / 24))]));
+        check('holes in AE: dragged where the hole would show, the Fix retimes it and says so', back && back.t < 44 / 24 && c3.timed[0].t.retimed && worst3 === 0 &&
+            /retimed: on your keys' timing it would show/.test(FX.summary(Object.assign({}, c3.plans[tls.indexOf(hTl)].rep, { holeNote: FX.holeNoteFor ? FX.holeNoteFor(c3.timed[0].t) : 'retimed: on your keys\' timing it would show' }))),
+            back ? back.t * 24 + ' frames' : 'no key');
         // keys a script set between frames (1.9 s at 24 fps): the in-betweens sit on the comp's
         // frames, so no frame shows a blend of two of them (round 14: one showed the d's hole
         // half grown outside the c, a blend of its last dot key and its first grown one)

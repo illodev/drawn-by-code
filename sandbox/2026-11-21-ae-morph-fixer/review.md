@@ -714,3 +714,40 @@ about 25 and kept 96 % of their clearance (a key a frame: 89 %).
   and R into 6; mock timelines: one key each, eased where the hole moves, a key a frame when
   asked); real type 186. **In After Effects 27:** real type 111/111, demo 52/52; the guide with
   its longer tip 461 x 791 px. `render/` redone.
+
+## Round 17 · 2026-11-25 (the user: "continue with your recommendation")
+
+The rest of round 16's recommendation: a turn on a few keys, and hole keys the animator moved
+kept through a second Fix.
+
+- **0.16.0: turn is a list** in the panel: no turn / turn (a key every frame, the smoothest)
+  / turn, few keys (one about every 15 deg: 5 in a quarter turn, on the frames nearest even
+  shares of the turn, auto-bezier and continuous in time so the speed runs through them;
+  drag them to retime). The demo F's 360 deg: 20 keys instead of 92, at least 98.2 % of its
+  area at every frame in AE (blending two turned copies shrinks it a little). A step measured
+  at 90.3 deg first got 6 keys (ceil of 6.02): the count takes 5 % off before rounding up.
+- **Hole keys you moved are kept**: before a fix writes anything, each timed hole's existing
+  keys of nothing (their times, interpolation and easing) are read; if the plan still has
+  the same number (one for a close or an open, two for a swap), they are written back at
+  those times with that easing, only their values redrawn, and kept if the hole doesn't show
+  outside its letter (checked every other frame); otherwise the fixer's own timing is used
+  and the report says "retimed". The fixer now also knows its keys by auto-bezier (a few-key
+  turn's), and checks a closed value before asking AE for auto-bezier (the mock lacked that
+  call, and the error made the hole keys look drawn).
+- **In After Effects 27**: the few-key turn and both kept-timing checks pass (a gone key
+  dragged 2 frames and eased at 70 % stays put with its easing; dragged to just before the c
+  it is retimed); the guide 465 x 775 px. The kept-timing checks first failed: the test's
+  second Fix ran with another comp active (Fix works on the active comp), so nothing was
+  fixed. → The test opens the letters comp first.
+- **Found: "Fixed 1: 1000000000-0 pts"**: a fix that only rewrote pieces or holes, adding no
+  points, printed the unset range. → No count then.
+- **The runner and the user's AE**: the user was working in After Effects while my runner sat
+  in it with jobs queued that it never picked up (its timer had died). It then fired while a
+  dialog was open: "Cannot run a script while a modal dialog is waiting for response", in
+  the user's face. → A runner only while the user has handed AE over; jobs not picked up in
+  seconds mean a dead timer: take them out and stop it. The last demo run: 54 of 55, the miss
+  the time estimate (7.3 s estimated, 18.9 s taken; 6.7 and 9.2 s in the two runs before,
+  the fix it times unchanged this round), not rerun.
+- Tests: Node 4,440 (few-key turns: 5 a quarter turn, auto-bezier, 97 % area, fixed again
+  the same; kept hole timing and retiming on mock timelines); real type 186. AE: real type
+  111/111, demo 54/55 as above. `render/` unchanged (the demo itself didn't change).

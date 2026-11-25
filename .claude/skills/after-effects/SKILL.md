@@ -300,6 +300,15 @@ Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
   into 8: 22 s for a check Node did in 2 ms), where the morph fix itself runs ~300x. In hot
   loops, keep coordinates in flat arrays of numbers, evaluate curves inline, and measure each
   sample once. Time new math inside AE apart from the rest (`bench/holes-bench.jsx`).
+- **Jobs not picked up within seconds mean the runner's timer is dead** (it survived the send
+  but stopped firing, cause unknown). Take the jobs out of the inbox and send a fresh runner
+  (it cancels the old task); never leave jobs queued for a dead runner while the user works in
+  AE: when it wakes during one of their dialogs, AE shows them "Cannot run a script while a
+  modal dialog is waiting for response" (round 17). Run tests only when the user has handed
+  AE over, and stop the runner as soon as they are done.
+- **Fix works on the active comp**: a test that fixes a layer in another comp must open that
+  comp first (`comp.openInViewer()`); without it the fix ran elsewhere, changed nothing, and
+  two checks failed for a reason that had nothing to do with the code.
 - **Windows throttles After Effects in the background.** With another app in front (File
   Explorer), a test sat 15 minutes at 0.04 of a core, AE "responding", no dialog; brought
   forward, it finished in a minute, and a timed check read 230 s for a 7 s fix. A stall with
