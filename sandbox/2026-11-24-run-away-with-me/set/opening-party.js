@@ -60,11 +60,35 @@
         { const pts = []; for (let i = 0; i <= 24; i++) { const a = (i / 24) * Math.PI * 2; pts.push([BALL[0] + Math.cos(a) * 0.85, Y - 0.05, BALL[2] + Math.sin(a) * 0.85]); } tubeW(pts, P.cyan, 0.05, 0.8 + 0.2 * lt.hit); }
         // the cove under the ceiling, all round
         tubeW([[-X + 0.1, Y - 0.3, F], [-X + 0.1, Y - 0.3, Zb - 0.1], [X - 0.1, Y - 0.3, Zb - 0.1], [X - 0.1, Y - 0.3, F]], P.pink, 0.08);
-        // the tall windows on the right wall: the night outside, a far neon, plum curtains
+        // the tall windows on the right wall: an arched opening in a deep frame, the night outside
+        // (sky bands, the moon's path on the sea, a far shore of lights), a grid of mullions, curtains
         for (const z of [3, 8.5, 14, 19.5]) {
-            const q = quad([[X - 0.05, 1.0, z - 1.3], [X - 0.05, 1.0, z + 1.3], [X - 0.05, 4.4, z + 1.3], [X - 0.05, 5.2, z], [X - 0.05, 4.4, z - 1.3]], '#0f0f6a', { seed: 30 + z });
-            if (q) { const p = cam.p([X - 0.06, 2.4 + Ink.hsh(z, 1, 1), z + 0.4]); if (p[2] > 0.5) Neon.last.glint(g, L, p[0], p[1], Math.max(2, 0.08 * cam.f / p[2]), hex(z % 2 ? P.cyan : P.pink), { alpha: 0.8 }); }
-            for (const dz of [-1.6, 1.6]) quad([[X - 0.1, 0, z + dz - 0.4], [X - 0.1, 0, z + dz + 0.4], [X - 0.1, 5.4, z + dz + 0.35], [X - 0.1, 5.4, z + dz - 0.35]], P.grape, { seed: 40 + z + dz });
+            const xw = X - 0.05, arch = (r, y0) => { const o = []; for (let i = 0; i <= 10; i++) { const a = Math.PI * (i / 10); o.push([xw, y0 + Math.sin(a) * r, z - Math.cos(a) * r]); } return o; };
+            const open = [[xw, 0.9, z - 1.25]].concat(arch(1.25, 4.0), [[xw, 0.9, z + 1.25]]);
+            const frameQ = quad([[xw, 0.75, z - 1.5]].concat(arch(1.5, 4.0), [[xw, 0.75, z + 1.5]]), '#2a0c66', { seed: 30 + z, w: 2 });
+            const q = Neon.poly(cam, open); if (!q) continue;
+            // the view, clipped to the opening: sky bands, the horizon, the sea with the moon's path, far lights
+            g.save(); g.beginPath(); q.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); g.clip();
+            const band = (y0, y1, col, k) => quad([[xw - 0.01, y0, z - 1.3], [xw - 0.01, y1, z - 1.3], [xw - 0.01, y1, z + 1.3], [xw - 0.01, y0, z + 1.3]], col, { w: 0, seed: k, jit: 0 });
+            band(2.6, 5.4, '#0f0138', 31 + z); band(2.15, 2.6, '#3c0ca8', 32 + z); band(1.95, 2.15, '#a8189e', 33 + z); band(0.8, 1.95, '#140548', 34 + z);
+            for (let i = 0; i < 9; i++) { const zz = z - 1.1 + i * 0.27, y = 1.95 + Ink.hsh(z, i, 3) * 0.12, p = cam.p([xw - 0.02, y, zz]); if (p[2] > 0.5) { const r = cap(0.025 * cam.f / p[2], 1, 4); g.fillStyle = [P.gold, P.pink, P.cyan][i % 3]; g.fillRect(p[0] - r / 2, p[1] - r, r, r * 1.6); } }
+            for (let i = 0; i < 6; i++) { const y = 1.85 - i * 0.16, a = cam.p([xw - 0.02, y, z + 0.1 - 0.15 - i * 0.05]), b = cam.p([xw - 0.02, y, z + 0.1 + 0.15 + i * 0.05]); if (a[2] > 0.5) Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.03 * cam.f / a[2], 1, 3), col: P.cream, seed: 35 + z * 10 + i, d, taper: 0.4, alpha: 0.8, light: true }); }
+            const mo = cam.p([xw - 0.02, 3.3, z + 0.1]); if (mo[2] > 0.5) { const r = 0.14 * cam.f / mo[2]; Ink.shape(g, [[mo[0] - r, mo[1]], [mo[0], mo[1] - r], [mo[0] + r * 0.3, mo[1] - r * 0.6], [mo[0] - r * 0.3, mo[1]], [mo[0] + r * 0.3, mo[1] + r * 0.6], [mo[0], mo[1] + r]], P.cream, { w: 0, seed: 36 + z, d, light: true }); }
+            g.restore();
+            // the mullions: two uprights and three bars, the arch's own ribs
+            const bar = (A, B2, k) => { const a = cam.p(A), b = cam.p(B2); if (a[2] > 0.5 && b[2] > 0.5) Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.06 * cam.f / a[2], 1.2, 5), col: '#2a0c66', seed: 37 + z * 10 + k, d, taper: 0.05 }); };
+            bar([xw - 0.03, 0.9, z - 0.42], [xw - 0.03, 4.0, z - 0.42], 1); bar([xw - 0.03, 0.9, z + 0.42], [xw - 0.03, 4.0, z + 0.42], 2);
+            for (const y of [1.7, 2.6, 3.4]) bar([xw - 0.03, y, z - 1.25], [xw - 0.03, y, z + 1.25], 3 + y);
+            bar([xw - 0.03, 4.0, z], [xw - 0.03, 5.25, z], 7);
+            // the curtains, gathered at each side in folds, a tie-back, a lit edge
+            for (const sg of [-1, 1]) {
+                const zc = z + sg * 1.45, pts = [[xw - 0.1, 5.5, zc + sg * 0.55], [xw - 0.1, 5.5, zc - sg * 0.55], [xw - 0.1, 2.0, zc - sg * 0.25], [xw - 0.1, 0.0, zc - sg * 0.5], [xw - 0.1, 0.0, zc + sg * 0.55]];
+                const cq = quad(pts, P.grape, { seed: 40 + z + sg, w: 1.8 });
+                if (!cq) continue;
+                for (let k = 0; k < 3; k++) { const zz = zc + sg * (0.3 - k * 0.22); bar([xw - 0.11, 5.3, zz], [xw - 0.11, 2.1, zc - sg * 0.1 + sg * (0.2 - k * 0.12)], 50 + sg * 5 + k); }
+                const t0 = cam.p([xw - 0.12, 2.0, zc - sg * 0.3]), t1 = cam.p([xw - 0.12, 2.0, zc + sg * 0.5]); if (t0[2] > 0.5) Ink.brush(g, [[t0[0], t0[1]], [t1[0], t1[1]]], { w: cap(0.05 * cam.f / t0[2], 1, 4), col: P.gold, seed: 60 + z + sg, d, taper: 0.2 });
+                const e0 = cam.p([xw - 0.12, 5.3, zc - sg * 0.53]), e1 = cam.p([xw - 0.12, 2.2, zc - sg * 0.27]); if (e0[2] > 0.5) Ink.brush(g, [[e0[0], e0[1]], [e1[0], e1[1]]], { w: cap(0.025 * cam.f / e0[2], 1, 3), col: P.pink, seed: 62 + z + sg, d, taper: 0.4, alpha: 0.8, light: true });
+            }
         }
         // the bar along the left wall: shelves of bottles lit from below, a mirror strip, the counter
         const xb = -X + 0.05;

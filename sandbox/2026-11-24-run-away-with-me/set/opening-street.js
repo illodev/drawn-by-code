@@ -42,10 +42,11 @@
         for (const h of H) {
             const zf = Z.face - 0.06, cx = (h.x0 + h.x1) / 2, [c1, c2] = h.party ? [P.cyan, P.magenta] : h.tube;
             const add = (pts, col, w = 0.09, ring = false) => TUBES.push({ pts, col, w, h, ring, cx: pts.reduce((a, p) => a + p[0], 0) / pts.length });
-            add([[h.x0 + 0.4, h.h - 0.5, zf], [h.x1 - 0.4, h.h - 0.5, zf]], c1, 0.1);
-            if (h.kind === 3) for (let i = 1; i <= 2; i++) add([[h.x0 + 0.4, h.h - 0.5 - i * 0.45, zf], [h.x1 - 0.4, h.h - 0.5 - i * 0.45, zf]], i % 2 ? c2 : c1, 0.07);
+            const xe = h.kind === 3 ? h.x1 - 2.8 : h.x1 - 0.4;                 // the rounded corner of the speed-line hotels
+            add([[h.x0 + 0.4, h.h - 0.5, zf], [xe, h.h - 0.5, zf]], c1, 0.1);
+            if (h.kind === 3) for (let i = 1; i <= 2; i++) add([[h.x0 + 0.4, h.h - 0.5 - i * 0.45, zf], [xe, h.h - 0.5 - i * 0.45, zf]], i % 2 ? c2 : c1, 0.07);
             // the first eyebrow, and every eyebrow on the speed-line hotels
-            for (let f = 1; f <= h.floors; f++) if (f === 1 || h.kind === 3 || (h.party && f % 2 === 1)) add([[h.x0 + 0.6, 3.6 + (f - 1) * 3.1 + 2.55, zf - 0.75], [h.x1 - 0.6, 3.6 + (f - 1) * 3.1 + 2.55, zf - 0.75]], f === 1 ? c2 : c1, 0.07);
+            for (let f = 1; f <= h.floors; f++) if (f === 1 || h.kind === 3 || (h.party && f % 2 === 1)) add([[h.x0 + 0.6, 3.6 + (f - 1) * 3.1 + 2.55, zf - 0.75], [xe - 0.2, 3.6 + (f - 1) * 3.1 + 2.55, zf - 0.75]], f === 1 ? c2 : c1, 0.07);
             if (h.fin) {
                 const fz = zf - 1.3;
                 add([[cx - 0.75, 4.2, fz], [cx - 0.75, h.finH - 0.4, fz]], c2, 0.1); add([[cx + 0.75, 4.2, fz], [cx + 0.75, h.finH - 0.4, fz]], c2, 0.1);
@@ -55,6 +56,15 @@
             if (h.kind === 2) for (const px of [h.x0 + 3, h.x1 - 3]) { const pts = []; for (let i = 0; i <= 16; i++) { const a = (i / 16) * Math.PI * 2; pts.push([px + Math.cos(a) * 0.9, h.h - 2.4 + Math.sin(a) * 0.9, zf]); } add(pts, c2, 0.08, true); }
             // the canopy over the door
             add([[cx - 2.6, 3.4, Z.face - 3.2], [cx + 2.6, 3.4, Z.face - 3.2]], h.party ? P.magenta : c1, 0.09);
+            // a neon shape between the top floors (no lettering anywhere)
+            if (!h.fin) {
+                const sx = h.kind === 2 ? cx - 2 : cx, sy = h.h - 3.6, zz = zf - 0.05, kind = h.seed % 5, P3 = (pts) => pts.map(([u, v]) => [sx + u, sy + v, zz]);
+                if (kind === 0) { add(P3([[-0.9, 1.1], [0.9, 1.1], [0, 0.1], [-0.9, 1.1]]), c2, 0.07); add(P3([[0, 0.1], [0, -0.7], [-0.45, -0.8], [0.45, -0.8]]), c2, 0.07); add(P3([[0.35, 0.95], [0.55, 1.15], [0.75, 0.95], [0.55, 0.75], [0.35, 0.95]]), P.mint, 0.06); }
+                else if (kind === 1) { const st = []; for (let i = 0; i <= 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 0.45 : 1.1; st.push([Math.cos(a) * r, -Math.sin(a) * r]); } add(P3(st), c2, 0.07); }
+                else if (kind === 2) { for (let r = 0; r < 2; r++) { const wv = []; for (let i = 0; i <= 24; i++) wv.push([-2.2 + i * 0.185, Math.sin(i * 0.55) * 0.3 - r * 0.55]); add(P3(wv), r ? c1 : c2, 0.07); } }
+                else if (kind === 3) { add(P3([[0, -1.1], [0.1, -0.3], [0.05, 0.5], [0, 1.0]]), P.gold, 0.07); for (const a of [0.3, 1.1, 2.0, 2.8]) add(P3([[0, 1.0], [Math.cos(a) * 0.6, 1.0 + Math.sin(a) * 0.35], [Math.cos(a) * 1.0, 0.75 + Math.sin(a) * 0.2]]), P.mint, 0.06); }
+                else { add(P3([[-0.2, -1.0], [-0.1, -0.2], [0.25, 0.3], [0.2, 0.8], [-0.1, 1.0], [-0.35, 0.8]]), P.pink, 0.07); add(P3([[-0.35, 0.8], [-0.6, 0.65]]), P.gold, 0.06); add(P3([[-0.1, -0.2], [-0.9, -0.3], [-1.2, -0.6], [-0.4, -0.55], [-0.1, -0.2]]), P.pink, 0.07); }
+            }
         }
         // strike order: from the party hotel outwards, a little shuffled; beat j lights tubes [n(j), n(j+1))
         TUBES.forEach((t, i) => { t.key = Math.abs(t.cx) + Ink.hsh(i, 5, 1) * 30 - (t.h.party ? 60 : 0); });
@@ -92,11 +102,19 @@
         const s = cam.f / c0[2], W = lw(s, 0.07), sd = h.seed * 1000;
         const quad = (pts, col, o = {}) => { const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: o.w ?? W, seed: sd + (o.k ?? 0), d, jit: o.jit ?? 0.5, light: o.light }); return q; };
         const shade = css(mix(body, '#1a0450', 0.45));
-        // the side faces (into the block), darker
+        // the side faces (into the block), darker; a speed-line hotel rounds its right corner
+        const rc = h.kind === 3 ? 2.6 : 0, xr = h.x1 - rc;
         if (cam.pos[0] < h.x0) quad([[h.x0, 0, zf], [h.x0, 0, zb], [h.x0, h.h, zb], [h.x0, h.h, zf]], shade, { k: 1 });
-        if (cam.pos[0] > h.x1) quad([[h.x1, 0, zf], [h.x1, 0, zb], [h.x1, h.h, zb], [h.x1, h.h, zf]], shade, { k: 2 });
+        if (cam.pos[0] > h.x1) quad([[h.x1, 0, zf + rc], [h.x1, 0, zb], [h.x1, h.h, zb], [h.x1, h.h, zf + rc]], shade, { k: 2 });
+        if (rc) for (let i = 0; i < 6; i++) {
+            const a0 = (i / 6) * Math.PI / 2, a1 = ((i + 1) / 6) * Math.PI / 2, P0 = [xr + Math.sin(a0) * rc, zf + rc - Math.cos(a0) * rc], P1 = [xr + Math.sin(a1) * rc, zf + rc - Math.cos(a1) * rc];
+            const nx = Math.sin((a0 + a1) / 2), nz = -Math.cos((a0 + a1) / 2); if ((cam.pos[0] - P0[0]) * nx + (cam.pos[2] - P0[1]) * nz <= 0) continue;
+            quad([[P0[0], 0, P0[1]], [P0[0], h.h, P0[1]], [P1[0], h.h, P1[1]], [P1[0], 0, P1[1]]], css(mix(body, '#1a0450', 0.08 + i * 0.07)), { k: 5 + i, w: i === 5 ? W : 0, jit: 0 });
+            for (let j = 0; j < 3; j++) { const yy = h.h - 1.4 - j * 0.45; quad([[P0[0], yy, P0[1] - 0.02], [P1[0], yy, P1[1] - 0.02], [P1[0], yy - 0.15, P1[1] - 0.02], [P0[0], yy - 0.15, P0[1] - 0.02]], trim, { w: 0, k: 60 + i * 3 + j, jit: 0 }); }
+            for (let f = 1; f <= h.floors; f++) { const y0 = 3.6 + (f - 1) * 3.1 + 0.9, um = (P0[0] + P1[0]) / 2, vm = (P0[1] + P1[1]) / 2, dx = (P1[0] - P0[0]) * 0.3, dz = (P1[1] - P0[1]) * 0.3; quad([[um - dx, y0, vm - dz - 0.02], [um + dx, y0, vm + dz - 0.02], [um + dx, y0 + 1.3, vm + dz - 0.02], [um - dx, y0 + 1.3, vm - dz - 0.02]], (i + f) % 3 ? P.orange : '#1a0a4a', { k: 80 + i * 7 + f, w: lw(s, 0.03), light: (i + f) % 3 > 0 }); }
+        }
         // the front, with a stepped crown on the stepped hotels
-        let front = [[h.x0, 0, zf], [h.x0, h.h, zf], [h.x1, h.h, zf], [h.x1, 0, zf]];
+        let front = [[h.x0, 0, zf], [h.x0, h.h, zf], [xr, h.h, zf], [xr, 0, zf]];
         if (h.kind === 1 || h.party) { const w3 = (h.x1 - h.x0) / 6; front = [[h.x0, 0, zf], [h.x0, h.h, zf], [cx - w3 * 1.5, h.h, zf], [cx - w3 * 1.5, h.h + 1.2, zf], [cx - w3 * 0.8, h.h + 1.2, zf], [cx - w3 * 0.8, h.h + 2.3, zf], [cx + w3 * 0.8, h.h + 2.3, zf], [cx + w3 * 0.8, h.h + 1.2, zf], [cx + w3 * 1.5, h.h + 1.2, zf], [cx + w3 * 1.5, h.h, zf], [h.x1, h.h, zf], [h.x1, 0, zf]]; }
         if (h.kind === 2) { const tx = h.x1 - 5; front = [[h.x0, 0, zf], [h.x0, h.h, zf], [tx, h.h, zf], [tx, h.h + 3.5, zf], [tx + 0.6, h.h + 3.5, zf], [tx + 0.6, h.h + 4.6, zf], [h.x1 - 0.6, h.h + 4.6, zf], [h.x1 - 0.6, h.h + 3.5, zf], [h.x1, h.h + 3.5, zf], [h.x1, 0, zf]]; }
         quad(front, body, { k: 3 });
@@ -107,7 +125,12 @@
             Ink.hatch(g, [a[0], a[1]], [b[0], b[1]], { count: Math.round((h.x1 - h.x0) / 2), len: cap(1.2 * s, 6, 60), w: cap(0.06 * s, 1, 3.5), col: trim, seed: sd + 9, d, n: [0, -1], ang: 0.15, alpha: 0.55 });
         }
         // speed lines at the roof, vertical racing stripes beside the centre
-        if (h.kind === 3 || h.party) for (let i = 0; i < 3; i++) quad([[h.x0, h.h - 1.4 - i * 0.45, zl], [h.x1, h.h - 1.4 - i * 0.45, zl], [h.x1, h.h - 1.55 - i * 0.45, zl], [h.x0, h.h - 1.55 - i * 0.45, zl]], trim, { w: 0, k: 20 + i, jit: 0 });
+        if (h.kind === 3 || h.party) for (let i = 0; i < 3; i++) quad([[h.x0, h.h - 1.4 - i * 0.45, zl], [xr, h.h - 1.4 - i * 0.45, zl], [xr, h.h - 1.55 - i * 0.45, zl], [h.x0, h.h - 1.55 - i * 0.45, zl]], trim, { w: 0, k: 20 + i, jit: 0 });
+        // pilasters: a band at each end of the front (and beside the door bay), a shadow line on one side
+        for (const [xa, xb] of [[h.x0, h.x0 + 0.75], [xr - 0.75, xr]].concat(h.fin ? [] : [[cx - 3.4, cx - 2.9], [cx + 2.9, cx + 3.4]])) {
+            const q = quad([[xa, 3.6, zl - 0.01], [xb, 3.6, zl - 0.01], [xb, h.h - 0.2, zl - 0.01], [xa, h.h - 0.2, zl - 0.01]], css(mix(trim, body, 0.45)), { w: 0, k: 500 + Math.round(xa * 3), jit: 0 });
+            if (q && s > 10) { const a = cam.p([xb, 3.7, zl - 0.02]), b = cam.p([xb, h.h - 0.3, zl - 0.02]); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: lw(s, 0.04), col: shade, seed: sd + 510 + Math.round(xa * 3), d, taper: 0.05 }); }
+        }
         if (h.kind === 1) for (const dx of [-3.2, -2.6, 2.6, 3.2]) quad([[cx + dx - 0.12, 3.8, zl], [cx + dx + 0.12, 3.8, zl], [cx + dx + 0.12, h.h - 0.3, zl], [cx + dx - 0.12, h.h - 0.3, zl]], trim, { w: 0, k: 30 + dx * 10, jit: 0 });
         // the porch: a dark band, openings lit gold, piers between them
         quad([[h.x0, 0, zl], [h.x0, 3.6, zl], [h.x1, 3.6, zl], [h.x1, 0, zl]], dark, { k: 4 });
@@ -117,6 +140,21 @@
             const warm = door ? P.gold : Ink.hsh(h.seed, i, 2) < 0.7 ? P.orange : P.salmon;
             const q = quad([[xa, 0.15, zl], [xa, door ? 3.0 : 2.7, zl], [xb, door ? 3.0 : 2.7, zl], [xb, 0.15, zl]], warm, { k: 40 + i, w: lw(s, 0.05), light: true });
             if (q) { const a = cam.p([xa + 0.2, 2.5, zl]), b = cam.p([xb - 0.2, 2.5, zl]); if (s > 14) Ink.hatch(g, [a[0], a[1]], [b[0], b[1]], { count: 3, len: cap(1.4 * s, 5, 50), w: cap(0.05 * s, 1, 3), col: P.cream, seed: sd + 50 + i, d, n: [0, 1], ang: 0.1, alpha: 0.6 }); }
+            // a striped awning over the opening, its front edge scalloped
+            if (!door && (h.kind === 1 || h.kind === 3 || h.kind === 2) && s > 6) {
+                const zo = zf - 1.3, y0 = 3.15, y1 = 2.55, n = 6, cA = h.kind === 2 ? P.cyan : P.salmon, cB = P.cream;
+                for (let j = 0; j < n; j++) { const u0 = xa - 0.1 + (xb - xa + 0.2) * (j / n), u1 = xa - 0.1 + (xb - xa + 0.2) * ((j + 1) / n); quad([[u0, y0, zf - 0.02], [u1, y0, zf - 0.02], [u1, y1, zo], [u0, y1, zo]], j % 2 ? cA : cB, { w: 0, k: 600 + i * 10 + j, jit: 0 }); }
+                const sc = []; for (let j = 0; j <= n * 2; j++) { const u = xa - 0.1 + (xb - xa + 0.2) * (j / (n * 2)); sc.push(cam.p([u, y1 - (j % 2 ? 0.16 : 0), zo])); }
+                if (sc.every((p) => p[2] > 0.5)) { Ink.brush(g, sc.map((p) => [p[0], p[1]]), { w: lw(s, 0.035), seed: sd + 650 + i, d, taper: 0.05 }); const e0 = cam.p([xa - 0.1, y0, zf - 0.02]), e1 = cam.p([xa - 0.1, y1, zo]); Ink.brush(g, [[e0[0], e0[1]], [e1[0], e1[1]]], { w: lw(s, 0.035), seed: sd + 660 + i, d, taper: 0.05 }); }
+            }
+        }
+        // the street lamps' light on the facade: a fan of warm strokes up the wall from each lamp
+        for (let li = 0; li < 26; li++) {
+            const lx = -150 + li * 13 + 6; if (lx < h.x0 + 3.6 || lx > xr - 3.6 || s < 8) continue;
+            for (let j = 0; j < 7; j++) {
+                const a = -Math.PI / 2 + (j - 3) * 0.32, r0 = 0.6, r1 = 1.6 + Ink.hsh(li, j, 6) * 1.6, P0 = cam.p([lx + Math.cos(a) * r0, 4.6 - Math.sin(a) * r0, zl - 0.03]), P1 = cam.p([lx + Math.cos(a) * r1, 4.6 - Math.sin(a) * r1, zl - 0.03]);
+                Ink.brush(g, [[P0[0], P0[1]], [P1[0], P1[1]]], { w: cap(0.06 * s, 1, 3.5), col: j % 2 ? P.gold : P.cream, seed: sd + 700 + li * 9 + j, d, taper: 0.6, alpha: 0.55, light: true });
+            }
         }
         // the floors: windows under eyebrow ledges
         const cw = (h.x1 - h.x0 - 2) / h.cols;
@@ -127,17 +165,31 @@
                 if (h.fin && Math.abs((xa + xb) / 2 - cx) < 1.4) continue;
                 const r = Ink.hsh(h.seed * 31 + f, i, 4);
                 let col = r < 0.42 ? P.orange : r < 0.55 ? P.gold : r < 0.62 ? P.salmon : '#1a0a4a';
-                if (h.party && f === h.floors && fx.beatCol) col = (i + Math.floor(Song.beatAt(T))) % 3 ? fx.beatCol : '#1a0a4a';
-                const q = quad([[xa, y0, zl], [xa, y1, zl], [xb, y1, zl], [xb, y0, zl]], col, { k: 100 + f * 40 + i, w: s > 20 ? lw(s, 0.04) : 0, light: col !== '#1a0a4a' });
-                if (q && col !== '#1a0a4a' && s > 16) { L.save(); L.globalAlpha = 0.35; L.fillStyle = col; L.beginPath(); q.forEach((p, j) => (j ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); L.closePath(); L.fill(); L.restore(); }
-                // the sash: a mullion and a sill line in the dark ink
-                if (q && s > 28) { const m0 = cam.p([(xa + xb) / 2, y0, zl]), m1 = cam.p([(xa + xb) / 2, y1, zl]); Ink.brush(g, [[m0[0], m0[1]], [m1[0], m1[1]]], { w: lw(s, 0.03), seed: sd + f * 7 + i, d, taper: 0.1 }); }
+                if (h.party && f === h.floors && fx.beatCol && T >= 0.43) col = (i + Math.floor(Song.beatAt(T))) % 3 ? fx.beatCol : '#1a0a4a';
+                if (xb > xr - 0.3) continue;
+                // the frame round the window (a lighter reveal), the glass, a sill
+                if (s > 9) quad([[xa - 0.12, y0 - 0.12, zl], [xa - 0.12, y1 + 0.1, zl], [xb + 0.12, y1 + 0.1, zl], [xb + 0.12, y0 - 0.12, zl]], css(mix(trim, body, 0.3)), { k: 90 + f * 40 + i, w: 0, jit: 0 });
+                const dark0 = col === '#1a0a4a', q = quad([[xa, y0, zl], [xa, y1, zl], [xb, y1, zl], [xb, y0, zl]], col, { k: 100 + f * 40 + i, w: s > 14 ? lw(s, 0.035) : 0, light: !dark0 });
+                if (!q) continue;
+                if (!dark0 && s > 16) { L.save(); L.globalAlpha = 0.35; L.fillStyle = col; L.beginPath(); q.forEach((p, j) => (j ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); L.closePath(); L.fill(); L.restore(); }
+                if (s < 11) continue;
+                const W2 = (u, v) => { const p = cam.p([xa + (xb - xa) * u, y0 + (y1 - y0) * v, zl - 0.01]); return [p[0], p[1]]; }, r2 = Ink.hsh(h.seed * 37 + f, i, 8);
+                if (!dark0 && r2 < 0.35) for (let j = 1; j < 6; j++) Ink.brush(g, [W2(0.04, j / 6), W2(0.96, j / 6)], { w: cap(0.025 * s, 0.8, 2.2), col: css(mix(col, '#3a1050', 0.45)), seed: sd + f * 50 + i * 7 + j, d, taper: 0.1, wob: 0.2 });
+                else if (!dark0 && r2 < 0.65) { Ink.shape(g, [W2(0, 0), W2(0, 1), W2(0.3, 1), W2(0.22, 0.5), W2(0.28, 0)], r2 < 0.5 ? P.salmon : P.plum, { w: 0, seed: sd + 800 + f * 40 + i, d, jit: 0.3 }); Ink.shape(g, [W2(1, 0), W2(1, 1), W2(0.7, 1), W2(0.78, 0.5), W2(0.72, 0)], r2 < 0.5 ? P.salmon : P.plum, { w: 0, seed: sd + 900 + f * 40 + i, d, jit: 0.3 }); }
+                else if (!dark0 && r2 < 0.75 && s > 20) { const c = W2(0.45, 0.55), ss = cam.f / cam.view([xa, y0, zl])[2]; OpeningFigures.draw(g, c[0], c[1] + 0.8 * ss, ss, { pose: 'stand', look: OpeningFigures.look(h.seed * 50 + f * 9 + i), seed: h.seed * 50 + f * 9 + i, d, rim: 0, flip: false }); }
+                // mullion and transom in the dark ink, a sill in the trim
+                Ink.brush(g, [W2(0.5, 0), W2(0.5, 1)], { w: lw(s, 0.03), seed: sd + f * 7 + i, d, taper: 0.1 });
+                if (s > 18) Ink.brush(g, [W2(0, 0.72), W2(1, 0.72)], { w: lw(s, 0.025), seed: sd + f * 9 + i, d, taper: 0.1 });
+                quad([[xa - 0.15, y0 - 0.16, zl - 0.05], [xb + 0.15, y0 - 0.16, zl - 0.05], [xb + 0.15, y0 - 0.04, zl - 0.05], [xa - 0.15, y0 - 0.04, zl - 0.05]], trim, { w: 0, k: 950 + f * 40 + i, jit: 0 });
             }
-            // the eyebrow: its underside in shadow, its edge in the trim
+            // the eyebrow: the shadow it throws on the wall, its underside, its edge in the trim
             const ye = y1 + 0.3;
-            quad([[h.x0 + 0.5, ye, zf], [h.x1 - 0.5, ye, zf], [h.x1 - 0.5, ye, zf - 0.8], [h.x0 + 0.5, ye, zf - 0.8]], shade, { k: 200 + f, w: 0, jit: 0 });
-            quad([[h.x0 + 0.5, ye, zf - 0.8], [h.x1 - 0.5, ye, zf - 0.8], [h.x1 - 0.5, ye + 0.22, zf - 0.8], [h.x0 + 0.5, ye + 0.22, zf - 0.8]], trim, { k: 220 + f, w: lw(s, 0.035) });
+            quad([[h.x0 + 0.5, ye - 0.45, zl - 0.01], [xr - 0.5, ye - 0.45, zl - 0.01], [xr - 0.5, ye, zl - 0.01], [h.x0 + 0.5, ye, zl - 0.01]], css(mix(body, '#0b0230', 0.55)), { k: 190 + f, w: 0, jit: 0 });
+            quad([[h.x0 + 0.5, ye, zf], [xr - 0.5, ye, zf], [xr - 0.5, ye, zf - 0.8], [h.x0 + 0.5, ye, zf - 0.8]], css(mix(body, '#0b0230', 0.6)), { k: 200 + f, w: 0, jit: 0 });
+            quad([[h.x0 + 0.5, ye, zf - 0.8], [xr - 0.5, ye, zf - 0.8], [xr - 0.5, ye + 0.22, zf - 0.8], [h.x0 + 0.5, ye + 0.22, zf - 0.8]], trim, { k: 220 + f, w: lw(s, 0.035) });
         }
+        // portholes: round windows inside their neon rings
+        if (h.kind === 2) for (const px of [h.x0 + 3, h.x1 - 3]) { const pts = []; for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; pts.push([px + Math.cos(a) * 0.72, h.h - 2.4 + Math.sin(a) * 0.72, zl - 0.01]); } quad(pts, P.orange, { k: 980 + px, w: lw(s, 0.04), light: true }); const c = cam.p([px, h.h - 2.4, zl - 0.02]), l = cam.p([px, h.h - 1.68, zl - 0.02]); Ink.brush(g, [[c[0], l[1]], [c[0], 2 * c[1] - l[1]]], { w: lw(s, 0.03), seed: sd + 990 + px, d, taper: 0.1 }); }
         // the fin: a blade standing out of the facade above the door, higher than the roof
         if (h.fin) {
             const fz = zf - 1.3;
@@ -173,25 +225,65 @@
         // the land behind the hotels, out to the horizon (seen through the side streets)
         { const q = Neon.poly(cam, [[-12000, -0.2, Z.back], [12000, -0.2, Z.back], [12000, -0.2, 12000], [-12000, -0.2, 12000]]); if (q) Ink.shape(g, q, '#0e0558', { w: 0, seed: 'land', d, jit: 0 }); }
         strip(Z.wall, Z.parkKerb, 0.1, '#2a0c66', 'park');
+        // the park: a path along it, pools of its lamps' light on the grass, grass in loose strokes
+        strip(Z.parkKerb - 3.2, Z.parkKerb - 1.0, 0.11, '#3a1480', 'ppath');
+        for (let i = 0; i < 26; i++) {
+            const lx = PARK_LAMP(i); for (const [r, col] of [[3.2, '#3a1290'], [1.8, '#5a1aa8']]) { const pts = []; for (let j = 0; j < 20; j++) { const a = (j / 20) * Math.PI * 2; pts.push([lx + Math.cos(a) * r * 1.3, 0.115, Z.parkKerb - 1.6 + Math.sin(a) * r * 0.8]); } const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: 0, seed: 'pp' + i + r, d, jit: 0 }); }
+        }
+        { const Rg = Motion.rng('opening-grass');
+          for (let i = 0; i < 260; i++) {
+            const x = -200 + Rg() * 440, z = Z.wall + 0.4 + Rg() * 5.2, ln = 0.25 + Rg() * 0.3, c = [P.plum, P.purple, '#4a1a9a', P.grape][i % 4];
+            const a = cam.p([x, 0.11, z]); if (a[2] < 0.8 || a[0] < -30 || a[0] > env.W + 30) continue;
+            const b = cam.p([x + ln, 0.11, z + 0.05]), sw = cam.f / a[2];
+            Ink.brush(g, [[a[0], a[1]], [b[0], b[1] - 0.02 * sw]], { w: cap(0.035 * sw, 1, 4), col: c, seed: 'gr' + i, d, taper: 0.5, wob: 0.4, alpha: 0.85 });
+          } }
         // the park's coral wall along the beach
         { const pts = xs.map((x) => [x, 0.9, Z.wall]).concat(xs.slice().reverse().map((x) => [x, -0.4, Z.wall])); const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, P.plum, { w: 2.4, seed: 'pwall', d, jit: 0 }); }
         strip(Z.kerb, Z.face, 0, '#1a0670', 'under');                     // the road runs on under the kerb
         const road = strip(Z.parkKerb, Z.kerb, 0, '#1a0670', 'road');
-        // on the wet road (clipped to it): the tubes mirrored as broken strokes, the lane paint
+        // on the wet road (clipped to it): the lane paint, a crosswalk at the party hotel, manholes,
+        // and every light of the street mirrored as broken vertical strokes in its colour
         if (road) {
             g.save(); g.beginPath(); road.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); g.clip();
-            for (const zc of [19.1]) for (let x = -200; x < 240; x += 9) { const q = Neon.poly(cam, [[x, 0.01, zc - 0.07], [x + 3, 0.01, zc - 0.07], [x + 3, 0.01, zc + 0.07], [x, 0.01, zc + 0.07]]); if (q) Ink.shape(g, q, '#e8b04a', { w: 0, seed: 'lane' + x, d, jit: 0, light: true }); }
-            for (const t of TUBES) {
-                const on = lit(t, T); if (on <= 0) continue;
-                const n = t.ring ? 4 : Math.min(8, t.pts.length + 3);
-                for (let i = 0; i < n; i++) {
-                    const u = n === 1 ? 0.5 : i / (n - 1), a = t.pts[0], b = t.pts[t.pts.length - 1];
-                    const w = [a[0] + (b[0] - a[0]) * u, -(a[1] + (b[1] - a[1]) * u), a[2]];
-                    const p = cam.p(w); if (p[2] < 1) continue;
-                    const s = cam.f / p[2], l = cap(0.6 * s, 4, 40) * (0.6 + Ink.hsh(i, t.pts.length, 1)), wob = Ink.noise(i * 13 + t.pts.length, T * 1.3, 0) * 0.3 * s;
-                    Ink.brush(g, [[p[0] - l / 2 + wob, p[1]], [p[0] + l / 2 + wob, p[1] + 0.5]], { w: cap(0.07 * s, 1, 4), col: t.col, seed: 6600 + i * 7 + Math.round(t.key), d, taper: 0.45, wob: 0.3, alpha: 0.7 * on, light: true });
-                }
+            const flat = (pts, col, k, light = true) => { const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, col, { w: 0, seed: k, d, jit: 0, light }); return q; };
+            for (let x = -200; x < 240; x += 9) flat([[x, 0.01, 19.03], [x + 3, 0.01, 19.03], [x + 3, 0.01, 19.17], [x, 0.01, 19.17]], '#e8b04a', 'lane' + x);
+            for (const z of [13.2, 24.8]) flat(xs.map((x) => [x, 0.01, z - 0.06]).concat(xs.slice().reverse().map((x) => [x, 0.01, z + 0.06])), '#9a86d0', 'edge' + z);
+            const ph = H.find((h) => h.party), pcx = (ph.x0 + ph.x1) / 2;
+            for (let z = 13.0; z < 25; z += 1.1) flat([[pcx - 1.6, 0.012, z], [pcx + 1.6, 0.012, z], [pcx + 1.6, 0.012, z + 0.55], [pcx - 1.6, 0.012, z + 0.55]], '#c8b8f0', 'zebra' + z);
+            for (const [mx, mz] of [[pcx - 21, 16.2], [pcx + 15, 22.3], [-68, 17.4], [-44, 21.6], [36, 16.4]]) {
+                const ring = []; for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2; ring.push([mx + Math.cos(a) * 0.36, 0.012, mz + Math.sin(a) * 0.36]); }
+                const q = Neon.poly(cam, ring); if (!q) continue;
+                Ink.shape(g, q, '#0b0230', { w: 1.4, ink: '#5a3aa0', seed: 'mh' + mx, d, jit: 0.2 });
+                const c = cam.p([mx, 0.012, mz]); if (c[2] > 1) { const r = 0.36 * cam.f / c[2]; Ink.brush(g, [[c[0] - r * 0.6, c[1] - r * 0.05], [c[0] + r * 0.2, c[1] - r * 0.12]], { w: cap(0.02 * cam.f / c[2], 1, 2.5), col: P.pink, seed: 'mhl' + mx, d, taper: 0.4, light: true }); }
             }
+            // the reflections: from the foot of each light straight down the wet road, stretched,
+            // broken into dashes that waver (cheap canvas strokes; the far ones are a few pixels)
+            const streak = (src, col, wm, a, seed) => {
+                const foot = cam.p([src[0], 0, src[2]]), mir = cam.p([src[0], -src[1], src[2]]);
+                if (foot[2] < 1 || mir[2] < 1 || foot[2] > 320 || foot[0] < -60 || foot[0] > env.W + 60) return;
+                const sp = cam.f / foot[2], len = (mir[1] - foot[1]) * 1.7 + 0.3 * sp, w = cap(wm * sp, 0.8, 14);
+                g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round';
+                for (let j = 0; j < 5; j++) {
+                    const u0 = j / 5 + Ink.hsh(seed, j, 1) * 0.07, u1 = u0 + (0.45 + 0.4 * Ink.hsh(seed, j, 2)) / 5;
+                    const wob = Ink.noise(seed * 3 + j, T * 1.6, 0) * w * 0.7, x0 = foot[0] + (mir[0] - foot[0]) * u0 * 0.6 + wob;
+                    g.globalAlpha = a * (1 - j * 0.15); g.beginPath(); g.moveTo(x0, foot[1] + len * u0); g.lineTo(x0 + wob * 0.3, foot[1] + len * u1); g.stroke();
+                }
+                g.globalAlpha = 1;
+            };
+            let sd = 1;
+            for (const t of TUBES) { const on = lit(t, T); if (on <= 0) continue; const n = Math.min(4, t.pts.length + 1); for (let i = 0; i < n; i++) { const u = (i + 0.5) / n, k = Math.min(t.pts.length - 2, Math.floor(u * (t.pts.length - 1))), f = u * (t.pts.length - 1) - k, A = t.pts[k], B2 = t.pts[k + 1]; streak([A[0] + (B2[0] - A[0]) * f, A[1] + (B2[1] - A[1]) * f, A[2]], t.col, 0.12, 0.65 * on, sd++); } }
+            for (const h of H) {
+                const cw = (h.x1 - h.x0 - 2) / h.cols, xr = h.x1 - (h.kind === 3 ? 2.6 : 0);
+                for (let f = 1; f <= h.floors; f++) for (let i = 0; i < h.cols; i++) {
+                    const xm = h.x0 + 1 + i * cw + cw * 0.5, r = Ink.hsh(h.seed * 31 + f, i, 4); if (r >= 0.62 || xm > xr - 0.6) continue;
+                    streak([xm, 3.6 + (f - 1) * 3.1 + 1.5, Z.face], r < 0.42 ? P.orange : r < 0.55 ? P.gold : P.salmon, 0.4, 0.4, sd++);
+                }
+                const nOp = Math.max(3, Math.round((h.x1 - h.x0) / 4.2)), opW = (h.x1 - h.x0 - 1) / nOp;
+                for (let i = 0; i < nOp; i++) streak([h.x0 + 0.5 + (i + 0.5) * opW, 1.5, Z.face], i % 2 ? P.gold : P.orange, 0.9, 0.45, sd++);
+            }
+            for (let i = 0; i < 26; i++) streak([-150 + i * 13 + 6, 4.2, Z.kerb + 0.9], P.gold, 0.3, 0.6, 500 + i);
+            for (let i = 0; i < 26; i++) streak([PARK_LAMP(i), 4.2, Z.parkKerb - 0.6], P.gold, 0.3, 0.6, 540 + i);
+            for (const c of drivers(T)) for (const end of [-1, 1]) { const front = end === c.dir; for (const dz of [-0.62, 0.62]) streak([c.x + end * 2.46, 0.7, c.z + dz], front ? P.cream : P.red, 0.25, front ? 0.8 : 0.7, 700 + Math.round(c.x) + end * 3 + dz * 5); }
             g.restore();
         }
         // the kerb faces, standing between the road and the walks
@@ -199,6 +291,12 @@
         strip(Z.kerb, Z.face, 0.15, '#3a1080', 'walk');
         // the kerb lines
         for (const z of [Z.parkKerb, Z.kerb]) { const E = xs.map((x) => cam.p([x, 0.13, z])).filter((p) => p[2] > 0.5).map((p) => [p[0], p[1]]); if (E.length > 1) Ink.brush(g, E, { w: 2.2, seed: 'kl' + z, d, taper: 0.02 }); }
+        // the kerbs' top edges catch the street's light: broken strokes, pink on the hotels' side, cyan on the park's
+        for (const [z, y0, col] of [[Z.kerb, 0.15, P.pink], [Z.parkKerb, 0.12, P.cyan]]) for (let x = -200; x < 240; x += 4) {
+            if (Ink.hsh(x, 3, 3) < 0.3) continue;
+            const a = cam.p([x, y0 + 0.01, z + 0.04]), b = cam.p([x + 2.6, y0 + 0.01, z + 0.04]); if (a[2] < 1 || b[2] < 1 || Math.max(a[0], b[0]) < -20 || Math.min(a[0], b[0]) > env.W + 20) continue;
+            Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.05 * cam.f / a[2], 1, 3), col, seed: 'ke' + x + z, d, taper: 0.4, alpha: 0.7, light: true });
+        }
     }
 
     // --- palms (the causeway's palm, standing on flat ground) -----------------------------------
@@ -284,32 +382,69 @@
         { x: 11, z: 24.2, dir: 1, col: '#f45a7f' }, { x: 24, z: 24.2, dir: 1, col: '#c25fd0' }, { x: 44, z: 24.2, dir: 1, col: '#7dffc8' },
         { x: 63, z: 24.2, dir: 1, col: '#f9a07a' }, { x: 80, z: 24.2, dir: 1, col: '#9a7ae8' }, { x: 101, z: 24.2, dir: 1, col: '#e86ad0' },
         { x: 38, z: 13.8, dir: -1, col: '#3fb8c0' }, { x: 57, z: 13.8, dir: -1, col: '#f45a7f' }, { x: 130, z: 24.2, dir: 1, col: '#f4ecd8' },
+        { x: -76, z: 24.2, dir: 1, col: '#f45a7f' }, { x: -64, z: 24.2, dir: 1, col: '#f4ecd8' }, { x: -55, z: 24.2, dir: 1, col: '#c25fd0' },
+        { x: -55, z: 13.8, dir: -1, col: '#9a7ae8' }, { x: -42, z: 13.8, dir: -1, col: '#f9a07a' }, { x: -24, z: 13.8, dir: -1, col: '#3fb8c0' }, { x: 18, z: 13.8, dir: -1, col: '#f4ecd8' },
     ];
     // the cars driving: one each way, cruising at walking-plus speeds (the strip at night)
     const drivers = (T) => [
         { x: -60 + (T - 0) * 9.5, z: 17, dir: 1, col: '#f4ecd8', moving: true },
         { x: 95 - (T - 0) * 8.0, z: 21.2, dir: -1, col: '#e86ad0', moving: true },
-        { x: -150 + (T - 4.4) * 11, z: 17, dir: 1, col: '#3fb8c0', moving: true },
+        { x: -96 + (T - 4.9) * 12, z: 18.3, dir: 1, col: '#3fb8c0', moving: true },
+        { x: 120 - (T - 4.4) * 10, z: 21.6, dir: -1, col: '#f4ecd8', moving: true },
+        { x: 62 - (T - 4.4) * 9, z: 21.6, dir: -1, col: '#f9a07a', moving: true },
     ];
 
-    // --- people on the sidewalks ----------------------------------------------------------------
+    // --- people on the sidewalks: walkers on twos, couples, people walking dogs, groups talking --
+    const walkPh = (T, r) => Math.floor((T * 12 + r * 12) / 3) % 4;
     function walkers(T) {
-        const out = [];
-        for (let i = 0; i < 46; i++) {
+        const out = [], span = 340, wrap = (x) => ((x + 150) % span + span) % span - 150;
+        for (let i = 0; i < 40; i++) {
             const r = (k) => Ink.hsh(i, k, 91), far = r(1) < 0.62, dir = r(2) < 0.5 ? 1 : -1, v = 1.05 + r(3) * 0.5;
-            const z = far ? Z.kerb + 1.2 + r(4) * 2.8 : Z.parkKerb - 1.2 - r(4) * 1.6;
-            const span = 340, x = ((-150 + r(5) * span + dir * v * T) % span + span) % span - 150;
-            // a four-drawing walk, each drawing held three twelfths
-            const ph = Math.floor((T * 12 + r(6) * 12) / 3) % 4;
-            out.push({ x, z, flip: dir < 0, pose: 'w' + ph, seed: 300 + i });
+            const z = far ? Z.kerb + 1.2 + r(4) * 2.8 : Z.parkKerb - 1.2 - r(4) * 1.6, x = wrap(-150 + r(5) * span + dir * v * T), ph = walkPh(T, r(6));
+            const kind = r(7) < 0.22 ? 'couple' : r(7) < 0.3 ? 'dog' : 'one';
+            out.push({ x, z, flip: dir < 0, pose: (kind === 'dog' ? 'wd' : 'w') + ph, seed: 300 + i, dog: kind === 'dog' ? { dir, ph } : null });
+            if (kind === 'couple') out.push({ x: x - dir * 0.15, z: z + (far ? -0.55 : 0.55), flip: dir < 0, pose: 'w' + ((ph + 2) % 4), seed: 360 + i });
         }
-        // a few standing at the party hotel's door and at others, turning to talk on the beat
-        for (let i = 0; i < 12; i++) {
-            const r = (k) => Ink.hsh(i, k, 92), x = (i < 7 ? -3.5 + i * 1.1 : -70 + i * 17) + r(1) * 0.6, z = Z.face - 3.8 - r(2) * 1.4;
+        // groups standing at doors, turning to talk on the beat
+        const groups = [[-3.5, 7], [-62, 3], [41, 4], [-30, 3]];
+        let n = 0;
+        for (const [gx, cnt] of groups) for (let i = 0; i < cnt; i++, n++) {
+            const r = (k) => Ink.hsh(n, k, 92), x = gx + i * 1.05 + r(1) * 0.5, z = Z.face - 3.6 - r(2) * 1.6;
             const b = Math.floor(Song.beatAt(T) / 2 + r(3) * 4);
-            out.push({ x, z, flip: (b + i) % 2 === 0, pose: Ink.hsh(i, b, 93) < 0.5 ? 'talk' : 'stand', seed: 400 + i });
+            out.push({ x, z, flip: (b + i) % 2 === 0, pose: Ink.hsh(n, b, 93) < 0.5 ? 'talk' : 'stand', seed: 400 + n });
         }
         return out;
+    }
+    // café terraces on the sidewalk in front of a few hotels: round tables under striped
+    // umbrellas, a candle on each, people sitting at them
+    let CAFES = null;
+    function cafes() {
+        if (CAFES) return CAFES;
+        CAFES = [];
+        for (const h of H) {
+            if (h.party || h.seed % 3 !== 1) continue;
+            const cx = (h.x0 + h.x1) / 2;
+            for (let x = h.x0 + 2; x < h.x1 - 2; x += 2.9) if (Math.abs(x - cx) > 2.2) for (const z of [27.4, 28.9]) if (Ink.hsh(Math.round(x * 10), z, 5) < 0.8) CAFES.push({ x, z, seed: CAFES.length + 1, col: [P.salmon, P.cyan, P.pink, P.mint][(h.seed + CAFES.length) % 4] });
+        }
+        return CAFES;
+    }
+    function cafe(g, L, cam, c, T, d) {
+        const pc = cam.p([c.x, 0.75, c.z]); if (pc[2] < 1.5) return;
+        const s = cam.f / pc[2], W = lw(s, 0.035), ring = (r, y, n = 16) => { const o = []; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; o.push([c.x + Math.cos(a) * r, y, c.z + Math.sin(a) * r]); } return o; };
+        // the people behind the table, the table, the people in front of it
+        const sitter = (dz, k) => { const p = cam.p([c.x + (k ? 0.12 : -0.15), 0.15, c.z + dz]); if (p[2] < 1) return; const b = Math.floor(Song.beatAt(T) / 2 + k * 2 + c.seed); OpeningFigures.draw(g, p[0], p[1], cam.f / p[2], { pose: Ink.hsh(c.seed, b + k, 4) < 0.35 ? 'sitDrink' : 'sit', look: OpeningFigures.look(700 + c.seed * 2 + k), seed: 700 + c.seed * 2 + k, d, rim: 1, flip: k === 1 }); };
+        const behind = cam.pos[2] < c.z ? 0.55 : -0.55;
+        sitter(behind, 0);
+        const leg0 = cam.p([c.x, 0.15, c.z]), leg1 = cam.p([c.x, 0.75, c.z]); Ink.brush(g, [[leg0[0], leg0[1]], [leg1[0], leg1[1]]], { w: cap(0.06 * s, 1, 5), seed: 'tl' + c.seed, d, taper: 0.05 });
+        const top = Neon.poly(cam, ring(0.42, 0.75)); if (top) Ink.shape(g, top, P.cream, { w: W, seed: 'tt' + c.seed, d, jit: 0.3 });
+        const cn = cam.p([c.x, 0.82, c.z]); Neon.last.glint(g, L, cn[0], cn[1], cap(0.12 * s, 2, 14), hex(P.gold), { alpha: 0.85 });
+        // the umbrella: a pole and a striped cone, its triangles far to near, a scalloped hem
+        const p0 = cam.p([c.x, 0.75, c.z]), p1 = cam.p([c.x, 2.4, c.z]); Ink.brush(g, [[p0[0], p0[1]], [p1[0], p1[1]]], { w: cap(0.04 * s, 1, 4), seed: 'up' + c.seed, d, taper: 0.05 });
+        const rim = ring(1.15, 2.0, 12), apex = [c.x, 2.45, c.z], tris = [];
+        for (let i = 0; i < 12; i++) { const a = rim[i], b = rim[(i + 1) % 12]; tris.push({ pts: [apex, a, b], i, dep: cam.view([(a[0] + b[0]) / 2, 2.1, (a[2] + b[2]) / 2])[2] }); }
+        tris.sort((a, b) => b.dep - a.dep);
+        for (const t of tris) { const q = Neon.poly(cam, t.pts); if (q) Ink.shape(g, q, t.i % 2 ? c.col : P.cream, { w: lw(s, 0.025), seed: 'um' + c.seed + '-' + t.i, d, jit: 0.3 }); }
+        sitter(-behind, 1);
     }
 
     // --- one frame of the street ----------------------------------------------------------------
@@ -332,12 +467,17 @@
         for (const h of H) { const xn = Math.max(h.x0, Math.min(h.x1, cam.pos[0])); items.push({ depth: 1e5 + Math.hypot(xn - cam.pos[0], Z.face - cam.pos[2]), draw: () => hotel(g, L, cam, h, T, d, o) }); }
         for (let i = 0; i < 40; i++) { const x = -160 + i * 9 + Ink.hsh(i, 1, 5) * 3, z = 8.2 + Ink.hsh(i, 2, 5) * 1.6; items.push({ depth: dist([x, 4, z]), draw: () => palm(g, cam, x, 0.1, z, i + 1, T, d) }); }
         for (let i = 0; i < 26; i++) { const x = -150 + i * 13 + 6, z = Z.kerb + 0.9; items.push({ depth: dist([x, 4, z]), draw: () => lampPost(g, L, cam, x, z, d) }); }
-        for (const c of CARS.concat(drivers(T))) items.push({ depth: dist([c.x, 0.7, c.z]), draw: () => car(g, L, cam, c, d) });
+        for (let i = 0; i < 26; i++) { const x = PARK_LAMP(i), z = Z.parkKerb - 0.6; items.push({ depth: dist([x, 4, z]), draw: () => lampPost(g, L, cam, x, z, d) }); }
+        const pcx = (H.find((h) => h.party).x0 + H.find((h) => h.party).x1) / 2;
+        for (const c of CARS.filter((c) => Math.abs(c.x - pcx) > 9 && c.x > -70).concat(drivers(T))) items.push({ depth: dist([c.x, 0.7, c.z]), draw: () => car(g, L, cam, c, d) });
         const rimCols = [P.cyan, P.magenta];
         for (const w of walkers(T)) items.push({ depth: dist([w.x, 1, w.z]), draw: () => {
             const p = cam.p([w.x, 0.15, w.z]); if (p[2] < 1 || p[0] < -200 || p[0] > env.W + 200) return;
-            OpeningFigures.draw(g, p[0], p[1], cam.f / p[2], { pose: w.pose, look: OpeningFigures.look(w.seed), flip: w.flip, seed: w.seed, d, rim: 1, cols: rimCols });
+            const sp = cam.f / p[2], lk = OpeningFigures.look(w.seed);
+            OpeningFigures.draw(g, p[0], p[1], sp, { pose: w.pose, look: lk, flip: w.flip, seed: w.seed, d, rim: 1, cols: rimCols });
+            if (w.dog) { const k = lk.height / 1.75, hand = cam.p([w.x + w.dog.dir * 0.3 * k, 0.15 + 1.0 * k, w.z]), dp = cam.p([w.x + w.dog.dir * 1.0, 0.15, w.z - 0.1]); if (dp[2] > 1) OpeningFigures.dog(g, dp[0], dp[1], cam.f / dp[2], { flip: w.dog.dir < 0, phase: w.dog.ph, d, seed: w.seed * 3, lead: [hand[0], hand[1]] }); }
         } });
+        for (const c of cafes()) items.push({ depth: dist([c.x, 1, c.z]), draw: () => cafe(g, L, cam, c, T, d) });
         items.sort((a, b) => b.depth - a.depth);
         for (const it of items) if (it.depth > 0.5) it.draw();
         Ink.occlude(null);
@@ -345,6 +485,7 @@
         return fx;
     }
 
+    const PARK_LAMP = (i) => -150 + i * 13;
     // a street lamp of the period on the hotels' kerb: a post, a globe
     function lampPost(g, L, cam, x, z, d) {
         const b = cam.p([x, 0.15, z]), t = cam.p([x, 4.4, z]); if (t[2] < 1) return;

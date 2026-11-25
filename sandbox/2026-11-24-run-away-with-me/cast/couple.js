@@ -114,7 +114,11 @@ const Couple = (() => {
         G.globalCompositeOperation = 'source-atop';
         G.setTransform(k, 0, 0, k, 0, 0);
         const Pp = Ink.PAL, seed = who === 'her' ? 4101 : 4202, W = cw / k, Hh = ch / k, pd = pad / k;
-        if (who === 'her') {
+        // the strokes of light are placed for the back view (hair and shoulders); on the other
+        // views they would cross the face, so they are off unless asked for (o.strokes)
+        const strokesOn = o.strokes ?? ((o.view ?? 'back') === 'back');
+        if (!strokesOn) { /* the repainted drawing alone */ }
+        else if (who === 'her') {
             const iw = W - 2 * pd;
             Ink.strokes(G, pd + iw * 0.12, Hh * 0.08, iw * 0.16, Hh * 0.55, { ang: Math.PI * 0.5 + 0.18, spread: 0.25, count: 6, len: Hh * 0.28, w: Math.max(1, s * 0.012), cols: [Pp.cyan, Pp.pink], seed, d });
             Ink.strokes(G, pd + iw * 0.7, Hh * 0.08, iw * 0.16, Hh * 0.55, { ang: Math.PI * 0.5 - 0.18, spread: 0.25, count: 6, len: Hh * 0.28, w: Math.max(1, s * 0.012), cols: [Pp.red, Pp.cyan], seed: seed + 1, d });

@@ -186,6 +186,7 @@
         const fq = quad(g, cam, [[RM.x0, 0, RM.z0], [RM.x1, 0, RM.z0], [RM.x1, 0, RM.z1], [RM.x0, 0, RM.z1]], floor, { w: 3, seed: 5, d });
         // the carpet's pile: short strokes in a darker plum
         if (fq) { g.save(); Neon.path(g, fq); g.clip(); for (let i = 0; i < 26; i++) { const p = cam.p([RM.x0 + 0.2 + Ink.hsh(i, 1, 0) * 5, 0, Math.max(cam.pos[2] + 0.8, 0) + Ink.hsh(i, 2, 0) * 4.2]); if (p[2] > 0.5) Ink.brush(g, [[p[0] - 14, p[1]], [p[0] + 14, p[1] + 1]], { w: 2.5, col: '#3a0b6a', seed: 40 + i, d, taper: 0.4, light: true }); } g.restore(); }
+        walls2(g, L, cam, T, d, fx);
         // a Deco frieze under the ceiling: a band of salmon with a cyan line
         quad(g, cam, [[RM.x0, 2.55, RM.z1 - 0.01], [RM.x1, 2.55, RM.z1 - 0.01], [RM.x1, 2.62, RM.z1 - 0.01], [RM.x0, 2.62, RM.z1 - 0.01]], P.plum, { w: 0, seed: 6, d });
         quad(g, cam, [[RM.x0 + 0.01, 2.55, RM.z0], [RM.x0 + 0.01, 2.55, RM.z1], [RM.x0 + 0.01, 2.62, RM.z1], [RM.x0 + 0.01, 2.62, RM.z0]], P.plum, { w: 0, seed: 7, d });
@@ -231,17 +232,21 @@
             const q = Neon.poly(cam, pts); if (q) Ink.shape(g, q, sc, { w: 0, light: true, seed: 340, d, alpha: sa * 0.6 });
             g.restore();
         }
-        // the TV's cold light on the floor by the dresser
-        { const q = Neon.poly(cam, [[-2.1, 0.005, 0.9], [-0.9, 0.005, 0.6], [-0.7, 0.005, 2.9], [-2.1, 0.005, 2.6]]); if (q) { g.save(); g.globalCompositeOperation = 'screen'; Ink.shape(g, q, '#2a6a9a', { w: 0, light: true, seed: 350, d, alpha: 0.35 + 0.2 * Ink.hsh(3, 3, d) }); g.restore(); } }
+        rug(g, cam, D, sc, sa, T, d);
+        // the TV's cold light on the floor before it, the corridor's warm wedge from the door
+        for (const [pts, col, a, sd] of [[[[-2.1, 0.014, 2.45], [-0.95, 0.014, 2.2], [-0.8, 0.014, 3.7], [-2.1, 0.014, 3.45]], '#2a6a9a', (0.3 + 0.2 * Ink.hsh(3, 3, d)) * (1 - fx.black), 350], [doorLight(g, fx), '#a0602a', 0.8 * (1 - fx.black), 351]]) {
+            const q = Neon.poly(cam, pts); if (q) { g.save(); g.globalCompositeOperation = 'screen'; Ink.shape(g, q, col, { w: 0, light: true, seed: sd, d, alpha: a }); g.restore(); }
+        }
 
         // the furniture, far to near (by depth from this camera)
         const items = [
-            { at: [-2.05, 0.6, 3.5], draw: () => chair(g, cam, T, d, fx, D, sc, sa) },
-            { at: [-2.35, 0.6, 1.8], draw: () => tv(g, L, cam, T, d, fx) },
+            { at: [-1.5, 0.6, 3.5], draw: () => chair(g, cam, T, d, fx, D, sc, sa) },
+            { at: [-2.35, 0.6, 2.95], draw: () => tv(g, L, cam, T, d, fx) },
+            { at: [-2.35, 0.6, 1.75], draw: () => dresser(g, L, cam, T, d, fx, sc) },
             { at: [1.55, 0.4, 2.75], draw: () => bed(g, cam, T, d, fx, D, sc, sa) },
             { at: [2.3, 0.5, 4.0], draw: () => nightstand(g, L, cam, T, d, fx) },
             { at: [0.2, 2.6, 2.8], draw: () => fan(g, cam, T, d) },
-            { at: [0, 0, 4.0], draw: () => heels(g, cam, d) },
+            { at: [-0.85, 0.05, 2.9], draw: () => heels(g, cam, d) },
         ];
         let figPic = null;
         if (o.figs !== false) items.push({ at: [0, 1, FIG.her[2]], draw: () => { figPic = figures(g, L, cam, T, d, fx, env, D, sc, sa, o); } });
@@ -324,72 +329,205 @@
         if (tq) { g.save(); Neon.path(g, tq); g.clip(); stripes(g, cam, D, [0, 1, 0], 0.62, sc, Math.min(1, sa * 1.2), T, d, 600); g.restore(); }
     }
 
-    // the chair on the left, his shirt over its back, her jacket on its seat
-    function chair(g, cam, T, d, fx, D, sc, sa) {
-        const x0 = -2.4, x1 = -1.9, z0 = 3.25, z1 = 3.75, s = sAt(cam, [-2.1, 0.6, 3.5]);
-        for (const [x, z] of [[x0 + 0.03, z0 + 0.03], [x1 - 0.03, z0 + 0.03], [x0 + 0.03, z1 - 0.03], [x1 - 0.03, z1 - 0.03]]) box(g, cam, x - 0.025, x + 0.025, 0, 0.45, z - 0.025, z + 0.025, '#1a0450', 700 + x * 10 + z, d);
-        box(g, cam, x0, x1, 0.45, 0.5, z0, z1, P.grape, 710, d, { cols: { top: P.plum } });
-        box(g, cam, x0, x0 + 0.05, 0.5, 1.05, z0, z1, P.grape, 720, d);
-        // his shirt over the back: the purple with its yellow dots, cyan squiggles, pink triangles
-        const sh = [[x0 - 0.02, 1.07, z0 + 0.05], [x0 + 0.08, 1.07, z1 - 0.04], [x0 + 0.1, 0.62, z1 + 0.02], [x0 + 0.12, 0.5, z1 - 0.15], [x0 + 0.09, 0.58, z0 + 0.25], [x0 + 0.1, 0.48, z0 + 0.02]];
-        const q = Neon.poly(cam, sh);
-        if (q) {
-            Ink.shape(g, q, P.violet, { w: lw(s, 0.012), seed: 730, d, jit: 0.6 });
-            g.save(); Neon.path(g, q); g.clip();
-            for (let k = 0; k < 9; k++) {
-                const p = cam.p([x0 + 0.07, 0.6 + Ink.hsh(k, 1, 0) * 0.42, z0 + 0.08 + Ink.hsh(k, 2, 0) * 0.42]), r = cap(0.018 * s, 1.5, 9);
-                if (k % 3 === 0) { g.fillStyle = P.gold; g.beginPath(); g.arc(p[0], p[1], r, 0, Math.PI * 2); g.fill(); }
-                else if (k % 3 === 1) Ink.brush(g, [[p[0] - r * 1.5, p[1]], [p[0] - r * 0.5, p[1] - r], [p[0] + r * 0.5, p[1] + r * 0.5], [p[0] + r * 1.5, p[1] - r * 0.5]], { w: cap(0.008 * s, 1, 3), col: P.aqua, seed: 740 + k, d, taper: 0.2, light: true });
-                else { g.fillStyle = P.magenta; g.beginPath(); g.moveTo(p[0], p[1] - r * 1.4); g.lineTo(p[0] + r * 1.2, p[1] + r); g.lineTo(p[0] - r * 1.2, p[1] + r); g.closePath(); g.fill(); }
-            }
+    // a flat profile (metres: x across, y up) stood up in the world facing the camera at c
+    function bb(cam, c, pts, rot = 0) {
+        const dx = c[0] - cam.pos[0], dz = c[2] - cam.pos[2], l = Math.hypot(dx, dz) || 1, rx = dz / l, rz = -dx / l, cr = Math.cos(rot), sr = Math.sin(rot);
+        return pts.map(([x, y]) => { const X = x * cr - y * sr, Y = x * sr + y * cr; return [c[0] + rx * X, c[1] + Y, c[2] + rz * X]; });
+    }
+    const vline = (g, cam, a3, b3, col, seed, d, m = 0.012, alpha = 0.55) => { const a = cam.p(a3), b = cam.p(b3); if (a[2] < 0.3 || b[2] < 0.3) return; const s = cam.f / Math.min(a[2], b[2]); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(m * s, 1, 3), col, seed, d, taper: 0.3, wob: 0.6, alpha, light: true }); };
+
+    // the walls' texture (a Deco pinstripe, broken), the framed print, the door ajar with the
+    // corridor's light in its gap and on the floor
+    function walls2(g, L, cam, T, d, fx) {
+        for (let z = 0.2; z < 5.1; z += 0.42) for (const [x, col, sd] of [[RM.x0 + 0.004, '#33107a', 0], [RM.x1 - 0.004, '#2c0c72', 50]]) {
+            if (x < 0 && z > 3.85 && z < 4.95) continue;
+            vline(g, cam, [x, 0.15, z], [x, 1.15 + 0.25 * Ink.hsh(Math.round(z * 10), sd, 0), z], col, 2000 + sd + Math.round(z * 10), d);
+            vline(g, cam, [x, 1.42 + 0.12 * Ink.hsh(Math.round(z * 10), sd + 1, 0), z], [x, 2.48, z], col, 2100 + sd + Math.round(z * 10), d);
+        }
+        for (let x = RM.x0 + 0.2; x < RM.x1; x += 0.42) {
+            if (x > WIN.x0 - 0.6 && x < WIN.x1 + 0.6) vline(g, cam, [x, 0.05, RM.z1 - 0.004], [x, WIN.y0 - 0.1, RM.z1 - 0.004], '#3a1288', 2200 + Math.round(x * 10), d);
+            else if (!(x > 1.9 && x < 2.6)) vline(g, cam, [x, 0.15, RM.z1 - 0.004], [x, 2.45, RM.z1 - 0.004], '#3a1288', 2300 + Math.round(x * 10), d);
+        }
+        // a framed print on the back wall: a striped sun going into the sea
+        const zb = RM.z1 - 0.012, X = (u) => 1.99 + u * 0.5, Y = (v) => 1.2 + v * 0.66;
+        const PQ = (u0, v0, u1, v1, z) => [[X(u0), Y(v0), z], [X(u1), Y(v0), z], [X(u1), Y(v1), z], [X(u0), Y(v1), z]];
+        const sP = sAt(cam, [2.25, 1.55, zb]);
+        if (quad(g, cam, PQ(-0.05, -0.04, 1.05, 1.04, zb), P.gold, { w: lw(sP, 0.01), seed: 2400, d })) {
+            quad(g, cam, PQ(0.07, 0.05, 0.93, 0.95, zb - 0.003), '#1a0a5a', { w: lw(sP, 0.005), seed: 2401, d });
+            const sun = []; for (let i = 0; i <= 16; i++) { const a = (Math.PI * i) / 16; sun.push([X(0.5 + Math.cos(a) * 0.3), Y(0.4 + Math.sin(a) * 0.23), zb - 0.005]); }
+            quad(g, cam, sun, P.orange, { w: 0, seed: 2402, d });
+            for (const [v, h] of [[0.47, 0.03], [0.53, 0.025], [0.58, 0.02]]) quad(g, cam, PQ(0.15, v, 0.85, v + h, zb - 0.006), '#1a0a5a', { w: 0, seed: 2403 + Math.round(v * 100), d });
+            quad(g, cam, PQ(0.07, 0.05, 0.93, 0.4, zb - 0.006), P.deep, { w: 0, seed: 2406, d });
+            for (let k = 0; k < 4; k++) vline(g, cam, [X(0.3 + 0.06 * k), Y(0.33 - k * 0.07), zb - 0.007], [X(0.7 - 0.06 * k), Y(0.33 - k * 0.07), zb - 0.007], P.salmon, 2410 + k, d, 0.012, 0.9);
+            vline(g, cam, [X(-0.05), Y(1.04), zb - 0.004], [X(1.05), Y(1.04), zb - 0.004], P.cyan, 2415, d, 0.01, 0.9);
+        }
+        // the door, ajar: hinged at its far side, opened a little into the room
+        const xw = RM.x0, dz0 = 3.95, dz1 = 4.85, dh = 2.1, op = 0.3, sD = sAt(cam, [xw, 1, 4.4]);
+        const gap = quad(g, cam, [[xw + 0.003, 0, dz0], [xw + 0.003, 0, dz1], [xw + 0.003, dh, dz1], [xw + 0.003, dh, dz0]], '#ffc27a', { w: 0, seed: 2450, d, light: true });
+        if (gap) { L.save(); Neon.path(L, gap); L.globalAlpha = 0.3 * (1 - fx.black); L.fillStyle = P.orange; L.fill(); L.restore(); }
+        box(g, cam, xw, xw + 0.05, 0, dh + 0.08, dz0 - 0.08, dz0, P.salmon, 2455, d);
+        box(g, cam, xw, xw + 0.05, dh, dh + 0.08, dz0, dz1 + 0.08, P.salmon, 2456, d);
+        const fxx = xw + 0.9 * Math.sin(op), fz = dz1 - 0.9 * Math.cos(op), D2 = (t, y) => [xw + (fxx - xw) * t + 0.004, y, dz1 + (fz - dz1) * t];
+        if (quad(g, cam, [D2(0, 0), D2(1, 0), D2(1, dh - 0.02), D2(0, dh - 0.02)], '#5a1a8a', { w: lw(sD, 0.01), seed: 2460, d, jit: 0.4 })) {
+            for (const [t0, t1, y0, y1] of [[0.15, 0.85, 1.15, 1.9], [0.15, 0.85, 0.15, 0.95]]) { const pts = [D2(t0, y0), D2(t1, y0), D2(t1, y1), D2(t0, y1), D2(t0, y0)].map(cam.p); if (pts.every((p) => p[2] > 0.3)) Ink.brush(g, pts, { w: cap(0.01 * sD, 1, 3), col: '#3a0a66', seed: 2461 + y0 * 10, d, taper: 0.05 }); }
+            const a = cam.p(D2(1, 0.02)), b = cam.p(D2(1, dh - 0.04));
+            Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.014 * sD, 1, 4), col: P.gold, seed: 2465, d, taper: 0.1, light: true });
+            const kn = cam.p(D2(0.88, 1.0)), r = cap(0.03 * sD, 2, 8);
+            g.fillStyle = P.gold; g.beginPath(); g.arc(kn[0], kn[1], r, 0, Math.PI * 2); g.fill();
+            // a card on the knob, a crescent on it (no words)
+            const t0 = cam.p(D2(0.9, 0.96)), t1 = cam.p(D2(0.8, 0.96)), t2 = cam.p(D2(0.8, 0.7)), t3 = cam.p(D2(0.9, 0.7));
+            Ink.shape(g, [[t0[0], t0[1]], [t1[0], t1[1]], [t2[0], t2[1]], [t3[0], t3[1]]], P.cream, { w: cap(0.006 * sD, 1, 2), seed: 2466, d });
+            const mc = cam.p(D2(0.85, 0.8)); g.fillStyle = P.magenta; g.beginPath(); g.arc(mc[0], mc[1], r * 0.9, 0, Math.PI * 2); g.fill(); g.fillStyle = P.cream; g.beginPath(); g.arc(mc[0] + r * 0.4, mc[1] - r * 0.2, r * 0.8, 0, Math.PI * 2); g.fill();
+        }
+    }
+    // the corridor's light on the floor from the door's gap
+    function doorLight(g, fx) { return [[RM.x0, 0.006, 3.95], [RM.x0 + 1.4, 0.006, 3.55], [RM.x0 + 1.5, 0.006, 3.95], [RM.x0 + 0.26, 0.006, 4.1]]; }
+
+    // the rug: a salmon border, a field of indigo, a Deco fan at its heart; the sign's stripes
+    // break over it (their own colour on its pile)
+    function rug(g, cam, D, sc, sa, T, d) {
+        const x0 = -1.6, x1 = 0.35, z0 = 1.2, z1 = 3.9, y = 0.012, R = (u, v) => [x0 + (x1 - x0) * u, y, z0 + (z1 - z0) * v];
+        const s = sAt(cam, R(0.5, 0.5));
+        const q = quad(g, cam, [R(0, 0), R(1, 0), R(1, 1), R(0, 1)], P.salmon, { w: lw(s, 0.008), seed: 2500, d, jit: 0.6 });
+        if (!q) return;
+        quad(g, cam, [R(0.07, 0.05), R(0.93, 0.05), R(0.93, 0.95), R(0.07, 0.95)], '#241070', { w: 0, seed: 2501, d });
+        for (const [r, col] of [[0.34, P.salmon], [0.25, P.cyan], [0.16, P.salmon]]) { const pts = []; for (let i = 0; i <= 18; i++) { const a = Math.PI * (i / 18); pts.push(cam.p(R(0.5 + Math.cos(a) * r, 0.2 + Math.sin(a) * r * 0.7))); } if (pts.every((p) => p[2] > 0.3)) Ink.brush(g, pts, { w: cap(0.025 * s, 1.2, 5), col, seed: 2510 + Math.round(r * 100), d, taper: 0.1 }); }
+        for (let i = 0; i < 14; i++) { const u = 0.05 + i * 0.065; for (const v of [0, 1]) { const a = cam.p(R(u, v)), b = cam.p(R(u, v + (v ? 0.03 : -0.03))); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.008 * s, 1, 2.5), col: P.cream, seed: 2520 + i + v * 30, d, taper: 0.3, alpha: 0.8 }); } }
+        g.save(); Neon.path(g, q); g.clip(); stripes(g, cam, D, [0, 1, 0], y, P.pink, sa * 0.7, T, d, 2550); g.restore();
+    }
+
+    // the dresser on the left wall under a round mirror that catches the sign; a bottle, two
+    // glasses (one fallen)
+    function dresser(g, L, cam, T, d, fx, sc) {
+        const x0 = RM.x0, x1 = -2.15, z0 = 1.1, z1 = 2.4, h = 0.8, s = sAt(cam, [-2.3, 0.6, 1.75]);
+        const mc = [RM.x0 + 0.01, 1.58, 1.75], ring = (r, dx) => { const o = []; for (let i = 0; i <= 28; i++) { const a = (i / 28) * Math.PI * 2; o.push([mc[0] + dx, mc[1] + Math.sin(a) * r, mc[2] + Math.cos(a) * r]); } return o; };
+        quad(g, cam, ring(0.42, 0), P.gold, { w: lw(s, 0.01), seed: 2600, d });
+        const gq = quad(g, cam, ring(0.36, 0.006), '#24146e', { w: lw(s, 0.006), seed: 2601, d });
+        if (gq) {
+            g.save(); Neon.path(g, gq); g.clip(); g.globalCompositeOperation = 'screen';
+            for (let k = 0; k < 4; k++) { const o = -0.24 + k * 0.15, band = [[0.6, o], [0.6, o + 0.06], [-0.6, o + 0.06 + 0.5], [-0.6, o + 0.5]].map(([a, b]) => [mc[0] + 0.007, mc[1] + a * 0.6 + b * 0.8 - 0.1, mc[2] + a * 0.8 - b * 0.6]); const q = Neon.poly(cam, band); if (q) Ink.shape(g, q, sc, { w: 0, light: true, seed: 2602 + k, d, alpha: 0.55 * fx.pulse }); }
             g.restore();
-            const a = cam.p([x0 + 0.1, 0.62, z1 + 0.02]), b = cam.p([x0 + 0.09, 0.58, z0 + 0.25]);
-            Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.008 * s, 1, 3), seed: 750, d, taper: 0.3 });
+            const arc = []; for (let i = 0; i <= 10; i++) { const a = -0.9 + (i / 10) * 1.3; arc.push(cam.p([mc[0] + 0.012, mc[1] + Math.sin(a) * 0.39, mc[2] + Math.cos(a) * 0.39])); }
+            if (arc.every((p) => p[2] > 0.3)) Ink.brush(g, arc, { w: cap(0.012 * s, 1, 4), col: sc, seed: 2605, d, taper: 0.3, light: true });
         }
-        // her jacket on the seat, a sleeve hanging over the front edge
-        const jk = [[x0 + 0.08, 0.52, z0 + 0.05], [x1 + 0.02, 0.52, z0 + 0.02], [x1 + 0.05, 0.2, z0 + 0.12], [x1 + 0.0, 0.18, z0 + 0.25], [x1 + 0.02, 0.52, z0 + 0.32], [x1 - 0.05, 0.53, z1 - 0.02], [x0 + 0.1, 0.53, z1 - 0.06]];
-        const jq = Neon.poly(cam, jk);
-        if (jq) {
-            Ink.shape(g, jq, '#ff6fb8', { w: lw(s, 0.012), seed: 760, d, jit: 0.6 });
-            for (let k = 0; k < 4; k++) { const a = cam.p([x1 + 0.03, 0.48 - k * 0.07, z0 + 0.08 + k * 0.03]), b = cam.p([x1 + 0.03, 0.46 - k * 0.07, z0 + 0.22]); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.006 * s, 1, 2.5), col: k % 2 ? P.ink : P.cream, seed: 770 + k, d, taper: 0.4, alpha: 0.85 }); }
+        box(g, cam, x0, x1, 0.1, h, z0, z1, '#3d0e74', 2610, d, { cols: { top: P.plum } });
+        for (const z of [z0 + 0.05, z1 - 0.05]) box(g, cam, x1 - 0.06, x1 - 0.02, 0, 0.1, z - 0.02, z + 0.02, P.gold, 2615 + z * 10, d);
+        for (const y of [0.33, 0.56]) { const a = cam.p([x1 + 0.002, y, z0 + 0.03]), b = cam.p([x1 + 0.002, y, z1 - 0.03]); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.008 * s, 1, 3), seed: 2620 + y * 10, d, taper: 0.1 }); }
+        for (const y of [0.21, 0.45, 0.68]) for (const z of [z0 + 0.35, z1 - 0.35]) box(g, cam, x1, x1 + 0.025, y - 0.015, y + 0.015, z - 0.05, z + 0.05, P.gold, 2630 + Math.round(y * 100 + z * 10), d);
+        // the bottle: dark glass, gold foil, a cream label, a stroke of the sign down its side
+        const bt = quad(g, cam, bb(cam, [-2.36, h, 1.42], [[-0.045, 0], [0.045, 0], [0.045, 0.2], [0.016, 0.26], [0.016, 0.32], [-0.016, 0.32], [-0.016, 0.26], [-0.045, 0.2]]), '#123a50', { w: lw(s, 0.008), seed: 2640, d });
+        if (bt) {
+            quad(g, cam, bb(cam, [-2.36, h, 1.415], [[-0.017, 0.25], [0.017, 0.25], [0.017, 0.325], [-0.017, 0.325]]), P.gold, { w: 0, seed: 2641, d });
+            quad(g, cam, bb(cam, [-2.36, h, 1.415], [[-0.04, 0.07], [0.04, 0.07], [0.04, 0.14], [-0.04, 0.14]]), P.cream, { w: 0, seed: 2642, d });
+            const e = bb(cam, [-2.36, h, 1.41], [[0.03, 0.02], [0.03, 0.19], [0.01, 0.25]]).map(cam.p); Ink.brush(g, e, { w: cap(0.008 * s, 1, 3), col: sc, seed: 2643, d, taper: 0.3, light: true });
         }
-        // the stripes reach the chair
-        if (q) { g.save(); Neon.path(g, q); g.clip(); stripes(g, cam, D, [1, 0, 0], x0 + 0.08, sc, sa * 0.6, T, d, 780); g.restore(); }
+        // two flutes: one standing with a finger of gold, one fallen on its side
+        const flute = [[-0.028, 0], [0.028, 0], [0.004, 0.006], [0.004, 0.1], [0.024, 0.13], [0.028, 0.22], [-0.028, 0.22], [-0.024, 0.13], [-0.004, 0.1], [-0.004, 0.006]];
+        for (const [c, rot, sd] of [[[-2.33, h, 1.62], 0, 2650], [[-2.3, h + 0.03, 1.82], -Math.PI / 2, 2660]]) {
+            const q = quad(g, cam, bb(cam, c, flute, rot), 'rgba(170,220,255,0.4)', { w: lw(s, 0.005), seed: sd, d, light: true });
+            if (q && !rot) quad(g, cam, bb(cam, c, [[-0.025, 0.13], [0.025, 0.13], [0.026, 0.17], [-0.026, 0.17]]), P.gold, { w: 0, seed: sd + 1, d, light: true });
+            if (q) { const e = bb(cam, c, [[0.022, 0.2], [0.02, 0.13]], rot).map(cam.p); Ink.brush(g, e, { w: cap(0.006 * s, 1, 2), col: P.cream, seed: sd + 2, d, taper: 0.3, light: true }); }
+        }
     }
 
-    // her heels on the floor, one fallen over
+    // the chair, turned to us: his shirt draped over its back (open collar, two short sleeves
+    // hanging, folds with the print following them, its shadow on the seat), her jacket thrown
+    // on the seat (lapels, stitching, a sleeve over the front edge)
+    function chair(g, cam, T, d, fx, D, sc, sa) {
+        const cx = -1.5, x0 = cx - 0.25, x1 = cx + 0.25, z0 = 3.28, z1 = 3.76, s = sAt(cam, [cx, 0.7, 3.5]);
+        for (const [x, z] of [[x0 + 0.03, z0 + 0.03], [x1 - 0.03, z0 + 0.03], [x0 + 0.03, z1 - 0.03], [x1 - 0.03, z1 - 0.03]]) box(g, cam, x - 0.022, x + 0.022, 0, 0.45, z - 0.022, z + 0.022, '#1a0450', 2700 + Math.round(x * 10 + z * 100), d);
+        box(g, cam, x0, x1, 0.45, 0.5, z0, z1, P.grape, 2710, d, { cols: { top: P.plum } });
+        box(g, cam, x0, x1, 0.5, 1.02, z1 - 0.05, z1, P.grape, 2720, d);
+        quad(g, cam, [[x0 + 0.02, 0.503, z1 - 0.05], [x1 - 0.02, 0.503, z1 - 0.05], [x1 - 0.05, 0.503, z1 - 0.21], [x0 + 0.05, 0.503, z1 - 0.18]], '#1e0640', { w: 0, seed: 2725, d });
+        const W = (u, v) => [cx + u * 0.27, 1.05 - v, z1 - 0.07 - 0.018 * Math.sin(u * 2.6 + v * 3) - 0.05 * v];
+        const P2 = (pts) => Neon.poly(cam, pts.map(([u, v]) => W(u, v)));
+        const panel = [[-0.86, -0.012], [0.86, -0.012], [0.9, 0.12], [0.92, 0.3], [0.88, 0.44]];
+        for (let i = 0; i <= 12; i++) { const u = 0.88 - (1.76 * i) / 12; panel.push([u, 0.45 + 0.025 * Math.sin(u * 8) + 0.015 * Ink.hsh(i, 9, 0)]); }
+        panel.push([-0.92, 0.3], [-0.9, 0.12]);
+        const sleeves = [[[-0.84, 0.0], [-1.12, 0.05], [-1.22, 0.3], [-1.0, 0.34], [-0.93, 0.13]], [[0.84, 0.0], [1.1, 0.09], [1.14, 0.36], [0.94, 0.33], [0.92, 0.12]]];
+        const shapes = [...sleeves.map(P2), P2(panel)];
+        shapes.forEach((q, i) => { if (q) Ink.shape(g, q, i < 2 ? '#6a06dc' : P.violet, { w: lw(s, 0.01), seed: 2730 + i, d, jit: 0.5 }); });
+        // folds: dark valleys and lit ridges running down, and the print riding on them
+        const fold = (u, v) => u + 0.035 * Math.sin(v * 9 + u * 5);
+        g.save(); g.beginPath(); for (const q of shapes) if (q) q.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.clip();
+        for (const [k, u0] of [[0, -0.62], [1, -0.28], [2, 0.18], [3, 0.55]]) {
+            const val = [], ridge = []; for (let j = 0; j <= 6; j++) { const v = 0.06 + j * 0.065; val.push(cam.p(W(fold(u0, v), v))); ridge.push(cam.p(W(fold(u0 + 0.07, v), v))); }
+            if (val.some((p) => p[2] < 0.3)) continue;
+            Ink.brush(g, val, { w: cap(0.022 * s, 1.5, 7), col: '#4a0a9a', seed: 2740 + k, d, taper: 0.4, alpha: 0.75 });
+            Ink.brush(g, ridge, { w: cap(0.008 * s, 1, 3), col: P.pink, seed: 2745 + k, d, taper: 0.5, alpha: 0.8, light: true });
+        }
+        let n = 0;
+        for (let v = 0.08; v < 0.44; v += 0.09) for (let u = -1.1; u < 1.12; u += 0.2) {
+            n++; const uu = fold(u + 0.06 * (Ink.hsh(n, 1, 0) - 0.5), v), p = cam.p(W(uu, v + 0.03 * Ink.hsh(n, 2, 0))), r = cap(0.016 * s, 1.5, 8), sq = 0.6 + 0.4 * Math.abs(Math.cos(v * 9 + u * 5));
+            if (p[2] < 0.3 || (Math.abs(u) > 0.9 && v > 0.32)) continue;
+            if (n % 3 === 0) { g.fillStyle = P.gold; g.beginPath(); g.ellipse(p[0], p[1], r * sq, r, 0, 0, Math.PI * 2); g.fill(); }
+            else if (n % 3 === 1) Ink.brush(g, [[p[0] - r * 1.4 * sq, p[1]], [p[0] - r * 0.4 * sq, p[1] - r], [p[0] + r * 0.5 * sq, p[1] + r * 0.5], [p[0] + r * 1.4 * sq, p[1] - r * 0.5]], { w: cap(0.007 * s, 1, 3), col: P.aqua, seed: 2750 + n, d, taper: 0.2, light: true });
+            else { g.fillStyle = P.magenta; g.beginPath(); g.moveTo(p[0], p[1] - r * 1.3); g.lineTo(p[0] + r * 1.1 * sq, p[1] + r); g.lineTo(p[0] - r * 1.1 * sq, p[1] + r); g.closePath(); g.fill(); }
+        }
+        g.restore();
+        // the open collar: the dark inside of the neck, two points folded down, the placket
+        const nk = P2([[-0.3, -0.01], [0.3, -0.01], [0.0, 0.11]]); if (nk) Ink.shape(g, nk, '#1a0440', { w: 0, seed: 2760, d });
+        for (const sg of [-1, 1]) { const q = P2([[sg * 0.36, -0.015], [sg * 0.03, -0.015], [sg * 0.06, 0.17], [sg * 0.24, 0.09]]); if (q) Ink.shape(g, q, '#8a2af8', { w: lw(s, 0.008), seed: 2761 + sg, d, jit: 0.4 }); }
+        { const a = cam.p(W(0.0, 0.13)), b = cam.p(W(0.01, 0.44)); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.006 * s, 1, 2.5), seed: 2765, d, taper: 0.1 }); for (const v of [0.2, 0.29, 0.38]) { const p = cam.p(W(0.03, v)); g.fillStyle = P.cream; g.beginPath(); g.arc(p[0], p[1], cap(0.008 * s, 1, 4), 0, Math.PI * 2); g.fill(); } }
+        for (const sl of sleeves) { const a = cam.p(W(sl[2][0], sl[2][1] - 0.04)), b = cam.p(W(sl[3][0], sl[3][1] - 0.04)); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.006 * s, 1, 2.5), seed: 2766 + sl[0][0] * 10, d, taper: 0.2 }); }
+        // her jacket on the seat
+        const J = (u, w, hh = 0) => [cx + u * 0.25, 0.508 + hh, z0 + 0.02 + w * 0.3];
+        const jb = Neon.poly(cam, [[-0.92, 0.08], [-0.2, 0.0], [0.6, 0.02], [0.95, 0.2], [0.9, 0.62], [0.25, 0.72], [-0.4, 0.66], [-0.88, 0.55]].map(([u, w], i) => J(u, w, 0.015 + 0.02 * Ink.hsh(i, 3, 0))));
+        if (jb) {
+            Ink.shape(g, jb, '#ff6fb8', { w: lw(s, 0.01), seed: 2770, d, jit: 0.5 });
+            for (const [pts, sd] of [[[[-0.25, 0.1], [0.0, 0.1], [-0.08, 0.5]], 2771], [[[0.1, 0.1], [0.38, 0.12], [0.16, 0.5]], 2772]]) { const q = Neon.poly(cam, pts.map(([u, w]) => J(u, w, 0.04))); if (q) Ink.shape(g, q, '#ff9ad0', { w: lw(s, 0.008), seed: sd, d, jit: 0.4 }); }
+            for (let k = 0; k < 3; k++) { const pts = [J(-0.8 + k * 0.5, 0.2 + k * 0.1, 0.04), J(-0.55 + k * 0.5, 0.45, 0.04)].map(cam.p); Ink.brush(g, pts, { w: cap(0.012 * s, 1, 4), col: '#c8408e', seed: 2773 + k, d, taper: 0.4 }); }
+            const st = [J(-0.85, 0.5, 0.04), J(0.2, 0.66, 0.04), J(0.85, 0.56, 0.04)].map(cam.p); for (let k = 0; k < 2; k++) { const a = st[k], b = st[k + 1]; for (let j = 0; j < 5; j++) { const u0 = j / 5, u1 = u0 + 0.1; Ink.brush(g, [[a[0] + (b[0] - a[0]) * u0, a[1] + (b[1] - a[1]) * u0], [a[0] + (b[0] - a[0]) * u1, a[1] + (b[1] - a[1]) * u1]], { w: cap(0.004 * s, 1, 2), col: P.cream, seed: 2776 + k * 9 + j, d, taper: 0.3 }); } }
+        }
+        const sv = Neon.poly(cam, [[cx + 0.04, 0.515, z0 + 0.03], [cx + 0.2, 0.515, z0 + 0.03], [cx + 0.19, 0.5, z0 - 0.012], [cx + 0.18, 0.24, z0 - 0.03], [cx + 0.06, 0.22, z0 - 0.03], [cx + 0.05, 0.48, z0 - 0.012]]);
+        if (sv) { Ink.shape(g, sv, '#f25aa8', { w: lw(s, 0.01), seed: 2790, d, jit: 0.4 }); const c0 = cam.p([cx + 0.18, 0.3, z0 - 0.031]), c1 = cam.p([cx + 0.06, 0.28, z0 - 0.031]); Ink.brush(g, [[c0[0], c0[1]], [c1[0], c1[1]]], { w: cap(0.006 * s, 1, 2.5), seed: 2791, d, taper: 0.1 }); }
+        // the stripes fall across the shirt
+        const all = shapes.filter(Boolean);
+        if (all.length) { g.save(); g.beginPath(); for (const q of all) q.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.clip(); stripes(g, cam, D, [0, 0, 1], z1 - 0.1, sc, sa * 0.55, T, d, 2795); g.restore(); }
+    }
+
+    // her heels: gold sandals, sole, stiletto, the band over the toes, the ankle strap; one
+    // standing, one fallen on its side
     function heels(g, cam, d) {
-        for (const [x, z, rot, sd] of [[-1.25, 3.3, 0.4, 800], [-1.05, 3.1, 1.9, 810]]) {
-            const c = Math.cos(rot), sn = Math.sin(rot), L0 = 0.24;
-            const w = (u, h) => [x + c * (u - 0.5) * L0, h, z + sn * (u - 0.5) * L0];
-            const s = sAt(cam, [x, 0, z]);
-            const q = Neon.poly(cam, [w(0, 0), w(0.15, 0.02), w(0.55, 0.06), w(0.9, 0.09), w(1, 0.09), w(0.95, 0.03), w(0.6, 0.02), w(0.1, 0)]);
-            if (q) Ink.shape(g, q, P.gold, { w: lw(s, 0.008), seed: sd, d, jit: 0.3 });
-            const h0 = cam.p(w(0.95, 0.09)), h1 = cam.p(w(0.97, 0));
-            Ink.brush(g, [[h0[0], h0[1]], [h1[0], h1[1]]], { w: cap(0.012 * s, 1, 4), col: P.orange, seed: sd + 1, d, taper: 0.1 });
-        }
+        const shoe = (x, z, rot, lying, sd) => {
+            const c = Math.cos(rot), sn = Math.sin(rot);
+            const W = lying ? (sv, hh) => [x + c * sv - sn * hh * 0.95, 0.012 + hh * 0.12, z + sn * sv + c * hh * 0.95] : (sv, hh) => [x + c * sv, hh, z + sn * sv];
+            const s = sAt(cam, [x, 0.05, z]);
+            const pq = (pts, fill, k) => quad(g, cam, pts.map(([a, b]) => W(a, b)), fill, { w: lw(s, 0.005), seed: sd + k, d, jit: 0.15 });
+            pq([[0, 0.006], [0.02, 0], [0.09, 0.002], [0.15, 0.04], [0.2, 0.078], [0.236, 0.086], [0.236, 0.098], [0.2, 0.092], [0.15, 0.054], [0.09, 0.016], [0.02, 0.014]], P.orange, 0);
+            pq([[0.21, 0.082], [0.236, 0.088], [0.231, 0], [0.224, 0]], P.gold, 1);
+            pq([[0.02, 0.012], [0.08, 0.014], [0.085, 0.05], [0.035, 0.045]], P.gold, 2);
+            const loop = []; for (let i = 0; i <= 14; i++) { const a = (i / 14) * Math.PI * 2; loop.push(cam.p(W(0.2 + 0.03 * Math.cos(a), 0.135 + 0.04 * Math.sin(a)))); }
+            if (loop.every((p) => p[2] > 0.3)) Ink.brush(g, loop, { w: cap(0.009 * s, 1, 3), col: P.gold, seed: sd + 3, d, taper: 0.05 });
+            const pts = [W(0.03, 0.016), W(0.15, 0.056), W(0.22, 0.097)].map(cam.p);
+            Ink.brush(g, pts, { w: cap(0.005 * s, 1, 2), col: P.cream, seed: sd + 4, d, taper: 0.4, light: true });
+        };
+        shoe(-0.98, 3.0, 0.25, false, 2800);
+        shoe(-0.72, 2.72, 2.3, true, 2810);
     }
 
-    // the TV on a dresser against the left wall, its screen turned into the room: static
+    // the TV on its stand against the left wall, a VCR on the shelf, its screen turned to the
+    // bed: static
     function tv(g, L, cam, T, d, fx) {
-        box(g, cam, -2.6, -2.05, 0, 0.78, 1.1, 2.5, '#3a0d6e', 900, d);
-        for (const y of [0.25, 0.52]) { const a = cam.p([-2.04, y, 1.2]), b = cam.p([-2.04, y, 2.4]); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: 1.5, seed: 905 + y * 10, d, taper: 0.1 }); }
-        const faces = box(g, cam, -2.55, -2.12, 0.78, 1.3, 1.45, 2.15, '#2a2a5a', 910, d);
-        const scr = Neon.poly(cam, [[-2.115, 0.84, 1.52], [-2.115, 0.84, 2.0], [-2.115, 1.24, 2.0], [-2.115, 1.24, 1.52]]);
+        const x0 = -2.55, x1 = -2.1, z0 = 2.62, z1 = 3.3, s = sAt(cam, [-2.3, 0.8, 2.95]);
+        for (const [x, z] of [[x0 + 0.03, z0 + 0.03], [x1 - 0.03, z0 + 0.03], [x0 + 0.03, z1 - 0.03], [x1 - 0.03, z1 - 0.03]]) box(g, cam, x - 0.018, x + 0.018, 0, 0.56, z - 0.018, z + 0.018, P.gold, 900 + Math.round(x * 10 + z * 100), d);
+        box(g, cam, x0, x1, 0.15, 0.18, z0, z1, '#3a0d6e', 905, d);
+        box(g, cam, x0 + 0.04, x1 - 0.04, 0.18, 0.27, z0 + 0.08, z1 - 0.08, '#1a1030', 906, d);
+        { const p = cam.p([x1 - 0.039, 0.23, z1 - 0.15]); g.fillStyle = P.red; g.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3); }
+        box(g, cam, x0, x1, 0.56, 0.6, z0, z1, '#3a0d6e', 907, d, { cols: { top: P.plum } });
+        box(g, cam, x0 + 0.02, x1 - 0.01, 0.6, 1.12, z0 + 0.04, z1 - 0.04, '#2a2a5a', 910, d);
+        const scr = Neon.poly(cam, [[x1 - 0.005, 0.66, z0 + 0.1], [x1 - 0.005, 0.66, z1 - 0.1], [x1 - 0.005, 1.06, z1 - 0.1], [x1 - 0.005, 1.06, z0 + 0.1]]);
         if (!scr) return;
-        const s = sAt(cam, [-2.1, 1, 1.75]);
         g.save(); Neon.path(g, scr); g.fillStyle = '#7aa6c8'; g.fill(); g.clip();
-        // the snow: a new field every drawing, rows of grey and cyan dashes, a rolling bar
         const xs = scr.map((p) => p[0]), ys = scr.map((p) => p[1]), bx = Math.min(...xs), by = Math.min(...ys), bw = Math.max(...xs) - bx, bh = Math.max(...ys) - by;
         const cell = Math.max(2, bh / 40);
         for (let y = by; y < by + bh; y += cell) for (let x = bx; x < bx + bw; x += cell * 1.6) { const h = Ink.hsh(Math.round(x), Math.round(y), d); if (h < 0.45) continue; g.fillStyle = h > 0.9 ? P.cream : h > 0.7 ? '#c8e8ff' : h > 0.55 ? '#3a4a7a' : '#1a1a40'; g.fillRect(x, y, cell * 1.5, cell * 0.9); }
         const rb = by + ((T * 0.8) % 1) * bh; g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(bx, rb, bw, bh * 0.12);
         g.restore();
         Ink.shape(g, scr, null, { w: lw(s, 0.012), seed: 920, d });
-        L.save(); Neon.path(L, scr); L.globalAlpha = 0.35 + 0.2 * Ink.hsh(1, 1, d); L.fillStyle = '#9fd8ff'; L.fill(); L.restore();
-        // the rabbit-ear aerial
-        const top = cam.p([-2.33, 1.3, 1.8]);
-        for (const [dz, sd] of [[-0.25, 930], [0.22, 931]]) { const e = cam.p([-2.3, 1.68, 1.8 + dz]); Ink.brush(g, [[top[0], top[1]], [e[0], e[1]]], { w: cap(0.01 * s, 1, 3), col: P.cream, seed: sd, d, taper: 0.1 }); }
+        L.save(); Neon.path(L, scr); L.globalAlpha = (0.35 + 0.2 * Ink.hsh(1, 1, d)) * (1 - fx.black); L.fillStyle = '#9fd8ff'; L.fill(); L.restore();
+        const top = cam.p([-2.33, 1.12, 2.96]);
+        for (const [dz, sd] of [[-0.25, 930], [0.22, 931]]) { const e = cam.p([-2.3, 1.5, 2.96 + dz]); Ink.brush(g, [[top[0], top[1]], [e[0], e[1]]], { w: cap(0.01 * s, 1, 3), col: P.cream, seed: sd, d, taper: 0.1 }); }
     }
 
     // the nightstand: the lamp (lit), the phone, the clock radio, a glass
@@ -397,19 +535,36 @@
         const x0 = 2.0, x1 = 2.55, z0 = 3.75, z1 = 4.25, y1 = 0.56, s = sAt(cam, [2.3, 0.6, 4.0]);
         box(g, cam, x0, x1, 0, y1, z0, z1, '#4a1288', 1000, d, { cols: { top: P.plum } });
         { const a = cam.p([x0 - 0.001, 0.3, z0 + 0.05]), b = cam.p([x0 - 0.001, 0.3, z1 - 0.05]); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.01 * s, 1, 3), seed: 1001, d, taper: 0.1 }); }
-        // the lamp: a round base, a stem, a pleated shade that glows
+        // the lamp: a round base, a stem, a drum shade of pleated card: darker outside with its
+        // seams, lit inside where the camera can see in; the glow comes only from the openings
         box(g, cam, 2.33, 2.47, y1, y1 + 0.04, 4.05, 4.19, P.gold, 1010, d);
         box(g, cam, 2.39, 2.41, y1 + 0.04, y1 + 0.34, 4.11, 4.13, P.gold, 1020, d);
-        const sh = []; for (let i = 0; i <= 16; i++) { const a = (i / 16) * Math.PI; sh.push([2.4 + Math.cos(a + Math.PI) * 0.17, y1 + 0.3, 4.12 - Math.sin(a) * 0.17]); }
-        for (let i = 16; i >= 0; i--) { const a = (i / 16) * Math.PI; sh.push([2.4 + Math.cos(a + Math.PI) * 0.11, y1 + 0.52, 4.12 - Math.sin(a) * 0.11]); }
-        const lamp = fx.black > 0 ? 1 - fx.black : 1;
-        const shq = Neon.poly(cam, sh);
+        const lamp = fx.black > 0 ? 1 - fx.black : 1, C0 = [2.4, y1 + 0.3, 4.12], rB = 0.17, rT = 0.11, hS = 0.22;
+        const toCam = Math.atan2(cam.pos[2] - C0[2], cam.pos[0] - C0[0]);
+        const rp = (a, r, y) => [C0[0] + Math.cos(a) * r, y, C0[2] + Math.sin(a) * r];
+        const arc = (r, y, a0, a1, n = 18) => { const o = []; for (let i = 0; i <= n; i++) o.push(rp(a0 + ((a1 - a0) * i) / n, r, y)); return o; };
+        const front = arc(rB, C0[1], toCam - Math.PI / 2, toCam + Math.PI / 2).concat(arc(rT, C0[1] + hS, toCam + Math.PI / 2, toCam - Math.PI / 2));
+        const shq = Neon.poly(cam, front);
         if (shq) {
-            Ink.shape(g, shq, css(mix('#7a2a6a', '#ff7a5a', lamp)), { w: lw(s, 0.012), seed: 1030, d, jit: 0.5 });
-            for (let k = 1; k < 7; k++) { const a = (k / 7) * Math.PI, p0 = cam.p([2.4 - Math.cos(a) * 0.17, y1 + 0.3, 4.12 - Math.sin(a) * 0.17]), p1 = cam.p([2.4 - Math.cos(a) * 0.11, y1 + 0.52, 4.12 - Math.sin(a) * 0.11]); Ink.brush(g, [[p0[0], p0[1]], [p1[0], p1[1]]], { w: cap(0.006 * s, 1, 2.5), col: P.gold, seed: 1040 + k, d, taper: 0.3, light: true, alpha: lamp }); }
-            const c = cam.p([2.4, y1 + 0.4, 4.0]);
-            L.save(); Neon.path(L, shq); L.globalAlpha = 0.12 * lamp; L.fillStyle = P.orange; L.fill(); L.restore();
-            glow(L, c[0], c[1], cap(0.5 * s, 20, 260), P.orange, 0.3 * lamp);
+            Ink.shape(g, shq, css(mix('#4a1a5a', '#b8406c', lamp)), { w: lw(s, 0.012), seed: 1030, d, jit: 0.5 });
+            for (let k = 1; k < 8; k++) { const a = toCam - Math.PI / 2 + (k / 8) * Math.PI, p0 = cam.p(rp(a, rB, C0[1])), p1 = cam.p(rp(a, rT, C0[1] + hS)); Ink.brush(g, [[p0[0], p0[1]], [p1[0], p1[1]]], { w: cap(0.006 * s, 1, 2.5), col: k % 2 ? '#7a1e52' : css(mix('#7a1e52', P.salmon, lamp)), seed: 1040 + k, d, taper: 0.3, alpha: 0.85 }); }
+            // the openings: the inside seen through the bottom (camera below it) or the top (above)
+            const open = [];
+            if (cam.pos[1] < C0[1]) open.push([rB, C0[1], 1050]);
+            if (cam.pos[1] > C0[1] + hS) open.push([rT, C0[1] + hS, 1052]);
+            for (const [r, y, sd] of open) {
+                const q = Neon.poly(cam, arc(r, y, 0, Math.PI * 2, 24));
+                if (!q) continue;
+                Ink.shape(g, q, css(mix('#3a1040', '#ffd9a0', lamp)), { w: lw(s, 0.008), seed: sd, d, light: true });
+                const far = arc(r * 0.97, y, toCam + Math.PI / 2, toCam + Math.PI * 1.5).map(cam.p);
+                Ink.brush(g, far, { w: cap(0.012 * s, 1, 4), col: css(mix('#3a1040', P.gold, lamp)), seed: sd + 1, d, taper: 0.3, light: true });
+                L.save(); Neon.path(L, q); L.globalAlpha = 0.55 * lamp; L.fillStyle = '#ffb060'; L.fill(); L.restore();
+            }
+            // the light out of the bottom: a glow under the shade and a warm pool on the top
+            const c = cam.p([C0[0], C0[1] - 0.02, C0[2]]);
+            glow(L, c[0], c[1], cap(0.45 * s, 16, 220), P.orange, 0.32 * lamp);
+            const pool = Neon.poly(cam, arc(0.3, y1 + 0.002, 0, Math.PI * 2, 20).map((p) => [Math.min(2.54, Math.max(2.01, p[0])), p[1], Math.min(4.24, Math.max(3.76, p[2]))]));
+            if (pool) { g.save(); g.globalCompositeOperation = 'screen'; Ink.shape(g, pool, '#7a3a20', { w: 0, light: true, seed: 1055, d, alpha: 0.8 * lamp }); g.restore(); }
         }
         // the phone: a cream body, the handset on its cradle, the coiled cord
         box(g, cam, 2.1, 2.32, y1, y1 + 0.06, 4.02, 4.22, '#f0c8e8', 1060, d, { cols: { top: P.cream } });
@@ -486,10 +641,35 @@
         g.restore();
     }
 
+    // a palm crown seen from above: fronds radiating from a heart of dates, each a long leaf with
+    // its leaflets in ink and a lit midrib, the lower ring drooping under the upper
+    function crownTop(g, cam, c, R, seed, T, d) {
+        const fr = [];
+        for (let i = 0; i < 14; i++) fr.push({ a: (i / 14) * Math.PI * 2 + Ink.hsh(seed, i, 0) * 0.35, len: R * (0.78 + 0.3 * Ink.hsh(seed, i + 20, 0)), droop: 0.6 + 0.6 * Ink.hsh(seed, i + 40, 0), lower: i % 2 });
+        fr.sort((p, q) => q.lower - p.lower);
+        const sw = Math.sin(T * 1.3 + seed) * 0.05;
+        for (const f of fr) {
+            const pt = (u) => [c[0] + Math.cos(f.a + sw * u) * f.len * u, c[1] - f.droop * u * u * (f.lower ? 1.3 : 0.8), c[2] + Math.sin(f.a + sw * u) * f.len * u];
+            const rib = []; for (let j = 0; j <= 10; j++) rib.push(cam.p(pt(j / 10)));
+            if (rib.some((p) => p[2] < 0.5)) continue;
+            const s = cam.f / rib[5][2];
+            const width = (j) => 0.2 * R * Math.sin(Math.min(1, (j / 10) * 1.1) * Math.PI) * cam.f / rib[j][2];
+            const tan = (j) => { const a = rib[Math.max(0, j - 1)], b = rib[Math.min(10, j + 1)], tx = b[0] - a[0], ty = b[1] - a[1], l = Math.hypot(tx, ty) || 1; return [tx / l, ty / l]; };
+            const side = (k) => rib.map((p, j) => { const t = tan(j); return [p[0] - t[1] * width(j) * k, p[1] + t[0] * width(j) * k]; });
+            Ink.shape(g, side(1).concat(side(-1).reverse()), f.lower ? P.grape : P.plum, { w: lw(s, 0.025), seed: seed * 101 + Math.round(f.a * 10), d, jit: 0.5 });
+            for (let j = 2; j < 10; j++) for (const k of [-1, 1]) { const p = rib[j], t = tan(j), l = width(j) * 1.05; Ink.brush(g, [[p[0], p[1]], [p[0] + (-t[1] * k * 0.85 + t[0] * 0.5) * l, p[1] + (t[0] * k * 0.85 + t[1] * 0.5) * l]], { w: cap(0.02 * s, 1, 3), col: '#22052e', seed: seed * 97 + j * 7 + k + Math.round(f.a * 10) * 31, d, taper: 0.6, wob: 0.3 }); }
+            Ink.brush(g, rib.slice(0, 9), { w: cap(0.025 * s, 1, 3.5), col: Math.cos(f.a) > 0 ? P.pink : P.cyan, seed: seed * 31 + Math.round(f.a * 10), d, taper: 0.3 });
+        }
+        const cp = cam.p(c); if (cp[2] < 0.5) return;
+        const s0 = cam.f / cp[2];
+        for (let i = 0; i < 8; i++) { const r = 0.07 * R * s0, a = i * 2.4; g.fillStyle = i % 2 ? P.orange : P.gold; g.beginPath(); g.arc(cp[0] + Math.cos(a) * r * 1.4, cp[1] + Math.sin(a) * r * 1.4, r * 0.55, 0, Math.PI * 2); g.fill(); }
+    }
+
     // ================================================================================= the pool
     // seen from their window: a pool 9 × 4.8 m at the foot of the hotel, its lamps under water,
     // loungers, palms; the two of them under the cyan water
     const PL = { x0: -4.5, x1: 4.5, z0: -2.4, z1: 2.4, r: 0.9 };
+    const PALMS = [[-4.3, 3.5, 31], [4.4, -3.4, 32]];          // pygmy palms in planters at two corners
     const rrect = (x0, x1, z0, z1, r, y, n = 5) => { const o = []; const c = [[x1 - r, z1 - r, 0], [x0 + r, z1 - r, 0.5], [x0 + r, z0 + r, 1], [x1 - r, z0 + r, 1.5]]; for (const [cx, cz, a0] of c) for (let i = 0; i <= n; i++) { const a = (a0 + (i / n) * 0.5) * Math.PI; o.push([cx + Math.cos(a) * r, y, cz + Math.sin(a) * r]); } return o; };
     function pool(g, L, cam, T, d, fx, env) {
         const lit = 1 - fx.black;
@@ -548,7 +728,9 @@
         }
         // loungers in two rows, striped cushions, a towel
         for (const [zc, flip] of [[-3.9, 1], [3.9, -1]]) for (let i = 0; i < 4; i++) {
-            const x = -3.9 + i * 2.6, sd = 1500 + i * 10 + (flip > 0 ? 0 : 100);
+            const x = -3.9 + i * 2.6;
+            if (PALMS.some(([px, pz]) => Math.abs(px - x) < 1.6 && Math.abs(pz - zc) < 1.6)) continue;
+            const sd = 1500 + i * 10 + (flip > 0 ? 0 : 100);
             box(g, cam, x - 0.32, x + 0.32, 0, 0.32, zc - 0.95, zc + 0.95, P.cream, sd, d, { cols: { top: '#f4d6f0' } });
             for (let k2 = 0; k2 < 5; k2++) { const z = zc - 0.8 + k2 * 0.4; const q = Neon.poly(cam, [[x - 0.28, 0.33, z], [x + 0.28, 0.33, z], [x + 0.28, 0.33, z + 0.18], [x - 0.28, 0.33, z + 0.18]]); if (q) Ink.shape(g, q, k2 % 2 ? P.magenta : P.salmon, { w: 0, seed: sd + k2, d }); }
             const back = [[x - 0.3, 0.32, zc + flip * 0.95], [x + 0.3, 0.32, zc + flip * 0.95], [x + 0.3, 0.8, zc + flip * 0.65], [x - 0.3, 0.8, zc + flip * 0.65]];
@@ -556,9 +738,7 @@
             if (i === 1 && flip > 0) quad(g, cam, [[x - 0.2, 0.36, zc - 0.3], [x + 0.35, 0.36, zc - 0.2], [x + 0.3, 0.36, zc + 0.3], [x - 0.25, 0.36, zc + 0.25]], P.aqua, { w: lw(s, 0.01), seed: sd + 8, d });
         }
         // palms at the corners, their crowns nearer the camera than the water
-        palm(g, cam, -6.6, 0, -3.2, 31, T, d, { H: 9 });
-        palm(g, cam, 6.8, 0, 3.4, 32, T, d, { H: 10 });
-        palm(g, cam, -7.2, 0, 4.2, 33, T, d, { H: 8 });
+        for (const [x, z, sd] of PALMS) { box(g, cam, x - 0.45, x + 0.45, 0, 0.5, z - 0.45, z + 0.45, P.salmon, 1700 + sd, d, { cols: { top: '#3a1050' } }); crownTop(g, cam, [x, 3.4, z], 2.0, sd, T, d); }
         // the surface: glints of the hotel's neon in short cream and pink strokes
         g.save(); Neon.path(g, wq); g.clip();
         for (let i = 0; i < 18; i++) { const x = PL.x0 + 0.3 + Ink.hsh(i, 21, 0) * 8.4, z = PL.z0 + 0.2 + Ink.hsh(i, 22, 0) * 4.4, p = cam.p([x + 0.1 * Math.sin(T + i), 0.03, z]), l = cap(0.25 * s, 6, 40); Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0] + l / 2, p[1] + 1]], { w: cap(0.03 * s, 1.2, 4), col: i % 3 ? P.cream : P.pink, seed: 1600 + i, d, taper: 0.45, alpha: 0.8 * lit + 0.2, light: true }); }
@@ -571,39 +751,83 @@
     // ten floors of Deco eyebrows, windows lit and dark, a fin carrying the sign, their window
     // on the ninth floor with the two of them behind its blinds
     const FW = { x0: -1.3, x1: 1.3, y0: 26.5, y1: 28.4 };
+    const FR = 2.4, FX = 10.6;                                   // the rounded corners: radius, where the flat face ends
     function facade(g, L, cam, T, d, fx, env) {
+        // the ground: Ocean Drive's asphalt with its centre line, the pink sidewalk
+        quad(g, cam, [[-80, 0, -60], [80, 0, -60], [80, 0, -11], [-80, 0, -11]], '#1a0a40', { w: 0, seed: 1690, d });
+        quad(g, cam, [[-80, 0, -11], [80, 0, -11], [80, 0, 4], [-80, 0, 4]], '#7a2a7a', { w: 0, seed: 1691, d });
+        for (let x = -60; x < 60; x += 6) { const q = Neon.poly(cam, [[x, 0.01, -24.1], [x + 3, 0.01, -24.1], [x + 3, 0.01, -23.9], [x, 0.01, -23.9]]); if (q) Ink.shape(g, q, P.gold, { w: 0, seed: 1692 + x, d }); }
+        { const a = cam.p([-80, 0.02, -11]), b = cam.p([80, 0.02, -11]); if (a[2] > 0.3 && b[2] > 0.3) Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: 2.5, col: P.cream, seed: 1693, d, taper: 0.02 }); }
         // the neighbours, set back
         for (const [x0, x1, top, col, sd] of [[-34, -13.6, 23, P.royal, 1700], [13.6, 36, 28.5, '#3c0ca8', 1710], [-60, -34, 31, '#260a8c', 1720]]) {
             quad(g, cam, [[x0, 0, 5], [x1, 0, 5], [x1, top, 5], [x0, top, 5]], col, { w: 2.5, seed: sd, d, jit: 0.5 });
             for (let y = 1.2; y < top - 1.5; y += 3.2) for (let x = x0 + 1; x < x1 - 1.5; x += 2.6) { if (Ink.hsh(Math.round(x), Math.round(y), sd) > 0.4) continue; const q = Neon.poly(cam, [[x, y, 4.99], [x + 1.4, y, 4.99], [x + 1.4, y + 1.3, 4.99], [x, y + 1.3, 4.99]]); if (q) { g.fillStyle = [P.orange, P.gold, P.salmon, P.cyan][Math.floor(Ink.hsh(Math.round(x), Math.round(y), 3) * 4)]; Neon.path(g, q); g.fill(); } }
             tube3(g, L, cam, [[x0, top + 0.1, 4.95], [x1, top + 0.1, 4.95]], hex(sd === 1710 ? P.pink : P.cyan), 0.18);
         }
-        // the main face
-        quad(g, cam, [[-13, 0, 0], [13, 0, 0], [13, 34.4, 0], [-13, 34.4, 0]], '#9a1a9e', { w: 3, seed: 1750, d, jit: 0.5 });
-        for (const [xa, xb] of [[-13, -11.8], [11.8, 13]]) quad(g, cam, [[xa, 0, -0.01], [xb, 0, -0.01], [xb, 34.4, -0.01], [xa, 34.4, -0.01]], P.salmon, { w: 2, seed: 1760 + xa, d });
-        // the stepped crown and its parapet tube
-        box(g, cam, -5, 5, 34.4, 36.4, -0.3, 0, P.salmon, 1770, d, { cols: { front: '#c4307e' } });
-        box(g, cam, -2.5, 2.5, 36.4, 38, -0.3, 0, P.salmon, 1775, d, { cols: { front: '#c4307e' } });
-        tube3(g, L, cam, [[-13, 34.5, -0.05], [-5, 34.5, -0.05], [-5, 36.5, -0.35], [-2.5, 36.5, -0.35], [-2.5, 38.1, -0.35], [2.5, 38.1, -0.35], [2.5, 36.5, -0.35], [5, 36.5, -0.35], [5, 34.5, -0.05], [13, 34.5, -0.05]], hex(P.cyan), 0.16, 0.85 + 0.15 * fx.pulse);
-        // floors: windows and the eyebrow over each row
-        const cols = [-9.6, -6.0, 0, 5.4, 9.0];
-        for (let fl = 0; fl < 10; fl++) {
-            const y0 = fl * 3.2 + 0.9 + (fl === 0 ? 0.4 : 0), y1 = y0 + 1.9;
-            for (const cx of cols) {
-                const ours = fl === 8 && cx === 0;
-                const x0 = cx - (cx === 0 ? 1.3 : 1.1), x1 = cx + (cx === 0 ? 1.3 : 1.1);
-                if (ours) { theirWindow(g, L, cam, T, d, fx, env); continue; }
-                const on = Ink.hsh(fl, Math.round(cx * 10), 77) < 0.36;
-                const q = quad(g, cam, [[x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0]], on ? [P.orange, P.salmon, '#ffb46a'][Math.floor(Ink.hsh(fl, cx * 10, 5) * 3)] : '#1a0650', { w: 2, seed: 1800 + fl * 13 + cx * 10, d, light: on });
-                if (!q) continue;
-                if (on) { L.save(); Neon.path(L, q); L.globalAlpha = 0.25; L.fillStyle = P.orange; L.fill(); L.restore(); for (let k = 1; k < 5; k++) { const a = cam.p([x0, y0 + (y1 - y0) * k / 5, -0.01]), b = cam.p([x1, y0 + (y1 - y0) * k / 5, -0.01]); g.strokeStyle = 'rgba(122,21,129,0.55)'; g.lineWidth = Math.max(1, 0.05 * cam.f / a[2]); g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); } }
-                else { const a = cam.p([x0 + 0.3, y1 - 0.3, -0.01]), b = cam.p([x0 + 1, y0 + 0.3, -0.01]); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: 2, col: P.cyan, seed: 1900 + fl * 7 + cx, d, taper: 0.4, alpha: 0.6, light: true }); }
+        const TOP = 34.4;
+        // the rounded corners: the face wraps back in slices, shaded as they turn, with
+        // wrap-around corner windows and three speed lines per floor
+        const cw = (sg, a, y) => [sg * (FX + Math.sin(a) * FR), y, FR - Math.cos(a) * FR];
+        for (const sg of [-1, 1]) for (let i = 0; i < 6; i++) {
+            const a0 = (i / 6) * Math.PI / 2, a1 = ((i + 1) / 6) * Math.PI / 2;
+            const sh = css(mix('#c8509a', '#4a0e6a', (i + 0.5) / 6));
+            quad(g, cam, [cw(sg, a0, 0), cw(sg, a1, 0), cw(sg, a1, TOP), cw(sg, a0, TOP)], sh, { w: i === 5 ? 2.5 : 0, seed: 1730 + i + sg * 10, d, jit: 0.2 });
+            for (let fl = 1; fl < 10; fl++) {
+                const y0 = fl * 3.2 + 0.9, y1 = y0 + 1.9, on = Ink.hsh(fl, sg + 5, 41) < 0.3;
+                const q = Neon.poly(cam, [cw(sg, a0, y0), cw(sg, a1, y0), cw(sg, a1, y1), cw(sg, a0, y1)]);
+                if (q) { g.fillStyle = on ? css(mix(P.orange, '#5a1a40', i / 8)) : css(mix('#1a0650', '#0a0230', i / 6)); Neon.path(g, q); g.fill(); }
             }
-            // the eyebrow: a thin slab over the row, its face lit, its underside dark
-            box(g, cam, -11.6, 11.6, y1 + 0.2, y1 + 0.38, -0.55, 0, P.pink, 1950 + fl, d, { cols: { front: '#ff7ac8', bot: P.grape, top: P.salmon } });
-            if (fl % 3 === 2) tube3(g, L, cam, [[-11.6, y1 + 0.42, -0.56], [11.6, y1 + 0.42, -0.56]], hex(fl === 8 ? P.magenta : P.pink), 0.08, 0.7);
         }
-        // the fin with the sign: rings that chase up it on the beat, a star on top
+        for (const sg of [-1, 1]) for (let fl = 1; fl < 11; fl++) for (const dy of [0.12, 0.3, 0.48]) {
+            const y = fl * 3.2 + 0.1 + dy, pts = []; for (let i = 0; i <= 8; i++) pts.push(cam.p(cw(sg, (i / 8) * Math.PI / 2, y)));
+            if (pts.every((p) => p[2] > 0.3)) Ink.brush(g, pts, { w: cap(0.06 * cam.f / pts[0][2], 1, 4), col: dy === 0.3 ? P.cream : P.pink, seed: 1760 + fl * 3 + dy * 10 + sg, d, taper: 0.05, alpha: 0.85 });
+        }
+        // the flat face in pastel: a salmon body, a lavender centre bay, pink pilasters, a mint frieze
+        quad(g, cam, [[-FX, 0, 0], [FX, 0, 0], [FX, TOP, 0], [-FX, TOP, 0]], '#c0388e', { w: 3, seed: 1750, d, jit: 0.5 });
+        quad(g, cam, [[-3.4, 4, -0.01], [3.4, 4, -0.01], [3.4, TOP, -0.01], [-3.4, TOP, -0.01]], '#9a3ad0', { w: 2, seed: 1751, d });
+        for (const x of [-7.8, -3.6, 3.6, 7.8]) quad(g, cam, [[x - 0.35, 4, -0.15], [x + 0.35, 4, -0.15], [x + 0.35, TOP, -0.15], [x - 0.35, TOP, -0.15]], '#ff8ac8', { w: 2, seed: 1752 + x, d });
+        quad(g, cam, [[-FX, TOP - 1.1, -0.02], [FX, TOP - 1.1, -0.02], [FX, TOP - 0.5, -0.02], [-FX, TOP - 0.5, -0.02]], P.mint, { w: 2, seed: 1756, d });
+        for (let k = 0; k < 14; k++) { const x = -FX + 0.75 + k * 1.5; quad(g, cam, [[x - 0.25, TOP - 1.0, -0.03], [x + 0.25, TOP - 1.0, -0.03], [x, TOP - 0.6, -0.03]], '#2aa08a', { w: 0, seed: 1757 + k, d }); }
+        // the stepped crown and the parapet's tube
+        box(g, cam, -5, 5, TOP, TOP + 2, -0.3, 0, '#ff8ac8', 1770, d, { cols: { front: '#c4307e' } });
+        box(g, cam, -2.5, 2.5, TOP + 2, TOP + 3.6, -0.3, 0, '#ff8ac8', 1775, d, { cols: { front: '#c4307e' } });
+        tube3(g, L, cam, [[-FX, TOP + 0.1, -0.05], [-5, TOP + 0.1, -0.05], [-5, TOP + 2.1, -0.35], [-2.5, TOP + 2.1, -0.35], [-2.5, TOP + 3.7, -0.35], [2.5, TOP + 3.7, -0.35], [2.5, TOP + 2.1, -0.35], [5, TOP + 2.1, -0.35], [5, TOP + 0.1, -0.05], [FX, TOP + 0.1, -0.05]], hex(P.cyan), 0.16, 0.85 + 0.15 * fx.pulse);
+        // the floors: windows, each under its own eyebrow with a shadow beneath it
+        const cols = [-8.9, -5.7, 0, 5.7, 8.9];
+        for (let fl = 1; fl < 10; fl++) {
+            const y0 = fl * 3.2 + 0.9, y1 = y0 + 1.9;
+            for (const cx of cols) {
+                const hw = cx === 0 ? 1.3 : 1.0, x0 = cx - hw, x1 = cx + hw;
+                if (fl === 8 && cx === 0) theirWindow(g, L, cam, T, d, fx, env);
+                else {
+                    const on = Ink.hsh(fl, Math.round(cx * 10), 77) < 0.36;
+                    const q = quad(g, cam, [[x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0]], on ? [P.orange, P.salmon, '#ffb46a'][Math.floor(Ink.hsh(fl, cx * 10, 5) * 3)] : '#1a0650', { w: 2, seed: 1800 + fl * 13 + cx * 10, d, light: on });
+                    if (q && on) { L.save(); Neon.path(L, q); L.globalAlpha = 0.25; L.fillStyle = P.orange; L.fill(); L.restore(); for (let k = 1; k < 5; k++) { const a = cam.p([x0, y0 + ((y1 - y0) * k) / 5, -0.01]), b = cam.p([x1, y0 + ((y1 - y0) * k) / 5, -0.01]); g.strokeStyle = 'rgba(122,21,129,0.55)'; g.lineWidth = Math.max(1, (0.05 * cam.f) / a[2]); g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); } }
+                    else if (q) { const a = cam.p([x0 + 0.3, y1 - 0.3, -0.01]), b = cam.p([x0 + 0.9, y0 + 0.3, -0.01]); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: 2, col: P.cyan, seed: 1900 + fl * 7 + cx, d, taper: 0.4, alpha: 0.6, light: true }); }
+                }
+                quad(g, cam, [[x0 - 0.2, y1 - 0.25, -0.005], [x1 + 0.2, y1 - 0.25, -0.005], [x1 + 0.2, y1 + 0.1, -0.005], [x0 - 0.2, y1 + 0.1, -0.005]], 'rgba(40,6,60,0.45)', { w: 0, seed: 1950 + fl, d, light: true });
+                box(g, cam, x0 - 0.3, x1 + 0.3, y1 + 0.1, y1 + 0.24, -0.6, 0, P.pink, 1960 + fl * 7 + cx, d, { cols: { front: '#ff9ad8', bot: P.grape, top: '#ffc0e6' } });
+            }
+            if (fl % 3 === 2) tube3(g, L, cam, [[-FX, fl * 3.2 + 3.05, -0.62], [FX, fl * 3.2 + 3.05, -0.62]], hex(fl === 8 ? P.magenta : P.pink), 0.07, 0.7);
+        }
+        // the ground floor: the café behind lit glass, striped awnings, tables with candles
+        quad(g, cam, [[-FX, 0, -0.02], [FX, 0, -0.02], [FX, 4, -0.02], [-FX, 4, -0.02]], '#7a1a7a', { w: 2.5, seed: 2050, d });
+        for (const cx of [-7.8, -3.6, 3.6, 7.8]) {
+            const q = quad(g, cam, [[cx - 1.6, 0.3, -0.03], [cx + 1.6, 0.3, -0.03], [cx + 1.6, 3.0, -0.03], [cx - 1.6, 3.0, -0.03]], '#ffb060', { w: 2, seed: 2051 + cx, d, light: true });
+            if (q) { L.save(); Neon.path(L, q); L.globalAlpha = 0.3; L.fillStyle = P.orange; L.fill(); L.restore(); for (const x of [cx - 0.55, cx + 0.55]) { const a = cam.p([x, 0.3, -0.04]), b = cam.p([x, 3.0, -0.04]); Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.08 * cam.f / a[2], 1, 4), seed: 2055 + x * 10, d, taper: 0.05 }); } }
+            // the awning: stripes sloping out from the wall, a scalloped hem, string lights
+            for (let k = 0; k < 8; k++) { const xa = cx - 1.8 + k * 0.45, xb = xa + 0.45; quad(g, cam, [[xa, 3.5, -0.05], [xb, 3.5, -0.05], [xb, 3.0, -1.7], [xa, 3.0, -1.7]], k % 2 ? P.cream : P.magenta, { w: k === 0 ? 2 : 0, seed: 2060 + cx * 10 + k, d }); quad(g, cam, [[xa, 3.0, -1.7], [xb, 3.0, -1.7], [(xa + xb) / 2, 2.75, -1.72]], k % 2 ? P.cream : P.magenta, { w: 1.5, seed: 2070 + cx * 10 + k, d }); }
+            for (let k = 0; k < 7; k++) { const p = cam.p([cx - 1.6 + k * 0.53, 2.72, -1.75]); if (p[2] > 0.5) { g.fillStyle = P.gold; g.beginPath(); g.arc(p[0], p[1], Math.max(1.2, 0.05 * cam.f / p[2]), 0, Math.PI * 2); g.fill(); glow(L, p[0], p[1], Math.max(3, 0.3 * cam.f / p[2]), P.gold, 0.5); } }
+            for (const tx of [cx - 0.9, cx + 0.9]) {
+                const tz = -3.0, top = Neon.poly(cam, ring3([tx, 0.76, tz], 0.38, 16, 'xz'));
+                const a = cam.p([tx, 0.74, tz]), b = cam.p([tx, 0, tz]);
+                if (a[2] > 0.5) Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap(0.05 * cam.f / a[2], 1, 5), col: P.ink, seed: 2080 + tx * 10, d, taper: 0.05 });
+                for (const dx of [-0.55, 0.55]) box(g, cam, tx + dx - 0.18, tx + dx + 0.18, 0.45, 0.5, tz - 0.18, tz + 0.18, P.cream, 2090 + Math.round((tx + dx) * 10), d, { w: 1.5 });
+                if (top) Ink.shape(g, top, P.cream, { w: 1.8, seed: 2085 + tx * 10, d });
+                const cp = cam.p([tx, 0.82, tz]); if (cp[2] > 0.5) { g.fillStyle = P.gold; g.fillRect(cp[0] - 1.5, cp[1] - 3, 3, 4); glow(L, cp[0], cp[1] - 2, Math.max(4, 0.5 * cam.f / cp[2]), P.orange, 0.6); }
+            }
+        }
+        // the fin with the sign: rings that chase up it on the beat, the star on top, its tubes
         box(g, cam, -2.75, -2.05, 9, 41, -1.5, 0, P.salmon, 2000, d, { cols: { front: '#d63a8e', left: P.purple, right: P.plum } });
         for (let i = 0; i < 10; i++) {
             const y = 11 + i * 2.9, on = ((fx.beat % 10) + 10) % 10 === i ? 1 : 0.6;
@@ -611,10 +835,9 @@
         }
         const st = []; for (let i = 0; i <= 10; i++) { const a = (i / 10) * Math.PI * 2 - Math.PI / 2, r = i % 2 ? 0.45 : 1.1; st.push([-2.4 + Math.cos(a) * r, 42.4 - Math.sin(a) * r, -1.0]); }
         tube3(g, L, cam, st, hex(P.gold), 0.12, fx.pulse);
-        tube3(g, L, cam, [[-2.76, 9, -1.51], [-2.76, 41, -1.51]], hex(P.cyan), 0.08, 1);
-        // palms along the sidewalk, in front of the hotel
-        const ps = [[-11, 31], [-4.5, 32], [3.5, 33], [10.5, 34], [17, 35], [-18, 36]].map(([x, sd]) => ({ x, sd, dep: cam.view([x, 10, -7])[2] }));
-        for (const p of ps) palm(g, cam, p.x, 0, -7 + (p.sd % 2) * 1.5, p.sd, T, d, { H: 12 });
+        for (const x of [-2.76, -2.04]) tube3(g, L, cam, [[x, 9, -1.51], [x, 41, -1.51]], hex(P.cyan), 0.07, 1);
+        // palms along the sidewalk
+        for (const [x, sd] of [[-11, 31], [-5, 32], [4.5, 33], [10.5, 34], [17, 35], [-18, 36]]) palm(g, cam, x, 0, -7 + (sd % 2) * 1.5, sd, T, d, { H: 12 });
     }
     // their window from outside: the room's pink light behind the blinds, two silhouettes
     function theirWindow(g, L, cam, T, d, fx, env) {
@@ -661,16 +884,16 @@
         const [a, b] = SHOTS[shot];
         const k = u(a, b);
         switch (shot) {
-            case 0: return Neon.camera({ ...base, pos: [0.6, 12 + 15 * Ease.out(Ease.seg(T, a, b)), -16], yaw: -0.02, pitch: 0.12 - 0.1 * k, roll: 0.01, f: 1050 });
-            case 1: return Neon.camera({ ...base, pos: [-0.95 + k * 1.1, 1.45, 0.1 + k * 0.6], yaw: 0.08 - k * 0.1, pitch: 0.03, roll: 0.004, f: 980 });
-            case 2: return Neon.camera({ ...base, pos: [0.02 - k * 0.04, 1.6, 3.35 + k * 0.1], yaw: 0.0, pitch: 0.01, roll: -0.01, f: 1550 });
+            case 0: return Neon.camera({ ...base, pos: [0.6, 2.6 + 24.6 * k, -17], yaw: -0.02, pitch: 0.14 - 0.12 * k, roll: 0.01, f: 1050 });
+            case 1: return Neon.camera({ ...base, pos: [-0.75 + k * 0.9, 1.5, -0.45 + k * 0.5], yaw: 0.1 - k * 0.12, pitch: 0.0, roll: 0.004, f: 860 });
+            case 2: return Neon.camera({ ...base, pos: [0.02 - k * 0.05, 1.42, 2.85 + k * 0.08], yaw: 0.0, pitch: 0.0, roll: -0.008, f: 1150 });
             case 3: return Neon.camera({ ...base, pos: [0.0, 0.95, 1.0 + k * 0.15], yaw: 0.62 - k * 0.12, pitch: -0.12 + k * 0.42, roll: 0.01, f: 900 });
             case 4: return Neon.camera({ ...base, pos: [1.25 - k * 0.15, 1.4, 0.7 + k * 0.25], yaw: -0.18 + k * 0.04, pitch: 0.0, roll: -0.006, f: 1000 });
-            case 5: return Neon.camera({ ...base, pos: [-0.5 + k * 0.8, 15, -6.2 + k * 0.6], yaw: 0, pitch: -1.17 - k * 0.04, roll: 0.05 - k * 0.06, f: 1500 });
-            case 6: return Neon.camera({ ...base, pos: [1.3, 0.92, 3.3 + k * 0.15], yaw: 1.1, pitch: -0.12, roll: 0.0, f: 1700 - k * 250 });
+            case 5: return Neon.camera({ ...base, pos: [-0.3 + k * 0.6, 11, -4.6 + k * 0.4], yaw: 0, pitch: -1.18 - k * 0.03, roll: 0.05 - k * 0.06, f: 2150 });
+            case 6: return Neon.camera({ ...base, pos: [1.3, 0.8, 3.3 + k * 0.15], yaw: 1.1, pitch: -0.06, roll: 0.0, f: 1700 - k * 250 });
             case 7: return Neon.camera({ ...base, pos: [0.02, 1.62, 2.45 + k * 0.35], yaw: 0.0, pitch: 0.06, roll: 0, f: 1050 });
-            case 8: return Neon.camera({ ...base, pos: [0.3 - k * 0.3, 8 - k * 1.2, -2.4], yaw: 0, pitch: -1.27, roll: -0.04 + k * 0.05, f: 1500 });
-            default: return Neon.camera({ ...base, pos: [0.6 - k * 1.2, 27.4 - k * 6, -4.5 - Ease.out(Ease.seg(T, a, b)) * 30], yaw: -0.01, pitch: 0.01 + k * 0.08, roll: 0, f: 1000 });
+            case 8: return Neon.camera({ ...base, pos: [0.1 - k * 0.2, 7.4 - k * 0.8, -2.3], yaw: 0, pitch: -1.28, roll: -0.04 + k * 0.05, f: 2000 });
+            default: { const e = Ease.out(Ease.seg(T, a, b)); return Neon.camera({ ...base, pos: [0.6 - e * 1.2, 27.4 - e * 12, -4.5 - e * 40], yaw: -0.01, pitch: 0.01 + e * 0.14, roll: 0, f: 1000 - e * 60 }); }
         }
     }
 
@@ -685,7 +908,7 @@
             N.bloom(g, L, { strength: 0.45, core: 0.6 });
             if (shot === 7) steam(g, env, cam, T, d, 1);
             L = N.light(); Ink.occlude(L);
-            const o = shot === 7 ? { blinds: 'up', view: 'back', cut: 1.15, dark: 0.7 } : shot === 2 ? { cut: 0.8, dark: 0.7, stripeOnFigs: 0.6, slide: 0.12 * Math.sin((T - SHOTS[2][0]) * 1.4) - 0.04 } : {};
+            const o = shot === 7 ? { blinds: 'up', view: 'back', cut: 1.15, dark: 0.7 } : shot === 2 ? { dark: 0.7, stripeOnFigs: 0.6, slide: 0.12 * Math.sin((T - SHOTS[2][0]) * 1.4) - 0.04 } : {};
             if (shot === 3 || shot === 6) o.figs = false;
             pic = room(g, L, cam, T, d, fx, env, o);
         } else if (kind === 'pool') {

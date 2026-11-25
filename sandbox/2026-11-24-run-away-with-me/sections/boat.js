@@ -445,7 +445,8 @@
             const a = cam.p(it.feet), b = cam.p(W(ps, [it.x, FLOOR() + 1.7, it.z])); if (a[2] < 0.5) continue;
             const tc = [cam.pos[0] - it.feet[0], cam.pos[2] - it.feet[2]], tl = Math.hypot(tc[0], tc[1]) || 1;
             const ang = Math.acos(cap((tc[0] * it.f[0] + tc[1] * it.f[1]) / tl, -1, 1));
-            const view = ang < 0.5 ? 'front' : ang < 1.15 ? 'tq' : ang < 2.25 ? 'side' : 'back';
+            // shot 1 holds the three-quarter view (the angle crosses from front to three-quarter as she gains: one drawing, no pop)
+            const view = shot === 0 ? 'tq' : ang < 0.5 ? 'front' : ang < 1.15 ? 'tq' : ang < 2.25 ? 'side' : 'back';
             const h = cam.p([it.feet[0], it.feet[1] + 1.3, it.feet[2]]), hf = cam.p([it.feet[0] + it.f[0] * 0.5, it.feet[1] + 1.3, it.feet[2] + it.f[1] * 0.5]);
             const right = hf[0] > h[0] ? 1 : -1, native = NATIVE[it.who][view];
             const lean = Math.atan2(b[0] - a[0], a[1] - b[1]) + (T < TB ? 0.025 * Song.env('kick', T) * Math.sin(T * 4.1 + (it.who === 'her' ? 0 : 1.3)) : 0);

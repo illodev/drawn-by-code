@@ -62,39 +62,72 @@ const SunriseSet = (() => {
     function sky(g, L, cam, T, d, env) {
         const u = dawn(T), fe = facing(cam), lv = level(cam), Wd = env.W * 2;
         const cols = SKY_E.map((_, i) => mx(mix(WEST0[i], WEST1[i], u), mix(EAST0[i], EAST1[i], u), fe));
+        const e = sunE(T), sp = skyP(cam, 0, e), R0 = SUN_R * cam.f;
+        // where the sun is in the camera's rolled frame (for the glow laid along the bands)
+        const ca = Math.cos(-lv.ang), sa = Math.sin(-lv.ang);
+        const sx = sp[2] > 1 ? (sp[0] - lv.cx) * ca - (sp[1] - lv.cy) * sa : NaN;
         g.save(); g.translate(lv.cx, lv.cy); g.rotate(lv.ang);
+        const edges = [];
         for (let i = 0; i < cols.length; i++) {
             const y0 = i === 0 ? -env.H * 3 : -span(cam, SKY_E[i]);
+            edges.push(y0);
             g.fillStyle = cols[i]; g.beginPath(); g.moveTo(-Wd, 8); g.lineTo(-Wd, y0);
             for (let x = -Wd; x <= Wd; x += 30) g.lineTo(x, y0 + Ink.noise(1900 + i, x / 170, 0) * 7 + Ink.noise(1950 + i, x / 45, 0) * 2);
             g.lineTo(Wd, 8); g.closePath(); g.fill();
-            if (i > 0) Ink.strokes(g, -Wd, y0 - 6, Wd * 2, Math.max(6, -y0 * 0.25 + 6), { ang: 0, count: 12, len: 260, w: 5, cols: [cols[i]], seed: 1300 + i, d, alpha: 0.6 });
+        }
+        // the dawn's layers: every band laid with long horizontal brush strokes at fixed azimuths
+        // (they stay in the sky as the camera turns), warmer and brighter the nearer they lie to
+        // the sun along the horizon: the glow is built of the bands themselves
+        const lift = cap((e + SUN_R * 1.2) / (SUN_R * 0.8), 0, 1);
+        const GLOW = [mix('#f06a96', '#fb9a8a', u), mix('#f8906e', '#ffb67a', u), mix('#ffb45e', '#ffd27a', u), mix('#ffd878', '#fff0b0', u)];
+        const yaw = cam.yaw ?? 0, half = (env.W * 0.65) / cam.f, dA = 0.08;
+        for (let i = 1; i < cols.length; i++) {
+            const yt = edges[i], yb = i + 1 < cols.length ? edges[i + 1] : 4, hgt = Math.abs(yb - yt);
+            if (hgt < 3) continue;
+            const rows = Math.max(1, Math.min(3, Math.round(hgt / 30))), eb = SKY_E[i], ea = i + 1 < cols.length ? SKY_E[i + 1] : 0;
+            for (let r = 0; r < rows; r++) for (let j = Math.floor((yaw - half) / dA); j <= Math.ceil((yaw + half) / dA); j++) {
+                const az = j * dA + (H(i, r * 97 + j, 1) - 0.5) * dA * 0.6, el = ea + (eb - ea) * (r + 0.25 + 0.5 * H(i, r * 97 + j, 2)) / rows;
+                const p = skyP(cam, az, el); if (p[2] < 1) continue;
+                const xs = (p[0] - lv.cx) * ca - (p[1] - lv.cy) * sa, y = (p[0] - lv.cx) * sa + (p[1] - lv.cy) * ca;
+                let dz = Math.abs(((az + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI) / SUN_R;
+                const k = (5 - i) / 5, gw = lift * Math.max(0, 1 - dz / (3 + 6 * k)) * (0.55 + 0.45 * k);
+                const l = dA * cam.f * (1.2 + 1.1 * H(i, r * 97 + j, 3));
+                let col = H(i, r * 97 + j, 4) < 0.5 ? cols[i] : cols[i - 1];
+                if (gw > 0.08) col = css(GLOW[Math.min(3, Math.floor(gw * 4.2))]);
+                Ink.brush(g, [[xs - l / 2, y], [xs, y - 1.5 + 3 * H(i, j, 5)], [xs + l / 2, y]], { w: cap((hgt / rows) * 0.6, 3, 18), col, seed: 1300 + i * 131 + r * 37 + j, d, taper: 0.35, wob: 1.2, alpha: gw > 0.08 ? 0.95 : 0.75, light: true });
+            }
+        }
+        // a band of light lying on the horizon under the sun
+        if (sx === sx && e > -SUN_R * 1.1) {
+            for (let j = 0; j < 9; j++) {
+                const xs = sx + (j - 4) * R0 * 0.55 + (H(j, 9, 1) - 0.5) * R0 * 0.3, y = -2 - H(j, 9, 2) * Math.max(4, R0 * 0.06), l = R0 * (0.5 + 0.6 * H(j, 9, 3)) * (1 - Math.abs(j - 4) / 6);
+                Ink.brush(g, [[xs - l / 2, y], [xs + l / 2, y]], { w: cap(R0 * 0.025, 2, 8), col: j % 3 ? '#fff0b0' : '#ffd25a', seed: 1400 + j, d, taper: 0.4, light: true });
+            }
         }
         g.restore();
-        // the last stars, high in the west, going out as the light comes
-        const sa = (1 - fe) * (1 - Ease.inOut(Ease.seg(T, 198, 210)));
-        if (sa > 0.02) {
+        // the last stars, high in the west, going out as the light comes; one lasts
+        const sa = (1 - fe) * (1 - Ease.inOut(Ease.seg(T, 198, 214)));
+        if (1 - fe > 0.3) {
             const R = Motion.rng('sunrise-stars');
             for (let i = 0; i < 70; i++) {
-                const a = Math.PI + (R() * 2 - 1) * 1.4, e = 0.12 + Math.pow(R(), 1.2) * 0.6, s0 = 1.4 + R() * 2.6;
-                const p = skyP(cam, a, e); if (p[2] < 1 || p[0] < -10 || p[0] > env.W + 10 || p[1] < -10) continue;
-                const sz = s0 * (0.6 + 0.5 * H(i, 7, d));
-                g.save(); g.globalAlpha = sa; g.strokeStyle = i % 3 ? P.cream : P.cyan; g.lineWidth = Math.max(1, sz * 0.35); g.lineCap = 'round';
+                const a = Math.PI + (R() * 2 - 1) * 1.4, e2 = 0.12 + Math.pow(R(), 1.2) * 0.6, s0 = 1.4 + R() * 2.6;
+                const al = i === 0 ? (1 - fe) * (1 - Ease.inOut(Ease.seg(T, 222, 236))) : sa;
+                if (al < 0.02) continue;
+                const p = skyP(cam, i === 0 ? Math.PI + 0.32 : a, i === 0 ? 0.3 : e2); if (p[2] < 1 || p[0] < -10 || p[0] > env.W + 10 || p[1] < -10) continue;
+                const sz = (i === 0 ? 6 : s0) * (0.6 + 0.5 * H(i, 7, d));
+                g.save(); g.globalAlpha = al; g.strokeStyle = i % 3 ? P.cream : P.cyan; g.lineWidth = Math.max(1, sz * 0.35); g.lineCap = 'round';
                 g.beginPath(); g.moveTo(p[0] - sz, p[1]); g.lineTo(p[0] + sz, p[1]); g.moveTo(p[0], p[1] - sz); g.lineTo(p[0], p[1] + sz); g.stroke(); g.restore();
             }
-        }
-        // the glow round the sun: flat rings flattened along the horizon, clipped to the sky
-        const e = sunE(T), sp = skyP(cam, 0, e), R0 = SUN_R * cam.f;
-        if (sp[2] > 1) {
-            g.save(); g.translate(lv.cx, lv.cy); g.rotate(lv.ang); g.beginPath(); g.rect(-Wd, -env.H * 3, Wd * 2, env.H * 3 + 2); g.restore(); g.save(); g.clip();
-            const rings = [[6.2, mix('#d84a96', '#f07a92', u)], [4.2, mix('#f0607e', '#fb9a7c', u)], [2.8, mix('#f88a66', '#ffbc6a', u)], [1.75, mix('#ffb45e', '#ffd878', u)]];
-            for (const [k, c] of rings) {
-                const rx = k * R0 * 1.9, ry = k * R0 * 0.85, pts = [];
-                for (let i = 0; i < 72; i++) { const an = (i / 72) * Math.PI * 2, n = 1 + 0.05 * Ink.noise(2100 + k * 10, i / 4, 0); pts.push([sp[0] + Math.cos(an) * rx * n, sp[1] + Math.sin(an) * ry * n]); }
-                g.fillStyle = css(c); g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); g.fill();
-                Ink.strokes(g, sp[0] - rx * 0.8, sp[1] - ry * 1.02, rx * 1.6, ry * 0.25, { ang: 0, count: 6, len: rx * 0.35, w: 4, cols: [css(c)], seed: 2200 + k * 10, d, alpha: 0.7 });
+            // the moon setting over the city: pale, a little lower every second
+            const m = skyP(cam, Math.PI - 0.42, 0.24 - (T - 198) * 0.0012), r = 0.024 * cam.f;
+            if (m[2] > 1 && m[0] > -r && m[0] < env.W + r) {
+                const pts = []; for (let i = 0; i < 40; i++) { const an = (i / 40) * Math.PI * 2; pts.push([m[0] + Math.cos(an) * r, m[1] + Math.sin(an) * r]); }
+                Ink.shape(g, pts, mx('#e8d8f4', '#f4e6f6', u), { w: cap(r * 0.08, 1.5, 3), ink: '#6a3aa0', seed: 1500, d, jit: 0.3, light: true });
+                g.save(); g.fillStyle = '#c8b0e0'; g.globalAlpha = 0.8;
+                for (const [dx, dy, rr] of [[-0.3, -0.2, 0.22], [0.25, 0.15, 0.16], [0.05, -0.45, 0.1], [-0.1, 0.4, 0.13]]) { g.beginPath(); g.ellipse(m[0] + dx * r, m[1] + dy * r, rr * r, rr * r * 0.8, 0.3, 0, Math.PI * 2); g.fill(); }
+                g.restore();
+                Ink.brush(g, [[m[0] - r * 0.7, m[1] - r * 0.7], [m[0] - r * 0.95, m[1] - r * 0.1], [m[0] - r * 0.7, m[1] + r * 0.7]], { w: cap(r * 0.1, 1.5, 4), col: '#ffffff', seed: 1501, d, taper: 0.4, light: true });
             }
-            g.restore();
         }
         clouds(g, cam, T, d, env, u);
         sun(g, L, cam, T, d, env);
@@ -141,25 +174,31 @@ const SunriseSet = (() => {
 
     // long thin clouds over the sea, dark against the light with their undersides lit gold;
     // two cross the sun. Fixed directions, drifting north slowly.
-    const CLOUDS = [[-0.32, 0.034, 0.34, 0.010], [0.06, 0.062, 0.26, 0.007], [0.4, 0.05, 0.3, 0.012], [-0.05, 0.13, 0.22, 0.006], [0.75, 0.09, 0.4, 0.014], [-0.8, 0.07, 0.36, 0.011], [2.8, 0.06, 0.5, 0.012], [-2.7, 0.1, 0.45, 0.01], [3.3, 0.04, 0.6, 0.012]];
+    const CLOUDS = [[-0.32, 0.034, 0.34, 0.014], [0.06, 0.062, 0.26, 0.011], [0.4, 0.05, 0.3, 0.016], [-0.05, 0.13, 0.22, 0.012], [0.75, 0.09, 0.4, 0.02], [-0.8, 0.07, 0.36, 0.016], [-1.35, 0.11, 0.42, 0.018], [1.3, 0.12, 0.4, 0.016], [2.8, 0.1, 0.5, 0.018], [-2.7, 0.14, 0.45, 0.016], [3.3, 0.07, 0.6, 0.016], [2.3, 0.18, 0.4, 0.014]];
     function clouds(g, cam, T, d, env, u) {
         for (let i = 0; i < CLOUDS.length; i++) {
-            const [a0, e, len, th] = CLOUDS[i], a = a0 + (T - 198) * 0.0016, n = 18, top = [], bot = [];
+            const [a0, e, len, th] = CLOUDS[i], a = a0 + (T - 198) * 0.0016, n = 22, top = [], bot = [], rim = [];
             for (let j = 0; j <= n; j++) {
-                const v = j / n, aa = a - len / 2 + v * len, bulge = Math.sin(v * Math.PI) ** 0.7;
-                top.push(skyP(cam, aa, e + th * bulge * (0.7 + 0.3 * Ink.noise(2500 + i, v * 5, 0))));
-                bot.push(skyP(cam, aa, e - th * 0.35 * bulge * (0.8 + 0.4 * Ink.noise(2550 + i, v * 6, 0))));
+                const v = j / n, aa = a - len / 2 + v * len, bulge = Math.sin(v * Math.PI) ** 0.6;
+                // a scalloped top (puffs), a flatter base
+                const puff = 0.75 + 0.25 * Math.abs(Math.sin(v * Math.PI * (3 + (i % 3)) + i)) + 0.15 * Ink.noise(2500 + i, v * 5, 0);
+                top.push(skyP(cam, aa, e + th * bulge * puff));
+                bot.push(skyP(cam, aa, e - th * 0.3 * bulge * (0.8 + 0.4 * Ink.noise(2550 + i, v * 6, 0))));
+                rim.push(skyP(cam, aa, e - th * 0.3 * bulge * (0.8 + 0.4 * Ink.noise(2550 + i, v * 6, 0)) + th * 0.32 * bulge));
             }
             if (top.some((p) => p[2] < 1)) continue;
             const xs = top.map((p) => p[0]); if (Math.max(...xs) < -20 || Math.min(...xs) > env.W + 20) continue;
-            const s = Math.abs(bot[n >> 1][1] - top[n >> 1][1]), near = Math.abs(a0) < 1.6;
-            const body = near ? mx('#4a1474', '#8a3a8e', u * 0.7) : mx('#3a1a78', '#7a3a9a', u);
+            const s = Math.abs(bot[n >> 1][1] - top[n >> 1][1]), near = Math.abs(a0) < 1.6, west = Math.abs(a0) > 2;
+            const bodyA = near ? mix('#5a1e88', '#7a3a9a', u) : west ? mix('#6a3a9e', '#c07ab0', u) : mix('#5a2a90', '#9a4aa0', u), body = css(bodyA);
+            const under = near ? '#ffc65e' : west ? '#ffb0c8' : '#ff9a8a';
             const pts = top.map((p) => [p[0], p[1]]).concat(bot.slice().reverse().map((p) => [p[0], p[1]]));
-            Ink.shape(g, pts, body, { w: s > 6 ? 2.2 : 0, seed: 2600 + i, d, jit: 0.4, light: true });
-            // lit from below: gold and salmon strokes along the underside
-            const lit = near ? 1 : 0.4;
-            Ink.brush(g, bot.slice(2, n - 1).map((p) => [p[0], p[1] - 1.5]), { w: cap(s * 0.3, 1.5, 6), col: near ? '#ffc46a' : '#f68aa0', seed: 2700 + i, d, taper: 0.3, alpha: 0.9 * lit, light: true });
-            Ink.hatch(g, [bot[3][0], bot[3][1]], [bot[n - 3][0], bot[n - 3][1]], { count: 6, len: cap(s * 0.9, 4, 30), w: cap(s * 0.12, 1, 3), col: near ? '#ffe08a' : '#ff9ac8', seed: 2750 + i, d, n: [0, -1], ang: 1.3, alpha: lit });
+            Ink.shape(g, pts, body, { w: s > 5 ? cap(s * 0.08, 1.5, 3) : 0, seed: 2600 + i, d, jit: 0.4, light: true });
+            // lit from below: a gold (or pink, away from the sun) band along the base, inked
+            const band = rim.slice(1, n).map((p) => [p[0], p[1]]).concat(bot.slice(1, n).reverse().map((p) => [p[0], p[1]]));
+            Ink.shape(g, band, under, { w: 0, seed: 2650 + i, d, jit: 0.3, light: true });
+            Ink.brush(g, bot.slice(1, n).map((p) => [p[0], p[1]]), { w: cap(s * 0.07, 1.2, 3), col: P.ink, seed: 2700 + i, d, taper: 0.2, light: true });
+            Ink.hatch(g, [rim[3][0], rim[3][1]], [rim[n - 3][0], rim[n - 3][1]], { count: 7, len: cap(s * 0.5, 4, 26), w: cap(s * 0.06, 1, 3), col: near ? '#fff1b0' : '#ffe6f6', seed: 2750 + i, d, n: [0, -1], ang: 1.25 });
+            Ink.strokes(g, Math.min(...xs) + (Math.max(...xs) - Math.min(...xs)) * 0.15, top[n >> 1][1] + s * 0.15, (Math.max(...xs) - Math.min(...xs)) * 0.7, s * 0.35, { ang: 0, count: 5, len: (Math.max(...xs) - Math.min(...xs)) * 0.18, w: cap(s * 0.08, 1, 4), cols: [css(mix(bodyA, '#ffffff', 0.15))], seed: 2780 + i, d, alpha: 0.8 });
         }
     }
 
@@ -201,17 +240,30 @@ const SunriseSet = (() => {
             Ink.strokes(g, -Wd, y - Math.min(40, y * 0.2), Wd * 2, Math.min(60, y * 0.3) + 4, { ang: 0, count: 18, len: 160, w: Math.min(4, 1 + y * 0.02), cols: [bands[i + 1], bands[i]], seed: 3100 + i, d, alpha: 0.8 });
         }
         g.restore();
-        // swell strokes: fixed on the water in rings of cells round the camera
-        const R = Motion.rng('sunrise-swell'), cols = [P.violet, P.purple, P.magenta, P.royal, P.salmon, '#5a7ae8'];
-        for (let i = 0; i < 420; i++) {
-            const x = (R() - 0.5) * 700, z = 3 + Math.pow(R(), 2.2) * 900, ph = R();
-            if (z < 1.5) continue;
-            const p = cam.p([x + Math.sin(T * 0.6 + ph * 6) * 1.2, 0, z]);
-            if (p[2] < 2 || p[0] < -80 || p[0] > env.W + 80 || p[1] > env.H + 10) continue;
-            const s = cam.f / p[2], l = cap(3.5 * s, 3, 90);
-            if (l < 16) { g.globalAlpha = 0.7; g.fillStyle = cols[i % cols.length]; g.fillRect(p[0] - l / 2, p[1] - 0.8, l, Math.max(1.2, cap(0.14 * s, 1, 4))); g.globalAlpha = 1; continue; }
-            Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0] + l / 2, p[1] + 0.5]], { w: cap(0.14 * s, 1, 4), col: cols[i % cols.length], seed: 3200 + i, d, taper: 0.45, wob: 0.4, alpha: 0.7 });
+        // the swell: rows fixed on the water, each a broken line of strokes in the sky's colours
+        // mirrored, a dark trough under some; rows thin out with distance (a subset of fixed marks)
+        const SE = ['#f8a08a', '#ff8ab0', '#c86aa8', '#ffd0a0', '#9a4aa8', '#f06a96'], SW = ['#e88ab8', '#b070c0', '#7a5ab8', '#f0a0c0', '#5a6ad0', '#c890d0'];
+        const scol = SE.map((c, i) => mx(SW[i], c, fe));
+        g.lineCap = 'round';
+        for (let k = 1; k <= 120; k++) {
+            const z = 0.75 * Math.pow(k, 1.45), dx = 1.1 + 0.04 * z;
+            // find the stretch of this row in view, coarsely
+            let x0 = Infinity, x1 = -Infinity;
+            for (let xs = -600; xs <= 600; xs += 25) { const p = cam.p([xs, 0, z]); if (p[2] > 1 && p[0] > -150 && p[0] < env.W + 150 && p[1] < env.H + 20) { x0 = Math.min(x0, xs - 25); x1 = Math.max(x1, xs + 25); } }
+            if (x0 > x1) continue;
+            for (let j = Math.floor(x0 / dx); j <= Math.ceil(x1 / dx); j++) {
+                const x = j * dx + (H(k, j, 21) - 0.5) * dx * 0.7 + Math.sin(T * 0.7 + j * 0.9 + k) * 0.15 * dx;
+                const p = cam.p([x, 0, z + (H(k, j, 22) - 0.5) * 0.5]); if (p[2] < 1.2 || p[0] < -60 || p[0] > env.W + 60 || p[1] > env.H + 6) continue;
+                const s = cam.f / p[2], stride = Math.pow(2, Math.max(0, Math.floor(Math.log2(Math.max(1, 9 / (dx * s))))));
+                if (((j % stride) + stride) % stride) continue;
+                const l = cap(dx * (0.5 + 0.6 * H(k, j, 23)) * s * Math.sqrt(stride), 2, 160), w = cap(0.07 * s, 1, 5), h = H(k, j, 24);
+                if (h < 0.22) { g.globalAlpha = 0.6; g.strokeStyle = '#2a0a60'; g.lineWidth = w * 1.1; g.beginPath(); g.moveTo(p[0] - l * 0.4, p[1] + w); g.lineTo(p[0] + l * 0.4, p[1] + w); g.stroke(); }
+                const col = scol[Math.floor(H(k, j, 25) * scol.length)];
+                if (l < 22) { g.globalAlpha = 0.85; g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(p[0] - l / 2, p[1]); g.lineTo(p[0] + l / 2, p[1] + 0.3); g.stroke(); }
+                else { g.globalAlpha = 1; Ink.brush(g, [[p[0] - l / 2, p[1]], [p[0], p[1] - w * 0.3], [p[0] + l / 2, p[1] + 0.3]], { w, col, seed: 3200 + k * 977 + j, d, taper: 0.45, wob: 0.5, alpha: 0.85 }); }
+            }
         }
+        g.globalAlpha = 1;
         glitter(g, L, cam, T, d, env);
     }
     function glitter(g, L, cam, T, d, env) {
@@ -292,6 +344,7 @@ const SunriseSet = (() => {
             if (fq) Ink.shape(g, fq, mx('#2a1a8e', '#3a3aa8', dawn(T)), { w: 0, seed: 4500 + n, d, jit: 0, alpha: 0.8 });
             for (let i = 0; i + 1 < pts.length; i++) {
                 const a = pts[i], b = pts[i + 1]; if (a[2] < 0.5 || b[2] < 0.5) continue;
+                if (H(i, n, 15) < 0.75) { const s = cam.f / a[2], off = cap(0.12 * s, 1.5, 10); Ink.brush(g, [[a[0], a[1] + off], [b[0], b[1] + off]], { w: cap(0.035 * s, 1, 4), col: P.ink, seed: 4650 + n * 61 + i, d, taper: 0.3, wob: 0.6, alpha: 0.75, light: true }); }
                 if (H(i, n, 13) < 0.3 - brk * 0.25) continue;
                 const s = cam.f / a[2];
                 Ink.brush(g, [[a[0], a[1]], [b[0], b[1]]], { w: cap((0.07 + 0.12 * brk) * s, 1, 9), col: H(i, n, 14) < 0.25 ? '#ffc8e0' : '#fff3f8', seed: 4600 + n * 61 + i, d, taper: 0.25, wob: 0.8, light: true });

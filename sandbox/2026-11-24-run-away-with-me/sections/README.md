@@ -24,7 +24,8 @@ registers itself and is played by `full.js` (the whole film) or by its own dev s
 - What the music does: `Film.effects(T)` (kick, bass, mid, trip, hold, black …) — extend it in
   your own section if you need cues of your own (do not edit film.js: say what you need).
 - The cast: `Couple.standing(g, cam, who, feet, o)` (a whole figure at a world point, views
-  'front' | 'tq' | 'side' | 'back', `flip`, `lean`, `sway`, `wind`, `T`, `d`), `Couple.drawn(…)`
+  'front' | 'tq' | 'side' | 'back', `flip`, `lean`, `sway`, `wind`, `T`, `d`; its strokes of light only on
+  the back view unless `strokes: true`), `Couple.drawn(…)`
   in the car (see film.js `couple`). Their drawings are the user's approved sheets repainted
   by `tools/neonize.py` (`ref/neon/`).
 - A camera: `Neon.camera({ pos, yaw, pitch, roll, f, W: env.W, H: env.H })` in metres.
