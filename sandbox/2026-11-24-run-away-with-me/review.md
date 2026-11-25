@@ -151,3 +151,26 @@ About 45 faults left after round 3, all fixed before showing:
 - the cast: a gold halo on both heads (removed), her strokes of light along the fall of the
   hair, the hair's inner lines in a hair ink, a stray piece of her shoulder (cut higher).
 Review: no warnings; 137 ms a frame warm at 960.
+
+## Round 5 · the second section: 0:47–1:39 (`drive.js`)
+
+The user, translated: «I think we're going quite well; let's see if we can squeeze the 10 %
+of the week's budget we have left in these 2.5 hours.» → the most film per token: the
+approved causeway world, reused for the whole of bars 23–49 (52.4 s), no new set, no agents.
+
+- `film.js`: the frame shared by every section (the far world bloomed, then the near world
+  with occlusion, the car on its own layer, the trip, the flash) and the effects by song
+  second: the bar without bass, the drop, the trip through chorus 1, and three blacks: «when
+  the lights go out» (77.0 → the bar line at 79.07, 93.0 → 95.2) and the bar of near silence
+  (97.22–99.24). In a black everything sinks into the night and the car and the two of them
+  remain as a ring of neon (their layer grown a few pixels and cut by itself, glowing), with
+  the tail lights; the lights come back with a flash. The style test now draws through it.
+- `drive.js`: sixteen shots on bar lines. Pre-chorus: from high over the bay; low beside the
+  wheels; the kiss on «lips in the streetlights» (close over the trunk, she leans into him,
+  `Couple.drawn` turns each cut-out about the foot of the cut). Bars 29–32: the style test's
+  four shots. Chorus 1: the grid from high above; low on the median side; the first black on
+  «out»; the lights back beside the causeway; the crane; over the trunk in the trip; the
+  second black; from above; the bar of silence pushing in on their outlines.
+- The set is drawn forwards only (the deck from the camera's z on), so every camera looks
+  ahead; shots from the front (their faces) need the causeway drawn in both directions first.
+- The cast's front views are repainted too (`ref/neon/*-front.png`) for later.

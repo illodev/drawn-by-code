@@ -24,7 +24,7 @@ const Couple = (() => {
     async function load() {
         for (const who of ['her', 'him']) {
             // the drawn manner: the sheet's views repainted by tools/neonize.py
-            neon[who + '-back'] = await Neon.image(DIR + 'ref/neon/' + PICK[who] + '-back.png') ?? await Neon.image(DIR + 'private/neon/' + PICK[who] + '-back.png');
+            for (const v of ['back', 'front']) neon[who + '-' + v] = await Neon.image(DIR + 'ref/neon/' + PICK[who] + '-' + v + '.png') ?? await Neon.image(DIR + 'private/neon/' + PICK[who] + '-' + v + '.png');
         }
         for (const who of ['her', 'him']) {
             const id = PICK[who];
@@ -82,7 +82,7 @@ const Couple = (() => {
     // line), drawn in rows that sway with the wind, and loose strokes of light laid on the hair
     // and the shoulders, new on every drawing (d)
     function backDrawn(g, cam, pose, who, x, z, light, o = {}) {
-        const im = neon[who + '-back']; if (!im) return;
+        const im = neon[who + '-' + (o.view ?? 'back')]; if (!im) return;
         const M = 12;                                        // tools/neonize.py's margin round the figure
         const pxm = (im.height - 2 * M) / HEIGHT[who], cut = o.cut ?? 0.62, sh = cut * pxm + M, sw = im.width;
         const p = cam.p(Car.W(pose, [x, SEATED[who] + (o.lift ?? 0), z])); if (p[2] < 0.3) return;
@@ -114,9 +114,11 @@ const Couple = (() => {
             Ink.strokes(G, pd + (W - 2 * pd) * 0.3, Hh * 0.03, (W - 2 * pd) * 0.4, Hh * 0.22, { ang: Math.PI * 0.5 + 0.3, spread: 0.8, count: 9, len: Hh * 0.1, w: Math.max(1, s * 0.011), cols: [Pp.cyan, Pp.violet, Pp.cyan], seed, d });
             Ink.hatch(G, [pd + (W - 2 * pd) * 0.12, Hh * 0.62], [pd + (W - 2 * pd) * 0.42, Hh * 0.5], { count: 4, len: Hh * 0.1, w: Math.max(1, s * 0.01), col: Pp.cyan, seed: seed + 9, d });
         }
-        g.drawImage(cv, 0, 0, cw, ch, bx - pd, by, cw / k, ch / k);
+        // leaning (o.lean, radians, + = towards screen right): turned about the foot of the cut
+        if (o.lean) { const px = bx + w / 2, py = by + h; g.save(); g.translate(px, py); g.rotate(o.lean); g.drawImage(cv, 0, 0, cw, ch, bx - pd - px, by - py, cw / k, ch / k); g.restore(); }
+        else g.drawImage(cv, 0, 0, cw, ch, bx - pd, by, cw / k, ch / k);
     }
     const dbuf = {};
 
-    return { load, back, backDrawn, PICK, img };
+    return { load, back, backDrawn, drawn: backDrawn, PICK, img };
 })();

@@ -11,7 +11,7 @@ Motion.scene({
     fps: 24,
     duration: 8.08,
     logical: [1920, 1080],
-    uses: ['styles/retro-neon/neon.js', 'styles/retro-neon/ink.js', DIR + 'song.js', DIR + 'set/causeway.js', DIR + 'set/skyline.js', DIR + 'props/car.js', DIR + 'cast/couple.js', DIR + 'set/drawn.js'],
+    uses: ['styles/retro-neon/neon.js', 'styles/retro-neon/ink.js', DIR + 'song.js', DIR + 'set/causeway.js', DIR + 'set/skyline.js', DIR + 'props/car.js', DIR + 'cast/couple.js', DIR + 'set/drawn.js', DIR + 'film.js'],
     bpm: 119, beatOffset: 0,
     shots: SHOTS,
     audio: { mix: 'private/test.wav' },
@@ -95,109 +95,15 @@ Motion.scene({
 // and drawn on twos
 const DRAWN = true;
 function drawDrawn(g, t, env) {
-    const { N } = env.state;
+    // the frame is film.js's (shared with the film's sections); this scene only cuts and frames
     const tq = Math.floor(t * 12 + 1e-6) / 12, d = Ink.boil(t);      // drawings on twos
-    const T = Song.B(29) + tq;
-    const shot = shotIndex(tq + 1 / 24);                           // a cut lands on the nearest drawing
-    const fx = effects(tq, T);
-    const cz = Causeway.carZ(T), cy = Causeway.y(cz), pitch = Math.atan(Causeway.slope(cz));
-    const pose = { x: Causeway.LANE, y: cy, z: cz, pitch };
+    const T = Song.B(29) + tq, shot = shotIndex(tq + 1 / 24);         // a cut lands on the nearest drawing
     const cam = shotCam(shot, tq, T, env);
-    const horizon = cam.p([0, Causeway.WATER, 9000])[1];
-    // the far world, with its own light, bloomed before anything near is painted over it
-    Ink.occlude(null);
-    let L = N.light();
-    Drawn.sky(g, cam, T, d, fx, env, horizon);
-    Drawn.city(g, cam, T, d, fx, env);
-    Drawn.bay(g, L, cam, T, d, fx, env, horizon);
-    Drawn.underDeck(g, L, cam, T, d, fx);
-    if (fx.grid > 0) inkGrid(g, L, cam, T, d, fx, 'water');
-    N.bloom(g, L, { strength: 0.35 + fx.trip * 0.15 + fx.hold * 0.15, core: 0.5 });
-    // the near world: every opaque thing painted from here on hides the light behind it
-    L = N.light();
-    Ink.occlude(L);
-    if (fx.trip > 0) N.trails(L, (c, Tp) => Causeway.lights(c, N, shotCam(shotIndex(Tp - Song.B(29)), Tp - Song.B(29), Tp, env), Tp, fx), T, { n: 6, dt: 1.5 / 24, decay: 0.72, amount: 0.9 * fx.trip });
-    const cw = Drawn.causeway(g, L, cam, T, d, { ...fx, onDeck: fx.grid > 0 ? (zA, zB, clip) => inkGrid(g, L, cam, T, d, fx, 'deck', zA, zB, clip) : null });
-    const lamp = Causeway.lampLight(cz + 1.0);
-    const light = { lamp: lamp * fx.lampPower, hue: fx.hue, power: 1, city: 1, drawn: true, d };
-    const carItem = { z: pose.z, depth: cam.view([pose.x, pose.y + 0.6, pose.z])[2], draw: () => {
-        // the car on its own layer with its own light: it erases the light behind it, then adds its own
-        Ink.occlude(null);
-        const carL = Motion.layer(env, 'carLight', () => {});
-        const cl = carL.getContext('2d'); cl.setTransform(env.k, 0, 0, env.k, 0, 0); cl.globalCompositeOperation = 'lighter';
-        const carPic = Motion.layer(env, 'carPic', (c) => Car.draw(c, cl, N, cam, pose, light, (gg) => {
-            const sway = Math.sin(T * 7.3) * 0.006;
-            Couple.backDrawn(gg, cam, pose, 'him', -0.42, -0.52, light, { sway: -sway, T, d, cut: 0.48 });
-            Couple.backDrawn(gg, cam, pose, 'her', 0.42, -0.52, light, { sway, T, d, cut: 0.46 });
-        }));
-        L.save(); L.setTransform(1, 0, 0, 1, 0, 0);
-        L.globalCompositeOperation = 'destination-out'; L.drawImage(carPic, 0, 0);
-        L.globalCompositeOperation = 'lighter'; L.drawImage(carL, 0, 0);
-        L.restore();
-        g.drawImage(carPic, 0, 0, env.W, env.H);
-        Ink.occlude(L);
-    } };
-    // the car is 4.3 m long: it belongs to the far piece only when all of it is past the crest
-    (pose.z - 2.3 >= cw.zSplit ? cw.farItems : cw.nearItems).push(carItem);
-    const paint = (list) => { for (const it of list) if (it.depth === undefined) it.depth = cam.view([0, Causeway.y(it.z), it.z])[2]; list.sort((a, b) => b.depth - a.depth); for (const it of list) it.draw(); };
-    cw.far(); paint(cw.farItems);
-    cw.near(); paint(cw.nearItems);
-    if (cw.last) cw.last();
-    Ink.occlude(null);
-    N.bloom(g, L, { strength: 0.35 + fx.trip * 0.15, core: 0.5 });
-    if (fx.flash > 0) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(255,120,220,${fx.flash})`; g.fillRect(0, 0, env.W, env.H); g.restore(); }
-}
-
-// the trip's grid in ink: brush lines on the deck (clipped to the asphalt by the caller, the
-// median left bare, nothing past the crest) and on the bay
-function inkGrid(g, L, cam, T, d, fx, part, zA = 0, zB = Infinity, clip = null) {
-    const a = fx.grid * (0.5 + 0.5 * fx.kick), zc = cam.pos[2], P = Ink.PAL;
-    const cyan = fx.hue ? Neon.css(Neon.shift(P.cyan, fx.hue)) : P.cyan, mag = fx.hue ? Neon.css(Neon.shift(P.magenta, -fx.hue)) : P.magenta;
-    // a line of light on the ground, segment by segment, as wide as a 10 cm line at its distance
-    const line = (pts, col, al, seed) => {
-        const Q = pts.map(cam.p);
-        L.save(); if (clip) clip(L);
-        for (let i = 0; i + 1 < Q.length; i++) {
-            const p = Q[i], q = Q[i + 1]; if (p[2] < 0.6 || q[2] < 0.6) continue;
-            const w = Math.min(8, Math.max(1.2, 0.1 * cam.f / p[2]));
-            Ink.brush(g, [[p[0], p[1]], [q[0], q[1]]], { w, col, seed: seed * 31 + i, d, alpha: al, taper: 0.02, wob: 0.6, light: true });
-            L.globalAlpha = al * 0.45; L.strokeStyle = col; L.lineWidth = w * 1.8; L.lineCap = 'round'; L.beginPath(); L.moveTo(p[0], p[1]); L.lineTo(q[0], q[1]); L.stroke();
-        }
-        L.restore();
-    };
-    if (part === 'deck') {
-        const z0 = Math.max(zc + 1.5, zA), zEnd = Math.min(zc + 300, zB);
-        for (let x = -11; x <= 7; x += 2.25) { if (x > -4.6 && x < -0.2) continue; const pts = []; for (let z = z0; z < zEnd; z += 6) pts.push([x, Causeway.y(z) + 0.03, z]); pts.push([x, Causeway.y(zEnd) + 0.03, zEnd]); line(pts, cyan, a, 800 + Math.round(x * 4)); }
-        for (let z = Math.ceil(z0 / 6) * 6; z < Math.min(zc + 240, zB); z += 6) {
-            const yy = Causeway.y(z) + 0.03, f = a * Math.max(0, 1 - (z - zc) / 260);
-            line([[-11.8, yy, z], [-8, yy, z], [-4.4, yy, z]], mag, f, 900 + z); line([[-0.4, yy, z], [3.5, yy, z], [7.4, yy, z]], mag, f, 950 + z);
-        }
-        return;
-    }
-    for (let x = -600; x <= 600; x += 40) { if (Math.abs(x) < 20) continue; const pts = []; for (let z = zc + 30; z <= zc + 1400; z += 120) pts.push([x, Causeway.WATER, z]); line(pts, cyan, a * 0.6, 1000 + x); }
-    for (let z = Math.ceil((zc + 30) / 40) * 40; z < zc + 1400; z += 40) { const f = Math.max(0, 1 - (z - zc) / 1400); line([[-600, Causeway.WATER, z], [-20, Causeway.WATER, z]], mag, a * 0.6 * f, 1100 + z); line([[20, Causeway.WATER, z], [600, Causeway.WATER, z]], mag, a * 0.6 * f, 1200 + z); }
+    Film.frame(g, env, env.state.N, T, d, cam, { couple: 'back', camAt: (Tp) => shotCam(shotIndex(Tp - Song.B(29)), Tp - Song.B(29), Tp, env) });
 }
 
 // what the music does to the picture at t: the hold (no bass), the drop, the trip
-function effects(t, T) {
-    const tDrop = 6.0501, tGap = 4.0334;
-    const kick = Song.env('kick', T), bass = Song.env('bass', T), mid = Song.env('mid', T);
-    const hold = Ease.inOut(Ease.seg(t, tGap, tGap + 0.6)) * (1 - Ease.seg(t, tDrop - 0.02, tDrop));
-    // the in-breath: the last half bar before the drop, everything swells towards it
-    const inhale = Ease.in(Ease.seg(t, tDrop - 0.9, tDrop)) * (t < tDrop ? 1 : 0);
-    const trip = t >= tDrop ? Math.min(1, 0.75 + (t - tDrop) * 0.5) : 0;
-    const flash = t >= tDrop ? 0.55 * Math.exp(-(t - tDrop) * 9) : 0;
-    const hue = trip ? 38 * Math.sin((t - tDrop) * 2.2) + kick * 10 : 0;
-    return {
-        kick, bass, mid, hold, trip, flash, hue, inhale,
-        grid: trip ? Ease.out(Ease.seg(t, tDrop, tDrop + 0.5)) : 0,
-        halo: 1 + mid * 0.3 + inhale * 0.6 + trip * (0.5 + kick * 0.8),
-        star: trip ? 0.45 + kick * 0.5 : mid * 0.2 + inhale * 0.6,
-        lampPower: 1 - hold * 0.55 + inhale * 0.55 + trip * 0.25,
-        lampCol: trip ? Neon.mix(Neon.PAL.sodium, [Neon.PAL.pink, Neon.PAL.violet, Neon.PAL.cyan, Neon.PAL.magenta][Math.floor(Song.beatAt(T)) & 3], 0.75) : null,
-        breathe: trip ? 0.006 + kick * 0.03 : 0,
-    };
-}
+function effects(t, T) { return Film.effects(T); }
 
 // the trip turns the deck and the bay into a grid of light: lines along the road and across
 // it, fixed to the world (they rush past with the car), on the deck's surface and on the water
