@@ -72,7 +72,7 @@
         // the sun's rim: on the riser's bar line it touches the sea and holds
         const rim = T >= B(97) ? io(seg(T, B(97), B(97) + 0.45)) : 0;
         // the gold: from where they stand, over the boat, then out over the sea
-        const goldBoat = io(seg(T, 184.25, 186.8));
+        const goldBoat = io(seg(T, 184.3, 187.6));
         const goldSea = T > 185.1 ? (T - 185.1) * 9.5 : 0;             // the front's radius, metres
         return { T, kick, mid, high, trip, hue, dawn, burn, rim, goldBoat, goldSea, halo: 1 + trip * (0.4 + kick * 0.6), star: trip * 0.5 };
     }
@@ -437,9 +437,9 @@
         if (fx.goldSea <= 0) return;
         for (let j = 0; j < 8; j++) {
             const r = fx.goldSea - j * 8; if (r < 3 || r > 900) continue;
-            const nArc = 8, a0 = Ink.hsh(j, 1, 0) * 6, al = (1 - j / 10) * cap(1 - r / 650, 0.5, 1);
+            const nArc = 14, a0 = Ink.hsh(j, 1, 0) * 6, al = (1 - j / 10) * cap(1 - r / 650, 0.5, 1);
             for (let i = 0; i < nArc; i++) {
-                const span = (0.45 + 0.4 * Ink.hsh(j, i + 5, 0)) * (Math.PI * 2 / nArc), st = a0 + (i * Math.PI * 2) / nArc;
+                const span = (0.35 + 0.4 * Ink.hsh(j, i + 5, 0)) * (Math.PI * 2 / nArc), st = a0 + (i * Math.PI * 2) / nArc;
                 const n = Math.min(26, Math.max(5, Math.round((span * r) / 2.5))), run = [];
                 const flush = () => {
                     if (run.length > 1) {
@@ -452,7 +452,7 @@
                 for (let k = 0; k <= n; k++) {
                     const an = st + (span * k) / n, rr = r * (1 + 0.012 * Ink.noise(j * 9 + i, k * 0.7, 0)) + Math.sin(fx.T * 1.3 + an * 5) * 0.4;
                     const p = cam.p([ps.x + Math.sin(an) * rr, WATER + 0.02, ps.z + Math.cos(an) * rr]);
-                    if (p[2] < 1.5 || p[0] < -300 || p[0] > cam.W + 300 || p[1] > cam.H + 50) flush(); else run.push(p);
+                    if (p[2] < 14 || p[0] < -300 || p[0] > cam.W + 300 || p[1] > cam.H + 50) flush(); else run.push(p);
                 }
                 flush();
             }

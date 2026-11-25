@@ -426,7 +426,8 @@
     const drivers = (T) => [
         { x: -60 + (T - 0) * 9.5, z: 17, dir: 1, col: '#f4ecd8', moving: true },
         { x: 95 - (T - 0) * 8.0, z: 21.2, dir: -1, col: '#e86ad0', moving: true },
-        { x: -96 + (T - 4.9) * 12, z: 18.3, dir: 1, col: '#3fb8c0', moving: true },
+        // in shot 2 it is already ahead of the camera (which starts 92 m before the party hotel) and pulls away
+        { x: (H ? (H.find((h) => h.party).x0 + H.find((h) => h.party).x1) / 2 : 0) - 79 + (T - 4.45) * 12, z: 18.6, dir: 1, col: '#3fb8c0', moving: true },
         { x: 120 - (T - 4.4) * 10, z: 21.6, dir: -1, col: '#f4ecd8', moving: true },
         { x: 62 - (T - 4.4) * 9, z: 21.6, dir: -1, col: '#f9a07a', moving: true },
     ];

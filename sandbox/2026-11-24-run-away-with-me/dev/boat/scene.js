@@ -7,6 +7,8 @@ Motion.scene({
     logical: [1920, 1080],
     uses: ['styles/retro-neon/neon.js', 'styles/retro-neon/ink.js', DIR + 'song.js', DIR + 'set/causeway.js', DIR + 'set/skyline.js', DIR + 'props/car.js', DIR + 'cast/couple.js', DIR + 'set/drawn.js', DIR + 'film.js', DIR + 'sections/registry.js', DIR + 'props/boat-speedboat.js', DIR + 'sections/boat.js'],
     bpm: 119, beatOffset: 0.415 - FROM,
+    // the section's shots on its bar lines (scene seconds), for the review's labels
+    shots: [81, 83, 85, 87, 89, 91, 93, 95, 96, 97].map((n, i, a) => [0.415 + n * 2.01672 - FROM, (i + 1 < a.length ? 0.415 + a[i + 1] * 2.01672 : 198.054) - FROM, 'shot ' + (i + 1)]),
     audio: { mix: 'private/boat.wav' },
 
     async setup(env) {
