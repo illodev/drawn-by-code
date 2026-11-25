@@ -120,14 +120,18 @@
         N.bloom(g, L, { strength: 0.4 + fx.swell * 0.35, core: 0.5 });
         L = N.light(); Ink.occlude(L);
         if (shot === 3) S.ball(g, L, cam, tc, d, fx);
-        // the crowd round the two of them: those behind, the one of them in this shot, those in front
-        const who = shot === 1 ? { who: 'her', at: HER, view: 'tq' } : shot === 4 ? { who: 'her', at: HER5, view: 'back' } : { who: 'him', at: HIM, view: 'front' };
-        const dw = cam.view([who.at[0], 1, who.at[2]])[2];
-        S.crowd(g, L, cam, tc, d, fx, sec.sil, { near: [dw, 1e9] });
-        if (shot !== 3) onLayer(g, L, env, (cg) => Couple.standing(cg, cam, who.who, who.at, { view: who.view, T, d, sway: 0.01 * Math.sin(T * 2.2) }));
-        if (shot === 4) onLayer(g, L, env, (cg) => Couple.standing(cg, cam, 'him', HIM, { view: 'front', T, d }));
-        S.crowd(g, L, cam, tc, d, fx, sec.sil, { near: [0, dw] });
-        if (shot === 3) S.crowd(g, L, cam, tc, d, fx, sec.sil, {});
+        // the crowd and the two of them in one depth order: the dancers beyond the farthest of them,
+        // that one, the dancers between, the nearer one, the dancers in front
+        const cast = shot === 1 ? [{ who: 'her', at: HER, view: 'tq' }] : shot === 4 ? [{ who: 'her', at: HER5, view: 'back' }, { who: 'him', at: HIM, view: 'front' }] : shot === 5 ? [{ who: 'him', at: HIM, view: 'front' }] : [];
+        for (const c of cast) c.depth = cam.view([c.at[0], 1, c.at[2]])[2];
+        cast.sort((a, b) => b.depth - a.depth);
+        let far = 1e9;
+        for (const c of cast) {
+            S.crowd(g, L, cam, tc, d, fx, sec.sil, { near: [c.depth, far] });
+            onLayer(g, L, env, (cg) => Couple.standing(cg, cam, c.who, c.at, { view: c.view, T, d, sway: 0.01 * Math.sin(T * 2.2 + c.at[2]) }));
+            far = c.depth;
+        }
+        S.crowd(g, L, cam, tc, d, fx, sec.sil, { near: [0, far] });
         Ink.occlude(null);
         N.bloom(g, L, { strength: 0.35 + fx.swell * 0.3, core: 0.5 });
     }

@@ -133,11 +133,11 @@
                 const b = Math.max(fx.burn, (fx.dawn - 0.5) * 0.8) * (1 - 0.45 * fx.rim), hw = (300 + 700 * b) * f;
                 for (let k = 0; k < 7; k++) {
                     const y = -1 - k * 1.6 * (1 + b), w = hw * (1 - k * 0.12) * (0.8 + 0.2 * Ink.hsh(k, 3, 0));
-                    Ink.brush(g, [[-w, y], [0, y - 1], [w, y]], { w: 2.5 + 2 * b, col: k < 2 ? '#ffe6c8' : k < 4 ? P.gold : P.orange, seed: 640 + k, d, taper: 0.45, alpha: cap(b * 1.3, 0, 1), light: true });
+                    Ink.brush(g, [[-w, y], [0, y - 1], [w, y]], { w: 2.5 + 2 * b, col: k < 2 && !fx.rim ? '#ffe6c8' : k < 4 ? P.orange : P.salmon, seed: 640 + k, d, taper: 0.45, alpha: cap(b * 1.3, 0, 1) * (1 - 0.5 * fx.rim), light: true });
                 }
                 L.save(); L.translate(sp[0], sp[1]); L.rotate(lv.ang);
-                L.globalAlpha = cap(b, 0, 1.2) * 0.8; L.fillStyle = P.gold; L.beginPath(); L.ellipse(0, 0, hw * 0.9, 10 + 22 * b, 0, Math.PI, 0); L.fill();
-                L.globalAlpha = cap(b, 0, 1.2) * 0.5; L.fillStyle = P.salmon; L.beginPath(); L.ellipse(0, 0, hw * 1.6, 30 + 50 * b, 0, Math.PI, 0); L.fill();
+                L.globalAlpha = cap(b, 0, 1.2) * 0.8 * (1 - 0.75 * fx.rim); L.fillStyle = P.gold; L.beginPath(); L.ellipse(0, 0, hw * 0.9, 10 + 22 * b, 0, Math.PI, 0); L.fill();
+                L.globalAlpha = cap(b, 0, 1.2) * 0.5 * (1 - 0.5 * fx.rim); L.fillStyle = P.salmon; L.beginPath(); L.ellipse(0, 0, hw * 1.6, 30 + 50 * b, 0, Math.PI, 0); L.fill();
                 L.restore();
             }
             g.restore();
@@ -203,11 +203,13 @@
         const q = []; for (let j = 0; j <= 30; j++) { const x = -half + (2 * half * j) / 30; q.push([x, -(Math.sqrt(Math.max(0, r * r - x * x)) - yc)]); }
         g.save(); g.translate(c[0], c[1]); g.rotate(lv.ang);
         Ink.shape(g, q, P.gold, { w: 0, seed: 700, d, jit: 0.2, light: true });
+        // its lower edge: the sea's line drawn across it in salmon, so the cap sits on the water
+        Ink.brush(g, [[-half * 1.3, 0.5], [half * 1.3, 0.5]], { w: 2.4, col: P.salmon, seed: 702, d, taper: 0.3, light: true });
         Ink.brush(g, q.slice(4, 27), { w: 2 + 2 * fx.rim, col: '#fff0c8', seed: 701, d, taper: 0.3, light: true });
         g.restore();
         L.save(); L.translate(c[0], c[1]); L.rotate(lv.ang);
-        L.globalAlpha = 0.9 * fx.rim * (0.85 + 0.15 * Math.sin(T * 9)); L.fillStyle = '#ffd25a'; Neon.path(L, q); L.fill();
-        L.lineWidth = 6; L.strokeStyle = '#ffe6c8'; L.stroke();
+        L.globalAlpha = 0.45 * fx.rim * (0.85 + 0.15 * Math.sin(T * 9)); L.fillStyle = '#f9a03a'; Neon.path(L, q); L.fill();
+        L.lineWidth = 4; L.strokeStyle = '#ffd25a'; L.stroke();
         L.restore();
     }
 

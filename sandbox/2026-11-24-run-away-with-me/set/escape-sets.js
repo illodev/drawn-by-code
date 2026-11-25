@@ -18,6 +18,10 @@ const EscapeSet = (() => {
     function face(g, cam, pts, fill, o = {}) {
         const q = Neon.poly(cam, pts); if (!q) return null;
         let w = o.w;
+        // small on screen (a far window): a flat fill, no brush line (it would cover it)
+        let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (const p of q) { if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; }
+        if (x1 < -20 || x0 > cam.W + 20 || y1 < -20 || y0 > cam.H + 20) return null;
+        if (Math.max(x1 - x0, y1 - y0) < 9) { g.save(); g.globalAlpha *= o.alpha ?? 1; g.fillStyle = fill; Neon.path(g, q); g.fill(); g.restore(); if (!o.light && (o.alpha ?? 1) >= 0.9) Ink.erase(g, (c) => Neon.path(c, q)); return q; }
         if (w === undefined) { const c = pts.reduce((a, p) => [a[0] + p[0] / pts.length, a[1] + p[1] / pts.length, a[2] + p[2] / pts.length], [0, 0, 0]); const z = cam.view(c)[2]; w = z > 0.05 ? lw(cam.f / z, o.m ?? 0.03) : 3; }
         Ink.shape(g, q, fill, { jit: 0, ...o, w });
         return q;

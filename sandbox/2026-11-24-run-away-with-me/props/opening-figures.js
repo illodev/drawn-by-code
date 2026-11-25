@@ -27,6 +27,14 @@
         w2: { side: 1, eL: [0.08, 1.14], hL: [0.2, 0.92], eR: [-0.1, 1.15], hR: [-0.2, 0.9], kL: [0.13, 0.5], fL: [0.28, 0], kR: [-0.08, 0.5], fR: [-0.26, 0.03] },
         w3: { side: 1, eL: [0.02, 1.13], hL: [0.05, 0.87], eR: [-0.02, 1.13], hR: [-0.04, 0.87], kL: [0.07, 0.5], fL: [0.03, 0], kR: [0.06, 0.47], fR: [-0.06, 0.13], dip: -0.02 },
         talk: { side: 1, eL: [0.0, 1.14], hL: [0.04, 0.88], eR: [0.12, 1.17], hR: [0.3, 1.25] },
+        // sitting at a café table (the table hides the legs): forearms on it, or a glass raised
+        sit: { sit: 1, eL: [-0.3, 1.12], hL: [-0.12, 1.0], eR: [0.3, 1.12], hR: [0.12, 1.0] },
+        sitDrink: { sit: 1, eL: [-0.3, 1.12], hL: [-0.12, 1.0], eR: [0.27, 1.12], hR: [0.18, 1.42] },
+        // walking with a dog on a lead (the lead in the front hand)
+        wd0: { side: 1, eL: [-0.1, 1.15], hL: [-0.2, 0.9], eR: [0.12, 1.12], hR: [0.3, 1.0], kL: [-0.08, 0.5], fL: [-0.26, 0.03], kR: [0.13, 0.5], fR: [0.28, 0] },
+        wd1: { side: 1, eL: [-0.02, 1.13], hL: [-0.04, 0.87], eR: [0.12, 1.12], hR: [0.3, 1.0], kL: [0.06, 0.47], fL: [-0.06, 0.13], kR: [0.07, 0.5], fR: [0.03, 0], dip: -0.02 },
+        wd2: { side: 1, eL: [0.08, 1.14], hL: [0.2, 0.92], eR: [0.12, 1.12], hR: [0.3, 1.0], kL: [0.13, 0.5], fL: [0.28, 0], kR: [-0.08, 0.5], fR: [-0.26, 0.03] },
+        wd3: { side: 1, eL: [0.02, 1.13], hL: [0.05, 0.87], eR: [0.12, 1.12], hR: [0.3, 1.0], kL: [0.07, 0.5], fL: [0.03, 0], kR: [0.06, 0.47], fR: [-0.06, 0.13], dip: -0.02 },
     };
     const DANCE = ['up', 'swayL', 'elbows', 'upR', 'swayR', 'clap', 'disco', 'upL', 'jump', 'elbows', 'swayL', 'up', 'swayR', 'stand'];
     const pose = (name) => ({ ...base, ...POSES[name] });
@@ -50,78 +58,113 @@
         };
     }
 
+    // a smooth line through screen points (Catmull-Rom, n samples a segment)
+    function smooth(Q, n = 5) {
+        if (Q.length < 3) return Q;
+        const out = [Q[0]];
+        for (let i = 0; i + 1 < Q.length; i++) {
+            const a = Q[Math.max(0, i - 1)], b = Q[i], c = Q[i + 1], e = Q[Math.min(Q.length - 1, i + 2)];
+            for (let j = 1; j <= n; j++) { const t = j / n, t2 = t * t, t3 = t2 * t; out.push([0, 1].map((k) => 0.5 * (2 * b[k] + (-a[k] + c[k]) * t + (2 * a[k] - 5 * b[k] + 4 * c[k] - e[k]) * t2 + (-a[k] + 3 * b[k] - 3 * c[k] + e[k]) * t3))); }
+        }
+        return out;
+    }
+    // a limb as one soft shape: a smooth spine, a width tapering from w0 to w1 px, a round end
+    function limbPoly(Q, w0, w1) {
+        const P0 = smooth(Q), n = P0.length, L = [], R = [];
+        for (let i = 0; i < n; i++) {
+            const a = P0[Math.max(0, i - 1)], b = P0[Math.min(n - 1, i + 1)], tx = b[0] - a[0], ty = b[1] - a[1], tl = Math.hypot(tx, ty) || 1;
+            const nx = -ty / tl, ny = tx / tl, hw = (w0 + (w1 - w0) * (i / (n - 1))) / 2;
+            L.push([P0[i][0] + nx * hw, P0[i][1] + ny * hw]); R.push([P0[i][0] - nx * hw, P0[i][1] - ny * hw]);
+        }
+        const e = P0[n - 1], q = P0[n - 2], ang = Math.atan2(e[1] - q[1], e[0] - q[0]), cap = [];
+        for (let j = 1; j < 6; j++) { const a = ang + Math.PI / 2 - (j / 6) * Math.PI; cap.push([e[0] + Math.cos(a) * w1 / 2, e[1] + Math.sin(a) * w1 / 2]); }
+        return { poly: L.concat(cap, R.reverse()), spine: P0 };
+    }
+    const ell = (cx, cy, rx, ry, n = 20, a0 = 0, a1 = Math.PI * 2) => { const o = []; for (let i = 0; i < n; i++) { const a = a0 + (a1 - a0) * (i / (a1 - a0 >= Math.PI * 2 - 1e-6 ? n : n - 1)); o.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } return o; };
+
     // draw one figure: feet at screen (x, y), s px per metre. o: { pose, look, flip, rim (0..1),
-    // cols [left, right], d, seed, haze (0..1 towards the room's air colour), air }
+    // cols [left, right], d, seed, haze (0..1 towards the room's air colour), air, kick }
+    // Far (s < 30): a head with its hair, shoulders and the arms only (in a crowd only those show).
     function draw(g, x, y, s, o) {
         const lk = o.look, k = lk.height / 1.75, pz = pose(o.pose), fl = o.flip ? -1 : 1, side = pz.side ? 1 : 0;
         const dip = (pz.dip + (o.kick ? 0.05 : 0)) * k;
-        const sw = side ? 0.14 : 0.22 * lk.wide, hw = side ? 0.13 : 0.16 * lk.wide;
-        const lean = pz.lean;
-        const S = (p, up = 1) => { const yy = p[1] * k - (p[1] > 0.3 ? dip : 0) * up; return [x + fl * (p[0] * k + lean * (yy / 1.75)) * s, y - yy * s]; };
-        const col = o.haze ? Neon.css(Neon.mix(lk.body, o.air ?? '#4a2a8a', o.haze)) : lk.body;
-        const ccol = lk.cloth ? (o.haze ? Neon.css(Neon.mix(lk.cloth, o.air ?? '#4a2a8a', o.haze)) : lk.cloth) : col;
-        const seed = o.seed ?? 1, d = o.d ?? 0, big = s > 60, tiny = s < 22;
-        const sL = [-sw, 1.42], sR = [sw, 1.42], hL = [-hw * 0.75, 0.95], hR = [hw * 0.75, 0.95], nk = [0, 1.5], hd = [0, 1.62];
-        const limbW = (m) => Math.max(1.2, m * s * k);
-        const limb = (pts, w, c, sd) => Ink.brush(g, pts.map((p) => S(p)), { w: limbW(w), col: c, seed: seed * 17 + sd, d, taper: 0.04, wob: tiny ? 0.2 : 0.5 });
-        // legs, then the torso (a dress flares to the knees), arms, neck, head, hair
-        limb([hL, pz.kL, pz.fL], 0.16, col, 1); limb([hR, pz.kR, pz.fR], 0.16, col, 2);
-        // the torso: round shoulders, a waist, hips (a dress flares a little to the knee); one skin, no inner line
-        const sh = (sx, a) => [sx * (sw - 0.05) + sx * Math.cos(a) * 0.05, 1.37 + Math.sin(a) * 0.06];
-        const tl = [sh(-1, Math.PI * 0.5), sh(-1, Math.PI * 0.75), sh(-1, Math.PI), [-sw * 0.92, 1.25], [-hw * 0.95, 1.08], [-hw * 1.08, 0.98]];
-        if (lk.dress) tl.push([-hw * 1.22, 0.75], [-hw * 1.3, 0.55]);
+        const sw = side ? 0.14 : 0.21 * lk.wide, hw = side ? 0.13 : 0.16 * lk.wide;
+        const lean = pz.lean, sit = !!pz.sit;
+        const S = (p, up = 1) => { const yy = p[1] * k - (sit ? 0.45 * k : p[1] > 0.3 ? dip : 0) * up; return [x + fl * (p[0] * k + lean * (yy / 1.75)) * s, y - yy * s]; };
+        const tone = (c) => (o.haze ? Neon.css(Neon.mix(c, o.air ?? '#4a2a8a', o.haze)) : c);
+        const col = tone(lk.body), ccol = lk.cloth ? tone(lk.cloth) : col;
+        const seed = o.seed ?? 1, d = o.d ?? 0, far = s < 30, px = s * k, jit = far ? 0 : 0.4;
+        const fill = (pts, c, sd) => Ink.shape(g, pts, c, { w: 0, seed: seed * 7 + sd, d, jit });
+        const sL = [-sw + 0.05, 1.39], sR = [sw - 0.05, 1.39];
+        // legs (not on far figures, not when sitting behind a table)
+        if (!far && !sit) {
+            fill(limbPoly([S([-hw * 0.55, 0.98]), S(pz.kL), S(pz.fL)], 0.17 * px, 0.1 * px).poly, col, 1);
+            fill(limbPoly([S([hw * 0.55, 0.98]), S(pz.kR), S(pz.fR)], 0.17 * px, 0.1 * px).poly, col, 2);
+        }
+        // the torso: round shoulders, a waist, hips (a dress flares a little to the knee)
+        const sh = (sx, a) => [sx * (sw - 0.05) + sx * Math.cos(a) * 0.055, 1.37 + Math.sin(a) * 0.065];
+        const tl = [sh(-1, Math.PI * 0.5), sh(-1, Math.PI * 0.7), sh(-1, Math.PI * 0.85), sh(-1, Math.PI), [-sw * 0.93, 1.24], [-hw * 0.94, 1.08], [-hw * 1.06, 0.98]];
+        if (far) tl.splice(5); else if (lk.dress && !sit) tl.push([-hw * 1.2, 0.75], [-hw * 1.28, 0.55]);
         const torso = tl.concat(tl.slice().reverse().map((p) => [-p[0], p[1]])).map((p) => S(p, p[1] > 0.6 ? 1 : 0));
-        Ink.shape(g, torso, ccol, { w: 0, seed: seed * 7, d, jit: tiny ? 0 : 0.6 });
-        // arms: the upper arm thicker than the forearm, a hand at the end
-        for (const [sp, e, h, sd] of [[[-sw + 0.04, 1.38], pz.eL, pz.hL, 3], [[sw - 0.04, 1.38], pz.eR, pz.hR, 4]]) {
-            limb([sp, e], 0.11, col, sd); limb([e, h], 0.085, col, sd + 10);
-            if (!tiny) { const Hh = S(h), r = 0.05 * k * s, pts = []; for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2; pts.push([Hh[0] + Math.cos(a) * r, Hh[1] + Math.sin(a) * r * 1.2]); } Ink.shape(g, pts, col, { w: 0, seed: seed * 19 + sd, d, jit: 0.4 }); }
+        fill(torso, ccol, 3);
+        // arms: one soft shape from the shoulder through the elbow to the hand
+        const arms = [];
+        for (const [sp, e, h, sd] of [[sL, pz.eL, pz.hL, 4], [sR, pz.eR, pz.hR, 5]]) {
+            if (far && h[1] < 1.3) continue;                                  // a lowered arm is lost in the crowd
+            const A = limbPoly([S(sp), S(e), S(h)], 0.115 * px, 0.075 * px);
+            fill(A.poly, col, sd); arms.push({ A, h, e, sp });
+            if (!far) fill(ell(S(h)[0], S(h)[1], 0.048 * px, 0.058 * px, 10), col, sd + 20);
         }
-        limb([[0, 1.4], nk], 0.1, col, 5);
-        const H = S(hd), hr = 0.105 * k * s, head = [];
-        for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; head.push([H[0] + Math.cos(a) * hr * 0.85, H[1] + Math.sin(a) * hr * 1.12]); }
-        Ink.shape(g, head, col, { w: 0, seed: seed * 11, d, jit: tiny ? 0 : 0.5 });
-        // hair: 0 short, 1 big 80s volume, 2 ponytail, 3 flat top, 4 long
-        const hair = [];
-        if (lk.hair === 1 || lk.hair === 4) {
-            const R = hr * (lk.hair === 1 ? 1.65 : 1.25), drop = lk.hair === 4 ? 2.6 : 1.3;
-            for (let i = 0; i <= 16; i++) { const a = Math.PI * (0.95 + (i / 16) * 1.1) - 0.05; const bump = 1 + 0.1 * Math.sin(i * 2.7 + seed); hair.push([H[0] + Math.cos(a) * R * bump * 0.9, H[1] - hr * 0.2 + Math.sin(a) * R * bump]); }
-            hair.push([H[0] + R * 0.85, H[1] + hr * drop * 0.6], [H[0] + R * 0.55, H[1] + hr * drop], [H[0] - R * 0.55, H[1] + hr * drop], [H[0] - R * 0.85, H[1] + hr * drop * 0.6]);
-        } else if (lk.hair === 2) {
-            hair.push([H[0] - hr * 0.95, H[1]], [H[0] - hr * 0.8, H[1] - hr * 1.1], [H[0] + hr * 0.6, H[1] - hr * 1.25], [H[0] + hr * 1.6 * fl, H[1] - hr * 0.6], [H[0] + hr * 1.9 * fl, H[1] + hr * 1.2], [H[0] + hr * 1.0 * fl, H[1] + hr * 0.2], [H[0] + hr * 0.9, H[1] - hr * 0.2]);
-        } else if (lk.hair === 3) {
-            hair.push([H[0] - hr * 0.95, H[1] - hr * 0.3], [H[0] - hr * 0.95, H[1] - hr * 1.45], [H[0] + hr * 0.95, H[1] - hr * 1.45], [H[0] + hr * 0.95, H[1] - hr * 0.3]);
-        }
-        if (hair.length) Ink.shape(g, hair, col, { w: 0, seed: seed * 13, d, jit: tiny ? 0 : 0.8 });
-        // the rims: cyan on the left edges, magenta on the right, on what faces each side
-        const a = o.rim ?? 1; if (a <= 0.02) return;
-        const [cl, cr] = o.cols ?? [P.cyan, P.magenta], rw = Math.max(1, Math.min(4, 0.022 * s));
-        const rimSeg = (A, B, w, sd) => {
-            const ax = B[0] - A[0], ay = B[1] - A[1], l = Math.hypot(ax, ay) || 1, nx = -ay / l, ny = ax / l;
-            for (const sg of [-1, 1]) {
-                const ex = nx * sg; if (Math.abs(ex) < 0.35) continue;
-                const off = w * s * k * 0.42, c = ex < 0 ? cl : cr;
-                const n = l > 60 ? 2 : 1;
-                for (let j = 0; j < n; j++) {
-                    const u0 = n === 1 ? 0.18 : [0.08, 0.55][j], u1 = n === 1 ? 0.78 : [0.42, 0.85][j];
-                    const p0 = [A[0] + nx * sg * off + ax * u0, A[1] + ny * sg * off + ay * u0], p1 = [A[0] + nx * sg * off + ax * u1, A[1] + ny * sg * off + ay * u1];
-                    Ink.brush(g, [p0, p1], { w: rw, col: c, seed: seed * 29 + sd * 3 + j * 7 + (sg > 0 ? 1 : 0), d, taper: 0.4, wob: 0.4, alpha: a, light: true });
-                }
-            }
+        // the neck and the head, the hair round it: 0 short, 1 big 80s volume, 2 ponytail, 3 cropped, 4 long
+        const Hc = S([0, 1.62]), hr = 0.105 * px, hy = Hc[1];
+        if (!far) fill(limbPoly([S([0, 1.38]), S([0, 1.53])], 0.1 * px, 0.09 * px).poly, col, 6);
+        const hairOf = () => {
+            if (lk.hair === 1) return ell(Hc[0], hy - hr * 0.25, hr * 1.55, hr * 1.4, 22).map((p, i) => [p[0] + Math.sin(i * 2.3 + seed) * hr * 0.12, p[1] + Math.cos(i * 1.7 + seed) * hr * 0.1]);
+            if (lk.hair === 4) return ell(Hc[0], hy - hr * 0.2, hr * 1.18, hr * 1.2, 18, Math.PI * 0.95, Math.PI * 2.05).concat([[Hc[0] + hr * 1.2, hy + hr * 1.6], [Hc[0] + hr * 0.7, hy + hr * 2.4], [Hc[0] - hr * 0.7, hy + hr * 2.4], [Hc[0] - hr * 1.2, hy + hr * 1.6]]);
+            if (lk.hair === 2) return ell(Hc[0], hy - hr * 0.3, hr * 1.02, hr * 0.95, 14, Math.PI, Math.PI * 2).concat([[Hc[0] + fl * hr * 1.55, hy - hr * 0.2], [Hc[0] + fl * hr * 1.75, hy + hr * 0.9], [Hc[0] + fl * hr * 1.15, hy + hr * 0.4]]);
+            if (lk.hair === 3) return ell(Hc[0], hy - hr * 0.28, hr * 1.06, hr * 0.98, 16, Math.PI * 0.92, Math.PI * 2.08);
+            return null;
         };
-        if (tiny) {
-            Ink.brush(g, [[H[0] - hr * 0.9, H[1] + hr * 0.5], [H[0] - hr * 0.7, H[1] - hr * 0.8]], { w: rw, col: cl, seed: seed * 3, d, taper: 0.4, alpha: a, light: true });
-            Ink.brush(g, [S(sR), S([sw * 0.85, 1.15])], { w: rw, col: cr, seed: seed * 5, d, taper: 0.4, alpha: a, light: true });
-            return;
+        const hair = hairOf();
+        if (hair) fill(hair, col, 7);
+        fill(ell(Hc[0], hy, hr * 0.86, hr * 1.1, 20), col, 8);
+        // near ones: the cloth and the hair catch a little of the room in a lighter ink
+        if (s > 110) {
+            const lt2 = tone(lk.cloth ? '#5a2a9a' : '#3a1a7a'), Tp = S([0, 1.3]), Hb = S([0, 1.68]);
+            Ink.strokes(g, Tp[0] - sw * 0.7 * px, Tp[1], sw * 1.4 * px, 0.35 * px, { ang: Math.PI * 0.5 + 0.25, spread: 0.5, count: 5, len: 0.22 * px, w: Math.max(1, 0.012 * s), cols: [lt2], seed: seed * 41, d, alpha: 0.7 });
+            if (lk.hair) Ink.strokes(g, Hb[0] - hr * 0.9, Hb[1] - hr * 0.4, hr * 1.8, hr * 0.9, { ang: 0.4, spread: 0.8, count: 5, len: hr * 0.7, w: Math.max(1, 0.01 * s), cols: [tone('#3a1a7a')], seed: seed * 43, d, alpha: 0.8 });
         }
-        const arc = (a0, a1, c, sd) => { const pts = []; const R = (lk.hair === 1 ? 1.6 : lk.hair === 4 ? 1.2 : 1.02) * hr; for (let i = 0; i <= 6; i++) { const t = a0 + (a1 - a0) * (i / 6); pts.push([H[0] + Math.cos(t) * R * 0.88, H[1] - (lk.hair === 1 ? hr * 0.2 : 0) + Math.sin(t) * R * 1.08]); } Ink.brush(g, pts, { w: rw, col: c, seed: seed * 31 + sd, d, taper: 0.4, wob: 0.4, alpha: a, light: true }); };
-        arc(Math.PI * 0.75, Math.PI * 1.3, cl, 1); arc(-Math.PI * 0.3, Math.PI * 0.25, cr, 2);
-        rimSeg(S([-sw, 1.34]), S([-hw * 0.95, 1.08]), 0, 3); rimSeg(S([sw, 1.34]), S([hw * 0.95, 1.08]), 0, 4);
-        rimSeg(S(sL), S(pz.eL), 0.085, 5); rimSeg(S(pz.eL), S(pz.hL), 0.085, 6); rimSeg(S(sR), S(pz.eR), 0.085, 7); rimSeg(S(pz.eR), S(pz.hR), 0.085, 8);
-        if (s > 35) { rimSeg(S(pz.kL), S(pz.fL), 0.13, 9); rimSeg(S(pz.kR), S(pz.fR), 0.13, 10); }
-        // a shoulder line of light on the bigger ones
-        if (big) Ink.brush(g, [S([-sw * 0.9, 1.43]), S([-sw * 0.3, 1.46])], { w: rw, col: cl, seed: seed * 37, d, taper: 0.4, alpha: a * 0.8, light: true });
+        // the rims: short strokes of the two lights on the outer contour only (head, shoulders,
+        // a raised forearm), cyan from the left, magenta from the right
+        const a = o.rim ?? 1; if (a <= 0.02) return;
+        const [cl, cr] = o.cols ?? [P.cyan, P.magenta], rw = Math.max(1, Math.min(3, 0.014 * s));
+        const stroke = (pts, c, sd) => Ink.brush(g, pts, { w: rw, col: c, seed: seed * 29 + sd, d, taper: 0.45, wob: 0.3, alpha: a, light: true });
+        const big = lk.hair === 1 ? 1.5 : lk.hair === 4 ? 1.18 : lk.hair ? 1.03 : 0.9, hrx = hr * big, hry = hr * (lk.hair === 1 ? 1.35 : 1.1), hcy = hy - (lk.hair === 1 ? hr * 0.25 : lk.hair ? hr * 0.15 : 0);
+        stroke(ell(Hc[0], hcy, hrx * 0.98, hry, 6, Math.PI * 0.95, Math.PI * 1.35), cl, 1);
+        stroke(ell(Hc[0], hcy, hrx * 0.98, hry, 6, -Math.PI * 0.35, Math.PI * 0.05), cr, 2);
+        if (far) return;
+        stroke([S([-sw + 0.02, 1.4]), S([-sw - 0.005, 1.33]), S([-sw * 0.95, 1.25])], cl, 3);
+        stroke([S([sw - 0.02, 1.4]), S([sw + 0.005, 1.33]), S([sw * 0.95, 1.25])], cr, 4);
+        for (const { A, h } of arms) {
+            if (h[1] < 1.45) continue;                                        // only a raised forearm catches the light
+            const sp = A.spine, m = sp.length, outer = (h[0] < 0) === (fl > 0) ? cl : cr, sg = (h[0] < 0) === (fl > 0) ? -1 : 1;
+            const seg = sp.slice(Math.floor(m * 0.62), Math.floor(m * 0.9)).map((p) => [p[0] + sg * 0.045 * px, p[1]]);
+            if (seg.length > 1) stroke(seg, outer, 5 + (sg > 0 ? 1 : 0));
+        }
     }
 
-    window.OpeningFigures = { draw, dance, look, pose, POSES, DANCE };
+    // a small dog on a lead, walking (four drawings on twos): feet at (x, y), s px per metre
+    function dog(g, x, y, s, o) {
+        const fl = o.flip ? -1 : 1, d = o.d ?? 0, ph = o.phase ?? 0, col = o.col ?? '#1a0a4a', seed = o.seed ?? 7;
+        const X = (u) => x + fl * u * s, Y = (v) => y - v * s;
+        const body = ell(X(0), Y(0.3), 0.26 * s, 0.09 * s, 14), head = ell(X(0.3), Y(0.38), 0.08 * s, 0.07 * s, 10);
+        for (const [lx, sgn] of [[-0.18, 1], [-0.12, -1], [0.16, -1], [0.2, 1]]) { const sw = (ph % 2 ? 1 : -1) * sgn * 0.05; Ink.brush(g, [[X(lx), Y(0.27)], [X(lx + sw), Y(0)]], { w: Math.max(1, 0.04 * s), col, seed: seed + lx * 100, d, taper: 0.05 }); }
+        Ink.shape(g, body, col, { w: 0, seed, d, jit: 0.3 }); Ink.shape(g, head, col, { w: 0, seed: seed + 1, d, jit: 0.3 });
+        Ink.shape(g, [[X(0.33), Y(0.42)], [X(0.4), Y(0.5)], [X(0.38), Y(0.39)]], col, { w: 0, seed: seed + 2, d, jit: 0 });
+        Ink.brush(g, [[X(-0.25), Y(0.33)], [X(-0.34), Y(0.45)]], { w: Math.max(1, 0.03 * s), col, seed: seed + 3, d, taper: 0.5 });
+        Ink.brush(g, [[X(0.3), Y(0.43)], [X(0.22), Y(0.48)]], { w: Math.max(1, 0.014 * s), col: P.cyan, seed: seed + 4, d, taper: 0.4, light: true });
+        if (o.lead) Ink.brush(g, [[X(0.27), Y(0.36)], [o.lead[0], o.lead[1]]], { w: Math.max(1, 0.01 * s), col: P.pink, seed: seed + 5, d, taper: 0.1, wob: 0.3, light: true });
+    }
+
+    window.OpeningFigures = { draw, dog, dance, look, pose, POSES, DANCE };
 })();
