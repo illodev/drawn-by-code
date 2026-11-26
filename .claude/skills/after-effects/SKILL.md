@@ -462,6 +462,9 @@ that shrinks away and grows again. `morph-ae.jsx` (`isInbetween`, `bakeTurn`, `b
     `-ro` or `-so` overrides the refusal. On 2026-11-23 AE refused `-r` with nothing
     running, and `-ro` then ran the runner at once, with no restart. Dismiss the warning
     (OK) first.
+  - **Run the launcher with PowerShell's call operator** (`& "…\AfterFX.exe" -ro <script>`),
+    not `Start-Process`: on 2026-11-26 a `Start-Process` send to an idle AE, with no dialog,
+    was dropped without a trace (no runner after a minute); the same send with `&` ran at once.
 - **Write job scripts with the Write tool, not a Bash heredoc:** the Bash tool halved a
   backslash even inside a quoted heredoc (`/\\/g` arrived as `/\/g`), and AE stopped the job
   at "Expected: )". Paths in a job: `File.absoluteURI` already has forward slashes.
@@ -795,3 +798,42 @@ that shrinks away and grows again. `morph-ae.jsx` (`isInbetween`, `bakeTurn`, `b
   data's own corner and skip the check when the scale is degenerate. And a choice made on
   samples (a start that keeps clear) can still go wrong between them on the rebuilt path:
   check the final paths of any step it moved, and undo the move if they cross.
+- 2026-11-25 · ae-morph-fixer · To pair two outlines for a morph, pair them by what they are,
+  not by how far round: dynamic time warping over samples of both (every start), where a
+  stretch of one may pair with a single point of the other, priced by travel plus how much
+  each little piece turns (growing or shrinking along itself a tenth of that). Pieces then
+  slide, grow and shrink instead of swinging round (a T into an upside-down T becomes an
+  I-beam; u into n stops crossing itself). Pairing corners with corners and spreading the
+  rest evenly wasn't enough (the T still folded), and no price ranked a hand-made "bar slides
+  through the stem" first: render the candidates and look, the cost function is a guess.
+  Then look at the in-betweens of a real render, not the sheet of key frames: short stretches
+  collapsing to a point left little teeth only visible there.
+- 2026-11-25 · ae-morph-fixer · "A second fix changes nothing" can't be asked of a search that
+  runs again on its own output: the rebuilt keys differ by a tolerance, so the search finds
+  another optimum or rejects the old one. Judge the output by a yardstick it can't move: here,
+  "pairs cleanly and costs at most twice the best pairing from these same starts". And tests
+  that load a build must build first: a check failed on a change that was fine, because the
+  panel's copy of the math was the old one.
+- 2026-11-26 · ae-morph-fixer · Node's ratio doesn't carry to ExtendScript: a feature that made
+  fixes 4-5 times slower in Node made them 6-18 times slower inside After Effects (big arrays,
+  table-filling loops and repeated searches cost far more there than the rest of the code), and
+  the full demo test ran 19 minutes instead of 2 while the user waited. Before a full AE test
+  of new heavy code, send a one-minute job that times each part in AE (`bench/warp-parts.jsx`):
+  it showed at once that the waste was four failed tries with a slow search each, which Node's
+  profile ranked low. If it stays slow, make it an option the animator turns on (the user: "off
+  by default").
+- 2026-11-26 · ae-morph-fixer · The user ranks graceful, intentional, symmetric motion far above
+  short paths ("synchronized swimmers, not mail carriers"): when a tool chooses between
+  motions, make travel the tie-breaker, not the goal, and default options toward symmetry.
+  Symmetric means every arm in unison, not just one mirror axis: a star mirrored about one axis
+  flattened its top point while the others turned. Build it in (pair one slice between two
+  axes, mirror it round) rather than checking for it after; and measure it as the distance from
+  mirrored points to the outline about the area centre: nearest samples and the samples' mean
+  read a perfect I-beam as 12 px off.
+- 2026-11-26 · ae-morph-fixer · A new general rule ("clean over short": any start that keeps the
+  morph from pinching or collapsing) silently overrode the user's stated priority (symmetry)
+  in exactly the cases the user cares about, and the tests passed because I had rewritten the
+  one that caught it as an "outdated premise". When a rule widens what the tool may choose,
+  re-check every priority the user stated against it, on the sheet, not just the counts.
+  And a stand-in check (crossings on arc-length samples, on the nearest grid step) must not
+  veto what the user asked for on its own: confirm on the final paths before giving it up.

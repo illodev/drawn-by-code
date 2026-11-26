@@ -21,8 +21,12 @@ const check = (what, ok, detail) => {
 // crossovers: an in-between whose outline crosses itself (the shape pinches into lobes). Exact
 // enough: each bezier drawn as 4 chords per segment, the morph checked at 19 in-betweens, every
 // pair of chords compared. Turned paths are checked on their local keys (the swing turns the
-// whole in-between, which can't make it cross). -> steps that cross, where the keys don't
-function crossesItself(pts) {
+// whole in-between, which can't make it cross). In-betweens: repeated points dropped first (a
+// warp keeps some points together in both keys of a step while a third key moves them), and
+// edges in line with each other aren't a crossing (a piece shrinking along itself: rounding
+// noise). Keys: strictly, as before (an engraved key touching itself anywhere leaves its step
+// out). -> steps that cross, where the keys don't
+function crossesStrictly(pts) {
     const n = pts.length;
     for (let i = 0; i < n; i++) {
         const a = pts[i], b = pts[(i + 1) % n];
@@ -32,6 +36,21 @@ function crossesItself(pts) {
             const d1 = (q[0] - p[0]) * (a[1] - p[1]) - (q[1] - p[1]) * (a[0] - p[0]), d2 = (q[0] - p[0]) * (b[1] - p[1]) - (q[1] - p[1]) * (b[0] - p[0]);
             const d3 = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]), d4 = (b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]);
             if (((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0))) return true;
+        }
+    }
+    return false;
+}
+function crossesItself(all) {
+    const pts = all.filter((p, k) => { const r = all[(k + all.length - 1) % all.length]; return Math.abs(p[0] - r[0]) > 1e-6 || Math.abs(p[1] - r[1]) > 1e-6; }), n = pts.length;
+    for (let i = 0; i < n; i++) {
+        const a = pts[i], b = pts[(i + 1) % n];
+        for (let j = i + 2; j < n; j++) {
+            if (i === 0 && j === n - 1) continue;
+            const p = pts[j], q = pts[(j + 1) % n];
+            const e = 1e-9 * Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(q[0] - p[0], q[1] - p[1]), sg = (x) => (x > e ? 1 : x < -e ? -1 : 0);
+            const d1 = sg((q[0] - p[0]) * (a[1] - p[1]) - (q[1] - p[1]) * (a[0] - p[0])), d2 = sg((q[0] - p[0]) * (b[1] - p[1]) - (q[1] - p[1]) * (b[0] - p[0]));
+            const d3 = sg((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])), d4 = sg((b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]));
+            if (d1 * d2 < 0 && d3 * d4 < 0) return true;
         }
     }
     return false;
@@ -48,7 +67,7 @@ function crossingSteps(paths) {
     let n = 0;
     for (let k = 0; k + 1 < paths.length; k++) {
         const A = paths[k], B = paths[k + 1];
-        if (!A.closed || crossesItself(chords(A)) || crossesItself(chords(B))) continue;
+        if (!A.closed || crossesStrictly(chords(A)) || crossesStrictly(chords(B))) continue;
         for (let u = 1; u < 20; u++) {
             if (crossesItself(chords(MF.lerp(A, B, u / 20)))) {
                 n++;

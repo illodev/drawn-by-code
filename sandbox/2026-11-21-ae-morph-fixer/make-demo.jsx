@@ -472,6 +472,42 @@
             var p3 = keyed(plusV(0), plusV(45)), r3 = MFx.fix(p3, { maxPoints: 100, symmetry: 'force' });
             check('symmetry: a thin plus into an x: only the sym option makes it symmetric', r2.symmetric === 0 && !upright(p2) && r3.symmetric === 1 && upright(p3), MFx.summary(r3));
         });
+        step('shape', function () {
+            // pairing by shape (the panel's shape, off by default): a T into an upside-down T. Off,
+            // it is spread evenly; on, its bar shrinks while the other grows, and After Effects'
+            // own in-betweens are the fixed keys blended point by point, keeping the upright axis
+            var tc = app.project.items.addComp('Shape test', 400, 400, 1, 2, 24);
+            var Tv = [[50, 50], [350, 50], [350, 110], [235, 110], [235, 350], [165, 350], [165, 110], [50, 110]], Uv = [];
+            for (var k = Tv.length - 1; k >= 0; k--) Uv.push([Tv[k][0], 400 - Tv[k][1]]);
+            function keyedT() {
+                var L = tc.layers.addShape();
+                L.property('ADBE Root Vectors Group').addProperty('ADBE Vector Shape - Group');
+                var p = L.property('ADBE Root Vectors Group').property(1).property('ADBE Vector Shape');
+                var s0 = new Shape(), s1 = new Shape();
+                s0.vertices = Tv;
+                s0.closed = true;
+                s1.vertices = Uv;
+                s1.closed = true;
+                p.setValueAtTime(0, s0);
+                p.setValueAtTime(1, s1);
+                return p;
+            }
+            var off = keyedT(), rOff = MFx.fix(off, { maxPoints: 100 });
+            check('shape: off by default, a T into an upside-down T is spread evenly', !rOff.warped && !/paired by shape/.test(MFx.summary(rOff)), MFx.summary(rOff));
+            var on = keyedT(), t0 = new Date().getTime(), rOn = MFx.fix(on, { maxPoints: 100, warp: true }), took = new Date().getTime() - t0;
+            var A = MFx.toMF(on.keyValue(1)), B = MFx.toMF(on.keyValue(2)), worst = 0, upright = true;
+            for (var i = 1; i < 5; i++) {
+                var got = MFx.toMF(on.valueAtTime(i * 0.2, false)), want = MFm.lerp(A, B, MFm.progressOf(got, A, B));
+                for (var j = 0; j < got.v.length; j++) worst = Math.max(worst, Math.abs(got.v[j][0] - want.v[j][0]), Math.abs(got.v[j][1] - want.v[j][1]));
+                var ax = MFm.mirrorAxes(got), has = ax === 'round';
+                for (j = 0; !has && j < ax.length; j++) has = Math.abs(ax[j].phi * 180 / Math.PI - 90) < 2;
+                if (!has) upright = false;
+            }
+            check('shape: on, the T is paired by shape, and says so', rOn.warped === 1 && /1 step paired by shape/.test(MFx.summary(rOn)), MFx.summary(rOn) + ' (' + took + ' ms)');
+            check('shape: After Effects blends the warped keys point by point, keeping the upright axis', worst < 0.01 && upright, 'largest difference ' + worst + ' px');
+            var again = MFx.fix(on, { maxPoints: 100, warp: true });
+            check('shape: fixing the warped T again leaves it as it is', again.matched === true, MFx.summary(again));
+        });
         step('symmetry demo', function () {
             // the right half (the fix) keeps the shared upright axis through every step; the left
             // half (without its symmetry rule) swirls at least one
@@ -888,13 +924,14 @@
         step('narrow dock and theme', function () {
             var dockWin = new Window('palette', 'narrow test', undefined, { resizeable: true });
             var host = dockWin.add('panel');
-            host.preferredSize = [420, 90];
+            // (wide: 560 px; the one row needs about 441 since the shape checkbox, 0.19)
+            host.preferredSize = [560, 90];
             var dp = MFx.buildUI(host);
             dockWin.layout.layout(true);
             dockWin.show();
             dp.fitWidth(170);
             var c = dp.controls, two = dp.twoRows && c.bar.orientation === 'column' && c.fix.windowBounds.top > c.mode.windowBounds.top + 10;
-            dp.fitWidth(420);
+            dp.fitWidth(560);
             check('panel: breaks into two rows when docked narrow, one row when wide', two && !dp.twoRows && c.bar.orientation === 'row');
             dockWin.close();
             var th = MFx.theme();

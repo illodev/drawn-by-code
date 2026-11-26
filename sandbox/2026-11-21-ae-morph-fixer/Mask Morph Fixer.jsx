@@ -1,4 +1,4 @@
-// Mask Morph Fixer 0.18.0 - gives every keyframe of a path the same points, direction
+// Mask Morph Fixer 0.19.0 - gives every keyframe of a path the same points, direction
 // and start, so shapes and masks morph cleanly in After Effects; key times and easing stay as
 // they are. Run it from File > Scripts > Run Script File..., then click ? > Install as a panel
 // to dock it (Window menu, after a restart).
@@ -333,14 +333,16 @@ var MF = (function () {
 
     // ---- crossover: an in-between whose outline crosses itself ------------------------------
     // A morph can pass through outlines that cross themselves: the shape pinches into two or
-    // more lobes for a few frames (real type: a into e, M into W). Among starts that travel
-    // about as little as the best one (CROSS_SLACK more squared distance at most), the fix takes
-    // one whose in-betweens don't cross. Checked on 64 points of each outline (every other
-    // sample) at 19 in-betweens: a crossover can last under a tenth of the morph (a into e:
-    // around u = 0.45 only), and nine checks missed it.
+    // more lobes for a few frames (real type: a into e, M into W). Among the starts, cheapest
+    // first (CROSS_TRIES of them), the fix takes one whose in-betweens don't cross. Checked on 64
+    // points of each outline (every other sample) at 19 in-betweens: a crossover can last under
+    // a tenth of the morph (a into e: around u = 0.45 only), and nine checks missed it. Travel
+    // only orders them (0.19, the user: "aesthetic and intentional movement is what's important,
+    // not efficiency"): within 20 % more travel, 201 of 540 letter pairs still crossed and 188
+    // pinched; from any start, 141 and 144, for 10 % more travel and time.
     var XU = [];
     for (var xu = 1; xu < 20; xu++) XU.push(xu / 20);
-    var CROSS_SLACK = 1.2, CROSS_TRIES = 12;
+    var CROSS_SLACK = Infinity, CROSS_TRIES = 48;
 
     // do segments ab and pq cross (strictly)?
     function crosses(a, b, p, q) {
@@ -351,9 +353,22 @@ var MF = (function () {
         return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
     }
 
+    // do ab and pq cross, an end within a millionth (of the two lengths) of the other's line
+    // counting as touching, not crossing? A warp built symmetric meets itself exactly on the
+    // axis, where slivers a hundredth of a pixel long read as crossings in rounding
+    function crossesClearly(a, b, p, q) {
+        var e = 1e-6 * Math.sqrt(((b[0] - a[0]) * (b[0] - a[0]) + (b[1] - a[1]) * (b[1] - a[1])) * ((q[0] - p[0]) * (q[0] - p[0]) + (q[1] - p[1]) * (q[1] - p[1])));
+        var d1 = (q[0] - p[0]) * (a[1] - p[1]) - (q[1] - p[1]) * (a[0] - p[0]);
+        var d2 = (q[0] - p[0]) * (b[1] - p[1]) - (q[1] - p[1]) * (b[0] - p[0]);
+        var d3 = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+        var d4 = (b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]);
+        return ((d1 > e && d2 < -e) || (d1 < -e && d2 > e)) && ((d3 > e && d4 < -e) || (d3 < -e && d4 > e));
+    }
+
     // how many times the closed outline through pts crosses itself (up to `limit`): edges
-    // sorted by their left end, so only edges that overlap in x are compared
-    function selfCrossings(pts, limit) {
+    // sorted by their left end, so only edges that overlap in x are compared (clearly: touching
+    // edges don't count, as crossesClearly)
+    function selfCrossings(pts, limit, clearly) {
         var n = pts.length, ed = [], i, j, c = 0;
         for (i = 0; i < n; i++) {
             var a = pts[i], b = pts[(i + 1) % n];
@@ -366,7 +381,7 @@ var MF = (function () {
                 var f = ed[j], d = e.i - f.i;
                 if (d === 1 || d === -1 || d === n - 1 || d === 1 - n) continue;      // neighbours meet
                 if (f.y0 > e.y1 || f.y1 < e.y0) continue;
-                if (crosses(e.a, e.b, f.a, f.b) && ++c >= limit) return c;
+                if ((clearly ? crossesClearly(e.a, e.b, f.a, f.b) : crosses(e.a, e.b, f.a, f.b)) && ++c >= limit) return c;
             }
         }
         return c;
@@ -380,6 +395,19 @@ var MF = (function () {
             var p = A.pts[j], r = B.pts[(j + q) % N], x = r[0] - B.cx, y = r[1] - B.cy;
             pa.push([p[0] - A.cx, p[1] - A.cy]);
             pb.push([x * ca - y * sa, x * sa + y * ca]);
+        }
+        return { a: pa, b: pb };
+    }
+
+    // pairPoints at a start between grid steps: B's start at fraction f of its outline (a
+    // symmetric start sits where the axes say, not on the grid; a quarter step off read a
+    // mirror-symmetric morph as crossing itself where its two halves meet on the axis)
+    function pairAt(b, f, every) {
+        var A = b.SA, B = b.SB, pa = [], pb = [];
+        for (var j = 0; j < N; j += every || 2) {
+            var p = A.pts[j], r = sampleAt(B.pts, j + f * N);
+            pa.push([p[0] - A.cx, p[1] - A.cy]);
+            pb.push([r[0] - B.cx, r[1] - B.cy]);
         }
         return { a: pa, b: pb };
     }
@@ -438,14 +466,47 @@ var MF = (function () {
 
     // does the morph between matched points pp pinch (any in-between's neck under thr)?
     function pinches(pp, thr) {
-        if (!(thr > 1e-3)) return false;        // keys that already touch themselves: nothing to keep
-        var A = pp.a, B = pp.b;
+        var A = pp.a, B = pp.b, least = Math.min(loopArea(A), loopArea(B));
         for (var u = 0; u < XU.length; u++) {
             var pts = [], w = XU[u];
             for (var j = 0; j < A.length; j++) pts.push([A[j][0] + (B[j][0] - A[j][0]) * w, A[j][1] + (B[j][1] - A[j][1]) * w]);
-            if (nearlyMeets(pts, thr)) return true;
+            if (thr > 1e-3 && nearlyMeets(pts, thr)) return true;      // (keys that already touch themselves: nothing to keep)
+            if (u % 2 === 0 && collapses(pts, least)) return true;
         }
         return false;
+    }
+
+    // ---- collapsing: an in-between that loses its mass -------------------------------------
+    // A morph can stay clear of itself and still fold its shape flat on the way: an F drawn
+    // turned 90 deg, blended point by point, shrinks to half its area halfway. Graceful motion
+    // keeps the mass: an in-between under COLLAPSE_MU of the smaller key's area counts as a pinch
+    // (for the start, for the warp). Measured on every other of the 19 in-betweens.
+    var COLLAPSE_MU = 0.6;
+
+    // the area (unsigned) of the closed loop through pts
+    function loopArea(pts) {
+        var a = 0;
+        for (var j = 0; j < pts.length; j++) {
+            var p = pts[j], q = pts[(j + 1) % pts.length];
+            a += p[0] * q[1] - q[0] * p[1];
+        }
+        return Math.abs(a / 2);
+    }
+
+    // does the morph between matched points pp collapse (every other in-between)?
+    function collapsesPP(pp) {
+        var least = Math.min(loopArea(pp.a), loopArea(pp.b));
+        for (var u = 0; u < XU.length; u += 2) {
+            var pts = [], w = XU[u];
+            for (var j = 0; j < pp.a.length; j++) pts.push([pp.a[j][0] + (pp.b[j][0] - pp.a[j][0]) * w, pp.a[j][1] + (pp.b[j][1] - pp.a[j][1]) * w]);
+            if (collapses(pts, least)) return true;
+        }
+        return false;
+    }
+
+    // does the loop pts hold under COLLAPSE_MU of area least?
+    function collapses(pts, least) {
+        return least > 1e-9 && loopArea(pts) < COLLAPSE_MU * least;
     }
 
     // crossings summed over the in-betweens of a morph between matched points (up to `limit`)
@@ -480,6 +541,10 @@ var MF = (function () {
         function clear(k) {
             return crossover(pairPoints(b, k, b.turn ? b.thetas[k] : 0), 1) === 0;
         }
+        // a crossing the 64 points show but all 128 don't is the coarse outline's, not the
+        // morph's: with any start allowed, such a near miss sent a fix to a start far round, and
+        // the rebuilt keys, sampled afresh, read clean, so a second fix moved it back
+        if (was && crossover(pairPoints(b, q, b.turn ? b.thetas[q] : 0, 1), 1) === 0) was = 0;
         if (!was) {
             // no crossing: only a pinch is worth a new start, and only one that is clear of both
             if (stay || !pinches(pp, thr)) return { q: q, crossings: 0, was: 0 };
@@ -508,16 +573,20 @@ var MF = (function () {
         for (k = 0; k < cand.length && k < CROSS_TRIES; k++) {
             var ck = cand[k], c = crossover(pairPoints(b, ck, b.turn ? b.thetas[ck] : 0), stay ? bestC + 1 : bestC);
             if (stay) {
-                // staying put wins a tie (the count is sampled: a little noisy)
-                if (c <= bestC) {
+                // staying put wins a tie (the count is sampled: a little noisy), unless the morph
+                // from there collapses (an F drawn turned 90 deg: half its area halfway)
+                if (c <= bestC && !collapsesPP(pairPoints(b, ck, b.turn ? b.thetas[ck] : 0))) {
                     bestC = c;
                     bestQ = ck;
                 }
                 continue;
             }
             if (c === 0) {
-                if (clear((ck + 1) % N) && clear((ck + N - 1) % N) && !pinches(pairPoints(b, ck, b.turn ? b.thetas[ck] : 0), thr)) return { q: ck, crossings: 0, was: was };
-                if (edge < 0) edge = ck;
+                var pk = pairPoints(b, ck, b.turn ? b.thetas[ck] : 0);
+                if (clear((ck + 1) % N) && clear((ck + N - 1) % N) && !pinches(pk, thr)) return { q: ck, crossings: 0, was: was };
+                // (one that only nearly touches still beats crossing; one that collapses doesn't:
+                // the F drawn turned 90 deg, its drawn pairing at half its area halfway)
+                if (edge < 0 && !collapsesPP(pk)) edge = ck;
             } else if (c < bestC) {
                 bestC = c;
                 bestQ = ck;
@@ -846,7 +915,7 @@ var MF = (function () {
     // { near: 0, nd: 0 } with the turn found at the current start. In order: no crossover, then
     // symmetry, then least travel. crossings: what the in-betweens still cross (sampled)
     function startPlanAll(prev, P, o) {
-        var b = chooseOffset(prev, P, o), off = 0, theta = 0, symmetric = false;
+        var b = chooseOffset(prev, P, o), off = 0, theta = 0, symmetric = false, symStart = false;
         if (b.err < b.err0 * GAIN) {
             off = b.off;
             theta = b.theta;
@@ -865,26 +934,72 @@ var MF = (function () {
                 // (a star into a plus was left 0.27 % of its outline off: a little lopsided),
                 // unless only a hair away (a hold's identical keys: that moved its start 0.04 px)
                 if (circDist(near.off, off) > 0.25 / N) off = circDist(near.off, 0) < 0.5 / N ? 0 : near.off;
+                symStart = true;
             } else if (ss.length) {
                 // the current start when it is symmetric and the cheapest symmetric one isn't 5 % cheaper
                 var pick = stay && !(ss[0].e < stay.e * GAIN) ? stay : ss[0];
                 if (pick.e <= cap) {
                     off = pick === stay ? 0 : pick.off;
                     symmetric = true;
+                    symStart = true;
                 }
             }
         }
         var q0 = Math.round(off * N) % N, x = { q: q0, crossings: 0, was: 0 };
-        if (o.crossover !== false) x = untangle(b, q0, !!o.stay, o.neck);
+        // staying put (a second fix): a start that already keeps the morph clean (no crossing,
+        // pinch or collapse) isn't traded for another clean one that only travels less (0.19:
+        // travel is a tie-breaker), unless the other is symmetric. With any start allowed, a
+        // first fix that found the cheapest start borderline pinched took a clean one far round;
+        // the rebuilt keys, sampled afresh, read the cheapest as clean, and a second fix moved back
+        if (o.stay && q0 !== 0 && !symStart && !o.drawn && o.crossover !== false) {
+            var p0 = pairPoints(b, 0, b.turn ? b.thetas[0] : 0), thr0 = o.neck === false ? 0 : NECK_MU * Math.min(neckOf(p0.a), neckOf(pairPoints(b, 0, 0).b));
+            if (crossover(p0, 1) === 0 && !pinches(p0, thr0)) return { off: 0, near: 0, nd: 0, turn: b.turn, theta: b.turn ? b.thetas[0] : 0, crossings: 0, untangled: false, unpinched: false, symmetric: false };
+        }
+        // sym on: a symmetric start is left only to escape a crossing (a knot), and then for
+        // another symmetric start first; a pinch or a collapse doesn't trade it for a lopsided
+        // one. With any start allowed (0.19) an arrow up into an arrow down tumbled over
+        // lopsided, spiked, 44 px off symmetric, rather than melt evenly into a lozenge (its
+        // in-betweens shrink under the collapse limit), and a T into an upside-down T turned half
+        // round. The user: symmetric motion is the more graceful "most if not all of the time".
+        var symOff = -1, symRejected = false;
+        if (symStart && force && o.crossover !== false) {
+            var offs = [off], si, sj;
+            for (si = 0; si < ss.length; si++) {
+                for (sj = 0; sj < offs.length && circDist(offs[sj], ss[si].off) >= 0.5 / N; sj++);
+                if (sj === offs.length) offs.push(ss[si].off);
+            }
+            // (o.symTrust: the fix found every symmetric start crossing on samples, and tries the
+            // first on the final paths, which have the last word)
+            if (o.symTrust) {
+                symOff = off;
+                x = { q: q0, crossings: 0, was: 0 };
+            }
+            for (si = 0; si < offs.length && symOff < 0; si++) {
+                var qs = Math.round(offs[si] * N) % N;
+                // (a crossing the 64 points show but all 128 don't is the coarse outline's)
+                if (crossover(pairAt(b, offs[si]), 1) === 0 || crossover(pairAt(b, offs[si], 1), 1) === 0) {
+                    symOff = offs[si];
+                    x = { q: qs, crossings: 0, was: 0 };
+                }
+            }
+        }
+        symRejected = symStart && force && o.crossover !== false && symOff < 0;
+        if (o.crossover !== false && symOff < 0) x = untangle(b, q0, !!o.stay, o.neck);
         var untangled = x.q !== q0, unpinched = !!x.pinched;
-        if (untangled) {
+        if (symOff >= 0) {
+            // (onto that symmetric start exactly, not its grid step)
+            if (untangled) {
+                off = symOff;
+                symmetric = true;
+            }
+        } else if (untangled) {
             off = x.q / N;
             theta = b.turn ? b.thetas[x.q] : 0;
             symmetric = false;
         }
-        if (!off) return { off: 0, near: 0, nd: 0, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled, unpinched: unpinched, symmetric: symmetric };
+        if (!off) return { off: 0, near: 0, nd: 0, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled, unpinched: unpinched, symmetric: symmetric, symRejected: symRejected };
         var nv = nearestVertex(P, off);
-        return { off: off, near: nv.k, nd: nv.d, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled, unpinched: unpinched, symmetric: symmetric };
+        return { off: off, near: nv.k, nd: nv.d, turn: b.turn, theta: theta, crossings: x.crossings, untangled: untangled, unpinched: unpinched, symmetric: symmetric, symRejected: symRejected };
     }
 
     // the turn laying P onto prev, keeping P's start
@@ -920,6 +1035,7 @@ var MF = (function () {
                 info.unpinched = plan.unpinched;      // ... nearly touch, where the first choice only did that
                 info.crossings = plan.crossings;      // what they still cross (sampled), 0 mostly
                 info.symmetric = plan.symmetric;      // a start chosen so the morph stays mirror-symmetric
+                if (plan.symRejected) info.symRejected = true;      // (sym on) every symmetric start crossed, on samples
                 info.drawn = plan.drawn;              // drawn as a turn of the previous key (deg), 0 if not
                 info.keptDrawn = plan.keptDrawn;      // ... and that pairing kept
                 var near = plan.near;
@@ -1018,6 +1134,796 @@ var MF = (function () {
         return unit(d[0], d[1]) || endDir(c, t > 0.5);
     }
 
+    // ---- warp: outlines paired by what they are, not by how far round ---------------------
+    // Spread evenly from their starts, two outlines pair points by how far round they are, and
+    // between unlike shapes that folds: a T into an upside-down T crossed itself 31 times on the
+    // way, u into n 16. A warp pairs them by dynamic time warping over samples of both (every
+    // start of B tried), where a stretch of one outline may also pair with a single point of the
+    // other: a bar that shrinks away, a stem that grows out of a bar. Its price: travel (how far
+    // points move, around each shape's centre) plus WARP_BEND times how much each little piece
+    // of outline turns on the way, and WARP_STRETCH of that for growing or shrinking along
+    // itself. So pieces slide or grow rather than swing round: the T's bar shrinks while the
+    // upside-down T's grows, E's bottom arm draws back into its stem, u's bowl rolls up into n's
+    // arch. Found coarse (WARP_COARSE samples, every start) then fine (WARP_N, around the
+    // best coarse starts in turn), straightened into a few runs, and kept only where its
+    // in-betweens neither cross nor pinch (or spreading evenly pinches too). review.md, round 20.
+    // Off unless o.warp is true (the panel's "shape"): inside After Effects it made the demo's
+    // fixes about 3 times as slow (bench/warp-demo.jsx).
+    var WARP_N = 80, WARP_COARSE = 24, WARP_BEND = 0.1, WARP_STRETCH = 0.1, WARP_TRIES = 3, WARP_SAME = 2, WARP_SAME_NOW = 1.5, WARP_STRAIGHT = 4, WARP_BAND = 2, WARP_REACH = 0.15, WARP_SYM = 0.001;
+    var WARP_STEPS = [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2], [3, 1], [1, 3], [3, 2], [2, 3]];
+
+    // a closed outline at fractions: its start and corners exactly, the rest every 1/n (none
+    // closer than 0.35/n to a corner); points around the outline's centre. -> { f, p, corner }
+    function warpSamples(P, M, n) {
+        var cs = corners(P, M), fs = [0], S = samples(P, M), j, k;
+        for (j = 0; j < cs.length; j++) fs.push(cs[j].f);
+        for (k = 1; k < n; k++) {
+            var ok = true;
+            for (j = 0; j < cs.length && ok; j++) if (circDist(k / n, cs[j].f) < 0.35 / n) ok = false;
+            if (ok) fs.push(k / n);
+        }
+        fs.sort(function (a, b) { return a - b; });
+        var out = { f: [], p: [], corner: [] };
+        for (j = 0; j < fs.length; j++) {
+            if (fs[j] > 1 - 1e-9 || (out.f.length && fs[j] - out.f[out.f.length - 1] < 1e-9)) continue;
+            var q = at(P, M, fs[j]), c = false;
+            for (k = 0; k < cs.length; k++) if (circDist(fs[j], cs[k].f) < 1e-9) c = true;
+            out.f.push(fs[j]);
+            out.p.push([q[0] - S.cx, q[1] - S.cy]);
+            out.corner.push(c);
+        }
+        return out;
+    }
+
+    // DTW round both outlines: A's samples from its start, B's from each start in `shifts`
+    // (indices into SB). -> { costs: [cost per shift], best: { s, cost, path: [[a, b, cornerA,
+    // cornerB], ...] } } with a from A's start round to it again, b likewise from B's start s;
+    // all: every shift's { s, cost, path } as well. band: { path, r }: only pairs within r (a
+    // fraction) of a coarser pairing's path are tried (FastDTW): the fine search costs a fifth
+    function warpDTW(SA, SB, shifts, all, band, steps) {
+        var n = SA.f.length, m = SB.f.length, W = m + 1, i, j, t, d, out = { costs: [], best: null, all: [] };
+        // per step size d (0..3, see WARP_STEPS): A's piece from sample i, its length, and the
+        // fraction it spans, at d * (n + 1) + i; likewise B's per start. Travel per pair of
+        // samples, once per start. (Flat arrays, filled by index: in ExtendScript every lookup
+        // and push counts; the fix ran 15 times slower there with the first version)
+        var N1 = n + 1, ax = new Array(N1), ay = new Array(N1), af = new Array(N1), Ax = [], Ay = [], Al = [], Af = [];
+        for (i = 0; i <= n; i++) {
+            ax[i] = SA.p[i % n][0];
+            ay[i] = SA.p[i % n][1];
+            af[i] = i < n ? SA.f[i] : SA.f[0] + 1;
+        }
+        for (d = 0; d < 4; d++) {
+            for (i = 0; i <= n; i++) {
+                var i2d = i + d <= n ? i + d : n, ux = ax[i2d] - ax[i], uy = ay[i2d] - ay[i];
+                Ax[d * N1 + i] = ux;
+                Ay[d * N1 + i] = uy;
+                Al[d * N1 + i] = Math.sqrt(ux * ux + uy * uy);
+                Af[d * N1 + i] = af[i2d] - af[i];
+            }
+        }
+        var nS = steps || WARP_STEPS.length, sa = [], sb = [];
+        for (t = 0; t < nS; t++) {
+            sa[t] = WARP_STEPS[t][0];
+            sb[t] = WARP_STEPS[t][1];
+        }
+        for (var si = 0; si < shifts.length; si++) {
+            var s = shifts[si], M1 = m + 1, bx = new Array(M1), by = new Array(M1), bf = new Array(M1), Bx = [], By = [], Bl = [], Bf = [];
+            for (j = 0; j <= m; j++) {
+                var q = (s + j) % m;
+                bx[j] = SB.p[q][0];
+                by[j] = SB.p[q][1];
+                bf[j] = SB.f[q] + (s + j >= m ? 1 : 0);
+            }
+            for (d = 0; d < 4; d++) {
+                for (j = 0; j <= m; j++) {
+                    var j2d = j + d <= m ? j + d : m, vx = bx[j2d] - bx[j], vy = by[j2d] - by[j];
+                    Bx[d * M1 + j] = vx;
+                    By[d * M1 + j] = vy;
+                    Bl[d * M1 + j] = Math.sqrt(vx * vx + vy * vy);
+                    Bf[d * M1 + j] = bf[j2d] - bf[j];
+                }
+            }
+            // the j each i may pair with: all, or the band about the coarser path; the table
+            // holds only those cells, row i's cell j at base[i] + j
+            var jlo = new Array(N1), jhi = new Array(N1), base = new Array(N1), tot = 0;
+            for (i = 0; i <= n; i++) {
+                jlo[i] = 0;
+                jhi[i] = m;
+            }
+            if (band) warpBand(band, af, bf, jlo, jhi);
+            for (i = 0; i <= n; i++) {
+                base[i] = tot - jlo[i];
+                tot += jhi[i] - jlo[i] + 1;
+            }
+            var cost = new Array(tot), from = new Array(tot), trav = new Array(tot), c0, k;
+            for (i = 0; i <= n; i++) {
+                for (j = jlo[i]; j <= jhi[i]; j++) {
+                    var tx = ax[i] - bx[j], ty = ay[i] - by[j];
+                    k = base[i] + j;
+                    trav[k] = tx * tx + ty * ty;
+                    cost[k] = Infinity;
+                    from[k] = -1;
+                }
+            }
+            cost[0] = 0;
+            for (i = 0; i <= n; i++) {
+                var bi = base[i], hi = jhi[i];
+                for (j = jlo[i]; j <= hi; j++) {
+                    c0 = cost[bi + j];
+                    if (c0 === Infinity) continue;
+                    for (var st = 0; st < nS; st++) {
+                        var di = sa[st], dj = sb[st], i2 = i + di, j2 = j + dj;
+                        if (i2 > n || j2 > jhi[i2] || j2 < jlo[i2]) continue;
+                        var ka = di * N1 + i, kb = dj * M1 + j, dt = (Af[ka] + Bf[kb]) / 2, la = Al[ka], lb = Bl[kb], k2 = base[i2] + j2;
+                        var c = c0 + trav[k2] * dt + WARP_BEND * (2 * (la * lb - Ax[ka] * Bx[kb] - Ay[ka] * By[kb]) + WARP_STRETCH * (la - lb) * (la - lb)) / (dt > 1e-12 ? dt : 1e-12);
+                        if (c < cost[k2]) {
+                            cost[k2] = c;
+                            from[k2] = i * W + j;
+                        }
+                    }
+                }
+            }
+            var total = cost[base[n] + m];
+            out.costs.push(total);
+            if (all || !out.best || total < out.best.cost) {
+                var path = [];
+                for (t = n * W + m; t >= 0; ) {
+                    var ii = Math.floor(t / W), jj = t % W;
+                    path.push([af[ii], bf[jj], SA.corner[ii % n], SB.corner[(s + jj) % m]]);
+                    t = from[base[ii] + jj];
+                }
+                path.reverse();
+                var r = { s: s, cost: total, path: path };
+                if (all) out.all.push(r);
+                if (!out.best || total < out.best.cost) out.best = r;
+            }
+        }
+        return out;
+    }
+
+    // FastDTW's band: for each fine sample i of A, the samples j of B (fractions bf, from this
+    // start) within band.r of the coarse path (its nodes [a, b], b from the coarse start; this
+    // start's b moved by whole turns to sit by it) -> jlo[i], jhi[i]
+    function warpBand(band, af, bf, jlo, jhi) {
+        var P = band.path, r = band.r, n = af.length - 1, m = bf.length - 1, off = Math.round(P[0][1] - bf[0]), i, k = 0, j0 = 0, j1 = 0;
+        for (i = 0; i <= n; i++) {
+            var a0 = af[i] - r, a1 = af[i] + r, lo = Infinity, hi = -Infinity;
+            while (k < P.length - 1 && P[k + 1][0] < a0) k++;
+            // the path's b over [a0, a1]: its nodes there, and where it enters and leaves
+            for (var q = k; q < P.length; q++) {
+                var p = P[q], nx = q + 1 < P.length ? P[q + 1] : null;
+                if (p[0] >= a0 && p[0] <= a1) {
+                    lo = Math.min(lo, p[1]);
+                    hi = Math.max(hi, p[1]);
+                }
+                if (nx && p[0] <= a1 && nx[0] >= a0 && nx[0] > p[0]) {
+                    var e0 = Math.max(a0, p[0]), e1 = Math.min(a1, nx[0]);
+                    var b0 = p[1] + (nx[1] - p[1]) * (e0 - p[0]) / (nx[0] - p[0]), b1 = p[1] + (nx[1] - p[1]) * (e1 - p[0]) / (nx[0] - p[0]);
+                    lo = Math.min(lo, b0, b1);
+                    hi = Math.max(hi, b0, b1);
+                }
+                if (p[0] > a1) break;
+            }
+            lo -= r + off;
+            hi += r - off;
+            while (j0 < m && bf[j0] < lo) j0++;
+            if (j1 < j0) j1 = j0;
+            while (j1 < m && bf[j1 + 1] <= hi) j1++;
+            jlo[i] = Math.min(j0, m);
+            jhi[i] = Math.max(j1, jlo[i]);
+        }
+        jlo[0] = 0;
+        jhi[n] = m;
+        if (jhi[0] < 0) jhi[0] = 0;
+        if (jlo[n] > m) jlo[n] = m;
+    }
+
+    // the DTW path as a few straight runs: Douglas-Peucker in (a, b) within tol, keeping both
+    // ends and every node at a corner of either outline. -> [[a, b], ...]
+    function warpStraighten(path, tol) {
+        var n = path.length, keep = [], todo = [], last = 0, k;
+        for (k = 0; k < n; k++) keep.push(k === 0 || k === n - 1 || path[k][2] || path[k][3]);
+        for (k = 1; k < n; k++) {
+            if (!keep[k]) continue;
+            todo.push([last, k]);
+            last = k;
+        }
+        while (todo.length) {
+            var ab = todo.pop(), a = ab[0], b = ab[1], far = -1, fd = tol;
+            var dx = path[b][0] - path[a][0], dy = path[b][1] - path[a][1], L = Math.sqrt(dx * dx + dy * dy) || 1;
+            for (k = a + 1; k < b; k++) {
+                var d = Math.abs((path[k][0] - path[a][0]) * dy - (path[k][1] - path[a][1]) * dx) / L;
+                if (d > fd) {
+                    fd = d;
+                    far = k;
+                }
+            }
+            if (far >= 0) {
+                keep[far] = true;
+                todo.push([a, far]);
+                todo.push([far, b]);
+            }
+        }
+        var out = [];
+        for (k = 0; k < n; k++) if (keep[k]) out.push([path[k][0], path[k][1]]);
+        return out;
+    }
+
+    // count points along a pairing (spaced by the joint parameter), on A and on B: { a, b }
+    function warpPoints(A, MA, B, MB, pairs, count) {
+        var len = [0], total = 0, k, out = { a: [], b: [] };
+        for (k = 1; k < pairs.length; k++) {
+            len.push((pairs[k][0] - pairs[k - 1][0]) + (pairs[k][1] - pairs[k - 1][1]));
+            total += len[k];
+        }
+        k = 1;
+        var acc = 0;
+        for (var s = 0; s < count; s++) {
+            var t = s / count * total;
+            while (k < pairs.length - 1 && acc + len[k] < t) acc += len[k++];
+            var w = len[k] ? (t - acc) / len[k] : 0;
+            out.a.push(at(A, MA, pairs[k - 1][0] + (pairs[k][0] - pairs[k - 1][0]) * w));
+            out.b.push(at(B, MB, pairs[k - 1][1] + (pairs[k][1] - pairs[k - 1][1]) * w));
+        }
+        return out;
+    }
+
+    // a loop's points respaced evenly along its own length
+    function respace(pts, count) {
+        var n = pts.length, cum = [0], out = [], k;
+        for (k = 0; k < n; k++) {
+            var q = pts[(k + 1) % n];
+            cum.push(cum[k] + Math.sqrt((q[0] - pts[k][0]) * (q[0] - pts[k][0]) + (q[1] - pts[k][1]) * (q[1] - pts[k][1])));
+        }
+        k = 0;
+        for (var s = 0; s < count; s++) {
+            var t = s / count * cum[n];
+            while (k < n - 1 && cum[k + 1] < t) k++;
+            var w = (t - cum[k]) / ((cum[k + 1] - cum[k]) || 1), p = pts[k], r = pts[(k + 1) % n];
+            out.push([p[0] + (r[0] - p[0]) * w, p[1] + (r[1] - p[1]) * w]);
+        }
+        return out;
+    }
+
+    // does a pairing's morph cross over or pinch (under thr)? { cross, pinch }, 96 points
+    // along it at the 19 in-betweens; the neck on 64 points respaced along each in-between
+    // (pinches at every other in-between: a neck doesn't come and go within a twentieth of the
+    // morph, and the pinch test was a fifth of a fix's time; crossings at all 19, which the
+    // final paths are checked for again)
+    function warpCheck(A, MA, B, MB, pairs, thr) {
+        var pp = warpPoints(A, MA, B, MB, pairs, 96), out = { cross: 0, pinch: false }, n = pp.a.length, least = Math.min(loopArea(pp.a), loopArea(pp.b));
+        for (var u = 0; u < XU.length; u++) {
+            var pts = new Array(n), w = XU[u];
+            for (var j = 0; j < n; j++) pts[j] = [pp.a[j][0] + (pp.b[j][0] - pp.a[j][0]) * w, pp.a[j][1] + (pp.b[j][1] - pp.a[j][1]) * w];
+            out.cross += selfCrossings(distinct(pts), 1, true);
+            if (out.cross) return out;
+            if (!out.pinch && u % 2 === 0 && ((thr > 1e-3 && nearlyMeets(respace(pts, 64), thr)) || collapses(pts, least))) out.pinch = true;
+        }
+        return out;
+    }
+
+    // what a pairing costs, priced finely (about 256 steps round) the way the DTW prices it
+    // (travelOnly: its travel alone)
+    function warpPrice(A, B, pairs, travelOnly) {
+        var MA = measure(A), MB = measure(B), SA = samples(A, MA), SB = samples(B, MB), c = 0, k;
+        var pa = at(A, MA, pairs[0][0]), pb = at(B, MB, pairs[0][1]);
+        for (k = 1; k < pairs.length; k++) {
+            var da = pairs[k][0] - pairs[k - 1][0], db = pairs[k][1] - pairs[k - 1][1], n = Math.max(1, Math.ceil((da + db) * 128));
+            for (var s = 1; s <= n; s++) {
+                var qa = at(A, MA, pairs[k - 1][0] + da * s / n), qb = at(B, MB, pairs[k - 1][1] + db * s / n);
+                var dt = (da + db) / 2 / n, tx = (qa[0] - SA.cx) - (qb[0] - SB.cx), ty = (qa[1] - SA.cy) - (qb[1] - SB.cy);
+                var ux = qa[0] - pa[0], uy = qa[1] - pa[1], vx = qb[0] - pb[0], vy = qb[1] - pb[1];
+                var la = Math.sqrt(ux * ux + uy * uy), lb = Math.sqrt(vx * vx + vy * vy);
+                c += (tx * tx + ty * ty) * dt + (travelOnly ? 0 : WARP_BEND * (2 * (la * lb - ux * vx - uy * vy) + WARP_STRETCH * (la - lb) * (la - lb)) / (dt > 1e-12 ? dt : 1e-12));
+                pa = qa;
+                pb = qb;
+            }
+        }
+        return c;
+    }
+
+    // the pairing the points themselves make (point k with point k, as AE morphs them)
+    function vertexPairs(A, B) {
+        var fa = fractions(A, measure(A)), fb = fractions(B, measure(B)), out = [];
+        for (var k = 0; k < fa.length; k++) out.push([fa[k], fb[k]]);
+        out.push([fa[0] + 1, fb[0] + 1]);
+        return out;
+    }
+
+    // the warp for the step A -> B (closed, same direction), or null when it crosses over, or
+    // pinches where spreading evenly doesn't. -> { pairs: [[a, b], ...] from [0, b0] to
+    // [1, b0 + 1] (a: A's fraction, b: B's, unwrapped), cost, pinch }
+    // (thorough: the axes found as the sym option finds them, for shapes drawn a little unevenly)
+    function warpStep(A, B, tick, thorough) {
+        var MA = measure(A), MB = measure(B);
+        if (seedStep(A, MA, B, MB) || sameKey(A, B)) return null;
+        // keys that share a mirror axis are only ever paired symmetrically: by a warp built so
+        // (warpMirror), or, failing that, spread evenly from a symmetric start
+        var thr = NECK_MU * Math.min(neckOf(samples(A, MA, 64).pts), neckOf(samples(B, MB, 64).pts));
+        var axes = sharedAxes(samples(A, MA, thorough ? 2 * N : N), samples(B, MB, thorough ? 2 * N : N), thorough);
+        if (axes.length) return warpMirror(A, MA, B, MB, axes, thr);
+        // coarse: B's starts within WARP_REACH of its start as aligned (on the tests' type, all
+        // 66 warped steps took one within 0.125), with the plain steps only
+        var cA = warpSamples(A, MA, WARP_COARSE), cB = warpSamples(B, MB, WARP_COARSE), all = [], j, idx = [];
+        for (j = 0; j < cB.f.length; j++) if (circDist(cB.f[j], 0) <= WARP_REACH) all.push(j);
+        var coarse = warpDTW(cA, cB, all, true, null, 5), order = [];
+        for (j = 0; j < all.length; j++) order.push(j);
+        order.sort(function (x, y) { return (coarse.costs[x] - coarse.costs[y]) || (x - y); });
+        for (j = 0; j < order.length; j++) idx.push(all[order[j]]);
+        if (tick) tick();
+        // the coarse starts in turn, cheapest first: each refined among the fine starts within
+        // half a coarse step, and kept if its morph keeps clear; up to WARP_TRIES of them (N into
+        // Z: the cheapest crossed once, another didn't). One that only pinches, kept if
+        // spreading evenly pinches as well
+        var fA = warpSamples(A, MA, WARP_N), fB = warpSamples(B, MB, WARP_N), seen = {}, tried = 0, pinched = null;
+        for (var r = 0; r < order.length && tried < WARP_TRIES; r++) {
+            if (coarse.costs[order[r]] === Infinity) break;
+            // the fine start nearest the coarse one (its neighbours as well found the same
+            // pairings on the tests' type, for a third more time)
+            var f0 = cB.f[idx[r]], shifts = [], near = -1;
+            for (j = 0; j < fB.f.length; j++) if (near < 0 || circDist(fB.f[j], f0) < circDist(fB.f[near], f0)) near = j;
+            if (seen[near]) continue;
+            seen[near] = true;
+            shifts.push(near);
+            var fine = warpDTW(fA, fB, shifts, false, { path: coarse.all[order[r]].path, r: WARP_BAND / WARP_COARSE }).best;
+            if (tick) tick();
+            if (fine.cost === Infinity) continue;
+            tried++;
+            var pairs = warpStraighten(fine.path, WARP_STRAIGHT / WARP_N), chk = warpCheck(A, MA, B, MB, pairs, thr);
+            if (chk.cross) continue;
+            if (!chk.pinch) return { pairs: pairs, cost: fine.cost, pinch: false };
+            if (!pinched) pinched = { pairs: pairs, cost: fine.cost, pinch: true };
+        }
+        if (pinched) {
+            var ev = warpCheck(A, MA, B, MB, [[0, 0], [1, 1]], thr);
+            if (ev.cross || ev.pinch) return pinched;
+        }
+        return null;
+    }
+
+    // ---- the mirrored warp: keys that share mirror axes, paired slice by slice ----------------
+    // Keys that share k mirror axes cross each of them twice: 2k poles round each outline, equally
+    // far apart. A's slice from one pole to the next is paired by DTW, end to end, with a slice
+    // of B between two of its poles, and that pairing is mirrored about each pole in turn all the
+    // way round: the morph is then exactly as symmetric as its keys, and every arm of a star or
+    // a plus does the same thing at the same time (mirrored about one axis only, a star's top
+    // point flattened while the others turned: symmetric, but not in unison). Every way of laying
+    // A's slice on B's is tried (B's 2k slices), the cheapest whose morph keeps clear is taken;
+    // with none, the axes one at a time (each half mirrored onto the other). -> as warpStep,
+    // mirror: k (the axes kept)
+    function warpMirror(A, MA, B, MB, axes, thr) {
+        var SA = sized(samples(A, MA, 4 * N)), SB = sized(samples(B, MB, 4 * N)), k = axes.length, x;
+        if (k > 1) {
+            var pa = mirrorPoles(A, MA, SA, axes), pb = mirrorPoles(B, MB, SB, axes);
+            if (pa && pb) {
+                var w = mirrorSlices(A, MA, B, MB, pa[0].f, onAxis(pb, pa[0].axis), 1 / (2 * k), thr);
+                if (w) {
+                    w.mirror = k;
+                    return w;
+                }
+            }
+        }
+        // one axis at a time (the first two), A's half from its pole against B's from either pole
+        var best = null;
+        for (x = 0; x < k && x < 2; x++) {
+            var qa = mirrorPoles(A, MA, SA, [axes[x]]), qb = mirrorPoles(B, MB, SB, [axes[x]]);
+            if (!qa || !qb) continue;
+            var r = mirrorSlices(A, MA, B, MB, qa[0].f, onAxis(qb, 0), 0.5, thr);
+            if (r && (!best || (best.pinch && !r.pinch) || (best.pinch === r.pinch && r.cost < best.cost))) best = r;
+        }
+        if (best) best.mirror = 1;
+        return best;
+    }
+
+    // the 2k poles of P on axes (each crossed twice), sorted round the outline: [{ f, axis (its
+    // index) }], or null when they aren't about equally far apart (the axes don't share P's symmetry)
+    function mirrorPoles(P, M, S, axes) {
+        var out = [], j, k2 = 2 * axes.length;
+        for (j = 0; j < axes.length; j++) {
+            var p = poleAt(S, axes[j]);
+            if (!(p.e < Infinity)) return null;
+            var f0 = poleOn(P, M, S, axes[j], p.p);
+            out.push({ f: f0 - Math.floor(f0), axis: j });
+            out.push({ f: f0 + 0.5 - Math.floor(f0 + 0.5), axis: j });
+        }
+        out.sort(function (x, y) { return x.f - y.f; });
+        for (j = 0; j < k2; j++) {
+            var gap = (j + 1 < k2 ? out[j + 1].f : out[0].f + 1) - out[j].f;
+            if (Math.abs(gap - 1 / k2) > 0.25 / k2) return null;
+        }
+        return out;
+    }
+
+    // the fractions of the poles on one axis (B's slice must start on the axis A's does: started
+    // on another, the arms swirl round instead of mirroring)
+    function onAxis(poles, axis) {
+        var out = [];
+        for (var j = 0; j < poles.length; j++) if (poles[j].axis === axis) out.push(poles[j].f);
+        return out;
+    }
+
+    // A's slice from pole a0 (length L, a pole to the next) against each of B's slices (from each
+    // of its poles), paired by DTW and mirrored about each pole in turn round the outline: the
+    // cheapest whose morph keeps clear (or only pinches where spreading evenly does too)
+    function mirrorSlices(A, MA, B, MB, a0, poles, L, thr) {
+        var best = null, pinched = null, SAs = warpSpan(A, MA, a0, a0 + L, WARP_N), turns = Math.round(1 / L);
+        for (var j = 0; j < poles.length; j++) {
+            var b0 = poles[j], r = warpOpen(SAs, warpSpan(B, MB, b0, b0 + L, WARP_N));
+            if (r.cost === Infinity || (best && r.cost >= best.cost)) continue;
+            var arc = warpStraighten(r.path, WARP_STRAIGHT / WARP_N), full = arc.slice(0), prev = arc, i, q;
+            for (i = 1; i < turns; i++) {
+                var ai = a0 + i * L, bi = b0 + i * L, next = [[ai, bi]];
+                for (q = prev.length - 2; q >= 0; q--) next.push([2 * ai - prev[q][0], 2 * bi - prev[q][1]]);
+                for (q = 1; q < next.length; q++) full.push(next[q]);
+                prev = next;
+            }
+            var pairs = warpRotate(full, 0), chk = warpCheck(A, MA, B, MB, pairs, thr);
+            if (chk.cross) continue;
+            if (!chk.pinch) best = { pairs: pairs, cost: r.cost, pinch: false };
+            else if (!pinched || r.cost < pinched.cost) pinched = { pairs: pairs, cost: r.cost, pinch: true };
+        }
+        if (best) return best;
+        if (pinched) {
+            var ev = warpCheck(A, MA, B, MB, [[0, 0], [1, 1]], thr);
+            if (ev.cross || ev.pinch) return pinched;
+        }
+        return null;
+    }
+
+    // the fraction where P's outline crosses the axis at angle phi through S's centre, refined
+    // from the samples' crossing at index p by halving on the curve itself (a pole taken
+    // between samples left a star's mirrored morph 0.6 % off symmetric)
+    function poleOn(P, M, S, phi, p) {
+        var n = S.pts.length, sn = Math.sin(phi), cs = Math.cos(phi), lo = (p - 1) / n, hi = (p + 1) / n;
+        var side = function (f) { var q = at(P, M, f); return -(q[0] - S.cx) * sn + (q[1] - S.cy) * cs; };
+        var dl = side(lo);
+        if ((dl <= 0) === (side(hi) <= 0)) return p / n;      // no crossing to refine between them
+        for (var k = 0; k < 40; k++) {
+            var mid = (lo + hi) / 2, dm = side(mid);
+            if ((dm <= 0) === (dl <= 0)) {
+                lo = mid;
+                dl = dm;
+            } else hi = mid;
+        }
+        return (lo + hi) / 2;
+    }
+
+    // P sampled from fraction f0 to f1 (f0 < f1, unwrapped): both ends and the corners between
+    // exactly, the rest every 1/n of the outline (none within 0.35/n of those), around P's centre
+    function warpSpan(P, M, f0, f1, n) {
+        var cs = corners(P, M), fs = [f0, f1], S = samples(P, M), j, k;
+        for (j = 0; j < cs.length; j++) {
+            var c = f0 + (((cs[j].f - f0) % 1) + 1) % 1;
+            if (c > f0 + 1e-9 && c < f1 - 1e-9) fs.push(c);
+        }
+        for (k = Math.ceil(f0 * n + 1e-9); k <= Math.floor(f1 * n - 1e-9); k++) {
+            var ok = true;
+            for (j = 0; j < fs.length && ok; j++) if (Math.abs(k / n - fs[j]) < 0.35 / n) ok = false;
+            if (ok) fs.push(k / n);
+        }
+        fs.sort(function (a, b) { return a - b; });
+        var out = { f: [], p: [], corner: [] };
+        for (j = 0; j < fs.length; j++) {
+            if (out.f.length && fs[j] - out.f[out.f.length - 1] < 1e-9) continue;
+            var q = at(P, M, fs[j]), cc = false;
+            for (k = 0; k < cs.length; k++) if (circDist(fs[j], cs[k].f) < 1e-9) cc = true;
+            out.f.push(fs[j]);
+            out.p.push([q[0] - S.cx, q[1] - S.cy]);
+            out.corner.push(cc);
+        }
+        return out;
+    }
+
+    // DTW between two open spans, end paired with end, priced as warpDTW prices a step
+    // -> { cost, path: [[a, b, cornerA, cornerB], ...] }
+    function warpOpen(SA, SB) {
+        var n = SA.f.length - 1, m = SB.f.length - 1, W = m + 1, i, j, t, cost = new Array((n + 1) * W), from = new Array((n + 1) * W);
+        for (t = 0; t < cost.length; t++) {
+            cost[t] = Infinity;
+            from[t] = -1;
+        }
+        cost[0] = 0;
+        for (i = 0; i <= n; i++) {
+            for (j = 0; j <= m; j++) {
+                var c0 = cost[i * W + j];
+                if (c0 === Infinity) continue;
+                for (var st = 0; st < WARP_STEPS.length; st++) {
+                    var i2 = i + WARP_STEPS[st][0], j2 = j + WARP_STEPS[st][1];
+                    if (i2 > n || j2 > m) continue;
+                    var a0 = SA.p[i], a1 = SA.p[i2], b0 = SB.p[j], b1 = SB.p[j2], dt = ((SA.f[i2] - SA.f[i]) + (SB.f[j2] - SB.f[j])) / 2;
+                    var tx = a1[0] - b1[0], ty = a1[1] - b1[1], ux = a1[0] - a0[0], uy = a1[1] - a0[1], vx = b1[0] - b0[0], vy = b1[1] - b0[1];
+                    var la = Math.sqrt(ux * ux + uy * uy), lb = Math.sqrt(vx * vx + vy * vy);
+                    var c = c0 + (tx * tx + ty * ty) * dt + WARP_BEND * (2 * (la * lb - ux * vx - uy * vy) + WARP_STRETCH * (la - lb) * (la - lb)) / (dt > 1e-12 ? dt : 1e-12);
+                    var k2 = i2 * W + j2;
+                    if (c < cost[k2]) {
+                        cost[k2] = c;
+                        from[k2] = i * W + j;
+                    }
+                }
+            }
+        }
+        var path = [];
+        for (t = n * W + m; t >= 0; t = from[t]) {
+            var ii = Math.floor(t / W), jj = t % W;
+            path.push([SA.f[ii], SB.f[jj], SA.corner[ii], SB.corner[jj]]);
+        }
+        path.reverse();
+        return { cost: cost[n * W + m], path: path };
+    }
+
+    // the mirror axes two keys share (directions, radians): none when either has none, or
+    // both are round (any pairing keeps a circle a circle)
+    function sharedAxes(SA, SB, thorough) {
+        var a = mirrorAxes(SA, thorough), b = mirrorAxes(SB, thorough), out = [], i, j;
+        if (a === 'round' && b === 'round') return out;
+        if (a === 'round' || b === 'round') {
+            var only = a === 'round' ? b : a;
+            for (i = 0; i < only.length; i++) out.push(only[i].phi);
+            return out;
+        }
+        for (i = 0; i < a.length; i++) {
+            for (j = 0; j < b.length; j++) {
+                var d = Math.abs(a[i].phi - b[j].phi) % Math.PI;
+                if (Math.min(d, Math.PI - d) < SYM_ANGLE) {
+                    out.push(a[i].phi);
+                    break;
+                }
+            }
+        }
+        return out;
+    }
+
+    // does a pairing's morph stay mirror-symmetric about one of the axes its keys share (at 20,
+    // 40, 60, 80 %)? Keys that share an axis keep it with their even pairing (symmetric starts), so
+    // a warp has to as well: a star into the same star turned 36 deg swirled otherwise
+    function keepsAxes(A, MA, B, MB, pairs, axes) {
+        var pp = warpPoints(A, MA, B, MB, pairs, 128), us = [0.2, 0.4, 0.6, 0.8];
+        for (var q = 0; q < us.length; q++) {
+            var pts = [], j, cx = 0, cy = 0;
+            for (j = 0; j < pp.a.length; j++) pts.push([pp.a[j][0] + (pp.b[j][0] - pp.a[j][0]) * us[q], pp.a[j][1] + (pp.b[j][1] - pp.a[j][1]) * us[q]]);
+            pts = respace(distinct(pts), N);
+            for (j = 0; j < pts.length; j++) {
+                cx += pts[j][0];
+                cy += pts[j][1];
+            }
+            if (!keepsAxis(sized({ pts: pts, cx: cx / pts.length, cy: cy / pts.length }), axes)) return false;
+        }
+        return true;
+    }
+
+    // do samples S keep one of the axes? Their mirror error about each, measured directly:
+    // clearly symmetric (under WARP_SYM) or clearly not (over SYM_TOL) settles it; in between,
+    // the axis search the keys were measured with decides (within SYM_ANGLE). That search every
+    // time cost the symmetry demo ten minutes in After Effects
+    function keepsAxis(S, axes) {
+        var close = false, j;
+        for (j = 0; j < axes.length; j++) {
+            var e = poleAt(S, axes[j]).e;
+            if (e <= WARP_SYM) return true;
+            if (e <= SYM_TOL) close = true;
+        }
+        if (!close) return false;
+        var ax = mirrorAxes(S);
+        if (ax === 'round') return true;
+        for (j = 0; j < axes.length; j++) {
+            for (var i = 0; i < ax.length; i++) {
+                var d = Math.abs(ax[i].phi - axes[j]) % Math.PI;
+                if (Math.min(d, Math.PI - d) < SYM_ANGLE) return true;
+            }
+        }
+        return false;
+    }
+
+    // a step with a key that is a seed (under 2 % of the other's size: a hole waiting to grow,
+    // or gone, as matchPieces deals it): nothing to pair by shape (the hole's own timing grows
+    // or shrinks it), and the seed must come out as dealt, or a second fix moves it
+    function seedStep(A, MA, B, MB) {
+        var dA = pieceInfo(A).diag, dB = pieceInfo(B).diag;
+        return !(MA.total > 1e-6) || !(MB.total > 1e-6) || dA < 0.02 * dB || dB < 0.02 * dA;
+    }
+
+    // the same key twice (a hold): nothing to pair
+    function sameKey(A, B) {
+        if (A.v.length !== B.v.length) return false;
+        for (var k = 0; k < A.v.length; k++) {
+            if (Math.abs(A.v[k][0] - B.v[k][0]) > 1e-9 || Math.abs(A.v[k][1] - B.v[k][1]) > 1e-9) return false;
+            if (Math.abs(A.i[k][0] - B.i[k][0]) > 1e-9 || Math.abs(A.i[k][1] - B.i[k][1]) > 1e-9) return false;
+            if (Math.abs(A.o[k][0] - B.o[k][0]) > 1e-9 || Math.abs(A.o[k][1] - B.o[k][1]) > 1e-9) return false;
+        }
+        return true;
+    }
+
+    // the cheapest warp from both keys' own starts (the yardstick a second fix holds a pairing to)
+    function warpHere(A, MA, B, MB) {
+        var best = warpDTW(warpSamples(A, MA, WARP_N), warpSamples(B, MB, WARP_N), [0]).best;
+        return warpStraighten(best.path, WARP_STRAIGHT / WARP_N);
+    }
+
+    // pairs P (a from p0 to p0 + 1) read from a = t0 instead (the first node there, if a run
+    // of them holds a = t0); b unchanged, a moved by whole turns to start exactly at t0
+    function warpRotate(P, t0) {
+        var p0 = P[0][0], t = p0 + (t0 - p0 - Math.floor(t0 - p0)), n = P.length, k = 0, x, out = [], j, on;
+        while (k < n - 1 && P[k][0] < t - 1e-12) k++;
+        on = Math.abs(P[k][0] - t) <= 1e-12;
+        if (on) x = [t, P[k][1]];
+        else {
+            var w = (t - P[k - 1][0]) / (P[k][0] - P[k - 1][0]);
+            x = [t, P[k - 1][1] + (P[k][1] - P[k - 1][1]) * w];
+        }
+        out.push(x);
+        for (j = on ? k + 1 : k; j < n - 1; j++) out.push([P[j][0], P[j][1]]);
+        for (j = 0; j < k; j++) out.push([P[j][0] + 1, P[j][1] + 1]);
+        out.push([x[0] + 1, x[1] + 1]);
+        var d = t0 - t;
+        for (j = 0; j < out.length; j++) out[j][0] += d;
+        return out;
+    }
+
+    // breakpoints T (tuples of keys 0..c, key c's fraction from t0 to t0 + 1) and pairs P (key
+    // c -> key c + 1, a from t0 to t0 + 1) merged into tuples of keys 0..c + 1. Where both hold
+    // key c still, T's run goes first (key c + 1 waits), then P's (keys 0..c wait)
+    function warpMerge(T, P, c) {
+        var out = [], i = 0, j = 0, nT = T.length, nP = P.length, q, r;
+        while (i < nT || j < nP) {
+            var vt = i < nT ? T[i][c] : Infinity, vp = j < nP ? P[j][0] : Infinity;
+            if (Math.abs(vt - vp) <= 1e-12) {
+                var hold = P[j][1], lastT = T[i];
+                while (i < nT && Math.abs(T[i][c] - vt) <= 1e-12) {
+                    r = T[i].slice(0);
+                    r.push(hold);
+                    out.push(r);
+                    lastT = T[i++];
+                }
+                for (j++; j < nP && Math.abs(P[j][0] - vp) <= 1e-12; j++) {
+                    r = lastT.slice(0);
+                    r.push(P[j][1]);
+                    out.push(r);
+                }
+            } else if (vt < vp) {
+                var w = (vt - P[j - 1][0]) / (P[j][0] - P[j - 1][0]);
+                r = T[i++].slice(0);
+                r.push(P[j - 1][1] + (P[j][1] - P[j - 1][1]) * w);
+                out.push(r);
+            } else {
+                var w2 = (vp - T[i - 1][c]) / (T[i][c] - T[i - 1][c]);
+                r = [];
+                for (q = 0; q < T[i].length; q++) r.push(T[i - 1][q] + (T[i][q] - T[i - 1][q]) * w2);
+                r.push(P[j++][1]);
+                out.push(r);
+            }
+        }
+        return out;
+    }
+
+    // a breakpoint where key k is at fraction f (once round), unless one is there already
+    function warpInsert(T, k, f) {
+        var t0 = T[0][k], v = t0 + (f - t0 - Math.floor(f - t0)), j;
+        for (j = 0; j < T.length; j++) if (Math.abs(T[j][k] - v) <= 1e-9 || Math.abs(T[j][k] - v - 1) <= 1e-9) return T;
+        for (j = 0; j < T.length - 1; j++) {
+            if (T[j][k] < v && v < T[j + 1][k]) {
+                var w = (v - T[j][k]) / (T[j + 1][k] - T[j][k]), r = [];
+                for (var q = 0; q < T[j].length; q++) r.push(T[j][q] + (T[j + 1][q] - T[j][q]) * w);
+                T.splice(j + 1, 0, r);
+                return T;
+            }
+        }
+        return T;
+    }
+
+    // every step's pairing (steps[k]: key k-1 -> key k; [[0, 0], [1, 1]] spreads it evenly)
+    // composed into one shared parameter: breakpoints [f_0 .. f_K-1], each key's fraction
+    // (unwrapped, none going back), from key 0's start round to it again, with every key's
+    // corners among them
+    function warpCompose(steps, paths, Ms) {
+        var T = [], j, k;
+        for (j = 0; j < steps[1].length; j++) T.push([steps[1][j][0], steps[1][j][1]]);
+        for (k = 2; k < steps.length; k++) T = warpMerge(T, warpRotate(steps[k], T[0][k - 1]), k - 1);
+        for (k = 0; k < paths.length; k++) {
+            var cs = corners(paths[k], Ms[k]);
+            for (j = 0; j < cs.length; j++) T = warpInsert(T, k, cs[j].f);
+        }
+        return T;
+    }
+
+    // layout() for a warp: the breakpoints pinned, the remaining points spread over the gaps
+    // between them by the longest span any key has there (where one key holds still and
+    // another runs on, the one running needs its points as much as anywhere: by the keys' mean
+    // span u into n needed 160 points for what took 29 spread evenly). -> F[k] for each key:
+    // [{ f, pinned, t }]
+    function warpLayout(T, total) {
+        var K = T[0].length, pins = [], j, k, q;
+        for (j = 0; j < T.length - 1; j++) {
+            var same = j > 0;
+            for (k = 0; k < K && same; k++) if (Math.abs(T[j][k] - pins[pins.length - 1].t[k]) > 1e-12) same = false;
+            if (!same) pins.push({ t: T[j], next: T[j + 1] });
+            else pins[pins.length - 1].next = T[j + 1];
+        }
+        var free = Math.max(0, total - pins.length), given = 0, order = [], sum = 0;
+        for (j = 0; j < pins.length; j++) {
+            pins[j].len = 0;
+            for (k = 0; k < K; k++) pins[j].len = Math.max(pins[j].len, pins[j].next[k] - pins[j].t[k]);
+            sum += pins[j].len;
+        }
+        for (j = 0; j < pins.length; j++) {
+            var share = free * pins[j].len / (sum || 1);
+            pins[j].n = Math.floor(share);
+            pins[j].rem = share - pins[j].n;
+            pins[j].idx = j;
+            given += pins[j].n;
+            order.push(pins[j]);
+        }
+        order.sort(function (x, y) { return (y.rem - x.rem) || (x.idx - y.idx); });
+        for (j = 0; j < order.length && given < free; j++) {
+            order[j].n++;
+            given++;
+        }
+        // t: the shared parameter at each point, the keys' mean fraction (once round: 1)
+        var F = [], mean = function (tu) { var m = 0; for (var g = 0; g < K; g++) m += tu[g]; return m / K; };
+        for (k = 0; k < K; k++) F.push([]);
+        for (j = 0; j < pins.length; j++) {
+            var t0 = mean(pins[j].t), t1 = mean(pins[j].next);
+            for (k = 0; k < K; k++) {
+                F[k].push({ f: pins[j].t[k], pinned: true, t: t0 });
+                for (q = 1; q <= pins[j].n; q++) F[k].push({ f: pins[j].t[k] + (pins[j].next[k] - pins[j].t[k]) * q / (pins[j].n + 1), pinned: false, t: t0 + (t1 - t0) * q / (pins[j].n + 1) });
+            }
+        }
+        return F;
+    }
+
+    // the warps of a set of aligned keys: for each step, a warp where one is clean (not across a
+    // turn taken out, nor a key drawn as a turn and kept as drawn, nor one switched off in
+    // o.noWarp), else even. -> null when no step warps, else { T (breakpoints), warped: [k] }
+    function warpChain(al, keys, o, tick) {
+        var steps = [null], any = false, k;
+        for (k = 1; k < al.length; k++) {
+            var w = null;
+            if (!keys[k].turn && !keys[k].keptDrawn && !(o.noWarp && o.noWarp[k])) {
+                if (o.memo && o.memo.warps.hasOwnProperty(k)) w = o.memo.warps[k];
+                else {
+                    w = warpStep(al[k - 1], al[k], tick ? function () { tick(0.3 * k / al.length); } : null, o.symmetry === 'force');
+                    if (o.memo) o.memo.warps[k] = w;
+                }
+            }
+            steps.push(w ? w.pairs : [[0, 0], [1, 1]]);
+            keys[k].warped = !!w;
+            keys[k].mirrored = !!(w && w.mirror);
+            if (w) any = true;
+        }
+        if (!any) return null;
+        var Ms = [];
+        for (k = 0; k < al.length; k++) Ms.push(measure(al[k]));
+        return warpCompose(steps, al, Ms);
+    }
+
+    // how many breakpoints a warp may have: maxPoints, or the corners if they alone need more
+    function warpRoom(paths, maxPoints) {
+        var c = 1;
+        for (var k = 0; k < paths.length; k++) c += corners(paths[k], measure(paths[k])).length;
+        return Math.max(Math.max(4, Math.round(maxPoints || 100)), c);
+    }
+
+    // RMS travel (px) of the points as they pair (point k with point k), around the centres:
+    // 4 points a segment
+    function rmsPaired(A, B) {
+        var pa = [], pb = [], ca = [0, 0], cb = [0, 0], k, t, s = 0;
+        for (k = 0; k < segCount(A); k++) {
+            for (t = 0; t < 4; t++) {
+                var p = bez(seg(A, k), t / 4), q = bez(seg(B, k), t / 4);
+                pa.push(p);
+                pb.push(q);
+                ca[0] += p[0];
+                ca[1] += p[1];
+                cb[0] += q[0];
+                cb[1] += q[1];
+            }
+        }
+        for (k = 0; k < pa.length; k++) {
+            var dx = (pa[k][0] - ca[0] / pa.length) - (pb[k][0] - cb[0] / pb.length), dy = (pa[k][1] - ca[1] / pa.length) - (pb[k][1] - cb[1] / pb.length);
+            s += dx * dx + dy * dy;
+        }
+        return Math.sqrt(s / pa.length);
+    }
+
     // the vertices where the outline turns (in and out directions differ by more than 8 deg)
     function corners(P, M) {
         var out = [], n = P.v.length, fr = fractions(P, M), m = segCount(P);
@@ -1085,13 +1991,13 @@ var MF = (function () {
         for (j = 0; j < n; j++) {
             var f = F[j].f, hit = null;
             if (F[j].pinned) {
-                for (c = 0; c < cs.length; c++) if (Math.abs(cs[c].f - f) <= 1e-9 && !hit) hit = cs[c];
+                for (c = 0; c < cs.length; c++) if (circDist(cs[c].f, f) <= 1e-9 && !hit) hit = cs[c];
             }
             if (hit) {
-                pts.push({ p: [P.v[hit.k][0], P.v[hit.k][1]], f: hit.f, din: hit.din, dout: hit.dout });
+                pts.push({ p: [P.v[hit.k][0], P.v[hit.k][1]], f: hit.f + Math.round(f - hit.f), din: hit.din, dout: hit.dout, corner: true, t: F[j].t });
             } else {
                 var L = locate(M, wrap(P, f) * M.total), sg = seg(P, L.k), d = dirAt(sg, L.t);
-                pts.push({ p: bez(sg, L.t), f: f, din: d, dout: d });
+                pts.push({ p: bez(sg, L.t), f: f, din: d, dout: d, t: F[j].t });
             }
         }
         var R = { v: [], i: [], o: [], closed: P.closed };
@@ -1099,6 +2005,19 @@ var MF = (function () {
             var prev = j > 0 ? pts[j - 1].f : (P.closed ? pts[n - 1].f - 1 : null);
             var next = j < n - 1 ? pts[j + 1].f : (P.closed ? pts[0].f + 1 : null);
             var li = prev === null ? 0 : (pts[j].f - prev) * M.total / 3, lo = next === null ? 0 : (next - pts[j].f) * M.total / 3;
+            // a warp's point where the key changes pace (it runs faster on one side than the
+            // other) but the outline is smooth: both handles at one pace, so every key's in and
+            // out handles keep the same ratio (the shared parameter's) and the in-betweens, the
+            // keys' blend, stay smooth there too. Where the key holds still on one side that
+            // handle stays 0 (a piece grows out of this point: a real corner on the way)
+            if (F[j].t !== undefined && !pts[j].corner && li > 0 && lo > 0) {
+                var tp = j > 0 ? F[j - 1].t : F[n - 1].t - 1, tn = j < n - 1 ? F[j + 1].t : F[0].t + 1;
+                if (pts[j].t - tp > 1e-12 && tn - pts[j].t > 1e-12) {
+                    var pace = Math.sqrt((li / (pts[j].t - tp)) * (lo / (tn - pts[j].t)));
+                    li = pace * (pts[j].t - tp);
+                    lo = pace * (tn - pts[j].t);
+                }
+            }
             var di = pts[j].din || [0, 0], dd = pts[j].dout || [0, 0];
             R.v.push(pts[j].p);
             R.i.push([-di[0] * li, -di[1] * li]);
@@ -1126,7 +2045,8 @@ var MF = (function () {
     // B's segments at their quarter points (they are short), A's long ones at every one of
     // their SUB arc-length samples (a quarter point can miss where B cuts a tight bend).
     // Cheap enough for ExtendScript.
-    function strays(A, MA, B, dense) {
+    // (off: B starts at A's fraction off, as a warp can start a key elsewhere)
+    function strays(A, MA, B, dense, off) {
         var MB = measure(B), worst = 0, pass, j, q, mB = segCount(B);
         // a rebuilt segment whose handle points back against its chord is folding over a hook
         // or a bend too tight for its length: not followed (more points, or keep the originals)
@@ -1144,7 +2064,7 @@ var MF = (function () {
                 var c = seg(X, j), n = pass || dense ? SUB - 1 : bq.length;
                 for (var i = 0; i < n; i++) {
                     q = pass || dense ? i + 1 : bq[i];
-                    var f = (MX.start[j] + MX.cum[j][q]) / MX.total;     // the sample's own arc fraction
+                    var f = (MX.start[j] + MX.cum[j][q]) / MX.total + (off ? (pass ? -off : off) : 0);     // the sample's own arc fraction, in Y's
                     var d = Math.sqrt(near2(Y, MY, bez(c, q / SUB), f));
                     if (d > worst) worst = d;
                 }
@@ -1156,7 +2076,7 @@ var MF = (function () {
     // every key rebuilt with the same points, at most maxPoints (corners and the start always
     // get one, so a path with more corners than that gets one per corner); more points until
     // each key is within tol px or the cap is reached
-    function rebuild(paths, maxPoints, tol, tick) {
+    function rebuild(paths, maxPoints, tol, tick, T) {
         var Ms = [], p, most = 0;
         for (p = 0; p < paths.length; p++) {
             Ms.push(measure(paths[p]));
@@ -1166,13 +2086,14 @@ var MF = (function () {
         // start small (4 per drawn point, 16 to 64) and add points only as the tolerance needs
         var N = Math.min(cap, Math.min(64, Math.max(16, 4 * most))), out, worst;
         for (var round = 0; round < 8; round++) {
-            var F = layout(paths, Ms, N);
+            // shared fractions, or with a warp each key's own (T: the steps' warps composed)
+            var F = T ? warpLayout(T, N) : layout(paths, Ms, N);
             out = [];
             worst = 0;
             for (p = 0; p < paths.length; p++) {
                 if (tick) tick(0.3 + 0.6 * (round + p / paths.length) / 8);
-                out.push(resample(paths[p], Ms[p], F));
-                worst = Math.max(worst, strays(paths[p], Ms[p], out[p]));
+                out.push(resample(paths[p], Ms[p], T ? F[p] : F));
+                worst = Math.max(worst, strays(paths[p], Ms[p], out[p], false, T ? F[p][0].f : 0));
             }
             // aim at 80 % of the promise: the quick check can come in ~15 % under the truth
             if (worst <= tol * 0.8 || N >= cap) break;
@@ -1184,7 +2105,7 @@ var MF = (function () {
         var capped = worst > tol * 0.8 && worst < 1e9;
         if (capped) {
             worst = 0;
-            for (p = 0; p < paths.length; p++) worst = Math.max(worst, strays(paths[p], Ms[p], out[p], true));
+            for (p = 0; p < paths.length; p++) worst = Math.max(worst, strays(paths[p], Ms[p], out[p], true, T ? F[p][0].f : 0));
         }
         return { paths: out, deviation: worst, failed: worst >= 1e9, capped: capped };
     }
@@ -1194,25 +2115,79 @@ var MF = (function () {
     function matched(paths, o, turns, drawn) {
         // the decision align() takes, but a start that keeps the morph from crossing over counts
         // as fine without looking for another (untangle's stay)
-        var so = { stay: true }, key;
+        var so = { stay: true }, key, k, plans = [null];
         for (key in o) if (key !== 'stay') so[key] = o[key];
-        for (var k = 1; k < paths.length; k++) {
+        var warping = o.warp === true && o.mode !== 'exact' && paths[0].closed && !!o.start;
+        for (k = 1; k < paths.length; k++) {
             if (paths[k].v.length !== paths[0].v.length) return false;
             if (paths[0].closed) {
                 if (o.direction && o.sign) {
-                    var w = winding(paths[k]);
-                    if (w && w !== o.sign) return false;
+                    var wd = winding(paths[k]);
+                    if (wd && wd !== o.sign) return false;
                 }
                 if (o.start) {
                     var plan = startPlan(paths[k - 1], paths[k], pairOpts(so, drawn && drawn[k], 0));
-                    if (plan.nd > SNAP || plan.near > 0) return false;
                     if (plan.turn && !turns) return false;      // a turn to take out of the path
+                    plans.push(plan);
                 }
             } else if (o.direction && rms(paths[k - 1], reverse(paths[k])) < rms(paths[k - 1], paths[k]) * GAIN) {
                 return false;
             }
         }
-        return true;
+        if (!paths[0].closed || !o.start) return true;
+        // With the warp a step is matched when its points already pair cleanly (neither the
+        // in-betweens nor the final paths cross or pinch, and a mirror axis the keys share is
+        // kept) and cost at most WARP_SAME times what the cheapest warp from these same two
+        // starts costs: a path warped before (measured on the tests' warped keys fixed again:
+        // 0.3 to 1.9 times, mostly 1.0) is left as it is, keys drawn to match by point number
+        // are fixed (an L into the L flipped, 6 points each: 2.3 times; T into an upside-down
+        // T 6.7). Or when the fix spread it evenly before (its points at the same fractions in
+        // both keys); or, as without the warp, when the start needs no move and no warp is
+        // clean (u into n drawn with matching starts crosses itself 26 times: a warp is clean,
+        // so it isn't matched). A fresh warp isn't the yardstick: found on the rebuilt keys it
+        // can pick another start than on the drawn ones (E into F: a third cheaper)
+        var waiting = [], steps = [null], any = false;
+        for (k = 1; k < paths.length; k++) {
+            var startOk = !(plans[k].nd > SNAP || plans[k].near > 0);
+            steps.push([[0, 0], [1, 1]]);
+            var A = paths[k - 1], B = paths[k], MA = measure(A), MB = measure(B);
+            if (!warping || plans[k].turn || (drawn && drawn[k]) || sameKey(A, B) || seedStep(A, MA, B, MB)) {
+                if (!startOk) return false;
+                continue;
+            }
+            var vp = vertexPairs(A, B), even = true;
+            for (var j = 0; j < vp.length && even; j++) if (Math.abs(vp[j][1] - vp[j][0]) > 0.003) even = false;
+            if (startOk && even) continue;
+            var thr = NECK_MU * Math.min(neckOf(samples(A, MA, 64).pts), neckOf(samples(B, MB, 64).pts));
+            var chk = warpCheck(A, MA, B, MB, vp, thr);
+            if (!chk.cross && !chk.pinch && !finalCrosses(A, B)) {
+                var axes = sharedAxes(samples(A, MA), samples(B, MB));
+                if (!axes.length || keepsAxes(A, MA, B, MB, vp, axes)) {
+                    var mine = warpPrice(A, B, vp);
+                    if (mine <= WARP_SAME * warpPrice(A, B, warpHere(A, MA, B, MB)) + 1e-3) continue;
+                    // a warp the fix took on a later try (M into W: the two cheaper ones crossed)
+                    // costs more than the best from its starts, which crosses: held to the warp
+                    // the fix would take now instead (an L drawn point for point: 2.3 times it)
+                    var now = warpStep(A, B, null, o.symmetry === 'force');
+                    if (now && mine <= WARP_SAME_NOW * warpPrice(A, B, now.pairs) + 1e-3) continue;
+                }
+            }
+            if (!startOk) return false;
+            waiting.push(k);
+        }
+        // the steps left: matched only if none has a clean warp, or the warps' breakpoints
+        // alone pass the point cap (the fix then spreads evenly, as it found them)
+        for (var q = 0; q < waiting.length; q++) {
+            var w = warpStep(paths[waiting[q] - 1], paths[waiting[q]], null, o.symmetry === 'force');
+            if (w) {
+                steps[waiting[q]] = w.pairs;
+                any = true;
+            }
+        }
+        if (!any) return true;
+        var Ms = [];
+        for (k = 0; k < paths.length; k++) Ms.push(measure(paths[k]));
+        return warpCompose(steps, paths, Ms).length - 1 > warpRoom(paths, o.maxPoints);
     }
 
     // fix(paths, { mode, maxPoints, tolerance, start, direction }) -> { paths, keys, matched,
@@ -1228,26 +2203,123 @@ var MF = (function () {
     // So the final paths of such a step are checked for crossings (4 chords a segment, the 19
     // in-betweens), and if one crosses the fix is done again without the pinch rule.
     function fix(paths, opt) {
-        var r = fixOnce(paths, opt);
-        if (opt && opt.neck === false) return r;
-        for (var k = 1; k < r.keys.length; k++) {
-            if (!r.keys[k].unpinched) continue;
-            var A = r.paths[k - 1], B = r.paths[k];
-            for (var u = 0; u < XU.length; u++) {
-                var L = lerp(A, B, XU[u]), pts = [];
-                for (var g = 0; g < segCount(L); g++) {
-                    var c = seg(L, g);
-                    for (var t = 0; t < 4; t++) pts.push(bez(c, t / 4));
+        var o2 = {}, key, k, round;
+        if (opt) for (key in opt) o2[key] = opt[key];
+        o2.noWarp = {};
+        // sym on, steps whose symmetric starts all crossed on samples: true = tried with the
+        // symmetric start anyway, false = that crossed on the final paths too
+        o2.symKeep = {};
+        // what a retry can reuse: whether the keys matched, their alignment (same pinch rule),
+        // each step's warp (o2.memo, read by fixOnce and warpChain)
+        o2.memo = { warps: {} };
+        if (opt && opt.progress) {
+            var hi = 0;
+            o2.progress = function (f) {
+                hi = Math.max(hi, f);
+                return opt.progress(hi);
+            };
+        }
+        for (round = 0; round < 1 + 3 * paths.length; round++) {
+            var r = fixOnce(paths, o2), again = false;
+            for (k = 1; k < r.keys.length; k++) {
+                var kk = r.keys[k];
+                // sym on: the samples said every symmetric start crosses; the final paths decide
+                // (an arrow up into an arrow down crossed on samples, never on its final paths)
+                if (kk.symRejected && o2.symKeep[k] === undefined) {
+                    o2.symKeep[k] = true;
+                    again = true;
+                    continue;
                 }
-                if (selfCrossings(pts, 1)) {
-                    var o2 = {}, key;
-                    if (opt) for (key in opt) o2[key] = opt[key];
-                    o2.neck = false;
-                    return fixOnce(paths, o2);
+                if (o2.symKeep[k] === true && !kk.warped && finalCrosses(r.paths[k - 1], r.paths[k])) {
+                    o2.symKeep[k] = false;
+                    again = true;
+                    continue;
                 }
+                // a warped step whose keys share a mirror axis must keep it as After Effects
+                // blends the final paths (checked on samples first, which borderline cases pass)
+                if (kk.warped && !kk.mirrored && r.paths[0].closed && !finalKeepsAxes(r.paths[k - 1], r.paths[k])) {
+                    o2.noWarp[k] = true;
+                    again = true;
+                    continue;
+                }
+                if (!(kk.warped || (kk.unpinched && o2.neck !== false)) || !finalCrosses(r.paths[k - 1], r.paths[k])) continue;
+                // a warped step crossing between its samples is spread evenly instead; a start
+                // moved off a pinch, kept as it was
+                if (kk.warped) o2.noWarp[k] = true;
+                else o2.neck = false;
+                again = true;
             }
+            if (!again) break;
+        }
+        // a warp the max stops far short of the shapes: its breakpoints take points the outline
+        // needs (random keys at max 24: matched as drawn without it, 14 px off with it). Kept
+        // if it stays within 10 times the tolerance (at max 100, letters warped come 0.2-0.5 px
+        // off, said in the report, for a morph that no longer crosses itself), or about as
+        // close as the fix without it (a quarter more at most)
+        var warped = false;
+        for (k = 1; k < r.keys.length; k++) if (r.keys[k].warped) warped = true;
+        if (warped && r.capped && r.deviation > 10 * (opt && opt.tolerance !== undefined ? opt.tolerance : 0.1)) {
+            var o3 = {};
+            if (opt) for (key in opt) o3[key] = opt[key];
+            o3.warp = false;
+            var plain = fix(paths, o3), tol = o3.tolerance === undefined ? 0.1 : o3.tolerance;
+            if (r.deviation > Math.max(10 * tol, (plain.matched || !plain.capped ? 0 : plain.deviation) * 1.25)) return plain;
         }
         return r;
+    }
+
+    // the fraction of A where B starts (B rebuilt from A, maybe from elsewhere round: a warp)
+    function startOn(A, B) {
+        if (!A.closed) return 0;
+        var M = measure(A), best = 0, bd = Infinity;
+        for (var j = 0; j < 512; j++) {
+            var p = at(A, M, j / 512), d = (p[0] - B.v[0][0]) * (p[0] - B.v[0][0]) + (p[1] - B.v[0][1]) * (p[1] - B.v[0][1]);
+            if (d < bd - 1e-9) {
+                bd = d;
+                best = j / 512;
+            }
+        }
+        return best;
+    }
+
+    // do the final paths A -> B keep a mirror axis both share (at 20, 40, 60, 80 %)? True when
+    // they share none
+    function finalKeepsAxes(A, B) {
+        var axes = sharedAxes(samples(A, measure(A)), samples(B, measure(B))), us = [0.2, 0.4, 0.6, 0.8];
+        if (!axes.length) return true;
+        for (var q = 0; q < us.length; q++) {
+            var L = lerp(A, B, us[q]);
+            if (!keepsAxis(sized(samples(L, measure(L))), axes)) return false;
+        }
+        return true;
+    }
+
+    // do the in-betweens of the final paths A -> B cross themselves (4 chords a segment, 19)?
+    // (4 chords a segment, also on dense paths: 2 saved half a second a step in After Effects
+    // and let C into D through, crossing itself)
+    function finalCrosses(A, B) {
+        var per = 4;
+        for (var u = 0; u < XU.length; u++) {
+            var L = lerp(A, B, XU[u]), pts = [];
+            for (var g = 0; g < segCount(L); g++) {
+                var c = seg(L, g);
+                for (var t = 0; t < per; t++) pts.push(bez(c, t / per));
+            }
+            if (selfCrossings(distinct(pts), 1, true)) return true;
+        }
+        return false;
+    }
+
+    // a loop's points without repeats (points a warp keeps together in both keys of a step,
+    // while a third key moves, are one point there: their rounding noise isn't a crossing)
+    function distinct(pts) {
+        var out = [], k;
+        for (k = 0; k < pts.length; k++) {
+            var p = out.length ? out[out.length - 1] : null;
+            if (!p || Math.abs(pts[k][0] - p[0]) > 1e-6 || Math.abs(pts[k][1] - p[1]) > 1e-6) out.push(pts[k]);
+        }
+        while (out.length > 1 && Math.abs(out[0][0] - out[out.length - 1][0]) <= 1e-6 && Math.abs(out[0][1] - out[out.length - 1][1]) <= 1e-6) out.pop();
+        return out;
     }
 
     function fixOnce(paths, opt) {
@@ -1265,7 +2337,8 @@ var MF = (function () {
         var drawn = [null];
         for (k = 1; k < paths.length; k++) drawn.push(drawnTurn(paths[k - 1], paths[k]));
         var keys = [], res;
-        if (matched(paths, o, false, drawn)) {
+        var memo = o.memo || null;
+        if (!(memo && memo.unmatched) && matched(paths, o, false, drawn)) {
             res = { paths: [], deviation: 0 };
             for (k = 0; k < paths.length; k++) {
                 res.paths.push(copy(paths[k]));
@@ -1283,7 +2356,9 @@ var MF = (function () {
         // the same points, starts and direction, only turned (a path fixed before with turn on,
         // its in-betweens removed): kept as they are, and the turn taken out again, so fixing
         // twice writes the same keys
-        var kept = !!(o.rotate && paths[0].closed && matched(paths, o, true, drawn)), mode = o.mode;
+        if (memo) memo.unmatched = true;
+        var kept = !!(o.rotate && paths[0].closed && !(memo && memo.unkept) && matched(paths, o, true, drawn)), mode = o.mode;
+        if (memo && !kept) memo.unkept = true;
         if (kept) {
             res = { paths: [], deviation: 0, capped: false };
             for (k = 0; k < paths.length; k++) {
@@ -1292,18 +2367,59 @@ var MF = (function () {
                 keys.push({ reversed: false, moved: false, offset: 0, turn: kp ? kp.turn : false, drawn: kp ? kp.drawn : 0, keptDrawn: kp ? kp.keptDrawn : false });
             }
         } else {
-            var al = [copy(paths[0])], shift = [0];
+            var keepSig = '', key5;
+            for (key5 in (o.symKeep || {})) keepSig += key5 + ':' + o.symKeep[key5] + ';';
+            var al = [copy(paths[0])], shift = [0], again = memo && memo.al && memo.neck === o.neck && memo.keep === keepSig;
             keys.push({ reversed: false, moved: false, offset: 0 });
             for (k = 1; k < paths.length; k++) {
+                if (again) {
+                    al.push(copy(memo.al[k]));
+                    var info = {}, key3;
+                    for (key3 in memo.infos[k]) info[key3] = memo.infos[k][key3];
+                    keys.push(info);
+                    continue;
+                }
                 if (tick) tick(0.3 * k / paths.length);
                 // a key drawn as a turn keeps its pairing: its start moves as far as the previous one's did
-                var r = align(al[k - 1], copy(paths[k]), pairOpts(o, drawn[k], shift[k - 1]));
+                // (the warp comes after: its samples sit relative to each key's start, and from the
+                // start as drawn a T into an upside-down T came out lopsided, losing its mirror axis)
+                var po = pairOpts(o, drawn[k], shift[k - 1]);
+                if (o.symKeep && o.symKeep[k] === true) {
+                    var pt = {}, key6;
+                    for (key6 in po) pt[key6] = po[key6];
+                    pt.symTrust = true;
+                    po = pt;
+                }
+                var r = align(al[k - 1], copy(paths[k]), po);
                 al.push(r.P);
                 keys.push(r.info);
                 shift.push(r.info.moved ? r.info.offset : 0);
             }
+            if (memo && !again) {
+                memo.neck = o.neck;
+                memo.keep = keepSig;
+                memo.al = [];
+                memo.infos = [];
+                memo.warps = {};
+                for (k = 0; k < al.length; k++) {
+                    memo.al.push(copy(al[k]));
+                    var copyInfo = {}, key4;
+                    for (key4 in keys[k]) copyInfo[key4] = keys[k][key4];
+                    memo.infos.push(copyInfo);
+                }
+            }
             if (mode !== 'exact') {
-                res = rebuild(al, o.maxPoints, o.tolerance, tick);
+                // closed outlines paired by what they are (warp), where that is clean
+                var T = o.warp === true && paths[0].closed ? warpChain(al, keys, o, tick) : null;
+                var dropped = T && T.length - 1 > warpRoom(al, o.maxPoints);
+                if (!dropped) {
+                    res = rebuild(al, o.maxPoints, o.tolerance, tick, T);
+                    dropped = res.failed && T;
+                }
+                if (dropped) {
+                    for (k = 1; k < keys.length; k++) keys[k].warped = false;
+                    res = rebuild(al, o.maxPoints, o.tolerance, tick);
+                }
                 if (res.failed) mode = 'exact';       // loops or cusps the rebuild can't follow
             }
             if (mode === 'exact') res = { paths: unify(al).paths, deviation: 0, capped: false };
@@ -1311,7 +2427,11 @@ var MF = (function () {
         for (k = 0; k < paths.length; k++) {
             keys[k].added = res.paths[k].v.length - paths[k].v.length;
             keys[k].before = k ? rms(paths[k - 1], paths[k]) : 0;
-            keys[k].after = k ? rms(res.paths[k - 1], res.paths[k]) : 0;
+            if (mode === 'exact') keys[k].warped = false;
+            keys[k].after = k ? (keys[k].warped ? rmsPaired(res.paths[k - 1], res.paths[k]) : rms(res.paths[k - 1], res.paths[k])) : 0;
+            // a warped step pairs its own way: the start chosen against crossing or pinching
+            // isn't what keeps it clear, so it isn't reported
+            if (keys[k].warped) keys[k].untangled = keys[k].unpinched = false;
         }
         // the turn (o.rotate, closed paths, some pair turned): taken out of the keys, which come
         // back around their centres and unturned ("local"), with the cumulative angle (degrees,
@@ -2067,10 +3187,11 @@ var MF = (function () {
         swing: swing, progressOf: progressOf, matchPieces: matchPieces, pieceInfo: pieceInfo,
         holeTiming: holeTiming, holePhase: holePhase, holeAt: holeAt, holeOutside: holeOutside, holeGone: holeGone,
         holeKeyed: holeKeyed, holeKeeps: holeKeeps, isClosed: isClosed, turnBetween: turnBetween,
+        warpStep: warpStep, warpPrice: warpPrice, vertexPairs: vertexPairs, rmsPaired: rmsPaired,
         // a closed path's mirror axes: 'round' or [{ phi (radians), pole (fraction), e }] (tests)
         mirrorAxes: function (P, thorough) { return mirrorAxes(samples(P, measure(P), thorough ? 2 * N : N), thorough); },
         // how far two paths part (px), quick two-way check (what the rebuild holds to its tolerance)
-        gap: function (A, B) { return strays(A, measure(A), B); }
+        gap: function (A, B) { return strays(A, measure(A), B, false, startOn(A, B)); }
     };
 })();
 
@@ -2089,7 +3210,7 @@ var MF = (function () {
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.18.0';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.19.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -2654,7 +3775,7 @@ var MorphFixer = (function () {
             for (var q = 0; q < at.length; q++) prop.setValueAtKey(at[q], fromMF(r.paths[q]));
         };
         rep.kept = !!r.kept;
-        var lo = counts[0], hi = counts[0], rev = 0, mov = 0, b = 0, a = 0, n = 0, untangled = 0, unpinched = 0, crossing = [], symmetric = 0;
+        var lo = counts[0], hi = counts[0], rev = 0, mov = 0, b = 0, a = 0, n = 0, untangled = 0, unpinched = 0, crossing = [], symmetric = 0, warped = 0;
         for (k = 0; k < idx.length; k++) {
             if (counts[k] < lo) lo = counts[k];
             if (counts[k] > hi) hi = counts[k];
@@ -2663,6 +3784,7 @@ var MorphFixer = (function () {
             if (r.keys[k].untangled) untangled++;
             if (r.keys[k].unpinched) unpinched++;
             if (r.keys[k].symmetric) symmetric++;
+            if (r.keys[k].warped) warped++;
             if (r.keys[k].crossings) crossing.push(k + '-' + (k + 1));      // keys counted from 1
             if (k && r.keys[k].before > 0.001) {
                 b += r.keys[k].before;
@@ -2679,6 +3801,7 @@ var MorphFixer = (function () {
         rep.unpinched = unpinched;      // ... of them, so it doesn't nearly touch itself (it didn't cross)
         rep.crossing = crossing;        // steps that still do: no start traveling about as little avoids it
         rep.symmetric = symmetric;      // starts chosen so the morph stays mirror-symmetric
+        rep.warped = warped;            // steps whose points pair by what the shapes are (MF: warp)
         rep.before = n ? b / n : 0;
         rep.after = n ? a / n : 0;
         rep.mode = r.mode;
@@ -2735,6 +3858,7 @@ var MorphFixer = (function () {
         else how = 'rebuilt within ' + round3(rep.deviation) + ' px of each shape';
         if (rep.mode !== 'exact' && !rep.fellBack && Math.abs(rep.scale - 1) > 0.005) how += ' on screen (it is scaled to ' + Math.round(rep.scale * 100) + ' %)';
         var crossed = '';
+        if (rep.warped) crossed += '; ' + rep.warped + (rep.warped > 1 ? ' steps' : ' step') + ' paired by shape (pieces slide, grow or shrink instead of swinging round)';
         if (rep.symmetric) crossed += '; ' + rep.symmetric + (rep.symmetric > 1 ? ' starts' : ' start') + ' chosen so it morphs symmetrically (the shapes share a mirror axis)';
         var cross = rep.untangled - (rep.unpinched || 0);
         if (cross > 0) crossed += '; ' + cross + (cross > 1 ? ' starts' : ' start') + ' chosen so the shape does not cross itself on the way';
@@ -2839,11 +3963,15 @@ var MorphFixer = (function () {
     // drawn points (fitted to bench/ae-bench.jsx: Smooth costs most when it rebuilds up to its
     // max, Exact about a tenth, turn up to twice). The crossover and quick symmetry checks
     // (0.11) add a fixed cost per key, the thorough symmetry test (sym) more: from Node
-    // (0.3 and 2.2 ms a key) times the ~300x ExtendScript runs slower; not yet benched in AE
+    // (0.3 and 2.2 ms a key) times the ~300x ExtendScript runs slower; not yet benched in AE.
+    // Smooth with shape (pairing by shape, 0.19) WARP_FACTOR times as long: in AE 27 the demo's
+    // morph 7.5 s -> 24.5, its letters 61 -> 191 s, its symmetry chain 6.3 -> 8.6
+    // (bench/warp-demo.jsx)
+    var WARP_FACTOR = 3;
     function keyMs(n, o) {
         var c;
         if (o.mode === 'exact') c = 90 + 1.5 * n;
-        else c = Math.min(2000 * Math.max(0.3, (o.maxPoints || 100) / 100), 170 + 55 * n);
+        else c = Math.min(2000 * Math.max(0.3, (o.maxPoints || 100) / 100), 170 + 55 * n) * (o.warp === true ? WARP_FACTOR : 1);
         if (o.rotate) c *= o.mode === 'exact' ? 2 : 1.25;
         return c + (o.symmetry === 'force' ? 700 : 90);
     }
@@ -3223,7 +4351,8 @@ var MorphFixer = (function () {
             ['Exact', 'Keeps your own points and only adds new ones. Keys stay exactly as drawn, but the morph may show small bumps.'],
             ['max', 'The most points Smooth may use per key. If the status ends in "(max)", raise it for a closer fit: big or detailed artwork, like type at 400 px, often needs 200 to 300.'],
             ['turn', 'For shapes that rotate between keys (an F turning onto its side): they swing round instead of squashing. "turn" writes a key every frame, the smoothest; "turn, few keys" one about every 15 deg, easy to retime.'],
-            ['sym', 'Shapes that share a mirror axis morph symmetrically, each side mirroring the other, even if it costs more travel. Off: only when it costs about the same.']
+            ['sym', 'On by default: shapes that share a mirror axis morph symmetrically, each side mirroring the other, even if points travel further. Off: only when it costs about the same.'],
+            ['shape', 'Pairs the outlines by shape: parts slide, grow or shrink instead of swinging round (a bar shrinks into its stem, u rolls into n without folding). About 3 times as slow: off unless ticked.']
         ],
         tips: [
             'Fixed paths have more points: finish drawing your keys first.',
@@ -3234,7 +4363,7 @@ var MorphFixer = (function () {
             'Hover the status line to see what the last fix did.'
         ]
     };
-    var WRAP = 80;      // characters per line in the guide window (wrapped here, not by ScriptUI): 80 keeps it under 800 px tall
+    var WRAP = 96;      // characters per line in the guide window (wrapped here, not by ScriptUI): 80 grew to 858 px tall with sym and shape (0.19); measured in AE 27: 88 -> 481 x 810 px, 92 -> 513 x 794, 96 -> 527 x 778
 
     function guideText() {
         var s = NAME + ' ' + VERSION + '\n' + GUIDE.lead + '\n\nHow to use\n', i;
@@ -3516,9 +4645,15 @@ var MorphFixer = (function () {
         turnBox.helpTip = 'For shapes that rotate between keys: they swing round instead of squashing.\n' +
             'turn: a key every frame, the smoothest. turn, few keys: a key about every 15 deg, easy to retime.';
         var symBox = row.add('checkbox', undefined, 'sym');
-        symBox.value = setting('symmetry', 'false') === 'true';
+        // on unless turned off (0.19: symmetry over travel); kept under a new key, so a sym switched
+        // off under 0.18's default doesn't carry over
+        symBox.value = setting('symmetryOn', 'true') === 'true';
         symBox.helpTip = 'Symmetry first: shapes that share a mirror axis morph symmetrically even when it costs more travel.\n' +
             'Off, symmetry still wins when it costs about the same.';
+        var shapeBox = row.add('checkbox', undefined, 'shape');
+        shapeBox.value = setting('warp', 'false') === 'true';
+        shapeBox.helpTip = 'Pair by shape: parts slide, grow or shrink instead of swinging round (a bar shrinks into its stem, an arm draws back).\n' +
+            'About 3 times as slow. Off: points pair by how far round the outline they are.';
         var fixB = acts.add('button', undefined, 'Fix');
         fixB.preferredSize = [36, 22];
         fixB.helpTip = 'Fix the selected paths, or every keyed path on the selected layers';
@@ -3547,7 +4682,10 @@ var MorphFixer = (function () {
             save('turn', turnBox.selection.index === 2 ? 'few' : (turnBox.selection.index === 1 ? 'true' : 'false'));
         };
         symBox.onClick = function () {
-            save('symmetry', symBox.value);
+            save('symmetryOn', symBox.value);
+        };
+        shapeBox.onClick = function () {
+            save('warp', shapeBox.value);
         };
         max.onChange = function () {
             var n = Math.round(Number(max.text));
@@ -3557,7 +4695,7 @@ var MorphFixer = (function () {
         };
         fixB.onClick = function () {
             var n = Math.round(Number(max.text));
-            var res = fixSelection({ mode: mode.selection.index === 1 ? 'exact' : 'smooth', maxPoints: n >= 4 ? n : 100, rotate: turnBox.selection.index > 0, turnKeys: turnBox.selection.index === 2 ? 'few' : 'frame', symmetry: symBox.value ? 'force' : undefined });
+            var res = fixSelection({ mode: mode.selection.index === 1 ? 'exact' : 'smooth', maxPoints: n >= 4 ? n : 100, rotate: turnBox.selection.index > 0, turnKeys: turnBox.selection.index === 2 ? 'few' : 'frame', symmetry: symBox.value ? 'force' : undefined, warp: shapeBox.value });
             status.text = res.status;
             status.helpTip = res.detail;
             w.lastResult = res;

@@ -1,6 +1,6 @@
 # Mask Morph Fixer for After Effects
 
-Version 0.18.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
+Version 0.19.0 · After Effects 2026 (26.x) and 27 on Windows (Mac untested). The launch
 checklist (what's left before a 1.0 worth selling) is a private page outside the repo.
 
 `Mask Morph Fixer.jsx` makes a keyed path or mask morph cleanly. After Effects morphs one keyframe's path
@@ -8,8 +8,10 @@ into the next point by point, in straight lines, so keys drawn independently tea
 numbers of points), spin (each key starts at a different point) or turn inside out (one
 drawn the other way round), and a shape that turns (an F becoming an F on its side) shrinks
 through the middle. The fixer gives every keyframe the same points, the same direction and
-a start point that keeps the morph still, and can write a turn into the path so the shape
-swings round, without changing what any key looks like, its time or its easing.
+a start point that keeps the morph still, can pair the outlines by shape (**shape**: a bar
+shrinks into its stem, an arm draws back, instead of everything swinging round), and can
+write a turn into the path so the shape swings round, without changing what any key looks like, its
+time or its easing.
 
 ## Set up
 
@@ -34,8 +36,8 @@ file once and click **? › Update the panel**. If After Effects blocks the copy
 ## Run
 
 ```
-[Smooth ▾] max [100] [no turn ▾] [ ] sym [Fix] [?]    docked narrow:  [Smooth ▾] max [100] [no turn ▾] [ ] sym
-Fixed 1: 64 pts, 0.065 px                                               [Fix] [?]
+[Smooth ▾] max [100] [no turn ▾] [x] sym [ ] shape [Fix] [?]    docked narrow:  [Smooth ▾] max [100] [no turn ▾] [x] sym [ ] shape
+Fixed 1: 64 pts, 0.065 px                                                         [Fix] [?]
 ```
 
 Select the keyed paths (or their groups, or whole layers) and click **Fix**. The status line
@@ -108,12 +110,14 @@ cancelling changes nothing.
 | **Exact** | | Your points stay where they are; the fixer only adds points by splitting curves where they lie, so every key is exact. In-betweens may show small kinks where a point's handles are uneven |
 | **max** | 100 | Smooth only: the most points per key. If a shape needs more to stay within 0.1 px, it stops there and the status says how close it got ("~0.76 px (max)"). Big or detailed artwork needs more: letters at 400 px landed 0.15–0.7 px off at 100; 200–300 brings them in |
 | **turn** | no turn | For shapes that turn between keys: points are matched as if the shape turned, and the shape swings round as a whole, written into the path, on shape layers and masks alike; no transform (group or layer) is keyed. **turn**: a key every frame along the arc, the smoothest. **turn, few keys**: a key about every 15 deg (5 in a quarter turn), auto-bezier in time so the speed runs smoothly through them; drag them to retime the turn. Between them After Effects blends two turned copies, which shrinks the shape a little (the demo's F: 98 % of its area at worst, 1.5 px off the arc). Steps that don't turn stay put. A key you turned with Free Transform swings by the angle you drew |
-| **sym** | off | Symmetry first. Shapes that share a mirror axis (a star into itself turned, a plus into an x, a heart into a circle) morph symmetrically, each side mirroring the other, even when another match travels less, and a more thorough test finds axes in shapes drawn a little unevenly. Off, symmetry still wins whenever it costs about the same (up to 20 % more squared travel) |
+| **shape** | off | Smooth only: pairs the outlines by shape, so their parts slide, grow or shrink instead of swinging round (a T into an upside-down T becomes an I-beam on the way, E draws its arm back into the stem, u rolls into n without folding over itself). About 3 times as slow, and a warped outline needs more points; a step it can't pair cleanly is spread evenly as without it. See "Pairing by shape" below |
+| **sym** | on | Symmetry first (on by default since 0.19: graceful, intentional motion over short paths). Shapes that share a mirror axis (a star into itself turned, a plus into an x, a heart into a circle) morph symmetrically, each side mirroring the other, even when another match travels less, and a more thorough test finds axes in shapes drawn a little unevenly. Off, symmetry still wins whenever it costs about the same (up to 20 % more squared travel) |
 
 Always on: every key is drawn in the same direction, and each key's start slides to where
-the morph from the previous key travels least. All else being equal, it takes a start that
-keeps the shape from crossing itself on the way (pinching into lobes or twisting a knot), or
-from coming within half its thinnest drawn part of itself,
+the morph from the previous key travels least, unless another start keeps the shape from
+crossing itself on the way (pinching into lobes or twisting a knot), from coming within half
+its thinnest drawn part of itself, or from losing over 40 % of its area (folding flat): then
+that one, however far it travels (travel only breaks ties between clean starts),
 then one that keeps it mirror-symmetric when both keys share a mirror axis, and the report
 says when it did either. A key you turned with Free Transform (the same points, turned) keeps
 the turn you drew: a star turned a tip turns, a gear turned half a tooth turns rather than
@@ -149,21 +153,62 @@ stay as they were.
   on the sample grid, then refined). It moves only when that cuts the error by 5 % or more,
   so symmetric shapes keep their starts and a second run changes nothing.
 - **Crossover:** the morph from the previous key is checked at 19 in-betweens (64 points of
-  each outline): if one crosses itself, the starts that travel at most 20 % more (squared)
-  are tried, the current start first and then the cheapest, and the first whose in-betweens
-  don't cross, with crossing-free neighbours on the 128-step grid, is taken (a start right
-  next to a crossing one still crossed between the checked in-betweens). On the real-type set
+  each outline, a crossing confirmed on all 128): if one crosses itself, the other starts are
+  tried, the current start first and then the cheapest (48 of them), and the first whose
+  in-betweens don't cross, with crossing-free neighbours on the 128-step grid, is taken (a
+  start right next to a crossing one still crossed between the checked in-betweens). Until
+  0.19 only starts travelling at most 20 % more were tried; any start (the user: "aesthetic
+  and intentional movement is what's important, not efficiency") leaves 141 of 540 Comic Neue
+  letter pairs crossing instead of 201, and 144 pinching instead of 188, for 10 % more travel. On the real-type set
   that untangles a into e, M into W and a step of the ten-letter chain for 0.1 % more travel
   (`review/crossover.png`: top, the least-travel start; below, the one taken). Keys drawn
   crossing themselves are left alone. A step no start untangles is named in the report.
 - **Near-touching:** an in-between whose outline comes within half the keys' thinnest part of
   itself (its neck: the least distance between two of its 64 points at least 4 apart round
   the outline, against the thinner key's) only just escapes crossing, and reads as one about
-  to break in two. A start that keeps clear is taken the same way, among those travelling
-  about as little, and only if it crosses nowhere, checked on all 128 samples and then again
+  to break in two. A start that keeps clear is taken the same way, and only if it crosses nowhere, checked on all 128 samples and then again
   on the rebuilt path (& into $'s clear start twisted between the samples, so it keeps its
   own). Letter pairs: v into h 44 % of its thinnest part became 69 %, W into k 56 % 77 %, for
   under 1 % more travel; about 20 % more time a fix in Node.
+- **Collapsing:** an in-between can keep clear of itself and still fold flat: an F drawn
+  turned 90 deg, blended as drawn, shrinks to half its area halfway. An in-between under 60 %
+  of the smaller key's area counts as a pinch, for the start and for the warp.
+- **Pairing by shape (shape, the warp; off by default):** spread evenly from their starts, two
+  outlines pair points by how far round they are, and between unlike shapes that folds: a T
+  into an upside-down T pinched into a figure eight, u into n crossed itself 26 times. With
+  **shape**, each step of a closed path in Smooth is paired by dynamic time warping over
+  samples of both outlines, where a stretch of one outline may also pair with a single point
+  of the other: a bar that shrinks away, a stem that grows out of a bar. The price of a pairing
+  is its travel (around each shape's centre) plus how much each little piece of outline turns
+  on the way (and a tenth of that for growing or shrinking along itself): pieces slide or
+  grow instead of swinging round. Found coarse (24 samples, the next key's starts within 0.15
+  of the one the fix chose: on the tests' type every warp took one within 0.125), then fine
+  (80 samples and every corner, from the fine start nearest the coarse one, only near the
+  coarse pairing), straightened into a few runs (a run shorter than 4 samples is smoothed into
+  its neighbours: short ones left little teeth where a star's arm met the square it became),
+  and kept only if its in-betweens neither cross nor pinch (checked again on the final paths);
+  else the next start is tried, three at most, and failing those the step is spread evenly as
+  before (C into H). Keys that share mirror axes are only ever paired symmetrically: each axis
+  meets each outline twice, so k shared axes cut both outlines into 2k equal slices; one slice
+  of A is paired with the slice of B that starts on the same axis, and that pairing is
+  mirrored about each axis in turn all the way round. The morph is then exactly as symmetric
+  as its keys, and every arm of a star or a plus does the same thing at the same time (a warp
+  mirrored about one axis only kept the axis but flattened a star's top point while the others
+  turned: symmetric, not in unison). With none clean, the step is spread evenly from a
+  symmetric start.
+  The T becomes an I-beam on the way (its bar shrinks while the other grows), the L's foot
+  slides up into a Γ, E's bottom arm draws back into its stem, u's bowl rolls up into n's
+  arch, M into W stops folding, a plus turns into an x through an eight-pointed star, every
+  arm alike, where spread evenly it melts into a lumpy blob (`review/warp.png`: each case
+  spread evenly, then warped, sym on). Off its mirror symmetry (the farthest a mirrored point
+  lands from the in-between's outline, 300 px shapes): T into upside-down T 1.7 px spread
+  evenly, 0.0 warped; arrow up into down 0.0 and 0.0; plus into x 0.1 and 0.2. On
+  nine letter pairs: crossings 26 to 0 (u into n), 36 to 0 (M into W) and 1 to 0 (N into Z),
+  travel up to 45 % less (A into R 2 % more: it prices bending too, and its thin neck goes),
+  the thinnest in-between from as little as 1 % of the keys' thinnest part to 59–100 %. Steps that turn,
+  keys drawn as a turn and kept, and a hole that is only a seed (growing from or shrinking to
+  a point: its own timing does that) aren't warped. The report counts the steps paired by
+  shape.
 - **Symmetry:** each key's mirror axes are found from its samples. Quick (every fix): the
   principal axes, or for a shape with no main direction (a star, a plus, a regular polygon)
   the directions to every point locally nearest to or farthest from its centre (24 at most),
@@ -175,14 +220,27 @@ stay as they were.
   then every point moves as the mirror of its partner. Least travel picks one of two
   mirror-image swirls on a tie; the symmetric match cost 3–4 % more on a star turned 36 deg
   and a plus into an x (`review/symmetry.png`). Rotational symmetry needs nothing: any start
-  keeps it. Order: no crossover, then symmetry, then least travel. A step that turns is
-  swung whole instead, which doesn't swirl.
+  keeps it. Order: no crossover, then symmetry, then least travel. With **sym** on, a
+  symmetric start is never traded for a lopsided one to avoid a pinch or a collapse, only
+  to avoid a crossing, and the crossing must show on the final paths: the samples are a
+  stand-in (an arrow up into an arrow down crossed on them, never on its rebuilt paths), so
+  a step whose symmetric starts all cross on samples is fixed again from the symmetric start
+  and kept unless its final in-betweens cross. Until this was in, any start allowed sent the
+  arrow tumbling over lopsided (44 px off symmetric) rather than melting evenly into a
+  lozenge, and the T into the upside-down T turning half round (101 px off). A step that
+  turns is swung whole instead, which doesn't swirl.
 - **Rebuild:** points go at the same fractions of every key's outline (each key's corners
   pinned exactly, the rest spread evenly), every handle a third of the arc to its
   neighbour. After Effects blends each handle in a straight line, so a smooth point stays
   smooth halfway only if its two handles keep the same length ratio in both keys: shared
-  fractions guarantee it. Points are added until every key is within the tolerance; a path
-  with loops or cusps it can't follow keeps its own points instead (and says so).
+  fractions guarantee it. With the warp, each key has its own fractions: the steps' pairings
+  are joined into one shared parameter (key 3's points come from key 2's, which come from key
+  1's), every breakpoint and every key's corners pinned, the other points spread by the
+  longest span any key has there; where a key changes pace but its outline is smooth, both
+  handles are set at one pace so every key keeps the shared parameter's ratio (without that,
+  in-betweens kinked up to 14 deg there). A breakpoint is a point in every key, so a long chain
+  of warped keys gets more points. Points are added until every key is within the tolerance;
+  a path with loops or cusps it can't follow keeps its own points instead (and says so).
 - **Exact:** every key gets a point wherever any key has one (by outline fraction), each
   added by an exact bezier split.
 - **Max:** the rebuild starts at 16–64 points and adds more until the tolerance or the max
@@ -210,7 +268,11 @@ stay as they were.
   blended as drawn halves) takes least travel, and the report suggests turn either way.
 - **Fixed again:** keys that already share their points, starts and direction, and differ
   only by a turn, are kept as they are and the turn taken out again, so the in-betweens come
-  out the same.
+  out the same. A warped step counts as fixed when its points already pair cleanly and cost
+  at most twice the cheapest warp from the same two starts (warped keys fixed again: 0.3 to
+  1.9 times, mostly 1.0; an L into the L flipped drawn 6 points each, paired by point number:
+  2.3, so it is fixed). A fresh warp isn't the yardstick: found on the rebuilt keys it can
+  pick another start than on the drawn ones, and a second fix would trade one for the other.
 - **Pieces:** each key's pieces are dealt out to the paths by the order with the least cost
   (centre distance, size, outline or hole), kept as drawn unless another cuts it by 20 %; a
   piece under 3 % of its key's largest (or under 1 px across) counts as missing and becomes a
@@ -259,12 +321,20 @@ What it doesn't do, and why; each is also said in the report when it happens.
   A step that turns is left alone (no letter with holes there needed it), and so is a Hold
   step. Masks of different modes (an Add outline, a Subtract hole) aren't pieces: a Subtract
   hole outside its outline subtracts nothing, so it can't show.
-- **Outlines that nearly touch themselves:** only the start is chosen against it, and only
-  among starts that travel about as little. Measured on letter pairs (`review.md`, round 15),
-  two thirds of the outline morphs between unlike letters pinch somewhere to under half their
-  thinnest drawn part (u into 5, n into u), and the demo's c into d to 1 % (the c's gap has to
-  close up to become the d's bowl). A start opens up about 1 in 10 of those (round 19: v into
-  h, W into k); the rest stay. Corner-to-corner matching (below) is the way to most.
+- **Outlines that nearly touch themselves:** the warp keeps clear of it (a pairing that
+  pinches is passed over for the next start); spread evenly, only the start is chosen against
+  it: 144 of 540 letter pairs still pinch.
+- **Pairing by shape is off by default:** inside After Effects 27 it made the demo's fixes
+  about 3 times as slow (`bench/warp-demo.jsx`: the morph 7.5 to 24.5 s, the letters 61 to
+  191 s, the symmetry chain 6.3 to 8.6 s), after cutting it down from 6 to 18 times (the
+  first version: a search over every start, four tries, the full axis search each time), and
+  a warped outline needs about 1.6 times the points to stay within 0.1 px (every key needs
+  points wherever any key is stretched).
+- **The warp's own limits:** a step whose every pairing tried crosses or pinches (C into H)
+  is spread evenly, as before; pieces grow and shrink rather than bend, which reads well on type and
+  geometric shapes and can look mechanical on organic ones (use Exact to keep your own
+  points); a short stretch that collapses to a point is smoothed away, so a tiny feature may
+  slide instead of growing. The warp costs time: see Time.
 - **Turn into the path:** a key a frame (turn) or one about every 15 deg (turn, few keys)
   through each turning step; the selected keys must be next to each other, and a Hold step
   doesn't turn. A second Fix keeps a few-key turn's keys where they are (a turn a key a frame
@@ -281,18 +351,22 @@ What it doesn't do, and why; each is also said in the report when it happens.
   parents; a 3D layer seen through a camera can look bigger than that.
 - **Warnings:** the expression check reads the comp the path is in, for up to 0.8 s; an
   expression that picks a layer by number, or sits in another comp, isn't found.
-- **Crossover:** only the start is chosen against it, within 20 % more travel; a crossover
-  that needs more, or one smaller than the 64-point check sees (O into C: a small twist as
-  the C's gap opens, which no start avoids), stays. A key drawn in between fixes those.
+- **Crossover:** spread evenly, only the start is chosen against it (48 starts tried); a
+  crossover no start avoids, or one smaller than the 64-point check sees (O into C: a small
+  twist as the C's gap opens), stays: 141 of 540 letter pairs. **shape**, or a key drawn in
+  between, fixes most of those.
+- **A second fix** keeps a start that already keeps the morph clean rather than trading it for
+  another clean one that only travels less (a borderline pinch, read afresh on the rebuilt
+  keys, once sent a second fix back to the cheaper start), unless the other is symmetric or the
+  key was drawn as a turn.
 - **Drawn turns** are found point for point: a turned key with a point nudged afterwards, or
   drawn again from scratch at an angle, is an ordinary morph (least travel, or turn's own
   detection).
-- **Symmetry:** only the start is chosen for it: points are still spread evenly along both
-  outlines, so a morph whose symmetric version would need them spread unevenly (a T into an
-  upside-down T: the bar ends would have to slide down onto the bar ends while the stem folds
-  away, but evenly spread they swap places with the stem and cross) stays as it is, and no
-  crossover outranks symmetry. Shapes whose axes point different ways (a T into a T turned
-  90 deg) can't share one. See "Next: corner-to-corner matching" below.
+- **Symmetry:** spread evenly, only the start is chosen for it: the morph is as symmetric as
+  the points spread evenly from it allow (the T into the upside-down T: 1.7 px off, melting
+  through an hourglass), and with sym on it gives way only to a crossing on the final paths;
+  with **shape** the pairing itself is mirrored (0.0 px, through an I-beam). Shapes whose axes point different ways (a
+  T into a T turned 90 deg) can't share one.
 - **Time:** the estimate runs high on small jobs (up to 4x) and close on long ones (within
   10 % on 15–24 s jobs). The crossover and quick symmetry checks add a fixed cost per key
   (about 0.3 ms in Node), the thorough one (sym) more (about 2.2 ms): counted into the
@@ -300,6 +374,7 @@ What it doesn't do, and why; each is also said in the report when it happens.
   Effects. Keeping holes inside isn't in the estimate: in After Effects 27
   (`bench/holes-bench.jsx`) 0.1–0.6 s a letter of up to 100 points, about 1–3 s for
   engraved letters of 300 to 400 points or the ten-letter chain (2.6 s on top of 28 s).
+  With **shape**, Smooth is counted at 3 times as long (`bench/warp-demo.jsx`).
   After Effects doesn't respond while a fix runs; Esc is read when the work checks in, so
   hold it.
 - **No progress bar.** A floating window a script opens stays stuck on screen for good if
@@ -308,31 +383,6 @@ What it doesn't do, and why; each is also said in the report when it happens.
   works. The warning before a long fix gives the time instead.
 - After Effects stores path points as 32-bit floats (about 0.00004 px at these sizes).
 
-## Next: corner-to-corner matching (dynamic time warping)
-
-Planned, not built. Today the fixer chooses only where each key starts and then spreads the
-points evenly along both outlines. Matching features instead (a corner to a corner, a bar
-end to a bar end) and stretching the stretches between them would let morphs move the way
-a person would draw them: a T into an upside-down T whose bar slides down while the old
-stem folds into it and the new one grows, symmetric and without crossing, where even
-spreading crosses. Dynamic time warping finds that pairing: the cheapest monotone path
-through a table of "point i of one outline against point j of the other", which keeps the
-outline's order and lets either side wait while the other catches up.
-
-What it needs:
-
-- **The cost:** travel, plus a price for stretching (or the morph slides points along
-  straight edges for nothing) and for crossing over; corners paired with corners cheap.
-- **Chains of keys:** every key needs the same number of points. Pick them on the first key
-  and carry them through each step's pairing, so key 3's points come from key 2's, which
-  come from key 1's; the rebuild then lays points at each key's own fractions instead of
-  shared ones, and the handle ratios that keep in-betweens smooth need checking again.
-- **Time in After Effects:** a full table is 128 x 128 per start, too slow in ExtendScript.
-  A band around today's even match, tried only from the few best starts, keeps it near the
-  current cost.
-- **Tests:** the T and the upside-down T (symmetric, no crossover), the demo and the
-  real-type set (no worse travel, no new crossings), and a second run changing nothing.
-
 ## For the repo
 
 | File | |
@@ -340,15 +390,16 @@ What it needs:
 | `morph-math.js` | The math, plain ES3: splits, alignment, rebuild, the shape checks |
 | `morph-ae.jsx` | The After Effects half: the compact panel, its guide and installer, selection, reading and writing keys (and the in-betweens of a turn or of a hole kept inside), report |
 | `build.mjs` | `node sandbox/2026-11-21-ae-morph-fixer/build.mjs` → `Mask Morph Fixer.jsx`, the release (it leaves nothing on `$.global`), and `out/test-build/Mask Morph Fixer.jsx`, the same plus the exports the tests use; with an ES3 lint (reserved words, ES5+, non-ASCII strings, a caught error joined with `+`) |
-| `test.mjs` | 4,447 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), holes kept well inside (O into C shrinking away by 30 %, C into O and C into e growing from 70 %, b into e and R into 6 swapping, q into o blending, the demo's q g b c d one of each, 42 Comic Neue pairs, every hole keeping half its clearance by true distance, a second fix the same; written as eased keys and still keeping half the clearance; on mock timelines: one key of nothing where the hole is gone and one where it starts to grow, eased where it moves, inside at every frame, a key a frame when asked for, on the comp's frames when the drawn keys aren't, fixed again the same, a gone key dragged and re-eased kept through a Fix, dragged where the hole would show retimed), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out; few keys: 5 a quarter turn, auto-bezier, the F 97 % of its area or more at every frame, fixed again the same, a key dragged and eased by hand kept through a Fix), near-touching (v into h kept clear, & into $ not traded for a twist, a second fix the same, the report), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
+| `test.mjs` | 4,678 checks in Node on the test build: the guide (plain words, every setting, version), headings per theme, the time model, pieces (dealt back, kept, growing from a dot), holes kept well inside (O into C shrinking away by 30 %, C into O and C into e growing from 70 %, b into e and R into 6 swapping, q into o blending, the demo's q g b c d one of each, 42 Comic Neue pairs, every hole keeping half its clearance by true distance, a second fix the same; written as eased keys and still keeping half the clearance; on mock timelines: one key of nothing where the hole is gone and one where it starts to grow, eased where it moves, inside at every frame, a key a frame when asked for, on the comp's frames when the drawn keys aren't, fixed again the same, a gone key dragged and re-eased kept through a Fix, dragged where the hole would show retimed), a turn written into the path (`MF.swing` = the group transform, progress read back; on a mock timeline: labelled in-betweens, fixed again the same, retimed, taken out; few keys: 5 a quarter turn, auto-bezier, the F 97 % of its area or more at every frame, fixed again the same, a key dragged and eased by hand kept through a Fix), near-touching (v into h kept clear, & into $ not traded for a twist, a second fix the same, the report), the warp (off by default; nine letter pairs paired by shape: no crossing or pinch, travel about as little as spread evenly or less, the first key's start kept, a second fix the same; C into H spread evenly exactly as with it off; a three-key chain; a max too low for its breakpoints; the report; the estimate; mirrored for keys that share axes: T, arrow, plus into x symmetric, every arm alike, never less symmetric than spread evenly), cancelling, the tolerance on screen (layers at 400 % and 25 %), the demo (with and without a max that bites), the turning F (angles, local keys, each key back where drawn, halfway = the F turned 45°), 60 random turns, 360 random morphs (shapes kept, counts, direction, smoothness halfway, a second run), the AE half on a mock path, and the keys AE stored |
 | `demo-spec.js` | The demo's shapes and keys, shared by `make-demo.jsx` and `scene.js`: the morph, the turn, and the symmetry chain (a star, the star turned 36 deg, a plus, an x, the star, all sharing the upright axis, each drawn anew) |
 | `demo-letters.js` | The letters part, q, g, b, c, d in Comic Neue Bold (q into g: the hole blends; g into b: it swaps; b into c: it shrinks away; c into d: it grows), written by `art/demo-letters.mjs` from the repo's fonts (plain ES3 for AE) |
 | `make-demo.jsx` | Builds the demo project in four parts: Morph, Turn, Symmetry (left: the fix without its symmetry rule, least travel; right: the fix) and Letters (left as typed, right fixed through the panel's own path, its holes kept inside, checked in every frame), each Before / After, in one 31.5 s comp. With `$.global.MORPH_TEST_OUT` set it also checks it inside AE (fixes, the panel floating, docked and docked narrow, its guide, installing into a scratch folder, every warning, the time estimate against a real fix, a scaled layer, the theme), logs (`review/ae-log.txt`) and saves the project: the AE test |
 | `ae-bridge.jsx` | A test runner that lives in After Effects for the session: send it once with `AfterFX.exe -ro`, then drop jobs into `out/ae/bridge/inbox/` |
 | `bench/ae-bench.jsx` | Times the fix inside AE on a grid of job sizes (`out/ae/bench.csv`): the data the time estimate is fitted to |
 | `bench/holes-bench.jsx` | Times keeping holes inside apart from the fix, inside AE, on the real-type set (`out/ae/holes-bench.md`) |
+| `bench/warp-bench.jsx`, `bench/warp-demo.jsx`, `bench/warp-parts.jsx` | Pairing by shape timed inside AE: the fix with and without it on the real-type set, on the demo's three path sets (`out/ae/warp-demo.md`: the time estimate's factor), and each part of one warp step (`out/ae/warp-parts.md`: what made it slow) |
 | `bench/ghost-window.jsx`, `bench/window-watch.ps1` | Reproduce the window Windows strands on screen when AE is clicked while a script keeps it busy, watched from outside through Windows' own window list: why the fixer has no progress window |
-| `art/` | The real-artwork regression set (and `symmetry.mjs`: built shapes that share a mirror axis, least travel against symmetric). `ttf.mjs` reads letter outlines from the OFL fonts in the repo's `fonts/`; `cases.mjs` keys 20 cases the way a designer would (O into C, B into 8 pasted out of order, i into l, engraved letters of hundreds of points, a ten-key chain, turning letters, 24 px and 2000 px type); `test-art.mjs` runs them in Node (186 checks, `out/art/report.md`; no in-between crosses itself but O into C's small twist; no hole shows outside its letter); `crossover.mjs` draws in-betweens with and without the crossover choice; `holes.mjs` draws letters whose holes close, open, stray or blend, as AE drew them and as the fix keeps them (`review/holes.png`); `make-art.jsx` builds and fixes them inside AE through the panel's own code (no hole outside its letter in AE's own frames), plus two mask cases; `look.mjs` draws the glyphs to check the reader |
+| `art/` | The real-artwork regression set (and `symmetry.mjs`: built shapes that share a mirror axis, least travel against symmetric). `ttf.mjs` reads letter outlines from the OFL fonts in the repo's `fonts/`; `cases.mjs` keys 20 cases the way a designer would (O into C, B into 8 pasted out of order, i into l, engraved letters of hundreds of points, a ten-key chain, turning letters, 24 px and 2000 px type); `test-art.mjs` runs them in Node (186 checks, `out/art/report.md`; no in-between crosses itself but O into C's small twist; no hole shows outside its letter); `crossover.mjs` draws in-betweens with and without the crossover choice; `holes.mjs` draws letters whose holes close, open, stray or blend, as AE drew them and as the fix keeps them (`review/holes.png`); `warp.mjs` is the warp's prototype (its costs and settings tried side by side, `out/art/warp.png`) and `warp-fix.mjs` draws each case through the fix spread evenly and warped (`review/warp.png`); `make-art.jsx` builds and fixes them inside AE through the panel's own code (no hole outside its letter in AE's own frames), plus two mask cases; `look.mjs` draws the glyphs to check the reader |
 | `scene.js` | Engine preview of the After half of all four parts, drawn the way AE interpolates the fixed keys |
 
 Testing inside After Effects (with the user's go-ahead: the demo opens a new project).

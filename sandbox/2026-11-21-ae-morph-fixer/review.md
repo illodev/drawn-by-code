@@ -805,3 +805,171 @@ start opens up about 1 in 10 of those. This round takes that 1 in 10.
   same, the report); real type 186. **In After Effects 27** (handed over, AE in front, progress
   every minute): demo 56/56, real type 111/111, fix times no slower than round 18's (& into $
   4.7 → 5.7 s: fixed twice). Rendered with aerender; `render/` redone.
+
+## Round 20 · 2026-11-25 (the user: "Yes, start it" on corner-to-corner matching; then "Try again")
+
+Spread evenly from their starts, two outlines pair points by how far round they are. Between
+unlike shapes that folds, and no start helps: a T into an upside-down T pinches into a
+figure eight, u into n crosses itself 26 times, M into W 36. This round pairs them by what
+they are.
+
+- **First try (not kept): corners paired, stretches between them spread evenly**, by dynamic
+  programming over corner pairs (`art/corners.mjs`, deleted). By travel it untangled the
+  flipped L (3 → 0 crossings) and N into Z (1 → 0), but the T still folded into a figure
+  eight; priced "as pieces" (each stretch moving as a block) with any corner allowed to meet
+  any, the T crossed itself 19 times. The user saw the sheet: "Try again".
+- **Second try: dynamic time warping on samples** (`art/warp.mjs`): every sample of A against
+  every sample of B, every start of B, where a stretch of one may pair with a single point of
+  the other (steps (1,0), (0,1) beside the diagonals up to 3:2). Price: travel + λ (turning +
+  σ stretching) of each little piece. Measured:
+  - λ alone (σ = 1, stretching as dear as turning): clean on most letters at λ 0.001–0.003,
+    but the T's in-betweens bulged into a dumbbell; above 0.01, v into h and N into Z crossed.
+  - A hand-made "bar slides through the stem" pairing for the T (a + halfway: clean, 100 %
+    neck) cost more than what the DTW found under every price tried: no price ranks it first.
+  - σ = 0.1 (growing and shrinking cheap, turning dear) made every λ from 0.01 to 0.3 clean on
+    every case but M into W, and the T became an I-beam on the way (its bar shrinks while the
+    other grows): rectilinear, symmetric, no crossing. Kept: λ 0.1, σ 0.1.
+- **0.19.0, the warp** (`morph-math.js`): coarse DTW (24 samples, every start), fine (80 and
+  the corners) around the cheapest coarse starts in turn, straightened (Douglas-Peucker in
+  (a, b), corners kept), checked (19 in-betweens, 128 points: no crossing, no pinch under half
+  the thinner key's neck, any shared mirror axis kept), four starts at most, else even.
+  - **Chains**: each step's pairs read from the shared key's fraction and merged into one
+    parameter (tuples of every key's fraction); every key's corners inserted; the rebuild lays
+    each key's points at its own fractions. → **Found:** a key starting elsewhere (fraction
+    0.89) was checked against its original at the wrong place: 35 px "off" and 100 points; the
+    tolerance check now takes the offset. A corner hit kept its 0–1 fraction where the layout's
+    ran on past 1, and its handle spanned the outline (370 px). Points the warp keeps together
+    in two keys while a third moves are rounding noise to a crossing test: repeats dropped.
+  - **Smooth points stayed smooth only with one pace**: at a breakpoint the keys change pace
+    differently, the handle ratios differ, and in-betweens kinked up to 14 deg. Both handles
+    now take the geometric mean pace, so every key keeps the shared parameter's ratio.
+  - **Points**: spread by the keys' mean span, a key running on while another held still got
+    half the points it needed (u into n: 0.27 px off at 160). Spread by the longest span.
+  - **Teeth**: rendered, the demo's star into square and square into heart showed little steps
+    where short stretches collapsed to a point. Straightening runs shorter than 4 samples into
+    their neighbours took them out (tried 0.6, 2, 4, 6: 4 clean, 6 the same).
+  - **N into Z** crossed once at 64 fine samples whatever start; 80 cleared it.
+  - **Symmetry**: the warp turned a star into the same star turned 36 deg into a swirl; a warp
+    must now keep any mirror axis both keys share (at 20, 40, 60, 80 %).
+  - **Fixing again**: the hard part. A fresh warp found on the rebuilt keys can pick another
+    start than on the drawn ones (E into F: a third cheaper), a warp rejected at the final
+    check can pass on the rebuilt keys, and travel alone misjudges (a warp can travel a
+    quarter more than even, a star drawn turned a fifth travels 3.4 times as far and must be
+    fixed). Kept: a step counts as fixed when its points pair cleanly (and keep a shared axis)
+    and cost at most twice the cheapest warp from the same two starts. Measured: warped keys
+    fixed again 0.3–1.9 times (mostly 1.0); drawn by point number, L into L flipped 2.3,
+    T 6.7, u into n 2.5 (and it crosses).
+  - Seeds (a hole growing from a point) aren't warped: the re-dealt seed has to come out as
+    dealt, or a second fix moves it.
+  - **Found: the panel tests read an older build**: a check failed only because
+    `out/test-build` held the math from before a change. `test.mjs` now builds first.
+- Results (`review/warp.png`, spread evenly → warped): T neck 65 → 100 %, travel 97 → 82 px; L
+  flipped 61 → 100 %; u into n 26 crossings → 0, travel 96 → 55; E into F travel 73 → 46 (the
+  bottom arm draws back into the stem); N into Z 1 crossing → 0; v into h 75 → 87 %; A into R
+  52 → 99 %; K into X 39 → 35 px; M into W unchanged (every pairing crosses: spread evenly).
+  The hole timing follows the new outlines: & into $ now swaps both its holes.
+- **In After Effects (handed over; "is something the matter?" during the first run)**: the demo
+  test took 19 minutes, not 2. Morph 3.3 → 59 s, letters 9.6 → 60 s, symmetry 40 → 670 s:
+  far beyond Node's 4–5×. One check failed only on its own expectation (no start chosen against
+  a crossover: the warp had paired those steps).
+- **Speed, measured part by part in AE** (`bench/warp-parts.jsx`, two-key steps): where the warp
+  works it cost only 30–40 % more (q into g 3.2 → 4.4 s); the waste was shapes sharing a mirror
+  axis that end up unwarped (star into turned star 2.8 → 10.7 s): four starts tried, each a
+  1.2 s fine search and an axis search of up to 3.4 s. Cut, in Node terms:
+  - coarse search only from starts within 0.15 of the aligned one (all 66 warps on the tests'
+    type took one within 0.125, all on the first try), with the 5 plain steps;
+  - the fine search only in a band about the coarse pairing (FastDTW), in a compact table,
+    from the one fine start nearest the coarse one (same 50 of 81 warps, a quarter faster);
+  - three tries, one when the keys share an axis; the axis test in two stages (a direct mirror
+    error first, the full search only when it's close), also on the final paths;
+  - pinches checked at every other in-between; held keys skip the warp; a retry after the
+    final check reuses the alignment and the other steps' warps; the DTW on flat arrays filled
+    by index. (The final crossing check at 2 chords a segment on dense paths, tried too, let C
+    into D through crossing itself: back to 4.)
+  - Tried and undone: warping before choosing starts (the T's samples, laid from its start as
+    drawn, gave a lopsided warp that lost the mirror axis); fewer samples (lost the T, N into
+    Z, M into W for a quarter of the time).
+  - Side effect: M into W now warps cleanly (36 crossings → 0, neck 2 → 87 %). A into R's warp
+    travels 2 % more than even (it prices bending too); its test allows 5 %.
+- **A warp the max can't fit**: random keys at max 24 came 14 px off with it (drawn exactly
+  without). Kept only within 10× the tolerance, or about as close as without (letters at max
+  100: 0.2–0.5 px off, said in the report).
+- **AE again** (`bench/warp-demo.jsx`, the demo's path sets fixed once each): morph 7.5 → 24.5 s,
+  letters 61 → 191 s, symmetry 6.3 → 8.6 s. Still about 3×: the letters' extra time is mostly
+  their extra points (a warped outline needs about 1.6× to stay within 0.1 px, since every key
+  needs points wherever any key is stretched). **The user: an option, off by default.**
+- **0.19.0, shape**: the panel's new checkbox beside sym, saved like the others, in the guide;
+  the time estimate counts Smooth at 3× with it. `MF.fix` warps only when `warp: true`.
+- Tests: Node 4,574 (the warp asks for it; off by default; the estimate); real type 186 (back to
+  the outlines spread evenly, & into $ one swap again).
+- **The user's questions**: does shape ever give a worse result, could it be called "ultra" or
+  "max"; does it ever break symmetry, and can symmetry come first. Measured: on 540 Comic Neue
+  letter pairs (484 warped) shape removed crossings in 161 and pinches in 121, and made 1 new
+  crossing (C into D: my 2-chord final check, reverted to 4), 9 new pinches, 119 thinner necks;
+  so no "ultra". On 17 symmetric shape pairs it was never less symmetric, but only within the
+  2 % the axis test allowed.
+- **The user: "turn sym on by default. You're vastly overweighing travel efficiency compared to
+  me. Aesthetic and intentional movement is what's important, not efficiency. Think
+  synchronized swimmers as opposed to mail carriers."**
+- **0.19.0, mirrored warps**: keys that share k mirror axes cut both outlines into 2k equal
+  slices (each axis meets an outline twice); A's slice is paired with B's slice starting on the
+  same axis (DTW end to end), and mirrored about each axis in turn all the way round.
+  - First built about one axis only: symmetric, but a star's top point flattened while the
+    others turned: not in unison. All shared axes at once fixed that.
+  - Found: B's slice started on another axis made every arm swirl (46 px off symmetric).
+  - Found: slivers a hundredth of a pixel long where a mirrored outline meets itself on the
+    axis read as crossings in rounding; the warp's checks now count an end within a millionth
+    of the other line as touching.
+  - Found: the pole (where the axis meets the outline) refined by halving drifted when the
+    crossing sat exactly on a sample (a bracket one sample wide, both ends on one side).
+  - Measuring symmetry is its own trap: nearest sample points, or an axis through the samples'
+    mean, read a perfect I-beam as 5-12 px off. Measured instead as the farthest a mirrored
+    point lands from the outline (point to segment), about the area centre: plus into x 0.1
+    spread evenly, 0.2 warped (its arms now pass through an eight-pointed star together, where
+    spread evenly it melted into a blob); the T and the arrow below.
+- **sym on by default** in the panel, under a new setting key (a sym switched off under 0.18
+  doesn't carry over).
+- **Travel only breaks ties**: a start that keeps the morph clean is taken however far it
+  travels (48 starts tried; until now only within 20 % more travel): crossing letter pairs 201
+  → 141, pinching 188 → 144, for 10 % more travel and time. What that exposed:
+  - an F drawn turned 90 deg kept its drawn pairing, which halves its area halfway, because
+    the shortest one crosses a little. **Collapsing** is now a criterion: an in-between under
+    60 % of the smaller key's area counts as a pinch.
+  - second fixes moved: a crossing or pinch read on the 64 samples of the drawn keys sent the
+    fix to a far start; the rebuilt keys, sampled afresh, read the cheap start clean. A
+    crossing now counts only if all 128 samples confirm it, and a second fix keeps a start that
+    already keeps the morph clean (unless the other is symmetric, or the key was drawn as a
+    turn).
+  - M into W with shape (its warp from a third try, the cheaper two cross) cost 2.2 times the
+    best pairing from its starts, so a second fix redid it; it is now also held to the warp the
+    fix would take now (within 1.5 times).
+- **Found looking at the redrawn sheet, not by a test: any start broke "symmetry first".** With
+  sym on and shape off, the T into the upside-down T turned half round (101 px off symmetric)
+  and the arrow up into down tumbled over lopsided, spiked (44 px); my notes still quoted 6.2
+  and 4.6 px, measured before any start went in. The symmetric start's in-betweens melt (the T
+  through an hourglass, the arrow a lozenge) under 60 % of the area, so the collapse rule
+  traded them for a clean lopsided start far round. Now, with sym on, a symmetric start gives
+  way only to a crossing, never to a pinch or a collapse. Two more traps on the way:
+  - the symmetric start was checked on the nearest grid step, a quarter sample off: the T read
+    as crossing where its halves meet on the axis; it is now checked where it is (pairAt);
+  - the arrow's symmetric morph crossed on samples (1 at 64 points, 4 at 128) and never on its
+    rebuilt paths (39 in-betweens, 32 points a segment): a step whose symmetric starts all
+    cross on samples is fixed again from the symmetric start, and kept unless its final paths
+    cross (as warps already were).
+  T 101.5 -> 1.7 px, arrow 44.2 -> 0.0, both clean and matched on a second fix.
+  The letters don't notice: of 535 Comic Neue pairs with sym on, 142 cross and 145 pinch,
+  before and after (141 and 144 with sym off).
+- **After Effects** (2027): the real-type test passes everything (`review/art-log.txt`). Its times
+  (`review/art-times.md`) ran 1.3 to 3.3 times round 19's, but AE itself was slow that day: open
+  21 hours, the demo's calibration job (6 keys of ~16 points) took 12.4 s against 5.6 s (1.76x
+  the reference against 0.90x), and cases whose math didn't change slowed as much (the F
+  turning: 2 ms in Node both times, 2.3 -> 7.7 s in AE). Measured in Node instead, round 19 ->
+  now: most cases within a few ms; any start costs P into D into Q 34 -> 121 ms, M into W 11 ->
+  44, the engraved 8 into B 89 -> 237.
+- The demo test failed two panel checks, both from this round's additions: the guide (sym and
+  shape longer) was 858 px tall, over the 800 allowed: shape's text shortened, and wrapped at
+  96 characters instead of 80 (measured in AE: 88 gave 481 x 810 px, 92 513 x 794, 96 527 x 778); the one row needs about 441 px since the shape checkbox, so the
+  docked test's "wide" 420 px broke it in two (the test now docks wide at 560).
+- Tests: Node 4,678 (mirrored warps; sym on spread evenly stays symmetric and is matched on a
+  second fix; the T spread evenly keeps over half its neck); real type 186. The demo's morph, turn and symmetry parts come out exactly as before; its
+  letters' outline takes other starts, so the After Effects render needs redoing.

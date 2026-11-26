@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 import { CASES as ART_CASES, build as buildArt } from './art/cases.mjs';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -327,9 +328,9 @@ function shown(r, k, u) {
 // paints any part of a hole outside its outline ----
 {
     const ML = load('demo-letters.js', 'ML');
-    const letters = (font, keys) => {
+    const letters = (font, keys, opt) => {
         const res = MF.matchPieces(buildArt({ font, keys }));
-        const fixed = res.keys[0].map((_, p) => MF.fix(res.keys.map((row) => row[p]), { maxPoints: 100 }).paths);
+        const fixed = res.keys[0].map((_, p) => MF.fix(res.keys.map((row) => row[p]), { maxPoints: 100, ...opt }).paths);
         return { res, fixed, T: MF.holeTiming(fixed, res.roles) };
     };
     const outlinesAt = ({ res, fixed }, k, p, u) => fixed.filter((_, q) => q !== p && res.roles[k][q] !== -1 && res.roles[k + 1][q] !== -1 && (res.roles[k][q] || res.roles[k + 1][q])).map((G) => MF.lerp(G[k], G[k + 1], u));
@@ -380,7 +381,10 @@ function shown(r, k, u) {
     check('holes: C into O, the hole grows late: O into C played backwards', co.T.length === 1 && co.T[0].kind === 'open' && Math.abs(co.T[0].b - (1 - oc.T[0].a)) < 0.02 && shows(co, co.T) === 0, JSON.stringify(co.T.map((t) => [t.kind, t.b])));
     check('holes: C into e, the hole grows once the e is shut (from 70 %)', ce.T.length === 1 && ce.T[0].kind === 'open' && ce.T[0].b >= 0.7 && shows(ce, ce.T) === 0 && margin(ce, ce.T) >= 0.45, JSON.stringify(ce.T.map((t) => [t.kind, t.b])));
     const be = letters('ComicNeue-Bold', 'be'), r6 = letters('PatrickHand-Regular', 'R6');
-    check('holes: b into e strays when blended (what AE did)', shows(be, []) > 0.1, shows(be, []).toFixed(2));
+    // (with the outline spread evenly, as before the warp: paired by what they are, the b's
+    // outline no longer swings across where its hole goes, and a plain blend stays inside)
+    const beEven = letters('ComicNeue-Bold', 'be', { warp: false });
+    check('holes: b into e strays when blended (what AE did), the outline spread evenly', shows(beEven, []) > 0.1, shows(beEven, []).toFixed(2));
     check('holes: b into e swaps: shrinks away over the start, grows again over the end, a pause between', be.T.length === 1 && be.T[0].kind === 'swap' && be.T[0].a <= 0.4 && be.T[0].b >= 0.6 &&
         shows(be, be.T) === 0 && margin(be, be.T) >= 0.45, JSON.stringify(be.T.map((t) => [t.kind, t.a, t.b])) + ' margin ' + margin(be, be.T).toFixed(2));
     check('holes: R into 6, the same', r6.T.length === 1 && r6.T[0].kind === 'swap' && shows(r6, r6.T) === 0 && margin(r6, r6.T) >= 0.45, margin(r6, r6.T).toFixed(2));
@@ -479,16 +483,138 @@ function shown(r, k, u) {
         }
         return false;
     };
-    const vh = outline('ComicNeue-Bold', 'vh'), on = MF.fix(vh), off = MF.fix(vh, { neck: false });
+    // (spread evenly: where no warp is clean, the start is what keeps the outline clear)
+    const vh = outline('ComicNeue-Bold', 'vh'), on = MF.fix(vh, { warp: false }), off = MF.fix(vh, { neck: false, warp: false });
     const rOn = ratio(on.paths[0], on.paths[1]), rOff = ratio(off.paths[0], off.paths[1]);
     check('near-touching: v into h keeps half its thinnest part clear where the start chosen against crossings did not', rOff < 0.5 && rOn >= 0.5 && on.keys[1].untangled,
         `${(rOff * 100).toFixed(0)} % -> ${(rOn * 100).toFixed(0)} %`);
     check('near-touching: and the travel stays about the same (within 20 % squared)', on.keys[1].after <= off.keys[1].after * Math.sqrt(1.2) + 1e-9, `${off.keys[1].after.toFixed(1)} -> ${on.keys[1].after.toFixed(1)} px`);
-    const again = MF.fix(on.paths);
+    const again = MF.fix(on.paths, { warp: false });
     check('near-touching: fixing the fixed v into h again changes nothing', again.matched === true);
-    const amp = outline('PatrickHand-Regular', '&$'), ar = MF.fix(amp);
+    const amp = outline('PatrickHand-Regular', '&$'), ar = MF.fix(amp, { warp: false });
     check('near-touching: & into $ keeps its start (the clear one twists between the samples), and doesn\'t cross', !ar.keys[1].unpinched && !chordsCross(ar.paths[0], ar.paths[1]));
     console.log(`near-touching: v into h ${(rOff * 100).toFixed(0)} % -> ${(rOn * 100).toFixed(0)} % of its thinnest part`);
+}
+
+// ---- warp: outlines paired by what they are -------------------------------------------------
+// Between unlike shapes the points pair by dynamic time warping (a stretch of one outline may
+// pair with a single point of the other), kept where its in-betweens neither cross nor pinch.
+// Measured here independently: crossings on 6 chords a segment (edges in line with each other
+// are rounding noise, not a crossing), necks on 64 points respaced along each in-between.
+{
+    const outline = (font, keys) => {
+        const res = MF.matchPieces(buildArt({ font, keys }));
+        const p = res.keys[0].findIndex((_, q) => res.roles.every((r) => r[q] === 1));
+        return res.keys.map((row) => row[p]);
+    };
+    const poly = (pts) => ({ v: pts.map((p) => p.slice()), i: pts.map(() => [0, 0]), o: pts.map(() => [0, 0]), closed: true });
+    const flip = (P) => { const R = MF.copy(P); R.v = R.v.map(([x, y]) => [x, -y]); R.v.reverse(); return R; };
+    const T = poly([[-150, -150], [150, -150], [150, -90], [35, -90], [35, 150], [-35, 150], [-35, -90], [-150, -90]]);
+    const L = poly([[-100, -150], [-30, -150], [-30, 80], [120, 80], [120, 150], [-100, 150]]);
+    const crossings = (A, B) => {
+        let c = 0;
+        for (let q = 1; q < 20; q++) {
+            const H = MF.lerp(A, B, q / 20), all = [];
+            for (let k = 0; k < MF.segCount(H); k++) for (let t = 0; t < 6; t++) all.push(MF.bez(MF.seg(H, k), t / 6));
+            const pts = all.filter((p, k) => { const r = all[(k + all.length - 1) % all.length]; return Math.abs(p[0] - r[0]) > 1e-6 || Math.abs(p[1] - r[1]) > 1e-6; }), n = pts.length;
+            for (let i = 0; i < n; i++) for (let j = i + 2; j < n; j++) {
+                if (i === 0 && j === n - 1) continue;
+                const a = pts[i], b = pts[(i + 1) % n], p = pts[j], r = pts[(j + 1) % n];
+                // (an end within a millionth of the other line touches it: a warp built symmetric meets
+                // itself on the axis)
+                const e = 1e-6 * Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(r[0] - p[0], r[1] - p[1]), sg = (x) => (x > e ? 1 : x < -e ? -1 : 0);
+                const d1 = sg((r[0] - p[0]) * (a[1] - p[1]) - (r[1] - p[1]) * (a[0] - p[0])), d2 = sg((r[0] - p[0]) * (b[1] - p[1]) - (r[1] - p[1]) * (b[0] - p[0]));
+                const d3 = sg((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])), d4 = sg((b[0] - a[0]) * (r[1] - a[1]) - (b[1] - a[1]) * (r[0] - a[0]));
+                if (d1 * d2 < 0 && d3 * d4 < 0) c++;
+            }
+        }
+        return c;
+    };
+    const neck = (P) => {
+        const M = MF.measure(P), sm = [];
+        for (let j = 0; j < 64; j++) sm.push(MF.at(P, M, j / 64));
+        let m = Infinity;
+        for (let i = 0; i < 64; i++) for (let j = i + 4; j < 64; j++) if (64 - (j - i) >= 4) m = Math.min(m, Math.hypot(sm[i][0] - sm[j][0], sm[i][1] - sm[j][1]));
+        return m;
+    };
+    const necks = (A, B) => { let m = Infinity; for (let q = 1; q < 20; q++) m = Math.min(m, neck(MF.lerp(A, B, q / 20))); return m / Math.min(neck(A), neck(B)); };
+    const cases = [['T into an upside-down T', [T, flip(T)]], ['L into the L flipped', [L, flip(L)]], ['u into n', outline('ComicNeue-Bold', 'un')], ['E into F', outline('ComicNeue-Bold', 'EF')],
+        ['N into Z', outline('Bangers-Regular', 'NZ')], ['v into h', outline('ComicNeue-Bold', 'vh')], ['K into X', outline('ComicNeue-Bold', 'KX')], ['A into R', outline('PatrickHand-Regular', 'AR')], ['M into W', outline('ComicNeue-Bold', 'MW')]];
+    const lines = [];
+    for (const [name, keys] of cases) {
+        const { r } = verify('warp ' + name, keys, { warp: true }), even = MF.fix(keys, { warp: false });
+        const cw = crossings(r.paths[0], r.paths[1]), ce = crossings(even.paths[0], even.paths[1]), nw = necks(r.paths[0], r.paths[1]);
+        check(`warp: ${name} is paired by what it is, and its in-betweens neither cross nor pinch`, r.keys[1].warped === true && cw === 0 && nw >= 0.45, `crossings ${cw}, neck ${(nw * 100).toFixed(0)} %`);
+        // (the warp prices bending as well as travel: A into R travels 2 % more, its thin neck gone)
+        check(`warp: ${name} travels about as far as spread evenly, or less (5 % more at most)`, r.keys[1].after <= even.keys[1].after * 1.05, `${even.keys[1].after.toFixed(1)} -> ${r.keys[1].after.toFixed(1)} px`);
+        check(`warp: ${name}: the first key's start stays where it was`, Math.hypot(r.paths[0].v[0][0] - keys[0].v[0][0], r.paths[0].v[0][1] - keys[0].v[0][1]) < 1e-9);
+        check(`warp: ${name}: the start chosen against crossing isn't reported for it (the warp keeps it clear)`, !r.keys[1].untangled && !r.keys[1].unpinched);
+        lines.push(`${name}: crossings ${ce} -> ${cw}, travel ${even.keys[1].after.toFixed(0)} -> ${r.keys[1].after.toFixed(0)} px, neck ${(necks(even.paths[0], even.paths[1]) * 100).toFixed(0)} -> ${(nw * 100).toFixed(0)} %`);
+    }
+    const tt = MF.fix([T, flip(T)], { warp: false }), un = MF.fix(outline('ComicNeue-Bold', 'un'), { warp: false });
+    check('warp: spread evenly, u into n crosses itself (the reason for the warp)', crossings(un.paths[0], un.paths[1]) > 0, String(crossings(un.paths[0], un.paths[1])));
+    // (0.19: any start may be taken to keep a morph clean, travel only orders them: spread evenly
+    // the T no longer pinches into a figure eight, as it did within 20 % more travel; it still
+    // isn't symmetric, which the mirrored warp is: see below)
+    check('warp: spread evenly, the T keeps over half its thinnest part (any start may be taken)', necks(tt.paths[0], tt.paths[1]) >= 0.5, (necks(tt.paths[0], tt.paths[1]) * 100).toFixed(0) + ' %');
+    // a step no warp keeps clean is spread evenly, as before (C into H: every start tried crosses or pinches)
+    const mw = outline('ComicNeue-Bold', 'CH'), mr = MF.fix(mw, { warp: true }), me = MF.fix(mw, { warp: false });
+    check('warp: C into H (no pairing tried keeps clear) is spread evenly, exactly as with the warp off', !mr.keys[1].warped && mr.paths.every((P, k) => same(P, me.paths[k]) < 1e-12));
+    // a chain: each step's warp, composed into one set of points
+    const { r: ch } = verify('warp chain T, L, T upside down', [T, L, flip(T)], { warp: true });
+    check('warp: a chain of three keys warps both steps, neither crossing', ch.keys[1].warped && ch.keys[2].warped && crossings(ch.paths[0], ch.paths[1]) === 0 && crossings(ch.paths[1], ch.paths[2]) === 0);
+    // the cap: breakpoints alone over maxPoints, no warp (and the drawn u and n, 29 points each
+    // and starts that already match, are then left as drawn)
+    const capped = MF.fix(outline('ComicNeue-Bold', 'un'), { maxPoints: 8, warp: true });
+    check('warp: a max too low for its breakpoints spreads evenly instead', !capped.keys[1].warped, String(capped.paths[0].v.length));
+    // off unless asked for (the panel's shape: about 3 times as slow in After Effects)
+    check('warp: off by default', !MF.fix([T, flip(T)], {}).keys[1].warped && !MF.fix([T, flip(T)], { warp: false }).keys[1].warped);
+    // keys that share mirror axes: the warp is built mirrored (one slice paired, mirrored all
+    // the way round), so the morph stays symmetric, every arm alike; measured here as the
+    // farthest a mirrored point of an in-between lands from its outline, about the best shared
+    // axis through its area centre (sym on, the panel's default)
+    {
+        const turnPts = (pts, deg) => { const a = deg * Math.PI / 180; return pts.map(([x, y]) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)]); };
+        const star = (R, r, rot) => { const p = []; for (let k = 0; k < 10; k++) { const a = (rot - 90 + k * 36) * Math.PI / 180, rr = k % 2 ? r : R; p.push([rr * Math.cos(a), rr * Math.sin(a)]); } return p; };
+        const plus = [[-30, -150], [30, -150], [30, -30], [150, -30], [150, 30], [30, 30], [30, 150], [-30, 150], [-30, 30], [-150, 30], [-150, -30], [-30, -30]];
+        const arrow = poly([[0, -150], [120, 0], [40, 0], [40, 150], [-40, 150], [-40, 0], [-120, 0]]);
+        const dense = (H) => { const o = []; for (let k = 0; k < MF.segCount(H); k++) for (let t = 0; t < 32; t++) o.push(MF.bez(MF.seg(H, k), t / 32)); return o; };
+        const segDist = (p, a, b) => { const bx = b[0] - a[0], by = b[1] - a[1], L2 = bx * bx + by * by, t = Math.max(0, Math.min(1, L2 ? ((p[0] - a[0]) * bx + (p[1] - a[1]) * by) / L2 : 0)); return Math.hypot(a[0] + bx * t - p[0], a[1] + by * t - p[1]); };
+        const centroid = (P) => { let A = 0, x = 0, y = 0; for (let i = 0; i < P.length; i++) { const p = P[i], q = P[(i + 1) % P.length], c = p[0] * q[1] - q[0] * p[1]; A += c; x += (p[0] + q[0]) * c; y += (p[1] + q[1]) * c; } return [x / (3 * A), y / (3 * A)]; };
+        const axesOf = (P) => { const ax = MF.mirrorAxes(P); return ax === 'round' ? [] : ax.map((a) => a.phi); };
+        const asym = (r) => {
+            const axes = axesOf(r.paths[0]).filter((a) => axesOf(r.paths[1]).some((b) => { const d = Math.abs(a - b) % Math.PI; return Math.min(d, Math.PI - d) < 2 * Math.PI / 180; }));
+            let worst = 0;
+            for (const u of [0.2, 0.4, 0.5, 0.6, 0.8]) {
+                const P = dense(MF.lerp(r.paths[0], r.paths[1], u)), [cx, cy] = centroid(P);
+                let best = Infinity;
+                for (const phi of axes) {
+                    const c = Math.cos(2 * phi), sn = Math.sin(2 * phi);
+                    let w = 0;
+                    for (let j = 0; j < P.length; j += 4) { const dx = P[j][0] - cx, dy = P[j][1] - cy, q = [cx + dx * c + dy * sn, cy + dx * sn - dy * c]; let m = Infinity; for (let i = 0; i < P.length; i++) m = Math.min(m, segDist(q, P[i], P[(i + 1) % P.length])); w = Math.max(w, m); }
+                    best = Math.min(best, w);
+                }
+                worst = Math.max(worst, best);
+            }
+            return worst;
+        };
+        const symCases = [['T into an upside-down T', [T, flip(T)], 1], ['arrow up into arrow down', [arrow, flip(arrow)], 1], ['plus into x', [poly(plus), poly(turnPts(plus, 45))], 4], ['star into the star turned 36 deg', [poly(star(150, 60, 0)), poly(star(110, 89, 36))], 0]];
+        const symLines = [];
+        for (const [name, keys, k] of symCases) {
+            const { r: off } = verify('sym on, spread evenly, ' + name, keys, { symmetry: 'force' }), { r } = verify('mirrored warp ' + name, keys, { warp: true, symmetry: 'force' }), a0 = asym(off), a1 = asym(r);
+            // sym on, spread evenly: a symmetric start isn't traded for a lopsided one to avoid a pinch or
+            // a collapse (any start allowed, the arrow tumbled 44 px off symmetric, the T 101 px), nor for a
+            // crossing only the samples show (the arrow's); a second fix leaves it
+            check(`sym on: ${name} spread evenly stays symmetric (within 2 px)`, a0 < 2, `${a0.toFixed(2)} px`);
+            check(`sym on: ${name} spread evenly, fixed again: already matched`, MF.fix(off.paths, { symmetry: 'force' }).matched === true);
+            if (k) check(`warp: ${name} is warped mirrored about ${k} axis(es), and stays symmetric (within 1 px)`, r.keys[1].warped && r.keys[1].mirrored === true && a1 < 1, `${a0.toFixed(2)} -> ${a1.toFixed(2)} px`);
+            else check(`warp: ${name}: no mirrored warp keeps clear, so it is spread evenly from a symmetric start`, !r.keys[1].warped && a1 < 1, `${a1.toFixed(2)} px`);
+            check(`warp: ${name}: no less symmetric than without shape`, a1 <= Math.max(a0, 0.5) + 0.5, `${a0.toFixed(2)} -> ${a1.toFixed(2)} px`);
+            symLines.push(`${name} ${a0.toFixed(1)} -> ${a1.toFixed(1)} px`);
+        }
+        console.log('warp, mirrored: asymmetry ' + symLines.join(', '));
+    }
+    console.log('warp: ' + lines.join('; '));
 }
 
 // ---- progress: the fix can be cancelled while it works, before anything is written ----------
@@ -667,6 +793,9 @@ function keepsAxis(r, deg) {
         KeyframeInterpolationType: { LINEAR: 6612, BEZIER: 6613, HOLD: 6614 },
         KeyframeEase: function (speed, influence) { this.speed = speed; this.influence = influence; },
     };
+    // (built first: the panel's own copy of the math, read from an older build, once made
+    // a change look broken that wasn't)
+    execFileSync(process.execPath, [path.join(dir, 'build.mjs')], { stdio: 'ignore' });
     const src = fs.readFileSync(path.join(dir, 'out', 'test-build', 'Mask Morph Fixer.jsx'), 'utf8');
     new Function(...Object.keys(env), src)(...Object.values(env));
     const FX = env.$.global.MorphFixer;
@@ -684,7 +813,8 @@ function keepsAxis(r, deg) {
     check('estimate: grows with points, saturates at the max, Exact cheaper, turn dearer',
         ms(4, {}) < ms(16, {}) && ms(16, {}) < ms(60, {}) && ms(60, {}) === ms(200, {}) && ms(60, { maxPoints: 24 }) < ms(60, {}) &&
         ms(60, { mode: 'exact' }) < ms(60, {}) / 5 && ms(16, { rotate: true }) > ms(16, {}));
-    check('guide: explains every setting', ['Smooth', 'Exact', 'max', 'turn', 'sym'].every((s) => FX.guide.settings.some(([n]) => n === s)));
+    check('guide: explains every setting', ['Smooth', 'Exact', 'max', 'turn', 'sym', 'shape'].every((s) => FX.guide.settings.some(([n]) => n === s)));
+    check('estimate: shape (pairing by shape) about 3 times Smooth, Exact unchanged', ms(16, { warp: true }) === 3 * ms(16, {}) - 2 * 90 && ms(16, { mode: 'exact', warp: true }) === ms(16, { mode: 'exact' }), `${ms(16, {})} -> ${ms(16, { warp: true })}`);
     check('guide: three steps', FX.guide.steps.length === 3);
     check('guide: no jargon', !/procrustes|tangent|vertex|vertices|interpolat|RMS|bezier split|fraction/i.test(FX.info), FX.info);
     const wrapped = FX.wrap(FX.guide.settings[3][1], 58);
@@ -739,19 +869,23 @@ function keepsAxis(r, deg) {
     check('on screen: a layer at 400 % is fixed within 0.1 comp px (max 400)', rep.scale === 4 && rep.deviation <= 0.1 && rep.pathDeviation <= 0.025 && rep.to > 64,
         `scale ${rep.scale}, ${rep.pathDeviation.toFixed(4)} units = ${rep.deviation.toFixed(4)} px, ${rep.to} points`);
     check('on screen: the report says so', /on screen \(it is scaled to 400 %\)/.test(FX.summary(rep)), FX.summary(rep));
-    const small = scaledLayer(25);
+    // (fewer than at 100 %: a warp's breakpoints are points in every key, so the floor is theirs)
+    const small = scaledLayer(25), at100 = FX.fix(mockPath(keys)).to;
     p = mockPath(keys, { propertyGroup: () => small });
     rep = FX.fix(p);
-    check('on screen: a layer at 25 % needs fewer points', rep.scale === 0.25 && rep.deviation <= 0.1 && rep.to < 64, `${rep.to} points, ${rep.deviation.toFixed(4)} px`);
-    console.log(`on screen: 400 % -> ${FX.fix(mockPath(keys, { propertyGroup: () => big })).to} points, 100 % -> 64, 25 % -> ${rep.to}`);
+    check('on screen: a layer at 25 % needs fewer points', rep.scale === 0.25 && rep.deviation <= 0.1 && rep.to < at100, `${rep.to} points (100 %: ${at100}), ${rep.deviation.toFixed(4)} px`);
+    console.log(`on screen: 400 % -> ${FX.fix(mockPath(keys, { propertyGroup: () => big })).to} points, 100 % -> ${at100}, 25 % -> ${rep.to}`);
 
     // crossovers in the report, on real type: a into e gets a start that keeps it from pinching
     // into lobes, and the report says so; a step no start can untangle is named
     const artKeys = (name) => MF.matchPieces(buildArt(ART_CASES.find((c) => c.name.startsWith(name)))).keys.map((row) => row[0]);
-    rep = FX.fix(mockPath(artKeys('a into e')));
+    // (spread evenly: with the warp, a into e is paired by shape instead, and says that)
+    rep = FX.fix(mockPath(artKeys('a into e')), { warp: false });
     check('crossover: a into e gets a start chosen so it does not cross itself, and says so', rep.untangled === 1 && !rep.crossing.length &&
         /1 start chosen so the shape does not cross itself/.test(FX.summary(rep)), FX.summary(rep));
-    const noX = FX.fix(mockPath(artKeys('a into e')), { crossover: false });
+    const ae = FX.fix(mockPath(artKeys('a into e')), { warp: true });
+    check('warp in the report: a into e is paired by shape, and says so', ae.warped === 1 && ae.untangled === 0 && /1 step paired by shape/.test(FX.summary(ae)), FX.summary(ae));
+    const noX = FX.fix(mockPath(artKeys('a into e')), { crossover: false, warp: false });
     check('crossover: without the check, a into e keeps the start that travels least', noX.untangled === 0, FX.summary(noX));
     console.log('crossover: ' + FX.summary(rep));
     // symmetry in the report, and the panel's option passed through

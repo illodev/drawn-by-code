@@ -13,7 +13,7 @@
 // ExtendScript is ES3: no let/const, arrows, JSON, Array.indexOf/forEach. Strings shown in AE
 // stay ASCII.
 var MorphFixer = (function () {
-    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.18.0';
+    var NAME = 'Mask Morph Fixer', FILE_NAME = NAME + '.jsx', VERSION = '0.19.0';
     var SELF = String($.fileName || '');    // this script's own file (the installed copy when docked)
     var MAC = String($.os).indexOf('Mac') >= 0, KEY = MAC ? 'Cmd' : 'Ctrl';
     var DEFAULTS = { mode: 'smooth', start: true, direction: true, maxPoints: 100, tolerance: 0.1 };
@@ -578,7 +578,7 @@ var MorphFixer = (function () {
             for (var q = 0; q < at.length; q++) prop.setValueAtKey(at[q], fromMF(r.paths[q]));
         };
         rep.kept = !!r.kept;
-        var lo = counts[0], hi = counts[0], rev = 0, mov = 0, b = 0, a = 0, n = 0, untangled = 0, unpinched = 0, crossing = [], symmetric = 0;
+        var lo = counts[0], hi = counts[0], rev = 0, mov = 0, b = 0, a = 0, n = 0, untangled = 0, unpinched = 0, crossing = [], symmetric = 0, warped = 0;
         for (k = 0; k < idx.length; k++) {
             if (counts[k] < lo) lo = counts[k];
             if (counts[k] > hi) hi = counts[k];
@@ -587,6 +587,7 @@ var MorphFixer = (function () {
             if (r.keys[k].untangled) untangled++;
             if (r.keys[k].unpinched) unpinched++;
             if (r.keys[k].symmetric) symmetric++;
+            if (r.keys[k].warped) warped++;
             if (r.keys[k].crossings) crossing.push(k + '-' + (k + 1));      // keys counted from 1
             if (k && r.keys[k].before > 0.001) {
                 b += r.keys[k].before;
@@ -603,6 +604,7 @@ var MorphFixer = (function () {
         rep.unpinched = unpinched;      // ... of them, so it doesn't nearly touch itself (it didn't cross)
         rep.crossing = crossing;        // steps that still do: no start traveling about as little avoids it
         rep.symmetric = symmetric;      // starts chosen so the morph stays mirror-symmetric
+        rep.warped = warped;            // steps whose points pair by what the shapes are (MF: warp)
         rep.before = n ? b / n : 0;
         rep.after = n ? a / n : 0;
         rep.mode = r.mode;
@@ -659,6 +661,7 @@ var MorphFixer = (function () {
         else how = 'rebuilt within ' + round3(rep.deviation) + ' px of each shape';
         if (rep.mode !== 'exact' && !rep.fellBack && Math.abs(rep.scale - 1) > 0.005) how += ' on screen (it is scaled to ' + Math.round(rep.scale * 100) + ' %)';
         var crossed = '';
+        if (rep.warped) crossed += '; ' + rep.warped + (rep.warped > 1 ? ' steps' : ' step') + ' paired by shape (pieces slide, grow or shrink instead of swinging round)';
         if (rep.symmetric) crossed += '; ' + rep.symmetric + (rep.symmetric > 1 ? ' starts' : ' start') + ' chosen so it morphs symmetrically (the shapes share a mirror axis)';
         var cross = rep.untangled - (rep.unpinched || 0);
         if (cross > 0) crossed += '; ' + cross + (cross > 1 ? ' starts' : ' start') + ' chosen so the shape does not cross itself on the way';
@@ -763,11 +766,15 @@ var MorphFixer = (function () {
     // drawn points (fitted to bench/ae-bench.jsx: Smooth costs most when it rebuilds up to its
     // max, Exact about a tenth, turn up to twice). The crossover and quick symmetry checks
     // (0.11) add a fixed cost per key, the thorough symmetry test (sym) more: from Node
-    // (0.3 and 2.2 ms a key) times the ~300x ExtendScript runs slower; not yet benched in AE
+    // (0.3 and 2.2 ms a key) times the ~300x ExtendScript runs slower; not yet benched in AE.
+    // Smooth with shape (pairing by shape, 0.19) WARP_FACTOR times as long: in AE 27 the demo's
+    // morph 7.5 s -> 24.5, its letters 61 -> 191 s, its symmetry chain 6.3 -> 8.6
+    // (bench/warp-demo.jsx)
+    var WARP_FACTOR = 3;
     function keyMs(n, o) {
         var c;
         if (o.mode === 'exact') c = 90 + 1.5 * n;
-        else c = Math.min(2000 * Math.max(0.3, (o.maxPoints || 100) / 100), 170 + 55 * n);
+        else c = Math.min(2000 * Math.max(0.3, (o.maxPoints || 100) / 100), 170 + 55 * n) * (o.warp === true ? WARP_FACTOR : 1);
         if (o.rotate) c *= o.mode === 'exact' ? 2 : 1.25;
         return c + (o.symmetry === 'force' ? 700 : 90);
     }
@@ -1147,7 +1154,8 @@ var MorphFixer = (function () {
             ['Exact', 'Keeps your own points and only adds new ones. Keys stay exactly as drawn, but the morph may show small bumps.'],
             ['max', 'The most points Smooth may use per key. If the status ends in "(max)", raise it for a closer fit: big or detailed artwork, like type at 400 px, often needs 200 to 300.'],
             ['turn', 'For shapes that rotate between keys (an F turning onto its side): they swing round instead of squashing. "turn" writes a key every frame, the smoothest; "turn, few keys" one about every 15 deg, easy to retime.'],
-            ['sym', 'Shapes that share a mirror axis morph symmetrically, each side mirroring the other, even if it costs more travel. Off: only when it costs about the same.']
+            ['sym', 'On by default: shapes that share a mirror axis morph symmetrically, each side mirroring the other, even if points travel further. Off: only when it costs about the same.'],
+            ['shape', 'Pairs the outlines by shape: parts slide, grow or shrink instead of swinging round (a bar shrinks into its stem, u rolls into n without folding). About 3 times as slow: off unless ticked.']
         ],
         tips: [
             'Fixed paths have more points: finish drawing your keys first.',
@@ -1158,7 +1166,7 @@ var MorphFixer = (function () {
             'Hover the status line to see what the last fix did.'
         ]
     };
-    var WRAP = 80;      // characters per line in the guide window (wrapped here, not by ScriptUI): 80 keeps it under 800 px tall
+    var WRAP = 96;      // characters per line in the guide window (wrapped here, not by ScriptUI): 80 grew to 858 px tall with sym and shape (0.19); measured in AE 27: 88 -> 481 x 810 px, 92 -> 513 x 794, 96 -> 527 x 778
 
     function guideText() {
         var s = NAME + ' ' + VERSION + '\n' + GUIDE.lead + '\n\nHow to use\n', i;
@@ -1440,9 +1448,15 @@ var MorphFixer = (function () {
         turnBox.helpTip = 'For shapes that rotate between keys: they swing round instead of squashing.\n' +
             'turn: a key every frame, the smoothest. turn, few keys: a key about every 15 deg, easy to retime.';
         var symBox = row.add('checkbox', undefined, 'sym');
-        symBox.value = setting('symmetry', 'false') === 'true';
+        // on unless turned off (0.19: symmetry over travel); kept under a new key, so a sym switched
+        // off under 0.18's default doesn't carry over
+        symBox.value = setting('symmetryOn', 'true') === 'true';
         symBox.helpTip = 'Symmetry first: shapes that share a mirror axis morph symmetrically even when it costs more travel.\n' +
             'Off, symmetry still wins when it costs about the same.';
+        var shapeBox = row.add('checkbox', undefined, 'shape');
+        shapeBox.value = setting('warp', 'false') === 'true';
+        shapeBox.helpTip = 'Pair by shape: parts slide, grow or shrink instead of swinging round (a bar shrinks into its stem, an arm draws back).\n' +
+            'About 3 times as slow. Off: points pair by how far round the outline they are.';
         var fixB = acts.add('button', undefined, 'Fix');
         fixB.preferredSize = [36, 22];
         fixB.helpTip = 'Fix the selected paths, or every keyed path on the selected layers';
@@ -1471,7 +1485,10 @@ var MorphFixer = (function () {
             save('turn', turnBox.selection.index === 2 ? 'few' : (turnBox.selection.index === 1 ? 'true' : 'false'));
         };
         symBox.onClick = function () {
-            save('symmetry', symBox.value);
+            save('symmetryOn', symBox.value);
+        };
+        shapeBox.onClick = function () {
+            save('warp', shapeBox.value);
         };
         max.onChange = function () {
             var n = Math.round(Number(max.text));
@@ -1481,7 +1498,7 @@ var MorphFixer = (function () {
         };
         fixB.onClick = function () {
             var n = Math.round(Number(max.text));
-            var res = fixSelection({ mode: mode.selection.index === 1 ? 'exact' : 'smooth', maxPoints: n >= 4 ? n : 100, rotate: turnBox.selection.index > 0, turnKeys: turnBox.selection.index === 2 ? 'few' : 'frame', symmetry: symBox.value ? 'force' : undefined });
+            var res = fixSelection({ mode: mode.selection.index === 1 ? 'exact' : 'smooth', maxPoints: n >= 4 ? n : 100, rotate: turnBox.selection.index > 0, turnKeys: turnBox.selection.index === 2 ? 'few' : 'frame', symmetry: symBox.value ? 'force' : undefined, warp: shapeBox.value });
             status.text = res.status;
             status.helpTip = res.detail;
             w.lastResult = res;
