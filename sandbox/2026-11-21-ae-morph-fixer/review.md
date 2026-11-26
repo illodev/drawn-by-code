@@ -959,13 +959,19 @@ they are.
   T 101.5 -> 1.7 px, arrow 44.2 -> 0.0, both clean and matched on a second fix.
   The letters don't notice: of 535 Comic Neue pairs with sym on, 142 cross and 145 pinch,
   before and after (141 and 144 with sym off).
-- **After Effects** (2027): the real-type test passes everything (`review/art-log.txt`). Its times
-  (`review/art-times.md`) ran 1.3 to 3.3 times round 19's, but AE itself was slow that day: open
-  21 hours, the demo's calibration job (6 keys of ~16 points) took 12.4 s against 5.6 s (1.76x
-  the reference against 0.90x), and cases whose math didn't change slowed as much (the F
-  turning: 2 ms in Node both times, 2.3 -> 7.7 s in AE). Measured in Node instead, round 19 ->
-  now: most cases within a few ms; any start costs P into D into Q 34 -> 121 ms, M into W 11 ->
-  44, the engraved 8 into B 89 -> 237.
+- **After Effects** (2027): the demo and the real-type test pass everything (`review/ae-log.txt`,
+  `review/art-log.txt`). Timing them took three tries:
+  - in an AE open 21 hours the real-type cases ran 1.3 to 3.3 times round 19's committed times,
+    and the demo's calibration job (6 keys of ~16 points) 12.4 then 24.8 s against 5.6 s;
+  - after the user restarted AE they still ran 1.1 to 2.1 times, though the calibration read
+    0.91x the reference (round 19: 0.90x);
+  - so round 19's own code went through the same test in the same session, back to back: 113.5 s
+    in all, round 20 125.5 s, **1.11 times** (0.72 to 1.46 a case, partly noise;
+    `review/art-times.md` is round 20's run). That is the ~10 % any start costs in Node (P into
+    D into Q 34 -> 121 ms, M into W 11 -> 44, the engraved 8 into B 89 -> 237; most cases within
+    a few ms). Round 19's committed times don't come back on another day (O into C 4.3 s then,
+    5.1 s now, same code), and the calibration job's math alone, timed inside AE, took the same
+    with either round's code (7.1 and 8.0 s; 7.6 and 6.7 s).
 - The demo test failed two panel checks, both from this round's additions: the guide (sym and
   shape longer) was 858 px tall, over the 800 allowed: shape's text shortened, and wrapped at
   96 characters instead of 80 (measured in AE: 88 gave 481 x 810 px, 92 513 x 794, 96 527 x 778); the one row needs about 441 px since the shape checkbox, so the

@@ -837,3 +837,10 @@ that shrinks away and grows again. `morph-ae.jsx` (`isInbetween`, `bakeTurn`, `b
   re-check every priority the user stated against it, on the sheet, not just the counts.
   And a stand-in check (crossings on arc-length samples, on the nearest grid step) must not
   veto what the user asked for on its own: confirm on the final paths before giving it up.
+- 2026-11-26 · ae-morph-fixer · **Compare After Effects times only within one session, back to
+  back.** Against the committed times of the round before, round 20 read 1.3 to 3.3 times slower
+  in an AE open 21 hours, and still 1.1 to 2.1 after a restart; the old round's own build, run
+  through the same test in the same session (git archive into out/, build there, point
+  MORPH_DIR at it), put it at 1.11. The old committed times don't come back on another day
+  (4.3 s then, 5.1 s now, same code), and the demo's calibration factor didn't catch it.
+  Suspect a slowdown first by timing the math alone inside AE, old code against new.
