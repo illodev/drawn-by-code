@@ -31,5 +31,5 @@ ok   a designer expression is kept and reported · Tile 1-6 > Rotation
 ok   remove takes the rig off (3 layers)
 ok   re-apply after remove
 evaluating 455 expressions: 501 ms
-saved C:/Users/imben/drawn-by-code/.claude/worktrees/ae-field-effector/sandbox/2026-11-21-ae-field-effector/out/ae/field-effector-demo.aep
+saved ~/drawn-by-code/.claude/worktrees/ae-field-effector/sandbox/2026-11-21-ae-field-effector/out/ae/field-effector-demo.aep
 all checks pass
