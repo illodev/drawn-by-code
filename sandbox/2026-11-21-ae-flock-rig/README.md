@@ -36,7 +36,7 @@ Select the bird layer and the leader (optional, it pre-fills the dialog), then
 | Birds | How many layers to create |
 | Spacing (px) | The usual gap between neighbours; the flock's size grows with it |
 | Follow (0–100) | How closely the flock tracks the leader (loose swirl → tight) |
-| Lead (s) | The flock aims this far ahead on the leader's path, so the null sits inside it rather than in front (0 = it trails the null) |
+| Leader place (%) | Where the leader flies in the flock: 100 = at its front (the default: the flock follows the leader), 0 = in its middle, negative = behind it. Earlier builds had *Lead (s)* here, which put the leader behind the flock most of the time; a re-run drops it |
 | Turbulence (0–100) | Wandering inside the flock |
 | Glide (0–100) | Birds flap faster climbing and slower diving |
 | Seed | Same settings, a different flock |
@@ -62,9 +62,9 @@ shows a rough guess at the new flock:
   speed.
 - **Ring:** twice the flock's radius.
 
-On the demo's moved leader, 93 % of the re-run's birds fell inside the ring, and the guess's
-centre was 50–135 px from the real one. It is a guide for blocking the path. The exact flock
-needs the re-run: running the whole simulation in an expression would be exact, but it took
+Against re-runs (Node), 94–99 % of the birds fell inside the ring on ordinary paths, down to
+about 70 % on fast reversals. There, the real flock spreads and lags more than the guess
+shows. It is a guide for blocking the path. The exact flock needs the re-run: running the whole simulation in an expression would be exact, but it took
 5–47 s a frame (After Effects runs expression code about 300× slower than a browser does).
 The guess costs 20–30 ms a frame, and only while the leader has moved. It uses the
 settings of the last run. Turn the layer's eye off to hide it.
@@ -126,8 +126,16 @@ The original bird layer is switched off and kept as the template for the next ru
 ## How it moves
 
 Each bird is steered by its neighbours (keep a gap, match their heading, stay with them),
-pulled towards the leader by a damped spring that leaves the flock room to breathe, and
-nudged by slow turbulence. It runs in 3D: depth becomes scale (Perspective) and the layer
+held to the flock's centre loosely enough to breathe, and nudged by slow turbulence. One
+damped spring, the same for every bird, steers the flock's centre to a point on the
+leader's own path, *Leader place* behind the leader. So the flock follows the leader's
+trail, with the leader at its front.
+- **Measured (default settings):** the leader is about 1.2 flock radii ahead of the centre,
+  and behind it in 0–2 % of frames.
+- **Before:** each bird was pulled to the leader, which left the leader's place to chance.
+  It ended up behind the flock's centre 56–100 % of the time.
+- **Exception:** on fast reversals the flock can't keep up and the leader gets ahead of it
+  by more. It runs in 3D: depth becomes scale (Perspective) and the layer
 order. Birds have a top speed, a minimum speed (they never hover: a still leader makes the
 flock circle it) and a minimum turning radius. Within a flock they fly at nearly the same
 speed (±12 % of the flock's mean). So a turning flock turns the way real ones do, each bird

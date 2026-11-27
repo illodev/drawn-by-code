@@ -51,7 +51,8 @@ var FlockRig = (function () {
         count: 80,
         spacing: 40,
         follow: 50,
-        lead: 0.4,
+        place: 100,  // the leader in the flock: 100 = at its front, 0 = in the middle
+        lead: 0,     // seconds ahead (round 1-8 default 0.4, which put the leader behind the flock)
         turbulence: 40,
         glide: 50,
         seed: 1,
@@ -163,7 +164,7 @@ var FlockRig = (function () {
     //      cycle: { start, length } | null, turn: { start, length } | null,
     //      t0, t1: first and last baked key (s), dt: one frame (s), radius: the flock's
     //      typical RMS radius (px), cruise: its cruising speed (px/s), leader: its name,
-    //      sim: the simulation settings (count, spacing, follow, lead, turbulence, glide,
+    //      sim: the simulation settings (count, spacing, follow, place, lead, turbulence, glide,
     //      seed, preroll, faces, cycle) plus frames, samples (leader samples) and fps }
     function expressions(k) {
         var N = {}, i;
@@ -248,11 +249,11 @@ var FlockRig = (function () {
                 '    var fr = Math.round((time - ' + k.t0 + ') * ' + s.fps + ');\n' +
                 '    if (fr < 0) fr = 0;\n' +
                 '    if (fr > ' + (s.frames - 1) + ') fr = ' + (s.frames - 1) + ';\n' +
-                '    var g = FlockSim.guess({ leaderX: X, leaderY: Y, frames: fr + 1, lead: ' + s.lead + ', fps: ' + s.fps +
+                '    var g = FlockSim.guess({ leaderX: X, leaderY: Y, frames: fr + 1, lead: ' + s.lead + ', place: ' + s.place + ', fps: ' + s.fps +
                 ', count: ' + s.count + ', spacing: ' + s.spacing + ', follow: ' + s.follow + ', turbulence: ' + s.turbulence +
                 ', seed: ' + s.seed + ', preroll: ' + s.preroll + ' });\n' +
                 '    // the flock grows with the leader\'s top speed, above about 13 gaps a second\n' +
-                '    var sz = Math.pow(Math.max(g.cruise, ' + 13 * s.spacing + ') / ' + Math.max(k.cruise, 13 * s.spacing) + ', 0.8);\n' +
+                '    var sz = Math.max(g.cruise, ' + 13 * s.spacing + ') / ' + Math.max(k.cruise, 13 * s.spacing) + ';\n' +
                 '    est = [g.x[fr], g.y[fr], sz];\n' +
                 '}\n' +
                 'est;';
@@ -478,7 +479,7 @@ var FlockRig = (function () {
 
         say(0.02, 'Simulating ' + o.count + ' birds');
         var sim = FlockSim.run({
-            leaderX: L.x, leaderY: L.y, frames: F, lead: o.lead, fps: fps,
+            leaderX: L.x, leaderY: L.y, frames: F, lead: o.lead, place: o.place, fps: fps,
             count: o.count, spacing: o.spacing, follow: o.follow, turbulence: o.turbulence,
             glide: o.glide, seed: o.seed, preroll: o.preroll, faces: o.faces,
             cycle: cyc ? cyc.length : 0.5,
@@ -519,7 +520,7 @@ var FlockRig = (function () {
             radius: Math.round(sim.center.radiusRef * 100) / 100, cruise: Math.round(sim.stats.cruise),
             leader: leader.name,
             sim: {
-                count: o.count, spacing: o.spacing, follow: o.follow, lead: o.lead, turbulence: o.turbulence,
+                count: o.count, spacing: o.spacing, follow: o.follow, lead: o.lead, place: o.place, turbulence: o.turbulence,
                 glide: o.glide, seed: o.seed, preroll: o.preroll, faces: o.faces, cycle: cyc ? cyc.length : 0.5,
                 frames: F, samples: L.x.length, fps: fps
             }
@@ -695,7 +696,7 @@ var FlockRig = (function () {
         field('count', 'Birds', 'layers to create');
         field('spacing', 'Spacing (px)', 'usual gap between neighbours');
         field('follow', 'Follow (0-100)', 'how closely the flock tracks the leader');
-        field('lead', 'Lead (s)', 'aims this far ahead on the path (0 = trails the null)');
+        field('place', 'Leader place (%)', 'leader in the flock: 100 front, 0 middle, < 0 behind');
         field('turbulence', 'Turbulence (0-100)', 'wandering inside the flock');
         field('glide', 'Glide (0-100)', 'slower flapping when diving');
         field('seed', 'Seed', 'a different flock, same settings');

@@ -235,6 +235,23 @@
     }
 
     if (ok && OUT) {
+        step('the leader leads', function () {
+            // The user saw the leader following the flock. Every frame, as AE baked it: how far
+            // the leader is ahead of the flock's centre along its travel, in flock radii.
+            var cp = comp.layer('Flock Center').property('ADBE Transform Group').property('ADBE Position');
+            var rad = comp.layer('Flock Center').property('ADBE Effect Parade').property('Radius').property(1);
+            var lp = comp.layer('Leader').property('ADBE Transform Group').property('ADBE Position');
+            var along = [], behind = 0, f;
+            for (f = 1; f < 191; f++) {
+                var a = cp.valueAtTime((f - 1) / 24, true), b = cp.valueAtTime((f + 1) / 24, true), c = cp.valueAtTime(f / 24, true), l = lp.valueAtTime(f / 24, false);
+                var vx = b[0] - a[0], vy = b[1] - a[1], vn = Math.sqrt(vx * vx + vy * vy) || 1;
+                var d = ((l[0] - c[0]) * vx + (l[1] - c[1]) * vy) / vn / rad.valueAtTime(f / 24, true);
+                along.push(d);
+                if (d < 0) behind++;
+            }
+            note('the leader in the flock (Sky, every frame): median ' + q(pct(along, 0.5)) + ' flock radii ahead of the centre (p10 ' + q(pct(along, 0.1)) +
+                ', p90 ' + q(pct(along, 0.9)) + '), behind it in ' + Math.round((100 * behind) / along.length) + ' % of frames');
+        });
         step('defaults are the simulation', function () {
             // the round-1 migration above left Spread at 80: a copy at the true defaults
             var dc = comp.duplicate();
@@ -358,7 +375,7 @@
             var k1 = lp.keyValue(1);
             lp.setValueAtKey(1, [k1[0] - 590, k1[1] + 135, 0]);
             function startGap(c) {
-                var p = c.layer('Flock Center').property('ADBE Transform Group').property('ADBE Position').valueAtTime(0, true), l = lp.valueAtTime(0.4, false);
+                var p = c.layer('Flock Center').property('ADBE Transform Group').property('ADBE Position').valueAtTime(0, true), l = lp.valueAtTime(0, false);
                 return Math.sqrt((p[0] - l[0]) * (p[0] - l[0]) + (p[1] - l[1]) * (p[1] - l[1]));
             }
             function check(c) {
@@ -409,7 +426,7 @@
             note('re-run in "Leader moved" (' + (new Date().getTime() - t) + ' ms): flock starts ' + q(startGap(lm)) + ' px from the leader (Sky: ' +
                 q((function () {
                     var p = comp.layer('Flock Center').property('ADBE Transform Group').property('ADBE Position').valueAtTime(0, true);
-                    var l = comp.layer('Leader').property('ADBE Transform Group').property('ADBE Position').valueAtTime(0.4, false);
+                    var l = comp.layer('Leader').property('ADBE Transform Group').property('ADBE Position').valueAtTime(0, false);
                     return Math.sqrt((p[0] - l[0]) * (p[0] - l[0]) + (p[1] - l[1]) * (p[1] - l[1]));
                 })()) + ' px); leader check ' + check(lm));
         });

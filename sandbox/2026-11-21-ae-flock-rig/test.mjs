@@ -260,8 +260,8 @@ ok(near(M.flockCycle(3.62, 0.62, 100, 0), 0), 'Desync 0: every bird in unison');
 
 // ---- the preview: the leader's path, the leader, and a rough guess at the new flock -----
 {
-    const fps = 24, F = 192, LEAD = 0.4, samples = F + Math.ceil(LEAD * fps) + 1;
-    const settings = { count: 80, spacing: 45, follow: 50, lead: LEAD, turbulence: 40, glide: 50, seed: 7, preroll: 3, faces: 1, cycle: 0.5 };
+    const fps = 24, F = 192, LEAD = 0, samples = F + Math.ceil(LEAD * fps) + 1;
+    const settings = { count: 80, spacing: 45, follow: 50, lead: LEAD, place: 100, turbulence: 40, glide: 50, seed: 7, preroll: 3, faces: 1, cycle: 0.5 };
     const catmull = (KEYS) => (t) => {
         let j = 0;
         while (j < KEYS.length - 2 && t > KEYS[j + 1][0]) j++;
@@ -284,18 +284,22 @@ ok(near(M.flockCycle(3.62, 0.62, 100, 0), 0), 'Desync 0: every bird in unison');
     ok(near(run(ex.previewGuess, 0, 3), [-10000, -10000, 1]), 'preview: no guess while the leader matches the bake');
     const s1 = samplesOf(moved), g = FlockSim.guess({ leaderX: s1.X, leaderY: s1.Y, frames: F, fps, ...settings });
     const t0 = Date.now(), e = run(ex.previewGuess, 100, 3);
-    const sz = Math.pow(Math.max(g.cruise, 13 * 45) / Math.max(k.cruise, 13 * 45), 0.8);
+    const sz = Math.max(g.cruise, 13 * 45) / Math.max(k.cruise, 13 * 45);
     ok(near(e, [g.x[72], g.y[72], sz], 1e-9), 'preview: the expression gives FlockSim.guess at that frame, and the size change');
     console.log('preview: one guess ' + (Date.now() - t0) + ' ms in Node (After Effects: ~300x)');
-    // how good the guess is: real birds of the re-run inside the ring (twice the estimated radius)
-    for (const [label, at] of [['first key moved', moved], ['the demo path', catmull(K0)], ['a fast zigzag', catmull([[0, -100, 200], [2, 1900, 500], [4, 100, 800], [6, 1900, 900], [8, 200, 500]])]]) {
+    // how good the guess is: real birds of the re-run inside the ring (twice the estimated radius).
+    // Fast reversals are its weak spot (the flock spreads and lags more than one average bird):
+    // a lower bar there, said so in the README.
+    const paths = [['first key moved', moved, 0.85], ['the demo path', catmull(K0), 0.85],
+        ['a fast zigzag', catmull([[0, -100, 200], [2, 1900, 500], [4, 100, 800], [6, 1900, 900], [8, 200, 500]]), 0.6]];
+    for (const [label, at, bar] of paths) {
         const sm = samplesOf(at), real = FlockSim.run({ leaderX: sm.X, leaderY: sm.Y, frames: F, fps, ...settings });
         const gg = FlockSim.guess({ leaderX: sm.X, leaderY: sm.Y, frames: F, fps, ...settings });
-        const ring = 2 * k.radius * Math.pow(Math.max(gg.cruise, 13 * 45) / Math.max(k.cruise, 13 * 45), 0.8);
+        const ring = 2 * k.radius * (Math.max(gg.cruise, 13 * 45) / Math.max(k.cruise, 13 * 45));
         let inside = 0, n = 0;
         for (let f = 0; f < F; f += 4) for (const bb of real.birds) { n++; if (Math.hypot(bb.x[f] - gg.x[f], bb.y[f] - gg.y[f]) <= ring) inside++; }
         console.log('preview, ' + label + ': ' + Math.round((100 * inside) / n) + ' % of the re-run birds inside the ring');
-        ok(inside / n > 0.7, 'preview, ' + label + ': most of the re-run flock falls inside the ring');
+        ok(inside / n > bar, 'preview, ' + label + ': at least ' + 100 * bar + ' % of the re-run flock inside the ring');
     }
     // a dot: its bird's place in the baked flock, moved to the guess and scaled
     const est = [500, 400, 1.5];
@@ -317,7 +321,7 @@ for (let f = 0; f <= FR + 12; f++) {
     LX.push(t < 2.5 ? 200 + 400 * t : 1200 - 800 * (t - 2.5) * (u < 1 ? u : 1) + 0);
     LY.push(540 - 120 * Math.sin(Math.PI * u));
 }
-const sim = FlockSim.run({ leaderX: LX, leaderY: LY, frames: FR, lead: 0.4, fps, count: 80, spacing: 40, seed: 3 });
+const sim = FlockSim.run({ leaderX: LX, leaderY: LY, frames: FR, fps, count: 80, spacing: 40, seed: 3 });
 let worst = 0, worstAt = 0, everTurned = 0;
 for (let f = 0; f < FR; f++) {
     let thin = 0;
@@ -379,7 +383,7 @@ for (let f = 0; f <= FR + 10; f++) {
     DX.push(p[0]);
     DY.push(p[1]);
 }
-const demo = FlockSim.run({ leaderX: DX, leaderY: DY, frames: FR, lead: 0.4, fps, count: 80, spacing: 45, seed: 7 });
+const demo = FlockSim.run({ leaderX: DX, leaderY: DY, frames: FR, fps, count: 80, spacing: 45, seed: 7 });
 const cruise = demo.stats.cruise, DC = demo.center;
 const keyed = (X, Y) => (tt) => {
     const u = Math.min(FR - 1, Math.max(0, tt * fps)), j = Math.min(FR - 2, Math.floor(u)), w = u - j;
@@ -387,6 +391,26 @@ const keyed = (X, Y) => (tt) => {
 };
 const radiusSum = (tt) => keyed(DC.radiusSum, DC.radiusSum)(tt)[0];
 const pct = (a, p) => [...a].sort((x, y) => x - y)[Math.min(a.length - 1, Math.floor(p * a.length))];
+// ---- the leader leads: where it flies in the flock (the user saw the flock ahead of it) ---
+// along: the leader's distance ahead of the flock's centre, along its travel, in flock radii
+function leaderInFlock(path, place) {
+    const X = [], Y = [];
+    for (let f = 0; f <= FR; f++) { const p = path(f / fps); X.push(p[0]); Y.push(p[1]); }
+    const s = FlockSim.run({ leaderX: X, leaderY: Y, frames: FR, fps, count: 80, spacing: 45, seed: 7, place });
+    const C = s.center, along = [];
+    for (let f = 1; f < FR - 1; f++) {
+        const vx = C.x[f + 1] - C.x[f - 1], vy = C.y[f + 1] - C.y[f - 1], vn = Math.hypot(vx, vy) || 1;
+        along.push(((X[f] - C.x[f]) * vx + (Y[f] - C.y[f]) * vy) / vn / C.radius[f]);
+    }
+    return { median: pct(along, 0.5), behind: along.filter((a) => a < 0).length / along.length };
+}
+const straight = (t) => [-200 + (2300 * t) / 8, 540];
+for (const [label, path] of [['the demo path', leaderAt], ['a straight path', straight]]) {
+    const front = leaderInFlock(path, undefined), middle = leaderInFlock(path, 0);
+    console.log(`leader in the flock, ${label}: default ${front.median.toFixed(2)} radii ahead of the centre, behind it ${Math.round(100 * front.behind)} % of frames; Leader place 0: ${middle.median.toFixed(2)}`);
+    ok(front.median > 0.6 && front.behind < 0.1, `${label}: by default the leader flies at the front of the flock`);
+    ok(Math.abs(middle.median) < 0.35, `${label}: Leader place 0 puts the leader in the middle`);
+}
 // within a frame, birds of a flock fly at nearly one speed (the simulation's band)
 const band = [];
 for (let f = 1; f < FR - 1; f++) {

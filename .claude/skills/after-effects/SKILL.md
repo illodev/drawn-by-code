@@ -844,3 +844,10 @@ that shrinks away and grows again. `morph-ae.jsx` (`isInbetween`, `bakeTurn`, `b
   MORPH_DIR at it), put it at 1.11. The old committed times don't come back on another day
   (4.3 s then, 5.1 s now, same code), and the demo's calibration factor didn't catch it.
   Suspect a slowdown first by timing the math alone inside AE, old code against new.
+- 2026-11-27 · ae-flock-rig · "The leader is following the flock": each bird was pulled to the
+  leader with a dead zone the size of the flock, so where the leader sat in the flock was
+  left to chance. Measured, it was behind the centre 56–100 % of the time. To place a group
+  relative to its driver, steer the group's centre with one shared force: a damped spring
+  to a target on the driver's own path, a set arc length behind it. Hold the members to the
+  centre separately. The leader then sits 1.2 radii ahead, behind the centre 0–2 % of the
+  time, and a one-body guess of the centre follows the real flock more closely.

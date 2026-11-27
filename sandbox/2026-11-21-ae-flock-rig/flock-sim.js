@@ -26,10 +26,13 @@
 //   r.order                             bird indices, nearest (on average) first = top layer
 //
 // leaderX/leaderY are the leader's comp-space position sampled once per frame from the
-// first baked frame on; `frames` (default: all of them) is how many frames to bake, so the
-// samples can run past the bake for `lead`, the time the flock aims ahead on the leader's
-// path (0 = it trails the leader). Before the first frame the leader is extrapolated along
-// its starting velocity, so after the pre-roll the flock is already formed and travelling.
+// first baked frame on; `frames` (default: all of them) is how many frames to bake. One shared
+// force steers the flock's centre to a point on the leader's own path, `place` behind it:
+// place 100 (default) = the leader flies at the front of the flock, 0 = in its middle,
+// negative = behind it (in % of the flock's radius). `lead` (s, default 0) shifts that point
+// further ahead in time; samples must then run past the bake by that much. Before the first
+// frame the leader is extrapolated along its starting velocity, so after the pre-roll the
+// flock is already formed and travelling.
 var FlockSim = (function () {
     var TAU = Math.PI * 2;
     // Local aliases: a global lookup per call is the slow part of the inner loop in ExtendScript.
@@ -87,13 +90,86 @@ var FlockSim = (function () {
         return s * 0.5; // 4 waves → roughly [-1, 1] most of the time
     }
 
+    // The leader from its samples: position and velocity at any time (extrapolated before the
+    // first sample along its starting velocity, held after the last), the distance it has
+    // travelled along its path, and when it had travelled a given distance.
+    function makeLeader(LX, LY, fps) {
+        var FL = LX.length, dtF = 1 / fps, f, VX = [], VY = [], ARC = [0], vmax = 0;
+        for (f = 0; f < FL; f++) {
+            var fa = f > 0 ? f - 1 : f, fb = f < FL - 1 ? f + 1 : f;
+            VX[f] = fb === fa ? 0 : (LX[fb] - LX[fa]) / ((fb - fa) * dtF);
+            VY[f] = fb === fa ? 0 : (LY[fb] - LY[fa]) / ((fb - fa) * dtF);
+            var sp = sqrt(VX[f] * VX[f] + VY[f] * VY[f]);
+            if (sp > vmax) vmax = sp;
+            if (f > 0) ARC[f] = ARC[f - 1] + sqrt((LX[f] - LX[f - 1]) * (LX[f] - LX[f - 1]) + (LY[f] - LY[f - 1]) * (LY[f] - LY[f - 1]));
+        }
+        var v0 = sqrt(VX[0] * VX[0] + VY[0] * VY[0]), tEnd = (FL - 1) * dtF;
+        function at(tau, out) {
+            if (tau <= 0) {
+                out[0] = LX[0] + VX[0] * tau;
+                out[1] = LY[0] + VY[0] * tau;
+                out[2] = VX[0];
+                out[3] = VY[0];
+                return;
+            }
+            var u = tau * fps, k = floor(u);
+            if (k >= FL - 1) {
+                out[0] = LX[FL - 1];
+                out[1] = LY[FL - 1];
+                out[2] = VX[FL - 1];
+                out[3] = VY[FL - 1];
+                return;
+            }
+            var w = u - k;
+            out[0] = LX[k] + (LX[k + 1] - LX[k]) * w;
+            out[1] = LY[k] + (LY[k + 1] - LY[k]) * w;
+            out[2] = VX[k] + (VX[k + 1] - VX[k]) * w;
+            out[3] = VY[k] + (VY[k + 1] - VY[k]) * w;
+        }
+        function arcAt(tau) {
+            if (tau <= 0) return v0 * tau;
+            var u = tau * fps, k = floor(u);
+            if (k >= FL - 1) return ARC[FL - 1];
+            return ARC[k] + (ARC[k + 1] - ARC[k]) * (u - k);
+        }
+        // the first time the leader had travelled distance a (the path's arc length only grows).
+        // The simulation asks for ever later times, so the search walks on from where it last
+        // stopped: one or two steps, where bisecting cost 32 (in After Effects' slow expression
+        // engine the preview's guess went from ~25 to ~110 ms a frame).
+        var hint = 0;
+        function timeAtArc(a) {
+            if (a <= 0) return v0 > 1e-6 ? a / v0 : 0;
+            if (a >= ARC[FL - 1]) return tEnd;
+            while (hint > 0 && ARC[hint] >= a) hint--;
+            while (hint < FL - 2 && ARC[hint + 1] < a) hint++;
+            // ARC[hint] < a <= ARC[hint + 1]: the segment where it happened
+            var seg = ARC[hint + 1] - ARC[hint];
+            return (hint + (seg > 0 ? (a - ARC[hint]) / seg : 0)) * dtF;
+        }
+        return { at: at, arcAt: arcAt, timeAtArc: timeAtArc, vmax: vmax };
+    }
+
+    // How far behind the leader, along its path, the flock's centre is steered (px): place in %
+    // of the flock's typical RMS radius, about 0.6 of R = S * N^(1/3) * 0.9.
+    function behindOf(place, S, N) {
+        return (place / 100) * 0.6 * S * Math.pow(N, 1 / 3) * 0.9;
+    }
+
+    // The point the flock's centre is steered to at time t: on the leader's path, `behind` px
+    // back from where the leader is at t + lead (out: x, y, vx, vy).
+    function targetAt(LD, t, lead, behind, out) {
+        var tn = t + lead;
+        LD.at(behind !== 0 ? LD.timeAtArc(LD.arcAt(tn) - behind) : tn, out);
+    }
+
     function run(o) {
         var LX = o.leaderX, LY = o.leaderY;
         var FL = LX.length;                                      // leader samples (may run past the bake)
         if (!FL || LY.length !== FL) throw new Error('FlockSim: leaderX and leaderY need the same, non-zero length');
         var F = Math.min(FL, Math.max(1, Math.round(num(o.frames, FL))));   // frames to bake
         var fps = num(o.fps, 24);
-        var lead = Math.max(0, num(o.lead, 0));                  // the flock aims this far ahead on the path (s)
+        var lead = Math.max(0, num(o.lead, 0));                  // the target this far ahead in time (s)
+        var place = clamp(num(o.place, 100), -300, 300);         // the leader in the flock: 100 front, 0 middle
         var N = Math.max(1, Math.round(num(o.count, 80)));
         var S = Math.max(2, num(o.spacing, 40));                // typical gap between neighbours (px)
         var follow = clamp(num(o.follow, 50), 0, 100) / 100;
@@ -109,16 +185,8 @@ var FlockSim = (function () {
         var dtF = 1 / fps, dt = dtF / sub;
         var f, i, j;
 
-        // Leader velocity per frame (central differences), and its top speed.
-        var LVX = [], LVY = [], vLmax = 0;
-        for (f = 0; f < FL; f++) {
-            var fa = f > 0 ? f - 1 : f, fb = f < FL - 1 ? f + 1 : f;
-            var span = (fb - fa) * dtF || dtF;
-            LVX[f] = fb === fa ? 0 : (LX[fb] - LX[fa]) / span;
-            LVY[f] = fb === fa ? 0 : (LY[fb] - LY[fa]) / span;
-            var sp = sqrt(LVX[f] * LVX[f] + LVY[f] * LVY[f]);
-            if (sp > vLmax) vLmax = sp;
-        }
+        // The leader (velocity by central differences, its top speed, its path's length).
+        var LD = makeLeader(LX, LY, fps), vLmax = LD.vmax;
 
         // Speeds scale with the leader (they have to keep up) and with the spacing (birds
         // never hover: a still leader makes them circle it).
@@ -130,41 +198,19 @@ var FlockSim = (function () {
         var Tf = 6 * Math.pow(0.1, follow);                     // follow spring period: 6 s loose, 1.9 s at 50, 0.6 s tight
         var wf = TAU / Tf, kf = wf * wf, df = 0.6 * wf;
         var R = S * Math.pow(N, 1 / 3) * 0.9;                   // the flock's own radius (dead zone)
+        var behind = behindOf(place, S, N);
         var kSep = cruise * 10, tAli = 0.5, kCoh = 1.2;
         var kTurb = turb * cruise * 2.6;
         var waves = makeWaves(rand, S * 5, S * 14);
         var tauV = 0.12;                                         // orientation smoothing (s)
         var wMax = Math.PI;                                      // fastest turn: 180°/s
 
-        function leaderAt(tau, out) {
-            if (tau <= 0) {
-                out[0] = LX[0] + LVX[0] * tau;
-                out[1] = LY[0] + LVY[0] * tau;
-                out[2] = LVX[0];
-                out[3] = LVY[0];
-                return;
-            }
-            var u = tau * fps, k = floor(u);
-            if (k >= FL - 1) {
-                out[0] = LX[FL - 1];
-                out[1] = LY[FL - 1];
-                out[2] = LVX[FL - 1];
-                out[3] = LVY[FL - 1];
-                return;
-            }
-            var w = u - k;
-            out[0] = LX[k] + (LX[k + 1] - LX[k]) * w;
-            out[1] = LY[k] + (LY[k + 1] - LY[k]) * w;
-            out[2] = LVX[k] + (LVX[k + 1] - LVX[k]) * w;
-            out[3] = LVY[k] + (LVY[k + 1] - LVY[k]) * w;
-        }
-
         // State: flat arrays, fastest in ExtendScript.
         var px = [], py = [], pz = [], vx = [], vy = [], vz = [], sx = [], sy = [], sz = [];
         var L = [0, 0, 0, 0];
         var steps = Math.round(preroll * fps) * sub;
         var t0 = -steps * dt;
-        leaderAt(t0, L);
+        targetAt(LD, t0, lead, behind, L);                       // the flock starts around its target
         var r0 = S * Math.pow(N, 1 / 3) * 0.75;
         for (i = 0; i < N; i++) {
             // uniform in a ball
@@ -199,14 +245,27 @@ var FlockSim = (function () {
         // side) with linked lists per cell. Dense integer indices stay fast in ExtendScript,
         // where hashed keys get converted to strings on every lookup.
         var next = [], cellOf = [], head = [];
+        var CX, CY, CZ;
         function step(t) {
-            leaderAt(t + lead, L);
+            targetAt(LD, t, lead, behind, L);
             // birds of a flock fly at nearly the same speed: this step's band around the
             // flock's mean speed (a turning flock then turns on parallel paths, like real
-            // ones, instead of spinning with its outer birds racing round)
+            // ones, instead of spinning with its outer birds racing round); and the flock's
+            // centre, which the follow force steers
             var mS = 0;
-            for (i = 0; i < N; i++) mS += sqrt(vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i]);
+            CX = 0;
+            CY = 0;
+            CZ = 0;
+            for (i = 0; i < N; i++) {
+                mS += sqrt(vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i]);
+                CX += px[i];
+                CY += py[i];
+                CZ += pz[i];
+            }
             mS /= N;
+            CX /= N;
+            CY /= N;
+            CZ /= N;
             var lo = Math.max(vMin, mS * (1 - band)), hi = Math.min(vMax, mS * (1 + band));
             var mnx = px[0], mny = py[0], mnz = pz[0], mxx = mnx, mxy = mny, mxz = mnz;
             for (i = 1; i < N; i++) {
@@ -262,15 +321,18 @@ var FlockSim = (function () {
                         }
                     }
                 }
-                // follow: a damped spring to the leader (z = 0 is the leader's plane) with a
-                // soft dead zone the size of the flock, so a tight follow pulls the flock along
-                // without squeezing it into a ball
-                var ex = L[0] - xi, ey = L[1] - yi, ez = 0 - zi;
-                var ed = sqrt(ex * ex + ey * ey + ez * ez) || 0.001;
-                var ek = ed > R ? (kf * (ed - R + R * 0.1)) / ed : kf * 0.1;
-                var fx = ex * ek + (L[2] - vx[i]) * df;
-                var fy = ey * ek + (L[3] - vy[i]) * df;
-                var fz = ez * ek + (0 - vz[i]) * df;
+                // follow: one spring, the same for every bird, steers the flock's centre to the
+                // target on the leader's path (z = 0 is the leader's plane), so the leader sits
+                // where `place` says (pulling each bird to the leader instead left that to chance:
+                // round 9 measured the leader behind the flock 56-100 % of the time). Each bird
+                // is held to the centre with a soft dead zone the size of the flock (no squeezing
+                // into a ball) and matches the target's velocity.
+                var cx0 = CX - xi, cy0 = CY - yi, cz0 = CZ - zi;
+                var cd = sqrt(cx0 * cx0 + cy0 * cy0 + cz0 * cz0) || 0.001;
+                var ck = cd > R ? (kf * (cd - R + R * 0.1)) / cd : kf * 0.1;
+                var fx = (L[0] - CX) * kf + cx0 * ck + (L[2] - vx[i]) * df;
+                var fy = (L[1] - CY) * kf + cy0 * ck + (L[3] - vy[i]) * df;
+                var fz = (0 - CZ) * kf + cz0 * ck + (0 - vz[i]) * df;
                 var mx = fx + sepX * kSep, my = fy + sepY * kSep, mz = fz + sepZ * kSep;
                 if (wsum > 0) {
                     mx += (aliX / wsum - vx[i]) / tAli + (cohX / wsum - xi) * kCoh;
@@ -550,47 +612,33 @@ var FlockSim = (function () {
 
     // A rough guess at where the flock's centre goes, cheap enough for an expression (After
     // Effects' expressions run plain loops ~300x slower than V8: the full simulation took 5-47 s
-    // a frame there). One "average bird" with the flock's own follow force, turbulence and
-    // limits, no neighbours, on the leader's plane. Measured against full simulations on six
-    // paths: about one flock radius off (rms), and 80-90 % of the birds within twice the
-    // radius of it. Returns { x: [], y: [] } per frame and the cruise speed.
+    // a frame there). One "average bird" under the flock's shared follow spring (the centre's
+    // own force: the pulls holding birds to the centre cancel out on average), the same seeded
+    // turbulence and the speed and turn limits, no neighbours, on the leader's plane. Returns
+    // { x: [], y: [] } per frame and the cruise speed.
     function guess(o) {
         var LX = o.leaderX, LY = o.leaderY, FL = LX.length;
         var F = Math.min(FL, Math.max(1, Math.round(num(o.frames, FL))));
-        var fps = num(o.fps, 24), lead = Math.max(0, num(o.lead, 0));
+        var fps = num(o.fps, 24), lead = Math.max(0, num(o.lead, 0)), place = clamp(num(o.place, 100), -300, 300);
         var N = Math.max(1, Math.round(num(o.count, 80))), S = Math.max(2, num(o.spacing, 40));
         var follow = clamp(num(o.follow, 50), 0, 100) / 100, turb = clamp(num(o.turbulence, 40), 0, 100) / 100;
         var preroll = Math.max(0, num(o.preroll, 3)), sub = 2, dtF = 1 / fps, dt = dtF / sub, f, k;
-        var LVX = [], LVY = [], vLmax = 0;
-        for (f = 0; f < FL; f++) {
-            var fa = f > 0 ? f - 1 : f, fb = f < FL - 1 ? f + 1 : f;
-            LVX[f] = fb === fa ? 0 : (LX[fb] - LX[fa]) / ((fb - fa) * dtF);
-            LVY[f] = fb === fa ? 0 : (LY[fb] - LY[fa]) / ((fb - fa) * dtF);
-            var sp = sqrt(LVX[f] * LVX[f] + LVY[f] * LVY[f]);
-            if (sp > vLmax) vLmax = sp;
-        }
+        var LD = makeLeader(LX, LY, fps), behind = behindOf(place, S, N);
         // the simulation's constants and its turbulence (the same seeded waves, drawn first)
-        var cruise = Math.max(vLmax, S * 6), vMax = cruise * 1.6, vMin = cruise * 0.4, aMax = cruise * 3.2;
-        var wf = TAU / (6 * Math.pow(0.1, follow)), kf = wf * wf, df = 0.6 * wf, R = S * Math.pow(N, 1 / 3) * 0.9;
+        var cruise = Math.max(LD.vmax, S * 6), vMax = cruise * 1.6, vMin = cruise * 0.4, aMax = cruise * 3.2;
+        var wf = TAU / (6 * Math.pow(0.1, follow)), kf = wf * wf, df = 0.6 * wf;
         var kTurb = turb * cruise * 2.6, waves = makeWaves(rng(num(o.seed, 1) * 7919 + 13), S * 5, S * 14);
-        function at(tau) {
-            if (tau <= 0) return [LX[0] + LVX[0] * tau, LY[0] + LVY[0] * tau, LVX[0], LVY[0]];
-            var u = tau * fps, j = floor(u);
-            if (j >= FL - 1) return [LX[FL - 1], LY[FL - 1], LVX[FL - 1], LVY[FL - 1]];
-            var w = u - j;
-            return [LX[j] + (LX[j + 1] - LX[j]) * w, LY[j] + (LY[j + 1] - LY[j]) * w, LVX[j] + (LVX[j + 1] - LVX[j]) * w, LVY[j] + (LVY[j + 1] - LVY[j]) * w];
-        }
-        var t = -Math.round(preroll * fps) * dtF, L = at(t), x = L[0], y = L[1], vx = L[2], vy = L[3];
+        var t = -Math.round(preroll * fps) * dtF, L = [0, 0, 0, 0];
+        targetAt(LD, t, lead, behind, L);
+        var x = L[0], y = L[1], vx = L[2], vy = L[3];
         if (sqrt(vx * vx + vy * vy) < vMin) {
             vx = vMin;
             vy = 0;
         }
         function step() {
-            L = at(t + lead);
-            var ex = L[0] - x, ey = L[1] - y, ed = sqrt(ex * ex + ey * ey) || 0.001;
-            var ek = ed > R ? (kf * (ed - R + R * 0.1)) / ed : kf * 0.1;
-            var ax = ex * ek + (L[2] - vx) * df + kTurb * wave(waves[0], x, y, 0, t);
-            var ay = ey * ek + (L[3] - vy) * df + kTurb * wave(waves[1], x, y, 0, t);
+            targetAt(LD, t, lead, behind, L);
+            var ax = (L[0] - x) * kf + (L[2] - vx) * df + kTurb * wave(waves[0], x, y, 0, t);
+            var ay = (L[1] - y) * kf + (L[3] - vy) * df + kTurb * wave(waves[1], x, y, 0, t);
             var am = sqrt(ax * ax + ay * ay);
             if (am > aMax) {
                 ax *= aMax / am;
@@ -622,6 +670,7 @@ var FlockSim = (function () {
         return { x: outX, y: outY, cruise: cruise };
     }
 
-    // 2: nested ?: parenthesized (ExtendScript misread them); 3: speed band, running sums
-    return { run: run, guess: guess, rng: rng, version: 3 };
+    // 2: nested ?: parenthesized (ExtendScript misread them); 3: speed band, running sums;
+    // 4: the follow spring steers the flock's centre to a point behind the leader (place)
+    return { run: run, guess: guess, rng: rng, behindOf: behindOf, version: 4 };
 })();

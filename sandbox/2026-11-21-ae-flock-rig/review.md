@@ -367,3 +367,84 @@ provide a rough estimate of how the flock would appear around the leader."
 doubled backslashes. After Effects showed the user a modal "Unterminated string constant"
 alert. A syntax error stops the whole script before any line runs, so nothing changed.
 Launchers are now written as files directly and parsed in Node before they are sent.
+
+## Round 9 · 2026-11-27 (user feedback: "the leader is following the flock rather than the other way around")
+
+**Measured** (Node, four paths; the leader's distance ahead of the flock's centre along its
+travel, in flock radii):
+
+- With the default Lead of 0.4 s, the leader was behind the flock's centre in 56–100 % of
+  frames (straight path: 95 %, 1.3 radii back).
+- Even at Lead 0 its place drifted from 0.5 radii behind to 1.5 ahead, depending on the path.
+- **Cause:** each bird was pulled to the leader with a dead zone the size of the flock. Inside
+  it the pull was weak, so where the leader ended up in the flock was left to the pre-roll
+  and the turbulence.
+
+**Fix: steer the flock's centre, not each bird.** One damped spring, the same for every bird,
+steers the flock's centre to a target on the leader's own path. The target is *Leader place*
+behind the leader by arc length, in % of the flock's typical radius:
+
+- 100 (default) = the leader at the front; 0 = in the middle; negative = behind.
+- So the flock follows the leader's trail.
+- Each bird is held to the flock's centre with the old soft dead zone, and matches the
+  target's velocity. A common force leaves the formation alone, so there is no squeezing
+  into a ball.
+
+`Lead (s)` stays in the simulation's API, default 0, but leaves the dialog. Settings saved by
+earlier builds still carry `lead: 0.4`; the dialog ignores them.
+
+| Leader in the flock (Node, follow 50) | demo path | straight | slow S-curve | fast zigzag |
+|---|---|---|---|---|
+| Before (Lead 0.4): median, behind % | −0.64, 77 % | −1.31, 95 % | −1.18, 100 % | −0.47, 56 % |
+| Now (Leader place 100) | +1.20, 2 % | +1.06, 0 % | +1.14, 0 % | +1.32, 29 % |
+| Leader place 0 | +0.21 | −0.03 | +0.03 | +0.87 |
+
+On the fast zigzag the flock can't keep up with the reversals, whatever the setting. Speeds
+are unchanged: within a frame 0.85–1.14× the flock's mean, and with the shape controls the
+fastest bird is 1.48×. The flock is a little looser, RMS radius about 100 px against 85.
+
+**The preview's guess**, rebuilt on the new model: an average bird under the shared spring.
+- The centre's own force needs no dead zone, so the guess got closer: the centre is 0.2–0.8
+  radii off on ordinary paths, and 94–99 % of birds fall inside the ring.
+- Fast reversals stay weak: 1.4–1.6 radii off, 70 % inside.
+- Size: since the change the flock grows about in proportion to the leader's top speed, so
+  the exponent went from 0.8 to 1.
+- The leader's arc-length search walks on from where it stopped instead of bisecting, so the
+  guess's cost in AE is back to ~25 ms a frame (32 bisections had taken it to 31–114 ms).
+
+**Tests.** `test.mjs` (2,922 checks):
+- Defaults put the leader at the front on the demo and a straight path: more than 0.6 radii
+  ahead, behind in under 10 % of frames.
+- Leader place 0 puts it in the middle.
+- Ring bars: 85 % on ordinary paths, 60 % on the zigzag.
+
+Engine preview stills at 1–7 s: the leader at the front of the flock through the swoop and
+the loop.
+
+**`check-ae.mjs`:** the shape window's mean axis and mean radius are limited in proportion to
+1/W. A short window (Sky's 0.41 s) divides small differences in reading between keys by W:
+0.00055 on the axis (0.03°) and 0.0104 px. Final positions are still within 0.004 px.
+
+**Inside After Effects 27** (`make-demo.jsx`, `out/ae-test-r9` and `out/ae-test-r9b`, the latter
+with the final arc-length search):
+
+- **The leader in the flock** (Sky, every frame, as AE baked it): 1.29 radii ahead of the
+  centre (p10 0.43, p90 2.24), behind it in 0 % of frames.
+- **Everything else as before:** no expression errors; Spread 300 adds at most 0.16× cruise;
+  Turn check 41.3 % head-on, narrowest 30.0 %; a rebuild removes 83 layers; the leader check
+  shows a moved leader (605 px) and goes after a re-run.
+- **Preview:** 97 % of the re-run's birds inside the ring.
+- **No flags left behind:** `FLOCK_NO_UI` is false and the test settings are cleared.
+- **`check-ae.mjs` on the final build:** the simulation is within 0.0005 px of Node, and final
+  positions within 0.004 px in all three comps.
+- **Timings:** this AE session slowed down as it went. The same build took 21 s, then 152 s.
+  The re-run in the moved copy took 16 min and the dump 43 min. The AE timings from the second
+  run aren't comparable.
+- **Looked at** (aerender of Sky, the leader drawn on from the dump at 0.5–7.5 s): the leader
+  is at or ahead of the flock's front in every sample. In the loop's tightest part
+  (4.5–5.5 s) the flock trails it by about one flock width (Follow 50); a higher Follow
+  tightens that.
+- **`render/` (mp4, strip, gif):** redone from this render.
+- **Not done:** running Flock.jsx through its dialog by hand. The user declined screen
+  control, so the dialog's new *Leader place* field is untested by hand. Its code path (the
+  field feeds `place` into the build) is the one the tests drive.

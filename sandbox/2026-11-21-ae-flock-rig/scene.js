@@ -78,13 +78,13 @@ Motion.scene({
     uses: [DIR + 'flock-sim.js', DIR + 'flock-math.js'],
     shots: [[0, DUR, 'Flock preview']],
     setup(env) {
-        const LEAD = 0.4, LX = [], LY = [];
+        const LEAD = 0, LX = [], LY = [];      // Flock.jsx defaults: Leader place 100, no lead
         for (let f = 0; f < env.total + Math.ceil(LEAD * FPS) + 1; f++) {
             const p = leaderAt(f / FPS);
             LX.push(p[0]);
             LY.push(p[1]);
         }
-        const sim = FlockSim.run({ leaderX: LX, leaderY: LY, frames: env.total, lead: LEAD, fps: FPS, count: 80, spacing: 40, follow: 50, turbulence: 40, glide: 50, seed: 7, cycle: CYCLE });
+        const sim = FlockSim.run({ leaderX: LX, leaderY: LY, frames: env.total, lead: LEAD, place: 100, fps: FPS, count: 80, spacing: 40, follow: 50, turbulence: 40, glide: 50, seed: 7, cycle: CYCLE });
         return { sim, LX, LY };
     },
     draw(g, t, env) {
