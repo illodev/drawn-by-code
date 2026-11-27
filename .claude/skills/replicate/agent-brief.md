@@ -1,7 +1,7 @@
 # Brief for an element agent (template)
 
 Copy this file into your scratchpad, replace every `<…>`, and pass its path to the agent
-(Agent tool, `isolation: "worktree"`). Keep the «Why» in the user's own words.
+(Agent tool, `isolation: "worktree"`). Keep the «Why» as the user said it, in English.
 
 ---
 

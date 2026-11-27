@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en" data-root="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drawn-by-code · live scene</title>
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// A scene, live. The site's live frames run here, one iframe per scene, so every scene keeps
+// its own globals (kits, sprites, Motion.def). The same engine/core.js renders the films.
+//   ?scene=styles/sumi-e/template.js   path from the repo root
+//   &id=hero                           echoed back in the messages
+//   &max=1600                          cap on the canvas width in pixels
+//   &after=loop|hold|run               at the end: loop (default), hold the last frame, or
+//                                      keep the clock running past the end (the scene's
+//                                      own motion carries on)
+// Messages in: {cmd:'play'|'pause'|'seek', t}. Out: {type:'frame'|'ready'|'error', id, …}.
+// Math.random is wrapped and counted: the scenes are deterministic, and the count says so.
+(() => {
+    const ROOT = document.documentElement.dataset.root;
+    const q = new URLSearchParams(location.search);
+    const id = q.get('id') || q.get('scene');
+    const post = (m) => parent !== window && parent.postMessage({ src: 'dbc', id, ...m }, '*');
+    let randomCalls = 0;
+    const realRandom = Math.random;
+    Math.random = () => { randomCalls++; return realRandom(); };
+    // Scripts are fetched all at once and run in order (one after another over the network
+    // took seconds for a scene with many kits); each runs under its own name in errors.
+    const get = (src) => fetch(src).then((r) => {
+        if (!r.ok) throw new Error(`Could not load ${src} (${r.status})`);
+        return r.text();
+    });
+    const run = (code, src) => {
+        const s = document.createElement('script');
+        s.text = `${code}\n//# sourceURL=${new URL(src, location.href).href}`;
+        document.head.appendChild(s);
+    };
+    let lastError = null;
+    addEventListener('error', (e) => { lastError = e.error || e.message; });
+    const fail = (e) => post({ type: 'error', message: String(e && e.message || e) });
+
+    (async () => {
+        const scene = q.get('scene');
+        const [core, sceneCode] = await Promise.all([get(ROOT + 'engine/core.js'), get(ROOT + scene)]);
+        run(core, ROOT + 'engine/core.js');
+        run(sceneCode, ROOT + scene);
+        if (lastError) throw lastError;
+        const def = Motion.def;
+        const uses = (def.uses ?? []).map((u) => (typeof u === 'string' ? { src: u } : u));
+        const codes = await Promise.all(uses.map((u) => get(ROOT + u.src).catch((e) => (u.optional ? null : Promise.reject(e)))));
+        uses.forEach((u, i) => codes[i] != null && run(codes[i], ROOT + u.src));
+        if (lastError) throw lastError;
+        for (const f of def.fonts ?? []) {
+            try {
+                const ff = new FontFace(f.family, `url(${ROOT + f.src})`, f.descriptors ?? {});
+                await ff.load();
+                document.fonts.add(ff);
+            } catch (e) { if (!f.optional) throw e; }
+        }
+        const fps = def.fps ?? 24, [W, H] = def.logical ?? [1600, 900];
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const max = Number(q.get('max') || 1600);
+        const size = Math.max(320, Math.min(max, Math.round(innerWidth * dpr)));
+        const k = size / W;
+        const c = document.getElementById('c');
+        c.width = size;
+        c.height = Math.round(H * k);
+        const ctx = c.getContext('2d');
+        const total = Math.round(def.duration * fps);
+        const env = { W, H, k, fps, duration: def.duration, total, px: [c.width, c.height], sceneDir: scene.replace(/[^/]*$/, ''), state: {} };
+        if (def.setup) env.state = (await def.setup(env)) ?? env.state;
+
+        const paint = (t) => {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.globalAlpha = 1;
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.filter = 'none';
+            ctx.clearRect(0, 0, c.width, c.height);
+            ctx.setTransform(k, 0, 0, k, 0, 0);
+            ctx.save();
+            def.draw(ctx, t, env);
+            ctx.restore();
+            if (def.post) {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                def.post(ctx, t, env);
+            }
+        };
+        const after = q.get('after') || 'loop';
+        // the clock: a frame index, advanced at the scene's own fps
+        let frame = 0, playing = false, last = 0, painted = -1, ms = 0;
+        const frameAt = (n) => (after === 'loop' ? ((n % total) + total) % total : after === 'hold' ? Math.min(n, total - 1) : n);
+        const draw = () => {
+            const f = frameAt(frame);
+            if (f === painted) return;
+            const t0 = performance.now();
+            try { paint(f / fps); } catch (e) { playing = false; fail(e); return; }
+            ms = performance.now() - t0;
+            painted = f;
+            post({ type: 'frame', frame: f, t: f / fps, total, fps, ms, random: randomCalls, duration: def.duration });
+        };
+        const tick = (now) => {
+            if (!playing) return;
+            if (now - last >= 1000 / fps - 2) {
+                last = now;
+                frame++;
+                draw();
+            }
+            requestAnimationFrame(tick);
+        };
+        addEventListener('message', (e) => {
+            const m = e.data || {};
+            if (m.cmd === 'play' && !playing) { playing = true; last = performance.now(); requestAnimationFrame(tick); }
+            if (m.cmd === 'pause') playing = false;
+            if (m.cmd === 'seek') { frame = Math.round(m.t * fps); draw(); }
+        });
+        draw();
+        post({ type: 'ready', total, fps, duration: def.duration, logical: [W, H] });
+        if (q.get('autoplay')) { playing = true; requestAnimationFrame(tick); }
+    })().catch(fail);
+})();
+</script>
+</body>
+</html>

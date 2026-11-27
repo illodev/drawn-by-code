@@ -2192,9 +2192,9 @@ void main() {
     // print onto theirs. Second inks (blue, gold) ride on top as the difference from our
     // neutral palette. Only colour happens here, pixel by pixel, plus the downsample of the
     // supersampled frame: no grain, strokes, toning or vignette on the screen. Those looked
-    // like a dirty lens once the camera moved (the user: «se vería a nivel de texturas y no de
-    // pantalla»); the tooth and the strokes are each surface's own texture (charcoal() in the
-    // scene shader) and the sheet's toning lives on the sheet (print()).
+    // like a dirty lens once the camera moved (the user: «it would show at the level of the
+    // textures, not of the screen»); the tooth and the strokes are each surface's own texture
+    // (charcoal() in the scene shader) and the sheet's toning lives on the sheet (print()).
     const AGE_FS = `#version 300 es
 precision highp float;
 uniform sampler2D uSrc;
@@ -2241,8 +2241,8 @@ void main() {
         return out;
     })();
     // the colour per luminance: measured on the plates, then aged to old yellowed paper (the
-    // user: «todo debería tener más ese color desgastado que tienen los aros, como más papel
-    // viejo»): the rings' wash is R:G:B ≈ 1 : 0.89 : 0.77; the sheet a little darker and
+    // user: «everything should have more of that worn colour the rings have, more like old
+    // paper»): the rings' wash is R:G:B ≈ 1 : 0.89 : 0.77; the sheet a little darker and
     // yellower than a fresh one, the darks sepia. Luminance kept, hue from sepia to buff
     const AGE_GRAD = (() => {
         const plates = [[9, 5, 1], [22, 17, 9], [37, 32, 24], [54, 47, 38], [70, 63, 53], [87, 78, 68], [103, 94, 83], [120, 110, 99], [136, 126, 114], [152, 142, 130], [170, 160, 148], [186, 176, 165], [197, 188, 177], [211, 202, 192], [229, 220, 210], [242, 235, 228], [253, 246, 236]];

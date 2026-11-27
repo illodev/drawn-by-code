@@ -27,7 +27,7 @@ set `CHROME_PATH`.
 
 ## Where the work is: `sandbox/2026-09-26-pyramid-engraving/`
 
-«La pirámide que fabrica cielos» (the ChatGPT script, shots PIR-01…PIR-10), 63.6 s at
+«The pyramid that makes skies» (the ChatGPT script, shots PIR-01…PIR-10), 63.6 s at
 24 fps, engraving style (`styles/engraving/`, skill `style-engraving`), charcoal on toothed
 paper and an aged print, opened and closed by a printed plate.
 
@@ -81,7 +81,7 @@ commit or print a key.
   every element its own pieces and textures; hands via the `hands` skill.
 - One commit per round, `review(<experiment>): round N · <lesson>`, experiment and skills
   together; distil lessons into the skills. Never rewrite history. Work on `main`.
-- Don't interrupt a running render without asking. Never say «Tienes razón».
+- Don't interrupt a running render without asking. Never say «Tienes razón» («You're right»).
 
 ## Gotchas learnt the hard way
 

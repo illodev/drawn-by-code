@@ -29,7 +29,10 @@ const PaperKit = (() => {
             const key = g.font + '|' + text;
             if (!letterW.has(key)) {
                 const xs = [];
-                for (let i = 0; i <= text.length; i++) xs.push(g.measureText(text.slice(0, i)).width);
+                // each letter by its own width: measuring prefixes lets a ligature («fi» in Patrick Hand)
+                // shrink the run, and the next letter is drawn over the one before («perfil» read «perfl»)
+                xs.push(0);
+                for (let i = 0; i < text.length; i++) xs.push(xs[i] + g.measureText(text[i]).width);
                 letterW.set(key, xs);
             }
             const xs = letterW.get(key);
@@ -57,7 +60,13 @@ const PaperKit = (() => {
             }
             return total;
         }
-        const textW = (g, text, size, f = font) => ((g.font = `${size}px "${f}"`), g.measureText(text).width);
+        // the same sum of letter widths hand() lays out, so an underline ends where the text does
+        const textW = (g, text, size, f = font) => {
+            g.font = `${size}px "${f}"`;
+            let w = 0;
+            for (let i = 0; i < text.length; i++) w += g.measureText(text[i]).width;
+            return w;
+        };
 
         // Written text + a marker underline drawn right after it.
         function title(g, t, t0, text, x, y, size, color = COL.cream, under = COL.orange, o = {}) {

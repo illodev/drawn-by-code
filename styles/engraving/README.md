@@ -4,7 +4,7 @@
 
 3D scenes drawn as a plate of the «Description de l'Égypte» (1809–1822): charcoal tone on toothed paper, masonry drawn stone by stone, temple walls in low relief after Dendera (registers of offering scenes, invented signs, Hathor capitals, starred ceilings), an aged print whose paper and ink are measured on the original plates, and colour only as a second ink (a live blue, a gold wash). A ruled-burin mode is kept too. A WebGL2 rasteriser with instancing, so thousands of stones cost ~2 s a frame without a GPU.
 
-**Status:** in testing · **Skill:** [`style-engraving`](../../.claude/skills/style-engraving/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
+**Status:** approved · **Skill:** [`style-engraving`](../../.claude/skills/style-engraving/SKILL.md) (the rules and the checklist that keep every video in the style consistent)
 
 ## Start a video in this style
 

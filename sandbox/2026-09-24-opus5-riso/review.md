@@ -27,9 +27,9 @@
 
 ## Round 3 · the detail pass (capped by the user)
 
-User: «falta ir al detalle … su imagen tiene como un filtro de ruido que el nuestro no se nota
-… nuestra medusa no sale … Los animales les falta detalles. A los círculos les faltan las
-ondas … Debería ser regla general.»
+User: «it still has to go into detail … their image has something like a noise filter that
+does not show in ours … our jellyfish does not appear … The animals lack detail. The circles
+are missing the waves … It should be a general rule.»
 
 Done (on main):
 - `engine/detail.mjs`, the detail gate, mandatory before showing anything (CLAUDE.md). Colour
@@ -56,8 +56,9 @@ Still to do (no card passes yet, first-showing medians ≈ 11–25):
 
 ### Closed (2026-09-25)
 
-User: «Creo que deberíamos ponerle límite al repaso, llevamos horas y tampoco hemos avanzado
-mucho y el uso de tokens por mejora se está volviendo carísimo.» The pass stopped there.
+User: «I think we should put a limit on the pass: we have been at it for hours without
+making much progress, and the token use per improvement is getting extremely expensive.»
+The pass stopped there.
 
 Final gate over the film (`--every 0.25`, 112 instants, with the private data): **FAIL on colour
 median 9.6** (limit 8; round 2 scored 18); p90 21.7 ✓, too clean 5.3 % ✓, too busy 4.0 % ✓.
@@ -70,4 +71,4 @@ The committed film is the described version: cards read their grids and traces f
 tones and shapes, and score a few points worse. Earlier commits in this round still carry
 some scan tables in the git history (G5's first commits and others moved later).
 
-User: «Lo doy por bueno.» Approved at this state; no round cap added to CLAUDE.md, git history left as is.
+User: «I'll call it good.» Approved at this state; no round cap added to CLAUDE.md, git history left as is.

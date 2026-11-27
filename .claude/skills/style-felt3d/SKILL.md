@@ -38,8 +38,8 @@ a comb-over, a resin puddle).
   mouth and the toes **stitched** in thread (albedo lines), ears as flattened cones, pink
   felt pads pressed in; hats of felt; glasses of dark wire.
 - **Markings from the reference, pushed:** a character is recognised by its markings and
-  its oddities (the user: the glasses cat «es conocido por estar medio calvo… y por mear
-  mientras baila»). Make the oddity a clear piece (a bare pink crown with three strands
+  its oddities (the user: the glasses cat «is known for being half bald… and for peeing
+  while he dances»). Make the oddity a clear piece (a bare pink crown with three strands
   combed over; a glossy yellow resin puddle that grows), not a hint.
 - **Stop motion on twos** (15 drawings/s at 30 fps), the fibres boil per drawing.
 - **Any backdrop:** the puppets have alpha; a set gives its light (`keyCol`, `fillCol`,

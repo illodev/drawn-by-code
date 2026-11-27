@@ -49,7 +49,9 @@ hesitate between "it reads" and "it doesn't read", **it doesn't read**.
 - **Rhythm:** cuts on the beat; visual hits (impacts, stamps, appearances) land on the
   beat too.
 - **Origin and physics:** everything that emanates (steam, smoke, sparks, liquid, papers
-  coming out of a box) is visibly born at its source and not behind or above it. Things
+  coming out of a box) is visibly born at its source and not behind or above it. What comes out
+  from behind something (a sun over a horizon, a hand from a sleeve) is never drawn in front
+  of it, not even for a frame: step through the event frame by frame. Things
   rest where they should and fall downward. Check it in a still of the instant it
   appears.
 - **Continuity:** characters and objects identical across shots and to the approved style
@@ -63,7 +65,7 @@ hesitate between "it reads" and "it doesn't read", **it doesn't read**.
   `reference.mjs compare --crop`) and hold it to the style's detail bar: separate pieces,
   organic shapes, textures that say what the material is, real hands. «It reads» is not
   enough; «it could be a frame of a finished film» is.
-- **The detail gate:** with a reference, `engine/detail.mjs` must PASS before anything is shown (CLAUDE.md → «The detail bar»); without one, crop every element at full resolution. Evident details are never left for the user to find.
+- **The detail gate:** with a reference, `engine/detail.mjs` must PASS before anything is shown (CLAUDE.md → «The detail bar»); without one, crop every element at full resolution. Evident details are never left for the user to find. `--mask x,y,w,h` leaves tiles out only for what the reference shows and the scene must not copy (a third party's logo): never for something that is hard to match.
 - **Hands and brand:** at every contact frame check each hand (right side, right view,
   never through what it holds; style skill → «Detail») and put the logo next to the
   client's SVG at the same size.
@@ -82,7 +84,11 @@ Work from measurements, never from eyeballing:
 4. `compare --times … --crop x,y,w,h` per element at full resolution until the side-by-side
    shows the same pieces, shapes, colours, textures and layering. The diff number helps; the
    eyes decide.
-5. Big replicas parallelise well: one file per object and one agent per group of objects,
+5. The same goes for anything built from a source that is not a film: a character measured
+   from a model sheet, a logo, a traced map. Draw it alone at the source's size and compare
+   crops at 4× with the source (`--worst`-style: let the difference pick the places) before it
+   goes into a shot. Whole, a poorer copy reads as right; the user crops.
+6. Big replicas parallelise well: one file per object and one agent per group of objects,
    each with a written brief (why, contract, tools, rules, report). Keep shared files
    (choreography, common kit) with the lead and merge by file.
 
@@ -90,8 +96,10 @@ Work from measurements, never from eyeballing:
 
 1. Show them the result: MP4 (`render.mjs`) and the contact sheet. Tell them in one line
    what you fixed on your own and what doubts remain.
-2. Record their feedback **verbatim** in `review.md` (`### Round N (user)`), and below
-   it your translation into concrete changes.
+2. Record their feedback **in English** in `review.md` (`### Round N (user)`): translated
+   faithfully from whatever language they wrote in, with spelling, grammar and hurried
+   phrasing corrected, never the raw original (the same in briefs, skills, code comments
+   and commit messages). Below it, what it means as concrete changes.
 3. Apply, go back to A.
 
 ## C · Distill: from the experiment to the skills
@@ -138,3 +146,15 @@ commit, so it shows which test produced which change.
 - 2026-09-29 · external police parody · Two camera flashes 0.4 s apart trip the photosensitivity check (more than 3 brightness changes per second): space paired flashes a second apart instead of dimming them. Before placing characters on new photo backgrounds, render the plates with a labelled grid in scene units and read off table edges and horizons from it; guessing from the source image's pixels puts feet in the air.
 - 2026-10-02 · product videos (four styles) · A reviewer who only sees the film found what the author's own checks missed (effects louder than the voice, a final consonant cut, flaps cutting a logo), because the checks measured less than the ear hears: when a check passes and a person disagrees, test the instrument first (band, weighting, silence handling, a transcription that fills in missing letters) before defending the result.
 - 2026-10-02 · product videos · Never retry a check in a loop keyed on its exit code when it exits non-zero on a mismatch by design: the loop repeated eighteen paid calls three times. Run it once and read the diff.
+- 2026-11-11 · runnin-down-a-dream · Never send a «concept sketch» of a character to judge an idea: the user judges it as the film («it needs quite a lot of work… I prefer detail and going down to the pixel over something quick»). Describe the idea in words, and show the character only once it has passed its own sheet at the detail bar.
+- 2026-11-11 · runnin-down-a-dream round 11 · When the user points at a moment and the stills of that moment look right, do not answer a neighbouring problem: render the stretch in order, a drawing at a time, at the film's own scale, and look for the picture they sent (the user had to say it twice: the first fix was to the close shot, the fault was in the wide shot two seconds later and only when played in sequence).
+- 2026-11-11 · runnin-down-a-dream round 11 · «Almost all the errors are layering mistakes»: of ten faults the user found in a 4:24 film, eight were drawing order (a pit's outline over the character in front of it, a road over a cactus, water on a wall over an umbrella, a bowl clipped at a body's side, a trident behind a frame on the wall, a lever's knob under its own label, a cuff floating on a neighbour, a fork over another player's hand). Timing, acting and colour passed; layers did not, because a contact sheet cannot show a 30 px overlap. Make it its own pass before anything is shown: every shot at three moments, at full size, every region where two things overlap cropped 1:1 and asked «which is nearer the camera, and is that the one on top?». On a long film give that pass to reviewers who did not draw it (one per stretch, read-only, a table of time / A over B / crop back to the lead): the author reads the overlap as intended.
+- 2026-11-14 · pier-pressure · The user follows the session and may see any image rendered in it: a first line-up of six characters, made to test the rig, was judged beside the reference («look at the difference in the level of quality»). Bring one character to the bar on its own sheet, against crops of the reference at the same size, before lining up the cast.
+- 2026-11-14 · pier-pressure · For a style taken from stills, study the reference in crops at 3× by part (head, hands, body, boots) and write down how each is built and its measured proportions before coding the part; comparing whole frames only shows that something is off, not what.
+- 2026-11-14 · pier-pressure round 6 · Three rejections on the same axis («look at the difference», «it still has a very long way to go», «very rough, undeveloped drawings») while each round added finish: when the user repeats a verdict, stop polishing and compare one element with the reference at the same size to find what kind of thing is wrong (here proportions and construction, not detail), change the method, and prove it on one element before touching the rest.
+- 2026-11-14 · pier-pressure round 20 · «The cut-outs are not right; they lose details and colours»: the user judged crops of the film against the model sheets they had approved, and the round before had only checked the animation. When a shot is built from approved art, the detail check of every round includes that art: crop the render and the source side by side at the same size. A drawing judged alone passes; beside its source the missing creases, plaster and wheel hubs show at once.
+- 2026-11-15 · pier-pressure round 24 · «Are you sure you can't access it?»: a download refused early in the session was reported as impossible many rounds later, after the user had allowed the host; it worked at the first try, and a round of work had been built around not having the files. Before telling the user something cannot be done from the session, try it again now: «it failed before» is a note with a date, not a fact, and whatever changed since (network, permissions, a new tool) may have lifted it.
+- 2026-11-16 · pier-pressure round 48 · «There is no need to waste time doing the full render just to see a few seconds»: while one section is being worked on, render THAT section only (`node engine/render.mjs <scene.js> --from 0 --to 11 --size 1280 --audio <mix> --out <file>`: seconds, with the sound in its place) and show that clip; the full film is rendered once, when the section is approved. A full 32 s render cost seven minutes a round for a seven-second change. And after two rejections of the same section, show stills of the next idea before rendering anything.
+- 2026-11-16 · pier-pressure round 55 · A fix inside one shot of a finished film does not need the film rendered again: render that shot's frames alone (`--from`/`--to` at the frames where the shot starts and ends, read from the edit) and splice them in with ffmpeg (`[0:v]trim=end_frame=A[a];[1:v]…[b];[0:v]trim=start_frame=B[c];concat=n=3`, the mix as audio); then count the frames and compare a frame before, inside and after the piece with the old film. Thirty seconds instead of seven minutes. After any change to how a character ends a shot, look at the next shot that shows them (a contact sheet shows it: she ended on her board and the next shot still had her standing beside it).
+- 2026-11-17 · micrograph-test · A shot stuck above the gate with every body in place (a cross-match per body said ≤ 4 px) moved only when the difference was drawn with its sign after the gate's blur (ours lighter in red, darker in blue): rings round every body mean the edge profile is wrong, blobs mean the tone is, a gradient means the field is. Tile means were all within ±10 and said nothing. Make that map as soon as a second round of tuning does not halve the distance to the limit.
+- 2026-11-17 · micrograph-test · An overlay of ours that the reference lacks (a scale bar) is flagged by the gate as «too busy» where it sits: leave it in the measured frame and say so in review.md rather than mask it or hide it at the match instant; the mask is only for what must not be copied.

@@ -1,10 +1,10 @@
 // The doorways between the film's spaces. Each room is built in its own coordinates, with its
 // own light and scale; what joins them is a portal (Engrave.portal): an opening in one space
 // through which the next is seen, rendered from the matching camera, and which the camera
-// flies through without a cut. The user: «las transiciones dan saltos, creía que serían
-// transiciones naturales». So every change of space happens through something in the shot
-// (a ring, a tunnel, a door, the seed's skin, a shaft) and the camera keeps its speed across
-// it; what leads (the structure, the seed) goes through first, at the speed it has.
+// flies through without a cut. The user: «the transitions jump; I thought they would be
+// natural transitions». So every change of space happens through something in the shot (a
+// ring, a tunnel, a door, the seed's skin, a shaft) and the camera keeps its speed across it;
+// what leads (the structure, the seed) goes through first, at the speed it has.
 //
 // A junction { A, B, ux, wa, wb, live, oA(u), oB(u), shape } joins space A to space B:
 //   ux       story time at which the camera crosses the opening

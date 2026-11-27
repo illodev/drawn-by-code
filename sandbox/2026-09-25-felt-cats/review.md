@@ -14,16 +14,16 @@ Fixed on the way:
 
 ## Round 2 · the model sheet (2026-09-26)
 
-The user: «El gato de la derecha es conocido por estar medio calvo (hay que dejar espacio a
-posta en la cabeza)… y por mear mientras baila, siempre va dejando un charco en el suelo».
-«El gato de la izquierda no se parece mucho». → the glasses cat got a bare pink crown with
+The user: «The cat on the right is known for being half bald (space has to be left on its head
+on purpose)… and for peeing while it dances: it always leaves a puddle on the floor». «The
+cat on the left doesn't look much like it». → the glasses cat got a bare pink crown with
 three strands combed over and a growing resin puddle (a floor decal); the ginger got folds,
 forehead stripes and cream pads measured on the reference.
 
 ## Round 3 · the dance v1 (hand keys by three stretch agents)
 
 Three agents keyed 0–4.1, 4.1–9.3, 9.3–15.84 s against silhouettes (mean IoU 0.70–0.75).
-The user: «El baile no se parece en nada al original». Why: the rig had no knees and the keys
+The user: «The dance looks nothing like the original». Why: the rig had no knees and the keys
 were fitted to silhouettes, not to motion; the cats stood stiff while the reference kittens
 crouch, lean, shift their weight, bow their heads and swing their paws.
 
@@ -39,8 +39,8 @@ crouch, lean, shift their weight, bow their heads and swing their paws.
 - The opening (bowed heads) and the turn (backs) are danced by the hand keys, crossfaded.
 - Silhouette IoU ~0.78 on the checks; the shuffle reads like the reference.
 
-The user on v3: «está gracioso, pero hay fallos evidentes en brazos, movimientos y física…
-merece sesiones exhaustivas en otra máquina más potente». **Paused.**
+The user on v3: «it's funny, but there are obvious faults in the arms, the movements and the
+physics… it deserves exhaustive sessions on another, more powerful machine». **Paused.**
 
 ## To resume (on a machine with a GPU)
 

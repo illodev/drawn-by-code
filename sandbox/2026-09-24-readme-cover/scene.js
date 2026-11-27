@@ -1,8 +1,10 @@
 // 2026-09-24-readme-cover · the README's cover, drawn by the repo's own kits. A ransom-note
 // title («drawn by code»: every letter on its own torn-paper tile) is being assembled: the
 // tiles drop in on twos, a hand (PaperDetail, pose 'hold', her right hand) brings the last
-// one, a marker underlines it. Below, a carousel of polaroids that loops, one per style,
-// each painted by that style's own template (STYLES: a new style adds one line there).
+// one, a marker underlines it. Below, a carousel of polaroids, a dozen of the styles, each
+// painted by that style's own template (STYLES: a style adds one line there, and the fonts
+// its template asks for go in `fonts`). In the film's six seconds the carousel moves six
+// places, so twelve polaroids are all seen once: with more, raise the speed or the length.
 const W = 1800, H = 680;
 const COVER_TILES = (() => {
     const words = [['d', 'r', 'a', 'w', 'n'], ['c', 'o', 'd', 'e']];
@@ -28,16 +30,19 @@ const COVER_TILES = (() => {
 const STYLES = [
     ['paper cutout', 'paint:paper', 0, []],
     ['70s poster', '70s-poster', 2.2, ['styles/70s-poster/kit.js']],
+    ['cereal ad', 'cereal-ad', 3.2, ['styles/cereal-ad/cereal.js']],
     ['liquid light', 'liquid-light', 1.6, ['styles/liquid-light/kit.js']],
     ['kaleidoscope', 'kaleidoscope', 1.2, ['styles/kaleidoscope/kit.js']],
     ['line', 'line', 1.0, ['styles/line/kit.js']],
     ['clay', 'clay', 3.0, ['styles/clay/clay.js']],
     ['clay 3D', 'paint:clay3d', 0, ['styles/clay3d/clay3d.js', 'sandbox/2026-09-24-clay3d-test/set.js']],
+    ['lightfield', 'lightfield', 3.4, ['styles/lightfield/lightfield.js']],
+    ['micrograph', 'micrograph', 3.2, ['styles/micrograph/micrograph.js']],
     ['risograph', 'risograph', 2.5, ['styles/risograph/riso.js']],
     ['pixel art', 'pixel-art', 3.2, ['styles/pixel-art/pixel.js']],
 ];
 const TEMPLATE_DIRS = STYLES.filter(([, d]) => !d.startsWith('paint:')).map(([, d]) => d);
-const CAROUSEL = { gap: 300, speed: 160 }; // units between polaroids; units per second (on twos)
+const CAROUSEL = { gap: 300, speed: 300 }; // units between polaroids; units per second (on twos)
 
 Motion.scene({
     fps: 24,
@@ -53,6 +58,11 @@ Motion.scene({
         { family: 'Hand', src: 'fonts/PatrickHand-Regular.ttf' },
         { family: 'Shrikhand', src: 'fonts/Shrikhand-latin.woff2' },
         { family: 'Stack', src: 'fonts/ShortStack-latin.woff2' },
+        { family: 'Anton', src: 'fonts/Anton-latin.woff2' },
+        { family: 'Titan One', src: 'fonts/TitanOne-latin.woff2' },
+        { family: 'Poppins', src: 'fonts/Poppins-Bold-latin.woff2', descriptors: { weight: '700' } },
+        { family: 'Lora', src: 'fonts/Lora-Medium-latin.woff2', descriptors: { weight: '500' } },
+        { family: 'VT323', src: 'fonts/VT323-latin.woff2' },
     ],
     bpm: 120,
     shots: [[0, 6, 'Cover']],

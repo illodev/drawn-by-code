@@ -2,8 +2,16 @@
 
 Sandbox for generating animations and videos **with code** and Claude, so that every test
 improves the skills that generate them. The repo (code, comments, docs, skills, commit
-messages) is in English; conversation with the user may be in Spanish. On-screen text
-inside videos is creative content and stays in whatever language the video needs.
+messages) and the site are in English; conversation with the user may be in Spanish.
+On-screen text inside videos is creative content and stays in whatever language the video
+needs.
+
+**What the user says goes into the repo in English, corrected.** They write in Spanish,
+fast, sometimes with typos: whenever their words are written down (a quote in `review.md`
+or a brief, a lesson in a skill, a code comment, a commit message, the site's notes),
+translate them faithfully into correct English, keeping the meaning, the tone and every
+concrete detail, and fixing spelling and hurried phrasing. Never commit the raw Spanish,
+and never mark a translated quote as «verbatim».
 
 ## Map
 
@@ -21,6 +29,7 @@ inside videos is creative content and stays in whatever language the video needs
 | `.claude/skills/after-effects/` | After Effects tools: ExtendScript that bakes code-made motion into native layers with slider-driven expressions, tested inside AE |
 | `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `gif.mjs`, `detail.mjs`, `serve.mjs`, `lottie.js` (Lottie files as layers) |
 | `styles/<style>/` | Drawing kit, `template.js`, `README.md` and `strip.jpg` for each style |
+| `site/` | The showcase site (GitHub Pages): a featured film, the programme, a grid of style stills (pressing one runs its template live through `site/embed.html`, one at a time), notes; `node site/build.mjs` → `_site/`, deployed by `.github/workflows/pages.yml`. A new style adds one line to `STYLES` in `site/site.js` and a still `site/media/styles/<style>.jpg` (640×480, a frame of its template); a film adds one line and its poster `site/media/<id>.jpg`. Nothing on the page may run a scene on load |
 | `sandbox/` | One experiment per folder (`YYYY-MM-DD-name/`), indexed in `INDEX.md` |
 | `assets/sfx/`, `fonts/` | Freely licensed sound effects and fonts |
 
@@ -72,6 +81,11 @@ from measurements (`engine/reference.mjs`, skill **replicate**), never from gues
   `render/<name>.gif` (`engine/gif.mjs`), which the README's gallery shows. Not committed: `out/` (full-quality MP4s, frames),
   `.wav`, keys, and third-party footage or audio (a reference video, a comparison with its
   frames, a render carrying the reference's soundtrack: commit it with `-an`).
-- Code, comments and docs in English, like the rest of the repo.
+- Code, comments, docs and the site in English, the user's quoted feedback included (see the
+  top of this file).
+- Paid services (ElevenLabs images, music, voices, transcription; anything that spends the
+  user's credits) are used only after the user says so in the current conversation. A
+  connector being attached, or an earlier experiment having used it, is not permission:
+  say what you would generate and what it costs, and wait.
 - If you change `engine/`, run `review.mjs` on `styles/*/template.js` and on the latest
   experiment to check nothing broke.
