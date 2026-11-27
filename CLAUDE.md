@@ -26,7 +26,8 @@ and never mark a translated quote as «verbatim».
 | `.claude/skills/hands/` | Hands: reference first, handedness, grips, one skin, the hand check sheet before any render |
 | `.claude/skills/transitions/` | Transitions between shots and between styles (`engine/transitions.js`) |
 | `.claude/skills/replicate/` | Copying a reference video 1:1: measure, per-drawing tables, element by element, parallel agents |
-| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `gif.mjs`, `detail.mjs`, `serve.mjs` |
+| `.claude/skills/after-effects/` | After Effects tools: ExtendScript that bakes code-made motion into native layers with slider-driven expressions, tested inside AE |
+| `engine/` | Engine: `player.html`, `core.js`, `render.mjs`, `review.mjs`, `reference.mjs`, `tempo.mjs`, `new.mjs`, `mix.mjs`, `strip.mjs`, `gif.mjs`, `detail.mjs`, `serve.mjs`, `lottie.js` (Lottie files as layers) |
 | `styles/<style>/` | Drawing kit, `template.js`, `README.md` and `strip.jpg` for each style |
 | `site/` | The showcase site (GitHub Pages): a featured film, the programme, a grid of style stills (pressing one runs its template live through `site/embed.html`, one at a time), notes; `node site/build.mjs` → `_site/`, deployed by `.github/workflows/pages.yml`. A new style adds one line to `STYLES` in `site/site.js` and a still `site/media/styles/<style>.jpg` (640×480, a frame of its template); a film adds one line and its poster `site/media/<id>.jpg`. Nothing on the page may run a scene on load |
 | `sandbox/` | One experiment per folder (`YYYY-MM-DD-name/`), indexed in `INDEX.md` |

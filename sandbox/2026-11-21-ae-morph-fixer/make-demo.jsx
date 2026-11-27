@@ -1,0 +1,964 @@
+// make-demo.jsx - builds the Mask Morph Fixer demo in After Effects (demo-spec.js, the morph that
+// scene.js previews): "Morph demo", 8 s, the same keyed path twice, "Before" as drawn and
+// "After" fixed by "Mask Morph Fixer.jsx", each with an orange dot on its first point.
+//
+// Run it from File > Scripts > Run Script File... with "Mask Morph Fixer.jsx" and demo-spec.js next
+// to it. It opens a new project: if the current one has unsaved changes, After Effects asks
+// first (cancel and nothing happens).
+//
+// Test mode (the repo's check): set $.global.MORPH_TEST_OUT to a folder. It then also checks
+// every key's shape, time and easing against the originals, a second run, a mask path, a
+// path with an expression, and that After Effects interpolates the fixed keys the way the
+// preview does; it writes ae-log.txt and saves morph-fixer-demo.aep there (render it with
+// aerender). After Effects stays open. Every step is guarded: nothing raises a dialog.
+(function () {
+    var OUT = $.global.MORPH_TEST_OUT || null;
+    var here = $.global.MORPH_DIR ? new Folder($.global.MORPH_DIR) : File($.fileName).parent;
+    var log = [], fails = 0;
+    function note(s) {
+        log.push(s);
+    }
+    function check(what, ok, detail) {
+        if (!ok) fails++;
+        note((ok ? 'ok   ' : 'FAIL ') + what + (detail !== undefined ? ' · ' + detail : ''));
+    }
+    function safe(e) {
+        try {
+            return e.message + (e.line ? ' (line ' + e.line + ')' : '');
+        } catch (x) {
+            return 'unreadable error';
+        }
+    }
+    function readText(name) {
+        var f = new File(here.fsName + '/' + name);
+        f.encoding = 'UTF-8';
+        f.open('r');
+        var s = f.read();
+        f.close();
+        return s;
+    }
+    function rgb(c) {
+        return [c[0] / 255, c[1] / 255, c[2] / 255];
+    }
+    function tf(L, mn) {
+        return L.property('ADBE Transform Group').property(mn);
+    }
+
+    if (!app.newProject()) return;      // AE asks about unsaved work first
+    if (OUT) {
+        app.beginSuppressDialogs();
+        Folder(OUT).create();
+    }
+    var comp = null, before = null, after = null, D = null, MFm = null, MFx = null, turnComp = null, turnBuilt = null, master = null, asked = null;
+    var LT = null, symBuilt = null, letBuilt = null;
+    try {
+        eval(readText('demo-spec.js'));     // $.evalFile would not put MD on $.global
+        D = MD;
+        eval(readText('demo-letters.js'));  // the letters (art/demo-letters.mjs writes it)
+        LT = ML;
+        $.global.MORPH_NO_UI = true;
+        $.evalFile(new File(here.fsName + '/out/test-build/Mask Morph Fixer.jsx'));     // the test build (build.mjs)
+        $.global.MORPH_NO_UI = false;       // $.global lives all session: a panel opened later must build
+        MFx = $.global.MorphFixer;
+        // tests answer the question before a fix themselves (no dialog); the default goes ahead
+        if (OUT) MFx.ask = function (warned, seconds) {
+            asked = { warned: warned, seconds: seconds };
+            return true;
+        };
+        MFm = $.global.MorphFixerMath;
+        app.beginUndoGroup('Mask Morph Fixer demo');
+        var built = demoComp('Morph demo', D.duration, D.shapes, D.keys, { maxPoints: D.maxPoints });
+        comp = built.comp;
+        before = built.before;
+        after = built.after;
+        // the turn demo: an F turned a quarter at a time, fixed with turn on
+        turnBuilt = demoComp('Turn demo', D.turn.duration, D.turn.shapes, D.turn.keys, { maxPoints: D.maxPoints, rotate: true });
+        turnComp = turnBuilt.comp;
+        // the symmetry demo: shapes sharing the upright axis; left, the fix without its symmetry
+        // rule (least travel), right, the fix
+        symBuilt = demoComp('Symmetry demo', D.sym.duration, D.sym.shapes, D.sym.keys, { maxPoints: D.maxPoints },
+            { labels: ['Least travel', 'Symmetric'], beforeOpts: { maxPoints: D.maxPoints, symmetry: false } });
+        // the letters demo: q, g, b, c, d (holes kept inside), fixed through the panel's path
+        letBuilt = lettersComp('Letters demo', LT);
+        var parts = [comp, turnComp, symBuilt.comp, letBuilt.comp], total = 0, pi;
+        for (pi = 0; pi < parts.length; pi++) total += parts[pi].duration;
+        master = app.project.items.addComp('Mask Morph Fixer demo', D.size[0], D.size[1], 1, total, D.fps);
+        for (pi = parts.length - 1; pi >= 0; pi--) {
+            var startAt = 0;
+            for (var pj = 0; pj < pi; pj++) startAt += parts[pj].duration;
+            master.layers.add(parts[pi]).startTime = startAt;
+        }
+        master.openInViewer();
+        app.endUndoGroup();
+    } catch (e) {
+        fails++;
+        note('ERROR building the demo: ' + safe(e));
+    }
+
+    // a comp with Before (the keys as drawn) and After (fixed with opts), dots and labels.
+    // extra: { labels: [left, right], beforeOpts: fix the left one too, with these }
+    function demoComp(name, duration, shapes, keys, opts, extra) {
+        var x = extra || {}, labels = x.labels || ['Before', 'After'];
+        var c = app.project.items.addComp(name, D.size[0], D.size[1], 1, duration, D.fps);
+        c.layers.addSolid(rgb(D.colors.bg), 'Background', D.size[0], D.size[1], 1, duration).locked = true;
+        var b = shapeLayer(c, 'Before', D.before, shapes, keys), a = shapeLayer(c, 'After', D.after, shapes, keys);
+        marker(c, 'Before');
+        marker(c, 'After');
+        label(c, labels[0], D.before[0]);
+        label(c, labels[1], D.after[0]);
+        var tFix = new Date().getTime();
+        var rep = MFx.fix(pathOf(a), opts), repB = x.beforeOpts ? MFx.fix(pathOf(b), x.beforeOpts) : null;
+        note(name + ' fix (' + (new Date().getTime() - tFix) + ' ms): ' + MFx.summary(rep) + (repB ? ' | left: ' + MFx.summary(repB) : ''));
+        return { comp: c, before: b, after: a, report: rep, beforeReport: repB };
+    }
+
+    // a comp with Before (the letters as typed: each key's pieces in the font's order) and After
+    // (selected and fixed the way the panel does: pieces matched between keys, every path fixed)
+    function lettersComp(name, L) {
+        var c = app.project.items.addComp(name, D.size[0], D.size[1], 1, L.duration, D.fps);
+        c.layers.addSolid(rgb(D.colors.bg), 'Background', D.size[0], D.size[1], 1, L.duration).locked = true;
+        var b = glyphLayer(c, 'Before', D.before, L), a = glyphLayer(c, 'After', D.after, L), i;
+        label(c, 'Before', D.before[0]);
+        label(c, 'After', D.after[0]);
+        c.openInViewer();
+        for (i = 1; i <= c.numLayers; i++) c.layer(i).selected = false;
+        a.selected = true;
+        var tFix = new Date().getTime(), res = MFx.fixSelection({ mode: 'smooth', maxPoints: L.maxPoints });
+        a.selected = false;
+        note(name + ' fix (' + (new Date().getTime() - tFix) + ' ms): ' + res.status + ' | ' + res.detail.split('\n').join(' | '));
+        return { comp: c, before: b, after: a, result: res };
+    }
+
+    // a shape layer at `at` whose group "Letter" holds one keyed path per piece and a fill
+    function glyphLayer(comp, name, at, L) {
+        var G = comp.layers.addShape(), n = L.shapes[0].length, p, k;
+        G.name = name;
+        tf(G, 'ADBE Position').setValue([at[0], at[1], 0]);
+        G.property('ADBE Root Vectors Group').addProperty('ADBE Vector Group').name = 'Letter';
+        var list = function () { return G.property('ADBE Root Vectors Group').property('Letter').property('ADBE Vectors Group'); };
+        for (p = 0; p < n; p++) list().addProperty('ADBE Vector Shape - Group');
+        list().addProperty('ADBE Vector Graphic - Fill');
+        list().property(n + 1).property('ADBE Vector Fill Color').setValue(rgb(D.colors.shape));
+        for (p = 0; p < n; p++) {
+            list().property(p + 1).name = 'Piece ' + (p + 1);
+            var path = list().property(p + 1).property('ADBE Vector Shape');
+            for (k = 0; k < L.keys.length; k++) path.setValueAtTime(L.keys[k][0], MFx.fromMF(L.shapes[L.keys[k][1]][p]));
+            for (k = 1; k <= path.numKeys; k++) {
+                path.setInterpolationTypeAtKey(k, KeyframeInterpolationType.BEZIER);
+                path.setTemporalEaseAtKey(k, [new KeyframeEase(0, 33.333)], [new KeyframeEase(0, 33.333)]);
+            }
+        }
+        return G;
+    }
+
+    // the most of any hole lying outside its outlines at time t, in AE's own values (a hole: a
+    // piece drawn the other way round from the largest; under a pixel across, none): what the
+    // fill paints as a blob
+    function holeShows(paths, t) {
+        var P = [], I = [], big = 0, outl = [], holes = [], w = 0, j;
+        for (j = 0; j < paths.length; j++) {
+            P.push(MFx.toMF(paths[j].valueAtTime(t, false)));
+            I.push(MFm.pieceInfo(P[j]));
+            if (I[j].size > I[big].size) big = j;
+        }
+        for (j = 0; j < P.length; j++) {
+            if (I[j].diag < 1) continue;
+            if (I[j].sign !== 0 && I[j].sign !== I[big].sign) holes.push(P[j]);
+            else outl.push(P[j]);
+        }
+        for (j = 0; j < holes.length; j++) w = Math.max(w, MFm.holeOutside(holes[j], outl));
+        return w;
+    }
+
+    function piecePaths(G) {
+        var list = G.property('ADBE Root Vectors Group').property('Letter').property('ADBE Vectors Group'), out = [];
+        for (var i = 1; i <= list.numProperties; i++) if (list.property(i).matchName === 'ADBE Vector Shape - Group') out.push(list.property(i).property('ADBE Vector Shape'));
+        return out;
+    }
+
+    // a shape layer at `at` whose group "Morph" holds the keyed path and a fill
+    function shapeLayer(comp, name, at, shapes, keys) {
+        var L = comp.layers.addShape();
+        L.name = name;
+        tf(L, 'ADBE Position').setValue([at[0], at[1], 0]);
+        var root = L.property('ADBE Root Vectors Group');
+        root.addProperty('ADBE Vector Group').name = 'Morph';
+        var vec = function () { return L.property('ADBE Root Vectors Group').property('Morph').property('ADBE Vectors Group'); };
+        vec().addProperty('ADBE Vector Shape - Group');
+        vec().property(1).name = 'Outline';     // our own name: AE's own ("Path 1") changes with its language
+        vec().addProperty('ADBE Vector Graphic - Fill');
+        vec().property(2).property('ADBE Vector Fill Color').setValue(rgb(D.colors.shape));
+        var p = vec().property(1).property('ADBE Vector Shape');
+        for (var k = 0; k < keys.length; k++) p.setValueAtTime(keys[k][0], MFx.fromMF(shapes[keys[k][1]]));
+        for (k = 1; k <= p.numKeys; k++) {
+            p.setInterpolationTypeAtKey(k, KeyframeInterpolationType.BEZIER);
+            p.setTemporalEaseAtKey(k, [new KeyframeEase(0, 33.333)], [new KeyframeEase(0, 33.333)]);
+        }
+        return L;
+    }
+
+    function pathOf(L) {
+        return L.property('ADBE Root Vectors Group').property('Morph').property('ADBE Vectors Group').property(1).property('ADBE Vector Shape');
+    }
+
+    // an orange dot riding the path's first point
+    function marker(comp, of) {
+        var M = comp.layers.addShape();
+        M.name = of + ' start';
+        M.property('ADBE Root Vectors Group').addProperty('ADBE Vector Group').name = 'Dot';
+        var vec = function () { return M.property('ADBE Root Vectors Group').property('Dot').property('ADBE Vectors Group'); };
+        vec().addProperty('ADBE Vector Shape - Ellipse');
+        vec().addProperty('ADBE Vector Graphic - Fill');
+        vec().property(1).property('ADBE Vector Ellipse Size').setValue([24, 24]);
+        vec().property(2).property('ADBE Vector Fill Color').setValue(rgb(D.colors.marker));
+        tf(M, 'ADBE Anchor Point').setValue([0, 0, 0]);
+        // path points are in the group's space: through the group's transform, then the layer's
+        tf(M, 'ADBE Position').expression = 'var L = thisComp.layer(' + '"' + of + '"' + ');\n' +
+            'var g = L.content("Morph").transform;\n' +
+            'var p = L.content("Morph").content("Outline").path.points()[0];\n' +
+            'var a = g.anchorPoint.value, o = g.position.value, s = g.scale.value[0] / 100, r = g.rotation.value * Math.PI / 180;\n' +
+            'var x = (p[0] - a[0]) * s, y = (p[1] - a[1]) * s;\n' +
+            'var c = L.toComp([o[0] + x * Math.cos(r) - y * Math.sin(r), o[1] + x * Math.sin(r) + y * Math.cos(r)]);\n' +
+            '[c[0], c[1]];';
+    }
+
+    function label(comp, text, x) {
+        var T = comp.layers.addText(text);
+        var src = T.property('ADBE Text Properties').property('ADBE Text Document');
+        var td = src.value;
+        td.fontSize = 46;
+        td.fillColor = rgb(D.colors.label);
+        try {
+            td.font = 'Arial-BoldMT';
+        } catch (e) {}
+        td.justification = ParagraphJustification.CENTER_JUSTIFY;
+        src.setValue(td);
+        tf(T, 'ADBE Position').setValue([x, D.labelY, 0]);
+    }
+
+    // ---- test mode --------------------------------------------------------------------------
+
+    function keyShapes(p) {
+        var out = [];
+        for (var k = 1; k <= p.numKeys; k++) out.push(MFx.toMF(p.keyValue(k)));
+        return out;
+    }
+
+    function maxDiff(A, B) {
+        if (A.v.length !== B.v.length) return 1e9;
+        var d = 0, k, c;
+        for (k = 0; k < A.v.length; k++)
+            for (c = 0; c < 2; c++) {
+                d = Math.max(d, Math.abs(A.v[k][c] - B.v[k][c]), Math.abs(A.i[k][c] - B.i[k][c]), Math.abs(A.o[k][c] - B.o[k][c]));
+            }
+        return d;
+    }
+
+    function step(label, fn) {
+        try {
+            fn();
+        } catch (e) {
+            fails++;
+            note('FAIL ' + label + ' threw: ' + safe(e));
+        }
+    }
+
+    if (OUT && comp && after) {
+        var pa = pathOf(after), pb = pathOf(before);
+        step('shapes', function () {
+            var A = keyShapes(pa), B = keyShapes(pb), n = A[0].v.length, same = true, worst = 0, k;
+            for (k = 0; k < A.length; k++) if (A[k].v.length !== n) same = false;
+            check('every After key has the same number of points (' + n + ')', same && n <= D.maxPoints);
+            // the keys stored are exactly what the math computes (test.mjs proves those numbers
+            // stay within 0.1 px of the drawn shapes, and that Node computes the same ones)
+            var ref = MFm.fix(B, { maxPoints: D.maxPoints });
+            for (k = 0; k < A.length; k++) worst = Math.max(worst, maxDiff(A[k], ref.paths[k]));
+            // AE keeps path points as 32-bit floats: ~1e-7 of the coordinate (0.00004 px here)
+            check('After Effects stores the keys the math computes (to 32-bit float)', worst < 1e-4, 'largest difference ' + worst);
+            check('the rebuild measured every key within 0.1 px of its drawn shape', ref.deviation <= 0.1 && ref.mode === 'smooth', ref.mode + ', ' + ref.deviation + ' px');
+            // the keys as After Effects stores them, inputs (Before) then outputs (After), for
+            // test.mjs to fix the same inputs in Node and compare (AE rounds points to 32-bit
+            // floats, and on a symmetric shape that's enough to pick another, equal, start)
+            var lines = [];
+            for (k = 0; k < B.length; k++) lines.push(B[k].toSource());
+            for (k = 0; k < A.length; k++) lines.push(A[k].toSource());
+            var kf = new File(OUT + '/ae-keys.txt');
+            kf.encoding = 'UTF-8';
+            kf.open('w');
+            kf.write(lines.join('\n') + '\n');
+            kf.close();
+            var orig = [];
+            for (k = 0; k < D.keys.length; k++) orig.push(D.shapes[D.keys[k][1]].v.length);
+            var bc = [];
+            for (k = 0; k < B.length; k++) bc.push(B[k].v.length);
+            check('Before is untouched', bc.join(',') === orig.join(','), bc.join(','));
+        });
+        step('timing', function () {
+            var ok = true, k;
+            for (k = 1; k <= pa.numKeys; k++) {
+                if (Math.abs(pa.keyTime(k) - pb.keyTime(k)) > 1e-9) ok = false;
+                if (pa.keyInInterpolationType(k) !== pb.keyInInterpolationType(k)) ok = false;
+                if (Math.abs(pa.keyInTemporalEase(k)[0].influence - pb.keyInTemporalEase(k)[0].influence) > 1e-6) ok = false;
+                if (Math.abs(pa.keyOutTemporalEase(k)[0].speed - pb.keyOutTemporalEase(k)[0].speed) > 1e-6) ok = false;
+            }
+            check('key times, interpolation and easing unchanged', ok);
+        });
+        step('second run', function () {
+            var A = keyShapes(pa);
+            MFx.fix(pa, { maxPoints: D.maxPoints });
+            var A2 = keyShapes(pa), worst = 0;
+            for (var k = 0; k < A.length; k++) worst = Math.max(worst, maxDiff(A[k], A2[k]));
+            check('a second run changes nothing', worst < 1e-6, 'largest change ' + worst);
+        });
+        step('interpolation', function () {
+            // AE between two keys with the same points: every vertex and tangent in a line, the
+            // time eased (Easy Ease = smoothstep). The preview draws exactly that.
+            var A = keyShapes(pa), worst = 0, at = '', k;
+            for (k = 1; k < pa.numKeys; k++) {
+                var t0 = pa.keyTime(k), t1 = pa.keyTime(k + 1);
+                for (var q = 1; q < 4; q++) {
+                    var u = q / 4, t = t0 + (t1 - t0) * u, s = u * u * (3 - 2 * u);
+                    var got = MFx.toMF(pa.valueAtTime(t, false)), want = MFm.lerp(A[k - 1], A[k], s);
+                    var d = maxDiff(got, want);
+                    if (d > worst) {
+                        worst = d;
+                        at = 'key ' + k + ' + ' + u;
+                    }
+                }
+            }
+            check('AE interpolates the fixed keys point by point, eased (as the preview does)', worst < 0.05, 'largest difference ' + worst + ' px at ' + at);
+        });
+        step('marker', function () {
+            var m = tf(comp.layer('After start'), 'ADBE Position'), v = null, err = '';
+            for (var attempt = 0; attempt < 2 && !v; attempt++) {     // once failed right after a rewrite of the keys
+                try {
+                    v = m.valueAtTime(2.0, false);
+                } catch (e) {
+                    err = safe(e);
+                }
+            }
+            check('start dot expression evaluates (on the star\'s first point at 2 s)', v && !m.expressionError && Math.abs(v[0] - 1400) < 1, (v ? v[0] + ', ' + v[1] : 'no value') + (err ? ' · first try: ' + err : '') + ' ' + m.expressionError);
+        });
+        step('mask', function () {
+            var mc = app.project.items.addComp('Mask test', 600, 600, 1, 3, 24);
+            var S = mc.layers.addSolid([0.5, 0.5, 0.5], 'Masked', 600, 600, 1, 3);
+            var mask = S.property('ADBE Mask Parade').addProperty('ADBE Mask Atom');
+            var mp = S.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape');
+            var pick = [0, 1, 3];
+            for (var k = 0; k < pick.length; k++) {
+                var P = MFm.copy(D.shapes[pick[k]]);
+                for (var j = 0; j < P.v.length; j++) {
+                    P.v[j][0] += 300;
+                    P.v[j][1] += 300;
+                }
+                mp.setValueAtTime(k, MFx.fromMF(P));
+            }
+            var r = MFx.fix(mp), n = mp.keyValue(1).vertices.length, same = true;
+            for (k = 2; k <= mp.numKeys; k++) if (mp.keyValue(k).vertices.length !== n) same = false;
+            check('a Mask Path is fixed too', !r.skipped && same, MFx.summary(r));
+        });
+        step('expression', function () {
+            var ec = app.project.items.addComp('Expression test', 400, 400, 1, 2, 24);
+            var L = ec.layers.addShape();
+            L.property('ADBE Root Vectors Group').addProperty('ADBE Vector Shape - Group');
+            var p = L.property('ADBE Root Vectors Group').property(1).property('ADBE Vector Shape');
+            p.setValueAtTime(0, MFx.fromMF(D.shapes[0]));
+            p.setValueAtTime(1, MFx.fromMF(D.shapes[1]));
+            p.expression = 'value';
+            var r = MFx.fix(p);
+            check('a path with an expression is skipped and reported', !!r.skipped && p.keyValue(1).vertices.length === 4, MFx.summary(r));
+        });
+        step('targets', function () {
+            comp.openInViewer();
+            for (var i = 1; i <= comp.numLayers; i++) comp.layer(i).selected = false;
+            after.selected = true;
+            var t = MFx.targets(comp);
+            check('selecting the layer finds its path', t.length === 1, t.length ? MFx.describe(t[0]) : 'none');
+            after.selected = false;
+        });
+        step('turn', function () {
+            // the turn is written into the path, one key a frame: no transform is keyed
+            var ta = turnComp.layer('After'), g = ta.property('ADBE Root Vectors Group').property('Morph').property('ADBE Vector Transform Group');
+            var names = ['ADBE Vector Anchor', 'ADBE Vector Position', 'ADBE Vector Rotation', 'ADBE Vector Scale'], keyed = 0, k;
+            for (k = 0; k < names.length; k++) keyed += g.property(names[k]).numKeys;
+            names = ['ADBE Anchor Point', 'ADBE Position', 'ADBE Rotate Z', 'ADBE Scale'];
+            for (k = 0; k < names.length; k++) keyed += tf(ta, names[k]).numKeys;
+            check('turn: no transform keyed (group or layer)', keyed === 0, keyed + ' keys');
+            var tp = pathOf(ta), drawn = 0, rep = turnBuilt.report;
+            for (k = 0; k < D.turn.keys.length; k++) {
+                var at = tp.nearestKeyIndex(D.turn.keys[k][0]);
+                if (Math.abs(tp.keyTime(at) - D.turn.keys[k][0]) < 1e-6) drawn++;
+            }
+            check('turn: the drawn keys kept their times, with ' + rep.baked + ' in-between keys', drawn === D.turn.keys.length && rep.baked > 0 &&
+                tp.numKeys === D.turn.keys.length + rep.baked && Math.abs(rep.turned - 360) < 0.5, tp.numKeys + ' keys, turned ' + rep.turned);
+            // the in-betweens carry their label and are linear; the drawn keys keep Easy Ease
+            var labelled = 0, eased = 0;
+            for (k = 1; k <= tp.numKeys; k++) {
+                if (tp.keyLabel(k) === 15 && tp.keyInInterpolationType(k) === KeyframeInterpolationType.LINEAR &&
+                    tp.keyOutInterpolationType(k) === KeyframeInterpolationType.LINEAR) labelled++;
+                else if (tp.keyInInterpolationType(k) === KeyframeInterpolationType.BEZIER && Math.abs(tp.keyOutTemporalEase(k)[0].influence - 33.333) < 0.01) eased++;
+            }
+            check('turn: in-betweens labelled and linear, drawn keys still Easy Ease', labelled === rep.baked && eased === D.turn.keys.length, labelled + ' labelled, ' + eased + ' eased');
+            // the F's top-left corner (its first point) turned about (10, 0), on the After side
+            function ideal(deg) {
+                var a = deg * Math.PI / 180, x = -90 - 10, y = -150;
+                return [D.after[0] + 10 + x * Math.cos(a) - y * Math.sin(a), D.after[1] + x * Math.sin(a) + y * Math.cos(a)];
+            }
+            var dot = tf(turnComp.layer('After start'), 'ADBE Position'), raw = tf(turnComp.layer('Before start'), 'ADBE Position');
+            var probes = [[0.5, 0], [1.0, 45], [1.5, 90], [2.5, 135], [5.5, 315], [6.0, 360]], worst = 0, at = '';
+            for (k = 0; k < probes.length; k++) {
+                var v = dot.valueAtTime(probes[k][0], false), w = ideal(probes[k][1]);
+                var d = Math.sqrt((v[0] - w[0]) * (v[0] - w[0]) + (v[1] - w[1]) * (v[1] - w[1]));
+                if (d > worst) {
+                    worst = d;
+                    at = probes[k][0] + ' s';
+                }
+            }
+            check('turn: the corner rides the arc of a real turn (keys and halfway)', worst < 0.5, 'worst ' + worst + ' px at ' + at);
+            var rv = raw.valueAtTime(1.0, false), rw = ideal(45), bw = [rv[0] - D.before[0] + D.after[0], rv[1]];
+            note('turn: halfway through the first quarter, the drawn keys put the corner ' +
+                Math.round(Math.sqrt((bw[0] - rw[0]) * (bw[0] - rw[0]) + (bw[1] - rw[1]) * (bw[1] - rw[1]))) + ' px off the arc (straight line)');
+            // fixed again: the in-betweens are removed and written again, the same
+            var mid = MFx.toMF(tp.valueAtTime(1.0, false)), again = MFx.fix(tp, { maxPoints: D.maxPoints, rotate: true });
+            var mid2 = MFx.toMF(tp.valueAtTime(1.0, false)), dm = 0;
+            for (k = 0; k < mid.v.length; k++) dm = Math.max(dm, Math.abs(mid.v[k][0] - mid2.v[k][0]), Math.abs(mid.v[k][1] - mid2.v[k][1]));
+            check('turn: fixed again, the in-betweens are replaced by the same', again.removed === rep.baked && again.baked === rep.baked &&
+                tp.numKeys === D.turn.keys.length + rep.baked && dm < 0.01, MFx.summary(again) + ' · halfway moved ' + dm + ' px');
+        });
+        step('symmetry', function () {
+            // a star into itself turned 36 deg: least travel swirls one way, the fix keeps the morph
+            // mirror-symmetric about the upright axis both keys share; a plus into an x with thin
+            // arms costs more than about the same, so only the sym option takes it
+            function starV(rot) {
+                var v = [];
+                for (var k = 0; k < 10; k++) {
+                    var a = (rot - 90 + k * 36) * Math.PI / 180, rr = k % 2 ? 60 : 150;
+                    v.push([200 + rr * Math.cos(a), 200 + rr * Math.sin(a)]);
+                }
+                return v;
+            }
+            function plusV(rot) {
+                var base = [[-20, -150], [20, -150], [20, -20], [150, -20], [150, 20], [20, 20], [20, 150], [-20, 150], [-20, 20], [-150, 20], [-150, -20], [-20, -20]];
+                var a = rot * Math.PI / 180, v = [];
+                for (var k = 0; k < base.length; k++) v.push([200 + base[k][0] * Math.cos(a) - base[k][1] * Math.sin(a), 200 + base[k][0] * Math.sin(a) + base[k][1] * Math.cos(a)]);
+                return v;
+            }
+            var sc = app.project.items.addComp('Symmetry test', 400, 400, 1, 2, 24);
+            function keyed(a, b) {
+                var L = sc.layers.addShape();
+                L.property('ADBE Root Vectors Group').addProperty('ADBE Vector Shape - Group');
+                var p = L.property('ADBE Root Vectors Group').property(1).property('ADBE Vector Shape');
+                var s0 = new Shape(), s1 = new Shape();
+                s0.vertices = a;
+                s0.closed = true;
+                s1.vertices = b;
+                s1.closed = true;
+                p.setValueAtTime(0, s0);
+                p.setValueAtTime(1, s1);
+                return p;
+            }
+            // After Effects' own in-betweens keep a mirror axis at 90 deg
+            function upright(p) {
+                for (var i = 1; i < 5; i++) {
+                    var ax = MFm.mirrorAxes(MFx.toMF(p.valueAtTime(i * 0.2, false))), has = ax === 'round';
+                    for (var j = 0; !has && j < ax.length; j++) has = Math.abs(ax[j].phi * 180 / Math.PI - 90) < 2;
+                    if (!has) return false;
+                }
+                return true;
+            }
+            var p1 = keyed(starV(0), starV(36)), r1 = MFx.fix(p1, { maxPoints: 100 });
+            check('symmetry: a star into itself turned 36 deg morphs mirror-symmetrically', r1.symmetric === 1 && upright(p1), MFx.summary(r1));
+            var p2 = keyed(plusV(0), plusV(45)), r2 = MFx.fix(p2, { maxPoints: 100 });
+            var p3 = keyed(plusV(0), plusV(45)), r3 = MFx.fix(p3, { maxPoints: 100, symmetry: 'force' });
+            check('symmetry: a thin plus into an x: only the sym option makes it symmetric', r2.symmetric === 0 && !upright(p2) && r3.symmetric === 1 && upright(p3), MFx.summary(r3));
+        });
+        step('shape', function () {
+            // pairing by shape (the panel's shape, off by default): a T into an upside-down T. Off,
+            // it is spread evenly; on, its bar shrinks while the other grows, and After Effects'
+            // own in-betweens are the fixed keys blended point by point, keeping the upright axis
+            var tc = app.project.items.addComp('Shape test', 400, 400, 1, 2, 24);
+            var Tv = [[50, 50], [350, 50], [350, 110], [235, 110], [235, 350], [165, 350], [165, 110], [50, 110]], Uv = [];
+            for (var k = Tv.length - 1; k >= 0; k--) Uv.push([Tv[k][0], 400 - Tv[k][1]]);
+            function keyedT() {
+                var L = tc.layers.addShape();
+                L.property('ADBE Root Vectors Group').addProperty('ADBE Vector Shape - Group');
+                var p = L.property('ADBE Root Vectors Group').property(1).property('ADBE Vector Shape');
+                var s0 = new Shape(), s1 = new Shape();
+                s0.vertices = Tv;
+                s0.closed = true;
+                s1.vertices = Uv;
+                s1.closed = true;
+                p.setValueAtTime(0, s0);
+                p.setValueAtTime(1, s1);
+                return p;
+            }
+            var off = keyedT(), rOff = MFx.fix(off, { maxPoints: 100 });
+            check('shape: off by default, a T into an upside-down T is spread evenly', !rOff.warped && !/paired by shape/.test(MFx.summary(rOff)), MFx.summary(rOff));
+            var on = keyedT(), t0 = new Date().getTime(), rOn = MFx.fix(on, { maxPoints: 100, warp: true }), took = new Date().getTime() - t0;
+            var A = MFx.toMF(on.keyValue(1)), B = MFx.toMF(on.keyValue(2)), worst = 0, upright = true;
+            for (var i = 1; i < 5; i++) {
+                var got = MFx.toMF(on.valueAtTime(i * 0.2, false)), want = MFm.lerp(A, B, MFm.progressOf(got, A, B));
+                for (var j = 0; j < got.v.length; j++) worst = Math.max(worst, Math.abs(got.v[j][0] - want.v[j][0]), Math.abs(got.v[j][1] - want.v[j][1]));
+                var ax = MFm.mirrorAxes(got), has = ax === 'round';
+                for (j = 0; !has && j < ax.length; j++) has = Math.abs(ax[j].phi * 180 / Math.PI - 90) < 2;
+                if (!has) upright = false;
+            }
+            check('shape: on, the T is paired by shape, and says so', rOn.warped === 1 && /1 step paired by shape/.test(MFx.summary(rOn)), MFx.summary(rOn) + ' (' + took + ' ms)');
+            check('shape: After Effects blends the warped keys point by point, keeping the upright axis', worst < 0.01 && upright, 'largest difference ' + worst + ' px');
+            var again = MFx.fix(on, { maxPoints: 100, warp: true });
+            check('shape: fixing the warped T again leaves it as it is', again.matched === true, MFx.summary(again));
+        });
+        step('symmetry demo', function () {
+            // the right half (the fix) keeps the shared upright axis through every step; the left
+            // half (without its symmetry rule) swirls at least one
+            function stepsKeeping(L) {
+                var p = pathOf(L), kept = 0, steps = 0, k;
+                for (k = 1; k < p.numKeys; k++) {
+                    if (p.keyTime(k + 1) - p.keyTime(k) < 0.6) continue;       // a hold
+                    steps++;
+                    var ok = true;
+                    for (var u = 1; u < 5; u++) {
+                        var t = p.keyTime(k) + (p.keyTime(k + 1) - p.keyTime(k)) * u / 5, ax = MFm.mirrorAxes(MFx.toMF(p.valueAtTime(t, false))), has = ax === 'round';
+                        for (var j = 0; !has && j < ax.length; j++) has = Math.abs(ax[j].phi * 180 / Math.PI - 90) < 2;
+                        if (!has) ok = false;
+                    }
+                    if (ok) kept++;
+                }
+                return { kept: kept, steps: steps };
+            }
+            var right = stepsKeeping(symBuilt.after), left = stepsKeeping(symBuilt.before);
+            check('symmetry demo: every step on the right keeps the upright axis, the left swirls some', right.steps === 4 && right.kept === 4 && left.kept < 4,
+                'right ' + right.kept + '/' + right.steps + ', left ' + left.kept + '/' + left.steps);
+        });
+        step('letters demo', function () {
+            // q, g, b, c, d: the After letter's pieces all share their points in every key, and a
+            // start was chosen against a crossover
+            var ps = piecePaths(letBuilt.after), same = true, k;
+            for (var i = 0; i < ps.length; i++) for (k = 2; k <= ps[i].numKeys; k++) if (ps[i].keyValue(k).vertices.length !== ps[i].keyValue(1).vertices.length) same = false;
+            var untangled = 0, reps = letBuilt.result.reports || [];
+            for (k = 0; k < reps.length; k++) untangled += reps[k].untangled || 0;
+            check('letters demo: fixed, every piece the same points in every key, a crossover avoided', /Fixed/.test(letBuilt.result.status) && same && untangled >= 1,
+                letBuilt.result.status + ' · ' + untangled + ' start(s) chosen against a crossover');
+            // the hole kept inside, in AE's own frames: swapped (g into b), closed before the c
+            // opens (b into c), opened once the d is shut (c into d); q into g blends
+            var fps = letBuilt.comp.frameRate, worst = 0, at = 0, f;
+            for (f = 1; f < LT.duration * fps; f++) {
+                var w = holeShows(ps, f / fps);
+                if (w > worst) {
+                    worst = w;
+                    at = f / fps;
+                }
+            }
+            // written as a key or two each (the swap's gone and grow keys, one for the close, one for
+            // the open), not a key a frame
+            var holeKeys = 0;
+            for (k = 0; k < reps.length; k++) holeKeys += reps[k].holeKeys || 0;
+            check('letters demo: 3 holes kept inside (swapped, closed, opened) on 4 keys, none shows outside its letter in any frame',
+                letBuilt.result.holes === 3 && /3 holes kept inside/.test(letBuilt.result.status) && holeKeys === 4 && worst === 0,
+                letBuilt.result.holes + ' holes on ' + holeKeys + ' keys; ' + Math.round(worst * 100) + ' % of a hole outside' + (worst ? ' at ' + at.toFixed(2) + ' s' : ''));
+            // the animator drags b into c's gone key 2 frames earlier and eases it harder (on a copy):
+            // a second Fix keeps both; dragged where the hole would show, the Fix retimes it
+            var ldup = letBuilt.after.duplicate(), lfd = letBuilt.comp.frameDuration;
+            ldup.name = 'Retimed hole test';
+            function goneKey(paths) {
+                for (var p = 0; p < paths.length; p++) {
+                    for (var q = 1; q <= paths[p].numKeys; q++) {
+                        var tq = paths[p].keyTime(q);
+                        if (tq > LT.keys[5][0] + 1e-6 && tq < LT.keys[6][0] - 1e-6 && MFm.isClosed(MFx.toMF(paths[p].keyValue(q)))) return { path: paths[p], k: q, t: tq };
+                    }
+                }
+                return null;
+            }
+            function dragTo(g, time, influence) {
+                var v = g.path.keyValue(g.k), inT = g.path.keyInInterpolationType(g.k), outT = g.path.keyOutInterpolationType(g.k);
+                g.path.removeKey(g.k);
+                g.path.setValueAtTime(time, v);
+                var nk = g.path.nearestKeyIndex(time);
+                g.path.setTemporalEaseAtKey(nk, [new KeyframeEase(0, influence)], [new KeyframeEase(0, influence)]);
+                g.path.setInterpolationTypeAtKey(nk, inT, outT);
+                g.path.setLabelAtKey(nk, 15);
+            }
+            function fixDup() {
+                // Fix works on the active comp: open this one first (round 17: without it, the
+                // second Fix ran on another comp and both checks failed with nothing fixed)
+                letBuilt.comp.openInViewer();
+                for (var j = 1; j <= letBuilt.comp.numLayers; j++) letBuilt.comp.layer(j).selected = false;
+                ldup.selected = true;
+                var r = MFx.fixSelection({ mode: 'smooth', maxPoints: LT.maxPoints });
+                ldup.selected = false;
+                return r;
+            }
+            var g0 = goneKey(piecePaths(ldup)), moved = g0 ? Math.round(g0.t / lfd - 2) * lfd : 0;
+            if (g0) dragTo(g0, moved, 70);
+            var kr = fixDup(), g1 = goneKey(piecePaths(ldup));
+            var keptEase = g1 ? g1.path.keyInTemporalEase(g1.k)[0].influence : 0;
+            check('letters demo: a hole key dragged 2 frames and re-eased keeps its time and easing through a second Fix',
+                g0 && g1 && Math.abs(g1.t - moved) < 1e-4 && Math.abs(keptEase - 70) < 0.01 && /kept where they were/.test(kr.detail),
+                (g1 ? 'at frame ' + Math.round(g1.t / lfd) + ' (dragged to ' + Math.round(moved / lfd) + '), influence ' + keptEase : 'no key') + ' · ' + kr.status);
+            if (g1) dragTo(g1, LT.keys[6][0] - lfd, 33.333);
+            var kr2 = fixDup(), g2 = goneKey(piecePaths(ldup));
+            check('letters demo: dragged where the hole would show outside its letter, the Fix retimes it and says so',
+                g2 && g2.t < LT.keys[6][0] - lfd - 1e-4 && /retimed/.test(kr2.detail), (g2 ? 'at frame ' + Math.round(g2.t / lfd) : 'no key') + ' · ' + kr2.status);
+            ldup.remove();
+        });
+        step('drawn turn', function () {
+            // a star turned a tip by Free Transform (point k to point k turned 72 deg): the fix
+            // keeps that turn (it used to stand the star still); with turn, it swings it whole
+            function starAt(rot) {
+                var v = [];
+                for (var k = 0; k < 10; k++) {
+                    var a = (-90 + k * 36) * Math.PI / 180, rr = k % 2 ? 60 : 150, b = rot * Math.PI / 180;
+                    var x = rr * Math.cos(a), y = rr * Math.sin(a);
+                    v.push([200 + x * Math.cos(b) - y * Math.sin(b), 200 + x * Math.sin(b) + y * Math.cos(b)]);
+                }
+                return v;
+            }
+            var dc = app.project.items.addComp('Drawn turn test', 400, 400, 1, 2, 24);
+            function keyed() {
+                var L = dc.layers.addShape();
+                L.property('ADBE Root Vectors Group').addProperty('ADBE Vector Shape - Group');
+                var p = L.property('ADBE Root Vectors Group').property(1).property('ADBE Vector Shape');
+                var s0 = new Shape(), s1 = new Shape();
+                s0.vertices = starAt(0);
+                s0.closed = true;
+                s1.vertices = starAt(72);
+                s1.closed = true;
+                p.setValueAtTime(0, s0);
+                p.setValueAtTime(1, s1);
+                return p;
+            }
+            var area0 = Math.abs(MFm.area(MFx.toMF(keyed().keyValue(1))));
+            var p1 = keyed(), r1 = MFx.fix(p1, { maxPoints: 100 });
+            var v0 = p1.keyValue(1).vertices[0], v1 = p1.keyValue(2).vertices[0];
+            check('drawn turn: turn off, the star keeps turning (its first point travels a tip)', Math.round(r1.drawnKept) === 72 &&
+                Math.sqrt((v1[0] - v0[0]) * (v1[0] - v0[0]) + (v1[1] - v0[1]) * (v1[1] - v0[1])) > 100, MFx.summary(r1));
+            var p2 = keyed(), r2 = MFx.fix(p2, { maxPoints: 100, rotate: true });
+            var half = Math.abs(MFm.area(MFx.toMF(p2.valueAtTime(0.5, false)))) / area0;
+            check('drawn turn: with turn, it swings 72 deg and stays whole halfway', r2.baked > 0 && Math.abs(r2.turned - 72) < 0.5 && Math.abs(half - 1) < 0.02,
+                MFx.summary(r2) + ' · halfway ' + Math.round(half * 100) + ' % of its area');
+        });
+        step('panel', function () {
+            // the real panel (a palette here), clicked through on fresh copies of Before; the
+            // controls are set directly, not through their onChange (which saves the settings)
+            var w = MFx.buildUI(null), c = w.controls, runs = [['Smooth', 0, '100'], ['Smooth, max 24', 0, '24'], ['Exact', 1, '100']];
+            check('panel: one row (mode, max, turn, sym, Fix, ?) and a status line', c.mode && c.max && c.turn && c.sym && c.fix && c.info && c.status && c.mode.items.length === 2,
+                'width ' + w.size.width + ' x ' + w.size.height + ' px');
+            for (var r = 0; r < runs.length; r++) {
+                comp.openInViewer();
+                var dup = before.duplicate();
+                dup.name = 'Panel test ' + r;
+                for (var i = 1; i <= comp.numLayers; i++) comp.layer(i).selected = false;
+                dup.selected = true;
+                c.mode.selection = runs[r][1];
+                c.max.text = runs[r][2];
+                c.fix.notify('onClick');
+                var res = w.lastResult, rep = res && res.reports[0];
+                var ok = rep && !rep.skipped && (runs[r][1] === 1 ? rep.mode === 'exact' && rep.to === 22 : rep.mode === 'smooth' && rep.to <= Number(runs[r][2]));
+                check('panel Fix (' + runs[r][0] + '): ' + c.status.text, !!ok, res ? res.detail : 'no result');
+                if (runs[r][2] === '24') check('panel: the max shows in the status', /\(max\)/.test(c.status.text), c.status.text);
+                dup.remove();
+            }
+            // turn ticked, on a copy of the turning F
+            turnComp.openInViewer();
+            var tdup = turnComp.layer('Before').duplicate();
+            tdup.name = 'Panel turn test';
+            for (i = 1; i <= turnComp.numLayers; i++) turnComp.layer(i).selected = false;
+            tdup.selected = true;
+            c.mode.selection = 0;
+            c.max.text = '100';
+            c.turn.selection = 1;
+            c.fix.notify('onClick');
+            var tr = w.lastResult && w.lastResult.reports[0];
+            check('panel Fix (turn): ' + c.status.text, tr && Math.abs(tr.turned - 360) < 0.5 && /turned/.test(c.status.text), w.lastResult ? w.lastResult.detail : 'no result');
+            tdup.remove();
+            // turn, few keys: a key about every 15 deg, auto-bezier in time, labelled, the F kept
+            // whole between them (AE blends two turned copies there)
+            var fdup = turnComp.layer('Before').duplicate();
+            fdup.name = 'Panel turn few keys test';
+            for (i = 1; i <= turnComp.numLayers; i++) turnComp.layer(i).selected = false;
+            fdup.selected = true;
+            c.turn.selection = 2;
+            c.fix.notify('onClick');
+            var ftr = w.lastResult && w.lastResult.reports[0], fpath = pathOf(fdup), fLab = 0, fAuto = 0, fMin = 1, fa0 = Math.abs(MFm.area(MFx.toMF(fpath.keyValue(1))));
+            for (var fk = 1; fk <= fpath.numKeys; fk++) {
+                if (fpath.keyLabel(fk) !== 15) continue;
+                fLab++;
+                if (fpath.keyTemporalAutoBezier(fk)) fAuto++;
+            }
+            for (var ff = 0; ff <= turnComp.duration * turnComp.frameRate; ff++) fMin = Math.min(fMin, Math.abs(MFm.area(MFx.toMF(fpath.valueAtTime(ff / turnComp.frameRate, false)))) / fa0);
+            check('panel Fix (turn, few keys): about a key every 15 deg, auto-bezier, the F 97 % of its area or more at every frame',
+                ftr && Math.abs(ftr.turned - 360) < 0.5 && ftr.baked > 0 && tr && ftr.baked < tr.baked / 3 && fLab === ftr.baked && fAuto === fLab && fMin > 0.97,
+                (ftr ? ftr.baked : 0) + ' keys (a key a frame: ' + (tr ? tr.baked : 0) + '), ' + fAuto + ' auto-bezier, least area ' + Math.round(fMin * 1000) / 10 + ' %');
+            // the animator drags the third turn key 2 frames later and eases it by hand: a second
+            // Fix keeps it there, with its easing, redrawn as the same share of the turn
+            var tk = -1, seen = 0;
+            for (fk = 1; fk <= fpath.numKeys && tk < 0; fk++) if (fpath.keyLabel(fk) === 15 && ++seen === 3) tk = fk;
+            var tdrag = tk > 0 ? fpath.keyTime(tk) + 2 * turnComp.frameDuration : -1;
+            if (tk > 0) {
+                var tval = fpath.keyValue(tk);
+                fpath.removeKey(tk);
+                fpath.setValueAtTime(tdrag, tval);
+                var tnk = fpath.nearestKeyIndex(tdrag);
+                fpath.setInterpolationTypeAtKey(tnk, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
+                fpath.setTemporalEaseAtKey(tnk, [new KeyframeEase(0, 60)], [new KeyframeEase(0, 60)]);
+                fpath.setLabelAtKey(tnk, 15);
+            }
+            turnComp.openInViewer();
+            for (i = 1; i <= turnComp.numLayers; i++) turnComp.layer(i).selected = false;
+            fdup.selected = true;
+            c.fix.notify('onClick');
+            var kr3 = w.lastResult && w.lastResult.reports[0], kk = tdrag > 0 ? fpath.nearestKeyIndex(tdrag) : 0;
+            var kInf = kk ? fpath.keyInTemporalEase(kk)[0].influence : 0;
+            check('panel Fix (turn, few keys) again: a turn key dragged 2 frames and eased by hand stays there with its easing',
+                kk && Math.abs(fpath.keyTime(kk) - tdrag) < 1e-4 && Math.abs(kInf - 60) < 0.01 && kr3 && kr3.keptTurn === ftr.baked,
+                'key at ' + (kk ? Math.round(fpath.keyTime(kk) / turnComp.frameDuration) : '?') + ' (dragged to ' + Math.round(tdrag / turnComp.frameDuration) + '), influence ' + kInf + ', kept ' + (kr3 ? kr3.keptTurn : '?') + ' · ' + c.status.text);
+            fdup.remove();
+            c.turn.selection = 0;
+            check('panel: floating, titled ' + MFx.name, !w.docked && w.text === MFx.name, w.text);
+            // ? opens the guide (a palette, never modal), with the install button when floating
+            c.info.notify('onClick');
+            var g = w.guide;
+            check('panel ?: the guide opens, not modal', g && g.visible && g.type === 'palette', g ? g.type : 'none');
+            if (g) {
+                check('panel ?: guide size ' + g.size.width + ' x ' + g.size.height + ' px', g.size.width > 360 && g.size.width < 640 && g.size.height < 800);
+                check('panel ?: an install button when floating', !!g.controls.install, g.controls.install ? g.controls.install.text : 'none');
+                g.close();
+            }
+            w.close();
+            // the docked path: the same panel built into a Panel host (what ScriptUI Panels passes)
+            var dockWin = new Window('palette', 'dock test', undefined, { resizeable: true });
+            var host = dockWin.add('panel');
+            host.preferredSize = [300, 70];
+            var dp = MFx.buildUI(host);
+            dockWin.layout.layout(true);
+            dockWin.show();
+            check('panel docked: builds into the Panel host, no window of its own', dp === host && dp.docked && !!dp.controls.fix, 'host ' + host.size.width + ' x ' + host.size.height);
+            dp.controls.info.notify('onClick');
+            check('panel docked: the guide has no install button', dp.guide && !dp.guide.controls.install);
+            if (dp.guide) dp.guide.close();
+            dockWin.close();
+        });
+        step('install', function () {
+            // into a scratch folder (the real one is the user's call): created, copied whole
+            var dir = new Folder(OUT + '/panels/ScriptUI Panels');
+            var res = MFx.install(dir);
+            var copy = res.file ? new File(res.file) : null, src = new File(here.fsName + '/out/test-build/' + MFx.name + '.jsx');
+            check('install: copies the script as "' + MFx.name + '.jsx"', res.ok && copy && copy.exists && copy.length === src.length &&
+                File.decode(copy.name) === MFx.name + '.jsx', res.text + (copy ? ' (' + copy.length + ' of ' + src.length + ' bytes)' : ''));
+            res = MFx.install(dir);
+            check('install: a second install overwrites (an update)', res.ok && new File(res.file).length === src.length, res.text);
+            var real = MFx.panelsFolder();
+            check('install: the user panels folder is found', !!real && /After Effects[\/\\]\d+\.\d+[\/\\]Scripts[\/\\]ScriptUI Panels$/.test(real.fsName), real ? real.fsName : 'none');
+            var copies = MFx.installedCopies();
+            note('install: copies After Effects lists: ' + (copies.length ? copies.join(', ') : 'none'));
+            check('install: not installed twice', copies.length <= 1);
+        });
+
+        // ---- before a fix: warnings about what depends on the points, the time estimate ----
+        function only(L) {
+            for (var i = 1; i <= L.containingComp.numLayers; i++) L.containingComp.layer(i).selected = false;
+            L.selected = true;
+        }
+        // what the warnings found, by code: the sentences hold AE's own names, which change with
+        // its language, the codes don't
+        function kinds(w) {
+            var k = [];
+            for (var i = 0; w && i < w.length; i++) k = k.concat(w[i].kinds || []);
+            return ',' + k.join(',') + ',';
+        }
+        function items(w) {
+            var s = [];
+            for (var i = 0; w && i < w.length; i++) s.push(w[i].items.join(' | '));
+            return s.join(' || ');
+        }
+        step('warnings (shape)', function () {
+            comp.openInViewer();
+            var wd = before.duplicate();
+            wd.name = 'Warn test';
+            var list = function () { return pathOf(wd).parentProperty.parentProperty; };
+            // what measures along the path from its start (Trim Paths, a dashed stroke, a tapered
+            // one) is not asked about: the first key keeps its start. Zig Zag puts ridges on every
+            // segment, and the fix adds segments: asked about
+            list().addProperty('ADBE Vector Filter - Trim');
+            list().addProperty('ADBE Vector Graphic - Stroke');
+            list().property(list().numProperties).property('ADBE Vector Stroke Dashes').addProperty('ADBE Vector Stroke Dash 1');
+            list().addProperty('ADBE Vector Graphic - Stroke');
+            list().property(list().numProperties).property('ADBE Vector Stroke Taper').property('ADBE Vector Taper Start Length').setValue(30);
+            list().addProperty('ADBE Vector Filter - Zigzag');
+            only(wd);
+            MFx.ask = function (warned, seconds) {
+                asked = { warned: warned, seconds: seconds };
+                return false;
+            };
+            asked = null;
+            var res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            var said = items(asked && asked.warned);
+            check('warn: Zig Zag after the path is named before fixing; Trim Paths, dashes and taper are not', !!asked && kinds(asked.warned) === ',zigzag,', said);
+            check('warn: Cancel changes nothing', res.cancelled && pathOf(wd).keyValue(1).vertices.length === 4, res.status);
+            // a null following the path's first point (as Create Nulls From Paths makes)
+            var N = comp.layers.addNull();
+            N.name = 'Follows Warn test';
+            N.property('ADBE Transform Group').property('ADBE Position').expression =
+                'thisComp.layer("Warn test").content("Morph").content("Outline").path.points()[0]';
+            only(wd);
+            asked = null;
+            MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            said = items(asked && asked.warned);
+            check('warn: an expression reading the points (a null from Create Nulls From Paths)', !!asked && /,expression,/.test(kinds(asked.warned)) && said.indexOf('Follows Warn test') >= 0, said);
+            MFx.ask = function (warned, seconds) {
+                asked = { warned: warned, seconds: seconds };
+                return true;
+            };
+            only(wd);
+            res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            check('warn: Fix anyway fixes, and the status counts the warnings', res.reports.length === 1 && !res.reports[0].skipped && /2 warnings \(hover\)/.test(res.status) &&
+                /You were warned/.test(res.detail), res.status);
+            N.remove();
+            wd.remove();
+        });
+        step('warnings (mask)', function () {
+            var a = new Shape(), b = new Shape();
+            a.vertices = [[100, 100], [300, 100], [300, 300], [100, 300]];
+            a.closed = true;
+            b.vertices = [[200, 80], [320, 300], [80, 300]];
+            b.closed = true;
+            var S = comp.layers.addSolid([0.2, 0.2, 0.2], 'Stroke on a mask', 400, 400, 1);
+            S.property('ADBE Mask Parade').addProperty('ADBE Mask Atom');
+            S.property('ADBE Effect Parade').addProperty('ADBE Stroke');
+            var mp = S.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape');
+            mp.setValueAtTime(0, a);
+            mp.setValueAtTime(1, b);
+            // the Stroke effect and text on a path measure from the start, which the first key
+            // keeps: not asked about
+            var w1 = MFx.needs(S.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape'), comp, []);
+            check('warn: nothing for the Stroke effect on the mask', w1.items.length === 0, w1.items.join(' | '));
+            var T = comp.layers.addText('text on a path');
+            T.property('ADBE Mask Parade').addProperty('ADBE Mask Atom');
+            var tp = T.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape');
+            tp.setValueAtTime(0, a);
+            tp.setValueAtTime(1, b);
+            T.property('ADBE Text Properties').property('ADBE Text Path Options').property('ADBE Text Path').setValue(1);
+            var w2 = MFx.needs(T.property('ADBE Mask Parade').property(1).property('ADBE Mask Shape'), comp, []);
+            check('warn: nothing for text running along the mask', w2.items.length === 0, w2.items.join(' | '));
+            var w3 = MFx.needs(pathOf(after), comp, []);
+            check('warn: nothing for a plain path', w3.items.length === 0, w3.items.join(' | '));
+            T.remove();
+            S.remove();
+        });
+        step('estimate', function () {
+            // keyed blobs like bench/ae-bench.jsx: K keys of about n points
+            var seed = 11;
+            function rnd() {
+                seed = (seed * 16807) % 2147483647;
+                return seed / 2147483647;
+            }
+            function blobLayer(name, K, n) {
+                var L = comp.layers.addShape();
+                L.name = name;
+                L.property('ADBE Root Vectors Group').addProperty('ADBE Vector Group');
+                L.property('ADBE Root Vectors Group').property(1).property('ADBE Vectors Group').addProperty('ADBE Vector Shape - Group');
+                var p = L.property('ADBE Root Vectors Group').property(1).property('ADBE Vectors Group').property(1).property('ADBE Vector Shape');
+                for (var k = 0; k < K; k++) {
+                    var s = new Shape(), v = [], ii = [], oo = [], m = Math.max(4, Math.round(n * (0.6 + 0.8 * rnd()))), ph = rnd() * 6;
+                    for (var j = 0; j < m; j++) {
+                        var t = ph + (j / m) * Math.PI * 2, r = 150 * (1 + 0.25 * Math.sin(3 * t + ph) + 0.1 * (rnd() - 0.5)), h = (Math.PI * 2 * r) / m / 3;
+                        v.push([r * Math.cos(t), r * Math.sin(t)]);
+                        ii.push([h * Math.sin(t), -h * Math.cos(t)]);
+                        oo.push([-h * Math.sin(t), h * Math.cos(t)]);
+                    }
+                    s.vertices = v;
+                    s.inTangents = ii;
+                    s.outTangents = oo;
+                    s.closed = true;
+                    p.setValueAtTime(k * 0.25, s);
+                }
+                return L;
+            }
+            var big = blobLayer('Big job', 12, 60);
+            only(big);
+            MFx.ask = function (warned, seconds) {
+                asked = { warned: warned, seconds: seconds };
+                return false;
+            };
+            asked = null;
+            var res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            check('estimate: a long job (12 keys of ~60 points) asks first, with the time', !!asked && asked.seconds > 10 && res.cancelled,
+                asked ? 'about ' + Math.round(asked.seconds) + ' s' : 'not asked');
+            big.remove();
+            // a mid job, estimated then timed for real: the estimate is within about 2x
+            var mid = blobLayer('Mid job', 6, 16);
+            only(mid);
+            MFx.ask = function (warned, seconds) {
+                asked = { warned: warned, seconds: seconds };
+                return true;
+            };
+            var est = MFx.estimate([mid.property('ADBE Root Vectors Group').property(1).property('ADBE Vectors Group').property(1).property('ADBE Vector Shape')], { mode: 'smooth', maxPoints: 100 });
+            var t0 = new Date().getTime();
+            res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            var took = (new Date().getTime() - t0) / 1000;
+            check('estimate: within about 2x of the real time (6 keys of ~16 points)', took / est > 0.4 && took / est < 2.5,
+                'estimated ' + est.toFixed(1) + ' s, took ' + took.toFixed(1) + ' s, this machine at ' + MFx.speed().toFixed(2) + 'x the reference');
+            mid.remove();
+        });
+        step('cancel', function () {
+            // Esc while the fix is worked out (a stand-in for the key): nothing is written
+            var cd = before.duplicate(), calls = 0;
+            cd.name = 'Cancel test';
+            only(cd);
+            MFx.escape = function () {
+                return ++calls > 2;
+            };
+            var res = MFx.fixSelection({ mode: 'smooth', maxPoints: 100 });
+            MFx.escape = null;
+            check('cancel: Esc while it works cancels, and nothing changes', res.cancelled && pathOf(cd).keyValue(1).vertices.length === 4 && pathOf(cd).keyValue(3).vertices.length === 10, res.status);
+            cd.remove();
+        });
+        step('on screen', function () {
+            var sd = before.duplicate();
+            sd.name = 'Scaled 200';
+            sd.property('ADBE Transform Group').property('ADBE Scale').setValue([200, 200]);
+            var r = MFx.fix(pathOf(sd), { maxPoints: 200 });
+            check('on screen: a layer at 200 % is fixed within 0.1 comp px', r.scale === 2 && r.deviation <= 0.1 && r.pathDeviation <= 0.05, MFx.summary(r));
+            sd.remove();
+        });
+        step('narrow dock and theme', function () {
+            var dockWin = new Window('palette', 'narrow test', undefined, { resizeable: true });
+            var host = dockWin.add('panel');
+            // (wide: 560 px; the one row needs about 441 since the shape checkbox, 0.19)
+            host.preferredSize = [560, 90];
+            var dp = MFx.buildUI(host);
+            dockWin.layout.layout(true);
+            dockWin.show();
+            dp.fitWidth(170);
+            var c = dp.controls, two = dp.twoRows && c.bar.orientation === 'column' && c.fix.windowBounds.top > c.mode.windowBounds.top + 10;
+            dp.fitWidth(560);
+            check('panel: breaks into two rows when docked narrow, one row when wide', two && !dp.twoRows && c.bar.orientation === 'row');
+            dockWin.close();
+            var th = MFx.theme();
+            check('theme: read from After Effects (' + th + '), headings ' + (th === 'light' ? 'black' : 'white'),
+                /^(light|dark|darkest)$/.test(th) && MFx.headingColor().join() === (th === 'light' ? '0,0,0' : '1,1,1'));
+        });
+        try {
+            app.project.save(new File(OUT + '/morph-fixer-demo.aep'));
+            note('saved ' + OUT + '/morph-fixer-demo.aep');
+        } catch (e2) {
+            fails++;
+            note('save failed: ' + safe(e2));
+        }
+        note(fails ? fails + ' check(s) FAILED' : 'all checks pass');
+    }
+    if (OUT) {
+        try {
+            app.endSuppressDialogs(false);
+        } catch (x) {}
+        try {
+            var f = new File(OUT + '/ae-log.txt');
+            f.encoding = 'UTF-8';
+            f.open('w');
+            f.write(log.join('\n') + '\n');
+            f.close();
+        } catch (x2) {}
+    } else if (fails) {
+        alert(log.join('\n'));
+    }
+})();

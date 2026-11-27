@@ -1,0 +1,853 @@
+---
+name: after-effects
+description: Building After Effects tools from drawn-by-code — ExtendScript (.jsx) that bakes code-made motion into native AE layers, keyframes and slider-driven expressions, builds live expression rigs, or ships as a dockable ScriptUI panel people install, tested inside the user's After Effects (2026 and 27). Use it when the user works in After Effects, asks for an AE script, panel, rig or expression, wants to move motion between code and AE, or when working on sandbox/2026-11-21-ae-flock-rig, sandbox/2026-11-21-ae-field-effector, sandbox/2026-11-21-ae-morph-fixer or sandbox/2026-11-23-ae-draw-on-rig (Trim Paths, draw-on, constant speed).
+---
+
+# After Effects
+
+**Code does the count, After Effects keeps the look.** For a motion designer who lives in
+AE, the useful output is not a rendered video but native layers in their comp: keyframes
+they can graph-edit, their own effects stack, and a controls null with sliders so they
+art-direct by hand instead of re-prompting. Code earns its place where motion follows a
+rule across many elements (flocks, draw-on order, staggers, physics); hero timing and feel
+stay in the graph editor.
+
+Worked examples:
+
+- `sandbox/2026-11-21-ae-flock-rig/` (baked): a flock that follows a keyed null.
+- `sandbox/2026-11-21-ae-field-effector/` (live): a MoGraph-style field effector, all
+  expressions.
+- `sandbox/2026-11-21-ae-morph-fixer/` (a panel people install): fixes the designer's own
+  path and mask keys so shapes morph cleanly, letters with holes included. It installs
+  itself as a dockable panel, warns before breaking anything, estimates long jobs and
+  cancels with Esc. It is the reference for the "A panel people install" section below.
+- `sandbox/2026-11-23-ae-draw-on-rig/` (live, a panel): Constant Speed Draw-On. Every stroke's
+  Trim Paths draws at one speed in comp pixels per second, lengths measured through AE's own
+  transforms and baked into the expressions, timing live on a controls null. The reference
+  for "Shape layers, Trim Paths and lengths" below.
+
+**Bake or live?** If the motion has memory (velocity, collisions, contact), simulate in the
+script and bake keys. If each frame depends only on where things are at that frame (a
+field's falloff, a stagger by distance, gears), leave live expressions: the designer can
+re-key the driver and nothing needs re-running.
+
+## Shape of a tool
+
+| Piece | Why |
+|---|---|
+| `*-sim.js` / `*-math.js`, plain **ES3** | The logic. Runs unchanged in ExtendScript, Node and the engine, so the preview, the tests and the AE result are the same numbers |
+| `*-ae.jsx` | The AE half: dialog or panel, reading the comp, building layers or writing keys, expressions |
+| `build.mjs` | Joins them into **one** `.jsx` for the designer and lints it, since a syntax error in AE is only an alert. It checks ES3, reserved words, non-ASCII strings, a caught error joined with `+`, lookups by display name, and a nested `?:` without parentheses (all but the field effector's) |
+| `scene.js` | Engine preview drawn the way the result will look: judge the motion here, it renders in seconds |
+| `make-demo.jsx` | Builds a demo project from nothing; with a test flag it checks, logs and saves. It is the AE test |
+| `test.mjs` | Node: the logic on hostile inputs, and the AE half against mock properties |
+| `probe/` (the draw-on rig) | Measure what the tool rests on in AE before building on it, and keep the numbers (`*.txt`) as Node fixtures |
+| Real artwork (`art/` in the morph fixer) | Cases made from real material, such as letter outlines read from the repo's OFL fonts. They run in Node and, through the tool's own code, in AE. They found what made-up shapes hid |
+
+Expose `build(comp, …)` or the tool's API without UI (`$.global.X_NO_UI`) so the test can
+call it, and reset the flag afterwards: `$.global` lives all session, and a panel opened
+later in that session would not build. A tool people install keeps those exports out of
+the release (see the panel section).
+
+A **live** rig adds two pieces: `*-math.js` (ES3, ASCII) that `build.mjs` pastes, comments
+stripped, into every expression it writes, and the engine preview loads with `uses`; and a
+`test.mjs` that runs **the very expression strings** the script writes against a mock of
+AE's expression objects. The mock must behave like AE (next section), or it passes code
+that AE runs wrong.
+
+## Expressions a rig leaves behind
+
+- **`effect("X")(1)` and `transform.x` are Property objects**, not numbers. Arithmetic
+  converts them; `===`, `!==` and `if ()` don't: a checkbox Property at 0 is still truthy,
+  a dropdown Property never `=== 2`. Read every control with `.value`. A mock that hands
+  out bare numbers hides this; return objects with `valueOf` and `.value`.
+- **An expression only sees other properties after their expressions.** To move layers by
+  a rule measured at their own position, keep Position free and put the move in the Anchor
+  Point, corrected by the inverse of the layer's rotation and scale (and its parent, via
+  `parent.fromComp`): `anchor -= S⁻¹ R⁻¹ d` moves the layer by exactly `d`, pivot included.
+- Compute a shared quantity once in a **slider on the layer** (a weight 0–100) and have the
+  other channels read it: one evaluation, and the channels can't disagree.
+- Find helper layers through **Layer Controls**, not names, so renaming them is safe. But
+  deleting the layer a Layer Control points to **re-aims it at another layer**: read its
+  controls inside `try`, skip it if they're missing, and skip a layer already counted.
+- AE **switches an expression off** when it errors («Expression disabled»). A script that
+  rewrites it must also set `expressionEnabled = true`.
+- Mark the rig's expressions with a first-line comment (`// <name> effector: …`): a re-run
+  rewrites its own and leaves the designer's alone, and reports what it kept.
+- Slider names can carry the explanation (≤ 28 characters); a re-run renames the previous
+  round's names in place so the designer's values survive the upgrade.
+- **A control that moves baked layers also changes their speed.** Scaling offsets around
+  a centre scales how fast the layers move relative to it. Turning a stretched shape moves
+  its tips at r × ω. To keep motion physical, apply the control to a **mean over a window**,
+  with the window long enough that the added speed stays under a budget: a mean over W
+  moves at most 2r / W. Keep the fast part (value − mean) as baked. For any live W, bake a
+  **running sum** (∫ dt) as a keyed slider or Point Control. The mean is then
+  `(S(t + W/2) − S(t − W/2)) / W`, two `valueAtTime` calls, carried on past the bake at
+  the end's rate. At the default controls this must leave the bake exactly as it is: test
+  it.
+
+## ExtendScript is ES3
+
+- No `let`/`const`, arrows, template strings, `JSON`, `Object.keys`, `Array` methods
+  (`forEach`, `map`, `indexOf`…), trailing commas. `toSource()` + `eval` replace JSON.
+- **ExtendScript reads `a ? b : c ? d : e` as `(a ? b : c) ? d : e`** (AE 27: `true ? 1 :
+  false ? 2 : 3` is 2; V8 says 1). Put every `?:` nested in another's branches in
+  parentheses. It made every Slider a Checkbox in the draw-on rig's first AE run, and a
+  clamp `x < 0 ? 0 : x > 1 ? 1 : x` lets negatives through. The flock's, the morph fixer's
+  and the draw-on rig's `build.mjs` lint for it (`nestedTernary`), the test scripts and the
+  runner included. The field effector has none in code AE runs, but its build doesn't lint
+  for it. Fixed on 2026-11-23 in the flock (its `clamp` and speed cap: every bake until then was a different
+  flock from the preview, up to 405 px apart) and the morph fixer (its area `sign` was -1 for
+  every piece, so no hole was seen and an O into C turned its hole into the C). Expressions on
+  AE's default JavaScript engine parse it right, the Legacy ExtendScript engine doesn't:
+  parenthesize there too.
+- **`toPrecision` rounds negative numbers to integers** in ExtendScript (AE 27:
+  `(-29.987654321).toPrecision(15)` is `-30`, `-0.5` gives `-0`); positives are fine. Write
+  numbers out with `String(v)`, or format `-v` and add the sign.
+- **ES3 reserves words that modern JS doesn't** (`short`, `long`, `int`, `char`, `float`,
+  `double`, `final`, `static`, `public`, `private`, `package`, `goto`…), **even as property
+  names**: `{ short: 'x' }` or `res.long` stops the whole script ("Illegal use of reserved
+  word"). Lint for them in `build.mjs` (see the morph fixer's), in every file AE runs.
+- **Never join a caught error into a string**: `'ERROR ' + e` throws again inside the catch
+  ("Object of type Error found where a Number, Array, or Property is needed", reported at
+  the catch's line) and AE shows it as a modal. Read `String(e.message)` inside its own
+  `try`. It hit two throwaway runners in two days; the morph fixer's `build.mjs` lints for it.
+- No JIT. Alias `Math.sqrt` & co. to locals; keep inner loops on dense arrays. A hashed
+  object keyed by big numbers converts every key to a string: a neighbour grid built that
+  way was 30× slower. Measured: 80 boids over 264 steps of 2 substeps = 5.5 s in AE 2026;
+  the morph fixer ran about 300× slower than in Node.
+- **Made objects cost far more than arithmetic.** Geometry that made a point array per bezier
+  sample and a path object per in-between ran ~7000× slower than Node (B into 8: 22 s for a
+  check Node did in 2 ms), where the rest of the morph fix runs ~300×. In hot loops keep
+  coordinates in flat arrays of numbers, evaluate curves inline, and measure each sample
+  once. Time new math inside AE apart from the rest (the morph fixer's
+  `bench/holes-bench.jsx`): the Node timing said nothing about it.
+- Seeded randomness that agrees bit for bit across engines: Park-Miller (`s * 16807 %
+  2147483647`, exact in doubles). Avoid hashes that overflow 2^53.
+- **ExtendScript's `sort` is not stable** (V8's is). A comparator whose ties matter must
+  break them by index (`(a.f - b.f) || (a.idx - b.idx)`), or ExtendScript and Node give
+  different results: a rebuild handed its spare points to other gaps, 20 px apart.
+- **`$.evalFile` doesn't put a file's top-level `var` on `$.global`.** Read the file and
+  `eval` it where you need it, or assign `$.global.X` inside the file.
+- Testing an ES3 file in Node: load it with `new Function(src + 'return X')()`, not
+  `vm.runInContext` (global lookups there are ~10× slower and skew timings).
+- **Node passing doesn't mean AE runs the same code.** The same source can parse differently
+  (the nested `?:`), so the AE test must compare what AE decided with Node on the same input,
+  not only check that it ran. Dump the result (every baked key, or the matching order) and
+  diff it with Node in full. The flock's and the morph fixer's AE checks passed while AE got
+  different results, because they checked counts and plausible values. The morph fixer's
+  `art/make-art.jsx` now checks its matching against Node's numbers.
+  - Then run Node on the old code grouped the way ExtendScript reads it (`(a ? b : c) ? d :
+    e`). If AE's old result matches that, the parse was the whole cause.
+
+## A panel people install
+
+The morph fixer (`morph-ae.jsx`, `build.mjs`) does all of this; copy from it.
+
+**Docking and installing**
+
+- AE runs a script from a `ScriptUI Panels` folder with `this` = the Panel. Wrap the built
+  file as `(function (HOST) { … })(this)` and build into `HOST` when `HOST instanceof
+  Panel`, else a `palette` Window. A test drives it by setting the controls and calling
+  `button.notify('onClick')`. Building into `win.add('panel')` takes the docked path.
+- **Installing needs no admin rights:** copy the script into the user's own
+  `%APPDATA%\Adobe\After Effects\<major.minor>\Scripts\ScriptUI Panels\` (macOS
+  `~/Library/Preferences/Adobe/After Effects/<major.minor>/…`; `<major.minor>` from
+  `app.version`). That is the folder File › Scripts › Install ScriptUI Panel… uses.
+  - Give a floating run an Install button that does `File($.fileName).copy(dest)`, creating
+    the folders if missing: AE 27's `27.0` folder had no `Scripts` folder yet.
+  - AE reads the folder at launch only. After a restart the file name (with `.jsx`) is the
+    Window menu entry, so name the file the way the tool should be called.
+  - AE 27 brought over the panel installed for 26.5.
+- Warn when AE has two copies, which it would list twice in the Window menu. Look in the
+  user's folder, in AE's own folder (`Folder.appPackage` + `/Scripts/ScriptUI Panels`) and
+  under old file names.
+- A script installed in AE's own folder needs admin rights to update; the user folder doesn't.
+
+**The release build**
+
+- Leave nothing on `$.global`: names collide with other scripts.
+  - `build.mjs` writes the release (it fails if the release touches `$.global`) and a test
+    build under `out/` that adds the exports the tests use.
+  - `$.global` also survives between scripts all session.
+- Put a version in the file header and the guide.
+- Keep settings in `app.settings` under the tool's own name.
+- Keep strings ASCII (ScriptUI and older AE mangle the rest), and say Ctrl or Cmd per
+  `$.os`.
+
+**Layout and text**
+
+- One compact row of controls and a status line. The status line truncates
+  (`truncate: 'end'`) and its `helpTip` holds the full report.
+- **When docked narrow, break the row in two.** Lay the controls out in two groups inside a
+  bar and measure the bar's width once laid out as one row. In `onResize`, switch the
+  bar's `orientation` to `'column'` below that width and call `layout.layout(true)`.
+- **The guide behind `?` is a `palette`, not `alert`**: it stays open while the user works.
+  Write it for the person animating: what the tool does, three steps, each setting in plain
+  words, a few tips. A test bans jargon from it.
+- **ScriptUI doesn't wrap text reliably:** a `multiline` statictext re-wraps at a width of
+  its own, and the guide came out 351 × 986 px instead of ~420 × 650.
+  - Wrap in code, evenly so no word sits alone, and add one single-line statictext per line.
+  - A text that changes later keeps its first size: measure its widest possible line up
+    front (`graphics.measureString`).
+  - The AE test checks the guide's laid-out size (360–640 px wide, under 800 tall, for a
+    laptop screen). Two new tips pushed it to 807 px; wrapping at 80 characters, not 70,
+    brought it back to 465 × 759.
+- **AE doesn't draw ScriptUI fonts** (2026 and 27): `ScriptUI.newFont(…, 'BOLD', size + 3)`
+  is accepted and reads back Bold / 15, but every statictext still draws as plain 12 px
+  Adobe Clean (Arial too). Mark headings with the pen
+  (`graphics.foregroundColor = graphics.newPen(PenType.SOLID_COLOR, c, 1)`) and leave body
+  text unset so AE colours it. Only a screenshot shows this.
+- **The pen must follow AE's theme.** ScriptUI's own `foregroundColor`/`backgroundColor`
+  read `undefined`, so read AE 27's `app.getAppTheme` (a property: `"light"`, `"dark"` or
+  `"darkest"`; missing before 27 means dark). Use black on light and white otherwise.
+  Checked by eye in Light and Darkest.
+
+**Before changing someone's work**
+
+- Say what the change would break before making it, and only what it really breaks: a
+  warning that isn't worth it teaches people to click past all of them. Before adding one,
+  check what the change does to the thing warned about, on the actual output.
+  - The morph fix never moves the first key's start (0 px in every mode, and over 200 random
+    shapes). The later keys' starts move to line up with it, which is the fix. So anything
+    measured along the path from its start keeps working: Trim Paths, stroke dashes, taper
+    and wave, text on a mask, the Stroke and Vegas effects, `pointOnPath()`. Each has an
+    offset or start setting too. The user questioned these warnings, rightly.
+  - What a fix does change is the point count (64 where 4 were drawn). That breaks what works
+    per point or per segment: Zig Zag (ridges per segment), Pucker & Bloat (every point),
+    Wiggle Paths (its detail goes between the points), and expressions that read a point by
+    its number (`points()`, `inTangents()`, `outTangents()`, as nulls from Create Nulls From
+    Paths do). No offset fixes those. Internal names are under the pitfalls below.
+  - Look after the path in its own group and in every group above it: AE passes a group's
+    paths up to its parents.
+  - Search the comp's expressions with a time budget (0.8 s), since big comps are slow to
+    walk.
+- Estimate long jobs from timings measured inside AE, never from Node.
+  - Fit the estimate to a bench (`bench/ae-bench.jsx` in the morph fixer).
+  - Scale it to the machine with a short calibration run, done only when the job looks long.
+  - Check it against a real fix: 6.9 s estimated, 6.2 s taken. On the real-type set it ran
+    high on small jobs (4.4 s for 1.1 s) and close on long ones (24.2 s for 22.9 s). That is
+    the safe way round for a 10 s warning.
+- Ask once, in a modal dialog with Cancel as the default (`defaultElement` = Cancel), and
+  only for warnings or jobs over 10 s. **Give every button an `onClick` that calls
+  `w.close(n)`**: ScriptUI closes a dialog by itself only for the default and cancel
+  elements, so a third button (Fix anyway, once Cancel became the default) did nothing.
+  Group the warnings under a short path name, one plain sentence each. After the user goes
+  ahead, count the warnings in the status line.
+- Give each warning a code next to its sentence. The sentence quotes AE's names, which
+  change with its language; tests check the code.
+
+**Long jobs**
+
+- Plan, then write: work every path out first (no writes), then write it all in one undo
+  step. Then cancelling changes nothing.
+- Cancel with Esc: the math calls back every key and round, and
+  `ScriptUI.environment.keyboardState.keyName === 'Escape'` is read there. That is only when
+  the work checks in, so tell users to hold Esc. A test passes a stand-in for the key.
+- **Open no window while a script keeps AE busy.** If anyone clicks AE meanwhile, Windows
+  shows its "not responding" stand-in. When AE answers, Windows puts AE's windows back as
+  they were, and a palette the script had closed stays on screen for good.
+  - In AE 27, `close()`, `close()` again, `hide()`, and `show()` + `close()` all failed to
+    remove it (logged from outside for 45 s), and it had no close button. Only an AE restart
+    clears it.
+  - Without clicks, `close()` works, even after 7 s busy, so scripted tests don't show it.
+    Only `visible = false` left a window up without clicks.
+  - Any job long enough for a click is at risk: people click while they wait.
+  - Seen on Windows 11; a Mac hasn't been tried.
+  - Give the time and the way to cancel in the question before the work instead.
+  - Reproduce it with `bench/ghost-window.jsx` beside `bench/window-watch.ps1` in the morph
+    fixer, before trying any new window during a long job.
+- `Window.find(type, title)` returns the first window with that title, closed ones included:
+  it can't reach a particular window among several with one title.
+
+**Language**
+
+- AE's display names change with its language: "Path 1" is "Pfad 1" in German.
+  - Find properties only by matchName and never compare a display name; the morph fixer's
+    `build.mjs` fails on either.
+  - A test names everything it builds itself ("Outline", not AE's "Path 1"), including
+    names used inside the expressions it writes.
+
+## Shape layers, Trim Paths and lengths
+
+Measured in AE 27 (`sandbox/2026-11-23-ae-draw-on-rig/probe/`, read from
+`sourceRectAtTime(t, false)`, which includes trims):
+
+- **Trim Paths cuts by arc length** in the space of the group holding it (0.05 px at worst
+  on very uneven handles; the closing segment counts). A linear End is a constant speed
+  inside one path.
+- **Individually** runs through the paths top to bottom, sharing the range **by length**,
+  each path counted in its own group **before that group's transform** (a root trim over a
+  group scaled 200 % gives it its unscaled share). Simultaneously gives every path the same %.
+  A trim also cuts what a trim inside a subgroup already cut.
+- **Shape group transform**: `Position + R(rotation) · K(skew) · S(scale) · (p − Anchor)`,
+  `K = R(−axis) · [[1, −tan skew], [0, 1]] · R(axis)` (0.000 px; matchNames `ADBE Vector
+  Anchor`, `… Position`, `… Scale`, `… Skew`, `… Skew Axis`, `… Rotation`).
+- Rectangles start at the top-right corner (below it when rounded), ellipses and stars at the
+  top, clockwise. `ADBE Vector Shape Direction` 3 reverses the way (open bezier: from its last
+  point); 1 and 2 don't. Bezier paths have that property too.
+- In a box from `sourceRectAtTime`, a path the trim hasn't reached yet still adds its first
+  point.
+- **Lengths in comp pixels** (what a viewer sees): carry the path through its groups'
+  transforms, then `toComp`. For many points, one temporary text layer whose Source Text
+  expression returns `toComp` of all of them joined by commas (`valueAtTime(t, false).text`):
+  one evaluation instead of a null per point. 2D layers map affinely (three points give the
+  map); a 3D layer under AE's default camera has perspective (±6 % along a line turned 50°):
+  send every sample point.
+- A stretched or skewed group makes the visual speed depend on direction: bake a table from
+  visual fraction to trim fraction (64 steps kept it within 0.24 % of the length).
+- `trim.enabled = false` switches an operator off from a script; an expression on End
+  overrides its keys and removing the expression gives them back.
+
+## Keys a tool writes for the animator
+
+The morph fixer writes keys of its own between the designer's: a turn swung round, a hole
+that shrinks away and grows again. `morph-ae.jsx` (`isInbetween`, `bakeTurn`, `bakeHole`,
+`turnKeysOf`, `holeKeysOf`) does all of this; copy from it.
+
+- **Label them, and know them by the label alone.** `prop.setLabelAtKey(k, 15)` and
+  `prop.keyLabel(k)` (0 = none, 1–16 the colours in Preferences › Labels; AE 22.6 and
+  later, so wrap them in `try`). Every run removes its own keys between the drawn ones
+  first and works on the drawn keys: a second run then writes the same keys, and never reads
+  its own in-betweens as drawn (a turning F once went from 40 to 530 points that way).
+  Requiring an interpolation as well broke when the animator re-eased a key (it lost
+  auto-bezier and read as drawn). Tell users: change the label and the key is yours.
+- **Leave the drawn keys' easing alone**, so removing the in-betweens gives the timing back.
+- **Put them on the comp's frames** (`k * frameDuration`), not at `keyTime + j *
+  frameDuration`. A key a script set at 1.9 s sits between frames at 24 fps, and every
+  rendered frame then showed a blend of two in-betweens (a hole's last dot and its first
+  grown key, blended, sat outside its letter).
+- **Fewer keys are the version an animator can tweak.** Before writing a key a frame, work
+  out what After Effects' straight-line blend between two keys already gives:
+  - A shape blended with a key of nothing (every point at one place, no handles: AE draws
+    nothing) is the shape scaled, exactly. A hole that shrinks away needs one key where it is
+    gone, eased like Easy Ease (`new KeyframeEase(0, 33.333)`), not 25: dragging that key
+    retimes it.
+  - Two turned copies blended squash in between. A turn needs a key about every 15 deg (98 %
+    of the area at worst, 1.5 px off the arc on a 180 px letter; one key a quarter turn
+    keeps 85 %), auto-bezier and continuous in time (`setTemporalAutoBezierAtKey`,
+    `setTemporalContinuousAtKey`: they work on path keys) so the speed runs through them.
+  - Read the result back in AE frame by frame (`valueAtTime`) and check what matters (no
+    hole outside its letter), falling back to a key a frame only where a frame misses.
+  - Where both are worth having, let the user choose (the morph fixer's turn list: a key
+    every frame, the smoothest; or few keys, to retime).
+- **Keep what the animator changed.** Before removing the tool's keys, read them: times,
+  values, `keyIn/OutInterpolationType`, `keyIn/OutTemporalEase` (the arrays go straight
+  back into `setTemporalEaseAtKey`), `keyTemporalAutoBezier`, `keyTemporalContinuous`.
+  Write them back at their own times with their own easing and redraw only their values.
+  - Read what each key stood for from the keys themselves: keys carry no notes. A turn key's
+    share of its turn is the angle from the step's first key to it, measured key to key (so
+    a step of more than half a turn reads right), over the angle to the step's last key.
+  - Untouched keys come back the same, so the tool needn't know which ones were moved.
+  - Check the result (a hole is kept only if it still doesn't show) and redo what can't be
+    kept (keys no longer inside their step, points that no longer match). Say which in the
+    report: "kept where they were", "retimed".
+- `removeKey(k)` renumbers the keys after it: remove from the highest index down, then find
+  the keys you kept again by time (`nearestKeyIndex(t)`).
+- `setValuesAtTimes` adds keys with AE's default interpolation: set each new key's
+  interpolation, ease and label afterwards, found by `nearestKeyIndex`.
+
+## Scripting pitfalls (each one cost a run)
+
+- **Removing the last Time Remap key turns time remapping off** and hides the property;
+  setting its expression then fails («the property or a parent property is hidden»). Keep
+  the two keys AE adds; the expression overrides them.
+- Adding a property (an effect, a shape) **invalidates references** to its siblings:
+  re-fetch by name or matchName after every `addProperty` (a test runner fetched a Path,
+  added a Fill, then got "Object is invalid" writing the Path). Add everything, then fetch.
+- Use **matchNames** (`ADBE Transform Group`, `ADBE Position`, `ADBE Rotate Z`, `ADBE
+  Scale`, `ADBE Time Remapping`, `ADBE Effect Parade`, `ADBE Slider Control`,
+  `ADBE Root Vectors Group`…): display names change with the AE language.
+- Internal names for what depends on a path's points (AE 27):
+  - Operators: `ADBE Vector Filter - Trim`, `- Zigzag`, `- PB` (Pucker & Bloat), `-
+    Roughen` (Wiggle Paths).
+  - A stroke (`ADBE Vector Graphic - Stroke`, or `- G-Stroke` for a gradient one) holds
+    `ADBE Vector Stroke Dashes`. Don't read "it holds `ADBE Vector Stroke Dash 1`" as "it has
+    dashes": in AE 27 that check fired on a stroke with none (not looked into further; the
+    morph fixer stopped warning about dashes). Test any such check on a stroke without the
+    feature too.
+  - Its taper is `ADBE Vector Stroke Taper` (`… Taper Start Length`, `… End Length`,
+    `… StartWidthPx`, `… EndWidthPx`); its wave is `ADBE Vector Stroke Wave`
+    (`… Taper Wave Amount`).
+  - A mask picker in an effect, or in text Path Options (`ADBE Text Path`), has
+    `propertyValueType` `PropertyValueType.MASK_INDEX` (6422) and the mask's index as value.
+  - Dump a layer's property tree in AE before relying on any name.
+- **Comp-space position of any layer** (parented, expressions, anchor): add a temporary null
+  whose Position expression is `var L = thisComp.layer(<index>); var p =
+  L.toComp(L.anchorPoint); [p[0], p[1]]`, read it with `valueAtTime(t, false)`, remove it.
+  Reference by index there (names can repeat); in expressions you leave behind, by name.
+- Time remap: enable it **before** setting `startTime`/`inPoint`/`outPoint` (only then can
+  a layer outlast its source), and move the layer before keying it (keys move with it).
+- `layer.duplicate()` lands directly above the original: create the top layer first.
+- Batch keys with `setValuesAtTimes`; give 2D layers 3-element position/scale values.
+- `dimensionsSeparated` exists only on Position.
+- Wrap the build in `app.beginUndoGroup`. Store the settings on the controls layer's
+  `comment` (`toSource()`): a re-run pre-fills the dialog, replaces the generated layers by
+  name prefix and keeps the controls and the values the designer set.
+- Make generated layers shy and turn on `comp.hideShyLayers`; switch off (don't delete) the
+  user's source layer.
+- Dropdown Menu Control: `addProperty('ADBE Dropdown Control')`, then
+  `property(1).setPropertyParameters([...])`, which invalidates the effect: re-fetch it by
+  index before naming it. Expressions read it 1-based (`.value`).
+- **A Fill effect replaces the layer**: its Opacity is the opacity of the fill, so a Fill at
+  0 % makes the layer vanish (no error, just an empty render). To blend a layer towards a
+  colour by an amount, use **Tint** (`ADBE Tint`) with Map Black To = Map White To = the
+  colour and Amount to Tint (0–100) as the amount: alpha stays. Read `maxValue` for a
+  parameter's 100 %; Fill's Opacity runs 0–1.
+- `comp.layers.addNull()` in AE 2026 puts the null's anchor at [0, 0]: read it, don't
+  assume the centre.
+- **`layer.parent = p` compensates** the child's transform like the pick-whip (it stays where
+  it was). To parent with the values you set, `layer.setParentWithJump(p)`. A test that
+  parented with `=` had its layers 20 % off the spec, and blamed the tool.
+- **Renaming a layer or an effect from a script doesn't update expressions that name it**
+  (AE 27): reach helper layers through Layer Controls.
+- AE stores path points as 32-bit floats: compare AE with Node on the keys AE holds.
+
+## Running it in the user's After Effects
+
+**When the user works in the same After Effects** (the morph fixer, rounds 14–18)
+
+- Tests take AE over for minutes: ask every time, and send nothing until the user has handed
+  it over. If their project has items, the runner's `freshProject()` refuses it (rightly):
+  ask them to save or close it; never close it for them.
+- **Check for an open dialog before sending anything.** A modal disables AE's main window:
+  list AE's top-level windows (`EnumWindows`, `IsWindowEnabled`). A script arriving then,
+  or a runner's tick, shows the user "Cannot run a script while a modal dialog is waiting for
+  response".
+- **Keep AE in front while a test runs** (`open_application`). Windows throttles a
+  background app: with File Explorer in front, a test sat 15 minutes at 0.04 of a core, AE
+  "responding", no dialog; brought forward it finished in a minute, and a timed check read
+  230 s for a 7 s fix. A stall with low CPU and no dialog is throttling, not a hang. A
+  window titled "(Not Responding)" may be Windows' stand-in (process `dwm`), not AE.
+- **Say what is happening at least every minute** of a long wait: poll in short steps and
+  report AE's CPU. A silent ten-minute wait looked like nothing was happening, and the user
+  stopped it twice.
+- **Jobs not picked up within seconds mean the runner's timer is dead** (it survived the send
+  but stopped firing; cause unknown). Take the jobs out and send a fresh runner (it cancels the
+  old task). Never leave jobs queued for a dead runner: one woke during the user's own dialog
+  and showed them the modal error.
+- A test that runs the tool on a layer in another comp must open that comp first
+  (`comp.openInViewer()`): the tool works on `app.project.activeItem`. Without it the fix ran
+  elsewhere, changed nothing, and two checks failed for a reason that wasn't in the code.
+- Stop the runner the moment the tests end, and say that AE is the user's again.
+
+**Before sending anything**
+
+- **Look at what AE has open** (`Get-Process AfterFX` → `MainWindowTitle` shows the
+  project path; empty means not ready yet).
+  - A test that opens a new project replaces the user's: ask before sending it.
+  - Call `app.newProject()` *before* `app.beginSuppressDialogs()`, so unsaved work gets AE's
+    own save prompt.
+  - Close only a project the test itself saved under `out/`, or an empty untitled one.
+- **Other sessions use the same AE.** `AfterFX.exe -r` hands the script to whatever AE is
+  running or starting, another Claude session's included. Two sessions launching at once got
+  two AE processes, one of them windowless. Check the processes and the other sessions
+  first, agree who goes first, and never start or stop an AE instance you didn't launch.
+- Writing files from a script needs *Allow Scripts to Write Files and Access Network*
+  (`Pref_SCRIPTING_FILE_NETWORK_SECURITY`; both `Main Pref Section` and `… v2` read 1 here).
+  Read it, never change it: ask the user.
+
+**Sending scripts**
+
+- `AfterFX.exe -r <script.jsx>` lives in `C:\Program Files\Adobe\Adobe After Effects
+  <2026|2027>\Support Files\`.
+  - **Start AE first**, normally, and send to it. A cold `-r` (no AE running) runs the
+    script and then **quits AE**.
+  - A cold start on the user's machine once took over 10 minutes (font scan) and once showed
+    no window at all; usually it takes 6 to 70 s.
+- **One script at a time.** While a script runs, or while AE thinks one does, a second `-r`
+  shows a modal "Attempt was made to run a second script…" and is dropped.
+  - AE can stay in that state and refuse every later `-r`, even with nothing running.
+  - **Send with `-ro` instead** (`AfterFX.exe -ro <script.jsx>`). AE 27's own warning says
+    `-ro` or `-so` overrides the refusal. On 2026-11-23 AE refused `-r` with nothing
+    running, and `-ro` then ran the runner at once, with no restart. Dismiss the warning
+    (OK) first.
+  - **Run the launcher with PowerShell's call operator** (`& "…\AfterFX.exe" -ro <script>`),
+    not `Start-Process`: on 2026-11-26 a `Start-Process` send to an idle AE, with no dialog,
+    was dropped without a trace (no runner after a minute); the same send with `&` ran at once.
+- **Write job scripts with the Write tool, not a Bash heredoc:** the Bash tool halved a
+  backslash even inside a quoted heredoc (`/\\/g` arrived as `/\/g`), and AE stopped the job
+  at "Expected: )". Paths in a job: `File.absoluteURI` already has forward slashes.
+  - If a runner's log never starts, look at AE before sending another.
+  - Close an AE with nothing unsaved via `CloseMainWindow()`, which works when `-r` doesn't,
+    and start a fresh one.
+- **Send one runner, then drop jobs** (`sandbox/2026-11-21-ae-morph-fixer/ae-bridge.jsx`).
+  - Send it once with `-ro`. It polls a folder with `app.scheduleTask(…, 1000, true)`, runs
+    each `*.jsx` job there with `$.evalFile` inside a `try`, and writes
+    `<job>.status.txt`. Later tests never go through `-r`, so none can hit the "second
+    script" dialog.
+  - Jobs call its `freshProject()`, which only closes an empty untitled project or one
+    saved under `out/`.
+  - A job already waiting when a runner starts was meant for a runner AE refused: it is set
+    aside unrun. Otherwise an old stop job ended the new runner before its own jobs.
+  - **Stop it when the tests are done, and before any by-hand check in AE's UI** (drop a
+    job calling `$.global.MMF_BRIDGE.stop()`; it also stops itself after five idle
+    minutes). Its timer fires even while a modal dialog is open, such as Preferences or
+    the tool's own warning. AE then answers with a modal "Cannot run a script while a modal
+    dialog is waiting for response".
+  - After that, AE stayed convinced a script was running and refused everything, the stop
+    job included, until it restarted. A leftover runner surprised the user with that dialog
+    after the work was done.
+  - Changing AE's theme (Preferences › Appearance) drops `app.scheduleTask` tasks: send the
+    runner again after one.
+  - Start the runner **once** per AE session and stop it only at the end. The "second
+    script" refusal (cause still unknown) came mostly on a new launch right after a runner
+    had stopped itself. Each new launch is a chance for it; `-ro` gets past it (above),
+    where before only a restart did.
+- A floating palette sent with `AfterFX.exe -ro` never showed (AE 27); run from File ›
+  Scripts › Run Script File… it floats. Test a floating panel by hand that way.
+- A job must stop when `freshProject()` refuses: two debug jobs that went on anyway left an
+  untitled project with items, which the runner then rightly refused to close for the real
+  test.
+- The runner's 5 idle minutes ran out while code was being written between jobs; the
+  draw-on rig's copy waits 20. Either way, stop it explicitly at the end.
+- A panel installed in ScriptUI Panels opens from a script with
+  `app.executeCommand(app.findMenuCommandId('<file name>.jsx'))` (a negative id is fine; 0
+  = not found). It runs at once, and a test build's exports are there on the next line.
+  Don't send the command again for a panel that is already open.
+- A by-hand test can't press keys into AE while a script runs: AE becomes a stand-in
+  window, and the screen tool refuses to type into it (and says not to work around that).
+  Test cancelling with a stand-in for the key, and leave a held Esc to a person.
+- Clicking AE's own UI with computer use is the real test of a panel: Fix, its dialogs, the
+  guide, a narrow dock.
+  - Bring AE forward with a job calling `app.activate()`: `open_application` sometimes
+    leaves the desktop shell in front, and fails while a modal is open.
+  - Restore anything you change (a column width, the theme) and stop the runner first.
+- **Ask the person to do what a user would**, for what the screen tool can't: hold Esc, and
+  click around AE during a long fix. Their clicks are what showed the stuck window.
+- A by-hand check leaves the test project with unsaved changes. Say so when handing back,
+  and that it can be closed without saving.
+
+**Diagnostics**
+
+- **Scripts must not raise dialogs.** An uncaught error is a modal even inside
+  `beginSuppressDialogs()`, and a test's own error message can throw again (see the ES3
+  section). Wrap each step in its own `try` and write the log file after every step, so a
+  stall still says where.
+- While a script runs, AE's window doesn't repaint, and its H.264 output only grows at the
+  end: measure CPU (`Get-Process AfterFX`.CPU twice) before calling it stuck.
+- **ScriptUI's word on a window can be wrong.** A palette read `visible == false` while it
+  was on screen. Ask Windows from outside: the morph fixer's `bench/window-watch.ps1 -title
+  "<title>"` logs what its window list shows, with times to set beside the script's log.
+- Write "tested in AE" only for a step the AE log shows. A review note once claimed a
+  cancel test in AE that didn't exist yet.
+- The `time` an expression sees at `valueAtTime(t)` sits on a grid of 1/61,440 s (±16 µs
+  off `t`); frame times are on the grid. A test comparing time-dependent math must use
+  AE's `time` (read it through a probe expression), not `t`.
+
+**Rendering and looking**
+
+- Test mode: `app.beginSuppressDialogs()`, results to a text log, save the `.aep` into the
+  experiment's `out/`, render it afterwards with `aerender` (next point). Output module
+  template names vary per install (`outputModule.templates`; pick by regex, e.g.
+  `/h\.?264/i`). Don't `app.quit()` an AE the user may be using; leave the demo open.
+- **Render with `aerender`, not `renderQueue.render()` in the user's AE.** It runs in its own
+  process (`…\Support Files\aerender.exe -project x.aep -comp "Name" -s 0 -e <last frame>
+  -RStemplate "Best Settings" -OMtemplate "<an H.264 template's exact name>" -output
+  x.mp4`; on this install `"H.264 - Match Render Settings -  5 Mbps"`, two spaces), leaves AE
+  usable, and kept working when the GUI's render queue broke («Error Code: 3, restart After
+  Effects»). Give `-s`/`-e` (frames): without them it took the time span of an item left in
+  the saved queue. An output name already used in that queue makes it skip the render.
+- **AE's H.264 has no colour tags.** ffmpeg reads it as BT.601 and saturated colours shift
+  (a tint looked redder than it was). Decode it with `scale=in_color_matrix=bt709`, and when
+  re-encoding declare the *input* `-colorspace bt709 -color_primaries bt709 -color_trc
+  bt709 -color_range tv` as well as the output, or ffmpeg converts and bakes the shift in.
+- Render cost is real: 80 precomp layers with motion blur ≈ 4 s a frame on the user's
+  machine. Tell the designer to pre-render once approved.
+- Look at the AE render like any other: full-resolution crops, a contact sheet, a run of
+  consecutive frames through the hardest moment; commit it as `render/<name>.mp4`. Look at
+  a panel the same way: screenshots of the panel, its dialogs and its guide, cropped so no
+  window title or user path ends up in the repo. Test logs too: the install check prints the
+  user's folder, so mask it (`%USERPROFILE%`, `~`) in the copy you commit.
+
+## After Effects versions
+
+- **27** (27.0 build 78; ExtendScript 4.5.6, ScriptUI 6.1.8):
+  - Installed at `C:\Program Files\Adobe\Adobe After Effects 2027\`, with user settings in
+    `%APPDATA%\Adobe\After Effects\27.0`.
+  - `app.themeColor` is retired ("Use getAppTheme, getUseReducedContrast, and
+    getAllowedAppThemes"). Those three are **properties**, not functions:
+    `app.getAppTheme`, `app.getUseReducedContrast` (a boolean) and `app.getAllowedAppThemes`
+    (`[light, dark, darkest]`).
+  - Everything in the morph fixer's test passes unchanged from 2026. The real-type set and
+    the mask cases pass too.
+- **2026** (26.x): the version the flock rig, the field effector and morph fixer rounds 1–3
+  were built and tested in.
+
+## Lessons
+
+<!-- date · experiment · one-line lesson -->
+- 2026-11-21 · ae-flock-rig · A spring from every agent to one leader point squeezes a
+  flock into a ball when tightened: give it a dead zone the size of the flock, and let the
+  flock aim ahead on the leader's path (`Lead`) so the null sits inside it.
+- 2026-11-21 · ae-flock-rig · Orientation from velocity jitters (p95 16° a frame): cap the
+  turning rate in the simulation itself (sideways acceleration ≤ speed × ω), smooth the
+  heading, and trust it less when the motion is mostly towards the camera.
+- 2026-11-21 · ae-field-effector · A live rig that moves layers by a rule measured at their
+  position: keep Position free, move them through the Anchor Point corrected by their
+  rotation, scale and parent, and compute the weight once in a slider every channel reads.
+- 2026-11-21 · ae-field-effector · A mock of AE's expression objects is only a test if it
+  behaves like AE: Property objects that convert in arithmetic but fail `===`. The bare-number
+  mock passed code in which every checkbox read as on.
+- 2026-11-21 · ae-field-effector · Values right but the render empty: bisect with `aerender`
+  on saved project variants (one feature switched off each); here a Fill at 0 % hid every layer.
+- 2026-11-21 · ae-morph-fixer · AE morphs a path by blending every vertex and handle in a
+  straight line (checked to 0.002 px), so a smooth point stays smooth halfway only if its
+  handle-length ratio matches in both keys: rebuild every key at shared outline fractions
+  with handles = arc / 3, corners pinned; keeping or splitting the drawn points can't.
+- 2026-11-21 · ae-morph-fixer · AE stores path points as 32-bit floats; on a symmetric shape
+  that rounding is enough to pick another, equally good, alignment. Compare AE with Node on
+  the keys AE actually holds, not on the values you wrote.
+- 2026-11-21 · ae-morph-fixer · A cheap check inside a loop (the rebuild's tolerance) must be
+  validated against a slow, exact one in Node on hostile inputs; it under-read by 15 % on
+  tight bends until it looked both ways, sampled the original densely and caught folds.
+- 2026-11-22 · ae-morph-fixer · A shape that turns between keys shrinks through the middle
+  (straight lines: an F at 45° has half its area). Take the turn out of the keys and swing
+  the shape, each step turning about its own fixed point, on the arc a hand-made turn would
+  take. Decide "it turns" only against a plain match that is really off, or holds spin on
+  noise. (It first went into the group's Rotation; since round 6 it goes into the path.)
+- 2026-11-22 · ae-morph-fixer · A tool for end users installs itself: name the file the way
+  the tool should be called (the Window menu shows it), give a floating run an Install button
+  that copies it into the user's own ScriptUI Panels folder, and test the panel the way a user
+  gets it (restart, Window menu, its own Fix button), then look at it: two of three guide
+  problems (height, invisible bold) only showed in a screenshot.
+- 2026-11-22 · ae-morph-fixer · Promise a time only from timings inside AE: ExtendScript ran
+  the fix about 300x slower than Node, and the same job size varies 10x with how much the
+  rebuild must add. Fit the estimate to an AE bench (`bench/ae-bench.jsx`), scale it per
+  machine with a short calibration run, and check it against a real fix.
+- 2026-11-22 · ae-morph-fixer · A tool that changes points must say what it breaks before it
+  does. Ask once, in plain words, with Cancel the default. (Corrected 2026-11-23: the list
+  first included Trim Paths, dashes and text on a mask, but the fix keeps the first key's
+  start, so only what counts points needs a warning.)
+- 2026-11-22 · ae-morph-fixer · A test harness left running in the user's AE is a bug the user
+  sees: the morph fixer's runner fired during a dialog and wedged AE after the work was done.
+  Stop every runner when the tests end, and give it an idle timeout in case you forget.
+- 2026-11-22 · ae-flock-rig · A 2D layer that turns around by squashing its width through
+  zero gives the flatness away when many turn together (a flock diving through vertical:
+  38 % edge-on in one frame). Pointing up or down, mirror at once (only the wings swap
+  side); squash only level turns, floored by a Turn Width slider, with an optional head-on
+  drawing (a `turn` marker in the precomp) for the middle of the turn.
+- 2026-11-22 · ae-flock-rig · Mirrored by −1 at rotation −p and flipped upside down at
+  180° − p draw the same layer: bake whichever keeps rotation continuous, and cap the step
+  per frame (25°), or AE interpolates a 160° spin between keys and motion blur smears it.
+- 2026-11-22 · ae-flock-rig · Controls that read a group's direction (stretch along travel)
+  need an axis (period 180°), held and rate-limited when the group slows; as a direction it
+  jumped 99° in a frame when the flock reversed.
+- 2026-11-22 · ae-flock-rig · Slider names can carry the explanation ("Clumping (+ core, -
+  even)", ≤ 28 characters, AE took all 16); a re-run renames the previous round's names in
+  place so the designer's values survive the upgrade.
+- 2026-11-23 · ae-morph-fixer · Each warning has to earn its place against what the change
+  really does. The morph fixer warned about everything that "starts at the first point",
+  without checking that the first key's start never moves. The user, testing it, got a dash
+  warning on a stroke with no dashes, and doubted the rest. Six of nine warnings went.
+- 2026-11-23 · ae-morph-fixer · Measure a request on real material before building it: "avoid
+  crossovers" showed up in 4 of 223 steps, all type, each fixable by a start 1–2 % round
+  the outline. A sampled heuristic that steers a choice must also survive a second run: pick
+  with a margin (crossing-free neighbours), and let "is it already fixed?" keep the current
+  choice on a tie, or sampling noise makes a second fix change the path.
+- 2026-11-23 · ae-morph-fixer · Test the motion you want, not a shape property that looks like
+  it. "The in-between is mirror-symmetric" passed a swirl: a thin star swirling stays a
+  symmetric shape whose axes turn. Symmetric motion keeps the keys' shared axis in every
+  in-between, and the test asks for that axis.
+- 2026-11-23 · ae-morph-fixer · Split an expensive detector into tiers by intent: a quick, strict
+  test on every fix (here 25 % more time), a thorough, looser one when the user asks for the
+  feature (3.6x). Then check each speed-up against the cases it might drop: two of them lost
+  a plus's axes before a test caught it.
+- 2026-11-23 · ae-morph-fixer · What a start choice can't do is a limit to write down, with the
+  way past it. Evenly spread points can't make a T into an upside-down T symmetric without
+  crossing; corner-to-corner matching (dynamic time warping) can, and it's planned in the
+  morph fixer's README rather than half-built.
+- 2026-11-23 · ae-morph-fixer · What the designer drew is evidence of intent: don't optimise it
+  away. Keys made with Free Transform pair point k with point k turned; least travel ignored
+  that, so a star turned a tip stood still and a gear pulsed. Before replacing a pairing,
+  check whether the keys are an exact transform of each other point for point, and keep it.
+  Probe "what still looks bad" with shapes built the way designers build them (Free
+  Transform, duplicate and turn), not only drawn independently.
+- 2026-11-23 · ae-morph-fixer · A calibration must run what its reference ran. The time
+  estimate scales by a small fix timed against 160 ms measured once; new checks inside that fix
+  made the machine read 3.28x slower and the estimate 3.4x high (25 s for 7.3). Pin the
+  calibration's options, and rerun the estimate test in AE after adding work to the fix.
+- 2026-11-23 · ae-morph-fixer · AE's display names change with its language ("Path 1" is
+  "Pfad 1" in German): a tool finds properties only by internal name (the morph fixer's
+  `build.mjs` fails on a lookup or comparison by display name), and a test names everything
+  it builds itself and checks codes, not English words in messages that quote AE's names.
+- 2026-11-23 · ae-morph-fixer · Test on real artwork, not only on shapes you made up: letter
+  outlines read from the repo's OFL fonts (`art/ttf.mjs`, a 150-line TrueType reader) gave
+  a 20-case regression set. It showed fonts list a letter's pieces in no order, and that big
+  type needs a max of 200–300.
+- 2026-11-23 · ae-morph-fixer · A letter in AE is several paths (outline, holes, an i's dot),
+  and each path morphs to its own next key. With keys pasted from different letters, which
+  piece meets which follows the font's order, not the shape. Match the pieces between keys
+  first (by centre, size, and outline or hole), and let a piece drawn as a dot grow from a
+  tiny copy of itself.
+- 2026-11-23 · ae-morph-fixer · A turn goes into the path itself, one key a frame: masks have
+  no transform, and on shapes the user wanted no transform keyed. Time it by AE's own eased
+  progress read back from the path (custom key speeds come out exactly), and test it against
+  what a group transform would show (equal to 1e-9 in Node). An F then kept 100 % of its area
+  halfway, against 50 % before.
+- 2026-11-23 · ae-morph-fixer · Keys a tool writes for itself must be findable later, or the
+  next run takes them for the designer's: fixing a turned F again read its in-betweens as
+  drawn keys (40 to 530 points). Label them (`setLabelAtKey`) and have every run remove them
+  first and work on the drawn keys. (Then also "and linear"; since round 18 the label alone,
+  and keys the animator moved are kept: see "Keys a tool writes for the animator".)
+- 2026-11-23 · ae-morph-fixer · Read AE's dialogs to the end: the "second script" warning that
+  had cost several restarts says how around it, `-ro` (or `-so`), and `-ro` worked at once.
+- 2026-11-23 · ae-morph-fixer · Click through the real panel by hand before calling a dialog
+  or a progress window done: a Fix anyway button with no handler and a window that outlived
+  its close() both passed every scripted test.
+- 2026-11-23 · ae-morph-fixer · When a by-hand bug won't reproduce in scripts, list what the
+  hand did that the scripts didn't. The stuck progress window needed a click on the busy AE.
+  Two "fixes" built on a guessed cause (a timer closing it later) left 19 windows stacked
+  before an experiment with the click found it.
+- 2026-11-23 · ae-draw-on-rig · Measure what a tool rests on in AE before building on it, in
+  a probe whose numbers become Node fixtures: Trim Paths by arc length, Individually by
+  unscaled length, the group transform's order and signs, which Shape Direction reverses.
+  Two of them (the unscaled share, Direction 3) were not what habit suggests.
+- 2026-11-23 · ae-draw-on-rig · Constant speed across layers means comp pixels: measure every
+  stroke through its groups and `toComp`, bake the lengths into the expressions and keep the
+  timing live on sliders. Check it in AE itself, from the trimmed layers' boxes: 7 kinds of
+  layer (scaled, stretched, parented, skewed group, 3D) within 0.11 % of the speed.
+- 2026-11-23 · ae-draw-on-rig · A tool that passed in Node made every Slider a Checkbox in AE:
+  ExtendScript groups nested `?:` the wrong way. Lint for it, and scan the other tools when a
+  language trap turns up (three of them had it).
+- 2026-11-23 · ae-draw-on-rig · File warnings under what they change, not under each item that
+  triggers them: one Trim Paths over two groups was warned about twice, seen only by hand.
+- 2026-11-23 · ae-flock-rig · Two misread `?:` (a clamp and the speed cap) made every AE bake
+  a different flock from the preview for two rounds, up to 405 px apart, and every AE check
+  passed: they checked that values were plausible, not equal to Node's. Dumping all baked keys
+  and comparing them with the Node sim on the leader AE sampled found it. Since the fix: 0.1 px.
+- 2026-11-23 · ae-morph-fixer · The misread area sign was -1 for every piece, so AE saw no
+  holes. An O into C then turned its hole into the C and shrank the outline to a dot, in the
+  released 0.10.0. Node did it right, and the AE art test passed because it only counted
+  grown pieces. `make-art.jsx` now checks the matching against Node's numbers. Fixed in 0.10.1.
+- 2026-11-23 · ae-flock-rig · ExtendScript's `toPrecision` rounds negative numbers to integers:
+  the first AE dump looked like a mismatch until positives and negatives were compared.
+- 2026-11-23 · ae-flock-rig · "Edge birds fly unreasonably fast when the flock is spread":
+  live shape controls scaled every bird's offset around the centre and turned a stretched
+  shape with the heading. The relative speeds scaled with them, and the tips swung round
+  like a spinning top: up to 9× the flock's speed. Fixed by working on means over a
+  speed-budgeted window, read from baked running sums: never more than 1.6×. Also, the sim
+  let birds fly from 0.4× to 1.6× cruise, so turns spun the formation. A ±12 % band around
+  the flock's mean speed gives the parallel-path turns real flocks make.
+- 2026-11-24 · ae-morph-fixer · A letter's hole is its own path, and AE's non-zero fill paints
+  any part of it the outline no longer surrounds: a hole that closes (or opens) while its
+  letter opens (O into C) is a dark blob in the counter for a few frames. Measure, not by name:
+  "letters that keep their holes have none" held for the five chains tried, but a scan of 656
+  pairs found 14 % of such holes straying halfway (b into e, R into 6). Scan a family of
+  cases before writing a limit or a rule down. (Fixed in round 14: such holes close early,
+  open late or shrink, baked as in-betweens; none of the 656 shows.)
+- 2026-11-24 · ae-morph-fixer · Check a rendered property in AE's own values at every frame,
+  not only the keys the tool wrote: the hole check on `valueAtTime` per frame caught the
+  in-betweens sitting between frames, which every Node test (keys on the frame grid) passed.
+- 2026-11-24 · ae-morph-fixer · Demo a choice against its alternative, side by side: the
+  symmetry part puts the fix without its symmetry rule on the left. Building it found a step
+  the fix left a little lopsided (a start "near enough" to symmetric), which no test had.
+- 2026-11-24 · ae-flock-rig · A baked rig must say when what it was baked from has changed.
+  The user moved the leader's first key in a duplicated comp and the flock stayed 580 px
+  away, which looked like a bug. Bake the input too (the leader's path on a Point Control),
+  and add a guide text layer whose expressions compare it with the live input. It shows
+  "re-run in this comp" and by how much, and is never rendered.
+- 2026-11-24 · ae-flock-rig · Test flags on `$.global` outlive the script in the user's AE
+  session. My runner left `FLOCK_NO_UI = true`, so the user's own run of Flock.jsx skipped its
+  dialog and did nothing, silently, right after a fix they wanted to try. A tool must use up
+  its test flag (read it into a local, set it back to false) and a test script must clear
+  its settings as it starts. Check `$.global` read-only when a tool "does nothing".
+- 2026-11-24 · ae-flock-rig · Compare against baked data only at its keys. Between keys AE
+  blends the stored values in a straight line, which cuts a fast curve's corners. A "has the
+  leader moved?" check sampling between keys raised a false 3 px alarm on an unchanged
+  path. Read `key(i).time` and `key(i).value` and compare there, where it is exact.
+- 2026-11-24 · ae-flock-rig · `CompItem.saveFrameToPng(t, file)` (AE 27) writes the PNG after
+  the script that called it ends. Waiting for the file inside the script, or removing the
+  comp first, gets nothing. Render from one script, clean up from a second one.
+- 2026-11-24 · ae-flock-rig · After Effects' expressions run plain code ~300× slower than V8
+  (AE 27: a 2M-iteration loop took 5 s in an expression, 0.5 s in ExtendScript, 16 ms in
+  Node). An exact live re-run of the flock in an expression took 17–47 s a frame. Measure a
+  loop inside AE before putting heavy code in an expression: keep expressions to tens of
+  thousands of operations a frame (the flock guess: one average bird, 20–30 ms). And print
+  the value a benchmark returns, because one that came back in 0 ms hadn't run.
+- 2026-11-24 · ae-flock-rig · Never write a script for AE through a shell heredoc: the shell
+  collapsed `\` in a regex, and AE showed the user a modal "Unterminated string constant".
+  Write the file directly, and parse every script in Node (`new Function(src)`) before
+  sending it. A syntax error is a dialog no try/catch can stop.
+- 2026-11-25 · ae-morph-fixer · Before writing a key a frame, ask what the blend between two
+  keys already gives: a key of nothing blended with a shape scales it exactly, so a hole that
+  shrinks away needs one key (eased), not 25, and the animator can drag it; a turn needs a key
+  every ~15 deg (the blend of two turned copies squashes). Fewer keys are the tweakable
+  version: write the phase boundaries, read every other frame back, and fall back to a key a
+  frame only where a frame misses the margin.
+- 2026-11-25 · ae-morph-fixer · "Inside by a pixel" is a bug the user sees: a hole that only
+  just stays inside its letter, closing as late as it can or shrinking "just enough", reads as
+  one about to break out. Keep a margin relative to the drawing (half the ink a hole has round
+  it at its keys), and when a blend can't keep it, change technique rather than squeeze: the
+  user's own suggestion, shrink to nothing, pause, regrow in the new place, staggered ahead of
+  the letter for a hole that closes (the O's hole gone before the O turns into a C), looked far
+  better than any minimal fix. Measure the margin by true distance in the tests, not by the
+  same pad the fix uses.
+- 2026-11-25 · ae-morph-fixer · The user works in the same After Effects as the tests. A runner
+  left with jobs queued (its timer dead) woke during their dialog and showed them a modal
+  error, and a silent ten-minute wait made them stop a test twice. Hand-over first, AE in
+  front, progress every minute, the runner stopped at the end.
+- 2026-11-25 · ae-morph-fixer · Read what the animator meant from what they left, not from a
+  record of what the tool wrote: AE keys carry no notes, but a turn key's angle says how far
+  through the turn it stands, so a second Fix redraws it there, at the time and easing the
+  animator gave it. Untouched keys come back the same, so the tool never needs to know which
+  ones were moved.
+- 2026-11-25 · ae-morph-fixer · A grid hashed by a distance taken from the data needs a floor:
+  a 2-point key had no neck at all (~1e-16), its cell numbers passed 2^53, and `gx++` stopped
+  changing `gx`: the test suite hung for 10 minutes on one random shape. Count cells from the
+  data's own corner and skip the check when the scale is degenerate. And a choice made on
+  samples (a start that keeps clear) can still go wrong between them on the rebuilt path:
+  check the final paths of any step it moved, and undo the move if they cross.
+- 2026-11-25 · ae-morph-fixer · To pair two outlines for a morph, pair them by what they are,
+  not by how far round: dynamic time warping over samples of both (every start), where a
+  stretch of one may pair with a single point of the other, priced by travel plus how much
+  each little piece turns (growing or shrinking along itself a tenth of that). Pieces then
+  slide, grow and shrink instead of swinging round (a T into an upside-down T becomes an
+  I-beam; u into n stops crossing itself). Pairing corners with corners and spreading the
+  rest evenly wasn't enough (the T still folded), and no price ranked a hand-made "bar slides
+  through the stem" first: render the candidates and look, the cost function is a guess.
+  Then look at the in-betweens of a real render, not the sheet of key frames: short stretches
+  collapsing to a point left little teeth only visible there.
+- 2026-11-25 · ae-morph-fixer · "A second fix changes nothing" can't be asked of a search that
+  runs again on its own output: the rebuilt keys differ by a tolerance, so the search finds
+  another optimum or rejects the old one. Judge the output by a yardstick it can't move: here,
+  "pairs cleanly and costs at most twice the best pairing from these same starts". And tests
+  that load a build must build first: a check failed on a change that was fine, because the
+  panel's copy of the math was the old one.
+- 2026-11-26 · ae-morph-fixer · Node's ratio doesn't carry to ExtendScript: a feature that made
+  fixes 4-5 times slower in Node made them 6-18 times slower inside After Effects (big arrays,
+  table-filling loops and repeated searches cost far more there than the rest of the code), and
+  the full demo test ran 19 minutes instead of 2 while the user waited. Before a full AE test
+  of new heavy code, send a one-minute job that times each part in AE (`bench/warp-parts.jsx`):
+  it showed at once that the waste was four failed tries with a slow search each, which Node's
+  profile ranked low. If it stays slow, make it an option the animator turns on (the user: "off
+  by default").
+- 2026-11-26 · ae-morph-fixer · The user ranks graceful, intentional, symmetric motion far above
+  short paths ("synchronized swimmers, not mail carriers"): when a tool chooses between
+  motions, make travel the tie-breaker, not the goal, and default options toward symmetry.
+  Symmetric means every arm in unison, not just one mirror axis: a star mirrored about one axis
+  flattened its top point while the others turned. Build it in (pair one slice between two
+  axes, mirror it round) rather than checking for it after; and measure it as the distance from
+  mirrored points to the outline about the area centre: nearest samples and the samples' mean
+  read a perfect I-beam as 12 px off.
+- 2026-11-26 · ae-morph-fixer · A new general rule ("clean over short": any start that keeps the
+  morph from pinching or collapsing) silently overrode the user's stated priority (symmetry)
+  in exactly the cases the user cares about, and the tests passed because I had rewritten the
+  one that caught it as an "outdated premise". When a rule widens what the tool may choose,
+  re-check every priority the user stated against it, on the sheet, not just the counts.
+  And a stand-in check (crossings on arc-length samples, on the nearest grid step) must not
+  veto what the user asked for on its own: confirm on the final paths before giving it up.
+- 2026-11-26 · ae-morph-fixer · **Compare After Effects times only within one session, back to
+  back.** Against the committed times of the round before, round 20 read 1.3 to 3.3 times slower
+  in an AE open 21 hours, and still 1.1 to 2.1 after a restart; the old round's own build, run
+  through the same test in the same session (git archive into out/, build there, point
+  MORPH_DIR at it), put it at 1.11. The old committed times don't come back on another day
+  (4.3 s then, 5.1 s now, same code), and the demo's calibration factor didn't catch it.
+  Suspect a slowdown first by timing the math alone inside AE, old code against new.
+- 2026-11-27 · ae-flock-rig · "The leader is following the flock": each bird was pulled to the
+  leader with a dead zone the size of the flock, so where the leader sat in the flock was
+  left to chance. Measured, it was behind the centre 56–100 % of the time. To place a group
+  relative to its driver, steer the group's centre with one shared force: a damped spring
+  to a target on the driver's own path, a set arc length behind it. Hold the members to the
+  centre separately. The leader then sits 1.2 radii ahead, behind the centre 0–2 % of the
+  time, and a one-body guess of the centre follows the real flock more closely.

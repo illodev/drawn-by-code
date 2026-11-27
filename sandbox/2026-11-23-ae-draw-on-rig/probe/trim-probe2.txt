@@ -1,0 +1,47 @@
+bez1.end5 = [0, 0, 10, 0]
+bez1.end25 = [0, 0, 50, 0]
+bez1.end50 = [0, 0, 100, 0]
+rect1.end5 = [100, -50, 0, 30]
+rect1.end25 = [50, -50, 50, 100]
+rect1.end50 = [-100, -50, 200, 100]
+ell1.end5 = [0, -50, 24.16, 1.47]
+ell1.end25 = [0, -50, 100, 50]
+ell1.end50 = [0, -50, 100, 100]
+bez2.end5 = [0, 0, 10, 0]
+bez2.end25 = [0, 0, 50, 0]
+bez2.end50 = [0, 0, 100, 0]
+rect2.end5 = [100, -50, 0, 30]
+rect2.end25 = [50, -50, 50, 100]
+rect2.end50 = [-100, -50, 200, 100]
+ell2.end5 = [0, -50, 24.16, 1.47]
+ell2.end25 = [0, -50, 100, 50]
+ell2.end50 = [0, -50, 100, 100]
+bez3.end5 = [100, 90, 0, 10]
+bez3.end25 = [100, 50, 0, 50]
+bez3.end50 = [100, 0, 0, 100]
+rect3.end5 = [70, -50, 30, 0]
+rect3.end25 = [-50, -50, 150, 0]
+rect3.end50 = [-100, -50, 200, 100]
+ell3.end5 = [-24.16, -50, 24.16, 1.47]
+ell3.end25 = [-100, -50, 100, 50]
+ell3.end50 = [-100, -50, 100, 100]
+bez.props = ADBE Vector Shape Direction=1, ADBE Vector Shape=shape
+round.end1 = [100, -30, 0, 5.66]
+round.end2 = [100, -30, 0, 11.31]
+round.end5 = [100, -30, 0, 28.28]
+round.end10 = [100, -30, 0, 56.57]
+round.end25 = [30, -30, 70, 80]
+round.end50 = [-100, -30, 200, 80]
+scaled.end10 = [0, 0, 80, 100]
+scaled.end25 = [0, 0, 200, 100]
+scaled.end40 = [0, 0, 200, 100]
+scaled.end50 = [0, 0, 200, 100]
+scaled.end60 = [0, 0, 200, 100]
+scaled.end75 = [0, 0, 200, 100]
+idiom.groupIndex = 5 error=
+idiom.layerControl = 42 error=
+idiom.override = 50
+idiom.restored = 100 keys=2
+idiom.enabled = false canSetEnabled=true
+error.idioms = invalid numeric result (divide by zero?) (line 200)
+done = true

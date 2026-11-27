@@ -1,0 +1,112 @@
+// build.mjs · joins flock-sim.js and flock-ae.jsx into Flock.jsx, the one file a designer
+// drops into After Effects (File > Scripts > Run Script File, or the Scripts folder), and
+// pastes flock-math.js (comments stripped) where the expressions are written.
+//
+//   node sandbox/2026-11-21-ae-flock-rig/build.mjs
+//
+// It also lints for what ExtendScript (ES3) cannot parse, since a syntax error there only
+// shows up as an alert inside After Effects, and checks that flock-math.js is ASCII (it
+// goes into every bird's expressions).
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const dir = path.dirname(fileURLToPath(import.meta.url));
+const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8').replace(/\r\n/g, '\n');
+const sim = read('flock-sim.js');
+const math = read('flock-math.js');
+const ae = read('flock-ae.jsx');
+
+// words ES3 reserves (even as property names) that modern JS does not
+const RESERVED = /\b(abstract|boolean|byte|char|double|final|float|goto|implements|int|interface|long|native|package|private|protected|public|short|static|synchronized|throws|transient|volatile)\b/;
+
+// ExtendScript reads a ? b : c ? d : e as (a ? b : c) ? d : e (measured in AE 27: true ? 1 :
+// false ? 2 : 3 is 2; V8 says 1): a ?: nested in another's branches must be in parentheses.
+// Per line, strings blanked. Round 3 found two here (clamp, the speed clamp).
+function nestedTernary(code) {
+    const open = [];     // per bracket depth: 0 none, 1 after ?, 2 after its :
+    let depth = 0;
+    open[0] = 0;
+    for (const ch of code) {
+        if ('([{'.includes(ch)) open[++depth] = 0;
+        else if (')]}'.includes(ch)) depth = Math.max(0, depth - 1);
+        else if (ch === ',' || ch === ';') open[depth] = 0;
+        else if (ch === '?') {
+            if (open[depth] === 2) return true;
+            open[depth] = 1;
+        } else if (ch === ':' && open[depth] === 1) open[depth] = 2;
+    }
+    return false;
+}
+
+const problems = [];
+// make-demo.jsx also runs in After Effects: linted, not joined
+for (const [file, src] of [['flock-sim.js', sim], ['flock-math.js', math], ['flock-ae.jsx', ae], ['make-demo.jsx', read('make-demo.jsx')]]) {
+    src.split('\n').forEach((line, n) => {
+        const code = line.replace(/\/\/.*$/, '').replace(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g, "''");
+        if (nestedTernary(code)) problems.push(`${file}:${n + 1}: nested ?: without parentheses (ExtendScript groups it the wrong way): ${line.trim()}`);
+        const hits = [
+            [/\b(let|const|class)\s/, 'let/const/class'],
+            [/=>/, 'arrow function'],
+            [/`/, 'template literal'],
+            [/\.(forEach|map|filter|reduce|some|every|includes|find)\(/, 'ES5+ array method'],
+            [/\b(JSON|Object\.keys|Array\.isArray|Math\.(sign|hypot|trunc|imul|cbrt))\b/, 'ES5+ global'],
+            [/,\s*[}\]]/, 'trailing comma'],
+            [RESERVED, 'ES3 reserved word'],
+        ];
+        for (const [re, what] of hits) if (re.test(code)) problems.push(`${file}:${n + 1}: ${what}: ${line.trim()}`);
+        if (file === 'flock-math.js' && /[^\x00-\x7f]/.test(line)) problems.push(`${file}:${n + 1}: non-ASCII (it goes into expressions)`);
+    });
+    // multi-line trailing commas
+    const flat = src.replace(/\/\/.*$/gm, '');
+    if (/,\s*\n\s*[}\]]/.test(flat)) problems.push(`${file}: trailing comma before a closing bracket on the next line`);
+}
+if (problems.length) {
+    console.error('ES3 problems:\n' + problems.join('\n'));
+    process.exit(1);
+}
+
+// what goes into the expressions: no comments, no blank lines
+const MATH = math.split('\n').map((l) => l.replace(/\s*\/\/.*$/, '')).filter((l) => l.trim()).join('\n');
+new Function(MATH); // syntax check
+// the simulation too, for the preview's live re-run (one expression, viewer only)
+const SIM = sim.split('\n').map((l) => l.replace(/\s*\/\/.*$/, '')).filter((l) => l.trim()).join('\n');
+if (/[^\x00-\x7f]/.test(SIM)) {
+    console.error('build: flock-sim.js has non-ASCII code outside comments (it goes into an expression)');
+    process.exit(1);
+}
+if (typeof new Function(SIM + '\nreturn FlockSim;')().run !== 'function') {
+    console.error('build: flock-sim.js without its comments does not define FlockSim.run');
+    process.exit(1);
+}
+const body = ae
+    .replace("var FLOCK_MATH = '';", 'var FLOCK_MATH = ' + JSON.stringify(MATH) + ';')
+    .replace("var FLOCK_SIM = '';", 'var FLOCK_SIM = ' + JSON.stringify(SIM) + ';')
+    .replace('var FLOCK_SKIP_UI =', '$.global.FlockRig = FlockRig;\nvar FLOCK_SKIP_UI =');
+if (body.indexOf('$.global.FlockRig = FlockRig;') < 0) {
+    console.error('build: the run block (var FLOCK_SKIP_UI) was not found in flock-ae.jsx');
+    process.exit(1);
+}
+if (body.indexOf('var FLOCK_MATH = "') < 0) {
+    console.error('build: the FLOCK_MATH placeholder was not found in flock-ae.jsx');
+    process.exit(1);
+}
+
+const version = (/version: (\d+)/.exec(sim) || [])[1];
+if (!version) {
+    console.error('build: no version in flock-sim.js');
+    process.exit(1);
+}
+const out = [
+    `// Flock.jsx (version ${version}) · a flock that follows a leader null, baked into native After Effects layers.`,
+    '// Generated by build.mjs from flock-sim.js + flock-ae.jsx + flock-math.js: edit those, then rebuild.',
+    '// Usage: README.md next to this file.',
+    '(function () {',
+    sim,
+    body,
+    '})();',
+    '',
+].join('\n');
+new Function(out.replace(/\$\.global/g, '({})')); // syntax check only, nothing runs
+fs.writeFileSync(path.join(dir, 'Flock.jsx'), out);
+console.log(`Flock.jsx (version ${version}) · ${out.length} bytes · expression math ${MATH.length} bytes`);

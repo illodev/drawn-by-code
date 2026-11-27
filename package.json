@@ -12,6 +12,7 @@
     "mix": "node engine/mix.mjs"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-web": "^0.83.2",
     "playwright-core": "^1.55.0"
   }
 }

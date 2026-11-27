@@ -1,0 +1,59 @@
+After Effects 27.0x78, Constant Speed Draw-On 0.1.0
+ok   Same duration: 13 strokes keyed
+Apply: Draw-On: 13 strokes, 1.99 s at 4,300 px/s
+ok   Apply rigs all 13 strokes · Draw-On: 13 strokes, 1.99 s at 4,300 px/s / 1. Word > d: 1,247 px (2 paths)
+2. Word > r: 701 px
+3. Word > a: 1,065 px (2 paths)
+4. Word > w: 1,137 px
+5. Swash > Underline: 1,190 px
+6. Lasso > Loop: 2,651 px, stretched (kept even)
+7. Sparkles > Tick 1: 26 px
+8. Sparkles > Tick 2: 42 px
+9. Sparkles > Tick 3: 26 px
+10. Sparkles > Tick 4: 26 px
+11. Sparkles > Tick 5: 42 px
+12. Sparkles > Tick 6: 26 px
+13. Star > Star: 400 px, your Trim Paths
+ok   the default timing is One after another (not every stroke was keyed) · 2
+ok   no expression errors after Apply · 
+ok   Drawing time = the fitted duration · 4.42000007629395
+speed used 1940.812 px/s, drawing time 4.42 s
+ok   lengths measured in AE = the spec composed in plain math (worst 0 %) · 1246.622, 700.6, 1065.266, 1136.586, 1190.041, 2651.282, 25.999, 41.991, 26.004, 26.004, 42.003, 25.991, 400.001
+ok   only the lasso (a stretched group) carries a stretch table · 1
+ok   speed test: Apply rigs 7 strokes · Draw-On: 7 strokes, 2.06 s at 1,500 px/s
+speed test at 300 px/s:
+     plain 400 px: 299.944-300.119 px/s
+     layer 50 % 200 px: 299.944-300.119 px/s
+     layer 150 x 70 %, turned 600 px: 299.944-300.119 px/s
+     parented 320 px: 299.944-300.119 px/s
+     group stretched and skewed 809.92 px: 299.944-300.119 px/s
+     3D, turned 50 deg 259.21 px: 299.719-300.314 px/s
+     two paths in a group 500 px: 299.944-300.119 px/s
+ok   every pen tip moves at the speed, in every layer (worst 0.105 %) · 0.105 %
+ok   speed test: no expression errors · 
+Update: Updated Draw-On: 13 strokes, 4.42 s at 1,941 px/s
+ok   Update with nothing moved rewrites nothing
+ok   renaming the controls layer changes nothing (Layer Controls, not names) · 100 / 100
+ok   a stroke keyed by the designer: My own start times is the default · 4
+ok   the default speed is the designer's own (330 px/s for 400.001 px in 1.2 s)
+ok   it starts at its first key: half drawn at 0.4 s + half its time · 50.0014008754041
+ok   nothing drawn before its first key
+ok   a Trim Paths over the strokes: asked first (code off) · off
+ok   one Trim Paths cutting two strokes is one warning, not one per stroke · 1
+ok   cancelled: nothing changed
+ok   accepted: one stroke per group, the Trim Paths above them switched off · Draw-On: 2 strokes, 2 s at 400 px/s, 1 warning (hover)
+ok   a selected Trim Paths: one stroke over both groups, now Individually · Draw-On 2: 1 stroke, 2 s at 400 px/s, 1 warning (hover)
+ok   no expression errors · 
+ok   Remove: the switched-off Trim Paths is back on, its marker gone
+ok   Remove: the selected Trim Paths is as it was (Simultaneously, keys, no expression)
+ok   Remove: no rig, no Layer Control, no added Trim Paths left · 2
+ok   Remove one stroke: the star's own keys are back · Removed 1 stroke
+ok   Remove one stroke: 12 strokes left in the rig
+ok   Remove one stroke: the star's layer has no Layer Control left
+ok   Remove the rig: only the star's own Trim Paths is left, no controls · 1 / Removed 12 strokes and Draw-On
+ok   panel: built docked
+ok   panel ?: guide size 452 x 788 px
+
+all passed
+
+all passed
