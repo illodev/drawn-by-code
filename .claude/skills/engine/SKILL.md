@@ -46,8 +46,9 @@ back here, to the skills; only the client's material stays there.
 
 Utilities in `engine/core.js`: `Motion.rng(seed)`, `noise1`, `sprite(key, box,
 scale, draw)`, `shotAt`, `pulse(t, bpm)`, `beatIndex`, `onBeat`, `cam(g, env, cx, cy,
-zoom, rot)`, `shake`, `keys([[t, v], …], t)`; and `Ease.seg/inOut/out/in/back/elastic/bump/
-pop/lerp/lerpPt`. `Motion.layer(env, name, fn)` paints a shot on a separate canvas
+zoom, rot)`, `shake`, `keys([[t, v, ease?], …], t)`, `stagger`, `seq` (see «Timing»); and
+`Ease.seg/inOut/out/in/back/elastic/bump/pop/lerp/lerpPt` plus the GSAP families
+(`Ease.power3.out`, `Ease.get('back.out(2)')`) and `Ease.spring` (see «Timing»). `Motion.layer(env, name, fn)` paints a shot on a separate canvas
 (at output size) and `Motion.drawLayer` pastes it: for transitions and mirrors. The local-time pattern is `const u = Ease.out(Ease.seg(t, 2.0, 2.6))`.
 `Motion.quad(g, src, [tl, tr, br, bl], n, box, { bend })` maps an image onto any
 quadrilateral (triangle-subdivided affine), with an optional bend: paper in perspective,
@@ -56,6 +57,102 @@ a page turning, a note flipping over.
 **Animating on twos:** hand animation changes drawing every 1/12 s. Index per-drawing
 tables with `const d = Math.floor((t - t0) * 12 + 1e-6)` and hold the drawing between;
 smooth curves look wrong next to a reference animated on twos.
+
+## Timing
+
+GSAP's curves, stagger and timeline placement, plus a physical spring with anime.js's
+parameters, ported to `core.js` as pure functions:
+they only turn `t` into numbers, so frames stay a pure function of t. The eases are the
+same formulas as GSAP 3.15 (checked sample by sample), so a curve named in a brief, a
+GSAP snippet or an After Effects habit means the same thing here.
+
+**Eases.** `Ease.get(spec)` takes a function or a string and caches it (cheap per frame):
+`'power1'…'power4'` (quad…quint), `'sine'`, `'expo'`, `'circ'`, `'bounce'`, `'back'`,
+`'elastic'`, each `.in` / `.out` / `.inOut` (no type = `.out`, as in GSAP); `'none'`;
+`'back.out(2.2)'` (overshoot), `'elastic.out(1.2, 0.4)'` (amplitude, period); `'steps(6)'`;
+`'cubic-bezier(.2, .8, .2, 1)'` (CSS / Figma / AE values); `'wiggle(5)'`,
+`'wiggle.inOut(4)'` (oscillates and returns to 0: multiply by an amplitude). The families
+are also plain objects: `Ease.power3.out(x)`. The old short names keep their values:
+`Ease.in/out/inOut` are power2 (cubic), `Ease.back` is `back.out(1.7)`, `Ease.elastic` is
+`elastic.out(1, 0.3)`. Names and arguments are checked: a typo throws, it never falls back
+to linear.
+
+| The move | Curve |
+|---|---|
+| Something arrives and settles (entrances, a label landing) | `power2.out` – `power3.out`; `expo.out` for a snappy UI feel |
+| Something leaves (exits off frame) | `power2.in`, shorter than its entrance (≈ 70 %) |
+| A to B with both ends on screen | `power2.inOut`; `sine.inOut` when it should feel soft |
+| Icons, badges, buttons popping in | `back.out(1.4–2)` (more overshoot = more playful) |
+| Something with weight that lands and settles (cards, a logo, panels, a caught throw) | `spring(0.2–0.4, 0.4–0.6)`; `spring(0, …)` when it must not overshoot |
+| Something springy, small and playful | `elastic.out(1, 0.4–0.5)`, sparingly |
+| A fall that lands | `bounce.out`, or real physics |
+| Camera moves, slow drifts, breathing loops | `sine.inOut` / `power1.inOut`, never back or elastic |
+| Constant motion: wheels, tickers, progress bars | `none` |
+| Stop-motion, hand-made styles | `steps(n)` or the on-twos tables above |
+
+Starting durations at 24 fps: small elements 0.25–0.4 s, medium 0.4–0.6 s, full-frame
+0.6–1 s, camera 1–3 s. A style's skill and the review loop override these.
+
+**Keys with their own ease.** `Motion.keys([[0, 0], [0.5, 120, 'back.out(2)'], [1.4, 80, 'sine.inOut']], t)`:
+a third entry shapes the segment that arrives at that key; the rest use the default
+(`Ease.inOut`). Two-entry keys behave as before.
+
+**Stagger.** `Motion.stagger(i, n, { each: 0.05, from: 'center' })` → item i's delay in
+seconds. `from`: `'start'`, `'center'`, `'end'`, `'edges'`, `'random'` (fixed by `seed`), an
+index, or `[fx, fy]` with `grid: [rows, cols]` (`axis: 'x' | 'y'` keeps one axis). `amount`
+is the total spread instead of `each`; `ease` bunches the delays (`'power2.in'`). One
+difference from GSAP, on purpose: `each` is always the gap between neighbours. GSAP
+doubles it when `from` is `'center'`.
+
+**Sequences.** Build once (in `setup` or at the top of scene.js), read in `draw`:
+
+```js
+const tl = Motion.seq([
+    ['title', 0.6],                                   // at the end so far (0)
+    ['sub', 0.5, '-=0.2'],                            // overlaps title by 0.2 s
+    ['icon', 0.4, '<0.1'],                            // 0.1 s after sub starts
+    ['dots', 0.3, '>', { n: 5, stagger: { each: 0.05, from: 'center' }, ease: 'back.out(1.6)' }],
+    { label: 'outro', at: '+=0.8' },                  // a hold, then a label
+    ['fade', 0.5, 'outro'],
+], { start: 1.0, ease: 'power3.out' });               // seq default ease; GSAP's is power1.out
+
+const u = tl.u('title', t);                           // eased 0..1
+const d = tl.u('dots', t, null, i);                   // copy i of the group
+const [a, b] = tl.span('sub');                        // seconds, for anything else
+```
+
+`at` is GSAP's position parameter: a number (seconds from `start`), `'+=x'` / `'-=x'` from
+the end so far (`'-=25%'` of the item's own duration), `'<'` / `'>'` the previous item's
+start / end with an offset (`'<0.2'`, `'>-0.1'`, `'<50%'`), a label (`'outro+=0.3'`).
+Omitted = the end so far, not the end of the previous item, as in GSAP. Placement is
+checked against a paused GSAP timeline. Overlap is what makes motion read as one
+gesture: start the next piece before the last one settles (`'-=0.15'`, `'<0.1'`) instead
+of chaining them end to end. `tl.end` is the sequence's last second, which helps with
+`duration` and the shot list.
+
+**Springs.** `Ease.spring({ bounce, duration, velocity })` (or `{ mass, stiffness, damping }`,
+anime.js's parameters) is a damped spring solved in closed form, so frames can be asked in
+any order. `duration` is the time of one swing, about when it looks arrived; `bounce` 0 =
+no overshoot, 0.3 ≈ 5 %, 0.5 ≈ 16 %, 0.7 ≈ 37 %; below 0 it crawls in (overdamped). Unlike
+`back` and `elastic`, the overshoot and the ringing come from one physical setting, so
+pieces sharing a bounce feel like one material, and `velocity` (distances per second)
+carries a throw into its landing.
+
+```js
+const S = Ease.spring({ bounce: 0.35, duration: 0.5 });
+const x = Ease.lerp(-200, 600, S.at(t - 2.0));               // seconds since it started
+const tl = Motion.seq([['logo', S.settle, 1.0, { ease: S }], ['tag', 0.4, '<0.35']]);
+Motion.keys([[0, 0], [S.settle, 100, S]], t);                // or 'spring(0.35, 0.5)' anywhere an ease goes
+```
+
+`S.settle` is when it stays within 0.01 % of the target: ≈ 1.9 × `duration` up to bounce
+0.3, ≈ 3.5 × at 0.6. Give it as the item's duration so the spring keeps its own timing (a
+squeezed or stretched duration changes how fast it swings). The tail is long and nearly
+invisible, so place what follows from the spring's start (`'<0.35'`), not its end (`'>'`).
+`S.vel(s)` is its speed then, in distances per second: to retarget mid-move without a kink,
+start the next spring with `velocity: S.vel(s) × old distance ÷ new distance`; it also sizes
+motion-blur samples. Checked against an RK4 simulation
+(error < 1e-12) and a rendered check scene.
 
 ## Determinism (golden rule)
 
